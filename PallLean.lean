@@ -1,4 +1,7 @@
 import PallLean.SPDPDefs
+import PallLean.CoeffBridge
+import PallLean.FiniteSPDP
+import PallLean.RestrictionProof
 import PallLean.TuringMachine
 import PallLean.Tseitin
 import PallLean.Compiler
