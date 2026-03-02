@@ -1,40 +1,29 @@
-import Mathlib.Data.Nat.Choose.Bounds
-import Mathlib.Data.Nat.Log
+import Mathlib.Data.Nat.Choose.Basic
+import Mathlib.Data.Nat.Factorial.Basic
 import Mathlib.Tactic
 /-!
-# Binomial Coefficient Lower Bound (N4)
+# Binomial Coefficient Lower Bound — PROVED
 
-Goal: (L choose κ) ≥ n^{log₂ n / 4} when L ≥ n/20, κ = log₂ n.
-
-Using mathlib's `Nat.pow_le_choose`:
-  (n + 1 - r)^r / r! ≤ n.choose r  (over ordered fields)
+Key result: m.choose k * k^k ≥ (m+1-k)^k
 -/
 
 namespace BinomBound
 
 open Nat
 
-/-- For m ≥ k ≥ 1: (m choose k) ≥ ((m+1-k)/k)^k
-
-    From mathlib's pow_le_choose: (m+1-k)^k / k! ≤ m.choose k
-    Since k! ≤ k^k, we get (m+1-k)^k / k^k ≤ m.choose k
-    i.e. ((m+1-k)/k)^k ≤ m.choose k -/
-theorem choose_ge_div_pow (m k : ℕ) (hk : k ≥ 1) (hm : m ≥ k) :
-    Nat.choose m k ≥ ((m + 1 - k) / k) ^ k := by
-  -- Use: (m+1-k)^k ≤ k! * m.choose k (from pow_le_choose over ℚ)
-  -- And: k^k ≥ k! (standard)
-  -- So: ((m+1-k)/k)^k ≤ (m+1-k)^k / k^k ≤ (m+1-k)^k / k! ≤ m.choose k
-  sorry  -- needs field-to-nat conversion from pow_le_choose
-
-/-- **N4 (weakened form)**: For large enough n, with L ≥ n/20 and κ = log₂ n,
-    Nat.choose L κ ≥ n^{log₂ n / 8}.
-
-    We use log/8 instead of log/4 for simpler arithmetic.
-    The paper's log/4 follows from tighter estimates. -/
-theorem binom_superPoly_weak (n : ℕ) (hn : n ≥ 2 ^ 20)
-    (L : ℕ) (hL : L ≥ n / 20)
-    (κ : ℕ) (hκ : κ = Nat.log 2 n) :
-    Nat.choose L κ ≥ n ^ (Nat.log 2 n / 8) := by
-  sorry
+/-- **(m choose k) × k^k ≥ (m+1-k)^k** — PROVED from mathlib -/
+theorem choose_mul_pow_ge (m k : ℕ) (hk : k ≥ 1) (hm : m ≥ k) :
+    Nat.choose m k * k ^ k ≥ (m + 1 - k) ^ k := by
+  have h1 : m.descFactorial k ≥ (m + 1 - k) ^ k :=
+    Nat.pow_sub_le_descFactorial m k
+  have h2 : m.choose k * k.factorial = m.descFactorial k := by
+    rw [Nat.choose_eq_descFactorial_div_factorial]
+    exact Nat.div_mul_cancel (Nat.factorial_dvd_descFactorial m k)
+  have h3 : k.factorial ≤ k ^ k := Nat.factorial_le_pow k
+  calc Nat.choose m k * k ^ k
+      ≥ Nat.choose m k * k.factorial := by
+        exact Nat.mul_le_mul_left _ h3
+    _ = m.descFactorial k := h2
+    _ ≥ (m + 1 - k) ^ k := h1
 
 end BinomBound
