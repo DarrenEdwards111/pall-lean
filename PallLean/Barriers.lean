@@ -1,3 +1,4 @@
+import PallLean.SPDPDefs
 /-!
 # Barrier Immunity
 
@@ -7,8 +8,6 @@ relativization, natural proofs, and algebrization barriers.
 These are NON-LOAD-BEARING — they situate the technique but
 are not used in the separation chain.
 -/
-
-import PallLean.SPDPDefs
 
 namespace Barriers
 

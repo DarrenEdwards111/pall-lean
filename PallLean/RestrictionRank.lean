@@ -1,4 +1,4 @@
-import PallLean.SPDPRankDef
+import PallLean.SPDPDefs
 import PallLean.PDerivEval
 import Mathlib.Tactic
 /-!
@@ -7,20 +7,12 @@ import Mathlib.Tactic
 
 namespace SPDP.Restriction
 
-open SPDP.Concrete PDerivEval MvPolynomial
+open SPDP PDerivEval MvPolynomial
 
 variable {F : Type*} [CommRing F] [Nontrivial F]
 variable {n : ℕ}
 
-noncomputable def evalLin (i : Fin n) (c : F) :
-    MvPolynomial (Fin n) F →ₗ[F] MvPolynomial (Fin n) F where
-  toFun := evalAt i c
-  map_add' := map_add _
-  map_smul' := fun r x => by
-    simp only [RingHom.id_apply, Algebra.smul_def, map_mul]
-    congr 1; exact evalAt_C i c r
-
-/-- iterDerivList on (evalAt p) is always in the image of evalAt -/
+/-- iterDerivList on (evalAt p) is always in image of evalAt — PROVED -/
 theorem iterDerivList_evalAt_in_image (i : Fin n) (c : F)
     (indices : List (Fin n)) (p : MvPolynomial (Fin n) F) :
     ∃ q, iterDerivList indices (evalAt i c p) = evalAt i c q := by
@@ -31,18 +23,16 @@ theorem iterDerivList_evalAt_in_image (i : Fin n) (c : F)
     by_cases hji : j = i
     · subst hji
       rw [pderiv_evalAt_self]
-      have := foldl_pderiv_zero rest
-      rw [this]
+      rw [foldl_pderiv_zero rest]
       exact ⟨0, by simp [evalAt]⟩
     · rw [pderiv_comm_evalAt i j hji c p]
       exact ih (pderiv j p)
 
-/-- R1 sorry: the SPDP subspace containment.
-    The remaining gap: shift monomial m in the restricted ring may not
-    factor as evalAt(m'). Need to show m * evalAt(q') = evalAt(m' * q'). -/
+/-- R1: restriction cannot increase rank.
+    1 sorry: shift monomial factorisation in subspace containment. -/
 theorem restriction_rank_le (κ : ℕ) (p : MvPolynomial (Fin n) F)
     (i : Fin n) (c : F) :
-    spdpRankConcrete κ (evalAt i c p) ≤ spdpRankConcrete κ p := by
+    spdpRank κ (evalAt i c p) ≤ spdpRank κ p := by
   sorry
 
 end SPDP.Restriction
