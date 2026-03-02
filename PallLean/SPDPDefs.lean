@@ -98,21 +98,13 @@ These are fundamental properties of SPDP rank that hold because
 each operation corresponds to a rank-nonincreasing operation on
 the coefficient matrix M_{κ,ℓ}(f). -/
 
-/-- Restriction monotonicity (§2 basic property 3):
-    Setting a variable to a constant cannot increase SPDP rank.
-    Proof: restriction is a linear map on coefficient vectors,
-    so it maps the row space to a subspace of equal or smaller dimension. -/
-axiom restriction_rank_le {n : ℕ} {F : Type*} [CommRing F] [Nontrivial F]
-    (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) (i : Fin n) (c : F) :
-    spdpRank κ ℓ (MvPolynomial.eval₂Hom C (fun j => if j = i then C c else X j) p) ≤
-      spdpRank κ ℓ p
-
-/-- Rename with injective f preserves SPDP rank.
-    Proof: injective rename is a bijection on coefficient vectors. -/
-axiom rank_rename_eq {n m : ℕ} {F : Type*} [CommRing F] [Nontrivial F]
-    (f : Fin n → Fin m) (hf : Function.Injective f) (κ ℓ : ℕ)
-    (p : MvPolynomial (Fin n) F) :
-    spdpRank κ ℓ (rename f p) = spdpRank κ ℓ p
+-- Restriction monotonicity and rename invariance are proved in
+-- RestrictionProof.lean (using CoeffBridge infrastructure).
+-- They are not used directly in the P ≠ NP proof chain but are
+-- fundamental SPDP properties documented here for completeness.
+--
+-- restriction_rank_le: Setting x_i = c cannot increase Γ_{κ,ℓ}
+-- rank_rename_eq: Injective rename preserves Γ_{κ,ℓ}
 
 /-! ## Arithmetic (Theorem 19.1 step) -/
 
