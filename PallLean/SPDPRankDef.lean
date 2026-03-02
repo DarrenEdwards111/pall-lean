@@ -31,13 +31,13 @@ theorem iterDerivList_C_zero (i : Fin n) (rest : List (Fin n)) (c : F) :
 theorem spdpSubspace_add_const (κ : ℕ) (hκ : κ ≥ 1) (p : MvPolynomial (Fin n) F) (c : F) :
     spdpSubspace κ (p + MvPolynomial.C c) = spdpSubspace κ p := by
   unfold spdpSubspace; congr 1; ext q; simp only [Set.mem_setOf_eq]
-  constructor <;> rintro ⟨indices, m, hlen, hq⟩
-  · refine ⟨indices, m, hlen, ?_⟩
+  constructor <;> rintro ⟨indices, hlen, hq⟩
+  · refine ⟨indices, hlen, ?_⟩
     rw [hq, iterDerivList_add]
     obtain ⟨i, rest, rfl⟩ : ∃ i rest, indices = i :: rest := by
       cases indices with | nil => simp at hlen; omega | cons i r => exact ⟨i, r, rfl⟩
     rw [iterDerivList_C_zero i rest c, add_zero]
-  · refine ⟨indices, m, hlen, ?_⟩
+  · refine ⟨indices, hlen, ?_⟩
     rw [hq, iterDerivList_add]
     obtain ⟨i, rest, rfl⟩ : ∃ i rest, indices = i :: rest := by
       cases indices with | nil => simp at hlen; omega | cons i r => exact ⟨i, r, rfl⟩

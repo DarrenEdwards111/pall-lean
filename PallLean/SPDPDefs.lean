@@ -32,13 +32,14 @@ noncomputable def iterDerivList {n : ℕ} {F : Type*} [CommRing F]
     MvPolynomial (Fin n) F :=
   indices.foldl (fun q i => MvPolynomial.pderiv i q) p
 
-/-- The SPDP subspace V_{κ}(p) = span{ m · ∂_S p : |S| = κ } -/
+/-- The SPDP subspace V_{κ}(p) = span{ ∂_S p : |S| = κ }
+    (span of all κ-th partial derivatives — no multiplier) -/
 noncomputable def spdpSubspace {n : ℕ} {F : Type*} [CommRing F]
     (κ : ℕ) (p : MvPolynomial (Fin n) F) :
     Submodule F (MvPolynomial (Fin n) F) :=
   Submodule.span F
-    { q | ∃ (indices : List (Fin n)) (m : MvPolynomial (Fin n) F),
-        indices.length = κ ∧ q = m * iterDerivList indices p }
+    { q | ∃ (indices : List (Fin n)),
+        indices.length = κ ∧ q = iterDerivList indices p }
 
 /-- SPDP rank = dimension of V_{κ}(p) -/
 noncomputable def spdpRank {n : ℕ} {F : Type*} [CommRing F] [Nontrivial F]
