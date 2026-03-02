@@ -1,64 +1,55 @@
 /-!
 # Compilation Model
 
-Pall paper Sections 3, 6, 14: The compiler that converts polynomial-time
+Pall paper Sections 3, 6, 14: The compiler converts polynomial-time
 TM computations into κ-padded polynomials with bounded blocked SPDP rank.
 -/
 
 import PallLean.SPDPDefs
+import Mathlib.Data.MvPolynomial.Basic
 
 namespace Compiler
 
-open SPDP
+open SPDP MvPolynomial
+
+variable {F : Type*} [Field F] [DecidableEq F]
 
 /-! ## Turing Machine Model -/
 
-/-- A deterministic Turing machine running in time T(n) ≤ n^c -/
+/-- A deterministic Turing machine with time bound n^c -/
 structure PolyTimeTM where
   c : ℕ  -- time exponent
-  -- The actual machine is abstracted; we only need the complexity bound
 
-/-- The compilation produces a κ-padded polynomial from a TM + input length -/
-axiom compiled_polynomial (F : Type*) [Field F] (M : PolyTimeTM) (n : ℕ)
-  (params : SPDPParams) (B : BlockPartition (compiler_vars n M.c)) :
-  MvPolynomial (Fin (compiler_vars n M.c)) F
+/-- Number of variables in the compiled polynomial: O(n^{c+1}) -/
+def compilerVars (n c : ℕ) : ℕ := n ^ (c + 1)
 
-/-- Number of variables in the compiled polynomial -/
-axiom compiler_vars (n c : ℕ) : ℕ
+/-- The compiled κ-padded polynomial (abstract for now) -/
+noncomputable def compiledPoly (n : ℕ) (M : PolyTimeTM)
+    (params : SPDPParams) (B : BlockPartition (compilerVars n M.c)) :
+    MvPolynomial (Fin (compilerVars n M.c)) F :=
+  0 -- placeholder
 
-/-- Compiler variables are polynomial in n -/
-axiom compiler_vars_poly (n c : ℕ) : compiler_vars n c ≤ n ^ (c + 1)
+/-! ## P-Side Main Theorem (Theorem 6.1) -/
 
-/-! ## P-Side Main Theorem (Theorem 6.1 / 6.3) -/
+/-- **Theorem 6.1**: For every M ∈ DTIME(n^c), the compiled polynomial
+    has ΓB_{κ,ℓ} ≤ n^{O(1)} at matched parameters.
 
-/-- **Theorem 6.1 (P-side collapse)**: Every polytime computation has
-    polynomial blocked SPDP rank under the canonical compiler gauge.
-
-    For every M ∈ DTIME(n^c) and the canonical (κ,ℓ) = Θ(log n):
-    ΓB_{κ,ℓ}(P_{M,n}) ≤ n^{O(1)}
-
-    This is the universal quantifier over all polytime machines. -/
-axiom p_side_collapse (F : Type*) [Field F] (M : PolyTimeTM) (n : ℕ)
-  (params : SPDPParams) (B : BlockPartition (compiler_vars n M.c))
-  (h_params : params.κ = Nat.log 2 n ∧ params.ℓ = Nat.log 2 n) :
-  ∃ (C : ℕ), SPDPRank F params B (compiled_polynomial F M n params B) ≤ n ^ C
-
-/-! ## Proof ingredients (named arrows from Section 18.1) -/
-
-/-- Profile compression removes κ-dependence (Lemma 5.7) -/
-axiom profile_compression (F : Type*) [Field F] (n : ℕ) (R : ℕ)
-  (h_R : R ≤ (Nat.log 2 n) ^ 3) :
-  -- Number of distinct interface-anonymous profiles is R^{O(1)}
-  ∃ (P : ℕ), P ≤ R ^ 4
-
-/-- Within-profile dimension bound (Lemma 5.11) -/
-axiom within_profile_dim (F : Type*) [Field F] (n : ℕ) :
-  -- Each profile subspace has dimension (log n)^{O(1)}
-  ∃ (d : ℕ), d ≤ (Nat.log 2 n) ^ 6
-
-/-- Width⇒Rank theorem (Theorem 5.16) -/
-axiom width_to_rank (F : Type*) [Field F] (n profiles dim_bound : ℕ) :
-  -- profiles × dim_bound gives the total rank bound
-  profiles * dim_bound ≤ n ^ 10  -- simplified; actual bound is n^{O(1)}
+    Proof ingredients (Section 18.1):
+    1. Profile compression (Lemma 5.7)
+    2. Within-profile dimension bound (Lemma 5.11)
+    3. Width⇒Rank (Theorem 5.16)
+    4. κ-padding (Lemma 3.1)
+-/
+theorem p_side_collapse (n : ℕ) (M : PolyTimeTM)
+    (params : SPDPParams) (B : BlockPartition (compilerVars n M.c))
+    (h_params : params = matchedParams n) :
+    ∃ (C : ℕ), spdpRank (compilerVars n M.c) params B
+      (compiledPoly n M params B : MvPolynomial _ F) ≤ n ^ C := by
+  -- The proof goes through four steps:
+  -- 1. Profile compression: number of profiles ≤ R^{O(1)} where R = polylog(n)
+  -- 2. Each profile contributes dimension ≤ (log n)^{O(1)}
+  -- 3. Total rank ≤ profiles × per-profile dim = n^{O(1)}
+  -- 4. κ-padding doesn't change the asymptotic bound
+  sorry
 
 end Compiler
