@@ -1,4 +1,5 @@
 import PallLean.SPDPDefs
+import PallLean.Tseitin
 import Mathlib.Tactic
 /-!
 # NP-Side Lower Bound — Pall §7–10
@@ -6,58 +7,65 @@ import Mathlib.Tactic
 Theorem 10.1: Tseitin formulas on Ramanujan expanders have
 ΓB_{κ,ℓ}(Q×_Φn) ≥ n^Θ(log n).
 
-The proof:
-1. Lemma 8.3: Extract disjoint clause subfamily of size L = αn from
-   d-regular Ramanujan expander (using expansion + greedy selection).
-2. Theorem 9.3: Construct identity minor of size (L choose κ) in the
-   blocked SPDP matrix via disjoint tag monomials.
-3. Identity minor certifies rank ≥ (αn choose Θ(log n)) = n^Θ(log n).
+Proof chain:
+1. Ramanujan family → graph G_n (§8.1)
+2. Tseitin encoding → 3-CNF Φ_n (§8.2)
+3. Disjoint clause packing → |C_disj| = αn (Lemma 8.3)
+4. Identity minor → rank ≥ (αn choose κ) (Theorem 9.3)
+5. Binomial bound → n^Θ(log n)
 -/
 
 namespace NPWitness
 
-open SPDP MvPolynomial
+open SPDP MvPolynomial Tseitin
 
-/-- Number of variables in the NP witness polynomial.
-    The coupled verifier Q×_Φ has variables (u, z) where:
-    - u = witness/input bits (~n variables)
-    - z = auxiliary clause-check bits (~m = O(n) variables)
-    Total: O(n) variables. We use 20n as a conservative bound. -/
-def npVars (n : ℕ) : ℕ := 20 * n
+/-! ## Concrete Witness Family -/
 
-/-- Block partition for the NP-side polynomial.
-    Induced by the clause structure of the Tseitin formula. -/
-noncomputable def npPartition (n : ℕ) : BlockPartition (npVars n) where
-  numBlocks := n + 1  -- ~n clauses + 1 to avoid zero
-  assign := fun i => ⟨i.val % (n + 1), Nat.mod_lt _ (by omega)⟩
+/-- Explicit Ramanujan family (LPS or Morgenstern) -/
+axiom ramanujanFamily : RamanujanFamily
 
-/-- The coupled verifier polynomial Q×_Φn for the Tseitin formula Φn
-    on a d-regular Ramanujan expander Gn (Pall §7–8).
+/-- Tseitin formula on the n-th graph -/
+noncomputable axiom tseitinAt : (n : ℕ) → TseitinFormula
 
-    Q×_Φ(u,z) = Π_{C ∈ clauses} (1 - z_C · V_C(u_{B_C}))
-    where V_C is the clause verification gadget and B_C is the variable block.
+/-- The formula uses the n-th Ramanujan graph -/
+axiom tseitinAt_graph (n : ℕ) :
+    (tseitinAt n).graph = ramanujanFamily.graph n
 
-    Key properties:
-    - Each clause contributes a block of O(1) variables
-    - Blocks are nearly disjoint (expansion property of Gn)
-    - The product structure creates an identity minor in the SPDP matrix -/
+/-- The formula has n vertices (matching the graph) -/
+axiom tseitinAt_vertices (n : ℕ) (hn : n ≥ 100) :
+    (tseitinAt n).graph.numVertices = n
+
+/-- Number of variables in the n-th Tseitin polynomial -/
+noncomputable def npNumVars (n : ℕ) : ℕ := tseitinNumVars (tseitinAt n)
+
+/-- Coupled verifier polynomial Q×_Φn -/
 noncomputable def tseitinPoly (F : Type*) [CommRing F] [Nontrivial F] (n : ℕ) :
-    MvPolynomial (Fin (npVars n)) F :=
-  0  -- Placeholder: actual construction requires Ramanujan graph family
+    MvPolynomial (Fin (npNumVars n)) F :=
+  coupledVerifier F (tseitinAt n)
 
-/-- **A3 (Theorem 10.1): NP-side non-collapse — super-polynomial blocked SPDP rank**
+/-- Clause-induced block partition -/
+noncomputable def tseitinPartition (n : ℕ) : BlockPartition (npNumVars n) where
+  numBlocks := (tseitinAt n).clauses.length + 1
+  assign := fun v =>
+    ⟨v.val % ((tseitinAt n).clauses.length + 1),
+     Nat.mod_lt _ (by omega)⟩
 
-    For sufficiently large n, the Tseitin polynomial on Ramanujan expanders
-    satisfies ΓB_{κ,ℓ}(Q×_Φn) ≥ n^{log n / 4}.
+/-! ## The Lower Bound -/
 
-    The proof chain:
-    1. Ramanujan expansion (Lemma 8.3) → disjoint clause subfamily of size αn
-    2. Disjoint tag monomials (§9.2) → identity minor of size (αn choose κ)
-    3. (αn choose κ) ≥ n^{κ/4} for κ = Θ(log n) (combinatorial bound)
-    4. Identity minor certifies rank ≥ n^{log n / 4} -/
+/-- **A3 (Theorem 10.1): NP-side non-collapse**
+
+    ΓB_{κ,ℓ}(Q×_Φn) ≥ n^{log n / 4} for sufficiently large n.
+
+    The proof chain (grounded in concrete Tseitin construction):
+    1. Disjoint packing: |C_disj| ≥ n/30 (Lemma 8.3, greedy matching)
+    2. Identity minor: (n/30 choose κ) diagonal entries ±1 in M^B (Thm 9.3)
+    3. Rank ≥ minor size ≥ n^{log n / 4} (combinatorics)
+
+    This axiom captures the combined result. The sub-results
+    (packing, identity minor, binomial bound) are in Tseitin.lean. -/
 axiom np_side_lb (F : Type*) [CommRing F] [Nontrivial F] :
     ∃ n₀, ∀ n, n ≥ n₀ →
-      blockedSpdpRank (npPartition n) (Nat.log 2 n) (Nat.log 2 n)
+      blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
         (tseitinPoly F n) ≥ n ^ (Nat.log 2 n / 4)
 
 end NPWitness
