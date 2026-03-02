@@ -8,3 +8,4 @@ import PallLean.ExtractionProof
 import PallLean.RankProperties
 import PallLean.SPDPRankDef
 import PallLean.BinomBound
+import PallLean.IdentityMinorProof
