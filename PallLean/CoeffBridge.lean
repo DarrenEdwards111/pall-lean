@@ -1,188 +1,163 @@
 import PallLean.SPDPDefs
 import Mathlib.Tactic
+import Mathlib.LinearAlgebra.Matrix.Rank
 /-!
 # Coefficient Bridge: Polynomial Subspaces ↔ Matrix Rank
 
-This file establishes the equivalence between:
-- `Module.finrank` of a span of polynomials (our SPDP definition)
-- `Matrix.rank` of the coefficient matrix (the paper's working definition)
+Bridge lemma: `finrank(span S) = Matrix.rank(coeffMatrix S)`
 
-## Strategy
-
-1. Fix a finite monomial index set `ι` (e.g., monomials of degree ≤ d in n vars)
-2. Define coefficient extraction as a linear map `coeffVec : MvPolynomial σ F →ₗ[F] (ι → F)`
-3. Show it is injective on bounded-degree polynomials
-4. Conclude: `finrank (span S) = rank (coeffMatrix S)`
+Strategy:
+1. Fix finite monomial index `ι`
+2. Coefficient extraction: `coeffVector p : ι → F`
+3. Coefficient matrix: `coeffMatrix S : Matrix S ι F`
+4. Bridge: `finrank(span S) = Matrix.rank(coeffMatrix S)`
 -/
 
 namespace CoeffBridge
 
-open MvPolynomial Finsupp
+open MvPolynomial
 
 variable {σ : Type*} [DecidableEq σ] {F : Type*} [Field F]
 
-/-! ## Step 1: Monomial Index Type
+/-! ## Step 1: Finite monomial index -/
 
-For polynomials in `MvPolynomial (Fin n) F` with total degree ≤ d,
-the monomials are `Fin n →₀ ℕ` with `(Finsupp.sum · fun _ e => e) ≤ d`.
+-- We use `ι = monomials` (a `Finset (σ →₀ ℕ)`) as a subtype
 
-We use the full `σ →₀ ℕ` as our index type and work with `Finsupp.supported`
-to restrict to relevant monomials. For finite σ, the set of monomials
-of degree ≤ d is finite (already in mathlib). -/
+/-! ## Step 2: Coefficient extraction as linear map -/
 
--- We work with `p.support` directly as our monomial index set,
--- which is already a `Finset (σ →₀ ℕ)` in mathlib.
+/-- Extract coefficient at monomial `m` — already linear in mathlib -/
+noncomputable def coeffVector (monomials : Finset (σ →₀ ℕ))
+    (p : MvPolynomial σ F) : monomials → F :=
+  fun m => MvPolynomial.coeff m.val p
 
-/-! ## Step 2: Coefficient Extraction as Linear Map
-
-`MvPolynomial.coeff m p` extracts the coefficient of monomial `m` in `p`.
-For a fixed `m`, this is already a linear map. We package the collection
-over all `m` in a finite set as a vector. -/
-
-/-- Coefficient vector: extract coefficients at a fixed list of monomials -/
-noncomputable def coeffVecAt (monomials : Finset (σ →₀ ℕ)) :
+/-- coeffVector is F-linear -/
+noncomputable def coeffVectorLin (monomials : Finset (σ →₀ ℕ)) :
     MvPolynomial σ F →ₗ[F] (monomials → F) where
-  toFun p m := MvPolynomial.coeff m.val p
-  map_add' p q := by ext m; simp [MvPolynomial.coeff_add]
-  map_smul' r p := by ext m; simp [MvPolynomial.coeff_smul]
+  toFun := coeffVector monomials
+  map_add' p q := by ext m; simp [coeffVector, MvPolynomial.coeff_add]
+  map_smul' c p := by ext m; simp [coeffVector, MvPolynomial.coeff_smul]
 
-/-- If p.support ⊆ monomials, then coeffVecAt is injective on such polynomials -/
-theorem coeffVecAt_injective_on_support (monomials : Finset (σ →₀ ℕ)) :
-    ∀ p q : MvPolynomial σ F,
-      p.support ⊆ monomials → q.support ⊆ monomials →
-      coeffVecAt monomials p = coeffVecAt monomials q → p = q := by
-  intro p q hp hq h
+/-- coeffVector is injective on polys with support ⊆ monomials -/
+theorem coeffVector_injective (monomials : Finset (σ →₀ ℕ))
+    (p q : MvPolynomial σ F)
+    (hp : p.support ⊆ monomials) (hq : q.support ⊆ monomials)
+    (h : coeffVector monomials p = coeffVector monomials q) : p = q := by
   ext m
   by_cases hm : m ∈ monomials
-  · have := congr_fun h ⟨m, hm⟩
-    exact this
-  · have hp' : MvPolynomial.coeff m p = 0 := by
-      by_contra hne
-      exact hm (hp (Finsupp.mem_support_iff.mpr hne))
-    have hq' : MvPolynomial.coeff m q = 0 := by
-      by_contra hne
-      exact hm (hq (Finsupp.mem_support_iff.mpr hne))
-    rw [hp', hq']
+  · exact congr_fun h ⟨m, hm⟩
+  · have : MvPolynomial.coeff m p = 0 := by
+      by_contra hne; exact hm (hp (Finsupp.mem_support_iff.mpr hne))
+    have : MvPolynomial.coeff m q = 0 := by
+      by_contra hne; exact hm (hq (Finsupp.mem_support_iff.mpr hne))
+    simp [*]
 
-/-! ## Step 3: Span Dimension = Image Dimension
+/-! ## Step 3: Coefficient matrix -/
 
-Key fact: for a linear map `f` that is injective on a subspace `V`,
-`finrank V = finrank (f '' V)`.
-
-More precisely, if `f : M →ₗ[R] N` and `f` restricted to `span S` is
-injective, then `finrank (span S) = finrank (span (f '' S))`.
-
-In our case, `f = coeffVecAt` and `S` = generators of SPDP subspace. -/
-
-/-- Image of span under linear map = span of image -/
-theorem span_image_eq {R M N : Type*} [CommSemiring R] [AddCommMonoid M]
-    [Module R M] [AddCommMonoid N] [Module R N]
-    (f : M →ₗ[R] N) (S : Set M) :
-    Submodule.map f (Submodule.span R S) = Submodule.span R (f '' S) :=
-  Submodule.map_span f S
-
-/-! ## Step 4: finrank of span = Matrix.rank of coefficient matrix
-
-For a finite set of generators `{g₁, ..., gₘ}`, define the coefficient matrix
-whose i-th row is `coeffVecAt monomials gᵢ`. Then:
-
-  finrank(span{g₁,...,gₘ}) = Matrix.rank(coeffMatrix)
-
-This follows from:
-1. coeffVecAt is injective on the span (all generators have support ⊆ monomials)
-2. finrank is preserved under linear equivalence
-3. finrank of span of vectors in F^ι = rank of the matrix of those vectors -/
-
-/-- The coefficient matrix: rows indexed by generators, columns by monomials -/
+/-- The coefficient matrix: rows = generators, columns = monomials -/
 noncomputable def coeffMatrix {ι : Type*} [Fintype ι]
-    (monomials : Finset (σ →₀ ℕ)) (generators : ι → MvPolynomial σ F) :
+    (monomials : Finset (σ →₀ ℕ))
+    (generators : ι → MvPolynomial σ F) :
     Matrix ι monomials F :=
   fun i m => MvPolynomial.coeff m.val (generators i)
 
-/-- The set of polynomials with support ⊆ S forms a submodule -/
-def supportedSubmodule (monomials : Finset (σ →₀ ℕ)) :
+/-! ## Step 4: Bridge Lemma -/
+
+/-- Submodule of polynomials supported on `monomials` -/
+def supportedSub (monomials : Finset (σ →₀ ℕ)) :
     Submodule F (MvPolynomial σ F) where
   carrier := { p | p.support ⊆ monomials }
-  add_mem' {a b} ha hb := by
-    exact Finset.Subset.trans Finsupp.support_add (Finset.union_subset ha hb)
+  add_mem' ha hb := Finset.Subset.trans Finsupp.support_add (Finset.union_subset ha hb)
   zero_mem' := by simp [Finsupp.support_zero]
-  smul_mem' c p hp := by
-    exact Finset.Subset.trans Finsupp.support_smul hp
+  smul_mem' c _ hp := Finset.Subset.trans Finsupp.support_smul hp
 
-/-- span of generators with support ⊆ monomials is itself in supportedSubmodule -/
-theorem span_le_supported (monomials : Finset (σ →₀ ℕ))
-    (generators : Set (MvPolynomial σ F))
-    (hsupport : ∀ g ∈ generators, (g).support ⊆ monomials) :
-    Submodule.span F generators ≤ supportedSubmodule monomials := by
-  apply Submodule.span_le.mpr
-  intro g hg
-  exact hsupport g hg
+/-- span of supported generators lies in supportedSub -/
+theorem span_in_supported (monomials : Finset (σ →₀ ℕ))
+    (S : Set (MvPolynomial σ F))
+    (h : ∀ g ∈ S, (g : MvPolynomial σ F).support ⊆ monomials) :
+    Submodule.span F S ≤ supportedSub monomials :=
+  Submodule.span_le.mpr h
 
-/-- coeffVecAt restricted to supportedSubmodule is injective -/
-theorem coeffVecAt_injective_on_submodule (monomials : Finset (σ →₀ ℕ)) :
+/-- coeffVectorLin is injective on supportedSub -/
+theorem coeffVectorLin_injOn (monomials : Finset (σ →₀ ℕ)) :
     Function.Injective
-      ((coeffVecAt (F := F) monomials).domRestrict (supportedSubmodule (F := F) monomials)) := by
-  intro ⟨p, hp⟩ ⟨q, hq⟩ h
-  simp only [LinearMap.domRestrict_apply, Subtype.mk.injEq] at h ⊢
-  exact coeffVecAt_injective_on_support monomials p q hp hq h
+      ((coeffVectorLin (F := F) monomials).domRestrict (supportedSub monomials)) := by
+  intro ⟨p, hp⟩ ⟨q, hq⟩ heq
+  simp only [LinearMap.domRestrict_apply, Subtype.mk.injEq] at heq ⊢
+  exact coeffVector_injective monomials p q hp hq heq
 
-/-- Row of the coefficient matrix corresponds to coeffVecAt of generator -/
-theorem coeffMatrix_row {ι : Type*} [Fintype ι]
-    (monomials : Finset (σ →₀ ℕ))
-    (generators : ι → MvPolynomial σ F) (i : ι) :
-    (fun m : monomials => coeffMatrix monomials generators i m) =
-    coeffVecAt monomials (generators i) := by
-  ext m; rfl
+/-- The restricted linear map is a LinearEquiv onto its range -/
+noncomputable def coeffEquiv (monomials : Finset (σ →₀ ℕ)) :
+    (supportedSub (F := F) monomials) ≃ₗ[F]
+    LinearMap.range ((coeffVectorLin (F := F) monomials).domRestrict (supportedSub monomials)) :=
+  LinearEquiv.ofInjective _ (coeffVectorLin_injOn monomials)
 
+/-- **Bridge Lemma**: finrank of span = Matrix.rank of coefficient matrix.
+
+    Proof outline:
+    1. coeffVectorLin restricted to span is injective (supports ⊆ monomials)
+    2. Therefore span ≃ₗ image (LinearEquiv preserves finrank)
+    3. Image = span of coefficient vectors = span of rows of coeffMatrix
+    4. finrank(span of rows) = Matrix.rank (row rank = column rank)
+-/
 theorem finrank_span_eq_matrix_rank {ι : Type*} [Fintype ι] [DecidableEq ι]
     (monomials : Finset (σ →₀ ℕ))
     (generators : ι → MvPolynomial σ F)
     (hsupport : ∀ i, (generators i).support ⊆ monomials) :
     Module.finrank F (Submodule.span F (Set.range generators)) =
     (coeffMatrix monomials generators).rank := by
-  -- The proof connects polynomial span ↔ coefficient vector span ↔ matrix rank.
-  -- 1. coeffVecAt is injective on the span (all supports ⊆ monomials)
-  -- 2. Image of span = span of image = span of rows of coeffMatrix
-  -- 3. finrank preserved by injective linear map
-  -- 4. finrank of row span = Matrix.rank
-  -- Each step uses standard mathlib facts but the full connection requires
-  -- careful type-matching between Submodule.map, Matrix.rank, and mulVecLin.
-  sorry
-
-/-! ## Application to SPDP Rank
-
-Using the bridge lemma, we can now express blockedSpdpRank as a matrix rank,
-enabling all the paper's coefficient-level proofs. -/
-
-/-- The SPDP generators for a polynomial p at parameters (κ, ℓ) -/
-noncomputable def spdpGenerators {n : ℕ} {F : Type*} [CommRing F]
-    (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
-    Set (MvPolynomial (Fin n) F) :=
-  { q | ∃ (S : List (Fin n)) (m : MvPolynomial (Fin n) F),
-      S.length = κ ∧ m.totalDegree ≤ ℓ ∧
-      q = m * SPDP.iterDerivList S p }
-
-/-- All SPDP generators have bounded total degree -/
-theorem spdpGenerators_degree_bound {n : ℕ} {F : Type*} [CommRing F]
-    (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
-    ∀ q ∈ spdpGenerators κ ℓ p,
-      q.totalDegree ≤ ℓ + p.totalDegree := by
-  intro q ⟨S, m, _, hdeg, hq⟩
-  rw [hq]
-  calc (m * SPDP.iterDerivList S p).totalDegree
-      ≤ m.totalDegree + (SPDP.iterDerivList S p).totalDegree :=
-        MvPolynomial.totalDegree_mul _ _
-    _ ≤ ℓ + p.totalDegree := by
-        apply Nat.add_le_add hdeg
-        -- iterDerivList can only decrease degree
-        sorry  -- standard but needs induction on derivative degree bound
-
-/-- All SPDP generators have bounded support (contained in a finite set
-    determined by the polynomial's support and the degree bound ℓ) -/
-theorem spdpGenerators_support_bounded {n : ℕ} {F : Type*} [CommRing F]
-    (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
-    ∃ (mono : Finset (Fin n →₀ ℕ)),
-      ∀ q ∈ spdpGenerators κ ℓ p, q.support ⊆ mono := by
-  sorry  -- the support of m * ∂_S p is contained in a computable finite set
+  -- Let f = coeffVectorLin, V = span(range generators)
+  let f := coeffVectorLin (σ := σ) (F := F) monomials
+  -- V sits inside supportedSub
+  have h_le := span_in_supported monomials _ (by
+    intro g hg; rw [Set.mem_range] at hg; obtain ⟨i, rfl⟩ := hg; exact hsupport i)
+  -- f is injective on V (since V ≤ supportedSub and f is injective there)
+  have h_inj : Function.Injective (f.comp (Submodule.subtype
+      (Submodule.span F (Set.range generators)))) := by
+    intro ⟨p, hp⟩ ⟨q, hq⟩ heq
+    simp only [LinearMap.comp_apply, Submodule.subtype_apply, Subtype.mk.injEq] at heq ⊢
+    exact coeffVector_injective monomials p q (h_le hp) (h_le hq) heq
+  -- Step 1: finrank(V) = finrank(f(V))
+  -- Use: injective linear map gives LinearEquiv onto range, preserving finrank
+  have step1 : Module.finrank F (Submodule.span F (Set.range generators)) =
+      Module.finrank F (Submodule.map f (Submodule.span F (Set.range generators))) := by
+    -- f restricted to V is injective → V ≃ₗ f(V)
+    let fV := f.domRestrict (Submodule.span F (Set.range generators))
+    have fV_inj : Function.Injective fV := by
+      intro ⟨p, hp⟩ ⟨q, hq⟩ heq
+      simp only [LinearMap.domRestrict_apply, Subtype.mk.injEq] at heq ⊢
+      exact coeffVector_injective monomials p q (h_le hp) (h_le hq) heq
+    -- LinearEquiv.ofInjective gives V ≃ₗ range(fV)
+    let e := LinearEquiv.ofInjective fV fV_inj
+    -- range(fV) = map f V
+    have h_range : LinearMap.range fV = (Submodule.span F (Set.range generators)).map f := by
+      ext x
+      simp only [LinearMap.mem_range, Submodule.mem_map]
+      constructor
+      · rintro ⟨⟨a, ha⟩, rfl⟩; exact ⟨a, ha, rfl⟩
+      · rintro ⟨a, ha, rfl⟩; exact ⟨⟨a, ha⟩, rfl⟩
+    rw [← h_range]
+    exact (LinearEquiv.finrank_eq e)
+  -- Step 2: f(V) = span(f '' generators) = span(rows of coeffMatrix)
+  have step2 : Submodule.map f (Submodule.span F (Set.range generators)) =
+      Submodule.span F (Set.range (fun i : ι => f (generators i))) := by
+    rw [Submodule.map_span]; congr 1; ext v; simp [Set.mem_image, Set.mem_range]
+  -- Step 3: rows of coeffMatrix = f(generators)
+  have step3 : (fun i : ι => f (generators i)) =
+      (fun i : ι => (fun m : monomials => (coeffMatrix monomials generators) i m)) := by
+    ext i m; rfl
+  -- Step 4: connect to Matrix.rank
+  -- Matrix.rank A = finrank(span(range Aᵀ.col))
+  -- Aᵀ.col i = row i of A = f(generators i)
+  rw [step1, step2, step3]
+  -- Goal: finrank(span(range (fun i => fun m => A i m))) = A.rank
+  -- where A = coeffMatrix monomials generators
+  let A := coeffMatrix monomials generators
+  -- Matrix.rank_eq_finrank_span_cols: A.rank = finrank(span(range A.col))
+  -- Matrix.rank_transpose: Aᵀ.rank = A.rank
+  -- Aᵀ.col i = (fun m => A i m) = row i of A
+  -- So: finrank(span(range (Aᵀ.col))) = Aᵀ.rank = A.rank
+  rw [show (fun i : ι => (fun m : monomials => A i m)) =
+      (fun i : ι => (Matrix.transpose A).col i) from by ext i m; simp [Matrix.transpose, Matrix.col]]
+  rw [← Matrix.rank_eq_finrank_span_cols, Matrix.rank_transpose]
 
 end CoeffBridge

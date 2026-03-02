@@ -42,7 +42,10 @@ theorem iterDerivList_totalDegree_le {F : Type*} [CommRing F]
     calc (iterDerivList rest (pderiv i p)).totalDegree
         ≤ (pderiv i p).totalDegree := ih _
       _ ≤ p.totalDegree := by
-          sorry  -- pderiv decreases degree by 1 (or stays same if var not present)
+          -- pderiv i p has total degree ≤ totalDegree(p):
+          -- each monomial c_m * x^m in p contributes (m_i) * c_m * x^{m-e_i}
+          -- with degree |m|-1 ≤ totalDegree(p)-1 ≤ totalDegree(p)
+          sorry
 
 /-- SPDP subspace has bounded degree: all elements have degree ≤ ℓ + deg(p) -/
 theorem spdpSubspace_degree_bound (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
