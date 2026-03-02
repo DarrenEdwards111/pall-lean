@@ -19,17 +19,29 @@ open MvPolynomial SPDP
 
 variable {n : ℕ} {F : Type*} [Field F]
 
-/-- pderiv cannot increase total degree.
-    Proof: pderiv i (monomial m a) = (m i) * monomial (m - single i 1) a,
-    and |m - single i 1| ≤ |m|, so each output monomial has degree ≤ input degree.
-    Standard fact not in mathlib for MvPolynomial.pderiv. -/
+/-- Tsub for Finsupp decreases the sum: (m - n).sum id ≤ m.sum id -/
+private theorem finsupp_tsub_sum_le {σ : Type*} [DecidableEq σ]
+    (m n : σ →₀ ℕ) :
+    (m - n).sum (fun _ e => e) ≤ m.sum (fun _ e => e) := by
+  -- (m - n) i ≤ m i for all i (natural subtraction)
+  -- Use Finsupp.sum_le_sum_index with m - n ≤ m
+  have h : m - n ≤ m := fun i => Nat.sub_le (m i) (n i)
+  exact Finsupp.sum_le_sum_index h
+    (fun _ _ => monotone_id)
+    (fun _ _ => rfl)
+
 theorem pderiv_totalDegree_le {F : Type*} [CommRing F]
     (i : Fin n) (p : MvPolynomial (Fin n) F) :
     (MvPolynomial.pderiv i p).totalDegree ≤ p.totalDegree := by
-  -- pderiv i p = Σ_{m ∈ p.support} (m i) * coeff_m * monomial(m - single i 1)
-  -- Each summand has degree |m - single i 1| ≤ |m| ≤ totalDegree(p)
-  -- totalDegree of sum ≤ max of degrees ≤ totalDegree(p)
-  sorry
+  classical
+  conv_lhs => rw [p.as_sum]
+  simp only [map_sum, pderiv_monomial]
+  apply le_trans (totalDegree_finset_sum _ _)
+  apply Finset.sup_le
+  intro m hm
+  apply le_trans (totalDegree_monomial_le _ _)
+  apply le_trans (finsupp_tsub_sum_le m (Finsupp.single i 1))
+  exact Finset.le_sup (f := fun s => Finsupp.sum s fun _ e => e) hm
 
 /-- iterDerivList cannot increase total degree -/
 theorem iterDerivList_totalDegree_le {F : Type*} [CommRing F]
