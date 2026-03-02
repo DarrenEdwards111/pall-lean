@@ -69,6 +69,22 @@ theorem p_side_collapse (F : Type*) [CommRing F] [Nontrivial F]
     ∃ (C : ℕ), ∀ n, n ≥ 2 →
       blockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (compiledPolyOf F M n) ≤ n ^ C := by
-  sorry -- Connects violation_has_locality + width_to_rank_bound + kappa_padding_rank
+  -- The compiled polynomial is Y * V where Y = padding product, V = violation poly
+  -- Step 1: V has locality (axiom violation_has_locality)
+  -- Step 2: Width⇒Rank gives ΓB_{r,ℓ}(V) ≤ poly(n) for each r (axiom width_to_rank_bound)
+  -- Step 3: κ-padding transfer gives ΓB_{κ,ℓ}(Y*V) ≤ poly(n) (axiom kappa_padding_rank)
+  -- The exact exponent depends on M.timeBound; we pick a universal bound.
+  -- Proof:
+  -- 1. compiledPolyOf = paddingProduct * violationPoly (by definition)
+  -- 2. violationPoly has locality with numGates ≤ n^{2c+2}, width ≤ 12
+  --    (violation_has_locality)
+  -- 3. width_to_rank_bound gives ΓB_{r,ℓ}(V) ≤ (numGates * width)^3 ≤ n^{O(1)}
+  -- 4. kappa_padding_rank transfers to ΓB_{κ,ℓ}(Y*V) ≤ numVars^4
+  -- 5. numVars M n κ ≤ n^{O(1)}, so overall ≤ n^C
+  use 4 * (M.timeBound + 1) + 4
+  intro n hn
+  -- Each step uses the axioms above; connecting the arithmetic bounds
+  -- requires showing numVars M n κ ≤ n^{timeBound+1} (nonlinear, routine)
+  sorry
 
 end Compiler

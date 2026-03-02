@@ -62,14 +62,25 @@ noncomputable def violationPoly (F : Type*) [CommRing F]
     MvPolynomial (Fin (numVars M n κ)) F :=
   constraints.foldl (fun acc c => acc + c.poly * c.poly) 0
 
+/-- The last κ variable indices are padding variables -/
+private theorem numVars_ge_kappa (M : DTM) (n κ : ℕ) :
+    numVars M n κ ≥ κ := by
+  show tapeSize M n * tapeSize M n + tapeSize M n * M.numStates +
+    tapeSize M n * tapeSize M n + n + κ ≥ κ
+  omega
+
+private theorem padding_idx_lt (M : DTM) (n κ : ℕ) (j : Fin κ) :
+    numVars M n κ - κ + j.val < numVars M n κ := by
+  have h1 := numVars_ge_kappa M n κ
+  have h2 := j.isLt
+  omega
+
 /-- κ-padding product Y = ∏_{j} X_{padding_j} -/
 noncomputable def paddingProduct (F : Type*) [CommRing F]
     (M : DTM) (n κ : ℕ) :
     MvPolynomial (Fin (numVars M n κ)) F :=
-  -- Product of the last κ variables (the padding block)
-  let offset := numVars M n κ - κ
-  (List.finRange κ).foldl (fun acc j =>
-    acc * X ⟨offset + j, by sorry⟩) 1
+  Finset.univ.prod (fun (j : Fin κ) =>
+    X ⟨numVars M n κ - κ + j.val, padding_idx_lt M n κ j⟩)
 
 /-- Compiled polynomial P_{M,n} = Y · V_{M,n} -/
 noncomputable def compiledPoly (F : Type*) [CommRing F]
@@ -90,13 +101,31 @@ noncomputable def compilerBlockPartition (M : DTM) (n κ : ℕ) :
 
 /-! ## Key Properties -/
 
-/-- V has constant degree (each C has deg ≤ 3, C² has deg ≤ 6, sum preserves) -/
+/-- Helper: foldl of constraint squares preserves degree ≤ 6 -/
+private theorem foldl_constraint_deg_le {M : DTM} {n κ : ℕ} (F : Type*) [CommRing F]
+    (constraints : List (LocalConstraint M n κ F))
+    (acc : MvPolynomial (Fin (numVars M n κ)) F)
+    (hacc : acc.totalDegree ≤ 6)
+    (hcs : ∀ c ∈ constraints, c.poly.totalDegree ≤ 3) :
+    (constraints.foldl (fun a (c : LocalConstraint M n κ F) => a + c.poly * c.poly) acc).totalDegree ≤ 6 := by
+  induction constraints generalizing acc with
+  | nil => simpa [List.foldl]
+  | cons c rest ih =>
+    simp only [List.foldl_cons]
+    apply ih
+    · have h_add := MvPolynomial.totalDegree_add acc (c.poly * c.poly)
+      have h_mul := MvPolynomial.totalDegree_mul c.poly c.poly
+      have h_c := hcs c (by simp)
+      omega
+    · intro x hx; exact hcs x (by simp [hx])
+
 theorem violation_deg_const (F : Type*) [CommRing F]
     (M : DTM) (n κ : ℕ)
     (constraints : List (LocalConstraint M n κ F))
     (h : ∀ c ∈ constraints, c.poly.totalDegree ≤ 3) :
     (violationPoly F M n κ constraints).totalDegree ≤ 6 := by
-  sorry -- Standard degree bound for sum of squares
+  exact foldl_constraint_deg_le F constraints 0
+    (by simp [MvPolynomial.totalDegree_zero]) h
 
 /-- Each constraint is local: touches ≤ 6 variables -/
 theorem constraints_local (M : DTM) (n κ : ℕ) (F : Type*) [CommRing F]
