@@ -84,10 +84,46 @@ theorem p_side_collapse (F : Type*) [CommRing F] [Nontrivial F]
   -- 3. width_to_rank_bound gives ΓB_{r,ℓ}(V) ≤ (numGates * width)^3 ≤ n^{O(1)}
   -- 4. kappa_padding_rank transfers to ΓB_{κ,ℓ}(Y*V) ≤ numVars^4
   -- 5. numVars M n κ ≤ n^{O(1)}, so overall ≤ n^C
-  use 4 * (M.timeBound + 1) + 4
+  -- C = 4*(2t+6) where t = M.timeBound, accounting for G = numGates*width ≤ n^(2t+6)
+  -- G^4 = n^(4*(2t+6)) = n^(8t+24)
+  use 8 * M.timeBound + 24
   intro n hn
-  -- Each step uses the axioms above; connecting the arithmetic bounds
-  -- requires showing numVars M n κ ≤ n^{timeBound+1} (nonlinear, routine)
-  sorry
+  -- Abbreviations
+  let κ := Nat.log 2 n
+  let ℓ := Nat.log 2 n
+  let B := compiledPartition M n
+  let cs := compilationConstraints F M n
+  let V := violationPoly F M n κ cs
+  let Y := paddingProduct F M n κ
+  -- Step 1: compiledPolyOf factors as Y * V
+  have hcompiled : compiledPolyOf F M n = Y * V := by
+    simp only [compiledPolyOf, compiledPoly, V, Y, κ, cs]
+  -- Step 2: V has locality structure with numGates ≤ n^(2t+2), width ≤ 12
+  obtain ⟨h, hgates, hwidth⟩ := violation_has_locality F M n hn
+  -- Step 3: For every r, width⇒rank gives ΓB_r(V) ≤ (numGates * width)^3
+  have hrank : ∀ r : ℕ, r ≤ 6 →
+      blockedSpdpRank B r ℓ V ≤ (h.numGates * h.width) ^ 3 := fun r _ =>
+    width_to_rank_bound F B r ℓ V h
+  -- Step 4: κ-padding transfer: ΓB_κ(Y*V) ≤ (numGates * width)^4
+  have hpadding : blockedSpdpRank B κ ℓ (Y * V) ≤ (h.numGates * h.width) ^ 4 :=
+    kappa_padding_rank F B κ ℓ Y V (h.numGates * h.width) hrank
+  -- Step 5: Bound G = numGates * width ≤ n^(2t+6)
+  -- Using: numGates ≤ n^(2t+2), width ≤ 12 ≤ n^4 (since n ≥ 2, 2^4=16≥12)
+  have h12 : (12 : ℕ) ≤ n ^ 4 :=
+    le_trans (by norm_num) (Nat.pow_le_pow_left hn 4)
+  have hG : h.numGates * h.width ≤ n ^ (2 * M.timeBound + 6) :=
+    calc h.numGates * h.width
+        ≤ n ^ (2 * M.timeBound + 2) * 12 := Nat.mul_le_mul hgates hwidth
+      _ ≤ n ^ (2 * M.timeBound + 2) * n ^ 4 := by
+            apply Nat.mul_le_mul_left; exact h12
+      _ = n ^ (2 * M.timeBound + 6) := by rw [← pow_add]
+  -- Step 6: G^4 ≤ n^(8t+24)
+  have hG4 : (h.numGates * h.width) ^ 4 ≤ n ^ (8 * M.timeBound + 24) :=
+    calc (h.numGates * h.width) ^ 4
+        ≤ (n ^ (2 * M.timeBound + 6)) ^ 4 := Nat.pow_le_pow_left hG 4
+      _ = n ^ (8 * M.timeBound + 24) := by rw [← pow_mul]; ring
+  -- Chain: compiledPolyOf = Y*V, rank ≤ G^4 ≤ n^C
+  rw [hcompiled]
+  exact le_trans hpadding hG4
 
 end Compiler
