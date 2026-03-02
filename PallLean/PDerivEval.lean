@@ -49,4 +49,27 @@ theorem pderiv_comm_evalAt (i j : Fin n) (hij : j ≠ i) (c : F)
         · simp [pderiv_X_of_ne hkj]
     rw [ih, h_deriv]
 
+/-- **pderiv i kills evalAt i c p** — the restricted polynomial has no x_i dependence.
+    Proved by induction on the polynomial. -/
+theorem pderiv_evalAt_self (i : Fin n) (c : F)
+    (p : MvPolynomial (Fin n) F) :
+    pderiv i (evalAt i c p) = 0 := by
+  induction p using MvPolynomial.induction_on with
+  | C a => simp [pderiv_C]
+  | add p q hp hq => simp [map_add, hp, hq]
+  | mul_X p k ih =>
+    simp only [map_mul]
+    rw [pderiv_mul]
+    by_cases hki : k = i
+    · subst hki
+      -- evalAt i c (X i) = C c, pderiv i (C c) = 0
+      simp [pderiv_C, ih]
+    · -- evalAt i c (X k) = X k (k ≠ i), pderiv i (X k) = 0
+      rw [evalAt_X_ne _ _ _ hki]
+      -- Goal: pderiv_i(evalAt p) * X k + evalAt(p) * pderiv_i(X k) = 0
+      rw [ih, zero_mul, zero_add]
+      rw [show (pderiv i) (X k : MvPolynomial (Fin n) F) = 0 from
+        pderiv_X_of_ne hki]
+      simp
+
 end PDerivEval
