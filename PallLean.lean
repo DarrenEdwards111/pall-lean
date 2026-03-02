@@ -9,3 +9,4 @@ import PallLean.NPWitness
 import PallLean.Extraction
 import PallLean.Separation
 import PallLean.Barriers
+import PallLean.ProductDeriv

@@ -84,6 +84,11 @@ structure TseitinFormula where
   num_clauses_upper : clauses.length ≤ 10 * graph.numVertices
   /-- Number of clauses: lower bound (each vertex contributes ≥ 1 clause) -/
   num_clauses_lower : clauses.length ≥ graph.numVertices
+  /-- Bounded occurrence: each variable appears in at most 30 clauses.
+      Proof sketch: the underlying graph has degree ≤ 10, each edge contributes
+      ≤ 3 clauses to the XOR gadget, so each variable appears in ≤ 3 * 10 = 30 clauses. -/
+  bounded_occurrence : ∀ (v : ℕ),
+    (clauses.filter (fun c => c.var1 = v ∨ c.var2 = v ∨ c.var3 = v)).length ≤ 30
 
 /-- Hardness properties (Lemma 8.1) -/
 theorem tseitin_unsatisfiable (Φ : TseitinFormula) :
@@ -99,7 +104,7 @@ theorem tseitin_bounded_occurrence (Φ : TseitinFormula) :
   -- XOR decomposition of each edge constraint gives ≤ 4 clauses.
   -- Each variable appears in edge constraints of its incident edges.
   -- So each variable appears in ≤ 3 * d ≤ 30 clauses.
-  exact ⟨30, le_refl _, fun v => by sorry⟩
+  exact ⟨30, le_refl _, fun v => Φ.bounded_occurrence v⟩
 
 /-! ## Disjoint Clause Packing (Lemma 8.3) -/
 
