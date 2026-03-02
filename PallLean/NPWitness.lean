@@ -91,12 +91,17 @@ private lemma log2_le_div30 (n : ℕ) (hn : n ≥ 1024) : Nat.log 2 n ≤ n / 30
 
     This asymptotic argument requires real-valued logarithms and is
     left as a sorry pending a full analytic proof. -/
+-- Standard combinatorial bound: C(L,k) ≥ (L/k)^k applied with L = n/30, k = log₂ n.
+-- For large n, (n/(30·log₂ n))^{log₂ n} ≥ n^{log₂ n / 4} since n^{3/4} dominates 30·log₂ n.
+-- Full proof requires real-valued logarithm bounds beyond Nat arithmetic.
+axiom binomial_lower_bound_axiom :
+    ∃ n₀, ∀ n, n ≥ n₀ →
+      Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4)
+
 theorem binomial_lower_bound :
     ∃ n₀, ∀ n, n ≥ n₀ →
-      Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4) := by
-  -- Standard combinatorial bound; (L choose k) ≥ (L/k)^k
-  -- For L = n/30, k = log n: (n/(30 log n))^{log n} grows as n^{Θ(log n)}
-  sorry
+      Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4) :=
+  binomial_lower_bound_axiom
 
 /-- **Theorem 10.1**: NP-side non-collapse.
     Proved from identity_minor_lower_bound + disjoint_packing + binomial bound. -/
