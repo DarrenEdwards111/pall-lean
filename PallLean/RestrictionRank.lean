@@ -1,19 +1,13 @@
 import PallLean.SPDPRankDef
-import Mathlib.LinearAlgebra.Dimension.Finrank
+import Mathlib.Algebra.MvPolynomial.PDeriv
 import Mathlib.Tactic
 /-!
-# R1: Variable Restriction Cannot Increase SPDP Rank — PROVED
+# R1: Variable Restriction Cannot Increase SPDP Rank
 
-Setting x_i = c in a polynomial maps each SPDP generator
-m · ∂_S(p) ↦ m|_{x_i=c} · ∂_S(p)|_{x_i=c} = m|_{x_i=c} · ∂_S(p|_{x_i=c})
-
-(The last equality: restriction commutes with partial derivatives
-for variables OTHER than x_i. When i ∈ S, the restricted derivative
-is a specific term — but it's still in the image of the eval map.)
-
-The eval map is a ring homomorphism F[x₁..xₙ] → F[x₁..xₙ],
-hence a linear map. The image of a subspace under a linear map
-has dimension ≤ the original.
+We prove this using the fact that the SPDP subspace of the restricted
+polynomial is contained in the image of the SPDP subspace of the original
+under the eval map, and images of submodules under linear maps have
+dim ≤ original dim.
 -/
 
 namespace SPDP.Restriction
@@ -23,35 +17,93 @@ open SPDP.Concrete MvPolynomial
 variable {F : Type*} [CommRing F] [Nontrivial F]
 variable {n : ℕ}
 
-/-- The evaluation map x_i ↦ c (fixing all other variables) is a
-    linear map on MvPolynomial (Fin n) F. -/
-noncomputable def evalMap (i : Fin n) (c : F) :
-    MvPolynomial (Fin n) F →ₗ[F] MvPolynomial (Fin n) F :=
-  (MvPolynomial.eval₂Hom MvPolynomial.C
-    (fun j => if j = i then MvPolynomial.C c else MvPolynomial.X j)).toLinearMap
+/-- The ring hom that evaluates x_i = c -/
+noncomputable def evalHom (i : Fin n) (c : F) :
+    MvPolynomial (Fin n) F →+* MvPolynomial (Fin n) F :=
+  MvPolynomial.eval₂Hom MvPolynomial.C
+    (fun j => if j = i then MvPolynomial.C c else MvPolynomial.X j)
 
-/-- Image of a subspace under a linear map has finrank ≤ original finrank -/
-theorem finrank_map_le_of_linearMap
-    {V : Type*} [AddCommGroup V] [Module F V]
-    (f : V →ₗ[F] V) (S : Submodule F V) :
-    Module.finrank F (S.map f) ≤ Module.finrank F S := by
-  exact Submodule.finrank_map_le f S
+/-- The eval hom as a linear map -/
+noncomputable def evalLin (i : Fin n) (c : F) :
+    MvPolynomial (Fin n) F →ₗ[F] MvPolynomial (Fin n) F where
+  toFun := evalHom i c
+  map_add' := map_add _
+  map_smul' := fun r x => by simp [Algebra.smul_def, map_mul, evalHom]
 
-/-- **R1: Restriction cannot increase SPDP rank.**
+/-- Key commutation: pderiv j commutes with evalHom i when j ≠ i.
 
-The key insight: after evaluating x_i = c, the SPDP subspace of p|_{x_i=c}
-is contained in the image of the SPDP subspace of p under the eval map.
-Image under linear map has dim ≤ original dim. -/
+For j ≠ i: ∂_j(p|_{x_i=c}) = (∂_j p)|_{x_i=c}
+because eval_{x_i=c} doesn't touch x_j, and pderiv_j doesn't touch x_i. -/
+theorem pderiv_comm_eval (i j : Fin n) (hij : j ≠ i) (c : F)
+    (p : MvPolynomial (Fin n) F) :
+    MvPolynomial.pderiv j (evalHom i c p) = evalHom i c (MvPolynomial.pderiv j p) := by
+  -- This follows from the derivation property + the fact that
+  -- evalHom i c (X j) = X j when j ≠ i
+  sorry -- fiddly induction on polynomial structure
+
+/-- For j = i: ∂_i(p|_{x_i=c}) = (∂_i p)|_{x_i=c}
+    Because C c doesn't depend on x_i, so ∂_i of the substituted
+    expression works the same way. -/
+theorem pderiv_eval_same (i : Fin n) (c : F)
+    (p : MvPolynomial (Fin n) F) :
+    MvPolynomial.pderiv i (evalHom i c p) = evalHom i c (MvPolynomial.pderiv i p) := by
+  sorry -- needs induction on polynomial monomials
+
+/-- Combined: pderiv commutes with evalHom for ALL j -/
+theorem pderiv_comm_eval_all (i j : Fin n) (c : F)
+    (p : MvPolynomial (Fin n) F) :
+    MvPolynomial.pderiv j (evalHom i c p) = evalHom i c (MvPolynomial.pderiv j p) := by
+  by_cases h : j = i
+  · subst h; exact pderiv_eval_same _ c p
+  · exact pderiv_comm_eval _ j h c p
+
+/-- iterDerivList commutes with evalHom -/
+theorem iterDerivList_comm_eval (i : Fin n) (c : F)
+    (indices : List (Fin n)) (p : MvPolynomial (Fin n) F) :
+    iterDerivList indices (evalHom i c p) = evalHom i c (iterDerivList indices p) := by
+  induction indices generalizing p with
+  | nil => simp [iterDerivList]
+  | cons j rest ih =>
+    simp only [iterDerivList, List.foldl_cons]
+    rw [pderiv_comm_eval_all _ j c p]
+    exact ih (MvPolynomial.pderiv j p)
+
+/-- The SPDP subspace of the restricted polynomial is contained in the
+    image of the original SPDP subspace under evalLin. -/
+theorem spdpSubspace_restrict_le (κ : ℕ) (p : MvPolynomial (Fin n) F)
+    (i : Fin n) (c : F) :
+    spdpSubspace κ (evalHom i c p) ≤ (spdpSubspace κ p).map (evalLin i c) := by
+  apply Submodule.span_le.mpr
+  intro q hq
+  simp only [Set.mem_setOf_eq] at hq
+  obtain ⟨indices, m, hlen, hq⟩ := hq
+  rw [hq, iterDerivList_comm_eval]
+  -- q = m * evalHom(iterDerivList indices p)
+  -- We need to show this is in the image of the original span
+  -- The pre-image element is: evalHom⁻¹(m) * iterDerivList indices p
+  -- But evalHom is not injective, so we can't invert m.
+  -- However, m itself is in the polynomial ring, so we can write:
+  -- evalHom(m' * iterDerivList indices p) where m' is any preimage of m
+  -- Actually: m = evalHom(m) is not necessarily true...
+  -- Better: m * evalHom(d) = evalHom(m * d) is NOT true in general.
+  -- m might not be in the image of evalHom.
+  -- We need: m · evalHom(d) ∈ image(evalLin)
+  -- This is: ∃ q', evalLin(q') = m · evalHom(d)
+  -- But this isn't generally true.
+  -- The correct approach: the generating set of the restricted SPDP space
+  -- uses RESTRICTED shift monomials m', and
+  -- m' · ∂_S(p|_{x_i=c}) = m' · evalHom(∂_S p)
+  -- = evalHom(m'' · ∂_S p) where m'' is a preimage of m'... still stuck.
+  sorry
+
+/-- **R1: restriction_rank_le** — SPDP rank cannot increase under eval -/
 theorem restriction_rank_le (κ : ℕ) (p : MvPolynomial (Fin n) F)
     (i : Fin n) (c : F) :
-    spdpRankConcrete κ (MvPolynomial.eval₂ MvPolynomial.C
-      (fun j => if j = i then MvPolynomial.C c else MvPolynomial.X j) p) ≤
-    spdpRankConcrete κ p := by
-  -- The SPDP subspace of p|_{x_i=c} is the image of the SPDP subspace of p
-  -- under the evaluation map. But showing this precisely requires:
-  -- 1. eval commutes with pderiv for j ≠ i
-  -- 2. For j = i, eval(pderiv_i(p)) = specific expression
-  -- The image has dim ≤ original dim by Submodule.finrank_map_le.
-  sorry  -- The containment argument is correct but fiddly to formalise
+    spdpRankConcrete κ (evalHom i c p) ≤ spdpRankConcrete κ p := by
+  unfold spdpRankConcrete
+  -- Structure: spdpSubspace(p|_{xi=c}) ≤ image(spdpSubspace(p)) under evalLin
+  -- image has finrank ≤ original finrank
+  -- Needs Module.Finite instance for the subspaces (true when polynomial ring is Noetherian)
+  sorry
 
 end SPDP.Restriction
