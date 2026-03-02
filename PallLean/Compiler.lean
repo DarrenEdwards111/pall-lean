@@ -54,12 +54,15 @@ axiom width_to_rank_bound (F : Type*) [CommRing F] [Nontrivial F]
     (h : HasLocalityStructure p) :
     blockedSpdpRank B κ ℓ p ≤ (h.numGates * h.width) ^ 3
 
-/-- κ-padding rank transfer (Lemma 3.1) -/
+/-- κ-padding rank transfer (Lemma 3.1).
+    If rank_r(V) ≤ G^3 for all r ≤ 6, then rank_κ(Y·V) ≤ G^4.
+    Here G is any bound on the low-degree rank of V. -/
 axiom kappa_padding_rank (F : Type*) [CommRing F] [Nontrivial F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (Y V : MvPolynomial (Fin v) F)
-    (hrank : ∀ r, r ≤ 6 → blockedSpdpRank B r ℓ V ≤ v ^ 3) :
-    blockedSpdpRank B κ ℓ (Y * V) ≤ v ^ 4
+    (G : ℕ)
+    (hrank : ∀ r, r ≤ 6 → blockedSpdpRank B r ℓ V ≤ G ^ 3) :
+    blockedSpdpRank B κ ℓ (Y * V) ≤ G ^ 4
 
 /-! ## Main P-Side Theorem -/
 

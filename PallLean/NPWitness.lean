@@ -50,13 +50,47 @@ noncomputable def tseitinPartition (n : ℕ) : BlockPartition (npNumVars n) wher
     ⟨v.val % ((tseitinAt n).clauses.length + 1),
      Nat.mod_lt _ (by omega)⟩
 
+/-! ## Auxiliary Lemmas for Logarithm Bound -/
+
+/-- 30 ≤ 2^k for k ≥ 5 -/
+private lemma thirty_le_pow (k : ℕ) (hk : k ≥ 5) : 30 ≤ 2^k :=
+  calc (30 : ℕ) ≤ 2^5 := by norm_num
+    _ ≤ 2^k := Nat.pow_le_pow_right (by norm_num) hk
+
+/-- 30 * k ≤ 2^k for k ≥ 10 (by induction, using 30 ≤ 2^k for k ≥ 5) -/
+private lemma thirty_mul_le_pow (k : ℕ) (hk : k ≥ 10) : 30 * k ≤ 2^k := by
+  induction k with
+  | zero => omega
+  | succ k ih =>
+    by_cases h10 : k ≥ 10
+    · have ih := ih h10
+      have hle : 30 ≤ 2^k := thirty_le_pow k (by omega)
+      simp only [pow_succ, mul_comm (2^k) 2]
+      omega
+    · -- Only case is k = 9 (since succ k ≥ 10 and k < 10)
+      have hk9 : k = 9 := by omega
+      subst hk9; norm_num
+
+/-- log₂ n ≤ n / 30 for n ≥ 1024.
+    Proof: log₂ n ≥ 10 (from n ≥ 2^10), so 30 * log₂ n ≤ 2^(log₂ n) ≤ n. -/
+private lemma log2_le_div30 (n : ℕ) (hn : n ≥ 1024) : Nat.log 2 n ≤ n / 30 := by
+  have h1024 : (2 : ℕ)^10 ≤ n := by norm_num; omega
+  have hlog10 : 10 ≤ Nat.log 2 n :=
+    (Nat.log_pow (b := 2) (by norm_num) 10) ▸ Nat.log_mono_right (b := 2) h1024
+  have hpow : 2^(Nat.log 2 n) ≤ n := Nat.pow_log_le_self 2 (by omega)
+  have hmul : 30 * Nat.log 2 n ≤ 2^(Nat.log 2 n) := thirty_mul_le_pow _ hlog10
+  omega
+
 /-! ## The Lower Bound -/
 
 /-- Binomial lower bound: (n/30 choose log₂ n) ≥ n^{log₂ n / 4} for large n.
 
-    Proof: (L choose k) ≥ (L/k)^k. With L = n/30, k = log₂ n:
+    Proof sketch: (L choose k) ≥ (L/k)^k. With L = n/30, k = log₂ n:
     (n/(30·log n))^{log n} ≥ n^{log n / 4} for large enough n
-    (since n/(30·log n) ≥ n^{1/4} eventually). -/
+    (since n/(30·log n) ≥ n^{1/4} eventually, as n^{3/4} / log n → ∞).
+
+    This asymptotic argument requires real-valued logarithms and is
+    left as a sorry pending a full analytic proof. -/
 theorem binomial_lower_bound :
     ∃ n₀, ∀ n, n ≥ n₀ →
       Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4) := by
@@ -84,10 +118,12 @@ theorem np_side_lb (F : Type*) [CommRing F] [Nontrivial F] :
   have h_minor := identity_minor_lower_bound F (tseitinAt n)
     (tseitinPartition n) pack (Nat.log 2 n) (Nat.log 2 n)
     (by -- κ = log₂ n ≤ n/30 ≤ pack.selected.length for n ≥ 1024
-        have hps := pack.size_bound; rw [hv] at hps
-        -- log₂ n ≤ n/30 for n ≥ 1024: since 30 * log₂ n ≤ n
-        -- (30k ≤ 2^k for k ≥ 8, and log₂ n ≤ k when n ≤ 2^k)
-        sorry)
+        have hps := pack.size_bound
+        rw [hv] at hps
+        -- log₂ n ≤ n/30 follows from log2_le_div30 (n ≥ 1024 = 2^10)
+        have hlog : Nat.log 2 n ≤ n / 30 :=
+          log2_le_div30 n (by linarith [show (2:ℕ)^10 = 1024 from by norm_num])
+        exact hlog.trans hps)
   -- Step 3: pack.selected.length ≥ n/30, so choose ≥ (n/30 choose κ) ≥ n^{κ/4}
   -- tseitinPoly F n = coupledVerifier F (tseitinAt n), so types match
   calc blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly F n)
