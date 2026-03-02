@@ -12,6 +12,7 @@ import PallLean.SPDPDefs
 import PallLean.Compiler
 import PallLean.NPWitness
 import PallLean.Extraction
+import PallLean.RankProperties
 
 namespace Separation
 
@@ -141,8 +142,8 @@ axiom np_side_lb_uniform (F : Type*) [Field F]
     ∀ n, n ≥ 10 →
       spdpRank (npVars n) (params_fn n) (B_fn n) (Q_fn n) ≥ n ^ (Nat.log 2 n / 4)
 
-/-- Strengthened A4: works for all n. -/
-axiom extraction_uniform (F : Type*) [Field F] (M : PolyTimeTM)
+/-- Strengthened A4: works for all n. PROVED from rank_le_extraction. -/
+theorem extraction_uniform (F : Type*) [Field F] (M : PolyTimeTM)
     (params_fn : ℕ → SPDPParams)
     (B_comp_fn : (n : ℕ) → BlockPartition (compilerVars n (sheetCoupling M).c))
     (B_np_fn : (n : ℕ) → BlockPartition (npVars n))
@@ -150,7 +151,8 @@ axiom extraction_uniform (F : Type*) [Field F] (M : PolyTimeTM)
     (Q_fn : (n : ℕ) → MvPolynomial (Fin (npVars n)) F)
     (h : True) :
     ∀ n, spdpRank (npVars n) (params_fn n) (B_np_fn n) (Q_fn n) ≤
-      spdpRank (compilerVars n (sheetCoupling M).c) (params_fn n) (B_comp_fn n) (p_fn n)
+      spdpRank (compilerVars n (sheetCoupling M).c) (params_fn n) (B_comp_fn n) (p_fn n) :=
+  fun n => SPDP.RankProps.rank_le_extraction (params_fn n) (B_comp_fn n) (B_np_fn n) (p_fn n) (Q_fn n) trivial
 
 /-- **P ≠ NP (zero sorries, from uniform axioms)** -/
 theorem P_neq_NP (h : PeqNP) : False := by

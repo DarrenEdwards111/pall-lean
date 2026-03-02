@@ -5,3 +5,4 @@ import PallLean.TuringMachine
 import PallLean.ProfileCompression
 import PallLean.IdentityMinor
 import PallLean.ExtractionProof
+import PallLean.RankProperties
