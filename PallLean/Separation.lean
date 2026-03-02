@@ -46,18 +46,21 @@ theorem P_neq_NP (h : PeqNP) : False := by
   -- A2: ∃ C, ∀ n ≥ 2, rank(pM♯,n) ≤ n^C
   obtain ⟨C, hC⟩ := p_side_collapse ℚ M'
 
+  -- A3: ∃ n₁, ∀ n ≥ n₁, rank(Q) ≥ n^{log n / 4}
+  obtain ⟨n₁, h_npside⟩ := np_side_lb ℚ
+
   -- A5: ∃ n₀, ∀ n ≥ n₀, n^{log n / 4} > n^{C+1}
   obtain ⟨n₀, h_arith⟩ := superPoly_beats_poly (C + 1) (by omega)
 
-  let n := max (max n₀ 100) 2
+  let n := max (max n₀ n₁) 2
   have hn_ge_n0 : n ≥ n₀ := by omega
-  have hn_ge_100 : n ≥ 100 := by omega
+  have hn_ge_n1 : n ≥ n₁ := by omega
   have hn_ge_2 : n ≥ 2 := by omega
 
   -- A3: rank(Q×_Φn) ≥ n^{log n / 4}
   have h1 : spdpRank (Nat.log 2 n) (tseitinPoly ℚ n) ≥
       n ^ (Nat.log 2 n / 4) :=
-    np_side_lb ℚ n hn_ge_100
+    h_npside n hn_ge_n1
 
   -- A4: rank(Q×_Φn) ≤ rank(pM♯,n) [PROVED THEOREM]
   have h2 : spdpRank (Nat.log 2 n) (tseitinPoly ℚ n) ≤
