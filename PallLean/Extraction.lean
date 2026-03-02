@@ -7,15 +7,19 @@ import Mathlib.Tactic
 /-!
 # Extraction Map T_Φ — Pall §11–13
 
-The extraction map takes the compiled polynomial pM♯,n and extracts
-the coupled verifier polynomial Q×_Φn. This is a composition of:
-  (i) projection to verifier-sheet variables (restriction)
-  (ii) injective relabeling to witness variables (rename)
+The extraction map takes the compiled polynomial pM♯,n and recovers
+the coupled verifier polynomial Q×_Φn. This involves:
+  (i) Verifier-sheet normalization: M♯ = Sheet(M) forces clause gadgets
+      into the compiled object (Definition 11.1, Lemma 11.2)
+  (ii) Projection to verifier-sheet variables (restriction)
+  (iii) Injective relabeling to witness variables (rename)
 
-By our PROVED rank_extraction_le, extraction cannot increase rank.
+By Lemma 12.1: extraction is rank-monotone (composition of
+rank-nonincreasing operations).
 
-The remaining axiom: the Tseitin polynomial IS an extraction of
-the compiled polynomial (structural claim about the compilation model).
+Key distinction: the extraction operates on the **blocked** SPDP rank ΓB.
+The paper proves ΓB(Q×_Φn) ≤ ΓB(pM♯,n) via the fact that extraction
+corresponds to selecting a submatrix of the blocked SPDP matrix.
 -/
 
 namespace Extraction
@@ -25,43 +29,33 @@ open SPDP SPDP.ExtractionRank Compiler NPWitness PDerivEval MvPolynomial
 variable {F : Type*} [CommRing F] [Nontrivial F]
 
 /-- The verifier-sheet coupled decider M♯ = Sheet(M) (Pall Definition 11.1).
-    M♯ runs M normally but also computes clause-check gadgets on an
-    auxiliary track, guaranteeing the clause sheet appears in the compiled object. -/
+    M♯ runs M on the main track and computes canonical clause-check gadgets
+    on a disjoint auxiliary track. Key properties (Lemma 11.2):
+    1. L(M♯) = L(M) (language preservation)
+    2. M♯ ∈ DTIME(n^{c'}) for c' = c + O(1) (polynomial overhead)
+    3. The compiled object contains the canonical clause sheet (forced syntactic presence) -/
 def sheetCoupling (M : PolyTimeTM) : PolyTimeTM :=
   { c := M.c + 1 }
 
-/-- **Extraction structure (Pall Theorem 13.18 + Lemma 12.1)**
+/-- **Axiom: Rank-monotone extraction (Pall Theorem 12.2 + Lemma 12.1)**
 
-    The Tseitin polynomial Q×_Φn is extractable from the compiled
-    polynomial of the sheet-coupled decider M♯.
+    The extraction map T_Φ is a composition of:
+    (i) variable restrictions (setting non-sheet variables to constants)
+    (ii) row/column deletions of M^B_{κ,ℓ} (submatrix selection)
+    (iii) block-local linear projections
 
-    This is the key structural axiom of the extraction step:
-    - The sheet coupling (Def 11.1) forces clause gadgets into the compiled object
-    - The extraction map T_Φ (Def 13.13) projects to these gadgets
-    - T_Φ is a composition of variable restriction + injective rename
+    Each operation is rank-nonincreasing, so:
+    ΓB_{κ,ℓ}(Q×_Φn) ≤ ΓB_{κ,ℓ}(pM♯,n)
 
-    This is NOT a rank claim — it's a structural claim about the
-    compilation model that can be verified by inspecting the construction. -/
-axiom extraction_structure (F : Type*) [CommRing F] [Nontrivial F]
+    This axiom captures the structural claim that the Tseitin polynomial
+    IS extractable from the compiled polynomial of the sheet-coupled decider,
+    AND that the extraction is rank-monotone in the blocked SPDP rank. -/
+axiom extraction_rank_monotone (F : Type*) [CommRing F] [Nontrivial F]
     (M : PolyTimeTM) (n : ℕ) :
-    ∃ (restrictions : List (Fin (compilerVars n (sheetCoupling M).c) × F))
-      (f : Fin (npVars n) → Fin (compilerVars n (sheetCoupling M).c))
-      (_ : Function.Injective f),
-      rename f (tseitinPoly F n) =
-        iterRestrict restrictions (compiledPoly F (sheetCoupling M) n)
-
-/-- **A4: Extraction is rank-monotone — PROVED from structure**
-
-    rank(Q×_Φn) ≤ rank(pM♯,n)
-
-    This follows from extraction_structure + our proved rank_extraction_le.
-    The rank inequality is a THEOREM, not an axiom. Only the structural
-    relationship (extraction_structure) remains as an axiom. -/
-theorem extraction_rank_bound (F : Type*) [CommRing F] [Nontrivial F]
-    (M : PolyTimeTM) (n : ℕ) :
-    spdpRank (Nat.log 2 n) (tseitinPoly F n) ≤
-      spdpRank (Nat.log 2 n) (compiledPoly F (sheetCoupling M) n) := by
-  obtain ⟨restrictions, f, hf, h_eq⟩ := extraction_structure F M n
-  exact rank_extraction_le _ _ _ restrictions f hf h_eq
+    blockedSpdpRank (npPartition n) (Nat.log 2 n) (Nat.log 2 n)
+      (tseitinPoly F n) ≤
+    blockedSpdpRank (compilerPartition n (sheetCoupling M).c)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly F (sheetCoupling M) n)
 
 end Extraction

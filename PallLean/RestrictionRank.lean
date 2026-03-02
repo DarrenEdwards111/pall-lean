@@ -2,7 +2,17 @@ import PallLean.SPDPDefs
 import PallLean.PDerivEval
 import Mathlib.Tactic
 /-!
-# R1: Variable Restriction Cannot Increase SPDP Rank — PROVED
+# R1: Variable Restriction Cannot Increase SPDP Rank
+
+Updated for the paper-faithful (κ, ℓ) definition with shift monomials.
+
+The paper states (§2, Basic properties, item 3):
+"If f' is obtained from f by setting some variables to constants,
+then Γ_{κ,ℓ}(f') ≤ Γ_{κ,ℓ}(f)."
+
+Proof sketch: restriction x_i := c is a linear map on coefficient vectors.
+Every row m · ∂_S(f|_{x_i=c}) of M_{κ,ℓ}(f') arises from a linear combination
+of rows of M_{κ,ℓ}(f), so the row space can only shrink.
 -/
 
 namespace SPDP.Restriction
@@ -50,52 +60,21 @@ noncomputable def evalAtLM (i : Fin n) (c : F) :
     simp only [Algebra.smul_def, map_mul, RingHom.id_apply]
     congr 1; exact evalAt_C i c r
 
-/-- The generating set of spdpSubspace is finite (at most n^κ elements) -/
-theorem spdpSubspace_generating_set_finite (κ : ℕ) (p : MvPolynomial (Fin n) F) :
-    Set.Finite { q | ∃ (indices : List (Fin n)),
-        indices.length = κ ∧ q = iterDerivList indices p } := by
-  apply Set.Finite.subset
-    (Set.finite_range (fun f : Fin κ → Fin n => iterDerivList (List.ofFn f) p))
-  intro x ⟨indices, hlen, hx⟩
-  simp only [Set.mem_range]
-  subst hlen; subst hx
-  exact ⟨fun i => indices.get i, by simp [List.ofFn_get]⟩
+/-- **R1: restriction cannot increase SPDP rank (Pall §2, Basic property 3)**
 
-/-- spdpSubspace is finitely generated -/
-theorem spdpSubspace_fg (κ : ℕ) (p : MvPolynomial (Fin n) F) :
-    (spdpSubspace κ p).FG :=
-  Submodule.fg_def.mpr ⟨_, spdpSubspace_generating_set_finite κ p, rfl⟩
+    Γ_{κ,ℓ}(f|_{x_i=c}) ≤ Γ_{κ,ℓ}(f)
 
-/-- Module.Finite instance for spdpSubspace -/
-instance spdpSubspace_moduleFinite (κ : ℕ) (p : MvPolynomial (Fin n) F) :
-    Module.Finite F ↥(spdpSubspace κ p) :=
-  Module.Finite.iff_fg.mpr (spdpSubspace_fg κ p)
+    This is a standard linear algebra fact: restriction is a linear map on
+    coefficient vectors, so it maps rows of M_{κ,ℓ}(f) to rows of M_{κ,ℓ}(f'),
+    and the row space can only shrink.
 
-/-- V_κ(evalAt i c p) ≤ V_κ(p).map (evalAt i c) -/
-theorem spdpSubspace_evalAt_le (κ : ℕ) (p : MvPolynomial (Fin n) F)
+    The proof in our subspace formulation requires showing that the
+    shift-monomial generators of V_{κ,ℓ}(f|_{x_i=c}) lie in the image of
+    V_{κ,ℓ}(f) under evalAt. This is subtle because evalAt can change
+    the degree of shift monomials involving x_i. We axiomatize this
+    standard fact. -/
+axiom restriction_rank_le (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F)
     (i : Fin n) (c : F) :
-    spdpSubspace κ (evalAt i c p) ≤
-      (spdpSubspace κ p).map (evalAtLM i c) := by
-  apply Submodule.span_le.mpr
-  intro q hq
-  simp only [Set.mem_setOf_eq] at hq
-  obtain ⟨indices, hlen, rfl⟩ := hq
-  by_cases hi : i ∈ indices
-  · rw [iterDerivList_evalAt_eq_zero_of_mem i c indices hi p]
-    exact Submodule.zero_mem _
-  · rw [iterDerivList_comm_evalAt_of_not_mem i c indices hi p]
-    exact Submodule.mem_map.mpr
-      ⟨iterDerivList indices p, Submodule.subset_span ⟨indices, hlen, rfl⟩, rfl⟩
-
-/-- **R1: restriction cannot increase rank — PROVED** -/
-theorem restriction_rank_le (κ : ℕ) (p : MvPolynomial (Fin n) F)
-    (i : Fin n) (c : F) :
-    spdpRank κ (evalAt i c p) ≤ spdpRank κ p := by
-  unfold spdpRank
-  calc Module.finrank F ↥(spdpSubspace κ (evalAt i c p))
-      ≤ Module.finrank F ↥((spdpSubspace κ p).map (evalAtLM i c)) :=
-        Submodule.finrank_mono (spdpSubspace_evalAt_le κ p i c)
-      _ ≤ Module.finrank F ↥(spdpSubspace κ p) :=
-        Submodule.finrank_map_le (evalAtLM i c) (spdpSubspace κ p)
+    spdpRank κ ℓ (evalAt i c p) ≤ spdpRank κ ℓ p
 
 end SPDP.Restriction

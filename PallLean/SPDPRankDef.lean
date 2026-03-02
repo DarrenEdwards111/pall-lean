@@ -2,8 +2,6 @@ import PallLean.SPDPDefs
 import Mathlib.Tactic
 /-!
 # R4 PROVED: Constant shift invariance
-
-Using the concrete spdpRank from SPDPDefs.
 -/
 
 namespace SPDP.R4
@@ -28,25 +26,25 @@ theorem iterDerivList_C_zero (i : Fin n) (rest : List (Fin n)) (c : F) :
   exact foldl_pderiv_zero rest
 
 /-- **R4: spdpSubspace(p + C c) = spdpSubspace(p) when κ ≥ 1** -/
-theorem spdpSubspace_add_const (κ : ℕ) (hκ : κ ≥ 1) (p : MvPolynomial (Fin n) F) (c : F) :
-    spdpSubspace κ (p + MvPolynomial.C c) = spdpSubspace κ p := by
+theorem spdpSubspace_add_const (κ ℓ : ℕ) (hκ : κ ≥ 1) (p : MvPolynomial (Fin n) F) (c : F) :
+    spdpSubspace κ ℓ (p + MvPolynomial.C c) = spdpSubspace κ ℓ p := by
   unfold spdpSubspace; congr 1; ext q; simp only [Set.mem_setOf_eq]
-  constructor <;> rintro ⟨indices, hlen, hq⟩
-  · refine ⟨indices, hlen, ?_⟩
+  constructor <;> rintro ⟨S, m, hlen, hdeg, hq⟩
+  · refine ⟨S, m, hlen, hdeg, ?_⟩
     rw [hq, iterDerivList_add]
-    obtain ⟨i, rest, rfl⟩ : ∃ i rest, indices = i :: rest := by
-      cases indices with | nil => simp at hlen; omega | cons i r => exact ⟨i, r, rfl⟩
-    rw [iterDerivList_C_zero i rest c, add_zero]
-  · refine ⟨indices, hlen, ?_⟩
+    obtain ⟨i, rest, rfl⟩ : ∃ i rest, S = i :: rest := by
+      cases S with | nil => simp at hlen; omega | cons i r => exact ⟨i, r, rfl⟩
+    rw [iterDerivList_C_zero i rest c, mul_add, mul_zero, add_zero]
+  · refine ⟨S, m, hlen, hdeg, ?_⟩
     rw [hq, iterDerivList_add]
-    obtain ⟨i, rest, rfl⟩ : ∃ i rest, indices = i :: rest := by
-      cases indices with | nil => simp at hlen; omega | cons i r => exact ⟨i, r, rfl⟩
-    rw [iterDerivList_C_zero i rest c, add_zero]
+    obtain ⟨i, rest, rfl⟩ : ∃ i rest, S = i :: rest := by
+      cases S with | nil => simp at hlen; omega | cons i r => exact ⟨i, r, rfl⟩
+    rw [iterDerivList_C_zero i rest c, mul_add, mul_zero, add_zero]
 
 /-- **R4: spdpRank invariant under constant shift when κ ≥ 1** -/
-theorem rank_eq_add_const [Nontrivial F] (κ : ℕ) (hκ : κ ≥ 1)
+theorem rank_eq_add_const [Nontrivial F] (κ ℓ : ℕ) (hκ : κ ≥ 1)
     (p : MvPolynomial (Fin n) F) (c : F) :
-    spdpRank κ (p + MvPolynomial.C c) = spdpRank κ p := by
-  unfold spdpRank; rw [spdpSubspace_add_const κ hκ p c]
+    spdpRank κ ℓ (p + MvPolynomial.C c) = spdpRank κ ℓ p := by
+  unfold spdpRank; rw [spdpSubspace_add_const κ ℓ hκ p c]
 
 end SPDP.R4
