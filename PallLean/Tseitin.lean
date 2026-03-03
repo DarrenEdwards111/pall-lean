@@ -52,10 +52,11 @@ structure HighGirthFamily where
   graph : ℕ → RegularGraph
   /-- Degree is constant -/
   degree_const : ∃ d, ∀ n, (graph n).degree = d
-  /-- Number of vertices grows linearly: n ≤ V(n) ≤ C*n -/
-  vertices_growth_const : ℕ
-  vertices_lower : ∀ n, n ≤ (graph n).numVertices
-  vertices_upper : ∀ n, (graph n).numVertices ≤ vertices_growth_const * n
+  /-- Number of vertices equals n (paper convention §8.1; LPS/Morgenstern
+      families exist on an infinite sequence of sizes — we model this as
+      ∀ n for convenience. The proof only uses bounded degree and logarithmic
+      girth, and would also work with |V| = Θ(n).) -/
+  vertices_eq : ∀ n, (graph n).numVertices = n
   /-- Girth is Ω(log n) — ball of radius Θ(log n) is a tree -/
   girth_log : ∃ C, ∀ n, n ≥ 2 → C * Nat.log 2 n ≤ (graph n).numVertices -- simplified
 
