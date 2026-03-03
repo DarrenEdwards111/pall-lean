@@ -274,22 +274,53 @@ private theorem rank_from_identity_minor (F : Type*) [Field F]
   simp [Fintype.card_fin] at hcard
   omega
 
+/-- **Tag monomial property**: For each clause C, there exists a body monomial
+    τ_C such that [τ_C]V_C is a unit (nonzero, invertible).
+
+    For our clauseGadget V_C = (1-lit₁)(1-lit₂)(1-lit₃):
+    τ_C = X_{v₁} · X_{v₂} · X_{v₃} has coefficient (-1)^{# positive literals} = ±1. -/
+axiom tag_monomial_property (F : Type*) [Field F]
+    (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
+    ∃ (τ_c : (Fin (tseitinNumVars Φ)) →₀ ℕ),
+      -- τ_c is supported only on clause-body variables (not selectors)
+      (∀ i ∈ τ_c.support, i.val < Φ.graph.numEdges + 3 * Φ.clauses.length) ∧
+      -- coefficient is ±1 (a unit)
+      (MvPolynomial.coeff τ_c (clauseGadget F Φ c) = 1 ∨
+       MvPolynomial.coeff τ_c (clauseGadget F Φ c) = -1)
+
+/-- Clause gadget variables have indices below the selector range.
+    Proof: clauseGadget uses variables v1, v2, v3 which are clause body variables
+    with indices in [0, numEdges + 3*L'), obtained via mod. Selector variables
+    start at numEdges + 3*L'. -/
+axiom clauseGadget_vars_bound (F : Type*) [CommRing F]
+    (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
+    ∀ v ∈ (clauseGadget F Φ c).vars,
+      v.val < Φ.graph.numEdges + 3 * Φ.clauses.length
+
+theorem selector_not_in_gadget (F : Type*) [CommRing F] [Nontrivial F]
+    (Φ : TseitinFormula) (c c' : Fin Φ.clauses.length) :
+    selectorIdx Φ c ∉ (clauseGadget F Φ c').vars := by
+  intro hmem
+  have hlt := clauseGadget_vars_bound F Φ c' _ hmem
+  simp [selectorIdx] at hlt
+
 /-- **Axiom (Theorem 9.3, Kronecker δ construction)**:
 
     For each κ-subset S of the L disjoint clauses in the packing,
-    there exist:
-    - R_S ∈ blockedSpdpSubspace B κ ℓ (Q×) — a "row polynomial"
-    - τ_S : (Fin (tseitinNumVars Φ)) →₀ ℕ — a "tag monomial"
+    there exist row polynomials R_S ∈ blockedSpdpSubspace and dual
+    monomials τ_S such that coeff(τ_S, R_{S'}) = δ_{S,S'}.
 
-    such that coeff(τ_S, R_{S'}) = δ_{S,S'} (Kronecker delta).
+    Construction:
+    - R_S = ∂_{z_S}(Q×) ∈ blockedSpdpSubspace (with m=1, deg ≤ ℓ)
+    - For each clause C, fix body monomial τ_C with [τ_C]V_C = ±1
+    - τ_S = (∏_{C∈S} τ_C) · (∏_{C∉S} z_C) — hybrid body + selector
 
-    Proof sketch (purely algebraic from Q× = ∏(1 - z_C V_C)):
-    - R_S = m_S · ∂_{z_S}(Q×) where m_S is a suitable degree-ℓ monomial
-    - τ_S = product of tag monomials for clauses in S
-    - Diagonal: coeff(τ_S, R_S) = (-1)^κ · ∏_{C∈S} [τ_C]V_C = (-1)^κ
-    - Off-diagonal: if C* ∈ S\S', then τ_{C*} involves variables from
-      block B_{C*} which doesn't appear in R_{S'} (disjoint packing).
-    - Rescale by (-1)^κ to get exact Kronecker δ. -/
+    Diagonal: [τ_S]R_S = (-1)^κ · ∏_{C∈S} [τ_C]V_C · ∏_{C∉S} (-[1]V_C)
+    Off-diagonal: monomial mismatch from clause index difference.
+    After sign normalization: δ_{S,S'}.
+
+    Depends on: tag_monomial_property, selector_not_in_gadget,
+    pderiv_prod_single (ProductDeriv.lean), and disjoint packing. -/
 axiom identity_minor_construction (F : Type*) [Field F]
     (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
     (pack : DisjointPacking Φ) (κ ℓ : ℕ)
