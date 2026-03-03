@@ -1,5 +1,6 @@
 import PallLean.SPDPDefs
 import PallLean.TuringMachine
+import PallLean.ListSum
 import Mathlib.Tactic
 /-!
 # P-Side Collapse — Pall §3–6
@@ -96,7 +97,8 @@ theorem violation_has_locality (F : Type*) [CommRing F]
     width := 12
     gate := fun i => (cs.get (Fin.cast (by rfl) i)).poly * (cs.get (Fin.cast (by rfl) i)).poly
     sum_eq := by
-      sorry -- List.sum (List.map f cs) = ∑ i : Fin cs.length, f (cs.get i)
+      simp only [violationPoly]
+      rw [List.sum_map_eq_sum_fin_get]; congr 1
     gate_width := by
       classical
       intro i
