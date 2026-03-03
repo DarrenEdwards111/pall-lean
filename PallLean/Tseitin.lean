@@ -45,9 +45,9 @@ structure RegularGraph where
   regular : ∀ v : Fin numVertices,
     (Finset.univ.filter (fun e => edgeSrc e = v ∨ edgeTgt e = v)).card = degree
 
-/-- A Ramanujan expander family: sequence of d-regular graphs with
-    optimal spectral gap and logarithmic girth (§8.1) -/
-structure RamanujanFamily where
+/-- A High-girth regular family: sequence of d-regular graphs with
+    logarithmic girth (§8.1) -/
+structure HighGirthFamily where
   /-- Graph at size parameter n -/
   graph : ℕ → RegularGraph
   /-- Degree is constant -/

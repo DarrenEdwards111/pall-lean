@@ -22,12 +22,12 @@ open SPDP MvPolynomial Tseitin
 
 /-! ## Concrete Witness Family -/
 
-/-- Explicit Ramanujan family (LPS or Morgenstern) -/
-axiom ramanujanFamily : RamanujanFamily
+/-- Explicit high-girth constant-degree family -/
+axiom highGirthFamily : HighGirthFamily
 
 /-! ## Concrete Tseitin Construction
 
-We build `tseitinAt n` concretely from `ramanujanFamily.graph n` using
+We build `tseitinAt n` concretely from `highGirthFamily.graph n` using
 the standard XOR→3-CNF Tseitin encoding. This eliminates 3 axioms
 (tseitinAt, tseitinAt_graph, tseitinAt_vertices). -/
 
@@ -138,17 +138,17 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
 
 /-- Tseitin formula on the n-th graph, built concretely -/
 noncomputable def tseitinAt (n : ℕ) : TseitinFormula :=
-  buildTseitin (ramanujanFamily.graph n)
+  buildTseitin (highGirthFamily.graph n)
 
 /-- The formula uses the n-th Ramanujan graph — by definition -/
 theorem tseitinAt_graph (n : ℕ) :
-    (tseitinAt n).graph = ramanujanFamily.graph n := rfl
+    (tseitinAt n).graph = highGirthFamily.graph n := rfl
 
-/-- The formula has n vertices (from ramanujanFamily.vertices_linear) -/
+/-- The formula has n vertices (from highGirthFamily.vertices_linear) -/
 theorem tseitinAt_vertices (n : ℕ) (hn : n ≥ 100) :
     (tseitinAt n).graph.numVertices = n := by
   unfold tseitinAt buildTseitin
-  exact ramanujanFamily.vertices_linear n
+  exact highGirthFamily.vertices_linear n
 
 /-- Number of variables in the n-th Tseitin polynomial -/
 noncomputable def npNumVars (n : ℕ) : ℕ := tseitinNumVars (tseitinAt n)
