@@ -28,6 +28,10 @@ structure RegularGraph where
   degree : ℕ
   /-- Number of edges = n*d/2 -/
   numEdges : ℕ
+  /-- Edge count bounded: numEdges ≤ numVertices * degree -/
+  edges_bound : numEdges ≤ numVertices * degree
+  /-- Degree bounded (for Tseitin clause counting) -/
+  degree_bound : degree ≤ 10
   /-- Edge endpoints: each edge e has endpoints (src e, tgt e) -/
   edgeSrc : Fin numEdges → Fin numVertices
   edgeTgt : Fin numEdges → Fin numVertices

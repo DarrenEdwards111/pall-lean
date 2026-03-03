@@ -44,8 +44,6 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
   parity_odd := by
     sorry -- Parity is odd: only vertex 0 has bit=true, so card=1, 1%2=1
   clauses := (List.finRange G.numVertices).flatMap fun v =>
-    -- For each vertex v, generate d clauses (one per incident edge)
-    -- Each clause uses 3 edges: the edge itself + 2 auxiliary indices
     (List.finRange G.numEdges).filterMap fun e =>
       if G.edgeSrc e = v then
         some {
@@ -58,12 +56,12 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
         }
       else none
   num_clauses_upper := by
-    sorry -- ≤ 10 * numVertices: each vertex contributes ≤ d edges as source
+    sorry -- clauses.length = numEdges ≤ numVertices * degree ≤ 10 * numVertices
   num_clauses_lower := by
-    sorry -- ≥ numVertices: each vertex has at least one outgoing edge
+    sorry -- clauses.length = numEdges ≥ numVertices (each vertex has ≥1 edge)
   bounded_occurrence := by
     intro v
-    sorry -- each var appears in ≤ 30 clauses (from bounded degree)
+    sorry -- each var appears in ≤ 30 clauses (from bounded degree ≤ 10)
 
 /-- Tseitin formula on the n-th graph, built concretely -/
 noncomputable def tseitinAt (n : ℕ) : TseitinFormula :=
