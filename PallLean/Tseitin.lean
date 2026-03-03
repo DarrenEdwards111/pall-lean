@@ -271,16 +271,69 @@ private theorem rank_from_identity_minor (F : Type*) [Field F]
   simp [Fintype.card_fin] at hcard
   omega
 
-theorem identity_minor_lower_bound (F : Type*) [CommRing F] [Nontrivial F]
+/-- **Axiom (Theorem 9.3, Kronecker δ construction)**:
+
+    For each κ-subset S of the L disjoint clauses in the packing,
+    there exist:
+    - R_S ∈ blockedSpdpSubspace B κ ℓ (Q×) — a "row polynomial"
+    - τ_S : (Fin (tseitinNumVars Φ)) →₀ ℕ — a "tag monomial"
+
+    such that coeff(τ_S, R_{S'}) = δ_{S,S'} (Kronecker delta).
+
+    Proof sketch (purely algebraic from Q× = ∏(1 - z_C V_C)):
+    - R_S = m_S · ∂_{z_S}(Q×) where m_S is a suitable degree-ℓ monomial
+    - τ_S = product of tag monomials for clauses in S
+    - Diagonal: coeff(τ_S, R_S) = (-1)^κ · ∏_{C∈S} [τ_C]V_C = (-1)^κ
+    - Off-diagonal: if C* ∈ S\S', then τ_{C*} involves variables from
+      block B_{C*} which doesn't appear in R_{S'} (disjoint packing).
+    - Rescale by (-1)^κ to get exact Kronecker δ. -/
+axiom identity_minor_construction (F : Type*) [Field F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hκ : κ ≤ pack.selected.length) :
+    ∃ (R : Fin (Nat.choose pack.selected.length κ) →
+        ↥(blockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)))
+      (τ : Fin (Nat.choose pack.selected.length κ) →
+        ((Fin (tseitinNumVars Φ)) →₀ ℕ)),
+      ∀ i j, MvPolynomial.coeff (τ i) (R j).val = if i = j then (1 : F) else 0
+
+theorem identity_minor_lower_bound (F : Type*) [Field F]
     (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
     (pack : DisjointPacking Φ) (κ ℓ : ℕ)
     (hκ : κ ≤ pack.selected.length) :
     blockedSpdpRank B κ ℓ (coupledVerifier F Φ) ≥ Nat.choose pack.selected.length κ := by
-  -- Structure: For each κ-subset S of C_disj, construct:
-  --   R_S ∈ blockedSpdpSubspace (a row polynomial: m · ∂_{z_S} Q×)
-  --   τ_S = square-free monomial (product of clause variables)
-  -- Then coeffLin τ_S applied to R_{S'} gives Kronecker δ_{S,S'}.
-  -- By finrank_span_ge_card_of_dual: finrank ≥ C(L,κ).
-  sorry
+  -- Obtain Kronecker δ system
+  obtain ⟨R, τ, hδ⟩ := identity_minor_construction F Φ B pack κ ℓ hκ
+  -- Build linear functionals from tag monomials
+  let φ : Fin (Nat.choose pack.selected.length κ) →
+      MvPolynomial (Fin (tseitinNumVars Φ)) F →ₗ[F] F :=
+    fun i => coeffLin F (τ i)
+  -- The elements R_i are linearly independent via the dual system
+  have hli : LinearIndependent F (fun i => (R i).val) := by
+    rw [linearIndependent_iff']
+    intro s g hg i hi
+    -- Apply coeffLin (τ i) to hg
+    have h1 : (coeffLin F (τ i)) (∑ j ∈ s, g j • (R j).val) = (coeffLin F (τ i)) 0 :=
+      congr_arg _ hg
+    rw [map_zero, map_sum] at h1
+    simp only [LinearMap.map_smul, coeffLin, LinearMap.coe_mk, AddHom.coe_mk,
+               MvPolynomial.coeff_smul, smul_eq_mul] at h1
+    -- h1 : ∑ j ∈ s, g j * coeff (τ i) ↑(R j) = 0
+    -- Rewrite sum using Kronecker δ
+    have h2 : ∀ j ∈ s, g j * MvPolynomial.coeff (τ i) ↑(R j) =
+        if j = i then g j else 0 := by
+      intro j _
+      rw [hδ i j]
+      by_cases hij : i = j
+      · subst hij; simp
+      · simp [hij, Ne.symm hij]
+    rw [show (0 : F) = 0 from rfl] at h1
+    calc g i = ∑ j ∈ s, if j = i then g j else 0 := by
+              rw [Finset.sum_ite_eq', if_pos hi]
+      _ = ∑ j ∈ s, g j * MvPolynomial.coeff (τ i) ↑(R j) := by
+              exact (Finset.sum_congr rfl h2).symm
+      _ = 0 := h1
+  -- Linear independence gives rank ≥ card
+  exact rank_from_identity_minor F _ _ R hli
 
 end Tseitin

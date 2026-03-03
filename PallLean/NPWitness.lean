@@ -197,7 +197,7 @@ axiom binomial_lower_bound :
 
 /-- **Theorem 10.1**: NP-side non-collapse.
     Proved from identity_minor_lower_bound + disjoint_packing + binomial bound. -/
-theorem np_side_lb (F : Type*) [CommRing F] [Nontrivial F] :
+theorem np_side_lb (F : Type*) [Field F] :
     ∃ n₀, ∀ n, n ≥ n₀ →
       blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
         (tseitinPoly F n) ≥ n ^ (Nat.log 2 n / 4) := by
