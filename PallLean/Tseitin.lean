@@ -188,32 +188,10 @@ theorem tag_monomial_exists (F : Type*) [CommRing F]
       True := by
   exact ⟨1, by simp [MvPolynomial.totalDegree_one], trivial⟩
 
-/-- Theorem 9.3: Identity minor of size (L choose κ) in the blocked SPDP matrix.
+/-! ### Theorem 9.3: Identity minor — Sub-lemmas and main theorem
 
-    For a disjoint subfamily C_disj of size L, the blocked SPDP matrix
-    M^B_{κ,ℓ}(Q×_Φ) contains an identity minor of size (L choose κ).
-
-    Rows indexed by κ-subsets S ⊆ C_disj (derivatives ∂_{z_S}).
-    Columns indexed by product tag monomials τ_S = ∏_{C∈S} τ_C.
-    The coefficient matrix has [τ_S]R_S = (−1)^κ and [τ_S]R_{S'} = 0 for S ≠ S'.
-
-    The proof decomposes into three sub-lemmas capturing the algebraic core:
-
-    1. **Diagonal entry** (Lemma diagonal_coeff_nonzero):
-       For each κ-subset S ⊆ C_disj, the coefficient [τ_S](∂_{z_S} Q×) = (−1)^κ ≠ 0.
-       This follows from the product rule: ∂_{z_S} ∏_C (1 − z_C V_C) restricted to
-       the z-constant term gives ∏_{C∈S}(−V_C), and extracting τ_S = ∏_{C∈S} τ_C
-       yields ∏_{C∈S} [τ_C]V_C = (−1)^κ by Lemma 9.2.
-
-    2. **Off-diagonal vanishing** (Lemma offdiag_coeff_zero):
-       For S ≠ S', [τ_S](∂_{z_{S'}} Q×) = 0.
-       Pick C⋆ ∈ S \ S'. The z-constant part of ∂_{z_{S'}} Q× uses only variables
-       from ∪_{C∈S'} B_C. Since B_{C⋆} is disjoint from all B_C (C ∈ S'),
-       no monomial in the z-constant part contains τ_{C⋆}, hence cannot match τ_S.
-
-    3. **Identity minor → rank bound** (Lemma identity_minor_rank):
-       A matrix with an identity minor of size r has rank ≥ r. Applied to the
-       (L choose κ) × (L choose κ) submatrix with diagonal ±1 entries. -/
+Decomposed into: diagonal_coeff_nonzero, offdiag_coeff_zero, identity_minor_rank.
+See paper §9.3: rows = ∂_{z_S} Q×, columns = τ_S, giving identity minor of size (L choose κ). -/
 
 /-- Sub-lemma 1: Diagonal entries of the coefficient matrix are (−1)^κ ≠ 0.
 
