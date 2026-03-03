@@ -186,9 +186,8 @@ theorem kappa_padding_rank (F : Type*) [Field F]
     blockedSpdpRank B κ ℓ (Y * V) ≤ G ^ 4 := by
   -- Step 1: Apply the Leibniz decomposition
   have hsum := kappa_padding_rank_sum F B κ ℓ Y V
-  -- Step 2: Bound Γ_{r,ℓ}(V) ≤ G^3 for r ≤ 6, and Γ_{r,ℓ}(V) ≤ G^3 for r > 6
-  -- (for r > deg(V), all κ-th derivatives are 0, so rank = 0 ≤ G^3)
-  -- Step 3: Σ C(κ,r) · G^3 = G^3 · Σ C(κ,r) = G^3 · 2^κ ≤ G^4
+  -- Step 2: Each term C(κ,r) * Γ_r(V) ≤ C(κ,r) * G^3
+  -- Step 3: Σ C(κ,r) * G^3 = G^3 * 2^κ ≤ G^4
   sorry
 
 /-! ## Main P-Side Theorem -/
