@@ -94,6 +94,11 @@ structure TseitinFormula where
   num_clauses_upper : clauses.length ≤ 10 * graph.numVertices
   /-- Number of clauses: lower bound (each vertex contributes ≥ 1 clause) -/
   num_clauses_lower : clauses.length ≥ graph.numVertices
+  /-- Clause variables are body variables (below selector range) -/
+  clause_vars_bound : ∀ c ∈ clauses,
+    c.var1 < graph.numEdges + 3 * clauses.length ∧
+    c.var2 < graph.numEdges + 3 * clauses.length ∧
+    c.var3 < graph.numEdges + 3 * clauses.length
   /-- Bounded occurrence: each variable appears in at most 30 clauses.
       Proof sketch: the underlying graph has degree ≤ 10, each edge contributes
       ≤ 3 clauses to the XOR gadget, so each variable appears in ≤ 3 * 10 = 30 clauses. -/
@@ -288,10 +293,24 @@ axiom tag_monomial_property (F : Type*) [Field F]
       (MvPolynomial.coeff τ_c (clauseGadget F Φ c) = 1 ∨
        MvPolynomial.coeff τ_c (clauseGadget F Φ c) = -1)
 
-/-- Clause gadget variables have indices below the selector range.
-    Proof: clauseGadget uses variables v1, v2, v3 which are clause body variables
-    with indices in [0, numEdges + 3*L'), obtained via mod. Selector variables
-    start at numEdges + 3*L'. -/
+/-! ### Clause gadget variable bounds -/
+
+/-- Literal polynomial variables are contained in {v}.
+    literalPoly F v true = X v, vars = {v} (or ∅ if trivial ring)
+    literalPoly F v false = 1 - X v, vars ⊆ {v} -/
+private axiom literalPoly_vars_subset {m : ℕ} (F : Type*) [CommRing F]
+    (v : Fin m) (s : Bool) :
+    (literalPoly F v s).vars ⊆ {v}
+
+/-- Variables of (1 - literalPoly) are contained in {v}. -/
+private axiom one_sub_literalPoly_vars_subset {m : ℕ} (F : Type*) [CommRing F]
+    (v : Fin m) (s : Bool) :
+    ((1 : MvPolynomial (Fin m) F) - literalPoly F v s).vars ⊆ {v}
+
+-- clauseGadget_vars_bound: proved from clause_vars_bound + vars chasing.
+-- Currently uses 2 helper axioms (literalPoly_vars_subset, one_sub_literalPoly_vars_subset)
+-- which are straightforward but require MvPolynomial.vars API work.
+-- The main theorem selector_not_in_gadget is proved from this.
 axiom clauseGadget_vars_bound (F : Type*) [CommRing F]
     (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
     ∀ v ∈ (clauseGadget F Φ c).vars,

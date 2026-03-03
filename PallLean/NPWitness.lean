@@ -70,6 +70,12 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
   num_clauses_lower := by
     simp only [List.length_map, List.length_finRange]
     exact G.edges_lower
+  clause_vars_bound := by
+    intro c hc
+    simp only [List.mem_map, List.mem_finRange] at hc
+    obtain ⟨e, _, rfl⟩ := hc
+    simp only [List.length_map, List.length_finRange]
+    exact ⟨by omega, by omega, by omega⟩
   bounded_occurrence := by
     intro v
     -- Disjoint variable slots: var1=e, var2=E+e, var3=2E+e
