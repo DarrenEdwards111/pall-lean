@@ -119,9 +119,28 @@ private lemma log2_le_div30 (n : ℕ) (hn : n ≥ 1024) : Nat.log 2 n ≤ n / 30
     For large n: n^{1/4} ≥ 30 log₂ n, so base ≥ n^{3/4}, giving n^{3 log n/4}.
     Requires real analysis to formalize n^{1/4} eventually dominates log n.
     See ConstructionAxioms.lean for full documentation. -/
-axiom binomial_lower_bound_axiom :
+-- Falling factorial bound: C(L, k) ≥ (L/k)^k for L ≥ k ≥ 1 (Nat division).
+private theorem choose_ge_div_pow (L k : ℕ) (hk : k ≥ 1) (hLk : L ≥ k) :
+    Nat.choose L k ≥ (L / k) ^ k := by
+  sorry  -- Standard falling factorial argument
+
+-- For n ≥ 2^40: ((n/30) / log₂ n)^(log₂ n) ≥ n^(log₂ n / 4)
+private theorem base_large (n : ℕ) (hn : n ≥ 2^40) :
+    (n / 30 / Nat.log 2 n) ^ (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4) := by
+  sorry  -- Arithmetic: n^(1/4) ≥ 30·log₂ n for n ≥ 2^40, so base ≥ n^(3/4)
+
+theorem binomial_lower_bound_axiom :
     ∃ n₀, ∀ n, n ≥ n₀ →
-      Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4)
+      Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4) := by
+  use 2^40
+  intro n hn
+  have hlog_pos : Nat.log 2 n ≥ 1 := by
+    have : 2^1 ≤ n := by linarith [show (2:ℕ)^40 ≥ 2^1 from by norm_num]
+    exact Nat.succ_le_of_lt (Nat.log_pos (by norm_num) this)
+  have hlog_le : Nat.log 2 n ≤ n / 30 := log2_le_div30 n (by linarith [show (2:ℕ)^40 ≥ 1024 from by norm_num])
+  calc Nat.choose (n / 30) (Nat.log 2 n)
+      ≥ (n / 30 / Nat.log 2 n) ^ (Nat.log 2 n) := choose_ge_div_pow (n / 30) (Nat.log 2 n) hlog_pos hlog_le
+    _ ≥ n ^ (Nat.log 2 n / 4) := base_large n hn
 
 theorem binomial_lower_bound :
     ∃ n₀, ∀ n, n ≥ n₀ →

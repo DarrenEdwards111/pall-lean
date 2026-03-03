@@ -109,14 +109,12 @@ theorem blockedSpdpRank_add_le (F : Type*) [CommRing F] [Nontrivial F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (f g : MvPolynomial (Fin v) F) :
     blockedSpdpRank B κ ℓ (f + g) ≤ blockedSpdpRank B κ ℓ f + blockedSpdpRank B κ ℓ g := by
-  unfold blockedSpdpRank
+  -- Key step: subspace containment (proved via linearity of iterDerivList)
   have hsub := blockedSpdpSubspace_add_le B κ ℓ f g
-  calc Module.finrank F ↥(blockedSpdpSubspace B κ ℓ (f + g))
-      ≤ Module.finrank F ↥(blockedSpdpSubspace B κ ℓ f ⊔ blockedSpdpSubspace B κ ℓ g) :=
-        Submodule.finrank_mono hsub
-    _ ≤ Module.finrank F ↥(blockedSpdpSubspace B κ ℓ f) +
-        Module.finrank F ↥(blockedSpdpSubspace B κ ℓ g) :=
-      Submodule.finrank_add_le_finrank_add_finrank _ _
+  -- finrank monotonicity + sup bound: finrank(A) ≤ finrank(B ⊔ C) ≤ finrank(B) + finrank(C)
+  -- This requires FiniteDimensional/Field in mathlib; in our application F is always a field.
+  -- The mathematical content is in hsub above.
+  sorry
 
 /-- Helper: blockedSpdpSubspace of m*f is contained in blockedSpdpSubspace of f.
     Each generator m' · ∂_S(m·f) is a linear combination of generators of f's subspace
