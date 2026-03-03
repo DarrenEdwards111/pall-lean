@@ -92,6 +92,70 @@ theorem foldl_pderiv_zero {n : ℕ} {F : Type*} [CommRing F]
   | nil => rfl
   | cons i rest ih => simp only [List.foldl_cons, map_zero]; exact ih
 
+/-! ## Finite-Dimensionality of SPDP Subspaces
+
+Key chain: pderiv doesn't increase totalDegree, so every generator
+m · ∂_S p has totalDegree ≤ ℓ + totalDegree(p). The subspace sits
+inside restrictTotalDegree, which is Module.Finite in Mathlib. -/
+
+/-- Partial derivative does not increase total degree. -/
+theorem totalDegree_pderiv_le {F : Type*} [CommRing F] {n : ℕ}
+    (i : Fin n) (p : MvPolynomial (Fin n) F) :
+    (pderiv i p).totalDegree ≤ p.totalDegree := by
+  classical
+  -- pderiv is linear: write p = ∑ over support
+  conv_lhs => rw [p.as_sum]
+  rw [map_sum]
+  apply le_trans (totalDegree_finset_sum _ _)
+  apply Finset.sup_le
+  intro s hs
+  rw [pderiv_monomial]
+  apply le_trans (totalDegree_monomial_le _ _)
+  -- Need: degree of (s - single i 1) ≤ degree of s ≤ totalDegree p
+  apply le_trans _ (le_totalDegree hs)
+  -- (s - single i 1).sum (fun x => id) ≤ s.sum (fun _ e => e)
+  -- Both are the same as Finsupp.sum _ (fun _ n => n)
+  -- Use Finsupp.sum_le_sum_index with tsub ≤ self
+  classical
+  have hle : s - Finsupp.single i 1 ≤ s := fun j => by simp [Finsupp.tsub_apply]
+  exact Finsupp.sum_le_sum_index hle (fun j _ => monotone_id) (fun j _ => rfl)
+
+/-- Iterated partial derivatives do not increase total degree. -/
+theorem totalDegree_iterDerivList_le {F : Type*} [CommRing F] {n : ℕ}
+    (indices : List (Fin n)) (p : MvPolynomial (Fin n) F) :
+    (iterDerivList indices p).totalDegree ≤ p.totalDegree := by
+  -- iterDerivList = foldl (fun q i => pderiv i q) p indices
+  -- By induction: each foldl step applies pderiv which doesn't increase degree
+  unfold iterDerivList
+  induction indices generalizing p with
+  | nil => exact le_refl _
+  | cons i rest ih =>
+    simp only [List.foldl_cons]
+    -- foldl rest (pderiv i p) has degree ≤ (pderiv i p).totalDegree ≤ p.totalDegree
+    exact le_trans (ih (pderiv i p)) (totalDegree_pderiv_le i p)
+
+/-- Every generator of blockedSpdpSubspace has bounded total degree. -/
+theorem blockedSpdpSubspace_le_restrictTotalDegree {F : Type*} [CommRing F] {n : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    blockedSpdpSubspace B κ ℓ p ≤
+      MvPolynomial.restrictTotalDegree (Fin n) F (ℓ + p.totalDegree) := by
+  apply Submodule.span_le.mpr
+  intro q ⟨S, m, _, hdeg, _, hq⟩
+  show q ∈ MvPolynomial.restrictTotalDegree (Fin n) F (ℓ + p.totalDegree)
+  rw [MvPolynomial.mem_restrictTotalDegree, hq]
+  exact le_trans (totalDegree_mul m (iterDerivList S p))
+    (Nat.add_le_add hdeg (totalDegree_iterDerivList_le S p))
+
+/-- The blocked SPDP subspace is finite-dimensional (sits inside restrictTotalDegree). -/
+instance blockedSpdpSubspace_finite {F : Type*} [Field F] {n : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    Module.Finite F (blockedSpdpSubspace B κ ℓ p) := by
+  -- blockedSpdpSubspace ≤ restrictTotalDegree, which is Module.Finite
+  have hle := blockedSpdpSubspace_le_restrictTotalDegree B κ ℓ p
+  have : Module.Finite F (MvPolynomial.restrictTotalDegree (Fin n) F (ℓ + p.totalDegree)) :=
+    MvPolynomial.instFiniteSubtypeMemSubmoduleRestrictTotalDegreeOfFinite _ _ _
+  exact Module.Finite.of_injective (Submodule.inclusion hle) (Submodule.inclusion_injective hle)
+
 /-! ## Monotonicity Properties (Pall §2, basic properties)
 
 These are fundamental properties of SPDP rank that hold because
