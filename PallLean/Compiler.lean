@@ -256,9 +256,11 @@ private theorem padding_subspace_le (F : Type*) [Field F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (Y V : MvPolynomial (Fin v) F) :
     blockedSpdpSubspace B κ ℓ (Y * V) ≤
-      ⨆ r : Fin (κ + 1), blockedSpdpSubspace B r.val ℓ V := by
-  sorry -- Leibniz decomposition: each generator of the LHS lies in some
-         -- blockedSpdpSubspace B r ℓ V on the RHS
+      ⨆ r : Fin (κ + 1), blockedSpdpSubspace B r.val (ℓ + κ) V := by
+  -- Iterative Leibniz: each derivative either hits Y or V.
+  -- After κ derivatives, terms indexed by r = |derivatives hitting V|.
+  -- Monomial multiplier degree ≤ ℓ + (κ - r) ≤ ℓ + κ.
+  sorry
 
 /-- κ-padding rank transfer (Lemma 3.1).
     ∂_S(Y·V) = ±(∏_{j∉Sy} yj)·∂_{Sx}V, so rows of M_{κ,ℓ}(Y·V) are
@@ -268,23 +270,21 @@ theorem kappa_padding_rank (F : Type*) [Field F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (Y V : MvPolynomial (Fin v) F)
     (G : ℕ)
-    (hrank : ∀ r, blockedSpdpRank B r ℓ V ≤ G ^ 3)
-    (hG : κ + 1 ≤ G) :
-    blockedSpdpRank B κ ℓ (Y * V) ≤ G ^ 4 := by
-  -- Step 1: Subspace inclusion (Leibniz decomposition)
+    (hrank : ∀ r, blockedSpdpRank B r (ℓ + κ) V ≤ G ^ 3) :
+    blockedSpdpRank B κ ℓ (Y * V) ≤ (κ + 1) * G ^ 3 := by
+  -- Step 1: Subspace inclusion (Leibniz, with degree shift ℓ → ℓ+κ)
   have hsub := padding_subspace_le F B κ ℓ Y V
-  -- Step 2: Module.Finite for the iSup (from blockedSpdpSubspace_finite + Submodule.finite_iSup)
-  haveI : ∀ r : Fin (κ + 1), Module.Finite F ↥(blockedSpdpSubspace B r.val ℓ V) :=
-    fun r => blockedSpdpSubspace_finite B r.val ℓ V
-  haveI : Module.Finite F ↥(⨆ r : Fin (κ + 1), blockedSpdpSubspace B r.val ℓ V) :=
+  -- Step 2: Module.Finite for the iSup
+  haveI : ∀ r : Fin (κ + 1), Module.Finite F ↥(blockedSpdpSubspace B r.val (ℓ + κ) V) :=
+    fun r => blockedSpdpSubspace_finite B r.val (ℓ + κ) V
+  haveI : Module.Finite F ↥(⨆ r : Fin (κ + 1), blockedSpdpSubspace B r.val (ℓ + κ) V) :=
     Submodule.finite_iSup _
   -- Step 3: finrank monotonicity
   have hmono : blockedSpdpRank B κ ℓ (Y * V) ≤
-      Module.finrank F ↥(⨆ r : Fin (κ + 1), blockedSpdpSubspace B r.val ℓ V) :=
+      Module.finrank F ↥(⨆ r : Fin (κ + 1), blockedSpdpSubspace B r.val (ℓ + κ) V) :=
     Submodule.finrank_mono hsub
-  -- Step 4: finrank of iSup ≤ sum of finranks (by induction)
-  -- For now use: finrank(⨆ U_r) ≤ Σ finrank(U_r) via iterated finrank_add_le
-  -- Each finrank(U_r) = blockedSpdpRank B r ℓ V ≤ G³
+  -- Step 4: finrank of iSup ≤ sum of finranks
+  -- Each finrank(U_r) = blockedSpdpRank B r (ℓ+κ) V ≤ G³
   -- Sum ≤ (κ+1) · G³ ≤ G · G³ = G⁴
   sorry
 
@@ -310,7 +310,7 @@ theorem p_side_collapse (F : Type*) [Field F]
   -- 5. numVars M n κ ≤ n^{O(1)}, so overall ≤ n^C
   -- C = 4*(2t+8) where t = M.timeBound, accounting for G = numGates*width ≤ n^(2t+8)
   -- G^4 = n^(4*(2t+8)) = n^(8t+32)
-  use 8 * M.timeBound + 32, max 4 M.numStates
+  use 6 * M.timeBound + 26, max 4 M.numStates
   intro n hn
   have hn4 : n ≥ 4 := le_trans (le_max_left _ _) hn
   have hn2 : n ≥ 2 := by omega
@@ -328,18 +328,15 @@ theorem p_side_collapse (F : Type*) [Field F]
   -- Step 2: V has locality structure with numGates ≤ n^(2t+2), width ≤ 12
   obtain ⟨h, hgates, hwidth⟩ := violation_has_locality F M n hn4 hn_states
   -- Step 3: For every r, width⇒rank gives ΓB_r(V) ≤ (numGates * width)^3
+  -- Use ℓ+κ degree bound (needed for padding transfer)
   have hrank : ∀ r : ℕ,
-      blockedSpdpRank B r ℓ V ≤ (h.numGates * h.width) ^ 3 := fun r =>
-    width_to_rank_bound F B r ℓ V h
+      blockedSpdpRank B r (ℓ + κ) V ≤ (h.numGates * h.width) ^ 3 := fun r =>
+    width_to_rank_bound F B r (ℓ + κ) V h
   -- Step 4: κ-padding transfer: ΓB_κ(Y*V) ≤ (numGates * width)^4
   -- Need: κ + 1 ≤ G = numGates * width
   -- κ = log₂ n, numGates ≥ numVars ≥ n, width = 12, so G ≥ 12n ≥ log₂n + 1
-  have hG_large : κ + 1 ≤ h.numGates * h.width := by
-    -- κ = log₂ n ≤ n, and G = numGates * width ≥ 1 * 1 ≥ ... actually need concrete bound
-    -- For now: G ≥ n^(2t+4) * 1 ≥ n ≥ log₂ n + 1 for n ≥ 2
-    sorry
-  have hpadding : blockedSpdpRank B κ ℓ (Y * V) ≤ (h.numGates * h.width) ^ 4 :=
-    kappa_padding_rank F B κ ℓ Y V (h.numGates * h.width) hrank hG_large
+  have hpadding : blockedSpdpRank B κ ℓ (Y * V) ≤ (κ + 1) * (h.numGates * h.width) ^ 3 :=
+    kappa_padding_rank F B κ ℓ Y V (h.numGates * h.width) hrank
   -- Step 5: Bound G = numGates * width ≤ n^(2t+6)
   -- Using: numGates ≤ n^(2t+2), width ≤ 12 ≤ n^4 (since n ≥ 2, 2^4=16≥12)
   have h12 : (12 : ℕ) ≤ n ^ 4 :=
@@ -350,13 +347,22 @@ theorem p_side_collapse (F : Type*) [Field F]
       _ ≤ n ^ (2 * M.timeBound + 4) * n ^ 4 := by
             apply Nat.mul_le_mul_left; exact h12
       _ = n ^ (2 * M.timeBound + 8) := by rw [← pow_add]
-  -- Step 6: G^4 ≤ n^(8t+32)
-  have hG4 : (h.numGates * h.width) ^ 4 ≤ n ^ (8 * M.timeBound + 32) :=
-    calc (h.numGates * h.width) ^ 4
-        ≤ (n ^ (2 * M.timeBound + 8)) ^ 4 := Nat.pow_le_pow_left hG 4
-      _ = n ^ (8 * M.timeBound + 32) := by rw [← pow_mul]; ring
-  -- Chain: compiledPolyOf = Y*V, rank ≤ G^4 ≤ n^C
+  -- Step 6: G³ ≤ n^(6t+24)
+  have hG3 : (h.numGates * h.width) ^ 3 ≤ n ^ (6 * M.timeBound + 24) :=
+    calc (h.numGates * h.width) ^ 3
+        ≤ (n ^ (2 * M.timeBound + 8)) ^ 3 := Nat.pow_le_pow_left hG 3
+      _ = n ^ (6 * M.timeBound + 24) := by rw [← pow_mul]; ring
+  -- Step 7: (κ+1) * G³ ≤ n² * n^(6t+24) = n^(6t+26)
+  have hκ : κ + 1 ≤ n ^ 2 := by
+    show Nat.log 2 n + 1 ≤ n ^ 2
+    have : Nat.log 2 n ≤ n := Nat.log_le_self 2 n
+    nlinarith [hn4]
+  have hfinal : (κ + 1) * (h.numGates * h.width) ^ 3 ≤ n ^ (6 * M.timeBound + 26) :=
+    calc (κ + 1) * (h.numGates * h.width) ^ 3
+        ≤ n ^ 2 * n ^ (6 * M.timeBound + 24) := Nat.mul_le_mul hκ hG3
+      _ = n ^ (6 * M.timeBound + 26) := by rw [← pow_add]; ring_nf
+  -- Chain: compiledPolyOf = Y*V, rank ≤ (κ+1)*G³ ≤ n^C
   rw [hcompiled]
-  exact le_trans hpadding hG4
+  exact le_trans hpadding hfinal
 
 end Compiler
