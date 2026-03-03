@@ -45,6 +45,28 @@ def numVars (M : DTM) (n κ : ℕ) : ℕ :=
   let S := tapeSize M n
   S * S + S * M.numStates + S * S + n + κ
 
+/-! ## Variable Indexing Helpers (§3.1) -/
+
+/-- Index of tape bit variable b_{t,i} -/
+def tapeIdx (M : DTM) (n κ : ℕ) (t i : Fin (tapeSize M n)) : Fin (numVars M n κ) :=
+  ⟨t.val * tapeSize M n + i.val, by
+    unfold numVars; have := t.isLt; have := i.isLt
+    nlinarith [Nat.mul_lt_mul_of_pos_right t.isLt (show 0 < tapeSize M n by omega)]⟩
+
+/-- Index of state variable s_{t,q} -/
+def stateIdx (M : DTM) (n κ : ℕ) (t : Fin (tapeSize M n)) (q : Fin M.numStates) :
+    Fin (numVars M n κ) :=
+  ⟨(tapeSize M n) * (tapeSize M n) + t.val * M.numStates + q.val, by
+    unfold numVars; have := t.isLt; have := q.isLt
+    nlinarith [Nat.mul_lt_mul_of_pos_right t.isLt (show 0 < M.numStates by omega)]⟩
+
+/-- Index of head position variable h_{t,i} -/
+def headIdx (M : DTM) (n κ : ℕ) (t i : Fin (tapeSize M n)) : Fin (numVars M n κ) :=
+  ⟨(tapeSize M n) * (tapeSize M n) + (tapeSize M n) * M.numStates +
+   t.val * tapeSize M n + i.val, by
+    unfold numVars; have := t.isLt; have := i.isLt
+    nlinarith [Nat.mul_lt_mul_of_pos_right t.isLt (show 0 < tapeSize M n by omega)]⟩
+
 /-! ## Local Constraints (§3.1) -/
 
 /-- A local constraint: polynomial that should be 0 on valid tableau entries.
@@ -54,6 +76,13 @@ structure LocalConstraint (M : DTM) (n κ : ℕ) (F : Type*) [CommRing F] where
   centerTime : ℕ
   centerPos : ℕ
   width_bound : poly.vars.card ≤ 6
+
+/-! ## Booleanity Constraints: z(1-z) = 0 for each variable -/
+
+/-- Booleanity constraint for a single variable: z(1-z) -/
+noncomputable def boolConstraint {N : ℕ} (F : Type*) [CommRing F]
+    (v : Fin N) : MvPolynomial (Fin N) F :=
+  X v * (1 - X v)
 
 /-- Violation polynomial V_{M,n} = Σ_C C(x,τ)² (§3.1) -/
 noncomputable def violationPoly (F : Type*) [CommRing F]

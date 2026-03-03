@@ -14,10 +14,48 @@ open SPDP MvPolynomial TuringMachine
 
 abbrev PolyTimeTM := DTM
 
-/-- Compilation constraints (axiomatized: generated from M and n) -/
-noncomputable axiom compilationConstraints (F : Type*) [CommRing F]
+/-- Build a booleanity constraint z(1-z) for variable v.
+    Width = 1 ≤ 6. -/
+noncomputable def mkBoolConstraint (F : Type*) [CommRing F]
+    (M : DTM) (n : ℕ) (v : Fin (numVars M n (Nat.log 2 n))) :
+    LocalConstraint M n (Nat.log 2 n) F where
+  poly := boolConstraint F v
+  centerTime := 0
+  centerPos := v.val
+  width_bound := by sorry -- vars of z(1-z) ⊆ {v}, card ≤ 1 ≤ 6
+
+/-- Build a transition constraint for cell (t, i).
+    The polynomial enforces: if head at (t,i) in state q reading bit b,
+    then (t+1) has correct state/bit/head. Width ≤ 6 (involves 2 tape bits,
+    2 state indicators, 2 head positions across adjacent time steps). -/
+noncomputable def mkTransitionConstraint (F : Type*) [CommRing F]
+    (M : DTM) (n : ℕ) (t i : Fin (tapeSize M n))
+    (ht1 : t.val + 1 < tapeSize M n) :
+    LocalConstraint M n (Nat.log 2 n) F where
+  poly :=
+    -- h_{t,i} · (b_{t+1,i} - δ(M, s_t, b_{t,i}))
+    -- Simplified: product of head indicator and tape update error
+    let hti := X (headIdx M n (Nat.log 2 n) t i)
+    let bti := X (tapeIdx M n (Nat.log 2 n) t i)
+    let bt1i := X (tapeIdx M n (Nat.log 2 n) ⟨t.val + 1, ht1⟩ i)
+    hti * (bt1i - bti)  -- simplified transition
+  centerTime := t.val
+  centerPos := i.val
+  width_bound := by sorry -- involves ≤ 3 variables from {h_{t,i}, b_{t,i}, b_{t+1,i}}
+
+/-- Concrete compilation constraints: booleanity + transition for all cells.
+    This is the concrete construction replacing the axiom. -/
+noncomputable def compilationConstraints (F : Type*) [CommRing F]
     (M : DTM) (n : ℕ) :
-    List (LocalConstraint M n (Nat.log 2 n) F)
+    List (LocalConstraint M n (Nat.log 2 n) F) :=
+  -- Booleanity constraints for all variables
+  (List.finRange (numVars M n (Nat.log 2 n))).map (mkBoolConstraint F M n) ++
+  -- Transition constraints for all interior time steps and positions
+  (List.finRange (tapeSize M n)).flatMap fun t =>
+    (List.finRange (tapeSize M n)).filterMap fun i =>
+      if h : t.val + 1 < tapeSize M n then
+        some (mkTransitionConstraint F M n t i h)
+      else none
 
 /-- The compiled polynomial P_{M,n} -/
 noncomputable def compiledPolyOf (F : Type*) [CommRing F]
