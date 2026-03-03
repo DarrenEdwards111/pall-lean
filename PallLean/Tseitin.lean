@@ -184,20 +184,23 @@ noncomputable def clauseGadget (F : Type*) [CommRing F]
   (1 - literalPoly F v2 cl.sign2) *
   (1 - literalPoly F v3 cl.sign3)
 
-/-- The coupled verifier polynomial Q×_Φ (Definition 8.4)
+/-! ### Coupled verifier Q×_Φ = ∏(1 - z_C · V_C) (Definition 8.4) -/
 
-    Q×_Φ(u,z) = ∏_{C ∈ Cl(Φ)} (1 - z_C · V_C(u_{B_C}))
+/-- Selector variable index for clause c: lives after edge + aux variables -/
+def selectorIdx (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
+    Fin (tseitinNumVars Φ) :=
+  ⟨Φ.graph.numEdges + 3 * Φ.clauses.length + c.val,
+   by unfold tseitinNumVars; omega⟩
 
-    This is the actual polynomial, not a placeholder. -/
+theorem selectorIdx_injective (Φ : TseitinFormula) :
+    Function.Injective (selectorIdx Φ) := by
+  intro a b h; simp [selectorIdx, Fin.ext_iff] at h; exact Fin.ext (by omega)
+
 noncomputable def coupledVerifier (F : Type*) [CommRing F]
     (Φ : TseitinFormula) :
     MvPolynomial (Fin (tseitinNumVars Φ)) F :=
-  -- Product over all clauses
   (Finset.univ : Finset (Fin Φ.clauses.length)).prod (fun c =>
-    let selectorIdx : Fin (tseitinNumVars Φ) :=
-      ⟨Φ.graph.numEdges + 3 * Φ.clauses.length + c.val,
-       by unfold tseitinNumVars; omega⟩
-    1 - X selectorIdx * clauseGadget F Φ c)
+    1 - X (selectorIdx Φ c) * clauseGadget F Φ c)
 
 /-! ## Tag Monomials and Identity Minor (§9.2–9.3) -/
 
