@@ -250,7 +250,12 @@ private theorem rank_from_identity_minor (F : Type*) [Field F]
     (k : ℕ) (elements : Fin k → ↥U)
     (lin_indep : LinearIndependent F (Subtype.val ∘ elements)) :
     Module.finrank F U ≥ k := by
-  sorry -- linearIndependent_iff_card_le_finrank_span + Submodule.finrank_mono
+  -- Approach: LinearIndependent F (val ∘ elements) with range ⊆ U
+  -- → cardinal_le_rank gives mk(Fin k) ≤ rank(ambient)
+  -- → need to localize to rank(U) via span containment
+  -- Key mathlib lemmas: linearIndependent_iff_card_le_finrank_span,
+  --   Submodule.finrank_mono, Module.Finite for SPDP subspaces
+  sorry
 
 theorem identity_minor_lower_bound (F : Type*) [CommRing F] [Nontrivial F]
     (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
