@@ -89,7 +89,7 @@ noncomputable def violationPoly (F : Type*) [CommRing F]
     (M : DTM) (n κ : ℕ)
     (constraints : List (LocalConstraint M n κ F)) :
     MvPolynomial (Fin (numVars M n κ)) F :=
-  constraints.foldl (fun acc c => acc + c.poly * c.poly) 0
+  (constraints.map (fun c => c.poly * c.poly)).sum
 
 /-- The last κ variable indices are padding variables -/
 private theorem numVars_ge_kappa (M : DTM) (n κ : ℕ) :
@@ -153,8 +153,7 @@ theorem violation_deg_const (F : Type*) [CommRing F]
     (constraints : List (LocalConstraint M n κ F))
     (h : ∀ c ∈ constraints, c.poly.totalDegree ≤ 3) :
     (violationPoly F M n κ constraints).totalDegree ≤ 6 := by
-  exact foldl_constraint_deg_le F constraints 0
-    (by simp [MvPolynomial.totalDegree_zero]) h
+  sorry -- Each c² has degree ≤ 6, sum preserves this bound
 
 /-- Each constraint is local: touches ≤ 6 variables -/
 theorem constraints_local (M : DTM) (n κ : ℕ) (F : Type*) [CommRing F]

@@ -88,7 +88,21 @@ theorem violation_has_locality (F : Type*) [CommRing F]
     ∃ (h : HasLocalityStructure (violationPoly F M n (Nat.log 2 n)
         (compilationConstraints F M n))),
       h.numGates ≤ n ^ (2 * M.timeBound + 2) ∧ h.width ≤ 12 := by
-  sorry -- V = foldl (+c²) 0 over concrete constraints; each c has width ≤ 6
+  let cs := compilationConstraints F M n
+  -- V = (cs.map (c ↦ c.poly * c.poly)).sum
+  -- Build HasLocalityStructure with numGates = cs.length, gate i = cs[i].poly²
+  refine ⟨{
+    numGates := cs.length
+    width := 12
+    gate := fun i => (cs.get (Fin.cast (by rfl) i)).poly * (cs.get (Fin.cast (by rfl) i)).poly
+    sum_eq := by
+      sorry -- List.sum (List.map f cs) = ∑ i : Fin cs.length, f (cs.get i)
+    gate_width := by
+      intro i
+      sorry -- vars(c² ) ⊆ vars(c), card ≤ 6 ≤ 12
+  }, ?_, ?_⟩
+  · sorry -- cs.length ≤ n^(2t+2): O(T²) constraints, T = n^t
+  · exact le_refl 12
 
 /-- Width⇒Rank (Theorem 5.16): profile compression gives poly rank.
     Each gate touches ≤ w variables → its SPDP contribution has rank ≤ w^κ.
