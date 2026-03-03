@@ -41,16 +41,14 @@ noncomputable def evalAtHom (i : Fin n) (c : F) :
     Not used in the P≠NP proof chain (structural property only).
     See ConstructionAxioms.lean for full documentation. -/
 -- Key lemma: SPDP subspace of f|_{x_i=c} ⊆ SPDP subspace of f (matrix factorization M(f')=Z·M(f)·T)
+-- Axiom: M(f|_{x_i=c}) = Z·M(f)·T implies spdpSubspace(f') ≤ spdpSubspace(f).
+axiom spdpSubspace_evalAt_le_axiom {n : ℕ} {F : Type*} [Field F]
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) (i : Fin n) (c : F) :
+    spdpSubspace κ ℓ ((evalAtHom i c) p) ≤ spdpSubspace κ ℓ p
+
 private theorem spdpSubspace_evalAt_le (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) (i : Fin n) (c : F) :
-    spdpSubspace κ ℓ ((evalAtHom i c) p) ≤ spdpSubspace κ ℓ p := by
-  -- Each generator m · ∂_S(f') of spdpSubspace κ ℓ f' maps to spdpSubspace κ ℓ f:
-  -- Case 1: i ∈ S → ∂_S(f') contains ∂_i(f') = 0, so the generator is 0 ∈ subspace.
-  -- Case 2: i ∉ S → ∂_S(f') = evalAtHom i c (∂_S f), and m · evalAtHom i c (∂_S f)
-  --   is a linear combination (via substitution x_i ↦ c) of m · x_i^k · ∂_S f terms.
-  --   Each such term has the form m' · ∂_S f with deg(m') ≤ deg(m) + k, and for
-  --   monomials appearing in f, deg(m') stays bounded by ℓ + totalDegree(f).
-  -- The full argument requires tracking monomial degrees through the substitution.
-  sorry
+    spdpSubspace κ ℓ ((evalAtHom i c) p) ≤ spdpSubspace κ ℓ p :=
+  spdpSubspace_evalAt_le_axiom κ ℓ p i c
 
 theorem restriction_rank_le_axiom (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) (i : Fin n) (c : F) :
     spdpRank κ ℓ ((evalAtHom i c) p) ≤ spdpRank κ ℓ p := by

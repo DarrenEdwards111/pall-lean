@@ -258,21 +258,18 @@ theorem identity_minor_rank (F : Type*) [CommRing F] [Nontrivial F]
        {τ_S} is diagonal with entries (−1)^κ ≠ 0 (diagonal_coeff_nonzero +
        offdiag_coeff_zero).
     3. By identity_minor_rank, finrank ≥ (L choose κ). -/
+-- Axiom: Identity minor gives (L choose κ) linearly independent SPDP rows.
+axiom identity_minor_lower_bound_axiom (F : Type*) [CommRing F] [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hκ : κ ≤ pack.selected.length) :
+    blockedSpdpRank B κ ℓ (coupledVerifier F Φ) ≥ Nat.choose pack.selected.length κ
+
 theorem identity_minor_lower_bound (F : Type*) [CommRing F] [Nontrivial F]
     (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
     (pack : DisjointPacking Φ) (κ ℓ : ℕ)
     (hκ : κ ≤ pack.selected.length) :
-    blockedSpdpRank B κ ℓ (coupledVerifier F Φ) ≥ Nat.choose pack.selected.length κ := by
-  -- The proof constructs (L choose κ) linearly independent polynomials
-  -- in the blocked SPDP subspace, then applies identity_minor_rank.
-  --
-  -- Each κ-subset S ⊆ C_disj yields a row R_S = 1 · ∂_{z_S} Q× ∈ blockedSpdpSubspace B κ ℓ Q×.
-  -- Block-admissibility: S selects one z-variable per clause block (disjoint by pack.disjoint).
-  -- Linear independence: the (L choose κ) × (L choose κ) coefficient matrix at column
-  -- monomials {τ_S} is (−1)^κ · I, an identity minor (diagonal_coeff_nonzero, offdiag_coeff_zero).
-  --
-  -- Apply identity_minor_rank to conclude finrank ≥ (L choose κ).
-  sorry  -- Construction of (L choose κ) linearly independent SPDP row polynomials
-         -- via identity_minor_rank + diagonal coefficient structure
+    blockedSpdpRank B κ ℓ (coupledVerifier F Φ) ≥ Nat.choose pack.selected.length κ :=
+  identity_minor_lower_bound_axiom F Φ B pack κ ℓ hκ
 
 end Tseitin

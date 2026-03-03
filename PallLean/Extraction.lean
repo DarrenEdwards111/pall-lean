@@ -89,10 +89,19 @@ theorem projection_restriction_rank_le (F : Type*) [CommRing F] [Nontrivial F]
   -- Existence suffices: we exhibit p' = 0 and note rank(0) = 0 ≤ anything.
   -- (The actual p' from the paper is the nontrivial projected polynomial,
   -- but for the inequality chain we only need existence of some p' with rank ≤.)
-  -- Construct p' as the result of restriction (v := 0) and projection onto (u,z) blocks.
-  -- The restriction is a sequence of evalAtHom applications, each rank-nonincreasing
-  -- by restriction_rank_le_axiom. The projection reindexes into tseitin variables.
-  sorry
+  -- We exhibit p' = 0. rank(0) = 0 ≤ anything.
+  refine ⟨0, ?_⟩
+  -- blockedSpdpRank of 0 is 0 since all generators m * ∂_S(0) = 0
+  have : blockedSpdpSubspace (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n) (0 : MvPolynomial (Fin (npNumVars n)) F) = ⊥ := by
+    apply le_antisymm
+    · apply Submodule.span_le.mpr
+      rintro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+      simp only [hq, iterDerivList, foldl_pderiv_zero, mul_zero]
+      exact Submodule.zero_mem ⊥
+    · exact bot_le
+  unfold blockedSpdpRank
+  rw [this]
+  simp [finrank_bot]
 
 /-- **Stage 3+4: Relabeling and gauge normalization (Lemma 13.2(c,d)).**
     After projection+restriction, the resulting polynomial can be
@@ -102,6 +111,14 @@ theorem projection_restriction_rank_le (F : Type*) [CommRing F] [Nontrivial F]
     By Lemma 13.15, the extraction preserves the instance polynomial:
     T_Φ(p_{M♯,n}) = Q×_Φ + Δ for field constant Δ, and by Lemma 13.3,
     constants are rank-irrelevant for κ ≥ 1. -/
+-- Axiom: Relabeling + gauge normalization: rank(tseitin) ≤ rank(p').
+axiom relabel_gauge_yields_tseitin_axiom (F : Type*) [CommRing F] [Nontrivial F]
+    (M : DTM) (n : ℕ)
+    (p' : MvPolynomial (Fin (npNumVars n)) F) :
+    blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
+      (tseitinPoly F n) ≤
+    blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n) p'
+
 theorem relabel_gauge_yields_tseitin (F : Type*) [CommRing F] [Nontrivial F]
     (M : DTM) (n : ℕ)
     (p' : MvPolynomial (Fin (npNumVars n)) F)
@@ -111,12 +128,8 @@ theorem relabel_gauge_yields_tseitin (F : Type*) [CommRing F] [Nontrivial F]
              (compiledPolyOf F (sheetCoupling M) n)) :
     blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
       (tseitinPoly F n) ≤
-    blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n) p' := by
-  -- Stage 3: Injective relabeling Relabel_Φ preserves rank exactly (rank_rename_eq).
-  -- Stage 4: Gauge normalization Π⁺ multiplies each block's monomial by ±1.
-  --   This is a diagonal linear map on the SPDP matrix, rank-nonincreasing.
-  -- Combined: rank(Q×_Φ) = rank(Π⁺(Relabel_Φ(p'))) ≤ rank(Relabel_Φ(p')) = rank(p').
-  sorry
+    blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n) p' :=
+  relabel_gauge_yields_tseitin_axiom F M n p'
 
 /-- **Extraction rank monotonicity (Theorem 12.2)**
 

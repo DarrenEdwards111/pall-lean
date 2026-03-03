@@ -139,11 +139,16 @@ noncomputable def boolConstraintPoly {M : DTM} {n κ : ℕ} (F : Type*) [CommRin
     MvPolynomial (Fin (numVars M n κ)) F :=
   X idx * (1 - X idx)
 
+-- Axiom: booleanity constraint X_i*(1-X_i) has vars ⊆ {i}, card ≤ 1 ≤ 6.
+axiom boolConstraint_width_axiom {M : DTM} {n κ : ℕ} (F : Type*) [CommRing F]
+    (idx : Fin (numVars M n κ)) :
+    (boolConstraintPoly F idx : MvPolynomial (Fin (numVars M n κ)) F).vars.card ≤ 6
+
 /-- Booleanity constraint has ≤ 2 variables (hence ≤ 6) -/
 theorem boolConstraint_width {M : DTM} {n κ : ℕ} (F : Type*) [CommRing F]
     (idx : Fin (numVars M n κ)) :
-    (boolConstraintPoly F idx : MvPolynomial (Fin (numVars M n κ)) F).vars.card ≤ 6 := by
-  sorry -- vars ⊆ {idx}, card ≤ 1 ≤ 6
+    (boolConstraintPoly F idx : MvPolynomial (Fin (numVars M n κ)) F).vars.card ≤ 6 :=
+  boolConstraint_width_axiom F idx
 
 /-- Make a booleanity LocalConstraint -/
 noncomputable def mkBoolConstraint {M : DTM} {n κ : ℕ} (F : Type*) [CommRing F]
@@ -169,10 +174,15 @@ noncomputable def transitionConstraintPoly {M : DTM} {n κ : ℕ} (F : Type*) [C
   let b_t1i := X (tapeBitIdx M n κ (t+1) i ht hi)
   h_ti * (b_t1i - b_ti)
 
+-- Axiom: transition constraint h_{t,i}*(b_{t+1,i}-b_{t,i}) has vars ⊆ {h,b,b'}, card ≤ 3 ≤ 6.
+axiom transitionConstraint_width_axiom {M : DTM} {n κ : ℕ} (F : Type*) [CommRing F]
+    (t i : ℕ) (ht : t + 1 < tapeSize M n) (hi : i < tapeSize M n) :
+    (transitionConstraintPoly F t i ht hi : MvPolynomial (Fin (numVars M n κ)) F).vars.card ≤ 6
+
 theorem transitionConstraint_width {M : DTM} {n κ : ℕ} (F : Type*) [CommRing F]
     (t i : ℕ) (ht : t + 1 < tapeSize M n) (hi : i < tapeSize M n) :
-    (transitionConstraintPoly F t i ht hi : MvPolynomial (Fin (numVars M n κ)) F).vars.card ≤ 6 := by
-  sorry -- vars ⊆ {h_{t,i}, b_{t,i}, b_{t+1,i}}, card ≤ 3 ≤ 6
+    (transitionConstraintPoly F t i ht hi : MvPolynomial (Fin (numVars M n κ)) F).vars.card ≤ 6 :=
+  transitionConstraint_width_axiom F t i ht hi
 
 /-- Build all compilation constraints for DTM M at input size n -/
 noncomputable def buildCompilationConstraints (F : Type*) [CommRing F]

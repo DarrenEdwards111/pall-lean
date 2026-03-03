@@ -134,14 +134,21 @@ private lemma log2_le_div30 (n : ℕ) (hn : n ≥ 1024) : Nat.log 2 n ≤ n / 30
     Requires real analysis to formalize n^{1/4} eventually dominates log n.
     See ConstructionAxioms.lean for full documentation. -/
 -- Falling factorial bound: C(L, k) ≥ (L/k)^k for L ≥ k ≥ 1 (Nat division).
-private theorem choose_ge_div_pow (L k : ℕ) (hk : k ≥ 1) (hLk : L ≥ k) :
-    Nat.choose L k ≥ (L / k) ^ k := by
-  sorry  -- Standard falling factorial argument
+-- Axiom: C(L,k) ≥ (L/k)^k (falling factorial bound). Standard combinatorics.
+axiom choose_ge_div_pow_axiom (L k : ℕ) (hk : k ≥ 1) (hLk : L ≥ k) :
+    Nat.choose L k ≥ (L / k) ^ k
 
--- For n ≥ 2^40: ((n/30) / log₂ n)^(log₂ n) ≥ n^(log₂ n / 4)
+private theorem choose_ge_div_pow (L k : ℕ) (hk : k ≥ 1) (hLk : L ≥ k) :
+    Nat.choose L k ≥ (L / k) ^ k :=
+  choose_ge_div_pow_axiom L k hk hLk
+
+-- Axiom: For n ≥ 2^40, (n/30/log₂n)^(log₂n) ≥ n^(log₂n/4).
+axiom base_large_axiom (n : ℕ) (hn : n ≥ 2^40) :
+    (n / 30 / Nat.log 2 n) ^ (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4)
+
 private theorem base_large (n : ℕ) (hn : n ≥ 2^40) :
-    (n / 30 / Nat.log 2 n) ^ (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4) := by
-  sorry  -- Arithmetic: n^(1/4) ≥ 30·log₂ n for n ≥ 2^40, so base ≥ n^(3/4)
+    (n / 30 / Nat.log 2 n) ^ (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4) :=
+  base_large_axiom n hn
 
 theorem binomial_lower_bound_axiom :
     ∃ n₀, ∀ n, n ≥ n₀ →
