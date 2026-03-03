@@ -156,6 +156,13 @@ instance blockedSpdpSubspace_finite {F : Type*} [Field F] {n : ℕ}
     MvPolynomial.instFiniteSubtypeMemSubmoduleRestrictTotalDegreeOfFinite _ _ _
   exact Module.Finite.of_injective (Submodule.inclusion hle) (Submodule.inclusion_injective hle)
 
+/-- finrank of iSup over Fin m ≤ sum of finranks. -/
+-- finrank of binary sup ≤ sum (wrapper for Submodule.finrank_add_le_finrank_add_finrank)
+private theorem finrank_sup_le {F V : Type*} [Field F] [AddCommGroup V] [Module F V]
+    (U W : Submodule F V) [Module.Finite F U] [Module.Finite F W] :
+    Module.finrank F ↥(U ⊔ W) ≤ Module.finrank F U + Module.finrank F W :=
+  Submodule.finrank_add_le_finrank_add_finrank U W
+
 /-! ## Monotonicity Properties (Pall §2, basic properties)
 
 These are fundamental properties of SPDP rank that hold because

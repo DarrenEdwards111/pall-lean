@@ -268,12 +268,24 @@ theorem kappa_padding_rank (F : Type*) [Field F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (Y V : MvPolynomial (Fin v) F)
     (G : ℕ)
-    (hrank : ∀ r, r ≤ 6 → blockedSpdpRank B r ℓ V ≤ G ^ 3) :
+    (hrank : ∀ r, blockedSpdpRank B r ℓ V ≤ G ^ 3)
+    (hG : κ + 1 ≤ G) :
     blockedSpdpRank B κ ℓ (Y * V) ≤ G ^ 4 := by
-  -- Requires: padding_subspace_le (Leibniz decomposition) +
-  -- finrank monotonicity + iterated subadditivity.
-  -- Blocked on Module.Finite instances for blockedSpdpSubspace.
-  -- The paper argument: Γ_{κ,ℓ}(Y·V) ≤ Σ_r C(κ,r)·Γ_{r,ℓ}(V) ≤ 2^κ·G³ ≤ G⁴
+  -- Step 1: Subspace inclusion (Leibniz decomposition)
+  have hsub := padding_subspace_le F B κ ℓ Y V
+  -- Step 2: Module.Finite for the iSup (from blockedSpdpSubspace_finite + Submodule.finite_iSup)
+  haveI : ∀ r : Fin (κ + 1), Module.Finite F ↥(blockedSpdpSubspace B r.val ℓ V) :=
+    fun r => blockedSpdpSubspace_finite B r.val ℓ V
+  haveI : Module.Finite F ↥(⨆ r : Fin (κ + 1), blockedSpdpSubspace B r.val ℓ V) :=
+    Submodule.finite_iSup _
+  -- Step 3: finrank monotonicity
+  have hmono : blockedSpdpRank B κ ℓ (Y * V) ≤
+      Module.finrank F ↥(⨆ r : Fin (κ + 1), blockedSpdpSubspace B r.val ℓ V) :=
+    Submodule.finrank_mono hsub
+  -- Step 4: finrank of iSup ≤ sum of finranks (by induction)
+  -- For now use: finrank(⨆ U_r) ≤ Σ finrank(U_r) via iterated finrank_add_le
+  -- Each finrank(U_r) = blockedSpdpRank B r ℓ V ≤ G³
+  -- Sum ≤ (κ+1) · G³ ≤ G · G³ = G⁴
   sorry
 
 /-! ## Main P-Side Theorem -/
@@ -316,12 +328,18 @@ theorem p_side_collapse (F : Type*) [Field F]
   -- Step 2: V has locality structure with numGates ≤ n^(2t+2), width ≤ 12
   obtain ⟨h, hgates, hwidth⟩ := violation_has_locality F M n hn4 hn_states
   -- Step 3: For every r, width⇒rank gives ΓB_r(V) ≤ (numGates * width)^3
-  have hrank : ∀ r : ℕ, r ≤ 6 →
-      blockedSpdpRank B r ℓ V ≤ (h.numGates * h.width) ^ 3 := fun r _ =>
+  have hrank : ∀ r : ℕ,
+      blockedSpdpRank B r ℓ V ≤ (h.numGates * h.width) ^ 3 := fun r =>
     width_to_rank_bound F B r ℓ V h
   -- Step 4: κ-padding transfer: ΓB_κ(Y*V) ≤ (numGates * width)^4
+  -- Need: κ + 1 ≤ G = numGates * width
+  -- κ = log₂ n, numGates ≥ numVars ≥ n, width = 12, so G ≥ 12n ≥ log₂n + 1
+  have hG_large : κ + 1 ≤ h.numGates * h.width := by
+    -- κ = log₂ n ≤ n, and G = numGates * width ≥ 1 * 1 ≥ ... actually need concrete bound
+    -- For now: G ≥ n^(2t+4) * 1 ≥ n ≥ log₂ n + 1 for n ≥ 2
+    sorry
   have hpadding : blockedSpdpRank B κ ℓ (Y * V) ≤ (h.numGates * h.width) ^ 4 :=
-    kappa_padding_rank F B κ ℓ Y V (h.numGates * h.width) hrank
+    kappa_padding_rank F B κ ℓ Y V (h.numGates * h.width) hrank hG_large
   -- Step 5: Bound G = numGates * width ≤ n^(2t+6)
   -- Using: numGates ≤ n^(2t+2), width ≤ 12 ≤ n^4 (since n ≥ 2, 2^4=16≥12)
   have h12 : (12 : ℕ) ≤ n ^ 4 :=
