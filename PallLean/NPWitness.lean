@@ -5,11 +5,11 @@ import Mathlib.Tactic
 /-!
 # NP-Side Lower Bound — Pall §7–10
 
-Theorem 10.1: Tseitin formulas on Ramanujan expanders have
+Theorem 10.1: Tseitin formulas on high-girth regular graphs have
 ΓB_{κ,ℓ}(Q×_Φn) ≥ n^Θ(log n).
 
 Proof chain:
-1. Ramanujan family → graph G_n (§8.1)
+1. high-girth family → graph G_n (§8.1)
 2. Tseitin encoding → 3-CNF Φ_n (§8.2)
 3. Disjoint clause packing → |C_disj| = αn (Lemma 8.3)
 4. Identity minor → rank ≥ (αn choose κ) (Theorem 9.3)
@@ -140,7 +140,7 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
 noncomputable def tseitinAt (n : ℕ) : TseitinFormula :=
   buildTseitin (highGirthFamily.graph n)
 
-/-- The formula uses the n-th Ramanujan graph — by definition -/
+/-- The formula uses the n-th high-girth graph — by definition -/
 theorem tseitinAt_graph (n : ℕ) :
     (tseitinAt n).graph = highGirthFamily.graph n := rfl
 

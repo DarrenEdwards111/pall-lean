@@ -30,7 +30,7 @@ structure RegularGraph where
   numEdges : ℕ
   /-- At least one vertex -/
   vertices_pos : numVertices ≥ 1
-  /-- Degree at least 2 (required for connected expander) -/
+  /-- Degree at least 2 (required for connected regular graph) -/
   degree_lower : degree ≥ 2
   /-- Edge count bounded: numEdges ≤ numVertices * degree -/
   edges_bound : numEdges ≤ numVertices * degree
