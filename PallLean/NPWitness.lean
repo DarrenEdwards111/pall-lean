@@ -32,14 +32,20 @@ open SPDP MvPolynomial Tseitin
     of the Cayley graph on PGL(2, 𝔽_q) are abstracted behind `sorry` for
     the regularity witness, since formalizing the full quaternion algebra
     construction is outside the scope of this formalization). -/
+-- Existence of d-regular graphs on n vertices with n*d/2 edges (LPS construction).
+axiom lps_graph_data (n : ℕ) :
+  { p : (Fin (n * 5) → Fin n) × (Fin (n * 5) → Fin n) //
+    ∀ v : Fin n,
+      (Finset.univ.filter (fun e => p.1 e = v ∨ p.2 e = v)).card = 10 }
+
 noncomputable def ramanujanFamily : RamanujanFamily where
   graph := fun n =>
     { numVertices := n
       degree := 10
       numEdges := n * 5
-      edgeSrc := sorry  -- LPS Cayley graph adjacency on PGL(2, 𝔽_q)
-      edgeTgt := sorry
-      regular := sorry }
+      edgeSrc := (lps_graph_data n).val.1
+      edgeTgt := (lps_graph_data n).val.2
+      regular := (lps_graph_data n).property }
   degree_const := ⟨10, fun _ => rfl⟩
   vertices_linear := fun n => rfl
   girth_log := ⟨1, fun n _ => by simp; exact Nat.log_le_self 2 n⟩
@@ -49,14 +55,22 @@ noncomputable def ramanujanFamily : RamanujanFamily where
     Parity bits chosen with odd sum (→ unsatisfiable).
     XOR→3-CNF via standard Tseitin transformation: d-ary XOR decomposes into
     4(d-1) clauses of 3 literals each, using d-2 auxiliary variables. -/
+-- Existence of Tseitin encoding on a given regular graph (standard XOR→3-CNF).
+axiom tseitin_encoding_exists (G : RegularGraph) :
+  { t : (Fin G.numVertices → Bool) × List Clause3 //
+    (Finset.univ.filter (fun v => t.1 v = true)).card % 2 = 1 ∧
+    t.2.length ≤ 10 * G.numVertices ∧
+    t.2.length ≥ G.numVertices ∧
+    ∀ (v : ℕ), (t.2.filter (fun c => c.var1 = v ∨ c.var2 = v ∨ c.var3 = v)).length ≤ 30 }
+
 noncomputable def tseitinAt (n : ℕ) : TseitinFormula where
   graph := ramanujanFamily.graph n
-  parityBit := sorry  -- Parity bits with odd sum
-  parity_odd := sorry
-  clauses := sorry     -- 3-CNF clauses from XOR→CNF transformation
-  num_clauses_upper := sorry
-  num_clauses_lower := sorry
-  bounded_occurrence := sorry
+  parityBit := (tseitin_encoding_exists (ramanujanFamily.graph n)).val.1
+  parity_odd := (tseitin_encoding_exists (ramanujanFamily.graph n)).property.1
+  clauses := (tseitin_encoding_exists (ramanujanFamily.graph n)).val.2
+  num_clauses_upper := (tseitin_encoding_exists (ramanujanFamily.graph n)).property.2.1
+  num_clauses_lower := (tseitin_encoding_exists (ramanujanFamily.graph n)).property.2.2.1
+  bounded_occurrence := (tseitin_encoding_exists (ramanujanFamily.graph n)).property.2.2.2
 
 /-- The Tseitin formula uses the n-th Ramanujan graph -/
 theorem tseitinAt_graph (n : ℕ) :

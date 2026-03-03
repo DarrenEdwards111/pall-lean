@@ -1,5 +1,6 @@
 import PallLean.SPDPDefs
 import PallLean.TuringMachine
+import PallLean.FiniteSPDP
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
 /-!
