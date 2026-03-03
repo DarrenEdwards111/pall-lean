@@ -50,7 +50,7 @@ structure FiveDeepSorriesBundle : Type where
 
 section MatrixRank
 
-variable {R : Type*} [CommRing R] [Nontrivial R]
+variable {R : Type*} [Field R]
 
 /-- rank(1) = card n — identity matrix has full rank -/
 theorem identity_rank {n : Type*} [Fintype n] [DecidableEq n] :
@@ -92,6 +92,7 @@ theorem rank_ge_of_identity_minor {F : Type*} [Field F]
     _ ≤ Matrix.rank A.transpose := Matrix.rank_submatrix_le g er A.transpose
     _ = Matrix.rank A := Matrix.rank_transpose A
 
+set_option maxHeartbeats 800000 in
 /-- Simpler version: identity minor with Fin k embedding -/
 theorem rank_ge_card_of_identity_submatrix {m n : Type*}
     [Fintype m] [Fintype n] [DecidableEq m] [DecidableEq n]
@@ -100,7 +101,26 @@ theorem rank_ge_card_of_identity_submatrix {m n : Type*}
     (hf : Function.Injective f)
     (hid : ∀ i j : Fin k, A (f i) (g j) = if i = j then 1 else 0) :
     k ≤ Matrix.rank A := by
-  sorry -- Construct linearly independent rows from the identity minor entries
+  -- Embed Fin k into m via f, extend to an equiv on the range
+  -- Then use the proved rank_ge_of_identity_minor
+  -- Strategy: construct a larger matrix B : Matrix (Fin k) n R with B i j = A (f i) j
+  -- Show B = A.submatrix f id, rank(B) ≤ rank(A), and B has identity minor
+  let B := A.submatrix f id
+  have hB : ∀ i j : Fin k, B i (g j) = if i = j then 1 else 0 := by
+    intro i j; exact hid i j
+  -- B.submatrix id g = 1
+  have hBsub : B.submatrix (Equiv.refl _) g = 1 := by
+    funext i j
+    show A (f i) (g j) = (1 : Matrix (Fin k) (Fin k) _) i j
+    rw [Matrix.one_apply]
+    exact hid i j
+  have hrank_B : Fintype.card (Fin k) ≤ Matrix.rank B := by
+    exact rank_ge_of_identity_minor B (Equiv.refl _) g hBsub
+  simp [Fintype.card_fin] at hrank_B
+  -- rank(B) = rank(A.submatrix f id) ≤ rank(A)
+  have hle : Matrix.rank B ≤ Matrix.rank A :=
+    Matrix.rank_submatrix_le f (Equiv.refl _) A
+  exact le_trans hrank_B hle
 
 end MatrixRank
 
