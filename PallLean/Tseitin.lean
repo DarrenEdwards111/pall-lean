@@ -77,6 +77,9 @@ structure Clause3 where
   sign1 : Bool  -- true = positive, false = negated
   sign2 : Bool
   sign3 : Bool
+  distinct12 : var1 ≠ var2
+  distinct13 : var1 ≠ var3
+  distinct23 : var2 ≠ var3
 
 /-- The Tseitin 3-CNF formula Φ_n from graph G_n (§8.2).
     For each vertex v: XOR of incident edge variables = parity bit b_v.

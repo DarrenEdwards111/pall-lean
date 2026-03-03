@@ -1,5 +1,6 @@
 import PallLean.SPDPDefs
 import PallLean.Tseitin
+import PallLean.BinomialBound2
 import Mathlib.Tactic
 /-!
 # NP-Side Lower Bound — Pall §7–10
@@ -59,7 +60,10 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
       var3 := 2 * G.numEdges + e.val -- edge variable slot 2 (disjoint)
       sign1 := true
       sign2 := true
-      sign3 := true : Clause3
+      sign3 := true
+      distinct12 := by omega
+      distinct13 := by omega
+      distinct23 := by omega : Clause3
     }
   num_clauses_upper := by
     simp only [List.length_map, List.length_finRange]
@@ -85,7 +89,10 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
         var1 := e.val
         var2 := G.numEdges + e.val
         var3 := 2 * G.numEdges + e.val
-        sign1 := true, sign2 := true, sign3 := true : Clause3})).filter
+        sign1 := true, sign2 := true, sign3 := true
+        distinct12 := by omega
+        distinct13 := by omega
+        distinct23 := by omega : Clause3})).filter
         (fun c => c.var1 = v ∨ c.var2 = v ∨ c.var3 = v) =
       ((List.finRange G.numEdges).filter fun e =>
         e.val = v ∨ G.numEdges + e.val = v ∨ 2 * G.numEdges + e.val = v).map
@@ -93,7 +100,10 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
           var1 := e.val
           var2 := G.numEdges + e.val
           var3 := 2 * G.numEdges + e.val
-          sign1 := true, sign2 := true, sign3 := true : Clause3} := by
+          sign1 := true, sign2 := true, sign3 := true
+          distinct12 := by omega
+          distinct13 := by omega
+          distinct23 := by omega : Clause3} := by
       rw [List.filter_map]; rfl
     rw [hcl, List.length_map]
     -- Step 2: The filter has at most 1 element (disjoint slots argument).
@@ -197,9 +207,11 @@ private lemma log2_le_div30 (n : ℕ) (hn : n ≥ 1024) : Nat.log 2 n ≤ n / 30
 -- Applied with L = n/30, k = log₂ n: C(n/30, log₂n) ≥ (n/(60·log₂n))^(log₂n).
 -- For large n, n/(60·log₂n) ≥ n^{1/4}, so the bound ≥ n^{log₂n/4}.
 -- Axiomatized: formalizing requires ℝ-valued log estimates. Standard and well-known.
-axiom binomial_lower_bound :
+-- Was: axiom binomial_lower_bound (replaced by BinomialBound2.binomial_lower_bound')
+theorem binomial_lower_bound :
     ∃ n₀, ∀ n, n ≥ n₀ →
-      Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4)
+      Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4) :=
+  BinomialBound.binomial_lower_bound'
 
 /-- **Theorem 10.1**: NP-side non-collapse.
     Proved from identity_minor_lower_bound + disjoint_packing + binomial bound. -/
