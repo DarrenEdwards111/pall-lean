@@ -283,10 +283,17 @@ theorem kappa_padding_rank (F : Type*) [Field F]
   have hmono : blockedSpdpRank B κ ℓ (Y * V) ≤
       Module.finrank F ↥(⨆ r : Fin (κ + 1), blockedSpdpSubspace B r.val (ℓ + κ) V) :=
     Submodule.finrank_mono hsub
-  -- Step 4: finrank of iSup ≤ sum of finranks
-  -- Each finrank(U_r) = blockedSpdpRank B r (ℓ+κ) V ≤ G³
-  -- Sum ≤ (κ+1) · G³ ≤ G · G³ = G⁴
-  sorry
+  -- Step 4: finrank of iSup ≤ sum of finranks ≤ (κ+1) * G³
+  have hiSup := finrank_iSup_fin_le (κ + 1)
+    (fun r : Fin (κ + 1) => blockedSpdpSubspace B r.val (ℓ + κ) V)
+  have hsum : ∑ i : Fin (κ + 1), Module.finrank F ↥(blockedSpdpSubspace B i.val (ℓ + κ) V) ≤
+      (κ + 1) * G ^ 3 := by
+    have h := Finset.sum_le_card_nsmul Finset.univ
+      (fun i : Fin (κ + 1) => Module.finrank F ↥(blockedSpdpSubspace B i.val (ℓ + κ) V))
+      (G ^ 3) (fun i _ => hrank i.val)
+    simp [smul_eq_mul] at h
+    exact h
+  exact le_trans hmono (le_trans hiSup hsum)
 
 /-! ## Main P-Side Theorem -/
 

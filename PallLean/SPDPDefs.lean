@@ -163,6 +163,39 @@ private theorem finrank_sup_le {F V : Type*} [Field F] [AddCommGroup V] [Module 
     Module.finrank F ↥(U ⊔ W) ≤ Module.finrank F U + Module.finrank F W :=
   Submodule.finrank_add_le_finrank_add_finrank U W
 
+/-- finrank of iSup over Fin m ≤ sum of finranks (by induction on m). -/
+theorem finrank_iSup_fin_le {F V : Type*} [Field F] [AddCommGroup V] [Module F V]
+    (m : ℕ) (U : Fin m → Submodule F V) [∀ i, Module.Finite F ↥(U i)] :
+    Module.finrank F ↥(⨆ i : Fin m, U i) ≤ ∑ i : Fin m, Module.finrank F ↥(U i) := by
+  induction m with
+  | zero =>
+    have : (⨆ i : Fin 0, U i) = ⊥ := by simp [iSup_of_empty]
+    simp [this, Submodule.finrank_eq_zero]
+  | succ n ih =>
+    haveI : ∀ i : Fin n, Module.Finite F ↥(U (Fin.castSucc i)) :=
+      fun i => inferInstanceAs (Module.Finite F ↥(U (Fin.castSucc i)))
+    haveI : Module.Finite F ↥(⨆ i : Fin n, U (Fin.castSucc i)) :=
+      Submodule.finite_iSup _
+    -- Key: ⨆ Fin (n+1) ≤ (⨆ Fin n via castSucc) ⊔ U (last n)
+    have hle : (⨆ i : Fin (n + 1), U i) ≤
+        (⨆ i : Fin n, U (Fin.castSucc i)) ⊔ U (Fin.last n) := by
+      apply iSup_le; intro i
+      refine Fin.lastCases ?_ ?_ i
+      · exact le_sup_right
+      · intro j; exact le_sup_of_le_left (le_iSup (fun i => U (Fin.castSucc i)) j)
+    calc Module.finrank F ↥(⨆ i : Fin (n + 1), U i)
+        ≤ Module.finrank F ↥((⨆ i : Fin n, U (Fin.castSucc i)) ⊔ U (Fin.last n)) :=
+          Submodule.finrank_mono hle
+      _ ≤ Module.finrank F ↥(⨆ i : Fin n, U (Fin.castSucc i)) +
+          Module.finrank F ↥(U (Fin.last n)) :=
+          finrank_sup_le _ _
+      _ ≤ (∑ i : Fin n, Module.finrank F ↥(U (Fin.castSucc i))) +
+          Module.finrank F ↥(U (Fin.last n)) :=
+          Nat.add_le_add_right (@ih (U ∘ Fin.castSucc)
+            (fun i => inferInstanceAs (Module.Finite F ↥(U (Fin.castSucc i))))) _
+      _ = ∑ i : Fin (n + 1), Module.finrank F ↥(U i) := by
+          rw [Fin.sum_univ_castSucc]
+
 /-! ## Monotonicity Properties (Pall §2, basic properties)
 
 These are fundamental properties of SPDP rank that hold because
