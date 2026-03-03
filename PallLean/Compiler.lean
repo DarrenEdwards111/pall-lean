@@ -230,7 +230,7 @@ theorem violation_has_locality (F : Type*) [CommRing F] [Nontrivial F]
     Step 3: dim(U_h) ≤ R^O(1) for each profile h (Lemma 5.15).
     Step 4: |H| ≤ R^O(1) by profile compression (Lemma 5.3, 5.7).
             Total: Γ ≤ |H| · R^O(1) = R^O(1) ≤ (G·w)^3. -/
-theorem width_to_rank_bound (F : Type*) [CommRing F] [Nontrivial F]
+theorem width_to_rank_bound (F : Type*) [Field F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (p : MvPolynomial (Fin v) F)
     (h : HasLocalityStructure p) :
@@ -252,7 +252,7 @@ theorem width_to_rank_bound (F : Type*) [CommRing F] [Nontrivial F]
     deg(m') ≤ deg(m) + κ ≤ ℓ + κ. Each such element lies in
     spdpSubspace |Sx| (ℓ+κ) V ≤ blockedSpdpSubspace B |Sx| ℓ V
     (after appropriate degree adjustment). -/
-private theorem padding_subspace_le (F : Type*) [CommRing F] [Nontrivial F]
+private theorem padding_subspace_le (F : Type*) [Field F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (Y V : MvPolynomial (Fin v) F) :
     blockedSpdpSubspace B κ ℓ (Y * V) ≤
@@ -264,22 +264,22 @@ private theorem padding_subspace_le (F : Type*) [CommRing F] [Nontrivial F]
     ∂_S(Y·V) = ±(∏_{j∉Sy} yj)·∂_{Sx}V, so rows of M_{κ,ℓ}(Y·V) are
     y-monomial multiples of rows from M_{r,ℓ}(V). Rank subadditivity:
     Γ_{κ,ℓ}(Y·V) ≤ Σ_r C(κ,r)·Γ_{r,ℓ}(V) ≤ 2^κ · G³ ≤ G⁴. -/
-theorem kappa_padding_rank (F : Type*) [CommRing F] [Nontrivial F]
+theorem kappa_padding_rank (F : Type*) [Field F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (Y V : MvPolynomial (Fin v) F)
     (G : ℕ)
     (hrank : ∀ r, r ≤ 6 → blockedSpdpRank B r ℓ V ≤ G ^ 3) :
     blockedSpdpRank B κ ℓ (Y * V) ≤ G ^ 4 := by
-  -- By padding_subspace_le: blockedSpdpSubspace B κ ℓ (Y*V) ≤ ⨆ r, blockedSpdpSubspace B r ℓ V
-  -- finrank(⨆ U_r) ≤ Σ finrank(U_r) by iterated subadditivity
-  -- Each finrank(U_r) ≤ G³ by hypothesis (for r ≤ 6; larger r contribute 0)
-  -- Sum ≤ (κ+1) · G³ ≤ G⁴ for G ≥ κ+1 (which holds for large enough problems)
+  -- Requires: padding_subspace_le (Leibniz decomposition) +
+  -- finrank monotonicity + iterated subadditivity.
+  -- Blocked on Module.Finite instances for blockedSpdpSubspace.
+  -- The paper argument: Γ_{κ,ℓ}(Y·V) ≤ Σ_r C(κ,r)·Γ_{r,ℓ}(V) ≤ 2^κ·G³ ≤ G⁴
   sorry
 
 /-! ## Main P-Side Theorem -/
 
 /-- **A2 (Theorem 6.1): P-side collapse** -/
-theorem p_side_collapse (F : Type*) [CommRing F] [Nontrivial F]
+theorem p_side_collapse (F : Type*) [Field F]
     (M : DTM) :
     ∃ (C n₀ : ℕ), ∀ n, n ≥ n₀ →
       blockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
