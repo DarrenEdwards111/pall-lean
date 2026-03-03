@@ -78,12 +78,17 @@ structure HasLocalityStructure {v : ℕ} {F : Type*} [CommRing F]
   sum_eq : p = ∑ i, gate i
   gate_width : ∀ i, (gate i).vars.card ≤ width
 
-/-- Locality from compilation (§3.2): V is sum of local terms -/
-axiom violation_has_locality (F : Type*) [CommRing F]
+/-- Locality from compilation (§3.2): V is sum of local terms.
+
+    V = Σ_C C² where each C is a local constraint with vars.card ≤ 6.
+    So V has locality with width ≤ 12 (vars of C² ⊆ vars of C, card ≤ 6,
+    but we use 12 to be safe with the squaring). -/
+theorem violation_has_locality (F : Type*) [CommRing F]
     (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     ∃ (h : HasLocalityStructure (violationPoly F M n (Nat.log 2 n)
         (compilationConstraints F M n))),
-      h.numGates ≤ n ^ (2 * M.timeBound + 2) ∧ h.width ≤ 12
+      h.numGates ≤ n ^ (2 * M.timeBound + 2) ∧ h.width ≤ 12 := by
+  sorry -- V = foldl (+c²) 0 over concrete constraints; each c has width ≤ 6
 
 /-- Width⇒Rank (Theorem 5.16): profile compression gives poly rank -/
 axiom width_to_rank_bound (F : Type*) [CommRing F] [Nontrivial F]
