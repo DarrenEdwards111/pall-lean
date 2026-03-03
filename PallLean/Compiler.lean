@@ -98,8 +98,15 @@ theorem violation_has_locality (F : Type*) [CommRing F]
     sum_eq := by
       sorry -- List.sum (List.map f cs) = ∑ i : Fin cs.length, f (cs.get i)
     gate_width := by
+      classical
       intro i
-      sorry -- vars(c² ) ⊆ vars(c), card ≤ 6 ≤ 12
+      -- vars(c² ) ⊆ vars(c) ∪ vars(c) = vars(c), card ≤ 6 ≤ 12
+      let c := cs.get (Fin.cast (by rfl) i)
+      have hv : (c.poly * c.poly).vars ⊆ c.poly.vars ∪ c.poly.vars :=
+        MvPolynomial.vars_mul _ _
+      have hvu : c.poly.vars ∪ c.poly.vars = c.poly.vars := Finset.union_idempotent _
+      have hsub : (c.poly * c.poly).vars ⊆ c.poly.vars := hvu ▸ hv
+      exact le_trans (Finset.card_le_card hsub) (le_trans c.width_bound (by omega))
   }, ?_, ?_⟩
   · sorry -- cs.length ≤ n^(2t+2): O(T²) constraints, T = n^t
   · exact le_refl 12
