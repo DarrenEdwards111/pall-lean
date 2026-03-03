@@ -66,12 +66,19 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
         }
       else none
   num_clauses_upper := by
-    sorry -- clauses.length = numEdges ≤ numVertices * degree ≤ 10 * numVertices
+    -- Upper bound: clauses.length ≤ numEdges ≤ numVertices * degree ≤ 10 * numVertices
+    -- The flatMap/filterMap produces at most numEdges clauses (one per edge at most)
+    -- and edges_bound + degree_bound give the chain
+    sorry
   num_clauses_lower := by
-    sorry -- clauses.length = numEdges ≥ numVertices (each vertex has ≥1 edge)
+    -- Lower bound: each vertex contributes ≥ 1 edge (degree ≥ 1 from vertices_pos + regular)
+    sorry
   bounded_occurrence := by
     intro v
-    sorry -- each var appears in ≤ 30 clauses (from bounded degree ≤ 10)
+    -- Each edge variable appears in exactly 1 clause (from its source vertex)
+    -- Auxiliary variables appear in 1 clause each
+    -- Total ≤ degree ≤ 10 ≤ 30
+    sorry
 
 /-- Tseitin formula on the n-th graph, built concretely -/
 noncomputable def tseitinAt (n : ℕ) : TseitinFormula :=
