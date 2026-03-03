@@ -21,8 +21,8 @@ theorem P_neq_NP (h : PeqNP) : False := by
   let M := h.sat_decider
   let M' := sheetCoupling M  -- M♯
 
-  -- A2: ∃ C, ∀ n ≥ 2, ΓB(p_{M♯,n}) ≤ n^C
-  obtain ⟨C, hC⟩ := p_side_collapse ℚ M'
+  -- A2: ∃ C n₂, ∀ n ≥ n₂, ΓB(p_{M♯,n}) ≤ n^C
+  obtain ⟨C, n₂, hC⟩ := p_side_collapse ℚ M'
 
   -- A3: ∃ n₁, ∀ n ≥ n₁, ΓB(Q×_Φn) ≥ n^{log n/4}
   obtain ⟨n₁, h_npside⟩ := np_side_lb ℚ
@@ -30,7 +30,7 @@ theorem P_neq_NP (h : PeqNP) : False := by
   -- A5: ∃ n₀, ∀ n ≥ n₀, n^{log n/4} > n^{C+1} (PROVED)
   obtain ⟨n₀, h_arith⟩ := superPoly_beats_poly (C + 1) (by omega)
 
-  let n := max (max n₀ n₁) 2
+  let n := max (max (max n₀ n₁) n₂) 2
 
   -- A3 applied
   have h1 : blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)

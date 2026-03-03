@@ -126,10 +126,10 @@ structure HasLocalityStructure {v : ℕ} {F : Type*} [CommRing F]
     So V has locality with width ≤ 12 (vars of C² ⊆ vars of C, card ≤ 6,
     but we use 12 to be safe with the squaring). -/
 theorem violation_has_locality (F : Type*) [CommRing F] [Nontrivial F]
-    (M : DTM) (n : ℕ) (hn : n ≥ 2) :
+    (M : DTM) (n : ℕ) (hn : n ≥ 4) (hn_states : n ≥ M.numStates) :
     ∃ (h : HasLocalityStructure (violationPoly F M n (Nat.log 2 n)
         (compilationConstraints F M n))),
-      h.numGates ≤ n ^ (2 * M.timeBound + 2) ∧ h.width ≤ 12 := by
+      h.numGates ≤ n ^ (2 * M.timeBound + 4) ∧ h.width ≤ 12 := by
   let cs := compilationConstraints F M n
   -- V = (cs.map (c ↦ c.poly * c.poly)).sum
   -- Build HasLocalityStructure with numGates = cs.length, gate i = cs[i].poly²
@@ -151,11 +151,73 @@ theorem violation_has_locality (F : Type*) [CommRing F] [Nontrivial F]
       have hsub : (c.poly * c.poly).vars ⊆ c.poly.vars := hvu ▸ hv
       exact le_trans (Finset.card_le_card hsub) (le_trans c.width_bound (by omega))
   }, ?_, ?_⟩
-  · -- cs = booleanity ++ transition, total ≤ numVars + tapeSize²
-    -- numVars + tapeSize² ≤ 4·tapeSize² + tapeSize·states + n + κ
-    -- tapeSize = n^t + 1, so tapeSize² ≤ (n^t+1)² ≤ 4·n^(2t) for n≥1
-    -- Total ≤ C·n^(2t) ≤ n^(2t+2) for n ≥ 2
-    sorry
+  · -- cs = booleanity ++ transition
+    -- Bound: cs.length ≤ numVars + tapeSize² ≤ n^(2t+4)
+    -- Step 1: Establish cs.length ≤ numVars + S²
+    have hlen : cs.length ≤ numVars M n (Nat.log 2 n) + (tapeSize M n) * (tapeSize M n) := by
+      show (compilationConstraints F M n).length ≤ _
+      unfold compilationConstraints
+      rw [List.length_append, List.length_map, List.length_finRange]
+      apply Nat.add_le_add_left
+      rw [List.length_flatMap]
+      calc (List.map (fun ti => ((List.finRange (tapeSize M n)).filterMap fun i =>
+              if h : ti.val + 1 < tapeSize M n then
+                some (mkTransitionConstraint F M n ti i h)
+              else none).length) (List.finRange (tapeSize M n))).sum
+          ≤ (List.map (fun _ => tapeSize M n) (List.finRange (tapeSize M n))).sum := by
+            apply List.sum_le_sum
+            intro i _
+            exact le_trans (List.length_filterMap_le _ _) (by rw [List.length_finRange])
+        _ = tapeSize M n * tapeSize M n := by
+            rw [List.map_const', List.length_finRange, List.sum_replicate, smul_eq_mul]
+    -- Step 2: Bound numVars + S² ≤ n^(2t+4)
+    -- Abbreviations
+    have hS_bound : tapeSize M n ≤ 2 * n ^ M.timeBound := by
+      unfold tapeSize timeSteps
+      have : 1 ≤ n ^ M.timeBound := Nat.one_le_pow M.timeBound n (by omega)
+      omega
+    have hS2 : tapeSize M n * tapeSize M n ≤ 4 * n ^ (2 * M.timeBound) := by
+      calc tapeSize M n * tapeSize M n
+          ≤ (2 * n ^ M.timeBound) * (2 * n ^ M.timeBound) :=
+            Nat.mul_le_mul hS_bound hS_bound
+        _ = 4 * n ^ (M.timeBound + M.timeBound) := by ring
+        _ = 4 * n ^ (2 * M.timeBound) := by ring_nf
+    have hnv : numVars M n (Nat.log 2 n) =
+        tapeSize M n * tapeSize M n + tapeSize M n * M.numStates +
+        tapeSize M n * tapeSize M n + n + Nat.log 2 n := rfl
+    have hSn : tapeSize M n * M.numStates ≤ 2 * n ^ (M.timeBound + 1) := by
+      calc tapeSize M n * M.numStates
+          ≤ tapeSize M n * n := Nat.mul_le_mul_left _ hn_states
+        _ ≤ (2 * n ^ M.timeBound) * n := Nat.mul_le_mul_right n hS_bound
+        _ = 2 * n ^ (M.timeBound + 1) := by ring
+    have hκn : Nat.log 2 n ≤ n := Nat.log_le_self 2 n
+    have hn4' : n ≥ 4 := hn
+    -- Power monotonicity
+    have hn2t : n ^ (2 * M.timeBound) ≤ n ^ (2 * M.timeBound + 2) :=
+      Nat.pow_le_pow_right (by omega) (by omega)
+    have hnt1 : n ^ (M.timeBound + 1) ≤ n ^ (2 * M.timeBound + 2) :=
+      Nat.pow_le_pow_right (by omega) (by omega)
+    have hn_le : n ≤ n ^ (2 * M.timeBound + 2) :=
+      le_self_pow₀ (by omega : (1 : ℕ) ≤ n) (by omega : 2 * M.timeBound + 2 ≠ 0)
+    -- Combine
+    calc cs.length
+        ≤ numVars M n (Nat.log 2 n) + tapeSize M n * tapeSize M n := hlen
+      _ = 3 * (tapeSize M n * tapeSize M n) + tapeSize M n * M.numStates +
+          n + Nat.log 2 n := by rw [hnv]; ring
+      _ ≤ 3 * (4 * n ^ (2 * M.timeBound)) + 2 * n ^ (M.timeBound + 1) +
+          n + n := by linarith [hS2, hSn, hκn]
+      _ = 12 * n ^ (2 * M.timeBound) + 2 * n ^ (M.timeBound + 1) + 2 * n := by ring
+      _ ≤ 12 * n ^ (2 * M.timeBound + 2) + 2 * n ^ (2 * M.timeBound + 2) +
+          2 * n ^ (2 * M.timeBound + 2) := by
+          linarith [Nat.mul_le_mul_left 12 hn2t,
+                    Nat.mul_le_mul_left 2 hnt1,
+                    Nat.mul_le_mul_left 2 hn_le]
+      _ = 16 * n ^ (2 * M.timeBound + 2) := by ring
+      _ ≤ n ^ 2 * n ^ (2 * M.timeBound + 2) := by
+          apply Nat.mul_le_mul_right
+          calc (16 : ℕ) = 4 ^ 2 := by norm_num
+            _ ≤ n ^ 2 := Nat.pow_le_pow_left hn4' 2
+      _ = n ^ (2 * M.timeBound + 4) := by rw [← pow_add]; ring_nf
   · exact le_refl 12
 
 /-- Width⇒Rank (Theorem 5.16): profile compression gives poly rank.
@@ -219,7 +281,7 @@ theorem kappa_padding_rank (F : Type*) [CommRing F] [Nontrivial F]
 /-- **A2 (Theorem 6.1): P-side collapse** -/
 theorem p_side_collapse (F : Type*) [CommRing F] [Nontrivial F]
     (M : DTM) :
-    ∃ (C : ℕ), ∀ n, n ≥ 2 →
+    ∃ (C n₀ : ℕ), ∀ n, n ≥ n₀ →
       blockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (compiledPolyOf F M n) ≤ n ^ C := by
   -- The compiled polynomial is Y * V where Y = padding product, V = violation poly
@@ -234,10 +296,13 @@ theorem p_side_collapse (F : Type*) [CommRing F] [Nontrivial F]
   -- 3. width_to_rank_bound gives ΓB_{r,ℓ}(V) ≤ (numGates * width)^3 ≤ n^{O(1)}
   -- 4. kappa_padding_rank transfers to ΓB_{κ,ℓ}(Y*V) ≤ numVars^4
   -- 5. numVars M n κ ≤ n^{O(1)}, so overall ≤ n^C
-  -- C = 4*(2t+6) where t = M.timeBound, accounting for G = numGates*width ≤ n^(2t+6)
-  -- G^4 = n^(4*(2t+6)) = n^(8t+24)
-  use 8 * M.timeBound + 24
+  -- C = 4*(2t+8) where t = M.timeBound, accounting for G = numGates*width ≤ n^(2t+8)
+  -- G^4 = n^(4*(2t+8)) = n^(8t+32)
+  use 8 * M.timeBound + 32, max 4 M.numStates
   intro n hn
+  have hn4 : n ≥ 4 := le_trans (le_max_left _ _) hn
+  have hn2 : n ≥ 2 := by omega
+  have hn_states : n ≥ M.numStates := le_trans (le_max_right _ _) hn
   -- Abbreviations
   let κ := Nat.log 2 n
   let ℓ := Nat.log 2 n
@@ -249,7 +314,7 @@ theorem p_side_collapse (F : Type*) [CommRing F] [Nontrivial F]
   have hcompiled : compiledPolyOf F M n = Y * V := by
     simp only [compiledPolyOf, compiledPoly, V, Y, κ, cs]
   -- Step 2: V has locality structure with numGates ≤ n^(2t+2), width ≤ 12
-  obtain ⟨h, hgates, hwidth⟩ := violation_has_locality F M n hn
+  obtain ⟨h, hgates, hwidth⟩ := violation_has_locality F M n hn4 hn_states
   -- Step 3: For every r, width⇒rank gives ΓB_r(V) ≤ (numGates * width)^3
   have hrank : ∀ r : ℕ, r ≤ 6 →
       blockedSpdpRank B r ℓ V ≤ (h.numGates * h.width) ^ 3 := fun r _ =>
@@ -260,18 +325,18 @@ theorem p_side_collapse (F : Type*) [CommRing F] [Nontrivial F]
   -- Step 5: Bound G = numGates * width ≤ n^(2t+6)
   -- Using: numGates ≤ n^(2t+2), width ≤ 12 ≤ n^4 (since n ≥ 2, 2^4=16≥12)
   have h12 : (12 : ℕ) ≤ n ^ 4 :=
-    le_trans (by norm_num) (Nat.pow_le_pow_left hn 4)
-  have hG : h.numGates * h.width ≤ n ^ (2 * M.timeBound + 6) :=
+    le_trans (by norm_num) (Nat.pow_le_pow_left hn2 4)
+  have hG : h.numGates * h.width ≤ n ^ (2 * M.timeBound + 8) :=
     calc h.numGates * h.width
-        ≤ n ^ (2 * M.timeBound + 2) * 12 := Nat.mul_le_mul hgates hwidth
-      _ ≤ n ^ (2 * M.timeBound + 2) * n ^ 4 := by
+        ≤ n ^ (2 * M.timeBound + 4) * 12 := Nat.mul_le_mul hgates hwidth
+      _ ≤ n ^ (2 * M.timeBound + 4) * n ^ 4 := by
             apply Nat.mul_le_mul_left; exact h12
-      _ = n ^ (2 * M.timeBound + 6) := by rw [← pow_add]
-  -- Step 6: G^4 ≤ n^(8t+24)
-  have hG4 : (h.numGates * h.width) ^ 4 ≤ n ^ (8 * M.timeBound + 24) :=
+      _ = n ^ (2 * M.timeBound + 8) := by rw [← pow_add]
+  -- Step 6: G^4 ≤ n^(8t+32)
+  have hG4 : (h.numGates * h.width) ^ 4 ≤ n ^ (8 * M.timeBound + 32) :=
     calc (h.numGates * h.width) ^ 4
-        ≤ (n ^ (2 * M.timeBound + 6)) ^ 4 := Nat.pow_le_pow_left hG 4
-      _ = n ^ (8 * M.timeBound + 24) := by rw [← pow_mul]; ring
+        ≤ (n ^ (2 * M.timeBound + 8)) ^ 4 := Nat.pow_le_pow_left hG 4
+      _ = n ^ (8 * M.timeBound + 32) := by rw [← pow_mul]; ring
   -- Chain: compiledPolyOf = Y*V, rank ≤ G^4 ≤ n^C
   rw [hcompiled]
   exact le_trans hpadding hG4
