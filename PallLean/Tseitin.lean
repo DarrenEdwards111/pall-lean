@@ -206,26 +206,60 @@ theorem tag_monomial_exists (F : Type*) [CommRing F]
       True := by
   exact ⟨1, by simp [MvPolynomial.totalDegree_one], trivial⟩
 
-/-- Theorem 9.3: Identity minor of size (L choose κ) in the blocked SPDP matrix.
+/-! ## Theorem 9.3: Identity Minor Lower Bound
 
-    For a disjoint subfamily C_disj of size L, the blocked SPDP matrix
-    M^B_{κ,ℓ}(Q×_Φ) contains an identity minor of size (L choose κ).
+For a disjoint subfamily C_disj of size L, the blocked SPDP matrix
+M^B_{κ,ℓ}(Q×_Φ) contains an identity minor of size (L choose κ).
 
-    Rows indexed by κ-subsets S ⊆ C_disj (derivatives ∂_{z_S}).
-    Columns indexed by product tag monomials τ_S = ∏_{C∈S} τ_C.
-    The coefficient matrix has [τ_S]R_S = (−1)^κ and [τ_S]R_{S'} = 0 for S ≠ S'.
+Proof structure (from paper):
+1. ∂_{z_S}(Q×) = (-1)^κ · ∏_{C∈S} V_C · ∏_{C∉S}(1-z_C·V_C)
+2. [τ_S]R_S = (-1)^κ (diagonal)
+3. [τ_S]R_{S'} = 0 for S≠S' (off-diagonal)
+4. Identity minor → rank ≥ C(L,κ)
+-/
 
-    Proved from concrete clauseGadget + pderiv_prod_single.
-    Key steps:
-    1. For each κ-subset S of C_disj, ∂_{z_S}(Q×) = (-1)^κ · ∏_{C∈S} V_C · (rest)
-    2. Tag monomial τ_S = ∏_{C∈S} τ_C extracts coefficient (-1)^κ
-    3. For S ≠ S', [τ_S]∂_{z_{S'}}(Q×) = 0 (disjoint variable sets)
-    4. This gives a (L choose κ) identity minor in the SPDP matrix -/
+/-- Step 1: Derivative of coupled verifier along selector variables.
+    ∂_{z_S}(Q×) = (-1)^κ · ∏_{C∈S} V_C · ∏_{C∉S}(1-z_C·V_C)
+    by pderiv_prod_single applied κ times. -/
+private theorem coupled_verifier_deriv (F : Type*) [CommRing F]
+    (Φ : TseitinFormula) : True := trivial -- placeholder for derivative computation
+
+/-- Step 2: Diagonal coefficient [τ_S]R_S = (-1)^κ ≠ 0.
+    Since τ_S = ∏_{C∈S} τ_C and each [τ_C]V_C = 1 (by tag monomial
+    construction from Lemma 9.2), and τ_S has no z-variables, we get
+    [τ_S](∏V_C · rest) = ∏[τ_C]V_C · 1 = 1, so [τ_S]R_S = (-1)^κ. -/
+private theorem diagonal_coeff (F : Type*) [CommRing F]
+    (Φ : TseitinFormula) : True := trivial -- placeholder
+
+/-- Step 3: Off-diagonal vanishing [τ_S]R_{S'} = 0 for S'≠S.
+    If C* ∈ S\S', then τ_S contains τ_{C*} which is supported on B_{C*}.
+    But R_{S'} only involves variables from {B_C : C ∈ S'}, and B_{C*}
+    is disjoint from all of these. So [τ_S]R_{S'} = 0. -/
+private theorem offdiag_vanishing (F : Type*) [CommRing F]
+    (Φ : TseitinFormula) : True := trivial -- placeholder
+
+/-- Step 4: Identity minor gives rank lower bound.
+    If the SPDP matrix has a C(L,κ) × C(L,κ) identity minor (diagonal
+    entries ±1, off-diagonal 0), then rank ≥ C(L,κ).
+
+    Proof: the corresponding row polynomials are linearly independent
+    (identity minor = linearly independent coefficient vectors), so
+    finrank ≥ card by linearIndependent_iff_card_le_finrank_span. -/
+private theorem rank_from_identity_minor (F : Type*) [Field F]
+    {n : ℕ} (U : Submodule F (MvPolynomial (Fin n) F))
+    (k : ℕ) (elements : Fin k → ↥U)
+    (lin_indep : LinearIndependent F (Subtype.val ∘ elements)) :
+    Module.finrank F U ≥ k := by
+  sorry -- linearIndependent_iff_card_le_finrank_span + Submodule.finrank_mono
+
 theorem identity_minor_lower_bound (F : Type*) [CommRing F] [Nontrivial F]
     (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
     (pack : DisjointPacking Φ) (κ ℓ : ℕ)
     (hκ : κ ≤ pack.selected.length) :
     blockedSpdpRank B κ ℓ (coupledVerifier F Φ) ≥ Nat.choose pack.selected.length κ := by
-  sorry -- Thm 9.3: identity minor from disjoint clause packing + tag monomials
+  -- By Steps 1-3: for each κ-subset S of C_disj, the row polynomial R_S
+  -- and tag monomial τ_S give an identity minor in the SPDP matrix.
+  -- By Step 4: identity minor of size C(L,κ) → rank ≥ C(L,κ).
+  sorry
 
 end Tseitin

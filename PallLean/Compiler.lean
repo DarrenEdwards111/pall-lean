@@ -105,15 +105,44 @@ theorem violation_has_locality (F : Type*) [CommRing F]
   · exact le_refl 12
 
 /-- Width⇒Rank (Theorem 5.16): profile compression gives poly rank.
-    Each gate touches ≤ w variables → its SPDP contribution has rank ≤ w^κ.
-    Summing over G gates: rank ≤ G · w^κ ≤ (G·w)^3 for κ ≤ 3. -/
+
+    Paper proof (4 steps):
+    Step 0: Canonical windows generate the row space (Lemma 5.13).
+    Step 1: Partition canonical windows by interface-anonymous profile h.
+            Row space ⊆ Σ_{h∈H} U_h where U_h = span of profile-h rows.
+    Step 2: Within-profile rows differ only by interface relabeling (Lemma 5.14).
+    Step 3: dim(U_h) ≤ R^O(1) for each profile h (Lemma 5.15).
+    Step 4: |H| ≤ R^O(1) by profile compression (Lemma 5.3, 5.7).
+            Total: Γ ≤ |H| · R^O(1) = R^O(1) ≤ (G·w)^3. -/
 theorem width_to_rank_bound (F : Type*) [CommRing F] [Nontrivial F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (p : MvPolynomial (Fin v) F)
     (h : HasLocalityStructure p) :
     blockedSpdpRank B κ ℓ p ≤ (h.numGates * h.width) ^ 3 := by
-  sorry -- Thm 5.16: profile compression. Each gate has bounded-width SPDP
-         -- contribution, rank subadditivity over gates gives the bound.
+  -- This is the deepest theorem in the paper. The proof requires:
+  -- 1. Canonical window theory (§5.1-5.6)
+  -- 2. Profile compression removing κ-dependence (§5.7-5.12)
+  -- 3. Block-factorability and per-profile dimension bounds (§5.13-5.15)
+  -- Each of these is a substantial formalization effort.
+  sorry
+
+/-- **Lemma 3.1 helper**: The κ-level blocked SPDP subspace of Y·V is
+    contained in a finite sum of r-level blocked SPDP subspaces of V
+    (for r = 0,...,κ), each appearing C(κ,r) times.
+
+    Proof sketch from paper: Fix S with |S|=κ, write S = Sy ⊔ Sx where
+    Sy ⊆ {y₁,...,yκ}. Then ∂_S(Y·V) = ±(∏_{j∉Sy} yj)·∂_{Sx}V.
+    So m·∂_S(Y·V) = m'·∂_{Sx}V where m' = m·(y-monomial), and
+    deg(m') ≤ deg(m) + κ ≤ ℓ + κ. Each such element lies in
+    spdpSubspace |Sx| (ℓ+κ) V ≤ blockedSpdpSubspace B |Sx| ℓ V
+    (after appropriate degree adjustment). -/
+private theorem padding_subspace_le (F : Type*) [CommRing F]
+    {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
+    (Y V : MvPolynomial (Fin v) F) :
+    blockedSpdpSubspace B κ ℓ (Y * V) ≤
+      ⨆ r : Fin (κ + 1), blockedSpdpSubspace B r.val ℓ V := by
+  sorry -- Leibniz decomposition: each generator of the LHS lies in some
+         -- blockedSpdpSubspace B r ℓ V on the RHS
 
 /-- κ-padding rank transfer (Lemma 3.1).
     ∂_S(Y·V) = ±(∏_{j∉Sy} yj)·∂_{Sx}V, so rows of M_{κ,ℓ}(Y·V) are
@@ -125,8 +154,11 @@ theorem kappa_padding_rank (F : Type*) [CommRing F] [Nontrivial F]
     (G : ℕ)
     (hrank : ∀ r, r ≤ 6 → blockedSpdpRank B r ℓ V ≤ G ^ 3) :
     blockedSpdpRank B κ ℓ (Y * V) ≤ G ^ 4 := by
-  sorry -- Lemma 3.1: Leibniz decomposition of ∂_S(Y·V) into y-monomial
-         -- multiples of ∂_{Sx}V, then rank subadditivity.
+  -- By padding_subspace_le: blockedSpdpSubspace B κ ℓ (Y*V) ≤ ⨆ r, blockedSpdpSubspace B r ℓ V
+  -- finrank(⨆ U_r) ≤ Σ finrank(U_r) by iterated subadditivity
+  -- Each finrank(U_r) ≤ G³ by hypothesis (for r ≤ 6; larger r contribute 0)
+  -- Sum ≤ (κ+1) · G³ ≤ G⁴ for G ≥ κ+1 (which holds for large enough problems)
+  sorry
 
 /-! ## Main P-Side Theorem -/
 
