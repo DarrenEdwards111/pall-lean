@@ -17,13 +17,25 @@ abbrev PolyTimeTM := DTM
 
 /-- Build a booleanity constraint z(1-z) for variable v.
     Width = 1 ≤ 6. -/
-noncomputable def mkBoolConstraint (F : Type*) [CommRing F]
+noncomputable def mkBoolConstraint (F : Type*) [CommRing F] [Nontrivial F]
     (M : DTM) (n : ℕ) (v : Fin (numVars M n (Nat.log 2 n))) :
     LocalConstraint M n (Nat.log 2 n) F where
   poly := boolConstraint F v
   centerTime := 0
   centerPos := v.val
-  width_bound := by sorry -- vars of z(1-z) ⊆ {v}, card ≤ 1 ≤ 6
+  width_bound := by
+    classical
+    show (boolConstraint F v).vars.card ≤ 6
+    unfold boolConstraint
+    have h1 := MvPolynomial.vars_mul (MvPolynomial.X (R := F) v) (1 - MvPolynomial.X v)
+    have h2 := MvPolynomial.vars_sub_subset (p := (1 : MvPolynomial _ F)) (q := MvPolynomial.X v)
+    rw [MvPolynomial.vars_one, MvPolynomial.vars_X (R := F)] at h2
+    rw [MvPolynomial.vars_X (R := F)] at h1
+    have h2' : (1 - MvPolynomial.X (R := F) v).vars ⊆ {v} :=
+      Finset.Subset.trans h2 (by simp)
+    have hsub : (MvPolynomial.X (R := F) v * (1 - MvPolynomial.X v)).vars ⊆ {v} :=
+      Finset.Subset.trans h1 (Finset.union_subset (Finset.Subset.refl _) h2')
+    exact le_trans (Finset.card_le_card hsub) (by simp)
 
 /-- Build a transition constraint for cell (t, i).
     The polynomial enforces: if head at (t,i) in state q reading bit b,
@@ -46,7 +58,7 @@ noncomputable def mkTransitionConstraint (F : Type*) [CommRing F]
 
 /-- Concrete compilation constraints: booleanity + transition for all cells.
     This is the concrete construction replacing the axiom. -/
-noncomputable def compilationConstraints (F : Type*) [CommRing F]
+noncomputable def compilationConstraints (F : Type*) [CommRing F] [Nontrivial F]
     (M : DTM) (n : ℕ) :
     List (LocalConstraint M n (Nat.log 2 n) F) :=
   -- Booleanity constraints for all variables
@@ -59,7 +71,7 @@ noncomputable def compilationConstraints (F : Type*) [CommRing F]
       else none
 
 /-- The compiled polynomial P_{M,n} -/
-noncomputable def compiledPolyOf (F : Type*) [CommRing F]
+noncomputable def compiledPolyOf (F : Type*) [CommRing F] [Nontrivial F]
     (M : DTM) (n : ℕ) :
     MvPolynomial (Fin (numVars M n (Nat.log 2 n))) F :=
   TuringMachine.compiledPoly F M n (Nat.log 2 n) (compilationConstraints F M n)
@@ -84,7 +96,7 @@ structure HasLocalityStructure {v : ℕ} {F : Type*} [CommRing F]
     V = Σ_C C² where each C is a local constraint with vars.card ≤ 6.
     So V has locality with width ≤ 12 (vars of C² ⊆ vars of C, card ≤ 6,
     but we use 12 to be safe with the squaring). -/
-theorem violation_has_locality (F : Type*) [CommRing F]
+theorem violation_has_locality (F : Type*) [CommRing F] [Nontrivial F]
     (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     ∃ (h : HasLocalityStructure (violationPoly F M n (Nat.log 2 n)
         (compilationConstraints F M n))),
@@ -145,7 +157,7 @@ theorem width_to_rank_bound (F : Type*) [CommRing F] [Nontrivial F]
     deg(m') ≤ deg(m) + κ ≤ ℓ + κ. Each such element lies in
     spdpSubspace |Sx| (ℓ+κ) V ≤ blockedSpdpSubspace B |Sx| ℓ V
     (after appropriate degree adjustment). -/
-private theorem padding_subspace_le (F : Type*) [CommRing F]
+private theorem padding_subspace_le (F : Type*) [CommRing F] [Nontrivial F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (Y V : MvPolynomial (Fin v) F) :
     blockedSpdpSubspace B κ ℓ (Y * V) ≤
