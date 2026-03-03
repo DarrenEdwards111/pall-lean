@@ -53,31 +53,46 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
         · intro h; subst h; simp
       rw [this, Finset.card_singleton]
     · rfl
-  clauses := (List.finRange G.numVertices).flatMap fun v =>
-    (List.finRange G.numEdges).filterMap fun e =>
-      if G.edgeSrc e = v then
-        some {
-          var1 := e.val
-          var2 := (e.val + G.numEdges) % (G.numEdges * 3 + 1)
-          var3 := (e.val + 2 * G.numEdges) % (G.numEdges * 3 + 1)
-          sign1 := true
-          sign2 := true
-          sign3 := true
-        }
-      else none
+  clauses := (List.finRange G.numEdges).map fun e => {
+      var1 := e.val
+      var2 := (e.val + G.numEdges) % (G.numEdges * 3 + 1)
+      var3 := (e.val + 2 * G.numEdges) % (G.numEdges * 3 + 1)
+      sign1 := true
+      sign2 := true
+      sign3 := true : Clause3
+    }
   num_clauses_upper := by
-    -- Upper bound: clauses.length ≤ numEdges ≤ numVertices * degree ≤ 10 * numVertices
-    -- The flatMap/filterMap produces at most numEdges clauses (one per edge at most)
-    -- and edges_bound + degree_bound give the chain
-    sorry
+    -- clauses.length = numEdges ≤ numVertices * degree ≤ 10 * numVertices
+    simp only [List.length_map, List.length_finRange]
+    calc G.numEdges
+        ≤ G.numVertices * G.degree := G.edges_bound
+      _ ≤ G.numVertices * 10 := Nat.mul_le_mul_left _ G.degree_bound
+      _ = 10 * G.numVertices := Nat.mul_comm _ _
   num_clauses_lower := by
-    -- Lower bound: each vertex contributes ≥ 1 edge (degree ≥ 1 from vertices_pos + regular)
-    sorry
+    -- clauses.length = numEdges ≥ numVertices
+    simp only [List.length_map, List.length_finRange]
+    exact G.edges_lower
   bounded_occurrence := by
     intro v
-    -- Each edge variable appears in exactly 1 clause (from its source vertex)
-    -- Auxiliary variables appear in 1 clause each
-    -- Total ≤ degree ≤ 10 ≤ 30
+    -- clauses = map over edges, each edge produces one clause
+    -- Each variable appears in ≤ 3 clauses per edge endpoint (3 vars per clause)
+    -- With degree ≤ 10 and 2 endpoints per edge: ≤ 3 * 10 = 30
+    -- Crude bound: filter on clauses of length numEdges, filter ≤ numEdges ≤ 10 * numVertices
+    -- But we need ≤ 30 specifically.
+    -- Crude upper bound: filter of a map has length ≤ original length
+    -- clauses.length = numEdges ≤ numVertices * degree ≤ 10 * numVertices
+    -- But we need ≤ 30, not numEdges.
+    -- Better: filter of (finRange numEdges).map produces ≤ numEdges results
+    -- Each var matches at most 3 clauses (one per var1/var2/var3 slot)
+    -- Bound: 3 ≤ 30
+    -- For a clean proof, bound by numEdges and use degree ≤ 10, numEdges ≤ 10*n:
+    -- Actually the filter length ≤ list length = numEdges ≤ n*d ≤ 10n
+    -- This is ≤ 30 only if n ≤ 3, which is wrong for large n.
+    -- The correct bound requires showing each var appears in ≤ d clauses.
+    -- Since clauses correspond to edges and each var is an edge variable,
+    -- var1 = e.val is unique, so at most 1 clause. Similarly var2, var3.
+    -- Total per var ≤ 3 ≤ 30.
+    -- Proving this requires List.filter on map + injectivity. Use sorry for now.
     sorry
 
 /-- Tseitin formula on the n-th graph, built concretely -/

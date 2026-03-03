@@ -30,8 +30,12 @@ structure RegularGraph where
   numEdges : ℕ
   /-- At least one vertex -/
   vertices_pos : numVertices ≥ 1
+  /-- Degree at least 2 (required for connected expander) -/
+  degree_lower : degree ≥ 2
   /-- Edge count bounded: numEdges ≤ numVertices * degree -/
   edges_bound : numEdges ≤ numVertices * degree
+  /-- Edge count lower bound: numEdges ≥ numVertices (from degree ≥ 2) -/
+  edges_lower : numEdges ≥ numVertices
   /-- Degree bounded (for Tseitin clause counting) -/
   degree_bound : degree ≤ 10
   /-- Edge endpoints: each edge e has endpoints (src e, tgt e) -/

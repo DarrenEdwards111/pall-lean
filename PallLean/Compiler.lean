@@ -151,7 +151,11 @@ theorem violation_has_locality (F : Type*) [CommRing F] [Nontrivial F]
       have hsub : (c.poly * c.poly).vars ⊆ c.poly.vars := hvu ▸ hv
       exact le_trans (Finset.card_le_card hsub) (le_trans c.width_bound (by omega))
   }, ?_, ?_⟩
-  · sorry -- cs.length ≤ n^(2t+2): O(T²) constraints, T = n^t
+  · -- cs = booleanity ++ transition, total ≤ numVars + tapeSize²
+    -- numVars + tapeSize² ≤ 4·tapeSize² + tapeSize·states + n + κ
+    -- tapeSize = n^t + 1, so tapeSize² ≤ (n^t+1)² ≤ 4·n^(2t) for n≥1
+    -- Total ≤ C·n^(2t) ≤ n^(2t+2) for n ≥ 2
+    sorry
   · exact le_refl 12
 
 /-- Width⇒Rank (Theorem 5.16): profile compression gives poly rank.
