@@ -47,19 +47,23 @@ structure HasLocalityStructure {v : ℕ} {F : Type*} [CommRing F]
   sum_eq : p = ∑ i, gate i
   gate_width : ∀ i, (gate i).vars.card ≤ width
 
-/-- Locality from compilation (§3.2): V is sum of local terms -/
-axiom violation_has_locality (F : Type*) [CommRing F]
+/-- Locality from compilation (§3.2): V is sum of local terms.
+    violationPoly = foldl(+, 0, constraints.map(·²)), each c.poly.vars.card ≤ 6,
+    so each gate = c.poly² has vars.card ≤ 6 ≤ 12. -/
+theorem violation_has_locality (F : Type*) [CommRing F]
     (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     ∃ (h : HasLocalityStructure (violationPoly F M n (Nat.log 2 n)
         (compilationConstraints F M n))),
-      h.numGates ≤ n ^ (2 * M.timeBound + 2) ∧ h.width ≤ 12
+      h.numGates ≤ n ^ (2 * M.timeBound + 2) ∧ h.width ≤ 12 := by
+  sorry
 
 /-- Width⇒Rank (Theorem 5.16): profile compression gives poly rank -/
-axiom width_to_rank_bound (F : Type*) [CommRing F] [Nontrivial F]
+theorem width_to_rank_bound (F : Type*) [Field F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (p : MvPolynomial (Fin v) F)
     (h : HasLocalityStructure p) :
-    blockedSpdpRank B κ ℓ p ≤ (h.numGates * h.width) ^ 3
+    blockedSpdpRank B κ ℓ p ≤ (h.numGates * h.width) ^ 3 := by
+  sorry
 
 /-- Helper: iterDerivList is additive (linearity of partial derivatives). -/
 private theorem iterDerivList_add {n : ℕ} {F : Type*} [CommRing F]
@@ -86,34 +90,17 @@ private theorem blockedSpdpSubspace_add_le {n : ℕ} {F : Type*} [CommRing F]
   · exact Submodule.subset_span ⟨S, m, hlen, hdeg, hadm, rfl⟩
   · exact Submodule.subset_span ⟨S, m, hlen, hdeg, hadm, rfl⟩
 
-/-- Helper: blockedSpdpSubspace is finite-dimensional.
-    The generating set {m · ∂_S f} is contained in the span of finitely
-    many generators (finitely many S of length κ, finitely many monomials m
-    of degree ≤ ℓ in Fin v variables). -/
-private instance blockedSpdpSubspace_finite {n : ℕ} {F : Type*} [CommRing F]
-    (B : BlockPartition n) (κ ℓ : ℕ)
-    (f : MvPolynomial (Fin n) F) :
-    Module.Finite F (blockedSpdpSubspace B κ ℓ f) := by
-  rw [Module.finite_def]
-  -- The subspace is spanned by a subset of MvPolynomial, hence fg if the
-  -- generating set is contained in a finitely-generated submodule.
-  -- There are finitely many lists S : List (Fin n) of length κ,
-  -- and finitely many monomials of degree ≤ ℓ in n variables.
-  sorry
-
 /-- Rank subadditivity (Lemma 2.4 / standard linear algebra):
     The SPDP subspace of a sum is contained in the sum of the SPDP subspaces.
     Therefore rank(f + g) ≤ rank(f) + rank(g). -/
-theorem blockedSpdpRank_add_le (F : Type*) [CommRing F] [Nontrivial F]
+theorem blockedSpdpRank_add_le (F : Type*) [Field F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (f g : MvPolynomial (Fin v) F) :
     blockedSpdpRank B κ ℓ (f + g) ≤ blockedSpdpRank B κ ℓ f + blockedSpdpRank B κ ℓ g := by
-  -- Key step: subspace containment (proved via linearity of iterDerivList)
   have hsub := blockedSpdpSubspace_add_le B κ ℓ f g
-  -- finrank monotonicity + sup bound: finrank(A) ≤ finrank(B ⊔ C) ≤ finrank(B) + finrank(C)
-  -- This requires FiniteDimensional/Field in mathlib; in our application F is always a field.
-  -- The mathematical content is in hsub above.
-  sorry
+  unfold blockedSpdpRank
+  exact le_trans (Submodule.finrank_mono hsub)
+    (Submodule.finrank_add_le_finrank_add_finrank _ _)
 
 /-- Helper: blockedSpdpSubspace of m*f is contained in blockedSpdpSubspace of f.
     Each generator m' · ∂_S(m·f) is a linear combination of generators of f's subspace
@@ -131,7 +118,7 @@ private theorem blockedSpdpSubspace_mul_le {n : ℕ} {F : Type*} [CommRing F]
 /-- Monomial scaling does not increase rank:
     rank(m · f) ≤ rank(f) when m is a monomial.
     (Each row m' · ∂_S(m·f) is a linear combination of rows from M_{κ,ℓ}(f).) -/
-theorem blockedSpdpRank_monomial_mul_le (F : Type*) [CommRing F] [Nontrivial F]
+theorem blockedSpdpRank_monomial_mul_le (F : Type*) [Field F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (m f : MvPolynomial (Fin v) F) :
     blockedSpdpRank B κ ℓ (m * f) ≤ blockedSpdpRank B κ ℓ f := by
@@ -156,7 +143,7 @@ private theorem blockedSpdpSubspace_pderiv_le {n : ℕ} {F : Type*} [CommRing F]
 /-- Derivative does not increase rank:
     rank_κ(∂_i f) ≤ rank_{κ+1}(f).
     (Each row of M_{κ,ℓ}(∂_i f) is a row of M_{κ+1,ℓ}(f).) -/
-theorem blockedSpdpRank_pderiv_le (F : Type*) [CommRing F] [Nontrivial F]
+theorem blockedSpdpRank_pderiv_le (F : Type*) [Field F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (i : Fin v) (f : MvPolynomial (Fin v) F) :
     blockedSpdpRank B κ ℓ (MvPolynomial.pderiv i f) ≤ blockedSpdpRank B (κ + 1) ℓ f := by
@@ -167,7 +154,7 @@ theorem blockedSpdpRank_pderiv_le (F : Type*) [CommRing F] [Nontrivial F]
     over the C(κ,r) ways to split κ derivatives between Y and V.
     Each term contributes rank ≤ rank_r(V) (monomial scaling from Y-derivatives).
     Therefore: Γ_{κ,ℓ}(Y·V) ≤ Σ_{r=0}^{κ} C(κ,r) · Γ_{r,ℓ}(V) -/
-theorem kappa_padding_rank_sum (F : Type*) [CommRing F] [Nontrivial F]
+theorem kappa_padding_rank_sum (F : Type*) [Field F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (Y V : MvPolynomial (Fin v) F) :
     blockedSpdpRank B κ ℓ (Y * V) ≤
@@ -191,7 +178,7 @@ theorem kappa_padding_rank_sum (F : Type*) [CommRing F] [Nontrivial F]
     Since V has totalDegree ≤ 6, Γ_{r,ℓ}(V) = 0 for r > 6, so:
       ≤ Σ_{r=0}^{6} C(κ,r) · G^3 ≤ 2^κ · G^3 ≤ G^4
     (using 2^κ ≤ G when G is large enough, which holds in our application). -/
-theorem kappa_padding_rank (F : Type*) [CommRing F] [Nontrivial F]
+theorem kappa_padding_rank (F : Type*) [Field F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (Y V : MvPolynomial (Fin v) F)
     (G : ℕ)
@@ -207,7 +194,7 @@ theorem kappa_padding_rank (F : Type*) [CommRing F] [Nontrivial F]
 /-! ## Main P-Side Theorem -/
 
 /-- **A2 (Theorem 6.1): P-side collapse** -/
-theorem p_side_collapse (F : Type*) [CommRing F] [Nontrivial F]
+theorem p_side_collapse (F : Type*) [Field F]
     (M : DTM) :
     ∃ (C : ℕ), ∀ n, n ≥ 2 →
       blockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
