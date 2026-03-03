@@ -298,23 +298,76 @@ axiom tag_monomial_property (F : Type*) [Field F]
 /-- Literal polynomial variables are contained in {v}.
     literalPoly F v true = X v, vars = {v} (or ∅ if trivial ring)
     literalPoly F v false = 1 - X v, vars ⊆ {v} -/
-private axiom literalPoly_vars_subset {m : ℕ} (F : Type*) [CommRing F]
+private theorem literalPoly_vars_subset {m : ℕ} (F : Type*) [CommRing F] [Nontrivial F]
     (v : Fin m) (s : Bool) :
-    (literalPoly F v s).vars ⊆ {v}
+    (literalPoly F v s).vars ⊆ {v} := by
+  cases s
+  · -- false: literalPoly F v false = 1 - X v
+    show ((1 : MvPolynomial (Fin m) F) - X v).vars ⊆ {v}
+    intro w hw
+    have hsub := vars_sub_subset (1 : MvPolynomial (Fin m) F) hw
+    rw [vars_one, vars_X, Finset.empty_union] at hsub
+    exact hsub
+  · -- true: literalPoly F v true = X v
+    show (X v : MvPolynomial (Fin m) F).vars ⊆ {v}
+    rw [vars_X]
 
 /-- Variables of (1 - literalPoly) are contained in {v}. -/
-private axiom one_sub_literalPoly_vars_subset {m : ℕ} (F : Type*) [CommRing F]
+private theorem one_sub_literalPoly_vars_subset {m : ℕ} (F : Type*) [CommRing F] [Nontrivial F]
     (v : Fin m) (s : Bool) :
-    ((1 : MvPolynomial (Fin m) F) - literalPoly F v s).vars ⊆ {v}
+    ((1 : MvPolynomial (Fin m) F) - literalPoly F v s).vars ⊆ {v} := by
+  intro w hw
+  have hsub : w ∈ (1 : MvPolynomial (Fin m) F).vars ∪ (literalPoly F v s).vars :=
+    vars_sub_subset _ hw
+  rw [vars_one, Finset.empty_union] at hsub
+  exact literalPoly_vars_subset F v s hsub
 
--- clauseGadget_vars_bound: proved from clause_vars_bound + vars chasing.
--- Currently uses 2 helper axioms (literalPoly_vars_subset, one_sub_literalPoly_vars_subset)
--- which are straightforward but require MvPolynomial.vars API work.
--- The main theorem selector_not_in_gadget is proved from this.
-axiom clauseGadget_vars_bound (F : Type*) [CommRing F]
+/-- Helper: vars of clauseGadget are among the three clause variables. -/
+private theorem clauseGadget_vars_subset (F : Type*) [CommRing F] [Nontrivial F]
+    (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
+    let cl := Φ.clauses.get c
+    let hpos : tseitinNumVars Φ > 0 := by unfold tseitinNumVars; have := c.isLt; omega
+    let v1 : Fin (tseitinNumVars Φ) := ⟨cl.var1 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+    let v2 : Fin (tseitinNumVars Φ) := ⟨cl.var2 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+    let v3 : Fin (tseitinNumVars Φ) := ⟨cl.var3 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+    (clauseGadget F Φ c).vars ⊆ {v1, v2, v3} := by
+  intro cl hpos v1 v2 v3 w hw
+  simp only [Finset.mem_insert, Finset.mem_singleton]
+  -- clauseGadget F Φ c = (1 - lit v1 s1) * (1 - lit v2 s2) * (1 - lit v3 s3)
+  -- where lit = literalPoly
+  unfold clauseGadget at hw
+  simp only at hw
+  -- Product of three factors: (f1 * f2) * f3
+  have hm1 := vars_mul _ _ hw
+  simp only [Finset.mem_union] at hm1
+  rcases hm1 with h12 | h3
+  · have hm2 := vars_mul _ _ h12
+    simp only [Finset.mem_union] at hm2
+    rcases hm2 with h1 | h2
+    · left; exact Finset.mem_singleton.mp (one_sub_literalPoly_vars_subset F v1 _ h1)
+    · right; left; exact Finset.mem_singleton.mp (one_sub_literalPoly_vars_subset F v2 _ h2)
+  · right; right; exact Finset.mem_singleton.mp (one_sub_literalPoly_vars_subset F v3 _ h3)
+
+theorem clauseGadget_vars_bound (F : Type*) [CommRing F] [Nontrivial F]
     (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
     ∀ v ∈ (clauseGadget F Φ c).vars,
-      v.val < Φ.graph.numEdges + 3 * Φ.clauses.length
+      v.val < Φ.graph.numEdges + 3 * Φ.clauses.length := by
+  intro w hw
+  have hcl := Φ.clause_vars_bound (Φ.clauses.get c) (List.getElem_mem c.isLt)
+  obtain ⟨hcl1, hcl2, hcl3⟩ := hcl
+  have hsub := clauseGadget_vars_subset F Φ c hw
+  simp only [Finset.mem_insert, Finset.mem_singleton] at hsub
+  rcases hsub with rfl | rfl | rfl
+  · -- w = v1, w.val = cl.var1 % tseitinNumVars Φ
+    show (Φ.clauses.get c).var1 % tseitinNumVars Φ < Φ.graph.numEdges + 3 * Φ.clauses.length
+    rw [Nat.mod_eq_of_lt (by unfold tseitinNumVars; omega)]
+    exact hcl1
+  · show (Φ.clauses.get c).var2 % tseitinNumVars Φ < Φ.graph.numEdges + 3 * Φ.clauses.length
+    rw [Nat.mod_eq_of_lt (by unfold tseitinNumVars; omega)]
+    exact hcl2
+  · show (Φ.clauses.get c).var3 % tseitinNumVars Φ < Φ.graph.numEdges + 3 * Φ.clauses.length
+    rw [Nat.mod_eq_of_lt (by unfold tseitinNumVars; omega)]
+    exact hcl3
 
 theorem selector_not_in_gadget (F : Type*) [CommRing F] [Nontrivial F]
     (Φ : TseitinFormula) (c c' : Fin Φ.clauses.length) :
