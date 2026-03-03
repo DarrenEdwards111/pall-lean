@@ -144,11 +144,17 @@ noncomputable def tseitinAt (n : ℕ) : TseitinFormula :=
 theorem tseitinAt_graph (n : ℕ) :
     (tseitinAt n).graph = highGirthFamily.graph n := rfl
 
-/-- The formula has n vertices (from highGirthFamily.vertices_linear) -/
-theorem tseitinAt_vertices (n : ℕ) (hn : n ≥ 100) :
-    (tseitinAt n).graph.numVertices = n := by
+/-- The formula has at least n vertices -/
+theorem tseitinAt_vertices_lower (n : ℕ) :
+    n ≤ (tseitinAt n).graph.numVertices := by
   unfold tseitinAt buildTseitin
-  exact highGirthFamily.vertices_linear n
+  exact highGirthFamily.vertices_lower n
+
+/-- The formula has at most C*n vertices -/
+theorem tseitinAt_vertices_upper (n : ℕ) :
+    (tseitinAt n).graph.numVertices ≤ highGirthFamily.vertices_growth_const * n := by
+  unfold tseitinAt buildTseitin
+  exact highGirthFamily.vertices_upper n
 
 /-- Number of variables in the n-th Tseitin polynomial -/
 noncomputable def npNumVars (n : ℕ) : ℕ := tseitinNumVars (tseitinAt n)
@@ -226,28 +232,24 @@ theorem np_side_lb (F : Type*) [Field F] :
   have hn₀' : n ≥ n₀ := le_trans (le_max_left _ _) hn
   have hn1024 : n ≥ 2^10 := le_trans (le_max_right _ _) hn
   have hn100 : n ≥ 100 := by omega
-  -- Step 1: Get disjoint packing of size ≥ n/30
-  have hv := tseitinAt_vertices n hn100
+  -- Step 1: Get disjoint packing of size ≥ V(n)/30 ≥ n/30
+  have hv_lower := tseitinAt_vertices_lower n
   have pack := Tseitin.disjoint_packing_exists (tseitinAt n) (by omega)
+  have hpack_n30 : pack.selected.length ≥ n / 30 :=
+    le_trans (Nat.div_le_div_right hv_lower) pack.size_bound
   -- Step 2: Identity minor gives rank ≥ (pack.selected.length choose κ)
   have h_minor := identity_minor_lower_bound F (tseitinAt n)
     (tseitinPartition n) pack (Nat.log 2 n) (Nat.log 2 n)
     (by -- κ = log₂ n ≤ n/30 ≤ pack.selected.length for n ≥ 1024
-        have hps := pack.size_bound
-        rw [hv] at hps
-        -- log₂ n ≤ n/30 follows from log2_le_div30 (n ≥ 1024 = 2^10)
         have hlog : Nat.log 2 n ≤ n / 30 :=
           log2_le_div30 n (by linarith [show (2:ℕ)^10 = 1024 from by norm_num])
-        exact hlog.trans hps)
+        exact hlog.trans hpack_n30)
   -- Step 3: pack.selected.length ≥ n/30, so choose ≥ (n/30 choose κ) ≥ n^{κ/4}
-  -- tseitinPoly F n = coupledVerifier F (tseitinAt n), so types match
   calc blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly F n)
       ≥ Nat.choose pack.selected.length (Nat.log 2 n) := h_minor
     _ ≥ Nat.choose (n / 30) (Nat.log 2 n) := by
         apply Nat.choose_le_choose
-        have := pack.size_bound
-        rw [hv] at this
-        exact this
+        exact hpack_n30
     _ ≥ n ^ (Nat.log 2 n / 4) := hn₀ n hn₀'
 
 end NPWitness
