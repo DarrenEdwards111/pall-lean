@@ -188,88 +188,18 @@ theorem tag_monomial_exists (F : Type*) [CommRing F]
       True := by
   exact ⟨1, by simp [MvPolynomial.totalDegree_one], trivial⟩
 
-/-! ### Theorem 9.3: Identity minor — Sub-lemmas and main theorem
+/-- Theorem 9.3: Identity minor of size (L choose κ) in the blocked SPDP matrix.
 
-Decomposed into: diagonal_coeff_nonzero, offdiag_coeff_zero, identity_minor_rank.
-See paper §9.3: rows = ∂_{z_S} Q×, columns = τ_S, giving identity minor of size (L choose κ). -/
+    For a disjoint subfamily C_disj of size L, the blocked SPDP matrix
+    M^B_{κ,ℓ}(Q×_Φ) contains an identity minor of size (L choose κ).
 
-/-- Sub-lemma 1: Diagonal entries of the coefficient matrix are (−1)^κ ≠ 0.
-
-    For a κ-subset S ⊆ C_disj, using the product derivative rule on
-    Q× = ∏_C (1 − z_C V_C), the z_S-derivative evaluated at the tag monomial
-    τ_S = ∏_{C∈S} τ_C gives:
-      [τ_S](∂_{z_S} Q×) = (−1)^κ · ∏_{C∈S} [τ_C]V_C = (−1)^κ
-
-    Key ingredients: pderiv_prod_single (ProductDeriv.lean), [τ_C]V_C = 1 (Lemma 9.2),
-    and the z-constant term of ∏_{C∉S}(1 − z_C V_C) is 1. -/
-theorem diagonal_coeff_nonzero (F : Type*) [CommRing F] [Nontrivial F]
-    (Φ : TseitinFormula) (pack : DisjointPacking Φ)
-    (S : List (Fin pack.selected.length))
-    (hS : S.length > 0) :
-    (1 : F) ≠ 0 := one_ne_zero
-
-/-- Sub-lemma 2: Off-diagonal entries vanish by block disjointness.
-
-    For S ≠ S' (both κ-subsets of C_disj), [τ_S](∂_{z_{S'}} Q×) = 0.
-    Choose C⋆ ∈ S \ S'. The derivative ∂_{z_{S'}} only touches z-variables
-    in S', and the z-constant part of the remaining product ∏_{C∉S'}(1−z_C V_C)
-    uses variables from ∪_{C∈S'} B_C only. Since B_{C⋆} is disjoint from
-    all these blocks, τ_{C⋆} cannot appear, so τ_S = τ_{C⋆} · τ_{S\{C⋆}}
-    has zero coefficient. -/
-theorem offdiag_coeff_zero (F : Type*) [CommRing F]
-    (Φ : TseitinFormula) (pack : DisjointPacking Φ)
-    (S S' : Finset (Fin pack.selected.length))
-    (hSS' : S ≠ S') (hκ : S.card = S'.card) :
-    True := trivial
-
-/-- Sub-lemma 3: A subspace containing r linearly independent elements
-    has finrank ≥ r.
-
-    The (L choose κ) rows {∂_{z_S} Q× : |S| = κ} are linearly independent
-    as witnessed by the identity minor: the coefficient matrix at column
-    monomials {τ_S} is diagonal with nonzero entries (−1)^κ.
-    Each row m · ∂_S Q× (with m = 1, so deg(m) = 0 ≤ ℓ) lies in the
-    blocked SPDP subspace since S picks one z-variable per disjoint clause
-    block, making S block-admissible. -/
-theorem identity_minor_rank (F : Type*) [CommRing F] [Nontrivial F]
-    (n : ℕ) (V : Submodule F (MvPolynomial (Fin n) F)) (r : ℕ)
-    [Module.Finite F V]
-    (h : ∃ (polys : Fin r → MvPolynomial (Fin n) F),
-      (∀ i, polys i ∈ V) ∧ LinearIndependent F polys) :
-    Module.finrank F V ≥ r := by
-  obtain ⟨polys, hmem, hli⟩ := h
-  let polys' : Fin r → V := fun i => ⟨polys i, hmem i⟩
-  have hli' : LinearIndependent F polys' := by
-    apply LinearIndependent.of_comp V.subtype
-    simpa [polys'] using hli
-  have := hli'.fintype_card_le_finrank
-  simpa [Fintype.card_fin] using this
-
-/-- Theorem 9.3 (proved from sub-lemmas).
-
-    The blocked SPDP rank of Q×_Φ is at least (L choose κ), where L is the
-    size of the disjoint clause packing.
-
-    Proof outline:
-    1. For each of the (L choose κ) κ-subsets S ⊆ C_disj, the row polynomial
-       R_S = ∂_{z_S} Q× lies in the blocked SPDP subspace (block-admissible
-       by disjointness, multiplied by m = 1 with deg ≤ ℓ).
-    2. These rows are linearly independent: the coefficient matrix at columns
-       {τ_S} is diagonal with entries (−1)^κ ≠ 0 (diagonal_coeff_nonzero +
-       offdiag_coeff_zero).
-    3. By identity_minor_rank, finrank ≥ (L choose κ). -/
--- Axiom: Identity minor gives (L choose κ) linearly independent SPDP rows.
-axiom identity_minor_lower_bound_axiom (F : Type*) [CommRing F] [Nontrivial F]
+    Rows indexed by κ-subsets S ⊆ C_disj (derivatives ∂_{z_S}).
+    Columns indexed by product tag monomials τ_S = ∏_{C∈S} τ_C.
+    The coefficient matrix has [τ_S]R_S = (−1)^κ and [τ_S]R_{S'} = 0 for S ≠ S'. -/
+axiom identity_minor_lower_bound (F : Type*) [CommRing F] [Nontrivial F]
     (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
     (pack : DisjointPacking Φ) (κ ℓ : ℕ)
     (hκ : κ ≤ pack.selected.length) :
     blockedSpdpRank B κ ℓ (coupledVerifier F Φ) ≥ Nat.choose pack.selected.length κ
-
-theorem identity_minor_lower_bound (F : Type*) [CommRing F] [Nontrivial F]
-    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
-    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
-    (hκ : κ ≤ pack.selected.length) :
-    blockedSpdpRank B κ ℓ (coupledVerifier F Φ) ≥ Nat.choose pack.selected.length κ :=
-  identity_minor_lower_bound_axiom F Φ B pack κ ℓ hκ
 
 end Tseitin

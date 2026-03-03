@@ -10,4 +10,3 @@ import PallLean.Extraction
 import PallLean.Separation
 import PallLean.Barriers
 import PallLean.ProductDeriv
-import PallLean.ConstructionAxioms

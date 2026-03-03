@@ -34,26 +34,12 @@ noncomputable def evalAtHom (i : Fin n) (c : F) :
     MvPolynomial (Fin n) F →ₐ[F] MvPolynomial (Fin n) F :=
   aeval (fun j => if j = i then C c else X j)
 
-/-- Restriction monotonicity: setting x_i=c cannot increase SPDP rank (§2, Property 3).
-    Proof: M_{κ,ℓ}(f|_{x_i=c}) = Z·M(f)·T where Z zeros rows with i∈S and T is the
-    column substitution. Since rank(ZAT) ≤ rank(A), rank doesn't increase.
-    Requires CoeffBridge for Module.finrank ↔ matrix rank connection.
-    Not used in the P≠NP proof chain (structural property only).
-    See ConstructionAxioms.lean for full documentation. -/
--- Key lemma: SPDP subspace of f|_{x_i=c} ⊆ SPDP subspace of f (matrix factorization M(f')=Z·M(f)·T)
--- Axiom: M(f|_{x_i=c}) = Z·M(f)·T implies spdpSubspace(f') ≤ spdpSubspace(f).
-axiom spdpSubspace_evalAt_le_axiom {n : ℕ} {F : Type*} [Field F]
-    (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) (i : Fin n) (c : F) :
-    spdpSubspace κ ℓ ((evalAtHom i c) p) ≤ spdpSubspace κ ℓ p
-
-private theorem spdpSubspace_evalAt_le (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) (i : Fin n) (c : F) :
-    spdpSubspace κ ℓ ((evalAtHom i c) p) ≤ spdpSubspace κ ℓ p :=
-  spdpSubspace_evalAt_le_axiom κ ℓ p i c
-
-theorem restriction_rank_le_axiom (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) (i : Fin n) (c : F) :
-    spdpRank κ ℓ ((evalAtHom i c) p) ≤ spdpRank κ ℓ p := by
-  unfold spdpRank
-  exact Submodule.finrank_mono (spdpSubspace_evalAt_le κ ℓ p i c)
+/-- Restriction monotonicity as axiom.
+    The full proof requires connecting Module.finrank to matrix rank via CoeffBridge,
+    then showing M(f') = Z·M(f)·T and rank(Z·A·T) ≤ rank(A).
+    Not used in the P≠NP proof chain (structural property only). -/
+axiom restriction_rank_le_axiom (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) (i : Fin n) (c : F) :
+    spdpRank κ ℓ ((evalAtHom i c) p) ≤ spdpRank κ ℓ p
 
 theorem restriction_rank_le' (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) (i : Fin n) (c : F) :
     spdpRank κ ℓ ((evalAtHom i c) p) ≤ spdpRank κ ℓ p :=
