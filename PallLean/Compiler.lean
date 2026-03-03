@@ -68,10 +68,8 @@ private theorem iterDerivList_add {n : ℕ} {F : Type*} [CommRing F]
   | nil => simp [iterDerivList]
   | cons i rest ih =>
     simp only [iterDerivList, List.foldl_cons]
-    -- After one step of foldl, we need the rest to be additive
-    -- foldl pderiv (pderiv i (f+g)) rest = foldl pderiv (pderiv i f + pderiv i g) rest
-    -- pderiv is additive: pderiv i (f+g) = pderiv i f + pderiv i g
-    sorry
+    rw [map_add]
+    exact ih (MvPolynomial.pderiv i f) (MvPolynomial.pderiv i g)
 
 /-- Helper: blockedSpdpSubspace of a sum is contained in the sup of subspaces.
     Each generator m · ∂_S(f+g) = m · ∂_S(f) + m · ∂_S(g) by linearity of ∂_S. -/
