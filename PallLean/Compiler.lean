@@ -14,7 +14,11 @@ open SPDP MvPolynomial TuringMachine
 
 abbrev PolyTimeTM := DTM
 
-/-- Compilation constraints (axiomatized: generated from M and n) -/
+/-- Compilation constraints from TM M at input size n (§3.1).
+    Construction: For each tableau cell (t,i), generate booleanity constraints
+    z(1-z)=0, one-hot state/head constraints, and transition constraints.
+    Each involves ≤6 variables in a radius-1 neighborhood.
+    See ConstructionAxioms.lean for full documentation. -/
 noncomputable axiom compilationConstraints (F : Type*) [CommRing F]
     (M : DTM) (n : ℕ) :
     List (LocalConstraint M n (Nat.log 2 n) F)

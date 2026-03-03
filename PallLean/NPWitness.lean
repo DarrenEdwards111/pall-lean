@@ -21,17 +21,27 @@ open SPDP MvPolynomial Tseitin
 
 /-! ## Concrete Witness Family -/
 
-/-- Explicit Ramanujan family (LPS or Morgenstern) -/
+/-- Explicit Ramanujan expander family (§8.1).
+    Constructed via Lubotzky–Phillips–Sarnak (1988) or Morgenstern (1994):
+    Cayley graphs on PGL(2,F_q) with quaternion generators.
+    Ramanujan property (λ₂ ≤ 2√(d-1)) follows from Deligne's proof of
+    the Ramanujan–Petersson conjecture for function fields.
+    See ConstructionAxioms.lean for full documentation. -/
 axiom ramanujanFamily : RamanujanFamily
 
-/-- Tseitin formula on the n-th graph -/
+/-- Tseitin 3-CNF formula on the n-th Ramanujan graph (§8.2).
+    Construction: For each vertex v, XOR of incident edge variables = parity bit.
+    Parity bits chosen with odd sum (→ unsatisfiable).
+    XOR→3-CNF via standard Tseitin transformation: d-ary XOR decomposes into
+    4(d-1) clauses of 3 literals each, using d-2 auxiliary variables.
+    See ConstructionAxioms.lean for full documentation. -/
 noncomputable axiom tseitinAt : (n : ℕ) → TseitinFormula
 
-/-- The formula uses the n-th Ramanujan graph -/
+/-- The Tseitin formula uses the n-th Ramanujan graph -/
 axiom tseitinAt_graph (n : ℕ) :
     (tseitinAt n).graph = ramanujanFamily.graph n
 
-/-- The formula has n vertices (matching the graph) -/
+/-- The Tseitin formula has n vertices (matching the graph) -/
 axiom tseitinAt_vertices (n : ℕ) (hn : n ≥ 100) :
     (tseitinAt n).graph.numVertices = n
 
@@ -83,17 +93,11 @@ private lemma log2_le_div30 (n : ℕ) (hn : n ≥ 1024) : Nat.log 2 n ≤ n / 30
 
 /-! ## The Lower Bound -/
 
-/-- Binomial lower bound: (n/30 choose log₂ n) ≥ n^{log₂ n / 4} for large n.
-
-    Proof sketch: (L choose k) ≥ (L/k)^k. With L = n/30, k = log₂ n:
-    (n/(30·log n))^{log n} ≥ n^{log n / 4} for large enough n
-    (since n/(30·log n) ≥ n^{1/4} eventually, as n^{3/4} / log n → ∞).
-
-    This asymptotic argument requires real-valued logarithms and is
-    left as a sorry pending a full analytic proof. -/
--- Standard combinatorial bound: C(L,k) ≥ (L/k)^k applied with L = n/30, k = log₂ n.
--- For large n, (n/(30·log₂ n))^{log₂ n} ≥ n^{log₂ n / 4} since n^{3/4} dominates 30·log₂ n.
--- Full proof requires real-valued logarithm bounds beyond Nat arithmetic.
+/-- Binomial lower bound: C(n/30, log₂ n) ≥ n^{log₂ n / 4} for large n.
+    Proof: C(L,k) ≥ (L/k)^k. With L=n/30, k=log₂ n, get (n/(30 log n))^{log n}.
+    For large n: n^{1/4} ≥ 30 log₂ n, so base ≥ n^{3/4}, giving n^{3 log n/4}.
+    Requires real analysis to formalize n^{1/4} eventually dominates log n.
+    See ConstructionAxioms.lean for full documentation. -/
 axiom binomial_lower_bound_axiom :
     ∃ n₀, ∀ n, n ≥ n₀ →
       Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4)
