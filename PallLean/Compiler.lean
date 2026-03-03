@@ -1,6 +1,7 @@
 import PallLean.SPDPDefs
 import PallLean.TuringMachine
 import PallLean.ListSum
+import PallLean.IterLeibniz
 import Mathlib.Tactic
 /-!
 # P-Side Collapse — Pall §3–6
@@ -254,13 +255,58 @@ theorem width_to_rank_bound (F : Type*) [Field F]
     (after appropriate degree adjustment). -/
 private theorem padding_subspace_le (F : Type*) [Field F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
-    (Y V : MvPolynomial (Fin v) F) :
+    (Y V : MvPolynomial (Fin v) F)
+    (hY : Y.totalDegree ≤ κ) :
     blockedSpdpSubspace B κ ℓ (Y * V) ≤
       ⨆ r : Fin (κ + 1), blockedSpdpSubspace B r.val (ℓ + κ) V := by
-  -- Iterative Leibniz: each derivative either hits Y or V.
-  -- After κ derivatives, terms indexed by r = |derivatives hitting V|.
-  -- Monomial multiplier degree ≤ ℓ + (κ - r) ≤ ℓ + κ.
-  sorry
+  -- Show every generator of LHS is in RHS
+  apply Submodule.span_le.mpr
+  intro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+  -- q = m * iterDerivList S (Y * V), |S|=κ, deg(m)≤ℓ, S block-admissible
+  -- By iterated Leibniz, iterDerivList S (Y*V) ∈ span of {g * iterDerivList T V | T ⊆ S}
+  have hmem := IterLeibniz.iterDerivList_mul_mem_span S Y V
+  -- m * (element of span) is in the span of m-scaled terms
+  -- We need: m * iterDerivList S (Y*V) ∈ RHS
+  rw [hq]
+  -- Goal: m * iterDerivList S (Y * V) ∈ ⨆ ...
+  -- Strategy: show iterDerivList S (Y * V) is in a span, then m * that span ⊆ RHS
+  -- Use: if x ∈ span(G), then m * x ∈ span(m * G)
+  -- And then show m * G ⊆ RHS
+  suffices h : m * iterDerivList S (Y * V) ∈
+      Submodule.span F { q | ∃ (T : List (Fin v)) (g : MvPolynomial (Fin v) F),
+        T.Sublist S ∧ g.totalDegree ≤ Y.totalDegree ∧
+        q = (m * g) * iterDerivList T V } by
+    apply (Submodule.span_le.mpr _) h
+    intro p ⟨T, g, hTsub, hgdeg, hp⟩
+    -- (m * g) * iterDerivList T V ∈ blockedSpdpSubspace B |T| (ℓ+κ) V
+    have hTadm : isBlockAdmissible B T := isBlockAdmissible_of_sublist hTsub hadm
+    have hTlen : T.length ≤ κ := hlen ▸ List.Sublist.length_le hTsub
+    have hmgdeg : (m * g).totalDegree ≤ ℓ + κ :=
+      le_trans (totalDegree_mul m g) (by omega)
+    -- T.length ≤ κ, so ⟨T.length, ...⟩ : Fin (κ + 1)
+    have hmem_r : p ∈ blockedSpdpSubspace B T.length (ℓ + κ) V :=
+      Submodule.subset_span ⟨T, m * g, rfl, hmgdeg, hTadm, hp⟩
+    exact Submodule.mem_iSup_of_mem ⟨T.length, by omega⟩ hmem_r
+  -- Now prove: m * iterDerivList S (Y*V) ∈ span of {(m*g) * iterDerivList T V | ...}
+  -- From hmem: iterDerivList S (Y*V) ∈ span of {g * iterDerivList T V | T ⊆ S, deg(g) ≤ deg(Y)}
+  -- Multiplication by m distributes: m * (Σ cᵢ gᵢ) = Σ cᵢ (m * gᵢ)
+  -- Use span_induction on hmem
+  let G := { q | ∃ (T : List (Fin v)) (g : MvPolynomial (Fin v) F),
+        T.Sublist S ∧ g.totalDegree ≤ Y.totalDegree ∧
+        q = g * iterDerivList T V }
+  let G' := { q | ∃ (T : List (Fin v)) (g : MvPolynomial (Fin v) F),
+        T.Sublist S ∧ g.totalDegree ≤ Y.totalDegree ∧
+        q = (m * g) * iterDerivList T V }
+  suffices ∀ x ∈ Submodule.span F G, m * x ∈ Submodule.span F G' from this _ hmem
+  intro x hx
+  induction hx using Submodule.span_induction with
+  | mem x hx =>
+    obtain ⟨T, g, hT, hg, hxeq⟩ := hx
+    apply Submodule.subset_span
+    exact ⟨T, g, hT, hg, by rw [hxeq, mul_assoc]⟩
+  | zero => simp
+  | add x y _ _ ihx ihy => rw [mul_add]; exact Submodule.add_mem _ ihx ihy
+  | smul c x _ ihx => rw [mul_comm m, smul_mul_assoc, mul_comm]; exact Submodule.smul_mem _ c ihx
 
 /-- κ-padding rank transfer (Lemma 3.1).
     ∂_S(Y·V) = ±(∏_{j∉Sy} yj)·∂_{Sx}V, so rows of M_{κ,ℓ}(Y·V) are
@@ -270,10 +316,11 @@ theorem kappa_padding_rank (F : Type*) [Field F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (Y V : MvPolynomial (Fin v) F)
     (G : ℕ)
+    (hY : Y.totalDegree ≤ κ)
     (hrank : ∀ r, blockedSpdpRank B r (ℓ + κ) V ≤ G ^ 3) :
     blockedSpdpRank B κ ℓ (Y * V) ≤ (κ + 1) * G ^ 3 := by
   -- Step 1: Subspace inclusion (Leibniz, with degree shift ℓ → ℓ+κ)
-  have hsub := padding_subspace_le F B κ ℓ Y V
+  have hsub := padding_subspace_le F B κ ℓ Y V hY
   -- Step 2: Module.Finite for the iSup
   haveI : ∀ r : Fin (κ + 1), Module.Finite F ↥(blockedSpdpSubspace B r.val (ℓ + κ) V) :=
     fun r => blockedSpdpSubspace_finite B r.val (ℓ + κ) V
@@ -342,8 +389,10 @@ theorem p_side_collapse (F : Type*) [Field F]
   -- Step 4: κ-padding transfer: ΓB_κ(Y*V) ≤ (numGates * width)^4
   -- Need: κ + 1 ≤ G = numGates * width
   -- κ = log₂ n, numGates ≥ numVars ≥ n, width = 12, so G ≥ 12n ≥ log₂n + 1
+  -- Step 3.5: paddingProduct has degree ≤ κ (product of κ linear monomials)
+  have hY : Y.totalDegree ≤ κ := paddingProduct_totalDegree F M n κ
   have hpadding : blockedSpdpRank B κ ℓ (Y * V) ≤ (κ + 1) * (h.numGates * h.width) ^ 3 :=
-    kappa_padding_rank F B κ ℓ Y V (h.numGates * h.width) hrank
+    kappa_padding_rank F B κ ℓ Y V (h.numGates * h.width) hY hrank
   -- Step 5: Bound G = numGates * width ≤ n^(2t+6)
   -- Using: numGates ≤ n^(2t+2), width ≤ 12 ≤ n^4 (since n ≥ 2, 2^4=16≥12)
   have h12 : (12 : ℕ) ≤ n ^ 4 :=

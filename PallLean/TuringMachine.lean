@@ -111,6 +111,19 @@ noncomputable def paddingProduct (F : Type*) [CommRing F]
   Finset.univ.prod (fun (j : Fin κ) =>
     X ⟨numVars M n κ - κ + j.val, padding_idx_lt M n κ j⟩)
 
+/-- paddingProduct has total degree ≤ κ (product of κ linear monomials) -/
+theorem paddingProduct_totalDegree (F : Type*) [CommRing F] [Nontrivial F]
+    (M : DTM) (n κ : ℕ) :
+    (paddingProduct F M n κ).totalDegree ≤ κ := by
+  let f : Fin κ → MvPolynomial (Fin (numVars M n κ)) F :=
+    fun j => X ⟨numVars M n κ - κ + j.val, padding_idx_lt M n κ j⟩
+  show (Finset.univ.prod f).totalDegree ≤ κ
+  have h1 := totalDegree_finset_prod Finset.univ f
+  have h2 : ∀ i : Fin κ, (f i).totalDegree = 1 := fun i => totalDegree_X _
+  have h3 : ∑ i : Fin κ, (f i).totalDegree = κ := by
+    simp [h2]
+  linarith
+
 /-- Compiled polynomial P_{M,n} = Y · V_{M,n} -/
 noncomputable def compiledPoly (F : Type*) [CommRing F]
     (M : DTM) (n κ : ℕ)

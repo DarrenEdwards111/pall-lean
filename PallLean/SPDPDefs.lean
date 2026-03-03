@@ -28,6 +28,17 @@ structure BlockPartition (n : ℕ) where
 def isBlockAdmissible {n : ℕ} (B : BlockPartition n) (S : List (Fin n)) : Prop :=
   S.Nodup ∧ ∀ b : Fin B.numBlocks, (S.filter (fun i => B.assign i = b)).length ≤ 1
 
+/-- Sublists of block-admissible lists are block-admissible. -/
+theorem isBlockAdmissible_of_sublist {n : ℕ} {B : BlockPartition n}
+    {S T : List (Fin n)} (hT : T.Sublist S) (hS : isBlockAdmissible B S) :
+    isBlockAdmissible B T := by
+  constructor
+  · exact hS.1.sublist hT
+  · intro b
+    have : (T.filter (fun i => B.assign i = b)).Sublist (S.filter (fun i => B.assign i = b)) :=
+      List.Sublist.filter _ hT
+    exact le_trans (List.Sublist.length_le this) (hS.2 b)
+
 structure SPDPParams where
   κ : ℕ
   ℓ : ℕ
