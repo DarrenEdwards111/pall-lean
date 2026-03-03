@@ -24,13 +24,21 @@ def sheetCoupling (M : DTM) : DTM where
 
 /-- **Extraction rank monotonicity (Theorem 12.2)**
 
-    ΓB(Q×_Φn) ≤ ΓB(p_{M♯,n}) -/
-axiom extraction_rank_monotone (F : Type*) [CommRing F] [Nontrivial F]
+    ΓB(Q×_Φn) ≤ ΓB(p_{M♯,n})
+
+    The extraction pipeline (projection, restriction, relabeling, gauge)
+    transforms p_{M♯,n} into Q×_Φn. Each stage is rank-nonincreasing:
+    - Projection: subspace containment → finrank ≤
+    - Restriction: setting variables → rank monotone
+    - Relabeling: injective rename → rank invariant
+    - Gauge normalization: rank nonincreasing -/
+theorem extraction_rank_monotone (F : Type*) [CommRing F] [Nontrivial F]
     (M : DTM) (n : ℕ) :
     blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
       (tseitinPoly F n) ≤
     blockedSpdpRank (compiledPartition (sheetCoupling M) n)
       (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyOf F (sheetCoupling M) n)
+      (compiledPolyOf F (sheetCoupling M) n) := by
+  sorry -- Thm 12.2: extraction pipeline, each stage rank-nonincreasing
 
 end Extraction

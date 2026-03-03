@@ -127,25 +127,15 @@ private lemma log2_le_div30 (n : ℕ) (hn : n ≥ 1024) : Nat.log 2 n ≤ n / 30
 
 /-! ## The Lower Bound -/
 
-/-- Binomial lower bound: (n/30 choose log₂ n) ≥ n^{log₂ n / 4} for large n.
-
-    Proof sketch: (L choose k) ≥ (L/k)^k. With L = n/30, k = log₂ n:
-    (n/(30·log n))^{log n} ≥ n^{log n / 4} for large enough n
-    (since n/(30·log n) ≥ n^{1/4} eventually, as n^{3/4} / log n → ∞).
-
-    This asymptotic argument requires real-valued logarithms and is
-    left as a sorry pending a full analytic proof. -/
--- Standard combinatorial bound: C(L,k) ≥ (L/k)^k applied with L = n/30, k = log₂ n.
--- For large n, (n/(30·log₂ n))^{log₂ n} ≥ n^{log₂ n / 4} since n^{3/4} dominates 30·log₂ n.
--- Full proof requires real-valued logarithm bounds beyond Nat arithmetic.
-axiom binomial_lower_bound_axiom :
-    ∃ n₀, ∀ n, n ≥ n₀ →
-      Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4)
-
+/-- Binomial lower bound: C(n/30, log₂n) ≥ n^{log₂n/4} for large n.
+    Uses C(L,k) ≥ (L/k)^k with L=n/30, k=log₂n.
+    C(n/30, log₂n) ≥ (n/(30·log₂n))^{log₂n} ≥ n^{log₂n/4}
+    since n/(30·log₂n) ≥ n^{1/4} for large n. -/
 theorem binomial_lower_bound :
     ∃ n₀, ∀ n, n ≥ n₀ →
-      Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4) :=
-  binomial_lower_bound_axiom
+      Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4) := by
+  sorry -- Standard combinatorial bound: C(n,k) ≥ (n/k)^k applied with
+         -- L = n/30, k = log₂n. Requires real-valued logarithm estimates.
 
 /-- **Theorem 10.1**: NP-side non-collapse.
     Proved from identity_minor_lower_bound + disjoint_packing + binomial bound. -/

@@ -90,22 +90,29 @@ theorem violation_has_locality (F : Type*) [CommRing F]
       h.numGates ≤ n ^ (2 * M.timeBound + 2) ∧ h.width ≤ 12 := by
   sorry -- V = foldl (+c²) 0 over concrete constraints; each c has width ≤ 6
 
-/-- Width⇒Rank (Theorem 5.16): profile compression gives poly rank -/
-axiom width_to_rank_bound (F : Type*) [CommRing F] [Nontrivial F]
+/-- Width⇒Rank (Theorem 5.16): profile compression gives poly rank.
+    Each gate touches ≤ w variables → its SPDP contribution has rank ≤ w^κ.
+    Summing over G gates: rank ≤ G · w^κ ≤ (G·w)^3 for κ ≤ 3. -/
+theorem width_to_rank_bound (F : Type*) [CommRing F] [Nontrivial F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (p : MvPolynomial (Fin v) F)
     (h : HasLocalityStructure p) :
-    blockedSpdpRank B κ ℓ p ≤ (h.numGates * h.width) ^ 3
+    blockedSpdpRank B κ ℓ p ≤ (h.numGates * h.width) ^ 3 := by
+  sorry -- Thm 5.16: profile compression. Each gate has bounded-width SPDP
+         -- contribution, rank subadditivity over gates gives the bound.
 
 /-- κ-padding rank transfer (Lemma 3.1).
-    If rank_r(V) ≤ G^3 for all r ≤ 6, then rank_κ(Y·V) ≤ G^4.
-    Here G is any bound on the low-degree rank of V. -/
-axiom kappa_padding_rank (F : Type*) [CommRing F] [Nontrivial F]
+    ∂_S(Y·V) = ±(∏_{j∉Sy} yj)·∂_{Sx}V, so rows of M_{κ,ℓ}(Y·V) are
+    y-monomial multiples of rows from M_{r,ℓ}(V). Rank subadditivity:
+    Γ_{κ,ℓ}(Y·V) ≤ Σ_r C(κ,r)·Γ_{r,ℓ}(V) ≤ 2^κ · G³ ≤ G⁴. -/
+theorem kappa_padding_rank (F : Type*) [CommRing F] [Nontrivial F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (Y V : MvPolynomial (Fin v) F)
     (G : ℕ)
     (hrank : ∀ r, r ≤ 6 → blockedSpdpRank B r ℓ V ≤ G ^ 3) :
-    blockedSpdpRank B κ ℓ (Y * V) ≤ G ^ 4
+    blockedSpdpRank B κ ℓ (Y * V) ≤ G ^ 4 := by
+  sorry -- Lemma 3.1: Leibniz decomposition of ∂_S(Y·V) into y-monomial
+         -- multiples of ∂_{Sx}V, then rank subadditivity.
 
 /-! ## Main P-Side Theorem -/
 
