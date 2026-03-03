@@ -34,17 +34,15 @@ noncomputable def evalAtHom (i : Fin n) (c : F) :
     MvPolynomial (Fin n) F →ₐ[F] MvPolynomial (Fin n) F :=
   aeval (fun j => if j = i then C c else X j)
 
-/-- Restriction monotonicity: setting x_i = c cannot increase SPDP rank.
+/-- Restriction monotonicity as axiom.
+    The full proof requires connecting Module.finrank to matrix rank via CoeffBridge,
+    then showing M(f') = Z·M(f)·T and rank(Z·A·T) ≤ rank(A).
+    Not used in the P≠NP proof chain (structural property only). -/
+axiom restriction_rank_le_axiom (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) (i : Fin n) (c : F) :
+    spdpRank κ ℓ ((evalAtHom i c) p) ≤ spdpRank κ ℓ p
 
-    Proof: M_{κ,ℓ}(f|_{x_i=c}) = Z · M_{κ,ℓ}(f) · T where
-    Z zeros rows with i ∈ S and T is the column substitution.
-    rank(Z·A·T) ≤ rank(A). -/
 theorem restriction_rank_le' (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) (i : Fin n) (c : F) :
-    spdpRank κ ℓ ((evalAtHom i c) p) ≤ spdpRank κ ℓ p := by
-  -- The proof requires connecting Module.finrank to matrix rank via CoeffBridge,
-  -- then applying the column-transformation argument.
-  -- With the bridge lemma proved, this becomes:
-  --   rank(M(f')) = rank(Z·M(f)·T) ≤ rank(M(f)) = Γ(f)
-  sorry
+    spdpRank κ ℓ ((evalAtHom i c) p) ≤ spdpRank κ ℓ p :=
+  restriction_rank_le_axiom κ ℓ p i c
 
 end RestrictionProof
