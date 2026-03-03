@@ -106,7 +106,9 @@ def tapeBitIdx (M : DTM) (n κ : ℕ) (t i : ℕ)
     (ht : t < tapeSize M n) (hi : i < tapeSize M n) :
     Fin (numVars M n κ) :=
   ⟨t * tapeSize M n + i, by
-    unfold numVars; have := hi; have := ht; nlinarith [Nat.mul_lt_mul_of_pos_right ht (by omega : 0 < tapeSize M n)]⟩
+    unfold numVars; have := hi; have := ht
+    have hS : 0 < tapeSize M n := by omega
+    nlinarith [Nat.mul_lt_mul_of_pos_right ht hS]⟩
 
 /-- Index of state indicator s_{t,q} -/
 def stateIdx (M : DTM) (n κ : ℕ) (t : ℕ) (q : Fin M.numStates)
@@ -115,12 +117,8 @@ def stateIdx (M : DTM) (n κ : ℕ) (t : ℕ) (q : Fin M.numStates)
   ⟨tapeSize M n * tapeSize M n + t * M.numStates + q.val, by
     unfold numVars
     have := ht; have := q.isLt
-    have : t * M.numStates + q.val < tapeSize M n * M.numStates := by
-      calc t * M.numStates + q.val
-          < t * M.numStates + M.numStates := by omega
-        _ = (t + 1) * M.numStates := by ring
-        _ ≤ tapeSize M n * M.numStates := by omega
-    omega⟩
+    have : t * M.numStates + q.val < tapeSize M n * M.numStates := by nlinarith
+    nlinarith⟩
 
 /-- Index of head indicator h_{t,i} -/
 def headIdx (M : DTM) (n κ : ℕ) (t i : ℕ)
@@ -129,12 +127,8 @@ def headIdx (M : DTM) (n κ : ℕ) (t i : ℕ)
   ⟨tapeSize M n * tapeSize M n + tapeSize M n * M.numStates + t * tapeSize M n + i, by
     unfold numVars
     have := ht; have := hi
-    have : t * tapeSize M n + i < tapeSize M n * tapeSize M n := by
-      calc t * tapeSize M n + i
-          < t * tapeSize M n + tapeSize M n := by omega
-        _ = (t + 1) * tapeSize M n := by ring
-        _ ≤ tapeSize M n * tapeSize M n := by omega
-    omega⟩
+    have : t * tapeSize M n + i < tapeSize M n * tapeSize M n := by nlinarith
+    nlinarith⟩
 
 /-! ## Concrete Constraint Construction (§3.1) -/
 

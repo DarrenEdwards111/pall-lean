@@ -1,6 +1,7 @@
 import PallLean.SPDPDefs
 import PallLean.TuringMachine
 import Mathlib.Tactic
+import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
 /-!
 # P-Side Collapse — Pall §3–6
 
@@ -59,29 +60,111 @@ axiom width_to_rank_bound (F : Type*) [CommRing F] [Nontrivial F]
     (h : HasLocalityStructure p) :
     blockedSpdpRank B κ ℓ p ≤ (h.numGates * h.width) ^ 3
 
+/-- Helper: iterDerivList is additive (linearity of partial derivatives). -/
+private theorem iterDerivList_add {n : ℕ} {F : Type*} [CommRing F]
+    (S : List (Fin n)) (f g : MvPolynomial (Fin n) F) :
+    iterDerivList S (f + g) = iterDerivList S f + iterDerivList S g := by
+  induction S generalizing f g with
+  | nil => simp [iterDerivList]
+  | cons i rest ih =>
+    simp only [iterDerivList, List.foldl_cons]
+    -- After one step of foldl, we need the rest to be additive
+    -- foldl pderiv (pderiv i (f+g)) rest = foldl pderiv (pderiv i f + pderiv i g) rest
+    -- pderiv is additive: pderiv i (f+g) = pderiv i f + pderiv i g
+    sorry
+
+/-- Helper: blockedSpdpSubspace of a sum is contained in the sup of subspaces.
+    Each generator m · ∂_S(f+g) = m · ∂_S(f) + m · ∂_S(g) by linearity of ∂_S. -/
+private theorem blockedSpdpSubspace_add_le {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (f g : MvPolynomial (Fin n) F) :
+    blockedSpdpSubspace B κ ℓ (f + g) ≤
+      blockedSpdpSubspace B κ ℓ f ⊔ blockedSpdpSubspace B κ ℓ g := by
+  apply Submodule.span_le.mpr
+  rintro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+  rw [hq, iterDerivList_add, mul_add]
+  apply Submodule.add_mem_sup
+  · exact Submodule.subset_span ⟨S, m, hlen, hdeg, hadm, rfl⟩
+  · exact Submodule.subset_span ⟨S, m, hlen, hdeg, hadm, rfl⟩
+
+/-- Helper: blockedSpdpSubspace is finite-dimensional.
+    The generating set {m · ∂_S f} is contained in the span of finitely
+    many generators (finitely many S of length κ, finitely many monomials m
+    of degree ≤ ℓ in Fin v variables). -/
+private instance blockedSpdpSubspace_finite {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (f : MvPolynomial (Fin n) F) :
+    Module.Finite F (blockedSpdpSubspace B κ ℓ f) := by
+  rw [Module.finite_def]
+  -- The subspace is spanned by a subset of MvPolynomial, hence fg if the
+  -- generating set is contained in a finitely-generated submodule.
+  -- There are finitely many lists S : List (Fin n) of length κ,
+  -- and finitely many monomials of degree ≤ ℓ in n variables.
+  sorry
+
 /-- Rank subadditivity (Lemma 2.4 / standard linear algebra):
     The SPDP subspace of a sum is contained in the sum of the SPDP subspaces.
     Therefore rank(f + g) ≤ rank(f) + rank(g). -/
-axiom blockedSpdpRank_add_le (F : Type*) [CommRing F] [Nontrivial F]
+theorem blockedSpdpRank_add_le (F : Type*) [CommRing F] [Nontrivial F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (f g : MvPolynomial (Fin v) F) :
-    blockedSpdpRank B κ ℓ (f + g) ≤ blockedSpdpRank B κ ℓ f + blockedSpdpRank B κ ℓ g
+    blockedSpdpRank B κ ℓ (f + g) ≤ blockedSpdpRank B κ ℓ f + blockedSpdpRank B κ ℓ g := by
+  unfold blockedSpdpRank
+  have hsub := blockedSpdpSubspace_add_le B κ ℓ f g
+  calc Module.finrank F ↥(blockedSpdpSubspace B κ ℓ (f + g))
+      ≤ Module.finrank F ↥(blockedSpdpSubspace B κ ℓ f ⊔ blockedSpdpSubspace B κ ℓ g) :=
+        Submodule.finrank_mono hsub
+    _ ≤ Module.finrank F ↥(blockedSpdpSubspace B κ ℓ f) +
+        Module.finrank F ↥(blockedSpdpSubspace B κ ℓ g) :=
+      Submodule.finrank_add_le_finrank_add_finrank _ _
+
+/-- Helper: blockedSpdpSubspace of m*f is contained in blockedSpdpSubspace of f.
+    Each generator m' · ∂_S(m·f) is a linear combination of generators of f's subspace
+    via the Leibniz rule for iterated derivatives. -/
+private theorem blockedSpdpSubspace_mul_le {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (m f : MvPolynomial (Fin n) F) :
+    blockedSpdpSubspace B κ ℓ (m * f) ≤ blockedSpdpSubspace B κ ℓ f := by
+  -- By Leibniz rule, ∂_S(m·f) is a sum of terms (∂_T m)·(∂_{S\T} f)
+  -- for T ⊆ S. Each resulting generator m'·(∂_T m)·(∂_{S\T} f) has the form
+  -- (m'·∂_T m) · ∂_{S\T} f which is in blockedSpdpSubspace B κ ℓ f
+  -- (with a different multiplier polynomial and the same derivative order κ).
+  sorry
 
 /-- Monomial scaling does not increase rank:
     rank(m · f) ≤ rank(f) when m is a monomial.
     (Each row m' · ∂_S(m·f) is a linear combination of rows from M_{κ,ℓ}(f).) -/
-axiom blockedSpdpRank_monomial_mul_le (F : Type*) [CommRing F] [Nontrivial F]
+theorem blockedSpdpRank_monomial_mul_le (F : Type*) [CommRing F] [Nontrivial F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (m f : MvPolynomial (Fin v) F) :
-    blockedSpdpRank B κ ℓ (m * f) ≤ blockedSpdpRank B κ ℓ f
+    blockedSpdpRank B κ ℓ (m * f) ≤ blockedSpdpRank B κ ℓ f := by
+  unfold blockedSpdpRank
+  exact Submodule.finrank_mono (blockedSpdpSubspace_mul_le B κ ℓ m f)
+
+/-- Helper: blockedSpdpSubspace at order κ of ∂_i f is contained in
+    blockedSpdpSubspace at order κ+1 of f.
+    Each generator m · ∂_S(∂_i f) = m · ∂_{i::S}(f), and i::S has length κ+1. -/
+private theorem blockedSpdpSubspace_pderiv_le {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (i : Fin n) (f : MvPolynomial (Fin n) F) :
+    blockedSpdpSubspace B κ ℓ (MvPolynomial.pderiv i f) ≤
+      blockedSpdpSubspace B (κ + 1) ℓ f := by
+  apply Submodule.span_le.mpr
+  rintro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+  -- ∂_S(∂_i f) = iterDerivList S (pderiv i f)
+  -- We need to show this equals iterDerivList (i :: S) f or similar
+  -- and that i :: S is block-admissible if S is
+  sorry
 
 /-- Derivative does not increase rank:
     rank_κ(∂_i f) ≤ rank_{κ+1}(f).
     (Each row of M_{κ,ℓ}(∂_i f) is a row of M_{κ+1,ℓ}(f).) -/
-axiom blockedSpdpRank_pderiv_le (F : Type*) [CommRing F] [Nontrivial F]
+theorem blockedSpdpRank_pderiv_le (F : Type*) [CommRing F] [Nontrivial F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (i : Fin v) (f : MvPolynomial (Fin v) F) :
-    blockedSpdpRank B κ ℓ (MvPolynomial.pderiv i f) ≤ blockedSpdpRank B (κ + 1) ℓ f
+    blockedSpdpRank B κ ℓ (MvPolynomial.pderiv i f) ≤ blockedSpdpRank B (κ + 1) ℓ f := by
+  unfold blockedSpdpRank
+  exact Submodule.finrank_mono (blockedSpdpSubspace_pderiv_le B κ ℓ i f)
 
 /-- Leibniz decomposition lemma: the SPDP subspace of Y·V decomposes
     over the C(κ,r) ways to split κ derivatives between Y and V.
