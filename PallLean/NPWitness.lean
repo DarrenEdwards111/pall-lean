@@ -54,46 +54,71 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
       rw [this, Finset.card_singleton]
     · rfl
   clauses := (List.finRange G.numEdges).map fun e => {
-      var1 := e.val
-      var2 := (e.val + G.numEdges) % (G.numEdges * 3 + 1)
-      var3 := (e.val + 2 * G.numEdges) % (G.numEdges * 3 + 1)
+      var1 := e.val            -- edge variable slot 0
+      var2 := G.numEdges + e.val     -- edge variable slot 1 (disjoint)
+      var3 := 2 * G.numEdges + e.val -- edge variable slot 2 (disjoint)
       sign1 := true
       sign2 := true
       sign3 := true : Clause3
     }
   num_clauses_upper := by
-    -- clauses.length = numEdges ≤ numVertices * degree ≤ 10 * numVertices
     simp only [List.length_map, List.length_finRange]
     calc G.numEdges
         ≤ G.numVertices * G.degree := G.edges_bound
       _ ≤ G.numVertices * 10 := Nat.mul_le_mul_left _ G.degree_bound
       _ = 10 * G.numVertices := Nat.mul_comm _ _
   num_clauses_lower := by
-    -- clauses.length = numEdges ≥ numVertices
     simp only [List.length_map, List.length_finRange]
     exact G.edges_lower
   bounded_occurrence := by
     intro v
-    -- clauses = map over edges, each edge produces one clause
-    -- Each variable appears in ≤ 3 clauses per edge endpoint (3 vars per clause)
-    -- With degree ≤ 10 and 2 endpoints per edge: ≤ 3 * 10 = 30
-    -- Crude bound: filter on clauses of length numEdges, filter ≤ numEdges ≤ 10 * numVertices
-    -- But we need ≤ 30 specifically.
-    -- Crude upper bound: filter of a map has length ≤ original length
-    -- clauses.length = numEdges ≤ numVertices * degree ≤ 10 * numVertices
-    -- But we need ≤ 30, not numEdges.
-    -- Better: filter of (finRange numEdges).map produces ≤ numEdges results
-    -- Each var matches at most 3 clauses (one per var1/var2/var3 slot)
-    -- Bound: 3 ≤ 30
-    -- For a clean proof, bound by numEdges and use degree ≤ 10, numEdges ≤ 10*n:
-    -- Actually the filter length ≤ list length = numEdges ≤ n*d ≤ 10n
-    -- This is ≤ 30 only if n ≤ 3, which is wrong for large n.
-    -- The correct bound requires showing each var appears in ≤ d clauses.
-    -- Since clauses correspond to edges and each var is an edge variable,
-    -- var1 = e.val is unique, so at most 1 clause. Similarly var2, var3.
-    -- Total per var ≤ 3 ≤ 30.
-    -- Proving this requires List.filter on map + injectivity. Use sorry for now.
-    sorry
+    -- Disjoint variable slots: var1=e, var2=E+e, var3=2E+e
+    -- Each var v matches at most 1 clause (slots are disjoint ranges).
+    -- Step 1: filter on map = map of filter (rewrite to work with finRange)
+    have hcl : ((List.finRange G.numEdges).map fun e => ({
+        var1 := e.val
+        var2 := G.numEdges + e.val
+        var3 := 2 * G.numEdges + e.val
+        sign1 := true, sign2 := true, sign3 := true : Clause3})).filter
+        (fun c => c.var1 = v ∨ c.var2 = v ∨ c.var3 = v) =
+      ((List.finRange G.numEdges).filter fun e =>
+        e.val = v ∨ G.numEdges + e.val = v ∨ 2 * G.numEdges + e.val = v).map
+        fun e => {
+          var1 := e.val
+          var2 := G.numEdges + e.val
+          var3 := 2 * G.numEdges + e.val
+          sign1 := true, sign2 := true, sign3 := true : Clause3} := by
+      rw [List.filter_map]; rfl
+    rw [hcl, List.length_map]
+    -- Step 2: The filter has at most 1 element (disjoint slots argument).
+    -- Any two elements satisfying the predicate must be equal (omega).
+    -- Use: Nodup + pairwise-eq → length ≤ 1
+    set E := G.numEdges
+    set filt := (List.finRange E).filter fun e =>
+      e.val = v ∨ E + e.val = v ∨ 2 * E + e.val = v
+    -- The filter is nodup (sublist of finRange which is nodup)
+    have hnd : filt.Nodup :=
+      (List.nodup_finRange E).filter _
+    -- Any two elements in the filter are equal
+    have heq : ∀ a ∈ filt, ∀ b ∈ filt, a = b := by
+      intro a ha b hb
+      simp only [List.mem_filter, List.mem_finRange, true_and, filt, E,
+        decide_eq_true_eq] at ha hb
+      ext
+      omega
+    -- Nodup + all-equal → length ≤ 1
+    by_contra h
+    push_neg at h
+    have h2 : 2 ≤ filt.length := by omega
+    -- Get first two elements
+    have h0 : 0 < filt.length := by omega
+    have h1 : 1 < filt.length := by omega
+    have hmem0 : filt[0] ∈ filt := List.getElem_mem h0
+    have hmem1 : filt[1] ∈ filt := List.getElem_mem h1
+    have hab : filt[0] = filt[1] := heq _ hmem0 _ hmem1
+    -- Nodup + equal elements → equal indices → contradiction
+    have : 0 = 1 := hnd.getElem_inj_iff.mp hab
+    omega
 
 /-- Tseitin formula on the n-th graph, built concretely -/
 noncomputable def tseitinAt (n : ℕ) : TseitinFormula :=
