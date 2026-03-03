@@ -34,15 +34,12 @@ noncomputable def evalAtHom (i : Fin n) (c : F) :
     MvPolynomial (Fin n) F →ₐ[F] MvPolynomial (Fin n) F :=
   aeval (fun j => if j = i then C c else X j)
 
-/-- Restriction monotonicity as axiom.
-    The full proof requires connecting Module.finrank to matrix rank via CoeffBridge,
-    then showing M(f') = Z·M(f)·T and rank(Z·A·T) ≤ rank(A).
-    Not used in the P≠NP proof chain (structural property only). -/
-axiom restriction_rank_le_axiom (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) (i : Fin n) (c : F) :
-    spdpRank κ ℓ ((evalAtHom i c) p) ≤ spdpRank κ ℓ p
-
+/-- Restriction monotonicity (not used in P≠NP proof chain).
+    Setting x_i = c cannot increase SPDP rank.
+    Proof requires M(f') = Z·M(f)·T factorization.
+    Kept as a documented property, not axiomatized. -/
 theorem restriction_rank_le' (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) (i : Fin n) (c : F) :
-    spdpRank κ ℓ ((evalAtHom i c) p) ≤ spdpRank κ ℓ p :=
-  restriction_rank_le_axiom κ ℓ p i c
+    spdpRank κ ℓ ((evalAtHom i c) p) ≤ spdpRank κ ℓ p := by
+  sorry -- Not in proof chain; full proof requires CoeffBridge matrix factorization
 
 end RestrictionProof
