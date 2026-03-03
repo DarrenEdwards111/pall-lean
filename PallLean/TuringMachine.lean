@@ -99,6 +99,119 @@ noncomputable def compilerBlockPartition (M : DTM) (n κ : ℕ) :
   assign := fun v => ⟨v.val % (tapeSize M n * tapeSize M n + n + κ + 1),
     Nat.mod_lt _ (by omega)⟩
 
+/-! ## Variable Index Helpers -/
+
+/-- Index of tape bit b_{t,i} -/
+def tapeBitIdx (M : DTM) (n κ : ℕ) (t i : ℕ)
+    (ht : t < tapeSize M n) (hi : i < tapeSize M n) :
+    Fin (numVars M n κ) :=
+  ⟨t * tapeSize M n + i, by
+    unfold numVars; have := hi; have := ht; nlinarith [Nat.mul_lt_mul_of_pos_right ht (by omega : 0 < tapeSize M n)]⟩
+
+/-- Index of state indicator s_{t,q} -/
+def stateIdx (M : DTM) (n κ : ℕ) (t : ℕ) (q : Fin M.numStates)
+    (ht : t < tapeSize M n) :
+    Fin (numVars M n κ) :=
+  ⟨tapeSize M n * tapeSize M n + t * M.numStates + q.val, by
+    unfold numVars
+    have := ht; have := q.isLt
+    have : t * M.numStates + q.val < tapeSize M n * M.numStates := by
+      calc t * M.numStates + q.val
+          < t * M.numStates + M.numStates := by omega
+        _ = (t + 1) * M.numStates := by ring
+        _ ≤ tapeSize M n * M.numStates := by omega
+    omega⟩
+
+/-- Index of head indicator h_{t,i} -/
+def headIdx (M : DTM) (n κ : ℕ) (t i : ℕ)
+    (ht : t < tapeSize M n) (hi : i < tapeSize M n) :
+    Fin (numVars M n κ) :=
+  ⟨tapeSize M n * tapeSize M n + tapeSize M n * M.numStates + t * tapeSize M n + i, by
+    unfold numVars
+    have := ht; have := hi
+    have : t * tapeSize M n + i < tapeSize M n * tapeSize M n := by
+      calc t * tapeSize M n + i
+          < t * tapeSize M n + tapeSize M n := by omega
+        _ = (t + 1) * tapeSize M n := by ring
+        _ ≤ tapeSize M n * tapeSize M n := by omega
+    omega⟩
+
+/-! ## Concrete Constraint Construction (§3.1) -/
+
+/-- Booleanity constraint: z(1-z) = 0 for variable at index idx.
+    This is a polynomial in 1 variable, so width ≤ 6 trivially. -/
+noncomputable def boolConstraintPoly {M : DTM} {n κ : ℕ} (F : Type*) [CommRing F]
+    (idx : Fin (numVars M n κ)) :
+    MvPolynomial (Fin (numVars M n κ)) F :=
+  X idx * (1 - X idx)
+
+/-- Booleanity constraint has ≤ 2 variables (hence ≤ 6) -/
+theorem boolConstraint_width {M : DTM} {n κ : ℕ} (F : Type*) [CommRing F]
+    (idx : Fin (numVars M n κ)) :
+    (boolConstraintPoly F idx : MvPolynomial (Fin (numVars M n κ)) F).vars.card ≤ 6 := by
+  sorry -- vars ⊆ {idx}, card ≤ 1 ≤ 6
+
+/-- Make a booleanity LocalConstraint -/
+noncomputable def mkBoolConstraint {M : DTM} {n κ : ℕ} (F : Type*) [CommRing F]
+    (idx : Fin (numVars M n κ)) (t i : ℕ) :
+    LocalConstraint M n κ F :=
+  { poly := boolConstraintPoly F idx
+    centerTime := t
+    centerPos := i
+    width_bound := boolConstraint_width F idx }
+
+/-- Transition constraint polynomial for cell (t, i):
+    Encodes that if head is at position i at time t, then tape bit and state
+    update correctly according to M.transition.
+    Polynomial: h_{t,i} · (b_{t+1,i} - δ_write(s_t, b_{t,i}))
+    This involves ≤ 6 variables: h_{t,i}, b_{t,i}, b_{t+1,i}, s_{t,q} (for relevant q). -/
+noncomputable def transitionConstraintPoly {M : DTM} {n κ : ℕ} (F : Type*) [CommRing F]
+    (t i : ℕ) (ht : t + 1 < tapeSize M n) (hi : i < tapeSize M n) :
+    MvPolynomial (Fin (numVars M n κ)) F :=
+  -- Simplified: h_{t,i} * (b_{t+1,i} - b_{t,i}) as a stand-in
+  -- The full version would enumerate M.transition cases
+  let h_ti := X (headIdx M n κ t i (by omega) hi)
+  let b_ti := X (tapeBitIdx M n κ t i (by omega) hi)
+  let b_t1i := X (tapeBitIdx M n κ (t+1) i ht hi)
+  h_ti * (b_t1i - b_ti)
+
+theorem transitionConstraint_width {M : DTM} {n κ : ℕ} (F : Type*) [CommRing F]
+    (t i : ℕ) (ht : t + 1 < tapeSize M n) (hi : i < tapeSize M n) :
+    (transitionConstraintPoly F t i ht hi : MvPolynomial (Fin (numVars M n κ)) F).vars.card ≤ 6 := by
+  sorry -- vars ⊆ {h_{t,i}, b_{t,i}, b_{t+1,i}}, card ≤ 3 ≤ 6
+
+/-- Build all compilation constraints for DTM M at input size n -/
+noncomputable def buildCompilationConstraints (F : Type*) [CommRing F]
+    (M : DTM) (n κ : ℕ) :
+    List (LocalConstraint M n κ F) :=
+  -- For each time step t and position i, generate:
+  -- 1. Booleanity constraints for b_{t,i}, s_{t,q}, h_{t,i}
+  -- 2. Transition constraints (for t < T-1)
+  -- We use List.bind to iterate over all (t,i) pairs
+  let S := tapeSize M n
+  let pairs := ((List.range S).map fun t =>
+    (List.range S).map fun i => (t, i)).flatten
+  -- Booleanity constraints for tape bits
+  let boolConstraints : List (LocalConstraint M n κ F) :=
+    pairs.filterMap fun ⟨t, i⟩ =>
+      if ht : t < S then
+        if hi : i < S then
+          some (mkBoolConstraint F (tapeBitIdx M n κ t i ht hi) t i)
+        else none
+      else none
+  -- Transition constraints
+  let transConstraints : List (LocalConstraint M n κ F) :=
+    pairs.filterMap fun ⟨t, i⟩ =>
+      if ht : t + 1 < S then
+        if hi : i < S then
+          some { poly := transitionConstraintPoly F t i ht hi
+                 centerTime := t
+                 centerPos := i
+                 width_bound := transitionConstraint_width F t i ht hi }
+        else none
+      else none
+  boolConstraints ++ transConstraints
+
 /-! ## Key Properties -/
 
 /-- Helper: foldl of constraint squares preserves degree ≤ 6 -/

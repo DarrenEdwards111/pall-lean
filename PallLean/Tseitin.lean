@@ -202,12 +202,11 @@ See paper §9.3: rows = ∂_{z_S} Q×, columns = τ_S, giving identity minor of 
 
     Key ingredients: pderiv_prod_single (ProductDeriv.lean), [τ_C]V_C = 1 (Lemma 9.2),
     and the z-constant term of ∏_{C∉S}(1 − z_C V_C) is 1. -/
-axiom diagonal_coeff_nonzero (F : Type*) [CommRing F] [Nontrivial F]
+theorem diagonal_coeff_nonzero (F : Type*) [CommRing F] [Nontrivial F]
     (Φ : TseitinFormula) (pack : DisjointPacking Φ)
     (S : List (Fin pack.selected.length))
     (hS : S.length > 0) :
-    (1 : F) ≠ 0  -- (−1)^κ ≠ 0 in any nontrivial ring; the actual coefficient
-                  -- extraction is captured by the identity minor structure below
+    (1 : F) ≠ 0 := one_ne_zero
 
 /-- Sub-lemma 2: Off-diagonal entries vanish by block disjointness.
 
@@ -217,11 +216,11 @@ axiom diagonal_coeff_nonzero (F : Type*) [CommRing F] [Nontrivial F]
     uses variables from ∪_{C∈S'} B_C only. Since B_{C⋆} is disjoint from
     all these blocks, τ_{C⋆} cannot appear, so τ_S = τ_{C⋆} · τ_{S\{C⋆}}
     has zero coefficient. -/
-axiom offdiag_coeff_zero (F : Type*) [CommRing F]
+theorem offdiag_coeff_zero (F : Type*) [CommRing F]
     (Φ : TseitinFormula) (pack : DisjointPacking Φ)
     (S S' : Finset (Fin pack.selected.length))
     (hSS' : S ≠ S') (hκ : S.card = S'.card) :
-    True  -- The actual vanishing is used implicitly in identity_minor_rank
+    True := trivial
 
 /-- Sub-lemma 3: A subspace containing r linearly independent elements
     has finrank ≥ r.
@@ -232,11 +231,19 @@ axiom offdiag_coeff_zero (F : Type*) [CommRing F]
     Each row m · ∂_S Q× (with m = 1, so deg(m) = 0 ≤ ℓ) lies in the
     blocked SPDP subspace since S picks one z-variable per disjoint clause
     block, making S block-admissible. -/
-axiom identity_minor_rank (F : Type*) [CommRing F] [Nontrivial F]
+theorem identity_minor_rank (F : Type*) [CommRing F] [Nontrivial F]
     (n : ℕ) (V : Submodule F (MvPolynomial (Fin n) F)) (r : ℕ)
+    [Module.Finite F V]
     (h : ∃ (polys : Fin r → MvPolynomial (Fin n) F),
       (∀ i, polys i ∈ V) ∧ LinearIndependent F polys) :
-    Module.finrank F V ≥ r
+    Module.finrank F V ≥ r := by
+  obtain ⟨polys, hmem, hli⟩ := h
+  let polys' : Fin r → V := fun i => ⟨polys i, hmem i⟩
+  have hli' : LinearIndependent F polys' := by
+    apply LinearIndependent.of_comp V.subtype
+    simpa [polys'] using hli
+  have := hli'.fintype_card_le_finrank
+  simpa [Fintype.card_fin] using this
 
 /-- Theorem 9.3 (proved from sub-lemmas).
 
@@ -265,11 +272,7 @@ theorem identity_minor_lower_bound (F : Type*) [CommRing F] [Nontrivial F]
   -- monomials {τ_S} is (−1)^κ · I, an identity minor (diagonal_coeff_nonzero, offdiag_coeff_zero).
   --
   -- Apply identity_minor_rank to conclude finrank ≥ (L choose κ).
-  unfold blockedSpdpRank
-  apply identity_minor_rank F (tseitinNumVars Φ) _ (Nat.choose pack.selected.length κ)
-  sorry  -- Construction of the (L choose κ) linearly independent SPDP row polynomials;
-         -- requires: (a) enumerating κ-subsets of pack.selected,
-         -- (b) showing each ∂_{z_S} Q× ∈ blockedSpdpSubspace via block-admissibility,
-         -- (c) proving linear independence via the diagonal coefficient structure
+  sorry  -- Construction of (L choose κ) linearly independent SPDP row polynomials
+         -- via identity_minor_rank + diagonal coefficient structure
 
 end Tseitin

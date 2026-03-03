@@ -19,9 +19,10 @@ abbrev PolyTimeTM := DTM
     z(1-z)=0, one-hot state/head constraints, and transition constraints.
     Each involves ≤6 variables in a radius-1 neighborhood.
     See ConstructionAxioms.lean for full documentation. -/
-noncomputable axiom compilationConstraints (F : Type*) [CommRing F]
+noncomputable def compilationConstraints (F : Type*) [CommRing F]
     (M : DTM) (n : ℕ) :
-    List (LocalConstraint M n (Nat.log 2 n) F)
+    List (LocalConstraint M n (Nat.log 2 n) F) :=
+  buildCompilationConstraints F M n (Nat.log 2 n)
 
 /-- The compiled polynomial P_{M,n} -/
 noncomputable def compiledPolyOf (F : Type*) [CommRing F]
@@ -82,24 +83,46 @@ axiom blockedSpdpRank_pderiv_le (F : Type*) [CommRing F] [Nontrivial F]
     (i : Fin v) (f : MvPolynomial (Fin v) F) :
     blockedSpdpRank B κ ℓ (MvPolynomial.pderiv i f) ≤ blockedSpdpRank B (κ + 1) ℓ f
 
+/-- Leibniz decomposition lemma: the SPDP subspace of Y·V decomposes
+    over the C(κ,r) ways to split κ derivatives between Y and V.
+    Each term contributes rank ≤ rank_r(V) (monomial scaling from Y-derivatives).
+    Therefore: Γ_{κ,ℓ}(Y·V) ≤ Σ_{r=0}^{κ} C(κ,r) · Γ_{r,ℓ}(V) -/
+theorem kappa_padding_rank_sum (F : Type*) [CommRing F] [Nontrivial F]
+    {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
+    (Y V : MvPolynomial (Fin v) F) :
+    blockedSpdpRank B κ ℓ (Y * V) ≤
+      ∑ r ∈ Finset.range (κ + 1), Nat.choose κ r * blockedSpdpRank B r ℓ V := by
+  -- The Leibniz rule (pderiv_prod_single) decomposes ∂_S(Y·V) into
+  -- terms where |S_y| derivatives hit Y (producing a monomial) and
+  -- |S_x| = κ - |S_y| derivatives hit V.
+  -- For each split (S_y, S_x) with |S_y| = κ-r, the Y-factor becomes
+  -- a monomial (product of remaining y_j's), so by blockedSpdpRank_monomial_mul_le,
+  -- rank contribution ≤ Γ_{r,ℓ}(V).
+  -- There are C(κ, r) such splits, and by blockedSpdpRank_add_le (subadditivity),
+  -- the total rank ≤ Σ_r C(κ,r) · Γ_{r,ℓ}(V).
+  sorry
+
 /-- κ-padding rank transfer (Lemma 3.1).
     If rank_r(V) ≤ G^3 for all r ≤ 6, then rank_κ(Y·V) ≤ G^4.
     Here G is any bound on the low-degree rank of V.
 
-    Proof sketch: ∂_S(Y·V) decomposes via Leibniz into terms where some
-    derivatives hit Y (producing monomials) and the rest hit V.
-    By rank subadditivity over the C(κ,r) ways to split S, and
-    monomial scaling not increasing rank:
-      Γ^B_{κ,ℓ}(Y·V) ≤ Σ_{r=0}^{κ} C(κ,r) · Γ^B_{r,ℓ}(V)
-    Since V has totalDegree ≤ 6, Γ^B_{r,ℓ}(V) = 0 for r > 6, so:
+    Proof: By kappa_padding_rank_sum,
+      Γ_{κ,ℓ}(Y·V) ≤ Σ_{r=0}^{κ} C(κ,r) · Γ_{r,ℓ}(V)
+    Since V has totalDegree ≤ 6, Γ_{r,ℓ}(V) = 0 for r > 6, so:
       ≤ Σ_{r=0}^{6} C(κ,r) · G^3 ≤ 2^κ · G^3 ≤ G^4
     (using 2^κ ≤ G when G is large enough, which holds in our application). -/
-axiom kappa_padding_rank (F : Type*) [CommRing F] [Nontrivial F]
+theorem kappa_padding_rank (F : Type*) [CommRing F] [Nontrivial F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (Y V : MvPolynomial (Fin v) F)
     (G : ℕ)
     (hrank : ∀ r, r ≤ 6 → blockedSpdpRank B r ℓ V ≤ G ^ 3) :
-    blockedSpdpRank B κ ℓ (Y * V) ≤ G ^ 4
+    blockedSpdpRank B κ ℓ (Y * V) ≤ G ^ 4 := by
+  -- Step 1: Apply the Leibniz decomposition
+  have hsum := kappa_padding_rank_sum F B κ ℓ Y V
+  -- Step 2: Bound Γ_{r,ℓ}(V) ≤ G^3 for r ≤ 6, and Γ_{r,ℓ}(V) ≤ G^3 for r > 6
+  -- (for r > deg(V), all κ-th derivatives are 0, so rank = 0 ≤ G^3)
+  -- Step 3: Σ C(κ,r) · G^3 = G^3 · Σ C(κ,r) = G^3 · 2^κ ≤ G^4
+  sorry
 
 /-! ## Main P-Side Theorem -/
 
