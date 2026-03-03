@@ -41,7 +41,7 @@ noncomputable def mkBoolConstraint (F : Type*) [CommRing F] [Nontrivial F]
     The polynomial enforces: if head at (t,i) in state q reading bit b,
     then (t+1) has correct state/bit/head. Width ≤ 6 (involves 2 tape bits,
     2 state indicators, 2 head positions across adjacent time steps). -/
-noncomputable def mkTransitionConstraint (F : Type*) [CommRing F]
+noncomputable def mkTransitionConstraint (F : Type*) [CommRing F] [Nontrivial F]
     (M : DTM) (n : ℕ) (t i : Fin (tapeSize M n))
     (ht1 : t.val + 1 < tapeSize M n) :
     LocalConstraint M n (Nat.log 2 n) F where
@@ -54,7 +54,36 @@ noncomputable def mkTransitionConstraint (F : Type*) [CommRing F]
     hti * (bt1i - bti)  -- simplified transition
   centerTime := t.val
   centerPos := i.val
-  width_bound := by sorry -- involves ≤ 3 variables from {h_{t,i}, b_{t,i}, b_{t+1,i}}
+  width_bound := by
+    classical
+    -- poly = X a * (X b - X c) where a,b,c are specific indices
+    -- vars ⊆ {a,b,c}, card ≤ 3 ≤ 6
+    set a := headIdx M n (Nat.log 2 n) t i
+    set b := tapeIdx M n (Nat.log 2 n) ⟨t.val + 1, ht1⟩ i
+    set c := tapeIdx M n (Nat.log 2 n) t i
+    -- vars(X a * (X b - X c)) ⊆ vars(X a) ∪ vars(X b - X c)
+    have hmul := MvPolynomial.vars_mul (MvPolynomial.X (R := F) a)
+      (MvPolynomial.X (R := F) b - MvPolynomial.X (R := F) c)
+    -- vars(X b - X c) ⊆ vars(X b) ∪ vars(X c)
+    have hsub := MvPolynomial.vars_sub_subset
+      (p := MvPolynomial.X (R := F) b) (q := MvPolynomial.X (R := F) c)
+    -- vars(X v) = {v}
+    simp only [MvPolynomial.vars_X] at hmul hsub
+    -- hsub : (X b - X c).vars ⊆ {b} ∪ {c}
+    -- hmul : (X a * (X b - X c)).vars ⊆ {a} ∪ (X b - X c).vars
+    -- Combined: vars ⊆ {a} ∪ ({b} ∪ {c}), card ≤ 3 ≤ 6
+    have hfull : (MvPolynomial.X (R := F) a * (MvPolynomial.X b - MvPolynomial.X c)).vars ⊆
+        {a} ∪ ({b} ∪ {c}) :=
+      Finset.Subset.trans hmul (Finset.union_subset (Finset.subset_union_left)
+        (Finset.Subset.trans hsub Finset.subset_union_right))
+    calc (MvPolynomial.X (R := F) a * (MvPolynomial.X b - MvPolynomial.X c)).vars.card
+        ≤ ({a} ∪ ({b} ∪ {c}) : Finset _).card := Finset.card_le_card hfull
+      _ ≤ ({a} : Finset _).card + ({b} ∪ {c} : Finset _).card := Finset.card_union_le _ _
+      _ ≤ 1 + (({b} : Finset _).card + ({c} : Finset _).card) := by
+            simp only [Finset.card_singleton]
+            exact Nat.add_le_add_left (Finset.card_union_le _ _) _
+      _ = 1 + (1 + 1) := by simp [Finset.card_singleton]
+      _ ≤ 6 := by omega
 
 /-- Concrete compilation constraints: booleanity + transition for all cells.
     This is the concrete construction replacing the axiom. -/

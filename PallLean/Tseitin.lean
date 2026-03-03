@@ -28,6 +28,8 @@ structure RegularGraph where
   degree : ℕ
   /-- Number of edges = n*d/2 -/
   numEdges : ℕ
+  /-- At least one vertex -/
+  vertices_pos : numVertices ≥ 1
   /-- Edge count bounded: numEdges ≤ numVertices * degree -/
   edges_bound : numEdges ≤ numVertices * degree
   /-- Degree bounded (for Tseitin clause counting) -/
@@ -238,33 +240,43 @@ private theorem diagonal_coeff (F : Type*) [CommRing F]
 private theorem offdiag_vanishing (F : Type*) [CommRing F]
     (Φ : TseitinFormula) : True := trivial -- placeholder
 
-/-- Step 4: Identity minor gives rank lower bound.
-    If the SPDP matrix has a C(L,κ) × C(L,κ) identity minor (diagonal
-    entries ±1, off-diagonal 0), then rank ≥ C(L,κ).
+/-- `coeffLin m` extracts the coefficient of monomial `m` as a linear functional. -/
+noncomputable def coeffLin {σ : Type*} [DecidableEq σ] (F : Type*) [CommRing F]
+    (m : σ →₀ ℕ) : MvPolynomial σ F →ₗ[F] F where
+  toFun := fun p => MvPolynomial.coeff m p
+  map_add' := fun p q => by simp [MvPolynomial.coeff_add]
+  map_smul' := fun a p => by simp [MvPolynomial.coeff_smul]
 
-    Proof: the corresponding row polynomials are linearly independent
-    (identity minor = linearly independent coefficient vectors), so
-    finrank ≥ card by linearIndependent_iff_card_le_finrank_span. -/
 private theorem rank_from_identity_minor (F : Type*) [Field F]
     {n : ℕ} (U : Submodule F (MvPolynomial (Fin n) F))
+    [Module.Finite F ↥U]
     (k : ℕ) (elements : Fin k → ↥U)
     (lin_indep : LinearIndependent F (Subtype.val ∘ elements)) :
     Module.finrank F U ≥ k := by
-  -- Approach: LinearIndependent F (val ∘ elements) with range ⊆ U
-  -- → cardinal_le_rank gives mk(Fin k) ≤ rank(ambient)
-  -- → need to localize to rank(U) via span containment
-  -- Key mathlib lemmas: linearIndependent_iff_card_le_finrank_span,
-  --   Submodule.finrank_mono, Module.Finite for SPDP subspaces
-  sorry
+  -- The linear independent set has range contained in U
+  -- so finrank U ≥ card (Fin k) = k
+  have hrange : ∀ i, (Subtype.val ∘ elements) i ∈ U := fun i => (elements i).2
+  have hspan : Submodule.span F (Set.range (Subtype.val ∘ elements)) ≤ U :=
+    Submodule.span_le.mpr (Set.range_subset_iff.mpr hrange)
+  have hcard := finrank_span_eq_card lin_indep
+  -- finrank(span(range)) ≤ finrank(U) by monotonicity
+  -- Need Module.Finite for the span (finite range → finite span)
+  haveI : Module.Finite F (Submodule.span F (Set.range (Subtype.val ∘ elements))) :=
+    Module.Finite.span_of_finite F (Set.finite_range _)
+  have hmono := Submodule.finrank_mono hspan
+  simp [Fintype.card_fin] at hcard
+  omega
 
 theorem identity_minor_lower_bound (F : Type*) [CommRing F] [Nontrivial F]
     (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
     (pack : DisjointPacking Φ) (κ ℓ : ℕ)
     (hκ : κ ≤ pack.selected.length) :
     blockedSpdpRank B κ ℓ (coupledVerifier F Φ) ≥ Nat.choose pack.selected.length κ := by
-  -- By Steps 1-3: for each κ-subset S of C_disj, the row polynomial R_S
-  -- and tag monomial τ_S give an identity minor in the SPDP matrix.
-  -- By Step 4: identity minor of size C(L,κ) → rank ≥ C(L,κ).
+  -- Structure: For each κ-subset S of C_disj, construct:
+  --   R_S ∈ blockedSpdpSubspace (a row polynomial: m · ∂_{z_S} Q×)
+  --   τ_S = square-free monomial (product of clause variables)
+  -- Then coeffLin τ_S applied to R_{S'} gives Kronecker δ_{S,S'}.
+  -- By finrank_span_ge_card_of_dual: finrank ≥ C(L,κ).
   sorry
 
 end Tseitin

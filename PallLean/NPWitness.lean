@@ -42,7 +42,17 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
   graph := G
   parityBit := fun v => if v.val = 0 then true else false
   parity_odd := by
-    sorry -- Parity is odd: only vertex 0 has bit=true, so card=1, 1%2=1
+    -- Only vertex 0 has parityBit = true, so card of filter = 1, 1 % 2 = 1
+    convert_to 1 % 2 = 1
+    · congr 1
+      have : (Finset.univ.filter (fun v : Fin G.numVertices =>
+          (if v.val = 0 then true else false) = true)) = {⟨0, G.vertices_pos⟩} := by
+        ext v; simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_singleton]
+        constructor
+        · intro h; ext; simp at h; exact h
+        · intro h; subst h; simp
+      rw [this, Finset.card_singleton]
+    · rfl
   clauses := (List.finRange G.numVertices).flatMap fun v =>
     (List.finRange G.numEdges).filterMap fun e =>
       if G.edgeSrc e = v then
