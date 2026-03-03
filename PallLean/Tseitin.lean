@@ -151,14 +151,28 @@ The key structural properties:
 def tseitinNumVars (Φ : TseitinFormula) : ℕ :=
   Φ.graph.numEdges + 3 * Φ.clauses.length + Φ.clauses.length
 
+/-- Literal polynomial: X_v if positive, (1 - X_v) if negated -/
+noncomputable def literalPoly {m : ℕ} (F : Type*) [CommRing F]
+    (v : Fin m) (positive : Bool) : MvPolynomial (Fin m) F :=
+  if positive then X v else 1 - X v
+
 /-- The clause gadget polynomial V_C(u_{B_C}).
-    V_C = 0 iff clause C is satisfied. Multilinear, deg = O(1). -/
+    V_C = (1 - ℓ₁)(1 - ℓ₂)(1 - ℓ₃) where ℓᵢ are (possibly negated) variables.
+    V_C = 0 iff clause C is satisfied. Multilinear, deg = 3. -/
 noncomputable def clauseGadget (F : Type*) [CommRing F]
     (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
     MvPolynomial (Fin (tseitinNumVars Φ)) F :=
-  -- Placeholder: actual construction from the 3-literal clause
-  -- V_C = (1 - ℓ₁)(1 - ℓ₂)(1 - ℓ₃) where ℓᵢ are (possibly negated) variables
-  0
+  let cl := Φ.clauses.get c
+  -- Clause variable indices map into Fin (tseitinNumVars Φ)
+  -- tseitinNumVars ≥ 4 * clauses.length > 0 since c : Fin clauses.length
+  have hpos : tseitinNumVars Φ > 0 := by
+    unfold tseitinNumVars; have := c.isLt; omega
+  let v1 : Fin (tseitinNumVars Φ) := ⟨cl.var1 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  let v2 : Fin (tseitinNumVars Φ) := ⟨cl.var2 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  let v3 : Fin (tseitinNumVars Φ) := ⟨cl.var3 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  (1 - literalPoly F v1 cl.sign1) *
+  (1 - literalPoly F v2 cl.sign2) *
+  (1 - literalPoly F v3 cl.sign3)
 
 /-- The coupled verifier polynomial Q×_Φ (Definition 8.4)
 
