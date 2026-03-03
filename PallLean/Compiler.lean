@@ -54,9 +54,42 @@ axiom width_to_rank_bound (F : Type*) [CommRing F] [Nontrivial F]
     (h : HasLocalityStructure p) :
     blockedSpdpRank B κ ℓ p ≤ (h.numGates * h.width) ^ 3
 
+/-- Rank subadditivity (Lemma 2.4 / standard linear algebra):
+    The SPDP subspace of a sum is contained in the sum of the SPDP subspaces.
+    Therefore rank(f + g) ≤ rank(f) + rank(g). -/
+axiom blockedSpdpRank_add_le (F : Type*) [CommRing F] [Nontrivial F]
+    {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
+    (f g : MvPolynomial (Fin v) F) :
+    blockedSpdpRank B κ ℓ (f + g) ≤ blockedSpdpRank B κ ℓ f + blockedSpdpRank B κ ℓ g
+
+/-- Monomial scaling does not increase rank:
+    rank(m · f) ≤ rank(f) when m is a monomial.
+    (Each row m' · ∂_S(m·f) is a linear combination of rows from M_{κ,ℓ}(f).) -/
+axiom blockedSpdpRank_monomial_mul_le (F : Type*) [CommRing F] [Nontrivial F]
+    {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
+    (m f : MvPolynomial (Fin v) F) :
+    blockedSpdpRank B κ ℓ (m * f) ≤ blockedSpdpRank B κ ℓ f
+
+/-- Derivative does not increase rank:
+    rank_κ(∂_i f) ≤ rank_{κ+1}(f).
+    (Each row of M_{κ,ℓ}(∂_i f) is a row of M_{κ+1,ℓ}(f).) -/
+axiom blockedSpdpRank_pderiv_le (F : Type*) [CommRing F] [Nontrivial F]
+    {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
+    (i : Fin v) (f : MvPolynomial (Fin v) F) :
+    blockedSpdpRank B κ ℓ (MvPolynomial.pderiv i f) ≤ blockedSpdpRank B (κ + 1) ℓ f
+
 /-- κ-padding rank transfer (Lemma 3.1).
     If rank_r(V) ≤ G^3 for all r ≤ 6, then rank_κ(Y·V) ≤ G^4.
-    Here G is any bound on the low-degree rank of V. -/
+    Here G is any bound on the low-degree rank of V.
+
+    Proof sketch: ∂_S(Y·V) decomposes via Leibniz into terms where some
+    derivatives hit Y (producing monomials) and the rest hit V.
+    By rank subadditivity over the C(κ,r) ways to split S, and
+    monomial scaling not increasing rank:
+      Γ^B_{κ,ℓ}(Y·V) ≤ Σ_{r=0}^{κ} C(κ,r) · Γ^B_{r,ℓ}(V)
+    Since V has totalDegree ≤ 6, Γ^B_{r,ℓ}(V) = 0 for r > 6, so:
+      ≤ Σ_{r=0}^{6} C(κ,r) · G^3 ≤ 2^κ · G^3 ≤ G^4
+    (using 2^κ ≤ G when G is large enough, which holds in our application). -/
 axiom kappa_padding_rank (F : Type*) [CommRing F] [Nontrivial F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (Y V : MvPolynomial (Fin v) F)
