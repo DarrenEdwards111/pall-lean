@@ -339,7 +339,21 @@ theorem getSubset_subset (pack : DisjointPacking Φ) (κ : ℕ)
   exact (sublistsLen_get_sublist pack.selected κ
     (i.cast (subsetList_length pack κ).symm)).subset hc
 
-/-- The Kronecker δ property: coeff (τ_i) (R_j) = δ_{ij}
+/-- Sign for subset i: (-1)^κ * ∏(coeff τ_C V_C for C ∈ S_i) -/
+noncomputable def subsetSign (F : Type*) [Field F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) : F :=
+  (-1)^κ * ((getSubset pack κ i).map
+    (fun c => MvPolynomial.coeff (chooseTagMonomial (F := F) Φ c)
+                                  (clauseGadget F Φ c))).prod
+
+/-- subsetSign is ±1 (each factor is ±1 by tag_monomial_property) -/
+theorem subsetSign_unit (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    subsetSign F Φ pack κ i = 1 ∨ subsetSign F Φ pack κ i = -1 := by
+  sorry -- Each coeff τ_C V_C = ±1, product of ±1's is ±1, times (-1)^κ is ±1
+
+/-- The Kronecker δ property: coeff (τ_i) (R_j) = δ_{ij} · sign_i
 
     Proof sketch:
     1. R_j = iterDeriv along selectors of S_j applied to Q×
@@ -355,7 +369,7 @@ theorem kronecker_delta [Field F] [Nontrivial F]
     (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
     (i j : Fin (Nat.choose pack.selected.length κ)) :
     MvPolynomial.coeff (tagMono F Φ pack κ i) (rowPoly F Φ pack κ j) =
-    if i = j then (1 : F) else 0 := by
+    if i = j then subsetSign F Φ pack κ i else 0 := by
   -- Step 1: Expand rowPoly via iterDeriv_cvProd_eq
   unfold rowPoly
   -- rowPoly = iterDerivList (selectorList) (coupledVerifier)
@@ -381,11 +395,15 @@ theorem identity_minor_construction_proof [Nontrivial F]
     ∃ (R : Fin (Nat.choose pack.selected.length κ) →
         ↥(blockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)))
       (τ : Fin (Nat.choose pack.selected.length κ) →
-        ((Fin (tseitinNumVars Φ)) →₀ ℕ)),
-      ∀ i j, MvPolynomial.coeff (τ i) (R j).val = if i = j then (1 : F) else 0 := by
+        ((Fin (tseitinNumVars Φ)) →₀ ℕ))
+      (signs : Fin (Nat.choose pack.selected.length κ) → F),
+      (∀ i, signs i = 1 ∨ signs i = -1) ∧
+      ∀ i j, MvPolynomial.coeff (τ i) (R j).val = if i = j then signs i else 0 := by
   refine ⟨fun i => ⟨rowPoly F Φ pack κ i, rowPoly_mem_subspace Φ B pack κ ℓ i⟩,
-          fun i => tagMono F Φ pack κ i, ?_⟩
+          fun i => tagMono F Φ pack κ i,
+          fun i => subsetSign F Φ pack κ i,
+          fun i => subsetSign_unit Φ pack κ i, ?_⟩
   intro i j
-  exact kronecker_delta Φ pack κ i j
+  exact kronecker_delta (F := F) Φ pack κ i j
 
 end IdentityMinor

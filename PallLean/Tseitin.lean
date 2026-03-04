@@ -114,8 +114,10 @@ axiom identity_minor_construction (F : Type*) [Field F]
     ∃ (R : Fin (Nat.choose pack.selected.length κ) →
         ↥(blockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)))
       (τ : Fin (Nat.choose pack.selected.length κ) →
-        ((Fin (tseitinNumVars Φ)) →₀ ℕ)),
-      ∀ i j, MvPolynomial.coeff (τ i) (R j).val = if i = j then (1 : F) else 0
+        ((Fin (tseitinNumVars Φ)) →₀ ℕ))
+      (signs : Fin (Nat.choose pack.selected.length κ) → F),
+      (∀ i, signs i = 1 ∨ signs i = -1) ∧
+      ∀ i j, MvPolynomial.coeff (τ i) (R j).val = if i = j then signs i else 0
 
 theorem identity_minor_lower_bound (F : Type*) [Field F]
     (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
