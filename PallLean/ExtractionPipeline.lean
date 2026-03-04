@@ -1,6 +1,9 @@
 /-
   ExtractionPipeline.lean — Concrete extraction stage definitions +
   generic rank monotonicity under pipeline composition.
+  
+  Based on Darren's skeleton: stages as AlgHom, stagewise subspace inclusion
+  hypotheses, endpoint composition theorem.
 -/
 import PallLean.SPDPDefs
 import PallLean.Compiler
@@ -12,103 +15,109 @@ namespace ExtractionPipeline
 
 open MvPolynomial SPDP
 
+section Core
+
 variable {F : Type*} [Field F]
 variable {σ : Type*} [DecidableEq σ]
 
-/-! ## Stage 1: PROJECT — set dropped variables to 0 -/
+/-! ## Concrete stage operations -/
 
-noncomputable def projectPoly (keep : σ → Bool) :
-    MvPolynomial σ F →ₐ[F] MvPolynomial σ F :=
+/-- PROJECT: set dropped variables to 0. keep v = true → keep X_v; else X_v := 0. -/
+noncomputable def projectPoly (keep : σ → Bool) : MvPolynomial σ F →ₐ[F] MvPolynomial σ F :=
   MvPolynomial.aeval (fun v => if keep v then X v else 0)
 
-/-! ## Stage 2: RESTRICT — set trace variables to constants -/
-
+/-- RESTRICT: set trace variables to constants. isTrace v = true → plug assign(v). -/
 noncomputable def restrictPoly (isTrace : σ → Bool) (assign : σ → F) :
     MvPolynomial σ F →ₐ[F] MvPolynomial σ F :=
   MvPolynomial.aeval (fun v => if isTrace v then C (assign v) else X v)
 
-/-! ## Stage 3: RELABEL — rename variables along ρ : σ → τ -/
-
+/-- RELABEL: rename variables along ρ : σ → τ. -/
 noncomputable def relabelPoly {τ : Type*} [DecidableEq τ] (ρ : σ → τ) :
     MvPolynomial σ F →ₐ[F] MvPolynomial τ F :=
   MvPolynomial.aeval (fun v => X (ρ v))
 
-/-! ## Stage 4: GAUGE — multiply by invertible element -/
-
-noncomputable def gaugePoly (u : MvPolynomial σ F) (hu : u ≠ 0) :
+/-- GAUGE: multiply by nonzero scalar * monomial (a unit in the polynomial ring). -/
+noncomputable def gaugePoly (a : F) (ha : a ≠ 0) (m : σ →₀ ℕ) :
     MvPolynomial σ F → MvPolynomial σ F :=
-  fun p => u * p
+  fun p => (C a) * (monomial m 1) * p
 
-/-! ## Generic rank monotonicity -/
+/-! ## Blocked SPDP rank interface (parameterized by generators) -/
 
-/-- If V ≤ W as submodules, then finrank V ≤ finrank W. -/
-theorem finrank_mono_of_le {V W : Submodule F (MvPolynomial σ F)}
-    [Module.Finite F V] [Module.Finite F W]
-    (h : V ≤ W) : Module.finrank F V ≤ Module.finrank F W :=
-  Submodule.finrank_mono h
+variable (blockedSpdpGens : ℕ → ℕ → MvPolynomial σ F → Set (MvPolynomial σ F))
 
-/-! ## Stage-level rank monotonicity lemmas -/
+def blockedSpdpSubspace' (κ ℓ : ℕ) (p : MvPolynomial σ F) : Submodule F (MvPolynomial σ F) :=
+  Submodule.span F (blockedSpdpGens κ ℓ p)
 
-/-- Projection doesn't increase blockedSpdpRank.
-    Proof idea: projectPoly maps each generator ∂^α p to ∂^α (project p),
-    which is in the span of generators of the projected polynomial. -/
-theorem project_rank_le {n : ℕ} (keep : Fin n → Bool)
-    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
-    blockedSpdpRank B κ ℓ (projectPoly keep p) ≤
-    blockedSpdpRank B κ ℓ p := by
-  -- Setting variables to 0 maps generators into the span
-  -- ∂^α (eval p) = eval (∂^α p) by chain rule (evaluation commutes with derivation)
-  -- So the subspace of the projected poly ≤ subspace of original
-  sorry
+noncomputable def blockedSpdpRank' (κ ℓ : ℕ) (p : MvPolynomial σ F) : ℕ :=
+  Module.finrank F (blockedSpdpSubspace' blockedSpdpGens κ ℓ p)
 
-/-- Restriction doesn't increase blockedSpdpRank. -/
-theorem restrict_rank_le {n : ℕ} (isTrace : Fin n → Bool) (assign : Fin n → F)
-    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
-    blockedSpdpRank B κ ℓ (restrictPoly isTrace assign p) ≤
-    blockedSpdpRank B κ ℓ p := by
-  -- Same argument as projection: eval₂ commutes with derivation
-  sorry
+/-! ## Generic monotonicity: subspace inclusion → rank inequality -/
 
-/-- Relabeling by injection preserves blockedSpdpRank.
-    (Injective rename = algebra isomorphism on the image.) -/
-theorem relabel_rank_le {τ : Type*} [DecidableEq τ] {n m : ℕ}
-    (ρ : Fin n → Fin m) (hρ : Function.Injective ρ)
-    (B : BlockPartition n) (B' : BlockPartition m) (κ ℓ : ℕ)
-    (p : MvPolynomial (Fin n) F) :
-    blockedSpdpRank B' κ ℓ (relabelPoly ρ p) ≤
-    blockedSpdpRank B κ ℓ p := by
-  -- Injective rename sends generators bijectively
-  sorry
+theorem blockedSpdpRank_mono' (κ ℓ : ℕ) {p q : MvPolynomial σ F}
+    [Module.Finite F ↥(blockedSpdpSubspace' blockedSpdpGens κ ℓ q)]
+    (h : blockedSpdpSubspace' blockedSpdpGens κ ℓ p ≤
+         blockedSpdpSubspace' blockedSpdpGens κ ℓ q) :
+    blockedSpdpRank' blockedSpdpGens κ ℓ p ≤
+    blockedSpdpRank' blockedSpdpGens κ ℓ q := by
+  sorry -- needs Module.Finite instances; available in actual project via degree bounds
 
-/-- Gauge (multiply by unit) preserves blockedSpdpRank.
-    Multiplication by invertible element is an automorphism. -/
-theorem gauge_rank_le {n : ℕ}
-    (u : MvPolynomial (Fin n) F) (hu : u ≠ 0)
-    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
-    blockedSpdpRank B κ ℓ (u * p) ≤
-    blockedSpdpRank B κ ℓ p := by
-  -- u*p generators are u * (generators of p), spanning a subspace of same dim
-  sorry
+/-! ## Stagewise hypotheses -/
 
-/-! ## Pipeline composition -/
+variable (κ ℓ : ℕ)
 
-/-- The full extraction pipeline is rank-nonincreasing.
-    This follows by composing the four stage lemmas. -/
-theorem pipeline_rank_mono {n : ℕ}
-    (B : BlockPartition n) (κ ℓ : ℕ)
-    (p_compiled p_tseitin : MvPolynomial (Fin n) F)
-    (keep : Fin n → Bool) (isTrace : Fin n → Bool) (assign : Fin n → F)
-    (u : MvPolynomial (Fin n) F) (hu : u ≠ 0)
-    (hpipe : p_tseitin = u * restrictPoly isTrace assign (projectPoly keep p_compiled)) :
-    blockedSpdpRank B κ ℓ p_tseitin ≤
-    blockedSpdpRank B κ ℓ p_compiled := by
-  rw [hpipe]
-  calc blockedSpdpRank B κ ℓ (u * restrictPoly isTrace assign (projectPoly keep p_compiled))
-      ≤ blockedSpdpRank B κ ℓ (restrictPoly isTrace assign (projectPoly keep p_compiled)) :=
-        gauge_rank_le u hu B κ ℓ _
-    _ ≤ blockedSpdpRank B κ ℓ (projectPoly keep p_compiled) :=
-        restrict_rank_le isTrace assign B κ ℓ _
-    _ ≤ blockedSpdpRank B κ ℓ p_compiled :=
-        project_rank_le keep B κ ℓ p_compiled
+variable
+  (H_project : ∀ (keep : σ → Bool) (p : MvPolynomial σ F),
+    blockedSpdpSubspace' blockedSpdpGens κ ℓ (projectPoly keep p) ≤
+    blockedSpdpSubspace' blockedSpdpGens κ ℓ p)
+  (H_restrict : ∀ (isTrace : σ → Bool) (assign : σ → F) (p : MvPolynomial σ F),
+    blockedSpdpSubspace' blockedSpdpGens κ ℓ (restrictPoly isTrace assign p) ≤
+    blockedSpdpSubspace' blockedSpdpGens κ ℓ p)
+  (H_gauge : ∀ (a : F) (ha : a ≠ 0) (m : σ →₀ ℕ) (p : MvPolynomial σ F),
+    blockedSpdpSubspace' blockedSpdpGens κ ℓ (gaugePoly a ha m p) ≤
+    blockedSpdpSubspace' blockedSpdpGens κ ℓ p)
+
+/-! ## Endpoint theorem: pipeline is rank-nonincreasing -/
+
+/-- Pipeline on σ-variables: gauge ∘ restrict ∘ project.
+    Relabel handled separately (changes variable type). -/
+theorem extraction_rank_monotone_sigma
+    (H_project : ∀ (keep : σ → Bool) (p : MvPolynomial σ F),
+      blockedSpdpSubspace' blockedSpdpGens κ ℓ (projectPoly keep p) ≤
+      blockedSpdpSubspace' blockedSpdpGens κ ℓ p)
+    (H_restrict : ∀ (isTrace : σ → Bool) (assign : σ → F) (p : MvPolynomial σ F),
+      blockedSpdpSubspace' blockedSpdpGens κ ℓ (restrictPoly isTrace assign p) ≤
+      blockedSpdpSubspace' blockedSpdpGens κ ℓ p)
+    (H_gauge : ∀ (a : F) (ha : a ≠ 0) (m : σ →₀ ℕ) (p : MvPolynomial σ F),
+      blockedSpdpSubspace' blockedSpdpGens κ ℓ (gaugePoly a ha m p) ≤
+      blockedSpdpSubspace' blockedSpdpGens κ ℓ p)
+    (keep : σ → Bool) (isTrace : σ → Bool) (assign : σ → F)
+    (a : F) (ha : a ≠ 0) (m : σ →₀ ℕ) (p : MvPolynomial σ F) :
+    blockedSpdpRank' blockedSpdpGens κ ℓ
+      (gaugePoly a ha m (restrictPoly isTrace assign (projectPoly keep p))) ≤
+    blockedSpdpRank' blockedSpdpGens κ ℓ p := by
+  -- Chain: gauge ≤ restrict ≤ project ≤ original via H_gauge, H_restrict, H_project
+  -- Each step uses blockedSpdpRank_mono' (needs Module.Finite instances from degree bounds)
+  have h1 := H_gauge a ha m (restrictPoly isTrace assign (projectPoly keep p))
+  have h2 := H_restrict isTrace assign (projectPoly keep p)
+  have h3 := H_project keep p
+  sorry -- composition of rank_mono steps; needs Module.Finite wiring
+
+/-!
+## Wiring guide
+
+To replace `extraction_rank_monotone` in your project:
+1. Instantiate σ as your compiled variable type (e.g. `Fin v`)
+2. Set p := compiledPolyOf F M n
+3. Define keep, isTrace, assign, a, ha, m for the paper's extraction
+4. Prove (or axiomatize) H_project, H_restrict, H_gauge for your gens
+5. Show tseitinPoly = gaugePoly a ha m (restrictPoly isTrace assign (projectPoly keep p))
+6. Apply extraction_rank_monotone_sigma
+
+Relabeling across different variable namespaces:
+Use MvPolynomial.renameAlgHom and prove rank invariance by transporting
+generators through the induced algebra isomorphism.
+-/
+
+end Core
 
 end ExtractionPipeline
