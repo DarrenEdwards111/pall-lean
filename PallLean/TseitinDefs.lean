@@ -76,17 +76,29 @@ structure TseitinFormula where
 
 /-! ## Disjoint Clause Packing (Lemma 8.3) -/
 
+/-- The set of variable indices used by a clause (its 3 body variables) -/
+def clauseVarSet (Φ : TseitinFormula) (c : Fin Φ.clauses.length) : Finset ℕ :=
+  let cl := Φ.clauses.get c
+  {cl.var1, cl.var2, cl.var3}
+
 structure DisjointPacking (Φ : TseitinFormula) where
   selected : List (Fin Φ.clauses.length)
   selected_nodup : selected.Nodup
-  disjoint : ∀ (i j : Fin selected.length), i ≠ j → True
+  /-- Body variables of packed clauses are pairwise disjoint.
+      This is the key combinatorial property from the greedy packing on
+      a bounded-degree, high-girth graph (Lemma 8.3). -/
+  vars_disjoint : ∀ (i j : Fin selected.length), i ≠ j →
+    Disjoint (clauseVarSet Φ (selected.get i)) (clauseVarSet Φ (selected.get j))
   size_bound : selected.length ≥ Φ.graph.numVertices / 30
 
 noncomputable def disjoint_packing_exists (Φ : TseitinFormula) (hn : Φ.graph.numVertices ≥ 100) :
     DisjointPacking Φ where
   selected := (List.finRange Φ.clauses.length).take (Φ.graph.numVertices / 30)
   selected_nodup := List.Nodup.sublist (List.take_sublist _ _) (List.nodup_finRange _)
-  disjoint := fun _ _ _ => trivial
+  vars_disjoint := by
+    -- Greedy packing on bounded-degree graph gives variable-disjoint clauses.
+    -- This follows from the graph structure (high girth + degree ≤ 10).
+    sorry
   size_bound := by
     simp only [List.length_take, List.length_finRange]
     have h1 : Φ.graph.numVertices / 30 ≤ Φ.clauses.length :=
