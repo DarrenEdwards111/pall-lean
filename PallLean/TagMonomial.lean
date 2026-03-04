@@ -1,4 +1,4 @@
-import PallLean.Tseitin
+import PallLean.TseitinDefs
 import Mathlib.Tactic
 /-!
 # Tag Monomial Property — Pall §9.2
