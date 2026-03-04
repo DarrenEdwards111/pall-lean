@@ -367,19 +367,65 @@ noncomputable def subsetSign (F : Type*) [Field F]
                                   (clauseGadget F Φ c))).prod
 
 /-- subsetSign is ±1 (each factor is ±1 by tag_monomial_property) -/
+private theorem mul_pm1 (a b : F) (ha : a = 1 ∨ a = -1) (hb : b = 1 ∨ b = -1) :
+    a * b = 1 ∨ a * b = -1 := by
+  rcases ha with rfl | rfl <;> rcases hb with rfl | rfl <;> simp [mul_neg, neg_mul] <;> ring
+
+private theorem neg_one_pow_pm1 (n : ℕ) : ((-1 : F)^n = 1 ∨ (-1 : F)^n = -1) := by
+  induction n with
+  | zero => left; simp
+  | succ n ih =>
+    rcases ih with h | h
+    · right; simp [pow_succ, h]
+    · left; simp [pow_succ, h]
+
+private theorem list_prod_pm1 (l : List F) (h : ∀ x ∈ l, x = 1 ∨ x = -1) :
+    l.prod = 1 ∨ l.prod = -1 := by
+  induction l with
+  | nil => left; simp
+  | cons a rest ih =>
+    simp only [List.prod_cons]
+    apply mul_pm1
+    · exact h a (by simp)
+    · exact ih (fun x hx => h x (by simp [hx]))
+
 theorem subsetSign_unit (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
     (i : Fin (Nat.choose pack.selected.length κ)) :
     subsetSign F Φ pack κ i = 1 ∨ subsetSign F Φ pack κ i = -1 := by
-  sorry -- (-1)^κ * ∏(±1) = ±1; straightforward from neg_one_pow_even_or_odd + list induction
+  unfold subsetSign
+  have hprod : ∀ x ∈ (getSubset pack κ i).map
+      (fun c => MvPolynomial.coeff (chooseTagMonomial (F := F) Φ c) (clauseGadget F Φ c)),
+      x = 1 ∨ x = -1 := by
+    intro x hx
+    simp only [List.mem_map] at hx
+    obtain ⟨c, _, rfl⟩ := hx
+    exact chooseTagMonomial_coeff Φ c
+  exact mul_pm1 _ _ (neg_one_pow_pm1 κ) (list_prod_pm1 _ hprod)
 
 /-! ## Step 6a: Tag monomial body support -/
 
 /-- tagMono is supported on body variables -/
+private theorem foldl_add_support_aux {α : Type*} [DecidableEq α] :
+    ∀ (l : List (α →₀ ℕ)) (acc : α →₀ ℕ) (S : Set α),
+    CoeffDisjoint.monomSupportedIn acc S →
+    (∀ m ∈ l, CoeffDisjoint.monomSupportedIn m S) →
+    CoeffDisjoint.monomSupportedIn (l.foldl (· + ·) acc) S
+  | [], acc, _, hacc, _ => hacc
+  | a :: rest, acc, S, hacc, hl => by
+    simp only [List.foldl]
+    apply foldl_add_support_aux rest (acc + a) S
+    · intro x hx
+      rw [Finsupp.mem_support_iff, Finsupp.add_apply] at hx
+      by_cases hxa : acc x = 0
+      · exact hl a (by simp) x (Finsupp.mem_support_iff.mpr (by omega))
+      · exact hacc x (Finsupp.mem_support_iff.mpr hxa)
+    · exact fun m hm => hl m (by simp [hm])
+
 private theorem foldl_add_support_subset {α : Type*} [DecidableEq α]
     (l : List (α →₀ ℕ)) (S : Set α)
     (hl : ∀ m ∈ l, CoeffDisjoint.monomSupportedIn m S) :
-    CoeffDisjoint.monomSupportedIn (l.foldl (· + ·) 0) S := by
-  sorry -- Finsupp.support of foldl add ⊆ union of supports
+    CoeffDisjoint.monomSupportedIn (l.foldl (· + ·) 0) S :=
+  foldl_add_support_aux l 0 S (fun _ hx => by simp at hx) hl
 
 theorem tagMono_supported_body (Φ : TseitinFormula)
     (pack : DisjointPacking Φ) (κ : ℕ)
@@ -394,11 +440,34 @@ theorem tagMono_supported_body (Φ : TseitinFormula)
   exact tagMonomial_supported_body Φ c
 
 /-- Product of clauseGadgets uses only body variables -/
+private theorem usesOnly_of_vars_subset
+    {p : MvPolynomial (Fin n) F} {S : Set (Fin n)}
+    (h : ∀ x ∈ p.vars, x ∈ S) : CoeffDisjoint.usesOnly p S :=
+  fun m hm x hx => h x ((MvPolynomial.mem_vars x).mpr ⟨m, hm, hx⟩)
+
+private theorem vars_list_prod_subset :
+    ∀ (ps : List (MvPolynomial (Fin n) F)) (x : Fin n), x ∈ ps.prod.vars →
+    ∃ p ∈ ps, x ∈ p.vars
+  | [], x, hx => by simp [MvPolynomial.vars_one] at hx
+  | p :: rest, x, hx => by
+    simp only [List.prod_cons] at hx
+    have hmem := MvPolynomial.vars_mul p rest.prod hx
+    rw [Finset.mem_union] at hmem
+    rcases hmem with h | h
+    · exact ⟨p, by simp, h⟩
+    · obtain ⟨q, hq, hxq⟩ := vars_list_prod_subset rest x h
+      exact ⟨q, by simp [hq], hxq⟩
+
 theorem prod_clauseGadget_usesOnly_body [Nontrivial F] (Φ : TseitinFormula)
     (cs : List (Fin Φ.clauses.length)) :
     CoeffDisjoint.usesOnly (cs.map (clauseGadget F Φ)).prod
       {v : Fin (tseitinNumVars Φ) | v.val < Φ.graph.numEdges + 3 * Φ.clauses.length} := by
-  sorry -- vars of list product ⊆ union of factor vars; each factor body-only by clauseGadget_vars_bound
+  apply usesOnly_of_vars_subset
+  intro x hx
+  obtain ⟨p, hp, hxp⟩ := vars_list_prod_subset _ x hx
+  simp only [List.mem_map, Set.mem_setOf_eq] at hp
+  obtain ⟨c, _, rfl⟩ := hp
+  exact clauseGadget_vars_bound F Φ c x hxp
 
 /-! ## Step 6b: Body-only coefficients of ∏cvFactor
 
@@ -516,6 +585,7 @@ theorem coeff_tagMono_prod_offdiag [Nontrivial F]
 
 /-! ## Step 7: Kronecker δ assembly -/
 
+set_option maxHeartbeats 400000 in
 /-- The Kronecker δ property: coeff (τ_i) (R_j) = δ_{ij} · sign_i -/
 theorem kronecker_delta [Field F] [Nontrivial F]
     (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
@@ -523,12 +593,12 @@ theorem kronecker_delta [Field F] [Nontrivial F]
     MvPolynomial.coeff (tagMono F Φ pack κ i) (rowPoly F Φ pack κ j) =
     if i = j then subsetSign F Φ pack κ i else 0 := by
   sorry
-  /- Proof outline (all components proved as separate lemmas above):
-     1. Expand rowPoly via iterDeriv_cvProd_eq → C((-1)^κ) * ∏V_j * ∏cvFactor
-     2. Pull scalar: coeff_C_mul → (-1)^κ * coeff τ_i (∏V_j * ∏cvFactor)
-     3. Strip ∏cvFactor: coeff_body_prod_cvFactor → (-1)^κ * coeff τ_i (∏V_j)
-     4. Diagonal (i=j): coeff_tagMono_prod_diagonal → (-1)^κ * ∏(coeff τ_C V_C) = sign
-     5. Off-diagonal (i≠j): coeff_tagMono_prod_offdiag → 0 -/
+  /- Full proof (depends on sorry'd helper lemmas):
+     unfold rowPoly; rw [coupledVerifier_eq_prod]
+     rw [iterDeriv_cvProd_eq]; rw [getSubset_length, mul_assoc, coeff_C_mul]
+     rw [coeff_body_prod_cvFactor]; split
+     · subst; unfold subsetSign; rw [coeff_tagMono_prod_diagonal]
+     · rw [coeff_tagMono_prod_offdiag, mul_zero] -/
 
 /-- **Main theorem**: identity minor construction (replaces axiom) -/
 theorem identity_minor_construction_proof [Nontrivial F]
