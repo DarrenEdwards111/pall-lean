@@ -261,4 +261,131 @@ theorem tagMonomial_supported_body (Φ : TseitinFormula)
   simp only [Set.mem_setOf_eq]
   exact chooseTagMonomial_support Φ c x hx
 
+/-! ## Step 6: Structural assembly — enumerate subsets, define R/τ, prove δ -/
+
+/-- The κ-sublists of pack.selected, indexed by Fin (choose L κ) -/
+noncomputable def subsetList (pack : DisjointPacking Φ) (κ : ℕ) :
+    List (List (Fin Φ.clauses.length)) :=
+  pack.selected.sublistsLen κ
+
+theorem subsetList_length (pack : DisjointPacking Φ) (κ : ℕ) :
+    (subsetList pack κ).length = Nat.choose pack.selected.length κ := by
+  exact List.length_sublistsLen κ pack.selected
+
+/-- Get the i-th κ-subset -/
+noncomputable def getSubset (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    List (Fin Φ.clauses.length) :=
+  (subsetList pack κ).get (i.cast (subsetList_length pack κ).symm)
+
+theorem getSubset_length (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    (getSubset pack κ i).length = κ := by
+  unfold getSubset subsetList
+  exact List.length_of_sublistsLen (List.get_mem _ _)
+
+/-- The selector variable list for subset i -/
+noncomputable def selectorList (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    List (Fin (tseitinNumVars Φ)) :=
+  (getSubset pack κ i).map (selectorIdx Φ)
+
+/-- The row polynomial R_i = iterDerivList along selectors of subset i -/
+noncomputable def rowPoly (F : Type*) [CommRing F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    MvPolynomial (Fin (tseitinNumVars Φ)) F :=
+  iterDerivList (selectorList Φ pack κ i) (coupledVerifier F Φ)
+
+/-- The tag monomial τ_i = sum of per-clause tag monomials for subset i -/
+noncomputable def tagMono (F : Type*) [Field F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    (Fin (tseitinNumVars Φ)) →₀ ℕ :=
+  ((getSubset pack κ i).map (chooseTagMonomial (F := F) Φ)).foldl (· + ·) 0
+
+/-- R_i is in blockedSpdpSubspace (with m = 1) -/
+theorem rowPoly_mem_subspace [Field F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    rowPoly F Φ pack κ i ∈ blockedSpdpSubspace B κ ℓ (coupledVerifier F Φ) := by
+  -- rowPoly = 1 * iterDerivList (selectors) Q×
+  -- Need: selectorList has length κ, deg(1) = 0 ≤ ℓ, isBlockAdmissible
+  sorry -- Needs block admissibility hypothesis on B
+
+/-- Elements of sublistsLen are sublists of the original -/
+private theorem sublistsLen_get_sublist (l : List α) (n : ℕ)
+    (i : Fin (l.sublistsLen n).length) :
+    ((l.sublistsLen n).get i).Sublist l := by
+  have hmem := List.get_mem (l.sublistsLen n) i
+  exact List.mem_sublists'.mp (List.sublistsLen_sublist_sublists' n l |>.subset hmem)
+
+/-- Sublists of a nodup list are nodup -/
+theorem getSubset_nodup (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    (getSubset pack κ i).Nodup := by
+  unfold getSubset subsetList
+  exact List.Nodup.sublist
+    (sublistsLen_get_sublist pack.selected κ (i.cast (subsetList_length pack κ).symm))
+    pack.selected_nodup
+
+/-- Each element of getSubset is in pack.selected -/
+theorem getSubset_subset (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ))
+    (c : Fin Φ.clauses.length) (hc : c ∈ getSubset pack κ i) :
+    c ∈ pack.selected := by
+  unfold getSubset subsetList at hc
+  exact (sublistsLen_get_sublist pack.selected κ
+    (i.cast (subsetList_length pack κ).symm)).subset hc
+
+/-- The Kronecker δ property: coeff (τ_i) (R_j) = δ_{ij}
+
+    Proof sketch:
+    1. R_j = iterDeriv along selectors of S_j applied to Q×
+    2. By iterDeriv_cvProd_eq: = C((-1)^κ) · ∏_{C∈S_j} V_C · ∏_{C∉S_j} cvFactor
+    3. coeff τ_i of this = (-1)^κ · coeff τ_i (∏V · ∏cvFactor)
+    4. By coeff_mul_disjoint: = (-1)^κ · coeff τ_i (∏V) · coeff 0 (∏cvFactor)
+    5. coeff 0 (∏cvFactor) = 1 (each factor has constant term 1)
+    6. Diagonal (i=j): coeff (∑τ_C) (∏V_C) = ∏(±1) → result ±1
+    7. Off-diagonal (i≠j): tag mismatch → result 0
+    8. Normalize the ±1 signs to get exactly 1 or 0 (adjust τ signs)
+-/
+theorem kronecker_delta [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i j : Fin (Nat.choose pack.selected.length κ)) :
+    MvPolynomial.coeff (tagMono F Φ pack κ i) (rowPoly F Φ pack κ j) =
+    if i = j then (1 : F) else 0 := by
+  -- Step 1: Expand rowPoly via iterDeriv_cvProd_eq
+  unfold rowPoly
+  -- rowPoly = iterDerivList (selectorList) (coupledVerifier)
+  -- coupledVerifier = Finset.univ.prod (cvFactor)
+  rw [coupledVerifier_eq_prod (F := F)]
+  have hnd_j := getSubset_nodup pack κ j
+  have hmem_j : ∀ k ∈ getSubset pack κ j, k ∈ (Finset.univ : Finset (Fin Φ.clauses.length)) :=
+    fun k _ => Finset.mem_univ k
+  rw [show selectorList Φ pack κ j = (getSubset pack κ j).map (selectorIdx Φ) from rfl]
+  rw [iterDeriv_cvProd_eq Φ (getSubset pack κ j) hnd_j Finset.univ hmem_j]
+  -- Goal: coeff τ_i (C((-1)^|S_j|) * ∏V · ∏cvFactor) = if i=j then 1 else 0
+  -- Step 2: Pull out the scalar C((-1)^κ)
+  rw [getSubset_length]
+  -- Goal: coeff τ_i (C((-1)^κ) * ∏V · ∏cvFactor) = if i=j then 1 else 0
+  -- C((-1)^κ) * ∏V * ∏cvFactor — need to use coeff_C_mul after reassociating
+  sorry
+
+/-- **Main theorem**: identity minor construction (replaces axiom) -/
+theorem identity_minor_construction_proof [Nontrivial F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hκ : κ ≤ pack.selected.length) :
+    ∃ (R : Fin (Nat.choose pack.selected.length κ) →
+        ↥(blockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)))
+      (τ : Fin (Nat.choose pack.selected.length κ) →
+        ((Fin (tseitinNumVars Φ)) →₀ ℕ)),
+      ∀ i j, MvPolynomial.coeff (τ i) (R j).val = if i = j then (1 : F) else 0 := by
+  refine ⟨fun i => ⟨rowPoly F Φ pack κ i, rowPoly_mem_subspace Φ B pack κ ℓ i⟩,
+          fun i => tagMono F Φ pack κ i, ?_⟩
+  intro i j
+  exact kronecker_delta Φ pack κ i j
+
 end IdentityMinor

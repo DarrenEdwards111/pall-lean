@@ -78,12 +78,14 @@ structure TseitinFormula where
 
 structure DisjointPacking (Φ : TseitinFormula) where
   selected : List (Fin Φ.clauses.length)
+  selected_nodup : selected.Nodup
   disjoint : ∀ (i j : Fin selected.length), i ≠ j → True
   size_bound : selected.length ≥ Φ.graph.numVertices / 30
 
 noncomputable def disjoint_packing_exists (Φ : TseitinFormula) (hn : Φ.graph.numVertices ≥ 100) :
     DisjointPacking Φ where
   selected := (List.finRange Φ.clauses.length).take (Φ.graph.numVertices / 30)
+  selected_nodup := List.Nodup.sublist (List.take_sublist _ _) (List.nodup_finRange _)
   disjoint := fun _ _ _ => trivial
   size_bound := by
     simp only [List.length_take, List.length_finRange]
