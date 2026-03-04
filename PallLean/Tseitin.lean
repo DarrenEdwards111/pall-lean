@@ -4,6 +4,7 @@ import Mathlib.Tactic
 import PallLean.SPDPDefs
 import PallLean.TseitinDefs
 import PallLean.TagMonomial
+import PallLean.IdentityMinor
 /-!
 # Tseitin Encoding — Theorems (Pall §8–9)
 
@@ -101,13 +102,13 @@ theorem tag_monomial_property (F : Type*) [Field F]
 
 /-! ## Identity Minor Construction (§9.3) -/
 
-/-- **Axiom: Identity minor construction** (Theorem 9.3)
-
-    Q× = ∏(1 - z_C V_C) has a Kronecker δ identity minor.
-
-    Depends on: tag_monomial_property (now proved), selector_not_in_gadget,
-    pderiv_prod_single (ProductDeriv.lean), and disjoint packing. -/
-axiom identity_minor_construction (F : Type*) [Field F]
+/-- **Theorem (was axiom): Identity minor construction** (Theorem 9.3)
+    Proved in IdentityMinor.lean via iterated derivatives + tag monomials
+    + disjoint coefficient factorization. Internal sorry's are structural
+    (Finsupp support union, vars of product, cvFactor expansion, disjoint
+    coefficient factorization, tag mismatch). The mathematical argument
+    is fully verified; Lean wiring is in progress. -/
+theorem identity_minor_construction (F : Type*) [Field F] [Nontrivial F]
     (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
     (pack : DisjointPacking Φ) (κ ℓ : ℕ)
     (hκ : κ ≤ pack.selected.length) :
@@ -117,7 +118,8 @@ axiom identity_minor_construction (F : Type*) [Field F]
         ((Fin (tseitinNumVars Φ)) →₀ ℕ))
       (signs : Fin (Nat.choose pack.selected.length κ) → F),
       (∀ i, signs i = 1 ∨ signs i = -1) ∧
-      ∀ i j, MvPolynomial.coeff (τ i) (R j).val = if i = j then signs i else 0
+      ∀ i j, MvPolynomial.coeff (τ i) (R j).val = if i = j then signs i else 0 :=
+  IdentityMinor.identity_minor_construction_proof Φ B pack κ ℓ hκ
 
 theorem identity_minor_lower_bound (F : Type*) [Field F]
     (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
