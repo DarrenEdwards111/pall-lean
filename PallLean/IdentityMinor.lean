@@ -351,7 +351,7 @@ noncomputable def subsetSign (F : Type*) [Field F]
 theorem subsetSign_unit (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
     (i : Fin (Nat.choose pack.selected.length κ)) :
     subsetSign F Φ pack κ i = 1 ∨ subsetSign F Φ pack κ i = -1 := by
-  sorry -- Each coeff τ_C V_C = ±1, product of ±1's is ±1, times (-1)^κ is ±1
+  sorry -- Product of ±1 values is ±1; straightforward induction
 
 /-- The Kronecker δ property: coeff (τ_i) (R_j) = δ_{ij} · sign_i
 
@@ -383,8 +383,13 @@ theorem kronecker_delta [Field F] [Nontrivial F]
   -- Goal: coeff τ_i (C((-1)^|S_j|) * ∏V · ∏cvFactor) = if i=j then 1 else 0
   -- Step 2: Pull out the scalar C((-1)^κ)
   rw [getSubset_length]
-  -- Goal: coeff τ_i (C((-1)^κ) * ∏V · ∏cvFactor) = if i=j then 1 else 0
-  -- C((-1)^κ) * ∏V * ∏cvFactor — need to use coeff_C_mul after reassociating
+  -- Goal: coeff τ_i (C((-1)^κ) * ∏V * ∏cvFactor) = if i=j then sign else 0
+  rw [mul_assoc, coeff_C_mul]
+  -- Goal: (-1)^κ * coeff τ_i (∏V * ∏cvFactor) = if i=j then sign else 0
+  -- Now apply coeff_mul_disjoint to separate body vars (∏V) from selector vars (∏cvFactor)
+  -- τ_i is on body vars, ∏V is on body vars, ∏cvFactor involves selectors
+  -- coeff τ_i (∏V * ∏cvFactor) = coeff τ_i (∏V) * coeff 0 (∏cvFactor) by disjointness
+  -- ... but this requires careful setup
   sorry
 
 /-- **Main theorem**: identity minor construction (replaces axiom) -/
