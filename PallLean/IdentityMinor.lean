@@ -339,6 +339,27 @@ theorem getSubset_subset (pack : DisjointPacking Φ) (κ : ℕ)
   exact (sublistsLen_get_sublist pack.selected κ
     (i.cast (subsetList_length pack κ).symm)).subset hc
 
+/-- Constant term of cvFactor is 1: constantCoeff (1 - z_C V_C) = 1 -/
+theorem constantCoeff_cvFactor (Φ : TseitinFormula)
+    (c : Fin Φ.clauses.length) :
+    MvPolynomial.constantCoeff (cvFactor F Φ c) = 1 := by
+  unfold cvFactor
+  simp [map_sub, map_mul, map_one, MvPolynomial.constantCoeff_X, zero_mul, sub_zero]
+
+/-- Constant term of product of cvFactors is 1 -/
+theorem constantCoeff_cvFactor_prod (Φ : TseitinFormula)
+    (s : Finset (Fin Φ.clauses.length)) :
+    MvPolynomial.constantCoeff (s.prod (cvFactor F Φ)) = 1 := by
+  rw [map_prod]
+  exact Finset.prod_eq_one (fun c _ => constantCoeff_cvFactor Φ c)
+
+/-- Same as above but stated with coeff 0 -/
+theorem coeff_zero_cvFactor_prod (Φ : TseitinFormula)
+    (s : Finset (Fin Φ.clauses.length)) :
+    MvPolynomial.coeff 0 (s.prod (cvFactor F Φ)) = 1 := by
+  rw [← MvPolynomial.constantCoeff_eq]
+  exact constantCoeff_cvFactor_prod Φ s
+
 /-- Sign for subset i: (-1)^κ * ∏(coeff τ_C V_C for C ∈ S_i) -/
 noncomputable def subsetSign (F : Type*) [Field F]
     (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
@@ -386,11 +407,7 @@ theorem kronecker_delta [Field F] [Nontrivial F]
   -- Goal: coeff τ_i (C((-1)^κ) * ∏V * ∏cvFactor) = if i=j then sign else 0
   rw [mul_assoc, coeff_C_mul]
   -- Goal: (-1)^κ * coeff τ_i (∏V * ∏cvFactor) = if i=j then sign else 0
-  -- Now apply coeff_mul_disjoint to separate body vars (∏V) from selector vars (∏cvFactor)
-  -- τ_i is on body vars, ∏V is on body vars, ∏cvFactor involves selectors
-  -- coeff τ_i (∏V * ∏cvFactor) = coeff τ_i (∏V) * coeff 0 (∏cvFactor) by disjointness
-  -- ... but this requires careful setup
-  sorry
+  sorry -- Remaining: coeff_mul_disjoint for body/selector + diagonal/off-diagonal
 
 /-- **Main theorem**: identity minor construction (replaces axiom) -/
 theorem identity_minor_construction_proof [Nontrivial F]
