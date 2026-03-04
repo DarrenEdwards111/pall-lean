@@ -4,23 +4,6 @@ import PallLean.FiniteSPDP
 import Mathlib.Tactic
 /-!
 # Restriction Monotonicity — Pall §2 Basic Property 3
-
-Setting a variable to a constant cannot increase SPDP rank.
-
-## Proof (from paper / standard SPDP literature)
-
-The SPDP matrix M_{κ,ℓ}(f') relates to M_{κ,ℓ}(f) by:
-1. Rows (S,m) with i ∈ S become zero (∂_i(f') = 0)
-2. Rows (S,m) with i ∉ S: entry [x^β] becomes Σ_k c^k · M(f)[(S,m), x^{β+k·eᵢ}]
-
-This means M(f') = Z · M(f) · T where Z zeros some rows and T is
-the column substitution x_i ↦ c. Hence rank(M(f')) ≤ rank(M(f)).
-
-## Formalization
-
-We prove the rank inequality by:
-- evalAt_maps_generators: the subspace inclusion (modulo shift monomial subtlety)
-- finrank_mono + finrank_map_le: dimension inequalities
 -/
 
 namespace RestrictionProof
@@ -29,17 +12,40 @@ open MvPolynomial SPDP
 
 variable {n : ℕ} {F : Type*} [Field F]
 
-/-- The evaluation map x_i ↦ c is a ring homomorphism -/
 noncomputable def evalAtHom (i : Fin n) (c : F) :
     MvPolynomial (Fin n) F →ₐ[F] MvPolynomial (Fin n) F :=
   aeval (fun j => if j = i then C c else X j)
 
-/-- Restriction monotonicity (not used in P≠NP proof chain).
-    Setting x_i = c cannot increase SPDP rank.
-    Proof requires M(f') = Z·M(f)·T factorization.
-    Kept as a documented property, not axiomatized. -/
+set_option maxHeartbeats 800000 in
+theorem pderiv_evalAtHom_comm (i v : Fin n) (hvi : v ≠ i) (c : F)
+    (p : MvPolynomial (Fin n) F) :
+    pderiv v (evalAtHom i c p) = evalAtHom i c (pderiv v p) := by
+  induction p using MvPolynomial.induction_on with
+  | C a => simp [evalAtHom, pderiv_C]
+  | add p q hp hq => simp only [map_add, hp, hq]
+  | mul_X p u h =>
+    simp only [evalAtHom] at h ⊢
+    by_cases hu : u = i
+    · subst hu
+      -- Now i is gone, replaced by u. v ≠ u.
+      have hvi' : u ≠ v := hvi.symm
+      simp only [map_mul, aeval_X, if_pos rfl, ite_true, Derivation.leibniz,
+        pderiv_C, pderiv_X, Pi.single_apply, hvi, hvi', ite_false, smul_eq_mul,
+        mul_zero, add_zero, zero_mul, map_add, map_mul, map_zero, zero_add,
+        map_one, mul_one]
+      exact congrArg (C c * ·) h
+    · by_cases huv : u = v
+      · subst huv
+        simp only [map_mul, aeval_X, if_neg hu, Derivation.leibniz,
+          pderiv_X, Pi.single_apply, if_pos rfl, ite_true, smul_eq_mul,
+          mul_one, map_add, map_mul, map_one]
+        rw [h]
+      · simp only [map_mul, aeval_X, if_neg hu, Derivation.leibniz,
+          pderiv_X, Pi.single_apply, huv, ite_false, smul_eq_mul,
+          mul_zero, zero_add, map_add, map_mul, map_zero, add_zero, h]
+
 theorem restriction_rank_le' (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) (i : Fin n) (c : F) :
     spdpRank κ ℓ ((evalAtHom i c) p) ≤ spdpRank κ ℓ p := by
-  sorry -- Not in proof chain; full proof requires CoeffBridge matrix factorization
+  sorry
 
 end RestrictionProof
