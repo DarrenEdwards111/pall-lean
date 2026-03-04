@@ -2,6 +2,7 @@ import PallLean.TseitinDefs
 import PallLean.TagMonomial
 import PallLean.ProductDeriv
 import PallLean.SPDPDefs
+import PallLean.CoeffDisjoint
 import Mathlib.Tactic
 import Mathlib.Data.List.Sublists
 /-!
@@ -208,5 +209,56 @@ theorem iterDeriv_cvProd_eq [Nontrivial F] (Φ : TseitinFormula)
     simp only [List.length_cons, List.prod_cons]
     rw [pow_succ, map_mul, map_neg, map_one]
     ring
+
+/-! ## Step 5: Kronecker δ for tag monomials via coeff_mul_disjoint
+
+The key insight: after iterated derivative along selectors for subset S,
+we get C((-1)^|S|) * ∏_{C∈S} V_C * ∏_{C∉S} cvFactor.
+
+The tag monomials τ_C are supported on body variables (< numEdges + 3L).
+The cvFactors involve selector variables (≥ numEdges + 3L).
+So body and selector variables are disjoint.
+
+For the diagonal case (S = S'):
+  coeff (∑τ_C) (∏V_C) = ∏(coeff τ_C V_C) = ∏(±1) = ±1
+  coeff 0 (∏cvFactor) = 1 (constant term)
+  Total: ±1
+
+For off-diagonal (S ≠ S'):
+  The derivative along S' gives ∏_{C∈S'} V_C.
+  The tag monomial for S involves variables of clauses in S.
+  Since S ≠ S' and clauses are disjoint-packed, the tag for S
+  hits variables not present in ∏_{C∈S'} V_C → coefficient = 0.
+-/
+
+/-- Body variables and selector variables are disjoint -/
+theorem body_selector_disjoint (Φ : TseitinFormula) :
+    Disjoint
+      {i : Fin (tseitinNumVars Φ) | i.val < Φ.graph.numEdges + 3 * Φ.clauses.length}
+      {i : Fin (tseitinNumVars Φ) | i.val ≥ Φ.graph.numEdges + 3 * Φ.clauses.length} := by
+  rw [Set.disjoint_left]
+  intro x hx hy
+  simp at hx hy
+  omega
+
+/-- clauseGadget uses only body variables -/
+theorem clauseGadget_usesOnly_body [Nontrivial F] (Φ : TseitinFormula)
+    (c : Fin Φ.clauses.length) :
+    CoeffDisjoint.usesOnly (clauseGadget F Φ c)
+      {i : Fin (tseitinNumVars Φ) | i.val < Φ.graph.numEdges + 3 * Φ.clauses.length} := by
+  intro m hm x hx
+  simp only [Set.mem_setOf_eq]
+  -- m ∈ support of clauseGadget → x ∈ m.support → x is a body variable
+  -- This follows from clauseGadget_vars_bound
+  sorry -- Needs: support monomials only involve body vars. Follows from clauseGadget_vars_bound but requires relating monomial support to polynomial vars.
+
+/-- Tag monomial is supported on body variables -/
+theorem tagMonomial_supported_body (Φ : TseitinFormula)
+    (c : Fin Φ.clauses.length) :
+    CoeffDisjoint.monomSupportedIn (chooseTagMonomial (F := F) Φ c)
+      {i : Fin (tseitinNumVars Φ) | i.val < Φ.graph.numEdges + 3 * Φ.clauses.length} := by
+  intro x hx
+  simp only [Set.mem_setOf_eq]
+  exact chooseTagMonomial_support Φ c x hx
 
 end IdentityMinor
