@@ -198,4 +198,78 @@ theorem coeff_tag_pm1 (v1 v2 v3 : σ) (h12 : v1 ≠ v2) (h13 : v1 ≠ v3) (h23 :
     rw [coeff_sum12_product v1 v2 h12 s1 s2]
     cases s1 <;> cases s2 <;> simp
 
+/-! ## Wiring to clauseGadget -/
+
+/-- 1 - literalPoly F v s = if s then 1 - X v else X v -/
+lemma one_sub_literalPoly_eq {m : ℕ} (v : Fin m) (s : Bool) :
+    (1 : MvPolynomial (Fin m) F) - Tseitin.literalPoly F v s =
+    if s then 1 - X v else X v := by
+  cases s <;> simp [Tseitin.literalPoly]
+
+/-- Helper: clause var < tseitinNumVars (so mod is identity) -/
+private lemma clause_var_lt_numVars (Φ : Tseitin.TseitinFormula) (c : Fin Φ.clauses.length)
+    (v : ℕ) (hv : v < Φ.graph.numEdges + 3 * Φ.clauses.length) :
+    v < Tseitin.tseitinNumVars Φ := by
+  unfold Tseitin.tseitinNumVars; omega
+
+/-- The concrete tag_monomial_property for clauseGadget -/
+theorem tag_monomial_property_proof (F : Type*) [Field F]
+    (Φ : Tseitin.TseitinFormula) (c : Fin Φ.clauses.length) :
+    ∃ (τ_c : (Fin (Tseitin.tseitinNumVars Φ)) →₀ ℕ),
+      (∀ i ∈ τ_c.support, i.val < Φ.graph.numEdges + 3 * Φ.clauses.length) ∧
+      (MvPolynomial.coeff τ_c (Tseitin.clauseGadget F Φ c) = 1 ∨
+       MvPolynomial.coeff τ_c (Tseitin.clauseGadget F Φ c) = -1) := by
+  set cl := Φ.clauses.get c with hcl_def
+  have hcl_mem := List.getElem_mem c.isLt (l := Φ.clauses)
+  have hcvb := Φ.clause_vars_bound cl hcl_mem
+  obtain ⟨hcl1, hcl2, hcl3⟩ := hcvb
+  have hpos : Tseitin.tseitinNumVars Φ > 0 := by
+    unfold Tseitin.tseitinNumVars; have := c.isLt; omega
+  -- Fin indices for the three clause variables
+  set v1 : Fin (Tseitin.tseitinNumVars Φ) :=
+    ⟨cl.var1 % Tseitin.tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  set v2 : Fin (Tseitin.tseitinNumVars Φ) :=
+    ⟨cl.var2 % Tseitin.tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  set v3 : Fin (Tseitin.tseitinNumVars Φ) :=
+    ⟨cl.var3 % Tseitin.tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  -- mod is identity since vars < tseitinNumVars
+  have hmod1 : cl.var1 % Tseitin.tseitinNumVars Φ = cl.var1 :=
+    Nat.mod_eq_of_lt (clause_var_lt_numVars Φ c _ hcl1)
+  have hmod2 : cl.var2 % Tseitin.tseitinNumVars Φ = cl.var2 :=
+    Nat.mod_eq_of_lt (clause_var_lt_numVars Φ c _ hcl2)
+  have hmod3 : cl.var3 % Tseitin.tseitinNumVars Φ = cl.var3 :=
+    Nat.mod_eq_of_lt (clause_var_lt_numVars Φ c _ hcl3)
+  refine ⟨single v1 1 + single v2 1 + single v3 1, ?_, ?_⟩
+  · -- Support condition
+    intro i hi
+    rw [Finsupp.mem_support_iff] at hi
+    simp only [Finsupp.add_apply, Finsupp.single_apply] at hi
+    by_cases h1 : i = v1
+    · subst h1; simp [v1, hmod1]; exact hcl1
+    · by_cases h2 : i = v2
+      · subst h2; simp [v2, hmod2]; exact hcl2
+      · by_cases h3 : i = v3
+        · subst h3; simp [v3, hmod3]; exact hcl3
+        · exfalso; apply hi
+          simp only [Ne.symm h1, Ne.symm h2, Ne.symm h3, ite_false, add_zero]
+  · -- Coefficient is ±1
+    have hgadget : Tseitin.clauseGadget F Φ c =
+        (if cl.sign1 then 1 - X v1 else X v1) *
+        (if cl.sign2 then 1 - X v2 else X v2) *
+        (if cl.sign3 then 1 - X v3 else X v3) := by
+      show _ = _; unfold Tseitin.clauseGadget
+      simp only [one_sub_literalPoly_eq]
+      rfl
+    rw [hgadget]
+    have hdist12 : v1 ≠ v2 := by
+      intro h; have := congr_arg Fin.val h; simp [v1, v2, hmod1, hmod2] at this
+      exact cl.distinct12 this
+    have hdist13 : v1 ≠ v3 := by
+      intro h; have := congr_arg Fin.val h; simp [v1, v3, hmod1, hmod3] at this
+      exact cl.distinct13 this
+    have hdist23 : v2 ≠ v3 := by
+      intro h; have := congr_arg Fin.val h; simp [v2, v3, hmod2, hmod3] at this
+      exact cl.distinct23 this
+    exact coeff_tag_pm1 v1 v2 v3 hdist12 hdist13 hdist23 cl.sign1 cl.sign2 cl.sign3
+
 end TagMonomial

@@ -285,17 +285,20 @@ private theorem rank_from_identity_minor (F : Type*) [Field F]
   simp [Fintype.card_fin] at hcard
   omega
 
-/-- **Tag monomial property**: For each clause C, there exists a body monomial
-    τ_C such that [τ_C]V_C is a unit (nonzero, invertible).
+/-- **Tag monomial property** (PROVED in TagMonomial.lean as `tag_monomial_property_proof`):
+    For each clause C, there exists a body monomial τ_C such that
+    [τ_C]V_C is a unit (nonzero, invertible).
 
     For our clauseGadget V_C = (1-lit₁)(1-lit₂)(1-lit₃):
-    τ_C = X_{v₁} · X_{v₂} · X_{v₃} has coefficient (-1)^{# positive literals} = ±1. -/
+    τ_C = X_{v₁} · X_{v₂} · X_{v₃} has coefficient (-1)^{# positive literals} = ±1.
+
+    This axiom is redundant: see TagMonomial.tag_monomial_property_proof for the
+    full proof. Kept as axiom to avoid circular import (TagMonomial imports Tseitin).
+    To eliminate: refactor definitions to TseitinDefs.lean. -/
 axiom tag_monomial_property (F : Type*) [Field F]
     (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
     ∃ (τ_c : (Fin (tseitinNumVars Φ)) →₀ ℕ),
-      -- τ_c is supported only on clause-body variables (not selectors)
       (∀ i ∈ τ_c.support, i.val < Φ.graph.numEdges + 3 * Φ.clauses.length) ∧
-      -- coefficient is ±1 (a unit)
       (MvPolynomial.coeff τ_c (clauseGadget F Φ c) = 1 ∨
        MvPolynomial.coeff τ_c (clauseGadget F Φ c) = -1)
 
