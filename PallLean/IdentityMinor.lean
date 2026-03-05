@@ -50,23 +50,86 @@ theorem pderiv_selector_factor_ne (Φ : TseitinFormula)
 
 /-! ## Step 2: Tag monomial selection -/
 
-/-- For each clause, choose a tag monomial with coefficient ±1 -/
+/-- The explicit tag monomial: τ_c = single v1 1 + single v2 1 + single v3 1,
+    the square-free degree-3 monomial on clause c's three variables. -/
 noncomputable def chooseTagMonomial (Φ : TseitinFormula)
     (c : Fin Φ.clauses.length) :
     (Fin (tseitinNumVars Φ)) →₀ ℕ :=
-  (TagMonomial.tag_monomial_property_proof F Φ c).choose
+  let cl := Φ.clauses.get c
+  let hpos : tseitinNumVars Φ > 0 := by unfold tseitinNumVars; have := c.isLt; omega
+  let v1 : Fin (tseitinNumVars Φ) := ⟨cl.var1 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  let v2 : Fin (tseitinNumVars Φ) := ⟨cl.var2 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  let v3 : Fin (tseitinNumVars Φ) := ⟨cl.var3 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  Finsupp.single v1 1 + Finsupp.single v2 1 + Finsupp.single v3 1
+
+theorem chooseTagMonomial_eq (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
+    chooseTagMonomial Φ c =
+    let cl := Φ.clauses.get c
+    let hpos : tseitinNumVars Φ > 0 := by unfold tseitinNumVars; have := c.isLt; omega
+    let v1 : Fin (tseitinNumVars Φ) := ⟨cl.var1 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+    let v2 : Fin (tseitinNumVars Φ) := ⟨cl.var2 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+    let v3 : Fin (tseitinNumVars Φ) := ⟨cl.var3 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+    Finsupp.single v1 1 + Finsupp.single v2 1 + Finsupp.single v3 1 := rfl
 
 theorem chooseTagMonomial_support (Φ : TseitinFormula)
     (c : Fin Φ.clauses.length) :
-    ∀ i ∈ (chooseTagMonomial (F := F) Φ c).support,
-      i.val < Φ.graph.numEdges + 3 * Φ.clauses.length :=
-  (TagMonomial.tag_monomial_property_proof F Φ c).choose_spec.1
+    ∀ i ∈ (chooseTagMonomial Φ c).support,
+      i.val < Φ.graph.numEdges + 3 * Φ.clauses.length := by
+  intro i hi
+  simp only [chooseTagMonomial] at hi
+  rw [Finsupp.mem_support_iff] at hi
+  simp only [Finsupp.add_apply, Finsupp.single_apply] at hi
+  set cl := Φ.clauses.get c
+  have hcvb := Φ.clause_vars_bound cl (List.getElem_mem c.isLt)
+  obtain ⟨h1, h2, h3⟩ := hcvb
+  have hpos : tseitinNumVars Φ > 0 := by unfold tseitinNumVars; have := c.isLt; omega
+  set v1 : Fin (tseitinNumVars Φ) := ⟨cl.var1 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  set v2 : Fin (tseitinNumVars Φ) := ⟨cl.var2 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  set v3 : Fin (tseitinNumVars Φ) := ⟨cl.var3 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  by_cases hi1 : i = v1
+  · subst hi1; simp [v1, Nat.mod_eq_of_lt (by unfold tseitinNumVars; omega : cl.var1 < tseitinNumVars Φ)]; exact h1
+  · by_cases hi2 : i = v2
+    · subst hi2; simp [v2, Nat.mod_eq_of_lt (by unfold tseitinNumVars; omega : cl.var2 < tseitinNumVars Φ)]; exact h2
+    · by_cases hi3 : i = v3
+      · subst hi3; simp [v3, Nat.mod_eq_of_lt (by unfold tseitinNumVars; omega : cl.var3 < tseitinNumVars Φ)]; exact h3
+      · exfalso; apply hi; simp [Ne.symm hi1, Ne.symm hi2, Ne.symm hi3]
 
+set_option maxHeartbeats 400000 in
 theorem chooseTagMonomial_coeff (Φ : TseitinFormula)
     (c : Fin Φ.clauses.length) :
-    coeff (chooseTagMonomial (F := F) Φ c) (clauseGadget F Φ c) = 1 ∨
-    coeff (chooseTagMonomial (F := F) Φ c) (clauseGadget F Φ c) = -1 :=
-  (TagMonomial.tag_monomial_property_proof F Φ c).choose_spec.2
+    coeff (chooseTagMonomial Φ c) (clauseGadget F Φ c) = 1 ∨
+    coeff (chooseTagMonomial Φ c) (clauseGadget F Φ c) = -1 := by
+  -- chooseTagMonomial unfolds to single v1 1 + single v2 1 + single v3 1
+  -- clauseGadget unfolds to triple product of literal polys
+  -- Use coeff_tag_pm1 after showing the gadget equals the right form
+  unfold chooseTagMonomial clauseGadget
+  simp only [TagMonomial.one_sub_literalPoly_eq]
+  set cl := Φ.clauses.get c
+  have hcvb := Φ.clause_vars_bound cl (List.getElem_mem c.isLt)
+  obtain ⟨hcl1, hcl2, hcl3⟩ := hcvb
+  have hpos : tseitinNumVars Φ > 0 := by unfold tseitinNumVars; have := c.isLt; omega
+  set v1 : Fin (tseitinNumVars Φ) := ⟨cl.var1 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  set v2 : Fin (tseitinNumVars Φ) := ⟨cl.var2 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  set v3 : Fin (tseitinNumVars Φ) := ⟨cl.var3 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  have hm1 : cl.var1 % tseitinNumVars Φ = cl.var1 :=
+    Nat.mod_eq_of_lt (by unfold tseitinNumVars; omega)
+  have hm2 : cl.var2 % tseitinNumVars Φ = cl.var2 :=
+    Nat.mod_eq_of_lt (by unfold tseitinNumVars; omega)
+  have hm3 : cl.var3 % tseitinNumVars Φ = cl.var3 :=
+    Nat.mod_eq_of_lt (by unfold tseitinNumVars; omega)
+  have hdist12 : v1 ≠ v2 := by
+    intro h; have hv := congr_arg Fin.val h
+    change cl.var1 % tseitinNumVars Φ = cl.var2 % tseitinNumVars Φ at hv
+    rw [hm1, hm2] at hv; exact cl.distinct12 hv
+  have hdist13 : v1 ≠ v3 := by
+    intro h; have hv := congr_arg Fin.val h
+    change cl.var1 % tseitinNumVars Φ = cl.var3 % tseitinNumVars Φ at hv
+    rw [hm1, hm3] at hv; exact cl.distinct13 hv
+  have hdist23 : v2 ≠ v3 := by
+    intro h; have hv := congr_arg Fin.val h
+    change cl.var2 % tseitinNumVars Φ = cl.var3 % tseitinNumVars Φ at hv
+    rw [hm2, hm3] at hv; exact cl.distinct23 hv
+  exact TagMonomial.coeff_tag_pm1 v1 v2 v3 hdist12 hdist13 hdist23 cl.sign1 cl.sign2 cl.sign3
 
 /-! ## Proof assembly — this is the main construction -/
 
@@ -253,7 +316,7 @@ theorem clauseGadget_usesOnly_body [Nontrivial F] (Φ : TseitinFormula)
 /-- Tag monomial is supported on body variables -/
 theorem tagMonomial_supported_body (Φ : TseitinFormula)
     (c : Fin Φ.clauses.length) :
-    CoeffDisjoint.monomSupportedIn (chooseTagMonomial (F := F) Φ c)
+    CoeffDisjoint.monomSupportedIn (chooseTagMonomial Φ c)
       {i : Fin (tseitinNumVars Φ) | i.val < Φ.graph.numEdges + 3 * Φ.clauses.length} := by
   intro x hx
   simp only [Set.mem_setOf_eq]
@@ -285,15 +348,25 @@ theorem clauseGadget_usesOnly_clause [Nontrivial F] (Φ : TseitinFormula)
 /-- chooseTagMonomial c is supported in clause c's variables -/
 theorem tagMonomial_supported_clause (Φ : TseitinFormula)
     (c : Fin Φ.clauses.length) :
-    CoeffDisjoint.monomSupportedIn (chooseTagMonomial (F := F) Φ c)
+    CoeffDisjoint.monomSupportedIn (chooseTagMonomial Φ c)
       (↑(clauseVarSetFin Φ c) : Set _) := by
   intro x hx
-  -- chooseTagMonomial uses body vars of clause c
-  -- chooseTagMonomial_support gives x.val < numEdges + 3*numClauses
-  -- But we need x ∈ clauseVarSetFin — this needs the tag monomial
-  -- to use exactly the same 3 variables as clauseGadget.
-  -- For now, defer to the broader body-level support.
-  sorry -- needs chooseTagMonomial to use exactly clause c's vars
+  rw [Finsupp.mem_support_iff] at hx
+  simp only [chooseTagMonomial, Finsupp.add_apply, Finsupp.single_apply] at hx
+  set cl := Φ.clauses.get c
+  have hpos : tseitinNumVars Φ > 0 := by unfold tseitinNumVars; have := c.isLt; omega
+  set v1 : Fin (tseitinNumVars Φ) := ⟨cl.var1 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  set v2 : Fin (tseitinNumVars Φ) := ⟨cl.var2 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  set v3 : Fin (tseitinNumVars Φ) := ⟨cl.var3 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  show x ∈ (↑(clauseVarSetFin Φ c) : Set _)
+  simp only [Finset.mem_coe, clauseVarSetFin, Finset.mem_insert, Finset.mem_singleton]
+  by_cases h1 : x = v1
+  · left; exact h1
+  · by_cases h2 : x = v2
+    · right; left; exact h2
+    · by_cases h3 : x = v3
+      · right; right; exact h3
+      · exfalso; apply hx; simp [Ne.symm h1, Ne.symm h2, Ne.symm h3]
 
 /-- Per-clause variable sets are disjoint for distinct packed clauses -/
 theorem clauseVarSetFin_disjoint [Nontrivial F] (Φ : TseitinFormula)
@@ -382,7 +455,7 @@ noncomputable def tagMono (F : Type*) [Field F]
     (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
     (i : Fin (Nat.choose pack.selected.length κ)) :
     (Fin (tseitinNumVars Φ)) →₀ ℕ :=
-  ((getSubset pack κ i).map (chooseTagMonomial (F := F) Φ)).foldl (· + ·) 0
+  ((getSubset pack κ i).map (chooseTagMonomial Φ)).foldl (· + ·) 0
 
 /-- Elements of sublistsLen are sublists of the original -/
 private theorem sublistsLen_get_sublist' (l : List α) (n : ℕ)
@@ -491,7 +564,7 @@ noncomputable def subsetSign (F : Type*) [Field F]
     (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
     (i : Fin (Nat.choose pack.selected.length κ)) : F :=
   (-1)^κ * ((getSubset pack κ i).map
-    (fun c => MvPolynomial.coeff (chooseTagMonomial (F := F) Φ c)
+    (fun c => MvPolynomial.coeff (chooseTagMonomial Φ c)
                                   (clauseGadget F Φ c))).prod
 
 /-- subsetSign is ±1 (each factor is ±1 by tag_monomial_property) -/
@@ -522,7 +595,7 @@ theorem subsetSign_unit (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : 
     subsetSign F Φ pack κ i = 1 ∨ subsetSign F Φ pack κ i = -1 := by
   unfold subsetSign
   have hprod : ∀ x ∈ (getSubset pack κ i).map
-      (fun c => MvPolynomial.coeff (chooseTagMonomial (F := F) Φ c) (clauseGadget F Φ c)),
+      (fun c => MvPolynomial.coeff (chooseTagMonomial Φ c) (clauseGadget F Φ c)),
       x = 1 ∨ x = -1 := by
     intro x hx
     simp only [List.mem_map] at hx
@@ -745,9 +818,9 @@ theorem coeff_tagMono_prod_diagonal [Nontrivial F]
     (hcs : cs.Nodup)
     (hsel : ∀ c ∈ cs, c ∈ pack.selected) :
     MvPolynomial.coeff
-      (cs.map (chooseTagMonomial (F := F) Φ) |>.foldl (· + ·) 0)
+      (cs.map (chooseTagMonomial Φ) |>.foldl (· + ·) 0)
       (cs.map (clauseGadget F Φ) |>.prod) =
-    (cs.map (fun c => MvPolynomial.coeff (chooseTagMonomial (F := F) Φ c)
+    (cs.map (fun c => MvPolynomial.coeff (chooseTagMonomial Φ c)
                                           (clauseGadget F Φ c))).prod := by
   -- Induction on cs. Base: coeff 0 1 = 1. Step: split head off using coeff_mul_disjoint.
   -- Needs: clauseVarSet disjointness → polynomial variable disjointness → usesOnly disjointness
