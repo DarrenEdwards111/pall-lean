@@ -101,9 +101,10 @@ def conflicting (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
 /-- Each clause conflicts with at most 29 others (plus itself = 30 total) -/
 theorem conflicting_card_le (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
     (conflicting Φ c).card ≤ 30 := by
-  -- conflicting c ⊆ ⋃ v ∈ clauseVarSet c, {c' | v ∈ clauseVarSet c'}
-  -- Each variable appears in ≤ 10 clauses, and |clauseVarSet c| ≤ 3
-  -- So |conflicting c| ≤ 3 × 10 = 30
+  -- Proof sketch: conflicting c ⊆ ⋃_{v ∈ clauseVarSet c} {c' | v ∈ clauseVarSet c'}
+  -- |clauseVarSet c| ≤ 3 (it's {var1, var2, var3})
+  -- Each variable appears in ≤ 10 clauses (bounded_occurrence)
+  -- Union bound: |conflicting c| ≤ 3 × 10 = 30
   sorry
 
 /-- Greedy packing algorithm via well-founded recursion on remaining clause count -/
