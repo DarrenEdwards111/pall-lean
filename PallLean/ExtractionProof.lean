@@ -386,9 +386,18 @@ theorem gauge_rank_le_trivial
   rw [this]
   exact gauge_scalar_rank_le B κ ℓ a ha p
 
-/-- Gauge (general): with block-disjoint monomial and adjusted degree bound.
-    The monomial adds degree to multipliers, so we need ℓ' = ℓ + deg(monomial).
-    For the extraction pipeline, the paper accounts for this in the composition. -/
+/-- ℓ-monotonicity: larger multiplier degree budget → larger (or equal) rank.
+    This is the key composition device for the extraction pipeline. -/
+theorem blockedSpdpRank_ell_mono
+    (B : BlockPartition n) (κ ℓ ℓ' : ℕ) (hℓ : ℓ ≤ ℓ')
+    (p : MvPolynomial (Fin n) F) :
+    blockedSpdpRank B κ ℓ p ≤ blockedSpdpRank B κ ℓ' p := by
+  unfold blockedSpdpRank
+  apply Submodule.finrank_mono
+  apply Submodule.span_mono
+  intro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+  exact ⟨S, m, hlen, le_trans hdeg hℓ, hadm, hq⟩
+
 theorem gauge_rank_le
     (B : BlockPartition n) (κ ℓ : ℕ)
     (a : F) (ha : a ≠ 0) (m_mono : (Fin n) →₀ ℕ)
@@ -396,10 +405,50 @@ theorem gauge_rank_le
     (hG : ∀ (S : List (Fin n)), isBlockAdmissible B S →
           ∀ i ∈ S, m_mono i = 0) :
     blockedSpdpRank B κ ℓ (ExtractionPipeline.gaugePoly a ha m_mono p) ≤
-    blockedSpdpRank B (κ) (ℓ + m_mono.sum (fun _ e => e)) p := by
-  -- Gauge monomial commutes with admissible derivatives (block-disjoint).
-  -- The multiplier gains degree from the monomial factor.
-  sorry
+    blockedSpdpRank B κ (ℓ + m_mono.sum (fun _ e => e)) p := by
+  -- gaugePoly = C(a) * monomial(m_mono, 1) * p
+  -- By block-disjointness, both factors commute with admissible derivatives.
+  -- Generator: m * ∂^S(C(a) * monomial(m_mono,1) * p)
+  --          = m * C(a) * monomial(m_mono,1) * ∂^S(p)
+  -- Multiplier degree: deg(m * C(a) * monomial(m_mono,1)) ≤ ℓ + 0 + Δ = ℓ + Δ
+  unfold ExtractionPipeline.gaugePoly blockedSpdpRank
+  apply Submodule.finrank_mono
+  unfold blockedSpdpSubspace
+  apply Submodule.span_le.mpr
+  intro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+  -- Commutation: derivatives pass through C(a) and monomial(m_mono,1)
+  have hcomm_C : ∀ (r : MvPolynomial (Fin n) F) (T : List (Fin n)),
+      iterDerivList T (MvPolynomial.C a * r) =
+      MvPolynomial.C a * iterDerivList T r := by
+    intro r T; induction T generalizing r with
+    | nil => simp [iterDerivList]
+    | cons j rest ih =>
+      simp only [iterDerivList, List.foldl]
+      have : pderiv j (MvPolynomial.C a * r) = MvPolynomial.C a * pderiv j r := by
+        rw [Derivation.leibniz]; simp [pderiv_C]
+      rw [this]; exact ih _
+  rw [hq]
+  -- Goal: m * iterDerivList S (C a * monomial m_mono 1 * p) ∈ ...
+  -- Reassociate: C a * monomial m_mono 1 * p = C a * (monomial m_mono 1 * p)
+  rw [show MvPolynomial.C a * monomial m_mono (1 : F) * p =
+      MvPolynomial.C a * (monomial m_mono (1 : F) * p) from by ring]
+  rw [hcomm_C, iterDerivList_mul_monomial_comm m_mono S (hG S hadm),
+      ← mul_assoc, ← mul_assoc]
+  -- Multiplier: m * C(a) * monomial(m_mono,1), degree ≤ ℓ + Δ
+  have hdeg' : (m * MvPolynomial.C a * monomial m_mono (1 : F)).totalDegree
+      ≤ ℓ + m_mono.sum (fun _ e => e) := by
+    calc (m * MvPolynomial.C a * monomial m_mono 1).totalDegree
+        ≤ (m * MvPolynomial.C a).totalDegree + (monomial m_mono (1 : F)).totalDegree :=
+          totalDegree_mul _ _
+      _ ≤ m.totalDegree + (monomial m_mono (1 : F)).totalDegree := by
+          have : (MvPolynomial.C a : MvPolynomial (Fin n) F).totalDegree = 0 := totalDegree_C a
+          linarith [totalDegree_mul m (MvPolynomial.C a)]
+      _ ≤ ℓ + m_mono.sum (fun _ e => e) := by
+          have hm := MvPolynomial.totalDegree_monomial_le m_mono (1 : F)
+          have : m_mono.sum (fun _ => id) = m_mono.sum (fun _ e => e) := by congr 1
+          linarith
+  exact Submodule.subset_span ⟨S, m * MvPolynomial.C a * monomial m_mono 1,
+    hlen, hdeg', hadm, rfl⟩
 
 /-! ## Step 6: Composition — wiring to the axiom signature -/
 
