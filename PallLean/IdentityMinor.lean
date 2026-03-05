@@ -531,10 +531,70 @@ theorem coeff_cvFactor_prod_body_eq_zero [Nontrivial F]
     (hbody : CoeffDisjoint.monomSupportedIn m
       {v : Fin (tseitinNumVars Φ) | v.val < Φ.graph.numEdges + 3 * Φ.clauses.length}) :
     MvPolynomial.coeff m (s.prod (cvFactor F Φ)) = 0 := by
-  -- Expansion: each monomial in ∏(1-z_C V_C) that involves any body variables
-  -- must also involve a selector variable (from the z_C factor).
-  -- Since m is body-only (no selector vars) and m ≠ 0, no monomial matches.
-  sorry -- Structural expansion argument; needs induction on s
+  -- Induction on the Finset product
+  induction s using Finset.induction with
+  | empty =>
+    -- ∏∅ = 1, coeff m 1 = 0 for m ≠ 0
+    simp [MvPolynomial.coeff_one, if_neg (Ne.symm hm)]
+  | @insert c s' hnotmem ih =>
+    -- ∏(insert c s') = cvFactor c * ∏s'
+    rw [Finset.prod_insert hnotmem, MvPolynomial.coeff_mul]
+    -- Every term in the convolution sum is 0
+    apply Finset.sum_eq_zero
+    intro ⟨a, b⟩ hab
+    rw [Finset.mem_antidiagonal] at hab
+    -- Case split: a = 0 or a ≠ 0
+    by_cases ha : a = 0
+    · -- a = 0: coeff 0 (cvFactor c) = 1, but b = m and coeff m (∏s') = 0 by IH
+      subst ha; simp only [zero_add] at hab; subst hab
+      rw [ih, mul_zero]
+    · -- a ≠ 0 and body-only: coeff a (cvFactor c) = 0
+      -- cvFactor c = 1 - X(sel_c) * V_c
+      -- Any nonzero monomial of cvFactor c involves selector sel_c
+      -- But a is body-only (all vars have index < numEdges + 3*numClauses)
+      -- and sel_c has index ≥ numEdges + 3*numClauses
+      -- So coeff a (cvFactor c) = 0
+      have ha_body : CoeffDisjoint.monomSupportedIn a
+          {v : Fin (tseitinNumVars Φ) | v.val < Φ.graph.numEdges + 3 * Φ.clauses.length} := by
+        intro x hx
+        have := hbody x (by rw [← hab]; exact Finsupp.mem_support_iff.mpr (by
+          have := Finsupp.mem_support_iff.mp hx
+          simp [Finsupp.add_apply]; omega))
+        exact this
+      -- coeff a (1 - X(sel) * V) = coeff a 1 - coeff a (X(sel) * V)
+      -- coeff a 1 = 0 (since a ≠ 0)
+      -- So coeff a (cvFactor c) = -coeff a (X(sel) * V)
+      -- But every monomial of X(sel) * V has sel in support, and a doesn't
+      -- So coeff a (X(sel) * V) = 0 too
+      have : MvPolynomial.coeff a (cvFactor F Φ c) = 0 := by
+        unfold cvFactor
+        -- cvFactor = 1 - X(sel) * V
+        -- coeff a (1 - X(sel)*V) = coeff a 1 - coeff a (X(sel)*V)
+        -- = 0 - coeff a (X(sel)*V) since a ≠ 0
+        -- coeff a (X(sel)*V) = 0 because every monomial has sel in support
+        have h1 : MvPolynomial.coeff a (1 : MvPolynomial _ F) = 0 := by
+          rw [MvPolynomial.coeff_one]; exact if_neg (Ne.symm ha)
+        simp only [MvPolynomial.coeff_sub, h1, zero_sub, neg_eq_zero]
+        -- Show coeff a (X(sel_c) * clauseGadget) = 0
+        rw [MvPolynomial.coeff_mul]
+        apply Finset.sum_eq_zero
+        intro ⟨a₁, a₂⟩ ha12
+        rw [Finset.mem_antidiagonal] at ha12
+        by_cases ha1 : a₁ = Finsupp.single (selectorIdx Φ c) 1
+        · -- a₁ = single sel_c 1, so sel_c ∈ a.support, contradiction
+          exfalso
+          have hsel_in_a : (selectorIdx Φ c) ∈ a.support := by
+            rw [Finsupp.mem_support_iff, ← ha12, Finsupp.add_apply, ha1,
+                Finsupp.single_apply, if_pos rfl]
+            omega
+          have := ha_body _ hsel_in_a
+          simp [selectorIdx, tseitinNumVars, Set.mem_setOf_eq] at this
+        · -- a₁ ≠ single sel_c 1, so coeff a₁ (X sel_c) = 0
+          have : MvPolynomial.coeff a₁ (MvPolynomial.X (selectorIdx Φ c) : MvPolynomial _ F) = 0 := by
+            rw [MvPolynomial.coeff_X']
+            simp [Ne.symm ha1]
+          simp [this]
+      simp [this]
 
 /-! ## Step 6c: Coefficient factorization for the body/selector split -/
 
