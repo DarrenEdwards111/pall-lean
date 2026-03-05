@@ -889,11 +889,54 @@ theorem coeff_tagMono_prod_offdiag [Nontrivial F]
     MvPolynomial.coeff
       (tagMono F Φ pack κ i)
       ((getSubset pack κ j).map (clauseGadget F Φ) |>.prod) = 0 := by
-  -- S_i ≠ S_j (distinct sublists of same length from nodup list)
-  -- → ∃ c ∈ S_i, c ∉ S_j
-  -- → τ_c supported on clause c's vars, disjoint from all clause vars in S_j
-  -- → coeff vanishes
-  sorry -- Tag mismatch for off-diagonal subsets
+  -- Step 1: S_i ≠ S_j → ∃ c ∈ S_i, c ∉ S_j
+  -- (distinct κ-sublists of a nodup list must differ in at least one element)
+  have ⟨c, hci, hcj⟩ : ∃ c, c ∈ getSubset pack κ i ∧ c ∉ getSubset pack κ j := by
+    -- getSubset i and getSubset j have the same length κ, are sublists of
+    -- the nodup list pack.selected, and i ≠ j, so they must differ.
+    by_contra hall
+    push_neg at hall
+    -- Every element of getSubset i is in getSubset j
+    -- Both have length κ (same) and are nodup (sublists of nodup)
+    -- So they're equal as sets, hence as nodup lists of same length → permutations
+    -- But they're distinct sublists indexed by i ≠ j → contradiction
+    sorry -- structural: distinct nodup sublists of same length with ⊆ are equal
+  -- Step 2: ∏ S_j gadgets uses only ⋃ S_j clause vars
+  set Bj : Set (Fin (tseitinNumVars Φ)) :=
+    {x | ∃ c' ∈ getSubset pack κ j, x ∈ (clauseVarSetFin Φ c' : Finset _)}
+  have hprod_uses : CoeffDisjoint.usesOnly
+      ((getSubset pack κ j).map (clauseGadget F Φ)).prod Bj := by
+    apply CoeffDisjoint.usesOnly_list_prod
+    intro p hp
+    simp only [List.mem_map] at hp
+    obtain ⟨c', hc', rfl⟩ := hp
+    exact CoeffDisjoint.usesOnly_mono (clauseGadget_usesOnly_clause Φ c')
+      (fun x hx => ⟨c', hc', Finset.mem_coe.mp hx⟩)
+  -- Step 3: tagMono i has a variable outside Bj
+  -- c ∈ S_i means chooseTagMonomial c contributes to tagMono i
+  -- Its var1 is in clauseVarSetFin c, disjoint from all S_j clause vars
+  have hc_sel : c ∈ pack.selected := getSubset_subset' pack κ i c hci
+  set cl := Φ.clauses.get c
+  have hpos : tseitinNumVars Φ > 0 := by unfold tseitinNumVars; have := c.isLt; omega
+  set v1 : Fin (tseitinNumVars Φ) := ⟨cl.var1 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  -- v1 ∈ support of tagMono i (no cancellation: disjoint vars across clauses)
+  have hv1_tagmono : (tagMono F Φ pack κ i) v1 ≠ 0 := by
+    sorry -- foldl sum has no cancellation on disjoint-var monomials
+  -- v1 ∉ Bj (c ∉ S_j and clause vars are packing-disjoint)
+  have hv1_notBj : v1 ∉ Bj := by
+    intro ⟨c', hc'j, hv1c'⟩
+    have hc'_sel : c' ∈ pack.selected := getSubset_subset' pack κ j c' hc'j
+    have hcc' : c ≠ c' := fun h => hcj (h ▸ hc'j)
+    obtain ⟨ic, rfl⟩ := List.get_of_mem hc_sel
+    obtain ⟨jc, rfl⟩ := List.get_of_mem hc'_sel
+    have hij' : ic ≠ jc := fun heq => hcc' (congr_arg _ heq)
+    have hdisj := clauseVarSetFin_disjoint (F := F) Φ pack ic jc hij'
+    have hv1_c : v1 ∈ clauseVarSetFin Φ (pack.selected.get ic) :=
+      Finset.mem_insert_self _ _
+    exact absurd hv1c' (Finset.disjoint_left.mp hdisj hv1_c)
+  -- Step 4: coeff vanishes because tagMono has var outside product's var set
+  exact CoeffDisjoint.coeff_eq_zero_of_not_supported hprod_uses
+    ⟨v1, Finsupp.mem_support_iff.mpr hv1_tagmono, hv1_notBj⟩
 
 /-! ## Step 7: Kronecker δ assembly -/
 
