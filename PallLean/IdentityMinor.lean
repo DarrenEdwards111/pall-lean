@@ -877,11 +877,19 @@ theorem coeff_tagMono_prod_diagonal [Nontrivial F]
     rw [CoeffDisjoint.coeff_mul_disjoint hp hq hdisj hmA hmB]
     rw [ih hnd_rest hsel_rest]
 
+/-- Two sublists of a nodup list with the same toFinset are equal.
+    Standard combinatorial fact: sublist order is uniquely determined by parent order. -/
+theorem sublist_eq_of_nodup_toFinset_eq [DecidableEq α] {l l₁ l₂ : List α}
+    (hnd : l.Nodup) (h1 : l₁.Sublist l) (h2 : l₂.Sublist l)
+    (hfs : l₁.toFinset = l₂.toFinset) : l₁ = l₂ := by
+  sorry
+
 /-- Off-diagonal: coeff (∑τ_C for C∈S_i) (∏V_C for C∈S_j) = 0 when S_i ≠ S_j
 
     There exists C ∈ S_i with C ∉ S_j. The tag monomial τ_C has support
     on clause C's variables, which are disjoint from all variables in S_j
     (by disjoint packing). So that part of the monomial can't be matched. -/
+
 theorem coeff_tagMono_prod_offdiag [Nontrivial F]
     (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
     (i j : Fin (Nat.choose pack.selected.length κ))
@@ -929,7 +937,12 @@ theorem coeff_tagMono_prod_offdiag [Nontrivial F]
       -- which is getSubset i = getSubset j
       -- From: same toFinset + nodup + sublists of nodup → perm → equal
       show getSubset pack κ i = getSubset pack κ j
-      sorry -- perm of sublists of nodup with same elements → equal
+      -- Two sublists of a nodup list with the same toFinset are equal
+      have hsub_i := sublistsLen_get_sublist' pack.selected κ
+        (i.cast (subsetList_length pack κ).symm)
+      have hsub_j := sublistsLen_get_sublist' pack.selected κ
+        (j.cast (subsetList_length pack κ).symm)
+      exact sublist_eq_of_nodup_toFinset_eq pack.selected_nodup hsub_i hsub_j hfs_eq
     -- Extract i = j from cast equality
     have : i = j := by
       have := congr_arg Fin.val heq_idx; simp at this; exact Fin.val_injective this
