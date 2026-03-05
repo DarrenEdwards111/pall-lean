@@ -178,9 +178,29 @@ private theorem clauseGadget_vars_subset (F : Type*) [CommRing F] [Nontrivial F]
   set v1 : Fin (tseitinNumVars Φ) := ⟨cl.var1 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
   set v2 : Fin (tseitinNumVars Φ) := ⟨cl.var2 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
   set v3 : Fin (tseitinNumVars Φ) := ⟨cl.var3 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
-  intro w hw
-  -- clauseGadget unfolds to product of three factors; vars subset follows from vars_mul
-  sorry -- Not in proof chain; helper for clauseGadget_vars_bound. Needs unfold fix.
+  -- clauseGadget is definitionally equal to triple product of (1 - literalPoly).
+  -- We prove vars ⊆ {v1,v2,v3} using vars_mul and one_sub_literalPoly_vars_subset.
+  -- Use a helper that avoids name clashes with let-bound variables.
+  have key : ∀ x ∈ (clauseGadget F Φ c).vars, x ∈ ({v1, v2, v3} : Finset _) := by
+    intro x hx
+    -- clauseGadget is definitionally (1-lit1)*(1-lit2)*(1-lit3)
+    have hx' := MvPolynomial.vars_mul _ _ hx
+    rw [Finset.mem_union] at hx'
+    rcases hx' with hx_ab | hx_c
+    · have hx'' := MvPolynomial.vars_mul _ _ hx_ab
+      rw [Finset.mem_union] at hx''
+      rcases hx'' with hx_a | hx_b
+      · have := one_sub_literalPoly_vars_subset F v1 cl.sign1 x hx_a
+        simp only [Finset.mem_singleton] at this; subst this
+        exact Finset.mem_insert_self _ _
+      · have := one_sub_literalPoly_vars_subset F v2 cl.sign2 x hx_b
+        simp only [Finset.mem_singleton] at this; subst this
+        exact Finset.mem_insert.mpr (Or.inr (Finset.mem_insert_self _ _))
+    · have := one_sub_literalPoly_vars_subset F v3 cl.sign3 x hx_c
+      simp only [Finset.mem_singleton] at this; subst this
+      exact Finset.mem_insert.mpr (Or.inr (Finset.mem_insert.mpr
+        (Or.inr (Finset.mem_singleton.mpr rfl))))
+  exact key
 
 theorem clauseGadget_vars_bound (F : Type*) [CommRing F] [Nontrivial F]
     (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
