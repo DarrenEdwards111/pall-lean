@@ -1012,13 +1012,40 @@ theorem kronecker_delta [Field F] [Nontrivial F]
     (i j : Fin (Nat.choose pack.selected.length κ)) :
     MvPolynomial.coeff (tagMono F Φ pack κ i) (rowPoly F Φ pack κ j) =
     if i = j then subsetSign F Φ pack κ i else 0 := by
-  sorry
-  /- Full proof (depends on sorry'd helper lemmas):
-     unfold rowPoly; rw [coupledVerifier_eq_prod]
-     rw [iterDeriv_cvProd_eq]; rw [getSubset_length, mul_assoc, coeff_C_mul]
-     rw [coeff_body_prod_cvFactor]; split
-     · subst; unfold subsetSign; rw [coeff_tagMono_prod_diagonal]
-     · rw [coeff_tagMono_prod_offdiag, mul_zero] -/
+  -- Unfold rowPoly to iterDerivList on coupledVerifier
+  unfold rowPoly selectorList
+  -- coupledVerifier = ∏ cvFactor over all clauses
+  rw [coupledVerifier_eq_prod Φ]
+  -- Apply iterated derivative decomposition
+  have hnd_j := getSubset_nodup' pack κ j
+  have hsel_j : ∀ k ∈ getSubset pack κ j, k ∈ Finset.univ :=
+    fun k _ => Finset.mem_univ k
+  rw [iterDeriv_cvProd_eq Φ (getSubset pack κ j) hnd_j Finset.univ hsel_j]
+  rw [getSubset_length]
+  -- Now goal: coeff τ_i (C((-1)^κ) * ∏ gadgets_j * remaining) = ...
+  -- Factor out the scalar C((-1)^κ)
+  rw [mul_assoc, MvPolynomial.coeff_C_mul]
+  -- The remaining cvFactors don't affect body-supported monomials
+  have htag_body : CoeffDisjoint.monomSupportedIn (tagMono F Φ pack κ i)
+      {v : Fin (tseitinNumVars Φ) | v.val < Φ.graph.numEdges + 3 * Φ.clauses.length} := by
+    unfold tagMono
+    apply CoeffDisjoint.monomSupportedIn_foldl_add
+    intro m hm
+    simp only [List.mem_map] at hm
+    obtain ⟨c, _, rfl⟩ := hm
+    exact fun x hx => chooseTagMonomial_support Φ c x hx
+  rw [coeff_body_prod_cvFactor Φ _ _ _ htag_body]
+  -- Now: (-1)^κ * coeff τ_i (∏ gadgets_j) = if i = j then subsetSign i else 0
+  split
+  · -- i = j case
+    rename_i heq; subst heq
+    unfold subsetSign tagMono
+    congr 1
+    exact coeff_tagMono_prod_diagonal (F := F) Φ pack _ hnd_j
+      (fun c hc => getSubset_subset' pack κ i c hc)
+  · -- i ≠ j case
+    rename_i hne
+    rw [coeff_tagMono_prod_offdiag Φ pack κ i j hne, mul_zero]
 
 /-- **Main theorem**: identity minor construction (replaces axiom) -/
 theorem identity_minor_construction_proof [Nontrivial F]
