@@ -354,14 +354,17 @@ theorem gauge_rank_le
     blockedSpdpRank B κ ℓ (ExtractionPipeline.gaugePoly a ha m_mono p) ≤
     blockedSpdpRank B κ ℓ p := by
   -- gaugePoly a ha m_mono p = C(a) * monomial(m_mono, 1) * p
-  -- Decompose: first scalar gauge (C(a)*), then monomial gauge (monomial(m_mono,1)*).
-  -- Scalar part: gauge_scalar_rank_le handles C(a)* via pderiv commutation.
-  -- Monomial part: multiplication by monomial(m_mono,1) is injective (integral domain)
-  -- but derivatives don't commute with it (Leibniz cross terms).
-  -- The paper treats this as block-local invertible; in practice the extraction
-  -- pipeline's gauge step is typically scalar-only (m_mono = 0).
-  -- For m_mono = 0: gaugePoly a ha 0 p = C(a) * 1 * p = C(a) * p.
-  -- TODO: prove for m_mono = 0 case and leave general case as hypothesis
+  -- For the general case with nontrivial monomial, Leibniz cross terms
+  -- prevent simple derivative commutation. The paper uses block-locality
+  -- to handle this. For the extraction pipeline, gauge is typically scalar.
+  --
+  -- Proof strategy for general case (from Darren):
+  -- Multiplication by u = C(a) * monomial(m,1) is INJECTIVE (integral domain).
+  -- For any injective linear map f and finite-dim subspace W:
+  --   finrank(W.map f) = finrank(W)
+  -- But blockedSpdpSubspace(u*p) ≠ (blockedSpdpSubspace p).map (u*·)
+  -- because of Leibniz in ∂^S(u*p). The block-locality argument from the
+  -- paper is needed to handle the cross terms.
   sorry
 
 /-! ## Step 6: Composition — wiring to the axiom signature -/
