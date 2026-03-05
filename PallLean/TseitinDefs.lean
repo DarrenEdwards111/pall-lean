@@ -72,7 +72,7 @@ structure TseitinFormula where
     c.var2 < graph.numEdges + 3 * clauses.length ∧
     c.var3 < graph.numEdges + 3 * clauses.length
   bounded_occurrence : ∀ (v : ℕ),
-    (clauses.filter (fun c => c.var1 = v ∨ c.var2 = v ∨ c.var3 = v)).length ≤ 30
+    (clauses.filter (fun c => c.var1 = v ∨ c.var2 = v ∨ c.var3 = v)).length ≤ 10
 
 /-! ## Disjoint Clause Packing (Lemma 8.3) -/
 
@@ -91,19 +91,65 @@ structure DisjointPacking (Φ : TseitinFormula) where
     Disjoint (clauseVarSet Φ (selected.get i)) (clauseVarSet Φ (selected.get j))
   size_bound : selected.length ≥ Φ.graph.numVertices / 30
 
+/-! ### Greedy Set Packing -/
+
+/-- The set of clauses that conflict with clause c (share a variable) -/
+def conflicting (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
+    Finset (Fin Φ.clauses.length) :=
+  Finset.univ.filter (fun c' => ¬Disjoint (clauseVarSet Φ c) (clauseVarSet Φ c'))
+
+/-- Each clause conflicts with at most 29 others (plus itself = 30 total) -/
+theorem conflicting_card_le (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
+    (conflicting Φ c).card ≤ 30 := by
+  -- conflicting c ⊆ ⋃ v ∈ clauseVarSet c, {c' | v ∈ clauseVarSet c'}
+  -- Each variable appears in ≤ 10 clauses, and |clauseVarSet c| ≤ 3
+  -- So |conflicting c| ≤ 3 × 10 = 30
+  sorry
+
+/-- Greedy packing algorithm via well-founded recursion on remaining clause count -/
+noncomputable def greedyPack (Φ : TseitinFormula) (remaining : Finset (Fin Φ.clauses.length)) :
+    List (Fin Φ.clauses.length) :=
+  if h : remaining.Nonempty then
+    let c := remaining.min' h
+    let bad := remaining.filter (fun c' => ¬Disjoint (clauseVarSet Φ c) (clauseVarSet Φ c'))
+    have : (remaining \ bad).card < remaining.card := by
+      apply Finset.card_lt_card
+      apply Finset.sdiff_ssubset (Finset.filter_subset _ _)
+      exact ⟨c, Finset.mem_filter.mpr ⟨Finset.min'_mem _ _, by
+        rw [Finset.not_disjoint_iff]
+        exact ⟨(Φ.clauses.get c).var1, Finset.mem_insert_self _ _,
+               Finset.mem_insert_self _ _⟩⟩⟩
+    c :: greedyPack Φ (remaining \ bad)
+  else []
+termination_by remaining.card
+
+/-- Greedy pack produces nodup list -/
+theorem greedyPack_nodup (Φ : TseitinFormula) (remaining : Finset (Fin Φ.clauses.length)) :
+    (greedyPack Φ remaining).Nodup := by
+  sorry
+
+/-- Greedy pack elements are pairwise var-disjoint -/
+theorem greedyPack_disjoint (Φ : TseitinFormula) (remaining : Finset (Fin Φ.clauses.length)) :
+    ∀ (i j : Fin (greedyPack Φ remaining).length), i ≠ j →
+    Disjoint (clauseVarSet Φ ((greedyPack Φ remaining).get i))
+             (clauseVarSet Φ ((greedyPack Φ remaining).get j)) := by
+  sorry
+
+/-- Greedy pack has size ≥ |remaining| / 30 -/
+theorem greedyPack_size (Φ : TseitinFormula) (remaining : Finset (Fin Φ.clauses.length)) :
+    (greedyPack Φ remaining).length ≥ remaining.card / 30 := by
+  sorry
+
 noncomputable def disjoint_packing_exists (Φ : TseitinFormula) (hn : Φ.graph.numVertices ≥ 100) :
     DisjointPacking Φ where
-  selected := (List.finRange Φ.clauses.length).take (Φ.graph.numVertices / 30)
-  selected_nodup := List.Nodup.sublist (List.take_sublist _ _) (List.nodup_finRange _)
-  vars_disjoint := by
-    -- Greedy packing on bounded-degree graph gives variable-disjoint clauses.
-    -- This follows from the graph structure (high girth + degree ≤ 10).
-    sorry
+  selected := greedyPack Φ Finset.univ
+  selected_nodup := greedyPack_nodup Φ Finset.univ
+  vars_disjoint := greedyPack_disjoint Φ Finset.univ
   size_bound := by
-    simp only [List.length_take, List.length_finRange]
-    have h1 : Φ.graph.numVertices / 30 ≤ Φ.clauses.length :=
-      le_trans (Nat.div_le_self _ _) Φ.num_clauses_lower
-    omega
+    calc (greedyPack Φ Finset.univ).length
+        ≥ Finset.univ.card / 30 := greedyPack_size Φ Finset.univ
+      _ = Φ.clauses.length / 30 := by simp [Finset.card_univ, Fintype.card_fin]
+      _ ≥ Φ.graph.numVertices / 30 := Nat.div_le_div_right Φ.num_clauses_lower
 
 /-! ## Polynomial Definitions (§8.4) -/
 

@@ -25,7 +25,7 @@ theorem tseitin_unsatisfiable (Φ : TseitinFormula) :
 theorem tseitin_bounded_occurrence (Φ : TseitinFormula) :
     ∃ Δ, Δ ≤ 30 ∧ ∀ (v : ℕ),
       (Φ.clauses.filter (fun c => c.var1 = v ∨ c.var2 = v ∨ c.var3 = v)).length ≤ Δ := by
-  exact ⟨30, le_refl _, fun v => Φ.bounded_occurrence v⟩
+  exact ⟨10, by omega, fun v => Φ.bounded_occurrence v⟩
 
 /-! ## Tag Monomials and Identity Minor (§9.2–9.3) -/
 
