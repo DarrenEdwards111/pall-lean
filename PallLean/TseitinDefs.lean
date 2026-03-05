@@ -103,13 +103,57 @@ def conflicting (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
     Finset (Fin Φ.clauses.length) :=
   Finset.univ.filter (fun c' => ¬Disjoint (clauseVarSet Φ c) (clauseVarSet Φ c'))
 
-/-- Finset version of bounded_occurrence: each variable appears in ≤ 10 clause indices.
-    Bridge from List.filter (in TseitinFormula) to Finset.filter on Fin indices. -/
+/-- Bridge: Finset.filter card on Fin indices = List.filter length.
+    Both count positions where predicate holds. -/
+private theorem fin_filter_card_eq {α : Type*} (l : List α) (p : α → Bool) :
+    (Finset.univ.filter (fun i : Fin l.length => p (l.get i) = true)).card =
+    (l.filter p).length := by
+  induction l with
+  | nil => simp
+  | cons a t ih =>
+    -- Use Fin.cons to decompose: Fin (n+1) = {0} ∪ succ(Fin n)
+    -- Key: Finset.univ on Fin (n+1) = {0} ∪ image(succ, Fin n)
+    have hsplit : (Finset.univ : Finset (Fin (a :: t).length)) =
+        {0} ∪ Finset.univ.map ⟨Fin.succ, Fin.succ_injective _⟩ := by
+      ext i; simp; exact em (i = 0)
+    rw [hsplit, Finset.filter_union, Finset.filter_singleton,
+      Finset.filter_map, Finset.card_union_of_disjoint]
+    · -- The mapped filter: map succ (filter (pred ∘ succ) univ)
+      -- has card = filter (pred ∘ succ) univ = filter on t = ih
+      rw [Finset.card_map]
+      have hcomp : (Finset.filter ((fun i => p ((a :: t).get i) = true) ∘
+          (⟨Fin.succ, Fin.succ_injective _⟩ : Fin t.length ↪ Fin (a :: t).length))
+          Finset.univ) = Finset.univ.filter (fun i : Fin t.length =>
+          p (t.get i) = true) := by
+        ext i; simp [Function.comp]
+      rw [hcomp, ih, List.filter_cons]
+      split_ifs <;> simp_all <;> omega
+    · rw [Finset.disjoint_left]
+      intro x hx hx_map
+      simp only [Finset.mem_map] at hx_map
+      obtain ⟨y, _, hy⟩ := hx_map
+      split_ifs at hx with h
+      · simp only [Finset.mem_singleton] at hx
+        subst hx
+        exact absurd hy (by simp [Fin.ext_iff])
+      · simp at hx
+
 theorem bounded_occurrence_fin (Φ : TseitinFormula) (v : ℕ) :
     (Finset.univ.filter (fun i : Fin Φ.clauses.length =>
       let c := Φ.clauses.get i
       c.var1 = v ∨ c.var2 = v ∨ c.var3 = v)).card ≤ 10 := by
-  sorry
+  -- Convert Prop predicate to Bool for the bridge
+  have h := fin_filter_card_eq Φ.clauses
+    (fun c => decide (c.var1 = v ∨ c.var2 = v ∨ c.var3 = v))
+  -- Show the two filter predicates are the same
+  have heq : (Finset.univ.filter (fun i : Fin Φ.clauses.length =>
+      let c := Φ.clauses.get i; c.var1 = v ∨ c.var2 = v ∨ c.var3 = v)) =
+    (Finset.univ.filter (fun i : Fin Φ.clauses.length =>
+      decide ((Φ.clauses.get i).var1 = v ∨ (Φ.clauses.get i).var2 = v ∨
+        (Φ.clauses.get i).var3 = v) = true)) := by
+    ext i; simp [decide_eq_true_eq]
+  rw [heq, h]
+  exact Φ.bounded_occurrence v
 
 /-- Each clause conflicts with at most 30 others (including itself).
     Proof: conflicting c ⊆ F₁ ∪ F₂ ∪ F₃ where Fᵢ filters on varᵢ.
