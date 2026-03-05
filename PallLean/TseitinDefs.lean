@@ -81,6 +81,11 @@ def clauseVarSet (Φ : TseitinFormula) (c : Fin Φ.clauses.length) : Finset ℕ 
   let cl := Φ.clauses.get c
   {cl.var1, cl.var2, cl.var3}
 
+theorem mem_clauseVarSet (Φ : TseitinFormula) (c : Fin Φ.clauses.length) (v : ℕ) :
+    v ∈ clauseVarSet Φ c ↔
+    v = (Φ.clauses.get c).var1 ∨ v = (Φ.clauses.get c).var2 ∨ v = (Φ.clauses.get c).var3 := by
+  simp [clauseVarSet, Finset.mem_insert, Finset.mem_singleton, or_assoc]
+
 structure DisjointPacking (Φ : TseitinFormula) where
   selected : List (Fin Φ.clauses.length)
   selected_nodup : selected.Nodup
@@ -98,27 +103,195 @@ def conflicting (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
     Finset (Fin Φ.clauses.length) :=
   Finset.univ.filter (fun c' => ¬Disjoint (clauseVarSet Φ c) (clauseVarSet Φ c'))
 
-/-- Each clause conflicts with at most 29 others (plus itself = 30 total) -/
-theorem conflicting_card_le (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
-    (conflicting Φ c).card ≤ 30 := by
-  -- Proof sketch: conflicting c ⊆ ⋃_{v ∈ clauseVarSet c} {c' | v ∈ clauseVarSet c'}
-  -- |clauseVarSet c| ≤ 3 (it's {var1, var2, var3})
-  -- Each variable appears in ≤ 10 clauses (bounded_occurrence)
-  -- Union bound: |conflicting c| ≤ 3 × 10 = 30
+/-- Finset version of bounded_occurrence: each variable appears in ≤ 10 clause indices.
+    Bridge from List.filter (in TseitinFormula) to Finset.filter on Fin indices. -/
+theorem bounded_occurrence_fin (Φ : TseitinFormula) (v : ℕ) :
+    (Finset.univ.filter (fun i : Fin Φ.clauses.length =>
+      let c := Φ.clauses.get i
+      c.var1 = v ∨ c.var2 = v ∨ c.var3 = v)).card ≤ 10 := by
   sorry
 
-/-- Greedy packing existence via bounded-occurrence argument.
-    Each clause has ≤ 3 variables, each variable in ≤ 10 clauses.
-    Greedy: pick clause, remove conflicting (≤ 30), repeat.
-    Gives ≥ |clauses|/30 ≥ numVertices/30 disjoint clauses. -/
+/-- Each clause conflicts with at most 30 others (including itself).
+    Proof: conflicting c ⊆ F₁ ∪ F₂ ∪ F₃ where Fᵢ filters on varᵢ.
+    Each |Fᵢ| ≤ 10 by bounded_occurrence_fin. Union bound: ≤ 30. -/
+theorem conflicting_card_le (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
+    (conflicting Φ c).card ≤ 30 := by
+  set cl := Φ.clauses.get c
+  -- Three filters: clause indices sharing var1, var2, var3 with c
+  set F1 := Finset.univ.filter (fun c' : Fin Φ.clauses.length =>
+    cl.var1 ∈ clauseVarSet Φ c')
+  set F2 := Finset.univ.filter (fun c' : Fin Φ.clauses.length =>
+    cl.var2 ∈ clauseVarSet Φ c')
+  set F3 := Finset.univ.filter (fun c' : Fin Φ.clauses.length =>
+    cl.var3 ∈ clauseVarSet Φ c')
+  -- Step 1: conflicting c ⊆ F1 ∪ F2 ∪ F3
+  have hsub : conflicting Φ c ⊆ F1 ∪ F2 ∪ F3 := by
+    intro c' hc'
+    simp only [conflicting, Finset.mem_filter, Finset.mem_univ, true_and] at hc'
+    rw [Finset.not_disjoint_iff] at hc'
+    obtain ⟨v, hv_c, hv_c'⟩ := hc'
+    rw [mem_clauseVarSet] at hv_c
+    rcases hv_c with rfl | rfl | rfl
+    · exact Finset.mem_union_left _ (Finset.mem_union_left _
+        (Finset.mem_filter.mpr ⟨Finset.mem_univ _, hv_c'⟩))
+    · exact Finset.mem_union_left _ (Finset.mem_union_right _
+        (Finset.mem_filter.mpr ⟨Finset.mem_univ _, hv_c'⟩))
+    · exact Finset.mem_union_right _
+        (Finset.mem_filter.mpr ⟨Finset.mem_univ _, hv_c'⟩)
+  -- Step 2: Each Fi ⊆ bounded_occurrence_fin filter, so card ≤ 10
+  have hF1 : F1.card ≤ 10 := by
+    calc F1.card
+        ≤ (Finset.univ.filter (fun i : Fin Φ.clauses.length =>
+            let c' := Φ.clauses.get i
+            c'.var1 = cl.var1 ∨ c'.var2 = cl.var1 ∨ c'.var3 = cl.var1)).card := by
+          apply Finset.card_le_card; intro i hi
+          have hi' : cl.var1 ∈ clauseVarSet Φ i := Finset.mem_filter.mp hi |>.2
+          rw [mem_clauseVarSet] at hi'
+          simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+          rcases hi' with h | h | h <;> simp [h]
+      _ ≤ 10 := bounded_occurrence_fin Φ cl.var1
+  have hF2 : F2.card ≤ 10 := by
+    calc F2.card
+        ≤ (Finset.univ.filter (fun i : Fin Φ.clauses.length =>
+            let c' := Φ.clauses.get i
+            c'.var1 = cl.var2 ∨ c'.var2 = cl.var2 ∨ c'.var3 = cl.var2)).card := by
+          apply Finset.card_le_card; intro i hi
+          have hi' : cl.var2 ∈ clauseVarSet Φ i := Finset.mem_filter.mp hi |>.2
+          rw [mem_clauseVarSet] at hi'
+          simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+          rcases hi' with h | h | h <;> simp [h]
+      _ ≤ 10 := bounded_occurrence_fin Φ cl.var2
+  have hF3 : F3.card ≤ 10 := by
+    calc F3.card
+        ≤ (Finset.univ.filter (fun i : Fin Φ.clauses.length =>
+            let c' := Φ.clauses.get i
+            c'.var1 = cl.var3 ∨ c'.var2 = cl.var3 ∨ c'.var3 = cl.var3)).card := by
+          apply Finset.card_le_card; intro i hi
+          have hi' : cl.var3 ∈ clauseVarSet Φ i := Finset.mem_filter.mp hi |>.2
+          rw [mem_clauseVarSet] at hi'
+          simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+          rcases hi' with h | h | h <;> simp [h]
+      _ ≤ 10 := bounded_occurrence_fin Φ cl.var3
+  -- Step 3: union bound
+  calc (conflicting Φ c).card
+      ≤ (F1 ∪ F2 ∪ F3).card := Finset.card_le_card hsub
+    _ ≤ (F1 ∪ F2).card + F3.card := Finset.card_union_le _ _
+    _ ≤ (F1.card + F2.card) + F3.card := by linarith [Finset.card_union_le F1 F2]
+    _ ≤ 10 + 10 + 10 := by linarith
+    _ = 30 := by omega
+
+/-- Generic greedy packing on a finite set with bounded conflicts.
+    If every element conflicts with ≤ k others, greedy gives ≥ |S|/k elements. -/
+theorem greedy_packing_finset {α : Type*} [DecidableEq α] [Fintype α] [LinearOrder α]
+    (S : Finset α) (R : α → α → Prop) [DecidableRel R]
+    (hrefl : ∀ a, R a a)
+    (hsymm : ∀ a b, R a b → R b a)
+    (k : ℕ) (hk : k ≥ 1)
+    (hbound : ∀ a ∈ S, (S.filter (R a)).card ≤ k) :
+    ∃ P : Finset α, P ⊆ S ∧
+      (∀ a ∈ P, ∀ b ∈ P, a ≠ b → ¬R a b) ∧
+      P.card * k ≥ S.card := by
+  -- By strong induction on S.card
+  induction S using Finset.strongInduction with
+  | H S ih =>
+    by_cases hne : S.Nonempty
+    · set c := S.min' hne
+      set bad := S.filter (R c)
+      have hc_mem : c ∈ S := Finset.min'_mem _ _
+      have hc_bad : c ∈ bad := Finset.mem_filter.mpr ⟨hc_mem, hrefl c⟩
+      have hbad_card : bad.card ≤ k := hbound c hc_mem
+      have hss : S \ bad ⊂ S :=
+        Finset.sdiff_ssubset (Finset.filter_subset _ _) ⟨c, hc_bad⟩
+      -- Recurse on S \ bad
+      have hbound' : ∀ a ∈ S \ bad, ((S \ bad).filter (R a)).card ≤ k := by
+        intro a ha
+        calc ((S \ bad).filter (R a)).card
+            ≤ (S.filter (R a)).card := Finset.card_le_card (Finset.filter_subset_filter _
+                Finset.sdiff_subset)
+          _ ≤ k := hbound a (Finset.sdiff_subset ha)
+      obtain ⟨P, hPsub, hPdisj, hPsize⟩ := ih (S \ bad) hss hbound'
+      refine ⟨{c} ∪ P, ?_, ?_, ?_⟩
+      · -- {c} ∪ P ⊆ S
+        intro x hx
+        simp only [Finset.mem_union, Finset.mem_singleton] at hx
+        rcases hx with rfl | hx
+        · exact hc_mem
+        · exact Finset.sdiff_subset (hPsub hx)
+      · -- Pairwise non-R
+        intro a ha b hb hab
+        simp only [Finset.mem_union, Finset.mem_singleton] at ha hb
+        rcases ha with rfl | ha <;> rcases hb with rfl | hb
+        · exact absurd rfl hab
+        · -- c vs b∈P: b ∈ S \ bad, so b ∉ bad, so ¬R c b
+          intro hRcb
+          have hb_sdiff := hPsub hb
+          have hb_not_bad := (Finset.mem_sdiff.mp hb_sdiff).2
+          exact hb_not_bad (Finset.mem_filter.mpr ⟨(Finset.mem_sdiff.mp hb_sdiff).1, hRcb⟩)
+        · -- a∈P vs c: symmetric
+          intro hRac
+          have ha_sdiff := hPsub ha
+          have ha_not_bad := (Finset.mem_sdiff.mp ha_sdiff).2
+          exact ha_not_bad (Finset.mem_filter.mpr ⟨(Finset.mem_sdiff.mp ha_sdiff).1, hsymm _ _ hRac⟩)
+        · exact hPdisj a ha b hb hab
+      · -- Size bound: ({c} ∪ P).card * k ≥ S.card
+        have hc_notin_P : c ∉ P := by
+          intro hc_in
+          have hc_sdiff := hPsub hc_in
+          exact (Finset.mem_sdiff.mp hc_sdiff).2
+            (Finset.mem_filter.mpr ⟨(Finset.mem_sdiff.mp hc_sdiff).1, hrefl c⟩)
+        rw [Finset.card_union_of_disjoint (by
+          rwa [Finset.disjoint_singleton_left]),
+          Finset.card_singleton]
+        -- (1 + P.card) * k ≥ S.card
+        -- P.card * k ≥ (S \ bad).card
+        -- S.card = bad.card + (S \ bad).card
+        -- bad.card ≤ k
+        have hsplit := Finset.card_sdiff_add_card_eq_card (Finset.filter_subset (R c) S)
+        nlinarith
+    · -- Empty S
+      refine ⟨∅, Finset.empty_subset _, fun _ h => absurd h (by simp), ?_⟩
+      simp [Finset.not_nonempty_iff_eq_empty.mp hne]
+
+/-- Greedy packing existence via bounded-occurrence argument. -/
 noncomputable def disjoint_packing_exists (Φ : TseitinFormula) (hn : Φ.graph.numVertices ≥ 100) :
     DisjointPacking Φ := by
-  -- Standard greedy set-packing on bounded-frequency hypergraph.
-  -- Each step: pick any remaining clause c, remove all c' with
-  -- clauseVarSet c ∩ clauseVarSet c' ≠ ∅. Removed per step ≤ 3×10 = 30.
-  -- After |clauses|/30 steps, we have a disjoint packing.
-  -- bounded_occurrence ≤ 10 + clauseVarSet card ≤ 3 → conflicting ≤ 30.
-  sorry
+  -- Define the conflict relation
+  let R : Fin Φ.clauses.length → Fin Φ.clauses.length → Prop :=
+    fun a b => ¬Disjoint (clauseVarSet Φ a) (clauseVarSet Φ b)
+  have hrefl : ∀ a, R a a := fun a => by
+    simp only [R, Finset.not_disjoint_iff]
+    exact ⟨(Φ.clauses.get a).var1, Finset.mem_insert_self _ _, Finset.mem_insert_self _ _⟩
+  have hsymm : ∀ a b, R a b → R b a := fun a b h => by
+    simp only [R, Finset.not_disjoint_iff] at h ⊢
+    obtain ⟨v, hv1, hv2⟩ := h; exact ⟨v, hv2, hv1⟩
+  -- Apply generic greedy packing
+  have hex := greedy_packing_finset Finset.univ R hrefl hsymm 30
+    (by omega) (fun a _ => by
+      calc (Finset.univ.filter (R a)).card
+          = (conflicting Φ a).card := by rfl
+        _ ≤ 30 := conflicting_card_le Φ a)
+  choose P hPsub hPdisj hPsize using hex
+  exact {
+    selected := P.toList
+    selected_nodup := Finset.nodup_toList P
+    vars_disjoint := by
+      intro i j hij
+      have hnd := Finset.nodup_toList P
+      have hi_mem : P.toList.get i ∈ P := by
+        rw [← Finset.mem_toList]; exact List.get_mem P.toList i
+      have hj_mem : P.toList.get j ∈ P := by
+        rw [← Finset.mem_toList]; exact List.get_mem P.toList j
+      have hne : P.toList.get i ≠ P.toList.get j := by
+        intro heq; exact hij (hnd.injective_get heq)
+      have h := hPdisj _ hi_mem _ hj_mem hne
+      exact not_not.mp h
+    size_bound := by
+      rw [Finset.length_toList]
+      have hcard : Finset.univ.card = Φ.clauses.length := Finset.card_fin _
+      rw [hcard] at hPsize
+      have := Φ.num_clauses_lower
+      omega
+  }
 
 /-! ## Polynomial Definitions (§8.4) -/
 
