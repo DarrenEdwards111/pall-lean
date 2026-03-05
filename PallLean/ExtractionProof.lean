@@ -102,17 +102,41 @@ The key property: pderiv i (restrictPoly ... p) = restrictPoly ... (pderiv i p)
 when isTrace i = false (i.e., we're differentiating w.r.t. a non-restricted variable).
 -/
 
-/-- pderiv commutes with restriction on non-restricted variables -/
+/-- pderiv commutes with restriction on non-restricted variables.
+    Proved by induction on the polynomial, following Mathlib's
+    proof pattern from aeval_sumElim_pderiv_inl. -/
 theorem pderiv_restrictPoly_comm
     (isTrace : Fin n → Bool) (assign : Fin n → F)
     (i : Fin n) (hi : isTrace i = false)
     (p : MvPolynomial (Fin n) F) :
     pderiv i (ExtractionPipeline.restrictPoly isTrace assign p) =
     ExtractionPipeline.restrictPoly isTrace assign (pderiv i p) := by
-  -- restrictPoly is aeval (fun v => if isTrace v then C (assign v) else X v)
-  -- For non-trace vars, this is the identity on X v.
-  -- pderiv i commutes with aeval when i is in the "kept" set.
-  sorry -- Uses aeval_sumElim_pderiv_inl after encoding Fin n → (kept ⊕ traced)
+  unfold ExtractionPipeline.restrictPoly
+  classical
+  induction p using MvPolynomial.induction_on with
+  | C a => simp
+  | add p q hp hq => simp only [map_add, hp, hq]
+  | mul_X p v h =>
+    -- LHS: pderiv i (aeval f (p * X v)) = pderiv i (aeval f p * f v)
+    -- RHS: aeval f (pderiv i (p * X v)) = aeval f (pderiv i p * X v + p * pderiv i (X v))
+    simp only [map_mul, aeval_X]
+    rw [Derivation.leibniz (pderiv i) (aeval _ p) _, Derivation.leibniz (pderiv i) p (X v)]
+    simp only [pderiv_X, smul_eq_mul, map_add, map_mul, aeval_X]
+    rw [h]
+    -- Now both sides have aeval f (pderiv i p) * f v + ...
+    -- LHS extra: aeval f p * pderiv i (f v)
+    -- RHS extra: aeval f p * aeval f (Pi.single i 1 v)
+    -- Need: pderiv i (f v) = aeval f (Pi.single i 1 v)
+    by_cases hv : v = i
+    · subst hv; simp [hi]
+    · -- pderiv i (f v) where f v = if isTrace v then C _ else X v
+      -- In either case, when v ≠ i, pderiv i gives 0
+      -- And Pi.single i 1 v = 0 when v ≠ i
+      have h1 : pderiv i (if isTrace v then (C (assign v) : MvPolynomial (Fin n) F) else X v) = 0 := by
+        split
+        · simp
+        · exact pderiv_X_of_ne hv
+      simp [h1, hv]
 
 /-- iterDerivList commutes with restriction on non-restricted variables -/
 theorem iterDerivList_restrictPoly_comm
@@ -195,9 +219,21 @@ of the original subspace. Then:
 The second inequality is because linear maps don't increase finrank.
 -/
 
+/-- restrict doesn't increase totalDegree (it sends some vars to constants) -/
+theorem totalDegree_restrictPoly_le
+    (isTrace : Fin n → Bool) (assign : Fin n → F)
+    (p : MvPolynomial (Fin n) F) :
+    (ExtractionPipeline.restrictPoly isTrace assign p).totalDegree ≤ p.totalDegree := by
+  sorry -- aeval with some vars → constants; each monomial's degree can only decrease
+
 /-- Restriction stage: rank of restricted polynomial ≤ rank of original.
-    Uses: restrict is an algebra hom, generators map to generators,
-    linear maps don't increase finrank. -/
+
+    Key idea: restrict (as a linear map) sends generators of blockedSpdpSubspace(p)
+    to generators of blockedSpdpSubspace(restrict(p)):
+      restrict(m * iterDerivList S p) = restrict(m) * iterDerivList S (restrict(p))
+    Since restrict doesn't increase degree, restrict(m).totalDegree ≤ ℓ.
+    So the image of the subspace under restrict contains the restricted subspace.
+    Linear maps don't increase finrank. -/
 theorem restrict_rank_le
     (B : BlockPartition n) (κ ℓ : ℕ)
     (isTrace : Fin n → Bool) (assign : Fin n → F)
@@ -206,11 +242,14 @@ theorem restrict_rank_le
           ∀ i ∈ S, isTrace i = false) :
     blockedSpdpRank B κ ℓ (ExtractionPipeline.restrictPoly isTrace assign p) ≤
     blockedSpdpRank B κ ℓ p := by
-  -- Every generator of subspace(restrict p) is the image of a generator of subspace(p)
-  -- under the restrict algebra hom.
-  -- Therefore subspace(restrict p) ≤ image of subspace(p) under restrict.
-  -- finrank(image) ≤ finrank(original) by LinearMap.finrank_le_finrank_of_surjective
-  sorry -- Core argument: map generators through restrict, use commutation
+  -- The restriction map R is an algebra hom. By pderiv/restrict commutation,
+  -- R maps generators of blockedSpdpSubspace(p) to generators of blockedSpdpSubspace(R(p)):
+  --   R(m * ∂^S p) = R(m) * ∂^S(R(p)), with R(m).totalDegree ≤ ℓ.
+  -- Since R is surjective on the polynomial ring (it's a retraction: R∘R = R),
+  -- every multiplier m with degree ≤ ℓ equals R(m') for some m'.
+  -- Therefore blockedSpdpSubspace(R(p)) ⊆ image of blockedSpdpSubspace(p) under R.
+  -- finrank(image) ≤ finrank(source) gives the result.
+  sorry
 
 /-! ## Steps 4-5: Easy stages -/
 
