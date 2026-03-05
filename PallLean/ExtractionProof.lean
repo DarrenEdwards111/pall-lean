@@ -273,19 +273,72 @@ theorem project_rank_le
     simp [Bool.not_eq_true']
     exact hM m S hdeg hadm v hv
 
-/-- Gauge: multiplication by unit. Rank-preserving. -/
+/-- Multiplication by C(a) is a linear equivalence (a ≠ 0). -/
+noncomputable def mulCLinearEquiv (a : F) (ha : a ≠ 0) :
+    MvPolynomial (Fin n) F ≃ₗ[F] MvPolynomial (Fin n) F where
+  toLinearMap :=
+  { toFun := fun p => MvPolynomial.C a * p
+    map_add' := fun p q => by ring
+    map_smul' := fun r p => by simp [mul_comm (MvPolynomial.C a), mul_assoc, Algebra.smul_mul_assoc] }
+  invFun := fun p => MvPolynomial.C a⁻¹ * p
+  left_inv := fun p => by simp [← mul_assoc, ← map_mul, inv_mul_cancel₀ ha]
+  right_inv := fun p => by simp [← mul_assoc, ← map_mul, mul_inv_cancel₀ ha]
+
+/-- Gauge (scalar only): multiplication by C(a). Rank-preserving via LinearEquiv. -/
+theorem gauge_scalar_rank_le
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (a : F) (ha : a ≠ 0)
+    (p : MvPolynomial (Fin n) F) :
+    blockedSpdpRank B κ ℓ (MvPolynomial.C a * p) ≤
+    blockedSpdpRank B κ ℓ p := by
+  -- pderiv i (C(a) * p) = C(a) * pderiv i p (since pderiv i (C a) = 0)
+  -- So iterDerivList S (C(a)*p) = C(a) * iterDerivList S p.
+  -- Generator: m * iterDerivList S (C(a)*p) = m * C(a) * iterDerivList S p
+  --   = (C(a) * m) * iterDerivList S p
+  -- totalDegree(C(a)*m) = totalDegree(m) ≤ ℓ (C has degree 0).
+  -- So each generator of subspace(C(a)*p) is a generator of subspace(p).
+  apply Submodule.finrank_mono
+  unfold blockedSpdpSubspace
+  apply Submodule.span_le.mpr
+  intro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+  -- Show: iterDerivList S (C a * p) = C a * iterDerivList S p
+  have hcomm : ∀ (q : MvPolynomial (Fin n) F) (T : List (Fin n)),
+      iterDerivList T (MvPolynomial.C a * q) =
+      MvPolynomial.C a * iterDerivList T q := by
+    intro q T
+    induction T generalizing q with
+    | nil => simp [iterDerivList]
+    | cons i rest ih =>
+      simp only [iterDerivList, List.foldl]
+      have hpd : MvPolynomial.pderiv i (MvPolynomial.C a * q) =
+          MvPolynomial.C a * MvPolynomial.pderiv i q := by
+        rw [Derivation.leibniz]; simp [MvPolynomial.pderiv_C]
+      rw [hpd]
+      exact ih (MvPolynomial.pderiv i q)
+  rw [hq, hcomm p S, ← mul_assoc]
+  -- (m * C a) * iterDerivList S p is a generator with multiplier (m * C a)
+  -- totalDegree(m * C a) ≤ totalDegree(m) + totalDegree(C a) = totalDegree(m) + 0
+  have hdeg' : (m * MvPolynomial.C a).totalDegree ≤ ℓ := by
+    calc (m * MvPolynomial.C a).totalDegree
+        ≤ m.totalDegree + (MvPolynomial.C a).totalDegree := MvPolynomial.totalDegree_mul m _
+      _ = m.totalDegree + 0 := by rw [MvPolynomial.totalDegree_C]
+      _ = m.totalDegree := by ring
+      _ ≤ ℓ := hdeg
+  exact Submodule.subset_span ⟨S, m * MvPolynomial.C a, hlen, hdeg', hadm, rfl⟩
+
+/-- Gauge (full): multiplication by C(a) * monomial(m,1).
+    Scalar part preserves rank. Monomial part is injective but not
+    invertible in MvPolynomial; paper treats it as block-local unit. -/
 theorem gauge_rank_le
     (B : BlockPartition n) (κ ℓ : ℕ)
     (a : F) (ha : a ≠ 0) (m_mono : (Fin n) →₀ ℕ)
     (p : MvPolynomial (Fin n) F) :
     blockedSpdpRank B κ ℓ (ExtractionPipeline.gaugePoly a ha m_mono p) ≤
     blockedSpdpRank B κ ℓ p := by
-  -- Gauge multiplies p by u = C(a) * monomial(m,1), a unit in MvPolynomial.
-  -- Multiplication by u is an invertible linear map (with inverse: multiply by u⁻¹).
-  -- Invertible linear maps preserve rank: rank(u*p) = rank(p), hence ≤.
-  -- Concretely: blockedSpdpSubspace(u*p) ≤ image of (·*u) on blockedSpdpSubspace(p),
-  -- because m' * ∂^S(u*p) involves Leibniz terms that all lie in the u-scaled span.
-  -- Since u is invertible, finrank is preserved.
+  -- gaugePoly = C(a) * monomial(m,1) * p
+  -- For scalar gauge (m=0): exact via gauge_scalar_rank_le
+  -- For monomial gauge: Leibniz expansion of ∂^S through monomial factor;
+  -- paper uses block-locality to argue this is invertible on the SPDP space.
   sorry
 
 /-! ## Step 6: Composition — wiring to the axiom signature -/
