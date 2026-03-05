@@ -22,6 +22,29 @@ open SPDP MvPolynomial Tseitin
 
 /-! ## Concrete Witness Family -/
 
+/-- Helper: (a+1)%n = b ↔ a = (b+n-1)%n for a,b < n -/
+private lemma mod_succ_eq_iff (a b n : ℕ) (hn : n ≥ 1) (ha : a < n) (hb : b < n) :
+    (a + 1) % n = b ↔ a = (b + n - 1) % n := by
+  constructor
+  · intro h
+    by_cases ha1 : a + 1 = n
+    · have hb0 : b = 0 := by rw [← h, ha1, Nat.mod_self]
+      subst hb0
+      rw [show 0 + n - 1 = n - 1 from by omega, Nat.mod_eq_of_lt (by omega : n - 1 < n)]
+      omega
+    · have hab : a + 1 = b := by rwa [Nat.mod_eq_of_lt (by omega)] at h
+      by_cases hb0 : b = 0; · omega
+      rw [show b + n - 1 = b - 1 + 1 * n from by omega,
+        Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt (by omega : b - 1 < n)]; omega
+  · intro h
+    by_cases hb0 : b = 0
+    · subst hb0
+      rw [show 0 + n - 1 = n - 1 from by omega, Nat.mod_eq_of_lt (by omega : n - 1 < n)] at h
+      subst h; rw [show n - 1 + 1 = n from by omega, Nat.mod_self]
+    · rw [show b + n - 1 = b - 1 + 1 * n from by omega,
+        Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt (by omega : b - 1 < n)] at h
+      subst h; rw [show b - 1 + 1 = b from by omega, Nat.mod_eq_of_lt hb]
+
 /-- Cycle graph on n vertices (n ≥ 3): vertex i connects to i±1 mod n.
     For n < 3, we use the triangle (C_3) as a default. -/
 noncomputable def cycleRegularGraph (n : ℕ) (hn : n ≥ 3) : RegularGraph where
@@ -36,9 +59,28 @@ noncomputable def cycleRegularGraph (n : ℕ) (hn : n ≥ 3) : RegularGraph wher
   edgeSrc := fun e => ⟨e.val, by omega⟩
   edgeTgt := fun e => ⟨(e.val + 1) % n, Nat.mod_lt _ (by omega)⟩
   regular := fun v => by
-    -- Each vertex v appears as: edgeSrc of edge v, edgeTgt of edge (v-1 mod n),
-    -- and no others. So exactly 2 edges.
-    sorry
+    set pred : Fin n := ⟨(v.val + n - 1) % n, Nat.mod_lt _ (by omega)⟩
+    have hne : v ≠ pred := by
+      intro heq; have hveq := congr_arg Fin.val heq; simp [pred] at hveq
+      by_cases hv0 : v.val = 0
+      · rw [hv0, show 0 + n - 1 = n - 1 from by omega,
+          Nat.mod_eq_of_lt (by omega : n - 1 < n)] at hveq; omega
+      · rw [show v.val + n - 1 = v.val - 1 + 1 * n from by omega,
+          Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt (by omega : v.val - 1 < n)] at hveq; omega
+    have hfilt : Finset.univ.filter (fun e : Fin n =>
+        (⟨e.val, by omega⟩ : Fin n) = v ∨
+        (⟨(e.val + 1) % n, Nat.mod_lt _ (by omega)⟩ : Fin n) = v) = {v, pred} := by
+      ext ⟨e, he⟩
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_insert,
+        Finset.mem_singleton, Fin.ext_iff]
+      constructor
+      · intro h; cases h with
+        | inl h => exact Or.inl h
+        | inr h => exact Or.inr ((mod_succ_eq_iff e v.val n (by omega) he v.isLt).mp h)
+      · intro h; cases h with
+        | inl h => exact Or.inl h
+        | inr h => exact Or.inr ((mod_succ_eq_iff e v.val n (by omega) he v.isLt).mpr h)
+    rw [hfilt, Finset.card_pair hne]
 
 /-- Explicit high-girth constant-degree family (cycle graphs).
     Was an axiom; now a concrete construction. The girth_log condition
@@ -49,9 +91,10 @@ noncomputable def highGirthFamily : HighGirthFamily where
   degree_const := ⟨2, fun n => by simp [cycleRegularGraph]; split <;> rfl⟩
   vertices_eq := fun n hn => by simp [cycleRegularGraph, show n ≥ 3 from hn]
   girth_log := ⟨1, fun n hn => by
-    simp only [one_mul, cycleRegularGraph]
-    -- Both branches: log₂ n ≤ numVertices (trivially true)
-    all_goals sorry⟩
+    simp only [one_mul]
+    split
+    · exact Nat.log_le_self 2 n
+    · simp [cycleRegularGraph]; exact le_trans (Nat.log_le_self 2 n) (by omega)⟩
 
 /-! ## Concrete Tseitin Construction
 
