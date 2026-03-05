@@ -1126,24 +1126,122 @@ theorem kronecker_delta [Field F] [Nontrivial F]
     rename_i hne
     rw [coeff_tagMono_prod_offdiag Φ pack κ i j hne, mul_zero]
 
-/-- **Main theorem**: identity minor construction (replaces axiom) -/
+/-- Canonical Tseitin partition: each selector variable gets its own block,
+    all other variables share block 0. -/
+def tseitinPartition (Φ : TseitinFormula) : BlockPartition (tseitinNumVars Φ) where
+  numBlocks := Φ.clauses.length + 1
+  assign := fun v =>
+    -- Selector variable selectorIdx c has index numEdges + 3*|clauses| + c
+    -- Check if v.val ≥ numEdges + 3*|clauses| (i.e., v is a selector)
+    let base := Φ.graph.numEdges + 3 * Φ.clauses.length
+    if h : v.val ≥ base ∧ v.val - base < Φ.clauses.length then
+      ⟨v.val - base + 1, by omega⟩
+    else
+      ⟨0, by omega⟩
+
+/-- selectorIdx maps to the corresponding selector block -/
+theorem tseitinPartition_selectorIdx (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
+    (tseitinPartition Φ).assign (selectorIdx Φ c) =
+    ⟨c.val + 1, Nat.add_lt_add_right c.isLt 1⟩ := by
+  ext
+  simp only [tseitinPartition, selectorIdx, Fin.val_mk]
+  have hge : Φ.graph.numEdges + 3 * Φ.clauses.length + c.val ≥
+      Φ.graph.numEdges + 3 * Φ.clauses.length := Nat.le_add_right _ _
+  have hlt : Φ.graph.numEdges + 3 * Φ.clauses.length + c.val -
+      (Φ.graph.numEdges + 3 * Φ.clauses.length) < Φ.clauses.length := by omega
+  split
+  · rename_i h
+    simp only [Nat.add_sub_cancel_left]
+  · rename_i h; exact absurd ⟨hge, hlt⟩ h
+
+/-- Distinct selectors land in distinct blocks -/
+theorem tseitinPartition_selectors_distinct (Φ : TseitinFormula)
+    (a b : Fin Φ.clauses.length) (hab : a ≠ b) :
+    (tseitinPartition Φ).assign (selectorIdx Φ a) ≠
+    (tseitinPartition Φ).assign (selectorIdx Φ b) := by
+  rw [tseitinPartition_selectorIdx, tseitinPartition_selectorIdx]
+  intro h; apply hab; exact Fin.ext (by have := congr_arg Fin.val h; simp at this; omega)
+
+/-- Selector lists from nodup clause lists are block admissible under tseitinPartition.
+    Key insight: selectorIdx is injective, and tseitinPartition assigns distinct blocks
+    to distinct selectors, so each block has at most one element. -/
+-- The composition assign ∘ selectorIdx under tseitinPartition is injective
+theorem tseitinPartition_assign_selectorIdx_injective (Φ : TseitinFormula) :
+    Function.Injective (fun c : Fin Φ.clauses.length =>
+      (tseitinPartition Φ).assign (selectorIdx Φ c)) := by
+  intro a b h
+  have ha := tseitinPartition_selectorIdx Φ a
+  have hb := tseitinPartition_selectorIdx Φ b
+  have := congr_arg Fin.val (ha.symm.trans (h.trans hb))
+  simp at this; exact Fin.ext this
+
+/-- A nodup list filtered by (g · = b) has length ≤ 1 when g is injective on the list elements. -/
+private theorem nodup_filter_eq_length_le_one {α β : Type*} [DecidableEq β]
+    {l : List α} {g : α → β} (hnd : l.Nodup) (hinj : Set.InjOn g {x | x ∈ l}) (b : β) :
+    (l.filter (fun x => g x = b)).length ≤ 1 := by
+  induction l with
+  | nil => simp
+  | cons a rest ih =>
+    have ha_notin := (List.nodup_cons.mp hnd).1
+    have hnd_rest := (List.nodup_cons.mp hnd).2
+    have hinj_rest : Set.InjOn g {x | x ∈ rest} :=
+      fun x hx y hy heq => hinj (Set.mem_setOf.mpr (List.mem_cons_of_mem a (Set.mem_setOf.mp hx)))
+        (Set.mem_setOf.mpr (List.mem_cons_of_mem a (Set.mem_setOf.mp hy))) heq
+    simp only [List.filter_cons]
+    split
+    · -- decide (g a = b) = true
+      rename_i heq
+      have hga : g a = b := by simpa using heq
+      simp only [List.length_cons]
+      suffices h : (rest.filter (fun x => g x = b)).length = 0 by omega
+      rw [List.length_eq_zero_iff]
+      rw [List.filter_eq_nil_iff]
+      intro x hx hgx
+      have hgx' : g x = b := by simpa using hgx
+      have hxa : x = a := hinj
+        (Set.mem_setOf.mpr (List.mem_cons_of_mem a hx))
+        (Set.mem_setOf.mpr (show a ∈ a :: rest from .head rest))
+        (hgx'.trans hga.symm)
+      exact ha_notin (hxa ▸ hx)
+    · exact ih hnd_rest hinj_rest
+
+theorem tseitinPartition_admissible_general (Φ : TseitinFormula)
+    (cs : List (Fin Φ.clauses.length)) (hnd : cs.Nodup) :
+    isBlockAdmissible (tseitinPartition Φ) (cs.map (selectorIdx Φ)) := by
+  set B := tseitinPartition Φ
+  set sel := selectorIdx Φ
+  refine ⟨hnd.map (selectorIdx_injective Φ), fun b => ?_⟩
+  -- Need: ((cs.map sel).filter (fun v => B.assign v = b)).length ≤ 1
+  -- cs.map sel is nodup, and B.assign is injective on selectors
+  have hnd_S : (cs.map sel).Nodup := hnd.map (selectorIdx_injective Φ)
+  have hinj_on : Set.InjOn B.assign {x | x ∈ cs.map sel} := by
+    intro x hx y hy heq
+    obtain ⟨cx, _, rfl⟩ := List.mem_map.mp (Set.mem_setOf.mp hx)
+    obtain ⟨cy, _, rfl⟩ := List.mem_map.mp (Set.mem_setOf.mp hy)
+    exact congr_arg sel (tseitinPartition_assign_selectorIdx_injective Φ heq)
+  exact nodup_filter_eq_length_le_one hnd_S hinj_on b
+
+/-- **Main theorem**: identity minor construction -/
 theorem identity_minor_construction_proof [Nontrivial F]
-    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
-    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
     (hκ : κ ≤ pack.selected.length) :
-    ∃ (R : Fin (Nat.choose pack.selected.length κ) →
+    ∃ (B : BlockPartition (tseitinNumVars Φ))
+      (R : Fin (Nat.choose pack.selected.length κ) →
         ↥(blockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)))
       (τ : Fin (Nat.choose pack.selected.length κ) →
         ((Fin (tseitinNumVars Φ)) →₀ ℕ))
       (signs : Fin (Nat.choose pack.selected.length κ) → F),
       (∀ i, signs i = 1 ∨ signs i = -1) ∧
       ∀ i j, MvPolynomial.coeff (τ i) (R j).val = if i = j then signs i else 0 := by
-  refine ⟨fun i => ⟨rowPoly F Φ pack κ i, rowPoly_mem_subspace Φ B pack κ ℓ i
-    (fun cs hnd hsel hlen => sorry /- block admissibility of selector list -/)⟩,
+  set B := tseitinPartition Φ
+  refine ⟨B, fun i => ⟨rowPoly F Φ pack κ i, rowPoly_mem_subspace Φ B pack κ ℓ i
+    (fun cs hnd hsel hlen => ?_)⟩,
           fun i => tagMono F Φ pack κ i,
           fun i => subsetSign F Φ pack κ i,
           fun i => subsetSign_unit Φ pack κ i, ?_⟩
-  intro i j
-  exact kronecker_delta (F := F) Φ pack κ i j
+  · -- Block admissibility of selector list
+    exact tseitinPartition_admissible_general Φ cs hnd
+  · intro i j
+    exact kronecker_delta (F := F) Φ pack κ i j
 
 end IdentityMinor
