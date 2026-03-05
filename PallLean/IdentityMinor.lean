@@ -669,7 +669,17 @@ theorem coeff_tagMono_prod_diagonal [Nontrivial F]
                                           (clauseGadget F Φ c))).prod := by
   -- Induction on cs. Base: coeff 0 1 = 1. Step: split head off using coeff_mul_disjoint.
   -- Needs: clauseVarSet disjointness → polynomial variable disjointness → usesOnly disjointness
-  sorry -- Disjoint packing coefficient factorization (iterated coeff_mul_disjoint)
+  induction cs with
+  | nil => simp [iterDerivList, MvPolynomial.coeff_one]
+  | cons c rest ih =>
+    simp only [List.map_cons, List.prod_cons, List.foldl]
+    -- Need: coeff (τ_c + ∑τ_rest) (V_c * ∏V_rest) = coeff τ_c V_c * coeff (∑τ_rest) (∏V_rest)
+    -- via coeff_mul_disjoint, then apply IH for the rest.
+    -- Per-clause variable sets are disjoint (from DisjointPacking).
+    -- clauseGadget c uses only clauseVarSet c vars (after Fin lifting).
+    -- chooseTagMonomial c is supported in clauseVarSet c vars.
+    -- These are disjoint from all rest clause vars.
+    sorry -- needs per-clause usesOnly + disjointness bridge from DisjointPacking
 
 /-- Off-diagonal: coeff (∑τ_C for C∈S_i) (∏V_C for C∈S_j) = 0 when S_i ≠ S_j
 
