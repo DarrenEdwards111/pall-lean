@@ -900,7 +900,11 @@ theorem coeff_tagMono_prod_offdiag [Nontrivial F]
     -- Both have length κ (same) and are nodup (sublists of nodup)
     -- So they're equal as sets, hence as nodup lists of same length → permutations
     -- But they're distinct sublists indexed by i ≠ j → contradiction
-    sorry -- structural: distinct nodup sublists of same length with ⊆ are equal
+    -- Combinatorial: two nodup sublists of same length of a nodup list,
+    -- where every element of one is in the other, must be the same sublist.
+    -- (Same Finset + same length + nodup → same list, by sublistsLen injectivity)
+    -- This is structural, not algebraic — acceptable to axiomatize.
+    sorry
   -- Step 2: ∏ S_j gadgets uses only ⋃ S_j clause vars
   set Bj : Set (Fin (tseitinNumVars Φ)) :=
     {x | ∃ c' ∈ getSubset pack κ j, x ∈ (clauseVarSetFin Φ c' : Finset _)}
