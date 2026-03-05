@@ -900,11 +900,40 @@ theorem coeff_tagMono_prod_offdiag [Nontrivial F]
     -- Both have length κ (same) and are nodup (sublists of nodup)
     -- So they're equal as sets, hence as nodup lists of same length → permutations
     -- But they're distinct sublists indexed by i ≠ j → contradiction
-    -- Combinatorial: two nodup sublists of same length of a nodup list,
-    -- where every element of one is in the other, must be the same sublist.
-    -- (Same Finset + same length + nodup → same list, by sublistsLen injectivity)
-    -- This is structural, not algebraic — acceptable to axiomatize.
-    sorry
+    -- hall : ∀ c, c ∈ getSubset i → c ∈ getSubset j
+    -- Both nodup, same length → same toFinset → same sublist → same index
+    have hnd_i := getSubset_nodup' pack κ i
+    have hnd_j := getSubset_nodup' pack κ j
+    have hlen_i := getSubset_length pack κ i
+    have hlen_j := getSubset_length pack κ j
+    -- toFinset subset
+    have hfs_sub : (getSubset pack κ i).toFinset ⊆ (getSubset pack κ j).toFinset :=
+      fun x => by simp only [List.mem_toFinset]; exact hall x
+    -- Same cardinality
+    have hcard_eq : (getSubset pack κ i).toFinset.card = (getSubset pack κ j).toFinset.card := by
+      rw [List.toFinset_card_of_nodup hnd_i, List.toFinset_card_of_nodup hnd_j, hlen_i, hlen_j]
+    -- Equal Finsets
+    have hfs_eq := Finset.eq_of_subset_of_card_le hfs_sub (by omega)
+    -- Equal Finsets + nodup + both sublists of nodup list → equal lists
+    -- sublistsLen of nodup list is nodup, so get at different indices gives different elements
+    have hsll_nd := List.nodup_sublistsLen κ pack.selected_nodup
+    -- getSubset i and getSubset j are elements of sublistsLen at different positions
+    -- They have the same toFinset, but sublists preserve order from parent,
+    -- so same elements in a sublist of a nodup list → same sublist
+    -- getSubset i = getSubset j as lists
+    -- Both are .get of sublistsLen at cast indices; sublistsLen is nodup → injective get
+    have heq_idx : i.cast (subsetList_length pack κ).symm =
+        j.cast (subsetList_length pack κ).symm := by
+      apply hsll_nd.injective_get
+      -- Need: (sublistsLen κ sel).get i' = (sublistsLen κ sel).get j'
+      -- which is getSubset i = getSubset j
+      -- From: same toFinset + nodup + sublists of nodup → perm → equal
+      show getSubset pack κ i = getSubset pack κ j
+      sorry -- perm of sublists of nodup with same elements → equal
+    -- Extract i = j from cast equality
+    have : i = j := by
+      have := congr_arg Fin.val heq_idx; simp at this; exact Fin.val_injective this
+    exact hij this
   -- Step 2: ∏ S_j gadgets uses only ⋃ S_j clause vars
   set Bj : Set (Fin (tseitinNumVars Φ)) :=
     {x | ∃ c' ∈ getSubset pack κ j, x ∈ (clauseVarSetFin Φ c' : Finset _)}
