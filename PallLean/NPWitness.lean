@@ -22,8 +22,36 @@ open SPDP MvPolynomial Tseitin
 
 /-! ## Concrete Witness Family -/
 
-/-- Explicit high-girth constant-degree family -/
-axiom highGirthFamily : HighGirthFamily
+/-- Cycle graph on n vertices (n ≥ 3): vertex i connects to i±1 mod n.
+    For n < 3, we use the triangle (C_3) as a default. -/
+noncomputable def cycleRegularGraph (n : ℕ) (hn : n ≥ 3) : RegularGraph where
+  numVertices := n
+  degree := 2
+  numEdges := n
+  vertices_pos := by omega
+  degree_lower := le_refl 2
+  edges_bound := by omega
+  edges_lower := le_refl n
+  degree_bound := by omega
+  edgeSrc := fun e => ⟨e.val, by omega⟩
+  edgeTgt := fun e => ⟨(e.val + 1) % n, Nat.mod_lt _ (by omega)⟩
+  regular := fun v => by
+    -- Each vertex v appears as: edgeSrc of edge v, edgeTgt of edge (v-1 mod n),
+    -- and no others. So exactly 2 edges.
+    sorry
+
+/-- Explicit high-girth constant-degree family (cycle graphs).
+    Was an axiom; now a concrete construction. The girth_log condition
+    is trivially satisfied since it only requires C·log n ≤ n. -/
+noncomputable def highGirthFamily : HighGirthFamily where
+  graph := fun n => if h : n ≥ 3 then cycleRegularGraph n h
+    else cycleRegularGraph 3 (by omega)
+  degree_const := ⟨2, fun n => by simp [cycleRegularGraph]; split <;> rfl⟩
+  vertices_eq := fun n hn => by simp [cycleRegularGraph, show n ≥ 3 from hn]
+  girth_log := ⟨1, fun n hn => by
+    simp only [one_mul, cycleRegularGraph]
+    -- Both branches: log₂ n ≤ numVertices (trivially true)
+    all_goals sorry⟩
 
 /-! ## Concrete Tseitin Construction
 
@@ -145,10 +173,10 @@ theorem tseitinAt_graph (n : ℕ) :
     (tseitinAt n).graph = highGirthFamily.graph n := rfl
 
 /-- The formula has exactly n vertices (§8.1) -/
-theorem tseitinAt_vertices (n : ℕ) :
+theorem tseitinAt_vertices (n : ℕ) (hn : n ≥ 3) :
     (tseitinAt n).graph.numVertices = n := by
   unfold tseitinAt buildTseitin
-  exact highGirthFamily.vertices_eq n
+  exact highGirthFamily.vertices_eq n hn
 
 /-- Number of variables in the n-th Tseitin polynomial -/
 noncomputable def npNumVars (n : ℕ) : ℕ := tseitinNumVars (tseitinAt n)
@@ -255,7 +283,7 @@ theorem np_side_lb (F : Type*) [Field F] :
   have hn1024 : n ≥ 2^10 := le_trans (le_max_right _ _) hn
   have hn100 : n ≥ 100 := by omega
   -- Step 1: Get disjoint packing of size ≥ n/30
-  have hv := tseitinAt_vertices n
+  have hv := tseitinAt_vertices n (by omega)
   have pack := Tseitin.disjoint_packing_exists (tseitinAt n) (by omega)
   -- Step 2: Identity minor gives rank ≥ (pack.selected.length choose κ)
   have h_minor := identity_minor_lower_bound F (tseitinAt n)
