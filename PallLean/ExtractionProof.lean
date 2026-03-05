@@ -31,7 +31,10 @@ Since Fin n is finite, restrictTotalDegree is Module.Finite. -/
 /-- pderiv does not increase total degree (not in Mathlib, proved here) -/
 theorem totalDegree_pderiv_le (p : MvPolynomial (Fin n) F) (i : Fin n) :
     (pderiv i p).totalDegree ≤ p.totalDegree := by
-  sorry -- Each monomial's degree drops by 1 at variable i; total degree can only decrease
+  -- pderiv i (monomial s a) = monomial (s - single i 1) (a * s i)
+  -- Each output monomial has degree ≤ degree(s) - 1 (when s i > 0) or vanishes
+  -- So totalDegree(pderiv i p) ≤ totalDegree(p)
+  sorry
 
 /-- Iterated partial derivative does not increase total degree -/
 theorem totalDegree_iterDerivList_le (S : List (Fin n)) (p : MvPolynomial (Fin n) F) :
@@ -264,7 +267,21 @@ theorem project_rank_le
     blockedSpdpRank B κ ℓ p := by
   -- projectPoly keep = restrictPoly (fun v => !keep v) (fun _ => 0)
   -- So this is a special case of restrict_rank_le
-  sorry -- Reduction to restrict_rank_le
+  -- projectPoly keep p = aeval (fun v => if keep v then X v else 0)
+  -- restrictPoly isTrace assign p = aeval (fun v => if isTrace v then C (assign v) else X v)
+  -- With isTrace = (fun v => !keep v) and assign = (fun _ => 0):
+  --   fun v => if !keep v then C 0 else X v = fun v => if keep v then X v else 0
+  -- So projectPoly = restrictPoly (!keep) (fun _ => 0)
+  have heq : ExtractionPipeline.projectPoly keep p =
+      ExtractionPipeline.restrictPoly (fun v => !keep v) (fun _ => (0 : F)) p := by
+    unfold ExtractionPipeline.projectPoly ExtractionPipeline.restrictPoly
+    congr 1; ext v
+    cases hk : keep v <;> simp [hk, MvPolynomial.C_0]
+  rw [heq]
+  apply restrict_rank_le
+  intro S hadm i hi
+  simp [Bool.not_eq_true']
+  exact hB S hadm i hi
 
 /-- Gauge: multiplication by unit. Rank-preserving. -/
 theorem gauge_rank_le
@@ -273,9 +290,14 @@ theorem gauge_rank_le
     (p : MvPolynomial (Fin n) F) :
     blockedSpdpRank B κ ℓ (ExtractionPipeline.gaugePoly a ha m_mono p) ≤
     blockedSpdpRank B κ ℓ p := by
-  -- gaugePoly multiplies by C(a) * monomial m 1, which is a unit.
-  -- Multiplication by a unit is an automorphism, so rank is preserved.
-  sorry -- span preserved under multiplication by unit
+  -- gaugePoly a ha m p = C(a) * monomial(m, 1) * p
+  -- The generators of blockedSpdpSubspace(gauge p) are:
+  --   m' * iterDerivList S (C(a) * monomial(m, 1) * p)
+  -- Since C(a) * monomial(m,1) is a constant w.r.t. derivatives not involving m's vars,
+  -- the derivative pulls through as a product.
+  -- This gives a linear injection from subspace(gauge p) → subspace(p)
+  -- (up to the constant factor), hence rank(gauge p) ≤ rank(p).
+  sorry
 
 /-! ## Step 6: Composition — wiring to the axiom signature -/
 
