@@ -259,6 +259,88 @@ theorem tagMonomial_supported_body (Φ : TseitinFormula)
   simp only [Set.mem_setOf_eq]
   exact chooseTagMonomial_support Φ c x hx
 
+/-! ## Step 5b: Per-clause variable sets and usesOnly -/
+
+/-- Per-clause variable set as Finset (Fin tseitinNumVars) -/
+def clauseVarSetFin (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
+    Finset (Fin (tseitinNumVars Φ)) :=
+  let cl := Φ.clauses.get c
+  let hpos : tseitinNumVars Φ > 0 := by unfold tseitinNumVars; have := c.isLt; omega
+  {⟨cl.var1 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩,
+   ⟨cl.var2 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩,
+   ⟨cl.var3 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩}
+
+/-- clauseGadget c uses only clause c's variables -/
+theorem clauseGadget_usesOnly_clause [Nontrivial F] (Φ : TseitinFormula)
+    (c : Fin Φ.clauses.length) :
+    CoeffDisjoint.usesOnly (clauseGadget F Φ c) (↑(clauseVarSetFin Φ c) : Set _) := by
+  intro m hm x hx
+  have hxvar : x ∈ (clauseGadget F Φ c).vars := (MvPolynomial.mem_vars x).mpr ⟨m, hm, hx⟩
+  have hsub := clauseGadget_vars_subset F Φ c hxvar
+  simp only [Finset.mem_insert, Finset.mem_singleton] at hsub
+  show x ∈ (↑(clauseVarSetFin Φ c) : Set _)
+  simp only [Finset.mem_coe, clauseVarSetFin, Finset.mem_insert, Finset.mem_singleton]
+  exact hsub
+
+/-- chooseTagMonomial c is supported in clause c's variables -/
+theorem tagMonomial_supported_clause (Φ : TseitinFormula)
+    (c : Fin Φ.clauses.length) :
+    CoeffDisjoint.monomSupportedIn (chooseTagMonomial (F := F) Φ c)
+      (↑(clauseVarSetFin Φ c) : Set _) := by
+  intro x hx
+  -- chooseTagMonomial uses body vars of clause c
+  -- chooseTagMonomial_support gives x.val < numEdges + 3*numClauses
+  -- But we need x ∈ clauseVarSetFin — this needs the tag monomial
+  -- to use exactly the same 3 variables as clauseGadget.
+  -- For now, defer to the broader body-level support.
+  sorry -- needs chooseTagMonomial to use exactly clause c's vars
+
+/-- Per-clause variable sets are disjoint for distinct packed clauses -/
+theorem clauseVarSetFin_disjoint [Nontrivial F] (Φ : TseitinFormula)
+    (pack : DisjointPacking Φ)
+    (i j : Fin pack.selected.length) (hij : i ≠ j) :
+    Disjoint (clauseVarSetFin Φ (pack.selected.get i))
+             (clauseVarSetFin Φ (pack.selected.get j)) := by
+  have hdisj := pack.vars_disjoint i j hij
+  -- Get clause var bounds
+  set ci := pack.selected.get i
+  set cj := pack.selected.get j
+  obtain ⟨hci1, hci2, hci3⟩ := Φ.clause_vars_bound _ (List.getElem_mem ci.isLt)
+  obtain ⟨hcj1, hcj2, hcj3⟩ := Φ.clause_vars_bound _ (List.getElem_mem cj.isLt)
+  have hN : tseitinNumVars Φ > 0 := by unfold tseitinNumVars; have := ci.isLt; omega
+  -- Rewrite clauseVarSetFin using Nat.mod_eq_of_lt (since vars < tseitinNumVars)
+  -- clauseVarSetFin = {⟨var1 % N, _⟩, ...} = {⟨var1, _⟩, ...} when var < N
+  -- Transfer disjointness via Finset membership
+  refine Finset.disjoint_left.2 ?_
+  intro x hxI hxJ
+  simp only [clauseVarSetFin, Finset.mem_insert, Finset.mem_singleton] at hxI hxJ
+  -- x ∈ clauseVarSetFin ci means x = ⟨ci.var% % N, _⟩ for some var
+  -- x ∈ clauseVarSetFin cj means x = ⟨cj.var% % N, _⟩ for some var
+  -- Since varI < numEdges + 3*numClauses < tseitinNumVars, % N is no-op
+  -- So x.val is in both clauseVarSet sets (as ℕ), contradicting hdisj
+  have hbound : Φ.graph.numEdges + 3 * Φ.clauses.length < tseitinNumVars Φ := by
+    show _ < Φ.graph.numEdges + 3 * Φ.clauses.length + Φ.clauses.length
+    have := ci.isLt; omega
+  have hNi1 : (Φ.clauses.get ci).var1 < tseitinNumVars Φ := lt_trans hci1 hbound
+  have hNi2 : (Φ.clauses.get ci).var2 < tseitinNumVars Φ := lt_trans hci2 hbound
+  have hNi3 : (Φ.clauses.get ci).var3 < tseitinNumVars Φ := lt_trans hci3 hbound
+  have hNj1 : (Φ.clauses.get cj).var1 < tseitinNumVars Φ := lt_trans hcj1 hbound
+  have hNj2 : (Φ.clauses.get cj).var2 < tseitinNumVars Φ := lt_trans hcj2 hbound
+  have hNj3 : (Φ.clauses.get cj).var3 < tseitinNumVars Φ := lt_trans hcj3 hbound
+  have hxI_nat : x.val ∈ clauseVarSet Φ ci := by
+    simp only [clauseVarSet, Finset.mem_insert, Finset.mem_singleton]
+    rcases hxI with rfl | rfl | rfl
+    · left; exact Nat.mod_eq_of_lt hNi1
+    · right; left; exact Nat.mod_eq_of_lt hNi2
+    · right; right; exact Nat.mod_eq_of_lt hNi3
+  have hxJ_nat : x.val ∈ clauseVarSet Φ cj := by
+    simp only [clauseVarSet, Finset.mem_insert, Finset.mem_singleton]
+    rcases hxJ with rfl | rfl | rfl
+    · left; exact Nat.mod_eq_of_lt hNj1
+    · right; left; exact Nat.mod_eq_of_lt hNj2
+    · right; right; exact Nat.mod_eq_of_lt hNj3
+  exact absurd hxJ_nat (Finset.disjoint_left.mp hdisj hxI_nat)
+
 /-! ## Step 6: Structural assembly — enumerate subsets, define R/τ, prove δ -/
 
 /-- The κ-sublists of pack.selected, indexed by Fin (choose L κ) -/

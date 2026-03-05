@@ -165,7 +165,7 @@ private theorem one_sub_literalPoly_vars_subset {m : ℕ} (F : Type*) [CommRing 
   rw [vars_one, Finset.empty_union] at hsub
   exact literalPoly_vars_subset F v s hsub
 
-private theorem clauseGadget_vars_subset (F : Type*) [CommRing F] [Nontrivial F]
+theorem clauseGadget_vars_subset (F : Type*) [CommRing F] [Nontrivial F]
     (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
     let cl := Φ.clauses.get c
     let hpos : tseitinNumVars Φ > 0 := by unfold tseitinNumVars; have := c.isLt; omega
