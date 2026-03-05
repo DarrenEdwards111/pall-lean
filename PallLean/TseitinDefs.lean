@@ -124,6 +124,11 @@ noncomputable def greedyPack (Φ : TseitinFormula) (remaining : Finset (Fin Φ.c
   else []
 termination_by remaining.card
 
+/-- Elements of greedyPack are from remaining -/
+theorem greedyPack_subset (Φ : TseitinFormula) (remaining : Finset (Fin Φ.clauses.length)) :
+    ∀ c ∈ greedyPack Φ remaining, c ∈ remaining := by
+  sorry
+
 /-- Greedy pack produces nodup list -/
 theorem greedyPack_nodup (Φ : TseitinFormula) (remaining : Finset (Fin Φ.clauses.length)) :
     (greedyPack Φ remaining).Nodup := by
