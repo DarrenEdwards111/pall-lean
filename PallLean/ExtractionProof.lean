@@ -33,14 +33,32 @@ Since Fin n is finite, restrictTotalDegree is Module.Finite. -/
 theorem pderiv_mem_restrictTotalDegree (N : ℕ) (i : Fin n)
     (p : MvPolynomial (Fin n) F) (hp : p ∈ restrictTotalDegree (Fin n) F N) :
     pderiv i p ∈ restrictTotalDegree (Fin n) F N := by
-  -- restrictTotalDegree = restrictSupport { n | n.sum id ≤ N }
-  -- mem_restrictSupport_iff : p ∈ iff p.support ⊆ s
-  -- So: need every monomial in (pderiv i p).support to have degree sum ≤ N.
-  -- pderiv_monomial: pderiv i (monomial s a) = monomial (s - single i 1) (a * s i)
-  -- (s - single i 1).sum id ≤ s.sum id (subtraction can only decrease)
-  -- Since p ∈ restrictTotalDegree N, all s ∈ p.support have s.sum id ≤ N.
-  -- So all output monomials have degree ≤ N.
-  sorry
+  -- Use support-level characterization directly.
+  -- mem_restrictSupport_iff: p ∈ restrictSupport s ↔ p.support ⊆ s
+  -- restrictTotalDegree N = restrictSupport { n | n.sum id ≤ N }
+  -- p = ∑ s ∈ p.support, monomial s (p.coeff s) [MvPolynomial.as_sum]
+  -- pderiv i is linear, so pderiv i p = ∑ s ∈ p.support, pderiv i (monomial s (p.coeff s))
+  -- Each term: pderiv i (monomial s c) = monomial (s - single i 1) (c * s i) ∈ restrictTotalDegree N
+  -- Sum of members is a member (submodule).
+  have : pderiv i p = ∑ s ∈ p.support, pderiv i (monomial s (MvPolynomial.coeff s p)) := by
+    conv_lhs => rw [p.as_sum]; rw [map_sum]
+  rw [this]
+  apply Submodule.sum_mem
+  intro s hs
+  -- pderiv i (monomial s (p.coeff s)) = monomial (s - single i 1) (p.coeff s * s i)
+  rw [pderiv_monomial]
+  -- Need: monomial (s - single i 1) (...) ∈ restrictTotalDegree N
+  show _ ∈ restrictSupport F _
+  rw [mem_restrictSupport_iff]
+  intro t ht
+  have ht' := Finset.mem_singleton.mp (support_monomial_subset ht)
+  subst ht'
+  calc (s - Finsupp.single i 1).sum (fun _ e => e)
+      ≤ s.sum (fun _ e => e) := by
+        apply Finsupp.sum_le_sum_index tsub_le_self
+        · intro j _ a b hab; exact hab
+        · intro j _; rfl
+    _ ≤ N := hp (Finset.mem_coe.mpr hs)
 
 /-- Iterated pderiv preserves restrictTotalDegree -/
 theorem iterDerivList_mem_restrictTotalDegree (N : ℕ) (S : List (Fin n))
