@@ -29,14 +29,12 @@ theorem tseitin_bounded_occurrence (Φ : TseitinFormula) :
 
 /-! ## Tag Monomials and Identity Minor (§9.2–9.3) -/
 
-theorem tag_monomial_exists (F : Type*) [CommRing F]
+theorem tag_monomial_exists (F : Type*) [Field F]
     (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
     ∃ (τ_c : (Fin (tseitinNumVars Φ)) →₀ ℕ),
       MvPolynomial.coeff τ_c (clauseGadget F Φ c) ≠ 0 := by
-  use 0
-  simp [clauseGadget, literalPoly, MvPolynomial.coeff_one, MvPolynomial.coeff_sub,
-        MvPolynomial.coeff_mul]
-  sorry -- simplified; not in proof chain
+  obtain ⟨τ, _, h⟩ := TagMonomial.tag_monomial_property_proof F Φ c
+  exact ⟨τ, by rcases h with h | h <;> simp [h]⟩
 
 /-! ## Theorem 9.3: Identity Minor Lower Bound
 
@@ -127,7 +125,9 @@ theorem identity_minor_lower_bound (F : Type*) [Field F]
     (hκ : κ ≤ pack.selected.length) :
     blockedSpdpRank B κ ℓ (coupledVerifier F Φ) ≥ Nat.choose pack.selected.length κ := by
   -- Uses identity_minor_construction to get Kronecker δ system,
-  -- then rank_from_identity_minor to conclude.
-  sorry -- Proof broke during TseitinDefs split; not in critical path (axiom-dependent)
+  -- then linear independence from the Kronecker δ property.
+  -- The Kronecker δ matrix (coeff τᵢ Rⱼ = δᵢⱼ · signᵢ) gives
+  -- linearly independent rows, hence rank ≥ number of rows.
+  sorry
 
 end Tseitin
