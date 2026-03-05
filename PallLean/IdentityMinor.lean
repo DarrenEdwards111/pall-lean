@@ -879,10 +879,47 @@ theorem coeff_tagMono_prod_diagonal [Nontrivial F]
 
 /-- Two sublists of a nodup list with the same toFinset are equal.
     Standard combinatorial fact: sublist order is uniquely determined by parent order. -/
+-- Helper: membership version
+private theorem sublist_eq_of_nodup_mem {parent s₁ s₂ : List α}
+    (hnd : parent.Nodup) (h1 : s₁.Sublist parent) (h2 : s₂.Sublist parent)
+    (hmem : ∀ x, x ∈ s₁ ↔ x ∈ s₂) : s₁ = s₂ := by
+  induction h1 generalizing s₂ with
+  | slnil => exact (List.sublist_nil.mp h2).symm
+  | cons a h1_tail ih =>
+    have hnd_rest := (List.nodup_cons.mp hnd).2
+    have ha_not_rest := (List.nodup_cons.mp hnd).1
+    cases h2 with
+    | cons _ h2_rest => exact ih hnd_rest h2_rest hmem
+    | cons₂ _ h2_rest =>
+      exfalso; apply ha_not_rest; apply h1_tail.subset
+      exact (hmem a).mpr (by simp)
+  | cons₂ a h1_tail ih =>
+    have hnd_rest := (List.nodup_cons.mp hnd).2
+    have ha_not_rest := (List.nodup_cons.mp hnd).1
+    cases h2 with
+    | cons _ h2_rest =>
+      exfalso; apply ha_not_rest; apply h2_rest.subset
+      exact (hmem a).mp (by simp)
+    | cons₂ _ h2_rest =>
+      congr 1
+      apply ih hnd_rest h2_rest
+      intro x
+      constructor <;> intro hx
+      · have := (hmem x).mp (List.mem_cons_of_mem a hx)
+        rw [List.mem_cons] at this
+        rcases this with heq | h
+        · subst heq; exact absurd hx (fun h => ha_not_rest (h1_tail.subset h))
+        · exact h
+      · have := (hmem x).mpr (List.mem_cons_of_mem a hx)
+        rw [List.mem_cons] at this
+        rcases this with heq | h
+        · subst heq; exact absurd hx (fun h => ha_not_rest (h2_rest.subset h))
+        · exact h
+
 theorem sublist_eq_of_nodup_toFinset_eq [DecidableEq α] {l l₁ l₂ : List α}
     (hnd : l.Nodup) (h1 : l₁.Sublist l) (h2 : l₂.Sublist l)
-    (hfs : l₁.toFinset = l₂.toFinset) : l₁ = l₂ := by
-  sorry
+    (hfs : l₁.toFinset = l₂.toFinset) : l₁ = l₂ :=
+  sublist_eq_of_nodup_mem hnd h1 h2 (fun x => by simp only [← List.mem_toFinset, hfs])
 
 /-- Off-diagonal: coeff (∑τ_C for C∈S_i) (∏V_C for C∈S_j) = 0 when S_i ≠ S_j
 
