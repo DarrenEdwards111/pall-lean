@@ -825,16 +825,57 @@ theorem coeff_tagMono_prod_diagonal [Nontrivial F]
   -- Induction on cs. Base: coeff 0 1 = 1. Step: split head off using coeff_mul_disjoint.
   -- Needs: clauseVarSet disjointness → polynomial variable disjointness → usesOnly disjointness
   induction cs with
-  | nil => simp [iterDerivList, MvPolynomial.coeff_one]
+  | nil => simp [MvPolynomial.coeff_one]
   | cons c rest ih =>
-    simp only [List.map_cons, List.prod_cons, List.foldl]
-    -- Need: coeff (τ_c + ∑τ_rest) (V_c * ∏V_rest) = coeff τ_c V_c * coeff (∑τ_rest) (∏V_rest)
-    -- via coeff_mul_disjoint, then apply IH for the rest.
-    -- Per-clause variable sets are disjoint (from DisjointPacking).
-    -- clauseGadget c uses only clauseVarSet c vars (after Fin lifting).
-    -- chooseTagMonomial c is supported in clauseVarSet c vars.
-    -- These are disjoint from all rest clause vars.
-    sorry -- needs per-clause usesOnly + disjointness bridge from DisjointPacking
+    simp only [List.map_cons, List.prod_cons]
+    have hnd_rest : rest.Nodup := (List.nodup_cons.mp hcs).2
+    have hc_notin : c ∉ rest := (List.nodup_cons.mp hcs).1
+    have ⟨hc_sel, hsel_rest⟩ := List.forall_mem_cons.mp hsel
+    -- Sets for coeff_mul_disjoint
+    set A : Set (Fin (tseitinNumVars Φ)) := ↑(clauseVarSetFin Φ c)
+    set B : Set (Fin (tseitinNumVars Φ)) := {x | ∃ c' ∈ rest, x ∈ (clauseVarSetFin Φ c' : Finset _)}
+    -- Head uses only A
+    have hp : CoeffDisjoint.usesOnly (clauseGadget F Φ c) A :=
+      clauseGadget_usesOnly_clause Φ c
+    -- Rest product uses only B
+    have hq : CoeffDisjoint.usesOnly (rest.map (clauseGadget F Φ)).prod B := by
+      apply CoeffDisjoint.usesOnly_list_prod
+      intro p hp
+      simp only [List.mem_map] at hp
+      obtain ⟨c', hc', rfl⟩ := hp
+      exact CoeffDisjoint.usesOnly_mono (clauseGadget_usesOnly_clause Φ c')
+        (fun x hx => ⟨c', hc', Finset.mem_coe.mp hx⟩)
+    -- Disjointness
+    have hdisj : Disjoint A B := by
+      rw [Set.disjoint_left]
+      intro x hxA hxB
+      obtain ⟨c', hc'mem, hxc'⟩ := hxB
+      have hcc' : c ≠ c' := fun h => hc_notin (h ▸ hc'mem)
+      obtain ⟨i, rfl⟩ := List.get_of_mem hc_sel
+      obtain ⟨j, rfl⟩ := List.get_of_mem (hsel_rest c' hc'mem)
+      have hij : i ≠ j := fun heq => hcc' (congr_arg _ heq)
+      exact absurd hxc' (Finset.disjoint_left.mp
+        (clauseVarSetFin_disjoint (F := F) Φ pack i j hij) (Finset.mem_coe.mp hxA))
+    -- Tag head in A
+    have hmA : CoeffDisjoint.monomSupportedIn (chooseTagMonomial Φ c) A :=
+      tagMonomial_supported_clause Φ c
+    -- Tag rest sum in B
+    have hmB : CoeffDisjoint.monomSupportedIn
+        (rest.map (chooseTagMonomial Φ) |>.foldl (· + ·) 0) B := by
+      apply CoeffDisjoint.monomSupportedIn_foldl_add
+      intro m hm
+      simp only [List.mem_map] at hm
+      obtain ⟨c', hc', rfl⟩ := hm
+      exact CoeffDisjoint.monomSupportedIn_mono (tagMonomial_supported_clause Φ c')
+        (fun x hx => ⟨c', hc', Finset.mem_coe.mp hx⟩)
+    -- Rewrite foldl of cons: foldl (+) 0 (τ_c :: τ_rest) = τ_c + foldl (+) 0 τ_rest
+    have hfoldl : (chooseTagMonomial Φ c :: rest.map (chooseTagMonomial Φ)).foldl (· + ·) 0 =
+        chooseTagMonomial Φ c + (rest.map (chooseTagMonomial Φ)).foldl (· + ·) 0 := by
+      simp only [List.foldl, zero_add]
+      exact CoeffDisjoint.foldl_add_acc _ _
+    rw [hfoldl]
+    rw [CoeffDisjoint.coeff_mul_disjoint hp hq hdisj hmA hmB]
+    rw [ih hnd_rest hsel_rest]
 
 /-- Off-diagonal: coeff (∑τ_C for C∈S_i) (∏V_C for C∈S_j) = 0 when S_i ≠ S_j
 
