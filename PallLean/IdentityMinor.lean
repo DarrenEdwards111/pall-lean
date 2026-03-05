@@ -302,15 +302,61 @@ noncomputable def tagMono (F : Type*) [Field F]
     (Fin (tseitinNumVars Φ)) →₀ ℕ :=
   ((getSubset pack κ i).map (chooseTagMonomial (F := F) Φ)).foldl (· + ·) 0
 
+/-- Elements of sublistsLen are sublists of the original -/
+private theorem sublistsLen_get_sublist' (l : List α) (n : ℕ)
+    (i : Fin (l.sublistsLen n).length) :
+    ((l.sublistsLen n).get i).Sublist l := by
+  have hmem := List.get_mem (l.sublistsLen n) i
+  exact List.mem_sublists'.mp (List.sublistsLen_sublist_sublists' n l |>.subset hmem)
+
+/-- Sublists of a nodup list are nodup -/
+theorem getSubset_nodup' (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    (getSubset pack κ i).Nodup := by
+  unfold getSubset subsetList
+  exact List.Nodup.sublist
+    (sublistsLen_get_sublist' pack.selected κ (i.cast (subsetList_length pack κ).symm))
+    pack.selected_nodup
+
+/-- Each element of getSubset is in pack.selected -/
+theorem getSubset_subset' (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ))
+    (c : Fin Φ.clauses.length) (hc : c ∈ getSubset pack κ i) :
+    c ∈ pack.selected := by
+  unfold getSubset subsetList at hc
+  exact (sublistsLen_get_sublist' pack.selected κ
+    (i.cast (subsetList_length pack κ).symm)).subset hc
+
 /-- R_i is in blockedSpdpSubspace (with m = 1) -/
 theorem rowPoly_mem_subspace [Field F]
     (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
     (pack : DisjointPacking Φ) (κ ℓ : ℕ)
-    (i : Fin (Nat.choose pack.selected.length κ)) :
+    (i : Fin (Nat.choose pack.selected.length κ))
+    -- Selectors for distinct packed clauses lie in distinct blocks
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
     rowPoly F Φ pack κ i ∈ blockedSpdpSubspace B κ ℓ (coupledVerifier F Φ) := by
-  -- rowPoly = 1 * iterDerivList (selectors) Q×
-  -- Need: selectorList has length κ, deg(1) = 0 ≤ ℓ, isBlockAdmissible
-  sorry -- Needs block admissibility hypothesis on B
+  -- rowPoly = 1 * iterDerivList (selectorList) Q×
+  unfold rowPoly
+  rw [show iterDerivList (selectorList Φ pack κ i) (coupledVerifier F Φ) =
+      1 * iterDerivList (selectorList Φ pack κ i) (coupledVerifier F Φ) from (one_mul _).symm]
+  apply Submodule.subset_span
+  refine ⟨selectorList Φ pack κ i, 1, ?_, ?_, ?_, rfl⟩
+  · -- length = κ
+    unfold selectorList
+    rw [List.length_map]
+    exact getSubset_length pack κ i
+  · -- deg(1) ≤ ℓ
+    simp [MvPolynomial.totalDegree_one]
+  · -- isBlockAdmissible — uses hB hypothesis with getSubset properties
+    -- (getSubset_nodup and getSubset_subset are defined below but
+    --  used here via forward declaration pattern)
+    unfold selectorList
+    exact hB (getSubset pack κ i)
+      (getSubset_nodup' pack κ i)
+      (fun c hc => getSubset_subset' pack κ i c hc)
+      (getSubset_length pack κ i)
 
 /-- Elements of sublistsLen are sublists of the original -/
 private theorem sublistsLen_get_sublist (l : List α) (n : ℕ)
@@ -612,7 +658,8 @@ theorem identity_minor_construction_proof [Nontrivial F]
       (signs : Fin (Nat.choose pack.selected.length κ) → F),
       (∀ i, signs i = 1 ∨ signs i = -1) ∧
       ∀ i j, MvPolynomial.coeff (τ i) (R j).val = if i = j then signs i else 0 := by
-  refine ⟨fun i => ⟨rowPoly F Φ pack κ i, rowPoly_mem_subspace Φ B pack κ ℓ i⟩,
+  refine ⟨fun i => ⟨rowPoly F Φ pack κ i, rowPoly_mem_subspace Φ B pack κ ℓ i
+    (fun cs hnd hsel hlen => sorry /- block admissibility of selector list -/)⟩,
           fun i => tagMono F Φ pack κ i,
           fun i => subsetSign F Φ pack κ i,
           fun i => subsetSign_unit Φ pack κ i, ?_⟩
