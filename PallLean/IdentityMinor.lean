@@ -920,8 +920,69 @@ theorem coeff_tagMono_prod_offdiag [Nontrivial F]
   have hpos : tseitinNumVars Φ > 0 := by unfold tseitinNumVars; have := c.isLt; omega
   set v1 : Fin (tseitinNumVars Φ) := ⟨cl.var1 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
   -- v1 ∈ support of tagMono i (no cancellation: disjoint vars across clauses)
+  -- chooseTagMonomial c has v1 with value 1; all other clauses in S_i give 0 at v1
+  -- v2 and v3 for distinctness
+  have hcvb := Φ.clause_vars_bound cl (List.getElem_mem c.isLt)
+  obtain ⟨hcl1, hcl2, hcl3⟩ := hcvb
+  have hN : cl.var1 < tseitinNumVars Φ := by unfold tseitinNumVars; omega
+  have hN2 : cl.var2 < tseitinNumVars Φ := by unfold tseitinNumVars; omega
+  have hN3 : cl.var3 < tseitinNumVars Φ := by unfold tseitinNumVars; omega
+  set v2 : Fin (tseitinNumVars Φ) := ⟨cl.var2 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  set v3 : Fin (tseitinNumVars Φ) := ⟨cl.var3 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  have hv12 : v1 ≠ v2 := by
+    intro h; have hv := congr_arg Fin.val h
+    simp [v1, v2, Nat.mod_eq_of_lt hN, Nat.mod_eq_of_lt hN2] at hv
+    exact cl.distinct12 hv
+  have hv13 : v1 ≠ v3 := by
+    intro h; have hv := congr_arg Fin.val h
+    simp [v1, v3, Nat.mod_eq_of_lt hN, Nat.mod_eq_of_lt hN3] at hv
+    exact cl.distinct13 hv
+  have hv1_in_c : (chooseTagMonomial Φ c) v1 = 1 := by
+    unfold chooseTagMonomial
+    rw [Finsupp.add_apply, Finsupp.add_apply,
+        Finsupp.single_apply, Finsupp.single_apply, Finsupp.single_apply,
+        if_pos rfl, if_neg (Ne.symm hv12), if_neg (Ne.symm hv13)]
+    omega
+  have hv1_zero_others : ∀ c' ∈ getSubset pack κ i, c' ≠ c →
+      (chooseTagMonomial Φ c') v1 = 0 := by
+    intro c' hc' hne
+    have hc'_sel := getSubset_subset' pack κ i c' hc'
+    obtain ⟨ic, rfl⟩ := List.get_of_mem hc_sel
+    obtain ⟨jc, rfl⟩ := List.get_of_mem hc'_sel
+    have hij' : ic ≠ jc := fun heq => hne (congr_arg _ heq).symm
+    have hv1_nc' := Finset.disjoint_left.mp
+      (clauseVarSetFin_disjoint (F := F) Φ pack ic jc hij')
+      (Finset.mem_insert_self v1 _ : v1 ∈ clauseVarSetFin Φ (pack.selected.get ic))
+    by_contra h
+    exact hv1_nc' (tagMonomial_supported_clause Φ (pack.selected.get jc)
+      v1 (Finsupp.mem_support_iff.mpr h))
   have hv1_tagmono : (tagMono F Φ pack κ i) v1 ≠ 0 := by
-    sorry -- foldl sum has no cancellation on disjoint-var monomials
+    -- Prove via a general lemma about foldr sums with disjoint support
+    -- tagMono at v1 = (chooseTagMonomial c) v1 = 1 (all others contribute 0)
+    unfold tagMono
+    rw [CoeffDisjoint.foldl_add_eq_foldr]
+    -- General: if c ∈ L, L is nodup, (τ c) v = k ≠ 0, and ∀ c' ∈ L, c' ≠ c → (τ c') v = 0,
+    -- then listFinsuppSum (L.map τ) v ≥ k
+    suffices hsuff : ∀ (L : List (Fin Φ.clauses.length)),
+        c ∈ L → L.Nodup → (∀ c' ∈ L, c' ≠ c → (chooseTagMonomial Φ c') v1 = 0) →
+        (CoeffDisjoint.listFinsuppSum (L.map (chooseTagMonomial Φ))) v1 ≥ 1 by
+      have := hsuff _ hci (getSubset_nodup' pack κ i)
+        (fun c' hc' hne => hv1_zero_others c' hc' hne)
+      omega
+    intro L hcL hnd hzero
+    induction L with
+    | nil => simp at hcL
+    | cons hd rest ih =>
+      have ⟨hhd_notin, hnd_rest⟩ := List.nodup_cons.mp hnd
+      rw [List.map_cons, CoeffDisjoint.listFinsuppSum_cons, Finsupp.add_apply]
+      have ⟨hhd_z, hrest_z⟩ := List.forall_mem_cons.mp hzero
+      rcases List.mem_cons.mp hcL with rfl | hrest_mem
+      · -- hd = c
+        rw [hv1_in_c]; omega
+      · -- hd ≠ c
+        have hhd_ne : hd ≠ c := fun h => hhd_notin (h ▸ hrest_mem)
+        rw [hhd_z hhd_ne, zero_add]
+        exact ih hrest_mem hnd_rest hrest_z
   -- v1 ∉ Bj (c ∉ S_j and clause vars are packing-disjoint)
   have hv1_notBj : v1 ∉ Bj := by
     intro ⟨c', hc'j, hv1c'⟩

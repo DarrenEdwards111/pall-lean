@@ -161,15 +161,15 @@ theorem monomSupportedIn_add {mA mB : σ →₀ ℕ} {A B : Set σ}
     right; exact hmB x (Finsupp.mem_support_iff.mpr h2)
 
 /-- Finsupp.sum of a list equals the foldl -/
-private noncomputable def listFinsuppSum (ms : List (σ →₀ ℕ)) : σ →₀ ℕ :=
+noncomputable def listFinsuppSum (ms : List (σ →₀ ℕ)) : σ →₀ ℕ :=
   ms.foldr (· + ·) 0
 
-private theorem listFinsuppSum_nil : listFinsuppSum ([] : List (σ →₀ ℕ)) = 0 := rfl
+theorem listFinsuppSum_nil : listFinsuppSum ([] : List (σ →₀ ℕ)) = 0 := rfl
 
-private theorem listFinsuppSum_cons (hd : σ →₀ ℕ) (rest : List (σ →₀ ℕ)) :
+theorem listFinsuppSum_cons (hd : σ →₀ ℕ) (rest : List (σ →₀ ℕ)) :
     listFinsuppSum (hd :: rest) = hd + listFinsuppSum rest := rfl
 
-private theorem monomSupportedIn_listFinsuppSum {ms : List (σ →₀ ℕ)} {S : Set σ}
+theorem monomSupportedIn_listFinsuppSum {ms : List (σ →₀ ℕ)} {S : Set σ}
     (h : ∀ m ∈ ms, monomSupportedIn m S) :
     monomSupportedIn (listFinsuppSum ms) S := by
   induction ms with
@@ -197,7 +197,7 @@ theorem foldl_add_acc (ms : List (σ →₀ ℕ)) (acc : σ →₀ ℕ) :
     rw [ih (acc + hd), ih hd]
     abel
 
-private theorem foldl_add_eq_foldr (ms : List (σ →₀ ℕ)) :
+theorem foldl_add_eq_foldr (ms : List (σ →₀ ℕ)) :
     ms.foldl (· + ·) (0 : σ →₀ ℕ) = listFinsuppSum ms := by
   induction ms with
   | nil => rfl
@@ -234,5 +234,15 @@ theorem usesOnly_list_prod {ps : List (MvPolynomial σ F)} {S : Set σ}
       exact hhd m' hm' x hx'
     · obtain ⟨m', hm', hx'⟩ := (MvPolynomial.mem_vars x).mp hr
       exact ih hrest m' hm' x hx'
+
+/-- If every element of a list evaluates to 0 at x, then foldr sum evaluates to 0 at x -/
+theorem listFinsuppSum_zero_at {ms : List (σ →₀ ℕ)} {x : σ}
+    (h : ∀ m ∈ ms, m x = 0) :
+    (listFinsuppSum ms) x = 0 := by
+  induction ms with
+  | nil => rfl
+  | cons hd rest ih =>
+    have ⟨hhd, hrest⟩ := List.forall_mem_cons.mp h
+    rw [listFinsuppSum_cons, Finsupp.add_apply, hhd, ih hrest, add_zero]
 
 end CoeffDisjoint
