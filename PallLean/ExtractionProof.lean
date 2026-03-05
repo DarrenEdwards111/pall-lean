@@ -344,27 +344,61 @@ theorem gauge_scalar_rank_le
       _ ≤ ℓ := hdeg
   exact Submodule.subset_span ⟨S, m * MvPolynomial.C a, hlen, hdeg', hadm, rfl⟩
 
-/-- Gauge (full): multiplication by C(a) * monomial(m,1).
-    Scalar part preserves rank. Monomial part is injective but not
-    invertible in MvPolynomial; paper treats it as block-local unit. -/
+/-- pderiv commutes with multiplication by a monomial when the variable
+    is not in the monomial's support (pderiv of the monomial is 0). -/
+theorem pderiv_mul_monomial_comm
+    (m_mono : (Fin n) →₀ ℕ) (i : Fin n) (hi : m_mono i = 0)
+    (q : MvPolynomial (Fin n) F) :
+    pderiv i (monomial m_mono (1 : F) * q) =
+    monomial m_mono (1 : F) * pderiv i q := by
+  rw [Derivation.leibniz]
+  have : pderiv i (monomial m_mono (1 : F)) = 0 := by
+    rw [pderiv_monomial]
+    simp [hi]
+  simp [this]
+
+/-- iterDerivList commutes with monomial multiplication when all derivative
+    variables are outside the monomial's support. -/
+theorem iterDerivList_mul_monomial_comm
+    (m_mono : (Fin n) →₀ ℕ) (S : List (Fin n))
+    (hS : ∀ i ∈ S, m_mono i = 0)
+    (q : MvPolynomial (Fin n) F) :
+    iterDerivList S (monomial m_mono (1 : F) * q) =
+    monomial m_mono (1 : F) * iterDerivList S q := by
+  induction S generalizing q with
+  | nil => simp [iterDerivList]
+  | cons i rest ih =>
+    simp only [iterDerivList, List.foldl]
+    rw [pderiv_mul_monomial_comm m_mono i (hS i (by simp))]
+    exact ih (fun j hj => hS j (by simp [hj])) (pderiv i q)
+
+/-- Gauge with trivial monomial (m_mono = 0): reduces to scalar gauge. -/
+theorem gauge_rank_le_trivial
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (a : F) (ha : a ≠ 0)
+    (p : MvPolynomial (Fin n) F) :
+    blockedSpdpRank B κ ℓ (ExtractionPipeline.gaugePoly a ha 0 p) ≤
+    blockedSpdpRank B κ ℓ p := by
+  -- gaugePoly a ha 0 p = C(a) * monomial 0 1 * p = C(a) * 1 * p = C(a) * p
+  have : ExtractionPipeline.gaugePoly a ha 0 p = MvPolynomial.C a * p := by
+    unfold ExtractionPipeline.gaugePoly
+    simp [monomial_zero']
+  rw [this]
+  exact gauge_scalar_rank_le B κ ℓ a ha p
+
+/-- Gauge (general): with block-disjoint monomial and adjusted degree bound.
+    The monomial adds degree to multipliers, so we need ℓ' = ℓ + deg(monomial).
+    For the extraction pipeline, the paper accounts for this in the composition. -/
 theorem gauge_rank_le
     (B : BlockPartition n) (κ ℓ : ℕ)
     (a : F) (ha : a ≠ 0) (m_mono : (Fin n) →₀ ℕ)
-    (p : MvPolynomial (Fin n) F) :
+    (p : MvPolynomial (Fin n) F)
+    (hG : ∀ (S : List (Fin n)), isBlockAdmissible B S →
+          ∀ i ∈ S, m_mono i = 0) :
     blockedSpdpRank B κ ℓ (ExtractionPipeline.gaugePoly a ha m_mono p) ≤
-    blockedSpdpRank B κ ℓ p := by
-  -- gaugePoly a ha m_mono p = C(a) * monomial(m_mono, 1) * p
-  -- For the general case with nontrivial monomial, Leibniz cross terms
-  -- prevent simple derivative commutation. The paper uses block-locality
-  -- to handle this. For the extraction pipeline, gauge is typically scalar.
-  --
-  -- Proof strategy for general case (from Darren):
-  -- Multiplication by u = C(a) * monomial(m,1) is INJECTIVE (integral domain).
-  -- For any injective linear map f and finite-dim subspace W:
-  --   finrank(W.map f) = finrank(W)
-  -- But blockedSpdpSubspace(u*p) ≠ (blockedSpdpSubspace p).map (u*·)
-  -- because of Leibniz in ∂^S(u*p). The block-locality argument from the
-  -- paper is needed to handle the cross terms.
+    blockedSpdpRank B (κ) (ℓ + m_mono.sum (fun _ e => e)) p := by
+  -- Gauge monomial commutes with admissible derivatives (block-disjoint).
+  -- The multiplier gains degree from the monomial factor.
   sorry
 
 /-! ## Step 6: Composition — wiring to the axiom signature -/
