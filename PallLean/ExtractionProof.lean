@@ -33,10 +33,13 @@ Since Fin n is finite, restrictTotalDegree is Module.Finite. -/
 theorem pderiv_mem_restrictTotalDegree (N : ℕ) (i : Fin n)
     (p : MvPolynomial (Fin n) F) (hp : p ∈ restrictTotalDegree (Fin n) F N) :
     pderiv i p ∈ restrictTotalDegree (Fin n) F N := by
-  rw [mem_restrictTotalDegree] at hp ⊢
-  -- pderiv i p is a sum of monomials, each with degree ≤ degree of
-  -- the corresponding original monomial (pderiv_monomial drops degree).
-  -- So totalDegree(pderiv i p) ≤ totalDegree(p) ≤ N.
+  -- restrictTotalDegree = restrictSupport { n | n.sum id ≤ N }
+  -- mem_restrictSupport_iff : p ∈ iff p.support ⊆ s
+  -- So: need every monomial in (pderiv i p).support to have degree sum ≤ N.
+  -- pderiv_monomial: pderiv i (monomial s a) = monomial (s - single i 1) (a * s i)
+  -- (s - single i 1).sum id ≤ s.sum id (subtraction can only decrease)
+  -- Since p ∈ restrictTotalDegree N, all s ∈ p.support have s.sum id ≤ N.
+  -- So all output monomials have degree ≤ N.
   sorry
 
 /-- Iterated pderiv preserves restrictTotalDegree -/
@@ -174,7 +177,14 @@ theorem restrictPoly_eq_of_vars_nonTrace
     (hm : ∀ v ∈ m.vars, isTrace v = false) :
     ExtractionPipeline.restrictPoly isTrace assign m = m := by
   unfold ExtractionPipeline.restrictPoly
-  sorry
+  -- aeval f m where f v = if isTrace v then C(assign v) else X v
+  -- For all v ∈ m.vars, isTrace v = false, so f v = X v.
+  -- aeval X m = m (by aeval_X_left).
+  -- Use eval₂Hom_congr' to equate aeval f m = aeval X m.
+  conv_rhs => rw [← AlgHom.id_apply (R := F) m, ← aeval_X_left]
+  apply eval₂Hom_congr' rfl _ rfl
+  intro i hi _
+  simp [hm i hi]
 
 /-- Restriction stage: rank of restricted polynomial ≤ rank of original.
     Block-admissible multipliers use only non-trace variables, so R(m) = m.
