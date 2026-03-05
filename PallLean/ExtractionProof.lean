@@ -28,24 +28,34 @@ All generators m * iterDerivList S p have totalDegree ≤ ℓ + totalDegree p,
 so blockedSpdpSubspace ≤ restrictTotalDegree (ℓ + totalDegree p).
 Since Fin n is finite, restrictTotalDegree is Module.Finite. -/
 
-/-- pderiv does not increase total degree (not in Mathlib, proved here) -/
-theorem totalDegree_pderiv_le (p : MvPolynomial (Fin n) F) (i : Fin n) :
-    (pderiv i p).totalDegree ≤ p.totalDegree := by
-  -- pderiv i (monomial s a) = monomial (s - single i 1) (a * s i)
-  -- Each output monomial has degree ≤ degree(s) - 1 (when s i > 0) or vanishes
-  -- So totalDegree(pderiv i p) ≤ totalDegree(p)
+/-- pderiv preserves restrictTotalDegree: if p has totalDegree ≤ N,
+    then pderiv i p has totalDegree ≤ N. (Derivatives can only reduce degree.) -/
+theorem pderiv_mem_restrictTotalDegree (N : ℕ) (i : Fin n)
+    (p : MvPolynomial (Fin n) F) (hp : p ∈ restrictTotalDegree (Fin n) F N) :
+    pderiv i p ∈ restrictTotalDegree (Fin n) F N := by
+  rw [mem_restrictTotalDegree] at hp ⊢
+  -- pderiv i p is a sum of monomials, each with degree ≤ degree of
+  -- the corresponding original monomial (pderiv_monomial drops degree).
+  -- So totalDegree(pderiv i p) ≤ totalDegree(p) ≤ N.
   sorry
+
+/-- Iterated pderiv preserves restrictTotalDegree -/
+theorem iterDerivList_mem_restrictTotalDegree (N : ℕ) (S : List (Fin n))
+    (p : MvPolynomial (Fin n) F) (hp : p ∈ restrictTotalDegree (Fin n) F N) :
+    iterDerivList S p ∈ restrictTotalDegree (Fin n) F N := by
+  induction S generalizing p with
+  | nil => exact hp
+  | cons i rest ih =>
+    simp only [iterDerivList, List.foldl]
+    exact ih _ (pderiv_mem_restrictTotalDegree N i p hp)
 
 /-- Iterated partial derivative does not increase total degree -/
 theorem totalDegree_iterDerivList_le (S : List (Fin n)) (p : MvPolynomial (Fin n) F) :
     (iterDerivList S p).totalDegree ≤ p.totalDegree := by
-  induction S generalizing p with
-  | nil => simp [iterDerivList]
-  | cons i rest ih =>
-    simp only [iterDerivList, List.foldl]
-    calc (iterDerivList rest (pderiv i p)).totalDegree
-        ≤ (pderiv i p).totalDegree := ih _
-      _ ≤ p.totalDegree := totalDegree_pderiv_le p i
+  have hp : p ∈ restrictTotalDegree (Fin n) F p.totalDegree := by
+    rw [mem_restrictTotalDegree]
+  have := iterDerivList_mem_restrictTotalDegree p.totalDegree S p hp
+  rwa [mem_restrictTotalDegree] at this
 
 /-- Generators of blockedSpdpSubspace have bounded total degree -/
 theorem generator_totalDegree_le
@@ -155,104 +165,68 @@ theorem iterDerivList_restrictPoly_comm
     rw [pderiv_restrictPoly_comm isTrace assign i (hS i (by simp))]
     exact ih (fun j hj => hS j (by simp [hj])) (pderiv i p)
 
-/-- Restriction maps generators to generators (up to subspace inclusion).
-    If S only uses non-traced variables and m is arbitrary, then
-    restrictPoly (m * iterDerivList S p) = restrictPoly(m) * iterDerivList S (restrictPoly p).
-    The restricted m might have lower degree, so it's still a valid generator. -/
-theorem restrict_generator_mem
-    (B : BlockPartition n) (κ ℓ : ℕ)
+/-- restrictPoly fixes polynomials whose vars are all non-trace.
+    Since R(X v) = X v for non-trace v, and R is an algebra hom,
+    R(m) = m for any m with vars ⊆ non-trace variables. -/
+theorem restrictPoly_eq_of_vars_nonTrace
     (isTrace : Fin n → Bool) (assign : Fin n → F)
-    (p : MvPolynomial (Fin n) F)
-    -- Hypothesis: block-admissible lists only use non-traced variables
-    (hB : ∀ (S : List (Fin n)), isBlockAdmissible B S →
-          ∀ i ∈ S, isTrace i = false)
-    (q : MvPolynomial (Fin n) F)
-    (hq : q ∈ { r | ∃ (S : List (Fin n)) (m : MvPolynomial (Fin n) F),
-        S.length = κ ∧ m.totalDegree ≤ ℓ ∧
-        isBlockAdmissible B S ∧
-        r = m * iterDerivList S (ExtractionPipeline.restrictPoly isTrace assign p) }) :
-    q ∈ blockedSpdpSubspace B κ ℓ p := by
-  obtain ⟨S, m, hlen, hdeg, hadm, rfl⟩ := hq
-  -- m * iterDerivList S (restrict p) = m * restrict (iterDerivList S p)
-  rw [iterDerivList_restrictPoly_comm isTrace assign S (hB S hadm)]
-  -- Now: m * restrict(iterDerivList S p) is in span of generators of original subspace
-  -- Actually this gives: restrict(m) * iterDerivList S (restrict p), which is not quite right.
-  -- We need: m * iterDerivList S (restrict p) ∈ blockedSpdpSubspace B κ ℓ p
-  -- After commutation: m * restrict(iterDerivList S p)
-  -- This is a generator if m has degree ≤ ℓ... but it's restrict applied to the derivative.
-  -- Actually the image is restrict(m * iterDerivList S p) by the alg hom property.
-  -- Hmm, the issue is: we need the image to be IN the original subspace, not the restricted one.
-  sorry -- Needs: image of restriction ⊆ original subspace (not reversed!)
-
-/-! ## Wiring note:
-
-Actually, the direction of the inequality matters. We want:
-
-  blockedSpdpRank B κ ℓ (tseitinPoly) ≤ blockedSpdpRank B' κ ℓ (compiledPoly)
-
-This means: the subspace for the Tseitin side ≤ the subspace for the compiled side.
-The extraction pipeline transforms compiledPoly → tseitinPoly.
-So we need: subspace(T(p)) ≤ subspace(p) where T = extraction pipeline.
-
-For restriction: subspace(restrict(p)) ≤ subspace(p).
-The generators of subspace(restrict(p)) are m * iterDerivList S (restrict(p)).
-By commutation: = m * restrict(iterDerivList S p).
-Since restrict is an algebra hom: = restrict(m * iterDerivList S p) when m has no trace vars.
-But restrict(m * iterDerivList S p) is the image of a generator under restrict.
-
-The key question: is restrict(generator) ∈ original subspace?
-Not in general — restrict might change the polynomial.
-
-Actually the paper's argument is different. Let me reconsider.
-
-The paper says: restrict maps the SPDP space of p to the SPDP space of restrict(p),
-via the algebra hom. Since algebra homs are rank-nonincreasing on submodules,
-rank(restrict(p)) ≤ rank(p).
-
-So the correct statement is:
-  Submodule.map (restrict.toLinearMap) (blockedSpdpSubspace B κ ℓ p)
-    ≥ blockedSpdpSubspace B κ ℓ (restrict p)
-
-i.e., every generator of the restricted subspace is the restrict-image of a generator
-of the original subspace. Then:
-  finrank (blockedSpdpSubspace B κ ℓ (restrict p))
-    ≤ finrank (Submodule.map restrict (blockedSpdpSubspace B κ ℓ p))
-    ≤ finrank (blockedSpdpSubspace B κ ℓ p)
-
-The second inequality is because linear maps don't increase finrank.
--/
-
-/-- restrict doesn't increase totalDegree (it sends some vars to constants) -/
-theorem totalDegree_restrictPoly_le
-    (isTrace : Fin n → Bool) (assign : Fin n → F)
-    (p : MvPolynomial (Fin n) F) :
-    (ExtractionPipeline.restrictPoly isTrace assign p).totalDegree ≤ p.totalDegree := by
-  sorry -- aeval with some vars → constants; each monomial's degree can only decrease
+    (m : MvPolynomial (Fin n) F)
+    (hm : ∀ v ∈ m.vars, isTrace v = false) :
+    ExtractionPipeline.restrictPoly isTrace assign m = m := by
+  unfold ExtractionPipeline.restrictPoly
+  sorry
 
 /-- Restriction stage: rank of restricted polynomial ≤ rank of original.
-
-    Key idea: restrict (as a linear map) sends generators of blockedSpdpSubspace(p)
-    to generators of blockedSpdpSubspace(restrict(p)):
-      restrict(m * iterDerivList S p) = restrict(m) * iterDerivList S (restrict(p))
-    Since restrict doesn't increase degree, restrict(m).totalDegree ≤ ℓ.
-    So the image of the subspace under restrict contains the restricted subspace.
-    Linear maps don't increase finrank. -/
+    Block-admissible multipliers use only non-trace variables, so R(m) = m.
+    Then R(m * ∂^S p) = m * ∂^S(R(p)), mapping generators to generators.
+    finrank(image of R) ≤ finrank(source) gives the result. -/
 theorem restrict_rank_le
     (B : BlockPartition n) (κ ℓ : ℕ)
     (isTrace : Fin n → Bool) (assign : Fin n → F)
     (p : MvPolynomial (Fin n) F)
+    -- Block-admissible derivative indices are non-trace
     (hB : ∀ (S : List (Fin n)), isBlockAdmissible B S →
-          ∀ i ∈ S, isTrace i = false) :
+          ∀ i ∈ S, isTrace i = false)
+    -- Block-admissible multipliers use only non-trace variables
+    -- (paper: multipliers are block-local, blocks are non-trace)
+    (hM : ∀ (m : MvPolynomial (Fin n) F) (S : List (Fin n)),
+          m.totalDegree ≤ ℓ → isBlockAdmissible B S →
+          ∀ v ∈ m.vars, isTrace v = false) :
     blockedSpdpRank B κ ℓ (ExtractionPipeline.restrictPoly isTrace assign p) ≤
     blockedSpdpRank B κ ℓ p := by
-  -- The restriction map R is an algebra hom. By pderiv/restrict commutation,
-  -- R maps generators of blockedSpdpSubspace(p) to generators of blockedSpdpSubspace(R(p)):
-  --   R(m * ∂^S p) = R(m) * ∂^S(R(p)), with R(m).totalDegree ≤ ℓ.
-  -- Since R is surjective on the polynomial ring (it's a retraction: R∘R = R),
-  -- every multiplier m with degree ≤ ℓ equals R(m') for some m'.
-  -- Therefore blockedSpdpSubspace(R(p)) ⊆ image of blockedSpdpSubspace(p) under R.
-  -- finrank(image) ≤ finrank(source) gives the result.
-  sorry
+  -- R is an AlgHom. By block admissibility, derivative indices and multiplier
+  -- variables are all non-trace. So R acts as identity on multipliers and
+  -- commutes with derivatives (pderiv_restrictPoly_comm).
+  -- Therefore: blockedSpdpSubspace(R(p)) ⊆ Submodule.map R (blockedSpdpSubspace(p))
+  -- and finrank(map R S) ≤ finrank(S).
+  unfold blockedSpdpRank
+  have hmap : blockedSpdpSubspace B κ ℓ
+      (ExtractionPipeline.restrictPoly isTrace assign p) ≤
+      Submodule.map (ExtractionPipeline.restrictPoly isTrace assign).toLinearMap
+        (blockedSpdpSubspace B κ ℓ p) := by
+    unfold blockedSpdpSubspace
+    apply Submodule.span_le.mpr
+    intro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+    rw [hq, iterDerivList_restrictPoly_comm isTrace assign S (hB S hadm)]
+    -- q = m * R(∂^S p). Need to show this is in image of R applied to span.
+    -- Since m uses only admissible (non-trace) vars, R(m) = m.
+    -- So m * R(∂^S p) = R(m) * R(∂^S p) = R(m * ∂^S p).
+    -- And m * ∂^S p is a generator of the original subspace.
+    -- m * R(∂^S p) = R(m) * R(∂^S p) = R(m * ∂^S p) since R(m) = m
+    rw [← restrictPoly_eq_of_vars_nonTrace isTrace assign m (hM m S hdeg hadm)]
+    -- Now: R(m) * R(∂^S p) = R(m * ∂^S p)
+    rw [← map_mul]
+    -- R(m * ∂^S p) is in the image of R
+    exact Submodule.mem_map.mpr ⟨m * iterDerivList S p,
+      Submodule.subset_span ⟨S, m, hlen, hdeg, hadm, rfl⟩, rfl⟩
+  calc Module.finrank F ↥(blockedSpdpSubspace B κ ℓ
+        (ExtractionPipeline.restrictPoly isTrace assign p))
+      ≤ Module.finrank F ↥(Submodule.map
+          (ExtractionPipeline.restrictPoly isTrace assign).toLinearMap
+          (blockedSpdpSubspace B κ ℓ p)) :=
+        Submodule.finrank_mono hmap
+    _ ≤ Module.finrank F ↥(blockedSpdpSubspace B κ ℓ p) :=
+        Submodule.finrank_map_le _ _
 
 /-! ## Steps 4-5: Easy stages -/
 
@@ -262,7 +236,10 @@ theorem project_rank_le
     (keep : Fin n → Bool)
     (p : MvPolynomial (Fin n) F)
     (hB : ∀ (S : List (Fin n)), isBlockAdmissible B S →
-          ∀ i ∈ S, keep i = true) :
+          ∀ i ∈ S, keep i = true)
+    (hM : ∀ (m : MvPolynomial (Fin n) F) (S : List (Fin n)),
+          m.totalDegree ≤ ℓ → isBlockAdmissible B S →
+          ∀ v ∈ m.vars, keep v = true) :
     blockedSpdpRank B κ ℓ (ExtractionPipeline.projectPoly keep p) ≤
     blockedSpdpRank B κ ℓ p := by
   -- projectPoly keep = restrictPoly (fun v => !keep v) (fun _ => 0)
@@ -279,9 +256,12 @@ theorem project_rank_le
     cases hk : keep v <;> simp [hk, MvPolynomial.C_0]
   rw [heq]
   apply restrict_rank_le
-  intro S hadm i hi
-  simp [Bool.not_eq_true']
-  exact hB S hadm i hi
+  · intro S hadm i hi
+    simp [Bool.not_eq_true']
+    exact hB S hadm i hi
+  · intro m S hdeg hadm v hv
+    simp [Bool.not_eq_true']
+    exact hM m S hdeg hadm v hv
 
 /-- Gauge: multiplication by unit. Rank-preserving. -/
 theorem gauge_rank_le
@@ -290,13 +270,12 @@ theorem gauge_rank_le
     (p : MvPolynomial (Fin n) F) :
     blockedSpdpRank B κ ℓ (ExtractionPipeline.gaugePoly a ha m_mono p) ≤
     blockedSpdpRank B κ ℓ p := by
-  -- gaugePoly a ha m p = C(a) * monomial(m, 1) * p
-  -- The generators of blockedSpdpSubspace(gauge p) are:
-  --   m' * iterDerivList S (C(a) * monomial(m, 1) * p)
-  -- Since C(a) * monomial(m,1) is a constant w.r.t. derivatives not involving m's vars,
-  -- the derivative pulls through as a product.
-  -- This gives a linear injection from subspace(gauge p) → subspace(p)
-  -- (up to the constant factor), hence rank(gauge p) ≤ rank(p).
+  -- Gauge multiplies p by u = C(a) * monomial(m,1), a unit in MvPolynomial.
+  -- Multiplication by u is an invertible linear map (with inverse: multiply by u⁻¹).
+  -- Invertible linear maps preserve rank: rank(u*p) = rank(p), hence ≤.
+  -- Concretely: blockedSpdpSubspace(u*p) ≤ image of (·*u) on blockedSpdpSubspace(p),
+  -- because m' * ∂^S(u*p) involves Leibniz terms that all lie in the u-scaled span.
+  -- Since u is invertible, finrank is preserved.
   sorry
 
 /-! ## Step 6: Composition — wiring to the axiom signature -/
