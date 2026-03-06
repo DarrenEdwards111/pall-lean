@@ -233,36 +233,18 @@ noncomputable def tseitinPoly (F : Type*) [CommRing F] [Nontrivial F] (n : ℕ) 
     Non-selector variables go in the overflow block (numClauses).
     This ensures selectors for distinct clauses lie in distinct blocks,
     which is needed for isBlockAdmissible of selector derivative lists. -/
-noncomputable def tseitinPartition (n : ℕ) : BlockPartition (npNumVars n) where
-  numBlocks := (tseitinAt n).clauses.length + 1
-  assign := fun v =>
-    if h : v.val ≥ (tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length ∧
-           v.val < (tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length +
-                   (tseitinAt n).clauses.length then
-      ⟨v.val - ((tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length),
-       by have := h.1; have := h.2; omega⟩
-    else
-      ⟨(tseitinAt n).clauses.length, by omega⟩
+noncomputable def tseitinPartition (n : ℕ) : BlockPartition (npNumVars n) :=
+  IdentityMinor.tseitinPartition (tseitinAt n)
 
 /-- Selectors for distinct packed clauses map to distinct blocks -/
 theorem tseitinPartition_selector_injective (n : ℕ) :
     Function.Injective (fun c : Fin (tseitinAt n).clauses.length =>
       (tseitinPartition n).assign (selectorIdx (tseitinAt n) c)) := by
   intro a b h
-  simp only [tseitinPartition, selectorIdx] at h
-  have ha : (tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length ≤
-      (tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length + a.val ∧
-      (tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length + a.val <
-      (tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length +
-      (tseitinAt n).clauses.length := by have := a.isLt; omega
-  have hb : (tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length ≤
-      (tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length + b.val ∧
-      (tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length + b.val <
-      (tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length +
-      (tseitinAt n).clauses.length := by have := b.isLt; omega
-  rw [dif_pos ha, dif_pos hb] at h
-  simp [Fin.ext_iff] at h
-  exact Fin.ext (by omega)
+  simp only [tseitinPartition] at h
+  have := IdentityMinor.tseitinPartition_selectors_distinct (tseitinAt n) a b
+  by_contra hab
+  exact this (Fin.ne_of_val_ne (fun h' => hab (Fin.ext h'))) h
 
 /-! ## Auxiliary Lemmas for Logarithm Bound -/
 
@@ -329,15 +311,13 @@ theorem np_side_lb (F : Type*) [Field F] :
   have hv := tseitinAt_vertices n (by omega)
   have pack := Tseitin.disjoint_packing_exists (tseitinAt n) (by omega)
   -- Step 2: Identity minor gives rank ≥ (pack.selected.length choose κ)
-  have h_minor := identity_minor_lower_bound F (tseitinAt n)
-    (tseitinPartition n) pack (Nat.log 2 n) (Nat.log 2 n)
-    (by -- κ = log₂ n ≤ n/30 ≤ pack.selected.length for n ≥ 1024
-        have hps := pack.size_bound
-        rw [hv] at hps
-        have hlog : Nat.log 2 n ≤ n / 30 :=
-          log2_le_div30 n (by linarith [show (2:ℕ)^10 = 1024 from by norm_num])
-        exact hlog.trans hps)
-  -- Step 3: pack.selected.length ≥ n/30, so choose ≥ (n/30 choose κ) ≥ n^{κ/4}
+  -- tseitinPartition n = IdentityMinor.tseitinPartition (tseitinAt n) by definition
+  have h_minor : blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
+      (tseitinPoly F n) ≥ Nat.choose pack.selected.length (Nat.log 2 n) :=
+    identity_minor_lower_bound F (tseitinAt n) pack (Nat.log 2 n) (Nat.log 2 n)
+      (by have hps := pack.size_bound
+          rw [hv] at hps
+          exact (log2_le_div30 n (by linarith [show (2:ℕ)^10 = 1024 from by norm_num])).trans hps)
   calc blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly F n)
       ≥ Nat.choose pack.selected.length (Nat.log 2 n) := h_minor
     _ ≥ Nat.choose (n / 30) (Nat.log 2 n) := by

@@ -1244,4 +1244,28 @@ theorem identity_minor_construction_proof [Nontrivial F]
   · intro i j
     exact kronecker_delta (F := F) Φ pack κ i j
 
+/-- Non-existential version: the identity minor uses tseitinPartition Φ as block partition.
+    Returns R, τ, signs with Kronecker δ property, typed at the concrete B. -/
+noncomputable def identity_minor_components [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hκ : κ ≤ pack.selected.length) :
+    (Fin (Nat.choose pack.selected.length κ) →
+      ↥(blockedSpdpSubspace (tseitinPartition Φ) κ ℓ (coupledVerifier F Φ))) ×
+    (Fin (Nat.choose pack.selected.length κ) → ((Fin (tseitinNumVars Φ)) →₀ ℕ)) ×
+    (Fin (Nat.choose pack.selected.length κ) → F) :=
+  (fun i => ⟨rowPoly F Φ pack κ i, rowPoly_mem_subspace Φ (tseitinPartition Φ) pack κ ℓ i
+    (fun cs hnd _ _ => tseitinPartition_admissible_general Φ cs hnd)⟩,
+   fun i => tagMono F Φ pack κ i,
+   fun i => subsetSign F Φ pack κ i)
+
+theorem identity_minor_components_signs [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hκ : κ ≤ pack.selected.length) :
+    let c := identity_minor_components (F := F) Φ pack κ ℓ hκ
+    (∀ i, c.2.2 i = 1 ∨ c.2.2 i = -1) ∧
+    ∀ i j, MvPolynomial.coeff (c.2.1 i) (c.1 j).val = if i = j then c.2.2 i else 0 := by
+  simp only [identity_minor_components]
+  exact ⟨fun i => subsetSign_unit Φ pack κ i,
+         fun i j => kronecker_delta (F := F) Φ pack κ i j⟩
+
 end IdentityMinor

@@ -119,15 +119,50 @@ theorem identity_minor_construction (F : Type*) [Field F] [Nontrivial F]
       ∀ i j, MvPolynomial.coeff (τ i) (R j).val = if i = j then signs i else 0 :=
   IdentityMinor.identity_minor_construction_proof Φ pack κ ℓ hκ
 
-theorem identity_minor_lower_bound (F : Type*) [Field F]
-    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
-    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
-    (hκ : κ ≤ pack.selected.length) :
+private theorem identity_minor_lower_bound_aux (F : Type*) [Field F]
+    {Φ : TseitinFormula} {pack : DisjointPacking Φ} {κ ℓ : ℕ}
+    (B : BlockPartition (tseitinNumVars Φ))
+    (R : Fin (Nat.choose pack.selected.length κ) →
+      ↥(blockedSpdpSubspace B κ ℓ (coupledVerifier F Φ)))
+    (τ : Fin (Nat.choose pack.selected.length κ) →
+      ((Fin (tseitinNumVars Φ)) →₀ ℕ))
+    (signs : Fin (Nat.choose pack.selected.length κ) → F)
+    (hsigns : ∀ i, signs i = 1 ∨ signs i = -1)
+    (hkronecker : ∀ i j, MvPolynomial.coeff (τ i) (R j).val =
+      if i = j then signs i else 0) :
     blockedSpdpRank B κ ℓ (coupledVerifier F Φ) ≥ Nat.choose pack.selected.length κ := by
-  -- Uses identity_minor_construction to get Kronecker δ system,
-  -- then linear independence from the Kronecker δ property.
-  -- The Kronecker δ matrix (coeff τᵢ Rⱼ = δᵢⱼ · signᵢ) gives
-  -- linearly independent rows, hence rank ≥ number of rows.
-  sorry
+  have hli : LinearIndependent F (Subtype.val ∘ R) := by
+    rw [linearIndependent_iff']
+    intro S g hg a ha
+    -- Extract g a = 0 from ∑ g_j • R_j = 0 and Kronecker δ
+    -- Apply coeffLin (a LinearMap) to distribute over the sum
+    have h0 : (coeffLin F (τ a)) (∑ j ∈ S, g j • (Subtype.val ∘ R) j) = 0 := by
+      rw [hg]; exact map_zero _
+    simp only [map_sum, LinearMap.map_smul, Function.comp, smul_eq_mul] at h0
+    -- h0 now: ∑ j ∈ S, g j * (coeffLin F (τ a)) ↑(R j) = 0
+    -- coeffLin F d p = coeff d p by definition
+    simp only [coeffLin, LinearMap.coe_mk, AddHom.coe_mk] at h0
+    have hsub : ∀ j ∈ S, g j * MvPolynomial.coeff (τ a) (R j).val =
+        if j = a then g j * signs a else 0 := by
+      intro j _
+      rw [hkronecker a j]
+      by_cases h : a = j
+      · subst h; simp
+      · simp [h, show j ≠ a from fun h' => h (h' ▸ rfl)]
+    rw [Finset.sum_congr rfl hsub, Finset.sum_ite_eq' S a, if_pos ha] at h0
+    rcases hsigns a with hs | hs <;> simp [hs] at h0 <;> exact h0
+  exact rank_from_identity_minor F _ B κ ℓ
+    (Nat.choose pack.selected.length κ)
+    (blockedSpdpSubspace B κ ℓ (coupledVerifier F Φ))
+    (Nat.choose pack.selected.length κ) R hli
+
+theorem identity_minor_lower_bound (F : Type*) [Field F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (hκ : κ ≤ pack.selected.length) :
+    blockedSpdpRank (IdentityMinor.tseitinPartition Φ) κ ℓ (coupledVerifier F Φ) ≥
+      Nat.choose pack.selected.length κ := by
+  let c := IdentityMinor.identity_minor_components (F := F) Φ pack κ ℓ hκ
+  have ⟨hsigns, hkron⟩ := IdentityMinor.identity_minor_components_signs Φ pack κ ℓ hκ (F := F)
+  exact identity_minor_lower_bound_aux F _ c.1 c.2.1 c.2.2 hsigns hkron
 
 end Tseitin
