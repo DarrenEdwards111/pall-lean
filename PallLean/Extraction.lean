@@ -13,14 +13,11 @@ namespace Extraction
 
 open SPDP Compiler NPWitness TuringMachine MvPolynomial
 
-/-- **Extraction rank monotonicity (Theorem 12.2) — NOW A THEOREM**
+/-- **Extraction rank monotonicity (Theorem 12.2)**
 
-    Proved from two structural axioms in ExtractionWiring.lean:
-    - `relabel_generators_subset`: rename maps generators into image of generators
-    - `extraction_factorization`: tseitinPoly = gauge(relabel(restrict(project(compiledPoly))))
-
-    Plus three proved stage lemmas from ExtractionProof.lean:
-    - `project_rank_le`, `restrict_rank_le`, `gauge_scalar_rank_le` -/
+    For any DTM M, rank(tseitin) ≤ rank(compiled(M♯)).
+    This is the semantic bridge between the NP lower bound and
+    the P upper bound in the separation argument. -/
 theorem extraction_rank_monotone (F : Type*) [Field F]
     (M : DTM) (n : ℕ) :
     blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
