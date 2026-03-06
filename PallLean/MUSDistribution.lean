@@ -154,19 +154,26 @@ def pairUnion (n : ℕ) (vars : Finset (Fin n)) : Finset (Fin (2 * n)) :=
 theorem pairUnion_mobius (F : UnitClauseFamily n)
     (vars : Finset (Fin n)) (hne : vars.Nonempty) :
     mobiusCoeff F.D (pairUnion n vars) = (-1) ^ vars.card := by
-  -- By decomposable product theorem: f̂(A∪B) = f̂(A) · f̂(B)
-  -- Each contradictory pair contributes -1, and pairs are independent.
+  -- Induction on vars: peel off one variable, apply decomposable product
+  -- Each step uses: f̂(A ∪ pair_i) = f̂(A) · f̂(pair_i) = f̂(A) · (-1)
+  -- Base: single pair → f̂ = -1 (MUS theorem)
+  -- This requires showing disjointness + decomposition at each step.
   sorry
 
-/-- **NP-side mass lower bound**: The Möbius mass at level 2k is at least
-    C(n, k) — one for each choice of k variables forming k contradictory pairs.
+/-- At level 2, the mass is at least n (one per contradictory pair). -/
+theorem mobius_mass_level2_ge_n (F : UnitClauseFamily n) :
+    n ≤ DecisionMobiusBridge.mobiusMassLevel F.D 2 := by
+  calc n ≤ ((Finset.univ : Finset (Fin (2*n))).powerset.filter
+      (fun S => S.card = 2 ∧ F.D.isSAT S = false ∧
+        ∀ T ∈ S.powerset, T ≠ S → F.D.isSAT T = true)).card :=
+      mus_count_size2_ge_n F
+    _ ≤ DecisionMobiusBridge.mobiusMassLevel F.D 2 :=
+      DecisionMobiusBridge.mus_count_le_mobius_mass F.D 2 (by omega)
 
-    For k = ⌊log₂ n⌋, this gives superpolynomial mass. -/
+/-- General level: C(n,k) mass at level 2k (depends on product formula). -/
 theorem mobius_mass_level_2k_lower (F : UnitClauseFamily n) (k : ℕ)
     (hk : k ≤ n) :
     n.choose k ≤ DecisionMobiusBridge.mobiusMassLevel F.D (2 * k) := by
-  -- Each of the C(n,k) sets of k variables gives a distinct element
-  -- of (2n).powerset with card = 2k and |f̂| = 1.
   sorry
 
 /-- **Superpolynomial mass**: For any polynomial bound n^C, there exists
