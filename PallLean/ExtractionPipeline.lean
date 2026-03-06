@@ -59,7 +59,7 @@ theorem blockedSpdpRank_mono' (κ ℓ : ℕ) {p q : MvPolynomial σ F}
          blockedSpdpSubspace' blockedSpdpGens κ ℓ q) :
     blockedSpdpRank' blockedSpdpGens κ ℓ p ≤
     blockedSpdpRank' blockedSpdpGens κ ℓ q := by
-  sorry -- needs Module.Finite instances; available in actual project via degree bounds
+  exact Submodule.finrank_mono h
 
 /-! ## Stagewise hypotheses -/
 
@@ -91,7 +91,8 @@ theorem extraction_rank_monotone_sigma
       blockedSpdpSubspace' blockedSpdpGens κ ℓ (gaugePoly a ha m p) ≤
       blockedSpdpSubspace' blockedSpdpGens κ ℓ p)
     (keep : σ → Bool) (isTrace : σ → Bool) (assign : σ → F)
-    (a : F) (ha : a ≠ 0) (m : σ →₀ ℕ) (p : MvPolynomial σ F) :
+    (a : F) (ha : a ≠ 0) (m : σ →₀ ℕ) (p : MvPolynomial σ F)
+    [Module.Finite F ↥(blockedSpdpSubspace' blockedSpdpGens κ ℓ p)] :
     blockedSpdpRank' blockedSpdpGens κ ℓ
       (gaugePoly a ha m (restrictPoly isTrace assign (projectPoly keep p))) ≤
     blockedSpdpRank' blockedSpdpGens κ ℓ p := by
@@ -100,7 +101,13 @@ theorem extraction_rank_monotone_sigma
   have h1 := H_gauge a ha m (restrictPoly isTrace assign (projectPoly keep p))
   have h2 := H_restrict isTrace assign (projectPoly keep p)
   have h3 := H_project keep p
-  sorry -- composition of rank_mono steps; needs Module.Finite wiring
+  have h12 : blockedSpdpSubspace' blockedSpdpGens κ ℓ
+      (restrictPoly isTrace assign (projectPoly keep p)) ≤
+    blockedSpdpSubspace' blockedSpdpGens κ ℓ p := le_trans h2 h3
+  have h123 : blockedSpdpSubspace' blockedSpdpGens κ ℓ
+      (gaugePoly a ha m (restrictPoly isTrace assign (projectPoly keep p))) ≤
+    blockedSpdpSubspace' blockedSpdpGens κ ℓ p := le_trans h1 h12
+  exact Submodule.finrank_mono h123
 
 /-!
 ## Wiring guide
