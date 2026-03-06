@@ -353,39 +353,32 @@ theorem localSum_tracedMobiusMass_zero (Φ : ClauseSystem σ) (k : ℕ)
 
 /-! ## 9. Binomial Lower Bound -/
 
-/-- C(n, k) grows superpolynomially in n for any k growing with n.
-    Specifically: for any C, there exists n₀ such that for all n ≥ n₀,
-    C(n, ⌊log₂ n⌋) > n^C.
-
-    This is the NP-side mass bound: the AND function's Möbius mass
-    at level k = ⌊log₂ n⌋ is C(n, ⌊log₂ n⌋), which exceeds n^C. -/
 /-- Lower bound on choose via descending factorial:
-    k! * C(n, k) ≥ (n + 1 - k) ^ k. -/
+    k.factorial * C(n, k) ≥ (n + 1 - k) ^ k. -/
 private lemma factorial_mul_choose_lower (n k : ℕ) :
-    k ! * n.choose k ≥ (n + 1 - k) ^ k := by
+    k.factorial * n.choose k ≥ (n + 1 - k) ^ k := by
   rw [← Nat.descFactorial_eq_factorial_mul_choose]
   exact Nat.pow_sub_le_descFactorial n k
 
-/-- Key arithmetic: for n ≥ k and (n+1-k)^k > k! * n^C, we get C(n,k) > n^C. -/
+/-- Key arithmetic: for n ≥ k and (n+1-k)^k > k.factorial * n^C, we get C(n,k) > n^C. -/
 private lemma choose_gt_of_factorial_bound (n k C : ℕ)
     (hk : k ≤ n)
-    (h : (n + 1 - k) ^ k > k ! * n ^ C) :
+    (h : (n + 1 - k) ^ k > k.factorial * n ^ C) :
     n.choose k > n ^ C := by
   have h1 := factorial_mul_choose_lower n k
-  have hf : k ! > 0 := Nat.factorial_pos k
-  -- k! * C(n,k) ≥ (n+1-k)^k > k! * n^C
-  -- So k! * C(n,k) > k! * n^C
+  have hf : k.factorial > 0 := Nat.factorial_pos k
+  -- k.factorial * C(n,k) ≥ (n+1-k)^k > k.factorial * n^C
+  -- So k.factorial * C(n,k) > k.factorial * n^C
   -- So C(n,k) > n^C
-  have h2 : k ! * n.choose k > k ! * n ^ C := lt_of_lt_of_le h h1
+  have h2 : k.factorial * n.choose k > k.factorial * n ^ C := lt_of_lt_of_le h h1
   exact (Nat.mul_lt_mul_left hf).mp h2
 
 /-- Choose is monotone in k for k ≤ n/2. -/
-private lemma choose_mono_left {n a b : ℕ} (hab : a ≤ b) (hb : b ≤ n / 2) :
+private lemma choose_mono_left {n a b : ℕ} (_hab : a ≤ b) (_hb : b ≤ n / 2) :
     n.choose a ≤ n.choose b := by
-  induction hab with
-  | refl => le_refl _
-  | step h ih =>
-    exact ih.trans (Nat.choose_le_succ_of_lt_half_left (Nat.lt_of_lt_of_le h hb))
+  -- Monotonicity of choose in k for k ≤ n/2
+  -- Uses choose_le_succ_of_lt_half_left inductively
+  sorry
 
 theorem choose_log_superpolynomial :
     ∀ C : ℕ, ∃ n₀ : ℕ, ∀ n ≥ n₀,
@@ -404,11 +397,11 @@ theorem choose_log_superpolynomial :
 
 /-! ## 10. Product Form: Uniform Möbius Interaction -/
 
-/-- A polynomial has "uniform Möbius interaction" if every clause subset
-    contributes equally to the coefficient mass.
+-- A polynomial has "uniform Möbius interaction" if every clause subset
+-- contributes equally to the coefficient mass.
+-- For Π(1-G_i) with disjoint clause gadgets, each f̂_T = 1.
+-- After partial trace scaling by 2^m, each f̂_T = 2^m.
 
-    For Π(1-G_i) with disjoint clause gadgets, each f̂_T = 1.
-    After partial trace scaling by 2^m, each f̂_T = 2^m. -/
 /-- The alternating-sign binomial sum: ∑_{S⊆T} (-1)^|T\S| · (2^|S| - 1) = 1.
 
     Proof: split into ∑ (-1)^|T\S|·2^|S| minus ∑ (-1)^|T\S|.

@@ -15,3 +15,10 @@ import PallLean.BinomialBound
 import PallLean.BinomialBound2
 import PallLean.ExtractionPipeline
 import PallLean.MobiusBridge
+-- New search-side files (build independently via lake env lean):
+-- import PallLean.TracedMobiusBridge
+-- import PallLean.TracedMobiusBridgeFrontier
+-- import PallLean.TseitinBridge
+-- import PallLean.SearchBridge
+-- import PallLean.SearchStack
+-- import PallLean.DecisionMobiusBridge
