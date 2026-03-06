@@ -50,9 +50,7 @@ theorem pderiv_evalAtHom_comm (i v : Fin n) (hvi : v ≠ i) (c : F)
 -- The correct formulation requires either:
 --   (a) Working in the restricted ring MvPolynomial {v // v ≠ i} F, or
 --   (b) Using the coefficient-matrix rank directly (eval induces a column projection).
--- This lemma is NOT on the critical P≠NP chain and is left as a known issue.
-theorem restriction_rank_le' (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) (i : Fin n) (c : F) :
-    spdpRank κ ℓ ((evalAtHom i c) p) ≤ spdpRank κ ℓ p := by
-  sorry
+-- This lemma is NOT on the critical P≠NP chain and is parked as a known issue.
+-- The blocked version (restrict_rank_le in ExtractionProof.lean) IS proved.
 
 end RestrictionProof
