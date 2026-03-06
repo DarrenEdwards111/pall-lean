@@ -359,13 +359,47 @@ theorem localSum_tracedMobiusMass_zero (Φ : ClauseSystem σ) (k : ℕ)
 
     This is the NP-side mass bound: the AND function's Möbius mass
     at level k = ⌊log₂ n⌋ is C(n, ⌊log₂ n⌋), which exceeds n^C. -/
+/-- Lower bound on choose via descending factorial:
+    k! * C(n, k) ≥ (n + 1 - k) ^ k. -/
+private lemma factorial_mul_choose_lower (n k : ℕ) :
+    k ! * n.choose k ≥ (n + 1 - k) ^ k := by
+  rw [← Nat.descFactorial_eq_factorial_mul_choose]
+  exact Nat.pow_sub_le_descFactorial n k
+
+/-- Key arithmetic: for n ≥ k and (n+1-k)^k > k! * n^C, we get C(n,k) > n^C. -/
+private lemma choose_gt_of_factorial_bound (n k C : ℕ)
+    (hk : k ≤ n)
+    (h : (n + 1 - k) ^ k > k ! * n ^ C) :
+    n.choose k > n ^ C := by
+  have h1 := factorial_mul_choose_lower n k
+  have hf : k ! > 0 := Nat.factorial_pos k
+  -- k! * C(n,k) ≥ (n+1-k)^k > k! * n^C
+  -- So k! * C(n,k) > k! * n^C
+  -- So C(n,k) > n^C
+  have h2 : k ! * n.choose k > k ! * n ^ C := lt_of_lt_of_le h h1
+  exact (Nat.mul_lt_mul_left hf).mp h2
+
+/-- Choose is monotone in k for k ≤ n/2. -/
+private lemma choose_mono_left {n a b : ℕ} (hab : a ≤ b) (hb : b ≤ n / 2) :
+    n.choose a ≤ n.choose b := by
+  induction hab with
+  | refl => le_refl _
+  | step h ih =>
+    exact ih.trans (Nat.choose_le_succ_of_lt_half_left (Nat.lt_of_lt_of_le h hb))
+
 theorem choose_log_superpolynomial :
     ∀ C : ℕ, ∃ n₀ : ℕ, ∀ n ≥ n₀,
       n.choose (Nat.log 2 n) > n ^ C := by
-  -- For each C, we can take n₀ = 2^(2*C+4).
-  -- Then log₂(n₀) = 2C+4, and C(n₀, 2C+4) ≥ (n₀/(2C+4))^(2C+4)/(2C+4)!
-  -- which exceeds n₀^C for large enough n₀.
-  -- Standard combinatorial asymptotic bound.
+  intro C
+  -- Proof outline (standard combinatorics, not used downstream):
+  -- Take n₀ = max(2^(C+1), 2*(C+1)+1, 2^(C+1)*(C+1)!+1).
+  -- For n ≥ n₀:
+  --   (a) log₂ n ≥ C+1 and C+1 ≤ n/2
+  --   (b) C(n, log₂ n) ≥ C(n, C+1)  [choose_mono_left]
+  --   (c) (C+1)! * C(n,C+1) ≥ (n-C)^(C+1)  [factorial_mul_choose_lower]
+  --   (d) (n-C)^(C+1) ≥ (n/2)^(C+1)  [n-C ≥ n/2 for n ≥ 2C]
+  --   (e) (n/2)^(C+1) > (C+1)! * n^C  [n > 2^(C+1)*(C+1)!]
+  -- Combining (c)-(e): (C+1)! * C(n,C+1) > (C+1)! * n^C, so C(n,C+1) > n^C.
   sorry
 
 /-! ## 10. Product Form: Uniform Möbius Interaction -/
