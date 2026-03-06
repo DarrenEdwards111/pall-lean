@@ -156,10 +156,52 @@ theorem decomposable_mobius_product (D : SATDecision m)
     (h_decomp : ∀ T ∈ (A ∪ B).powerset,
       D.isSAT T = (D.isSAT (T ∩ A) && D.isSAT (T ∩ B))) :
     mobiusCoeff D (A ∪ B) = mobiusCoeff D A * mobiusCoeff D B := by
-  -- The proof requires a bijection between (A∪B).powerset and
-  -- A.powerset ×ˢ B.powerset, plus sign and value factoring.
-  -- Full proof: ~50 lines of Finset plumbing with sum_nbij'/sum_bij'.
-  sorry
+  unfold mobiusCoeff
+  -- Convert RHS double sum to sum over product set
+  rw [Finset.sum_mul_sum, ← Finset.sum_product']
+  -- Now: ∑ (A∪B).ps, h(T) = ∑ A.ps ×ˢ B.ps, g(TA,TB)
+  apply Finset.sum_nbij' (fun T => (T ∩ A, T ∩ B)) (fun p => p.1 ∪ p.2)
+  · -- forward maps into product
+    intro T hT
+    exact Finset.mem_product.mpr ⟨Finset.mem_powerset.mpr Finset.inter_subset_right,
+                                   Finset.mem_powerset.mpr Finset.inter_subset_right⟩
+  · -- backward maps into powerset
+    intro p hp
+    obtain ⟨hA, hB⟩ := Finset.mem_product.mp hp
+    exact Finset.mem_powerset.mpr (Finset.union_subset_union
+      (Finset.mem_powerset.mp hA) (Finset.mem_powerset.mp hB))
+  · -- left inverse: (T∩A)∪(T∩B) = T
+    intro T hT
+    rw [Finset.mem_powerset] at hT
+    rw [← Finset.inter_union_distrib_left]
+    exact Finset.inter_eq_left.mpr hT
+  · -- right inverse: (TA∪TB)∩A = TA, (TA∪TB)∩B = TB
+    intro ⟨TA, TB⟩ hp
+    obtain ⟨hA, hB⟩ := Finset.mem_product.mp hp
+    rw [Finset.mem_powerset] at hA hB
+    ext <;> simp only [Finset.mem_inter, Finset.mem_union]
+    · constructor
+      · rintro ⟨h1 | h1, h2⟩
+        · exact h1
+        · exfalso; exact Finset.disjoint_left.mp hAB h2 (hB h1)
+      · exact fun h => ⟨Or.inl h, hA h⟩
+    · constructor
+      · rintro ⟨h1 | h1, h2⟩
+        · exfalso; exact Finset.disjoint_right.mp hAB h2 (hA h1)
+        · exact h1
+      · exact fun h => ⟨Or.inr h, hB h⟩
+  · -- values match
+    intro T hT
+    rw [Finset.mem_powerset] at hT
+    have h_card : ((A ∪ B) \ T).card = (A \ (T ∩ A)).card + (B \ (T ∩ B)).card := by
+      have hAT : A \ T = A \ (T ∩ A) := by ext; simp [Finset.mem_sdiff, Finset.mem_inter, and_imp]
+      have hBT : B \ T = B \ (T ∩ B) := by ext; simp [Finset.mem_sdiff, Finset.mem_inter, and_imp]
+      rw [← hAT, ← hBT, Finset.union_sdiff_distrib]
+      exact Finset.card_union_of_disjoint
+        (Finset.disjoint_of_subset_left Finset.sdiff_subset
+          (Finset.disjoint_of_subset_right Finset.sdiff_subset hAB))
+    rw [h_card, pow_add, h_decomp T (Finset.mem_powerset.mpr hT)]
+    cases D.isSAT (T ∩ A) <;> cases D.isSAT (T ∩ B) <;> simp <;> ring
 
 /-! ## 5. Möbius Mass and MUS Counting -/
 
