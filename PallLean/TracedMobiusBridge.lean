@@ -375,25 +375,83 @@ theorem choose_log_superpolynomial :
 
     For Π(1-G_i) with disjoint clause gadgets, each f̂_T = 1.
     After partial trace scaling by 2^m, each f̂_T = 2^m. -/
+/-- The alternating-sign binomial sum: ∑_{S⊆T} (-1)^|T\S| · (2^|S| - 1) = 1.
+
+    Proof: split into ∑ (-1)^|T\S|·2^|S| minus ∑ (-1)^|T\S|.
+    Second sum = 0 (alternating sign lemma). First sum:
+    (-1)^|T\S|·2^|S| = (-1)^|T|·(-2)^|S|, so
+    ∑ = (-1)^|T| · (1+(-2))^|T| = (-1)^|T|·(-1)^|T| = 1. -/
+private lemma alternating_binom_sum {α : Type*} [DecidableEq α]
+    {T : Finset α} (hT : T.Nonempty) :
+    ∑ S ∈ T.powerset, (-1 : ℤ) ^ (T \ S).card * ((2 : ℤ) ^ S.card - 1) = 1 := by
+  -- Split: ∑ (-1)^|T\S| · (2^|S| - 1) = ∑ (-1)^|T\S| · 2^|S| - ∑ (-1)^|T\S|
+  simp_rw [mul_sub, mul_one]
+  rw [Finset.sum_sub_distrib]
+  -- Second sum = 0
+  rw [sum_powerset_sdiff_neg_one hT, sub_zero]
+  -- First sum: rewrite (-1)^|T\S| · 2^|S| = (-1)^|T| · (-2)^|S|
+  have h_rewrite : ∀ S ∈ T.powerset,
+      (-1 : ℤ) ^ (T \ S).card * 2 ^ S.card =
+      (-1 : ℤ) ^ T.card * (-2) ^ S.card := by
+    intro S hS
+    have hST := Finset.mem_powerset.mp hS
+    have h_add := Finset.card_sdiff_add_card_eq_card hST
+    have : (-1:ℤ) ^ T.card = (-1) ^ (T \ S).card * (-1) ^ S.card := by
+      rw [← pow_add, h_add]
+    -- (-2)^|S| = (-1)^|S| · 2^|S|
+    have h_neg2 : (-2 : ℤ) ^ S.card = (-1) ^ S.card * 2 ^ S.card := by
+      rw [show (-2 : ℤ) = (-1) * 2 from by ring, mul_pow]
+    rw [h_neg2]
+    -- (-1)^|T| · ((-1)^|S| · 2^|S|) = ((-1)^|T\S| · (-1)^|S|) · 2^|S|
+    -- = (-1)^|T\S| · ((-1)^|S| · 2^|S|)
+    rw [this]; ring
+  rw [Finset.sum_congr rfl h_rewrite, ← Finset.mul_sum]
+  -- Now: (-1)^|T| · ∑_{S⊆T} (-2)^|S| = 1
+  -- By sum_powerset_apply_card: ∑_{S⊆T} (-2)^|S| = ∑_m C(|T|,m) · (-2)^m
+  rw [Finset.sum_powerset_apply_card]
+  -- By binomial theorem: ∑_m C(|T|,m) · (-2)^m = (1 + (-2))^|T| = (-1)^|T|
+  simp_rw [nsmul_eq_mul, Nat.cast_comm]
+  -- ∑_m (-2)^m · C(|T|,m) = ∑_m (-2)^m · 1^(|T|-m) · C(|T|,m) (since 1^k = 1)
+  have h_binom := add_pow (-2 : ℤ) 1 T.card
+  simp only [one_pow, mul_one] at h_binom
+  -- h_binom: (-2+1)^|T| = ∑_m (-2)^m · C(|T|,m)
+  rw [show (-2 : ℤ) + 1 = -1 from by ring] at h_binom
+  rw [← h_binom]
+  -- (-1)^|T| · (-1)^|T| = 1
+  rw [← pow_add, ← two_mul, pow_mul, neg_one_sq, one_pow]
+
 theorem product_form_mobius_uniform (Φ : ClauseSystem σ)
     (T : Finset (Fin Φ.numClauses)) (hT : T.Nonempty)
     (p : MvPolynomial (σ ⊕ τ) F)
-    -- Hypothesis: coeffMass is the "full interaction" function
-    -- i.e., coeffMass(p, vars(S)) = 2^{|⋃_{i∈S} vars_i|} - 1 for product form
+    (h_empty : (tracedCoeffMass (τ := τ) Φ ∅ p : ℤ) = 0)
     (h_uniform : ∀ S ∈ T.powerset, S.Nonempty →
       (tracedCoeffMass (τ := τ) Φ S p : ℤ) =
       (2 ^ S.card - 1 : ℤ) * (Fintype.card (τ → Fin 2) : ℤ)) :
     tracedMobiusObs (τ := τ) Φ T p =
       (Fintype.card (τ → Fin 2) : ℤ) := by
-  -- f̂_T = ∑_{S⊆T} (-1)^|T\S| · f(S)
-  -- where f(S) = (2^|S| - 1) · M for nonempty S, f(∅) = 0
-  -- = M · (∑_{S⊆T} (-1)^|T\S| · (2^|S| - 1))   [empty term is 0]
-  -- = M · (∑_{S⊆T} (-1)^|T\S| · 2^|S|  -  ∑_{S⊆T} (-1)^|T\S|)
-  -- = M · ((2-1)^|T| - 0)     [binomial theorem; alternating sum = 0]
-  -- = M · 1 = M
-  -- Full proof requires sum_powerset_apply_card + binomial theorem.
-  -- Standard combinatorics; left sorry pending formalization.
-  sorry
+  set M := (Fintype.card (τ → Fin 2) : ℤ)
+  -- Step 1: every term equals (-1)^|T\S| · (2^|S|-1) · M
+  have h_all : ∀ S ∈ T.powerset,
+      (tracedCoeffMass (τ := τ) Φ S p : ℤ) = (2 ^ S.card - 1) * M := by
+    intro S hS
+    by_cases hSne : S.Nonempty
+    · exact h_uniform S hS hSne
+    · rw [Finset.not_nonempty_iff_eq_empty.mp hSne]; simp [h_empty]
+  -- Step 2: rewrite the sum
+  unfold tracedMobiusObs mobiusSign
+  have h_eq : ∀ S ∈ T.powerset,
+      (-1 : ℤ) ^ (T \ S).card * (tracedCoeffMass (τ := τ) Φ S p : ℤ) =
+      (-1 : ℤ) ^ (T \ S).card * ((2 ^ S.card - 1) * M) := by
+    intro S hS; rw [h_all S hS]
+  rw [Finset.sum_congr rfl h_eq]
+  -- Step 3: factor out M and rearrange
+  simp_rw [mul_comm ((2 : ℤ) ^ _ - 1) M, ← mul_assoc]
+  rw [← Finset.sum_mul]
+  -- Goal: (∑_{S⊆T} (-1)^|T\S| · (2^|S|-1)) * M = M
+  -- Suffices: ∑_{S⊆T} (-1)^|T\S| · (2^|S|-1) = 1
+  suffices h : ∑ S ∈ T.powerset, (-1 : ℤ) ^ (T \ S).card * ((2 : ℤ) ^ S.card - 1) = 1 by
+    rw [h, one_mul]
+  exact alternating_binom_sum hT
 
 /-! ## 11. Contradiction Schema -/
 
@@ -459,14 +517,14 @@ axiom poly_time_poly_support :
 **h_target (NP side)** — PROVABLE
   The AND function Π(1-G_i) has traced Möbius mass C(n,k) at level k.
   At k = log₂ n, this is superpolynomial. Requires:
-  - `product_form_mobius_uniform` (sorry, but standard combinatorics)
+  - `product_form_mobius_uniform` — PROVED ✅
   - `choose_log_superpolynomial` (sorry, but standard Stirling)
 
 **h_compiled (P side)** — PROVED (modulo mechanical sorry's)
   A sum-of-local-terms polynomial has zero Möbius mass at level ≥ 2.
   - `localSum_tracedMobiusMass_zero` chains through
     `localSum_tracedMobiusObs_zero` which uses `mobius_additive_vanish`
-  - The only sorry is in `mobius_additive_vanish` (combinatorial identity)
+  - The only sorry is `choose_log_superpolynomial` (Stirling bound)
 
 **h_bridge (Correctness)** — OPEN
   Does a correct SAT solver's compiled polynomial necessarily have
