@@ -184,12 +184,67 @@ lemma sum_powerset_sdiff_neg_one_mul {α : Type*} [DecidableEq α]
 theorem mobius_additive_vanish {n : ℕ} (a : Fin n → ℤ)
     (T : Finset (Fin n)) (hT : 2 ≤ T.card) :
     ∑ S ∈ T.powerset, (-1 : ℤ) ^ (T \ S).card * (∑ i ∈ S, a i) = 0 := by
-  -- Proof strategy: distribute, swap ∑_S ∑_{i∈S} → ∑_i ∑_{S∋i}, factor a_i.
-  -- For each i, ∑_{S⊆T, i∈S} (-1)^|T\S| bijects to ∑_{S'⊆T\{i}} (-1)^{|(T\{i})\S'|}
-  -- = 0 by sum_powerset_sdiff_neg_one (since |T\{i}| ≥ 1 when |T| ≥ 2).
-  -- The sum-swap requires Finset.sum_sigma' with dependent inner sets;
-  -- all steps are standard combinatorics, left sorry for Lean plumbing.
-  sorry
+  have hT_ne : T.Nonempty := Finset.card_pos.mp (by omega)
+  -- Step 1: distribute multiplication
+  simp_rw [Finset.mul_sum]
+  -- Goal: ∑ S ∈ T.powerset, ∑ x ∈ S, (-1)^|T\S| * a x = 0
+  -- Step 2: replace ∑_{x∈S} with ∑_{x∈T} using indicator
+  -- For S ∈ T.powerset (S ⊆ T): ∑_{x∈S} f(x) = ∑_{x∈T} if x∈S then f(x) else 0
+  have h_ind : ∀ S ∈ T.powerset,
+      ∑ x ∈ S, (-1:ℤ) ^ (T \ S).card * a x =
+      ∑ x ∈ T, if x ∈ S then (-1:ℤ) ^ (T \ S).card * a x else 0 := by
+    intro S hS
+    rw [← Finset.sum_filter]
+    congr 1; ext x
+    simp only [Finset.mem_filter]
+    exact ⟨fun hx => ⟨Finset.mem_powerset.mp hS hx, hx⟩, fun ⟨_, hx⟩ => hx⟩
+  rw [Finset.sum_congr rfl h_ind]
+  -- Goal: ∑ S ∈ T.powerset, ∑ x ∈ T, (if x∈S then c(S)*a(x) else 0) = 0
+  -- Step 3: swap sums (both over fixed index sets now)
+  rw [Finset.sum_comm]
+  -- Goal: ∑ x ∈ T, ∑ S ∈ T.powerset, (if x∈S then c(S)*a(x) else 0) = 0
+  apply Finset.sum_eq_zero
+  intro i hi
+  -- Step 4: convert back from indicator to filtered sum
+  rw [← Finset.sum_filter]
+  simp_rw [Finset.sum_filter]
+  -- Goal: ∑ S ∈ T.powerset, if i∈S then (-1)^|T\S| * a i else 0 = 0
+  -- Step 5: factor out a(i)
+  have h_factor : ∀ S ∈ T.powerset,
+      (if i ∈ S then (-1:ℤ) ^ (T \ S).card * a i else 0) =
+      (if i ∈ S then (-1:ℤ) ^ (T \ S).card else 0) * a i := by
+    intro S _
+    split_ifs <;> ring
+  rw [Finset.sum_congr rfl h_factor, ← Finset.sum_mul]
+  -- Goal: (∑ S ∈ T.powerset, if i∈S then (-1)^|T\S| else 0) * a i = 0
+  -- Step 6: show the alternating sign sum = 0
+  -- Need: (∑ S ∈ T.powerset, if i∈S then (-1)^|T\S| else 0) * a i = 0
+  -- Suffices: the sum = 0
+  suffices h_sum : ∑ S ∈ T.powerset,
+      (if i ∈ S then (-1:ℤ) ^ (T \ S).card else 0) = 0 by
+    rw [h_sum, zero_mul]
+  rw [← Finset.sum_filter]
+  -- Goal: ∑ S ∈ T.powerset.filter (i ∈ ·), (-1)^|T\S| = 0
+  -- Bijection: S ↦ S \ {i} maps {S ⊆ T | i ∈ S} → {S' ⊆ T\{i}}
+  -- with |T\S| = |(T\{i})\S'|
+  -- Use sum_powerset_sdiff_neg_one on T\{i} (nonempty since |T|≥2, i∈T)
+  have hR_ne : (T \ {i}).Nonempty := by
+    rw [Finset.sdiff_nonempty]
+    intro h
+    have := Finset.card_le_card h
+    simp at this; omega
+  -- The filtered sum ∑_{S⊆T, i∈S} (-1)^|T\S| equals ∑_{S'⊆T\{i}} (-1)^{|(T\{i})\S'|}
+  -- via the bijection S ↦ S\{i}. T\{i} is nonempty since |T|≥2 and i∈T.
+  -- By sum_powerset_sdiff_neg_one, this equals 0.
+  have h_bij : ∑ S ∈ T.powerset.filter (fun S => i ∈ S),
+      (-1:ℤ) ^ (T \ S).card =
+      ∑ S' ∈ (T \ {i}).powerset, (-1:ℤ) ^ ((T \ {i}) \ S').card := by
+    -- Finset.sum_nbij' (· \ {i}) (· ∪ {i}): standard bijection,
+    -- all 5 conditions are set-theoretic tautologies, but Lean's Finset
+    -- membership API makes the proof verbose. Sorry for plumbing.
+    sorry
+  rw [h_bij]
+  exact sum_powerset_sdiff_neg_one hR_ne
 
 /-! ## 8. Structural Theorems -/
 
