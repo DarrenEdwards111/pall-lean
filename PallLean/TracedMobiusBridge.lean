@@ -145,6 +145,17 @@ Möbius inversion of an additive function f_S = ∑_{i∈S} a_i gives:
 
 This is the core mathematical fact: local sums have zero Möbius interaction. -/
 
+/-- T \ S = (T \ {i}) \ (S \ {i}) when i ∈ S and S ⊆ T. -/
+lemma sdiff_sdiff_singleton_eq {T S : Finset (Fin n)} {i : Fin n}
+    (hiS : i ∈ S) (hST : S ⊆ T) :
+    T \ S = (T \ {i}) \ (S \ {i}) := by
+  ext x; simp only [Finset.mem_sdiff, Finset.mem_singleton]
+  constructor
+  · intro ⟨hxT, hxS⟩
+    exact ⟨⟨hxT, fun h => by subst h; exact hxS hiS⟩, fun ⟨hx, _⟩ => hxS hx⟩
+  · intro ⟨⟨hxT, hxi⟩, hxS⟩
+    exact ⟨hxT, fun hx => hxS ⟨hx, hxi⟩⟩
+
 /-- For nonempty R, ∑_{S⊆R} (-1)^{|R\S|} = 0.
     Proved by factoring out (-1)^|R| and using Mathlib's alternating sum lemma. -/
 lemma sum_powerset_sdiff_neg_one {α : Type*} [DecidableEq α]
@@ -239,10 +250,56 @@ theorem mobius_additive_vanish {n : ℕ} (a : Fin n → ℤ)
   have h_bij : ∑ S ∈ T.powerset.filter (fun S => i ∈ S),
       (-1:ℤ) ^ (T \ S).card =
       ∑ S' ∈ (T \ {i}).powerset, (-1:ℤ) ^ ((T \ {i}) \ S').card := by
-    -- Finset.sum_nbij' (· \ {i}) (· ∪ {i}): standard bijection,
-    -- all 5 conditions are set-theoretic tautologies, but Lean's Finset
-    -- membership API makes the proof verbose. Sorry for plumbing.
-    sorry
+    apply Finset.sum_nbij' (· \ {i}) (· ∪ {i})
+    · -- f maps source → target
+      intro S hS
+      have ⟨hSp, _⟩ := Finset.mem_filter.mp hS
+      have hST := Finset.mem_powerset.mp hSp
+      exact Finset.mem_powerset.mpr (fun x hx =>
+        have := Finset.mem_sdiff.mp hx
+        Finset.mem_sdiff.mpr ⟨hST this.1, this.2⟩)
+    · -- g maps target → source
+      intro S' hS'
+      have hS'sub := Finset.mem_powerset.mp hS'
+      apply Finset.mem_filter.mpr
+      refine ⟨Finset.mem_powerset.mpr (fun x hx => ?_),
+              Finset.mem_union_right _ (Finset.mem_singleton_self _)⟩
+      rcases Finset.mem_union.mp hx with h | h
+      · exact (Finset.mem_sdiff.mp (hS'sub h)).1
+      · rwa [Finset.mem_singleton.mp h]
+    · -- g(f(S)) = S: (S\{i})∪{i} = S when i ∈ S
+      intro S hS
+      have hiS := (Finset.mem_filter.mp hS).2
+      ext x; constructor
+      · intro hx
+        rcases Finset.mem_union.mp hx with h | h
+        · exact (Finset.mem_sdiff.mp h).1
+        · rwa [Finset.mem_singleton.mp h]
+      · intro hx
+        apply Finset.mem_union.mpr
+        by_cases h : x = i
+        · exact Or.inr (Finset.mem_singleton.mpr h)
+        · exact Or.inl (Finset.mem_sdiff.mpr ⟨hx, fun h' => h (Finset.mem_singleton.mp h')⟩)
+    · -- f(g(S')) = S': (S'∪{i})\{i} = S' when S' ⊆ T\{i}
+      intro S' hS'
+      have hS'sub := Finset.mem_powerset.mp hS'
+      ext x; constructor
+      · intro hx
+        have ⟨hxu, hxs⟩ := Finset.mem_sdiff.mp hx
+        rcases Finset.mem_union.mp hxu with h | h
+        · exact h
+        · exfalso; exact hxs (Finset.mem_singleton.mpr (Finset.mem_singleton.mp h))
+      · intro hx
+        apply Finset.mem_sdiff.mpr
+        refine ⟨Finset.mem_union_left _ hx, ?_⟩
+        intro h
+        exact (Finset.mem_sdiff.mp (hS'sub hx)).2
+          (Finset.mem_singleton.mpr (Finset.mem_singleton.mp h))
+    · -- value: |T\S| = |(T\{i})\(S\{i})|
+      intro S hS
+      have ⟨hSp, hiS⟩ := Finset.mem_filter.mp hS
+      congr 1; congr 1
+      exact sdiff_sdiff_singleton_eq hiS (Finset.mem_powerset.mp hSp)
   rw [h_bij]
   exact sum_powerset_sdiff_neg_one hR_ne
 
@@ -264,11 +321,19 @@ theorem localSum_tracedMobiusObs_zero (Φ : ClauseSystem σ)
       tracedCoeffMass (τ := τ) Φ S p =
       ∑ i ∈ S, tracedCoeffMass (τ := τ) Φ {i} p) :
     tracedMobiusObs (τ := τ) Φ T p = 0 := by
-  -- The proof reduces to mobius_additive_vanish via h_local.
-  -- tracedMobiusObs unfolds to ∑_{S⊆T} (-1)^{|T\S|} * tracedCoeffMass(S)
-  -- h_local rewrites tracedCoeffMass(S) = ∑_{i∈S} tracedCoeffMass({i})
-  -- Then mobius_additive_vanish gives 0.
-  sorry
+  -- tracedMobiusObs = ∑_{S⊆T} mobiusSign(S,T) * tracedCoeffMass(S)
+  -- h_local: tracedCoeffMass(S) = ∑_{i∈S} tracedCoeffMass({i})
+  -- After substitution: = ∑_{S⊆T} (-1)^|T\S| * ∑_{i∈S} a(i)
+  -- which = 0 by mobius_additive_vanish
+  unfold tracedMobiusObs mobiusSign
+  have key := mobius_additive_vanish
+    (fun i => (tracedCoeffMass (τ := τ) Φ {i} p : ℤ)) T hT
+  convert key using 1
+  apply Finset.sum_congr rfl
+  intro S hS
+  congr 1
+  rw [h_local S]
+  push_cast; rfl
 
 /-- Total mass version: local sum gives zero mass at level k ≥ 2. -/
 theorem localSum_tracedMobiusMass_zero (Φ : ClauseSystem σ) (k : ℕ)
