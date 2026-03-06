@@ -44,6 +44,13 @@ theorem pderiv_evalAtHom_comm (i v : Fin n) (hvi : v ≠ i) (c : F)
           pderiv_X, Pi.single_apply, huv, ite_false, smul_eq_mul,
           mul_zero, zero_add, map_add, map_mul, map_zero, add_zero, h]
 
+-- NOTE: This statement is UNPROVABLE as written. The unblocked spdpRank allows
+-- multipliers m involving X_i, creating generators like X_i * ∂_S(eval p) that
+-- are not in the image of evalAtHom, so the subspace containment approach fails.
+-- The correct formulation requires either:
+--   (a) Working in the restricted ring MvPolynomial {v // v ≠ i} F, or
+--   (b) Using the coefficient-matrix rank directly (eval induces a column projection).
+-- This lemma is NOT on the critical P≠NP chain and is left as a known issue.
 theorem restriction_rank_le' (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) (i : Fin n) (c : F) :
     spdpRank κ ℓ ((evalAtHom i c) p) ≤ spdpRank κ ℓ p := by
   sorry
