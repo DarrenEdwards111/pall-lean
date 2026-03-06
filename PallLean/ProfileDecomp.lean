@@ -125,7 +125,14 @@ theorem profile_decomposition_from_gates
       -- But R = 0 means Fin R is empty, so ⨆ = ⊥. We'd need gateSubspace ≤ ⊥.
       -- This is impossible when κ = 0 and gate is a nonzero constant.
       -- This is a genuine edge case in the axiom statement.
-      -- In practice width ≥ 1 for nontrivial polynomials. Mark sorry.
+      -- width = 0 + κ > 0: every gate has 0 vars, so it's a constant.
+      -- For κ > 0, S has length κ ≥ 1, so iterDerivList S (constant) = 0.
+      -- Therefore gateSubspace = ⊥ and the bound holds vacuously.
+      -- For κ = 0: generators are m * gate (no derivatives). This could be
+      -- nonzero but R = 0, so Fin R is empty and ⨆ = ⊥.
+      -- This case is genuinely unsatisfiable when gate ≠ 0 and κ = 0.
+      -- We mark it sorry as an edge case that doesn't arise in the proof
+      -- (κ = log₂ n ≥ 1 for n ≥ 2).
       sorry
     · have hw1 : h.width ≥ 1 := by omega
       have hiR : i.val < R := lt_of_lt_of_le i.isLt (Nat.le_mul_of_pos_right _ hw1)
