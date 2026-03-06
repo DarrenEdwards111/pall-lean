@@ -147,20 +147,31 @@ theorem relabel_generators_subset
   exact Submodule.mem_map.mpr
     ⟨m' * iterDerivList S' p, Submodule.subset_span ⟨S', m', hlen', hdeg', hadm', rfl⟩, rfl⟩
 
-/-! ## Structural Axiom: Extraction factorization (includes bijectivity + compat)
+/-! ## Size-matching axiom: sheet coupling has the same variable count as tseitin side.
+
+    The sheet coupling M♯ is padded so that its compiled variable namespace
+    has the same cardinality as the NP-side Tseitin variable namespace.
+    This enables a bijective rename ρ : Fin N₁ ≃ Fin N₂ via Fin.cast.
+-/
+axiom size_match (M : DTM) (n : ℕ) :
+    numVars (sheetCoupling M) n (Nat.log 2 n) = npNumVars n
+
+/-! ## Structural Axiom: Extraction factorization
 
     tseitinPoly = C(a) * rename ρ (restrict(project(compiledPoly)))
-    with ρ bijective and block-compatible.
+    where ρ is the bijection induced by size_match.
+    
+    The block compatibility, admissibility, and degree conditions ensure
+    the extraction pipeline is rank-nonincreasing.
 -/
 axiom extraction_factorization
     (M : DTM) (n : ℕ) :
+    let hsize := size_match M n
+    let ρ := Fin.cast hsize
     ∃ (keep : Fin (numVars (sheetCoupling M) n (Nat.log 2 n)) → Bool)
       (isTrace : Fin (numVars (sheetCoupling M) n (Nat.log 2 n)) → Bool)
       (assign : Fin (numVars (sheetCoupling M) n (Nat.log 2 n)) → F)
-      (ρ : Fin (numVars (sheetCoupling M) n (Nat.log 2 n)) → Fin (npNumVars n))
       (a : F) (_ : a ≠ 0),
-    Function.Injective ρ ∧
-    Function.Surjective ρ ∧
     (∀ i j, (compiledPartition (sheetCoupling M) n).assign i =
             (compiledPartition (sheetCoupling M) n).assign j →
             (tseitinPartition n).assign (ρ i) = (tseitinPartition n).assign (ρ j)) ∧
@@ -193,7 +204,9 @@ theorem extraction_rank_monotone (M : DTM) (n : ℕ) :
     blockedSpdpRank (compiledPartition (sheetCoupling M) n)
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPolyOf F (sheetCoupling M) n) := by
-  obtain ⟨keep, isTrace, assign, ρ, a, ha, hρ_inj, hρ_surj, hcompat,
+  let hsize := size_match M n
+  let ρ := Fin.cast hsize
+  obtain ⟨keep, isTrace, assign, a, ha, hcompat,
           hB_trace, hB_keep, hM_trace, hM_keep, hfact⟩ :=
     extraction_factorization (F := F) M n
   let κ := Nat.log 2 n
@@ -228,6 +241,8 @@ theorem extraction_rank_monotone (M : DTM) (n : ℕ) :
         _ ≤ ℓ := hdeg
     exact Submodule.subset_span ⟨S, m * C a, hlen, hdeg', hadm, rfl⟩
   -- Stage 2: Relabel (rename ρ) — rank nonincreasing via proved theorem
+  have hρ_inj : Function.Injective ρ := Fin.cast_injective hsize
+  have hρ_surj : Function.Surjective ρ := fun ⟨i, hi⟩ => ⟨⟨i, hsize ▸ hi⟩, by simp [ρ, Fin.cast, Fin.ext_iff]⟩
   have h_relabel := relabel_generators_subset B (tseitinPartition n) ρ hρ_inj hρ_surj hcompat p2 κ ℓ
   -- Stage 3: Restrict — rank nonincreasing
   have h_restrict : blockedSpdpRank B κ ℓ p2 ≤ blockedSpdpRank B κ ℓ p1 :=
