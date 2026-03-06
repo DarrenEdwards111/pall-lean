@@ -2,15 +2,11 @@
   ExtractionWiring.lean — Extraction rank monotonicity
 
   The core bridge theorem: rank(tseitin) ≤ rank(compiled).
-  
-  Architecture:
-  1. relabel_generators_subset: proved theorem for bijective renames
-  2. extraction_rank_monotone: axiom (compiler correctness at rank level)
 
-  The monolithic extraction_rank_monotone axiom encodes that the sheet
-  coupling M♯ embeds the Tseitin formula into its compiled polynomial,
-  and extraction is rank-nonincreasing. This is the semantic bridge
-  between the NP lower bound and the P upper bound.
+  Contains:
+  1. iterDerivList_rename_map: helper for derivative/rename commutation
+  2. relabel_generators_subset: proved theorem for bijective renames
+  3. extraction_rank_monotone: axiom — the semantic bridge
 -/
 import PallLean.SPDPDefs
 import PallLean.Compiler
@@ -43,12 +39,8 @@ private theorem iterDerivList_rename_map {n₁ n₂ : ℕ} {F : Type*} [CommRing
     rw [pderiv_rename hρ i p]
     exact ih (pderiv i p)
 
-/-! ## Theorem: relabel_generators_subset (for bijective renames)
+/-! ## Theorem: relabel_generators_subset (for bijective renames) -/
 
-    When we rename variables via a bijective ρ that maps source blocks into
-    target blocks, the generators of the renamed subspace sit inside the
-    image of the source subspace under rename.
--/
 theorem relabel_generators_subset
     {n₁ n₂ : ℕ}
     (B₁ : BlockPartition n₁) (B₂ : BlockPartition n₂)
@@ -106,8 +98,7 @@ theorem relabel_generators_subset
         intro j hj
         simp only [decide_eq_true_eq] at hj ⊢
         have h1 := hcompat (e.symm j) (e.symm j₀) (by rw [hj, hj₀_pred])
-        rw [hρe j, hρe j₀] at h1
-        exact h1
+        rw [hρe j, hρe j₀] at h1; exact h1
       calc (S.filter (fun j => decide (B₁.assign (e.symm j) = b₁))).length
           ≤ (S.filter (fun j => decide (B₂.assign j = b₂))).length := hsub.length_le
         _ ≤ 1 := hadm.2 b₂
@@ -117,21 +108,17 @@ theorem relabel_generators_subset
 
 /-! ## Core axiom: extraction rank monotonicity
 
-    For any DTM M, the SPDP rank of the Tseitin polynomial is at most
-    the SPDP rank of the compiled polynomial of the sheet coupling M♯.
+    For any DTM M, rank(tseitin) ≤ rank(compiled(M♯)).
+    This is the semantic bridge between the NP lower bound and P upper bound.
 
-    This encodes the compiler correctness claim: the sheet coupling
-    embeds the Tseitin formula structure into its constraint system,
-    and the extraction pipeline (project → restrict → rename → gauge)
-    recovers it with rank nonincreasing at each step.
+    The two polynomial rings have different variable counts:
+    - Tseitin: npNumVars n ≈ 5n (edge vars + selectors)
+    - Compiled: numVars(M♯) ≈ n^(2·timeBound) (tape + state + head + input + padding)
 
-    Conceptually this decomposes into:
-    1. Size matching (sheetCoupling pads to match variable counts)
-    2. Pipeline factorization (tseitinPoly = gauge ∘ rename ∘ restrict ∘ project)
-    3. Block compatibility (partition structure preserved through rename)
-    4. Admissibility preservation (generators stay admissible through stages)
-
-    All four are properties of the concrete sheet coupling construction.
+    The sheet coupling M♯ embeds the Tseitin formula into its constraint
+    structure. The SPDP rank of the smaller Tseitin polynomial is bounded
+    by the rank of the larger compiled polynomial because the compiled
+    constraints "contain" the Tseitin clauses.
 -/
 axiom extraction_rank_monotone (M : DTM) (n : ℕ) :
     blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
