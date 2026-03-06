@@ -145,17 +145,50 @@ Möbius inversion of an additive function f_S = ∑_{i∈S} a_i gives:
 
 This is the core mathematical fact: local sums have zero Möbius interaction. -/
 
-/-- Möbius inversion of an additive set function vanishes at level ≥ 2.
+/-- For nonempty R, ∑_{S⊆R} (-1)^{|R\S|} = 0.
+    Proved by factoring out (-1)^|R| and using Mathlib's alternating sum lemma. -/
+lemma sum_powerset_sdiff_neg_one {α : Type*} [DecidableEq α]
+    {R : Finset α} (hR : R.Nonempty) :
+    ∑ S ∈ R.powerset, (-1 : ℤ) ^ (R \ S).card = 0 := by
+  -- For S ⊆ R: (-1)^|R\S| = (-1)^|R| * (-1)^|S|
+  have h_sign : ∀ S ∈ R.powerset,
+      (-1 : ℤ) ^ (R \ S).card = (-1) ^ R.card * (-1) ^ S.card := by
+    intro S hS
+    rw [Finset.mem_powerset] at hS
+    have h_add := Finset.card_sdiff_add_card_eq_card hS
+    -- (-1)^|R| = (-1)^|R\S| * (-1)^|S|
+    have h_pow : (-1:ℤ) ^ R.card = (-1) ^ (R \ S).card * (-1) ^ S.card := by
+      rw [← pow_add, h_add]
+    -- (-1)^|R\S| = (-1)^|R| * (-1)^|S| (multiply by (-1)^|S|)
+    have h_inv : (-1:ℤ) ^ S.card * (-1) ^ S.card = 1 := by
+      rw [← pow_add, ← two_mul, pow_mul, neg_one_sq, one_pow]
+    -- From h_pow: x = y * z, from h_inv: z * z = 1
+    -- We want: y = x * z
+    -- Proof: x * z = (y * z) * z = y * (z * z) = y * 1 = y
+    calc (-1:ℤ) ^ (R \ S).card
+        = (-1) ^ (R \ S).card * 1 := (mul_one _).symm
+      _ = (-1) ^ (R \ S).card * ((-1) ^ S.card * (-1) ^ S.card) := by rw [h_inv]
+      _ = ((-1) ^ (R \ S).card * (-1) ^ S.card) * (-1) ^ S.card := by ring
+      _ = (-1) ^ R.card * (-1) ^ S.card := by rw [h_pow]
+  rw [Finset.sum_congr rfl h_sign, ← Finset.mul_sum,
+      Finset.sum_powerset_neg_one_pow_card_of_nonempty hR, mul_zero]
 
-    If f(S) = ∑_{i ∈ S} a(i), then
-    ∑_{S ⊆ T} (-1)^{|T\S|} · f(S) = 0 for |T| ≥ 2. -/
+/-- Any function times the alternating powerset sum vanishes.
+    ∑_{S⊆T} (-1)^|T\S| · c = 0 for nonempty T and any c. -/
+lemma sum_powerset_sdiff_neg_one_mul {α : Type*} [DecidableEq α]
+    {T : Finset α} (hT : T.Nonempty) (c : ℤ) :
+    ∑ S ∈ T.powerset, (-1 : ℤ) ^ (T \ S).card * c = 0 := by
+  rw [← Finset.sum_mul, sum_powerset_sdiff_neg_one hT, zero_mul]
+
+/-- Möbius inversion of an additive set function vanishes at level ≥ 2. -/
 theorem mobius_additive_vanish {n : ℕ} (a : Fin n → ℤ)
     (T : Finset (Fin n)) (hT : 2 ≤ T.card) :
     ∑ S ∈ T.powerset, (-1 : ℤ) ^ (T \ S).card * (∑ i ∈ S, a i) = 0 := by
-  -- Proof: swap sums, for each i the inner alternating sum over subsets
-  -- containing i equals 0, using sum_powerset_neg_one_pow_card_of_nonempty
-  -- on T \ {i} (nonempty since |T| ≥ 2).
-  -- See detailed sketch in documentation above.
+  -- Proof strategy: distribute, swap ∑_S ∑_{i∈S} → ∑_i ∑_{S∋i}, factor a_i.
+  -- For each i, ∑_{S⊆T, i∈S} (-1)^|T\S| bijects to ∑_{S'⊆T\{i}} (-1)^{|(T\{i})\S'|}
+  -- = 0 by sum_powerset_sdiff_neg_one (since |T\{i}| ≥ 1 when |T| ≥ 2).
+  -- The sum-swap requires Finset.sum_sigma' with dependent inner sets;
+  -- all steps are standard combinatorics, left sorry for Lean plumbing.
   sorry
 
 /-! ## 8. Structural Theorems -/
