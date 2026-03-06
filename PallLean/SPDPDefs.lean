@@ -239,4 +239,16 @@ theorem superPoly_beats_poly (C : ℕ) (hC : C ≥ 1) :
         _ ≤ Nat.log 2 n := Nat.log_mono_right this
     omega
 
+/-! ## Locality Structure -/
+
+/-- A polynomial with locality structure: sum of local gates, each
+    touching ≤ width variables. Used for the P-side collapse argument. -/
+structure HasLocalityStructure {v : ℕ} {F : Type*} [CommRing F]
+    (p : MvPolynomial (Fin v) F) where
+  numGates : ℕ
+  width : ℕ
+  gate : Fin numGates → MvPolynomial (Fin v) F
+  sum_eq : p = ∑ i, gate i
+  gate_width : ∀ i, (gate i).vars.card ≤ width
+
 end SPDP

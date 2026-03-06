@@ -2,6 +2,7 @@ import PallLean.SPDPDefs
 import PallLean.TuringMachine
 import PallLean.ListSum
 import PallLean.IterLeibniz
+import PallLean.ProfileDecomp
 import Mathlib.Tactic
 /-!
 # P-Side Collapse — Pall §3–6
@@ -112,14 +113,6 @@ noncomputable def compiledPartition (M : DTM) (n : ℕ) :
   compilerBlockPartition M n (Nat.log 2 n)
 
 /-! ## Locality and Width⇒Rank -/
-
-structure HasLocalityStructure {v : ℕ} {F : Type*} [CommRing F]
-    (p : MvPolynomial (Fin v) F) where
-  numGates : ℕ
-  width : ℕ
-  gate : Fin numGates → MvPolynomial (Fin v) F
-  sum_eq : p = ∑ i, gate i
-  gate_width : ∀ i, (gate i).vars.card ≤ width
 
 /-- Locality from compilation (§3.2): V is sum of local terms.
 
@@ -254,14 +247,15 @@ plus arithmetic assembly. -/
 
     Combined: Γ ≤ |H| · max_h dim(V_h) ≤ R^{c₁} · R^{c₂} = R^{c₁+c₂}.
     The envelope exponent c₁+c₂ = 3 is safe (not tight). -/
-axiom profile_decomposition {v : ℕ} {F : Type*} [Field F]
+theorem profile_decomposition {v : ℕ} {F : Type*} [Field F]
     (B : BlockPartition v) (κ ℓ : ℕ) (p : MvPolynomial (Fin v) F)
     (h : HasLocalityStructure p) :
     ∃ (m : ℕ) (U : Fin m → Submodule F (MvPolynomial (Fin v) F))
       (_ : ∀ i, Module.Finite F ↥(U i)),
       blockedSpdpSubspace B κ ℓ p ≤ ⨆ i, U i ∧
       m ≤ h.numGates * h.width ∧
-      ∀ i, Module.finrank F ↥(U i) ≤ (h.numGates * h.width) ^ 2
+      ∀ i, Module.finrank F ↥(U i) ≤ (h.numGates * h.width) ^ 2 :=
+  ProfileDecomp.profile_decomposition_from_gates B κ ℓ p h
 
 theorem width_to_rank_bound (F : Type*) [Field F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
