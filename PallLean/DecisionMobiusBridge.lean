@@ -156,14 +156,9 @@ theorem decomposable_mobius_product (D : SATDecision m)
     (h_decomp : ∀ T ∈ (A ∪ B).powerset,
       D.isSAT T = (D.isSAT (T ∩ A) && D.isSAT (T ∩ B))) :
     mobiusCoeff D (A ∪ B) = mobiusCoeff D A * mobiusCoeff D B := by
-  unfold mobiusCoeff
-  -- Use the product of sums = sum of products identity
-  rw [Finset.sum_mul_sum]
-  -- Now both sides are sums over product pairs.
-  -- LHS: ∑_{T ⊆ A∪B} (-1)^{|(A∪B)\T|} · f(T)
-  -- RHS: ∑_{(T_A, T_B) ∈ A.powerset ×ˢ B.powerset} sign(A,T_A)·f(T_A) · sign(B,T_B)·f(T_B)
-  -- The bijection: T ↦ (T∩A, T∩B) maps (A∪B).powerset → A.powerset ×ˢ B.powerset
-  -- and |(A∪B)\T| = |A\(T∩A)| + |B\(T∩B)| for disjoint A,B
+  -- The proof requires a bijection between (A∪B).powerset and
+  -- A.powerset ×ˢ B.powerset, plus sign and value factoring.
+  -- Full proof: ~50 lines of Finset plumbing with sum_nbij'/sum_bij'.
   sorry
 
 /-! ## 5. Möbius Mass and MUS Counting -/
@@ -185,10 +180,29 @@ theorem mus_count_le_mobius_mass (D : SATDecision m) (k : ℕ)
         ∀ T ∈ S.powerset, T ≠ S → D.isSAT T = true)).card ≤
     mobiusMassLevel D k := by
   unfold mobiusMassLevel
-  -- Each MUS of size k contributes |f̂(S)| = 1 to the sum.
-  -- Strategy: the MUS set is a subset of the level-k powerset,
-  -- and each MUS contributes exactly 1 to the sum.
-  sorry
+  set P := (Finset.univ : Finset (Fin m)).powerset
+  set MF := P.filter (fun S => S.card = k ∧ D.isSAT S = false ∧
+    ∀ T ∈ S.powerset, T ≠ S → D.isSAT T = true)
+  set LF := P.filter (fun S => S.card = k)
+  -- MF ⊆ LF
+  have hMF_sub : MF ⊆ LF := by
+    intro S hS
+    rw [Finset.mem_filter] at hS ⊢
+    exact ⟨hS.1, hS.2.1⟩
+  -- Each MUS has |f̂(S)| = 1
+  have h_mus_one : ∀ S ∈ MF, 1 ≤ (mobiusCoeff D S).natAbs := by
+    intro S hS
+    rw [Finset.mem_filter] at hS
+    obtain ⟨_, hCard, hUnsat, hProper⟩ := hS
+    have hNe : S.Nonempty := by
+      rw [Finset.nonempty_iff_ne_empty]; intro h; subst h; simp at hCard; omega
+    rw [mus_mobius_eq_neg_one D S hNe ⟨hUnsat, hProper⟩]; simp
+  -- card MF ≤ ∑_{S∈MF} |f̂(S)| ≤ ∑_{S∈LF} |f̂(S)|
+  calc MF.card
+      = ∑ _S ∈ MF, 1 := by simp
+    _ ≤ ∑ S ∈ MF, (mobiusCoeff D S).natAbs := Finset.sum_le_sum h_mus_one
+    _ ≤ ∑ S ∈ LF, (mobiusCoeff D S).natAbs :=
+        Finset.sum_le_sum_of_subset_of_nonneg hMF_sub (fun _ _ _ => Nat.zero_le _)
 
 /-! ## 6. The P ≠ NP Connection
 

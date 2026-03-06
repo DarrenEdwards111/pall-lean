@@ -101,12 +101,40 @@ theorem contrPair_mobius (F : UnitClauseFamily n) (i : Fin n) :
     mobiusCoeff F.D (contrPair n i) = -1 :=
   mus_mobius_eq_neg_one F.D _ (contrPair_nonempty n i) (contrPair_is_mus F i)
 
-/-- The number of MUSes of size 2 is at least n (one per variable). -/
+/-- Distinct variables give distinct contradictory pairs. -/
+lemma contrPair_injective (n : ℕ) : Function.Injective (contrPair n) := by
+  intro i j h
+  -- {2i, 2i+1} = {2j, 2j+1} implies 2i ∈ {2j, 2j+1}
+  have h1 : (⟨2*i.val, by have := i.isLt; omega⟩ : Fin (2*n)) ∈ contrPair n j := by
+    have : (⟨2*i.val, by have := i.isLt; omega⟩ : Fin (2*n)) ∈ contrPair n i :=
+      Finset.mem_insert_self _ _
+    rw [h] at this; exact this
+  simp only [contrPair, Finset.mem_insert, Finset.mem_singleton] at h1
+  rcases h1 with h1 | h1
+  · exact Fin.ext (by have := congr_arg Fin.val h1; simp at this; omega)
+  · exact Fin.ext (by have := congr_arg Fin.val h1; simp at this; omega)
+
 theorem mus_count_size2_ge_n (F : UnitClauseFamily n) :
     n ≤ ((Finset.univ : Finset (Fin (2*n))).powerset.filter
       (fun S => S.card = 2 ∧ F.D.isSAT S = false ∧
         ∀ T ∈ S.powerset, T ≠ S → F.D.isSAT T = true)).card := by
-  sorry
+  -- The image of contrPair is a subset of the MUS filter
+  set MF := (Finset.univ : Finset (Fin (2*n))).powerset.filter
+    (fun S => S.card = 2 ∧ F.D.isSAT S = false ∧
+      ∀ T ∈ S.powerset, T ≠ S → F.D.isSAT T = true)
+  calc (n : ℕ) = Fintype.card (Fin n) := (Fintype.card_fin n).symm
+    _ = (Finset.univ : Finset (Fin n)).card := (Finset.card_univ).symm
+    _ = ((Finset.univ : Finset (Fin n)).image (contrPair n)).card := by
+        rw [Finset.card_image_of_injective _ (contrPair_injective n)]
+    _ ≤ MF.card := by
+        apply Finset.card_le_card
+        intro S hS
+        rw [Finset.mem_image] at hS
+        obtain ⟨i, _, rfl⟩ := hS
+        rw [Finset.mem_filter]
+        refine ⟨?_, contrPair_card n i, ?_⟩
+        · exact Finset.mem_powerset.mpr (Finset.subset_univ _)
+        · exact ⟨(contrPair_is_mus F i).1, (contrPair_is_mus F i).2⟩
 
 /-! ## 2. Products of Contradictory Pairs
 
