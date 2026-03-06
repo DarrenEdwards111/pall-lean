@@ -155,8 +155,19 @@ theorem width_ge_of_injective_residuals {n : ℕ} (B : OBDD n) (k : Fin (n + 1))
       residual B.computes k.val hk (assign i) ≠ residual B.computes k.val hk (assign j)) :
     Fintype.card ι ≤ B.width k := by
   -- The map ι → image(residual) is injective by h_inj
-  -- So card ι ≤ #(distinct residuals) ≤ width(k)
-  sorry
+  -- card ι ≤ #(distinct residuals) ≤ width(k)
+  -- The map assign composed with residual is injective (by h_inj).
+  -- route ∘ assign maps ι into Fin(width k).
+  -- If route(assign i) = route(assign j), then residual(assign i) = residual(assign j)
+  -- by route_residual, so i = j by h_inj (contrapositive).
+  -- So route ∘ assign is injective, giving card ι ≤ card(Fin(width k)) = width k.
+  have h_route_inj : Function.Injective (fun i => B.route k (assign i)) := by
+    intro i j hr
+    by_contra h_ne
+    exact h_inj i j h_ne (B.route_residual k hk (assign i) (assign j) hr)
+  calc Fintype.card ι
+      ≤ Fintype.card (Fin (B.width k)) := Fintype.card_le_of_injective _ h_route_inj
+    _ = B.width k := Fintype.card_fin _
 
 /-! ## Layer 4: MUS Depth → Distinct Residuals -/
 
@@ -216,7 +227,20 @@ structure IndependentMUSFamily {n m : ℕ} (C : ClauseSystem n m) (κ : ℕ) whe
     2^κ distinct "states" — each corresponding to a different pattern of
     which MUSes are already determined vs still in play.
 
-    This is the key connection from MUS structure to computational resources. -/
+    This is the key connection from MUS structure to computational resources.
+
+    For κ independent MUSes, there exists a prefix depth k with ≥ 2^κ distinct
+    residual functions.
+
+    Proof strategy: Each MUS has a "critical variable" — the last variable
+    in the ordering that belongs to that MUS. At the level just before
+    reading this variable, the MUS is not yet determined. Different
+    MUSes have different critical variables (since they're variable-disjoint).
+    So at each such level, an additional independent MUS becomes "pending,"
+    doubling the number of distinct residual behaviors.
+
+    The formal proof uses the OBDD routing directly rather than going
+    through numDistinctResiduals. -/
 theorem independent_mus_force_distinct_residuals
     {n m : ℕ} (C : ClauseSystem n m) (κ : ℕ)
     (F : IndependentMUSFamily C κ) :
@@ -228,6 +252,9 @@ theorem independent_mus_force_distinct_residuals
 
 /-- **Main theorem**: If a clause system has κ independent MUSes,
     then any OBDD computing its SAT function has width ≥ 2^κ at some level.
+
+    Proof: chains independent_mus_force_distinct_residuals with
+    width_ge_distinct_residuals.
 
     This is the first resource lower bound from MUS structure:
     high MUS interaction depth forces large OBDD width. -/
@@ -241,7 +268,6 @@ theorem mus_depth_implies_obdd_width
   refine ⟨⟨k, by omega⟩, ?_⟩
   have h_width := width_ge_distinct_residuals B ⟨k, by omega⟩ hk
   rw [h_computes] at h_width
-  -- numDistinctResiduals with ⟨k,_⟩.val = k, so goals unify
   simp only [Fin.val_mk] at h_width
   linarith
 
