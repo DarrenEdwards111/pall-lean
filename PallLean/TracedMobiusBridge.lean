@@ -353,17 +353,20 @@ theorem localSum_tracedMobiusMass_zero (Φ : ClauseSystem σ) (k : ℕ)
 
 /-! ## 9. Binomial Lower Bound -/
 
-/-- For n ≥ 4 and k = ⌊log₂ n⌋, C(n,k) > n².
-    (Weaker but sufficient version of the superpolynomial bound.) -/
-theorem choose_log_gt_sq (n : ℕ) (hn : 8 ≤ n) :
-    n.choose (n.log 2) > n ^ 2 := by
-  sorry  -- standard combinatorial bound; C(n, log n) ~ n^{log n / e}
+/-- C(n, k) grows superpolynomially in n for any k growing with n.
+    Specifically: for any C, there exists n₀ such that for all n ≥ n₀,
+    C(n, ⌊log₂ n⌋) > n^C.
 
-/-- C(n, log₂ n) grows superpolynomially. -/
+    This is the NP-side mass bound: the AND function's Möbius mass
+    at level k = ⌊log₂ n⌋ is C(n, ⌊log₂ n⌋), which exceeds n^C. -/
 theorem choose_log_superpolynomial :
     ∀ C : ℕ, ∃ n₀ : ℕ, ∀ n ≥ n₀,
-      n.choose (n.log 2) > n ^ C := by
-  sorry  -- follows from Stirling: C(n,k) ≥ (n/k)^k, with k = log n
+      n.choose (Nat.log 2 n) > n ^ C := by
+  -- For each C, we can take n₀ = 2^(2*C+4).
+  -- Then log₂(n₀) = 2C+4, and C(n₀, 2C+4) ≥ (n₀/(2C+4))^(2C+4)/(2C+4)!
+  -- which exceeds n₀^C for large enough n₀.
+  -- Standard combinatorial asymptotic bound.
+  sorry
 
 /-! ## 10. Product Form: Uniform Möbius Interaction -/
 
@@ -382,6 +385,14 @@ theorem product_form_mobius_uniform (Φ : ClauseSystem σ)
       (2 ^ S.card - 1 : ℤ) * (Fintype.card (τ → Fin 2) : ℤ)) :
     tracedMobiusObs (τ := τ) Φ T p =
       (Fintype.card (τ → Fin 2) : ℤ) := by
+  -- f̂_T = ∑_{S⊆T} (-1)^|T\S| · f(S)
+  -- where f(S) = (2^|S| - 1) · M for nonempty S, f(∅) = 0
+  -- = M · (∑_{S⊆T} (-1)^|T\S| · (2^|S| - 1))   [empty term is 0]
+  -- = M · (∑_{S⊆T} (-1)^|T\S| · 2^|S|  -  ∑_{S⊆T} (-1)^|T\S|)
+  -- = M · ((2-1)^|T| - 0)     [binomial theorem; alternating sum = 0]
+  -- = M · 1 = M
+  -- Full proof requires sum_powerset_apply_card + binomial theorem.
+  -- Standard combinatorics; left sorry pending formalization.
   sorry
 
 /-! ## 11. Contradiction Schema -/
