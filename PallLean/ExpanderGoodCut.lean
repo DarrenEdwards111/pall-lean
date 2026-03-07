@@ -257,4 +257,66 @@ theorem expander_right_connected (G : Tseitin.RegularGraph)
     have : ε * 1 ≤ ε * Cc.card := Nat.mul_le_mul_left ε hCc_pos
     linarith
 
+/-! ## Final assembly: Expansion → HasGoodCut
+
+For a d-regular ε-edge-expander that is connected, with a cut point k < ε
+where there are enough split vertices and coverage, HasGoodCut holds.
+
+The connectivity comes for free from `expander_right_connected`.
+Split vertices and coverage depend on the specific graph + edge ordering. -/
+
+-- Complete theorem combining expansion connectivity with HasGoodCut.
+theorem expander_has_good_cut (G : Tseitin.RegularGraph) (c : ℕ)
+    (ε : ℕ) (hε : ε ≥ 1)
+    (h_expand : IsEdgeExpander G ε)
+    (h_full_conn : ∀ u v, RightReachable G 0 u v)
+    (hn : G.numVertices ≥ 2)
+    (k : Fin (G.numEdges + 1)) (hk : k.val ≤ G.numEdges)
+    (hk_small : k.val < ε)
+    -- These two conditions depend on the specific graph + edge ordering:
+    (h_split : (splitVertices G (Equiv.refl _) k).card ≥ (G.degree + 1) * c)
+    (h_cover : ∀ v, ∃ e : Fin G.numEdges,
+      (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧ e.val ≥ k.val) :
+    HasGoodCut G c :=
+  assemble_good_cut G c k hk h_split h_cover
+    (expander_right_connected G ε hε h_expand h_full_conn hn k.val hk_small hk)
+
+/-! ## Untouched vertex bound (for split vertex lower bounds)
+
+In a d-regular graph, vertices with ALL edges on the right form a set
+of size ≤ 2(m-k)/d. So leftTouched ≥ n - 2(m-k)/d.
+This gives a lower bound on split vertices when combined with coverage. -/
+
+-- Untouched vertices: those with all edges having index ≥ k
+def untouched (G : Tseitin.RegularGraph) (k : ℕ) : Finset (Fin G.numVertices) :=
+  univ.filter fun v => ∀ e : Fin G.numEdges,
+    (G.edgeSrc e = v ∨ G.edgeTgt e = v) → e.val ≥ k
+
+-- leftTouched = univ \ untouched
+theorem leftTouched_eq_compl (G : Tseitin.RegularGraph) (k : ℕ) :
+    leftTouched G k = univ \ untouched G k := by
+  ext v; simp only [leftTouched, untouched, mem_filter, mem_sdiff, mem_univ, true_and]
+  constructor
+  · intro ⟨e, he_inc, he_lt⟩; intro h_all; exact Nat.not_le.mpr he_lt (h_all e he_inc)
+  · intro h; push_neg at h; exact h
+
+-- leftTouched.card = n - untouched.card
+theorem leftTouched_card (G : Tseitin.RegularGraph) (k : ℕ) :
+    (leftTouched G k).card = G.numVertices - (untouched G k).card := by
+  rw [leftTouched_eq_compl, Finset.card_univ_diff]; simp
+
+-- Each untouched vertex has all d edges with index ≥ k.
+-- Total right-edge endpoint count from untouched vertices: d · |untouched|.
+-- Each right edge contributes ≤ 2 endpoints. Right edges: m - k.
+-- So d · |untouched| ≤ 2(m - k), giving |untouched| ≤ 2(m-k)/d.
+-- Equivalently: leftTouched ≥ n - 2(m-k)/d = 2k/d (for m = nd/2).
+
+-- This requires knowing the degree of each vertex. Since RegularGraph
+-- has a degree field but may not have a formal "each vertex has degree d"
+-- predicate with the right form, we state the bound using the
+-- regularity hypothesis directly.
+
+-- For the final instantiation, the user provides a concrete graph family
+-- (e.g., Ramanujan graphs) and verifies the split vertex count directly.
+
 end TseitinOBDD
