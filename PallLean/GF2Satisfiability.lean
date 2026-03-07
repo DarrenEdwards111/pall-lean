@@ -64,6 +64,11 @@ theorem total_parity_even (n m : ℕ) (src tgt : Fin m → Fin n)
     (β : Fin m → Bool) :
     (univ.filter fun v : Fin n =>
       vertexParity n m src tgt β v = 1).card % 2 = 0 := by
+  -- The set of vertices with odd parity has even cardinality.
+  -- Proof: double-counting. Each true edge contributes to exactly 2 vertices.
+  -- Sum of (incident true edges per vertex) = 2 * (number of true edges).
+  -- A vertex with odd parity contributes 1 mod 2, even contributes 0 mod 2.
+  -- So #(odd vertices) ≡ sum ≡ 0 (mod 2).
   sorry
 
 /-- The defect has the same parity as the total target.
@@ -74,6 +79,15 @@ theorem defect_parity (n m : ℕ) (src tgt : Fin m → Fin n)
     (h_even : (univ.filter fun v => target v = true).card % 2 = 0)
     (β : Fin m → Bool) :
     defect n m src tgt target β % 2 = 0 := by
+  -- defect = #{v : parity(v) ≠ target(v)}
+  -- = #{v : parity(v) = 1 ∧ target(v) = false} + #{v : parity(v) = 0 ∧ target(v) = true}
+  -- #{odd parity} = #{v : parity=1, target=true} + #{v : parity=1, target=false}
+  -- #{target true} = #{v : parity=1, target=true} + #{v : parity=0, target=true}
+  -- defect = #{parity=1, target=false} + #{parity=0, target=true}
+  -- #{odd} = #{parity=1, target=true} + #{parity=1, target=false}
+  -- So defect = #{odd} - #{parity=1, target=true} + #{target true} - #{parity=1, target=true}
+  --           = #{odd} + #{target true} - 2*#{parity=1, target=true}
+  -- defect % 2 = (#{odd} + #{target true}) % 2 = (0 + 0) % 2 = 0
   sorry
 
 /-- Reachability via edges. -/
