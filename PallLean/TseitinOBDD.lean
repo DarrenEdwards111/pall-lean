@@ -113,12 +113,25 @@ def tseitinSubsetSAT (G : Tseitin.RegularGraph)
 
     This is provided as a hypothesis rather than proved, as the expansion
     theory infrastructure is orthogonal to the OBDD width argument. -/
+
+-- Reachability via right-side edges (position ≥ k).
+inductive RightReachable (G : Tseitin.RegularGraph) (k : ℕ) :
+    Fin G.numVertices → Fin G.numVertices → Prop where
+  | refl (v : Fin G.numVertices) : RightReachable G k v v
+  | step (u v w : Fin G.numVertices) (e : Fin G.numEdges) :
+      RightReachable G k u v → e.val ≥ k →
+      ((G.edgeSrc e = v ∧ G.edgeTgt e = w) ∨ (G.edgeSrc e = w ∧ G.edgeTgt e = v)) →
+      RightReachable G k u w
+
 def HasGoodCut (G : Tseitin.RegularGraph) (c : ℕ) : Prop :=
   ∃ (k : Fin (G.numEdges + 1)),
     k.val ≤ G.numEdges ∧
     (splitVertices G (Equiv.refl _) k).card ≥ (G.degree + 1) * c ∧
+    -- Coverage: every vertex has a right-side edge
     (∀ v : Fin G.numVertices, ∃ e : Fin G.numEdges,
-      (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧ e.val ≥ k.val)
+      (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧ e.val ≥ k.val) ∧
+    -- Right-side connectivity: all vertices reachable via right-side edges
+    (∀ u v : Fin G.numVertices, RightReachable G k.val u v)
 
 /-- **Hypothesis 2: GF(2) Tseitin prefix satisfiability.**
 
@@ -818,7 +831,7 @@ theorem tseitin_obdd_width (G : Tseitin.RegularGraph)
       B.width k ≥ 2 ^ (G.numVertices / (2 * G.degree * (G.degree + 1))) := by
   set c := G.numVertices / (2 * G.degree * (G.degree + 1))
   -- Step 1: Good cut hypothesis → cut k with many split vertices + coverage
-  obtain ⟨k, hk_le, hk_split, _h_cover⟩ := h_cut
+  obtain ⟨k, hk_le, hk_split, _h_cover, _h_conn⟩ := h_cut
   use k
   -- Step 2: Greedy extraction → private edges (PROVED)
   obtain ⟨verts, leftEdge, rightEdge, h_vinj, h_lpos, h_linc,
