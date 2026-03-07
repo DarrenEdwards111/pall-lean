@@ -98,13 +98,19 @@ theorem expander_has_cut_expansion (G : Tseitin.RegularGraph)
     (hn : G.numVertices ≥ 2 * G.degree + 1) :
     HasCutExpansion G (G.numVertices / (2 * G.degree)) := by
   intro σ
-  -- Count total (vertex, cut) pairs where vertex is split
-  -- Each vertex v with degree d has edges at d distinct positions.
-  -- v is split at all cuts strictly between min and max position of its edges.
-  -- That's ≥ 1 cut per vertex (since d ≥ 2, min < max).
-  -- Total pairs ≥ n. Cuts range over m+1 ≤ nd+1 positions.
-  -- Pigeonhole: some cut has ≥ n/(nd+1) ≥ 1/(d+1) · n vertices.
-  -- Since d ≤ 10 and n ≥ 2d+1, this is ≥ n/(2d).
+  -- For each vertex v, let minPos(v) and maxPos(v) be the min/max
+  -- positions of edges incident to v under ordering σ.
+  -- Since degree ≥ 2, each v has ≥ 2 edges, so minPos(v) < maxPos(v).
+  -- v is split at cuts k with minPos(v) < k ≤ maxPos(v), i.e., ≥ 1 cut.
+  --
+  -- Total (vertex, cut) split pairs ≥ n (one per vertex).
+  -- Number of cuts = m+1 ≤ nd+1.
+  -- By pigeonhole: ∃ k with ≥ n/(nd+1) split vertices.
+  -- Since n ≥ 2d+1 ≥ 5: n/(nd+1) ≥ n/(2nd) = 1/(2d).
+  -- So the cut has ≥ n/(2d) split vertices.
+  --
+  -- Full formal proof requires Finset pigeonhole, edge position min/max.
+  -- This is a standard combinatorial argument.
   sorry
 
 /-! ## 3. Tseitin parity function on edge subsets -/
@@ -124,6 +130,82 @@ def tseitinSubsetSAT (G : Tseitin.RegularGraph)
       (Finset.univ.filter (fun e : Fin G.numEdges =>
         (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧ z e = true)).card % 2
       = if labels v then 1 else 0)
+
+/-! ## 3.5. Parity independence → distinct residuals
+
+The key mathematical fact: if k split vertices each have at least one
+"private" right-side edge (an edge incident to that vertex but not to
+any other split vertex), then modifying the left-side assignment at
+that private edge flips exactly one parity constraint.
+
+This gives 2^k distinct residual functions from 2^k left-side assignments.
+
+For good expanders, the expansion property guarantees that a constant
+fraction of split vertices have private right-side edges. -/
+
+/-- A set of vertices has "private right edges" if each vertex v has
+    an incident edge e such that e is on the right side of the cut
+    and e is incident to no other vertex in the set. -/
+def HasPrivateEdges (G : Tseitin.RegularGraph) (σ : EdgeOrdering G.numEdges)
+    (k : Fin (G.numEdges + 1)) (verts : Finset (Fin G.numVertices)) : Prop :=
+  ∀ v ∈ verts, ∃ e : Fin G.numEdges,
+    -- e is on the right side
+    (σ e).val ≥ k.val ∧
+    -- e is incident to v
+    (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧
+    -- e is NOT incident to any other vertex in verts
+    (∀ w ∈ verts, w ≠ v → G.edgeSrc e ≠ w ∧ G.edgeTgt e ≠ w)
+
+/-! ## 3.6. GF(2) parity residual theorem
+
+Key lemma: if we have k independent parity constraints, each depending
+on a "left variable" and "right variables", then 2^k distinct left
+assignments give 2^k distinct residual functions on the right.
+
+This abstracts the argument used for both unit clauses (AND structure)
+and Tseitin (XOR structure). -/
+
+/-- For k independent parity constraints, the residual is determined
+    by the k-bit vector of left-side parities.
+
+    If f(x,y) = ∧_i (parity_i(x_left_i, y_right_i) = target_i),
+    and parity_i depends on a PRIVATE right variable for each i,
+    then different left-side x vectors produce different residuals.
+
+    Proof: Suppose f|_{x₁}(y) = f|_{x₂}(y) for all y.
+    Let i be a position where x₁ and x₂ differ on left-parity.
+    Set y to make all other constraints true (using private edges).
+    The private right variable of constraint i distinguishes them.
+
+    Key parity lemma: a function that ANDs k independent parity checks,
+    each with a private variable, distinguishes all 2^k parity patterns.
+
+    f(p₁,...,pₖ, y₁,...,yₖ) = ∧_i (pᵢ XOR yᵢ == targetᵢ)
+
+    If p ≠ p', then ∃ (y₁,...,yₖ) such that f(p,y) ≠ f(p',y). -/
+theorem and_xor_residuals_injective (k : ℕ)
+    (target : Fin k → Bool)
+    (p p' : Fin k → Bool)
+    (hp : p ≠ p') :
+    -- Different parity inputs give different outputs on some y
+    ∃ y : Fin k → Bool,
+      (decide (∀ i : Fin k, xor (p i) (y i) = target i)) ≠
+      (decide (∀ i : Fin k, xor (p' i) (y i) = target i)) := by
+  -- Find a position j where p and p' differ
+  have ⟨j, hj⟩ : ∃ j, p j ≠ p' j := by
+    by_contra h; push_neg at h; exact hp (funext h)
+  -- Set y_i = xor (p i) (target i) for i ≠ j, and y_j = xor (p j) (target j)
+  -- This makes f(p,y) = true (all constraints satisfied)
+  -- But f(p',y) = false (constraint j fails since p'(j) ≠ p(j))
+  use fun i => xor (p i) (target i)
+  simp only [ne_eq]
+  have h_true : (∀ i : Fin k, xor (p i) (xor (p i) (target i)) = target i) := by
+    intro i; cases p i <;> cases target i <;> rfl
+  have h_false : ¬(∀ i : Fin k, xor (p' i) (xor (p i) (target i)) = target i) := by
+    push_neg; use j
+    cases hp1 : p j <;> cases hp2 : p' j <;> cases target j <;>
+      simp_all [xor] <;> exact hj (by rw [hp1, hp2])
+  simp [h_true, h_false]
 
 /-! ## 4. The main width theorem -/
 
@@ -170,6 +252,10 @@ theorem tseitin_not_poly_obdd :
   -- For large enough n: 2^(n/(2d)) > n^C
   -- Since d ≤ 10 (from RegularGraph), n/(2d) ≥ n/20
   -- 2^(n/20) > n^C for n ≥ some n₀(C)
+  -- Take n₀ = max(2*10+1, 20*(C+1)+1) to ensure both conditions
+  -- Proof sketch: combine tseitin_obdd_width with 2^(n/(2d)) > n^C for large n.
+  -- d ≤ 10 (RegularGraph), so n/(2d) ≥ n/20.
+  -- 2^(n/20) > n^C for n ≥ some n₀(C).
   sorry
 
 /-! ## Status
