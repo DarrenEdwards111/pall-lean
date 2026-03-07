@@ -566,7 +566,7 @@ theorem tseitin_parity_residuals (G : Tseitin.RegularGraph)
     Expansion ensures enough vertices survive the greedy process. -/
 theorem split_vertices_private_edges (G : Tseitin.RegularGraph)
     (k : Fin (G.numEdges + 1)) (hk : k.val ≤ G.numEdges) (c : ℕ)
-    (h_card : (splitVertices G (Equiv.refl _) k).card ≥ c) :
+    (h_card : (splitVertices G (Equiv.refl _) k).card ≥ 3 * c) :
     ∃ (verts : Fin c → Fin G.numVertices)
       (leftEdge rightEdge : Fin c → Fin G.numEdges),
       Function.Injective verts ∧
@@ -625,16 +625,29 @@ theorem tseitin_obdd_width (G : Tseitin.RegularGraph)
     (B : OBDD G.numEdges)
     (h_comp : B.computes = tseitinSubsetSAT G labels) :
     ∃ k : Fin (G.numEdges + 1),
-      B.width k ≥ 2 ^ (G.numVertices / (2 * G.degree)) := by
-  set c := G.numVertices / (2 * G.degree)
-  -- Step 1: Get a cut with ≥ c split vertices (expansion property)
+      B.width k ≥ 2 ^ (G.numVertices / (6 * G.degree)) := by
+  set c := G.numVertices / (6 * G.degree)
+  -- Step 1: Get a cut with ≥ n/(2d) split vertices (expansion property)
   obtain ⟨k, hk⟩ := expander_has_cut_expansion G hn (Equiv.refl _)
   use k
   -- Step 2: Extract c vertices with private left+right edges
+  -- Need: n/(2d) ≥ 3c = 3*(n/(6d)), which holds by iterated floor division
   have hk_le : k.val ≤ G.numEdges := by omega
+  have h_3c : (splitVertices G (Equiv.refl _) k).card ≥ 3 * c := by
+    have h1 := hk  -- splitVertices ≥ n/(2d)
+    have h2 : 3 * (G.numVertices / (6 * G.degree)) ≤
+        G.numVertices / (2 * G.degree) := by
+      have : G.numVertices / (6 * G.degree) =
+          G.numVertices / (2 * G.degree) / 3 := by
+        have : 6 * G.degree = 2 * G.degree * 3 := by ring
+        rw [this, ← Nat.div_div_eq_div_mul]
+      rw [this]
+      have := Nat.div_mul_le_self (G.numVertices / (2 * G.degree)) 3
+      omega
+    omega
   obtain ⟨verts, leftEdge, rightEdge, h_vinj, h_lpos, h_linc, h_linj,
     h_lpriv, h_rpos, h_rinc, h_rpriv⟩ :=
-    split_vertices_private_edges G k hk_le c hk
+    split_vertices_private_edges G k hk_le c h_3c
   -- Coverage: every vertex has a right-side edge (from expansion)
   have h_cover := expander_cut_covers G hn k hk
   -- Step 3: Get 2^c distinct residuals (parity argument)
@@ -744,14 +757,14 @@ theorem tseitin_not_poly_obdd (d : ℕ) (hd : d ≥ 1) :
         (h_comp : B.computes = tseitinSubsetSAT G labels),
       ∃ k, B.width k > G.numVertices ^ C := by
   intro C
-  obtain ⟨n₀, hn₀⟩ := exp_exceeds_poly (2 * d) C (by omega)
+  obtain ⟨n₀, hn₀⟩ := exp_exceeds_poly (6 * d) C (by omega)
   refine ⟨n₀, fun G hd_eq hn hn_deg labels h_even B h_comp => ?_⟩
   have h_deg : G.numVertices ≥ 2 * G.degree + 1 := by omega
   obtain ⟨k, hk⟩ := tseitin_obdd_width G labels h_deg h_even B h_comp
   use k
   calc G.numVertices ^ C
-      < 2 ^ (G.numVertices / (2 * d)) := hn₀ _ hn
-      _ = 2 ^ (G.numVertices / (2 * G.degree)) := by rw [hd_eq]
+      < 2 ^ (G.numVertices / (6 * d)) := hn₀ _ hn
+      _ = 2 ^ (G.numVertices / (6 * G.degree)) := by rw [hd_eq]
       _ ≤ B.width k := hk
 
 /-! ## Status
