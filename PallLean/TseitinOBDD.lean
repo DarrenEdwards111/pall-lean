@@ -201,7 +201,25 @@ theorem and_xor_residuals_injective (k : ℕ)
     has width ≥ 2^(n/(2d)) at some level.
 
     This is NP-hard (Tseitin is coNP-complete) and the bound holds
-    for ALL orderings (not just specific interleavings). -/
+    for ALL orderings (not just specific interleavings).
+
+    **Abstract width theorem**: if a BoolFun on m bits has the property
+    that there exist 2^c prefix assignments (at level k) giving
+    pairwise distinct residual functions, then any OBDD computing it
+    has width ≥ 2^c at level k.
+
+    This cleanly factors the OBDD machinery from the graph theory. -/
+theorem width_from_many_residuals (m c : ℕ) (k : Fin (m + 1))
+    (hk : k.val ≤ m)
+    (f : BoolFun m) (B : OBDD m) (h_comp : B.computes = f)
+    (assign : Fin (2 ^ c) → PartialAssignment m k.val)
+    (h_inj : ∀ i j : Fin (2 ^ c), i ≠ j →
+      residual f k.val hk (assign i) ≠ residual f k.val hk (assign j)) :
+    B.width k ≥ 2 ^ c := by
+  rw [ge_iff_le, ← Fintype.card_fin (2 ^ c)]
+  exact width_ge_of_injective_residuals B k hk assign (fun i j hij => by
+    rw [h_comp]; exact h_inj i j hij)
+
 theorem tseitin_obdd_width (G : Tseitin.RegularGraph)
     (labels : Fin G.numVertices → Bool)
     (hn : G.numVertices ≥ 2 * G.degree + 1)
