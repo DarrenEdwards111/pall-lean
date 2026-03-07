@@ -192,6 +192,43 @@ theorem and_xor_residuals_injective (k : ℕ)
       simp_all [xor] <;> exact hj (by rw [hp1, hp2])
   simp [h_true, h_false]
 
+/-- Flipping one input bit changes the filter cardinality by exactly 1
+    at a vertex incident to that edge. -/
+theorem filter_card_flip_edge (G : Tseitin.RegularGraph)
+    (z : Fin G.numEdges → Bool) (e : Fin G.numEdges) (v : Fin G.numVertices)
+    (h_inc : G.edgeSrc e = v ∨ G.edgeTgt e = v)
+    (h_false : z e = false) :
+    let z' := Function.update z e true
+    (Finset.univ.filter (fun e' : Fin G.numEdges =>
+      (G.edgeSrc e' = v ∨ G.edgeTgt e' = v) ∧ z' e' = true)).card =
+    (Finset.univ.filter (fun e' : Fin G.numEdges =>
+      (G.edgeSrc e' = v ∨ G.edgeTgt e' = v) ∧ z e' = true)).card + 1 := by
+  -- The new filter = old filter ∪ {e}
+  -- e is not in old filter (z e = false) and is in new filter (z' e = true)
+  have h_not_mem : e ∉ Finset.univ.filter (fun e' =>
+      (G.edgeSrc e' = v ∨ G.edgeTgt e' = v) ∧ z e' = true) := by
+    simp [h_false]
+  have h_eq : Finset.univ.filter (fun e' : Fin G.numEdges =>
+      (G.edgeSrc e' = v ∨ G.edgeTgt e' = v) ∧ Function.update z e true e' = true) =
+    insert e (Finset.univ.filter (fun e' =>
+      (G.edgeSrc e' = v ∨ G.edgeTgt e' = v) ∧ z e' = true)) := by
+    ext e'
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_insert]
+    constructor
+    · intro ⟨h1, h2⟩
+      by_cases he : e' = e
+      · left; exact he
+      · right; exact ⟨h1, by simp [Function.update_apply, he] at h2; exact h2⟩
+    · intro h
+      rcases h with rfl | ⟨h1, h2⟩
+      · exact ⟨h_inc, by simp [Function.update_apply]⟩
+      · refine ⟨h1, ?_⟩
+        by_cases he : e' = e
+        · subst he; simp [h_false] at h2
+        · simp [Function.update_apply, he]; exact h2
+  simp only [h_eq]
+  exact Finset.card_insert_of_notMem h_not_mem
+
 /-! ## 4. The main width theorem -/
 
 /-- **Main theorem**: For Tseitin on expanders, any OBDD has exponential width.
@@ -220,6 +257,85 @@ theorem width_from_many_residuals (m c : ℕ) (k : Fin (m + 1))
   exact width_ge_of_injective_residuals B k hk assign (fun i j hij => by
     rw [h_comp]; exact h_inj i j hij)
 
+/-- **Parity residual construction**: given c split vertices, each with
+    a left edge and a private right edge, we can construct 2^c prefix
+    assignments with pairwise distinct residuals for tseitinSubsetSAT.
+
+    This theorem uses and_xor_residuals_injective to show that
+    different left-parity patterns create different residual functions. -/
+theorem tseitin_parity_residuals (G : Tseitin.RegularGraph)
+    (labels : Fin G.numVertices → Bool) (c : ℕ)
+    (k : Fin (G.numEdges + 1)) (hk : k.val ≤ G.numEdges)
+    -- c split vertices with left edges and private right edges
+    (verts : Fin c → Fin G.numVertices)
+    (leftEdge : Fin c → Fin G.numEdges)
+    (rightEdge : Fin c → Fin G.numEdges)
+    (h_verts_inj : Function.Injective verts)
+    -- leftEdge i is on the left side and incident to verts i
+    (h_left_pos : ∀ i, (Equiv.refl _ (leftEdge i)).val < k.val)
+    (h_left_inc : ∀ i, G.edgeSrc (leftEdge i) = verts i ∨
+                        G.edgeTgt (leftEdge i) = verts i)
+    -- rightEdge i is on the right side, incident to verts i,
+    -- and NOT incident to any other selected vertex (private)
+    (h_right_pos : ∀ i, (Equiv.refl _ (rightEdge i)).val ≥ k.val)
+    (h_right_inc : ∀ i, G.edgeSrc (rightEdge i) = verts i ∨
+                         G.edgeTgt (rightEdge i) = verts i)
+    (h_right_priv : ∀ i j, i ≠ j →
+      G.edgeSrc (rightEdge i) ≠ verts j ∧ G.edgeTgt (rightEdge i) ≠ verts j) :
+    -- Then there exist 2^c prefix assignments with distinct residuals
+    ∃ (assign : Fin (2 ^ c) → PartialAssignment G.numEdges k.val),
+      ∀ i j : Fin (2 ^ c), i ≠ j →
+        residual (tseitinSubsetSAT G labels) k.val hk (assign i) ≠
+        residual (tseitinSubsetSAT G labels) k.val hk (assign j) := by
+  -- Define the prefix assignment: set leftEdge(i) based on testBit
+  let mkAssign : Fin (2 ^ c) → PartialAssignment G.numEdges k.val :=
+    fun a pos => decide (∃ i : Fin c, (leftEdge i).val = pos.val ∧
+                          a.val.testBit i.val = true)
+  refine ⟨mkAssign, ?_⟩
+  intro a₁ a₂ ha
+  -- Different a's differ at some bit position
+  have ⟨idx, hidx⟩ : ∃ idx : Fin c, a₁.val.testBit idx.val ≠ a₂.val.testBit idx.val := by
+    by_contra h_all
+    push_neg at h_all
+    apply ha
+    apply Fin.ext
+    apply Nat.eq_of_testBit_eq
+    intro bit
+    by_cases hbit : bit < c
+    · exact h_all ⟨bit, hbit⟩
+    · -- Both < 2^c, so bits ≥ c are 0
+      rw [Nat.testBit_eq_false_of_lt (Nat.lt_of_lt_of_le a₁.isLt
+            (Nat.pow_le_pow_right (by omega) (by omega))),
+          Nat.testBit_eq_false_of_lt (Nat.lt_of_lt_of_le a₂.isLt
+            (Nat.pow_le_pow_right (by omega) (by omega)))]
+  -- The residual functions differ because mkAssign a₁ and mkAssign a₂
+  -- differ at leftEdge(idx), which changes the parity at verts(idx).
+  -- Using the private right edge to construct a distinguishing suffix.
+  --
+  -- This step requires:
+  -- (1) Unfolding `residual` to get `fun β => tseitinSubsetSAT G labels (concat α β)`
+  -- (2) Constructing suffix β₀ that includes only rightEdge(idx)
+  -- (3) Showing the parity at verts(idx) flips while all others are unchanged
+  --
+  -- The parity flip follows because:
+  -- - leftEdge(idx) is the ONLY edge of verts(idx) that differs between a₁ and a₂
+  --   (other left edges of verts(idx) get the same value: false)
+  -- - rightEdge(idx) is included, contributing 1 to the filter count
+  -- - So filter_count(verts(idx), concat α₁ β₀) and
+  --        filter_count(verts(idx), concat α₂ β₀) differ by exactly 1
+  -- - Their parities mod 2 are different
+  --
+  -- All other vertices v ≠ verts(idx):
+  -- - leftEdge(idx) may or may not be incident to v
+  -- - rightEdge(idx) is NOT incident to v (privacy: h_right_priv)
+  -- - If leftEdge(idx) is incident to v, it changes v's parity too,
+  --   but we only need ONE vertex where parities differ
+  --
+  -- This is the concrete connection between and_xor_residuals_injective
+  -- and the graph structure. Formally requires ~50 lines of Finset.filter
+  -- cardinality manipulation.
+  sorry
+
 theorem tseitin_obdd_width (G : Tseitin.RegularGraph)
     (labels : Fin G.numVertices → Bool)
     (hn : G.numVertices ≥ 2 * G.degree + 1)
@@ -229,26 +345,14 @@ theorem tseitin_obdd_width (G : Tseitin.RegularGraph)
       B.width k ≥ 2 ^ (G.numVertices / (2 * G.degree)) := by
   -- Step 1: Get the cut with many split vertices (expansion)
   obtain ⟨k, hk⟩ := expander_has_cut_expansion G hn (Equiv.refl _)
+  -- Step 2: Find c = n/(2d) split vertices with private edges (graph theory)
+  -- This is where expansion is used: the expander property guarantees
+  -- that among the split vertices, a linear fraction have private right edges.
+  set c := G.numVertices / (2 * G.degree)
+  -- Step 3: Get the prefix assignments with distinct residuals
+  -- (from tseitin_parity_residuals, modulo graph construction)
+  -- Step 4: Apply width_from_many_residuals
   use k
-  -- Step 2: Apply width_ge_of_injective_residuals.
-  -- Need: an injection from Fin(2^c) to prefix assignments (c = n/(2d))
-  -- such that distinct elements give distinct residuals.
-  --
-  -- Construction: enumerate the c split vertices v₁,...,v_c.
-  -- For each i, pick a "left edge" eᵢ incident to vᵢ with position < k.
-  -- For index j ∈ Fin(2^c), define prefix assignment αⱼ:
-  --   αⱼ(eᵢ) = j.testBit(i)  for each left edge eᵢ
-  --   αⱼ(e)  = false           for all other left edges
-  --
-  -- Step 3: Distinct j's differ on some bit i, so they flip the parity
-  -- at vertex vᵢ. By and_xor_residuals_injective, the residual functions
-  -- differ because vᵢ has a private RIGHT edge that can distinguish
-  -- the two parity requirements.
-  --
-  -- Step 4: Width ≥ 2^c ≥ 2^(n/(2d))
-  --
-  -- The formal proof requires constructing the explicit edge selection
-  -- and showing the parity decomposition. Standard but verbose.
   sorry
 
 /-! ## 5. The separation theorem -/
@@ -267,16 +371,11 @@ theorem tseitin_not_poly_obdd :
         (h_comp : B.computes = tseitinSubsetSAT G labels),
       ∃ k, B.width k > G.numVertices ^ C := by
   intro C
-  use max (2 * 10 + 1) (20 * C + 20 + 1)
-  intro G hn₀ hn labels B h_comp
-  obtain ⟨k, hk⟩ := tseitin_obdd_width G labels hn B h_comp
-  refine ⟨k, ?_⟩
-  -- Need: 2^(n/(2d)) > n^C
-  -- From hk: B.width k ≥ 2^(n/(2d))
-  -- d ≤ 10 (RegularGraph.degree_bound)
-  -- n/(2d) ≥ n/20 ≥ (20C+20+1)/20 ≥ C+1
-  -- 2^(C+1) > n^C for... no, we need 2^(n/20) > n^C
-  -- This is a standard exponential-beats-polynomial fact
+  -- The exponential 2^(n/20) eventually exceeds any polynomial n^C.
+  -- The proof requires: ∃ n₀, ∀ n ≥ n₀, 2^(n/20) > n^C
+  -- This is standard analysis (exp grows faster than poly).
+  -- We leave the specific n₀ and proof as sorry since
+  -- tseitin_obdd_width itself is sorry'd.
   sorry
 
 /-! ## Status
