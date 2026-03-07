@@ -91,20 +91,230 @@ theorem flip_edge_parity (n m : ℕ) (src tgt : Fin m → Fin n)
     · subst h_eq; simp only [Bool.not_eq_true'] at *; tauto
     · rfl
 
-/-- Total vertex parity is always even (each edge has 2 endpoints). -/
+-- Flipping one edge preserves parity of odd-vertex count.
+-- The odd set changes at exactly {src e₀, tgt e₀} (2 vertices),
+-- so its cardinality changes by 0 or ±2.
+theorem flip_preserves_odd_parity (n m : ℕ) (src tgt : Fin m → Fin n)
+    (h_no_self : ∀ e, src e ≠ tgt e) (β : Fin m → Bool) (e₀ : Fin m) :
+    (univ.filter fun v : Fin n =>
+      vertexParity n m src tgt (Function.update β e₀ (!β e₀)) v = 1).card % 2 =
+    (univ.filter fun v : Fin n =>
+      vertexParity n m src tgt β v = 1).card % 2 := by
+  set s := src e₀; set t := tgt e₀
+  set S := univ.filter fun v : Fin n => vertexParity n m src tgt β v = 1
+  set S' := univ.filter fun v : Fin n =>
+    vertexParity n m src tgt (Function.update β e₀ (!β e₀)) v = 1
+  have hst : s ≠ t := h_no_self e₀
+  -- For v ≠ s and v ≠ t: v ∈ S' ↔ v ∈ S
+  have h_agree : ∀ v : Fin n, v ≠ s → v ≠ t → (v ∈ S' ↔ v ∈ S) := by
+    intro v hs' ht'
+    simp only [S, S', Finset.mem_filter, Finset.mem_univ, true_and]
+    have := flip_edge_parity n m src tgt h_no_self β e₀ v
+    rw [if_neg (by push_neg; exact ⟨fun h => hs' h.symm, fun h => ht' h.symm⟩)] at this
+    rw [this]
+  -- For v ∈ {s, t}: parity flips, so v ∈ S' ↔ v ∉ S
+  have h_flip_s : s ∈ S' ↔ s ∉ S := by
+    simp only [S, S', Finset.mem_filter, Finset.mem_univ, true_and]
+    have := flip_edge_parity n m src tgt h_no_self β e₀ s
+    rw [if_pos (Or.inl rfl)] at this; rw [this]
+    rcases vertexParity_le_one n m src tgt β s with h | h <;> simp [h] <;> omega
+  have h_flip_t : t ∈ S' ↔ t ∉ S := by
+    simp only [S, S', Finset.mem_filter, Finset.mem_univ, true_and]
+    have := flip_edge_parity n m src tgt h_no_self β e₀ t
+    rw [if_pos (Or.inr rfl)] at this; rw [this]
+    rcases vertexParity_le_one n m src tgt β t with h | h <;> simp [h] <;> omega
+  -- Case split on s ∈ S, t ∈ S
+  rcases Decidable.em (s ∈ S) with hs_in | hs_out <;>
+    rcases Decidable.em (t ∈ S) with ht_in | ht_out
+  · -- Both in S → both not in S' → S' = S \ {s,t} → |S'| = |S| - 2
+    have hs' : s ∉ S' := by rwa [h_flip_s, not_not]
+    have ht' : t ∉ S' := by rwa [h_flip_t, not_not]
+    have h_eq : S' = (S.erase s).erase t := by
+      ext v; simp only [Finset.mem_erase]
+      constructor
+      · intro hv
+        have hvs : v ≠ s := fun h => by subst h; exact hs' hv
+        have hvt : v ≠ t := fun h => by subst h; exact ht' hv
+        exact ⟨hvt, hvs, (h_agree v hvs hvt).mp hv⟩
+      · intro ⟨hvt, hvs, hv⟩; exact (h_agree v hvs hvt).mpr hv
+    rw [h_eq]
+    have : t ∈ S.erase s := Finset.mem_erase.mpr ⟨hst.symm, ht_in⟩
+    rw [Finset.card_erase_of_mem this, Finset.card_erase_of_mem hs_in]
+    have h1 := Finset.card_pos.mpr ⟨s, hs_in⟩
+    have h2 := Finset.card_pos.mpr ⟨t, Finset.mem_erase.mpr ⟨hst.symm, ht_in⟩⟩
+    rw [Finset.card_erase_of_mem hs_in] at h2; omega
+  · -- s in, t out → s not in S', t in S' → swap
+    have hs' : s ∉ S' := by rwa [h_flip_s, not_not]
+    have ht' : t ∈ S' := h_flip_t.mpr ht_out
+    have h_eq : S' = (S.erase s).cons t (by
+        simp only [Finset.mem_erase]; intro ⟨_, h⟩; exact ht_out h) := by
+      ext v; simp only [Finset.mem_cons, Finset.mem_erase]
+      constructor
+      · intro hv
+        by_cases hvt : v = t
+        · exact Or.inl hvt
+        · have hvs : v ≠ s := fun h => by subst h; exact hs' hv
+          exact Or.inr ⟨hvs, (h_agree v hvs hvt).mp hv⟩
+      · intro hv; rcases hv with rfl | ⟨hvs, hv⟩
+        · exact ht'
+        · have hvt : v ≠ t := fun h => by subst h; exact ht_out hv
+          exact (h_agree v hvs hvt).mpr hv
+    rw [h_eq, Finset.card_cons, Finset.card_erase_of_mem hs_in]
+    have := Finset.card_pos.mpr ⟨s, hs_in⟩; omega
+  · -- s out, t in → s in S', t not in S' → swap
+    have hs' : s ∈ S' := h_flip_s.mpr hs_out
+    have ht' : t ∉ S' := by rwa [h_flip_t, not_not]
+    have h_eq : S' = (S.erase t).cons s (by
+        simp only [Finset.mem_erase]; intro ⟨_, h⟩; exact hs_out h) := by
+      ext v; simp only [Finset.mem_cons, Finset.mem_erase]
+      constructor
+      · intro hv
+        by_cases hvs : v = s
+        · exact Or.inl hvs
+        · have hvt : v ≠ t := fun h => by subst h; exact ht' hv
+          exact Or.inr ⟨hvt, (h_agree v hvs hvt).mp hv⟩
+      · intro hv; rcases hv with rfl | ⟨hvt, hv⟩
+        · exact hs'
+        · have hvs : v ≠ s := fun h => by subst h; exact hs_out hv
+          exact (h_agree v hvs hvt).mpr hv
+    rw [h_eq, Finset.card_cons, Finset.card_erase_of_mem ht_in]
+    have := Finset.card_pos.mpr ⟨t, ht_in⟩; omega
+  · -- Both out → both in S' → S' = S ∪ {s,t}
+    have hs' : s ∈ S' := h_flip_s.mpr hs_out
+    have ht' : t ∈ S' := h_flip_t.mpr ht_out
+    have h_eq : S' = (S.cons s hs_out).cons t (by
+        simp only [Finset.mem_cons]; push_neg; exact ⟨hst.symm, ht_out⟩) := by
+      ext v; simp only [Finset.mem_cons]
+      constructor
+      · intro hv
+        by_cases hvt : v = t; · exact Or.inl hvt
+        by_cases hvs : v = s; · exact Or.inr (Or.inl hvs)
+        exact Or.inr (Or.inr ((h_agree v hvs hvt).mp hv))
+      · intro hv; rcases hv with rfl | rfl | hv
+        · exact ht'
+        · exact hs'
+        · have hvs : v ≠ s := fun h => by subst h; exact hs_out hv
+          have hvt : v ≠ t := fun h => by subst h; exact ht_out hv
+          exact (h_agree v hvs hvt).mpr hv
+    rw [h_eq, Finset.card_cons, Finset.card_cons]; omega
+
+/-- Total vertex parity is always even (each edge has 2 endpoints).
+    Proof by induction on number of true edges. -/
 theorem total_parity_even (n m : ℕ) (src tgt : Fin m → Fin n)
     (h_no_self : ∀ e : Fin m, src e ≠ tgt e) (β : Fin m → Bool) :
     (univ.filter fun v : Fin n =>
       vertexParity n m src tgt β v = 1).card % 2 = 0 := by
-  sorry
+  -- Induction on number of true edges
+  suffices h : ∀ (k : ℕ) (β : Fin m → Bool),
+      (univ.filter fun e => β e = true).card ≤ k →
+      (univ.filter fun v => vertexParity n m src tgt β v = 1).card % 2 = 0 by
+    exact h _ β le_rfl
+  intro k
+  induction k with
+  | zero =>
+    intro β hk
+    have h_all_false : ∀ e : Fin m, β e = false := by
+      intro e; by_contra he
+      have he' : β e = true := by cases β e <;> simp_all
+      have : (univ.filter fun e => β e = true).card > 0 :=
+        Finset.card_pos.mpr ⟨e, by simp [Finset.mem_filter, he']⟩
+      omega
+    have h0 : ∀ v, vertexParity n m src tgt β v = 0 := by
+      intro v; simp only [vertexParity]
+      have : (univ.filter fun e => (src e = v ∨ tgt e = v) ∧ β e = true) = ∅ := by
+        ext e; simp [Finset.mem_filter, h_all_false e]
+      rw [this]; simp
+    simp [h0]
+  | succ k ih =>
+    intro β hk
+    by_cases h0 : (univ.filter fun e => β e = true).card = 0
+    · have h_all_false : ∀ e : Fin m, β e = false := by
+        intro e; by_contra he
+        have : β e = true := by cases β e <;> simp_all
+        have : (univ.filter fun e => β e = true).card > 0 :=
+          Finset.card_pos.mpr ⟨e, by simp [Finset.mem_filter, ‹β e = true›]⟩
+        omega
+      have h0' : ∀ v, vertexParity n m src tgt β v = 0 := by
+        intro v; simp only [vertexParity]
+        have : (univ.filter fun e => (src e = v ∨ tgt e = v) ∧ β e = true) = ∅ := by
+          ext e; simp [Finset.mem_filter, h_all_false e]
+        rw [this]; simp
+      simp [h0']
+    · have hne : (univ.filter fun e => β e = true).Nonempty :=
+        Finset.card_pos.mp (by omega)
+      obtain ⟨e₀, he₀⟩ := hne
+      have he₀_true : β e₀ = true := (Finset.mem_filter.mp he₀).2
+      set β' := Function.update β e₀ false
+      have h_card' : (univ.filter fun e => β' e = true).card ≤ k := by
+        have : (univ.filter fun e => β' e = true) =
+            (univ.filter fun e => β e = true).erase e₀ := by
+          ext e; simp only [Finset.mem_filter, Finset.mem_erase, Finset.mem_univ, true_and]
+          constructor
+          · intro h
+            have hne : e ≠ e₀ := by
+              intro heq; subst heq; simp [β', Function.update_self] at h
+            exact ⟨hne, by simp [β', Function.update_apply, if_neg hne] at h; exact h⟩
+          · intro ⟨hne, h⟩; simp [β', Function.update_apply, if_neg hne]; exact h
+        rw [this, Finset.card_erase_of_mem he₀]; omega
+      have ih' := ih β' h_card'
+      -- β = Function.update β' e₀ (!β' e₀) since β' e₀ = false
+      have h_restore : Function.update β' e₀ (!β' e₀) = β := by
+        ext e; simp only [Function.update_apply]
+        split_ifs with h
+        · subst h; simp only [β', Function.update_self, Bool.not_false, he₀_true]
+        · simp only [β', Function.update_apply, if_neg h]
+      rw [← h_restore]
+      exact (flip_preserves_odd_parity n m src tgt h_no_self β' e₀).trans ih'
 
-/-- The defect is always even when targets have even parity. -/
+/-- The defect is always even when targets have even parity.
+    defect = |O Δ T| where O = odd-parity vertices, T = target-true vertices.
+    |O Δ T| = |O| + |T| - 2|O ∩ T|, so defect % 2 = (|O| + |T|) % 2 = 0. -/
 theorem defect_parity (n m : ℕ) (src tgt : Fin m → Fin n)
     (h_no_self : ∀ e, src e ≠ tgt e) (target : Fin n → Bool)
     (h_even : (univ.filter fun v => target v = true).card % 2 = 0)
     (β : Fin m → Bool) :
     defect n m src tgt target β % 2 = 0 := by
-  sorry
+  simp only [defect]
+  set O := univ.filter fun v : Fin n => vertexParity n m src tgt β v = 1
+  set T := univ.filter fun v : Fin n => target v = true
+  set D := univ.filter fun v : Fin n =>
+    vertexParity n m src tgt β v ≠ targetVal target v
+  have h_O := total_parity_even n m src tgt h_no_self β
+  -- D is the symmetric difference of O and T
+  have h_D_sdiff : D = (O \ T) ∪ (T \ O) := by
+    ext v; simp only [D, O, T, Finset.mem_filter, Finset.mem_univ, true_and,
+      Finset.mem_union, Finset.mem_sdiff, targetVal]
+    rcases vertexParity_le_one n m src tgt β v with hp | hp <;>
+      cases ht : target v <;> simp [hp, ht] <;> omega
+  have h_disj : Disjoint (O \ T) (T \ O) := by
+    rw [Finset.disjoint_left]; intro v hv1 hv2
+    simp only [Finset.mem_sdiff] at hv1 hv2; exact hv1.2 hv2.1
+  rw [h_D_sdiff, Finset.card_union_of_disjoint h_disj]
+  -- (O \ T).card + (T \ O).card = O.card + T.card - 2 * (O ∩ T).card
+  -- (O \ T).card = O.card - (O ∩ T).card, (T \ O).card = T.card - (T ∩ O).card
+  -- Sum ≡ O.card + T.card (mod 2) since we subtract (O∩T).card twice
+  have h1 : (O \ T).card + (O ∩ T).card = O.card := by
+    rw [Finset.card_sdiff_add_card_inter]
+  have h2 : (T \ O).card + (T ∩ O).card = T.card := by
+    rw [Finset.card_sdiff_add_card_inter]
+  rw [Finset.inter_comm] at h2
+  -- (O\T).card + (T\O).card + 2*(O∩T).card = O.card + T.card
+  have h3 : (O \ T).card + (T \ O).card + 2 * (O ∩ T).card = O.card + T.card := by omega
+  -- x % 2 = (x + 2k) % 2 = (O.card + T.card) % 2
+  -- x + 2k ≡ x (mod 2), so (O\T + T\O) % 2 = (O + T) % 2
+  -- From h3: x + 2k = y where x = |O\T| + |T\O|, k = |O∩T|, y = |O| + |T|
+  -- x % 2 = y % 2 (since x = y - 2k and 2k ≡ 0 mod 2)
+  -- y % 2 = 0 since |O| % 2 = 0 and |T| % 2 = 0
+  calc ((O \ T).card + (T \ O).card) % 2
+      = ((O \ T).card + (T \ O).card + 2 * (O ∩ T).card) % 2 := by
+        rw [show (O \ T).card + (T \ O).card + 2 * (O ∩ T).card =
+          (O \ T).card + (T \ O).card + (O ∩ T).card * 2 from by ring,
+          Nat.add_mul_mod_self_right]
+    _ = (O.card + T.card) % 2 := by rw [h3]
+    _ = 0 := by
+      have : O.card % 2 = 0 := h_O
+      have : T.card % 2 = 0 := h_even
+      omega
 
 /-- Reachability via edges. -/
 inductive Reachable (n m : ℕ) (src tgt : Fin m → Fin n) :
