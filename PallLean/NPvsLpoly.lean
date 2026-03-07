@@ -155,6 +155,70 @@ Actually: with 3 choices per constraint and c independent constraints,
 we get 3^c distinct constraint patterns. Each pattern gives a
 distinct residual function. So the lower bound is 3^c > 2^c. -/
 
+/-! ### Sub-lemma 1: Single-Edge Residual Separation
+
+If Alice changes the color of u from a to b (a ≠ b) along a private
+crossing edge (u,v), Bob can distinguish by coloring v = a:
+- Under Alice-color-a: v = a is FORBIDDEN (monochromatic edge)  
+- Under Alice-color-b: v = a is ALLOWED (a ≠ b)
+
+This gives a concrete distinguishing Bob assignment for any
+single-edge color flip. -/
+
+/-- Two distinct Fin 3 values: there exists a third distinct from both. -/
+lemma fin3_third (a b : Fin 3) (hab : a ≠ b) : ∃ c : Fin 3, c ≠ a ∧ c ≠ b := by
+  fin_cases a <;> fin_cases b <;> simp_all <;> exact ⟨_, by omega, by omega⟩
+
+/-- The key single-edge observation: if Alice colors u with color a,
+    and edge (u,v) exists, then the constraint is v ≠ a.
+    Changing Alice's color from a to b (a ≠ b) changes the constraint
+    from (v ≠ a) to (v ≠ b). Setting v = a satisfies the second but
+    not the first. -/
+lemma single_edge_separation (a b : Fin 3) (hab : a ≠ b) :
+    decide (a ≠ a) = false ∧ decide (a ≠ b) = true := by
+  constructor
+  · simp
+  · simp [hab]
+
+/-! ### Sub-lemma 2: Multi-Edge Independence (Bit Encoding)
+
+We encode 2^c Alice colorings by assigning each private Alice endpoint
+u_i a color from {0, 1} based on bit i of the index. Two different
+indices differ on some bit → their constraint patterns differ on the
+corresponding Bob vertex → Bob distinguishes by targeting that vertex.
+
+The independence comes from DISJOINTNESS: each Bob vertex v_i is
+touched by exactly one crossing edge, so changing v_i's color only
+affects edge (u_i, v_i) among the crossing edges. -/
+
+/-- Extract bit i from a natural number (as Fin 3: 0 or 1). -/
+def bitColor (n : ℕ) (i : ℕ) : Fin 3 :=
+  if n.testBit i then 1 else 0
+
+-- bitColor agrees iff testBit agrees
+lemma bitColor_eq_iff {a b : ℕ} {i : ℕ} :
+    bitColor a i = bitColor b i ↔ a.testBit i = b.testBit i := by
+  simp only [bitColor]
+  constructor
+  · intro h; by_cases ha : a.testBit i <;> by_cases hb : b.testBit i <;> simp_all
+  · intro h; rw [h]
+
+/-- Different natural numbers differ on some bit. -/
+lemma bits_differ_of_ne {a b : ℕ} {c : ℕ} (ha : a < 2 ^ c) (hb : b < 2 ^ c)
+    (hab : a ≠ b) : ∃ i : Fin c, bitColor a i.val ≠ bitColor b i.val := by
+  -- a ≠ b → testBit differs somewhere
+  obtain ⟨i, hi⟩ : ∃ i, a.testBit i ≠ b.testBit i := by
+    by_contra h_all
+    push_neg at h_all
+    exact hab (Nat.eq_of_testBit_eq fun i => Bool.eq_of_beq_eq_true
+      (by cases ha' : a.testBit i <;> cases hb' : b.testBit i <;> simp_all))
+  -- The differing bit must be < c
+  have h_lt : i < c := by
+    by_contra h_ge; push_neg at h_ge
+    exact hi (by
+      rw [Nat.testBit_eq_false_of_lt (by omega), Nat.testBit_eq_false_of_lt (by omega)])
+  exact ⟨⟨i, h_lt⟩, by rwa [bitColor_eq_iff]⟩
+
 /-- The residual explosion theorem for 3-coloring (the core claim).
     
     If there are c independent privately-touched Bob vertices, then
@@ -188,16 +252,21 @@ theorem coloring_residual_explosion
           threeColFun G (fun v =>
             if h : v.val < k then (assign j) ⟨v.val, h⟩
             else bob_col ⟨v.val - k, by omega⟩) := by
-  -- The proof would construct 2^c Alice colorings that differ on
-  -- the Alice endpoints of the private crossing edges, such that
-  -- the resulting constraint patterns on Bob's vertices are all distinct.
-  --
-  -- For each private vertex verts(i) with edge (u_i, verts(i)):
-  -- Alice assigns c(u_i) ∈ {0, 1} (2 choices, ignoring color 2)
-  -- This gives 2^c distinct forbidden-color patterns.
-  -- Each pattern leaves a different valid-color set for verts(i).
-  -- Bob can exploit this by setting verts(i) to a color valid under
-  -- one pattern but not another.
+  -- PROOF SKETCH:
+  -- 1. Fix a proper coloring `col` (from h_colorable)
+  -- 2. For each index n < 2^c, define assign(n) = col on all Alice vertices,
+  --    EXCEPT: for each private Alice endpoint u_i, set color = bitColor n i
+  --    (using {0,1} ⊆ Fin 3)
+  -- 3. For n₁ ≠ n₂, bits_differ_of_ne gives index p where bitColor differs
+  -- 4. Bob distinguishes at vertex verts(p):
+  --    - Under assign(n₁): edge (u_p, verts(p)) forbids bitColor n₁ p
+  --    - Under assign(n₂): edge (u_p, verts(p)) forbids bitColor n₂ p
+  --    - Set verts(p) = bitColor n₁ p: violates first, satisfies second
+  --    (if other edges and coloring is arranged so only this edge differs)
+  -- The hard part: ensuring Alice's modification doesn't break left edges,
+  -- and Bob's modification doesn't break right edges.
+  -- Requires: the private Alice endpoints u_i are pairwise distinct and
+  -- have no left-only edges between them (or can be 2-colored freely).
   sorry
 
 /-! ## 4. From 3-Coloring to NP ⊄ L/poly -/
