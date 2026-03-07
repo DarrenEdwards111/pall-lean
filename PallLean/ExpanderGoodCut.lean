@@ -336,6 +336,11 @@ theorem untouched_bound (G : Tseitin.RegularGraph) (k : ℕ) (hk : k ≤ G.numEd
   -- Each e with e.val ≥ k appears in ≤ 2 terms. Each e with e.val < k
   -- appears in 0 terms (untouched vertices have no left edges).
   -- So the sum counts each right edge ≤ 2 times.
+  -- Double counting: each untouched vertex v has deg(v) = d edges,
+  -- all with index ≥ k. So d·|U| incidence pairs (v,e).
+  -- Each right edge e has ≤ 2 endpoints, contributing ≤ 2 pairs.
+  -- Left edges contribute 0 pairs. So d·|U| ≤ 2·(m-k).
+  -- This is a standard combinatorial double-counting argument.
   sorry
 
 -- Lower bound on leftTouched from regularity
