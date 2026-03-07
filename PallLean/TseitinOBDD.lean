@@ -162,7 +162,40 @@ private def closedNeighborhood (G : Tseitin.RegularGraph)
 private theorem closedNeighborhood_card (G : Tseitin.RegularGraph)
     (v : Fin G.numVertices) :
     (closedNeighborhood G v).card ≤ G.degree + 1 := by
-  sorry
+  unfold closedNeighborhood
+  set nbrs := Finset.univ.filter fun u : Fin G.numVertices =>
+    u ≠ v ∧ ∃ e : Fin G.numEdges,
+      (G.edgeSrc e = v ∧ G.edgeTgt e = u) ∨ (G.edgeSrc e = u ∧ G.edgeTgt e = v)
+  suffices h : nbrs.card ≤ G.degree by
+    have h1 := Finset.card_union_le ({v} : Finset _) nbrs
+    have h2 : ({v} : Finset (Fin G.numVertices)).card = 1 := Finset.card_singleton v
+    linarith
+  -- Map each neighbor to a witnessing edge; image ⊆ incident edges
+  set inc := Finset.univ.filter fun e : Fin G.numEdges =>
+    G.edgeSrc e = v ∨ G.edgeTgt e = v
+  have h_inc : inc.card = G.degree := G.regular v
+  -- Define "other endpoint" map
+  let other : Fin G.numEdges → Fin G.numVertices :=
+    fun e => if G.edgeSrc e = v then G.edgeTgt e else G.edgeSrc e
+  -- nbrs ⊆ inc.image other
+  have h_sub : nbrs ⊆ inc.image other := by
+    intro u hu
+    simp only [nbrs, Finset.mem_filter, Finset.mem_univ, true_and] at hu
+    obtain ⟨hne, e, he⟩ := hu
+    rw [Finset.mem_image]
+    refine ⟨e, ?_, ?_⟩
+    · simp only [inc, Finset.mem_filter, Finset.mem_univ, true_and]
+      rcases he with ⟨h1, _⟩ | ⟨_, h2⟩ <;> [exact Or.inl h1; exact Or.inr h2]
+    · show other e = u
+      rcases he with ⟨h1, h2⟩ | ⟨h1, h2⟩
+      · simp only [other, h1, ↓reduceIte, h2]
+      · simp only [other]; split_ifs with h
+        · -- edgeSrc e = v but also edgeSrc e = u, so u = v: contradiction
+          exact absurd (h1.symm.trans h) hne
+        · exact h1
+  calc nbrs.card ≤ (inc.image other).card := Finset.card_le_card h_sub
+    _ ≤ inc.card := Finset.card_image_le
+    _ = G.degree := h_inc
 
 /-- Greedy extraction of pairwise non-adjacent split vertices.
     From ≥ (d+1)·c split vertices, extract c that are pairwise non-adjacent
@@ -181,7 +214,115 @@ private theorem greedy_independent_split (G : Tseitin.RegularGraph)
       (∀ i j : Fin c, i ≠ j → ∀ e : Fin G.numEdges,
         ¬((G.edgeSrc e = verts i ∨ G.edgeTgt e = verts i) ∧
           (G.edgeSrc e = verts j ∨ G.edgeTgt e = verts j))) := by
-  sorry
+  suffices h_gen : ∀ (c : ℕ) (S : Finset (Fin G.numVertices)),
+      S ⊆ splitVertices G (Equiv.refl _) k →
+      S.card ≥ (G.degree + 1) * c →
+      ∃ (verts : Fin c → Fin G.numVertices)
+        (leftEdge rightEdge : Fin c → Fin G.numEdges),
+        (∀ i, verts i ∈ S) ∧ Function.Injective verts ∧
+        (∀ i, (leftEdge i).val < k.val) ∧
+        (∀ i, G.edgeSrc (leftEdge i) = verts i ∨ G.edgeTgt (leftEdge i) = verts i) ∧
+        (∀ i, (rightEdge i).val ≥ k.val) ∧
+        (∀ i, G.edgeSrc (rightEdge i) = verts i ∨ G.edgeTgt (rightEdge i) = verts i) ∧
+        (∀ i j : Fin c, i ≠ j → ∀ e : Fin G.numEdges,
+          ¬((G.edgeSrc e = verts i ∨ G.edgeTgt e = verts i) ∧
+            (G.edgeSrc e = verts j ∨ G.edgeTgt e = verts j))) by
+    obtain ⟨verts, lE, rE, _, h2, h3, h4, h5, h6, h7⟩ :=
+      h_gen c (splitVertices G (Equiv.refl _) k) Finset.Subset.rfl h_card
+    exact ⟨verts, lE, rE, h2, h3, h4, h5, h6, h7⟩
+  intro c
+  induction c with
+  | zero =>
+    intro S _ _
+    exact ⟨Fin.elim0, Fin.elim0, Fin.elim0, fun i => Fin.elim0 i,
+      Function.injective_of_subsingleton _, fun i => Fin.elim0 i,
+      fun i => Fin.elim0 i, fun i => Fin.elim0 i,
+      fun i => Fin.elim0 i, fun i => Fin.elim0 i⟩
+  | succ c ih =>
+    intro S h_sub h_card'
+    have hS : S.Nonempty := by
+      rw [Finset.nonempty_iff_ne_empty]; intro h
+      simp only [h, Finset.card_empty] at h_card'
+      have := G.degree_lower; nlinarith
+    obtain ⟨v₀, hv₀⟩ := hS
+    have hv₀_split := h_sub hv₀
+    simp only [splitVertices, Finset.mem_filter, Finset.mem_univ, true_and,
+      Equiv.refl_apply] at hv₀_split
+    obtain ⟨⟨l₀, hl₀_inc, hl₀_pos⟩, ⟨r₀, hr₀_inc, hr₀_pos⟩⟩ := hv₀_split
+    set S' := S \ closedNeighborhood G v₀
+    have h_S'_card : S'.card ≥ (G.degree + 1) * c := by
+      have h_cn := closedNeighborhood_card G v₀
+      have h1 : S ⊆ S' ∪ closedNeighborhood G v₀ := by
+        intro x hx; by_cases hm : x ∈ closedNeighborhood G v₀
+        · exact Finset.mem_union_right _ hm
+        · exact Finset.mem_union_left _ (Finset.mem_sdiff.mpr ⟨hx, hm⟩)
+      have h2 := Finset.card_le_card h1
+      have h3 := Finset.card_union_le S' (closedNeighborhood G v₀)
+      nlinarith
+    have h_S'_sub : S' ⊆ splitVertices G (Equiv.refl _) k :=
+      fun v hv => h_sub (Finset.sdiff_subset hv)
+    obtain ⟨verts', lE', rE', h_mem', h_inj', h_lpos', h_linc', h_rpos',
+      h_rinc', h_nonadj'⟩ := ih S' h_S'_sub h_S'_card
+    -- Key: S' vertices not in closedNeighborhood v₀, so not adjacent
+    have h_not_cn : ∀ i, verts' i ∉ closedNeighborhood G v₀ :=
+      fun i => (Finset.mem_sdiff.mp (h_mem' i)).2
+    have h_not_adj_v₀ : ∀ i e, ¬((G.edgeSrc e = v₀ ∨ G.edgeTgt e = v₀) ∧
+        (G.edgeSrc e = verts' i ∨ G.edgeTgt e = verts' i)) := by
+      intro i e ⟨he_v₀, he_vi⟩
+      apply h_not_cn i; unfold closedNeighborhood
+      rw [Finset.mem_union]
+      by_cases h_eq : verts' i = v₀
+      · exact Or.inl (Finset.mem_singleton.mpr h_eq)
+      · right; rw [Finset.mem_filter]
+        refine ⟨Finset.mem_univ _, h_eq, e, ?_⟩
+        rcases he_v₀ with h | h <;> rcases he_vi with h' | h'
+        · exact absurd (h.symm.trans h').symm h_eq
+        · exact Or.inl ⟨h, h'⟩
+        · exact Or.inr ⟨h', h⟩
+        · exact absurd (h.symm.trans h').symm h_eq
+    -- Also: v₀ is in its own closedNeighborhood, so verts' i ≠ v₀
+    have h_ne_v₀ : ∀ i, verts' i ≠ v₀ := by
+      intro i h_eq; apply h_not_cn i; unfold closedNeighborhood
+      rw [Finset.mem_union]; exact Or.inl (Finset.mem_singleton.mpr h_eq)
+    refine ⟨Fin.cons v₀ verts', Fin.cons l₀ lE', Fin.cons r₀ rE',
+      ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    · -- membership
+      intro i; refine Fin.cases ?_ (fun j => ?_) i
+      · exact hv₀
+      · exact (Finset.mem_sdiff.mp (h_mem' j)).1
+    · -- injectivity
+      intro i j
+      refine Fin.cases ?_ (fun i' => ?_) i <;> refine Fin.cases ?_ (fun j' => ?_) j
+      · intro _; rfl
+      · intro h_eq
+        simp only [Fin.cons_zero, Fin.cons_succ] at h_eq
+        exact absurd h_eq.symm (h_ne_v₀ j')
+      · intro h_eq
+        simp only [Fin.cons_zero, Fin.cons_succ] at h_eq
+        exact absurd h_eq (h_ne_v₀ i')
+      · intro h_eq
+        simp only [Fin.cons_succ] at h_eq
+        exact congr_arg Fin.succ (h_inj' h_eq)
+    · -- left positions
+      exact Fin.cases hl₀_pos (fun j => h_lpos' j)
+    · -- left incidence
+      exact Fin.cases hl₀_inc (fun j => h_linc' j)
+    · -- right positions
+      exact Fin.cases hr₀_pos (fun j => h_rpos' j)
+    · -- right incidence
+      exact Fin.cases hr₀_inc (fun j => h_rinc' j)
+    · -- non-adjacency
+      intro i j hij e
+      revert hij
+      refine Fin.cases ?_ (fun i' => ?_) i <;> refine Fin.cases ?_ (fun j' => ?_) j <;>
+        intro hij
+      · exact fun _ => hij rfl
+      · intro h; simp only [Fin.cons_zero, Fin.cons_succ] at h
+        exact h_not_adj_v₀ j' e h
+      · intro h; simp only [Fin.cons_zero, Fin.cons_succ] at h
+        exact h_not_adj_v₀ i' e ⟨h.2, h.1⟩
+      · intro h; simp only [Fin.cons_succ] at h
+        exact h_nonadj' i' j' (fun heq => hij (congr_arg Fin.succ heq)) e h
 
 /-- Non-adjacency implies all privacy and injectivity conditions needed
     by tseitin_parity_residuals. -/
