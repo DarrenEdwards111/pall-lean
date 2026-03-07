@@ -229,6 +229,24 @@ theorem filter_card_flip_edge (G : Tseitin.RegularGraph)
   simp only [h_eq]
   exact Finset.card_insert_of_notMem h_not_mem
 
+/-- If z₁ and z₂ agree everywhere except at edge e (z₁(e)=true, z₂(e)=false),
+    and e is incident to vertex v, then the filter counts at v differ by 1. -/
+theorem tseitin_parity_flips_at_vertex (G : Tseitin.RegularGraph)
+    (z₁ z₂ : Fin G.numEdges → Bool) (e : Fin G.numEdges) (v : Fin G.numVertices)
+    (h_inc : G.edgeSrc e = v ∨ G.edgeTgt e = v)
+    (h_e1 : z₁ e = true) (h_e2 : z₂ e = false)
+    (h_agree : ∀ e' : Fin G.numEdges, e' ≠ e → z₁ e' = z₂ e') :
+    (Finset.univ.filter (fun e' : Fin G.numEdges =>
+      (G.edgeSrc e' = v ∨ G.edgeTgt e' = v) ∧ z₁ e' = true)).card =
+    (Finset.univ.filter (fun e' : Fin G.numEdges =>
+      (G.edgeSrc e' = v ∨ G.edgeTgt e' = v) ∧ z₂ e' = true)).card + 1 := by
+  have h_upd : z₁ = Function.update z₂ e true := by
+    ext e'; by_cases he : e' = e
+    · subst he; simp [h_e1, Function.update_apply]
+    · simp [Function.update_apply, he, h_agree e' he]
+  rw [h_upd]
+  exact filter_card_flip_edge G z₂ e v h_inc h_e2
+
 /-! ## 4. The main width theorem -/
 
 /-- **Main theorem**: For Tseitin on expanders, any OBDD has exponential width.
