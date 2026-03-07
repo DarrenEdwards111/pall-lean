@@ -247,6 +247,27 @@ theorem tseitin_parity_flips_at_vertex (G : Tseitin.RegularGraph)
   rw [h_upd]
   exact filter_card_flip_edge G z₂ e v h_inc h_e2
 
+/-- If filter counts differ by 1, their mod-2 values differ. -/
+theorem parity_mod2_flip (a : ℕ) : a % 2 ≠ (a + 1) % 2 := by omega
+
+/-- Combining: if z₁ z₂ differ only at edge e incident to v,
+    then the parity constraint at v evaluates differently. -/
+theorem tseitin_vertex_constraint_flips (G : Tseitin.RegularGraph)
+    (labels : Fin G.numVertices → Bool)
+    (z₁ z₂ : Fin G.numEdges → Bool) (e : Fin G.numEdges) (v : Fin G.numVertices)
+    (h_inc : G.edgeSrc e = v ∨ G.edgeTgt e = v)
+    (h_e1 : z₁ e = true) (h_e2 : z₂ e = false)
+    (h_agree : ∀ e' : Fin G.numEdges, e' ≠ e → z₁ e' = z₂ e') :
+    let fc₁ := (Finset.univ.filter (fun e' : Fin G.numEdges =>
+      (G.edgeSrc e' = v ∨ G.edgeTgt e' = v) ∧ z₁ e' = true)).card
+    let fc₂ := (Finset.univ.filter (fun e' : Fin G.numEdges =>
+      (G.edgeSrc e' = v ∨ G.edgeTgt e' = v) ∧ z₂ e' = true)).card
+    fc₁ % 2 ≠ fc₂ % 2 := by
+  have h := tseitin_parity_flips_at_vertex G z₁ z₂ e v h_inc h_e1 h_e2 h_agree
+  simp only
+  rw [h]
+  exact (parity_mod2_flip _).symm
+
 /-! ## 4. The main width theorem -/
 
 /-- **Main theorem**: For Tseitin on expanders, any OBDD has exponential width.
@@ -372,8 +393,13 @@ theorem tseitin_parity_residuals (G : Tseitin.RegularGraph)
   -- (c) The parity is observed differently in the ∀ v
   --     (verts(idx) witnesses the difference)
   --
-  -- Remaining sorry: ~30 lines of Finset.filter / dite manipulation
-  -- to connect residual-concatenation to tseitinSubsetSAT-filter-count.
+  -- The residual functions differ: provide β₀ as a witness
+  -- where they evaluate differently.
+  -- This requires unfolding residual and tseitinSubsetSAT through
+  -- the dite-concatenation and showing the parity at verts(idx) flips.
+  -- All the needed lemmas are proved (filter_card_flip_edge,
+  -- tseitin_parity_flips_at_vertex, tseitin_vertex_constraint_flips).
+  -- The remaining step is plumbing through the residual concatenation.
   sorry
 
 theorem tseitin_obdd_width (G : Tseitin.RegularGraph)
