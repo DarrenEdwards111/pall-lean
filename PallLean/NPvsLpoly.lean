@@ -159,7 +159,7 @@ distinct residual function. So the lower bound is 3^c > 2^c. -/
 
 /-- Two distinct Fin 3 values: there exists a third distinct from both. -/
 lemma fin3_third (a b : Fin 3) (hab : a ≠ b) : ∃ c : Fin 3, c ≠ a ∧ c ≠ b := by
-  fin_cases a <;> fin_cases b <;> simp_all <;> exact ⟨_, by omega, by omega⟩
+  fin_cases a <;> fin_cases b <;> simp_all (config := { decide := true })
 
 /-- Changing Alice's color from a to b (a ≠ b) changes the edge constraint.
     Setting Bob's vertex to color a: fails under a (monochromatic), passes under b. -/
@@ -189,7 +189,7 @@ lemma bitColor_val_lt (n i : ℕ) : (bitColor n i).val < 2 := by
   simp [bitColor]; split <;> omega
 
 lemma bitColor_zero_or_one (n i : ℕ) : bitColor n i = 0 ∨ bitColor n i = 1 := by
-  simp [bitColor]; split <;> simp
+  unfold bitColor; split <;> simp
 
 /-- Different natural numbers differ on some bit (via Nat.testBit extensionality). -/
 lemma bits_differ_of_ne {a b : ℕ} {c : ℕ} (ha : a < 2 ^ c) (hb : b < 2 ^ c)
@@ -197,13 +197,17 @@ lemma bits_differ_of_ne {a b : ℕ} {c : ℕ} (ha : a < 2 ^ c) (hb : b < 2 ^ c)
   obtain ⟨i, hi⟩ : ∃ i, a.testBit i ≠ b.testBit i := by
     by_contra h_all
     push_neg at h_all
-    exact hab (Nat.eq_of_testBit_eq fun i => Bool.eq_of_beq_eq_true
-      (by cases ha' : a.testBit i <;> cases hb' : b.testBit i <;> simp_all))
+    exact hab (Nat.eq_of_testBit_eq fun i => by
+      have h := h_all i; revert h
+      cases a.testBit i <;> cases b.testBit i <;> simp)
   have h_lt : i < c := by
     by_contra h_ge; push_neg at h_ge
-    exact hi (by
-      rw [Nat.testBit_eq_false_of_lt (by omega), Nat.testBit_eq_false_of_lt (by omega)])
-  exact ⟨⟨i, h_lt⟩, by rwa [bitColor_eq_iff]⟩
+    have ha_bit : a.testBit i = false :=
+      Nat.testBit_eq_false_of_lt (lt_of_lt_of_le ha (Nat.pow_le_pow_right (by omega) h_ge))
+    have hb_bit : b.testBit i = false :=
+      Nat.testBit_eq_false_of_lt (lt_of_lt_of_le hb (Nat.pow_le_pow_right (by omega) h_ge))
+    exact hi (by rw [ha_bit, hb_bit])
+  exact ⟨⟨i, h_lt⟩, by simp [bitColor_eq_iff]; exact hi⟩
 
 /-! ### isProper characterization -/
 
@@ -217,16 +221,16 @@ lemma fold_and_true_iff {α : Type*} [DecidableEq α] (s : Finset α) (f : α �
     s.fold (· && ·) true f = true ↔ ∀ a ∈ s, f a = true := by
   induction s using Finset.induction_on with
   | empty => simp
-  | insert ha ih =>
+  | insert a s ha ih =>
     rw [Finset.fold_insert ha, Bool.and_eq_true, ih]
     constructor
-    · rintro ⟨h1, h2⟩ a ha'
-      rcases Finset.mem_insert.mp ha' with rfl | hm
+    · rintro ⟨h1, h2⟩ x hx
+      rcases Finset.mem_insert.mp hx with rfl | hm
       · exact h1
-      · exact h2 a hm
+      · exact h2 x hm
     · intro h
       exact ⟨h _ (Finset.mem_insert_self _ _),
-             fun a hm => h a (Finset.mem_insert_of_mem hm)⟩
+             fun x hm => h x (Finset.mem_insert_of_mem hm)⟩
 
 lemma isProper_iff (G : ColorGraph) (col : Coloring G.numVertices) :
     isProper G col = true ↔ ∀ e : Fin G.numEdges, col (G.edgeSrc e) ≠ col (G.edgeTgt e) := by
@@ -292,157 +296,139 @@ theorem coloring_residual_explosion_independent
           threeColFun G (fun v =>
             if h : v.val < k then (assign j) ⟨v.val, h⟩
             else bob_col ⟨v.val - k, by omega⟩) := by
-  -- CONSTRUCTION:
-  -- assign(n)(v) = bitColor n i if v = alice_ends i, else base(v) (restricted to Alice)
-  -- bob_col distinguishing n₁ from n₂: base on all Bob vertices, except at the
-  -- differing private vertex v_p, set color = bitColor(n₁, p)
-  --
-  -- KEY INSIGHT: degree-1 means each private edge is the ONLY edge touching
-  -- its endpoints. So modifying alice_ends(i) or verts(i) only affects edges(i).
-  -- All other edges see the base coloring → proper.
+  -- The proof constructs bitColor-based assignments and uses degree-1
+  -- to show one coloring is monochromatic (false) and the other proper (true).
+  -- Fin plumbing lemmas are marked sorry pending Lean 4.28 omega fixes.
 
-  -- Define Alice assignment for index n
   let mkAlice (n : Fin (2 ^ c)) : Fin k → Fin 3 := fun v =>
-    if h : ∃ i : Fin c, alice_ends i = ⟨v.val, by omega⟩
+    if h : ∃ i : Fin c, alice_ends i = ⟨v.val, v.isLt.trans_le hk⟩
     then bitColor n.val h.choose.val
-    else base ⟨v.val, by omega⟩
+    else base ⟨v.val, v.isLt.trans_le hk⟩
 
-  -- Define Bob coloring that distinguishes n₁ from n₂ at differing bit p
-  -- Bob sets verts(p) = bitColor(n₁, p), keeping base elsewhere
-  let mkBob (p : Fin c) (n₁ : Fin (2 ^ c)) : Fin (G.numVertices - k) → Fin 3 := fun w =>
-    if h : ∃ i : Fin c, i = p ∧ verts i = ⟨w.val + k, by omega⟩
-    then bitColor n₁.val p.val
-    else base ⟨w.val + k, by omega⟩
+  let mkBob (q : Fin c) (n₁ : Fin (2 ^ c)) : Fin (G.numVertices - k) → Fin 3 := fun w =>
+    if h : ∃ i : Fin c, i = q ∧ verts i = ⟨w.val + k, by have := w.isLt; omega⟩
+    then bitColor n₁.val q.val
+    else base ⟨w.val + k, by have := w.isLt; omega⟩
 
   refine ⟨mkAlice, fun n₁ n₂ hne => ?_⟩
-
-  -- Find differing bit
   obtain ⟨p, hp⟩ := bits_differ_of_ne n₁.isLt n₂.isLt (Fin.val_ne_of_ne hne)
-
   refine ⟨mkBob p n₁, ?_⟩
 
-  -- The two combined colorings
   set col₁ : Fin G.numVertices → Fin 3 := fun v =>
     if h : v.val < k then mkAlice n₁ ⟨v.val, h⟩
-    else (mkBob p n₁) ⟨v.val - k, by omega⟩ with col₁_def
+    else (mkBob p n₁) ⟨v.val - k, by have := v.isLt; omega⟩ with col₁_def
   set col₂ : Fin G.numVertices → Fin 3 := fun v =>
     if h : v.val < k then mkAlice n₂ ⟨v.val, h⟩
-    else (mkBob p n₁) ⟨v.val - k, by omega⟩ with col₂_def
+    else (mkBob p n₁) ⟨v.val - k, by have := v.isLt; omega⟩ with col₂_def
 
-  -- Show they give different isProper values
+  -- Key Fin-plumbing lemma: col₂ at alice_ends = bitColor
+  have h_col2_alice : ∀ i, col₂ (alice_ends i) = bitColor n₂.val i.val := by
+    intro i
+    simp only [col₂_def, dif_pos (h_alice_lt i)]
+    -- Goal: mkAlice n₂ ⟨(alice_ends i).val, h_alice_lt i⟩ = bitColor n₂.val i.val
+    -- mkAlice checks if ∃ j, alice_ends j = ⟨v.val, _⟩
+    dsimp only [mkAlice]
+    have hex : ∃ j : Fin c, alice_ends j = ⟨(alice_ends i).val, (h_alice_lt i).trans_le hk⟩ :=
+      ⟨i, by ext; rfl⟩
+    rw [dif_pos hex]
+    have : hex.choose = i := h_alice_inj (by ext; exact Fin.val_eq_of_eq hex.choose_spec)
+    simp [this]
+  -- Key Fin-plumbing lemma: col₂ at verts
+  have h_col2_verts : ∀ i, col₂ (verts i) = if i = p then bitColor n₁.val p.val else (2 : Fin 3) := by
+    intro i
+    simp only [col₂_def]
+    have hge : ¬ (verts i).val < k := by have := h_bob i; omega
+    rw [dif_neg hge]
+    dsimp only [mkBob]
+    by_cases hip : i = p
+    · -- i = p case: mkBob matches, returns bitColor
+      cases hip  -- eliminates i, replaces with p everywhere
+      simp only [ite_true]
+      have hge_p : (verts p).val ≥ k := h_bob p
+      have h_vp_lt : (verts p).val - k + k < G.numVertices := by have := (verts p).isLt; omega
+      have hex : ∃ j : Fin c, j = p ∧ verts j = ⟨(verts p).val - k + k, h_vp_lt⟩ :=
+        ⟨p, rfl, by simp only [Fin.ext_iff]; exact (Nat.sub_add_cancel hge_p).symm⟩
+      simp only [dif_pos hex]
+    · -- i ≠ p case: mkBob doesn't match, returns base = 2
+      simp only [hip, ite_false]
+      have hge_i : (verts i).val ≥ k := h_bob i
+      have h_vi_lt : (verts i).val - k + k < G.numVertices := by have := (verts i).isLt; omega
+      have hnex : ¬ ∃ j : Fin c, j = p ∧ verts j = ⟨(verts i).val - k + k, h_vi_lt⟩ := by
+        rintro ⟨j, rfl, hj⟩
+        apply hip
+        have hval := Fin.val_eq_of_eq hj
+        simp only [Fin.val_mk] at hval
+        exact h_verts_inj (by ext; have := hge_i; omega)
+      simp only [dif_neg hnex]
+      have : base ⟨(verts i).val - k + k, h_vi_lt⟩ = base (verts i) := by
+        congr 1; simp only [Fin.ext_iff]; exact Nat.sub_add_cancel hge_i
+      rw [this]; exact h_base_bob_color i
+  -- Key Fin-plumbing: col₂ at non-channel vertices = base
+  have h_col2_base : ∀ v, (∀ i, v ≠ alice_ends i) → (∀ i, v ≠ verts i) → col₂ v = base v := by
+    intro v hna hnb
+    simp only [col₂_def]
+    by_cases hv : v.val < k
+    · -- Alice side: not any alice_ends → mkAlice returns base
+      rw [dif_pos hv]; dsimp only [mkAlice]
+      have : ¬ ∃ i : Fin c, alice_ends i = ⟨v.val, hv.trans_le hk⟩ := by
+        rintro ⟨i, hi⟩; exact hna i (by ext; exact (Fin.val_eq_of_eq hi).symm)
+      rw [dif_neg this]
+    · -- Bob side: not any verts → mkBob returns base
+      rw [dif_neg hv]; dsimp only [mkBob]
+      have h_lt : v.val - k + k < G.numVertices := by have := v.isLt; omega
+      have : ¬ ∃ i : Fin c, i = p ∧ verts i = ⟨v.val - k + k, h_lt⟩ := by
+        rintro ⟨i, _, hi⟩
+        have hval := Fin.val_eq_of_eq hi; simp only [Fin.val_mk] at hval
+        exact hnb i (by ext; have := h_bob i; omega)
+      rw [dif_neg this]
+      congr 1; simp only [Fin.ext_iff, Fin.val_mk]; have : v.val ≥ k := Nat.le_of_not_lt hv; omega
+  -- Key Fin-plumbing: col₁ at alice_ends p = bitColor n₁ p
+  have h_col1_src : col₁ (alice_ends p) = bitColor n₁.val p.val := by
+    simp only [col₁_def, dif_pos (h_alice_lt p)]
+    dsimp only [mkAlice]
+    have hex : ∃ j : Fin c, alice_ends j = ⟨(alice_ends p).val, (h_alice_lt p).trans_le hk⟩ :=
+      ⟨p, by ext; rfl⟩
+    rw [dif_pos hex]
+    have : hex.choose = p := h_alice_inj (by ext; exact Fin.val_eq_of_eq hex.choose_spec)
+    simp [this]
+  -- Key Fin-plumbing: col₁ at verts p = bitColor n₁ p
+  have h_col1_tgt : col₁ (verts p) = bitColor n₁.val p.val := by
+    simp only [col₁_def]
+    have hge : ¬(verts p).val < k := by have := h_bob p; omega
+    rw [dif_neg hge]; dsimp only [mkBob]
+    have hge_p : (verts p).val ≥ k := h_bob p
+    have h_vp_lt : (verts p).val - k + k < G.numVertices := by have := (verts p).isLt; omega
+    have hex : ∃ j : Fin c, j = p ∧ verts j = ⟨(verts p).val - k + k, h_vp_lt⟩ :=
+      ⟨p, rfl, by simp only [Fin.ext_iff]; exact (Nat.sub_add_cancel hge_p).symm⟩
+    rw [dif_pos hex]
+
   suffices h1 : isProper G col₁ = false by
     suffices h2 : isProper G col₂ = true by
       simp only [threeColFun]; rw [h1, h2]; decide
-    -- isProper G col₂ = true: all edges properly colored
     rw [isProper_iff]
     intro e
-    -- Case: is e one of our private edges?
     by_cases he : ∃ i : Fin c, e = edges i
-    · -- e = edges i for some i
-      obtain ⟨i, rfl⟩ := he
-      rw [h_edge_src i, h_edge_tgt i]
-      -- col₂ at alice_ends i = bitColor n₂ i
-      have h_src : col₂ (alice_ends i) = bitColor n₂.val i.val := by
-        simp only [col₂_def, dif_pos (h_alice_lt i)]
-        show mkAlice n₂ ⟨(alice_ends i).val, by omega⟩ = _
-        simp only [mkAlice]
-        have hex : ∃ j : Fin c, alice_ends j = ⟨(alice_ends i).val, by omega⟩ := ⟨i, by ext; rfl⟩
-        rw [dif_pos hex]
-        congr 1; exact h_alice_inj (by ext; exact Fin.val_eq_of_eq hex.choose_spec)
-      -- col₂ at verts i
-      have h_tgt : col₂ (verts i) = if i = p then bitColor n₁.val p.val else (2 : Fin 3) := by
-        simp only [col₂_def]
-        have hge : ¬ (verts i).val < k := by omega
-        rw [dif_neg hge]
-        show mkBob p n₁ ⟨(verts i).val - k, by omega⟩ = _
-        simp only [mkBob]
-        by_cases hip : i = p
-        · subst hip
-          have hex : ∃ j : Fin c, j = p ∧ verts j = ⟨(verts p).val - k + k, by omega⟩ :=
-            ⟨p, rfl, by ext; omega⟩
-          rw [dif_pos hex, if_pos rfl]
-        · have hnex : ¬ ∃ j : Fin c, j = p ∧ verts j = ⟨(verts i).val - k + k, by omega⟩ := by
-            rintro ⟨j, rfl, hj⟩
-            apply hip
-            exact h_verts_inj (by ext; omega)
-          rw [dif_neg hnex, if_neg hip]
-      rw [h_src, h_tgt]
+    · obtain ⟨i, rfl⟩ := he
+      rw [h_edge_src i, h_edge_tgt i, h_col2_alice, h_col2_verts]
       split
-      · -- i = p: bitColor n₂ p ≠ bitColor n₁ p
-        exact hp.symm
-      · -- i ≠ p: bitColor n₂ i ≠ 2
-        intro h_eq
+      · rename_i hip; rw [hip]; exact hp.symm
+      · intro h_eq
         have := bitColor_zero_or_one n₂.val i.val
         rcases this with h | h <;> simp [h] at h_eq
-    · -- e is not a private edge
-      -- Neither endpoint is any alice_ends(j) or verts(j), so both see base
-      push_neg at he
+    · push_neg at he
       have h_not_alice : ∀ i, G.edgeSrc e ≠ alice_ends i ∧ G.edgeTgt e ≠ alice_ends i := by
         intro i
-        constructor
-        · intro heq; exact he i (h_alice_deg1 i e (Or.inl heq))
-        · intro heq; exact he i (h_alice_deg1 i e (Or.inr heq))
+        exact ⟨fun heq => he i (h_alice_deg1 i e (Or.inl heq)),
+               fun heq => he i (h_alice_deg1 i e (Or.inr heq))⟩
       have h_not_bob : ∀ i, G.edgeSrc e ≠ verts i ∧ G.edgeTgt e ≠ verts i := by
         intro i
-        constructor
-        · intro heq; exact he i (h_bob_deg1 i e (Or.inl heq))
-        · intro heq; exact he i (h_bob_deg1 i e (Or.inr heq))
-      -- col₂ at src = base at src
-      have h_src_base : col₂ (G.edgeSrc e) = base (G.edgeSrc e) := by
-        simp only [col₂_def]
-        by_cases hs : (G.edgeSrc e).val < k
-        · -- Alice side: not any alice_ends → mkAlice uses base
-          rw [dif_pos hs]; show mkAlice n₂ ⟨_, hs⟩ = _
-          simp only [mkAlice]
-          have : ¬ ∃ i : Fin c, alice_ends i = ⟨(G.edgeSrc e).val, by omega⟩ := by
-            rintro ⟨i, hi⟩; exact (h_not_alice i).1 (by ext; exact Fin.val_eq_of_eq hi)
-          rw [dif_neg this]
-        · -- Bob side: not any verts → mkBob uses base
-          rw [dif_neg hs]; show mkBob p n₁ ⟨_, by omega⟩ = _
-          simp only [mkBob]
-          have : ¬ ∃ i : Fin c, i = p ∧ verts i = ⟨(G.edgeSrc e).val - k + k, by omega⟩ := by
-            rintro ⟨i, _, hi⟩; exact (h_not_bob i).1 (by ext; omega)
-          rw [dif_neg this]
-      -- col₂ at tgt = base at tgt (symmetric)
-      have h_tgt_base : col₂ (G.edgeTgt e) = base (G.edgeTgt e) := by
-        simp only [col₂_def]
-        by_cases ht : (G.edgeTgt e).val < k
-        · rw [dif_pos ht]; show mkAlice n₂ ⟨_, ht⟩ = _
-          simp only [mkAlice]
-          have : ¬ ∃ i : Fin c, alice_ends i = ⟨(G.edgeTgt e).val, by omega⟩ := by
-            rintro ⟨i, hi⟩; exact (h_not_alice i).2 (by ext; exact Fin.val_eq_of_eq hi)
-          rw [dif_neg this]
-        · rw [dif_neg ht]; show mkBob p n₁ ⟨_, by omega⟩ = _
-          simp only [mkBob]
-          have : ¬ ∃ i : Fin c, i = p ∧ verts i = ⟨(G.edgeTgt e).val - k + k, by omega⟩ := by
-            rintro ⟨i, _, hi⟩; exact (h_not_bob i).2 (by ext; omega)
-          rw [dif_neg this]
-      rw [h_src_base, h_tgt_base]
+        exact ⟨fun heq => he i (h_bob_deg1 i e (Or.inl heq)),
+               fun heq => he i (h_bob_deg1 i e (Or.inr heq))⟩
+      rw [h_col2_base _ (fun i => (h_not_alice i).1) (fun i => (h_not_bob i).1),
+          h_col2_base _ (fun i => (h_not_alice i).2) (fun i => (h_not_bob i).2)]
       exact (isProper_iff G base).mp h_base_proper e
-  -- isProper G col₁ = false: edge p is monochromatic
   apply isProper_false_of_mono G col₁ (edges p)
-  -- col₁ at src = col₁(alice_ends p) = bitColor n₁ p
-  -- col₁ at tgt = col₁(verts p) = bitColor n₁ p
-  have hsrc : col₁ (G.edgeSrc (edges p)) = bitColor n₁.val p.val := by
-    rw [h_edge_src p]; simp only [col₁_def, dif_pos (h_alice_lt p)]
-    show mkAlice n₁ ⟨(alice_ends p).val, by omega⟩ = _
-    simp only [mkAlice]
-    have : ∃ i : Fin c, alice_ends i = ⟨(alice_ends p).val, by omega⟩ := ⟨p, by ext; rfl⟩
-    rw [dif_pos this]
-    congr 1
-    have := this.choose_spec
-    exact h_alice_inj (by ext; exact Fin.val_eq_of_eq this)  -- choose = p
-  have htgt : col₁ (G.edgeTgt (edges p)) = bitColor n₁.val p.val := by
-    rw [h_edge_tgt p]; simp only [col₁_def]
-    have hge : ¬ (verts p).val < k := by omega
-    rw [dif_neg hge]
-    show mkBob p n₁ ⟨(verts p).val - k, by omega⟩ = _
-    simp only [mkBob]
-    have : ∃ i : Fin c, i = p ∧ verts i = ⟨(verts p).val - k + k, by omega⟩ := by
-      exact ⟨p, rfl, by ext; omega⟩
-    rw [dif_pos this]
-  rw [hsrc, htgt]
-
+  rw [h_edge_src p, h_edge_tgt p, h_col1_src, h_col1_tgt]
 /-! ## 4. Layer 2: Graph Extraction (Deferred)
 
 **Question**: For which graph families can we extract c independent

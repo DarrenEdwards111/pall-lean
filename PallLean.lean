@@ -23,3 +23,4 @@ import PallLean.MUSDistribution
 -- import PallLean.TracedMobiusBridgeFrontier
 -- import PallLean.TseitinBridge
 -- import PallLean.SearchBridge
+import PallLean.BoundaryGadget
