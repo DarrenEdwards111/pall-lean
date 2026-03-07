@@ -1,5 +1,6 @@
 import Mathlib
 import PallLean.MUSWidthLowerBound
+import PallLean.GF2Satisfiability
 import PallLean.TseitinDefs
 
 /-!
@@ -163,11 +164,188 @@ def HasSatisfiablePrefixes (G : Tseitin.RegularGraph)
 theorem satisfiable_prefixes_of_good_cut (G : Tseitin.RegularGraph)
     (labels : Fin G.numVertices → Bool)
     (h_even : (Finset.univ.filter (fun v => labels v = true)).card % 2 = 0)
+    (h_no_self : ∀ e : Fin G.numEdges, G.edgeSrc e ≠ G.edgeTgt e)
     (k : ℕ) (hk : k ≤ G.numEdges)
     (h_cover : ∀ v : Fin G.numVertices, ∃ e : Fin G.numEdges,
       (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧ e.val ≥ k)
     (h_conn : ∀ u v : Fin G.numVertices, RightReachable G k u v) :
     HasSatisfiablePrefixes G labels k hk := by
+  intro α
+  -- We need to find β : Fin (numEdges - k) → Bool such that
+  -- residual (tseitinSubsetSAT G labels) k hk α β = true
+  -- i.e., the combined assignment satisfies all vertex parity constraints.
+  --
+  -- Define the right-side subgraph: edges with index ≥ k
+  -- n = numVertices, m_right = numEdges - k
+  -- src_right, tgt_right : right-side edge endpoints
+  let n := G.numVertices
+  let m := G.numEdges
+  let m_right := m - k
+  -- Right-side edge source/target
+  let src_right : Fin m_right → Fin n := fun e => G.edgeSrc ⟨e.val + k, by omega⟩
+  let tgt_right : Fin m_right → Fin n := fun e => G.edgeTgt ⟨e.val + k, by omega⟩
+  -- Modified targets: label(v) XOR parity from left-side edges
+  let left_parity : Fin n → ℕ :=
+    fun v => (Finset.univ.filter fun e : Fin k =>
+      (G.edgeSrc ⟨e.val, by omega⟩ = v ∨ G.edgeTgt ⟨e.val, by omega⟩ = v) ∧
+      α e = true).card % 2
+  let modified_target : Fin n → Bool :=
+    fun v => xor (labels v) (left_parity v = 1)
+  -- Apply GF2 satisfiability theorem to get a right-side assignment
+  -- Need: no self-loops, even modified parity, connectivity, coverage
+  have h_no_self_right : ∀ e : Fin m_right, src_right e ≠ tgt_right e := by
+    intro e; exact h_no_self ⟨e.val + k, by omega⟩
+  -- Coverage of right-side subgraph
+  have h_cover_right : ∀ v : Fin n, ∃ e : Fin m_right,
+      src_right e = v ∨ tgt_right e = v := by
+    intro v
+    obtain ⟨e, he, hek⟩ := h_cover v
+    refine ⟨⟨e.val - k, by omega⟩, ?_⟩
+    simp only [src_right, tgt_right]
+    have : (⟨e.val - k + k, by omega⟩ : Fin m) = e := by ext; simp; omega
+    rcases he with h | h <;> [left; right] <;> rw [this] <;> exact h
+  -- Right-side connectivity (convert RightReachable to GF2.Connected)
+  have h_conn_right : GF2.Connected n m_right src_right tgt_right := by
+    intro u v
+    have hr := h_conn u v
+    induction hr with
+    | refl => exact GF2.Reachable.refl _
+    | step v' w e _ hek he ih =>
+      set e_right : Fin m_right := ⟨e.val - k, by omega⟩ with e_right_def
+      have he_eq : (⟨e_right.val + k, by omega⟩ : Fin m) = e := by
+        ext; simp [e_right_def]; omega
+      have h_src : src_right e_right = G.edgeSrc e := by
+        change G.edgeSrc ⟨e_right.val + k, _⟩ = _; rw [he_eq]
+      have h_tgt : tgt_right e_right = G.edgeTgt e := by
+        change G.edgeTgt ⟨e_right.val + k, _⟩ = _; rw [he_eq]
+      exact GF2.Reachable.step _ v' w e_right ih (by
+        rcases he with ⟨hs, ht⟩ | ⟨hs, ht⟩
+        · left; exact ⟨h_src ▸ hs, h_tgt ▸ ht⟩
+        · right; exact ⟨h_src ▸ hs, h_tgt ▸ ht⟩)
+  -- Even parity of modified targets
+  -- modified_target v = xor (labels v) (left_parity v = 1)
+  -- The set {v | modified_target v} is the symmetric difference of
+  -- {v | labels v} and {v | left_parity v = 1}
+  -- Both have even cardinality (h_even, and total_parity_even for left edges)
+  -- So their symmetric difference has even cardinality
+  have h_left_even : (Finset.univ.filter fun v : Fin n =>
+      left_parity v = 1).card % 2 = 0 := by
+    -- left_parity is vertexParity for the left-side subgraph with assignment α
+    -- This follows from GF2.total_parity_even
+    have := GF2.total_parity_even n k
+      (fun e => G.edgeSrc ⟨e.val, by omega⟩)
+      (fun e => G.edgeTgt ⟨e.val, by omega⟩)
+      (fun e => h_no_self ⟨e.val, by omega⟩)
+      α
+    -- Need to show the filter sets are equal
+    convert this using 2
+  have h_even_mod : (Finset.univ.filter fun v => modified_target v = true).card % 2 = 0 := by
+    -- modified_target v = true ↔ xor (labels v) (left_parity v = 1) = true
+    -- ↔ (labels v = true) XOR (left_parity v = 1)
+    -- The set is the symmetric difference of L = {labels=true} and P = {left_parity=1}
+    set L := Finset.univ.filter fun v : Fin n => labels v = true
+    set P := Finset.univ.filter fun v : Fin n => left_parity v = 1
+    set M := Finset.univ.filter fun v : Fin n => modified_target v = true
+    have h_M_eq : M = (L \ P) ∪ (P \ L) := by
+      ext v; simp only [M, L, P, Finset.mem_filter, Finset.mem_univ, true_and,
+        Finset.mem_union, Finset.mem_sdiff, modified_target]
+      cases labels v <;> cases h : (left_parity v) <;> simp [xor, left_parity] <;> omega
+    have h_disj : Disjoint (L \ P) (P \ L) := by
+      rw [Finset.disjoint_left]; intro v hv1 hv2
+      simp only [Finset.mem_sdiff] at hv1 hv2; exact hv1.2 hv2.1
+    rw [h_M_eq, Finset.card_union_of_disjoint h_disj]
+    have h1 : (L \ P).card + (L ∩ P).card = L.card := by
+      rw [Finset.card_sdiff_add_card_inter]
+    have h2 : (P \ L).card + (P ∩ L).card = P.card := by
+      rw [Finset.card_sdiff_add_card_inter]
+    rw [Finset.inter_comm] at h2
+    have h3 : (L \ P).card + (P \ L).card + 2 * (L ∩ P).card = L.card + P.card := by omega
+    calc ((L \ P).card + (P \ L).card) % 2
+        = ((L \ P).card + (P \ L).card + (L ∩ P).card * 2) % 2 := by
+          rw [Nat.add_mul_mod_self_right]
+      _ = (L.card + P.card) % 2 := by rw [show (L \ P).card + (P \ L).card + (L ∩ P).card * 2 = L.card + P.card from by omega]
+      _ = 0 := by
+        have : L.card % 2 = 0 := h_even
+        have : P.card % 2 = 0 := h_left_even
+        omega
+  -- Apply GF2 satisfiability
+  have hn : n ≥ 1 := G.vertices_pos
+  obtain ⟨β_right, h_sat⟩ := GF2.gf2_connected_satisfiable n m_right hn
+    src_right tgt_right h_no_self_right modified_target h_even_mod
+    h_conn_right h_cover_right
+  -- Convert back to residual form
+  use β_right
+  -- Need: residual (tseitinSubsetSAT G labels) k hk α β_right = true
+  -- Unfolding: tseitinSubsetSAT G labels (combined) = true
+  -- where combined i = if i.val < k then α ⟨i.val, _⟩ else β_right ⟨i.val - k, _⟩
+  -- i.e., decide (∀ v, parity(v, combined) = target(v))
+  -- h_sat : GF2.AllSatisfied n m_right src_right tgt_right modified_target β_right
+  -- i.e., ∀ v, right_parity(v, β_right) = modified_target_val(v)
+  -- modified_target(v) = xor (labels v) (left_parity v = 1)
+  -- So: right_parity(v) = label_val(v) XOR left_parity(v)
+  -- Combined parity = left_parity XOR right_parity = label_val(v)  ✓
+  -- Build the combined assignment
+  let z : Fin G.numEdges → Bool := fun i =>
+    if h : i.val < k then α ⟨i.val, h⟩ else β_right ⟨i.val - k, by omega⟩
+  -- We prove: ∀ v, combined parity = label value
+  suffices h_all : ∀ v : Fin G.numVertices,
+    (Finset.univ.filter fun e : Fin G.numEdges =>
+      (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧ z e = true).card % 2 =
+      if labels v then 1 else 0 by
+    -- Lift to the residual = true goal
+    show MUSWidthLowerBound.residual (tseitinSubsetSAT G labels) k hk α β_right = true
+    simp only [MUSWidthLowerBound.residual, tseitinSubsetSAT]
+    show decide (∀ v, _) = true
+    rw [decide_eq_true_eq]
+    intro v; exact h_all v
+  intro v
+  -- Split the incident-edge filter into left (< k) and right (≥ k)
+  set S := Finset.univ.filter fun e : Fin G.numEdges =>
+    (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧ z e = true
+  set SL := Finset.univ.filter fun e : Fin G.numEdges =>
+    (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧ e.val < k ∧ z e = true
+  set SR := Finset.univ.filter fun e : Fin G.numEdges =>
+    (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧ e.val ≥ k ∧ z e = true
+  have h_S_eq : S = SL ∪ SR := by
+    ext e; simp only [S, SL, SR, Finset.mem_filter, Finset.mem_univ, true_and,
+      Finset.mem_union]
+    constructor
+    · intro ⟨hinc, hz⟩
+      by_cases hlt : e.val < k
+      · exact Or.inl ⟨hinc, hlt, hz⟩
+      · exact Or.inr ⟨hinc, by omega, hz⟩
+    · intro h; rcases h with ⟨hinc, _, hz⟩ | ⟨hinc, _, hz⟩ <;> exact ⟨hinc, hz⟩
+  have h_disj : Disjoint SL SR := by
+    rw [Finset.disjoint_left]; intro e h1 h2
+    simp only [SL, SR, Finset.mem_filter] at h1 h2; omega
+  -- S.card % 2 = (SL.card + SR.card) % 2
+  rw [show S.card = SL.card + SR.card from by rw [h_S_eq, Finset.card_union_of_disjoint h_disj]]
+  -- SL.card % 2 = left_parity v (both count left incident true edges)
+  -- SL and SR directly relate to left_parity and h_sat
+  -- (no helpers needed — we'll work directly)
+  -- Key: SL = left true-edges, SR = right true-edges
+  -- z e = α ⟨e.val,_⟩ when e.val < k, z e = β_right ⟨e.val-k,_⟩ when e.val ≥ k
+  -- So SL.card = #{left incident true edges at v under α}
+  -- and SR.card = #{right incident true edges at v under β_right}
+
+  -- h_sat gives AllSatisfied on right subgraph:
+  have hv := h_sat v
+  simp only [GF2.AllSatisfied, GF2.vertexParity, GF2.targetVal, modified_target] at hv
+
+  -- SL.card % 2 = left_parity v:
+  -- Both count edges incident to v among the first k, with α true.
+  -- SL filters over Fin m with e.val < k; left_parity filters over Fin k.
+  -- They're the same set under the obvious embedding.
+  -- We'll prove the final result directly using h_sat + XOR arithmetic.
+  -- The proof strategy:
+  -- 1. Show (SL.card + SR.card) % 2 = if labels v then 1 else 0
+  -- 2. SL counts left incident true edges, SR counts right incident true edges
+  -- 3. h_sat relates right parity to modified_target = label XOR left_parity
+  -- 4. XOR arithmetic: (lp + (label XOR lp)) mod 2 = label
+  have h_card_split : S.card = SL.card + SR.card := by
+    rw [h_S_eq, Finset.card_union_of_disjoint h_disj]
+  -- The goal has S.card (or its expansion) in it.
+  -- Let's just sorry the whole thing for now and see what goal looks like
   sorry
 
 /-! ## 3.1. Greedy private edge extraction (PROVED)
@@ -843,6 +1021,7 @@ theorem tseitin_obdd_width (G : Tseitin.RegularGraph)
     (labels : Fin G.numVertices → Bool)
     (h_cut : HasGoodCut G (G.numVertices / (2 * G.degree * (G.degree + 1))))
     (h_even : (Finset.univ.filter (fun v => labels v = true)).card % 2 = 0)
+    (h_no_self : ∀ e : Fin G.numEdges, G.edgeSrc e ≠ G.edgeTgt e)
     (B : OBDD G.numEdges)
     (h_comp : B.computes = tseitinSubsetSAT G labels) :
     ∃ k : Fin (G.numEdges + 1),
@@ -856,7 +1035,7 @@ theorem tseitin_obdd_width (G : Tseitin.RegularGraph)
     h_linj, h_lpriv, h_rpos, h_rinc, h_rpriv⟩ :=
     private_edges_from_independent G k hk_le c hk_split
   -- Step 3: Derive satisfiability from HasGoodCut + even parity (PROVED modulo GF2)
-  have h_sat := satisfiable_prefixes_of_good_cut G labels h_even k.val hk_le h_cover h_conn
+  have h_sat := satisfiable_prefixes_of_good_cut G labels h_even h_no_self k.val hk_le h_cover h_conn
   -- Step 4: Get 2^c distinct residuals (parity argument — fully proved)
   obtain ⟨assign, h_assign⟩ := tseitin_parity_residuals G labels c k hk_le
     verts leftEdge rightEdge h_vinj h_lpos h_linc h_linj h_lpriv
@@ -957,6 +1136,7 @@ theorem tseitin_not_poly_obdd (d : ℕ) (hd : d ≥ 1) :
       G.degree = d →
       G.numVertices ≥ n₀ →
       HasGoodCut G (G.numVertices / (2 * G.degree * (G.degree + 1))) →
+      (∀ e : Fin G.numEdges, G.edgeSrc e ≠ G.edgeTgt e) →
       ∀ (labels : Fin G.numVertices → Bool)
         (h_even : (Finset.univ.filter (fun v => labels v = true)).card % 2 = 0)
         (B : OBDD G.numEdges)
@@ -964,8 +1144,8 @@ theorem tseitin_not_poly_obdd (d : ℕ) (hd : d ≥ 1) :
       ∃ k, B.width k > G.numVertices ^ C := by
   intro C
   obtain ⟨n₀, hn₀⟩ := exp_exceeds_poly (2 * d * (d + 1)) C (by nlinarith)
-  refine ⟨n₀, fun G hd_eq hn h_cut labels h_even B h_comp => ?_⟩
-  obtain ⟨k, hk⟩ := tseitin_obdd_width G labels h_cut h_even B h_comp
+  refine ⟨n₀, fun G hd_eq hn h_cut h_no_self labels h_even B h_comp => ?_⟩
+  obtain ⟨k, hk⟩ := tseitin_obdd_width G labels h_cut h_even h_no_self B h_comp
   use k
   calc G.numVertices ^ C
       < 2 ^ (G.numVertices / (2 * d * (d + 1))) := hn₀ _ hn
