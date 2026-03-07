@@ -622,10 +622,15 @@ theorem threeCol_residual_to_obdd_width
 
 -- The assembly: IF we can instantiate Layer 1 for an NP-complete problem
 -- on an infinite family of expanders, THEN NP ⊄ L/poly.
+/-- Assembly theorem: If 3-coloring on expanders has superpolynomial residual
+    explosion, then any OBDD computing threeColBool has superpolynomial width.
+
+    This is the formal statement of "3-COL ∉ L/poly" conditioned on
+    the Layer 2 extraction hypothesis. -/
 theorem np_not_in_Lpoly_conditional
     (h_explosion : ∀ C : ℕ, ∃ n₀ : ℕ, ∀ (G : ColorGraph),
       G.numVertices ≥ n₀ →
-      ∃ (c : ℕ) (k : ℕ) (_ : k ≤ G.numVertices),
+      ∃ (c : ℕ) (k : ℕ) (hk : k ≤ G.numVertices),
         2 ^ c > G.numVertices ^ C ∧
         ∃ (assign : Fin (2 ^ c) → (Fin k → Fin 3)),
           ∀ i j : Fin (2 ^ c), i ≠ j →
@@ -637,14 +642,16 @@ theorem np_not_in_Lpoly_conditional
               else bob_col ⟨v.val - k, by omega⟩)) :
     ∀ C : ℕ, ∃ n₀ : ℕ, ∀ (G : ColorGraph),
       G.numVertices ≥ n₀ →
-      ∀ (m : ℕ) (B : MUSWidthLowerBound.OBDD m),
-        m = 2 * G.numVertices →
-        ∃ k : Fin (m + 1), B.width k > G.numVertices ^ C := by
+      ∀ (B : MUSWidthLowerBound.OBDD (2 * G.numVertices)),
+        B.computes = threeColBool G →
+        ∃ k : Fin (2 * G.numVertices + 1), B.width k > G.numVertices ^ C := by
   intro C
   obtain ⟨n₀, hn₀⟩ := h_explosion C
-  exact ⟨n₀, fun G hG m B hm => by
+  exact ⟨n₀, fun G hG B h_comp => by
     obtain ⟨c, k, hk, h_exp, assign, h_distinct⟩ := hn₀ G hG
-    sorry⟩
+    refine ⟨⟨2 * k, by omega⟩, ?_⟩
+    have h_width := threeCol_residual_to_obdd_width G k hk c assign h_distinct B h_comp (by omega)
+    omega⟩
 
 /-! ## 6. Honest Status
 
