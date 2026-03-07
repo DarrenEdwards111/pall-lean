@@ -137,6 +137,30 @@ theorem defect_reduction (n m : ℕ) (hn : n ≥ 1)
     (h_def : defect n m src tgt target β > 0) :
     ∃ β' : Fin m → Bool,
       defect n m src tgt target β' < defect n m src tgt target β := by
+  -- defect > 0 and defect is even → defect ≥ 2 → ≥ 2 unsatisfied vertices
+  have h_dp := defect_parity n m src tgt h_no_self target h_even β
+  have h_def2 : defect n m src tgt target β ≥ 2 := by omega
+  -- Extract two distinct unsatisfied vertices
+  have h_two : ∃ u v : Fin n, u ≠ v ∧
+      vertexParity n m src tgt β u ≠ targetVal target u ∧
+      vertexParity n m src tgt β v ≠ targetVal target v := by
+    set U := univ.filter fun v : Fin n =>
+      vertexParity n m src tgt β v ≠ targetVal target v
+    have hU : U.card ≥ 2 := h_def2
+    obtain ⟨u, hu⟩ := Finset.card_pos.mp (by omega : U.card > 0)
+    have hU' : (U.erase u).card ≥ 1 := by
+      rw [Finset.card_erase_of_mem hu]; omega
+    obtain ⟨v, hv⟩ := Finset.card_pos.mp (by omega : (U.erase u).card > 0)
+    have hv_mem := (Finset.mem_erase.mp hv).2
+    have hne := (Finset.mem_erase.mp hv).1
+    exact ⟨u, v, hne.symm,
+      (Finset.mem_filter.mp hu).2, (Finset.mem_filter.mp hv_mem).2⟩
+  obtain ⟨u, v, huv, hu_unsat, hv_unsat⟩ := h_two
+  -- By connectivity, there's a path from u to v
+  -- Flipping the path changes parity at u and v only
+  -- This satisfies both, reducing defect by 2
+  -- For now, use the single-edge approach when an edge connects two unsatisfied vertices
+  -- Otherwise, the path-flipping argument applies
   sorry
 
 -- Main theorem: connected + even parity → satisfiable.
