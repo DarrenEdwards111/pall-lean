@@ -296,12 +296,66 @@ theorem width_from_many_residuals (m c : ℕ) (k : Fin (m + 1))
   exact width_ge_of_injective_residuals B k hk assign (fun i j hij => by
     rw [h_comp]; exact h_inj i j hij)
 
+/-- Helper: residual of tseitinSubsetSAT unfolds definitionally. -/
+lemma residual_tseitin_apply (G : Tseitin.RegularGraph)
+    (labels : Fin G.numVertices → Bool)
+    (k : ℕ) (hk : k ≤ G.numEdges)
+    (α : PartialAssignment G.numEdges k)
+    (β : PartialAssignment G.numEdges (G.numEdges - k)) :
+    MUSWidthLowerBound.residual (tseitinSubsetSAT G labels) k hk α β =
+    tseitinSubsetSAT G labels (fun i =>
+      if h : i.val < k then α ⟨i.val, h⟩
+      else β ⟨i.val - k, by omega⟩) := rfl
+
+/-- Helper: if two inputs agree on all edges incident to a vertex v
+    except one edge e where they differ (one true, one false),
+    then the filter counts at v differ by 1. -/
+lemma filter_card_diff_at_vertex (G : Tseitin.RegularGraph)
+    (z₁ z₂ : Fin G.numEdges → Bool) (e : Fin G.numEdges) (v : Fin G.numVertices)
+    (h_inc : G.edgeSrc e = v ∨ G.edgeTgt e = v)
+    (h_e1 : z₁ e = true) (h_e2 : z₂ e = false)
+    (h_agree : ∀ e' : Fin G.numEdges,
+      (G.edgeSrc e' = v ∨ G.edgeTgt e' = v) → e' ≠ e → z₁ e' = z₂ e') :
+    (Finset.univ.filter (fun e' : Fin G.numEdges =>
+      (G.edgeSrc e' = v ∨ G.edgeTgt e' = v) ∧ z₁ e' = true)).card =
+    (Finset.univ.filter (fun e' : Fin G.numEdges =>
+      (G.edgeSrc e' = v ∨ G.edgeTgt e' = v) ∧ z₂ e' = true)).card + 1 := by
+  -- Show filter(z₁, v) = insert e (filter(z₂, v))
+  have h_not_mem : e ∉ Finset.univ.filter (fun e' =>
+      (G.edgeSrc e' = v ∨ G.edgeTgt e' = v) ∧ z₂ e' = true) := by
+    simp [h_e2]
+  have h_eq_sets : Finset.univ.filter (fun e' : Fin G.numEdges =>
+      (G.edgeSrc e' = v ∨ G.edgeTgt e' = v) ∧ z₁ e' = true) =
+    insert e (Finset.univ.filter (fun e' =>
+      (G.edgeSrc e' = v ∨ G.edgeTgt e' = v) ∧ z₂ e' = true)) := by
+    ext e'
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_insert]
+    constructor
+    · intro ⟨h1, h2⟩
+      by_cases he : e' = e
+      · left; exact he
+      · right; exact ⟨h1, by rw [← h_agree e' h1 he]; exact h2⟩
+    · intro h
+      rcases h with rfl | ⟨h1, h2⟩
+      · exact ⟨h_inc, by rw [h_e1]⟩
+      · refine ⟨h1, ?_⟩
+        by_cases he : e' = e
+        · subst he; simp [h_e2] at h2
+        · rw [h_agree e' h1 he]; exact h2
+  rw [h_eq_sets]
+  exact Finset.card_insert_of_notMem h_not_mem
+
 /-- **Parity residual construction**: given c split vertices, each with
     a left edge and a private right edge, we can construct 2^c prefix
     assignments with pairwise distinct residuals for tseitinSubsetSAT.
 
-    This theorem uses and_xor_residuals_injective to show that
-    different left-parity patterns create different residual functions. -/
+    Key additional hypotheses vs the original version:
+    - `h_left_priv`: each leftEdge(i) is NOT incident to verts(j) for j ≠ i
+      (ensures flipping one bit only changes parity at one selected vertex)
+    - `h_sat`: each prefix assignment has a satisfying suffix
+      (ensures residuals are not all identically false; holds when
+      labels have even total parity, since Tseitin with even parity
+      is satisfiable) -/
 theorem tseitin_parity_residuals (G : Tseitin.RegularGraph)
     (labels : Fin G.numVertices → Bool) (c : ℕ)
     (k : Fin (G.numEdges + 1)) (hk : k.val ≤ G.numEdges)
@@ -311,17 +365,23 @@ theorem tseitin_parity_residuals (G : Tseitin.RegularGraph)
     (rightEdge : Fin c → Fin G.numEdges)
     (h_verts_inj : Function.Injective verts)
     -- leftEdge i is on the left side and incident to verts i
-    (h_left_pos : ∀ i, (Equiv.refl _ (leftEdge i)).val < k.val)
+    (h_left_pos : ∀ i, (leftEdge i).val < k.val)
     (h_left_inc : ∀ i, G.edgeSrc (leftEdge i) = verts i ∨
                         G.edgeTgt (leftEdge i) = verts i)
     (h_left_inj : Function.Injective leftEdge)
+    -- leftEdge i is NOT incident to verts j for j ≠ i (private left edge)
+    (h_left_priv : ∀ i j, i ≠ j →
+      G.edgeSrc (leftEdge i) ≠ verts j ∧ G.edgeTgt (leftEdge i) ≠ verts j)
     -- rightEdge i is on the right side, incident to verts i,
     -- and NOT incident to any other selected vertex (private)
-    (h_right_pos : ∀ i, (Equiv.refl _ (rightEdge i)).val ≥ k.val)
+    (h_right_pos : ∀ i, (rightEdge i).val ≥ k.val)
     (h_right_inc : ∀ i, G.edgeSrc (rightEdge i) = verts i ∨
                          G.edgeTgt (rightEdge i) = verts i)
     (h_right_priv : ∀ i j, i ≠ j →
-      G.edgeSrc (rightEdge i) ≠ verts j ∧ G.edgeTgt (rightEdge i) ≠ verts j) :
+      G.edgeSrc (rightEdge i) ≠ verts j ∧ G.edgeTgt (rightEdge i) ≠ verts j)
+    -- Each prefix has a satisfying suffix (from even-parity labels)
+    (h_sat : ∀ α : PartialAssignment G.numEdges k.val,
+      ∃ β, MUSWidthLowerBound.residual (tseitinSubsetSAT G labels) k.val hk α β = true) :
     -- Then there exist 2^c prefix assignments with distinct residuals
     ∃ (assign : Fin (2 ^ c) → PartialAssignment G.numEdges k.val),
       ∀ i j : Fin (2 ^ c), i ≠ j →
@@ -343,100 +403,143 @@ theorem tseitin_parity_residuals (G : Tseitin.RegularGraph)
     intro bit
     by_cases hbit : bit < c
     · exact h_all ⟨bit, hbit⟩
-    · -- Both < 2^c, so bits ≥ c are 0
-      rw [Nat.testBit_eq_false_of_lt (Nat.lt_of_lt_of_le a₁.isLt
+    · rw [Nat.testBit_eq_false_of_lt (Nat.lt_of_lt_of_le a₁.isLt
             (Nat.pow_le_pow_right (by omega) (by omega))),
           Nat.testBit_eq_false_of_lt (Nat.lt_of_lt_of_le a₂.isLt
             (Nat.pow_le_pow_right (by omega) (by omega)))]
-  -- Unfold residual: need to show the FUNCTIONS are different,
-  -- i.e., ∃ β, residual ... (mkAssign a₁) β ≠ residual ... (mkAssign a₂) β
-  intro h_eq  -- assume residuals are equal, derive contradiction
-  -- Evaluate both residuals at the same β: only rightEdge(idx) is true
-  let β₀ : PartialAssignment G.numEdges (G.numEdges - k.val) :=
-    fun pos => decide ((rightEdge idx).val = pos.val + k.val)
-  -- Apply the equal-residual assumption at β₀
-  have h_eval := congr_fun h_eq β₀
-  -- The residuals at β₀ are:
-  -- tseitinSubsetSAT G labels (fun i => if i.val < k then mkAssign aⱼ ... else β₀ ...)
-  -- These are `decide (∀ v, filter_count % 2 = label_bit)`.
-  --
-  -- The two concatenated inputs differ only at leftEdge(idx), changing
-  -- the parity at verts(idx). This makes the decide values different.
-  --
-  -- PROOF STRATEGY: Instead of unfolding residual + tseitinSubsetSAT
-  -- through 5 layers, we factor through and_xor_residuals_injective
-  -- which already handles the parity logic.
-  --
-  -- The connection: the residual of tseitinSubsetSAT at a prefix α
-  -- depends on α ONLY through the vector of left-parities at each vertex.
-  -- Two prefixes with different left-parity at verts(idx) give different
-  -- residuals because rightEdge(idx) can distinguish them.
-  -- This is exactly and_xor_residuals_injective applied to the c split vertices.
-  --
-  -- Formalizing this connection requires showing that tseitinSubsetSAT
-  -- decomposes as a product of per-vertex parity checks — which is its
-  -- definition (∀ v, ...).  The formal proof is straightforward but
-  -- requires careful Finset.filter manipulation across the residual
-  -- concatenation boundary.
-  -- Need: residual ... (mkAssign a₁) ≠ residual ... (mkAssign a₂)
-  -- We have h_eq saying they ARE equal. Derive contradiction by
-  -- evaluating at β₀ and showing tseitinSubsetSAT gives different values.
-  --
-  -- Step 1: The concatenated inputs z₁, z₂ agree everywhere except leftEdge(idx)
-  -- Step 2: At verts(idx), filter counts differ by 1 (filter_card_flip_edge)
-  -- Step 3: Parities mod 2 differ, so decide(∀ v, ...) differs
-  --
-  -- The formal connection requires showing:
-  -- (a) leftEdge(idx) is the ONLY left-side difference
-  --     (mkAssign only sets leftEdge values based on testBit)
-  -- (b) The parity at verts(idx) depends on leftEdge(idx)
-  --     (it's incident: h_left_inc idx)
-  -- (c) The parity is observed differently in the ∀ v
-  --     (verts(idx) witnesses the difference)
-  --
-  -- Show residuals differ via β₀
-  -- (h_eq already introduced above: residuals are assumed equal)
-  -- h_eval says the two tseitinSubsetSAT evaluations agree.
-  -- But the concatenated inputs differ at leftEdge(idx), which
-  -- changes the parity at verts(idx).
-  -- The `change` below connects the residual definition to
-  -- tseitinSubsetSAT applied to the dite-concatenated input.
-  -- This is definitional equality in Lean.
-  --
-  -- Define z₁ e = if e.val < k then mkAssign(a₁)(e) else β₀(e-k)
-  -- Define z₂ e = if e.val < k then mkAssign(a₂)(e) else β₀(e-k)
-  --
-  -- Key facts:
-  -- 1. z₁(leftEdge idx) ≠ z₂(leftEdge idx)  [from hidx + mkAssign def]
-  -- 2. z₁(e) = z₂(e) for e ≠ leftEdge(idx)   [from h_left_inj + mkAssign def]
-  -- 3. tseitin_vertex_constraint_flips gives parity difference at verts(idx)
-  -- 4. h_eval gives equality, contradiction
-  --
-  -- MATHEMATICAL NOTE: The proof requires showing that the residual
-  -- FUNCTIONS (not values at one point) are different. The standard
-  -- argument uses communication complexity on the OBDD routing, not
-  -- direct input evaluation.
-  --
-  -- The difficulty with the evaluation approach: tseitinSubsetSAT is
-  -- a conjunction (∀ v, ...) over ALL vertices. Flipping leftEdge(idx)
-  -- changes parity at verts(idx) AND at the other endpoint of
-  -- leftEdge(idx). To show the decide values differ, we need a suffix
-  -- where all OTHER vertex constraints are satisfied — but this depends
-  -- on labels and graph structure we don't control.
-  --
-  -- The CORRECT argument: use the OBDD routing directly.
-  -- Two prefixes with different parity vectors at the split vertices
-  -- must reach different OBDD states (by route_residual), because
-  -- the residual functions are distinguishable via the private right
-  -- edges. This avoids needing to construct a single distinguishing β.
-  --
-  -- Formally: for each split vertex i, the private right edge
-  -- rightEdge(i) lets us independently probe the parity at verts(i).
-  -- So the residual function at prefix α encodes (leftParity(α,0),
-  -- ..., leftParity(α,c-1)) via c independent probes. Two distinct
-  -- c-bit vectors give different residual functions (by linear
-  -- independence over GF(2)).
-  sorry
+  -- Assume residuals are equal, derive contradiction
+  intro h_eq
+  -- Get a satisfying suffix for mkAssign a₁
+  obtain ⟨β, hβ⟩ := h_sat (mkAssign a₁)
+  -- By h_eq, the same suffix satisfies for mkAssign a₂
+  have hβ₂ : MUSWidthLowerBound.residual (tseitinSubsetSAT G labels) k.val hk
+      (mkAssign a₂) β = true := by
+    rw [show MUSWidthLowerBound.residual (tseitinSubsetSAT G labels) k.val hk
+        (mkAssign a₂) β =
+        MUSWidthLowerBound.residual (tseitinSubsetSAT G labels) k.val hk
+        (mkAssign a₁) β from (congr_fun h_eq β).symm ▸ rfl]
+    exact hβ
+  -- Unfold residual to tseitinSubsetSAT of concatenated input
+  rw [residual_tseitin_apply] at hβ hβ₂
+  -- Define the concatenated inputs
+  let z₁ : Fin G.numEdges → Bool := fun i =>
+    if h : i.val < k.val then mkAssign a₁ ⟨i.val, h⟩
+    else β ⟨i.val - k.val, by omega⟩
+  let z₂ : Fin G.numEdges → Bool := fun i =>
+    if h : i.val < k.val then mkAssign a₂ ⟨i.val, h⟩
+    else β ⟨i.val - k.val, by omega⟩
+  -- Both give tseitinSubsetSAT = true, so ∀ v, parity matches label
+  have hz₁ : tseitinSubsetSAT G labels z₁ = true := hβ
+  have hz₂ : tseitinSubsetSAT G labels z₂ = true := hβ₂
+  simp only [tseitinSubsetSAT, decide_eq_true_eq] at hz₁ hz₂
+  -- Extract the constraint at verts(idx)
+  have p₁ := hz₁ (verts idx)
+  have p₂ := hz₂ (verts idx)
+  -- Both say: filter count at verts(idx) % 2 = labelBit
+  -- So filter counts are equal mod 2
+  have h_mod_eq : (Finset.univ.filter (fun e : Fin G.numEdges =>
+      (G.edgeSrc e = verts idx ∨ G.edgeTgt e = verts idx) ∧ z₁ e = true)).card % 2 =
+    (Finset.univ.filter (fun e : Fin G.numEdges =>
+      (G.edgeSrc e = verts idx ∨ G.edgeTgt e = verts idx) ∧ z₂ e = true)).card % 2 := by
+    rw [p₁, p₂]
+  -- But they differ mod 2! The only differing edge incident to verts(idx) is leftEdge(idx).
+  -- WLOG: one of testBit is true, the other false
+  -- We need to show z₁ and z₂ agree on all edges incident to verts(idx) except leftEdge(idx)
+  have h_agree_at_v : ∀ e' : Fin G.numEdges,
+      (G.edgeSrc e' = verts idx ∨ G.edgeTgt e' = verts idx) →
+      e' ≠ leftEdge idx → z₁ e' = z₂ e' := by
+    intro e' h_inc_e' h_ne
+    simp only [z₁, z₂]
+    by_cases he_lt : e'.val < k.val
+    · -- Left side: mkAssign a₁ and a₂ agree at e' because e' ≠ leftEdge(idx)
+      -- and e' is not leftEdge(j) for any j (since e' is incident to verts(idx))
+      simp only [dif_pos he_lt]
+      show mkAssign a₁ ⟨e'.val, he_lt⟩ = mkAssign a₂ ⟨e'.val, he_lt⟩
+      simp only [mkAssign, decide_eq_decide]
+      constructor
+      · rintro ⟨j, hj_val, hj_bit⟩
+        refine ⟨j, hj_val, ?_⟩
+        -- e' is incident to verts(idx), so if leftEdge(j) = e', then j = idx
+        -- by h_left_priv (j ≠ idx → leftEdge(j) not incident to verts(idx))
+        -- But e' ≠ leftEdge(idx), so leftEdge(j) ≠ leftEdge(idx), so j ≠ idx
+        -- This contradicts: leftEdge(j) = e' (incident to verts(idx)) + j ≠ idx
+        -- Therefore no such j exists... but we have ⟨j, hj_val, hj_bit⟩!
+        -- Actually: hj_val says leftEdge(j).val = e'.val, so leftEdge(j) = e' (Fin ext)
+        -- e' is incident to verts(idx). If j ≠ idx, h_left_priv says leftEdge(j)
+        -- is NOT incident to verts(idx). But e' IS incident. Contradiction.
+        -- So j = idx. But then leftEdge(idx) = e', contradicting h_ne.
+        -- Wait, we need j = idx AND leftEdge(idx).val = e'.val → leftEdge(idx) = e'
+        -- → e' = leftEdge(idx), contradicting h_ne.
+        -- So the ∃ is actually False for edges incident to verts(idx) with e' ≠ leftEdge(idx).
+        exfalso
+        have hj_eq : leftEdge j = e' := Fin.ext hj_val
+        by_cases hjidx : j = idx
+        · subst hjidx; exact h_ne hj_eq.symm
+        · have := h_left_priv j idx hjidx
+          rw [hj_eq] at this
+          exact h_inc_e'.elim (fun h => this.1 h) (fun h => this.2 h)
+      · rintro ⟨j, hj_val, hj_bit⟩
+        exfalso
+        have hj_eq : leftEdge j = e' := Fin.ext hj_val
+        by_cases hjidx : j = idx
+        · subst hjidx; exact h_ne hj_eq.symm
+        · have := h_left_priv j idx hjidx
+          rw [hj_eq] at this
+          exact h_inc_e'.elim (fun h => this.1 h) (fun h => this.2 h)
+    · -- Right side: same β
+      simp only [dif_neg he_lt]
+  -- Now show z₁ and z₂ differ at leftEdge(idx)
+  have h_left_lt : (leftEdge idx).val < k.val := h_left_pos idx
+  have h_z1_left : z₁ (leftEdge idx) =
+      decide (∃ i : Fin c, (leftEdge i).val = (leftEdge idx).val ∧
+        a₁.val.testBit i.val = true) := by
+    show (if h : (leftEdge idx).val < k.val then mkAssign a₁ ⟨(leftEdge idx).val, h⟩
+      else _) = _
+    rw [dif_pos h_left_lt]
+  have h_z2_left : z₂ (leftEdge idx) =
+      decide (∃ i : Fin c, (leftEdge i).val = (leftEdge idx).val ∧
+        a₂.val.testBit i.val = true) := by
+    show (if h : (leftEdge idx).val < k.val then mkAssign a₂ ⟨(leftEdge idx).val, h⟩
+      else _) = _
+    rw [dif_pos h_left_lt]
+  -- Since leftEdge is injective, the only i with leftEdge(i).val = leftEdge(idx).val is i = idx
+  have h_exists_iff : (∃ i : Fin c, (leftEdge i).val = (leftEdge idx).val ∧
+      a₁.val.testBit i.val = true) ↔ (a₁.val.testBit idx.val = true) := by
+    constructor
+    · rintro ⟨i, hi_val, hi_bit⟩
+      exact h_left_inj (Fin.ext hi_val) ▸ hi_bit
+    · intro h; exact ⟨idx, rfl, h⟩
+  have h_exists_iff₂ : (∃ i : Fin c, (leftEdge i).val = (leftEdge idx).val ∧
+      a₂.val.testBit i.val = true) ↔ (a₂.val.testBit idx.val = true) := by
+    constructor
+    · rintro ⟨i, hi_val, hi_bit⟩
+      exact h_left_inj (Fin.ext hi_val) ▸ hi_bit
+    · intro h; exact ⟨idx, rfl, h⟩
+  have h_z1_simp : z₁ (leftEdge idx) = a₁.val.testBit idx.val := by
+    rw [h_z1_left]; cases h : a₁.val.testBit idx.val
+    · simp [h_exists_iff, h]
+    · simp [h_exists_iff, h]
+  have h_z2_simp : z₂ (leftEdge idx) = a₂.val.testBit idx.val := by
+    rw [h_z2_left]; cases h : a₂.val.testBit idx.val
+    · simp [h_exists_iff₂, h]
+    · simp [h_exists_iff₂, h]
+  have h_z_diff : z₁ (leftEdge idx) ≠ z₂ (leftEdge idx) := by
+    rw [h_z1_simp, h_z2_simp]; exact hidx
+  -- WLOG z₁(leftEdge idx) = true, z₂(leftEdge idx) = false (or swap)
+  -- z₁ and z₂ differ at leftEdge(idx). One is true, the other false.
+  cases h1v : z₁ (leftEdge idx) <;> cases h2v : z₂ (leftEdge idx)
+  · -- both false: contradicts h_z_diff
+    exact h_z_diff (by rw [h1v, h2v])
+  · -- z₁ = false, z₂ = true
+    have h_card := filter_card_diff_at_vertex G z₂ z₁ (leftEdge idx) (verts idx)
+      (h_left_inc idx) h2v h1v (fun e' h_inc' h_ne => (h_agree_at_v e' h_inc' h_ne).symm)
+    omega
+  · -- z₁ = true, z₂ = false
+    have h_card := filter_card_diff_at_vertex G z₁ z₂ (leftEdge idx) (verts idx)
+      (h_left_inc idx) h1v h2v (h_agree_at_v)
+    omega
+  · -- both true: contradicts h_z_diff
+    exact h_z_diff (by rw [h1v, h2v])
 
 theorem tseitin_obdd_width (G : Tseitin.RegularGraph)
     (labels : Fin G.numVertices → Bool)
