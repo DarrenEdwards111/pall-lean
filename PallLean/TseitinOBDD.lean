@@ -314,6 +314,7 @@ theorem tseitin_parity_residuals (G : Tseitin.RegularGraph)
     (h_left_pos : ∀ i, (Equiv.refl _ (leftEdge i)).val < k.val)
     (h_left_inc : ∀ i, G.edgeSrc (leftEdge i) = verts i ∨
                         G.edgeTgt (leftEdge i) = verts i)
+    (h_left_inj : Function.Injective leftEdge)
     -- rightEdge i is on the right side, incident to verts i,
     -- and NOT incident to any other selected vertex (private)
     (h_right_pos : ∀ i, (Equiv.refl _ (rightEdge i)).val ≥ k.val)
@@ -393,13 +394,28 @@ theorem tseitin_parity_residuals (G : Tseitin.RegularGraph)
   -- (c) The parity is observed differently in the ∀ v
   --     (verts(idx) witnesses the difference)
   --
-  -- The residual functions differ: provide β₀ as a witness
-  -- where they evaluate differently.
-  -- This requires unfolding residual and tseitinSubsetSAT through
-  -- the dite-concatenation and showing the parity at verts(idx) flips.
-  -- All the needed lemmas are proved (filter_card_flip_edge,
-  -- tseitin_parity_flips_at_vertex, tseitin_vertex_constraint_flips).
-  -- The remaining step is plumbing through the residual concatenation.
+  -- Show residuals differ via β₀
+  -- (h_eq already introduced above: residuals are assumed equal)
+  -- h_eval says the two tseitinSubsetSAT evaluations agree.
+  -- But the concatenated inputs differ at leftEdge(idx), which
+  -- changes the parity at verts(idx).
+  -- The `change` below connects the residual definition to
+  -- tseitinSubsetSAT applied to the dite-concatenated input.
+  -- This is definitional equality in Lean.
+  --
+  -- Define z₁ e = if e.val < k then mkAssign(a₁)(e) else β₀(e-k)
+  -- Define z₂ e = if e.val < k then mkAssign(a₂)(e) else β₀(e-k)
+  --
+  -- Key facts:
+  -- 1. z₁(leftEdge idx) ≠ z₂(leftEdge idx)  [from hidx + mkAssign def]
+  -- 2. z₁(e) = z₂(e) for e ≠ leftEdge(idx)   [from h_left_inj + mkAssign def]
+  -- 3. tseitin_vertex_constraint_flips gives parity difference at verts(idx)
+  -- 4. h_eval gives equality, contradiction
+  --
+  -- Full formal proof requires unfolding mkAssign's `decide (∃ i, ...)`
+  -- through dite, which needs h_left_inj to show only idx matches.
+  -- Each step is routine but the term manipulation is heavy.
+  -- We leave this as the sole remaining sorry in the parity chain.
   sorry
 
 theorem tseitin_obdd_width (G : Tseitin.RegularGraph)
