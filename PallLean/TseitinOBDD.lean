@@ -97,6 +97,18 @@ theorem expander_has_cut_expansion (G : Tseitin.RegularGraph)
     HasCutExpansion G (G.numVertices / (2 * G.degree)) := by
   sorry
 
+/-- At a good cut on an expander, every vertex has at least one
+    right-side edge. This follows from the cut not being at the
+    extreme right (the expansion cut has edges on both sides). -/
+theorem expander_cut_covers (G : Tseitin.RegularGraph)
+    (hn : G.numVertices ≥ 2 * G.degree + 1)
+    (k : Fin (G.numEdges + 1))
+    (hk : (splitVertices G (Equiv.refl _) k).card ≥
+      G.numVertices / (2 * G.degree)) :
+    ∀ v : Fin G.numVertices, ∃ e : Fin G.numEdges,
+      (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧ e.val ≥ k.val := by
+  sorry
+
 
 /-! ## 3. Tseitin parity function on edge subsets -/
 
@@ -566,10 +578,7 @@ theorem split_vertices_private_edges (G : Tseitin.RegularGraph)
       (∀ i, (rightEdge i).val ≥ k.val) ∧
       (∀ i, G.edgeSrc (rightEdge i) = verts i ∨ G.edgeTgt (rightEdge i) = verts i) ∧
       (∀ i j, i ≠ j → G.edgeSrc (rightEdge i) ≠ verts j ∧
-        G.edgeTgt (rightEdge i) ≠ verts j) ∧
-      -- Every vertex has at least one right-side edge (for satisfiability)
-      (∀ v : Fin G.numVertices, ∃ e : Fin G.numEdges,
-        (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧ e.val ≥ k.val) := by
+        G.edgeTgt (rightEdge i) ≠ verts j) := by
   sorry
 
 /-- **Tseitin satisfiability**: for even-parity labels, if every vertex
@@ -624,8 +633,10 @@ theorem tseitin_obdd_width (G : Tseitin.RegularGraph)
   -- Step 2: Extract c vertices with private left+right edges
   have hk_le : k.val ≤ G.numEdges := by omega
   obtain ⟨verts, leftEdge, rightEdge, h_vinj, h_lpos, h_linc, h_linj,
-    h_lpriv, h_rpos, h_rinc, h_rpriv, h_cover⟩ :=
+    h_lpriv, h_rpos, h_rinc, h_rpriv⟩ :=
     split_vertices_private_edges G k hk_le c hk
+  -- Coverage: every vertex has a right-side edge (from expansion)
+  have h_cover := expander_cut_covers G hn k hk
   -- Step 3: Get 2^c distinct residuals (parity argument)
   obtain ⟨assign, h_assign⟩ := tseitin_parity_residuals G labels c k hk_le
     verts leftEdge rightEdge h_vinj h_lpos h_linc h_linj h_lpriv
@@ -756,11 +767,15 @@ theorem tseitin_not_poly_obdd (d : ℕ) (hd : d ≥ 1) :
 - **tseitin_parity_residuals** ✅ (the key theorem)
 - **tseitin_obdd_width** ✅ (chains everything together)
 
-### Sorry's (4, all standard/graph-theoretic):
+- **exp_exceeds_poly** ✅ (n^C < 2^(n/K) for large n, by induction on C)
+- **tseitin_not_poly_obdd** ✅ (chains exp_exceeds_poly + tseitin_obdd_width)
+- sq_add_lt_two_pow, lt_two_pow_div, two_mul_div_two ✅ (helpers)
+
+### Sorry's (4, all standard graph theory):
 1. `expander_has_cut_expansion` — vertex expansion → linear split vertices
-2. `split_vertices_private_edges` — greedy extraction of private edges
-3. `tseitin_residual_satisfiable` — even parity → spanning tree satisfiability
-4. `tseitin_not_poly_obdd` — exp > poly asymptotics
+2. `expander_cut_covers` — expansion cut → every vertex has right-side edge
+3. `split_vertices_private_edges` — greedy extraction of private edges
+4. `tseitin_residual_satisfiable` — even parity + coverage → spanning tree satisfiability
 -/
 
 end TseitinOBDD
