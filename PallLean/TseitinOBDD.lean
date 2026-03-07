@@ -412,10 +412,30 @@ theorem tseitin_parity_residuals (G : Tseitin.RegularGraph)
   -- 3. tseitin_vertex_constraint_flips gives parity difference at verts(idx)
   -- 4. h_eval gives equality, contradiction
   --
-  -- Full formal proof requires unfolding mkAssign's `decide (∃ i, ...)`
-  -- through dite, which needs h_left_inj to show only idx matches.
-  -- Each step is routine but the term manipulation is heavy.
-  -- We leave this as the sole remaining sorry in the parity chain.
+  -- MATHEMATICAL NOTE: The proof requires showing that the residual
+  -- FUNCTIONS (not values at one point) are different. The standard
+  -- argument uses communication complexity on the OBDD routing, not
+  -- direct input evaluation.
+  --
+  -- The difficulty with the evaluation approach: tseitinSubsetSAT is
+  -- a conjunction (∀ v, ...) over ALL vertices. Flipping leftEdge(idx)
+  -- changes parity at verts(idx) AND at the other endpoint of
+  -- leftEdge(idx). To show the decide values differ, we need a suffix
+  -- where all OTHER vertex constraints are satisfied — but this depends
+  -- on labels and graph structure we don't control.
+  --
+  -- The CORRECT argument: use the OBDD routing directly.
+  -- Two prefixes with different parity vectors at the split vertices
+  -- must reach different OBDD states (by route_residual), because
+  -- the residual functions are distinguishable via the private right
+  -- edges. This avoids needing to construct a single distinguishing β.
+  --
+  -- Formally: for each split vertex i, the private right edge
+  -- rightEdge(i) lets us independently probe the parity at verts(i).
+  -- So the residual function at prefix α encodes (leftParity(α,0),
+  -- ..., leftParity(α,c-1)) via c independent probes. Two distinct
+  -- c-bit vectors give different residual functions (by linear
+  -- independence over GF(2)).
   sorry
 
 theorem tseitin_obdd_width (G : Tseitin.RegularGraph)
