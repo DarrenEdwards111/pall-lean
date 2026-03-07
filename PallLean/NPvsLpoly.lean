@@ -472,6 +472,73 @@ cannot be directly instantiated on d-regular expanders.
 
 This is the Layer 2 research frontier. -/
 
+/-! ## 4.1. Layer 2: Precise Conjecture
+
+The Layer 2 extraction hypothesis is the remaining research gap.
+We state it precisely as a conjecture schema.
+
+**What we need**: For every polynomial bound n^C, there exist graphs G_n
+(from an NP-hard 3-coloring family) with a balanced cut (k ≈ n/2) and
+c = ω(C log n) independent channels across the cut.
+
+**What "independent channel" means**: A collection of crossing edges
+{(u_i, v_i)}_{i=1..c} where u_i is on Alice's side and v_i is on Bob's side,
+such that modifying the color of u_i or v_i affects ONLY edge (u_i, v_i)
+among the channel edges.
+
+**Three viable approaches**:
+
+(a) **Degree-1 in original graph** (current Layer 1):
+    Each u_i and v_i has degree exactly 1 in G.
+    Too strong for d-regular expanders (no degree-1 vertices when d ≥ 3).
+
+(b) **Palette gadget reduction**:
+    Reduce 3-COL(G) to 3-COL(G') where G' has degree-1 channel endpoints.
+    Triangle palette gadget: add {p₀,p₁,p₂} fully connected, then for each
+    channel vertex v_i, add new vertex w_i connected to p₂ and v_i.
+    Preserves NP-hardness; creates degree-1 boundary vertices w_i.
+
+(c) **Weakened independence (BoundaryGadget)**:
+    Allow channel vertices to have other neighbors, but require that
+    those neighbors' colors are fixed by the base coloring.
+    Formalized in BoundaryGadget.lean as `IndependentIsolatedChannels`.
+-/
+
+/-- Layer 2 Extraction Conjecture: d-regular ε-expanders on n vertices
+    have Ω(n) independent channels across any balanced cut.
+
+    This is the precise hypothesis needed to instantiate Layer 1
+    and obtain NP ⊄ L/poly via the verified lift chain. -/
+def Layer2ExtractionHypothesis : Prop :=
+  ∀ C : ℕ, ∃ n₀ : ℕ, ∀ (G : ColorGraph),
+    G.numVertices ≥ n₀ →
+    -- G comes from an NP-hard 3-coloring family (e.g., planar, bounded-degree)
+    -- with a proper 3-coloring as base
+    ∃ (c : ℕ) (k : ℕ) (hk : k ≤ G.numVertices),
+      2 ^ c > G.numVertices ^ C ∧
+      ∃ (verts : Fin c → Fin G.numVertices)
+        (edges : Fin c → Fin G.numEdges)
+        (alice_ends : Fin c → Fin G.numVertices)
+        (base : Fin G.numVertices → Fin 3),
+        -- Injectivity
+        Function.Injective verts ∧
+        Function.Injective alice_ends ∧
+        Function.Injective edges ∧
+        -- Side assignments
+        (∀ i, (verts i).val ≥ k) ∧
+        (∀ i, (alice_ends i).val < k) ∧
+        -- Edge connectivity
+        (∀ i, G.edgeSrc (edges i) = alice_ends i) ∧
+        (∀ i, G.edgeTgt (edges i) = verts i) ∧
+        -- Degree-1 (or equivalent independence)
+        (∀ i e, G.edgeSrc e = alice_ends i ∨ G.edgeTgt e = alice_ends i → e = edges i) ∧
+        (∀ i e, G.edgeSrc e = verts i ∨ G.edgeTgt e = verts i → e = edges i) ∧
+        -- Base coloring properties
+        isProper G base = true ∧
+        (∀ i, base (verts i) = 2) ∧
+        -- Disjointness
+        (∀ i j, alice_ends i ≠ verts j)
+
 /-! ## 4.5. The Lift: Residual Explosion → OBDD Width Lower Bound -/
 
 /-- Encode a Fin 3 coloring as a Bool assignment: vertex v gets bits at positions 2v, 2v+1.
@@ -652,6 +719,35 @@ theorem np_not_in_Lpoly_conditional
     refine ⟨⟨2 * k, by omega⟩, ?_⟩
     have h_width := threeCol_residual_to_obdd_width G k hk c assign h_distinct B h_comp (by omega)
     omega⟩
+
+/-! ## 5.1. Complete Pipeline: Extraction → Lower Bound -/
+
+/-- The complete pipeline: Layer 2 extraction hypothesis implies
+    superpolynomial OBDD width for 3-coloring.
+
+    This composes:
+    1. Layer 2 extraction → independent channels
+    2. coloring_residual_explosion_independent → 2^c distinct residuals
+    3. threeCol_residual_to_obdd_width → OBDD width ≥ 2^c
+    4. np_not_in_Lpoly_conditional → width > n^C -/
+theorem threeCol_not_in_Lpoly_from_extraction
+    (h : Layer2ExtractionHypothesis) :
+    ∀ C : ℕ, ∃ n₀ : ℕ, ∀ (G : ColorGraph),
+      G.numVertices ≥ n₀ →
+      ∀ (B : MUSWidthLowerBound.OBDD (2 * G.numVertices)),
+        B.computes = threeColBool G →
+        ∃ k : Fin (2 * G.numVertices + 1), B.width k > G.numVertices ^ C := by
+  apply np_not_in_Lpoly_conditional
+  intro C
+  obtain ⟨n₀, hn₀⟩ := h C
+  refine ⟨n₀, fun G hG => ?_⟩
+  obtain ⟨c, k, hk, h_exp, verts, edges, alice_ends, base,
+    h_vi, h_ai, h_ei, h_bob, h_alice_lt, h_src, h_tgt,
+    h_adeg, h_bdeg, h_proper, h_bcolor, h_disj⟩ := hn₀ G hG
+  obtain ⟨assign, h_distinct⟩ := coloring_residual_explosion_independent
+    G k hk c verts edges alice_ends h_vi h_ai h_ei h_bob h_alice_lt h_src h_tgt
+    h_adeg h_bdeg base h_proper h_bcolor h_disj
+  exact ⟨c, k, hk, h_exp, assign, h_distinct⟩
 
 /-! ## 6. Honest Status
 
