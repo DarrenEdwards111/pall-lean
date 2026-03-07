@@ -1,6 +1,7 @@
 import Mathlib
 import PallLean.TseitinOBDD
 import PallLean.CommunicationComplexity
+import PallLean.MUSWidthLowerBound
 
 /-!
 # NP ⊄ L/poly — Via Graph 3-Coloring on Expanders
@@ -470,6 +471,152 @@ cannot be directly instantiated on d-regular expanders.
     the interaction through non-private edges.
 
 This is the Layer 2 research frontier. -/
+
+/-! ## 4.5. The Lift: Residual Explosion → OBDD Width Lower Bound -/
+
+/-- Encode a Fin 3 coloring as a Bool assignment: vertex v gets bits at positions 2v, 2v+1.
+    Color 0 → (false, false), Color 1 → (true, false), Color 2 → (false, true). -/
+def encodeColoring (n : ℕ) (col : Fin n → Fin 3) : Fin (2 * n) → Bool :=
+  fun i =>
+    let v := i.val / 2
+    let bit := i.val % 2
+    if hv : v < n then
+      let c := col ⟨v, hv⟩
+      if bit = 0 then c.val % 2 == 1  -- low bit
+      else c.val / 2 == 1              -- high bit
+    else false
+
+/-- The Boolean encoding of threeColFun. -/
+def threeColBool (G : ColorGraph) : MUSWidthLowerBound.BoolFun (2 * G.numVertices) :=
+  fun bits => threeColFun G (fun v =>
+    let lo := bits ⟨2 * v.val, by omega⟩
+    let hi := bits ⟨2 * v.val + 1, by omega⟩
+    match lo, hi with
+    | false, false => 0
+    | true, false  => 1
+    | false, true  => 2
+    | true, true   => 0)  -- invalid → 0
+
+/-- Encode Alice's coloring into the first 2k Boolean bits. -/
+def encodeAlice (n k : ℕ) (hk : k ≤ n) (col : Fin k → Fin 3) :
+    MUSWidthLowerBound.PartialAssignment (2 * n) (2 * k) :=
+  fun i =>
+    let v := i.val / 2
+    let bit := i.val % 2
+    if hv : v < k then
+      let c := col ⟨v, hv⟩
+      if bit = 0 then c.val % 2 == 1
+      else c.val / 2 == 1
+    else false
+
+/-- Encode Bob's coloring into the remaining 2(n-k) Boolean bits. -/
+def encodeBob (n k : ℕ) (hk : k ≤ n) (col : Fin (n - k) → Fin 3) :
+    Fin (2 * n - 2 * k) → Bool :=
+  fun i =>
+    let v := i.val / 2
+    let bit := i.val % 2
+    if hv : v < n - k then
+      let c := col ⟨v, hv⟩
+      if bit = 0 then c.val % 2 == 1
+      else c.val / 2 == 1
+    else false
+
+/-- Key encoding round-trip: decoding an encoded coloring recovers the original. -/
+lemma decode_encode_color (c : Fin 3) :
+    (match (c.val % 2 == 1 : Bool), (c.val / 2 == 1 : Bool) with
+     | false, false => (0 : Fin 3)
+     | true, false => 1
+     | false, true => 2
+     | true, true => 0) = c := by
+  fin_cases c <;> simp (config := { decide := true })
+
+/-- Round-trip: threeColBool composed with encoding = threeColFun with original coloring. -/
+lemma threeColBool_encode_eq (G : ColorGraph) (k : ℕ) (hk : k ≤ G.numVertices)
+    (col_a : Fin k → Fin 3) (col_b : Fin (G.numVertices - k) → Fin 3) :
+    threeColBool G (fun e =>
+      if h : e.val < 2 * k
+      then encodeAlice G.numVertices k hk col_a ⟨e.val, h⟩
+      else encodeBob G.numVertices k hk col_b ⟨e.val - 2 * k, by have := e.isLt; omega⟩) =
+    threeColFun G (fun v =>
+      if h : v.val < k then col_a ⟨v.val, h⟩
+      else col_b ⟨v.val - k, by omega⟩) := by
+  simp only [threeColBool]
+  congr 1; ext v
+  -- For vertex v, lo bit at 2*v.val, hi bit at 2*v.val+1
+  simp only [encodeAlice, encodeBob]
+  by_cases hv : v.val < k
+  · -- Alice side: both 2v, 2v+1 < 2k
+    have h_lo : 2 * v.val < 2 * k := by omega
+    have h_hi : 2 * v.val + 1 < 2 * k := by omega
+    simp only [dif_pos h_lo, dif_pos h_hi, dif_pos hv]
+    have hd1 : (2 * v.val) / 2 = v.val := by omega
+    have hm1 : (2 * v.val) % 2 = 0 := by omega
+    have hd2 : (2 * v.val + 1) / 2 = v.val := by omega
+    have hm2 : (2 * v.val + 1) % 2 = 1 := by omega
+    simp only [hd1, hm1, hd2, hm2, dif_pos hv]
+    -- Now: match (col_a ⟨v,hv⟩).val % 2 == 1, (col_a ⟨v,hv⟩).val / 2 == 1 = col_a ⟨v,hv⟩
+    have hc : col_a ⟨v.val, hv⟩ = (0 : Fin 3) ∨ col_a ⟨v.val, hv⟩ = 1 ∨ col_a ⟨v.val, hv⟩ = 2 := by
+      have := (col_a ⟨v.val, hv⟩).isLt; omega
+    rcases hc with hc | hc | hc <;> simp [hc]
+  · -- Bob side: both 2v, 2v+1 ≥ 2k
+    have h_lo : ¬ 2 * v.val < 2 * k := by omega
+    have h_hi : ¬ (2 * v.val + 1) < 2 * k := by omega
+    simp only [dif_neg h_lo, dif_neg h_hi, dif_neg hv]
+    have hv2 : v.val - k < G.numVertices - k := by have := v.isLt; omega
+    have hd1 : (2 * v.val - 2 * k) / 2 = v.val - k := by omega
+    have hm1 : (2 * v.val - 2 * k) % 2 = 0 := by omega
+    have hd2 : (2 * v.val + 1 - 2 * k) / 2 = v.val - k := by omega
+    have hm2 : (2 * v.val + 1 - 2 * k) % 2 = 1 := by omega
+    simp only [hd1, hm1, hd2, hm2, dif_pos hv2]
+    have hc : col_b ⟨v.val - k, hv2⟩ = (0 : Fin 3) ∨ col_b ⟨v.val - k, hv2⟩ = 1 ∨ col_b ⟨v.val - k, hv2⟩ = 2 := by
+      have := (col_b ⟨v.val - k, hv2⟩).isLt; omega
+    rcases hc with hc | hc | hc <;> simp [hc]
+
+/-- The lift: distinct ternary residuals → distinct Boolean residuals → OBDD width.
+
+    If threeColFun has 2^c distinct residuals at Alice/Bob cut k,
+    then any OBDD computing threeColBool has width ≥ 2^c at layer 2k. -/
+theorem threeCol_residual_to_obdd_width
+    (G : ColorGraph) (k : ℕ) (hk : k ≤ G.numVertices) (c : ℕ)
+    (assign : Fin (2 ^ c) → (Fin k → Fin 3))
+    (h_distinct : ∀ i j : Fin (2 ^ c), i ≠ j →
+        ∃ (bob_col : Fin (G.numVertices - k) → Fin 3),
+          threeColFun G (fun v =>
+            if h : v.val < k then (assign i) ⟨v.val, h⟩
+            else bob_col ⟨v.val - k, by omega⟩) ≠
+          threeColFun G (fun v =>
+            if h : v.val < k then (assign j) ⟨v.val, h⟩
+            else bob_col ⟨v.val - k, by omega⟩))
+    (B : MUSWidthLowerBound.OBDD (2 * G.numVertices))
+    (h_comp : B.computes = threeColBool G)
+    (hk2 : 2 * k ≤ 2 * G.numVertices) :
+    2 ^ c ≤ B.width ⟨2 * k, by omega⟩ := by
+  -- Use width_ge_of_injective_residuals with encoded assignments
+  have h := MUSWidthLowerBound.width_ge_of_injective_residuals B ⟨2 * k, by omega⟩ hk2
+    (ι := Fin (2 ^ c))
+    (fun n => encodeAlice G.numVertices k hk (assign n))
+    (fun i j hij h_eq => by
+      obtain ⟨bob_col, h_ne⟩ := h_distinct i j hij
+      apply h_ne
+      -- h_eq says the Boolean residuals are equal as functions
+      -- Evaluate at encodeBob bob_col to get threeColFun equality
+      have h_res := congr_fun h_eq (encodeBob G.numVertices k hk bob_col)
+      simp only [MUSWidthLowerBound.residual] at h_res
+      -- h_eq says the Boolean residuals are equal as functions
+      -- Specialize at encodeBob bob_col
+      -- h_res : f(encodeAlice(i) ++ encodeBob(bob)) = f(encodeAlice(j) ++ encodeBob(bob))
+      -- where f = B.computes = threeColBool G
+      -- threeColBool decodes back to threeColFun via decode_encode_color
+      -- So h_res gives threeColFun(assign i, bob_col) = threeColFun(assign j, bob_col)
+      -- contradicting h_ne
+      -- h_res relates B.computes applied to spliced encoded assignments
+      -- Rewrite using threeColBool_encode_eq to get threeColFun
+      rw [h_comp] at h_res
+      rw [threeColBool_encode_eq G k hk (assign i) bob_col,
+          threeColBool_encode_eq G k hk (assign j) bob_col] at h_res
+      exact h_res)
+  simp only [Fintype.card_fin] at h
+  exact h
 
 /-! ## 5. Conditional NP ⊄ L/poly -/
 
