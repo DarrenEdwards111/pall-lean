@@ -566,19 +566,36 @@ theorem split_vertices_private_edges (G : Tseitin.RegularGraph)
       (∀ i, (rightEdge i).val ≥ k.val) ∧
       (∀ i, G.edgeSrc (rightEdge i) = verts i ∨ G.edgeTgt (rightEdge i) = verts i) ∧
       (∀ i j, i ≠ j → G.edgeSrc (rightEdge i) ≠ verts j ∧
-        G.edgeTgt (rightEdge i) ≠ verts j) := by
+        G.edgeTgt (rightEdge i) ≠ verts j) ∧
+      -- Every vertex has at least one right-side edge (for satisfiability)
+      (∀ v : Fin G.numVertices, ∃ e : Fin G.numEdges,
+        (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧ e.val ≥ k.val) := by
   sorry
 
-/-- **Tseitin satisfiability**: for even-parity labels, every prefix
+/-- **Tseitin satisfiability**: for even-parity labels, if every vertex
+    has at least one edge on the right side of the cut, then every prefix
     assignment has a satisfying suffix.
 
-    This follows from the fact that fixing some edge values preserves
-    the even total parity, so the residual system is always satisfiable
-    (by a spanning tree argument). -/
+    The key facts:
+    1. Each fixed left edge changes parities at exactly 2 vertices,
+       so the modified labels preserve even total parity.
+    2. With every vertex having a right-side edge, the right-side
+       subgraph covers all vertices.
+    3. Even-parity Tseitin on a covering subgraph is satisfiable
+       (by spanning tree: process leaves to root, each leaf's unique
+       remaining edge absorbs its parity constraint; the root constraint
+       is automatically satisfied by the even-parity condition).
+
+    The formal proof requires spanning tree construction on the right-side
+    subgraph, which is substantial infrastructure. We axiomatize this
+    standard graph theory result. -/
 theorem tseitin_residual_satisfiable (G : Tseitin.RegularGraph)
     (labels : Fin G.numVertices → Bool)
     (h_even : (Finset.univ.filter (fun v => labels v = true)).card % 2 = 0)
     (k : ℕ) (hk : k ≤ G.numEdges)
+    -- Every vertex has at least one right-side edge (position ≥ k)
+    (h_cover : ∀ v : Fin G.numVertices, ∃ e : Fin G.numEdges,
+      (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧ e.val ≥ k)
     (α : PartialAssignment G.numEdges k) :
     ∃ β, MUSWidthLowerBound.residual (tseitinSubsetSAT G labels) k hk α β = true := by
   sorry
@@ -607,13 +624,13 @@ theorem tseitin_obdd_width (G : Tseitin.RegularGraph)
   -- Step 2: Extract c vertices with private left+right edges
   have hk_le : k.val ≤ G.numEdges := by omega
   obtain ⟨verts, leftEdge, rightEdge, h_vinj, h_lpos, h_linc, h_linj,
-    h_lpriv, h_rpos, h_rinc, h_rpriv⟩ :=
+    h_lpriv, h_rpos, h_rinc, h_rpriv, h_cover⟩ :=
     split_vertices_private_edges G k hk_le c hk
   -- Step 3: Get 2^c distinct residuals (parity argument)
   obtain ⟨assign, h_assign⟩ := tseitin_parity_residuals G labels c k hk_le
     verts leftEdge rightEdge h_vinj h_lpos h_linc h_linj h_lpriv
     h_rpos h_rinc h_rpriv
-    (fun α => tseitin_residual_satisfiable G labels h_even k.val hk_le α)
+    (fun α => tseitin_residual_satisfiable G labels h_even k.val hk_le h_cover α)
   -- Step 4: Width ≥ 2^c
   exact width_from_many_residuals G.numEdges c k hk_le
     (tseitinSubsetSAT G labels) B h_comp assign h_assign
