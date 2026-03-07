@@ -327,21 +327,73 @@ theorem leftTouched_card (G : Tseitin.RegularGraph) (k : ℕ) :
 -- So d · |untouched| ≤ 2(m - k).
 theorem untouched_bound (G : Tseitin.RegularGraph) (k : ℕ) (hk : k ≤ G.numEdges) :
     G.degree * (untouched G k).card ≤ 2 * (G.numEdges - k) := by
-  -- Count: each untouched vertex contributes d to the sum
-  -- ∑_{v ∈ untouched} d = d · |untouched|
-  -- Each right edge e (e.val ≥ k) contributes to ≤ 2 terms (src and tgt)
-  -- So the sum ≤ 2 · |right edges| = 2(m - k)
-  --
-  -- Formally: define the sum as ∑_{v ∈ untouched} |{e | e incident to v}|
-  -- Each e with e.val ≥ k appears in ≤ 2 terms. Each e with e.val < k
-  -- appears in 0 terms (untouched vertices have no left edges).
-  -- So the sum counts each right edge ≤ 2 times.
-  -- Double counting: each untouched vertex v has deg(v) = d edges,
-  -- all with index ≥ k. So d·|U| incidence pairs (v,e).
-  -- Each right edge e has ≤ 2 endpoints, contributing ≤ 2 pairs.
-  -- Left edges contribute 0 pairs. So d·|U| ≤ 2·(m-k).
-  -- This is a standard combinatorial double-counting argument.
-  sorry
+  -- Double counting via Finset.card_mul_le_card_mul.
+  -- s = untouched, t = right edges, r v e = incident
+  -- |U| * d ≤ |right| * 2 ≤ 2(m-k)
+  have h_dc := Finset.card_mul_le_card_mul
+    (r := fun (v : Fin G.numVertices) (e : Fin G.numEdges) =>
+      G.edgeSrc e = v ∨ G.edgeTgt e = v)
+    (s := untouched G k)
+    (t := univ.filter (fun e : Fin G.numEdges => e.val ≥ k))
+    (m := G.degree)
+    (n := 2)
+    (hm := by
+      intro v hv
+      simp only [untouched, mem_filter, mem_univ, true_and] at hv
+      have h_sub : univ.filter (fun e : Fin G.numEdges =>
+          G.edgeSrc e = v ∨ G.edgeTgt e = v) ⊆
+          (univ.filter (fun e : Fin G.numEdges => e.val ≥ k)).bipartiteAbove
+            (fun v e => G.edgeSrc e = v ∨ G.edgeTgt e = v) v := by
+        intro e he
+        simp only [Finset.bipartiteAbove, mem_filter, mem_univ, true_and] at *
+        exact ⟨hv e he, he⟩
+      calc G.degree = (univ.filter (fun e => G.edgeSrc e = v ∨ G.edgeTgt e = v)).card :=
+            (G.regular v).symm
+        _ ≤ _ := card_le_card h_sub)
+    (hn := by
+      intro e _
+      calc ((untouched G k).bipartiteBelow
+            (fun v e => G.edgeSrc e = v ∨ G.edgeTgt e = v) e).card
+          ≤ ({G.edgeSrc e, G.edgeTgt e} : Finset _).card := by
+            apply card_le_card
+            intro v hv
+            simp only [Finset.bipartiteBelow, mem_filter] at hv
+            simp only [mem_insert, mem_singleton]
+            rcases hv.2 with h | h <;> [left; right] <;> exact h.symm
+        _ ≤ 2 := by
+            by_cases h : G.edgeSrc e = G.edgeTgt e
+            · simp [h]
+            · rw [Finset.card_insert_of_notMem (by simp [h]), Finset.card_singleton])
+  -- |right edges| ≤ m - k
+  have h_right_card : (univ.filter (fun e : Fin G.numEdges => e.val ≥ k)).card ≤
+      G.numEdges - k := by
+    -- Complement: right = univ \ left, so |right| = m - |left|, and |left| ≥ k
+    -- |right| + |left| = m, |left| = k, so |right| = m - k
+    have h_sum : (univ.filter (fun e : Fin G.numEdges => e.val ≥ k)).card +
+        (univ.filter (fun e : Fin G.numEdges => e.val < k)).card = G.numEdges := by
+      have h_union : univ.filter (fun e : Fin G.numEdges => e.val ≥ k) ∪
+          univ.filter (fun e : Fin G.numEdges => e.val < k) =
+          (univ : Finset (Fin G.numEdges)) := by
+        ext e; simp; omega
+      have h_disj : Disjoint
+          (univ.filter (fun e : Fin G.numEdges => e.val ≥ k))
+          (univ.filter (fun e : Fin G.numEdges => e.val < k)) := by
+        simp only [Finset.disjoint_filter]; intro e _ h1 h2; omega
+      rw [← Finset.card_union_of_disjoint h_disj, h_union,
+        Finset.card_univ, Fintype.card_fin]
+    -- Need: k ≤ |{e | e.val < k}| ... no, need m - |left| ≤ m - k, i.e., k ≤ |left|
+    -- Actually |left| = min(k, m) when k ≤ m. Since k ≤ m, |left| = k.
+    -- |{e : Fin m | e.val < k}| = k (bijection with Fin k)
+    -- |left| = k via bijection with range k
+    have h_left_eq : (univ.filter (fun e : Fin G.numEdges => e.val < k)).card =
+        (Finset.range k).card :=
+      Finset.card_nbij (fun e => e.val)
+        (fun e he => Finset.mem_range.mpr (by simp at he; exact he))
+        (fun a _ b _ h => Fin.ext h)
+        (fun i hi => ⟨⟨i, by have := Finset.mem_range.mp hi; omega⟩,
+          by simp [Finset.mem_range.mp hi], rfl⟩)
+    rw [Finset.card_range] at h_left_eq; omega
+  linarith
 
 -- Lower bound on leftTouched from regularity
 theorem leftTouched_lower (G : Tseitin.RegularGraph) (k : ℕ) (hk : k ≤ G.numEdges) :
