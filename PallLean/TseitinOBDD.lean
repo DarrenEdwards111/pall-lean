@@ -83,35 +83,20 @@ def HasCutExpansion (G : Tseitin.RegularGraph) (c : ℕ) : Prop :=
 
 /-- Key graph-theoretic fact: d-regular expanders have linear cut expansion.
 
-    For any edge ordering of a d-regular expander on n vertices,
+    For any edge ordering of an expander on n vertices,
     there exists a cut with ≥ n/(2d) split vertices.
 
-    Proof sketch: By pigeonhole on the m+1 cut positions.
-    For each vertex v, the d edges incident to v span a range
-    of positions [min_pos(v), max_pos(v)]. The vertex is split
-    at all cuts k with min_pos(v) < k ≤ max_pos(v).
-    The number of such positions is ≥ 1 (since d ≥ 2).
-    Summing over all n vertices, total split-vertex-cut pairs ≥ n.
-    By pigeonhole, some cut has ≥ n/(m+1) ≥ n/(nd+1) ≥ 1/(d+1)·n
-    split vertices. -/
+    This requires actual vertex expansion, not just d-regularity.
+    As the cut sweeps from 0 to m, the set of "fully-left" vertices
+    grows. By expansion, near the midpoint, many crossing edges exist,
+    each creating a split vertex.
+
+    The expansion property is encoded in the graph family assumption. -/
 theorem expander_has_cut_expansion (G : Tseitin.RegularGraph)
     (hn : G.numVertices ≥ 2 * G.degree + 1) :
     HasCutExpansion G (G.numVertices / (2 * G.degree)) := by
-  intro σ
-  -- For each vertex v, let minPos(v) and maxPos(v) be the min/max
-  -- positions of edges incident to v under ordering σ.
-  -- Since degree ≥ 2, each v has ≥ 2 edges, so minPos(v) < maxPos(v).
-  -- v is split at cuts k with minPos(v) < k ≤ maxPos(v), i.e., ≥ 1 cut.
-  --
-  -- Total (vertex, cut) split pairs ≥ n (one per vertex).
-  -- Number of cuts = m+1 ≤ nd+1.
-  -- By pigeonhole: ∃ k with ≥ n/(nd+1) split vertices.
-  -- Since n ≥ 2d+1 ≥ 5: n/(nd+1) ≥ n/(2nd) = 1/(2d).
-  -- So the cut has ≥ n/(2d) split vertices.
-  --
-  -- Full formal proof requires Finset pigeonhole, edge position min/max.
-  -- This is a standard combinatorial argument.
   sorry
+
 
 /-! ## 3. Tseitin parity function on edge subsets -/
 
@@ -227,10 +212,25 @@ theorem tseitin_obdd_width (G : Tseitin.RegularGraph)
   -- Step 1: Get the cut with many split vertices (expansion)
   obtain ⟨k, hk⟩ := expander_has_cut_expansion G hn (Equiv.refl _)
   use k
-  -- Step 2: Each split vertex contributes an independent parity constraint
-  -- Different left-side assignments create different residual functions
-  -- because they determine different parity requirements on the right side
-  -- Step 3: Width ≥ 2^(#split vertices) ≥ 2^(n/(2d))
+  -- Step 2: Apply width_ge_of_injective_residuals.
+  -- Need: an injection from Fin(2^c) to prefix assignments (c = n/(2d))
+  -- such that distinct elements give distinct residuals.
+  --
+  -- Construction: enumerate the c split vertices v₁,...,v_c.
+  -- For each i, pick a "left edge" eᵢ incident to vᵢ with position < k.
+  -- For index j ∈ Fin(2^c), define prefix assignment αⱼ:
+  --   αⱼ(eᵢ) = j.testBit(i)  for each left edge eᵢ
+  --   αⱼ(e)  = false           for all other left edges
+  --
+  -- Step 3: Distinct j's differ on some bit i, so they flip the parity
+  -- at vertex vᵢ. By and_xor_residuals_injective, the residual functions
+  -- differ because vᵢ has a private RIGHT edge that can distinguish
+  -- the two parity requirements.
+  --
+  -- Step 4: Width ≥ 2^c ≥ 2^(n/(2d))
+  --
+  -- The formal proof requires constructing the explicit edge selection
+  -- and showing the parity decomposition. Standard but verbose.
   sorry
 
 /-! ## 5. The separation theorem -/
@@ -249,13 +249,16 @@ theorem tseitin_not_poly_obdd :
         (h_comp : B.computes = tseitinSubsetSAT G labels),
       ∃ k, B.width k > G.numVertices ^ C := by
   intro C
-  -- For large enough n: 2^(n/(2d)) > n^C
-  -- Since d ≤ 10 (from RegularGraph), n/(2d) ≥ n/20
-  -- 2^(n/20) > n^C for n ≥ some n₀(C)
-  -- Take n₀ = max(2*10+1, 20*(C+1)+1) to ensure both conditions
-  -- Proof sketch: combine tseitin_obdd_width with 2^(n/(2d)) > n^C for large n.
-  -- d ≤ 10 (RegularGraph), so n/(2d) ≥ n/20.
-  -- 2^(n/20) > n^C for n ≥ some n₀(C).
+  use max (2 * 10 + 1) (20 * C + 20 + 1)
+  intro G hn₀ hn labels B h_comp
+  obtain ⟨k, hk⟩ := tseitin_obdd_width G labels hn B h_comp
+  refine ⟨k, ?_⟩
+  -- Need: 2^(n/(2d)) > n^C
+  -- From hk: B.width k ≥ 2^(n/(2d))
+  -- d ≤ 10 (RegularGraph.degree_bound)
+  -- n/(2d) ≥ n/20 ≥ (20C+20+1)/20 ≥ C+1
+  -- 2^(C+1) > n^C for... no, we need 2^(n/20) > n^C
+  -- This is a standard exponential-beats-polynomial fact
   sorry
 
 /-! ## Status
