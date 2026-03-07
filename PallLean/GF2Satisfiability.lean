@@ -116,7 +116,54 @@ theorem flip_edge_parity (n m : ℕ) (src tgt : Fin m → Fin n)
   -- Case 2: e₀ is incident to v — one element flips membership
   split_ifs with h_inc
   · -- e₀ incident to v: exactly one element (e₀) changes membership
-    sorry
+    set S_old := univ.filter fun e : Fin m =>
+      (src e = v ∨ tgt e = v) ∧ β e = true
+    set S_new := univ.filter fun e : Fin m =>
+      (src e = v ∨ tgt e = v) ∧ Function.update β e₀ (!β e₀) e = true
+    -- All elements except e₀ are the same in both sets
+    have h_other : ∀ e : Fin m, e ≠ e₀ → (e ∈ S_new ↔ e ∈ S_old) := by
+      intro e he
+      simp only [S_new, S_old, Finset.mem_filter, Finset.mem_univ, true_and,
+        Function.update_apply, if_neg he]
+    cases hb : β e₀ with
+    | false =>
+      -- e₀ was NOT in S_old, IS in S_new
+      have h_not_old : e₀ ∉ S_old := by
+        simp [S_old, Finset.mem_filter, hb]
+      have h_in_new : e₀ ∈ S_new := by
+        simp [S_new, Finset.mem_filter, Function.update_self, hb, h_inc]
+      -- S_new = insert e₀ S_old
+      have h_eq : S_new = insert e₀ S_old := by
+        ext e; simp only [Finset.mem_insert]
+        constructor
+        · intro he
+          by_cases h : e = e₀
+          · exact Or.inl h
+          · exact Or.inr ((h_other e h).mp he)
+        · intro he
+          rcases he with rfl | he
+          · exact h_in_new
+          · exact (h_other e (by intro h; subst h; exact h_not_old he)).mpr he
+      rw [h_eq]; simp [h_not_old]
+    | true =>
+      -- e₀ WAS in S_old, NOT in S_new
+      have h_in_old : e₀ ∈ S_old := by
+        simp [S_old, Finset.mem_filter, hb, h_inc]
+      have h_not_new : e₀ ∉ S_new := by
+        simp [S_new, Finset.mem_filter, Function.update_self, hb]
+      -- S_old = insert e₀ S_new
+      have h_eq : S_old = insert e₀ S_new := by
+        ext e; simp only [Finset.mem_insert]
+        constructor
+        · intro he
+          by_cases h : e = e₀
+          · exact Or.inl h
+          · exact Or.inr ((h_other e h).mpr he)
+        · intro he
+          rcases he with rfl | he
+          · exact h_in_old
+          · exact (h_other e (by intro h; subst h; exact h_not_new he)).mp he
+      rw [h_eq] at *; simp [h_not_new] at *; omega
   · -- e₀ not incident to v: filter unchanged
     push_neg at h_inc
     congr 1; congr 1
