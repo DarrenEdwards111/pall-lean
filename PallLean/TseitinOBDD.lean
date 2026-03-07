@@ -161,6 +161,44 @@ def HasSatisfiablePrefixes (G : Tseitin.RegularGraph)
     3. Right-side connectivity from HasGoodCut
     4. Apply GF(2) satisfiability theorem
     5. Convert solution to residual form -/
+
+-- Helper: filter on Fin k bijects with filter on Fin m restricted to < k
+private lemma card_filter_left {k m : ℕ} (hkm : k ≤ m)
+    (p : Fin m → Prop) [DecidablePred p] :
+    (Finset.univ.filter fun e : Fin k => p ⟨e.val, by omega⟩).card =
+    (Finset.univ.filter fun e : Fin m => e.val < k ∧ p e).card := by
+  apply Finset.card_bij (fun e _ => (⟨e.val, by omega⟩ : Fin m))
+  · intro a ha
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and] at ha ⊢
+    refine ⟨a.isLt, ?_⟩
+    have : (⟨a.val, by omega⟩ : Fin m) = ⟨a.val, by omega⟩ := rfl
+    exact ha
+  · intro a1 a2 _ _ h; exact Fin.ext (by simpa using congr_arg Fin.val h)
+  · intro b hb
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hb
+    exact ⟨⟨b.val, hb.1⟩, by simp [Finset.mem_filter]; exact hb.2, Fin.ext rfl⟩
+
+set_option maxHeartbeats 400000 in
+private lemma card_filter_right {k m : ℕ} (hkm : k ≤ m)
+    (p : Fin m → Prop) [DecidablePred p] :
+    (Finset.univ.filter fun e : Fin (m - k) => p ⟨e.val + k, by omega⟩).card =
+    (Finset.univ.filter fun e : Fin m => e.val ≥ k ∧ p e).card := by
+  apply Finset.card_bij (fun e _ => (⟨e.val + k, by omega⟩ : Fin m))
+  · intro a ha
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and] at ha ⊢
+    exact ⟨by omega, ha⟩
+  · intro a1 a2 _ _ h; exact Fin.ext (by simpa using congr_arg Fin.val h)
+  · intro b hb
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hb
+    refine ⟨⟨b.val - k, by omega⟩, ?_, Fin.ext (by simp; omega)⟩
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+    show p ⟨(b.val - k) + k, _⟩
+    have hge : b.val ≥ k := hb.1
+    have heq : b.val - k + k = b.val := by omega
+    have : (⟨b.val - k + k, by omega⟩ : Fin m) = b := Fin.ext heq
+    rw [this]; exact hb.2
+
+set_option maxHeartbeats 800000 in
 theorem satisfiable_prefixes_of_good_cut (G : Tseitin.RegularGraph)
     (labels : Fin G.numVertices → Bool)
     (h_even : (Finset.univ.filter (fun v => labels v = true)).card % 2 = 0)
@@ -322,15 +360,94 @@ theorem satisfiable_prefixes_of_good_cut (G : Tseitin.RegularGraph)
   rw [show S.card = SL.card + SR.card from by rw [h_S_eq, Finset.card_union_of_disjoint h_disj]]
   -- SL.card % 2 = left_parity v (both count left incident true edges)
   -- SL and SR directly relate to left_parity and h_sat
-  -- The combined assignment z splits into left (α) and right (β_right) edges.
-  -- SL counts left incident true edges, SR counts right incident true edges.
-  -- h_sat tells us right parity = modified_target = label XOR left_parity.
-  -- XOR arithmetic: (lp + (label XOR lp)) mod 2 = label.
-  --
-  -- The Fin index reindexing (Fin k ↔ {e : Fin m | e.val < k}, etc.) is
-  -- mechanical but verbose in Lean. The mathematical content is fully
-  -- captured by GF2Satisfiability.lean. We accept this bridge.
-  sorry
+  -- h_sat gives: vertexParity = targetVal(modified_target)
+  have hv := h_sat v
+  -- Unfold AllSatisfied at v
+  simp only [GF2.AllSatisfied, GF2.vertexParity, GF2.targetVal] at hv
+  -- hv: (filter on Fin m_right with src_right/tgt_right incident and β_right true).card % 2
+  --   = if modified_target v then 1 else 0
+
+  -- SR counts the same edges as hv's LHS (same set, just via Fin m instead of Fin m_right)
+  have h_SR_eq_vp : SR.card = (Finset.univ.filter fun e : Fin m_right =>
+      (src_right e = v ∨ tgt_right e = v) ∧ β_right e = true).card := by
+    symm
+    apply Finset.card_bij (fun (e : Fin m_right) _ => (⟨e.val + k, by omega⟩ : Fin G.numEdges))
+    · intro a ha
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and] at ha ⊢
+      simp only [SR]
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+      refine ⟨?_, by omega, ?_⟩
+      · simp only [src_right, tgt_right] at ha; exact ha.1
+      · simp only [z, dif_neg (by omega : ¬ (a.val + k) < k)]; convert ha.2 using 2
+        congr 1; show a.val + k - k = a.val; omega
+    · intro a1 a2 _ _ h; exact Fin.ext (by simpa using congr_arg Fin.val h)
+    · intro b hb
+      simp only [SR, Finset.mem_filter, Finset.mem_univ, true_and] at hb
+      have hge := hb.2.1
+      refine ⟨⟨b.val - k, by omega⟩, ?_, Fin.ext (by show b.val - k + k = b.val; omega)⟩
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+      constructor
+      · simp only [src_right, tgt_right]
+        rcases hb.1 with h | h <;> [left; right] <;>
+          (convert h using 1; congr 1; refine Fin.ext ?_; show b.val - k + k = b.val; omega)
+      · simp only [z, dif_neg (by omega : ¬ b.val < k)] at hb
+        exact hb.2.2
+
+  -- SL counts the same edges as left_parity's filter
+  have h_SL_eq_lp : SL.card = (Finset.univ.filter fun e : Fin k =>
+      (G.edgeSrc ⟨e.val, by omega⟩ = v ∨ G.edgeTgt ⟨e.val, by omega⟩ = v) ∧
+      α e = true).card := by
+    symm
+    apply Finset.card_bij (fun (e : Fin k) _ => (⟨e.val, by omega⟩ : Fin G.numEdges))
+    · intro a ha
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and] at ha ⊢
+      simp only [SL, Finset.mem_filter, Finset.mem_univ, true_and]
+      refine ⟨ha.1, a.isLt, ?_⟩
+      simp only [z, dif_pos a.isLt]; exact ha.2
+    · intro a1 a2 _ _ h; exact Fin.ext (by simpa using congr_arg Fin.val h)
+    · intro b hb
+      simp only [SL, Finset.mem_filter, Finset.mem_univ, true_and] at hb
+      refine ⟨⟨b.val, hb.2.1⟩, ?_, Fin.ext rfl⟩
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+      constructor
+      · exact hb.1
+      · simp only [z, dif_pos hb.2.1] at hb; exact hb.2.2
+
+  -- SL.card % 2 = left_parity v (same filter, same values)
+  have h_SL_lp : SL.card % 2 = left_parity v := by
+    exact congrArg (· % 2) h_SL_eq_lp
+
+  -- SR.card % 2 = hv's LHS % 2
+  -- hv says: hv's LHS % 2 = targetVal(modified_target v)
+  -- So SR.card % 2 = targetVal(modified_target v)
+  have h_SR_tv : SR.card % 2 = (if modified_target v then 1 else 0) := by
+    rw [h_SR_eq_vp]; exact hv
+
+  -- Final: (SL.card + SR.card) % 2 = if labels v then 1 else 0
+  have h_card : S.card = SL.card + SR.card := by
+    rw [h_S_eq, Finset.card_union_of_disjoint h_disj]
+  -- Goal: S.card % 2 = if labels v then 1 else 0
+  -- Use h_card, h_SL_lp, h_SR_tv for XOR arithmetic
+  simp only [modified_target] at h_SR_tv
+  -- S.card = SL.card + SR.card, so (SL.card + SR.card) % 2 = label
+  -- SL.card % 2 = left_parity v, SR.card % 2 = if xor ... then 1 else 0
+  -- Need: (lp + xor(label, lp=1)) % 2 = label
+  -- Rewrite goal using h_card
+  -- We know S.card = SL.card + SR.card (h_card)
+  -- SL.card % 2 = left_parity v (h_SL_lp)
+  -- SR.card % 2 = if modified_target v then 1 else 0 (h_SR_tv)
+  -- modified_target = xor(labels v)(left_parity v = 1)
+  -- Need: S.card % 2 = if labels v then 1 else 0
+  suffices h : (SL.card + SR.card) % 2 = if labels v then 1 else 0 by
+    simp only [h_card] at *; exact h
+  rw [Nat.add_mod, h_SL_lp]
+  -- h_SR_tv : SR.card % 2 = if modified_target v then 1 else 0
+  -- modified_target v = xor (labels v) (left_parity v = 1)
+  -- left_parity v ∈ {0, 1} since it's a card % 2
+  have h_lp_01 : left_parity v = 0 ∨ left_parity v = 1 := Nat.mod_two_eq_zero_or_one _
+  -- Case split on labels v and left_parity v
+  rcases h_lp_01 with hlp | hlp <;> cases h_lab : labels v <;>
+    simp_all [xor, modified_target] <;> omega
 
 /-! ## 3.1. Greedy private edge extraction (PROVED)
 
