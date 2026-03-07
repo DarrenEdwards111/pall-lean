@@ -620,24 +620,111 @@ theorem tseitin_obdd_width (G : Tseitin.RegularGraph)
 
 /-! ## 5. The separation theorem -/
 
+/-- Exponential eventually exceeds polynomial with division:
+    for any K ≥ 1 and C, n^C < 2^(n/K) for large enough n.
+    Standard analysis fact (exp growth dominates poly growth). -/
+
+-- Helper: m^2 + m < 2^m for m ≥ 5
+private theorem sq_add_lt_two_pow : ∀ m : ℕ, 5 ≤ m → m ^ 2 + m < 2 ^ m := by
+  intro m hm
+  induction m with
+  | zero => omega
+  | succ k ih =>
+    by_cases hk5 : 5 ≤ k
+    · have ihk := ih hk5
+      show (k + 1) ^ 2 + (k + 1) < 2 ^ (k + 1)
+      nlinarith [show 2 ^ (k + 1) = 2 * 2 ^ k from by ring]
+    · have : k = 4 := by omega
+      subst this; norm_num
+
+-- Helper: n < 2^(n/A) for large n, any A ≥ 1
+private theorem lt_two_pow_div (A : ℕ) (hA : A ≥ 1) :
+    ∃ n₀, ∀ n, n ≥ n₀ → n < 2 ^ (n / A) := by
+  use A * (A + 5)
+  intro n hn
+  set m := n / A
+  -- m ≥ A + 5 ≥ 6 > 5
+  have hm_lb : m ≥ A + 5 := by
+    have : A * (A + 5) ≤ n := hn
+    have : A * (A + 5) / A ≤ n / A := Nat.div_le_div_right this
+    simp [Nat.mul_div_cancel_left _ (by omega : A > 0)] at this
+    exact this
+  have hm5 : m ≥ 5 := by omega
+  have hmA : m ≥ A + 1 := by omega
+  -- n < A * (m + 1)
+  have hn_le : n < A * (m + 1) := by
+    have : n < A * (n / A + 1) := Nat.lt_mul_div_succ n (by omega : 0 < A)
+    omega
+  -- A * (m + 1) ≤ m^2 since A ≤ m - 1
+  have h_Am : A * (m + 1) ≤ m ^ 2 := by nlinarith
+  -- m^2 ≤ m^2 + m < 2^m
+  have h_sq := sq_add_lt_two_pow m hm5
+  omega
+
+-- Helper: 2*(n/(2K)) ≤ n/K in nat division
+private theorem two_mul_div_two (n K : ℕ) (hK : K ≥ 1) :
+    2 * (n / (2 * K)) ≤ n / K := by
+  have h1 : n / (2 * K) = n / K / 2 := by
+    have : 2 * K = K * 2 := by ring
+    rw [this, ← Nat.div_div_eq_div_mul]
+  rw [h1]
+  have := Nat.div_mul_le_self (n / K) 2  -- n/K/2 * 2 ≤ n/K
+  omega
+
+private theorem exp_exceeds_poly_aux (C : ℕ) :
+    ∀ K, K ≥ 1 → ∃ n₀, ∀ n, n ≥ n₀ → n ^ C < 2 ^ (n / K) := by
+  induction C with
+  | zero =>
+    intro K hK
+    exact ⟨K, fun n hn => by
+      simp only [Nat.pow_zero]
+      have h1 : 1 ≤ n / K := Nat.div_pos (by omega) (by omega)
+      calc (1 : ℕ) < 2 ^ 1 := by norm_num
+        _ ≤ 2 ^ (n / K) := Nat.pow_le_pow_right (by norm_num) h1⟩
+  | succ C ih =>
+    intro K hK
+    obtain ⟨m₀, hm₀⟩ := ih (2 * K) (by omega)
+    obtain ⟨n₁, hn₁⟩ := lt_two_pow_div (2 * K) (by omega)
+    exact ⟨max m₀ n₁, fun n hn => by
+      have hC : n ^ C < 2 ^ (n / (2 * K)) := hm₀ n (by omega)
+      have hN : n < 2 ^ (n / (2 * K)) := hn₁ n (by omega)
+      have h2K : 2 * (n / (2 * K)) ≤ n / K := two_mul_div_two n K hK
+      calc n ^ (C + 1) = n * n ^ C := by ring
+        _ < 2 ^ (n / (2 * K)) * 2 ^ (n / (2 * K)) := by nlinarith
+        _ = 2 ^ (n / (2 * K) + n / (2 * K)) := by rw [← pow_add]
+        _ = 2 ^ (2 * (n / (2 * K))) := by ring_nf
+        _ ≤ 2 ^ (n / K) := Nat.pow_le_pow_right (by norm_num) h2K⟩
+
+theorem exp_exceeds_poly (K C : ℕ) (hK : K ≥ 1) :
+    ∃ n₀, ∀ n, n ≥ n₀ → n ^ C < 2 ^ (n / K) :=
+  exp_exceeds_poly_aux C K hK
+
+
 /-- **Corollary**: No polynomial-width OBDD computes Tseitin on expanders.
 
-    For any polynomial bound n^C, for large enough expanders,
-    2^(n/(2d)) > n^C, so no poly-width OBDD suffices. -/
-theorem tseitin_not_poly_obdd :
+    For a fixed degree d and any polynomial bound n^C, for large enough
+    d-regular expanders, 2^(n/(2d)) > n^C, so no poly-width OBDD suffices. -/
+theorem tseitin_not_poly_obdd (d : ℕ) (hd : d ≥ 1) :
     ∀ C : ℕ,
     ∃ n₀ : ℕ, ∀ (G : Tseitin.RegularGraph),
+      G.degree = d →
       G.numVertices ≥ n₀ →
-      G.numVertices ≥ 2 * G.degree + 1 →
+      G.numVertices ≥ 2 * d + 1 →
       ∀ (labels : Fin G.numVertices → Bool)
         (h_even : (Finset.univ.filter (fun v => labels v = true)).card % 2 = 0)
         (B : OBDD G.numEdges)
         (h_comp : B.computes = tseitinSubsetSAT G labels),
       ∃ k, B.width k > G.numVertices ^ C := by
   intro C
-  -- For large enough n, 2^(n/(2d)) > n^C.
-  -- This follows from tseitin_obdd_width + standard exp > poly.
-  sorry
+  obtain ⟨n₀, hn₀⟩ := exp_exceeds_poly (2 * d) C (by omega)
+  refine ⟨n₀, fun G hd_eq hn hn_deg labels h_even B h_comp => ?_⟩
+  have h_deg : G.numVertices ≥ 2 * G.degree + 1 := by omega
+  obtain ⟨k, hk⟩ := tseitin_obdd_width G labels h_deg h_even B h_comp
+  use k
+  calc G.numVertices ^ C
+      < 2 ^ (G.numVertices / (2 * d)) := hn₀ _ hn
+      _ = 2 ^ (G.numVertices / (2 * G.degree)) := by rw [hd_eq]
+      _ ≤ B.width k := hk
 
 /-! ## Status
 
