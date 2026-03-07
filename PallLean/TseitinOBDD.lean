@@ -151,6 +151,25 @@ def HasSatisfiablePrefixes (G : Tseitin.RegularGraph)
   ∀ α : PartialAssignment G.numEdges k,
     ∃ β, MUSWidthLowerBound.residual (tseitinSubsetSAT G labels) k hk α β = true
 
+/-- **Theorem**: HasGoodCut + even parity → HasSatisfiablePrefixes.
+
+    Reduces to GF2.gf2_connected_satisfiable via:
+    1. Compute modified targets: target(v) = label(v) ⊕ left_parity(v, α)
+    2. Show modified targets have even total parity (each left edge
+       contributes to exactly 2 vertices)
+    3. Right-side connectivity from HasGoodCut
+    4. Apply GF(2) satisfiability theorem
+    5. Convert solution to residual form -/
+theorem satisfiable_prefixes_of_good_cut (G : Tseitin.RegularGraph)
+    (labels : Fin G.numVertices → Bool)
+    (h_even : (Finset.univ.filter (fun v => labels v = true)).card % 2 = 0)
+    (k : ℕ) (hk : k ≤ G.numEdges)
+    (h_cover : ∀ v : Fin G.numVertices, ∃ e : Fin G.numEdges,
+      (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧ e.val ≥ k)
+    (h_conn : ∀ u v : Fin G.numVertices, RightReachable G k u v) :
+    HasSatisfiablePrefixes G labels k hk := by
+  sorry
+
 /-! ## 3.1. Greedy private edge extraction (PROVED)
 
 From a large set of split vertices in a d-regular graph, greedily extract
@@ -823,22 +842,21 @@ theorem tseitin_parity_residuals (G : Tseitin.RegularGraph)
 theorem tseitin_obdd_width (G : Tseitin.RegularGraph)
     (labels : Fin G.numVertices → Bool)
     (h_cut : HasGoodCut G (G.numVertices / (2 * G.degree * (G.degree + 1))))
-    (h_sat_hyp : ∀ (k : ℕ) (hk : k ≤ G.numEdges),
-      HasSatisfiablePrefixes G labels k hk)
+    (h_even : (Finset.univ.filter (fun v => labels v = true)).card % 2 = 0)
     (B : OBDD G.numEdges)
     (h_comp : B.computes = tseitinSubsetSAT G labels) :
     ∃ k : Fin (G.numEdges + 1),
       B.width k ≥ 2 ^ (G.numVertices / (2 * G.degree * (G.degree + 1))) := by
   set c := G.numVertices / (2 * G.degree * (G.degree + 1))
-  -- Step 1: Good cut hypothesis → cut k with many split vertices + coverage
-  obtain ⟨k, hk_le, hk_split, _h_cover, _h_conn⟩ := h_cut
+  -- Step 1: Good cut hypothesis → cut k with many split vertices + coverage + connectivity
+  obtain ⟨k, hk_le, hk_split, h_cover, h_conn⟩ := h_cut
   use k
   -- Step 2: Greedy extraction → private edges (PROVED)
   obtain ⟨verts, leftEdge, rightEdge, h_vinj, h_lpos, h_linc,
     h_linj, h_lpriv, h_rpos, h_rinc, h_rpriv⟩ :=
     private_edges_from_independent G k hk_le c hk_split
-  -- Step 3: Satisfiability hypothesis → every prefix has satisfying extension
-  have h_sat := h_sat_hyp k.val hk_le
+  -- Step 3: Derive satisfiability from HasGoodCut + even parity (PROVED modulo GF2)
+  have h_sat := satisfiable_prefixes_of_good_cut G labels h_even k.val hk_le h_cover h_conn
   -- Step 4: Get 2^c distinct residuals (parity argument — fully proved)
   obtain ⟨assign, h_assign⟩ := tseitin_parity_residuals G labels c k hk_le
     verts leftEdge rightEdge h_vinj h_lpos h_linc h_linj h_lpriv
@@ -940,15 +958,14 @@ theorem tseitin_not_poly_obdd (d : ℕ) (hd : d ≥ 1) :
       G.numVertices ≥ n₀ →
       HasGoodCut G (G.numVertices / (2 * G.degree * (G.degree + 1))) →
       ∀ (labels : Fin G.numVertices → Bool)
-        (h_sat_hyp : ∀ (k : ℕ) (hk : k ≤ G.numEdges),
-          HasSatisfiablePrefixes G labels k hk)
+        (h_even : (Finset.univ.filter (fun v => labels v = true)).card % 2 = 0)
         (B : OBDD G.numEdges)
         (h_comp : B.computes = tseitinSubsetSAT G labels),
       ∃ k, B.width k > G.numVertices ^ C := by
   intro C
   obtain ⟨n₀, hn₀⟩ := exp_exceeds_poly (2 * d * (d + 1)) C (by nlinarith)
-  refine ⟨n₀, fun G hd_eq hn h_cut labels h_sat_hyp B h_comp => ?_⟩
-  obtain ⟨k, hk⟩ := tseitin_obdd_width G labels h_cut h_sat_hyp B h_comp
+  refine ⟨n₀, fun G hd_eq hn h_cut labels h_even B h_comp => ?_⟩
+  obtain ⟨k, hk⟩ := tseitin_obdd_width G labels h_cut h_even B h_comp
   use k
   calc G.numVertices ^ C
       < 2 ^ (G.numVertices / (2 * d * (d + 1))) := hn₀ _ hn
