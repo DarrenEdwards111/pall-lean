@@ -319,4 +319,112 @@ theorem leftTouched_card (G : Tseitin.RegularGraph) (k : ℕ) :
 -- For the final instantiation, the user provides a concrete graph family
 -- (e.g., Ramanujan graphs) and verifies the split vertex count directly.
 
+/-! ## Untouched vertex bound from regularity -/
+
+-- Each untouched vertex has all d edges with index ≥ k.
+-- Total edge-endpoint count from untouched: d · |untouched|.
+-- Each right edge (index ≥ k) contributes ≤ 2 endpoint counts.
+-- So d · |untouched| ≤ 2(m - k).
+theorem untouched_bound (G : Tseitin.RegularGraph) (k : ℕ) (hk : k ≤ G.numEdges) :
+    G.degree * (untouched G k).card ≤ 2 * (G.numEdges - k) := by
+  -- Count: each untouched vertex contributes d to the sum
+  -- ∑_{v ∈ untouched} d = d · |untouched|
+  -- Each right edge e (e.val ≥ k) contributes to ≤ 2 terms (src and tgt)
+  -- So the sum ≤ 2 · |right edges| = 2(m - k)
+  --
+  -- Formally: define the sum as ∑_{v ∈ untouched} |{e | e incident to v}|
+  -- Each e with e.val ≥ k appears in ≤ 2 terms. Each e with e.val < k
+  -- appears in 0 terms (untouched vertices have no left edges).
+  -- So the sum counts each right edge ≤ 2 times.
+  sorry
+
+-- Lower bound on leftTouched from regularity
+theorem leftTouched_lower (G : Tseitin.RegularGraph) (k : ℕ) (hk : k ≤ G.numEdges) :
+    (leftTouched G k).card ≥ G.numVertices - 2 * (G.numEdges - k) / G.degree := by
+  rw [leftTouched_card]
+  have h_ut := untouched_bound G k hk
+  have hd := G.degree_lower
+  have hd_pos : G.degree > 0 := by omega
+  have h_div : (untouched G k).card ≤ 2 * (G.numEdges - k) / G.degree :=
+    Nat.le_div_iff_mul_le hd_pos |>.mpr (by linarith)
+  omega
+
+-- Coverage from regularity: if k < d, every vertex has ≥ d-k ≥ 1 right edge.
+-- Actually: if k < m - 0, we need a different argument.
+-- The clean version: a vertex with all d edges < k requires d ≤ k edges in [0,k).
+-- So if a vertex is untouched, it contributes 0 left-edge endpoints.
+-- For coverage: vertex v has d edges. If ALL have index < k, then v ∉ rightTouched.
+-- Contrapositive: if v has d edges and k < d edges are available on the left,
+-- then not all d edges fit → v has ≥ 1 right edge.
+-- But edges are shared, so "k edges available" doesn't mean each vertex uses ≤ k.
+-- Correct: vertex v is covered (has right edge) iff ∃ e incident to v with e.val ≥ k.
+-- v is NOT covered iff all d edges of v have index < k.
+-- The d edges of v are distinct, so we need d of the m edges to have index < k.
+-- Since there are exactly k edges with index < k (namely 0,..,k-1),
+-- v is not covered iff all d edges incident to v are among {0,..,k-1}.
+
+-- Coverage when k ≤ m - d: there exist ≥ d right-side edges, but they might
+-- not cover every vertex. We need regularity + connectivity.
+
+-- Actually, the simplest coverage argument: if the graph is connected and
+-- we use a spanning-tree-last ordering (tree edges at positions m-n+1..m-1),
+-- then at any k ≤ m-n+1, the right side includes the full spanning tree,
+-- giving coverage + connectivity automatically.
+
+-- For a general ordering: coverage at k requires that no vertex has all
+-- its edges in {0,..,k-1}. This is guaranteed when k ≤ m - n + 1
+-- by pigeonhole? No — k edges could cover all n vertices.
+
+-- The rigorous coverage statement from regularity:
+-- If untouched G k is empty, then every vertex has a right edge.
+-- leftOnly: vertices with ALL edges having index < k (no right edge)
+def leftOnly (G : Tseitin.RegularGraph) (k : ℕ) : Finset (Fin G.numVertices) :=
+  univ.filter fun v => ∀ e : Fin G.numEdges,
+    (G.edgeSrc e = v ∨ G.edgeTgt e = v) → e.val < k
+
+-- Coverage holds when no vertex has all edges on the left
+theorem coverage_from_no_leftOnly (G : Tseitin.RegularGraph) (k : ℕ)
+    (h_empty : leftOnly G k = ∅) :
+    ∀ v : Fin G.numVertices, ∃ e : Fin G.numEdges,
+      (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧ e.val ≥ k := by
+  intro v
+  by_contra h
+  push_neg at h
+  have hv : v ∈ leftOnly G k := by
+    simp only [leftOnly, mem_filter, mem_univ, true_and]
+    intro e he; exact h e he
+  rw [h_empty] at hv; simp at hv
+
+/-! ## End-to-end theorem for d-regular ε-edge-expanders -/
+
+-- **Conditional end-to-end**: If a d-regular ε-edge-expander graph
+-- (with ε ≥ 1) has an edge ordering where at some cut k < ε with
+-- coverage and enough split vertices, then OBDD width ≥ 2^c.
+theorem expander_family_obdd_lower_bound
+    (G : Tseitin.RegularGraph) (d : ℕ) (hd : d ≥ 1) (hd_eq : G.degree = d)
+    (ε : ℕ) (hε : ε ≥ 1)
+    (h_expand : IsEdgeExpander G ε)
+    (h_full_conn : ∀ u v, RightReachable G 0 u v)
+    (hn : G.numVertices ≥ 2)
+    (h_no_self : ∀ e : Fin G.numEdges, G.edgeSrc e ≠ G.edgeTgt e)
+    -- Graph-specific: a cut point with split vertices + coverage
+    (k : Fin (G.numEdges + 1)) (hk : k.val ≤ G.numEdges)
+    (hk_small : k.val < ε)
+    (h_split : (splitVertices G (Equiv.refl _) k).card ≥
+      (G.degree + 1) * (G.numVertices / (2 * G.degree * (G.degree + 1))))
+    (h_cover : ∀ v, ∃ e : Fin G.numEdges,
+      (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧ e.val ≥ k.val)
+    -- Labels with even parity
+    (labels : Fin G.numVertices → Bool)
+    (h_even : (Finset.univ.filter (fun v => labels v = true)).card % 2 = 0)
+    -- Any OBDD computing Tseitin
+    (B : MUSWidthLowerBound.OBDD G.numEdges)
+    (h_comp : B.computes = tseitinSubsetSAT G labels) :
+    ∃ kk : Fin (G.numEdges + 1),
+      B.width kk ≥ 2 ^ (G.numVertices / (2 * G.degree * (G.degree + 1))) := by
+  have h_good := expander_has_good_cut G
+    (G.numVertices / (2 * G.degree * (G.degree + 1)))
+    ε hε h_expand h_full_conn hn k hk hk_small h_split h_cover
+  exact tseitin_obdd_width G labels h_good h_even h_no_self B h_comp
+
 end TseitinOBDD
