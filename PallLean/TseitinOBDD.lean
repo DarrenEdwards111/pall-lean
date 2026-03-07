@@ -308,32 +308,54 @@ theorem tseitin_parity_residuals (G : Tseitin.RegularGraph)
             (Nat.pow_le_pow_right (by omega) (by omega))),
           Nat.testBit_eq_false_of_lt (Nat.lt_of_lt_of_le a₂.isLt
             (Nat.pow_le_pow_right (by omega) (by omega)))]
-  -- The residual functions differ because mkAssign a₁ and mkAssign a₂
-  -- differ at leftEdge(idx), which changes the parity at verts(idx).
-  -- Using the private right edge to construct a distinguishing suffix.
+  -- Unfold residual: need to show the FUNCTIONS are different,
+  -- i.e., ∃ β, residual ... (mkAssign a₁) β ≠ residual ... (mkAssign a₂) β
+  intro h_eq  -- assume residuals are equal, derive contradiction
+  -- Evaluate both residuals at the same β: only rightEdge(idx) is true
+  let β₀ : PartialAssignment G.numEdges (G.numEdges - k.val) :=
+    fun pos => decide ((rightEdge idx).val = pos.val + k.val)
+  -- Apply the equal-residual assumption at β₀
+  have h_eval := congr_fun h_eq β₀
+  -- The residuals at β₀ are:
+  -- tseitinSubsetSAT G labels (fun i => if i.val < k then mkAssign aⱼ ... else β₀ ...)
+  -- These are `decide (∀ v, filter_count % 2 = label_bit)`.
   --
-  -- This step requires:
-  -- (1) Unfolding `residual` to get `fun β => tseitinSubsetSAT G labels (concat α β)`
-  -- (2) Constructing suffix β₀ that includes only rightEdge(idx)
-  -- (3) Showing the parity at verts(idx) flips while all others are unchanged
+  -- The two concatenated inputs differ only at leftEdge(idx), changing
+  -- the parity at verts(idx). This makes the decide values different.
   --
-  -- The parity flip follows because:
-  -- - leftEdge(idx) is the ONLY edge of verts(idx) that differs between a₁ and a₂
-  --   (other left edges of verts(idx) get the same value: false)
-  -- - rightEdge(idx) is included, contributing 1 to the filter count
-  -- - So filter_count(verts(idx), concat α₁ β₀) and
-  --        filter_count(verts(idx), concat α₂ β₀) differ by exactly 1
-  -- - Their parities mod 2 are different
+  -- PROOF STRATEGY: Instead of unfolding residual + tseitinSubsetSAT
+  -- through 5 layers, we factor through and_xor_residuals_injective
+  -- which already handles the parity logic.
   --
-  -- All other vertices v ≠ verts(idx):
-  -- - leftEdge(idx) may or may not be incident to v
-  -- - rightEdge(idx) is NOT incident to v (privacy: h_right_priv)
-  -- - If leftEdge(idx) is incident to v, it changes v's parity too,
-  --   but we only need ONE vertex where parities differ
+  -- The connection: the residual of tseitinSubsetSAT at a prefix α
+  -- depends on α ONLY through the vector of left-parities at each vertex.
+  -- Two prefixes with different left-parity at verts(idx) give different
+  -- residuals because rightEdge(idx) can distinguish them.
+  -- This is exactly and_xor_residuals_injective applied to the c split vertices.
   --
-  -- This is the concrete connection between and_xor_residuals_injective
-  -- and the graph structure. Formally requires ~50 lines of Finset.filter
-  -- cardinality manipulation.
+  -- Formalizing this connection requires showing that tseitinSubsetSAT
+  -- decomposes as a product of per-vertex parity checks — which is its
+  -- definition (∀ v, ...).  The formal proof is straightforward but
+  -- requires careful Finset.filter manipulation across the residual
+  -- concatenation boundary.
+  -- Need: residual ... (mkAssign a₁) ≠ residual ... (mkAssign a₂)
+  -- We have h_eq saying they ARE equal. Derive contradiction by
+  -- evaluating at β₀ and showing tseitinSubsetSAT gives different values.
+  --
+  -- Step 1: The concatenated inputs z₁, z₂ agree everywhere except leftEdge(idx)
+  -- Step 2: At verts(idx), filter counts differ by 1 (filter_card_flip_edge)
+  -- Step 3: Parities mod 2 differ, so decide(∀ v, ...) differs
+  --
+  -- The formal connection requires showing:
+  -- (a) leftEdge(idx) is the ONLY left-side difference
+  --     (mkAssign only sets leftEdge values based on testBit)
+  -- (b) The parity at verts(idx) depends on leftEdge(idx)
+  --     (it's incident: h_left_inc idx)
+  -- (c) The parity is observed differently in the ∀ v
+  --     (verts(idx) witnesses the difference)
+  --
+  -- Remaining sorry: ~30 lines of Finset.filter / dite manipulation
+  -- to connect residual-concatenation to tseitinSubsetSAT-filter-count.
   sorry
 
 theorem tseitin_obdd_width (G : Tseitin.RegularGraph)
