@@ -79,6 +79,8 @@ def NotInPolyOBDD (F : FunctionFamily) : Prop :=
     
     We parameterize by the graph family (a sequence of expander graphs). -/
 structure ExpanderFamily where
+  /-- Common degree for the family -/
+  d : ℕ
   /-- Graph at size n -/
   graph : ℕ → Tseitin.RegularGraph
   /-- Labels at size n -/
@@ -87,6 +89,12 @@ structure ExpanderFamily where
   even_parity : ∀ n, (univ.filter (fun v => (labels n) v = true)).card % 2 = 0
   /-- The graph has n vertices -/
   vertex_count : ∀ n, (graph n).numVertices = n
+  /-- Fixed degree -/
+  degree_eq : ∀ n, (graph n).degree = d
+  /-- Degree ≥ 1 -/
+  degree_pos : d ≥ 1
+  /-- No self-loops -/
+  no_self_loops : ∀ n e, (graph n).edgeSrc e ≠ (graph n).edgeTgt e
   /-- Good cut exists with c = Ω(n/d²) split vertices -/
   has_good_cut : ∀ n, n ≥ 5 →
     TseitinOBDD.HasGoodCut (graph n) (n / (2 * (graph n).degree * ((graph n).degree + 1)))
@@ -110,7 +118,22 @@ theorem tseitin_not_in_poly_obdd (E : ExpanderFamily) :
   -- width > n^C at some level.
   --
   -- Our expander family provides this via HasGoodCut.
-  sorry -- Assembly: connect ExpanderFamily hypotheses to tseitin_not_poly_obdd
+  -- Get n₀ from tseitin_not_poly_obdd for degree d
+  obtain ⟨n₀, hn₀⟩ := TseitinOBDD.tseitin_not_poly_obdd E.d E.degree_pos C
+  -- Use max(n₀, 5) to ensure both the OBDD bound and HasGoodCut apply
+  refine ⟨max n₀ 5, fun n hn => ?_⟩
+  intro B hB_comp
+  -- Apply the main theorem to E.graph n
+  have h_nv : (E.graph n).numVertices = n := E.vertex_count n
+  have h_deg : (E.graph n).degree = E.d := E.degree_eq n
+  have h_n₀ : (E.graph n).numVertices ≥ n₀ := by rw [h_nv]; omega
+  have h_cut : TseitinOBDD.HasGoodCut (E.graph n)
+      ((E.graph n).numVertices / (2 * (E.graph n).degree * ((E.graph n).degree + 1))) := by
+    rw [h_nv]; exact E.has_good_cut n (by omega)
+  have h_even := E.even_parity n
+  have h_no_self := E.no_self_loops n
+  obtain ⟨k, hk⟩ := hn₀ (E.graph n) h_deg h_n₀ h_cut h_no_self (E.labels n) h_even B hB_comp
+  exact ⟨k, by rw [h_nv] at hk; exact hk⟩
 
 /-! ## 5. The Conditional P ≠ NP Statement -/
 
