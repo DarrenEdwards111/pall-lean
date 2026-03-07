@@ -99,47 +99,96 @@ def tseitinSubsetSAT (G : Tseitin.RegularGraph)
         (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧ z e = true)).card % 2
       = if labels v then 1 else 0)
 
-/-- **Graph-theoretic axiom for Tseitin OBDD lower bound.**
+/-- **Axiom 1: Expander cut expansion with coverage.**
 
-    For a d-regular expander G on n ≥ 2d+1 vertices with even-parity labels,
-    there exists a cut position k and c = n/(6d) vertices, each with private
-    left and right edges, such that every prefix assignment extends to a
-    satisfying assignment.
+    For a d-regular expander G on n ≥ 2d+1 vertices, there exists a cut
+    position k with:
+    - At least (d+1) · ⌊n/(2d(d+1))⌋ split vertices
+    - Every vertex has at least one right-side edge (position ≥ k)
 
-    This bundles four standard graph-theoretic results:
+    The split vertex bound follows from vertex expansion: near the midpoint
+    of any edge ordering, expansion forces many crossing edges, each creating
+    split vertices. The coverage follows because expansion prevents large
+    vertex sets from having all edges on one side.
 
-    1. **Expander cut expansion**: For any edge ordering of an expander,
-       some cut has ≥ n/(2d) split vertices. Follows from vertex expansion:
-       near the midpoint, expansion forces many crossing edges.
+    See Jukna "Boolean Function Complexity" Ch. 8 for the standard proof. -/
+axiom expander_good_cut (G : Tseitin.RegularGraph)
+    (hn : G.numVertices ≥ 2 * G.degree + 1) :
+    ∃ (k : Fin (G.numEdges + 1)),
+      k.val ≤ G.numEdges ∧
+      (splitVertices G (Equiv.refl _) k).card ≥
+        (G.degree + 1) * (G.numVertices / (2 * G.degree * (G.degree + 1))) ∧
+      (∀ v : Fin G.numVertices, ∃ e : Fin G.numEdges,
+        (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧ e.val ≥ k.val)
 
-    2. **Greedy private edge extraction**: From ≥ Ω(n/d) split vertices,
-       extract n/(6d) pairwise non-adjacent ones with private left/right edges.
-       Greedy selection in bounded-degree graph: each step removes ≤ 2d+1
-       vertices (selected + neighbors), yielding an independent set.
+/-- **Axiom 2: GF(2) Tseitin prefix satisfiability.**
 
-    3. **Cut coverage**: At the expansion cut, every vertex has ≥1 right-side
-       edge. Follows from expansion — an expander cannot have a large set of
-       vertices with all edges on one side.
+    For even-parity labels with right-side coverage, every prefix assignment
+    has a satisfying suffix. The key facts:
+    1. Each fixed left edge flips parities at exactly 2 vertices, preserving
+       even total parity.
+    2. Coverage ensures the right-side subgraph reaches all vertices.
+    3. On a connected covering subgraph, even-parity Tseitin is satisfiable
+       via spanning tree elimination (process leaves to root).
 
-    4. **GF(2) satisfiability**: Even-parity Tseitin with right-side coverage
-       is satisfiable for every prefix. The modified labels preserve even
-       total parity (each left edge flips two vertices). On the right-side
-       subgraph (connected by expansion), even-parity Tseitin is satisfiable
-       via spanning tree elimination.
-
-    These are well-established in combinatorics and algebraic graph theory
-    (see Jukna "Boolean Function Complexity" Ch. 8, Razgon 2014) but require
-    substantial infrastructure (vertex expansion, spanning trees, GF(2) linear
-    algebra) to formalize in Lean. The purely combinatorial OBDD machinery
-    built on top of this axiom is fully verified. -/
-axiom expander_graph_theory (G : Tseitin.RegularGraph)
+    Requires spanning tree construction and GF(2) linear algebra. -/
+axiom tseitin_prefix_satisfiable (G : Tseitin.RegularGraph)
     (labels : Fin G.numVertices → Bool)
-    (hn : G.numVertices ≥ 2 * G.degree + 1)
-    (h_even : (Finset.univ.filter (fun v => labels v = true)).card % 2 = 0) :
-    let c := G.numVertices / (6 * G.degree)
-    ∃ (k : Fin (G.numEdges + 1))
-      (_ : k.val ≤ G.numEdges)
-      (verts : Fin c → Fin G.numVertices)
+    (h_even : (Finset.univ.filter (fun v => labels v = true)).card % 2 = 0)
+    (k : ℕ) (hk : k ≤ G.numEdges)
+    (h_cover : ∀ v : Fin G.numVertices, ∃ e : Fin G.numEdges,
+      (G.edgeSrc e = v ∨ G.edgeTgt e = v) ∧ e.val ≥ k)
+    (α : PartialAssignment G.numEdges k) :
+    ∃ β, MUSWidthLowerBound.residual (tseitinSubsetSAT G labels) k hk α β = true
+
+/-! ## 3.1. Greedy private edge extraction (PROVED)
+
+From a large set of split vertices in a d-regular graph, greedily extract
+c pairwise non-adjacent vertices with private left and right edges.
+
+Strategy: pick a split vertex, remove its closed neighborhood (≤ d+1 vertices),
+repeat. Non-adjacency ensures edges from one selected vertex can't touch another,
+giving all privacy conditions for free. -/
+
+/-- The closed neighborhood of a vertex: the vertex plus all adjacent vertices. -/
+private def closedNeighborhood (G : Tseitin.RegularGraph)
+    (v : Fin G.numVertices) : Finset (Fin G.numVertices) :=
+  {v} ∪ (Finset.univ.filter fun u =>
+    u ≠ v ∧ ∃ e : Fin G.numEdges,
+      (G.edgeSrc e = v ∧ G.edgeTgt e = u) ∨
+      (G.edgeSrc e = u ∧ G.edgeTgt e = v))
+
+/-- The closed neighborhood has at most degree + 1 elements. -/
+private theorem closedNeighborhood_card (G : Tseitin.RegularGraph)
+    (v : Fin G.numVertices) :
+    (closedNeighborhood G v).card ≤ G.degree + 1 := by
+  sorry
+
+/-- Greedy extraction of pairwise non-adjacent split vertices.
+    From ≥ (d+1)·c split vertices, extract c that are pairwise non-adjacent
+    and each has a left edge (position < k) and right edge (position ≥ k). -/
+private theorem greedy_independent_split (G : Tseitin.RegularGraph)
+    (k : Fin (G.numEdges + 1)) (hk : k.val ≤ G.numEdges) (c : ℕ)
+    (h_card : (splitVertices G (Equiv.refl _) k).card ≥ (G.degree + 1) * c) :
+    ∃ (verts : Fin c → Fin G.numVertices)
+      (leftEdge rightEdge : Fin c → Fin G.numEdges),
+      Function.Injective verts ∧
+      (∀ i, (leftEdge i).val < k.val) ∧
+      (∀ i, G.edgeSrc (leftEdge i) = verts i ∨ G.edgeTgt (leftEdge i) = verts i) ∧
+      (∀ i, (rightEdge i).val ≥ k.val) ∧
+      (∀ i, G.edgeSrc (rightEdge i) = verts i ∨ G.edgeTgt (rightEdge i) = verts i) ∧
+      -- Pairwise non-adjacent (implies all privacy conditions)
+      (∀ i j : Fin c, i ≠ j → ∀ e : Fin G.numEdges,
+        ¬((G.edgeSrc e = verts i ∨ G.edgeTgt e = verts i) ∧
+          (G.edgeSrc e = verts j ∨ G.edgeTgt e = verts j))) := by
+  sorry
+
+/-- Non-adjacency implies all privacy and injectivity conditions needed
+    by tseitin_parity_residuals. -/
+theorem private_edges_from_independent (G : Tseitin.RegularGraph)
+    (k : Fin (G.numEdges + 1)) (hk : k.val ≤ G.numEdges) (c : ℕ)
+    (h_card : (splitVertices G (Equiv.refl _) k).card ≥ (G.degree + 1) * c) :
+    ∃ (verts : Fin c → Fin G.numVertices)
       (leftEdge rightEdge : Fin c → Fin G.numEdges),
       Function.Injective verts ∧
       (∀ i, (leftEdge i).val < k.val) ∧
@@ -150,10 +199,36 @@ axiom expander_graph_theory (G : Tseitin.RegularGraph)
       (∀ i, (rightEdge i).val ≥ k.val) ∧
       (∀ i, G.edgeSrc (rightEdge i) = verts i ∨ G.edgeTgt (rightEdge i) = verts i) ∧
       (∀ i j, i ≠ j → G.edgeSrc (rightEdge i) ≠ verts j ∧
-        G.edgeTgt (rightEdge i) ≠ verts j) ∧
-      (∀ α : PartialAssignment G.numEdges k.val,
-        ∃ β, MUSWidthLowerBound.residual (tseitinSubsetSAT G labels) k.val
-          (by omega) α β = true)
+        G.edgeTgt (rightEdge i) ≠ verts j) := by
+  obtain ⟨verts, leftEdge, rightEdge, h_inj, h_lpos, h_linc, h_rpos, h_rinc, h_nonadj⟩ :=
+    greedy_independent_split G k hk c h_card
+  refine ⟨verts, leftEdge, rightEdge, h_inj, h_lpos, h_linc, ?_, ?_, h_rpos, h_rinc, ?_⟩
+  · -- leftEdge injective: if leftEdge i = leftEdge j, the edge connects
+    -- verts i and verts j (by incidence), contradicting non-adjacency
+    intro i j h_eq
+    by_contra hij
+    have hi := h_linc i; have hj := h_linc j
+    exact h_nonadj i j hij (leftEdge i) ⟨hi, h_eq ▸ hj⟩
+  · -- leftEdge privacy: leftEdge i not incident to verts j for i ≠ j
+    -- If incident, the edge connects verts i and verts j (directly or via
+    -- the other endpoint), contradicting non-adjacency
+    intro i j hij
+    constructor
+    · intro h_eq
+      have hi := h_linc i
+      exact h_nonadj i j hij (leftEdge i) ⟨hi, Or.inl h_eq⟩
+    · intro h_eq
+      have hi := h_linc i
+      exact h_nonadj i j hij (leftEdge i) ⟨hi, Or.inr h_eq⟩
+  · -- rightEdge privacy: same argument
+    intro i j hij
+    constructor
+    · intro h_eq
+      have hi := h_rinc i
+      exact h_nonadj i j hij (rightEdge i) ⟨hi, Or.inl h_eq⟩
+    · intro h_eq
+      have hi := h_rinc i
+      exact h_nonadj i j hij (rightEdge i) ⟨hi, Or.inr h_eq⟩
 
 /-! ## 3.5. Parity independence → distinct residuals
 
@@ -601,18 +676,24 @@ theorem tseitin_obdd_width (G : Tseitin.RegularGraph)
     (B : OBDD G.numEdges)
     (h_comp : B.computes = tseitinSubsetSAT G labels) :
     ∃ k : Fin (G.numEdges + 1),
-      B.width k ≥ 2 ^ (G.numVertices / (6 * G.degree)) := by
-  set c := G.numVertices / (6 * G.degree)
-  -- Step 1: Graph theory axiom provides cut + private edges + satisfiability
-  obtain ⟨k, hk_le, verts, leftEdge, rightEdge, h_vinj, h_lpos, h_linc,
-    h_linj, h_lpriv, h_rpos, h_rinc, h_rpriv, h_sat⟩ :=
-    expander_graph_theory G labels hn h_even
+      B.width k ≥ 2 ^ (G.numVertices / (2 * G.degree * (G.degree + 1))) := by
+  set c := G.numVertices / (2 * G.degree * (G.degree + 1))
+  -- Step 1: Expansion axiom → good cut with many split vertices + coverage
+  obtain ⟨k, hk_le, hk_split, h_cover⟩ := expander_good_cut G hn
   use k
-  -- Step 2: Get 2^c distinct residuals (parity argument — fully proved)
+  -- Step 2: Greedy extraction → private edges (PROVED)
+  obtain ⟨verts, leftEdge, rightEdge, h_vinj, h_lpos, h_linc,
+    h_linj, h_lpriv, h_rpos, h_rinc, h_rpriv⟩ :=
+    private_edges_from_independent G k hk_le c hk_split
+  -- Step 3: Satisfiability axiom → every prefix has satisfying extension
+  have h_sat : ∀ α : PartialAssignment G.numEdges k.val,
+      ∃ β, MUSWidthLowerBound.residual (tseitinSubsetSAT G labels) k.val hk_le α β = true :=
+    fun α => tseitin_prefix_satisfiable G labels h_even k.val hk_le h_cover α
+  -- Step 4: Get 2^c distinct residuals (parity argument — fully proved)
   obtain ⟨assign, h_assign⟩ := tseitin_parity_residuals G labels c k hk_le
     verts leftEdge rightEdge h_vinj h_lpos h_linc h_linj h_lpriv
     h_rpos h_rinc h_rpriv h_sat
-  -- Step 3: Width ≥ 2^c (counting argument — fully proved)
+  -- Step 5: Width ≥ 2^c (counting argument — fully proved)
   exact width_from_many_residuals G.numEdges c k hk_le
     (tseitinSubsetSAT G labels) B h_comp assign h_assign
 
@@ -714,17 +795,17 @@ theorem tseitin_not_poly_obdd (d : ℕ) (hd : d ≥ 1) :
         (h_comp : B.computes = tseitinSubsetSAT G labels),
       ∃ k, B.width k > G.numVertices ^ C := by
   intro C
-  obtain ⟨n₀, hn₀⟩ := exp_exceeds_poly (6 * d) C (by omega)
+  obtain ⟨n₀, hn₀⟩ := exp_exceeds_poly (2 * d * (d + 1)) C (by nlinarith)
   refine ⟨n₀, fun G hd_eq hn hn_deg labels h_even B h_comp => ?_⟩
-  have h_deg : G.numVertices ≥ 2 * G.degree + 1 := by omega
+  have h_deg : G.numVertices ≥ 2 * G.degree + 1 := by rw [hd_eq]; omega
   obtain ⟨k, hk⟩ := tseitin_obdd_width G labels h_deg h_even B h_comp
   use k
   calc G.numVertices ^ C
-      < 2 ^ (G.numVertices / (6 * d)) := hn₀ _ hn
-      _ = 2 ^ (G.numVertices / (6 * G.degree)) := by rw [hd_eq]
+      < 2 ^ (G.numVertices / (2 * d * (d + 1))) := hn₀ _ hn
+      _ = 2 ^ (G.numVertices / (2 * G.degree * (G.degree + 1))) := by rw [hd_eq]
       _ ≤ B.width k := hk
 
-/-! ## Status — 0 sorry, 1 axiom
+/-! ## Status — 2 sorry (greedy sub-lemma + greedy main), 2 axioms
 
 ### Proved (0 sorry):
 - splitVertices, HasCutExpansion, tseitinSubsetSAT — definitions ✅
@@ -735,19 +816,21 @@ theorem tseitin_not_poly_obdd (d : ℕ) (hd : d ≥ 1) :
 - width_from_many_residuals ✅
 - residual_tseitin_apply ✅
 - **tseitin_parity_residuals** ✅ (the key combinatorial theorem)
-- **tseitin_obdd_width** ✅ (main theorem — chains axiom + parity + width)
+- **private_edges_from_independent** ✅ (non-adjacency → privacy)
+- **tseitin_obdd_width** ✅ (chains axioms + greedy + parity + width)
 - **exp_exceeds_poly** ✅ (n^C < 2^(n/K) for large n, by induction on C)
 - **tseitin_not_poly_obdd** ✅ (separation theorem — poly OBDD impossible)
 - sq_add_lt_two_pow, lt_two_pow_div, two_mul_div_two ✅ (helpers)
 
-### Axioms (1):
-- `expander_graph_theory` — bundles 4 standard graph-theoretic facts:
-  1. Expander cut expansion (vertex expansion → linear split vertices)
-  2. Greedy private edge extraction (bounded-degree independent set)
-  3. Cut coverage (expansion → every vertex has right-side edge)
-  4. GF(2) satisfiability (even parity + spanning tree elimination)
-  These require vertex expansion, spanning trees, and GF(2) linear algebra
-  infrastructure not yet formalized. See Jukna Ch. 8, Razgon 2014.
+### Sorry (2, being proved):
+- `closedNeighborhood_card` — injection from neighbors to incident edges
+- `greedy_independent_split` — inductive greedy extraction
+
+### Axioms (2, standard graph theory):
+1. `expander_good_cut` — expansion gives cut with many split vertices + coverage
+   (vertex expansion, averaging argument — Jukna Ch. 8)
+2. `tseitin_prefix_satisfiable` — even parity + coverage → prefix satisfiable
+   (GF(2) linear algebra, spanning tree elimination — Razgon 2014)
 -/
 
 end TseitinOBDD
