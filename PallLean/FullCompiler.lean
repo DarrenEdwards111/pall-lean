@@ -3,8 +3,7 @@
 
   P(u,z,v) = Q×(u,z) + R(v) where Q× is product, R is SoS.
   1 axiom: product_profile_compression (§9 Theorem 23, hard math)
-  1 axiom: extraction_retraction (index arithmetic: aeval_rename + aeval_X_left)
-  0 sorry's. Extraction rank monotonicity fully proved from these.
+  0 sorry's. Everything else fully proved including extraction_retraction.
 -/
 import PallLean.SPDPDefs
 import PallLean.Compiler
@@ -76,11 +75,22 @@ noncomputable def extractionHom (F : Type*) [CommRing F] (M : DTM) (n : ℕ) :
     else 0)
 
 /-- T ∘ rename embedVerifier = id.
-    σ(embedVerifier j) = σ(⟨offset+j, _⟩) = X(⟨offset+j-offset, _⟩) = X(j).
-    So aeval (σ ∘ embedVerifier) p = aeval X p = p. -/
-axiom extraction_retraction (F : Type*) [CommRing F] (M : DTM) (n : ℕ)
+    Proof: both sides are AlgHoms from MvPolynomial. By algHom_ext,
+    suffices to check on generators X(j). T(rename f (X j)) = T(X(f j)) = X j. -/
+theorem extraction_retraction (F : Type*) [CommRing F] (M : DTM) (n : ℕ)
     (p : MvPolynomial (Fin (npNumVars n)) F) :
-    extractionHom F M n (rename (embedVerifier M n) p) = p
+    extractionHom F M n (rename (embedVerifier M n) p) = p := by
+  -- Show the composed AlgHom = id by checking on generators
+  have h : (extractionHom F M n).comp (MvPolynomial.rename (embedVerifier M n)) =
+      AlgHom.id F (MvPolynomial (Fin (npNumVars n)) F) := by
+    apply MvPolynomial.algHom_ext
+    intro j
+    simp only [AlgHom.comp_apply, AlgHom.id_apply, MvPolynomial.rename_X,
+      extractionHom, MvPolynomial.aeval_X]
+    split
+    · next hge => congr 1; ext; simp_all [embedVerifier]
+    · next hlt => simp_all [embedVerifier]
+  exact AlgHom.congr_fun h p
 
 /-! ## Extraction Rank Monotonicity (PROVED) -/
 
