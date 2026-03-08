@@ -16,6 +16,7 @@ import PallLean.Compiler
 import PallLean.NPWitness
 import PallLean.SheetCoupling
 import PallLean.ExtractionProof
+import PallLean.ProfileCompression
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.Dimension.Finrank
 
@@ -137,23 +138,36 @@ theorem blockAdmissible_map_embedVerifier (M : DTM) (n : ℕ)
             sorry
         _ ≤ 1 := hle
 
-/-! ## Profile Compression (AXIOM — §9 Theorem 23)
+/-! ## Profile Compression — decomposed into sub-axioms
 
-    With the compiler partition (bounded block size, O(1) types, CEW = polylog(n)),
-    profile compression gives:
-      Γ_{compiler}(fullCompiled) ≤ R^{O(1)} where R = C(log n)^c
-    i.e., Γ ≤ n^{O(1)}.
+    Sub-axioms in ProfileCompression.lean (pure math, no compiler dependency):
+    - profile_count_bound: |H(R)| ≤ (R+1)^m (stars-and-bars)
+    - within_profile_dim_bound: dim(Sym^k W) ≤ (k+1)^{d-1}
+    - polylog_pow_le: ((log n)^E + 1)^E ≤ n^{E+1} for large n
 
-    This is the core mathematical content of the paper's §9.
-    The proof uses:
-    - Profile histogram count |H(R)| ≤ C(R+m, m) = R^{O(1)} (Lemma 20)
-    - Within-profile dimension dim(V_h) ≤ R^{O(1)} (Lemma 22)
-    - Row decomposition: SPDP rows factor by profile (compiler property)
-    - Assembly: Γ ≤ Σ dim(V_h) ≤ |H(R)| · R^{O(1)} = R^{O(1)} -/
-axiom product_profile_compression (F : Type*) [Field F] (M : DTM) :
+    Compiler-specific sub-axiom (below):
+    - spdp_rank_polylog_bound: Γ_n ≤ ((log n)^E + 1)^E -/
+
+/-- §9.2 Theorem 23 core: SPDP rank of the n-th compiled polynomial
+    is bounded by a polylog expression.
+
+    Assembles: CEW bound (R ≤ polylog), profile count (≤ R^m),
+    within-profile dim (≤ R^D), row decomposition (rows ⊆ Σ V_h).
+    E bundles all O(1) constants. -/
+axiom spdp_rank_polylog_bound (F : Type*) [Field F] (M : DTM) :
+    ∃ (E n₀ : ℕ), E ≥ 1 ∧ ∀ n, n ≥ n₀ →
+      blockedSpdpRank (compilerPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly F M n) ≤ ((Nat.log 2 n) ^ E + 1) ^ E
+
+/-- Profile compression: Γ ≤ n^C.
+    PROVED from spdp_rank_polylog_bound + polylog_pow_le. -/
+theorem product_profile_compression (F : Type*) [Field F] (M : DTM) :
     ∃ (C n₀ : ℕ), ∀ n, n ≥ n₀ →
       blockedSpdpRank (compilerPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-        (fullCompiledPoly F M n) ≤ n ^ C
+        (fullCompiledPoly F M n) ≤ n ^ C := by
+  obtain ⟨E, n₁, hE_pos, hE⟩ := spdp_rank_polylog_bound F M
+  obtain ⟨n₂, hpoly⟩ := ProfileCompression.polylog_pow_le E hE_pos
+  exact ⟨E + 1, max n₁ n₂, fun n hn => le_trans (hE n (by omega)) (hpoly n (by omega))⟩
 
 /-! ## Extraction Map -/
 
