@@ -2,10 +2,9 @@
   FullCompiler.lean — Paper-faithful compiled polynomial: Q× + R
 
   P(u,z,v) = Q×(u,z) + R(v) where Q× is product, R is SoS.
-  1 axiom: product_profile_compression (§9 Theorem 23)
+  1 axiom: product_profile_compression (§9 Theorem 23, hard math)
   1 axiom: extraction_retraction (index arithmetic: aeval_rename + aeval_X_left)
-  1 sorry: identity partition block admissibility (Nodup → ≤ 1 per block)
-  Extraction rank monotonicity proved from these.
+  0 sorry's. Extraction rank monotonicity fully proved from these.
 -/
 import PallLean.SPDPDefs
 import PallLean.Compiler
@@ -124,11 +123,29 @@ theorem full_extraction_rank_le (F : Type*) [Field F] (M : DTM) (n : ℕ)
     apply Submodule.subset_span
     refine ⟨S', m', ?_, ?_, ?_, ?_, ?_, rfl⟩
     · -- length S' = κ
-      sorry
+      show S'.length = Nat.log 2 n
+      rw [show S' = (s₀ :: rest).map (embedVerifier M n) from rfl, List.length_map]
+      exact hlen
     · -- deg(m') ≤ ℓ
       exact le_trans (totalDegree_rename_le _ _) hdeg
     · -- block admissibility: identity partition + Nodup → ≤ 1 per block
-      sorry
+      have hnd : S'.Nodup := hadm.1.map (embedVerifier_injective M n)
+      constructor
+      · exact hnd
+      · intro b
+        let P := fun i : Fin (fullNumVars M n) =>
+          (fullCompiledPartition M n).assign i = b
+        let filt := S'.filter P
+        have hfilt : filt.Nodup := List.Nodup.filter P hnd
+        by_contra h; push_neg at h
+        have h1 : 1 < filt.length := by omega
+        have h0 : 0 < filt.length := by omega
+        have eq0 := List.getElem_mem (l := filt) h0
+        have eq1 := List.getElem_mem (l := filt) h1
+        rw [List.mem_filter] at eq0 eq1
+        have heq : filt[0] = filt[1] := by
+          ext; simp [P, fullCompiledPartition] at eq0 eq1; omega
+        exact absurd (hfilt.getElem_inj_iff.mp heq) (by omega)
     · -- activeVars S
       intro _ _; exact Finset.mem_univ _
     · -- activeVars m
