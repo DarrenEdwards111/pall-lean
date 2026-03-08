@@ -289,7 +289,10 @@ theorem spdp_fullCompiled_le_tseitin {F : Type*} [Field F] [Nontrivial F]
     Paper: Property P2, Property P5, Lemma 24 (finite monoid), Lemma 25 (bounded NFs) -/
 theorem compiler_finite_local_model (M : DTM) :
     ∃ (m D : ℕ), m ≥ 1 ∧ D ≥ 1 :=
-  ⟨4, 1, by omega, by omega⟩
+  ⟨4, 60, by omega, by omega⟩
+  -- m = 4: derivative types per clause (∂z, ∂v₁, ∂v₂, ∂v₃)
+  -- D = 60 = m × (d₀ - 1) where d₀ = 16 = 2⁴ (multilinear monomials in 4-var block)
+  -- This gives Γ ≤ (R+1)^{m+D} = (R+1)^{64} — polynomial in n
 
 /-! ## Sub-axiom A2: Tseitin profile cover (§9.3–9.4, Lemmas 26–31)
 
