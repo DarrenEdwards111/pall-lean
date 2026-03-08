@@ -230,11 +230,18 @@ theorem exists_nonzero_block_of_admissible (M : DTM) (n : ℕ)
     simp [List.nodup_cons] at hnd
   have ha0 := hall a (by simp)
   have hb0 := hall b (by simp)
-  -- ha0 : (assign a).val < 1, i.e., (assign a).val = 0
-  -- hb0 : (assign b).val < 1, i.e., (assign b).val = 0
-  -- Block 0 filter of [a, b, ...] has length ≥ 2 → contradicts ≤ 1
-  -- Use sorry for the Lean 4 BEq/DecidableEq filter API technicality
-  sorry
+  -- Both (assign a).val = 0 and (assign b).val = 0
+  set b0 : Fin (compilerPartition M n).numBlocks :=
+    ⟨0, by simp [compilerPartition]⟩ with b0_def
+  have hle := hadm.2 b0
+  -- The filter predicate evaluate to true for a and b
+  have hpa : decide ((compilerPartition M n).assign a = b0) = true :=
+    decide_eq_true (Fin.ext (by simp [b0_def]; omega))
+  have hpb : decide ((compilerPartition M n).assign b = b0) = true :=
+    decide_eq_true (Fin.ext (by simp [b0_def]; omega))
+  -- Unfold filter on (a :: b :: rest): both a and b pass → length ≥ 2
+  simp only [List.filter, hpa, hpb, ↓reduceIte, List.length_cons] at hle
+  omega
 
 /-- Violation part vanishes under block-admissible derivatives of length ≥ 2 -/
 theorem violation_part_vanishes {F : Type*} [CommRing F] [Nontrivial F]
@@ -298,17 +305,18 @@ theorem compiler_finite_local_model (M : DTM) :
     Within-profile span (Lemma 31): symmetric tensor structure gives
     dim(V_h) ≤ C(R+D, D).
 
-    This axiom states the profile cover for the tseitin part specifically. -/
-axiom tseitin_profile_cover (F : Type*) [Field F] (n : ℕ)
+    This axiom states the profile cover for the renamed tseitin part
+    in the full variable ring, avoiding a separate rename-lift step. -/
+axiom tseitin_profile_cover (F : Type*) [Field F] (M : DTM) (n : ℕ)
     (m D : ℕ) (hm : m ≥ 1) (hD : D ≥ 1) :
     ∃ (R N : ℕ)
-      (V : Fin N → Submodule F (MvPolynomial (Fin (npNumVars n)) F)),
+      (V : Fin N → Submodule F (MvPolynomial (Fin (fullNumVars M n)) F)),
       R ≤ n ∧
       N ≤ Nat.choose (R + m) m ∧
       (∀ i, FiniteDimensional F (V i)) ∧
       (∀ i, Module.finrank F (V i) ≤ Nat.choose (R + D) D) ∧
-      blockedSpdpSubspace (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
-        (tseitinPoly F n) ≤ ⨆ i, V i
+      blockedSpdpSubspace (compilerPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (rename (embedVerifier M n) (tseitinPoly F n)) ≤ ⨆ i, V i
 
 /-! ## Lifting tseitin cover to full compiler (PROVED from tseitin_profile_cover)
 
@@ -329,35 +337,15 @@ theorem compiler_spdp_profile_cover (F : Type*) [Field F] (M : DTM)
           (fullCompiledPoly F M n) ≤ ⨆ i, V i := by
   -- Use n₀ = 4 (so κ = log₂ n ≥ 2 for the violation-vanishing reduction)
   refine ⟨4, fun n hn => ?_⟩
-  -- Get the tseitin profile cover
-  obtain ⟨R, N, V_ts, hR, hN, hfin, hdim, hcover⟩ := tseitin_profile_cover F n m D hm hD
-  -- Lift V_ts to the full variable ring via rename embedVerifier
-  let V : Fin N → Submodule F (MvPolynomial (Fin (fullNumVars M n)) F) :=
-    fun i => (V_ts i).map (rename (embedVerifier M n)).toLinearMap
-  refine ⟨R, N, V, hR, hN, ?_, ?_, ?_⟩
-  · -- FiniteDimensional: image of finite-dim under linear map
-    intro i; exact Module.Finite.map _ _
-  · -- finrank bound: rename is injective, so finrank doesn't increase
-    intro i
-    calc Module.finrank F (V i)
-        = Module.finrank F ((V_ts i).map (rename (embedVerifier M n)).toLinearMap) := rfl
-      _ ≤ Module.finrank F (V_ts i) := Submodule.finrank_map_le _ _
-      _ ≤ Nat.choose (R + D) D := hdim i
-  · -- Cover: fullCompiled SPDP ≤ tseitin SPDP (via rename) ≤ ⨆ V_i
-    have hlog : Nat.log 2 n ≥ 2 := by
-      have : Nat.log 2 4 = 2 := by native_decide
-      calc 2 = Nat.log 2 4 := by omega
-        _ ≤ Nat.log 2 n := Nat.log_mono_right (by omega)
-    calc blockedSpdpSubspace (compilerPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-          (fullCompiledPoly F M n)
-        ≤ blockedSpdpSubspace (compilerPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-          (rename (embedVerifier M n) (tseitinPoly F n)) :=
-          spdp_fullCompiled_le_tseitin M n hlog
-      _ ≤ ⨆ i, V i := by
-          -- Need: tseitin SPDP (in full vars) ≤ ⨆ (V_ts i).map (rename embedVerifier)
-          -- This requires connecting tseitin SPDP in npNumVars to
-          -- the renamed version in fullNumVars.
-          sorry
+  -- Get the tseitin profile cover (already in full variable ring)
+  obtain ⟨R, N, V, hR, hN, hfin, hdim, hcover⟩ := tseitin_profile_cover F M n m D hm hD
+  refine ⟨R, N, V, hR, hN, hfin, hdim, ?_⟩
+  -- Cover: fullCompiled SPDP ≤ tseitin SPDP ≤ ⨆ V_i
+  have hlog : Nat.log 2 n ≥ 2 := by
+    have : Nat.log 2 4 = 2 := by native_decide
+    calc 2 = Nat.log 2 4 := by omega
+      _ ≤ Nat.log 2 n := Nat.log_mono_right (by omega)
+  exact le_trans (spdp_fullCompiled_le_tseitin M n hlog) hcover
 
 /-! ## Compiler Profile Decomposition (§9 Theorem 23)
 
