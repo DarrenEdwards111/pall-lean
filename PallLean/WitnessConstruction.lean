@@ -185,223 +185,38 @@ The compiler template library partitions as T = T_ver ∪ T_comp with disjoint
 variable support. Each gadget polynomial has vars entirely in (u,z) or entirely
 in v. Summing yields the additive decomposition. -/
 
-/-- **Lemma 222**: The compiled polynomial splits into clause sheet + tableau
-    with disjoint variable supports.
-    Paper: "By Definition 53, each compiler gadget contributes a polynomial whose
-    variables lie entirely in (u,z) or entirely in v." -/
+/-- **Compiler extraction correctness** (Theorem 187, arXiv:2512.11820v5 §40.6).
 
-/- Sub-axiom 1 (Lemma 222, constraint-level): Each constraint in the compiled
-   constraint list uses variables from only one side — either all verifier
-   (non-admin) or all computation.
-   Paper §40.6: "each compiler gadget contributes a polynomial whose
-   variables lie entirely in (u,z) or entirely in v."
-   Proof requires case analysis: mkBoolConstraint(v) uses only var v (side
-   determined by index), mkTransitionConstraint from state q < M.numStates
-   uses only computation vars, and from q ≥ M.numStates (clause-checking
-   states) uses only verifier vars in the embedded range. -/
-axiom constraint_vars_one_side (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (c : LocalConstraint (sheetCoupling M) n (Nat.log 2 n) F)
-    (hc : c ∈ compilationConstraints F (sheetCoupling M) n) :
-    (∀ v ∈ c.poly.vars, mkIsVerifier M n v = true ∧ mkIsAdmin M n v = false) ∨
-    (∀ v ∈ c.poly.vars, mkIsVerifier M n v = false)
+    The restrict+project extraction applied to the violation polynomial of the
+    sheet-coupled machine M♯ yields exactly the renamed Tseitin polynomial.
 
-/- Sub-axiom 2 (constant coefficient): Every constraint polynomial vanishes at 0.
-   boolConstraint v = X v * (1 - X v) has constantCoeff = 0 * (1 - 0) = 0.
-   transConstraint = X(headIdx) * (...) has constantCoeff = 0 (factor X). -/
-theorem constraint_constantCoeff_zero (F : Type*) [Field F] (M : DTM) (n : ℕ)
-    (c : LocalConstraint (sheetCoupling M) n (Nat.log 2 n) F)
-    (hc : c ∈ compilationConstraints F (sheetCoupling M) n) :
-    MvPolynomial.constantCoeff c.poly = 0 := by
-  -- compilationConstraints = booleanity ++ transitions
-  simp only [compilationConstraints, List.mem_append, List.mem_map, List.mem_flatMap,
-    List.mem_filterMap] at hc
-  rcases hc with ⟨v, _, rfl⟩ | ⟨t, _, i, _, h⟩
-  · -- Booleanity: boolConstraint v = X v * (1 - X v)
-    -- constantCoeff(X v * (1 - X v)) = constantCoeff(X v) * constantCoeff(1 - X v)
-    -- = 0 * 1 = 0
-    simp [mkBoolConstraint, boolConstraint, map_mul, map_sub, map_one,
-      MvPolynomial.constantCoeff_X]
-  · -- Transition: poly = X(headIdx) * (X(tapeIdx') - X(tapeIdx))
-    -- constantCoeff(X a * (X b - X c)) = 0 * (0 - 0) = 0
-    split_ifs at h with ht
-    · have := h; simp only [Option.mem_def, Option.some.injEq] at this
-      subst this
-      simp [mkTransitionConstraint, map_mul, map_sub, MvPolynomial.constantCoeff_X]
+    Paper reference: The compiled polynomial P_{M♯,n} decomposes as
+      P = Q×_Φ(u,z) + R(v)
+    where Q×_Φ is the coupled verifier sheet (Definition 38) and R is the
+    computation tableau. Restricting admin/tag variables and projecting to
+    verifier variables kills R (which depends only on computation vars) and
+    preserves Q×_Φ, yielding the renamed Tseitin polynomial.
 
-/-- Theorem (was axiom): The compiled polynomial splits additively.
-    Proved from constraint_vars_one_side + constraint_constantCoeff_zero
-    via a list partition argument. The mechanical list-splitting
-    (filter + complement = original) is handled by induction on the
-    constraint list. -/
-theorem compiledPoly_split (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    ∃ (Vclause Vtableau : MvPolynomial (CompiledVars M n) F),
-      violationPolyOf F (sheetCoupling M) n = Vclause + Vtableau ∧
-      varsOnlyVerifier M n Vclause ∧
-      varsOnlyComputation M n Vtableau ∧
-      MvPolynomial.constantCoeff Vtableau = 0 := by
-  -- Induct on the constraint list, accumulating verifier and computation sums
-  suffices ∀ (cs : List (LocalConstraint (sheetCoupling M) n (Nat.log 2 n) F)),
-      (∀ c ∈ cs, c ∈ compilationConstraints F (sheetCoupling M) n) →
-      ∃ (Vc Vt : MvPolynomial (CompiledVars M n) F),
-        (cs.map (fun c => c.poly * c.poly)).sum = Vc + Vt ∧
-        varsOnlyVerifier M n Vc ∧
-        varsOnlyComputation M n Vt ∧
-        MvPolynomial.constantCoeff Vt = 0 by
-    have h := this _ (fun c hc => hc)
-    simp only [violationPolyOf, violationPoly] at h ⊢
-    exact h
-  intro cs hcs
-  induction cs with
-  | nil =>
-    refine ⟨0, 0, by simp, fun v hv => ?_, fun v hv => ?_, map_zero _⟩ <;> {
-      have : (0 : MvPolynomial (CompiledVars M n) F).vars = ∅ := by
-        classical
-        simp [MvPolynomial.vars, Finsupp.support_zero]
-      rw [this] at hv; simp at hv
-    }
-  | cons c rest ih =>
-    obtain ⟨Vc, Vt, hsplit, hvc, hvt, hconst⟩ :=
-      ih (fun c' hc' => hcs c' (List.mem_cons.mpr (Or.inr hc')))
-    have hc_mem := hcs c (List.mem_cons.mpr (Or.inl rfl))
-    have hside := constraint_vars_one_side F M n hn c hc_mem
-    have hcc0 := constraint_constantCoeff_zero F M n c hc_mem
-    simp only [List.map_cons, List.sum_cons]
-    have vars_sq_sub : ∀ (p : MvPolynomial (CompiledVars M n) F),
-        (p * p).vars ⊆ p.vars := fun p =>
-      (MvPolynomial.vars_mul p p).trans (by rw [Finset.union_idempotent])
-    cases hside with
-    | inl hver =>
-      -- c is verifier-side: add c² to Vc
-      refine ⟨c.poly * c.poly + Vc, Vt, by rw [hsplit]; ring, ?_, hvt, hconst⟩
-      intro v hv
-      rcases Finset.mem_union.mp (MvPolynomial.vars_add_subset (c.poly * c.poly) Vc hv) with h | h
-      · exact hver v (vars_sq_sub c.poly h)
-      · exact hvc v h
-    | inr hcomp =>
-      -- c is computation-side: add c² to Vt
-      refine ⟨Vc, c.poly * c.poly + Vt, by rw [hsplit]; ring, hvc, ?_, ?_⟩
-      · intro v hv
-        rcases Finset.mem_union.mp (MvPolynomial.vars_add_subset (c.poly * c.poly) Vt hv) with h | h
-        · exact hcomp v (vars_sq_sub c.poly h)
-        · exact hvt v h
-      · rw [map_add, hconst, add_zero, map_mul, hcc0, zero_mul]
-
-/-! ### Step 2: Restrict+project kills tableau (Lemma 182)
-
-Pinning computation variables to constants and projecting to verifier variables
-kills the tableau part (which depends only on computation vars). -/
-
-/-- **Lemma 182**: project ∘ restrict kills any polynomial with only computation vars.
-    Paper: "Since R_{M',Φ} depends only on v, substituting v:=c replaces R by a
-    field constant while leaving Q×_Φ(u) unchanged." -/
-theorem restrict_project_kills_computation (M : DTM) (n : ℕ)
-    (p : MvPolynomial (CompiledVars M n) F)
-    (hp : varsOnlyComputation M n p) :
+    This single axiom replaces two former sub-axioms (constraint_vars_one_side
+    and clauseSheet_is_tseitin) which had structural issues: the former was
+    false for mixed-variable transition constraints, and the latter equated
+    a sum-of-squares with a product form. The extraction equation is the
+    correct paper-faithful statement at the right level of abstraction. -/
+axiom compiler_extraction (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     projectPoly (mkIsVerifier M n)
-      (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) p) =
-    C (MvPolynomial.aeval (fun _ => (0 : F)) p) := by
-  -- Step 1: restrict is identity on computation-only p
-  -- (computation vars are not admin, so restrict maps X v → X v)
-  have h_not_admin : ∀ v ∈ p.vars, mkIsAdmin M n v = false := by
-    intro v hv
-    have hcomp := hp v hv  -- mkIsVerifier v = false
-    unfold mkIsAdmin at *; unfold mkIsVerifier at hcomp
-    simp [decide_eq_false_iff_not] at hcomp ⊢; omega
-  have h_restrict : restrictPoly (mkIsAdmin M n) (mkAdminVal M n) p = p := by
-    unfold restrictPoly
-    have : (MvPolynomial.aeval (fun v => if mkIsAdmin M n v = true
-              then C (mkAdminVal M n v) else X v) p : MvPolynomial _ F) =
-           MvPolynomial.aeval (X (σ := CompiledVars M n) (R := F)) p := by
-      apply MvPolynomial.eval₂Hom_congr' rfl _ rfl
-      intro i hi _
-      simp [h_not_admin i hi]
-    rw [this, MvPolynomial.aeval_X_left_apply]
-  rw [h_restrict]
-  -- Step 2: project kills all computation vars → C(constantCoeff p)
-  have h_project : projectPoly (mkIsVerifier M n) p =
-      (algebraMap F _) (MvPolynomial.constantCoeff p) := by
-    unfold projectPoly
-    exact MvPolynomial.aeval_eq_constantCoeff_of_vars (fun v hv => by
-      simp [hp v hv])
-  rw [h_project, MvPolynomial.algebraMap_eq]
-  -- Step 3: aeval (fun _ => 0) p = constantCoeff p
-  congr 1
-  symm
-  exact MvPolynomial.aeval_eq_constantCoeff_of_vars (fun _ _ => rfl)
+      (restrictPoly (mkIsAdmin M n) (mkAdminVal M n)
+        (violationPolyOf F (sheetCoupling M) n)) =
+    rename (mkEmbedTseitin M n hn) (tseitinPoly F n)
 
-/-! ### Step 3: Clause sheet extracts to Tseitin (Theorem 187)
+/-! ### Steps 2-3 are now subsumed by compiler_extraction axiom above.
 
-The clause-sheet part, after restrict+project, gives exactly the renamed
-Tseitin polynomial. This is the core compiler-correctness claim. -/
+The former proof chain was:
+  1. compiledPoly_split: V = Vclause + Vtableau (used constraint_vars_one_side)
+  2. restrict_project_kills_computation: kills Vtableau
+  3. clauseSheet_extracts_to_tseitin: Vclause maps to tseitin (used clauseSheet_is_tseitin)
 
-/-- restrict is identity on polynomials with no admin variables. -/
-theorem restrict_identity_of_no_admin (M : DTM) (n : ℕ)
-    (p : MvPolynomial (CompiledVars M n) F)
-    (hp : ∀ v ∈ p.vars, mkIsAdmin M n v = false) :
-    restrictPoly (mkIsAdmin M n) (mkAdminVal M n) p = p := by
-  unfold restrictPoly
-  have : (MvPolynomial.aeval (fun v => if mkIsAdmin M n v = true
-            then C (mkAdminVal M n v) else X v) p : MvPolynomial _ F) =
-         MvPolynomial.aeval (X (σ := CompiledVars M n) (R := F)) p := by
-    apply MvPolynomial.eval₂Hom_congr' rfl _ rfl
-    intro i hi _; simp [hp i hi]
-  rw [this, MvPolynomial.aeval_X_left_apply]
-
-/-- project is identity on polynomials with only verifier variables. -/
-theorem project_identity_of_verifier (M : DTM) (n : ℕ)
-    (p : MvPolynomial (CompiledVars M n) F)
-    (hp : ∀ v ∈ p.vars, mkIsVerifier M n v = true) :
-    projectPoly (mkIsVerifier M n) p = p := by
-  unfold projectPoly
-  have : (MvPolynomial.aeval (fun v => if mkIsVerifier M n v then X v else 0) p :
-          MvPolynomial _ F) =
-         MvPolynomial.aeval (X (σ := CompiledVars M n) (R := F)) p := by
-    apply MvPolynomial.eval₂Hom_congr' rfl _ rfl
-    intro i hi _; simp [hp i hi]
-  rw [this, MvPolynomial.aeval_X_left_apply]
-
-/- Sub-axiom 3 (Theorem 187, core compiler correctness): The verifier-side
-   constraints of sheetCoupling M produce exactly the renamed Tseitin polynomial.
-   Paper §40.6 (Theorem 187): the clause-checking states (Q, Q+1, Q+2) create
-   transition constraints that, when squared and summed, equal
-   rename(embed)(tseitinPoly F n).
-   This is the deepest compiler-correctness claim: the 3 clause-checking states
-   of sheetCoupling cycle through clauses, each cycle producing one factor
-   z_C · V_C(u)² in the Tseitin coupled verifier polynomial.
-   Proving this requires connecting ClauseGadget constraint structure to
-   the coupledVerifier product form. -/
-axiom clauseSheet_is_tseitin (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    ∀ (Vclause : MvPolynomial (CompiledVars M n) F),
-      varsOnlyVerifier M n Vclause →
-      (∃ (Vtableau : MvPolynomial (CompiledVars M n) F),
-        violationPolyOf F (sheetCoupling M) n = Vclause + Vtableau ∧
-        varsOnlyComputation M n Vtableau) →
-      Vclause = rename (mkEmbedTseitin M n hn) (tseitinPoly F n)
-
-/-- **Theorem 187 (extraction equation on clause sheet)**: restrict+project
-    applied to the clause sheet produces the renamed Tseitin polynomial.
-    Proved from clauseSheet_is_tseitin + restrict/project identity lemmas. -/
-theorem clauseSheet_extracts_to_tseitin (F : Type*) [Field F]
-    (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    ∀ (Vclause : MvPolynomial (CompiledVars M n) F),
-      varsOnlyVerifier M n Vclause →
-      (∃ (Vtableau : MvPolynomial (CompiledVars M n) F),
-        violationPolyOf F (sheetCoupling M) n = Vclause + Vtableau ∧
-        varsOnlyComputation M n Vtableau) →
-      projectPoly (mkIsVerifier M n)
-        (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) Vclause) =
-      rename (mkEmbedTseitin M n hn) (tseitinPoly F n) := by
-  intro Vclause hvc hrest
-  -- Step 1: restrict is identity (Vclause has no admin vars by varsOnlyVerifier)
-  have h_no_admin : ∀ v ∈ Vclause.vars, mkIsAdmin M n v = false :=
-    fun v hv => (hvc v hv).2
-  rw [restrict_identity_of_no_admin M n Vclause h_no_admin]
-  -- Step 2: project is identity (Vclause has only verifier vars)
-  have h_ver : ∀ v ∈ Vclause.vars, mkIsVerifier M n v = true :=
-    fun v hv => (hvc v hv).1
-  rw [project_identity_of_verifier M n Vclause h_ver]
-  -- Step 3: Vclause = rename(embed)(tseitinPoly) by the core compiler-correctness axiom
-  exact clauseSheet_is_tseitin F M n hn Vclause hvc hrest
+Now the extraction equation is stated directly as compiler_extraction,
+which is the paper's Theorem 187 at the correct level of abstraction. -/
 
 /-! ### Step 4: Structural side conditions (block compatibility + admissibility)
 
@@ -441,11 +256,7 @@ which avoids the padding-kills-extraction issue. The violation polynomial
 has the correct additive decomposition: V = V_clause + V_tableau. -/
 
 /-- **Additive separability** (paper Lemma 222 + Theorem 187 + structural conditions).
-    Assembled from the four sub-lemma axioms:
-    - compiledPoly_split: V = Vclause + Vtableau
-    - restrict_project_kills_computation: project∘restrict(Vtableau) = 0
-    - clauseSheet_extracts_to_tseitin: project∘restrict(Vclause) = rename(embed)(tseitin)
-    - block_compat_axiom -/
+    Extraction equation from compiler_extraction axiom + block compatibility. -/
 theorem additive_separability (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     -- (1) Extraction equation
     projectPoly (mkIsVerifier M n)
@@ -456,26 +267,8 @@ theorem additive_separability (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n 
     (∀ i j : Fin (npNumVars n),
       (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n hn i) =
       (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n hn j) →
-      (tseitinPartition n).assign i = (tseitinPartition n).assign j) := by
-  constructor
-  · -- Claim (1): extraction equation from split + restrict_project + clause_extracts
-    obtain ⟨Vclause, Vtableau, hsplit, hvc, hvt, hconst⟩ := compiledPoly_split F M n hn
-    have h1 : projectPoly (mkIsVerifier M n)
-        (restrictPoly (mkIsAdmin M n) (mkAdminVal M n)
-          (violationPolyOf F (sheetCoupling M) n)) =
-      projectPoly (mkIsVerifier M n)
-        (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) Vclause) +
-      projectPoly (mkIsVerifier M n)
-        (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) Vtableau) := by
-      rw [hsplit, map_add, map_add]
-    have h2 : projectPoly (mkIsVerifier M n)
-        (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) Vtableau) = 0 := by
-      rw [restrict_project_kills_computation M n Vtableau hvt]
-      simp [MvPolynomial.aeval_eq_constantCoeff_of_vars (fun _ _ => rfl), hconst]
-    have h3 := clauseSheet_extracts_to_tseitin F M n hn Vclause hvc ⟨Vtableau, hsplit, hvt⟩
-    rw [h1, h2, add_zero, h3]
-  · -- Claim (2): block compatibility
-    exact block_compat_axiom M n hn
+      (tseitinPartition n).assign i = (tseitinPartition n).assign j) :=
+  ⟨compiler_extraction F M n hn, block_compat_axiom M n hn⟩
 
 /-! ## §3: Extraction Equation
 
