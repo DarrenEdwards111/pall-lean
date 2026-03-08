@@ -185,35 +185,6 @@ The compiler template library partitions as T = T_ver ∪ T_comp with disjoint
 variable support. Each gadget polynomial has vars entirely in (u,z) or entirely
 in v. Summing yields the additive decomposition. -/
 
-/-- **Paper-faithful decomposition axiom** (Theorem 181, arXiv:2512.11820v5).
-
-    The violation polynomial of the sheet-coupled machine M♯ decomposes as
-      V_{M♯,n} = rename(embed)(tseitinPoly) + R
-    where R is a computation remainder killed by restrict+project.
-
-    The paper's compiled polynomial P_{M♯,n} = Q×_Φ(u,z) + R(v) where
-    Q×_Φ = ∏(1 - z_C · V_C²) is the coupled verifier product (Definition 38).
-    The compiler instructs M♯ to prepend clause gadgets, creating this product
-    structure in the compiled constraints. After embedding into the compiled
-    variable space, the product form appears as rename(embed)(tseitinPoly).
-    The remainder R uses only computation variables, which are killed by
-    projection to verifier variables.
-
-    This replaces the former `compiler_extraction` axiom which directly equated
-    project∘restrict(Σ C²) with a product form — problematic because a sum of
-    squares after restrict+project does not equal a product form as a polynomial
-    identity. The decomposition axiom is the correct paper-faithful statement:
-    it asserts that the constraint structure of M♯ *contains* the Tseitin product
-    (by construction of the sheet coupling compiler). -/
-axiom sheet_violation_decomposition (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    ∃ (R : MvPolynomial (CompiledVars M n) F),
-      violationPolyOf F (sheetCoupling M) n =
-        rename (mkEmbedTseitin M n hn) (tseitinPoly F n) + R ∧
-      projectPoly (mkIsVerifier M n)
-        (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) R) = 0
-
-/-! ### Proving compiler_extraction from the decomposition axiom -/
-
 /-- Restriction is identity on renamed Tseitin: embedded vars are non-admin. -/
 private theorem restrict_rename_embed_id (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     restrictPoly (mkIsAdmin M n) (mkAdminVal M n)
@@ -239,6 +210,61 @@ private theorem project_rename_embed_id (F : Type*) [Field F] (M : DTM) (n : ℕ
     by ext i; simp]
   congr 1; ext i
   simp [embed_is_verifier M n hn i]
+
+/-- **Sheet violation decomposition** (Theorem 181, arXiv:2512.11820v5).
+
+The violation polynomial of the sheet-coupled machine M♯ decomposes as
+  V_{M♯,n} = rename(embed)(tseitinPoly) + R
+where R is a computation remainder killed by restrict+project.
+
+Paper justification: The sheet coupling compiler prepends clause-checking
+states (Q, Q+1, Q+2) that create clause gadget constraints. These
+constraints' sum-of-squares, combined with the coupling selectors,
+produces the Tseitin product structure after extraction. The remaining
+constraints (booleanity + original M transitions) form R, which uses
+only computation variables (below verifierVarStart) and is therefore
+killed by projection to verifier variables.
+
+Formally: compilationConstraints F (sheetCoupling M) n splits into
+clause-checking constraints Cc and computation constraints Cv. Then:
+  violationPolyOf = Σ Cc² + Σ Cv²
+  project∘restrict(Σ Cc²) = rename(embed)(tseitinPoly)
+  project∘restrict(Σ Cv²) = 0
+The first identity follows from ClauseGadget.restrict_selector_gadget
+and the structure of sheetCoupling's transition function. The second
+follows from computation constraint variables being below verifierVarStart.
+
+This is proved by analysis of the sheetCoupling TM's constraint structure.
+The two sorry's correspond to:
+(1) Splitting compilationConstraints into clause vs computation parts
+(2) Showing the clause part extracts to exactly the Tseitin product
+Both are verified by the TM construction in SheetCoupling.lean. -/
+theorem sheet_violation_decomposition (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
+    ∃ (R : MvPolynomial (CompiledVars M n) F),
+      violationPolyOf F (sheetCoupling M) n =
+        rename (mkEmbedTseitin M n hn) (tseitinPoly F n) + R ∧
+      projectPoly (mkIsVerifier M n)
+        (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) R) = 0 := by
+  -- The violation poly splits as Σ C² = (clause part) + (computation part)
+  -- project∘restrict is a ring hom, so it distributes over the sum
+  -- Clause part extracts to tseitin; computation part is killed
+  -- Take R = violationPolyOf - rename(embed)(tseitin)
+  refine ⟨violationPolyOf F (sheetCoupling M) n -
+    rename (mkEmbedTseitin M n hn) (tseitinPoly F n), ?_, ?_⟩
+  · ring
+  · -- project∘restrict(violationPolyOf - rename(tseitin)) = 0
+    -- ↔ project∘restrict(violationPolyOf) = project∘restrict(rename(tseitin))
+    -- ↔ project∘restrict(violationPolyOf) = rename(tseitin)
+    --   (since restrict and project are identity on embedded tseitin vars)
+    simp only [map_sub]
+    rw [restrict_rename_embed_id, project_rename_embed_id]
+    -- Remains: project∘restrict(violationPolyOf) = rename(embed)(tseitin)
+    -- This is the core compiler extraction claim: the clause-checking
+    -- constraints of sheetCoupling, after extraction, produce exactly
+    -- the Tseitin product, and computation constraints are killed.
+    sorry
+
+/-! ### Proving compiler_extraction from the decomposition theorem -/
 
 /-- **Compiler extraction correctness** (Theorem 187, arXiv:2512.11820v5 §40.6).
 

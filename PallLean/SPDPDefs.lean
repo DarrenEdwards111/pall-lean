@@ -267,4 +267,52 @@ theorem blockedSpdpSubspace_activeVars_mono {n : ℕ} {F : Type*} [CommRing F]
 -- Note: blockedSpdpRank_activeVars_mono requires Module.Finite instance,
 -- which is in ExtractionProof.lean. See extracted_rank_le_violation in PACBridge.
 
+/-! ## Subadditivity of SPDP Rank -/
+
+/-- iterDerivList is additive: ∂_S(p + q) = ∂_S(p) + ∂_S(q). -/
+theorem iterDerivList_add {n : ℕ} {F : Type*} [CommRing F]
+    (S : List (Fin n)) (p q : MvPolynomial (Fin n) F) :
+    iterDerivList S (p + q) = iterDerivList S p + iterDerivList S q := by
+  induction S generalizing p q with
+  | nil => simp [iterDerivList]
+  | cons i rest ih =>
+    simp only [iterDerivList, List.foldl_cons]
+    rw [show List.foldl (fun r j => MvPolynomial.pderiv j r)
+            (MvPolynomial.pderiv i (p + q)) rest =
+          iterDerivList rest (MvPolynomial.pderiv i (p + q)) from rfl,
+        show List.foldl (fun r j => MvPolynomial.pderiv j r)
+            (MvPolynomial.pderiv i p) rest =
+          iterDerivList rest (MvPolynomial.pderiv i p) from rfl,
+        show List.foldl (fun r j => MvPolynomial.pderiv j r)
+            (MvPolynomial.pderiv i q) rest =
+          iterDerivList rest (MvPolynomial.pderiv i q) from rfl]
+    rw [map_add]
+    exact ih _ _
+
+/-- Subadditivity: blockedSpdpSubspace(p + q) ≤ blockedSpdpSubspace(p) ⊔ blockedSpdpSubspace(q). -/
+theorem blockedSpdpSubspace_add_le {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (p q : MvPolynomial (Fin n) F) (av : Finset (Fin n) := Finset.univ) :
+    blockedSpdpSubspace B κ ℓ (p + q) av ≤
+    blockedSpdpSubspace B κ ℓ p av ⊔ blockedSpdpSubspace B κ ℓ q av := by
+  apply Submodule.span_le.mpr
+  intro r ⟨S, m, hlen, hdeg, hadm, hSa, hma, hr⟩
+  rw [hr, iterDerivList_add, mul_add]
+  apply Submodule.add_mem
+  · exact Submodule.mem_sup_left (Submodule.subset_span ⟨S, m, hlen, hdeg, hadm, hSa, hma, rfl⟩)
+  · exact Submodule.mem_sup_right (Submodule.subset_span ⟨S, m, hlen, hdeg, hadm, hSa, hma, rfl⟩)
+
+/-- Subadditivity of blocked SPDP rank: rank(p + q) ≤ rank(p) + rank(q). -/
+theorem blockedSpdpRank_add_le {n : ℕ} {F : Type*} [Field F]
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (p q : MvPolynomial (Fin n) F) :
+    blockedSpdpRank B κ ℓ (p + q) ≤ blockedSpdpRank B κ ℓ p + blockedSpdpRank B κ ℓ q := by
+  unfold blockedSpdpRank
+  calc Module.finrank F ↥(blockedSpdpSubspace B κ ℓ (p + q))
+      ≤ Module.finrank F ↥(blockedSpdpSubspace B κ ℓ p ⊔ blockedSpdpSubspace B κ ℓ q) :=
+        Submodule.finrank_mono (blockedSpdpSubspace_add_le B κ ℓ p q)
+    _ ≤ Module.finrank F ↥(blockedSpdpSubspace B κ ℓ p) +
+        Module.finrank F ↥(blockedSpdpSubspace B κ ℓ q) :=
+        finrank_sup_le _ _
+
 end SPDP
