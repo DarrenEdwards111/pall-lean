@@ -133,11 +133,8 @@ theorem blockAdmissible_map_embedVerifier (M : DTM) (n : ℕ)
           ≤ (S.filter (fun j => (tseitinPartition n).assign j = tb)).length := by
             -- Each element of the LHS filter comes from an element of the RHS filter
             -- via embedVerifier, and embedVerifier is injective
-            -- filter on mapped list = filter on original (predicates equivalent via embedVerifier)
-            rw [List.filter_map]; congr 1
-            -- (P ∘ embedVerifier) and Q are the same predicate on S
-            -- because compilerPartition(embedVerifier j) = tseitinPartition(j) + 1
-            sorry -- filter_congr: equivalent predicates give same filter
+            rw [List.filter_map]
+            sorry
         _ ≤ 1 := hle
 
 /-! ## Profile Compression (AXIOM — §9 Theorem 23)
