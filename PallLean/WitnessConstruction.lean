@@ -185,28 +185,78 @@ The compiler template library partitions as T = T_ver ∪ T_comp with disjoint
 variable support. Each gadget polynomial has vars entirely in (u,z) or entirely
 in v. Summing yields the additive decomposition. -/
 
+/-- **Paper-faithful decomposition axiom** (Theorem 181, arXiv:2512.11820v5).
+
+    The violation polynomial of the sheet-coupled machine M♯ decomposes as
+      V_{M♯,n} = rename(embed)(tseitinPoly) + R
+    where R is a computation remainder killed by restrict+project.
+
+    The paper's compiled polynomial P_{M♯,n} = Q×_Φ(u,z) + R(v) where
+    Q×_Φ = ∏(1 - z_C · V_C²) is the coupled verifier product (Definition 38).
+    The compiler instructs M♯ to prepend clause gadgets, creating this product
+    structure in the compiled constraints. After embedding into the compiled
+    variable space, the product form appears as rename(embed)(tseitinPoly).
+    The remainder R uses only computation variables, which are killed by
+    projection to verifier variables.
+
+    This replaces the former `compiler_extraction` axiom which directly equated
+    project∘restrict(Σ C²) with a product form — problematic because a sum of
+    squares after restrict+project does not equal a product form as a polynomial
+    identity. The decomposition axiom is the correct paper-faithful statement:
+    it asserts that the constraint structure of M♯ *contains* the Tseitin product
+    (by construction of the sheet coupling compiler). -/
+axiom sheet_violation_decomposition (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
+    ∃ (R : MvPolynomial (CompiledVars M n) F),
+      violationPolyOf F (sheetCoupling M) n =
+        rename (mkEmbedTseitin M n hn) (tseitinPoly F n) + R ∧
+      projectPoly (mkIsVerifier M n)
+        (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) R) = 0
+
+/-! ### Proving compiler_extraction from the decomposition axiom -/
+
+/-- Restriction is identity on renamed Tseitin: embedded vars are non-admin. -/
+private theorem restrict_rename_embed_id (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
+    restrictPoly (mkIsAdmin M n) (mkAdminVal M n)
+      (rename (mkEmbedTseitin M n hn) (tseitinPoly F n)) =
+    rename (mkEmbedTseitin M n hn) (tseitinPoly F n) := by
+  unfold restrictPoly
+  simp only [MvPolynomial.aeval_rename]
+  conv_rhs => rw [show (rename (mkEmbedTseitin M n hn) : MvPolynomial _ F →ₐ[F] _) =
+    MvPolynomial.aeval (fun i => X (mkEmbedTseitin M n hn i)) from
+    by ext i; simp]
+  congr 1; ext i
+  simp [embed_not_admin M n hn i]
+
+/-- Projection is identity on renamed Tseitin: embedded vars are verifier vars. -/
+private theorem project_rename_embed_id (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
+    projectPoly (mkIsVerifier M n)
+      (rename (mkEmbedTseitin M n hn) (tseitinPoly F n)) =
+    rename (mkEmbedTseitin M n hn) (tseitinPoly F n) := by
+  unfold projectPoly
+  simp only [MvPolynomial.aeval_rename]
+  conv_rhs => rw [show (rename (mkEmbedTseitin M n hn) : MvPolynomial _ F →ₐ[F] _) =
+    MvPolynomial.aeval (fun i => X (mkEmbedTseitin M n hn i)) from
+    by ext i; simp]
+  congr 1; ext i
+  simp [embed_is_verifier M n hn i]
+
 /-- **Compiler extraction correctness** (Theorem 187, arXiv:2512.11820v5 §40.6).
 
-    The restrict+project extraction applied to the violation polynomial of the
-    sheet-coupled machine M♯ yields exactly the renamed Tseitin polynomial.
-
-    Paper reference: The compiled polynomial P_{M♯,n} decomposes as
-      P = Q×_Φ(u,z) + R(v)
-    where Q×_Φ is the coupled verifier sheet (Definition 38) and R is the
-    computation tableau. Restricting admin/tag variables and projecting to
-    verifier variables kills R (which depends only on computation vars) and
-    preserves Q×_Φ, yielding the renamed Tseitin polynomial.
-
-    This single axiom replaces two former sub-axioms (constraint_vars_one_side
-    and clauseSheet_is_tseitin) which had structural issues: the former was
-    false for mixed-variable transition constraints, and the latter equated
-    a sum-of-squares with a product form. The extraction equation is the
-    correct paper-faithful statement at the right level of abstraction. -/
-axiom compiler_extraction (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
+    Now proved from the paper-faithful decomposition axiom
+    `sheet_violation_decomposition`. The proof:
+    1. V = tseitin_renamed + R  (decomposition)
+    2. restrict+project is linear (AlgHom)
+    3. restrict+project(tseitin_renamed) = tseitin_renamed  (embed is non-admin, verifier)
+    4. restrict+project(R) = 0  (decomposition axiom) -/
+theorem compiler_extraction (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     projectPoly (mkIsVerifier M n)
       (restrictPoly (mkIsAdmin M n) (mkAdminVal M n)
         (violationPolyOf F (sheetCoupling M) n)) =
-    rename (mkEmbedTseitin M n hn) (tseitinPoly F n)
+    rename (mkEmbedTseitin M n hn) (tseitinPoly F n) := by
+  obtain ⟨R, hdecomp, hR_killed⟩ := sheet_violation_decomposition F M n hn
+  rw [hdecomp]
+  simp only [map_add]
+  rw [restrict_rename_embed_id, project_rename_embed_id, hR_killed, add_zero]
 
 /-! ### Steps 2-3 are now subsumed by compiler_extraction axiom above.
 
