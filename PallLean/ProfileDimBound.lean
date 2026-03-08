@@ -76,10 +76,10 @@ theorem sym_pow_dim (d k : ℕ) :
 axiom within_profile_dim_bound {n : ℕ} {F : Type*} [Field F]
     (B : SPDP.BlockPartition n) (κ ℓ : ℕ)
     (p : MvPolynomial (Fin n) F)
+    (profileFn : List (Fin n) → Profile.Profile 4)
     (R D : ℕ) (hR : R ≤ n) (hD : D ≥ 1)
     (h : Profile.Profile 4) (htotal : Profile.totalMass h ≤ R) :
     Module.finrank F (Profile.profileSubspace (m := 4) B κ ℓ p
-      (fun _ => h)  -- constant profileFn (placeholder)
-      h) ≤ Nat.choose (R + D) D
+      profileFn h) ≤ Nat.choose (R + D) D
 
 end ProfileDimBound

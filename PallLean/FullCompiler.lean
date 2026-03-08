@@ -23,6 +23,8 @@ import PallLean.SheetCoupling
 import PallLean.ExtractionProof
 import PallLean.ProfileCompression
 import PallLean.WidthRank
+import PallLean.ProfileWiring
+import PallLean.ProfileDimBound
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.Dimension.Finrank
 
@@ -322,7 +324,9 @@ theorem cew_bound (M : DTM) (n : ℕ) : ∃ R, R ≤ n := ⟨n, le_refl n⟩
     Given R live interfaces, the SPDP subspace decomposes into
     N ≤ C(R+m,m) profile subspaces (Lemma 29), each of dimension
     ≤ C(R+D,D) (Lemma 31).
-    Paper: Lemmas 26-31, Theorem 23. -/
+    Paper: Lemmas 26-31, Theorem 23.
+    Depends on within_profile_dim_bound (Lemma 31) + profile cover (Profile.lean).
+    Paper: Theorem 23 assembly from Lemmas 26-31. -/
 axiom profile_subspace_cover (F : Type*) [Field F] (M : DTM) (n : ℕ)
     (m D R : ℕ) (hm : m ≥ 1) (hD : D ≥ 1) (hR : R ≤ n) :
     ∃ (N : ℕ)
