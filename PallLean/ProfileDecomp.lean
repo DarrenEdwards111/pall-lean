@@ -89,6 +89,12 @@ theorem gateSubspace_dim_le_R_squared
     (i : Fin h.numGates) :
     Module.finrank F (gateSubspace B κ ℓ (h.gate i)) ≤
     (h.numGates * h.width) ^ 2 := by
+  -- The gate has ≤ width variables. Generators of gateSubspace are
+  -- m * ∂^S(gate) where |S|=κ, deg(m)≤ℓ, S block-admissible.
+  -- Number of distinct ∂^S(gate) ≤ C(width, κ) (gate touches ≤ width vars).
+  -- Combined with monomial multipliers, dim ≤ C(width,κ) · C(width+ℓ,ℓ).
+  -- This is ≤ (numGates * width)² for the parameter ranges in the proof.
+  -- Full combinatorial argument deferred (§5 of arXiv:2512.11820v5).
   sorry
 
 /-! ## Full profile decomposition -/
@@ -131,8 +137,11 @@ theorem profile_decomposition_from_gates
       -- For κ = 0: generators are m * gate (no derivatives). This could be
       -- nonzero but R = 0, so Fin R is empty and ⨆ = ⊥.
       -- This case is genuinely unsatisfiable when gate ≠ 0 and κ = 0.
-      -- We mark it sorry as an edge case that doesn't arise in the proof
-      -- (κ = log₂ n ≥ 1 for n ≥ 2).
+      -- In the actual proof, κ = Nat.log 2 n ≥ 1 (since n ≥ 2), so κ ≥ 1.
+      -- When width = 0 and κ ≥ 1: each gate is constant (0 vars),
+      -- pderiv of constant = 0, so iterDerivList S (gate) = 0 for |S| ≥ 1,
+      -- making all generators 0 and gateSubspace = ⊥ ≤ anything.
+      -- Edge case κ = 0 ∧ width = 0 does not arise in the proof.
       sorry
     · have hw1 : h.width ≥ 1 := by omega
       have hiR : i.val < R := lt_of_lt_of_le i.isLt (Nat.le_mul_of_pos_right _ hw1)
