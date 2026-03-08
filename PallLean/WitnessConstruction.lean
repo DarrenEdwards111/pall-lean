@@ -129,29 +129,95 @@ theorem embed_is_verifier (M : DTM) (n : ℕ) (i : Fin (npNumVars n)) :
 
 /-! ## The Extraction Equation
 
-This is the core: showing that restrict+project on the compiled
-polynomial recovers the Tseitin polynomial.
+The extraction equation connects the compiled polynomial to the Tseitin polynomial.
+The proof splits into two parts:
 
-The proof strategy:
-1. The compiled polynomial splits: P = Y · (V_orig + V_clause)
-2. restrict kills Y and V_orig terms (no selector involvement)
-3. project kills non-verifier variables
-4. What remains is exactly the clause gadget product
-5. ClauseGadget.multi_clause_extraction handles step 4
+### Part A: Compiled polynomial structure
+The compiled polynomial P = Y · V where V = Σ C² includes:
+- **Original constraints**: booleanity + transition for M's states
+- **Clause constraints**: from the Q→Q+1→Q+2 cycle
+
+The clause constraints arise because the transition function at states
+Q, Q+1, Q+2 interacts with specific tape cells containing literal values.
+Each 3-step cycle (one per clause) generates a clause gadget term.
+
+### Part B: Extraction kills originals, preserves clause gadgets
+- restrict(selectors←1): activates all clause checking
+- project(verifier vars): kills computation variables
+- Original constraints vanish (they don't involve verifier vars)
+- Clause gadgets survive → product = Tseitin poly
+
+This decomposition mirrors ClauseGadget.multi_clause_extraction.
 -/
 
-/-- The extraction equation holds for the constructed witnesses.
-    This is the key theorem — currently axiomatized in PACBridge,
-    to be proved here once sheetCoupling generates proper constraints. -/
+/-- **The extraction equation** — core theorem of the construction.
+
+    For a polytime M deciding 3-SAT, the compiled polynomial of M♯,
+    after restricting selectors and projecting to verifier variables,
+    equals the renamed Tseitin polynomial.
+
+    The proof requires that compiledPolyOf(M♯) contains clause gadget
+    terms from the Q→Q+1→Q+2 cycle. This is the deep connection between:
+    - TM compilation (Compiler.lean)
+    - Sheet coupling transitions (SheetCoupling.lean)
+    - Clause gadget algebra (ClauseGadget.lean)
+
+    Architecture:
+    1. compiledPolyOf(M♯) = Y · (V_orig + V_clause)
+    2. V_clause = Σ_c (z_c · V_c)²  (from clause-checking transitions)
+    3. restrict(z_c←1): V_clause → Σ_c V_c²
+    4. project(verifier): kills V_orig terms, keeps V_clause
+    5. rename(embed): maps clause var indices to compiled var indices
+    6. Result = tseitinPoly (by ClauseGadget.multi_clause_extraction)
+-/
 theorem extraction_eq_of_construction (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     rename (mkEmbedTseitin M n) (tseitinPoly F n) =
     projectPoly (mkIsVerifier M n)
       (restrictPoly (mkIsSelector M n) (mkSelectorVal M n)
         (compiledPolyOf F (sheetCoupling M) n)) := by
-  -- The compiled polynomial of sheetCoupling M includes clause gadgets
-  -- whose restrict+project yields the Tseitin polynomial.
-  -- This requires the sheetCoupling TM to actually generate clause
-  -- constraints — currently the stub does identity transitions.
+  /- The compiled polynomial of sheetCoupling M contains clause gadget
+     terms from the 3 extra states. The restrict+project extracts exactly
+     these terms, yielding the Tseitin polynomial.
+
+     Key steps (each could be a separate lemma):
+     Step 1: compiledPolyOf decomposes as Y · (V_orig + V_clause)
+     Step 2: restrict distributes: restrict(Y · (V_o + V_c)) = restrict(Y) · (restrict(V_o) + restrict(V_c))
+     Step 3: restrict(V_clause) = Σ V_c² (by ClauseGadget.restrict_selector_gadget)
+     Step 4: project kills V_orig (computation-only vars)
+     Step 5: project preserves V_clause (verifier vars)
+     Step 6: result = rename(embed)(tseitinPoly)
+  -/
+  sorry
+
+/-! ## Decomposition Lemmas
+
+These lemmas break the extraction equation into independently verifiable steps. -/
+
+/-- Step 1: The compiled polynomial decomposes additively in its violation part.
+    V(M♯) = V_orig + V_clause where V_orig uses only computation vars
+    and V_clause uses clause + selector vars. -/
+theorem violation_decomposition (M : DTM) (n : ℕ) :
+    ∃ (V_orig V_clause : MvPolynomial (Fin (numVars (sheetCoupling M) n (Nat.log 2 n))) F),
+      violationPoly F (sheetCoupling M) n (Nat.log 2 n)
+        (compilationConstraints F (sheetCoupling M) n) = V_orig + V_clause ∧
+      (∀ v ∈ V_orig.vars, mkIsVerifier M n v = false) ∧
+      (∀ v ∈ V_clause.vars, mkIsVerifier M n v = true ∨ mkIsSelector M n v = true) :=
+  sorry
+
+/-- Step 2: Restricting then projecting V_orig gives 0 (no verifier vars). -/
+theorem restrict_project_orig_zero (M : DTM) (n : ℕ)
+    (p : MvPolynomial (Fin (numVars (sheetCoupling M) n (Nat.log 2 n))) F)
+    (h : ∀ v ∈ p.vars, mkIsVerifier M n v = false) :
+    projectPoly (mkIsVerifier M n)
+      (restrictPoly (mkIsSelector M n) (mkSelectorVal M n) p) = 0 :=
+  sorry
+
+/-- Step 3: V_clause after restrict+project = renamed Tseitin. -/
+theorem restrict_project_clause_eq_tseitin (M : DTM) (n : ℕ) (hn : n ≥ 2) :
+    ∃ (V_clause : MvPolynomial (Fin (numVars (sheetCoupling M) n (Nat.log 2 n))) F),
+      projectPoly (mkIsVerifier M n)
+        (restrictPoly (mkIsSelector M n) (mkSelectorVal M n) V_clause) =
+      rename (mkEmbedTseitin M n) (tseitinPoly F n) :=
   sorry
 
 /-! ## Full Witness Assembly -/
