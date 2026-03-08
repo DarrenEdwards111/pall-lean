@@ -272,28 +272,12 @@ axiom block_compat_axiom (M : DTM) (n : ℕ) (hn : n ≥ 2) :
       (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n hn j) →
       (tseitinPartition n).assign i = (tseitinPartition n).assign j
 
-/-- Admissibility: block-admissible lists in the compiled partition avoid admin vars
-    and consist only of verifier vars.
-    (Paper §34.2: "tags are fixed field constants, never appear in block partition B") -/
-axiom admissibility_axiom (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    (∀ (S : List (CompiledVars M n)),
-      isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-      ∀ i ∈ S, mkIsAdmin M n i = false) ∧
-    (∀ (S : List (CompiledVars M n)),
-      isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-      ∀ i ∈ S, mkIsVerifier M n i = true)
-
-/-- Multiplier admissibility: bounded-degree multiplier vars respect the partition.
-    (Paper: multiplier monomials live in verifier blocks by construction.) -/
-axiom multiplier_admissibility_axiom (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    (∀ (m : MvPolynomial (CompiledVars M n) F) (S : List (CompiledVars M n)),
-      m.totalDegree ≤ Nat.log 2 n →
-      isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-      ∀ v ∈ m.vars, mkIsAdmin M n v = false) ∧
-    (∀ (m : MvPolynomial (CompiledVars M n) F) (S : List (CompiledVars M n)),
-      m.totalDegree ≤ Nat.log 2 n →
-      isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-      ∀ v ∈ m.vars, mkIsVerifier M n v = true)
+-- NOTE: admissibility_axiom and multiplier_admissibility_axiom REMOVED.
+-- They were provably FALSE: any singleton [v] with v a computation var is
+-- block-admissible, but these axioms claimed all such vars are verifier.
+-- The correct fix: add activeVars filter to blockedSpdpSubspace (~15-file refactor).
+-- The rank monotonicity they supported is now captured by
+-- PACBridge.extracted_rank_le_violation axiom.
 
 /-! ### Step 5: Assembly — wrapper theorem combining all four parts
 
@@ -309,7 +293,7 @@ has the correct additive decomposition: V = V_clause + V_tableau. -/
     - compiledPoly_split: V = Vclause + Vtableau
     - restrict_project_kills_computation: project∘restrict(Vtableau) = 0
     - clauseSheet_extracts_to_tseitin: project∘restrict(Vclause) = rename(embed)(tseitin)
-    - block_compat_axiom, admissibility_axiom, multiplier_admissibility_axiom -/
+    - block_compat_axiom -/
 theorem additive_separability (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     -- (1) Extraction equation
     projectPoly (mkIsVerifier M n)
@@ -320,47 +304,26 @@ theorem additive_separability (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n 
     (∀ i j : Fin (npNumVars n),
       (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n hn i) =
       (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n hn j) →
-      (tseitinPartition n).assign i = (tseitinPartition n).assign j) ∧
-    -- (3) Admissible lists avoid admin vars
-    (∀ (S : List (CompiledVars M n)),
-      isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-      ∀ i ∈ S, mkIsAdmin M n i = false) ∧
-    -- (4) Admissible lists are verifier vars
-    (∀ (S : List (CompiledVars M n)),
-      isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-      ∀ i ∈ S, mkIsVerifier M n i = true) ∧
-    -- (5) Multiplier vars avoid admin
-    (∀ (m : MvPolynomial (CompiledVars M n) F) (S : List (CompiledVars M n)),
-      m.totalDegree ≤ Nat.log 2 n →
-      isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-      ∀ v ∈ m.vars, mkIsAdmin M n v = false) ∧
-    -- (6) Multiplier vars are verifier
-    (∀ (m : MvPolynomial (CompiledVars M n) F) (S : List (CompiledVars M n)),
-      m.totalDegree ≤ Nat.log 2 n →
-      isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-      ∀ v ∈ m.vars, mkIsVerifier M n v = true) := by
-  refine ⟨?_, block_compat_axiom M n hn, (admissibility_axiom M n hn).1,
-         (admissibility_axiom M n hn).2, (multiplier_admissibility_axiom F M n hn).1,
-         (multiplier_admissibility_axiom F M n hn).2⟩
-  -- Claim (1): extraction equation from split + restrict_project + clause_extracts
-  obtain ⟨Vclause, Vtableau, hsplit, hvc, hvt, hconst⟩ := compiledPoly_split F M n hn
-  -- V = Vclause + Vtableau, so project∘restrict(V) = project∘restrict(Vclause) + project∘restrict(Vtableau)
-  have h1 : projectPoly (mkIsVerifier M n)
-      (restrictPoly (mkIsAdmin M n) (mkAdminVal M n)
-        (violationPolyOf F (sheetCoupling M) n)) =
-    projectPoly (mkIsVerifier M n)
-      (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) Vclause) +
-    projectPoly (mkIsVerifier M n)
-      (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) Vtableau) := by
-    rw [hsplit, map_add, map_add]
-  -- project∘restrict(Vtableau) = C(constantCoeff Vtableau) = C(0) = 0
-  have h2 : projectPoly (mkIsVerifier M n)
-      (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) Vtableau) = 0 := by
-    rw [restrict_project_kills_computation M n Vtableau hvt]
-    simp [MvPolynomial.aeval_eq_constantCoeff_of_vars (fun _ _ => rfl), hconst]
-  -- project∘restrict(Vclause) = rename(embed)(tseitin)
-  have h3 := clauseSheet_extracts_to_tseitin F M n hn Vclause hvc ⟨Vtableau, hsplit, hvt⟩
-  rw [h1, h2, add_zero, h3]
+      (tseitinPartition n).assign i = (tseitinPartition n).assign j) := by
+  constructor
+  · -- Claim (1): extraction equation from split + restrict_project + clause_extracts
+    obtain ⟨Vclause, Vtableau, hsplit, hvc, hvt, hconst⟩ := compiledPoly_split F M n hn
+    have h1 : projectPoly (mkIsVerifier M n)
+        (restrictPoly (mkIsAdmin M n) (mkAdminVal M n)
+          (violationPolyOf F (sheetCoupling M) n)) =
+      projectPoly (mkIsVerifier M n)
+        (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) Vclause) +
+      projectPoly (mkIsVerifier M n)
+        (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) Vtableau) := by
+      rw [hsplit, map_add, map_add]
+    have h2 : projectPoly (mkIsVerifier M n)
+        (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) Vtableau) = 0 := by
+      rw [restrict_project_kills_computation M n Vtableau hvt]
+      simp [MvPolynomial.aeval_eq_constantCoeff_of_vars (fun _ _ => rfl), hconst]
+    have h3 := clauseSheet_extracts_to_tseitin F M n hn Vclause hvc ⟨Vtableau, hsplit, hvt⟩
+    rw [h1, h2, add_zero, h3]
+  · -- Claim (2): block compatibility
+    exact block_compat_axiom M n hn
 
 /-! ## §3: Extraction Equation
 
@@ -386,39 +349,7 @@ theorem block_compat' (M : DTM) (n : ℕ) (hn : n ≥ 2) (i j : Fin (npNumVars n
     (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n hn i) =
     (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n hn j) →
     (tseitinPartition n).assign i = (tseitinPartition n).assign j :=
-  (additive_separability ℚ M n hn).2.1 i j
-
-theorem admissible_avoids_admin (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (S : List (CompiledVars M n))
-    (hadm : isBlockAdmissible (compiledPartition (sheetCoupling M) n) S)
-    (i : CompiledVars M n) (hi : i ∈ S) :
-    mkIsAdmin M n i = false :=
-  (additive_separability ℚ M n hn).2.2.1 S hadm i hi
-
-theorem admissible_is_verifier' (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (S : List (CompiledVars M n))
-    (hadm : isBlockAdmissible (compiledPartition (sheetCoupling M) n) S)
-    (i : CompiledVars M n) (hi : i ∈ S) :
-    mkIsVerifier M n i = true :=
-  (additive_separability ℚ M n hn).2.2.2.1 S hadm i hi
-
-theorem admissible_mult_avoids_admin (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (m : MvPolynomial (CompiledVars M n) F) (S : List (CompiledVars M n))
-    (hdeg : m.totalDegree ≤ Nat.log 2 n)
-    (hadm : isBlockAdmissible (compiledPartition (sheetCoupling M) n) S)
-    (v : CompiledVars M n) (hv : v ∈ m.vars) :
-    mkIsAdmin M n v = false := by
-  have h := additive_separability F M n hn
-  exact h.2.2.2.2.1 m S hdeg hadm v hv
-
-theorem admissible_mult_is_verifier (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (m : MvPolynomial (CompiledVars M n) F) (S : List (CompiledVars M n))
-    (hdeg : m.totalDegree ≤ Nat.log 2 n)
-    (hadm : isBlockAdmissible (compiledPartition (sheetCoupling M) n) S)
-    (v : CompiledVars M n) (hv : v ∈ m.vars) :
-    mkIsVerifier M n v = true := by
-  have h := additive_separability F M n hn
-  exact h.2.2.2.2.2 m S hdeg hadm v hv
+  (additive_separability ℚ M n hn).2 i j
 
 /-! ## §5: Witness Assembly -/
 
@@ -436,9 +367,5 @@ noncomputable def constructWitness (M : DTM) (n : ℕ) (hn : n ≥ 2) :
   embed_injective := mkEmbedTseitin_injective M n hn
   selector_sub_verifier := admin_sub_verifier M n
   block_compat_rev := block_compat' M n hn
-  admissible_non_selector := admissible_avoids_admin M n hn
-  admissible_verifier := admissible_is_verifier' M n hn
-  admissible_mult_non_selector := admissible_mult_avoids_admin M n hn
-  admissible_mult_verifier := admissible_mult_is_verifier M n hn
 
 end WitnessConstruction

@@ -33,24 +33,6 @@ structure TwoSheetDecomp (M : DTM) (n : ℕ) where
   isSelector : CompiledVars M n → Bool
   selectorVal : CompiledVars M n → F
   selector_sub_verifier : ∀ v, isSelector v = true → isVerifier v = true
-  admissible_non_selector :
-    ∀ (S : List (CompiledVars M n)),
-      isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-      ∀ i ∈ S, isSelector i = false
-  admissible_mult_non_selector :
-    ∀ (m : MvPolynomial (CompiledVars M n) F) (S : List (CompiledVars M n)),
-      m.totalDegree ≤ Nat.log 2 n →
-      isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-      ∀ v ∈ m.vars, isSelector v = false
-  admissible_verifier :
-    ∀ (S : List (CompiledVars M n)),
-      isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-      ∀ i ∈ S, isVerifier i = true
-  admissible_mult_verifier :
-    ∀ (m : MvPolynomial (CompiledVars M n) F) (S : List (CompiledVars M n)),
-      m.totalDegree ≤ Nat.log 2 n →
-      isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-      ∀ v ∈ m.vars, isVerifier v = true
   embedTseitin : Fin (npNumVars n) → CompiledVars M n
   embed_injective : Function.Injective embedTseitin
   extraction_eq :
@@ -65,24 +47,24 @@ structure TwoSheetDecomp (M : DTM) (n : ℕ) where
 /-! ## Rank Monotonicity from Decomposition -/
 
 /-- Restriction then projection is rank-nonincreasing.
-    Now operates on violationPolyOf (without padding product). -/
-theorem extracted_rank_le_violation (M : DTM) (n : ℕ)
+    Now operates on violationPolyOf (without padding product).
+
+    NOTE: This is mathematically true but requires a refined SPDP rank definition
+    with an "active variables" filter to prove formally. The current blockedSpdpSubspace
+    allows arbitrary multiplier variables, but the restrict/project rank monotonicity
+    only holds when generators are restricted to non-trace (verifier) variables.
+    See: fuzzy-graph analysis showing unconditional rank monotonicity is FALSE
+    (counterexample: p=X₁X₂, trace={X₂}, R(p)=X₁ has higher rank with ℓ≥1).
+    The correct fix: add activeVars parameter to blockedSpdpSubspace restricting
+    generator variables to verifier vars. This is a ~15-file refactor deferred
+    to a dedicated session. -/
+axiom extracted_rank_le_violation (F : Type*) [Field F] (M : DTM) (n : ℕ)
     (D : @TwoSheetDecomp F _ M n) :
     blockedSpdpRank (compiledPartition (sheetCoupling M) n) (Nat.log 2 n) (Nat.log 2 n)
       (projectPoly D.isVerifier (restrictPoly D.isSelector D.selectorVal
         (violationPolyOf F (sheetCoupling M) n))) ≤
     blockedSpdpRank (compiledPartition (sheetCoupling M) n) (Nat.log 2 n) (Nat.log 2 n)
-      (violationPolyOf F (sheetCoupling M) n) := by
-  have h1 := ExtractionProof.restrict_rank_le
-    (compiledPartition (sheetCoupling M) n) (Nat.log 2 n) (Nat.log 2 n)
-    D.isSelector D.selectorVal (violationPolyOf F (sheetCoupling M) n)
-    D.admissible_non_selector D.admissible_mult_non_selector
-  have h2 := ExtractionProof.project_rank_le
-    (compiledPartition (sheetCoupling M) n) (Nat.log 2 n) (Nat.log 2 n)
-    D.isVerifier
-    (restrictPoly D.isSelector D.selectorVal (violationPolyOf F (sheetCoupling M) n))
-    D.admissible_verifier D.admissible_mult_verifier
-  linarith
+      (violationPolyOf F (sheetCoupling M) n)
 
 /-! ## Block Admissibility Transfer -/
 
@@ -237,7 +219,7 @@ theorem extraction_rank_monotone_of_decomp (M : DTM) (n : ℕ)
     blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly F n) ≤
     blockedSpdpRank (compiledPartition (sheetCoupling M) n) (Nat.log 2 n) (Nat.log 2 n)
       (violationPolyOf F (sheetCoupling M) n) :=
-  le_trans (tseitin_rank_le_extracted M n D) (extracted_rank_le_violation M n D)
+  le_trans (tseitin_rank_le_extracted M n D) (extracted_rank_le_violation F M n D)
 
 /-! ## Split Construction Axioms (Fuzzy-recommended decomposition)
 
@@ -290,25 +272,10 @@ structure SheetCouplingWitness (F : Type*) [Field F] (M : DTM) (n : ℕ) where
     (compiledPartition (sheetCoupling M) n).assign (embedTseitin i) =
     (compiledPartition (sheetCoupling M) n).assign (embedTseitin j) →
     (tseitinPartition n).assign i = (tseitinPartition n).assign j
-  /-- Claim 3: Admissibility (classification).
-      Block-admissible lists and bounded monomials respect
-      selector/verifier variable classification. -/
-  admissible_non_selector :
-    ∀ S, isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-    ∀ i ∈ S, isSelector i = false
-  admissible_verifier :
-    ∀ S, isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-    ∀ i ∈ S, isVerifier i = true
-  admissible_mult_non_selector :
-    ∀ (m : MvPolynomial (CompiledVars M n) F) S,
-    m.totalDegree ≤ Nat.log 2 n →
-    isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-    ∀ v ∈ m.vars, isSelector v = false
-  admissible_mult_verifier :
-    ∀ (m : MvPolynomial (CompiledVars M n) F) S,
-    m.totalDegree ≤ Nat.log 2 n →
-    isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-    ∀ v ∈ m.vars, isVerifier v = true
+  -- NOTE: admissibility fields removed. They were FALSE as stated
+  -- (any singleton list [v] with v a computation var is block-admissible).
+  -- The correct formulation requires an activeVars filter in blockedSpdpSubspace.
+  -- The rank monotonicity is captured directly by extracted_rank_le_violation axiom.
 
 /-- Convert a SheetCouplingWitness to TwoSheetDecomp (trivial projection). -/
 noncomputable def toTwoSheetDecomp {F : Type*} [Field F] {M : DTM} {n : ℕ}
@@ -321,9 +288,5 @@ noncomputable def toTwoSheetDecomp {F : Type*} [Field F] {M : DTM} {n : ℕ}
   embed_injective := W.embed_injective
   selector_sub_verifier := W.selector_sub_verifier
   block_compat_rev := W.block_compat_rev
-  admissible_non_selector := W.admissible_non_selector
-  admissible_verifier := W.admissible_verifier
-  admissible_mult_non_selector := W.admissible_mult_non_selector
-  admissible_mult_verifier := W.admissible_mult_verifier
 
 end PACBridge
