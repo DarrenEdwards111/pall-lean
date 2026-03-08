@@ -258,6 +258,75 @@ theorem restrict_rank_le
     _ ≤ Module.finrank F ↥(blockedSpdpSubspace B κ ℓ p) :=
         Submodule.finrank_map_le _ _
 
+/-- Restriction with explicit activeVars: when all active vars are non-trace,
+    restriction is rank-nonincreasing. This matches the paper (Lemma 33):
+    after restriction, the SPDP matrix lives in the smaller ring of free variables.
+    The activeVars constraint bakes this in — no external admissibility hypotheses needed. -/
+theorem restrict_rank_le_active
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (isTrace : Fin n → Bool) (assign : Fin n → F)
+    (p : MvPolynomial (Fin n) F)
+    (activeVars : Finset (Fin n))
+    -- All active vars are non-trace (the only hypothesis needed)
+    (hActive : ∀ v ∈ activeVars, isTrace v = false) :
+    blockedSpdpRank B κ ℓ (ExtractionPipeline.restrictPoly isTrace assign p) activeVars ≤
+    blockedSpdpRank B κ ℓ p activeVars := by
+  unfold blockedSpdpRank
+  have hmap : blockedSpdpSubspace B κ ℓ
+      (ExtractionPipeline.restrictPoly isTrace assign p) activeVars ≤
+      Submodule.map (ExtractionPipeline.restrictPoly isTrace assign).toLinearMap
+        (blockedSpdpSubspace B κ ℓ p activeVars) := by
+    unfold blockedSpdpSubspace
+    apply Submodule.span_le.mpr
+    intro q ⟨S, m, hlen, hdeg, hadm, hSa, hma, hq⟩
+    -- All S indices are active hence non-trace
+    have hSnonTrace : ∀ i ∈ S, isTrace i = false := fun i hi => hActive i (hSa i hi)
+    rw [hq, iterDerivList_restrictPoly_comm isTrace assign S hSnonTrace]
+    -- All m.vars are active hence non-trace
+    have hMnonTrace : ∀ v ∈ m.vars, isTrace v = false := fun v hv => hActive v (hma v hv)
+    rw [← restrictPoly_eq_of_vars_nonTrace isTrace assign m hMnonTrace]
+    rw [← map_mul]
+    exact Submodule.mem_map.mpr ⟨m * iterDerivList S p,
+      Submodule.subset_span ⟨S, m, hlen, hdeg, hadm, hSa, hma, rfl⟩, rfl⟩
+  -- Need Module.Finite for activeVars-filtered subspaces
+  have hfin_p : Module.Finite F ↥(blockedSpdpSubspace B κ ℓ p activeVars) :=
+    Module.Finite.of_injective
+      (Submodule.inclusion (blockedSpdpSubspace_activeVars_mono B κ ℓ p (Finset.subset_univ activeVars)))
+      (Submodule.inclusion_injective _)
+  have hfin_rp : Module.Finite F ↥(blockedSpdpSubspace B κ ℓ
+      (ExtractionPipeline.restrictPoly isTrace assign p) activeVars) :=
+    Module.Finite.of_injective
+      (Submodule.inclusion (blockedSpdpSubspace_activeVars_mono B κ ℓ _ (Finset.subset_univ activeVars)))
+      (Submodule.inclusion_injective _)
+  calc Module.finrank F ↥(blockedSpdpSubspace B κ ℓ
+        (ExtractionPipeline.restrictPoly isTrace assign p) activeVars)
+      ≤ Module.finrank F ↥(Submodule.map
+          (ExtractionPipeline.restrictPoly isTrace assign).toLinearMap
+          (blockedSpdpSubspace B κ ℓ p activeVars)) :=
+        Submodule.finrank_mono hmap
+    _ ≤ Module.finrank F ↥(blockedSpdpSubspace B κ ℓ p activeVars) :=
+        Submodule.finrank_map_le _ _
+
+/-- Project with explicit activeVars. Special case of restrict_rank_le_active. -/
+theorem project_rank_le_active
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (keep : Fin n → Bool)
+    (p : MvPolynomial (Fin n) F)
+    (activeVars : Finset (Fin n))
+    (hActive : ∀ v ∈ activeVars, keep v = true) :
+    blockedSpdpRank B κ ℓ (ExtractionPipeline.projectPoly keep p) activeVars ≤
+    blockedSpdpRank B κ ℓ p activeVars := by
+  have heq : ExtractionPipeline.projectPoly keep p =
+      ExtractionPipeline.restrictPoly (fun v => !keep v) (fun _ => (0 : F)) p := by
+    unfold ExtractionPipeline.projectPoly ExtractionPipeline.restrictPoly
+    congr 1; ext v
+    cases hk : keep v <;> simp [hk, MvPolynomial.C_0]
+  rw [heq]
+  apply restrict_rank_le_active
+  intro v hv
+  simp [Bool.not_eq_true']
+  exact hActive v hv
+
 /-! ## Steps 4-5: Easy stages -/
 
 /-- Project: setting some variables to 0. Special case of restrict. -/

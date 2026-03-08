@@ -34,6 +34,9 @@ structure TwoSheetDecomp (M : DTM) (n : ℕ) where
   selectorVal : CompiledVars M n → F
   selector_sub_verifier : ∀ v, isSelector v = true → isVerifier v = true
   embedTseitin : Fin (npNumVars n) → CompiledVars M n
+  -- Embedded tseitin vars land in pure verifier space (verifier, not selector)
+  embed_is_pure_verifier : ∀ i, isVerifier (embedTseitin i) = true ∧
+                                 isSelector (embedTseitin i) = false
   embed_injective : Function.Injective embedTseitin
   extraction_eq :
     rename embedTseitin (tseitinPoly F n) =
@@ -57,14 +60,51 @@ structure TwoSheetDecomp (M : DTM) (n : ℕ) where
     (counterexample: p=X₁X₂, trace={X₂}, R(p)=X₁ has higher rank with ℓ≥1).
     The correct fix: add activeVars parameter to blockedSpdpSubspace restricting
     generator variables to verifier vars. This is a ~15-file refactor deferred
-    to a dedicated session. -/
-axiom extracted_rank_le_violation (F : Type*) [Field F] (M : DTM) (n : ℕ)
+    to a dedicated session.
+
+    The "pure verifier" vars: verifier but not selector. These survive both
+    restriction (non-selector) and projection (verifier). -/
+noncomputable def pureVerifierVars {M : DTM} {n : ℕ}
+    (D : @TwoSheetDecomp F _ M n) : Finset (CompiledVars M n) :=
+  Finset.univ.filter (fun v => D.isVerifier v = true ∧ D.isSelector v = false)
+
+/-- Restriction then projection is rank-nonincreasing when measured with
+    activeVars = pureVerifierVars.
+
+    Proved from restrict_rank_le_active + project_rank_le_active +
+    blockedSpdpRank_activeVars_mono. No false admissibility axioms needed. -/
+theorem extracted_rank_le_violation (M : DTM) (n : ℕ)
     (D : @TwoSheetDecomp F _ M n) :
     blockedSpdpRank (compiledPartition (sheetCoupling M) n) (Nat.log 2 n) (Nat.log 2 n)
       (projectPoly D.isVerifier (restrictPoly D.isSelector D.selectorVal
-        (violationPolyOf F (sheetCoupling M) n))) ≤
+        (violationPolyOf F (sheetCoupling M) n)))
+      (pureVerifierVars D) ≤
     blockedSpdpRank (compiledPartition (sheetCoupling M) n) (Nat.log 2 n) (Nat.log 2 n)
-      (violationPolyOf F (sheetCoupling M) n)
+      (violationPolyOf F (sheetCoupling M) n) := by
+  calc blockedSpdpRank _ _ _
+        (projectPoly D.isVerifier (restrictPoly D.isSelector D.selectorVal
+          (violationPolyOf F (sheetCoupling M) n)))
+        (pureVerifierVars D)
+      ≤ blockedSpdpRank _ _ _
+          (restrictPoly D.isSelector D.selectorVal
+            (violationPolyOf F (sheetCoupling M) n))
+          (pureVerifierVars D) := by
+        apply ExtractionProof.project_rank_le_active
+        intro v hv
+        simp [pureVerifierVars, Finset.mem_filter] at hv
+        exact hv.1
+    _ ≤ blockedSpdpRank _ _ _
+          (violationPolyOf F (sheetCoupling M) n)
+          (pureVerifierVars D) := by
+        apply ExtractionProof.restrict_rank_le_active
+        intro v hv
+        simp [pureVerifierVars, Finset.mem_filter] at hv
+        exact hv.2
+    _ ≤ blockedSpdpRank _ _ _
+          (violationPolyOf F (sheetCoupling M) n) := by
+        unfold blockedSpdpRank
+        apply Submodule.finrank_mono
+        exact blockedSpdpSubspace_activeVars_mono _ _ _ _ (Finset.filter_subset _ _)
 
 /-! ## Block Admissibility Transfer -/
 
@@ -183,6 +223,38 @@ theorem blockedSpdpSubspace_rename_le (κ ℓ : ℕ)
     isBlockAdmissible_map_injective B₁ B₂ ρ hρ hrev S hadm,
     (fun _ _ => Finset.mem_univ _), (fun _ _ => Finset.mem_univ _), rfl⟩
 
+/-- Rename with matching active sets: if ρ maps active₁ into active₂,
+    then rename preserves the activeVars-filtered rank. -/
+theorem blockedSpdpSubspace_rename_le_active (κ ℓ : ℕ)
+    {n₁ n₂ : ℕ}
+    (B₁ : BlockPartition n₁) (B₂ : BlockPartition n₂)
+    (ρ : Fin n₁ → Fin n₂) (hρ : Function.Injective ρ)
+    (hrev : ∀ i j : Fin n₁, B₂.assign (ρ i) = B₂.assign (ρ j) →
+      B₁.assign i = B₁.assign j)
+    (active₁ : Finset (Fin n₁)) (active₂ : Finset (Fin n₂))
+    (hactive : ∀ v ∈ active₁, ρ v ∈ active₂)
+    (p : MvPolynomial (Fin n₁) F) :
+    (blockedSpdpSubspace B₁ κ ℓ p active₁).map (rename ρ).toLinearMap ≤
+    blockedSpdpSubspace B₂ κ ℓ (rename ρ p) active₂ := by
+  apply Submodule.map_le_iff_le_comap.mpr
+  apply Submodule.span_le.mpr
+  intro q ⟨S, m, hlen, hdeg, hadm, hSa, hma, hq⟩
+  show (rename ρ) q ∈ blockedSpdpSubspace B₂ κ ℓ (rename ρ p) active₂
+  rw [hq, map_mul, ← iterDerivList_rename_map_local ρ hρ S p]
+  apply Submodule.subset_span
+  refine ⟨S.map ρ, rename ρ m, by simp [hlen],
+    le_trans (totalDegree_rename_le ρ m) hdeg,
+    isBlockAdmissible_map_injective B₁ B₂ ρ hρ hrev S hadm,
+    fun i hi => by
+      rw [List.mem_map] at hi
+      obtain ⟨j, hj, rfl⟩ := hi
+      exact hactive j (hSa j hj),
+    fun v hv => by
+      -- v ∈ (rename ρ m).vars → ∃ w ∈ m.vars, ρ w = v
+      obtain ⟨w, _, rfl⟩ := mem_vars_rename ρ m hv
+      exact hactive w (hma w ‹w ∈ m.vars›),
+    rfl⟩
+
 /-- Tseitin rank ≤ extracted rank via injective rename. -/
 theorem tseitin_rank_le_extracted (M : DTM) (n : ℕ)
     (D : @TwoSheetDecomp F _ M n) :
@@ -214,13 +286,62 @@ theorem tseitin_rank_le_extracted (M : DTM) (n : ℕ)
   omega
 
 /-- **Main theorem**: Extraction rank monotonicity from two-sheet decomposition.
-    Now targets violationPolyOf (without padding), not compiledPolyOf. -/
+    The RHS uses default activeVars (Finset.univ), which is ≥ pureVerifierVars.
+    Chain: rank(tseitin) ≤ rank(projectRestrict(V), univ)
+                          ≤ rank(projectRestrict(V), pureVerifier)  [★ need this]
+                          ≤ rank(V, pureVerifier)                    [restrict+project]
+                          ≤ rank(V, univ)                            [activeVars mono]
+
+    ★ requires showing that the rename image lands in pureVerifier vars,
+    so the non-pureVerifier generators are "empty" (derivatives vanish).
+    The rename-active lemma ensures that rename maps Finset.univ (tseitin side)
+    into pureVerifierVars (compiled side) via embed_is_pure_verifier. -/
+theorem tseitin_rank_le_extracted_active (M : DTM) (n : ℕ)
+    (D : @TwoSheetDecomp F _ M n) :
+    blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly F n) ≤
+    blockedSpdpRank (compiledPartition (sheetCoupling M) n) (Nat.log 2 n) (Nat.log 2 n)
+      (projectPoly D.isVerifier (restrictPoly D.isSelector D.selectorVal
+        (violationPolyOf F (sheetCoupling M) n)))
+      (pureVerifierVars D) := by
+  rw [← D.extraction_eq]
+  set φ := (rename D.embedTseitin : MvPolynomial (Fin (npNumVars n)) F →ₐ[F] _).toLinearMap
+  set tsub := blockedSpdpSubspace (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
+    (tseitinPoly F n) Finset.univ
+  set csub := blockedSpdpSubspace (compiledPartition (sheetCoupling M) n) (Nat.log 2 n)
+    (Nat.log 2 n) (rename D.embedTseitin (tseitinPoly F n)) (pureVerifierVars D)
+  have hle : tsub.map φ ≤ csub :=
+    blockedSpdpSubspace_rename_le_active _ _ _ _
+      D.embedTseitin D.embed_injective D.block_compat_rev
+      Finset.univ (pureVerifierVars D)
+      (fun v _ => by
+        simp [pureVerifierVars, Finset.mem_filter]
+        exact D.embed_is_pure_verifier v)
+      _
+  have : Module.Finite F ↥csub :=
+    Module.Finite.of_injective
+      (Submodule.inclusion (blockedSpdpSubspace_activeVars_mono _ _ _ _
+        (Finset.filter_subset _ _)))
+      (Submodule.inclusion_injective _)
+  have h1 : Module.finrank F (tsub.map φ) ≤ Module.finrank F csub :=
+    Submodule.finrank_mono hle
+  have hinj : Function.Injective φ :=
+    fun _ _ h => rename_injective _ D.embed_injective h
+  have hdomInj : Function.Injective (φ.domRestrict tsub) := by
+    intro ⟨x, hx⟩ ⟨y, hy⟩ h
+    simp [LinearMap.domRestrict] at h
+    exact Subtype.ext (hinj h)
+  have h2 : Module.finrank F (tsub.map φ) = Module.finrank F tsub := by
+    have := LinearMap.finrank_range_of_inj hdomInj
+    rw [LinearMap.range_domRestrict] at this; exact this
+  show Module.finrank F tsub ≤ Module.finrank F csub
+  omega
+
 theorem extraction_rank_monotone_of_decomp (M : DTM) (n : ℕ)
     (D : @TwoSheetDecomp F _ M n) :
     blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly F n) ≤
     blockedSpdpRank (compiledPartition (sheetCoupling M) n) (Nat.log 2 n) (Nat.log 2 n)
       (violationPolyOf F (sheetCoupling M) n) :=
-  le_trans (tseitin_rank_le_extracted M n D) (extracted_rank_le_violation F M n D)
+  le_trans (tseitin_rank_le_extracted_active M n D) (extracted_rank_le_violation M n D)
 
 /-! ## Split Construction Axioms (Fuzzy-recommended decomposition)
 
@@ -269,6 +390,8 @@ structure SheetCouplingWitness (F : Type*) [Field F] (M : DTM) (n : ℕ) where
       Embedding is injective, block-reflecting, selectors ⊆ verifier. -/
   embed_injective : Function.Injective embedTseitin
   selector_sub_verifier : ∀ v, isSelector v = true → isVerifier v = true
+  embed_is_pure_verifier : ∀ i, isVerifier (embedTseitin i) = true ∧
+                                isSelector (embedTseitin i) = false
   block_compat_rev : ∀ i j,
     (compiledPartition (sheetCoupling M) n).assign (embedTseitin i) =
     (compiledPartition (sheetCoupling M) n).assign (embedTseitin j) →
@@ -288,6 +411,7 @@ noncomputable def toTwoSheetDecomp {F : Type*} [Field F] {M : DTM} {n : ℕ}
   extraction_eq := W.extraction_eq
   embed_injective := W.embed_injective
   selector_sub_verifier := W.selector_sub_verifier
+  embed_is_pure_verifier := W.embed_is_pure_verifier
   block_compat_rev := W.block_compat_rev
 
 end PACBridge

@@ -255,4 +255,16 @@ structure HasLocalityStructure {v : ℕ} {F : Type*} [CommRing F]
   sum_eq : p = ∑ i, gate i
   gate_width : ∀ i, (gate i).vars.card ≤ width
 
+/-- Monotonicity in activeVars: smaller active set → smaller subspace → smaller rank. -/
+theorem blockedSpdpSubspace_activeVars_mono {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F)
+    {a1 a2 : Finset (Fin n)} (h : a1 ⊆ a2) :
+    blockedSpdpSubspace B κ ℓ p a1 ≤ blockedSpdpSubspace B κ ℓ p a2 := by
+  apply Submodule.span_mono
+  intro q ⟨S, m, hlen, hdeg, hadm, hSa, hma, hq⟩
+  exact ⟨S, m, hlen, hdeg, hadm, fun i hi => h (hSa i hi), fun v hv => h (hma v hv), hq⟩
+
+-- Note: blockedSpdpRank_activeVars_mono requires Module.Finite instance,
+-- which is in ExtractionProof.lean. See extracted_rank_le_violation in PACBridge.
+
 end SPDP

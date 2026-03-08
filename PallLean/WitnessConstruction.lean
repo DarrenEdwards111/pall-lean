@@ -366,6 +366,8 @@ noncomputable def constructWitness (M : DTM) (n : ℕ) (hn : n ≥ 2) :
   extraction_eq := extraction_eq' M n hn
   embed_injective := mkEmbedTseitin_injective M n hn
   selector_sub_verifier := admin_sub_verifier M n
+  embed_is_pure_verifier := fun i => ⟨embed_is_verifier M n hn i,
+                                       embed_not_admin M n hn i⟩
   block_compat_rev := block_compat' M n hn
 
 end WitnessConstruction
