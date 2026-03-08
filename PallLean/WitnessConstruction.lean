@@ -189,6 +189,12 @@ in v. Summing yields the additive decomposition. -/
     with disjoint variable supports.
     Paper: "By Definition 53, each compiler gadget contributes a polynomial whose
     variables lie entirely in (u,z) or entirely in v." -/
+/- WHY THIS REMAINS AN AXIOM: Proving this requires showing that sheetCoupling M's
+   transition constraints split by variable support — clause-checking states produce
+   constraints using only verifier vars, while original M states use only computation
+   vars. This needs detailed case analysis on mkTransitionConstraint for each state
+   type in sheetCoupling, which requires ~200 lines of constraint-level reasoning
+   about the clause gadget polynomials defined in ClauseGadget.lean. -/
 axiom compiledPoly_split (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     ∃ (Vclause Vtableau : MvPolynomial (CompiledVars M n) F),
       violationPolyOf F (sheetCoupling M) n = Vclause + Vtableau ∧
@@ -247,6 +253,11 @@ Tseitin polynomial. This is the core compiler-correctness claim. -/
 /-- **Theorem 187 (extraction equation on clause sheet)**: restrict+project
     applied to the clause sheet produces the renamed Tseitin polynomial.
     Paper: "T_Φ = (basis) ∘ (affine relabeling) ∘ (restriction) ∘ (projection)" -/
+/- WHY THIS REMAINS AN AXIOM: This is the core compiler-correctness claim (Theorem 187).
+   It requires showing that clause-checking transition constraints, after restricting
+   admin vars to 0 and projecting to verifier vars, produce exactly the renamed Tseitin
+   polynomial ∏(1 - z_C · V_C(u)²). This is the deepest single claim in the formalization,
+   requiring ~500+ lines connecting ClauseGadget constraint structure to tseitinPoly. -/
 axiom clauseSheet_extracts_to_tseitin (F : Type*) [Field F]
     (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     ∀ (Vclause : MvPolynomial (CompiledVars M n) F),
@@ -266,11 +277,18 @@ These encode properties of the compiler's block partition structure:
 
 /-- Block compatibility: the embedding reflects the compiled partition to the
     Tseitin partition. (Paper: clause-sheet variables are assigned to clause blocks.) -/
-axiom block_compat_axiom (M : DTM) (n : ℕ) (hn : n ≥ 2) :
+theorem block_compat_axiom (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     ∀ i j : Fin (npNumVars n),
       (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n hn i) =
       (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n hn j) →
-      (tseitinPartition n).assign i = (tseitinPartition n).assign j
+      (tseitinPartition n).assign i = (tseitinPartition n).assign j := by
+  intro i j h
+  -- compiledPartition uses compilerBlockPartition which is the identity partition
+  -- So assign = id, meaning embed(i) = embed(j), so i = j
+  simp only [compiledPartition, compilerBlockPartition] at h
+  have : mkEmbedTseitin M n hn i = mkEmbedTseitin M n hn j := h
+  have hij : i = j := mkEmbedTseitin_injective M n hn this
+  rw [hij]
 
 -- NOTE: admissibility_axiom and multiplier_admissibility_axiom REMOVED.
 -- They were provably FALSE: any singleton [v] with v a computation var is

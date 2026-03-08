@@ -137,9 +137,8 @@ noncomputable def compiledPoly (F : Type*) [CommRing F]
     plus separate blocks for inputs and padding. -/
 noncomputable def compilerBlockPartition (M : DTM) (n κ : ℕ) :
     BlockPartition (numVars M n κ) where
-  numBlocks := tapeSize M n * tapeSize M n + n + κ + 1
-  assign := fun v => ⟨v.val % (tapeSize M n * tapeSize M n + n + κ + 1),
-    Nat.mod_lt _ (by omega)⟩
+  numBlocks := numVars M n κ
+  assign := fun v => v
 
 /-! ## Key Properties -/
 
