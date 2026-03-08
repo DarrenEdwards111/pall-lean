@@ -132,10 +132,29 @@ theorem blockAdmissible_map_embedVerifier (M : DTM) (n : ℕ)
       calc ((S.map (embedVerifier M n)).filter
               (fun i => (compilerPartition M n).assign i = b)).length
           ≤ (S.filter (fun j => (tseitinPartition n).assign j = tb)).length := by
-            -- Each element of the LHS filter comes from an element of the RHS filter
-            -- via embedVerifier, and embedVerifier is injective
-            rw [List.filter_map]
-            sorry
+            rw [List.filter_map, List.length_map]
+            apply le_of_eq; congr 1
+            apply List.filter_congr
+            intro j _
+            have h := compilerPartition_embedVerifier M n j
+            show decide ((compilerPartition M n).assign (embedVerifier M n j) = b) =
+              decide ((tseitinPartition n).assign j = tb)
+            rw [h]
+            -- Goal: decide(⟨(assign j).val+1, _⟩ = b) = decide(assign j = tb)
+            -- Convert to propositional equivalence
+            apply decide_eq_decide.mpr
+            constructor
+            · intro heq
+              have hv := Fin.ext_iff.mp heq
+              -- hv : ↑⟨(assign j).val + 1, _⟩ = ↑b, i.e., (assign j).val + 1 = b.val
+              change ((tseitinPartition n).assign j).val + 1 = b.val at hv
+              exact Fin.ext (by change _ = b.val - 1; omega)
+            · intro heq
+              apply Fin.ext
+              have hv := Fin.ext_iff.mp heq
+              change ((tseitinPartition n).assign j).val = b.val - 1 at hv
+              change ((tseitinPartition n).assign j).val + 1 = b.val
+              omega
         _ ≤ 1 := hle
 
 /-! ## Profile Compression — decomposed into sub-axioms
