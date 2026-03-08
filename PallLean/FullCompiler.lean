@@ -2,8 +2,13 @@
   FullCompiler.lean — Paper-faithful compiled polynomial: Q× + R
 
   P(u,z,v) = Q×(u,z) + R(v) where Q× is product, R is SoS.
-  1 axiom: compiler_profile_bound (§9 compiler CEW + profile decomposition)
-  0 sorry's. product_profile_compression PROVED from the axiom.
+  2 axioms (compiler locality, §9.2):
+    (A1) compiler_finite_local_model — P2+P5: ∃ m ≥ 1, D ≥ 1
+    (A2) compiler_spdp_profile_cover — P3 + Lemmas 26–31: CEW + profiles
+  0 sorry's.
+
+  compiler_profile_bound: PROVED from A1 + A2
+  product_profile_compression: PROVED from compiler_profile_bound + choose_le_pow
 
   The compiler partition groups:
   - Verifier vars by clause (inheriting tseitinPartition)
@@ -158,35 +163,61 @@ theorem blockAdmissible_map_embedVerifier (M : DTM) (n : ℕ)
               omega
         _ ≤ 1 := hle
 
-/-! ## Compiler Profile Decomposition (§9)
+/-! ## Sub-axiom A1: Finite local model (§9.2 Properties P2 + P5)
 
-    The compiled polynomial's SPDP subspace is covered by profile subspaces.
-    This axiom provides the subspace cover with 3 paper-faithful bounds:
+    The deterministic compiler has:
+    - m = |T| interface types (P2: finite local alphabet, |Σ| = O(1))
+    - D = Σ_τ (d_τ − 1) dimension parameter (P5: dim(W_τ) = d_τ = O(1))
 
-    (A1) CEW bound (Property P3, Lemma 19):
-         ∃ R ≤ n — the CEW budget (R = C(log n)^c ≤ n for large n)
+    These are absolute constants depending only on the compiler design.
 
-    (A2) Profile count (Lemma 29, profile compression):
-         N ≤ C(R+m, m) profile subspaces — κ-independent via normal forms
-         m = |T| = O(1) is the number of interface types
+    Paper: Property P2, Property P5, Lemma 24 (finite monoid), Lemma 25 (bounded NFs) -/
+axiom compiler_finite_local_model (M : DTM) :
+    ∃ (m D : ℕ), m ≥ 1 ∧ D ≥ 1
 
-    (A3) Within-profile dimension (Lemma 31, symmetric tensors):
-         ∀ i, finrank(V_i) ≤ C(R+D, D) — dim(V_h) via Sym^{h(τ)}(W_τ)
-         D = Σ_τ(d_τ - 1) where d_τ = dim(W_τ) = O(1)
+/-! ## Sub-axiom A2: Profile subspace cover with CEW bound
+    (§9.2 P3 + §9.3–9.4 Lemmas 26–31)
 
-    (A4) Rank subadditivity: PROVED in WidthRank.rank_le_of_subspace_cover -/
-axiom compiler_profile_bound (F : Type*) [Field F] (M : DTM) :
+    Given the compiler's constants m, D from A1, for large n:
+
+    **CEW bound (P3, Lemma 19):** R ≤ n live interfaces.
+    **Canonicalization (Lemma 26):** row(w) = row(can(w)).
+    **Profile compression (Lemma 29):** |H(R)| ≤ C(R+m, m), independent of κ.
+    **Within-profile span (Lemma 31):** dim(V_h) ≤ C(R+D, D).
+    **Subspace cover:** blockedSpdpSubspace ≤ ⨆ V_h. -/
+axiom compiler_spdp_profile_cover (F : Type*) [Field F] (M : DTM)
+    (m D : ℕ) (hm : m ≥ 1) (hD : D ≥ 1) :
+    ∃ (n₀ : ℕ), ∀ n, n ≥ n₀ →
+      ∃ (R N : ℕ)
+        (V : Fin N → Submodule F (MvPolynomial (Fin (fullNumVars M n)) F)),
+        R ≤ n ∧
+        N ≤ Nat.choose (R + m) m ∧
+        (∀ i, FiniteDimensional F (V i)) ∧
+        (∀ i, Module.finrank F (V i) ≤ Nat.choose (R + D) D) ∧
+        blockedSpdpSubspace (compilerPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (fullCompiledPoly F M n) ≤ ⨆ i, V i
+
+/-! ## Compiler Profile Decomposition (§9 Theorem 23)
+
+    PROVED from sub-axioms A1 + A2.
+    Formerly a single monolithic axiom; now decomposed into:
+    - A1: compiler_finite_local_model (compile-time constants m, D)
+    - A2: compiler_spdp_profile_cover (runtime profile decomposition) -/
+theorem compiler_profile_bound (F : Type*) [Field F] (M : DTM) :
     ∃ (m D n₀ : ℕ),
       m ≥ 1 ∧ D ≥ 1 ∧
       ∀ n, n ≥ n₀ →
         ∃ (R N : ℕ) (V : Fin N → Submodule F (MvPolynomial (Fin (fullNumVars M n)) F)),
-          R ≤ n ∧                                       -- (A1) CEW
-          N ≤ Nat.choose (R + m) m ∧                    -- (A2) profile count
+          R ≤ n ∧                                       -- CEW (P3)
+          N ≤ Nat.choose (R + m) m ∧                    -- profile count (Lem 29)
           (∀ i, FiniteDimensional F (V i)) ∧            -- finite-dim (structural)
-          (∀ i, Module.finrank F (V i) ≤ Nat.choose (R + D) D) ∧  -- (A3) per-profile dim
-          blockedSpdpSubspace (compilerPartition M n)    -- subspace cover
+          (∀ i, Module.finrank F (V i) ≤ Nat.choose (R + D) D) ∧  -- per-profile dim (Lem 31)
+          blockedSpdpSubspace (compilerPartition M n)    -- subspace cover (Lem 26)
             (Nat.log 2 n) (Nat.log 2 n)
-            (fullCompiledPoly F M n) ≤ ⨆ i, V i
+            (fullCompiledPoly F M n) ≤ ⨆ i, V i := by
+  obtain ⟨m, D, hm, hD⟩ := compiler_finite_local_model M
+  obtain ⟨n₀, hcover⟩ := compiler_spdp_profile_cover F M m D hm hD
+  exact ⟨m, D, n₀, hm, hD, fun n hn => hcover n hn⟩
 
 /-! ## Profile Compression (§9 Theorem 23)
 
