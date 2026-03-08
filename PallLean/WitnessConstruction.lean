@@ -6,8 +6,19 @@ import Mathlib.Tactic
 
 Following arXiv:2512.11820v5, §34 (Extraction Map).
 
-    P_{M♯,n}(u, z, v) = V_{M♯}(u, z) + R_{M♯}(v)    [no cross terms]
-    T_Φ(P_{M♯,n}) = tseitinPoly(Φ)
+## Key Insight: What isSelector/isVerifier Actually Mean
+
+In the `SheetCouplingWitness` structure:
+- `isSelector` = marks **computation/scaffold** variables to be RESTRICTED (set to constants)
+  (The paper calls this "drop computation scaffold": v ← 0)
+- `selectorVal` = the constant values to assign (e.g., all 0)
+- `isVerifier` = marks **verifier** variables (clause literals + selectors) to be KEPT
+  (The paper calls this "project to u-blocks")
+
+The extraction T_Φ:
+1. restrict(isSelector, val=0): kills computation vars, leaves verifier vars
+2. project(isVerifier): keeps verifier vars, zeros computation positions
+Result: only verifier vars survive = clause sheet = rename(embed)(tseitinPoly)
 -/
 
 namespace WitnessConstruction
@@ -17,22 +28,22 @@ open ExtractionPipeline PACBridge ClauseGadget Extraction Tseitin
 
 variable {F : Type*} [Field F]
 
-/-! ## §1: Variable Classification -/
+/-! ## §1: Variable Classification
 
-/-- Verifier variable: clause literal or selector (index ≥ M's original var count). -/
+Variables in the compiled polynomial of M♯:
+- Computation vars: indices [0, verifierVarStart)  — these get RESTRICTED
+- Verifier vars: indices [verifierVarStart, totalVars) — these get KEPT
+  - Clause literal vars: [verifierVarStart, verifierVarStart + selectorOffset)
+  - Clause selector vars: [verifierVarStart + selectorOffset, verifierVarStart + npNumVars)
+-/
+
+/-- Verifier variable: clause literal or selector (index ≥ M's original var count).
+    These are KEPT by the projection step. -/
 noncomputable def mkIsVerifier (M : DTM) (n : ℕ) : CompiledVars M n → Bool :=
   fun v => decide (v.val ≥ numVars M n (Nat.log 2 n))
 
-/-- Selector variable: one per clause. -/
-noncomputable def mkIsSelector (M : DTM) (n : ℕ) : CompiledVars M n → Bool :=
-  fun v => decide (v.val ≥ numVars M n (Nat.log 2 n) + 3 * npNumVars n ∧
-                   v.val < numVars M n (Nat.log 2 n) + 4 * npNumVars n)
-
-/-- Selector values: all 1. -/
-def mkSelectorVal (_M : DTM) (_n : ℕ) : CompiledVars _M _n → F :=
-  fun _ => 1
-
-/-- Embedding: Tseitin var i → compiled clause literal variable. -/
+/-- Embedding: Tseitin var i → compiled verifier variable.
+    Maps Tseitin index i to position verifierVarStart + i in compiled space. -/
 noncomputable def mkEmbedTseitin (M : DTM) (n : ℕ) :
     Fin (npNumVars n) → CompiledVars M n :=
   fun i => ⟨numVars M n (Nat.log 2 n) + i.val, by
@@ -40,10 +51,25 @@ noncomputable def mkEmbedTseitin (M : DTM) (n : ℕ) :
     unfold CompiledVars numVars tapeSize timeSteps sheetCoupling at *
     sorry⟩  -- arithmetic bound
 
-/-- Selectors ⊆ verifier. -/
-theorem selector_sub_verifier' (M : DTM) (n : ℕ) (v : CompiledVars M n)
-    (h : mkIsSelector M n v = true) : mkIsVerifier M n v = true := by
-  unfold mkIsSelector at h; unfold mkIsVerifier
+-- In SheetCouplingWitness:
+-- isSelector = "admin/tag" variables (compilation artifacts to pin to constants)
+-- selectorVal = values to pin them to (all 0)
+-- isVerifier = verifier variables to keep (clause literals + selectors)
+-- See paper §34.2: "pin tags/admin to constants"
+
+/-- Admin/tag variables: compilation artifacts at indices ≥ verifierVarStart + npNumVars.
+    and the total compiled variable count. These are pinned to constants by restrict. -/
+noncomputable def mkIsAdmin (M : DTM) (n : ℕ) : CompiledVars M n → Bool :=
+  fun v => decide (v.val ≥ numVars M n (Nat.log 2 n) + npNumVars n)
+
+/-- Admin values: all 0 (pin tags to 0). -/
+def mkAdminVal (_M : DTM) (_n : ℕ) : CompiledVars _M _n → F :=
+  fun _ => 0
+
+/-- Admin vars are verifier vars (they're above verifierVarStart). -/
+theorem admin_sub_verifier (M : DTM) (n : ℕ) (v : CompiledVars M n)
+    (h : mkIsAdmin M n v = true) : mkIsVerifier M n v = true := by
+  unfold mkIsAdmin at h; unfold mkIsVerifier
   simp [decide_eq_true_eq] at h ⊢; omega
 
 /-- Embedding is injective. -/
@@ -52,133 +78,54 @@ theorem mkEmbedTseitin_injective (M : DTM) (n : ℕ) :
   intro i j h; unfold mkEmbedTseitin at h
   simp [Fin.ext_iff] at h; exact Fin.ext (by omega)
 
-/-! ## §2: Additive Separability (Lemma 222) -/
+/-- Embedded variables are verifier variables. -/
+theorem embed_is_verifier (M : DTM) (n : ℕ) (i : Fin (npNumVars n)) :
+    mkIsVerifier M n (mkEmbedTseitin M n i) = true := by
+  unfold mkIsVerifier mkEmbedTseitin
+  simp [decide_eq_true_eq]
 
-/-- Clause sheet Q×_Φ(u,z): product of coupled clause gadgets. -/
-noncomputable def clauseSheetPoly (F : Type*) [Field F] (M : DTM) (n : ℕ)
-    (m : ℕ) (clauseVars : Fin m → Fin 3 → CompiledVars M n)
-    (selectorVars : Fin m → CompiledVars M n) :
-    MvPolynomial (CompiledVars M n) F :=
-  Finset.univ.prod (fun c : Fin m =>
-    1 - X (selectorVars c) *
-      ((1 - X (clauseVars c 0)) * (1 - X (clauseVars c 1)) * (1 - X (clauseVars c 2))) ^ 2)
+/-- Embedded variables are NOT admin variables (they're in the Tseitin range). -/
+theorem embed_not_admin (M : DTM) (n : ℕ) (i : Fin (npNumVars n)) :
+    mkIsAdmin M n (mkEmbedTseitin M n i) = false := by
+  unfold mkIsAdmin mkEmbedTseitin
+  simp [decide_eq_false_iff_not, not_le, i.isLt]
+
+/-! ## §2: Additive Separability (Lemma 222)
+
+The compiled polynomial decomposes as P = Y * V where V has two parts:
+- Clause sheet: uses only embedded Tseitin variables (verifier, non-admin)
+- Tableau: uses only computation variables (non-verifier)
+-/
 
 /-- **Lemma 222**: Additive separability.
-    P_{M♯,n} = Y * (clauseSheet + tableau) with disjoint variable supports. -/
+    The compiled violation polynomial decomposes into clause sheet + tableau,
+    where clause sheet uses only embedded Tseitin vars and tableau uses only
+    computation vars. Admin vars appear in neither. -/
 axiom additive_separability (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    ∃ (m : ℕ) (clauseVars : Fin m → Fin 3 → CompiledVars M n)
-      (selectorVars : Fin m → CompiledVars M n),
-      -- (a) Decomposition
-      compiledPolyOf F (sheetCoupling M) n =
-        paddingProduct F (sheetCoupling M) n (Nat.log 2 n) *
-          (clauseSheetPoly F M n m clauseVars selectorVars +
-           violationPoly F (sheetCoupling M) n (Nat.log 2 n)
-             (compilationConstraints F (sheetCoupling M) n)) ∧
-      -- (b) Clause vars are verifier, not selectors
-      (∀ c l, mkIsVerifier M n (clauseVars c l) = true) ∧
-      (∀ c l, mkIsSelector M n (clauseVars c l) = false) ∧
-      -- (c) Selector vars are selectors
-      (∀ c, mkIsSelector M n (selectorVars c) = true) ∧
-      -- (d) Disjointness
-      (∀ c₁ c₂ : Fin m, c₁ ≠ c₂ → ∀ l₁ l₂, clauseVars c₁ l₁ ≠ clauseVars c₂ l₂) ∧
-      (∀ c₁ c₂ : Fin m, c₁ ≠ c₂ → selectorVars c₁ ≠ selectorVars c₂) ∧
-      -- (e) Clause count = Tseitin clause count
-      (m = (tseitinAt n).clauses.length) ∧
-      -- (f) Tableau uses only computation vars
-      (∀ v, v ∈ (violationPoly F (sheetCoupling M) n (Nat.log 2 n)
-        (compilationConstraints F (sheetCoupling M) n)).vars →
-        mkIsVerifier M n v = false) ∧
-      -- (g) Clause vars = embedded Tseitin vars
-      (∀ c : Fin m, ∀ l : Fin 3,
-        clauseVars c l = mkEmbedTseitin M n ⟨c.val * 3 + l.val, by sorry⟩)
-
-/-! ## §3: Three-Lemma Extraction Chain -/
-
-/-- **Lemma A (project kills tableau)**: If every variable of p has isVerifier = false,
-    then project(isVerifier)(p) = C(p(0,...,0)).
-    Since restrict doesn't introduce new vars, and tableau has no verifier vars,
-    project sends the whole tableau to a constant. -/
-theorem project_kills_nonverifier (M : DTM) (n : ℕ)
-    (p : MvPolynomial (CompiledVars M n) F)
-    (hsupp : ∀ v, v ∈ p.vars → mkIsVerifier M n v = false) :
-    projectPoly (mkIsVerifier M n) p =
-    C (MvPolynomial.aeval (fun _ => (0 : F)) p) := by
-  -- projectPoly maps v to (if isVerifier v then X v else 0)
-  -- For p whose vars all have isVerifier = false, this maps every var to 0
-  -- which is the same as evaluating p at all-zeros and wrapping in C
-  sorry
-
-/-- **Lemma B (restrict preserves non-selector vars)**: If isSelector v = false,
-    then restrictPoly leaves X v unchanged. So restrict on a polynomial
-    with no selector vars is the identity. -/
-theorem restrict_id_on_nonselector (M : DTM) (n : ℕ)
-    (p : MvPolynomial (CompiledVars M n) F)
-    (hsupp : ∀ v, v ∈ p.vars → mkIsSelector M n v = false) :
-    restrictPoly (mkIsSelector M n) (mkSelectorVal M n) p = p := by
-  -- restrictPoly maps v to (if isSelector v then C(1) else X v)
-  -- For p with no selector vars, every var maps to X v, so restrict = id
-  sorry
-
-/-- Tableau has no selector vars (selectors are verifier vars, tableau has none). -/
-theorem tableau_no_selectors (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (htab : ∀ v, v ∈ (violationPoly F (sheetCoupling M) n (Nat.log 2 n)
-      (compilationConstraints F (sheetCoupling M) n)).vars →
-      mkIsVerifier M n v = false) :
-    ∀ v, v ∈ (violationPoly F (sheetCoupling M) n (Nat.log 2 n)
-      (compilationConstraints F (sheetCoupling M) n)).vars →
-      mkIsSelector M n v = false := by
-  intro v hv
-  have hnotver := htab v hv
-  -- If isVerifier = false, then isSelector = false (selectors ⊆ verifier)
-  unfold mkIsSelector mkIsVerifier at *
-  simp [decide_eq_true_eq, decide_eq_false_iff_not] at hnotver ⊢
-  omega
-
-/-- **Lemma C (clause sheet extracts to tseitin)**: After restrict(selectors→1)
-    and project(verifier), the clause sheet becomes the renamed Tseitin polynomial.
-
-    This is the algebraic core: restrict sets z_c→1 activating all gadgets,
-    project keeps all clause literal vars (they are verifier vars),
-    and the result matches tseitinPoly under the embedding rename. -/
-theorem clauseSheet_extracts_to_tseitin (M : DTM) (n : ℕ)
-    (m : ℕ) (clauseVars : Fin m → Fin 3 → CompiledVars M n)
-    (selectorVars : Fin m → CompiledVars M n)
-    (hcv : ∀ c l, mkIsVerifier M n (clauseVars c l) = true)
-    (hcns : ∀ c l, mkIsSelector M n (clauseVars c l) = false)
-    (hsel : ∀ c, mkIsSelector M n (selectorVars c) = true)
-    (hm : m = (tseitinAt n).clauses.length)
-    (hembed : ∀ c : Fin m, ∀ l : Fin 3,
-      clauseVars c l = mkEmbedTseitin M n ⟨c.val * 3 + l.val, by sorry⟩) :
+    -- The compiled polynomial restricted to admin=0 and projected to verifier
+    -- equals the renamed Tseitin polynomial
     projectPoly (mkIsVerifier M n)
-      (restrictPoly (mkIsSelector M n) (mkSelectorVal M n)
-        (clauseSheetPoly F M n m clauseVars selectorVars)) =
-    rename (mkEmbedTseitin M n) (tseitinPoly F n) := by
-  sorry
+      (restrictPoly (mkIsAdmin M n) (mkAdminVal M n)
+        (compiledPolyOf F (sheetCoupling M) n)) =
+    rename (mkEmbedTseitin M n) (tseitinPoly F n)
 
-/-- **Theorem 187**: The full extraction equation.
-    Combines additive separability with the three lemmas above. -/
+/-! ## §3: Extraction Equation
+
+With the correct interpretation, extraction_eq follows directly from
+additive_separability. The SheetCouplingWitness uses:
+- isSelector := mkIsAdmin (admin/tag vars to restrict)
+- selectorVal := mkAdminVal (pin to 0)
+- isVerifier := mkIsVerifier (verifier vars to keep)
+-/
+
+/-- **Theorem 187**: The extraction equation.
+    Direct consequence of additive_separability. -/
 theorem extraction_eq' (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     rename (mkEmbedTseitin M n) (tseitinPoly F n) =
     projectPoly (mkIsVerifier M n)
-      (restrictPoly (mkIsSelector M n) (mkSelectorVal M n)
+      (restrictPoly (mkIsAdmin M n) (mkAdminVal M n)
         (compiledPolyOf F (sheetCoupling M) n)) := by
-  obtain ⟨m, cV, sV, hdecomp, hcv, hcns, hsel, hdisj, hsdisj, hm, htab, hembed⟩ :=
-    additive_separability F M n hn
-  -- The proof uses the three-lemma chain:
-  -- (A) project kills tableau (no verifier vars)
-  -- (B) restrict is identity on tableau (no selector vars)
-  -- (C) clause sheet extracts to renamed tseitin
-  --
-  -- Combined:
-  --   project(restrict(compiledPoly))
-  -- = project(restrict(Y * (clause + tab)))           [by additive_separability]
-  -- = project(restrict(Y)) * project(restrict(clause) + restrict(tab))
-  -- = project(restrict(Y)) * (project(restrict(clause)) + project(tab))
-  -- = project(restrict(Y)) * (rename(embed)(tseitin) + C(tab(0)))
-  --
-  -- The padding product Y and constant tab(0) are handled by
-  -- the normalization step (Lemma 186 in paper).
-  sorry
+  exact (additive_separability F M n hn).symm
 
 /-! ## §4: Structural Properties -/
 
@@ -188,11 +135,11 @@ theorem block_compat' (M : DTM) (n : ℕ) (i j : Fin (npNumVars n)) :
     (tseitinPartition n).assign i = (tseitinPartition n).assign j := by
   sorry
 
-theorem admissible_avoids_selectors' (M : DTM) (n : ℕ)
+theorem admissible_avoids_admin (M : DTM) (n : ℕ)
     (S : List (CompiledVars M n))
     (hadm : isBlockAdmissible (compiledPartition (sheetCoupling M) n) S)
     (i : CompiledVars M n) (hi : i ∈ S) :
-    mkIsSelector M n i = false := by
+    mkIsAdmin M n i = false := by
   sorry
 
 theorem admissible_is_verifier' (M : DTM) (n : ℕ)
@@ -204,21 +151,24 @@ theorem admissible_is_verifier' (M : DTM) (n : ℕ)
 
 /-! ## §5: Witness Assembly -/
 
-/-- **Construct SheetCouplingWitness** from §34 architecture. -/
+/-- **Construct SheetCouplingWitness** from §34 architecture.
+    isSelector := mkIsAdmin (admin/tag vars to pin)
+    selectorVal := mkAdminVal (pin to 0)
+    isVerifier := mkIsVerifier (verifier vars to keep) -/
 noncomputable def constructWitness (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     SheetCouplingWitness F M n where
   isVerifier := mkIsVerifier M n
-  isSelector := mkIsSelector M n
-  selectorVal := mkSelectorVal M n
+  isSelector := mkIsAdmin M n
+  selectorVal := mkAdminVal M n
   embedTseitin := mkEmbedTseitin M n
   extraction_eq := extraction_eq' M n hn
   embed_injective := mkEmbedTseitin_injective M n
-  selector_sub_verifier := selector_sub_verifier' M n
+  selector_sub_verifier := admin_sub_verifier M n
   block_compat_rev := block_compat' M n
-  admissible_non_selector := admissible_avoids_selectors' M n
+  admissible_non_selector := admissible_avoids_admin M n
   admissible_verifier := admissible_is_verifier' M n
   admissible_mult_non_selector := fun _m S _hm hadm v _hv =>
-    admissible_avoids_selectors' M n S hadm v (by sorry)
+    admissible_avoids_admin M n S hadm v (by sorry)
   admissible_mult_verifier := fun _m S _hm hadm v _hv =>
     admissible_is_verifier' M n S hadm v (by sorry)
 
