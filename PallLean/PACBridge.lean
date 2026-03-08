@@ -5,7 +5,7 @@ import PallLean.TuringMachine
 import PallLean.SheetCoupling
 import PallLean.ExtractionPipeline
 import PallLean.ExtractionProof
-import PallLean.CoupledCompiler
+-- import PallLean.CoupledCompiler  -- removed to break import cycle
 import Mathlib.Tactic
 /-!
 # PAC Bridge — Extraction Rank Monotonicity via Two-Sheet Decomposition
@@ -160,6 +160,23 @@ theorem isBlockAdmissible_map_injective
       obtain ⟨a, ha, s, hs, hne, ha2, hs2⟩ := ih hnd_t hsub_t hlen
       exact ⟨a, ha, s, hs, hne, ha2, hs2⟩
 
+/-! ## Helper: iterDerivList commutes with rename -/
+
+private theorem iterDerivList_rename_map_local {n₁ n₂ : ℕ} {F : Type*} [CommRing F]
+    (ρ : Fin n₁ → Fin n₂) (hρ : Function.Injective ρ)
+    (S : List (Fin n₁)) (p : MvPolynomial (Fin n₁) F) :
+    iterDerivList (S.map ρ) (MvPolynomial.rename ρ p) =
+    MvPolynomial.rename ρ (iterDerivList S p) := by
+  induction S generalizing p with
+  | nil => simp [iterDerivList]
+  | cons i rest ih =>
+    simp only [iterDerivList, List.map_cons, List.foldl]
+    rw [show List.foldl (fun q j => pderiv j q) (pderiv (ρ i) (MvPolynomial.rename ρ p))
+            (List.map ρ rest) =
+          iterDerivList (rest.map ρ) (pderiv (ρ i) (MvPolynomial.rename ρ p)) from rfl]
+    rw [pderiv_rename hρ i p]
+    exact ih (pderiv i p)
+
 /-! ## Rename preserves SPDP rank -/
 
 /-- Subspace of rename(ρ)(p) contains the image of subspace of p under rename(ρ). -/
@@ -176,7 +193,7 @@ theorem blockedSpdpSubspace_rename_le (κ ℓ : ℕ)
   apply Submodule.span_le.mpr
   intro q ⟨S, m, hlen, hdeg, hadm, hq⟩
   show (rename ρ) q ∈ blockedSpdpSubspace B₂ κ ℓ (rename ρ p)
-  rw [hq, map_mul, ← CoupledCompiler.iterDerivList_rename_map ρ hρ S p]
+  rw [hq, map_mul, ← iterDerivList_rename_map_local ρ hρ S p]
   apply Submodule.subset_span
   refine ⟨S.map ρ, rename ρ m, by simp [hlen],
     le_trans (totalDegree_rename_le ρ m) hdeg,

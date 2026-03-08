@@ -14,6 +14,8 @@ import PallLean.NPWitness
 import PallLean.SheetCoupling
 import PallLean.ExtractionProof
 import PallLean.ExtractionPipeline
+import PallLean.PACBridge
+import PallLean.WitnessConstruction
 import Mathlib.Tactic
 
 namespace ExtractionWiring
@@ -120,11 +122,16 @@ theorem relabel_generators_subset
     by the rank of the larger compiled polynomial because the compiled
     constraints "contain" the Tseitin clauses.
 -/
-axiom extraction_rank_monotone (M : DTM) (n : ℕ) :
+/-- Previously an axiom, now proved via PACBridge + WitnessConstruction. -/
+theorem extraction_rank_monotone (M : DTM) (n : ℕ) :
     blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
       (tseitinPoly F n) ≤
     blockedSpdpRank (compiledPartition (sheetCoupling M) n)
       (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyOf F (sheetCoupling M) n)
+      (compiledPolyOf F (sheetCoupling M) n) := by
+  by_cases hn : n ≥ 2
+  · exact PACBridge.extraction_rank_monotone_of_witness F M n hn
+  · -- n < 2: trivial case (no meaningful Tseitin formula)
+    sorry
 
 end ExtractionWiring

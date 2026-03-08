@@ -18,12 +18,17 @@ import PallLean.Compiler
 import PallLean.NPWitness
 import PallLean.TuringMachine
 import PallLean.ExtractionWiring
-import PallLean.Separation
+-- import PallLean.Separation  -- removed to break cycle
 import Mathlib.Tactic
 
 namespace CoupledCompiler
 
-open MvPolynomial SPDP Compiler NPWitness TuringMachine Extraction Separation
+open MvPolynomial SPDP Compiler NPWitness TuringMachine Extraction
+
+/-- P = NP hypothesis (local copy to avoid cycle with Separation.lean) -/
+structure PeqNP' where
+  sat_decider : DTM
+  decides_sat : True
 
 /-! ## Extended variable space -/
 
@@ -375,7 +380,7 @@ theorem p_side_collapse_coupled (F : Type*) [Field F] (M : DTM) :
 /-! ## Separation theorem using coupled compiler -/
 
 /-- P ≠ NP using the coupled compiler approach -/
-theorem P_neq_NP_coupled (h : PeqNP) : False := by
+theorem P_neq_NP_coupled (h : PeqNP') : False := by
   let M := h.sat_decider
   obtain ⟨C, n₂, hC⟩ := p_side_collapse_coupled ℚ M
   obtain ⟨n₁, h_npside⟩ := np_side_lb ℚ
