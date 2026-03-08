@@ -137,7 +137,7 @@ theorem violation_has_locality (F : Type*) [CommRing F] [Nontrivial F]
     (M : DTM) (n : ℕ) (hn : n ≥ 4) (hn_states : n ≥ M.numStates) :
     ∃ (h : HasLocalityStructure (violationPoly F M n (Nat.log 2 n)
         (compilationConstraints F M n))),
-      h.numGates ≤ n ^ (2 * M.timeBound + 4) ∧ h.width ≤ 12 := by
+      h.numGates ≤ n ^ (2 * M.timeBound + 4) ∧ h.width ≤ 12 ∧ 0 < h.width := by
   let cs := compilationConstraints F M n
   -- V = (cs.map (c ↦ c.poly * c.poly)).sum
   -- Build HasLocalityStructure with numGates = cs.length, gate i = cs[i].poly²
@@ -158,7 +158,7 @@ theorem violation_has_locality (F : Type*) [CommRing F] [Nontrivial F]
       have hvu : c.poly.vars ∪ c.poly.vars = c.poly.vars := Finset.union_idempotent _
       have hsub : (c.poly * c.poly).vars ⊆ c.poly.vars := hvu ▸ hv
       exact le_trans (Finset.card_le_card hsub) (le_trans c.width_bound (by omega))
-  }, ?_, ?_⟩
+  }, ?_, ?_, ?_⟩
   · -- cs = booleanity ++ transition
     -- Bound: cs.length ≤ numVars + tapeSize² ≤ n^(2t+4)
     -- Step 1: Establish cs.length ≤ numVars + S²
@@ -227,6 +227,7 @@ theorem violation_has_locality (F : Type*) [CommRing F] [Nontrivial F]
             _ ≤ n ^ 2 := Nat.pow_le_pow_left hn4' 2
       _ = n ^ (2 * M.timeBound + 4) := by rw [← pow_add]; ring_nf
   · exact le_refl 12
+  · show 0 < 12; omega
 
 /-! ## Width⇒Rank (Theorem 5.16): profile compression gives poly rank.
 
@@ -263,21 +264,30 @@ plus arithmetic assembly. -/
     The envelope exponent c₁+c₂ = 3 is safe (not tight). -/
 theorem profile_decomposition {v : ℕ} {F : Type*} [Field F]
     (B : BlockPartition v) (κ ℓ : ℕ) (p : MvPolynomial (Fin v) F)
-    (h : HasLocalityStructure p) :
+    (h : HasLocalityStructure p)
+    (hw : 0 < h.width) :
     ∃ (m : ℕ) (U : Fin m → Submodule F (MvPolynomial (Fin v) F))
       (_ : ∀ i, Module.Finite F ↥(U i)),
       blockedSpdpSubspace B κ ℓ p ≤ ⨆ i, U i ∧
       m ≤ h.numGates * h.width ∧
-      ∀ i, Module.finrank F ↥(U i) ≤ (h.numGates * h.width) ^ 2 :=
-  ProfileDecomp.profile_decomposition_from_gates B κ ℓ p h
+      ∀ i, Module.finrank F ↥(U i) ≤ (h.numGates * h.width) ^ 2 := by
+  obtain ⟨m, U, hfin, hsub, hcount⟩ :=
+    ProfileDecomp.profile_decomposition_from_gates B κ ℓ p h hw
+  exact ⟨m, U, hfin, hsub, hcount, fun i => by
+    -- Per-gate dimension bound ≤ R²: requires profile/tensor argument
+    -- from §5 of arXiv:2512.11820v5 (profile compression + symmetric
+    -- tensor decomposition). Each gate subspace is finite-dimensional
+    -- (proved in ProfileDecomp.gateSubspace_finite).
+    sorry⟩
 
 theorem width_to_rank_bound (F : Type*) [Field F]
     {v : ℕ} (B : BlockPartition v) (κ ℓ : ℕ)
     (p : MvPolynomial (Fin v) F)
-    (h : HasLocalityStructure p) :
+    (h : HasLocalityStructure p)
+    (hw : 0 < h.width) :
     blockedSpdpRank B κ ℓ p ≤ (h.numGates * h.width) ^ 3 := by
   -- Obtain profile decomposition
-  obtain ⟨m, U, hfin, hsub, hcount, hdim⟩ := profile_decomposition B κ ℓ p h
+  obtain ⟨m, U, hfin, hsub, hcount, hdim⟩ := profile_decomposition B κ ℓ p h hw
   -- blockedSpdpRank = finrank of blockedSpdpSubspace
   show Module.finrank F ↥(blockedSpdpSubspace B κ ℓ p) ≤ _
   -- By monotonicity: finrank(sub) ≤ finrank(⨆ U)
@@ -413,10 +423,10 @@ theorem violation_rank_bound (F : Type*) [Field F] (M : DTM) :
   have hn2 : n ≥ 2 := by omega
   have hn_states : n ≥ M.numStates := le_trans (le_max_right _ _) hn
   let κ := Nat.log 2 n
-  obtain ⟨h, hgates, hwidth⟩ := violation_has_locality F M n hn4 hn_states
+  obtain ⟨h, hgates, hwidth, hwidth_pos⟩ := violation_has_locality F M n hn4 hn_states
   have hrank_κ : blockedSpdpRank (compiledPartition M n) κ κ
       (violationPolyOf F M n) ≤ (h.numGates * h.width) ^ 3 := by
-    have := width_to_rank_bound F (compiledPartition M n) κ κ (violationPolyOf F M n) h
+    have := width_to_rank_bound F (compiledPartition M n) κ κ (violationPolyOf F M n) h hwidth_pos
     exact this
   have h12 : (12 : ℕ) ≤ n ^ 4 :=
     le_trans (by norm_num) (Nat.pow_le_pow_left hn2 4)
@@ -466,12 +476,12 @@ theorem p_side_collapse (F : Type*) [Field F]
   have hcompiled : compiledPolyOf F M n = Y * V := by
     simp only [compiledPolyOf, compiledPoly, V, Y, κ, cs]
   -- Step 2: V has locality structure with numGates ≤ n^(2t+2), width ≤ 12
-  obtain ⟨h, hgates, hwidth⟩ := violation_has_locality F M n hn4 hn_states
+  obtain ⟨h, hgates, hwidth, hwidth_pos⟩ := violation_has_locality F M n hn4 hn_states
   -- Step 3: For every r, width⇒rank gives ΓB_r(V) ≤ (numGates * width)^3
   -- Use ℓ+κ degree bound (needed for padding transfer)
   have hrank : ∀ r : ℕ,
       blockedSpdpRank B r (ℓ + κ) V ≤ (h.numGates * h.width) ^ 3 := fun r =>
-    width_to_rank_bound F B r (ℓ + κ) V h
+    width_to_rank_bound F B r (ℓ + κ) V h hwidth_pos
   -- Step 4: κ-padding transfer: ΓB_κ(Y*V) ≤ (numGates * width)^4
   -- Need: κ + 1 ≤ G = numGates * width
   -- κ = log₂ n, numGates ≥ numVars ≥ n, width = 12, so G ≥ 12n ≥ log₂n + 1
