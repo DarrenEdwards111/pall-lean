@@ -15,8 +15,5 @@ import PallLean.ListSum
 import PallLean.BinomialBound
 import PallLean.BinomialBound2
 import PallLean.ProfileDecomp
-import PallLean.ExtractionWiring
-import PallLean.Extraction
-import PallLean.Separation
 import PallLean.ExtractionProof
 import PallLean.FullCompiler
