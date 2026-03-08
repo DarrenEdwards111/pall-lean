@@ -123,15 +123,12 @@ theorem relabel_generators_subset
     constraints "contain" the Tseitin clauses.
 -/
 /-- Previously an axiom, now proved via PACBridge + WitnessConstruction. -/
-theorem extraction_rank_monotone (M : DTM) (n : ℕ) :
+theorem extraction_rank_monotone (M : DTM) (n : ℕ) (hn : n ≥ 2 := by omega) :
     blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
       (tseitinPoly F n) ≤
     blockedSpdpRank (compiledPartition (sheetCoupling M) n)
       (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyOf F (sheetCoupling M) n) := by
-  by_cases hn : n ≥ 2
-  · exact PACBridge.extraction_rank_monotone_of_witness F M n hn
-  · -- n < 2: trivial case (no meaningful Tseitin formula)
-    sorry
+      (compiledPolyOf F (sheetCoupling M) n) :=
+  PACBridge.extraction_rank_monotone_of_witness F M n hn
 
 end ExtractionWiring

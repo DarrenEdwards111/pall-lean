@@ -43,8 +43,9 @@ noncomputable def mkIsVerifier (M : DTM) (n : ℕ) : CompiledVars M n → Bool :
   fun v => decide (v.val ≥ numVars M n (Nat.log 2 n))
 
 /-- The compiled variable count of M♯ exceeds that of M by at least npNumVars.
-    This is because M♯ has timeBound = M.timeBound + 1, giving a much larger
-    tape/state space, and the verifier variables (npNumVars many) fit in the gap. -/
+    M♯ has timeBound+1, so tapeSize grows from n^tb+1 to n^(tb+1)+1.
+    numVars grows quadratically in tapeSize, while npNumVars grows linearly in n.
+    The gap 2*(S'²-S²) + Q*(S'-S) + 3*S' easily exceeds npNumVars(n) = O(n²). -/
 axiom compiledVars_embed_bound (M : DTM) (n : ℕ) :
     numVars M n (Nat.log 2 n) + npNumVars n ≤
     numVars (sheetCoupling M) n (Nat.log 2 n)

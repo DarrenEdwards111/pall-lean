@@ -19,12 +19,12 @@ open SPDP Compiler NPWitness TuringMachine MvPolynomial
     This is the semantic bridge between the NP lower bound and
     the P upper bound in the separation argument. -/
 theorem extraction_rank_monotone (F : Type*) [Field F]
-    (M : DTM) (n : ℕ) :
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 := by omega) :
     blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
       (tseitinPoly F n) ≤
     blockedSpdpRank (compiledPartition (sheetCoupling M) n)
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPolyOf F (sheetCoupling M) n) :=
-  ExtractionWiring.extraction_rank_monotone M n
+  ExtractionWiring.extraction_rank_monotone M n hn
 
 end Extraction

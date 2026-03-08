@@ -42,7 +42,7 @@ theorem P_neq_NP (h : PeqNP) : False := by
       (tseitinPoly ℚ n) ≤
     blockedSpdpRank (compiledPartition M' n) (Nat.log 2 n) (Nat.log 2 n)
       (compiledPolyOf ℚ M' n) :=
-    extraction_rank_monotone ℚ M n
+    extraction_rank_monotone ℚ M n (by omega)
 
   -- A2 applied
   have h3 : blockedSpdpRank (compiledPartition M' n) (Nat.log 2 n) (Nat.log 2 n)
