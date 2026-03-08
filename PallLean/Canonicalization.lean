@@ -16,6 +16,8 @@
 -/
 import PallLean.TypeWord
 import PallLean.SPDPDefs
+import Mathlib.Algebra.MvPolynomial.PDeriv
+import Mathlib.Data.Finsupp.Order
 import Mathlib.Tactic
 
 namespace Canonicalization
@@ -70,9 +72,33 @@ derivatives on disjoint variables commute. -/
 theorem pderiv_comm {n : ℕ} {F : Type*} [CommRing F]
     (i j : Fin n) (p : MvPolynomial (Fin n) F) :
     pderiv j (pderiv i p) = pderiv i (pderiv j p) := by
-  -- Both compositions are derivations; they agree on X_k for all k.
-  -- By uniqueness of derivations (algebraically generated), they agree everywhere.
-  sorry
+  -- Use the fact that (pderiv j ∘ pderiv i) is a linear map,
+  -- so it suffices to check on generators (monomials).
+  -- Both sides are linear in p:
+  suffices h : ∀ (s : Fin n →₀ ℕ) (a : F),
+      pderiv j (pderiv i (MvPolynomial.monomial s a)) =
+      pderiv i (pderiv j (MvPolynomial.monomial s a)) by
+    induction p using MvPolynomial.induction_on' with
+    | add p q ihp ihq => simp [map_add, ihp, ihq]
+    | monomial s a => exact h s a
+  intro s a
+  -- Expand: pderiv j (pderiv i (monomial s a))
+  --       = pderiv j (monomial (s - e_i) (a * ↑(s i)))
+  --       = monomial (s - e_i - e_j) (a * ↑(s i) * ↑((s - e_i) j))
+  -- Similarly for i,j swapped. Show equality.
+  by_cases hij : i = j
+  · subst hij; rfl
+  · -- i ≠ j
+    simp only [pderiv_monomial]
+    have hij' : j ≠ i := Ne.symm hij
+    have he : s - Finsupp.single i 1 - Finsupp.single j 1 =
+              s - Finsupp.single j 1 - Finsupp.single i 1 := by
+      ext k; simp [Finsupp.tsub_apply, Finsupp.single_apply]; omega
+    have hc1 : (s - Finsupp.single i 1 : Fin n →₀ ℕ) j = s j := by
+      simp [Finsupp.tsub_apply, Finsupp.single_apply, hij]
+    have hc2 : (s - Finsupp.single j 1 : Fin n →₀ ℕ) i = s i := by
+      simp [Finsupp.tsub_apply, Finsupp.single_apply, hij']
+    rw [he]; congr 1; rw [hc1, hc2]; ring
 
 theorem iterDerivList_comm {n : ℕ} {F : Type*} [CommRing F]
     (v₁ v₂ : Fin n) (p : MvPolynomial (Fin n) F) :
