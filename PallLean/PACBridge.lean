@@ -240,80 +240,84 @@ Together these three produce a `TwoSheetDecomp`, from which
 `extraction_rank_monotone_of_decomp` gives P≠NP.
 -/
 
-/-- **Intermediate structure**: The raw data needed for a two-sheet decomposition,
-    split into three independently auditable claims. -/
-structure SheetCouplingData (F : Type*) [Field F] (M : DTM) (n : ℕ) where
+/-- **Single coherent witness** for the sheet coupling construction.
+    Bundles shared data + all three auditable claims in one structure,
+    forcing coherence by construction — no risk of witness mismatch.
+
+    The three claims are:
+    1. **Extraction equation** (TM engineering) — the hard part
+    2. **Block compatibility** (structural) — injective, block-reflecting
+    3. **Admissibility** (classification) — selectors/verifiers well-placed -/
+structure SheetCouplingWitness (F : Type*) [Field F] (M : DTM) (n : ℕ) where
+  /-- Shared witnesses -/
   isVerifier : CompiledVars M n → Bool
   isSelector : CompiledVars M n → Bool
   selectorVal : CompiledVars M n → F
   embedTseitin : Fin (npNumVars n) → CompiledVars M n
+  /-- Claim 1: Extraction equation (TM engineering).
+      restrict(selectors) ∘ project(verifier) on the compiled polynomial
+      equals the renamed Tseitin polynomial.
+      ClauseGadget.multi_clause_extraction proves the analogous statement
+      for abstract MultiClauseSystems. -/
+  extraction_eq :
+    rename embedTseitin (tseitinPoly F n) =
+    projectPoly isVerifier (restrictPoly isSelector selectorVal
+      (compiledPolyOf F (sheetCoupling M) n))
+  /-- Claim 2: Block compatibility (structural).
+      Embedding is injective, block-reflecting, selectors ⊆ verifier. -/
+  embed_injective : Function.Injective embedTseitin
+  selector_sub_verifier : ∀ v, isSelector v = true → isVerifier v = true
+  block_compat_rev : ∀ i j,
+    (compiledPartition (sheetCoupling M) n).assign (embedTseitin i) =
+    (compiledPartition (sheetCoupling M) n).assign (embedTseitin j) →
+    (tseitinPartition n).assign i = (tseitinPartition n).assign j
+  /-- Claim 3: Admissibility (classification).
+      Block-admissible lists and bounded monomials respect
+      selector/verifier variable classification. -/
+  admissible_non_selector :
+    ∀ S, isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
+    ∀ i ∈ S, isSelector i = false
+  admissible_verifier :
+    ∀ S, isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
+    ∀ i ∈ S, isVerifier i = true
+  admissible_mult_non_selector :
+    ∀ (m : MvPolynomial (CompiledVars M n) F) S,
+    m.totalDegree ≤ Nat.log 2 n →
+    isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
+    ∀ v ∈ m.vars, isSelector v = false
+  admissible_mult_verifier :
+    ∀ (m : MvPolynomial (CompiledVars M n) F) S,
+    m.totalDegree ≤ Nat.log 2 n →
+    isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
+    ∀ v ∈ m.vars, isVerifier v = true
 
-/-- Axiom 1 (TM Engineering): The extraction equation holds.
-    restrict(selectors) ∘ project(verifier) applied to the compiled
-    polynomial equals the renamed Tseitin polynomial.
-    ClauseGadget.multi_clause_extraction proves the analogous statement
-    for abstract MultiClauseSystems. -/
-axiom compiledPoly_is_coupled (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    ∃ (D : SheetCouplingData F M n),
-      rename D.embedTseitin (tseitinPoly F n) =
-      projectPoly D.isVerifier (restrictPoly D.isSelector D.selectorVal
-        (compiledPolyOf F (sheetCoupling M) n))
+/-- **The single axiom**: a sheet coupling witness exists.
+    This is the only unproved claim in the P≠NP chain. -/
+axiom sheetCouplingWitness_exists (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
+    SheetCouplingWitness F M n
 
-/-- Axiom 2 (Block Compatibility): The embedding is injective and
-    block-reflecting, with selectors ⊆ verifier variables. -/
-axiom block_partition_compat (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    ∀ (D : SheetCouplingData F M n),
-      Function.Injective D.embedTseitin ∧
-      (∀ v, D.isSelector v = true → D.isVerifier v = true) ∧
-      (∀ i j, (compiledPartition (sheetCoupling M) n).assign (D.embedTseitin i) =
-              (compiledPartition (sheetCoupling M) n).assign (D.embedTseitin j) →
-              (tseitinPartition n).assign i = (tseitinPartition n).assign j)
+/-- Convert a SheetCouplingWitness to TwoSheetDecomp (trivial projection). -/
+noncomputable def toTwoSheetDecomp {F : Type*} [Field F] {M : DTM} {n : ℕ}
+    (W : SheetCouplingWitness F M n) : @TwoSheetDecomp F _ M n where
+  isVerifier := W.isVerifier
+  isSelector := W.isSelector
+  selectorVal := W.selectorVal
+  embedTseitin := W.embedTseitin
+  extraction_eq := W.extraction_eq
+  embed_injective := W.embed_injective
+  selector_sub_verifier := W.selector_sub_verifier
+  block_compat_rev := W.block_compat_rev
+  admissible_non_selector := W.admissible_non_selector
+  admissible_verifier := W.admissible_verifier
+  admissible_mult_non_selector := W.admissible_mult_non_selector
+  admissible_mult_verifier := W.admissible_mult_verifier
 
-/-- Axiom 3 (Admissibility): Block-admissible lists and bounded-degree
-    monomials don't touch selectors and only involve verifier variables. -/
-axiom admissibility_conditions (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    ∀ (D : SheetCouplingData F M n),
-      (∀ S, isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-            ∀ i ∈ S, D.isSelector i = false) ∧
-      (∀ S, isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-            ∀ i ∈ S, D.isVerifier i = true) ∧
-      (∀ (m : MvPolynomial (CompiledVars M n) F) S,
-            m.totalDegree ≤ Nat.log 2 n →
-            isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-            ∀ v ∈ m.vars, D.isSelector v = false) ∧
-      (∀ (m : MvPolynomial (CompiledVars M n) F) S,
-            m.totalDegree ≤ Nat.log 2 n →
-            isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-            ∀ v ∈ m.vars, D.isVerifier v = true)
-
-/-- The three split axioms compose to produce a TwoSheetDecomp. -/
-noncomputable def twoSheetDecomp_of_split (F : Type*) [Field F]
-    (M : DTM) (n : ℕ) (hn : n ≥ 2) : @TwoSheetDecomp F _ M n :=
-  let D := (compiledPoly_is_coupled F M n hn).choose
-  let hext := (compiledPoly_is_coupled F M n hn).choose_spec
-  let ⟨hinj, hss, hbp⟩ := block_partition_compat F M n hn D
-  let ⟨hadm_ns, hadm_v, hmon_ns, hmon_v⟩ := admissibility_conditions F M n hn D
-  {
-    isVerifier := D.isVerifier
-    isSelector := D.isSelector
-    selectorVal := D.selectorVal
-    selector_sub_verifier := hss
-    admissible_non_selector := hadm_ns
-    admissible_mult_non_selector := hmon_ns
-    admissible_verifier := hadm_v
-    admissible_mult_verifier := hmon_v
-    embedTseitin := D.embedTseitin
-    embed_injective := hinj
-    extraction_eq := hext
-    block_compat_rev := hbp
-  }
-
-/-- The split axioms produce extraction rank monotonicity. -/
-theorem extraction_rank_monotone_of_split (F : Type*) [Field F]
+/-- Extraction rank monotonicity from the single witness axiom. -/
+theorem extraction_rank_monotone_of_witness (F : Type*) [Field F]
     (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly F n) ≤
     blockedSpdpRank (compiledPartition (sheetCoupling M) n) (Nat.log 2 n) (Nat.log 2 n)
       (compiledPolyOf F (sheetCoupling M) n) :=
-  extraction_rank_monotone_of_decomp M n (twoSheetDecomp_of_split F M n hn)
+  extraction_rank_monotone_of_decomp M n (toTwoSheetDecomp (sheetCouplingWitness_exists F M n hn))
 
 end PACBridge
