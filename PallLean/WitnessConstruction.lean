@@ -209,9 +209,10 @@ theorem restrict_project_kills_computation (M : DTM) (n : ℕ)
     projectPoly (mkIsVerifier M n)
       (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) p) =
     C (MvPolynomial.aeval (fun _ => (0 : F)) p) := by
-  -- restrict doesn't touch computation vars (they're not admin)
-  -- project kills computation vars (they're not verifier)
-  -- So project(restrict(p)) = aeval(all → 0)(p) = C(constant)
+  -- For computation-only p: restrict doesn't touch vars (not admin),
+  -- project kills all vars (not verifier). Result = p evaluated at all 0.
+  -- This is a standard MvPolynomial fact: two AlgHom that agree on
+  -- all variables of p agree on p.
   sorry
 
 /-! ### Step 3: Clause sheet extracts to Tseitin (Theorem 187)
