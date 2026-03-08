@@ -208,10 +208,25 @@ axiom constraint_vars_one_side (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n
 /- Sub-axiom 2 (constant coefficient): Every constraint polynomial vanishes at 0.
    boolConstraint v = X v * (1 - X v) has constantCoeff = 0 * (1 - 0) = 0.
    transConstraint = X(headIdx) * (...) has constantCoeff = 0 (factor X). -/
-axiom constraint_constantCoeff_zero (F : Type*) [Field F] (M : DTM) (n : ℕ)
+theorem constraint_constantCoeff_zero (F : Type*) [Field F] (M : DTM) (n : ℕ)
     (c : LocalConstraint (sheetCoupling M) n (Nat.log 2 n) F)
     (hc : c ∈ compilationConstraints F (sheetCoupling M) n) :
-    MvPolynomial.constantCoeff c.poly = 0
+    MvPolynomial.constantCoeff c.poly = 0 := by
+  -- compilationConstraints = booleanity ++ transitions
+  simp only [compilationConstraints, List.mem_append, List.mem_map, List.mem_flatMap,
+    List.mem_filterMap] at hc
+  rcases hc with ⟨v, _, rfl⟩ | ⟨t, _, i, _, h⟩
+  · -- Booleanity: boolConstraint v = X v * (1 - X v)
+    -- constantCoeff(X v * (1 - X v)) = constantCoeff(X v) * constantCoeff(1 - X v)
+    -- = 0 * 1 = 0
+    simp [mkBoolConstraint, boolConstraint, map_mul, map_sub, map_one,
+      MvPolynomial.constantCoeff_X]
+  · -- Transition: poly = X(headIdx) * (X(tapeIdx') - X(tapeIdx))
+    -- constantCoeff(X a * (X b - X c)) = 0 * (0 - 0) = 0
+    split_ifs at h with ht
+    · have := h; simp only [Option.mem_def, Option.some.injEq] at this
+      subst this
+      simp [mkTransitionConstraint, map_mul, map_sub, MvPolynomial.constantCoeff_X]
 
 /-- Theorem (was axiom): The compiled polynomial splits additively.
     Proved from constraint_vars_one_side + constraint_constantCoeff_zero
