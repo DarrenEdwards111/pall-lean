@@ -21,8 +21,8 @@ theorem P_neq_NP (h : PeqNP) : False := by
   let M := h.sat_decider
   let M' := sheetCoupling M  -- M♯
 
-  -- A2: ∃ C n₂, ∀ n ≥ n₂, ΓB(p_{M♯,n}) ≤ n^C
-  obtain ⟨C, n₂, hC⟩ := p_side_collapse ℚ M'
+  -- A2: ∃ C n₂, ∀ n ≥ n₂, ΓB(V_{M♯,n}) ≤ n^C (violation poly, without padding)
+  obtain ⟨C, n₂, hC⟩ := violation_rank_bound ℚ M'
 
   -- A3: ∃ n₁, ∀ n ≥ n₁, ΓB(Q×_Φn) ≥ n^{log n/4}
   obtain ⟨n₁, h_npside⟩ := np_side_lb ℚ
@@ -37,16 +37,16 @@ theorem P_neq_NP (h : PeqNP) : False := by
       (tseitinPoly ℚ n) ≥ n ^ (Nat.log 2 n / 4) :=
     h_npside n (by omega)
 
-  -- A4: extraction
+  -- A4: extraction (now targets violationPolyOf, without padding)
   have h2 : blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
       (tseitinPoly ℚ n) ≤
     blockedSpdpRank (compiledPartition M' n) (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyOf ℚ M' n) :=
+      (violationPolyOf ℚ M' n) :=
     extraction_rank_monotone ℚ M n (by omega)
 
-  -- A2 applied
+  -- A2 applied (violation poly rank bound)
   have h3 : blockedSpdpRank (compiledPartition M' n) (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyOf ℚ M' n) ≤ n ^ C :=
+      (violationPolyOf ℚ M' n) ≤ n ^ C :=
     hC n (by omega)
 
   -- Chain: n^{log n/4} ≤ n^C

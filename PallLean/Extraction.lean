@@ -24,7 +24,7 @@ theorem extraction_rank_monotone (F : Type*) [Field F]
       (tseitinPoly F n) ≤
     blockedSpdpRank (compiledPartition (sheetCoupling M) n)
       (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyOf F (sheetCoupling M) n) :=
+      (violationPolyOf F (sheetCoupling M) n) :=
   ExtractionWiring.extraction_rank_monotone M n hn
 
 end Extraction

@@ -101,11 +101,25 @@ noncomputable def compilationConstraints (F : Type*) [CommRing F] [Nontrivial F]
         some (mkTransitionConstraint F M n t i h)
       else none
 
-/-- The compiled polynomial P_{M,n} -/
+/-- The violation polynomial V_{M,n} = Σ C² (without padding product).
+    This is the polynomial on which extraction operates (paper §34).
+    compiledPolyOf = paddingProduct * violationPolyOf. -/
+noncomputable def violationPolyOf (F : Type*) [CommRing F] [Nontrivial F]
+    (M : DTM) (n : ℕ) :
+    MvPolynomial (Fin (numVars M n (Nat.log 2 n))) F :=
+  TuringMachine.violationPoly F M n (Nat.log 2 n) (compilationConstraints F M n)
+
+/-- The compiled polynomial P_{M,n} = Y · V_{M,n} (with padding product) -/
 noncomputable def compiledPolyOf (F : Type*) [CommRing F] [Nontrivial F]
     (M : DTM) (n : ℕ) :
     MvPolynomial (Fin (numVars M n (Nat.log 2 n))) F :=
   TuringMachine.compiledPoly F M n (Nat.log 2 n) (compilationConstraints F M n)
+
+/-- compiledPolyOf = paddingProduct * violationPolyOf -/
+theorem compiledPolyOf_eq (F : Type*) [CommRing F] [Nontrivial F]
+    (M : DTM) (n : ℕ) :
+    compiledPolyOf F M n = paddingProduct F M n (Nat.log 2 n) * violationPolyOf F M n := by
+  simp only [compiledPolyOf, violationPolyOf, compiledPoly]
 
 /-- Compiler-induced block partition -/
 noncomputable def compiledPartition (M : DTM) (n : ℕ) :
@@ -384,7 +398,37 @@ theorem kappa_padding_rank (F : Type*) [Field F]
     exact h
   exact le_trans hmono (le_trans hiSup hsum)
 
-/-! ## Main P-Side Theorem -/
+/-! ## P-Side Rank Bounds -/
+
+/-- Violation polynomial rank bound (without padding).
+    Extraction operates on violationPolyOf; this gives the P-side bound
+    directly on V without going through Y·V. -/
+theorem violation_rank_bound (F : Type*) [Field F] (M : DTM) :
+    ∃ (C n₀ : ℕ), ∀ n, n ≥ n₀ →
+      blockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (violationPolyOf F M n) ≤ n ^ C := by
+  use 6 * M.timeBound + 24, max 4 M.numStates
+  intro n hn
+  have hn4 : n ≥ 4 := le_trans (le_max_left _ _) hn
+  have hn2 : n ≥ 2 := by omega
+  have hn_states : n ≥ M.numStates := le_trans (le_max_right _ _) hn
+  let κ := Nat.log 2 n
+  obtain ⟨h, hgates, hwidth⟩ := violation_has_locality F M n hn4 hn_states
+  have hrank_κ : blockedSpdpRank (compiledPartition M n) κ κ
+      (violationPolyOf F M n) ≤ (h.numGates * h.width) ^ 3 := by
+    have := width_to_rank_bound F (compiledPartition M n) κ κ (violationPolyOf F M n) h
+    exact this
+  have h12 : (12 : ℕ) ≤ n ^ 4 :=
+    le_trans (by norm_num) (Nat.pow_le_pow_left hn2 4)
+  have hG : h.numGates * h.width ≤ n ^ (2 * M.timeBound + 8) :=
+    calc h.numGates * h.width
+        ≤ n ^ (2 * M.timeBound + 4) * 12 := Nat.mul_le_mul hgates hwidth
+      _ ≤ n ^ (2 * M.timeBound + 4) * n ^ 4 := Nat.mul_le_mul_left _ h12
+      _ = n ^ (2 * M.timeBound + 8) := by rw [← pow_add]
+  calc blockedSpdpRank (compiledPartition M n) κ κ (violationPolyOf F M n)
+      ≤ (h.numGates * h.width) ^ 3 := hrank_κ
+    _ ≤ (n ^ (2 * M.timeBound + 8)) ^ 3 := Nat.pow_le_pow_left hG 3
+    _ = n ^ (6 * M.timeBound + 24) := by rw [← pow_mul]; ring
 
 /-- **A2 (Theorem 6.1): P-side collapse** -/
 theorem p_side_collapse (F : Type*) [Field F]

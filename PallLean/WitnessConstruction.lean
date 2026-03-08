@@ -191,7 +191,7 @@ in v. Summing yields the additive decomposition. -/
     variables lie entirely in (u,z) or entirely in v." -/
 axiom compiledPoly_split (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     ∃ (Vclause Vtableau : MvPolynomial (CompiledVars M n) F),
-      compiledPolyOf F (sheetCoupling M) n = Vclause + Vtableau ∧
+      violationPolyOf F (sheetCoupling M) n = Vclause + Vtableau ∧
       varsOnlyVerifier M n Vclause ∧
       varsOnlyComputation M n Vtableau
 
@@ -227,7 +227,7 @@ axiom clauseSheet_extracts_to_tseitin (F : Type*) [Field F]
     ∀ (Vclause : MvPolynomial (CompiledVars M n) F),
       varsOnlyVerifier M n Vclause →
       (∃ (Vtableau : MvPolynomial (CompiledVars M n) F),
-        compiledPolyOf F (sheetCoupling M) n = Vclause + Vtableau ∧
+        violationPolyOf F (sheetCoupling M) n = Vclause + Vtableau ∧
         varsOnlyComputation M n Vtableau) →
       projectPoly (mkIsVerifier M n)
         (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) Vclause) =
@@ -275,33 +275,21 @@ axiom multiplier_admissibility_axiom (F : Type*) [Field F] (M : DTM) (n : ℕ) (
 Paper Lemma 222 + Theorem 187 packaged as the single conjunction
 needed by the PAC witness construction.
 
-**KNOWN ISSUE**: The extraction equation (claim 1) operates on `compiledPolyOf`
-which includes the padding product Y = ∏ X_{padding_j}. Under restrict+project,
-padding variables (classified as admin) are pinned to 0, making Y evaluate to 0
-and killing the entire polynomial. The paper's extraction operates on the
-violation polynomial V (without padding), not on Y·V.
-
-**FIX NEEDED**: Either:
-(a) Change the extraction to operate on `violationPolyOf` and add
-    rank(violationPoly) ≤ rank(compiledPolyOf) to the chain, or
-(b) Reclassify padding variables as non-admin (verifier vars), or
-(c) Use a modified compiledPolyOf that separates padding from the
-    polynomial being extracted.
-
-The axiom as stated is a placeholder that will be updated when the
-padding issue is resolved. The mathematical content (Lemma 222) is correct;
-the formalization just needs the right polynomial target. -/
+The extraction now operates on `violationPolyOf` (without padding product),
+which avoids the padding-kills-extraction issue. The violation polynomial
+has the correct additive decomposition: V = V_clause + V_tableau. -/
 
 /-- **Additive separability** (paper Lemma 222 + Theorem 187 + structural conditions).
-    Combines compiledPoly_split + restrict_project_kills_computation +
-    clauseSheet_extracts_to_tseitin + structural axioms.
-
-    See §2 "KNOWN ISSUE" above regarding padding interaction. -/
+    Assembled from the four sub-lemma axioms:
+    - compiledPoly_split: V = Vclause + Vtableau
+    - restrict_project_kills_computation: project∘restrict(Vtableau) = 0
+    - clauseSheet_extracts_to_tseitin: project∘restrict(Vclause) = rename(embed)(tseitin)
+    - block_compat_axiom, admissibility_axiom, multiplier_admissibility_axiom -/
 axiom additive_separability (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     -- (1) Extraction equation
     projectPoly (mkIsVerifier M n)
       (restrictPoly (mkIsAdmin M n) (mkAdminVal M n)
-        (compiledPolyOf F (sheetCoupling M) n)) =
+        (violationPolyOf F (sheetCoupling M) n)) =
     rename (mkEmbedTseitin M n hn) (tseitinPoly F n) ∧
     -- (2) Block compatibility
     (∀ i j : Fin (npNumVars n),
@@ -342,7 +330,7 @@ theorem extraction_eq' (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     rename (mkEmbedTseitin M n hn) (tseitinPoly F n) =
     projectPoly (mkIsVerifier M n)
       (restrictPoly (mkIsAdmin M n) (mkAdminVal M n)
-        (compiledPolyOf F (sheetCoupling M) n)) :=
+        (violationPolyOf F (sheetCoupling M) n)) :=
   (additive_separability F M n hn).1.symm
 
 /-! ## §4: Structural Properties (projections from additive_separability) -/

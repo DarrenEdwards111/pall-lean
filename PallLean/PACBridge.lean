@@ -56,7 +56,7 @@ structure TwoSheetDecomp (M : DTM) (n : ℕ) where
   extraction_eq :
     rename embedTseitin (tseitinPoly F n) =
     projectPoly isVerifier (restrictPoly isSelector selectorVal
-      (compiledPolyOf F (sheetCoupling M) n))
+      (violationPolyOf F (sheetCoupling M) n))
   block_compat_rev : ∀ i j : Fin (npNumVars n),
     (compiledPartition (sheetCoupling M) n).assign (embedTseitin i) =
     (compiledPartition (sheetCoupling M) n).assign (embedTseitin j) →
@@ -64,22 +64,23 @@ structure TwoSheetDecomp (M : DTM) (n : ℕ) where
 
 /-! ## Rank Monotonicity from Decomposition -/
 
-/-- Restriction then projection is rank-nonincreasing. -/
-theorem extracted_rank_le_compiled (M : DTM) (n : ℕ)
+/-- Restriction then projection is rank-nonincreasing.
+    Now operates on violationPolyOf (without padding product). -/
+theorem extracted_rank_le_violation (M : DTM) (n : ℕ)
     (D : @TwoSheetDecomp F _ M n) :
     blockedSpdpRank (compiledPartition (sheetCoupling M) n) (Nat.log 2 n) (Nat.log 2 n)
       (projectPoly D.isVerifier (restrictPoly D.isSelector D.selectorVal
-        (compiledPolyOf F (sheetCoupling M) n))) ≤
+        (violationPolyOf F (sheetCoupling M) n))) ≤
     blockedSpdpRank (compiledPartition (sheetCoupling M) n) (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyOf F (sheetCoupling M) n) := by
+      (violationPolyOf F (sheetCoupling M) n) := by
   have h1 := ExtractionProof.restrict_rank_le
     (compiledPartition (sheetCoupling M) n) (Nat.log 2 n) (Nat.log 2 n)
-    D.isSelector D.selectorVal (compiledPolyOf F (sheetCoupling M) n)
+    D.isSelector D.selectorVal (violationPolyOf F (sheetCoupling M) n)
     D.admissible_non_selector D.admissible_mult_non_selector
   have h2 := ExtractionProof.project_rank_le
     (compiledPartition (sheetCoupling M) n) (Nat.log 2 n) (Nat.log 2 n)
     D.isVerifier
-    (restrictPoly D.isSelector D.selectorVal (compiledPolyOf F (sheetCoupling M) n))
+    (restrictPoly D.isSelector D.selectorVal (violationPolyOf F (sheetCoupling M) n))
     D.admissible_verifier D.admissible_mult_verifier
   linarith
 
@@ -205,7 +206,7 @@ theorem tseitin_rank_le_extracted (M : DTM) (n : ℕ)
     blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly F n) ≤
     blockedSpdpRank (compiledPartition (sheetCoupling M) n) (Nat.log 2 n) (Nat.log 2 n)
       (projectPoly D.isVerifier (restrictPoly D.isSelector D.selectorVal
-        (compiledPolyOf F (sheetCoupling M) n))) := by
+        (violationPolyOf F (sheetCoupling M) n))) := by
   rw [← D.extraction_eq]
   set φ := (rename D.embedTseitin : MvPolynomial (Fin (npNumVars n)) F →ₐ[F] _).toLinearMap
   set tsub := blockedSpdpSubspace (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
@@ -229,13 +230,14 @@ theorem tseitin_rank_le_extracted (M : DTM) (n : ℕ)
   show Module.finrank F tsub ≤ Module.finrank F csub
   omega
 
-/-- **Main theorem**: Extraction rank monotonicity from two-sheet decomposition. -/
+/-- **Main theorem**: Extraction rank monotonicity from two-sheet decomposition.
+    Now targets violationPolyOf (without padding), not compiledPolyOf. -/
 theorem extraction_rank_monotone_of_decomp (M : DTM) (n : ℕ)
     (D : @TwoSheetDecomp F _ M n) :
     blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly F n) ≤
     blockedSpdpRank (compiledPartition (sheetCoupling M) n) (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyOf F (sheetCoupling M) n) :=
-  le_trans (tseitin_rank_le_extracted M n D) (extracted_rank_le_compiled M n D)
+      (violationPolyOf F (sheetCoupling M) n) :=
+  le_trans (tseitin_rank_le_extracted M n D) (extracted_rank_le_violation M n D)
 
 /-! ## Split Construction Axioms (Fuzzy-recommended decomposition)
 
@@ -272,14 +274,14 @@ structure SheetCouplingWitness (F : Type*) [Field F] (M : DTM) (n : ℕ) where
   selectorVal : CompiledVars M n → F
   embedTseitin : Fin (npNumVars n) → CompiledVars M n
   /-- Claim 1: Extraction equation (TM engineering).
-      restrict(selectors) ∘ project(verifier) on the compiled polynomial
+      restrict(selectors) ∘ project(verifier) on the violation polynomial
       equals the renamed Tseitin polynomial.
-      ClauseGadget.multi_clause_extraction proves the analogous statement
-      for abstract MultiClauseSystems. -/
+      Uses violationPolyOf (without padding) to avoid padding product
+      killing the extraction. -/
   extraction_eq :
     rename embedTseitin (tseitinPoly F n) =
     projectPoly isVerifier (restrictPoly isSelector selectorVal
-      (compiledPolyOf F (sheetCoupling M) n))
+      (violationPolyOf F (sheetCoupling M) n))
   /-- Claim 2: Block compatibility (structural).
       Embedding is injective, block-reflecting, selectors ⊆ verifier. -/
   embed_injective : Function.Injective embedTseitin

@@ -130,7 +130,7 @@ theorem extraction_rank_monotone (M : DTM) (n : ℕ) (hn : n ≥ 2 := by omega) 
       (tseitinPoly F n) ≤
     blockedSpdpRank (compiledPartition (sheetCoupling M) n)
       (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyOf F (sheetCoupling M) n) :=
+      (violationPolyOf F (sheetCoupling M) n) :=
   PACBridge.extraction_rank_monotone_of_decomp M n
     (PACBridge.toTwoSheetDecomp (WitnessConstruction.constructWitness M n hn))
 
