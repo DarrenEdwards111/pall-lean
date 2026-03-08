@@ -17,4 +17,5 @@ import PallLean.BinomialBound2
 import PallLean.ProfileDecomp
 import PallLean.ExtractionProof
 import PallLean.ProfileCompression
+import PallLean.WidthRank
 import PallLean.FullCompiler

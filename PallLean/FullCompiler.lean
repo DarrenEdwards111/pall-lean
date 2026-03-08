@@ -2,8 +2,8 @@
   FullCompiler.lean — Paper-faithful compiled polynomial: Q× + R
 
   P(u,z,v) = Q×(u,z) + R(v) where Q× is product, R is SoS.
-  1 axiom: product_profile_compression (§9 Theorem 23)
-  0 sorry's. Everything else fully proved.
+  1 axiom: compiler_profile_bound (§9 compiler CEW + profile decomposition)
+  0 sorry's. product_profile_compression PROVED from the axiom.
 
   The compiler partition groups:
   - Verifier vars by clause (inheriting tseitinPartition)
@@ -17,6 +17,7 @@ import PallLean.NPWitness
 import PallLean.SheetCoupling
 import PallLean.ExtractionProof
 import PallLean.ProfileCompression
+import PallLean.WidthRank
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.Dimension.Finrank
 
@@ -157,24 +158,46 @@ theorem blockAdmissible_map_embedVerifier (M : DTM) (n : ℕ)
               omega
         _ ≤ 1 := hle
 
+/-! ## Compiler Profile Decomposition (§9, Axiom)
+
+    The compiled polynomial's SPDP rank decomposes into at most
+    C(R+m, m) profile classes, each contributing dimension at most
+    C(R+D, D), where R ≤ n is the CEW budget and m, D are compiler
+    constants (O(1), independent of n).
+
+    Paper references:
+    - R ≤ C(log n)^c ≤ n for large n: CEW bound (Property P3, Lemma 19)
+    - C(R+m, m) profiles: Lemma 29 (profile compression removes κ-dependence)
+    - C(R+D, D) per-profile dim: Lemma 31 (symmetric tensor powers)
+    - Row decomposition: Lemma 26 (canonicalization preserves row span)
+    - Subadditivity of dimension: dim(Σ V_h) ≤ Σ dim(V_h)
+
+    The bound R ≤ n absorbs the polylog→poly conversion:
+    R = C(log n)^c is polylogarithmic, hence ≤ n for all n ≥ n₀. -/
+axiom compiler_profile_bound (F : Type*) [Field F] (M : DTM) :
+    ∃ (m D n₀ : ℕ),
+      m ≥ 1 ∧ D ≥ 1 ∧
+      ∀ n, n ≥ n₀ →
+        ∃ R, R ≤ n ∧
+        blockedSpdpRank (compilerPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (fullCompiledPoly F M n)
+        ≤ Nat.choose (R + m) m * Nat.choose (R + D) D
+
 /-! ## Profile Compression (§9 Theorem 23)
 
-    The P-side upper bound: for every polynomial-time machine M,
-    the compiled polynomial has polynomial blocked SPDP rank.
-
-    This axiom encodes the full Width⇒Rank theorem:
-    1. CEW bound: R ≤ C(log n)^c live interfaces (compiler property P3)
-    2. Profile count: |H(R)| ≤ (R+1)^m = R^{O(1)} (Lemma 20, stars-and-bars — PROVED in ProfileCompression.lean)
-    3. Within-profile dim: dim(V_h) ≤ (R+1)^D = R^{O(1)} (Lemma 22 — PROVED in ProfileCompression.lean)
-    4. Row decomposition: RowSpan(R_h) ⊆ V_h (compiler structure)
-    5. Assembly: Γ ≤ Σ dim(V_h) ≤ |H(R)| · R^{O(1)} = R^{O(1)} ≤ n^C
-
-    Steps 2-3 are proved theorems (choose_le_pow). Steps 1, 4, 5 require
-    formalizing the compiler's locality structure and CEW analysis. -/
-axiom product_profile_compression (F : Type*) [Field F] (M : DTM) :
+    PROVED from compiler_profile_bound + WidthRank.profile_to_poly_bound.
+    The proof assembles:
+    1. compiler_profile_bound (AXIOM): Γ ≤ C(R+m,m) · C(R+D,D) with R ≤ n
+    2. choose_le_pow (PROVED): C(R+m,m) ≤ (R+1)^m, C(R+D,D) ≤ (R+1)^D
+    3. profile_to_poly_bound (PROVED): product ≤ (n+1)^(m+D) ≤ n^(m+D+1) -/
+theorem product_profile_compression (F : Type*) [Field F] (M : DTM) :
     ∃ (C n₀ : ℕ), ∀ n, n ≥ n₀ →
       blockedSpdpRank (compilerPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-        (fullCompiledPoly F M n) ≤ n ^ C
+        (fullCompiledPoly F M n) ≤ n ^ C := by
+  obtain ⟨m, D, n₁, hm, hD, hbound⟩ := compiler_profile_bound F M
+  refine ⟨m + D + 1, max n₁ (2 ^ (m + D)), fun n hn => ?_⟩
+  obtain ⟨R, hR, hΓ⟩ := hbound n (by omega)
+  exact WidthRank.profile_to_poly_bound hm hD hR (by omega) hΓ
 
 /-! ## Extraction Map -/
 
