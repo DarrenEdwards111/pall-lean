@@ -308,11 +308,6 @@ structure SheetCouplingWitness (F : Type*) [Field F] (M : DTM) (n : ℕ) where
     isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
     ∀ v ∈ m.vars, isVerifier v = true
 
-/-- **The single axiom**: a sheet coupling witness exists.
-    This is the only unproved claim in the P≠NP chain. -/
-axiom sheetCouplingWitness_exists (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    SheetCouplingWitness F M n
-
 /-- Convert a SheetCouplingWitness to TwoSheetDecomp (trivial projection). -/
 noncomputable def toTwoSheetDecomp {F : Type*} [Field F] {M : DTM} {n : ℕ}
     (W : SheetCouplingWitness F M n) : @TwoSheetDecomp F _ M n where
@@ -328,13 +323,5 @@ noncomputable def toTwoSheetDecomp {F : Type*} [Field F] {M : DTM} {n : ℕ}
   admissible_verifier := W.admissible_verifier
   admissible_mult_non_selector := W.admissible_mult_non_selector
   admissible_mult_verifier := W.admissible_mult_verifier
-
-/-- Extraction rank monotonicity from the single witness axiom. -/
-theorem extraction_rank_monotone_of_witness (F : Type*) [Field F]
-    (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly F n) ≤
-    blockedSpdpRank (compiledPartition (sheetCoupling M) n) (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyOf F (sheetCoupling M) n) :=
-  extraction_rank_monotone_of_decomp M n (toTwoSheetDecomp (sheetCouplingWitness_exists F M n hn))
 
 end PACBridge

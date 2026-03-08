@@ -122,13 +122,16 @@ theorem relabel_generators_subset
     by the rank of the larger compiled polynomial because the compiled
     constraints "contain" the Tseitin clauses.
 -/
-/-- Previously an axiom, now proved via PACBridge + WitnessConstruction. -/
+/-- Previously an axiom, now proved via PACBridge + WitnessConstruction.
+    The witness is constructed explicitly from additive_separability,
+    bypassing the sheetCouplingWitness_exists axiom in PACBridge. -/
 theorem extraction_rank_monotone (M : DTM) (n : ℕ) (hn : n ≥ 2 := by omega) :
     blockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
       (tseitinPoly F n) ≤
     blockedSpdpRank (compiledPartition (sheetCoupling M) n)
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPolyOf F (sheetCoupling M) n) :=
-  PACBridge.extraction_rank_monotone_of_witness F M n hn
+  PACBridge.extraction_rank_monotone_of_decomp M n
+    (PACBridge.toTwoSheetDecomp (WitnessConstruction.constructWitness M n hn))
 
 end ExtractionWiring
