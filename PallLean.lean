@@ -1,26 +1,25 @@
+-- Critical path: P ≠ NP via SPDP rank separation
 import PallLean.SPDPDefs
-import PallLean.CoeffBridge
-import PallLean.FiniteSPDP
-import PallLean.RestrictionProof
 import PallLean.TuringMachine
-import PallLean.Tseitin
+import PallLean.SheetCoupling
 import PallLean.Compiler
+import PallLean.TseitinDefs
+import PallLean.ClauseGadget
+import PallLean.Tseitin
 import PallLean.NPWitness
-import PallLean.Extraction
-import PallLean.Separation
-import PallLean.Barriers
+import PallLean.IdentityMinor
+import PallLean.TagMonomial
+import PallLean.CoeffDisjoint
 import PallLean.ProductDeriv
 import PallLean.IterLeibniz
+import PallLean.ListSum
 import PallLean.BinomialBound
 import PallLean.BinomialBound2
+import PallLean.ProfileDecomp
 import PallLean.ExtractionPipeline
-import PallLean.MobiusBridge
-import PallLean.SearchStack
-import PallLean.DecisionMobiusBridge
-import PallLean.MUSDistribution
--- Build independently (parse issues in lib context):
--- import PallLean.TracedMobiusBridge
--- import PallLean.TracedMobiusBridgeFrontier
--- import PallLean.TseitinBridge
--- import PallLean.SearchBridge
-import PallLean.BoundaryGadget
+import PallLean.ExtractionProof
+import PallLean.PACBridge
+import PallLean.WitnessConstruction
+import PallLean.ExtractionWiring
+import PallLean.Extraction
+import PallLean.Separation
