@@ -259,7 +259,7 @@ theorem tseitin_subspace_le_coupled (F : Type*) [Field F]
     blockedSpdpSubspace (coupledPartition M n) κ ℓ (coupledPoly (F := F) M n) := by
   apply Submodule.map_le_iff_le_comap.mpr
   apply Submodule.span_le.mpr
-  intro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+  intro q ⟨S, m, hlen, hdeg, hadm, _, _, hq⟩
   -- Need: liftT(m · ∂^S tseitinPoly) ∈ blockedSpdpSubspace(coupledPoly)
   show liftT F M n q ∈ blockedSpdpSubspace (coupledPartition M n) κ ℓ (coupledPoly F M n)
   rw [hq]

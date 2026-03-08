@@ -317,7 +317,7 @@ private theorem padding_subspace_le (F : Type*) [Field F]
       ⨆ r : Fin (κ + 1), blockedSpdpSubspace B r.val (ℓ + κ) V := by
   -- Show every generator of LHS is in RHS
   apply Submodule.span_le.mpr
-  intro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+  intro q ⟨S, m, hlen, hdeg, hadm, _, _, hq⟩
   -- q = m * iterDerivList S (Y * V), |S|=κ, deg(m)≤ℓ, S block-admissible
   -- By iterated Leibniz, iterDerivList S (Y*V) ∈ span of {g * iterDerivList T V | T ⊆ S}
   have hmem := IterLeibniz.iterDerivList_mul_mem_span S Y V
@@ -341,7 +341,7 @@ private theorem padding_subspace_le (F : Type*) [Field F]
       le_trans (totalDegree_mul m g) (by omega)
     -- T.length ≤ κ, so ⟨T.length, ...⟩ : Fin (κ + 1)
     have hmem_r : p ∈ blockedSpdpSubspace B T.length (ℓ + κ) V :=
-      Submodule.subset_span ⟨T, m * g, rfl, hmgdeg, hTadm, hp⟩
+      Submodule.subset_span ⟨T, m * g, rfl, hmgdeg, hTadm, (fun _ _ => Finset.mem_univ _), (fun _ _ => Finset.mem_univ _), hp⟩
     exact Submodule.mem_iSup_of_mem ⟨T.length, by omega⟩ hmem_r
   -- Now prove: m * iterDerivList S (Y*V) ∈ span of {(m*g) * iterDerivList T V | ...}
   -- From hmem: iterDerivList S (Y*V) ∈ span of {g * iterDerivList T V | T ⊆ S, deg(g) ≤ deg(Y)}

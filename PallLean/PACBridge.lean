@@ -174,13 +174,14 @@ theorem blockedSpdpSubspace_rename_le (κ ℓ : ℕ)
     blockedSpdpSubspace B₂ κ ℓ (rename ρ p) := by
   apply Submodule.map_le_iff_le_comap.mpr
   apply Submodule.span_le.mpr
-  intro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+  intro q ⟨S, m, hlen, hdeg, hadm, _, _, hq⟩
   show (rename ρ) q ∈ blockedSpdpSubspace B₂ κ ℓ (rename ρ p)
   rw [hq, map_mul, ← iterDerivList_rename_map_local ρ hρ S p]
   apply Submodule.subset_span
   refine ⟨S.map ρ, rename ρ m, by simp [hlen],
     le_trans (totalDegree_rename_le ρ m) hdeg,
-    isBlockAdmissible_map_injective B₁ B₂ ρ hρ hrev S hadm, rfl⟩
+    isBlockAdmissible_map_injective B₁ B₂ ρ hρ hrev S hadm,
+    (fun _ _ => Finset.mem_univ _), (fun _ _ => Finset.mem_univ _), rfl⟩
 
 /-- Tseitin rank ≤ extracted rank via injective rename. -/
 theorem tseitin_rank_le_extracted (M : DTM) (n : ℕ)

@@ -55,7 +55,7 @@ theorem relabel_generators_subset
     blockedSpdpSubspace B₂ κ ℓ (MvPolynomial.rename ρ p) ≤
     (blockedSpdpSubspace B₁ κ ℓ p).map (MvPolynomial.rename ρ).toLinearMap := by
   apply Submodule.span_le.mpr
-  intro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+  intro q ⟨S, m, hlen, hdeg, hadm, _, _, hq⟩
   have hbij : Function.Bijective ρ := ⟨hρ_inj, hρ_surj⟩
   let e : Fin n₁ ≃ Fin n₂ := Equiv.ofBijective ρ hbij
   let S' := S.map e.symm
@@ -106,7 +106,7 @@ theorem relabel_generators_subset
         _ ≤ 1 := hadm.2 b₂
   rw [hq, hiter, hm_eq, ← map_mul]
   exact Submodule.mem_map.mpr
-    ⟨m' * iterDerivList S' p, Submodule.subset_span ⟨S', m', hlen', hdeg', hadm', rfl⟩, rfl⟩
+    ⟨m' * iterDerivList S' p, Submodule.subset_span ⟨S', m', hlen', hdeg', hadm', (fun _ _ => Finset.mem_univ _), (fun _ _ => Finset.mem_univ _), rfl⟩, rfl⟩
 
 /-! ## Core axiom: extraction rank monotonicity
 

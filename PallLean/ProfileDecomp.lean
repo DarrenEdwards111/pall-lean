@@ -67,7 +67,7 @@ theorem gate_decomposition
     blockedSpdpSubspace B κ ℓ p ≤
     ⨆ i : Fin h.numGates, gateSubspace B κ ℓ (h.gate i) := by
   apply Submodule.span_le.mpr
-  intro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+  intro q ⟨S, m, hlen, hdeg, hadm, _, _, hq⟩
   -- ∂^S p = ∂^S(Σ gate i) = Σ ∂^S(gate i) by linearity
   -- So m * ∂^S p = Σ m * ∂^S(gate i)
   -- Each summand ∈ gateSubspace i ≤ ⨆ gateSubspace

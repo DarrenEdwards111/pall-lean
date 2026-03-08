@@ -85,9 +85,11 @@ theorem generator_totalDegree_le
     (hq : q ∈ { r : MvPolynomial (Fin n) F | ∃ (S : List (Fin n)) (m : MvPolynomial (Fin n) F),
         S.length = κ ∧ m.totalDegree ≤ ℓ ∧
         isBlockAdmissible B S ∧
+        (∀ i ∈ S, i ∈ (Finset.univ : Finset (Fin n))) ∧
+        (∀ v ∈ m.vars, v ∈ (Finset.univ : Finset (Fin n))) ∧
         r = m * iterDerivList S p }) :
     q.totalDegree ≤ ℓ + p.totalDegree := by
-  obtain ⟨S, m, _, hdeg, _, rfl⟩ := hq
+  obtain ⟨S, m, _, hdeg, _, _, _, rfl⟩ := hq
   calc (m * iterDerivList S p).totalDegree
       ≤ m.totalDegree + (iterDerivList S p).totalDegree := totalDegree_mul m _
     _ ≤ ℓ + p.totalDegree := by linarith [totalDegree_iterDerivList_le S p]
@@ -234,7 +236,7 @@ theorem restrict_rank_le
         (blockedSpdpSubspace B κ ℓ p) := by
     unfold blockedSpdpSubspace
     apply Submodule.span_le.mpr
-    intro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+    intro q ⟨S, m, hlen, hdeg, hadm, _, _, hq⟩
     rw [hq, iterDerivList_restrictPoly_comm isTrace assign S (hB S hadm)]
     -- q = m * R(∂^S p). Need to show this is in image of R applied to span.
     -- Since m uses only admissible (non-trace) vars, R(m) = m.
@@ -246,7 +248,7 @@ theorem restrict_rank_le
     rw [← map_mul]
     -- R(m * ∂^S p) is in the image of R
     exact Submodule.mem_map.mpr ⟨m * iterDerivList S p,
-      Submodule.subset_span ⟨S, m, hlen, hdeg, hadm, rfl⟩, rfl⟩
+      Submodule.subset_span ⟨S, m, hlen, hdeg, hadm, (fun _ _ => Finset.mem_univ _), (fun _ _ => Finset.mem_univ _), rfl⟩, rfl⟩
   calc Module.finrank F ↥(blockedSpdpSubspace B κ ℓ
         (ExtractionPipeline.restrictPoly isTrace assign p))
       ≤ Module.finrank F ↥(Submodule.map
@@ -318,7 +320,7 @@ theorem gauge_scalar_rank_le
   apply Submodule.finrank_mono
   unfold blockedSpdpSubspace
   apply Submodule.span_le.mpr
-  intro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+  intro q ⟨S, m, hlen, hdeg, hadm, _, _, hq⟩
   -- Show: iterDerivList S (C a * p) = C a * iterDerivList S p
   have hcomm : ∀ (q : MvPolynomial (Fin n) F) (T : List (Fin n)),
       iterDerivList T (MvPolynomial.C a * q) =
@@ -342,7 +344,7 @@ theorem gauge_scalar_rank_le
       _ = m.totalDegree + 0 := by rw [MvPolynomial.totalDegree_C]
       _ = m.totalDegree := by ring
       _ ≤ ℓ := hdeg
-  exact Submodule.subset_span ⟨S, m * MvPolynomial.C a, hlen, hdeg', hadm, rfl⟩
+  exact Submodule.subset_span ⟨S, m * MvPolynomial.C a, hlen, hdeg', hadm, (fun _ _ => Finset.mem_univ _), (fun _ _ => Finset.mem_univ _), rfl⟩
 
 /-- pderiv commutes with multiplication by a monomial when the variable
     is not in the monomial's support (pderiv of the monomial is 0). -/
@@ -395,8 +397,8 @@ theorem blockedSpdpRank_ell_mono
   unfold blockedSpdpRank
   apply Submodule.finrank_mono
   apply Submodule.span_mono
-  intro q ⟨S, m, hlen, hdeg, hadm, hq⟩
-  exact ⟨S, m, hlen, le_trans hdeg hℓ, hadm, hq⟩
+  intro q ⟨S, m, hlen, hdeg, hadm, hav1, hav2, hq⟩
+  exact ⟨S, m, hlen, le_trans hdeg hℓ, hadm, hav1, hav2, hq⟩
 
 theorem gauge_rank_le
     (B : BlockPartition n) (κ ℓ : ℕ)
@@ -415,7 +417,7 @@ theorem gauge_rank_le
   apply Submodule.finrank_mono
   unfold blockedSpdpSubspace
   apply Submodule.span_le.mpr
-  intro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+  intro q ⟨S, m, hlen, hdeg, hadm, _, _, hq⟩
   -- Commutation: derivatives pass through C(a) and monomial(m_mono,1)
   have hcomm_C : ∀ (r : MvPolynomial (Fin n) F) (T : List (Fin n)),
       iterDerivList T (MvPolynomial.C a * r) =
@@ -448,7 +450,7 @@ theorem gauge_rank_le
           have : m_mono.sum (fun _ => id) = m_mono.sum (fun _ e => e) := by congr 1
           linarith
   exact Submodule.subset_span ⟨S, m * MvPolynomial.C a * monomial m_mono 1,
-    hlen, hdeg', hadm, rfl⟩
+    hlen, hdeg', hadm, (fun _ _ => Finset.mem_univ _), (fun _ _ => Finset.mem_univ _), rfl⟩
 
 /-! ## Step 6: Composition — wiring to the axiom signature -/
 

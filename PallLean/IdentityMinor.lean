@@ -497,7 +497,7 @@ theorem rowPoly_mem_subspace [Field F]
   rw [show iterDerivList (selectorList Φ pack κ i) (coupledVerifier F Φ) =
       1 * iterDerivList (selectorList Φ pack κ i) (coupledVerifier F Φ) from (one_mul _).symm]
   apply Submodule.subset_span
-  refine ⟨selectorList Φ pack κ i, 1, ?_, ?_, ?_, rfl⟩
+  refine ⟨selectorList Φ pack κ i, 1, ?_, ?_, ?_, ?_, ?_, rfl⟩
   · -- length = κ
     unfold selectorList
     rw [List.length_map]
@@ -512,6 +512,10 @@ theorem rowPoly_mem_subspace [Field F]
       (getSubset_nodup' pack κ i)
       (fun c hc => getSubset_subset' pack κ i c hc)
       (getSubset_length pack κ i)
+  · -- ∀ i ∈ S, i ∈ activeVars (= Finset.univ)
+    intro _ _; exact Finset.mem_univ _
+  · -- ∀ v ∈ (1).vars, v ∈ activeVars (= Finset.univ)
+    intro _ _; exact Finset.mem_univ _
 
 /-- Elements of sublistsLen are sublists of the original -/
 private theorem sublistsLen_get_sublist (l : List α) (n : ℕ)

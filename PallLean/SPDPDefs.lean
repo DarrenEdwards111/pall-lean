@@ -75,17 +75,21 @@ noncomputable def spdpRank {n : ℕ} {F : Type*} [CommRing F] [Nontrivial F]
   Module.finrank F (spdpSubspace κ ℓ p)
 
 noncomputable def blockedSpdpSubspace {n : ℕ} {F : Type*} [CommRing F]
-    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F)
+    (activeVars : Finset (Fin n) := Finset.univ) :
     Submodule F (MvPolynomial (Fin n) F) :=
   Submodule.span F
     { q | ∃ (S : List (Fin n)) (m : MvPolynomial (Fin n) F),
         S.length = κ ∧ m.totalDegree ≤ ℓ ∧
         isBlockAdmissible B S ∧
+        (∀ i ∈ S, i ∈ activeVars) ∧
+        (∀ v ∈ m.vars, v ∈ activeVars) ∧
         q = m * iterDerivList S p }
 
 noncomputable def blockedSpdpRank {n : ℕ} {F : Type*} [CommRing F] [Nontrivial F]
-    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) : ℕ :=
-  Module.finrank F (blockedSpdpSubspace B κ ℓ p)
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F)
+    (activeVars : Finset (Fin n) := Finset.univ) : ℕ :=
+  Module.finrank F (blockedSpdpSubspace B κ ℓ p activeVars)
 
 /-! ## Basic Properties -/
 
@@ -93,7 +97,7 @@ theorem blockedSubspace_le {n : ℕ} {F : Type*} [CommRing F]
     (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
     blockedSpdpSubspace B κ ℓ p ≤ spdpSubspace κ ℓ p := by
   apply Submodule.span_mono
-  intro q ⟨S, m, hlen, hdeg, _, hq⟩
+  intro q ⟨S, m, hlen, hdeg, _, _, _, hq⟩
   exact ⟨S, m, hlen, hdeg, hq⟩
 
 theorem foldl_pderiv_zero {n : ℕ} {F : Type*} [CommRing F]
@@ -151,7 +155,7 @@ theorem blockedSpdpSubspace_le_restrictTotalDegree {F : Type*} [CommRing F] {n :
     blockedSpdpSubspace B κ ℓ p ≤
       MvPolynomial.restrictTotalDegree (Fin n) F (ℓ + p.totalDegree) := by
   apply Submodule.span_le.mpr
-  intro q ⟨S, m, _, hdeg, _, hq⟩
+  intro q ⟨S, m, _, hdeg, _, _, _, hq⟩
   show q ∈ MvPolynomial.restrictTotalDegree (Fin n) F (ℓ + p.totalDegree)
   rw [MvPolynomial.mem_restrictTotalDegree, hq]
   exact le_trans (totalDegree_mul m (iterDerivList S p))
