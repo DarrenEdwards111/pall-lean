@@ -230,10 +230,10 @@ theorem exists_nonzero_block_of_admissible (M : DTM) (n : ℕ)
     simp [List.nodup_cons] at hnd
   have ha0 := hall a (by simp)
   have hb0 := hall b (by simp)
-  -- Block 0 filter has ≤ 1 element
-  have hle1 := hadm.2 ⟨0, by simp [compilerPartition]⟩
-  -- But a, b are both in block 0 and distinct → filter has ≥ 2 → contradiction
-  -- (Technical: BEq filter on Fin — using sorry for predicate matching)
+  -- ha0 : (assign a).val < 1, i.e., (assign a).val = 0
+  -- hb0 : (assign b).val < 1, i.e., (assign b).val = 0
+  -- Block 0 filter of [a, b, ...] has length ≥ 2 → contradicts ≤ 1
+  -- Use sorry for the Lean 4 BEq/DecidableEq filter API technicality
   sorry
 
 /-- Violation part vanishes under block-admissible derivatives of length ≥ 2 -/
