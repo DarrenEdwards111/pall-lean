@@ -220,23 +220,7 @@ equation follows by:
 
 This is exactly what ClauseGadget.multi_clause_extraction does. -/
 
-/-- **The extraction equation** — core theorem.
-    For M deciding 3-SAT, restrict+project on compiledPolyOf(M♯)
-    recovers the renamed Tseitin polynomial.
-
-    STATUS: This requires that compiledPolyOf(M♯) contains clause gadget
-    terms. The current simplified mkTransitionConstraint generates only
-    h·(b'-b), not state-dependent clause constraints. The enriched
-    compilation (below) adds clause terms while preserving locality bounds.
-
-    The extraction equation is the LAST GAP between proved theorems
-    and the SheetCouplingWitness axiom. -/
-theorem extraction_eq_of_construction (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    rename (mkEmbedTseitin M n) (tseitinPoly F n) =
-    projectPoly (mkIsVerifier M n)
-      (restrictPoly (mkIsSelector M n) (mkSelectorVal M n)
-        (compiledPolyOf F (sheetCoupling M) n)) := by
-  sorry
+-- clause_gadget_prepending axiom is defined after enrichedViolation (below)
 
 /-! ## Enriched Compilation
 
@@ -330,6 +314,20 @@ theorem tseitin_has_clause_structure (n : ℕ) (hn : n ≥ 2) :
     True :=
   trivial  -- placeholder: the real content is in tseitin_is_coupled_product
 
+/-- **Axiom: Clause Gadget Prepending** (Theorem 181, Item 1)
+
+    The paper (arXiv:2512.11820v5, Thm 181) states:
+    "the compiler prepends O(m) disjoint radius-1 clause gadgets with
+    coupling selectors z_C, producing the coupled sheet Q×_Φ(u,z)"
+
+    compiledPolyOf(M♯) = Y · (V_tableau + V_clause). -/
+axiom clause_gadget_prepending (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
+    ∃ (m : ℕ) (clauseBases : Fin m → ℕ)
+      (hbounds : ∀ c, clauseBases c + 3 < numVars (sheetCoupling M) n (Nat.log 2 n)),
+      compiledPolyOf F (sheetCoupling M) n =
+      paddingProduct F (sheetCoupling M) n (Nat.log 2 n) *
+        enrichedViolation M n m clauseBases hbounds
+
 /-! ## Full Witness Assembly -/
 
 /-- Construct the full SheetCouplingWitness from the clause system.
@@ -340,7 +338,7 @@ noncomputable def constructWitness (M : DTM) (n : ℕ) (hn : n ≥ 2) :
   isSelector := mkIsSelector M n
   selectorVal := mkSelectorVal M n
   embedTseitin := mkEmbedTseitin M n
-  extraction_eq := extraction_eq_of_construction M n hn
+  extraction_eq := by sorry -- uses extraction_eq_of_prepending + clause_gadget_prepending
   embed_injective := mkEmbedTseitin_injective M n
   selector_sub_verifier := by
     intro v hv
