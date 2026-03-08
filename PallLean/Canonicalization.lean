@@ -64,17 +64,21 @@ Reordering the derivatives (changing the ordered type word but keeping
 the same hit-set and types) does not change the polynomial, because
 derivatives on disjoint variables commute. -/
 
-/-- Derivatives on disjoint variables commute in iterDerivList.
-    If v₁ and v₂ appear in disjoint supports of the polynomial,
-    then iterDerivList [v₁, v₂] p = iterDerivList [v₂, v₁] p. -/
-theorem iterDerivList_comm_disjoint {n : ℕ} {F : Type*} [CommRing F]
-    (v₁ v₂ : Fin n) (p : MvPolynomial (Fin n) F)
-    (hdisjoint : True) :  -- simplified; full version checks variable support
+/-- Partial derivatives commute: ∂_j(∂_i p) = ∂_i(∂_j p).
+    This holds for all polynomial partial derivatives because
+    ∂_i ∘ ∂_j and ∂_j ∘ ∂_i are both derivations that agree on generators X_k. -/
+theorem pderiv_comm {n : ℕ} {F : Type*} [CommRing F]
+    (i j : Fin n) (p : MvPolynomial (Fin n) F) :
+    pderiv j (pderiv i p) = pderiv i (pderiv j p) := by
+  -- Both compositions are derivations; they agree on X_k for all k.
+  -- By uniqueness of derivations (algebraically generated), they agree everywhere.
+  sorry
+
+theorem iterDerivList_comm {n : ℕ} {F : Type*} [CommRing F]
+    (v₁ v₂ : Fin n) (p : MvPolynomial (Fin n) F) :
     iterDerivList [v₁, v₂] p = iterDerivList [v₂, v₁] p := by
   simp [iterDerivList, List.foldl]
-  -- pderiv v₂ (pderiv v₁ p) = pderiv v₁ (pderiv v₂ p)
-  -- This follows from pderiv_comm
-  sorry
+  exact pderiv_comm v₁ v₂ p
 
 /-! ## Permutation invariance (Lemma 27)
 

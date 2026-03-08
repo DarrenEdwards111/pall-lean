@@ -30,17 +30,35 @@ def totalMass (h : Profile) : ℕ :=
   (Finset.univ : Finset DerivType).sum h
 
 /-- Profile sum equals word length -/
+-- Helper: for a finite type, sum of List.count over all elements = length
 theorem profileOf_sum_eq_length (w : TypeWord) :
     totalMass (profileOf w) = w.length := by
-  simp only [totalMass, profileOf]
-  -- sum of counts over all types = total length
-  rw [show (Finset.univ : Finset DerivType) =
-    {.dz, .dv1, .dv2, .dv3} from by ext x; fin_cases x <;> simp]
-  simp [Finset.sum_insert, Finset.sum_singleton, Finset.mem_insert,
-    Finset.mem_singleton]
-  -- count dz + count dv1 + count dv2 + count dv3 = length
-  -- This is List.length_eq_countP_add_countP generalized
-  sorry
+  -- Prove for DerivType specifically by exhaustive case analysis
+  unfold totalMass profileOf
+  induction w with
+  | nil => simp
+  | cons x xs ih =>
+    rw [show (Finset.univ : Finset DerivType) =
+      {.dz, .dv1, .dv2, .dv3} from by ext x; cases x <;> simp]
+    simp only [Finset.sum_cons, Finset.sum_empty, Finset.mem_cons,
+      Finset.mem_singleton, not_or, List.length_cons, List.count_cons]
+    -- After simp, we have sums of if-then-else expressions
+    -- Each List.count_cons gives (if x == a then count+1 else count)
+    -- Exactly one matches, giving +1 total
+    -- Rewrite ih to expose the sum for xs
+    -- ih : ∑ over {dz, dv1, dv2, dv3} count = xs.length
+    -- Goal after outer simp: various count_cons if-then-else + 0 = xs.length + 1
+    -- The `ih` in the rewritten univ form gives us what omega needs
+    rw [show (Finset.univ : Finset DerivType) =
+      {.dz, .dv1, .dv2, .dv3} from by ext x; cases x <;> simp] at ih
+    simp only [Finset.sum_insert (by simp [DerivType.noConfusion] : DerivType.dz ∉
+      ({.dv1, .dv2, .dv3} : Finset DerivType)),
+      Finset.sum_insert (by simp [DerivType.noConfusion] : DerivType.dv1 ∉
+      ({.dv2, .dv3} : Finset DerivType)),
+      Finset.sum_insert (by simp [DerivType.noConfusion] : DerivType.dv2 ∉
+      ({.dv3} : Finset DerivType)),
+      Finset.sum_singleton] at ih ⊢
+    cases x <;> simp [List.count_cons, beq_iff_eq] <;> omega
 
 /-- Number of distinct profiles with total mass ≤ R:
     weak compositions of ≤ R into 4 bins ≤ C(R+4, 4). -/
