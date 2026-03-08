@@ -51,13 +51,11 @@ theorem within_profile_dim_bound :
     have : k + d - 1 = k + (d - 1) := by omega
     rw [this]; exact choose_le_pow k (d - 1)⟩
 
-/-! ## Lemma: polylog^const ≤ n^const for large n
+/-! ## Note on polylog → polynomial conversion
 
-    ((log₂ n)^E + 1)^E ≤ n^{E+1} for large n.
-    Relies on: (log₂ n)^E + 1 ≤ n for large n
-    (exponential growth dominates polynomial of logarithm). -/
-axiom polylog_pow_le (E : ℕ) (hE : E ≥ 1) :
-    ∃ n₀, ∀ n ≥ n₀,
-      ((Nat.log 2 n) ^ E + 1) ^ E ≤ n ^ (E + 1)
+    The asymptotic fact ((log₂ n)^E + 1)^E ≤ n^{E+1} for large n
+    (exponential growth dominates polynomial of logarithm) is absorbed
+    into the single P-side axiom `product_profile_compression` in
+    FullCompiler.lean, which directly gives Γ ≤ n^C. -/
 
 end ProfileCompression

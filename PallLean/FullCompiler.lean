@@ -157,36 +157,24 @@ theorem blockAdmissible_map_embedVerifier (M : DTM) (n : ℕ)
               omega
         _ ≤ 1 := hle
 
-/-! ## Profile Compression — decomposed into sub-axioms
+/-! ## Profile Compression (§9 Theorem 23)
 
-    Sub-axioms in ProfileCompression.lean (pure math, no compiler dependency):
-    - profile_count_bound: |H(R)| ≤ (R+1)^m (stars-and-bars)
-    - within_profile_dim_bound: dim(Sym^k W) ≤ (k+1)^{d-1}
-    - polylog_pow_le: ((log n)^E + 1)^E ≤ n^{E+1} for large n
+    The P-side upper bound: for every polynomial-time machine M,
+    the compiled polynomial has polynomial blocked SPDP rank.
 
-    Compiler-specific sub-axiom (below):
-    - spdp_rank_polylog_bound: Γ_n ≤ ((log n)^E + 1)^E -/
+    This axiom encodes the full Width⇒Rank theorem:
+    1. CEW bound: R ≤ C(log n)^c live interfaces (compiler property P3)
+    2. Profile count: |H(R)| ≤ (R+1)^m = R^{O(1)} (Lemma 20, stars-and-bars — PROVED in ProfileCompression.lean)
+    3. Within-profile dim: dim(V_h) ≤ (R+1)^D = R^{O(1)} (Lemma 22 — PROVED in ProfileCompression.lean)
+    4. Row decomposition: RowSpan(R_h) ⊆ V_h (compiler structure)
+    5. Assembly: Γ ≤ Σ dim(V_h) ≤ |H(R)| · R^{O(1)} = R^{O(1)} ≤ n^C
 
-/-- §9.2 Theorem 23 core: SPDP rank of the n-th compiled polynomial
-    is bounded by a polylog expression.
-
-    Assembles: CEW bound (R ≤ polylog), profile count (≤ R^m),
-    within-profile dim (≤ R^D), row decomposition (rows ⊆ Σ V_h).
-    E bundles all O(1) constants. -/
-axiom spdp_rank_polylog_bound (F : Type*) [Field F] (M : DTM) :
-    ∃ (E n₀ : ℕ), E ≥ 1 ∧ ∀ n, n ≥ n₀ →
-      blockedSpdpRank (compilerPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-        (fullCompiledPoly F M n) ≤ ((Nat.log 2 n) ^ E + 1) ^ E
-
-/-- Profile compression: Γ ≤ n^C.
-    PROVED from spdp_rank_polylog_bound + polylog_pow_le. -/
-theorem product_profile_compression (F : Type*) [Field F] (M : DTM) :
+    Steps 2-3 are proved theorems (choose_le_pow). Steps 1, 4, 5 require
+    formalizing the compiler's locality structure and CEW analysis. -/
+axiom product_profile_compression (F : Type*) [Field F] (M : DTM) :
     ∃ (C n₀ : ℕ), ∀ n, n ≥ n₀ →
       blockedSpdpRank (compilerPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-        (fullCompiledPoly F M n) ≤ n ^ C := by
-  obtain ⟨E, n₁, hE_pos, hE⟩ := spdp_rank_polylog_bound F M
-  obtain ⟨n₂, hpoly⟩ := ProfileCompression.polylog_pow_le E hE_pos
-  exact ⟨E + 1, max n₁ n₂, fun n hn => le_trans (hE n (by omega)) (hpoly n (by omega))⟩
+        (fullCompiledPoly F M n) ≤ n ^ C
 
 /-! ## Extraction Map -/
 
