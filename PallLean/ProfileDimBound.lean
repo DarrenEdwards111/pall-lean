@@ -15,6 +15,7 @@
 import PallLean.TypeWord
 import PallLean.Canonicalization
 import PallLean.Profile
+import PallLean.ProfileCompression
 import Mathlib.Tactic
 
 namespace ProfileDimBound
@@ -59,7 +60,26 @@ Total V_h dimension:
 /-- Symmetric tensor power dimension formula -/
 theorem sym_pow_dim (d k : ℕ) :
     Nat.choose (d + k - 1) k ≤ (d + k) ^ (d - 1) := by
-  sorry  -- standard combinatorial bound
+  -- C(d+k-1, k) = C(d+k-1, d-1) ≤ (k+1)^{d-1} ≤ (d+k)^{d-1}
+  cases d with
+  | zero =>
+    simp only [Nat.zero_add, Nat.zero_sub, Nat.pow_zero]
+    -- C(k-1, k) ≤ 1: either k=0 giving C(0,0)=1, or k≥1 giving C(k-1,k)=0
+    cases k with
+    | zero => simp
+    | succ k => simp [Nat.choose_eq_zero_of_lt (by omega : k < k + 1)]
+  | succ d =>
+    rw [show d + 1 + k - 1 = d + k from by omega]
+    rw [show d + 1 - 1 = d from by omega]
+    -- C(d+k, k) = C(d+k, d) by symmetry
+    rw [Nat.choose_symm_add.symm]
+    -- C(d+k, d) = C(k+d, d); choose_le_pow gives C(k+d, d) ≤ (k+1)^d
+    calc Nat.choose (d + k) d
+        ≤ (k + 1) ^ d := by
+          rw [show d + k = k + d from by omega]
+          exact ProfileCompression.choose_le_pow k d
+      _ ≤ (d + 1 + k) ^ d := by
+          apply Nat.pow_le_pow_left; omega
 
 /-- Within-profile dimension bound (Lemma 31).
     For profile h with ∑h(τ) ≤ R:
