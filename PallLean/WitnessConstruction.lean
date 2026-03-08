@@ -42,20 +42,77 @@ Variables in the compiled polynomial of M♯:
 noncomputable def mkIsVerifier (M : DTM) (n : ℕ) : CompiledVars M n → Bool :=
   fun v => decide (v.val ≥ numVars M n (Nat.log 2 n))
 
-/-- The compiled variable count of M♯ exceeds that of M by at least npNumVars.
-    M♯ has timeBound+1, so tapeSize grows from n^tb+1 to n^(tb+1)+1.
-    numVars grows quadratically in tapeSize, while npNumVars grows linearly in n.
-    The gap 2*(S'²-S²) + Q*(S'-S) + 3*S' easily exceeds npNumVars(n) = O(n²). -/
-axiom compiledVars_embed_bound (M : DTM) (n : ℕ) :
+/-- The number of clauses in buildTseitin equals the number of edges. -/
+theorem buildTseitin_clauses_length (G : RegularGraph) :
+    (buildTseitin G).clauses.length = G.numEdges := by
+  unfold buildTseitin; simp [List.length_map, List.length_finRange]
+
+/-- The graph used in tseitinAt n -/
+theorem tseitinAt_graph' (n : ℕ) :
+    (tseitinAt n).graph = highGirthFamily.graph n := rfl
+
+/-- highGirthFamily.graph n has numEdges ≤ 10 * max 3 n -/
+theorem highGirth_numEdges_bound (n : ℕ) :
+    (highGirthFamily.graph n).numEdges ≤ 10 * max 3 n := by
+  unfold highGirthFamily
+  simp only
+  split
+  · rename_i h
+    simp [cycleRegularGraph]
+    omega
+  · simp [cycleRegularGraph]
+    omega
+
+/-- highGirthFamily.graph n has numEdges = n for n ≥ 3, and 3 otherwise -/
+theorem highGirth_numEdges_eq (n : ℕ) :
+    (highGirthFamily.graph n).numEdges = if n ≥ 3 then n else 3 := by
+  unfold highGirthFamily
+  simp only
+  split
+  · simp [cycleRegularGraph]
+  · simp [cycleRegularGraph]
+
+/-- npNumVars n ≤ 5 * max 3 n -/
+theorem npNumVars_bound (n : ℕ) : npNumVars n ≤ 5 * max 3 n := by
+  unfold npNumVars tseitinNumVars
+  have hcl : (tseitinAt n).clauses.length = (highGirthFamily.graph n).numEdges := by
+    unfold tseitinAt; exact buildTseitin_clauses_length _
+  have hgr : (tseitinAt n).graph.numEdges = (highGirthFamily.graph n).numEdges := by
+    rw [tseitinAt_graph']
+  rw [hcl, hgr]
+  rw [highGirth_numEdges_eq]
+  split <;> omega
+
+/-- For n ≥ 2, the sheet coupling's numVars exceeds M's by at least npNumVars.
+    S' = n^(tb+1)+1 ≥ n²+1 ≥ 5, S = n^tb+1, difference in 2S²+SQ terms dominates. -/
+theorem compiledVars_embed_bound (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     numVars M n (Nat.log 2 n) + npNumVars n ≤
-    numVars (sheetCoupling M) n (Nat.log 2 n)
+    numVars (sheetCoupling M) n (Nat.log 2 n) := by
+  have hnp := npNumVars_bound n
+  suffices h : numVars M n (Nat.log 2 n) + 5 * max 3 n ≤
+      numVars (sheetCoupling M) n (Nat.log 2 n) by omega
+  -- Unfold to arithmetic
+  simp only [numVars, tapeSize, timeSteps, sheetCoupling_timeBound, sheetCoupling_numStates]
+  -- Key facts about the power terms
+  have hpow : n ^ (M.timeBound + 1) = n * n ^ M.timeBound := pow_succ' n M.timeBound
+  have hntb : n ^ M.timeBound ≥ 1 := Nat.one_le_pow _ _ (by omega)
+  have hS_pos : n ^ M.timeBound + 1 ≥ 2 := by omega
+  have hS'_lower : n * n ^ M.timeBound ≥ 2 * n ^ M.timeBound := by nlinarith
+  have hQ_ge : M.numStates ≥ 3 := M.hStates
+  have hmax : max 3 n ≤ n + 1 := by omega
+  -- Debug: see the goal shape
+  rw [hpow]
+  nlinarith [sq_nonneg (n ^ M.timeBound),
+             sq_nonneg (n * n ^ M.timeBound),
+             Nat.mul_le_mul_right (n ^ M.timeBound) hn,
+             sq_nonneg n]
 
 /-- Embedding: Tseitin var i → compiled verifier variable.
     Maps Tseitin index i to position verifierVarStart + i in compiled space. -/
-noncomputable def mkEmbedTseitin (M : DTM) (n : ℕ) :
+noncomputable def mkEmbedTseitin (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     Fin (npNumVars n) → CompiledVars M n :=
   fun i => ⟨numVars M n (Nat.log 2 n) + i.val, by
-    have hb := compiledVars_embed_bound M n
+    have hb := compiledVars_embed_bound M n hn
     have := i.isLt; omega⟩
 
 -- In SheetCouplingWitness:
@@ -80,20 +137,20 @@ theorem admin_sub_verifier (M : DTM) (n : ℕ) (v : CompiledVars M n)
   simp [decide_eq_true_eq] at h ⊢; omega
 
 /-- Embedding is injective. -/
-theorem mkEmbedTseitin_injective (M : DTM) (n : ℕ) :
-    Function.Injective (mkEmbedTseitin M n) := by
+theorem mkEmbedTseitin_injective (M : DTM) (n : ℕ) (hn : n ≥ 2) :
+    Function.Injective (mkEmbedTseitin M n hn) := by
   intro i j h; unfold mkEmbedTseitin at h
   simp [Fin.ext_iff] at h; exact Fin.ext (by omega)
 
 /-- Embedded variables are verifier variables. -/
-theorem embed_is_verifier (M : DTM) (n : ℕ) (i : Fin (npNumVars n)) :
-    mkIsVerifier M n (mkEmbedTseitin M n i) = true := by
+theorem embed_is_verifier (M : DTM) (n : ℕ) (hn : n ≥ 2) (i : Fin (npNumVars n)) :
+    mkIsVerifier M n (mkEmbedTseitin M n hn i) = true := by
   unfold mkIsVerifier mkEmbedTseitin
-  simp [decide_eq_true_eq]
+  simp
 
 /-- Embedded variables are NOT admin variables (they're in the Tseitin range). -/
-theorem embed_not_admin (M : DTM) (n : ℕ) (i : Fin (npNumVars n)) :
-    mkIsAdmin M n (mkEmbedTseitin M n i) = false := by
+theorem embed_not_admin (M : DTM) (n : ℕ) (hn : n ≥ 2) (i : Fin (npNumVars n)) :
+    mkIsAdmin M n (mkEmbedTseitin M n hn i) = false := by
   unfold mkIsAdmin mkEmbedTseitin
   simp [decide_eq_false_iff_not, not_le, i.isLt]
 
@@ -113,11 +170,11 @@ axiom additive_separability (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n �
     projectPoly (mkIsVerifier M n)
       (restrictPoly (mkIsAdmin M n) (mkAdminVal M n)
         (compiledPolyOf F (sheetCoupling M) n)) =
-    rename (mkEmbedTseitin M n) (tseitinPoly F n) ∧
+    rename (mkEmbedTseitin M n hn) (tseitinPoly F n) ∧
     -- (2) Block compatibility: embedding reflects compiled blocks to Tseitin blocks
     (∀ i j : Fin (npNumVars n),
-      (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n i) =
-      (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n j) →
+      (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n hn i) =
+      (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n hn j) →
       (tseitinPartition n).assign i = (tseitinPartition n).assign j) ∧
     -- (3) Admissibility: block-admissible lists avoid admin vars
     (∀ (S : List (CompiledVars M n)),
@@ -150,7 +207,7 @@ additive_separability. The SheetCouplingWitness uses:
 /-- **Theorem 187**: The extraction equation.
     Direct consequence of additive_separability. -/
 theorem extraction_eq' (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    rename (mkEmbedTseitin M n) (tseitinPoly F n) =
+    rename (mkEmbedTseitin M n hn) (tseitinPoly F n) =
     projectPoly (mkIsVerifier M n)
       (restrictPoly (mkIsAdmin M n) (mkAdminVal M n)
         (compiledPolyOf F (sheetCoupling M) n)) :=
@@ -159,8 +216,8 @@ theorem extraction_eq' (M : DTM) (n : ℕ) (hn : n ≥ 2) :
 /-! ## §4: Structural Properties (projections from additive_separability) -/
 
 theorem block_compat' (M : DTM) (n : ℕ) (hn : n ≥ 2) (i j : Fin (npNumVars n)) :
-    (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n i) =
-    (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n j) →
+    (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n hn i) =
+    (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n hn j) →
     (tseitinPartition n).assign i = (tseitinPartition n).assign j :=
   (additive_separability ℚ M n hn).2.1 i j
 
@@ -207,9 +264,9 @@ noncomputable def constructWitness (M : DTM) (n : ℕ) (hn : n ≥ 2) :
   isVerifier := mkIsVerifier M n
   isSelector := mkIsAdmin M n
   selectorVal := mkAdminVal M n
-  embedTseitin := mkEmbedTseitin M n
+  embedTseitin := mkEmbedTseitin M n hn
   extraction_eq := extraction_eq' M n hn
-  embed_injective := mkEmbedTseitin_injective M n
+  embed_injective := mkEmbedTseitin_injective M n hn
   selector_sub_verifier := admin_sub_verifier M n
   block_compat_rev := block_compat' M n hn
   admissible_non_selector := admissible_avoids_admin M n hn
