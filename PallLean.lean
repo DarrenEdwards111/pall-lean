@@ -18,4 +18,5 @@ import PallLean.ProfileDecomp
 import PallLean.ExtractionWiring
 import PallLean.Extraction
 import PallLean.Separation
+import PallLean.ExtractionProof
 import PallLean.FullCompiler
