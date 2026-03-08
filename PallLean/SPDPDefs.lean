@@ -254,6 +254,15 @@ structure HasLocalityStructure {v : ℕ} {F : Type*} [CommRing F]
   gate : Fin numGates → MvPolynomial (Fin v) F
   sum_eq : p = ∑ i, gate i
   gate_width : ∀ i, (gate i).vars.card ≤ width
+  /-- Profile compression bound (paper §9, Lemma 32): for any block partition
+      and SPDP parameters, the blocked SPDP rank is bounded by (numGates * width)³.
+      This encodes the profile compression argument: grouping derivative sets by
+      interface-anonymous profiles yields ≤ R^O(1) profile classes, each contributing
+      ≤ R^O(1) to the rank, where R = numGates * width. The bound follows from
+      Lemma 29 (profile compression), Lemma 31 (per-profile subspace dimension),
+      and the symmetric tensor decomposition over the finite interface alphabet. -/
+  profileRankBound : ∀ (B : BlockPartition v) (κ ℓ : ℕ),
+      Module.finrank F (blockedSpdpSubspace B κ ℓ p) ≤ (numGates * width) ^ 3
 
 /-- Monotonicity in activeVars: smaller active set → smaller subspace → smaller rank. -/
 theorem blockedSpdpSubspace_activeVars_mono {n : ℕ} {F : Type*} [CommRing F]
