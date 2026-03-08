@@ -259,8 +259,29 @@ def multiIsVerifier {m : ℕ} (sys : MultiClauseSystem m) :
     (Finset.univ.filter (fun (ci : Fin m × Fin 3) =>
       sys.clauseEmbed ci.1 ci.2 = v)).card > 0
 
+/-- Helper: aeval that keeps non-selector vars is identity on clause vars -/
+private theorem aeval_restrict_clause_var {m : ℕ} {N : ℕ} (F : Type*) [Field F]
+    (isS : Fin N → Bool) (val : Fin N → F)
+    (v : Fin N) (hv : isS v = false) :
+    aeval (fun w : Fin N =>
+      if isS w then (C (val w) : MvPolynomial (Fin N) F) else X w)
+      (X v : MvPolynomial (Fin N) F) = X v := by
+  simp [MvPolynomial.aeval_X, hv]
+
+/-- Helper: aeval that keeps verifier vars is identity on them -/
+private theorem aeval_project_verifier_var {N : ℕ} (F : Type*) [Field F]
+    (isV : Fin N → Bool)
+    (v : Fin N) (hv : isV v = true) :
+    aeval (fun w : Fin N =>
+      if isV w then (X w : MvPolynomial (Fin N) F) else 0)
+      (X v : MvPolynomial (Fin N) F) = X v := by
+  simp [MvPolynomial.aeval_X, hv]
+
 /-- After restricting all selectors to 1 and projecting to verifier vars,
-    the coupled verifier becomes ∏(1 - V_C²) -/
+    the coupled verifier becomes ∏(1 - V_C²).
+
+    This is the multi-clause generalization of restrict_selector_gadget +
+    project_after_restrict. -/
 theorem multi_clause_extraction {m : ℕ} (F : Type*) [Field F]
     (sys : MultiClauseSystem m) :
     ExtractionPipeline.projectPoly (multiIsVerifier sys)
@@ -272,6 +293,34 @@ theorem multi_clause_extraction {m : ℕ} (F : Type*) [Field F]
       let v₃ := sys.clauseEmbed c ⟨2, by omega⟩
       let vc := (1 - X v₁) * (1 - X v₂) * (1 - X v₃)
       1 - vc * vc) := by
-  sorry -- follows from single-clause correctness + product structure
+  -- Clause vars are not selectors
+  have hclause_not_sel : ∀ c : Fin m, ∀ i : Fin 3,
+      multiIsSelector sys (sys.clauseEmbed c i) = false := by
+    intro c i
+    show multiIsSelector sys (sys.clauseEmbed c i) = false
+    unfold multiIsSelector
+    simp only [gt_iff_lt, Nat.pos_iff_ne_zero, ne_eq, decide_eq_false_iff_not, not_not,
+               Finset.card_eq_zero, Finset.filter_eq_empty_iff]
+    intro c' _
+    exact fun h => sys.clause_selector_disjoint c i c' h.symm
+  -- Selectors are selectors
+  have hsel_is_sel : ∀ c : Fin m,
+      multiIsSelector sys (sys.selectorEmbed c) = true := by
+    intro c; unfold multiIsSelector
+    simp [Finset.card_pos, Finset.filter_nonempty_iff, Finset.mem_univ]
+  -- Clause vars are verifier vars
+  have hclause_verif : ∀ c : Fin m, ∀ i : Fin 3,
+      multiIsVerifier sys (sys.clauseEmbed c i) = true := by
+    intro c i; unfold multiIsVerifier
+    simp [Bool.or_eq_true, Finset.card_pos, Finset.filter_nonempty_iff, Finset.mem_univ]
+  -- Unfold and distribute over products
+  unfold fullCoupledVerifier ExtractionPipeline.restrictPoly ExtractionPipeline.projectPoly
+  rw [map_prod, map_prod]
+  congr 1; ext c
+  -- Distribute over the factor's arithmetic
+  simp only [map_sub, map_one, map_mul, MvPolynomial.aeval_X, map_ofNat, MvPolynomial.aeval_C]
+  -- Apply the concrete values for selectors and clause vars
+  simp [hsel_is_sel c, hclause_not_sel c 0, hclause_not_sel c 1, hclause_not_sel c 2,
+        hclause_verif c 0, hclause_verif c 1, hclause_verif c 2, MvPolynomial.C_1]
 
 end ClauseGadget
