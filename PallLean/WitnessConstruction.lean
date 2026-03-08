@@ -42,14 +42,20 @@ Variables in the compiled polynomial of M♯:
 noncomputable def mkIsVerifier (M : DTM) (n : ℕ) : CompiledVars M n → Bool :=
   fun v => decide (v.val ≥ numVars M n (Nat.log 2 n))
 
+/-- The compiled variable count of M♯ exceeds that of M by at least npNumVars.
+    This is because M♯ has timeBound = M.timeBound + 1, giving a much larger
+    tape/state space, and the verifier variables (npNumVars many) fit in the gap. -/
+axiom compiledVars_embed_bound (M : DTM) (n : ℕ) :
+    numVars M n (Nat.log 2 n) + npNumVars n ≤
+    numVars (sheetCoupling M) n (Nat.log 2 n)
+
 /-- Embedding: Tseitin var i → compiled verifier variable.
     Maps Tseitin index i to position verifierVarStart + i in compiled space. -/
 noncomputable def mkEmbedTseitin (M : DTM) (n : ℕ) :
     Fin (npNumVars n) → CompiledVars M n :=
   fun i => ⟨numVars M n (Nat.log 2 n) + i.val, by
-    have := i.isLt
-    unfold CompiledVars numVars tapeSize timeSteps sheetCoupling at *
-    sorry⟩  -- arithmetic bound
+    have hb := compiledVars_embed_bound M n
+    have := i.isLt; omega⟩
 
 -- In SheetCouplingWitness:
 -- isSelector = "admin/tag" variables (compilation artifacts to pin to constants)
@@ -102,12 +108,34 @@ The compiled polynomial decomposes as P = Y * V where V has two parts:
     where clause sheet uses only embedded Tseitin vars and tableau uses only
     computation vars. Admin vars appear in neither. -/
 axiom additive_separability (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    -- The compiled polynomial restricted to admin=0 and projected to verifier
-    -- equals the renamed Tseitin polynomial
+    -- (1) Extraction equation: project(restrict(compiled)) = rename(embed)(tseitin)
     projectPoly (mkIsVerifier M n)
       (restrictPoly (mkIsAdmin M n) (mkAdminVal M n)
         (compiledPolyOf F (sheetCoupling M) n)) =
-    rename (mkEmbedTseitin M n) (tseitinPoly F n)
+    rename (mkEmbedTseitin M n) (tseitinPoly F n) ∧
+    -- (2) Block compatibility: embedding reflects compiled blocks to Tseitin blocks
+    (∀ i j : Fin (npNumVars n),
+      (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n i) =
+      (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n j) →
+      (tseitinPartition n).assign i = (tseitinPartition n).assign j) ∧
+    -- (3) Admissibility: block-admissible lists avoid admin vars
+    (∀ (S : List (CompiledVars M n)),
+      isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
+      ∀ i ∈ S, mkIsAdmin M n i = false) ∧
+    -- (4) Admissibility: block-admissible lists are verifier vars
+    (∀ (S : List (CompiledVars M n)),
+      isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
+      ∀ i ∈ S, mkIsVerifier M n i = true) ∧
+    -- (5) Multiplier admissibility: bounded-degree multiplier vars are non-admin
+    (∀ (m : MvPolynomial (CompiledVars M n) F) (S : List (CompiledVars M n)),
+      m.totalDegree ≤ Nat.log 2 n →
+      isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
+      ∀ v ∈ m.vars, mkIsAdmin M n v = false) ∧
+    -- (6) Multiplier admissibility: bounded-degree multiplier vars are verifier
+    (∀ (m : MvPolynomial (CompiledVars M n) F) (S : List (CompiledVars M n)),
+      m.totalDegree ≤ Nat.log 2 n →
+      isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
+      ∀ v ∈ m.vars, mkIsVerifier M n v = true)
 
 /-! ## §3: Extraction Equation
 
@@ -124,30 +152,48 @@ theorem extraction_eq' (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     rename (mkEmbedTseitin M n) (tseitinPoly F n) =
     projectPoly (mkIsVerifier M n)
       (restrictPoly (mkIsAdmin M n) (mkAdminVal M n)
-        (compiledPolyOf F (sheetCoupling M) n)) := by
-  exact (additive_separability F M n hn).symm
+        (compiledPolyOf F (sheetCoupling M) n)) :=
+  (additive_separability F M n hn).1.symm
 
-/-! ## §4: Structural Properties -/
+/-! ## §4: Structural Properties (projections from additive_separability) -/
 
-theorem block_compat' (M : DTM) (n : ℕ) (i j : Fin (npNumVars n)) :
+theorem block_compat' (M : DTM) (n : ℕ) (hn : n ≥ 2) (i j : Fin (npNumVars n)) :
     (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n i) =
     (compiledPartition (sheetCoupling M) n).assign (mkEmbedTseitin M n j) →
-    (tseitinPartition n).assign i = (tseitinPartition n).assign j := by
-  sorry
+    (tseitinPartition n).assign i = (tseitinPartition n).assign j :=
+  (additive_separability ℚ M n hn).2.1 i j
 
-theorem admissible_avoids_admin (M : DTM) (n : ℕ)
+theorem admissible_avoids_admin (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (S : List (CompiledVars M n))
     (hadm : isBlockAdmissible (compiledPartition (sheetCoupling M) n) S)
     (i : CompiledVars M n) (hi : i ∈ S) :
-    mkIsAdmin M n i = false := by
-  sorry
+    mkIsAdmin M n i = false :=
+  (additive_separability ℚ M n hn).2.2.1 S hadm i hi
 
-theorem admissible_is_verifier' (M : DTM) (n : ℕ)
+theorem admissible_is_verifier' (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (S : List (CompiledVars M n))
     (hadm : isBlockAdmissible (compiledPartition (sheetCoupling M) n) S)
     (i : CompiledVars M n) (hi : i ∈ S) :
-    mkIsVerifier M n i = true := by
-  sorry
+    mkIsVerifier M n i = true :=
+  (additive_separability ℚ M n hn).2.2.2.1 S hadm i hi
+
+theorem admissible_mult_avoids_admin (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (m : MvPolynomial (CompiledVars M n) F) (S : List (CompiledVars M n))
+    (hdeg : m.totalDegree ≤ Nat.log 2 n)
+    (hadm : isBlockAdmissible (compiledPartition (sheetCoupling M) n) S)
+    (v : CompiledVars M n) (hv : v ∈ m.vars) :
+    mkIsAdmin M n v = false := by
+  have h := additive_separability F M n hn
+  exact h.2.2.2.2.1 m S hdeg hadm v hv
+
+theorem admissible_mult_is_verifier (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (m : MvPolynomial (CompiledVars M n) F) (S : List (CompiledVars M n))
+    (hdeg : m.totalDegree ≤ Nat.log 2 n)
+    (hadm : isBlockAdmissible (compiledPartition (sheetCoupling M) n) S)
+    (v : CompiledVars M n) (hv : v ∈ m.vars) :
+    mkIsVerifier M n v = true := by
+  have h := additive_separability F M n hn
+  exact h.2.2.2.2.2 m S hdeg hadm v hv
 
 /-! ## §5: Witness Assembly -/
 
@@ -164,12 +210,10 @@ noncomputable def constructWitness (M : DTM) (n : ℕ) (hn : n ≥ 2) :
   extraction_eq := extraction_eq' M n hn
   embed_injective := mkEmbedTseitin_injective M n
   selector_sub_verifier := admin_sub_verifier M n
-  block_compat_rev := block_compat' M n
-  admissible_non_selector := admissible_avoids_admin M n
-  admissible_verifier := admissible_is_verifier' M n
-  admissible_mult_non_selector := fun _m S _hm hadm v _hv =>
-    admissible_avoids_admin M n S hadm v (by sorry)
-  admissible_mult_verifier := fun _m S _hm hadm v _hv =>
-    admissible_is_verifier' M n S hadm v (by sorry)
+  block_compat_rev := block_compat' M n hn
+  admissible_non_selector := admissible_avoids_admin M n hn
+  admissible_verifier := admissible_is_verifier' M n hn
+  admissible_mult_non_selector := admissible_mult_avoids_admin M n hn
+  admissible_mult_verifier := admissible_mult_is_verifier M n hn
 
 end WitnessConstruction
