@@ -209,11 +209,34 @@ theorem restrict_project_kills_computation (M : DTM) (n : ℕ)
     projectPoly (mkIsVerifier M n)
       (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) p) =
     C (MvPolynomial.aeval (fun _ => (0 : F)) p) := by
-  -- For computation-only p: restrict doesn't touch vars (not admin),
-  -- project kills all vars (not verifier). Result = p evaluated at all 0.
-  -- This is a standard MvPolynomial fact: two AlgHom that agree on
-  -- all variables of p agree on p.
-  sorry
+  -- Step 1: restrict is identity on computation-only p
+  -- (computation vars are not admin, so restrict maps X v → X v)
+  have h_not_admin : ∀ v ∈ p.vars, mkIsAdmin M n v = false := by
+    intro v hv
+    have hcomp := hp v hv  -- mkIsVerifier v = false
+    unfold mkIsAdmin at *; unfold mkIsVerifier at hcomp
+    simp [decide_eq_false_iff_not] at hcomp ⊢; omega
+  have h_restrict : restrictPoly (mkIsAdmin M n) (mkAdminVal M n) p = p := by
+    unfold restrictPoly
+    have : (MvPolynomial.aeval (fun v => if mkIsAdmin M n v = true
+              then C (mkAdminVal M n v) else X v) p : MvPolynomial _ F) =
+           MvPolynomial.aeval (X (σ := CompiledVars M n) (R := F)) p := by
+      apply MvPolynomial.eval₂Hom_congr' rfl _ rfl
+      intro i hi _
+      simp [h_not_admin i hi]
+    rw [this, MvPolynomial.aeval_X_left_apply]
+  rw [h_restrict]
+  -- Step 2: project kills all computation vars → C(constantCoeff p)
+  have h_project : projectPoly (mkIsVerifier M n) p =
+      (algebraMap F _) (MvPolynomial.constantCoeff p) := by
+    unfold projectPoly
+    exact MvPolynomial.aeval_eq_constantCoeff_of_vars (fun v hv => by
+      simp [hp v hv])
+  rw [h_project, MvPolynomial.algebraMap_eq]
+  -- Step 3: aeval (fun _ => 0) p = constantCoeff p
+  congr 1
+  symm
+  exact MvPolynomial.aeval_eq_constantCoeff_of_vars (fun _ _ => rfl)
 
 /-! ### Step 3: Clause sheet extracts to Tseitin (Theorem 187)
 
