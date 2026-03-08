@@ -193,7 +193,8 @@ axiom compiledPoly_split (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2
     ∃ (Vclause Vtableau : MvPolynomial (CompiledVars M n) F),
       violationPolyOf F (sheetCoupling M) n = Vclause + Vtableau ∧
       varsOnlyVerifier M n Vclause ∧
-      varsOnlyComputation M n Vtableau
+      varsOnlyComputation M n Vtableau ∧
+      MvPolynomial.constantCoeff Vtableau = 0
 
 /-! ### Step 2: Restrict+project kills tableau (Lemma 182)
 
@@ -309,7 +310,7 @@ has the correct additive decomposition: V = V_clause + V_tableau. -/
     - restrict_project_kills_computation: project∘restrict(Vtableau) = 0
     - clauseSheet_extracts_to_tseitin: project∘restrict(Vclause) = rename(embed)(tseitin)
     - block_compat_axiom, admissibility_axiom, multiplier_admissibility_axiom -/
-axiom additive_separability (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
+theorem additive_separability (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     -- (1) Extraction equation
     projectPoly (mkIsVerifier M n)
       (restrictPoly (mkIsAdmin M n) (mkAdminVal M n)
@@ -337,7 +338,29 @@ axiom additive_separability (F : Type*) [Field F] (M : DTM) (n : ℕ) (hn : n �
     (∀ (m : MvPolynomial (CompiledVars M n) F) (S : List (CompiledVars M n)),
       m.totalDegree ≤ Nat.log 2 n →
       isBlockAdmissible (compiledPartition (sheetCoupling M) n) S →
-      ∀ v ∈ m.vars, mkIsVerifier M n v = true)
+      ∀ v ∈ m.vars, mkIsVerifier M n v = true) := by
+  refine ⟨?_, block_compat_axiom M n hn, (admissibility_axiom M n hn).1,
+         (admissibility_axiom M n hn).2, (multiplier_admissibility_axiom F M n hn).1,
+         (multiplier_admissibility_axiom F M n hn).2⟩
+  -- Claim (1): extraction equation from split + restrict_project + clause_extracts
+  obtain ⟨Vclause, Vtableau, hsplit, hvc, hvt, hconst⟩ := compiledPoly_split F M n hn
+  -- V = Vclause + Vtableau, so project∘restrict(V) = project∘restrict(Vclause) + project∘restrict(Vtableau)
+  have h1 : projectPoly (mkIsVerifier M n)
+      (restrictPoly (mkIsAdmin M n) (mkAdminVal M n)
+        (violationPolyOf F (sheetCoupling M) n)) =
+    projectPoly (mkIsVerifier M n)
+      (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) Vclause) +
+    projectPoly (mkIsVerifier M n)
+      (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) Vtableau) := by
+    rw [hsplit, map_add, map_add]
+  -- project∘restrict(Vtableau) = C(constantCoeff Vtableau) = C(0) = 0
+  have h2 : projectPoly (mkIsVerifier M n)
+      (restrictPoly (mkIsAdmin M n) (mkAdminVal M n) Vtableau) = 0 := by
+    rw [restrict_project_kills_computation M n Vtableau hvt]
+    simp [MvPolynomial.aeval_eq_constantCoeff_of_vars (fun _ _ => rfl), hconst]
+  -- project∘restrict(Vclause) = rename(embed)(tseitin)
+  have h3 := clauseSheet_extracts_to_tseitin F M n hn Vclause hvc ⟨Vtableau, hsplit, hvt⟩
+  rw [h1, h2, add_zero, h3]
 
 /-! ## §3: Extraction Equation
 
