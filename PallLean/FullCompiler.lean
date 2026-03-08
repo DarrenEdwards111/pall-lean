@@ -158,48 +158,54 @@ theorem blockAdmissible_map_embedVerifier (M : DTM) (n : ℕ)
               omega
         _ ≤ 1 := hle
 
-/-! ## Compiler Profile Decomposition (§9, 4 sub-claims)
+/-! ## Compiler Profile Decomposition (§9)
 
-    The compiled polynomial's blocked SPDP rank decomposes into
-    profile classes. This axiom bundles 4 paper-faithful sub-claims:
+    The compiled polynomial's SPDP subspace is covered by profile subspaces.
+    This axiom provides the subspace cover with 3 paper-faithful bounds:
 
     (A1) CEW bound (Property P3, Lemma 19):
          ∃ R ≤ n — the CEW budget (R = C(log n)^c ≤ n for large n)
 
     (A2) Profile count (Lemma 29, profile compression):
-         numProfiles ≤ C(R+m, m) — κ-independent via normal forms
+         N ≤ C(R+m, m) profile subspaces — κ-independent via normal forms
          m = |T| = O(1) is the number of interface types
 
     (A3) Within-profile dimension (Lemma 31, symmetric tensors):
-         maxDim ≤ C(R+D, D) — dim(V_h) via Sym^{h(τ)}(W_τ)
+         ∀ i, finrank(V_i) ≤ C(R+D, D) — dim(V_h) via Sym^{h(τ)}(W_τ)
          D = Σ_τ(d_τ - 1) where d_τ = dim(W_τ) = O(1)
 
-    (A4) Rank subadditivity (Theorem 23, Lemmas 26-27):
-         Γ ≤ numProfiles × maxDim — canonicalization + subadditivity -/
+    (A4) Rank subadditivity: PROVED in WidthRank.rank_le_of_subspace_cover -/
 axiom compiler_profile_bound (F : Type*) [Field F] (M : DTM) :
     ∃ (m D n₀ : ℕ),
       m ≥ 1 ∧ D ≥ 1 ∧
       ∀ n, n ≥ n₀ →
-        ∃ (R numProfiles maxDim : ℕ),
+        ∃ (R N : ℕ) (V : Fin N → Submodule F (MvPolynomial (Fin (fullNumVars M n)) F)),
           R ≤ n ∧                                       -- (A1) CEW
-          (blockedSpdpRank (compilerPartition M n)
+          N ≤ Nat.choose (R + m) m ∧                    -- (A2) profile count
+          (∀ i, FiniteDimensional F (V i)) ∧            -- finite-dim (structural)
+          (∀ i, Module.finrank F (V i) ≤ Nat.choose (R + D) D) ∧  -- (A3) per-profile dim
+          blockedSpdpSubspace (compilerPartition M n)    -- subspace cover
             (Nat.log 2 n) (Nat.log 2 n)
-            (fullCompiledPoly F M n)
-          ≤ numProfiles * maxDim) ∧                     -- (A4) subadditivity
-          numProfiles ≤ Nat.choose (R + m) m ∧          -- (A2) profile count
-          maxDim ≤ Nat.choose (R + D) D                 -- (A3) within-profile dim
+            (fullCompiledPoly F M n) ≤ ⨆ i, V i
 
 /-! ## Profile Compression (§9 Theorem 23)
 
-    PROVED from compiler_profile_bound + choose_le_pow + assembly. -/
+    PROVED from compiler_profile_bound + rank_le_of_subspace_cover + choose_le_pow.
+    (A4) subadditivity is proved in WidthRank.lean. -/
 theorem product_profile_compression (F : Type*) [Field F] (M : DTM) :
     ∃ (C n₀ : ℕ), ∀ n, n ≥ n₀ →
       blockedSpdpRank (compilerPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (fullCompiledPoly F M n) ≤ n ^ C := by
   obtain ⟨m, D, n₁, hm, hD, hbound⟩ := compiler_profile_bound F M
   refine ⟨m + D + 1, max n₁ (2 ^ (m + D)), fun n hn => ?_⟩
-  obtain ⟨R, numP, maxD, hR, hΓ, hP, hDim⟩ := hbound n (by omega)
-  exact WidthRank.profile_to_poly_bound hm hD hR (by omega) hΓ hP hDim
+  obtain ⟨R, N, V, hR, hN, hfin, hdim, hcover⟩ := hbound n (by omega)
+  -- (A4) Subadditivity: PROVED
+  haveI : ∀ i, FiniteDimensional F (V i) := hfin
+  have hΓ := WidthRank.rank_le_of_subspace_cover
+    (compilerPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+    (fullCompiledPoly F M n) N (Nat.choose (R + D) D) V hcover hdim
+  -- Assembly: N * C(R+D,D) ≤ C(R+m,m) * C(R+D,D) ≤ n^(m+D+1)
+  exact WidthRank.profile_to_poly_bound hm hD hR (by omega) hΓ hN (le_refl _)
 
 /-! ## Extraction Map -/
 
