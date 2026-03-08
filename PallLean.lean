@@ -4,7 +4,6 @@ import PallLean.TuringMachine
 import PallLean.SheetCoupling
 import PallLean.Compiler
 import PallLean.TseitinDefs
-import PallLean.ClauseGadget
 import PallLean.Tseitin
 import PallLean.NPWitness
 import PallLean.IdentityMinor
@@ -16,10 +15,6 @@ import PallLean.ListSum
 import PallLean.BinomialBound
 import PallLean.BinomialBound2
 import PallLean.ProfileDecomp
-import PallLean.ExtractionPipeline
-import PallLean.ExtractionProof
-import PallLean.PACBridge
-import PallLean.WitnessConstruction
 import PallLean.ExtractionWiring
 import PallLean.Extraction
 import PallLean.Separation
