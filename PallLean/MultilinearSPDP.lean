@@ -492,10 +492,78 @@ axiom restriction_rank_monotone (F : Type*) [Field F] [Nontrivial F]
 /-- Adding a constant does not change mlBlockedSpdpRank when κ ≥ 1.
     Proof sketch: pderiv of C c = 0, so C c contributes nothing to
     any generator mlProj(m * iterDerivList S (p + C c)) when |S| = κ ≥ 1. -/
-axiom mlBlockedSpdpRank_add_const (F : Type*) [Field F] [Nontrivial F]
+-- Helper: pderiv of constant is zero
+private theorem pderiv_C {σ : Type*} {R : Type*} [CommSemiring R] [DecidableEq σ]
+    (i : σ) (c : R) : MvPolynomial.pderiv i (MvPolynomial.C c) = 0 := by
+  simp [MvPolynomial.pderiv_C]
+
+-- Helper: foldl pderiv starting from 0 = 0
+private theorem foldl_pderiv_zero' {n : ℕ} {F : Type*} [CommRing F]
+    (l : List (Fin n)) :
+    l.foldl (fun q i => MvPolynomial.pderiv i q) (0 : MvPolynomial (Fin n) F) = 0 := by
+  induction l with
+  | nil => simp
+  | cons a rest ih => simp only [List.foldl, map_zero]; exact ih
+
+-- Helper: iterDerivList of constant is zero when list nonempty
+private theorem iterDerivList_C_eq_zero {n : ℕ} {F : Type*} [CommRing F]
+    (S : List (Fin n)) (c : F) (hS : S ≠ []) :
+    iterDerivList S (MvPolynomial.C c) = (0 : MvPolynomial (Fin n) F) := by
+  unfold iterDerivList
+  cases S with
+  | nil => exact absurd rfl hS
+  | cons a rest =>
+    simp only [List.foldl, pderiv_C]
+    exact foldl_pderiv_zero' rest
+
+-- Helper: foldl pderiv distributes over addition
+private theorem foldl_pderiv_add {n : ℕ} {F : Type*} [CommRing F]
+    (l : List (Fin n)) (p q : MvPolynomial (Fin n) F) :
+    l.foldl (fun r i => MvPolynomial.pderiv i r) (p + q) =
+    l.foldl (fun r i => MvPolynomial.pderiv i r) p +
+    l.foldl (fun r i => MvPolynomial.pderiv i r) q := by
+  induction l generalizing p q with
+  | nil => simp
+  | cons a rest ih => simp only [List.foldl]; rw [map_add]; exact ih _ _
+
+-- Helper: iterDerivList distributes over addition
+private theorem iterDerivList_add {n : ℕ} {F : Type*} [CommRing F]
+    (S : List (Fin n)) (p q : MvPolynomial (Fin n) F) :
+    iterDerivList S (p + q) = iterDerivList S p + iterDerivList S q := by
+  unfold iterDerivList; exact foldl_pderiv_add S p q
+
+-- Helper: iterDerivList (p + C c) = iterDerivList p when S nonempty
+private theorem iterDerivList_add_C {n : ℕ} {F : Type*} [CommRing F]
+    (S : List (Fin n)) (p : MvPolynomial (Fin n) F) (c : F) (hS : S ≠ []) :
+    iterDerivList S (p + MvPolynomial.C c) = iterDerivList S p := by
+  rw [iterDerivList_add, iterDerivList_C_eq_zero S c hS, add_zero]
+
+theorem mlBlockedSpdpRank_add_const (F : Type*) [Field F] [Nontrivial F]
     {n : ℕ} (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) (c : F)
     (hκ : κ ≥ 1) :
-    mlBlockedSpdpRank B κ ℓ (p + MvPolynomial.C c) = mlBlockedSpdpRank B κ ℓ p
+    mlBlockedSpdpRank B κ ℓ (p + MvPolynomial.C c) = mlBlockedSpdpRank B κ ℓ p := by
+  unfold mlBlockedSpdpRank
+  -- Suffices: the subspaces are equal
+  have hsub : mlBlockedSpdpSubspace B κ ℓ (p + MvPolynomial.C c) =
+              mlBlockedSpdpSubspace B κ ℓ p := by
+    unfold mlBlockedSpdpSubspace
+    have hgen : ∀ (r : MvPolynomial (Fin n) F),
+        (∃ S m, S.length = κ ∧ m.totalDegree ≤ ℓ ∧ isBlockAdmissible B S ∧
+          r = mlProj (m * iterDerivList S (p + MvPolynomial.C c))) ↔
+        (∃ S m, S.length = κ ∧ m.totalDegree ≤ ℓ ∧ isBlockAdmissible B S ∧
+          r = mlProj (m * iterDerivList S p)) := by
+      intro r; constructor <;> intro ⟨S, m, hlen, hdeg, hadm, hq⟩
+      · exact ⟨S, m, hlen, hdeg, hadm, by
+          rw [hq, iterDerivList_add_C S p c (by intro h; subst h; simp at hlen; omega)]⟩
+      · exact ⟨S, m, hlen, hdeg, hadm, by
+          rw [hq, iterDerivList_add_C S p c (by intro h; subst h; simp at hlen; omega)]⟩
+    have hset : { q : MvPolynomial (Fin n) F | ∃ S m, S.length = κ ∧ m.totalDegree ≤ ℓ ∧
+        isBlockAdmissible B S ∧ q = mlProj (m * iterDerivList S (p + MvPolynomial.C c))} =
+      { q | ∃ S m, S.length = κ ∧ m.totalDegree ≤ ℓ ∧ isBlockAdmissible B S ∧
+        q = mlProj (m * iterDerivList S p)} := by
+      ext q; exact hgen q
+    rw [hset]
+  rw [hsub]
 
 /-- The compiler embeds tseitin variables into the compiled polynomial's space.
     Restricting the violation polynomial to these variables yields the tseitin
