@@ -218,7 +218,18 @@ theorem per_gate_ml_rank_bound {n : ℕ} {F : Type*} [Field F]
     (g : MvPolynomial (Fin n) F) (d : ℕ)
     (hd : g.vars.card ≤ d) :
     mlBlockedSpdpRank B κ ℓ g ≤ 4 ^ d := by
-  sorry -- Core multilinear algebra bound
+  -- The multilinear SPDP subspace for a d-variable polynomial g sits inside
+  -- a 4^d-dimensional space. Proof sketch:
+  -- 1. ∂_S g has support ⊆ vars(g) (d variables), so in multilinear basis
+  --    it lives in a 2^d-dimensional space (multilinear monomials in d vars)
+  -- 2. For each basis derivative e_j, mlProj(m * e_j) depends on m only through
+  --    its restriction to vars(g). The "outside" variables multiply through unchanged.
+  -- 3. Each e_j contributes a subspace of dim ≤ 2^d (multilinear choices on d vars)
+  -- 4. Total: (dim of derivative space) × (dim per derivative) ≤ 2^d × 2^d = 4^d
+  --
+  -- Formally: mlBlockedSpdpSubspace ≤ span of {x^α · x^β : α ⊆ vars(g), β ⊆ vars(g)}
+  -- which has dimension ≤ 2^d × 2^d = 4^d (independent of n).
+  sorry
 
 /-! ## P-side collapse -/
 
@@ -267,7 +278,12 @@ theorem np_ml_lower_bound (F : Type*) [Field F] [Nontrivial F] :
     ∃ n₀, ∀ n, n ≥ n₀ →
       mlBlockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
         (tseitinPoly F n) ≥ n ^ (Nat.log 2 n / 4) := by
-  sorry -- Transfer from np_side_lb: identity minor uses multilinear monomials
+  -- Transfer from np_side_lb: the identity minor construction in Tseitin.lean
+  -- uses multilinear generators (selector monomials × derivatives of clause products).
+  -- Since tseitin clauses are multilinear and selector variables are distinct,
+  -- all generators satisfy mlProj(gen) = gen, so they appear in mlBlockedSpdpSubspace.
+  -- The same identity submatrix argument gives the same rank lower bound.
+  sorry
 
 /-! ## Extraction map axiom -/
 
