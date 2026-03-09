@@ -861,18 +861,61 @@ theorem mlBlockedSpdpRank_add_const (F : Type*) [Field F] [Nontrivial F]
     rw [hset]
   rw [hsub]
 
-/-- The compiler embeds tseitin variables into the compiled polynomial's space.
-    Restricting the violation polynomial to these variables yields the tseitin
-    polynomial (up to constant), and the pullback partition matches.
-    Paper: §34.1 Lemma 182, §34.2-34.3 Definition/properties of TΦ. -/
-axiom compiler_embeds_tseitin (F : Type*) [Field F] [Nontrivial F]
+/-- §34 Compiler embedding: the NP-witness (Tseitin) variables embed into
+    the compiled variable space. Restricting the violation polynomial to
+    these variables recovers the Tseitin product polynomial up to an
+    additive constant.
+
+    The injection f maps:
+    • Tseitin edge variables → tape bit variables at time 0
+    • Clause auxiliary variables → designated auxiliary tape positions
+    • Selector variables → padding variables
+
+    The additive constant c arises from booleanity and transition
+    constraints that don't involve the embedded witness variables.
+
+    The partition compatibility ensures that the block structure
+    of the compiled polynomial restricts to the Tseitin block
+    structure (selectors in distinct blocks).
+
+    Proof outline (§34 of the paper):
+    1. Define f : Fin (npNumVars n) → Fin (numVars M n κ) explicitly
+    2. Show f is injective (distinct variable ranges)
+    3. Show restriction of each constraint c_i² under f gives either
+       0 (if c_i involves non-witness vars) or the corresponding
+       Tseitin clause gadget term
+    4. Sum over constraints: ∑ restricted c_i² = tseitinPoly + const
+    5. Partition: pullback of compiler partition = tseitin partition -/
+theorem compiler_embeds_tseitin (F : Type*) [Field F] [Nontrivial F]
     (n : ℕ) (M : DTM) (hsolves : True)
     (B_v : BlockPartition (numVars M n (Nat.log 2 n))) :
     ∃ (f : Fin (npNumVars n) → Fin (numVars M n (Nat.log 2 n)))
       (hf : Function.Injective f)
       (c : F),
       restrictPoly F f hf (violationPolyOf F M n) = tseitinPoly F n + MvPolynomial.C c ∧
-      pullbackPartition B_v f = tseitinPartition n
+      pullbackPartition B_v f = tseitinPartition n := by
+  -- The embedding maps Tseitin variables into the compiled variable space.
+  -- The first npNumVars n indices of the compiled space correspond to NP-witness vars.
+  -- Step 1: Define f as the canonical inclusion (first npNumVars n variables)
+  have h_le : npNumVars n ≤ numVars M n (Nat.log 2 n) := by
+    -- npNumVars n = |E| + 3|C| + |C| ≤ n + ... ≤ numVars
+    sorry
+  let f : Fin (npNumVars n) → Fin (numVars M n (Nat.log 2 n)) :=
+    fun i => ⟨i.val, Nat.lt_of_lt_of_le i.isLt h_le⟩
+  have hf_inj : Function.Injective f := fun a b h => Fin.ext (Fin.mk.inj h)
+  refine ⟨f, hf_inj, 0, ?_⟩
+  constructor
+  · -- restrictPoly F f hf (violationPolyOf F M n) = tseitinPoly F n + C 0
+    -- violationPolyOf = ∑ c_i². Under restriction by f:
+    -- • Constraints purely on witness vars → Tseitin clause gadgets
+    -- • Constraints involving non-witness vars → evaluated at 0
+    -- The sum of restricted squared constraints equals the Tseitin product poly.
+    -- C 0 = 0, so this says restrictPoly(violationPoly) = tseitinPoly.
+    sorry
+  · -- pullbackPartition B_v f = tseitinPartition n
+    -- The pullback assigns block B_v.assign(f(i)) to each Tseitin var i.
+    -- Need: this matches tseitinPartition's assignment.
+    sorry
 
 /-- Extraction theorem: NP-side rank ≤ P-side rank.
     Proved from: restriction_rank_monotone + mlBlockedSpdpRank_add_const
