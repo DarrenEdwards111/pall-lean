@@ -374,7 +374,9 @@ theorem tagMono_isMultilinear {F : Type*} [Field F] [Nontrivial F]
     (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
     (i : Fin (Nat.choose pack.selected.length κ)) :
     Finsupp.IsMultilinear (IdentityMinor.tagMono F Φ pack κ i) := by
-  sorry -- Follows from disjoint packing + each chooseTagMonomial has entries ≤ 1
+  -- Uses chooseTagMonomial_le_one (proved) + clauseVarSetFin_disjoint (existing)
+  -- The foldl accumulator induction is ~30 lines of Finsupp arithmetic plumbing.
+  sorry
 
 /-- General rank-from-linear-independence for any finite-dimensional submodule -/
 private theorem finrank_ge_of_linearIndependent {R M : Type*} [CommRing R] [AddCommGroup M]

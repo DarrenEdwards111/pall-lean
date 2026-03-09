@@ -1272,4 +1272,47 @@ theorem identity_minor_components_signs [Nontrivial F]
   exact ⟨fun i => subsetSign_unit Φ pack κ i,
          fun i j => kronecker_delta (F := F) Φ pack κ i j⟩
 
+/-- Each chooseTagMonomial has entries ≤ 1 (uses clause variable distinctness) -/
+theorem chooseTagMonomial_le_one (Φ : TseitinFormula) (c : Fin Φ.clauses.length) (x : Fin (tseitinNumVars Φ)) :
+    (chooseTagMonomial Φ c) x ≤ 1 := by
+  unfold chooseTagMonomial
+  simp only [Finsupp.add_apply, Finsupp.single_apply]
+  set cl := Φ.clauses.get c
+  have hpos : tseitinNumVars Φ > 0 := by unfold tseitinNumVars; have := c.isLt; omega
+  set v1 : Fin (tseitinNumVars Φ) := ⟨cl.var1 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  set v2 : Fin (tseitinNumVars Φ) := ⟨cl.var2 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  set v3 : Fin (tseitinNumVars Φ) := ⟨cl.var3 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  -- v1, v2, v3 are distinct because cl.var1, var2, var3 are distinct and < tseitinNumVars
+  have hbound := Φ.clause_vars_bound cl (List.get_mem _ c)
+  have hv1_lt : cl.var1 < tseitinNumVars Φ := by unfold tseitinNumVars; omega
+  have hv2_lt : cl.var2 < tseitinNumVars Φ := by unfold tseitinNumVars; omega
+  have hv3_lt : cl.var3 < tseitinNumVars Φ := by unfold tseitinNumVars; omega
+  have hv1_mod : cl.var1 % tseitinNumVars Φ = cl.var1 := Nat.mod_eq_of_lt hv1_lt
+  have hv2_mod : cl.var2 % tseitinNumVars Φ = cl.var2 := Nat.mod_eq_of_lt hv2_lt
+  have hv3_mod : cl.var3 % tseitinNumVars Φ = cl.var3 := Nat.mod_eq_of_lt hv3_lt
+  have h12 : v1 ≠ v2 := by intro h; apply cl.distinct12; have := congr_arg Fin.val h; simp [v1, v2, hv1_mod, hv2_mod] at this; exact this
+  have h13 : v1 ≠ v3 := by intro h; apply cl.distinct13; have := congr_arg Fin.val h; simp [v1, v3, hv1_mod, hv3_mod] at this; exact this
+  have h23 : v2 ≠ v3 := by intro h; apply cl.distinct23; have := congr_arg Fin.val h; simp [v2, v3, hv2_mod, hv3_mod] at this; exact this
+  -- Now each of the 3 ite terms is 0 or 1, and at most one is 1
+  -- Case split on x vs v1/v2/v3
+  by_cases hx1 : x = v1
+  · subst hx1
+    have : v2 ≠ v1 := Ne.symm h12
+    have : v3 ≠ v1 := Ne.symm h13
+    simp_all
+  · by_cases hx2 : x = v2
+    · subst hx2
+      have : v1 ≠ v2 := h12
+      have : v3 ≠ v2 := Ne.symm h23
+      simp_all
+    · by_cases hx3 : x = v3
+      · subst hx3
+        have : v1 ≠ v3 := h13
+        have : v2 ≠ v3 := h23
+        simp_all
+      · have : v1 ≠ x := Ne.symm hx1
+        have : v2 ≠ x := Ne.symm hx2
+        have : v3 ≠ x := Ne.symm hx3
+        simp_all
+
 end IdentityMinor
