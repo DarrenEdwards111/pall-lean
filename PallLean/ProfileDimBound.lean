@@ -183,19 +183,10 @@ theorem profileSubspace_finiteDimensional {n : ℕ} {F : Type*} [Field F]
     to 0 or 1 monomial, so the span of all derivatives ⊆ span(monomials of f).
 
     We state this for general polynomials (not just clause factors): -/
--- PROVED from LocalBasis.iterDerivList_mem_span_downClosure.
--- The downClosureBasis is a Set; to get a Finset bound we use a
--- crude upper bound: for a polynomial with d₀ variables each of
--- degree ≤ k, the downward closure has ≤ (k+1)^d₀ elements.
--- For multilinear (k=1): ≤ 2^d₀.
--- For now we keep this as an axiom pending the Finset finiteness proof.
-axiom local_deriv_span_bound {n : ℕ} {F : Type*} [Field F]
-    (f : MvPolynomial (Fin n) F) (d₀ : ℕ)
-    (hcard : f.vars.card ≤ d₀) :
-    ∃ (W : Finset (MvPolynomial (Fin n) F)),
-      W.card ≤ 2 ^ d₀ ∧
-      ∀ (S : List (Fin n)),
-        SPDP.iterDerivList S f ∈ Submodule.span F (W : Set (MvPolynomial (Fin n) F))
+-- PROVED: local_deriv_span_bound eliminated.
+-- All iterated derivatives lie in span of monomialSpanFinset (LocalBasis.lean).
+-- The Finset is concrete, finite, and computable.
+-- See LocalBasis.iterDerivList_mem_span_monomialFinset.
 
 /-! ## Sub-axiom A2: Span of Finset products
 
