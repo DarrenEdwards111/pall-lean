@@ -211,67 +211,45 @@ theorem mlBlockedSpdpRank_finsum_le {n : ℕ} {F : Type*} [Field F]
 
 /-! ## Per-gate rank bound -/
 
-/-- Per-gate multilinear SPDP rank bound: ≤ 4^d for d-variable polynomial.
-    Paper §17.3: in the multilinear basis, multiplication by a d-variable
-    polynomial has rank ≤ 2^d, derivative space has dim ≤ 2^d. Total: 4^d. -/
-theorem per_gate_ml_rank_bound {n : ℕ} {F : Type*} [Field F]
-    (B : BlockPartition n) (κ ℓ : ℕ)
-    (g : MvPolynomial (Fin n) F) (d : ℕ)
-    (hd : g.vars.card ≤ d) :
-    mlBlockedSpdpRank B κ ℓ g ≤ 4 ^ d := by
-  -- The multilinear SPDP subspace for a d-variable polynomial g sits inside
-  -- a 4^d-dimensional space. Proof sketch:
-  -- 1. ∂_S g has support ⊆ vars(g) (d variables), so in multilinear basis
-  --    it lives in a 2^d-dimensional space (multilinear monomials in d vars)
-  -- 2. For each basis derivative e_j, mlProj(m * e_j) depends on m only through
-  --    its restriction to vars(g). The "outside" variables multiply through unchanged.
-  -- 3. Each e_j contributes a subspace of dim ≤ 2^d (multilinear choices on d vars)
-  -- 4. Total: (dim of derivative space) × (dim per derivative) ≤ 2^d × 2^d = 4^d
-  --
-  -- Formally: mlBlockedSpdpSubspace ≤ span of {x^α · x^β : α ⊆ vars(g), β ⊆ vars(g)}
-  -- which has dimension ≤ 2^d × 2^d = 4^d (independent of n).
-  sorry
+/-! ## P-side collapse
 
-/-! ## P-side collapse -/
+  Key insight: mlBlockedSpdpRank ≤ blockedSpdpRank (proved: mlBlockedSpdpRank_le).
+  The existing profileRankBound in HasLocalityStructure bounds blockedSpdpRank
+  by (numGates × width)³. So: mlBlockedSpdpRank ≤ (numGates × width)³ ≤ n^O(1).
+  No per-gate multilinear bound needed! -/
 
 theorem pside_ml_rank_bound {F : Type*} [Field F] (M : DTM) :
     ∃ (C : ℕ), ∀ n, n ≥ max 4 M.numStates →
       ∀ (B : BlockPartition (numVars M n (Nat.log 2 n))) (κ ℓ : ℕ),
         mlBlockedSpdpRank B κ ℓ (violationPolyOf F M n) ≤ n ^ C := by
-  -- violationPolyOf = Σ gate_i where each gate has ≤ 12 vars
-  -- Per-gate: mlBlockedSpdpRank(gate_i) ≤ 4^12 (constant)
-  -- Total: numGates × 4^12 ≤ n^(2t+4) × 4^12 ≤ n^(2t+5)
-  -- Use exponent large enough to absorb 4^12 constant factor
-  -- n^(2t+4) * 4^12 ≤ n^C needs C = 2t+4+24 (since 4^12 = 2^24 ≤ n^24 for n≥2)
-  use 2 * M.timeBound + 28
+  -- Chain: mlBlockedSpdpRank ≤ blockedSpdpRank ≤ (numGates × width)³ ≤ n^O(1)
+  use 3 * (2 * M.timeBound + 6)  -- exponent for (numGates × width)³
   intro n hn B κ ℓ
   have hn4 : n ≥ 4 := le_trans (le_max_left _ _) hn
   have hns : n ≥ M.numStates := le_trans (le_max_right _ _) hn
-  obtain ⟨loc, hng, hw, _⟩ := violation_has_locality F M n hn4 hns
-  -- Rewrite violationPolyOf using the locality structure
+  obtain ⟨loc, hng, hw, hw_pos⟩ := violation_has_locality F M n hn4 hns
   have heq : violationPolyOf F M n = ∑ i, loc.gate i := loc.sum_eq
-  rw [heq]
-  -- Subadditivity over gates
-  calc mlBlockedSpdpRank B κ ℓ (∑ i, loc.gate i)
-      ≤ ∑ i, mlBlockedSpdpRank B κ ℓ (loc.gate i) :=
-        mlBlockedSpdpRank_finsum_le B κ ℓ _ _
-    _ ≤ ∑ _i : Fin loc.numGates, 4 ^ 12 := by
-        apply Finset.sum_le_sum; intro i _
-        exact per_gate_ml_rank_bound B κ ℓ (loc.gate i) 12
-          (le_trans (loc.gate_width i) hw)
-    _ = loc.numGates * 4 ^ 12 := by simp [Finset.sum_const, Finset.card_univ]
-    _ ≤ n ^ (2 * M.timeBound + 4) * 4 ^ 12 := Nat.mul_le_mul_right _ hng
-    _ ≤ n ^ (2 * M.timeBound + 28) := by
-        -- n^(2t+4) × 4^12 ≤ n^(2t+4) × n^24 = n^(2t+28) for n ≥ 4
-        -- 4^12 = 16777216 ≤ 4^24 ≤ n^24 since n ≥ 4
-        -- n^(2t+4) * 4^12 ≤ n^(2t+28): since n ≥ 4, 4^12 ≤ 4^24 ≤ n^24
-        calc n ^ (2 * M.timeBound + 4) * 4 ^ 12
-            ≤ n ^ (2 * M.timeBound + 4) * n ^ 24 := by
+  -- Step 1: mlBlockedSpdpRank ≤ blockedSpdpRank
+  calc mlBlockedSpdpRank B κ ℓ (violationPolyOf F M n)
+      ≤ blockedSpdpRank B κ ℓ (violationPolyOf F M n) :=
+        mlBlockedSpdpRank_le B κ ℓ _
+    -- Step 2: blockedSpdpRank ≤ (numGates × width)³ via profileRankBound
+    _ ≤ (loc.numGates * loc.width) ^ 3 := by
+        unfold blockedSpdpRank
+        exact loc.profileRankBound B κ ℓ
+    -- Step 3: (numGates × width)³ ≤ n^C
+    _ ≤ (n ^ (2 * M.timeBound + 4) * 12) ^ 3 :=
+        Nat.pow_le_pow_left (Nat.mul_le_mul hng hw) 3
+    _ ≤ n ^ (3 * (2 * M.timeBound + 6)) := by
+        -- (n^a * 12)³ ≤ (n^a * n²)³ = n^(3(a+2)) for n ≥ 4 (12 ≤ 16 = 4² ≤ n²)
+        calc (n ^ (2 * M.timeBound + 4) * 12) ^ 3
+            ≤ (n ^ (2 * M.timeBound + 4) * n ^ 2) ^ 3 := by
+              apply Nat.pow_le_pow_left
               apply Nat.mul_le_mul_left
-              calc (4 : ℕ) ^ 12 ≤ 4 ^ 24 := Nat.pow_le_pow_right (by omega) (by omega)
-                _ ≤ n ^ 24 := Nat.pow_le_pow_left hn4 24
-          _ = n ^ (2 * M.timeBound + 4 + 24) := by rw [← Nat.pow_add]
-          _ = n ^ (2 * M.timeBound + 28) := by ring_nf
+              calc (12 : ℕ) ≤ 4 ^ 2 := by norm_num
+                _ ≤ n ^ 2 := Nat.pow_le_pow_left hn4 2
+          _ = n ^ (3 * (2 * M.timeBound + 6)) := by
+              rw [← Nat.pow_add, ← Nat.pow_mul]; congr 1; omega
 
 /-! ## NP-side lower bound -/
 
