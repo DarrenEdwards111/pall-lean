@@ -334,6 +334,26 @@ theorem deriv_mem_mlBlockedSpdpSubspace {n : ℕ} {F : Type*} [CommRing F]
   rw [← hfix, ← one_mul (iterDerivList S p)]
   exact Submodule.subset_span ⟨S, 1, hlen, by simp, hadm, rfl⟩
 
+/-- mlProj preserves coefficients at multilinear monomials -/
+theorem coeff_mlProj_of_isMultilinear_mono {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p : MvPolynomial σ F) (α : σ →₀ ℕ) (hα : Finsupp.IsMultilinear α) :
+    MvPolynomial.coeff α (mlProj p) = MvPolynomial.coeff α p := by
+  -- mlProj p and p agree on multilinear α because filter keeps those
+  have h : mlProj p - p = 0 ∨ MvPolynomial.coeff α (mlProj p) = MvPolynomial.coeff α p := by
+    right
+    have heq : mlProj p = Finsupp.filter (fun α => Finsupp.IsMultilinear α) p := rfl
+    simp only [MvPolynomial.coeff, heq, Finsupp.filter_apply, if_pos hα]
+  exact h.elim (fun h0 => by simp [sub_eq_zero.mp h0]) id
+
+/-- For any polynomial p, mlProj(1 * ∂_S p) ∈ mlBlockedSpdpSubspace -/
+theorem mlProj_deriv_mem {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin n) F)
+    (S : List (Fin n)) (hlen : S.length = κ)
+    (hadm : isBlockAdmissible B S) :
+    mlProj (1 * iterDerivList S p) ∈ mlBlockedSpdpSubspace B κ ℓ p :=
+  Submodule.subset_span ⟨S, 1, hlen, by simp, hadm, rfl⟩
+
 /-- The multilinear SPDP rank is ≥ blockedSpdpRank for multilinear polynomials
     when the lower bound proof only uses m=1 generators. Since the identity minor
     uses exactly these generators, the NP lower bound transfers. -/
@@ -341,18 +361,16 @@ theorem np_ml_lower_bound (F : Type*) [Field F] [Nontrivial F] :
     ∃ n₀, ∀ n, n ≥ n₀ →
       mlBlockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
         (tseitinPoly F n) ≥ n ^ (Nat.log 2 n / 4) := by
-  -- Strategy: the identity minor R vectors (iterDerivList of coupledVerifier)
-  -- are multilinear, hence in mlBlockedSpdpSubspace. The same Kronecker delta
-  -- argument gives linear independence in mlBlockedSpdpSubspace.
-  -- Since np_side_lb already proves blockedSpdpRank ≥ n^(log n/4),
-  -- and mlBlockedSpdpRank ≥ blockedSpdpRank for multilinear polynomials
-  -- (the identity minor witnesses are in both subspaces), we transfer.
+  -- Transfer via coeff_mlProj_of_isMultilinear_mono:
+  -- mlProj preserves coefficients at multilinear monomials, so the identity
+  -- minor's Kronecker δ property transfers to mlBlockedSpdpSubspace.
   --
-  -- Full formal transfer requires re-threading identity_minor_components
-  -- through mlBlockedSpdpSubspace. Mathematically immediate since
-  -- rowPoly = iterDerivList S (coupledVerifier) is multilinear
-  -- and mlProj(1 * rowPoly) = rowPoly.
-  sorry
+  -- Full formal proof requires re-constructing identity minor components
+  -- in mlBlockedSpdpSubspace and verifying the tag monomials are multilinear.
+  -- This is ~50 lines of mechanical plumbing identical to Tseitin.lean
+  -- with blockedSpdpSubspace replaced by mlBlockedSpdpSubspace.
+  -- Key bridge: coeff_mlProj_of_isMultilinear_mono + mlProj_deriv_mem.
+  sorry -- TRANSFER: mechanical re-threading of identity minor
 
 /-! ## Extraction map axiom -/
 
