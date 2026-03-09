@@ -205,14 +205,8 @@ axiom local_deriv_span_bound {n : ℕ} {F : Type*} [Field F]
 
     This is the "tensor product of finite-dimensional spaces" fact:
     span of all products ≤ span of Cartesian product of bases. -/
-axiom span_finset_prod {n : ℕ} {F : Type*} [Field F]
-    {m : ℕ} (W : Fin m → Finset (MvPolynomial (Fin n) F)) :
-    ∃ (S : Finset (MvPolynomial (Fin n) F)),
-      S.card ≤ Finset.univ.prod (fun i => (W i).card) ∧
-      ∀ (choices : ∀ i, MvPolynomial (Fin n) F),
-        (∀ i, choices i ∈ Submodule.span F ((W i : Set (MvPolynomial (Fin n) F)))) →
-        Finset.univ.prod choices ∈
-          Submodule.span F (S : Set (MvPolynomial (Fin n) F))
+-- span_finset_prod: PROVED in SpanProduct.lean
+-- See SpanProduct.finsetProd_card_le and SpanProduct.prod_mem_span_finsetProd
 
 /-! ## Assembly: profile_finrank_bound from A1 + A2 + proved bounds
 
