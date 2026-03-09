@@ -297,21 +297,28 @@ theorem isMultilinear_pderiv {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing
     (p : MvPolynomial σ F) (h : IsMultilinear p) (x : σ) :
     IsMultilinear (MvPolynomial.pderiv x p) := by
   intro α hα i
-  -- For each α ∈ support(pderiv x p), α ≤ some β ∈ support(p) pointwise.
-  -- Since p is multilinear, β i ≤ 1, and α i ≤ β i, so α i ≤ 1.
-  intro α hα i
-  -- pderiv x p has support contained in {β - single x 1 : β ∈ support p, β x ≠ 0}
-  -- so for any α in its support, ∃ β ∈ p.support with α ≤ β pointwise
-  -- This gives α i ≤ β i ≤ 1
-  have : ∀ j, α j ≤ (α + Finsupp.single x 1) j := fun j => le_add_right (α j) _
-  sorry
+  -- Write p = ∑ v ∈ p.support, monomial v (coeff v p)
+  -- pderiv x distributes: pderiv x p = ∑ v, monomial (v - single x 1) (coeff v p * v x)
+  -- α ∈ support(sum) ⟹ ∃ v ∈ p.support, α ∈ support(monomial (v-single x 1) ...)
+  -- ⟹ α = v - single x 1 ⟹ α i ≤ v i ≤ 1
+  rw [MvPolynomial.as_sum p] at hα
+  simp only [map_sum, MvPolynomial.pderiv_monomial] at hα
+  obtain ⟨v, hv, hα_mem⟩ := Finsupp.mem_support_finset_sum α hα
+  have hα_eq := MvPolynomial.support_monomial_subset hα_mem
+  rw [Finset.mem_singleton] at hα_eq
+  rw [hα_eq, Finsupp.tsub_apply]
+  exact le_trans (Nat.sub_le _ _) (h v hv i)
 
 /-- iterDerivList preserves multilinearity -/
 theorem isMultilinear_iterDerivList {n : ℕ} {F : Type*} [CommRing F]
     (S : List (Fin n)) (p : MvPolynomial (Fin n) F) (h : IsMultilinear p) :
     IsMultilinear (iterDerivList S p) := by
-  -- Each pderiv preserves multilinearity, and iterDerivList is iterated pderiv
-  sorry
+  unfold iterDerivList
+  induction S generalizing p with
+  | nil => simpa
+  | cons x rest ih =>
+    simp only [List.foldl_cons]
+    exact ih _ (isMultilinear_pderiv _ h x)
 
 /-- For multilinear p, derivatives (with m=1) are in mlBlockedSpdpSubspace.
     This is the key bridge: identity minor generators use multilinear derivatives. -/
@@ -334,10 +341,17 @@ theorem np_ml_lower_bound (F : Type*) [Field F] [Nontrivial F] :
     ∃ n₀, ∀ n, n ≥ n₀ →
       mlBlockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
         (tseitinPoly F n) ≥ n ^ (Nat.log 2 n / 4) := by
-  -- The identity minor lower bound (np_side_lb) constructs R vectors that are
-  -- iterDerivList of coupledVerifier (a multilinear polynomial).
-  -- These same vectors live in mlBlockedSpdpSubspace (by deriv_mem_mlBlockedSpdpSubspace).
-  -- The same linear independence + Kronecker argument gives the same rank lower bound.
+  -- Strategy: the identity minor R vectors (iterDerivList of coupledVerifier)
+  -- are multilinear, hence in mlBlockedSpdpSubspace. The same Kronecker delta
+  -- argument gives linear independence in mlBlockedSpdpSubspace.
+  -- Since np_side_lb already proves blockedSpdpRank ≥ n^(log n/4),
+  -- and mlBlockedSpdpRank ≥ blockedSpdpRank for multilinear polynomials
+  -- (the identity minor witnesses are in both subspaces), we transfer.
+  --
+  -- Full formal transfer requires re-threading identity_minor_components
+  -- through mlBlockedSpdpSubspace. Mathematically immediate since
+  -- rowPoly = iterDerivList S (coupledVerifier) is multilinear
+  -- and mlProj(1 * rowPoly) = rowPoly.
   sorry
 
 /-! ## Extraction map axiom -/
