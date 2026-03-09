@@ -49,32 +49,43 @@ theorem isBlockAdmissible_coarsen {n : ℕ}
     (hrefine : ∀ i j : Fin n, B₁.assign i = B₁.assign j → B₂.assign i = B₂.assign j)
     (hadm : isBlockAdmissible B₂ S) :
     isBlockAdmissible B₁ S := by
-  constructor
-  · exact hadm.1
-  · intro b
-    -- B₁-filter for block b is a subset of B₂-filter for some block.
-    -- Use: each element of B₁-filter shares the same B₂-block (via hrefine).
-    -- So B₁-filter ⊆ B₂-filter for that block, and B₂-filter has ≤ 1 element.
-    -- Case: filter empty → trivially ≤ 1
-    -- Case: filter nonempty → let x be first element, all others have same B₂-block
-    -- Strategy: show B₁-filter is a sublist of some B₂-filter, which has ≤ 1 element.
-    -- If the B₁-filter is empty, done. Otherwise pick any element x from it.
-    -- Every element of the B₁-filter has B₁.assign = b, so by hrefine,
-    -- B₂.assign = B₂.assign x. Hence B₁-filter ⊆ B₂-filter for B₂.assign x.
-    by_cases h_empty : (S.filter (fun i => decide (B₁.assign i = b))).length = 0
-    · omega
-    · -- Pick any element from the nonempty B₁-filter
-      have h_pos : 0 < (S.filter (fun i => decide (B₁.assign i = b))).length := by omega
-      set filt₁ := S.filter (fun i => decide (B₁.assign i = b))
-      let x := filt₁[0]
-      have hx_mem : x ∈ filt₁ := List.getElem_mem h_pos
-      have hx_S := List.mem_of_mem_filter hx_mem
-      have hx_eq : B₁.assign x = b := by
-        have := (List.mem_filter.mp hx_mem).2
-        simpa using this
-      -- Every element of B₁-filter has B₂.assign = B₂.assign x
-      -- So B₁-filter is a sublist of B₂-filter for block B₂.assign x
-      sorry
+  refine ⟨hadm.1, fun b => ?_⟩
+  by_contra h_gt
+  push_neg at h_gt
+  -- h_gt: 2 ≤ (S.filter (B₁.assign · = b)).length
+  set filt₁ := S.filter (fun i => B₁.assign i = b)
+  have h0 : 0 < filt₁.length := by omega
+  have h1 : 1 < filt₁.length := by omega
+  let x := filt₁[0]
+  let y := filt₁[1]
+  have hx_mem : x ∈ filt₁ := List.getElem_mem h0
+  have hy_mem : y ∈ filt₁ := List.getElem_mem h1
+  have hx_prop : B₁.assign x = b := by
+    have := (List.mem_filter.mp hx_mem).2; simpa using this
+  have hy_prop : B₁.assign y = b := by
+    have := (List.mem_filter.mp hy_mem).2; simpa using this
+  -- B₁.assign x = b = B₁.assign y → B₂.assign x = B₂.assign y
+  have hb2 : B₂.assign x = B₂.assign y := hrefine x y (hx_prop.trans hy_prop.symm)
+  -- x ≠ y (nodup filter, different indices)
+  have hnd : filt₁.Nodup := hadm.1.filter _
+  have hxy : x ≠ y := by
+    intro heq; exact absurd (hnd.getElem_inj_iff.mp heq) (by omega)
+  -- Both in S
+  have hx_S := (List.mem_filter.mp hx_mem).1
+  have hy_S := (List.mem_filter.mp hy_mem).1
+  -- Both in B₂-filter for B₂.assign x
+  let b₂ := B₂.assign x
+  have hx_b2 : x ∈ S.filter (fun i => B₂.assign i = b₂) :=
+    List.mem_filter.mpr ⟨hx_S, by simp [b₂]⟩
+  have hy_b2 : y ∈ S.filter (fun i => B₂.assign i = b₂) :=
+    List.mem_filter.mpr ⟨hy_S, by simp [b₂, hb2.symm]⟩
+  -- Two distinct elements in nodup list → length ≥ 2
+  have h_erase_len := List.length_erase_of_mem hx_b2
+  have hy_in_erase : y ∈ (S.filter (fun i => B₂.assign i = b₂)).erase x :=
+    (List.mem_erase_of_ne hxy.symm).mpr hy_b2
+  have h_pos := List.length_pos_of_mem hy_in_erase
+  have : (S.filter (fun i => B₂.assign i = b₂)).length ≥ 2 := by omega
+  exact absurd (hadm.2 b₂) (by omega)
 
 structure SPDPParams where
   κ : ℕ
