@@ -557,6 +557,27 @@ theorem iterDerivList_restrictPoly {n m : ℕ} (F : Type*) [CommRing F]
     rw [pderiv_restrictPoly F f hf a]
     exact ih (MvPolynomial.pderiv (f a) p)
 
+/-- restrictPoly is a left inverse to rename f -/
+theorem restrictPoly_rename {n m : ℕ} (F : Type*) [CommRing F]
+    (f : Fin n → Fin m) (hf : Function.Injective f) (p : MvPolynomial (Fin n) F) :
+    restrictPoly F f hf (MvPolynomial.rename f p) = p := by
+  unfold restrictPoly
+  rw [MvPolynomial.aeval_rename]
+  have : (fun j => if h : ∃ k, f k = j then MvPolynomial.X h.choose else 0) ∘ f =
+         fun i => (MvPolynomial.X i : MvPolynomial (Fin n) F) := by
+    ext i; simp only [Function.comp]
+    have h : ∃ k, f k = f i := ⟨i, rfl⟩
+    simp only [dif_pos h]; rw [show h.choose = i from hf h.choose_spec]
+  rw [this, MvPolynomial.aeval_X_left]; simp
+
+/-- restrictPoly commutes with multiplication by renamed polynomials -/
+theorem restrictPoly_mul_rename {n m : ℕ} (F : Type*) [CommRing F]
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (mul : MvPolynomial (Fin n) F) (q : MvPolynomial (Fin m) F) :
+    restrictPoly F f hf (MvPolynomial.rename f mul * q) =
+    mul * restrictPoly F f hf q := by
+  rw [map_mul, restrictPoly_rename F f hf mul]
+
 /-- restrictPoly commutes with mlProj -/
 theorem mlProj_restrictPoly {n m : ℕ} (F : Type*) [CommRing F]
     (f : Fin n → Fin m) (hf : Function.Injective f)
@@ -581,12 +602,40 @@ theorem mlBlockedSpdpSubspace_restrict_le_map {n m : ℕ} {F : Type*} [CommRing 
   apply Submodule.span_le.mpr
   intro q ⟨S, mul, hlen, hdeg, hadm, hq⟩
   simp only [Submodule.mem_map, SetLike.mem_coe]
-  -- iterDerivList S (rP p) = rP (iterDerivList (S.map f) p)
-  have hderiv := iterDerivList_restrictPoly F f hf S p
-  -- mlProj (mul * rP (iterDerivList ...)) = rP (mlProj (mul' * iterDerivList ...))
-  -- This needs mlProj_restrictPoly + the multiplier lift
-  -- For now, construct the preimage directly
-  sorry
+  -- The preimage in the big space
+  let S' := S.map f
+  let q := iterDerivList S' p
+  let mul' := MvPolynomial.rename f mul
+  -- Candidate preimage: mlProj(mul' * q) in the big subspace
+  refine ⟨mlProj (mul' * q), ?_, ?_⟩
+  · -- mlProj(mul' * q) ∈ mlBlockedSpdpSubspace B κ ℓ p
+    apply Submodule.subset_span
+    exact ⟨S', mul', by simp [S', hlen], by
+      exact le_trans (MvPolynomial.totalDegree_rename_le f mul) hdeg, by
+      -- isBlockAdmissible B (S.map f) from isBlockAdmissible (pullback B f) S
+      constructor
+      · exact List.Nodup.map hf hadm.1
+      · intro b
+        -- (S.map f).filter (B.assign · = b) has same length as S.filter (pullback.assign · = b)
+        have hfm : ∀ (L : List (Fin n)),
+            (L.map f).filter (fun j => B.assign j = b) =
+            (L.filter (fun i => B.assign (f i) = b)).map f := by
+          intro L; induction L with
+          | nil => simp
+          | cons a rest ih =>
+            simp only [List.map, List.filter]
+            by_cases h : B.assign (f a) = b
+            · simp [h, ih]
+            · simp [h, ih]
+        rw [hfm, List.length_map]
+        exact hadm.2 b, rfl⟩
+  · -- rP(mlProj(mul' * q)) = mlProj(mul * iterDerivList S (rP p))
+    rw [show restrictPolyLinearMap F f hf (mlProj (mul' * q)) =
+      restrictPoly F f hf (mlProj (mul' * q)) from rfl]
+    rw [← mlProj_restrictPoly F f hf]
+    rw [restrictPoly_mul_rename F f hf mul q]
+    rw [← iterDerivList_restrictPoly F f hf S p]
+    rw [hq]
 
 /-- Restriction monotonicity for mlBlockedSpdpRank (Lemma 40(b)). -/
 theorem restriction_rank_monotone (F : Type*) [Field F] [Nontrivial F]
