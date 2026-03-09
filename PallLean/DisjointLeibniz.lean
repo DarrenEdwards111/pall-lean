@@ -100,4 +100,19 @@ theorem iterDeriv_mul_disjoint
       rw [iterDeriv_cons]
       exact ih f (pderiv x g) hf (fun v hv => hg v (vars_pderiv_subset x g hv)) hS'
 
+/-! ## R-factor version (sketch)
+
+The 2-factor `iterDeriv_mul_disjoint` generalizes to R factors by
+Finset induction: split off one factor, apply the 2-factor version,
+then use the IH for the remaining product.
+
+  iterDeriv S (∏_{c ∈ T} f_c) = ∏_c iterDeriv (S.filter (block c)) f_c
+
+This requires additionally:
+- vars_prod_subset: vars(∏_c f_c) ⊆ ⋃_c vars(f_c) (provable by Finset induction
+  using vars_mul_subset from Mathlib)
+- Filter composition: S.filter Q where Q = (∃ c ∈ T', block c ·) relates to
+  the per-block filters (composable by Finset induction)
+-/
+
 end DisjointLeibniz
