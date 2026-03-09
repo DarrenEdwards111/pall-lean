@@ -74,14 +74,30 @@ theorem profile_finrank_bound {n : ℕ} {F : Type*} [Field F]
     (h : Profile 4) (htotal : totalMass h ≤ R) :
     Module.finrank F (profileSubspace (m := 4) B κ ℓ p profileFn h) ≤ (R + 1) ^ D := by
   have hfin := profileSubspace_finiteDimensional B κ ℓ p profileFn h
-  -- Paper (Definition 12): SPDP rank computed modulo ⟨x²_i - x_i⟩.
-  -- For multilinear p, rank is the same in free ring and Boolean quotient.
-  -- In Boolean quotient: per-block local dim = 2^d₀ = O(1), giving constant D.
-  -- Formalized: generator_in_shifted_span PROVED (MonomialFactor absorption),
-  -- universal Finset construction requires multilinear restriction
-  -- (each shift variable contributes 2 options, not unbounded degree).
-  -- The rank equality free_ring ↔ Boolean_quotient for multilinear p
-  -- is the key remaining lemma (standard, see paper Def 12 + Lemma 37).
+  -- Paper Definition 12: SPDP rank computed modulo ⟨x²_i - x_i⟩ (Boolean quotient).
+  -- In Boolean quotient: shift monomials are multilinear (≤ 2^d₀ per block),
+  -- giving constant per-block dim and constant D = 4(2^d₀ - 1).
+  --
+  -- For the free ring formalization: the profileSubspace over-counts because
+  -- m_poly can have degree > 1 per variable. However, for multilinear p:
+  -- ∂^S p is multilinear, so m * ∂^S p projected onto multilinear monomials
+  -- equals (multilinear part of m) * ∂^S p. The RANK is determined by
+  -- the multilinear coefficients only (paper Lemma 37: rank is basis-invariant,
+  -- and multilinear monomials form a direct summand).
+  --
+  -- Formalization approach: show profileSubspace projected onto the multilinear
+  -- subspace has the same finrank (for multilinear p). The projected subspace
+  -- is spanned by {m_ml * ∂^S p | m_ml multilinear, deg ≤ ℓ}, which has
+  -- per-block dim ≤ 2^d₀ * 2^d₀ = 4^d₀ = O(1).
+  --
+  -- All component proofs are complete:
+  -- • generator_in_shifted_span: generators ∈ span(finsetProd of shiftedBases)
+  -- • MonomialFactor: shift monomials factor per block
+  -- • LocalBasis: per-block derivatives in finite span
+  -- • SpanProduct: products of spans in product span
+  -- • tensor_dim_pow_bound: profile compression bound
+  --
+  -- Remaining: multilinear projection lemma (standard linear algebra).
   sorry
 
 /-- Lemma 31: Within-profile dimension bound.
