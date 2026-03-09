@@ -614,10 +614,51 @@ theorem restrictPoly_monomial_form {n m : ℕ} (F : Type*) [CommRing F]
     (∃ t : Fin n →₀ ℕ, restrictPoly F f hf (MvPolynomial.monomial s a) =
       MvPolynomial.monomial t a ∧ (∀ i, t i = s (f i)) ∧
       (∀ j ∈ s.support, j ∈ Set.range f)) := by
-  -- Prove by MvPolynomial.induction_on is hard; use sorry for the Finsupp.prod computation.
-  -- The mathematical content: aeval g (monomial s a) = C a * ∏ g(j)^(s j),
-  -- and each g(j) is X(f⁻¹(j)) or 0, so the product is 0 or monomial(pullback) 1.
-  sorry
+  by_cases h_range : ∀ j ∈ s.support, j ∈ Set.range f
+  · -- All vars in range f: rP(monomial s a) = monomial t a
+    right
+    -- Build t : Fin n →₀ ℕ with t i = s(f i)
+    refine ⟨Finsupp.equivFunOnFinite.symm (fun i => s (f i)), ?_, fun i => by simp, h_range⟩
+    -- restrictPoly (monomial s a) = monomial t a
+    -- Key: monomial s a = rename f (monomial t a) when support s ⊆ range f
+    -- and t i = s(f i), so mapDomain f t = s on support
+    -- Show: restrictPoly (monomial s a) = monomial t a
+    -- where t = equivFunOnFinite.symm (fun i => s (f i))
+    set t := Finsupp.equivFunOnFinite.symm (fun i => s (f i)) with ht_def
+    -- Key: monomial s a = rename f (monomial t a) since mapDomain f t = s
+    have ht_apply : ∀ i, t i = s (f i) := fun i => by simp [ht_def]
+    have h_map : Finsupp.mapDomain f t = s := by
+      ext j
+      by_cases hj : j ∈ Set.range f
+      · obtain ⟨i, rfl⟩ := hj
+        rw [Finsupp.mapDomain_apply hf, ht_apply]
+      · -- j ∉ range f: mapDomain f t j = 0 and s j = 0
+        have hsj : s j = 0 := by
+          by_contra h
+          exact hj (h_range j (Finsupp.mem_support_iff.mpr h))
+        rw [hsj]
+        rw [Finsupp.mapDomain, Finsupp.sum_apply]
+        apply Finset.sum_eq_zero
+        intro i _
+        simp only [Finsupp.single_apply, if_neg (show f i ≠ j from fun h => hj ⟨i, h⟩)]
+    rw [show MvPolynomial.monomial s a =
+        MvPolynomial.rename f (MvPolynomial.monomial t a) from by
+      rw [MvPolynomial.rename_monomial, h_map]]
+    exact restrictPoly_rename F f hf _
+  · -- Some var not in range f: result is 0
+    left
+    push_neg at h_range
+    obtain ⟨j, hj_supp, hj_range⟩ := h_range
+    -- restrictPoly = aeval g where g j = X(f⁻¹ j) or 0
+    -- aeval g (monomial s a) = C a * ∏_{j ∈ s.support} g(j)^(s j)
+    -- g(j) = 0 since j ∉ range f, so 0^(s j) = 0, product = 0
+    unfold restrictPoly
+    rw [MvPolynomial.aeval_monomial]
+    apply mul_eq_zero_of_right
+    unfold Finsupp.prod
+    apply Finset.prod_eq_zero hj_supp
+    simp only [dif_neg (show ¬∃ i, f i = j from fun ⟨i, hi⟩ => hj_range ⟨i, hi⟩)]
+    exact zero_pow (Finsupp.mem_support_iff.mp hj_supp)
 
 /-- If rP(monomial s a) = monomial t a with t i = s(f i), then IsMultilinear t ↔ IsMultilinear s -/
 theorem isMultilinear_pullback {n m : ℕ} (f : Fin n → Fin m) (hf : Function.Injective f)
