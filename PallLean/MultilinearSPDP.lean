@@ -477,17 +477,129 @@ noncomputable def pullbackPartition {n m : ℕ}
 
 /-! ## Extraction map (Paper §34, Lemma 40) -/
 
-/-- Restriction monotonicity for mlBlockedSpdpRank (Lemma 40(b)).
-    Variable restriction/projection cannot increase SPDP rank because
-    derivatives of the restricted polynomial are projections of derivatives
-    of the original, so the span can only shrink.
-    
-    Paper: Lemma 40(b) — operations (iii) and (iv) do not increase SPDP rank. -/
-axiom restriction_rank_monotone (F : Type*) [Field F] [Nontrivial F]
+/-- restrictPoly applied to X j gives X (f⁻¹ j) if j ∈ range f, else 0 -/
+theorem restrictPoly_X {n m : ℕ} (F : Type*) [CommRing F]
+    (f : Fin n → Fin m) (hf : Function.Injective f) (j : Fin m) :
+    restrictPoly F f hf (MvPolynomial.X j) =
+      if h : ∃ i, f i = j then MvPolynomial.X h.choose else 0 := by
+  unfold restrictPoly; simp [MvPolynomial.aeval_X]
+
+/-- The choose from restrictPoly is the unique preimage -/
+theorem restrictPoly_choose_spec {n m : ℕ}
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (j : Fin m) (h : ∃ i, f i = j) : f h.choose = j := h.choose_spec
+
+theorem restrictPoly_choose_eq {n m : ℕ}
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (i : Fin n) : (⟨i, rfl⟩ : ∃ k, f k = f i).choose = i := by
+  have := (⟨i, rfl⟩ : ∃ k, f k = f i).choose_spec
+  exact hf this
+
+/-- Chain rule: pderiv i (restrictPoly p) = restrictPoly (pderiv (f i) p) -/
+theorem pderiv_restrictPoly {n m : ℕ} (F : Type*) [CommRing F]
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (i : Fin n) (p : MvPolynomial (Fin m) F) :
+    MvPolynomial.pderiv i (restrictPoly F f hf p) =
+    restrictPoly F f hf (MvPolynomial.pderiv (f i) p) := by
+  induction p using MvPolynomial.induction_on with
+  | C a => simp [restrictPoly, MvPolynomial.pderiv_C, map_zero]
+  | add p q hp hq => simp [map_add, hp, hq]
+  | mul_X p j ih =>
+    -- Goal: pderiv i (rP p * rP (X j)) = rP (pderiv (f i) (p * X j))
+    -- where rP = restrictPoly F f hf
+    -- Expand RHS: rP (pderiv (f i) p * X j + p * pderiv (f i) (X j))
+    rw [MvPolynomial.pderiv_mul]
+    rw [map_add (restrictPoly F f hf), map_mul (restrictPoly F f hf), map_mul (restrictPoly F f hf)]
+    -- Expand LHS: pderiv i (rP p) * rP (X j) + rP p * pderiv i (rP (X j))
+    rw [MvPolynomial.pderiv_mul]
+    -- Use IH on first term
+    rw [ih]
+    -- Remains: rP p * pderiv i (rP (X j)) = rP p * rP (pderiv (f i) (X j))
+    congr 1
+    -- Show: pderiv i (rP (X j)) = rP (pderiv (f i) (X j))
+    rw [MvPolynomial.pderiv_X (f i) j]
+    simp only [Pi.single_apply]
+    by_cases hfi : f i = j
+    · -- f i = j, goal involves `if f i = j then 1 else 0`
+      subst hfi
+      -- Now j is gone, replaced by f i
+      simp only [if_pos rfl, map_one]
+      have hj : ∃ k, f k = f i := ⟨i, rfl⟩
+      simp only [restrictPoly_X, dif_pos hj]
+      rw [MvPolynomial.pderiv_X]
+      simp only [Pi.single_apply]
+      have : hj.choose = i := hf hj.choose_spec
+      rw [this, if_pos rfl]; simp
+    · -- f i ≠ j
+      rw [if_neg (Ne.symm hfi)]
+      -- Goal: rP p * pderiv i (rP (X j)) = rP (p * 0)
+      simp only [mul_zero, map_zero]
+      -- Goal: rP p * pderiv i (rP (X j)) = 0
+      by_cases hj : ∃ k, f k = j
+      · simp only [restrictPoly_X, dif_pos hj]
+        -- pderiv i (X hj.choose) where hj.choose ≠ i
+        rw [MvPolynomial.pderiv_X, Pi.single_apply]
+        have : hj.choose ≠ i := fun h => hfi (by rw [← hj.choose_spec, h])
+        rw [if_neg this]; simp
+      · simp only [restrictPoly_X, dif_neg hj, map_zero, mul_zero]
+
+/-- Iterated chain rule -/
+theorem iterDerivList_restrictPoly {n m : ℕ} (F : Type*) [CommRing F]
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (S : List (Fin n)) (p : MvPolynomial (Fin m) F) :
+    iterDerivList S (restrictPoly F f hf p) =
+    restrictPoly F f hf (iterDerivList (S.map f) p) := by
+  unfold iterDerivList
+  induction S generalizing p with
+  | nil => simp
+  | cons a rest ih =>
+    simp only [List.foldl, List.map]
+    rw [pderiv_restrictPoly F f hf a]
+    exact ih (MvPolynomial.pderiv (f a) p)
+
+/-- restrictPoly commutes with mlProj -/
+theorem mlProj_restrictPoly {n m : ℕ} (F : Type*) [CommRing F]
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (p : MvPolynomial (Fin m) F) :
+    mlProj (restrictPoly F f hf p) = restrictPoly F f hf (mlProj p) := by
+  sorry -- needs: restrictPoly preserves multilinear monomials
+
+/-- restrictPoly is also an F-linear map on MvPolynomial -/
+noncomputable def restrictPolyLinearMap {n m : ℕ} (F : Type*) [CommRing F]
+    (f : Fin n → Fin m) (hf : Function.Injective f) :
+    MvPolynomial (Fin m) F →ₗ[F] MvPolynomial (Fin n) F :=
+  (restrictPoly F f hf).toLinearMap
+
+/-- The small-side subspace is contained in the image of the big-side subspace
+    under restrictPoly. -/
+theorem mlBlockedSpdpSubspace_restrict_le_map {n m : ℕ} {F : Type*} [CommRing F]
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (B : BlockPartition m) (κ ℓ : ℕ) (p : MvPolynomial (Fin m) F) :
+    mlBlockedSpdpSubspace (pullbackPartition B f) κ ℓ (restrictPoly F f hf p) ≤
+    Submodule.map (restrictPolyLinearMap F f hf) (mlBlockedSpdpSubspace B κ ℓ p) := by
+  -- Each generator of the LHS is the image of a big-side element under rP
+  apply Submodule.span_le.mpr
+  intro q ⟨S, mul, hlen, hdeg, hadm, hq⟩
+  simp only [Submodule.mem_map, SetLike.mem_coe]
+  -- iterDerivList S (rP p) = rP (iterDerivList (S.map f) p)
+  have hderiv := iterDerivList_restrictPoly F f hf S p
+  -- mlProj (mul * rP (iterDerivList ...)) = rP (mlProj (mul' * iterDerivList ...))
+  -- This needs mlProj_restrictPoly + the multiplier lift
+  -- For now, construct the preimage directly
+  sorry
+
+/-- Restriction monotonicity for mlBlockedSpdpRank (Lemma 40(b)). -/
+theorem restriction_rank_monotone (F : Type*) [Field F] [Nontrivial F]
     {n m : ℕ} (f : Fin n → Fin m) (hf : Function.Injective f)
     (B : BlockPartition m) (κ ℓ : ℕ) (p : MvPolynomial (Fin m) F) :
     mlBlockedSpdpRank (pullbackPartition B f) κ ℓ (restrictPoly F f hf p) ≤
-    mlBlockedSpdpRank B κ ℓ p
+    mlBlockedSpdpRank B κ ℓ p := by
+  unfold mlBlockedSpdpRank
+  calc Module.finrank F (mlBlockedSpdpSubspace (pullbackPartition B f) κ ℓ (restrictPoly F f hf p))
+      ≤ Module.finrank F (Submodule.map (restrictPolyLinearMap F f hf) (mlBlockedSpdpSubspace B κ ℓ p)) := by
+        exact Submodule.finrank_mono (mlBlockedSpdpSubspace_restrict_le_map f hf B κ ℓ p)
+    _ ≤ Module.finrank F (mlBlockedSpdpSubspace B κ ℓ p) :=
+        Submodule.finrank_map_le _ _
 
 /-- Adding a constant does not change mlBlockedSpdpRank when κ ≥ 1.
     Proof sketch: pderiv of C c = 0, so C c contributes nothing to
