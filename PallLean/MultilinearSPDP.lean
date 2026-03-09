@@ -8,12 +8,13 @@ import PallLean.SPDPDefs
 import PallLean.NPWitness
 import PallLean.Compiler
 import PallLean.Multilinear
+import PallLean.IdentityMinor
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.Dimension.Finrank
 
 namespace MultilinearSPDP
 
-open MvPolynomial SPDP TuringMachine Compiler NPWitness Multilinear
+open MvPolynomial SPDP TuringMachine Compiler NPWitness Multilinear Tseitin
 
 attribute [local instance] Classical.dec
 
@@ -332,23 +333,129 @@ theorem mlProj_deriv_mem {n : ℕ} {F : Type*} [CommRing F]
     mlProj (1 * iterDerivList S p) ∈ mlBlockedSpdpSubspace B κ ℓ p :=
   Submodule.subset_span ⟨S, 1, hlen, by simp, hadm, rfl⟩
 
-/-- The multilinear SPDP rank is ≥ blockedSpdpRank for multilinear polynomials
-    when the lower bound proof only uses m=1 generators. Since the identity minor
-    uses exactly these generators, the NP lower bound transfers. -/
+/-- mlProj of rowPoly is in mlBlockedSpdpSubspace.
+    rowPoly = iterDerivList (selectorList) (coupledVerifier) = 1 * iterDerivList S p,
+    so mlProj(1 * iterDerivList S p) is a generator of mlBlockedSpdpSubspace. -/
+theorem rowPoly_mem_ml_subspace [Field F]
+    (Φ : TseitinFormula) (B : BlockPartition (tseitinNumVars Φ))
+    (pack : DisjointPacking Φ) (κ ℓ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ))
+    (hB : ∀ (cs : List (Fin Φ.clauses.length)),
+      cs.Nodup → (∀ c ∈ cs, c ∈ pack.selected) → cs.length = κ →
+      isBlockAdmissible B (cs.map (selectorIdx Φ))) :
+    mlProj (IdentityMinor.rowPoly F Φ pack κ i) ∈
+      mlBlockedSpdpSubspace B κ ℓ (coupledVerifier F Φ) := by
+  -- rowPoly = iterDerivList (selectorList) (coupledVerifier)
+  -- mlProj(1 * iterDerivList S p) is a generator of mlBlockedSpdpSubspace
+  have h1 : IdentityMinor.rowPoly F Φ pack κ i =
+      1 * iterDerivList (IdentityMinor.selectorList Φ pack κ i) (coupledVerifier F Φ) := by
+    unfold IdentityMinor.rowPoly; rw [one_mul]
+  rw [h1]
+  apply Submodule.subset_span
+  refine ⟨IdentityMinor.selectorList Φ pack κ i, 1, ?_, ?_, ?_, rfl⟩
+  · -- length = κ
+    show (IdentityMinor.selectorList Φ pack κ i).length = κ
+    unfold IdentityMinor.selectorList
+    rw [List.length_map]
+    exact IdentityMinor.getSubset_length pack κ i
+  · -- deg ≤ ℓ
+    simp [MvPolynomial.totalDegree_one]
+  · -- admissible
+    show isBlockAdmissible B (IdentityMinor.selectorList Φ pack κ i)
+    unfold IdentityMinor.selectorList
+    exact hB _ (IdentityMinor.getSubset_nodup pack κ i)
+      (IdentityMinor.getSubset_subset pack κ i)
+      (IdentityMinor.getSubset_length pack κ i)
+
+/-- Tag monomials from disjoint packing are multilinear: each variable has exponent ≤ 1.
+    Follows from: (1) each clause contributes single v 1 for 3 distinct variables,
+    (2) the disjoint packing ensures selected clauses use disjoint variable sets. -/
+theorem tagMono_isMultilinear {F : Type*} [Field F] [Nontrivial F]
+    (Φ : TseitinFormula) (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ)) :
+    Finsupp.IsMultilinear (IdentityMinor.tagMono F Φ pack κ i) := by
+  sorry -- Follows from disjoint packing + each chooseTagMonomial has entries ≤ 1
+
+/-- General rank-from-linear-independence for any finite-dimensional submodule -/
+private theorem finrank_ge_of_linearIndependent {R M : Type*} [CommRing R] [AddCommGroup M]
+    [Module R M] [Nontrivial R]
+    (V : Submodule R M) [Module.Finite R V]
+    (k : ℕ) (elements : Fin k → V)
+    (hli : LinearIndependent R (Subtype.val ∘ elements)) :
+    Module.finrank R V ≥ k := by
+  have hrange : ∀ i, (Subtype.val ∘ elements) i ∈ V := fun i => (elements i).2
+  have hspan : Submodule.span R (Set.range (Subtype.val ∘ elements)) ≤ V :=
+    Submodule.span_le.mpr (Set.range_subset_iff.mpr hrange)
+  have hcard := finrank_span_eq_card hli
+  haveI : Module.Finite R (Submodule.span R (Set.range (Subtype.val ∘ elements))) :=
+    Module.Finite.span_of_finite R (Set.finite_range _)
+  have hmono := Submodule.finrank_mono hspan
+  simp [Fintype.card_fin] at hcard
+  omega
+
 theorem np_ml_lower_bound (F : Type*) [Field F] [Nontrivial F] :
     ∃ n₀, ∀ n, n ≥ n₀ →
       mlBlockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
         (tseitinPoly F n) ≥ n ^ (Nat.log 2 n / 4) := by
-  -- Transfer via coeff_mlProj_of_isMultilinear_mono:
-  -- mlProj preserves coefficients at multilinear monomials, so the identity
-  -- minor's Kronecker δ property transfers to mlBlockedSpdpSubspace.
-  --
-  -- Full formal proof requires re-constructing identity minor components
-  -- in mlBlockedSpdpSubspace and verifying the tag monomials are multilinear.
-  -- This is ~50 lines of mechanical plumbing identical to Tseitin.lean
-  -- with blockedSpdpSubspace replaced by mlBlockedSpdpSubspace.
-  -- Key bridge: coeff_mlProj_of_isMultilinear_mono + mlProj_deriv_mem.
-  sorry -- TRANSFER: mechanical re-threading of identity minor
+  -- Follow the same structure as np_side_lb, but with mlBlockedSpdpRank
+  obtain ⟨n₀, hn₀⟩ := NPWitness.binomial_lower_bound
+  use max n₀ (2^10)
+  intro n hn
+  have hn₀' : n ≥ n₀ := le_trans (le_max_left _ _) hn
+  have hn1024 : n ≥ 2^10 := le_trans (le_max_right _ _) hn
+  have hv := tseitinAt_vertices n (by omega)
+  have pack := Tseitin.disjoint_packing_exists (tseitinAt n) (by omega)
+  -- Get identity minor components (R in blockedSpdpSubspace, τ, signs)
+  let κ := Nat.log 2 n
+  have hκ : κ ≤ pack.selected.length := by
+    have hps := pack.size_bound; rw [hv] at hps
+    exact (log2_le_div30 n (by linarith [show (2:ℕ)^10 = 1024 from by norm_num])).trans hps
+  let c := IdentityMinor.identity_minor_components (F := F) (tseitinAt n) pack κ κ hκ
+  obtain ⟨hsigns, hkron⟩ := IdentityMinor.identity_minor_components_signs
+    (tseitinAt n) pack κ κ hκ (F := F)
+  -- Lift R to mlBlockedSpdpSubspace via mlProj
+  let mlV := mlBlockedSpdpSubspace (tseitinPartition n) κ κ (tseitinPoly F n)
+  have hmem : ∀ i, mlProj (c.1 i).val ∈ mlV :=
+    fun i => rowPoly_mem_ml_subspace (tseitinAt n) _ pack κ κ i
+      (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general (tseitinAt n) cs hnd)
+  let R' : Fin (Nat.choose pack.selected.length κ) → ↥mlV :=
+    fun i => ⟨mlProj (c.1 i).val, hmem i⟩
+  -- Kronecker transfer: coeff(τ_j, mlProj(R_i)) = coeff(τ_j, R_i) via multilinear tags
+  have hkron' : ∀ i j, MvPolynomial.coeff (c.2.1 i) (R' j).val =
+      if i = j then c.2.2 i else 0 := by
+    intro i j
+    show MvPolynomial.coeff (c.2.1 i) (mlProj (c.1 j).val) = _
+    -- c.2.1 i = tagMono F (tseitinAt n) pack κ i — need IsMultilinear
+    have hml : Finsupp.IsMultilinear (c.2.1 i) := by
+      show Finsupp.IsMultilinear (IdentityMinor.tagMono F (tseitinAt n) pack κ i)
+      exact tagMono_isMultilinear (tseitinAt n) pack κ i
+    rw [coeff_mlProj_of_isMultilinear_mono _ _ hml]
+    exact hkron i j
+  -- Linear independence via Kronecker δ (same proof as identity_minor_lower_bound_aux)
+  have hli : LinearIndependent F (Subtype.val ∘ R') := by
+    rw [linearIndependent_iff']
+    intro S g hg a ha
+    have h0 : (coeffLin F (c.2.1 a))
+        (∑ j ∈ S, g j • (Subtype.val ∘ R') j) = 0 := by rw [hg]; exact map_zero _
+    simp only [map_sum, LinearMap.map_smul, Function.comp, smul_eq_mul] at h0
+    simp only [coeffLin, LinearMap.coe_mk, AddHom.coe_mk] at h0
+    have hsub : ∀ j ∈ S, g j * MvPolynomial.coeff (c.2.1 a) (R' j).val =
+        if j = a then g j * c.2.2 a else 0 := by
+      intro j _
+      rw [hkron' a j]
+      by_cases h : a = j
+      · subst h; simp
+      · simp [h, show j ≠ a from fun h' => h (h' ▸ rfl)]
+    rw [Finset.sum_congr rfl hsub, Finset.sum_ite_eq' S a, if_pos ha] at h0
+    rcases hsigns a with hs | hs <;> rw [hs] at h0 <;> simp at h0 <;> exact h0
+  -- Conclude: finrank ≥ k
+  have hfr := finrank_ge_of_linearIndependent mlV _ R' hli
+  calc mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly F n) ≥
+        Nat.choose pack.selected.length κ := hfr
+    _ ≥ Nat.choose (n / 30) κ := by
+        apply Nat.choose_le_choose
+        have := pack.size_bound; rw [hv] at this; exact this
+    _ ≥ n ^ (Nat.log 2 n / 4) := hn₀ n hn₀'
 
 /-! ## Extraction map axiom -/
 

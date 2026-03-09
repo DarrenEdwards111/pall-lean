@@ -269,7 +269,7 @@ private lemma thirty_mul_le_pow (k : ℕ) (hk : k ≥ 10) : 30 * k ≤ 2^k := by
 
 /-- log₂ n ≤ n / 30 for n ≥ 1024.
     Proof: log₂ n ≥ 10 (from n ≥ 2^10), so 30 * log₂ n ≤ 2^(log₂ n) ≤ n. -/
-private lemma log2_le_div30 (n : ℕ) (hn : n ≥ 1024) : Nat.log 2 n ≤ n / 30 := by
+lemma log2_le_div30 (n : ℕ) (hn : n ≥ 1024) : Nat.log 2 n ≤ n / 30 := by
   have h1024 : (2 : ℕ)^10 ≤ n := by norm_num; omega
   have hlog10 : 10 ≤ Nat.log 2 n :=
     (Nat.log_pow (b := 2) (by norm_num) 10) ▸ Nat.log_mono_right (b := 2) h1024
