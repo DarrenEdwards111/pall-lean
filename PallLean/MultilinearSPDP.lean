@@ -7,12 +7,13 @@
 import PallLean.SPDPDefs
 import PallLean.NPWitness
 import PallLean.Compiler
+import PallLean.Multilinear
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.Dimension.Finrank
 
 namespace MultilinearSPDP
 
-open MvPolynomial SPDP TuringMachine Compiler NPWitness
+open MvPolynomial SPDP TuringMachine Compiler NPWitness Multilinear
 
 attribute [local instance] Classical.dec
 
@@ -274,15 +275,69 @@ theorem pside_ml_rank_bound {F : Type*} [Field F] (M : DTM) :
 
 /-! ## NP-side lower bound -/
 
+/-- mlProj fixes multilinear polynomials -/
+theorem mlProj_of_isMultilinear {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p : MvPolynomial σ F) (h : IsMultilinear p) :
+    mlProj p = p := by
+  change Finsupp.filter _ p = p
+  ext α
+  rw [Finsupp.filter_apply]
+  split
+  · rfl
+  · rename_i hml
+    -- α not multilinear ⇒ α ∉ p.support ⇒ p α = 0
+    simp only [Finsupp.IsMultilinear] at hml; push_neg at hml
+    obtain ⟨i, hi⟩ := hml
+    by_contra hne
+    have hmem : α ∈ p.support := Finsupp.mem_support_iff.mpr (Ne.symm hne)
+    exact absurd (h α hmem i) (not_le.mpr hi)
+
+/-- Derivative of a multilinear polynomial is multilinear -/
+theorem isMultilinear_pderiv {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p : MvPolynomial σ F) (h : IsMultilinear p) (x : σ) :
+    IsMultilinear (MvPolynomial.pderiv x p) := by
+  intro α hα i
+  -- For each α ∈ support(pderiv x p), α ≤ some β ∈ support(p) pointwise.
+  -- Since p is multilinear, β i ≤ 1, and α i ≤ β i, so α i ≤ 1.
+  intro α hα i
+  -- pderiv x p has support contained in {β - single x 1 : β ∈ support p, β x ≠ 0}
+  -- so for any α in its support, ∃ β ∈ p.support with α ≤ β pointwise
+  -- This gives α i ≤ β i ≤ 1
+  have : ∀ j, α j ≤ (α + Finsupp.single x 1) j := fun j => le_add_right (α j) _
+  sorry
+
+/-- iterDerivList preserves multilinearity -/
+theorem isMultilinear_iterDerivList {n : ℕ} {F : Type*} [CommRing F]
+    (S : List (Fin n)) (p : MvPolynomial (Fin n) F) (h : IsMultilinear p) :
+    IsMultilinear (iterDerivList S p) := by
+  -- Each pderiv preserves multilinearity, and iterDerivList is iterated pderiv
+  sorry
+
+/-- For multilinear p, derivatives (with m=1) are in mlBlockedSpdpSubspace.
+    This is the key bridge: identity minor generators use multilinear derivatives. -/
+theorem deriv_mem_mlBlockedSpdpSubspace {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin n) F) (hp : IsMultilinear p)
+    (S : List (Fin n)) (hlen : S.length = κ)
+    (hadm : isBlockAdmissible B S) (hℓ : 0 < ℓ ∨ ℓ = 0) :
+    iterDerivList S p ∈ mlBlockedSpdpSubspace B κ ℓ p := by
+  -- iterDerivList S p = mlProj(1 * iterDerivList S p) since it's multilinear
+  have hml := isMultilinear_iterDerivList S p hp
+  have hfix := mlProj_of_isMultilinear (iterDerivList S p) hml
+  rw [← hfix, ← one_mul (iterDerivList S p)]
+  exact Submodule.subset_span ⟨S, 1, hlen, by simp, hadm, rfl⟩
+
+/-- The multilinear SPDP rank is ≥ blockedSpdpRank for multilinear polynomials
+    when the lower bound proof only uses m=1 generators. Since the identity minor
+    uses exactly these generators, the NP lower bound transfers. -/
 theorem np_ml_lower_bound (F : Type*) [Field F] [Nontrivial F] :
     ∃ n₀, ∀ n, n ≥ n₀ →
       mlBlockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
         (tseitinPoly F n) ≥ n ^ (Nat.log 2 n / 4) := by
-  -- Transfer from np_side_lb: the identity minor construction in Tseitin.lean
-  -- uses multilinear generators (selector monomials × derivatives of clause products).
-  -- Since tseitin clauses are multilinear and selector variables are distinct,
-  -- all generators satisfy mlProj(gen) = gen, so they appear in mlBlockedSpdpSubspace.
-  -- The same identity submatrix argument gives the same rank lower bound.
+  -- The identity minor lower bound (np_side_lb) constructs R vectors that are
+  -- iterDerivList of coupledVerifier (a multilinear polynomial).
+  -- These same vectors live in mlBlockedSpdpSubspace (by deriv_mem_mlBlockedSpdpSubspace).
+  -- The same linear independence + Kronecker argument gives the same rank lower bound.
   sorry
 
 /-! ## Extraction map axiom -/
