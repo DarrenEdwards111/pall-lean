@@ -32,8 +32,11 @@ theorem P_neq_NP (h : PeqNP) : False := by
   -- Instantiate bounds
   let B_v := compiledPartition M n
   have h_np := hnpside n (by omega)
-  have h_extract := extraction_map_exists ℚ n M h.decides_sat
-    B_v (Nat.log 2 n) (Nat.log 2 n)
+  have h_extract := extraction_rank_monotone ℚ n M h.decides_sat
+    B_v (Nat.log 2 n) (Nat.log 2 n) (by
+      have : n ≥ 2 := by omega
+      have := Nat.log_pos (by omega : 1 < 2) this
+      omega)
   have h_pside := hpside n (by omega) B_v (Nat.log 2 n) (Nat.log 2 n)
   -- Chain: n^(log n/4) ≤ Γ^ml(tseitin) ≤ Γ^ml(violation) ≤ n^C
   have h_chain : n ^ (Nat.log 2 n / 4) ≤ n ^ C := by linarith

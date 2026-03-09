@@ -457,12 +457,76 @@ theorem np_ml_lower_bound (F : Type*) [Field F] [Nontrivial F] :
         have := pack.size_bound; rw [hv] at this; exact this
     _ ≥ n ^ (Nat.log 2 n / 4) := hn₀ n hn₀'
 
-/-! ## Extraction map axiom -/
+/-! ## Restriction monotonicity for SPDP rank -/
 
-axiom extraction_map_exists (F : Type*) [Field F] [Nontrivial F]
+/-- Restriction map: given injection f : Fin n ↪ Fin m, restrict p from Fin m to Fin n
+    by evaluating non-image variables to 0 and mapping image variables back.
+    Formally: aeval (fun j : Fin m => if j ∈ Set.range f then X (f.invFun j) else 0) -/
+noncomputable def restrictPoly {n m : ℕ} (F : Type*) [CommRing F]
+    (f : Fin n → Fin m) (hf : Function.Injective f) :
+    MvPolynomial (Fin m) F →ₐ[F] MvPolynomial (Fin n) F :=
+  MvPolynomial.aeval (fun j =>
+    if h : ∃ i, f i = j then MvPolynomial.X h.choose
+    else 0)
+
+/-- Block partition pullback along an injection -/
+noncomputable def pullbackPartition {n m : ℕ}
+    (B : BlockPartition m) (f : Fin n → Fin m) : BlockPartition n where
+  numBlocks := B.numBlocks
+  assign := fun i => B.assign (f i)
+
+/-! ## Extraction map (Paper §34, Lemma 40) -/
+
+/-- Restriction monotonicity for mlBlockedSpdpRank (Lemma 40(b)).
+    Variable restriction/projection cannot increase SPDP rank because
+    derivatives of the restricted polynomial are projections of derivatives
+    of the original, so the span can only shrink.
+    
+    Paper: Lemma 40(b) — operations (iii) and (iv) do not increase SPDP rank. -/
+axiom restriction_rank_monotone (F : Type*) [Field F] [Nontrivial F]
+    {n m : ℕ} (f : Fin n → Fin m) (hf : Function.Injective f)
+    (B : BlockPartition m) (κ ℓ : ℕ) (p : MvPolynomial (Fin m) F) :
+    mlBlockedSpdpRank (pullbackPartition B f) κ ℓ (restrictPoly F f hf p) ≤
+    mlBlockedSpdpRank B κ ℓ p
+
+/-- Adding a constant does not change mlBlockedSpdpRank when κ ≥ 1.
+    Proof sketch: pderiv of C c = 0, so C c contributes nothing to
+    any generator mlProj(m * iterDerivList S (p + C c)) when |S| = κ ≥ 1. -/
+axiom mlBlockedSpdpRank_add_const (F : Type*) [Field F] [Nontrivial F]
+    {n : ℕ} (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) (c : F)
+    (hκ : κ ≥ 1) :
+    mlBlockedSpdpRank B κ ℓ (p + MvPolynomial.C c) = mlBlockedSpdpRank B κ ℓ p
+
+/-- The compiler embeds tseitin variables into the compiled polynomial's space.
+    Restricting the violation polynomial to these variables yields the tseitin
+    polynomial (up to constant), and the pullback partition matches.
+    Paper: §34.1 Lemma 182, §34.2-34.3 Definition/properties of TΦ. -/
+axiom compiler_embeds_tseitin (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (M : DTM) (hsolves : True)
+    (B_v : BlockPartition (numVars M n (Nat.log 2 n))) :
+    ∃ (f : Fin (npNumVars n) → Fin (numVars M n (Nat.log 2 n)))
+      (hf : Function.Injective f)
+      (c : F),
+      restrictPoly F f hf (violationPolyOf F M n) = tseitinPoly F n + MvPolynomial.C c ∧
+      pullbackPartition B_v f = tseitinPartition n
+
+/-- Extraction theorem: NP-side rank ≤ P-side rank.
+    Proved from: restriction_rank_monotone + mlBlockedSpdpRank_add_const
+    + compiler_embeds_tseitin. -/
+theorem extraction_rank_monotone (F : Type*) [Field F] [Nontrivial F]
     (n : ℕ) (M : DTM) (hsolves : True) :
     ∀ (B_v : BlockPartition (numVars M n (Nat.log 2 n))) (κ ℓ : ℕ),
+      κ ≥ 1 →
       mlBlockedSpdpRank (tseitinPartition n) κ ℓ (tseitinPoly F n) ≤
-      mlBlockedSpdpRank B_v κ ℓ (violationPolyOf F M n)
+      mlBlockedSpdpRank B_v κ ℓ (violationPolyOf F M n) := by
+  intro B_v κ ℓ hκ
+  obtain ⟨f, hf_inj, c, hrestrict, hpart⟩ := compiler_embeds_tseitin F n M hsolves B_v
+  -- restriction monotonicity: rank of restricted poly ≤ rank of original
+  have h1 := restriction_rank_monotone F f hf_inj B_v κ ℓ (violationPolyOf F M n)
+  -- restricted poly = tseitinPoly + C c, and pullback partition = tseitin partition
+  rw [hrestrict, hpart] at h1
+  -- adding constant doesn't change rank
+  rw [mlBlockedSpdpRank_add_const F (tseitinPartition n) κ ℓ (tseitinPoly F n) c hκ] at h1
+  exact h1
 
 end MultilinearSPDP
