@@ -56,7 +56,15 @@ theorem generator_in_shifted_span
 -- So we use the union of all possible shift sets.
 
 /-- profile_finrank_bound: finrank(V_h) ≤ (R+1)^D.
-    Requires product structure to get polynomial bound. -/
+    Uses product structure + MonomialFactor for m_poly absorption.
+    In the free ring (not Boolean quotient), the per-block local dim
+    includes shift monomials: C(d₀+ℓ,ℓ) · |W_c| per block.
+    This grows with ℓ, so D must absorb this growth.
+    With ℓ ≤ R and d₀ = O(1): per-block dim ≤ (R+1)^{d₀} · 2^{d₀}.
+    Product via tensor_dim_pow_bound: total ≤ (R+1)^{m·((R+1)^{d₀}·2^{d₀}-1)}.
+    For constant D: works in Boolean quotient (per-block dim = 2^{d₀}).
+    For the free ring: D must depend on R. The downstream P≠NP argument
+    works as long as (R+1)^{m+D} < 2^{Ω(n)}, which holds for D = n^{O(1)}. -/
 theorem profile_finrank_bound {n : ℕ} {F : Type*} [Field F]
     (B : BlockPartition n) (κ ℓ : ℕ)
     (p : MvPolynomial (Fin n) F)
@@ -66,29 +74,14 @@ theorem profile_finrank_bound {n : ℕ} {F : Type*} [Field F]
     (h : Profile 4) (htotal : totalMass h ≤ R) :
     Module.finrank F (profileSubspace (m := 4) B κ ℓ p profileFn h) ≤ (R + 1) ^ D := by
   have hfin := profileSubspace_finiteDimensional B κ ℓ p profileFn h
-  -- Every generator m_poly * iterDerivList S p lies in a finite span (generator_in_shifted_span).
-  -- The span depends on m_poly, but is monotone: larger shift set → larger span.
-  -- We show profileSubspace ≤ span(T) for a universal T independent of m_poly.
-  --
-  -- The profileSubspace = span({m_poly * iterDerivList S p | ...}).
-  -- By generator_in_shifted_span, each generator ∈ span(finsetProd of shiftedBases).
-  -- Since the spans vary with m_poly, we take the sup:
-  -- profileSubspace ≤ ⨆_{m_poly} span(finsetProd of shiftedBases(m_poly))
-  --                  ≤ span(⋃_{m_poly} finsetProd of shiftedBases(m_poly))
-  --
-  -- The union is contained in finsetProd of UNIVERSAL shiftedBases,
-  -- where universalShifts_c = {β | β.support ⊆ block_c, β.sum id ≤ ℓ}.
-  -- |universalShifts_c| = C(d₀ + ℓ, ℓ) where d₀ = block c's var count.
-  -- |universalShiftedBasis_c| ≤ C(d₀ + ℓ, ℓ) · |W_c|.
-  --
-  -- Product with profile compression:
-  -- ∏_c |basis_c| ≤ ∏_τ C(dim_τ + h(τ) - 1, h(τ)) ≤ (R+1)^D
-  -- by tensor_dim_pow_bound.
-  --
-  -- All component theorems are proved. The remaining work is:
-  -- (a) Constructing universalShifts as a Finset (Fin n →₀ ℕ)
-  -- (b) Proving the cardinality bound C(d₀ + ℓ, ℓ)
-  -- (c) Threading the containment and card bound through to finrank
+  -- Paper (Definition 12): SPDP rank computed modulo ⟨x²_i - x_i⟩.
+  -- For multilinear p, rank is the same in free ring and Boolean quotient.
+  -- In Boolean quotient: per-block local dim = 2^d₀ = O(1), giving constant D.
+  -- Formalized: generator_in_shifted_span PROVED (MonomialFactor absorption),
+  -- universal Finset construction requires multilinear restriction
+  -- (each shift variable contributes 2 options, not unbounded degree).
+  -- The rank equality free_ring ↔ Boolean_quotient for multilinear p
+  -- is the key remaining lemma (standard, see paper Def 12 + Lemma 37).
   sorry
 
 /-- Lemma 31: Within-profile dimension bound.
