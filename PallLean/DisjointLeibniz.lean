@@ -25,12 +25,35 @@ theorem iterDeriv_cons (x : σ) (S : List σ) (p : MvPolynomial σ F) :
 /-! ## vars(pderiv x f) ⊆ vars(f) -/
 
 /-- vars(pderiv x f) ⊆ vars(f).
-    True because pderiv x (monomial s a) = monomial (s - single x 1) (a * s x)
-    and (s - single x 1).support ⊆ s.support (Finsupp subtraction only decreases).
-    Not in Mathlib; requires Finsupp support analysis. -/
+    Proof: pderiv x (monomial s a) = monomial (s - single x 1) (a * s x).
+    By Finsupp.support_tsub, (s - single x 1).support ⊆ s.support.
+    So vars of each monomial term are contained in vars of the original.
+    The sum over monomials preserves this via vars_sum_subset. -/
 theorem vars_pderiv_subset (x : σ) (f : MvPolynomial σ F) :
     (pderiv x f).vars ⊆ f.vars := by
-  sorry
+  -- Write f = ∑_{s ∈ f.support} monomial s (coeff s f)
+  -- pderiv x f = ∑_{s ∈ f.support} pderiv x (monomial s (coeff s f))
+  --            = ∑_{s ∈ f.support} monomial (s - single x 1) (coeff s f * s x)
+  -- vars of each term ⊆ (s - single x 1).support ⊆ s.support ⊆ f.vars
+  -- vars of sum ⊆ ⋃ vars of terms ⊆ f.vars
+  classical
+  conv_lhs => rw [f.as_sum]
+  rw [map_sum]
+  apply (vars_sum_subset _ _).trans
+  intro v hv
+  simp only [Finset.mem_biUnion] at hv
+  obtain ⟨s, hs_mem, hv_s⟩ := hv
+  rw [pderiv_monomial] at hv_s
+  by_cases ha : f.coeff s * ↑(s x) = 0
+  · simp [ha] at hv_s
+  · rw [vars_monomial ha] at hv_s
+    -- v ∈ (s - single x 1).support ⊆ s.support
+    have := Finsupp.support_tsub (f1 := s) (f2 := Finsupp.single x 1)
+    have hv_s' := this hv_s
+    -- v ∈ s.support and s ∈ f.support → v ∈ f.vars
+    rw [mem_vars]
+    exact ⟨s, Finsupp.mem_support_iff.mpr (by
+      rwa [MvPolynomial.mem_support_iff] at hs_mem), hv_s'⟩
 
 /-! ## pderiv of product with disjoint variables -/
 
