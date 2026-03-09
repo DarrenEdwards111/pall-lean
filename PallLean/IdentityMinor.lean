@@ -1315,4 +1315,93 @@ theorem chooseTagMonomial_le_one (Φ : TseitinFormula) (c : Fin Φ.clauses.lengt
         have : v3 ≠ x := Ne.symm hx3
         simp_all
 
+/-- Accumulator lemma for tagMono bound. Simpler version: track that
+    all remaining elements are zero at x once we've seen a nonzero one. -/
+private theorem foldl_chooseTag_le_one (Φ : TseitinFormula) (x : Fin (tseitinNumVars Φ)) :
+    ∀ (cs : List (Fin Φ.clauses.length)) (acc : (Fin (tseitinNumVars Φ)) →₀ ℕ),
+    acc x ≤ 1 →
+    (∀ c ∈ cs, (chooseTagMonomial Φ c) x = 0) →
+    ((cs.map (chooseTagMonomial Φ)).foldl (· + ·) acc) x ≤ 1
+  | [], acc, hacc, _ => by simpa
+  | a :: rest, acc, hacc, hall => by
+    simp only [List.map, List.foldl]
+    apply foldl_chooseTag_le_one Φ x rest
+    · rw [Finsupp.add_apply, hall a (by simp)]; omega
+    · intro c hc; exact hall c (by simp [hc])
+
+/-- Disjoint clause variables mean chooseTagMonomial c₂ x = 0 if c₁ is nonzero at x -/
+private theorem chooseTag_disjoint_zero [Nontrivial F] (Φ : TseitinFormula)
+    (pack : DisjointPacking Φ) (x : Fin (tseitinNumVars Φ))
+    (c₁ c₂ : Fin Φ.clauses.length) (hne : c₁ ≠ c₂)
+    (h1 : c₁ ∈ pack.selected) (h2 : c₂ ∈ pack.selected)
+    (hne₁ : (chooseTagMonomial Φ c₁) x ≠ 0) :
+    (chooseTagMonomial Φ c₂) x = 0 := by
+  have hsupp := tagMonomial_supported_clause Φ c₁
+  have hx_in := hsupp x (Finsupp.mem_support_iff.mpr hne₁)
+  have ⟨idx1, hidx1⟩ := List.mem_iff_get.mp h1
+  have ⟨idx2, hidx2⟩ := List.mem_iff_get.mp h2
+  have hidx_ne : idx1 ≠ idx2 := by
+    intro h; subst h; rw [hidx1] at hidx2; exact hne hidx2
+  have hdisj := clauseVarSetFin_disjoint (F := F) Φ pack idx1 idx2 hidx_ne
+  rw [← hidx1] at hx_in
+  have hx_not := Finset.disjoint_left.mp hdisj hx_in
+  rw [hidx2] at hx_not
+  by_contra h
+  exact hx_not (tagMonomial_supported_clause Φ c₂ x (Finsupp.mem_support_iff.mpr h))
+
+/-- tagMono has all entries ≤ 1 (multilinear exponent vector) -/
+theorem tagMono_le_one [Nontrivial F] (Φ : TseitinFormula)
+    (pack : DisjointPacking Φ) (κ : ℕ)
+    (i : Fin (Nat.choose pack.selected.length κ))
+    (x : Fin (tseitinNumVars Φ)) :
+    (tagMono F Φ pack κ i) x ≤ 1 := by
+  unfold tagMono
+  set cs := getSubset pack κ i
+  -- By induction: process the list, first nonzero element absorbs, rest are 0
+  suffices ∀ (l : List (Fin Φ.clauses.length)) (acc : _ →₀ ℕ),
+      acc x ≤ 1 →
+      (∀ c ∈ l, c ∈ pack.selected) →
+      l.Nodup →
+      (∀ c ∈ l, acc x ≠ 0 → (chooseTagMonomial Φ c) x = 0) →
+      (∀ c₁ ∈ l, ∀ c₂ ∈ l, c₁ ≠ c₂ →
+        (chooseTagMonomial Φ c₁) x ≠ 0 → (chooseTagMonomial Φ c₂) x = 0) →
+      ((l.map (chooseTagMonomial Φ)).foldl (· + ·) acc) x ≤ 1 by
+    exact this cs 0 (by simp)
+      (getSubset_subset pack κ i)
+      (getSubset_nodup pack κ i)
+      (by simp)
+      (fun c₁ hc₁ c₂ hc₂ hne hne₁ =>
+        chooseTag_disjoint_zero (F := F) Φ pack x c₁ c₂ hne
+          (getSubset_subset pack κ i c₁ hc₁)
+          (getSubset_subset pack κ i c₂ hc₂) hne₁)
+  intro l; induction l with
+  | nil => intro acc hacc _ _ _ _; simpa
+  | cons a rest ih =>
+    intro acc hacc hsel hnd hdisj_acc hdisj_list
+    simp only [List.map, List.foldl]
+    apply ih (acc + chooseTagMonomial Φ a)
+    · rw [Finsupp.add_apply]
+      by_cases ha : (chooseTagMonomial Φ a) x = 0
+      · omega
+      · -- a nonzero → acc x = 0 (contrapositive of hdisj_acc)
+        have hacc0 : acc x = 0 := by
+          by_contra h; exact ha (hdisj_acc a (by simp) h)
+        have := chooseTagMonomial_le_one Φ a x; omega
+    · intro c hc; exact hsel c (by simp [hc])
+    · exact hnd.of_cons
+    · intro c hc hne
+      -- hne : (acc + chooseTagMonomial a) x ≠ 0, goal: (chooseTagMonomial c) x = 0
+      have hadd := Finsupp.add_apply acc (chooseTagMonomial Φ a) x
+      rw [hadd] at hne
+      -- acc x + (tag a) x ≠ 0, so acc x ≠ 0 or (tag a) x ≠ 0
+      by_cases hacc : acc x = 0
+      · -- (tag a) x ≠ 0
+        have ha_ne : (chooseTagMonomial Φ a) x ≠ 0 := by omega
+        exact hdisj_list a (by simp) c (by simp [hc])
+          (by intro h; subst h; exact absurd hc ((List.nodup_cons.mp hnd).1)) ha_ne
+      · -- acc x ≠ 0 → (tag c) x = 0
+        exact hdisj_acc c (by simp [hc]) hacc
+    · intro c₁ hc₁ c₂ hc₂ hne hne₁
+      exact hdisj_list c₁ (by simp [hc₁]) c₂ (by simp [hc₂]) hne hne₁
+
 end IdentityMinor
