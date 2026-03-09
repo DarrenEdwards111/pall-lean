@@ -9,6 +9,7 @@ import PallLean.DisjointLeibniz
 import Mathlib.Tactic
 import Mathlib.Algebra.MvPolynomial.PDeriv
 import Mathlib.Algebra.MvPolynomial.Variables
+import Mathlib.Data.Finsupp.Interval
 
 namespace LocalBasis
 
@@ -92,4 +93,43 @@ theorem iterDerivList_mem_span_downClosure {n : ℕ}
     exact Submodule.span_mono (downClosure_pderiv_subset x f)
       (ih (pderiv x f))
 
+/-! ## Finite spanning set with bounded cardinality -/
+
+/-- The finite downward closure: all exponents componentwise ≤ some s ∈ f.support,
+    realized as a Finset via Finsupp.Iic. -/
+noncomputable def finiteDownClosure [Fintype σ] (f : MvPolynomial σ F) : Finset (σ →₀ ℕ) :=
+  f.support.biUnion (fun s => Finset.Iic s)
+
+theorem mem_finiteDownClosure_iff [Fintype σ] (f : MvPolynomial σ F) (t : σ →₀ ℕ) :
+    t ∈ finiteDownClosure f ↔ ∃ s ∈ f.support, t ≤ s := by
+  simp [finiteDownClosure, Finset.mem_biUnion, Finset.mem_Iic]
+
+/-- The monomial Finset spanning all derivatives. -/
+noncomputable def monomialSpanFinset [Fintype σ] [DecidableEq F] (f : MvPolynomial σ F) : Finset (MvPolynomial σ F) :=
+  (finiteDownClosure f).image (fun t => monomial t (1 : F))
+
+/-- downClosureBasis f ⊆ ↑(monomialSpanFinset f) -/
+theorem downClosureBasis_subset_monomialSpan [Fintype σ] [DecidableEq F] (f : MvPolynomial σ F) :
+    downClosureBasis f ⊆ ↑(monomialSpanFinset f) := by
+  intro q hq
+  obtain ⟨t, ⟨s, hs, hts⟩, rfl⟩ := hq
+  simp only [monomialSpanFinset, Finset.coe_image, Set.mem_image]
+  exact ⟨t, (mem_finiteDownClosure_iff f t).mpr ⟨s, hs, hts⟩, rfl⟩
+
+/-- Cardinality bound: monomialSpanFinset has card ≤ |finiteDownClosure|,
+    which for multilinear polynomials (degree ≤ 1 per var) with d vars
+    is ≤ 2^d. General bound: ∏_{i ∈ vars} (degree_i + 1). -/
+theorem monomialSpanFinset_card_le [Fintype σ] [DecidableEq F]
+    (f : MvPolynomial σ F) :
+    (monomialSpanFinset f).card ≤ (finiteDownClosure f).card := by
+  exact Finset.card_image_le
+
+theorem iterDerivList_mem_span_monomialFinset {n : ℕ} [DecidableEq F]
+    (S : List (Fin n)) (f : MvPolynomial (Fin n) F) :
+    SPDP.iterDerivList S f ∈
+      Submodule.span F ↑(monomialSpanFinset f) :=
+  Submodule.span_mono (downClosureBasis_subset_monomialSpan f)
+    (iterDerivList_mem_span_downClosure S f)
+
 end LocalBasis
+
