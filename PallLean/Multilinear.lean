@@ -29,13 +29,13 @@ noncomputable def multilinearSubmodule (σ : Type*) [DecidableEq σ]
     2^n multilinear monomials and is finite-dimensional. -/
 theorem multilinear_finiteDimensional [Fintype σ] :
     Module.Finite F (multilinearSubmodule σ F) := by
-  sorry -- standard: multilinear monomials form a finite basis
+  sorry -- multilinear monomials form a finite spanning set
 
 /-- Key dimension bound: the multilinear submodule on d variables
-    has dimension exactly 2^d. -/
+    has dimension ≤ 2^d. -/
 theorem multilinear_finrank [Fintype σ] :
     Module.finrank F (multilinearSubmodule σ F) ≤ 2 ^ Fintype.card σ := by
-  sorry -- 2^d multilinear monomials span
+  sorry -- spanning set has card ≤ 2^|σ| = 2^d
 
 /-- For multilinear p, m_poly * iterDerivList S p projected onto the
     multilinear submodule depends only on the multilinear part of m_poly.
