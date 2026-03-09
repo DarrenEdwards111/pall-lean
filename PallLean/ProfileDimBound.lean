@@ -255,6 +255,23 @@ theorem profile_finrank_bound {n : ℕ} {F : Type*} [Field F]
     (h : Profile.Profile 4) (htotal : Profile.totalMass h ≤ R) :
     Module.finrank F (Profile.profileSubspace (m := 4) B κ ℓ p
       profileFn h) ≤ (R + 1) ^ D := by
+  -- Strategy: construct a Finset T that spans profileSubspace with |T| ≤ (R+1)^D.
+  -- Every generator m_poly * iterDerivList S p lies in span(T) by:
+  -- • DisjointLeibniz: iterDerivList S p = ∏_c (iterDerivList S|_c f_c)
+  -- • LocalBasis: each factor ∈ span(monomialSpanFinset f_c)
+  -- • MonomialFactor: m_poly * ∏ t_c ∈ span(finsetProd of shiftedBases)
+  -- Then finrank(span(generators)) ≤ finrank(span(T)) ≤ |T| ≤ (R+1)^D.
+  --
+  -- The product structure of the compiled polynomial makes this work.
+  -- All component proofs exist in:
+  --   ProfileAssembly.iterDerivList_in_product_span
+  --   MonomialFactor.mpoly_mul_prod_mem_span
+  --   SpanProduct.finsetProd_card_le
+  --   tensor_dim_pow_bound
+  --
+  -- Interface plumbing: threading product structure hypothesis through
+  -- the profileSubspace definition requires matching the generator set
+  -- {m_poly * iterDerivList S p | ...} with the span from MonomialFactor.
   sorry
 
 /-- Lemma 31: Within-profile dimension bound.
