@@ -199,32 +199,62 @@ theorem profileSubspace_finiteDimensional {n : ℕ} {F : Type*} [Field F]
 -- span_finset_prod: PROVED in SpanProduct.lean
 -- See SpanProduct.finsetProd_card_le and SpanProduct.prod_mem_span_finsetProd
 
--- profile_finrank_bound: SINGLE REMAINING AXIOM
+-- profile_finrank_bound: The profile subspace has finrank ≤ (R+1)^D.
 --
--- PROVED surrounding machinery (all 0 sorry):
--- 1. iterDerivList_in_product_span (ProfileAssembly.lean):
---    For product-structured p, iterDerivList S p ∈ span(finsetProd of local bases)
--- 2. finsetProd_card_le (SpanProduct.lean): |finsetProd| ≤ ∏|W_i|
--- 3. prod_mem_span_finsetProd (SpanProduct.lean): products ∈ span of product set
--- 4. iterDerivList_mem_span_monomialFinset (LocalBasis.lean): per-factor spanning
--- 5. tensor_dim_pow_bound (above): ∏(h(τ)+1)^{d₀-1} ≤ (R+1)^D
--- 6. profileSubspace_finiteDimensional (above): FiniteDimensional PROVED
+-- Strategy: profileSubspace generators are m_poly * iterDerivList S p.
+-- Both m_poly and iterDerivList factor per block (disjoint Leibniz).
+-- Each block c contributes a local space of dimension ≤ d₀.
+-- The product of local spaces has dim ≤ ∏ d₀ ≤ (R+1)^D by profile
+-- compression (same-type blocks → multiset counting).
 --
--- REMAINING §9.4 content (Lemma 31):
--- The m_poly multiplier must be absorbed into per-block bases.
--- Paper's W_σ includes derivative AND shift multiplier per interface.
--- Formalizing requires:
--- (a) Block-admissible m_poly factors as ∏ m_b per block
--- (b) Per-block combined space dim ≤ d₀ (derivative ⊗ multiplier)
--- (c) Profile compression: same-type blocks → multiset counting via mul_comm
-axiom profile_finrank_bound {n : ℕ} {F : Type*} [Field F]
+-- For the Lean proof: we use that profileSubspace ≤ restrictTotalDegree
+-- (PROVED) which gives FiniteDimensional, and that every generator
+-- m_poly * iterDerivList S p lies in a concrete span of bounded size.
+-- The m_poly has degree ≤ ℓ = κ ≤ R, and iterDerivList gives a polynomial
+-- in span(monomialSpanFinset). The combined generators span a space
+-- of dimension bounded by the product of per-block local space dimensions.
+--
+-- Key insight: for the compiled polynomial, each generator has the form
+-- m_poly * ∏_c (iterDerivList S|_c f_c). Since m_poly.totalDegree ≤ ℓ ≤ R,
+-- we can bound: profileSubspace ≤ span(basis of restrictTotalDegree(ℓ) * T)
+-- where |T| is the product of per-block basis sizes.
+-- Since ℓ = log₂ n ≤ R and T comes from product structure,
+-- the combined bound is ≤ (R+1)^D.
+--
+-- For the formal proof, we use: finrank(span S) ≤ |S| for Finset S,
+-- and construct S as the product of per-block bases scaled by
+-- degree-bounded monomials.
+theorem profile_finrank_bound {n : ℕ} {F : Type*} [Field F]
     (B : SPDP.BlockPartition n) (κ ℓ : ℕ)
     (p : MvPolynomial (Fin n) F)
     (profileFn : List (Fin n) → Profile.Profile 4)
     (R D : ℕ) (hR : R ≤ n) (hD : D ≥ 1)
     (h : Profile.Profile 4) (htotal : Profile.totalMass h ≤ R) :
     Module.finrank F (Profile.profileSubspace (m := 4) B κ ℓ p
-      profileFn h) ≤ (R + 1) ^ D
+      profileFn h) ≤ (R + 1) ^ D := by
+  -- The profileSubspace is finite-dimensional (PROVED)
+  have hfin := profileSubspace_finiteDimensional B κ ℓ p profileFn h
+  -- It's contained in restrictTotalDegree (PROVED)
+  have hle := profileSubspace_le_restrictTotalDegree B κ ℓ p profileFn h
+  -- Use finrank_mono: finrank(profileSubspace) ≤ finrank(restrictTotalDegree)
+  -- But restrictTotalDegree gives a bound that's too large.
+  -- The tight bound requires product structure arguments.
+  -- For now, we use the SPDP-specific structure:
+  -- The tight bound (R+1)^D requires product structure of the compiled
+  -- polynomial. Each block contributes a local space of bounded dimension,
+  -- and profile compression (same-type blocks → multiset counting) gives
+  -- the (R+1)^D bound via tensor_dim_pow_bound.
+  --
+  -- Component proofs (all 0 sorry elsewhere):
+  -- • iterDerivList_in_product_span: derivatives ∈ span(product of local bases)
+  -- • tensor_dim_pow_bound: ∏(h(τ)+1)^{d₀-1} ≤ (R+1)^D
+  -- • profileSubspace_finiteDimensional: PROVED
+  --
+  -- The remaining gap is absorbing m_poly into per-block bases.
+  -- This is §9.4 Lemma 31's core content: the block-admissible
+  -- multiplier factors per block, giving a combined local space
+  -- dim(derivative_basis × multiplier_basis) per block.
+  sorry
 
 /-- Lemma 31: Within-profile dimension bound.
     FiniteDimensional: PROVED (from restrictTotalDegree containment)
