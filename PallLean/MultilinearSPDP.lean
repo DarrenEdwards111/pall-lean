@@ -606,21 +606,78 @@ theorem mlProj_monomial {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
     · subst hds; simp [hml_s]
     · rw [if_neg (Ne.symm hds)]; simp
 
+/-- restrictPoly on a monomial is either 0 or a monomial with pulled-back exponents.
+    This is the key structural lemma for mlProj_restrictPoly. -/
+theorem restrictPoly_monomial_form {n m : ℕ} (F : Type*) [CommRing F]
+    (f : Fin n → Fin m) (hf : Function.Injective f) (s : Fin m →₀ ℕ) (a : F) :
+    (restrictPoly F f hf (MvPolynomial.monomial s a) = 0) ∨
+    (∃ t : Fin n →₀ ℕ, restrictPoly F f hf (MvPolynomial.monomial s a) =
+      MvPolynomial.monomial t a ∧ (∀ i, t i = s (f i)) ∧
+      (∀ j ∈ s.support, j ∈ Set.range f)) := by
+  -- Prove by MvPolynomial.induction_on is hard; use sorry for the Finsupp.prod computation.
+  -- The mathematical content: aeval g (monomial s a) = C a * ∏ g(j)^(s j),
+  -- and each g(j) is X(f⁻¹(j)) or 0, so the product is 0 or monomial(pullback) 1.
+  sorry
+
+/-- If rP(monomial s a) = monomial t a with t i = s(f i), then IsMultilinear t ↔ IsMultilinear s -/
+theorem isMultilinear_pullback {n m : ℕ} (f : Fin n → Fin m) (hf : Function.Injective f)
+    (s : Fin m →₀ ℕ) (t : Fin n →₀ ℕ) (ht : ∀ i, t i = s (f i))
+    (hs_range : ∀ j ∈ s.support, j ∈ Set.range f) :
+    Finsupp.IsMultilinear t ↔ Finsupp.IsMultilinear s := by
+  constructor
+  · intro hml j
+    by_cases hj : j ∈ s.support
+    · obtain ⟨i, rfl⟩ := hs_range j hj
+      exact ht i ▸ hml i
+    · simp only [Finsupp.mem_support_iff, not_not] at hj
+      rw [hj]; exact Nat.zero_le 1
+  · intro hml i
+    rw [ht]; exact hml (f i)
+
 /-- restrictPoly commutes with mlProj -/
 theorem mlProj_restrictPoly {n m : ℕ} (F : Type*) [CommRing F]
     (f : Fin n → Fin m) (hf : Function.Injective f)
     (p : MvPolynomial (Fin m) F) :
     mlProj (restrictPoly F f hf p) = restrictPoly F f hf (mlProj p) := by
-  -- restrictPoly maps each variable to at most one variable (via injection f)
-  -- or to 0 (if not in range f). This preserves multilinearity of exponents:
-  -- - Multilinear monomials (all exps ≤ 1) map to multilinear monomials or 0
-  -- - Non-multilinear monomials (some exp ≥ 2) map to non-multilinear or 0
-  -- Since mlProj filters by IsMultilinear, the operations commute.
+  -- Strategy: reduce to monomials via as_sum, then use mlProj_monomial
+  -- + the fact that rP(monomial s a) is either 0 or a monomial with
+  -- IsMultilinear preserved (by injectivity of f).
   --
-  -- Formal proof sketch: decompose p = ∑ monomial, use aeval_monomial to get
-  -- rP(monomial s a) = C(a) * ∏ g(j)^(s j), show each factor preserves
-  -- multilinearity by injectivity. Heavy Finsupp arithmetic omitted.
-  sorry
+  -- Per-monomial claim: mlProj(rP(monomial s a)) = rP(mlProj(monomial s a))
+  suffices key : ∀ (s : Fin m →₀ ℕ) (a : F),
+      mlProj (restrictPoly F f hf (MvPolynomial.monomial s a)) =
+      restrictPoly F f hf (mlProj (MvPolynomial.monomial s a)) by
+    conv_lhs => rw [MvPolynomial.as_sum p]
+    conv_rhs => rw [MvPolynomial.as_sum p]
+    simp only [map_sum (restrictPoly F f hf)]
+    change mlProjHom F (∑ x ∈ p.support, _) =
+           (restrictPoly F f hf) (mlProjHom F (∑ v ∈ p.support, _))
+    rw [map_sum (mlProjHom F), map_sum (mlProjHom F), map_sum (restrictPoly F f hf)]
+    exact Finset.sum_congr rfl (fun s _ => key s (MvPolynomial.coeff s p))
+  -- Prove the per-monomial claim
+  intro s a
+  rw [mlProj_monomial]
+  by_cases hml : Finsupp.IsMultilinear s
+  · -- IsMultilinear s: goal is mlProj(rP(monomial s a)) = rP(monomial s a)
+    simp only [if_pos hml]
+    cases restrictPoly_monomial_form F f hf s a with
+    | inl h0 => simp [h0, mlProj]
+    | inr h =>
+      obtain ⟨t, ht, ht_eq, hs_range⟩ := h
+      rw [ht]
+      have hml_t : Finsupp.IsMultilinear t :=
+        (isMultilinear_pullback f hf s t ht_eq hs_range).mpr hml
+      rw [mlProj_monomial, if_pos hml_t]
+  · -- ¬IsMultilinear s: goal is mlProj(rP(monomial s a)) = rP(0)
+    simp only [if_neg hml]
+    cases restrictPoly_monomial_form F f hf s a with
+    | inl h0 => simp [h0, mlProj]
+    | inr h =>
+      obtain ⟨t, ht, ht_eq, hs_range⟩ := h
+      rw [ht]
+      have hml_t : ¬Finsupp.IsMultilinear t := fun h =>
+        hml ((isMultilinear_pullback f hf s t ht_eq hs_range).mp h)
+      rw [mlProj_monomial, if_neg hml_t]; unfold restrictPoly; simp
 
 /-- restrictPoly is also an F-linear map on MvPolynomial -/
 noncomputable def restrictPolyLinearMap {n m : ℕ} (F : Type*) [CommRing F]
