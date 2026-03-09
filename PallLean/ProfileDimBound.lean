@@ -96,19 +96,25 @@ polynomial's factorization property. The axiom states: the profile
 subspace has a finite spanning set of bounded cardinality. This encodes
 exactly the disjoint-variable Leibniz factorization + local space bound. -/
 
-/-- AXIOM: Leibniz factorization + local space bound.
-    The compiled polynomial's product structure (disjoint-variable factors,
-    ≤ d₀ monomials per factor) implies each profile subspace V_h has a
-    spanning set of cardinality ≤ (R+1)^D.
+/-- AXIOM: Local space + symmetric multiset bound.
 
-    To eliminate this axiom, one would need to formalize:
-    1. iterDerivList S (∏ f_c) = ∏ iterDerivList (S|_{block_c}) f_c
-       (disjoint variable Leibniz — requires pderiv_eq_zero_of_notMem_vars
-       + induction on S + variable closure under pderiv)
-    2. Each per-block derivative space has dim ≤ d₀ = 16
-       (multilinear monomials in 4 variables)
-    3. V_h ⊆ ⊗_τ Sym^{h(τ)}(W_τ) (symmetric tensor containment)
-    4. dim(⊗_τ Sym^{h(τ)}(W_τ)) ≤ (R+1)^D (PROVED: tensor_dim_pow_bound) -/
+    After applying iterDeriv_prod_disjoint (PROVED), each SPDP generator
+    factors as a product of per-block contributions. This axiom states
+    that the per-block contributions lie in a bounded space (d₀ = 16
+    basis elements per block), and same-type blocks are interchangeable
+    (by commutativity of multiplication), giving a multiset count of
+    ∏_τ C(d₀ + h(τ) - 1, h(τ)) ≤ (R+1)^D spanning elements.
+
+    PROVED machinery used by this axiom:
+    - iterDeriv_prod_disjoint (DisjointLeibniz.lean) — factorization
+    - tensor_dim_pow_bound — combinatorial bound ∏(h(τ)+1)^{d₀-1} ≤ (R+1)^D
+    - sym_pow_dim — C(d+k-1,k) ≤ (d+k)^{d-1}
+
+    REMAINING mathematical content:
+    - Each clause factor f_c = 1 - z_c·V_c has ≤ 4 Boolean variables
+    - The multilinear monomial space in 4 variables has dim = 2^4 = 16
+    - Products of d₀ elements from k blocks with same type are counted
+      by multisets: C(d₀+k-1, k) (stars-and-bars via mul_comm) -/
 axiom profile_spanning_set_bound {n : ℕ} {F : Type*} [Field F]
     (B : SPDP.BlockPartition n) (κ ℓ : ℕ)
     (p : MvPolynomial (Fin n) F)
