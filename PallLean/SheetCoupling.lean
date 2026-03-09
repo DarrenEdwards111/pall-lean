@@ -42,6 +42,7 @@ def sheetCoupling (M : DTM) : DTM where
       -- State Q+2: read literal 3, move right → Q (cycle)
       (⟨M.numStates, by omega⟩, b, true)
   timeBound := M.timeBound + 1
+  hTimeBound := by omega
 
 /-- The sheet coupling preserves the time bound class -/
 theorem sheetCoupling_timeBound (M : DTM) :

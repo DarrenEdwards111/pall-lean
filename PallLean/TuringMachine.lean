@@ -27,8 +27,9 @@ structure DTM where
   hStates : numStates ≥ 3
   /-- Transition: (state, bit) → (new state, bit write, direction) -/
   transition : Fin numStates → Bool → Fin numStates × Bool × Bool
-  /-- Time bound exponent: time ≤ n^timeBound -/
+  /-- Time bound exponent: time ≤ n^timeBound. Must be ≥ 1 (reads input). -/
   timeBound : ℕ
+  hTimeBound : timeBound ≥ 1
 
 def timeSteps (M : DTM) (n : ℕ) : ℕ := n ^ M.timeBound
 def tapeSize (M : DTM) (n : ℕ) : ℕ := timeSteps M n + 1
