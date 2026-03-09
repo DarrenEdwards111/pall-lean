@@ -25,6 +25,7 @@ import PallLean.ProfileCompression
 import PallLean.WidthRank
 import PallLean.ProfileWiring
 import PallLean.ProfileDimBound
+import PallLean.ProfileFinrank
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.Dimension.Finrank
 
@@ -357,15 +358,19 @@ theorem profile_subspace_cover (F : Type*) [Field F] (M : DTM) (n : ℕ)
       _ ≤ (R + 1) ^ m := Nat.pow_le_pow_right (by omega) (by omega)
   · -- FiniteDimensional for each V_i
     intro i
-    have hmem := (toFin.symm i).prop
-    have htotal := ProfileWiring.profileSet_mem_totalMass R _ hmem
-    exact (ProfileDimBound.within_profile_dim_bound B (Nat.log 2 n) (Nat.log 2 n) p pfn
-      R D (le_trans hR hn_le) hD _ htotal).1
-  · -- dim V_i ≤ C(R+D, D)
+    exact (ProfileDimBound.profileSubspace_finiteDimensional B _ _ p pfn _)
+  · -- dim V_i ≤ (R+1)^D
     intro i
     have hmem := (toFin.symm i).prop
     have htotal := ProfileWiring.profileSet_mem_totalMass R _ hmem
-    exact (ProfileDimBound.within_profile_dim_bound B (Nat.log 2 n) (Nat.log 2 n) p pfn
+    -- The compiled polynomial has product structure (tseitin = ∏ clause factors)
+    -- The compiled polynomial has product structure.
+    -- tseitinPoly = ∏_c (1 - X(z_c) * clauseGadget c) (coupledVerifier definition)
+    -- rename preserves products: rename f (∏ g) = ∏ (rename f g)
+    -- Each factor's variables are in the corresponding block (by tseitinPartition construction)
+    -- Each factor has ≤ 5 variables (selector + clause literals)
+    have hp : ProfileAssembly.HasProductStructure B p := by sorry
+    exact (ProfileFinrank.within_profile_dim_bound B (Nat.log 2 n) (Nat.log 2 n) p hp pfn
       R D (le_trans hR hn_le) hD _ htotal).2
   · -- Cover: SPDP ≤ ⨆ i, V i
     -- Use Profile.spdp_le_iSup_profileSubspace, then convert Finset→Fin indexing
