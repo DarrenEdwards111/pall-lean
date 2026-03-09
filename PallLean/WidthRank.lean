@@ -95,15 +95,14 @@ theorem profile_to_poly_bound {Γ R n m D numP maxD : ℕ}
     (hR : R ≤ n)
     (hn : n ≥ 2 ^ (m + D))
     (hΓ : Γ ≤ numP * maxD)
-    (hP : numP ≤ Nat.choose (R + m) m)
+    (hP : numP ≤ (R + 1) ^ m)
     (hDim : maxD ≤ Nat.choose (R + D) D) :
     Γ ≤ n ^ (m + D + 1) := by
-  have h1 : Nat.choose (R + m) m ≤ (R + 1) ^ m := choose_le_pow R m
   have h2 : Nat.choose (R + D) D ≤ (R + 1) ^ D := choose_le_pow R D
   calc Γ
       ≤ numP * maxD := hΓ
-    _ ≤ Nat.choose (R + m) m * Nat.choose (R + D) D := Nat.mul_le_mul hP hDim
-    _ ≤ (R + 1) ^ m * (R + 1) ^ D := Nat.mul_le_mul h1 h2
+    _ ≤ (R + 1) ^ m * Nat.choose (R + D) D := Nat.mul_le_mul hP hDim
+    _ ≤ (R + 1) ^ m * (R + 1) ^ D := Nat.mul_le_mul_left _ h2
     _ = (R + 1) ^ (m + D) := by ring
     _ ≤ (n + 1) ^ (m + D) := Nat.pow_le_pow_left (by omega) (m + D)
     _ ≤ n ^ (m + D + 1) := succ_pow_le_pow_succ n (m + D) hn

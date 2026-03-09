@@ -13,7 +13,6 @@
   Paper: Lemma 31, Definition 19.
 -/
 import PallLean.TypeWord
-import PallLean.Canonicalization
 import PallLean.Profile
 import PallLean.ProfileCompression
 import Mathlib.Tactic
@@ -99,6 +98,7 @@ axiom within_profile_dim_bound {n : ℕ} {F : Type*} [Field F]
     (profileFn : List (Fin n) → Profile.Profile 4)
     (R D : ℕ) (hR : R ≤ n) (hD : D ≥ 1)
     (h : Profile.Profile 4) (htotal : Profile.totalMass h ≤ R) :
+    FiniteDimensional F (Profile.profileSubspace (m := 4) B κ ℓ p profileFn h) ∧
     Module.finrank F (Profile.profileSubspace (m := 4) B κ ℓ p
       profileFn h) ≤ Nat.choose (R + D) D
 

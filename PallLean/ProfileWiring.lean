@@ -40,30 +40,39 @@ We need a Finset of profiles containing all profiles with total mass ≤ R.
 The number of such profiles is ≤ C(R+4, 4) by stars-and-bars. -/
 
 /-- The set of all profiles h : Fin 4 → ℕ with totalMass h ≤ R.
-    This is finite (bounded componentwise by R). -/
+    Constructed as image of (Fin 4 → Fin (R+1)) filtered by total mass.
+    This is finite with |profileSet R| ≤ C(R+4, 4). -/
 noncomputable def profileSet (R : ℕ) : Finset (Profile.Profile 4) :=
-  (Finset.univ : Finset (Fin 4 → Fin (R + 1))).image
-    (fun f => fun t => (f t).val)
+  ((Finset.univ : Finset (Fin 4 → Fin (R + 1))).image
+    (fun f => fun t => (f t).val)).filter
+    (fun h => Profile.totalMass h ≤ R)
+
+theorem profileSet_mem_totalMass (R : ℕ) (h : Profile.Profile 4)
+    (hm : h ∈ profileSet R) : Profile.totalMass h ≤ R := by
+  simp [profileSet, Finset.mem_filter] at hm; exact hm.2
 
 theorem profileSet_complete (R : ℕ) (h : Profile.Profile 4)
     (htotal : Profile.totalMass h ≤ R) :
     h ∈ profileSet R := by
   unfold profileSet
-  rw [Finset.mem_image]
-  -- Each h(t) ≤ totalMass h ≤ R, so h(t) < R + 1
-  refine ⟨fun t => ⟨h t, ?_⟩, Finset.mem_univ _, ?_⟩
-  · -- h t < R + 1
-    have h1 : h t ≤ Finset.univ.sum h := Finset.single_le_sum (fun _ _ => Nat.zero_le _)
-      (Finset.mem_univ t)
-    have h2 : Finset.univ.sum h = Profile.totalMass h := rfl
-    omega
-  · ext t; simp
+  rw [Finset.mem_filter]
+  constructor
+  · rw [Finset.mem_image]
+    refine ⟨fun t => ⟨h t, ?_⟩, Finset.mem_univ _, ?_⟩
+    · have h1 : h t ≤ Finset.univ.sum h := Finset.single_le_sum (fun _ _ => Nat.zero_le _)
+        (Finset.mem_univ t)
+      have h2 : Finset.univ.sum h = Profile.totalMass h := rfl
+      omega
+    · ext t; simp
+  · exact htotal
 
 theorem profileSet_card_le (R : ℕ) :
     (profileSet R).card ≤ (R + 1) ^ 4 := by
   unfold profileSet
-  calc (Finset.univ.image _).card
-      ≤ Finset.card (Finset.univ : Finset (Fin 4 → Fin (R + 1))) :=
+  calc (Finset.filter _ _).card
+      ≤ (Finset.univ.image (fun (f : Fin 4 → Fin (R + 1)) (t : Fin 4) => (f t).val)).card :=
+        Finset.card_filter_le _ _
+    _ ≤ Finset.card (Finset.univ : Finset (Fin 4 → Fin (R + 1))) :=
         Finset.card_image_le
     _ = (R + 1) ^ 4 := by simp [Finset.card_univ, Fintype.card_fun, Fintype.card_fin]
 
