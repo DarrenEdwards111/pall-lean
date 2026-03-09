@@ -890,54 +890,101 @@ theorem mlBlockedSpdpRank_coarsen {n : ℕ} (F : Type*) [Field F] [Nontrivial F]
   apply mlBlockedSpdpSubspace_mono_partition
   exact hrefine
 
+/-! ## Paper-faithful compiled polynomial (§34, Theorem 181)
+
+The paper's compiled polynomial P_{M',n} = Q×_Φ(u) + R_{M',Φ}(v) consists of:
+- The coupled verifier sheet Q× (tseitinPoly) on witness variables
+- The tableau constraints R (violationPolyOf) on all variables -/
+
+/-- Canonical inclusion of witness variables into compiled variable space. -/
+noncomputable def witnessInclusion (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    Fin (npNumVars n) → Fin (numVars M n (Nat.log 2 n)) :=
+  fun i => ⟨i.val, Nat.lt_of_lt_of_le i.isLt h_le⟩
+
+theorem witnessInclusion_injective (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    Function.Injective (witnessInclusion M n h_le) :=
+  fun a b h => Fin.ext (Fin.mk.inj h)
+
+/-- The coupled verifier sheet Q×_Φ embedded in the compiled variable space. -/
+noncomputable def verifierSheetOf (F : Type*) [CommRing F] [Nontrivial F]
+    (M : DTM) (n : ℕ) (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    MvPolynomial (Fin (numVars M n (Nat.log 2 n))) F :=
+  MvPolynomial.rename (witnessInclusion M n h_le) (tseitinPoly F n)
+
+/-- The full compiled polynomial P_{M',n} = Q×_Φ(u) + R_{M',Φ}(v).
+    Paper: Theorem 181, §34.1. -/
+noncomputable def fullCompiledPoly (F : Type*) [CommRing F] [Nontrivial F]
+    (M : DTM) (n : ℕ) (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    MvPolynomial (Fin (numVars M n (Nat.log 2 n))) F :=
+  verifierSheetOf F M n h_le + violationPolyOf F M n
+
+/-- §34.1: tableau constraints restricted to witness vars give a constant.
+    Paper: Lemma 182. -/
+theorem tableau_restriction_const (F : Type*) [Field F] [Nontrivial F]
+    (M : DTM) (n : ℕ) (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    ∃ c : F, restrictPoly F (witnessInclusion M n h_le)
+      (witnessInclusion_injective M n h_le) (violationPolyOf F M n) = MvPolynomial.C c := by
+  sorry
+
+/-- P-side upper bound for the full compiled polynomial.
+    Paper: Theorem 181 Item 3. -/
+theorem pside_full_ml_rank_bound {F : Type*} [Field F] (M : DTM) :
+    ∃ (C : ℕ), ∀ n, n ≥ max 4 M.numStates →
+      ∀ (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+        (B : BlockPartition (numVars M n (Nat.log 2 n))) (κ ℓ : ℕ),
+        mlBlockedSpdpRank B κ ℓ (fullCompiledPoly F M n h_le) ≤ n ^ C := by
+  sorry
+
 /-- §34 Compiler extraction: NP-side rank ≤ P-side rank.
 
-    Proof chain:
-    1. restriction_rank_monotone: Γ(pullback, restrictPoly(V)) ≤ Γ(compiled, V)
-    2. §34 restriction equality: restrictPoly(V) = tseitinPoly + C c (sorry)
+    Paper-faithful proof chain using fullCompiledPoly = verifierSheet + tableau:
+    1. restriction_rank_monotone on fullCompiledPoly
+    2. restrictPoly(fullCompiled) = restrictPoly(rename f tseitin) + restrictPoly(tableau)
+       = tseitin + C(c)  [by restrictPoly_rename + §34.1 additive separability]
     3. mlBlockedSpdpRank_add_const: Γ(B, p + C c) = Γ(B, p)
     4. mlBlockedSpdpRank_coarsen: identity pullback refines tseitin partition
     5. Chain: Γ(tseitin) ≤ Γ(pullback) ≤ Γ(compiled) -/
 theorem extraction_rank_monotone (F : Type*) [Field F] [Nontrivial F]
     (n : ℕ) (M : DTM) (hsolves : True) (hn : n ≥ 4) :
-    ∀ (κ ℓ : ℕ),
+    ∀ (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) (κ ℓ : ℕ),
       κ ≥ 1 →
       mlBlockedSpdpRank (tseitinPartition n) κ ℓ (tseitinPoly F n) ≤
-      mlBlockedSpdpRank (compiledPartition M n) κ ℓ (violationPolyOf F M n) := by
-  intro κ ℓ hκ
-  -- Step 1: size bound and canonical inclusion
-  have h_le : npNumVars n ≤ numVars M n (Nat.log 2 n) := by
-    unfold npNumVars tseitinNumVars
-    simp only [tseitinAt, highGirthFamily]
-    rw [dif_pos (show n ≥ 3 by omega)]
-    simp only [buildTseitin]
-    simp only [cycleRegularGraph, List.length_map, List.length_finRange]
-    unfold numVars tapeSize timeSteps
-    have hpow : n ^ M.timeBound ≥ n ^ 1 :=
-      Nat.pow_le_pow_right (by omega : n > 0) M.hTimeBound
-    simp at hpow
-    nlinarith [M.hStates, Nat.log_le_self 2 n]
-  let f : Fin (npNumVars n) → Fin (numVars M n (Nat.log 2 n)) :=
-    fun i => ⟨i.val, Nat.lt_of_lt_of_le i.isLt h_le⟩
-  have hf_inj : Function.Injective f := fun a b h => Fin.ext (Fin.mk.inj h)
-  -- Step 2: restriction_rank_monotone
+      mlBlockedSpdpRank (compiledPartition M n) κ ℓ
+        (fullCompiledPoly F M n h_le) := by
+  intro h_le κ ℓ hκ
+  let f := witnessInclusion M n h_le
+  have hf_inj := witnessInclusion_injective M n h_le
+  -- Step 1: restriction_rank_monotone on fullCompiledPoly
   have h_restrict := restriction_rank_monotone F f hf_inj (compiledPartition M n) κ ℓ
-    (violationPolyOf F M n)
-  -- Step 3: §34 restriction equality (core compiler verification)
-  have hc : restrictPoly F f hf_inj (violationPolyOf F M n) =
-      tseitinPoly F n + MvPolynomial.C (0 : F) := by
-    sorry
-  rw [hc] at h_restrict
-  -- Step 4: add_const — remove the constant
+    (fullCompiledPoly F M n h_le)
+  -- Step 2: restrictPoly(fullCompiled) = tseitin + C(c)
+  -- fullCompiledPoly = verifierSheetOf + violationPolyOf
+  -- = rename f (tseitinPoly) + violationPolyOf
+  -- restrictPoly preserves + (it's an AlgHom)
+  have h_add : restrictPoly F f hf_inj (fullCompiledPoly F M n h_le) =
+      restrictPoly F f hf_inj (verifierSheetOf F M n h_le) +
+      restrictPoly F f hf_inj (violationPolyOf F M n) := by
+    unfold fullCompiledPoly
+    exact map_add (restrictPoly F f hf_inj) _ _
+  -- restrictPoly(rename f (tseitinPoly)) = tseitinPoly by restrictPoly_rename
+  have h_sheet : restrictPoly F f hf_inj (verifierSheetOf F M n h_le) =
+      tseitinPoly F n := by
+    unfold verifierSheetOf
+    exact restrictPoly_rename F f hf_inj (tseitinPoly F n)
+  -- §34.1: restrictPoly(tableau) = C(c) (additive separability)
+  obtain ⟨c, hc⟩ := tableau_restriction_const F M n h_le
+  -- Combine
+  rw [h_add, h_sheet, hc] at h_restrict
+  -- Now h_restrict: Γ(pullback, tseitin + C c) ≤ Γ(compiled, fullCompiled)
+  -- Step 3: add_const — remove the constant
   let h_pullback := pullbackPartition (compiledPartition M n) f
-  rw [mlBlockedSpdpRank_add_const F h_pullback κ ℓ (tseitinPoly F n) 0 hκ] at h_restrict
-  -- Step 5: coarsen — pullback of identity partition refines tseitin partition
+  rw [mlBlockedSpdpRank_add_const F h_pullback κ ℓ (tseitinPoly F n) c hκ] at h_restrict
+  -- Step 4: coarsen — pullback of identity partition refines tseitin partition
   have h_coarsen := mlBlockedSpdpRank_coarsen F h_pullback (tseitinPartition n) κ ℓ
     (tseitinPoly F n) (by
       intro i j h_eq
-      -- h_pullback.assign i = (compiledPartition M n).assign (f i) = f i
-      -- since compiledPartition = identity partition
-      -- So h_eq says f i = f j, hence i = j
       change (compiledPartition M n).assign (f i) = (compiledPartition M n).assign (f j) at h_eq
       simp only [compiledPartition, compilerBlockPartition] at h_eq
       have := hf_inj (Fin.ext (Fin.mk.inj h_eq))
