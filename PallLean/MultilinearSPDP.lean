@@ -226,7 +226,40 @@ theorem pside_ml_rank_bound {F : Type*} [Field F] (M : DTM) :
     ∃ (C : ℕ), ∀ n, n ≥ max 4 M.numStates →
       ∀ (B : BlockPartition (numVars M n (Nat.log 2 n))) (κ ℓ : ℕ),
         mlBlockedSpdpRank B κ ℓ (violationPolyOf F M n) ≤ n ^ C := by
-  sorry -- Wire: violation_has_locality + finsum_le + per_gate_ml_rank_bound
+  -- violationPolyOf = Σ gate_i where each gate has ≤ 12 vars
+  -- Per-gate: mlBlockedSpdpRank(gate_i) ≤ 4^12 (constant)
+  -- Total: numGates × 4^12 ≤ n^(2t+4) × 4^12 ≤ n^(2t+5)
+  -- Use exponent large enough to absorb 4^12 constant factor
+  -- n^(2t+4) * 4^12 ≤ n^C needs C = 2t+4+24 (since 4^12 = 2^24 ≤ n^24 for n≥2)
+  use 2 * M.timeBound + 28
+  intro n hn B κ ℓ
+  have hn4 : n ≥ 4 := le_trans (le_max_left _ _) hn
+  have hns : n ≥ M.numStates := le_trans (le_max_right _ _) hn
+  obtain ⟨loc, hng, hw, _⟩ := violation_has_locality F M n hn4 hns
+  -- Rewrite violationPolyOf using the locality structure
+  have heq : violationPolyOf F M n = ∑ i, loc.gate i := loc.sum_eq
+  rw [heq]
+  -- Subadditivity over gates
+  calc mlBlockedSpdpRank B κ ℓ (∑ i, loc.gate i)
+      ≤ ∑ i, mlBlockedSpdpRank B κ ℓ (loc.gate i) :=
+        mlBlockedSpdpRank_finsum_le B κ ℓ _ _
+    _ ≤ ∑ _i : Fin loc.numGates, 4 ^ 12 := by
+        apply Finset.sum_le_sum; intro i _
+        exact per_gate_ml_rank_bound B κ ℓ (loc.gate i) 12
+          (le_trans (loc.gate_width i) hw)
+    _ = loc.numGates * 4 ^ 12 := by simp [Finset.sum_const, Finset.card_univ]
+    _ ≤ n ^ (2 * M.timeBound + 4) * 4 ^ 12 := Nat.mul_le_mul_right _ hng
+    _ ≤ n ^ (2 * M.timeBound + 28) := by
+        -- n^(2t+4) × 4^12 ≤ n^(2t+4) × n^24 = n^(2t+28) for n ≥ 4
+        -- 4^12 = 16777216 ≤ 4^24 ≤ n^24 since n ≥ 4
+        -- n^(2t+4) * 4^12 ≤ n^(2t+28): since n ≥ 4, 4^12 ≤ 4^24 ≤ n^24
+        calc n ^ (2 * M.timeBound + 4) * 4 ^ 12
+            ≤ n ^ (2 * M.timeBound + 4) * n ^ 24 := by
+              apply Nat.mul_le_mul_left
+              calc (4 : ℕ) ^ 12 ≤ 4 ^ 24 := Nat.pow_le_pow_right (by omega) (by omega)
+                _ ≤ n ^ 24 := Nat.pow_le_pow_left hn4 24
+          _ = n ^ (2 * M.timeBound + 4 + 24) := by rw [← Nat.pow_add]
+          _ = n ^ (2 * M.timeBound + 28) := by ring_nf
 
 /-! ## NP-side lower bound -/
 
