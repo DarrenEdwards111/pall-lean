@@ -199,37 +199,24 @@ theorem profileSubspace_finiteDimensional {n : ℕ} {F : Type*} [Field F]
 -- span_finset_prod: PROVED in SpanProduct.lean
 -- See SpanProduct.finsetProd_card_le and SpanProduct.prod_mem_span_finsetProd
 
-/-! ## Assembly: profile_finrank_bound from A1 + A2 + proved bounds
-
-    Proof:
-    1. Each generator of profileSubspace is m_poly * iterDerivList S p.
-       The profile subspace ≤ restrictTotalDegree (PROVED), so it's
-       finite-dimensional. We need: finrank ≤ (R+1)^D.
-
-    2. The compiled polynomial has product structure: p = ∏_c f_c with
-       disjoint variables, each f_c having ≤ d₀ variables.
-
-    3. By iterDeriv_prod_disjoint (PROVED in DisjointLeibniz.lean):
-       iterDerivList S p = ∏_c iterDerivList(S|_c)(f_c)
-
-    4. By local_deriv_span_bound (A1), for each factor f_c:
-       iterDerivList(S|_c)(f_c) ∈ span(W_c) with |W_c| ≤ 2^d₀
-
-    5. By span_finset_prod (A2):
-       ∏_c iterDerivList(S|_c)(f_c) ∈ span(T) with |T| ≤ ∏_c |W_c|
-
-    6. The multiplier m_poly with deg ≤ ℓ also factors per block
-       (block-admissible), absorbed into the local basis.
-
-    7. Total: profileSubspace ≤ span(T) where |T| ≤ (2^d₀)^R.
-       With d₀ = 5, this gives 32^R. For the tighter bound (R+1)^D,
-       we use symmetric multiset compression (same-type blocks are
-       interchangeable), giving the (R+1)^D bound via tensor_dim_pow_bound.
-
-    The assembly from A1+A2 to (R+1)^D requires the profile structure
-    (grouping blocks by type) and multiset compression. We keep
-    profile_finrank_bound as a single axiom for clean interface;
-    the sub-axioms A1 and A2 document its mathematical content. -/
+-- profile_finrank_bound: SINGLE REMAINING AXIOM
+--
+-- PROVED surrounding machinery (all 0 sorry):
+-- 1. iterDerivList_in_product_span (ProfileAssembly.lean):
+--    For product-structured p, iterDerivList S p ∈ span(finsetProd of local bases)
+-- 2. finsetProd_card_le (SpanProduct.lean): |finsetProd| ≤ ∏|W_i|
+-- 3. prod_mem_span_finsetProd (SpanProduct.lean): products ∈ span of product set
+-- 4. iterDerivList_mem_span_monomialFinset (LocalBasis.lean): per-factor spanning
+-- 5. tensor_dim_pow_bound (above): ∏(h(τ)+1)^{d₀-1} ≤ (R+1)^D
+-- 6. profileSubspace_finiteDimensional (above): FiniteDimensional PROVED
+--
+-- REMAINING §9.4 content (Lemma 31):
+-- The m_poly multiplier must be absorbed into per-block bases.
+-- Paper's W_σ includes derivative AND shift multiplier per interface.
+-- Formalizing requires:
+-- (a) Block-admissible m_poly factors as ∏ m_b per block
+-- (b) Per-block combined space dim ≤ d₀ (derivative ⊗ multiplier)
+-- (c) Profile compression: same-type blocks → multiset counting via mul_comm
 axiom profile_finrank_bound {n : ℕ} {F : Type*} [Field F]
     (B : SPDP.BlockPartition n) (κ ℓ : ℕ)
     (p : MvPolynomial (Fin n) F)
