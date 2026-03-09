@@ -96,38 +96,106 @@ polynomial's factorization property. The axiom states: the profile
 subspace has a finite spanning set of bounded cardinality. This encodes
 exactly the disjoint-variable Leibniz factorization + local space bound. -/
 
-/-- AXIOM: Local space + symmetric multiset bound.
+-- AXIOM: Local space + symmetric multiset bound.
+-- PROVED machinery: iterDeriv_prod_disjoint, tensor_dim_pow_bound, sym_pow_dim
+-- REMAINING: per-block local space dim ≤ d₀, multiset counting via mul_comm
 
-    After applying iterDeriv_prod_disjoint (PROVED), each SPDP generator
-    factors as a product of per-block contributions. This axiom states
-    that the per-block contributions lie in a bounded space (d₀ = 16
-    basis elements per block), and same-type blocks are interchangeable
-    (by commutativity of multiplication), giving a multiset count of
-    ∏_τ C(d₀ + h(τ) - 1, h(τ)) ≤ (R+1)^D spanning elements.
+/-- pderiv x p has totalDegree ≤ totalDegree p.
+    Proof: express p = ∑ monomial s (coeff s p), apply pderiv_monomial,
+    then bound each resulting monomial's degree. -/
+theorem pderiv_totalDegree_le {n : ℕ} {F : Type*} [CommRing F]
+    (x : Fin n) (p : MvPolynomial (Fin n) F) :
+    (MvPolynomial.pderiv x p).totalDegree ≤ p.totalDegree := by
+  classical
+  conv_lhs => rw [p.as_sum]
+  rw [map_sum]
+  apply le_trans (MvPolynomial.totalDegree_finset_sum _ _)
+  apply Finset.sup_le
+  intro s hs
+  rw [MvPolynomial.pderiv_monomial]
+  apply le_trans (MvPolynomial.totalDegree_monomial_le _ _)
+  -- Goal: (s - Finsupp.single x 1).sum (fun _ => id) ≤ p.totalDegree
+  -- s ∈ p.support ⟹ s.sum id ≤ p.totalDegree (by le_totalDegree)
+  -- (s - single x 1) ≤ s pointwise ⟹ sum ≤ sum
+  apply le_trans _ (MvPolynomial.le_totalDegree hs)
+  apply Finsupp.sum_le_sum_index (tsub_le_self)
+  · intro i _ ; exact fun a b hab => hab
+  · intro i _ ; rfl
 
-    PROVED machinery used by this axiom:
-    - iterDeriv_prod_disjoint (DisjointLeibniz.lean) — factorization
-    - tensor_dim_pow_bound — combinatorial bound ∏(h(τ)+1)^{d₀-1} ≤ (R+1)^D
-    - sym_pow_dim — C(d+k-1,k) ≤ (d+k)^{d-1}
+/-- iterDerivList S p has totalDegree ≤ totalDegree p. -/
+theorem iterDerivList_totalDegree_le {n : ℕ} {F : Type*} [CommRing F]
+    (S : List (Fin n)) (p : MvPolynomial (Fin n) F) :
+    (SPDP.iterDerivList S p).totalDegree ≤ p.totalDegree := by
+  unfold SPDP.iterDerivList
+  induction S generalizing p with
+  | nil => simp
+  | cons x S ih =>
+    simp only [List.foldl_cons]
+    exact le_trans (ih (MvPolynomial.pderiv x p)) (pderiv_totalDegree_le x p)
 
-    REMAINING mathematical content:
-    - Each clause factor f_c = 1 - z_c·V_c has ≤ 4 Boolean variables
-    - The multilinear monomial space in 4 variables has dim = 2^4 = 16
-    - Products of d₀ elements from k blocks with same type are counted
-      by multisets: C(d₀+k-1, k) (stars-and-bars via mul_comm) -/
-axiom profile_spanning_set_bound {n : ℕ} {F : Type*} [Field F]
+-- The profile subspace is contained in restrictTotalDegree.
+-- PROVED: each generator has bounded total degree.
+theorem profileSubspace_le_restrictTotalDegree {n : ℕ} {F : Type*} [CommRing F]
+    (B : SPDP.BlockPartition n) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin n) F)
+    (profileFn : List (Fin n) → Profile.Profile 4)
+    (h : Profile.Profile 4) :
+    Profile.profileSubspace (m := 4) B κ ℓ p profileFn h ≤
+      MvPolynomial.restrictTotalDegree (Fin n) F (ℓ + p.totalDegree) := by
+  apply Submodule.span_le.mpr
+  intro q hq
+  obtain ⟨S, m_poly, hlen, hdeg, hadm, hprof, hq_eq⟩ := hq
+  subst hq_eq
+  rw [SetLike.mem_coe, MvPolynomial.mem_restrictTotalDegree]
+  calc (m_poly * SPDP.iterDerivList S p).totalDegree
+      ≤ m_poly.totalDegree + (SPDP.iterDerivList S p).totalDegree :=
+        MvPolynomial.totalDegree_mul m_poly _
+    _ ≤ ℓ + p.totalDegree := by
+        have : (SPDP.iterDerivList S p).totalDegree ≤ p.totalDegree :=
+          iterDerivList_totalDegree_le S p
+        omega
+
+/-- Profile subspace is finite-dimensional. PROVED from containment
+    in restrictTotalDegree (which is finite-dimensional for Finite σ). -/
+theorem profileSubspace_finiteDimensional {n : ℕ} {F : Type*} [Field F]
+    (B : SPDP.BlockPartition n) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin n) F)
+    (profileFn : List (Fin n) → Profile.Profile 4)
+    (h : Profile.Profile 4) :
+    FiniteDimensional F (Profile.profileSubspace (m := 4) B κ ℓ p profileFn h) := by
+  have hle := profileSubspace_le_restrictTotalDegree B κ ℓ p profileFn h
+  have : Module.Finite F (MvPolynomial.restrictTotalDegree (Fin n) F (ℓ + p.totalDegree)) :=
+    inferInstance
+  exact Module.Finite.of_injective
+    (Submodule.inclusion hle)
+    (Submodule.inclusion_injective _)
+
+/-! ## Tight dimension bound (AXIOM)
+
+    The tight bound finrank ≤ (R+1)^D requires the product structure
+    of the compiled polynomial + disjoint Leibniz factorization.
+    This is the single remaining axiom.
+
+    PROVED machinery:
+    - iterDeriv_prod_disjoint (DisjointLeibniz.lean)
+    - tensor_dim_pow_bound (above)
+    - profileSubspace_finiteDimensional (above)
+
+    REMAINING content (axiomatized):
+    - Per-block local space dim ≤ d₀ (clause gadget structure)
+    - Tensor product assembly for profile subspace -/
+axiom profile_finrank_bound {n : ℕ} {F : Type*} [Field F]
     (B : SPDP.BlockPartition n) (κ ℓ : ℕ)
     (p : MvPolynomial (Fin n) F)
     (profileFn : List (Fin n) → Profile.Profile 4)
     (R D : ℕ) (hR : R ≤ n) (hD : D ≥ 1)
     (h : Profile.Profile 4) (htotal : Profile.totalMass h ≤ R) :
-    ∃ (S : Finset (MvPolynomial (Fin n) F)),
-      S.card ≤ (R + 1) ^ D ∧
-      Profile.profileSubspace (m := 4) B κ ℓ p profileFn h ≤
-        Submodule.span F (S : Set (MvPolynomial (Fin n) F))
+    Module.finrank F (Profile.profileSubspace (m := 4) B κ ℓ p
+      profileFn h) ≤ (R + 1) ^ D
 
 /-- Lemma 31: Within-profile dimension bound.
-    PROVED from profile_spanning_set_bound. -/
+    FiniteDimensional: PROVED (from restrictTotalDegree containment)
+    finrank ≤ (R+1)^D: from profile_finrank_bound axiom -/
 theorem within_profile_dim_bound {n : ℕ} {F : Type*} [Field F]
     (B : SPDP.BlockPartition n) (κ ℓ : ℕ)
     (p : MvPolynomial (Fin n) F)
@@ -136,18 +204,8 @@ theorem within_profile_dim_bound {n : ℕ} {F : Type*} [Field F]
     (h : Profile.Profile 4) (htotal : Profile.totalMass h ≤ R) :
     FiniteDimensional F (Profile.profileSubspace (m := 4) B κ ℓ p profileFn h) ∧
     Module.finrank F (Profile.profileSubspace (m := 4) B κ ℓ p
-      profileFn h) ≤ (R + 1) ^ D := by
-  obtain ⟨S, hcard, hspan⟩ := profile_spanning_set_bound B κ ℓ p profileFn R D hR hD h htotal
-  have hfin_span : Module.Finite F (Submodule.span F (S : Set (MvPolynomial (Fin n) F))) :=
-    Module.Finite.span_of_finite F S.finite_toSet
-  constructor
-  · exact Module.Finite.of_injective
-      (Submodule.inclusion hspan)
-      (Submodule.inclusion_injective hspan)
-  · calc Module.finrank F (Profile.profileSubspace (m := 4) B κ ℓ p profileFn h)
-        ≤ Module.finrank F (Submodule.span F (S : Set (MvPolynomial (Fin n) F))) :=
-          Submodule.finrank_mono hspan
-      _ ≤ S.card := (finrank_span_finset_le_card (R := F) S).trans le_rfl
-      _ ≤ (R + 1) ^ D := hcard
+      profileFn h) ≤ (R + 1) ^ D :=
+  ⟨profileSubspace_finiteDimensional B κ ℓ p profileFn h,
+   profile_finrank_bound B κ ℓ p profileFn R D hR hD h htotal⟩
 
 end ProfileDimBound
