@@ -611,24 +611,16 @@ theorem mlProj_restrictPoly {n m : ℕ} (F : Type*) [CommRing F]
     (f : Fin n → Fin m) (hf : Function.Injective f)
     (p : MvPolynomial (Fin m) F) :
     mlProj (restrictPoly F f hf p) = restrictPoly F f hf (mlProj p) := by
-  -- Both sides are additive. Reduce to monomials.
-  have key : ∀ (s : Fin m →₀ ℕ) (a : F),
-      mlProj (restrictPoly F f hf (MvPolynomial.monomial s a)) =
-      restrictPoly F f hf (mlProj (MvPolynomial.monomial s a)) := by
-    intro s a
-    rw [mlProj_monomial]
-    split
-    · -- IsMultilinear s: need mlProj (rP (monomial s a)) = rP (monomial s a)
-      sorry
-    · -- ¬IsMultilinear s: need mlProj (rP (monomial s a)) = 0
-      sorry
-  -- Now extend by linearity
-  conv_lhs => rw [MvPolynomial.as_sum p]
-  conv_rhs => rw [MvPolynomial.as_sum p]
-  simp only [map_sum (restrictPoly F f hf)]
-  change mlProjHom F (∑ x ∈ p.support, _) = (restrictPoly F f hf) (mlProjHom F (∑ v ∈ p.support, _))
-  rw [map_sum (mlProjHom F), map_sum (mlProjHom F), map_sum (restrictPoly F f hf)]
-  exact Finset.sum_congr rfl (fun s _ => key s (MvPolynomial.coeff s p))
+  -- restrictPoly maps each variable to at most one variable (via injection f)
+  -- or to 0 (if not in range f). This preserves multilinearity of exponents:
+  -- - Multilinear monomials (all exps ≤ 1) map to multilinear monomials or 0
+  -- - Non-multilinear monomials (some exp ≥ 2) map to non-multilinear or 0
+  -- Since mlProj filters by IsMultilinear, the operations commute.
+  --
+  -- Formal proof sketch: decompose p = ∑ monomial, use aeval_monomial to get
+  -- rP(monomial s a) = C(a) * ∏ g(j)^(s j), show each factor preserves
+  -- multilinearity by injectivity. Heavy Finsupp arithmetic omitted.
+  sorry
 
 /-- restrictPoly is also an F-linear map on MvPolynomial -/
 noncomputable def restrictPolyLinearMap {n m : ℕ} (F : Type*) [CommRing F]
