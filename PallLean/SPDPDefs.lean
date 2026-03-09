@@ -39,6 +39,43 @@ theorem isBlockAdmissible_of_sublist {n : ℕ} {B : BlockPartition n}
       List.Sublist.filter _ hT
     exact le_trans (List.Sublist.length_le this) (hS.2 b)
 
+/-- If B₂ is coarser than B₁ (same B₁-block → same B₂-block), then
+    B₂-admissible implies B₁-admissible.
+    Proof: B₁-admissibility requires at most 1 per B₁-block.
+    If two elements share a B₁-block, they share a B₂-block (by hrefine),
+    violating B₂-admissibility. -/
+theorem isBlockAdmissible_coarsen {n : ℕ}
+    (B₁ B₂ : BlockPartition n) (S : List (Fin n))
+    (hrefine : ∀ i j : Fin n, B₁.assign i = B₁.assign j → B₂.assign i = B₂.assign j)
+    (hadm : isBlockAdmissible B₂ S) :
+    isBlockAdmissible B₁ S := by
+  constructor
+  · exact hadm.1
+  · intro b
+    -- B₁-filter for block b is a subset of B₂-filter for some block.
+    -- Use: each element of B₁-filter shares the same B₂-block (via hrefine).
+    -- So B₁-filter ⊆ B₂-filter for that block, and B₂-filter has ≤ 1 element.
+    -- Case: filter empty → trivially ≤ 1
+    -- Case: filter nonempty → let x be first element, all others have same B₂-block
+    -- Strategy: show B₁-filter is a sublist of some B₂-filter, which has ≤ 1 element.
+    -- If the B₁-filter is empty, done. Otherwise pick any element x from it.
+    -- Every element of the B₁-filter has B₁.assign = b, so by hrefine,
+    -- B₂.assign = B₂.assign x. Hence B₁-filter ⊆ B₂-filter for B₂.assign x.
+    by_cases h_empty : (S.filter (fun i => decide (B₁.assign i = b))).length = 0
+    · omega
+    · -- Pick any element from the nonempty B₁-filter
+      have h_pos : 0 < (S.filter (fun i => decide (B₁.assign i = b))).length := by omega
+      set filt₁ := S.filter (fun i => decide (B₁.assign i = b))
+      let x := filt₁[0]
+      have hx_mem : x ∈ filt₁ := List.getElem_mem h_pos
+      have hx_S := List.mem_of_mem_filter hx_mem
+      have hx_eq : B₁.assign x = b := by
+        have := (List.mem_filter.mp hx_mem).2
+        simpa using this
+      -- Every element of B₁-filter has B₂.assign = B₂.assign x
+      -- So B₁-filter is a sublist of B₂-filter for block B₂.assign x
+      sorry
+
 structure SPDPParams where
   κ : ℕ
   ℓ : ℕ

@@ -78,6 +78,20 @@ noncomputable def mlBlockedSpdpRank {n : ℕ} {F : Type*} [CommRing F] [Nontrivi
 
 /-! ## Monotonicity -/
 
+/-- Coarser partitions have smaller SPDP subspaces.
+    If B₁.assign i = B₁.assign j → B₂.assign i = B₂.assign j
+    (i.e. B₂ is coarser than B₁), then B₂-admissible → B₁-admissible,
+    so subspace(B₂) ⊆ subspace(B₁). -/
+theorem mlBlockedSpdpSubspace_mono_partition {n : ℕ} {F : Type*} [CommRing F]
+    (B₁ B₂ : BlockPartition n) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin n) F)
+    (hrefine : ∀ i j : Fin n, B₁.assign i = B₁.assign j → B₂.assign i = B₂.assign j) :
+    mlBlockedSpdpSubspace B₂ κ ℓ p ≤ mlBlockedSpdpSubspace B₁ κ ℓ p := by
+  apply Submodule.span_le.mpr
+  intro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+  apply Submodule.subset_span
+  exact ⟨S, m, hlen, hdeg, isBlockAdmissible_coarsen B₁ B₂ S hrefine hadm, hq⟩
+
 theorem mlBlockedSpdpSubspace_le_map {n : ℕ} {F : Type*} [CommRing F]
     (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
     mlBlockedSpdpSubspace B κ ℓ p ≤
@@ -861,23 +875,37 @@ theorem mlBlockedSpdpRank_add_const (F : Type*) [Field F] [Nontrivial F]
     rw [hset]
   rw [hsub]
 
-/-- §34 Compiler embedding: NP-witness (Tseitin) variables embed into the compiled
-    variable space. Restricting the violation polynomial to these variables
-    recovers the Tseitin product polynomial up to an additive constant.
+/-- A coarser partition has smaller or equal SPDP rank.
+    If B₁ refines B₂ (same block in B₂ implies same block in B₁), then
+    B₂-admissible sequences are a subset of B₁-admissible sequences,
+    so the B₂ subspace ⊆ B₁ subspace, hence rank(B₂) ≤ rank(B₁). -/
+theorem mlBlockedSpdpRank_coarsen {n : ℕ} (F : Type*) [Field F] [Nontrivial F]
+    (B₁ B₂ : BlockPartition n) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin n) F)
+    (hrefine : ∀ i j : Fin n, B₁.assign i = B₁.assign j → B₂.assign i = B₂.assign j) :
+    mlBlockedSpdpRank B₂ κ ℓ p ≤ mlBlockedSpdpRank B₁ κ ℓ p := by
+  -- B₂-admissible ⊆ B₁-admissible, so subspace(B₂) ⊆ subspace(B₁)
+  unfold mlBlockedSpdpRank
+  apply Submodule.finrank_mono
+  apply mlBlockedSpdpSubspace_mono_partition
+  exact hrefine
 
-    Paper: §34, Theorem 181. The injection f maps Tseitin vars (edge vars,
-    clause aux vars, selector vars) to the first npNumVars positions in the
-    compiled variable space. -/
-theorem compiler_embeds_tseitin (F : Type*) [Field F] [Nontrivial F]
-    (n : ℕ) (M : DTM) (hsolves : True) (hn : n ≥ 4)
-    (B_v : BlockPartition (numVars M n (Nat.log 2 n))) :
-    ∃ (f : Fin (npNumVars n) → Fin (numVars M n (Nat.log 2 n)))
-      (hf : Function.Injective f)
-      (c : F),
-      restrictPoly F f hf (violationPolyOf F M n) = tseitinPoly F n + MvPolynomial.C c ∧
-      pullbackPartition B_v f = tseitinPartition n := by
-  -- Step 1: npNumVars n ≤ numVars M n (log 2 n)
-  -- npNumVars n = 5 * max(n,3) for cycle graph; numVars ≥ (n^t+1)² + n
+/-- §34 Compiler extraction: NP-side rank ≤ P-side rank.
+
+    Proof chain:
+    1. restriction_rank_monotone: Γ(pullback, restrictPoly(V)) ≤ Γ(compiled, V)
+    2. §34 restriction equality: restrictPoly(V) = tseitinPoly + C c (sorry)
+    3. mlBlockedSpdpRank_add_const: Γ(B, p + C c) = Γ(B, p)
+    4. mlBlockedSpdpRank_coarsen: identity pullback refines tseitin partition
+    5. Chain: Γ(tseitin) ≤ Γ(pullback) ≤ Γ(compiled) -/
+theorem extraction_rank_monotone (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (M : DTM) (hsolves : True) (hn : n ≥ 4) :
+    ∀ (κ ℓ : ℕ),
+      κ ≥ 1 →
+      mlBlockedSpdpRank (tseitinPartition n) κ ℓ (tseitinPoly F n) ≤
+      mlBlockedSpdpRank (compiledPartition M n) κ ℓ (violationPolyOf F M n) := by
+  intro κ ℓ hκ
+  -- Step 1: size bound and canonical inclusion
   have h_le : npNumVars n ≤ numVars M n (Nat.log 2 n) := by
     unfold npNumVars tseitinNumVars
     simp only [tseitinAt, highGirthFamily]
@@ -889,34 +917,31 @@ theorem compiler_embeds_tseitin (F : Type*) [Field F] [Nontrivial F]
       Nat.pow_le_pow_right (by omega : n > 0) M.hTimeBound
     simp at hpow
     nlinarith [M.hStates, Nat.log_le_self 2 n]
-  -- Step 2: Define f as canonical inclusion
   let f : Fin (npNumVars n) → Fin (numVars M n (Nat.log 2 n)) :=
     fun i => ⟨i.val, Nat.lt_of_lt_of_le i.isLt h_le⟩
   have hf_inj : Function.Injective f := fun a b h => Fin.ext (Fin.mk.inj h)
-  refine ⟨f, hf_inj, 0, ?_⟩
-  constructor
-  · -- Step 3: restrictPoly f (violationPoly) = tseitinPoly + C 0
-    -- violationPolyOf = ∑ c_i². Under restriction by f (setting non-witness vars to 0):
-    -- • Witness-only constraints → Tseitin clause gadget terms
-    -- • Non-witness constraints → constant (evaluated at 0)
+  -- Step 2: restriction_rank_monotone
+  have h_restrict := restriction_rank_monotone F f hf_inj (compiledPartition M n) κ ℓ
+    (violationPolyOf F M n)
+  -- Step 3: §34 restriction equality (core compiler verification)
+  have hc : restrictPoly F f hf_inj (violationPolyOf F M n) =
+      tseitinPoly F n + MvPolynomial.C (0 : F) := by
     sorry
-  · -- Step 4: pullbackPartition B_v f = tseitinPartition n
-    sorry
-
-/-- Extraction theorem: NP-side rank ≤ P-side rank.
-    Proved from: restriction_rank_monotone + mlBlockedSpdpRank_add_const
-    + compiler_embeds_tseitin. -/
-theorem extraction_rank_monotone (F : Type*) [Field F] [Nontrivial F]
-    (n : ℕ) (M : DTM) (hsolves : True) (hn : n ≥ 4) :
-    ∀ (B_v : BlockPartition (numVars M n (Nat.log 2 n))) (κ ℓ : ℕ),
-      κ ≥ 1 →
-      mlBlockedSpdpRank (tseitinPartition n) κ ℓ (tseitinPoly F n) ≤
-      mlBlockedSpdpRank B_v κ ℓ (violationPolyOf F M n) := by
-  intro B_v κ ℓ hκ
-  obtain ⟨f, hf_inj, c, hrestrict, hpart⟩ := compiler_embeds_tseitin F n M hsolves hn B_v
-  have h1 := restriction_rank_monotone F f hf_inj B_v κ ℓ (violationPolyOf F M n)
-  rw [hrestrict, hpart] at h1
-  rw [mlBlockedSpdpRank_add_const F (tseitinPartition n) κ ℓ (tseitinPoly F n) c hκ] at h1
-  exact h1
+  rw [hc] at h_restrict
+  -- Step 4: add_const — remove the constant
+  let h_pullback := pullbackPartition (compiledPartition M n) f
+  rw [mlBlockedSpdpRank_add_const F h_pullback κ ℓ (tseitinPoly F n) 0 hκ] at h_restrict
+  -- Step 5: coarsen — pullback of identity partition refines tseitin partition
+  have h_coarsen := mlBlockedSpdpRank_coarsen F h_pullback (tseitinPartition n) κ ℓ
+    (tseitinPoly F n) (by
+      intro i j h_eq
+      -- h_pullback.assign i = (compiledPartition M n).assign (f i) = f i
+      -- since compiledPartition = identity partition
+      -- So h_eq says f i = f j, hence i = j
+      change (compiledPartition M n).assign (f i) = (compiledPartition M n).assign (f j) at h_eq
+      simp only [compiledPartition, compilerBlockPartition] at h_eq
+      have := hf_inj (Fin.ext (Fin.mk.inj h_eq))
+      rw [this])
+  linarith
 
 end MultilinearSPDP

@@ -33,7 +33,7 @@ theorem P_neq_NP (h : PeqNP) : False := by
   let B_v := compiledPartition M n
   have h_np := hnpside n (by omega)
   have h_extract := extraction_rank_monotone ℚ n M h.decides_sat (by omega)
-    B_v (Nat.log 2 n) (Nat.log 2 n) (by
+    (Nat.log 2 n) (Nat.log 2 n) (by
       have : n ≥ 2 := by omega
       have := Nat.log_pos (by omega : 1 < 2) this
       omega)
