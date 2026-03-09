@@ -578,12 +578,57 @@ theorem restrictPoly_mul_rename {n m : ℕ} (F : Type*) [CommRing F]
     mul * restrictPoly F f hf q := by
   rw [map_mul, restrictPoly_rename F f hf mul]
 
+/-- mlProj of a monomial: keeps it if multilinear, drops if not -/
+theorem mlProj_monomial {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (s : σ →₀ ℕ) (a : F) :
+    mlProj (MvPolynomial.monomial s a) =
+    if Finsupp.IsMultilinear s then MvPolynomial.monomial s a else 0 := by
+  -- mlProj = Finsupp.filter IsMultilinear
+  -- filter p (monomial s a) keeps coeff at d iff p d, so:
+  -- coeff d (filter p (monomial s a)) = if p d ∧ d = s then a else 0
+  show Finsupp.filter (fun α => Finsupp.IsMultilinear α) (MvPolynomial.monomial s a) = _
+  ext d
+  rw [Finsupp.filter_apply]
+  -- LHS: if IsMultilinear d then coeff d (monomial s a) else 0
+  -- RHS: coeff d (if IsMultilinear s then monomial s a else 0)
+  -- coeff d (monomial s a) = if d = s then a else 0
+  change (if Finsupp.IsMultilinear d then MvPolynomial.coeff d (MvPolynomial.monomial s a) else 0) =
+         MvPolynomial.coeff d (if Finsupp.IsMultilinear s then MvPolynomial.monomial s a else 0)
+  rw [MvPolynomial.coeff_monomial]
+  by_cases hml_s : Finsupp.IsMultilinear s
+  · simp only [if_pos hml_s]
+    rw [MvPolynomial.coeff_monomial]
+    by_cases hds : d = s
+    · subst hds; simp [hml_s]
+    · rw [if_neg (Ne.symm hds)]; simp
+  · simp only [if_neg hml_s, map_zero, MvPolynomial.coeff_zero]
+    by_cases hds : d = s
+    · subst hds; simp [hml_s]
+    · rw [if_neg (Ne.symm hds)]; simp
+
 /-- restrictPoly commutes with mlProj -/
 theorem mlProj_restrictPoly {n m : ℕ} (F : Type*) [CommRing F]
     (f : Fin n → Fin m) (hf : Function.Injective f)
     (p : MvPolynomial (Fin m) F) :
     mlProj (restrictPoly F f hf p) = restrictPoly F f hf (mlProj p) := by
-  sorry -- needs: restrictPoly preserves multilinear monomials
+  -- Both sides are additive. Reduce to monomials.
+  have key : ∀ (s : Fin m →₀ ℕ) (a : F),
+      mlProj (restrictPoly F f hf (MvPolynomial.monomial s a)) =
+      restrictPoly F f hf (mlProj (MvPolynomial.monomial s a)) := by
+    intro s a
+    rw [mlProj_monomial]
+    split
+    · -- IsMultilinear s: need mlProj (rP (monomial s a)) = rP (monomial s a)
+      sorry
+    · -- ¬IsMultilinear s: need mlProj (rP (monomial s a)) = 0
+      sorry
+  -- Now extend by linearity
+  conv_lhs => rw [MvPolynomial.as_sum p]
+  conv_rhs => rw [MvPolynomial.as_sum p]
+  simp only [map_sum (restrictPoly F f hf)]
+  change mlProjHom F (∑ x ∈ p.support, _) = (restrictPoly F f hf) (mlProjHom F (∑ v ∈ p.support, _))
+  rw [map_sum (mlProjHom F), map_sum (mlProjHom F), map_sum (restrictPoly F f hf)]
+  exact Finset.sum_congr rfl (fun s _ => key s (MvPolynomial.coeff s p))
 
 /-- restrictPoly is also an F-linear map on MvPolynomial -/
 noncomputable def restrictPolyLinearMap {n m : ℕ} (F : Type*) [CommRing F]
