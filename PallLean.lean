@@ -15,7 +15,22 @@ import PallLean.ListSum
 import PallLean.BinomialBound
 import PallLean.BinomialBound2
 import PallLean.ProfileDecomp
-import PallLean.ExtractionProof
 import PallLean.ProfileCompression
 import PallLean.WidthRank
-import PallLean.FullCompiler
+-- Profile/dim bound chain
+import PallLean.DerivType
+import PallLean.TypeWord
+import PallLean.Profile
+import PallLean.ProfileWiring
+import PallLean.ProfileDimBound
+import PallLean.DisjointLeibniz
+import PallLean.LeibnizProduct
+import PallLean.ProfileBridge
+import PallLean.LocalBasis
+import PallLean.SpanProduct
+import PallLean.ProfileAssembly
+import PallLean.MonomialFactor
+import PallLean.ProfileFinrank
+-- New paper-faithful architecture
+import PallLean.MultilinearSPDP
+import PallLean.PneqNP
