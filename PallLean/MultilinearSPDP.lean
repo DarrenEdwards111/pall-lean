@@ -22,19 +22,45 @@ attribute [local instance] Classical.dec
 def Finsupp.IsMultilinear {σ : Type*} (α : σ →₀ ℕ) : Prop :=
   ∀ i, α i ≤ 1
 
-/-- The multilinear projection: keep only multilinear monomials -/
+/-- The multilinear projection as an AddMonoidHom on the underlying Finsupp.
+    This gives us additivity for free. -/
+noncomputable def mlProjHom {σ : Type*} [DecidableEq σ] (F : Type*) [CommRing F] :
+    ((σ →₀ ℕ) →₀ F) →+ ((σ →₀ ℕ) →₀ F) :=
+  Finsupp.filterAddHom (fun α => Finsupp.IsMultilinear α)
+
+/-- The multilinear projection on MvPolynomial -/
 noncomputable def mlProj {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
     (p : MvPolynomial σ F) : MvPolynomial σ F :=
-  p.support.sum (fun α =>
-    if Finsupp.IsMultilinear α then monomial α (coeff α p) else 0)
+  mlProjHom F p
+
+theorem mlProj_add {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p q : MvPolynomial σ F) :
+    mlProj (p + q) = mlProj p + mlProj q :=
+  map_add (mlProjHom F) p q
 
 @[simp] theorem mlProj_zero {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F] :
-    mlProj (0 : MvPolynomial σ F) = 0 := by
-  simp [mlProj, MvPolynomial.support_zero]
+    mlProj (0 : MvPolynomial σ F) = 0 :=
+  map_zero (mlProjHom F)
+
+theorem mlProj_smul {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (c : F) (p : MvPolynomial σ F) :
+    mlProj (c • p) = c • mlProj p := by
+  change Finsupp.filter _ (c • p) = c • Finsupp.filter _ p
+  ext α
+  simp only [Finsupp.filter_apply, Finsupp.smul_apply, smul_eq_mul]
+  split
+  · rfl
+  · exact (mul_zero c).symm
+
+/-- mlProj as a linear map -/
+noncomputable def mlProjLinearMap (σ : Type*) [DecidableEq σ] (F : Type*) [CommRing F] :
+    MvPolynomial σ F →ₗ[F] MvPolynomial σ F where
+  toFun := mlProj
+  map_add' := mlProj_add
+  map_smul' := mlProj_smul
 
 /-! ## Multilinear SPDP Subspace and Rank -/
 
-/-- Multilinear SPDP subspace: span of mlProj(m * ∂_S p) for blocked-admissible S -/
 noncomputable def mlBlockedSpdpSubspace {n : ℕ} {F : Type*} [CommRing F]
     (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
     Submodule F (MvPolynomial (Fin n) F) :=
@@ -44,87 +70,178 @@ noncomputable def mlBlockedSpdpSubspace {n : ℕ} {F : Type*} [CommRing F]
         isBlockAdmissible B S ∧
         q = mlProj (m * iterDerivList S p) }
 
-/-- Multilinear blocked SPDP rank -/
 noncomputable def mlBlockedSpdpRank {n : ℕ} {F : Type*} [CommRing F] [Nontrivial F]
     (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) : ℕ :=
   Module.finrank F (mlBlockedSpdpSubspace B κ ℓ p)
 
-/-! ## Key properties — sorry'd for now, all standard linear algebra -/
+/-! ## Monotonicity -/
 
-/-- Monotonicity: multilinear rank ≤ free-ring rank (projection can't increase rank) -/
+theorem mlBlockedSpdpSubspace_le_map {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    mlBlockedSpdpSubspace B κ ℓ p ≤
+      Submodule.map (mlProjLinearMap (Fin n) F) (blockedSpdpSubspace B κ ℓ p) := by
+  apply Submodule.span_le.mpr
+  intro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+  rw [hq]
+  exact Submodule.mem_map.mpr
+    ⟨m * iterDerivList S p,
+     Submodule.subset_span ⟨S, m, hlen, hdeg, hadm,
+       fun _ _ => Finset.mem_univ _, fun _ _ => Finset.mem_univ _, rfl⟩,
+     rfl⟩
+
+/-- mlProj only drops monomials, so support is a subset -/
+theorem mlProj_support_subset {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p : MvPolynomial σ F) : (mlProj p).support ⊆ p.support := by
+  change (Finsupp.filter _ p).support ⊆ p.support
+  rw [Finsupp.support_filter]
+  exact Finset.filter_subset _ _
+
+/-- mlProj doesn't increase totalDegree -/
+theorem totalDegree_mlProj_le {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p : MvPolynomial σ F) : (mlProj p).totalDegree ≤ p.totalDegree :=
+  MvPolynomial.totalDegree_le_of_support_subset (mlProj_support_subset p)
+
+theorem mlBlockedSpdpSubspace_le_restrictTotalDegree {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    mlBlockedSpdpSubspace B κ ℓ p ≤
+      MvPolynomial.restrictTotalDegree (Fin n) F (ℓ + p.totalDegree) := by
+  apply Submodule.span_le.mpr
+  intro q ⟨S, m, _, hdeg, _, hq⟩
+  rw [hq]
+  -- mlProj(m * ∂_S p) ∈ restrictTotalDegree because totalDegree only decreases
+  have h1 : (mlProj (m * iterDerivList S p)).totalDegree ≤ ℓ + p.totalDegree :=
+    le_trans (totalDegree_mlProj_le _)
+      (le_trans (MvPolynomial.totalDegree_mul m (iterDerivList S p))
+        (Nat.add_le_add hdeg (totalDegree_iterDerivList_le S p)))
+  exact (MvPolynomial.mem_restrictTotalDegree _ _ _).mpr h1
+
+instance mlBlockedSpdpSubspace_finite {n : ℕ} {F : Type*} [Field F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    Module.Finite F (mlBlockedSpdpSubspace B κ ℓ p) := by
+  have hle := mlBlockedSpdpSubspace_le_restrictTotalDegree B κ ℓ p
+  have : Module.Finite F (MvPolynomial.restrictTotalDegree (Fin n) F (ℓ + p.totalDegree)) :=
+    MvPolynomial.instFiniteSubtypeMemSubmoduleRestrictTotalDegreeOfFinite _ _ _
+  exact Module.Finite.of_injective
+    (Submodule.inclusion hle)
+    (Submodule.inclusion_injective _)
+
 theorem mlBlockedSpdpRank_le {n : ℕ} {F : Type*} [Field F]
     (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
     mlBlockedSpdpRank B κ ℓ p ≤ blockedSpdpRank B κ ℓ p := by
-  sorry
+  unfold mlBlockedSpdpRank blockedSpdpRank
+  calc Module.finrank F ↥(mlBlockedSpdpSubspace B κ ℓ p)
+      ≤ Module.finrank F ↥(Submodule.map (mlProjLinearMap (Fin n) F)
+          (blockedSpdpSubspace B κ ℓ p)) :=
+        Submodule.finrank_mono (mlBlockedSpdpSubspace_le_map B κ ℓ p)
+    _ ≤ Module.finrank F ↥(blockedSpdpSubspace B κ ℓ p) := by
+        have h : LinearMap.range ((mlProjLinearMap (Fin n) F).domRestrict
+            (blockedSpdpSubspace B κ ℓ p)) =
+            Submodule.map (mlProjLinearMap (Fin n) F) (blockedSpdpSubspace B κ ℓ p) := by
+          ext x; constructor
+          · rintro ⟨⟨y, hy⟩, rfl⟩; exact ⟨y, hy, rfl⟩
+          · rintro ⟨y, hy, rfl⟩; exact ⟨⟨y, hy⟩, rfl⟩
+        rw [← h]
+        exact ((mlProjLinearMap (Fin n) F).domRestrict _).finrank_range_le
 
-/-- Subadditivity of multilinear SPDP rank -/
+/-! ## Subadditivity -/
+
+theorem mlBlockedSpdpSubspace_add_le {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (p q : MvPolynomial (Fin n) F) :
+    mlBlockedSpdpSubspace B κ ℓ (p + q) ≤
+      mlBlockedSpdpSubspace B κ ℓ p ⊔ mlBlockedSpdpSubspace B κ ℓ q := by
+  apply Submodule.span_le.mpr
+  intro r ⟨S, m, hlen, hdeg, hadm, hr⟩
+  rw [hr, iterDerivList_add, mul_add, mlProj_add]
+  exact Submodule.add_mem _
+    (Submodule.mem_sup_left (Submodule.subset_span ⟨S, m, hlen, hdeg, hadm, rfl⟩))
+    (Submodule.mem_sup_right (Submodule.subset_span ⟨S, m, hlen, hdeg, hadm, rfl⟩))
+
 theorem mlBlockedSpdpRank_add_le {n : ℕ} {F : Type*} [Field F]
     (B : BlockPartition n) (κ ℓ : ℕ)
     (p q : MvPolynomial (Fin n) F) :
     mlBlockedSpdpRank B κ ℓ (p + q) ≤
       mlBlockedSpdpRank B κ ℓ p + mlBlockedSpdpRank B κ ℓ q := by
-  sorry
+  unfold mlBlockedSpdpRank
+  calc Module.finrank F ↥(mlBlockedSpdpSubspace B κ ℓ (p + q))
+      ≤ Module.finrank F ↥(mlBlockedSpdpSubspace B κ ℓ p ⊔ mlBlockedSpdpSubspace B κ ℓ q) :=
+        Submodule.finrank_mono (mlBlockedSpdpSubspace_add_le B κ ℓ p q)
+    _ ≤ Module.finrank F ↥(mlBlockedSpdpSubspace B κ ℓ p) +
+        Module.finrank F ↥(mlBlockedSpdpSubspace B κ ℓ q) :=
+        Submodule.finrank_add_le_finrank_add_finrank _ _
 
-/-- Per-gate multilinear SPDP rank bound.
-    For a polynomial with ≤ d variables, the multilinear SPDP rank is ≤ 4^d.
-    Key insight: in the multilinear basis, multiplication by a d-variable
-    polynomial has rank ≤ 2^d, and derivatives span a space of dim ≤ 2^d. -/
-theorem per_gate_ml_rank_bound {n : ℕ} {F : Type*} [Field F]
-    (B : BlockPartition n) (κ ℓ : ℕ)
-    (g : MvPolynomial (Fin n) F) (d : ℕ)
-    (hd : g.vars.card ≤ d) :
-    mlBlockedSpdpRank B κ ℓ g ≤ 4 ^ d := by
-  sorry
+/-! ## Fin-sum subadditivity -/
 
-/-- Subadditivity for Fin-indexed sums -/
+theorem mlBlockedSpdpSubspace_zero {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ) :
+    mlBlockedSpdpSubspace B κ ℓ (0 : MvPolynomial (Fin n) F) = ⊥ := by
+  apply le_antisymm
+  · apply Submodule.span_le.mpr
+    intro q ⟨S, m_poly, _, _, _, hq⟩
+    rw [hq]; unfold iterDerivList; rw [foldl_pderiv_zero, mul_zero, mlProj_zero]
+    exact Submodule.zero_mem ⊥
+  · exact bot_le
+
+theorem mlBlockedSpdpRank_zero {n : ℕ} {F : Type*} [Field F]
+    (B : BlockPartition n) (κ ℓ : ℕ) :
+    mlBlockedSpdpRank B κ ℓ (0 : MvPolynomial (Fin n) F) = 0 := by
+  unfold mlBlockedSpdpRank
+  rw [mlBlockedSpdpSubspace_zero]
+  simp
+
 theorem mlBlockedSpdpRank_finsum_le {n : ℕ} {F : Type*} [Field F]
     (B : BlockPartition n) (κ ℓ : ℕ)
     (m : ℕ) (gate : Fin m → MvPolynomial (Fin n) F) :
     mlBlockedSpdpRank B κ ℓ (∑ i : Fin m, gate i) ≤
       ∑ i : Fin m, mlBlockedSpdpRank B κ ℓ (gate i) := by
-  sorry -- From mlBlockedSpdpRank_add_le by induction
+  induction m with
+  | zero =>
+    simp only [Finset.univ_eq_empty, Finset.sum_empty]
+    rw [mlBlockedSpdpRank_zero]
+  | succ k ih =>
+    rw [Fin.sum_univ_castSucc, Fin.sum_univ_castSucc]
+    calc mlBlockedSpdpRank B κ ℓ (∑ i : Fin k, gate (Fin.castSucc i) + gate (Fin.last k))
+        ≤ mlBlockedSpdpRank B κ ℓ (∑ i : Fin k, gate (Fin.castSucc i)) +
+          mlBlockedSpdpRank B κ ℓ (gate (Fin.last k)) :=
+          mlBlockedSpdpRank_add_le B κ ℓ _ _
+      _ ≤ (∑ i : Fin k, mlBlockedSpdpRank B κ ℓ (gate (Fin.castSucc i))) +
+          mlBlockedSpdpRank B κ ℓ (gate (Fin.last k)) :=
+          Nat.add_le_add_right (ih (gate ∘ Fin.castSucc)) _
+
+/-! ## Per-gate rank bound -/
+
+/-- Per-gate multilinear SPDP rank bound: ≤ 4^d for d-variable polynomial.
+    Paper §17.3: in the multilinear basis, multiplication by a d-variable
+    polynomial has rank ≤ 2^d, derivative space has dim ≤ 2^d. Total: 4^d. -/
+theorem per_gate_ml_rank_bound {n : ℕ} {F : Type*} [Field F]
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (g : MvPolynomial (Fin n) F) (d : ℕ)
+    (hd : g.vars.card ≤ d) :
+    mlBlockedSpdpRank B κ ℓ g ≤ 4 ^ d := by
+  sorry -- Core multilinear algebra bound
 
 /-! ## P-side collapse -/
 
-/-- The violation polynomial has polynomial multilinear SPDP rank.
-    violationPoly = Σ gate_i², each gate has ≤ 6 variables, so gate² ≤ 12 vars.
-    Per-gate rank ≤ 4^12 = 16777216 (constant).
-    numGates ≤ n^(2t+4).
-    Total ≤ n^(2t+4) × 4^12 ≤ n^(2t+5). -/
-theorem pside_ml_rank_bound {F : Type*} [Field F]
-    (M : DTM) :
+theorem pside_ml_rank_bound {F : Type*} [Field F] (M : DTM) :
     ∃ (C : ℕ), ∀ n, n ≥ max 4 M.numStates →
       ∀ (B : BlockPartition (numVars M n (Nat.log 2 n))) (κ ℓ : ℕ),
         mlBlockedSpdpRank B κ ℓ (violationPolyOf F M n) ≤ n ^ C := by
-  sorry
+  sorry -- Wire: violation_has_locality + finsum_le + per_gate_ml_rank_bound
 
 /-! ## NP-side lower bound -/
 
-/-- The NP-side identity minor lower bound holds for multilinear SPDP rank.
-    The identity minor uses multilinear column monomials (products of distinct
-    selector variables), so it appears in the multilinear SPDP matrix. -/
 theorem np_ml_lower_bound (F : Type*) [Field F] [Nontrivial F] :
     ∃ n₀, ∀ n, n ≥ n₀ →
       mlBlockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
         (tseitinPoly F n) ≥ n ^ (Nat.log 2 n / 4) := by
-  sorry
+  sorry -- Transfer from np_side_lb: identity minor uses multilinear monomials
 
-/-! ## Extraction map (Paper Theorem 5, Item 3)
-
-  Axiom: rank-monotone extraction map TΦ exists.
-  When M correctly decides SAT, TΦ(P_M) = Q×_Φ and Γ^ml(TΦ(p)) ≤ Γ^ml(p).
-
-  This encapsulates the paper's Sections 10 and 34:
-  - Lemma 40 (rank monotonicity under compiler operations)
-  - Theorem 255 (semantic closure / representation invariance) -/
+/-! ## Extraction map axiom -/
 
 axiom extraction_map_exists (F : Type*) [Field F] [Nontrivial F]
-    (n : ℕ) (M : DTM)
-    (hsolves : True) :
-    ∀ (B_v : BlockPartition (numVars M n (Nat.log 2 n)))
-      (κ ℓ : ℕ),
-      mlBlockedSpdpRank (tseitinPartition n) κ ℓ
-        (tseitinPoly F n) ≤
+    (n : ℕ) (M : DTM) (hsolves : True) :
+    ∀ (B_v : BlockPartition (numVars M n (Nat.log 2 n))) (κ ℓ : ℕ),
+      mlBlockedSpdpRank (tseitinPartition n) κ ℓ (tseitinPoly F n) ≤
       mlBlockedSpdpRank B_v κ ℓ (violationPolyOf F M n)
 
 end MultilinearSPDP
