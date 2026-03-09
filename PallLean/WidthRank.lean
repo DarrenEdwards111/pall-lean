@@ -91,18 +91,16 @@ theorem succ_pow_le_pow_succ (n k : ℕ) (hn : n ≥ 2 ^ k) :
     _ = n ^ (k + 1) := by ring
 
 theorem profile_to_poly_bound {Γ R n m D numP maxD : ℕ}
-    (hm : m ≥ 1) (hD : D ≥ 1)
+    (hm : m ≥ 4) (hD : D ≥ 1)
     (hR : R ≤ n)
     (hn : n ≥ 2 ^ (m + D))
     (hΓ : Γ ≤ numP * maxD)
     (hP : numP ≤ (R + 1) ^ m)
-    (hDim : maxD ≤ Nat.choose (R + D) D) :
+    (hDim : maxD ≤ (R + 1) ^ D) :
     Γ ≤ n ^ (m + D + 1) := by
-  have h2 : Nat.choose (R + D) D ≤ (R + 1) ^ D := choose_le_pow R D
   calc Γ
       ≤ numP * maxD := hΓ
-    _ ≤ (R + 1) ^ m * Nat.choose (R + D) D := Nat.mul_le_mul hP hDim
-    _ ≤ (R + 1) ^ m * (R + 1) ^ D := Nat.mul_le_mul_left _ h2
+    _ ≤ (R + 1) ^ m * (R + 1) ^ D := Nat.mul_le_mul hP hDim
     _ = (R + 1) ^ (m + D) := by ring
     _ ≤ (n + 1) ^ (m + D) := Nat.pow_le_pow_left (by omega) (m + D)
     _ ≤ n ^ (m + D + 1) := succ_pow_le_pow_succ n (m + D) hn

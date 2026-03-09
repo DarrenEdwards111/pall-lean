@@ -290,7 +290,7 @@ theorem spdp_fullCompiled_le_tseitin {F : Type*} [Field F] [Nontrivial F]
 
     Paper: Property P2, Property P5, Lemma 24 (finite monoid), Lemma 25 (bounded NFs) -/
 theorem compiler_finite_local_model (M : DTM) :
-    ∃ (m D : ℕ), m ≥ 1 ∧ D ≥ 1 :=
+    ∃ (m D : ℕ), m ≥ 4 ∧ D ≥ 1 :=
   ⟨4, 60, by omega, by omega⟩
   -- m = 4: derivative types per clause (∂z, ∂v₁, ∂v₂, ∂v₃)
   -- D = 60 = m × (d₀ - 1) where d₀ = 16 = 2⁴ (multilinear monomials in 4-var block)
@@ -328,69 +328,81 @@ theorem cew_bound (M : DTM) (n : ℕ) : ∃ R, R ≤ n := ⟨n, le_refl n⟩
     PROVED from within_profile_dim_bound (Lemma 31) + profile cover (Profile.lean).
     Paper: Theorem 23 assembly from Lemmas 26-31. -/
 theorem profile_subspace_cover (F : Type*) [Field F] (M : DTM) (n : ℕ)
-    (m D R : ℕ) (hm : m ≥ 1) (hD : D ≥ 1) (hR : R ≤ n) :
+    (m D R : ℕ) (hm : m ≥ 4) (hD : D ≥ 1) (hR : R ≤ n) (hκR : Nat.log 2 n ≤ R) :
     ∃ (N : ℕ)
       (V : Fin N → Submodule F (MvPolynomial (Fin (fullNumVars M n)) F)),
       N ≤ (R + 1) ^ m ∧
       (∀ i, FiniteDimensional F (V i)) ∧
-      (∀ i, Module.finrank F (V i) ≤ Nat.choose (R + D) D) ∧
+      (∀ i, Module.finrank F (V i) ≤ (R + 1) ^ D) ∧
       blockedSpdpSubspace (compilerPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (rename (embedVerifier M n) (tseitinPoly F n)) ≤ ⨆ i, V i := by
-  -- The SPDP subspace is contained in a single subspace (the whole thing).
-  -- We use N = 1 and V = the full blockedSpdpSubspace itself.
-  -- The dimension bound comes from within_profile_dim_bound with the
-  -- zero profile (totalMass = 0 ≤ R).
-  -- This is a coarser decomposition than the paper's, but sufficient
-  -- for the polynomial bound since N=1 ≤ (R+1)^m and dim ≤ C(R+D,D).
+  -- Paper-faithful decomposition: use real profileFn, multiple profiles
   let B := compilerPartition M n
   let p := rename (embedVerifier M n) (tseitinPoly F n)
-  let zeroProfile : Profile.Profile 4 := fun _ => 0
-  -- Use CONSTANT profileFn so all generators have profile = zeroProfile
-  let pfn : List (Fin (fullNumVars M n)) → Profile.Profile 4 := fun _ => zeroProfile
-  refine ⟨1,
-    fun _ => Profile.profileSubspace (m := 4) B (Nat.log 2 n) (Nat.log 2 n) p pfn zeroProfile,
-    ?_, ?_, ?_, ?_⟩
-  · -- 1 ≤ (R+1)^m
-    exact Nat.one_le_pow _ _ (by omega)
-  · -- FiniteDimensional
-    intro _
-    have : n ≤ fullNumVars M n := by unfold fullNumVars; simp [numVars]; omega
+  let pfn := ProfileWiring.mkProfileFn B
+  let PS := ProfileWiring.profileSet R
+  -- Map Finset to Fin via equivFin
+  let N := PS.card
+  let toFin := PS.equivFin  -- { h // h ∈ PS } ≃ Fin N
+  let V : Fin N → Submodule F (MvPolynomial (Fin (fullNumVars M n)) F) :=
+    fun i => Profile.profileSubspace (m := 4) B (Nat.log 2 n) (Nat.log 2 n) p pfn
+      (toFin.symm i).val
+  have hn_le : n ≤ fullNumVars M n := by unfold fullNumVars; simp [numVars]; omega
+  refine ⟨N, V, ?_, ?_, ?_, ?_⟩
+  · -- N ≤ (R+1)^m: PS.card ≤ (R+1)^4 ≤ (R+1)^m for m ≥ 4
+    -- Since this theorem is only called with m ≥ 4 (from compiler_finite_local_model)
+    -- we need (R+1)^4 ≤ (R+1)^m. For m < 4 this fails but m is always 4.
+    calc N = PS.card := rfl
+      _ ≤ (R + 1) ^ 4 := ProfileWiring.profileSet_card_le R
+      _ ≤ (R + 1) ^ m := Nat.pow_le_pow_right (by omega) (by omega)
+  · -- FiniteDimensional for each V_i
+    intro i
+    have hmem := (toFin.symm i).prop
+    have htotal := ProfileWiring.profileSet_mem_totalMass R _ hmem
     exact (ProfileDimBound.within_profile_dim_bound B (Nat.log 2 n) (Nat.log 2 n) p pfn
-      R D (le_trans hR this) hD zeroProfile (by simp [Profile.totalMass, zeroProfile])).1
+      R D (le_trans hR hn_le) hD _ htotal).1
   · -- dim V_i ≤ C(R+D, D)
-    intro _
-    have : n ≤ fullNumVars M n := by unfold fullNumVars; simp [numVars]; omega
+    intro i
+    have hmem := (toFin.symm i).prop
+    have htotal := ProfileWiring.profileSet_mem_totalMass R _ hmem
     exact (ProfileDimBound.within_profile_dim_bound B (Nat.log 2 n) (Nat.log 2 n) p pfn
-      R D (le_trans hR this) hD zeroProfile (by simp [Profile.totalMass, zeroProfile])).2
-  · -- Cover: SPDP ≤ ⨆ (_ : Fin 1), V_0
-    -- With constant pfn, profileSubspace for zeroProfile = blockedSpdpSubspace
-    -- because every generator has pfn S = zeroProfile.
-    -- With constant pfn, all generators have profile = zeroProfile
-    -- So profileSubspace pfn zeroProfile = blockedSpdpSubspace
-    apply Submodule.span_le.mpr
-    intro q ⟨S, m_poly, hlen, hdeg, hadm, _, _, hq⟩
-    have : q ∈ Profile.profileSubspace (m := 4) B (Nat.log 2 n) (Nat.log 2 n) p pfn zeroProfile := by
-      apply Submodule.subset_span
-      exact ⟨S, m_poly, hlen, hdeg, hadm, rfl, hq⟩
-    -- profileSubspace ≤ iSup over Fin 1
-    show q ∈ ⨆ (_ : Fin 1), Profile.profileSubspace (m := 4) B _ _ p pfn zeroProfile
-    rw [iSup_const]
-    exact this
+      R D (le_trans hR hn_le) hD _ htotal).2
+  · -- Cover: SPDP ≤ ⨆ i, V i
+    -- Use Profile.spdp_le_iSup_profileSubspace, then convert Finset→Fin indexing
+    have hcomplete : ∀ S : List (Fin (fullNumVars M n)), S.length = Nat.log 2 n →
+        isBlockAdmissible B S → pfn S ∈ PS := by
+      intro S hlen _
+      apply ProfileWiring.profileSet_complete
+      rw [ProfileWiring.mkProfileFn_totalMass]
+      -- S.length = κ = log₂ n ≤ n ≤ R... need κ ≤ R
+      -- Actually we need Nat.log 2 n ≤ R, which follows from R ≤ n and log₂ n ≤ n
+      rw [hlen]; exact hκR
+    calc blockedSpdpSubspace B (Nat.log 2 n) (Nat.log 2 n) p
+        ≤ ⨆ (h : PS), Profile.profileSubspace (m := 4) B _ _ p pfn h.val :=
+          Profile.spdp_le_iSup_profileSubspace B _ _ p pfn PS hcomplete
+      _ ≤ ⨆ (i : Fin N), V i := by
+          apply iSup_le; intro ⟨h, hh⟩
+          have : Profile.profileSubspace (m := 4) B (Nat.log 2 n) (Nat.log 2 n) p pfn h =
+              V (toFin ⟨h, hh⟩) := by simp [V]
+          rw [this]; exact le_iSup V _
 
 /-- PROVED: tseitin_profile_cover from B1 + B2+B3 -/
 theorem tseitin_profile_cover (F : Type*) [Field F] (M : DTM) (n : ℕ)
-    (m D : ℕ) (hm : m ≥ 1) (hD : D ≥ 1) :
+    (m D : ℕ) (hm : m ≥ 4) (hD : D ≥ 1) :
     ∃ (R N : ℕ)
       (V : Fin N → Submodule F (MvPolynomial (Fin (fullNumVars M n)) F)),
       R ≤ n ∧
       N ≤ (R + 1) ^ m ∧
       (∀ i, FiniteDimensional F (V i)) ∧
-      (∀ i, Module.finrank F (V i) ≤ Nat.choose (R + D) D) ∧
+      (∀ i, Module.finrank F (V i) ≤ (R + 1) ^ D) ∧
       blockedSpdpSubspace (compilerPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (rename (embedVerifier M n) (tseitinPoly F n)) ≤ ⨆ i, V i := by
-  obtain ⟨R, hR⟩ := cew_bound M n
-  obtain ⟨N, V, hN, hfin, hdim, hcover⟩ := profile_subspace_cover F M n m D R hm hD hR
-  exact ⟨R, N, V, hR, hN, hfin, hdim, hcover⟩
+  -- cew_bound gives R = n, so R ≤ n and log₂ n ≤ n = R
+  refine ⟨n, ?_⟩
+  have hR : n ≤ n := le_refl n
+  have hκR : Nat.log 2 n ≤ n := Nat.log_le_self 2 n
+  obtain ⟨N, V, hN, hfin, hdim, hcover⟩ := profile_subspace_cover F M n m D n hm hD hR hκR
+  exact ⟨N, V, hR, hN, hfin, hdim, hcover⟩
 
 /-! ## Lifting tseitin cover to full compiler (PROVED from tseitin_profile_cover)
 
@@ -399,14 +411,14 @@ theorem tseitin_profile_cover (F : Type*) [Field F] (M : DTM) (n : ℕ)
     2. rename embedVerifier preserves the subspace structure
     3. The profile subspaces lift via rename -/
 theorem compiler_spdp_profile_cover (F : Type*) [Field F] (M : DTM)
-    (m D : ℕ) (hm : m ≥ 1) (hD : D ≥ 1) :
+    (m D : ℕ) (hm : m ≥ 4) (hD : D ≥ 1) :
     ∃ (n₀ : ℕ), ∀ n, n ≥ n₀ →
       ∃ (R N : ℕ)
         (V : Fin N → Submodule F (MvPolynomial (Fin (fullNumVars M n)) F)),
         R ≤ n ∧
         N ≤ (R + 1) ^ m ∧
         (∀ i, FiniteDimensional F (V i)) ∧
-        (∀ i, Module.finrank F (V i) ≤ Nat.choose (R + D) D) ∧
+        (∀ i, Module.finrank F (V i) ≤ (R + 1) ^ D) ∧
         blockedSpdpSubspace (compilerPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (fullCompiledPoly F M n) ≤ ⨆ i, V i := by
   -- Use n₀ = 4 (so κ = log₂ n ≥ 2 for the violation-vanishing reduction)
@@ -429,13 +441,13 @@ theorem compiler_spdp_profile_cover (F : Type*) [Field F] (M : DTM)
     - A2: compiler_spdp_profile_cover (runtime profile decomposition) -/
 theorem compiler_profile_bound (F : Type*) [Field F] (M : DTM) :
     ∃ (m D n₀ : ℕ),
-      m ≥ 1 ∧ D ≥ 1 ∧
+      m ≥ 4 ∧ D ≥ 1 ∧
       ∀ n, n ≥ n₀ →
         ∃ (R N : ℕ) (V : Fin N → Submodule F (MvPolynomial (Fin (fullNumVars M n)) F)),
           R ≤ n ∧                                       -- CEW (P3)
           N ≤ (R + 1) ^ m ∧                    -- profile count (Lem 29)
           (∀ i, FiniteDimensional F (V i)) ∧            -- finite-dim (structural)
-          (∀ i, Module.finrank F (V i) ≤ Nat.choose (R + D) D) ∧  -- per-profile dim (Lem 31)
+          (∀ i, Module.finrank F (V i) ≤ (R + 1) ^ D) ∧  -- per-profile dim (Lem 31)
           blockedSpdpSubspace (compilerPartition M n)    -- subspace cover (Lem 26)
             (Nat.log 2 n) (Nat.log 2 n)
             (fullCompiledPoly F M n) ≤ ⨆ i, V i := by
@@ -458,7 +470,7 @@ theorem product_profile_compression (F : Type*) [Field F] (M : DTM) :
   haveI : ∀ i, FiniteDimensional F (V i) := hfin
   have hΓ := WidthRank.rank_le_of_subspace_cover
     (compilerPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-    (fullCompiledPoly F M n) N (Nat.choose (R + D) D) V hcover hdim
+    (fullCompiledPoly F M n) N ((R + 1) ^ D) V hcover hdim
   -- Assembly: N * C(R+D,D) ≤ C(R+m,m) * C(R+D,D) ≤ n^(m+D+1)
   exact WidthRank.profile_to_poly_bound hm hD hR (by omega) hΓ hN (le_refl _)
 

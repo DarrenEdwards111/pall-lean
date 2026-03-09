@@ -37,8 +37,8 @@ theorem choose_le_pow (R m : ℕ) : Nat.choose (R + m) m ≤ (R + 1) ^ m := by
     Stars-and-bars: weak compositions of R into m+1 parts.
     |H(R)| ≤ C(R+m, m) ≤ (R+1)^m where m = |T| = O(1). -/
 theorem profile_count_bound :
-    ∃ m, m ≥ 1 ∧ ∀ R, Nat.choose (R + m) m ≤ (R + 1) ^ m :=
-  ⟨1, le_refl 1, fun R => choose_le_pow R 1⟩
+    ∃ m, m ≥ 4 ∧ ∀ R, Nat.choose (R + m) m ≤ (R + 1) ^ m :=
+  ⟨4, le_refl 4, fun R => choose_le_pow R 4⟩
 
 /-! ## Within-Profile Dimension (§9.1, Lemma 22) — PROVED
 
