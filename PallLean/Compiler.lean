@@ -163,8 +163,9 @@ theorem violationPolyOf_totalDegree (F : Type*) [CommRing F] [Nontrivial F]
   exact TuringMachine.violationPoly_totalDegree_le F M n (Nat.log 2 n) 2 _
     (compilationConstraints_totalDegree F M n)
 
-/-- Compiler-induced block partition -/
-noncomputable def compiledPartition (M : DTM) (n : ℕ) :
+/-- Compiler-induced block partition (identity — base version).
+    MultilinearSPDP.lean overrides with templatePartition for the P-side bound. -/
+noncomputable def compiledPartition_id (M : DTM) (n : ℕ) :
     BlockPartition (numVars M n (Nat.log 2 n)) :=
   compilerBlockPartition M n (Nat.log 2 n)
 

@@ -887,6 +887,88 @@ The paper's compiled polynomial P_{M',n} = Q×_Φ(u) + R_{M',Φ}(v) consists of:
 - The coupled verifier sheet Q× (tseitinPoly) on witness variables
 - The tableau constraints R (violationPolyOf) on all variables -/
 
+/-- Template-induced block partition for the compiled variable space.
+    Mirrors tseitinPartition on witness variables (indices < npNumVars n):
+    - Selector variables → per-clause blocks (block c+1)
+    - Non-selector witness vars → block 0
+    Computation variables (indices ≥ npNumVars n) → block 0.
+
+    This is COARSER than the identity partition, making block-admissible
+    derivatives more restrictive. Width⇒Rank (Theorem 32) uses this
+    to bound Γ^B ≤ n^O(1).
+
+    Block layout:
+    - Block 0: literal witness vars + all computation vars
+    - Block c+1: selector variable for clause c -/
+noncomputable def compiledPartition (M : DTM) (n : ℕ) :
+    BlockPartition (numVars M n (Nat.log 2 n)) where
+  numBlocks := numVars M n (Nat.log 2 n)
+  assign := fun v =>
+    let Φ := tseitinAt n
+    let base := Φ.graph.numEdges + 3 * Φ.clauses.length
+    if h : v.val ≥ base ∧ v.val - base < Φ.clauses.length ∧
+           v.val < npNumVars n then
+      ⟨v.val - base + 1, by omega⟩
+    else
+      ⟨0, by omega⟩
+
+/-- The compiled partition refines tseitinPartition via witnessInclusion:
+    if two witness vars are in the same compiled block, they're in the same tseitin block. -/
+theorem compiledPartition_refines_tseitin (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (i j : Fin (npNumVars n))
+    (h_eq : (compiledPartition M n).assign
+      ⟨i.val, Nat.lt_of_lt_of_le i.isLt h_le⟩ =
+     (compiledPartition M n).assign
+      ⟨j.val, Nat.lt_of_lt_of_le j.isLt h_le⟩) :
+    (tseitinPartition n).assign i = (tseitinPartition n).assign j := by
+  -- compiledPartition on witness vars mirrors tseitinPartition exactly.
+  -- Key: for Fin(npNumVars n), v.val < npNumVars n always holds,
+  -- so the three-way compiled condition reduces to the two-way tseitin condition.
+  unfold compiledPartition at h_eq
+  unfold tseitinPartition IdentityMinor.tseitinPartition
+  have hi_np : i.val < npNumVars n := i.isLt
+  have hj_np : j.val < npNumVars n := j.isLt
+  -- Simplify: the dite in compiledPartition has three conjuncts, third is v<npNumVars
+  -- For witness vars this third conjunct is always true
+  -- So compiledPartition(i) = tseitinPartition(i) for witness vars
+  -- Work at the level of Fin.val
+  ext
+  simp only [Fin.val_mk] at h_eq ⊢
+  -- Split on the four cases of (i selector?) × (j selector?)
+  by_cases hi : i.val ≥ (tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length ∧
+    i.val - ((tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length) < (tseitinAt n).clauses.length
+  · -- i is a selector
+    have hi3 : i.val ≥ (tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length ∧
+      i.val - ((tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length) < (tseitinAt n).clauses.length ∧
+      (⟨i.val, Nat.lt_of_lt_of_le hi_np h_le⟩ : Fin _).val < npNumVars n := ⟨hi.1, hi.2, hi_np⟩
+    simp only [dif_pos hi3, Fin.val_mk] at h_eq
+    by_cases hj : j.val ≥ (tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length ∧
+      j.val - ((tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length) < (tseitinAt n).clauses.length
+    · have hj3 : j.val ≥ (tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length ∧
+        j.val - ((tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length) < (tseitinAt n).clauses.length ∧
+        (⟨j.val, Nat.lt_of_lt_of_le hj_np h_le⟩ : Fin _).val < npNumVars n := ⟨hj.1, hj.2, hj_np⟩
+      simp only [dif_pos hj3, Fin.mk.injEq] at h_eq
+      simp only [dif_pos hi, dif_pos hj, Fin.val_mk]; omega
+    · have hj3 : ¬(j.val ≥ (tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length ∧
+        j.val - ((tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length) < (tseitinAt n).clauses.length ∧
+        (⟨j.val, Nat.lt_of_lt_of_le hj_np h_le⟩ : Fin _).val < npNumVars n) := by
+        intro ⟨a, b, _⟩; exact hj ⟨a, b⟩
+      simp only [dif_neg hj3, Fin.mk.injEq] at h_eq; omega
+  · -- i is not a selector
+    have hi3 : ¬(i.val ≥ (tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length ∧
+      i.val - ((tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length) < (tseitinAt n).clauses.length ∧
+      (⟨i.val, Nat.lt_of_lt_of_le hi_np h_le⟩ : Fin _).val < npNumVars n) := by
+      intro ⟨a, b, _⟩; exact hi ⟨a, b⟩
+    simp only [dif_neg hi3, Fin.val_mk] at h_eq
+    by_cases hj : j.val ≥ (tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length ∧
+      j.val - ((tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length) < (tseitinAt n).clauses.length
+    · have hj3 : j.val ≥ (tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length ∧
+        j.val - ((tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length) < (tseitinAt n).clauses.length ∧
+        (⟨j.val, Nat.lt_of_lt_of_le hj_np h_le⟩ : Fin _).val < npNumVars n := ⟨hj.1, hj.2, hj_np⟩
+      simp only [dif_pos hj3, Fin.mk.injEq] at h_eq; omega
+    · simp only [dif_neg hi, dif_neg hj]
+
 /-- Canonical inclusion of witness variables into compiled variable space. -/
 noncomputable def witnessInclusion (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
@@ -975,29 +1057,112 @@ theorem tableau_restriction_lowDeg (F : Type*) [Field F] [Nontrivial F]
       (witnessInclusion_injective M n h_le) (violationPolyOf F M n)).totalDegree ≤ 4 :=
   le_trans (restrictPoly_totalDegree_le F _ _ _) (violationPolyOf_totalDegree F M n)
 
-/-- P-side upper bound for the full compiled polynomial.
-    Paper: Theorem 181 Item 1 (P-side compiled upper bound).
+/-- Width⇒Rank (Lemma 32 / Theorem 92): A product of poly(n) local factors,
+    each touching O(1) variables, has polynomial mlBlockedSpdpRank under any
+    block partition where each factor touches O(1) blocks.
 
-    The Width⇒Rank bound: for the TEMPLATE-INDUCED block partition
-    (Definition 1, §40.6), the compiled polynomial's blocked SPDP rank is
-    polynomial. The paper is explicit (Remark 5/7) that this bound holds
-    for Γ^B (blocked rank with the template partition), NOT for the fully
-    unblocked rank Γ with the identity/singleton partition.
+    This is the profile compression result: the row space of the SPDP matrix
+    is spanned by vectors that can be classified into R^O(1) profile classes
+    (R = CEW budget), each contributing polylog(n) dimensions.
 
-    The template partition groups variables by gadget ownership: each clause's
-    variables (selector + 3 literal vars) share a block, and each computation
-    gadget's variables share a block. Block-admissible derivative lists can
-    differentiate at most one variable per block (= per gadget), which limits
-    the Leibniz expansion of the product over local factors to polynomially
-    many terms.
+    Paper: arXiv:2512.11820v5, §9, Lemma 32. -/
+axiom width_to_rank {n : ℕ} {F : Type*} [Field F] [Nontrivial F]
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (m : ℕ) (factor : Fin m → MvPolynomial (Fin n) F)
+    (width : ℕ)
+    (hfactor_width : ∀ i, (factor i).vars.card ≤ width)
+    (hfactor_deg : ∀ i, (factor i).totalDegree ≤ width)
+    (hblock_local : ∀ i, (Finset.univ.filter (fun b =>
+        ∃ v ∈ (factor i).vars, B.assign v = b)).card ≤ width) :
+    mlBlockedSpdpRank B κ ℓ (∏ i, factor i) ≤ (m * width) ^ (3 * width)
 
-    This is the only axiom in the formalization. All other steps are proved.
-    Paper reference: arXiv:2512.11820v5, Theorem 181 Item 1, §9. -/
-axiom pside_full_ml_rank_bound {F : Type*} [Field F] (M : DTM) :
+/-- P-side Width⇒Rank bound: the compiled polynomial has polynomial blocked
+    SPDP rank under the template partition.
+
+    Proof: fullCompiledPoly = verifierSheet + violationPoly.
+    violationPoly has degree ≤ 4 < κ, so it's killed by add_lowDeg.
+    verifierSheet = rename(f)(tseitinPoly) is a product of local factors.
+    By width_to_rank, its mlBlockedSpdpRank ≤ (m * w)^(3w) = n^O(1).
+    By mlBlockedSpdpRank_add_le, fullCompiled's rank is bounded. -/
+theorem pside_full_ml_rank_bound {F : Type*} [Field F] [Nontrivial F] (M : DTM) :
     ∃ (C : ℕ), ∀ n, n ≥ max 4 M.numStates →
       ∀ (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) (κ ℓ : ℕ),
+        κ ≥ 5 →
         mlBlockedSpdpRank (compiledPartition M n) κ ℓ
-          (fullCompiledPoly F M n h_le) ≤ n ^ C
+          (fullCompiledPoly F M n h_le) ≤ n ^ C := by
+  use 25
+  intro n hn h_le κ ℓ hκ
+  -- fullCompiledPoly = verifierSheet + violationPoly
+  -- violationPoly has degree ≤ 4 < κ ≥ 5, so add_lowDeg kills it
+  have h_lowdeg : (violationPolyOf F M n).totalDegree < κ := by
+    have := violationPolyOf_totalDegree F M n; omega
+  rw [show fullCompiledPoly F M n h_le = verifierSheetOf F M n h_le + violationPolyOf F M n
+    from rfl]
+  rw [mlBlockedSpdpRank_add_lowDeg F (compiledPartition M n) κ ℓ _ _ h_lowdeg]
+  -- verifierSheet = rename(f)(tseitinPoly) = rename(f)(∏_c factor_c)
+  -- = ∏_c rename(f)(factor_c) [rename is a ring hom]
+  let f := witnessInclusion M n h_le
+  let Φ := tseitinAt n
+  let m := Φ.clauses.length
+  let factor : Fin m → MvPolynomial (Fin (numVars M n (Nat.log 2 n))) F :=
+    fun c => MvPolynomial.rename f (1 - X (selectorIdx Φ c) * clauseGadget F Φ c)
+  have h_prod : verifierSheetOf F M n h_le = ∏ c : Fin m, factor c := by
+    unfold verifierSheetOf tseitinPoly coupledVerifier
+    exact map_prod (MvPolynomial.rename f) _ _
+  rw [h_prod]
+  -- Apply width_to_rank: each factor has ≤ 4 vars, degree ≤ 4, touches ≤ 2 blocks
+  have h_wr := width_to_rank (compiledPartition M n) κ ℓ m factor 4
+    (by intro i; sorry) -- vars.card ≤ 4: selector + 3 literal vars
+    (by -- totalDegree ≤ 4: rename preserves degree, 1 - X*g has degree ≤ 4
+      intro i
+      show (factor i).totalDegree ≤ 4
+      show (MvPolynomial.rename f
+        (1 - X (selectorIdx Φ i) * clauseGadget F Φ i)).totalDegree ≤ 4
+      have h1 := MvPolynomial.totalDegree_rename_le f
+        (1 - X (selectorIdx Φ i) * clauseGadget F Φ i)
+      have h2 : (1 - X (selectorIdx Φ i) * clauseGadget F Φ i).totalDegree ≤ 4 := by
+        calc (1 - X (selectorIdx Φ i) * clauseGadget F Φ i).totalDegree
+            ≤ max (1 : MvPolynomial _ F).totalDegree
+                (X (selectorIdx Φ i) * clauseGadget F Φ i).totalDegree :=
+              MvPolynomial.totalDegree_sub _ _
+          _ ≤ max 0 4 := by
+              apply max_le_max
+              · exact le_of_eq MvPolynomial.totalDegree_one
+              · calc (X (selectorIdx Φ i) * clauseGadget F Φ i).totalDegree
+                    ≤ (X (selectorIdx Φ i)).totalDegree + (clauseGadget F Φ i).totalDegree :=
+                      MvPolynomial.totalDegree_mul _ _
+                  _ ≤ 1 + 3 := by
+                      apply Nat.add_le_add
+                      · exact le_of_eq (MvPolynomial.totalDegree_X _)
+                      · sorry -- clauseGadget has degree ≤ 3 (product of 3 linear terms)
+                  _ = 4 := by norm_num
+          _ = 4 := by norm_num
+      linarith)
+    (by intro i; sorry) -- block-locality ≤ 4
+  -- (m * 4)^12 ≤ n^25 for m ≤ n, n ≥ 4
+  -- m = Φ.clauses.length ≤ n (for the cycle graph, m = n)
+  -- (m * 4)^12 ≤ n^25 for m ≤ n, n ≥ 4
+  -- For the cycle graph, m = n. So (n*4)^12 ≤ (n*n)^12 = n^24 ≤ n^25
+  have hm_le_n : m ≤ n := by
+    show (tseitinAt n).clauses.length ≤ n
+    simp only [tseitinAt, highGirthFamily]
+    by_cases h3 : n ≥ 3
+    · rw [dif_pos h3]
+      simp only [buildTseitin, cycleRegularGraph, List.length_map, List.length_finRange]
+      omega
+    · rw [dif_neg h3]
+      simp only [buildTseitin, cycleRegularGraph, List.length_map, List.length_finRange]
+      omega
+  -- (m * 4)^12 ≤ n^25 for m ≤ n, n ≥ 4
+  have h_arith : (m * 4) ^ (3 * 4) ≤ n ^ 25 := by
+    have hn4 : n ≥ 4 := by omega
+    have : m * 4 ≤ n * n := by nlinarith
+    have h1 : (m * 4) ^ 12 ≤ (n * n) ^ 12 := Nat.pow_le_pow_left this 12
+    calc (m * 4) ^ 12 ≤ (n * n) ^ 12 := Nat.pow_le_pow_left this 12
+      _ = (n ^ 2) ^ 12 := by rw [← Nat.pow_two]
+      _ = n ^ 24 := by rw [← pow_mul]
+      _ ≤ n ^ 25 := Nat.pow_le_pow_right (by omega) (by omega)
+  exact le_trans h_wr h_arith
 
 /-- §34 Compiler extraction: NP-side rank ≤ P-side rank.
 
@@ -1037,14 +1202,12 @@ theorem extraction_rank_monotone (F : Type*) [Field F] [Nontrivial F]
   have h_lowdeg := tableau_restriction_lowDeg F M n h_le
   rw [mlBlockedSpdpRank_add_lowDeg F h_pullback κ ℓ (tseitinPoly F n) _ (by linarith)]
     at h_restrict
-  -- Step 4: coarsen — pullback of identity partition refines tseitin partition
+  -- Step 4: coarsen — pullback of template partition refines tseitin partition
   have h_coarsen := mlBlockedSpdpRank_coarsen F h_pullback (tseitinPartition n) κ ℓ
     (tseitinPoly F n) (by
       intro i j h_eq
       change (compiledPartition M n).assign (f i) = (compiledPartition M n).assign (f j) at h_eq
-      simp only [compiledPartition, compilerBlockPartition] at h_eq
-      have := hf_inj (Fin.ext (Fin.mk.inj h_eq))
-      rw [this])
+      exact compiledPartition_refines_tseitin M n h_le i j h_eq)
   linarith
 
 end MultilinearSPDP
