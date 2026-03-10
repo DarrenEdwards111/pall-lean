@@ -49,7 +49,7 @@ theorem P_neq_NP (h : PeqNP) : False := by
       have hn32 : n ≥ 32 := by omega
       have : Nat.log 2 32 = 5 := by native_decide
       exact le_trans (by omega) (Nat.log_mono_right hn32))
-  have h_pside := hpside n (by show n ≥ max 4 M.numStates; omega) h_le (compiledPartition M n)
+  have h_pside := hpside n (by show n ≥ max 4 M.numStates; omega) h_le
     (Nat.log 2 n) (Nat.log 2 n)
   -- Chain: n^(log n/4) ≤ Γ^ml(tseitin) ≤ Γ^ml(fullCompiled) ≤ n^C
   have h_chain : n ^ (Nat.log 2 n / 4) ≤ n ^ C := by linarith

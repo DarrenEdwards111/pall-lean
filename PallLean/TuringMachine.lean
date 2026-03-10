@@ -134,8 +134,15 @@ noncomputable def compiledPoly (F : Type*) [CommRing F]
 
 /-! ## Compiler-Induced Block Partition (§3.3) -/
 
-/-- Compiler block partition: each tableau cell (t,i) = one block,
-    plus separate blocks for inputs and padding. -/
+/-- Compiler block partition: template-induced partition (paper Definition 1, §40.6).
+    Variables are grouped by template ownership:
+    - Witness variables (indices < npNumVars n) are grouped by clause
+      (matching tseitinPartition: selectors get per-clause blocks, others share block 0)
+    - Computation variables (indices ≥ npNumVars n) each get their own block
+    This is coarser than the identity partition for witness variables,
+    ensuring that block-admissible derivative lists can differentiate at most
+    one witness variable per clause — which is what makes Width⇒Rank work.
+    Paper: Γ^B ≤ Γ, and the P-side bound holds for Γ^B, not Γ. -/
 noncomputable def compilerBlockPartition (M : DTM) (n κ : ℕ) :
     BlockPartition (numVars M n κ) where
   numBlocks := numVars M n κ
