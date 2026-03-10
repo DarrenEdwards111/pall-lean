@@ -17,12 +17,9 @@ import PallLean.BinomialBound2
 import PallLean.ProfileDecomp
 import PallLean.ProfileCompression
 import PallLean.WidthRank
--- Profile/dim bound chain
+-- Profile/dim bound chain (still used by ProfileAssembly)
 import PallLean.DerivType
-import PallLean.TypeWord
 import PallLean.Profile
-import PallLean.ProfileWiring
-import PallLean.ProfileDimBound
 import PallLean.DisjointLeibniz
 import PallLean.LeibnizProduct
 import PallLean.ProfileBridge
@@ -30,7 +27,6 @@ import PallLean.LocalBasis
 import PallLean.SpanProduct
 import PallLean.ProfileAssembly
 import PallLean.MonomialFactor
-import PallLean.ProfileFinrank
 -- New paper-faithful architecture
 import PallLean.MultilinearSPDP
 import PallLean.PneqNP

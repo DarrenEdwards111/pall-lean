@@ -12,7 +12,8 @@
   factor as products of per-block contributions, each in a bounded
   local space. The product of local spaces has bounded dimension.
 -/
-import PallLean.ProfileDimBound
+-- import PallLean.ProfileDimBound  -- archived (off-path)
+import PallLean.Profile
 import PallLean.LocalBasis
 import PallLean.SpanProduct
 import PallLean.ProfileBridge

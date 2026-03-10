@@ -7,18 +7,22 @@
 import PallLean.SPDPDefs
 import PallLean.NPWitness
 import PallLean.Compiler
-import PallLean.Multilinear
 import PallLean.IdentityMinor
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.Dimension.Finrank
 
 namespace MultilinearSPDP
 
-open MvPolynomial SPDP TuringMachine Compiler NPWitness Multilinear Tseitin
+open MvPolynomial SPDP TuringMachine Compiler NPWitness Tseitin
 
 attribute [local instance] Classical.dec
 
 /-! ## Multilinear Projection -/
+
+/-- A polynomial is multilinear if every variable has degree ≤ 1. -/
+def IsMultilinear {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p : MvPolynomial σ F) : Prop :=
+  ∀ α ∈ p.support, ∀ i, α i ≤ 1
 
 /-- A finsupp is multilinear if every value is ≤ 1 -/
 def Finsupp.IsMultilinear {σ : Type*} (α : σ →₀ ℕ) : Prop :=
