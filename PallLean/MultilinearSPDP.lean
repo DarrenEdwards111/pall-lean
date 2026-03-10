@@ -911,20 +911,69 @@ noncomputable def fullCompiledPoly (F : Type*) [CommRing F] [Nontrivial F]
     MvPolynomial (Fin (numVars M n (Nat.log 2 n))) F :=
   verifierSheetOf F M n h_le + violationPolyOf F M n
 
+/-- aeval with degree-1 substitutions on a monomial: degree ≤ monomial degree -/
+private theorem aeval_monomial_totalDegree_le {n m : ℕ} {F : Type*} [CommRing F]
+    (g : Fin m → MvPolynomial (Fin n) F)
+    (hg : ∀ i, (g i).totalDegree ≤ 1)
+    (s : Fin m →₀ ℕ) (c : F) :
+    ((aeval g) (monomial s c)).totalDegree ≤ s.sum (fun _ k => k) := by
+  rw [aeval_monomial]
+  calc ((algebraMap F _ c * s.prod (fun i k => g i ^ k)).totalDegree)
+      ≤ (algebraMap F (MvPolynomial (Fin n) F) c).totalDegree +
+        (s.prod (fun i k => g i ^ k)).totalDegree := totalDegree_mul _ _
+    _ ≤ 0 + (s.prod (fun i k => g i ^ k)).totalDegree := by
+        simp [totalDegree_C]
+    _ = (s.prod (fun i k => g i ^ k)).totalDegree := by ring
+    _ ≤ s.sum (fun i k => (g i ^ k).totalDegree) := by
+        unfold Finsupp.prod; exact totalDegree_finset_prod _ _
+    _ ≤ s.sum (fun i k => k * 1) := by
+        apply Finsupp.sum_le_sum; intro i _
+        exact le_trans (totalDegree_pow _ _) (Nat.mul_le_mul_left _ (hg i))
+    _ = s.sum (fun _ k => k) := by congr 1; ext i k; ring
+
+/-- totalDegree of Finset.sum ≤ bound when each summand ≤ bound -/
+private theorem totalDegree_finset_sum_le' {ι σ : Type*} {F : Type*} [CommSemiring F]
+    (t : Finset ι) (f : ι → MvPolynomial σ F) (d : ℕ)
+    (h : ∀ i ∈ t, (f i).totalDegree ≤ d) :
+    (∑ i ∈ t, f i).totalDegree ≤ d := by
+  induction t using Finset.cons_induction with
+  | empty => simp [totalDegree_zero]
+  | cons a t ha ih =>
+    rw [Finset.sum_cons]
+    exact le_trans (totalDegree_add _ _) (max_le
+      (h a (Finset.mem_cons_self a t))
+      (ih (fun i hi => h i (Finset.mem_cons.mpr (Or.inr hi)))))
+
+/-- aeval with degree-≤-1 substitutions doesn't increase totalDegree -/
+private theorem aeval_totalDegree_le {n m : ℕ} {F : Type*} [CommRing F]
+    (g : Fin m → MvPolynomial (Fin n) F)
+    (hg : ∀ i, (g i).totalDegree ≤ 1)
+    (p : MvPolynomial (Fin m) F) :
+    ((aeval g) p).totalDegree ≤ p.totalDegree := by
+  conv_lhs => rw [p.as_sum]
+  rw [map_sum]
+  apply totalDegree_finset_sum_le'
+  intro s hs
+  exact le_trans (aeval_monomial_totalDegree_le g hg s _) (le_totalDegree hs)
+
+/-- restrictPoly doesn't increase totalDegree (substitutes X or 0, both degree ≤ 1) -/
+theorem restrictPoly_totalDegree_le {n m : ℕ} (F : Type*) [CommRing F] [Nontrivial F]
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (p : MvPolynomial (Fin m) F) :
+    (restrictPoly F f hf p).totalDegree ≤ p.totalDegree := by
+  unfold restrictPoly
+  apply aeval_totalDegree_le
+  intro i; split
+  · exact le_of_eq (totalDegree_X _)
+  · simp [totalDegree_zero]
+
 /-- §34.1: tableau constraints restricted to witness vars have bounded degree.
-    The restriction sets computation variables to 0; surviving terms are
-    booleanity constraints x_j²(1-x_j)² for witness vars, which have degree 4.
-    Paper: Lemma 182 (strengthened from const to low-degree). -/
+    restrictPoly doesn't increase degree, and violationPolyOf has degree ≤ 4. -/
 theorem tableau_restriction_lowDeg (F : Type*) [Field F] [Nontrivial F]
     (M : DTM) (n : ℕ) (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
     (restrictPoly F (witnessInclusion M n h_le)
-      (witnessInclusion_injective M n h_le) (violationPolyOf F M n)).totalDegree ≤ 4 := by
-  -- restrictPoly is an AlgHom (aeval), so it preserves totalDegree up to the
-  -- structure of the substitution. The violationPolyOf is ∑ c_i² where each
-  -- c_i has width ≤ 6 (degree ≤ 6). After restriction (setting non-witness vars to 0),
-  -- surviving terms are witness-variable booleanity x_j(1-x_j) squared = degree 4.
-  -- Transition constraints involve non-witness vars → evaluate to 0.
-  sorry
+      (witnessInclusion_injective M n h_le) (violationPolyOf F M n)).totalDegree ≤ 4 :=
+  le_trans (restrictPoly_totalDegree_le F _ _ _) (violationPolyOf_totalDegree F M n)
 
 /-- P-side upper bound for the full compiled polynomial.
     Paper: Theorem 181 Item 3. -/

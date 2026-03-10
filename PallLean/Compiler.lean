@@ -84,6 +84,32 @@ noncomputable def mkTransitionConstraint (F : Type*) [CommRing F] [Nontrivial F]
       _ = 1 + (1 + 1) := by simp [Finset.card_singleton]
       _ ≤ 6 := by omega
 
+/-- Booleanity constraint has totalDegree ≤ 2 -/
+theorem mkBoolConstraint_totalDegree (F : Type*) [CommRing F] [Nontrivial F]
+    (M : DTM) (n : ℕ) (v : Fin (numVars M n (Nat.log 2 n))) :
+    (mkBoolConstraint F M n v).poly.totalDegree ≤ 2 := by
+  unfold mkBoolConstraint
+  show (TuringMachine.boolConstraint F v).totalDegree ≤ 2
+  unfold TuringMachine.boolConstraint
+  exact le_trans (MvPolynomial.totalDegree_mul _ _) (Nat.add_le_add
+    (le_of_eq (MvPolynomial.totalDegree_X _))
+    (le_trans (MvPolynomial.totalDegree_sub _ _)
+      (max_le (by simp [MvPolynomial.totalDegree_one]) (le_of_eq (MvPolynomial.totalDegree_X _)))))
+
+/-- Transition constraint has totalDegree ≤ 2 -/
+theorem mkTransitionConstraint_totalDegree (F : Type*) [CommRing F] [Nontrivial F]
+    (M : DTM) (n : ℕ) (t i : Fin (tapeSize M n)) (ht1 : t.val + 1 < tapeSize M n) :
+    (mkTransitionConstraint F M n t i ht1).poly.totalDegree ≤ 2 := by
+  show (let hti := MvPolynomial.X (headIdx M n (Nat.log 2 n) t i)
+        let bti := MvPolynomial.X (tapeIdx M n (Nat.log 2 n) t i)
+        let bt1i := MvPolynomial.X (tapeIdx M n (Nat.log 2 n) ⟨t.val + 1, ht1⟩ i)
+        hti * (bt1i - bti) : MvPolynomial _ F).totalDegree ≤ 2
+  simp only
+  exact le_trans (MvPolynomial.totalDegree_mul _ _) (Nat.add_le_add
+    (le_of_eq (MvPolynomial.totalDegree_X _))
+    (le_trans (MvPolynomial.totalDegree_sub _ _)
+      (max_le (le_of_eq (MvPolynomial.totalDegree_X _)) (le_of_eq (MvPolynomial.totalDegree_X _)))))
+
 /-- Concrete compilation constraints: booleanity + transition for all cells.
     This is the concrete construction replacing the axiom. -/
 noncomputable def compilationConstraints (F : Type*) [CommRing F] [Nontrivial F]
@@ -98,6 +124,29 @@ noncomputable def compilationConstraints (F : Type*) [CommRing F] [Nontrivial F]
         some (mkTransitionConstraint F M n t i h)
       else none
 
+/-- All compilation constraints have totalDegree ≤ 2 -/
+theorem compilationConstraints_totalDegree (F : Type*) [CommRing F] [Nontrivial F]
+    (M : DTM) (n : ℕ) :
+    ∀ c ∈ compilationConstraints F M n, c.poly.totalDegree ≤ 2 := by
+  intro c hc
+  unfold compilationConstraints at hc
+  rw [List.mem_append] at hc
+  cases hc with
+  | inl h =>
+    rw [List.mem_map] at h
+    obtain ⟨v, _, rfl⟩ := h
+    exact mkBoolConstraint_totalDegree F M n v
+  | inr h =>
+    simp only [List.mem_flatMap, List.mem_filterMap, List.mem_finRange] at h
+    obtain ⟨t, _, i, _, hd⟩ := h
+    by_cases ht1 : t.val + 1 < tapeSize M n
+    · simp only [dif_pos ht1] at hd
+      have : c = mkTransitionConstraint F M n t i ht1 := by
+        simpa using hd.symm
+      rw [this]
+      exact mkTransitionConstraint_totalDegree F M n t i ht1
+    · simp [dif_neg ht1] at hd
+
 /-- The violation polynomial V_{M,n} = Σ C² (without padding product).
     This is the polynomial on which extraction operates (paper §34).
     compiledPolyOf = paddingProduct * violationPolyOf. -/
@@ -105,6 +154,14 @@ noncomputable def violationPolyOf (F : Type*) [CommRing F] [Nontrivial F]
     (M : DTM) (n : ℕ) :
     MvPolynomial (Fin (numVars M n (Nat.log 2 n))) F :=
   TuringMachine.violationPoly F M n (Nat.log 2 n) (compilationConstraints F M n)
+
+/-- violationPolyOf has totalDegree ≤ 4 -/
+theorem violationPolyOf_totalDegree (F : Type*) [CommRing F] [Nontrivial F]
+    (M : DTM) (n : ℕ) :
+    (violationPolyOf F M n).totalDegree ≤ 4 := by
+  unfold violationPolyOf
+  exact TuringMachine.violationPoly_totalDegree_le F M n (Nat.log 2 n) 2 _
+    (compilationConstraints_totalDegree F M n)
 
 /-- Compiler-induced block partition -/
 noncomputable def compiledPartition (M : DTM) (n : ℕ) :

@@ -161,26 +161,28 @@ private theorem foldl_constraint_deg_le {M : DTM} {n κ : ℕ} (F : Type*) [Comm
       omega
     · intro x hx; exact hcs x (by simp [hx])
 
-theorem violation_deg_const (F : Type*) [CommRing F]
-    (M : DTM) (n κ : ℕ)
+theorem violationPoly_totalDegree_le (F : Type*) [CommRing F]
+    (M : DTM) (n κ : ℕ) (d : ℕ)
     (constraints : List (LocalConstraint M n κ F))
-    (h : ∀ c ∈ constraints, c.poly.totalDegree ≤ 3) :
-    (violationPoly F M n κ constraints).totalDegree ≤ 6 := by
-  -- violationPoly = (constraints.map (c ↦ c² )).sum
-  -- totalDegree(c² ) ≤ 2 · totalDegree(c) ≤ 6
-  -- totalDegree(sum) ≤ max of totalDegrees ≤ 6
+    (h : ∀ c ∈ constraints, c.poly.totalDegree ≤ d) :
+    (violationPoly F M n κ constraints).totalDegree ≤ 2 * d := by
   unfold violationPoly
   induction constraints with
   | nil => simp [MvPolynomial.totalDegree_zero]
   | cons c cs ih =>
     simp only [List.map_cons, List.sum_cons]
-    have hdeg_c : c.poly.totalDegree ≤ 3 := h c (List.Mem.head cs)
-    have hdeg_sq : (c.poly * c.poly).totalDegree ≤ 6 :=
+    have hcd := h c (List.Mem.head cs)
+    have hdeg_sq : (c.poly * c.poly).totalDegree ≤ 2 * d :=
       le_trans (MvPolynomial.totalDegree_mul _ _) (by omega)
-    have hcs : ∀ c' ∈ cs, c'.poly.totalDegree ≤ 3 :=
-      fun c' hc' => h c' (List.Mem.tail c hc')
-    have hdeg_rest : MvPolynomial.totalDegree (List.sum (List.map (fun c => c.poly * c.poly) cs)) ≤ 6 := ih hcs
-    exact le_trans (MvPolynomial.totalDegree_add _ _) (max_le hdeg_sq hdeg_rest)
+    exact le_trans (MvPolynomial.totalDegree_add _ _)
+      (max_le hdeg_sq (ih (fun c' hc' => h c' (List.Mem.tail c hc'))))
+
+theorem violation_deg_const (F : Type*) [CommRing F]
+    (M : DTM) (n κ : ℕ)
+    (constraints : List (LocalConstraint M n κ F))
+    (h : ∀ c ∈ constraints, c.poly.totalDegree ≤ 3) :
+    (violationPoly F M n κ constraints).totalDegree ≤ 6 :=
+  violationPoly_totalDegree_le F M n κ 3 constraints h
 
 /-- Each constraint is local: touches ≤ 6 variables -/
 theorem constraints_local (M : DTM) (n κ : ℕ) (F : Type*) [CommRing F]
