@@ -1110,49 +1110,80 @@ theorem pside_full_ml_rank_bound {F : Type*} [Field F] [Nontrivial F] (M : DTM) 
     unfold verifierSheetOf tseitinPoly coupledVerifier
     exact map_prod (MvPolynomial.rename f) _ _
   rw [h_prod]
-  -- Apply width_to_rank: each factor has ≤ 4 vars, degree ≤ 4, touches ≤ 2 blocks
+  -- Factor vars bound (shared between vars.card and block-locality proofs)
+  have h_factor_vars : ∀ i, (factor i).vars.card ≤ 4 := by
+    intro i
+    have h_sub := MvPolynomial.vars_rename f
+      (1 - X (selectorIdx Φ i) * clauseGadget F Φ i)
+    have h_card : ((1 : MvPolynomial _ F) - X (selectorIdx Φ i) * clauseGadget F Φ i).vars.card ≤ 4 := by
+      rw [show (1 : MvPolynomial _ F) - X (selectorIdx Φ i) * clauseGadget F Φ i =
+          1 + (-(X (selectorIdx Φ i) * clauseGadget F Φ i)) from sub_eq_add_neg _ _]
+      have h1 := MvPolynomial.vars_add_subset (1 : MvPolynomial (Fin (tseitinNumVars Φ)) F)
+        (-(X (selectorIdx Φ i) * clauseGadget F Φ i))
+      have h_final : ((1 : MvPolynomial (Fin (tseitinNumVars Φ)) F) +
+          (-(X (selectorIdx Φ i) * clauseGadget F Φ i))).vars ⊆
+          insert (selectorIdx Φ i) ((clauseGadget F Φ i).vars) := by
+        intro x hx
+        have hx' := h1 hx
+        simp only [Finset.mem_union] at hx'
+        rcases hx' with h_one | h_neg
+        · simp [MvPolynomial.vars_one] at h_one
+        · rw [MvPolynomial.vars_neg] at h_neg
+          have hx'' := MvPolynomial.vars_mul (X (selectorIdx Φ i)) (clauseGadget F Φ i) h_neg
+          simp only [Finset.mem_union] at hx''
+          rcases hx'' with hz | hg
+          · rw [MvPolynomial.vars_X] at hz
+            exact Finset.mem_insert.mpr (Or.inl (Finset.mem_singleton.mp hz))
+          · exact Finset.mem_insert.mpr (Or.inr hg)
+      calc ((1 : MvPolynomial (Fin (tseitinNumVars Φ)) F) +
+            (-(X (selectorIdx Φ i) * clauseGadget F Φ i))).vars.card
+          ≤ (insert (selectorIdx Φ i) ((clauseGadget F Φ i).vars)).card :=
+            Finset.card_le_card h_final
+        _ ≤ (clauseGadget F Φ i).vars.card + 1 := Finset.card_insert_le _ _
+        _ ≤ 3 + 1 := by
+            have := le_trans (Finset.card_le_card (clauseGadget_vars_subset F Φ i))
+              Finset.card_le_three
+            omega
+        _ = 4 := by norm_num
+    calc (factor i).vars.card
+        ≤ ((1 - X (selectorIdx Φ i) * clauseGadget F Φ i).vars.image f).card :=
+          Finset.card_le_card h_sub
+      _ ≤ (1 - X (selectorIdx Φ i) * clauseGadget F Φ i).vars.card :=
+          Finset.card_image_le
+      _ ≤ 4 := h_card
+  -- Apply width_to_rank
   have h_wr := width_to_rank (compiledPartition M n) κ ℓ m factor 4
-    (by -- vars.card ≤ 4: rename(f)(1-z*g) has vars ⊆ image of original vars
+    h_factor_vars
+    (by -- totalDegree ≤ 4
       intro i
-      -- (rename f p).vars ⊆ (p.vars.image f), and f is injective
-      -- so card ≤ card of original vars ≤ 4 (selector + 3 literals)
-      have h_sub := MvPolynomial.vars_rename f
-        (1 - X (selectorIdx Φ i) * clauseGadget F Φ i)
-      have h_card : ((1 : MvPolynomial _ F) - X (selectorIdx Φ i) * clauseGadget F Φ i).vars.card ≤ 4 := by
-        sorry
-      calc (factor i).vars.card
-          ≤ ((1 - X (selectorIdx Φ i) * clauseGadget F Φ i).vars.image f).card :=
-            Finset.card_le_card h_sub
-        _ ≤ (1 - X (selectorIdx Φ i) * clauseGadget F Φ i).vars.card :=
-            Finset.card_image_le
-        _ ≤ 4 := h_card)
-    (by -- totalDegree ≤ 4: rename preserves degree, 1 - X*g has degree ≤ 4
+      calc (factor i).totalDegree
+          ≤ (1 - X (selectorIdx Φ i) * clauseGadget F Φ i).totalDegree :=
+            MvPolynomial.totalDegree_rename_le f _
+        _ ≤ max (1 : MvPolynomial _ F).totalDegree
+              (X (selectorIdx Φ i) * clauseGadget F Φ i).totalDegree :=
+            MvPolynomial.totalDegree_sub _ _
+        _ ≤ max 0 4 := by
+            apply max_le_max
+            · exact le_of_eq MvPolynomial.totalDegree_one
+            · calc (X (selectorIdx Φ i) * clauseGadget F Φ i).totalDegree
+                  ≤ (X (selectorIdx Φ i)).totalDegree + (clauseGadget F Φ i).totalDegree :=
+                    MvPolynomial.totalDegree_mul _ _
+                _ ≤ 1 + 3 := Nat.add_le_add
+                    (le_of_eq (MvPolynomial.totalDegree_X _))
+                    (clauseGadget_totalDegree F Φ i)
+                _ = 4 := by norm_num
+        _ = 4 := by norm_num)
+    (by -- block-locality ≤ 4: #blocks ≤ #vars ≤ 4
       intro i
-      show (factor i).totalDegree ≤ 4
-      show (MvPolynomial.rename f
-        (1 - X (selectorIdx Φ i) * clauseGadget F Φ i)).totalDegree ≤ 4
-      have h1 := MvPolynomial.totalDegree_rename_le f
-        (1 - X (selectorIdx Φ i) * clauseGadget F Φ i)
-      have h2 : (1 - X (selectorIdx Φ i) * clauseGadget F Φ i).totalDegree ≤ 4 := by
-        calc (1 - X (selectorIdx Φ i) * clauseGadget F Φ i).totalDegree
-            ≤ max (1 : MvPolynomial _ F).totalDegree
-                (X (selectorIdx Φ i) * clauseGadget F Φ i).totalDegree :=
-              MvPolynomial.totalDegree_sub _ _
-          _ ≤ max 0 4 := by
-              apply max_le_max
-              · exact le_of_eq MvPolynomial.totalDegree_one
-              · calc (X (selectorIdx Φ i) * clauseGadget F Φ i).totalDegree
-                    ≤ (X (selectorIdx Φ i)).totalDegree + (clauseGadget F Φ i).totalDegree :=
-                      MvPolynomial.totalDegree_mul _ _
-                  _ ≤ 1 + 3 := by
-                      apply Nat.add_le_add
-                      · exact le_of_eq (MvPolynomial.totalDegree_X _)
-                      · exact clauseGadget_totalDegree F Φ i
-                  _ = 4 := by norm_num
-          _ = 4 := by norm_num
-      linarith)
-    (by -- block-locality ≤ 4: factor touches at most 2 blocks (sel + lit block)
-      intro i; sorry)
+      calc (Finset.univ.filter (fun b =>
+              ∃ v ∈ (factor i).vars, (compiledPartition M n).assign v = b)).card
+          ≤ ((factor i).vars.image (compiledPartition M n).assign).card := by
+            apply Finset.card_le_card
+            intro b hb
+            simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hb
+            exact Finset.mem_image.mpr hb
+        _ ≤ (factor i).vars.card := Finset.card_image_le
+        _ ≤ 4 := h_factor_vars i)
   -- (m * 4)^12 ≤ n^25 for m ≤ n, n ≥ 4
   -- m = Φ.clauses.length ≤ n (for the cycle graph, m = n)
   -- (m * 4)^12 ≤ n^25 for m ≤ n, n ≥ 4
