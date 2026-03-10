@@ -1057,15 +1057,22 @@ theorem tableau_restriction_lowDeg (F : Type*) [Field F] [Nontrivial F]
       (witnessInclusion_injective M n h_le) (violationPolyOf F M n)).totalDegree ≤ 4 :=
   le_trans (restrictPoly_totalDegree_le F _ _ _) (violationPolyOf_totalDegree F M n)
 
-/-- Width⇒Rank (Lemma 32 / Theorem 92): A product of poly(n) local factors,
-    each touching O(1) variables, has polynomial mlBlockedSpdpRank under any
-    block partition where each factor touches O(1) blocks.
+/-- Width⇒Rank axiom (Theorem 23, §9): product of local factors has
+    polynomial blocked SPDP rank.
 
-    This is the profile compression result: the row space of the SPDP matrix
-    is spanned by vectors that can be classified into R^O(1) profile classes
-    (R = CEW budget), each contributing polylog(n) dimensions.
+    Mathematical content (paper §9, ~10 pages):
+    1. Leibniz product rule: ∂_S(∏ f_i) decomposes by derivative assignments
+    2. Profile counting (Lemma 20): #profiles ≤ C(w+m,m) ≤ (w+m)^m
+       (stars-and-bars, κ-independent via histogram compression)
+    3. Within-profile dimension (Lemma 22): dim(V_h) ≤ ∏ C(h(τ)+d_τ-1, d_τ-1)
+       (symmetric tensor power dimension formula)
+    4. Row decomposition: rank ≤ Σ_h dim(V_h) ≤ |H| · max dim
 
-    Paper: arXiv:2512.11820v5, §9, Lemma 32. -/
+    The bound (m·w)^(3w) holds because:
+    - Each factor receives ≤ w derivatives (block-admissibility + w blocks/factor)
+    - #profiles ≤ (w+1)^m ≤ (mw)^w (for m ≥ 1)
+    - dim per profile ≤ (w+1)^(Σ d_τ) ≤ (w+1)^(m·w) ≤ (mw)^(2w) (for m ≥ 1)
+    - Total ≤ (mw)^(3w) -/
 axiom width_to_rank {n : ℕ} {F : Type*} [Field F] [Nontrivial F]
     (B : BlockPartition n) (κ ℓ : ℕ)
     (m : ℕ) (factor : Fin m → MvPolynomial (Fin n) F)
