@@ -1118,7 +1118,8 @@ theorem pside_full_ml_rank_bound {F : Type*} [Field F] [Nontrivial F] (M : DTM) 
       -- so card ≤ card of original vars ≤ 4 (selector + 3 literals)
       have h_sub := MvPolynomial.vars_rename f
         (1 - X (selectorIdx Φ i) * clauseGadget F Φ i)
-      have h_card : (1 - X (selectorIdx Φ i) * clauseGadget F Φ i).vars.card ≤ 4 := by sorry
+      have h_card : ((1 : MvPolynomial _ F) - X (selectorIdx Φ i) * clauseGadget F Φ i).vars.card ≤ 4 := by
+        sorry
       calc (factor i).vars.card
           ≤ ((1 - X (selectorIdx Φ i) * clauseGadget F Φ i).vars.image f).card :=
             Finset.card_le_card h_sub
