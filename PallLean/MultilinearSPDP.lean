@@ -228,47 +228,7 @@ theorem mlBlockedSpdpRank_finsum_le {n : ℕ} {F : Type*} [Field F]
           mlBlockedSpdpRank B κ ℓ (gate (Fin.last k)) :=
           Nat.add_le_add_right (ih (gate ∘ Fin.castSucc)) _
 
-/-! ## Per-gate rank bound -/
-
-/-! ## P-side collapse
-
-  Key insight: mlBlockedSpdpRank ≤ blockedSpdpRank (proved: mlBlockedSpdpRank_le).
-  The existing profileRankBound in HasLocalityStructure bounds blockedSpdpRank
-  by (numGates × width)³. So: mlBlockedSpdpRank ≤ (numGates × width)³ ≤ n^O(1).
-  No per-gate multilinear bound needed! -/
-
-theorem pside_ml_rank_bound {F : Type*} [Field F] (M : DTM) :
-    ∃ (C : ℕ), ∀ n, n ≥ max 4 M.numStates →
-      ∀ (B : BlockPartition (numVars M n (Nat.log 2 n))) (κ ℓ : ℕ),
-        mlBlockedSpdpRank B κ ℓ (violationPolyOf F M n) ≤ n ^ C := by
-  -- Chain: mlBlockedSpdpRank ≤ blockedSpdpRank ≤ (numGates × width)³ ≤ n^O(1)
-  use 3 * (2 * M.timeBound + 6)  -- exponent for (numGates × width)³
-  intro n hn B κ ℓ
-  have hn4 : n ≥ 4 := le_trans (le_max_left _ _) hn
-  have hns : n ≥ M.numStates := le_trans (le_max_right _ _) hn
-  obtain ⟨loc, hng, hw, hw_pos⟩ := violation_has_locality F M n hn4 hns
-  have heq : violationPolyOf F M n = ∑ i, loc.gate i := loc.sum_eq
-  -- Step 1: mlBlockedSpdpRank ≤ blockedSpdpRank
-  calc mlBlockedSpdpRank B κ ℓ (violationPolyOf F M n)
-      ≤ blockedSpdpRank B κ ℓ (violationPolyOf F M n) :=
-        mlBlockedSpdpRank_le B κ ℓ _
-    -- Step 2: blockedSpdpRank ≤ (numGates × width)³ via profileRankBound
-    _ ≤ (loc.numGates * loc.width) ^ 3 := by
-        unfold blockedSpdpRank
-        exact loc.profileRankBound B κ ℓ
-    -- Step 3: (numGates × width)³ ≤ n^C
-    _ ≤ (n ^ (2 * M.timeBound + 4) * 12) ^ 3 :=
-        Nat.pow_le_pow_left (Nat.mul_le_mul hng hw) 3
-    _ ≤ n ^ (3 * (2 * M.timeBound + 6)) := by
-        -- (n^a * 12)³ ≤ (n^a * n²)³ = n^(3(a+2)) for n ≥ 4 (12 ≤ 16 = 4² ≤ n²)
-        calc (n ^ (2 * M.timeBound + 4) * 12) ^ 3
-            ≤ (n ^ (2 * M.timeBound + 4) * n ^ 2) ^ 3 := by
-              apply Nat.pow_le_pow_left
-              apply Nat.mul_le_mul_left
-              calc (12 : ℕ) ≤ 4 ^ 2 := by norm_num
-                _ ≤ n ^ 2 := Nat.pow_le_pow_left hn4 2
-          _ = n ^ (3 * (2 * M.timeBound + 6)) := by
-              rw [← Nat.pow_add, ← Nat.pow_mul]; congr 1; omega
+-- pside_ml_rank_bound (old, tableau-only) archived — replaced by pside_full_ml_rank_bound
 
 /-! ## NP-side lower bound -/
 
