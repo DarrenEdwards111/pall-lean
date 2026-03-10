@@ -458,4 +458,96 @@ theorem selector_not_in_gadget (F : Type*) [CommRing F] [Nontrivial F]
   have hlt := clauseGadget_vars_bound F Φ c' _ hmem
   simp [selectorIdx] at hlt
 
+/-! ## Verification Violation (§17, sum-of-squares form)
+
+The paper (lines 4924-4932) defines the compiled polynomial as
+  P̃_{M,n} = 1 - Σ_C C²
+where C ranges over ALL local constraints (both verification and computation),
+each of degree ≤ d₀ ≤ 3. The verification constraints are the clause gadgets
+(1 - l₁)(1 - l₂)(1 - l₃) for each clause, degree 3. Squaring gives degree ≤ 6.
+
+The Tseitin PRODUCT ∏(1 - z_c · g_c) is NOT part of P_{M,n}.
+It is recovered from P via the extraction operator T_Φ (Theorem 223). -/
+
+/-- literalPoly has totalDegree ≤ 1. -/
+theorem literalPoly_totalDegree {m : ℕ} (F : Type*) [CommRing F] [Nontrivial F]
+    (v : Fin m) (s : Bool) :
+    (literalPoly F v s).totalDegree ≤ 1 := by
+  unfold literalPoly
+  cases s
+  · -- s = false: 1 - X v
+    exact le_trans (totalDegree_sub _ _) (max_le
+      (by simp [totalDegree_one])
+      (le_of_eq (totalDegree_X _)))
+  · -- s = true: X v
+    exact le_of_eq (totalDegree_X _)
+
+/-- (1 - literalPoly) has totalDegree ≤ 1. -/
+private theorem one_sub_literalPoly_totalDegree {m : ℕ} (F : Type*) [CommRing F] [Nontrivial F]
+    (v : Fin m) (s : Bool) :
+    ((1 : MvPolynomial (Fin m) F) - literalPoly F v s).totalDegree ≤ 1 := by
+  exact le_trans (totalDegree_sub _ _) (max_le
+    (by simp [totalDegree_one])
+    (literalPoly_totalDegree F v s))
+
+/-- clauseGadget = (1-l₁)(1-l₂)(1-l₃) has totalDegree ≤ 3. -/
+theorem clauseGadget_totalDegree (F : Type*) [CommRing F] [Nontrivial F]
+    (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
+    (clauseGadget F Φ c).totalDegree ≤ 3 := by
+  unfold clauseGadget
+  let cl := Φ.clauses.get c
+  have hpos : tseitinNumVars Φ > 0 := by
+    unfold tseitinNumVars; have := c.isLt; omega
+  let v1 : Fin (tseitinNumVars Φ) := ⟨cl.var1 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  let v2 : Fin (tseitinNumVars Φ) := ⟨cl.var2 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  let v3 : Fin (tseitinNumVars Φ) := ⟨cl.var3 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  calc ((1 - literalPoly F v1 cl.sign1) *
+        (1 - literalPoly F v2 cl.sign2) *
+        (1 - literalPoly F v3 cl.sign3)).totalDegree
+      ≤ ((1 - literalPoly F v1 cl.sign1) *
+         (1 - literalPoly F v2 cl.sign2)).totalDegree +
+        (1 - literalPoly F v3 cl.sign3).totalDegree := totalDegree_mul _ _
+    _ ≤ ((1 - literalPoly F v1 cl.sign1).totalDegree +
+         (1 - literalPoly F v2 cl.sign2).totalDegree) +
+        (1 - literalPoly F v3 cl.sign3).totalDegree := by
+          linarith [totalDegree_mul
+            (1 - literalPoly F v1 cl.sign1 : MvPolynomial _ F)
+            (1 - literalPoly F v2 cl.sign2)]
+    _ ≤ (1 + 1) + 1 := by
+          linarith [one_sub_literalPoly_totalDegree F v1 cl.sign1,
+                    one_sub_literalPoly_totalDegree F v2 cl.sign2,
+                    one_sub_literalPoly_totalDegree F v3 cl.sign3]
+    _ = 3 := by ring
+
+/-- clauseGadget² has totalDegree ≤ 6. -/
+theorem clauseGadget_sq_totalDegree (F : Type*) [CommRing F] [Nontrivial F]
+    (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
+    (clauseGadget F Φ c * clauseGadget F Φ c).totalDegree ≤ 6 := by
+  calc (clauseGadget F Φ c * clauseGadget F Φ c).totalDegree
+      ≤ (clauseGadget F Φ c).totalDegree + (clauseGadget F Φ c).totalDegree :=
+        totalDegree_mul _ _
+    _ ≤ 3 + 3 := by linarith [clauseGadget_totalDegree F Φ c]
+    _ = 6 := by ring
+
+/-- Sum of squared clause gadgets: Σ_c (clauseGadget c)².
+    This is the verification part of the sum-of-squares compiled polynomial. -/
+noncomputable def tseitinVerificationViolation (F : Type*) [CommRing F]
+    (Φ : TseitinFormula) :
+    MvPolynomial (Fin (tseitinNumVars Φ)) F :=
+  ((List.finRange Φ.clauses.length).map
+    (fun c => clauseGadget F Φ c * clauseGadget F Φ c)).sum
+
+/-- tseitinVerificationViolation has totalDegree ≤ 6. -/
+theorem tseitinVerificationViolation_totalDegree (F : Type*) [CommRing F] [Nontrivial F]
+    (Φ : TseitinFormula) :
+    (tseitinVerificationViolation F Φ).totalDegree ≤ 6 := by
+  unfold tseitinVerificationViolation
+  induction (List.finRange Φ.clauses.length) with
+  | nil => simp [totalDegree_zero]
+  | cons c rest ih =>
+    simp only [List.map_cons, List.sum_cons]
+    exact le_trans (totalDegree_add _ _) (max_le
+      (clauseGadget_sq_totalDegree F Φ c)
+      ih)
+
 end Tseitin
