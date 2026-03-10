@@ -28,7 +28,7 @@ theorem P_neq_NP (h : PeqNP) : False := by
   obtain ⟨n₁, hnpside⟩ := np_ml_lower_bound ℚ
   -- Arithmetic: n^(log n / 4) > n^(C+1) for large n
   obtain ⟨n₀, harith⟩ := SPDP.superPoly_beats_poly (C + 1) (by omega)
-  let n := max (max (max n₀ n₁) (max 4 M.numStates)) 2
+  let n := max (max (max n₀ n₁) (max 32 M.numStates)) 32
   -- Size bound for canonical inclusion
   have h_le : npNumVars n ≤ numVars M n (Nat.log 2 n) := by
     unfold npNumVars tseitinNumVars
@@ -45,10 +45,11 @@ theorem P_neq_NP (h : PeqNP) : False := by
   have h_np := hnpside n (by omega)
   have h_extract := extraction_rank_monotone ℚ n M h.decides_sat (by omega)
     h_le (Nat.log 2 n) (Nat.log 2 n) (by
-      have : n ≥ 2 := by omega
-      have := Nat.log_pos (by omega : 1 < 2) this
-      omega)
-  have h_pside := hpside n (by omega) h_le (compiledPartition M n)
+      -- Need log₂(n) ≥ 5, which holds for n ≥ 32
+      have hn32 : n ≥ 32 := by omega
+      have : Nat.log 2 32 = 5 := by native_decide
+      exact le_trans (by omega) (Nat.log_mono_right hn32))
+  have h_pside := hpside n (by show n ≥ max 4 M.numStates; omega) h_le (compiledPartition M n)
     (Nat.log 2 n) (Nat.log 2 n)
   -- Chain: n^(log n/4) ≤ Γ^ml(tseitin) ≤ Γ^ml(fullCompiled) ≤ n^C
   have h_chain : n ^ (Nat.log 2 n / 4) ≤ n ^ C := by linarith

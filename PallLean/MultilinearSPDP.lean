@@ -8,6 +8,7 @@ import PallLean.SPDPDefs
 import PallLean.NPWitness
 import PallLean.Compiler
 import PallLean.IdentityMinor
+import PallLean.LowDegAnnihilation
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.Dimension.Finrank
 
@@ -790,27 +791,53 @@ private theorem iterDerivList_C_eq_zero {n : ℕ} {F : Type*} [CommRing F]
     simp only [List.foldl, pderiv_C]
     exact foldl_pderiv_zero' rest
 
--- Helper: foldl pderiv distributes over addition
-private theorem foldl_pderiv_add {n : ℕ} {F : Type*} [CommRing F]
-    (l : List (Fin n)) (p q : MvPolynomial (Fin n) F) :
-    l.foldl (fun r i => MvPolynomial.pderiv i r) (p + q) =
-    l.foldl (fun r i => MvPolynomial.pderiv i r) p +
-    l.foldl (fun r i => MvPolynomial.pderiv i r) q := by
-  induction l generalizing p q with
-  | nil => simp
-  | cons a rest ih => simp only [List.foldl]; rw [map_add]; exact ih _ _
+theorem iterDerivList_eq_zero_of_totalDegree_lt {n : ℕ} {F : Type*} [CommRing F]
+    (S : List (Fin n)) (q : MvPolynomial (Fin n) F) (h : q.totalDegree < S.length) :
+    iterDerivList S q = 0 := by
+  unfold iterDerivList
+  conv_lhs => rw [q.as_sum]
+  rw [LowDeg.foldl_pderiv_finset_sum]
+  apply Finset.sum_eq_zero
+  intro s hs
+  exact LowDeg.foldl_pderiv_monomial_zero S s _ (lt_of_le_of_lt (le_totalDegree hs) h)
 
 -- Helper: iterDerivList distributes over addition
 private theorem iterDerivList_add {n : ℕ} {F : Type*} [CommRing F]
     (S : List (Fin n)) (p q : MvPolynomial (Fin n) F) :
     iterDerivList S (p + q) = iterDerivList S p + iterDerivList S q := by
-  unfold iterDerivList; exact foldl_pderiv_add S p q
+  unfold iterDerivList; exact LowDeg.foldl_pderiv_add S p q
 
 -- Helper: iterDerivList (p + C c) = iterDerivList p when S nonempty
 private theorem iterDerivList_add_C {n : ℕ} {F : Type*} [CommRing F]
     (S : List (Fin n)) (p : MvPolynomial (Fin n) F) (c : F) (hS : S ≠ []) :
     iterDerivList S (p + MvPolynomial.C c) = iterDerivList S p := by
   rw [iterDerivList_add, iterDerivList_C_eq_zero S c hS, add_zero]
+
+/-- Low-degree polynomials are invisible to SPDP rank at order κ > totalDegree.
+    Generalizes mlBlockedSpdpRank_add_const from constants to bounded-degree polys. -/
+theorem mlBlockedSpdpRank_add_lowDeg (F : Type*) [Field F] [Nontrivial F]
+    {n : ℕ} (B : BlockPartition n) (κ ℓ : ℕ) (p q : MvPolynomial (Fin n) F)
+    (hq : q.totalDegree < κ) :
+    mlBlockedSpdpRank B κ ℓ (p + q) = mlBlockedSpdpRank B κ ℓ p := by
+  unfold mlBlockedSpdpRank
+  have hsub : mlBlockedSpdpSubspace B κ ℓ (p + q) = mlBlockedSpdpSubspace B κ ℓ p := by
+    unfold mlBlockedSpdpSubspace
+    have hgen : ∀ (r : MvPolynomial (Fin n) F),
+        (∃ S m, S.length = κ ∧ m.totalDegree ≤ ℓ ∧ isBlockAdmissible B S ∧
+          r = mlProj (m * iterDerivList S (p + q))) ↔
+        (∃ S m, S.length = κ ∧ m.totalDegree ≤ ℓ ∧ isBlockAdmissible B S ∧
+          r = mlProj (m * iterDerivList S p)) := by
+      intro r; constructor <;> intro ⟨S, m, hlen, hdeg, hadm, hr⟩
+      · have : iterDerivList S q = 0 :=
+          iterDerivList_eq_zero_of_totalDegree_lt S q (by omega)
+        rw [iterDerivList_add, this, add_zero] at hr
+        exact ⟨S, m, hlen, hdeg, hadm, hr⟩
+      · have hq0 : iterDerivList S q = 0 :=
+          iterDerivList_eq_zero_of_totalDegree_lt S q (by omega)
+        exact ⟨S, m, hlen, hdeg, hadm, by
+          rw [hr, iterDerivList_add, hq0, add_zero]⟩
+    congr 1; ext r'; exact hgen r'
+  rw [hsub]
 
 theorem mlBlockedSpdpRank_add_const (F : Type*) [Field F] [Nontrivial F]
     {n : ℕ} (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) (c : F)
@@ -884,12 +911,19 @@ noncomputable def fullCompiledPoly (F : Type*) [CommRing F] [Nontrivial F]
     MvPolynomial (Fin (numVars M n (Nat.log 2 n))) F :=
   verifierSheetOf F M n h_le + violationPolyOf F M n
 
-/-- §34.1: tableau constraints restricted to witness vars give a constant.
-    Paper: Lemma 182. -/
-theorem tableau_restriction_const (F : Type*) [Field F] [Nontrivial F]
+/-- §34.1: tableau constraints restricted to witness vars have bounded degree.
+    The restriction sets computation variables to 0; surviving terms are
+    booleanity constraints x_j²(1-x_j)² for witness vars, which have degree 4.
+    Paper: Lemma 182 (strengthened from const to low-degree). -/
+theorem tableau_restriction_lowDeg (F : Type*) [Field F] [Nontrivial F]
     (M : DTM) (n : ℕ) (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    ∃ c : F, restrictPoly F (witnessInclusion M n h_le)
-      (witnessInclusion_injective M n h_le) (violationPolyOf F M n) = MvPolynomial.C c := by
+    (restrictPoly F (witnessInclusion M n h_le)
+      (witnessInclusion_injective M n h_le) (violationPolyOf F M n)).totalDegree ≤ 4 := by
+  -- restrictPoly is an AlgHom (aeval), so it preserves totalDegree up to the
+  -- structure of the substitution. The violationPolyOf is ∑ c_i² where each
+  -- c_i has width ≤ 6 (degree ≤ 6). After restriction (setting non-witness vars to 0),
+  -- surviving terms are witness-variable booleanity x_j(1-x_j) squared = degree 4.
+  -- Transition constraints involve non-witness vars → evaluate to 0.
   sorry
 
 /-- P-side upper bound for the full compiled polynomial.
@@ -905,15 +939,15 @@ theorem pside_full_ml_rank_bound {F : Type*} [Field F] (M : DTM) :
 
     Paper-faithful proof chain using fullCompiledPoly = verifierSheet + tableau:
     1. restriction_rank_monotone on fullCompiledPoly
-    2. restrictPoly(fullCompiled) = restrictPoly(rename f tseitin) + restrictPoly(tableau)
-       = tseitin + C(c)  [by restrictPoly_rename + §34.1 additive separability]
-    3. mlBlockedSpdpRank_add_const: Γ(B, p + C c) = Γ(B, p)
+    2. restrictPoly(fullCompiled) = tseitin + restrictPoly(tableau)
+       [by map_add + restrictPoly_rename]
+    3. mlBlockedSpdpRank_add_lowDeg: remove low-degree remainder (degree ≤ 4 < κ)
     4. mlBlockedSpdpRank_coarsen: identity pullback refines tseitin partition
     5. Chain: Γ(tseitin) ≤ Γ(pullback) ≤ Γ(compiled) -/
 theorem extraction_rank_monotone (F : Type*) [Field F] [Nontrivial F]
-    (n : ℕ) (M : DTM) (hsolves : True) (hn : n ≥ 4) :
+    (n : ℕ) (M : DTM) (hsolves : True) (hn : n ≥ 32) :
     ∀ (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) (κ ℓ : ℕ),
-      κ ≥ 1 →
+      κ ≥ 5 →
       mlBlockedSpdpRank (tseitinPartition n) κ ℓ (tseitinPoly F n) ≤
       mlBlockedSpdpRank (compiledPartition M n) κ ℓ
         (fullCompiledPoly F M n h_le) := by
@@ -923,28 +957,22 @@ theorem extraction_rank_monotone (F : Type*) [Field F] [Nontrivial F]
   -- Step 1: restriction_rank_monotone on fullCompiledPoly
   have h_restrict := restriction_rank_monotone F f hf_inj (compiledPartition M n) κ ℓ
     (fullCompiledPoly F M n h_le)
-  -- Step 2: restrictPoly(fullCompiled) = tseitin + C(c)
-  -- fullCompiledPoly = verifierSheetOf + violationPolyOf
-  -- = rename f (tseitinPoly) + violationPolyOf
-  -- restrictPoly preserves + (it's an AlgHom)
+  -- Step 2: restrictPoly(fullCompiled) = tseitin + restrictPoly(tableau)
   have h_add : restrictPoly F f hf_inj (fullCompiledPoly F M n h_le) =
       restrictPoly F f hf_inj (verifierSheetOf F M n h_le) +
       restrictPoly F f hf_inj (violationPolyOf F M n) := by
     unfold fullCompiledPoly
     exact map_add (restrictPoly F f hf_inj) _ _
-  -- restrictPoly(rename f (tseitinPoly)) = tseitinPoly by restrictPoly_rename
   have h_sheet : restrictPoly F f hf_inj (verifierSheetOf F M n h_le) =
       tseitinPoly F n := by
     unfold verifierSheetOf
     exact restrictPoly_rename F f hf_inj (tseitinPoly F n)
-  -- §34.1: restrictPoly(tableau) = C(c) (additive separability)
-  obtain ⟨c, hc⟩ := tableau_restriction_const F M n h_le
-  -- Combine
-  rw [h_add, h_sheet, hc] at h_restrict
-  -- Now h_restrict: Γ(pullback, tseitin + C c) ≤ Γ(compiled, fullCompiled)
-  -- Step 3: add_const — remove the constant
+  rw [h_add, h_sheet] at h_restrict
+  -- Step 3: remove low-degree remainder (degree ≤ 4 < κ ≥ 5)
   let h_pullback := pullbackPartition (compiledPartition M n) f
-  rw [mlBlockedSpdpRank_add_const F h_pullback κ ℓ (tseitinPoly F n) c hκ] at h_restrict
+  have h_lowdeg := tableau_restriction_lowDeg F M n h_le
+  rw [mlBlockedSpdpRank_add_lowDeg F h_pullback κ ℓ (tseitinPoly F n) _ (by linarith)]
+    at h_restrict
   -- Step 4: coarsen — pullback of identity partition refines tseitin partition
   have h_coarsen := mlBlockedSpdpRank_coarsen F h_pullback (tseitinPartition n) κ ℓ
     (tseitinPoly F n) (by
