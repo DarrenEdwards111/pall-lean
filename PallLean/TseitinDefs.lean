@@ -458,4 +458,55 @@ theorem selector_not_in_gadget (F : Type*) [CommRing F] [Nontrivial F]
   have hlt := clauseGadget_vars_bound F Φ c' _ hmem
   simp [selectorIdx] at hlt
 
+
+/-! ## Degree bounds -/
+
+theorem literalPoly_totalDegree {m : ℕ} (F : Type*) [CommRing F] [Nontrivial F]
+    (v : Fin m) (s : Bool) :
+    (literalPoly F v s).totalDegree ≤ 1 := by
+  unfold literalPoly
+  split
+  · exact le_of_eq (MvPolynomial.totalDegree_X v)
+  · calc ((1 : MvPolynomial (Fin m) F) - X v).totalDegree
+        ≤ max (1 : MvPolynomial (Fin m) F).totalDegree (X v).totalDegree :=
+          MvPolynomial.totalDegree_sub _ _
+      _ ≤ max 0 1 := max_le_max (le_of_eq MvPolynomial.totalDegree_one)
+          (le_of_eq (MvPolynomial.totalDegree_X v))
+      _ = 1 := by norm_num
+
+theorem one_sub_literalPoly_totalDegree {m : ℕ} (F : Type*) [CommRing F] [Nontrivial F]
+    (v : Fin m) (s : Bool) :
+    ((1 : MvPolynomial (Fin m) F) - literalPoly F v s).totalDegree ≤ 1 := by
+  calc (1 - literalPoly F v s).totalDegree
+      ≤ max (1 : MvPolynomial (Fin m) F).totalDegree (literalPoly F v s).totalDegree :=
+        MvPolynomial.totalDegree_sub _ _
+    _ ≤ max 0 1 := max_le_max (le_of_eq MvPolynomial.totalDegree_one)
+        (literalPoly_totalDegree F v s)
+    _ = 1 := by norm_num
+
+theorem clauseGadget_totalDegree (F : Type*) [CommRing F] [Nontrivial F]
+    (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
+    (clauseGadget F Φ c).totalDegree ≤ 3 := by
+  unfold clauseGadget
+  let cl := Φ.clauses.get c
+  have hpos : tseitinNumVars Φ > 0 := by unfold tseitinNumVars; have := c.isLt; omega
+  let v1 : Fin (tseitinNumVars Φ) := ⟨cl.var1 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  let v2 : Fin (tseitinNumVars Φ) := ⟨cl.var2 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  let v3 : Fin (tseitinNumVars Φ) := ⟨cl.var3 % tseitinNumVars Φ, Nat.mod_lt _ hpos⟩
+  calc ((1 - literalPoly F v1 cl.sign1) * (1 - literalPoly F v2 cl.sign2) *
+      (1 - literalPoly F v3 cl.sign3)).totalDegree
+      ≤ ((1 - literalPoly F v1 cl.sign1) * (1 - literalPoly F v2 cl.sign2)).totalDegree +
+        (1 - literalPoly F v3 cl.sign3).totalDegree :=
+        MvPolynomial.totalDegree_mul _ _
+    _ ≤ ((1 - literalPoly F v1 cl.sign1).totalDegree +
+        (1 - literalPoly F v2 cl.sign2).totalDegree) +
+        (1 - literalPoly F v3 cl.sign3).totalDegree := by
+        linarith [MvPolynomial.totalDegree_mul
+          (1 - literalPoly F v1 cl.sign1) (1 - literalPoly F v2 cl.sign2)]
+    _ ≤ (1 + 1) + 1 := by
+        linarith [one_sub_literalPoly_totalDegree F v1 cl.sign1,
+                  one_sub_literalPoly_totalDegree F v2 cl.sign2,
+                  one_sub_literalPoly_totalDegree F v3 cl.sign3]
+    _ = 3 := by norm_num
+
 end Tseitin

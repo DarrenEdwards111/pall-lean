@@ -1112,7 +1112,19 @@ theorem pside_full_ml_rank_bound {F : Type*} [Field F] [Nontrivial F] (M : DTM) 
   rw [h_prod]
   -- Apply width_to_rank: each factor has ≤ 4 vars, degree ≤ 4, touches ≤ 2 blocks
   have h_wr := width_to_rank (compiledPartition M n) κ ℓ m factor 4
-    (by intro i; sorry) -- vars.card ≤ 4: selector + 3 literal vars
+    (by -- vars.card ≤ 4: rename(f)(1-z*g) has vars ⊆ image of original vars
+      intro i
+      -- (rename f p).vars ⊆ (p.vars.image f), and f is injective
+      -- so card ≤ card of original vars ≤ 4 (selector + 3 literals)
+      have h_sub := MvPolynomial.vars_rename f
+        (1 - X (selectorIdx Φ i) * clauseGadget F Φ i)
+      have h_card : (1 - X (selectorIdx Φ i) * clauseGadget F Φ i).vars.card ≤ 4 := by sorry
+      calc (factor i).vars.card
+          ≤ ((1 - X (selectorIdx Φ i) * clauseGadget F Φ i).vars.image f).card :=
+            Finset.card_le_card h_sub
+        _ ≤ (1 - X (selectorIdx Φ i) * clauseGadget F Φ i).vars.card :=
+            Finset.card_image_le
+        _ ≤ 4 := h_card)
     (by -- totalDegree ≤ 4: rename preserves degree, 1 - X*g has degree ≤ 4
       intro i
       show (factor i).totalDegree ≤ 4
@@ -1134,11 +1146,12 @@ theorem pside_full_ml_rank_bound {F : Type*} [Field F] [Nontrivial F] (M : DTM) 
                   _ ≤ 1 + 3 := by
                       apply Nat.add_le_add
                       · exact le_of_eq (MvPolynomial.totalDegree_X _)
-                      · sorry -- clauseGadget has degree ≤ 3 (product of 3 linear terms)
+                      · exact clauseGadget_totalDegree F Φ i
                   _ = 4 := by norm_num
           _ = 4 := by norm_num
       linarith)
-    (by intro i; sorry) -- block-locality ≤ 4
+    (by -- block-locality ≤ 4: factor touches at most 2 blocks (sel + lit block)
+      intro i; sorry)
   -- (m * 4)^12 ≤ n^25 for m ≤ n, n ≥ 4
   -- m = Φ.clauses.length ≤ n (for the cycle graph, m = n)
   -- (m * 4)^12 ≤ n^25 for m ≤ n, n ≥ 4
