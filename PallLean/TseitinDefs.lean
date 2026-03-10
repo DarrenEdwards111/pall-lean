@@ -529,25 +529,120 @@ theorem clauseGadget_sq_totalDegree (F : Type*) [CommRing F] [Nontrivial F]
     _ ≤ 3 + 3 := by linarith [clauseGadget_totalDegree F Φ c]
     _ = 6 := by ring
 
-/-- Sum of squared clause gadgets: Σ_c (clauseGadget c)².
-    This is the verification part of the sum-of-squares compiled polynomial. -/
+/-- Coupling constraint: z_c - clauseGadget c.
+    Enforces that selector z_c tracks the clause gadget.
+    Paper: clause-sheet local constraint, degree ≤ 3. -/
+noncomputable def couplingConstraint (F : Type*) [CommRing F]
+    (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
+    MvPolynomial (Fin (tseitinNumVars Φ)) F :=
+  X (selectorIdx Φ c) - clauseGadget F Φ c
+
+/-- Coupling constraint has totalDegree ≤ 3. -/
+theorem couplingConstraint_totalDegree (F : Type*) [CommRing F] [Nontrivial F]
+    (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
+    (couplingConstraint F Φ c).totalDegree ≤ 3 := by
+  unfold couplingConstraint
+  exact le_trans (totalDegree_sub _ _) (max_le
+    (le_trans (le_of_eq (totalDegree_X (R := F) _)) (by omega))
+    (clauseGadget_totalDegree F Φ c))
+
+/-- Coupling constraint squared has totalDegree ≤ 6. -/
+theorem couplingConstraint_sq_totalDegree (F : Type*) [CommRing F] [Nontrivial F]
+    (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
+    (couplingConstraint F Φ c * couplingConstraint F Φ c).totalDegree ≤ 6 := by
+  calc (couplingConstraint F Φ c * couplingConstraint F Φ c).totalDegree
+      ≤ (couplingConstraint F Φ c).totalDegree + (couplingConstraint F Φ c).totalDegree :=
+        totalDegree_mul _ _
+    _ ≤ 3 + 3 := by linarith [couplingConstraint_totalDegree F Φ c]
+    _ = 6 := by ring
+
+/-- Selector booleanity constraint: z_c(1-z_c).
+    Degree 2, squared degree 4. -/
+noncomputable def selectorBoolConstraint (F : Type*) [CommRing F]
+    (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
+    MvPolynomial (Fin (tseitinNumVars Φ)) F :=
+  X (selectorIdx Φ c) * ((1 : MvPolynomial (Fin (tseitinNumVars Φ)) F) - X (selectorIdx Φ c))
+
+/-- Selector booleanity squared has totalDegree ≤ 4. -/
+theorem selectorBoolConstraint_sq_totalDegree (F : Type*) [CommRing F] [Nontrivial F]
+    (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
+    (selectorBoolConstraint F Φ c * selectorBoolConstraint F Φ c).totalDegree ≤ 4 := by
+  have hdeg : (selectorBoolConstraint F Φ c).totalDegree ≤ 2 := by
+    unfold selectorBoolConstraint
+    have hx : (X (selectorIdx Φ c) : MvPolynomial _ F).totalDegree = 1 :=
+      totalDegree_X _
+    have hsx : ((1 : MvPolynomial (Fin (tseitinNumVars Φ)) F) -
+        X (selectorIdx Φ c)).totalDegree ≤ 1 :=
+      le_trans (totalDegree_sub _ _) (max_le (by simp [totalDegree_one]) (le_of_eq hx))
+    calc (X (selectorIdx Φ c) * ((1 : MvPolynomial _ F) - X (selectorIdx Φ c))).totalDegree
+        ≤ (X (selectorIdx Φ c) : MvPolynomial _ F).totalDegree +
+          ((1 : MvPolynomial _ F) - X (selectorIdx Φ c)).totalDegree := totalDegree_mul _ _
+      _ ≤ 1 + 1 := by linarith
+      _ = 2 := by ring
+  calc (selectorBoolConstraint F Φ c * selectorBoolConstraint F Φ c).totalDegree
+      ≤ (selectorBoolConstraint F Φ c).totalDegree +
+        (selectorBoolConstraint F Φ c).totalDegree := totalDegree_mul _ _
+    _ ≤ 2 + 2 := by linarith
+    _ = 4 := by ring
+
+/-- Sum of squared verification constraints:
+    Σ_c (clauseGadget c)² + Σ_c (z_c - clauseGadget c)² + Σ_c (z_c(1-z_c))².
+    This includes clause gadgets, coupling constraints (linking selectors to gadgets),
+    and selector booleanity. All terms have degree ≤ 6.
+    Paper: §17, clause-sheet local constraints. -/
 noncomputable def tseitinVerificationViolation (F : Type*) [CommRing F]
     (Φ : TseitinFormula) :
     MvPolynomial (Fin (tseitinNumVars Φ)) F :=
+  -- Clause gadgets squared
   ((List.finRange Φ.clauses.length).map
-    (fun c => clauseGadget F Φ c * clauseGadget F Φ c)).sum
+    (fun c => clauseGadget F Φ c * clauseGadget F Φ c)).sum +
+  -- Coupling constraints squared (z_c - g_c)²
+  ((List.finRange Φ.clauses.length).map
+    (fun c => couplingConstraint F Φ c * couplingConstraint F Φ c)).sum +
+  -- Selector booleanity squared (z_c(1-z_c))²
+  ((List.finRange Φ.clauses.length).map
+    (fun c => selectorBoolConstraint F Φ c * selectorBoolConstraint F Φ c)).sum
+
+/-- Helper: a sum of polynomials each of degree ≤ d has degree ≤ d. -/
+private theorem list_sum_totalDegree_le {σ : Type*} {F : Type*} [CommSemiring F]
+    (l : List (MvPolynomial σ F)) (d : ℕ)
+    (h : ∀ p ∈ l, p.totalDegree ≤ d) :
+    l.sum.totalDegree ≤ d := by
+  induction l with
+  | nil => simp [totalDegree_zero]
+  | cons a rest ih =>
+    simp only [List.sum_cons]
+    exact le_trans (totalDegree_add _ _) (max_le
+      (h a (by simp))
+      (ih (fun p hp => h p (by simp [hp]))))
 
 /-- tseitinVerificationViolation has totalDegree ≤ 6. -/
 theorem tseitinVerificationViolation_totalDegree (F : Type*) [CommRing F] [Nontrivial F]
     (Φ : TseitinFormula) :
     (tseitinVerificationViolation F Φ).totalDegree ≤ 6 := by
   unfold tseitinVerificationViolation
-  induction (List.finRange Φ.clauses.length) with
-  | nil => simp [totalDegree_zero]
-  | cons c rest ih =>
-    simp only [List.map_cons, List.sum_cons]
-    exact le_trans (totalDegree_add _ _) (max_le
-      (clauseGadget_sq_totalDegree F Φ c)
-      ih)
+  -- Three sums, each ≤ 6, combined via add
+  have h1 : ((List.finRange Φ.clauses.length).map
+      (fun c => clauseGadget F Φ c * clauseGadget F Φ c)).sum.totalDegree ≤ 6 := by
+    apply list_sum_totalDegree_le
+    intro p hp; simp only [List.mem_map, List.mem_finRange, true_and] at hp
+    obtain ⟨c, rfl⟩ := hp; exact clauseGadget_sq_totalDegree F Φ c
+  have h2 : ((List.finRange Φ.clauses.length).map
+      (fun c => couplingConstraint F Φ c * couplingConstraint F Φ c)).sum.totalDegree ≤ 6 := by
+    apply list_sum_totalDegree_le
+    intro p hp; simp only [List.mem_map, List.mem_finRange, true_and] at hp
+    obtain ⟨c, rfl⟩ := hp; exact couplingConstraint_sq_totalDegree F Φ c
+  have h3 : ((List.finRange Φ.clauses.length).map
+      (fun c => selectorBoolConstraint F Φ c * selectorBoolConstraint F Φ c)).sum.totalDegree ≤ 6 := by
+    apply list_sum_totalDegree_le
+    intro p hp; simp only [List.mem_map, List.mem_finRange, true_and] at hp
+    obtain ⟨c, rfl⟩ := hp; exact le_trans (selectorBoolConstraint_sq_totalDegree F Φ c) (by omega)
+  -- (a + b + c).totalDegree ≤ 6
+  have h12 : (((List.finRange Φ.clauses.length).map
+      (fun c => clauseGadget F Φ c * clauseGadget F Φ c)).sum +
+    ((List.finRange Φ.clauses.length).map
+      (fun c => couplingConstraint F Φ c * couplingConstraint F Φ c)).sum).totalDegree ≤ 6 :=
+    le_trans (totalDegree_add _ _) (max_le h1 h2)
+  exact le_trans (totalDegree_add _ _) (max_le h12 h3)
 
 end Tseitin
