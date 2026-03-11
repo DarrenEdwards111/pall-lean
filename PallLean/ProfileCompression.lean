@@ -291,6 +291,62 @@ theorem canonical_generator_factored (n κ : ℕ)
   rfl
 
 -- ============================================================
+-- §3.5. mlProj multiplicativity for disjoint variables
+-- ============================================================
+
+/-! ### mlProj distributes over products with disjoint variables
+
+This is the key algebra lemma for the near/far factorization.
+If vars(p) and vars(q) are disjoint, then a monomial of p*q is β+γ
+where β is from p and γ is from q, with disjoint supports.
+Then β+γ is multilinear iff both β and γ are multilinear.
+So mlProj(p*q) = mlProj(p) * mlProj(q). -/
+
+/-- Multilinear monomials with disjoint support compose: if α + β is multilinear
+    and their supports are disjoint, then both α and β are multilinear. -/
+theorem isMultilinear_of_add_disjoint {σ : Type*} [DecidableEq σ]
+    (α β : σ →₀ ℕ) (hml : Finsupp.IsMultilinear (α + β))
+    (hdisj : Disjoint α.support β.support) :
+    Finsupp.IsMultilinear α ∧ Finsupp.IsMultilinear β := by
+  constructor <;> intro i <;> {
+    have := hml i
+    simp [Finsupp.add_apply] at this
+    omega
+  }
+
+/-- Converse: if both are multilinear and supports are disjoint, sum is multilinear -/
+theorem isMultilinear_add_of_disjoint {σ : Type*} [DecidableEq σ]
+    (α β : σ →₀ ℕ) (hα : Finsupp.IsMultilinear α) (hβ : Finsupp.IsMultilinear β)
+    (hdisj : Disjoint α.support β.support) :
+    Finsupp.IsMultilinear (α + β) := by
+  intro i
+  simp [Finsupp.add_apply]
+  by_cases hi : i ∈ α.support
+  · have hni : i ∉ β.support := Finset.disjoint_left.mp hdisj hi
+    have : β i = 0 := by rwa [Finsupp.mem_support_iff, not_not] at hni
+    rw [this, add_zero]; exact hα i
+  · have : α i = 0 := by rwa [Finsupp.mem_support_iff, not_not] at hi
+    rw [this, zero_add]; exact hβ i
+
+/-- mlProj distributes over products with disjoint variables.
+    If vars(p) ∩ vars(q) = ∅, then mlProj(p * q) = mlProj(p) * mlProj(q). -/
+theorem mlProj_mul_disjoint_vars {σ : Type*} [DecidableEq σ]
+    {F : Type*} [CommRing F]
+    (p q : MvPolynomial σ F)
+    (hdisj : Disjoint p.vars q.vars) :
+    mlProj (p * q) = mlProj p * mlProj q := by
+  -- Proof outline:
+  -- 1. Write p = Σ monomial α (coeff α p), q = Σ monomial β (coeff β q)
+  -- 2. p*q = Σ monomial (α+β) (coeff α p * coeff β q)
+  -- 3. mlProj filters to multilinear monomials
+  -- 4. For α ∈ support(p), β ∈ support(q): α.support ⊆ p.vars, β.support ⊆ q.vars
+  --    so α.support ∩ β.support = ∅ (from hdisj)
+  -- 5. IsMultilinear(α+β) ↔ IsMultilinear(α) ∧ IsMultilinear(β) (by disjoint supports)
+  -- 6. Therefore mlProj(p*q) = Σ_{ML α, ML β} monomial(α+β)(coeff α * coeff β)
+  --                          = mlProj(p) * mlProj(q)
+  sorry
+
+-- ============================================================
 -- §4. Live Interfaces and Boundary Reduction
 -- ============================================================
 

@@ -1603,7 +1603,7 @@ def AdmissibleSpdpParams (n κ : ℕ) : Prop :=
     ∏_c (1 - X(z_c) · clauseGadget_c), not to arbitrary products. -/
 axiom tseitin_spdp_rank_bound (n : ℕ) (hn : n ≥ 4)
     (κ : ℕ) (hparam : AdmissibleSpdpParams n κ) :
-    mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤ n ^ 10
+    mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤ n ^ 200
 
 /-- Rank transport: compiled verifier rank ≤ Tseitin verifier rank.
     Chain: verifierSheet = rename(tseitin) →[rename_le] pullback rank
@@ -1634,7 +1634,7 @@ theorem compiled_verifier_rank (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
     mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (verifierSheetOf ℚ M n h_le) ≤ n ^ 10 :=
+      (verifierSheetOf ℚ M n h_le) ≤ n ^ 200 :=
   le_trans (compiled_to_tseitin_rank_le M n h_le κ κ)
     (tseitin_spdp_rank_bound n (by omega) κ ⟨hκ, hκ_le⟩)
 
@@ -1643,12 +1643,12 @@ theorem compiled_verifier_rank (M : DTM) (n : ℕ)
 
     Proof: fullCompiledPoly = verifierSheet + violationPoly.
     violationPoly has degree ≤ 4 < κ ≥ 5, so add_lowDeg kills it.
-    Then compiled_verifier_rank gives rank ≤ n^10 ≤ n^25. -/
+    Then compiled_verifier_rank gives rank ≤ n^200 ≤ n^215. -/
 theorem compiled_spdp_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
     mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 25 := by
+      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 215 := by
   have h_lowdeg : (violationPolyOf ℚ M n).totalDegree < κ := by
     have := violationPolyOf_totalDegree ℚ M n; omega
   rw [show fullCompiledPoly ℚ M n h_le = verifierSheetOf ℚ M n h_le + violationPolyOf ℚ M n
@@ -1665,7 +1665,7 @@ theorem pside_full_ml_rank_bound (M : DTM) :
     ∀ (kk : ℕ), kk ≥ 5 → kk ≤ Nat.log 2 n →
     mlBlockedSpdpRank (compiledPartition M n) kk kk
       (fullCompiledPoly ℚ M n h_le) ≤ n ^ C := by
-  use 25; intro n hn h_le kk hk hk_le
+  use 215; intro n hn h_le kk hk hk_le
   exact compiled_spdp_rank_bound M n hn h_le kk hk hk_le
 
 /-- §34 Compiler extraction: NP-side rank ≤ P-side rank.
