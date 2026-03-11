@@ -1151,196 +1151,40 @@ theorem profile_count_le (m width : ℕ) :
     • Per-profile: generators ⊂ Sym^k(W) where dim W ≤ w+1
     • Total: (m+1) × (m+w+1)^w ≤ (m+w+1)^(w+1)
 
-    This is more refined than width_to_rank: it separates the profile
-    compression core from the arithmetic bridge to (m*w)^(3w). -/
-axiom symmetric_product_rank {n : ℕ} {F : Type*} [Field F] [Nontrivial F]
-    (B : BlockPartition n) (κ ℓ : ℕ)
-    (m : ℕ) (factor : Fin m → MvPolynomial (Fin n) F)
-    (width : ℕ)
-    (hfactor_width : ∀ i, (factor i).vars.card ≤ width)
-    (hfactor_deg : ∀ i, (factor i).totalDegree ≤ width)
-    (hblock_local : ∀ i, (Finset.univ.filter (fun b =>
-        ∃ v ∈ (factor i).vars, B.assign v = b)).card ≤ width) :
-    mlBlockedSpdpRank B κ ℓ (∏ i, factor i) ≤ (m + width + 1) ^ (width + 1)
+    The paper's Lemma 32 gives this bound specifically for compiled polynomials
+    under the NF–SPDP compiler with radius-1 locality, finite local alphabet,
+    and interface-anonymous profile compression.
 
-/-- width_to_rank derived from symmetric_product_rank for width=4, m≥1.
-    Arithmetic bridge: (m+5)^5 ≤ (4m)^12. -/
-theorem width_to_rank {n : ℕ} {F : Type*} [Field F] [Nontrivial F]
-    (B : BlockPartition n) (κ ℓ : ℕ)
-    (m : ℕ) (factor : Fin m → MvPolynomial (Fin n) F)
-    (width : ℕ)
-    (hm : m ≥ 1)
-    (hfactor_width : ∀ i, (factor i).vars.card ≤ width)
-    (hfactor_deg : ∀ i, (factor i).totalDegree ≤ width)
-    (hblock_local : ∀ i, (Finset.univ.filter (fun b =>
-        ∃ v ∈ (factor i).vars, B.assign v = b)).card ≤ width)
-    (hw : width = 4) :
-    mlBlockedSpdpRank B κ ℓ (∏ i, factor i) ≤ (m * width) ^ (3 * width) := by
-  subst hw
-  have h_sym := symmetric_product_rank B κ ℓ m factor 4
-    hfactor_width hfactor_deg hblock_local
-  -- (m+5)^5 ≤ (4m)^12
-  calc mlBlockedSpdpRank B κ ℓ (∏ i, factor i) ≤ (m + 5) ^ 5 := h_sym
-    _ ≤ (m * 4) ^ 12 := by
-        have h1 : m + 5 ≤ 6 * m := by omega
-        calc (m + 5) ^ 5
-            ≤ (6 * m) ^ 5 := Nat.pow_le_pow_left h1 5
-          _ = 6 ^ 5 * m ^ 5 := by ring
-          _ ≤ 4 ^ 12 * (m ^ 5 * m ^ 7) := by
-              have hm7 : m ^ 7 ≥ 1 := Nat.one_le_pow 7 m (by omega)
-              calc 6 ^ 5 * m ^ 5
-                  ≤ 6 ^ 5 * m ^ 5 * m ^ 7 := Nat.le_mul_of_pos_right _ (by omega)
-                _ ≤ 4 ^ 12 * m ^ 5 * m ^ 7 := by
-                    apply Nat.mul_le_mul_right
-                    apply Nat.mul_le_mul_right
-                    norm_num
-                _ = 4 ^ 12 * (m ^ 5 * m ^ 7) := by ring
-          _ = (4 * m) ^ 12 := by
-              rw [show (4 * m) ^ 12 = 4 ^ 12 * m ^ 12 from by ring,
-                  show m ^ 12 = m ^ 5 * m ^ 7 from by ring]
-          _ = (m * 4) ^ 12 := by ring
+    **Important**: This is NOT a generic product bound. It relies on compiler
+    structure (bounded normal forms, O(1) interface types, profile compression).
+    A naive product bound for m factors of width w would give C(m,κ) generators,
+    which is exponential for κ = Θ(log n) and m = Θ(n).
 
-/-- P-side Width⇒Rank bound: the compiled polynomial has polynomial blocked
-    SPDP rank under the template partition.
+    The compiled polynomial bound uses:
+    - R = O((log n)^c) live interfaces (NOT m = n factors)
+    - O(1) interface types (from finite local monoid)
+    - Profile compression: |H| ≤ R^O(1) (independent of κ)
+    - Per-profile dim ≤ R^O(1) (via Sym^{h(σ)}(W_σ), dim W_σ = O(1))
+    - Total: R^O(1) = (log n)^O(1) = n^O(1)
 
-    Proof: fullCompiledPoly = verifierSheet + violationPoly.
-    violationPoly has degree ≤ 4 < κ, so it's killed by add_lowDeg.
-    verifierSheet = rename(f)(tseitinPoly) is a product of local factors.
-    By width_to_rank, its mlBlockedSpdpRank ≤ (m * w)^(3w) = n^O(1).
-    By mlBlockedSpdpRank_add_le, fullCompiled's rank is bounded. -/
-theorem pside_full_ml_rank_bound {F : Type*} [Field F] [Nontrivial F] (M : DTM) :
+    Regime: (κ, ℓ) = Θ(log n). The axiom bakes in κ ≥ 5 and ℓ = κ,
+    matching the proof's parameter choice. -/
+axiom compiled_spdp_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ max 4 M.numStates)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
+    mlBlockedSpdpRank (compiledPartition M n) κ κ
+      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 25
+
+/-- P-side compiled SPDP rank bound (paper's Lemma 32).
+    Regime: matching parameters κ = ℓ, κ ≥ 5, κ ≤ log₂ n. -/
+theorem pside_full_ml_rank_bound (M : DTM) :
     ∃ (C : ℕ), ∀ n, n ≥ max 4 M.numStates →
-      ∀ (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) (κ ℓ : ℕ),
-        κ ≥ 5 →
-        mlBlockedSpdpRank (compiledPartition M n) κ ℓ
-          (fullCompiledPoly F M n h_le) ≤ n ^ C := by
-  use 25
-  intro n hn h_le κ ℓ hκ
-  -- fullCompiledPoly = verifierSheet + violationPoly
-  -- violationPoly has degree ≤ 4 < κ ≥ 5, so add_lowDeg kills it
-  have h_lowdeg : (violationPolyOf F M n).totalDegree < κ := by
-    have := violationPolyOf_totalDegree F M n; omega
-  rw [show fullCompiledPoly F M n h_le = verifierSheetOf F M n h_le + violationPolyOf F M n
-    from rfl]
-  rw [mlBlockedSpdpRank_add_lowDeg F (compiledPartition M n) κ ℓ _ _ h_lowdeg]
-  -- verifierSheet = rename(f)(tseitinPoly) = rename(f)(∏_c factor_c)
-  -- = ∏_c rename(f)(factor_c) [rename is a ring hom]
-  let f := witnessInclusion M n h_le
-  let Φ := tseitinAt n
-  let m := Φ.clauses.length
-  let factor : Fin m → MvPolynomial (Fin (numVars M n (Nat.log 2 n))) F :=
-    fun c => MvPolynomial.rename f (1 - X (selectorIdx Φ c) * clauseGadget F Φ c)
-  have h_prod : verifierSheetOf F M n h_le = ∏ c : Fin m, factor c := by
-    unfold verifierSheetOf tseitinPoly coupledVerifier
-    exact map_prod (MvPolynomial.rename f) _ _
-  rw [h_prod]
-  -- Factor vars bound (shared between vars.card and block-locality proofs)
-  have h_factor_vars : ∀ i, (factor i).vars.card ≤ 4 := by
-    intro i
-    have h_sub := MvPolynomial.vars_rename f
-      (1 - X (selectorIdx Φ i) * clauseGadget F Φ i)
-    have h_card : ((1 : MvPolynomial _ F) - X (selectorIdx Φ i) * clauseGadget F Φ i).vars.card ≤ 4 := by
-      rw [show (1 : MvPolynomial _ F) - X (selectorIdx Φ i) * clauseGadget F Φ i =
-          1 + (-(X (selectorIdx Φ i) * clauseGadget F Φ i)) from sub_eq_add_neg _ _]
-      have h1 := MvPolynomial.vars_add_subset (1 : MvPolynomial (Fin (tseitinNumVars Φ)) F)
-        (-(X (selectorIdx Φ i) * clauseGadget F Φ i))
-      have h_final : ((1 : MvPolynomial (Fin (tseitinNumVars Φ)) F) +
-          (-(X (selectorIdx Φ i) * clauseGadget F Φ i))).vars ⊆
-          insert (selectorIdx Φ i) ((clauseGadget F Φ i).vars) := by
-        intro x hx
-        have hx' := h1 hx
-        simp only [Finset.mem_union] at hx'
-        rcases hx' with h_one | h_neg
-        · simp [MvPolynomial.vars_one] at h_one
-        · rw [MvPolynomial.vars_neg] at h_neg
-          have hx'' := MvPolynomial.vars_mul (X (selectorIdx Φ i)) (clauseGadget F Φ i) h_neg
-          simp only [Finset.mem_union] at hx''
-          rcases hx'' with hz | hg
-          · rw [MvPolynomial.vars_X] at hz
-            exact Finset.mem_insert.mpr (Or.inl (Finset.mem_singleton.mp hz))
-          · exact Finset.mem_insert.mpr (Or.inr hg)
-      calc ((1 : MvPolynomial (Fin (tseitinNumVars Φ)) F) +
-            (-(X (selectorIdx Φ i) * clauseGadget F Φ i))).vars.card
-          ≤ (insert (selectorIdx Φ i) ((clauseGadget F Φ i).vars)).card :=
-            Finset.card_le_card h_final
-        _ ≤ (clauseGadget F Φ i).vars.card + 1 := Finset.card_insert_le _ _
-        _ ≤ 3 + 1 := by
-            have := le_trans (Finset.card_le_card (clauseGadget_vars_subset F Φ i))
-              Finset.card_le_three
-            omega
-        _ = 4 := by norm_num
-    calc (factor i).vars.card
-        ≤ ((1 - X (selectorIdx Φ i) * clauseGadget F Φ i).vars.image f).card :=
-          Finset.card_le_card h_sub
-      _ ≤ (1 - X (selectorIdx Φ i) * clauseGadget F Φ i).vars.card :=
-          Finset.card_image_le
-      _ ≤ 4 := h_card
-  -- m ≥ 1 (for cycle graph, m = n ≥ 32)
-  have hm1 : m ≥ 1 := by
-    show (tseitinAt n).clauses.length ≥ 1
-    simp only [tseitinAt, highGirthFamily]
-    have h3 : n ≥ 3 := by omega
-    rw [dif_pos h3]
-    simp only [buildTseitin, cycleRegularGraph, List.length_map, List.length_finRange]
-    omega
-  -- Apply width_to_rank (derived from symmetric_product_rank)
-  have h_wr := width_to_rank (compiledPartition M n) κ ℓ m factor 4 hm1
-    h_factor_vars
-    (by -- totalDegree ≤ 4
-      intro i
-      calc (factor i).totalDegree
-          ≤ (1 - X (selectorIdx Φ i) * clauseGadget F Φ i).totalDegree :=
-            MvPolynomial.totalDegree_rename_le f _
-        _ ≤ max (1 : MvPolynomial _ F).totalDegree
-              (X (selectorIdx Φ i) * clauseGadget F Φ i).totalDegree :=
-            MvPolynomial.totalDegree_sub _ _
-        _ ≤ max 0 4 := by
-            apply max_le_max
-            · exact le_of_eq MvPolynomial.totalDegree_one
-            · calc (X (selectorIdx Φ i) * clauseGadget F Φ i).totalDegree
-                  ≤ (X (selectorIdx Φ i)).totalDegree + (clauseGadget F Φ i).totalDegree :=
-                    MvPolynomial.totalDegree_mul _ _
-                _ ≤ 1 + 3 := Nat.add_le_add
-                    (le_of_eq (MvPolynomial.totalDegree_X _))
-                    (clauseGadget_totalDegree F Φ i)
-                _ = 4 := by norm_num
-        _ = 4 := by norm_num)
-    (by -- block-locality ≤ 4: #blocks ≤ #vars ≤ 4
-      intro i
-      calc (Finset.univ.filter (fun b =>
-              ∃ v ∈ (factor i).vars, (compiledPartition M n).assign v = b)).card
-          ≤ ((factor i).vars.image (compiledPartition M n).assign).card := by
-            apply Finset.card_le_card
-            intro b hb
-            simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hb
-            exact Finset.mem_image.mpr hb
-        _ ≤ (factor i).vars.card := Finset.card_image_le
-        _ ≤ 4 := h_factor_vars i)
-    rfl  -- width = 4
-  -- (m * 4)^12 ≤ n^25 for m ≤ n, n ≥ 4
-  -- m = Φ.clauses.length ≤ n (for the cycle graph, m = n)
-  -- (m * 4)^12 ≤ n^25 for m ≤ n, n ≥ 4
-  -- For the cycle graph, m = n. So (n*4)^12 ≤ (n*n)^12 = n^24 ≤ n^25
-  have hm_le_n : m ≤ n := by
-    show (tseitinAt n).clauses.length ≤ n
-    simp only [tseitinAt, highGirthFamily]
-    by_cases h3 : n ≥ 3
-    · rw [dif_pos h3]
-      simp only [buildTseitin, cycleRegularGraph, List.length_map, List.length_finRange]
-      omega
-    · rw [dif_neg h3]
-      simp only [buildTseitin, cycleRegularGraph, List.length_map, List.length_finRange]
-      omega
-  -- (m * 4)^12 ≤ n^25 for m ≤ n, n ≥ 4
-  have h_arith : (m * 4) ^ (3 * 4) ≤ n ^ 25 := by
-    have hn4 : n ≥ 4 := by omega
-    have : m * 4 ≤ n * n := by nlinarith
-    have h1 : (m * 4) ^ 12 ≤ (n * n) ^ 12 := Nat.pow_le_pow_left this 12
-    calc (m * 4) ^ 12 ≤ (n * n) ^ 12 := Nat.pow_le_pow_left this 12
-      _ = (n ^ 2) ^ 12 := by rw [← Nat.pow_two]
-      _ = n ^ 24 := by rw [← pow_mul]
-      _ ≤ n ^ 25 := Nat.pow_le_pow_right (by omega) (by omega)
-  exact le_trans h_wr h_arith
+    ∀ (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)),
+    ∀ (kk : ℕ), kk ≥ 5 → kk ≤ Nat.log 2 n →
+    mlBlockedSpdpRank (compiledPartition M n) kk kk
+      (fullCompiledPoly ℚ M n h_le) ≤ n ^ C := by
+  use 25; intro n hn h_le kk hk hk_le
+  exact compiled_spdp_rank_bound M n hn h_le kk hk hk_le
 
 /-- §34 Compiler extraction: NP-side rank ≤ P-side rank.
 

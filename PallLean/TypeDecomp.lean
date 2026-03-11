@@ -152,79 +152,24 @@ theorem sym_tensor_dim_le (d k : ℕ) :
 
 /-! ## Decomposition of symmetric_product_rank
 
-We decompose the axiom `symmetric_product_rank` (in MultilinearSPDP.lean)
-into two more refined sub-axioms that separate the combinatorial
-and algebraic content:
+**Note (2026-03-11)**: The generic product bound `spdp_profile_rank_bound` was
+REMOVED because it is false for arbitrary products. Counterexample:
+p = ∏_{i=0}^{99} X_i (m=100, w=1), κ=50: C(100,50) ≈ 10^29 generators
+but the claimed bound is (101)(102)^1 = 10302.
 
-**Sub-axiom 1 (Profile Decomposition)**: The SPDP subspace of a product
-decomposes as a sum of "profile subspaces", one per allocation profile.
-For single-type factors, the profile is just k ∈ {0,...,m} (how many
-factors receive derivatives). So there are ≤ m+1 profile subspaces.
+The paper's Lemma 32 (Width⇒Rank) applies ONLY to compiled polynomials
+with specific structural properties:
+- Radius-1 locality, finite local alphabet, bounded normal forms
+- Interface-anonymous profile compression
+- R = O((log n)^c) live interfaces, NOT m = Θ(n) factors
+- Per-interface space W_σ of constant dimension d_0
 
-This follows from:
-- Layer 1 (Leibniz): derivatives decompose by allocation
-- Layer 2 (Profile): allocations grouped by profile
-- Layer 3 (Commutativity): result depends on derivative SET
+The P-side rank bound is now stated directly as `compiled_spdp_rank_bound`
+in MultilinearSPDP.lean, matching the paper's Lemma 32.
 
-**Sub-axiom 2 (Per-Profile Dimension)**: Each profile subspace has
-dimension ≤ (m + w + 1)^w. This is the §9 Lemma 31 content:
-when k factors are differentiated and all have the same type,
-the generators lie in Sym^k(W) where dim W ≤ w+1.
-dim Sym^k(W) = C(k+w, w) ≤ (k+w+1)^w ≤ (m+w+1)^w.
-
-Together: rank ≤ (m+1) × (m+w+1)^w ≤ (m+w+1)^(w+1). -/
-
-/-- The SPDP subspace of a product of m factors with bounded width
-    has rank ≤ (m+1) × (m+w+1)^w.
-
-    This is the combined profile decomposition + per-profile bound.
-
-    **Profile decomposition** (Layers 1-3):
-    By the Leibniz rule (Layer 1), each SPDP generator decomposes
-    into allocation products. By profile grouping (Layer 2) and
-    commutativity (Layer 3), allocations with the same profile
-    (= number of differentiated factors) give related generators.
-    There are ≤ m+1 profiles for single-type factors.
-
-    **Per-profile bound** (§9 Lemma 31):
-    For profile k (k factors differentiated, m-k undifferentiated):
-    - Each differentiated factor contributes from W (dim ≤ w+1)
-    - By type symmetry, which k factors are chosen doesn't matter
-    - The generators lie in Sym^k(W) (symmetric tensor power)
-    - dim Sym^k(W) = C(k+w, w) ≤ (k+w+1)^w ≤ (m+w+1)^w
-
-    Total: (m+1) × (m+w+1)^w ≤ (m+w+1)^(w+1). -/
-axiom spdp_profile_rank_bound {n : ℕ} {F : Type*} [Field F] [Nontrivial F]
-    (B : BlockPartition n) (κ ℓ : ℕ)
-    (m : ℕ) (factor : Fin m → MvPolynomial (Fin n) F)
-    (width : ℕ)
-    (hfactor_width : ∀ i, (factor i).vars.card ≤ width)
-    (hfactor_deg : ∀ i, (factor i).totalDegree ≤ width)
-    (hblock_local : ∀ i, (Finset.univ.filter (fun b =>
-        ∃ v ∈ (factor i).vars, B.assign v = b)).card ≤ width) :
-    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (∏ i, factor i) ≤
-    (m + 1) * (m + width + 1) ^ width
-
-/-- symmetric_product_rank derived from the two sub-axioms.
-    Total ≤ (m+1) × (m+w+1)^w ≤ (m+w+1)^(w+1). -/
-theorem symmetric_product_rank_from_decomposition {n : ℕ} {F : Type*}
-    [Field F] [Nontrivial F]
-    (B : BlockPartition n) (κ ℓ : ℕ)
-    (m : ℕ) (factor : Fin m → MvPolynomial (Fin n) F)
-    (width : ℕ)
-    (hfactor_width : ∀ i, (factor i).vars.card ≤ width)
-    (hfactor_deg : ∀ i, (factor i).totalDegree ≤ width)
-    (hblock_local : ∀ i, (Finset.univ.filter (fun b =>
-        ∃ v ∈ (factor i).vars, B.assign v = b)).card ≤ width) :
-    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (∏ i, factor i) ≤
-    (m + width + 1) ^ (width + 1) := by
-  have h_decomp := spdp_profile_rank_bound B κ ℓ m factor width
-    hfactor_width hfactor_deg hblock_local
-  calc MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (∏ i, factor i)
-      ≤ (m + 1) * (m + width + 1) ^ width := h_decomp
-    _ ≤ (m + width + 1) * (m + width + 1) ^ width := by
-        apply Nat.mul_le_mul_right; omega
-    _ = (m + width + 1) ^ (width + 1) := by ring
+The proved theorems below (localDerivSpace, binomial bounds, etc.) remain
+valid mathematics and may be useful for future decomposition of the
+compiled axiom into more specific sub-axioms. -/
 
 end SPDP
 

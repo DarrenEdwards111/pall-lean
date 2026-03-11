@@ -23,7 +23,7 @@ structure PeqNP where
 theorem P_neq_NP (h : PeqNP) : False := by
   let M := h.sat_decider
   -- P-side: Γ^ml(fullCompiledPoly) ≤ n^C for some constant C
-  obtain ⟨C, hpside⟩ := pside_full_ml_rank_bound (F := ℚ) M
+  obtain ⟨C, hpside⟩ := pside_full_ml_rank_bound M
   -- NP-side: Γ^ml(Q×_Φn) ≥ n^(log n / 4)
   obtain ⟨n₁, hnpside⟩ := np_ml_lower_bound ℚ
   -- Arithmetic: n^(log n / 4) > n^(C+1) for large n
@@ -43,17 +43,14 @@ theorem P_neq_NP (h : PeqNP) : False := by
     nlinarith [M.hStates, Nat.log_le_self 2 n]
   -- Instantiate bounds
   have h_np := hnpside n (by omega)
+  have hκ_ge : Nat.log 2 n ≥ 5 := by
+    have hn32 : n ≥ 32 := by omega
+    have : Nat.log 2 32 = 5 := by native_decide
+    exact le_trans (by omega) (Nat.log_mono_right hn32)
   have h_extract := extraction_rank_monotone ℚ n M h.decides_sat (by omega)
-    h_le (Nat.log 2 n) (Nat.log 2 n) (by
-      -- Need log₂(n) ≥ 5, which holds for n ≥ 32
-      have hn32 : n ≥ 32 := by omega
-      have : Nat.log 2 32 = 5 := by native_decide
-      exact le_trans (by omega) (Nat.log_mono_right hn32))
+    h_le (Nat.log 2 n) (Nat.log 2 n) hκ_ge
   have h_pside := hpside n (by show n ≥ max 4 M.numStates; omega) h_le
-    (Nat.log 2 n) (Nat.log 2 n) (by
-      have hn32 : n ≥ 32 := by omega
-      have : Nat.log 2 32 = 5 := by native_decide
-      exact le_trans (by omega) (Nat.log_mono_right hn32))
+    (Nat.log 2 n) hκ_ge (Nat.le_refl _)
   -- Chain: n^(log n/4) ≤ Γ^ml(tseitin) ≤ Γ^ml(fullCompiled) ≤ n^C
   have h_chain : n ^ (Nat.log 2 n / 4) ≤ n ^ C := by linarith
   -- But n^(log n/4) > n^(C+1) > n^C for large n
