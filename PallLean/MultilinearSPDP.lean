@@ -1123,8 +1123,24 @@ theorem profile_count_le (m width : ℕ) :
 
     **Why this bound is correct for our usage** (width=4, m≤n):
       (m·4)^12 ≤ (4n)^12 = 4^12 · n^12 ≤ n^25 for n ≥ 4.
-      The exponent 3w = 12 is constant because width = O(1). -/
-axiom width_to_rank {n : ℕ} {F : Type*} [Field F] [Nontrivial F]
+      The exponent 3w = 12 is constant because width = O(1).
+
+    **§9 Profile compression axiom** (replaces monolithic width_to_rank).
+
+    For a product of m factors, each with ≤ w vars, degree ≤ w,
+    touching ≤ w blocks, the SPDP subspace has finrank ≤ (m+w+1)^(w+1).
+
+    Proof outline (§9 Lemmas 29-31):
+    • Layer 1 (Leibniz): derivatives decompose by allocation to factors
+    • Layer 2 (Profile): group allocations by histogram over types
+    • Layer 3 (Commutativity): allocation result depends on derivative SET
+    • Profile compression: single-type ⇒ profile is just k ∈ {0,...,m}
+    • Per-profile: generators ⊂ Sym^k(W) where dim W ≤ w+1
+    • Total: (m+1) × (m+w+1)^w ≤ (m+w+1)^(w+1)
+
+    This is more refined than width_to_rank: it separates the profile
+    compression core from the arithmetic bridge to (m*w)^(3w). -/
+axiom symmetric_product_rank {n : ℕ} {F : Type*} [Field F] [Nontrivial F]
     (B : BlockPartition n) (κ ℓ : ℕ)
     (m : ℕ) (factor : Fin m → MvPolynomial (Fin n) F)
     (width : ℕ)
@@ -1132,7 +1148,44 @@ axiom width_to_rank {n : ℕ} {F : Type*} [Field F] [Nontrivial F]
     (hfactor_deg : ∀ i, (factor i).totalDegree ≤ width)
     (hblock_local : ∀ i, (Finset.univ.filter (fun b =>
         ∃ v ∈ (factor i).vars, B.assign v = b)).card ≤ width) :
-    mlBlockedSpdpRank B κ ℓ (∏ i, factor i) ≤ (m * width) ^ (3 * width)
+    mlBlockedSpdpRank B κ ℓ (∏ i, factor i) ≤ (m + width + 1) ^ (width + 1)
+
+/-- width_to_rank derived from symmetric_product_rank for width=4, m≥1.
+    Arithmetic bridge: (m+5)^5 ≤ (4m)^12. -/
+theorem width_to_rank {n : ℕ} {F : Type*} [Field F] [Nontrivial F]
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (m : ℕ) (factor : Fin m → MvPolynomial (Fin n) F)
+    (width : ℕ)
+    (hm : m ≥ 1)
+    (hfactor_width : ∀ i, (factor i).vars.card ≤ width)
+    (hfactor_deg : ∀ i, (factor i).totalDegree ≤ width)
+    (hblock_local : ∀ i, (Finset.univ.filter (fun b =>
+        ∃ v ∈ (factor i).vars, B.assign v = b)).card ≤ width)
+    (hw : width = 4) :
+    mlBlockedSpdpRank B κ ℓ (∏ i, factor i) ≤ (m * width) ^ (3 * width) := by
+  subst hw
+  have h_sym := symmetric_product_rank B κ ℓ m factor 4
+    hfactor_width hfactor_deg hblock_local
+  -- (m+5)^5 ≤ (4m)^12
+  calc mlBlockedSpdpRank B κ ℓ (∏ i, factor i) ≤ (m + 5) ^ 5 := h_sym
+    _ ≤ (m * 4) ^ 12 := by
+        have h1 : m + 5 ≤ 6 * m := by omega
+        calc (m + 5) ^ 5
+            ≤ (6 * m) ^ 5 := Nat.pow_le_pow_left h1 5
+          _ = 6 ^ 5 * m ^ 5 := by ring
+          _ ≤ 4 ^ 12 * (m ^ 5 * m ^ 7) := by
+              have hm7 : m ^ 7 ≥ 1 := Nat.one_le_pow 7 m (by omega)
+              calc 6 ^ 5 * m ^ 5
+                  ≤ 6 ^ 5 * m ^ 5 * m ^ 7 := Nat.le_mul_of_pos_right _ (by omega)
+                _ ≤ 4 ^ 12 * m ^ 5 * m ^ 7 := by
+                    apply Nat.mul_le_mul_right
+                    apply Nat.mul_le_mul_right
+                    norm_num
+                _ = 4 ^ 12 * (m ^ 5 * m ^ 7) := by ring
+          _ = (4 * m) ^ 12 := by
+              rw [show (4 * m) ^ 12 = 4 ^ 12 * m ^ 12 from by ring,
+                  show m ^ 12 = m ^ 5 * m ^ 7 from by ring]
+          _ = (m * 4) ^ 12 := by ring
 
 /-- P-side Width⇒Rank bound: the compiled polynomial has polynomial blocked
     SPDP rank under the template partition.
@@ -1209,8 +1262,16 @@ theorem pside_full_ml_rank_bound {F : Type*} [Field F] [Nontrivial F] (M : DTM) 
       _ ≤ (1 - X (selectorIdx Φ i) * clauseGadget F Φ i).vars.card :=
           Finset.card_image_le
       _ ≤ 4 := h_card
-  -- Apply width_to_rank
-  have h_wr := width_to_rank (compiledPartition M n) κ ℓ m factor 4
+  -- m ≥ 1 (for cycle graph, m = n ≥ 32)
+  have hm1 : m ≥ 1 := by
+    show (tseitinAt n).clauses.length ≥ 1
+    simp only [tseitinAt, highGirthFamily]
+    have h3 : n ≥ 3 := by omega
+    rw [dif_pos h3]
+    simp only [buildTseitin, cycleRegularGraph, List.length_map, List.length_finRange]
+    omega
+  -- Apply width_to_rank (derived from symmetric_product_rank)
+  have h_wr := width_to_rank (compiledPartition M n) κ ℓ m factor 4 hm1
     h_factor_vars
     (by -- totalDegree ≤ 4
       intro i
@@ -1242,6 +1303,7 @@ theorem pside_full_ml_rank_bound {F : Type*} [Field F] [Nontrivial F] (M : DTM) 
             exact Finset.mem_image.mpr hb
         _ ≤ (factor i).vars.card := Finset.card_image_le
         _ ≤ 4 := h_factor_vars i)
+    rfl  -- width = 4
   -- (m * 4)^12 ≤ n^25 for m ≤ n, n ≥ 4
   -- m = Φ.clauses.length ≤ n (for the cycle graph, m = n)
   -- (m * 4)^12 ≤ n^25 for m ≤ n, n ≥ 4
