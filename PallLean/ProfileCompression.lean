@@ -247,9 +247,29 @@ theorem admissible_list_selector_decomp (n : ℕ)
     selVars.attach.map (fun ⟨v, hv⟩ => selectorInv n v (hsel_is_sel v hv))
   refine ⟨sels, nonsels, ?_, ?_, hns_len, ?_⟩
   · -- Permutation: S ~ sels.map(selectorAt n) ++ nonsels
-    sorry
-  · -- sels.Nodup: follows from selVars.Nodup (from S.Nodup) and selectorInv injectivity
-    sorry
+    -- Step 1: sels.map(selectorAt n) = selVars
+    have hmap : sels.map (selectorAt n) = selVars := by
+      apply List.ext_getElem
+      · simp [sels]
+      · intro i h1 h2
+        simp only [sels, List.getElem_map, List.getElem_attach]
+        exact (selectorInv_spec n _ _).symm
+    -- Step 2: selVars ++ nonsels ~ S (filter partition)
+    rw [hmap]
+    have hcomp : nonsels = S.filter (fun v => !decide ((B.assign v).val ≠ 0)) := by
+      simp only [nonsels]; congr 1; ext v; simp [Nat.eq_zero_of_not_pos, Nat.pos_of_ne_zero]
+    rw [hcomp]
+    exact (List.filter_append_perm (fun v => decide ((B.assign v).val ≠ 0)) S).symm
+  · -- sels.Nodup: selVars has Nodup (from S.Nodup), selectorInv is injective on selVars
+    simp only [sels]
+    apply List.Nodup.map
+    · -- selectorInv is injective on selVars
+      intro ⟨a, ha⟩ ⟨b, hb⟩ heq
+      simp only at heq
+      have ha' := (selectorInv_spec n a (hsel_is_sel a ha)).symm
+      have hb' := (selectorInv_spec n b (hsel_is_sel b hb)).symm
+      exact Subtype.ext (ha'.symm.trans (congr_arg _ heq) |>.trans hb')
+    · exact List.nodup_attach.mpr (List.Nodup.filter _ hadm.1)
   · -- nonsels are not selectors: they have block 0
     intro v hv c heq
     have hv0 : (B.assign v).val = 0 := by
