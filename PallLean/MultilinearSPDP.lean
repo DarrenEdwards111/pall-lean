@@ -1308,7 +1308,26 @@ private lemma rename_restrictPoly_of_vars_range {n m : ℕ} {F : Type*} [CommRin
     (f : Fin n → Fin m) (hf : Function.Injective f)
     (mult : MvPolynomial (Fin m) F) (h : ↑mult.vars ⊆ Set.range f) :
     MvPolynomial.rename f (restrictPoly F f hf mult) = mult := by
-  sorry
+  -- rename f ∘ restrictPoly agrees with id on vars(mult)
+  -- Use: aeval_eq_aeval_of_forall_mem_vars or direct computation
+  -- Show the two AlgHoms agree on X j for j ∈ vars(mult)
+  -- comp(rename f, restrictPoly) vs AlgHom.id
+  -- Then use MvPolynomial.algHom_ext or funext on support
+  -- Use aeval_ite_mem_eq_self: aeval (fun j => if j ∈ s then X j else 0) p = p when vars ⊆ s
+  -- First show rename f ∘ restrictPoly = aeval (fun j => if j ∈ range f then X j else 0)
+  -- as AlgHoms:
+  have heq : ((MvPolynomial.rename f).comp (restrictPoly F f hf)) =
+      MvPolynomial.aeval (fun j => if (j ∈ Set.range f) then MvPolynomial.X j else (0 : MvPolynomial (Fin m) F)) := by
+    ext j
+    simp only [AlgHom.comp_apply, restrictPoly_X, MvPolynomial.aeval_X]
+    by_cases hj : ∃ i, f i = j
+    · rw [dif_pos hj, MvPolynomial.rename_X, if_pos ⟨hj.choose, hj.choose_spec⟩]
+      simp [hj.choose_spec]
+    · rw [dif_neg hj, map_zero]
+      rw [if_neg]; intro ⟨i, hi⟩; exact hj ⟨i, hi⟩
+  rw [show MvPolynomial.rename f (restrictPoly F f hf mult) =
+    ((MvPolynomial.rename f).comp (restrictPoly F f hf)) mult from rfl, heq]
+  exact MvPolynomial.aeval_ite_mem_eq_self mult h
 
 /-- Block admissibility pulls back along injective maps. -/
 private lemma isBlockAdmissible_pullback {n m : ℕ}
@@ -1324,9 +1343,15 @@ private lemma isBlockAdmissible_pullback {n m : ℕ}
     have hfm : (S'.filter (fun i => (pullbackPartition B f).assign i = b)) =
       (S'.filter (fun i => B.assign (f i) = b)) := by rfl
     rw [hfm]
-    -- (S'.filter P).length ≤ (S'.map f).filter(P').length when P matches
-    -- filter commutes with map for composition of predicates
-    sorry
+    -- (S'.map f).filter(P) = (S'.filter(P∘f)).map f, so same length
+    have hlen : ∀ (L : List (Fin n)), ((L.map f).filter (fun j => B.assign j = b)).length =
+        (L.filter (fun i => B.assign (f i) = b)).length := by
+      intro L; induction L with
+      | nil => simp
+      | cons a rest ih =>
+        simp only [List.map_cons, List.filter_cons]
+        by_cases h : B.assign (f a) = b <;> simp [h, ih]
+    rw [← hlen]; exact And.right hadm b
 
 /-- restrictPoly preserves vars within preimage of range(f). -/
 private lemma restrictPoly_vars_subset {n m : ℕ} {F : Type*} [CommRing F]
@@ -1334,7 +1359,49 @@ private lemma restrictPoly_vars_subset {n m : ℕ} {F : Type*} [CommRing F]
     (mult : MvPolynomial (Fin m) F) (S' : List (Fin n))
     (hvars : mult.vars ⊆ (S'.map f).toFinset) :
     (restrictPoly F f hf mult).vars ⊆ S'.toFinset := by
-  sorry
+  -- Strategy: show i ∈ vars(restrictPoly mult) → f i ∈ vars(mult) → f i ∈ (S'.map f).toFinset
+  -- → i ∈ S'.toFinset (by injectivity)
+  -- For the first step: rename f (restrictPoly mult) = mult (by rename_restrictPoly_of_vars_range)
+  -- and vars(rename f q) ⊆ vars(q).image f, so mult.vars ⊆ (restrictPoly mult).vars.image f
+  -- Reverse: i ∈ vars(q) → f i ∈ vars(rename f q) for injective f
+  -- We prove this by showing support maps injectively
+  intro i hi
+  -- We know rename f (restrictPoly mult) = mult
+  have h_range : ↑mult.vars ⊆ Set.range f := by
+    intro v hv; obtain ⟨j, _, rfl⟩ := List.mem_map.mp (List.mem_toFinset.mp (hvars (Finset.mem_coe.mpr hv)))
+    exact ⟨j, rfl⟩
+  have h_eq := rename_restrictPoly_of_vars_range f hf mult h_range
+  -- i ∈ vars(restrictPoly mult), so coeff of some monomial with i > 0 is nonzero
+  -- After rename f, f(i) must appear in vars(mult)
+  -- Use: vars_rename gives (rename f q).vars ⊆ q.vars.image f
+  -- For the reverse with injective f, use rename_injective + support
+  -- Simpler: use that restrictPoly mult = restrictPoly (rename f (restrictPoly mult))
+  -- = restrictPoly mult. Not helpful.
+  -- Direct approach: show f i ∈ mult.vars from h_eq
+  -- rename f maps support injectively, so f i ∈ (rename f (restrictPoly mult)).vars
+  -- = mult.vars
+  have h_fi_mem : f i ∈ mult.vars := by
+    rw [← h_eq]
+    -- Need: i ∈ q.vars → f i ∈ (rename f q).vars for injective f
+    -- This follows from: support(rename f q) = support(q).map (mapDomain f) injectively
+    -- and vars = degrees = biUnion of support
+    rw [MvPolynomial.mem_vars] at hi ⊢
+    obtain ⟨d, hd_supp, hd_i⟩ := hi
+    refine ⟨Finsupp.mapDomain f d, ?_, ?_⟩
+    · rw [MvPolynomial.mem_support_iff]
+      rw [show MvPolynomial.coeff (Finsupp.mapDomain f d) (MvPolynomial.rename f (restrictPoly F f hf mult)) =
+        MvPolynomial.coeff d (restrictPoly F f hf mult) from
+        MvPolynomial.coeff_rename_mapDomain f hf _ d]
+      rwa [← MvPolynomial.mem_support_iff]
+    · rw [Finsupp.mem_support_iff]
+      rw [Finsupp.mapDomain_apply hf]
+      rwa [← Finsupp.mem_support_iff]
+  -- Now f i ∈ mult.vars ⊆ (S'.map f).toFinset
+  have h_fi_S := hvars h_fi_mem
+  rw [List.mem_toFinset, List.mem_map] at h_fi_S
+  obtain ⟨j, hj_mem, hj_eq⟩ := h_fi_S
+  rw [List.mem_toFinset]
+  exact hf hj_eq ▸ hj_mem
 
 /-- The B-subspace of rename(f,p) embeds into image of pullback-subspace under rename f. -/
 private lemma mlBlockedSpdpSubspace_rename_le_map {n m : ℕ} {F : Type*} [Field F]
