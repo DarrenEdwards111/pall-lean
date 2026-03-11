@@ -1289,16 +1289,121 @@ theorem mlProj_rename {n m : ℕ} {F : Type*} [CommRing F]
     map_sum (mlProjHom F), map_sum (MvPolynomial.rename f)]
   exact Finset.sum_congr rfl fun s _ => mlProj_rename_monomial f hf s _
 
-/-- SPDP rank is monotone under rename: rank(B, rename f p) ≤ rank(pullback B, p).
-    Each generator mlProj(mult · iterDerivList S (rename f p)) in the big ring
-    maps to a generator in the small ring via rename infrastructure. -/
+/-- If all elements of S are in range(f), we can extract a preimage list. -/
+private lemma preimage_list {n m : ℕ}
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (S : List (Fin m)) (hS : ∀ v ∈ S, v ∈ Set.range f) :
+    ∃ S' : List (Fin n), S'.map f = S := by
+  induction S with
+  | nil => exact ⟨[], rfl⟩
+  | cons a rest ih =>
+    have ha : a ∈ Set.range f := hS a (by simp)
+    obtain ⟨i, rfl⟩ := ha
+    have ih' := ih (fun v hv => hS v (by simp [hv]))
+    obtain ⟨rest', hrest'⟩ := ih'
+    exact ⟨i :: rest', by rw [List.map_cons, hrest']⟩
+
+/-- If mult.vars ⊆ range(f), then rename f (restrictPoly mult) = mult. -/
+private lemma rename_restrictPoly_of_vars_range {n m : ℕ} {F : Type*} [CommRing F]
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (mult : MvPolynomial (Fin m) F) (h : ↑mult.vars ⊆ Set.range f) :
+    MvPolynomial.rename f (restrictPoly F f hf mult) = mult := by
+  sorry
+
+/-- Block admissibility pulls back along injective maps. -/
+private lemma isBlockAdmissible_pullback {n m : ℕ}
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (B : BlockPartition m) (S' : List (Fin n))
+    (hadm : isBlockAdmissible B (S'.map f)) :
+    isBlockAdmissible (pullbackPartition B f) S' := by
+  constructor
+  · -- Nodup: S'.map f nodup + f injective → S' nodup
+    exact ((List.nodup_map_iff hf).mp (And.left hadm))
+  · intro b
+    -- Filter S' for block b in pullback = filter (S'.map f) for block b in B
+    have hfm : (S'.filter (fun i => (pullbackPartition B f).assign i = b)) =
+      (S'.filter (fun i => B.assign (f i) = b)) := by rfl
+    rw [hfm]
+    -- (S'.filter P).length ≤ (S'.map f).filter(P').length when P matches
+    -- filter commutes with map for composition of predicates
+    sorry
+
+/-- restrictPoly preserves vars within preimage of range(f). -/
+private lemma restrictPoly_vars_subset {n m : ℕ} {F : Type*} [CommRing F]
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (mult : MvPolynomial (Fin m) F) (S' : List (Fin n))
+    (hvars : mult.vars ⊆ (S'.map f).toFinset) :
+    (restrictPoly F f hf mult).vars ⊆ S'.toFinset := by
+  sorry
+
+/-- The B-subspace of rename(f,p) embeds into image of pullback-subspace under rename f. -/
+private lemma mlBlockedSpdpSubspace_rename_le_map {n m : ℕ} {F : Type*} [Field F]
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (B : BlockPartition m) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin n) F) :
+    mlBlockedSpdpSubspace B κ ℓ (MvPolynomial.rename f p) ≤
+    Submodule.map (MvPolynomial.rename f).toLinearMap
+      (mlBlockedSpdpSubspace (pullbackPartition B f) κ ℓ p) := by
+  rw [mlBlockedSpdpSubspace, Submodule.span_le]
+  intro q hq
+  obtain ⟨S, mult, hlen, hdeg, hvars, hadm, hq_eq⟩ := hq
+  -- Case split: is every element of S in range(f)?
+  by_cases h_all : ∀ v ∈ S, v ∈ Set.range f
+  · -- All in range(f): construct preimage, lift to pullback generator
+    obtain ⟨S', hS'⟩ := preimage_list f hf S h_all
+    -- Rewrite iterDerivList using S' and iterDerivList_rename
+    have h_iter : iterDerivList S (MvPolynomial.rename f p) =
+        MvPolynomial.rename f (iterDerivList S' p) := by
+      rw [← hS', iterDerivList_rename f hf S' p]
+    -- mult.vars ⊆ S.toFinset = (S'.map f).toFinset
+    have hvars' : mult.vars ⊆ (S'.map f).toFinset := by
+      have : S = S'.map f := hS'.symm; subst this; exact hvars
+    -- rename f (restrictPoly mult) = mult
+    have h_mult : MvPolynomial.rename f (restrictPoly F f hf mult) = mult :=
+      rename_restrictPoly_of_vars_range f hf mult (by
+        intro v hv
+        have hv_S : v ∈ (S'.map f).toFinset := hvars' (Finset.mem_coe.mpr hv)
+        rw [List.mem_toFinset] at hv_S
+        obtain ⟨i, _, rfl⟩ := List.mem_map.mp hv_S
+        exact ⟨i, rfl⟩)
+    -- q = mlProj(mult * rename f (iterDerivList S' p))
+    --   = mlProj(rename f (restrictPoly mult) * rename f (iterDerivList S' p))
+    --   = mlProj(rename f (restrictPoly mult * iterDerivList S' p))
+    --   = rename f (mlProj(restrictPoly mult * iterDerivList S' p))
+    rw [hq_eq, h_iter, ← h_mult, ← map_mul (MvPolynomial.rename f),
+      mlProj_rename f hf]
+    -- Now show the preimage is in the pullback subspace
+    apply Submodule.mem_map_of_mem
+    apply Submodule.subset_span
+    refine ⟨S', restrictPoly F f hf mult, ?_, ?_, ?_, ?_, rfl⟩
+    · -- length preserved
+      rw [← hS', List.length_map] at hlen; exact hlen
+    · -- degree bound
+      exact le_trans (restrictPoly_totalDegree_le F f hf mult) hdeg
+    · -- vars subset
+      exact restrictPoly_vars_subset f hf mult S' hvars'
+    · -- admissibility
+      exact isBlockAdmissible_pullback f hf B S' (hS' ▸ hadm)
+  · -- Some element outside range(f): generator = 0
+    push_neg at h_all
+    obtain ⟨v, hv, hv_range⟩ := h_all
+    rw [hq_eq, iterDerivList_rename_zero f hf S ⟨v, hv, hv_range⟩ p,
+      mul_zero, mlProj_zero]
+    exact Submodule.zero_mem _
+
 theorem mlBlockedSpdpRank_rename_le {n m : ℕ} {F : Type*} [Field F]
     (f : Fin n → Fin m) (hf : Function.Injective f)
     (B : BlockPartition m) (κ ℓ : ℕ)
     (p : MvPolynomial (Fin n) F) :
     mlBlockedSpdpRank B κ ℓ (MvPolynomial.rename f p) ≤
     mlBlockedSpdpRank (pullbackPartition B f) κ ℓ p := by
-  sorry
+  unfold mlBlockedSpdpRank
+  calc Module.finrank F (mlBlockedSpdpSubspace B κ ℓ (MvPolynomial.rename f p))
+      ≤ Module.finrank F (Submodule.map (MvPolynomial.rename f).toLinearMap
+          (mlBlockedSpdpSubspace (pullbackPartition B f) κ ℓ p)) :=
+        Submodule.finrank_mono (mlBlockedSpdpSubspace_rename_le_map f hf B κ ℓ p)
+    _ ≤ Module.finrank F (mlBlockedSpdpSubspace (pullbackPartition B f) κ ℓ p) :=
+        Submodule.finrank_map_le _ _
 
 -- Compiled SPDP rank bound (paper's Lemma 32)
 -- Decomposed into: profile count (Lemma 29) + per-profile dim (Lemma 31)
