@@ -1193,39 +1193,33 @@ theorem pderiv_rename_zero {n m : ℕ} {F : Type*} [CommRing F]
       rw [MvPolynomial.pderiv_X]; simp [Pi.single, Function.update, hne.symm]
     rw [MvPolynomial.pderiv_mul, hx, mul_zero, add_zero, ih, zero_mul]
 
-/-- vars can only decrease under pderiv. -/
-private theorem vars_pderiv_subset' {m : ℕ} {F : Type*} [CommRing F]
-    (x : Fin m) (p : MvPolynomial (Fin m) F) :
-    (MvPolynomial.pderiv x p).vars ⊆ p.vars := by
-  sorry
-
-/-- iterDerivList at a variable not in vars kills the polynomial. -/
-private theorem iterDerivList_zero_of_not_in_vars {m : ℕ} {F : Type*} [CommRing F]
-    (v : Fin m) (q : MvPolynomial (Fin m) F) (T : List (Fin m))
-    (hvT : v ∈ T) (hvq : v ∉ q.vars) :
-    iterDerivList T q = 0 := by
-  induction T generalizing q with
-  | nil => simp at hvT
-  | cons a rest ih =>
-    show iterDerivList rest (MvPolynomial.pderiv a q) = 0
-    rcases List.mem_cons.mp hvT with rfl | h
-    · rw [MvPolynomial.pderiv_eq_zero_of_notMem_vars hvq]
-      unfold iterDerivList; exact foldl_pderiv_zero' rest
-    · exact ih _ h (fun hv => hvq (vars_pderiv_subset' a q hv))
-
-/-- iterDerivList of rename at variables not in range gives 0. -/
+/-- iterDerivList of rename at variables not in range gives 0.
+    Proof by induction on S: at each step, either the head is outside range(f)
+    (killed by pderiv_rename_zero) or inside (pushed through by pderiv_rename). -/
 theorem iterDerivList_rename_zero {n m : ℕ} {F : Type*} [CommRing F]
     (f : Fin n → Fin m) (hf : Function.Injective f)
     (S : List (Fin m)) (hS : ∃ v ∈ S, v ∉ Set.range f)
     (p : MvPolynomial (Fin n) F) :
     iterDerivList S (MvPolynomial.rename f p) = 0 := by
   obtain ⟨v, hv_mem, hv_range⟩ := hS
-  have hv_not_var : v ∉ (MvPolynomial.rename f p).vars := by
-    intro hv
-    exact hv_range (by
-      obtain ⟨w, _, rfl⟩ := Finset.mem_image.mp (MvPolynomial.vars_rename f p hv)
-      exact ⟨w, rfl⟩)
-  exact iterDerivList_zero_of_not_in_vars v _ S hv_mem hv_not_var
+  -- Induction on S, carrying v ∈ S and v ∉ range(f), generalizing p
+  induction S generalizing p with
+  | nil => simp at hv_mem
+  | cons a rest ih =>
+    show iterDerivList rest (MvPolynomial.pderiv a (MvPolynomial.rename f p)) = 0
+    rcases List.mem_cons.mp hv_mem with rfl | hv_rest
+    · -- v = a ∉ range(f): pderiv kills rename
+      rw [pderiv_rename_zero f hf v hv_range p]
+      unfold iterDerivList; exact foldl_pderiv_zero' rest
+    · -- v ∈ rest
+      by_cases ha : a ∈ Set.range f
+      · -- a = f i: push pderiv inside rename, recurse
+        obtain ⟨i, rfl⟩ := ha
+        rw [MvPolynomial.pderiv_rename hf i p]
+        exact ih (MvPolynomial.pderiv i p) hv_rest
+      · -- a ∉ range(f): pderiv kills rename, then foldl gives 0
+        rw [pderiv_rename_zero f hf a ha p]
+        unfold iterDerivList; exact foldl_pderiv_zero' rest
 
 /-- iterDerivList of rename at mapped variables = rename of iterDerivList. -/
 theorem iterDerivList_rename {n m : ℕ} {F : Type*} [CommRing F]
@@ -1240,14 +1234,64 @@ theorem iterDerivList_rename {n m : ℕ} {F : Type*} [CommRing F]
       MvPolynomial.rename f (iterDerivList rest (MvPolynomial.pderiv a p))
     rw [MvPolynomial.pderiv_rename hf a p]; exact ih _
 
-/-- mlProj commutes with rename for injective f. -/
+/-- IsMultilinear is preserved by mapDomain with injective f. -/
+private theorem isMultilinear_mapDomain_iff {n m : ℕ}
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (s : Fin n →₀ ℕ) :
+    Finsupp.IsMultilinear (Finsupp.mapDomain f s) ↔ Finsupp.IsMultilinear s := by
+  constructor
+  · -- mapDomain f s multilinear → s multilinear
+    intro h i
+    have h1 : Finsupp.mapDomain f s (f i) ≤ 1 := h (f i)
+    rwa [Finsupp.mapDomain_apply hf] at h1
+  · -- s multilinear → mapDomain f s multilinear
+    intro h j
+    by_cases hj : j ∈ Set.range f
+    · obtain ⟨i, rfl⟩ := hj
+      have : Finsupp.mapDomain f s (f i) = s i := Finsupp.mapDomain_apply hf s i
+      rw [this]; exact h i
+    · have : Finsupp.mapDomain f s j = 0 := Finsupp.mapDomain_notin_range s j hj
+      simp [this]
+
+/-- mlProj commutes with rename for injective f.
+    mlProj = Finsupp.filter IsMultilinear, and rename f maps monomials via
+    mapDomain f. Since IsMultilinear is preserved by injective mapDomain,
+    the filter and mapDomain commute. -/
+private theorem mlProj_rename_monomial {n m : ℕ} {F : Type*} [CommRing F]
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (s : Fin n →₀ ℕ) (a : F) :
+    mlProj (MvPolynomial.rename f (MvPolynomial.monomial s a)) =
+    MvPolynomial.rename f (mlProj (MvPolynomial.monomial s a)) := by
+  rw [MvPolynomial.rename_monomial, mlProj_monomial, mlProj_monomial,
+    isMultilinear_mapDomain_iff f hf s]
+  split
+  · exact (MvPolynomial.rename_monomial f s a).symm
+  · exact (map_zero (MvPolynomial.rename f)).symm
+
 theorem mlProj_rename {n m : ℕ} {F : Type*} [CommRing F]
     (f : Fin n → Fin m) (hf : Function.Injective f)
     (p : MvPolynomial (Fin n) F) :
     mlProj (MvPolynomial.rename f p) = MvPolynomial.rename f (mlProj p) := by
-  sorry
+  -- Both mlProj (= mlProjHom) and rename f are additive.
+  -- Reduce to monomials via as_sum.
+  -- Both mlProj and rename f are additive. Reduce to monomials.
+  -- Use: p = ∑ s ∈ support, monomial s (coeff s p)
+  -- Then mlProj(rename f p) = ∑ mlProj(rename f (mono s)) = ∑ rename f(mlProj(mono s)) = rename f(mlProj p)
+  let g := fun s => MvPolynomial.monomial s (MvPolynomial.coeff s p)
+  have hp : p = p.support.sum g := MvPolynomial.as_sum p
+  -- LHS: mlProj(rename f p) = mlProjHom F (rename f (∑ g)) = mlProjHom F (∑ rename f ∘ g)
+  -- = ∑ mlProjHom F (rename f (g s)) = ∑ mlProj(rename f (g s))
+  -- RHS: rename f (mlProj p) = rename f (mlProjHom F (∑ g))
+  -- = rename f (∑ mlProjHom F (g s)) = ∑ rename f (mlProj(g s))
+  change mlProjHom F (MvPolynomial.rename f p) =
+    MvPolynomial.rename f (mlProjHom F p)
+  rw [hp, map_sum (MvPolynomial.rename f), map_sum (mlProjHom F),
+    map_sum (mlProjHom F), map_sum (MvPolynomial.rename f)]
+  exact Finset.sum_congr rfl fun s _ => mlProj_rename_monomial f hf s _
 
-/-- SPDP rank is monotone under rename: rank(B, rename f p) ≤ rank(pullback B, p). -/
+/-- SPDP rank is monotone under rename: rank(B, rename f p) ≤ rank(pullback B, p).
+    Each generator mlProj(mult · iterDerivList S (rename f p)) in the big ring
+    maps to a generator in the small ring via rename infrastructure. -/
 theorem mlBlockedSpdpRank_rename_le {n m : ℕ} {F : Type*} [Field F]
     (f : Fin n → Fin m) (hf : Function.Injective f)
     (B : BlockPartition m) (κ ℓ : ℕ)
