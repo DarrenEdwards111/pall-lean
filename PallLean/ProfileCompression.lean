@@ -168,19 +168,31 @@ theorem tseitinPartition_nonSelector_block0 (n : ℕ)
     exact hv c this
   · rfl
 
+/-- For pure-selector admissible lists, the generator is a canonical generator.
+    This handles Case 1 (all elements are selectors). -/
+theorem pure_selector_generator_canonical (n κ : ℕ)
+    (cs : List (Fin (numClausesAt n))) (hnd : cs.Nodup)
+    (hlen : cs.length = κ)
+    (m : MvPolynomial (Fin (npNumVars n)) ℚ)
+    (hdeg : m.totalDegree ≤ κ)
+    (hvars : m.vars ⊆ (cs.map (selectorAt n)).toFinset) :
+    mlProj (m * iterDerivList (cs.map (selectorAt n)) (tseitinPoly ℚ n)) ∈
+    canonicalSubspace n κ := by
+  sorry
+
 /-- Every SPDP generator for tseitinPartition is in the canonical subspace.
-    This reduces the rank bound to bounding the canonical subspace dimension. -/
+    This reduces the rank bound to bounding the canonical subspace dimension.
+
+    Proof sketch: A block-admissible list S for tseitinPartition has at most
+    1 non-selector (block 0) and κ-1 or κ distinct selectors. For pure-selector
+    lists, the generator is directly canonical. For lists with one non-selector v,
+    use: (1) iterDerivList_perm to move v first, (2) pderiv v of Tseitin product
+    via Leibniz gives ≤ 10 terms (bounded occurrence), (3) each term after
+    remaining selector derivatives is a canonical generator with modified shift. -/
 theorem spdp_subspace_le_canonical (n κ : ℕ)
     (hparam : AdmissibleSpdpParams n κ) :
-    mlBlockedSpdpSubspace (tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤
+    mlBlockedSpdpSubspace (NPWitness.tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤
     canonicalSubspace n κ := by
-  -- Every generator mlProj(m · iterDerivList S p) with S admissible
-  -- is in the canonical subspace.
-  apply Submodule.span_le.mpr
-  intro q ⟨S, m, hlen, hdeg, hvars, hadm, hq⟩
-  -- Case analysis: does S contain any non-selector variable?
-  -- If all elements of S are selectors, this is directly a canonical generator.
-  -- If S has a non-selector, use the Leibniz expansion to reduce.
   sorry
 
 -- ============================================================
