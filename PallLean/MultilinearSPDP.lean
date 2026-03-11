@@ -1587,36 +1587,56 @@ For block-admissible S with κ ≤ log₂(n) elements:
 - The per-factor derivative is 1-dimensional (just -gadget_c)
 - Profile compression collapses the combinatorics
 
-Bound: mlBlockedSpdpRank ≤ n^10 for κ ≤ log₂(n). -/
+Bound: mlBlockedSpdpRank ≤ n^10 for matching logarithmic parameters. -/
+
+/-- Admissible SPDP parameter regime: matching parameters (κ = ℓ),
+    both bounded by log₂(n), with κ ≥ 5 for the low-degree elimination.
+    This is the regime where the paper's Width⇒Rank bound applies. -/
+def AdmissibleSpdpParams (n κ : ℕ) : Prop :=
+  κ ≥ 5 ∧ κ ≤ Nat.log 2 n
+
+/-- Frontier axiom: polynomial blocked-SPDP-rank bound for the Tseitin verifier
+    polynomial under the verifier partition, in the logarithmic regime.
+    This is the §9 profile-compression theorem — the single remaining
+    substantive mathematical claim to be formalized.
+    The bound applies specifically to the structured Tseitin product
+    ∏_c (1 - X(z_c) · clauseGadget_c), not to arbitrary products. -/
 axiom tseitin_spdp_rank_bound (n : ℕ) (hn : n ≥ 4)
-    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
+    (κ : ℕ) (hparam : AdmissibleSpdpParams n κ) :
     mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤ n ^ 10
 
-/-- compiled_verifier_rank: PROVED from tseitin_spdp_rank_bound + rename infrastructure.
-    Chain: verifierSheet = rename(tseitin) →[rename_le] pullback rank →[≤ tseitin rank] →[bound] n^10. -/
+/-- Rank transport: compiled verifier rank ≤ Tseitin verifier rank.
+    Chain: verifierSheet = rename(tseitin) →[rename_le] pullback rank
+    →[partition monotonicity] tseitin rank.
+    This is a one-way inequality (rank non-increase), not rank equality.
+    The paper's extraction argument uses monotonicity, not preservation. -/
+theorem compiled_to_tseitin_rank_le (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (κ ℓ : ℕ) :
+    mlBlockedSpdpRank (compiledPartition M n) κ ℓ
+      (verifierSheetOf ℚ M n h_le) ≤
+    mlBlockedSpdpRank (tseitinPartition n) κ ℓ (tseitinPoly ℚ n) := by
+  show mlBlockedSpdpRank (compiledPartition M n) κ ℓ
+    (MvPolynomial.rename (witnessInclusion M n h_le) (tseitinPoly ℚ n)) ≤ _
+  calc mlBlockedSpdpRank (compiledPartition M n) κ ℓ
+        (MvPolynomial.rename (witnessInclusion M n h_le) (tseitinPoly ℚ n))
+      ≤ mlBlockedSpdpRank
+          (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+          κ ℓ (tseitinPoly ℚ n) :=
+        mlBlockedSpdpRank_rename_le _ (witnessInclusion_injective M n h_le) _ _ _ _
+    _ ≤ mlBlockedSpdpRank (tseitinPartition n) κ ℓ (tseitinPoly ℚ n) :=
+        spdpRank_pullback_le_tseitin M n h_le κ ℓ
+
+/-- compiled_verifier_rank: PROVED from tseitin_spdp_rank_bound + rank transport.
+    Uses only one-way inequalities throughout the chain. -/
 theorem compiled_verifier_rank (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
     mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (verifierSheetOf ℚ M n h_le) ≤ n ^ 10 := by
-  -- Step 1: verifierSheetOf = rename witnessInclusion (tseitinPoly)
-  show mlBlockedSpdpRank (compiledPartition M n) κ κ
-    (MvPolynomial.rename (witnessInclusion M n h_le) (tseitinPoly ℚ n)) ≤ n ^ 10
-  -- Step 2: rename_le reduces to pullback partition
-  calc mlBlockedSpdpRank (compiledPartition M n) κ κ
-        (MvPolynomial.rename (witnessInclusion M n h_le) (tseitinPoly ℚ n))
-      ≤ mlBlockedSpdpRank
-          (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
-          κ κ (tseitinPoly ℚ n) :=
-        mlBlockedSpdpRank_rename_le (witnessInclusion M n h_le)
-          (witnessInclusion_injective M n h_le) _ _ _ _
-    -- Step 3: pullback ≤ tseitin (partition monotonicity)
-    _ ≤ mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) :=
-        spdpRank_pullback_le_tseitin M n h_le κ κ
-    -- Step 4: tseitin bound
-    _ ≤ n ^ 10 :=
-        tseitin_spdp_rank_bound n (by omega) κ hκ hκ_le
+      (verifierSheetOf ℚ M n h_le) ≤ n ^ 10 :=
+  le_trans (compiled_to_tseitin_rank_le M n h_le κ κ)
+    (tseitin_spdp_rank_bound n (by omega) κ ⟨hκ, hκ_le⟩)
 
 /-- Compiled SPDP rank bound (paper's Lemma 32).
     Derived from compiled_verifier_rank + add_lowDeg.
