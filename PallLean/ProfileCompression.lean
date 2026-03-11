@@ -132,12 +132,55 @@ noncomputable def canonicalSubspace (n κ : ℕ) :
         m.vars ⊆ w.selectorList.toFinset ∧
         q = canonicalGenerator w m }
 
+/-! ### Key structural fact
+
+In tseitinPartition, non-selector variables are all in block 0.
+A block-admissible list of length κ has at most 1 non-selector,
+with the remaining κ-1 (or all κ) being selectors from distinct blocks.
+
+For the rank bound, we show the SPDP subspace (with general admissible
+lists) is contained in the canonical (pure-selector) subspace.
+If the list has a non-selector v in block 0, then pderiv v of the
+Tseitin product gives a bounded linear combination (≤ 10 terms by
+bounded occurrence) of products where one clause gadget is differentiated.
+Each such term, after the remaining selector derivatives, produces a
+generator in the canonical subspace (with the extra pderiv absorbed
+into the shift monomial m). -/
+
+/-- Non-selector variables are in block 0 of tseitinPartition -/
+theorem tseitinPartition_nonSelector_block0 (n : ℕ)
+    (v : Fin (npNumVars n))
+    (hv : ∀ c : Fin (numClausesAt n), v ≠ selectorAt n c) :
+    ((NPWitness.tseitinPartition n).assign v).val = 0 := by
+  -- Unfold to the raw IdentityMinor definition
+  show ((IdentityMinor.tseitinPartition (tseitinAt n)).assign v).val = 0
+  simp only [IdentityMinor.tseitinPartition]
+  split
+  · rename_i h
+    -- v is in the selector range → contradicts hv
+    exfalso
+    have hc : v.val - ((tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length) <
+        (tseitinAt n).clauses.length := h.2
+    let c : Fin (tseitinAt n).clauses.length :=
+      ⟨v.val - ((tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length), hc⟩
+    have : v = selectorIdx (tseitinAt n) c := by
+      ext; simp [selectorIdx, c]; omega
+    exact hv c this
+  · rfl
+
 /-- Every SPDP generator for tseitinPartition is in the canonical subspace.
     This reduces the rank bound to bounding the canonical subspace dimension. -/
 theorem spdp_subspace_le_canonical (n κ : ℕ)
     (hparam : AdmissibleSpdpParams n κ) :
     mlBlockedSpdpSubspace (tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤
     canonicalSubspace n κ := by
+  -- Every generator mlProj(m · iterDerivList S p) with S admissible
+  -- is in the canonical subspace.
+  apply Submodule.span_le.mpr
+  intro q ⟨S, m, hlen, hdeg, hvars, hadm, hq⟩
+  -- Case analysis: does S contain any non-selector variable?
+  -- If all elements of S are selectors, this is directly a canonical generator.
+  -- If S has a non-selector, use the Leibniz expansion to reduce.
   sorry
 
 -- ============================================================
@@ -196,11 +239,27 @@ noncomputable def neighborClauses {n κ : ℕ} (w : CanonicalWindow n κ) :
       v ∈ clauseVarSet (tseitinAt n) c ∧ v ∈ clauseVarSet (tseitinAt n) d)
 
 /-- Each hit clause neighbors at most O(1) other clauses.
-    For degree-3 regular graphs with bounded occurrence, this is ≤ 9. -/
-theorem neighbor_clauses_card_le {n κ : ℕ} (w : CanonicalWindow n κ)
-    (hn : n ≥ 4) :
-    (neighborClauses w).card ≤ 9 * κ := by
-  sorry
+    By `conflicting_card_le`, each clause conflicts with ≤ 30 others.
+    With κ hit clauses, at most 30κ neighbors by union bound. -/
+theorem neighbor_clauses_card_le {n κ : ℕ} (w : CanonicalWindow n κ) :
+    (neighborClauses w).card ≤ 30 * κ := by
+  -- neighborClauses ⊆ biUnion of conflicting sets
+  have hsub : neighborClauses w ⊆
+      w.hitClauses.biUnion (fun c => conflicting (tseitinAt n) c) := by
+    intro d hd
+    simp only [neighborClauses, Finset.mem_filter, Finset.mem_sdiff] at hd
+    obtain ⟨⟨_, _⟩, c, hc, v, hvc, hvd⟩ := hd
+    exact Finset.mem_biUnion.mpr ⟨c, hc, by
+      simp only [conflicting, Finset.mem_filter, Finset.mem_univ, true_and]
+      exact Finset.not_disjoint_iff.mpr ⟨v, hvc, hvd⟩⟩
+  calc (neighborClauses w).card
+      ≤ (w.hitClauses.biUnion (fun c => conflicting (tseitinAt n) c)).card :=
+        Finset.card_le_card hsub
+    _ ≤ ∑ c ∈ w.hitClauses, (conflicting (tseitinAt n) c).card :=
+        Finset.card_biUnion_le
+    _ ≤ ∑ _ ∈ w.hitClauses, 30 :=
+        Finset.sum_le_sum (fun c _ => conflicting_card_le (tseitinAt n) c)
+    _ = 30 * κ := by simp [Finset.sum_const, w.card_eq, mul_comm]
 
 -- ============================================================
 -- §5. Profile Histograms
@@ -237,9 +296,10 @@ noncomputable def windowProfile {n κ : ℕ} (w : CanonicalWindow n κ) :
   )).card
 
 /-- Total mass of a profile is at most the number of neighbors -/
-theorem profile_total_mass_le {n κ : ℕ} (w : CanonicalWindow n κ)
-    (hn : n ≥ 4) :
-    ∑ τ : LocalInterfaceType, windowProfile w τ ≤ 9 * κ := by
+theorem profile_total_mass_le {n κ : ℕ} (w : CanonicalWindow n κ) :
+    ∑ τ : LocalInterfaceType, windowProfile w τ ≤ 30 * κ := by
+  -- Each element of neighborClauses is counted exactly once across all types
+  -- So ∑ τ, windowProfile w τ = |neighborClauses w| ≤ 30κ
   sorry
 
 /-- Number of realizable profiles with total mass ≤ R.
@@ -248,7 +308,29 @@ theorem profile_total_mass_le {n κ : ℕ} (w : CanonicalWindow n κ)
 theorem num_profiles_le (R : ℕ)
     (S : Finset ProfileHist) (hS : ∀ h ∈ S, ∑ τ, h τ ≤ R) :
     S.card ≤ (R + 1) ^ 4 := by
-  sorry
+  -- Each h ∈ S has h(τ) ≤ R for all τ (since h(τ) ≤ ∑ h ≤ R)
+  -- So h maps into Fin (R+1)^4, giving the bound
+  -- Injection: h ↦ (⟨h 0, ...⟩, ..., ⟨h 3, ...⟩)
+  have hcoord : ∀ h ∈ S, ∀ τ : Fin 4, h τ < R + 1 := by
+    intro h hh τ
+    have := hS h hh
+    have : h τ ≤ ∑ τ, h τ := Finset.single_le_sum (fun _ _ => Nat.zero_le _) (Finset.mem_univ τ)
+    omega
+  -- Build injection into (Fin (R+1))^4
+  let f : ProfileHist → (Fin 4 → Fin (R + 1)) := fun h τ =>
+    if hlt : h τ < R + 1 then ⟨h τ, hlt⟩ else ⟨0, by omega⟩
+  have hinj : Set.InjOn f ↑S := by
+    intro a ha b hb hab
+    ext τ
+    have ha' := hcoord a ha τ
+    have hb' := hcoord b hb τ
+    have := congr_fun hab τ
+    simp only [f, dif_pos ha', dif_pos hb', Fin.mk.injEq] at this
+    exact this
+  calc S.card
+      ≤ (Finset.univ : Finset (Fin 4 → Fin (R + 1))).card :=
+        Finset.card_le_card_of_injOn f (fun _ _ => Finset.mem_univ _) hinj
+    _ = (R + 1) ^ 4 := by simp [Fintype.card_fin]
 
 -- ============================================================
 -- §6. Within-Profile Subspace Dimension
@@ -277,12 +359,12 @@ Total per-profile dimension: ≤ 16^κ · n ≤ n · n^4 = n^5
 -/
 
 /-- Per-profile dimension bound.
-    For a fixed profile h with total mass R ≤ 9κ,
+    For a fixed profile h with total mass R ≤ 30κ,
     the subspace of generators with that profile has dimension
     at most n^5. -/
 theorem within_profile_dim_le (n κ : ℕ)
     (hparam : AdmissibleSpdpParams n κ)
-    (h : ProfileHist) (hR : ∑ τ, h τ ≤ 9 * κ) :
+    (h : ProfileHist) (hR : ∑ τ, h τ ≤ 30 * κ) :
     -- The subspace of generators from windows with profile h
     -- has finrank ≤ n^5
     True := by  -- placeholder for the real statement
@@ -295,7 +377,7 @@ theorem within_profile_dim_le (n κ : ℕ)
 /-! ### Putting it all together
 
 Total rank ≤ (number of profiles) × (per-profile dimension)
-         ≤ (9κ + 1)^4 × n^5
+         ≤ (30κ + 1)^4 × n^5
          ≤ (9 log₂ n + 1)^4 × n^5
          ≤ n^5 × n^4       (for n ≥ 16, since (9 log n + 1)^4 ≤ n^4)
          ≤ n^9
@@ -303,10 +385,12 @@ Total rank ≤ (number of profiles) × (per-profile dimension)
 
 This gives the final bound matching the axiom. -/
 
-/-- The assembly arithmetic: profile count × per-profile dim ≤ n^10 -/
-theorem assembly_arithmetic (n κ : ℕ) (hn : n ≥ 16)
-    (hκ : κ ≤ Nat.log 2 n) :
-    (9 * κ + 1) ^ 4 * n ^ 5 ≤ n ^ 10 := by
+/-- The assembly arithmetic: (Cκ)^D ≤ n^10 for κ ≤ log₂ n.
+    The total rank is polynomial in κ (polylog in n), hence ≤ n^10.
+    Exact constants TBD once per-profile dimension is established. -/
+theorem polylog_le_poly (n κ C D : ℕ) (hn : n ≥ 2)
+    (hκ : κ ≤ Nat.log 2 n) (hD : D ≤ 10) :
+    (C * κ + 1) ^ D ≤ n ^ 10 := by
   sorry
 
 /-! ### Main theorem (target: replace the axiom)
