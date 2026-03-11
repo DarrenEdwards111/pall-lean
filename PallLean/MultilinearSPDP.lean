@@ -1177,23 +1177,33 @@ theorem profile_count_le (m width : ℕ) :
 -- Per-profile dim: ≤ n^5 (from Sym^{h(σ)}(W_σ), dim W_σ = O(1))
 -- Together: rank ≤ n^10 ≤ n^25
 
-/-- Profile count bound (paper's Lemma 29): the number of realizable
-    interface-anonymous profiles for the compiled polynomial.
-    Bound: n^5 (from |T| = O(1) types, R = O(log n) interfaces). -/
-axiom compiled_profile_count_bound (M : DTM) (n : ℕ)
-    (hn : n ≥ max 4 M.numStates)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
-    ∃ (H : Finset ℕ), H.card ≤ n ^ 5 ∧
-    mlBlockedSpdpSubspace (compiledPartition M n) κ κ
-      (verifierSheetOf ℚ M n h_le) ≤
-    ⨆ h ∈ H, mlBlockedSpdpSubspace (compiledPartition M n) κ κ
-      (verifierSheetOf ℚ M n h_le)
+/-- Profile decomposition of the compiled verifier sheet (paper's Lemmas 29+31).
 
-/-- Per-profile dimension bound (paper's Lemma 31): each profile
-    subspace has finrank ≤ n^5.
-    Bound: from Sym^{h(σ)}(W_σ), dim W_σ = O(1), O(1) types. -/
-axiom compiled_per_profile_dim_bound (M : DTM) (n : ℕ)
+    This axiom packages the paper's two key compiler-structural results:
+    - **Lemma 29 (Profile count)**: The number of realizable interface-anonymous
+      profiles is ≤ R^O(1) where R = O((log n)^c). Uses: finite local monoid
+      (P2), bounded normal forms (Lemma 25), stars-and-bars on R interfaces
+      with O(1) types. Profile = histogram h : Σ^{≤q} → ℕ with Σ h ≤ R.
+    - **Lemma 31 (Per-profile dimension)**: Each profile subspace V_h has
+      dim ≤ (log n)^O(1). Uses: per-interface space W_σ of constant dimension
+      d₀ (P5), Sym^{h(σ)}(W_σ) dimension bound, product over O(1) types.
+
+    The SPDP rank bound follows by subadditivity:
+      Γ ≤ Σ_h dim(V_h) ≤ |H| × max dim(V_h) ≤ n^5 × n^5 = n^10.
+
+    Both require compiler properties not yet formalized in Lean:
+    (P1) radius-1 locality: each operation touches O(1) interfaces,
+    (P2) finite local alphabet: |Σ| = O(1),
+    (P3) R = O((log n)^c) live interfaces,
+    (P5) constant-dim per-interface space W_σ,
+    (P7) bounded normal forms via finite local monoid.
+
+    NOTE: This axiom CANNOT be stated as a generic product bound.
+    Counterexample: p = ∏ X_i (m=100, w=1, κ=50) gives
+    C(100,50) ≈ 10^29 generators, far exceeding any polynomial bound.
+    The bound holds ONLY for compiled polynomials with the above
+    compiler-structural properties. -/
+axiom compiled_verifier_rank (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
@@ -1201,24 +1211,23 @@ axiom compiled_per_profile_dim_bound (M : DTM) (n : ℕ)
       (verifierSheetOf ℚ M n h_le) ≤ n ^ 10
 
 /-- Compiled SPDP rank bound (paper's Lemma 32).
-    Derived from profile count (Lemma 29) + per-profile dim (Lemma 31)
-    + add_lowDeg (violationPoly has degree ≤ 4 < κ ≥ 5). -/
+    Derived from compiled_verifier_rank + add_lowDeg.
+
+    Proof: fullCompiledPoly = verifierSheet + violationPoly.
+    violationPoly has degree ≤ 4 < κ ≥ 5, so add_lowDeg kills it.
+    Then compiled_verifier_rank gives rank ≤ n^10 ≤ n^25. -/
 theorem compiled_spdp_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
     mlBlockedSpdpRank (compiledPartition M n) κ κ
       (fullCompiledPoly ℚ M n h_le) ≤ n ^ 25 := by
-  -- Step 1: fullCompiledPoly = verifierSheet + violationPoly
-  -- violationPoly has degree ≤ 4 < κ ≥ 5, so add_lowDeg kills it
   have h_lowdeg : (violationPolyOf ℚ M n).totalDegree < κ := by
     have := violationPolyOf_totalDegree ℚ M n; omega
   rw [show fullCompiledPoly ℚ M n h_le = verifierSheetOf ℚ M n h_le + violationPolyOf ℚ M n
     from rfl]
   rw [mlBlockedSpdpRank_add_lowDeg ℚ (compiledPartition M n) κ κ _ _ h_lowdeg]
-  -- Step 2: Per-profile dim bound gives rank ≤ n^10
-  have h_rank := compiled_per_profile_dim_bound M n hn h_le κ hκ hκ_le
-  -- Step 3: n^10 ≤ n^25
-  exact le_trans h_rank (Nat.pow_le_pow_right (by omega) (by omega))
+  exact le_trans (compiled_verifier_rank M n hn h_le κ hκ hκ_le)
+    (Nat.pow_le_pow_right (by omega) (by omega))
 
 /-- P-side compiled SPDP rank bound (paper's Lemma 32).
     Regime: matching parameters κ = ℓ, κ ≥ 5, κ ≤ log₂ n. -/
