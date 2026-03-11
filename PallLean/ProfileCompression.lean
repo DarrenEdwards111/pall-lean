@@ -247,8 +247,6 @@ theorem admissible_list_selector_decomp (n : ℕ)
     selVars.attach.map (fun ⟨v, hv⟩ => selectorInv n v (hsel_is_sel v hv))
   refine ⟨sels, nonsels, ?_, ?_, hns_len, ?_⟩
   · -- Permutation: S ~ sels.map(selectorAt n) ++ nonsels
-    -- sels.map(selectorAt n) = selVars (via selectorInv_spec)
-    -- S ~ selVars ++ nonsels (filter partition)
     sorry
   · -- sels.Nodup: follows from selVars.Nodup (from S.Nodup) and selectorInv injectivity
     sorry
