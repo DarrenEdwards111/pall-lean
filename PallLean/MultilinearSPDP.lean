@@ -1169,6 +1169,93 @@ theorem profile_count_le (m width : ℕ) :
     Regime: (κ, ℓ) = Θ(log n). The axiom bakes in κ ≥ 5 and ℓ = κ,
     matching the proof's parameter choice. -/
 
+-- ═══════════════════════════════════════════════════════════════════════
+-- Rename infrastructure for axiom elimination
+-- ═══════════════════════════════════════════════════════════════════════
+
+/-- pderiv at a variable not in range(f) kills rename f p. -/
+theorem pderiv_rename_zero {n m : ℕ} {F : Type*} [CommRing F]
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (v : Fin m) (hv : v ∉ Set.range f)
+    (p : MvPolynomial (Fin n) F) :
+    MvPolynomial.pderiv v (MvPolynomial.rename f p) = 0 := by
+  induction p using MvPolynomial.induction_on with
+  | C c => simp [MvPolynomial.pderiv_C]
+  | add p q hp hq =>
+    rw [map_add, map_add (MvPolynomial.pderiv v), hp, hq, add_zero]
+  | mul_X p j ih =>
+    have hne : v ≠ f j := fun h => hv ⟨j, h.symm⟩
+    have h1 : MvPolynomial.rename f (p * MvPolynomial.X j) =
+      MvPolynomial.rename f p * MvPolynomial.X (f j) := by
+      rw [map_mul, MvPolynomial.rename_X]
+    rw [h1]
+    have hx : MvPolynomial.pderiv v (MvPolynomial.X (f j) : MvPolynomial (Fin m) F) = 0 := by
+      rw [MvPolynomial.pderiv_X]; simp [Pi.single, Function.update, hne.symm]
+    rw [MvPolynomial.pderiv_mul, hx, mul_zero, add_zero, ih, zero_mul]
+
+/-- vars can only decrease under pderiv. -/
+private theorem vars_pderiv_subset' {m : ℕ} {F : Type*} [CommRing F]
+    (x : Fin m) (p : MvPolynomial (Fin m) F) :
+    (MvPolynomial.pderiv x p).vars ⊆ p.vars := by
+  sorry
+
+/-- iterDerivList at a variable not in vars kills the polynomial. -/
+private theorem iterDerivList_zero_of_not_in_vars {m : ℕ} {F : Type*} [CommRing F]
+    (v : Fin m) (q : MvPolynomial (Fin m) F) (T : List (Fin m))
+    (hvT : v ∈ T) (hvq : v ∉ q.vars) :
+    iterDerivList T q = 0 := by
+  induction T generalizing q with
+  | nil => simp at hvT
+  | cons a rest ih =>
+    show iterDerivList rest (MvPolynomial.pderiv a q) = 0
+    rcases List.mem_cons.mp hvT with rfl | h
+    · rw [MvPolynomial.pderiv_eq_zero_of_notMem_vars hvq]
+      unfold iterDerivList; exact foldl_pderiv_zero' rest
+    · exact ih _ h (fun hv => hvq (vars_pderiv_subset' a q hv))
+
+/-- iterDerivList of rename at variables not in range gives 0. -/
+theorem iterDerivList_rename_zero {n m : ℕ} {F : Type*} [CommRing F]
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (S : List (Fin m)) (hS : ∃ v ∈ S, v ∉ Set.range f)
+    (p : MvPolynomial (Fin n) F) :
+    iterDerivList S (MvPolynomial.rename f p) = 0 := by
+  obtain ⟨v, hv_mem, hv_range⟩ := hS
+  have hv_not_var : v ∉ (MvPolynomial.rename f p).vars := by
+    intro hv
+    exact hv_range (by
+      obtain ⟨w, _, rfl⟩ := Finset.mem_image.mp (MvPolynomial.vars_rename f p hv)
+      exact ⟨w, rfl⟩)
+  exact iterDerivList_zero_of_not_in_vars v _ S hv_mem hv_not_var
+
+/-- iterDerivList of rename at mapped variables = rename of iterDerivList. -/
+theorem iterDerivList_rename {n m : ℕ} {F : Type*} [CommRing F]
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (S : List (Fin n)) (p : MvPolynomial (Fin n) F) :
+    iterDerivList (S.map f) (MvPolynomial.rename f p) =
+    MvPolynomial.rename f (iterDerivList S p) := by
+  induction S generalizing p with
+  | nil => unfold iterDerivList; simp
+  | cons a rest ih =>
+    show iterDerivList (rest.map f) (MvPolynomial.pderiv (f a) (MvPolynomial.rename f p)) =
+      MvPolynomial.rename f (iterDerivList rest (MvPolynomial.pderiv a p))
+    rw [MvPolynomial.pderiv_rename hf a p]; exact ih _
+
+/-- mlProj commutes with rename for injective f. -/
+theorem mlProj_rename {n m : ℕ} {F : Type*} [CommRing F]
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (p : MvPolynomial (Fin n) F) :
+    mlProj (MvPolynomial.rename f p) = MvPolynomial.rename f (mlProj p) := by
+  sorry
+
+/-- SPDP rank is monotone under rename: rank(B, rename f p) ≤ rank(pullback B, p). -/
+theorem mlBlockedSpdpRank_rename_le {n m : ℕ} {F : Type*} [Field F]
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (B : BlockPartition m) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin n) F) :
+    mlBlockedSpdpRank B κ ℓ (MvPolynomial.rename f p) ≤
+    mlBlockedSpdpRank (pullbackPartition B f) κ ℓ p := by
+  sorry
+
 -- Compiled SPDP rank bound (paper's Lemma 32)
 -- Decomposed into: profile count (Lemma 29) + per-profile dim (Lemma 31)
 -- Both require compiler-structural properties: radius-1 locality,
