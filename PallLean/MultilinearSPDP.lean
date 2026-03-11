@@ -74,6 +74,7 @@ noncomputable def mlBlockedSpdpSubspace {n : ℕ} {F : Type*} [CommRing F]
   Submodule.span F
     { q | ∃ (S : List (Fin n)) (m : MvPolynomial (Fin n) F),
         S.length = κ ∧ m.totalDegree ≤ ℓ ∧
+        m.vars ⊆ S.toFinset ∧  -- Lemma 18: shift support ⊆ derivative variables
         isBlockAdmissible B S ∧
         q = mlProj (m * iterDerivList S p) }
 
@@ -93,16 +94,16 @@ theorem mlBlockedSpdpSubspace_mono_partition {n : ℕ} {F : Type*} [CommRing F]
     (hrefine : ∀ i j : Fin n, B₁.assign i = B₁.assign j → B₂.assign i = B₂.assign j) :
     mlBlockedSpdpSubspace B₂ κ ℓ p ≤ mlBlockedSpdpSubspace B₁ κ ℓ p := by
   apply Submodule.span_le.mpr
-  intro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+  intro q ⟨S, m, hlen, hdeg, hvars, hadm, hq⟩
   apply Submodule.subset_span
-  exact ⟨S, m, hlen, hdeg, isBlockAdmissible_coarsen B₁ B₂ S hrefine hadm, hq⟩
+  exact ⟨S, m, hlen, hdeg, hvars, isBlockAdmissible_coarsen B₁ B₂ S hrefine hadm, hq⟩
 
 theorem mlBlockedSpdpSubspace_le_map {n : ℕ} {F : Type*} [CommRing F]
     (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
     mlBlockedSpdpSubspace B κ ℓ p ≤
       Submodule.map (mlProjLinearMap (Fin n) F) (blockedSpdpSubspace B κ ℓ p) := by
   apply Submodule.span_le.mpr
-  intro q ⟨S, m, hlen, hdeg, hadm, hq⟩
+  intro q ⟨S, m, hlen, hdeg, hvars, hadm, hq⟩
   rw [hq]
   exact Submodule.mem_map.mpr
     ⟨m * iterDerivList S p,
@@ -127,7 +128,7 @@ theorem mlBlockedSpdpSubspace_le_restrictTotalDegree {n : ℕ} {F : Type*} [Comm
     mlBlockedSpdpSubspace B κ ℓ p ≤
       MvPolynomial.restrictTotalDegree (Fin n) F (ℓ + p.totalDegree) := by
   apply Submodule.span_le.mpr
-  intro q ⟨S, m, _, hdeg, _, hq⟩
+  intro q ⟨S, m, _, hdeg, _, _, hq⟩
   rw [hq]
   -- mlProj(m * ∂_S p) ∈ restrictTotalDegree because totalDegree only decreases
   have h1 : (mlProj (m * iterDerivList S p)).totalDegree ≤ ℓ + p.totalDegree :=
@@ -172,11 +173,11 @@ theorem mlBlockedSpdpSubspace_add_le {n : ℕ} {F : Type*} [CommRing F]
     mlBlockedSpdpSubspace B κ ℓ (p + q) ≤
       mlBlockedSpdpSubspace B κ ℓ p ⊔ mlBlockedSpdpSubspace B κ ℓ q := by
   apply Submodule.span_le.mpr
-  intro r ⟨S, m, hlen, hdeg, hadm, hr⟩
+  intro r ⟨S, m, hlen, hdeg, hvars, hadm, hr⟩
   rw [hr, iterDerivList_add, mul_add, mlProj_add]
   exact Submodule.add_mem _
-    (Submodule.mem_sup_left (Submodule.subset_span ⟨S, m, hlen, hdeg, hadm, rfl⟩))
-    (Submodule.mem_sup_right (Submodule.subset_span ⟨S, m, hlen, hdeg, hadm, rfl⟩))
+    (Submodule.mem_sup_left (Submodule.subset_span ⟨S, m, hlen, hdeg, hvars, hadm, rfl⟩))
+    (Submodule.mem_sup_right (Submodule.subset_span ⟨S, m, hlen, hdeg, hvars, hadm, rfl⟩))
 
 theorem mlBlockedSpdpRank_add_le {n : ℕ} {F : Type*} [Field F]
     (B : BlockPartition n) (κ ℓ : ℕ)
@@ -198,7 +199,7 @@ theorem mlBlockedSpdpSubspace_zero {n : ℕ} {F : Type*} [CommRing F]
     mlBlockedSpdpSubspace B κ ℓ (0 : MvPolynomial (Fin n) F) = ⊥ := by
   apply le_antisymm
   · apply Submodule.span_le.mpr
-    intro q ⟨S, m_poly, _, _, _, hq⟩
+    intro q ⟨S, m_poly, _, _, _, _, hq⟩
     rw [hq]; unfold iterDerivList; rw [foldl_pderiv_zero, mul_zero, mlProj_zero]
     exact Submodule.zero_mem ⊥
   · exact bot_le
@@ -290,7 +291,7 @@ theorem deriv_mem_mlBlockedSpdpSubspace {n : ℕ} {F : Type*} [CommRing F]
   have hml := isMultilinear_iterDerivList S p hp
   have hfix := mlProj_of_isMultilinear (iterDerivList S p) hml
   rw [← hfix, ← one_mul (iterDerivList S p)]
-  exact Submodule.subset_span ⟨S, 1, hlen, by simp, hadm, rfl⟩
+  exact Submodule.subset_span ⟨S, 1, hlen, by simp, by simp [MvPolynomial.vars_one], hadm, rfl⟩
 
 /-- mlProj preserves coefficients at multilinear monomials -/
 theorem coeff_mlProj_of_isMultilinear_mono {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
@@ -310,7 +311,7 @@ theorem mlProj_deriv_mem {n : ℕ} {F : Type*} [CommRing F]
     (S : List (Fin n)) (hlen : S.length = κ)
     (hadm : isBlockAdmissible B S) :
     mlProj (1 * iterDerivList S p) ∈ mlBlockedSpdpSubspace B κ ℓ p :=
-  Submodule.subset_span ⟨S, 1, hlen, by simp, hadm, rfl⟩
+  Submodule.subset_span ⟨S, 1, hlen, by simp, by simp [MvPolynomial.vars_one], hadm, rfl⟩
 
 /-- mlProj of rowPoly is in mlBlockedSpdpSubspace.
     rowPoly = iterDerivList (selectorList) (coupledVerifier) = 1 * iterDerivList S p,
@@ -331,7 +332,7 @@ theorem rowPoly_mem_ml_subspace [Field F]
     unfold IdentityMinor.rowPoly; rw [one_mul]
   rw [h1]
   apply Submodule.subset_span
-  refine ⟨IdentityMinor.selectorList Φ pack κ i, 1, ?_, ?_, ?_, rfl⟩
+  refine ⟨IdentityMinor.selectorList Φ pack κ i, 1, ?_, ?_, ?_, ?_, rfl⟩
   · -- length = κ
     show (IdentityMinor.selectorList Φ pack κ i).length = κ
     unfold IdentityMinor.selectorList
@@ -339,6 +340,8 @@ theorem rowPoly_mem_ml_subspace [Field F]
     exact IdentityMinor.getSubset_length pack κ i
   · -- deg ≤ ℓ
     simp [MvPolynomial.totalDegree_one]
+  · -- vars ⊆ S.toFinset: vars(1) = ∅ ⊆ anything
+    simp [MvPolynomial.vars_one]
   · -- admissible
     show isBlockAdmissible B (IdentityMinor.selectorList Φ pack κ i)
     unfold IdentityMinor.selectorList
@@ -714,7 +717,7 @@ theorem mlBlockedSpdpSubspace_restrict_le_map {n m : ℕ} {F : Type*} [CommRing 
     Submodule.map (restrictPolyLinearMap F f hf) (mlBlockedSpdpSubspace B κ ℓ p) := by
   -- Each generator of the LHS is the image of a big-side element under rP
   apply Submodule.span_le.mpr
-  intro q ⟨S, mul, hlen, hdeg, hadm, hq⟩
+  intro q ⟨S, mul, hlen, hdeg, hvars, hadm, hq⟩
   simp only [Submodule.mem_map, SetLike.mem_coe]
   -- The preimage in the big space
   let S' := S.map f
@@ -724,13 +727,23 @@ theorem mlBlockedSpdpSubspace_restrict_le_map {n m : ℕ} {F : Type*} [CommRing 
   refine ⟨mlProj (mul' * q), ?_, ?_⟩
   · -- mlProj(mul' * q) ∈ mlBlockedSpdpSubspace B κ ℓ p
     apply Submodule.subset_span
-    exact ⟨S', mul', by simp [S', hlen], by
-      exact le_trans (MvPolynomial.totalDegree_rename_le f mul) hdeg, by
-      -- isBlockAdmissible B (S.map f) from isBlockAdmissible (pullback B f) S
+    refine ⟨S', mul', by simp [S', hlen], ?_, ?_, ?_, rfl⟩
+    · -- totalDegree
+      exact le_trans (MvPolynomial.totalDegree_rename_le f mul) hdeg
+    · -- mul'.vars ⊆ S'.toFinset: vars(rename f mul) ⊆ (S.map f).toFinset
+      show (MvPolynomial.rename f mul).vars ⊆ (S.map f).toFinset
+      intro v hv
+      have hsub := MvPolynomial.vars_rename f mul
+      have hv' := hsub hv
+      simp only [Finset.mem_image] at hv'
+      obtain ⟨w, hw, rfl⟩ := hv'
+      rw [List.mem_toFinset]
+      have hwS : w ∈ S := List.mem_toFinset.mp (hvars hw)
+      exact List.mem_map.mpr ⟨w, hwS, rfl⟩
+    · -- isBlockAdmissible B (S.map f) from isBlockAdmissible (pullback B f) S
       constructor
       · exact List.Nodup.map hf hadm.1
       · intro b
-        -- (S.map f).filter (B.assign · = b) has same length as S.filter (pullback.assign · = b)
         have hfm : ∀ (L : List (Fin n)),
             (L.map f).filter (fun j => B.assign j = b) =
             (L.filter (fun i => B.assign (f i) = b)).map f := by
@@ -742,7 +755,7 @@ theorem mlBlockedSpdpSubspace_restrict_le_map {n m : ℕ} {F : Type*} [CommRing 
             · simp [h, ih]
             · simp [h, ih]
         rw [hfm, List.length_map]
-        exact hadm.2 b, rfl⟩
+        exact hadm.2 b
   · -- rP(mlProj(mul' * q)) = mlProj(mul * iterDerivList S (rP p))
     rw [show restrictPolyLinearMap F f hf (mlProj (mul' * q)) =
       restrictPoly F f hf (mlProj (mul' * q)) from rfl]
@@ -823,18 +836,18 @@ theorem mlBlockedSpdpRank_add_lowDeg (F : Type*) [Field F] [Nontrivial F]
   have hsub : mlBlockedSpdpSubspace B κ ℓ (p + q) = mlBlockedSpdpSubspace B κ ℓ p := by
     unfold mlBlockedSpdpSubspace
     have hgen : ∀ (r : MvPolynomial (Fin n) F),
-        (∃ S m, S.length = κ ∧ m.totalDegree ≤ ℓ ∧ isBlockAdmissible B S ∧
+        (∃ S m, S.length = κ ∧ m.totalDegree ≤ ℓ ∧ m.vars ⊆ S.toFinset ∧ isBlockAdmissible B S ∧
           r = mlProj (m * iterDerivList S (p + q))) ↔
-        (∃ S m, S.length = κ ∧ m.totalDegree ≤ ℓ ∧ isBlockAdmissible B S ∧
+        (∃ S m, S.length = κ ∧ m.totalDegree ≤ ℓ ∧ m.vars ⊆ S.toFinset ∧ isBlockAdmissible B S ∧
           r = mlProj (m * iterDerivList S p)) := by
-      intro r; constructor <;> intro ⟨S, m, hlen, hdeg, hadm, hr⟩
+      intro r; constructor <;> intro ⟨S, m, hlen, hdeg, hvars, hadm, hr⟩
       · have : iterDerivList S q = 0 :=
           iterDerivList_eq_zero_of_totalDegree_lt S q (by omega)
         rw [iterDerivList_add, this, add_zero] at hr
-        exact ⟨S, m, hlen, hdeg, hadm, hr⟩
+        exact ⟨S, m, hlen, hdeg, hvars, hadm, hr⟩
       · have hq0 : iterDerivList S q = 0 :=
           iterDerivList_eq_zero_of_totalDegree_lt S q (by omega)
-        exact ⟨S, m, hlen, hdeg, hadm, by
+        exact ⟨S, m, hlen, hdeg, hvars, hadm, by
           rw [hr, iterDerivList_add, hq0, add_zero]⟩
     congr 1; ext r'; exact hgen r'
   rw [hsub]
@@ -849,18 +862,18 @@ theorem mlBlockedSpdpRank_add_const (F : Type*) [Field F] [Nontrivial F]
               mlBlockedSpdpSubspace B κ ℓ p := by
     unfold mlBlockedSpdpSubspace
     have hgen : ∀ (r : MvPolynomial (Fin n) F),
-        (∃ S m, S.length = κ ∧ m.totalDegree ≤ ℓ ∧ isBlockAdmissible B S ∧
+        (∃ S m, S.length = κ ∧ m.totalDegree ≤ ℓ ∧ m.vars ⊆ S.toFinset ∧ isBlockAdmissible B S ∧
           r = mlProj (m * iterDerivList S (p + MvPolynomial.C c))) ↔
-        (∃ S m, S.length = κ ∧ m.totalDegree ≤ ℓ ∧ isBlockAdmissible B S ∧
+        (∃ S m, S.length = κ ∧ m.totalDegree ≤ ℓ ∧ m.vars ⊆ S.toFinset ∧ isBlockAdmissible B S ∧
           r = mlProj (m * iterDerivList S p)) := by
-      intro r; constructor <;> intro ⟨S, m, hlen, hdeg, hadm, hq⟩
-      · exact ⟨S, m, hlen, hdeg, hadm, by
+      intro r; constructor <;> intro ⟨S, m, hlen, hdeg, hvars, hadm, hq⟩
+      · exact ⟨S, m, hlen, hdeg, hvars, hadm, by
           rw [hq, iterDerivList_add_C S p c (by intro h; subst h; simp at hlen; omega)]⟩
-      · exact ⟨S, m, hlen, hdeg, hadm, by
+      · exact ⟨S, m, hlen, hdeg, hvars, hadm, by
           rw [hq, iterDerivList_add_C S p c (by intro h; subst h; simp at hlen; omega)]⟩
     have hset : { q : MvPolynomial (Fin n) F | ∃ S m, S.length = κ ∧ m.totalDegree ≤ ℓ ∧
-        isBlockAdmissible B S ∧ q = mlProj (m * iterDerivList S (p + MvPolynomial.C c))} =
-      { q | ∃ S m, S.length = κ ∧ m.totalDegree ≤ ℓ ∧ isBlockAdmissible B S ∧
+        m.vars ⊆ S.toFinset ∧ isBlockAdmissible B S ∧ q = mlProj (m * iterDerivList S (p + MvPolynomial.C c))} =
+      { q | ∃ S m, S.length = κ ∧ m.totalDegree ≤ ℓ ∧ m.vars ⊆ S.toFinset ∧ isBlockAdmissible B S ∧
         q = mlProj (m * iterDerivList S p)} := by
       ext q; exact hgen q
     rw [hset]
