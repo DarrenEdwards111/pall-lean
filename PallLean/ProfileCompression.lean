@@ -213,9 +213,17 @@ theorem tseitinPartition_nonzero_block_is_selector (n : ℕ)
     omega
   · simp at hv
 
-/-- Every variable in a block-admissible list for tseitinPartition is either
-    a selector or a block-0 (non-selector) variable, and block-0 contributes
-    at most 1 element. This gives a permutation decomposition. -/
+/-- Inverse of selectorIdx: given v in the selector range, recover the clause index -/
+noncomputable def selectorInv (n : ℕ) (v : Fin (npNumVars n))
+    (hv : ((NPWitness.tseitinPartition n).assign v).val ≠ 0) :
+    Fin (numClausesAt n) :=
+  (tseitinPartition_nonzero_block_is_selector n v hv).choose
+
+theorem selectorInv_spec (n : ℕ) (v : Fin (npNumVars n))
+    (hv : ((NPWitness.tseitinPartition n).assign v).val ≠ 0) :
+    v = selectorAt n (selectorInv n v hv) :=
+  (tseitinPartition_nonzero_block_is_selector n v hv).choose_spec
+
 theorem admissible_list_selector_decomp (n : ℕ)
     (S : List (Fin (npNumVars n)))
     (hadm : isBlockAdmissible (NPWitness.tseitinPartition n) S) :
@@ -223,8 +231,6 @@ theorem admissible_list_selector_decomp (n : ℕ)
       S.Perm (sels.map (selectorAt n) ++ nonsels) ∧
       sels.Nodup ∧ nonsels.length ≤ 1 ∧
       (∀ v ∈ nonsels, ∀ c : Fin (numClausesAt n), v ≠ selectorAt n c) := by
-  -- Split S into selectors and non-selectors
-  -- For now, this is a key structural lemma that we'll prove in detail
   sorry
 
 /-- Key rank reduction: the SPDP subspace for tseitinPartition equals the
@@ -262,6 +268,27 @@ noncomputable def hitGadgetProd {n κ : ℕ} (w : CanonicalWindow n κ) :
 noncomputable def unhitFactorProd {n κ : ℕ} (w : CanonicalWindow n κ) :
     MvPolynomial (Fin (npNumVars n)) ℚ :=
   (Finset.univ \ w.hitClauses).prod (cvFactorAt n)
+
+/-- Factored form: selector derivative of tseitinPoly gives
+    signed product of gadgets × unhit factors.
+    This bridges IdentityMinor.iterDeriv_cvProd_eq to our ProfileCompression types.
+
+    For a canonical window w with hit clauses C:
+    iterDerivList(selectors of C, tseitinPoly) =
+      C((-1)^κ) * hitGadgetProd w * unhitFactorProd w  -/
+theorem canonical_generator_factored (n κ : ℕ)
+    (cs : List (Fin (numClausesAt n))) (hnd : cs.Nodup)
+    (hlen : cs.length = κ) :
+    iterDerivList (cs.map (selectorAt n)) (tseitinPoly ℚ n) =
+    C ((-1 : ℚ) ^ κ) * (cs.map (clauseGadgetAt n)).prod *
+      (Finset.univ \ cs.toFinset).prod (cvFactorAt n) := by
+  -- tseitinPoly = coupledVerifier = ∏ cvFactor (by definition)
+  show iterDerivList (cs.map (selectorIdx (tseitinAt n)))
+    (coupledVerifier ℚ (tseitinAt n)) = _
+  rw [coupledVerifier_eq_prod]
+  rw [iterDeriv_cvProd_eq (tseitinAt n) cs hnd Finset.univ (fun k _ => Finset.mem_univ k)]
+  subst hlen
+  rfl
 
 -- ============================================================
 -- §4. Live Interfaces and Boundary Reduction
@@ -349,11 +376,13 @@ noncomputable def windowProfile {n κ : ℕ} (w : CanonicalWindow n κ) :
     )).card = τ.val
   )).card
 
-/-- Total mass of a profile is at most the number of neighbors -/
+/-- Total mass of a profile is at most the number of neighbors.
+    Each neighbor clause is counted in exactly one type bucket,
+    so the sum over types = |neighborClauses| ≤ 30κ. -/
 theorem profile_total_mass_le {n κ : ℕ} (w : CanonicalWindow n κ) :
     ∑ τ : LocalInterfaceType, windowProfile w τ ≤ 30 * κ := by
-  -- Each element of neighborClauses is counted exactly once across all types
-  -- So ∑ τ, windowProfile w τ = |neighborClauses w| ≤ 30κ
+  -- Each τ counts a disjoint subset of neighborClauses
+  -- So sum ≤ |neighborClauses| ≤ 30κ
   sorry
 
 /-- Number of realizable profiles with total mass ≤ R.
