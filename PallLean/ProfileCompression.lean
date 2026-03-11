@@ -606,55 +606,37 @@ Total rank ≤ (num profiles) × max(per-profile dim)
           ≤ n^200 for all n ≥ 4.
 -/
 
-/-- The profile subspace: span of all canonical generators
-    whose window has profile h. -/
-noncomputable def profileSubspace (n κ : ℕ) (h : ProfileHist) :
-    Submodule ℚ (MvPolynomial (Fin (npNumVars n)) ℚ) :=
-  ⨆ (w : CanonicalWindow n κ) (_ : windowProfile w = h),
-    Submodule.span ℚ (Set.range (canonicalGenerator w))
+/-- **Spanning set approach** (combines Layers 1, 3, 4):
+    Construct a finite set S such that every SPDP generator lies in span(S)
+    and |S| ≤ n^200. Then mlBlockedSpdpRank ≤ n^200.
 
-/-- Layer 1: The SPDP subspace is contained in the sum of profile subspaces.
-    Every generator belongs to some profileSubspace. -/
-theorem spdp_le_profile_sum (n κ : ℕ) (hparam : AdmissibleSpdpParams n κ) :
-    mlBlockedSpdpSubspace (NPWitness.tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤
-    ⨆ (h : ProfileHist), profileSubspace n κ h := by
-  sorry
+    The spanning set S consists of "near-part templates":
+    for each canonical window w (which determines a hit set + profile),
+    the canonical generators form a set of size 2^κ (from shift choices).
 
-/-- Layer 3: Within-profile dimension bound.
-    The profile subspace has finrank ≤ n^190.
-    Uses symmetric-power structure + type-anonymity.
+    After grouping by profile, windows with the same profile produce
+    generators in the same subspace (type-anonymity). So the effective
+    number of distinct generators is:
+      (num profiles) × (per-profile templates) × (shift choices)
+    = (30κ+1)^4 × ∏_τ C(h(τ)+15, 15) × 2^κ
+    ≤ n^200.
 
-    Per-profile: (30κ+16)^60 × 2^κ ≤ (30 log n + 16)^60 × n.
-    For n ≥ 4: this is ≤ n^190 (very generous bound). -/
-theorem within_profile_finrank_le (n κ : ℕ)
-    (hn : n ≥ 4) (hparam : AdmissibleSpdpParams n κ)
-    (h : ProfileHist) (hR : ∑ τ, h τ ≤ 30 * κ) :
-    Module.finrank ℚ (profileSubspace n κ h) ≤ n ^ 190 := by
-  sorry
-
--- ============================================================
--- §7. Assembly: Sum Over Profiles
--- ============================================================
-
-/-! ### Putting it all together
-
-Total rank ≤ Σ_h finrank(profileSubspace h)
-          ≤ (30κ+1)^4 × n^190
-          ≤ n^4 × n^190 = n^194
-          ≤ n^200
-
-With the relaxed exponent of 200, this gives comfortable room. -/
-
-/-- Assembly: total rank bounded by sum over profiles.
-    Uses Layer 1 (containment), Layer 2 (profile count),
-    and Layer 3 (per-profile dimension). -/
+    The full spanning set: union of canonical generators over all windows.
+    We bound its effective dimension via profile compression. -/
 theorem tseitin_spdp_rank_proved (n : ℕ) (hn : n ≥ 4)
     (κ : ℕ) (hparam : AdmissibleSpdpParams n κ) :
     mlBlockedSpdpRank (NPWitness.tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤ n ^ 200 := by
-  -- Step 1: rank ≤ rank of ⨆ profile subspaces
-  -- Step 2: ≤ Σ_h finrank(profileSubspace h)
-  -- Step 3: ≤ (30κ+1)^4 × n^190
-  -- Step 4: ≤ n^200
+  -- The SPDP subspace is spanned by generators mlProj(m * iterDerivList S p)
+  -- where S is admissible, |S|=κ, m.vars ⊆ S.toFinset, m.totalDegree ≤ κ.
+  --
+  -- By admissible_list_selector_decomp, S ~ selectors ++ (≤1 non-selector).
+  -- By iterDerivList_perm, we can reorder to pure-selector form.
+  -- By canonical_generator_factored, each generator has factored form.
+  --
+  -- Profile compression: generators with same profile lie in a common
+  -- subspace of bounded dimension (type-anonymity + symmetric powers).
+  --
+  -- Total: ≤ n^200 via profile count × per-profile dim.
   sorry
 
 end SPDP
