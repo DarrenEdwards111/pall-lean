@@ -328,23 +328,71 @@ theorem isMultilinear_add_of_disjoint {σ : Type*} [DecidableEq σ]
   · have : α i = 0 := by rwa [Finsupp.mem_support_iff, not_not] at hi
     rw [this, zero_add]; exact hβ i
 
-/-- mlProj distributes over products with disjoint variables.
-    If vars(p) ∩ vars(q) = ∅, then mlProj(p * q) = mlProj(p) * mlProj(q). -/
+/-- Monomial support is contained in polynomial vars -/
+theorem monomial_support_subset_vars {σ : Type*} [DecidableEq σ]
+    {F : Type*} [CommRing F] (p : MvPolynomial σ F)
+    (α : σ →₀ ℕ) (hα : α ∈ p.support) :
+    α.support ⊆ p.vars := by
+  intro i hi
+  rw [MvPolynomial.mem_vars]
+  exact ⟨α, hα, hi⟩
+
 theorem mlProj_mul_disjoint_vars {σ : Type*} [DecidableEq σ]
     {F : Type*} [CommRing F]
     (p q : MvPolynomial σ F)
     (hdisj : Disjoint p.vars q.vars) :
     mlProj (p * q) = mlProj p * mlProj q := by
-  -- Proof outline:
-  -- 1. Write p = Σ monomial α (coeff α p), q = Σ monomial β (coeff β q)
-  -- 2. p*q = Σ monomial (α+β) (coeff α p * coeff β q)
-  -- 3. mlProj filters to multilinear monomials
-  -- 4. For α ∈ support(p), β ∈ support(q): α.support ⊆ p.vars, β.support ⊆ q.vars
-  --    so α.support ∩ β.support = ∅ (from hdisj)
-  -- 5. IsMultilinear(α+β) ↔ IsMultilinear(α) ∧ IsMultilinear(β) (by disjoint supports)
-  -- 6. Therefore mlProj(p*q) = Σ_{ML α, ML β} monomial(α+β)(coeff α * coeff β)
-  --                          = mlProj(p) * mlProj(q)
-  sorry
+  open scoped Classical in
+  -- Key fact: mlProj = mlProjHom F (definitional)
+  have mlp_eq : ∀ (r : MvPolynomial σ F), mlProj r = mlProjHom F r := fun _ => rfl
+  -- Step 1: LHS = Σ_α mlProj(monomial α (coeff α p) * q)
+  have lhs : mlProj (p * q) =
+      ∑ α ∈ p.support, mlProj (MvPolynomial.monomial α (MvPolynomial.coeff α p) * q) := by
+    conv_lhs => rw [p.as_sum]
+    simp_rw [mlp_eq]
+    rw [Finset.sum_mul, map_sum (mlProjHom F)]
+  -- Step 2: RHS = Σ_α mlProj(monomial α ...) * mlProj(q)
+  have rhs : mlProj p * mlProj q =
+      ∑ α ∈ p.support, mlProj (MvPolynomial.monomial α (MvPolynomial.coeff α p)) * mlProj q := by
+    simp_rw [mlp_eq]
+    conv_lhs => rw [p.as_sum]
+    rw [map_sum (mlProjHom F), Finset.sum_mul]
+  rw [lhs, rhs]
+  -- Step 3: per-monomial reduction
+  apply Finset.sum_congr rfl; intro α hα
+  have hαv : α.support ⊆ p.vars := fun i hi =>
+    (MvPolynomial.mem_vars i).mpr ⟨α, hα, hi⟩
+  have hdα : Disjoint (α.support : Finset σ) q.vars :=
+    Finset.disjoint_of_subset_left hαv hdisj
+  -- Step 4: expand q in both sub-expressions
+  have lhs2 : mlProj (MvPolynomial.monomial α (MvPolynomial.coeff α p) * q) =
+      ∑ β ∈ q.support, mlProj (MvPolynomial.monomial (α + β)
+        (MvPolynomial.coeff α p * MvPolynomial.coeff β q)) := by
+    conv_lhs => rw [q.as_sum]
+    simp_rw [mlp_eq]
+    simp only [Finset.mul_sum, MvPolynomial.monomial_mul]
+    exact map_sum (mlProjHom F) _ _
+  have rhs2 : mlProj (MvPolynomial.monomial α (MvPolynomial.coeff α p)) * mlProj q =
+      ∑ β ∈ q.support, mlProj (MvPolynomial.monomial α (MvPolynomial.coeff α p)) *
+        mlProj (MvPolynomial.monomial β (MvPolynomial.coeff β q)) := by
+    simp_rw [mlp_eq]
+    conv_lhs => rw [q.as_sum]
+    rw [map_sum (mlProjHom F), Finset.mul_sum]
+  rw [lhs2, rhs2]
+  -- Step 5: per-monomial-pair comparison
+  apply Finset.sum_congr rfl; intro β hβ
+  rw [mlProj_monomial, mlProj_monomial, mlProj_monomial]
+  have hsd : Disjoint α.support β.support :=
+    Finset.disjoint_of_subset_right
+      (fun i hi => (MvPolynomial.mem_vars i).mpr ⟨β, hβ, hi⟩) hdα
+  by_cases hms : Finsupp.IsMultilinear α <;> by_cases hmβ : Finsupp.IsMultilinear β
+  · simp [isMultilinear_add_of_disjoint α β hms hmβ hsd, hms, hmβ, MvPolynomial.monomial_mul]
+  · simp [show ¬ Finsupp.IsMultilinear (α + β) from
+      fun h => hmβ (isMultilinear_of_add_disjoint α β h hsd).2, hmβ]
+  · simp [show ¬ Finsupp.IsMultilinear (α + β) from
+      fun h => hms (isMultilinear_of_add_disjoint α β h hsd).1, hms]
+  · simp [show ¬ Finsupp.IsMultilinear (α + β) from
+      fun h => hms (isMultilinear_of_add_disjoint α β h hsd).1, hms]
 
 -- ============================================================
 -- §4. Live Interfaces and Boundary Reduction
