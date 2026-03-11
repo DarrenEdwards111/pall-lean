@@ -1558,22 +1558,22 @@ theorem tseitinPartition_refines_pullback (M : DTM) (n : ℕ)
         j.val < npNumVars n) := by intro ⟨a, b, _⟩; exact hj ⟨a, b⟩
       simp only [dif_neg hj3]
 
-/-- SPDP rank of tseitinPoly under pullback(compiled) = rank under tseitinPartition. -/
-theorem spdpRank_pullback_eq_tseitin (M : DTM) (n : ℕ)
+/-- SPDP rank monotonicity: pullback(compiled) rank ≤ tseitin rank.
+    Uses: tseitin refines pullback (same assign function on witness vars),
+    so pullback-admissible lists are also tseitin-admissible,
+    hence pullback subspace ⊆ tseitin subspace.
+    Note: this is a one-way inequality, not equality. The paper's extraction
+    argument uses rank non-increase, not rank equality. -/
+theorem spdpRank_pullback_le_tseitin (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (κ ℓ : ℕ) :
     mlBlockedSpdpRank (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
-      κ ℓ (tseitinPoly ℚ n) =
-    mlBlockedSpdpRank (tseitinPartition n) κ ℓ (tseitinPoly ℚ n) := by
-  apply le_antisymm
-  · -- pullback ≤ tseitin: tseitin refines pullback → subspace(pullback) ⊆ subspace(tseitin)
-    exact Submodule.finrank_mono
-      (mlBlockedSpdpSubspace_mono_partition _ _ κ ℓ _
-        (tseitinPartition_refines_pullback M n h_le))
-  · -- tseitin ≤ pullback: pullback refines tseitin → subspace(tseitin) ⊆ subspace(pullback)
-    exact Submodule.finrank_mono
-      (mlBlockedSpdpSubspace_mono_partition _ _ κ ℓ _
-        (compiledPartition_refines_tseitin M n h_le))
+      κ ℓ (tseitinPoly ℚ n) ≤
+    mlBlockedSpdpRank (tseitinPartition n) κ ℓ (tseitinPoly ℚ n) :=
+  -- tseitin refines pullback → subspace(pullback) ⊆ subspace(tseitin)
+  Submodule.finrank_mono
+    (mlBlockedSpdpSubspace_mono_partition _ _ κ ℓ _
+      (tseitinPartition_refines_pullback M n h_le))
 
 /-! ## Tseitin SPDP rank bound (§9 Profile Compression)
 
@@ -1593,7 +1593,7 @@ axiom tseitin_spdp_rank_bound (n : ℕ) (hn : n ≥ 4)
     mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤ n ^ 10
 
 /-- compiled_verifier_rank: PROVED from tseitin_spdp_rank_bound + rename infrastructure.
-    Chain: verifierSheet = rename(tseitin) →[rename_le] pullback rank →[partition eq] tseitin rank →[bound] n^10. -/
+    Chain: verifierSheet = rename(tseitin) →[rename_le] pullback rank →[≤ tseitin rank] →[bound] n^10. -/
 theorem compiled_verifier_rank (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
@@ -1611,9 +1611,9 @@ theorem compiled_verifier_rank (M : DTM) (n : ℕ)
           κ κ (tseitinPoly ℚ n) :=
         mlBlockedSpdpRank_rename_le (witnessInclusion M n h_le)
           (witnessInclusion_injective M n h_le) _ _ _ _
-    -- Step 3: pullback = tseitin (partition equivalence)
-    _ = mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) :=
-        spdpRank_pullback_eq_tseitin M n h_le κ κ
+    -- Step 3: pullback ≤ tseitin (partition monotonicity)
+    _ ≤ mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) :=
+        spdpRank_pullback_le_tseitin M n h_le κ κ
     -- Step 4: tseitin bound
     _ ≤ n ^ 10 :=
         tseitin_spdp_rank_bound n (by omega) κ hκ hκ_le
