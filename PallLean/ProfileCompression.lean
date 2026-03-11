@@ -485,9 +485,28 @@ noncomputable def windowProfile {n κ : ℕ} (w : CanonicalWindow n κ) :
     so the sum over types = |neighborClauses| ≤ 30κ. -/
 theorem profile_total_mass_le {n κ : ℕ} (w : CanonicalWindow n κ) :
     ∑ τ : LocalInterfaceType, windowProfile w τ ≤ 30 * κ := by
-  -- Each τ counts a disjoint subset of neighborClauses
-  -- So sum ≤ |neighborClauses| ≤ 30κ
-  sorry
+  -- windowProfile w τ counts neighbors with shared-clause-count = τ.val
+  -- The filters for different τ are disjoint (τ.val is unique per clause)
+  -- So their union ⊆ neighborClauses, giving sum ≤ |neighborClauses| ≤ 30κ
+  unfold windowProfile
+  -- Define the classifier function
+  let classify : Fin (numClausesAt n) → ℕ := fun d =>
+    (Finset.univ.filter (fun c =>
+      c ∈ w.hitClauses ∧ ∃ v, v ∈ clauseVarSet (tseitinAt n) c ∧
+        v ∈ clauseVarSet (tseitinAt n) d)).card
+  -- The sum counts elements of neighborClauses classified into Fin 4 buckets
+  -- Each element goes into at most one bucket, so sum ≤ |neighborClauses|
+  calc ∑ τ : Fin 4, ((neighborClauses w).filter (fun d => classify d = τ.val)).card
+      ≤ (neighborClauses w).card := by
+        -- Use: fibers of a function on a set have total card ≤ card of set
+        -- since each element is in at most one fiber (when fibers for distinct τ are disjoint)
+        rw [← Finset.card_biUnion]
+        · exact Finset.card_le_card (Finset.biUnion_subset.mpr (fun τ _ =>
+            Finset.filter_subset _ _))
+        · intro τ₁ _ τ₂ _ hne
+          exact Finset.disjoint_filter.mpr (fun d _ h₁ h₂ =>
+            hne (Fin.ext (by omega)))
+    _ ≤ 30 * κ := neighbor_clauses_card_le w
 
 /-- Number of realizable profiles with total mass ≤ R.
     Stars-and-bars: histograms over 4 types with total ≤ R
