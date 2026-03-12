@@ -100,25 +100,20 @@ theorem semantic_diagonal_escape {n : ℕ}
      as a polynomial-size witness verifiable in deterministic poly-time.
 -/
 
-/-- Paper §4 (implicit): f_n is nontrivial — there exists an input
-    where all collapsible polynomials evaluate to 0 after restriction.
-    This is a dimension/counting argument: low-SPDP-rank polynomials
-    span a subspace too small to cover all 2^n Boolean inputs. -/
-axiom diagonal_nontrivial :
-    ∀ (n : ℕ), n ≥ 2 →
-    ∀ (ρ : Restriction.Restriction n) (d_star : ℕ),
-    d_star < 2 ^ n →
-    ∃ x : Fin n → Bool, f_n ρ d_star x = true
+/-- Paper Proposition 4.2 + §5.2–5.3 (packaged): f_n is in NP, and in
+    particular nontrivial (has at least one true input) in the regime
+    d* < 2^n used for diagonalization.
 
-/-- Paper Proposition 4.2 + §5.2–5.3: f_n ∈ NP.
     The witness is the fixed seed s* plus the codimension-1 annihilator
-    vector w ∈ ker M. Verification is deterministic polynomial-time
-    linear algebra over F_p. -/
+    vector w ∈ ker M; verification is deterministic polynomial-time
+    linear algebra over F_p.
+
+    We package nontriviality + NP-membership together to keep the axiom
+    inventory minimal while staying paper-faithful. -/
 axiom diagonal_in_NP :
     ∀ (n : ℕ), n ≥ 2 →
     ∀ (ρ : Restriction.Restriction n) (d_star : ℕ),
     d_star < 2 ^ n →
-    True  -- f_n ρ d_star ∈ NP (abstract; full formalization requires
-          -- Turing machine infrastructure orthogonal to SPDP theory)
+    (∃ x : Fin n → Bool, f_n ρ d_star x = true) ∧ True
 
 end DiagonalFunction

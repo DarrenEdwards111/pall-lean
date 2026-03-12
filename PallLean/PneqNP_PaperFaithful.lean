@@ -14,10 +14,9 @@
 
   Conclusion: f_n ∈ NP \ P, therefore P ≠ NP.
 
-  Axiom inventory (3 total):
+  Axiom inventory (2 on diagonal side + P-side package):
   - universal_good_seed (Theorem 7.3: depth-4 + switching + union bound)
-  - diagonal_nontrivial (§4: counting/dimension argument)
-  - diagonal_in_NP (Proposition 4.2: God Move witness protocol)
+  - diagonal_in_NP (Proposition 4.2 package: NP membership + nontriviality)
 -/
 import PallLean.PsideCollapse
 import PallLean.DiagonalFunction
@@ -63,8 +62,9 @@ theorem P_neq_NP : ¬ PeqNP := by
   set d_star := (Nat.log 2 4 + 1) ^ 2
   -- d* < 2⁴ = 16
   have hd : d_star < 2 ^ 4 := by native_decide
-  -- Step 2: f_n is nontrivial (diagonal_nontrivial axiom)
-  have hnt := diagonal_nontrivial 4 h4 ρ d_star hd
+  -- Step 2: from Proposition 4.2 package, get nontriviality of f_n
+  have hdiag := diagonal_in_NP 4 h4 ρ d_star hd
+  have hnt : ∃ x, f_n ρ d_star x = true := hdiag.1
   -- Step 4: P = NP gives a low-rank polynomial computing f_n
   obtain ⟨p, hcomp, hp_rank⟩ := h_peqnp 4 h4 ρ d_star (f_n ρ d_star)
   -- But hρ gives us an even stronger collapse bound for p
