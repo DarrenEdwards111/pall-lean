@@ -1035,6 +1035,10 @@ private theorem finrank_profile_iSup_le (n κ : ℕ) (hn : n ≥ 4)
     _ = (30 * κ + 1) ^ 4 * n ^ 190 := by
         congr 1; simp [Fintype.card_fun, Fintype.card_fin]
 
+/-- Quantitative upper bound for the explicit Tseitin witness polynomial.
+    This theorem is witness-side infrastructure only. It is not part of the
+    load-bearing P-side contradiction chain in `PneqNP.lean`, whose polynomial
+    upper bound must come from the compiled object `fullCompiledPoly`. -/
 theorem tseitin_spdp_rank_proved (n : ℕ) (hn : n ≥ 4)
     (κ : ℕ) (hparam : AdmissibleSpdpParams n κ)
     (hRn : 30 * κ + 1 ≤ n) :
