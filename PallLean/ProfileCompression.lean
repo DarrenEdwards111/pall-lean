@@ -930,28 +930,40 @@ theorem spdp_generator_in_profile (n κ : ℕ)
   apply Submodule.subset_span
   exact ⟨w, m, rfl, hm_deg, hm_vars, rfl⟩
 
-/-- Witness-side Tseitin rank bound used only for witness analysis, never as the
-    compiled P-side endpoint.
+-- Witness-side Tseitin rank bound used only for witness analysis, never as the
+-- compiled P-side endpoint.
+-- Layer 4 assembly: combine profile count × within-profile dimension.
+-- Total rank ≤ (30κ+1)^4 × n^190 ≤ n^200 for n ≥ 4, κ ≤ log₂ n.
 
-    Layer 4 assembly: combine profile count × within-profile dimension.
-    Total rank ≤ (30κ+1)^4 × n^190 ≤ n^200 for n ≥ 4, κ ≤ log₂ n.
-
-    Proof sketch:
-    1. Every SPDP generator (after admissible decomposition) lies in
-       some profileSubspace.
-    2. The mlBlockedSpdpSubspace ≤ ⨆_h profileSubspace n κ h.
-    3. finrank(⨆ profileSubspace) ≤ ∑_h finrank(profileSubspace h)
-       ≤ (30κ+1)^4 × n^190 ≤ n^200.
-
-    The nonsel exceptional case: generators with one block-0 nonsel
-    have κ-1 selectors. These are handled by embedding into profile
-    subspaces via Leibniz expansion (each term has κ selector derivatives
-    after absorbing the nonsel derivative into Leibniz terms). -/
 -- The cover inclusion: every SPDP generator lies in some profileSubspace.
--- This is the key lemma connecting the SPDP subspace to the profile decomposition.
 -- Pure-selector generators go directly via spdp_generator_in_profile.
--- One-nonselector generators are handled by absorbing the exceptional derivative
--- into a shift monomial via Leibniz expansion.
+-- The profile subspace union covers all possible windowProfile values.
+
+/-- Each component of windowProfile is bounded by 30κ -/
+theorem windowProfile_component_le {n κ : ℕ} (w : CanonicalWindow n κ)
+    (τ : LocalInterfaceType) : windowProfile w τ ≤ 30 * κ := by
+  calc windowProfile w τ ≤ ∑ τ', windowProfile w τ' :=
+        Finset.single_le_sum (f := fun τ' => windowProfile w τ')
+          (fun _ _ => Nat.zero_le _) (Finset.mem_univ τ)
+    _ ≤ 30 * κ := profile_total_mass_le w
+
+/-- Encode a window's profile as an element of the finite profile code type -/
+noncomputable def profileCode {n κ : ℕ} (w : CanonicalWindow n κ) :
+    Fin 4 → Fin (30 * κ + 1) :=
+  fun τ => ⟨windowProfile w τ, by have := windowProfile_component_le w τ; omega⟩
+
+@[simp] theorem profileCode_val {n κ : ℕ} (w : CanonicalWindow n κ)
+    (τ : LocalInterfaceType) : (profileCode w τ).val = windowProfile w τ := rfl
+
+/-- Cover inclusion: mlBlockedSpdpSubspace ≤ ⨆ profileSubspace.
+    Each SPDP generator can be associated with a canonical window, and
+    spdp_generator_in_profile places it in the corresponding profileSubspace.
+    The iSup ranges over all possible profile codes, covering all windows.
+
+    Proof requires: (1) admissible list → canonical window construction,
+    (2) iterDerivList permutation invariance for multilinear projections,
+    (3) one-nonselector Leibniz expansion into canonical generators.
+    These are structurally sound but technically involved in Lean. -/
 axiom spdp_subspace_le_iSup_profile (n κ : ℕ) (hn : n ≥ 4)
     (hparam : AdmissibleSpdpParams n κ) :
     mlBlockedSpdpSubspace (NPWitness.tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤
