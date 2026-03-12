@@ -1507,16 +1507,15 @@ theorem mlBlockedSpdpRank_rename_le {n m : ℕ} {F : Type*} [Field F]
     The bound holds ONLY for compiled polynomials with the above
     compiler-structural properties.
 
-## Partition equivalence: pullback(compiled, witnessInclusion) ↔ tseitinPartition
+## Partition agreement on witness variables
 
 The compiledPartition on witness vars mirrors tseitinPartition exactly.
 Both use the same condition (v ≥ base ∧ v - base < clauses.length) and
 produce the same block assignment. The compiled partition has an extra
 conjunct (v < npNumVars) which is always true for witness vars.
 
-This bidirectional refinement means the SPDP ranks are equal.
-
-Reverse refinement: tseitin → pullback(compiled). -/
+This section only records the transport direction needed later:
+tseitin admissibility implies pullback admissibility on witness vars. -/
 theorem tseitinPartition_refines_pullback (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (i j : Fin (npNumVars n))
@@ -1597,12 +1596,8 @@ P-side complexity endpoint. -/
 def AdmissibleSpdpParams (n κ : ℕ) : Prop :=
   κ ≥ 5 ∧ κ ≤ Nat.log 2 n
 
-/-- Legacy Tseitin-side profile-compression endpoint.
-    This is kept only as witness-side infrastructure for extraction statements.
-    It must not be used as the P-side complexity bound for compiled polynomials. -/
-axiom tseitin_spdp_rank_bound (n : ℕ) (hn : n ≥ 4)
-    (κ : ℕ) (hparam : AdmissibleSpdpParams n κ) :
-    mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤ n ^ 200
+-- Quantitative Tseitin witness bounds live in `ProfileCompression.lean`.
+-- This file keeps only the extraction/transport wiring into the compiled side.
 
 /-- Rank transport: compiled verifier sheet rank ≤ Tseitin witness rank.
     Chain: verifierSheet = rename(tseitin) →[rename_le] pullback rank

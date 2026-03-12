@@ -829,7 +829,10 @@ theorem spdp_generator_in_profile (n κ : ℕ)
   apply Submodule.subset_span
   exact ⟨w, m, rfl, hm_deg, hm_vars, rfl⟩
 
-/-- Layer 4 assembly: combine profile count × within-profile dimension.
+/-- Witness-side Tseitin rank bound used only for witness analysis, never as the
+    compiled P-side endpoint.
+
+    Layer 4 assembly: combine profile count × within-profile dimension.
     Total rank ≤ (30κ+1)^4 × n^190 ≤ n^200 for n ≥ 4, κ ≤ log₂ n.
 
     Proof sketch:

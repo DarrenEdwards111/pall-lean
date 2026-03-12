@@ -84,7 +84,7 @@ def clauseVarSet (Φ : TseitinFormula) (c : Fin Φ.clauses.length) : Finset ℕ 
 theorem mem_clauseVarSet (Φ : TseitinFormula) (c : Fin Φ.clauses.length) (v : ℕ) :
     v ∈ clauseVarSet Φ c ↔
     v = (Φ.clauses.get c).var1 ∨ v = (Φ.clauses.get c).var2 ∨ v = (Φ.clauses.get c).var3 := by
-  simp [clauseVarSet, Finset.mem_insert, Finset.mem_singleton, or_assoc]
+  simp [clauseVarSet, Finset.mem_insert, Finset.mem_singleton]
 
 structure DisjointPacking (Φ : TseitinFormula) where
   selected : List (Fin Φ.clauses.length)
@@ -230,7 +230,7 @@ theorem greedy_packing_finset {α : Type*} [DecidableEq α] [Fintype α] [Linear
     (S : Finset α) (R : α → α → Prop) [DecidableRel R]
     (hrefl : ∀ a, R a a)
     (hsymm : ∀ a b, R a b → R b a)
-    (k : ℕ) (hk : k ≥ 1)
+    (k : ℕ) (_hk : k ≥ 1)
     (hbound : ∀ a ∈ S, (S.filter (R a)).card ≤ k) :
     ∃ P : Finset α, P ⊆ S ∧
       (∀ a ∈ P, ∀ b ∈ P, a ≠ b → ¬R a b) ∧
@@ -297,7 +297,7 @@ theorem greedy_packing_finset {α : Type*} [DecidableEq α] [Fintype α] [Linear
       simp [Finset.not_nonempty_iff_eq_empty.mp hne]
 
 /-- Greedy packing existence via bounded-occurrence argument. -/
-noncomputable def disjoint_packing_exists (Φ : TseitinFormula) (hn : Φ.graph.numVertices ≥ 100) :
+noncomputable def disjoint_packing_exists (Φ : TseitinFormula) (_hn : Φ.graph.numVertices ≥ 100) :
     DisjointPacking Φ := by
   -- Define the conflict relation
   let R : Fin Φ.clauses.length → Fin Φ.clauses.length → Prop :=
