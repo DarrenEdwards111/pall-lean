@@ -8,6 +8,7 @@
   Contradiction under P=NP.
 -/
 import PallLean.MultilinearSPDP
+import PallLean.CompiledBound
 import PallLean.NPWitness
 import PallLean.Compiler
 import Mathlib.Tactic
@@ -31,7 +32,7 @@ theorem P_neq_NP (h : PeqNP) : False := by
   obtain ⟨n₀, harith⟩ := SPDP.superPoly_beats_poly (C + 1) (by omega)
   -- Pick an even n large enough for the lower bound, extraction regime,
   -- machine-size side conditions, and the polynomial-vs-superpolynomial gap.
-  let n := 2 * max (max (max n₀ n₁) (max 32 M.numStates)) 32
+  let n := 2 * max (max (max n₀ n₁) (max 256 M.numStates)) 256
   have heven : 2 ∣ n := ⟨_, rfl⟩
   -- Witness variables fit into the compiled ambient variable set.
   have h_le : npNumVars n ≤ numVars M n (Nat.log 2 n) := by
@@ -98,8 +99,13 @@ theorem P_neq_NP (h : PeqNP) : False := by
     exact le_trans (by omega) (Nat.log_mono_right hn32)
   have h_extract := extraction_rank_monotone ℚ n M h.decides_sat (by omega)
     h_le (Nat.log 2 n) (Nat.log 2 n) hκ_ge
+  have hn512 : n ≥ 512 := by
+    unfold n
+    omega
+  have hRn : 30 * Nat.log 2 n + 1 ≤ n :=
+    MultilinearSPDP.log_linear_bound n hn512
   have h_pside := hpside n (by show n ≥ max 4 M.numStates; omega) h_le
-    (Nat.log 2 n) hκ_ge (Nat.le_refl _)
+    (Nat.log 2 n) hκ_ge (Nat.le_refl _) hRn
   -- Paper-faithful chain:
   -- witness lower bound -> extraction transport -> compiled upper bound.
   have h_chain : n ^ (Nat.log 2 n / 4) ≤ n ^ C :=

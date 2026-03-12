@@ -1640,37 +1640,9 @@ The P-side bound must be stated directly for the compiled polynomial
 `fullCompiledPoly`, not obtained by routing through the Tseitin witness.
 The placeholder below is the packaged interface used by `PneqNP.lean`. -/
 
-/-- Compiled-side profile-compression endpoint.
-    This is the P-side theorem shape used in the final separation:
-    for logarithmic matching parameters, the compiled polynomial has
-    polynomial multilinear blocked SPDP rank. -/
-axiom compiled_profile_compression_rank_bound (M : DTM) (n : ℕ)
-    (hn : n ≥ max 4 M.numStates)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
-    mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 215
-
-/-- Compiled SPDP rank bound (paper's Lemma 32).
-    This is the packaged P-side endpoint theorem: any proof of the
-    compiled profile-compression placeholder should land here. -/
-theorem compiled_spdp_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ max 4 M.numStates)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
-    mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 215 :=
-  compiled_profile_compression_rank_bound M n hn h_le κ hκ hκ_le
-
-/-- P-side compiled SPDP rank bound (paper's Lemma 32).
-    Regime: matching parameters κ = ℓ, κ ≥ 5, κ ≤ log₂ n. -/
-theorem pside_full_ml_rank_bound (M : DTM) :
-    ∃ (C : ℕ), ∀ n, n ≥ max 4 M.numStates →
-    ∀ (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)),
-    ∀ (kk : ℕ), kk ≥ 5 → kk ≤ Nat.log 2 n →
-    mlBlockedSpdpRank (compiledPartition M n) kk kk
-      (fullCompiledPoly ℚ M n h_le) ≤ n ^ C := by
-  use 215; intro n hn h_le kk hk hk_le
-  exact compiled_spdp_rank_bound M n hn h_le kk hk hk_le
+-- compiled_profile_compression_rank_bound, compiled_spdp_rank_bound, and
+-- pside_full_ml_rank_bound are proved in PallLean/CompiledBound.lean
+-- (downstream file that imports both MultilinearSPDP and ProfileCompression).
 
 /-- §34 Compiler extraction: NP-side rank ≤ P-side rank.
 

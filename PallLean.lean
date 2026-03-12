@@ -12,6 +12,7 @@ import PallLean.ProductDeriv
 import PallLean.BinomialBound
 import PallLean.BinomialBound2
 import PallLean.MultilinearSPDP
+import PallLean.CompiledBound
 import PallLean.PneqNP
 import PallLean.Leibniz
 import PallLean.Profile
