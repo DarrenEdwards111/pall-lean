@@ -220,7 +220,56 @@ theorem xorClauses_vars (e1 e2 e3 : ℕ) (b : Bool) h12 h13 h23
     c.var1 = e1 ∧ c.var2 = e2 ∧ c.var3 = e3 := by
   simp [xorClauses] at hc; split at hc <;> simp_all [List.mem_cons] <;> aesop
 
-noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
+/-- The four XOR clauses contributed by a single vertex when the graph is cubic. -/
+private noncomputable def vertexClauses (G : RegularGraph) (v : Fin G.numVertices) :
+    List Clause3 :=
+  let edges := incidentEdgesList G v
+  if h : edges.length ≥ 3 then
+    let e1 := (edges[0]'(by omega)).val
+    let e2 := (edges[1]'(by omega)).val
+    let e3 := (edges[2]'(by omega)).val
+    have hnd := incidentEdgesList_nodup G v
+    have he12 : e1 ≠ e2 := by
+      intro heq; have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq))
+      omega
+    have he13 : e1 ≠ e3 := by
+      intro heq; have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq))
+      omega
+    have he23 : e2 ≠ e3 := by
+      intro heq; have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq))
+      omega
+    let b := if v.val = 0 then true else false
+    xorClauses e1 e2 e3 b he12 he13 he23
+  else []
+
+private theorem vertexClauses_length_of_degree_eq_three (G : RegularGraph)
+    (hdeg : G.degree = 3) (v : Fin G.numVertices) :
+    (vertexClauses G v).length = 4 := by
+  unfold vertexClauses
+  have hedges : (incidentEdgesList G v).length = 3 := by
+    simpa [hdeg] using incidentEdgesList_length G v
+  have hbranch : (incidentEdgesList G v).length ≥ 3 := by omega
+  simp [hbranch, xorClauses_length]
+
+private theorem buildTseitin_clauses_length_of_degree_eq_three (G : RegularGraph)
+    (hdeg : G.degree = 3) :
+    ((List.finRange G.numVertices).flatMap (vertexClauses G)).length = 4 * G.numVertices := by
+  rw [List.length_flatMap]
+  have hmap :
+      List.map (fun v => (vertexClauses G v).length) (List.finRange G.numVertices) =
+        List.replicate G.numVertices 4 := by
+    apply List.ext_getElem
+    · simp [List.length_finRange]
+    · intro i hi1 hi2
+      rw [List.getElem_map, List.getElem_replicate]
+      rw [List.getElem_finRange]
+      simpa using
+        vertexClauses_length_of_degree_eq_three G hdeg
+          ⟨i, by simpa [List.length_finRange] using hi1⟩
+  rw [hmap]
+  simp [List.sum_replicate, Nat.mul_comm]
+
+noncomputable def buildTseitin (G : RegularGraph) (hdeg : G.degree = 3) : TseitinFormula where
   graph := G
   parityBit := fun v => if v.val = 0 then true else false
   parity_odd := by
@@ -238,33 +287,11 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
   -- Edge variables are GLOBAL: variable index = edge index in [0, numEdges).
   -- This creates sharing: each edge variable appears at both endpoint vertices.
   clauses :=
-    (List.finRange G.numVertices).flatMap fun v =>
-      let edges := incidentEdgesList G ⟨v.val, by exact v.isLt⟩
-      -- For degree 3, edges has length 3. Use edge indices as clause variables.
-      -- If degree ≠ 3, this won't produce valid clauses, but cubicGraph has degree 3.
-      if h : edges.length ≥ 3 then
-        let e1 := (edges[0]'(by omega)).val
-        let e2 := (edges[1]'(by omega)).val
-        let e3 := (edges[2]'(by omega)).val
-        -- Edges are distinct (from sorted nodup list)
-        have hnd := incidentEdgesList_nodup G ⟨v.val, v.isLt⟩
-        have he12 : e1 ≠ e2 := by
-          intro heq; have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq))
-          omega
-        have he13 : e1 ≠ e3 := by
-          intro heq; have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq))
-          omega
-        have he23 : e2 ≠ e3 := by
-          intro heq; have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq))
-          omega
-        let b := if v.val = 0 then true else false
-        xorClauses e1 e2 e3 b he12 he13 he23
-      else []
+    (List.finRange G.numVertices).flatMap (vertexClauses G)
   num_clauses_upper := by sorry
   num_clauses_lower := by
-    -- For degree ≥ 3: each vertex contributes 4 clauses, total = 4n ≥ n.
-    -- Requires G.degree ≥ 3 (satisfied by cubicGraph).
-    sorry
+    rw [buildTseitin_clauses_length_of_degree_eq_three G hdeg]
+    omega
   clause_vars_bound := by
     -- Each clause variable is an edge index (< numEdges < numEdges + 3 * numClauses).
     sorry
@@ -274,7 +301,9 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
 
 /-- Tseitin formula on the n-th graph, built concretely -/
 noncomputable def tseitinAt (n : ℕ) : TseitinFormula :=
-  buildTseitin (highGirthFamily.graph n)
+  buildTseitin (highGirthFamily.graph n) (by
+    change (cubicGraph (evenUp n) (evenUp_ge6 n) (evenUp_even n)).degree = 3
+    rfl)
 
 /-- The formula uses the n-th high-girth graph — by definition -/
 theorem tseitinAt_graph (n : ℕ) :
