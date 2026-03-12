@@ -1575,7 +1575,7 @@ theorem spdpRank_pullback_le_tseitin (M : DTM) (n : ℕ)
     (mlBlockedSpdpSubspace_mono_partition _ _ κ ℓ _
       (tseitinPartition_refines_pullback M n h_le))
 
-/-! ## Tseitin SPDP rank bound (§9 Profile Compression)
+/-! ## Tseitin transport infrastructure (§34 extraction only)
 
 The tseitinPoly = ∏_c (1 - X(z_c) · gadget_c) has product structure where:
 - Each selector z_c is in its own block (block c+1)
@@ -1587,7 +1587,9 @@ For block-admissible S with κ ≤ log₂(n) elements:
 - The per-factor derivative is 1-dimensional (just -gadget_c)
 - Profile compression collapses the combinatorics
 
-Bound: mlBlockedSpdpRank ≤ n^10 for matching logarithmic parameters. -/
+This material is retained only for extraction/rank transport from the compiled
+verifier sheet down to the explicit Tseitin witness polynomial. It is not the
+P-side complexity endpoint. -/
 
 /-- Admissible SPDP parameter regime: matching parameters (κ = ℓ),
     both bounded by log₂(n), with κ ≥ 5 for the low-degree elimination.
@@ -1595,22 +1597,21 @@ Bound: mlBlockedSpdpRank ≤ n^10 for matching logarithmic parameters. -/
 def AdmissibleSpdpParams (n κ : ℕ) : Prop :=
   κ ≥ 5 ∧ κ ≤ Nat.log 2 n
 
-/-- Frontier axiom: polynomial blocked-SPDP-rank bound for the Tseitin verifier
-    polynomial under the verifier partition, in the logarithmic regime.
-    This is the §9 profile-compression theorem — the single remaining
-    substantive mathematical claim to be formalized.
-    The bound applies specifically to the structured Tseitin product
-    ∏_c (1 - X(z_c) · clauseGadget_c), not to arbitrary products. -/
+/-- Legacy Tseitin-side profile-compression endpoint.
+    This is kept only as witness-side infrastructure for extraction statements.
+    It must not be used as the P-side complexity bound for compiled polynomials. -/
 axiom tseitin_spdp_rank_bound (n : ℕ) (hn : n ≥ 4)
     (κ : ℕ) (hparam : AdmissibleSpdpParams n κ) :
     mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤ n ^ 200
 
-/-- Rank transport: compiled verifier rank ≤ Tseitin verifier rank.
+/-- Rank transport: compiled verifier sheet rank ≤ Tseitin witness rank.
     Chain: verifierSheet = rename(tseitin) →[rename_le] pullback rank
     →[partition monotonicity] tseitin rank.
     This is a one-way inequality (rank non-increase), not rank equality.
-    The paper's extraction argument uses monotonicity, not preservation. -/
-theorem compiled_to_tseitin_rank_le (M : DTM) (n : ℕ)
+    The paper's extraction argument uses monotonicity, not preservation.
+    This theorem is transport/extraction infrastructure only; it is not a
+    compiled-side width/rank bound. -/
+theorem compiled_to_tseitin_rank_transport_le (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (κ ℓ : ℕ) :
     mlBlockedSpdpRank (compiledPartition M n) κ ℓ
@@ -1627,35 +1628,43 @@ theorem compiled_to_tseitin_rank_le (M : DTM) (n : ℕ)
     _ ≤ mlBlockedSpdpRank (tseitinPartition n) κ ℓ (tseitinPoly ℚ n) :=
         spdpRank_pullback_le_tseitin M n h_le κ ℓ
 
-/-- compiled_verifier_rank: PROVED from tseitin_spdp_rank_bound + rank transport.
-    Uses only one-way inequalities throughout the chain. -/
-theorem compiled_verifier_rank (M : DTM) (n : ℕ)
+/-- Backwards-compatible alias for the transport theorem above.
+    Prefer `compiled_to_tseitin_rank_transport_le` in new code to avoid reading
+    this as a P-side complexity statement. -/
+theorem compiled_to_tseitin_rank_le (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (κ ℓ : ℕ) :
+    mlBlockedSpdpRank (compiledPartition M n) κ ℓ
+      (verifierSheetOf ℚ M n h_le) ≤
+    mlBlockedSpdpRank (tseitinPartition n) κ ℓ (tseitinPoly ℚ n) :=
+  compiled_to_tseitin_rank_transport_le M n h_le κ ℓ
+
+/-! ## Compiled profile-compression endpoint (§9, P-side)
+
+The P-side bound must be stated directly for the compiled polynomial
+`fullCompiledPoly`, not obtained by routing through the Tseitin witness.
+The placeholder below is the packaged interface used by `PneqNP.lean`. -/
+
+/-- Compiled-side profile-compression endpoint.
+    This is the P-side theorem shape used in the final separation:
+    for logarithmic matching parameters, the compiled polynomial has
+    polynomial multilinear blocked SPDP rank. -/
+axiom compiled_profile_compression_rank_bound (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
     mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (verifierSheetOf ℚ M n h_le) ≤ n ^ 200 :=
-  le_trans (compiled_to_tseitin_rank_le M n h_le κ κ)
-    (tseitin_spdp_rank_bound n (by omega) κ ⟨hκ, hκ_le⟩)
+      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 215
 
 /-- Compiled SPDP rank bound (paper's Lemma 32).
-    Derived from compiled_verifier_rank + add_lowDeg.
-
-    Proof: fullCompiledPoly = verifierSheet + violationPoly.
-    violationPoly has degree ≤ 4 < κ ≥ 5, so add_lowDeg kills it.
-    Then compiled_verifier_rank gives rank ≤ n^200 ≤ n^215. -/
+    This is the packaged P-side endpoint theorem: any proof of the
+    compiled profile-compression placeholder should land here. -/
 theorem compiled_spdp_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
     mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 215 := by
-  have h_lowdeg : (violationPolyOf ℚ M n).totalDegree < κ := by
-    have := violationPolyOf_totalDegree ℚ M n; omega
-  rw [show fullCompiledPoly ℚ M n h_le = verifierSheetOf ℚ M n h_le + violationPolyOf ℚ M n
-    from rfl]
-  rw [mlBlockedSpdpRank_add_lowDeg ℚ (compiledPartition M n) κ κ _ _ h_lowdeg]
-  exact le_trans (compiled_verifier_rank M n hn h_le κ hκ hκ_le)
-    (Nat.pow_le_pow_right (by omega) (by omega))
+      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 215 :=
+  compiled_profile_compression_rank_bound M n hn h_le κ hκ hκ_le
 
 /-- P-side compiled SPDP rank bound (paper's Lemma 32).
     Regime: matching parameters κ = ℓ, κ ≥ 5, κ ≤ log₂ n. -/

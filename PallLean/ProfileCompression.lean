@@ -5,11 +5,11 @@ Released under Apache 2.0 license.
 import PallLean.MultilinearSPDP
 
 /-!
-# Profile Compression for Tseitin SPDP Rank (§9)
+# Profile Compression for the Tseitin Witness Polynomial (§9)
 
-Goal: prove `tseitin_spdp_rank_bound`:
-  mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤ n^10
-for AdmissibleSpdpParams n κ (i.e., κ ≥ 5, κ ≤ log₂ n).
+This file develops Tseitin-side profile-compression structure for the witness
+polynomial. It is witness/extraction infrastructure, not the exported P-side
+complexity endpoint for compiled polynomials.
 
 ## Proof Architecture (7 Lemmas)
 

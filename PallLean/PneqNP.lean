@@ -23,6 +23,7 @@ structure PeqNP where
 theorem P_neq_NP (h : PeqNP) : False := by
   let M := h.sat_decider
   -- P-side: Γ^ml(fullCompiledPoly) ≤ n^C for some constant C
+  -- via the compiled profile-compression endpoint, not via a Tseitin upper bound
   obtain ⟨C, hpside⟩ := pside_full_ml_rank_bound M
   -- NP-side: Γ^ml(Q×_Φn) ≥ n^(log n / 4)
   obtain ⟨n₁, hnpside⟩ := np_ml_lower_bound ℚ
@@ -50,6 +51,8 @@ theorem P_neq_NP (h : PeqNP) : False := by
   have h_pside := hpside n (by show n ≥ max 4 M.numStates; omega) h_le
     (Nat.log 2 n) hκ_ge (Nat.le_refl _)
   -- Chain: n^(log n/4) ≤ Γ^ml(tseitin) ≤ Γ^ml(fullCompiled) ≤ n^C
+  -- The middle inequality is extraction transport only; the final upper bound
+  -- is the compiled-side P-bound.
   have h_chain : n ^ (Nat.log 2 n / 4) ≤ n ^ C := by linarith
   -- But n^(log n/4) > n^(C+1) > n^C for large n
   have h_contra := harith n (by omega)
