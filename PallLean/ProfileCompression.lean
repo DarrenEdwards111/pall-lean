@@ -588,69 +588,149 @@ theorem num_profiles_le (R : ℕ)
 
 /-! ### Profile-indexed subspaces
 
-The profile compression theorem has 4 layers:
+For a fixed profile histogram h, the profile subspace U(h) is the span
+of all canonical generators whose window has profile h.
 
-**Layer 1: Profile assignment.**
-Every admissible generator lands in some profile-indexed subspace U(h).
-This uses the near/far factorization (mlProj_mul_disjoint_vars) to
-factor out the far product, then assigns a profile based on the
-neighbor structure.
-
-**Layer 2: Profile count.**
-The number of realizable profiles is ≤ (30κ+1)^4 (proved above).
-
-**Layer 3: Within-profile dimension.**
-finrank(U(h)) is polynomially bounded. This is the core §9 content.
-The key mechanism: within a fixed profile, clause contributions are
-type-anonymous and order-insensitive, so the joint contribution is
-a symmetric power Sym^{h(τ)}(W_τ) rather than a tensor product.
-This gives polynomial rather than exponential growth:
-  dim(Sym^k(W)) = C(k+d-1, d-1) ≤ (k+d)^d  (polynomial in k)
-vs
-  dim(W^⊗k) = d^k  (exponential in k)
-
-With d = dim(W_τ) ≤ 16 (from localDerivSpace_finrank_le_16):
-  per-profile dim ≤ ∏_τ (h(τ)+16)^15 × 2^κ
-                  ≤ (30κ+16)^{60} × n
-                  = O(n · (log n)^{60})
-
-**Layer 4: Assembly.**
-Total rank ≤ (num profiles) × max(per-profile dim)
-          ≤ (30κ+1)^4 × O(n · (log n)^60)
-          = O(n · (log n)^64)
-          ≤ n^200 for all n ≥ 4.
+The key insight for bounding dim(U(h)):
+1. **Type-anonymity**: Replacing one near clause of type τ by another
+   of the same type does NOT change the subspace — both produce generators
+   in the same W_τ-indexed family.
+2. **Symmetric powers**: The joint contribution of h(τ) clauses of type τ
+   is a symmetric power Sym^{h(τ)}(W_τ), not a tensor product.
+   dim(Sym^k(V)) = C(k + dim(V) - 1, dim(V) - 1) ≤ (k + dim(V))^{dim(V)}
+3. **Per-clause dim ≤ 16**: from localDerivSpace_finrank_le_16.
+4. **Total per-profile**: ∏_τ (h(τ)+16)^15 × 2^κ ≤ n^190.
 -/
 
-/-- **Spanning set approach** (combines Layers 1, 3, 4):
-    Construct a finite set S such that every SPDP generator lies in span(S)
-    and |S| ≤ n^200. Then mlBlockedSpdpRank ≤ n^200.
+/-- The profile subspace: span of all canonical generators whose window
+    has profile h. Generators are parameterized by (window, shift). -/
+noncomputable def profileSubspace (n κ : ℕ) (h : ProfileHist) :
+    Submodule ℚ (MvPolynomial (Fin (npNumVars n)) ℚ) :=
+  Submodule.span ℚ
+    { q | ∃ (w : CanonicalWindow n κ) (m : MvPolynomial (Fin (npNumVars n)) ℚ),
+        windowProfile w = h ∧
+        m.totalDegree ≤ κ ∧
+        m.vars ⊆ w.selectorList.toFinset ∧
+        q = canonicalGenerator w m }
+/-- The number of near variables for a window: variables from hit + neighbor
+    clauses. Each clause uses at most 5 variables (4 clause vars + 1 selector).
+    With κ hit clauses and ≤ 30κ neighbors: total ≤ 5(κ + 30κ) = 155κ. -/
+theorem near_vars_card_le {n κ : ℕ} (w : CanonicalWindow n κ) :
+    (w.hitClauses ∪ neighborClauses w).card * 5 ≤ 155 * κ := by
+  calc (w.hitClauses ∪ neighborClauses w).card * 5
+      ≤ (w.hitClauses.card + (neighborClauses w).card) * 5 :=
+        Nat.mul_le_mul_right 5 (Finset.card_union_le _ _)
+    _ ≤ (κ + 30 * κ) * 5 := by
+        have h1 := w.card_eq
+        have h2 := neighbor_clauses_card_le w
+        omega
+    _ = 155 * κ := by ring
 
-    The spanning set S consists of "near-part templates":
-    for each canonical window w (which determines a hit set + profile),
-    the canonical generators form a set of size 2^κ (from shift choices).
+/-- Single-window dimension: generators from a single window w span a
+    space of dimension ≤ 2^(155κ). This follows because all generators
+    are multilinear polynomials whose variables lie in the hit + neighbor
+    clause variables (at most 155κ variables total). -/
+/-- The finite basis for a single window: multilinear monomial shifts.
+    For each subset T of the κ selector variables, the monomial ∏_{i∈T} X_i
+    is a valid shift. There are 2^κ such subsets. -/
+noncomputable def windowBasis {n κ : ℕ} (w : CanonicalWindow n κ) :
+    Finset (MvPolynomial (Fin (npNumVars n)) ℚ) :=
+  (w.selectorList.toFinset.powerset).image (fun T =>
+    canonicalGenerator w (T.prod (fun i => MvPolynomial.X i)))
 
-    After grouping by profile, windows with the same profile produce
-    generators in the same subspace (type-anonymity). So the effective
-    number of distinct generators is:
-      (num profiles) × (per-profile templates) × (shift choices)
-    = (30κ+1)^4 × ∏_τ C(h(τ)+15, 15) × 2^κ
-    ≤ n^200.
+theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
+    (hparam : AdmissibleSpdpParams n κ)
+    (w : CanonicalWindow n κ) :
+    Module.finrank ℚ (Submodule.span ℚ
+      { q | ∃ (m : MvPolynomial (Fin (npNumVars n)) ℚ),
+        m.totalDegree ≤ κ ∧
+        m.vars ⊆ w.selectorList.toFinset ∧
+        q = canonicalGenerator w m }) ≤ 2 ^ (155 * κ) := by
+  -- Step 1: The generating set ⊆ span(windowBasis w)
+  have hcontain : (Submodule.span ℚ
+      { q | ∃ (m : MvPolynomial (Fin (npNumVars n)) ℚ),
+        m.totalDegree ≤ κ ∧
+        m.vars ⊆ w.selectorList.toFinset ∧
+        q = canonicalGenerator w m }) ≤
+      Submodule.span ℚ (↑(windowBasis w) : Set (MvPolynomial (Fin (npNumVars n)) ℚ)) := by
+    sorry
+  -- Step 2: finrank monotonicity
+  calc Module.finrank ℚ (Submodule.span ℚ _)
+      ≤ Module.finrank ℚ (Submodule.span ℚ
+          (↑(windowBasis w) : Set (MvPolynomial (Fin (npNumVars n)) ℚ))) :=
+        Submodule.finrank_mono hcontain
+    _ ≤ (windowBasis w).card := by
+        convert finrank_span_le_card
+          (R := ℚ) (M := MvPolynomial (Fin (npNumVars n)) ℚ)
+          ((↑(windowBasis w)) : Set (MvPolynomial (Fin (npNumVars n)) ℚ)) using 1
+        simp
+    _ ≤ w.selectorList.toFinset.powerset.card := Finset.card_image_le
+    _ = 2 ^ w.selectorList.toFinset.card := by rw [Finset.card_powerset]
+    _ ≤ 2 ^ (155 * κ) := by
+        apply Nat.pow_le_pow_right (by omega)
+        calc w.selectorList.toFinset.card
+            ≤ w.selectorList.length := List.toFinset_card_le_length _
+          _ = κ := by simp [CanonicalWindow.selectorList, w.card_eq]
+          _ ≤ 155 * κ := le_mul_of_one_le_left (Nat.zero_le _) (by omega)
 
-    The full spanning set: union of canonical generators over all windows.
-    We bound its effective dimension via profile compression. -/
+/-- **Type-anonymity**: canonical windows with the same profile produce
+    generators in the same subspace. This is because replacing one clause
+    by another of the same type (same number of shared variables with hit set)
+    preserves the algebraic structure via variable renaming.
+    The profile subspace equals any single representative window's span. -/
+theorem same_profile_span_le (n κ : ℕ) (hn : n ≥ 4)
+    (hparam : AdmissibleSpdpParams n κ)
+    (h : ProfileHist) (w₀ : CanonicalWindow n κ) (hw₀ : windowProfile w₀ = h) :
+    profileSubspace n κ h ≤
+    Submodule.span ℚ { q | ∃ (m : MvPolynomial (Fin (npNumVars n)) ℚ),
+        m.totalDegree ≤ κ ∧
+        m.vars ⊆ w₀.selectorList.toFinset ∧
+        q = canonicalGenerator w₀ m } := by
+  sorry
+
 /-- Layer 3: Within-profile dimension bound.
     For a fixed profile h, all canonical generators with that profile
     lie in a subspace of dimension ≤ n^190.
 
-    The key mechanism: type-anonymity + symmetric powers.
-    Generators with the same profile produce the same type of local
-    derivative contributions, and the joint contribution is a symmetric
-    power (not tensor product), giving polynomial growth. -/
+    Uses same_profile_span_le (type-anonymity) to reduce to a single
+    window, then single_window_finrank_le to bound that window's span,
+    then 2^{155κ} ≤ n^{190} since κ ≤ log₂ n. -/
 theorem within_profile_finrank_le (n κ : ℕ) (hn : n ≥ 4)
     (hparam : AdmissibleSpdpParams n κ)
     (h : ProfileHist) :
     Module.finrank ℚ (profileSubspace n κ h) ≤ n ^ 190 := by
-  sorry
+  -- If no window has this profile, the subspace is 0
+  by_cases hex : ∃ w : CanonicalWindow n κ, windowProfile w = h
+  · obtain ⟨w₀, hw₀⟩ := hex
+    calc Module.finrank ℚ (profileSubspace n κ h)
+        ≤ Module.finrank ℚ (Submodule.span ℚ
+            { q | ∃ m : MvPolynomial (Fin (npNumVars n)) ℚ,
+              m.totalDegree ≤ κ ∧
+              m.vars ⊆ w₀.selectorList.toFinset ∧
+              q = canonicalGenerator w₀ m }) :=
+          Submodule.finrank_mono (same_profile_span_le n κ hn hparam h w₀ hw₀)
+      _ ≤ 2 ^ (155 * κ) := single_window_finrank_le n κ hn hparam w₀
+      _ ≤ n ^ 190 := by
+          -- 2^(155κ) ≤ n^190 since κ ≤ log₂ n, so 2^κ ≤ n, so 2^(155κ) ≤ n^155 ≤ n^190
+          have hκ := hparam.2  -- κ ≤ log₂ n
+          have hn0 : n ≠ 0 := by omega
+          -- 2^κ ≤ n
+          have h2k : 2 ^ κ ≤ n := by
+            calc 2 ^ κ ≤ 2 ^ (Nat.log 2 n) := Nat.pow_le_pow_right (by omega) hκ
+              _ ≤ n := Nat.pow_log_le_self 2 hn0
+          -- 2^(155κ) = (2^κ)^155 ≤ n^155 ≤ n^190
+          calc 2 ^ (155 * κ) = (2 ^ κ) ^ 155 := by ring_nf; ring
+            _ ≤ n ^ 155 := Nat.pow_le_pow_left h2k 155
+            _ ≤ n ^ 190 := Nat.pow_le_pow_right (by omega) (by omega)
+  · -- No window with this profile: subspace is span ∅ = ⊥, finrank = 0
+    have : profileSubspace n κ h = ⊥ := by
+      apply Submodule.span_eq_bot.mpr
+      intro q hq
+      obtain ⟨w, _, hw, _, _, hq⟩ := hq
+      exact absurd ⟨w, hw⟩ hex
+    rw [this]
+    simp [Submodule.finrank_bot]
+    exact Nat.zero_le _
 
 /-- Layer 4 assembly: combine profile count × within-profile dimension.
     Total rank ≤ (30κ+1)^4 × n^190 ≤ n^200 for n ≥ 4, κ ≤ log₂ n. -/
