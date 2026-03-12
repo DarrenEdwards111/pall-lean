@@ -38,7 +38,7 @@ structure RegularGraph where
 structure HighGirthFamily where
   graph : ℕ → RegularGraph
   degree_const : ∃ d, ∀ n, (graph n).degree = d
-  vertices_eq : ∀ n, n ≥ 3 → (graph n).numVertices = n
+  vertices_eq : ∀ n, n ≥ 6 → 2 ∣ n → (graph n).numVertices = n
   girth_log : ∃ C, ∀ n, n ≥ 2 → C * Nat.log 2 n ≤ (graph n).numVertices
 
 /-! ## Tseitin Encoding (§8.2) -/

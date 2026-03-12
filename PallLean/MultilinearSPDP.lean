@@ -376,16 +376,16 @@ private theorem finrank_ge_of_linearIndependent {R M : Type*} [CommRing R] [AddC
   omega
 
 theorem np_ml_lower_bound (F : Type*) [Field F] [Nontrivial F] :
-    ∃ n₀, ∀ n, n ≥ n₀ →
+    ∃ n₀, ∀ n, n ≥ n₀ → 2 ∣ n →
       mlBlockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
         (tseitinPoly F n) ≥ n ^ (Nat.log 2 n / 4) := by
   -- Follow the same structure as np_side_lb, but with mlBlockedSpdpRank
   obtain ⟨n₀, hn₀⟩ := NPWitness.binomial_lower_bound
   use max n₀ (2^10)
-  intro n hn
+  intro n hn heven
   have hn₀' : n ≥ n₀ := le_trans (le_max_left _ _) hn
   have hn1024 : n ≥ 2^10 := le_trans (le_max_right _ _) hn
-  have hv := tseitinAt_vertices n (by omega)
+  have hv := tseitinAt_vertices n (by omega) heven
   have pack := Tseitin.disjoint_packing_exists (tseitinAt n) (by omega)
   -- Get identity minor components (R in blockedSpdpSubspace, τ, signs)
   let κ := Nat.log 2 n
