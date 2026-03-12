@@ -673,11 +673,81 @@ theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
           (↑(windowBasis w) : Set (MvPolynomial (Fin (npNumVars n)) ℚ))) := by
         apply Submodule.finrank_mono
         apply Submodule.span_le.mpr
-        intro q ⟨m, _, _, hq⟩
+        intro q ⟨m, _, hm_vars, hq⟩
         rw [hq]
-        -- canonicalGenerator w m ∈ span(windowBasis w)
-        -- by linearity: m = ∑ c_α · monomial α, each ML monomial maps to windowBasis element
-        sorry
+        -- Goal: canonicalGenerator w m ∈ span(windowBasis w)
+        -- Use linearity: canonicalGenerator w m = φ m = φ(∑ monomial α (coeff α m))
+        rw [hφ]
+        conv_lhs => rw [m.as_sum]
+        rw [map_sum]
+        -- Each summand: φ(monomial α (coeff α m)) = coeff α m • φ(monomial α 1)
+        -- For non-ML α: φ(monomial α 1) involves mlProj of something with
+        -- exponent ≥ 2, so it vanishes. The entire term vanishes.
+        -- For ML α with support ⊆ selectors: φ(monomial α 1) = canonicalGenerator w (∏ X_i)
+        -- which is in windowBasis w.
+        apply Submodule.sum_mem
+        intro α hα
+        -- φ(monomial α (coeff α m)) = coeff α m • φ(monomial α 1)
+        have := φ.map_smul (MvPolynomial.coeff α m) (MvPolynomial.monomial α (1 : ℚ))
+        simp only [MvPolynomial.smul_monomial, smul_eq_mul, mul_one] at this
+        rw [this]
+        apply Submodule.smul_mem
+        -- Goal: φ(monomial α 1) ∈ span(windowBasis w)
+        -- = canonicalGenerator w (monomial α 1) ∈ span(windowBasis w)
+        rw [← hφ]
+        -- α ∈ m.support implies α.support ⊆ m.vars ⊆ selectors
+        have hα_vars : α.support ⊆ w.selectorList.toFinset := by
+          exact (SPDP.monomial_support_subset_vars m α hα).trans hm_vars
+        -- Case split: α multilinear or not
+        by_cases hml : Finsupp.IsMultilinear α
+        · -- α is multilinear: monomial α 1 = ∏_{i ∈ α.support} X_i
+          -- and canonicalGenerator w (∏ X_i) ∈ windowBasis w
+          have hmem : canonicalGenerator w (α.support.prod (fun i => MvPolynomial.X i))
+              ∈ (↑(windowBasis w) : Set _) := by
+            simp only [windowBasis, Finset.coe_image]
+            exact ⟨α.support, Finset.mem_powerset.mpr hα_vars, rfl⟩
+          -- monomial α 1 = ∏ X_i for multilinear α
+          have hmon : MvPolynomial.monomial α (1 : ℚ) =
+              α.support.prod (fun i => MvPolynomial.X i) := by
+            rw [← MvPolynomial.prod_X_pow_eq_monomial]
+            congr 1; ext x
+            by_cases hx : x ∈ α.support
+            · have := hml ⟨x, Finsupp.mem_support_iff.mp hx⟩
+              simp [Finsupp.mem_support_iff] at hx
+              omega
+            · simp [Finsupp.not_mem_support_iff.mp hx]
+          rw [hmon]
+          exact Submodule.subset_span hmem
+        · -- α is not multilinear: canonicalGenerator w (monomial α 1) = 0
+          -- because mlProj kills all monomials (each has exponent ≥ 2 at some variable)
+          -- Key: ¬IsMultilinear α means ∃ i, α i ≥ 2
+          have ⟨i, hi⟩ : ∃ i, α i ≥ 2 := by
+            rw [Finsupp.IsMultilinear] at hml
+            push_neg at hml
+            obtain ⟨i, hi⟩ := hml
+            exact ⟨i, by omega⟩
+          have : canonicalGenerator w (MvPolynomial.monomial α 1) = 0 := by
+            unfold canonicalGenerator mlProj mlProjHom
+            simp only [Finsupp.filterAddHom_apply]
+            apply Finsupp.filter_eq_zero.mpr
+            intro γ hγ
+            -- γ ∈ support(monomial α 1 * D), so γ appears with nonzero coeff
+            -- By support_mul, γ = α + β for some β
+            -- Then γ i ≥ α i ≥ 2, so γ is not multilinear
+            intro hγml
+            have hγ_support : γ ∈ (MvPolynomial.monomial α (1 : ℚ) *
+                iterDerivList w.selectorList (tseitinPoly ℚ n)).support := hγ
+            rw [Finsupp.mem_support_iff] at hγ
+            -- coeff γ (monomial α 1 * D) ≠ 0 implies α ≤ γ
+            rw [MvPolynomial.coeff_monomial_mul'] at hγ
+            split at hγ
+            · rename_i hle
+              -- α ≤ γ, so γ i ≥ α i ≥ 2, contradicting multilinearity
+              have : γ i ≥ 2 := le_trans hi (hle i)
+              exact absurd (hγml i) (by omega)
+            · exact absurd rfl hγ
+          rw [this]
+          exact Submodule.zero_mem _
     _ ≤ (windowBasis w).card := by
         convert finrank_span_le_card
           (R := ℚ) (M := MvPolynomial (Fin (npNumVars n)) ℚ)
