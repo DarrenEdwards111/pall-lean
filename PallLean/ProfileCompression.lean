@@ -647,18 +647,37 @@ theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
         m.vars ⊆ w.selectorList.toFinset ∧
         q = canonicalGenerator w m }) ≤ 2 ^ (155 * κ) := by
   -- Step 1: The generating set ⊆ span(windowBasis w)
-  have hcontain : (Submodule.span ℚ
-      { q | ∃ (m : MvPolynomial (Fin (npNumVars n)) ℚ),
-        m.totalDegree ≤ κ ∧
-        m.vars ⊆ w.selectorList.toFinset ∧
-        q = canonicalGenerator w m }) ≤
-      Submodule.span ℚ (↑(windowBasis w) : Set (MvPolynomial (Fin (npNumVars n)) ℚ)) := by
-    sorry
-  -- Step 2: finrank monotonicity
-  calc Module.finrank ℚ (Submodule.span ℚ _)
+  -- canonicalGenerator w as a linear map
+  let φ : MvPolynomial (Fin (npNumVars n)) ℚ →ₗ[ℚ] MvPolynomial (Fin (npNumVars n)) ℚ :=
+    (mlProjLinearMap _ ℚ).comp (LinearMap.mulRight _ (iterDerivList w.selectorList (tseitinPoly ℚ n)))
+  have hφ : ∀ m, canonicalGenerator w m = φ m := fun m => by
+    simp only [φ, LinearMap.comp_apply, LinearMap.mulRight_apply]; rfl
+  -- The generating set = φ-image of {m | m.totalDegree ≤ κ ∧ m.vars ⊆ selectors}
+  -- The image of a linear map has finrank ≤ finrank of domain.
+  -- Domain = polynomials with vars ⊆ (κ selectors) and degree ≤ κ
+  -- This is finite-dimensional with dim = C(2κ, κ) ≤ 4^κ.
+  -- The span of the image set equals the image submodule.
+  -- Use: span(S) ≤ range(φ) when S ⊆ range(φ), and finrank(range(φ)) ≤ finrank(domain).
+  -- For the bound: finrank(range φ) ≤ finrank(whole domain) = ∞, so we restrict φ.
+  -- Instead, use a finite spanning set directly.
+  --
+  -- The multilinear monomials in κ selector variables form a finite set of size 2^κ.
+  -- Every generator is a ℚ-linear combination of φ applied to these monomials
+  -- (non-multilinear monomials contribute 0 after mlProj).
+  -- So span(generators) ≤ span(φ(multilinear monomials)) which has finrank ≤ 2^κ.
+  calc Module.finrank ℚ (Submodule.span ℚ
+        { q | ∃ (m : MvPolynomial (Fin (npNumVars n)) ℚ),
+          m.totalDegree ≤ κ ∧ m.vars ⊆ w.selectorList.toFinset ∧
+          q = canonicalGenerator w m })
       ≤ Module.finrank ℚ (Submodule.span ℚ
-          (↑(windowBasis w) : Set (MvPolynomial (Fin (npNumVars n)) ℚ))) :=
-        Submodule.finrank_mono hcontain
+          (↑(windowBasis w) : Set (MvPolynomial (Fin (npNumVars n)) ℚ))) := by
+        apply Submodule.finrank_mono
+        apply Submodule.span_le.mpr
+        intro q ⟨m, _, _, hq⟩
+        rw [hq]
+        -- canonicalGenerator w m ∈ span(windowBasis w)
+        -- by linearity: m = ∑ c_α · monomial α, each ML monomial maps to windowBasis element
+        sorry
     _ ≤ (windowBasis w).card := by
         convert finrank_span_le_card
           (R := ℚ) (M := MvPolynomial (Fin (npNumVars n)) ℚ)
@@ -732,8 +751,28 @@ theorem within_profile_finrank_le (n κ : ℕ) (hn : n ≥ 4)
     simp [Submodule.finrank_bot]
     exact Nat.zero_le _
 
+/-- Every pure-selector SPDP generator lies in some profile subspace -/
+theorem spdp_generator_in_profile (n κ : ℕ)
+    (w : CanonicalWindow n κ) (m : MvPolynomial (Fin (npNumVars n)) ℚ)
+    (hm_deg : m.totalDegree ≤ κ) (hm_vars : m.vars ⊆ w.selectorList.toFinset) :
+    canonicalGenerator w m ∈ profileSubspace n κ (windowProfile w) := by
+  apply Submodule.subset_span
+  exact ⟨w, m, rfl, hm_deg, hm_vars, rfl⟩
+
 /-- Layer 4 assembly: combine profile count × within-profile dimension.
-    Total rank ≤ (30κ+1)^4 × n^190 ≤ n^200 for n ≥ 4, κ ≤ log₂ n. -/
+    Total rank ≤ (30κ+1)^4 × n^190 ≤ n^200 for n ≥ 4, κ ≤ log₂ n.
+
+    Proof sketch:
+    1. Every SPDP generator (after admissible decomposition) lies in
+       some profileSubspace.
+    2. The mlBlockedSpdpSubspace ≤ ⨆_h profileSubspace n κ h.
+    3. finrank(⨆ profileSubspace) ≤ ∑_h finrank(profileSubspace h)
+       ≤ (30κ+1)^4 × n^190 ≤ n^200.
+
+    The nonsel exceptional case: generators with one block-0 nonsel
+    have κ-1 selectors. These are handled by embedding into profile
+    subspaces via Leibniz expansion (each term has κ selector derivatives
+    after absorbing the nonsel derivative into Leibniz terms). -/
 theorem tseitin_spdp_rank_proved (n : ℕ) (hn : n ≥ 4)
     (κ : ℕ) (hparam : AdmissibleSpdpParams n κ) :
     mlBlockedSpdpRank (NPWitness.tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤ n ^ 200 := by
