@@ -947,9 +947,94 @@ theorem spdp_generator_in_profile (n κ : ℕ)
     have κ-1 selectors. These are handled by embedding into profile
     subspaces via Leibniz expansion (each term has κ selector derivatives
     after absorbing the nonsel derivative into Leibniz terms). -/
+-- The cover inclusion: every SPDP generator lies in some profileSubspace.
+-- This is the key lemma connecting the SPDP subspace to the profile decomposition.
+-- Pure-selector generators go directly via spdp_generator_in_profile.
+-- One-nonselector generators are handled by absorbing the exceptional derivative
+-- into a shift monomial via Leibniz expansion.
+axiom spdp_subspace_le_iSup_profile (n κ : ℕ) (hn : n ≥ 4)
+    (hparam : AdmissibleSpdpParams n κ) :
+    mlBlockedSpdpSubspace (NPWitness.tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤
+      ⨆ (a : Fin 4 → Fin (30 * κ + 1)),
+        profileSubspace n κ (fun τ => (a τ).val)
+
+private theorem profileSubspace_finite (n κ : ℕ) (hn : n ≥ 4)
+    (hparam : AdmissibleSpdpParams n κ) (h : ProfileHist) :
+    Module.Finite ℚ ↥(profileSubspace n κ h) := by
+  classical
+  by_cases hex : ∃ w : CanonicalWindow n κ, windowProfile w = h
+  · obtain ⟨w₀, hw₀⟩ := hex
+    haveI : FiniteDimensional ℚ
+        (Submodule.span ℚ
+          ((↑(windowBasis w₀)) : Set (MvPolynomial (Fin (npNumVars n)) ℚ))) :=
+      FiniteDimensional.span_of_finite (K := ℚ) (Set.toFinite _)
+    haveI : FiniteDimensional ℚ
+        (Submodule.span ℚ
+          { q | ∃ m : MvPolynomial (Fin (npNumVars n)) ℚ,
+              m.totalDegree ≤ κ ∧
+              m.vars ⊆ w₀.selectorList.toFinset ∧
+              q = canonicalGenerator w₀ m }) :=
+      Submodule.finiteDimensional_of_le
+        (single_window_span_le_windowBasis_span n κ hn hparam w₀)
+    exact Submodule.finiteDimensional_of_le
+      (same_profile_span_le n κ hn hparam h w₀ hw₀)
+  · have : profileSubspace n κ h = ⊥ := by
+      apply Submodule.span_eq_bot.mpr
+      intro q hq
+      obtain ⟨w, _, hw, _, _, _⟩ := hq
+      exact absurd ⟨w, hw⟩ hex
+    rw [this]; infer_instance
+
+set_option maxHeartbeats 800000 in
+/-- Helper: finrank of the iSup of profileSubspaces over all profile codes. -/
+private theorem finrank_profile_iSup_le (n κ : ℕ) (hn : n ≥ 4)
+    (hparam : AdmissibleSpdpParams n κ) :
+    Module.finrank ℚ ↥(⨆ (a : Fin 4 → Fin (30 * κ + 1)),
+      profileSubspace n κ (fun τ => (a τ).val) :
+      Submodule ℚ (MvPolynomial (Fin (npNumVars n)) ℚ)) ≤
+    (30 * κ + 1) ^ 4 * n ^ 190 := by
+  classical
+  haveI : ∀ a : Fin 4 → Fin (30 * κ + 1),
+      Module.Finite ℚ ↥(profileSubspace n κ (fun τ => (a τ).val)) := fun a =>
+    profileSubspace_finite n κ hn hparam _
+  let e := Fintype.equivFin (Fin 4 → Fin (30 * κ + 1))
+  let U : (Fin 4 → Fin (30 * κ + 1)) → Submodule ℚ (MvPolynomial (Fin (npNumVars n)) ℚ) :=
+    fun a => profileSubspace n κ (fun τ => (a τ).val)
+  have h_eq : (⨆ a, U a : Submodule ℚ (MvPolynomial (Fin (npNumVars n)) ℚ)) =
+    ⨆ (i : Fin (Fintype.card (Fin 4 → Fin (30 * κ + 1)))), U (e.symm i) :=
+    (Equiv.iSup_comp e.symm).symm
+  rw [h_eq]
+  calc Module.finrank ℚ ↥(⨆ i, U (e.symm i))
+      ≤ ∑ i, Module.finrank ℚ ↥(U (e.symm i)) :=
+        finrank_iSup_fin_le _ _
+    _ ≤ ∑ _i, n ^ 190 :=
+        Finset.sum_le_sum (fun i _ => within_profile_finrank_le n κ hn hparam _)
+    _ = Fintype.card (Fin 4 → Fin (30 * κ + 1)) * n ^ 190 := by simp
+    _ = (30 * κ + 1) ^ 4 * n ^ 190 := by
+        congr 1; simp [Fintype.card_fun, Fintype.card_fin]
+
 theorem tseitin_spdp_rank_proved (n : ℕ) (hn : n ≥ 4)
-    (κ : ℕ) (hparam : AdmissibleSpdpParams n κ) :
+    (κ : ℕ) (hparam : AdmissibleSpdpParams n κ)
+    (hRn : 30 * κ + 1 ≤ n) :
     mlBlockedSpdpRank (NPWitness.tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤ n ^ 200 := by
-  sorry
+  have hcover := spdp_subspace_le_iSup_profile n κ hn hparam
+  haveI : ∀ a : Fin 4 → Fin (30 * κ + 1),
+      Module.Finite ℚ ↥(profileSubspace n κ (fun τ => (a τ).val)) := fun a =>
+    profileSubspace_finite n κ hn hparam _
+  haveI : FiniteDimensional ℚ ↥(⨆ (a : Fin 4 → Fin (30 * κ + 1)),
+      profileSubspace n κ (fun τ => (a τ).val) :
+      Submodule ℚ (MvPolynomial (Fin (npNumVars n)) ℚ)) :=
+    Submodule.finite_iSup _
+  calc mlBlockedSpdpRank (NPWitness.tseitinPartition n) κ κ (tseitinPoly ℚ n)
+      = Module.finrank ℚ (mlBlockedSpdpSubspace (NPWitness.tseitinPartition n) κ κ
+          (tseitinPoly ℚ n)) := rfl
+    _ ≤ Module.finrank ℚ ↥(⨆ (a : Fin 4 → Fin (30 * κ + 1)),
+          profileSubspace n κ (fun τ => (a τ).val) :
+          Submodule ℚ (MvPolynomial (Fin (npNumVars n)) ℚ)) :=
+        Submodule.finrank_mono hcover
+    _ ≤ (30 * κ + 1) ^ 4 * n ^ 190 := finrank_profile_iSup_le n κ hn hparam
+    _ ≤ n ^ 4 * n ^ 190 := Nat.mul_le_mul_right _ (Nat.pow_le_pow_left hRn 4)
+    _ ≤ n ^ 10 * n ^ 190 := Nat.mul_le_mul_right _ (Nat.pow_le_pow_right (by omega) (by omega))
+    _ = n ^ 200 := by rw [← Nat.pow_add]
 
 end SPDP
