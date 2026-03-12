@@ -305,6 +305,143 @@ private theorem vertexClauses_vars_lt_numEdges (G : RegularGraph)
         · simpa using ((incidentEdgesList G v)[1]'(by omega)).isLt
         · simpa using ((incidentEdgesList G v)[2]'(by omega)).isLt
   · simp [hlen] at hc
+
+private theorem filter_flatMap_eq_flatMap_filter {α β : Type*}
+    (l : List α) (f : α → List β) (p : β → Bool) :
+    (l.flatMap f).filter p = l.flatMap (fun a => (f a).filter p) := by
+  induction l with
+  | nil => rfl
+  | cons a t ih => simp [ih, List.filter_append]
+
+private theorem edge_of_incident_getElem (G : RegularGraph) (v : Fin G.numVertices)
+    (i : ℕ) (hi : i < (incidentEdgesList G v).length) :
+    G.edgeSrc ((incidentEdgesList G v)[i]'hi) = v ∨
+      G.edgeTgt ((incidentEdgesList G v)[i]'hi) = v := by
+  have hmemList : ((incidentEdgesList G v)[i]'hi) ∈ incidentEdgesList G v :=
+    List.getElem_mem _
+  have hmemFinset : ((incidentEdgesList G v)[i]'hi) ∈ incidentEdges G v := by
+    simpa [incidentEdgesList] using
+      (Finset.mem_sort (s := incidentEdges G v) (r := (· ≤ ·))).1 hmemList
+  simpa [incidentEdges] using hmemFinset
+
+private theorem vertexClauses_contains_edge_imp_incident (G : RegularGraph)
+    (v : Fin G.numVertices) (e : Fin G.numEdges) (c : Clause3)
+    (hc : c ∈ vertexClauses G v)
+    (hv : c.var1 = e.val ∨ c.var2 = e.val ∨ c.var3 = e.val) :
+    G.edgeSrc e = v ∨ G.edgeTgt e = v := by
+  unfold vertexClauses at hc
+  by_cases hlen : (incidentEdgesList G v).length ≥ 3
+  · have hnd := incidentEdgesList_nodup G v
+    have he12 : ((incidentEdgesList G v)[0]'(by omega)).val ≠ ((incidentEdgesList G v)[1]'(by omega)).val := by
+      intro heq
+      have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq))
+      omega
+    have he13 : ((incidentEdgesList G v)[0]'(by omega)).val ≠ ((incidentEdgesList G v)[2]'(by omega)).val := by
+      intro heq
+      have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq))
+      omega
+    have he23 : ((incidentEdgesList G v)[1]'(by omega)).val ≠ ((incidentEdgesList G v)[2]'(by omega)).val := by
+      intro heq
+      have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq))
+      omega
+    by_cases hb : v.val = 0
+    · have hvars := xorClauses_vars
+        ((incidentEdgesList G v)[0]'(by omega)).val
+        ((incidentEdgesList G v)[1]'(by omega)).val
+        ((incidentEdgesList G v)[2]'(by omega)).val
+        true he12 he13 he23 c
+      simp [hlen, hb] at hc
+      have hvars' := hvars hc
+      rcases hvars' with ⟨h1, h2, h3⟩
+      rcases hv with hv1 | hv2 | hv3
+      · have hEq : ((incidentEdgesList G v)[0]'(by omega)) = e := by
+          apply Fin.ext
+          exact h1.symm.trans hv1
+        simpa [hEq] using edge_of_incident_getElem G v 0 (by omega)
+      · have hEq : ((incidentEdgesList G v)[1]'(by omega)) = e := by
+          apply Fin.ext
+          exact h2.symm.trans hv2
+        simpa [hEq] using edge_of_incident_getElem G v 1 (by omega)
+      · have hEq : ((incidentEdgesList G v)[2]'(by omega)) = e := by
+          apply Fin.ext
+          exact h3.symm.trans hv3
+        simpa [hEq] using edge_of_incident_getElem G v 2 (by omega)
+    · have hvars := xorClauses_vars
+        ((incidentEdgesList G v)[0]'(by omega)).val
+        ((incidentEdgesList G v)[1]'(by omega)).val
+        ((incidentEdgesList G v)[2]'(by omega)).val
+        false he12 he13 he23 c
+      simp [hlen, hb] at hc
+      have hvars' := hvars hc
+      rcases hvars' with ⟨h1, h2, h3⟩
+      rcases hv with hv1 | hv2 | hv3
+      · have hEq : ((incidentEdgesList G v)[0]'(by omega)) = e := by
+          apply Fin.ext
+          exact h1.symm.trans hv1
+        simpa [hEq] using edge_of_incident_getElem G v 0 (by omega)
+      · have hEq : ((incidentEdgesList G v)[1]'(by omega)) = e := by
+          apply Fin.ext
+          exact h2.symm.trans hv2
+        simpa [hEq] using edge_of_incident_getElem G v 1 (by omega)
+      · have hEq : ((incidentEdgesList G v)[2]'(by omega)) = e := by
+          apply Fin.ext
+          exact h3.symm.trans hv3
+        simpa [hEq] using edge_of_incident_getElem G v 2 (by omega)
+  · simp [hlen] at hc
+
+private theorem vertexClauses_filter_eq_nil_of_not_incident (G : RegularGraph)
+    (v : Fin G.numVertices) (e : Fin G.numEdges)
+    (hnot : ¬ (G.edgeSrc e = v ∨ G.edgeTgt e = v)) :
+    (vertexClauses G v).filter
+        (fun c => decide (c.var1 = e.val ∨ c.var2 = e.val ∨ c.var3 = e.val)) = [] := by
+  apply List.eq_nil_iff_forall_not_mem.2
+  intro c hc
+  have hmem : c ∈ vertexClauses G v := List.mem_of_mem_filter hc
+  have hvar : c.var1 = e.val ∨ c.var2 = e.val ∨ c.var3 = e.val := by
+    simpa [decide_eq_true_eq] using List.of_mem_filter hc
+  exact hnot (vertexClauses_contains_edge_imp_incident G v e c hmem hvar)
+
+private theorem finRange_filter_incident_length_le_two (G : RegularGraph)
+    (e : Fin G.numEdges) :
+    ((List.finRange G.numVertices).filter
+      (fun v => decide (G.edgeSrc e = v ∨ G.edgeTgt e = v))).length ≤ 2 := by
+  have hnodup :
+      ((List.finRange G.numVertices).filter
+        (fun v => decide (G.edgeSrc e = v ∨ G.edgeTgt e = v))).Nodup := by
+    exact (List.nodup_finRange _).filter _
+  rw [← List.toFinset_card_of_nodup hnodup]
+  have htoFinset :
+      (((List.finRange G.numVertices).filter
+        (fun v => decide (G.edgeSrc e = v ∨ G.edgeTgt e = v))).toFinset) =
+      Finset.univ.filter (fun v : Fin G.numVertices => G.edgeSrc e = v ∨ G.edgeTgt e = v) := by
+    ext v
+    simp [List.mem_finRange, decide_eq_true_eq]
+  rw [htoFinset]
+  by_cases hst : G.edgeSrc e = G.edgeTgt e
+  · have hs :
+        (Finset.univ.filter (fun v : Fin G.numVertices => G.edgeSrc e = v ∨ G.edgeTgt e = v)) =
+          {G.edgeSrc e} := by
+        ext v
+        constructor
+        · intro hv
+          simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_singleton] at hv ⊢
+          rcases hv with hv | hv
+          · exact hv.symm
+          · exact (hst.trans hv).symm
+        · intro hv
+          simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_singleton] at hv ⊢
+          left
+          exact hv.symm
+    rw [hs]
+    simp
+  · calc
+      (Finset.univ.filter (fun v : Fin G.numVertices => G.edgeSrc e = v ∨ G.edgeTgt e = v)).card
+        ≤ ({G.edgeSrc e, G.edgeTgt e} : Finset (Fin G.numVertices)).card := by
+            apply Finset.card_le_card
+            intro v hv
+            simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hv
+            simpa [eq_comm] using hv
+      _ = 2 := by simp [hst]
 noncomputable def buildTseitin (G : RegularGraph) (hdeg : G.degree = 3) : TseitinFormula where
   graph := G
   parityBit := fun v => if v.val = 0 then true else false
@@ -342,7 +479,102 @@ noncomputable def buildTseitin (G : RegularGraph) (hdeg : G.degree = 3) : Tseiti
     · omega
   bounded_occurrence := by
     -- Each edge variable appears at both endpoints: 4 clauses per endpoint = 8 total ≤ 10.
-    sorry
+    intro v
+    by_cases hv : v < G.numEdges
+    · let e : Fin G.numEdges := ⟨v, hv⟩
+      let verts :=
+        (List.finRange G.numVertices).filter
+          (fun w => decide (G.edgeSrc e = w ∨ G.edgeTgt e = w))
+      have hfilter :
+          (((List.finRange G.numVertices).flatMap (vertexClauses G)).filter
+            (fun c => decide (c.var1 = v ∨ c.var2 = v ∨ c.var3 = v))) =
+          (List.finRange G.numVertices).flatMap (fun w =>
+            (vertexClauses G w).filter
+              (fun c => decide (c.var1 = v ∨ c.var2 = v ∨ c.var3 = v))) := by
+        simpa using filter_flatMap_eq_flatMap_filter
+          (List.finRange G.numVertices) (vertexClauses G)
+          (fun c => decide (c.var1 = v ∨ c.var2 = v ∨ c.var3 = v))
+      rw [hfilter]
+      have hsub :
+          List.Sublist
+            (((List.finRange G.numVertices).flatMap (fun w =>
+              (vertexClauses G w).filter
+                (fun c => decide (c.var1 = v ∨ c.var2 = v ∨ c.var3 = v)))))
+            (((List.finRange G.numVertices).flatMap (fun w =>
+              if G.edgeSrc e = w ∨ G.edgeTgt e = w then vertexClauses G w else []))) := by
+        apply List.Sublist.flatMap_right
+        intro w hw
+        by_cases hw' : G.edgeSrc e = w ∨ G.edgeTgt e = w
+        · simpa [hw'] using
+            (List.filter_sublist
+              (p := fun c => decide (c.var1 = v ∨ c.var2 = v ∨ c.var3 = v))
+              (l := vertexClauses G w))
+        · have hnil :
+            (vertexClauses G w).filter
+              (fun c => decide (c.var1 = v ∨ c.var2 = v ∨ c.var3 = v)) = [] := by
+            simpa [e] using vertexClauses_filter_eq_nil_of_not_incident G w e hw'
+          rw [hnil]
+          simp [hw']
+      have hflat :
+          (List.finRange G.numVertices).flatMap (fun w =>
+            if G.edgeSrc e = w ∨ G.edgeTgt e = w then vertexClauses G w else []) =
+          verts.flatMap (vertexClauses G) := by
+        unfold verts
+        induction List.finRange G.numVertices with
+        | nil => rfl
+        | cons a t ih =>
+            by_cases ha : G.edgeSrc e = a ∨ G.edgeTgt e = a
+            · simp [ha, ih]
+            · simp [ha, ih]
+      have hmain :
+          (((List.finRange G.numVertices).flatMap (fun w =>
+              (vertexClauses G w).filter
+                (fun c => decide (c.var1 = v ∨ c.var2 = v ∨ c.var3 = v)))).length) ≤ 8 := by
+        have hvertsLen : (verts.flatMap (vertexClauses G)).length = 4 * verts.length := by
+          rw [List.length_flatMap]
+          have hmap :
+              List.map (fun w => (vertexClauses G w).length) verts =
+                List.replicate verts.length 4 := by
+            apply List.ext_getElem
+            · simp
+            · intro i hi1 hi2
+              have hi : i < verts.length := by simpa using hi1
+              rw [List.getElem_map, List.getElem_replicate]
+              simpa using vertexClauses_length_of_degree_eq_three G hdeg (verts[i]'hi)
+          rw [hmap]
+          simp [List.sum_replicate, Nat.mul_comm]
+        have hverts : verts.length ≤ 2 := by
+          unfold verts
+          exact finRange_filter_incident_length_le_two G e
+        calc
+          (((List.finRange G.numVertices).flatMap (fun w =>
+              (vertexClauses G w).filter
+                (fun c => decide (c.var1 = v ∨ c.var2 = v ∨ c.var3 = v)))).length)
+              ≤ ((List.finRange G.numVertices).flatMap (fun w =>
+                    if G.edgeSrc e = w ∨ G.edgeTgt e = w then vertexClauses G w else [])).length :=
+                hsub.length_le
+          _ = (verts.flatMap (vertexClauses G)).length := by simpa [hflat]
+          _ = 4 * verts.length := hvertsLen
+          _ ≤ 8 := by omega
+      exact le_trans hmain (by omega)
+    · have hnone :
+          ((List.finRange G.numVertices).flatMap (vertexClauses G)).filter
+            (fun c => decide (c.var1 = v ∨ c.var2 = v ∨ c.var3 = v)) = [] := by
+        apply List.eq_nil_iff_forall_not_mem.2
+        intro c hc
+        have hc' : c ∈ (List.finRange G.numVertices).flatMap (vertexClauses G) :=
+          List.mem_of_mem_filter hc
+        rcases List.mem_flatMap.1 hc' with ⟨w, hw, hcw⟩
+        have hvars := vertexClauses_vars_lt_numEdges G w c hcw
+        rcases hvars with ⟨h1, h2, h3⟩
+        have hvar : c.var1 = v ∨ c.var2 = v ∨ c.var3 = v := by
+          simpa [decide_eq_true_eq] using List.of_mem_filter hc
+        rcases hvar with hEq | hEq | hEq
+        · exact (not_lt_of_ge (Nat.le_of_not_lt hv)) (hEq ▸ h1)
+        · exact (not_lt_of_ge (Nat.le_of_not_lt hv)) (hEq ▸ h2)
+        · exact (not_lt_of_ge (Nat.le_of_not_lt hv)) (hEq ▸ h3)
+      rw [hnone]
+      exact by decide
 
 /-- Tseitin formula on the n-th graph, built concretely -/
 noncomputable def tseitinAt (n : ℕ) : TseitinFormula :=
