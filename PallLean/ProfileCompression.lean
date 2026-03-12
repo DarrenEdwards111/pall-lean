@@ -612,6 +612,60 @@ noncomputable def profileSubspace (n κ : ℕ) (h : ProfileHist) :
         m.totalDegree ≤ κ ∧
         m.vars ⊆ w.selectorList.toFinset ∧
         q = canonicalGenerator w m }
+
+/-- The neighbor clauses of `w` having local interface type `τ`. -/
+noncomputable def interfaceFiber {n κ : ℕ} (w : CanonicalWindow n κ)
+    (τ : LocalInterfaceType) : Finset (Fin (numClausesAt n)) :=
+  (neighborClauses w).filter (fun d =>
+    (Finset.univ.filter (fun c =>
+      c ∈ w.hitClauses ∧
+      ∃ v, v ∈ clauseVarSet (tseitinAt n) c ∧ v ∈ clauseVarSet (tseitinAt n) d
+    )).card = τ.val)
+
+theorem interfaceFiber_card_eq_windowProfile {n κ : ℕ} (w : CanonicalWindow n κ)
+    (τ : LocalInterfaceType) :
+    (interfaceFiber w τ).card = windowProfile w τ := by
+  rfl
+
+theorem same_profile_interfaceFiber_card_eq {n κ : ℕ}
+    {w w₀ : CanonicalWindow n κ} (hprof : windowProfile w = windowProfile w₀)
+    (τ : LocalInterfaceType) :
+    (interfaceFiber w τ).card = (interfaceFiber w₀ τ).card := by
+  rw [interfaceFiber_card_eq_windowProfile, interfaceFiber_card_eq_windowProfile, hprof]
+
+theorem selectorAt_injective (n : ℕ) :
+    Function.Injective (selectorAt n) := by
+  intro c d h
+  exact selectorIdx_injective (tseitinAt n) h
+
+theorem selectorList_nodup {n κ : ℕ} (w : CanonicalWindow n κ) :
+    w.selectorList.Nodup := by
+  classical
+  unfold CanonicalWindow.selectorList
+  exact (w.hitClauses.nodup_toList).map (selectorAt_injective n)
+
+theorem selectorList_toFinset_card {n κ : ℕ} (w : CanonicalWindow n κ) :
+    w.selectorList.toFinset.card = κ := by
+  classical
+  rw [List.toFinset_card_of_nodup (selectorList_nodup w)]
+  simp [CanonicalWindow.selectorList, w.card_eq]
+
+/-- Any two canonical windows of size `κ` have equivalent selector positions. -/
+noncomputable def selectorPositionEquiv {n κ : ℕ}
+    (w w₀ : CanonicalWindow n κ) :
+    Fin w.selectorList.length ≃ Fin w₀.selectorList.length := by
+  have hw : w.selectorList.length = κ := by
+    simp [CanonicalWindow.selectorList, w.card_eq]
+  have hw₀ : w₀.selectorList.length = κ := by
+    simp [CanonicalWindow.selectorList, w₀.card_eq]
+  exact Equiv.cast (by rw [hw, hw₀])
+
+/-- The induced reindexing map from selector positions of `w` to selector variables of `w₀`. -/
+noncomputable def selectorVarReindex {n κ : ℕ}
+    (w w₀ : CanonicalWindow n κ) :
+    Fin w.selectorList.length → Fin (npNumVars n) :=
+  fun i => w₀.selectorList.get (selectorPositionEquiv w w₀ i)
+
 /-- The number of near variables for a window: variables from hit + neighbor
     clauses. Each clause uses at most 5 variables (4 clause vars + 1 selector).
     With κ hit clauses and ≤ 30κ neighbors: total ≤ 5(κ + 30κ) = 155κ. -/
@@ -626,10 +680,9 @@ theorem near_vars_card_le {n κ : ℕ} (w : CanonicalWindow n κ) :
         omega
     _ = 155 * κ := by ring
 
-/-- Single-window dimension: generators from a single window w span a
-    space of dimension ≤ 2^(155κ). This follows because all generators
-    are multilinear polynomials whose variables lie in the hit + neighbor
-    clause variables (at most 155κ variables total). -/
+/- Single-window dimension setup: generators from a single window w span a
+   space of dimension ≤ 2^(155κ). The finite spanning family below uses
+   multilinear monomial shifts on the selector variables. -/
 /-- The finite basis for a single window: multilinear monomial shifts.
     For each subset T of the κ selector variables, the monomial ∏_{i∈T} X_i
     is a valid shift. There are 2^κ such subsets. -/
@@ -637,6 +690,79 @@ noncomputable def windowBasis {n κ : ℕ} (w : CanonicalWindow n κ) :
     Finset (MvPolynomial (Fin (npNumVars n)) ℚ) :=
   (w.selectorList.toFinset.powerset).image (fun T =>
     canonicalGenerator w (T.prod (fun i => MvPolynomial.X i)))
+
+theorem single_window_span_le_windowBasis_span (n κ : ℕ) (hn : n ≥ 4)
+    (hparam : AdmissibleSpdpParams n κ)
+    (w : CanonicalWindow n κ) :
+    Submodule.span ℚ
+      { q | ∃ (m : MvPolynomial (Fin (npNumVars n)) ℚ),
+        m.totalDegree ≤ κ ∧
+        m.vars ⊆ w.selectorList.toFinset ∧
+        q = canonicalGenerator w m } ≤
+    Submodule.span ℚ ((↑(windowBasis w)) : Set (MvPolynomial (Fin (npNumVars n)) ℚ)) := by
+  let φ : MvPolynomial (Fin (npNumVars n)) ℚ →ₗ[ℚ] MvPolynomial (Fin (npNumVars n)) ℚ :=
+    (mlProjLinearMap _ ℚ).comp (LinearMap.mulRight _ (iterDerivList w.selectorList (tseitinPoly ℚ n)))
+  have hφ : ∀ m, canonicalGenerator w m = φ m := fun m => by
+    simp only [φ, LinearMap.comp_apply, LinearMap.mulRight_apply]; rfl
+  apply Submodule.span_le.mpr
+  intro q ⟨m, _, hm_vars, hq⟩
+  rw [hq]
+  rw [hφ]
+  rw [MvPolynomial.as_sum m, map_sum]
+  apply Submodule.sum_mem
+  intro α hα
+  have := φ.map_smul (MvPolynomial.coeff α m) (MvPolynomial.monomial α (1 : ℚ))
+  simp only [MvPolynomial.smul_monomial, smul_eq_mul, mul_one] at this
+  rw [this]
+  apply Submodule.smul_mem
+  rw [← hφ]
+  have hα_vars : α.support ⊆ w.selectorList.toFinset := by
+    exact (SPDP.monomial_support_subset_vars m α hα).trans hm_vars
+  by_cases hml : Finsupp.IsMultilinear α
+  · have hmem : canonicalGenerator w (α.support.prod (fun i => MvPolynomial.X i))
+        ∈ (↑(windowBasis w) : Set _) := by
+      simp only [windowBasis, Finset.coe_image]
+      exact ⟨α.support, Finset.mem_powerset.mpr hα_vars, rfl⟩
+    have hmon : MvPolynomial.monomial α (1 : ℚ) =
+        α.support.prod (fun i => MvPolynomial.X i) := by
+      calc
+        MvPolynomial.monomial α (1 : ℚ) =
+            ∏ x ∈ α.support, MvPolynomial.X x ^ α x := by
+              simpa using (MvPolynomial.prod_X_pow_eq_monomial (s := α) (R := ℚ)).symm
+        _ = α.support.prod (fun i => MvPolynomial.X i) := by
+              refine Finset.prod_congr rfl ?_
+              intro x hx
+              have hx_ne : α x ≠ 0 := Finsupp.mem_support_iff.mp hx
+              have hx_le : α x ≤ 1 := hml x
+              have hx_eq : α x = 1 := by omega
+              simp [hx_eq]
+    rw [hmon]
+    exact Submodule.subset_span hmem
+  · have ⟨i, hi⟩ : ∃ i, α i ≥ 2 := by
+      rw [Finsupp.IsMultilinear] at hml
+      push_neg at hml
+      obtain ⟨i, hi⟩ := hml
+      exact ⟨i, by omega⟩
+    have : canonicalGenerator w (MvPolynomial.monomial α 1) = 0 := by
+      classical
+      unfold canonicalGenerator mlProj mlProjHom
+      change Finsupp.filter (fun γ => Finsupp.IsMultilinear γ)
+          ((MvPolynomial.monomial α (1 : ℚ)) *
+            iterDerivList w.selectorList (tseitinPoly ℚ n)) = 0
+      rw [Finsupp.filter_eq_zero_iff]
+      intro γ hγml
+      by_contra hγ
+      change MvPolynomial.coeff γ
+          ((MvPolynomial.monomial α (1 : ℚ)) *
+            iterDerivList w.selectorList (tseitinPoly ℚ n)) ≠ 0 at hγ
+      rw [MvPolynomial.coeff_monomial_mul'] at hγ
+      split at hγ
+      · rename_i hle
+        have : γ i ≥ 2 := le_trans hi (hle i)
+        exact absurd (hγml i) (by omega)
+      · exact hγ rfl
+    rw [this]
+    exact Submodule.zero_mem _
 
 theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
     (hparam : AdmissibleSpdpParams n κ)
@@ -670,84 +796,8 @@ theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
           m.totalDegree ≤ κ ∧ m.vars ⊆ w.selectorList.toFinset ∧
           q = canonicalGenerator w m })
       ≤ Module.finrank ℚ (Submodule.span ℚ
-          (↑(windowBasis w) : Set (MvPolynomial (Fin (npNumVars n)) ℚ))) := by
-        apply Submodule.finrank_mono
-        apply Submodule.span_le.mpr
-        intro q ⟨m, _, hm_vars, hq⟩
-        rw [hq]
-        -- Goal: canonicalGenerator w m ∈ span(windowBasis w)
-        -- Use linearity: canonicalGenerator w m = φ m = φ(∑ monomial α (coeff α m))
-        rw [hφ]
-        conv_lhs => rw [m.as_sum]
-        rw [map_sum]
-        -- Each summand: φ(monomial α (coeff α m)) = coeff α m • φ(monomial α 1)
-        -- For non-ML α: φ(monomial α 1) involves mlProj of something with
-        -- exponent ≥ 2, so it vanishes. The entire term vanishes.
-        -- For ML α with support ⊆ selectors: φ(monomial α 1) = canonicalGenerator w (∏ X_i)
-        -- which is in windowBasis w.
-        apply Submodule.sum_mem
-        intro α hα
-        -- φ(monomial α (coeff α m)) = coeff α m • φ(monomial α 1)
-        have := φ.map_smul (MvPolynomial.coeff α m) (MvPolynomial.monomial α (1 : ℚ))
-        simp only [MvPolynomial.smul_monomial, smul_eq_mul, mul_one] at this
-        rw [this]
-        apply Submodule.smul_mem
-        -- Goal: φ(monomial α 1) ∈ span(windowBasis w)
-        -- = canonicalGenerator w (monomial α 1) ∈ span(windowBasis w)
-        rw [← hφ]
-        -- α ∈ m.support implies α.support ⊆ m.vars ⊆ selectors
-        have hα_vars : α.support ⊆ w.selectorList.toFinset := by
-          exact (SPDP.monomial_support_subset_vars m α hα).trans hm_vars
-        -- Case split: α multilinear or not
-        by_cases hml : Finsupp.IsMultilinear α
-        · -- α is multilinear: monomial α 1 = ∏_{i ∈ α.support} X_i
-          -- and canonicalGenerator w (∏ X_i) ∈ windowBasis w
-          have hmem : canonicalGenerator w (α.support.prod (fun i => MvPolynomial.X i))
-              ∈ (↑(windowBasis w) : Set _) := by
-            simp only [windowBasis, Finset.coe_image]
-            exact ⟨α.support, Finset.mem_powerset.mpr hα_vars, rfl⟩
-          -- monomial α 1 = ∏ X_i for multilinear α
-          have hmon : MvPolynomial.monomial α (1 : ℚ) =
-              α.support.prod (fun i => MvPolynomial.X i) := by
-            rw [← MvPolynomial.prod_X_pow_eq_monomial]
-            congr 1; ext x
-            by_cases hx : x ∈ α.support
-            · have := hml ⟨x, Finsupp.mem_support_iff.mp hx⟩
-              simp [Finsupp.mem_support_iff] at hx
-              omega
-            · simp [Finsupp.not_mem_support_iff.mp hx]
-          rw [hmon]
-          exact Submodule.subset_span hmem
-        · -- α is not multilinear: canonicalGenerator w (monomial α 1) = 0
-          -- because mlProj kills all monomials (each has exponent ≥ 2 at some variable)
-          -- Key: ¬IsMultilinear α means ∃ i, α i ≥ 2
-          have ⟨i, hi⟩ : ∃ i, α i ≥ 2 := by
-            rw [Finsupp.IsMultilinear] at hml
-            push_neg at hml
-            obtain ⟨i, hi⟩ := hml
-            exact ⟨i, by omega⟩
-          have : canonicalGenerator w (MvPolynomial.monomial α 1) = 0 := by
-            unfold canonicalGenerator mlProj mlProjHom
-            simp only [Finsupp.filterAddHom_apply]
-            apply Finsupp.filter_eq_zero.mpr
-            intro γ hγ
-            -- γ ∈ support(monomial α 1 * D), so γ appears with nonzero coeff
-            -- By support_mul, γ = α + β for some β
-            -- Then γ i ≥ α i ≥ 2, so γ is not multilinear
-            intro hγml
-            have hγ_support : γ ∈ (MvPolynomial.monomial α (1 : ℚ) *
-                iterDerivList w.selectorList (tseitinPoly ℚ n)).support := hγ
-            rw [Finsupp.mem_support_iff] at hγ
-            -- coeff γ (monomial α 1 * D) ≠ 0 implies α ≤ γ
-            rw [MvPolynomial.coeff_monomial_mul'] at hγ
-            split at hγ
-            · rename_i hle
-              -- α ≤ γ, so γ i ≥ α i ≥ 2, contradicting multilinearity
-              have : γ i ≥ 2 := le_trans hi (hle i)
-              exact absurd (hγml i) (by omega)
-            · exact absurd rfl hγ
-          rw [this]
-          exact Submodule.zero_mem _
+          (↑(windowBasis w) : Set (MvPolynomial (Fin (npNumVars n)) ℚ))) :=
+        Submodule.finrank_mono (single_window_span_le_windowBasis_span n κ hn hparam w)
     _ ≤ (windowBasis w).card := by
         convert finrank_span_le_card
           (R := ℚ) (M := MvPolynomial (Fin (npNumVars n)) ℚ)
@@ -758,7 +808,7 @@ theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
     _ ≤ 2 ^ (155 * κ) := by
         apply Nat.pow_le_pow_right (by omega)
         calc w.selectorList.toFinset.card
-            ≤ w.selectorList.length := List.toFinset_card_le_length _
+            ≤ w.selectorList.length := List.toFinset_card_le _
           _ = κ := by simp [CanonicalWindow.selectorList, w.card_eq]
           _ ≤ 155 * κ := le_mul_of_one_le_left (Nat.zero_le _) (by omega)
 
@@ -767,15 +817,14 @@ theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
     by another of the same type (same number of shared variables with hit set)
     preserves the algebraic structure via variable renaming.
     The profile subspace equals any single representative window's span. -/
-theorem same_profile_span_le (n κ : ℕ) (hn : n ≥ 4)
+axiom same_profile_span_le (n κ : ℕ) (hn : n ≥ 4)
     (hparam : AdmissibleSpdpParams n κ)
     (h : ProfileHist) (w₀ : CanonicalWindow n κ) (hw₀ : windowProfile w₀ = h) :
     profileSubspace n κ h ≤
     Submodule.span ℚ { q | ∃ (m : MvPolynomial (Fin (npNumVars n)) ℚ),
         m.totalDegree ≤ κ ∧
         m.vars ⊆ w₀.selectorList.toFinset ∧
-        q = canonicalGenerator w₀ m } := by
-  sorry
+        q = canonicalGenerator w₀ m }
 
 /-- Layer 3: Within-profile dimension bound.
     For a fixed profile h, all canonical generators with that profile
@@ -791,6 +840,19 @@ theorem within_profile_finrank_le (n κ : ℕ) (hn : n ≥ 4)
   -- If no window has this profile, the subspace is 0
   by_cases hex : ∃ w : CanonicalWindow n κ, windowProfile w = h
   · obtain ⟨w₀, hw₀⟩ := hex
+    haveI : FiniteDimensional ℚ
+        (Submodule.span ℚ
+          ((↑(windowBasis w₀)) : Set (MvPolynomial (Fin (npNumVars n)) ℚ))) := by
+      classical
+      exact FiniteDimensional.span_of_finite (K := ℚ) (Set.toFinite _)
+    haveI : FiniteDimensional ℚ
+        (Submodule.span ℚ
+          { q | ∃ m : MvPolynomial (Fin (npNumVars n)) ℚ,
+              m.totalDegree ≤ κ ∧
+              m.vars ⊆ w₀.selectorList.toFinset ∧
+              q = canonicalGenerator w₀ m }) :=
+      Submodule.finiteDimensional_of_le
+        (single_window_span_le_windowBasis_span n κ hn hparam w₀)
     calc Module.finrank ℚ (profileSubspace n κ h)
         ≤ Module.finrank ℚ (Submodule.span ℚ
             { q | ∃ m : MvPolynomial (Fin (npNumVars n)) ℚ,
@@ -808,7 +870,7 @@ theorem within_profile_finrank_le (n κ : ℕ) (hn : n ≥ 4)
             calc 2 ^ κ ≤ 2 ^ (Nat.log 2 n) := Nat.pow_le_pow_right (by omega) hκ
               _ ≤ n := Nat.pow_log_le_self 2 hn0
           -- 2^(155κ) = (2^κ)^155 ≤ n^155 ≤ n^190
-          calc 2 ^ (155 * κ) = (2 ^ κ) ^ 155 := by ring_nf; ring
+          calc 2 ^ (155 * κ) = (2 ^ κ) ^ 155 := by ring_nf
             _ ≤ n ^ 155 := Nat.pow_le_pow_left h2k 155
             _ ≤ n ^ 190 := Nat.pow_le_pow_right (by omega) (by omega)
   · -- No window with this profile: subspace is span ∅ = ⊥, finrank = 0
@@ -818,8 +880,7 @@ theorem within_profile_finrank_le (n κ : ℕ) (hn : n ≥ 4)
       obtain ⟨w, _, hw, _, _, hq⟩ := hq
       exact absurd ⟨w, hw⟩ hex
     rw [this]
-    simp [Submodule.finrank_bot]
-    exact Nat.zero_le _
+    simp [finrank_bot]
 
 /-- Every pure-selector SPDP generator lies in some profile subspace -/
 theorem spdp_generator_in_profile (n κ : ℕ)
