@@ -110,7 +110,8 @@ noncomputable def cubicGraph (n : ℕ) (hn : n ≥ 6) (heven : 2 ∣ n) : Regula
     -- Vertex v is incident to exactly 3 edges:
     -- 1. Cycle edge v (src=v)
     -- 2. Cycle edge (v+n-1)%n (tgt=v)
-    -- 3. Matching edge: if v < n/2, edge n+v (src=v); if v ≥ n/2, edge n+(v-n/2) (tgt=v)
+    -- 3. Matching edge: n+v (if v<n/2) or n+(v-n/2) (if v≥n/2)
+    -- Proof: identify the 3-element filter, show distinctness, compute card.
     sorry
 
 /-- Round up to even ≥ 6 -/
@@ -122,7 +123,13 @@ private lemma evenUp_ge6 (n : ℕ) : evenUp n ≥ 6 := by
   simp only [evenUp]; split <;> omega
 
 private lemma evenUp_even (n : ℕ) : 2 ∣ evenUp n := by
-  simp only [evenUp]; split <;> [assumption; sorry]
+  simp only [evenUp]
+  split
+  · assumption
+  · rename_i h
+    -- max n 6 is odd, so max n 6 + 1 is even
+    have : max n 6 % 2 = 1 := by omega
+    exact ⟨(max n 6 + 1) / 2, by omega⟩
 
 private lemma evenUp_ge (n : ℕ) : evenUp n ≥ n := by
   simp only [evenUp]; split <;> omega
@@ -254,9 +261,16 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
         xorClauses e1 e2 e3 b he12 he13 he23
       else []
   num_clauses_upper := by sorry
-  num_clauses_lower := by sorry
-  clause_vars_bound := by sorry
-  bounded_occurrence := by sorry
+  num_clauses_lower := by
+    -- For degree ≥ 3: each vertex contributes 4 clauses, total = 4n ≥ n.
+    -- Requires G.degree ≥ 3 (satisfied by cubicGraph).
+    sorry
+  clause_vars_bound := by
+    -- Each clause variable is an edge index (< numEdges < numEdges + 3 * numClauses).
+    sorry
+  bounded_occurrence := by
+    -- Each edge variable appears at both endpoints: 4 clauses per endpoint = 8 total ≤ 10.
+    sorry
 
 /-- Tseitin formula on the n-th graph, built concretely -/
 noncomputable def tseitinAt (n : ℕ) : TseitinFormula :=

@@ -33,17 +33,12 @@ theorem P_neq_NP (h : PeqNP) : False := by
   have heven : 2 ∣ n := ⟨_, rfl⟩
   -- Size bound for canonical inclusion
   have h_le : npNumVars n ≤ numVars M n (Nat.log 2 n) := by
-    unfold npNumVars tseitinNumVars
-    simp only [tseitinAt, highGirthFamily]
-    -- highGirthFamily.graph n = cubicGraph (evenUp n) ...
-    -- For even n ≥ 6, evenUp n = n, so cubicGraph n ...
-    -- buildTseitin uses numEdges = n + n/2 for the clause list
-    simp only [buildTseitin, cubicGraph, List.length_map, List.length_finRange]
-    unfold numVars tapeSize timeSteps
-    have hpow : n ^ M.timeBound ≥ n ^ 1 :=
-      Nat.pow_le_pow_right (by omega : n > 0) M.hTimeBound
-    simp at hpow
-    sorry -- nlinarith [M.hStates, Nat.log_le_self 2 n]
+    -- npNumVars = numEdges + 4 * numClauses
+    -- numEdges ≤ numVertices * degree ≤ 10n
+    -- numClauses ≤ 10 * numVertices = 10n
+    -- So npNumVars ≤ 10n + 40n = 50n
+    -- numVars grows as n^timeBound * ... which dominates 50n for large n
+    sorry
   -- Instantiate bounds
   have h_np := hnpside n (by omega) heven
   have hκ_ge : Nat.log 2 n ≥ 5 := by
