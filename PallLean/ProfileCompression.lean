@@ -3,6 +3,7 @@ Copyright (c) 2026 Darren Edwards. All rights reserved.
 Released under Apache 2.0 license.
 -/
 import PallLean.MultilinearSPDP
+import PallLean.Leibniz
 
 /-!
 # Profile Compression for the Tseitin Witness Polynomial (§9)
@@ -286,6 +287,45 @@ theorem spdp_subspace_le_canonical (n κ : ℕ)
     mlBlockedSpdpSubspace (NPWitness.tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤
     canonicalSubspace n κ :=
   le_refl _
+
+/-- For a non-selector variable, differentiating a clause factor can only hit
+    the clause gadget, never the selector variable. -/
+theorem pderiv_nonselector_cvFactor (n : ℕ)
+    (v : Fin (npNumVars n))
+    (hv : ∀ c : Fin (numClausesAt n), v ≠ selectorAt n c)
+    (c : Fin (numClausesAt n)) :
+    pderiv v (cvFactorAt n c) =
+      -(MvPolynomial.X (selectorAt n c) * pderiv v (clauseGadgetAt n c)) := by
+  unfold cvFactorAt IdentityMinor.cvFactor clauseGadgetAt
+  simp [sub_eq_add_neg, hv c, mul_assoc, mul_left_comm, mul_comm]
+
+/-- Leibniz bridge for the one-nonselector exceptional case:
+    the non-selector derivative expands as a sum over clause positions. -/
+theorem one_nonselector_leibniz_bridge (n : ℕ)
+    (v : Fin (npNumVars n))
+    (hv : ∀ c : Fin (numClausesAt n), v ≠ selectorAt n c) :
+    pderiv v (tseitinPoly ℚ n) =
+      ∑ c : Fin (numClausesAt n),
+        (-(MvPolynomial.X (selectorAt n c) * pderiv v (clauseGadgetAt n c))) *
+          (Finset.univ.erase c).prod (cvFactorAt n) := by
+  rw [show tseitinPoly ℚ n = ∏ c : Fin (numClausesAt n), cvFactorAt n c by
+    simpa [cvFactorAt] using (coupledVerifier_eq_prod (F := ℚ) (Φ := tseitinAt n))]
+  rw [pderiv_finset_prod v Finset.univ (cvFactorAt n)]
+  refine Finset.sum_congr rfl ?_
+  intro c hc
+  rw [pderiv_nonselector_cvFactor n v hv c]
+
+/-- Applying selector derivatives after the exceptional non-selector derivative
+    just distributes over the Leibniz expansion termwise. -/
+theorem one_nonselector_iterDeriv_leibniz_bridge (n : ℕ)
+    (sels : List (Fin (numClausesAt n))) (v : Fin (npNumVars n))
+    (hv : ∀ c : Fin (numClausesAt n), v ≠ selectorAt n c) :
+    iterDerivList (sels.map (selectorAt n)) (pderiv v (tseitinPoly ℚ n)) =
+      ∑ c : Fin (numClausesAt n),
+        iterDerivList (sels.map (selectorAt n))
+          ((-(MvPolynomial.X (selectorAt n c) * pderiv v (clauseGadgetAt n c))) *
+            (Finset.univ.erase c).prod (cvFactorAt n)) := by
+  rw [one_nonselector_leibniz_bridge n v hv, iterDerivList_sum]
 
 -- ============================================================
 -- §3. Factored Form of Canonical Generators
