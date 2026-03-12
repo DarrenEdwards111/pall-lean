@@ -82,6 +82,76 @@ noncomputable def cycleRegularGraph (n : ℕ) (hn : n ≥ 3) : RegularGraph wher
         | inr h => exact Or.inr ((mod_succ_eq_iff e v.val n (by omega) he v.isLt).mpr h)
     rw [hfilt, Finset.card_pair hne]
 
+/-- In a cycle on `n ≥ 3`, the predecessor of `v` is different from `v`. -/
+private lemma pred_mod_ne_self (n : ℕ) (hn : n ≥ 3) (v : Fin n) :
+    (v.val + n - 1) % n ≠ v.val := by
+  intro h
+  by_cases hv0 : v.val = 0
+  · rw [hv0, show 0 + n - 1 = n - 1 from by omega,
+      Nat.mod_eq_of_lt (by omega : n - 1 < n)] at h
+    omega
+  · rw [show v.val + n - 1 = v.val - 1 + 1 * n from by omega,
+      Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt (by omega : v.val - 1 < n)] at h
+    omega
+
+private lemma cubic_cycle_src_eq_iff
+    (n : ℕ) (v : Fin n) (e : Fin (n + n / 2)) (he : e.val < n) :
+    (⟨e.val, by omega⟩ : Fin n) = v ↔ e.val = v.val := by
+  simp [Fin.ext_iff]
+
+private lemma cubic_cycle_tgt_eq_iff
+    (n : ℕ) (hn : n ≥ 1) (v : Fin n) (e : Fin (n + n / 2)) (he : e.val < n) :
+    (⟨(e.val + 1) % n, Nat.mod_lt _ (by omega)⟩ : Fin n) = v ↔
+      e.val = (v.val + n - 1) % n := by
+  constructor
+  · intro h
+    exact (mod_succ_eq_iff e.val v.val n hn he v.isLt).mp (Fin.ext_iff.mp h)
+  · intro h
+    apply Fin.ext
+    exact (mod_succ_eq_iff e.val v.val n hn he v.isLt).mpr h
+
+private lemma cubic_match_src_eq_iff_left
+    (n : ℕ) (v : Fin n) (hv : v.val < n / 2) (e : Fin (n + n / 2)) (he : ¬ e.val < n) :
+    (⟨e.val - n, by have := e.isLt; omega⟩ : Fin n) = v ↔ e.val = n + v.val := by
+  simp [Fin.ext_iff]
+  omega
+
+private lemma cubic_match_tgt_ne_left
+    (n : ℕ) (v : Fin n) (hv : v.val < n / 2) (e : Fin (n + n / 2)) (he : ¬ e.val < n) :
+    (⟨e.val - n + n / 2, by
+        have := e.isLt
+        have : e.val - n < n / 2 := by omega
+        omega⟩ : Fin n) ≠ v := by
+  intro h
+  have hk : e.val - n < n / 2 := by
+    have := e.isLt
+    omega
+  have hge : n / 2 ≤ e.val - n + n / 2 := by
+    simpa [Nat.add_comm] using Nat.le_add_left (e.val - n) (n / 2)
+  have hval : v.val = e.val - n + n / 2 := by
+    simpa using (Fin.ext_iff.mp h).symm
+  exact (Nat.not_lt.mpr hge) (hval ▸ hv)
+
+private lemma cubic_match_src_ne_right
+    (n : ℕ) (v : Fin n) (hv : ¬ v.val < n / 2) (e : Fin (n + n / 2)) (he : ¬ e.val < n) :
+    (⟨e.val - n, by have := e.isLt; omega⟩ : Fin n) ≠ v := by
+  intro h
+  have hk : e.val - n < n / 2 := by
+    have := e.isLt
+    omega
+  have hval : v.val = e.val - n := by
+    simpa using (Fin.ext_iff.mp h).symm
+  exact hv (hval ▸ hk)
+
+private lemma cubic_match_tgt_eq_iff_right
+    (n : ℕ) (v : Fin n) (hv : ¬ v.val < n / 2) (e : Fin (n + n / 2)) (he : ¬ e.val < n) :
+    (⟨e.val - n + n / 2, by
+        have := e.isLt
+        have : e.val - n < n / 2 := by omega
+        omega⟩ : Fin n) = v ↔ e.val = n + (v.val - n / 2) := by
+  simp [Fin.ext_iff]
+  omega
+
 /-- Cubic (3-regular) graph on n vertices (n even, n ≥ 6).
     Edges: n cycle edges (v → v+1 mod n) + n/2 perfect matching edges (v → v+n/2).
     Total: 3n/2 edges. Each vertex has degree 3. -/
@@ -107,12 +177,150 @@ noncomputable def cubicGraph (n : ℕ) (hn : n ≥ 6) (heven : 2 ∣ n) : Regula
       have : (e.val - n) < n / 2 := by omega
       omega⟩
   regular := fun v => by
-    -- Vertex v is incident to exactly 3 edges:
-    -- 1. Cycle edge v (src=v)
-    -- 2. Cycle edge (v+n-1)%n (tgt=v)
-    -- 3. Matching edge: n+v (if v<n/2) or n+(v-n/2) (if v≥n/2)
-    -- Proof: identify the 3-element filter, show distinctness, compute card.
-    sorry
+    classical
+    have hne : 1 ≤ n := by omega
+    let cycleEdge : Fin (n + n / 2) := ⟨v.val, by omega⟩
+    let predEdge : Fin (n + n / 2) := ⟨(v.val + n - 1) % n,
+      lt_of_lt_of_le (Nat.mod_lt _ hne) (Nat.le_add_right n (n / 2))⟩
+    have hcycle_lt : cycleEdge.val < n := by
+      simp [cycleEdge]
+    have hpred_lt : predEdge.val < n := by
+      simp [predEdge]
+      exact Nat.mod_lt _ hne
+    have hpred_ne : predEdge ≠ cycleEdge := by
+      intro h
+      have hval := congr_arg Fin.val h
+      simp [predEdge, cycleEdge] at hval
+      exact pred_mod_ne_self n (by omega) v hval
+    by_cases hv : v.val < n / 2
+    · let matchEdge : Fin (n + n / 2) := ⟨n + v.val, by omega⟩
+      have hmatch_ge : n ≤ matchEdge.val := by
+        simp [matchEdge]
+      have hcycle_match : cycleEdge ≠ matchEdge := by
+        intro h
+        have hval : cycleEdge.val = matchEdge.val := congr_arg Fin.val h
+        omega
+      have hpred_match : predEdge ≠ matchEdge := by
+        intro h
+        have hval : predEdge.val = matchEdge.val := congr_arg Fin.val h
+        omega
+      have hfilt : Finset.univ.filter (fun e : Fin (n + n / 2) =>
+          (if h : e.val < n then (⟨e.val, by omega⟩ : Fin n)
+           else ⟨e.val - n, by have := e.isLt; omega⟩) = v ∨
+          (if h : e.val < n then (⟨(e.val + 1) % n, Nat.mod_lt _ (by omega)⟩ : Fin n)
+           else ⟨e.val - n + n / 2, by
+             have := e.isLt
+             have : e.val - n < n / 2 := by omega
+             omega⟩) = v) = {cycleEdge, predEdge, matchEdge} := by
+        ext e
+        simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_insert,
+          Finset.mem_singleton]
+        by_cases he : e.val < n
+        · rw [dif_pos he, dif_pos he, cubic_cycle_src_eq_iff n v e he,
+            cubic_cycle_tgt_eq_iff n hne v e he]
+          constructor
+          · intro h
+            rcases h with h | h
+            · exact Or.inl (Fin.ext h)
+            · exact Or.inr <| Or.inl (Fin.ext h)
+          · intro h
+            rcases h with h | h
+            · exact Or.inl (Fin.ext_iff.mp h)
+            · rcases h with h | h
+              · exact Or.inr (Fin.ext_iff.mp h)
+              · exfalso
+                have hval : e.val = matchEdge.val := congr_arg Fin.val h
+                omega
+        · rw [dif_neg he, dif_neg he]
+          constructor
+          · intro h
+            rcases h with h | h
+            · exact Or.inr <| Or.inr (Fin.ext ((cubic_match_src_eq_iff_left n v hv e he).mp h))
+            · exact False.elim ((cubic_match_tgt_ne_left n v hv e he) h)
+          · intro h
+            rcases h with h | h
+            · exfalso
+              have hval : e.val = cycleEdge.val := congr_arg Fin.val h
+              omega
+            · rcases h with h | h
+              · exfalso
+                have hval : e.val = predEdge.val := congr_arg Fin.val h
+                omega
+              · have hval : e.val = n + v.val := by
+                  simpa [matchEdge] using congr_arg Fin.val h
+                exact Or.inl ((cubic_match_src_eq_iff_left n v hv e he).mpr hval)
+      rw [hfilt]
+      have hpred_not_mem : predEdge ∉ ({matchEdge} : Finset (Fin (n + n / 2))) := by
+        simp [hpred_match]
+      have hcycle_not_mem :
+          cycleEdge ∉ ({predEdge, matchEdge} : Finset (Fin (n + n / 2))) := by
+        simp [hcycle_match, ne_comm, hpred_ne]
+      rw [Finset.card_insert_of_notMem hcycle_not_mem, Finset.card_insert_of_notMem hpred_not_mem,
+        Finset.card_singleton]
+    · let matchEdge : Fin (n + n / 2) := ⟨n + (v.val - n / 2), by omega⟩
+      have hmatch_ge : n ≤ matchEdge.val := by
+        simp [matchEdge]
+      have hcycle_match : cycleEdge ≠ matchEdge := by
+        intro h
+        have hval : cycleEdge.val = matchEdge.val := congr_arg Fin.val h
+        omega
+      have hpred_match : predEdge ≠ matchEdge := by
+        intro h
+        have hval : predEdge.val = matchEdge.val := congr_arg Fin.val h
+        omega
+      have hfilt : Finset.univ.filter (fun e : Fin (n + n / 2) =>
+          (if h : e.val < n then (⟨e.val, by omega⟩ : Fin n)
+           else ⟨e.val - n, by have := e.isLt; omega⟩) = v ∨
+          (if h : e.val < n then (⟨(e.val + 1) % n, Nat.mod_lt _ (by omega)⟩ : Fin n)
+           else ⟨e.val - n + n / 2, by
+             have := e.isLt
+             have : e.val - n < n / 2 := by omega
+             omega⟩) = v) = {cycleEdge, predEdge, matchEdge} := by
+        ext e
+        simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_insert,
+          Finset.mem_singleton]
+        by_cases he : e.val < n
+        · rw [dif_pos he, dif_pos he, cubic_cycle_src_eq_iff n v e he,
+            cubic_cycle_tgt_eq_iff n hne v e he]
+          constructor
+          · intro h
+            rcases h with h | h
+            · exact Or.inl (Fin.ext h)
+            · exact Or.inr <| Or.inl (Fin.ext h)
+          · intro h
+            rcases h with h | h
+            · exact Or.inl (Fin.ext_iff.mp h)
+            · rcases h with h | h
+              · exact Or.inr (Fin.ext_iff.mp h)
+              · exfalso
+                have hval : e.val = matchEdge.val := congr_arg Fin.val h
+                omega
+        · rw [dif_neg he, dif_neg he]
+          constructor
+          · intro h
+            rcases h with h | h
+            · exact False.elim ((cubic_match_src_ne_right n v hv e he) h)
+            · exact Or.inr <| Or.inr (Fin.ext ((cubic_match_tgt_eq_iff_right n v hv e he).mp h))
+          · intro h
+            rcases h with h | h
+            · exfalso
+              have hval : e.val = cycleEdge.val := congr_arg Fin.val h
+              omega
+            · rcases h with h | h
+              · exfalso
+                have hval : e.val = predEdge.val := congr_arg Fin.val h
+                omega
+              · have hval : e.val = n + (v.val - n / 2) := by
+                  simpa [matchEdge] using congr_arg Fin.val h
+                exact Or.inr ((cubic_match_tgt_eq_iff_right n v hv e he).mpr hval)
+      rw [hfilt]
+      have hpred_not_mem : predEdge ∉ ({matchEdge} : Finset (Fin (n + n / 2))) := by
+        simp [hpred_match]
+      have hcycle_not_mem :
+          cycleEdge ∉ ({predEdge, matchEdge} : Finset (Fin (n + n / 2))) := by
+        simp [hcycle_match, ne_comm, hpred_ne]
+      rw [Finset.card_insert_of_notMem hcycle_not_mem, Finset.card_insert_of_notMem hpred_not_mem,
+        Finset.card_singleton]
 
 /-- Round up to even ≥ 6 -/
 private def evenUp (n : ℕ) : ℕ :=
