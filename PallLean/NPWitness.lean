@@ -269,6 +269,42 @@ private theorem buildTseitin_clauses_length_of_degree_eq_three (G : RegularGraph
   rw [hmap]
   simp [List.sum_replicate, Nat.mul_comm]
 
+private theorem vertexClauses_vars_lt_numEdges (G : RegularGraph)
+    (v : Fin G.numVertices) (c : Clause3) (hc : c ∈ vertexClauses G v) :
+    c.var1 < G.numEdges ∧ c.var2 < G.numEdges ∧ c.var3 < G.numEdges := by
+  unfold vertexClauses at hc
+  by_cases hlen : (incidentEdgesList G v).length ≥ 3
+  · have hnd := incidentEdgesList_nodup G v
+    have he12 : ((incidentEdgesList G v)[0]'(by omega)).val ≠ ((incidentEdgesList G v)[1]'(by omega)).val := by
+      intro heq
+      have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq))
+      omega
+    have he13 : ((incidentEdgesList G v)[0]'(by omega)).val ≠ ((incidentEdgesList G v)[2]'(by omega)).val := by
+      intro heq
+      have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq))
+      omega
+    have he23 : ((incidentEdgesList G v)[1]'(by omega)).val ≠ ((incidentEdgesList G v)[2]'(by omega)).val := by
+      intro heq
+      have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq))
+      omega
+    by_cases hb : v.val = 0
+    · simp [hlen, hb, xorClauses] at hc
+      rcases hc with rfl | rfl | rfl | rfl
+      all_goals
+        constructor
+        · simpa using ((incidentEdgesList G v)[0]'(by omega)).isLt
+        constructor
+        · simpa using ((incidentEdgesList G v)[1]'(by omega)).isLt
+        · simpa using ((incidentEdgesList G v)[2]'(by omega)).isLt
+    · simp [hlen, hb, xorClauses] at hc
+      rcases hc with rfl | rfl | rfl | rfl
+      all_goals
+        constructor
+        · simpa using ((incidentEdgesList G v)[0]'(by omega)).isLt
+        constructor
+        · simpa using ((incidentEdgesList G v)[1]'(by omega)).isLt
+        · simpa using ((incidentEdgesList G v)[2]'(by omega)).isLt
+  · simp [hlen] at hc
 noncomputable def buildTseitin (G : RegularGraph) (hdeg : G.degree = 3) : TseitinFormula where
   graph := G
   parityBit := fun v => if v.val = 0 then true else false
@@ -288,13 +324,22 @@ noncomputable def buildTseitin (G : RegularGraph) (hdeg : G.degree = 3) : Tseiti
   -- This creates sharing: each edge variable appears at both endpoint vertices.
   clauses :=
     (List.finRange G.numVertices).flatMap (vertexClauses G)
-  num_clauses_upper := by sorry
+  num_clauses_upper := by
+    rw [buildTseitin_clauses_length_of_degree_eq_three G hdeg]
+    omega
   num_clauses_lower := by
     rw [buildTseitin_clauses_length_of_degree_eq_three G hdeg]
     omega
   clause_vars_bound := by
-    -- Each clause variable is an edge index (< numEdges < numEdges + 3 * numClauses).
-    sorry
+    intro c hc
+    rcases List.mem_flatMap.1 hc with ⟨v, hv, hc⟩
+    have hvars := vertexClauses_vars_lt_numEdges G v c hc
+    rcases hvars with ⟨h1, h2, h3⟩
+    constructor
+    · omega
+    constructor
+    · omega
+    · omega
   bounded_occurrence := by
     -- Each edge variable appears at both endpoints: 4 clauses per endpoint = 8 total ≤ 10.
     sorry
