@@ -164,6 +164,55 @@ the standard XOR→3-CNF Tseitin encoding. This eliminates 3 axioms
     Variables: x_0,...,x_{E-1} (edge vars) + selectors (at higher indices).
     Total clauses: 4n (4 per vertex).
     Each edge variable appears in ≤ 8 clauses (4 at each endpoint). -/
+noncomputable def incidentEdges (G : RegularGraph) (v : Fin G.numVertices) :
+    Finset (Fin G.numEdges) :=
+  Finset.univ.filter (fun e => G.edgeSrc e = v ∨ G.edgeTgt e = v)
+
+theorem incidentEdges_card (G : RegularGraph) (v : Fin G.numVertices) :
+    (incidentEdges G v).card = G.degree := G.regular v
+
+/-- For degree-3 graphs: pick the 3 incident edges as a sorted list.
+    Returns edge indices (ℕ values) for use in clause construction. -/
+noncomputable def incidentEdgesList (G : RegularGraph) (v : Fin G.numVertices) :
+    List (Fin G.numEdges) :=
+  (incidentEdges G v).sort (· ≤ ·)
+
+theorem incidentEdgesList_length (G : RegularGraph) (v : Fin G.numVertices) :
+    (incidentEdgesList G v).length = G.degree := by
+  simp [incidentEdgesList, Finset.length_sort, incidentEdges_card]
+
+theorem incidentEdgesList_nodup (G : RegularGraph) (v : Fin G.numVertices) :
+    (incidentEdgesList G v).Nodup :=
+  Finset.sort_nodup _ _
+
+/-- XOR-to-3-CNF: 4 clauses for x_{e1} ⊕ x_{e2} ⊕ x_{e3} = b.
+    For b = false (even parity), exclude odd-parity assignments.
+    For b = true (odd parity), exclude even-parity assignments. -/
+def xorClauses (e1 e2 e3 : ℕ) (b : Bool)
+    (h12 : e1 ≠ e2) (h13 : e1 ≠ e3) (h23 : e2 ≠ e3) : List Clause3 :=
+  if b then
+    -- XOR = 1: exclude (0,0,0), (1,1,0), (1,0,1), (0,1,1)
+    [ ⟨e1, e2, e3, true, true, true, h12, h13, h23⟩,
+      ⟨e1, e2, e3, false, false, true, h12, h13, h23⟩,
+      ⟨e1, e2, e3, false, true, false, h12, h13, h23⟩,
+      ⟨e1, e2, e3, true, false, false, h12, h13, h23⟩ ]
+  else
+    -- XOR = 0: exclude (1,0,0), (0,1,0), (0,0,1), (1,1,1)
+    [ ⟨e1, e2, e3, false, true, true, h12, h13, h23⟩,
+      ⟨e1, e2, e3, true, false, true, h12, h13, h23⟩,
+      ⟨e1, e2, e3, true, true, false, h12, h13, h23⟩,
+      ⟨e1, e2, e3, false, false, false, h12, h13, h23⟩ ]
+
+theorem xorClauses_length (e1 e2 e3 : ℕ) (b : Bool) h12 h13 h23 :
+    (xorClauses e1 e2 e3 b h12 h13 h23).length = 4 := by
+  simp [xorClauses]; split <;> rfl
+
+/-- All clause body variables in xorClauses are from {e1, e2, e3} -/
+theorem xorClauses_vars (e1 e2 e3 : ℕ) (b : Bool) h12 h13 h23
+    (c : Clause3) (hc : c ∈ xorClauses e1 e2 e3 b h12 h13 h23) :
+    c.var1 = e1 ∧ c.var2 = e2 ∧ c.var3 = e3 := by
+  simp [xorClauses] at hc; split at hc <;> simp_all [List.mem_cons] <;> aesop
+
 noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
   graph := G
   parityBit := fun v => if v.val = 0 then true else false
@@ -178,67 +227,36 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
         · intro h; subst h; simp
       rw [this, Finset.card_singleton]
     · rfl
-  -- For each vertex v, get its 3 incident edges (using Classical choice
-  -- to pick an ordering of the incident edge set).
-  -- Each vertex generates 4 XOR-to-3-CNF clauses.
-  -- The clause body variables are the EDGE INDICES (shared across vertices).
+  -- For each vertex v, get its incident edges and produce 4 XOR clauses.
+  -- Edge variables are GLOBAL: variable index = edge index in [0, numEdges).
+  -- This creates sharing: each edge variable appears at both endpoint vertices.
   clauses :=
-    -- For now, use the same private-variable construction as a placeholder.
-    -- TODO: replace with proper edge-variable sharing once cubicGraph is proved.
-    (List.finRange G.numEdges).map fun e => {
-      var1 := e.val
-      var2 := G.numEdges + e.val
-      var3 := 2 * G.numEdges + e.val
-      sign1 := true
-      sign2 := true
-      sign3 := true
-      distinct12 := by omega
-      distinct13 := by omega
-      distinct23 := by omega : Clause3
-    }
-  num_clauses_upper := by
-    simp only [List.length_map, List.length_finRange]
-    calc G.numEdges
-        ≤ G.numVertices * G.degree := G.edges_bound
-      _ ≤ G.numVertices * 10 := Nat.mul_le_mul_left _ G.degree_bound
-      _ = 10 * G.numVertices := Nat.mul_comm _ _
-  num_clauses_lower := by
-    simp only [List.length_map, List.length_finRange]
-    exact G.edges_lower
-  clause_vars_bound := by
-    intro c hc
-    simp only [List.mem_map, List.mem_finRange] at hc
-    obtain ⟨e, _, rfl⟩ := hc
-    simp only [List.length_map, List.length_finRange]
-    exact ⟨by omega, by omega, by omega⟩
-  bounded_occurrence := by
-    intro v
-    set E := G.numEdges
-    have hcl : ((List.finRange E).map fun e => ({
-        var1 := e.val, var2 := E + e.val, var3 := 2 * E + e.val,
-        sign1 := true, sign2 := true, sign3 := true,
-        distinct12 := by omega, distinct13 := by omega,
-        distinct23 := by omega : Clause3})).filter
-        (fun c => c.var1 = v ∨ c.var2 = v ∨ c.var3 = v) =
-      ((List.finRange E).filter fun e =>
-        e.val = v ∨ E + e.val = v ∨ 2 * E + e.val = v).map
-        (fun e => (⟨e.val, E + e.val, 2 * E + e.val,
-          true, true, true,
-          by omega, by omega, by omega⟩ : Clause3)) := by
-      rw [List.filter_map]; rfl
-    rw [hcl, List.length_map]
-    set filt := (List.finRange E).filter fun e =>
-      e.val = v ∨ E + e.val = v ∨ 2 * E + e.val = v
-    have hnd : filt.Nodup := (List.nodup_finRange E).filter _
-    have heq : ∀ a ∈ filt, ∀ b ∈ filt, a = b := by
-      intro a ha b hb
-      simp only [List.mem_filter, List.mem_finRange, true_and, filt, E,
-        decide_eq_true_eq] at ha hb; ext; omega
-    by_contra h; push_neg at h
-    have h0 : 0 < filt.length := by omega
-    have h1 : 1 < filt.length := by omega
-    exact absurd (hnd.getElem_inj_iff.mp (heq _ (List.getElem_mem h0) _ (List.getElem_mem h1)))
-      (by omega)
+    (List.finRange G.numVertices).flatMap fun v =>
+      let edges := incidentEdgesList G ⟨v.val, by exact v.isLt⟩
+      -- For degree 3, edges has length 3. Use edge indices as clause variables.
+      -- If degree ≠ 3, this won't produce valid clauses, but cubicGraph has degree 3.
+      if h : edges.length ≥ 3 then
+        let e1 := (edges[0]'(by omega)).val
+        let e2 := (edges[1]'(by omega)).val
+        let e3 := (edges[2]'(by omega)).val
+        -- Edges are distinct (from sorted nodup list)
+        have hnd := incidentEdgesList_nodup G ⟨v.val, v.isLt⟩
+        have he12 : e1 ≠ e2 := by
+          intro heq; have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq))
+          omega
+        have he13 : e1 ≠ e3 := by
+          intro heq; have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq))
+          omega
+        have he23 : e2 ≠ e3 := by
+          intro heq; have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq))
+          omega
+        let b := if v.val = 0 then true else false
+        xorClauses e1 e2 e3 b he12 he13 he23
+      else []
+  num_clauses_upper := by sorry
+  num_clauses_lower := by sorry
+  clause_vars_bound := by sorry
+  bounded_occurrence := by sorry
 
 /-- Tseitin formula on the n-th graph, built concretely -/
 noncomputable def tseitinAt (n : ℕ) : TseitinFormula :=
