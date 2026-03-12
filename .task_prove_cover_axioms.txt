@@ -1,0 +1,35 @@
+Work in /tmp/pall-lean on Lean 4 theorem proving.
+
+Goal: prove the 2 remaining axioms in PallLean/ProfileCompression.lean:
+1) spdp_subspace_le_iSup_profile (line ~967)
+2) same_profile_span_le (line ~860)
+
+EXISTING INFRASTRUCTURE (use these, don't reinvent):
+- admissible_list_selector_decomp: decomposes admissible list S into sels ++ nonsels with Perm proof, sels.Nodup, nonsels.length ≤ 1
+- iterDerivList_perm (in WithinProfile.lean): iterDerivList is perm-invariant
+- one_nonselector_iterDeriv_leibniz_bridge: Leibniz expansion for non-selector case
+- spdp_generator_in_profile: canonical generators are in their profile subspace
+- CanonicalWindow structure: hitClauses : Finset, card_eq : card = κ
+- profileSubspace: span of canonicalGenerator w m for windows w with given profile
+- canonicalGenerator w m = mlProj(m * iterDerivList w.selectorList (tseitinPoly))
+
+KEY INSIGHTS for spdp_subspace_le_iSup_profile:
+- mlBlockedSpdpSubspace generators: q = mlProj(m * iterDerivList S (tseitinPoly)) with S admissible, S.length=κ
+- Use admissible_list_selector_decomp to get S ~ sels.map(selectorAt) ++ nonsels
+- Use iterDerivList_perm to reorder
+- Pure-selector case (nonsels=[]): sels.length=κ, construct CanonicalWindow from sels.toFinset
+- One-nonselector case (nonsels=[v]): sels.length=κ-1, use Leibniz bridge to expand pderiv v (tseitinPoly) as sum over clauses, each term gives a window of size κ
+
+KEY INSIGHT for same_profile_span_le:
+- This says all generators from windows with same profile lie in a single representative's span
+- Needs explicit variable permutation/rename transport between same-profile windows
+- The permutation maps selectors of w to selectors of w₀ preserving type structure
+
+CONSTRAINTS:
+- Add import PallLean.WithinProfile to ProfileCompression.lean (for iterDerivList_perm)
+- No new axioms/sorries
+- Keep all existing theorems working
+- Run ~/.elan/bin/lake build
+- Commit: "Prove cover inclusion and profile transport axioms"
+
+If one axiom is provable but the other blocked, prove what you can and report exact blocker.
