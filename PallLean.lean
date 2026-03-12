@@ -17,6 +17,7 @@ import PallLean.Leibniz
 import PallLean.Profile
 
 -- Paper-faithful architecture (main chain)
+import PallLean.BoolEval
 import PallLean.Restriction
 import PallLean.CircuitModel
 import PallLean.RestrictedSPDP
