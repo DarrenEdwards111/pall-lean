@@ -325,17 +325,15 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
         let b := if v.val = 0 then true else false
         xorClauses e1 e2 e3 b he12 he13 he23
       else []
-  num_clauses_upper := by sorry
+  num_clauses_upper := by
+    -- Each vertex contributes ≤ 4 clauses, total ≤ 4n ≤ 10n
+    sorry -- flatMap length bound: 4 * numVertices ≤ 10 * numVertices
   num_clauses_lower := by
-    -- For degree ≥ 3: each vertex contributes 4 clauses, total = 4n ≥ n.
-    -- Requires G.degree ≥ 3 (satisfied by cubicGraph).
-    sorry
+    sorry -- flatMap length bound: 4 * numVertices ≥ numVertices
   clause_vars_bound := by
-    -- Each clause variable is an edge index (< numEdges < numEdges + 3 * numClauses).
-    sorry
+    sorry -- each clause var is an edge index < numEdges
   bounded_occurrence := by
-    -- Each edge variable appears at both endpoints: 4 clauses per endpoint = 8 total ≤ 10.
-    sorry
+    sorry -- each edge in ≤ 2 vertices × 4 clauses = 8 ≤ 10
 
 /-- Tseitin formula on the n-th graph, built concretely -/
 noncomputable def tseitinAt (n : ℕ) : TseitinFormula :=
