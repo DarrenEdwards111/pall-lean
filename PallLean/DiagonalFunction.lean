@@ -184,12 +184,75 @@ theorem low_degree_eval_orthogonal
   have hL_X : ∀ (i : Fin 4), L (MvPolynomial.X i) = 0 := by
     intro i; simp only [L, evalBool, MvPolynomial.eval_X]
     exact hw_coord i
-  -- L is ℚ-linear and vanishes on {C c} and {X i}.
-  -- For degree ≤ 1: p = C(coeff 0) + Σ_i C(coeff e_i) * X i
-  -- So L(p) = 0 by linearity + hL_const + hL_smul + hL_X.
-  -- Proof requires MvPolynomial.as_sum + support analysis for degree ≤ 1.
+  -- Use p = Σ_{α ∈ support} monomial α (coeff α p), then show L vanishes on each term
   change L p = 0
-  sorry
+  conv_lhs => rw [p.as_sum]
+  -- L distributes over finite sums (from linearity)
+  have hL_sum : ∀ (s : Finset (Fin 4 →₀ ℕ)) (f : (Fin 4 →₀ ℕ) → MvPolynomial (Fin 4) ℚ),
+      L (∑ d ∈ s, f d) = ∑ d ∈ s, L (f d) := by
+    intro s f
+    induction s using Finset.induction_on with
+    | empty =>
+      simp only [Finset.sum_empty]
+      show ∑ x : (Fin 4 → Bool), evalBool 0 x * w x = 0
+      simp [evalBool, MvPolynomial.eval_zero]
+    | @insert a s hna ih =>
+      rw [Finset.sum_insert hna, hL_add, ih, Finset.sum_insert hna]
+  rw [hL_sum]
+  apply Finset.sum_eq_zero
+  intro α hα
+  -- α ∈ p.support with |α| ≤ totalDegree p ≤ 1
+  have hα_deg : (α.sum fun _ n => n) ≤ 1 := by
+    exact le_trans (MvPolynomial.le_totalDegree hα) hp
+  -- monomial α c = C c * (product of X_i^(α i))
+  -- For |α| ≤ 1: either α = 0 (L of C) or α = single i 1 (L of C * X i)
+  rw [show MvPolynomial.monomial α (MvPolynomial.coeff α p) =
+    MvPolynomial.C (MvPolynomial.coeff α p) * MvPolynomial.monomial α 1 from by
+      rw [MvPolynomial.C_mul_monomial, mul_one]]
+  rw [hL_smul]
+  -- Now show L (monomial α 1) = 0
+  suffices h : L (MvPolynomial.monomial α 1) = 0 by rw [h, mul_zero]
+  -- Case analysis on α
+  have : α = 0 ∨ ∃ i, α = Finsupp.single i 1 := by
+    -- From hα_deg: |α| ≤ 1 → α = 0 or α = single i 1
+    by_cases h0 : α = 0
+    · exact Or.inl h0
+    · right
+      -- α ≠ 0, so ∃ i with α i ≠ 0. Since |α| ≤ 1, α i = 1 and all others = 0.
+      have hne := Finsupp.support_nonempty_iff.mpr h0
+      obtain ⟨i, hi⟩ := hne
+      have hi_ne : α i ≠ 0 := Finsupp.mem_support_iff.mp hi
+      refine ⟨i, ?_⟩
+      ext j
+      simp only [Finsupp.single_apply]
+      split_ifs with hij
+      · -- j = i: need α j = 1
+        subst hij
+        have hsle : α i ≤ α.sum (fun _ n => n) :=
+          Finset.single_le_sum (fun _ _ => Nat.zero_le _) hi
+        omega
+      · -- j ≠ i: need α j = 0
+        by_contra hj
+        have hj_pos : 0 < α j := by omega
+        have hi_pos : 0 < α i := by omega
+        have hi_mem : i ∈ α.support := Finsupp.mem_support_iff.mpr (by omega)
+        have hj_mem : j ∈ α.support := Finsupp.mem_support_iff.mpr (by omega)
+        have hpair : (∑ k ∈ ({i, j} : Finset (Fin 4)), (α k : ℕ)) = α i + α j :=
+          Finset.sum_pair hij
+        have hsub : {i, j} ⊆ α.support := by
+          intro k hk; simp at hk; rcases hk with rfl | rfl <;> assumption
+        have hle : α i + α j ≤ α.sum fun _ n => n := by
+          rw [← hpair]
+          exact Finset.sum_le_sum_of_subset_of_nonneg hsub (fun _ _ _ => Nat.zero_le _)
+        omega
+  rcases this with rfl | ⟨i, rfl⟩
+  · -- α = 0: monomial 0 1 = C 1
+    rw [show (MvPolynomial.monomial (0 : Fin 4 →₀ ℕ) (1 : ℚ)) = MvPolynomial.C 1 from by
+      rw [← MvPolynomial.monomial_zero']]
+    exact hL_const 1
+  · -- α = single i 1: monomial (single i 1) 1 = X i
+    rw [show MvPolynomial.monomial (Finsupp.single i 1) (1 : ℚ) = MvPolynomial.X i from rfl]
+    exact hL_X i
 
 /-- The annihilator theorem: for n=4 with d*=9, a weight vector
     exists that's orthogonal to all low-rank polynomial evaluations
