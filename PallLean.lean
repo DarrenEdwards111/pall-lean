@@ -28,4 +28,4 @@ import PallLean.DiagonalFunction
 import PallLean.PneqNP_PaperFaithful
 
 -- Legacy chain intentionally not imported in paper-faithful build
--- import PallLean.PneqNP
+import PallLean.PneqNP
