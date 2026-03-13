@@ -166,7 +166,30 @@ theorem low_degree_eval_orthogonal
     (p : MvPolynomial (Fin 4) ℚ)
     (hp : p.totalDegree ≤ 1) :
     ∑ x : (Fin 4 → Bool), evalBool p x * w x = 0 := by
-  sorry -- TODO: linear algebra: p = c + Σ a_i x_i, use linearity of sum
+  -- Define the inner-product functional
+  set L : MvPolynomial (Fin 4) ℚ → ℚ := fun q =>
+    ∑ x : (Fin 4 → Bool), evalBool q x * w x with hL_def
+  -- L is linear in q
+  have hL_add : ∀ a b, L (a + b) = L a + L b := by
+    intro a b; simp only [L, evalBool, MvPolynomial.eval_add, add_mul]
+    exact Finset.sum_add_distrib
+  have hL_smul : ∀ (c : ℚ) (q), L (MvPolynomial.C c * q) = c * L q := by
+    intro c q; simp only [L, evalBool, MvPolynomial.eval_mul, MvPolynomial.eval_C, mul_assoc]
+    rw [← Finset.mul_sum]
+  -- L vanishes on constants
+  have hL_const : ∀ (c : ℚ), L (MvPolynomial.C c) = 0 := by
+    intro c; simp only [L, evalBool, MvPolynomial.eval_C, ← Finset.mul_sum]
+    rw [hw_const, mul_zero]
+  -- L vanishes on X i
+  have hL_X : ∀ (i : Fin 4), L (MvPolynomial.X i) = 0 := by
+    intro i; simp only [L, evalBool, MvPolynomial.eval_X]
+    exact hw_coord i
+  -- L is ℚ-linear and vanishes on {C c} and {X i}.
+  -- For degree ≤ 1: p = C(coeff 0) + Σ_i C(coeff e_i) * X i
+  -- So L(p) = 0 by linearity + hL_const + hL_smul + hL_X.
+  -- Proof requires MvPolynomial.as_sum + support analysis for degree ≤ 1.
+  change L p = 0
+  sorry
 
 /-- The annihilator theorem: for n=4 with d*=9, a weight vector
     exists that's orthogonal to all low-rank polynomial evaluations
@@ -174,6 +197,19 @@ theorem low_degree_eval_orthogonal
 
     Proved from low_spdp_rank_implies_low_degree (the remaining axiom)
     plus linear algebra. -/
+-- Hamming weight on Fin 4 → Bool
+private def hamming4 (x : Fin 4 → Bool) : ℕ :=
+  (if x 0 then 1 else 0) + (if x 1 then 1 else 0) +
+  (if x 2 then 1 else 0) + (if x 3 then 1 else 0)
+
+-- Explicit annihilator vector: w(0000)=3, w(weight 1)=-1, w(weight ≥ 2)=0 except w(1111)=1
+private def annihilatorW (x : Fin 4 → Bool) : ℚ :=
+  match hamming4 x with
+  | 0 => 3
+  | 1 => -1
+  | 4 => 1
+  | _ => 0
+
 theorem annihilator_exists :
     ∀ (ρ : Restriction.Restriction 4) (d_star : ℕ),
     d_star ≤ 9 →
@@ -184,9 +220,18 @@ theorem annihilator_exists :
         ∑ x : (Fin 4 → Bool),
           evalBool (Restriction.restrictPoly ρ p) x * w x = 0) := by
   intro ρ d_star hd
-  -- Explicit annihilator: w(x) = 3 - 4·(hamming weight of x) + (hamming weight choose 2)·2
-  -- Simplified: w(0000)=3, w(weight 1)=-1, w(weight 2)=0, w(weight 3)=0, w(1111)=1
-  -- This is orthogonal to constant and all coordinate functions
-  sorry -- TODO: construct explicit w, verify conditions, chain with low_spdp_rank_implies_low_degree
+  refine ⟨annihilatorW, ?_, ?_⟩
+  · -- Positive entry: w(false, false, false, false) = 3 > 0
+    exact ⟨fun _ => false, by native_decide⟩
+  · -- Orthogonality via chain: restrictedSpdpRank ≤ d_star ≤ 9
+    --   → totalDegree ≤ 1 (low_spdp_rank_implies_low_degree)
+    --   → inner product = 0 (low_degree_eval_orthogonal)
+    intro p hp
+    have hp9 : restrictedSpdpRank 2 2 p ρ ≤ 9 := le_trans hp hd
+    have hdeg := low_spdp_rank_implies_low_degree ρ p hp9
+    exact low_degree_eval_orthogonal annihilatorW
+      (by native_decide) -- hw_const: Σ annihilatorW = 0
+      (by intro i; fin_cases i <;> native_decide) -- hw_coord
+      (Restriction.restrictPoly ρ p) hdeg
 
 end DiagonalFunction

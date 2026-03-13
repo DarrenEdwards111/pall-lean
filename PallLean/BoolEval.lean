@@ -12,7 +12,7 @@ namespace BoolEval
 open MvPolynomial
 
 /-- Evaluate a polynomial at a Boolean input (mapping Bool to ℚ). -/
-noncomputable def boolToRat : Bool → ℚ
+def boolToRat : Bool → ℚ
   | false => 0
   | true => 1
 
