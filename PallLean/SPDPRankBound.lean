@@ -45,7 +45,23 @@ private theorem exists_support_degree_ge_two {n : ℕ}
 private theorem exists_two_indices {n : ℕ}
     (α : Fin n →₀ ℕ) (hα : 2 ≤ α.sum fun _ k => k) :
     ∃ i j : Fin n, 1 ≤ α i ∧ 1 ≤ (α - Finsupp.single i 1 : Fin n →₀ ℕ) j := by
-  sorry
+  -- α has sum ≥ 2, so it has at least one nonzero entry
+  have hne : α ≠ 0 := by
+    intro h; subst h; simp [Finsupp.sum_zero_index] at hα
+  obtain ⟨i, hi_mem⟩ := (Finsupp.support_nonempty_iff.mpr hne).exists_mem
+  have hi : 1 ≤ α i := by
+    rwa [Finsupp.mem_support_iff, ← Nat.one_le_iff_ne_zero] at hi_mem
+  -- After subtracting e_i, the remaining sum is ≥ 1
+  -- So there exists j with (α - e_i)(j) ≥ 1
+  have hsum_rest : 1 ≤ (α - Finsupp.single i 1 : Fin n →₀ ℕ).sum (fun _ k => k) := by
+    -- (α - e_i).sum id = α.sum id - 1 ≥ 1 (Finsupp truncated subtraction)
+    sorry
+  have hne2 : (α - Finsupp.single i 1 : Fin n →₀ ℕ) ≠ 0 := by
+    intro h; simp [h, Finsupp.sum_zero_index] at hsum_rest
+  obtain ⟨j, hj_mem⟩ := (Finsupp.support_nonempty_iff.mpr hne2).exists_mem
+  have hj : 1 ≤ (α - Finsupp.single i 1 : Fin n →₀ ℕ) j := by
+    rwa [Finsupp.mem_support_iff, ← Nat.one_le_iff_ne_zero] at hj_mem
+  exact ⟨i, j, hi, hj⟩
 
 theorem exists_nonzero_second_deriv {n : ℕ}
     (q : MvPolynomial (Fin n) ℚ) (hq : 2 ≤ q.totalDegree) :
