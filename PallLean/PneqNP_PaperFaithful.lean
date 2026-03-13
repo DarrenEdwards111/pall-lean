@@ -60,13 +60,25 @@ theorem P_neq_NP : ¬ PeqNP := by
   obtain ⟨ρ, hρ⟩ := universal_good_seed 4 h4
   -- Set d* = (log₂ 4 + 1)² = 9
   set d_star := (Nat.log 2 4 + 1) ^ 2
-  -- d* < 2⁴ = 16
-  have hd : d_star < 2 ^ 4 := by native_decide
+  -- d* ≤ 9
+  have hd : d_star ≤ 9 := by native_decide
+  -- Nat.log 2 4 = 2 (needed for restrictedSpdpRank parameter matching)
+  have hlog : Nat.log 2 4 = 2 := by native_decide
   -- Step 2: from annihilator_exists, get w with positive entries + orthogonality
-  obtain ⟨w, hw_pos, hw_orth⟩ := annihilator_exists 4 h4 ρ d_star hd
+  obtain ⟨w, hw_pos, hw_orth⟩ := annihilator_exists ρ d_star hd
   -- Step 4: P = NP gives a low-rank polynomial computing f_n w
   obtain ⟨p, hcomp, hp_rank⟩ := h_peqnp 4 h4 ρ d_star (f_n w)
+  -- Connect Nat.log 2 4 = 2 for the rank parameters
+  have hp_rank' : restrictedSpdpRank 2 2 p ρ ≤ d_star := by
+    rwa [← hlog]
+  -- Get orthogonality for this specific p
+  have hw_p := hw_orth p hp_rank'
   -- Step 3+5: semantic_diagonal_escape gives contradiction
-  exact semantic_diagonal_escape hw_pos hw_orth hp_rank hcomp
+  have hw_orth' : ∀ q : MvPolynomial (Fin 4) ℚ,
+      restrictedSpdpRank (Nat.log 2 4) (Nat.log 2 4) q ρ ≤ d_star →
+      ∑ x, evalBool (Restriction.restrictPoly ρ q) x * w x = 0 := by
+    intro q hq
+    exact hw_orth q (by rwa [← hlog] at hq)
+  exact semantic_diagonal_escape hw_pos hw_orth' hp_rank hcomp
 
 end PneqNP_PaperFaithful
