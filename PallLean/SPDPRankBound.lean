@@ -31,14 +31,10 @@ open MvPolynomial SPDP
 theorem exists_nonzero_second_deriv {n : ℕ}
     (q : MvPolynomial (Fin n) ℚ) (hq : 2 ≤ q.totalDegree) :
     ∃ i j : Fin n, iterDerivList [i, j] q ≠ 0 := by
-  -- Contrapositive: if all 2nd derivatives are 0, then totalDegree ≤ 1
-  by_contra hall
-  push_neg at hall
-  -- hall : ∀ i j, iterDerivList [i, j] q = 0
-  -- This means pderiv j (pderiv i q) = 0 for all i, j
-  -- So pderiv i q is a constant for each i
-  -- And q has totalDegree ≤ 1
-  -- We show this contradicts hq
+  -- Key idea: pick α ∈ q.support with |α| ≥ 2. Find i,j with α_i ≥ 1,
+  -- (α-e_i)_j ≥ 1. Then coeff (α-e_i-e_j) in ∂_j∂_i q equals
+  -- q.coeff(α) * α_i * (α-e_i)_j ≠ 0. No cancellation because
+  -- the map β ↦ β-e_i-e_j is injective.
   sorry
 
 /-! ## Step 2: Nonzero derivative gives large SPDP subspace -/
