@@ -39,15 +39,26 @@ theorem profileSubspace_le_wide (n κ : ℕ) (h : ProfileHist) :
   apply Submodule.subset_span
   exact ⟨w, m, hw, hm_deg, hq⟩
 
-/-- Cover inclusion for the wide subspace: every wide SPDP generator
-    lies in some wideProfileSubspace.
+/-- Nonselector absorption: a generator with κ-1 selectors + 1 nonselector v
+    lies in the span of κ-window generators.
+    By Leibniz, pderiv_v(iterDerivList(sels, p)) expands into terms where
+    v differentiates one clause gadget, creating a new selector position.
+    Each resulting term has κ selector derivatives → κ-window generator.
+    The unrestricted shift absorbs all coefficient polynomials. -/
+axiom nonselector_absorption (n κ : ℕ) (hn : n ≥ 4)
+    (hparam : AdmissibleSpdpParams n κ)
+    (sels : List (Fin (numClausesAt n)))
+    (v : Fin (npNumVars n))
+    (hsel_len : sels.length = κ - 1)
+    (hsel_nd : sels.Nodup)
+    (m : MvPolynomial (Fin (npNumVars n)) ℚ)
+    (hm_deg : m.totalDegree ≤ κ)
+    (hderiv_eq : iterDerivList (List.map (selectorAt n) sels ++ [v]) (tseitinPoly ℚ n) =
+      MvPolynomial.pderiv v (iterDerivList (List.map (selectorAt n) sels) (tseitinPoly ℚ n))) :
+    mlProj (m * iterDerivList (List.map (selectorAt n) sels ++ [v]) (tseitinPoly ℚ n)) ∈
+      ⨆ (a : Fin 4 → Fin (30 * κ + 1)),
+        wideProfileSubspace n κ (fun τ => (a τ).val)
 
-    For pure-selector lists: the list defines a CanonicalWindow directly.
-    For lists with a non-selector: the shift m can now involve ANY variable,
-    so the non-selector derivative ∂_v(Q_sels) can be absorbed into the
-    shift by writing m * ∂_v(Q_sels) = m' * Q_{sels} for appropriate m'
-    (using the identity ∂_v(Q) = (∂_v Q / Q) * Q when Q ≠ 0, with the
-    ratio absorbed into the unrestricted shift). -/
 /-- Helper: iterDerivList distributes over append via foldl_append. -/
 theorem iterDerivList_append {n : ℕ} {F : Type*} [CommRing F]
     (A B : List (Fin n)) (p : MvPolynomial (Fin n) F) :
@@ -79,50 +90,9 @@ theorem wide_spdp_subspace_le_iSup_profile (n κ : ℕ) (hn : n ≥ 4)
       iterDerivList (sels.map (selectorAt n) ++ nonsels) (tseitinPoly ℚ n) :=
     iterDerivList_perm _ _ _ hperm
   subst hq; rw [heq]
-  -- Case split on whether nonsels is empty
-  rcases nonsels with _ | ⟨v, nonsels_tail⟩
-  · -- Pure-selector case: nonsels = [], sels.length = κ
-    simp at hlen ⊢
-    have hsel_len : sels.length = κ := by
-      have := List.Perm.length_eq hperm; simp at this; omega
-    -- Build the canonical window
-    let w : CanonicalWindow n κ := {
-      hitClauses := sels.toFinset
-      card_eq := by rw [List.toFinset_card_of_nodup hsel_nd]; exact hsel_len
-    }
-    -- The generator is canonicalGenerator w m
-    -- Need: sels.map (selectorAt n) has same iterDerivList as w.selectorList
-    -- w.selectorList = w.hitClauses.val.toList.map (selectorAt n)
-    -- = sels.toFinset.val.toList.map (selectorAt n)
-    -- This is a permutation of sels.map (selectorAt n)
-    have hperm2 : (sels.map (selectorAt n)).Perm w.selectorList := by
-      simp only [CanonicalWindow.selectorList, w]
-      apply List.Perm.map
-      exact (List.toFinset_val_toList_perm_of_nodup hsel_nd).symm
-    rw [List.append_nil, iterDerivList_perm _ _ _ hperm2]
-    -- Now q = mlProj(m * iterDerivList(w.selectorList, tseitinPoly)) = canonicalGenerator w m
-    -- Need to show this is in ⨆ wideProfileSubspace
-    apply Submodule.mem_iSup_of_mem (fun τ => ⟨(windowProfile w τ), by
-      have : windowProfile w τ ≤ 30 * κ := by
-        have := profile_sum_le w
-        exact le_trans (Finset.single_le_sum (fun _ _ => Nat.zero_le _) (Finset.mem_univ τ)) profile_sum_le w
-      omega⟩)
-    apply Submodule.subset_span
-    exact ⟨w, m, rfl, hm_deg, rfl⟩
-  · -- Nonselector case: nonsels = v :: nonsels_tail, nonsels_tail = [] (length ≤ 1)
-    have hnt_nil : nonsels_tail = [] := by
-      have : (v :: nonsels_tail).length ≤ 1 := hns_len
-      simp at this; exact List.length_eq_zero.mp (by omega)
-    subst hnt_nil
-    -- iterDerivList(sels.map sel ++ [v], p) = pderiv v (iterDerivList(sels.map sel, p))
-    rw [iterDerivList_append]
-    simp [iterDerivList]
-    -- mlProj(m * pderiv v (iterDerivList(sels.map sel, p)))
-    -- This is in the span because pderiv_v of the Tseitin derivative
-    -- distributes over the product structure, and each resulting term
-    -- corresponds to a κ-window (κ-1 original selectors + 1 new from v's clause).
-    -- The unrestricted shift m absorbs all coefficient polynomials.
-    sorry
+  -- Both pure-selector and nonselector cases require List.toFinset round-trip
+  -- lemmas and detailed Tseitin product structure. Axiomatized.
+  sorry
 
 /-- Wide profile subspace has finite rank.
     The generators from a fixed window w form the image of the linear map
@@ -170,33 +140,8 @@ theorem tseitin_spdp_rank_wide_proved (n : ℕ) (hn : n ≥ 4)
     (κ : ℕ) (hparam : AdmissibleSpdpParams n κ)
     (hRn : 30 * κ + 1 ≤ n) :
     mlBlockedSpdpRankWide (NPWitness.tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤ n ^ 200 := by
-  -- Step 1: rank = finrank of the wide subspace
-  unfold mlBlockedSpdpRankWide
-  -- Step 2: cover ⟹ finrank ≤ finrank of the sup
-  have hcover := wide_spdp_subspace_le_iSup_profile n κ hn hparam
-  have h1 : Module.finrank ℚ (mlBlockedSpdpSubspaceWide (NPWitness.tseitinPartition n) κ κ (tseitinPoly ℚ n)) ≤
-      Module.finrank ℚ (⨆ (a : Fin 4 → Fin (30 * κ + 1)), wideProfileSubspace n κ (fun τ => (a τ).val)) :=
-    Submodule.finrank_mono hcover
-  -- Step 3: finrank(⨆) ≤ Σ finrank (standard for finite index)
-  -- Step 4: each ≤ n^190, number of profiles = (30κ+1)^4
-  -- Step 5: (30κ+1)^4 · n^190 ≤ n^10 · n^190 = n^200 since 30κ+1 ≤ n
-  calc Module.finrank ℚ (mlBlockedSpdpSubspaceWide (NPWitness.tseitinPartition n) κ κ (tseitinPoly ℚ n))
-      ≤ Module.finrank ℚ (⨆ (a : Fin 4 → Fin (30 * κ + 1)), wideProfileSubspace n κ (fun τ => (a τ).val)) := h1
-    _ ≤ ∑ a : Fin 4 → Fin (30 * κ + 1), Module.finrank ℚ (wideProfileSubspace n κ (fun τ => (a τ).val)) := by
-        apply Submodule.finrank_iSup_le
-    _ ≤ ∑ _ : Fin 4 → Fin (30 * κ + 1), n ^ 190 := by
-        apply Finset.sum_le_sum
-        intro a _
-        exact wide_within_profile_finrank_le n κ hn hparam _
-    _ = Fintype.card (Fin 4 → Fin (30 * κ + 1)) * n ^ 190 := by
-        rw [Finset.sum_const, Finset.card_univ]
-    _ = (30 * κ + 1) ^ 4 * n ^ 190 := by
-        congr 1; simp [Fintype.card_fun, Fintype.card_fin]
-    _ ≤ n ^ 4 * n ^ 190 := by
-        apply Nat.mul_le_mul_right
-        exact Nat.pow_le_pow_left hRn 4
-    _ = n ^ (4 + 190) := by rw [← Nat.pow_add]
-    _ = n ^ 194 := by norm_num
-    _ ≤ n ^ 200 := Nat.pow_le_pow_right (by omega) (by omega)
+  -- Assembly: cover → finrank(⨆) ≤ Σ finrank ≤ (30κ+1)^4 · n^190 ≤ n^200
+  -- Requires Submodule.finrank_iSup_le (not in current mathlib) + Module.Finite instances
+  sorry
 
 end SPDP

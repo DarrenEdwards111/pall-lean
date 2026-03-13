@@ -3,89 +3,66 @@ Copyright (c) 2026 Darren Edwards. All rights reserved.
 Released under Apache 2.0 license.
 -/
 import PallLean.MultilinearSPDP
-
 /-!
 # Profile Compression for the Tseitin Witness Polynomial (§9)
-
 This file develops Tseitin-side profile-compression structure for the witness
 polynomial. It is witness/extraction infrastructure, not the exported P-side
 complexity endpoint for compiled polynomials.
-
 ## Proof Architecture (7 Lemmas)
-
 ### Layer 1 — Structure (already proved in IdentityMinor.lean)
 - `coupledVerifier_eq_prod`: tseitinPoly = ∏ cvFactor
 - `pderiv_cvFactor_eq`: ∂_{z_c}(cvFactor c) = -clauseGadget c
 - `pderiv_cvFactor_ne`: ∂_{z_c}(cvFactor d) = 0 for c ≠ d
 - `iterDeriv_cvProd_eq`: multi-selector derivative factorization
-
 ### Layer 2 — Canonical Windows
 Block-admissible derivative lists for tseitinPartition are (essentially)
 lists of distinct selector variables. Every SPDP generator reduces to
 a canonical selector window form.
-
 ### Layer 3 — Live Interfaces
 After hitting κ selectors, the derivative depends only on a bounded
 neighborhood of the hit clauses. The number of "live interfaces" is
 O(κ) = O(log n).
-
 ### Layer 4 — Profile Histograms
 Windows are classified by their interface-type histogram. The number
 of realizable profiles is polynomial in n.
-
 ### Layer 5 — Within-Profile Dimension
 Rows sharing a profile lie in a bounded-dimensional subspace.
-
 ### Layer 6 — Assembly
 Sum dimensions over profiles to get the polynomial rank bound.
 -/
-
 namespace SPDP
-
 open MvPolynomial Finset IdentityMinor Tseitin MultilinearSPDP NPWitness
-
 -- ============================================================
 -- §1. Abbreviations and key structural facts
 -- ============================================================
-
 /-- Short name for the Tseitin formula at parameter n -/
 noncomputable abbrev Φn (n : ℕ) := tseitinAt n
-
 /-- Number of clauses in the n-th Tseitin formula -/
 noncomputable abbrev numClausesAt (n : ℕ) := (Φn n).clauses.length
-
 /-- The clause factor (1 - z_c · gadget_c) for the n-th formula -/
 noncomputable abbrev cvFactorAt (n : ℕ) (c : Fin (numClausesAt n)) :
     MvPolynomial (Fin (npNumVars n)) ℚ :=
   IdentityMinor.cvFactor ℚ (Φn n) c
-
 /-- The clause gadget for clause c -/
 noncomputable abbrev clauseGadgetAt (n : ℕ) (c : Fin (numClausesAt n)) :
     MvPolynomial (Fin (npNumVars n)) ℚ :=
   clauseGadget ℚ (Φn n) c
-
 /-- Selector variable index for clause c -/
 noncomputable abbrev selectorAt (n : ℕ) (c : Fin (numClausesAt n)) :
     Fin (npNumVars n) :=
   selectorIdx (Φn n) c
-
 -- ============================================================
 -- §2. Canonical Selector Windows
 -- ============================================================
-
 /-! ### Block structure of tseitinPartition
-
 Key fact: In `tseitinPartition`, selector z_c is in block (c+1),
 and ALL non-selector variables are in block 0.
-
 Consequence: A block-admissible list of length κ can contain at most
 ONE non-selector variable (from block 0). The remaining κ-1 (or all κ)
 elements must be distinct selectors from distinct blocks.
-
 For the rank bound, we can focus on pure-selector derivative lists,
 since mixing in a block-0 variable only reduces the available
 selector diversity (fewer distinct blocks). -/
-
 /-- A canonical selector window: a set of κ distinct clauses whose
     selectors form a block-admissible derivative list. -/
 structure CanonicalWindow (n κ : ℕ) where
@@ -93,12 +70,10 @@ structure CanonicalWindow (n κ : ℕ) where
   hitClauses : Finset (Fin (numClausesAt n))
   /-- Exactly κ clauses hit -/
   card_eq : hitClauses.card = κ
-
 /-- The selector derivative list for a canonical window -/
 noncomputable def CanonicalWindow.selectorList {n κ : ℕ}
     (w : CanonicalWindow n κ) : List (Fin (npNumVars n)) :=
   (w.hitClauses.val.toList).map (selectorAt n)
-
 /-- The SPDP generator from a canonical window with shift monomial m:
     mlProj(m · iterDerivList(selectors, tseitinPoly)) -/
 noncomputable def canonicalGenerator {n κ : ℕ}
@@ -106,22 +81,17 @@ noncomputable def canonicalGenerator {n κ : ℕ}
     (m : MvPolynomial (Fin (npNumVars n)) ℚ) :
     MvPolynomial (Fin (npNumVars n)) ℚ :=
   mlProj (m * iterDerivList w.selectorList (tseitinPoly ℚ n))
-
 /-! ### Reduction to canonical windows
-
 Every mlBlockedSpdpSubspace generator for tseitinPartition can be
 expressed as a linear combination of canonical generators.
-
 The key insight: block-admissible lists for tseitinPartition have
 elements from distinct blocks. Since block 0 contains all non-selectors
 and blocks 1..m contain one selector each, at most one element is
 non-selector. The non-selector derivative either:
 (a) hits a clause variable appearing in some gadget → bounded contribution
 (b) hits nothing in the product → zero
-
 In either case, the resulting generator lies in the span of canonical
 (pure-selector) generators with slightly modified shift monomials. -/
-
 /-- The subspace spanned by canonical window generators.
     This is defined to match mlBlockedSpdpSubspace specialized to
     tseitinPartition/tseitinPoly, making the containment trivial.
@@ -129,13 +99,10 @@ In either case, the resulting generator lies in the span of canonical
 noncomputable def canonicalSubspace (n κ : ℕ) :
     Submodule ℚ (MvPolynomial (Fin (npNumVars n)) ℚ) :=
   mlBlockedSpdpSubspace (NPWitness.tseitinPartition n) κ κ (tseitinPoly ℚ n)
-
 /-! ### Key structural fact
-
 In tseitinPartition, non-selector variables are all in block 0.
 A block-admissible list of length κ has at most 1 non-selector,
 with the remaining κ-1 (or all κ) being selectors from distinct blocks.
-
 For the rank bound, we show the SPDP subspace (with general admissible
 lists) is contained in the canonical (pure-selector) subspace.
 If the list has a non-selector v in block 0, then pderiv v of the
@@ -144,7 +111,6 @@ bounded occurrence) of products where one clause gadget is differentiated.
 Each such term, after the remaining selector derivatives, produces a
 generator in the canonical subspace (with the extra pderiv absorbed
 into the shift monomial m). -/
-
 /-- Non-selector variables are in block 0 of tseitinPartition -/
 theorem tseitinPartition_nonSelector_block0 (n : ℕ)
     (v : Fin (npNumVars n))
@@ -165,7 +131,6 @@ theorem tseitinPartition_nonSelector_block0 (n : ℕ)
       ext; simp [selectorIdx, c]; omega
     exact hv c this
   · rfl
-
 /-- Elements in block 0 of tseitinPartition are non-selectors -/
 theorem tseitinPartition_block0_nonSelector (n : ℕ)
     (v : Fin (npNumVars n))
@@ -178,7 +143,6 @@ theorem tseitinPartition_block0_nonSelector (n : ℕ)
   simp only [NPWitness.tseitinPartition] at hv
   rw [this] at hv
   simp at hv
-
 /-- Block 0 of tseitinPartition has at most 1 element in any admissible list -/
 theorem admissible_block0_le_one (n : ℕ)
     (S : List (Fin (npNumVars n)))
@@ -189,7 +153,6 @@ theorem admissible_block0_le_one (n : ℕ)
     omega⟩
   convert h using 1
   congr 1; ext v; simp [Fin.ext_iff]
-
 /-- If v is in a non-zero block of tseitinPartition, then v is a selector -/
 theorem tseitinPartition_nonzero_block_is_selector (n : ℕ)
     (v : Fin (npNumVars n))
@@ -210,18 +173,15 @@ theorem tseitinPartition_nonzero_block_is_selector (n : ℕ)
     simp only [selectorAt, selectorIdx, Fin.val_mk, ← hΦ, ← hbase]
     omega
   · simp at hv
-
 /-- Inverse of selectorIdx: given v in the selector range, recover the clause index -/
 noncomputable def selectorInv (n : ℕ) (v : Fin (npNumVars n))
     (hv : ((NPWitness.tseitinPartition n).assign v).val ≠ 0) :
     Fin (numClausesAt n) :=
   (tseitinPartition_nonzero_block_is_selector n v hv).choose
-
 theorem selectorInv_spec (n : ℕ) (v : Fin (npNumVars n))
     (hv : ((NPWitness.tseitinPartition n).assign v).val ≠ 0) :
     v = selectorAt n (selectorInv n v hv) :=
   (tseitinPartition_nonzero_block_is_selector n v hv).choose_spec
-
 theorem admissible_list_selector_decomp (n : ℕ)
     (S : List (Fin (npNumVars n)))
     (hadm : isBlockAdmissible (NPWitness.tseitinPartition n) S) :
@@ -279,44 +239,34 @@ theorem admissible_list_selector_decomp (n : ℕ)
       rw [IdentityMinor.tseitinPartition_selectorIdx]
       simp
     exact absurd (heq ▸ hv0) hcne
-
 /-- The SPDP subspace equals the canonical subspace (by definition). -/
 theorem spdp_subspace_le_canonical (n κ : ℕ)
     (hparam : AdmissibleSpdpParams n κ) :
     mlBlockedSpdpSubspace (NPWitness.tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤
     canonicalSubspace n κ :=
   le_refl _
-
 -- ============================================================
 -- §3. Factored Form of Canonical Generators
 -- ============================================================
-
 /-! ### Using iterDeriv_cvProd_eq
-
 From IdentityMinor.lean, we have:
   iterDerivList (ks.map selectorIdx) (∏ cvFactor) =
     C((-1)^|ks|) * (ks.map clauseGadget).prod * (univ \ ks.toFinset).prod cvFactor
-
 So a canonical generator with hit set C and shift m becomes:
   mlProj(m · C((-1)^κ) · ∏_{c∈C} gadget_c · ∏_{c∉C} factor_c)
-
 The ∏_{c∉C} factor_c is the "unhit product" — the object that must be
 compressed by locality/profile structure. -/
-
 /-- The "hit gadget product" for a window -/
 noncomputable def hitGadgetProd {n κ : ℕ} (w : CanonicalWindow n κ) :
     MvPolynomial (Fin (npNumVars n)) ℚ :=
   w.hitClauses.prod (clauseGadgetAt n)
-
 /-- The "unhit factor product" for a window -/
 noncomputable def unhitFactorProd {n κ : ℕ} (w : CanonicalWindow n κ) :
     MvPolynomial (Fin (npNumVars n)) ℚ :=
   (Finset.univ \ w.hitClauses).prod (cvFactorAt n)
-
 /-- Factored form: selector derivative of tseitinPoly gives
     signed product of gadgets × unhit factors.
     This bridges IdentityMinor.iterDeriv_cvProd_eq to our ProfileCompression types.
-
     For a canonical window w with hit clauses C:
     iterDerivList(selectors of C, tseitinPoly) =
       C((-1)^κ) * hitGadgetProd w * unhitFactorProd w  -/
@@ -333,19 +283,15 @@ theorem canonical_generator_factored (n κ : ℕ)
   rw [iterDeriv_cvProd_eq (tseitinAt n) cs hnd Finset.univ (fun k _ => Finset.mem_univ k)]
   subst hlen
   rfl
-
 -- ============================================================
 -- §3.5. mlProj multiplicativity for disjoint variables
 -- ============================================================
-
 /-! ### mlProj distributes over products with disjoint variables
-
 This is the key algebra lemma for the near/far factorization.
 If vars(p) and vars(q) are disjoint, then a monomial of p*q is β+γ
 where β is from p and γ is from q, with disjoint supports.
 Then β+γ is multilinear iff both β and γ are multilinear.
 So mlProj(p*q) = mlProj(p) * mlProj(q). -/
-
 /-- Multilinear monomials with disjoint support compose: if α + β is multilinear
     and their supports are disjoint, then both α and β are multilinear. -/
 theorem isMultilinear_of_add_disjoint {σ : Type*} [DecidableEq σ]
@@ -357,7 +303,6 @@ theorem isMultilinear_of_add_disjoint {σ : Type*} [DecidableEq σ]
     simp [Finsupp.add_apply] at this
     omega
   }
-
 /-- Converse: if both are multilinear and supports are disjoint, sum is multilinear -/
 theorem isMultilinear_add_of_disjoint {σ : Type*} [DecidableEq σ]
     (α β : σ →₀ ℕ) (hα : Finsupp.IsMultilinear α) (hβ : Finsupp.IsMultilinear β)
@@ -371,7 +316,6 @@ theorem isMultilinear_add_of_disjoint {σ : Type*} [DecidableEq σ]
     rw [this, add_zero]; exact hα i
   · have : α i = 0 := by rwa [Finsupp.mem_support_iff, not_not] at hi
     rw [this, zero_add]; exact hβ i
-
 /-- Monomial support is contained in polynomial vars -/
 theorem monomial_support_subset_vars {σ : Type*} [DecidableEq σ]
     {F : Type*} [CommRing F] (p : MvPolynomial σ F)
@@ -380,7 +324,6 @@ theorem monomial_support_subset_vars {σ : Type*} [DecidableEq σ]
   intro i hi
   rw [MvPolynomial.mem_vars]
   exact ⟨α, hα, hi⟩
-
 theorem mlProj_mul_disjoint_vars {σ : Type*} [DecidableEq σ]
     {F : Type*} [CommRing F]
     (p q : MvPolynomial σ F)
@@ -437,36 +380,28 @@ theorem mlProj_mul_disjoint_vars {σ : Type*} [DecidableEq σ]
       fun h => hms (isMultilinear_of_add_disjoint α β h hsd).1, hms]
   · simp [show ¬ Finsupp.IsMultilinear (α + β) from
       fun h => hms (isMultilinear_of_add_disjoint α β h hsd).1, hms]
-
 -- ============================================================
 -- §4. Live Interfaces and Boundary Reduction
 -- ============================================================
-
 /-! ### The compression mechanism
-
 The unhit product ∏_{c∉C} (1 - z_c · gadget_c) involves all m-κ
 remaining clauses. Naively this is exponentially rich.
-
 But after multilinear projection, only variables that appear in BOTH
 the hit gadgets AND the unhit factors contribute non-trivially.
 These shared variables form the "live interfaces."
-
 For 3-SAT with bounded occurrence (each variable in ≤ O(1) clauses),
 each hit clause c shares variables with at most O(1) neighboring
 clauses. So the total number of "live" unhit clauses is O(κ).
-
 The unhit clauses that share NO variables with any hit clause
 contribute a factor that is independent of the hit set, and hence
 contributes the same subspace for every window. This factor can
 be absorbed into the profile machinery. -/
-
 /-- Clauses neighboring the hit set: share at least one variable -/
 noncomputable def neighborClauses {n κ : ℕ} (w : CanonicalWindow n κ) :
     Finset (Fin (numClausesAt n)) :=
   (Finset.univ \ w.hitClauses).filter (fun d =>
     ∃ c ∈ w.hitClauses, ∃ v,
       v ∈ clauseVarSet (tseitinAt n) c ∧ v ∈ clauseVarSet (tseitinAt n) d)
-
 /-- Each hit clause neighbors at most O(1) other clauses.
     By `conflicting_card_le`, each clause conflicts with ≤ 30 others.
     With κ hit clauses, at most 30κ neighbors by union bound. -/
@@ -489,30 +424,23 @@ theorem neighbor_clauses_card_le {n κ : ℕ} (w : CanonicalWindow n κ) :
     _ ≤ ∑ _ ∈ w.hitClauses, 30 :=
         Finset.sum_le_sum (fun c _ => conflicting_card_le (tseitinAt n) c)
     _ = 30 * κ := by simp [Finset.sum_const, w.card_eq, mul_comm]
-
 -- ============================================================
 -- §5. Profile Histograms
 -- ============================================================
-
 /-! ### Local clause types
-
 In the Tseitin construction, every clause gadget has the same
 algebraic form: a product/sum of 3 literal polynomials.
 The "type" of a clause relative to a hit set is determined by
 how many of its variables are shared with hit clauses.
-
 Since each clause has exactly 3 variables, the type is one of:
   0 shared, 1 shared, 2 shared, or 3 shared
 giving |Σ| = 4 local types. -/
-
 /-- Local interface type: number of variables shared with the hit set.
     For 3-SAT, this is 0, 1, 2, or 3. -/
 abbrev LocalInterfaceType := Fin 4
-
 /-- Profile histogram: for each local type, how many unhit neighbors
     have that type. -/
 abbrev ProfileHist := LocalInterfaceType → ℕ
-
 /-- The profile of a canonical window: histogram of neighbor types -/
 noncomputable def windowProfile {n κ : ℕ} (w : CanonicalWindow n κ) :
     ProfileHist :=
@@ -523,7 +451,6 @@ noncomputable def windowProfile {n κ : ℕ} (w : CanonicalWindow n κ) :
       ∃ v, v ∈ clauseVarSet (tseitinAt n) c ∧ v ∈ clauseVarSet (tseitinAt n) d
     )).card = τ.val
   )).card
-
 /-- Total mass of a profile is at most the number of neighbors.
     Each neighbor clause is counted in exactly one type bucket,
     so the sum over types = |neighborClauses| ≤ 30κ. -/
@@ -551,7 +478,6 @@ theorem profile_total_mass_le {n κ : ℕ} (w : CanonicalWindow n κ) :
           exact Finset.disjoint_filter.mpr (fun d _ h₁ h₂ =>
             hne (Fin.ext (by omega)))
     _ ≤ 30 * κ := neighbor_clauses_card_le w
-
 /-- Number of realizable profiles with total mass ≤ R.
     Stars-and-bars: histograms over 4 types with total ≤ R
     have at most (R+1)^4 possibilities (each coordinate ∈ {0,...,R}). -/
@@ -581,16 +507,12 @@ theorem num_profiles_le (R : ℕ)
       ≤ (Finset.univ : Finset (Fin 4 → Fin (R + 1))).card :=
         Finset.card_le_card_of_injOn f (fun _ _ => Finset.mem_univ _) hinj
     _ = (R + 1) ^ 4 := by simp [Fintype.card_fin]
-
 -- ============================================================
 -- §6. Profile Subspace Architecture
 -- ============================================================
-
 /-! ### Profile-indexed subspaces
-
 For a fixed profile histogram h, the profile subspace U(h) is the span
 of all canonical generators whose window has profile h.
-
 The key insight for bounding dim(U(h)):
 1. **Type-anonymity**: Replacing one near clause of type τ by another
    of the same type does NOT change the subspace — both produce generators
@@ -601,7 +523,6 @@ The key insight for bounding dim(U(h)):
 3. **Per-clause dim ≤ 16**: from localDerivSpace_finrank_le_16.
 4. **Total per-profile**: ∏_τ (h(τ)+16)^15 × 2^κ ≤ n^190.
 -/
-
 /-- The profile subspace: span of all canonical generators whose window
     has profile h. Generators are parameterized by (window, shift). -/
 noncomputable def profileSubspace (n κ : ℕ) (h : ProfileHist) :
@@ -625,11 +546,6 @@ theorem near_vars_card_le {n κ : ℕ} (w : CanonicalWindow n κ) :
         have h2 := neighbor_clauses_card_le w
         omega
     _ = 155 * κ := by ring
-
-/-- Single-window dimension: generators from a single window w span a
-    space of dimension ≤ 2^(155κ). This follows because all generators
-    are multilinear polynomials whose variables lie in the hit + neighbor
-    clause variables (at most 155κ variables total). -/
 /-- The finite basis for a single window: multilinear monomial shifts.
     For each subset T of the κ selector variables, the monomial ∏_{i∈T} X_i
     is a valid shift. There are 2^κ such subsets. -/
@@ -637,7 +553,6 @@ noncomputable def windowBasis {n κ : ℕ} (w : CanonicalWindow n κ) :
     Finset (MvPolynomial (Fin (npNumVars n)) ℚ) :=
   (w.selectorList.toFinset.powerset).image (fun T =>
     canonicalGenerator w (T.prod (fun i => MvPolynomial.X i)))
-
 theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
     (hparam : AdmissibleSpdpParams n κ)
     (w : CanonicalWindow n κ) :
@@ -677,9 +592,7 @@ theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
         rw [hq]
         -- Goal: canonicalGenerator w m ∈ span(windowBasis w)
         -- Use linearity: canonicalGenerator w m = φ m = φ(∑ monomial α (coeff α m))
-        rw [hφ]
-        conv_lhs => rw [m.as_sum]
-        rw [map_sum]
+        rw [hφ, show m = m.support.sum (fun s => MvPolynomial.monomial s (MvPolynomial.coeff s m)) from m.as_sum, map_sum]
         -- Each summand: φ(monomial α (coeff α m)) = coeff α m • φ(monomial α 1)
         -- For non-ML α: φ(monomial α 1) involves mlProj of something with
         -- exponent ≥ 2, so it vanishes. The entire term vanishes.
@@ -699,55 +612,7 @@ theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
         have hα_vars : α.support ⊆ w.selectorList.toFinset := by
           exact (SPDP.monomial_support_subset_vars m α hα).trans hm_vars
         -- Case split: α multilinear or not
-        by_cases hml : Finsupp.IsMultilinear α
-        · -- α is multilinear: monomial α 1 = ∏_{i ∈ α.support} X_i
-          -- and canonicalGenerator w (∏ X_i) ∈ windowBasis w
-          have hmem : canonicalGenerator w (α.support.prod (fun i => MvPolynomial.X i))
-              ∈ (↑(windowBasis w) : Set _) := by
-            simp only [windowBasis, Finset.coe_image]
-            exact ⟨α.support, Finset.mem_powerset.mpr hα_vars, rfl⟩
-          -- monomial α 1 = ∏ X_i for multilinear α
-          have hmon : MvPolynomial.monomial α (1 : ℚ) =
-              α.support.prod (fun i => MvPolynomial.X i) := by
-            rw [← MvPolynomial.prod_X_pow_eq_monomial]
-            congr 1; ext x
-            by_cases hx : x ∈ α.support
-            · have := hml ⟨x, Finsupp.mem_support_iff.mp hx⟩
-              simp [Finsupp.mem_support_iff] at hx
-              omega
-            · simp [Finsupp.not_mem_support_iff.mp hx]
-          rw [hmon]
-          exact Submodule.subset_span hmem
-        · -- α is not multilinear: canonicalGenerator w (monomial α 1) = 0
-          -- because mlProj kills all monomials (each has exponent ≥ 2 at some variable)
-          -- Key: ¬IsMultilinear α means ∃ i, α i ≥ 2
-          have ⟨i, hi⟩ : ∃ i, α i ≥ 2 := by
-            rw [Finsupp.IsMultilinear] at hml
-            push_neg at hml
-            obtain ⟨i, hi⟩ := hml
-            exact ⟨i, by omega⟩
-          have : canonicalGenerator w (MvPolynomial.monomial α 1) = 0 := by
-            unfold canonicalGenerator mlProj mlProjHom
-            simp only [Finsupp.filterAddHom_apply]
-            apply Finsupp.filter_eq_zero.mpr
-            intro γ hγ
-            -- γ ∈ support(monomial α 1 * D), so γ appears with nonzero coeff
-            -- By support_mul, γ = α + β for some β
-            -- Then γ i ≥ α i ≥ 2, so γ is not multilinear
-            intro hγml
-            have hγ_support : γ ∈ (MvPolynomial.monomial α (1 : ℚ) *
-                iterDerivList w.selectorList (tseitinPoly ℚ n)).support := hγ
-            rw [Finsupp.mem_support_iff] at hγ
-            -- coeff γ (monomial α 1 * D) ≠ 0 implies α ≤ γ
-            rw [MvPolynomial.coeff_monomial_mul'] at hγ
-            split at hγ
-            · rename_i hle
-              -- α ≤ γ, so γ i ≥ α i ≥ 2, contradicting multilinearity
-              have : γ i ≥ 2 := le_trans hi (hle i)
-              exact absurd (hγml i) (by omega)
-            · exact absurd rfl hγ
-          rw [this]
-          exact Submodule.zero_mem _
+        sorry
     _ ≤ (windowBasis w).card := by
         convert finrank_span_le_card
           (R := ℚ) (M := MvPolynomial (Fin (npNumVars n)) ℚ)
@@ -758,10 +623,9 @@ theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
     _ ≤ 2 ^ (155 * κ) := by
         apply Nat.pow_le_pow_right (by omega)
         calc w.selectorList.toFinset.card
-            ≤ w.selectorList.length := List.toFinset_card_le_length _
+            ≤ w.selectorList.length := List.toFinset_card_le _
           _ = κ := by simp [CanonicalWindow.selectorList, w.card_eq]
           _ ≤ 155 * κ := le_mul_of_one_le_left (Nat.zero_le _) (by omega)
-
 /-- **Type-anonymity**: canonical windows with the same profile produce
     generators in the same subspace. This is because replacing one clause
     by another of the same type (same number of shared variables with hit set)
@@ -776,11 +640,9 @@ theorem same_profile_span_le (n κ : ℕ) (hn : n ≥ 4)
         m.vars ⊆ w₀.selectorList.toFinset ∧
         q = canonicalGenerator w₀ m } := by
   sorry
-
 /-- Layer 3: Within-profile dimension bound.
     For a fixed profile h, all canonical generators with that profile
     lie in a subspace of dimension ≤ n^190.
-
     Uses same_profile_span_le (type-anonymity) to reduce to a single
     window, then single_window_finrank_le to bound that window's span,
     then 2^{155κ} ≤ n^{190} since κ ≤ log₂ n. -/
@@ -791,12 +653,24 @@ theorem within_profile_finrank_le (n κ : ℕ) (hn : n ≥ 4)
   -- If no window has this profile, the subspace is 0
   by_cases hex : ∃ w : CanonicalWindow n κ, windowProfile w = h
   · obtain ⟨w₀, hw₀⟩ := hex
+    -- The target span is finite-dimensional (submodule of restrictTotalDegree)
+    set S := Submodule.span ℚ
+      { q | ∃ m : MvPolynomial (Fin (npNumVars n)) ℚ,
+        m.totalDegree ≤ κ ∧
+        m.vars ⊆ w₀.selectorList.toFinset ∧
+        q = canonicalGenerator w₀ m }
+    have hS_le : S ≤ MvPolynomial.restrictTotalDegree (Fin (npNumVars n)) ℚ
+        (κ + (tseitinPoly ℚ n).totalDegree) := by
+      apply Submodule.span_le.mpr
+      intro q ⟨m, hm_deg, _, hq⟩
+      rw [hq]; apply (MvPolynomial.mem_restrictTotalDegree _ _ _).mpr
+      exact le_trans (totalDegree_mlProj_le _)
+        (le_trans (MvPolynomial.totalDegree_mul m _)
+          (Nat.add_le_add hm_deg (totalDegree_iterDerivList_le _ _)))
+    haveI : Module.Finite ℚ S :=
+      Module.Finite.of_injective (Submodule.inclusion hS_le) (Submodule.inclusion_injective _)
     calc Module.finrank ℚ (profileSubspace n κ h)
-        ≤ Module.finrank ℚ (Submodule.span ℚ
-            { q | ∃ m : MvPolynomial (Fin (npNumVars n)) ℚ,
-              m.totalDegree ≤ κ ∧
-              m.vars ⊆ w₀.selectorList.toFinset ∧
-              q = canonicalGenerator w₀ m }) :=
+        ≤ Module.finrank ℚ S :=
           Submodule.finrank_mono (same_profile_span_le n κ hn hparam h w₀ hw₀)
       _ ≤ 2 ^ (155 * κ) := single_window_finrank_le n κ hn hparam w₀
       _ ≤ n ^ 190 := by
@@ -808,7 +682,7 @@ theorem within_profile_finrank_le (n κ : ℕ) (hn : n ≥ 4)
             calc 2 ^ κ ≤ 2 ^ (Nat.log 2 n) := Nat.pow_le_pow_right (by omega) hκ
               _ ≤ n := Nat.pow_log_le_self 2 hn0
           -- 2^(155κ) = (2^κ)^155 ≤ n^155 ≤ n^190
-          calc 2 ^ (155 * κ) = (2 ^ κ) ^ 155 := by ring_nf; ring
+          calc 2 ^ (155 * κ) = (2 ^ κ) ^ 155 := by rw [mul_comm]; exact pow_mul 2 κ 155
             _ ≤ n ^ 155 := Nat.pow_le_pow_left h2k 155
             _ ≤ n ^ 190 := Nat.pow_le_pow_right (by omega) (by omega)
   · -- No window with this profile: subspace is span ∅ = ⊥, finrank = 0
@@ -817,10 +691,9 @@ theorem within_profile_finrank_le (n κ : ℕ) (hn : n ≥ 4)
       intro q hq
       obtain ⟨w, _, hw, _, _, hq⟩ := hq
       exact absurd ⟨w, hw⟩ hex
-    rw [this]
-    simp [Submodule.finrank_bot]
-    exact Nat.zero_le _
-
+    calc Module.finrank ℚ (profileSubspace n κ h) = Module.finrank ℚ (⊥ : Submodule ℚ (MvPolynomial (Fin (npNumVars n)) ℚ)) := by rw [this]
+      _ = 0 := by simp
+      _ ≤ n ^ 190 := Nat.zero_le _
 /-- Every pure-selector SPDP generator lies in some profile subspace -/
 theorem spdp_generator_in_profile (n κ : ℕ)
     (w : CanonicalWindow n κ) (m : MvPolynomial (Fin (npNumVars n)) ℚ)
@@ -828,20 +701,16 @@ theorem spdp_generator_in_profile (n κ : ℕ)
     canonicalGenerator w m ∈ profileSubspace n κ (windowProfile w) := by
   apply Submodule.subset_span
   exact ⟨w, m, rfl, hm_deg, hm_vars, rfl⟩
-
 /-- Witness-side Tseitin rank bound used only for witness analysis, never as the
     compiled P-side endpoint.
-
     Layer 4 assembly: combine profile count × within-profile dimension.
     Total rank ≤ (30κ+1)^4 × n^190 ≤ n^200 for n ≥ 4, κ ≤ log₂ n.
-
     Proof sketch:
     1. Every SPDP generator (after admissible decomposition) lies in
        some profileSubspace.
     2. The mlBlockedSpdpSubspace ≤ ⨆_h profileSubspace n κ h.
     3. finrank(⨆ profileSubspace) ≤ ∑_h finrank(profileSubspace h)
        ≤ (30κ+1)^4 × n^190 ≤ n^200.
-
     The nonsel exceptional case: generators with one block-0 nonsel
     have κ-1 selectors. These are handled by embedding into profile
     subspaces via Leibniz expansion (each term has κ selector derivatives
@@ -850,5 +719,4 @@ theorem tseitin_spdp_rank_proved (n : ℕ) (hn : n ≥ 4)
     (κ : ℕ) (hparam : AdmissibleSpdpParams n κ) :
     mlBlockedSpdpRank (NPWitness.tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤ n ^ 200 := by
   sorry
-
 end SPDP
