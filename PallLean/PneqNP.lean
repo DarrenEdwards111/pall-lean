@@ -34,12 +34,20 @@ theorem P_neq_NP (h : PeqNP) : False := by
   have heven : 2 ∣ n := ⟨_, rfl⟩
   -- Size bound for canonical inclusion
   have h_le : npNumVars n ≤ numVars M n (Nat.log 2 n) := by
-    -- npNumVars = numEdges + 4 * numClauses
-    -- numEdges ≤ numVertices * degree ≤ 10n
-    -- numClauses ≤ 10 * numVertices = 10n
-    -- So npNumVars ≤ 10n + 40n = 50n
-    -- numVars grows as n^timeBound * ... which dominates 50n for large n
-    sorry
+    -- Upper bound: npNumVars n ≤ 18n  (edges = n+n/2, clauses = 4n, tseitinNumVars = n+n/2+16n ≤ 18n)
+    have hn6 : n ≥ 6 := by omega
+    have heven : 2 ∣ n := ⟨_, rfl⟩
+    have h_np : npNumVars n ≤ 18 * n := npNumVars_le n hn6 heven
+    -- Lower bound: numVars M n κ ≥ 2*(n^timeBound+1)^2 ≥ 2*(n+1)^2 ≥ 18n  (for n ≥ 64)
+    have h_tm : 18 * n ≤ TuringMachine.numVars M n (Nat.log 2 n) := by
+      unfold TuringMachine.numVars TuringMachine.tapeSize TuringMachine.timeSteps
+      have htb_pos : M.timeBound ≠ 0 := by have := M.hTimeBound; omega
+      have hpow : n ^ M.timeBound ≥ n := Nat.le_self_pow htb_pos n
+      have hmul : (n + 1) * (n + 1) ≤ (n ^ M.timeBound + 1) * (n ^ M.timeBound + 1) := by
+        apply Nat.mul_le_mul <;> omega
+      have hnn : 9 * n ≤ n * n := Nat.mul_le_mul_right n (by omega)
+      nlinarith [Nat.zero_le (Nat.log 2 n), M.hStates]
+    linarith
   -- Instantiate bounds
   have h_np := hnpside n (by omega) heven
   have hκ_ge : Nat.log 2 n ≥ 5 := by

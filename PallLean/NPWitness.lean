@@ -340,7 +340,7 @@ private theorem buildTseitinClauses_mentions_incident (G : RegularGraph) (hdeg :
   -- The three edge indices are members of incidentEdges G w
   have hmem : ∀ (i : ℕ) (hi : i < edges.length), edges[i] ∈ incidentEdges G w := by
     intro i hi
-    have hmem : edges[i] ∈ edges := List.getElem_mem edges i hi
+    have hmem : edges[i] ∈ edges := List.getElem_mem hi
     exact (Finset.mem_sort _).mp hmem
   have h0 : edges[0]'(by rw [incidentEdgesList_length]; omega) ∈ incidentEdges G w :=
     hmem 0 (by rw [incidentEdgesList_length]; omega)
@@ -487,36 +487,49 @@ noncomputable def buildTseitin (G : RegularGraph) (hdeg : G.degree ≥ 3) : Tsei
     by_cases hv_edge : v < G.numEdges
     · -- v is an edge index. At most 2 vertices contribute (src and tgt).
       set e : Fin G.numEdges := ⟨v, hv_edge⟩
-      calc _ ≤ ((List.finRange G.numVertices).map fun w =>
-            if G.edgeSrc e = ⟨w.val, w.isLt⟩ ∨ G.edgeTgt e = ⟨w.val, w.isLt⟩
-            then 4 else 0).sum := by
-          apply list_sum_map_le; intro i
-          split
-          · calc _ ≤ (buildTseitinClauses G ⟨i.val, i.isLt⟩).length :=
+      -- Bound: each vertex contributes ≤ 4 (if incident) or 0 (if not)
+      suffices h : ((List.finRange G.numVertices).map fun w =>
+            ((buildTseitinClauses G ⟨w.val, w.isLt⟩).filter
+              (fun c => decide (c.var1 = v ∨ c.var2 = v ∨ c.var3 = v))).length).sum ≤ 10 from h
+      -- Upper bound by indicator sum
+      have hpw : ∀ (i : Fin G.numVertices),
+          ((buildTseitinClauses G ⟨i.val, i.isLt⟩).filter
+            (fun c => decide (c.var1 = v ∨ c.var2 = v ∨ c.var3 = v))).length ≤
+          (if G.edgeSrc e = ⟨i.val, i.isLt⟩ ∨ G.edgeTgt e = ⟨i.val, i.isLt⟩
+           then 4 else 0) := by
+        intro i
+        by_cases hi : G.edgeSrc e = ⟨i.val, i.isLt⟩ ∨ G.edgeTgt e = ⟨i.val, i.isLt⟩
+        · rw [if_pos hi]
+          calc _ ≤ (buildTseitinClauses G ⟨i.val, i.isLt⟩).length :=
                 List.length_filter_le _ _
-              _ = 4 := buildTseitinClauses_length_eq G hdeg _
-          · rename_i hni; push_neg at hni
-            have : (buildTseitinClauses G ⟨i.val, i.isLt⟩).filter
-                (fun c => decide (c.var1 = v ∨ c.var2 = v ∨ c.var3 = v)) = [] := by
-              rw [List.filter_eq_nil_iff]; intro c hc
-              simp only [Bool.not_eq_true, decide_eq_false_iff_not, not_or]
-              refine ⟨?_, ?_, ?_⟩ <;> intro heq
-              all_goals (
-                have ⟨edge, heval, hinc⟩ := buildTseitinClauses_mentions_incident G hdeg
-                  ⟨i.val, i.isLt⟩ c hc v (by tauto)
-                rcases hinc with hsrc | htgt
-                · exact hni.1 (by rw [← hsrc]; congr 1; exact Fin.ext heval)
-                · exact hni.2 (by rw [← htgt]; congr 1; exact Fin.ext heval))
-            simp [this]
+            _ = 4 := buildTseitinClauses_length_eq G hdeg _
+        · rw [if_neg hi]
+          have : (buildTseitinClauses G ⟨i.val, i.isLt⟩).filter
+              (fun c => decide (c.var1 = v ∨ c.var2 = v ∨ c.var3 = v)) = [] := by
+            rw [List.filter_eq_nil_iff]; intro c hc
+            simp only [Bool.not_eq_true, decide_eq_false_iff_not, not_or]
+            push_neg at hi
+            refine ⟨?_, ?_, ?_⟩ <;> intro heq
+            all_goals (
+              have ⟨edge, heval, hinc⟩ := buildTseitinClauses_mentions_incident G hdeg
+                ⟨i.val, i.isLt⟩ c hc v (by tauto)
+              rcases hinc with hsrc | htgt
+              · exact hi.1 (by rw [← hsrc]; congr 1; exact Fin.ext (show e.val = edge.val from heval.symm))
+              · exact hi.2 (by rw [← htgt]; congr 1; exact Fin.ext (show e.val = edge.val from heval.symm)))
+          rw [this]; simp
+      calc ((List.finRange G.numVertices).map fun w =>
+              ((buildTseitinClauses G ⟨w.val, w.isLt⟩).filter _).length).sum
+          ≤ ((List.finRange G.numVertices).map fun w =>
+              if G.edgeSrc e = ⟨w.val, w.isLt⟩ ∨ G.edgeTgt e = ⟨w.val, w.isLt⟩
+              then 4 else 0).sum := list_sum_map_le _ _ _ (fun w => hpw w)
         _ ≤ 2 * 4 := by
           have heq : (List.finRange G.numVertices).map (fun w =>
               if G.edgeSrc e = ⟨w.val, w.isLt⟩ ∨ G.edgeTgt e = ⟨w.val, w.isLt⟩
               then (4 : ℕ) else 0) =
             (List.finRange G.numVertices).map (fun w =>
               if G.edgeSrc e = w ∨ G.edgeTgt e = w then 4 else 0) := by
-            apply List.map_congr_left; intro w _; congr 1; constructor
-            · rintro (rfl | rfl) <;> simp
-            · rintro (rfl | rfl) <;> simp
+            apply List.map_congr_left; intro w _
+            simp only [Fin.eta]
           rw [heq]; exact sum_map_ite_or_le (G.edgeSrc e) (G.edgeTgt e) 4
         _ ≤ 10 := by omega
     · -- v is not an edge index: no clause mentions it
@@ -525,7 +538,7 @@ noncomputable def buildTseitin (G : RegularGraph) (hdeg : G.degree ≥ 3) : Tsei
             (fun c => decide (c.var1 = v ∨ c.var2 = v ∨ c.var3 = v))).length).sum = 0 := by
         apply List.sum_eq_zero; intro x hx
         rw [List.mem_map] at hx; obtain ⟨w, _, rfl⟩ := hx
-        rw [List.length_eq_zero, List.filter_eq_nil_iff]
+        simp only [List.length_eq_zero_iff, List.filter_eq_nil_iff]
         intro c hc
         simp only [Bool.not_eq_true, decide_eq_false_iff_not, not_or]
         have hvars := buildTseitinClauses_vars G hdeg ⟨w.val, w.isLt⟩ c hc; omega
@@ -545,8 +558,48 @@ theorem tseitinAt_vertices (n : ℕ) (hn : n ≥ 6) (heven : 2 ∣ n) :
   unfold tseitinAt buildTseitin
   exact highGirthFamily.vertices_eq n hn heven
 
+/-- Number of edges in the n-th Tseitin graph (for even n ≥ 6) -/
+theorem tseitinAt_numEdges (n : ℕ) (hn : n ≥ 6) (heven : 2 ∣ n) :
+    (tseitinAt n).graph.numEdges = n + n / 2 := by
+  show (cubicGraph (evenUp n) (evenUp_ge6 n) (evenUp_even n)).numEdges = n + n / 2
+  have : evenUp n = n := evenUp_eq n hn heven
+  simp only [cubicGraph, this]
+
+/-- Clause count for buildTseitin equals 4 × numVertices -/
+private theorem buildTseitin_clauses_length (G : RegularGraph) (hdeg : G.degree ≥ 3) :
+    (buildTseitin G hdeg).clauses.length = 4 * G.numVertices := by
+  show ((List.finRange G.numVertices).flatMap fun v =>
+    buildTseitinClauses G ⟨v.val, v.isLt⟩).length = 4 * G.numVertices
+  rw [List.length_flatMap]
+  have hmap : (List.finRange G.numVertices).map (fun v =>
+      (buildTseitinClauses G ⟨v.val, v.isLt⟩).length) =
+      List.replicate G.numVertices 4 := by
+    rw [List.eq_replicate_iff]
+    refine ⟨by simp [List.length_map, List.length_finRange], ?_⟩
+    intro x hx
+    rw [List.mem_map] at hx
+    obtain ⟨v, _, rfl⟩ := hx
+    exact buildTseitinClauses_length_eq G hdeg ⟨v.val, v.isLt⟩
+  rw [hmap, List.sum_const_nat]; ring
+
+/-- Number of clauses in the n-th Tseitin formula equals 4n (for even n ≥ 6) -/
+theorem tseitinAt_clauses_length (n : ℕ) (hn : n ≥ 6) (heven : 2 ∣ n) :
+    (tseitinAt n).clauses.length = 4 * n := by
+  show (buildTseitin (highGirthFamily.graph n) _).clauses.length = 4 * n
+  rw [buildTseitin_clauses_length]
+  have := highGirthFamily.vertices_eq n hn heven
+  omega
+
 /-- Number of variables in the n-th Tseitin polynomial -/
 noncomputable def npNumVars (n : ℕ) : ℕ := tseitinNumVars (tseitinAt n)
+
+/-- Upper bound: npNumVars n ≤ 18n for even n ≥ 6 -/
+theorem npNumVars_le (n : ℕ) (hn : n ≥ 6) (heven : 2 ∣ n) : npNumVars n ≤ 18 * n := by
+  show (tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length +
+      (tseitinAt n).clauses.length ≤ 18 * n
+  rw [tseitinAt_numEdges n hn heven, tseitinAt_clauses_length n hn heven]
+  have : n / 2 ≤ n := Nat.div_le_self n 2
+  omega
 
 /-- Coupled verifier polynomial Q×_Φn -/
 noncomputable def tseitinPoly (F : Type*) [CommRing F] [Nontrivial F] (n : ℕ) :
