@@ -19,6 +19,30 @@ namespace PaperAxioms
 
 open CircuitModel RestrictedSPDP Restriction
 
+/-! ## Finite Seed Union Helper
+
+This is the purely combinatorial part of the paper's seed argument:
+if the union of finitely many bad-seed sets is smaller than the full
+seed space, then some seed avoids every bad set simultaneously.
+
+The remaining seed-side axiom only has to supply the paper-specific
+bound on the bad-seed union. -/
+
+theorem exists_seed_avoiding_bad_union
+    {σ τ : Type*} [DecidableEq σ] [Fintype σ]
+    (tests : Finset τ) (bad : τ → Finset σ)
+    (hcard : (tests.biUnion bad).card < Fintype.card σ) :
+    ∃ s : σ, ∀ t ∈ tests, s ∉ bad t := by
+  classical
+  by_contra hno
+  push_neg at hno
+  have hsubset : (Finset.univ : Finset σ) ⊆ tests.biUnion bad := by
+    intro s hs
+    exact Finset.mem_biUnion.mpr (hno s)
+  have hge : Fintype.card σ ≤ (tests.biUnion bad).card := by
+    simpa using Finset.card_le_card hsubset
+  exact Nat.not_lt_of_ge hge hcard
+
 /-! ## Axiom 1: Depth-4 Simulation
 
 Every polynomial-size Boolean circuit can be converted to a depth-4
@@ -64,7 +88,9 @@ axiom spdp_collapse_under_restriction :
 There exists a single fixed restriction ρ* such that ALL polynomial-size
 circuits simultaneously collapse under ρ*.
 
-Paper: §7.3 Steps 3-4, union bound over quasi-poly row-space signatures. -/
+Paper: §7.3 Steps 3-4. The finite union step is proved above; the axiom
+packages the paper-specific counting/probabilistic input that makes the
+bad-seed union strictly smaller than the seed space. -/
 
 axiom universal_good_seed :
     ∀ (n : ℕ), n ≥ 2 →
