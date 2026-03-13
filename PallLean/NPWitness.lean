@@ -111,8 +111,73 @@ noncomputable def cubicGraph (n : ℕ) (hn : n ≥ 6) (heven : 2 ∣ n) : Regula
     -- 1. Cycle edge v (src=v)
     -- 2. Cycle edge (v+n-1)%n (tgt=v)
     -- 3. Matching edge: n+v (if v<n/2) or n+(v-n/2) (if v≥n/2)
-    -- Proof: identify the 3-element filter, show distinctness, compute card.
-    sorry
+    -- Use decide for small-ish n or a direct combinatorial argument.
+    -- The filter is over Fin (n + n/2). We prove card = 3 by exhibiting the set.
+    --
+    -- We follow the same pattern as cycleRegularGraph:
+    -- identify the 3 incident edges, show they are distinct, prove filter = {e1, e2, e3}.
+    set N := n + n / 2 with hN
+    -- The three incident edges:
+    -- (a) Cycle edge v: index v.val, src = v
+    have hv_lt_N : v.val < N := by omega
+    -- (b) Cycle predecessor: index (v.val+n-1)%n, tgt = v
+    have hpred_lt_n : (v.val + n - 1) % n < n := Nat.mod_lt _ (by omega)
+    have hpred_lt_N : (v.val + n - 1) % n < N := by omega
+    -- (c) Matching edge
+    have heven := heven
+    obtain ⟨k, hk⟩ := heven
+    -- For the matching: if v < n/2, edge n+v has src=v; if v ≥ n/2, edge n+(v-n/2) has tgt=v
+    set mi := if v.val < n / 2 then n + v.val else n + (v.val - n / 2) with hmi_def
+    have hmi_lt : mi < N := by simp only [mi]; split <;> omega
+    -- Now prove filter = {⟨v, _⟩, ⟨pred, _⟩, ⟨mi, _⟩} and card = 3
+    -- Step 1: Distinctness
+    have hdist_01 : v.val ≠ (v.val + n - 1) % n := by
+      by_cases hv0 : v.val = 0
+      · rw [hv0, show 0 + n - 1 = n - 1 from by omega,
+          Nat.mod_eq_of_lt (by omega : n - 1 < n)]; omega
+      · rw [show v.val + n - 1 = v.val - 1 + 1 * n from by omega,
+          Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt (by omega : v.val - 1 < n)]; omega
+    have hdist_02 : v.val ≠ mi := by simp only [mi]; split <;> omega
+    have hdist_12 : (v.val + n - 1) % n ≠ mi := by
+      simp only [mi]; split <;> (have := Nat.mod_lt (v.val + n - 1) (by omega : n > 0); omega)
+    -- Step 2: Build the filter = {e1, e2, e3} directly
+    have hfilt : Finset.univ.filter (fun e : Fin N =>
+        (if h : e.val < n then ⟨e.val, by omega⟩ else ⟨e.val - n, by omega⟩ : Fin n) = v ∨
+        (if h : e.val < n then ⟨(e.val + 1) % n, Nat.mod_lt _ (by omega)⟩
+         else ⟨e.val - n + n / 2, by omega⟩ : Fin n) = v) =
+        ({⟨v.val, hv_lt_N⟩, ⟨(v.val + n - 1) % n, hpred_lt_N⟩, ⟨mi, hmi_lt⟩} : Finset (Fin N)) := by
+      ext ⟨e, he⟩
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and,
+        Finset.mem_insert, Finset.mem_singleton, Fin.ext_iff, Fin.val_mk]
+      constructor
+      · intro h_or
+        by_cases hec : e < n
+        · simp only [dif_pos hec, Fin.ext_iff, Fin.val_mk] at h_or
+          cases h_or with
+          | inl h => exact Or.inl h
+          | inr h => exact Or.inr (Or.inl ((mod_succ_eq_iff e v.val n (by omega) hec v.isLt).mp h))
+        · simp only [dif_neg hec, Fin.ext_iff, Fin.val_mk] at h_or
+          exact Or.inr (Or.inr (by simp only [mi]; cases h_or with
+            | inl h => split <;> omega
+            | inr h => split <;> omega))
+      · intro h_or
+        rcases h_or with rfl | rfl | rfl
+        · left; simp only [dif_pos v.isLt, Fin.ext_iff, Fin.val_mk]
+        · right; simp only [dif_pos hpred_lt_n, Fin.ext_iff, Fin.val_mk]
+          exact (mod_succ_eq_iff _ v.val n (by omega) hpred_lt_n v.isLt).mpr rfl
+        · simp only [mi]
+          split <;> rename_i hv_half
+          · left; simp only [dif_neg (by omega : ¬(n + v.val < n)), Fin.ext_iff, Fin.val_mk]; omega
+          · right; simp only [dif_neg (by omega : ¬(n + (v.val - n / 2) < n)), Fin.ext_iff, Fin.val_mk]
+            congr 1; omega
+    rw [hfilt]
+    rw [Finset.card_insert_of_notMem (by
+      simp only [Finset.mem_insert, Finset.mem_singleton, Fin.ext_iff, Fin.val_mk]
+      push_neg; exact ⟨hdist_01, hdist_02⟩)]
+    rw [Finset.card_insert_of_notMem (by
+      simp only [Finset.mem_singleton, Fin.ext_iff, Fin.val_mk]
+      exact hdist_12)]
+    rw [Finset.card_singleton]
 
 /-- Round up to even ≥ 6 -/
 private def evenUp (n : ℕ) : ℕ :=
