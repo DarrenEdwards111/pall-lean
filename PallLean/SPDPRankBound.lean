@@ -17,6 +17,7 @@ import PallLean.SPDPDefs
 import PallLean.RestrictedSPDP
 import PallLean.Restriction
 import Mathlib.RingTheory.MvPolynomial.Basic
+import Mathlib.Algebra.MvPolynomial.Degrees
 
 namespace SPDPRankBound
 
@@ -46,7 +47,15 @@ theorem mul_linearIndependent {R : Type*} [CommRing R] [IsDomain R]
     (hv : LinearIndependent R v)
     (d : MvPolynomial (Fin 4) R) (hd : d ≠ 0) :
     LinearIndependent R (fun i => v i * d) := by
-  sorry
+  have hinj : Function.Injective (LinearMap.mulRight R d) := by
+    intro a b hab
+    -- hab : (LinearMap.mulRight R d) a = (LinearMap.mulRight R d) b
+    -- i.e., a * d = b * d
+    have hab' : a * d = b * d := hab
+    have hsub : (a - b) * d = 0 := by rw [sub_mul, hab', sub_self]
+    have := (mul_eq_zero.mp hsub).resolve_right hd
+    exact sub_eq_zero.mp this
+  exact hv.map' (LinearMap.mulRight R d) (LinearMap.ker_eq_bot.mpr hinj)
 
 /-- 10 monomials of degree ≤ 2 on Fin 4, as a list. -/
 private noncomputable def tenMonomials : List (MvPolynomial (Fin 4) ℚ) :=
@@ -56,12 +65,21 @@ private noncomputable def tenMonomials : List (MvPolynomial (Fin 4) ℚ) :=
 /-- Each of the 10 monomials has totalDegree ≤ 2. -/
 private theorem tenMonomials_degree_le :
     ∀ m ∈ tenMonomials, m.totalDegree ≤ 2 := by
-  simp [tenMonomials]
-  sorry
+  intro m hm
+  simp only [tenMonomials, List.mem_cons, List.mem_singleton, List.mem_nil_iff, or_false] at hm
+  have hX : ∀ (i : Fin 4), (X i : MvPolynomial (Fin 4) ℚ).totalDegree = 1 :=
+    fun i => MvPolynomial.totalDegree_X (R := ℚ) i
+  have hXX : ∀ (i j : Fin 4), (X i * X j : MvPolynomial (Fin 4) ℚ).totalDegree ≤ 2 :=
+    fun i j => (MvPolynomial.totalDegree_mul (X i) (X j)).trans (by rw [hX, hX])
+  rcases hm with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact MvPolynomial.totalDegree_one.le.trans (by omega)
+  all_goals (first | (rw [hX]; omega) | exact hXX _ _)
 
 /-- The 10 monomials are linearly independent. -/
 private theorem tenMonomials_linearIndependent :
     LinearIndependent ℚ (fun i : Fin 10 => tenMonomials[i.val]'(by simp [tenMonomials])) := by
+  -- Each monomial is monomial dₖ 1 for distinct dₖ, hence linearly independent
+  -- as basis elements of the free module MvPolynomial (Fin 4) ℚ ≃ (Fin 4 →₀ ℕ) →₀ ℚ
   sorry
 
 /-! ## Step 3: Assembly -/
