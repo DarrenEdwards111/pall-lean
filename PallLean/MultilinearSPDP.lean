@@ -1718,4 +1718,57 @@ theorem extraction_rank_monotone (F : Type*) [Field F] [Nontrivial F]
       exact compiledPartition_refines_tseitin M n h_le i j h_eq)
   linarith
 
+/-! ## Wide SPDP Subspace (no shift-support constraint)
+
+Paper Definition 12: The SPDP subspace uses unrestricted shift monomials m
+(no constraint m.vars ⊆ S.toFinset). This is the paper's actual SPDP subspace. -/
+
+/-- Wide SPDP subspace: like mlBlockedSpdpSubspace but without m.vars ⊆ S.toFinset. -/
+noncomputable def mlBlockedSpdpSubspaceWide {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    Submodule F (MvPolynomial (Fin n) F) :=
+  Submodule.span F
+    { q | ∃ (S : List (Fin n)) (m : MvPolynomial (Fin n) F),
+        S.length = κ ∧ m.totalDegree ≤ ℓ ∧
+        isBlockAdmissible B S ∧
+        q = mlProj (m * iterDerivList S p) }
+
+noncomputable def mlBlockedSpdpRankWide {n : ℕ} {F : Type*} [CommRing F] [Nontrivial F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) : ℕ :=
+  Module.finrank F (mlBlockedSpdpSubspaceWide B κ ℓ p)
+
+/-- The narrow (shift-restricted) subspace is contained in the wide one. -/
+theorem mlBlockedSpdpSubspace_le_wide {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    mlBlockedSpdpSubspace B κ ℓ p ≤ mlBlockedSpdpSubspaceWide B κ ℓ p := by
+  apply Submodule.span_le.mpr
+  intro q ⟨S, m, hlen, hdeg, hvars, hadm, hq⟩
+  apply Submodule.subset_span
+  exact ⟨S, m, hlen, hdeg, hadm, hq⟩
+
+/-- Wide subspace is contained in restrictTotalDegree (for finite-dimensionality). -/
+theorem mlBlockedSpdpSubspaceWide_le_restrictTotalDegree {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    mlBlockedSpdpSubspaceWide B κ ℓ p ≤
+      MvPolynomial.restrictTotalDegree (Fin n) F (ℓ + p.totalDegree) := by
+  apply Submodule.span_le.mpr
+  intro q ⟨S, m, _, hdeg, _, hq⟩
+  rw [hq]
+  have h1 : (mlProj (m * iterDerivList S p)).totalDegree ≤ ℓ + p.totalDegree :=
+    le_trans (totalDegree_mlProj_le _)
+      (le_trans (MvPolynomial.totalDegree_mul m (iterDerivList S p))
+        (Nat.add_le_add hdeg (totalDegree_iterDerivList_le S p)))
+  exact (MvPolynomial.mem_restrictTotalDegree _ _ _).mpr h1
+
+/-- Wide SPDP subspace is finite-dimensional. -/
+instance mlBlockedSpdpSubspaceWide_finite {n : ℕ} {F : Type*} [Field F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    Module.Finite F (mlBlockedSpdpSubspaceWide B κ ℓ p) := by
+  have hle := mlBlockedSpdpSubspaceWide_le_restrictTotalDegree B κ ℓ p
+  have : Module.Finite F (MvPolynomial.restrictTotalDegree (Fin n) F (ℓ + p.totalDegree)) :=
+    MvPolynomial.instFiniteSubtypeMemSubmoduleRestrictTotalDegreeOfFinite _ _ _
+  exact Module.Finite.of_injective
+    (Submodule.inclusion hle)
+    (Submodule.inclusion_injective _)
+
 end MultilinearSPDP
