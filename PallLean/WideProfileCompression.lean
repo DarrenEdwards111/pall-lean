@@ -48,16 +48,81 @@ theorem profileSubspace_le_wide (n κ : ℕ) (h : ProfileHist) :
     shift by writing m * ∂_v(Q_sels) = m' * Q_{sels} for appropriate m'
     (using the identity ∂_v(Q) = (∂_v Q / Q) * Q when Q ≠ 0, with the
     ratio absorbed into the unrestricted shift). -/
-/-- Cover inclusion: axiomatized.
-    Every wide SPDP generator lies in some profile subspace.
-    Proof sketch: decompose admissible list into selectors + ≤1 nonselector,
-    absorb nonselector derivative into the unrestricted shift via
-    iterDerivList_append + Leibniz expansion. -/
-axiom wide_spdp_subspace_le_iSup_profile (n κ : ℕ) (hn : n ≥ 4)
+/-- Helper: iterDerivList distributes over append via foldl_append. -/
+theorem iterDerivList_append {n : ℕ} {F : Type*} [CommRing F]
+    (A B : List (Fin n)) (p : MvPolynomial (Fin n) F) :
+    iterDerivList (A ++ B) p = iterDerivList B (iterDerivList A p) := by
+  simp [iterDerivList, List.foldl_append]
+
+/-- Cover inclusion for the wide subspace.
+    Every wide SPDP generator lies in some wideProfileSubspace.
+
+    Pure-selector case (nonsels = []): S consists of κ selectors from
+    distinct blocks, defining a CanonicalWindow directly.
+
+    Nonselector case (|nonsels| = 1): S has κ-1 selectors + 1 nonselector v.
+    iterDerivList(sels ++ [v], p) = pderiv v (iterDerivList(sels, p)).
+    The result mlProj(m * pderiv_v(Q_{sels})) lies in the span of
+    canonical generators because pderiv_v distributes over the Tseitin
+    product, creating terms with κ-1 original selectors + 1 new selector
+    from v's clause. -/
+theorem wide_spdp_subspace_le_iSup_profile (n κ : ℕ) (hn : n ≥ 4)
     (hparam : AdmissibleSpdpParams n κ) :
     mlBlockedSpdpSubspaceWide (NPWitness.tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤
       ⨆ (a : Fin 4 → Fin (30 * κ + 1)),
-        wideProfileSubspace n κ (fun τ => (a τ).val)
+        wideProfileSubspace n κ (fun τ => (a τ).val) := by
+  apply Submodule.span_le.mpr
+  intro q ⟨S, m, hlen, hm_deg, hadm, hq⟩
+  obtain ⟨sels, nonsels, hperm, hsel_nd, hns_len, hns_prop⟩ :=
+    admissible_list_selector_decomp n S hadm
+  have heq : iterDerivList S (tseitinPoly ℚ n) =
+      iterDerivList (sels.map (selectorAt n) ++ nonsels) (tseitinPoly ℚ n) :=
+    iterDerivList_perm _ _ _ hperm
+  subst hq; rw [heq]
+  -- Case split on whether nonsels is empty
+  rcases nonsels with _ | ⟨v, nonsels_tail⟩
+  · -- Pure-selector case: nonsels = [], sels.length = κ
+    simp at hlen ⊢
+    have hsel_len : sels.length = κ := by
+      have := List.Perm.length_eq hperm; simp at this; omega
+    -- Build the canonical window
+    let w : CanonicalWindow n κ := {
+      hitClauses := sels.toFinset
+      card_eq := by rw [List.toFinset_card_of_nodup hsel_nd]; exact hsel_len
+    }
+    -- The generator is canonicalGenerator w m
+    -- Need: sels.map (selectorAt n) has same iterDerivList as w.selectorList
+    -- w.selectorList = w.hitClauses.val.toList.map (selectorAt n)
+    -- = sels.toFinset.val.toList.map (selectorAt n)
+    -- This is a permutation of sels.map (selectorAt n)
+    have hperm2 : (sels.map (selectorAt n)).Perm w.selectorList := by
+      simp only [CanonicalWindow.selectorList, w]
+      apply List.Perm.map
+      exact (List.toFinset_val_toList_perm_of_nodup hsel_nd).symm
+    rw [List.append_nil, iterDerivList_perm _ _ _ hperm2]
+    -- Now q = mlProj(m * iterDerivList(w.selectorList, tseitinPoly)) = canonicalGenerator w m
+    -- Need to show this is in ⨆ wideProfileSubspace
+    apply Submodule.mem_iSup_of_mem (fun τ => ⟨(windowProfile w τ), by
+      have : windowProfile w τ ≤ 30 * κ := by
+        have := profile_sum_le w
+        exact le_trans (Finset.single_le_sum (fun _ _ => Nat.zero_le _) (Finset.mem_univ τ)) profile_sum_le w
+      omega⟩)
+    apply Submodule.subset_span
+    exact ⟨w, m, rfl, hm_deg, rfl⟩
+  · -- Nonselector case: nonsels = v :: nonsels_tail, nonsels_tail = [] (length ≤ 1)
+    have hnt_nil : nonsels_tail = [] := by
+      have : (v :: nonsels_tail).length ≤ 1 := hns_len
+      simp at this; exact List.length_eq_zero.mp (by omega)
+    subst hnt_nil
+    -- iterDerivList(sels.map sel ++ [v], p) = pderiv v (iterDerivList(sels.map sel, p))
+    rw [iterDerivList_append]
+    simp [iterDerivList]
+    -- mlProj(m * pderiv v (iterDerivList(sels.map sel, p)))
+    -- This is in the span because pderiv_v of the Tseitin derivative
+    -- distributes over the product structure, and each resulting term
+    -- corresponds to a κ-window (κ-1 original selectors + 1 new from v's clause).
+    -- The unrestricted shift m absorbs all coefficient polynomials.
+    sorry
 
 /-- Wide profile subspace has finite rank.
     The generators from a fixed window w form the image of the linear map
