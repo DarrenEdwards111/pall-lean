@@ -27,5 +27,5 @@ import PallLean.PsideCollapse
 import PallLean.DiagonalFunction
 import PallLean.PneqNP_PaperFaithful
 
--- Legacy (kept for infrastructure, not in main chain)
-import PallLean.PneqNP
+-- Legacy chain intentionally not imported in paper-faithful build
+-- import PallLean.PneqNP
