@@ -18,6 +18,7 @@ import PallLean.RestrictedSPDP
 import PallLean.Restriction
 import Mathlib.RingTheory.MvPolynomial.Basic
 import Mathlib.Algebra.MvPolynomial.Degrees
+import Mathlib.Algebra.MvPolynomial.PDeriv
 
 namespace SPDPRankBound
 
@@ -27,15 +28,37 @@ open MvPolynomial SPDP
 
 /-! ## Step 1: High degree implies nonzero 2nd derivative -/
 
-/-- In characteristic 0, if a polynomial has totalDegree ≥ 2,
-    then some second partial derivative is nonzero. -/
+/-- Helper: if totalDegree ≥ 2, find a support element with degree ≥ 2. -/
+private theorem exists_support_degree_ge_two {n : ℕ}
+    (q : MvPolynomial (Fin n) ℚ) (hq : 2 ≤ q.totalDegree) :
+    ∃ α ∈ q.support, 2 ≤ (α.sum fun _ k => k) := by
+  by_contra h
+  push_neg at h
+  have : q.totalDegree ≤ 1 := by
+    apply Finset.sup_le
+    intro α hα
+    have := h α hα
+    omega
+  omega
+
+/-- Helper: a Finsupp with sum ≥ 2 has two (possibly equal) indices with positive values. -/
+private theorem exists_two_indices {n : ℕ}
+    (α : Fin n →₀ ℕ) (hα : 2 ≤ α.sum fun _ k => k) :
+    ∃ i j : Fin n, 1 ≤ α i ∧ 1 ≤ (α - Finsupp.single i 1 : Fin n →₀ ℕ) j := by
+  sorry
+
 theorem exists_nonzero_second_deriv {n : ℕ}
     (q : MvPolynomial (Fin n) ℚ) (hq : 2 ≤ q.totalDegree) :
     ∃ i j : Fin n, iterDerivList [i, j] q ≠ 0 := by
-  -- Key idea: pick α ∈ q.support with |α| ≥ 2. Find i,j with α_i ≥ 1,
-  -- (α-e_i)_j ≥ 1. Then coeff (α-e_i-e_j) in ∂_j∂_i q equals
-  -- q.coeff(α) * α_i * (α-e_i)_j ≠ 0. No cancellation because
-  -- the map β ↦ β-e_i-e_j is injective.
+  obtain ⟨α, hα_mem, hα_deg⟩ := exists_support_degree_ge_two q hq
+  obtain ⟨i, j, hi, hj⟩ := exists_two_indices α hα_deg
+  refine ⟨i, j, ?_⟩
+  -- iterDerivList [i,j] q = pderiv j (pderiv i q)
+  simp only [iterDerivList, List.foldl]
+  -- Show this is nonzero by showing its coefficient at (α - e_i - e_j) is nonzero
+  -- pderiv_monomial: pderiv i (monomial s a) = monomial (s - single i 1) (a * s i)
+  -- The map β ↦ (β - e_i - e_j) is injective on {β : β i ≥ 1, (β-e_i) j ≥ 1}
+  -- So the α-monomial's contribution can't be cancelled
   sorry
 
 /-! ## Step 2: Nonzero derivative gives large SPDP subspace -/
