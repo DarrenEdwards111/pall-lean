@@ -612,7 +612,17 @@ theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
         have hα_vars : α.support ⊆ w.selectorList.toFinset := by
           exact (SPDP.monomial_support_subset_vars m α hα).trans hm_vars
         -- Case split: α multilinear or not
-        sorry
+        by_cases hml : Finsupp.IsMultilinear α
+        · -- Multilinear: monomial α 1 = ∏_{i ∈ α.support} X_i, which is in windowBasis
+          rw [multilinear_monomial_eq_prod α hml]
+          apply Submodule.subset_span
+          simp only [Finset.coe_image, Set.mem_image, Finset.mem_powerset]
+          exact ⟨α.support, hα_vars, rfl⟩
+        · -- Not multilinear: canonicalGenerator = mlProj(monomial * Q) = 0
+          show canonicalGenerator w (MvPolynomial.monomial α 1) ∈ _
+          unfold canonicalGenerator
+          rw [mlProj_mul_monomial_left_of_not_ml α 1 _ hml]
+          exact Submodule.zero_mem _
     _ ≤ (windowBasis w).card := by
         convert finrank_span_le_card
           (R := ℚ) (M := MvPolynomial (Fin (npNumVars n)) ℚ)

@@ -588,6 +588,38 @@ theorem mlProj_monomial {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
     · subst hds; simp [hml_s]
     · rw [if_neg (Ne.symm hds)]; simp
 
+/-- For multilinear α, monomial α 1 = ∏_{i ∈ α.support} X_i -/
+theorem multilinear_monomial_eq_prod {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (α : σ →₀ ℕ) (hml : Finsupp.IsMultilinear α) :
+    (MvPolynomial.monomial α (1 : F)) = α.support.prod (fun i => MvPolynomial.X i) := by
+  rw [MvPolynomial.monomial_eq, map_one, one_mul]
+  unfold Finsupp.prod
+  apply Finset.prod_congr rfl
+  intro i hi
+  have h1 : α i = 1 := le_antisymm (hml i)
+    (Nat.one_le_iff_ne_zero.mpr (Finsupp.mem_support_iff.mp hi))
+  simp [h1]
+
+/-- If α is not multilinear, then mlProj(monomial α a * p) = 0.
+    Every monomial in the product inherits α's non-multilinear exponent. -/
+theorem mlProj_mul_monomial_left_of_not_ml {σ : Type*} [DecidableEq σ]
+    {F : Type*} [CommRing F]
+    (α : σ →₀ ℕ) (a : F) (p : MvPolynomial σ F)
+    (hα : ¬ Finsupp.IsMultilinear α) :
+    mlProj (MvPolynomial.monomial α a * p) = 0 := by
+  rw [show p = p.support.sum (fun s => MvPolynomial.monomial s (MvPolynomial.coeff s p))
+      from p.as_sum, Finset.mul_sum]
+  show (mlProjHom F) (∑ i ∈ p.support, _) = 0
+  rw [map_sum]
+  apply Finset.sum_eq_zero
+  intro β _
+  show mlProj ((MvPolynomial.monomial α) a * (MvPolynomial.monomial β) (MvPolynomial.coeff β p)) = 0
+  rw [MvPolynomial.monomial_mul, mlProj_monomial]
+  split_ifs with hml
+  · exfalso; apply hα; intro i
+    have := hml i; simp only [Finsupp.add_apply] at this; omega
+  · rfl
+
 /-- restrictPoly on a monomial is either 0 or a monomial with pulled-back exponents.
     This is the key structural lemma for mlProj_restrictPoly. -/
 theorem restrictPoly_monomial_form {n m : ℕ} (F : Type*) [CommRing F]
