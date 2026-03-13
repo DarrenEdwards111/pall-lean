@@ -25,6 +25,7 @@ import PallLean.SPDPClass
 import PallLean.PaperAxioms
 import PallLean.PsideCollapse
 import PallLean.DiagonalFunction
+import PallLean.SPDPRankBound
 import PallLean.PneqNP_PaperFaithful
 
 -- Legacy chain intentionally not imported in paper-faithful build

@@ -24,6 +24,7 @@
 import PallLean.RestrictedSPDP
 import PallLean.BoolEval
 import PallLean.Restriction
+import PallLean.SPDPRankBound
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
 
@@ -137,11 +138,14 @@ theorem semantic_diagonal_escape {n : ℕ}
 
   This structural fact about SPDP rank is the key connection between
   the algebraic rank measure and polynomial degree. -/
-axiom low_spdp_rank_implies_low_degree :
+theorem low_spdp_rank_implies_low_degree :
     ∀ (ρ : Restriction.Restriction 4)
       (p : MvPolynomial (Fin 4) ℚ),
     restrictedSpdpRank 2 2 p ρ ≤ 9 →
-    (Restriction.restrictPoly ρ p).totalDegree ≤ 1
+    (Restriction.restrictPoly ρ p).totalDegree ≤ 1 := by
+  intro ρ p hp
+  exact SPDPRankBound.low_spdp_rank_implies_low_degree_general
+    (Restriction.restrictPoly ρ p) hp
 
 /-! ## Annihilator Existence (Paper §8.6, Codimension Argument)
 
