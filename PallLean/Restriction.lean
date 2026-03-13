@@ -20,6 +20,14 @@ open MvPolynomial
     or leaves it live (*). None = live, Some b = fixed to b. -/
 def Restriction (n : ℕ) := Fin n → Option Bool
 
+instance instDecidableEqRestriction (n : ℕ) : DecidableEq (Restriction n) := by
+  dsimp [Restriction]
+  infer_instance
+
+instance instFintypeRestriction (n : ℕ) : Fintype (Restriction n) := by
+  dsimp [Restriction]
+  infer_instance
+
 /-- The set of live (unfixed) variables under restriction ρ. -/
 def liveVars {n : ℕ} (ρ : Restriction n) : Finset (Fin n) :=
   Finset.univ.filter (fun i => ρ i = none)

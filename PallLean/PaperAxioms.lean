@@ -83,21 +83,44 @@ axiom spdp_collapse_under_restriction :
       restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n) p ρ ≤
         (Nat.log 2 n + 1) * params.bottomFanIn
 
-/-! ## Axiom 3: Universal Good Seed
+/-! ## Axiom 3: Finite Bad-Seed Union Bound
 
-There exists a single fixed restriction ρ* such that ALL polynomial-size
-circuits simultaneously collapse under ρ*.
+The paper's seed argument reduces the universal restriction search to a
+finite collection of bad-seed events. We axiomatize exactly that
+finite-family packaging and then derive the universal good seed theorem
+using `exists_seed_avoiding_bad_union`.
 
-Paper: §7.3 Steps 3-4. The finite union step is proved above; the axiom
-packages the paper-specific counting/probabilistic input that makes the
-bad-seed union strictly smaller than the seed space. -/
+Paper: §7.3 Steps 3-4. -/
 
-axiom universal_good_seed :
+axiom universal_good_seed_bad_union :
     ∀ (n : ℕ), n ≥ 2 →
+    ∃ (m : ℕ) (bad : Fin m → Finset (Restriction.Restriction n)),
+      (∀ (p : MvPolynomial (Fin n) ℚ),
+        ∃ i : Fin m, ∀ (ρ : Restriction.Restriction n),
+          ρ ∉ bad i →
+            restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n)
+              p ρ ≤ (Nat.log 2 n + 1) ^ 2) ∧
+      (Finset.univ.biUnion bad).card <
+        Fintype.card (Restriction.Restriction n)
+
+/-- Theorem 7.3: there exists a single restriction under which every
+    relevant polynomial collapses.
+
+    The proof is the finite union argument from the paper; the only
+    remaining axiom is the paper-specific finite bad-seed bound above. -/
+theorem universal_good_seed
+    (n : ℕ) (hn : n ≥ 2) :
     ∃ (ρ : Restriction.Restriction n),
     ∀ (p : MvPolynomial (Fin n) ℚ),
-      -- Every polynomial (from any poly-size circuit) collapses:
       restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n)
-        p ρ ≤ (Nat.log 2 n + 1) ^ 2
+        p ρ ≤ (Nat.log 2 n + 1) ^ 2 := by
+  classical
+  obtain ⟨m, bad, hcover, hcard⟩ := universal_good_seed_bad_union n hn
+  obtain ⟨ρ, hρ⟩ :=
+    exists_seed_avoiding_bad_union (tests := Finset.univ) bad hcard
+  refine ⟨ρ, ?_⟩
+  intro p
+  obtain ⟨i, hi⟩ := hcover p
+  exact hi ρ ((hρ i (by simp)))
 
 end PaperAxioms
