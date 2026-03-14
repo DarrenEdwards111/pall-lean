@@ -107,6 +107,19 @@ We package (a)+(b)+(c) into a single axiom that directly states the
 conclusion needed by `universal_good_seed`: the finite bad-set packaging
 with a union smaller than the seed space.
 
+NOTE: This axiom quantifies over ALL polynomials p, which is STRONGER
+than the paper's claim (which only applies to polynomials from bounded
+depth-4 circuits). The paper's proof chain is:
+  PTIME → depth4_simulation → bounded ΣΠ∑Π → multi-switching → collapse
+Our axiom skips the circuit-structure requirement, making it a stronger
+assumption. This is logically sound (stronger axiom = weaker assumption
+in the proof) but means depth4_simulation is not on the critical path.
+
+A fully paper-faithful decomposition would:
+  1. Restrict this axiom to polynomials with totalDegree ≤ (log n)²
+  2. Use depth4_simulation to produce such polynomials from PTIME circuits
+  3. Chain them together in PneqNP_PaperFaithful.lean
+
 Paper: §7.3 Steps 2-4, Lemma 7.2, Lemma 7.2.1. -/
 
 axiom universal_good_seed_bad_union :
