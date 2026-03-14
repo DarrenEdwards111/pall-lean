@@ -6,6 +6,7 @@
 -/
 import Mathlib.Algebra.MvPolynomial.Basic
 import Mathlib.Tactic
+import PallLean.Restriction
 
 namespace BoolEval
 
@@ -49,5 +50,47 @@ theorem computes_disagree {n : ℕ} {p q : MvPolynomial (Fin n) ℚ}
   rw [hp x, hq x] at this
   unfold boolToRat at this
   cases hf : f x <;> cases hg : g x <;> simp_all
+
+/-! ## Restriction-evalBool interaction -/
+
+open Restriction in
+/-- Evaluating a restricted polynomial at Boolean inputs equals evaluating
+    the original at the extended assignment (ρ fills in fixed values).
+
+    Key property: restrictPoly = aeval(subst), and eval ∘ aeval = eval at
+    composed substitution. The extended assignment is always Boolean-valued,
+    so this relates two evalBool calls. -/
+theorem evalBool_restrictPoly {n : ℕ}
+    (ρ : Restriction.Restriction n) (p : MvPolynomial (Fin n) ℚ)
+    (x : Fin n → Bool) :
+    evalBool (Restriction.restrictPoly ρ p) x =
+    evalBool p (Restriction.extendAssignment ρ x) := by
+  -- Use induction on the polynomial structure
+  unfold evalBool Restriction.restrictPoly Restriction.extendAssignment
+  induction p using MvPolynomial.induction_on with
+  | C r =>
+    simp [aeval_C, eval_C]
+  | mul_X q i ih =>
+    simp only [map_add, map_mul, eval_add, eval_mul, aeval_X]
+    rw [ih]
+    congr 1
+    match h : ρ i with
+    | none => simp [eval_X, h]
+    | some true => simp [map_one, boolToRat, h]
+    | some false => simp [map_zero, boolToRat, h]
+  | add p q ihp ihq =>
+    simp only [map_add, eval_add]
+    rw [ihp, ihq]
+
+/-- If two polynomials agree on all Boolean inputs, their restrictions
+    also agree on all Boolean inputs. -/
+theorem evalBool_restrictPoly_congr {n : ℕ}
+    (ρ : Restriction.Restriction n) (p q : MvPolynomial (Fin n) ℚ)
+    (h : ∀ x : Fin n → Bool, evalBool p x = evalBool q x)
+    (x : Fin n → Bool) :
+    evalBool (Restriction.restrictPoly ρ p) x =
+    evalBool (Restriction.restrictPoly ρ q) x := by
+  rw [evalBool_restrictPoly, evalBool_restrictPoly]
+  exact h (Restriction.extendAssignment ρ x)
 
 end BoolEval

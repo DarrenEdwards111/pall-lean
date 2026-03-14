@@ -89,4 +89,10 @@ structure RestrictionFamily (n : ℕ) where
   seed_length : ℕ
   generate : Fin (2 ^ seed_length) → Restriction n
 
+/-- The "extended" assignment: fills in ρ's fixed values, keeps x for live vars. -/
+def extendAssignment {n : ℕ} (ρ : Restriction n) (x : Fin n → Bool) : Fin n → Bool :=
+  fun i => match ρ i with
+    | none => x i
+    | some b => b
+
 end Restriction

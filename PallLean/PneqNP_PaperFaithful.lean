@@ -55,11 +55,8 @@ theorem P_neq_NP : ¬ PeqNP := by
   have hq_comp : computes (Restriction.restrictPoly ρ q) (f_n w) := by
     intro x
     -- restrictPoly preserves evalBool equivalence
-    -- restrictPoly commutes with evalBool: if evalBool q = evalBool p
-    -- pointwise, then evalBool (restrictPoly ρ q) = evalBool (restrictPoly ρ p)
-    -- This follows from: restrictPoly = aeval (substitution), so
-    -- evalBool (restrictPoly ρ q) x = evalBool q (ρ_extend x)
-    sorry
+    rw [evalBool_restrictPoly_congr ρ q p hq_equiv x]
+    exact hp_comp x
   -- ρ* collapses q's SPDP rank (from depth4_good_seed + bounded degree)
   have hq_collapse : restrictedSpdpRank (Nat.log 2 4) (Nat.log 2 4) q ρ ≤ d_star := by
     exact hρ q hq_deg
