@@ -14,6 +14,7 @@
 import PallLean.PsideCollapse
 import PallLean.DiagonalFunction
 import PallLean.BoolEval
+import PallLean.Multilinearize
 
 namespace PneqNP_PaperFaithful
 
@@ -51,8 +52,8 @@ theorem P_neq_NP : ¬ PeqNP := by
   obtain ⟨w, hw_pos, hw_orth⟩ := annihilator_exists ρ d_star hd
   -- P = NP: f_n has a polynomial (raw, unbounded)
   obtain ⟨p, hp_comp⟩ := h_peqnp ρ (f_n w)
-  -- Step 1: depth4_simulation (Axiom 1) → bounded degree + multilinear
-  obtain ⟨q, hq_equiv, hq_deg, hq_ml⟩ := depth4_simulation 4 p
+  -- Step 1: multilinearization (PROVED) → bounded degree + multilinear
+  obtain ⟨q, hq_equiv, hq_deg, hq_ml⟩ := Multilinearize.depth4_simulation_at_4 p
   -- q computes f_n (via Boolean equivalence with p)
   have hq_comp : computes (Restriction.restrictPoly ρ q) (f_n w) := by
     intro x

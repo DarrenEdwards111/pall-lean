@@ -27,6 +27,7 @@ import PallLean.PsideCollapse
 import PallLean.DiagonalFunction
 import PallLean.SPDPRankBound
 import PallLean.PneqNP_PaperFaithful
+import PallLean.Multilinearize
 
 -- Legacy chain intentionally not imported in paper-faithful build
 import PallLean.PneqNP
