@@ -80,6 +80,42 @@ private theorem exists_two_indices {n : ℕ}
     rw [Finsupp.tsub_apply, Finsupp.single_apply, if_neg hji.symm]
     simp; exact hj_pos
 
+/-- The coefficient of m in pderiv i q is (m + e_i)(i) * coeff (m + e_i) q.
+    Key insight: monomials β with β(i)=0 contribute 0 (multiplied by β(i)=0),
+    and for β with β(i)≥1, β ↦ β-e_i is injective with recovery β=(β-e_i)+e_i. -/
+private theorem coeff_pderiv {n : ℕ} (i : Fin n) (q : MvPolynomial (Fin n) ℚ)
+    (m : Fin n →₀ ℕ) :
+    MvPolynomial.coeff m (MvPolynomial.pderiv i q) =
+      ((m + Finsupp.single i 1 : Fin n →₀ ℕ) i : ℚ) * MvPolynomial.coeff (m + Finsupp.single i 1) q := by
+  -- Expand q as sum of monomials
+  conv_lhs => rw [MvPolynomial.as_sum q]
+  rw [map_sum, MvPolynomial.coeff_sum]
+  simp only [MvPolynomial.pderiv_monomial, MvPolynomial.coeff_monomial]
+  -- Sum: Σ_{β ∈ support} (if β - e_i = m then q.coeff β * ↑(β i) else 0)
+  -- Only β = m + e_i can contribute (when β-e_i = m and coeff*β(i) ≠ 0)
+  rw [Finset.sum_eq_single (m + Finsupp.single i 1)]
+  · -- Main term: (m+e_i) - e_i = m
+    rw [if_pos (add_tsub_cancel_right m (Finsupp.single i 1))]
+    ring
+  · -- Other terms: if β ≠ m + e_i, then either β-e_i ≠ m, or β(i)=0
+    intro β _ hβ
+    split_ifs with heq
+    · -- β - e_i = m but β ≠ m + e_i
+      -- If β(i) = 0, then β(i) : ℚ = 0, so the term = 0
+      -- If β(i) ≥ 1, then β = (β-e_i) + e_i = m + e_i, contradiction
+      by_cases hbi : β i = 0
+      · simp [hbi]
+      · exfalso; apply hβ
+        have hbi' : Finsupp.single i 1 ≤ β := by
+          rwa [Finsupp.single_le_iff, Nat.one_le_iff_ne_zero]
+        rw [← heq, tsub_add_cancel_of_le hbi']
+    · simp
+  · -- m + e_i ∉ support → coeff = 0
+    intro h
+    have : q.coeff (m + Finsupp.single i 1) = 0 := by
+      rwa [MvPolynomial.mem_support_iff, not_not] at h
+    simp [this]
+
 theorem exists_nonzero_second_deriv {n : ℕ}
     (q : MvPolynomial (Fin n) ℚ) (hq : 2 ≤ q.totalDegree) :
     ∃ i j : Fin n, iterDerivList [i, j] q ≠ 0 := by
@@ -119,11 +155,32 @@ theorem exists_nonzero_second_deriv {n : ℕ}
   -- so even if they contribute to pderiv i q, their further
   -- pderiv j lands at β-e_i-e_j ≠ α-e_i-e_j (since β-e_i ≠ α-e_i).
   -- Full formalization requires Finsupp subtraction injectivity + pderiv linearity.
+  -- Use coeff_pderiv twice to compute the actual coefficient
+  -- coeff (α-e_i-e_j) (pderiv j (pderiv i q))
+  --   = ((α-e_i-e_j) + e_j)(j) * coeff ((α-e_i-e_j)+e_j) (pderiv i q)    [by coeff_pderiv j]
+  --   = (α-e_i)(j) * coeff (α-e_i) (pderiv i q)                          [cancel]
+  --   = (α-e_i)(j) * ((α-e_i)+e_i)(i) * coeff ((α-e_i)+e_i) q            [by coeff_pderiv i]
+  --   = (α-e_i)(j) * α(i) * coeff α q                                     [cancel]
+  rw [coeff_pderiv j, coeff_pderiv i] at hcoeff
+  -- Need: (α-e_i-e_j+e_j) = α-e_i and (α-e_i+e_i) = α
+  have hle_i : Finsupp.single i 1 ≤ α := by
+    rw [Finsupp.single_le_iff]; exact hi
+  have hle_j : Finsupp.single j 1 ≤ α - Finsupp.single i 1 := by
+    rw [Finsupp.single_le_iff]
+    exact hj
+  have cancel1 : α - Finsupp.single i 1 - Finsupp.single j 1 + Finsupp.single j 1 =
+      α - Finsupp.single i 1 := tsub_add_cancel_of_le hle_j
+  have cancel2 : α - Finsupp.single i 1 + Finsupp.single i 1 = α :=
+    tsub_add_cancel_of_le hle_i
+  rw [cancel1, cancel2] at hcoeff
+  -- hcoeff now says: ↑(α j') * (↑(α i) * q.coeff α) = 0 (modulo rewriting)
+  -- But hprod says q.coeff α * ↑(α i) * ↑((α-e_i) j) ≠ 0
+  -- These are the same product up to commutativity
   exact absurd hcoeff (by
-    -- We need: coeff (α-e_i-e_j) (pderiv j (pderiv i q)) ≠ 0
-    -- This is the product hprod ≠ 0, but connecting them requires
-    -- the coefficient computation above.
-    sorry)
+    rw [show (α - Finsupp.single i 1 : Fin n →₀ ℕ) j =
+        ((α - Finsupp.single i 1 : Fin n →₀ ℕ) : Fin n → ℕ) j from rfl] at hprod ⊢
+    push_cast at hcoeff hprod ⊢
+    intro h0; apply hprod; nlinarith)
 
 /-! ## Step 2: Nonzero derivative gives large SPDP subspace -/
 
@@ -244,11 +301,14 @@ theorem spdpRank_ge_of_nonzero_deriv
     have := congr_arg Subtype.val hsum_sub
     simp [Finset.sum_coe_sort, Submodule.coe_sum, Submodule.coe_smul] at this ⊢
     exact this
+  -- 10 linearly independent elements in spdpSubspace → finrank ≥ 10
   unfold spdpRank
-  -- 10 linearly independent elements → finrank ≥ 10
-  -- Need Module.Finite for fintype_card_le_finrank
+  -- spdpSubspace is finitely generated (finite index set Fin 4, bounded degree)
+  -- so Module.Finite holds
   haveI : Module.Finite ℚ (spdpSubspace 2 2 q) := by
-    -- spdpSubspace is a span of a finite set → finite module
+    -- spdpSubspace is a submodule of MvPolynomial (Fin 4) ℚ
+    -- It's finitely generated because the generators are parameterized by
+    -- finite lists S in (Fin 4)^2 and monomials m of degree ≤ 2 in 4 vars
     sorry
   exact hli_sub.fintype_card_le_finrank
 
