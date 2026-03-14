@@ -307,17 +307,20 @@ theorem spdpRank_ge_of_nonzero_deriv
   -- so Module.Finite holds
   haveI : Module.Finite ℚ (spdpSubspace 2 2 q) := by
     -- spdpSubspace ≤ restrictDegree (Fin 4) ℚ (2 + q.totalDegree)
-    -- restrictDegree is Module.Finite (Mathlib instance for [Finite σ])
-    -- Any submodule of a finite module is finite
-    -- But spdpSubspace is a submodule of MvPolynomial, not of restrictDegree
-    -- We need: spdpSubspace maps injectively into restrictDegree, which is finite
-    -- Simpler: just show FG directly
-    rw [Module.finite_def]
-    -- spdpSubspace = span S, and S ⊆ span (finite set of mono * deriv products)
-    -- So spdpSubspace = span (finite set) → FG
-    -- The finite set: { MvPolynomial.monomial α 1 * iterDerivList [s₁, s₂] q |
-    --                    α with degree(α) ≤ 2, s₁ s₂ : Fin 4 }
-    sorry
+    -- restrictDegree is Module.Finite (Mathlib), and submodules of
+    -- finite-dimensional vector spaces are finite-dimensional
+    have hle : spdpSubspace 2 2 q ≤ MvPolynomial.restrictTotalDegree (Fin 4) ℚ (2 + q.totalDegree) := by
+      apply Submodule.span_le.mpr
+      intro p ⟨S, m, hS, hm, hp⟩
+      simp only [SetLike.mem_coe, MvPolynomial.mem_restrictTotalDegree, hp]
+      calc (m * iterDerivList S q).totalDegree
+          ≤ m.totalDegree + (iterDerivList S q).totalDegree :=
+            MvPolynomial.totalDegree_mul m (iterDerivList S q)
+        _ ≤ 2 + q.totalDegree := by
+            apply Nat.add_le_add hm
+            exact SPDP.totalDegree_iterDerivList_le S q
+    exact Module.Finite.of_injective
+      (Submodule.inclusion hle) (Submodule.inclusion_injective hle)
   exact hli_sub.fintype_card_le_finrank
 
 /-- Main bound: totalDegree ≥ 2 → spdpRank ≥ 10 on Fin 4 at κ=ℓ=2. -/
