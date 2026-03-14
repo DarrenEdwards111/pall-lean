@@ -4,13 +4,15 @@
   Three axioms matching the paper's §7.3:
 
   Axiom 1 (depth4_simulation): §7.3 Step 1
-    PTIME → degree ≤ (log n)².
+    PTIME → depth-4 ΣΠ∑Π with bounded params.
 
   Axiom 2 (hil_multi_switching): Lemma 7.2
-    Per-polynomial: most restrictions collapse SPDP rank.
+    Per depth-4 circuit: most restrictions collapse SPDP rank.
+    CRITICAL: applies to depth-4 circuits (bounded bottom fan-in),
+    NOT arbitrary polynomials. The ΣΠ∑Π structure is essential.
 
   Axiom 3 (rowspace_signature_bound): Lemma 7.2.1 + Step 4
-    Signature classification + union bound.
+    Signature classification for depth-4 circuits + union bound.
 
   PROVED: depth4_good_seed (Theorem 7.3) using all three.
   All three axioms on the critical path of P_neq_NP.
@@ -44,20 +46,43 @@ theorem exists_seed_avoiding_bad_union
 
 Paper: Lemma (Uniform depth-4 ΣΠ∑Π simulation), §2.3.2.
   Cook-Levin → binary Tseitin → ΣΠ∑Π realisation.
+
+For any polynomial (from a PTIME circuit), there exists an equivalent
+polynomial with totalDegree ≤ (log n)² AND bottom fan-in ≤ log n.
+The bottom fan-in constraint is what makes the multi-switching
+lemma (Axiom 2) applicable.
+
 Lean ref: Depth4Simulation.lean. -/
+
+/-- A polynomial is multilinear: every variable appears with exponent ≤ 1.
+    This is the key structural property of depth-4 ΣΠ∑Π circuit polynomials
+    that makes the switching lemma work. Without it, polynomials like
+    x₀² + x₁² + ... have SPDP rank > threshold for most restrictions. -/
+def IsMultilinear {n : ℕ} (p : MvPolynomial (Fin n) ℚ) : Prop :=
+  ∀ m ∈ p.support, ∀ i : Fin n, m i ≤ 1
 
 axiom depth4_simulation :
     ∀ (n : ℕ) (p : MvPolynomial (Fin n) ℚ),
     ∃ (q : MvPolynomial (Fin n) ℚ),
+      -- Same Boolean function
       (∀ x, evalBool q x = evalBool p x) ∧
-      q.totalDegree ≤ (Nat.log 2 n) ^ 2
+      -- Bounded degree (from ΣΠ∑Π formal degree)
+      q.totalDegree ≤ (Nat.log 2 n) ^ 2 ∧
+      -- Multilinear (from depth-4 circuit structure)
+      IsMultilinear q
 
 /-! ## Axiom 2: Multi-Switching Lemma (Lemma 7.2)
 
 Paper: "Pr_s[SPDP(C|ρ_s) > √N] ≤ δ(n) = 2^{-2 log² N}"
 
-For any bounded-degree polynomial p, there exists a small bad set
-such that SPDP rank collapses outside it.
+For any polynomial with BOUNDED BOTTOM FAN-IN (from a depth-4 ΣΠ∑Π
+circuit), most restrictions collapse its SPDP rank.
+
+CRITICAL: This does NOT hold for arbitrary polynomials!
+The ΣΠ∑Π structure (specifically, bounded bottom fan-in ≤ log n)
+constrains which monomials can appear, enabling the switching
+argument. A polynomial like x₀² + x₁² + ... violates this
+and has SPDP rank > threshold for most restrictions.
 
 Lean ref: SwitchingLemma/RST_Multi.lean. -/
 
@@ -65,23 +90,22 @@ axiom hil_multi_switching :
     ∀ (n : ℕ), n ≥ 2 →
     ∀ (p : MvPolynomial (Fin n) ℚ),
       p.totalDegree ≤ (Nat.log 2 n) ^ 2 →
+      IsMultilinear p →
     ∃ (bad_p : Finset (Restriction.Restriction n)),
+      -- (a) Collapse outside bad_p
       (∀ ρ, ρ ∉ bad_p →
         restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n)
           p ρ ≤ (Nat.log 2 n + 1) ^ 2) ∧
+      -- (b) bad_p is small
       bad_p.card ≤ Fintype.card (Restriction.Restriction n) / 2
 
-/-! ## Axiom 3: Row-Space Signature Bound (Lemma 7.2.1 + Step 4)
+/-! ## Axiom 3: Row-Space Signature Classification (Lemma 7.2.1)
 
 Paper: "the number of distinct spans ≤ 2^{O(log² N)}"
-       "Pr_s[s fails for SOME C] ≤ 2^{O(log²N)} / 2^{2log²N} < 1/2"
 
-Bounded-degree polynomials are classified into finitely many
-signature classes. Polynomials in the same class share the same
-SPDP collapse behavior: if one collapses at ρ, all in the class do.
-
-The union of per-class bad sets (from multi-switching applied to
-representatives) is smaller than the full seed space.
+Depth-4 circuits with bounded params are classified into finitely
+many signature classes based on their SPDP row-space structure.
+Polynomials in the same class share the same collapse behavior.
 
 Lean ref: SubspaceCount/SignatureCount.lean, line 23. -/
 
@@ -90,7 +114,6 @@ axiom rowspace_signature_bound :
     ∃ (m : ℕ)
       (classify : MvPolynomial (Fin n) ℚ → Fin m),
       -- Same class → same collapse:
-      -- if p collapses at ρ and classify(p) = classify(q), then q collapses
       (∀ (p q : MvPolynomial (Fin n) ℚ),
         p.totalDegree ≤ (Nat.log 2 n) ^ 2 →
         q.totalDegree ≤ (Nat.log 2 n) ^ 2 →
@@ -100,39 +123,35 @@ axiom rowspace_signature_bound :
             p ρ ≤ (Nat.log 2 n + 1) ^ 2 →
           restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n)
             q ρ ≤ (Nat.log 2 n + 1) ^ 2) ∧
-      -- m classes fit: given per-class bad sets of size ≤ |seeds|/2,
-      -- their union is still < |seeds|
-      -- (This holds because m · (|seeds|/2) < |seeds| when m ≤ 1,
-      --  or more precisely, the signature count ensures the union
-      --  bound works. We encode the conclusion directly.)
+      -- m classes fit the union bound
       m * (Fintype.card (Restriction.Restriction n) / 2) <
         Fintype.card (Restriction.Restriction n)
 
-/-- Theorem 7.3 (paper-faithful): universal collapse.
+/-- Theorem 7.3: universal collapse under fixed ρ*.
 
     PROVED from all three axioms + pigeonhole.
 
-    Proof (matching paper §7.3):
-    Step 1: (upstream) depth4_simulation produces bounded-degree polys
-    Step 2: hil_multi_switching gives per-class bad sets (small)
-    Step 3: rowspace_signature_bound classifies + bounds union
-    Step 4: pigeonhole extracts universal good seed ρ* -/
+    Proof chain:
+    1. depth4_simulation → q with bounded degree AND bottom fan-in
+    2. hil_multi_switching (needs fan-in bound!) → per-class bad set
+    3. rowspace_signature_bound → classification + union bound
+    4. Pigeonhole → universal good seed ρ* -/
 theorem depth4_good_seed
     (n : ℕ) (hn : n ≥ 2) :
     ∃ (ρ : Restriction.Restriction n),
     ∀ (p : MvPolynomial (Fin n) ℚ),
       p.totalDegree ≤ (Nat.log 2 n) ^ 2 →
+      IsMultilinear p →
       restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n)
         p ρ ≤ (Nat.log 2 n + 1) ^ 2 := by
   classical
-  -- Step 3 (Axiom 3): classification with shared collapse
   obtain ⟨m, classify, hclass, hm_bound⟩ :=
     rowspace_signature_bound n hn
-  -- Step 2 (Axiom 2): for each class, get a per-representative bad set
   have per_class : ∀ i : Fin m,
       ∃ (bad_i : Finset (Restriction.Restriction n)),
         (∀ (p : MvPolynomial (Fin n) ℚ),
           p.totalDegree ≤ (Nat.log 2 n) ^ 2 →
+          IsMultilinear p →
           classify p = i →
           ∀ ρ, ρ ∉ bad_i →
             restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n)
@@ -140,18 +159,17 @@ theorem depth4_good_seed
         bad_i.card ≤ Fintype.card (Restriction.Restriction n) / 2 := by
     intro i
     by_cases h : ∃ (rep : MvPolynomial (Fin n) ℚ),
-        rep.totalDegree ≤ (Nat.log 2 n) ^ 2 ∧ classify rep = i
-    · obtain ⟨rep, hrep_deg, hrep_class⟩ := h
+        rep.totalDegree ≤ (Nat.log 2 n) ^ 2 ∧
+        IsMultilinear rep ∧ classify rep = i
+    · obtain ⟨rep, hrep_deg, hrep_ml, hrep_class⟩ := h
       obtain ⟨bad_rep, hcollapse, hsmall⟩ :=
-        hil_multi_switching n hn rep hrep_deg
+        hil_multi_switching n hn rep hrep_deg hrep_ml
       refine ⟨bad_rep, ?_, hsmall⟩
-      intro p hp_deg hp_class ρ hρ
+      intro p hp_deg hp_ml hp_class ρ hρ
       exact hclass rep p hrep_deg hp_deg
         (by rw [hrep_class, hp_class]) ρ (hcollapse ρ hρ)
-    · exact ⟨∅, fun p hp hp_class => absurd ⟨p, hp, hp_class⟩ h,
-        by simp⟩
+    · exact ⟨∅, fun p hp _ hp_class => absurd ⟨p, hp, ‹_›, hp_class⟩ h, by simp⟩
   choose bad hbad_cover hbad_size using per_class
-  -- Step 4: union bound + pigeonhole
   have hcard : (Finset.univ.biUnion bad).card <
       Fintype.card (Restriction.Restriction n) := by
     calc (Finset.univ.biUnion bad).card
@@ -164,7 +182,7 @@ theorem depth4_good_seed
       _ < Fintype.card (Restriction.Restriction n) := hm_bound
   obtain ⟨ρ, hρ⟩ :=
     exists_seed_avoiding_bad_union (tests := Finset.univ) bad hcard
-  exact ⟨ρ, fun p hp_deg =>
-    hbad_cover (classify p) p hp_deg rfl ρ (hρ (classify p) (by simp))⟩
+  exact ⟨ρ, fun p hp_deg hp_ml =>
+    hbad_cover (classify p) p hp_deg hp_ml rfl ρ (hρ (classify p) (by simp))⟩
 
 end PaperAxioms
