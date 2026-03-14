@@ -96,17 +96,34 @@ theorem exists_nonzero_second_deriv {n : ℕ}
       (α - Finsupp.single i 1 - Finsupp.single j 1)
       (MvPolynomial.pderiv j (MvPolynomial.pderiv i q)) = 0 := by
     rw [h]; simp
-  -- The coefficient of monomial m in (pderiv i p) equals
-  -- (m i + 1) * coeff (m + single i 1) p
-  -- Applying pderiv twice: coeff at (α - e_i - e_j) in ∂_j(∂_i q)
-  -- = ((α-e_i-e_j)(j) + 1) * coeff (α-e_i-e_j + e_j) (∂_i q)
-  -- = (α-e_i)(j) * coeff (α-e_i) (∂_i q)
-  -- = (α-e_i)(j) * ((α-e_i)(i) + 1) * coeff (α-e_i + e_i) q
-  -- = (α-e_i)(j) * α(i) * coeff α q
-  -- The last line uses (α-e_i+e_i) = α (when α(i) ≥ 1)
-  -- All factors are nonzero: (α-e_i)(j) ≥ 1, α(i) ≥ 1, coeff α q ≠ 0
-  -- This contradicts hcoeff = 0
-  sorry
+  -- Use pderiv as a linear map on q = Σ monomial β (q.coeff β)
+  -- pderiv i q = Σ_β monomial (β - e_i) (q.coeff β * β i)
+  -- pderiv j (pderiv i q) = Σ_β monomial (β - e_i - e_j) (q.coeff β * β i * (β - e_i) j)
+  -- The coefficient at target (α - e_i - e_j) gets contributions from β
+  -- with β - e_i - e_j = α - e_i - e_j, which (for ℕ-valued Finsupp with
+  -- β i ≥ 1 and (β-e_i) j ≥ 1) forces β = α.
+  -- So the coefficient = q.coeff(α) * α(i) * (α-e_i)(j) ≠ 0.
+  -- Formalization: use pderiv linearity + pderiv_monomial
+  have hcoeff_α : q.coeff α ≠ 0 := MvPolynomial.mem_support_iff.mp hα_mem
+  have hi_pos : (0 : ℚ) < ↑(α i) := by positivity
+  have hj_pos : (0 : ℚ) < ↑((α - Finsupp.single i 1 : Fin n →₀ ℕ) j) := by positivity
+  -- The product q.coeff(α) * α(i) * (α-e_i)(j) ≠ 0
+  have hprod : q.coeff α * ↑(α i) * ↑((α - Finsupp.single i 1 : Fin n →₀ ℕ) j) ≠ 0 := by
+    apply mul_ne_zero (mul_ne_zero hcoeff_α (ne_of_gt hi_pos)) (ne_of_gt hj_pos)
+  -- Show hcoeff = hprod (up to rewriting), giving contradiction
+  -- Key: coeff m (pderiv i (monomial s a)) = if s - e_i = m then a * s i else 0
+  -- For s = α, m = α - e_i: gives q.coeff α * α i
+  -- Then coeff (α-e_i-e_j) (pderiv j (monomial (α-e_i) (q.coeff α * α i)))
+  --   = q.coeff α * α i * (α-e_i) j
+  -- Other monomials β ≠ α: β - e_i ≠ α - e_i (since β ≠ α),
+  -- so even if they contribute to pderiv i q, their further
+  -- pderiv j lands at β-e_i-e_j ≠ α-e_i-e_j (since β-e_i ≠ α-e_i).
+  -- Full formalization requires Finsupp subtraction injectivity + pderiv linearity.
+  exact absurd hcoeff (by
+    -- We need: coeff (α-e_i-e_j) (pderiv j (pderiv i q)) ≠ 0
+    -- This is the product hprod ≠ 0, but connecting them requires
+    -- the coefficient computation above.
+    sorry)
 
 /-! ## Step 2: Nonzero derivative gives large SPDP subspace -/
 
@@ -148,8 +165,17 @@ private theorem tenMonomials_degree_le :
 /-- The 10 monomials are linearly independent. -/
 private theorem tenMonomials_linearIndependent :
     LinearIndependent ℚ (fun i : Fin 10 => tenMonomials[i.val]'(by simp [tenMonomials])) := by
-  -- Each monomial is monomial dₖ 1 for distinct dₖ, hence linearly independent
-  -- as basis elements of the free module MvPolynomial (Fin 4) ℚ ≃ (Fin 4 →₀ ℕ) →₀ ℚ
+  -- Strategy: show the 10 monomials have pairwise distinct leading Finsupp exponents,
+  -- then use the coefficient functional to separate them.
+  rw [linearIndependent_iff']
+  intro s g hsum k hk
+  -- If Σ g_i * m_i = 0, then for each monomial m_k, extract the coefficient
+  -- at the exponent of m_k. Since all other m_j have different exponents,
+  -- only g_k survives: g_k * 1 = 0, so g_k = 0.
+  -- Extract the coefficient at m_k's exponent from the sum = 0
+  -- Each m_k = monomial(d_k, 1) for distinct d_k, so coeff(d_k, m_j) = δ_{k,j}
+  -- Therefore coeff(d_k, Σ g_i m_i) = g_k = 0
+  have hzero := MvPolynomial.ext_iff.mp (show (∑ x ∈ s, g x • tenMonomials[x.val]'(by simp [tenMonomials])) = 0 from hsum)
   sorry
 
 /-! ## Step 3: Assembly -/
@@ -159,8 +185,22 @@ theorem spdpRank_ge_of_nonzero_deriv
     (q : MvPolynomial (Fin 4) ℚ) (i j : Fin 4)
     (hd : iterDerivList [i, j] q ≠ 0) :
     10 ≤ spdpRank 2 2 q := by
-  -- The 10 elements {m * d : m ∈ tenMonomials} are in spdpSubspace
-  -- and linearly independent (integral domain argument)
+  -- Let d = iterDerivList [i,j] q ≠ 0
+  set d := iterDerivList [i, j] q with hd_def
+  -- Each m_k * d ∈ spdpSubspace 2 2 q (by definition: |[i,j]|=2, deg(m_k)≤2)
+  have hmem : ∀ (m : MvPolynomial (Fin 4) ℚ), m.totalDegree ≤ 2 →
+      m * d ∈ spdpSubspace 2 2 q := by
+    intro m hm
+    apply Submodule.subset_span
+    exact ⟨[i, j], m, rfl, hm, rfl⟩
+  -- The 10 elements m_k * d are linearly independent
+  have hli : LinearIndependent ℚ
+      (fun k : Fin 10 => (tenMonomials[k.val]'(by simp [tenMonomials])) * d) :=
+    mul_linearIndependent tenMonomials_linearIndependent d hd
+  -- They all lie in spdpSubspace
+  -- 10 linearly independent elements in spdpSubspace → finrank ≥ 10
+  -- Uses hli (independence in ambient) + hmem (membership) + Submodule.finrank_mono
+  unfold spdpRank
   sorry
 
 /-- Main bound: totalDegree ≥ 2 → spdpRank ≥ 10 on Fin 4 at κ=ℓ=2. -/
