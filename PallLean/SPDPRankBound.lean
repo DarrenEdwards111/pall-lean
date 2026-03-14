@@ -306,8 +306,17 @@ theorem spdpRank_ge_of_nonzero_deriv
   -- spdpSubspace is finitely generated (finite index set Fin 4, bounded degree)
   -- so Module.Finite holds
   haveI : Module.Finite ℚ (spdpSubspace 2 2 q) := by
-    -- spdpSubspace is spanned by a finite set (products of bounded-degree
-    -- monomials with derivatives indexed by finite lists in Fin 4)
+    -- spdpSubspace ≤ restrictDegree (Fin 4) ℚ (2 + q.totalDegree)
+    -- restrictDegree is Module.Finite (Mathlib instance for [Finite σ])
+    -- Any submodule of a finite module is finite
+    -- But spdpSubspace is a submodule of MvPolynomial, not of restrictDegree
+    -- We need: spdpSubspace maps injectively into restrictDegree, which is finite
+    -- Simpler: just show FG directly
+    rw [Module.finite_def]
+    -- spdpSubspace = span S, and S ⊆ span (finite set of mono * deriv products)
+    -- So spdpSubspace = span (finite set) → FG
+    -- The finite set: { MvPolynomial.monomial α 1 * iterDerivList [s₁, s₂] q |
+    --                    α with degree(α) ≤ 2, s₁ s₂ : Fin 4 }
     sorry
   exact hli_sub.fintype_card_le_finrank
 
