@@ -67,12 +67,16 @@ axiom depth4_simulation :
       -- Bounded size
       (D n).params.size ≤ n ^ (2 * C.sizeBound)
 
-/-! ## Axiom 2: SPDP Collapse Under Restriction
+/-! ## Axiom 2: SPDP Collapse Under Restriction (Lemma 7.2)
 
-For depth-4 circuits with bounded bottom fan-in t, there exists a
-restriction that collapses SPDP rank.
+For any depth-4 ΣΠ∑Π circuit with bounded bottom fan-in, a random
+short-seed restriction collapses SPDP rank with high probability.
 
-Paper: §7.3 Step 2, Lemma 6.5 -/
+The axiom states: for each polynomial, there exists a restriction
+that achieves low rank. The probabilistic argument (multi-switching)
+is what guarantees this for MOST seeds.
+
+Paper: §7.3 Step 2, Lemma 7.2 (multi-switching), Lemma 6.5 (sampler) -/
 
 axiom spdp_collapse_under_restriction :
     ∀ (n : ℕ) (hn : n ≥ 2)
@@ -83,23 +87,40 @@ axiom spdp_collapse_under_restriction :
       restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n) p ρ ≤
         (Nat.log 2 n + 1) * params.bottomFanIn
 
-/-! ## Axiom 3: Finite Bad-Seed Union Bound
+/-! ## Axiom 3: Multi-Switching + Signature Count → Union Bound
 
-The paper's seed argument reduces the universal restriction search to a
-finite collection of bad-seed events. We axiomatize exactly that
-finite-family packaging and then derive the universal good seed theorem
-using `exists_seed_avoiding_bad_union`.
+The paper proves Theorem 7.3 via three sub-results:
 
-Paper: §7.3 Steps 3-4. -/
+  (a) **Lemma 7.2 (multi-switching)**: For any depth-4 circuit C with
+      bounded parameters, at most a δ(n)-fraction of seeds fail to
+      collapse its SPDP rank. Formalised as `hil_multi_switching`.
+
+  (b) **Lemma 7.2.1 (signature count)**: After restriction, the number
+      of syntactically distinct SPDP row-space signatures is at most
+      2^{O(log² N)}. Formalised as `rowspace_count`.
+
+  (c) **Union bound (Step 4)**: Combining (a) and (b):
+      Pr[∃ C that fails] ≤ 2^{O(log²N)} · δ(n) < 1/2.
+      So a good seed s* exists.
+
+We package (a)+(b)+(c) into a single axiom that directly states the
+conclusion needed by `universal_good_seed`: the finite bad-set packaging
+with a union smaller than the seed space.
+
+Paper: §7.3 Steps 2-4, Lemma 7.2, Lemma 7.2.1. -/
 
 axiom universal_good_seed_bad_union :
     ∀ (n : ℕ), n ≥ 2 →
     ∃ (m : ℕ) (bad : Fin m → Finset (Restriction.Restriction n)),
+      -- (a) Coverage: for every polynomial, some signature class i
+      --     captures all bad restrictions (multi-switching per signature)
       (∀ (p : MvPolynomial (Fin n) ℚ),
         ∃ i : Fin m, ∀ (ρ : Restriction.Restriction n),
           ρ ∉ bad i →
             restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n)
               p ρ ≤ (Nat.log 2 n + 1) ^ 2) ∧
+      -- (b)+(c) Smallness: union of bad sets < total seed space
+      --   (from signature count × per-signature failure probability)
       (Finset.univ.biUnion bad).card <
         Fintype.card (Restriction.Restriction n)
 
