@@ -175,7 +175,17 @@ private theorem tenMonomials_linearIndependent :
   -- Extract the coefficient at m_k's exponent from the sum = 0
   -- Each m_k = monomial(d_k, 1) for distinct d_k, so coeff(d_k, m_j) = δ_{k,j}
   -- Therefore coeff(d_k, Σ g_i m_i) = g_k = 0
-  have hzero := MvPolynomial.ext_iff.mp (show (∑ x ∈ s, g x • tenMonomials[x.val]'(by simp [tenMonomials])) = 0 from hsum)
+  -- Apply coeff at the exponent corresponding to m_k
+  -- Each m_k is a distinct monomial, so coeff extracts g_k
+  -- Define the 10 exponents
+  -- Apply MvPolynomial.coeff to the zero sum to extract g_k = 0
+  -- coeff is linear: coeff d (Σ g_i • m_i) = Σ g_i * coeff d m_i
+  -- For the right exponent d, only the k-th term contributes coeff = 1
+  -- Each monomial has a unique exponent, so we get g_k * 1 = 0
+  --
+  -- The key property: tenMonomials are distinct monomials, each = monomial d_k 1
+  -- This means coeff d_k m_j = δ_{k,j} (Kronecker delta)
+  -- Proof of this property for all 10×10 pairs requires case analysis
   sorry
 
 /-! ## Step 3: Assembly -/
@@ -198,10 +208,24 @@ theorem spdpRank_ge_of_nonzero_deriv
       (fun k : Fin 10 => (tenMonomials[k.val]'(by simp [tenMonomials])) * d) :=
     mul_linearIndependent tenMonomials_linearIndependent d hd
   -- They all lie in spdpSubspace
-  -- 10 linearly independent elements in spdpSubspace → finrank ≥ 10
-  -- Uses hli (independence in ambient) + hmem (membership) + Submodule.finrank_mono
+  -- Lift to submodule: construct linearly independent family in spdpSubspace
+  have hli_sub : LinearIndependent ℚ (fun k : Fin 10 =>
+      (⟨(tenMonomials[k.val]'(by simp [tenMonomials])) * d,
+        hmem _ (tenMonomials_degree_le _
+          (List.getElem_mem (by simp [tenMonomials])))⟩ : spdpSubspace 2 2 q)) := by
+    rw [linearIndependent_iff'] at hli ⊢
+    intro s g hsum_sub idx hidx
+    apply hli s g _ idx hidx
+    have := congr_arg Subtype.val hsum_sub
+    simp [Finset.sum_coe_sort, Submodule.coe_sum, Submodule.coe_smul] at this ⊢
+    exact this
   unfold spdpRank
-  sorry
+  -- 10 linearly independent elements → finrank ≥ 10
+  -- Need Module.Finite for fintype_card_le_finrank
+  haveI : Module.Finite ℚ (spdpSubspace 2 2 q) := by
+    -- spdpSubspace is a span of a finite set → finite module
+    sorry
+  exact hli_sub.fintype_card_le_finrank
 
 /-- Main bound: totalDegree ≥ 2 → spdpRank ≥ 10 on Fin 4 at κ=ℓ=2. -/
 theorem spdpRank_ge_of_high_degree
