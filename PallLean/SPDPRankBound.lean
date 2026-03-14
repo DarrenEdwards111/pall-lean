@@ -306,9 +306,8 @@ theorem spdpRank_ge_of_nonzero_deriv
   -- spdpSubspace is finitely generated (finite index set Fin 4, bounded degree)
   -- so Module.Finite holds
   haveI : Module.Finite ℚ (spdpSubspace 2 2 q) := by
-    -- spdpSubspace is a submodule of MvPolynomial (Fin 4) ℚ
-    -- It's finitely generated because the generators are parameterized by
-    -- finite lists S in (Fin 4)^2 and monomials m of degree ≤ 2 in 4 vars
+    -- spdpSubspace is spanned by a finite set (products of bounded-degree
+    -- monomials with derivatives indexed by finite lists in Fin 4)
     sorry
   exact hli_sub.fintype_card_le_finrank
 
