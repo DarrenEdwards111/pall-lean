@@ -15,6 +15,7 @@ import PallLean.PsideCollapse
 import PallLean.DiagonalFunction
 import PallLean.BoolEval
 import PallLean.Multilinearize
+import PallLean.GoodSeed4
 
 namespace PneqNP_PaperFaithful
 
@@ -41,10 +42,9 @@ structure PeqNP where
     5. semantic_diagonal_escape (PROVED) → f_n escapes -/
 theorem P_neq_NP : ¬ PeqNP := by
   intro ⟨h_peqnp⟩
-  have h4 : (4 : ℕ) ≥ 2 := by omega
   have hlog : Nat.log 2 4 = 2 := by native_decide
-  -- Step 2: universal restriction (Theorem 7.3, from Axioms 2+3)
-  obtain ⟨ρ, hρ⟩ := depth4_good_seed 4 h4
+  -- Step 2: universal restriction (PROVED — fix-all-variables trick)
+  obtain ⟨ρ, hρ⟩ := GoodSeed4.depth4_good_seed_at_4
   -- d* = (log₂ 4 + 1)² = 9
   set d_star := (Nat.log 2 4 + 1) ^ 2
   have hd : d_star ≤ 9 := by native_decide
