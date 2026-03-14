@@ -88,10 +88,24 @@ theorem exists_nonzero_second_deriv {n : ℕ}
   refine ⟨i, j, ?_⟩
   -- iterDerivList [i,j] q = pderiv j (pderiv i q)
   simp only [iterDerivList, List.foldl]
-  -- Show this is nonzero by showing its coefficient at (α - e_i - e_j) is nonzero
-  -- pderiv_monomial: pderiv i (monomial s a) = monomial (s - single i 1) (a * s i)
-  -- The map β ↦ (β - e_i - e_j) is injective on {β : β i ≥ 1, (β-e_i) j ≥ 1}
-  -- So the α-monomial's contribution can't be cancelled
+  -- Show pderiv j (pderiv i q) ≠ 0 via coefficient at target exponent
+  intro h
+  -- h : pderiv j (pderiv i q) = 0
+  -- The coefficient of (α - e_i - e_j) in pderiv j (pderiv i q) must be 0
+  have hcoeff : MvPolynomial.coeff
+      (α - Finsupp.single i 1 - Finsupp.single j 1)
+      (MvPolynomial.pderiv j (MvPolynomial.pderiv i q)) = 0 := by
+    rw [h]; simp
+  -- The coefficient of monomial m in (pderiv i p) equals
+  -- (m i + 1) * coeff (m + single i 1) p
+  -- Applying pderiv twice: coeff at (α - e_i - e_j) in ∂_j(∂_i q)
+  -- = ((α-e_i-e_j)(j) + 1) * coeff (α-e_i-e_j + e_j) (∂_i q)
+  -- = (α-e_i)(j) * coeff (α-e_i) (∂_i q)
+  -- = (α-e_i)(j) * ((α-e_i)(i) + 1) * coeff (α-e_i + e_i) q
+  -- = (α-e_i)(j) * α(i) * coeff α q
+  -- The last line uses (α-e_i+e_i) = α (when α(i) ≥ 1)
+  -- All factors are nonzero: (α-e_i)(j) ≥ 1, α(i) ≥ 1, coeff α q ≠ 0
+  -- This contradicts hcoeff = 0
   sorry
 
 /-! ## Step 2: Nonzero derivative gives large SPDP subspace -/
