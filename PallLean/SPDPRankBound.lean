@@ -41,27 +41,44 @@ private theorem exists_support_degree_ge_two {n : ℕ}
     omega
   omega
 
-/-- Helper: a Finsupp with sum ≥ 2 has two (possibly equal) indices with positive values. -/
+/-- Helper: a Finsupp with sum ≥ 2 has two indices (possibly equal) with positive values,
+    and the second index has positive value even after subtracting e_i. -/
 private theorem exists_two_indices {n : ℕ}
     (α : Fin n →₀ ℕ) (hα : 2 ≤ α.sum fun _ k => k) :
     ∃ i j : Fin n, 1 ≤ α i ∧ 1 ≤ (α - Finsupp.single i 1 : Fin n →₀ ℕ) j := by
-  -- α has sum ≥ 2, so it has at least one nonzero entry
+  -- α has sum ≥ 2, so ∃ i with α i ≥ 1
   have hne : α ≠ 0 := by
     intro h; subst h; simp [Finsupp.sum_zero_index] at hα
   obtain ⟨i, hi_mem⟩ := (Finsupp.support_nonempty_iff.mpr hne).exists_mem
   have hi : 1 ≤ α i := by
     rwa [Finsupp.mem_support_iff, ← Nat.one_le_iff_ne_zero] at hi_mem
-  -- After subtracting e_i, the remaining sum is ≥ 1
-  -- So there exists j with (α - e_i)(j) ≥ 1
-  have hsum_rest : 1 ≤ (α - Finsupp.single i 1 : Fin n →₀ ℕ).sum (fun _ k => k) := by
-    -- (α - e_i).sum id = α.sum id - 1 ≥ 1 (Finsupp truncated subtraction)
-    sorry
-  have hne2 : (α - Finsupp.single i 1 : Fin n →₀ ℕ) ≠ 0 := by
-    intro h; simp [h, Finsupp.sum_zero_index] at hsum_rest
-  obtain ⟨j, hj_mem⟩ := (Finsupp.support_nonempty_iff.mpr hne2).exists_mem
-  have hj : 1 ≤ (α - Finsupp.single i 1 : Fin n →₀ ℕ) j := by
-    rwa [Finsupp.mem_support_iff, ← Nat.one_le_iff_ne_zero] at hj_mem
-  exact ⟨i, j, hi, hj⟩
+  -- Case 1: α i ≥ 2 → take j = i, then (α - e_i)(i) = α i - 1 ≥ 1
+  by_cases h2 : 2 ≤ α i
+  · refine ⟨i, i, hi, ?_⟩
+    rw [Finsupp.tsub_apply, Finsupp.single_apply, if_pos rfl]
+    omega
+  · -- Case 2: α i = 1, so ∃ j ≠ i with α j ≥ 1
+    push_neg at h2
+    have hai : α i = 1 := by omega
+    -- sum = α i + Σ_{j ≠ i} α j ≥ 2, so Σ_{j ≠ i} α j ≥ 1
+    have hrest : 1 ≤ (α.support.erase i).sum α := by
+      have hsplit : α.sum (fun _ k => k) =
+          α i + (α.support.erase i).sum α := by
+        rw [show α.sum (fun _ k => k) = α.support.sum α from rfl,
+            ← Finset.add_sum_erase _ _ hi_mem]
+      omega
+    -- There's a positive element in the erased sum
+    have hne_erase : (α.support.erase i).Nonempty := by
+      rw [Finset.nonempty_iff_ne_empty]
+      intro h; simp [h] at hrest
+    obtain ⟨j, hj_mem⟩ := hne_erase
+    have hji : j ≠ i := Finset.ne_of_mem_erase hj_mem
+    have hj_supp : j ∈ α.support := Finset.mem_of_mem_erase hj_mem
+    have hj_pos : 1 ≤ α j := by
+      rwa [Finsupp.mem_support_iff, ← Nat.one_le_iff_ne_zero] at hj_supp
+    refine ⟨i, j, hi, ?_⟩
+    rw [Finsupp.tsub_apply, Finsupp.single_apply, if_neg hji.symm]
+    simp; exact hj_pos
 
 theorem exists_nonzero_second_deriv {n : ℕ}
     (q : MvPolynomial (Fin n) ℚ) (hq : 2 ≤ q.totalDegree) :
