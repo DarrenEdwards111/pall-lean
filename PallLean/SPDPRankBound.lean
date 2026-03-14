@@ -162,31 +162,56 @@ private theorem tenMonomials_degree_le :
   · exact MvPolynomial.totalDegree_one.le.trans (by omega)
   all_goals (first | (rw [hX]; omega) | exact hXX _ _)
 
+/-- The exponent of the k-th monomial in tenMonomials. -/
+private noncomputable def tenExp : Fin 10 → (Fin 4 →₀ ℕ)
+  | ⟨0, _⟩ => 0
+  | ⟨1, _⟩ => Finsupp.single 0 1
+  | ⟨2, _⟩ => Finsupp.single 1 1
+  | ⟨3, _⟩ => Finsupp.single 2 1
+  | ⟨4, _⟩ => Finsupp.single 3 1
+  | ⟨5, _⟩ => Finsupp.single 0 1 + Finsupp.single 1 1
+  | ⟨6, _⟩ => Finsupp.single 0 1 + Finsupp.single 2 1
+  | ⟨7, _⟩ => Finsupp.single 0 1 + Finsupp.single 3 1
+  | ⟨8, _⟩ => Finsupp.single 1 1 + Finsupp.single 2 1
+  | ⟨9, _⟩ => Finsupp.single 1 1 + Finsupp.single 3 1
+
+/-- Each tenMonomials entry equals monomial (tenExp k) 1. -/
+private theorem tenMonomials_eq_monomial (k : Fin 10) :
+    (tenMonomials[k.val]'(by simp [tenMonomials])) = MvPolynomial.monomial (tenExp k) 1 := by
+  fin_cases k <;> simp [tenMonomials, tenExp, MvPolynomial.monomial_zero',
+    MvPolynomial.X, MvPolynomial.monomial_mul, mul_one]
+
+/-- The 10 exponents are pairwise distinct. -/
+private theorem tenExp_injective : Function.Injective tenExp := by
+  intro a b hab
+  fin_cases a <;> fin_cases b <;> first | rfl | (
+    exfalso; simp only [tenExp] at hab
+    have h := Finsupp.ext_iff.mp hab
+    simp only [Finsupp.single_apply, Finsupp.add_apply, Finsupp.coe_zero, Pi.zero_apply] at h
+    first
+    | exact absurd (h 0) (by decide)
+    | exact absurd (h 1) (by decide)
+    | exact absurd (h 2) (by decide)
+    | exact absurd (h 3) (by decide))
+
 /-- The 10 monomials are linearly independent. -/
 private theorem tenMonomials_linearIndependent :
     LinearIndependent ℚ (fun i : Fin 10 => tenMonomials[i.val]'(by simp [tenMonomials])) := by
-  -- Strategy: show the 10 monomials have pairwise distinct leading Finsupp exponents,
-  -- then use the coefficient functional to separate them.
+  rw [show (fun i : Fin 10 => tenMonomials[i.val]'(by simp [tenMonomials])) =
+      (fun i => MvPolynomial.monomial (tenExp i) 1) from funext tenMonomials_eq_monomial]
   rw [linearIndependent_iff']
   intro s g hsum k hk
-  -- If Σ g_i * m_i = 0, then for each monomial m_k, extract the coefficient
-  -- at the exponent of m_k. Since all other m_j have different exponents,
-  -- only g_k survives: g_k * 1 = 0, so g_k = 0.
-  -- Extract the coefficient at m_k's exponent from the sum = 0
-  -- Each m_k = monomial(d_k, 1) for distinct d_k, so coeff(d_k, m_j) = δ_{k,j}
-  -- Therefore coeff(d_k, Σ g_i m_i) = g_k = 0
-  -- Apply coeff at the exponent corresponding to m_k
-  -- Each m_k is a distinct monomial, so coeff extracts g_k
-  -- Define the 10 exponents
-  -- Apply MvPolynomial.coeff to the zero sum to extract g_k = 0
-  -- coeff is linear: coeff d (Σ g_i • m_i) = Σ g_i * coeff d m_i
-  -- For the right exponent d, only the k-th term contributes coeff = 1
-  -- Each monomial has a unique exponent, so we get g_k * 1 = 0
-  --
-  -- The key property: tenMonomials are distinct monomials, each = monomial d_k 1
-  -- This means coeff d_k m_j = δ_{k,j} (Kronecker delta)
-  -- Proof of this property for all 10×10 pairs requires case analysis
-  sorry
+  -- Apply the linear functional coeff(tenExp k) to the zero sum
+  have hc0 : MvPolynomial.coeff (tenExp k) (∑ i ∈ s, g i •
+      MvPolynomial.monomial (tenExp i) (1 : ℚ)) = 0 := by rw [hsum]; simp
+  -- Distribute coeff over sum and simplify
+  simp only [MvPolynomial.coeff_sum, MvPolynomial.coeff_smul, smul_eq_mul,
+    MvPolynomial.coeff_monomial] at hc0
+  -- For i ≠ k, tenExp i ≠ tenExp k → term vanishes
+  rw [Finset.sum_eq_single k (fun j _ hjk => by
+      simp [show tenExp j ≠ tenExp k from tenExp_injective.ne hjk])
+    (fun h => absurd hk h)] at hc0
+  simp at hc0; exact hc0
 
 /-! ## Step 3: Assembly -/
 
