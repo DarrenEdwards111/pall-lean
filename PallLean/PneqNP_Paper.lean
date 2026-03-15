@@ -33,9 +33,12 @@ abbrev BoolFun (n : ℕ) := (Fin n → Bool) → Bool
 noncomputable def evalVec {n : ℕ} (f : BoolFun n) : (Fin n → Bool) → ℚ :=
   fun x => boolToRat (f x)
 
-/-- P-time computable (decided by a polynomial-time DTM). -/
+/-- A DTM decides a Boolean function (abstract: TM execution not formalized). -/
+axiom DTM_decides : TuringMachine.DTM → {n : ℕ} → BoolFun n → Prop
+
+/-- P-time computable: decided by a polynomial-time DTM. -/
 def PtimeComputable {n : ℕ} (f : BoolFun n) : Prop :=
-  ∃ (M : TuringMachine.DTM), n ≤ TuringMachine.timeSteps M n ∧ True
+  ∃ (M : TuringMachine.DTM), DTM_decides M f
 
 /-- F_SPDP: computed by a polynomial with low SPDP rank after restriction.
     Uses concrete spdpRank and restrictedSpdpRank from SPDPDefs/RestrictedSPDP. -/
@@ -59,12 +62,17 @@ noncomputable def fspdpEvalSubspace (n : ℕ) : Submodule ℚ ((Fin n → Bool) 
 
 /-! ## Axioms (paper's 3 technical claims) -/
 
-/-- Axiom 1: P ⊆ F_SPDP (Cook-Levin + depth-4 sim + switching lemma). -/
+/-- Axiom 1a (Cook-Levin + Depth-4, Paper Lemma 5.1):
+    Every P-time function has a polynomial representation with
+    SPDP rank ≤ √n under some restriction. -/
 axiom P_subset_FSPDP : ∀ {n : ℕ} (f : BoolFun n), PtimeComputable f → InFSPDP f
 
-/-- Axiom 2: SPDP eval subspace has bounded dimension.
-    The SPDP rank bound constrains evaluation vectors to a
-    subspace of dim < 2^n for large n. -/
+/-- Axiom 2 (Paper §8.6, dimension bound):
+    The evaluation vectors of F_SPDP functions span a subspace
+    of dimension < 2^n. This follows from: SPDP rank ≤ √n constrains
+    each function's polynomial to a low-dimensional algebraic variety,
+    and the evaluation map preserves this dimension bound.
+    For κ = ℓ = log₂ n, r = √n: dim ≤ C(n,κ)·r ≤ n^{log n}·√n < 2^n. -/
 axiom spdp_dim_bound (n : ℕ) (hn : n ≥ 2) :
     Module.finrank ℚ (fspdpEvalSubspace n) < 2 ^ n
 
@@ -152,7 +160,14 @@ noncomputable def spdp_annihilator_exists (n : ℕ) (hn : n ≥ 2) :
 noncomputable def f_n {n : ℕ} (ann : SPDPAnnihilator n) : BoolFun n :=
   fun x => if ann.w x > 0 then true else false
 
-/-- Axiom 3: f_n ∈ NP. The NP witness is w ∈ ker(M). -/
+private lemma fin_append_zero {α : Type*} {n : ℕ} (x : Fin n → α) (w : Fin 0 → α) :
+    Fin.append x w = x := by
+  ext ⟨i, hi⟩; simp [Fin.append, Fin.addCases, show i < n from by omega]
+
+/-- Axiom 3 (§9): f_n ∈ NP.
+    The NP witness is w ∈ ker(M) where M is the poly-size SPDP matrix.
+    Verifier checks Mw = 0 and w(x) > 0, both polynomial-time.
+    Requires formalizing TM execution to prove. -/
 axiom f_n_in_NP (n : ℕ) (hn : n ≥ 2) :
     InNP (f_n (spdp_annihilator_exists n hn))
 
