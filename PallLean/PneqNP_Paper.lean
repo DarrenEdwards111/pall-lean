@@ -45,7 +45,8 @@ def UniformPtime (F : BoolFunFamily) : Prop :=
 
 /-- F_SPDP: computed by a polynomial with low SPDP rank after some restriction.
     Paper §5.3: there exists a universal seed s* (Lemma 5.6) making this
-    equivalent to using a FIXED restriction for all P-time functions. -/
+    equivalent to using a FIXED restriction for all P-time functions.
+    The fixed-seed structure is captured by `spdp_dim_bound` axiom. -/
 def InFSPDP {n : ℕ} (f : BoolFun n) : Prop :=
   ∃ (p : MvPolynomial (Fin n) ℚ) (ρ : Restriction.Restriction n),
     (∀ x, MvPolynomial.eval (fun i => boolToRat (x i)) p = boolToRat (f x)) ∧
