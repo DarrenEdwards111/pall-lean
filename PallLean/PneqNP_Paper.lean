@@ -106,17 +106,8 @@ theorem P_subset_FSPDP (F : BoolFunFamily) (hF : UniformPtime F)
   have h_collapse := SwitchingLemma.universal_spdp_collapse n hn (F n) M (hM n)
   exact ⟨Depth4Simulation.multilinearInterp (F n), h_correct, h_collapse⟩
 
-/-- Axiom (Paper §8.6): There exists a Boolean function NOT in InFSPDP,
-    whose evaluation vector is linearly independent from all InFSPDP
-    evaluation vectors.
-
-    Paper: the canonical matrix M under ρ* has rank ≤ d_n* = O(log²n).
-    The annihilator space ker(M) has codimension ≥ 1. Functions in ker(M)
-    are precisely those outside F_SPDP*. Their evalVecs are independent
-    from the F_SPDP* span.
-
-    This axiom is weaker than stating dim(span) < 2^n explicitly.
-    It says: fspdpEvalSubspace ≠ ⊤. -/
+/-- Paper §8.6: F_SPDP* eval subspace is proper.
+    Axiom for general n. At n=2, proved concretely in ProperSubspace.lean. -/
 axiom fspdp_proper_subspace (n : ℕ) (hn : n ≥ 2) :
     fspdpEvalSubspace n ≠ ⊤
 
