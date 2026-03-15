@@ -59,16 +59,19 @@ def InFSPDP {n : ℕ} (f : BoolFun n) : Prop :=
     (∀ x, MvPolynomial.eval (fun i => boolToRat (x i)) p = boolToRat (f x)) ∧
     restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n) p ρ ≤ Nat.sqrt n
 
-/-- NP (uniform): F is in NP if there exists a uniform polynomial-time
-    verifier and polynomial witness bound. -/
+/-- NP (uniform): F is in NP if there exists a polynomial witness bound
+    and a uniform polynomial-time verifier V such that:
+    F_n(x) = true ↔ ∃ witness w, V accepts (x, w).
+
+    The verifier V_n is a Boolean function on n + m inputs.
+    Uniformity means: the verifier family {V_n} is itself uniform P-time. -/
 def UniformNP (F : BoolFunFamily) : Prop :=
-  ∃ (m_bound : ℕ) (V : TuringMachine.DTM),
+  ∃ (m : ℕ) (V : BoolFunFamily),
+    UniformPtime V ∧
     ∀ n, ∀ x : Fin n → Bool,
       F n x = true ↔
-        ∃ w : Fin m_bound → Bool,
-          V.decides (fun (xw : Fin (n + m_bound) → Bool) =>
-            F n (fun i => xw (Fin.castAdd m_bound i))) →
-          True
+        ∃ w : Fin m → Bool,
+          V (n + m) (Fin.append x w) = true
 
 /-- P = NP: every uniform NP family is uniform P-time. -/
 def P_eq_NP : Prop := ∀ F : BoolFunFamily, UniformNP F → UniformPtime F
