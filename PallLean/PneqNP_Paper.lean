@@ -1,16 +1,16 @@
 /-
   PneqNP_Paper.lean — P ≠ NP (Paper-Faithful, Theorem 12.1)
 
-  Follows the paper's SPDP-based argument for GENERAL n:
+  Follows the paper's SPDP-based argument for GENERAL n (asymptotic):
     P ⊆ F_SPDP* ⊊ NP ⟹ P ⊊ NP
 
   The God Move (§8.6): Construct annihilator w ∈ ker M that separates
   f_n from all SPDP-collapsible functions via orthogonality vs positivity.
 
   Architecture:
-    AXIOM: universal_spdp_collapse  (Paper Thm 7.3)
+    AXIOM: universal_spdp_collapse  (Paper Thm 7.3, asymptotic)
     AXIOM: f_n_family_in_NP         (Paper Appendix Q)
-    AXIOM: fspdp_proper_subspace    (Paper §8.6: dim argument)
+    AXIOM: fspdp_proper_subspace    (Paper §8.6: dim argument, asymptotic)
 -/
 import PallLean.PneqNP_Defs
 import PallLean.SwitchingLemma
@@ -21,14 +21,19 @@ namespace PneqNP_Paper
 
 open BoolEval SPDP RestrictedSPDP Restriction PneqNP_Defs
 
-/-! ## P ⊆ F_SPDP* — PROVED from universal_spdp_collapse -/
+/-! ## P ⊆ F_SPDP* — for n ≥ n₀ (from universal_spdp_collapse) -/
 
 theorem P_subset_FSPDP (F : BoolFunFamily) (hF : UniformPtime F)
-    (n : ℕ) (hn : n ≥ 2) : InFSPDP (F n) := by
+    (n₀ : ℕ) (h_collapse : ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
+      ∀ (f : (Fin n → Bool) → Bool) (M : TuringMachine.DTM),
+      M.decides f → restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n)
+        (Depth4Simulation.multilinearInterp f)
+        (UniversalRestriction.universalRestriction n) ≤ Nat.sqrt n)
+    (n : ℕ) (hn₀ : n ≥ n₀) (hn : n ≥ 2) : InFSPDP (F n) := by
   obtain ⟨M, hM⟩ := hF
-  have h_correct := Depth4Simulation.multilinearInterp_correct (F n)
-  have h_collapse := SwitchingLemma.universal_spdp_collapse n hn (F n) M (hM n)
-  exact ⟨Depth4Simulation.multilinearInterp (F n), h_correct, h_collapse⟩
+  exact ⟨Depth4Simulation.multilinearInterp (F n),
+         Depth4Simulation.multilinearInterp_correct (F n),
+         h_collapse n hn₀ hn (F n) M (hM n)⟩
 
 /-! ## F_SPDP* ⊊ — proper subspace (Paper §8.6)
 
@@ -37,11 +42,10 @@ theorem P_subset_FSPDP (F : BoolFunFamily) (hF : UniformPtime F)
   grows as n^{O(√n)}, which is << 2^{2^n} (total Boolean functions).
   Hence fspdpEvalSubspace n ≠ ⊤ for large n.
 
-  This is axiomatized because proving it requires the full SPDP rank
-  lower bound machinery (permanent lower bounds from the paper). -/
+  Axiomatized with a threshold, matching the paper's asymptotic regime. -/
 
-axiom fspdp_proper_subspace (n : ℕ) (hn : n ≥ 2) :
-    fspdpEvalSubspace n ≠ ⊤
+axiom fspdp_proper_subspace :
+    ∃ n₁ : ℕ, ∀ (n : ℕ), n ≥ n₁ → n ≥ 2 → fspdpEvalSubspace n ≠ ⊤
 
 /-! ## God Move: Annihilator Construction (Paper §8.6) — PROVED -/
 
@@ -78,10 +82,9 @@ private lemma proper_subspace_has_annihilator {ι : Type*} [Fintype ι] [Decidab
   have h0 : φ v = 0 := (Submodule.mem_dualAnnihilator φ).mp hφ_mem v hv
   rwa [dual_eq_sum] at h0
 
-noncomputable def spdp_annihilator_exists (n : ℕ) (hn : n ≥ 2) :
-    SPDPAnnihilator n := by
-  have h_ne_top := fspdp_proper_subspace n hn
-  have h_ex := proper_subspace_has_annihilator _ h_ne_top
+noncomputable def spdp_annihilator_exists (n : ℕ) (_hn : n ≥ 2)
+    (h_proper : fspdpEvalSubspace n ≠ ⊤) : SPDPAnnihilator n := by
+  have h_ex := proper_subspace_has_annihilator _ h_proper
   let w₀ := h_ex.choose
   have hw₀_ne : w₀ ≠ 0 := h_ex.choose_spec.1
   have hw₀_orth := h_ex.choose_spec.2
@@ -112,17 +115,22 @@ noncomputable def spdp_annihilator_exists (n : ℕ) (hn : n ≥ 2) :
 noncomputable def f_n {n : ℕ} (ann : SPDPAnnihilator n) : BoolFun n :=
   fun x => if ann.w x > 0 then true else false
 
+open Classical in
 noncomputable def f_n_family : BoolFunFamily := fun n =>
-  if hn : n ≥ 2 then f_n (spdp_annihilator_exists n hn)
+  if h : n ≥ 2 then
+    if h_proper : fspdpEvalSubspace n ≠ ⊤ then
+      f_n (spdp_annihilator_exists n h h_proper)
+    else fun _ => false
   else fun _ => false
 
 axiom f_n_family_in_NP : UniformNP f_n_family
 
 /-! ## Escape theorem — PROVED -/
 
-theorem f_n_escapes_FSPDP (n : ℕ) (hn : n ≥ 2) :
-    ¬ InFSPDP (f_n (spdp_annihilator_exists n hn)) := by
-  let ann := spdp_annihilator_exists n hn
+theorem f_n_escapes_FSPDP (n : ℕ) (hn : n ≥ 2)
+    (h_proper : fspdpEvalSubspace n ≠ ⊤) :
+    ¬ InFSPDP (f_n (spdp_annihilator_exists n hn h_proper)) := by
+  let ann := spdp_annihilator_exists n hn h_proper
   intro h_in
   have h_orth := ann.hw_orth (f_n ann) h_in
   have h_nonneg : ∀ x, 0 ≤ boolToRat (f_n ann x) * ann.w x := by
@@ -136,17 +144,27 @@ theorem f_n_escapes_FSPDP (n : ℕ) (hn : n ≥ 2) :
 
 /-! ## P ≠ NP (Paper Theorem 12.1) — PROVED -/
 
-theorem f_n_family_eq (n : ℕ) (hn : n ≥ 2) :
-    f_n_family n = f_n (spdp_annihilator_exists n hn) := by
-  simp [f_n_family, hn]
+theorem f_n_family_eq (n : ℕ) (hn : n ≥ 2)
+    (h_proper : fspdpEvalSubspace n ≠ ⊤) :
+    f_n_family n = f_n (spdp_annihilator_exists n hn h_proper) := by
+  unfold f_n_family
+  rw [dif_pos hn, dif_pos h_proper]
 
 theorem P_neq_NP : ¬ P_eq_NP := by
   intro hPeqNP
   have h_np := f_n_family_in_NP
   have h_p := hPeqNP f_n_family h_np
-  -- Use n = 2 (works for any n ≥ 2 given the axioms)
-  have h_fspdp := P_subset_FSPDP f_n_family h_p 2 (le_refl 2)
-  rw [f_n_family_eq 2 (le_refl 2)] at h_fspdp
-  exact f_n_escapes_FSPDP 2 (le_refl 2) h_fspdp
+  -- Obtain thresholds from asymptotic axioms
+  obtain ⟨n₀, h_collapse⟩ := SwitchingLemma.universal_spdp_collapse
+  obtain ⟨n₁, h_proper⟩ := fspdp_proper_subspace
+  -- Pick n large enough for both axioms
+  let n := max (max n₀ n₁) 2
+  have hn₀ : n ≥ n₀ := le_trans (le_max_left n₀ n₁) (le_max_left _ 2)
+  have hn₁ : n ≥ n₁ := le_trans (le_max_right n₀ n₁) (le_max_left _ 2)
+  have hn2 : n ≥ 2 := le_max_right _ 2
+  have h_prop_n := h_proper n hn₁ hn2
+  have h_fspdp := P_subset_FSPDP f_n_family h_p n₀ h_collapse n hn₀ hn2
+  rw [f_n_family_eq n hn2 h_prop_n] at h_fspdp
+  exact f_n_escapes_FSPDP n hn2 h_prop_n h_fspdp
 
 end PneqNP_Paper
