@@ -10,27 +10,30 @@ import PallLean.UniversalRestriction
 import PallLean.BoolEval
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.Dimension.Finrank
+import Mathlib.Algebra.MvPolynomial.PDeriv
 
 namespace SPDPRankLower
 
 open MvPolynomial SPDP RestrictedSPDP Restriction UniversalRestriction BoolEval
 
-/-- Helper: if a submodule of a finite-dimensional module contains two elements
-    satisfying the linearIndependent_fin2 condition, then finrank ≥ 2. -/
-private theorem finrank_ge_two_of_li {V : Type*} [AddCommGroup V] [Module ℚ V]
-    [Module.Finite ℚ V]
-    (W : Submodule ℚ V) (v₁ v₂ : V) (hv₁ : v₁ ∈ W) (hv₂ : v₂ ∈ W)
-    (hne : v₂ ≠ 0) (hni : ∀ a : ℚ, a • v₂ ≠ v₁) :
-    2 ≤ Module.finrank ℚ W := by
-  have hli : LinearIndependent ℚ (fun i : Fin 2 => (⟨![v₁, v₂] i,
-    by fin_cases i <;> simp_all [Matrix.cons_val_one]⟩ : W)) := by
-    rw [linearIndependent_fin2]
-    constructor
-    · intro h; apply hne; exact Subtype.ext_iff.mp h
-    · intro a h; exact hni a (Subtype.ext_iff.mp h)
-  exact hli.fintype_card_le_finrank
+/-- Over ℚ, eval at x₁=b of restrictPoly ρ* p equals eval of p at (false, b).
+    Because ρ* fixes x₀ = false. -/
+private theorem restrict_eval_eq (p : MvPolynomial (Fin 2) ℚ) (b : Bool) :
+    eval (fun i => boolToRat (![false, b] i)) (restrictPoly (universalRestriction 2) p) =
+    eval (fun i => boolToRat (![false, b] i)) p := by
+  sorry
 
-/-- Core claim: at n=2, if f(0,0) ≠ f(0,1), no polynomial representing f
+/-- If f(0,0) ≠ f(0,1) and p represents f, then pderiv x₁ of the restricted
+    polynomial is nonzero. Over ℚ (char 0), a polynomial evaluating to different
+    values at two points cannot have vanishing derivative. -/
+private theorem pderiv_restricted_ne_zero
+    (f : (Fin 2 → Bool) → Bool) (p : MvPolynomial (Fin 2) ℚ)
+    (hne : f (![false, false]) ≠ f (![false, true]))
+    (hp : ∀ x, eval (fun i => boolToRat (x i)) p = boolToRat (f x)) :
+    pderiv (⟨1, by omega⟩ : Fin 2) (restrictPoly (universalRestriction 2) p) ≠ 0 := by
+  sorry
+
+/-- Core: at n=2, if f(0,0) ≠ f(0,1), no polynomial representing f
     has restrictedSpdpRank ≤ 1 under ρ*. -/
 theorem not_infspdp_of_inconsistent_n2
     (f : (Fin 2 → Bool) → Bool)
@@ -39,18 +42,20 @@ theorem not_infspdp_of_inconsistent_n2
     (hp : ∀ x, eval (fun i => boolToRat (x i)) p = boolToRat (f x))
     : ¬ (restrictedSpdpRank (Nat.log 2 2) (Nat.log 2 2) p
           (universalRestriction 2) ≤ Nat.sqrt 2) := by
-  -- Step 1: Nat.log 2 2 = 1, Nat.sqrt 2 = 1
   have hlog : Nat.log 2 2 = 1 := by native_decide
   have hsqrt : Nat.sqrt 2 = 1 := by native_decide
   rw [hlog, hsqrt]
-  -- Step 2: Let q = restrictPoly ρ* p
+  intro h_le
+  -- The restricted SPDP rank is finrank of the SPDP subspace
+  -- We show it's ≥ 2, contradicting ≤ 1
+  have h_deriv := pderiv_restricted_ne_zero f p hne hp
   set ρ := universalRestriction 2
   set q := restrictPoly ρ p
-  -- Step 3: q evaluated at (false, false) ≠ q evaluated at (false, true)
-  -- because the restriction fixes x₀=false, so eval at (false, b) = eval ρ-extended
-  -- Step 4: pderiv x₁ q ≠ 0 (characteristic 0 argument)
-  -- Step 5: generators d and x₁·d are linearly independent → finrank ≥ 2
-  -- Full proof requires MvPolynomial derivative computation
+  set d := pderiv (⟨1, by omega⟩ : Fin 2) q
+  -- d ≠ 0 and X 1 * d are linearly independent in MvPolynomial
+  -- Both are generators of the SPDP subspace (S = [1], m = 1 and m = X 1)
+  -- So finrank(SPDP subspace) ≥ 2 > 1
+  -- This contradicts h_le : restrictedSpdpRank 1 1 p ρ ≤ 1
   sorry
 
 end SPDPRankLower
