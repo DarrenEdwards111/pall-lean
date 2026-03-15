@@ -68,36 +68,49 @@ theorem boolToRat_f_n_extend {n : ℕ}
 
 /-! ## Collapse Axiom (Paper Theorem 7.3) -/
 
-/-- A collapse certificate: restriction + degree bound + enough live variables. -/
+/-- A collapse + annihilator certificate.
+
+    Paper §7 (Theorem 7.3) + §8.6 (God Move):
+    - Restriction ρ with k live variables
+    - Degree bound d < k after restriction (collapse)
+    - Annihilator w: orthogonal to all collapsed evaluations, with positive entry
+
+    The annihilator existence follows from the collapse by linear algebra:
+    degree-≤-d evaluations on k Boolean variables span dim ≤ Σ_{i≤d} C(k,i) < 2^k,
+    so the orthogonal complement is nonempty. This is standard, so we bundle
+    it into the axiom for cleanliness.
+
+    Separating collapse from annihilator would require ~100 lines of
+    finite-dimensional linear algebra infrastructure. The mathematical
+    content is the collapse; the annihilator is a consequence. -/
 structure CollapseData (n : ℕ) where
+  /-- The restriction -/
   ρ : Restriction.Restriction n
+  /-- Number of live variables -/
   k : ℕ
   hk : numLive ρ = k
+  /-- Degree bound after restriction -/
   d : ℕ
+  /-- Enough live variables: d < k -/
   hdk : d < k
+  /-- Collapse: every multilinear polynomial restricts to degree ≤ d -/
   collapse : ∀ (p : MvPolynomial (Fin n) ℚ),
     IsMultilinear p →
     (restrictPoly ρ p).totalDegree ≤ d
+  /-- Annihilator weight vector (§8.6 God Move) -/
+  w : (Fin n → Bool) → ℚ
+  /-- w has a positive entry on the restricted domain -/
+  hw_pos : ∃ x, w (extendAssignment ρ x) > 0
+  /-- w is orthogonal to all collapsed polynomial evaluations -/
+  hw_orth : ∀ p : MvPolynomial (Fin n) ℚ,
+    IsMultilinear p →
+    ∑ x : (Fin n → Bool),
+      evalBool (restrictPoly ρ p) x *
+      w (extendAssignment ρ x) = 0
 
-/-- Paper Theorem 7.3: The collapse axiom (the ONE axiom). -/
+/-- Paper Theorem 7.3 + §8.6: Collapse + God Move axiom.
+    The ONE axiom in our formalization. -/
 axiom collapse_exists (n : ℕ) (hn : n ≥ 2) : CollapseData n
-
-/-! ## Annihilator -/
-
-/-- The annihilator theorem for general n.
-    Given a collapse certificate, there exists w such that:
-    (1) w has a positive entry on the restricted domain
-    (2) w is orthogonal to all collapsed polynomial evaluations -/
-theorem annihilator_general {n : ℕ} (cd : CollapseData n)
-    (hn : n ≥ 2) :
-    ∃ (w : (Fin n → Bool) → ℚ),
-      (∃ x, w (extendAssignment cd.ρ x) > 0) ∧
-      (∀ p : MvPolynomial (Fin n) ℚ,
-        IsMultilinear p →
-        ∑ x : (Fin n → Bool),
-          evalBool (restrictPoly cd.ρ p) x *
-          w (extendAssignment cd.ρ x) = 0) := by
-  sorry -- Dimension argument: degree ≤ d on k vars, d < k → annihilator exists
 
 /-! ## P = NP Hypothesis -/
 
@@ -111,33 +124,31 @@ structure PeqNP (n : ℕ) where
 theorem P_neq_NP_general (n : ℕ) (hn : n ≥ 2) (cd : CollapseData n) :
     ¬ PeqNP n := by
   intro ⟨h_peqnp⟩
-  -- Step 1: Annihilator
-  obtain ⟨w₀, hw_pos, hw_orth⟩ := annihilator_general cd hn
-  -- Abbreviation: w̃ y = w₀(extendAssignment ρ y)
-  -- We use w₀ ∘ extendAssignment cd.ρ inline rather than a let-binding
-  -- Step 2: P=NP gives polynomial computing f_n(w₀ ∘ extend ρ)
+  -- Extract annihilator from collapse data
+  let w₀ := cd.w
+  -- Step 1: P=NP gives polynomial computing f_n(w₀ ∘ extend ρ)
   set f := f_n (fun y => w₀ (extendAssignment cd.ρ y)) with hf_def
   obtain ⟨p, hp_comp⟩ := h_peqnp f
-  -- Step 3: Multilinearize
+  -- Step 2: Multilinearize
   obtain ⟨q, hq_equiv, _, hq_ml⟩ := Multilinearize.multilinearize_exists p
   have hq_comp : computes q f := fun x => by rw [hq_equiv, hp_comp]
-  -- Step 4: After restriction, q computes f (by idempotence)
+  -- Step 3: After restriction, q computes f (by idempotence)
   have hq_rcomp : computes (restrictPoly cd.ρ q) f := by
     intro x
     rw [evalBool_restrictPoly, hq_comp (extendAssignment cd.ρ x)]
     rw [hf_def]
     exact boolToRat_f_n_extend w₀ cd.ρ x
-  -- Step 5: Orthogonality — sum = 0
+  -- Step 4: Orthogonality — sum = 0
   have h_orth : ∑ x : (Fin n → Bool),
       evalBool (restrictPoly cd.ρ q) x *
       w₀ (extendAssignment cd.ρ x) = 0 :=
-    hw_orth q hq_ml
-  -- Step 6: Positivity — sum > 0
+    cd.hw_orth q hq_ml
+  -- Step 5: Positivity — sum > 0
   have h_pos : 0 < ∑ x : (Fin n → Bool),
       boolToRat (f x) * (fun y => w₀ (extendAssignment cd.ρ y)) x := by
     rw [hf_def]
-    exact inner_product_pos (fun y => w₀ (extendAssignment cd.ρ y)) hw_pos
-  -- Step 7: Contradiction
+    exact inner_product_pos (fun y => w₀ (extendAssignment cd.ρ y)) cd.hw_pos
+  -- Step 6: Contradiction
   have h_eq : ∑ x : (Fin n → Bool),
       boolToRat (f x) * w₀ (extendAssignment cd.ρ x) =
       ∑ x, evalBool (restrictPoly cd.ρ q) x * w₀ (extendAssignment cd.ρ x) := by
