@@ -84,6 +84,50 @@ private theorem eval_eq_of_not_mem_vars
   simp only [mem_vars] at h
   exact h ⟨c, mem_support_iff.mpr hc, hj⟩
 
+/-! ### Univariate degree-1 polynomial decomposition — PROVED -/
+
+/-- If s ∉ {0, single x₁ 1} then coeff s m = 0 for m with deg ≤ 1, vars ⊆ {x₁}. -/
+private theorem coeff_zero_of_not_in_support (m : MvPolynomial (Fin 2) ℚ) (x₁ : Fin 2) (s : Fin 2 →₀ ℕ)
+    (hdeg : m.totalDegree ≤ 1) (hvars : ∀ v ∈ m.vars, v = x₁)
+    (hs0 : s ≠ 0) (hs1 : s ≠ Finsupp.single x₁ 1) : coeff s m = 0 := by
+  by_contra hc
+  have hs_supp : s ∈ m.support := mem_support_iff.mpr hc
+  have hs_vars : ∀ v, v ∈ s.support → v = x₁ := by
+    intro v hv; apply hvars; rw [mem_vars]; exact ⟨s, hs_supp, hv⟩
+  have hs_deg : s.sum (fun _ n => n) ≤ 1 := by
+    exact le_trans (Finset.le_sup (f := fun s => s.sum fun _ n => n) hs_supp) hdeg
+  have hs_form : s = Finsupp.single x₁ (s x₁) := by
+    ext v; simp only [Finsupp.single_apply]
+    split_ifs with h
+    · exact h ▸ rfl
+    · by_contra hne; exact h (hs_vars v (Finsupp.mem_support_iff.mpr hne)).symm
+  have hsx1 : s x₁ ≤ 1 := by
+    rw [hs_form] at hs_deg; simpa [Finsupp.sum_single_index] using hs_deg
+  interval_cases (s x₁)
+  · exact hs0 (by rw [hs_form]; simp)
+  · exact hs1 (by rw [hs_form])
+
+/-- A polynomial with totalDegree ≤ 1 and vars ⊆ {x₁} decomposes as
+    m = C(a₀) + C(a₁) * X x₁. PROVED by ext + support constraint. -/
+private theorem poly_deg1_decomp (m : MvPolynomial (Fin 2) ℚ) (x₁ : Fin 2)
+    (hdeg : m.totalDegree ≤ 1) (hvars : ∀ v ∈ m.vars, v = x₁) :
+    m = C (coeff 0 m) + C (coeff (Finsupp.single x₁ 1) m) * X x₁ := by
+  ext s
+  simp only [coeff_add, coeff_C, coeff_C_mul, coeff_X', mul_ite, mul_one, mul_zero]
+  by_cases hs0 : s = 0
+  · subst hs0
+    have : Finsupp.single x₁ 1 ≠ (0 : Fin 2 →₀ ℕ) := Finsupp.single_ne_zero.mpr one_ne_zero
+    simp [Ne.symm this]
+  · by_cases hs1 : s = Finsupp.single x₁ 1
+    · subst hs1
+      have : (0 : Fin 2 →₀ ℕ) ≠ Finsupp.single x₁ 1 :=
+        Ne.symm (Finsupp.single_ne_zero.mpr one_ne_zero)
+      simp [this]
+    · have hne : ¬(Finsupp.single x₁ 1 = s) := fun h => hs1 h.symm
+      have hne0 : ¬(0 = s) := fun h => hs0 h.symm
+      simp only [hne0, hne, ↓reduceIte, zero_add, add_zero]
+      exact coeff_zero_of_not_in_support m x₁ s hdeg hvars hs0 hs1
+
 /-! ### Restriction preserves eval on consistent inputs — PROVED -/
 
 /-- eval of restrictPoly equals eval of original when evaluation point
@@ -223,11 +267,15 @@ theorem not_infspdp_of_inconsistent_n2
       simp only [iterDerivList, List.foldl]
       -- m * d ∈ span{d, X x₁ * d}
       -- m = C a + C b * X x₁ (degree ≤ 1, vars ⊆ {x₁})
+      -- m has deg ≤ 1 and vars ⊆ {x₁}
+      have hm_vars : ∀ v ∈ m.vars, v = x₁ := by
+        intro v hv; have hmem := hm v hv; simp [liveVars, ρ, universalRestriction, Finset.mem_filter] at hmem
+        fin_cases v
+        · exfalso; revert hmem; native_decide
+        · rfl
       set a := coeff 0 m
       set b := coeff (Finsupp.single x₁ 1) m
-      have hm_eq : m = C a + C b * X x₁ := by
-        -- Standard: poly of deg ≤ 1 in one variable = a₀ + a₁x
-        sorry
+      have hm_eq : m = C a + C b * X x₁ := poly_deg1_decomp m x₁ hdeg hm_vars
       rw [hm_eq, add_mul, mul_assoc, C_mul', C_mul']
       exact Submodule.add_mem _
         (Submodule.smul_mem _ a (Submodule.subset_span (Set.mem_insert _ _)))
