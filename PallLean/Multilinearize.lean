@@ -156,4 +156,16 @@ theorem depth4_simulation_at_4 (p : MvPolynomial (Fin 4) ℚ) :
   calc (multilinearInterp p).totalDegree ≤ 4 := multilinearInterp_totalDegree p
     _ = (Nat.log 2 4) ^ 2 := by native_decide
 
+/-- General-n multilinearization: every polynomial has a multilinear
+    equivalent with degree ≤ n. -/
+theorem multilinearize_exists {n : ℕ} (p : MvPolynomial (Fin n) ℚ) :
+    ∃ (q : MvPolynomial (Fin n) ℚ),
+      (∀ x, evalBool q x = evalBool p x) ∧
+      q.totalDegree ≤ n ∧
+      PaperAxioms.IsMultilinear q :=
+  ⟨multilinearInterp p,
+   multilinearInterp_evalBool p,
+   multilinearInterp_totalDegree p,
+   multilinearInterp_isMultilinear p⟩
+
 end Multilinearize
