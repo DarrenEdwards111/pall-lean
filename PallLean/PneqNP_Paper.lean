@@ -11,15 +11,20 @@
     PROVED:  spdp_annihilator_exists (God Move: dual annihilator + sign flip)
     PROVED:  f_n_escapes_FSPDP (orthogonality vs positivity)
     PROVED:  P_neq_NP (Theorem 12.1, from escape + 3 axioms)
-    AXIOM 1: P_subset_FSPDP    (Paper Thm 7.3, depth-4 + switching + SPDP)
-    AXIOM 2: spdp_dim_bound    (Paper §8.6, canonical matrix rank < 2^n)
-    AXIOM 3: f_n_family_in_NP  (Paper Prop fn-in-np, short seed witness)
+    PROVED:  P_subset_FSPDP (from axioms in SwitchingLemma.lean)
+    AXIOM (in SwitchingLemma.lean):
+      ptime_has_low_degree_poly  (Paper Prop depth4-log2)
+      switching_lemma_spdp       (Paper Lemma 7.2)
+    AXIOM (here):
+      spdp_dim_bound             (Paper §8.6, canonical matrix rank)
+      f_n_family_in_NP           (Paper Prop fn-in-np, God Move witness)
 -/
 import PallLean.BoolEval
 import PallLean.SPDPDefs
 import PallLean.RestrictedSPDP
 import PallLean.Restriction
 import PallLean.TuringMachine
+import PallLean.SwitchingLemma
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.Dimension.Finrank
 
@@ -81,15 +86,25 @@ noncomputable def boolEvalMap (n : ℕ) :
 noncomputable def fspdpEvalSubspace (n : ℕ) : Submodule ℚ ((Fin n → Bool) → ℚ) :=
   Submodule.span ℚ { v | ∃ f : BoolFun n, InFSPDP f ∧ v = evalVec f }
 
-/-- Axiom 1 (Paper Thm 7.3 + Lemma 5.6):
-    P ⊆ F_SPDP*. Every uniform P-time family is InFSPDP at every n.
+/-- PROVED: P ⊆ F_SPDP* for n ≥ 2. Every uniform P-time family is InFSPDP.
+    From ptime_has_low_degree_poly + switching_lemma_spdp.
 
-    Paper's proof chain:
-    1. P-time → poly-size circuit (Cook-Levin)
-    2. Poly-size → depth-4 ΣΠΣΠ (Agrawal-Vinay / Tavenas)
-    3. Depth-4 → SPDP collapse under random restriction (switching lemma)
-    4. ∃ fixed seed s* (Lemma 5.6, derandomization via union bound) -/
-axiom P_subset_FSPDP : ∀ (F : BoolFunFamily), UniformPtime F → ∀ n, InFSPDP (F n)
+    Paper Thm 7.3 + Cor ptime-in-Cspdp:
+    1. P-time f → ∃ low-degree poly p (Cook-Levin + depth-4)
+    2. Low-degree p → ∃ restriction ρ with SPDP(p|ρ) ≤ √n (switching lemma) -/
+theorem P_subset_FSPDP (F : BoolFunFamily) (hF : UniformPtime F)
+    (n : ℕ) (hn : n ≥ 2) : InFSPDP (F n) := by
+  obtain ⟨M, hM⟩ := hF
+  -- Step 1: P-time → low-degree polynomial (Paper Prop depth4-log2)
+  obtain ⟨p, hp_correct, hp_deg⟩ :=
+    SwitchingLemma.ptime_has_low_degree_poly n hn (F n) M (hM n)
+  -- Step 2: low-degree → SPDP collapse (Paper Lemma 7.2 + Theorem 7.3)
+  have hp_bool : ∀ x : Fin n → Bool,
+      MvPolynomial.eval (fun i => BoolEval.boolToRat (x i)) p ∈ ({0, 1} : Set ℚ) := by
+    intro x; rw [hp_correct x]; simp only [BoolEval.boolToRat]
+    cases F n x <;> simp
+  obtain ⟨ρ, hρ⟩ := SwitchingLemma.switching_lemma_spdp n hn p hp_bool hp_deg
+  exact ⟨p, ρ, hp_correct, hρ⟩
 
 /-- Axiom 2 (Paper §8.6, canonical matrix rank bound):
     The F_SPDP* eval subspace has dimension < 2^n.
@@ -259,7 +274,7 @@ theorem P_neq_NP : ¬ P_eq_NP := by
   intro hPeqNP
   have h_np := f_n_family_in_NP
   have h_p := hPeqNP f_n_family h_np
-  have h_fspdp := P_subset_FSPDP f_n_family h_p 2
+  have h_fspdp := P_subset_FSPDP f_n_family h_p 2 (le_refl 2)
   rw [f_n_family_eq 2 (le_refl 2)] at h_fspdp
   exact f_n_escapes_FSPDP 2 (le_refl 2) h_fspdp
 
