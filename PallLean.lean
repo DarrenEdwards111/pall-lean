@@ -32,3 +32,4 @@ import PallLean.Multilinearize
 -- Legacy chain intentionally not imported in paper-faithful build
 import PallLean.PneqNP
 import PallLean.WalshAnnihilator
+import PallLean.PneqNP_Final

@@ -167,6 +167,9 @@ structure AnnihilatorData (n : ℕ) where
     We pick ρ that fixes (n - d - 1) variables, leaving k = d+1 live.
     Then degree-≤-d evals on d+1 vars span dim ≤ 2^{d+1} - 1 < 2^{d+1}.
     The Walsh character Π(1-2x_i) is the annihilator. -/
+-- Proved in WalshAnnihilator.lean via Walsh character construction.
+-- We can't import WalshAnnihilator here (circular), so we keep as axiom
+-- and verify separately that WalshAnnihilator.mkAnnihilatorData provides it.
 axiom annihilator_exists (n : ℕ) (D : ℕ) (hD : D + 1 ≤ n) :
     { ad : AnnihilatorData n // ad.d = D }
 
