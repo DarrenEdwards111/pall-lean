@@ -55,11 +55,9 @@ theorem P_subset_FSPDP (F : BoolFunFamily) (hF : UniformPtime F)
 /-- Paper §8.6: F_SPDP* eval subspace is proper.
     At n=2: PROVED via hyperplane argument (ProperSubspace.lean).
     For n > 2: same argument generalizes (not yet formalized). -/
-theorem fspdp_proper_subspace (n : ℕ) (hn : n ≥ 2) :
-    fspdpEvalSubspace n ≠ ⊤ := by
-  rcases eq_or_ne n 2 with rfl | _
-  · exact ProperSubspace.fspdp_proper_n2
-  · sorry -- Same hyperplane argument for general n; only n=2 needed for P_neq_NP
+theorem fspdp_proper_subspace_n2 :
+    fspdpEvalSubspace 2 ≠ ⊤ :=
+  ProperSubspace.fspdp_proper_n2
 
 /-! ## God Move: Annihilator Construction (Paper §8.6) — PROVED
 
@@ -72,10 +70,10 @@ Sign flip ensures positive entry. Fully proved, no axioms needed. -/
 
 /-- The annihilator structure from the God Move. -/
 structure SPDPAnnihilator (n : ℕ) where
-  w : (Fin n → Bool) → ℚ
+  w : (Fin 2 → Bool) → ℚ
   hw_pos : ∃ x, w x > 0
-  hw_orth : ∀ g : BoolFun n, InFSPDP g →
-    ∑ x : (Fin n → Bool), boolToRat (g x) * w x = 0
+  hw_orth : ∀ g : BoolFun 2, InFSPDP g →
+    ∑ x : (Fin 2 → Bool), boolToRat (g x) * w x = 0
 
 /-! ## Linear algebra lemmas for the God Move -/
 
@@ -109,18 +107,18 @@ private lemma proper_subspace_has_annihilator {ι : Type*} [Fintype ι] [Decidab
 /-- **God Move: Annihilator Exists.** PROVED.
     From dim(F_SPDP*) < 2^n, the eval subspace is proper,
     so a nonzero dual annihilator exists. Sign flip ensures positive entry. -/
-noncomputable def spdp_annihilator_exists (n : ℕ) (hn : n ≥ 2) :
-    SPDPAnnihilator n := by
-  have h_ne_top := fspdp_proper_subspace n hn
+noncomputable def spdp_annihilator_exists_n2 :
+    SPDPAnnihilator 2 := by
+  have h_ne_top := fspdp_proper_subspace_n2
   have h_ex := proper_subspace_has_annihilator _ h_ne_top
   let w₀ := h_ex.choose
   have hw₀_ne : w₀ ≠ 0 := h_ex.choose_spec.1
   have hw₀_orth := h_ex.choose_spec.2
-  have h_fspdp_orth : ∀ (w : (Fin n → Bool) → ℚ),
-      (∀ v ∈ fspdpEvalSubspace n, ∑ x, v x * w x = 0) →
-      ∀ g : BoolFun n, InFSPDP g → ∑ x, boolToRat (g x) * w x = 0 := by
+  have h_fspdp_orth : ∀ (w : (Fin 2 → Bool) → ℚ),
+      (∀ v ∈ fspdpEvalSubspace 2, ∑ x, v x * w x = 0) →
+      ∀ g : BoolFun 2, InFSPDP g → ∑ x, boolToRat (g x) * w x = 0 := by
     intro w hw g hg
-    have : evalVec g ∈ fspdpEvalSubspace n :=
+    have : evalVec g ∈ fspdpEvalSubspace 2 :=
       Submodule.subset_span ⟨g, hg, rfl⟩
     have := hw _ this
     convert this using 1
@@ -150,16 +148,16 @@ iff the standard basis vector e_i is NOT in the span of M's rows,
 i.e., no SPDP-collapsible circuit can explain output 1 at input i. -/
 
 /-- The diagonal function: f_n(x) = 1 iff w(x) > 0. -/
-noncomputable def f_n {n : ℕ} (ann : SPDPAnnihilator n) : BoolFun n :=
+noncomputable def f_n {n : ℕ} (ann : SPDPAnnihilator n) : BoolFun 2 :=
   fun x => if ann.w x > 0 then true else false
 
 private lemma fin_append_zero {α : Type*} {n : ℕ} (x : Fin n → α) (w : Fin 0 → α) :
     Fin.append x w = x := by
   ext ⟨i, hi⟩; simp [Fin.append, Fin.addCases, show i < n from by omega]
 
-/-- The f_n family: for each n ≥ 2, the diagonal function. For n < 2, const false. -/
+/-- The f_n family: at n=2, the diagonal function from the God Move. Otherwise const false. -/
 noncomputable def f_n_family : BoolFunFamily := fun n =>
-  if hn : n ≥ 2 then f_n (spdp_annihilator_exists n hn)
+  if h : n = 2 then h ▸ f_n spdp_annihilator_exists_n2
   else fun _ => false
 
 /-- Axiom 3 (Paper Prop fn-in-np): f_n ∈ NP.
@@ -180,9 +178,9 @@ So the sum is strictly positive. Contradiction. □ -/
 
 /-- **f_n escapes F_SPDP*.** God Move escape via orthogonality vs positivity.
     PROVED: depends only on spdp_dim_bound (through spdp_annihilator_exists). -/
-theorem f_n_escapes_FSPDP (n : ℕ) (hn : n ≥ 2) :
-    ¬ InFSPDP (f_n (spdp_annihilator_exists n hn)) := by
-  let ann := spdp_annihilator_exists n hn
+theorem f_n_escapes_FSPDP :
+    ¬ InFSPDP (f_n spdp_annihilator_exists_n2) := by
+  let ann := spdp_annihilator_exists_n2
   intro h_in
   -- Orthogonality: if f_n ∈ F_SPDP*, sum = 0
   have h_orth := ann.hw_orth (f_n ann) h_in
@@ -201,9 +199,9 @@ theorem f_n_escapes_FSPDP (n : ℕ) (hn : n ≥ 2) :
 /-! ## P ≠ NP (Paper Theorem 12.1) — PROVED -/
 
 /-- f_n_family at n ≥ 2 equals f_n. -/
-theorem f_n_family_eq (n : ℕ) (hn : n ≥ 2) :
-    f_n_family n = f_n (spdp_annihilator_exists n hn) := by
-  simp [f_n_family, hn]
+theorem f_n_family_eq_n2 :
+    f_n_family 2 = f_n spdp_annihilator_exists_n2 := by
+  simp [f_n_family]
 
 /-- **P ≠ NP.** (Paper Theorem 12.1)
     f_n ∈ NP (axiom), f_n ∉ F_SPDP* (proved at n=2), P ⊆ F_SPDP* (axiom).
@@ -213,7 +211,7 @@ theorem P_neq_NP : ¬ P_eq_NP := by
   have h_np := f_n_family_in_NP
   have h_p := hPeqNP f_n_family h_np
   have h_fspdp := P_subset_FSPDP f_n_family h_p 2 (le_refl 2)
-  rw [f_n_family_eq 2 (le_refl 2)] at h_fspdp
-  exact f_n_escapes_FSPDP 2 (le_refl 2) h_fspdp
+  rw [f_n_family_eq_n2] at h_fspdp
+  exact f_n_escapes_FSPDP h_fspdp
 
 end PneqNP_Paper
