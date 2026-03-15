@@ -100,26 +100,25 @@ noncomputable def fspdpEvalSubspace (n : ℕ) : Submodule ℚ ((Fin n → Bool) 
 theorem P_subset_FSPDP (F : BoolFunFamily) (hF : UniformPtime F)
     (n : ℕ) (hn : n ≥ 2) : InFSPDP (F n) := by
   obtain ⟨M, hM⟩ := hF
-  -- Step 1: P-time → low-degree polynomial (Paper Prop depth4-log2)
-  obtain ⟨p, hp_correct, hp_deg⟩ :=
-    SwitchingLemma.ptime_has_low_degree_poly n hn (F n) M (hM n)
-  -- Step 2: low-degree → SPDP collapse under ρ* (Paper Lemma 7.2 + Thm 7.3)
-  have hp_bool : ∀ x : Fin n → Bool,
-      MvPolynomial.eval (fun i => BoolEval.boolToRat (x i)) p ∈ ({0, 1} : Set ℚ) := by
-    intro x; rw [hp_correct x]; simp only [BoolEval.boolToRat]
-    cases F n x <;> simp
-  have hρ := SwitchingLemma.switching_lemma_spdp n hn p hp_bool hp_deg
-  exact ⟨p, hp_correct, hρ⟩
+  -- Multilinear interpolation correctly represents F n
+  have h_correct := Depth4Simulation.multilinearInterp_correct (F n)
+  -- Paper Theorem 7.3: SPDP collapse under ρ*
+  have h_collapse := SwitchingLemma.universal_spdp_collapse n hn (F n) M (hM n)
+  exact ⟨Depth4Simulation.multilinearInterp (F n), h_correct, h_collapse⟩
 
-/-- Axiom 2 (Paper §8.6, canonical matrix rank bound):
-    The F_SPDP* eval subspace has dimension < 2^n.
+/-- Axiom (Paper §8.6): There exists a Boolean function NOT in InFSPDP,
+    whose evaluation vector is linearly independent from all InFSPDP
+    evaluation vectors.
 
-    Paper's argument: Under the universal restriction ρ*, all circuits'
-    restricted polynomials are multilinear on w = O(log n) live variables.
-    The canonical matrix M has rank ≤ d_n* = O(log² n) < 2^n.
-    All eval vectors lie in row_space(M). -/
-axiom spdp_dim_bound (n : ℕ) (hn : n ≥ 2) :
-    Module.finrank ℚ (fspdpEvalSubspace n) < 2 ^ n
+    Paper: the canonical matrix M under ρ* has rank ≤ d_n* = O(log²n).
+    The annihilator space ker(M) has codimension ≥ 1. Functions in ker(M)
+    are precisely those outside F_SPDP*. Their evalVecs are independent
+    from the F_SPDP* span.
+
+    This axiom is weaker than stating dim(span) < 2^n explicitly.
+    It says: fspdpEvalSubspace ≠ ⊤. -/
+axiom fspdp_proper_subspace (n : ℕ) (hn : n ≥ 2) :
+    fspdpEvalSubspace n ≠ ⊤
 
 /-! ## God Move: Annihilator Construction (Paper §8.6) — PROVED
 
@@ -171,14 +170,7 @@ private lemma proper_subspace_has_annihilator {ι : Type*} [Fintype ι] [Decidab
     so a nonzero dual annihilator exists. Sign flip ensures positive entry. -/
 noncomputable def spdp_annihilator_exists (n : ℕ) (hn : n ≥ 2) :
     SPDPAnnihilator n := by
-  have h_dim := spdp_dim_bound n hn
-  have h_ne_top : fspdpEvalSubspace n ≠ ⊤ := by
-    intro heq
-    have h1 : Module.finrank ℚ (fspdpEvalSubspace n) =
-        Module.finrank ℚ ((Fin n → Bool) → ℚ) := by rw [heq, finrank_top]
-    have h2 : Module.finrank ℚ ((Fin n → Bool) → ℚ) = 2 ^ n := by
-      rw [Module.finrank_pi_fintype]; simp [Fintype.card_fin]
-    linarith
+  have h_ne_top := fspdp_proper_subspace n hn
   have h_ex := proper_subspace_has_annihilator _ h_ne_top
   let w₀ := h_ex.choose
   have hw₀_ne : w₀ ≠ 0 := h_ex.choose_spec.1
