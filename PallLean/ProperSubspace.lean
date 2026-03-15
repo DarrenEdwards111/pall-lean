@@ -1,16 +1,15 @@
 /-
   ProperSubspace.lean — F_SPDP* ⊊ ALL (Paper §8.6)
 -/
-import PallLean.PneqNP_Paper
+import PallLean.PneqNP_Defs
 import PallLean.UniversalRestriction
-import PallLean.Depth4Simulation
 import PallLean.SPDPRankLower
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.Dimension.Finrank
 
 namespace ProperSubspace
 
-open PneqNP_Paper BoolEval SPDP RestrictedSPDP Restriction UniversalRestriction
+open PneqNP_Defs BoolEval SPDP RestrictedSPDP Restriction UniversalRestriction
 open MvPolynomial
 
 -- At n=2, universalRestriction fixes variable 0 to false

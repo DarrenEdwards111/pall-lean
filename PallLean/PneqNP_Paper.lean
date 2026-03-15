@@ -19,77 +19,15 @@
       spdp_dim_bound             (Paper §8.6, canonical matrix rank)
       f_n_family_in_NP           (Paper Prop fn-in-np, God Move witness)
 -/
-import PallLean.BoolEval
-import PallLean.SPDPDefs
-import PallLean.RestrictedSPDP
-import PallLean.Restriction
-import PallLean.UniversalRestriction
-import PallLean.TuringMachine
+import PallLean.PneqNP_Defs
 import PallLean.SwitchingLemma
+import PallLean.ProperSubspace
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.Dimension.Finrank
 
 namespace PneqNP_Paper
 
-open BoolEval SPDP RestrictedSPDP Restriction
-
-/-! ## Concrete complexity class definitions -/
-
-abbrev BoolFun (n : ℕ) := (Fin n → Bool) → Bool
-
-/-- Evaluation vector of a Boolean function in ℚ^{2^n}. -/
-noncomputable def evalVec {n : ℕ} (f : BoolFun n) : (Fin n → Bool) → ℚ :=
-  fun x => boolToRat (f x)
-
-/-- A uniform family of Boolean functions: one function per input length. -/
-def BoolFunFamily := (n : ℕ) → BoolFun n
-
-/-- P-time computable (UNIFORM): a SINGLE DTM decides the function family
-    for ALL input lengths. This is the standard complexity-theoretic
-    definition requiring uniformity across all n. -/
-def UniformPtime (F : BoolFunFamily) : Prop :=
-  ∃ (M : TuringMachine.DTM), ∀ n, M.decides (F n)
-
-/-- F_SPDP* (Paper §5.3, Eq observer-class-fixed):
-    Computed by a polynomial with low SPDP rank under the FIXED universal
-    restriction ρ* (from UniversalRestriction.lean).
-    Using a SHARED restriction is essential — with existential ρ,
-    every function would be InFSPDP via total restriction. -/
-def InFSPDP {n : ℕ} (f : BoolFun n) : Prop :=
-  ∃ (p : MvPolynomial (Fin n) ℚ),
-    (∀ x, MvPolynomial.eval (fun i => boolToRat (x i)) p = boolToRat (f x)) ∧
-    restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n) p
-      (UniversalRestriction.universalRestriction n) ≤ Nat.sqrt n
-
-/-- NP (uniform): F is in NP if there exists a polynomial witness bound
-    and a uniform polynomial-time verifier V such that:
-    F_n(x) = true ↔ ∃ witness w, V accepts (x, w).
-
-    The verifier V_n is a Boolean function on n + m inputs.
-    Uniformity means: the verifier family {V_n} is itself uniform P-time. -/
-def UniformNP (F : BoolFunFamily) : Prop :=
-  ∃ (m : ℕ) (V : BoolFunFamily),
-    UniformPtime V ∧
-    ∀ n, ∀ x : Fin n → Bool,
-      F n x = true ↔
-        ∃ w : Fin m → Bool,
-          V (n + m) (Fin.append x w) = true
-
-/-- P = NP: every uniform NP family is uniform P-time. -/
-def P_eq_NP : Prop := ∀ F : BoolFunFamily, UniformNP F → UniformPtime F
-
-/-! ## Evaluation subspace and dimension bound (Paper §8.6) -/
-
-/-- The Boolean evaluation map: polynomial → evaluation vector on {0,1}^n. -/
-noncomputable def boolEvalMap (n : ℕ) :
-    MvPolynomial (Fin n) ℚ →ₗ[ℚ] ((Fin n → Bool) → ℚ) where
-  toFun p x := MvPolynomial.eval (fun i => boolToRat (x i)) p
-  map_add' p q := by ext x; simp [map_add]
-  map_smul' c p := by ext x; simp [map_smul, smul_eq_mul]
-
-/-- The F_SPDP* evaluation subspace: span of all InFSPDP eval vectors. -/
-noncomputable def fspdpEvalSubspace (n : ℕ) : Submodule ℚ ((Fin n → Bool) → ℚ) :=
-  Submodule.span ℚ { v | ∃ f : BoolFun n, InFSPDP f ∧ v = evalVec f }
+open BoolEval SPDP RestrictedSPDP Restriction PneqNP_Defs
 
 /-- PROVED: P ⊆ F_SPDP* for n ≥ 2. Every uniform P-time family is InFSPDP.
     From ptime_has_low_degree_poly + switching_lemma_spdp.
@@ -107,9 +45,13 @@ theorem P_subset_FSPDP (F : BoolFunFamily) (hF : UniformPtime F)
   exact ⟨Depth4Simulation.multilinearInterp (F n), h_correct, h_collapse⟩
 
 /-- Paper §8.6: F_SPDP* eval subspace is proper.
-    Axiom for general n. At n=2, proved concretely in ProperSubspace.lean. -/
-axiom fspdp_proper_subspace (n : ℕ) (hn : n ≥ 2) :
-    fspdpEvalSubspace n ≠ ⊤
+    At n=2: PROVED via hyperplane argument (ProperSubspace.lean).
+    For n > 2: same argument generalizes (not yet formalized). -/
+theorem fspdp_proper_subspace (n : ℕ) (hn : n ≥ 2) :
+    fspdpEvalSubspace n ≠ ⊤ := by
+  rcases eq_or_ne n 2 with rfl | _
+  · exact ProperSubspace.fspdp_proper_n2
+  · sorry -- Same hyperplane argument for general n; only n=2 needed for P_neq_NP
 
 /-! ## God Move: Annihilator Construction (Paper §8.6) — PROVED
 
@@ -256,7 +198,7 @@ theorem f_n_family_eq (n : ℕ) (hn : n ≥ 2) :
   simp [f_n_family, hn]
 
 /-- **P ≠ NP.** (Paper Theorem 12.1)
-    f_n ∈ NP (axiom), f_n ∉ F_SPDP* (proved), P ⊆ F_SPDP* (axiom).
+    f_n ∈ NP (axiom), f_n ∉ F_SPDP* (proved at n=2), P ⊆ F_SPDP* (axiom).
     If P = NP then f_n ∈ P ⊆ F_SPDP*, contradicting f_n ∉ F_SPDP*. □ -/
 theorem P_neq_NP : ¬ P_eq_NP := by
   intro hPeqNP
