@@ -196,4 +196,47 @@ theorem constraints_local (M : DTM) (n κ : ℕ) (F : Type*) [CommRing F]
     (c : LocalConstraint M n κ F) :
     c.poly.vars.card ≤ 6 := c.width_bound
 
+/-! ## TM Execution -/
+
+/-- Configuration of the TM at a given time step. -/
+structure Config (M : DTM) (n : ℕ) where
+  state : Fin M.numStates
+  tape : Fin (tapeSize M n) → Bool
+  headPos : ℕ
+  headBound : headPos < tapeSize M n
+
+/-- One step of TM execution. Head stays in bounds via min/saturating. -/
+def step (M : DTM) (n : ℕ) (c : Config M n) : Config M n :=
+  let bit := c.tape ⟨c.headPos, c.headBound⟩
+  let (newState, writeBit, moveRight) := M.transition c.state bit
+  let newHead := if moveRight then c.headPos + 1 else c.headPos - 1
+  let clampedHead := min newHead (tapeSize M n - 1)
+  { state := newState
+    tape := Function.update c.tape ⟨c.headPos, c.headBound⟩ writeBit
+    headPos := clampedHead
+    headBound := by
+      show clampedHead < tapeSize M n
+      exact Nat.lt_of_le_of_lt (Nat.min_le_right _ _) (Nat.sub_lt
+        (show 0 < tapeSize M n from by unfold tapeSize timeSteps; positivity)
+        (by omega)) }
+
+/-- Run the TM for t steps. -/
+def run (M : DTM) (n : ℕ) (c : Config M n) : ℕ → Config M n
+  | 0 => c
+  | t + 1 => step M n (run M n c t)
+
+/-- Initial configuration: input x on the tape, head at position 0, state 0. -/
+def initConfig (M : DTM) (n : ℕ) (x : Fin n → Bool) : Config M n :=
+  { state := ⟨0, by have := M.hStates; omega⟩
+    tape := fun i => if h : i.val < n then x ⟨i.val, h⟩ else false
+    headPos := 0
+    headBound := by unfold tapeSize timeSteps; positivity }
+
+/-- M decides f on inputs of length n: after timeSteps M n steps,
+    M is in accept state (1) iff f(x) = true. -/
+def DTM.decides (M : DTM) {n : ℕ} (f : (Fin n → Bool) → Bool) : Prop :=
+  ∀ x : Fin n → Bool,
+    let final := run M n (initConfig M n x) (timeSteps M n)
+    (final.state = ⟨1, by exact Nat.lt_of_lt_of_le (by omega) M.hStates⟩) ↔ (f x = true)
+
 end TuringMachine

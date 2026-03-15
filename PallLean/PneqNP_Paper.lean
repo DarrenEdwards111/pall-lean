@@ -33,12 +33,10 @@ abbrev BoolFun (n : ℕ) := (Fin n → Bool) → Bool
 noncomputable def evalVec {n : ℕ} (f : BoolFun n) : (Fin n → Bool) → ℚ :=
   fun x => boolToRat (f x)
 
-/-- A DTM decides a Boolean function (abstract: TM execution not formalized). -/
-axiom DTM_decides : TuringMachine.DTM → {n : ℕ} → BoolFun n → Prop
-
-/-- P-time computable: decided by a polynomial-time DTM. -/
+/-- P-time computable: decided by a polynomial-time DTM.
+    Uses concrete TM execution from TuringMachine.lean. -/
 def PtimeComputable {n : ℕ} (f : BoolFun n) : Prop :=
-  ∃ (M : TuringMachine.DTM), DTM_decides M f
+  ∃ (M : TuringMachine.DTM), M.decides f
 
 /-- F_SPDP: computed by a polynomial with low SPDP rank after restriction.
     Uses concrete spdpRank and restrictedSpdpRank from SPDPDefs/RestrictedSPDP. -/
