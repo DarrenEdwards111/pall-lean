@@ -1,17 +1,10 @@
 /-
   SwitchingLemma.lean — Universal SPDP Collapse (Paper Theorem 7.3)
 
-  Paper Theorem 7.3 (Uniform SPDP Collapse under Fixed Seed s*):
-  For every PTIME language L with uniform circuit family C_n,
-    SPDP_{k,ℓ,n}(C_n | ρ_{s*}) ≤ d_n* = O(log²N)
+  Paper Theorem 7.3: Every P-time function collapses to low SPDP rank
+  under the universal restriction ρ*, for sufficiently large n.
 
-  This combines 4 steps:
-  1. Cook-Levin: PTIME TM → poly-size circuit
-  2. Agrawal-Vinay + Tavenas: depth-4 simulation, degree ≤ (log n)²
-  3. Håstad switching lemma: random restriction → SPDP collapse
-  4. Union bound: ∃ fixed seed s* (Lemma 5.6)
-
-  We formalize this as a SINGLE axiom matching the paper's Theorem 7.3.
+  Combines: Cook-Levin + Agrawal-Vinay depth-4 + Håstad switching + union bound.
 -/
 import PallLean.SPDPDefs
 import PallLean.RestrictedSPDP
@@ -26,26 +19,12 @@ namespace SwitchingLemma
 
 open MvPolynomial SPDP RestrictedSPDP Restriction Depth4Simulation BoolEval
 
-/-! ## Paper Theorem 7.3 — Universal SPDP Collapse
-
-This is the paper's core technical theorem. It states that every
-PTIME-computable Boolean function, when represented as a multilinear
-polynomial and restricted under the universal seed ρ*, has SPDP rank
-bounded by √n.
-
-The proof combines Cook-Levin encoding, Agrawal-Vinay depth reduction,
-Tavenas degree shedding, the Håstad switching lemma, and a union bound
-over quasi-polynomially many circuit signatures. -/
-
 /-- Paper Theorem 7.3 (Universal SPDP Collapse):
-    For every Boolean function f decidable by DTM M, its unique
-    multilinear polynomial has restricted SPDP rank ≤ √n under ρ*.
+    For every DTM M and sufficiently large n, M's function has
+    restricted SPDP rank ≤ √n under ρ*.
 
-    This is the paper's SINGLE axiom for P ⊆ F_SPDP*. It encapsulates:
-    - Cook-Levin (TM → circuit)
-    - Depth-4 simulation (circuit → degree ≤ (log n)²)
-    - Switching lemma (degree ≤ (log n)² → SPDP collapse under random ρ)
-    - Fixed seed selection (∃ s* by union bound, Lemma 5.6) -/
+    NOTE: The bound √n is only meaningful for large n.
+    The paper's actual bound is O(log² N) << √n asymptotically. -/
 axiom universal_spdp_collapse (n : ℕ) (hn : n ≥ 2)
     (f : (Fin n → Bool) → Bool)
     (M : TuringMachine.DTM) (hM : M.decides f) :
