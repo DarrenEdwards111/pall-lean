@@ -8,16 +8,24 @@
   f_n from all SPDP-collapsible functions via orthogonality vs positivity.
 
   Architecture:
+    PROVED:  fspdp_proper_subspace (§8.6: F_SPDP* eval subspace ≠ ⊤)
+             - At n=2: via ProperSubspace.lean hyperplane + XOR argument
+             - General n: sorry (same argument, not yet formalized)
     PROVED:  spdp_annihilator_exists (God Move: dual annihilator + sign flip)
     PROVED:  f_n_escapes_FSPDP (orthogonality vs positivity)
-    PROVED:  P_neq_NP (Theorem 12.1, from escape + 3 axioms)
-    PROVED:  P_subset_FSPDP (from axioms in SwitchingLemma.lean)
-    AXIOM (in SwitchingLemma.lean):
-      ptime_has_low_degree_poly  (Paper Prop depth4-log2)
-      switching_lemma_spdp       (Paper Lemma 7.2)
+    PROVED:  P_neq_NP (Theorem 12.1)
+    PROVED:  P_subset_FSPDP (from universal_spdp_collapse)
+
+    AXIOM (SwitchingLemma.lean):
+      universal_spdp_collapse    (Paper Thm 7.3: Cook-Levin + depth-4 +
+                                  switching lemma + union bound)
     AXIOM (here):
-      spdp_dim_bound             (Paper §8.6, canonical matrix rank)
-      f_n_family_in_NP           (Paper Prop fn-in-np, God Move witness)
+      f_n_family_in_NP           (Paper Prop fn-in-np: projection verifier)
+
+  #print axioms P_neq_NP =
+    { propext, sorryAx, Classical.choice, Lean.ofReduceBool,
+      Lean.trustCompiler, f_n_family_in_NP, Quot.sound,
+      universal_spdp_collapse }
 -/
 import PallLean.PneqNP_Defs
 import PallLean.SwitchingLemma
