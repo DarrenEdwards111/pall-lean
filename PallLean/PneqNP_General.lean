@@ -66,12 +66,52 @@ theorem totalDegree_restrictPoly_le {n : ℕ}
   -- or a constant (degree 0). The aeval of such a substitution cannot increase
   -- total degree. This follows from totalDegree_aeval_le or can be shown by
   -- tracking monomial degrees through the substitution.
-  -- Each variable is substituted by either X_i (degree 1) or a constant (degree 0).
-  -- The aeval of such a substitution maps each monomial x^α to a product of
-  -- degree-≤-1 terms, so degree(output monomial) ≤ Σ α_i ≤ degree(input monomial).
-  -- Therefore totalDegree doesn't increase.
-  -- Standard fact; proof via MvPolynomial.support / Finsupp technology.
-  sorry
+  -- Strategy: write p = Σ_{α ∈ support} (coeff α p) * ∏ X_i^{α_i}
+  -- aeval σ p = Σ (coeff α p) * ∏ (σ i)^{α_i}
+  -- Each σ i has degree ≤ 1 (either X_i or 0 or 1)
+  -- So totalDegree(∏ (σ i)^{α_i}) ≤ Σ α_i · 1 = |α|
+  -- Therefore totalDegree(aeval σ p) ≤ max |α| = totalDegree(p)
+  unfold restrictPoly
+  -- Use p.as_sum to decompose, then bound each term
+  conv_lhs => rw [p.as_sum]
+  rw [map_sum]
+  apply le_trans (MvPolynomial.totalDegree_finset_sum _ _)
+  apply Finset.sup_le
+  intro α hα
+  -- Each term: aeval σ (monomial α (coeff α p))
+  rw [MvPolynomial.aeval_monomial]
+  -- = C(coeff α p) * ∏_{i ∈ α.support} (σ i)^{α i}
+  -- totalDegree(C c * q) ≤ totalDegree(q)
+  apply le_trans (totalDegree_mul _ _)
+  rw [show totalDegree (algebraMap ℚ (MvPolynomial (Fin n) ℚ) (MvPolynomial.coeff α p)) =
+    0 from MvPolynomial.totalDegree_C _]
+  simp only [zero_add]
+  -- totalDegree(∏_{i ∈ α.support} (σ i)^{α i}) ≤ Σ totalDegree((σ i)^{α i})
+  -- ≤ Σ α i · totalDegree(σ i) ≤ Σ α i = |α| ≤ totalDegree(p)
+  -- Finsupp.prod is a Finset.prod over α.support
+  show totalDegree (Finsupp.prod α fun i k =>
+    (match ρ i with
+     | none => (X i : MvPolynomial (Fin n) ℚ)
+     | some false => (0 : MvPolynomial (Fin n) ℚ)
+     | some true => (1 : MvPolynomial (Fin n) ℚ)) ^ k) ≤ _
+  unfold Finsupp.prod
+  apply le_trans (totalDegree_finset_prod _ _)
+  apply le_trans _ (le_totalDegree hα)
+  apply Finset.sum_le_sum
+  intro i hi
+  -- totalDegree((σ i)^{α i}) ≤ α i · totalDegree(σ i) ≤ α i
+  apply le_trans (totalDegree_pow _ _)
+  -- Need: totalDegree(σ i) ≤ 1, so α i * totalDegree(σ i) ≤ α i * 1 = α i
+  have hσ : totalDegree (match ρ i with
+      | none => (X i : MvPolynomial (Fin n) ℚ)
+      | some false => 0
+      | some true => 1) ≤ 1 := by
+    match h : ρ i with
+    | none => simp [h, totalDegree_X]
+    | some true => simp [h, totalDegree_one]
+    | some false => simp [h, totalDegree_zero]
+  calc α i * totalDegree _ ≤ α i * 1 := Nat.mul_le_mul_left _ hσ
+    _ = α i := Nat.mul_one _
 
 /-! ## Axiom 1: Depth-4 Simulation (Paper §5)
 
