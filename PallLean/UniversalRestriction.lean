@@ -10,14 +10,19 @@ import PallLean.Restriction
 
 namespace UniversalRestriction
 
-/-- The universal restriction ρ* (Paper Lemma 5.6). -/
+/-- The universal restriction ρ* (Paper Lemma 5.6).
+    Axiomatized: existence of the fixed seed s* that collapses all
+    polynomial-size circuits. The actual construction requires
+    quasi-polynomial-time search over 2^{O(log²N)} seeds. -/
 axiom universalRestriction (n : ℕ) : Restriction.Restriction n
 
-/-- ρ* leaves at least 1 live variable for n ≥ 2. -/
+/-- ρ* leaves at least 1 live variable for n ≥ 2.
+    Paper: numLive(ρ*) = O(log n) > 0. -/
 axiom universalRestriction_nontrivial (n : ℕ) (hn : n ≥ 2) :
     Restriction.numLive (universalRestriction n) ≥ 1
 
-/-- ρ* leaves < n live variables for n ≥ 2. -/
+/-- ρ* leaves < n live variables for n ≥ 2.
+    Paper: numLive(ρ*) = O(log n) < n. -/
 axiom universalRestriction_few_live (n : ℕ) (hn : n ≥ 2) :
     Restriction.numLive (universalRestriction n) < n
 
