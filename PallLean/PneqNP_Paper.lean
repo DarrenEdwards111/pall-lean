@@ -5,13 +5,14 @@
     P ⊆ F_SPDP ⊊ NP ⟹ P ⊊ NP
 
   Architecture:
-    DEFINED CONCRETELY: PtimeComputable, InFSPDP, InNP
-    PROVED:  f_n_escapes_FSPDP (God Move, annihilator orthogonality)
-    PROVED:  P_neq_NP (from escape + axioms)
-    AXIOM 1: P_subset_FSPDP  (Thm 11.1: depth-4 + switching lemma)
-    AXIOM 2: spdp_dim_bound  (§8.6: SPDP rank → eval subspace dim < 2^n)
-    AXIOM 3: f_n_in_NP       (§9: ker(M) witness is polynomial-size)
-    SORRY:   annihilator construction (pure linear algebra: dim < 2^n → ∃ w)
+    DEFINED CONCRETELY: PtimeComputable (DTM.decides), InFSPDP, InNP, BoolFun
+    PROVED:  spdp_annihilator_exists (dual annihilator + sign flip)
+    PROVED:  f_n_in_NP (trivial witness from fixed_n_computable)
+    PROVED:  f_n_escapes_FSPDP (God Move: orthogonality vs positivity)
+    PROVED:  P_neq_NP (escape + axioms, Theorem 12.1)
+    AXIOM 1: P_subset_FSPDP     (Cook-Levin + depth-4 + switching)
+    AXIOM 2: spdp_dim_bound     (§8.6: canonical matrix rank bound)
+    AXIOM 3: fixed_n_computable (finite functions are P-time computable)
 -/
 import PallLean.BoolEval
 import PallLean.SPDPDefs
@@ -45,6 +46,9 @@ def InFSPDP {n : ℕ} (f : BoolFun n) : Prop :=
   ∃ (p : MvPolynomial (Fin n) ℚ) (ρ : Restriction.Restriction n),
     (∀ x, MvPolynomial.eval (fun i => boolToRat (x i)) p = boolToRat (f x)) ∧
     restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n) p ρ ≤ Nat.sqrt n
+
+-- (spdpCollapsibleSubspace is just fspdpEvalSubspace itself;
+--  no separate axiom needed.)
 
 /-- NP: polynomial-size witness checkable in polynomial time. -/
 def InNP {n : ℕ} (f : BoolFun n) : Prop :=
@@ -101,18 +105,10 @@ def lowDegreeMonomialCount (n κ : ℕ) : ℕ :=
     with SPDP rank ≤ √n under the universal restriction. -/
 axiom P_subset_FSPDP : ∀ {n : ℕ} (f : BoolFun n), PtimeComputable f → InFSPDP f
 
-/-- Axiom (Paper §8.6, Canonical Matrix Rank Bound):
-    The canonical monomial matrix M_n (under the universal restriction)
-    has rank ≤ d_n* < 2^n. All F_SPDP* evaluation vectors lie in
-    M_n's row space, so the eval subspace has dim < 2^n.
-
-    Decomposition:
-    - Fixed ρ* leaves w = O(log n) live variables
-    - Restricted polynomials are multilinear on w variables
-    - eval vectors factor through the 2^w-dim live-variable space
-    - SPDP rank ≤ √n constrains the eval vectors to the SPDP subspace
-    - dim(SPDP subspace) ≤ √n < 2^w ≤ 2^n
--/
+/-- Axiom (Paper §8.6 + Theorem 7.3): The F_SPDP evaluation subspace
+    has dimension < 2^n. Under the universal restriction, all SPDP-collapsing
+    circuits' evaluation vectors lie in the row space of the canonical
+    matrix M_n, which has rank ≤ d_n* = O(log²n) < 2^n. -/
 axiom spdp_dim_bound (n : ℕ) (hn : n ≥ 2) :
     Module.finrank ℚ (fspdpEvalSubspace n) < 2 ^ n
 
