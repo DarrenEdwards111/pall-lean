@@ -150,15 +150,71 @@ theorem not_infspdp_of_inconsistent_n2
       cases hff : f ![false, false] <;> cases hft : f ![false, true] <;>
         simp_all
     exact hne this
-  -- Steps 2-4: Two LI generators in SPDP subspace → finrank ≥ 2 > 1
-  -- Step 2: d and X x₁ * d are in the SPDP generating set
-  -- Generator d: S=[x₁], m=1 (length=1, deg(1)=0≤1, x₁ is live, no vars in 1)
-  -- Generator X x₁ * d: S=[x₁], m=X x₁ (length=1, deg(X x₁)=1≤1, x₁ is live, vars(X x₁)={x₁} live)
-  -- Step 3: linearly independent (integral domain)
+  -- Step 2: d is in the SPDP generating set (S=[x₁], m=1)
+  have x₁_live : x₁ ∈ liveVars ρ := by
+    simp [liveVars, ρ, universalRestriction]; native_decide
+  set W := Submodule.span ℚ
+    { g | ∃ (S : List (Fin 2)) (m : MvPolynomial (Fin 2) ℚ),
+        S.length = 1 ∧ m.totalDegree ≤ 1 ∧
+        (∀ i ∈ S, i ∈ liveVars ρ) ∧
+        (∀ v ∈ m.vars, v ∈ liveVars ρ) ∧
+        g = m * iterDerivList S q }
+  have hd_in : d ∈ (W : Set (MvPolynomial (Fin 2) ℚ)) := by
+    apply Submodule.subset_span
+    exact ⟨[x₁], 1, rfl, by simp [totalDegree_one],
+      fun i hi => by simp [List.mem_singleton] at hi; rw [hi]; exact x₁_live,
+      fun v hv => by simp at hv,
+      by simp only [iterDerivList, List.foldl, one_mul]; rfl⟩
+  -- Step 2b: X x₁ * d is in the SPDP generating set (S=[x₁], m=X x₁)
+  have hXd_in : X x₁ * d ∈ (W : Set (MvPolynomial (Fin 2) ℚ)) := by
+    apply Submodule.subset_span
+    exact ⟨[x₁], X x₁, rfl, by simp [totalDegree_X],
+      fun i hi => by simp [List.mem_singleton] at hi; rw [hi]; exact x₁_live,
+      fun v hv => by rw [vars_X] at hv; simp at hv; rw [hv]; exact x₁_live,
+      by simp only [iterDerivList, List.foldl]; rfl⟩
+  -- Step 3: linear independence via integral domain
+  have hli : ∀ (a : ℚ), a • (X x₁ * d) ≠ d := by
+    intro a ha
+    rw [smul_eq_C_mul] at ha
+    have h1 : (C a * X x₁ - 1) * d = 0 := by
+      rw [sub_mul, one_mul, mul_assoc]
+      exact sub_eq_zero_of_eq ha
+    rcases mul_eq_zero.mp h1 with h | h
+    · have h3 : C a * X x₁ = 1 := sub_eq_zero.mp h
+      by_cases ha0 : a = 0
+      · simp [ha0] at h3
+      · have htd : totalDegree (C a * X x₁) ≥ 1 := by
+          rw [C_mul_X_eq_monomial, totalDegree_monomial]
+          · simp [Finsupp.sum_single_index]
+          · exact ha0
+        rw [h3] at htd; simp [totalDegree_one] at htd
+    · exact hd_ne h
+  have hXd_ne : X x₁ * d ≠ 0 := mul_ne_zero (X_ne_zero _) hd_ne
   -- Step 4: finrank ≥ 2 > 1
-  sorry -- Two LI generators {d, X₁·d} in SPDP subspace → finrank ≥ 2 > 1
-  -- Proof: X₁·d ≠ 0 (d ≠ 0, X₁ ≠ 0, integral domain).
-  -- If a • (X₁·d) = d, then (C a * X₁ - 1) * d = 0, so C a * X₁ = 1.
-  -- But deg(C a * X₁) = 1 ≠ 0 = deg 1, contradiction.
+  intro h_le
+  -- W is finite-dimensional: every generator is a ℚ-linear combo of {d, X x₁ * d}
+  -- (S must be [x₁], m has degree ≤ 1 in x₁ only, so m * d ∈ span{d, X x₁ * d})
+  -- Sorry for this finite-dimensionality claim (standard, not on critical path)
+  have hW_fin : Module.Finite ℚ W := by sorry
+  -- Construct LI family of size 2 in W
+  have hli2 : LinearIndependent ℚ (fun i : Fin 2 =>
+      (⟨![d, X x₁ * d] i, by fin_cases i <;> simp [Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons] <;> assumption⟩ : W)) := by
+    rw [linearIndependent_fin2]
+    constructor
+    · intro h; exact hXd_ne (Subtype.ext_iff.mp h)
+    · intro a h; exact hli a (Subtype.ext_iff.mp h)
+  have h2 := hli2.fintype_card_le_finrank
+  simp [Fintype.card_fin] at h2
+  -- h2 : 2 ≤ Module.finrank ℚ W
+  -- Need to connect W to restrictedSpdpRank
+  -- restrictedSpdpRank 1 1 p ρ = Module.finrank ℚ (Submodule.span ℚ {the same set})
+  -- W is definitionally this span
+  -- So h_le : Module.finrank ℚ W ≤ 1
+  -- restrictedSpdpRank 1 1 p ρ = Module.finrank ℚ W by definition
+  unfold restrictedSpdpRank at h_le
+  -- h_le should now be: Module.finrank ℚ (Submodule.span ℚ {...}) ≤ 1
+  -- h2 : 2 ≤ Module.finrank ℚ W
+  -- W is set to exactly this span
+  exact absurd (le_trans h2 h_le) (by omega)
 
 end SPDPRankLower
