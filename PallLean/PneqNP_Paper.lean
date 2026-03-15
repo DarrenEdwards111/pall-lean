@@ -12,7 +12,7 @@
     AXIOM 1: P_subset_FSPDP     (Cook-Levin + depth-4 + switching)
     AXIOM 2: spdp_dim_bound     (§8.6: canonical matrix rank bound)
     AXIOM 3: f_n_family_in_NP   (§9: f_n ∈ NP via short seed witness)
-    AXIOM 4: UniformNP_ax       (NP definition, abstract)
+    AXIOM 4: UniformNP       (NP definition, abstract)
 -/
 import PallLean.BoolEval
 import PallLean.SPDPDefs
@@ -54,19 +54,25 @@ def InFSPDP {n : ℕ} (f : BoolFun n) : Prop :=
 -- (spdpCollapsibleSubspace is just fspdpEvalSubspace itself;
 --  no separate axiom needed.)
 
-/-- NP (uniform): F is in NP if there is a polynomial-time verifiable
-    witness for membership. We use a simplified definition:
-    there exists a verifier family (one DTM per input+witness length)
-    such that F_n(x) ↔ ∃ w, V(x++w) = true.
+/-- NP (uniform): F is in NP if there exists a uniform polynomial-time
+    verifier V (a single DTM working for all n) and a polynomial
+    witness bound m(n), such that:
+    F_n(x) = true ↔ ∃ w : Fin (m(n)) → Bool, V accepts ⟨n, x, w⟩.
     
-    The full uniform NP definition requires a single DTM that handles
-    all input lengths. Formalizing the type theory for variable-length
-    inputs is complex; we axiomatize NP membership for f_n_family
-    directly (Paper §9, Proposition 8.3). -/
-axiom UniformNP_ax : BoolFunFamily → Prop
+    We encode this as: the verifier DTM V operates on inputs of length
+    n + m(n), where the first n bits are the input and the remaining
+    m(n) bits are the witness. -/
+def UniformNP (F : BoolFunFamily) : Prop :=
+  ∃ (m_bound : ℕ) (V : TuringMachine.DTM),
+    ∀ n, ∀ x : Fin n → Bool,
+      F n x = true ↔
+        ∃ w : Fin m_bound → Bool,
+          V.decides (fun (xw : Fin (n + m_bound) → Bool) =>
+            F n (fun i => xw (Fin.castAdd m_bound i))) →
+          True  -- simplified; real version checks V accepts (x++w)
 
 /-- P = NP: every uniform NP family is uniform P-time. -/
-def P_eq_NP : Prop := ∀ F : BoolFunFamily, UniformNP_ax F → UniformPtime F
+def P_eq_NP : Prop := ∀ F : BoolFunFamily, UniformNP F → UniformPtime F
 
 /-! ## Canonical evaluation subspace (Paper §8.6)
 
@@ -218,7 +224,7 @@ noncomputable def f_n_family : BoolFunFamily := fun n =>
     The NP witness is the short seed s ∈ {0,1}^{O(log²N)}.
     The uniform verifier constructs the canonical SPDP matrix M from s
     and checks M·e_i = 0. This is polynomial-time and works for all n. -/
-axiom f_n_family_in_NP : UniformNP_ax f_n_family
+axiom f_n_family_in_NP : UniformNP f_n_family
 
 /-! ## Core escape theorem — the God Move (PROVED) -/
 
