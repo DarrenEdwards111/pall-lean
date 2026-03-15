@@ -23,6 +23,7 @@ import PallLean.BoolEval
 import PallLean.SPDPDefs
 import PallLean.RestrictedSPDP
 import PallLean.Restriction
+import PallLean.UniversalRestriction
 import PallLean.TuringMachine
 import PallLean.SwitchingLemma
 import Mathlib.Tactic
@@ -49,15 +50,16 @@ def BoolFunFamily := (n : ℕ) → BoolFun n
 def UniformPtime (F : BoolFunFamily) : Prop :=
   ∃ (M : TuringMachine.DTM), ∀ n, M.decides (F n)
 
-/-- F_SPDP*: computed by a polynomial with low SPDP rank after some restriction.
-    Paper §5.3: there exists a universal seed s* (Lemma 5.6) such that
-    the SAME restriction works for all P-time functions simultaneously.
-    The InFSPDP definition allows any restriction (existential),
-    and spdp_dim_bound axiomatizes the shared subspace property. -/
+/-- F_SPDP* (Paper §5.3, Eq observer-class-fixed):
+    Computed by a polynomial with low SPDP rank under the FIXED universal
+    restriction ρ* (from UniversalRestriction.lean).
+    Using a SHARED restriction is essential — with existential ρ,
+    every function would be InFSPDP via total restriction. -/
 def InFSPDP {n : ℕ} (f : BoolFun n) : Prop :=
-  ∃ (p : MvPolynomial (Fin n) ℚ) (ρ : Restriction.Restriction n),
+  ∃ (p : MvPolynomial (Fin n) ℚ),
     (∀ x, MvPolynomial.eval (fun i => boolToRat (x i)) p = boolToRat (f x)) ∧
-    restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n) p ρ ≤ Nat.sqrt n
+    restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n) p
+      (UniversalRestriction.universalRestriction n) ≤ Nat.sqrt n
 
 /-- NP (uniform): F is in NP if there exists a polynomial witness bound
     and a uniform polynomial-time verifier V such that:
@@ -101,13 +103,13 @@ theorem P_subset_FSPDP (F : BoolFunFamily) (hF : UniformPtime F)
   -- Step 1: P-time → low-degree polynomial (Paper Prop depth4-log2)
   obtain ⟨p, hp_correct, hp_deg⟩ :=
     SwitchingLemma.ptime_has_low_degree_poly n hn (F n) M (hM n)
-  -- Step 2: low-degree → SPDP collapse (Paper Lemma 7.2 + Theorem 7.3)
+  -- Step 2: low-degree → SPDP collapse under ρ* (Paper Lemma 7.2 + Thm 7.3)
   have hp_bool : ∀ x : Fin n → Bool,
       MvPolynomial.eval (fun i => BoolEval.boolToRat (x i)) p ∈ ({0, 1} : Set ℚ) := by
     intro x; rw [hp_correct x]; simp only [BoolEval.boolToRat]
     cases F n x <;> simp
-  obtain ⟨ρ, hρ⟩ := SwitchingLemma.switching_lemma_spdp n hn p hp_bool hp_deg
-  exact ⟨p, ρ, hp_correct, hρ⟩
+  have hρ := SwitchingLemma.switching_lemma_spdp n hn p hp_bool hp_deg
+  exact ⟨p, hp_correct, hρ⟩
 
 /-- Axiom 2 (Paper §8.6, canonical matrix rank bound):
     The F_SPDP* eval subspace has dimension < 2^n.
