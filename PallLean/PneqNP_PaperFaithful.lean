@@ -22,15 +22,16 @@ namespace PneqNP_PaperFaithful
 open PaperAxioms PsideCollapse DiagonalFunction
 open CircuitModel RestrictedSPDP Restriction BoolEval
 
-/-- P = NP assumption: every function has a polynomial computing it
-    (under any restriction). No degree/fan-in bound — those come from
-    depth4_simulation (Axiom 1) applied in the proof. -/
+/-- P = NP assumption (paper-faithful): every Boolean function on n
+    variables has a polynomial computing it. No restriction in the
+    hypothesis — restrictions are applied during the proof.
+
+    Paper: "P = NP → f_n ∈ P → ∃ circuit C computing f_n" -/
 structure PeqNP where
   raw_circuit :
-    ∀ (ρ : Restriction.Restriction 4)
-      (f : (Fin 4 → Bool) → Bool),
+    ∀ (f : (Fin 4 → Bool) → Bool),
     ∃ (q : MvPolynomial (Fin 4) ℚ),
-      computes (Restriction.restrictPoly ρ q) f
+      computes q f
 
 /-- Paper Theorem 12.1: P ≠ NP.
 
@@ -50,15 +51,20 @@ theorem P_neq_NP : ¬ PeqNP := by
   have hd : d_star ≤ 9 := by native_decide
   -- Step 4: annihilator (§8.6 God Move, PROVED)
   obtain ⟨w, hw_pos, hw_orth⟩ := annihilator_exists ρ d_star hd
-  -- P = NP: f_n has a polynomial (raw, unbounded)
-  obtain ⟨p, hp_comp⟩ := h_peqnp ρ (f_n w)
+  -- P = NP: f_n has a polynomial (raw, unbounded, NO restriction)
+  obtain ⟨p, hp_comp⟩ := h_peqnp (f_n w)
   -- Step 1: multilinearization (PROVED) → bounded degree + multilinear
   obtain ⟨q, hq_equiv, hq_deg, hq_ml⟩ := Multilinearize.depth4_simulation_at_4 p
   -- q computes f_n (via Boolean equivalence with p)
-  have hq_comp : computes (Restriction.restrictPoly ρ q) (f_n w) := by
+  -- After restriction: restrictPoly ρ q computes f_n ∘ extendAssignment ρ
+  have hq_comp : computes (Restriction.restrictPoly ρ q)
+      (fun x => f_n w (Restriction.extendAssignment ρ x)) := by
     intro x
-    rw [evalBool_restrictPoly_congr ρ q p hq_equiv x]
-    exact hp_comp x
+    unfold computes at hp_comp
+    rw [evalBool_restrictPoly ρ q x]
+    rw [show evalBool q (Restriction.extendAssignment ρ x) =
+        evalBool p (Restriction.extendAssignment ρ x) from hq_equiv _]
+    exact hp_comp (Restriction.extendAssignment ρ x)
   -- ρ* collapses q (from depth4_good_seed, using degree + fan-in)
   have hq_collapse : restrictedSpdpRank (Nat.log 2 4) (Nat.log 2 4) q ρ ≤ d_star := by
     exact hρ q hq_deg hq_ml
@@ -68,7 +74,17 @@ theorem P_neq_NP : ¬ PeqNP := by
       ∑ x, evalBool (Restriction.restrictPoly ρ p) x * w x = 0 := by
     intro p hp
     exact hw_orth p (by rwa [← hlog] at hp)
-  -- Step 5: semantic_diagonal_escape → contradiction
-  exact semantic_diagonal_escape hw_pos hw_orth' hq_collapse hq_comp
+  -- GAP: semantic_diagonal_escape expects computes(restrictPoly ρ q)(f_n w)
+  -- but we can only prove computes(restrictPoly ρ q)(f_n w ∘ extendAssignment ρ).
+  -- These differ because restriction changes the domain:
+  --   evalBool(restrictPoly ρ q)(x) = evalBool(q)(extendAssignment ρ x)
+  -- The paper's f_n is defined on S_live (the restricted domain), and the
+  -- annihilator w should also be defined on S_live. The current formalization
+  -- defines f_n and w on the full domain Fin 4 → Bool, creating a mismatch.
+  --
+  -- To fix: either (a) redefine f_n to work with the restricted polynomial
+  -- directly, or (b) show that the annihilator/escape works with the composed
+  -- function f_n w ∘ extendAssignment ρ.
+  sorry
 
 end PneqNP_PaperFaithful
