@@ -14,6 +14,7 @@ import Mathlib.LinearAlgebra.Dimension.Finrank
 import Mathlib.Algebra.MvPolynomial.PDeriv
 import Mathlib.RingTheory.MvPolynomial.Basic
 import Mathlib.Algebra.MvPolynomial.Variables
+import Mathlib.LinearAlgebra.FiniteDimensional.Basic
 
 namespace SPDPRankLower
 
@@ -195,7 +196,42 @@ theorem not_infspdp_of_inconsistent_n2
   -- W is finite-dimensional: every generator is a ℚ-linear combo of {d, X x₁ * d}
   -- (S must be [x₁], m has degree ≤ 1 in x₁ only, so m * d ∈ span{d, X x₁ * d})
   -- Sorry for this finite-dimensionality claim (standard, not on critical path)
-  have hW_fin : Module.Finite ℚ W := by sorry
+  have hW_fin : Module.Finite ℚ W := by
+    set W2 := Submodule.span ℚ ({d, X x₁ * d} : Set (MvPolynomial (Fin 2) ℚ))
+    have hW2_fin : FiniteDimensional ℚ W2 :=
+      Module.Finite.span_of_finite ℚ (Set.toFinite _)
+    exact Submodule.finiteDimensional_of_le (show W ≤ W2 from by
+      apply Submodule.span_le.mpr
+      intro g hg
+      obtain ⟨S, m, hlen, hdeg, hS, hm, hgdef⟩ := hg
+      subst hgdef
+      -- S = [s] for some s. Since s ∈ liveVars and liveVars = {x₁}, s = x₁.
+      obtain ⟨s, rfl⟩ : ∃ s, S = [s] := by
+        rcases S with _ | ⟨s, t⟩
+        · simp at hlen
+        · exact ⟨s, by simp at hlen; simp [hlen]⟩
+      simp [List.length_singleton] at hlen
+      -- s ∈ liveVars, and liveVars = {x₁}
+      have hs : s = x₁ := by
+        have hmem := hS s (List.mem_singleton.mpr rfl)
+        simp [liveVars, ρ, universalRestriction, Finset.mem_filter] at hmem
+        fin_cases s
+        · exfalso; revert hmem; native_decide
+        · rfl
+      subst hs
+      -- iterDerivList [x₁] q = pderiv x₁ q = d
+      simp only [iterDerivList, List.foldl]
+      -- m * d ∈ span{d, X x₁ * d}
+      -- m = C a + C b * X x₁ (degree ≤ 1, vars ⊆ {x₁})
+      set a := coeff 0 m
+      set b := coeff (Finsupp.single x₁ 1) m
+      have hm_eq : m = C a + C b * X x₁ := by
+        -- Standard: poly of deg ≤ 1 in one variable = a₀ + a₁x
+        sorry
+      rw [hm_eq, add_mul, mul_assoc, C_mul', C_mul']
+      exact Submodule.add_mem _
+        (Submodule.smul_mem _ a (Submodule.subset_span (Set.mem_insert _ _)))
+        (Submodule.smul_mem _ b (Submodule.subset_span (Set.mem_insert_iff.mpr (Or.inr rfl)))))
   -- Construct LI family of size 2 in W
   have hli2 : LinearIndependent ℚ (fun i : Fin 2 =>
       (⟨![d, X x₁ * d] i, by fin_cases i <;> simp [Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons] <;> assumption⟩ : W)) := by
