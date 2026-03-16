@@ -25,7 +25,32 @@ axiom mobiusL_eq_top_coeff (n : ℕ) (hn : n ≥ 2) (f : BoolFun n) :
     MvPolynomial.coeff (liveTopMonomial n)
       (restrictPoly (universalRestriction n) (multilinearInterp f))
 
--- Axiom 2: Nonzero top coeff implies high restricted SPDP rank
+-- Sub-axiom 2a: Iterated derivative over all live vars extracts top coeff.
+-- For a multilinear polynomial on live vars, d/dx_0 ... d/dx_{w-1} q = coeff_top(q).
+-- Standard algebra: pderiv_monomial reduces each exponent by 1.
+axiom iterDerivList_allLive_eq_topCoeff (n : ℕ) (f : BoolFun n) :
+    SPDP.iterDerivList (liveVars (universalRestriction n)).toList
+      (restrictPoly (universalRestriction n) (multilinearInterp f)) =
+    MvPolynomial.C (MvPolynomial.coeff (liveTopMonomial n)
+      (restrictPoly (universalRestriction n) (multilinearInterp f)))
+
+-- Sub-axiom 2b: Multiplying a nonzero constant by all degree-le-w
+-- monomials on w variables spans 2^w dimensions.
+-- Standard: {c*m : m multilinear on w vars} = c * (multilinear monomials),
+-- and multilinear monomials are linearly independent.
+axiom span_const_monomials_dim (w : ℕ) (c : ℚ) (hc : c ≠ 0)
+    (V : Finset (Fin w)) (hV : V = Finset.univ) :
+    Module.finrank ℚ (Submodule.span ℚ
+      { q : MvPolynomial (Fin w) ℚ |
+        ∃ (m : MvPolynomial (Fin w) ℚ), m.totalDegree ≤ w ∧
+        (∀ v ∈ m.vars, v ∈ V) ∧
+        q = m * MvPolynomial.C c }) ≥ 2 ^ w
+
+-- The span of {m * C(c) : vars(m) in liveVars, deg(m) <= w} contains
+-- all multilinear monomials on liveVars (times c), giving dim >= 2^w.
+-- This requires: (a) multilinear monomials on w vars are LI (standard),
+-- (b) c * m ranges over all such monomials when c != 0.
+-- Axiomatized since the Lean plumbing between Fin n and Fin w is heavy.
 axiom restrictedRank_ge_of_top_coeff_ne_zero (n : ℕ) (hn : n ≥ 2) (f : BoolFun n)
     (h_ne : MvPolynomial.coeff (liveTopMonomial n)
       (restrictPoly (universalRestriction n) (multilinearInterp f)) ≠ 0) :
