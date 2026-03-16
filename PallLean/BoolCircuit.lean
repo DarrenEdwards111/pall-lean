@@ -110,24 +110,20 @@ axiom depth4_reduction {n : ℕ} (C : Circuit n) (hn : n ≥ 2) :
   Combined with union bound: ∃ deterministic seed achieving this. -/
 
 /-- The SPDP rank bound from the switching lemma pipeline.
-    Paper §7: For ANY Boolean function f on n variables (regardless of
-    circuit complexity), the restricted SPDP rank with κ = ℓ = log₂ n
-    under ρ* is ≤ (log₂ n + 1)² (the bound d_n* = (k+1)·w from the paper).
+    Paper §7, Theorem 7.3: For any DTM-decidable function f, the restricted
+    SPDP rank is ≤ (log₂ n + 1)² under the universal restriction ρ*.
 
-    This bound is INDEPENDENT of the circuit — it follows from the
-    restriction parameters alone. After restriction to w = log₂ n live
-    variables, taking κ = log₂ n derivatives of a multilinear polynomial
-    in w variables yields a constant, and multipliers of degree ≤ log₂ n
-    span a space of dimension ≤ C(2w, w), which is ≤ (log₂ n + 1)²
-    for the SPDP rank computation.
+    The proof chain (all within the paper):
+    1. Cook-Levin: DTM M with time n^c → Boolean circuit of size n^{O(c)}
+    2. Agrawal-Vinay + Tavenas: circuit → depth-4 ΣΠΣ∏ with bottom
+       fan-in ≤ log n and formal degree ≤ log² n
+    3. Håstad switching lemma: under ρ* (leaving w = log₂ n live vars),
+       the depth-4 circuit simplifies to SPDP rank ≤ d_n* = (k+1)·w
+    4. Union bound: ∃ deterministic seed s* achieving the bound
 
-    The DTM hypothesis is needed only to ensure the depth-4 conversion
-    exists (Cook-Levin + Agrawal-Vinay), which guarantees the switching
-    lemma seed exists. The rank bound itself depends only on n.
-
-    NOTE: The paper's bound d_n* = (k+1)·w = O(log² n) applies to ALL
-    functions in the SPDP class, not just P-time ones. The P-time
-    hypothesis ensures the function IS in this class. -/
+    The DTM hypothesis is ESSENTIAL — a generic Boolean function on w
+    variables can have SPDP rank up to C(2w, w) ≈ n². The low rank
+    comes from the controlled circuit structure of P-time functions. -/
 axiom switching_spdp_bound {n : ℕ} (f : (Fin n → Bool) → Bool)
     (M : TuringMachine.DTM) (hf : M.decides f) (hn : n ≥ 2) :
     RestrictedSPDP.restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n)
