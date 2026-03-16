@@ -126,14 +126,21 @@ noncomputable def f_n_family : BoolFunFamily := fun n =>
     else fun _ => false
   else fun _ => false
 
-/-- f_n_family is in NP. Paper §8.6 / Appendix K.
-    The NP witness is the annihilator vector w (encoded in n^k bits).
-    The verifier checks: (1) w(x) > 0, (2) w annihilates all low-SPDP-rank
-    evaluation vectors (via hitting set, Appendix K).
-    Both checks are poly-time given the witness.
+/-- f_n_family is in NP. Paper §8.6, Proposition 8.7.
 
-    This requires constructing a concrete DTM for the SPDP rank
-    certificate verifier — standard but infrastructure-heavy (Appendix K). -/
+    The NP witness is a short seed s ∈ {0,1}^{O(log² N)}.
+    The verifier:
+    (a) computes restriction ρ_s from the seed s,
+    (b) builds the canonical SPDP evaluation matrix M under ρ_s
+        (rows = shifted partial derivatives, columns = hitting set points),
+    (c) checks M · e_x = 0 (all SPDP-collapsing circuits vanish on x).
+
+    This is deterministic polynomial-time given the seed (Proposition 8.7).
+    The seed has length O(log² n) ≤ n bits, so witness length n^1 suffices.
+
+    The DTM construction requires: seed → restriction map, multilinear
+    monomial enumeration on w = O(log n) variables, matrix-vector product
+    over F_p. All are standard poly-time algorithms (Appendix Q). -/
 axiom f_n_family_in_NP : UniformNP f_n_family
 
 /-! ## Escape theorem — PROVED -/
