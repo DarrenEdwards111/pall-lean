@@ -52,16 +52,37 @@ lemma li_scaled (c : ℚ) (hc : c ≠ 0) :
   · intro T _ hTS; simp [expMap_injective.ne hTS]
   · intro hS; simp [show l S = 0 from by rwa [Finsupp.mem_support_iff, not_not] at hS]
 
-/-- The span of degree-bounded polynomials times C c is finite-dimensional.
-    This follows from: {m | totalDegree m ≤ w, vars ⊆ V} ⊆ span of finitely many
-    monomials (those with exponent sum ≤ w), hence the span is finite-dimensional.
-    Technical Lean plumbing — the mathematical fact is standard. -/
+/-- support(m * C c) ⊆ support(m) -/
+private lemma support_mul_C {w : ℕ} (m : MvPolynomial (Fin w) ℚ) (c : ℚ)
+    (s : Fin w →₀ ℕ) (hs : s ∈ (m * C c).support) : s ∈ m.support := by
+  rw [show m * C c = C c * m from mul_comm m (C c), C_mul'] at hs
+  exact Finsupp.support_smul hs
+
+/-- Sp ≤ restrictDegree w (per-variable degree ≤ w) -/
+private lemma sp_le_restrictDegree (w : ℕ) (c : ℚ) (V : Finset (Fin w)) :
+    Submodule.span ℚ { q : MvPolynomial (Fin w) ℚ |
+      ∃ (m : MvPolynomial (Fin w) ℚ), m.totalDegree ≤ w ∧
+      (∀ v ∈ m.vars, v ∈ V) ∧ q = m * C c } ≤
+    restrictDegree (Fin w) ℚ w := by
+  apply Submodule.span_le.mpr; intro q hq
+  obtain ⟨m, hdeg, _, rfl⟩ := hq
+  rw [SetLike.mem_coe, mem_restrictDegree]; intro s hs i
+  have hs' := support_mul_C m c s hs
+  have hsi : s i ≤ s.sum (fun _ n => n) := by
+    by_cases hi : i ∈ s.support
+    · exact Finset.single_le_sum (fun j _ => Nat.zero_le (s j)) hi
+    · rw [Finsupp.mem_support_iff, not_not] at hi; omega
+  exact le_trans hsi (le_trans (le_totalDegree hs') hdeg)
+
+/-- The span is finite-dimensional (submodule of restrictDegree which is finite). -/
 instance span_finite (w : ℕ) (c : ℚ) (V : Finset (Fin w)) :
     Module.Finite ℚ (Submodule.span ℚ
       { q : MvPolynomial (Fin w) ℚ |
         ∃ (m : MvPolynomial (Fin w) ℚ), m.totalDegree ≤ w ∧
-        (∀ v ∈ m.vars, v ∈ V) ∧ q = m * C c }) := by
-  sorry
+        (∀ v ∈ m.vars, v ∈ V) ∧ q = m * C c }) :=
+  Module.Finite.of_injective
+    (Submodule.inclusion (sp_le_restrictDegree w c V))
+    (Submodule.inclusion_injective _)
 
 /-- The span of {m * C c : deg m ≤ w, vars m ⊆ V} has dim ≥ 2^w. -/
 theorem span_const_monomials_dim_proved (w : ℕ) (c : ℚ) (hc : c ≠ 0)
