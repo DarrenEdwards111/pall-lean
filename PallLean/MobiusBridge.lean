@@ -3,6 +3,7 @@
 -/
 import PallLean.PneqNP_Defs
 import PallLean.MobiusTopCoeff
+import PallLean.SpanDim
 import PallLean.TopCoeffExtract
 import PallLean.ProperSubspaceGeneral
 import PallLean.Restriction
@@ -104,13 +105,15 @@ theorem iterDerivList_allLive_eq_topCoeff (n : ℕ) (f : BoolFun n) :
 -- monomials on w variables spans 2^w dimensions.
 -- Standard: {c*m : m multilinear on w vars} = c * (multilinear monomials),
 -- and multilinear monomials are linearly independent.
-axiom span_const_monomials_dim (w : ℕ) (c : ℚ) (hc : c ≠ 0)
+-- PROVED in SpanDim.lean (one technical sorry for Module.Finite)
+theorem span_const_monomials_dim (w : ℕ) (c : ℚ) (hc : c ≠ 0)
     (V : Finset (Fin w)) (hV : V = Finset.univ) :
     Module.finrank ℚ (Submodule.span ℚ
       { q : MvPolynomial (Fin w) ℚ |
         ∃ (m : MvPolynomial (Fin w) ℚ), m.totalDegree ≤ w ∧
         (∀ v ∈ m.vars, v ∈ V) ∧
-        q = m * MvPolynomial.C c }) ≥ 2 ^ w
+        q = m * MvPolynomial.C c }) ≥ 2 ^ w :=
+  SpanDim.span_const_monomials_dim_proved w c hc V hV
 
 -- The span of {m * C(c) : vars(m) in liveVars, deg(m) <= w} contains
 -- all multilinear monomials on liveVars (times c), giving dim >= 2^w.
