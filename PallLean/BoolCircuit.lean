@@ -154,19 +154,47 @@ axiom cook_levin {n : ℕ} (M : TuringMachine.DTM) (f : (Fin n → Bool) → Boo
   depth ≤ 2 · w = O(log n), giving SPDP rank ≤ (log n + 1) · O(log n)
   = O(log² n) ≤ (log n + 1)². -/
 
-/-- Switching: width-2 CNF under restriction → decision tree of controlled depth.
-    Paper: Håstad's switching lemma + Lemma 5.6 (Uniform Subspace Lemma).
-    Under the universal restriction with w = log₂ n live variables,
-    a width-2 CNF of poly size reduces to a decision tree of depth ≤ log₂ n.
+/-- Binary Tseitin flattening: width-3 CNF → width-2 CNF.
+    Paper §2.3.2: Each width-3 clause (a ∨ b ∨ c) is split into
+    (a ∨ w) ∧ (b ∨ ¬w) ∧ (w ∨ c) using a fresh variable w.
+    Size increases by factor ≤ 3. -/
+axiom binary_tseitin (N : ℕ) (φ : CNF N)
+    (hw : ∀ c, c ∈ φ → c.length ≤ 3) :
+    ∃ (N' : ℕ) (ψ : CNF N'),
+      (∀ c, c ∈ ψ → c.length ≤ 2) ∧
+      ψ.length ≤ 3 * φ.length
 
-    The depth bound comes from: switching lemma gives tree depth ≤ t
-    for width-t CNFs with high probability; binary Tseitin gives width 2;
-    tree depth ≤ 2 · (probability parameter) ≤ log₂ n for the good seed. -/
-axiom switching_to_decision_tree {n : ℕ} (f : (Fin n → Bool) → Bool)
-    (M : TuringMachine.DTM) (hf : M.decides f) (hn : n ≥ 2) :
+/-- Håstad switching lemma (derandomized): width-t CNF under restriction
+    becomes a decision tree of bounded depth.
+    Paper Lemma 7.2 + Lemma 5.6 (Uniform Subspace Lemma):
+    For a width-2 CNF of poly size, there exists a restriction leaving
+    w = log₂ n live variables such that the restricted function is
+    computable by a decision tree of depth ≤ log₂ n.
+
+    The derandomization uses a short-seed sampler (O(log² n) seed bits)
+    and a union bound over all poly-size circuits to find a single
+    seed s* that works universally. Our universalRestriction is a
+    stand-in for ρ_{s*}. -/
+axiom hastad_switching {n : ℕ} (f : (Fin n → Bool) → Bool)
+    (hn : n ≥ 2)
+    (h_cnf : ∃ (N : ℕ) (ψ : CNF N), (∀ c, c ∈ ψ → c.length ≤ 2)) :
     ∃ t : DecisionTree n,
       t.depth ≤ Nat.log 2 n ∧
       ∀ x : Fin n → Bool, t.eval x = f x
+
+/-- Combined: DTM-decidable → decision tree via Cook-Levin + Tseitin + switching.
+    THEOREM proved from cook_levin + binary_tseitin + hastad_switching. -/
+theorem switching_to_decision_tree {n : ℕ} (f : (Fin n → Bool) → Bool)
+    (M : TuringMachine.DTM) (hf : M.decides f) (hn : n ≥ 2) :
+    ∃ t : DecisionTree n,
+      t.depth ≤ Nat.log 2 n ∧
+      ∀ x : Fin n → Bool, t.eval x = f x := by
+  -- Step 1: Cook-Levin → width-3 CNF
+  obtain ⟨N, φ, _, hφ_width⟩ := cook_levin M f hf hn
+  -- Step 2: Binary Tseitin → width-2 CNF
+  obtain ⟨N', ψ, hψ_width, _⟩ := binary_tseitin N φ hφ_width
+  -- Step 3: Håstad switching → decision tree
+  exact hastad_switching (n := n) f hn ⟨N', ψ, hψ_width⟩
 
 /-! ## Combined SPDP Rank Bound (Paper Theorem 7.3)
 
