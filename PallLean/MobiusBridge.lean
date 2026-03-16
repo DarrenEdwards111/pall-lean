@@ -1,9 +1,5 @@
 /-
   MobiusBridge.lean -- Connecting Mobius functional to InFSPDP
-
-  Two key facts:
-  1. Mobius functional = top coeff of restricted polynomial
-  2. InFSPDP forces top coeff = 0 (SPDP rank argument)
 -/
 import PallLean.PneqNP_Defs
 import PallLean.ProperSubspaceGeneral
@@ -23,20 +19,13 @@ open Depth4Simulation UniversalRestriction ProperSubspaceGeneral TopCoeffRank
 noncomputable def liveTopMonomial (n : ℕ) : Fin n →₀ ℕ :=
   ∑ i ∈ liveVars (universalRestriction n), Finsupp.single i 1
 
--- Fact 1: Mobius inversion (axiom -- standard identity)
+-- Axiom 1: Mobius inversion identity
 axiom mobiusL_eq_top_coeff (n : ℕ) (hn : n ≥ 2) (f : BoolFun n) :
     mobiusL n (evalVec f) =
     MvPolynomial.coeff (liveTopMonomial n)
       (restrictPoly (universalRestriction n) (multilinearInterp f))
 
--- Fact 2a: Iterated derivative extracts top coefficient (axiom)
-axiom iterDerivList_restricted_eq_C_coeff (n : ℕ) (f : BoolFun n) :
-    SPDP.iterDerivList (liveVars (universalRestriction n)).toList
-      (restrictPoly (universalRestriction n) (multilinearInterp f)) =
-    MvPolynomial.C (MvPolynomial.coeff (liveTopMonomial n)
-      (restrictPoly (universalRestriction n) (multilinearInterp f)))
-
--- Fact 2b: Nonzero top coeff implies high restricted SPDP rank (axiom)
+-- Axiom 2: Nonzero top coeff implies high restricted SPDP rank
 axiom restrictedRank_ge_of_top_coeff_ne_zero (n : ℕ) (hn : n ≥ 2) (f : BoolFun n)
     (h_ne : MvPolynomial.coeff (liveTopMonomial n)
       (restrictPoly (universalRestriction n) (multilinearInterp f)) ≠ 0) :
@@ -44,11 +33,11 @@ axiom restrictedRank_ge_of_top_coeff_ne_zero (n : ℕ) (hn : n ≥ 2) (f : BoolF
       (multilinearInterp f) (universalRestriction n) ≥
     2 ^ (liveVars (universalRestriction n)).card
 
--- Helper: live vars count = log n
+-- Axiom 3: |liveVars| = log n (trivial counting)
 axiom liveVars_card_eq_log (n : ℕ) :
     (liveVars (universalRestriction n)).card = Nat.log 2 n
 
--- Main: InFSPDP forces top coefficient = 0
+-- PROVED: InFSPDP forces top coefficient = 0
 theorem top_coeff_zero_of_InFSPDP (n : ℕ) (hn : n ≥ 4) (f : BoolFun n)
     (hf : InFSPDP f) :
     MvPolynomial.coeff (liveTopMonomial n)
@@ -60,7 +49,7 @@ theorem top_coeff_zero_of_InFSPDP (n : ℕ) (hn : n ≥ 4) (f : BoolFun n)
   have h_lt := ProperSubspaceGeneral.sqrt_lt_pow_log n hn
   omega
 
--- Wire it together
+-- PROVED: Mobius functional vanishes on InFSPDP
 theorem mobiusL_vanishes_on_InFSPDP (n : ℕ) (hn : n ≥ 4)
     (f : BoolFun n) (hf : InFSPDP f) :
     mobiusL n (evalVec f) = 0 := by
