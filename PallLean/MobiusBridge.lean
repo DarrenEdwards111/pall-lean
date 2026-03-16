@@ -2,6 +2,7 @@
   MobiusBridge.lean -- Connecting Mobius functional to InFSPDP
 -/
 import PallLean.PneqNP_Defs
+import PallLean.MobiusTopCoeff
 import PallLean.ProperSubspaceGeneral
 import PallLean.Restriction
 import PallLean.UniversalRestriction
@@ -80,10 +81,15 @@ lemma eval_restricted_multilinearInterp {n : ℕ} (ρ : Restriction.Restriction 
     coeff(liveTopMonomial) q = sum_S (-1)^{w-|S|} eval(1_S) q
   for multilinear q. This requires the Mobius inversion identity
   applied to multilinear polynomial expansion. -/
-axiom mobiusL_eq_top_coeff (n : ℕ) (hn : n ≥ 2) (f : BoolFun n) :
+-- PROVED in MobiusTopCoeff.lean (was axiom)
+theorem mobiusL_eq_top_coeff (n : ℕ) (hn : n ≥ 2) (f : BoolFun n) :
     mobiusL n (evalVec f) =
     MvPolynomial.coeff (liveTopMonomial n)
-      (restrictPoly (universalRestriction n) (multilinearInterp f))
+      (restrictPoly (universalRestriction n) (multilinearInterp f)) := by
+  have h := MobiusTopCoeff.mobiusL_eq_top_coeff_proved n hn f
+  have : MobiusTopCoeff.topMon (liveVars (universalRestriction n)) = liveTopMonomial n := by
+    unfold MobiusTopCoeff.topMon liveTopMonomial; rfl
+  rwa [this] at h
 
 -- Sub-axiom 2a: Iterated derivative over all live vars extracts top coeff.
 -- For a multilinear polynomial on live vars, d/dx_0 ... d/dx_{w-1} q = coeff_top(q).
