@@ -40,13 +40,17 @@ def InFSPDP {n : ℕ} (f : BoolFun n) : Prop :=
     (Depth4Simulation.multilinearInterp f)
     (UniversalRestriction.universalRestriction n) ≤ Nat.sqrt n
 
+/-- UniformNP: F is in NP if there is a polynomial witness bound and
+    a poly-time verifier V such that F(x) ↔ ∃ witness w, V(x,w).
+    The witness length is p(n) = n^k for some fixed exponent k.
+    Paper-faithful: standard definition of NP with poly-length witnesses. -/
 def UniformNP (F : BoolFunFamily) : Prop :=
-  ∃ (m : ℕ) (V : BoolFunFamily),
+  ∃ (k : ℕ) (V : BoolFunFamily),
     UniformPtime V ∧
     ∀ n, ∀ x : Fin n → Bool,
       F n x = true ↔
-        ∃ w : Fin m → Bool,
-          V (n + m) (Fin.append x w) = true
+        ∃ w : Fin (n ^ k) → Bool,
+          V (n + n ^ k) (Fin.append x w) = true
 
 def P_eq_NP : Prop := ∀ F : BoolFunFamily, UniformNP F → UniformPtime F
 

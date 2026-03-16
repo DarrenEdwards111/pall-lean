@@ -126,7 +126,18 @@ noncomputable def f_n_family : BoolFunFamily := fun n =>
     else fun _ => false
   else fun _ => false
 
-axiom f_n_family_in_NP : UniformNP f_n_family
+/-- f_n_family is in NP. Paper §8.6 / Appendix K.
+    The NP witness is the annihilator vector w (encoded in n^k bits).
+    The verifier checks: (1) w(x) > 0, (2) w annihilates all low-SPDP-rank
+    evaluation vectors (via hitting set, Appendix K).
+    Both checks are poly-time given the witness.
+    The DTM construction for the verifier is standard but infrastructure-heavy. -/
+theorem f_n_family_in_NP : UniformNP f_n_family := by
+  -- k=2 gives n^2 witness bits, sufficient to encode ~n rational entries
+  -- V decodes the annihilator w from the witness and checks w(x) > 0
+  -- plus validity of w as an annihilator
+  -- The DTM for V is a standard linear algebra verifier (Appendix K)
+  sorry
 
 /-! ## Escape theorem — PROVED -/
 
