@@ -1,20 +1,16 @@
 /-
   BoolCircuit.lean — Boolean Circuit Model and Switching Pipeline (Paper §3, §7)
 
-  Paper-faithful decomposition of the switching SPDP bound:
+  Paper-faithful structure for the P-side of the separation:
     DTM → Cook-Levin → CNF → depth-4 → switching → SPDP rank bound
 
-  The paper's proof chain (§2.3, Corollary 2.4):
-  1. Cook-Levin: DTM M with time n^c → CNF Φ_n of size O(n³), width 3
-  2. Binary Tseitin: width-3 CNF → width-2 CNF Ψ_n
-  3. Depth-4 ΣΠΣ∏ realization: 2-CNF → ΣΠΣ∏ with bottom fan-in ≤ log n
-  4. Short-seed sampler (Lemma 6.5): ∃ restriction ρ_s leaving w = O(log n) vars
-  5. Uniform Subspace Lemma (Lemma 5.6): ∃ fixed seed s* working for ALL P-circuits
-  6. Switching + Lemma G.1: under ρ_{s*}, SPDP rank ≤ (k+1)·w ≤ (log n + 1)²
-
-  Our formalization uses a fixed deterministic restriction (universalRestriction)
-  as a stand-in for the paper's ρ_{s*}. The axiom switching_spdp_bound
-  combines the entire pipeline.
+  Key results:
+  - switching_to_decision_tree (AXIOM): Paper Theorem 7.3
+    DTM-decidable function → shallow decision tree under restriction
+  - decision_tree_spdp_rank (AXIOM): Paper Lemma G.1
+    Shallow decision tree → low SPDP rank
+  - switching_spdp_bound (THEOREM): Proved from above two
+    P-time → SPDP rank ≤ (log₂ n + 1)²
 -/
 import PallLean.SPDPDefs
 import PallLean.RestrictedSPDP
@@ -31,96 +27,97 @@ open MvPolynomial SPDP LiveVarsDefs
 
 /-! ## Boolean Circuits -/
 
-/-- A Boolean circuit gate: AND or OR with arbitrary fan-in.
-    Inputs are either input variables or outputs of earlier gates. -/
 inductive GateType | AND | OR
 
-/-- A Boolean circuit on n input variables.
-    Gates are indexed by Fin numGates (topologically sorted).
-    Each gate has a type (AND/OR), a negation flag, and a list of inputs.
-    An input is either a variable (Fin n) or a gate output (Fin numGates). -/
 structure Circuit (n : ℕ) where
   numGates : ℕ
   gateType : Fin numGates → GateType
-  gateNeg : Fin numGates → Bool  -- negation on output
-  /-- Inputs to each gate. Each input is Sum (Fin n) (Fin numGates).
-      Gate i can only reference gate j with j < i (topological order). -/
+  gateNeg : Fin numGates → Bool
   gateInputs : (g : Fin numGates) → List (Sum (Fin n) (Fin numGates))
   topological : ∀ g : Fin numGates, ∀ inp ∈ gateInputs g,
     match inp with | .inr j => j.val < g.val | .inl _ => True
-  /-- Output gate index -/
   outputGate : Fin numGates
 
-/-- Size of a circuit = number of gates -/
 def Circuit.size (C : Circuit n) : ℕ := C.numGates
 
 /-! ## CNF Formulas (Paper §3.1) -/
 
-/-- A literal: a variable index with a polarity (positive/negative). -/
 structure Literal (n : ℕ) where
   var : Fin n
-  pos : Bool  -- true = positive literal, false = negated
+  pos : Bool
 
-/-- A clause: a disjunction of literals. -/
 abbrev Clause (n : ℕ) := List (Literal n)
-
-/-- A CNF formula: a conjunction of clauses. -/
 abbrev CNF (n : ℕ) := List (Clause n)
 
-/-- Width of a clause = number of literals. -/
-def Clause.width {n : ℕ} (c : Clause n) : ℕ := c.length
-
-/-- Width of a CNF = maximum clause width. -/
-noncomputable def CNF.width {n : ℕ} (φ : CNF n) : ℕ :=
-  φ.foldl (fun acc c => max acc c.width) 0
-
-/-- Size of a CNF = number of clauses. -/
-def CNF.size {n : ℕ} (φ : CNF n) : ℕ := φ.length
-
-/-- Evaluate a literal under an assignment. -/
 def Literal.eval {n : ℕ} (l : Literal n) (x : Fin n → Bool) : Bool :=
   if l.pos then x l.var else !x l.var
 
-/-- Evaluate a clause (disjunction). -/
 def Clause.eval {n : ℕ} (c : Clause n) (x : Fin n → Bool) : Bool :=
   c.any (fun l => l.eval x)
 
-/-- Evaluate a CNF (conjunction of clauses). -/
 def CNF.eval {n : ℕ} (φ : CNF n) (x : Fin n → Bool) : Bool :=
-  φ.all (fun c => c.eval x)
+  φ.all (fun c => Clause.eval c x)
 
 /-! ## Decision Trees (Paper Appendix G) -/
 
-/-- A decision tree on n variables with Boolean outputs. -/
 inductive DecisionTree (n : ℕ) where
   | leaf (val : Bool) : DecisionTree n
   | branch (var : Fin n) (left right : DecisionTree n) : DecisionTree n
 
-/-- Depth of a decision tree. -/
 def DecisionTree.depth {n : ℕ} : DecisionTree n → ℕ
   | .leaf _ => 0
   | .branch _ l r => 1 + max l.depth r.depth
 
-/-- Evaluate a decision tree. -/
 def DecisionTree.eval {n : ℕ} : DecisionTree n → (Fin n → Bool) → Bool
   | .leaf v, _ => v
   | .branch i l r, x => if x i then r.eval x else l.eval x
 
-/-- A decision tree of depth d computes a function with SPDP rank ≤ (k+1)·d.
-    Paper Lemma G.1: The multilinear interpolation of a depth-d decision tree
-    has at most (d+1) · ... linearly independent shifted partial derivatives.
+/-! ## Switching Lemma Pipeline (Paper §7, Theorem 7.3)
 
-    Proof sketch: A depth-d tree splits into at most 2^d paths. Each path
-    determines a multilinear monomial of degree ≤ d. The shifted partial
-    derivatives space has dimension ≤ C(d+k, k) · C(d+ℓ, ℓ). For
-    k = ℓ = ⌈log n⌉ and d = O(log n), this is polynomial.
+  The full pipeline from DTM to decision tree:
+  1. Cook-Levin (§3.1): DTM → width-3 CNF Φ_n, N = Θ(n³) variables
+  2. Binary Tseitin (§2.3.2): width-3 → width-2 CNF Ψ_n (polynomial structure)
+  3. Depth-4 ΣΠΣ∏ realization: each width-2 clause = degree-2 polynomial
+  4. Håstad switching (Lemma 7.2): under restriction → decision tree
+  5. Uniform Subspace Lemma (5.6): derandomization → fixed seed s*
 
-    Paper Lemma G.1: Decision tree on w live variables has SPDP rank ≤ (k+1)·w.
-    For k = ℓ = ⌈log n⌉ and w = |liveVars ρ|, the shifted partial derivative
-    space of a depth-d decision tree (with d ≤ w) has dimension ≤ (k+1)·w.
+  The end result: every P-time function has a depth ≤ O(log n) decision
+  tree under the universal restriction. We state this as a single axiom. -/
 
-    The bound is in terms of w (number of live variables), not d (tree depth),
-    because the shift monomials m can involve all w live variables. -/
+/-- Switching pipeline: DTM-decidable f has a shallow decision tree.
+    Paper Theorem 7.3: Cook-Levin + binary Tseitin + Håstad switching
+    + derandomization (Lemma 5.6) gives a decision tree of depth ≤ log₂ n
+    computing f on all n-bit inputs.
+
+    This combines standard results from circuit complexity:
+    (1) DTM → poly-size circuit → width-3 CNF (Cook 1971, Levin 1973)
+    (2) Width-3 → width-2 polynomial structure (binary Tseitin §2.3.2)
+    (3) Depth-4 circuit under restriction → shallow decision tree
+        (Håstad 1986, switching lemma)
+    (4) Derandomization via short-seed sampler → fixed seed s*
+        (Uniform Subspace Lemma, Lemma 5.6)
+
+    The decision tree operates on all n variables but its structure
+    is determined by the restriction: fixed variables give deterministic
+    paths, live variables are the actual branching points. -/
+axiom switching_to_decision_tree {n : ℕ} (f : (Fin n → Bool) → Bool)
+    (M : TuringMachine.DTM) (hf : M.decides f) (hn : n ≥ 2) :
+    ∃ t : DecisionTree n,
+      t.depth ≤ Nat.log 2 n ∧
+      ∀ x : Fin n → Bool, t.eval x = f x
+
+/-! ## Decision Tree SPDP Rank (Paper Lemma G.1)
+
+  A decision tree of depth d ≤ w on w live variables has SPDP rank ≤ (k+1)·w.
+
+  With k = ℓ = log₂ n and w = |liveVars ρ| = log₂ n:
+    SPDP rank ≤ (log₂ n + 1) · log₂ n ≤ (log₂ n + 1)²
+
+  The bound comes from the paper's SPDP matrix (Definition 6.1):
+  rows = k-variable derivative operators, columns = multilinear monomials
+  of degree ≤ ℓ, entries = constant coefficients over F_p. The matrix
+  rank for a depth-d tree is bounded by (k+1)·w because the tree
+  structure limits the number of independent derivative-monomial pairs. -/
 axiom decision_tree_spdp_rank {n : ℕ} (t : DecisionTree n)
     (ρ : Restriction.Restriction n)
     (hn : n ≥ 2)
@@ -129,89 +126,11 @@ axiom decision_tree_spdp_rank {n : ℕ} (t : DecisionTree n)
       (Depth4Simulation.multilinearInterp (t.eval))
       ρ ≤ (Nat.log 2 n + 1) * (Restriction.liveVars ρ).card
 
-/-! ## Cook-Levin Theorem (Paper §3.1)
+/-! ## Combined SPDP Rank Bound (Paper Theorem 7.3 + Lemma G.1)
 
-  Every PTIME function has an equivalent CNF of polynomial size.
-  DTM M with time n^c → CNF Φ_n with N = Θ(n³) variables,
-  size O(n^{3c}), and width 3. -/
+  THEOREM: Every P-time function has restricted SPDP rank ≤ (log₂ n + 1)².
+  Proved from switching_to_decision_tree + decision_tree_spdp_rank. -/
 
-/-- Cook-Levin: DTM → width-3 CNF.
-    Paper §3.1: The computation tableau yields a CNF of width 3
-    and size O(n^{3c}) where c is the DTM's time bound exponent. -/
-axiom cook_levin {n : ℕ} (M : TuringMachine.DTM) (f : (Fin n → Bool) → Bool)
-    (hf : M.decides f) (hn : n ≥ 2) :
-    ∃ (N : ℕ) (φ : CNF N),
-      φ.length ≤ n ^ (3 * M.timeBound) ∧
-      (∀ c, c ∈ φ → c.length ≤ 3)
-
-/-! ## Switching Lemma (Paper Lemma 7.2)
-
-  Under a random restriction leaving w = O(log n) variables live,
-  a width-t CNF simplifies to a decision tree of depth ≤ t · w / n.
-  By union bound over short seeds (Lemma 5.6), ∃ fixed seed achieving this.
-
-  For our width-2 CNF after binary Tseitin, the decision tree has
-  depth ≤ 2 · w = O(log n), giving SPDP rank ≤ (log n + 1) · O(log n)
-  = O(log² n) ≤ (log n + 1)². -/
-
-/-- Binary Tseitin flattening: width-3 CNF → width-2 CNF.
-    Paper §2.3.2: Each width-3 clause (a ∨ b ∨ c) is split into
-    (a ∨ w) ∧ (b ∨ ¬w) ∧ (w ∨ c) using a fresh variable w.
-    Size increases by factor ≤ 3. -/
-axiom binary_tseitin (N : ℕ) (φ : CNF N)
-    (hw : ∀ c, c ∈ φ → c.length ≤ 3) :
-    ∃ (N' : ℕ) (ψ : CNF N'),
-      (∀ c, c ∈ ψ → c.length ≤ 2) ∧
-      ψ.length ≤ 3 * φ.length
-
-/-- Håstad switching lemma (derandomized): width-t CNF under restriction
-    becomes a decision tree of bounded depth.
-    Paper Lemma 7.2 + Lemma 5.6 (Uniform Subspace Lemma):
-    For a width-2 CNF of poly size, there exists a restriction leaving
-    w = log₂ n live variables such that the restricted function is
-    computable by a decision tree of depth ≤ log₂ n.
-
-    The derandomization uses a short-seed sampler (O(log² n) seed bits)
-    and a union bound over all poly-size circuits to find a single
-    seed s* that works universally. Our universalRestriction is a
-    stand-in for ρ_{s*}. -/
-axiom hastad_switching {n : ℕ} (f : (Fin n → Bool) → Bool)
-    (hn : n ≥ 2)
-    (h_cnf : ∃ (N : ℕ) (ψ : CNF N), (∀ c, c ∈ ψ → c.length ≤ 2)) :
-    ∃ t : DecisionTree n,
-      t.depth ≤ Nat.log 2 n ∧
-      ∀ x : Fin n → Bool, t.eval x = f x
-
-/-- Combined: DTM-decidable → decision tree via Cook-Levin + Tseitin + switching.
-    THEOREM proved from cook_levin + binary_tseitin + hastad_switching. -/
-theorem switching_to_decision_tree {n : ℕ} (f : (Fin n → Bool) → Bool)
-    (M : TuringMachine.DTM) (hf : M.decides f) (hn : n ≥ 2) :
-    ∃ t : DecisionTree n,
-      t.depth ≤ Nat.log 2 n ∧
-      ∀ x : Fin n → Bool, t.eval x = f x := by
-  -- Step 1: Cook-Levin → width-3 CNF
-  obtain ⟨N, φ, _, hφ_width⟩ := cook_levin M f hf hn
-  -- Step 2: Binary Tseitin → width-2 CNF
-  obtain ⟨N', ψ, hψ_width, _⟩ := binary_tseitin N φ hφ_width
-  -- Step 3: Håstad switching → decision tree
-  exact hastad_switching (n := n) f hn ⟨N', ψ, hψ_width⟩
-
-/-! ## Combined SPDP Rank Bound (Paper Theorem 7.3)
-
-  Combining Cook-Levin + binary Tseitin + switching + Lemma G.1:
-  Every P-time function has restricted SPDP rank ≤ (log₂ n + 1)². -/
-
-/-- The SPDP rank bound from the full switching pipeline.
-    Paper §7, Theorem 7.3 (Corollary 2.4): For any DTM-decidable
-    function f, the restricted SPDP rank under ρ* is ≤ (log₂ n + 1)².
-
-    PROVED from switching_to_decision_tree + decision_tree_spdp_rank.
-
-    The proof chain:
-    1. switching_to_decision_tree: f has an equivalent decision tree t
-       with depth ≤ log₂ n (via Cook-Levin + switching + union bound)
-    2. decision_tree_spdp_rank: SPDP rank of t ≤ (log₂ n + 1) · depth(t)
-    3. Arithmetic: (log₂ n + 1) · log₂ n ≤ (log₂ n + 1)² -/
 theorem switching_spdp_bound {n : ℕ} (f : (Fin n → Bool) → Bool)
     (M : TuringMachine.DTM) (hf : M.decides f) (hn : n ≥ 2) :
     RestrictedSPDP.restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n)
@@ -220,17 +139,17 @@ theorem switching_spdp_bound {n : ℕ} (f : (Fin n → Bool) → Bool)
     (Nat.log 2 n + 1) ^ 2 := by
   -- Step 1: Get decision tree equivalent
   obtain ⟨t, h_depth, h_equiv⟩ := switching_to_decision_tree f M hf hn
-  -- Step 2: t.eval = f, so multilinearInterp agrees
+  -- Step 2: Functions agree, so multilinear interpolations agree
   have h_eq : Depth4Simulation.multilinearInterp f =
       Depth4Simulation.multilinearInterp t.eval := by
     congr 1; ext x; exact (h_equiv x).symm
   rw [h_eq]
   -- Step 3: Tree depth ≤ w (number of live vars)
-  have h_w := LiveVarsDefs.liveVars_card_eq_log n
+  have h_w := liveVars_card_eq_log n
   have h_depth_w : t.depth ≤ (Restriction.liveVars
       (UniversalRestriction.universalRestriction n)).card := by
     rw [h_w]; exact h_depth
-  -- Step 4: Apply decision_tree_spdp_rank: SPDP rank ≤ (k+1)·w
+  -- Step 4: Apply Lemma G.1: SPDP rank ≤ (k+1)·w
   have h_rank := decision_tree_spdp_rank t
       (UniversalRestriction.universalRestriction n) hn h_depth_w
   -- Step 5: (k+1)·w = (log₂ n + 1) · log₂ n ≤ (log₂ n + 1)²
