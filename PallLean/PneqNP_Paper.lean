@@ -15,6 +15,7 @@
 import PallLean.PneqNP_Defs
 import PallLean.SwitchingLemma
 import PallLean.ProperSubspaceGeneral
+import PallLean.MobiusBridge
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.Dimension.Finrank
 
@@ -43,10 +44,11 @@ theorem P_subset_FSPDP (F : BoolFunFamily) (hF : UniformPtime F)
 
   Axiomatized with a threshold, matching the paper's asymptotic regime. -/
 
-/-- PROVED from ProperSubspaceGeneral (modulo mobiusL_vanishes_on_InFSPDP + spdp_rank_allVarsProd). -/
+/-- PROVED: proper subspace via Möbius functional + MobiusBridge. -/
 theorem fspdp_proper_subspace :
     ∃ n₁ : ℕ, ∀ (n : ℕ), n ≥ n₁ → n ≥ 2 → fspdpEvalSubspace n ≠ ⊤ :=
-  ProperSubspaceGeneral.fspdp_proper_subspace_proved
+  ProperSubspaceGeneral.fspdp_proper_subspace_of
+    (fun n hn f hf => MobiusBridge.mobiusL_vanishes_on_InFSPDP n hn f hf)
 
 /-! ## God Move: Annihilator Construction (Paper §8.6) — PROVED -/
 

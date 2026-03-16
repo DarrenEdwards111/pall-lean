@@ -138,24 +138,9 @@ lemma liveTrue_allLiveOnes (n : ℕ) : liveTrue n (allLiveOnes n) = w n := by
 
 /-! ## Main theorem -/
 
-/-- The top Möbius coefficient of the restricted multilinear interpolation
-    of an InFSPDP function is 0 (for n ≥ 4).
-
-    This is because:
-    1. The restricted polynomial has SPDP rank ≤ √n
-    2. If the top coefficient were nonzero, the restricted polynomial
-       (when projected to just the live variables) would contain ∏ live Xᵢ
-       with nonzero coefficient, giving SPDP rank ≥ 2^w > √n
-    3. Contradiction, so top coefficient = 0
-    4. The Möbius functional computes this top coefficient
-
-    This requires connecting:
-    - restrictPoly ρ (multilinearInterp f) to a polynomial on live vars
-    - The top coefficient to the Möbius functional
-    - The SPDP rank monotonicity (restriction to live vars ≤ full restricted rank) -/
-axiom mobiusL_vanishes_on_InFSPDP (n : ℕ) (hn : n ≥ 4)
-    (f : BoolFun n) (hf : InFSPDP f) :
-    mobiusL n (evalVec f) = 0
+-- The Mobius functional vanishes on InFSPDP evalVecs.
+-- Proved in MobiusBridge.lean from two sub-axioms:
+-- mobiusL_eq_top_coeff (Mobius inversion) + top_coeff_zero_of_InFSPDP (SPDP rank bound)
 
 /-- L(evalVec(indicatorAllLiveOnes)) = 1. -/
 lemma mobiusL_indicator (n : ℕ) (hn : n ≥ 2) :
@@ -181,13 +166,12 @@ lemma mobiusL_indicator (n : ℕ) (hn : n ≥ 2) :
   have hne : x ≠ allLiveOnes n := Finset.ne_of_mem_erase hx
   rw [h_eq x hne]; split_ifs <;> simp
 
-/-- The FSPDP evaluation subspace is proper for n ≥ 4. -/
-theorem fspdp_proper (n : ℕ) (hn : n ≥ 4) :
+/-- The FSPDP evaluation subspace is proper for n ≥ 4,
+    given that the Möbius functional vanishes on all InFSPDP functions. -/
+theorem fspdp_proper (n : ℕ) (hn : n ≥ 4)
+    (h_van : ∀ f : BoolFun n, InFSPDP f → mobiusL n (evalVec f) = 0) :
     fspdpEvalSubspace n ≠ ⊤ := by
   intro h_eq_top
-  -- mobiusL vanishes on all InFSPDP evalVecs
-  have h_van : ∀ f : BoolFun n, InFSPDP f →
-      mobiusL n (evalVec f) = 0 := fun f hf => mobiusL_vanishes_on_InFSPDP n hn f hf
   -- mobiusL vanishes on the span of InFSPDP evalVecs
   have h_le_ker : fspdpEvalSubspace n ≤ LinearMap.ker (mobiusL n) := by
     apply Submodule.span_le.mpr
@@ -204,9 +188,10 @@ theorem fspdp_proper (n : ℕ) (hn : n ≥ 4) :
   -- Contradiction: 0 = L(v) = 1
   linarith [h_span_van _ h_mem]
 
-/-- Existential version matching the axiom in PneqNP_Paper.lean. -/
-theorem fspdp_proper_subspace_proved :
-    ∃ n₁ : ℕ, ∀ (n : ℕ), n ≥ n₁ → n ≥ 2 → fspdpEvalSubspace n ≠ ⊤ := by
-  exact ⟨4, fun n hn _ => fspdp_proper n hn⟩
+/-- Existential version, parameterized by the vanishing hypothesis. -/
+theorem fspdp_proper_subspace_of
+    (h_van : ∀ n, n ≥ 4 → ∀ f : BoolFun n, InFSPDP f → mobiusL n (evalVec f) = 0) :
+    ∃ n₁ : ℕ, ∀ (n : ℕ), n ≥ n₁ → n ≥ 2 → fspdpEvalSubspace n ≠ ⊤ :=
+  ⟨4, fun n hn _ => fspdp_proper n hn (h_van n hn)⟩
 
 end ProperSubspaceGeneral
