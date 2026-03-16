@@ -14,6 +14,7 @@
 -/
 import PallLean.PneqNP_Defs
 import PallLean.SwitchingLemma
+import PallLean.ProperSubspaceGeneral
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.Dimension.Finrank
 
@@ -31,9 +32,7 @@ theorem P_subset_FSPDP (F : BoolFunFamily) (hF : UniformPtime F)
         (UniversalRestriction.universalRestriction n) ≤ Nat.sqrt n)
     (n : ℕ) (hn₀ : n ≥ n₀) (hn : n ≥ 2) : InFSPDP (F n) := by
   obtain ⟨M, hM⟩ := hF
-  exact ⟨Depth4Simulation.multilinearInterp (F n),
-         Depth4Simulation.multilinearInterp_correct (F n),
-         h_collapse n hn₀ hn (F n) M (hM n)⟩
+  exact h_collapse n hn₀ hn (F n) M (hM n)
 
 /-! ## F_SPDP* ⊊ — proper subspace (Paper §8.6)
 
@@ -44,8 +43,10 @@ theorem P_subset_FSPDP (F : BoolFunFamily) (hF : UniformPtime F)
 
   Axiomatized with a threshold, matching the paper's asymptotic regime. -/
 
-axiom fspdp_proper_subspace :
-    ∃ n₁ : ℕ, ∀ (n : ℕ), n ≥ n₁ → n ≥ 2 → fspdpEvalSubspace n ≠ ⊤
+/-- PROVED from ProperSubspaceGeneral (modulo mobiusL_vanishes_on_InFSPDP + spdp_rank_allVarsProd). -/
+theorem fspdp_proper_subspace :
+    ∃ n₁ : ℕ, ∀ (n : ℕ), n ≥ n₁ → n ≥ 2 → fspdpEvalSubspace n ≠ ⊤ :=
+  ProperSubspaceGeneral.fspdp_proper_subspace_proved
 
 /-! ## God Move: Annihilator Construction (Paper §8.6) — PROVED -/
 

@@ -8,6 +8,6 @@ import PallLean.RestrictedSPDP
 import PallLean.SwitchingLemma
 import PallLean.Depth4Simulation
 import PallLean.PneqNP_Defs
-import PallLean.ProperSubspace
-import PallLean.SPDPRankLower
+import PallLean.ProperSubspaceGeneral
+-- ProperSubspace + SPDPRankLower archived (n=2 specific, superseded by general n)
 import PallLean.PneqNP_Paper

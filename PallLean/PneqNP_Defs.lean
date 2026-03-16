@@ -9,6 +9,7 @@ import PallLean.SPDPDefs
 import PallLean.RestrictedSPDP
 import PallLean.Restriction
 import PallLean.UniversalRestriction
+import PallLean.Depth4Simulation
 import PallLean.TuringMachine
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.Dimension.Finrank
@@ -27,11 +28,17 @@ def BoolFunFamily := (n : ℕ) → BoolFun n
 def UniformPtime (F : BoolFunFamily) : Prop :=
   ∃ (M : TuringMachine.DTM), ∀ n, M.decides (F n)
 
+/-- InFSPDP: f is in the FSPDP class iff its multilinear interpolation
+    has low restricted SPDP rank.
+
+    Paper-faithful: the paper uses the unique multilinear polynomial
+    representing f (§2.3, §7). Using the multilinear interpolation
+    (rather than ∃ p) ensures the restricted polynomial is uniquely
+    determined by f, which is essential for the proper subspace argument. -/
 def InFSPDP {n : ℕ} (f : BoolFun n) : Prop :=
-  ∃ (p : MvPolynomial (Fin n) ℚ),
-    (∀ x, MvPolynomial.eval (fun i => boolToRat (x i)) p = boolToRat (f x)) ∧
-    restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n) p
-      (UniversalRestriction.universalRestriction n) ≤ Nat.sqrt n
+  restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n)
+    (Depth4Simulation.multilinearInterp f)
+    (UniversalRestriction.universalRestriction n) ≤ Nat.sqrt n
 
 def UniformNP (F : BoolFunFamily) : Prop :=
   ∃ (m : ℕ) (V : BoolFunFamily),
