@@ -88,4 +88,25 @@ theorem depth4_simulation {n : ℕ} (f : (Fin n → Bool) → Bool) :
       p.totalDegree ≤ n :=
   ⟨multilinearInterp f, multilinearInterp_correct f, multilinearInterp_degree f⟩
 
+lemma totalDegree_boolIndicator_le {n : ℕ} (a : Fin n → Bool) :
+    (boolIndicator a).totalDegree ≤ n := by
+  unfold boolIndicator
+  calc totalDegree (∏ i : Fin n, if a i then X i else 1 - X i : MvPolynomial (Fin n) ℚ)
+      ≤ ∑ i : Fin n, totalDegree (if a i then X i else 1 - X i : MvPolynomial (Fin n) ℚ) :=
+        totalDegree_finset_prod _ _
+    _ ≤ ∑ _ : Fin n, 1 := Finset.sum_le_sum (fun i _ => by
+        split
+        · simp [totalDegree_X]
+        · exact le_trans (totalDegree_sub 1 (X i)) (by simp [totalDegree_X]))
+    _ = n := by simp
+
+lemma totalDegree_multilinearInterp_le {n : ℕ} (f : (Fin n → Bool) → Bool) :
+    (multilinearInterp f).totalDegree ≤ n := by
+  unfold multilinearInterp
+  induction (Finset.univ.filter (fun a => f a)) using Finset.induction with
+  | empty => simp
+  | @insert a S ha ih =>
+    rw [Finset.sum_insert ha]
+    exact le_trans (totalDegree_add _ _) (max_le (totalDegree_boolIndicator_le a) ih)
+
 end Depth4Simulation

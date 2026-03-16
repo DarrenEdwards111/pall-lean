@@ -3,6 +3,8 @@
 -/
 import PallLean.PneqNP_Defs
 import PallLean.MobiusTopCoeff
+import PallLean.RankLowerBound
+import PallLean.LiveVarsDefs
 import PallLean.SpanDim
 import PallLean.TopCoeffExtract
 import PallLean.ProperSubspaceGeneral
@@ -17,10 +19,7 @@ import Mathlib.Tactic
 namespace MobiusBridge
 
 open MvPolynomial SPDP RestrictedSPDP Restriction BoolEval PneqNP_Defs
-open Depth4Simulation UniversalRestriction ProperSubspaceGeneral TopCoeffRank
-
-noncomputable def liveTopMonomial (n : ℕ) : Fin n →₀ ℕ :=
-  ∑ i ∈ liveVars (universalRestriction n), Finsupp.single i 1
+open Depth4Simulation UniversalRestriction ProperSubspaceGeneral TopCoeffRank LiveVarsDefs
 
 /-! ## Proved infrastructure for mobiusL_eq_top_coeff -/
 
@@ -93,13 +92,7 @@ theorem mobiusL_eq_top_coeff (n : ℕ) (hn : n ≥ 2) (f : BoolFun n) :
     unfold MobiusTopCoeff.topMon liveTopMonomial; rfl
   rwa [this] at h
 
--- PROVED in TopCoeffExtract.lean (was axiom)
-theorem iterDerivList_allLive_eq_topCoeff (n : ℕ) (f : BoolFun n) :
-    SPDP.iterDerivList (liveVars (universalRestriction n)).toList
-      (restrictPoly (universalRestriction n) (multilinearInterp f)) =
-    MvPolynomial.C (MvPolynomial.coeff (liveTopMonomial n)
-      (restrictPoly (universalRestriction n) (multilinearInterp f))) :=
-  TopCoeffExtract.iterDerivList_allLive_eq_topCoeff_proved n f
+-- iterDerivList_allLive_eq_topCoeff: now in LiveVarsDefs
 
 -- Sub-axiom 2b: Multiplying a nonzero constant by all degree-le-w
 -- monomials on w variables spans 2^w dimensions.
@@ -120,44 +113,16 @@ theorem span_const_monomials_dim (w : ℕ) (c : ℚ) (hc : c ≠ 0)
 -- This requires: (a) multilinear monomials on w vars are LI (standard),
 -- (b) c * m ranges over all such monomials when c != 0.
 -- Axiomatized since the Lean plumbing between Fin n and Fin w is heavy.
-axiom restrictedRank_ge_of_top_coeff_ne_zero (n : ℕ) (hn : n ≥ 2) (f : BoolFun n)
+theorem restrictedRank_ge_of_top_coeff_ne_zero (n : ℕ) (hn : n ≥ 2) (f : BoolFun n)
     (h_ne : MvPolynomial.coeff (liveTopMonomial n)
       (restrictPoly (universalRestriction n) (multilinearInterp f)) ≠ 0) :
     restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n)
       (multilinearInterp f) (universalRestriction n) ≥
-    2 ^ (liveVars (universalRestriction n)).card
+    2 ^ (liveVars (universalRestriction n)).card :=
+  RankLowerBound.restrictedRank_ge_proved n hn f h_ne
 
 -- Helper: counting elements in {i : Fin n | i >= m}
-private lemma card_filter_ge (n k : ℕ) (hk : k ≤ n) :
-    (Finset.univ.filter (fun i : Fin n => n - k ≤ i.val)).card = k := by
-  rcases Nat.eq_zero_or_pos n with rfl | hn
-  · simp at hk; subst hk; simp
-  rcases Nat.eq_zero_or_pos k with rfl | hk0
-  · simp only [Nat.sub_zero, Finset.card_eq_zero, Finset.filter_eq_empty_iff]
-    intro ⟨i, hi⟩ _; omega
-  · have hlt : n - k < n := by omega
-    have : (Finset.univ.filter (fun i : Fin n => n - k ≤ i.val)) =
-      Finset.Icc (⟨n - k, hlt⟩ : Fin n) ⟨n - 1, by omega⟩ := by
-      ext ⟨i, hi⟩
-      simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_Icc,
-        Fin.le_iff_val_le_val]
-      omega
-    rw [this, Fin.card_Icc]; simp; omega
-
--- PROVED: |liveVars| = log n
-theorem liveVars_card_eq_log (n : ℕ) :
-    (liveVars (universalRestriction n)).card = Nat.log 2 n := by
-  simp only [liveVars, universalRestriction]
-  -- Simplify: ρ i = none ↔ i.val ≥ n - log n
-  have h_simp : (Finset.univ.filter fun i : Fin n =>
-    (if i.val < n - Nat.log 2 n then some false else none) = none) =
-    Finset.univ.filter (fun i : Fin n => n - Nat.log 2 n ≤ i.val) := by
-    ext i; simp only [Finset.mem_filter, Finset.mem_univ, true_and]
-    constructor
-    · intro h; split_ifs at h with h' <;> simp_all
-    · intro h; simp [show ¬ i.val < n - Nat.log 2 n from by omega]
-  rw [h_simp]
-  exact card_filter_ge n (Nat.log 2 n) (Nat.log_le_self 2 n)
+-- card_filter_ge and liveVars_card_eq_log: now in LiveVarsDefs
 
 -- PROVED: InFSPDP forces top coefficient = 0
 theorem top_coeff_zero_of_InFSPDP (n : ℕ) (hn : n ≥ 4) (f : BoolFun n)
