@@ -3,6 +3,7 @@
 -/
 import PallLean.PneqNP_Defs
 import PallLean.MobiusTopCoeff
+import PallLean.TopCoeffExtract
 import PallLean.ProperSubspaceGeneral
 import PallLean.Restriction
 import PallLean.UniversalRestriction
@@ -91,14 +92,13 @@ theorem mobiusL_eq_top_coeff (n : ℕ) (hn : n ≥ 2) (f : BoolFun n) :
     unfold MobiusTopCoeff.topMon liveTopMonomial; rfl
   rwa [this] at h
 
--- Sub-axiom 2a: Iterated derivative over all live vars extracts top coeff.
--- For a multilinear polynomial on live vars, d/dx_0 ... d/dx_{w-1} q = coeff_top(q).
--- Standard algebra: pderiv_monomial reduces each exponent by 1.
-axiom iterDerivList_allLive_eq_topCoeff (n : ℕ) (f : BoolFun n) :
+-- PROVED in TopCoeffExtract.lean (was axiom)
+theorem iterDerivList_allLive_eq_topCoeff (n : ℕ) (f : BoolFun n) :
     SPDP.iterDerivList (liveVars (universalRestriction n)).toList
       (restrictPoly (universalRestriction n) (multilinearInterp f)) =
     MvPolynomial.C (MvPolynomial.coeff (liveTopMonomial n)
-      (restrictPoly (universalRestriction n) (multilinearInterp f)))
+      (restrictPoly (universalRestriction n) (multilinearInterp f))) :=
+  TopCoeffExtract.iterDerivList_allLive_eq_topCoeff_proved n f
 
 -- Sub-axiom 2b: Multiplying a nonzero constant by all degree-le-w
 -- monomials on w variables spans 2^w dimensions.

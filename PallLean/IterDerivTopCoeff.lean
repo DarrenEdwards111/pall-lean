@@ -119,4 +119,49 @@ lemma iterDerivList_full_kill (S T : Finset (Fin n)) (c : ℚ)
   rw [iterDerivList_mlMonomial_kill S.toList T S.nodup_toList j
     (Finset.mem_toList.mpr hjS) hjT, mul_zero]
 
+/-! ## iterDerivList on a single monomial: coefficient tracking -/
+
+/-- Core lemma: iterDerivList on a monomial tracks coefficients as a product of exponents. -/
+lemma iterDerivList_monomial :
+    ∀ (L : List (Fin n)) (s : Fin n →₀ ℕ) (c : ℚ),
+    L.Nodup →
+    iterDerivList L ((monomial s) c) =
+    (monomial (s - ∑ i ∈ L.toFinset, Finsupp.single i 1))
+             (c * ↑(∏ i ∈ L.toFinset, s i)) := by
+  intro L; induction L with
+  | nil => intro s c _; simp [iterDerivList, List.toFinset_nil]
+  | cons a L ih =>
+    intro s c hnd
+    have ha : a ∉ L.toFinset := by
+      rw [List.mem_toFinset]; exact (List.nodup_cons.mp hnd).1
+    show iterDerivList L ((pderiv a) ((monomial s) c)) = _
+    rw [pderiv_monomial, ih _ _ (List.nodup_cons.mp hnd).2]
+    congr 1
+    · -- exponent: (s - single a 1) - ∑ L = s - (single a 1 + ∑ L)
+      rw [List.toFinset_cons, Finset.sum_insert ha]
+      rw [tsub_add_eq_tsub_tsub]
+    · -- coefficient
+      rw [List.toFinset_cons, Finset.prod_insert ha]
+      push_cast; ring_nf
+      congr 1; apply Finset.prod_congr rfl; intro i hi
+      congr 1
+      simp [Finsupp.tsub_apply, show i ≠ a from fun h => ha (h ▸ hi)]
+
+/-- Corollary: if some L-element has exponent 0 in s, the monomial dies. -/
+lemma iterDerivList_monomial_zero (L : List (Fin n)) (s : Fin n →₀ ℕ) (c : ℚ)
+    (hL : L.Nodup) (j : Fin n) (hj : j ∈ L) (hs : s j = 0) :
+    iterDerivList L ((monomial s) c) = 0 := by
+  rw [iterDerivList_monomial L s c hL]
+  have : ∏ i ∈ L.toFinset, s i = 0 :=
+    Finset.prod_eq_zero (List.mem_toFinset.mpr hj) hs
+  simp [this, monomial_zero]
+
+/-- Corollary: for the top monomial (all exponents = 1), iterDerivList gives C c. -/
+lemma iterDerivList_top_monomial (S : Finset (Fin n)) (c : ℚ) :
+    iterDerivList S.toList (monomial (∑ j ∈ S, Finsupp.single j 1) c) = C c := by
+  have h1 : monomial (∑ j ∈ S, Finsupp.single j 1) c = C c * mlMonomial S := by
+    unfold mlMonomial; rw [C_mul_monomial, mul_one]
+  rw [h1, iterDerivList_C_mul, iterDerivList_mlMonomial_full]
+  simp [← C_mul, mul_one]
+
 end IterDerivTopCoeff
