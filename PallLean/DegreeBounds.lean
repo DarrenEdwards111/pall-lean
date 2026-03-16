@@ -53,12 +53,37 @@ lemma totalDegree_iterDerivList_le (S : List (Fin n)) (p : MvPolynomial (Fin n) 
   | nil => simp
   | cons i S ih => exact le_trans (ih _) (totalDegree_pderiv_le i p)
 
+private noncomputable def σ_fun (ρ : Restriction n) (i : Fin n) : MvPolynomial (Fin n) ℚ :=
+  match ρ i with | none => X i | some false => 0 | some true => 1
+
+private lemma td_sigma_le_one (ρ : Restriction n) (i : Fin n) :
+    (σ_fun ρ i).totalDegree ≤ 1 := by
+  unfold σ_fun; match ρ i with
+  | none => simp [totalDegree_X] | some false => simp | some true => simp
+
+private lemma restrictPoly_eq_aeval (ρ : Restriction n) (p : MvPolynomial (Fin n) ℚ) :
+    restrictPoly ρ p = aeval (σ_fun ρ) p := rfl
+
 /-- Restriction cannot increase totalDegree (substitutes X_i with X_i, 0, or 1). -/
 lemma totalDegree_restrictPoly_le (ρ : Restriction n) (p : MvPolynomial (Fin n) ℚ) :
     (restrictPoly ρ p).totalDegree ≤ p.totalDegree := by
-  -- restrictPoly = aeval (fun i => match ρ i with ...) p
-  -- Each substitution has totalDegree ≤ 1 (X_i, 0, or 1).
-  -- By MvPolynomial.totalDegree_aeval_le (if available) or manually.
-  sorry
+  rw [restrictPoly_eq_aeval]
+  conv_lhs => rw [← support_sum_monomial_coeff p]; rw [map_sum]
+  apply totalDegree_finset_sum_le _ _ p.totalDegree
+  intro s hs
+  simp only [aeval_monomial, algebraMap_eq]
+  calc totalDegree _
+      ≤ totalDegree (C (coeff s p)) + totalDegree (s.prod fun i k => σ_fun ρ i ^ k) :=
+        totalDegree_mul _ _
+    _ ≤ 0 + s.sum (fun _ e => e) := by
+        apply Nat.add_le_add (totalDegree_C _).le
+        show _ ≤ Finsupp.sum s _; simp only [Finsupp.prod, Finsupp.sum]
+        calc totalDegree (∏ i ∈ s.support, σ_fun ρ i ^ s i)
+            ≤ ∑ i ∈ s.support, totalDegree (σ_fun ρ i ^ s i) :=
+              totalDegree_finset_prod _ _
+          _ ≤ ∑ i ∈ s.support, s i := Finset.sum_le_sum (fun i _ =>
+              le_trans (totalDegree_pow _ _)
+                (le_trans (Nat.mul_le_mul_left _ (td_sigma_le_one ρ i)) (by omega)))
+    _ ≤ p.totalDegree := by linarith [le_totalDegree hs]
 
 end DegreeBounds
