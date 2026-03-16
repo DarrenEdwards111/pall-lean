@@ -19,7 +19,67 @@ open Depth4Simulation UniversalRestriction ProperSubspaceGeneral TopCoeffRank
 noncomputable def liveTopMonomial (n : ℕ) : Fin n →₀ ℕ :=
   ∑ i ∈ liveVars (universalRestriction n), Finsupp.single i 1
 
--- Axiom 1: Mobius inversion identity
+/-! ## Proved infrastructure for mobiusL_eq_top_coeff -/
+
+/-- eval g (aeval f p) = eval (eval g . f) p. AlgHom composition. -/
+lemma eval_aeval_eq {σ : Type*} [DecidableEq σ] {R : Type*} [CommRing R]
+    (f : σ → MvPolynomial σ R) (g : σ → R)
+    (p : MvPolynomial σ R) :
+    eval g (aeval f p) = eval (fun i => eval g (f i)) p := by
+  have key : ((eval g).comp (aeval f).toRingHom : MvPolynomial σ R →+* R) =
+      eval (fun i => eval g (f i)) := by
+    apply MvPolynomial.ringHom_ext
+    · intro r; simp
+    · intro i; simp [eval_X]
+  exact RingHom.congr_fun key p
+
+/-- Evaluation of restricted polynomial at a consistent Boolean point
+    equals evaluation of the original polynomial. Paper-faithful: this
+    encodes that restriction only substitutes values that are already
+    fixed by the consistent assignment. -/
+lemma eval_restrictPoly_consistent {n : ℕ} (ρ : Restriction.Restriction n)
+    (x : Fin n → Bool) (hx : ∀ i b, ρ i = some b → x i = b)
+    (p : MvPolynomial (Fin n) ℚ) :
+    eval (fun i => boolToRat (x i)) (restrictPoly ρ p) =
+    eval (fun i => boolToRat (x i)) p := by
+  unfold restrictPoly
+  rw [eval_aeval_eq]
+  have h_eq : (fun i => eval (fun j => boolToRat (x j))
+    (match ρ i with | none => X i | some false => (0 : MvPolynomial (Fin n) ℚ) | some true => 1)) =
+    (fun i => boolToRat (x i)) := by
+    funext i; cases h : ρ i with
+    | none => simp [eval_X]
+    | some b =>
+      have hmatch : (match (some b : Option Bool) with
+        | none => X i
+        | some false => (0 : MvPolynomial (Fin n) ℚ)
+        | some true => 1) = (if b then (1 : MvPolynomial (Fin n) ℚ) else 0) := by
+        cases b <;> rfl
+      rw [hmatch]
+      have hxb := hx i b h; rw [hxb]
+      cases b <;> simp [boolToRat]
+  exact congr_arg (· p) (congr_arg eval h_eq)
+
+/-- Evaluation of restricted multilinear interpolation at consistent point = boolToRat(f(x)). -/
+lemma eval_restricted_multilinearInterp {n : ℕ} (ρ : Restriction.Restriction n)
+    (f : (Fin n → Bool) → Bool) (x : Fin n → Bool) (hx : ∀ i b, ρ i = some b → x i = b) :
+    eval (fun i => boolToRat (x i)) (restrictPoly ρ (multilinearInterp f)) =
+    boolToRat (f x) := by
+  rw [eval_restrictPoly_consistent ρ x hx]
+  exact multilinearInterp_correct f x
+
+/-! ## Axiom 1: Mobius inversion identity
+
+  The Mobius functional L(evalVec f) equals the top coefficient of the
+  restricted polynomial. This combines:
+  1. eval_restricted_multilinearInterp (PROVED above)
+  2. superset_mobius_sum (PROVED in MobiusInversion.lean)
+  3. Connecting the polynomial coeff to the Mobius functional sum
+
+  The remaining gap is step 3: showing that
+    coeff(liveTopMonomial) q = sum_S (-1)^{w-|S|} eval(1_S) q
+  for multilinear q. This requires the Mobius inversion identity
+  applied to multilinear polynomial expansion. -/
 axiom mobiusL_eq_top_coeff (n : ℕ) (hn : n ≥ 2) (f : BoolFun n) :
     mobiusL n (evalVec f) =
     MvPolynomial.coeff (liveTopMonomial n)
