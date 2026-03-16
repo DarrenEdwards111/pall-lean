@@ -22,11 +22,12 @@ import PallLean.Restriction
 import PallLean.UniversalRestriction
 import PallLean.TuringMachine
 import PallLean.Depth4Simulation
+import PallLean.LiveVarsDefs
 import Mathlib.Tactic
 
 namespace BoolCircuit
 
-open MvPolynomial SPDP
+open MvPolynomial SPDP LiveVarsDefs
 
 /-! ## Boolean Circuits -/
 
@@ -112,13 +113,21 @@ def DecisionTree.eval {n : ℕ} : DecisionTree n → (Fin n → Bool) → Bool
     Proof sketch: A depth-d tree splits into at most 2^d paths. Each path
     determines a multilinear monomial of degree ≤ d. The shifted partial
     derivatives space has dimension ≤ C(d+k, k) · C(d+ℓ, ℓ). For
-    k = ℓ = ⌈log n⌉ and d = O(log n), this is polynomial. -/
+    k = ℓ = ⌈log n⌉ and d = O(log n), this is polynomial.
+
+    Paper Lemma G.1: Decision tree on w live variables has SPDP rank ≤ (k+1)·w.
+    For k = ℓ = ⌈log n⌉ and w = |liveVars ρ|, the shifted partial derivative
+    space of a depth-d decision tree (with d ≤ w) has dimension ≤ (k+1)·w.
+
+    The bound is in terms of w (number of live variables), not d (tree depth),
+    because the shift monomials m can involve all w live variables. -/
 axiom decision_tree_spdp_rank {n : ℕ} (t : DecisionTree n)
     (ρ : Restriction.Restriction n)
-    (hn : n ≥ 2) :
+    (hn : n ≥ 2)
+    (h_depth : t.depth ≤ (Restriction.liveVars ρ).card) :
     RestrictedSPDP.restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n)
       (Depth4Simulation.multilinearInterp (t.eval))
-      ρ ≤ (Nat.log 2 n + 1) * t.depth
+      ρ ≤ (Nat.log 2 n + 1) * (Restriction.liveVars ρ).card
 
 /-! ## Cook-Levin Theorem (Paper §3.1)
 
@@ -188,16 +197,20 @@ theorem switching_spdp_bound {n : ℕ} (f : (Fin n → Bool) → Bool)
       Depth4Simulation.multilinearInterp t.eval := by
     congr 1; ext x; exact (h_equiv x).symm
   rw [h_eq]
-  -- Step 3: Apply decision_tree_spdp_rank
+  -- Step 3: Tree depth ≤ w (number of live vars)
+  have h_w := LiveVarsDefs.liveVars_card_eq_log n
+  have h_depth_w : t.depth ≤ (Restriction.liveVars
+      (UniversalRestriction.universalRestriction n)).card := by
+    rw [h_w]; exact h_depth
+  -- Step 4: Apply decision_tree_spdp_rank: SPDP rank ≤ (k+1)·w
   have h_rank := decision_tree_spdp_rank t
-      (UniversalRestriction.universalRestriction n) hn
-  -- Step 4: (log₂ n + 1) · depth(t) ≤ (log₂ n + 1)²
+      (UniversalRestriction.universalRestriction n) hn h_depth_w
+  -- Step 5: (k+1)·w = (log₂ n + 1) · log₂ n ≤ (log₂ n + 1)²
+  rw [h_w] at h_rank
   calc RestrictedSPDP.restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n)
         (Depth4Simulation.multilinearInterp t.eval)
         (UniversalRestriction.universalRestriction n)
-      ≤ (Nat.log 2 n + 1) * t.depth := h_rank
-    _ ≤ (Nat.log 2 n + 1) * Nat.log 2 n := by
-        apply Nat.mul_le_mul_left; exact h_depth
+      ≤ (Nat.log 2 n + 1) * Nat.log 2 n := h_rank
     _ ≤ (Nat.log 2 n + 1) ^ 2 := by nlinarith
 
 end BoolCircuit
