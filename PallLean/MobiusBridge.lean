@@ -13,13 +13,12 @@ import PallLean.UniversalRestriction
 import PallLean.RestrictedSPDP
 import PallLean.BoolEval
 import PallLean.Depth4Simulation
-import PallLean.TopCoeffRank
 import Mathlib.Tactic
 
 namespace MobiusBridge
 
 open MvPolynomial SPDP RestrictedSPDP Restriction BoolEval PneqNP_Defs
-open Depth4Simulation UniversalRestriction ProperSubspaceGeneral TopCoeffRank LiveVarsDefs
+open Depth4Simulation UniversalRestriction ProperSubspaceGeneral LiveVarsDefs
 
 /-! ## Proved infrastructure for mobiusL_eq_top_coeff -/
 

@@ -40,21 +40,6 @@ lemma sqrt_lt_pow_log (n : ℕ) (hn : n ≥ 4) : Nat.sqrt n < 2 ^ Nat.log 2 n :=
   have : n ≤ 2 * k + 1 := by omega
   nlinarith
 
-/-! ## SPDP rank of ∏ Xᵢ is ≥ 2^w
-
-  The derivative ∂_{x₀}...∂_{x_{w-1}} of ∏ᵢ Xᵢ equals 1.
-  So generators include {m · 1 : deg(m) ≤ w}, which span all
-  degree-≤-w polynomials. The multilinear monomials among these
-  are 2^w linearly independent vectors, giving rank ≥ 2^w.
-
-  Axiomatized because the full proof needs:
-  (a) iterDerivList [0,...,w-1] (∏ Xᵢ) = 1
-  (b) Linear independence of multilinear monomials in MvPolynomial
-  Both are standard but require nontrivial Lean infrastructure. -/
-
-axiom spdp_rank_allVarsProd_ge (w : ℕ) (hw : w ≥ 1) :
-    spdpRank w w (Finset.univ.prod (fun i : Fin w => (X i : MvPolynomial (Fin w) ℚ))) ≥ 2 ^ w
-
 /-! ## Top coefficient constraint
 
   For any InFSPDP function f, the restricted multilinear interpolation
