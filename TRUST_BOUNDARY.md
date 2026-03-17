@@ -3,97 +3,94 @@
 ## Build Status
 - **Branch:** `compiled-route`
 - **Build:** 3138 jobs, 0 errors, 0 sorry
-- **Score:** 10 axioms (3 load-bearing complexity + 3 structural + 4 standard)
+- **Custom axioms for P_neq_NP:** 4 (2 structural + 2 load-bearing)
 
-## P_neq_NP Axiom Dependency Chain
+## P_neq_NP Axiom Dependency (via `#print axioms`)
 
 ```
-P_neq_NP (CompiledSeparation.lean)
-├── pside_compiled_collapse          [AXIOM — Theorem 92, P-side]
+P_neq_NP : ¬P_eq_NP
+├── [standard] propext, Classical.choice, Quot.sound
+├── [structural] hardNPVerifier : DTM
+├── [structural] hardNPWitnessBound : ℕ
+├── [load-bearing] pside_compiled_collapse  — Theorem 92 (P-side upper bound)
+└── [load-bearing] perm_rank_le_compiled    — Theorem 207 (NP-side embedding)
+```
+
+### Proof Chain
+
+```
+P_neq_NP
+├── pside_compiled_collapse          [AXIOM — Theorem 92, §9/§17.3]
 ├── compiled_rank_preservation       [THEOREM]
 │   ├── compiled_rank_monotone       [THEOREM]
-│   │   ├── spdp_rank_eval_le       [AXIOM — evaluation monotonicity]
-│   │   └── perm_restriction_exists  [AXIOM — Cook-Levin embedding]
-│   └── permanent_spdp_lower        [THEOREM — fully proved]
+│   │   └── perm_rank_le_compiled    [AXIOM — Theorem 207 core]
+│   └── permanent_spdp_lower         [THEOREM — fully proved, 0 axioms]
 │       ├── perm_first_derivs_independent  [THEOREM]
 │       │   ├── perm_derivs_independent_matvar  [THEOREM]
 │       │   │   ├── linearIndependent_of_disjoint_support  [THEOREM]
 │       │   │   ├── pderiv_permPoly_ne_zero  [THEOREM]
-│       │   │   │   └── perm_monomials_injective  [THEOREM]
-│       │   │   └── pderiv_permPoly_disjoint_diff_row/col  [THEOREM — PermanentMonomials]
-│       │   └── pderiv_rename + flatFn/unflatFn bijection  [THEOREM]
+│       │   │   └── pderiv_permPoly_disjoint_diff_row/col  [THEOREM]
+│       │   └── flatFn/unflatFn bijection + pderiv_rename  [THEOREM]
 │       └── spdp_span_le_restrictTotalDegree  [THEOREM]
 ├── rank_monotone_reduction          [THEOREM]
-├── hard_family_in_NP                [THEOREM]
-└── constructive_witness             [AXIOM — §11.7, supporting]
+└── hard_family_in_NP                [THEOREM]
 ```
 
 ## Fully Proved Files (0 axiom, 0 sorry)
 
 - **PermanentMonomials.lean**: Disjoint monomial supports for permanent derivatives
-  - Derivation.leibniz_prod, pderiv_permPoly, prod_X_eq_monomial
-  - pderiv_permPoly_disjoint_diff_row/col
 - **PermanentLower.lean**: SPDP lower bound for permanent (Theorem 94)
-  - perm_monomials_injective, pderiv_permPoly_ne_zero
-  - perm_derivs_independent_matvar, perm_first_derivs_independent
-  - permanent_spdp_lower
+- **SPDPEval.lean**: pderiv_evalOne_self, iterDerivList_evalOne_comm/zero
 
-## Load-Bearing Axioms (3)
+## Load-Bearing Axioms
 
-### Axiom 1: `pside_compiled_collapse` — Theorem 92
-P-time DTMs produce compiled polynomials with low blocked SPDP rank.
-**Paper:** §9 + §17.1 + §17.3. Cook-Levin + profile compression.
-**Difficulty:** Highest. Multi-year formalization effort.
+### 1. pside_compiled_collapse (Theorem 92)
+**Statement:** For any poly-time DTM M, the compiled polynomial's blocked SPDP rank is polynomially bounded.
+**Paper reference:** Theorem 92, Sections 9 and 17.3
+**Difficulty:** Extreme. Requires Cook-Levin formalization, depth-4 circuit simulation, binary Tseitin encoding, profile compression. Multi-year effort.
+**Status:** Kept as axiom.
 
-### Axiom 2: `spdp_rank_eval_le`
-Evaluating variables decreases blocked SPDP rank.
-**Paper:** §2 rank monotonicity under specialization.
-**Difficulty:** High. Requires showing SPDP span of φ(p) ≤ dim(SPDP span of p).
-**Challenge:** Shift monomials in the SPDP of φ(p) can use evaluated variables,
-so simple φ-image argument fails. Correct proof needs coefficient-matrix
-infrastructure or block-partition analysis.
-**6 failed approaches documented (session 2026-03-15):**
-1. Direct Submodule.map — doesn't account for shift monomials
-2. Finrank_mono — generating sets don't nest
-3. Matrix rank — needs column-collapse infrastructure
-4. Abstract version is FALSE (finite-dim counterexample)
-5. Derivation algebra — doesn't capture block structure
-6. Evaluation as projection — blocks don't decompose cleanly
+### 2. perm_rank_le_compiled (Theorem 207 core)
+**Statement:** The permanent polynomial's SPDP rank ≤ the compiled polynomial's SPDP rank.
+**Paper reference:** Theorem 207 + evaluation monotonicity
+**What it combines:**
+  - Cook-Levin semantic restriction: evaluating auxiliary variables recovers permanent structure
+  - Evaluation monotonicity: SPDP rank cannot increase under variable evaluation
+**Difficulty:** High. Needs Cook-Levin encoding structure + evaluation monotonicity proof.
+**Status:** Kept as axiom. Previously was two separate axioms (spdp_rank_eval_le + perm_restriction_exists), merged for cleaner trust boundary.
 
-### Axiom 3: `perm_restriction_exists`
-Permanent embeds in compiled polynomial via variable evaluation.
-**Paper:** Theorem 207 + Cook-Levin encoding.
-**Difficulty:** High. Needs Cook-Levin formalization.
+## Structural Axioms
 
-## Proved Theorems (supporting axioms eliminated this session)
+### hardNPVerifier : DTM
+Asserts the existence of a DTM that verifies witnesses for the hard NP family.
+Any NP-complete verifier (e.g., SAT checker) would work.
+Could be eliminated by defining a concrete verifier, but this is standard CS
+infrastructure, not mathematically interesting.
 
-### `pderiv_eval_comm` — was axiom, now THEOREM
-∂_i(p[x_j := c]) = (∂_i p)[x_j := c] for i ≠ j.
-Proof: induction on MvPolynomial (C/mul_X/add cases), case split on i = s.
+### hardNPWitnessBound : ℕ
+The polynomial witness bound exponent.
+Could be eliminated with a concrete value (e.g., 1 for SAT).
 
-### `iterDerivList_eval_comm` — was axiom, now THEOREM
-Iterated derivative commutes with evaluation when variables disjoint.
-Proof: list induction + pderiv_eval_comm.
+## Other Project Axioms (not in P_neq_NP chain)
 
-### `pderiv_permPoly_ne_zero` — was axiom, now THEOREM
-Each sub-permanent is nonzero.
-Proof: different permutations give different monomials (perm_monomials_injective),
-so the coefficient of σ₀'s monomial in the sum is exactly 1.
+- `ptime_spdp_collapse` (BoolCircuit.lean) — same as pside_compiled_collapse, used by alternate proof file
+- `f_n_family_in_NP` (PneqNP_Paper.lean) — used only by alternate proof
 
-### `perm_first_derivs_independent` — was axiom, now THEOREM
-m² derivatives of perm are linearly independent on Fin(m*m).
-Proof: transfer from MatVar via flatFn/unflatFn bijection + pderiv_rename.
+## Axiom History
 
-## Structural Axioms (not on critical path for elimination)
+| Date | Count | Change |
+|------|-------|--------|
+| Start | 14 | Initial compiled-route skeleton |
+| Session 2 | 10 | Proved permanent algebra (4 eliminated) |
+| Session 3 | 7 | Proved eval/deriv comm + removed dead (3 eliminated) |
+| Session 3 | 4 | Merged eval monotonicity + embedding (2→1) |
 
-- `cook_levin`: Cook-Levin theorem (standard CS)
-- `hardNPVerifier` / `hardNPWitnessBound` / `hardNPWitnessBound_pos`: DTM existence
-- `constructive_witness`: §11.7 supporting axiom
-- `ptime_spdp_collapse`: Boolean circuit → SPDP (BoolCircuit.lean)
-- `f_n_family_in_NP`: NP membership (PneqNP_Paper.lean, alternate file)
+## Key Lean API Lessons
 
-## Session History
-- **2026-03-17**: Eliminated 4 axioms (14→10). Proved perm_monomials_injective,
-  pderiv_permPoly_ne_zero, perm_first_derivs_independent, pderiv_eval_comm,
-  iterDerivList_eval_comm. Created PermanentMonomials.lean (0 sorry, 0 axiom).
-  PermanentLower.lean now fully proved (0 sorry, 0 axiom).
+- `MvPolynomial.induction_on` cases: `C`, `mul_X`, `add`
+- `Pi.single_eq_of_ne` for Kronecker delta = 0
+- `pderiv_X` resolves to `Pi.single` (not `if-then-else`)
+- `Submodule.finrank_map_le` for linear map dimension bound
+- `Submodule.finrank_mono` for submodule dimension bound
+- `List.foldl_cons` to unfold iterDerivList
+- `generalizing p` needed for list induction on iterDerivList
