@@ -24,15 +24,63 @@ namespace PermanentLower
 
 open MvPolynomial CompiledPoly Permanent SPDP
 
-/-! ## Sub-axiom -/
+/-! ## Unique monomial implies linear independence -/
 
-/-- The m² first partial derivatives of perm_m are linearly independent.
-    Each ∂_{flat(i,j)}(perm_m) is the (m-1)×(m-1) sub-permanent.
-    Linear independence: each has a unique monomial (identity permutation
-    on remaining rows/columns). -/
-axiom perm_first_derivs_independent (m : ℕ) (hm : m ≥ 2) :
+/-- If each polynomial p_i has a "witness" monomial α_i with nonzero coefficient,
+    and for j ≠ i the coefficient of α_i in p_j is zero,
+    then the p_i are linearly independent. -/
+theorem linearIndependent_of_unique_coeff
+    {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {σ : Type*} [DecidableEq σ]
+    {R : Type*} [CommRing R] [IsDomain R]
+    (p : ι → MvPolynomial σ R)
+    (α : ι → (σ →₀ ℕ))  -- witness monomials
+    (h_nonzero : ∀ i, MvPolynomial.coeff (α i) (p i) ≠ 0)
+    (h_unique : ∀ i j, i ≠ j → MvPolynomial.coeff (α i) (p j) = 0) :
+    LinearIndependent R p := by
+  rw [linearIndependent_iff]
+  intro l hl
+  ext i
+  -- Evaluate the coefficient of α i in the linear combination = 0
+  have h := congr_arg (MvPolynomial.coeff (α i)) hl
+  simp only [map_zero] at h
+  -- Rewrite the linear combination as a sum
+  rw [Finsupp.linearCombination_apply] at h
+  simp only [Finsupp.sum, MvPolynomial.coeff_sum, MvPolynomial.coeff_smul, smul_eq_mul] at h
+  -- Only the i-th term survives (others have coeff 0 at α i)
+  by_cases hi : i ∈ l.support
+  · rw [← Finset.add_sum_erase _ _ hi] at h
+    have h_rest : ∀ j ∈ l.support.erase i, l j * MvPolynomial.coeff (α i) (p j) = 0 := by
+      intro j hj
+      have hne : j ≠ i := Finset.ne_of_mem_erase hj
+      rw [h_unique i j hne.symm, mul_zero]
+    rw [Finset.sum_eq_zero h_rest, add_zero] at h
+    exact (mul_eq_zero.mp h).resolve_right (h_nonzero i)
+  · simp only [Finsupp.mem_support_iff, not_not] at hi; exact hi
+
+/-! ## Sub-axiom: permanent's derivatives have unique monomials -/
+
+/-- Each first derivative of the permanent has a "diagonal" monomial
+    that appears in no other first derivative. This is the content
+    needed for linear independence.
+
+    For ∂_{flat(i₀,j₀)}(perm_m): the witness monomial is the product
+    ∏_{i≠i₀} x_{i, π_{j₀}(i)} where π_{j₀} maps remaining rows to
+    columns in {0,...,m-1}\{j₀} in order (identity-like permutation).
+
+    Proving this requires computing pderiv on permPolyFlat and
+    extracting specific coefficients — substantial monomial algebra. -/
+axiom perm_derivs_have_unique_monomials (m : ℕ) (hm : m ≥ 2) :
+    ∃ (α : Fin (m * m) → ((Fin (m * m)) →₀ ℕ)),
+      (∀ v, MvPolynomial.coeff (α v) (MvPolynomial.pderiv v (permPolyFlat m)) ≠ 0) ∧
+      (∀ v w, v ≠ w → MvPolynomial.coeff (α v) (MvPolynomial.pderiv w (permPolyFlat m)) = 0)
+
+/-- The m² first partial derivatives of perm_m are linearly independent. -/
+theorem perm_first_derivs_independent (m : ℕ) (hm : m ≥ 2) :
     LinearIndependent ℚ (fun v : Fin (m * m) =>
-      MvPolynomial.pderiv v (permPolyFlat m))
+      MvPolynomial.pderiv v (permPolyFlat m)) := by
+  obtain ⟨α, h_nz, h_uniq⟩ := perm_derivs_have_unique_monomials m hm
+  exact linearIndependent_of_unique_coeff _ α h_nz h_uniq
 
 /-! ## Helpers -/
 
