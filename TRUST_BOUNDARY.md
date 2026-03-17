@@ -1,7 +1,7 @@
 # Trust Boundary — Compiled-Route Architecture
 
 **Branch:** `compiled-route`
-**Build:** 3113 jobs, 0 errors, 0 sorry
+**Build:** 3136 jobs, 0 errors, 0 sorry
 **Standard axioms:** propext, Classical.choice, Quot.sound
 
 ---
@@ -47,16 +47,71 @@ The permanent polynomial perm_m has blocked SPDP rank > m under any partition.
 Evaluating (specializing) variables in a polynomial can only decrease blocked SPDP rank.
 
 **Paper:** Implicit in Theorem 207's rank-monotone reduction.
-**Difficulty:** Medium. Requires coefficient-matrix linear algebra. The analogous statement for arbitrary linear operators is FALSE (counterexample exists); the proof must use polynomial-specific structure (derivative-eval commutativity, evaluated derivatives = 0).
-**Attack order:** Second.
+**Difficulty:** Medium. Genuine standalone theorem requiring dedicated infrastructure.
+
+#### Failed Proof Avenues (stress-tested, 2026-03-17)
+
+1. **V' ⊆ φ(V)** (image containment): Fails because shift monomials m using
+   evaluated variables produce elements NOT in the image of φ. Concretely,
+   if x_j is evaluated to c_j, the generator x_j · ∂^S(φ(p)) is not in
+   {φ(q) : q ∈ V} since x_j ∉ image(φ).
+
+2. **V' ⊆ V** (direct containment): Fails because V generators use ∂^S(p)
+   while V' generators use ∂^S(φ(p)) — different polynomials, different spans.
+
+3. **U' ⊆ U** (derivative span containment): Fails. φ(∂^S(p)) is NOT always
+   in span{∂^{S'}(p)} — evaluation involves Taylor-expansion-like reconstruction,
+   not just derivatives. Concrete counterexample: p = x₁ + x₂², φ: x₂→3,
+   φ(p) = x₁+9 ∉ span{x₁+x₂², 1, x₂}.
+
+4. **Per-component dimension bound**: For fixed S, dim(W·φ(q_S)) ≤ dim(W·q_S)
+   holds (both = dim(W) when nonzero, by integral domain). But
+   dim(Σ_S W·A_S) ≤ dim(Σ_S W·B_S) does NOT follow from per-S bounds —
+   cross-S dependencies can differ.
+
+5. **Kernel inclusion** (ker ⊆ ker'): If Σ c_i m_i q_{S_i} = 0, applying φ
+   gives Σ c_i φ(m_i) φ(q_{S_i}) = 0, but we need Σ c_i m_i φ(q_{S_i}) = 0.
+   The m_i vs φ(m_i) mismatch blocks this.
+
+6. **Abstract linear algebra**: The analogous statement for arbitrary linear
+   operators and arbitrary projections is FALSE (finite-dim counterexample
+   constructed). The proof MUST use polynomial-specific structure.
+
+#### Proof Sketch (correct but requires infrastructure)
+
+The SPDP matrix M has rows indexed by admissible (S,m) pairs, columns by monomials.
+Row (S,m) = coefficient vector of m · ∂^S(p).
+
+For the evaluated polynomial φ(p):
+- Rows with S containing evaluated variables → zeroed (∂_j(φ(p)) = 0)
+- Rows with S non-evaluated → right-multiplied by coefficient-collapse matrix C
+  (C merges monomials differing only in evaluated-variable exponents)
+
+Both operations (row deletion, right-multiplication by C) are rank-non-increasing.
+Combined: rank(M') ≤ rank(M).
+
+**Infrastructure needed:**
+- Coefficient vectors for MvPolynomial (monomial basis extraction)
+- SPDP matrix construction (rows = generators, columns = monomials)
+- Evaluation-induced column-collapse map C
+- Rank monotonicity under row deletion + right multiplication
+- Derivative-eval commutativity at coefficient level
+
+This is a dedicated sub-project, not a quick theorem finish.
+
+**Attack order:** Second (when coefficient-matrix infrastructure is built).
 
 ### Axiom 4: `perm_restriction_exists` — Structural Embedding
 
-The permanent polynomial can be recovered from any compiled polynomial (of a DTM deciding the hard NP family) by evaluating auxiliary variables. The SPDP rank of the recovered polynomial ≥ the permanent's SPDP rank.
+The permanent polynomial can be recovered from any compiled polynomial (of a DTM
+deciding the hard NP family) by evaluating auxiliary variables.
 
 **Paper:** Theorem 207 (rank-monotone block-local reduction).
-**Difficulty:** Medium. Concrete construction of the evaluation map.
-**Attack order:** First (next target).
+**Difficulty:** Medium-High. Requires full Cook-Levin formalization.
+**Content:** Irreducible reduction theorem — can't be decomposed without constructing
+the actual Cook-Levin encoding (input/witness/trace variable structure, clause
+generation from DTM transitions, semantic restriction recovering the permanent).
+**Attack order:** After spdp_rank_eval_le (needs Cook-Levin infrastructure).
 
 ---
 
@@ -95,9 +150,16 @@ Witness length exponent for the hard NP family.
 | `PallLean/CompiledSeparation.lean` | All axioms, derived theorems, P_neq_NP |
 | `PallLean/TuringMachine.lean` | DTM definition, decides/accepts predicates |
 
-## Attack Order
+## Phase Summary
 
-1. **perm_restriction_exists** — concrete embedding, smallest structural axiom
-2. **spdp_rank_eval_le** — pure algebra, needs coefficient-matrix infrastructure
-3. **permanent_spdp_lower** — algebraic lower bound
-4. **pside_compiled_collapse** — the monster (last)
+This trust boundary represents a **natural plateau**:
+- Each remaining axiom is a distinct mathematical theorem requiring specialized infrastructure
+- No axiom can be eliminated by clever rearrangement of existing lemmas
+- The 5 proved theorems represent genuine deductive work (not just restatements)
+- The axiom dependency graph is minimal (no redundant axioms)
+
+### Next Phase Options (each is a sub-project)
+1. **Coefficient-matrix layer** → eliminates Axiom 3 (spdp_rank_eval_le)
+2. **Cook-Levin formalization** → eliminates Axiom 4 (perm_restriction_exists)
+3. **Permanent SPDP analysis** → eliminates Axiom 2 (permanent_spdp_lower)
+4. **Profile compression** → eliminates Axiom 1 (pside_compiled_collapse)
