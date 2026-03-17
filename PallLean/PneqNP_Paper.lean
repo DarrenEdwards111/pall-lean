@@ -8,9 +8,9 @@
   f_n from all SPDP-collapsible functions via orthogonality vs positivity.
 
   Architecture:
-    AXIOM: universal_spdp_collapse  (Paper Thm 7.3, asymptotic)
-    AXIOM: f_n_family_in_NP         (Paper Appendix Q)
-    AXIOM: fspdp_proper_subspace    (Paper §8.6: dim argument, asymptotic)
+    AXIOM: ptime_spdp_collapse     (Paper Thm 92 / §9 / §17.3, profile compression)
+    AXIOM: f_n_family_in_NP        (Paper Appendix Q)
+    PROVED: fspdp_proper_subspace  (Paper §8.6: Möbius functional)
 -/
 import PallLean.PneqNP_Defs
 import PallLean.SwitchingLemma
@@ -26,14 +26,14 @@ open BoolEval SPDP RestrictedSPDP Restriction PneqNP_Defs
 /-! ## P ⊆ F_SPDP* — for n ≥ n₀ (from universal_spdp_collapse) -/
 
 theorem P_subset_FSPDP (F : BoolFunFamily) (hF : UniformPtime F)
+    (M : TuringMachine.DTM) (hM : ∀ n, M.decides (F n))
     (n₀ : ℕ) (h_collapse : ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
-      ∀ (f : (Fin n → Bool) → Bool) (M : TuringMachine.DTM),
+      ∀ (f : (Fin n → Bool) → Bool),
       M.decides f → restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n)
         (Depth4Simulation.multilinearInterp f)
         (UniversalRestriction.universalRestriction n) ≤ Nat.sqrt n)
-    (n : ℕ) (hn₀ : n ≥ n₀) (hn : n ≥ 2) : InFSPDP (F n) := by
-  obtain ⟨M, hM⟩ := hF
-  exact h_collapse n hn₀ hn (F n) M (hM n)
+    (n : ℕ) (hn₀ : n ≥ n₀) (hn : n ≥ 2) : InFSPDP (F n) :=
+  h_collapse n hn₀ hn (F n) (hM n)
 
 /-! ## F_SPDP* ⊊ — proper subspace (Paper §8.6)
 
@@ -172,8 +172,10 @@ theorem P_neq_NP : ¬ P_eq_NP := by
   intro hPeqNP
   have h_np := f_n_family_in_NP
   have h_p := hPeqNP f_n_family h_np
-  -- Obtain thresholds from asymptotic axioms
-  obtain ⟨n₀, h_collapse⟩ := SwitchingLemma.universal_spdp_collapse
+  -- Extract the DTM from UniformPtime
+  obtain ⟨M, hM⟩ := h_p
+  -- Obtain threshold for this specific DTM
+  obtain ⟨n₀, h_collapse⟩ := SwitchingLemma.universal_spdp_collapse M
   obtain ⟨n₁, h_proper⟩ := fspdp_proper_subspace
   -- Pick n large enough for both axioms
   let n := max (max n₀ n₁) 2
@@ -181,7 +183,7 @@ theorem P_neq_NP : ¬ P_eq_NP := by
   have hn₁ : n ≥ n₁ := le_trans (le_max_right n₀ n₁) (le_max_left _ 2)
   have hn2 : n ≥ 2 := le_max_right _ 2
   have h_prop_n := h_proper n hn₁ hn2
-  have h_fspdp := P_subset_FSPDP f_n_family h_p n₀ h_collapse n hn₀ hn2
+  have h_fspdp := P_subset_FSPDP f_n_family ⟨M, hM⟩ M hM n₀ h_collapse n hn₀ hn2
   rw [f_n_family_eq n hn2 h_prop_n] at h_fspdp
   exact f_n_escapes_FSPDP n hn2 h_prop_n h_fspdp
 
