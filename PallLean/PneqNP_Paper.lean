@@ -25,7 +25,7 @@ open BoolEval SPDP RestrictedSPDP Restriction PneqNP_Defs
 
 /-! ## P ⊆ F_SPDP* — for n ≥ n₀ (from universal_spdp_collapse) -/
 
-theorem P_subset_FSPDP (F : BoolFunFamily) (hF : UniformPtime F)
+theorem P_subset_FSPDP (F : BoolFunFamily)
     (M : TuringMachine.DTM) (hM : ∀ n, M.decides (F n))
     (n₀ : ℕ) (h_collapse : ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
       ∀ (f : (Fin n → Bool) → Bool),
@@ -183,7 +183,7 @@ theorem P_neq_NP : ¬ P_eq_NP := by
   have hn₁ : n ≥ n₁ := le_trans (le_max_right n₀ n₁) (le_max_left _ 2)
   have hn2 : n ≥ 2 := le_max_right _ 2
   have h_prop_n := h_proper n hn₁ hn2
-  have h_fspdp := P_subset_FSPDP f_n_family ⟨M, hM⟩ M hM n₀ h_collapse n hn₀ hn2
+  have h_fspdp := P_subset_FSPDP f_n_family M hM n₀ h_collapse n hn₀ hn2
   rw [f_n_family_eq n hn2 h_prop_n] at h_fspdp
   exact f_n_escapes_FSPDP n hn2 h_prop_n h_fspdp
 
