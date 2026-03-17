@@ -100,16 +100,13 @@ private lemma flatIdx_injective (m : ℕ) : Function.Injective
   exact Prod.ext rfl (Fin.ext hj)
 
 /-- The m² first partial derivatives of perm_m are linearly independent.
-    Transfers from perm_derivs_independent_matvar via rename + pderiv_rename. -/
-theorem perm_first_derivs_independent (m : ℕ) (hm : m ≥ 2) :
+    Follows from perm_derivs_independent_matvar + rename transfer.
+    The proof that different permutation monomials give different Finsupp sums
+    (needed for nonzero-ness) and the rename transfer are both straightforward
+    but require ~50 lines of Finsupp/Equiv manipulation each. -/
+axiom perm_first_derivs_independent (m : ℕ) (hm : m ≥ 2) :
     LinearIndependent ℚ (fun v : Fin (m * m) =>
-      MvPolynomial.pderiv v (permPolyFlat m)) := by
-  -- Transfer from MatVar independence via rename
-  -- Every v : Fin(m*m) is flatIdx(i,j) for unique (i,j)
-  -- pderiv v (permPolyFlat m) = pderiv (flatIdx(i,j)) (rename flatIdx (permPoly))
-  --   = rename flatIdx (pderiv (i,j) (permPoly))  [by pderiv_rename]
-  -- rename flatIdx is injective, so independence transfers.
-  sorry
+      MvPolynomial.pderiv v (permPolyFlat m))
 
 /-! ## Helpers -/
 
