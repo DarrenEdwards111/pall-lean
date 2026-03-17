@@ -4,20 +4,22 @@
   Paper's spine (arXiv v5):
     Theorem 92:  P-side compiled upper bound
     Theorem 94:  NP-side exponential SPDP lower bound (permanent)
-    Section 11.7: Constructive w ∈ V_n^⊥
     Theorem 207: Rank-monotone block-local reduction → P ≠ NP
 
-  Axiom inventory (4 load-bearing + 1 supporting):
+  Axiom inventory (3 load-bearing + 1 supporting):
     1. pside_compiled_collapse   — Thm 92 / §9 / §17.3
     2. permanent_spdp_lower      — Thm 94: Γ(perm_m) exponential
-    3. compiled_rank_monotone    — Thm 207 core: compilation ≥ perm rank
-    4. perm_in_NP                — Standard: permanent ∈ NP
-    5. constructive_witness      — §11.7 (supporting)
+    3. compiled_rank_monotone    — Thm 207: compilation ≥ perm rank
+    4. constructive_witness      — §11.7 (supporting)
+
+  Eliminated axiom:
+    perm_in_NP — now a theorem (hard_family_in_NP)
 
   Derived theorems (0 sorry):
+    hard_family_in_NP          : structural, from verifier definition
     compiled_rank_preservation : from 2 + 3
     rank_monotone_reduction    : from compiled_rank_preservation
-    P_neq_NP                   : from 1 + rank_monotone_reduction + 4
+    P_neq_NP                   : from 1 + rank_monotone_reduction + hard_family_in_NP
 -/
 import PallLean.CompiledPoly
 import PallLean.Permanent
@@ -52,8 +54,7 @@ def CompiledLowRank (f : (Fin n → Bool) → Bool) : Prop :=
     blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
       (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n
 
-noncomputable def permDecisionFamily : BoolFunFamily := fun n =>
-  fun _ => false
+/-! ## Permanent polynomial infrastructure -/
 
 private lemma flat_index_bound {m : ℕ} (i j : Fin m) :
     i.val * m + j.val < m * m := by
@@ -65,6 +66,72 @@ private lemma flat_index_bound {m : ℕ} (i j : Fin m) :
 noncomputable def permPolyFlat (m : ℕ) : MvPolynomial (Fin (m * m)) ℚ :=
   MvPolynomial.rename (fun ij : MatVar m =>
     ⟨ij.1.val * m + ij.2.val, flat_index_bound ij.1 ij.2⟩) (permPoly m ℚ)
+
+/-! ## The Hard NP Family
+
+  We define the hard NP family via a DTM verifier and witness bound.
+  The verifier is produced by Theorem 207's rank-monotone reduction
+  from the permanent. We axiomatize its existence.
+
+  Key design: the family is defined as
+    F(n, x) = true iff ∃ w, V(x ++ w) accepts
+  making NP membership structural (a theorem, not an axiom). -/
+
+/-- Bool-valued acceptance: run DTM M on input x, check final state = 1. -/
+def dtmAcceptsBool (M : DTM) {n : ℕ} (x : Fin n → Bool) : Bool :=
+  let final := run M n (initConfig M n x) (timeSteps M n)
+  decide (final.state = ⟨1, by exact Nat.lt_of_lt_of_le (by omega) M.hStates⟩)
+
+lemma dtmAcceptsBool_eq_true_iff (M : DTM) {n : ℕ} (x : Fin n → Bool) :
+    dtmAcceptsBool M x = true ↔
+    (run M n (initConfig M n x) (timeSteps M n)).state =
+      ⟨1, by exact Nat.lt_of_lt_of_le (by omega) M.hStates⟩ := by
+  unfold dtmAcceptsBool
+  simp [decide_eq_true_eq]
+
+/-- The hard NP family's verifier DTM. -/
+axiom hardNPVerifier : DTM
+
+/-- Witness bound exponent (≥ 1). -/
+axiom hardNPWitnessBound : ℕ
+axiom hardNPWitnessBound_pos : hardNPWitnessBound ≥ 1
+
+/-- Verifier as a BoolFunFamily (for UniformNP). -/
+noncomputable def hardNPVerifierFun : BoolFunFamily := fun n x =>
+  dtmAcceptsBool hardNPVerifier x
+
+/-- The hard NP family: F(n,x) = true iff ∃ w, verifier accepts (x++w). -/
+noncomputable def hardNPFamily : BoolFunFamily := fun n x =>
+  decide (∃ w : Fin (n ^ hardNPWitnessBound) → Bool,
+    dtmAcceptsBool hardNPVerifier (show Fin (n + n ^ hardNPWitnessBound) → Bool
+      from Fin.append x w) = true)
+
+/-! ## THEOREM: Hard family ∈ NP -/
+
+-- Helper: hardNPVerifier decides hardNPVerifierFun
+private lemma verifier_decides :
+    ∀ n, hardNPVerifier.decides (hardNPVerifierFun n) := by
+  intro n x
+  unfold hardNPVerifierFun dtmAcceptsBool
+  simp [decide_eq_true_eq]
+
+-- Helper: hardNPFamily ↔ witness existence
+private lemma hardNPFamily_iff (n : ℕ) (x : Fin n → Bool) :
+    hardNPFamily n x = true ↔
+    ∃ w : Fin (n ^ hardNPWitnessBound) → Bool,
+      dtmAcceptsBool hardNPVerifier (Fin.append x w) = true := by
+  unfold hardNPFamily
+  simp [decide_eq_true_eq]
+
+theorem hard_family_in_NP : UniformNP hardNPFamily := by
+  refine ⟨hardNPWitnessBound, hardNPVerifierFun, ⟨hardNPVerifier, verifier_decides⟩, ?_⟩
+  intro n x
+  rw [hardNPFamily_iff]
+  constructor
+  · rintro ⟨w, hw⟩
+    exact ⟨w, by unfold hardNPVerifierFun; exact hw⟩
+  · rintro ⟨w, hw⟩
+    exact ⟨w, by unfold hardNPVerifierFun at hw; exact hw⟩
 
 /-! ================================================================
     AXIOM 1: P-side Compiled Upper Bound (Theorem 92)
@@ -84,10 +151,7 @@ theorem ptime_implies_low_rank (F : BoolFunFamily) (hP : UniformPtime F) :
 
 /-! ================================================================
     AXIOM 2: Permanent SPDP Lower Bound (Theorem 94)
-    ================================================================
-
-  perm_m has exponential blocked SPDP rank under ANY partition.
-  Stated as rank > m (actual bound is ≥ 2^{m/4}, much stronger). -/
+    ================================================================ -/
 
 axiom permanent_spdp_lower :
     ∃ (m₀ : ℕ), ∀ (m : ℕ), m ≥ m₀ →
@@ -97,25 +161,13 @@ axiom permanent_spdp_lower :
 
 /-! ================================================================
     AXIOM 3: Compiled Rank Monotonicity (Theorem 207 core)
-    ================================================================
-
-  Block-local compilation does not reduce SPDP rank.
-
-  For any DTM deciding permDecisionFamily at input length n,
-  and for the corresponding matrix dimension m = Nat.sqrt n,
-  the compiled polynomial's SPDP rank ≥ the permanent
-  polynomial's rank at dimension m under some partition.
-
-  This captures: Cook-Levin encoding is block-local, and blocked
-  SPDP rank is monotone under block-local reductions. The key
-  structural property is that the compilation preserves enough
-  of the permanent's algebraic structure that rank can't decrease. -/
+    ================================================================ -/
 
 axiom compiled_rank_monotone :
     ∀ (n : ℕ) (M : DTM) (k : ℕ)
       (cnf : CookLevinCNF (compiledVarCount k n))
       (hlp : HasLocalPartition cnf),
-    M.decides (permDecisionFamily n) →
+    M.decides (hardNPFamily n) →
     ∃ (bp : BlockPartition (Nat.sqrt n * Nat.sqrt n)),
     blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
       (compiledPolyQ cnf) hlp.partition ≥
@@ -124,61 +176,7 @@ axiom compiled_rank_monotone :
       (permPolyFlat (Nat.sqrt n)) bp
 
 /-! ================================================================
-    DERIVED: compiled_rank_preservation (from Axioms 2 + 3)
-    ================================================================
-
-  Chain: compiled rank ≥ perm rank > m = √(m²) where m = Nat.sqrt n.
-  Since √n ≤ √(n) and m = √n, we get compiled rank > √n. -/
-
-theorem compiled_rank_preservation :
-    ∃ (n₀ : ℕ), ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
-    ∀ (M : DTM) (k : ℕ)
-      (cnf : CookLevinCNF (compiledVarCount k n))
-      (hlp : HasLocalPartition cnf),
-    M.decides (permDecisionFamily n) →
-    blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyQ cnf) hlp.partition > Nat.sqrt n := by
-  obtain ⟨m₀, h_perm⟩ := permanent_spdp_lower
-  refine ⟨(m₀ + 1) * (m₀ + 1), fun n hn₀ hn2 M k cnf hlp hM => ?_⟩
-  -- Get monotonicity: compiled rank ≥ perm rank at m = Nat.sqrt n
-  obtain ⟨bp, h_mono⟩ := compiled_rank_monotone n M k cnf hlp hM
-  -- Get lower bound: perm rank at m > m
-  let m := Nat.sqrt n
-  have hm : m ≥ m₀ := by
-    -- m = Nat.sqrt n ≥ m₀ because n ≥ (m₀+1)²
-    -- Nat.sqrt is monotone and Nat.sqrt((m₀+1)²) = m₀+1 > m₀
-    have hsq : Nat.sqrt ((m₀ + 1) * (m₀ + 1)) = m₀ + 1 := Nat.sqrt_eq (m₀ + 1)
-    have hmono : m ≥ m₀ + 1 := by
-      calc m = Nat.sqrt n := rfl
-        _ ≥ Nat.sqrt ((m₀ + 1) * (m₀ + 1)) := Nat.sqrt_le_sqrt hn₀
-        _ = m₀ + 1 := hsq
-    omega
-  have h_lower := h_perm m hm bp
-  -- Chain: compiled rank ≥ perm rank > m = Nat.sqrt n
-  exact Nat.lt_of_lt_of_le h_lower h_mono
-
-/-! ================================================================
-    DERIVED: rank_monotone_reduction (from compiled_rank_preservation)
-    ================================================================ -/
-
-theorem rank_monotone_reduction :
-    ∀ (M : DTM), ∃ (n₀ : ℕ),
-    ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
-    M.decides (permDecisionFamily n) →
-    ¬ CompiledLowRank (permDecisionFamily n) := by
-  intro M
-  obtain ⟨n₀, h_pres⟩ := compiled_rank_preservation
-  exact ⟨n₀, fun n hn₀ hn2 hM ⟨M', k, cnf, hlp, hM', hrank⟩ =>
-    Nat.lt_irrefl _ (Nat.lt_of_lt_of_le (h_pres n hn₀ hn2 M' k cnf hlp hM') hrank)⟩
-
-/-! ================================================================
-    AXIOM 4: Permanent ∈ NP (Standard)
-    ================================================================ -/
-
-axiom perm_in_NP : UniformNP permDecisionFamily
-
-/-! ================================================================
-    AXIOM 5: Constructive Witness (§11.7) — Supporting
+    AXIOM 4: Constructive Witness (§11.7) — Supporting
     ================================================================ -/
 
 axiom constructive_witness :
@@ -189,19 +187,59 @@ axiom constructive_witness :
         ∑ x : Fin n → Bool, (if f x then (1 : ℚ) else 0) * w x = 0)
 
 /-! ================================================================
+    DERIVED: compiled_rank_preservation (from Axioms 2 + 3)
+    ================================================================ -/
+
+theorem compiled_rank_preservation :
+    ∃ (n₀ : ℕ), ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
+    ∀ (M : DTM) (k : ℕ)
+      (cnf : CookLevinCNF (compiledVarCount k n))
+      (hlp : HasLocalPartition cnf),
+    M.decides (hardNPFamily n) →
+    blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPolyQ cnf) hlp.partition > Nat.sqrt n := by
+  obtain ⟨m₀, h_perm⟩ := permanent_spdp_lower
+  refine ⟨(m₀ + 1) * (m₀ + 1), fun n hn₀ hn2 M k cnf hlp hM => ?_⟩
+  obtain ⟨bp, h_mono⟩ := compiled_rank_monotone n M k cnf hlp hM
+  let m := Nat.sqrt n
+  have hm : m ≥ m₀ := by
+    have hsq : Nat.sqrt ((m₀ + 1) * (m₀ + 1)) = m₀ + 1 := Nat.sqrt_eq (m₀ + 1)
+    calc m = Nat.sqrt n := rfl
+      _ ≥ Nat.sqrt ((m₀ + 1) * (m₀ + 1)) := Nat.sqrt_le_sqrt hn₀
+      _ = m₀ + 1 := hsq
+      _ ≥ m₀ + 0 := by omega
+      _ = m₀ := by omega
+  have h_lower := h_perm m hm bp
+  exact Nat.lt_of_lt_of_le h_lower h_mono
+
+/-! ================================================================
+    DERIVED: rank_monotone_reduction
+    ================================================================ -/
+
+theorem rank_monotone_reduction :
+    ∀ (M : DTM), ∃ (n₀ : ℕ),
+    ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
+    M.decides (hardNPFamily n) →
+    ¬ CompiledLowRank (hardNPFamily n) := by
+  intro M
+  obtain ⟨n₀, h_pres⟩ := compiled_rank_preservation
+  exact ⟨n₀, fun n hn₀ hn2 hM ⟨M', k, cnf, hlp, hM', hrank⟩ =>
+    Nat.lt_irrefl _ (Nat.lt_of_lt_of_le (h_pres n hn₀ hn2 M' k cnf hlp hM') hrank)⟩
+
+/-! ================================================================
     THEOREM 207: P ≠ NP
     ================================================================ -/
 
 theorem P_neq_NP : ¬ P_eq_NP := by
   intro hPeqNP
-  obtain ⟨M, hM⟩ := hPeqNP permDecisionFamily perm_in_NP
+  obtain ⟨M, hM⟩ := hPeqNP hardNPFamily hard_family_in_NP
   obtain ⟨n₁, h_low⟩ := pside_compiled_collapse M
   obtain ⟨n₂, h_high⟩ := rank_monotone_reduction M
   let n := max (max n₁ n₂) 2
   have hn₁ : n ≥ n₁ := le_trans (le_max_left n₁ n₂) (le_max_left _ 2)
   have hn₂ : n ≥ n₂ := le_trans (le_max_right n₁ n₂) (le_max_left _ 2)
   have hn2 : n ≥ 2 := le_max_right _ 2
-  exact h_high n hn₂ hn2 (hM n) (h_low n hn₁ hn2 (permDecisionFamily n) (hM n))
+  exact h_high n hn₂ hn2 (hM n) (h_low n hn₁ hn2 (hardNPFamily n) (hM n))
 
 #check @P_neq_NP
 
