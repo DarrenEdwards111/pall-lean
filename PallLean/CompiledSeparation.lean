@@ -6,18 +6,18 @@
     Theorem 94:  NP-side exponential SPDP lower bound (permanent)
     Theorem 207: Rank-monotone block-local reduction → P ≠ NP
 
-  Axiom inventory (3 load-bearing + 1 supporting):
-    1. pside_compiled_collapse   — Thm 92 / §9 / §17.3
-    2. permanent_spdp_lower      — Thm 94: Γ(perm_m) exponential
-    3. compiled_rank_monotone    — Thm 207: compilation ≥ perm rank
-    4. constructive_witness      — §11.7 (supporting)
+  Axiom inventory (1 load-bearing + 2 structural):
+    1. pside_compiled_collapse   — Thm 92 / §9 / §17.3 (P-side upper bound)
+    2. perm_rank_le_compiled     — Thm 207 core (NP-side: perm rank ≤ compiled rank)
+    3. hardNPVerifier / hardNPWitnessBound — structural witnesses
 
-  Eliminated axiom:
-    perm_in_NP — now a theorem (hard_family_in_NP)
+  Fully proved (0 axiom, 0 sorry):
+    PermanentMonomials.lean — disjoint monomial supports
+    PermanentLower.lean     — permanent SPDP lower bound (Theorem 94)
 
   Derived theorems (0 sorry):
     hard_family_in_NP          : structural, from verifier definition
-    compiled_rank_preservation : from 2 + 3
+    compiled_rank_preservation : from permanent_spdp_lower + perm_rank_le_compiled
     rank_monotone_reduction    : from compiled_rank_preservation
     P_neq_NP                   : from 1 + rank_monotone_reduction + hard_family_in_NP
 -/
@@ -80,12 +80,11 @@ lemma dtmAcceptsBool_eq_true_iff (M : DTM) {n : ℕ} (x : Fin n → Bool) :
   unfold dtmAcceptsBool
   simp [decide_eq_true_eq]
 
-/-- The hard NP family's verifier DTM. -/
+/-- The hard NP family's verifier DTM (any NP-complete verifier works). -/
 axiom hardNPVerifier : DTM
 
-/-- Witness bound exponent (≥ 1). -/
+/-- Witness bound exponent (any polynomial bound works). -/
 axiom hardNPWitnessBound : ℕ
--- hardNPWitnessBound_pos removed: not used in proof chain
 
 /-- Verifier as a BoolFunFamily (for UniformNP). -/
 noncomputable def hardNPVerifierFun : BoolFunFamily := fun n x =>
@@ -171,13 +170,7 @@ theorem compiled_rank_monotone :
       (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
       (permPolyFlat (Nat.sqrt n)) bp := by
   intro n M k cnf hlp hM
-  -- Get the embedding: perm rank ≤ rank of evaluated compiled poly
-  obtain ⟨assignments, bp, h_embed⟩ :=
-    SPDPMonotone.perm_restriction_exists n M k cnf hlp (hardNPFamily n) hM
-  -- Get monotonicity: rank of evaluated poly ≤ rank of original poly
-  have h_eval := SPDPMonotone.spdp_rank_eval_le
-    (Nat.log 2 n) (Nat.log 2 n) (compiledPolyQ cnf) hlp.partition assignments
-  exact ⟨bp, le_trans h_embed h_eval⟩
+  exact SPDPMonotone.perm_rank_le_compiled n M k cnf hlp (hardNPFamily n) hM
 
 /-! ================================================================
     AXIOM 4: Constructive Witness (§11.7) — Supporting

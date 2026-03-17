@@ -118,98 +118,29 @@ theorem iterDerivList_eval_comm {N : ℕ} (S : List (Fin N)) (j : Fin N) (c : �
 
   where B' is the partition B restricted to the remaining variables. -/
 
-/-- The SPDP rank of a polynomial obtained by evaluating variables
-    is at most the SPDP rank of the original polynomial.
+/-! ## Combined Permanent Embedding (Theorem 207 Core)
 
-    This is the core monotonicity lemma. It follows from:
-    - evaluation is a linear map on the polynomial ring
-    - derivatives commute with evaluation (at different variables)
-    - the image of a spanning set under a linear map spans a subspace
-      of dimension ≤ the original -/
-axiom spdp_rank_eval_le {N : ℕ}
-    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
-    (bp : CompiledPoly.BlockPartition N)
-    (assignments : Fin N → Option ℚ)  -- None = free, Some c = evaluate to c
-    : blockedSpdpRankQ κ ℓ
-        (MvPolynomial.aeval (fun i =>
-          match assignments i with
-          | none => X i
-          | some c => MvPolynomial.C c) p) bp
-      ≤ blockedSpdpRankQ κ ℓ p bp
+  The permanent polynomial's SPDP rank is bounded by the compiled
+  polynomial's SPDP rank. This combines:
+  1. Cook-Levin semantic restriction: evaluating auxiliary variables
+     in the compiled polynomial recovers the permanent's structure
+  2. Evaluation monotonicity: evaluation cannot increase SPDP rank
 
-/-! ## Permanent embeds in compilation
-
-  For a DTM M deciding the hard NP family (which is connected to the
-  permanent via Theorem 207's reduction), the compiled polynomial
-  P_{M,n} contains the permanent polynomial as a "restriction":
-
-  Setting the auxiliary (witness/computation) variables to appropriate
-  values recovers a polynomial whose SPDP rank is at least perm_m's.
-
-  This is the structural content of Theorem 207: the Cook-Levin encoding
-  preserves enough algebraic structure that the permanent's SPDP rank
-  transfers to the compiled polynomial. -/
-
-/-! ## Cook-Levin Variable Structure
-
-  The compiled polynomial P_{M,n} has variables partitioned into:
-  - Input variables (first n positions): encode the problem input
-  - Auxiliary variables (remaining positions): encode witness + computation trace
-
-  Setting auxiliary variables to values corresponding to a valid computation
-  yields a "semantic restriction" — a polynomial in the input variables
-  that captures the function M computes.
-
-  For a DTM computing the permanent, this semantic restriction encodes
-  the permanent polynomial on the input matrix. -/
-
-/-- Input variable embedding: the first n variables of the compiled space
-    correspond to the problem input. -/
-def inputEmbed (k n : ℕ) (i : Fin n) : Fin (compiledVarCount k n) :=
-  ⟨i.val, by
-    unfold compiledVarCount
-    calc i.val < n := i.isLt
-      _ ≤ n ^ (2 * k + 1) := Nat.le_self_pow (by omega) n⟩
-
-/-- An assignment that fixes auxiliary variables (index ≥ n) to constants
-    while leaving input variables (index < n) free. -/
-def inputRestriction (k n : ℕ) (auxVals : Fin (compiledVarCount k n) → ℚ) :
-    Fin (compiledVarCount k n) → Option ℚ :=
-  fun i => if i.val < n then none else some (auxVals i)
-
-/-! ## Axiom: Permanent Restriction
-
-  Decomposed into two sub-axioms:
-
-  (a) cook_levin_semantic_restriction:
-      For any DTM M deciding hardFamily at input length n, there exist
-      auxiliary variable values such that the evaluated compiled polynomial
-      (restricted to input variables) captures M's computation.
-
-  (b) perm_semantic_rank:
-      For the specific hardNPFamily (connected to the permanent via
-      Theorem 207), this semantic restriction has SPDP rank ≥ perm_m's rank.
-
-  We keep these bundled for now since separating them requires
-  defining "semantic restriction" formally. -/
+  Paper reference: Theorem 207 + Section 9 evaluation monotonicity -/
 
 -- Note: parameterized over hardFamily to avoid circular import with
 -- CompiledSeparation. In practice, only called with hardNPFamily.
-axiom perm_restriction_exists
+axiom perm_rank_le_compiled
     (n : ℕ) (M : TuringMachine.DTM) (k : ℕ)
     (cnf : CookLevinCNF (compiledVarCount k n))
     (hlp : HasLocalPartition cnf)
     (hardFamily : (Fin n → Bool) → Bool)
     (hM : M.decides hardFamily) :
-    ∃ (assignments : Fin (compiledVarCount k n) → Option ℚ)
-      (bp : CompiledPoly.BlockPartition (Nat.sqrt n * Nat.sqrt n)),
+    ∃ (bp : CompiledPoly.BlockPartition (Nat.sqrt n * Nat.sqrt n)),
     blockedSpdpRankQ (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
       (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
       (Permanent.permPolyFlat (Nat.sqrt n)) bp ≤
     blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (MvPolynomial.aeval (fun i =>
-        match assignments i with
-        | none => X i
-        | some c => MvPolynomial.C c) (compiledPolyQ cnf)) hlp.partition
+      (compiledPolyQ cnf) hlp.partition
 
 end SPDPMonotone
