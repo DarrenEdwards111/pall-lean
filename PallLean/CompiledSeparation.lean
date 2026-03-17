@@ -23,6 +23,7 @@
 -/
 import PallLean.CompiledPoly
 import PallLean.Permanent
+import PallLean.PermanentLower
 import PallLean.SPDPMonotone
 import PallLean.TuringMachine
 import Mathlib.Tactic
@@ -143,11 +144,12 @@ theorem ptime_implies_low_rank (F : BoolFunFamily) (hP : UniformPtime F) :
     AXIOM 2: Permanent SPDP Lower Bound (Theorem 94)
     ================================================================ -/
 
-axiom permanent_spdp_lower :
+theorem permanent_spdp_lower :
     ∃ (m₀ : ℕ), ∀ (m : ℕ), m ≥ m₀ →
     ∀ (bp : BlockPartition (m * m)),
     blockedSpdpRankQ (Nat.log 2 (m * m)) (Nat.log 2 (m * m))
-      (permPolyFlat m) bp > m
+      (permPolyFlat m) bp > m :=
+  PermanentLower.permanent_spdp_lower
 
 /-! ================================================================
     DERIVED: Compiled Rank Monotonicity (Theorem 207 core)
