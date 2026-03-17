@@ -253,7 +253,7 @@ theorem perm_first_derivs_independent (m : ℕ) (hm : m ≥ 2) :
 
 lemma log2_sq_ge_one (m : ℕ) (hm : m ≥ 2) : Nat.log 2 (m * m) ≥ 1 := by
   have h4 : m * m ≥ 4 := by nlinarith
-  have h1 : Nat.log 2 4 = 2 := by native_decide
+  have h1 : Nat.log 2 4 = 2 := by decide
   have h2 : Nat.log 2 (m * m) ≥ Nat.log 2 4 := Nat.log_mono_right h4
   omega
 
