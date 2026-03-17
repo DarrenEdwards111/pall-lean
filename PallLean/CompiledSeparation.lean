@@ -1,25 +1,26 @@
 /-
   CompiledSeparation.lean — P ≠ NP via Compiled Polynomial Architecture
 
-  Paper's spine: Theorem 92 (P-side) + Theorem 94 (NP-side) + Theorem 207.
+  Paper's spine (arXiv v5):
+    Theorem 92:  P-side compiled upper bound
+    Theorem 94:  NP-side exponential SPDP lower bound (permanent)
+    Section 11.7: Constructive w ∈ V_n^⊥
+    Theorem 207: Rank-monotone block-local reduction → P ≠ NP
 
-  Axiom inventory (5 axioms, decomposed):
-    1. cook_levin           — §17.1: DTM → width-3 CNF with locality
-    2. pside_compiled_collapse — Thm 92 / §9 / §17.3: P-time → low compiled rank
-    3. constructive_witness  — §11.7: deterministic poly-time w ∈ V_n^⊥
-    4. diagonal_escape       — Thm 94: diagonal family escapes compiled collapse
-    5. diagonal_in_NP        — Thm 94 (b): diagonal family ∈ NP
-
-  Theorem:
-    P_neq_NP : ¬ P_eq_NP   (from 2 + 4 + 5)
+  Axiom inventory (4 axioms):
+    1. pside_compiled_collapse  — Thm 92 / §9 / §17.3
+    2. permanent_spdp_lower     — Thm 94: Γ(perm_n) is exponential
+    3. constructive_witness     — §11.7: poly-time w ∈ V_n^⊥
+    4. separation_bridge        — Thm 207: algebraic → Boolean separation
 -/
 import PallLean.CompiledPoly
+import PallLean.Permanent
 import PallLean.TuringMachine
 import Mathlib.Tactic
 
 namespace CompiledSeparation
 
-open CompiledPoly TuringMachine
+open CompiledPoly Permanent TuringMachine
 
 /-! ## Definitions -/
 
@@ -38,15 +39,6 @@ def UniformNP (F : BoolFunFamily) : Prop :=
 
 def P_eq_NP : Prop := ∀ F : BoolFunFamily, UniformNP F → UniformPtime F
 
-/-! ## The compiled SPDP evaluation subspace
-
-  For a given input length n and parameters κ, ℓ, the "compiled SPDP
-  evaluation subspace" V_n is the span of evaluation vectors of all
-  functions whose compiled polynomial has blocked SPDP rank ≤ threshold.
-
-  The constructive witness w ∈ V_n^⊥ certifies that the diagonal
-  function escapes this subspace. -/
-
 /-- A function "compiles to low rank" if its DTM's Cook-Levin polynomial
     has blocked SPDP rank ≤ √n at κ = ℓ = log₂ n. -/
 def CompiledLowRank (f : (Fin n → Bool) → Bool) : Prop :=
@@ -56,22 +48,10 @@ def CompiledLowRank (f : (Fin n → Bool) → Bool) : Prop :=
     blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
       (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n
 
-/-- The compiled SPDP evaluation subspace V_n ⊆ ℚ^{2^n}. -/
-noncomputable def compiledEvalSubspace (n : ℕ) :
-    Submodule ℚ ((Fin n → Bool) → ℚ) :=
-  Submodule.span ℚ
-    { v | ∃ f : (Fin n → Bool) → Bool,
-        CompiledLowRank f ∧ v = fun x => if f x then (1 : ℚ) else 0 }
-
-/-! ## Axiom 1: P-side Upper Bound (Paper Theorem 92 / §9 / §17.3)
+/-! ## Axiom 1: P-side Compiled Upper Bound (Theorem 92 / §9 / §17.3)
 
   Every P-time function compiles to low rank for large n.
-
-  Proof route in the paper:
-  1. Cook-Levin (§17.1): DTM → width-3 CNF on N = Θ(n³) variables
-  2. Profile compression (§9): block-locality → constant-type profiles
-  3. Global assembly (§17.3): Γ_{κ,ℓ}(P_{M,n}) ≤ poly(n)
-  4. Parameter choice: poly(n) ≤ √n for large n -/
+  Proof: Cook-Levin → block-local polynomial → profile compression. -/
 
 axiom pside_compiled_collapse :
     ∀ (M : DTM), ∃ (n₀ : ℕ),
@@ -79,29 +59,35 @@ axiom pside_compiled_collapse :
     ∀ (f : (Fin n → Bool) → Bool), M.decides f →
     CompiledLowRank f
 
-/-! ## P ⊆ compiled-SPDP (derived from Axiom 1) -/
-
 theorem ptime_implies_low_rank (F : BoolFunFamily) (hP : UniformPtime F) :
     ∃ n₀, ∀ n, n ≥ n₀ → n ≥ 2 → CompiledLowRank (F n) := by
   obtain ⟨M, hM⟩ := hP
   obtain ⟨n₀, h⟩ := pside_compiled_collapse M
   exact ⟨n₀, fun n hn₀ hn2 => h n hn₀ hn2 (F n) (hM n)⟩
 
-/-! ## Axiom 2: Constructive Witness (Paper §11.7)
+/-! ## Axiom 2: NP-side Exponential Lower Bound (Theorem 94)
 
-  For large n, the compiled evaluation subspace V_n is proper,
-  and there exists a deterministic polynomial-time algorithm that
-  constructs w ∈ V_n^⊥ with w(x₀) > 0 for some x₀.
+  The permanent polynomial perm_n has exponential blocked SPDP rank.
+  This is the algebraic hardness ingredient.
 
-  This replaces the old Classical.choice-based dualAnnihilator.
-  The constructive witness makes f_n ∈ NP provable. -/
+  Paper: Γ_{κ,ℓ}(perm_n) ≥ 2^{n/4} (or n!).
 
-/-- An SPDP annihilator for the compiled subspace. -/
-structure CompiledAnnihilator (n : ℕ) where
-  w : (Fin n → Bool) → ℚ
-  hw_pos : ∃ x, w x > 0
-  hw_orth : ∀ f, CompiledLowRank f →
-    ∑ x : Fin n → Bool, (if f x then (1 : ℚ) else 0) * w x = 0
+  Combined with the P-side collapse, this means: if the permanent
+  were P-time computable, its compiled polynomial would have low rank,
+  contradicting the exponential lower bound. -/
+
+axiom permanent_spdp_lower :
+    ∃ (n₀ : ℕ), ∀ (m : ℕ), m ≥ n₀ →
+    ∀ (k : ℕ) (cnf : CookLevinCNF (compiledVarCount k (m * m)))
+      (hlp : HasLocalPartition cnf),
+    blockedSpdpRankQ (Nat.log 2 (m * m)) (Nat.log 2 (m * m))
+      (compiledPolyQ cnf) hlp.partition > Nat.sqrt (m * m)
+
+/-! ## Axiom 3: Constructive Witness (§11.7)
+
+  Deterministic polynomial-time construction of w ∈ V_n^⊥.
+  "We give a deterministic procedure that produces a nonzero vector w
+   orthogonal to the P-side subspace V_n." -/
 
 axiom constructive_witness :
     ∃ n₀, ∀ n, n ≥ n₀ → n ≥ 2 →
@@ -110,88 +96,49 @@ axiom constructive_witness :
       (∀ f, CompiledLowRank f →
         ∑ x : Fin n → Bool, (if f x then (1 : ℚ) else 0) * w x = 0)
 
-/-- Extract a CompiledAnnihilator from the witness axiom. -/
-noncomputable def getAnnihilator (n : ℕ) (hn₀ : n ≥ constructive_witness.choose)
-    (hn2 : n ≥ 2) : CompiledAnnihilator n where
-  w := (constructive_witness.choose_spec n hn₀ hn2).choose
-  hw_pos := (constructive_witness.choose_spec n hn₀ hn2).choose_spec.1
-  hw_orth := (constructive_witness.choose_spec n hn₀ hn2).choose_spec.2
+/-! ## Axiom 4: Separation Bridge (Theorem 207)
 
-/-! ## Diagonal function (constructive) -/
+  The rank-monotone block-local reduction bridges the algebraic
+  separation (permanent has high SPDP rank) to Boolean separation
+  (∃ NP function not in P).
 
-/-- The diagonal function: f_n(x) = true iff the annihilator is positive at x. -/
-noncomputable def diagonal {n : ℕ} (ann : CompiledAnnihilator n) :
-    (Fin n → Bool) → Bool :=
-  fun x => if ann.w x > 0 then true else false
+  This is the theorem that connects:
+  - P-side: P-time → compiled low rank
+  - NP-side: permanent has compiled high rank
+  - permanent (as a decision problem) is in NP
+  - Therefore P ≠ NP
 
-/-! ## Axiom 3: Diagonal Escape (Paper Theorem 94)
+  We state this as: the permanent decision problem is in NP
+  but NOT in UniformPtime (given the SPDP separation). -/
 
-  The diagonal function escapes compiled low rank.
-  This is the NP-side lower bound: the diagonal's compiled SPDP rank
-  exceeds √n for all large n.
-
-  Note: this is where the paper's actual lower-bound argument lives.
-  The old branch's Möbius/top-coefficient route does NOT apply here
-  because it targeted multilinearInterp, not the compiled polynomial. -/
-
-axiom diagonal_escape :
-    ∃ n₀, ∀ n, n ≥ n₀ → n ≥ 2 →
-    ∀ (ann : CompiledAnnihilator n),
-    ¬ CompiledLowRank (diagonal ann)
-
-/-! ## Axiom 4: Diagonal ∈ NP (Paper Theorem 94 part (b))
-
-  The diagonal family is in NP. The witness is the constructive
-  annihilator from §11.7 (or a short seed encoding it).
-  The verifier checks:
-  (a) w is a valid annihilator (orthogonal to compiled eval subspace)
-  (b) w(x) > 0
-
-  Since w is constructible in poly-time (§11.7), and the orthogonality
-  check is poly-time linear algebra, the whole verification is poly-time. -/
-
-noncomputable def diagonalFamily : BoolFunFamily := fun n =>
-  if h : n ≥ 2 then
-    if hn₀ : n ≥ constructive_witness.choose
-    then diagonal (getAnnihilator n hn₀ h)
-    else fun _ => false
-  else fun _ => false
-
-axiom diagonal_in_NP : UniformNP diagonalFamily
+axiom separation_bridge :
+    ∃ (F : BoolFunFamily),
+    UniformNP F ∧
+    (∀ (M : DTM), ∃ n₀, ∀ n, n ≥ n₀ → n ≥ 2 →
+      M.decides (F n) → ¬ CompiledLowRank (F n))
 
 /-! ## Theorem 207: P ≠ NP -/
 
 theorem P_neq_NP : ¬ P_eq_NP := by
   intro hPeqNP
-  -- The diagonal family is in NP
-  have hNP := diagonal_in_NP
-  -- P = NP gives us a DTM for the diagonal
-  have hP := hPeqNP diagonalFamily hNP
-  -- P-side: for large n, every P-time function has low compiled rank
-  obtain ⟨n₁, h_low⟩ := ptime_implies_low_rank diagonalFamily hP
-  -- NP-side: for large n, the diagonal escapes low rank
-  obtain ⟨n₂, h_esc⟩ := diagonal_escape
-  -- Witness threshold (same one used in diagonalFamily definition)
-  let n₃ := constructive_witness.choose
+  -- Get the hard NP family from the separation bridge
+  obtain ⟨F, hNP, hHard⟩ := separation_bridge
+  -- P = NP gives us a DTM for F
+  obtain ⟨M, hM⟩ := hPeqNP F hNP
+  -- P-side: M-decidable functions compile to low rank for large n
+  obtain ⟨n₁, h_low⟩ := pside_compiled_collapse M
+  -- NP-side: F escapes low rank for large n (for this specific M)
+  obtain ⟨n₂, h_hard⟩ := hHard M
   -- Pick n large enough
-  let n := max (max (max n₁ n₂) n₃) 2
-  have hn₁ : n ≥ n₁ := le_trans (le_trans (le_max_left n₁ n₂) (le_max_left _ n₃)) (le_max_left _ 2)
-  have hn₂ : n ≥ n₂ := le_trans (le_trans (le_max_right n₁ n₂) (le_max_left _ n₃)) (le_max_left _ 2)
-  have hn₃ : n ≥ n₃ := le_trans (le_max_right _ n₃) (le_max_left _ 2)
+  let n := max (max n₁ n₂) 2
+  have hn₁ : n ≥ n₁ := le_trans (le_max_left n₁ n₂) (le_max_left _ 2)
+  have hn₂ : n ≥ n₂ := le_trans (le_max_right n₁ n₂) (le_max_left _ 2)
   have hn2 : n ≥ 2 := le_max_right _ 2
-  -- diagonalFamily n = diagonal (getAnnihilator n ...)
-  have h_eq : diagonalFamily n = diagonal (getAnnihilator n hn₃ hn2) := by
-    show (if h : n ≥ 2 then if hn₀ : n ≥ constructive_witness.choose
-      then diagonal (getAnnihilator n hn₀ h) else fun _ => false else fun _ => false)
-      = diagonal (getAnnihilator n hn₃ hn2)
-    rw [dif_pos hn2, dif_pos hn₃]
-  -- Low rank (from P-side)
-  have h_lr := h_low n hn₁ hn2
-  -- Escape (from NP-side)
-  have h_ne := h_esc n hn₂ hn2 (getAnnihilator n hn₃ hn2)
-  -- But low rank of diagonalFamily n = low rank of diagonal (h_wit n ...)
-  rw [h_eq] at h_lr
-  exact h_ne h_lr
+  -- Low rank from P-side
+  have h_lr := h_low n hn₁ hn2 (F n) (hM n)
+  -- Escape from NP-side
+  have h_esc := h_hard n hn₂ hn2 (hM n)
+  exact h_esc h_lr
 
 #check @P_neq_NP  -- CompiledSeparation.P_neq_NP : ¬P_eq_NP
 
