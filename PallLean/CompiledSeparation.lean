@@ -85,7 +85,7 @@ axiom hardNPVerifier : DTM
 
 /-- Witness bound exponent (≥ 1). -/
 axiom hardNPWitnessBound : ℕ
-axiom hardNPWitnessBound_pos : hardNPWitnessBound ≥ 1
+-- hardNPWitnessBound_pos removed: not used in proof chain
 
 /-- Verifier as a BoolFunFamily (for UniformNP). -/
 noncomputable def hardNPVerifierFun : BoolFunFamily := fun n x =>
@@ -183,12 +183,7 @@ theorem compiled_rank_monotone :
     AXIOM 4: Constructive Witness (§11.7) — Supporting
     ================================================================ -/
 
-axiom constructive_witness :
-    ∃ n₀, ∀ n, n ≥ n₀ → n ≥ 2 →
-    ∃ (w : (Fin n → Bool) → ℚ),
-      (∃ x, w x > 0) ∧
-      (∀ f, CompiledLowRank f →
-        ∑ x : Fin n → Bool, (if f x then (1 : ℚ) else 0) * w x = 0)
+-- constructive_witness (§11.7) removed: not used in P_neq_NP proof chain
 
 /-! ================================================================
     DERIVED: compiled_rank_preservation (from Axioms 2 + 3)

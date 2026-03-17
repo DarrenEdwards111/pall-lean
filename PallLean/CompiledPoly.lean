@@ -134,19 +134,8 @@ structure HasLocalPartition {N : ℕ} (cnf : CookLevinCNF N) where
   We state this as an axiom for now. The full Cook-Levin proof in Lean
   would require substantial TM simulation infrastructure. -/
 
-/-- Cook-Levin theorem: DTM computation → width-3 CNF with locality.
-    Paper §3.1: Standard Cook-Levin reduction.
-
-    Given DTM M with runtime ≤ n^k, produces CNF on N = n^(2k+1) vars
-    with width ≤ 3 and a natural block partition from the tableau structure.
-    The CNF is satisfiable iff M accepts the input. -/
-axiom cook_levin (M : TuringMachine.DTM) :
-    ∃ (k : ℕ), ∀ (n : ℕ), n ≥ 2 →
-    let N := compiledVarCount k n
-    ∃ (cnf : CookLevinCNF N) (hlp : HasLocalPartition cnf),
-      -- Correctness: M accepts x iff CNF is satisfiable with input bits set
-      hlp.blockSizeBound ≤ 3 * n ^ k ∧
-      cnf.numClauses ≤ n ^ (2 * k + 1)
+-- cook_levin axiom removed: not used in P_neq_NP proof chain
+-- (Cook-Levin structure is accessed via pside_compiled_collapse and perm_restriction_exists)
 
 /-! ## SPDP on Compiled Polynomials
 
