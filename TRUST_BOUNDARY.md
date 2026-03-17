@@ -1,145 +1,65 @@
-# Trust Boundary — P ≠ NP Lean Formalization
+# Trust Boundary — Compiled-Route Architecture
 
 ## Status
 
-The Lean development proves the **algebraic escape framework and contradiction skeleton**, conditional on two paper-faithful complexity-theoretic axioms: compiled P-side SPDP collapse and NP-membership of the diagonal family.
+P_neq_NP proved from **4 paper-faithful axioms** on the compiled polynomial P_{M,n}.
 
-**Build:** 3132 jobs, 0 errors, 0 sorry, 0 sorryAx  
-**Custom axioms:** 2  
-**Proved theorems/lemmas:** 140 across 23 files  
+**Branch:** `compiled-route`  
+**Build:** 3111 jobs, 0 errors, 0 sorry  
+**Custom axioms:** 4 (each maps to one paper section)  
 **Standard axioms:** propext, Classical.choice, Quot.sound  
 
 ---
 
-## Axiom 1: `BoolCircuit.ptime_spdp_collapse`
+## Axiom 1: `pside_compiled_collapse` — Paper Theorem 92 / §9 / §17.3
 
-**File:** `PallLean/BoolCircuit.lean`  
-**Paper reference:** Theorem 92 / Section 9 ("Polynomial Width ⇒ Rank via Constant-Type Profiles") / Section 17.3 ("A global polynomial upper bound on Γ_{κ,ℓ}(P_{M,n})")
+Every P-time DTM M produces a compiled Cook-Levin polynomial with blocked SPDP rank ≤ √n at κ = ℓ = log₂ n, for large n.
 
-### Statement
+**Used by:** `ptime_implies_low_rank` → `P_neq_NP`  
+**Full proof requires:** Cook-Levin encoding, profile compression, global rank assembly.
 
-```lean
-axiom ptime_spdp_collapse :
-    ∀ (M : TuringMachine.DTM), ∃ (n₀ : ℕ), ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
-    ∀ (f : (Fin n → Bool) → Bool), M.decides f →
-    RestrictedSPDP.restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n)
-      (Depth4Simulation.multilinearInterp f)
-      (UniversalRestriction.universalRestriction n) ≤ Nat.sqrt n
-```
+## Axiom 2: `constructive_witness` — Paper §11.7
 
-### Plain English
+For large n, there exists w ∈ V_n^⊥ (orthogonal to the compiled evaluation subspace) with a positive entry, constructible in deterministic polynomial time.
 
-Every function decidable by a deterministic Turing machine M has shifted SPDP rank at most √n, when measured at derivative/shift order κ = ℓ = log₂ n under the universal restriction (fixing the first n − log₂ n variables to false).
+**Used by:** `getAnnihilator` → `diagonalFamily` → `P_neq_NP`  
+**Full proof requires:** Explicit subspace basis computation, linear algebra over F_p.
 
-### Where Used
+## Axiom 3: `diagonal_escape` — Paper Theorem 94
 
-`ptime_spdp_collapse` → `SwitchingLemma.universal_spdp_collapse` → `PneqNP_Paper.P_subset_FSPDP` → `PneqNP_Paper.P_neq_NP`
+The diagonal function (defined via the constructive annihilator) escapes compiled low rank: its compiled SPDP rank exceeds √n for all large n.
 
-### What a Full Lean Proof Would Require
+**Used by:** `P_neq_NP` (directly)  
+**Full proof requires:** NP-side lower bound on compiled polynomial.
 
-1. **Cook-Levin theorem** — formalize DTM → poly-size Boolean circuit → width-3 CNF encoding with N = Θ(n³) variables
-2. **Depth-4 simulation** — ΣΠΣ∏ circuit realization (Proposition 5.2)
-3. **Binary Tseitin transformation** — width-3 → width-2 polynomial structure
-4. **Profile compression** — Section 9's "constant-type profiles" argument: group shifted partial derivatives of the compiled polynomial by their interaction pattern with block partition, bound rank per profile
-5. **Global assembly** — Section 17.3: combine profile counts into Γ_{κ,ℓ}(P_{M,n}) ≤ n^{O(1)} at κ = ℓ = Θ(log n)
-6. **Threshold arithmetic** — n^{O(1)} ≤ √n for the specific constants and large enough n
+## Axiom 4: `diagonal_in_NP` — Paper Theorem 94 (b)
 
-This is the paper's full complexity-theoretic bridge from computation theory to algebraic invariants. It imports Cook-Levin (1971), Håstad's switching lemma (1986), and the paper's novel profile compression machinery.
+The diagonal family is in NP (polynomial witness + poly-time verifier).
 
-### Strength Check
-
-The axiom is stated per-DTM (each M gets its own threshold n₀), which is the weakest form needed. It applies only to `multilinearInterp` (the canonical multilinear extension), not arbitrary polynomials. The parameter regime κ = ℓ = log₂ n matches the paper's main route. The bound √n = n^{1/2} matches the paper's γ = 1/2.
-
----
-
-## Axiom 2: `PneqNP_Paper.f_n_family_in_NP`
-
-**File:** `PallLean/PneqNP_Paper.lean`  
-**Paper reference:** Proposition 8.7 / Appendix Q ("Projected Witness — The God Move")
-
-### Statement
-
-```lean
-axiom f_n_family_in_NP : UniformNP f_n_family
-```
-
-where `UniformNP F` means: there exist polynomial witness length n^k and a uniformly P-time verifier V such that F(x) ↔ ∃ w, V(x, w).
-
-### Plain English
-
-The diagonal function family {f_n} is in NP. There exists a polynomial-time verifier that, given input x and a short witness w, can check whether f_n(x) = true.
-
-### Where Used
-
-`f_n_family_in_NP` → `PneqNP_Paper.P_neq_NP` (directly, as the NP hypothesis for the diagonal family)
-
-### What a Full Lean Proof Would Require
-
-1. **Witness structure** — The paper's witness is a short seed s ∈ {0,1}^{O(log² N)} that determines a restriction ρ_s
-2. **Verification algorithm** — Given (x, s), compute:
-   - restriction ρ_s from seed s
-   - SPDP evaluation matrix M under ρ_s
-   - check M · e_x = 0 (all SPDP-collapsing functions vanish at x)
-3. **Polynomial-time bound** — The verification is deterministic poly-time given the seed
-4. **Soundness/completeness** — f_n(x) = true ↔ ∃ s such that verification passes
-
-This requires formalizing the SPDP matrix construction as a concrete algorithm, the seed-based restriction generator, and the polynomial-time bound on matrix-vector multiplication. The diagonal function f_n is defined via `Submodule.dualAnnihilator` (non-constructive), so the NP witness must provide constructive evidence through the SPDP certificate structure.
-
-### Strength Check
-
-The axiom uses the standard NP definition (polynomial witness + poly-time verifier). The `f_n_family` definition handles small n (< 2 or proper subspace fails) by defaulting to `fun _ => false`, which is trivially in NP. The substantive claim is for large n where the diagonal construction is active.
+**Used by:** `P_neq_NP` (directly)  
+**Full proof requires:** Witness = annihilator w, verifier = orthogonality check.
 
 ---
 
 ## Dependency Graph
 
 ```
-                    ptime_spdp_collapse (AXIOM 1)
-                            │
-                            ▼
-                  universal_spdp_collapse (theorem)
-                            │
-                            ▼
-                     P_subset_FSPDP (theorem)
-                            │
-        ┌───────────────────┤
-        │                   │
-        ▼                   ▼
-f_n_family_in_NP      escape theorem
-  (AXIOM 2)          (140 proved lemmas)
-        │                   │
-        └───────┬───────────┘
-                ▼
-           P_neq_NP (theorem)
+pside_compiled_collapse ──► ptime_implies_low_rank (theorem)
+                                      │
+constructive_witness ──► getAnnihilator ──► diagonalFamily
+                                      │
+diagonal_escape ──────────────────────┤
+diagonal_in_NP ───────────────────────┤
+                                      ▼
+                                 P_neq_NP (theorem)
 ```
 
-## What Is Proved (Not Axiomatized)
+## Attack Order
 
-The following are ALL fully proved with zero custom axioms:
+1. `diagonal_in_NP` + `constructive_witness` (narrowest, NP-side)
+2. `diagonal_escape` (NP-side lower bound)
+3. `cook_levin` + `pside_compiled_collapse` (deepest, P-side)
 
-- **Escape theorem** (`f_n_escapes_FSPDP`): The diagonal function escapes InFSPDP via orthogonality vs positivity
-- **Proper subspace** (`fspdp_proper_subspace`): The FSPDP evaluation subspace is proper, via Möbius functional argument
-- **Möbius functional** (`mobiusL`): Linear map L(v) = Σ_T (-1)^{w-|T|} v(x_T), proved to vanish on InFSPDP
-- **Top coefficient extraction** (`mobiusL_eq_top_coeff`): Möbius functional equals top monomial coefficient
-- **SPDP rank lower bound** (`restrictedRank_ge_proved`): Functions with nonzero top Möbius coefficient have rank ≥ 1
-- **Annihilator construction** (`spdp_annihilator_exists`): Dual annihilator of FSPDP subspace exists with positive entry
-- **Multilinear restriction** (`restricted_isML`): Restricted multilinear interpolation preserves multilinearity
-- **Iterated derivative chain** (`iterDerivList_allLive_eq_topCoeff`): Full derivative chain for top monomial
-- **Span dimension** (`span_const_monomials_dim_proved`): Linear independence of constant monomial generators
-- **Universal restriction** (`universalRestriction`): Concrete construction fixing first n−log₂n variables
-- **Live variable count** (`liveVars_card_eq_log`): |liveVars ρ*| = log₂ n
-- **P ⊆ FSPDP** (`P_subset_FSPDP`): Derived from collapse axiom
-- **Möbius inversion infrastructure**: Toggle involution, superset sum vanishing, indicator evaluation
-- **Degree bounds**: Restriction preserves degree, derivative degree bounds, multilinear interpolation degree
-- **Boolean evaluation**: Multilinear interpolation agrees with Boolean function on {0,1}^n
+## Key Architectural Decision
 
-## Discarded Approaches
-
-The `PallLean/Archive/` directory contains 34 files from earlier attempts:
-
-- **Decision tree route** (DISCARDED): `decision_tree_spdp_rank` with bound (k+1)·w was provably false for shifted SPDP when k = w ≥ 5. Counterexample: AND of w variables gives rank C(2w,w).
-- **n=4 fixed approach** (DISCARDED): Too small for separation; no room between P-side and NP-side bounds.
-- **Unshifted SPDP** (NEVER USED): Paper explicitly uses shifted SPDP (Definition 12).
-- **Degree-based separation** (DISCARDED): Polynomial degree doesn't separate P from NP.
-
-See `SPDP_ANALYSIS.md` for detailed counterexample analysis.
+The old `paper-faithful` branch (tag `v0.9-algebraic-infrastructure`) measured SPDP rank of `multilinearInterp(f)`. This is the wrong object — parity is P-time but has rank ≥ 2^w at κ = w, creating an inconsistency. The compiled-route branch measures rank of the Cook-Levin polynomial P_{M,n}, which has block-locality that profile compression exploits. See `ARCHITECTURE_MISMATCH.md`.
