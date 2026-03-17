@@ -6,17 +6,17 @@
     Theorem 94:  NP-side exponential SPDP lower bound (permanent)
     Theorem 207: Rank-monotone block-local reduction → P ≠ NP
 
-  Axiom inventory (1 load-bearing + 2 structural):
+  Custom axioms (2):
     1. pside_compiled_collapse   — Thm 92 / §9 / §17.3 (P-side upper bound)
     2. perm_rank_le_compiled     — Thm 207 core (NP-side: perm rank ≤ compiled rank)
-    3. hardNPVerifier / hardNPWitnessBound — structural witnesses
 
   Fully proved (0 axiom, 0 sorry):
     PermanentMonomials.lean — disjoint monomial supports
     PermanentLower.lean     — permanent SPDP lower bound (Theorem 94)
+    SPDPEval.lean           — evaluation-derivative commutation
 
   Derived theorems (0 sorry):
-    hard_family_in_NP          : structural, from verifier definition
+    hard_family_in_NP          : from concrete verifier definition
     compiled_rank_preservation : from permanent_spdp_lower + perm_rank_le_compiled
     rank_monotone_reduction    : from compiled_rank_preservation
     P_neq_NP                   : from 1 + rank_monotone_reduction + hard_family_in_NP
