@@ -46,4 +46,18 @@ def permDecision (m : ℕ) : (Fin (m * m + m) → Bool) → Bool :=
 def permFamily : (n : ℕ) → ((Fin n → Bool) → Bool) :=
   fun n => fun _ => false  -- placeholder; real encoding TBD
 
+/-- Flat index bound for reindexing (i,j) → i*m+j. -/
+private lemma flat_index_bound {m : ℕ} (i j : Fin m) :
+    i.val * m + j.val < m * m := by
+  have hi := i.isLt; have hj := j.isLt
+  calc i.val * m + j.val < i.val * m + m := by omega
+    _ = (i.val + 1) * m := by ring
+    _ ≤ m * m := by nlinarith
+
+/-- Permanent polynomial reindexed to flat Fin(m*m) variable space.
+    Maps (i,j) → i*m+j. -/
+noncomputable def permPolyFlat (m : ℕ) : MvPolynomial (Fin (m * m)) ℚ :=
+  MvPolynomial.rename (fun ij : MatVar m =>
+    ⟨ij.1.val * m + ij.2.val, flat_index_bound ij.1 ij.2⟩) (permPoly m ℚ)
+
 end Permanent

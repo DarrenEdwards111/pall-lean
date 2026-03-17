@@ -23,6 +23,7 @@
 -/
 import PallLean.CompiledPoly
 import PallLean.Permanent
+import PallLean.SPDPMonotone
 import PallLean.TuringMachine
 import Mathlib.Tactic
 
@@ -54,18 +55,7 @@ def CompiledLowRank (f : (Fin n → Bool) → Bool) : Prop :=
     blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
       (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n
 
-/-! ## Permanent polynomial infrastructure -/
-
-private lemma flat_index_bound {m : ℕ} (i j : Fin m) :
-    i.val * m + j.val < m * m := by
-  have hi := i.isLt; have hj := j.isLt
-  calc i.val * m + j.val < i.val * m + m := by omega
-    _ = (i.val + 1) * m := by ring
-    _ ≤ m * m := by nlinarith
-
-noncomputable def permPolyFlat (m : ℕ) : MvPolynomial (Fin (m * m)) ℚ :=
-  MvPolynomial.rename (fun ij : MatVar m =>
-    ⟨ij.1.val * m + ij.2.val, flat_index_bound ij.1 ij.2⟩) (permPoly m ℚ)
+/-! ## Permanent polynomial (imported from Permanent.lean) -/
 
 /-! ## The Hard NP Family
 
@@ -160,10 +150,14 @@ axiom permanent_spdp_lower :
       (permPolyFlat m) bp > m
 
 /-! ================================================================
-    AXIOM 3: Compiled Rank Monotonicity (Theorem 207 core)
+    DERIVED: Compiled Rank Monotonicity (Theorem 207 core)
+
+    Derived from:
+    - spdp_rank_eval_le (evaluation decreases rank)
+    - perm_restriction_exists (perm embeds via evaluation)
     ================================================================ -/
 
-axiom compiled_rank_monotone :
+theorem compiled_rank_monotone :
     ∀ (n : ℕ) (M : DTM) (k : ℕ)
       (cnf : CookLevinCNF (compiledVarCount k n))
       (hlp : HasLocalPartition cnf),
@@ -173,7 +167,15 @@ axiom compiled_rank_monotone :
       (compiledPolyQ cnf) hlp.partition ≥
     blockedSpdpRankQ (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
       (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
-      (permPolyFlat (Nat.sqrt n)) bp
+      (permPolyFlat (Nat.sqrt n)) bp := by
+  intro n M k cnf hlp hM
+  -- Get the embedding: perm rank ≤ rank of evaluated compiled poly
+  obtain ⟨assignments, bp, h_embed⟩ :=
+    SPDPMonotone.perm_restriction_exists n M k cnf hlp (hardNPFamily n) hM
+  -- Get monotonicity: rank of evaluated poly ≤ rank of original poly
+  have h_eval := SPDPMonotone.spdp_rank_eval_le
+    (Nat.log 2 n) (Nat.log 2 n) (compiledPolyQ cnf) hlp.partition assignments
+  exact ⟨bp, le_trans h_embed h_eval⟩
 
 /-! ================================================================
     AXIOM 4: Constructive Witness (§11.7) — Supporting
