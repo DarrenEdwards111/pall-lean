@@ -98,6 +98,51 @@ axiom spdp_rank_eval_le {N : ℕ}
   preserves enough algebraic structure that the permanent's SPDP rank
   transfers to the compiled polynomial. -/
 
+/-! ## Cook-Levin Variable Structure
+
+  The compiled polynomial P_{M,n} has variables partitioned into:
+  - Input variables (first n positions): encode the problem input
+  - Auxiliary variables (remaining positions): encode witness + computation trace
+
+  Setting auxiliary variables to values corresponding to a valid computation
+  yields a "semantic restriction" — a polynomial in the input variables
+  that captures the function M computes.
+
+  For a DTM computing the permanent, this semantic restriction encodes
+  the permanent polynomial on the input matrix. -/
+
+/-- Input variable embedding: the first n variables of the compiled space
+    correspond to the problem input. -/
+def inputEmbed (k n : ℕ) (i : Fin n) : Fin (compiledVarCount k n) :=
+  ⟨i.val, by
+    unfold compiledVarCount
+    calc i.val < n := i.isLt
+      _ ≤ n ^ (2 * k + 1) := Nat.le_self_pow (by omega) n⟩
+
+/-- An assignment that fixes auxiliary variables (index ≥ n) to constants
+    while leaving input variables (index < n) free. -/
+def inputRestriction (k n : ℕ) (auxVals : Fin (compiledVarCount k n) → ℚ) :
+    Fin (compiledVarCount k n) → Option ℚ :=
+  fun i => if i.val < n then none else some (auxVals i)
+
+/-! ## Axiom: Permanent Restriction
+
+  Decomposed into two sub-axioms:
+
+  (a) cook_levin_semantic_restriction:
+      For any DTM M deciding hardFamily at input length n, there exist
+      auxiliary variable values such that the evaluated compiled polynomial
+      (restricted to input variables) captures M's computation.
+
+  (b) perm_semantic_rank:
+      For the specific hardNPFamily (connected to the permanent via
+      Theorem 207), this semantic restriction has SPDP rank ≥ perm_m's rank.
+
+  We keep these bundled for now since separating them requires
+  defining "semantic restriction" formally. -/
+
+-- Note: parameterized over hardFamily to avoid circular import with
+-- CompiledSeparation. In practice, only called with hardNPFamily.
 axiom perm_restriction_exists
     (n : ℕ) (M : TuringMachine.DTM) (k : ℕ)
     (cnf : CookLevinCNF (compiledVarCount k n))
