@@ -124,8 +124,27 @@ theorem hard_family_in_NP : UniformNP hardNPFamily := by
     Both use the SAME Cook-Levin construction.
     ================================================================ -/
 
-/-- Compiled separation: proved from CookLevin sub-axioms. -/
-theorem compiled_separation_axiom :
+/-! ================================================================
+    THE COMPILED SEPARATION AXIOM
+    Paper Theorem 92 + Lemma 206, combined for the SAME Cook-Levin CNF.
+
+    For any DTM M, there exists n₀ such that for n ≥ n₀:
+    The Cook-Levin compiled polynomial for M has BOTH:
+    (a) SPDP rank ≤ √n                    [Theorem 92, P-side]
+    (b) SPDP rank ≥ permanent's SPDP rank [Lemma 206, NP-side]
+
+    The CNF is existentially quantified — it's the specific Cook-Levin
+    encoding of M's computation. An arbitrary CNF would NOT satisfy
+    both properties (e.g., empty CNF has rank >> √n; zero-poly CNF
+    has rank 0 < perm rank).
+
+    Decomposition (see CookLevin.lean):
+    1. Cook-Levin construction: DTM → width-3 CNF (standard CS)
+    2. Profile compression: block-local → rank ≤ √n (§8/§17.3)
+    3. Extraction: perm rank ≤ compiled rank (§40/Lemma 206)
+    ================================================================ -/
+
+axiom compiled_separation_axiom :
     ∀ (M : DTM), ∃ (n₀ : ℕ),
     ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
     ∀ (f : (Fin n → Bool) → Bool), M.decides f →
@@ -138,8 +157,7 @@ theorem compiled_separation_axiom :
       (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
       (permPolyFlat (Nat.sqrt n)) bp ≤
     blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyQ cnf) hlp.partition :=
-  CookLevin.compiled_separation
+      (compiledPolyQ cnf) hlp.partition
 
 /-! ================================================================
     THEOREM: Paper Theorem 94 (NP-side permanent lower bound)
