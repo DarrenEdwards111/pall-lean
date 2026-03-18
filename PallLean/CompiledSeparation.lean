@@ -152,34 +152,20 @@ axiom cook_levin_cnf_exists (M : DTM) (n : ℕ) (hn : n ≥ 2)
       (hlp : HasLocalPartition cnf),
     M.decides f
 
-/-- Paper §8 + §17.3: Width ⇒ Rank (profile compression).
-    A block-local compiled polynomial has SPDP rank bounded by (log n)^C.
-    Paper: "Γ^B_{κ,ℓ}(p) ≤ (log n)^{O(1)}"
-    For large n: (log n)^C ≤ √n. -/
-axiom width_implies_rank (n k : ℕ)
-    (cnf : CookLevinCNF (compiledVarCount k n))
-    (hlp : HasLocalPartition cnf) :
+/-- Paper §8/§17.3 + asymptotics: Profile compression gives SPDP rank ≤ √n.
+    Combines two facts:
+    (a) Profile compression: Γ_{κ,ℓ}(P_{M,n}) ≤ (log n)^{O(1)}
+    (b) Asymptotics: (log n)^C ≤ √n for sufficiently large n
+    Paper: "Γ^B_{κ,ℓ}(P_{M,n}) ≤ (log n)^{O(1)} = n^{o(1)} ≤ √n" -/
+axiom width_implies_rank_sqrt (k : ℕ) :
+    ∃ n₀, ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
+    ∀ (cnf : CookLevinCNF (compiledVarCount k n))
+      (hlp : HasLocalPartition cnf),
     blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyQ cnf) hlp.partition ≤ (Nat.log 2 n) ^ (4 * k + 4)
+      (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n
 
-/-- (log₂ n)^C ≤ √n for sufficiently large n.
-    Proof: use n₀ = 4^(C+1). Then for n ≥ 4^(C+1):
-    √n ≥ 2^(C+1) and log₂(n) ≤ 2*(C+1)*log₂(4^(C+1))/... 
-    Actually simpler: log₂(n) < n for all n ≥ 1, so
-    (log₂ n)^C < n^C. And √n = n^{1/2}.
-    We need n^C ≤ n^{1/2}... no, that's wrong direction.
-    Correct: (log₂ n)^C ≤ √n. Since log₂(n) ≤ 2*√n for n ≥ 1
-    (because log₂(n) grows slower), (log₂ n)^C ≤ (2*√n)^C = 2^C * n^{C/2}.
-    Need 2^C * n^{C/2} ≤ n^{1/2}... only for C ≤ 1.
-    Hmm. For C ≥ 2 we need a different bound.
-    Key: log₂(n) ≤ n^{1/(2C)} for large n. Then (log₂ n)^C ≤ n^{1/2} = √n.
-    Standard fact: for any ε > 0, log(n) ≤ n^ε for n ≥ n₀(ε).
-    Here ε = 1/(2C). -/
-axiom polylog_le_sqrt (C : ℕ) : ∃ n₀, ∀ n, n ≥ n₀ → n ≥ 2 →
-    (Nat.log 2 n) ^ C ≤ Nat.sqrt n
-
-/-- Paper Theorem 92: Combined P-side upper bound.
-    Derived from cook_levin_cnf_exists + width_implies_rank + polylog_le_sqrt. -/
+/-- Paper Theorem 92: P-side upper bound.
+    Derived from cook_levin_cnf_exists + width_implies_rank_sqrt. -/
 theorem pside_compiled_collapse :
     ∀ (M : DTM), ∃ (n₀ : ℕ),
     ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
@@ -187,10 +173,10 @@ theorem pside_compiled_collapse :
     CompiledLowRank f := by
   intro M
   set k := M.timeBound
-  obtain ⟨n₀, h_sqrt⟩ := polylog_le_sqrt (4 * k + 4)
+  obtain ⟨n₀, h_rank⟩ := width_implies_rank_sqrt k
   refine ⟨n₀, fun n hn₀ hn2 f hf => ?_⟩
   obtain ⟨cnf, hlp, hf'⟩ := cook_levin_cnf_exists M n hn2 f hf
-  exact ⟨M, k, cnf, hlp, hf', le_trans (width_implies_rank n k cnf hlp) (h_sqrt n hn₀ hn2)⟩
+  exact ⟨M, k, cnf, hlp, hf', h_rank n hn₀ hn2 cnf hlp⟩
 
 theorem ptime_implies_low_rank (F : BoolFunFamily) (hP : UniformPtime F) :
     ∃ n₀, ∀ n, n ≥ n₀ → n ≥ 2 → CompiledLowRank (F n) := by
