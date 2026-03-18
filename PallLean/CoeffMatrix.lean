@@ -1,5 +1,5 @@
 /-
-  CoeffMatrix.lean — Derivative subspace monotonicity under evaluation
+  CoeffMatrix.lean — Paper Lemma 33 infrastructure (derivative subspace monotonicity)
 -/
 import PallLean.SPDPDefs
 import PallLean.SPDPEval

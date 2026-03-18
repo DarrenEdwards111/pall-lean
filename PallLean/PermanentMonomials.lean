@@ -1,8 +1,8 @@
 /-
-  PermanentMonomials.lean — Prove perm_derivs_have_unique_monomials
+  PermanentMonomials.lean — Paper Lemma 95 (Disjoint-Witness Independence)
 
   Proves that the m² first derivatives of perm_m have pairwise disjoint
-  monomial supports, hence the unique monomial property.
+  monomial supports. Paper reference: Lemma 95, §18, arXiv:2512.11820v5.
 -/
 import PallLean.Permanent
 import Mathlib.Tactic

@@ -1,25 +1,25 @@
 /-
   CompiledSeparation.lean — P ≠ NP via Compiled Polynomial Architecture
 
-  Paper's spine (arXiv v5):
-    Theorem 92:  P-side compiled upper bound
-    Theorem 94:  NP-side exponential SPDP lower bound (permanent)
-    Theorem 207: Rank-monotone block-local reduction → P ≠ NP
+  Paper: "Toward P≠NP" (arXiv:2512.11820v5, Edwards 2025)
+
+  Paper-faithful proof chain:
+    Theorem 92  (§17, P-side):   P-time DTM → poly SPDP rank    [AXIOM]
+    Theorem 94  (§18, NP-side):  Γ_{κ,0}(perm_n) ≥ C(n,κ)      [PROVED]
+    Lemma 33    (§16):           Restriction monotonicity         [PROVED]
+    Lemma 95    (§18):           Disjoint-witness independence    [PROVED]
+    Theorem 147/207 (§29/§40):   P ≠ NP                          [PROVED from 2 axioms]
 
   Custom axioms (2):
-    1. pside_compiled_collapse   — Thm 92 / §9 / §17.3 (P-side upper bound)
-    2. cook_levin_perm_embed     — Thm 207 core (NP-side: perm rank ≤ compiled rank)
+    1. pside_compiled_collapse — Paper Theorem 92 (P-side upper bound)
+    2. cook_levin_perm_embed   — Paper Lemma 206 (Cook-Levin extraction)
 
-  Fully proved (0 axiom, 0 sorry):
-    PermanentMonomials.lean — disjoint monomial supports
-    PermanentLower.lean     — permanent SPDP lower bound (Theorem 94)
-    SPDPEval.lean           — evaluation-derivative commutation
-
-  Derived theorems (0 sorry):
-    hard_family_in_NP          : from concrete verifier definition
-    compiled_rank_preservation : from permanent_spdp_lower + cook_levin_perm_embed
-    rank_monotone_reduction    : from compiled_rank_preservation
-    P_neq_NP                   : from 1 + rank_monotone_reduction + hard_family_in_NP
+  Proved theorems matching paper (0 axiom, 0 sorry):
+    permanent_spdp_lower       — Paper Theorem 94 (NP-side lower bound)
+    perm_monomials_injective   — Paper Lemma 95 (disjoint witnesses)
+    freeSpdp_evalOne_le        — Paper Lemma 33 (restriction monotonicity)
+    pderiv_evalOne_self         — Derivative at evaluated var = 0
+    iterDerivList_evalOne_comm  — Derivative-evaluation commutation
 -/
 import PallLean.CompiledPoly
 import PallLean.Permanent
@@ -131,7 +131,9 @@ theorem hard_family_in_NP : UniformNP hardNPFamily := by
     exact ⟨w, by unfold hardNPVerifierFun at hw; exact hw⟩
 
 /-! ================================================================
-    AXIOM 1: P-side Compiled Upper Bound (Theorem 92)
+    AXIOM 1: Paper Theorem 92 (P-side compiled upper bound)
+    "Let M be a deterministic single-tape TM running in time T(n) ≤ n^c.
+     There is a uniform family {P_{M,n}} with Γ_{κ,ℓ}(P_{M,n}) ≤ n^{O(1)}."
     ================================================================ -/
 
 axiom pside_compiled_collapse :
@@ -147,7 +149,10 @@ theorem ptime_implies_low_rank (F : BoolFunFamily) (hP : UniformPtime F) :
   exact ⟨n₀, fun n hn₀ hn2 => h n hn₀ hn2 (F n) (hM n)⟩
 
 /-! ================================================================
-    AXIOM 2: Permanent SPDP Lower Bound (Theorem 94)
+    THEOREM: Paper Theorem 94 (NP-side permanent lower bound)
+    "Γ_{κ,0}(perm_n) ≥ C(n,κ). In particular Γ_{⌊n/2⌋,0} ≥ 2^Ω(n)."
+    FULLY PROVED — 0 custom axioms, 0 sorry.
+    Proof via Paper Lemma 95 (disjoint-witness independence).
     ================================================================ -/
 
 theorem permanent_spdp_lower :
@@ -158,11 +163,10 @@ theorem permanent_spdp_lower :
   PermanentLower.permanent_spdp_lower
 
 /-! ================================================================
-    DERIVED: Compiled Rank Monotonicity (Theorem 207 core)
-
-    Derived from:
-    - spdp_rank_eval_le (evaluation decreases rank)
-    - perm_restriction_exists (perm embeds via evaluation)
+    THEOREM: Paper Lemma 206 application (rank-monotone extraction)
+    Uses: cook_levin_perm_embed (AXIOM — Paper Lemma 206)
+    The evaluation monotonicity (Paper Lemma 33) is proved in
+    SPDPRestrict.lean (freeSpdp_evalOne_le).
     ================================================================ -/
 
 theorem compiled_rank_monotone :
@@ -226,7 +230,8 @@ theorem rank_monotone_reduction :
     Nat.lt_irrefl _ (Nat.lt_of_lt_of_le (h_pres n hn₀ hn2 M' k cnf hlp hM') hrank)⟩
 
 /-! ================================================================
-    THEOREM 207: P ≠ NP
+    Paper Theorem 147/207: P ≠ NP
+    "3-SAT ∉ P. In particular, P ≠ NP."
     ================================================================ -/
 
 theorem P_neq_NP : ¬ P_eq_NP := by
