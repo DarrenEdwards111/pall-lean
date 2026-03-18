@@ -163,7 +163,18 @@ axiom width_implies_rank (n k : ℕ)
       (compiledPolyQ cnf) hlp.partition ≤ (Nat.log 2 n) ^ (4 * k + 4)
 
 /-- (log₂ n)^C ≤ √n for sufficiently large n.
-    We use a concrete bound: n₀ = (2*C+2)^(2*C+2) works. -/
+    Proof: use n₀ = 4^(C+1). Then for n ≥ 4^(C+1):
+    √n ≥ 2^(C+1) and log₂(n) ≤ 2*(C+1)*log₂(4^(C+1))/... 
+    Actually simpler: log₂(n) < n for all n ≥ 1, so
+    (log₂ n)^C < n^C. And √n = n^{1/2}.
+    We need n^C ≤ n^{1/2}... no, that's wrong direction.
+    Correct: (log₂ n)^C ≤ √n. Since log₂(n) ≤ 2*√n for n ≥ 1
+    (because log₂(n) grows slower), (log₂ n)^C ≤ (2*√n)^C = 2^C * n^{C/2}.
+    Need 2^C * n^{C/2} ≤ n^{1/2}... only for C ≤ 1.
+    Hmm. For C ≥ 2 we need a different bound.
+    Key: log₂(n) ≤ n^{1/(2C)} for large n. Then (log₂ n)^C ≤ n^{1/2} = √n.
+    Standard fact: for any ε > 0, log(n) ≤ n^ε for n ≥ n₀(ε).
+    Here ε = 1/(2C). -/
 axiom polylog_le_sqrt (C : ℕ) : ∃ n₀, ∀ n, n ≥ n₀ → n ≥ 2 →
     (Nat.log 2 n) ^ C ≤ Nat.sqrt n
 
