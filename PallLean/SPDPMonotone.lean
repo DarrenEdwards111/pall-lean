@@ -128,41 +128,15 @@ theorem iterDerivList_eval_comm {N : ℕ} (S : List (Fin N)) (j : Fin N) (c : �
 
   Paper reference: Theorem 207 + Section 9 evaluation monotonicity -/
 
--- Note: parameterized over hardFamily to avoid circular import with
--- CompiledSeparation. In practice, only called with hardNPFamily.
-/-! ## Cook-Levin Embedding Axiom — Paper Lemma 206 (specialized)
+/-! ## Note on Cook-Levin Embedding
 
-  Paper Lemma 206 (Instance-Uniform Extraction with Rank Monotonicity):
-  "The instrumented polynomial P_{M',n} admits an extraction to the
-   coupled verifier sheet ... Γ_{κ,ℓ}(Q^×_{Φ,S}) ≤ Γ_{κ,ℓ}(P_{M',n})"
+  The Cook-Levin embedding axiom (Paper Lemma 206) has been moved to
+  CompiledSeparation.lean as part of the unified compiled_separation_axiom.
 
-  We specialize this to the permanent-based hard NP family:
-  the Cook-Levin encoding of a DTM deciding hardNPFamily produces
-  a compiled polynomial whose SPDP rank ≥ the permanent's SPDP rank.
+  This ensures the P-side bound (rank ≤ √n) and the NP-side extraction
+  (perm rank ≤ compiled rank) apply to the SAME Cook-Levin CNF.
 
-  Paper proof: "The extraction map (restriction of z variables followed
-  by projection to u-blocks) is rank-monotone by Lemma 33 and Lemma 34."
-
-  Lemma 33 (restriction monotonicity) is PROVED: SPDPRestrict.freeSpdp_evalOne_le
-  Lemma 34 (submatrix monotonicity) is trivial (selecting rows/columns)
-  The remaining content: Cook-Levin encoding produces the right structure. -/
-
-axiom cook_levin_perm_embed
-    (n : ℕ) (M : TuringMachine.DTM) (k : ℕ)
-    (cnf : CookLevinCNF (compiledVarCount k n))
-    (hlp : HasLocalPartition cnf)
-    (hardFamily : (Fin n → Bool) → Bool)
-    (hM : M.decides hardFamily) :
-    ∃ (bp : CompiledPoly.BlockPartition (Nat.sqrt n * Nat.sqrt n)),
-    blockedSpdpRankQ (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
-      (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
-      (Permanent.permPolyFlat (Nat.sqrt n)) bp ≤
-    blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyQ cnf) hlp.partition
-
--- Note: This was previously called perm_rank_le_compiled.
--- The evaluation monotonicity part (Paper Lemma 33) is now proved
--- in SPDPRestrict.lean (freeSpdp_evalOne_le).
--- The remaining axiom is purely about Cook-Levin encoding structure.
+  The evaluation monotonicity (Paper Lemma 33) remains PROVED in
+  SPDPRestrict.lean (freeSpdp_evalOne_le). -/
 
 end SPDPMonotone
