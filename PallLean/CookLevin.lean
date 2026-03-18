@@ -52,7 +52,19 @@ theorem compiledVarCount_ge_cubic (M : DTM) (n : ℕ) (hn : n ≥ 1) :
 def embedVar {N N' : ℕ} (h : N ≤ N') : Fin N → Fin N' :=
   fun i => ⟨i.1, Nat.lt_of_lt_of_le i.2 h⟩
 
-/-- Canonical one-block partition (used for baseline estimates). -/
+/-- Identity partition: one block per variable. -/
+def identityPartition (N : ℕ) : BlockPartition N where
+  numBlocks := N
+  blockOf := fun v => v
+
+/-- Any width-3 CNF is local under the identity partition. -/
+def identity_local {N : ℕ} (cnf : CookLevinCNF N) :
+    HasLocalPartition cnf := by
+  refine ⟨identityPartition N, ?_, 1⟩
+  intro c hc
+  simpa [CLClause.isLocal, identityPartition, CLClause.vars] using c.vars_card_le
+
+/-- Canonical one-block partition (used for coarse baseline estimates). -/
 def oneBlockPartition (N : ℕ) : BlockPartition N where
   numBlocks := 1
   blockOf := fun _ => ⟨0, by omega⟩
