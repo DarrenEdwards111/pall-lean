@@ -78,6 +78,24 @@ def oneBlock_local {N : ℕ} (cnf : CookLevinCNF N) :
     simpa using (Finset.card_le_univ (s := c.vars.image (oneBlockPartition N).blockOf))
   exact le_trans hle1 (by omega)
 
+/-- Positive literal helper. -/
+def posLit {N : ℕ} (v : Fin N) : Fin N × Bool := (v, true)
+
+/-- Negative literal helper. -/
+def negLit {N : ℕ} (v : Fin N) : Fin N × Bool := (v, false)
+
+/-- Smart constructor: 1-literal clause. -/
+def clause1 {N : ℕ} (ℓ₁ : Fin N × Bool) : CLClause N :=
+  ⟨[ℓ₁], by simp⟩
+
+/-- Smart constructor: 2-literal clause. -/
+def clause2 {N : ℕ} (ℓ₁ ℓ₂ : Fin N × Bool) : CLClause N :=
+  ⟨[ℓ₁, ℓ₂], by simp⟩
+
+/-- Smart constructor: 3-literal clause. -/
+def clause3 {N : ℕ} (ℓ₁ ℓ₂ ℓ₃ : Fin N × Bool) : CLClause N :=
+  ⟨[ℓ₁, ℓ₂, ℓ₃], by simp⟩
+
 /-- Baseline CNF on the compiled variable space (empty clause list).
     This is a structural placeholder witness used for scaffolding proofs.
     It is *not* the full Cook-Levin encoding. -/
