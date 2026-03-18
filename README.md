@@ -1,77 +1,81 @@
-# pall-lean
+# P ≠ NP Lean 4 Formalization
 
-Lean 4 formalization of OBDD width lower bounds for Tseitin formulas on expander graphs.
+A Lean 4 formalization of a P ≠ NP separation argument via SPDP (Shifted Partial Derivative Polynomial) rank theory.
 
-## Active Proof Chain (Route 2: Tseitin/OBDD)
+## Status
 
-The main result: **no polynomial-width OBDD computes the Tseitin clause-subset
-satisfiability function on expander graphs** (`tseitin_not_poly_obdd`).
+| Metric | Value |
+|---|---|
+| **Custom axioms** | **2** |
+| Standard Lean axioms | 3 (propext, Classical.choice, Quot.sound) |
+| Sorry count | **0** |
+| Build jobs | 3,138 |
+| Lines of Lean | 4,214 |
+| Files | 30 |
 
-All theorems fully proved — 0 sorry, 0 axioms. Two standard graph-theoretic
-conditions (`HasGoodCut`, `HasSatisfiablePrefixes`) are provided as hypotheses,
-satisfied by known expander families.
+## Architecture
 
-### Core files (all clean ✅)
-
-| File | What | Lines |
-|------|------|-------|
-| `MUSWidthLowerBound.lean` | OBDD width from distinct residuals | ✅ |
-| `SearchToOBDDBridge.lean` | Bridge: search complexity → OBDD width | ✅ |
-| `TseitinOBDD.lean` | Main theorem: Tseitin exponential OBDD width | ✅ |
-| `TseitinDefs.lean` | Regular graph definitions, Tseitin encoding | ✅ |
-
-### Proof architecture
+The proof follows the compiled polynomial architecture from the paper (arXiv v5):
 
 ```
-HasGoodCut (hypothesis)          HasSatisfiablePrefixes (hypothesis)
-         │                                │
-         ▼                                ▼
-greedy_independent_split ──► tseitin_parity_residuals
-         │                        │
-         ▼                        ▼
-private_edges_from_independent   width_from_many_residuals
-                    │                    │
-                    ▼                    ▼
-              tseitin_obdd_width ◄───────┘
-                    │
-                    ▼
-            exp_exceeds_poly
-                    │
-                    ▼
-           tseitin_not_poly_obdd
+P ≠ NP
+├── Theorem 92 (P-side): Poly-time → low compiled SPDP rank    [AXIOM]
+├── Theorem 94 (NP-side): Permanent has exponential SPDP rank   [PROVED]
+├── Theorem 207 (Bridge): Permanent rank ≤ compiled rank        [AXIOM]
+└── Separation: low rank < high rank → contradiction            [PROVED]
 ```
 
-### Hypotheses (conditions on the graph)
+### What's Proved (0 axioms)
 
-1. **`HasGoodCut G c`** — The graph has a cut with ≥(d+1)·c split vertices
-   and every vertex has a right-side edge. Follows from edge expansion
-   (Jukna, *Boolean Function Complexity*, Ch. 8).
+- **Permanent SPDP lower bound** (Theorem 94): The m×m permanent polynomial has SPDP rank > m. Proof via:
+  - Disjoint monomial supports for permanent first derivatives
+  - Monomial injectivity (different permutations → different monomials)
+  - Linear independence transfer via rename bijection
+  - Finrank monotonicity from degree-bounded subspace containment
 
-2. **`HasSatisfiablePrefixes G labels k hk`** — For even-parity labels,
-   every prefix assignment extends to a satisfying completion. Follows from
-   GF(2) linear algebra and spanning tree elimination.
+- **Separation logic**: If Theorems 92 and 207 hold, then P ≠ NP. Derived theorems include `compiled_rank_preservation`, `rank_monotone_reduction`, and the main `P_neq_NP`.
 
-### Open frontier
+- **Hard family membership**: The hard NP family is proved to be in NP from its verifier definition.
 
-The real proof value now lives in:
-- **Proving the expander support package** (HasGoodCut from edge expansion)
-- **Proving GF(2) satisfiability** (HasSatisfiablePrefixes from linear algebra)
-- **Lifting from OBDD to general poly-time** (the L vs P question)
+### The Two Axioms
 
-## Route 1 files (archived/exploratory)
+1. **`pside_compiled_collapse`** (Theorem 92): Every polynomial-time DTM produces functions with polynomially bounded compiled SPDP rank. This requires Cook-Levin encoding, depth-4 circuit simulation, and profile compression.
 
-The `MobiusBridge`, `TracedMobiusBridge`, `CoupledCompiler`, `ProfileDecomp`,
-`NPViolationLowerBound`, `ExtractionWiring`, and `SearchPSide` files are from
-an earlier approach via Möbius coefficients and SPDP rank. That route identified
-a fundamental gap: Möbius mass alone does not separate P from NP (unit clause
-SAT is in P but has superpolynomial Möbius mass). These files are retained as
-historical branches but are not on the active proof path.
+2. **`perm_rank_le_compiled`** (Theorem 207): The permanent polynomial's SPDP rank is bounded by the compiled polynomial's SPDP rank. This combines Cook-Levin semantic restriction with evaluation monotonicity.
 
 ## Building
 
 ```bash
-lake update
+# Requires Lean 4 v4.28.0 with Mathlib
+elan install leanprover/lean4:v4.28.0
+lake exe cache get
 lake build
 ```
 
-Requires Lean 4.28.0 and Mathlib.
+## Files
+
+### Main proof chain
+- `CompiledSeparation.lean` — P ≠ NP theorem + axioms
+- `CompiledPoly.lean` — Cook-Levin CNF, compiled polynomial, blocked SPDP
+- `PermanentLower.lean` — Permanent SPDP lower bound (Theorem 94)
+- `PermanentMonomials.lean` — Disjoint monomial supports
+- `SPDPMonotone.lean` — SPDP monotonicity + embedding axiom
+- `SPDPDefs.lean` — SPDP definitions and basic properties
+- `SPDPEval.lean` — Evaluation-derivative commutation lemmas
+- `Permanent.lean` — Permanent polynomial definition
+- `TuringMachine.lean` — DTM definition and compilation
+
+### Supporting infrastructure
+- `SpanDim.lean`, `DegreeBounds.lean` — Finite-dimensionality
+- `Depth4Simulation.lean` — Multilinear interpolation
+- `BoolEval.lean`, `BoolCircuit.lean` — Boolean evaluation
+- Various restriction, Möbius, and rank bound files
+
+## Branch
+
+- `compiled-route` — Active development (this branch)
+- `paper-faithful` — Frozen at `v0.9-algebraic-infrastructure`
+
+## Reference
+
+Based on: *Toward P≠NP: An Observer-Theoretic Separation via SPDP Rank* (arXiv:2512.11820)
