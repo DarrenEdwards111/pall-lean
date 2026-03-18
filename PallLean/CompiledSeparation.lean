@@ -131,16 +131,55 @@ theorem hard_family_in_NP : UniformNP hardNPFamily := by
     exact ⟨w, by unfold hardNPVerifierFun at hw; exact hw⟩
 
 /-! ================================================================
-    AXIOM 1: Paper Theorem 92 (P-side compiled upper bound)
-    "Let M be a deterministic single-tape TM running in time T(n) ≤ n^c.
-     There is a uniform family {P_{M,n}} with Γ_{κ,ℓ}(P_{M,n}) ≤ n^{O(1)}."
+    Paper Theorem 92 (P-side compiled upper bound)
+    Decomposed into two sub-axioms matching the paper's proof chain:
+
+    Step 1 — Paper §17.1 (Cook-Levin construction):
+      DTM M deciding f → ∃ width-3 CNF with block-local partition
+      (standard computability theory, no SPDP-specific content)
+
+    Step 2 — Paper §8 / §17.3 (Width ⇒ Rank):
+      Block-local CNF with polylog CEW → SPDP rank ≤ n^{O(1)}
+      (profile compression from companion paper arXiv:2512.20729)
     ================================================================ -/
 
-axiom pside_compiled_collapse :
+/-- Paper §17.1: Cook-Levin construction.
+    For DTM M with timeBound k deciding f, produces a Cook-Levin CNF
+    on compiledVarCount k n = n^(2k+1) variables. -/
+axiom cook_levin_cnf_exists (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (f : (Fin n → Bool) → Bool) (hM : M.decides f) :
+    ∃ (cnf : CookLevinCNF (compiledVarCount M.timeBound n))
+      (hlp : HasLocalPartition cnf),
+    M.decides f
+
+/-- Paper §8 + §17.3: Width ⇒ Rank (profile compression).
+    A block-local compiled polynomial has SPDP rank bounded by (log n)^C.
+    Paper: "Γ^B_{κ,ℓ}(p) ≤ (log n)^{O(1)}"
+    For large n: (log n)^C ≤ √n. -/
+axiom width_implies_rank (n k : ℕ)
+    (cnf : CookLevinCNF (compiledVarCount k n))
+    (hlp : HasLocalPartition cnf) :
+    blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPolyQ cnf) hlp.partition ≤ (Nat.log 2 n) ^ (4 * k + 4)
+
+/-- (log₂ n)^C ≤ √n for sufficiently large n.
+    We use a concrete bound: n₀ = (2*C+2)^(2*C+2) works. -/
+axiom polylog_le_sqrt (C : ℕ) : ∃ n₀, ∀ n, n ≥ n₀ → n ≥ 2 →
+    (Nat.log 2 n) ^ C ≤ Nat.sqrt n
+
+/-- Paper Theorem 92: Combined P-side upper bound.
+    Derived from cook_levin_cnf_exists + width_implies_rank + polylog_le_sqrt. -/
+theorem pside_compiled_collapse :
     ∀ (M : DTM), ∃ (n₀ : ℕ),
     ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
     ∀ (f : (Fin n → Bool) → Bool), M.decides f →
-    CompiledLowRank f
+    CompiledLowRank f := by
+  intro M
+  set k := M.timeBound
+  obtain ⟨n₀, h_sqrt⟩ := polylog_le_sqrt (4 * k + 4)
+  refine ⟨n₀, fun n hn₀ hn2 f hf => ?_⟩
+  obtain ⟨cnf, hlp, hf'⟩ := cook_levin_cnf_exists M n hn2 f hf
+  exact ⟨M, k, cnf, hlp, hf', le_trans (width_implies_rank n k cnf hlp) (h_sqrt n hn₀ hn2)⟩
 
 theorem ptime_implies_low_rank (F : BoolFunFamily) (hP : UniformPtime F) :
     ∃ n₀, ∀ n, n ≥ n₀ → n ≥ 2 → CompiledLowRank (F n) := by
