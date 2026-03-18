@@ -348,4 +348,45 @@ theorem permanent_spdp_lower :
   -- m * m > m for m ≥ 2
   linarith [show m * m > m from by nlinarith]
 
+/-- Stronger version: SPDP rank ≥ m² (Paper Theorem 94, full bound).
+    Proved: the m² first derivatives are linearly independent. -/
+theorem permanent_spdp_rank_ge_sq :
+    ∀ (m : ℕ), m ≥ 2 →
+    ∀ (bp : CompiledPoly.BlockPartition (m * m)),
+    CompiledPoly.blockedSpdpRankQ (Nat.log 2 (m * m)) (Nat.log 2 (m * m))
+      (permPolyFlat m) bp ≥ m * m := by
+  intro m hm bp
+  set κ := Nat.log 2 (m * m)
+  have hκ : κ ≥ 1 := log2_sq_ge_one m hm
+  set f := fun v : Fin (m * m) => MvPolynomial.pderiv v (permPolyFlat m)
+  have h_indep := perm_first_derivs_independent m hm
+  set spdp := { q : MvPolynomial (Fin (m * m)) ℚ |
+      ∃ (S : List (Fin (m * m))) (sh : MvPolynomial (Fin (m * m)) ℚ),
+        S.length ≤ κ ∧ sh.totalDegree ≤ κ ∧
+        (S.toFinset.image bp.blockOf).card ≤ κ ∧
+        (sh.vars.image bp.blockOf).card ≤ κ ∧
+        q = sh * iterDerivList S (permPolyFlat m) }
+  have h_eq : CompiledPoly.blockedSpdpRankQ κ κ (permPolyFlat m) bp =
+      Module.finrank ℚ (Submodule.span ℚ spdp) := by rfl
+  rw [h_eq]
+  have h_mem : ∀ v : Fin (m * m), f v ∈ spdp := by
+    intro v
+    have : f v = pderiv v (permPolyFlat m) := rfl
+    rw [this]
+    exact ⟨[v], 1, by simp; exact hκ, by simp, by simp [List.toFinset_cons]; exact hκ,
+           by simp [MvPolynomial.vars_one], by simp [iterDerivList, one_mul]⟩
+  have h_span_le : Submodule.span ℚ (Set.range f) ≤ Submodule.span ℚ spdp :=
+    Submodule.span_mono (fun x ⟨v, hv⟩ => hv ▸ h_mem v)
+  have h_fin : Module.Finite ℚ (Submodule.span ℚ spdp) := by
+    have h_le := spdp_span_le_restrictTotalDegree κ κ (permPolyFlat m) bp
+    exact Module.Finite.of_injective
+      (Submodule.inclusion h_le)
+      (Submodule.inclusion_injective h_le)
+  have h_fr : Module.finrank ℚ (Submodule.span ℚ (Set.range f)) = m * m :=
+    (finrank_span_eq_card h_indep).trans (Fintype.card_fin (m * m))
+  calc Module.finrank ℚ (Submodule.span ℚ spdp)
+      ≥ Module.finrank ℚ (Submodule.span ℚ (Set.range f)) :=
+        Submodule.finrank_mono h_span_le
+    _ = m * m := h_fr
+
 end PermanentLower
