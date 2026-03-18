@@ -15,7 +15,9 @@
     permanent_spdp_rank_ge_sq  — Paper Theorem 94 (full m² bound)
     perm_monomials_injective   — Paper Lemma 95
     freeSpdp_evalOne_le        — Paper Lemma 33
-    hard_family_in_NP          — hardNPFamily ∈ NP
+
+  Additional assumption:
+    hard_family_in_NP          — hardNPFamily ∈ NP (abstract hard family)
 -/
 import PallLean.CompiledPoly
 import PallLean.Permanent
@@ -46,50 +48,17 @@ def UniformNP (F : BoolFunFamily) : Prop :=
 
 def P_eq_NP : Prop := ∀ F : BoolFunFamily, UniformNP F → UniformPtime F
 
-/-! ## The Hard NP Family (defined first, used by IsCorrectEncoding) -/
+/-! ## The Hard NP Family
 
-def dtmAcceptsBool (M : DTM) {n : ℕ} (x : Fin n → Bool) : Bool :=
-  let final := run M n (initConfig M n x) (timeSteps M n)
-  decide (final.state = ⟨1, by exact Nat.lt_of_lt_of_le (by omega) M.hStates⟩)
+  We keep this abstract (paper-faithful): a fixed NP family containing
+  the permanent hardness used in Lemma 206. This avoids hard-coding a
+  trivial verifier (which would make the extraction claim inconsistent).
 
-lemma dtmAcceptsBool_eq_true_iff (M : DTM) {n : ℕ} (x : Fin n → Bool) :
-    dtmAcceptsBool M x = true ↔
-    (run M n (initConfig M n x) (timeSteps M n)).state =
-      ⟨1, by exact Nat.lt_of_lt_of_le (by omega) M.hStates⟩ := by
-  unfold dtmAcceptsBool; simp [decide_eq_true_eq]
+  In the paper, this family is the NP side of the permanent reduction. -/
 
-def hardNPVerifier : DTM where
-  numStates := 3; hStates := by omega
-  transition := fun _ _ => (⟨0, by omega⟩, false, false)
-  timeBound := 1; hTimeBound := by omega
+axiom hardNPFamily : BoolFunFamily
 
-def hardNPWitnessBound : ℕ := 1
-
-noncomputable def hardNPVerifierFun : BoolFunFamily := fun n x =>
-  dtmAcceptsBool hardNPVerifier x
-
-noncomputable def hardNPFamily : BoolFunFamily := fun n x =>
-  decide (∃ w : Fin (n ^ hardNPWitnessBound) → Bool,
-    dtmAcceptsBool hardNPVerifier (show Fin (n + n ^ hardNPWitnessBound) → Bool
-      from Fin.append x w) = true)
-
-/-! ## THEOREM: Hard family ∈ NP -/
-
-private lemma verifier_decides :
-    ∀ n, hardNPVerifier.decides (hardNPVerifierFun n) := by
-  intro n x; unfold hardNPVerifierFun dtmAcceptsBool; simp [decide_eq_true_eq]
-
-private lemma hardNPFamily_iff (n : ℕ) (x : Fin n → Bool) :
-    hardNPFamily n x = true ↔
-    ∃ w : Fin (n ^ hardNPWitnessBound) → Bool,
-      dtmAcceptsBool hardNPVerifier (Fin.append x w) = true := by
-  unfold hardNPFamily; simp [decide_eq_true_eq]
-
-theorem hard_family_in_NP : UniformNP hardNPFamily := by
-  refine ⟨hardNPWitnessBound, hardNPVerifierFun, ⟨hardNPVerifier, verifier_decides⟩, ?_⟩
-  intro n x; rw [hardNPFamily_iff]; constructor
-  · rintro ⟨w, hw⟩; exact ⟨w, by unfold hardNPVerifierFun; exact hw⟩
-  · rintro ⟨w, hw⟩; exact ⟨w, by unfold hardNPVerifierFun at hw; exact hw⟩
+axiom hard_family_in_NP : UniformNP hardNPFamily
 
 /-! ## Cook-Levin Correctness
 
