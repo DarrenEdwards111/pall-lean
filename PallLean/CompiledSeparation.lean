@@ -143,54 +143,23 @@ theorem hard_family_in_NP : UniformNP hardNPFamily := by
       (profile compression from companion paper arXiv:2512.20729)
     ================================================================ -/
 
-/-- Paper §17.1: Cook-Levin construction.
-    For DTM M with timeBound k deciding f, produces a Cook-Levin CNF
-    on compiledVarCount k n = n^(2k+1) variables.
+/-- Paper Theorem 92 (P-side upper bound) — AXIOM.
+    "Let M be a DTM running in time n^k. For sufficiently large n,
+     there exists a Cook-Levin CNF with SPDP rank ≤ √n."
 
-    Note: The axiom only asserts CNF + partition EXISTENCE (not correctness).
-    The correctness of the encoding is implicit in width_implies_rank_sqrt
-    and cook_levin_perm_embed which use the CNF structure.
+    This combines:
+    (a) Cook-Levin construction (§17.1): DTM → width-3 CNF with locality
+    (b) Profile compression (§8/§17.3): local CNF → Γ ≤ (log n)^{O(1)}
+    (c) Asymptotics: (log n)^C ≤ √n for large n
 
-    We can construct a trivial (empty) CNF to satisfy existence.
-    The non-trivial content is in how the other axioms USE the CNF. -/
-theorem cook_levin_cnf_exists (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (f : (Fin n → Bool) → Bool) (hM : M.decides f) :
-    ∃ (cnf : CookLevinCNF (compiledVarCount M.timeBound n))
-      (hlp : HasLocalPartition cnf),
-    M.decides f := by
-  let emptyCNF : CookLevinCNF (compiledVarCount M.timeBound n) :=
-    { clauses := [], numClauses := 0 }
-  let trivPartition : BlockPartition (compiledVarCount M.timeBound n) :=
-    { numBlocks := 1, blockOf := fun _ => ⟨0, by omega⟩ }
-  refine ⟨emptyCNF, ⟨trivPartition, ?_, 0⟩, hM⟩
-  intro c hc
-  simp [emptyCNF] at hc
-
-/-- Paper §8/§17.3 + asymptotics: Profile compression gives SPDP rank ≤ √n.
-    Combines two facts:
-    (a) Profile compression: Γ_{κ,ℓ}(P_{M,n}) ≤ (log n)^{O(1)}
-    (b) Asymptotics: (log n)^C ≤ √n for sufficiently large n
-    Paper: "Γ^B_{κ,ℓ}(P_{M,n}) ≤ (log n)^{O(1)} = n^{o(1)} ≤ √n" -/
-axiom width_implies_rank_sqrt (k : ℕ) :
-    ∃ n₀, ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
-    ∀ (cnf : CookLevinCNF (compiledVarCount k n))
-      (hlp : HasLocalPartition cnf),
-    blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n
-
-/-- Paper Theorem 92: P-side upper bound.
-    Derived from cook_levin_cnf_exists + width_implies_rank_sqrt. -/
-theorem pside_compiled_collapse :
+    We keep this as a single axiom because the sub-components are
+    tightly coupled: the CNF must correctly encode TM computation
+    for the rank bound to hold. -/
+axiom pside_compiled_collapse :
     ∀ (M : DTM), ∃ (n₀ : ℕ),
     ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
     ∀ (f : (Fin n → Bool) → Bool), M.decides f →
-    CompiledLowRank f := by
-  intro M
-  set k := M.timeBound
-  obtain ⟨n₀, h_rank⟩ := width_implies_rank_sqrt k
-  refine ⟨n₀, fun n hn₀ hn2 f hf => ?_⟩
-  obtain ⟨cnf, hlp, hf'⟩ := cook_levin_cnf_exists M n hn2 f hf
-  exact ⟨M, k, cnf, hlp, hf', h_rank n hn₀ hn2 cnf hlp⟩
+    CompiledLowRank f
 
 theorem ptime_implies_low_rank (F : BoolFunFamily) (hP : UniformPtime F) :
     ∃ n₀, ∀ n, n ≥ n₀ → n ≥ 2 → CompiledLowRank (F n) := by
