@@ -96,11 +96,43 @@ def clause2 {N : ℕ} (ℓ₁ ℓ₂ : Fin N × Bool) : CLClause N :=
 def clause3 {N : ℕ} (ℓ₁ ℓ₂ ℓ₃ : Fin N × Bool) : CLClause N :=
   ⟨[ℓ₁, ℓ₂, ℓ₃], by simp⟩
 
+/-- Generic CNF constructor from a list of clauses. -/
+def mkCNF {N : ℕ} (clauses : List (CLClause N)) : CookLevinCNF N :=
+  ⟨clauses, clauses.length⟩
+
+@[simp] theorem mkCNF_clauses {N : ℕ} (clauses : List (CLClause N)) :
+    (mkCNF clauses).clauses = clauses := rfl
+
+@[simp] theorem mkCNF_numClauses {N : ℕ} (clauses : List (CLClause N)) :
+    (mkCNF clauses).numClauses = clauses.length := rfl
+
+/-- Append clause families while preserving CNF structure. -/
+def appendCNF {N : ℕ} (c₁ c₂ : CookLevinCNF N) : CookLevinCNF N :=
+  mkCNF (c₁.clauses ++ c₂.clauses)
+
+/-- If all clauses are local to `bp`, then the assembled CNF is local. -/
+def localFromAllClauses {N : ℕ} (cnf : CookLevinCNF N)
+    (bp : BlockPartition N)
+    (hlocal : ∀ c ∈ cnf.clauses, c.isLocal bp)
+    (bnd : ℕ := 1) : HasLocalPartition cnf :=
+  ⟨bp, hlocal, bnd⟩
+
+/-- Locality is preserved under clause-list append. -/
+theorem allClausesLocal_append {N : ℕ} (bp : BlockPartition N)
+    (xs ys : List (CLClause N))
+    (hx : ∀ c ∈ xs, c.isLocal bp)
+    (hy : ∀ c ∈ ys, c.isLocal bp) :
+    ∀ c ∈ (xs ++ ys), c.isLocal bp := by
+  intro c hc
+  rcases List.mem_append.mp hc with h | h
+  · exact hx c h
+  · exact hy c h
+
 /-- Baseline CNF on the compiled variable space (empty clause list).
     This is a structural placeholder witness used for scaffolding proofs.
     It is *not* the full Cook-Levin encoding. -/
 def baselineCNF (M : DTM) (n : ℕ) : CookLevinCNF (compiledVarCount (defaultK M) n) :=
-  ⟨[], 0⟩
+  mkCNF []
 
 /-- Baseline encoding package exists for every machine/input size.
     Useful as a non-axiomatic existence scaffold while building the
