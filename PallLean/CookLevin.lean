@@ -66,4 +66,18 @@ def oneBlock_local {N : ℕ} (cnf : CookLevinCNF N) :
     simpa using (Finset.card_le_univ (s := c.vars.image (oneBlockPartition N).blockOf))
   exact le_trans hle1 (by omega)
 
+/-- Baseline CNF on the compiled variable space (empty clause list).
+    This is a structural placeholder witness used for scaffolding proofs.
+    It is *not* the full Cook-Levin encoding. -/
+def baselineCNF (M : DTM) (n : ℕ) : CookLevinCNF (compiledVarCount (defaultK M) n) :=
+  ⟨[], 0⟩
+
+/-- Baseline encoding package exists for every machine/input size.
+    Useful as a non-axiomatic existence scaffold while building the
+    full Cook-Levin construction. -/
+def baselineEncoding (M : DTM) (n : ℕ) : CookLevinEncoding M n where
+  k := defaultK M
+  cnf := baselineCNF M n
+  hlp := oneBlock_local (baselineCNF M n)
+
 end CookLevin
