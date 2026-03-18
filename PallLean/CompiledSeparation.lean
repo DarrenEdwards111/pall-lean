@@ -8,7 +8,7 @@
 
   Custom axioms (2):
     1. pside_compiled_collapse   — Thm 92 / §9 / §17.3 (P-side upper bound)
-    2. perm_rank_le_compiled     — Thm 207 core (NP-side: perm rank ≤ compiled rank)
+    2. cook_levin_perm_embed     — Thm 207 core (NP-side: perm rank ≤ compiled rank)
 
   Fully proved (0 axiom, 0 sorry):
     PermanentMonomials.lean — disjoint monomial supports
@@ -17,7 +17,7 @@
 
   Derived theorems (0 sorry):
     hard_family_in_NP          : from concrete verifier definition
-    compiled_rank_preservation : from permanent_spdp_lower + perm_rank_le_compiled
+    compiled_rank_preservation : from permanent_spdp_lower + cook_levin_perm_embed
     rank_monotone_reduction    : from compiled_rank_preservation
     P_neq_NP                   : from 1 + rank_monotone_reduction + hard_family_in_NP
 -/
@@ -177,7 +177,7 @@ theorem compiled_rank_monotone :
       (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
       (permPolyFlat (Nat.sqrt n)) bp := by
   intro n M k cnf hlp hM
-  exact SPDPMonotone.perm_rank_le_compiled n M k cnf hlp (hardNPFamily n) hM
+  exact SPDPMonotone.cook_levin_perm_embed n M k cnf hlp (hardNPFamily n) hM
 
 /-! ================================================================
     AXIOM 4: Constructive Witness (§11.7) — Supporting

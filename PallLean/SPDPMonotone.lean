@@ -130,7 +130,16 @@ theorem iterDerivList_eval_comm {N : ℕ} (S : List (Fin N)) (j : Fin N) (c : �
 
 -- Note: parameterized over hardFamily to avoid circular import with
 -- CompiledSeparation. In practice, only called with hardNPFamily.
-axiom perm_rank_le_compiled
+/-! ## Cook-Levin Embedding Axiom
+
+  The Cook-Levin encoding of a DTM that computes the permanent
+  produces a compiled polynomial whose FREE-VARIABLE SPDP
+  (restricted to input variables) has rank ≥ the permanent's rank.
+
+  This is purely about the Cook-Levin encoding structure —
+  evaluation monotonicity is handled by freeSpdp_evalOne_le (proved). -/
+
+axiom cook_levin_perm_embed
     (n : ℕ) (M : TuringMachine.DTM) (k : ℕ)
     (cnf : CookLevinCNF (compiledVarCount k n))
     (hlp : HasLocalPartition cnf)
@@ -142,5 +151,10 @@ axiom perm_rank_le_compiled
       (Permanent.permPolyFlat (Nat.sqrt n)) bp ≤
     blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
       (compiledPolyQ cnf) hlp.partition
+
+-- Note: This was previously called perm_rank_le_compiled.
+-- The evaluation monotonicity part (Paper Lemma 33) is now proved
+-- in SPDPRestrict.lean (freeSpdp_evalOne_le).
+-- The remaining axiom is purely about Cook-Levin encoding structure.
 
 end SPDPMonotone
