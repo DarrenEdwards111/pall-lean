@@ -38,6 +38,14 @@ theorem compiledVarCount_ge_n (k n : ℕ) (hn : n ≥ 1) :
     omega
   nlinarith
 
+/-- Global version (handles `n = 0` by triviality). -/
+theorem compiledVarCount_ge_n_all (k n : ℕ) :
+    compiledVarCount k n ≥ n := by
+  cases n with
+  | zero => simp [compiledVarCount]
+  | succ n' =>
+    exact compiledVarCount_ge_n k (Nat.succ n') (by omega)
+
 /-- For DTMs (timeBound ≥ 1), `compiledVarCount` is at least cubic in `n`. -/
 theorem compiledVarCount_ge_cubic (M : DTM) (n : ℕ) (hn : n ≥ 1) :
     compiledVarCount M.timeBound n ≥ n ^ 3 := by
@@ -127,6 +135,42 @@ theorem allClausesLocal_append {N : ℕ} (bp : BlockPartition N)
   rcases List.mem_append.mp hc with h | h
   · exact hx c h
   · exact hy c h
+
+/-! ## First concrete clause family: input well-formedness (scaffold)
+
+  These clauses are a first non-empty family in the Cook-Levin direction.
+  For each input variable `xᵢ`, we add the tautology `(xᵢ ∨ ¬xᵢ)` in 2-CNF form.
+  This is logically redundant, but gives us:
+  - concrete variable embedding `Fin n -> Fin (compiledVarCount ...)`
+  - concrete clause generation over `Fin n`
+  - immediate width/locality proofs via existing infrastructure.
+
+  Next steps will replace/augment these with real tableau constraints
+  (initial-state, transition, head uniqueness, etc.). -/
+
+/-- Embed input-variable index space into compiled-variable space. -/
+def inputVar (M : DTM) (n : ℕ) : Fin n → Fin (compiledVarCount (defaultK M) n) :=
+  embedVar (compiledVarCount_ge_n_all (defaultK M) n)
+
+/-- Input well-formedness tautology clauses: `(xᵢ ∨ ¬xᵢ)` for each `i`. -/
+def inputWellformedClauses (M : DTM) (n : ℕ) : List (CLClause (compiledVarCount (defaultK M) n)) :=
+  List.ofFn (fun i : Fin n =>
+    clause2 (posLit (inputVar M n i)) (negLit (inputVar M n i)))
+
+/-- CNF built from input well-formedness clauses. -/
+def inputWellformedCNF (M : DTM) (n : ℕ) : CookLevinCNF (compiledVarCount (defaultK M) n) :=
+  mkCNF (inputWellformedClauses M n)
+
+/-- Locality certificate for input-wellformed CNF under identity partition. -/
+def inputWellformed_local (M : DTM) (n : ℕ) :
+    HasLocalPartition (inputWellformedCNF M n) :=
+  identity_local (inputWellformedCNF M n)
+
+/-- First non-empty concrete encoding package (scaffold level). -/
+def initialEncoding (M : DTM) (n : ℕ) : CookLevinEncoding M n where
+  k := defaultK M
+  cnf := inputWellformedCNF M n
+  hlp := inputWellformed_local M n
 
 /-- Baseline CNF on the compiled variable space (empty clause list).
     This is a structural placeholder witness used for scaffolding proofs.
