@@ -130,14 +130,22 @@ theorem iterDerivList_eval_comm {N : ℕ} (S : List (Fin N)) (j : Fin N) (c : �
 
 -- Note: parameterized over hardFamily to avoid circular import with
 -- CompiledSeparation. In practice, only called with hardNPFamily.
-/-! ## Cook-Levin Embedding Axiom
+/-! ## Cook-Levin Embedding Axiom — Paper Lemma 206 (specialized)
 
-  The Cook-Levin encoding of a DTM that computes the permanent
-  produces a compiled polynomial whose FREE-VARIABLE SPDP
-  (restricted to input variables) has rank ≥ the permanent's rank.
+  Paper Lemma 206 (Instance-Uniform Extraction with Rank Monotonicity):
+  "The instrumented polynomial P_{M',n} admits an extraction to the
+   coupled verifier sheet ... Γ_{κ,ℓ}(Q^×_{Φ,S}) ≤ Γ_{κ,ℓ}(P_{M',n})"
 
-  This is purely about the Cook-Levin encoding structure —
-  evaluation monotonicity is handled by freeSpdp_evalOne_le (proved). -/
+  We specialize this to the permanent-based hard NP family:
+  the Cook-Levin encoding of a DTM deciding hardNPFamily produces
+  a compiled polynomial whose SPDP rank ≥ the permanent's SPDP rank.
+
+  Paper proof: "The extraction map (restriction of z variables followed
+  by projection to u-blocks) is rank-monotone by Lemma 33 and Lemma 34."
+
+  Lemma 33 (restriction monotonicity) is PROVED: SPDPRestrict.freeSpdp_evalOne_le
+  Lemma 34 (submatrix monotonicity) is trivial (selecting rows/columns)
+  The remaining content: Cook-Levin encoding produces the right structure. -/
 
 axiom cook_levin_perm_embed
     (n : ℕ) (M : TuringMachine.DTM) (k : ℕ)
