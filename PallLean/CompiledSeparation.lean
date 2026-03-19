@@ -249,34 +249,6 @@ theorem P_neq_NP_from_pside
 theorem P_neq_NP : ¬ P_eq_NP :=
   P_neq_NP_from_pside pside_upper_bound
 
-/-- Scaffold-route variant:
-    if initialSemantic encodings are eventually certified correct,
-    then the scaffold pside bridge is enough to derive P ≠ NP
-    via the same contradiction engine. -/
-theorem P_neq_NP_from_scaffold
-    (hcorrectInitEv : ∀ (M : DTM), ∃ nC : ℕ, ScaffoldCorrectAfter M nC) :
-    ¬ P_eq_NP := by
-  apply P_neq_NP_from_pside
-  intro M
-  exact pside_upper_bound_from_scaffold M (hcorrectInitEv M)
-
-/-- Fully protected scaffold-route engine using threshold functions directly.
-    This avoids existential unpacking in downstream uses. -/
-theorem P_neq_NP_from_scaffold_thresholds
-    (nC : DTM → ℕ)
-    (hC : ∀ M : DTM, ScaffoldCorrectAfter M (nC M)) :
-    ¬ P_eq_NP := by
-  apply P_neq_NP_from_pside
-  intro M
-  refine ⟨max (CookLevin.scaffoldClosureThreshold M) (nC M), ?_⟩
-  intro n hn hn2 f hM
-  have hThresh : n ≥ CookLevin.scaffoldClosureThreshold M :=
-    le_trans (le_max_left _ _) hn
-  have hCorr : IsCorrectEncoding M n (CookLevin.defaultK M)
-      (CookLevin.initialSemanticCNF M n hn2)
-      (CookLevin.initialSemantic_local M n hn2) :=
-    hC M n (le_trans (le_max_right _ _) hn) hn2
-  exact pside_witness_from_scaffold M n hThresh hn2 f hM hCorr
 
 /-- Optional packaged scaffold correctness existence assumption. -/
 axiom scaffold_correctness_exists :
@@ -406,6 +378,33 @@ theorem P_neq_NP_from_scaffold_thresholds_via_contracts
     ¬ P_eq_NP :=
   P_neq_NP_from_scaffold_contracts
     (mkScaffoldContractsFromThresholds hBound nC hC)
+
+/-- Scaffold-route variant:
+    if initialSemantic encodings are eventually certified correct,
+    then the scaffold pside bridge is enough to derive P ≠ NP
+    via the same contradiction engine.
+
+    Paper-faithful layered form: instantiate package theorem with
+    theorem-92 scaffold bounds + correctness package. -/
+theorem P_neq_NP_from_scaffold
+    (hcorrectInitEv : ∀ (M : DTM), ∃ nC : ℕ, ScaffoldCorrectAfter M nC) :
+    ¬ P_eq_NP :=
+  P_neq_NP_from_scaffold_packages
+    (fun M => CookLevin.theorem92_scaffold_eventually M)
+    hcorrectInitEv
+
+/-- Fully protected scaffold-route engine using threshold functions directly.
+    This avoids existential unpacking in downstream uses.
+
+    Paper-faithful layered form: thresholds are first packaged as contracts,
+    then passed to the generic contradiction engine. -/
+theorem P_neq_NP_from_scaffold_thresholds
+    (nC : DTM → ℕ)
+    (hC : ∀ M : DTM, ScaffoldCorrectAfter M (nC M)) :
+    ¬ P_eq_NP :=
+  P_neq_NP_from_scaffold_thresholds_via_contracts
+    (fun M => CookLevin.theorem92_scaffold_eventually M)
+    nC hC
 
 /-- Alternate end-to-end theorem via scaffold assumptions (no pside axiom). -/
 theorem P_neq_NP_via_scaffold : ¬ P_eq_NP :=
