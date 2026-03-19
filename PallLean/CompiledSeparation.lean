@@ -264,6 +264,30 @@ axiom initialSemantic_correctness_after_threshold :
   ∀ (M : DTM), ∃ nC : ℕ,
     ∀ n : ℕ, n ≥ nC → InitialSemanticCorrectAt M n
 
+/-- Legacy-form bridge: old scaffold correctness packaging implies
+    the new semantic-threshold packaging. -/
+theorem initialSemantic_correctness_after_threshold_of_scaffold_correctness
+    (hOld : ∀ (M : DTM), ∃ nC : ℕ, ScaffoldCorrectAfter M nC) :
+    ∀ (M : DTM), ∃ nC : ℕ, ∀ n : ℕ, n ≥ nC → InitialSemanticCorrectAt M n := by
+  intro M
+  obtain ⟨nC, hC⟩ := hOld M
+  refine ⟨nC, ?_⟩
+  intro n hn hn2
+  exact hC n hn hn2
+
+/-- Definitional equivalence between legacy and semantic-threshold
+    correctness packaging. This documents the migration shape. -/
+theorem scaffold_correctness_packaging_iff :
+    (∀ (M : DTM), ∃ nC : ℕ, ScaffoldCorrectAfter M nC) ↔
+    (∀ (M : DTM), ∃ nC : ℕ, ∀ n : ℕ, n ≥ nC → InitialSemanticCorrectAt M n) := by
+  constructor
+  · exact initialSemantic_correctness_after_threshold_of_scaffold_correctness
+  · intro hNew M
+    obtain ⟨nC, hC⟩ := hNew M
+    refine ⟨nC, ?_⟩
+    intro n hn hn2
+    exact hC n hn hn2
+
 /-- Eventual scaffold correctness package derived from semantic threshold form. -/
 theorem scaffold_correctness_exists :
   ∀ (M : DTM),
