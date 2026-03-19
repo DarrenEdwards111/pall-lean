@@ -547,6 +547,33 @@ theorem decisionLink_componentThresholdFnPack_of_semanticBridge
   intro M n _hn
   exact semanticToDecisionLink_all M n
 
+/-- Skolemized local extraction witness at size `n`:
+    provides an explicit selector for a block partition witness, with
+    pointwise proof of the extraction inequality. -/
+def DecisionExtractionSkolemAt (M : DTM) (n : ℕ) : Prop :=
+  ∃ chooseBp : (∀ (hn2 : n ≥ 2), M.decides (hardNPFamily n) →
+      BlockPartition (Nat.sqrt n * Nat.sqrt n)),
+    ∀ (hn2 : n ≥ 2) (hM : M.decides (hardNPFamily n)),
+      blockedSpdpRankQ (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+        (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+        (permPolyFlat (Nat.sqrt n)) (chooseBp hn2 hM) ≤
+      blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+        (CookLevin.initialSemantic_local M n hn2).partition
+
+/-- Skolemized and existential extraction-witness forms are equivalent. -/
+theorem decisionExtractionSkolemAt_iff_witnessAt
+    (M : DTM) (n : ℕ) :
+    DecisionExtractionSkolemAt M n ↔ ExtractionLinkWitnessAt M n := by
+  constructor
+  · intro hSk hn2 hM
+    rcases hSk with ⟨chooseBp, hbp⟩
+    exact ⟨chooseBp hn2 hM, hbp hn2 hM⟩
+  · intro hW
+    classical
+    choose chooseBp hbp using hW
+    exact ⟨chooseBp, hbp⟩
+
 /-- Explicit extraction-witness threshold package (paper-faithful semantic
     bridge form): eventually, decision premises imply the concrete
     extraction-link witness statement. -/
@@ -554,6 +581,37 @@ def DecisionExtractionThresholdFnPack : Prop :=
   ∃ nE : DTM → ℕ,
     ∀ (M : DTM) (n : ℕ), n ≥ nE M →
       M.decides (hardNPFamily n) → ExtractionLinkWitnessAt M n
+
+/-- Skolemized extraction-witness threshold package. -/
+def DecisionExtractionSkolemThresholdFnPack : Prop :=
+  ∃ nE : DTM → ℕ,
+    ∀ (M : DTM) (n : ℕ), n ≥ nE M →
+      M.decides (hardNPFamily n) → DecisionExtractionSkolemAt M n
+
+/-- Skolem threshold package implies existential-witness threshold package. -/
+theorem decisionExtraction_thresholdFnPack_of_skolem
+    (hSkPack : DecisionExtractionSkolemThresholdFnPack) :
+    DecisionExtractionThresholdFnPack := by
+  obtain ⟨nE, hE⟩ := hSkPack
+  refine ⟨nE, ?_⟩
+  intro M n hn hM
+  exact (decisionExtractionSkolemAt_iff_witnessAt M n).1 (hE M n hn hM)
+
+/-- Existential-witness threshold package implies skolem threshold package. -/
+theorem decisionExtraction_skolemThresholdFnPack_of_threshold
+    (hPack : DecisionExtractionThresholdFnPack) :
+    DecisionExtractionSkolemThresholdFnPack := by
+  obtain ⟨nE, hE⟩ := hPack
+  refine ⟨nE, ?_⟩
+  intro M n hn hM
+  exact (decisionExtractionSkolemAt_iff_witnessAt M n).2 (hE M n hn hM)
+
+/-- Skolem/existential packaging equivalence for extraction bridge thresholds. -/
+theorem decisionExtraction_skolem_packaging_iff :
+    DecisionExtractionSkolemThresholdFnPack ↔ DecisionExtractionThresholdFnPack := by
+  constructor
+  · exact decisionExtraction_thresholdFnPack_of_skolem
+  · exact decisionExtraction_skolemThresholdFnPack_of_threshold
 
 /-- If extraction witnesses eventually follow from decision premises,
     then eventual decision→semantic lifting follows. -/
@@ -584,9 +642,15 @@ theorem decisionExtraction_semanticBridge_packaging_iff :
   · exact decisionSemanticLift_thresholdFnPack_of_extractionBridge
   · exact decisionExtraction_thresholdFnPack_of_semanticBridge
 
-/-- Paper-faithful decision-link assumption (extraction-bridge threshold form). -/
-axiom decisionExtraction_thresholdFnPack_assumption :
-  DecisionExtractionThresholdFnPack
+/-- Paper-faithful decision-link assumption (skolem extraction-bridge form). -/
+axiom decisionExtraction_skolemThresholdFnPack_assumption :
+  DecisionExtractionSkolemThresholdFnPack
+
+/-- Recovered extraction-bridge threshold package from skolem form. -/
+theorem decisionExtraction_thresholdFnPack_assumption :
+  DecisionExtractionThresholdFnPack :=
+  decisionExtraction_thresholdFnPack_of_skolem
+    decisionExtraction_skolemThresholdFnPack_assumption
 
 /-- Recovered semantic-bridge threshold package from extraction-bridge form. -/
 theorem decisionSemanticLift_thresholdFnPack_assumption :
