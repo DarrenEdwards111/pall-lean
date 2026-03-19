@@ -940,10 +940,22 @@ theorem corePolylog_le_sqrt_eventually :
   intro n hn
   exact corePolylog_le_sqrt_after_threshold n hn
 
-/-- Structural ambient side: eventually, ambient finrank budget is ≤ √n. -/
-axiom ambientBudget_le_sqrt_eventually (M : DTM) :
-    ∃ n₀ : ℕ, ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
+/-- Structural ambient threshold for each machine (explicit threshold form). -/
+axiom ambientThreshold : DTM → ℕ
+
+/-- Structural ambient side (threshold form): beyond machine-specific threshold,
+    ambient finrank budget is ≤ √n. -/
+axiom ambientBudget_le_sqrt_after_threshold (M : DTM) :
+    ∀ n : ℕ, n ≥ ambientThreshold M → ∀ (hn2 : n ≥ 2),
       ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n
+
+/-- Derived eventual form of the ambient side from threshold form. -/
+theorem ambientBudget_le_sqrt_eventually (M : DTM) :
+    ∃ n₀ : ℕ, ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
+      ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n := by
+  refine ⟨ambientThreshold M, ?_⟩
+  intro n hn hn2
+  exact ambientBudget_le_sqrt_after_threshold M n hn hn2
 
 /-- Eventual Theorem-92-shaped scaffold consequence from the two obligations. -/
 theorem theorem92_scaffold_eventually (M : DTM) :
