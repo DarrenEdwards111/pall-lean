@@ -725,6 +725,41 @@ theorem initialSemantic_logRank_le_combinedProxy
     ≤ combinedRankProxyBudget M n hn2 (Nat.log 2 n) := by
   exact initialSemantic_rank_le_combinedProxy M n hn2 (Nat.log 2 n)
 
+/-! ## Theorem-92-shaped bridge (paper-faithful)
+
+  We now isolate the exact remaining inequality needed to finish a
+  `≤ √n` upper bound for this scaffold encoding:
+
+  (Missing compression inequality)
+    combinedRankProxyBudget(M,n,log n) ≤ √n.
+
+  Once supplied (from profile compression machinery), the SPDP upper
+  bound follows immediately by transitivity. -/
+
+/-- Compression target predicate for the scaffold at log parameters. -/
+def logCompressionTarget (M : DTM) (n : ℕ) (hn2 : n ≥ 2) : Prop :=
+  combinedRankProxyBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n
+
+/-- If the compression target holds, we get the Theorem-92-shaped bound. -/
+theorem initialSemantic_logRank_le_sqrt_of_target
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (hTarget : logCompressionTarget M n hn2) :
+    CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+      (CompiledPoly.compiledPolyQ (initialSemanticCNF M n hn2))
+      (initialSemantic_local M n hn2).partition
+    ≤ Nat.sqrt n := by
+  exact le_trans (initialSemantic_logRank_le_combinedProxy M n hn2) hTarget
+
+/-- Explicitly exposes the remaining proof obligation for profile compression. -/
+theorem remaining_profile_compression_obligation
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    logCompressionTarget M n hn2 →
+    CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+      (CompiledPoly.compiledPolyQ (initialSemanticCNF M n hn2))
+      (initialSemantic_local M n hn2).partition
+    ≤ Nat.sqrt n :=
+  initialSemantic_logRank_le_sqrt_of_target M n hn2
+
 /-- First non-empty concrete encoding package (semantic scaffold level). -/
 def initialEncoding (M : DTM) (n : ℕ) : CookLevinEncoding M n where
   k := defaultK M
