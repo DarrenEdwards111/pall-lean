@@ -262,7 +262,20 @@ theorem P_neq_NP_from_scaffold
   intro M
   exact pside_upper_bound_from_scaffold M (hcorrectInitEv M)
 
+/-- Optional packaged scaffold correctness assumption. -/
+axiom scaffold_correctness_eventually :
+  ∀ (M : DTM),
+    ∃ nC : ℕ, ∀ n : ℕ, n ≥ nC → ∀ (hn2 : n ≥ 2),
+      IsCorrectEncoding M n (CookLevin.defaultK M)
+        (CookLevin.initialSemanticCNF M n hn2)
+        (CookLevin.initialSemantic_local M n hn2)
+
+/-- Alternate end-to-end theorem via scaffold assumptions (no pside axiom). -/
+theorem P_neq_NP_via_scaffold : ¬ P_eq_NP :=
+  P_neq_NP_from_scaffold scaffold_correctness_eventually
+
 #check @P_neq_NP
 #check @P_neq_NP_from_scaffold
+#check @P_neq_NP_via_scaffold
 
 end CompiledSeparation

@@ -154,7 +154,7 @@ def isBlockAdmissibleDeriv {N : ℕ} (bp : BlockPartition N) (κ : ℕ)
 
 /-- Block-admissible shift monomial: support touches at most ℓ blocks. -/
 def isBlockAdmissibleShift {N : ℕ} (bp : BlockPartition N) (ℓ : ℕ)
-    (m : MvPolynomial (Fin N) (ZMod (Nat.succ 1))) -- placeholder field
+    (_m : MvPolynomial (Fin N) (ZMod (Nat.succ 1))) -- placeholder field
     (support : Finset (Fin N)) : Prop :=
   (support.image bp.blockOf).card ≤ ℓ
 
