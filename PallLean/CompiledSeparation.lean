@@ -111,6 +111,13 @@ axiom pside_upper_bound :
     blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
       (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n
 
+/-- Protected threshold-form scaffold correctness predicate. -/
+def ScaffoldCorrectAfter (M : DTM) (nC : ℕ) : Prop :=
+  ∀ n : ℕ, n ≥ nC → ∀ (hn2 : n ≥ 2),
+    IsCorrectEncoding M n (CookLevin.defaultK M)
+      (CookLevin.initialSemanticCNF M n hn2)
+      (CookLevin.initialSemantic_local M n hn2)
+
 /-- Scaffold-instantiated single-n upper bound (paper-faithful helper):
     if the scaffold encoding is known correct at `n`, then the CookLevin
     scaffold closure theorem yields a concrete pside witness at that `n`. -/
@@ -134,11 +141,7 @@ theorem pside_witness_from_scaffold
     scaffold closure gives eventual pside witnesses in Theorem-92 shape. -/
 theorem pside_witness_from_scaffold_eventually
     (M : DTM)
-    (hcorrectInitEv :
-      ∃ nC : ℕ, ∀ n : ℕ, n ≥ nC → ∀ (hn2 : n ≥ 2),
-        IsCorrectEncoding M n (CookLevin.defaultK M)
-          (CookLevin.initialSemanticCNF M n hn2)
-          (CookLevin.initialSemantic_local M n hn2)) :
+    (hcorrectInitEv : ∃ nC : ℕ, ScaffoldCorrectAfter M nC) :
     ∃ n₀ : ℕ,
       ∀ n : ℕ, n ≥ n₀ → n ≥ 2 →
       ∀ (f : (Fin n → Bool) → Bool), M.decides f →
@@ -161,11 +164,7 @@ theorem pside_witness_from_scaffold_eventually
 /-- Drop-in bridge: eventual scaffold witness implies pside-upper-bound shape. -/
 theorem pside_upper_bound_from_scaffold
     (M : DTM)
-    (hcorrectInitEv :
-      ∃ nC : ℕ, ∀ n : ℕ, n ≥ nC → ∀ (hn2 : n ≥ 2),
-        IsCorrectEncoding M n (CookLevin.defaultK M)
-          (CookLevin.initialSemanticCNF M n hn2)
-          (CookLevin.initialSemantic_local M n hn2)) :
+    (hcorrectInitEv : ∃ nC : ℕ, ScaffoldCorrectAfter M nC) :
     ∃ (n₀ : ℕ),
       ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
       ∀ (f : (Fin n → Bool) → Bool), M.decides f →
@@ -251,24 +250,34 @@ theorem P_neq_NP : ¬ P_eq_NP :=
     then the scaffold pside bridge is enough to derive P ≠ NP
     via the same contradiction engine. -/
 theorem P_neq_NP_from_scaffold
-    (hcorrectInitEv :
-      ∀ (M : DTM),
-      ∃ nC : ℕ, ∀ n : ℕ, n ≥ nC → ∀ (hn2 : n ≥ 2),
-        IsCorrectEncoding M n (CookLevin.defaultK M)
-          (CookLevin.initialSemanticCNF M n hn2)
-          (CookLevin.initialSemantic_local M n hn2)) :
+    (hcorrectInitEv : ∀ (M : DTM), ∃ nC : ℕ, ScaffoldCorrectAfter M nC) :
     ¬ P_eq_NP := by
   apply P_neq_NP_from_pside
   intro M
   exact pside_upper_bound_from_scaffold M (hcorrectInitEv M)
 
+/-- Fully protected scaffold-route engine using threshold functions directly.
+    This avoids existential unpacking in downstream uses. -/
+theorem P_neq_NP_from_scaffold_thresholds
+    (nC : DTM → ℕ)
+    (hC : ∀ M : DTM, ScaffoldCorrectAfter M (nC M)) :
+    ¬ P_eq_NP := by
+  apply P_neq_NP_from_pside
+  intro M
+  refine ⟨max (CookLevin.scaffoldClosureThreshold M) (nC M), ?_⟩
+  intro n hn hn2 f hM
+  have hThresh : n ≥ CookLevin.scaffoldClosureThreshold M :=
+    le_trans (le_max_left _ _) hn
+  have hCorr : IsCorrectEncoding M n (CookLevin.defaultK M)
+      (CookLevin.initialSemanticCNF M n hn2)
+      (CookLevin.initialSemantic_local M n hn2) :=
+    hC M n (le_trans (le_max_right _ _) hn) hn2
+  exact pside_witness_from_scaffold M n hThresh hn2 f hM hCorr
+
 /-- Optional packaged scaffold correctness existence assumption. -/
 axiom scaffold_correctness_exists :
   ∀ (M : DTM),
-    ∃ nC : ℕ, ∀ n : ℕ, n ≥ nC → ∀ (hn2 : n ≥ 2),
-      IsCorrectEncoding M n (CookLevin.defaultK M)
-        (CookLevin.initialSemanticCNF M n hn2)
-        (CookLevin.initialSemantic_local M n hn2)
+    ∃ nC : ℕ, ScaffoldCorrectAfter M nC
 
 /-- Chosen scaffold correctness threshold for each machine. -/
 noncomputable def scaffoldCorrectnessThreshold (M : DTM) : ℕ :=
@@ -276,29 +285,18 @@ noncomputable def scaffoldCorrectnessThreshold (M : DTM) : ℕ :=
 
 /-- Threshold-form scaffold correctness derived from existence. -/
 theorem scaffold_correctness_after_threshold (M : DTM) :
-  ∀ n : ℕ, n ≥ scaffoldCorrectnessThreshold M → ∀ (hn2 : n ≥ 2),
-    IsCorrectEncoding M n (CookLevin.defaultK M)
-      (CookLevin.initialSemanticCNF M n hn2)
-      (CookLevin.initialSemantic_local M n hn2) := by
-  intro n hn hn2
-  exact (Classical.choose_spec (scaffold_correctness_exists M)) n hn hn2
+  ScaffoldCorrectAfter M (scaffoldCorrectnessThreshold M) :=
+  Classical.choose_spec (scaffold_correctness_exists M)
 
 /-- Eventual scaffold correctness (recovered theorem form). -/
 theorem scaffold_correctness_eventually :
   ∀ (M : DTM),
-    ∃ nC : ℕ, ∀ n : ℕ, n ≥ nC → ∀ (hn2 : n ≥ 2),
-      IsCorrectEncoding M n (CookLevin.defaultK M)
-        (CookLevin.initialSemanticCNF M n hn2)
-        (CookLevin.initialSemantic_local M n hn2) := by
-  intro M
-  refine ⟨scaffoldCorrectnessThreshold M, ?_⟩
-  intro n hn hn2
-  exact scaffold_correctness_after_threshold M n hn hn2
+    ∃ nC : ℕ, ScaffoldCorrectAfter M nC :=
+  scaffold_correctness_exists
 
 /-- Bundled threshold for direct scaffold pside witness extraction. -/
 noncomputable def scaffoldPsideThreshold (M : DTM) : ℕ :=
   max (CookLevin.scaffoldClosureThreshold M) (scaffoldCorrectnessThreshold M)
-
 /-- Single-threshold scaffold pside witness (protected helper).
     This avoids carrying separate threshold hypotheses in downstream proofs. -/
 theorem pside_witness_from_scaffold_after_threshold
