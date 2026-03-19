@@ -79,6 +79,21 @@ def windowPartition (N : ℕ) : BlockPartition N where
   numBlocks := 3
   blockOf := fun v => ⟨v.1 % 3, Nat.mod_lt _ (by decide)⟩
 
+/-- Time-slice partition scaffold:
+    group variable indices by coarse slices (index / chunk), then map slices
+    into 3 repeating buckets. This models "time-layer" grouping while keeping
+    a fixed 3-block codomain so locality proofs stay simple. -/
+def timeSlicePartition (N chunk : ℕ) (_hchunk : chunk > 0) : BlockPartition N where
+  numBlocks := 3
+  blockOf := fun v => ⟨(v.1 / chunk) % 3, Nat.mod_lt _ (by decide)⟩
+
+/-- Default chunk size for slice-based scaffold. -/
+def defaultTimeChunk : ℕ := 2
+
+/-- Default tableau-style partition used in current scaffold. -/
+def tableauPartition (N : ℕ) : BlockPartition N :=
+  timeSlicePartition N defaultTimeChunk (by decide)
+
 /-- Any clause is local under the 3-block window partition
     (image cardinality cannot exceed number of blocks = 3). -/
 def window_local {N : ℕ} (cnf : CookLevinCNF N) :
@@ -88,6 +103,17 @@ def window_local {N : ℕ} (cnf : CookLevinCNF N) :
   have hcard : (c.vars.image (windowPartition N).blockOf).card ≤ 3 := by
     have h' : (c.vars.image (windowPartition N).blockOf).card ≤ Fintype.card (Fin 3) :=
       Finset.card_le_univ (s := c.vars.image (windowPartition N).blockOf)
+    simpa using h'
+  simpa [CLClause.isLocal] using hcard
+
+/-- Any clause is local under the tableau slice partition (same 3-block codomain). -/
+def tableau_local {N : ℕ} (cnf : CookLevinCNF N) :
+    HasLocalPartition cnf := by
+  refine ⟨tableauPartition N, ?_, 3⟩
+  intro c hc
+  have hcard : (c.vars.image (tableauPartition N).blockOf).card ≤ 3 := by
+    have h' : (c.vars.image (tableauPartition N).blockOf).card ≤ Fintype.card (Fin 3) :=
+      Finset.card_le_univ (s := c.vars.image (tableauPartition N).blockOf)
     simpa using h'
   simpa [CLClause.isLocal] using hcard
 
@@ -357,10 +383,10 @@ def initialSemanticCNF (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     CookLevinCNF (compiledVarCount (defaultK M) n) :=
   mkCNF (scaffoldPhaseClauses M n hn2)
 
-/-- Locality certificate for semantic scaffold CNF under window partition. -/
+/-- Locality certificate for semantic scaffold CNF under tableau partition. -/
 def initialSemantic_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     HasLocalPartition (initialSemanticCNF M n hn2) :=
-  window_local (initialSemanticCNF M n hn2)
+  tableau_local (initialSemanticCNF M n hn2)
 
 /-- First non-empty concrete encoding package (semantic scaffold level). -/
 def initialEncoding (M : DTM) (n : ℕ) : CookLevinEncoding M n where
