@@ -551,6 +551,56 @@ theorem length_scaffoldPhaseClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     (scaffoldPhaseClauses M n hn2).length = n + 24 := by
   simp [scaffoldPhaseClauses]
 
+/-! ## Profile proxy layer (paper-faithful bridge)
+
+  In the paper, profile compression bounds rank by controlling the number
+  of admissible block-touch profiles. Here we add a lightweight proxy:
+  - extract per-clause block-touch profiles under tableauPartition
+  - bound profile width (card ≤ 3)
+  - bound distinct profile count by family length / total linear size.
+-/
+
+/-- Block-touch profile list for one family under tableau partition. -/
+def familyProfileList (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (tag : FamilyTag) :
+    List (Finset (Fin 3)) :=
+  (familyClauses M n hn2 tag).map
+    (fun c => c.vars.image (tableauPartition (compiledVarCount (defaultK M) n)).blockOf)
+
+/-- Every family profile touches at most 3 blocks. -/
+theorem familyProfile_card_le_three (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (tag : FamilyTag) (p : Finset (Fin 3))
+    (hp : p ∈ familyProfileList M n hn2 tag) :
+    p.card ≤ 3 := by
+  rcases List.mem_map.mp hp with ⟨c, hc, rfl⟩
+  exact familyClauses_local M n hn2 tag c hc
+
+/-- Distinct profile count in one family is at most family clause count. -/
+theorem familyProfileDistinctCount_le_length (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (tag : FamilyTag) :
+    (familyProfileList M n hn2 tag).toFinset.card ≤
+      (familyClauses M n hn2 tag).length := by
+  calc
+    (familyProfileList M n hn2 tag).toFinset.card ≤ (familyProfileList M n hn2 tag).length :=
+      List.toFinset_card_le _
+    _ = (familyClauses M n hn2 tag).length := by
+      simp [familyProfileList]
+
+/-- Block-touch profile list for the full scaffold clause bundle. -/
+def scaffoldProfileList (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    List (Finset (Fin 3)) :=
+  (scaffoldPhaseClauses M n hn2).map
+    (fun c => c.vars.image (tableauPartition (compiledVarCount (defaultK M) n)).blockOf)
+
+/-- Distinct profile count for full scaffold is linear in input length. -/
+theorem scaffoldProfileDistinctCount_le_linear (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    (scaffoldProfileList M n hn2).toFinset.card ≤ n + 24 := by
+  calc
+    (scaffoldProfileList M n hn2).toFinset.card ≤ (scaffoldProfileList M n hn2).length :=
+      List.toFinset_card_le _
+    _ = (scaffoldPhaseClauses M n hn2).length := by
+      simp [scaffoldProfileList]
+    _ = n + 24 := length_scaffoldPhaseClauses M n hn2
+
 /-- CNF from initial semantic scaffold clauses. -/
 def initialSemanticCNF (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     CookLevinCNF (compiledVarCount (defaultK M) n) :=
