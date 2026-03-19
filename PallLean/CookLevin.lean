@@ -926,17 +926,28 @@ theorem theorem92_scaffold_closure
   They are not part of the structural Cook-Levin scaffolding above.
 -/
 
-/-- Numeric asymptotic side (threshold form): beyond an explicit threshold,
-    the core polylog term is ≤ √n. -/
-axiom corePolylog_le_sqrt_after_threshold :
-    ∀ n : ℕ, n ≥ numericThresholdN →
+/-- Numeric asymptotic side existence form:
+    there exists a threshold after which the core polylog term is ≤ √n. -/
+axiom corePolylog_threshold_exists :
+    ∃ n₀ : ℕ, ∀ n : ℕ, n ≥ n₀ →
       24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n
+
+/-- Chosen numeric threshold (from existence axiom). -/
+noncomputable def corePolylogThreshold : ℕ :=
+  Classical.choose corePolylog_threshold_exists
+
+/-- Numeric side in threshold form derived from chosen threshold. -/
+theorem corePolylog_le_sqrt_after_threshold :
+    ∀ n : ℕ, n ≥ corePolylogThreshold →
+      24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n := by
+  intro n hn
+  exact (Classical.choose_spec corePolylog_threshold_exists) n hn
 
 /-- Derived eventual form of the numeric side from threshold form. -/
 theorem corePolylog_le_sqrt_eventually :
     ∃ n₀ : ℕ, ∀ n : ℕ, n ≥ n₀ →
       24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n := by
-  refine ⟨numericThresholdN, ?_⟩
+  refine ⟨corePolylogThreshold, ?_⟩
   intro n hn
   exact corePolylog_le_sqrt_after_threshold n hn
 
@@ -967,7 +978,7 @@ theorem ambientBudget_le_sqrt_eventually (M : DTM) :
 
 /-- Bundled threshold for scaffold closure assumptions. -/
 noncomputable def scaffoldClosureThreshold (M : DTM) : ℕ :=
-  max (ambientThreshold M) numericThresholdN
+  max (ambientThreshold M) corePolylogThreshold
 
 /-- Protected predicate: from threshold `n₀` onward, scaffold satisfies
     the Theorem-92-style √n rank bound at log parameters. -/
@@ -987,7 +998,7 @@ theorem theorem92_scaffold_after_threshold
       (initialSemantic_local M n hn2).partition
     ≤ Nat.sqrt n := by
   have hA : n ≥ ambientThreshold M := le_trans (le_max_left _ _) hn
-  have hP : n ≥ numericThresholdN := le_trans (le_max_right _ _) hn
+  have hP : n ≥ corePolylogThreshold := le_trans (le_max_right _ _) hn
   have hAmbient : ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n :=
     ambientBudget_le_sqrt_after_threshold M n hA hn2
   have hCore : 24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n :=
