@@ -841,6 +841,23 @@ theorem corePolylog_le_sqrt_of_linear
     24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n := by
   exact le_trans (corePolylogTerm_le_linearPolylogTerm n) hLinear
 
+/-! ### Numeric checkpoint (concrete threshold witness)
+
+  This is a machine-checked checkpoint for the polylog-vs-sqrt side,
+  useful while building a full eventual asymptotic proof in Lean. -/
+
+def numericThresholdN : ℕ := 2 ^ 42
+
+theorem corePolylog_le_sqrt_at_numericThreshold :
+    24 * ((Nat.log 2 numericThresholdN + 1) ^ 3) ≤ Nat.sqrt numericThresholdN := by
+  native_decide
+
+theorem corePolylog_le_sqrt_exists_large :
+    ∃ n : ℕ, n ≥ 2 ∧ 24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n := by
+  refine ⟨numericThresholdN, ?_, corePolylog_le_sqrt_at_numericThreshold⟩
+  -- 2^42 ≥ 2
+  norm_num [numericThresholdN]
+
 /-- Paper-style closure step (core version):
     if ambient component is ≤ √n and core polylog proxy term is ≤ √n,
     then the log compression target holds. -/
