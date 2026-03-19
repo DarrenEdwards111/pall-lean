@@ -287,32 +287,73 @@ def ExtractionLinkWitnessAt (M : DTM) (n : ℕ) : Prop :=
           (CookLevin.initialSemantic_local M n hn2).partition
 
 /-- Decision-link sub-obligation at size `n`:
-    if `M` decides `hardNPFamily n`, then the scaffold encoding satisfies
-    the extraction witness statement at size `n`. -/
+    a decision premise for `hardNPFamily n` lifts to correctness of the
+    concrete `initialSemantic` encoding. -/
 def DecisionLinkObligationAt (M : DTM) (n : ℕ) : Prop :=
-  ExtractionLinkWitnessAt M n
+  ∀ (hn2 : n ≥ 2),
+    M.decides (hardNPFamily n) →
+      IsCorrectEncoding M n (CookLevin.defaultK M)
+        (CookLevin.initialSemanticCNF M n hn2)
+        (CookLevin.initialSemantic_local M n hn2)
 
-/-- Rank-link sub-obligation at size `n`.
-    Placeholder hook for future explicit rank-monotone decomposition. -/
+/-- Rank-link sub-obligation at size `n`:
+    from correctness of the concrete scaffold encoding plus the decision
+    premise, derive the NP-side extraction inequality witness. -/
 def RankLinkObligationAt (M : DTM) (n : ℕ) : Prop :=
-  True
+  ∀ (hn2 : n ≥ 2),
+    IsCorrectEncoding M n (CookLevin.defaultK M)
+      (CookLevin.initialSemanticCNF M n hn2)
+      (CookLevin.initialSemantic_local M n hn2) →
+    M.decides (hardNPFamily n) →
+      ∃ (bp : BlockPartition (Nat.sqrt n * Nat.sqrt n)),
+        blockedSpdpRankQ (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+          (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+          (permPolyFlat (Nat.sqrt n)) bp ≤
+        blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+          (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+          (CookLevin.initialSemantic_local M n hn2).partition
 
-/-- Decision-link obligation implies extraction witness directly
-    (definitional bridge for decomposition). -/
+/-- Any semantic correctness proof yields the decision-link obligation. -/
+theorem decisionLinkObligation_of_initialSemanticCorrectAt
+    (M : DTM) (n : ℕ)
+    (hCorrAll : InitialSemanticCorrectAt M n) :
+    DecisionLinkObligationAt M n := by
+  intro hn2 _hM
+  exact hCorrAll hn2
+
+/-- Rank-link obligation holds uniformly from `nside_extraction`. -/
+theorem rankLinkObligation_all (M : DTM) (n : ℕ) :
+    RankLinkObligationAt M n := by
+  intro hn2 hCorr hM
+  exact nside_extraction M n (CookLevin.defaultK M)
+    (CookLevin.initialSemanticCNF M n hn2)
+    (CookLevin.initialSemantic_local M n hn2)
+    hCorr hM
+
+/-- Decision-link obligation implies extraction witness (via uniform rank-link). -/
 theorem extractionLinkWitnessAt_of_decisionLinkObligation
     (M : DTM) (n : ℕ)
     (hDec : DecisionLinkObligationAt M n) :
     ExtractionLinkWitnessAt M n := by
-  simpa [DecisionLinkObligationAt] using hDec
+  intro hn2 hM
+  have hCorr : IsCorrectEncoding M n (CookLevin.defaultK M)
+      (CookLevin.initialSemanticCNF M n hn2)
+      (CookLevin.initialSemantic_local M n hn2) :=
+    hDec hn2 hM
+  exact rankLinkObligation_all M n hn2 hCorr hM
 
-/-- Decision-link + rank-link obligations imply extraction witness.
-    Rank-link is currently a reserved interface for finer decomposition. -/
+/-- Decision-link + rank-link obligations imply extraction witness. -/
 theorem extractionLinkWitnessAt_of_decision_and_rank
     (M : DTM) (n : ℕ)
     (hDec : DecisionLinkObligationAt M n)
-    (_hRank : RankLinkObligationAt M n) :
-    ExtractionLinkWitnessAt M n :=
-  extractionLinkWitnessAt_of_decisionLinkObligation M n hDec
+    (hRank : RankLinkObligationAt M n) :
+    ExtractionLinkWitnessAt M n := by
+  intro hn2 hM
+  have hCorr : IsCorrectEncoding M n (CookLevin.defaultK M)
+      (CookLevin.initialSemanticCNF M n hn2)
+      (CookLevin.initialSemantic_local M n hn2) :=
+    hDec hn2 hM
+  exact hRank hn2 hCorr hM
 
 /-- Component obligation 3 (extraction/link correctness) at size `n`.
     This is expressed via decision/rank sub-obligations. -/
@@ -389,7 +430,8 @@ theorem initialSemantic_componentThresholdFnPack_of_thresholdFnPack
   · intro M n _hn
     exact transitionLocalObligation_all M n
   · intro M n hn
-    refine ⟨(initialSemanticCorrectAt_iff_extractionLinkWitnessAt M n).1 (hC M n hn), trivial⟩
+    refine ⟨(decisionLinkObligation_of_initialSemanticCorrectAt M n (hC M n hn)),
+      rankLinkObligation_all M n⟩
 
 /-- Component threshold package implies semantic threshold-function package
     by taking the max threshold and composing component obligations. -/
@@ -439,7 +481,8 @@ theorem extractionLink_obligation_existsPack :
   obtain ⟨nE, hE⟩ := initialSemantic_correctness_after_threshold M
   refine ⟨nE, ?_⟩
   intro n hn
-  refine ⟨(initialSemanticCorrectAt_iff_extractionLinkWitnessAt M n).1 (hE n hn), trivial⟩
+  refine ⟨decisionLinkObligation_of_initialSemanticCorrectAt M n (hE n hn),
+    rankLinkObligation_all M n⟩
 
 /-- Chosen global threshold-function package from the existential form.
     This keeps threshold extraction explicit for future semantic proofs. -/
