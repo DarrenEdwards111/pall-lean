@@ -271,6 +271,9 @@ def scaffoldVar (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (slot : Fin 8) :
 abbrev StepIdx := Fin 2
 abbrev RoleIdx := Fin 4
 
+def step0 : StepIdx := ⟨0, by decide⟩
+def step1 : StepIdx := ⟨1, by decide⟩
+
 /-- Encode `(time, role)` into one of 8 scaffold slots. -/
 def timeRoleSlot (t : StepIdx) (r : RoleIdx) : Fin 8 :=
   ⟨t.1 * 4 + r.1, by
@@ -402,12 +405,12 @@ def transitionWindowClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
   This is the first generated "time-step API" family. -/
 def indexedTransitionClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     List (CLClause (compiledVarCount (defaultK M) n)) :=
-  [ clause2 (negLit (timeSlotVar M n hn2 ⟨0, by decide⟩ roleState))
-            (posLit (timeSlotVar M n hn2 ⟨1, by decide⟩ roleState))
-  , clause2 (negLit (timeSlotVar M n hn2 ⟨0, by decide⟩ roleHead))
-            (posLit (timeSlotVar M n hn2 ⟨1, by decide⟩ roleHead))
-  , clause2 (negLit (timeSlotVar M n hn2 ⟨0, by decide⟩ roleAccept))
-            (posLit (timeSlotVar M n hn2 ⟨1, by decide⟩ roleAccept))
+  [ clause2 (negLit (timeSlotVar M n hn2 step0 roleState))
+            (posLit (timeSlotVar M n hn2 step1 roleState))
+  , clause2 (negLit (timeSlotVar M n hn2 step0 roleHead))
+            (posLit (timeSlotVar M n hn2 step1 roleHead))
+  , clause2 (negLit (timeSlotVar M n hn2 step0 roleAccept))
+            (posLit (timeSlotVar M n hn2 step1 roleAccept))
   ]
 
 /-- Per-time indexed consistency template (paper-faithful scaffold):
@@ -427,7 +430,8 @@ def indexedConsistencyClausesAt (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
 /-- Indexed consistency family across all scaffold time slots. -/
 def indexedConsistencyClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     List (CLClause (compiledVarCount (defaultK M) n)) :=
-  (List.ofFn (fun t : StepIdx => indexedConsistencyClausesAt M n hn2 t)).foldr List.append []
+  indexedConsistencyClausesAt M n hn2 step0 ++
+  indexedConsistencyClausesAt M n hn2 step1
 
 /-- Backward-compatible alias used by scaffold assembly. -/
 def consistencyClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
@@ -499,6 +503,53 @@ def family_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (tag : FamilyTag) :
     (bp := tableauPartition (compiledVarCount (defaultK M) n))
     (hlocal := familyClauses_local M n hn2 tag)
     3
+
+/-! ## Family size bookkeeping (paper-faithful counting scaffold)
+
+  These are lightweight cardinality proxies for later profile/rank bounds:
+  - input family scales with `n`
+  - each local template family has constant size
+  - total scaffold size is linear in `n`
+-/
+
+@[simp] theorem length_inputWellformedClauses (M : DTM) (n : ℕ) :
+    (inputWellformedClauses M n).length = n := by
+  simp [inputWellformedClauses]
+
+@[simp] theorem length_initialSemanticClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    (initialSemanticClauses M n hn2).length = 4 := by simp [initialSemanticClauses]
+
+@[simp] theorem length_headUniqClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    (headUniqClauses M n hn2).length = 2 := by simp [headUniqClauses]
+
+@[simp] theorem length_stateUniqClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    (stateUniqClauses M n hn2).length = 2 := by simp [stateUniqClauses]
+
+@[simp] theorem length_stateLinkClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    (stateLinkClauses M n hn2).length = 2 := by simp [stateLinkClauses]
+
+@[simp] theorem length_transitionScaffoldClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    (transitionScaffoldClauses M n hn2).length = 3 := by simp [transitionScaffoldClauses]
+
+@[simp] theorem length_transitionWindowClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    (transitionWindowClauses M n hn2).length = 2 := by simp [transitionWindowClauses]
+
+@[simp] theorem length_indexedTransitionClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    (indexedTransitionClauses M n hn2).length = 3 := by simp [indexedTransitionClauses]
+
+@[simp] theorem length_indexedConsistencyClausesAt (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (t : StepIdx) :
+    (indexedConsistencyClausesAt M n hn2 t).length = 3 := by
+  simp [indexedConsistencyClausesAt]
+
+@[simp] theorem length_consistencyClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    (consistencyClauses M n hn2).length = 6 := by
+  simp [consistencyClauses, indexedConsistencyClauses]
+
+/-- Total scaffold clause count is linear in input length. -/
+theorem length_scaffoldPhaseClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    (scaffoldPhaseClauses M n hn2).length = n + 24 := by
+  simp [scaffoldPhaseClauses]
 
 /-- CNF from initial semantic scaffold clauses. -/
 def initialSemanticCNF (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
