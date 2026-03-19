@@ -688,9 +688,15 @@ structure DecisionExtractionSkolemPrimitives where
         (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
         (CookLevin.initialSemantic_local M n hn2).partition
 
-/-- Paper-faithful decision-link assumption at primitive level. -/
-axiom decisionExtraction_skolemPrimitives_assumption :
-  DecisionExtractionSkolemPrimitives
+/-- Primitive existence-form assumption for the skolem extraction package.
+    (Paper-faithful boundary in existential/choice form.) -/
+axiom decisionExtraction_skolemPrimitives_exists :
+  ∃ P : DecisionExtractionSkolemPrimitives, True
+
+/-- Recovered primitive skolem package by choice. -/
+noncomputable def decisionExtraction_skolemPrimitives_assumption :
+  DecisionExtractionSkolemPrimitives :=
+  Classical.choose decisionExtraction_skolemPrimitives_exists
 
 /-- Recovered structured skolem extraction package from primitives. -/
 noncomputable def decisionExtraction_skolemComponents_assumption :
