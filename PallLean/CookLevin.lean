@@ -72,6 +72,25 @@ def identity_local {N : ℕ} (cnf : CookLevinCNF N) :
   intro c hc
   simpa [CLClause.isLocal, identityPartition, CLClause.vars] using c.vars_card_le
 
+/-- Window-style partition scaffold: 3 repeating block labels.
+    Think of these as coarse "time-window / role" buckets.
+    This is closer in spirit to paper-style grouped blocks than identity. -/
+def windowPartition (N : ℕ) : BlockPartition N where
+  numBlocks := 3
+  blockOf := fun v => ⟨v.1 % 3, Nat.mod_lt _ (by decide)⟩
+
+/-- Any clause is local under the 3-block window partition
+    (image cardinality cannot exceed number of blocks = 3). -/
+def window_local {N : ℕ} (cnf : CookLevinCNF N) :
+    HasLocalPartition cnf := by
+  refine ⟨windowPartition N, ?_, 3⟩
+  intro c hc
+  have hcard : (c.vars.image (windowPartition N).blockOf).card ≤ 3 := by
+    have h' : (c.vars.image (windowPartition N).blockOf).card ≤ Fintype.card (Fin 3) :=
+      Finset.card_le_univ (s := c.vars.image (windowPartition N).blockOf)
+    simpa using h'
+  simpa [CLClause.isLocal] using hcard
+
 /-- Canonical one-block partition (used for coarse baseline estimates). -/
 def oneBlockPartition (N : ℕ) : BlockPartition N where
   numBlocks := 1
@@ -338,10 +357,10 @@ def initialSemanticCNF (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     CookLevinCNF (compiledVarCount (defaultK M) n) :=
   mkCNF (scaffoldPhaseClauses M n hn2)
 
-/-- Locality certificate for semantic scaffold CNF under identity partition. -/
+/-- Locality certificate for semantic scaffold CNF under window partition. -/
 def initialSemantic_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     HasLocalPartition (initialSemanticCNF M n hn2) :=
-  identity_local (initialSemanticCNF M n hn2)
+  window_local (initialSemanticCNF M n hn2)
 
 /-- First non-empty concrete encoding package (semantic scaffold level). -/
 def initialEncoding (M : DTM) (n : ℕ) : CookLevinEncoding M n where
