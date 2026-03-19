@@ -531,11 +531,33 @@ theorem decisionLink_existsPack_of_thresholdFnPack
   intro n hn
   exact hD M n hn
 
-/-- Paper-faithful decision-link assumption (component threshold form):
-    beyond machine-indexed thresholds, decision→semantic and semantic→decision
-    bridge obligations both hold. -/
-axiom decisionLink_componentThresholdFnPack_assumption :
-  DecisionLinkComponentThresholdFnPack
+/-- Component-threshold package where the semantic→decision bridge is proved
+    uniformly and only the decision→semantic threshold remains external. -/
+def DecisionLinkComponentThresholdFnPackFromSem : Prop :=
+  ∃ nSem : DTM → ℕ,
+    ∀ (M : DTM) (n : ℕ), n ≥ nSem M → DecisionSemanticLiftAt M n
+
+/-- Component package with explicit semantic bridge threshold implies the
+    full decision-link component package (semantic→decision uses theorem). -/
+theorem decisionLink_componentThresholdFnPack_of_semanticBridge
+    (hSemPack : DecisionLinkComponentThresholdFnPackFromSem) :
+    DecisionLinkComponentThresholdFnPack := by
+  obtain ⟨nSem, hSem⟩ := hSemPack
+  refine ⟨nSem, (fun _ => 0), hSem, ?_⟩
+  intro M n _hn
+  exact semanticToDecisionLink_all M n
+
+/-- Paper-faithful decision-link assumption (semantic bridge threshold form):
+    beyond a machine-indexed threshold, decision premises lift to semantic
+    correctness of the concrete scaffold encoding. -/
+axiom decisionSemanticLift_thresholdFnPack_assumption :
+  DecisionLinkComponentThresholdFnPackFromSem
+
+/-- Recovered full decision-link component package from semantic bridge form. -/
+theorem decisionLink_componentThresholdFnPack_assumption :
+    DecisionLinkComponentThresholdFnPack :=
+  decisionLink_componentThresholdFnPack_of_semanticBridge
+    decisionSemanticLift_thresholdFnPack_assumption
 
 /-- Recovered decision-link threshold-function package from component form. -/
 theorem decisionLink_thresholdFnPack_assumption :
