@@ -285,6 +285,27 @@ def transitionScaffoldClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
   , clause2 (negLit (headPos0Var M n hn2)) (posLit (headPos1Var M n hn2))
   ]
 
+/-- Window-local transition template (paper-faithful scaffold):
+    each clause depends on a small "time window" of state/head literals,
+    mirroring Cook-Levin's radius-1 local update constraints. -/
+def transitionWindowClause (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (w : Fin 2) :
+    CLClause (compiledVarCount (defaultK M) n) :=
+  if h0 : w = ⟨0, by decide⟩ then
+    -- window 0: (state0 ∧ head0) → state1
+    clause3 (negLit (state0Var M n hn2))
+            (negLit (headPos0Var M n hn2))
+            (posLit (state1Var M n hn2))
+  else
+    -- window 1: (state1 ∧ head1) → accept
+    clause3 (negLit (state1Var M n hn2))
+            (negLit (headPos1Var M n hn2))
+            (posLit (acceptInitVar M n hn2))
+
+/-- Two window-local transition clauses generated from the template. -/
+def transitionWindowClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    List (CLClause (compiledVarCount (defaultK M) n)) :=
+  List.ofFn (fun w : Fin 2 => transitionWindowClause M n hn2 w)
+
 /-- Consistency-style local gadget (scaffold):
     - accept and reject are mutually exclusive
     - accept implies state1
@@ -309,6 +330,7 @@ def scaffoldPhaseClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
   stateUniqClauses M n hn2 ++
   stateLinkClauses M n hn2 ++
   transitionScaffoldClauses M n hn2 ++
+  transitionWindowClauses M n hn2 ++
   consistencyClauses M n hn2
 
 /-- CNF from initial semantic scaffold clauses. -/
