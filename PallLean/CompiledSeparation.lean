@@ -286,10 +286,38 @@ def ExtractionLinkWitnessAt (M : DTM) (n : ℕ) : Prop :=
           (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
           (CookLevin.initialSemantic_local M n hn2).partition
 
-/-- Component obligation 3 (extraction/link correctness) at size `n`.
-    This is now expressed as the explicit extraction-link witness statement. -/
-def ExtractionLinkObligationAt (M : DTM) (n : ℕ) : Prop :=
+/-- Decision-link sub-obligation at size `n`:
+    if `M` decides `hardNPFamily n`, then the scaffold encoding satisfies
+    the extraction witness statement at size `n`. -/
+def DecisionLinkObligationAt (M : DTM) (n : ℕ) : Prop :=
   ExtractionLinkWitnessAt M n
+
+/-- Rank-link sub-obligation at size `n`.
+    Placeholder hook for future explicit rank-monotone decomposition. -/
+def RankLinkObligationAt (M : DTM) (n : ℕ) : Prop :=
+  True
+
+/-- Decision-link obligation implies extraction witness directly
+    (definitional bridge for decomposition). -/
+theorem extractionLinkWitnessAt_of_decisionLinkObligation
+    (M : DTM) (n : ℕ)
+    (hDec : DecisionLinkObligationAt M n) :
+    ExtractionLinkWitnessAt M n := by
+  simpa [DecisionLinkObligationAt] using hDec
+
+/-- Decision-link + rank-link obligations imply extraction witness.
+    Rank-link is currently a reserved interface for finer decomposition. -/
+theorem extractionLinkWitnessAt_of_decision_and_rank
+    (M : DTM) (n : ℕ)
+    (hDec : DecisionLinkObligationAt M n)
+    (_hRank : RankLinkObligationAt M n) :
+    ExtractionLinkWitnessAt M n :=
+  extractionLinkWitnessAt_of_decisionLinkObligation M n hDec
+
+/-- Component obligation 3 (extraction/link correctness) at size `n`.
+    This is expressed via decision/rank sub-obligations. -/
+def ExtractionLinkObligationAt (M : DTM) (n : ℕ) : Prop :=
+  DecisionLinkObligationAt M n ∧ RankLinkObligationAt M n
 
 /-- `InitialSemanticCorrectAt` is equivalent to the explicit extraction-link
     witness at fixed size. -/
@@ -301,6 +329,12 @@ theorem initialSemanticCorrectAt_iff_extractionLinkWitnessAt
   · simpa [CookLevin.defaultK] using h hn2
   · simpa [CookLevin.defaultK] using h hn2
 
+/-- Component-level extraction obligation implies extraction witness. -/
+theorem extractionLinkWitnessAt_of_extractionLinkObligation
+    (M : DTM) (n : ℕ)
+    (hExt : ExtractionLinkObligationAt M n) :
+    ExtractionLinkWitnessAt M n :=
+  extractionLinkWitnessAt_of_decision_and_rank M n hExt.1 hExt.2
 /-- Component obligations imply semantic scaffold correctness at fixed size. -/
 theorem initialSemanticCorrectAt_of_components
     (M : DTM) (n : ℕ)
@@ -309,9 +343,9 @@ theorem initialSemanticCorrectAt_of_components
     (hExtract : ExtractionLinkObligationAt M n) :
     InitialSemanticCorrectAt M n := by
   -- _hInit/_hLocal are reserved interfaces for future semantic detail.
-  -- At the current boundary, extraction-link carries the semantic target.
+  -- Extraction-link is now decomposed into decision/rank sub-obligations.
   exact (initialSemanticCorrectAt_iff_extractionLinkWitnessAt M n).2
-    (by simpa [ExtractionLinkObligationAt] using hExtract)
+    (extractionLinkWitnessAt_of_extractionLinkObligation M n hExtract)
 
 /-- Function-threshold packaging of semantic scaffold correctness:
     one machine-indexed threshold function works globally. -/
@@ -355,7 +389,7 @@ theorem initialSemantic_componentThresholdFnPack_of_thresholdFnPack
   · intro M n _hn
     exact transitionLocalObligation_all M n
   · intro M n hn
-    exact hC M n hn
+    refine ⟨(initialSemanticCorrectAt_iff_extractionLinkWitnessAt M n).1 (hC M n hn), trivial⟩
 
 /-- Component threshold package implies semantic threshold-function package
     by taking the max threshold and composing component obligations. -/
@@ -405,7 +439,7 @@ theorem extractionLink_obligation_existsPack :
   obtain ⟨nE, hE⟩ := initialSemantic_correctness_after_threshold M
   refine ⟨nE, ?_⟩
   intro n hn
-  exact (initialSemanticCorrectAt_iff_extractionLinkWitnessAt M n).1 (hE n hn)
+  refine ⟨(initialSemanticCorrectAt_iff_extractionLinkWitnessAt M n).1 (hE n hn), trivial⟩
 
 /-- Chosen global threshold-function package from the existential form.
     This keeps threshold extraction explicit for future semantic proofs. -/
