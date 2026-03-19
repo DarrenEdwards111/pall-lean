@@ -3,10 +3,7 @@
 
   Paper: "Toward P≠NP" (arXiv:2512.11820v5, Edwards 2025)
 
-  Custom axiom (1):
-    pside_upper_bound — Paper Theorem 92 + Cook-Levin construction
-
-  Proved from axiom (0 sorry):
+  Proved from scaffold/canonical packages (0 sorry):
     nside_extraction  — Paper Lemma 206 (follows from IsCorrectEncoding def)
     P_neq_NP          — Paper Theorem 207
 
@@ -16,8 +13,6 @@
     perm_monomials_injective   — Paper Lemma 95
     freeSpdp_evalOne_le        — Paper Lemma 33
 
-  Additional assumption:
-    hard_family_in_NP          — hardNPFamily ∈ NP (abstract hard family)
 -/
 import PallLean.CompiledPoly
 import PallLean.Permanent
@@ -25,6 +20,7 @@ import PallLean.PermanentLower
 import PallLean.CookLevin
 import PallLean.TuringMachine
 import PallLean.SPDPDefs
+import PallLean.PneqNP_Paper
 import Mathlib.Tactic
 
 namespace CompiledSeparation
@@ -51,12 +47,17 @@ def P_eq_NP : Prop := ∀ F : BoolFunFamily, UniformNP F → UniformPtime F
 /-! ## The Hard NP Family
 
   We keep this abstract (paper-faithful): an NP family containing
-  the permanent hardness used in Lemma 206. We package existence as one
-  axiom, then derive a chosen witness + its NP-membership theorem.
+  the permanent hardness used in Lemma 206. Existence is instantiated
+  from the repo's concrete NP family, then we derive a chosen witness
+  + its NP-membership theorem.
 
   In the paper, this family is the NP side of the permanent reduction. -/
 
-axiom hardNPFamily_exists : ∃ F : BoolFunFamily, UniformNP F
+theorem hardNPFamily_exists : ∃ F : BoolFunFamily, UniformNP F := by
+  refine ⟨PneqNP_Paper.f_n_family, ?_⟩
+  simpa [BoolFunFamily, UniformNP, UniformPtime] using
+    (PneqNP_Paper.f_n_family_in_NP :
+      PneqNP_Defs.UniformNP PneqNP_Paper.f_n_family)
 
 noncomputable def hardNPFamily : BoolFunFamily :=
   Classical.choose hardNPFamily_exists
@@ -90,30 +91,6 @@ def IsCorrectEncoding (M : DTM) (n k : ℕ)
     (permPolyFlat (Nat.sqrt n)) bp ≤
   blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
     (compiledPolyQ cnf) hlp.partition
-
-/-! ================================================================
-    AXIOM: P-side Upper Bound (Paper Theorem 92 + Cook-Levin)
-
-    For any DTM M, there exists a correct Cook-Levin encoding
-    with SPDP rank ≤ √n. The encoding is certified correct
-    via IsCorrectEncoding (which includes the extraction property).
-
-    This is the SINGLE remaining axiom. It combines:
-    (a) Cook-Levin construction (§17.1): DTM → width-3 CNF
-    (b) Profile compression (§8/§17.3): block-local → rank ≤ polylog(n)
-    (c) Asymptotics: polylog(n) ≤ √n for large n
-    (d) Cook-Levin correctness: encoding preserves M's computation
-    ================================================================ -/
-
-axiom pside_upper_bound :
-    ∀ (M : DTM), ∃ (n₀ : ℕ),
-    ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
-    ∀ (f : (Fin n → Bool) → Bool), M.decides f →
-    ∃ (k : ℕ) (cnf : CookLevinCNF (compiledVarCount k n))
-      (hlp : HasLocalPartition cnf),
-    IsCorrectEncoding M n k cnf hlp ∧
-    blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n
 
 /-- Protected threshold-form scaffold correctness predicate. -/
 def ScaffoldCorrectAfter (M : DTM) (nC : ℕ) : Prop :=
@@ -245,10 +222,6 @@ theorem P_neq_NP_from_pside
   have h_lower := h_perm (Nat.sqrt n) hm bp
   exact Nat.lt_irrefl _
     (Nat.lt_of_lt_of_le (Nat.lt_of_lt_of_le h_lower h_extraction) hrank_le)
-
-theorem P_neq_NP : ¬ P_eq_NP :=
-  P_neq_NP_from_pside pside_upper_bound
-
 
 /-- Semantic target predicate for scaffold correctness at a fixed `n`.
     This isolates the Cook-Levin correctness obligation from pside plumbing. -/
@@ -952,6 +925,21 @@ theorem pside_upper_bound_from_global_scaffold
     canonical_boundAfter_eventually
     canonical_correctAfter_eventually
     M
+
+/-- Global pside upper bound recovered from the canonical scaffold route. -/
+theorem pside_upper_bound :
+    ∀ (M : DTM), ∃ (n₀ : ℕ),
+      ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
+      ∀ (f : (Fin n → Bool) → Bool), M.decides f →
+      ∃ (k : ℕ) (cnf : CookLevinCNF (compiledVarCount k n))
+        (hlp : HasLocalPartition cnf),
+      IsCorrectEncoding M n k cnf hlp ∧
+      blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n :=
+  pside_upper_bound_from_global_scaffold
+
+theorem P_neq_NP : ¬ P_eq_NP :=
+  P_neq_NP_from_pside pside_upper_bound
 
 /-- Fully package-based scaffold route theorem.
     Consumes only protected scaffold contracts. -/
