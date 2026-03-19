@@ -385,17 +385,20 @@ theorem P_neq_NP_from_scaffold_thresholds_via_contracts
   P_neq_NP_from_scaffold_contracts
     (mkScaffoldContractsFromThresholds hBound nC hC)
 
-/-- Scaffold-route variant:
-    if initialSemantic encodings are eventually certified correct,
-    then the scaffold pside bridge is enough to derive P ≠ NP
-    via the same contradiction engine.
-
-    Paper-faithful layered form: instantiate package theorem with
-    theorem-92 scaffold bounds + correctness package. -/
+/-- Scaffold-route variant from explicit package assumptions.
+    Paper-faithful layered form: bounds + correctness package feed the
+    generic contradiction engine. -/
 theorem P_neq_NP_from_scaffold
+    (hBound : ∀ M : DTM, ∃ nB : ℕ, CookLevin.ScaffoldBoundAfter M nB)
     (hcorrectInitEv : ∀ (M : DTM), ∃ nC : ℕ, ScaffoldCorrectAfter M nC) :
     ¬ P_eq_NP :=
-  P_neq_NP_from_scaffold_packages
+  P_neq_NP_from_scaffold_packages hBound hcorrectInitEv
+
+/-- Specialization of scaffold-route variant using Theorem-92 scaffold bounds. -/
+theorem P_neq_NP_from_scaffold_with_theorem92
+    (hcorrectInitEv : ∀ (M : DTM), ∃ nC : ℕ, ScaffoldCorrectAfter M nC) :
+    ¬ P_eq_NP :=
+  P_neq_NP_from_scaffold
     (fun M => CookLevin.theorem92_scaffold_eventually M)
     hcorrectInitEv
 
@@ -405,10 +408,18 @@ theorem P_neq_NP_from_scaffold
     Paper-faithful layered form: thresholds are first packaged as contracts,
     then passed to the generic contradiction engine. -/
 theorem P_neq_NP_from_scaffold_thresholds
+    (hBound : ∀ M : DTM, ∃ nB : ℕ, CookLevin.ScaffoldBoundAfter M nB)
     (nC : DTM → ℕ)
     (hC : ∀ M : DTM, ScaffoldCorrectAfter M (nC M)) :
     ¬ P_eq_NP :=
-  P_neq_NP_from_scaffold_thresholds_via_contracts
+  P_neq_NP_from_scaffold_thresholds_via_contracts hBound nC hC
+
+/-- Specialization of threshold route using Theorem-92 scaffold bounds. -/
+theorem P_neq_NP_from_scaffold_thresholds_with_theorem92
+    (nC : DTM → ℕ)
+    (hC : ∀ M : DTM, ScaffoldCorrectAfter M (nC M)) :
+    ¬ P_eq_NP :=
+  P_neq_NP_from_scaffold_thresholds
     (fun M => CookLevin.theorem92_scaffold_eventually M)
     nC hC
 
