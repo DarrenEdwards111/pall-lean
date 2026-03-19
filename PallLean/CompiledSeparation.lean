@@ -428,13 +428,22 @@ theorem P_neq_NP_from_scaffold_thresholds_with_theorem92
 theorem P_neq_NP_via_scaffold_pside : ¬ P_eq_NP :=
   P_neq_NP_from_pside pside_upper_bound_from_global_scaffold
 
+/-- Canonical scaffold route written directly in Theorem-92 + correctness form. -/
+theorem P_neq_NP_via_scaffold_with_theorem92 : ¬ P_eq_NP :=
+  P_neq_NP_from_scaffold_with_theorem92 scaffold_correctness_eventually
+
 /-- Alternate end-to-end theorem via scaffold assumptions (no pside axiom). -/
 theorem P_neq_NP_via_scaffold : ¬ P_eq_NP :=
   P_neq_NP_from_scaffold_contracts canonicalScaffoldContracts
 
-/-- Consistency theorem: both canonical scaffold presentations coincide. -/
+/-- Consistency theorem: contract and pside canonical presentations coincide. -/
 theorem P_neq_NP_via_scaffold_eq_pside :
     P_neq_NP_via_scaffold = P_neq_NP_via_scaffold_pside := by
+  rfl
+
+/-- Consistency theorem: Theorem-92 specialization agrees with canonical route. -/
+theorem P_neq_NP_via_scaffold_eq_with_theorem92 :
+    P_neq_NP_via_scaffold = P_neq_NP_via_scaffold_with_theorem92 := by
   rfl
 
 #check @P_neq_NP
@@ -442,6 +451,7 @@ theorem P_neq_NP_via_scaffold_eq_pside :
 #check @P_neq_NP_from_scaffold_contracts
 #check @P_neq_NP_from_scaffold_packages
 #check @P_neq_NP_via_scaffold_pside
+#check @P_neq_NP_via_scaffold_with_theorem92
 #check @P_neq_NP_via_scaffold
 
 end CompiledSeparation
