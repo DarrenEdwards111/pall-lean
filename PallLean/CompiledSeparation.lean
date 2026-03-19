@@ -673,9 +673,31 @@ theorem decisionExtraction_skolem_components_to_threshold
     DecisionExtractionSkolemThresholdFnPack :=
   decisionExtraction_skolemThresholdFnPack_of_components C
 
-/-- Paper-faithful decision-link assumption (structured skolem extraction form). -/
-axiom decisionExtraction_skolemComponents_assumption :
-  DecisionExtractionSkolemComponents
+/-- Primitive local assumptions for skolem extraction-threshold construction. -/
+structure DecisionExtractionSkolemPrimitives where
+  nE : DTM → ℕ
+  chooseBp : ∀ (M : DTM) (n : ℕ), n ≥ nE M →
+      (∀ (hn2 : n ≥ 2), M.decides (hardNPFamily n) →
+        BlockPartition (Nat.sqrt n * Nat.sqrt n))
+  bound : ∀ (M : DTM) (n : ℕ) (hn : n ≥ nE M)
+      (hn2 : n ≥ 2) (hM : M.decides (hardNPFamily n)),
+      blockedSpdpRankQ (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+        (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+        (permPolyFlat (Nat.sqrt n)) ((chooseBp M n hn) hn2 hM) ≤
+      blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+        (CookLevin.initialSemantic_local M n hn2).partition
+
+/-- Paper-faithful decision-link assumption at primitive level. -/
+axiom decisionExtraction_skolemPrimitives_assumption :
+  DecisionExtractionSkolemPrimitives
+
+/-- Recovered structured skolem extraction package from primitives. -/
+noncomputable def decisionExtraction_skolemComponents_assumption :
+  DecisionExtractionSkolemComponents :=
+  { nE := decisionExtraction_skolemPrimitives_assumption.nE
+    chooseBp := decisionExtraction_skolemPrimitives_assumption.chooseBp
+    bound := decisionExtraction_skolemPrimitives_assumption.bound }
 
 /-- Recovered skolem-threshold package from structured assumption. -/
 theorem decisionExtraction_skolemThresholdFnPack_assumption :
