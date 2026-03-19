@@ -642,6 +642,11 @@ theorem decisionExtraction_semanticBridge_packaging_iff :
   · exact decisionSemanticLift_thresholdFnPack_of_extractionBridge
   · exact decisionExtraction_thresholdFnPack_of_semanticBridge
 
+/-- Paper-faithful semantic assumption:
+    beyond some threshold, the scaffold encoding is correct at each size. -/
+axiom initialSemantic_correctness_after_threshold :
+    InitialSemanticExistsPack
+
 /-- Structured local components for skolem extraction-threshold packaging. -/
 structure DecisionExtractionSkolemComponents where
   nE : DTM → ℕ
@@ -688,10 +693,23 @@ structure DecisionExtractionSkolemPrimitives where
         (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
         (CookLevin.initialSemantic_local M n hn2).partition
 
-/-- Primitive existence-form assumption for the skolem extraction package.
-    (Paper-faithful boundary in existential/choice form.) -/
-axiom decisionExtraction_skolemPrimitives_exists :
-  ∃ P : DecisionExtractionSkolemPrimitives, True
+/-- Primitive skolem package recovered from semantic correctness thresholds. -/
+theorem decisionExtraction_skolemPrimitives_exists :
+  ∃ P : DecisionExtractionSkolemPrimitives, True := by
+  classical
+  refine ⟨{
+    nE := fun M => Classical.choose (initialSemantic_correctness_after_threshold M)
+    chooseBp := ?_
+    bound := ?_
+  }, trivial⟩
+  · intro M n hn hn2 hM
+    let hCorr :=
+      Classical.choose_spec (initialSemantic_correctness_after_threshold M) n hn
+    exact Classical.choose (hCorr hn2 hM)
+  · intro M n hn hn2 hM
+    let hCorr :=
+      Classical.choose_spec (initialSemantic_correctness_after_threshold M) n hn
+    exact Classical.choose_spec (hCorr hn2 hM)
 
 /-- Recovered primitive skolem package by choice. -/
 noncomputable def decisionExtraction_skolemPrimitives_assumption :
@@ -779,12 +797,6 @@ theorem initialSemantic_existsPack_via_components :
   initialSemantic_existsPack_of_thresholdFnPack
     (initialSemantic_thresholdFnPack_of_componentThresholds
       initialSemantic_componentThresholdFnPack_from_decisionLink)
-
-/-- Paper-faithful semantic assumption (derived):
-    beyond some threshold, the scaffold encoding is correct at each size. -/
-theorem initialSemantic_correctness_after_threshold :
-    InitialSemanticExistsPack :=
-  initialSemantic_existsPack_via_components
 
 /-- Chosen global threshold-function package from the existential form.
     This keeps threshold extraction explicit for future semantic proofs. -/
