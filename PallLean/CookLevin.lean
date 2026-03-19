@@ -926,10 +926,19 @@ theorem theorem92_scaffold_closure
   They are not part of the structural Cook-Levin scaffolding above.
 -/
 
-/-- Numeric asymptotic side: eventually, the core polylog term is ≤ √n. -/
-axiom corePolylog_le_sqrt_eventually :
-    ∃ n₀ : ℕ, ∀ n : ℕ, n ≥ n₀ →
+/-- Numeric asymptotic side (threshold form): beyond an explicit threshold,
+    the core polylog term is ≤ √n. -/
+axiom corePolylog_le_sqrt_after_threshold :
+    ∀ n : ℕ, n ≥ numericThresholdN →
       24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n
+
+/-- Derived eventual form of the numeric side from threshold form. -/
+theorem corePolylog_le_sqrt_eventually :
+    ∃ n₀ : ℕ, ∀ n : ℕ, n ≥ n₀ →
+      24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n := by
+  refine ⟨numericThresholdN, ?_⟩
+  intro n hn
+  exact corePolylog_le_sqrt_after_threshold n hn
 
 /-- Structural ambient side: eventually, ambient finrank budget is ≤ √n. -/
 axiom ambientBudget_le_sqrt_eventually (M : DTM) :
