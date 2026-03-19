@@ -547,11 +547,34 @@ theorem decisionLink_componentThresholdFnPack_of_semanticBridge
   intro M n _hn
   exact semanticToDecisionLink_all M n
 
-/-- Paper-faithful decision-link assumption (semantic bridge threshold form):
-    beyond a machine-indexed threshold, decision premises lift to semantic
-    correctness of the concrete scaffold encoding. -/
-axiom decisionSemanticLift_thresholdFnPack_assumption :
-  DecisionLinkComponentThresholdFnPackFromSem
+/-- Explicit extraction-witness threshold package (paper-faithful semantic
+    bridge form): eventually, decision premises imply the concrete
+    extraction-link witness statement. -/
+def DecisionExtractionThresholdFnPack : Prop :=
+  ∃ nE : DTM → ℕ,
+    ∀ (M : DTM) (n : ℕ), n ≥ nE M →
+      M.decides (hardNPFamily n) → ExtractionLinkWitnessAt M n
+
+/-- If extraction witnesses eventually follow from decision premises,
+    then eventual decision→semantic lifting follows. -/
+theorem decisionSemanticLift_thresholdFnPack_of_extractionBridge
+    (hExtPack : DecisionExtractionThresholdFnPack) :
+    DecisionLinkComponentThresholdFnPackFromSem := by
+  obtain ⟨nE, hE⟩ := hExtPack
+  refine ⟨nE, ?_⟩
+  intro M n hn hM
+  -- Build semantic correctness from explicit extraction witness.
+  exact (initialSemanticCorrectAt_iff_extractionLinkWitnessAt M n).2 (hE M n hn hM)
+
+/-- Paper-faithful decision-link assumption (extraction-bridge threshold form). -/
+axiom decisionExtraction_thresholdFnPack_assumption :
+  DecisionExtractionThresholdFnPack
+
+/-- Recovered semantic-bridge threshold package from extraction-bridge form. -/
+theorem decisionSemanticLift_thresholdFnPack_assumption :
+  DecisionLinkComponentThresholdFnPackFromSem :=
+  decisionSemanticLift_thresholdFnPack_of_extractionBridge
+    decisionExtraction_thresholdFnPack_assumption
 
 /-- Recovered full decision-link component package from semantic bridge form. -/
 theorem decisionLink_componentThresholdFnPack_assumption :
