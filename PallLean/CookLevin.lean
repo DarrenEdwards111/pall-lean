@@ -400,19 +400,29 @@ def indexedTransitionClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
             (posLit (timeSlotVar M n hn2 ⟨1, by decide⟩ roleAccept))
   ]
 
-/-- Consistency-style local gadget (scaffold):
-    - accept and reject are mutually exclusive
-    - accept implies state1
-    - reject implies not state1
+/-- Per-time indexed consistency template (paper-faithful scaffold):
+    - accept_t and reject_t are mutually exclusive
+    - accept_t implies state_t
+    - reject_t implies not state_t -/
+def indexedConsistencyClausesAt (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (t : StepIdx) : List (CLClause (compiledVarCount (defaultK M) n)) :=
+  [ clause2 (negLit (timeSlotVar M n hn2 t roleAccept))
+            (negLit (timeSlotVar M n hn2 t roleReject))
+  , clause2 (negLit (timeSlotVar M n hn2 t roleAccept))
+            (posLit (timeSlotVar M n hn2 t roleState))
+  , clause2 (negLit (timeSlotVar M n hn2 t roleReject))
+            (negLit (timeSlotVar M n hn2 t roleState))
+  ]
 
-  These mirror the "global consistency" flavor in Cook-Levin tableaux,
-  while remaining width-2 local clauses. -/
+/-- Indexed consistency family across all scaffold time slots. -/
+def indexedConsistencyClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    List (CLClause (compiledVarCount (defaultK M) n)) :=
+  (List.ofFn (fun t : StepIdx => indexedConsistencyClausesAt M n hn2 t)).foldr List.append []
+
+/-- Backward-compatible alias used by scaffold assembly. -/
 def consistencyClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
   List (CLClause (compiledVarCount (defaultK M) n)) :=
-  [ clause2 (negLit (acceptInitVar M n hn2)) (negLit (rejectInitVar M n hn2))
-  , clause2 (negLit (acceptInitVar M n hn2)) (posLit (state1Var M n hn2))
-  , clause2 (negLit (rejectInitVar M n hn2)) (negLit (state1Var M n hn2))
-  ]
+  indexedConsistencyClauses M n hn2
 
 /-- Phase-bundled scaffold clauses (paper-faithful organization):
     input + initial + uniqueness + transition + consistency. -/
