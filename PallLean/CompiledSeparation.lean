@@ -288,24 +288,35 @@ theorem scaffold_correctness_packaging_iff :
     intro n hn hn2
     exact hC n hn hn2
 
+/-- Chosen semantic scaffold-correctness threshold (directly from the
+    semantic threshold-form assumption). -/
+noncomputable def initialSemanticCorrectnessThreshold (M : DTM) : ℕ :=
+  Classical.choose (initialSemantic_correctness_after_threshold M)
+
+/-- Threshold-form semantic scaffold correctness at chosen threshold. -/
+theorem initialSemantic_correctness_after_chosen_threshold (M : DTM) :
+    ∀ n : ℕ, n ≥ initialSemanticCorrectnessThreshold M → InitialSemanticCorrectAt M n :=
+  Classical.choose_spec (initialSemantic_correctness_after_threshold M)
+
 /-- Eventual scaffold correctness package derived from semantic threshold form. -/
 theorem scaffold_correctness_exists :
   ∀ (M : DTM),
     ∃ nC : ℕ, ScaffoldCorrectAfter M nC := by
   intro M
-  obtain ⟨nC, hC⟩ := initialSemantic_correctness_after_threshold M
-  refine ⟨nC, ?_⟩
+  refine ⟨initialSemanticCorrectnessThreshold M, ?_⟩
   intro n hn hn2
-  exact hC n hn hn2
+  exact initialSemantic_correctness_after_chosen_threshold M n hn hn2
 
-/-- Chosen scaffold correctness threshold for each machine. -/
+/-- Chosen scaffold correctness threshold for each machine.
+    This is definitionally aligned with the semantic chosen threshold. -/
 noncomputable def scaffoldCorrectnessThreshold (M : DTM) : ℕ :=
-  Classical.choose (scaffold_correctness_exists M)
+  initialSemanticCorrectnessThreshold M
 
-/-- Threshold-form scaffold correctness derived from existence. -/
+/-- Threshold-form scaffold correctness derived from semantic threshold form. -/
 theorem scaffold_correctness_after_threshold (M : DTM) :
-  ScaffoldCorrectAfter M (scaffoldCorrectnessThreshold M) :=
-  Classical.choose_spec (scaffold_correctness_exists M)
+  ScaffoldCorrectAfter M (scaffoldCorrectnessThreshold M) := by
+  intro n hn hn2
+  exact initialSemantic_correctness_after_chosen_threshold M n hn hn2
 
 /-- Eventual scaffold correctness (recovered theorem form). -/
 theorem scaffold_correctness_eventually :
