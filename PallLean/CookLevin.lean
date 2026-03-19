@@ -166,11 +166,74 @@ def inputWellformed_local (M : DTM) (n : ℕ) :
     HasLocalPartition (inputWellformedCNF M n) :=
   identity_local (inputWellformedCNF M n)
 
-/-- First non-empty concrete encoding package (scaffold level). -/
+/-! ## First semantic tableau scaffold (initial configuration)
+
+  These clauses start mirroring real Cook-Levin intent:
+  - head at start cell
+  - machine in start state
+  - reject flag off at time 0
+
+  They are still a lightweight scaffold, but now carry semantic meaning
+  (unlike tautological input-wellformedness clauses).
+-/
+
+/-- For `n ≥ 2`, compiled variable count is at least 3 (enough for 3 fixed slots). -/
+theorem compiledVarCount_ge_three (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    compiledVarCount (defaultK M) n ≥ 3 := by
+  have hcube : compiledVarCount (defaultK M) n ≥ n ^ 3 :=
+    compiledVarCount_ge_cubic M n (by omega)
+  have hn3 : n ^ 3 ≥ 8 := by
+    have hpow : 2 ^ 3 ≤ n ^ 3 := Nat.pow_le_pow_left hn2 3
+    simpa using hpow
+  omega
+
+/-- Fixed slot for "head at 0" literal in the scaffold layout. -/
+def headInitVar (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    Fin (compiledVarCount (defaultK M) n) :=
+  ⟨0, by
+    have h : compiledVarCount (defaultK M) n ≥ 3 := compiledVarCount_ge_three M n hn2
+    omega⟩
+
+/-- Fixed slot for "start state active" literal in the scaffold layout. -/
+def stateInitVar (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    Fin (compiledVarCount (defaultK M) n) :=
+  ⟨1, by
+    have h : compiledVarCount (defaultK M) n ≥ 3 := compiledVarCount_ge_three M n hn2
+    omega⟩
+
+/-- Fixed slot for "reject flag off" literal in the scaffold layout. -/
+def rejectInitVar (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    Fin (compiledVarCount (defaultK M) n) :=
+  ⟨2, by
+    have h : compiledVarCount (defaultK M) n ≥ 3 := compiledVarCount_ge_three M n hn2
+    omega⟩
+
+/-- Initial semantic clauses (scaffold): head@0, start-state, not-reject. -/
+def initialSemanticClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    List (CLClause (compiledVarCount (defaultK M) n)) :=
+  [ clause1 (posLit (headInitVar M n hn2))
+  , clause1 (posLit (stateInitVar M n hn2))
+  , clause1 (negLit (rejectInitVar M n hn2))
+  ]
+
+/-- CNF from initial semantic scaffold clauses. -/
+def initialSemanticCNF (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    CookLevinCNF (compiledVarCount (defaultK M) n) :=
+  mkCNF (inputWellformedClauses M n ++ initialSemanticClauses M n hn2)
+
+/-- Locality certificate for semantic scaffold CNF under identity partition. -/
+def initialSemantic_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    HasLocalPartition (initialSemanticCNF M n hn2) :=
+  identity_local (initialSemanticCNF M n hn2)
+
+/-- First non-empty concrete encoding package (semantic scaffold level). -/
 def initialEncoding (M : DTM) (n : ℕ) : CookLevinEncoding M n where
   k := defaultK M
-  cnf := inputWellformedCNF M n
-  hlp := inputWellformed_local M n
+  cnf := if hn2 : n ≥ 2 then initialSemanticCNF M n hn2 else inputWellformedCNF M n
+  hlp := by
+    by_cases hn2 : n ≥ 2
+    · simpa [hn2] using initialSemantic_local M n hn2
+    · simpa [hn2] using inputWellformed_local M n
 
 /-- Baseline CNF on the compiled variable space (empty clause list).
     This is a structural placeholder witness used for scaffolding proofs.
