@@ -903,6 +903,41 @@ theorem theorem92_scaffold_closure
     ≤ Nat.sqrt n :=
   remaining_profile_compression_obligation_split M n hn2 hAmbient hCorePolylog
 
+/-! ## Eventual-threshold assumptions (explicit, paper-faithful)
+
+  These isolate the remaining asymptotic obligations in a clear form.
+  They are not part of the structural Cook-Levin scaffolding above.
+-/
+
+/-- Numeric asymptotic side: eventually, the core polylog term is ≤ √n. -/
+axiom corePolylog_le_sqrt_eventually :
+    ∃ n₀ : ℕ, ∀ n : ℕ, n ≥ n₀ →
+      24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n
+
+/-- Structural ambient side: eventually, ambient finrank budget is ≤ √n. -/
+axiom ambientBudget_le_sqrt_eventually (M : DTM) :
+    ∃ n₀ : ℕ, ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
+      ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n
+
+/-- Eventual Theorem-92-shaped scaffold consequence from the two obligations. -/
+theorem theorem92_scaffold_eventually (M : DTM) :
+    ∃ n₀ : ℕ, ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
+      CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+        (CompiledPoly.compiledPolyQ (initialSemanticCNF M n hn2))
+        (initialSemantic_local M n hn2).partition
+      ≤ Nat.sqrt n := by
+  obtain ⟨nA, hA⟩ := ambientBudget_le_sqrt_eventually M
+  obtain ⟨nP, hP⟩ := corePolylog_le_sqrt_eventually
+  refine ⟨max nA nP, ?_⟩
+  intro n hn hn2
+  have hAn : n ≥ nA := le_trans (le_max_left _ _) hn
+  have hPn : n ≥ nP := le_trans (le_max_right _ _) hn
+  have hAmbient : ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n :=
+    hA n hAn hn2
+  have hCore : 24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n :=
+    hP n hPn
+  exact theorem92_scaffold_closure M n hn2 hAmbient hCore
+
 /-- First non-empty concrete encoding package (semantic scaffold level). -/
 def initialEncoding (M : DTM) (n : ℕ) : CookLevinEncoding M n where
   k := defaultK M
