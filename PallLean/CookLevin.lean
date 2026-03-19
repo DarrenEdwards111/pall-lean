@@ -453,6 +453,20 @@ def scaffoldPhaseClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
   indexedTransitionClauses M n hn2 ++
   consistencyClauses M n hn2
 
+/-- Compression-core families (exclude input tautology family).
+    This better matches paper profile-compression intent: the nontrivial
+    local update/consistency templates, whose count is constant in `n`. -/
+def compressionCoreClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    List (CLClause (compiledVarCount (defaultK M) n)) :=
+  initialSemanticClauses M n hn2 ++
+  headUniqClauses M n hn2 ++
+  stateUniqClauses M n hn2 ++
+  stateLinkClauses M n hn2 ++
+  transitionScaffoldClauses M n hn2 ++
+  transitionWindowClauses M n hn2 ++
+  indexedTransitionClauses M n hn2 ++
+  consistencyClauses M n hn2
+
 /-! ## Template metadata (family-by-family organization)
 
   Paper-faithful direction: track clause families explicitly so locality,
@@ -552,6 +566,10 @@ theorem length_scaffoldPhaseClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     (scaffoldPhaseClauses M n hn2).length = n + 24 := by
   simp [scaffoldPhaseClauses]
 
+theorem length_compressionCoreClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    (compressionCoreClauses M n hn2).length = 24 := by
+  simp [compressionCoreClauses]
+
 /-! ## Profile proxy layer (paper-faithful bridge)
 
   In the paper, profile compression bounds rank by controlling the number
@@ -592,6 +610,12 @@ def scaffoldProfileList (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
   (scaffoldPhaseClauses M n hn2).map
     (fun c => c.vars.image (tableauPartition (compiledVarCount (defaultK M) n)).blockOf)
 
+/-- Block-touch profile list for compression-core families only. -/
+def compressionCoreProfileList (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    List (Finset (Fin 3)) :=
+  (compressionCoreClauses M n hn2).map
+    (fun c => c.vars.image (tableauPartition (compiledVarCount (defaultK M) n)).blockOf)
+
 /-- Distinct profile count for full scaffold is linear in input length. -/
 theorem scaffoldProfileDistinctCount_le_linear (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     (scaffoldProfileList M n hn2).toFinset.card ≤ n + 24 := by
@@ -601,6 +625,18 @@ theorem scaffoldProfileDistinctCount_le_linear (M : DTM) (n : ℕ) (hn2 : n ≥ 
     _ = (scaffoldPhaseClauses M n hn2).length := by
       simp [scaffoldProfileList]
     _ = n + 24 := length_scaffoldPhaseClauses M n hn2
+
+/-- Distinct profile count for compression core is constant. -/
+theorem compressionCoreProfileDistinctCount_le_const
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    (compressionCoreProfileList M n hn2).toFinset.card ≤ 24 := by
+  calc
+    (compressionCoreProfileList M n hn2).toFinset.card ≤
+        (compressionCoreProfileList M n hn2).length :=
+      List.toFinset_card_le _
+    _ = (compressionCoreClauses M n hn2).length := by
+      simp [compressionCoreProfileList]
+    _ = 24 := length_compressionCoreClauses M n hn2
 
 /-! ## Rank-proxy budget (paper-faithful counting proxy)
 
@@ -619,6 +655,10 @@ theorem scaffoldProfileDistinctCount_le_linear (M : DTM) (n : ℕ) (hn2 : n ≥ 
 def profileBudget (M : DTM) (n : ℕ) (hn2 : n ≥ 2) : ℕ :=
   (scaffoldProfileList M n hn2).toFinset.card
 
+/-- Profile count budget for compression-core families. -/
+def coreProfileBudget (M : DTM) (n : ℕ) (hn2 : n ≥ 2) : ℕ :=
+  (compressionCoreProfileList M n hn2).toFinset.card
+
 /-- Coarse per-profile shift budget for degree bound κ on ≤3 blocks. -/
 def shiftBudget (κ : ℕ) : ℕ := (κ + 1) ^ 3
 
@@ -626,9 +666,17 @@ def shiftBudget (κ : ℕ) : ℕ := (κ + 1) ^ 3
 def rankProxyBudget (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (κ : ℕ) : ℕ :=
   profileBudget M n hn2 * shiftBudget κ
 
+/-- Core-only proxy budget (paper-faithful compression core). -/
+def coreRankProxyBudget (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (κ : ℕ) : ℕ :=
+  coreProfileBudget M n hn2 * shiftBudget κ
+
 theorem profileBudget_le_linear (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     profileBudget M n hn2 ≤ n + 24 :=
   scaffoldProfileDistinctCount_le_linear M n hn2
+
+theorem coreProfileBudget_le_const (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    coreProfileBudget M n hn2 ≤ 24 :=
+  compressionCoreProfileDistinctCount_le_const M n hn2
 
 theorem rankProxyBudget_le_linear_mul_shift
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (κ : ℕ) :
@@ -636,9 +684,19 @@ theorem rankProxyBudget_le_linear_mul_shift
   unfold rankProxyBudget
   exact Nat.mul_le_mul_right (shiftBudget κ) (profileBudget_le_linear M n hn2)
 
+theorem coreRankProxyBudget_le_const_mul_shift
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (κ : ℕ) :
+    coreRankProxyBudget M n hn2 κ ≤ 24 * shiftBudget κ := by
+  unfold coreRankProxyBudget
+  exact Nat.mul_le_mul_right (shiftBudget κ) (coreProfileBudget_le_const M n hn2)
+
 /-- Log-parameterized proxy budget (the paper uses κ = O(log n)). -/
 def logRankProxyBudget (M : DTM) (n : ℕ) (hn2 : n ≥ 2) : ℕ :=
   rankProxyBudget M n hn2 (Nat.log 2 n)
+
+/-- Log-parameterized core-only proxy budget. -/
+def logCoreRankProxyBudget (M : DTM) (n : ℕ) (hn2 : n ≥ 2) : ℕ :=
+  coreRankProxyBudget M n hn2 (Nat.log 2 n)
 
 theorem logRankProxyBudget_le_explicit
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
@@ -646,6 +704,13 @@ theorem logRankProxyBudget_le_explicit
       (n + 24) * ((Nat.log 2 n + 1) ^ 3) := by
   simpa [logRankProxyBudget, shiftBudget] using
     rankProxyBudget_le_linear_mul_shift M n hn2 (Nat.log 2 n)
+
+theorem logCoreRankProxyBudget_le_explicit
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    logCoreRankProxyBudget M n hn2 ≤
+      24 * ((Nat.log 2 n + 1) ^ 3) := by
+  simpa [logCoreRankProxyBudget, shiftBudget] using
+    coreRankProxyBudget_le_const_mul_shift M n hn2 (Nat.log 2 n)
 
 /-- CNF from initial semantic scaffold clauses. -/
 def initialSemanticCNF (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
@@ -756,6 +821,18 @@ theorem rankProxyLog_component_le_explicit
       ≤ (n + 24) * ((Nat.log 2 n + 1) ^ 3) := by
   simpa [logRankProxyBudget] using logRankProxyBudget_le_explicit M n hn2
 
+theorem coreRankProxyLog_component_le_explicit
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    coreRankProxyBudget M n hn2 (Nat.log 2 n)
+      ≤ 24 * ((Nat.log 2 n + 1) ^ 3) := by
+  simpa [logCoreRankProxyBudget] using logCoreRankProxyBudget_le_explicit M n hn2
+
+/-- Core proxy term is dominated by the linear proxy term. -/
+theorem corePolylogTerm_le_linearPolylogTerm (n : ℕ) :
+    24 * ((Nat.log 2 n + 1) ^ 3)
+      ≤ (n + 24) * ((Nat.log 2 n + 1) ^ 3) := by
+  exact Nat.mul_le_mul_right _ (by omega)
+
 /-- Paper-style closure step:
     if ambient component is ≤ √n and the explicit polylog proxy term is ≤ √n,
     then the log compression target holds. -/
@@ -799,6 +876,7 @@ theorem remaining_profile_compression_obligation_split
     ≤ Nat.sqrt n :=
   initialSemantic_logRank_le_sqrt_of_target M n hn2
     (logCompressionTarget_of_ambient_and_polylog_dominance M n hn2 hAmbient hPolylog)
+
 
 /-- First non-empty concrete encoding package (semantic scaffold level). -/
 def initialEncoding (M : DTM) (n : ℕ) : CookLevinEncoding M n where
