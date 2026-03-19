@@ -892,6 +892,16 @@ theorem remaining_profile_compression_obligation_split
   initialSemantic_logRank_le_sqrt_of_target M n hn2
     (logCompressionTarget_of_ambient_and_core_polylog_dominance M n hn2 hAmbient hCorePolylog)
 
+/-- Theorem-92-shaped scaffold closure (direct packaged form). -/
+theorem theorem92_scaffold_closure
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (hAmbient : ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n)
+    (hCorePolylog : 24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n) :
+    CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+      (CompiledPoly.compiledPolyQ (initialSemanticCNF M n hn2))
+      (initialSemantic_local M n hn2).partition
+    ≤ Nat.sqrt n :=
+  remaining_profile_compression_obligation_split M n hn2 hAmbient hCorePolylog
 
 /-- First non-empty concrete encoding package (semantic scaffold level). -/
 def initialEncoding (M : DTM) (n : ℕ) : CookLevinEncoding M n where
