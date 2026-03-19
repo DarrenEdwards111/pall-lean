@@ -272,10 +272,34 @@ def TransitionLocalObligationAt (M : DTM) (n : ℕ) : Prop :=
   ∀ (hn2 : n ≥ 2),
     Nonempty (HasLocalPartition (CookLevin.initialSemanticCNF M n hn2))
 
+/-- Extraction-link witness at size `n` for the `initialSemantic` scaffold:
+    this is the explicit NP-side extraction statement specialized to
+    the concrete scaffold encoding. -/
+def ExtractionLinkWitnessAt (M : DTM) (n : ℕ) : Prop :=
+  ∀ (hn2 : n ≥ 2),
+    M.decides (hardNPFamily n) →
+      ∃ (bp : BlockPartition (Nat.sqrt n * Nat.sqrt n)),
+        blockedSpdpRankQ (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+          (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+          (permPolyFlat (Nat.sqrt n)) bp ≤
+        blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+          (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+          (CookLevin.initialSemantic_local M n hn2).partition
+
 /-- Component obligation 3 (extraction/link correctness) at size `n`.
-    This is the current semantic target boundary. -/
+    This is now expressed as the explicit extraction-link witness statement. -/
 def ExtractionLinkObligationAt (M : DTM) (n : ℕ) : Prop :=
-  InitialSemanticCorrectAt M n
+  ExtractionLinkWitnessAt M n
+
+/-- `InitialSemanticCorrectAt` is equivalent to the explicit extraction-link
+    witness at fixed size. -/
+theorem initialSemanticCorrectAt_iff_extractionLinkWitnessAt
+    (M : DTM) (n : ℕ) :
+    InitialSemanticCorrectAt M n ↔ ExtractionLinkWitnessAt M n := by
+  unfold InitialSemanticCorrectAt ExtractionLinkWitnessAt IsCorrectEncoding
+  constructor <;> intro h <;> intro hn2
+  · simpa [CookLevin.defaultK] using h hn2
+  · simpa [CookLevin.defaultK] using h hn2
 
 /-- Component obligations imply semantic scaffold correctness at fixed size. -/
 theorem initialSemanticCorrectAt_of_components
@@ -286,7 +310,8 @@ theorem initialSemanticCorrectAt_of_components
     InitialSemanticCorrectAt M n := by
   -- _hInit/_hLocal are reserved interfaces for future semantic detail.
   -- At the current boundary, extraction-link carries the semantic target.
-  simpa [ExtractionLinkObligationAt] using hExtract
+  exact (initialSemanticCorrectAt_iff_extractionLinkWitnessAt M n).2
+    (by simpa [ExtractionLinkObligationAt] using hExtract)
 
 /-- Function-threshold packaging of semantic scaffold correctness:
     one machine-indexed threshold function works globally. -/
@@ -380,7 +405,7 @@ theorem extractionLink_obligation_existsPack :
   obtain ⟨nE, hE⟩ := initialSemantic_correctness_after_threshold M
   refine ⟨nE, ?_⟩
   intro n hn
-  simpa [ExtractionLinkObligationAt] using hE n hn
+  exact (initialSemanticCorrectAt_iff_extractionLinkWitnessAt M n).1 (hE n hn)
 
 /-- Chosen global threshold-function package from the existential form.
     This keeps threshold extraction explicit for future semantic proofs. -/
