@@ -642,9 +642,46 @@ theorem decisionExtraction_semanticBridge_packaging_iff :
   · exact decisionSemanticLift_thresholdFnPack_of_extractionBridge
   · exact decisionExtraction_thresholdFnPack_of_semanticBridge
 
-/-- Paper-faithful decision-link assumption (skolem extraction-bridge form). -/
-axiom decisionExtraction_skolemThresholdFnPack_assumption :
-  DecisionExtractionSkolemThresholdFnPack
+/-- Structured local components for skolem extraction-threshold packaging. -/
+structure DecisionExtractionSkolemComponents where
+  nE : DTM → ℕ
+  chooseBp : ∀ (M : DTM) (n : ℕ), n ≥ nE M →
+      (∀ (hn2 : n ≥ 2), M.decides (hardNPFamily n) →
+        BlockPartition (Nat.sqrt n * Nat.sqrt n))
+  bound : ∀ (M : DTM) (n : ℕ) (hn : n ≥ nE M)
+      (hn2 : n ≥ 2) (hM : M.decides (hardNPFamily n)),
+      blockedSpdpRankQ (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+        (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+        (permPolyFlat (Nat.sqrt n)) ((chooseBp M n hn) hn2 hM) ≤
+      blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+        (CookLevin.initialSemantic_local M n hn2).partition
+
+/-- Structured components imply skolem-threshold package. -/
+theorem decisionExtraction_skolemThresholdFnPack_of_components
+    (C : DecisionExtractionSkolemComponents) :
+    DecisionExtractionSkolemThresholdFnPack := by
+  refine ⟨C.nE, ?_⟩
+  intro M n hn _hM
+  refine ⟨(C.chooseBp M n hn), ?_⟩
+  intro hn2 hM
+  exact C.bound M n hn hn2 hM
+
+/-- Structured components can be viewed as a skolem-threshold package. -/
+theorem decisionExtraction_skolem_components_to_threshold
+    (C : DecisionExtractionSkolemComponents) :
+    DecisionExtractionSkolemThresholdFnPack :=
+  decisionExtraction_skolemThresholdFnPack_of_components C
+
+/-- Paper-faithful decision-link assumption (structured skolem extraction form). -/
+axiom decisionExtraction_skolemComponents_assumption :
+  DecisionExtractionSkolemComponents
+
+/-- Recovered skolem-threshold package from structured assumption. -/
+theorem decisionExtraction_skolemThresholdFnPack_assumption :
+  DecisionExtractionSkolemThresholdFnPack :=
+  decisionExtraction_skolemThresholdFnPack_of_components
+    decisionExtraction_skolemComponents_assumption
 
 /-- Recovered extraction-bridge threshold package from skolem form. -/
 theorem decisionExtraction_thresholdFnPack_assumption :
