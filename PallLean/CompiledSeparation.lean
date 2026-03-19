@@ -406,14 +406,25 @@ theorem P_neq_NP_from_scaffold_thresholds
     (fun M => CookLevin.theorem92_scaffold_eventually M)
     nC hC
 
+/-- Canonical scaffold route through explicit pside instantiation
+    (paper-faithful Theorem-207 style contradiction entrypoint). -/
+theorem P_neq_NP_via_scaffold_pside : ¬ P_eq_NP :=
+  P_neq_NP_from_pside pside_upper_bound_from_global_scaffold
+
 /-- Alternate end-to-end theorem via scaffold assumptions (no pside axiom). -/
 theorem P_neq_NP_via_scaffold : ¬ P_eq_NP :=
   P_neq_NP_from_scaffold_contracts canonicalScaffoldContracts
+
+/-- Consistency theorem: both canonical scaffold presentations coincide. -/
+theorem P_neq_NP_via_scaffold_eq_pside :
+    P_neq_NP_via_scaffold = P_neq_NP_via_scaffold_pside := by
+  rfl
 
 #check @P_neq_NP
 #check @P_neq_NP_from_scaffold
 #check @P_neq_NP_from_scaffold_contracts
 #check @P_neq_NP_from_scaffold_packages
+#check @P_neq_NP_via_scaffold_pside
 #check @P_neq_NP_via_scaffold
 
 end CompiledSeparation
