@@ -228,12 +228,25 @@ def headPos1Var (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     Fin (compiledVarCount (defaultK M) n) :=
   scaffoldVar M n hn2 ⟨4, by decide⟩
 
-/-- Initial semantic clauses (scaffold): head@0, start-state, not-reject. -/
+/-- Two scaffold state slots at time 0 (starter exact-one gadget). -/
+def state0Var (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    Fin (compiledVarCount (defaultK M) n) :=
+  scaffoldVar M n hn2 ⟨5, by decide⟩
+
+def state1Var (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    Fin (compiledVarCount (defaultK M) n) :=
+  scaffoldVar M n hn2 ⟨6, by decide⟩
+
+def acceptInitVar (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    Fin (compiledVarCount (defaultK M) n) :=
+  scaffoldVar M n hn2 ⟨7, by decide⟩
+/-- Initial semantic clauses (scaffold): head@0, start-state, not-reject, not-accept. -/
 def initialSemanticClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     List (CLClause (compiledVarCount (defaultK M) n)) :=
   [ clause1 (posLit (headInitVar M n hn2))
   , clause1 (posLit (stateInitVar M n hn2))
   , clause1 (negLit (rejectInitVar M n hn2))
+  , clause1 (negLit (acceptInitVar M n hn2))
   ]
 
 /-- Starter head-uniqueness gadget over two head-position slots:
@@ -244,12 +257,29 @@ def headUniqClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
   , clause2 (negLit (headPos0Var M n hn2)) (negLit (headPos1Var M n hn2))
   ]
 
+/-- Starter state exclusivity gadget over two state slots:
+    (s0 ∨ s1) ∧ (¬s0 ∨ ¬s1). -/
+def stateUniqClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    List (CLClause (compiledVarCount (defaultK M) n)) :=
+  [ clause2 (posLit (state0Var M n hn2)) (posLit (state1Var M n hn2))
+  , clause2 (negLit (state0Var M n hn2)) (negLit (state1Var M n hn2))
+  ]
+
+/-- Link start-state literal to first state slot: start → s0 and s0 → start. -/
+def stateLinkClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    List (CLClause (compiledVarCount (defaultK M) n)) :=
+  [ clause2 (negLit (stateInitVar M n hn2)) (posLit (state0Var M n hn2))
+  , clause2 (negLit (state0Var M n hn2)) (posLit (stateInitVar M n hn2))
+  ]
+
 /-- CNF from initial semantic scaffold clauses. -/
 def initialSemanticCNF (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     CookLevinCNF (compiledVarCount (defaultK M) n) :=
   mkCNF (inputWellformedClauses M n ++
     initialSemanticClauses M n hn2 ++
-    headUniqClauses M n hn2)
+    headUniqClauses M n hn2 ++
+    stateUniqClauses M n hn2 ++
+    stateLinkClauses M n hn2)
 
 /-- Locality certificate for semantic scaffold CNF under identity partition. -/
 def initialSemantic_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
