@@ -322,11 +322,17 @@ def mkScaffoldContractsFromThresholds
     ScaffoldContracts :=
   ⟨hBound, fun M => ⟨nC M, hC M⟩⟩
 
-/-- Canonical packaged scaffold contracts (single bundled assumption). -/
-axiom canonicalScaffoldContracts_exists : ScaffoldContracts
+/-- Canonical packaged scaffold contracts, derived from the current
+    scaffold-bound and scaffold-correctness packages. -/
+theorem canonicalScaffoldContracts_exists : ScaffoldContracts := by
+  refine ⟨?_, ?_⟩
+  · intro M
+    exact CookLevin.theorem92_scaffold_eventually M
+  · intro M
+    exact scaffold_correctness_eventually M
 
-/-- Chosen canonical scaffold contracts. -/
-noncomputable def canonicalScaffoldContracts : ScaffoldContracts :=
+/-- Canonical scaffold contract bundle. -/
+def canonicalScaffoldContracts : ScaffoldContracts :=
   canonicalScaffoldContracts_exists
 
 /-- Projected canonical bound package. -/
