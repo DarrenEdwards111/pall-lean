@@ -129,6 +129,35 @@ theorem pside_witness_from_scaffold
     CookLevin.initialSemantic_local M n hn2, hcorrectInit, ?_⟩
   simpa using CookLevin.theorem92_scaffold_after_threshold M n hn hn2
 
+/-- Eventual scaffold-instantiated pside witness (threshold form).
+    If initialSemantic encodings are eventually certified correct, then
+    scaffold closure gives eventual pside witnesses in Theorem-92 shape. -/
+theorem pside_witness_from_scaffold_eventually
+    (M : DTM)
+    (hcorrectInitEv :
+      ∃ nC : ℕ, ∀ n : ℕ, n ≥ nC → ∀ (hn2 : n ≥ 2),
+        IsCorrectEncoding M n (CookLevin.defaultK M)
+          (CookLevin.initialSemanticCNF M n hn2)
+          (CookLevin.initialSemantic_local M n hn2)) :
+    ∃ n₀ : ℕ,
+      ∀ n : ℕ, n ≥ n₀ → n ≥ 2 →
+      ∀ (f : (Fin n → Bool) → Bool), M.decides f →
+      ∃ (k : ℕ) (cnf : CookLevinCNF (compiledVarCount k n))
+        (hlp : HasLocalPartition cnf),
+      IsCorrectEncoding M n k cnf hlp ∧
+      blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n := by
+  obtain ⟨nC, hC⟩ := hcorrectInitEv
+  refine ⟨max (CookLevin.scaffoldClosureThreshold M) nC, ?_⟩
+  intro n hn hn2 f hM
+  have hThresh : n ≥ CookLevin.scaffoldClosureThreshold M :=
+    le_trans (le_max_left _ _) hn
+  have hCorr : IsCorrectEncoding M n (CookLevin.defaultK M)
+      (CookLevin.initialSemanticCNF M n hn2)
+      (CookLevin.initialSemantic_local M n hn2) :=
+    hC n (le_trans (le_max_right _ _) hn) hn2
+  exact pside_witness_from_scaffold M n hThresh hn2 f hM hCorr
+
 /-! ================================================================
     THEOREM: NP-side Extraction (Paper Lemma 206)
     PROVED from IsCorrectEncoding definition.
