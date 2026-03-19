@@ -346,23 +346,38 @@ theorem pside_upper_bound_from_global_scaffold
     (fun M => scaffold_correctness_eventually M)
     M
 
+/-- Protected scaffold contract bundle. -/
+structure ScaffoldContracts where
+  boundAfter : ∀ M : DTM, ∃ nB : ℕ, CookLevin.ScaffoldBoundAfter M nB
+  correctAfter : ∀ M : DTM, ∃ nC : ℕ, ScaffoldCorrectAfter M nC
+
 /-- Fully package-based scaffold route theorem.
-    Consumes only protected contract layers (bound + correctness). -/
+    Consumes only protected scaffold contracts. -/
+theorem P_neq_NP_from_scaffold_contracts
+    (C : ScaffoldContracts) :
+    ¬ P_eq_NP :=
+  P_neq_NP_from_pside
+    (fun M => pside_upper_bound_from_scaffold_packages C.boundAfter C.correctAfter M)
+
+/-- Compatibility theorem for separate package inputs. -/
 theorem P_neq_NP_from_scaffold_packages
     (hBound : ∀ M : DTM, ∃ nB : ℕ, CookLevin.ScaffoldBoundAfter M nB)
     (hCorrect : ∀ M : DTM, ∃ nC : ℕ, ScaffoldCorrectAfter M nC) :
     ¬ P_eq_NP :=
-  P_neq_NP_from_pside
-    (fun M => pside_upper_bound_from_scaffold_packages hBound hCorrect M)
+  P_neq_NP_from_scaffold_contracts ⟨hBound, hCorrect⟩
+
+/-- Canonical scaffold contract bundle from current library assumptions. -/
+def canonicalScaffoldContracts : ScaffoldContracts :=
+  ⟨(fun M => CookLevin.theorem92_scaffold_eventually M),
+   (fun M => scaffold_correctness_eventually M)⟩
 
 /-- Alternate end-to-end theorem via scaffold assumptions (no pside axiom). -/
 theorem P_neq_NP_via_scaffold : ¬ P_eq_NP :=
-  P_neq_NP_from_scaffold_packages
-    (fun M => CookLevin.theorem92_scaffold_eventually M)
-    (fun M => scaffold_correctness_eventually M)
+  P_neq_NP_from_scaffold_contracts canonicalScaffoldContracts
 
 #check @P_neq_NP
 #check @P_neq_NP_from_scaffold
+#check @P_neq_NP_from_scaffold_contracts
 #check @P_neq_NP_from_scaffold_packages
 #check @P_neq_NP_via_scaffold
 
