@@ -432,6 +432,13 @@ theorem P_neq_NP_via_scaffold_pside : ¬ P_eq_NP :=
 theorem P_neq_NP_via_scaffold_with_theorem92 : ¬ P_eq_NP :=
   P_neq_NP_from_scaffold_with_theorem92 scaffold_correctness_eventually
 
+/-- Canonical scaffold route using explicit threshold witness for correctness.
+    Paper-faithful: threshold package is promoted to eventual form via choose. -/
+theorem P_neq_NP_via_scaffold_thresholds_with_theorem92 : ¬ P_eq_NP :=
+  P_neq_NP_from_scaffold_thresholds_with_theorem92
+    scaffoldCorrectnessThreshold
+    scaffold_correctness_after_threshold
+
 /-- Alternate end-to-end theorem via scaffold assumptions (no pside axiom). -/
 theorem P_neq_NP_via_scaffold : ¬ P_eq_NP :=
   P_neq_NP_from_scaffold_contracts canonicalScaffoldContracts
@@ -444,6 +451,12 @@ theorem P_neq_NP_via_scaffold_eq_pside :
 /-- Consistency theorem: Theorem-92 specialization agrees with canonical route. -/
 theorem P_neq_NP_via_scaffold_eq_with_theorem92 :
     P_neq_NP_via_scaffold = P_neq_NP_via_scaffold_with_theorem92 := by
+  rfl
+
+/-- Consistency theorem: threshold and eventual Theorem-92 routes coincide. -/
+theorem P_neq_NP_via_scaffold_eq_thresholds_with_theorem92 :
+    P_neq_NP_via_scaffold_with_theorem92 =
+      P_neq_NP_via_scaffold_thresholds_with_theorem92 := by
   rfl
 
 #check @P_neq_NP
