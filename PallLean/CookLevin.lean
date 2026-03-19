@@ -601,6 +601,51 @@ theorem scaffoldProfileDistinctCount_le_linear (M : DTM) (n : ℕ) (hn2 : n ≥ 
       simp [scaffoldProfileList]
     _ = n + 24 := length_scaffoldPhaseClauses M n hn2
 
+/-! ## Rank-proxy budget (paper-faithful counting proxy)
+
+  In the paper, rank upper bounds come from counting admissible profiles
+  and bounding per-profile contribution dimensions.
+
+  Here we add a conservative finite combinatorial proxy:
+  - profile count budget = distinct block-touch profiles
+  - shift budget for κ over ≤3 blocks = (κ+1)^3
+  - rank proxy budget = product of the two
+
+  This is intentionally a proxy (not yet the final SPDP finrank bound),
+  but aligns with the paper's counting architecture. -/
+
+/-- Profile count budget for scaffold clauses. -/
+def profileBudget (M : DTM) (n : ℕ) (hn2 : n ≥ 2) : ℕ :=
+  (scaffoldProfileList M n hn2).toFinset.card
+
+/-- Coarse per-profile shift budget for degree bound κ on ≤3 blocks. -/
+def shiftBudget (κ : ℕ) : ℕ := (κ + 1) ^ 3
+
+/-- Combined rank-count proxy budget. -/
+def rankProxyBudget (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (κ : ℕ) : ℕ :=
+  profileBudget M n hn2 * shiftBudget κ
+
+theorem profileBudget_le_linear (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    profileBudget M n hn2 ≤ n + 24 :=
+  scaffoldProfileDistinctCount_le_linear M n hn2
+
+theorem rankProxyBudget_le_linear_mul_shift
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (κ : ℕ) :
+    rankProxyBudget M n hn2 κ ≤ (n + 24) * shiftBudget κ := by
+  unfold rankProxyBudget
+  exact Nat.mul_le_mul_right (shiftBudget κ) (profileBudget_le_linear M n hn2)
+
+/-- Log-parameterized proxy budget (the paper uses κ = O(log n)). -/
+def logRankProxyBudget (M : DTM) (n : ℕ) (hn2 : n ≥ 2) : ℕ :=
+  rankProxyBudget M n hn2 (Nat.log 2 n)
+
+theorem logRankProxyBudget_le_explicit
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    logRankProxyBudget M n hn2 ≤
+      (n + 24) * ((Nat.log 2 n + 1) ^ 3) := by
+  simpa [logRankProxyBudget, shiftBudget] using
+    rankProxyBudget_le_linear_mul_shift M n hn2 (Nat.log 2 n)
+
 /-- CNF from initial semantic scaffold clauses. -/
 def initialSemanticCNF (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     CookLevinCNF (compiledVarCount (defaultK M) n) :=
