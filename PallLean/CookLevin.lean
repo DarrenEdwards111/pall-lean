@@ -272,6 +272,19 @@ def stateLinkClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
   , clause2 (negLit (state0Var M n hn2)) (posLit (stateInitVar M n hn2))
   ]
 
+/-- Transition-style local gadget (scaffold):
+    - state progression: s0 → s1, s1 → accept
+    - head progression: h0 → h1
+
+  This is still simplified, but introduces explicit time-step-style
+  implication constraints akin to Cook-Levin local transition clauses. -/
+def transitionScaffoldClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    List (CLClause (compiledVarCount (defaultK M) n)) :=
+  [ clause2 (negLit (state0Var M n hn2)) (posLit (state1Var M n hn2))
+  , clause2 (negLit (state1Var M n hn2)) (posLit (acceptInitVar M n hn2))
+  , clause2 (negLit (headPos0Var M n hn2)) (posLit (headPos1Var M n hn2))
+  ]
+
 /-- CNF from initial semantic scaffold clauses. -/
 def initialSemanticCNF (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     CookLevinCNF (compiledVarCount (defaultK M) n) :=
@@ -279,7 +292,8 @@ def initialSemanticCNF (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     initialSemanticClauses M n hn2 ++
     headUniqClauses M n hn2 ++
     stateUniqClauses M n hn2 ++
-    stateLinkClauses M n hn2)
+    stateLinkClauses M n hn2 ++
+    transitionScaffoldClauses M n hn2)
 
 /-- Locality certificate for semantic scaffold CNF under identity partition. -/
 def initialSemantic_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
