@@ -740,6 +740,22 @@ theorem initialSemantic_logRank_le_combinedProxy
 def logCompressionTarget (M : DTM) (n : ℕ) (hn2 : n ≥ 2) : Prop :=
   combinedRankProxyBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n
 
+/-- Sufficient condition: if both components are ≤ √n, then combined target holds. -/
+theorem logCompressionTarget_of_component_bounds
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (hAmbient : ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n)
+    (hProxy : rankProxyBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n) :
+    logCompressionTarget M n hn2 := by
+  unfold logCompressionTarget combinedRankProxyBudget
+  exact max_le hAmbient hProxy
+
+/-- Explicit bound for the profile-count proxy component at log parameters. -/
+theorem rankProxyLog_component_le_explicit
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    rankProxyBudget M n hn2 (Nat.log 2 n)
+      ≤ (n + 24) * ((Nat.log 2 n + 1) ^ 3) := by
+  simpa [logRankProxyBudget] using logRankProxyBudget_le_explicit M n hn2
+
 /-- If the compression target holds, we get the Theorem-92-shaped bound. -/
 theorem initialSemantic_logRank_le_sqrt_of_target
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
