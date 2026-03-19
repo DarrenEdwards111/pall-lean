@@ -976,9 +976,24 @@ theorem ambientBudget_le_sqrt_eventually (M : DTM) :
   intro n hn hn2
   exact ambientBudget_le_sqrt_after_threshold M n hn hn2
 
+/-- Protected predicate: from threshold `n₀` onward, both closure components hold. -/
+def ScaffoldCompressionAfter (M : DTM) (n₀ : ℕ) : Prop :=
+  ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
+    ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n ∧
+    24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n
+
 /-- Bundled threshold for scaffold closure assumptions. -/
 noncomputable def scaffoldClosureThreshold (M : DTM) : ℕ :=
   max (ambientThreshold M) corePolylogThreshold
+
+/-- At bundled threshold, both compression components hold. -/
+theorem scaffoldCompressionAfter_threshold (M : DTM) :
+    ScaffoldCompressionAfter M (scaffoldClosureThreshold M) := by
+  intro n hn hn2
+  have hA : n ≥ ambientThreshold M := le_trans (le_max_left _ _) hn
+  have hP : n ≥ corePolylogThreshold := le_trans (le_max_right _ _) hn
+  refine ⟨ambientBudget_le_sqrt_after_threshold M n hA hn2,
+    corePolylog_le_sqrt_after_threshold n hP⟩
 
 /-- Protected predicate: from threshold `n₀` onward, scaffold satisfies
     the Theorem-92-style √n rank bound at log parameters. -/
@@ -997,12 +1012,9 @@ theorem theorem92_scaffold_after_threshold
       (CompiledPoly.compiledPolyQ (initialSemanticCNF M n hn2))
       (initialSemantic_local M n hn2).partition
     ≤ Nat.sqrt n := by
-  have hA : n ≥ ambientThreshold M := le_trans (le_max_left _ _) hn
-  have hP : n ≥ corePolylogThreshold := le_trans (le_max_right _ _) hn
-  have hAmbient : ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n :=
-    ambientBudget_le_sqrt_after_threshold M n hA hn2
-  have hCore : 24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n :=
-    corePolylog_le_sqrt_after_threshold n hP
+  have hComp : ScaffoldCompressionAfter M (scaffoldClosureThreshold M) :=
+    scaffoldCompressionAfter_threshold M
+  obtain ⟨hAmbient, hCore⟩ := hComp n hn hn2
   exact theorem92_scaffold_closure M n hn2 hAmbient hCore
 
 /-- Threshold-form scaffold bound packaged via `ScaffoldBoundAfter`. -/
