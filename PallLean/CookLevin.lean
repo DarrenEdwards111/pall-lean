@@ -926,47 +926,43 @@ theorem theorem92_scaffold_closure
   They are not part of the structural Cook-Levin scaffolding above.
 -/
 
-/-- Numeric asymptotic side existence form:
-    there exists a threshold after which the core polylog term is ≤ √n. -/
-axiom corePolylog_threshold_exists :
-    ∃ n₀ : ℕ, ∀ n : ℕ, n ≥ n₀ →
-      24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n
+/-! ### Protected compression-threshold package (paper-faithful)
 
-/-- Chosen numeric threshold (from existence axiom). -/
-noncomputable def corePolylogThreshold : ℕ :=
-  Classical.choose corePolylog_threshold_exists
+  Bundle the two remaining asymptotic obligations (ambient + core polylog)
+  in one machine-indexed contract, then derive threshold/everywhere forms.
+-/
 
-/-- Numeric side in threshold form derived from chosen threshold. -/
-theorem corePolylog_le_sqrt_after_threshold :
-    ∀ n : ℕ, n ≥ corePolylogThreshold →
-      24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n := by
-  intro n hn
-  exact (Classical.choose_spec corePolylog_threshold_exists) n hn
+structure CompressionThresholds (M : DTM) where
+  ambientN : ℕ
+  ambient : ∀ n : ℕ, n ≥ ambientN → ∀ (hn2 : n ≥ 2),
+    ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n
+  coreN : ℕ
+  core : ∀ n : ℕ, n ≥ coreN →
+    24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n
 
-/-- Derived eventual form of the numeric side from threshold form. -/
-theorem corePolylog_le_sqrt_eventually :
-    ∃ n₀ : ℕ, ∀ n : ℕ, n ≥ n₀ →
-      24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n := by
-  refine ⟨corePolylogThreshold, ?_⟩
-  intro n hn
-  exact corePolylog_le_sqrt_after_threshold n hn
+axiom compressionThresholds_exists (M : DTM) : CompressionThresholds M
 
-/-- Structural ambient side existence form: there exists a threshold after
-    which ambient finrank budget is ≤ √n. -/
-axiom ambientBudget_threshold_exists (M : DTM) :
-    ∃ n₀ : ℕ, ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
-      ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n
+/-- Chosen numeric threshold from bundled compression contract. -/
+noncomputable def corePolylogThreshold (M : DTM) : ℕ :=
+  (compressionThresholds_exists M).coreN
 
-/-- Chosen ambient threshold (from existence axiom). -/
+/-- Chosen ambient threshold from bundled compression contract. -/
 noncomputable def ambientThreshold (M : DTM) : ℕ :=
-  Classical.choose (ambientBudget_threshold_exists M)
+  (compressionThresholds_exists M).ambientN
 
-/-- Structural ambient side in threshold form (derived from chosen threshold). -/
+/-- Numeric side in threshold form derived from bundled threshold contract. -/
+theorem corePolylog_le_sqrt_after_threshold (M : DTM) :
+    ∀ n : ℕ, n ≥ corePolylogThreshold M →
+      24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n := by
+  intro n hn
+  exact (compressionThresholds_exists M).core n hn
+
+/-- Ambient side in threshold form derived from bundled threshold contract. -/
 theorem ambientBudget_le_sqrt_after_threshold (M : DTM) :
     ∀ n : ℕ, n ≥ ambientThreshold M → ∀ (hn2 : n ≥ 2),
       ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n := by
   intro n hn hn2
-  exact (Classical.choose_spec (ambientBudget_threshold_exists M)) n hn hn2
+  exact (compressionThresholds_exists M).ambient n hn hn2
 
 /-- Derived eventual form of the ambient side from threshold form. -/
 theorem ambientBudget_le_sqrt_eventually (M : DTM) :
@@ -976,6 +972,14 @@ theorem ambientBudget_le_sqrt_eventually (M : DTM) :
   intro n hn hn2
   exact ambientBudget_le_sqrt_after_threshold M n hn hn2
 
+/-- Derived eventual form of the numeric side from threshold form. -/
+theorem corePolylog_le_sqrt_eventually (M : DTM) :
+    ∃ n₀ : ℕ, ∀ n : ℕ, n ≥ n₀ →
+      24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n := by
+  refine ⟨corePolylogThreshold M, ?_⟩
+  intro n hn
+  exact corePolylog_le_sqrt_after_threshold M n hn
+
 /-- Protected predicate: from threshold `n₀` onward, both closure components hold. -/
 def ScaffoldCompressionAfter (M : DTM) (n₀ : ℕ) : Prop :=
   ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
@@ -984,16 +988,16 @@ def ScaffoldCompressionAfter (M : DTM) (n₀ : ℕ) : Prop :=
 
 /-- Bundled threshold for scaffold closure assumptions. -/
 noncomputable def scaffoldClosureThreshold (M : DTM) : ℕ :=
-  max (ambientThreshold M) corePolylogThreshold
+  max (ambientThreshold M) (corePolylogThreshold M)
 
 /-- At bundled threshold, both compression components hold. -/
 theorem scaffoldCompressionAfter_threshold (M : DTM) :
     ScaffoldCompressionAfter M (scaffoldClosureThreshold M) := by
   intro n hn hn2
   have hA : n ≥ ambientThreshold M := le_trans (le_max_left _ _) hn
-  have hP : n ≥ corePolylogThreshold := le_trans (le_max_right _ _) hn
+  have hP : n ≥ corePolylogThreshold M := le_trans (le_max_right _ _) hn
   refine ⟨ambientBudget_le_sqrt_after_threshold M n hA hn2,
-    corePolylog_le_sqrt_after_threshold n hP⟩
+    corePolylog_le_sqrt_after_threshold M n hP⟩
 
 /-- Protected predicate: from threshold `n₀` onward, scaffold satisfies
     the Theorem-92-style √n rank bound at log parameters. -/
