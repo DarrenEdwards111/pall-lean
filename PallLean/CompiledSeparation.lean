@@ -295,10 +295,49 @@ theorem scaffold_correctness_eventually :
   intro n hn hn2
   exact scaffold_correctness_after_threshold M n hn hn2
 
+/-- Bundled threshold for direct scaffold pside witness extraction. -/
+noncomputable def scaffoldPsideThreshold (M : DTM) : ℕ :=
+  max (CookLevin.scaffoldClosureThreshold M) (scaffoldCorrectnessThreshold M)
+
+/-- Single-threshold scaffold pside witness (protected helper).
+    This avoids carrying separate threshold hypotheses in downstream proofs. -/
+theorem pside_witness_from_scaffold_after_threshold
+    (M : DTM) (n : ℕ) (hn : n ≥ scaffoldPsideThreshold M) (hn2 : n ≥ 2)
+    (f : (Fin n → Bool) → Bool) (hM : M.decides f) :
+    ∃ (k : ℕ) (cnf : CookLevinCNF (compiledVarCount k n))
+      (hlp : HasLocalPartition cnf),
+    IsCorrectEncoding M n k cnf hlp ∧
+    blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n := by
+  have hThresh : n ≥ CookLevin.scaffoldClosureThreshold M :=
+    le_trans (le_max_left _ _) hn
+  have hCorrThresh : n ≥ scaffoldCorrectnessThreshold M :=
+    le_trans (le_max_right _ _) hn
+  have hCorr : IsCorrectEncoding M n (CookLevin.defaultK M)
+      (CookLevin.initialSemanticCNF M n hn2)
+      (CookLevin.initialSemantic_local M n hn2) :=
+    scaffold_correctness_after_threshold M n hCorrThresh hn2
+  exact pside_witness_from_scaffold M n hThresh hn2 f hM hCorr
+
+/-- pside-upper-bound shape derived from global scaffold assumptions
+    using one bundled threshold. -/
+theorem pside_upper_bound_from_global_scaffold
+    (M : DTM) :
+    ∃ (n₀ : ℕ),
+      ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
+      ∀ (f : (Fin n → Bool) → Bool), M.decides f →
+      ∃ (k : ℕ) (cnf : CookLevinCNF (compiledVarCount k n))
+        (hlp : HasLocalPartition cnf),
+      IsCorrectEncoding M n k cnf hlp ∧
+      blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n := by
+  refine ⟨scaffoldPsideThreshold M, ?_⟩
+  intro n hn hn2 f hM
+  exact pside_witness_from_scaffold_after_threshold M n hn hn2 f hM
+
 /-- Alternate end-to-end theorem via scaffold assumptions (no pside axiom). -/
 theorem P_neq_NP_via_scaffold : ¬ P_eq_NP :=
-  P_neq_NP_from_scaffold scaffold_correctness_eventually
-
+  P_neq_NP_from_pside pside_upper_bound_from_global_scaffold
 #check @P_neq_NP
 #check @P_neq_NP_from_scaffold
 #check @P_neq_NP_via_scaffold
