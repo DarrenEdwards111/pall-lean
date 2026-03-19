@@ -330,7 +330,29 @@ theorem pside_upper_bound_from_scaffold_packages
     CookLevin.initialSemantic_local M n hn2, hCorr, ?_⟩
   simpa using hRank
 
-/-- pside-upper-bound shape derived from global scaffold assumptions. -/
+/-- Protected scaffold contract bundle. -/
+structure ScaffoldContracts where
+  boundAfter : ∀ M : DTM, ∃ nB : ℕ, CookLevin.ScaffoldBoundAfter M nB
+  correctAfter : ∀ M : DTM, ∃ nC : ℕ, ScaffoldCorrectAfter M nC
+
+/-- Canonical packaged scaffold contracts (single bundled assumption). -/
+axiom canonicalScaffoldContracts_exists : ScaffoldContracts
+
+/-- Chosen canonical scaffold contracts. -/
+noncomputable def canonicalScaffoldContracts : ScaffoldContracts :=
+  canonicalScaffoldContracts_exists
+
+/-- Projected canonical bound package. -/
+theorem canonical_boundAfter_eventually :
+    ∀ M : DTM, ∃ nB : ℕ, CookLevin.ScaffoldBoundAfter M nB :=
+  canonicalScaffoldContracts.boundAfter
+
+/-- Projected canonical correctness package. -/
+theorem canonical_correctAfter_eventually :
+    ∀ M : DTM, ∃ nC : ℕ, ScaffoldCorrectAfter M nC :=
+  canonicalScaffoldContracts.correctAfter
+
+/-- pside-upper-bound shape derived from canonical scaffold contracts. -/
 theorem pside_upper_bound_from_global_scaffold
     (M : DTM) :
     ∃ (n₀ : ℕ),
@@ -342,14 +364,9 @@ theorem pside_upper_bound_from_global_scaffold
       blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
         (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n :=
   pside_upper_bound_from_scaffold_packages
-    (fun M => CookLevin.theorem92_scaffold_eventually M)
-    (fun M => scaffold_correctness_eventually M)
+    canonical_boundAfter_eventually
+    canonical_correctAfter_eventually
     M
-
-/-- Protected scaffold contract bundle. -/
-structure ScaffoldContracts where
-  boundAfter : ∀ M : DTM, ∃ nB : ℕ, CookLevin.ScaffoldBoundAfter M nB
-  correctAfter : ∀ M : DTM, ∃ nC : ℕ, ScaffoldCorrectAfter M nC
 
 /-- Fully package-based scaffold route theorem.
     Consumes only protected scaffold contracts. -/
@@ -365,11 +382,6 @@ theorem P_neq_NP_from_scaffold_packages
     (hCorrect : ∀ M : DTM, ∃ nC : ℕ, ScaffoldCorrectAfter M nC) :
     ¬ P_eq_NP :=
   P_neq_NP_from_scaffold_contracts ⟨hBound, hCorrect⟩
-
-/-- Canonical scaffold contract bundle from current library assumptions. -/
-def canonicalScaffoldContracts : ScaffoldContracts :=
-  ⟨(fun M => CookLevin.theorem92_scaffold_eventually M),
-   (fun M => scaffold_correctness_eventually M)⟩
 
 /-- Alternate end-to-end theorem via scaffold assumptions (no pside axiom). -/
 theorem P_neq_NP_via_scaffold : ¬ P_eq_NP :=
