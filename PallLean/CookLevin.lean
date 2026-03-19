@@ -117,6 +117,16 @@ def tableau_local {N : ℕ} (cnf : CookLevinCNF N) :
     simpa using h'
   simpa [CLClause.isLocal] using hcard
 
+/-- List-level locality helper under tableau partition. -/
+theorem allClausesLocal_tableau {N : ℕ} (xs : List (CLClause N)) :
+    ∀ c ∈ xs, c.isLocal (tableauPartition N) := by
+  intro c hc
+  have hcard : (c.vars.image (tableauPartition N).blockOf).card ≤ 3 := by
+    have h' : (c.vars.image (tableauPartition N).blockOf).card ≤ Fintype.card (Fin 3) :=
+      Finset.card_le_univ (s := c.vars.image (tableauPartition N).blockOf)
+    simpa using h'
+  simpa [CLClause.isLocal] using hcard
+
 /-- Canonical one-block partition (used for coarse baseline estimates). -/
 def oneBlockPartition (N : ℕ) : BlockPartition N where
   numBlocks := 1
@@ -437,6 +447,58 @@ def scaffoldPhaseClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
   transitionWindowClauses M n hn2 ++
   indexedTransitionClauses M n hn2 ++
   consistencyClauses M n hn2
+
+/-! ## Template metadata (family-by-family organization)
+
+  Paper-faithful direction: track clause families explicitly so locality,
+  counting, and eventually profile bounds can be stated per-family and
+  then assembled compositionally.
+-/
+
+inductive FamilyTag where
+  | input
+  | init
+  | headUniq
+  | stateUniq
+  | stateLink
+  | transitionScaffold
+  | transitionWindow
+  | transitionIndexed
+  | consistency
+  deriving DecidableEq, Repr
+
+/-- Clauses belonging to a specific template family. -/
+def familyClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    FamilyTag → List (CLClause (compiledVarCount (defaultK M) n))
+  | .input => inputWellformedClauses M n
+  | .init => initialSemanticClauses M n hn2
+  | .headUniq => headUniqClauses M n hn2
+  | .stateUniq => stateUniqClauses M n hn2
+  | .stateLink => stateLinkClauses M n hn2
+  | .transitionScaffold => transitionScaffoldClauses M n hn2
+  | .transitionWindow => transitionWindowClauses M n hn2
+  | .transitionIndexed => indexedTransitionClauses M n hn2
+  | .consistency => consistencyClauses M n hn2
+
+/-- Each template family is local under the tableau partition scaffold. -/
+theorem familyClauses_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (tag : FamilyTag) :
+    ∀ c ∈ familyClauses M n hn2 tag,
+      c.isLocal (tableauPartition (compiledVarCount (defaultK M) n)) := by
+  simpa [familyClauses] using
+    (allClausesLocal_tableau (xs := familyClauses M n hn2 tag))
+
+/-- CNF from one specific template family. -/
+def familyCNF (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (tag : FamilyTag) :
+    CookLevinCNF (compiledVarCount (defaultK M) n) :=
+  mkCNF (familyClauses M n hn2 tag)
+
+/-- Locality certificate for a single family CNF under tableau partition. -/
+def family_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (tag : FamilyTag) :
+    HasLocalPartition (familyCNF M n hn2 tag) :=
+  localFromAllClauses (cnf := familyCNF M n hn2 tag)
+    (bp := tableauPartition (compiledVarCount (defaultK M) n))
+    (hlocal := familyClauses_local M n hn2 tag)
+    3
 
 /-- CNF from initial semantic scaffold clauses. -/
 def initialSemanticCNF (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
