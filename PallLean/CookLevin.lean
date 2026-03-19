@@ -756,6 +756,18 @@ theorem rankProxyLog_component_le_explicit
       ≤ (n + 24) * ((Nat.log 2 n + 1) ^ 3) := by
   simpa [logRankProxyBudget] using logRankProxyBudget_le_explicit M n hn2
 
+/-- Paper-style closure step:
+    if ambient component is ≤ √n and the explicit polylog proxy term is ≤ √n,
+    then the log compression target holds. -/
+theorem logCompressionTarget_of_ambient_and_polylog_dominance
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (hAmbient : ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n)
+    (hPolylog : (n + 24) * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n) :
+    logCompressionTarget M n hn2 := by
+  have hProxy : rankProxyBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n :=
+    le_trans (rankProxyLog_component_le_explicit M n hn2) hPolylog
+  exact logCompressionTarget_of_component_bounds M n hn2 hAmbient hProxy
+
 /-- If the compression target holds, we get the Theorem-92-shaped bound. -/
 theorem initialSemantic_logRank_le_sqrt_of_target
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
@@ -775,6 +787,18 @@ theorem remaining_profile_compression_obligation
       (initialSemantic_local M n hn2).partition
     ≤ Nat.sqrt n :=
   initialSemantic_logRank_le_sqrt_of_target M n hn2
+
+/-- Equivalent two-component obligation (ambient + explicit polylog dominance). -/
+theorem remaining_profile_compression_obligation_split
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (hAmbient : ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n)
+    (hPolylog : (n + 24) * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n) :
+    CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+      (CompiledPoly.compiledPolyQ (initialSemanticCNF M n hn2))
+      (initialSemantic_local M n hn2).partition
+    ≤ Nat.sqrt n :=
+  initialSemantic_logRank_le_sqrt_of_target M n hn2
+    (logCompressionTarget_of_ambient_and_polylog_dominance M n hn2 hAmbient hPolylog)
 
 /-- First non-empty concrete encoding package (semantic scaffold level). -/
 def initialEncoding (M : DTM) (n : ℕ) : CookLevinEncoding M n where
