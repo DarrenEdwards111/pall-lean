@@ -957,24 +957,36 @@ theorem ambientBudget_le_sqrt_eventually (M : DTM) :
   intro n hn hn2
   exact ambientBudget_le_sqrt_after_threshold M n hn hn2
 
-/-- Eventual Theorem-92-shaped scaffold consequence from the two obligations. -/
+/-- Bundled threshold for scaffold closure assumptions. -/
+noncomputable def scaffoldClosureThreshold (M : DTM) : ℕ :=
+  max (ambientThreshold M) numericThresholdN
+
+/-- Single-premise packaged closure: once past the bundled threshold,
+    the scaffold satisfies the Theorem-92-style √n rank bound. -/
+theorem theorem92_scaffold_after_threshold
+    (M : DTM) (n : ℕ) (hn : n ≥ scaffoldClosureThreshold M) (hn2 : n ≥ 2) :
+    CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+      (CompiledPoly.compiledPolyQ (initialSemanticCNF M n hn2))
+      (initialSemantic_local M n hn2).partition
+    ≤ Nat.sqrt n := by
+  have hA : n ≥ ambientThreshold M := le_trans (le_max_left _ _) hn
+  have hP : n ≥ numericThresholdN := le_trans (le_max_right _ _) hn
+  have hAmbient : ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n :=
+    ambientBudget_le_sqrt_after_threshold M n hA hn2
+  have hCore : 24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n :=
+    corePolylog_le_sqrt_after_threshold n hP
+  exact theorem92_scaffold_closure M n hn2 hAmbient hCore
+
+/-- Eventual Theorem-92-shaped scaffold consequence from threshold packaging. -/
 theorem theorem92_scaffold_eventually (M : DTM) :
     ∃ n₀ : ℕ, ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
       CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
         (CompiledPoly.compiledPolyQ (initialSemanticCNF M n hn2))
         (initialSemantic_local M n hn2).partition
       ≤ Nat.sqrt n := by
-  obtain ⟨nA, hA⟩ := ambientBudget_le_sqrt_eventually M
-  obtain ⟨nP, hP⟩ := corePolylog_le_sqrt_eventually
-  refine ⟨max nA nP, ?_⟩
+  refine ⟨scaffoldClosureThreshold M, ?_⟩
   intro n hn hn2
-  have hAn : n ≥ nA := le_trans (le_max_left _ _) hn
-  have hPn : n ≥ nP := le_trans (le_max_right _ _) hn
-  have hAmbient : ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n :=
-    hA n hAn hn2
-  have hCore : 24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n :=
-    hP n hPn
-  exact theorem92_scaffold_closure M n hn2 hAmbient hCore
+  exact theorem92_scaffold_after_threshold M n hn hn2
 
 /-- First non-empty concrete encoding package (semantic scaffold level). -/
 def initialEncoding (M : DTM) (n : ℕ) : CookLevinEncoding M n where
