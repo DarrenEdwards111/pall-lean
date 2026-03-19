@@ -468,21 +468,51 @@ theorem initialSemantic_existsPack_of_thresholdFnPack
   intro n hn
   exact hC M n hn
 
-/-- Paper-faithful semantic assumption:
-    beyond some threshold, the scaffold encoding is correct at each size. -/
-axiom initialSemantic_correctness_after_threshold :
-  InitialSemanticExistsPack
+/-- Paper-faithful decision-link assumption:
+    beyond some threshold, the concrete scaffold encoding is correct enough
+    to provide the decision-link obligation at each size. -/
+def DecisionLinkExistsPack : Prop :=
+  ∀ (M : DTM), ∃ nD : ℕ, ∀ n : ℕ, n ≥ nD → DecisionLinkObligationAt M n
 
-/-- Extraction-link component package recovered directly from the semantic
-    threshold assumption. This is the substantive remaining component. -/
+axiom decisionLink_correctness_after_threshold :
+  DecisionLinkExistsPack
+
+/-- Extraction-link component package recovered directly from the
+    decision-link threshold assumption plus uniform rank-link theorem. -/
 theorem extractionLink_obligation_existsPack :
     ∀ (M : DTM), ∃ nE : ℕ, ∀ n : ℕ, n ≥ nE → ExtractionLinkObligationAt M n := by
   intro M
-  obtain ⟨nE, hE⟩ := initialSemantic_correctness_after_threshold M
+  obtain ⟨nE, hDec⟩ := decisionLink_correctness_after_threshold M
   refine ⟨nE, ?_⟩
   intro n hn
-  refine ⟨decisionLinkObligation_of_initialSemanticCorrectAt M n (hE n hn),
-    rankLinkObligation_all M n⟩
+  exact ⟨hDec n hn, rankLinkObligation_all M n⟩
+
+/-- Component-threshold package recovered from decision-link threshold
+    assumption (structural components hold at threshold 0). -/
+theorem initialSemantic_componentThresholdFnPack_from_decisionLink :
+    InitialSemanticComponentThresholdFnPack := by
+  choose nD hD using decisionLink_correctness_after_threshold
+  refine ⟨(fun _ => 0), (fun _ => 0), nD, ?_, ?_, ?_⟩
+  · intro M n _hn
+    exact initialConfigObligation_all M n
+  · intro M n _hn
+    exact transitionLocalObligation_all M n
+  · intro M n hn
+    exact ⟨hD M n hn, rankLinkObligation_all M n⟩
+
+/-- Recovered semantic existential package via component decomposition.
+    This is now derived from decision-link assumptions + proved rank-link. -/
+theorem initialSemantic_existsPack_via_components :
+    InitialSemanticExistsPack :=
+  initialSemantic_existsPack_of_thresholdFnPack
+    (initialSemantic_thresholdFnPack_of_componentThresholds
+      initialSemantic_componentThresholdFnPack_from_decisionLink)
+
+/-- Paper-faithful semantic assumption (derived):
+    beyond some threshold, the scaffold encoding is correct at each size. -/
+theorem initialSemantic_correctness_after_threshold :
+    InitialSemanticExistsPack :=
+  initialSemantic_existsPack_via_components
 
 /-- Chosen global threshold-function package from the existential form.
     This keeps threshold extraction explicit for future semantic proofs. -/
@@ -490,20 +520,6 @@ noncomputable def initialSemantic_thresholdFnPack_from_exists :
     InitialSemanticThresholdFnPack := by
   choose nC hC using initialSemantic_correctness_after_threshold
   exact ⟨nC, hC⟩
-
-/-- Component-threshold package recovered from semantic threshold package. -/
-theorem initialSemantic_componentThresholdFnPack_from_exists :
-    InitialSemanticComponentThresholdFnPack :=
-  initialSemantic_componentThresholdFnPack_of_thresholdFnPack
-    initialSemantic_thresholdFnPack_from_exists
-
-/-- Recovered existential package via component-threshold composition.
-    This makes the decomposition path explicit in theorem form. -/
-theorem initialSemantic_existsPack_via_components :
-    InitialSemanticExistsPack :=
-  initialSemantic_existsPack_of_thresholdFnPack
-    (initialSemantic_thresholdFnPack_of_componentThresholds
-      initialSemantic_componentThresholdFnPack_from_exists)
 
 /-- Packaging equivalence between function-threshold and per-machine
     existential forms. -/
