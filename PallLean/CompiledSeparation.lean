@@ -111,6 +111,24 @@ axiom pside_upper_bound :
     blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
       (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n
 
+/-- Scaffold-instantiated single-n upper bound (paper-faithful helper):
+    if the scaffold encoding is known correct at `n`, then the CookLevin
+    scaffold closure theorem yields a concrete pside witness at that `n`. -/
+theorem pside_witness_from_scaffold
+    (M : DTM) (n : ℕ) (hn : n ≥ CookLevin.scaffoldClosureThreshold M) (hn2 : n ≥ 2)
+    (f : (Fin n → Bool) → Bool) (_hM : M.decides f)
+    (hcorrectInit : IsCorrectEncoding M n (CookLevin.defaultK M)
+      (CookLevin.initialSemanticCNF M n hn2)
+      (CookLevin.initialSemantic_local M n hn2)) :
+    ∃ (k : ℕ) (cnf : CookLevinCNF (compiledVarCount k n))
+      (hlp : HasLocalPartition cnf),
+    IsCorrectEncoding M n k cnf hlp ∧
+    blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n := by
+  refine ⟨CookLevin.defaultK M, CookLevin.initialSemanticCNF M n hn2,
+    CookLevin.initialSemantic_local M n hn2, hcorrectInit, ?_⟩
+  simpa using CookLevin.theorem92_scaffold_after_threshold M n hn hn2
+
 /-! ================================================================
     THEOREM: NP-side Extraction (Paper Lemma 206)
     PROVED from IsCorrectEncoding definition.
