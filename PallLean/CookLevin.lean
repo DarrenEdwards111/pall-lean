@@ -969,6 +969,15 @@ theorem ambientBudget_le_sqrt_eventually (M : DTM) :
 noncomputable def scaffoldClosureThreshold (M : DTM) : ℕ :=
   max (ambientThreshold M) numericThresholdN
 
+/-- Protected predicate: from threshold `n₀` onward, scaffold satisfies
+    the Theorem-92-style √n rank bound at log parameters. -/
+def ScaffoldBoundAfter (M : DTM) (n₀ : ℕ) : Prop :=
+  ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
+    CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+      (CompiledPoly.compiledPolyQ (initialSemanticCNF M n hn2))
+      (initialSemantic_local M n hn2).partition
+    ≤ Nat.sqrt n
+
 /-- Single-premise packaged closure: once past the bundled threshold,
     the scaffold satisfies the Theorem-92-style √n rank bound. -/
 theorem theorem92_scaffold_after_threshold
@@ -985,16 +994,16 @@ theorem theorem92_scaffold_after_threshold
     corePolylog_le_sqrt_after_threshold n hP
   exact theorem92_scaffold_closure M n hn2 hAmbient hCore
 
-/-- Eventual Theorem-92-shaped scaffold consequence from threshold packaging. -/
-theorem theorem92_scaffold_eventually (M : DTM) :
-    ∃ n₀ : ℕ, ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
-      CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-        (CompiledPoly.compiledPolyQ (initialSemanticCNF M n hn2))
-        (initialSemantic_local M n hn2).partition
-      ≤ Nat.sqrt n := by
-  refine ⟨scaffoldClosureThreshold M, ?_⟩
+/-- Threshold-form scaffold bound packaged via `ScaffoldBoundAfter`. -/
+theorem scaffoldBoundAfter_threshold (M : DTM) :
+    ScaffoldBoundAfter M (scaffoldClosureThreshold M) := by
   intro n hn hn2
   exact theorem92_scaffold_after_threshold M n hn hn2
+
+/-- Eventual Theorem-92-shaped scaffold consequence from threshold packaging. -/
+theorem theorem92_scaffold_eventually (M : DTM) :
+    ∃ n₀ : ℕ, ScaffoldBoundAfter M n₀ := by
+  exact ⟨scaffoldClosureThreshold M, scaffoldBoundAfter_threshold M⟩
 
 /-- First non-empty concrete encoding package (semantic scaffold level). -/
 def initialEncoding (M : DTM) (n : ℕ) : CookLevinEncoding M n where
