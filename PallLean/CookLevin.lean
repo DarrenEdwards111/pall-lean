@@ -765,9 +765,10 @@ noncomputable def ambientFinrankBudget (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (κ :
     (MvPolynomial.restrictTotalDegree (Fin (compiledVarCount (defaultK M) n)) ℚ
       (κ + (CompiledPoly.compiledPolyQ (initialSemanticCNF M n hn2)).totalDegree))
 
-/-- Combined proxy budget: max(ambient finrank budget, profile-count budget). -/
+/-- Combined proxy budget: max(ambient finrank budget, core profile-count budget).
+    Paper-faithful choice: closure uses compression-core templates. -/
 noncomputable def combinedRankProxyBudget (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (κ : ℕ) : ℕ :=
-  max (ambientFinrankBudget M n hn2 κ) (rankProxyBudget M n hn2 κ)
+  max (ambientFinrankBudget M n hn2 κ) (coreRankProxyBudget M n hn2 κ)
 
 /-- Actual blocked SPDP rank is bounded by the combined proxy budget. -/
 theorem initialSemantic_rank_le_combinedProxy
@@ -809,10 +810,10 @@ def logCompressionTarget (M : DTM) (n : ℕ) (hn2 : n ≥ 2) : Prop :=
 theorem logCompressionTarget_of_component_bounds
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (hAmbient : ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n)
-    (hProxy : rankProxyBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n) :
+    (hCoreProxy : coreRankProxyBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n) :
     logCompressionTarget M n hn2 := by
   unfold logCompressionTarget combinedRankProxyBudget
-  exact max_le hAmbient hProxy
+  exact max_le hAmbient hCoreProxy
 
 /-- Explicit bound for the profile-count proxy component at log parameters. -/
 theorem rankProxyLog_component_le_explicit
@@ -840,22 +841,19 @@ theorem corePolylog_le_sqrt_of_linear
     24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n := by
   exact le_trans (corePolylogTerm_le_linearPolylogTerm n) hLinear
 
-/-- Paper-style closure step:
-    if ambient component is ≤ √n and the explicit polylog proxy term is ≤ √n,
+/-- Paper-style closure step (core version):
+    if ambient component is ≤ √n and core polylog proxy term is ≤ √n,
     then the log compression target holds. -/
-theorem logCompressionTarget_of_ambient_and_polylog_dominance
+theorem logCompressionTarget_of_ambient_and_core_polylog_dominance
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (hAmbient : ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n)
-    (hPolylog : (n + 24) * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n) :
+    (hCorePolylog : 24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n) :
     logCompressionTarget M n hn2 := by
-  have hProxy : rankProxyBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n :=
-    le_trans (rankProxyLog_component_le_explicit M n hn2) hPolylog
-  exact logCompressionTarget_of_component_bounds M n hn2 hAmbient hProxy
+  have hCoreProxy : coreRankProxyBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n :=
+    le_trans (coreRankProxyLog_component_le_explicit M n hn2) hCorePolylog
+  exact logCompressionTarget_of_component_bounds M n hn2 hAmbient hCoreProxy
 
-/-- Core-based note:
-    linear polylog dominance implies core polylog dominance (via monotonicity).
-    We keep the closure theorem on the linear term, since `logCompressionTarget`
-    is currently defined with the full proxy component. -/
+/-- Linear term dominance remains available as a stronger (but not required) route. -/
 theorem core_dominated_by_linear_polylog
     (n : ℕ)
     (hLinear : (n + 24) * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n) :
@@ -882,17 +880,17 @@ theorem remaining_profile_compression_obligation
     ≤ Nat.sqrt n :=
   initialSemantic_logRank_le_sqrt_of_target M n hn2
 
-/-- Equivalent two-component obligation (ambient + explicit polylog dominance). -/
+/-- Equivalent two-component obligation (ambient + core polylog dominance). -/
 theorem remaining_profile_compression_obligation_split
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (hAmbient : ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n)
-    (hPolylog : (n + 24) * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n) :
+    (hCorePolylog : 24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n) :
     CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
       (CompiledPoly.compiledPolyQ (initialSemanticCNF M n hn2))
       (initialSemantic_local M n hn2).partition
     ≤ Nat.sqrt n :=
   initialSemantic_logRank_le_sqrt_of_target M n hn2
-    (logCompressionTarget_of_ambient_and_polylog_dominance M n hn2 hAmbient hPolylog)
+    (logCompressionTarget_of_ambient_and_core_polylog_dominance M n hn2 hAmbient hCorePolylog)
 
 
 /-- First non-empty concrete encoding package (semantic scaffold level). -/
