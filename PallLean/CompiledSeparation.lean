@@ -246,6 +246,23 @@ theorem P_neq_NP_from_pside
 theorem P_neq_NP : ¬ P_eq_NP :=
   P_neq_NP_from_pside pside_upper_bound
 
+/-- Scaffold-route variant:
+    if initialSemantic encodings are eventually certified correct,
+    then the scaffold pside bridge is enough to derive P ≠ NP
+    via the same contradiction engine. -/
+theorem P_neq_NP_from_scaffold
+    (hcorrectInitEv :
+      ∀ (M : DTM),
+      ∃ nC : ℕ, ∀ n : ℕ, n ≥ nC → ∀ (hn2 : n ≥ 2),
+        IsCorrectEncoding M n (CookLevin.defaultK M)
+          (CookLevin.initialSemanticCNF M n hn2)
+          (CookLevin.initialSemantic_local M n hn2)) :
+    ¬ P_eq_NP := by
+  apply P_neq_NP_from_pside
+  intro M
+  exact pside_upper_bound_from_scaffold M (hcorrectInitEv M)
+
 #check @P_neq_NP
+#check @P_neq_NP_from_scaffold
 
 end CompiledSeparation
