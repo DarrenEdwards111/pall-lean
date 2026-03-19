@@ -459,16 +459,23 @@ theorem P_neq_NP_via_scaffold_eq_thresholds_with_theorem92 :
       P_neq_NP_via_scaffold_thresholds_with_theorem92 := by
   rfl
 
+/-- Consistency theorem: pside and eventual Theorem-92 routes coincide. -/
+theorem P_neq_NP_via_scaffold_pside_eq_with_theorem92 :
+    P_neq_NP_via_scaffold_pside = P_neq_NP_via_scaffold_with_theorem92 := by
+  calc
+    P_neq_NP_via_scaffold_pside = P_neq_NP_via_scaffold :=
+      (P_neq_NP_via_scaffold_eq_pside).symm
+    _ = P_neq_NP_via_scaffold_with_theorem92 :=
+      P_neq_NP_via_scaffold_eq_with_theorem92
+
 /-- Global consistency theorem: pside entrypoint agrees with thresholded
     Theorem-92 scaffold presentation via the canonical contract route. -/
 theorem P_neq_NP_via_scaffold_pside_eq_thresholds_with_theorem92 :
     P_neq_NP_via_scaffold_pside =
       P_neq_NP_via_scaffold_thresholds_with_theorem92 := by
   calc
-    P_neq_NP_via_scaffold_pside = P_neq_NP_via_scaffold :=
-      (P_neq_NP_via_scaffold_eq_pside).symm
-    _ = P_neq_NP_via_scaffold_with_theorem92 :=
-      P_neq_NP_via_scaffold_eq_with_theorem92
+    P_neq_NP_via_scaffold_pside = P_neq_NP_via_scaffold_with_theorem92 :=
+      P_neq_NP_via_scaffold_pside_eq_with_theorem92
     _ = P_neq_NP_via_scaffold_thresholds_with_theorem92 :=
       P_neq_NP_via_scaffold_eq_thresholds_with_theorem92
 
