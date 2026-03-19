@@ -258,15 +258,19 @@ def InitialSemanticCorrectAt (M : DTM) (n : ℕ) : Prop :=
       (CookLevin.initialSemanticCNF M n hn2)
       (CookLevin.initialSemantic_local M n hn2)
 
-/-- Component obligation 1 (initial configuration correctness) at size `n`.
-    Placeholder interface for the eventual semantic Cook-Levin proof. -/
+/-- Component obligation 1 (initial configuration scaffold bookkeeping)
+    at size `n`: the semantic scaffold CNF has the expected linear length
+    and is non-empty. -/
 def InitialConfigObligationAt (M : DTM) (n : ℕ) : Prop :=
-  True
+  ∀ (hn2 : n ≥ 2),
+    (CookLevin.initialSemanticCNF M n hn2).clauses.length = n + 24 ∧
+    0 < (CookLevin.initialSemanticCNF M n hn2).clauses.length
 
-/-- Component obligation 2 (local transition consistency) at size `n`.
-    Placeholder interface for the eventual semantic Cook-Levin proof. -/
+/-- Component obligation 2 (local transition consistency) at size `n`:
+    semantic scaffold CNF admits a locality certificate (tableau partition). -/
 def TransitionLocalObligationAt (M : DTM) (n : ℕ) : Prop :=
-  True
+  ∀ (hn2 : n ≥ 2),
+    Nonempty (HasLocalPartition (CookLevin.initialSemanticCNF M n hn2))
 
 /-- Component obligation 3 (extraction/link correctness) at size `n`.
     This is the current semantic target boundary. -/
@@ -296,6 +300,37 @@ def InitialSemanticComponentThresholdFnPack : Prop :=
     (∀ (M : DTM) (n : ℕ), n ≥ nInit M → InitialConfigObligationAt M n) ∧
     (∀ (M : DTM) (n : ℕ), n ≥ nLocal M → TransitionLocalObligationAt M n) ∧
     (∀ (M : DTM) (n : ℕ), n ≥ nExtract M → ExtractionLinkObligationAt M n)
+
+/-- Initial-configuration component holds uniformly (no threshold needed). -/
+theorem initialConfigObligation_all (M : DTM) (n : ℕ) :
+    InitialConfigObligationAt M n := by
+  intro hn2
+  have hlen : (CookLevin.initialSemanticCNF M n hn2).clauses.length = n + 24 := by
+    simpa [CookLevin.initialSemanticCNF, CookLevin.mkCNF] using
+      CookLevin.length_scaffoldPhaseClauses M n hn2
+  refine ⟨hlen, ?_⟩
+  omega
+
+/-- Transition-locality component holds uniformly (no threshold needed). -/
+theorem transitionLocalObligation_all (M : DTM) (n : ℕ) :
+    TransitionLocalObligationAt M n := by
+  intro hn2
+  exact ⟨CookLevin.initialSemantic_local M n hn2⟩
+
+/-- Semantic threshold-function package induces a component-threshold package:
+    two structural components hold from threshold 0, extraction-link uses
+    the semantic threshold itself. -/
+theorem initialSemantic_componentThresholdFnPack_of_thresholdFnPack
+    (hPack : InitialSemanticThresholdFnPack) :
+    InitialSemanticComponentThresholdFnPack := by
+  obtain ⟨nC, hC⟩ := hPack
+  refine ⟨(fun _ => 0), (fun _ => 0), nC, ?_, ?_, ?_⟩
+  · intro M n _hn
+    exact initialConfigObligation_all M n
+  · intro M n _hn
+    exact transitionLocalObligation_all M n
+  · intro M n hn
+    exact hC M n hn
 
 /-- Component threshold package implies semantic threshold-function package
     by taking the max threshold and composing component obligations. -/
