@@ -468,10 +468,54 @@ theorem initialSemantic_existsPack_of_thresholdFnPack
   intro n hn
   exact hC M n hn
 
+/-- Decision→semantic sub-obligation at size `n`. -/
+def DecisionSemanticLiftAt (M : DTM) (n : ℕ) : Prop :=
+  M.decides (hardNPFamily n) → InitialSemanticCorrectAt M n
+
+/-- Semantic→decision-link sub-obligation at size `n`. -/
+def SemanticToDecisionLinkAt (M : DTM) (n : ℕ) : Prop :=
+  InitialSemanticCorrectAt M n → DecisionLinkObligationAt M n
+
+/-- Semantic correctness always lifts to decision-link obligation. -/
+theorem semanticToDecisionLink_all (M : DTM) (n : ℕ) :
+    SemanticToDecisionLinkAt M n := by
+  intro hCorr hn2 _hM
+  exact hCorr hn2
+
+/-- Decision-link obligation is equivalent to decision→semantic lifting. -/
+theorem decisionLinkObligationAt_iff_decisionSemanticLiftAt
+    (M : DTM) (n : ℕ) :
+    DecisionLinkObligationAt M n ↔ DecisionSemanticLiftAt M n := by
+  constructor
+  · intro hDec hM hn2
+    exact hDec hn2 hM
+  · intro hLift hn2 hM
+    exact hLift hM hn2
+
 /-- Function-threshold package for decision-link obligations. -/
 def DecisionLinkThresholdFnPack : Prop :=
   ∃ nD : DTM → ℕ,
     ∀ (M : DTM) (n : ℕ), n ≥ nD M → DecisionLinkObligationAt M n
+
+/-- Component threshold package for decision-link obligations. -/
+def DecisionLinkComponentThresholdFnPack : Prop :=
+  ∃ nSem nLift : DTM → ℕ,
+    (∀ (M : DTM) (n : ℕ), n ≥ nSem M → DecisionSemanticLiftAt M n) ∧
+    (∀ (M : DTM) (n : ℕ), n ≥ nLift M → SemanticToDecisionLinkAt M n)
+
+/-- Component threshold package implies decision-link threshold package. -/
+theorem decisionLink_thresholdFnPack_of_components
+    (hComp : DecisionLinkComponentThresholdFnPack) :
+    DecisionLinkThresholdFnPack := by
+  obtain ⟨nSem, nLift, hSem, hLift⟩ := hComp
+  refine ⟨fun M => max (nSem M) (nLift M), ?_⟩
+  intro M n hn
+  have hnSem : n ≥ nSem M := le_trans (le_max_left _ _) hn
+  have hnLift : n ≥ nLift M := le_trans (le_max_right _ _) hn
+  have hSemAt : DecisionSemanticLiftAt M n := hSem M n hnSem
+  have hLiftAt : SemanticToDecisionLinkAt M n := hLift M n hnLift
+  intro hn2 hM
+  exact hLiftAt (hSemAt hM) hn2 hM
 
 /-- Per-machine existential package for decision-link obligations. -/
 def DecisionLinkExistsPack : Prop :=
@@ -487,11 +531,17 @@ theorem decisionLink_existsPack_of_thresholdFnPack
   intro n hn
   exact hD M n hn
 
-/-- Paper-faithful decision-link assumption (threshold-function form):
-    beyond a machine-indexed threshold, concrete scaffold encoding is correct
-    enough to provide decision-link obligations. -/
-axiom decisionLink_thresholdFnPack_assumption :
-  DecisionLinkThresholdFnPack
+/-- Paper-faithful decision-link assumption (component threshold form):
+    beyond machine-indexed thresholds, decision→semantic and semantic→decision
+    bridge obligations both hold. -/
+axiom decisionLink_componentThresholdFnPack_assumption :
+  DecisionLinkComponentThresholdFnPack
+
+/-- Recovered decision-link threshold-function package from component form. -/
+theorem decisionLink_thresholdFnPack_assumption :
+    DecisionLinkThresholdFnPack :=
+  decisionLink_thresholdFnPack_of_components
+    decisionLink_componentThresholdFnPack_assumption
 
 /-- Recovered existential decision-link package from threshold-function form. -/
 theorem decisionLink_correctness_after_threshold :
