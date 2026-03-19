@@ -258,11 +258,65 @@ def InitialSemanticCorrectAt (M : DTM) (n : ℕ) : Prop :=
       (CookLevin.initialSemanticCNF M n hn2)
       (CookLevin.initialSemantic_local M n hn2)
 
+/-- Component obligation 1 (initial configuration correctness) at size `n`.
+    Placeholder interface for the eventual semantic Cook-Levin proof. -/
+def InitialConfigObligationAt (M : DTM) (n : ℕ) : Prop :=
+  True
+
+/-- Component obligation 2 (local transition consistency) at size `n`.
+    Placeholder interface for the eventual semantic Cook-Levin proof. -/
+def TransitionLocalObligationAt (M : DTM) (n : ℕ) : Prop :=
+  True
+
+/-- Component obligation 3 (extraction/link correctness) at size `n`.
+    This is the current semantic target boundary. -/
+def ExtractionLinkObligationAt (M : DTM) (n : ℕ) : Prop :=
+  InitialSemanticCorrectAt M n
+
+/-- Component obligations imply semantic scaffold correctness at fixed size. -/
+theorem initialSemanticCorrectAt_of_components
+    (M : DTM) (n : ℕ)
+    (_hInit : InitialConfigObligationAt M n)
+    (_hLocal : TransitionLocalObligationAt M n)
+    (hExtract : ExtractionLinkObligationAt M n) :
+    InitialSemanticCorrectAt M n := by
+  -- _hInit/_hLocal are reserved interfaces for future semantic detail.
+  -- At the current boundary, extraction-link carries the semantic target.
+  simpa [ExtractionLinkObligationAt] using hExtract
+
 /-- Function-threshold packaging of semantic scaffold correctness:
     one machine-indexed threshold function works globally. -/
 def InitialSemanticThresholdFnPack : Prop :=
   ∃ nC : DTM → ℕ,
     ∀ (M : DTM) (n : ℕ), n ≥ nC M → InitialSemanticCorrectAt M n
+
+/-- Component-wise threshold-function package for semantic obligations. -/
+def InitialSemanticComponentThresholdFnPack : Prop :=
+  ∃ nInit nLocal nExtract : DTM → ℕ,
+    (∀ (M : DTM) (n : ℕ), n ≥ nInit M → InitialConfigObligationAt M n) ∧
+    (∀ (M : DTM) (n : ℕ), n ≥ nLocal M → TransitionLocalObligationAt M n) ∧
+    (∀ (M : DTM) (n : ℕ), n ≥ nExtract M → ExtractionLinkObligationAt M n)
+
+/-- Component threshold package implies semantic threshold-function package
+    by taking the max threshold and composing component obligations. -/
+theorem initialSemantic_thresholdFnPack_of_componentThresholds
+    (hComp : InitialSemanticComponentThresholdFnPack) :
+    InitialSemanticThresholdFnPack := by
+  obtain ⟨nInit, nLocal, nExtract, hInit, hLocal, hExtract⟩ := hComp
+  refine ⟨fun M => max (nInit M) (max (nLocal M) (nExtract M)), ?_⟩
+  intro M n hn
+  have hnInit : n ≥ nInit M :=
+    le_trans (le_max_left _ _) hn
+  have hnLocalMax : n ≥ max (nLocal M) (nExtract M) :=
+    le_trans (le_max_right _ _) hn
+  have hnLocal : n ≥ nLocal M :=
+    le_trans (le_max_left _ _) hnLocalMax
+  have hnExtract : n ≥ nExtract M :=
+    le_trans (le_max_right _ _) hnLocalMax
+  exact initialSemanticCorrectAt_of_components M n
+    (hInit M n hnInit)
+    (hLocal M n hnLocal)
+    (hExtract M n hnExtract)
 
 /-- Per-machine existential packaging of semantic scaffold correctness. -/
 def InitialSemanticExistsPack : Prop :=
