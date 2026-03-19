@@ -335,6 +335,21 @@ structure ScaffoldContracts where
   boundAfter : ∀ M : DTM, ∃ nB : ℕ, CookLevin.ScaffoldBoundAfter M nB
   correctAfter : ∀ M : DTM, ∃ nC : ℕ, ScaffoldCorrectAfter M nC
 
+/-- Build scaffold contracts from separate packaged assumptions. -/
+def mkScaffoldContracts
+    (hBound : ∀ M : DTM, ∃ nB : ℕ, CookLevin.ScaffoldBoundAfter M nB)
+    (hCorrect : ∀ M : DTM, ∃ nC : ℕ, ScaffoldCorrectAfter M nC) :
+    ScaffoldContracts :=
+  ⟨hBound, hCorrect⟩
+
+/-- Build scaffold contracts from threshold-style correctness hypotheses. -/
+def mkScaffoldContractsFromThresholds
+    (hBound : ∀ M : DTM, ∃ nB : ℕ, CookLevin.ScaffoldBoundAfter M nB)
+    (nC : DTM → ℕ)
+    (hC : ∀ M : DTM, ScaffoldCorrectAfter M (nC M)) :
+    ScaffoldContracts :=
+  ⟨hBound, fun M => ⟨nC M, hC M⟩⟩
+
 /-- Canonical packaged scaffold contracts (single bundled assumption). -/
 axiom canonicalScaffoldContracts_exists : ScaffoldContracts
 
@@ -381,7 +396,16 @@ theorem P_neq_NP_from_scaffold_packages
     (hBound : ∀ M : DTM, ∃ nB : ℕ, CookLevin.ScaffoldBoundAfter M nB)
     (hCorrect : ∀ M : DTM, ∃ nC : ℕ, ScaffoldCorrectAfter M nC) :
     ¬ P_eq_NP :=
-  P_neq_NP_from_scaffold_contracts ⟨hBound, hCorrect⟩
+  P_neq_NP_from_scaffold_contracts (mkScaffoldContracts hBound hCorrect)
+
+/-- Threshold-style compatibility theorem routed through contract packaging. -/
+theorem P_neq_NP_from_scaffold_thresholds_via_contracts
+    (hBound : ∀ M : DTM, ∃ nB : ℕ, CookLevin.ScaffoldBoundAfter M nB)
+    (nC : DTM → ℕ)
+    (hC : ∀ M : DTM, ScaffoldCorrectAfter M (nC M)) :
+    ¬ P_eq_NP :=
+  P_neq_NP_from_scaffold_contracts
+    (mkScaffoldContractsFromThresholds hBound nC hC)
 
 /-- Alternate end-to-end theorem via scaffold assumptions (no pside axiom). -/
 theorem P_neq_NP_via_scaffold : ¬ P_eq_NP :=
