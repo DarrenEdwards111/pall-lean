@@ -250,10 +250,29 @@ theorem P_neq_NP : ¬ P_eq_NP :=
   P_neq_NP_from_pside pside_upper_bound
 
 
-/-- Optional packaged scaffold correctness existence assumption. -/
-axiom scaffold_correctness_exists :
+/-- Semantic target predicate for scaffold correctness at a fixed `n`.
+    This isolates the Cook-Levin correctness obligation from pside plumbing. -/
+def InitialSemanticCorrectAt (M : DTM) (n : ℕ) : Prop :=
+  ∀ (hn2 : n ≥ 2),
+    IsCorrectEncoding M n (CookLevin.defaultK M)
+      (CookLevin.initialSemanticCNF M n hn2)
+      (CookLevin.initialSemantic_local M n hn2)
+
+/-- Paper-faithful semantic assumption:
+    beyond some threshold, the scaffold encoding is correct at each size. -/
+axiom initialSemantic_correctness_after_threshold :
+  ∀ (M : DTM), ∃ nC : ℕ,
+    ∀ n : ℕ, n ≥ nC → InitialSemanticCorrectAt M n
+
+/-- Eventual scaffold correctness package derived from semantic threshold form. -/
+theorem scaffold_correctness_exists :
   ∀ (M : DTM),
-    ∃ nC : ℕ, ScaffoldCorrectAfter M nC
+    ∃ nC : ℕ, ScaffoldCorrectAfter M nC := by
+  intro M
+  obtain ⟨nC, hC⟩ := initialSemantic_correctness_after_threshold M
+  refine ⟨nC, ?_⟩
+  intro n hn hn2
+  exact hC n hn hn2
 
 /-- Chosen scaffold correctness threshold for each machine. -/
 noncomputable def scaffoldCorrectnessThreshold (M : DTM) : ℕ :=
