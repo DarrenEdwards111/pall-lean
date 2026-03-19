@@ -346,11 +346,24 @@ theorem pside_upper_bound_from_global_scaffold
     (fun M => scaffold_correctness_eventually M)
     M
 
+/-- Fully package-based scaffold route theorem.
+    Consumes only protected contract layers (bound + correctness). -/
+theorem P_neq_NP_from_scaffold_packages
+    (hBound : ∀ M : DTM, ∃ nB : ℕ, CookLevin.ScaffoldBoundAfter M nB)
+    (hCorrect : ∀ M : DTM, ∃ nC : ℕ, ScaffoldCorrectAfter M nC) :
+    ¬ P_eq_NP :=
+  P_neq_NP_from_pside
+    (fun M => pside_upper_bound_from_scaffold_packages hBound hCorrect M)
+
 /-- Alternate end-to-end theorem via scaffold assumptions (no pside axiom). -/
 theorem P_neq_NP_via_scaffold : ¬ P_eq_NP :=
-  P_neq_NP_from_pside pside_upper_bound_from_global_scaffold
+  P_neq_NP_from_scaffold_packages
+    (fun M => CookLevin.theorem92_scaffold_eventually M)
+    (fun M => scaffold_correctness_eventually M)
+
 #check @P_neq_NP
 #check @P_neq_NP_from_scaffold
+#check @P_neq_NP_from_scaffold_packages
 #check @P_neq_NP_via_scaffold
 
 end CompiledSeparation
