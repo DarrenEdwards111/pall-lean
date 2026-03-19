@@ -262,13 +262,38 @@ theorem P_neq_NP_from_scaffold
   intro M
   exact pside_upper_bound_from_scaffold M (hcorrectInitEv M)
 
-/-- Optional packaged scaffold correctness assumption. -/
-axiom scaffold_correctness_eventually :
+/-- Optional packaged scaffold correctness existence assumption. -/
+axiom scaffold_correctness_exists :
   ∀ (M : DTM),
     ∃ nC : ℕ, ∀ n : ℕ, n ≥ nC → ∀ (hn2 : n ≥ 2),
       IsCorrectEncoding M n (CookLevin.defaultK M)
         (CookLevin.initialSemanticCNF M n hn2)
         (CookLevin.initialSemantic_local M n hn2)
+
+/-- Chosen scaffold correctness threshold for each machine. -/
+noncomputable def scaffoldCorrectnessThreshold (M : DTM) : ℕ :=
+  Classical.choose (scaffold_correctness_exists M)
+
+/-- Threshold-form scaffold correctness derived from existence. -/
+theorem scaffold_correctness_after_threshold (M : DTM) :
+  ∀ n : ℕ, n ≥ scaffoldCorrectnessThreshold M → ∀ (hn2 : n ≥ 2),
+    IsCorrectEncoding M n (CookLevin.defaultK M)
+      (CookLevin.initialSemanticCNF M n hn2)
+      (CookLevin.initialSemantic_local M n hn2) := by
+  intro n hn hn2
+  exact (Classical.choose_spec (scaffold_correctness_exists M)) n hn hn2
+
+/-- Eventual scaffold correctness (recovered theorem form). -/
+theorem scaffold_correctness_eventually :
+  ∀ (M : DTM),
+    ∃ nC : ℕ, ∀ n : ℕ, n ≥ nC → ∀ (hn2 : n ≥ 2),
+      IsCorrectEncoding M n (CookLevin.defaultK M)
+        (CookLevin.initialSemanticCNF M n hn2)
+        (CookLevin.initialSemantic_local M n hn2) := by
+  intro M
+  refine ⟨scaffoldCorrectnessThreshold M, ?_⟩
+  intro n hn hn2
+  exact scaffold_correctness_after_threshold M n hn hn2
 
 /-- Alternate end-to-end theorem via scaffold assumptions (no pside axiom). -/
 theorem P_neq_NP_via_scaffold : ¬ P_eq_NP :=
