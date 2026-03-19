@@ -158,6 +158,24 @@ theorem pside_witness_from_scaffold_eventually
     hC n (le_trans (le_max_right _ _) hn) hn2
   exact pside_witness_from_scaffold M n hThresh hn2 f hM hCorr
 
+/-- Drop-in bridge: eventual scaffold witness implies pside-upper-bound shape. -/
+theorem pside_upper_bound_from_scaffold
+    (M : DTM)
+    (hcorrectInitEv :
+      ∃ nC : ℕ, ∀ n : ℕ, n ≥ nC → ∀ (hn2 : n ≥ 2),
+        IsCorrectEncoding M n (CookLevin.defaultK M)
+          (CookLevin.initialSemanticCNF M n hn2)
+          (CookLevin.initialSemantic_local M n hn2)) :
+    ∃ (n₀ : ℕ),
+      ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
+      ∀ (f : (Fin n → Bool) → Bool), M.decides f →
+      ∃ (k : ℕ) (cnf : CookLevinCNF (compiledVarCount k n))
+        (hlp : HasLocalPartition cnf),
+      IsCorrectEncoding M n k cnf hlp ∧
+      blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n :=
+  pside_witness_from_scaffold_eventually M hcorrectInitEv
+
 /-! ================================================================
     THEOREM: NP-side Extraction (Paper Lemma 206)
     PROVED from IsCorrectEncoding definition.
@@ -194,10 +212,20 @@ theorem permanent_spdp_lower :
     PROVED from pside_upper_bound + nside_extraction + permanent_spdp_lower
     ================================================================ -/
 
-theorem P_neq_NP : ¬ P_eq_NP := by
+theorem P_neq_NP_from_pside
+    (hpside :
+      ∀ (M : DTM), ∃ (n₀ : ℕ),
+      ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
+      ∀ (f : (Fin n → Bool) → Bool), M.decides f →
+      ∃ (k : ℕ) (cnf : CookLevinCNF (compiledVarCount k n))
+        (hlp : HasLocalPartition cnf),
+      IsCorrectEncoding M n k cnf hlp ∧
+      blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n) :
+    ¬ P_eq_NP := by
   intro hPeqNP
   obtain ⟨M, hM⟩ := hPeqNP hardNPFamily hard_family_in_NP
-  obtain ⟨n₁, h_pside⟩ := pside_upper_bound M
+  obtain ⟨n₁, h_pside⟩ := hpside M
   obtain ⟨m₀, h_perm⟩ := permanent_spdp_lower
   let n := max (max n₁ ((m₀ + 1) * (m₀ + 1))) 2
   have hn₁ : n ≥ n₁ := le_trans (le_max_left _ _) (le_max_left _ 2)
@@ -214,6 +242,9 @@ theorem P_neq_NP : ¬ P_eq_NP := by
   have h_lower := h_perm (Nat.sqrt n) hm bp
   exact Nat.lt_irrefl _
     (Nat.lt_of_lt_of_le (Nat.lt_of_lt_of_le h_lower h_extraction) hrank_le)
+
+theorem P_neq_NP : ¬ P_eq_NP :=
+  P_neq_NP_from_pside pside_upper_bound
 
 #check @P_neq_NP
 
