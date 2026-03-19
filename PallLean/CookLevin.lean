@@ -187,26 +187,46 @@ theorem compiledVarCount_ge_three (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     simpa using hpow
   omega
 
+/-- For `n ≥ 2`, compiled variable count is at least 8. -/
+theorem compiledVarCount_ge_eight (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    compiledVarCount (defaultK M) n ≥ 8 := by
+  have hcube : compiledVarCount (defaultK M) n ≥ n ^ 3 :=
+    compiledVarCount_ge_cubic M n (by omega)
+  have hn3 : n ^ 3 ≥ 8 := by
+    have hpow : 2 ^ 3 ≤ n ^ 3 := Nat.pow_le_pow_left hn2 3
+    simpa using hpow
+  omega
+
+/-- Pick one of 8 fixed scaffold slots in compiled variable space. -/
+def scaffoldVar (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (slot : Fin 8) :
+    Fin (compiledVarCount (defaultK M) n) :=
+  ⟨slot.1, by
+    have h8 : compiledVarCount (defaultK M) n ≥ 8 := compiledVarCount_ge_eight M n hn2
+    exact Nat.lt_of_lt_of_le slot.2 h8⟩
+
 /-- Fixed slot for "head at 0" literal in the scaffold layout. -/
 def headInitVar (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     Fin (compiledVarCount (defaultK M) n) :=
-  ⟨0, by
-    have h : compiledVarCount (defaultK M) n ≥ 3 := compiledVarCount_ge_three M n hn2
-    omega⟩
+  scaffoldVar M n hn2 ⟨0, by decide⟩
 
 /-- Fixed slot for "start state active" literal in the scaffold layout. -/
 def stateInitVar (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     Fin (compiledVarCount (defaultK M) n) :=
-  ⟨1, by
-    have h : compiledVarCount (defaultK M) n ≥ 3 := compiledVarCount_ge_three M n hn2
-    omega⟩
+  scaffoldVar M n hn2 ⟨1, by decide⟩
 
 /-- Fixed slot for "reject flag off" literal in the scaffold layout. -/
 def rejectInitVar (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     Fin (compiledVarCount (defaultK M) n) :=
-  ⟨2, by
-    have h : compiledVarCount (defaultK M) n ≥ 3 := compiledVarCount_ge_three M n hn2
-    omega⟩
+  scaffoldVar M n hn2 ⟨2, by decide⟩
+
+/-- Two scaffold head-position slots at time 0 (starter exact-one gadget). -/
+def headPos0Var (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    Fin (compiledVarCount (defaultK M) n) :=
+  scaffoldVar M n hn2 ⟨3, by decide⟩
+
+def headPos1Var (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    Fin (compiledVarCount (defaultK M) n) :=
+  scaffoldVar M n hn2 ⟨4, by decide⟩
 
 /-- Initial semantic clauses (scaffold): head@0, start-state, not-reject. -/
 def initialSemanticClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
@@ -216,10 +236,20 @@ def initialSemanticClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
   , clause1 (negLit (rejectInitVar M n hn2))
   ]
 
+/-- Starter head-uniqueness gadget over two head-position slots:
+    (h0 ∨ h1) ∧ (¬h0 ∨ ¬h1). -/
+def headUniqClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    List (CLClause (compiledVarCount (defaultK M) n)) :=
+  [ clause2 (posLit (headPos0Var M n hn2)) (posLit (headPos1Var M n hn2))
+  , clause2 (negLit (headPos0Var M n hn2)) (negLit (headPos1Var M n hn2))
+  ]
+
 /-- CNF from initial semantic scaffold clauses. -/
 def initialSemanticCNF (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     CookLevinCNF (compiledVarCount (defaultK M) n) :=
-  mkCNF (inputWellformedClauses M n ++ initialSemanticClauses M n hn2)
+  mkCNF (inputWellformedClauses M n ++
+    initialSemanticClauses M n hn2 ++
+    headUniqClauses M n hn2)
 
 /-- Locality certificate for semantic scaffold CNF under identity partition. -/
 def initialSemantic_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
