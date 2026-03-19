@@ -940,14 +940,22 @@ theorem corePolylog_le_sqrt_eventually :
   intro n hn
   exact corePolylog_le_sqrt_after_threshold n hn
 
-/-- Structural ambient threshold for each machine (explicit threshold form). -/
-axiom ambientThreshold : DTM → ℕ
-
-/-- Structural ambient side (threshold form): beyond machine-specific threshold,
-    ambient finrank budget is ≤ √n. -/
-axiom ambientBudget_le_sqrt_after_threshold (M : DTM) :
-    ∀ n : ℕ, n ≥ ambientThreshold M → ∀ (hn2 : n ≥ 2),
+/-- Structural ambient side existence form: there exists a threshold after
+    which ambient finrank budget is ≤ √n. -/
+axiom ambientBudget_threshold_exists (M : DTM) :
+    ∃ n₀ : ℕ, ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
       ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n
+
+/-- Chosen ambient threshold (from existence axiom). -/
+noncomputable def ambientThreshold (M : DTM) : ℕ :=
+  Classical.choose (ambientBudget_threshold_exists M)
+
+/-- Structural ambient side in threshold form (derived from chosen threshold). -/
+theorem ambientBudget_le_sqrt_after_threshold (M : DTM) :
+    ∀ n : ℕ, n ≥ ambientThreshold M → ∀ (hn2 : n ≥ 2),
+      ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n := by
+  intro n hn hn2
+  exact (Classical.choose_spec (ambientBudget_threshold_exists M)) n hn hn2
 
 /-- Derived eventual form of the ambient side from threshold form. -/
 theorem ambientBudget_le_sqrt_eventually (M : DTM) :
