@@ -249,6 +249,36 @@ def scaffoldVar (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (slot : Fin 8) :
     have h8 : compiledVarCount (defaultK M) n ≥ 8 := compiledVarCount_ge_eight M n hn2
     exact Nat.lt_of_lt_of_le slot.2 h8⟩
 
+/-! ## Indexed time-slot API (scaffold)
+
+  Paper-faithful direction: move from ad-hoc fixed literals to generated
+  time/role indexed slots.
+
+  We use a small 2-step × 4-role window scaffold (8 slots total), then
+  embed into the compiled variable space via `scaffoldVar`.
+-/
+
+abbrev StepIdx := Fin 2
+abbrev RoleIdx := Fin 4
+
+/-- Encode `(time, role)` into one of 8 scaffold slots. -/
+def timeRoleSlot (t : StepIdx) (r : RoleIdx) : Fin 8 :=
+  ⟨t.1 * 4 + r.1, by
+    have ht : t.1 < 2 := t.2
+    have hr : r.1 < 4 := r.2
+    omega⟩
+
+/-- Time/role-indexed variable in compiled space. -/
+def timeSlotVar (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (t : StepIdx) (r : RoleIdx) : Fin (compiledVarCount (defaultK M) n) :=
+  scaffoldVar M n hn2 (timeRoleSlot t r)
+
+/-- Role tags for the 4-slot scaffold. -/
+def roleHead : RoleIdx := ⟨0, by decide⟩
+def roleState : RoleIdx := ⟨1, by decide⟩
+def roleAccept : RoleIdx := ⟨2, by decide⟩
+def roleReject : RoleIdx := ⟨3, by decide⟩
+
 /-- Fixed slot for "head at 0" literal in the scaffold layout. -/
 def headInitVar (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     Fin (compiledVarCount (defaultK M) n) :=
@@ -351,6 +381,25 @@ def transitionWindowClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     List (CLClause (compiledVarCount (defaultK M) n)) :=
   List.ofFn (fun w : Fin 2 => transitionWindowClause M n hn2 w)
 
+/-- Indexed transition family (paper-faithful scaffold):
+    generated from explicit `(time, role)` slots instead of ad-hoc literals.
+
+    Clauses:
+    - state(t=0) → state(t=1)
+    - head(t=0)  → head(t=1)
+    - accept(t=0) → accept(t=1)
+
+  This is the first generated "time-step API" family. -/
+def indexedTransitionClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    List (CLClause (compiledVarCount (defaultK M) n)) :=
+  [ clause2 (negLit (timeSlotVar M n hn2 ⟨0, by decide⟩ roleState))
+            (posLit (timeSlotVar M n hn2 ⟨1, by decide⟩ roleState))
+  , clause2 (negLit (timeSlotVar M n hn2 ⟨0, by decide⟩ roleHead))
+            (posLit (timeSlotVar M n hn2 ⟨1, by decide⟩ roleHead))
+  , clause2 (negLit (timeSlotVar M n hn2 ⟨0, by decide⟩ roleAccept))
+            (posLit (timeSlotVar M n hn2 ⟨1, by decide⟩ roleAccept))
+  ]
+
 /-- Consistency-style local gadget (scaffold):
     - accept and reject are mutually exclusive
     - accept implies state1
@@ -359,7 +408,7 @@ def transitionWindowClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
   These mirror the "global consistency" flavor in Cook-Levin tableaux,
   while remaining width-2 local clauses. -/
 def consistencyClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
-    List (CLClause (compiledVarCount (defaultK M) n)) :=
+  List (CLClause (compiledVarCount (defaultK M) n)) :=
   [ clause2 (negLit (acceptInitVar M n hn2)) (negLit (rejectInitVar M n hn2))
   , clause2 (negLit (acceptInitVar M n hn2)) (posLit (state1Var M n hn2))
   , clause2 (negLit (rejectInitVar M n hn2)) (negLit (state1Var M n hn2))
@@ -376,6 +425,7 @@ def scaffoldPhaseClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
   stateLinkClauses M n hn2 ++
   transitionScaffoldClauses M n hn2 ++
   transitionWindowClauses M n hn2 ++
+  indexedTransitionClauses M n hn2 ++
   consistencyClauses M n hn2
 
 /-- CNF from initial semantic scaffold clauses. -/
