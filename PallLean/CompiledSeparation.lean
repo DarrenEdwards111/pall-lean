@@ -258,11 +258,47 @@ def InitialSemanticCorrectAt (M : DTM) (n : ℕ) : Prop :=
       (CookLevin.initialSemanticCNF M n hn2)
       (CookLevin.initialSemantic_local M n hn2)
 
+/-- Function-threshold packaging of semantic scaffold correctness:
+    one machine-indexed threshold function works globally. -/
+def InitialSemanticThresholdFnPack : Prop :=
+  ∃ nC : DTM → ℕ,
+    ∀ (M : DTM) (n : ℕ), n ≥ nC M → InitialSemanticCorrectAt M n
+
+/-- Per-machine existential packaging of semantic scaffold correctness. -/
+def InitialSemanticExistsPack : Prop :=
+  ∀ (M : DTM), ∃ nC : ℕ, ∀ n : ℕ, n ≥ nC → InitialSemanticCorrectAt M n
+
+/-- Function-threshold package implies per-machine existential package. -/
+theorem initialSemantic_existsPack_of_thresholdFnPack
+    (hPack : InitialSemanticThresholdFnPack) :
+    InitialSemanticExistsPack := by
+  obtain ⟨nC, hC⟩ := hPack
+  intro M
+  refine ⟨nC M, ?_⟩
+  intro n hn
+  exact hC M n hn
+
 /-- Paper-faithful semantic assumption:
     beyond some threshold, the scaffold encoding is correct at each size. -/
 axiom initialSemantic_correctness_after_threshold :
-  ∀ (M : DTM), ∃ nC : ℕ,
-    ∀ n : ℕ, n ≥ nC → InitialSemanticCorrectAt M n
+  InitialSemanticExistsPack
+
+/-- Chosen global threshold-function package from the existential form.
+    This keeps threshold extraction explicit for future semantic proofs. -/
+noncomputable def initialSemantic_thresholdFnPack_from_exists :
+    InitialSemanticThresholdFnPack := by
+  choose nC hC using initialSemantic_correctness_after_threshold
+  exact ⟨nC, hC⟩
+
+/-- Packaging equivalence between function-threshold and per-machine
+    existential forms. -/
+theorem initialSemantic_correctness_packaging_iff :
+    InitialSemanticThresholdFnPack ↔ InitialSemanticExistsPack := by
+  constructor
+  · exact initialSemantic_existsPack_of_thresholdFnPack
+  · intro hEx
+    choose nC hC using hEx
+    exact ⟨nC, hC⟩
 
 /-- Legacy-form bridge: old scaffold correctness packaging implies
     the new semantic-threshold packaging. -/
