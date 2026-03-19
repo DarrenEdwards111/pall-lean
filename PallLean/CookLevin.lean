@@ -833,6 +833,13 @@ theorem corePolylogTerm_le_linearPolylogTerm (n : ℕ) :
       ≤ (n + 24) * ((Nat.log 2 n + 1) ^ 3) := by
   exact Nat.mul_le_mul_right _ (by omega)
 
+/-- If the linear polylog term is ≤ √n, then the core polylog term is too. -/
+theorem corePolylog_le_sqrt_of_linear
+    (n : ℕ)
+    (hLinear : (n + 24) * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n) :
+    24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n := by
+  exact le_trans (corePolylogTerm_le_linearPolylogTerm n) hLinear
+
 /-- Paper-style closure step:
     if ambient component is ≤ √n and the explicit polylog proxy term is ≤ √n,
     then the log compression target holds. -/
@@ -844,6 +851,16 @@ theorem logCompressionTarget_of_ambient_and_polylog_dominance
   have hProxy : rankProxyBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n :=
     le_trans (rankProxyLog_component_le_explicit M n hn2) hPolylog
   exact logCompressionTarget_of_component_bounds M n hn2 hAmbient hProxy
+
+/-- Core-based note:
+    linear polylog dominance implies core polylog dominance (via monotonicity).
+    We keep the closure theorem on the linear term, since `logCompressionTarget`
+    is currently defined with the full proxy component. -/
+theorem core_dominated_by_linear_polylog
+    (n : ℕ)
+    (hLinear : (n + 24) * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n) :
+    24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n :=
+  corePolylog_le_sqrt_of_linear n hLinear
 
 /-- If the compression target holds, we get the Theorem-92-shaped bound. -/
 theorem initialSemantic_logRank_le_sqrt_of_target
