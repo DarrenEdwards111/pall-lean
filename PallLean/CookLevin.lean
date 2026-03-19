@@ -11,6 +11,7 @@
   3. Extraction: perm rank ≤ compiled rank (§40/Lemma 206)
 -/
 import PallLean.CompiledPoly
+import PallLean.PermanentLower
 import PallLean.TuringMachine
 import Mathlib.Tactic
 
@@ -655,6 +656,43 @@ def initialSemanticCNF (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
 def initialSemantic_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     HasLocalPartition (initialSemanticCNF M n hn2) :=
   tableau_local (initialSemanticCNF M n hn2)
+
+/-- Conservative rank upper bound proxy: the blocked SPDP rank of the
+    scaffold CNF is bounded by the finrank of the ambient restrictTotalDegree
+    module. This is a paper-faithful "ambient dimension" upper bound used as
+    a stepping stone before sharper profile-compression bounds. -/
+theorem initialSemantic_rank_le_restrictFinrank
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (κ : ℕ) :
+    CompiledPoly.blockedSpdpRankQ κ κ
+      (CompiledPoly.compiledPolyQ (initialSemanticCNF M n hn2))
+      (initialSemantic_local M n hn2).partition
+    ≤ Module.finrank ℚ
+        (MvPolynomial.restrictTotalDegree (Fin (compiledVarCount (defaultK M) n)) ℚ
+          (κ + (CompiledPoly.compiledPolyQ (initialSemanticCNF M n hn2)).totalDegree)) := by
+  let poly := CompiledPoly.compiledPolyQ (initialSemanticCNF M n hn2)
+  let bp := (initialSemantic_local M n hn2).partition
+  let spdp : Set (MvPolynomial (Fin (compiledVarCount (defaultK M) n)) ℚ) :=
+    { q | ∃ (S : List (Fin (compiledVarCount (defaultK M) n)))
+            (sh : MvPolynomial (Fin (compiledVarCount (defaultK M) n)) ℚ),
+        S.length ≤ κ ∧ sh.totalDegree ≤ κ ∧
+        (S.toFinset.image bp.blockOf).card ≤ κ ∧
+        (sh.vars.image bp.blockOf).card ≤ κ ∧
+        q = sh * SPDP.iterDerivList S poly }
+  have h_eq :
+      CompiledPoly.blockedSpdpRankQ κ κ poly bp =
+      Module.finrank ℚ (Submodule.span ℚ spdp) := by
+    rfl
+  rw [h_eq]
+  have h_le : Submodule.span ℚ spdp ≤
+      MvPolynomial.restrictTotalDegree (Fin (compiledVarCount (defaultK M) n)) ℚ
+        (κ + poly.totalDegree) := by
+    simpa [poly, bp, spdp] using
+      (PermanentLower.spdp_span_le_restrictTotalDegree κ κ poly bp)
+  have h_fin : Module.Finite ℚ (Submodule.span ℚ spdp) := by
+    exact Module.Finite.of_injective
+      (Submodule.inclusion h_le)
+      (Submodule.inclusion_injective h_le)
+  exact Submodule.finrank_mono h_le
 
 /-- First non-empty concrete encoding package (semantic scaffold level). -/
 def initialEncoding (M : DTM) (n : ℕ) : CookLevinEncoding M n where
