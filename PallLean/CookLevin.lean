@@ -694,6 +694,37 @@ theorem initialSemantic_rank_le_restrictFinrank
       (Submodule.inclusion_injective h_le)
   exact Submodule.finrank_mono h_le
 
+/-- Ambient finrank budget used by the conservative SPDP bound. -/
+noncomputable def ambientFinrankBudget (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (κ : ℕ) : ℕ :=
+  Module.finrank ℚ
+    (MvPolynomial.restrictTotalDegree (Fin (compiledVarCount (defaultK M) n)) ℚ
+      (κ + (CompiledPoly.compiledPolyQ (initialSemanticCNF M n hn2)).totalDegree))
+
+/-- Combined proxy budget: max(ambient finrank budget, profile-count budget). -/
+noncomputable def combinedRankProxyBudget (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (κ : ℕ) : ℕ :=
+  max (ambientFinrankBudget M n hn2 κ) (rankProxyBudget M n hn2 κ)
+
+/-- Actual blocked SPDP rank is bounded by the combined proxy budget. -/
+theorem initialSemantic_rank_le_combinedProxy
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (κ : ℕ) :
+    CompiledPoly.blockedSpdpRankQ κ κ
+      (CompiledPoly.compiledPolyQ (initialSemanticCNF M n hn2))
+      (initialSemantic_local M n hn2).partition
+    ≤ combinedRankProxyBudget M n hn2 κ := by
+  unfold combinedRankProxyBudget
+  exact le_trans
+    (initialSemantic_rank_le_restrictFinrank M n hn2 κ)
+    (Nat.le_max_left _ _)
+
+/-- Log-parameterized version of the combined rank proxy bound. -/
+theorem initialSemantic_logRank_le_combinedProxy
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+      (CompiledPoly.compiledPolyQ (initialSemanticCNF M n hn2))
+      (initialSemantic_local M n hn2).partition
+    ≤ combinedRankProxyBudget M n hn2 (Nat.log 2 n) := by
+  exact initialSemantic_rank_le_combinedProxy M n hn2 (Nat.log 2 n)
+
 /-- First non-empty concrete encoding package (semantic scaffold level). -/
 def initialEncoding (M : DTM) (n : ℕ) : CookLevinEncoding M n where
   k := defaultK M
