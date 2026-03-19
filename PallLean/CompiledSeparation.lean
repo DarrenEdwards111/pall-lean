@@ -372,12 +372,36 @@ theorem initialSemantic_existsPack_of_thresholdFnPack
 axiom initialSemantic_correctness_after_threshold :
   InitialSemanticExistsPack
 
+/-- Extraction-link component package recovered directly from the semantic
+    threshold assumption. This is the substantive remaining component. -/
+theorem extractionLink_obligation_existsPack :
+    ∀ (M : DTM), ∃ nE : ℕ, ∀ n : ℕ, n ≥ nE → ExtractionLinkObligationAt M n := by
+  intro M
+  obtain ⟨nE, hE⟩ := initialSemantic_correctness_after_threshold M
+  refine ⟨nE, ?_⟩
+  intro n hn
+  simpa [ExtractionLinkObligationAt] using hE n hn
+
 /-- Chosen global threshold-function package from the existential form.
     This keeps threshold extraction explicit for future semantic proofs. -/
 noncomputable def initialSemantic_thresholdFnPack_from_exists :
     InitialSemanticThresholdFnPack := by
   choose nC hC using initialSemantic_correctness_after_threshold
   exact ⟨nC, hC⟩
+
+/-- Component-threshold package recovered from semantic threshold package. -/
+theorem initialSemantic_componentThresholdFnPack_from_exists :
+    InitialSemanticComponentThresholdFnPack :=
+  initialSemantic_componentThresholdFnPack_of_thresholdFnPack
+    initialSemantic_thresholdFnPack_from_exists
+
+/-- Recovered existential package via component-threshold composition.
+    This makes the decomposition path explicit in theorem form. -/
+theorem initialSemantic_existsPack_via_components :
+    InitialSemanticExistsPack :=
+  initialSemantic_existsPack_of_thresholdFnPack
+    (initialSemantic_thresholdFnPack_of_componentThresholds
+      initialSemantic_componentThresholdFnPack_from_exists)
 
 /-- Packaging equivalence between function-threshold and per-machine
     existential forms. -/
