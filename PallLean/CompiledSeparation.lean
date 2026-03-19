@@ -468,14 +468,44 @@ theorem initialSemantic_existsPack_of_thresholdFnPack
   intro n hn
   exact hC M n hn
 
-/-- Paper-faithful decision-link assumption:
-    beyond some threshold, the concrete scaffold encoding is correct enough
-    to provide the decision-link obligation at each size. -/
+/-- Function-threshold package for decision-link obligations. -/
+def DecisionLinkThresholdFnPack : Prop :=
+  ∃ nD : DTM → ℕ,
+    ∀ (M : DTM) (n : ℕ), n ≥ nD M → DecisionLinkObligationAt M n
+
+/-- Per-machine existential package for decision-link obligations. -/
 def DecisionLinkExistsPack : Prop :=
   ∀ (M : DTM), ∃ nD : ℕ, ∀ n : ℕ, n ≥ nD → DecisionLinkObligationAt M n
 
-axiom decisionLink_correctness_after_threshold :
-  DecisionLinkExistsPack
+/-- Function-threshold decision-link package implies per-machine existential form. -/
+theorem decisionLink_existsPack_of_thresholdFnPack
+    (hPack : DecisionLinkThresholdFnPack) :
+    DecisionLinkExistsPack := by
+  obtain ⟨nD, hD⟩ := hPack
+  intro M
+  refine ⟨nD M, ?_⟩
+  intro n hn
+  exact hD M n hn
+
+/-- Paper-faithful decision-link assumption (threshold-function form):
+    beyond a machine-indexed threshold, concrete scaffold encoding is correct
+    enough to provide decision-link obligations. -/
+axiom decisionLink_thresholdFnPack_assumption :
+  DecisionLinkThresholdFnPack
+
+/-- Recovered existential decision-link package from threshold-function form. -/
+theorem decisionLink_correctness_after_threshold :
+    DecisionLinkExistsPack :=
+  decisionLink_existsPack_of_thresholdFnPack decisionLink_thresholdFnPack_assumption
+
+/-- Packaging equivalence for decision-link threshold forms. -/
+theorem decisionLink_packaging_iff :
+    DecisionLinkThresholdFnPack ↔ DecisionLinkExistsPack := by
+  constructor
+  · exact decisionLink_existsPack_of_thresholdFnPack
+  · intro hEx
+    choose nD hD using hEx
+    exact ⟨nD, hD⟩
 
 /-- Extraction-link component package recovered directly from the
     decision-link threshold assumption plus uniform rank-link theorem. -/
