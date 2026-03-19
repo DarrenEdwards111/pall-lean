@@ -50,15 +50,19 @@ def P_eq_NP : Prop := ∀ F : BoolFunFamily, UniformNP F → UniformPtime F
 
 /-! ## The Hard NP Family
 
-  We keep this abstract (paper-faithful): a fixed NP family containing
-  the permanent hardness used in Lemma 206. This avoids hard-coding a
-  trivial verifier (which would make the extraction claim inconsistent).
+  We keep this abstract (paper-faithful): an NP family containing
+  the permanent hardness used in Lemma 206. We package existence as one
+  axiom, then derive a chosen witness + its NP-membership theorem.
 
   In the paper, this family is the NP side of the permanent reduction. -/
 
-axiom hardNPFamily : BoolFunFamily
+axiom hardNPFamily_exists : ∃ F : BoolFunFamily, UniformNP F
 
-axiom hard_family_in_NP : UniformNP hardNPFamily
+noncomputable def hardNPFamily : BoolFunFamily :=
+  Classical.choose hardNPFamily_exists
+
+theorem hard_family_in_NP : UniformNP hardNPFamily :=
+  Classical.choose_spec hardNPFamily_exists
 
 /-! ## Cook-Levin Correctness
 
