@@ -285,15 +285,36 @@ def transitionScaffoldClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
   , clause2 (negLit (headPos0Var M n hn2)) (posLit (headPos1Var M n hn2))
   ]
 
+/-- Consistency-style local gadget (scaffold):
+    - accept and reject are mutually exclusive
+    - accept implies state1
+    - reject implies not state1
+
+  These mirror the "global consistency" flavor in Cook-Levin tableaux,
+  while remaining width-2 local clauses. -/
+def consistencyClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    List (CLClause (compiledVarCount (defaultK M) n)) :=
+  [ clause2 (negLit (acceptInitVar M n hn2)) (negLit (rejectInitVar M n hn2))
+  , clause2 (negLit (acceptInitVar M n hn2)) (posLit (state1Var M n hn2))
+  , clause2 (negLit (rejectInitVar M n hn2)) (negLit (state1Var M n hn2))
+  ]
+
+/-- Phase-bundled scaffold clauses (paper-faithful organization):
+    input + initial + uniqueness + transition + consistency. -/
+def scaffoldPhaseClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    List (CLClause (compiledVarCount (defaultK M) n)) :=
+  inputWellformedClauses M n ++
+  initialSemanticClauses M n hn2 ++
+  headUniqClauses M n hn2 ++
+  stateUniqClauses M n hn2 ++
+  stateLinkClauses M n hn2 ++
+  transitionScaffoldClauses M n hn2 ++
+  consistencyClauses M n hn2
+
 /-- CNF from initial semantic scaffold clauses. -/
 def initialSemanticCNF (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     CookLevinCNF (compiledVarCount (defaultK M) n) :=
-  mkCNF (inputWellformedClauses M n ++
-    initialSemanticClauses M n hn2 ++
-    headUniqClauses M n hn2 ++
-    stateUniqClauses M n hn2 ++
-    stateLinkClauses M n hn2 ++
-    transitionScaffoldClauses M n hn2)
+  mkCNF (scaffoldPhaseClauses M n hn2)
 
 /-- Locality certificate for semantic scaffold CNF under identity partition. -/
 def initialSemantic_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
