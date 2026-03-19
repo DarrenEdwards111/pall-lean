@@ -566,6 +566,24 @@ theorem decisionSemanticLift_thresholdFnPack_of_extractionBridge
   -- Build semantic correctness from explicit extraction witness.
   exact (initialSemanticCorrectAt_iff_extractionLinkWitnessAt M n).2 (hE M n hn hM)
 
+/-- Conversely, semantic-bridge thresholds imply extraction-bridge thresholds. -/
+theorem decisionExtraction_thresholdFnPack_of_semanticBridge
+    (hSemPack : DecisionLinkComponentThresholdFnPackFromSem) :
+    DecisionExtractionThresholdFnPack := by
+  obtain ⟨nSem, hSem⟩ := hSemPack
+  refine ⟨nSem, ?_⟩
+  intro M n hn hM
+  exact (initialSemanticCorrectAt_iff_extractionLinkWitnessAt M n).1
+    (hSem M n hn hM)
+
+/-- Packaging equivalence between extraction-bridge and semantic-bridge
+    threshold forms for decision-link obligations. -/
+theorem decisionExtraction_semanticBridge_packaging_iff :
+    DecisionExtractionThresholdFnPack ↔ DecisionLinkComponentThresholdFnPackFromSem := by
+  constructor
+  · exact decisionSemanticLift_thresholdFnPack_of_extractionBridge
+  · exact decisionExtraction_thresholdFnPack_of_semanticBridge
+
 /-- Paper-faithful decision-link assumption (extraction-bridge threshold form). -/
 axiom decisionExtraction_thresholdFnPack_assumption :
   DecisionExtractionThresholdFnPack
