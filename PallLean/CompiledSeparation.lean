@@ -722,7 +722,7 @@ theorem initialSemantic_extractionWitnessPackAll_of_decisionExtractionThresholdF
       obtain ⟨nE, hE⟩ := hExtPack
       refine ⟨nE, ?_⟩
       intro M n hn hn2 hM
-      exact hE M n hn hM hn2 hM)
+      exact (hE M n hn hM) hn2 hM)
 
 /-- Direct semantic route from the decision-to-semantic bridge threshold to the
     packaged extraction bridge. -/
