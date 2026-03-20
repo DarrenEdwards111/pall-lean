@@ -1000,6 +1000,13 @@ theorem initialSemantic_extractionWitnessPackAll_of_correctness_existsPack
     InitialSemanticExtractionWitnessPackAll :=
   initialSemantic_extraction_eventually_of_correctness_existsPack hCorrAll
 
+/-- Independent bridge cut: a semantic correctness package is sufficient to
+    recover the full extraction witness package, with no skolem-primitives
+    assumption in the proof term. This is the paper-faithful target route. -/
+theorem initialSemantic_extractionWitnessPackAll_independent :
+    InitialSemanticExistsPack → InitialSemanticExtractionWitnessPackAll :=
+  initialSemantic_extractionWitnessPackAll_of_correctness_existsPack
+
 /-- Legacy packaged extraction bridge, kept separate from the bridge-native
     route while the semantic correctness package is still assumption-backed. -/
 theorem initialSemantic_extractionWitnessPackAll_from_legacy :
@@ -1025,7 +1032,20 @@ theorem initialSemantic_extractionWitnessPackAll_iff_correctness_existsPack :
     refine (initialSemanticCorrectAt_iff_extractionLinkWitnessAt M n).2 ?_
     intro hn2 hM
     exact hE n hn hn2 hM
-  · exact initialSemantic_extractionWitnessPackAll_of_correctness_existsPack
+  · exact initialSemantic_extractionWitnessPackAll_independent
+
+/-- Independent reverse bridge cut: the extraction witness package is exactly
+    enough to recover the semantic correctness package, still without using the
+    skolem-primitives existence assumption. -/
+theorem initialSemantic_correctness_existsPack_independent :
+    InitialSemanticExtractionWitnessPackAll → InitialSemanticExistsPack :=
+  (initialSemantic_extractionWitnessPackAll_iff_correctness_existsPack).1
+
+/-- Paper-facing independent equivalence between the extraction witness
+    package and the semantic correctness package. -/
+theorem initialSemantic_extractionWitnessPackAll_independent_iff :
+    InitialSemanticExtractionWitnessPackAll ↔ InitialSemanticExistsPack :=
+  initialSemantic_extractionWitnessPackAll_iff_correctness_existsPack
 
 /-- Extraction bridge implies semantic correctness threshold package. -/
 theorem initialSemantic_correctness_after_threshold_of_extraction_eventually
@@ -1072,13 +1092,13 @@ theorem decisionExtraction_skolemPrimitives_exists_of_correctness_existsPack
     (hCorrAll : InitialSemanticExistsPack) :
     ∃ P : DecisionExtractionSkolemPrimitives, True :=
   decisionExtraction_skolemPrimitives_exists_from_bridge
-    ((initialSemantic_extractionWitnessPackAll_iff_correctness_existsPack).2 hCorrAll)
+    (initialSemantic_extractionWitnessPackAll_independent hCorrAll)
 
 /-- Any skolem-primitives existence witness yields correctness-threshold package. -/
 theorem initialSemantic_correctness_existsPack_of_skolemPrimitives_exists
     (hSk : ∃ P : DecisionExtractionSkolemPrimitives, True) :
     InitialSemanticExistsPack :=
-  (initialSemantic_extractionWitnessPackAll_iff_correctness_existsPack).1
+  initialSemantic_correctness_existsPack_independent
     (initialSemantic_extractionWitnessPackAll_of_skolemPrimitives_exists hSk)
 
 /-- Exact theorem-level boundary: skolem-primitives existence is equivalent to
@@ -1088,6 +1108,15 @@ theorem decisionExtraction_skolemPrimitives_exists_iff_correctness_existsPack :
   constructor
   · exact initialSemantic_correctness_existsPack_of_skolemPrimitives_exists
   · exact decisionExtraction_skolemPrimitives_exists_of_correctness_existsPack
+
+/-- Equivalent bridge cut stated directly at extraction-witness level. -/
+theorem decisionExtraction_skolemPrimitives_exists_iff_extractionWitnessPackAll :
+    (∃ P : DecisionExtractionSkolemPrimitives, True) ↔ InitialSemanticExtractionWitnessPackAll := by
+  constructor
+  · intro hSk
+    exact initialSemantic_extractionWitnessPackAll_of_skolemPrimitives_exists hSk
+  · intro hExt
+    exact decisionExtraction_skolemPrimitives_exists_of_extractionWitnessPack hExt
 
 /-- Eventual scaffold correctness package derived from semantic threshold form. -/
 theorem scaffold_correctness_exists :
