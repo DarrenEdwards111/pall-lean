@@ -1082,6 +1082,23 @@ theorem initialSemantic_existsPack_of_semanticBridge
   initialSemantic_correctness_after_threshold_of_extraction_eventually
     (initialSemantic_extractionWitnessPackAll_of_semanticBridge hSemPack)
 
+/-- Any eventual semantic-correctness package directly yields the
+    decision-to-semantic bridge threshold package. -/
+theorem initialSemantic_semanticBridge_of_correctness_existsPack
+    (hCorrAll : InitialSemanticExistsPack) :
+    DecisionLinkComponentThresholdFnPackFromSem := by
+  choose nC hC using hCorrAll
+  refine ⟨nC, ?_⟩
+  intro M n hn _hM
+  exact hC M n hn
+
+/-- Independent bridge cut: the existing semantic correctness package
+    already packages into the semantic bridge threshold form. -/
+theorem initialSemantic_semanticBridge_independent :
+    DecisionLinkComponentThresholdFnPackFromSem :=
+  initialSemantic_semanticBridge_of_correctness_existsPack
+    initialSemantic_correctness_after_threshold
+
 /-- If the eventual extraction bridge is established independently,
     skolem primitives become theorem-derived (no extra assumption needed). -/
 theorem decisionExtraction_skolemPrimitives_exists_from_bridge
