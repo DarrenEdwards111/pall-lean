@@ -1176,6 +1176,11 @@ theorem scaffold_correctness_eventually :
     ∃ nC : ℕ, ScaffoldCorrectAfter M nC :=
   scaffold_correctness_exists
 
+/-- Eventual scaffold correctness for the `initialSemantic` scaffold. -/
+theorem initialSemantic_scaffold_correctness_eventually :
+  ∀ M : DTM, ∃ nC : ℕ, ScaffoldCorrectAfter M nC :=
+  scaffold_correctness_exists
+
 /-- pside-upper-bound shape from packaged scaffold assumptions.
     This is the protected bridge from scaffold contracts to Theorem-92 shape. -/
 theorem pside_upper_bound_from_scaffold_packages
