@@ -809,6 +809,54 @@ theorem initialSemantic_correctness_after_chosen_threshold (M : DTM) :
     ∀ n : ℕ, n ≥ initialSemanticCorrectnessThreshold M → InitialSemanticCorrectAt M n :=
   Classical.choose_spec (initialSemantic_correctness_after_threshold M)
 
+/-- Fixed-size semantic bridge: correctness of the `initialSemantic` scaffold
+    directly yields the NP-side extraction witness specialized to that scaffold. -/
+theorem initialSemantic_extraction_of_correctness
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (hCorr : InitialSemanticCorrectAt M n)
+    (hM : M.decides (hardNPFamily n)) :
+    ∃ (bp : BlockPartition (Nat.sqrt n * Nat.sqrt n)),
+      blockedSpdpRankQ (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+        (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+        (permPolyFlat (Nat.sqrt n)) bp ≤
+      blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+        (CookLevin.initialSemantic_local M n hn2).partition := by
+  exact hCorr hn2 hM
+
+/-- Threshold-form semantic bridge specialized to the chosen
+    `initialSemantic` correctness threshold. -/
+theorem initialSemantic_extraction_after_chosen_threshold (M : DTM) :
+    ∀ n : ℕ, n ≥ initialSemanticCorrectnessThreshold M →
+      ∀ (hn2 : n ≥ 2), M.decides (hardNPFamily n) →
+        ∃ (bp : BlockPartition (Nat.sqrt n * Nat.sqrt n)),
+          blockedSpdpRankQ (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+            (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+            (permPolyFlat (Nat.sqrt n)) bp ≤
+          blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+            (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+            (CookLevin.initialSemantic_local M n hn2).partition := by
+  intro n hn hn2 hM
+  exact initialSemantic_extraction_of_correctness M n hn2
+    (initialSemantic_correctness_after_chosen_threshold M n hn) hM
+
+/-- Eventual semantic bridge for the `initialSemantic` scaffold:
+    beyond a machine-dependent threshold, any decision proof for the hard NP
+    family yields the concrete extraction inequality witness. -/
+theorem initialSemantic_extraction_eventually :
+    ∀ (M : DTM), ∃ nC : ℕ, ∀ n : ℕ, n ≥ nC →
+      ∀ (hn2 : n ≥ 2), M.decides (hardNPFamily n) →
+        ∃ (bp : BlockPartition (Nat.sqrt n * Nat.sqrt n)),
+          blockedSpdpRankQ (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+            (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+            (permPolyFlat (Nat.sqrt n)) bp ≤
+          blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+            (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+            (CookLevin.initialSemantic_local M n hn2).partition := by
+  intro M
+  refine ⟨initialSemanticCorrectnessThreshold M, ?_⟩
+  exact initialSemantic_extraction_after_chosen_threshold M
+
 /-- Eventual scaffold correctness package derived from semantic threshold form. -/
 theorem scaffold_correctness_exists :
   ∀ (M : DTM),
