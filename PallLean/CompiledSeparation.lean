@@ -1182,6 +1182,12 @@ theorem P_neq_NP_from_extraction_bridge
     (fun M => CookLevin.theorem92_scaffold_eventually M)
     (fun M => initialSemantic_correctness_after_threshold_of_extraction_eventually hExtAll M)
 
+/-- Legacy-backed instantiation of the bridge-native scaffold route.
+    Keeps both paths side-by-side until the bridge package is proved
+    independently and canonical wiring can be switched. -/
+theorem P_neq_NP_from_extraction_bridge_legacy : ¬ P_eq_NP :=
+  P_neq_NP_from_extraction_bridge initialSemantic_extractionWitnessPackAll
+
 /-- Scaffold-route variant from explicit package assumptions.
     Paper-faithful layered form: bounds + correctness package feed the
     generic contradiction engine. -/
