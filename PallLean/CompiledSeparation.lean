@@ -677,10 +677,34 @@ def InitialSemanticExtractionWitnessPack (M : DTM) : Prop :=
 def InitialSemanticExtractionWitnessPackAll : Prop :=
   ∀ M : DTM, InitialSemanticExtractionWitnessPack M
 
-/-- Skolem primitives can be constructed from the eventual extraction witness
-    package by choice (this is the exact decomposition boundary). -/
-theorem decisionExtraction_skolemPrimitives_exists_of_extractionWitnessPack
+/-- Function-threshold form of the eventual extraction witness package.
+    This is the exact Skolemized bridge needed to populate primitive fields. -/
+def InitialSemanticExtractionThresholdFnPack : Prop :=
+  ∃ nE : DTM → ℕ,
+    ∀ (M : DTM) (n : ℕ), n ≥ nE M →
+      ∀ (hn2 : n ≥ 2), M.decides (hardNPFamily n) →
+        ∃ (bp : BlockPartition (Nat.sqrt n * Nat.sqrt n)),
+          blockedSpdpRankQ (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+            (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+            (permPolyFlat (Nat.sqrt n)) bp ≤
+          blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+            (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+            (CookLevin.initialSemantic_local M n hn2).partition
+
+/-- Eventual extraction package implies function-threshold extraction package. -/
+theorem initialSemantic_extractionThresholdFnPack_of_eventually
     (hPack : InitialSemanticExtractionWitnessPackAll) :
+    InitialSemanticExtractionThresholdFnPack := by
+  classical
+  choose nE hE using hPack
+  refine ⟨nE, ?_⟩
+  intro M n hn hn2 hM
+  exact hE M n hn hn2 hM
+
+/-- Skolem primitives can be constructed from the function-threshold extraction
+    package by choice (this is the exact decomposition boundary). -/
+theorem decisionExtraction_skolemPrimitives_exists_of_extractionThresholdFnPack
+    (hPack : InitialSemanticExtractionThresholdFnPack) :
     ∃ P : DecisionExtractionSkolemPrimitives, True := by
   classical
   choose nE hE using hPack
@@ -694,6 +718,14 @@ theorem decisionExtraction_skolemPrimitives_exists_of_extractionWitnessPack
     exact chooseBp M n hn hn2 hM
   · intro M n hn hn2 hM
     exact hbp M n hn hn2 hM
+
+/-- Skolem primitives can be constructed from the eventual extraction witness
+    package by first skolemizing threshold choice. -/
+theorem decisionExtraction_skolemPrimitives_exists_of_extractionWitnessPack
+    (hPack : InitialSemanticExtractionWitnessPackAll) :
+    ∃ P : DecisionExtractionSkolemPrimitives, True :=
+  decisionExtraction_skolemPrimitives_exists_of_extractionThresholdFnPack
+    (initialSemantic_extractionThresholdFnPack_of_eventually hPack)
 
 /-- Primitive existence-form assumption for the skolem extraction package.
     (Paper-faithful boundary in existential/choice form.) -/
