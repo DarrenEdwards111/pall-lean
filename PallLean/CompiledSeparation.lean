@@ -701,6 +701,37 @@ theorem initialSemantic_extractionThresholdFnPack_of_eventually
   intro M n hn hn2 hM
   exact hE M n hn hn2 hM
 
+/-- Direct semantic route: eventual extraction witnesses in threshold-function
+    form already give the packaged extraction bridge. -/
+theorem initialSemantic_extractionWitnessPackAll_of_extractionThresholdFnPack
+    (hExtPack : InitialSemanticExtractionThresholdFnPack) :
+    InitialSemanticExtractionWitnessPackAll := by
+  obtain ⟨nE, hE⟩ := hExtPack
+  intro M
+  refine ⟨nE M, ?_⟩
+  intro n hn hn2 hM
+  exact hE M n hn hn2 hM
+
+/-- Direct semantic route from a decision-extraction threshold package to the
+    packaged extraction bridge for the concrete `initialSemantic` scaffold. -/
+theorem initialSemantic_extractionWitnessPackAll_of_decisionExtractionThresholdFnPack
+    (hExtPack : DecisionExtractionThresholdFnPack) :
+    InitialSemanticExtractionWitnessPackAll :=
+  initialSemantic_extractionWitnessPackAll_of_extractionThresholdFnPack
+    (by
+      obtain ⟨nE, hE⟩ := hExtPack
+      refine ⟨nE, ?_⟩
+      intro M n hn hn2 hM
+      exact hE M n hn hM hn2 hM)
+
+/-- Direct semantic route from the decision-to-semantic bridge threshold to the
+    packaged extraction bridge. -/
+theorem initialSemantic_extractionWitnessPackAll_of_semanticBridge
+    (hSemPack : DecisionLinkComponentThresholdFnPackFromSem) :
+    InitialSemanticExtractionWitnessPackAll :=
+  initialSemantic_extractionWitnessPackAll_of_decisionExtractionThresholdFnPack
+    (decisionExtraction_thresholdFnPack_of_semanticBridge hSemPack)
+
 /-- Skolem primitives can be constructed from the function-threshold extraction
     package by choice (this is the exact decomposition boundary). -/
 theorem decisionExtraction_skolemPrimitives_exists_of_extractionThresholdFnPack
