@@ -913,6 +913,40 @@ theorem initialSemantic_extraction_after_chosen_threshold (M : DTM) :
   exact initialSemantic_extraction_of_correctness M n hn2
     (initialSemantic_correctness_after_chosen_threshold M n hn) hM
 
+/-- Bridge route: any independent eventual semantic-correctness package
+    immediately yields the eventual extraction witness package. -/
+theorem initialSemantic_extraction_eventually_of_correctness_existsPack
+    (hCorrAll : InitialSemanticExistsPack) :
+    ∀ (M : DTM), ∃ nC : ℕ, ∀ n : ℕ, n ≥ nC →
+      ∀ (hn2 : n ≥ 2), M.decides (hardNPFamily n) →
+        ∃ (bp : BlockPartition (Nat.sqrt n * Nat.sqrt n)),
+          blockedSpdpRankQ (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+            (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+            (permPolyFlat (Nat.sqrt n)) bp ≤
+          blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+            (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+            (CookLevin.initialSemantic_local M n hn2).partition := by
+  intro M
+  obtain ⟨nC, hC⟩ := hCorrAll M
+  refine ⟨nC, ?_⟩
+  intro n hn hn2 hM
+  exact initialSemantic_extraction_of_correctness M n hn2 (hC n hn) hM
+
+/-- Legacy route: the current semantic-correctness package still comes from
+    the skolem-backed decision-link chain. -/
+theorem initialSemantic_extraction_eventually_from_legacy :
+    ∀ (M : DTM), ∃ nC : ℕ, ∀ n : ℕ, n ≥ nC →
+      ∀ (hn2 : n ≥ 2), M.decides (hardNPFamily n) →
+        ∃ (bp : BlockPartition (Nat.sqrt n * Nat.sqrt n)),
+          blockedSpdpRankQ (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+            (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+            (permPolyFlat (Nat.sqrt n)) bp ≤
+          blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+            (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+            (CookLevin.initialSemantic_local M n hn2).partition :=
+  initialSemantic_extraction_eventually_of_correctness_existsPack
+    initialSemantic_correctness_after_threshold
+
 /-- Eventual semantic bridge for the `initialSemantic` scaffold:
     beyond a machine-dependent threshold, any decision proof for the hard NP
     family yields the concrete extraction inequality witness. -/
@@ -925,15 +959,42 @@ theorem initialSemantic_extraction_eventually :
             (permPolyFlat (Nat.sqrt n)) bp ≤
           blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
             (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
-            (CookLevin.initialSemantic_local M n hn2).partition := by
-  intro M
-  refine ⟨initialSemanticCorrectnessThreshold M, ?_⟩
-  exact initialSemantic_extraction_after_chosen_threshold M
+            (CookLevin.initialSemantic_local M n hn2).partition :=
+  initialSemantic_extraction_eventually_from_legacy
+
+/-- Bridge route in packaged form: proving eventual semantic correctness
+    independently is exactly enough to recover the global extraction package. -/
+theorem initialSemantic_extractionWitnessPackAll_of_correctness_existsPack
+    (hCorrAll : InitialSemanticExistsPack) :
+    InitialSemanticExtractionWitnessPackAll :=
+  initialSemantic_extraction_eventually_of_correctness_existsPack hCorrAll
+
+/-- Legacy packaged extraction bridge, kept separate from the bridge-native
+    route while the semantic correctness package is still assumption-backed. -/
+theorem initialSemantic_extractionWitnessPackAll_from_legacy :
+    InitialSemanticExtractionWitnessPackAll :=
+  initialSemantic_extractionWitnessPackAll_of_correctness_existsPack
+    initialSemantic_correctness_after_threshold
 
 /-- Eventual extraction bridge in packaged form. -/
 theorem initialSemantic_extractionWitnessPackAll :
     InitialSemanticExtractionWitnessPackAll :=
-  initialSemantic_extraction_eventually
+  initialSemantic_extractionWitnessPackAll_from_legacy
+
+/-- Exact bridge boundary: the global extraction witness package is equivalent
+    to the eventual semantic-correctness package. -/
+theorem initialSemantic_extractionWitnessPackAll_iff_correctness_existsPack :
+    InitialSemanticExtractionWitnessPackAll ↔ InitialSemanticExistsPack := by
+  constructor
+  · intro hExtAll
+    intro M
+    obtain ⟨nE, hE⟩ := hExtAll M
+    refine ⟨nE, ?_⟩
+    intro n hn
+    refine (initialSemanticCorrectAt_iff_extractionLinkWitnessAt M n).2 ?_
+    intro hn2 hM
+    exact hE n hn hn2 hM
+  · exact initialSemantic_extractionWitnessPackAll_of_correctness_existsPack
 
 /-- Extraction bridge implies semantic correctness threshold package. -/
 theorem initialSemantic_correctness_after_threshold_of_extraction_eventually
