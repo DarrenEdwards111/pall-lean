@@ -1245,6 +1245,16 @@ theorem P_neq_NP_from_scaffold_thresholds_via_contracts
   P_neq_NP_from_scaffold_contracts
     (mkScaffoldContractsFromThresholds hBound nC hC)
 
+/-- Bridge-native contradiction theorem parameterized by an explicit scaffold
+    bound package and eventual extraction bridge package. -/
+theorem P_neq_NP_from_extraction_bridge_and_bound
+    (hBound : ∀ M : DTM, ∃ nB : ℕ, CookLevin.ScaffoldBoundAfter M nB)
+    (hExtAll : InitialSemanticExtractionWitnessPackAll) :
+    ¬ P_eq_NP :=
+  P_neq_NP_from_scaffold_packages
+    hBound
+    (fun M => initialSemantic_correctness_after_threshold_of_extraction_eventually hExtAll M)
+
 /-- Scaffold route from the eventual extraction bridge directly.
     This is the exact semantic handoff needed to eliminate the current
     skolem-primitives assumption once `InitialSemanticExtractionWitnessPackAll`
@@ -1252,9 +1262,9 @@ theorem P_neq_NP_from_scaffold_thresholds_via_contracts
 theorem P_neq_NP_from_extraction_bridge
     (hExtAll : InitialSemanticExtractionWitnessPackAll) :
     ¬ P_eq_NP :=
-  P_neq_NP_from_scaffold_packages
+  P_neq_NP_from_extraction_bridge_and_bound
     (fun M => CookLevin.theorem92_scaffold_eventually M)
-    (fun M => initialSemantic_correctness_after_threshold_of_extraction_eventually hExtAll M)
+    hExtAll
 
 /-- Bridge-native contradiction theorem parameterized by an explicit scaffold
     bound package and semantic correctness package. This cleanly separates
