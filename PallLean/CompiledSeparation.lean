@@ -1015,6 +1015,41 @@ theorem decisionExtraction_skolemPrimitives_exists_from_bridge
     ∃ P : DecisionExtractionSkolemPrimitives, True :=
   decisionExtraction_skolemPrimitives_exists_of_extractionWitnessPack hExtAll
 
+/-- Direct construction of eventual extraction witness package from a
+    skolem-primitives existence witness. -/
+theorem initialSemantic_extractionWitnessPackAll_of_skolemPrimitives_exists
+    (hSk : ∃ P : DecisionExtractionSkolemPrimitives, True) :
+    InitialSemanticExtractionWitnessPackAll := by
+  intro M
+  classical
+  let P : DecisionExtractionSkolemPrimitives := Classical.choose hSk
+  refine ⟨P.nE M, ?_⟩
+  intro n hn hn2 hM
+  refine ⟨P.chooseBp M n hn hn2 hM, ?_⟩
+  exact P.bound M n hn hn2 hM
+
+/-- Any correctness-threshold package yields skolem primitives. -/
+theorem decisionExtraction_skolemPrimitives_exists_of_correctness_existsPack
+    (hCorrAll : InitialSemanticExistsPack) :
+    ∃ P : DecisionExtractionSkolemPrimitives, True :=
+  decisionExtraction_skolemPrimitives_exists_from_bridge
+    ((initialSemantic_extractionWitnessPackAll_iff_correctness_existsPack).2 hCorrAll)
+
+/-- Any skolem-primitives existence witness yields correctness-threshold package. -/
+theorem initialSemantic_correctness_existsPack_of_skolemPrimitives_exists
+    (hSk : ∃ P : DecisionExtractionSkolemPrimitives, True) :
+    InitialSemanticExistsPack :=
+  (initialSemantic_extractionWitnessPackAll_iff_correctness_existsPack).1
+    (initialSemantic_extractionWitnessPackAll_of_skolemPrimitives_exists hSk)
+
+/-- Exact theorem-level boundary: skolem-primitives existence is equivalent to
+    eventual semantic correctness packaging. -/
+theorem decisionExtraction_skolemPrimitives_exists_iff_correctness_existsPack :
+    (∃ P : DecisionExtractionSkolemPrimitives, True) ↔ InitialSemanticExistsPack := by
+  constructor
+  · exact initialSemantic_correctness_existsPack_of_skolemPrimitives_exists
+  · exact decisionExtraction_skolemPrimitives_exists_of_correctness_existsPack
+
 /-- Eventual scaffold correctness package derived from semantic threshold form. -/
 theorem scaffold_correctness_exists :
   ∀ (M : DTM),
