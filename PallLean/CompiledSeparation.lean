@@ -732,6 +732,13 @@ theorem decisionExtraction_skolemPrimitives_exists_of_extractionWitnessPack
 axiom decisionExtraction_skolemPrimitives_exists :
   ∃ P : DecisionExtractionSkolemPrimitives, True
 
+/-- Primitive skolem package recovered from the eventual extraction bridge
+    (assumption-free conversion theorem). -/
+theorem decisionExtraction_skolemPrimitives_exists_from_eventual_extraction
+    (hPack : InitialSemanticExtractionWitnessPackAll) :
+    ∃ P : DecisionExtractionSkolemPrimitives, True :=
+  decisionExtraction_skolemPrimitives_exists_of_extractionWitnessPack hPack
+
 /-- Recovered primitive skolem package by choice. -/
 noncomputable def decisionExtraction_skolemPrimitives_assumption :
   DecisionExtractionSkolemPrimitives :=
