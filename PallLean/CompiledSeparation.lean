@@ -935,12 +935,24 @@ theorem initialSemantic_extractionWitnessPackAll :
     InitialSemanticExtractionWitnessPackAll :=
   initialSemantic_extraction_eventually
 
+/-- Extraction bridge implies semantic correctness threshold package. -/
+theorem initialSemantic_correctness_after_threshold_of_extraction_eventually
+    (hExtAll : InitialSemanticExtractionWitnessPackAll) :
+    InitialSemanticExistsPack := by
+  intro M
+  obtain ⟨nE, hE⟩ := hExtAll M
+  refine ⟨nE, ?_⟩
+  intro n hn
+  refine (initialSemanticCorrectAt_iff_extractionLinkWitnessAt M n).2 ?_
+  intro hn2 hM
+  exact hE n hn hn2 hM
+
 /-- If the eventual extraction bridge is established independently,
     skolem primitives become theorem-derived (no extra assumption needed). -/
-theorem decisionExtraction_skolemPrimitives_exists_from_bridge :
+theorem decisionExtraction_skolemPrimitives_exists_from_bridge
+    (hExtAll : InitialSemanticExtractionWitnessPackAll) :
     ∃ P : DecisionExtractionSkolemPrimitives, True :=
-  decisionExtraction_skolemPrimitives_exists_of_extractionWitnessPack
-    initialSemantic_extractionWitnessPackAll
+  decisionExtraction_skolemPrimitives_exists_of_extractionWitnessPack hExtAll
 
 /-- Eventual scaffold correctness package derived from semantic threshold form. -/
 theorem scaffold_correctness_exists :
@@ -1097,6 +1109,17 @@ theorem P_neq_NP_from_scaffold_thresholds_via_contracts
     ¬ P_eq_NP :=
   P_neq_NP_from_scaffold_contracts
     (mkScaffoldContractsFromThresholds hBound nC hC)
+
+/-- Scaffold route from the eventual extraction bridge directly.
+    This is the exact semantic handoff needed to eliminate the current
+    skolem-primitives assumption once `InitialSemanticExtractionWitnessPackAll`
+    is proved independently. -/
+theorem P_neq_NP_from_extraction_bridge
+    (hExtAll : InitialSemanticExtractionWitnessPackAll) :
+    ¬ P_eq_NP :=
+  P_neq_NP_from_scaffold_packages
+    (fun M => CookLevin.theorem92_scaffold_eventually M)
+    (fun M => initialSemantic_correctness_after_threshold_of_extraction_eventually hExtAll M)
 
 /-- Scaffold-route variant from explicit package assumptions.
     Paper-faithful layered form: bounds + correctness package feed the
