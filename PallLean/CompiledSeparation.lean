@@ -1039,6 +1039,14 @@ theorem initialSemantic_correctness_after_threshold_of_extraction_eventually
   intro hn2 hM
   exact hE n hn hn2 hM
 
+/-- A semantic-bridge threshold package already yields the packaged semantic
+    correctness threshold, without routing through the legacy component chain. -/
+theorem initialSemantic_existsPack_of_semanticBridge
+    (hSemPack : DecisionLinkComponentThresholdFnPackFromSem) :
+    InitialSemanticExistsPack :=
+  initialSemantic_correctness_after_threshold_of_extraction_eventually
+    (initialSemantic_extractionWitnessPackAll_of_semanticBridge hSemPack)
+
 /-- If the eventual extraction bridge is established independently,
     skolem primitives become theorem-derived (no extra assumption needed). -/
 theorem decisionExtraction_skolemPrimitives_exists_from_bridge
@@ -1259,6 +1267,24 @@ theorem P_neq_NP_from_correctness_existsPack_and_bound
     hBound
     (fun M => initialSemantic_correctness_after_threshold_of_extraction_eventually
       (initialSemantic_extractionWitnessPackAll_of_correctness_existsPack hCorrAll) M)
+
+/-- Bridge-native contradiction theorem parameterized by an explicit scaffold
+    bound package and semantic-bridge threshold package. -/
+theorem P_neq_NP_from_semanticBridge_and_bound
+    (hBound : ∀ M : DTM, ∃ nB : ℕ, CookLevin.ScaffoldBoundAfter M nB)
+    (hSemPack : DecisionLinkComponentThresholdFnPackFromSem) :
+    ¬ P_eq_NP :=
+  P_neq_NP_from_correctness_existsPack_and_bound hBound
+    (initialSemantic_existsPack_of_semanticBridge hSemPack)
+
+/-- Bridge-native contradiction theorem parameterized by an explicit scaffold
+    bound package and decision-extraction threshold package. -/
+theorem P_neq_NP_from_decisionExtractionThreshold_and_bound
+    (hBound : ∀ M : DTM, ∃ nB : ℕ, CookLevin.ScaffoldBoundAfter M nB)
+    (hExtPack : DecisionExtractionThresholdFnPack) :
+    ¬ P_eq_NP :=
+  P_neq_NP_from_semanticBridge_and_bound hBound
+    (decisionSemanticLift_thresholdFnPack_of_extractionBridge hExtPack)
 
 /-- Bridge-native contradiction theorem with semantic correctness package
     as input (equivalent cut to extraction witness package). -/
