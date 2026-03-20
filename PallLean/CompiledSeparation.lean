@@ -1355,6 +1355,21 @@ theorem P_neq_NP_from_correctness_existsPack
 theorem P_neq_NP_from_extraction_bridge_legacy : ¬ P_eq_NP :=
   P_neq_NP_from_extraction_bridge initialSemantic_extractionWitnessPackAll
 
+/-- Legacy-backed semantic-bridge instantiation of the bridge-native route. -/
+theorem P_neq_NP_from_semanticBridge_and_bound_legacy
+    (hBound : ∀ M : DTM, ∃ nB : ℕ, CookLevin.ScaffoldBoundAfter M nB) :
+    ¬ P_eq_NP :=
+  P_neq_NP_from_semanticBridge_and_bound hBound
+    decisionSemanticLift_thresholdFnPack_assumption
+
+/-- Legacy-backed decision-extraction-threshold instantiation of the
+    bridge-native route. -/
+theorem P_neq_NP_from_decisionExtractionThreshold_and_bound_legacy
+    (hBound : ∀ M : DTM, ∃ nB : ℕ, CookLevin.ScaffoldBoundAfter M nB) :
+    ¬ P_eq_NP :=
+  P_neq_NP_from_decisionExtractionThreshold_and_bound hBound
+    decisionExtraction_thresholdFnPack_assumption
+
 /-- Legacy-backed correctness-package instantiation of the bridge-native route. -/
 theorem P_neq_NP_from_correctness_existsPack_legacy : ¬ P_eq_NP :=
   P_neq_NP_from_correctness_existsPack initialSemantic_correctness_after_threshold
