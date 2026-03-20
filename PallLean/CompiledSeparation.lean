@@ -661,6 +661,40 @@ structure DecisionExtractionSkolemPrimitives where
         (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
         (CookLevin.initialSemantic_local M n hn2).partition
 
+/-- Per-machine eventual extraction witness package (explicit, non-skolem). -/
+def InitialSemanticExtractionWitnessPack (M : DTM) : Prop :=
+  ∃ nE : ℕ, ∀ n : ℕ, n ≥ nE →
+    ∀ (hn2 : n ≥ 2), M.decides (hardNPFamily n) →
+      ∃ (bp : BlockPartition (Nat.sqrt n * Nat.sqrt n)),
+        blockedSpdpRankQ (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+          (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+          (permPolyFlat (Nat.sqrt n)) bp ≤
+        blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+          (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+          (CookLevin.initialSemantic_local M n hn2).partition
+
+/-- Global eventual extraction witness package. -/
+def InitialSemanticExtractionWitnessPackAll : Prop :=
+  ∀ M : DTM, InitialSemanticExtractionWitnessPack M
+
+/-- Skolem primitives can be constructed from the eventual extraction witness
+    package by choice (this is the exact decomposition boundary). -/
+theorem decisionExtraction_skolemPrimitives_exists_of_extractionWitnessPack
+    (hPack : InitialSemanticExtractionWitnessPackAll) :
+    ∃ P : DecisionExtractionSkolemPrimitives, True := by
+  classical
+  choose nE hE using hPack
+  choose chooseBp hbp using hE
+  refine ⟨{
+    nE := nE
+    chooseBp := ?_
+    bound := ?_
+  }, trivial⟩
+  · intro M n hn hn2 hM
+    exact chooseBp M n hn hn2 hM
+  · intro M n hn hn2 hM
+    exact hbp M n hn hn2 hM
+
 /-- Primitive existence-form assumption for the skolem extraction package.
     (Paper-faithful boundary in existential/choice form.) -/
 axiom decisionExtraction_skolemPrimitives_exists :
@@ -856,6 +890,18 @@ theorem initialSemantic_extraction_eventually :
   intro M
   refine ⟨initialSemanticCorrectnessThreshold M, ?_⟩
   exact initialSemantic_extraction_after_chosen_threshold M
+
+/-- Eventual extraction bridge in packaged form. -/
+theorem initialSemantic_extractionWitnessPackAll :
+    InitialSemanticExtractionWitnessPackAll :=
+  initialSemantic_extraction_eventually
+
+/-- If the eventual extraction bridge is established independently,
+    skolem primitives become theorem-derived (no extra assumption needed). -/
+theorem decisionExtraction_skolemPrimitives_exists_from_bridge :
+    ∃ P : DecisionExtractionSkolemPrimitives, True :=
+  decisionExtraction_skolemPrimitives_exists_of_extractionWitnessPack
+    initialSemantic_extractionWitnessPackAll
 
 /-- Eventual scaffold correctness package derived from semantic threshold form. -/
 theorem scaffold_correctness_exists :
