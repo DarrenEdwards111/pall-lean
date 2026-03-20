@@ -510,6 +510,21 @@ def DecisionLinkComponentThresholdFnPackFromSem : Prop :=
   ∃ nSem : DTM → ℕ,
     ∀ (M : DTM) (n : ℕ), n ≥ nSem M → DecisionSemanticLiftAt M n
 
+/-- Direct semantic-bridge threshold form: eventually, any decision proof for
+    `hardNPFamily n` yields correctness of the concrete `initialSemantic`
+    scaffold. This is just the semantic component package with the bridge
+    predicate unfolded. -/
+theorem initialSemantic_semanticBridge_direct
+    (hSemPack : DecisionLinkComponentThresholdFnPackFromSem) :
+    ∃ nSem : DTM → ℕ,
+      ∀ (M : DTM) (n : ℕ), n ≥ nSem M →
+        M.decides (hardNPFamily n) →
+        InitialSemanticCorrectAt M n := by
+  rcases hSemPack with ⟨nSem, hSem⟩
+  refine ⟨nSem, ?_⟩
+  intro M n hn hM
+  exact hSem M n hn hM
+
 /-- Component package with explicit semantic bridge threshold implies the
     full decision-link component package (semantic→decision uses theorem). -/
 theorem decisionLink_componentThresholdFnPack_of_semanticBridge
