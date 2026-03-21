@@ -245,6 +245,23 @@ def BlockPartition.pullback {N₁ N₂ : ℕ} (bp : BlockPartition N₂)
   numBlocks := bp.numBlocks
   blockOf := bp.blockOf ∘ f
 
+/-- The permanent variable space (Fin (√n * √n)) embeds into the compiled
+    variable space (Fin (compiledVarCount k n)) via the standard index embedding.
+    This is the extraction variable map from Paper §11. -/
+noncomputable def permToCompiledEmbed (k n : ℕ) :
+    Fin (Nat.sqrt n * Nat.sqrt n) → Fin (compiledVarCount k n) :=
+  CookLevin.embedVar (le_trans (Nat.sqrt_le n) (CookLevin.compiledVarCount_ge_n_all k n))
+
+/-- Extraction block partition: pullback of the compiled polynomial's tableau
+    partition through the permanent-to-compiled variable embedding.
+    This assigns each permanent variable to the same block as its image
+    in the compiled space. -/
+noncomputable def extractionBlockPartition (k n : ℕ) :
+    BlockPartition (Nat.sqrt n * Nat.sqrt n) :=
+  BlockPartition.pullback
+    (CookLevin.tableauPartition (compiledVarCount k n))
+    (permToCompiledEmbed k n)
+
 /-- Semantic target predicate for scaffold correctness at a fixed `n`.
     This isolates the Cook-Levin correctness obligation from pside plumbing. -/
 def InitialSemanticCorrectAt (M : DTM) (n : ℕ) : Prop :=
