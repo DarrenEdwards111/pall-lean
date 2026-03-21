@@ -1126,6 +1126,25 @@ theorem scaffoldBoundAfter_threshold (M : DTM) :
   Sub-claim (C) reduces to a concrete inequality on G, w, n.
 -/
 
+/-! ### Surviving clause count — structural bound
+
+  Key fact: the scaffold has n + 24 clauses total, where:
+  - n input clauses are tautologies (xᵢ ∨ ¬xᵢ) → compiled poly factor = 1
+  - 24 compression core clauses are the real content
+
+  After universal restriction, at most 24 clauses are nontrivial.
+  (Actually fewer, since core clauses referencing only dead variables
+  also become constant.)
+
+  This means the compiled polynomial is essentially a product of
+  ≤ 24 local factors on ≤ log₂ n live variables.
+-/
+
+/-- The compression core has exactly 24 clauses, independent of n. -/
+theorem compressionCore_constant_size (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    (compressionCoreClauses M n hn2).length = 24 :=
+  length_compressionCoreClauses M n hn2
+
 /-- Restricted clause survival bound (Paper §5.3 + §17.3):
     After the universal restriction (fixing all but log₂n variables),
     only O(log n) clauses remain nontrivial in the Cook-Levin encoding.
