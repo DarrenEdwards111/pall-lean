@@ -137,13 +137,56 @@ profileRankBound ≤ (G*w)^3 already encodes this.
 The question reduces to: what are G and w for the compiled polynomial
 at the log-parameter level?
 
-## Verdict
+## The Real Argument (after deeper analysis)
 
-Theorem 92 decomposes cleanly into:
-1. **Cook-Levin locality** (proved)
-2. **Depth-4 simulation** (open — gives the G, w parameters)
-3. **Profile compression** (axiomatized in HasLocalityStructure)
-4. **Parameter bound:** G*w ≤ n^{1/6} at κ = ℓ = log₂ n (gives rank ≤ √n)
-5. **Asymptotic closure** (proved: core_polylog_le_sqrt)
+The key insight is the **universal restriction** applied BEFORE rank computation:
 
-The deepest open content is **depth-4 simulation** (#2) and the **G*w bound** (#4).
+1. Universal restriction fixes all but w = log₂ n variables
+2. After restriction, most clauses become trivial (constant 0 or 1)
+3. Only L_eff = O(polylog n) clauses remain nontrivial
+4. Each surviving clause touches ≤ 3 of the w live variables
+5. Profile compression on L_eff local factors on w variables gives:
+   rank ≤ L_eff * w^{O(1)} = polylog(n)^{O(1)}
+6. polylog(n)^{O(1)} ≤ √n for large n ✓
+
+### Why the naive analysis fails
+Without restriction: L = O(n^{2k+1}) clauses, rank ≤ L^c ≫ √n.
+WITH restriction: L_eff = O(polylog n) surviving clauses, rank ≤ polylog(n)^c ≤ √n.
+
+### Sub-claims (revised)
+
+| # | Sub-claim | Status | Content |
+|---|---|---|---|
+| 1 | Cook-Levin locality (width-3) | ✅ Proved | Each clause ≤ 3 vars |
+| 2 | Universal restriction survival | ❌ Open | L_eff = O(polylog n) after restriction |
+| 3 | Profile compression on survivors | ❌ Open | rank ≤ L_eff * w^c |
+| 4 | Asymptotic closure | ✅ Proved | polylog^c ≤ √n |
+
+The deepest gap is now **sub-claim 2**: bounding the number of clauses that
+survive (remain nontrivial) after the universal restriction. This is about
+the Cook-Levin encoding structure — most tableau clauses reference variables
+in the fixed (early) part of the tableau, so they become constants.
+
+### Why L_eff should be polylogarithmic
+The Cook-Levin tableau has T(n) time steps. The universal restriction fixes
+variables for time steps 0,...,T(n)-log₂n. Clauses that only reference these
+early steps become constants. Only clauses involving the last log₂n time steps
+survive → L_eff ≤ (time steps referencing live vars) * (clauses per step)
+= O(log n) * O(1) = O(log n).
+
+Actually: each time step contributes O(1) clauses (transition + head + tape).
+The last log₂n steps contribute O(log n) clauses → L_eff = O(log n).
+Then rank ≤ (log n)^c ≤ √n for large n. ✓
+
+## Verdict (revised)
+
+The proof structure is cleaner than initially appeared:
+
+1. **Cook-Levin locality** (proved) — width-3 CNF
+2. **Universal restriction clause survival** (open) — L_eff = O(log n)
+3. **Profile compression** (open) — rank ≤ L_eff * w^c for local products
+4. **Asymptotic closure** (proved) — polylog^c ≤ √n
+
+The deepest open content is **clause survival counting** (very concrete, testable)
+and **profile compression for small local products** (standard algebraic geometry).
+Neither requires deep complexity theory — they're about the Cook-Levin encoding structure.
