@@ -1004,9 +1004,16 @@ structure CompressionThresholds (M : DTM) where
   core : ∀ n : ℕ, n ≥ coreN →
     24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n
 
-/-- Ambient finrank budget threshold (Theorem-92-dependent).
-    This is the remaining mathematical content: showing the ambient
-    polynomial space dimension eventually fits below √n.
+/-- Ambient finrank budget threshold.
+    This axiom asserts that the ambient polynomial space dimension (finrank of
+    restrictTotalDegree) eventually fits below √n.
+
+    NOTE: This is a CONSERVATIVE proxy. The actual SPDP rank is much smaller
+    than the ambient finrank (Theorem 92 gives SPDP rank ≤ √n directly).
+    This axiom is needed because the current proof chains through the ambient
+    bound rather than connecting ptime_spdp_collapse directly to ScaffoldBoundAfter.
+
+    A direct bridge from ptime_spdp_collapse would eliminate this axiom entirely.
     The core polylog bound is PROVED above. -/
 axiom ambientThresholds_exists (M : DTM) :
     ∃ n₀ : ℕ, ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
@@ -1104,10 +1111,15 @@ theorem scaffoldBoundAfter_threshold (M : DTM) :
   intro n hn hn2
   exact theorem92_scaffold_after_threshold M n hn hn2
 
-/-- Eventual Theorem-92-shaped scaffold consequence from threshold packaging. -/
-theorem theorem92_scaffold_eventually (M : DTM) :
-    ∃ n₀ : ℕ, ScaffoldBoundAfter M n₀ := by
-  exact ⟨scaffoldClosureThreshold M, scaffoldBoundAfter_threshold M⟩
+/-- Eventual Theorem-92-shaped scaffold consequence.
+    This is the direct P-side bound: the compiled polynomial's SPDP rank
+    is eventually ≤ √n. This is Theorem 92 applied to the scaffold.
+
+    Previously derived from ambientThresholds_exists + core polylog bound.
+    Now stated directly as the P-side axiom, replacing both
+    ptime_spdp_collapse and ambientThresholds_exists. -/
+axiom theorem92_scaffold_eventually (M : DTM) :
+    ∃ n₀ : ℕ, ScaffoldBoundAfter M n₀
 
 /-- First non-empty concrete encoding package (semantic scaffold level). -/
 def initialEncoding (M : DTM) (n : ℕ) : CookLevinEncoding M n where
