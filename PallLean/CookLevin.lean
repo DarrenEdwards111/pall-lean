@@ -938,6 +938,64 @@ theorem theorem92_scaffold_closure
   in one machine-indexed contract, then derive threshold/everywhere forms.
 -/
 
+/-! ### Core polylog bound: 24*(log₂ n + 1)³ ≤ √n for large n — PROVED -/
+
+private lemma cube_double (j : ℕ) (hj : j ≥ 8) : (j + 2) ^ 3 ≤ 2 * j ^ 3 := by
+  nlinarith [sq_nonneg j, sq_nonneg (j - 8)]
+
+private theorem exp_beats_poly_shifted :
+    ∀ j : ℕ, 24 * (j + 51) ^ 3 ≤ 2 ^ ((j + 50) / 2) := by
+  intro j
+  induction j using Nat.strongRecOn with
+  | ind j ih =>
+    match j with
+    | 0 => native_decide
+    | 1 => native_decide
+    | j' + 2 =>
+      have ih' := ih j' (by omega)
+      have h_cube : (j' + 53) ^ 3 ≤ 2 * (j' + 51) ^ 3 :=
+        cube_double (j' + 51) (by omega)
+      calc 24 * (j' + 2 + 51) ^ 3
+          = 24 * (j' + 53) ^ 3 := by ring_nf
+        _ ≤ 24 * (2 * (j' + 51) ^ 3) := by linarith
+        _ = 2 * (24 * (j' + 51) ^ 3) := by ring
+        _ ≤ 2 * 2 ^ ((j' + 50) / 2) := by linarith
+        _ = 2 ^ ((j' + 50) / 2 + 1) := by ring
+        _ ≤ 2 ^ ((j' + 2 + 50) / 2) := by
+            apply Nat.pow_le_pow_right (by norm_num); omega
+
+private theorem exp_beats_poly (k : ℕ) (hk : k ≥ 50) :
+    24 * (k + 1) ^ 3 ≤ 2 ^ (k / 2) := by
+  have := exp_beats_poly_shifted (k - 50)
+  simp only [show k - 50 + 51 = k + 1 from by omega,
+    show k - 50 + 50 = k from by omega] at this
+  exact this
+
+private lemma sqrt_pow2_ge (k : ℕ) : Nat.sqrt (2 ^ k) ≥ 2 ^ (k / 2) := by
+  show 2 ^ (k / 2) ≤ Nat.sqrt (2 ^ k)
+  rw [Nat.le_sqrt]
+  calc 2 ^ (k / 2) * 2 ^ (k / 2)
+      = 2 ^ (k / 2 + k / 2) := by rw [← Nat.pow_add]
+    _ = 2 ^ (2 * (k / 2)) := by ring_nf
+    _ ≤ 2 ^ k := by
+        apply Nat.pow_le_pow_right (by norm_num); omega
+
+/-- Core polylog ≤ √n bound. PROVED: 0 axioms, 0 sorry.
+    For n ≥ 2^50: 24*(log₂ n + 1)³ ≤ 2^(log₂ n / 2) ≤ √(2^(log₂ n)) ≤ √n. -/
+theorem core_polylog_le_sqrt (n : ℕ) (hn : n ≥ 2 ^ 50) :
+    24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n := by
+  have hk : Nat.log 2 n ≥ 50 := by
+    calc Nat.log 2 n ≥ Nat.log 2 (2 ^ 50) := Nat.log_mono_right hn
+      _ = 50 := by rw [Nat.log_pow]; norm_num
+  have hn0 : n ≠ 0 := by omega
+  have hpow : 2 ^ (Nat.log 2 n) ≤ n := Nat.pow_log_le_self 2 hn0
+  calc 24 * ((Nat.log 2 n + 1) ^ 3)
+      ≤ 2 ^ (Nat.log 2 n / 2) := exp_beats_poly (Nat.log 2 n) hk
+    _ ≤ Nat.sqrt (2 ^ (Nat.log 2 n)) := sqrt_pow2_ge (Nat.log 2 n)
+    _ ≤ Nat.sqrt n := Nat.sqrt_le_sqrt hpow
+
+/-! ### Compression thresholds -/
+
 structure CompressionThresholds (M : DTM) where
   ambientN : ℕ
   ambient : ∀ n : ℕ, n ≥ ambientN → ∀ (hn2 : n ≥ 2),
@@ -946,7 +1004,20 @@ structure CompressionThresholds (M : DTM) where
   core : ∀ n : ℕ, n ≥ coreN →
     24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n
 
-axiom compressionThresholds_exists (M : DTM) : CompressionThresholds M
+/-- Ambient finrank budget threshold (Theorem-92-dependent).
+    This is the remaining mathematical content: showing the ambient
+    polynomial space dimension eventually fits below √n.
+    The core polylog bound is PROVED above. -/
+axiom ambientThresholds_exists (M : DTM) :
+    ∃ n₀ : ℕ, ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
+      ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n
+
+/-- Full compression thresholds, with core PROVED and ambient from axiom. -/
+noncomputable def compressionThresholds_exists (M : DTM) : CompressionThresholds M :=
+  { ambientN := Classical.choose (ambientThresholds_exists M)
+    ambient := Classical.choose_spec (ambientThresholds_exists M)
+    coreN := 2 ^ 50
+    core := core_polylog_le_sqrt }
 
 /-- Chosen numeric threshold from bundled compression contract. -/
 noncomputable def corePolylogThreshold (M : DTM) : ℕ :=
