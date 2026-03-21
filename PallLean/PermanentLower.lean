@@ -259,7 +259,7 @@ lemma log2_sq_ge_one (m : ℕ) (hm : m ≥ 2) : Nat.log 2 (m * m) ≥ 1 := by
   have h2 : Nat.log 2 (m * m) ≥ Nat.log 2 4 := Nat.log_mono_right h4
   omega
 
-/-- SPDP generators have bounded total degree. -/
+/-- SPDP generators have bounded total degree (paper-faithful conditions). -/
 lemma spdp_gen_totalDegree_le {N : ℕ} {κ ℓ : ℕ}
     {poly : MvPolynomial (Fin N) ℚ}
     {bp : CompiledPoly.BlockPartition N}
@@ -267,8 +267,8 @@ lemma spdp_gen_totalDegree_le {N : ℕ} {κ ℓ : ℕ}
     (hq : q ∈ { r : MvPolynomial (Fin N) ℚ |
       ∃ (S : List (Fin N)) (sh : MvPolynomial (Fin N) ℚ),
         S.length ≤ κ ∧ sh.totalDegree ≤ ℓ ∧
-        (S.toFinset.image bp.blockOf).card ≤ κ ∧
-        (sh.vars.image bp.blockOf).card ≤ ℓ ∧
+        (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+        (∀ v ∈ sh.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
         q = sh * iterDerivList S poly }) :
     q.totalDegree ≤ ℓ + poly.totalDegree := by
   obtain ⟨S, sh, _, hsh_deg, _, _, rfl⟩ := hq
@@ -286,14 +286,20 @@ lemma spdp_span_le_restrictTotalDegree {N : ℕ} (κ ℓ : ℕ)
     Submodule.span ℚ { q : MvPolynomial (Fin N) ℚ |
       ∃ (S : List (Fin N)) (sh : MvPolynomial (Fin N) ℚ),
         S.length ≤ κ ∧ sh.totalDegree ≤ ℓ ∧
-        (S.toFinset.image bp.blockOf).card ≤ κ ∧
-        (sh.vars.image bp.blockOf).card ≤ ℓ ∧
+        (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+        (∀ v ∈ sh.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
         q = sh * iterDerivList S poly } ≤
     MvPolynomial.restrictTotalDegree (Fin N) ℚ (ℓ + poly.totalDegree) := by
   apply Submodule.span_le.mpr
   intro q hq
+  obtain ⟨S, sh, _, hsh_deg, _, _, rfl⟩ := hq
   simp only [SetLike.mem_coe, MvPolynomial.mem_restrictTotalDegree]
-  exact spdp_gen_totalDegree_le hq
+  calc (sh * iterDerivList S poly).totalDegree
+      ≤ sh.totalDegree + (iterDerivList S poly).totalDegree :=
+        MvPolynomial.totalDegree_mul sh (iterDerivList S poly)
+    _ ≤ ℓ + poly.totalDegree := by
+        have := SPDP.totalDegree_iterDerivList_le S poly
+        omega
 
 /-! ## Main theorem -/
 
@@ -308,25 +314,27 @@ theorem permanent_spdp_lower :
   -- The derivative family
   set f := fun v : Fin (m * m) => MvPolynomial.pderiv v (permPolyFlat m)
   have h_indep := perm_first_derivs_independent m hm
-  -- The SPDP generating set
+  -- The SPDP generating set (paper-faithful: S-coupled shifts)
   set spdp := { q : MvPolynomial (Fin (m * m)) ℚ |
       ∃ (S : List (Fin (m * m))) (sh : MvPolynomial (Fin (m * m)) ℚ),
         S.length ≤ κ ∧ sh.totalDegree ≤ κ ∧
-        (S.toFinset.image bp.blockOf).card ≤ κ ∧
-        (sh.vars.image bp.blockOf).card ≤ κ ∧
+        (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+        (∀ v ∈ sh.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
         q = sh * iterDerivList S (permPolyFlat m) }
   -- blockedSpdpRankQ = finrank of span of spdp
   have h_eq : CompiledPoly.blockedSpdpRankQ κ κ (permPolyFlat m) bp =
       Module.finrank ℚ (Submodule.span ℚ spdp) := by
     unfold CompiledPoly.blockedSpdpRankQ; rfl
   rw [h_eq]
-  -- Each f v is in spdp
+  -- Each f v is in spdp (sh = 1, S = [v]: trivially S-coupled since vars(1) = ∅)
   have h_mem : ∀ v : Fin (m * m), f v ∈ spdp := by
     intro v
     have : f v = pderiv v (permPolyFlat m) := rfl
     rw [this]
-    exact ⟨[v], 1, by simp; exact hκ, by simp, by simp [List.toFinset_cons]; exact hκ,
-           by simp [MvPolynomial.vars_one], by simp [iterDerivList, one_mul]⟩
+    exact ⟨[v], 1, by simp; exact hκ, by simp,
+           by simp [List.toFinset_cons],
+           by intro w hw; simp [MvPolynomial.vars_one] at hw,
+           by simp [iterDerivList, one_mul]⟩
   -- range f ⊆ spdp, so span(range f) ≤ span(spdp)
   have h_span_le : Submodule.span ℚ (Set.range f) ≤ Submodule.span ℚ spdp :=
     Submodule.span_mono (fun x ⟨v, hv⟩ => hv ▸ h_mem v)
@@ -363,8 +371,8 @@ theorem permanent_spdp_rank_ge_sq :
   set spdp := { q : MvPolynomial (Fin (m * m)) ℚ |
       ∃ (S : List (Fin (m * m))) (sh : MvPolynomial (Fin (m * m)) ℚ),
         S.length ≤ κ ∧ sh.totalDegree ≤ κ ∧
-        (S.toFinset.image bp.blockOf).card ≤ κ ∧
-        (sh.vars.image bp.blockOf).card ≤ κ ∧
+        (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+        (∀ v ∈ sh.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
         q = sh * iterDerivList S (permPolyFlat m) }
   have h_eq : CompiledPoly.blockedSpdpRankQ κ κ (permPolyFlat m) bp =
       Module.finrank ℚ (Submodule.span ℚ spdp) := by rfl
@@ -373,8 +381,10 @@ theorem permanent_spdp_rank_ge_sq :
     intro v
     have : f v = pderiv v (permPolyFlat m) := rfl
     rw [this]
-    exact ⟨[v], 1, by simp; exact hκ, by simp, by simp [List.toFinset_cons]; exact hκ,
-           by simp [MvPolynomial.vars_one], by simp [iterDerivList, one_mul]⟩
+    exact ⟨[v], 1, by simp; exact hκ, by simp,
+           by simp [List.toFinset_cons],
+           by intro w hw; simp [MvPolynomial.vars_one] at hw,
+           by simp [iterDerivList, one_mul]⟩
   have h_span_le : Submodule.span ℚ (Set.range f) ≤ Submodule.span ℚ spdp :=
     Submodule.span_mono (fun x ⟨v, hv⟩ => hv ▸ h_mem v)
   have h_fin : Module.Finite ℚ (Submodule.span ℚ spdp) := by

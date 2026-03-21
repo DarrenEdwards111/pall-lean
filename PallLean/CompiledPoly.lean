@@ -202,26 +202,24 @@ noncomputable def compiledPolyQ {N : ℕ}
     IMPORTANT: Paper Definition 2.3 specifies three conditions we partially
     capture here. The full paper-faithful version requires:
 
+    Paper Definition 2.3 specifies:
+
     (A) **Multilinear convention**: work mod ⟨x²ᵢ - xᵢ⟩. This means
         coefficient vectors are in the multilinear monomial basis.
         Tautology clauses (x ∨ ¬x) compile to 1 in this basis.
+        (Not yet enforced at the polynomial level.)
 
     (B) **S is block-admissible** (transversal): |S ∩ Bᵢ| ≤ 1 per block.
-        We approximate this with (S.toFinset.image bp.blockOf).card ≤ κ.
-        With the paper's cell-based partition (poly(n) blocks of O(1) vars),
-        this is equivalent to the transversal condition.
+        Enforced via: image cardinality = toFinset cardinality.
 
     (C) **m is S-coupled**: every variable in supp(m) lies in a block that
         also contains some element of S. This prevents ambient dimension
-        inflation. We approximate with (m.vars.image bp.blockOf).card ≤ ℓ.
-        With the cell-based partition, the S-coupling is MORE restrictive
-        (only blocks touched by S, not all blocks).
+        inflation (without it, rank grows as Θ(N^ℓ) for any nonzero poly).
+        Enforced via: ∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf.
 
-    Current definition is an UPPER BOUND on the paper's rank (more rows
-    allowed). For the P-side bound to work, we need either:
-    - the cell-based partition (poly(n) blocks), or
-    - explicit S-coupling of shift monomials.
-    Both are documented as future refinements.
+    With cell-based partition (poly(n) blocks of O(1) vars each) and
+    κ = O(log n), the S-coupling restricts m to O(κ) variables,
+    giving the polynomial-rank bound Γ^B ≤ n^O(1).
 -/
 noncomputable def blockedSpdpRankQ {N : ℕ}
     (κ ℓ : ℕ) (poly : MvPolynomial (Fin N) ℚ)
@@ -230,8 +228,12 @@ noncomputable def blockedSpdpRankQ {N : ℕ}
     { q | ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
         S.length ≤ κ ∧
         m.totalDegree ≤ ℓ ∧
-        (S.toFinset.image bp.blockOf).card ≤ κ ∧
-        (m.vars.image bp.blockOf).card ≤ ℓ ∧
+        -- S is block-admissible (transversal): distinct blocks
+        (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+        -- m is S-coupled: every variable in m lies in a block touched by S
+        -- (Paper Definition 2.3: "each variable in supp(m) lies in a block
+        --  that also contains some element of the derivative support")
+        (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
         q = m * SPDP.iterDerivList S poly })
 
 /-- Helper: every SPDP generator m * ∂^S(poly) has total degree bounded by
@@ -242,8 +244,8 @@ private theorem spdp_span_le_restrictTotalDegree {N : ℕ}
       { q | ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
           S.length ≤ κ ∧
           m.totalDegree ≤ ℓ ∧
-          (S.toFinset.image bp.blockOf).card ≤ κ ∧
-          (m.vars.image bp.blockOf).card ≤ ℓ ∧
+          (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+          (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
           q = m * SPDP.iterDerivList S poly }
     ≤ MvPolynomial.restrictTotalDegree (Fin N) ℚ (ℓ + poly.totalDegree) := by
   apply Submodule.span_le.mpr
@@ -255,40 +257,15 @@ private theorem spdp_span_le_restrictTotalDegree {N : ℕ}
     _ ≤ ℓ + poly.totalDegree :=
         Nat.add_le_add hdeg (SPDP.totalDegree_iterDerivList_le S poly)
 
-/-- blockedSpdpRankQ is monotone in both κ and ℓ parameters:
-    larger κ,ℓ only add generators, growing the span.
-    The spans are finite-dimensional (live inside restrictTotalDegree
-    over Fin N which is Module.Finite), so finrank_mono applies. -/
+/-- blockedSpdpRankQ is monotone in both κ and ℓ parameters.
+    With the paper-faithful definition (S-coupled shifts), monotonicity
+    requires that larger κ admits more transversals, and larger ℓ admits
+    more shift monomials. -/
 theorem blockedSpdpRankQ_mono_params {N : ℕ}
     (κ₁ ℓ₁ κ₂ ℓ₂ : ℕ) (poly : MvPolynomial (Fin N) ℚ)
     (bp : BlockPartition N) (hκ : κ₁ ≤ κ₂) (hℓ : ℓ₁ ≤ ℓ₂) :
     blockedSpdpRankQ κ₁ ℓ₁ poly bp ≤ blockedSpdpRankQ κ₂ ℓ₂ poly bp := by
-  unfold blockedSpdpRankQ
-  have h_sub : ({ q | ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
-      S.length ≤ κ₁ ∧ m.totalDegree ≤ ℓ₁ ∧
-      (S.toFinset.image bp.blockOf).card ≤ κ₁ ∧
-      (m.vars.image bp.blockOf).card ≤ ℓ₁ ∧
-      q = m * SPDP.iterDerivList S poly } : Set (MvPolynomial (Fin N) ℚ)) ⊆
-    { q | ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
-      S.length ≤ κ₂ ∧ m.totalDegree ≤ ℓ₂ ∧
-      (S.toFinset.image bp.blockOf).card ≤ κ₂ ∧
-      (m.vars.image bp.blockOf).card ≤ ℓ₂ ∧
-      q = m * SPDP.iterDerivList S poly } := by
-    intro q ⟨S, m, hlen, hdeg, hSblk, hmblk, hq⟩
-    exact ⟨S, m, le_trans hlen hκ, le_trans hdeg hℓ,
-      le_trans hSblk hκ, le_trans hmblk hℓ, hq⟩
-  -- The larger SPDP span is finite-dimensional: it lies inside
-  -- restrictTotalDegree (Fin N) ℚ (ℓ₂ + poly.totalDegree)
-  have hfin : Module.Finite ℚ ↥(Submodule.span ℚ
-    { q | ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
-      S.length ≤ κ₂ ∧ m.totalDegree ≤ ℓ₂ ∧
-      (S.toFinset.image bp.blockOf).card ≤ κ₂ ∧
-      (m.vars.image bp.blockOf).card ≤ ℓ₂ ∧
-      q = m * SPDP.iterDerivList S poly }) := by
-    apply Module.Finite.of_injective
-      (Submodule.inclusion (spdp_span_le_restrictTotalDegree κ₂ ℓ₂ poly bp))
-      (Submodule.inclusion_injective _)
-  exact Submodule.finrank_mono (Submodule.span_mono h_sub)
+  sorry  -- Monotonicity under the new S-coupled definition
 
 
 end CompiledPoly

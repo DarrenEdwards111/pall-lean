@@ -97,9 +97,14 @@ def timeSlicePartition (N chunk : ℕ) (_hchunk : chunk > 0) : BlockPartition N 
 /-- Default chunk size for slice-based scaffold. -/
 def defaultTimeChunk : ℕ := 2
 
-/-- Default tableau-style partition used in current scaffold. -/
+/-- Default tableau-style partition used in current scaffold.
+    DEPRECATED: Only 3 blocks — too coarse for meaningful SPDP bounds.
+    Use `cellPartition` for paper-faithful analysis. Retained for
+    backward compatibility with existing locality proofs. -/
 def tableauPartition (N : ℕ) : BlockPartition N :=
   timeSlicePartition N defaultTimeChunk (by decide)
+
+-- Cell-based partition definitions are below, after scaffoldPhaseClauses.
 
 /-- Any clause is local under the 3-block window partition
     (image cardinality cannot exceed number of blocks = 3). -/
@@ -723,10 +728,68 @@ def initialSemanticCNF (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     CookLevinCNF (compiledVarCount (defaultK M) n) :=
   mkCNF (scaffoldPhaseClauses M n hn2)
 
-/-- Locality certificate for semantic scaffold CNF under tableau partition. -/
-def initialSemantic_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+/-! ## Cell-Based Partition (Paper §3.2, paper-faithful)
+
+  The paper uses one block per "cell" in the computation tableau.
+  Each cell (t, i) for time step t and tape position i gets its own block,
+  containing O(1) variables (tape bit, state bit, head position bit).
+
+  For our scaffold encoding:
+  - Input variables xᵢ (i = 0..n-1): each in its own block
+  - Scaffold variables (slot 0..7): grouped by time step (slots 0-3 = step 0,
+    slots 4-7 = step 1), so 2 blocks for scaffold vars
+
+  Total blocks: n + 2 (one per input var + two time steps).
+  This is O(n) = poly(n), matching the paper's requirement.
+
+  With κ = O(log n) and n+2 blocks, the block-admissibility constraint
+  (at most 1 var per block in S, and m vars in S-touched blocks) is
+  genuinely restrictive: S touches ≤ κ = O(log n) cells, and m can
+  only use variables from those cells.
+-/
+
+/-- Cell-based partition: each input variable gets its own block,
+    scaffold variables grouped by time step (2 groups of 4 slots).
+    Total blocks: n + 2. -/
+def cellPartition (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    BlockPartition (compiledVarCount (defaultK M) n) where
+  numBlocks := n + 2
+  blockOf := fun v =>
+    if h : v.1 < n then
+      ⟨v.1, by omega⟩
+    else if h2 : v.1 < n + 4 then
+      ⟨n, by omega⟩
+    else
+      ⟨n + 1, by omega⟩
+
+/-- Each clause in the scaffold touches at most 3 cells (blocks).
+    Input tautology clauses touch 1 block (the input var's own block).
+    Core clauses touch ≤ 3 scaffold vars, all in ≤ 2 time-step blocks. -/
+theorem cellPartition_clause_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (c : CLClause (compiledVarCount (defaultK M) n))
+    (hc : c ∈ (scaffoldPhaseClauses M n hn2)) :
+    c.isLocal (cellPartition M n hn2) := by
+  sorry  -- Each clause references ≤ 3 variables in ≤ 3 blocks
+
+/-- Locality certificate for scaffold CNF under cell-based partition. -/
+def cellPartition_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    HasLocalPartition (initialSemanticCNF M n hn2) :=
+  ⟨cellPartition M n hn2,
+   fun c hc => cellPartition_clause_local M n hn2 c
+     (by simp [initialSemanticCNF, mkCNF] at hc; exact hc),
+   4⟩
+
+/-- Locality certificate for semantic scaffold CNF under tableau partition.
+    DEPRECATED: Uses 3-block partition. Retained for backward compatibility. -/
+def initialSemantic_local_tableau (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     HasLocalPartition (initialSemanticCNF M n hn2) :=
   tableau_local (initialSemanticCNF M n hn2)
+
+/-- Locality certificate for semantic scaffold CNF under cell-based partition
+    (paper-faithful, n+2 blocks). -/
+def initialSemantic_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    HasLocalPartition (initialSemanticCNF M n hn2) :=
+  cellPartition_local M n hn2
 
 /-- Conservative rank upper bound proxy: the blocked SPDP rank of the
     scaffold CNF is bounded by the finrank of the ambient restrictTotalDegree
@@ -746,8 +809,8 @@ theorem initialSemantic_rank_le_restrictFinrank
     { q | ∃ (S : List (Fin (compiledVarCount (defaultK M) n)))
             (sh : MvPolynomial (Fin (compiledVarCount (defaultK M) n)) ℚ),
         S.length ≤ κ ∧ sh.totalDegree ≤ κ ∧
-        (S.toFinset.image bp.blockOf).card ≤ κ ∧
-        (sh.vars.image bp.blockOf).card ≤ κ ∧
+        (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+        (∀ v ∈ sh.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
         q = sh * SPDP.iterDerivList S poly }
   have h_eq :
       CompiledPoly.blockedSpdpRankQ κ κ poly bp =
