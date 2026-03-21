@@ -61,6 +61,12 @@ theorem compiledVarCount_ge_cubic (M : DTM) (n : ℕ) (hn : n ≥ 1) :
 def embedVar {N N' : ℕ} (h : N ≤ N') : Fin N → Fin N' :=
   fun i => ⟨i.1, Nat.lt_of_lt_of_le i.2 h⟩
 
+theorem embedVar_injective {N N' : ℕ} (h : N ≤ N') :
+    Function.Injective (embedVar h) := by
+  intro a b hab
+  simp [embedVar] at hab
+  exact Fin.ext hab
+
 /-- Identity partition: one block per variable. -/
 def identityPartition (N : ℕ) : BlockPartition N where
   numBlocks := N

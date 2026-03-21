@@ -262,15 +262,34 @@ noncomputable def extractionBlockPartition (k n : ℕ) :
     (CookLevin.tableauPartition (compiledVarCount k n))
     (permToCompiledEmbed k n)
 
+/-! ### Extraction rank monotonicity decomposition
+
+  The extraction rank inequality decomposes into three independent facts:
+
+  (A) **blockedSpdpRankQ_rename_le** (algebraic):
+      Injective rename preserves rank (with pullback partition).
+
+  (B) **blockedSpdpRankQ_mono_params** (algebraic):
+      Increasing κ,ℓ cannot decrease rank.
+
+  (C) **cookLevin_extraction_rank_le** (Cook-Levin correctness):
+      The compiled polynomial dominates the renamed permanent in rank.
+
+  Together: perm rank (under pullback) ≤ rename rank (by A) ≤ ... ≤ compiled rank (by C).
+
+  For clarity, we keep extraction_rank_monotone as an axiom and document
+  the decomposition above. Proving the three sub-lemmas and assembling them
+  is the next frontier.
+-/
+
 /-- Extraction rank monotonicity (Paper Lemma 206 content):
     The permanent polynomial's SPDP rank under the extraction block partition
     is bounded by the compiled polynomial's SPDP rank under the tableau partition.
 
-    This follows from Cook-Levin correctness: the compiled polynomial restricted
-    to input variables encodes the permanent, and restriction cannot increase
-    SPDP rank (Lemma 33). The extraction block partition is the pullback of
-    the tableau partition through the embedding, ensuring block-admissibility
-    is preserved.
+    Decomposition into independent sub-facts:
+    1. blockedSpdpRankQ_rename_le: rank under pullback ≤ rank of renamed poly
+    2. blockedSpdpRankQ_mono_params: monotonicity in κ,ℓ parameters
+    3. cookLevin_extraction_rank_le: compiled poly dominates renamed permanent
 
     Paper reference: §11-13 (extraction map T_Φ). -/
 axiom extraction_rank_monotone (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
