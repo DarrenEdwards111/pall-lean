@@ -1246,6 +1246,39 @@ theorem surviving_factor_count_le (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
   profile compression exponent but is independent of n.
 -/
 
+/-! ## P-Side Locality Bound (Paper §4.2)
+
+  The violation polynomial V = Σ_{(t,i)} Q_{t,i} decomposes into local pieces.
+  Each Q_{t,i} is supported on Nbr(t,i) = O(1) variables.
+  
+  For any derivative set S and shift monomial m:
+    m · ∂^S(V) = Σ_{(t,i)} m · ∂^S(Q_{t,i})
+  
+  Each term m · ∂^S(Q_{t,i}) involves only variables in Nbr(t,i) (from Q_{t,i})
+  and the shift variables (from m). Under the cell partition with S-coupling,
+  m can only use variables in S-touched cells. So each term lives in a
+  space of dimension ≤ |local_basis| = O(1).
+  
+  Total rank ≤ T² · |local_basis| = n^O(1).
+  
+  This is the "global polynomial upper bound" from §4.2, equation (3).
+  Profile compression (§5) refines this to polylog.
+-/
+
+/-- Locality bound: the violation polynomial's SPDP rank is polynomial in n.
+    This is the §4.2 bound, weaker than the full profile compression result
+    but easier to prove. -/
+theorem violation_rank_polynomial_bound (M : DTM) :
+    ∃ (C : ℕ) (n₀ : ℕ), ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
+      CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+        (CompiledPoly.violationPolyQ (initialSemanticCNF M n hn2))
+        (initialSemantic_local M n hn2).partition ≤ n ^ C := by
+  -- The violation polynomial decomposes into local pieces (paper eq. 1).
+  -- Each cell (t,i) contributes O(1) basis vectors to the SPDP row span.
+  -- Total: T² · |local_basis| ≤ n^{2c} · n^{O(1)} = n^{O(1)}.
+  -- With our scaffold: n+24 clauses on ≤ n^3 variables, each clause local.
+  sorry
+
 /-- P-side collapse for violation polynomial (paper §4.2 + §5).
     
     The violation polynomial V = Σ clausePoly(c)² has CONSTANT degree (≤ 6).
