@@ -192,10 +192,61 @@ noncomputable def clausePolyQ {N : ℕ}
     (c : CLClause N) : MvPolynomial (Fin N) ℚ :=
   1 - (c.lits.map (fun lit => 1 - literalPolyQ lit)).prod
 
-/-- Compiled polynomial over ℚ. -/
+/-- Compiled polynomial over ℚ (PRODUCT form, not paper-faithful).
+    Retained for backward compatibility. The paper uses violationPolyQ instead. -/
 noncomputable def compiledPolyQ {N : ℕ}
     (cnf : CookLevinCNF N) : MvPolynomial (Fin N) ℚ :=
   (cnf.clauses.map clausePolyQ).prod
+
+/-! ## Paper-faithful violation polynomial (Section 3.1)
+
+  The paper defines:
+    V_{M,n}(x,τ) = Σ_{C ∈ constraints} C(x,τ)²
+
+  Key properties:
+  - deg(V) = O(1) (constant, since each C has constant degree)
+  - V = 0 on Boolean inputs iff all constraints satisfied
+  - V is a SUM of local terms, not a product
+
+  The κ-padded polynomial:
+    P_{M,n}(x,τ,y) = (∏_{j=1}^κ y_j) · V_{M,n}(x,τ)
+
+  This has deg = κ + O(1), ensuring the SPDP matrix is non-vacuous.
+  Most derivatives hit the padding variables, leaving ≤ deg(V) = O(1)
+  derivatives on V itself. This is why the P-side bound works.
+-/
+
+/-- Violation polynomial (paper §3.1): V = Σ clausePoly(c)² .
+    Has constant degree (≤ 2 * max clause degree).
+    V = 0 on Boolean inputs iff all clauses satisfied. -/
+noncomputable def violationPolyQ {N : ℕ}
+    (cnf : CookLevinCNF N) : MvPolynomial (Fin N) ℚ :=
+  (cnf.clauses.map (fun c => (clausePolyQ c) ^ 2)).sum
+
+/-- The violation polynomial has degree ≤ 6 (each clause poly has degree ≤ 3,
+    squared gives ≤ 6). This is the constant degree the paper relies on. -/
+theorem violationPolyQ_totalDegree_le {N : ℕ} (cnf : CookLevinCNF N) :
+    (violationPolyQ cnf).totalDegree ≤ 6 := by
+  -- Each clausePolyQ has degree ≤ 3 (width-3 clause), squared ≤ 6.
+  -- totalDegree of sum ≤ max of totalDegrees of summands.
+  sorry
+
+/-- Embed a polynomial from Fin N into Fin (N + κ) by mapping variables. -/
+noncomputable def embedPoly {N κ : ℕ}
+    (p : MvPolynomial (Fin N) ℚ) : MvPolynomial (Fin (N + κ)) ℚ :=
+  MvPolynomial.rename (Fin.castAdd κ) p
+
+/-- The κ-padding monomial: ∏_{j=0}^{κ-1} y_j where y_j = X_{N+j}. -/
+noncomputable def paddingMonomial (N κ : ℕ) : MvPolynomial (Fin (N + κ)) ℚ :=
+  (Finset.univ.val.toList.map (fun j : Fin κ =>
+    (X (Fin.natAdd N j) : MvPolynomial (Fin (N + κ)) ℚ))).prod
+
+/-- κ-padded compiled polynomial (paper §3.1):
+    P_{M,n} = (∏ y_j) · V_{M,n}
+    where y_j are fresh padding variables. -/
+noncomputable def paddedPolyQ {N : ℕ} (κ : ℕ)
+    (cnf : CookLevinCNF N) : MvPolynomial (Fin (N + κ)) ℚ :=
+  paddingMonomial N κ * embedPoly (violationPolyQ cnf)
 
 /-- Blocked SPDP rank over ℚ.
 

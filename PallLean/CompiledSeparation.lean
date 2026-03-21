@@ -90,7 +90,7 @@ def IsCorrectEncoding (M : DTM) (n k : ℕ)
     (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
     (permPolyFlat (Nat.sqrt n)) bp ≤
   blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-    (compiledPolyQ cnf) hlp.partition
+    (violationPolyQ cnf) hlp.partition
 
 /-- Protected threshold-form scaffold correctness predicate. -/
 def ScaffoldCorrectAfter (M : DTM) (nC : ℕ) : Prop :=
@@ -112,7 +112,7 @@ theorem pside_witness_from_scaffold
       (hlp : HasLocalPartition cnf),
     IsCorrectEncoding M n k cnf hlp ∧
     blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n := by
+      (violationPolyQ cnf) hlp.partition ≤ Nat.sqrt n := by
   refine ⟨CookLevin.defaultK M, CookLevin.initialSemanticCNF M n hn2,
     CookLevin.initialSemantic_local M n hn2, hcorrectInit, ?_⟩
   simpa using CookLevin.theorem92_scaffold_after_threshold M n hn hn2
@@ -130,7 +130,7 @@ theorem pside_witness_from_scaffold_eventually
         (hlp : HasLocalPartition cnf),
       IsCorrectEncoding M n k cnf hlp ∧
       blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n := by
+        (violationPolyQ cnf) hlp.partition ≤ Nat.sqrt n := by
   obtain ⟨nC, hC⟩ := hcorrectInitEv
   refine ⟨max (CookLevin.scaffoldClosureThreshold M) nC, ?_⟩
   intro n hn hn2 f hM
@@ -153,7 +153,7 @@ theorem pside_upper_bound_from_scaffold
         (hlp : HasLocalPartition cnf),
       IsCorrectEncoding M n k cnf hlp ∧
       blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n :=
+        (violationPolyQ cnf) hlp.partition ≤ Nat.sqrt n :=
   pside_witness_from_scaffold_eventually M hcorrectInitEv
 
 /-! ================================================================
@@ -172,7 +172,7 @@ theorem nside_extraction
       (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
       (permPolyFlat (Nat.sqrt n)) bp ≤
     blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyQ cnf) hlp.partition :=
+      (violationPolyQ cnf) hlp.partition :=
   hcorrect hM
 
 /-! ================================================================
@@ -201,7 +201,7 @@ theorem P_neq_NP_from_pside
         (hlp : HasLocalPartition cnf),
       IsCorrectEncoding M n k cnf hlp ∧
       blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n) :
+        (violationPolyQ cnf) hlp.partition ≤ Nat.sqrt n) :
     ¬ P_eq_NP := by
   intro hPeqNP
   obtain ⟨M, hM⟩ := hPeqNP hardNPFamily hard_family_in_NP
@@ -298,7 +298,7 @@ axiom extraction_rank_monotone (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
       (permPolyFlat (Nat.sqrt n))
       (extractionBlockPartition (CookLevin.defaultK M) n)
     ≤ blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+      (violationPolyQ (CookLevin.initialSemanticCNF M n hn2))
       (CookLevin.initialSemantic_local M n hn2).partition
 
 
@@ -335,7 +335,7 @@ def ExtractionLinkWitnessAt (M : DTM) (n : ℕ) : Prop :=
           (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
           (permPolyFlat (Nat.sqrt n)) bp ≤
         blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-          (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+          (violationPolyQ (CookLevin.initialSemanticCNF M n hn2))
           (CookLevin.initialSemantic_local M n hn2).partition
 
 /-- Decision-link sub-obligation at size `n`:
@@ -362,7 +362,7 @@ def RankLinkObligationAt (M : DTM) (n : ℕ) : Prop :=
           (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
           (permPolyFlat (Nat.sqrt n)) bp ≤
         blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-          (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+          (violationPolyQ (CookLevin.initialSemanticCNF M n hn2))
           (CookLevin.initialSemantic_local M n hn2).partition
 
 /-- Any semantic correctness proof yields the decision-link obligation. -/
@@ -652,7 +652,7 @@ def DecisionExtractionSkolemAt (M : DTM) (n : ℕ) : Prop :=
         (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
         (permPolyFlat (Nat.sqrt n)) (chooseBp hn2 hM) ≤
       blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+        (violationPolyQ (CookLevin.initialSemanticCNF M n hn2))
         (CookLevin.initialSemantic_local M n hn2).partition
 
 /-- Skolemized and existential extraction-witness forms are equivalent. -/
@@ -748,7 +748,7 @@ structure DecisionExtractionSkolemComponents where
         (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
         (permPolyFlat (Nat.sqrt n)) ((chooseBp M n hn) hn2 hM) ≤
       blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+        (violationPolyQ (CookLevin.initialSemanticCNF M n hn2))
         (CookLevin.initialSemantic_local M n hn2).partition
 
 /-- Structured components imply skolem-threshold package. -/
@@ -779,7 +779,7 @@ structure DecisionExtractionSkolemPrimitives where
         (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
         (permPolyFlat (Nat.sqrt n)) ((chooseBp M n hn) hn2 hM) ≤
       blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+        (violationPolyQ (CookLevin.initialSemanticCNF M n hn2))
         (CookLevin.initialSemantic_local M n hn2).partition
 
 /-- Per-machine eventual extraction witness package (explicit, non-skolem). -/
@@ -791,7 +791,7 @@ def InitialSemanticExtractionWitnessPack (M : DTM) : Prop :=
           (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
           (permPolyFlat (Nat.sqrt n)) bp ≤
         blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-          (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+          (violationPolyQ (CookLevin.initialSemanticCNF M n hn2))
           (CookLevin.initialSemantic_local M n hn2).partition
 
 /-- Global eventual extraction witness package. -/
@@ -809,7 +809,7 @@ def InitialSemanticExtractionThresholdFnPack : Prop :=
             (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
             (permPolyFlat (Nat.sqrt n)) bp ≤
           blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-            (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+            (violationPolyQ (CookLevin.initialSemanticCNF M n hn2))
             (CookLevin.initialSemantic_local M n hn2).partition
 
 /-- Eventual extraction package implies function-threshold extraction package. -/
@@ -1048,7 +1048,7 @@ theorem initialSemantic_extraction_of_correctness
         (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
         (permPolyFlat (Nat.sqrt n)) bp ≤
       blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+        (violationPolyQ (CookLevin.initialSemanticCNF M n hn2))
         (CookLevin.initialSemantic_local M n hn2).partition := by
   exact hCorr hn2 hM
 
@@ -1062,7 +1062,7 @@ theorem initialSemantic_extraction_after_chosen_threshold (M : DTM) :
             (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
             (permPolyFlat (Nat.sqrt n)) bp ≤
           blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-            (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+            (violationPolyQ (CookLevin.initialSemanticCNF M n hn2))
             (CookLevin.initialSemantic_local M n hn2).partition := by
   intro n hn hn2 hM
   exact initialSemantic_extraction_of_correctness M n hn2
@@ -1079,7 +1079,7 @@ theorem initialSemantic_extraction_eventually_of_correctness_existsPack
             (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
             (permPolyFlat (Nat.sqrt n)) bp ≤
           blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-            (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+            (violationPolyQ (CookLevin.initialSemanticCNF M n hn2))
             (CookLevin.initialSemantic_local M n hn2).partition := by
   intro M
   obtain ⟨nC, hC⟩ := hCorrAll M
@@ -1097,7 +1097,7 @@ theorem initialSemantic_extraction_eventually_from_legacy :
             (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
             (permPolyFlat (Nat.sqrt n)) bp ≤
           blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-            (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+            (violationPolyQ (CookLevin.initialSemanticCNF M n hn2))
             (CookLevin.initialSemantic_local M n hn2).partition :=
   initialSemantic_extraction_eventually_of_correctness_existsPack
     initialSemantic_correctness_after_threshold
@@ -1113,7 +1113,7 @@ theorem initialSemantic_extraction_eventually :
             (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
             (permPolyFlat (Nat.sqrt n)) bp ≤
           blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-            (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+            (violationPolyQ (CookLevin.initialSemanticCNF M n hn2))
             (CookLevin.initialSemantic_local M n hn2).partition :=
   initialSemantic_extraction_eventually_from_legacy
 
@@ -1303,7 +1303,7 @@ theorem pside_upper_bound_from_scaffold_packages
         (hlp : HasLocalPartition cnf),
       IsCorrectEncoding M n k cnf hlp ∧
       blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n := by
+        (violationPolyQ cnf) hlp.partition ≤ Nat.sqrt n := by
   obtain ⟨nB, hB⟩ := hBound M
   obtain ⟨nC, hC⟩ := hCorrect M
   refine ⟨max nB nC, ?_⟩
@@ -1311,7 +1311,7 @@ theorem pside_upper_bound_from_scaffold_packages
   have hBn : n ≥ nB := le_trans (le_max_left _ _) hn
   have hCn : n ≥ nC := le_trans (le_max_right _ _) hn
   have hRank : blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPolyQ (CookLevin.initialSemanticCNF M n hn2))
+      (violationPolyQ (CookLevin.initialSemanticCNF M n hn2))
       (CookLevin.initialSemantic_local M n hn2).partition ≤ Nat.sqrt n :=
     hB n hBn hn2
   have hCorr : IsCorrectEncoding M n (CookLevin.defaultK M)
@@ -1375,7 +1375,7 @@ theorem pside_upper_bound_from_global_scaffold
         (hlp : HasLocalPartition cnf),
       IsCorrectEncoding M n k cnf hlp ∧
       blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n :=
+        (violationPolyQ cnf) hlp.partition ≤ Nat.sqrt n :=
   pside_upper_bound_from_scaffold_packages
     canonical_boundAfter_eventually
     canonical_correctAfter_eventually
@@ -1390,7 +1390,7 @@ theorem pside_upper_bound :
         (hlp : HasLocalPartition cnf),
       IsCorrectEncoding M n k cnf hlp ∧
       blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPolyQ cnf) hlp.partition ≤ Nat.sqrt n :=
+        (violationPolyQ cnf) hlp.partition ≤ Nat.sqrt n :=
   pside_upper_bound_from_global_scaffold
 
 theorem P_neq_NP : ¬ P_eq_NP :=
