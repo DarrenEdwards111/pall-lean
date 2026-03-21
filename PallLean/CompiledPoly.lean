@@ -209,17 +209,15 @@ noncomputable def blockedSpdpRankQ {N : ℕ}
         (m.vars.image bp.blockOf).card ≤ ℓ ∧
         q = m * SPDP.iterDerivList S poly })
 
-/-- blockedSpdpRankQ is monotone in both κ and ℓ parameters:
-    increasing κ or ℓ relaxes admissibility constraints, growing the
-    generator set and thus the span dimension.
-    Proof: the generator set for (κ₁,ℓ₁) ⊆ generator set for (κ₂,ℓ₂),
-    so span₁ ≤ span₂, so finrank₁ ≤ finrank₂.
-    (Uses Module.finrank_mono which requires finite-dimensionality of the
-    larger module; for MvPolynomial spans this holds when the generator
-    set is finite, which it is for bounded-degree polynomials over Fin N.) -/
+/-- blockedSpdpRankQ is monotone in both κ and ℓ parameters.
+    Proof outline: generator set for (κ₁,ℓ₁) ⊆ (κ₂,ℓ₂), span₁ ≤ span₂,
+    and the spans are finite-dimensional (finitely many generators over Fin N),
+    so finrank₁ ≤ finrank₂ by Submodule.finrank_mono.
+    Axiomatized pending the finite-dimensionality certificate. -/
 axiom blockedSpdpRankQ_mono_params {N : ℕ}
     (κ₁ ℓ₁ κ₂ ℓ₂ : ℕ) (poly : MvPolynomial (Fin N) ℚ)
     (bp : BlockPartition N) (hκ : κ₁ ≤ κ₂) (hℓ : ℓ₁ ≤ ℓ₂) :
     blockedSpdpRankQ κ₁ ℓ₁ poly bp ≤ blockedSpdpRankQ κ₂ ℓ₂ poly bp
+
 
 end CompiledPoly
