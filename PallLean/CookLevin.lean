@@ -769,7 +769,11 @@ theorem cellPartition_clause_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (c : CLClause (compiledVarCount (defaultK M) n))
     (hc : c ∈ (scaffoldPhaseClauses M n hn2)) :
     c.isLocal (cellPartition M n hn2) := by
-  sorry  -- Each clause references ≤ 3 variables in ≤ 3 blocks
+  -- Any width-≤3 clause has ≤ 3 variables, so image has ≤ 3 elements
+  simp only [CLClause.isLocal]
+  calc (c.vars.image (cellPartition M n hn2).blockOf).card
+      ≤ c.vars.card := Finset.card_image_le
+    _ ≤ 3 := c.vars_card_le
 
 /-- Locality certificate for scaffold CNF under cell-based partition. -/
 def cellPartition_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :

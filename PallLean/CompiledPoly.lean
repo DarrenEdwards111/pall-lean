@@ -265,7 +265,29 @@ theorem blockedSpdpRankQ_mono_params {N : ℕ}
     (κ₁ ℓ₁ κ₂ ℓ₂ : ℕ) (poly : MvPolynomial (Fin N) ℚ)
     (bp : BlockPartition N) (hκ : κ₁ ≤ κ₂) (hℓ : ℓ₁ ≤ ℓ₂) :
     blockedSpdpRankQ κ₁ ℓ₁ poly bp ≤ blockedSpdpRankQ κ₂ ℓ₂ poly bp := by
-  sorry  -- Monotonicity under the new S-coupled definition
+  unfold blockedSpdpRankQ
+  have h_sub : ({ q | ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
+      S.length ≤ κ₁ ∧ m.totalDegree ≤ ℓ₁ ∧
+      (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+      (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
+      q = m * SPDP.iterDerivList S poly } : Set (MvPolynomial (Fin N) ℚ)) ⊆
+    { q | ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
+      S.length ≤ κ₂ ∧ m.totalDegree ≤ ℓ₂ ∧
+      (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+      (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
+      q = m * SPDP.iterDerivList S poly } := by
+    intro q ⟨S, m, hlen, hdeg, hSblk, hmblk, hq⟩
+    exact ⟨S, m, le_trans hlen hκ, le_trans hdeg hℓ, hSblk, hmblk, hq⟩
+  have hfin : Module.Finite ℚ ↥(Submodule.span ℚ
+    { q | ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
+      S.length ≤ κ₂ ∧ m.totalDegree ≤ ℓ₂ ∧
+      (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+      (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
+      q = m * SPDP.iterDerivList S poly }) := by
+    apply Module.Finite.of_injective
+      (Submodule.inclusion (spdp_span_le_restrictTotalDegree κ₂ ℓ₂ poly bp))
+      (Submodule.inclusion_injective _)
+  exact Submodule.finrank_mono (Submodule.span_mono h_sub)
 
 
 end CompiledPoly
