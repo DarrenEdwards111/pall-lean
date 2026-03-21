@@ -223,13 +223,37 @@ noncomputable def violationPolyQ {N : ℕ}
     (cnf : CookLevinCNF N) : MvPolynomial (Fin N) ℚ :=
   (cnf.clauses.map (fun c => (clausePolyQ c) ^ 2)).sum
 
-/-- The violation polynomial has degree ≤ 6 (each clause poly has degree ≤ 3,
-    squared gives ≤ 6). This is the constant degree the paper relies on. -/
+/-- totalDegree of a list sum is bounded by the max totalDegree. -/
+private theorem totalDegree_list_sum_le {σ : Type*} {R : Type*}
+    [CommSemiring R] (l : List (MvPolynomial σ R)) (d : ℕ)
+    (h : ∀ p ∈ l, p.totalDegree ≤ d) :
+    l.sum.totalDegree ≤ d := by
+  induction l with
+  | nil => simp [MvPolynomial.totalDegree]
+  | cons a t ih =>
+    rw [List.sum_cons]
+    have ha := h a (by simp)
+    have ht := ih (fun p hp => h p (by simp [hp]))
+    exact le_trans (MvPolynomial.totalDegree_add a t.sum) (max_le ha ht)
+
+/-- Each clausePolyQ has totalDegree ≤ 3 (width-3 clause). -/
+private theorem clausePolyQ_totalDegree_le {N : ℕ} (c : CLClause N) :
+    (clausePolyQ c).totalDegree ≤ 3 := by
+  -- clausePolyQ = 1 - ∏(1 - lit), with ≤ 3 lits each of degree 1.
+  -- deg(1 - ∏...) ≤ max(0, deg ∏) ≤ Σ deg(1-lit) ≤ |lits| ≤ 3.
+  sorry
+
 theorem violationPolyQ_totalDegree_le {N : ℕ} (cnf : CookLevinCNF N) :
     (violationPolyQ cnf).totalDegree ≤ 6 := by
-  -- Each clausePolyQ has degree ≤ 3 (width-3 clause), squared ≤ 6.
-  -- totalDegree of sum ≤ max of totalDegrees of summands.
-  sorry
+  unfold violationPolyQ
+  apply totalDegree_list_sum_le
+  intro p hp
+  simp only [List.mem_map] at hp
+  obtain ⟨c, _, rfl⟩ := hp
+  calc (clausePolyQ c ^ 2).totalDegree
+      ≤ 2 * (clausePolyQ c).totalDegree := MvPolynomial.totalDegree_pow _ 2
+    _ ≤ 2 * 3 := Nat.mul_le_mul_left 2 (clausePolyQ_totalDegree_le c)
+    _ = 6 := by norm_num
 
 /-- Embed a polynomial from Fin N into Fin (N + κ) by mapping variables. -/
 noncomputable def embedPoly {N κ : ℕ}
