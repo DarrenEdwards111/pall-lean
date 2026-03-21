@@ -209,15 +209,61 @@ noncomputable def blockedSpdpRankQ {N : ℕ}
         (m.vars.image bp.blockOf).card ≤ ℓ ∧
         q = m * SPDP.iterDerivList S poly })
 
-/-- blockedSpdpRankQ is monotone in both κ and ℓ parameters.
-    Proof outline: generator set for (κ₁,ℓ₁) ⊆ (κ₂,ℓ₂), span₁ ≤ span₂,
-    and the spans are finite-dimensional (finitely many generators over Fin N),
-    so finrank₁ ≤ finrank₂ by Submodule.finrank_mono.
-    Axiomatized pending the finite-dimensionality certificate. -/
-axiom blockedSpdpRankQ_mono_params {N : ℕ}
+/-- Helper: every SPDP generator m * ∂^S(poly) has total degree bounded by
+    ℓ + poly.totalDegree, so the SPDP span lies inside restrictTotalDegree. -/
+private theorem spdp_span_le_restrictTotalDegree {N : ℕ}
+    (κ ℓ : ℕ) (poly : MvPolynomial (Fin N) ℚ) (bp : BlockPartition N) :
+    Submodule.span ℚ
+      { q | ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
+          S.length ≤ κ ∧
+          m.totalDegree ≤ ℓ ∧
+          (S.toFinset.image bp.blockOf).card ≤ κ ∧
+          (m.vars.image bp.blockOf).card ≤ ℓ ∧
+          q = m * SPDP.iterDerivList S poly }
+    ≤ MvPolynomial.restrictTotalDegree (Fin N) ℚ (ℓ + poly.totalDegree) := by
+  apply Submodule.span_le.mpr
+  intro q ⟨S, m, _, hdeg, _, _, hq⟩
+  subst hq; rw [SetLike.mem_coe, MvPolynomial.mem_restrictTotalDegree]
+  calc (m * SPDP.iterDerivList S poly).totalDegree
+      ≤ m.totalDegree + (SPDP.iterDerivList S poly).totalDegree :=
+        MvPolynomial.totalDegree_mul m (SPDP.iterDerivList S poly)
+    _ ≤ ℓ + poly.totalDegree :=
+        Nat.add_le_add hdeg (SPDP.totalDegree_iterDerivList_le S poly)
+
+/-- blockedSpdpRankQ is monotone in both κ and ℓ parameters:
+    larger κ,ℓ only add generators, growing the span.
+    The spans are finite-dimensional (live inside restrictTotalDegree
+    over Fin N which is Module.Finite), so finrank_mono applies. -/
+theorem blockedSpdpRankQ_mono_params {N : ℕ}
     (κ₁ ℓ₁ κ₂ ℓ₂ : ℕ) (poly : MvPolynomial (Fin N) ℚ)
     (bp : BlockPartition N) (hκ : κ₁ ≤ κ₂) (hℓ : ℓ₁ ≤ ℓ₂) :
-    blockedSpdpRankQ κ₁ ℓ₁ poly bp ≤ blockedSpdpRankQ κ₂ ℓ₂ poly bp
+    blockedSpdpRankQ κ₁ ℓ₁ poly bp ≤ blockedSpdpRankQ κ₂ ℓ₂ poly bp := by
+  unfold blockedSpdpRankQ
+  have h_sub : ({ q | ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
+      S.length ≤ κ₁ ∧ m.totalDegree ≤ ℓ₁ ∧
+      (S.toFinset.image bp.blockOf).card ≤ κ₁ ∧
+      (m.vars.image bp.blockOf).card ≤ ℓ₁ ∧
+      q = m * SPDP.iterDerivList S poly } : Set (MvPolynomial (Fin N) ℚ)) ⊆
+    { q | ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
+      S.length ≤ κ₂ ∧ m.totalDegree ≤ ℓ₂ ∧
+      (S.toFinset.image bp.blockOf).card ≤ κ₂ ∧
+      (m.vars.image bp.blockOf).card ≤ ℓ₂ ∧
+      q = m * SPDP.iterDerivList S poly } := by
+    intro q ⟨S, m, hlen, hdeg, hSblk, hmblk, hq⟩
+    exact ⟨S, m, le_trans hlen hκ, le_trans hdeg hℓ,
+      le_trans hSblk hκ, le_trans hmblk hℓ, hq⟩
+  -- The larger SPDP span is finite-dimensional: it lies inside
+  -- restrictTotalDegree (Fin N) ℚ (ℓ₂ + poly.totalDegree)
+  have hfin : Module.Finite ℚ ↥(Submodule.span ℚ
+    { q | ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
+      S.length ≤ κ₂ ∧ m.totalDegree ≤ ℓ₂ ∧
+      (S.toFinset.image bp.blockOf).card ≤ κ₂ ∧
+      (m.vars.image bp.blockOf).card ≤ ℓ₂ ∧
+      q = m * SPDP.iterDerivList S poly }) := by
+    apply Module.Finite.of_injective
+      (Submodule.inclusion (spdp_span_le_restrictTotalDegree κ₂ ℓ₂ poly bp))
+      (Submodule.inclusion_injective _)
+  exact Submodule.finrank_mono (Submodule.span_mono h_sub)
 
 
 end CompiledPoly
