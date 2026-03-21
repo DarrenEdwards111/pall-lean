@@ -1279,19 +1279,13 @@ theorem violation_rank_polynomial_bound (M : DTM) :
   -- With our scaffold: n+24 clauses on ≤ n^3 variables, each clause local.
   sorry
 
-/-- P-side collapse for violation polynomial (paper §4.2 + §5).
-    
-    The violation polynomial V = Σ clausePoly(c)² has CONSTANT degree (≤ 6).
-    The blocked SPDP rank with S-coupled shifts and cell partition is ≤ n^O(1).
-    
-    Paper argument (§4.2):
-    - Each row m · ∂^S(V) decomposes into local pieces from O(1) cells
-    - Each cell contributes O(1) basis vectors
-    - Total: T² · |local_basis| = n^O(1) rows span the entire matrix
-    - Profile compression (§5) further reduces to polylog
-    
-    NOTE: This is about the VIOLATION polynomial (sum form, deg O(1)),
-    not the product polynomial (violationPolyQ, deg O(n)). -/
+/-- P-side collapse: violation poly has polylog SPDP rank.
+    V = Σ clausePoly(c)² has deg ≤ 6. With S-coupled shifts + cell partition:
+    - Only |S| ≤ 6 derivatives contribute (deg V ≤ 6)
+    - S touches ≤ 6 blocks × ≤ 4 vars/block = 24 variables
+    - m coupled to S: ≤ 24 variables for shift monomials
+    - Rank ≤ dim(poly space on 30 vars, deg ≤ log n + 6) ≈ (log n)^30
+    So c = 50 suffices for (log n + 1)^c. -/
 axiom restricted_clause_survival (M : DTM) :
     ∃ (c : ℕ) (n₀ : ℕ), ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
       CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
