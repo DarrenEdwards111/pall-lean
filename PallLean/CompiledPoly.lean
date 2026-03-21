@@ -236,12 +236,46 @@ private theorem totalDegree_list_sum_le {σ : Type*} {R : Type*}
     have ht := ih (fun p hp => h p (by simp [hp]))
     exact le_trans (MvPolynomial.totalDegree_add a t.sum) (max_le ha ht)
 
-/-- Each clausePolyQ has totalDegree ≤ 3 (width-3 clause). -/
+/-- Each literal polynomial (X v or 1 - X v) has degree ≤ 1. -/
+private theorem literalPolyQ_totalDegree_le {N : ℕ} (lit : Fin N × Bool) :
+    (literalPolyQ lit).totalDegree ≤ 1 := by
+  unfold literalPolyQ
+  split
+  · exact le_of_eq (MvPolynomial.totalDegree_X lit.1)
+  · calc (1 - MvPolynomial.X lit.1 : MvPolynomial (Fin N) ℚ).totalDegree
+        ≤ max (1 : MvPolynomial (Fin N) ℚ).totalDegree (MvPolynomial.X lit.1).totalDegree :=
+          MvPolynomial.totalDegree_sub _ _
+      _ = max 0 1 := by rw [MvPolynomial.totalDegree_one, @MvPolynomial.totalDegree_X _ ℚ _ _]
+      _ = 1 := by norm_num
+
+private theorem one_sub_literalPolyQ_totalDegree_le {N : ℕ} (lit : Fin N × Bool) :
+    (1 - literalPolyQ lit : MvPolynomial (Fin N) ℚ).totalDegree ≤ 1 := by
+  calc (1 - literalPolyQ lit).totalDegree
+      ≤ max (1 : MvPolynomial (Fin N) ℚ).totalDegree (literalPolyQ lit).totalDegree :=
+        MvPolynomial.totalDegree_sub _ _
+    _ ≤ max 0 1 := max_le_max (le_of_eq MvPolynomial.totalDegree_one) (literalPolyQ_totalDegree_le lit)
+    _ = 1 := by norm_num
+
 private theorem clausePolyQ_totalDegree_le {N : ℕ} (c : CLClause N) :
     (clausePolyQ c).totalDegree ≤ 3 := by
-  -- clausePolyQ = 1 - ∏(1 - lit), with ≤ 3 lits each of degree 1.
-  -- deg(1 - ∏...) ≤ max(0, deg ∏) ≤ Σ deg(1-lit) ≤ |lits| ≤ 3.
-  sorry
+  -- clausePolyQ = 1 - ∏(1 - lit), each lit degree ≤ 1, ≤ 3 lits.
+  -- deg(1 - prod) ≤ max(0, deg prod) ≤ Σ deg(1-lit) ≤ |lits| ≤ 3.
+  -- Proof uses: totalDegree_sub, totalDegree_one, totalDegree_list_prod,
+  -- one_sub_literalPolyQ_totalDegree_le, width_le.
+  unfold clausePolyQ
+  have h1 : (1 : MvPolynomial (Fin N) ℚ).totalDegree = 0 := MvPolynomial.totalDegree_one
+  set prod := (c.lits.map (fun lit => 1 - literalPolyQ lit)).prod
+  have hsub : (1 - prod).totalDegree ≤ max 0 prod.totalDegree := by
+    calc (1 - prod).totalDegree ≤ max (1 : MvPolynomial (Fin N) ℚ).totalDegree prod.totalDegree :=
+        MvPolynomial.totalDegree_sub _ _
+      _ = max 0 prod.totalDegree := by rw [h1]
+  have hprod : prod.totalDegree ≤ 3 := by
+    apply le_trans (MvPolynomial.totalDegree_list_prod _)
+    apply le_trans _ c.width_le
+    -- sum of degrees ≤ length when each degree ≤ 1
+    -- Use List.sum_le_card_nsmul from our own helper
+    sorry
+  omega
 
 theorem violationPolyQ_totalDegree_le {N : ℕ} (cnf : CookLevinCNF N) :
     (violationPolyQ cnf).totalDegree ≤ 6 := by
