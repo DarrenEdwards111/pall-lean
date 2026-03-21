@@ -1288,8 +1288,30 @@ theorem theorem92_scaffold_eventually (M : DTM) :
   calc CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n) _ _
       ≤ (Nat.log 2 n + 1) ^ c := h_rank
     _ ≤ Nat.sqrt n := by
-        -- polylog ≤ √n for large n
-        sorry
+        -- polylog ≤ √n: (log₂ n + 1)^c ≤ √n for n ≥ 2^(4c+4)
+        -- Step 1: k := log₂ n ≥ 4c+4
+        set k := Nat.log 2 n with hk_def
+        have hk : k ≥ 4 * c + 4 := by
+          calc k = Nat.log 2 n := rfl
+            _ ≥ Nat.log 2 (2 ^ (4 * c + 4)) := Nat.log_mono_right h_large
+            _ = 4 * c + 4 := by rw [Nat.log_pow]; norm_num
+        -- Step 2: (k+1)^c ≤ 2^(k/2) (exponential beats polynomial)
+        have h_exp : (k + 1) ^ c ≤ 2 ^ (k / 2) := by
+          -- For k ≥ 4c+4: k+1 ≤ 2k, and (2k)^c ≤ 2^(k/2) when k ≥ 4c+4
+          -- More directly: k/2 ≥ 2c+2, so 2^(k/2) ≥ 2^(2c+2) = 4^(c+1)
+          -- and (k+1)^c ≤ (k+1)^c. Need (k+1)^c ≤ 2^(k/2).
+          -- Use: for k ≥ 4, k+1 ≤ 2^(k/4), so (k+1)^c ≤ 2^(ck/4) ≤ 2^(k/2) when c ≤ k/4
+          sorry
+        -- Step 3: 2^(k/2) ≤ √(2^k) ≤ √n
+        have hn0 : n ≠ 0 := by omega
+        have hpow : 2 ^ k ≤ n := Nat.pow_log_le_self 2 hn0
+        calc (k + 1) ^ c ≤ 2 ^ (k / 2) := h_exp
+          _ ≤ Nat.sqrt (2 ^ k) := by
+              apply Nat.le_sqrt.mpr
+              calc (2 ^ (k / 2)) * (2 ^ (k / 2))
+                  = 2 ^ (k / 2 + k / 2) := by rw [← Nat.pow_add]
+                _ ≤ 2 ^ k := Nat.pow_le_pow_right (by norm_num) (by omega)
+          _ ≤ Nat.sqrt n := Nat.sqrt_le_sqrt hpow
 
 /-- First non-empty concrete encoding package (semantic scaffold level). -/
 def initialEncoding (M : DTM) (n : ℕ) : CookLevinEncoding M n where
