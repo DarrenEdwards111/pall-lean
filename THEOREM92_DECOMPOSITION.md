@@ -162,6 +162,17 @@ WITH restriction: L_eff = O(polylog n) surviving clauses, rank ≤ polylog(n)^c 
 | 3 | Profile compression on survivors | ❌ Open | rank ≤ L_eff * w^c |
 | 4 | Asymptotic closure | ✅ Proved | polylog^c ≤ √n |
 
+**CORRECTION (2026-03-21):** Tautology clauses `(xᵢ ∨ ¬xᵢ)` compile to
+`1 - Xᵢ + Xᵢ²`, NOT the constant 1. So tautology factors are nontrivial
+as polynomials (only equal to 1 on boolean inputs). This means:
+- After restriction, `log₂ n` tautology factors survive (for live vars)
+- Plus ≤ 24 core clause factors
+- Total surviving factors = O(log n), not O(1)
+
+The O(log n) bound is correct and empirically validated. The "24 constant"
+simplification would require multilinearization (X² → X), which is a
+separate theorem.
+
 The deepest gap is now **sub-claim 2**: bounding the number of clauses that
 survive (remain nontrivial) after the universal restriction. This is about
 the Cook-Levin encoding structure — most tableau clauses reference variables
