@@ -223,6 +223,28 @@ theorem P_neq_NP_from_pside
   exact Nat.lt_irrefl _
     (Nat.lt_of_lt_of_le (Nat.lt_of_lt_of_le h_lower h_extraction) hrank_le)
 
+/-! ## Extraction Map Development (Paper §11-13)
+
+  The extraction map embeds the permanent's variable space (Fin (√n * √n))
+  into the compiled variable space (Fin (compiledVarCount k n)) and
+  constructs a pullback block partition so that the permanent's SPDP rank
+  under that partition is dominated by the compiled polynomial's rank.
+
+  Decomposition:
+  1. extractionBlockPartition — pullback of tableau partition through embedding
+  2. extraction rank monotonicity — from restriction rank monotonicity (Lemma 33)
+  3. IsCorrectEncoding assembly — final extraction theorem
+-/
+
+/-- Pullback of a block partition through a variable embedding.
+    If `f : Fin N₁ → Fin N₂` embeds one variable space into another,
+    the pullback partition on N₁ assigns each variable to the same block
+    as its image under f. -/
+def BlockPartition.pullback {N₁ N₂ : ℕ} (bp : BlockPartition N₂)
+    (f : Fin N₁ → Fin N₂) : BlockPartition N₁ where
+  numBlocks := bp.numBlocks
+  blockOf := bp.blockOf ∘ f
+
 /-- Semantic target predicate for scaffold correctness at a fixed `n`.
     This isolates the Cook-Levin correctness obligation from pside plumbing. -/
 def InitialSemanticCorrectAt (M : DTM) (n : ℕ) : Prop :=
