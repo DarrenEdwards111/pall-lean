@@ -197,7 +197,32 @@ noncomputable def compiledPolyQ {N : ℕ}
     (cnf : CookLevinCNF N) : MvPolynomial (Fin N) ℚ :=
   (cnf.clauses.map clausePolyQ).prod
 
-/-- Blocked SPDP rank over ℚ. -/
+/-- Blocked SPDP rank over ℚ.
+
+    IMPORTANT: Paper Definition 2.3 specifies three conditions we partially
+    capture here. The full paper-faithful version requires:
+
+    (A) **Multilinear convention**: work mod ⟨x²ᵢ - xᵢ⟩. This means
+        coefficient vectors are in the multilinear monomial basis.
+        Tautology clauses (x ∨ ¬x) compile to 1 in this basis.
+
+    (B) **S is block-admissible** (transversal): |S ∩ Bᵢ| ≤ 1 per block.
+        We approximate this with (S.toFinset.image bp.blockOf).card ≤ κ.
+        With the paper's cell-based partition (poly(n) blocks of O(1) vars),
+        this is equivalent to the transversal condition.
+
+    (C) **m is S-coupled**: every variable in supp(m) lies in a block that
+        also contains some element of S. This prevents ambient dimension
+        inflation. We approximate with (m.vars.image bp.blockOf).card ≤ ℓ.
+        With the cell-based partition, the S-coupling is MORE restrictive
+        (only blocks touched by S, not all blocks).
+
+    Current definition is an UPPER BOUND on the paper's rank (more rows
+    allowed). For the P-side bound to work, we need either:
+    - the cell-based partition (poly(n) blocks), or
+    - explicit S-coupling of shift monomials.
+    Both are documented as future refinements.
+-/
 noncomputable def blockedSpdpRankQ {N : ℕ}
     (κ ℓ : ℕ) (poly : MvPolynomial (Fin N) ℚ)
     (bp : BlockPartition N) : ℕ :=
