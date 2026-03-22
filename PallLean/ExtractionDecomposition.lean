@@ -62,13 +62,46 @@ theorem iterDerivList_rename {m N : ℕ} {F : Type*} [CommRing F]
     Proof: rename f maps each generator m·∂^S(p) to (rename f m)·∂^{fS}(rename f p).
     This is an injective map on the span (since rename f is an algebra embedding).
     So the image span ≤ the full span of rename f p's generators. -/
+-- Helper: rename preserves the generating set membership
+private theorem rename_gen_mem {m N : ℕ} (f : Fin m → Fin N) (hf : Function.Injective f)
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin m) ℚ) (bp : BlockPartition N)
+    (q : MvPolynomial (Fin m) ℚ)
+    (hq : q ∈ { r : MvPolynomial (Fin m) ℚ | ∃ S ms,
+      S.length ≤ κ ∧ ms.totalDegree ≤ ℓ ∧
+      (S.toFinset.image (CompiledPoly.BlockPartition.pullback bp f).blockOf).card =
+        S.toFinset.card ∧
+      (∀ v ∈ ms.vars, (CompiledPoly.BlockPartition.pullback bp f).blockOf v ∈
+        S.toFinset.image (CompiledPoly.BlockPartition.pullback bp f).blockOf) ∧
+      r = ms * SPDP.iterDerivList S p }) :
+    rename f q ∈ { r : MvPolynomial (Fin N) ℚ | ∃ S ms,
+      S.length ≤ κ ∧ ms.totalDegree ≤ ℓ ∧
+      (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+      (∀ v ∈ ms.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
+      r = ms * SPDP.iterDerivList S (rename f p) } := by
+  obtain ⟨S, ms, hlen, hdeg, htrans, hcoupl, rfl⟩ := hq
+  refine ⟨S.map f, rename f ms, by simp [hlen], ?_, ?_, ?_, ?_⟩
+  · -- totalDegree preserved
+    exact le_trans (totalDegree_rename_le f ms) hdeg
+  · -- Transversal transfers via f injective
+    -- (S.map f).toFinset.image bp.blockOf has same card as (S.map f).toFinset
+    -- because pullback.blockOf = bp.blockOf ∘ f
+    sorry -- Finset card manipulation with injective f
+  · -- S-coupling: ∀ v ∈ (rename f ms).vars, bp.blockOf v ∈ (S.map f).toFinset.image bp.blockOf
+    -- rename f ms has vars ⊆ f '' ms.vars (by MvPolynomial.vars_rename)
+    -- For v ∈ f '' ms.vars: v = f w for some w ∈ ms.vars
+    -- bp.blockOf (f w) = (pullback bp f).blockOf w ∈ S.toFinset.image (pullback bp f).blockOf
+    -- = (S.map f).toFinset.image bp.blockOf
+    sorry -- vars_rename + pullback definition
+  · -- Product + iterDerivList commute with rename
+    rw [map_mul, iterDerivList_rename f hf]
+
 theorem rename_rank_le {m N : ℕ} (f : Fin m → Fin N) (hf : Function.Injective f)
     (κ ℓ : ℕ) (p : MvPolynomial (Fin m) ℚ) (bp : BlockPartition N) :
     blockedSpdpRankQ κ ℓ p (CompiledPoly.BlockPartition.pullback bp f) ≤
       blockedSpdpRankQ κ ℓ (rename f p) bp := by
-  -- rename f is injective on MvPolynomial, so it preserves linear independence.
-  -- Each LHS generator maps to a RHS generator via rename f.
-  -- Therefore LHS rank ≤ RHS rank.
+  unfold blockedSpdpRankQ
+  -- rename f maps LHS span into RHS span, and is injective
+  -- So finrank(LHS) ≤ finrank(image of LHS under rename f) ≤ finrank(RHS)
   sorry
 
 /-! ## Sub-fact (C): Cook-Levin extraction
