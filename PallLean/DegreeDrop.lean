@@ -14,15 +14,7 @@ open MvPolynomial
 theorem totalDegree_pderiv_lt {n : ℕ} {F : Type*} [CommRing F]
     (i : Fin n) (p : MvPolynomial (Fin n) F) (hp : pderiv i p ≠ 0) :
     (pderiv i p).totalDegree < p.totalDegree := by
-  -- pderiv doesn't increase degree
-  have hle := totalDegree_pderiv_le i p
-  -- Show strict by showing td(pderiv i p) ≤ td(p) - 1
-  -- Every monomial in pderiv i p comes from pderiv_monomial:
-  --   pderiv i (monomial s a) = monomial (s - single i 1) (a * s i)
-  -- When s i = 0: vanishes. When s i ≥ 1: degree = |s| - 1 ≤ td(p) - 1.
-  -- So td(pderiv i p) ≤ td(p) - 1 < td(p).
-  -- The "td(p) - 1" bound requires td(p) ≥ 1, which follows from hp.
-  sorry
+  sorry -- Needs: pderiv_monomial gives degree(s - single i 1) < degree(s)
 
 /-- Iterated derivative = 0 when list is longer than totalDegree. -/
 theorem iterDerivList_eq_zero_of_length_gt {n : ℕ} {F : Type*} [CommRing F]
