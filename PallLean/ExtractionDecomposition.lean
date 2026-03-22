@@ -152,7 +152,9 @@ theorem rename_rank_le {m N : ℕ} (f : Fin m → Fin N) (hf : Function.Injectiv
   -- For the second ≤: image ≤ span rhs → finrank_mono
   -- The RHS span is finite-dimensional (inside restrictTotalDegree)
   have hfin_rhs : Module.Finite ℚ ↥(Submodule.span ℚ rhs_gens) := by
-    sorry -- SPDP span ⊆ restrictTotalDegree → Module.Finite
+    apply Module.Finite.of_injective
+      (Submodule.inclusion (CompiledPoly.spdp_span_le_restrictTotalDegree κ ℓ (rename f p) bp))
+      (Submodule.inclusion_injective _)
   -- rename f is injective → finrank(span lhs) = finrank(image)
   set ren := (rename f : MvPolynomial (Fin m) ℚ →ₐ[ℚ] MvPolynomial (Fin N) ℚ).toLinearMap
   have hren_inj : Function.Injective ren := MvPolynomial.rename_injective f hf

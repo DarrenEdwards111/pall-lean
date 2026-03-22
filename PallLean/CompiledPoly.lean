@@ -362,7 +362,7 @@ noncomputable def blockedSpdpRankQ {N : ℕ}
 
 /-- Helper: every SPDP generator m * ∂^S(poly) has total degree bounded by
     ℓ + poly.totalDegree, so the SPDP span lies inside restrictTotalDegree. -/
-private theorem spdp_span_le_restrictTotalDegree {N : ℕ}
+theorem spdp_span_le_restrictTotalDegree {N : ℕ}
     (κ ℓ : ℕ) (poly : MvPolynomial (Fin N) ℚ) (bp : BlockPartition N) :
     Submodule.span ℚ
       { q | ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
