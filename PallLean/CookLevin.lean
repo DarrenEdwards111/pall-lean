@@ -1343,8 +1343,10 @@ theorem theorem92_scaffold_eventually (M : DTM) :
                 = 2 ^ (k / 2 + k / 2) := by rw [← Nat.pow_add]
               _ ≤ 2 ^ k := Nat.pow_le_pow_right (by norm_num) (by omega)
         _ ≤ Nat.sqrt n := Nat.sqrt_le_sqrt hpow
-    -- Remains: (k+1)^c ≤ 2^(k/2) for k ≥ 2^(2c+2)
-    -- SORRY: exp beats poly for universally quantified c.
+    -- (k+1)^c ≤ 2^(k/2) for k ≥ 2^(2c+2)
+    -- Standard fact: exponential beats polynomial. For universally
+    -- quantified c, the formal proof requires careful Nat induction.
+    -- SORRY: (k+1)^c ≤ 2^(k/2), pure arithmetic, no mathematical content.
     sorry
   refine ⟨max n₀ N₁, ?_⟩
   intro n hn hn2
