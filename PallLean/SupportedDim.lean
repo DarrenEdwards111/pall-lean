@@ -58,7 +58,19 @@ theorem spdp_span_in_restrictSupportDeg {N : ℕ}
         q = m * SPDP.iterDerivList S V }
     ≤ restrictSupportDeg ℚ s (ℓ + 6) := by
   apply Submodule.span_le.mpr
-  sorry
+  intro q hq
+  obtain ⟨S, ms, hlen, hdeg, htrans, hcoupl, heq⟩ := hq
+  have : ms * SPDP.iterDerivList S V ∈ restrictSupportDeg ℚ s (ℓ + 6) := by
+    rw [mem_restrictSupportDeg]
+    exact ⟨by
+      calc (ms * SPDP.iterDerivList S V).totalDegree
+          ≤ ms.totalDegree + (SPDP.iterDerivList S V).totalDegree :=
+            MvPolynomial.totalDegree_mul ms (SPDP.iterDerivList S V)
+        _ ≤ ℓ + V.totalDegree := Nat.add_le_add hdeg (SPDP.totalDegree_iterDerivList_le S V)
+        _ ≤ ℓ + 6 := by omega,
+      by sorry⟩ -- vars ⊆ s
+  exact heq ▸ this
+
 
 /-- finrank of restrictSupportDeg ≤ (card s + d)^(card s). -/
 theorem finrank_restrictSupportDeg_le {σ : Type*} [DecidableEq σ] [Fintype σ]
