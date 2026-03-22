@@ -1384,9 +1384,29 @@ private theorem succ_le_sq_of_div (k c : ℕ) (hc : 1 ≤ c) (hm : k / (2 * c) �
 -- (k+1)^c ≤ 2^(k/2) for k ≥ 2^(2c+2)
 private theorem exp_beats_poly_general_exists (c : ℕ) :
     ∃ K : ℕ, ∀ k ≥ K, (k + 1) ^ c ≤ 2 ^ (k / 2) := by
-  -- Proved helpers: quad_le_exp, div_2c_large, succ_le_sq_of_div, sq_le_pow2, mul_div_div_le
-  -- Assembly needs minor fixes (m ≥ 4 threshold, pow_mul direction)
-  sorry
+  by_cases hc : c = 0
+  · subst hc; exact ⟨0, fun _ _ => Nat.one_le_two_pow⟩
+  · have hc1 : 1 ≤ c := by omega
+    -- Threshold: max(2^(2c+2), 8c) ensures both div_2c_large and m ≥ 4
+    use max (2 ^ (2 * c + 2)) (8 * c)
+    intro k hk
+    have hk1 : 2 ^ (2 * c + 2) ≤ k := le_trans (le_max_left _ _) hk
+    have hk2 : 8 * c ≤ k := le_trans (le_max_right _ _) hk
+    set m := k / (2 * c) with hm_def
+    have hm_large := div_2c_large k c hc1 hk1
+    have hm4 : m ≥ 4 := by
+      rw [hm_def]
+      apply (Nat.le_div_iff_mul_le (by omega : 0 < 2 * c)).mpr
+      calc 4 * (2 * c) = 8 * c := by ring
+        _ ≤ k := hk2
+    calc (k + 1) ^ c
+        ≤ (m ^ 2) ^ c := Nat.pow_le_pow_left (succ_le_sq_of_div k c hc1 hm_large) c
+      _ ≤ (2 ^ m) ^ c := Nat.pow_le_pow_left (sq_le_pow2 m hm4) c
+      _ = 2 ^ (m * c) := by rw [← pow_mul]
+      _ ≤ 2 ^ (k / 2) := by
+          apply Nat.pow_le_pow_right (by norm_num : 1 ≤ 2)
+          calc m * c = c * m := by ring
+            _ ≤ k / 2 := mul_div_div_le k c hc1
 
 theorem theorem92_scaffold_eventually (M : DTM) :
     ∃ n₀ : ℕ, ScaffoldBoundAfter M n₀ := by
