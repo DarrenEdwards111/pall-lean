@@ -1320,11 +1320,12 @@ private theorem sq_le_pow2 (m : ℕ) (hm : m ≥ 4) : m ^ 2 ≤ 2 ^ m := by
       have : n = 3 := by omega
       subst this; norm_num
 
--- (k+1)^c ≤ 2^(k/2) for k ≥ 2^(2c+2)
--- Proof sketch: let m = k/(2c). Then m ≥ 4 and m ≥ 2c+1.
--- (k+1) ≤ 2c(m+1) ≤ m² ≤ 2^m. So (k+1)^c ≤ 2^(mc) = 2^(k/2).
-private theorem exp_beats_poly_general (c k : ℕ) (hk : k ≥ 2 ^ (2 * c + 2)) :
-    (k + 1) ^ c ≤ 2 ^ (k / 2) := by
+-- (k+1)^c ≤ 2^(k/2) eventually, via real asymptotics
+private theorem exp_beats_poly_general_exists (c : ℕ) :
+    ∃ K : ℕ, ∀ k ≥ K, (k + 1) ^ c ≤ 2 ^ (k / 2) := by
+  -- From mathlib: x^c =o[atTop] exp(b*x) for any b > 0.
+  -- Use b = (Real.log 2) / 2 > 0, so exp(b*x) = 2^(x/2).
+  -- Eventually (x+1)^c ≤ 2^(x/2) on ℝ, then pull back to ℕ.
   sorry
 
 theorem theorem92_scaffold_eventually (M : DTM) :
@@ -1339,51 +1340,27 @@ theorem theorem92_scaffold_eventually (M : DTM) :
   -- Use the fact that polylog grows slower than any root.
   -- We pick a nonconstructive threshold via Classical.choice.
   have ⟨N₁, hN₁⟩ : ∃ N₁, ∀ n ≥ N₁, (Nat.log 2 n + 1) ^ c ≤ Nat.sqrt n := by
-    -- Use: for n ≥ 2^(4^c), (log₂ n + 1)^c ≤ √n.
-    -- Proof: log₂ n ≥ 4^c, so log₂ n + 1 ≤ 2*log₂ n ≤ 2*4^c*... no.
-    -- Direct: for large n, √n grows faster than any polylog.
-    -- Constructive threshold: n = 2^(2^(2c+2)).
-    -- Then log₂ n = 2^(2c+2), √n = 2^(2^(2c+1)).
-    -- (log₂ n + 1)^c ≤ (2^(2c+2) + 1)^c ≤ (2^(2c+3))^c = 2^(c(2c+3)).
-    -- √n = 2^(2^(2c+1)) ≥ 2^(c(2c+3)) when 2^(2c+1) ≥ c(2c+3).
-    -- For c ≥ 1: 2^(2c+1) ≥ 2^3 = 8 ≥ 1*5 = c(2c+3). ✓ for c=1.
-    -- For c ≥ 2: 2^5 = 32 ≥ 2*7 = 14. ✓
-    -- In general: 2^(2c+1) ≥ c(2c+3) for all c ≥ 0 (exponential beats quadratic).
-    use 2 ^ 2 ^ (2 * c + 2)
+    -- Get threshold K where (k+1)^c ≤ 2^(k/2) for k ≥ K
+    obtain ⟨K, hK⟩ := exp_beats_poly_general_exists c
+    -- Use n ≥ 2^K as threshold (then log₂ n ≥ K)
+    use 2 ^ K
     intro n hn
-    -- log₂ n ≥ 2^(2c+2)
-    have hlog : Nat.log 2 n ≥ 2 ^ (2 * c + 2) := by
-      calc Nat.log 2 n ≥ Nat.log 2 (2 ^ 2 ^ (2 * c + 2)) := Nat.log_mono_right hn
-        _ = 2 ^ (2 * c + 2) := by rw [Nat.log_pow]; norm_num
-    -- √n ≥ 2^(2^(2c+1))
-    have hsqrt : Nat.sqrt n ≥ 2 ^ 2 ^ (2 * c + 1) := by
-      apply Nat.le_sqrt.mpr
-      calc 2 ^ 2 ^ (2 * c + 1) * 2 ^ 2 ^ (2 * c + 1)
-          = 2 ^ (2 ^ (2 * c + 1) + 2 ^ (2 * c + 1)) := by rw [← Nat.pow_add]
-        _ = 2 ^ 2 ^ (2 * c + 2) := by ring_nf
-        _ ≤ n := hn
-    -- (log₂ n + 1)^c ≤ √n via: (log+1)^c ≤ 2^(log/2) ≤ √n
-    -- Step A: (k+1)^c ≤ 2^(k/2) for k = log₂ n ≥ 2^(2c+2)
     set k := Nat.log 2 n
-    have hk := hlog -- k ≥ 2^(2c+2)
-    -- Step B: 2^(k/2) ≤ √n (same as core_polylog_le_sqrt proof)
+    have hk : k ≥ K := by
+      calc k = Nat.log 2 n := rfl
+        _ ≥ Nat.log 2 (2 ^ K) := Nat.log_mono_right hn
+        _ = K := by rw [Nat.log_pow]; norm_num
     have hn0 : n ≠ 0 := by
-      have : 0 < 2 ^ 2 ^ (2 * c + 2) := Nat.pos_of_ne_zero (by positivity)
+      have : 0 < 2 ^ K := Nat.pos_of_ne_zero (by positivity)
       omega
     have hpow : 2 ^ k ≤ n := Nat.pow_log_le_self 2 hn0
-    suffices h : (k + 1) ^ c ≤ 2 ^ (k / 2) by
-      calc (k + 1) ^ c ≤ 2 ^ (k / 2) := h
-        _ ≤ Nat.sqrt (2 ^ k) := by
-            apply Nat.le_sqrt.mpr
-            calc 2 ^ (k / 2) * 2 ^ (k / 2)
-                = 2 ^ (k / 2 + k / 2) := by rw [← Nat.pow_add]
-              _ ≤ 2 ^ k := Nat.pow_le_pow_right (by norm_num) (by omega)
-        _ ≤ Nat.sqrt n := Nat.sqrt_le_sqrt hpow
-    -- (k+1)^c ≤ 2^(k/2) for k ≥ 2^(2c+2).
-    -- TRUE: exponential grows faster than any polynomial.
-    -- Formal proof for universally quantified c is non-trivial in Nat.
-    -- Tagged as arithmetic obligation (zero mathematical content).
-    exact exp_beats_poly_general c k hk
+    calc (k + 1) ^ c ≤ 2 ^ (k / 2) := hK k hk
+      _ ≤ Nat.sqrt (2 ^ k) := by
+          apply Nat.le_sqrt.mpr
+          calc 2 ^ (k / 2) * 2 ^ (k / 2)
+              = 2 ^ (k / 2 + k / 2) := by rw [← Nat.pow_add]
+            _ ≤ 2 ^ k := Nat.pow_le_pow_right (by norm_num) (by omega)
+      _ ≤ Nat.sqrt n := Nat.sqrt_le_sqrt hpow
   refine ⟨max n₀ N₁, ?_⟩
   intro n hn hn2
   have hn₀ : n ≥ n₀ := le_trans (le_max_left _ _) hn
