@@ -44,7 +44,10 @@ open MvPolynomial CompiledPoly CookLevin SPDP
 theorem vars_pderiv_subset {N : ℕ} {F : Type*} [CommRing F]
     (i : Fin N) (p : MvPolynomial (Fin N) F) :
     (MvPolynomial.pderiv i p).vars ⊆ p.vars := by
-  sorry -- Each output monomial's support ⊆ input monomial's support
+  -- vars(pderiv i p) ⊆ vars(p): pderiv is a derivation, doesn't add vars.
+  -- Proof via: p = Σ monomial s (coeff s p), pderiv linear,
+  -- vars_sum_subset, and (s - single i 1).support ⊆ s.support.
+  sorry
 
 /-- If S.toFinset ⊄ V.vars, iterDerivList S V = 0.
     Avoids ∃ v ∈ S form (Lean 4 List.Mem constructor issue). -/
