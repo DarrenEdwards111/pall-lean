@@ -148,10 +148,6 @@ theorem spdpRank_ml_le {N : ℕ}
         -- With scaffold: V.vars in 2 blocks of 4 → blockClosure = 8 vars.
         -- Use s.card ≤ 24 (sorry: scaffold-specific block analysis)
         sorry
-          _ = (ℓ + 14) ^ 8 := by ring
-          _ ≤ (ℓ + 30) ^ 30 := by
-              apply le_trans (Nat.pow_le_pow_left (by omega : ℓ + 14 ≤ ℓ + 30) 8)
-              exact Nat.pow_le_pow_right (by omega : 1 ≤ ℓ + 30) (by omega)
 
 /-- restricted_clause_survival with c = 20 and the correct multilinear V.
     
