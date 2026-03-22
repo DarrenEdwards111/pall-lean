@@ -29,12 +29,53 @@ private lemma finsupp_sum_tsub_single_lt {n : ℕ} (s : Fin n →₀ ℕ) (i : F
     rw [Finsupp.tsub_apply, Finsupp.single_eq_same]
     omega
 
-/-- pderiv strictly decreases totalDegree when nonzero.
-    SORRY: needs monomial-level support analysis of pderiv. -/
 theorem totalDegree_pderiv_lt {n : ℕ} {F : Type*} [CommRing F]
     (i : Fin n) (p : MvPolynomial (Fin n) F) (hp : pderiv i p ≠ 0) :
     (pderiv i p).totalDegree < p.totalDegree := by
-  sorry
+  classical
+  -- Write pderiv i p as sum over p.support
+  have hpd : pderiv i p = p.support.sum (fun s => pderiv i (monomial s (p.coeff s))) := by
+    conv_lhs => rw [p.as_sum]
+    rw [map_sum]
+  -- td(p) > 0 (otherwise p constant → pderiv = 0)
+  have hne : p ≠ 0 := by intro h; rw [h, map_zero] at hp; exact hp rfl
+  have htd_pos : 0 < p.totalDegree := by
+    by_contra h; push_neg at h
+    apply hp
+    rw [hpd]
+    apply Finset.sum_eq_zero
+    intro s hs
+    rw [pderiv_monomial]
+    -- s ∈ p.support and td(p) = 0 → degree(s) = 0 → s = 0 → s i = 0
+    have hsd : s.sum (fun _ e => e) ≤ 0 := le_trans (le_totalDegree hs) (by omega)
+    have hsd0 : s.sum (fun _ e => e) = 0 := by omega
+    -- s i = 0 because s(j) ≥ 0 for all j and sum = 0
+    have hsi : s i = 0 := by
+      -- If s i > 0 then s.sum id ≥ s i > 0, contradicting hsd0
+      by_contra hi; push_neg at hi
+      have hpos : 0 < s i := by omega
+      have : s i ≤ s.sum (fun _ e => e) := by
+        apply Finset.single_le_sum (fun j _ => Nat.zero_le (s j))
+        exact Finsupp.mem_support_iff.mpr (by omega)
+      omega
+    simp [hsi]
+  -- Each summand pderiv i (monomial s c) = monomial (s - single i 1) (c * s i)
+  -- has degree < td(p):
+  --   if s i = 0: the monomial is 0 (coeff = c * 0 = 0)
+  --   if s i ≥ 1: degree = (s - single i 1).sum id < s.sum id ≤ td(p)
+  calc (pderiv i p).totalDegree
+      = (p.support.sum (fun s => pderiv i (monomial s (p.coeff s)))).totalDegree :=
+        congr_arg totalDegree hpd
+    _ ≤ p.support.sup (fun s => (pderiv i (monomial s (p.coeff s))).totalDegree) :=
+        totalDegree_finset_sum _ _
+    _ < p.totalDegree := by
+        rw [Finset.sup_lt_iff (by omega)]
+        intro s hs
+        rw [pderiv_monomial]
+        by_cases hsi : s i = 0
+        · simp [hsi]; omega
+        · exact lt_of_le_of_lt (totalDegree_monomial_le _ _)
+            (lt_of_lt_of_le (finsupp_sum_tsub_single_lt s i (by omega)) (le_totalDegree hs))
 
 /-- Iterated derivative = 0 when list is longer than totalDegree. -/
 theorem iterDerivList_eq_zero_of_length_gt {n : ℕ} {F : Type*} [CommRing F]
