@@ -71,11 +71,12 @@ theorem finrank_restrictSupportDeg_le {σ : Type*} [DecidableEq σ] [Fintype σ]
   -- |boundedSupp s d| = number of Finsupp n with n.sum id ≤ d and n.support ⊆ s
   -- = number of multisets of size ≤ d from s = C(|s|+d, |s|) ≤ (|s|+d)^|s|
   --
-  -- finrank(restrictSupportDeg s d) ≤ finrank(restrictTotalDegree d)
-  -- ≤ C(|σ|+d, |σ|) ≤ (|σ|+d)^|σ|
-  -- This is too weak (depends on |σ| not |s|).
-  -- For the tight bound: finrank = |boundedSupp s d| = C(|s|+d, |s|) ≤ (|s|+d)^|s|.
-  -- Needs Fintype instance for boundedSupp and card counting.
+  -- The basis of restrictSupportDeg is indexed by boundedSupp s d.
+  -- |boundedSupp s d| = C(|s|+d, |s|) ≤ (|s|+d)^|s| (stars and bars + choose_le_pow).
+  -- We use: finrank ≤ finrank(restrictTotalDegree d) for any containing type,
+  -- but need the bound to depend on |s|.
+  -- 
+  -- Direct approach: sorry (needs Fintype instance for boundedSupp + card counting)
   sorry
 
 /-- Module.Finite for restrictSupportDeg (subset of restrictTotalDegree). -/
