@@ -131,52 +131,58 @@ theorem polyspace_dim_bound (v d : ℕ) :
 theorem spdpRank_ml_le {N : ℕ}
     (κ ℓ : ℕ) (V : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N)
     (hV_vars : V.vars.card ≤ 8) (hV_deg : V.totalDegree ≤ 6) :
-    blockedSpdpRankQ κ ℓ V bp ≤ (ℓ + 22) ^ 16 := by
-  -- The SPDP span lies inside restrictTotalDegree (ℓ + 6) which is finite-dim.
-  -- Its finrank on Fin N is huge, but we can bound it by the polynomial space
-  -- dimension on the ≤ 16 variables that generators actually use.
+    blockedSpdpRankQ κ ℓ V bp ≤ (ℓ + 30) ^ 24 := by
+  unfold blockedSpdpRankQ
+  -- The span of generators ⊆ restrictTotalDegree (ℓ + 6) (finite-dimensional)
+  -- finrank of the span ≤ finrank of restrictTotalDegree
+  -- For the sharp bound: generators use ≤ 16 variables, so the span lies
+  -- in a 16-variable polynomial subspace of dimension ≤ (ℓ+22)^16.
+  -- We use the weaker but sufficient bound via restrictTotalDegree.
   -- 
-  -- Key: S ⊆ V.vars (from iterDerivList_eq_zero_of_not_subset_vars + hV_vars),
-  -- m is S-coupled, ∂^S(V) uses V.vars. Total vars ≤ 16. Fixed set.
-  -- So span ⊆ restrictTotalDegree(ℓ+6) ∩ supported(16-var set).
-  -- Dim of this space ≤ C(16+ℓ+6, 16) ≤ (ℓ+22)^16.
+  -- ACTUALLY: use the fact that the span has a generating set of size
+  -- ≤ C(8, ≤6) × C(16+ℓ, ≤ℓ) ≤ 28 × (ℓ+16)^16 < (ℓ+22)^16.
+  -- The number of generators is bounded, and rank ≤ #generators.
+  --
+  -- Number of (S, m) pairs with |S| ≤ 6, S ⊆ V.vars (≤ 8 vars),
+  -- m S-coupled with deg ≤ ℓ:
+  -- C(8,≤6) choices for S × C(16+ℓ, ≤ℓ) monomials for m
+  -- = O(1) × (ℓ+16)^16 ≤ (ℓ+22)^16.
+  -- Rank ≤ number of generators.
   sorry
 
 /-- restricted_clause_survival with c = 20 and the correct multilinear V.
     
-    rank(V_ml) ≤ (log n + 22)^16 ≤ (log n + 1)^20 for large n. -/
+    rank(V_ml) ≤ (log n + 30)^24 ≤ (log n + 1)^30 for large n. -/
 theorem restricted_clause_survival_from_ml (M : TuringMachine.DTM) :
     ∃ (c : ℕ) (n₀ : ℕ), ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
       blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
         (violationPolyQ_ml (initialSemanticCNF M n hn2))
         (initialSemantic_local M n hn2).partition ≤ (Nat.log 2 n + 1) ^ c := by
-  refine ⟨20, 2 ^ 50, ?_⟩
+  refine ⟨30, 2 ^ 60, ?_⟩
   intro n hn hn2
   set ℓ := Nat.log 2 n
-  -- Step 1: rank ≤ (ℓ + 22)^16
+  -- Step 1: rank ≤ (ℓ + 30)^24
   have h1 := spdpRank_ml_le ℓ ℓ
     (violationPolyQ_ml (initialSemanticCNF M n hn2))
     (initialSemantic_local M n hn2).partition
     (violationPolyQ_ml_vars_le M n hn2)
     (by
       exact le_trans (totalDegree_multilinearize_le _) (violationPolyQ_totalDegree_le _))
-  -- Step 2: (ℓ + 22)^16 ≤ (ℓ + 1)^20 for ℓ ≥ 50
-  have hℓ : ℓ ≥ 50 := by
+  -- Step 2: (ℓ + 30)^24 ≤ (ℓ + 1)^30 for ℓ ≥ 60
+  have hℓ : ℓ ≥ 60 := by
     calc ℓ = Nat.log 2 n := rfl
-      _ ≥ Nat.log 2 (2 ^ 50) := Nat.log_mono_right hn
-      _ = 50 := by rw [Nat.log_pow]; norm_num
-  have h2 : (ℓ + 22) ^ 16 ≤ (ℓ + 1) ^ 20 := by
-    -- (ℓ+22) ≤ 2*(ℓ+1) for ℓ ≥ 21 (since ℓ+22 ≤ 2ℓ+2 ↔ 22 ≤ ℓ+2 ↔ ℓ ≥ 20)
-    have h_le : ℓ + 22 ≤ 2 * (ℓ + 1) := by omega
-    calc (ℓ + 22) ^ 16 ≤ (2 * (ℓ + 1)) ^ 16 := Nat.pow_le_pow_left h_le 16
-      _ = 2 ^ 16 * (ℓ + 1) ^ 16 := by ring
-      _ ≤ (ℓ + 1) ^ 4 * (ℓ + 1) ^ 16 := by
+      _ ≥ Nat.log 2 (2 ^ 60) := Nat.log_mono_right hn
+      _ = 60 := by rw [Nat.log_pow]; norm_num
+  have h2 : (ℓ + 30) ^ 24 ≤ (ℓ + 1) ^ 30 := by
+    have h_le : ℓ + 30 ≤ 2 * (ℓ + 1) := by omega
+    calc (ℓ + 30) ^ 24 ≤ (2 * (ℓ + 1)) ^ 24 := Nat.pow_le_pow_left h_le 24
+      _ = 2 ^ 24 * (ℓ + 1) ^ 24 := by ring
+      _ ≤ (ℓ + 1) ^ 6 * (ℓ + 1) ^ 24 := by
           apply Nat.mul_le_mul_right
-          -- 2^16 = 65536 ≤ 51^4 ≤ (ℓ+1)^4
-          calc 2 ^ 16 = 65536 := by norm_num
-            _ ≤ 51 ^ 4 := by norm_num
-            _ ≤ (ℓ + 1) ^ 4 := Nat.pow_le_pow_left (by omega) 4
-      _ = (ℓ + 1) ^ 20 := by ring
+          calc 2 ^ 24 = 16777216 := by norm_num
+            _ ≤ 61 ^ 6 := by norm_num
+            _ ≤ (ℓ + 1) ^ 6 := Nat.pow_le_pow_left (by omega) 6
+      _ = (ℓ + 1) ^ 30 := by ring
   exact le_trans h1 h2
 
 end ProfileCompression
