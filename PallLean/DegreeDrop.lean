@@ -12,14 +12,14 @@ namespace SPDP
 
 open MvPolynomial
 
-/-- pderiv strictly decreases totalDegree when the result is nonzero. -/
+/-- pderiv strictly decreases totalDegree when the result is nonzero.
+    Proof: pderiv_monomial gives monomial(s - single i 1, a * s(i)).
+    When s(i) = 0: coefficient vanishes. When s(i) ≥ 1: output degree = |s| - 1.
+    So td(pderiv i p) ≤ max_{s ∈ supp(p), s(i)≥1} (|s| - 1) ≤ td(p) - 1. -/
 theorem totalDegree_pderiv_lt {n : ℕ} {F : Type*} [CommRing F]
     (i : Fin n) (p : MvPolynomial (Fin n) F) (hp : pderiv i p ≠ 0) :
     (pderiv i p).totalDegree < p.totalDegree := by
-  -- Each monomial in pderiv i p has degree ≤ td(p) - 1.
-  -- pderiv i (monomial s c) = c * s(i) * monomial (s - single i 1) 1
-  -- degree(s - single i 1) = |s| - 1 ≤ td(p) - 1
-  -- So td(pderiv i p) ≤ td(p) - 1 < td(p).
+  -- Proof uses pderiv_monomial + totalDegree_finset_sum + le_totalDegree
   sorry
 
 /-- Iterated derivative = 0 when list is longer than totalDegree.
