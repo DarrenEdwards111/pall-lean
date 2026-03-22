@@ -40,6 +40,15 @@ open MvPolynomial CompiledPoly CookLevin SPDP
   compiled variable space). So V_ml depends on at most 8 variables.
 -/
 
+/-- If any element of S is not in V.vars, then iterDerivList S V = 0. -/
+/-- If S contains a variable not in V.vars, iterDerivList S V = 0.
+    Uses pderiv_eq_zero_of_notMem_vars from mathlib. -/
+theorem iterDerivList_eq_zero_of_not_subset_vars {N : ℕ} {F : Type*} [CommRing F]
+    (S : List (Fin N)) (V : MvPolynomial (Fin N) F)
+    (h : ∃ v ∈ S, v ∉ V.vars) :
+    SPDP.iterDerivList S V = 0 := by
+  sorry -- Uses: pderiv_eq_zero_of_notMem_vars + vars(pderiv) ⊆ vars(V) + induction
+
 /-- The multilinearized violation polynomial depends on ≤ 8 scaffold variables.
     (Indices 0-7 in compiledVarCount space.) -/
 theorem violationPolyQ_ml_vars_le (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2) :
