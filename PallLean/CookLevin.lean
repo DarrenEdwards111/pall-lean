@@ -803,12 +803,12 @@ def initialSemantic_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
 theorem initialSemantic_rank_le_restrictFinrank
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (κ : ℕ) :
     CompiledPoly.blockedSpdpRankQ κ κ
-      (CompiledPoly.violationPolyQ (initialSemanticCNF M n hn2))
+      (CompiledPoly.violationPolyQ_ml (initialSemanticCNF M n hn2))
       (initialSemantic_local M n hn2).partition
     ≤ Module.finrank ℚ
         (MvPolynomial.restrictTotalDegree (Fin (compiledVarCount (defaultK M) n)) ℚ
-          (κ + (CompiledPoly.violationPolyQ (initialSemanticCNF M n hn2)).totalDegree)) := by
-  let poly := CompiledPoly.violationPolyQ (initialSemanticCNF M n hn2)
+          (κ + (CompiledPoly.violationPolyQ_ml (initialSemanticCNF M n hn2)).totalDegree)) := by
+  let poly := CompiledPoly.violationPolyQ_ml (initialSemanticCNF M n hn2)
   let bp := (initialSemantic_local M n hn2).partition
   let spdp : Set (MvPolynomial (Fin (compiledVarCount (defaultK M) n)) ℚ) :=
     { q | ∃ (S : List (Fin (compiledVarCount (defaultK M) n)))
@@ -837,7 +837,7 @@ theorem initialSemantic_rank_le_restrictFinrank
 noncomputable def ambientFinrankBudget (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (κ : ℕ) : ℕ :=
   Module.finrank ℚ
     (MvPolynomial.restrictTotalDegree (Fin (compiledVarCount (defaultK M) n)) ℚ
-      (κ + (CompiledPoly.violationPolyQ (initialSemanticCNF M n hn2)).totalDegree))
+      (κ + (CompiledPoly.violationPolyQ_ml (initialSemanticCNF M n hn2)).totalDegree))
 
 /-- Combined proxy budget: max(ambient finrank budget, core profile-count budget).
     Paper-faithful choice: closure uses compression-core templates. -/
@@ -848,7 +848,7 @@ noncomputable def combinedRankProxyBudget (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (�
 theorem initialSemantic_rank_le_combinedProxy
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (κ : ℕ) :
     CompiledPoly.blockedSpdpRankQ κ κ
-      (CompiledPoly.violationPolyQ (initialSemanticCNF M n hn2))
+      (CompiledPoly.violationPolyQ_ml (initialSemanticCNF M n hn2))
       (initialSemantic_local M n hn2).partition
     ≤ combinedRankProxyBudget M n hn2 κ := by
   unfold combinedRankProxyBudget
@@ -860,7 +860,7 @@ theorem initialSemantic_rank_le_combinedProxy
 theorem initialSemantic_logRank_le_combinedProxy
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (CompiledPoly.violationPolyQ (initialSemanticCNF M n hn2))
+      (CompiledPoly.violationPolyQ_ml (initialSemanticCNF M n hn2))
       (initialSemantic_local M n hn2).partition
     ≤ combinedRankProxyBudget M n hn2 (Nat.log 2 n) := by
   exact initialSemantic_rank_le_combinedProxy M n hn2 (Nat.log 2 n)
@@ -956,7 +956,7 @@ theorem initialSemantic_logRank_le_sqrt_of_target
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (hTarget : logCompressionTarget M n hn2) :
     CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (CompiledPoly.violationPolyQ (initialSemanticCNF M n hn2))
+      (CompiledPoly.violationPolyQ_ml (initialSemanticCNF M n hn2))
       (initialSemantic_local M n hn2).partition
     ≤ Nat.sqrt n := by
   exact le_trans (initialSemantic_logRank_le_combinedProxy M n hn2) hTarget
@@ -966,7 +966,7 @@ theorem remaining_profile_compression_obligation
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     logCompressionTarget M n hn2 →
     CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (CompiledPoly.violationPolyQ (initialSemanticCNF M n hn2))
+      (CompiledPoly.violationPolyQ_ml (initialSemanticCNF M n hn2))
       (initialSemantic_local M n hn2).partition
     ≤ Nat.sqrt n :=
   initialSemantic_logRank_le_sqrt_of_target M n hn2
@@ -977,7 +977,7 @@ theorem remaining_profile_compression_obligation_split
     (hAmbient : ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n)
     (hCorePolylog : 24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n) :
     CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (CompiledPoly.violationPolyQ (initialSemanticCNF M n hn2))
+      (CompiledPoly.violationPolyQ_ml (initialSemanticCNF M n hn2))
       (initialSemantic_local M n hn2).partition
     ≤ Nat.sqrt n :=
   initialSemantic_logRank_le_sqrt_of_target M n hn2
@@ -989,7 +989,7 @@ theorem theorem92_scaffold_closure
     (hAmbient : ambientFinrankBudget M n hn2 (Nat.log 2 n) ≤ Nat.sqrt n)
     (hCorePolylog : 24 * ((Nat.log 2 n + 1) ^ 3) ≤ Nat.sqrt n) :
     CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (CompiledPoly.violationPolyQ (initialSemanticCNF M n hn2))
+      (CompiledPoly.violationPolyQ_ml (initialSemanticCNF M n hn2))
       (initialSemantic_local M n hn2).partition
     ≤ Nat.sqrt n :=
   remaining_profile_compression_obligation_split M n hn2 hAmbient hCorePolylog
@@ -1156,7 +1156,7 @@ theorem scaffoldCompressionAfter_threshold (M : DTM) :
 def ScaffoldBoundAfter (M : DTM) (n₀ : ℕ) : Prop :=
   ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
     CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (CompiledPoly.violationPolyQ (initialSemanticCNF M n hn2))
+      (CompiledPoly.violationPolyQ_ml (initialSemanticCNF M n hn2))
       (initialSemantic_local M n hn2).partition
     ≤ Nat.sqrt n
 
@@ -1165,7 +1165,7 @@ def ScaffoldBoundAfter (M : DTM) (n₀ : ℕ) : Prop :=
 theorem theorem92_scaffold_after_threshold
     (M : DTM) (n : ℕ) (hn : n ≥ scaffoldClosureThreshold M) (hn2 : n ≥ 2) :
     CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (CompiledPoly.violationPolyQ (initialSemanticCNF M n hn2))
+      (CompiledPoly.violationPolyQ_ml (initialSemanticCNF M n hn2))
       (initialSemantic_local M n hn2).partition
     ≤ Nat.sqrt n := by
   have hComp : ScaffoldCompressionAfter M (scaffoldClosureThreshold M) :=
@@ -1280,7 +1280,7 @@ theorem surviving_factor_count_le (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
 axiom restricted_clause_survival (M : DTM) :
     ∃ (c : ℕ) (n₀ : ℕ), ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
       CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-        (CompiledPoly.violationPolyQ (initialSemanticCNF M n hn2))
+        (CompiledPoly.violationPolyQ_ml (initialSemanticCNF M n hn2))
         (initialSemantic_local M n hn2).partition ≤ (Nat.log 2 n + 1) ^ c
 
 /-- Theorem 92 (scaffold form): the compiled polynomial's SPDP rank is ≤ √n.
