@@ -12,15 +12,30 @@ namespace SPDP
 
 open MvPolynomial
 
-/-- pderiv strictly decreases totalDegree when the result is nonzero.
-    Proof: pderiv_monomial gives monomial(s - single i 1, a * s(i)).
-    When s(i) = 0: coefficient vanishes. When s(i) ≥ 1: output degree = |s| - 1.
-    So td(pderiv i p) ≤ max_{s ∈ supp(p), s(i)≥1} (|s| - 1) ≤ td(p) - 1. -/
+private lemma finsupp_tsub_single_sum_lt {n : ℕ} {s : Fin n →₀ ℕ} {i : Fin n}
+    (hi : s i ≥ 1) :
+    (s - Finsupp.single i 1).sum (fun _ e => e) < s.sum (fun _ e => e) := by
+  sorry
+
 theorem totalDegree_pderiv_lt {n : ℕ} {F : Type*} [CommRing F]
     (i : Fin n) (p : MvPolynomial (Fin n) F) (hp : pderiv i p ≠ 0) :
     (pderiv i p).totalDegree < p.totalDegree := by
-  -- Proof uses pderiv_monomial + totalDegree_finset_sum + le_totalDegree
-  sorry
+  classical
+  -- Use the existing proof from SPDPDefs but extract strict decrease
+  -- td(pderiv i p) = sup over support of (s - single i 1).sum id
+  -- where s ranges over p.support with s i ≥ 1
+  -- Each such sum < s.sum id ≤ td(p)
+  rw [show pderiv i p = p.support.sum (fun s => pderiv i (monomial s (p.coeff s))) from by
+    conv_lhs => rw [← p.as_sum]; rw [map_sum]]
+  apply lt_of_le_of_lt (MvPolynomial.totalDegree_finset_sum _ _)
+  apply Finset.sup_lt_iff.mpr
+  refine ⟨by omega, fun s hs => ?_⟩
+  rw [MvPolynomial.pderiv_monomial]
+  by_cases hsi : s i = 0
+  · simp [hsi, MvPolynomial.totalDegree]
+  · apply lt_of_le_of_lt (MvPolynomial.totalDegree_monomial_le _ _)
+    exact lt_of_lt_of_le (finsupp_tsub_single_sum_lt (by omega))
+      (MvPolynomial.le_totalDegree hs)
 
 /-- Iterated derivative = 0 when list is longer than totalDegree.
     By induction on totalDegree: each pderiv either kills the polynomial
