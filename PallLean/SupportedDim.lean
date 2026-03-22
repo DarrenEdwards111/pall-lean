@@ -36,9 +36,8 @@ theorem scoupled_vars_subset_blockClosure {N : ℕ}
     (hcoupl : ∀ v ∈ ms.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) :
     ↑ms.vars ⊆ ↑(blockClosure bp S.toFinset) := by
   intro v hv
-  simp only [Finset.mem_coe] at hv ⊢
-  rw [mem_blockClosure]
-  exact hcoupl v hv
+  rw [Finset.mem_coe] at hv
+  exact Finset.mem_coe.mpr ((mem_blockClosure bp S.toFinset v).mpr (hcoupl v hv))
 
 /-- The set of Finsupp with support in s and sum ≤ d. -/
 def boundedSupp {σ : Type*} [DecidableEq σ] (s : Finset σ) (d : ℕ) :
@@ -94,8 +93,22 @@ theorem spdp_span_in_restrictSupportDeg {N : ℕ}
         _ ≤ ℓ + V.totalDegree := Nat.add_le_add hdeg (SPDP.totalDegree_iterDerivList_le S V)
         _ ≤ ℓ + 6 := by omega
     · -- vars(ms * iterDerivList S V) ⊆ blockClosure bp V.vars
-      -- Uses: vars_mul, S-coupling, vars_pderiv_subset, subset_blockClosure
-      sorry
+      -- vars(product) ⊆ vars(ms) ∪ vars(iterDerivList S V)
+      -- vars(iterDerivList S V) ⊆ V.vars ⊆ blockClosure
+      -- vars(ms) ⊆ blockClosure (from S-coupling)
+      classical
+      intro v hv
+      have hv_union := MvPolynomial.vars_mul ms (SPDP.iterDerivList S V) hv
+      simp only [Finset.mem_union] at hv_union
+      rcases hv_union with hms | hderiv
+      · -- v ∈ ms.vars: S-coupled → bp.blockOf v ∈ S.toFinset.image bp.blockOf
+        -- ⊆ V.vars.image bp.blockOf (if S ⊆ V.vars — needs iterDerivList analysis)
+        -- For now: S.toFinset.image bp.blockOf ⊆ V.vars.image bp.blockOf follows from
+        -- the fact that ∂^S(V) ≠ 0 only when S ⊆ V.vars
+        sorry
+      · -- v ∈ vars(iterDerivList S V) ⊆ vars(V) ⊆ blockClosure bp V.vars
+        -- vars(iterDerivList) ⊆ vars(V) by iterated vars_pderiv_subset
+        sorry
   exact heq ▸ this
 
 
