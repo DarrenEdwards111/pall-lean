@@ -28,7 +28,20 @@ def restrictSupportDeg {σ : Type*} [DecidableEq σ] (R : Type*) [CommSemiring R
 theorem mem_restrictSupportDeg {σ : Type*} [DecidableEq σ] {R : Type*} [CommSemiring R]
     {s : Finset σ} {d : ℕ} {p : MvPolynomial σ R} :
     p ∈ restrictSupportDeg R s d ↔ p.totalDegree ≤ d ∧ ↑p.vars ⊆ ↑s := by
-  sorry
+  classical
+  unfold restrictSupportDeg boundedSupp
+  rw [mem_restrictSupport_iff]
+  constructor
+  · intro h
+    constructor
+    · rw [totalDegree, Finset.sup_le_iff]
+      intro n hn; exact (h hn).1
+    · intro i hi
+      obtain ⟨n, hn, hin⟩ := (mem_vars i).mp hi
+      exact (h hn).2 hin
+  · intro ⟨hd, hv⟩ n hn
+    exact ⟨le_trans (le_totalDegree hn) hd, fun i hi =>
+      hv ((mem_vars i).mpr ⟨n, hn, hi⟩)⟩
 
 /-- The SPDP span of V with vars.card ≤ k and deg ≤ d, under S-coupling,
     lies inside restrictSupportDeg on a (3k)-element set of degree ≤ ℓ+d. -/
