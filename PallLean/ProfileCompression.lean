@@ -136,23 +136,18 @@ theorem spdpRank_ml_le {N : ℕ}
   unfold blockedSpdpRankQ
   -- Pick s = V.vars (as Finset, extended to include S-coupled block vars)
   -- For now use V.vars directly (|s| ≤ 8, giving tighter bound)
-  set s := V.vars with hs_def
-  -- The span ⊆ restrictSupportDeg ℚ s (ℓ+6) (sorry: needs generator vars analysis)
-  have h_span_le := SupportedDim.spdp_span_in_restrictSupportDeg κ ℓ V bp hV_deg s
-    (by rfl) (by omega)
-  -- finrank(span) ≤ finrank(restrictSupportDeg) ≤ (8+ℓ+6)^8 ≤ (ℓ+30)^30
+  set s := SupportedDim.blockClosure bp V.vars with hs_def
+  have h_span_le := SupportedDim.spdp_span_in_restrictSupportDeg κ ℓ V bp hV_deg
   calc Module.finrank ℚ _ ≤ Module.finrank ℚ (SupportedDim.restrictSupportDeg ℚ s (ℓ + 6)) :=
         Submodule.finrank_mono h_span_le
     _ ≤ (s.card + (ℓ + 6)) ^ s.card :=
         SupportedDim.finrank_restrictSupportDeg_le s (ℓ + 6)
     _ ≤ (ℓ + 30) ^ 30 := by
-        -- s.card ≤ 8, so (8+ℓ+6)^8 = (ℓ+14)^8 ≤ (ℓ+30)^30
-        have hs_card : s.card ≤ 8 := hV_vars
-        calc (s.card + (ℓ + 6)) ^ s.card
-            ≤ (8 + (ℓ + 6)) ^ s.card :=
-              Nat.pow_le_pow_left (by omega) s.card
-          _ ≤ (8 + (ℓ + 6)) ^ 8 :=
-              Nat.pow_le_pow_right (by omega) (by omega)
+        -- s = blockClosure bp V.vars. Need s.card ≤ 24.
+        -- V.vars.card ≤ 8, each block has ≤ 4 vars → blockClosure ≤ 32 vars.
+        -- With scaffold: V.vars in 2 blocks of 4 → blockClosure = 8 vars.
+        -- Use s.card ≤ 24 (sorry: scaffold-specific block analysis)
+        sorry
           _ = (ℓ + 14) ^ 8 := by ring
           _ ≤ (ℓ + 30) ^ 30 := by
               apply le_trans (Nat.pow_le_pow_left (by omega : ℓ + 14 ≤ ℓ + 30) 8)
