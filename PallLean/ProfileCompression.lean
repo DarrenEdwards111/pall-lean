@@ -132,22 +132,9 @@ theorem spdpRank_ml_le {N : ℕ}
     (κ ℓ : ℕ) (V : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N)
     (hV_vars : V.vars.card ≤ 8) (hV_deg : V.totalDegree ≤ 6) :
     blockedSpdpRankQ κ ℓ V bp ≤ (ℓ + 30) ^ 24 := by
-  unfold blockedSpdpRankQ
-  -- The span of generators ⊆ restrictTotalDegree (ℓ + 6) (finite-dimensional)
-  -- finrank of the span ≤ finrank of restrictTotalDegree
-  -- For the sharp bound: generators use ≤ 16 variables, so the span lies
-  -- in a 16-variable polynomial subspace of dimension ≤ (ℓ+22)^16.
-  -- We use the weaker but sufficient bound via restrictTotalDegree.
-  -- 
-  -- ACTUALLY: use the fact that the span has a generating set of size
-  -- ≤ C(8, ≤6) × C(16+ℓ, ≤ℓ) ≤ 28 × (ℓ+16)^16 < (ℓ+22)^16.
-  -- The number of generators is bounded, and rank ≤ #generators.
-  --
-  -- Number of (S, m) pairs with |S| ≤ 6, S ⊆ V.vars (≤ 8 vars),
-  -- m S-coupled with deg ≤ ℓ:
-  -- C(8,≤6) choices for S × C(16+ℓ, ≤ℓ) monomials for m
-  -- = O(1) × (ℓ+16)^16 ≤ (ℓ+22)^16.
-  -- Rank ≤ number of generators.
+  -- Generators m * ∂^S(V) have vars ⊆ some 24-element set (V.vars ∪ S-coupled).
+  -- So the span ⊆ supported ℚ s ⊓ restrictTotalDegree (ℓ+6) for |s| ≤ 24.
+  -- Via supportedEquivMvPolynomial, dim ≤ C(24+ℓ+6, 24) ≤ (ℓ+30)^24.
   sorry
 
 /-- restricted_clause_survival with c = 20 and the correct multilinear V.
