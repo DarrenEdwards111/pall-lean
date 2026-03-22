@@ -272,9 +272,24 @@ private theorem clausePolyQ_totalDegree_le {N : ℕ} (c : CLClause N) :
   have hprod : prod.totalDegree ≤ 3 := by
     apply le_trans (MvPolynomial.totalDegree_list_prod _)
     apply le_trans _ c.width_le
-    -- sum of degrees ≤ length when each degree ≤ 1
-    -- Use List.sum_le_card_nsmul from our own helper
-    sorry
+    -- Need: sum of mapped degrees ≤ c.lits.length
+    -- Each factor has degree ≤ 1, and the map preserves length
+    have key : ∀ (l : List (MvPolynomial (Fin N) ℚ)),
+        (∀ p ∈ l, p.totalDegree ≤ 1) → (l.map MvPolynomial.totalDegree).sum ≤ l.length := by
+      intro l hl
+      induction l with
+      | nil => simp
+      | cons a t ih =>
+        simp only [List.map_cons, List.sum_cons, List.length_cons]
+        have ha := hl a (by simp)
+        have ht := ih (fun p hp => hl p (by simp [hp]))
+        omega
+    have := key (c.lits.map (fun lit => (1 - literalPolyQ lit : MvPolynomial (Fin N) ℚ)))
+      (fun p hp => by
+        obtain ⟨lit, _, rfl⟩ := List.mem_map.mp hp
+        exact one_sub_literalPolyQ_totalDegree_le lit)
+    simp only [List.length_map] at this
+    exact this
   omega
 
 theorem violationPolyQ_totalDegree_le {N : ℕ} (cnf : CookLevinCNF N) :
