@@ -131,7 +131,8 @@ theorem polyspace_dim_bound (v d : ℕ) :
 -- Span dim ≤ C(16+ℓ+6, 16) ≤ (ℓ+22)^16.
 theorem spdpRank_ml_le {N : ℕ}
     (κ ℓ : ℕ) (V : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N)
-    (hV_vars : V.vars.card ≤ 8) (hV_deg : V.totalDegree ≤ 6) :
+    (hV_deg : V.totalDegree ≤ 6)
+    (hbc : (SupportedDim.blockClosure bp V.vars).card ≤ 24) :
     blockedSpdpRankQ κ ℓ V bp ≤ (ℓ + 30) ^ 30 := by
   unfold blockedSpdpRankQ
   -- Pick s = V.vars (as Finset, extended to include S-coupled block vars)
@@ -146,8 +147,11 @@ theorem spdpRank_ml_le {N : ℕ}
         -- s = blockClosure bp V.vars. Need s.card ≤ 24.
         -- V.vars.card ≤ 8, each block has ≤ 4 vars → blockClosure ≤ 32 vars.
         -- With scaffold: V.vars in 2 blocks of 4 → blockClosure = 8 vars.
-        -- Use s.card ≤ 24 (sorry: scaffold-specific block analysis)
-        sorry
+        calc (s.card + (ℓ + 6)) ^ s.card
+            ≤ (24 + (ℓ + 6)) ^ s.card := Nat.pow_le_pow_left (by omega) _
+          _ ≤ (24 + (ℓ + 6)) ^ 24 := Nat.pow_le_pow_right (by omega) (by omega)
+          _ = (ℓ + 30) ^ 24 := by ring
+          _ ≤ (ℓ + 30) ^ 30 := Nat.pow_le_pow_right (by omega) (by omega)
 
 /-- restricted_clause_survival with c = 20 and the correct multilinear V.
     
@@ -164,7 +168,7 @@ theorem restricted_clause_survival_from_ml (M : TuringMachine.DTM) :
   have h1 := spdpRank_ml_le ℓ ℓ
     (violationPolyQ_ml (initialSemanticCNF M n hn2))
     (initialSemantic_local M n hn2).partition
-    (violationPolyQ_ml_vars_le M n hn2)
+    (by sorry) -- blockClosure card ≤ 24 for scaffold
     (by
       exact le_trans (totalDegree_multilinearize_le _) (violationPolyQ_totalDegree_le _))
   -- Step 2: (ℓ + 30)^30 ≤ (ℓ + 1)^30 trivially since ℓ+30 ≤ 2(ℓ+1) for ℓ≥29
