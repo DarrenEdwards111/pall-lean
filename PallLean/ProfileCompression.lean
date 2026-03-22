@@ -149,7 +149,12 @@ theorem restricted_clause_survival_from_ml (M : TuringMachine.DTM) :
     (violationPolyQ_ml (initialSemanticCNF M n hn2))
     (initialSemantic_local M n hn2).partition
     (violationPolyQ_ml_vars_le M n hn2)
-    (by sorry) -- deg(V_ml) ≤ 6
+    (by
+      -- deg(V_ml) ≤ deg(V) ≤ 6: multilinearize doesn't increase degree
+      apply le_trans _ (violationPolyQ_totalDegree_le _)
+      -- totalDegree(multilinearize p) ≤ totalDegree(p)
+      unfold violationPolyQ_ml multilinearize
+      sorry)
   -- Step 2: (ℓ + 22)^16 ≤ (ℓ + 1)^20 for ℓ ≥ 50
   have hℓ : ℓ ≥ 50 := by
     calc ℓ = Nat.log 2 n := rfl
