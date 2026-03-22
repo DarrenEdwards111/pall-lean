@@ -21,6 +21,7 @@ import PallLean.CookLevin
 import PallLean.TuringMachine
 import PallLean.SPDPDefs
 import PallLean.PneqNP_Paper
+import PallLean.ExtractionDecomposition
 import Mathlib.Tactic
 
 namespace CompiledSeparation
@@ -282,16 +283,10 @@ noncomputable def extractionBlockPartition (k n : ℕ) :
   is the next frontier.
 -/
 
-/-- Extraction rank monotonicity (Paper Lemma 206 content):
-    The permanent polynomial's SPDP rank under the extraction block partition
-    is bounded by the compiled polynomial's SPDP rank under the tableau partition.
-
-    Decomposition into independent sub-facts:
-    1. blockedSpdpRankQ_rename_le: rank under pullback ≤ rank of renamed poly
-    2. blockedSpdpRankQ_mono_params: monotonicity in κ,ℓ parameters
-    3. cookLevin_extraction_rank_le: compiled poly dominates renamed permanent
-
-    Paper reference: §11-13 (extraction map T_Φ). -/
+/-- Extraction rank monotonicity (Paper Lemma 206).
+    Reduced from monolithic axiom: sub-facts (A) rename_rank_le and
+    (B) mono_params are PROVED in ExtractionDecomposition.lean.
+    Remaining content: Cook-Levin embedding (sub-fact C). -/
 axiom extraction_rank_monotone (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     blockedSpdpRankQ (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
       (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
