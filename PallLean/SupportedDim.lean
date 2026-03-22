@@ -57,6 +57,7 @@ theorem spdp_span_in_restrictSupportDeg {N : ℕ}
         (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
         q = m * SPDP.iterDerivList S V }
     ≤ restrictSupportDeg ℚ s (ℓ + 6) := by
+  apply Submodule.span_le.mpr
   sorry
 
 /-- finrank of restrictSupportDeg ≤ (card s + d)^(card s). -/
