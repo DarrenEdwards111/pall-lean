@@ -44,10 +44,29 @@ open MvPolynomial CompiledPoly CookLevin SPDP
 theorem vars_pderiv_subset {N : ℕ} {F : Type*} [CommRing F]
     (i : Fin N) (p : MvPolynomial (Fin N) F) :
     (MvPolynomial.pderiv i p).vars ⊆ p.vars := by
-  -- vars(pderiv i p) ⊆ vars(p): pderiv is a derivation, doesn't add vars.
-  -- Proof via: p = Σ monomial s (coeff s p), pderiv linear,
-  -- vars_sum_subset, and (s - single i 1).support ⊆ s.support.
-  sorry
+  classical
+  -- Write p = Σ_{s ∈ p.support} monomial s (coeff s p)
+  -- pderiv i p = Σ_{s} pderiv i (monomial s (coeff s p))
+  -- = Σ_{s} monomial (s - single i 1) (coeff s p * s i)
+  -- vars of each term ⊆ (s - single i 1).support ⊆ s.support
+  -- So vars(pderiv i p) ⊆ ⋃_s s.support = p.vars
+  conv_lhs => rw [p.as_sum, map_sum]
+  apply (MvPolynomial.vars_sum_subset _ _).trans
+  intro j hj
+  simp only [Finset.mem_biUnion] at hj
+  obtain ⟨s, hs, hj_s⟩ := hj
+  rw [MvPolynomial.pderiv_monomial] at hj_s
+  by_cases hsi : p.coeff s * s i = 0
+  · simp [hsi] at hj_s
+  · rw [MvPolynomial.vars_monomial hsi] at hj_s
+    -- j ∈ (s - single i 1).support ⊆ s.support
+    have : (s - Finsupp.single i 1).support ⊆ s.support := by
+      intro k hk
+      rw [Finsupp.mem_support_iff] at hk ⊢
+      simp [Finsupp.tsub_apply, Finsupp.single_apply] at hk ⊢
+      split at hk <;> omega
+    -- s ∈ p.support (from hs in the biUnion)
+    exact (MvPolynomial.mem_vars j).mpr ⟨s, hs, this hj_s⟩
 
 /-- If S.toFinset ⊄ V.vars, iterDerivList S V = 0.
     Avoids ∃ v ∈ S form (Lean 4 List.Mem constructor issue). -/
