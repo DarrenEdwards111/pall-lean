@@ -1303,8 +1303,32 @@ theorem theorem92_scaffold_eventually (M : DTM) :
   -- Use the fact that polylog grows slower than any root.
   -- We pick a nonconstructive threshold via Classical.choice.
   have ⟨N₁, hN₁⟩ : ∃ N₁, ∀ n ≥ N₁, (Nat.log 2 n + 1) ^ c ≤ Nat.sqrt n := by
-    -- For any fixed c, polylog eventually ≤ √n.
-    -- Standard fact: not proved here; tagged as arithmetic obligation.
+    -- Use: for n ≥ 2^(4^c), (log₂ n + 1)^c ≤ √n.
+    -- Proof: log₂ n ≥ 4^c, so log₂ n + 1 ≤ 2*log₂ n ≤ 2*4^c*... no.
+    -- Direct: for large n, √n grows faster than any polylog.
+    -- Constructive threshold: n = 2^(2^(2c+2)).
+    -- Then log₂ n = 2^(2c+2), √n = 2^(2^(2c+1)).
+    -- (log₂ n + 1)^c ≤ (2^(2c+2) + 1)^c ≤ (2^(2c+3))^c = 2^(c(2c+3)).
+    -- √n = 2^(2^(2c+1)) ≥ 2^(c(2c+3)) when 2^(2c+1) ≥ c(2c+3).
+    -- For c ≥ 1: 2^(2c+1) ≥ 2^3 = 8 ≥ 1*5 = c(2c+3). ✓ for c=1.
+    -- For c ≥ 2: 2^5 = 32 ≥ 2*7 = 14. ✓
+    -- In general: 2^(2c+1) ≥ c(2c+3) for all c ≥ 0 (exponential beats quadratic).
+    use 2 ^ 2 ^ (2 * c + 2)
+    intro n hn
+    -- log₂ n ≥ 2^(2c+2)
+    have hlog : Nat.log 2 n ≥ 2 ^ (2 * c + 2) := by
+      calc Nat.log 2 n ≥ Nat.log 2 (2 ^ 2 ^ (2 * c + 2)) := Nat.log_mono_right hn
+        _ = 2 ^ (2 * c + 2) := by rw [Nat.log_pow]; norm_num
+    -- √n ≥ 2^(2^(2c+1))
+    have hsqrt : Nat.sqrt n ≥ 2 ^ 2 ^ (2 * c + 1) := by
+      apply Nat.le_sqrt.mpr
+      calc 2 ^ 2 ^ (2 * c + 1) * 2 ^ 2 ^ (2 * c + 1)
+          = 2 ^ (2 ^ (2 * c + 1) + 2 ^ (2 * c + 1)) := by rw [← Nat.pow_add]
+        _ = 2 ^ 2 ^ (2 * c + 2) := by ring_nf
+        _ ≤ n := hn
+    -- (log₂ n + 1)^c ≤ √n
+    -- Chain: (log+1)^c ≤ (2·log)^c ≤ (2·2^(2c+2))^c = 2^(c(2c+3))
+    --        ≤ 2^(2^(2c+1)) ≤ √n
     sorry
   refine ⟨max n₀ N₁, ?_⟩
   intro n hn hn2
