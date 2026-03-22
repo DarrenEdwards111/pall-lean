@@ -46,11 +46,27 @@ def CompiledPoly.BlockPartition.pullback {m N : ℕ} (bp : BlockPartition N) (f 
   numBlocks := bp.numBlocks
   blockOf := fun v => bp.blockOf (f v)
 
-/-- Rename by an injective function preserves (or increases) SPDP rank. -/
-axiom rename_rank_le {m N : ℕ} (f : Fin m → Fin N) (hf : Function.Injective f)
+/-- iterDerivList commutes with rename (for injective f). -/
+theorem iterDerivList_rename {m N : ℕ} {F : Type*} [CommRing F]
+    (f : Fin m → Fin N) (hf : Function.Injective f)
+    (S : List (Fin m)) (p : MvPolynomial (Fin m) F) :
+    SPDP.iterDerivList (S.map f) (rename f p) = rename f (SPDP.iterDerivList S p) := by
+  induction S generalizing p with
+  | nil => simp [SPDP.iterDerivList]
+  | cons i T ih =>
+    simp only [SPDP.iterDerivList, List.foldl_cons, List.map_cons]
+    rw [pderiv_rename hf]
+    exact ih (pderiv i p)
+
+/-- Rename by an injective function preserves (or increases) SPDP rank.
+    Proof: rename f maps each generator m·∂^S(p) to (rename f m)·∂^{fS}(rename f p).
+    This is an injective map on the span (since rename f is an algebra embedding).
+    So the image span ≤ the full span of rename f p's generators. -/
+theorem rename_rank_le {m N : ℕ} (f : Fin m → Fin N) (hf : Function.Injective f)
     (κ ℓ : ℕ) (p : MvPolynomial (Fin m) ℚ) (bp : BlockPartition N) :
     blockedSpdpRankQ κ ℓ p (CompiledPoly.BlockPartition.pullback bp f) ≤
-      blockedSpdpRankQ κ ℓ (rename f p) bp
+      blockedSpdpRankQ κ ℓ (rename f p) bp := by
+  sorry -- Needs: finrank_mono via rename embedding + generator correspondence
 
 /-! ## Sub-fact (C): Cook-Levin extraction
 
