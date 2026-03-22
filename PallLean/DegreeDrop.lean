@@ -8,13 +8,15 @@ namespace SPDP
 
 open MvPolynomial
 
-/-- pderiv strictly decreases totalDegree when nonzero.
-    Uses totalDegree_pderiv_le (≤) and shows strict by contradiction:
-    if td stays the same, then p must be constant (td = 0 → pderiv = 0). -/
+/-- pderiv strictly decreases totalDegree when the result is nonzero.
+    Proof: every monomial in pderiv i p has degree ≤ td(p) - 1
+    (from pderiv_monomial: output degree = input degree - 1).
+    Since td(p) ≥ 1 (pderiv of constant = 0), this gives strict decrease.
+    SORRY: Finsupp API friction (Finsupp.sum under tsub). -/
 theorem totalDegree_pderiv_lt {n : ℕ} {F : Type*} [CommRing F]
     (i : Fin n) (p : MvPolynomial (Fin n) F) (hp : pderiv i p ≠ 0) :
     (pderiv i p).totalDegree < p.totalDegree := by
-  sorry -- Needs: pderiv_monomial gives degree(s - single i 1) < degree(s)
+  sorry
 
 /-- Iterated derivative = 0 when list is longer than totalDegree. -/
 theorem iterDerivList_eq_zero_of_length_gt {n : ℕ} {F : Type*} [CommRing F]
