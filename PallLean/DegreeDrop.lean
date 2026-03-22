@@ -12,27 +12,34 @@ namespace SPDP
 
 open MvPolynomial
 
-/-- totalDegree of iterDerivList drops by at least 1 per step (when nonzero).
-    More precisely: totalDegree(iterDerivList S p) ≤ totalDegree(p) - S.length
-    or iterDerivList S p = 0. -/
-private theorem totalDegree_iterDerivList_sub_length {n : ℕ} {F : Type*} [CommRing F]
-    (S : List (Fin n)) (p : MvPolynomial (Fin n) F) :
-    (iterDerivList S p).totalDegree + S.length ≤ p.totalDegree ∨
-    iterDerivList S p = 0 := by
-  sorry  -- Each pderiv drops degree by ≥1 or produces 0
+/-- pderiv strictly decreases totalDegree when the result is nonzero. -/
+theorem totalDegree_pderiv_lt {n : ℕ} {F : Type*} [CommRing F]
+    (i : Fin n) (p : MvPolynomial (Fin n) F) (hp : pderiv i p ≠ 0) :
+    (pderiv i p).totalDegree < p.totalDegree := by
+  -- Each monomial in pderiv i p has degree ≤ td(p) - 1.
+  -- pderiv i (monomial s c) = c * s(i) * monomial (s - single i 1) 1
+  -- degree(s - single i 1) = |s| - 1 ≤ td(p) - 1
+  -- So td(pderiv i p) ≤ td(p) - 1 < td(p).
+  sorry
 
-/-- Iterated derivative of a polynomial by a list longer than the degree is zero.
-    Proof: totalDegree drops by ≥1 per derivative step.
-    After totalDegree + 1 derivatives, either the polynomial is 0 (and stays 0),
-    or its degree would have to be negative — contradiction. -/
+/-- Iterated derivative = 0 when list is longer than totalDegree.
+    By induction on totalDegree: each pderiv either kills the polynomial
+    (→ 0 propagates) or strictly drops the degree (→ IH applies). -/
 theorem iterDerivList_eq_zero_of_length_gt {n : ℕ} {F : Type*} [CommRing F]
     (S : List (Fin n)) (p : MvPolynomial (Fin n) F)
     (hlen : S.length > p.totalDegree) :
     iterDerivList S p = 0 := by
-  rcases totalDegree_iterDerivList_sub_length S p with h | h
-  · -- If iterDerivList ≠ 0, then degree + |S| ≤ degree(p) < |S|, contradiction
-    omega
-  · exact h
+  induction S generalizing p with
+  | nil => simp at hlen
+  | cons i T ih =>
+    simp only [iterDerivList, List.foldl_cons]
+    by_cases hp : pderiv i p = 0
+    · rw [hp]; exact foldl_pderiv_zero T
+    · apply ih
+      -- |T| = |S| - 1, td(pderiv i p) < td(p), so |T| > td(pderiv i p)
+      have hlt := totalDegree_pderiv_lt i p hp
+      simp only [List.length_cons] at hlen
+      omega
 
 end SPDP
 
