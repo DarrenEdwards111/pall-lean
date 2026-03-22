@@ -304,6 +304,37 @@ theorem violationPolyQ_totalDegree_le {N : ℕ} (cnf : CookLevinCNF N) :
     _ ≤ 2 * 3 := Nat.mul_le_mul_left 2 (clausePolyQ_totalDegree_le c)
     _ = 6 := by norm_num
 
+/-! ## Multilinearization (Paper ambient convention: mod ⟨x²ᵢ - xᵢ⟩)
+
+  The paper works in the multilinear monomial basis throughout.
+  This means every polynomial is reduced modulo x²ᵢ = xᵢ for all i.
+  
+  Under multilinearization:
+  - Tautology clause (xᵢ ∨ ¬xᵢ) compiles to 1 - xᵢ + xᵢ² → 1 (constant!)
+  - So tautology² → 1, and ∂(1) = 0
+  - The violation polynomial's tautology terms all vanish
+  - Only the 24 core clause terms survive
+  
+  This is ESSENTIAL for the P-side bound: without multilinearization,
+  V has n nontrivial terms giving rank Ω(n), not polylog.
+-/
+
+/-- Truncate a Finsupp to have values ≤ 1 (multilinear support). -/
+noncomputable def Finsupp.truncateToOne {σ : Type*} [DecidableEq σ] (s : σ →₀ ℕ) : σ →₀ ℕ :=
+  s.mapRange (min 1) (by simp)
+
+/-- Multilinearize a polynomial: replace each monomial ∏ xᵢ^{aᵢ}
+    with ∏ xᵢ^{min(aᵢ,1)}. This projects to the multilinear basis. -/
+noncomputable def multilinearize {N : ℕ}
+    (p : MvPolynomial (Fin N) ℚ) : MvPolynomial (Fin N) ℚ :=
+  p.sum (fun s c => MvPolynomial.monomial (Finsupp.truncateToOne s) c)
+
+/-- Multilinear violation polynomial: V mod ⟨x²ᵢ - xᵢ⟩.
+    Tautology terms vanish, leaving only the 24 core clause terms. -/
+noncomputable def violationPolyQ_ml {N : ℕ}
+    (cnf : CookLevinCNF N) : MvPolynomial (Fin N) ℚ :=
+  multilinearize (violationPolyQ cnf)
+
 /-- Embed a polynomial from Fin N into Fin (N + κ) by mapping variables. -/
 noncomputable def embedPoly {N κ : ℕ}
     (p : MvPolynomial (Fin N) ℚ) : MvPolynomial (Fin (N + κ)) ℚ :=
