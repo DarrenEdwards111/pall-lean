@@ -1302,7 +1302,9 @@ theorem theorem92_scaffold_eventually (M : DTM) :
   -- Use the fact that polylog grows slower than any root.
   -- We pick a nonconstructive threshold via Classical.choice.
   have ⟨N₁, hN₁⟩ : ∃ N₁, ∀ n ≥ N₁, (Nat.log 2 n + 1) ^ c ≤ Nat.sqrt n := by
-    sorry  -- Standard: polylog ≤ √n eventually. No mathematical content.
+    -- For any fixed c, polylog eventually ≤ √n.
+    -- Standard fact: not proved here; tagged as arithmetic obligation.
+    sorry
   refine ⟨max n₀ N₁, ?_⟩
   intro n hn hn2
   have hn₀ : n ≥ n₀ := le_trans (le_max_left _ _) hn
