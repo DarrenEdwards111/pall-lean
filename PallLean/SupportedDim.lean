@@ -50,9 +50,17 @@ theorem spdp_span_in_restrictSupportDeg {N : ℕ}
 theorem finrank_restrictSupportDeg_le {σ : Type*} [DecidableEq σ] [Fintype σ]
     (s : Finset σ) (d : ℕ) :
     Module.finrank ℚ (restrictSupportDeg ℚ s d) ≤ (s.card + d) ^ s.card := by
-  -- restrictSupportDeg = restrictSupport on boundedSupp s d
-  -- finrank = |boundedSupp s d| (from basisRestrictSupport)
-  -- |boundedSupp s d| ≤ C(|s|+d, |s|) ≤ (|s|+d)^|s|
+  -- restrictSupportDeg ≤ restrictTotalDegree, so finrank ≤ finrank(restrictTotalDegree)
+  -- But that depends on |σ|. We need the tighter bound.
+  --
+  -- finrank(restrictSupportDeg) = |boundedSupp s d| (from basisRestrictSupport)
+  -- |boundedSupp s d| = number of Finsupp n with n.sum id ≤ d and n.support ⊆ s
+  -- = number of multisets of size ≤ d from s = C(|s|+d, |s|) ≤ (|s|+d)^|s|
+  --
+  -- Use: finrank = card of basis (finrank_eq_card_basis)
+  -- basisRestrictSupport gives basis indexed by boundedSupp s d
+  -- So finrank = Fintype.card (boundedSupp s d)
+  -- Bound card by C(|s|+d, |s|) ≤ (|s|+d)^|s| = Nat.choose_le_pow
   sorry
 
 /-- Module.Finite for restrictSupportDeg (subset of restrictTotalDegree). -/
