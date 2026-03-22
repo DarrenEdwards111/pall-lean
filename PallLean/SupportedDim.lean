@@ -5,6 +5,7 @@
   the dimension is C(k+d, k) ≤ (k+d)^k.
 -/
 import PallLean.CompiledPoly
+import PallLean.VarsIterDeriv
 import Mathlib.Algebra.MvPolynomial.Supported
 import Mathlib.RingTheory.MvPolynomial.Basic
 import Mathlib.LinearAlgebra.Dimension.StrongRankCondition
@@ -36,7 +37,6 @@ theorem scoupled_vars_subset_blockClosure {N : ℕ}
     (hcoupl : ∀ v ∈ ms.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) :
     ↑ms.vars ⊆ ↑(blockClosure bp S.toFinset) := by
   intro v hv
-  rw [Finset.mem_coe] at hv
   exact Finset.mem_coe.mpr ((mem_blockClosure bp S.toFinset v).mpr (hcoupl v hv))
 
 /-- The set of Finsupp with support in s and sum ≤ d. -/
@@ -107,8 +107,8 @@ theorem spdp_span_in_restrictSupportDeg {N : ℕ}
         -- the fact that ∂^S(V) ≠ 0 only when S ⊆ V.vars
         sorry
       · -- v ∈ vars(iterDerivList S V) ⊆ vars(V) ⊆ blockClosure bp V.vars
-        -- vars(iterDerivList) ⊆ vars(V) by iterated vars_pderiv_subset
-        sorry
+        exact Finset.mem_coe.mpr (subset_blockClosure bp V.vars
+          (VarsIterDeriv.vars_iterDerivList_subset S V hderiv))
   exact heq ▸ this
 
 
