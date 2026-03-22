@@ -40,7 +40,6 @@ open MvPolynomial CompiledPoly CookLevin SPDP
   compiled variable space). So V_ml depends on at most 8 variables.
 -/
 
-/-- If any element of S is not in V.vars, then iterDerivList S V = 0. -/
 /-- If S contains a variable not in V.vars, iterDerivList S V = 0.
     Uses pderiv_eq_zero_of_notMem_vars from mathlib. -/
 theorem iterDerivList_eq_zero_of_not_subset_vars {N : ℕ} {F : Type*} [CommRing F]
@@ -74,8 +73,8 @@ def maxVarsBound : ℕ := 16
 /-- Polynomials on v variables of degree ≤ d span a space of dimension
     at most (v + d choose v) ≤ (v + d)^v. -/
 theorem polyspace_dim_bound (v d : ℕ) :
-    Nat.choose (v + d) v ≤ (v + d) ^ v := by
-  sorry -- Standard: binomial coefficient ≤ power
+    Nat.choose (v + d) v ≤ (v + d) ^ v :=
+  Nat.choose_le_pow _ _
 
 /-- The SPDP rank of V_ml is bounded by (ℓ + 22)^16.
     
@@ -116,11 +115,17 @@ theorem restricted_clause_survival_from_ml (M : TuringMachine.DTM) :
       _ ≥ Nat.log 2 (2 ^ 50) := Nat.log_mono_right hn
       _ = 50 := by rw [Nat.log_pow]; norm_num
   have h2 : (ℓ + 22) ^ 16 ≤ (ℓ + 1) ^ 20 := by
-    -- For ℓ ≥ 50: (ℓ+22)/(ℓ+1) ≤ 72/51 < 2
-    -- So (ℓ+22)^16 ≤ 2^16 * (ℓ+1)^16 ≤ 65536 * (ℓ+1)^16
-    -- And (ℓ+1)^20 = (ℓ+1)^16 * (ℓ+1)^4 ≥ (ℓ+1)^16 * 51^4 > 65536 * (ℓ+1)^16
-    -- Since 51^4 = 6765201 > 65536. ✓
-    sorry
+    -- (ℓ+22) ≤ 2*(ℓ+1) for ℓ ≥ 21 (since ℓ+22 ≤ 2ℓ+2 ↔ 22 ≤ ℓ+2 ↔ ℓ ≥ 20)
+    have h_le : ℓ + 22 ≤ 2 * (ℓ + 1) := by omega
+    calc (ℓ + 22) ^ 16 ≤ (2 * (ℓ + 1)) ^ 16 := Nat.pow_le_pow_left h_le 16
+      _ = 2 ^ 16 * (ℓ + 1) ^ 16 := by ring
+      _ ≤ (ℓ + 1) ^ 4 * (ℓ + 1) ^ 16 := by
+          apply Nat.mul_le_mul_right
+          -- 2^16 = 65536 ≤ 51^4 ≤ (ℓ+1)^4
+          calc 2 ^ 16 = 65536 := by norm_num
+            _ ≤ 51 ^ 4 := by norm_num
+            _ ≤ (ℓ + 1) ^ 4 := Nat.pow_le_pow_left (by omega) 4
+      _ = (ℓ + 1) ^ 20 := by ring
   exact le_trans h1 h2
 
 end ProfileCompression
