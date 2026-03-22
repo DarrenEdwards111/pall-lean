@@ -1320,12 +1320,72 @@ private theorem sq_le_pow2 (m : ℕ) (hm : m ≥ 4) : m ^ 2 ≤ 2 ^ m := by
       have : n = 3 := by omega
       subst this; norm_num
 
--- (k+1)^c ≤ 2^(k/2) eventually, via real asymptotics
+-- Helper: c * (k / (2c)) ≤ k / 2
+private theorem mul_div_div_le (k c : ℕ) (hc : 1 ≤ c) :
+    c * (k / (2 * c)) ≤ k / 2 := by
+  have h2c : 0 < 2 * c := by omega
+  -- 2 * (c * (k / (2*c))) = (2*c) * (k / (2*c)) ≤ k
+  have h1 : 2 * (c * (k / (2 * c))) ≤ k := by
+    calc 2 * (c * (k / (2 * c)))
+        = (2 * c) * (k / (2 * c)) := by ring
+      _ = k / (2 * c) * (2 * c) := by ring
+      _ ≤ k := Nat.div_mul_le_self k (2 * c)
+  omega
+
+-- Helper: (2c+1)*(2c) ≤ 2^(2c+2) for all c
+private theorem quad_le_exp (c : ℕ) : (2 * c + 1) * (2 * c) ≤ 2 ^ (2 * c + 2) := by
+  -- (2c+1)(2c) = 4c²+2c ≤ 4^(c+1) = 2^(2c+2) since 4^n ≥ n²+n for n = c+1
+  -- Simpler: prove by induction that 2^(2c+2) ≥ (2c+1)(2c)
+  induction c with
+  | zero => norm_num
+  | succ c ih =>
+    -- 2^(2(c+1)+2) = 4 * 2^(2c+2) ≥ 4 * (2c+1)(2c)
+    -- Need: 4*(2c+1)*(2c) ≥ (2c+3)*(2c+2)
+    -- 4*(4c²+2c) = 16c²+8c ≥ 4c²+8c+6 = (2c+3)(2c+2)? 12c² ≥ 6. ✓ for c ≥ 1.
+    -- For c = 0: check directly.
+    by_cases hc0 : c = 0
+    · subst hc0; norm_num
+    · calc (2 * (c + 1) + 1) * (2 * (c + 1))
+          ≤ 4 * ((2 * c + 1) * (2 * c)) := by
+            -- (2c+3)(2c+2) ≤ 4(2c+1)(2c) when c ≥ 1
+            have : c ≥ 1 := by omega
+            -- Expand: 4c²+10c+6 ≤ 16c²+8c iff 12c² ≥ 2c+6 iff 6c² ≥ c+3
+            nlinarith [Nat.mul_self_le_mul_self (show 1 ≤ c from this)]
+        _ ≤ 4 * 2 ^ (2 * c + 2) := by omega
+        _ = 2 ^ (2 * c + 4) := by ring
+        _ = 2 ^ (2 * (c + 1) + 2) := by ring
+
+-- Helper: k / (2c) ≥ 2c + 1 when k ≥ 2^(2c+2) and c ≥ 1
+private theorem div_2c_large (k c : ℕ) (hc : 1 ≤ c) (hk : 2 ^ (2 * c + 2) ≤ k) :
+    k / (2 * c) ≥ 2 * c + 1 := by
+  apply (Nat.le_div_iff_mul_le (by omega)).mpr
+  exact le_trans (quad_le_exp c) hk
+
+-- k + 1 ≤ m² when m ≥ 2c+1 and k ≤ 2c*m + 2c - 1 (from division)
+-- Actually: k + 1 ≤ (2c)(m+1) ≤ m² when m ≥ 2c+1
+private theorem succ_le_sq_of_div (k c : ℕ) (hc : 1 ≤ c) (hm : k / (2 * c) ≥ 2 * c + 1) :
+    k + 1 ≤ (k / (2 * c)) ^ 2 := by
+  set m := k / (2 * c) with hm_def
+  have h2c : 0 < 2 * c := by omega
+  -- Step 1: k + 1 ≤ 2c*(m+1)
+  have hk_le : k + 1 ≤ 2 * c * (m + 1) := by
+    have h_le := Nat.div_mul_le_self k (2 * c)
+    have h_mod := Nat.mod_lt k h2c
+    -- k = (2c)*m + k%(2c), so k+1 ≤ (2c)*m + (2c) = (2c)*(m+1)
+    have h_eq : (2 * c) * m + k % (2 * c) = k := by
+      have := Nat.div_add_mod k (2 * c); omega
+    -- k + 1 = (2c)*m + k%(2c) + 1 ≤ (2c)*m + (2c) = (2c)*(m+1)
+    have : k % (2 * c) + 1 ≤ 2 * c := by omega
+    linarith
+  -- Step 2: 2c*(m+1) ≤ m² when m ≥ 2c+1
+  have hcm : 2 * c * (m + 1) ≤ m ^ 2 := by nlinarith
+  omega
+
+-- (k+1)^c ≤ 2^(k/2) for k ≥ 2^(2c+2)
 private theorem exp_beats_poly_general_exists (c : ℕ) :
     ∃ K : ℕ, ∀ k ≥ K, (k + 1) ^ c ≤ 2 ^ (k / 2) := by
-  -- From mathlib: x^c =o[atTop] exp(b*x) for any b > 0.
-  -- Use b = (Real.log 2) / 2 > 0, so exp(b*x) = 2^(x/2).
-  -- Eventually (x+1)^c ≤ 2^(x/2) on ℝ, then pull back to ℕ.
+  -- Proved helpers: quad_le_exp, div_2c_large, succ_le_sq_of_div, sq_le_pow2, mul_div_div_le
+  -- Assembly needs minor fixes (m ≥ 4 threshold, pow_mul direction)
   sorry
 
 theorem theorem92_scaffold_eventually (M : DTM) :
