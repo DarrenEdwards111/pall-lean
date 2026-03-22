@@ -124,7 +124,12 @@ theorem finrank_restrictSupportDeg_le {σ : Type*} [DecidableEq σ] [Fintype σ]
   -- We use: finrank ≤ finrank(restrictTotalDegree d) for any containing type,
   -- but need the bound to depend on |s|.
   -- 
-  -- Direct approach: sorry (needs Fintype instance for boundedSupp + card counting)
+  -- Use: finrank ≤ finrank(restrictTotalDegree) with a subtype restriction.
+  -- restrictSupportDeg ≤ restrictTotalDegree (from instFinite proof)
+  -- finrank(restrictTotalDegree (Fin (Fintype.card σ)) ℚ d) = C(|σ|+d, |σ|)
+  -- Too big. Need the |s|-dependent bound.
+  -- 
+  -- Alternative: directly bound using Module.Finite + sorry the counting.
   sorry
 
 /-- Module.Finite for restrictSupportDeg (subset of restrictTotalDegree). -/
