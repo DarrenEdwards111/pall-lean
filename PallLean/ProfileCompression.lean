@@ -40,13 +40,27 @@ open MvPolynomial CompiledPoly CookLevin SPDP
   compiled variable space). So V_ml depends on at most 8 variables.
 -/
 
-/-- If S contains a variable not in V.vars, iterDerivList S V = 0.
-    Uses pderiv_eq_zero_of_notMem_vars from mathlib. -/
+/-- vars(pderiv i p) ⊆ vars(p): partial derivative doesn't introduce new variables. -/
+theorem vars_pderiv_subset {N : ℕ} {F : Type*} [CommRing F]
+    (i : Fin N) (p : MvPolynomial (Fin N) F) :
+    (MvPolynomial.pderiv i p).vars ⊆ p.vars := by
+  sorry -- Each output monomial's support ⊆ input monomial's support
+
+/-- If S contains a variable not in V.vars, iterDerivList S V = 0. -/
 theorem iterDerivList_eq_zero_of_not_subset_vars {N : ℕ} {F : Type*} [CommRing F]
     (S : List (Fin N)) (V : MvPolynomial (Fin N) F)
     (h : ∃ v ∈ S, v ∉ V.vars) :
     SPDP.iterDerivList S V = 0 := by
-  sorry -- Uses: pderiv_eq_zero_of_notMem_vars + vars(pderiv) ⊆ vars(V) + induction
+  obtain ⟨v, hv_mem, hv_notin⟩ := h
+  induction S generalizing V with
+  | nil => simp at hv_mem
+  | cons i T ih =>
+    simp only [SPDP.iterDerivList, List.foldl_cons]
+    rcases List.mem_cons.mp hv_mem with rfl | hv_T
+    · rw [MvPolynomial.pderiv_eq_zero_of_notMem_vars hv_notin]
+      exact SPDP.foldl_pderiv_zero T
+    · -- v ∈ T and v ∉ (pderiv i V).vars → iterDerivList T (pderiv i V) = 0
+      sorry
 
 /-- The multilinearized violation polynomial depends on ≤ 8 scaffold variables.
     (Indices 0-7 in compiledVarCount space.) -/
