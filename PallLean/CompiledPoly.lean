@@ -329,6 +329,38 @@ noncomputable def multilinearize {N : ℕ}
     (p : MvPolynomial (Fin N) ℚ) : MvPolynomial (Fin N) ℚ :=
   p.sum (fun s c => MvPolynomial.monomial (Finsupp.truncateToOne s) c)
 
+/-- truncateToOne reduces Finsupp.sum: (truncateToOne s).sum id ≤ s.sum id -/
+theorem truncateToOne_le {σ : Type*} [DecidableEq σ] (s : σ →₀ ℕ) (x : σ) :
+    Finsupp.truncateToOne s x ≤ s x := by
+  simp [Finsupp.truncateToOne, Finsupp.mapRange_apply]
+
+theorem truncateToOne_sum_le {σ : Type*} [DecidableEq σ] (s : σ →₀ ℕ) :
+    (Finsupp.truncateToOne s).sum (fun _ e => e) ≤ s.sum (fun _ e => e) := by
+  -- truncateToOne s ≤ s pointwise, both nonneg
+  -- support(truncateToOne s) ⊆ support(s) (since min(1, s x) = 0 → s x = 0)
+  have hsub : (Finsupp.truncateToOne s).support ⊆ s.support := by
+    intro x hx
+    rw [Finsupp.mem_support_iff] at hx ⊢
+    simp [Finsupp.truncateToOne, Finsupp.mapRange_apply] at hx
+    omega
+  rw [Finsupp.sum, Finsupp.sum]
+  calc ∑ x ∈ (Finsupp.truncateToOne s).support, (Finsupp.truncateToOne s) x
+      ≤ ∑ x ∈ (Finsupp.truncateToOne s).support, s x :=
+        Finset.sum_le_sum (fun x _ => truncateToOne_le s x)
+    _ ≤ ∑ x ∈ s.support, s x :=
+        Finset.sum_le_sum_of_subset_of_nonneg hsub (fun _ _ _ => Nat.zero_le _)
+
+/-- Multilinearization doesn't increase totalDegree. -/
+theorem totalDegree_multilinearize_le {N : ℕ} (p : MvPolynomial (Fin N) ℚ) :
+    (multilinearize p).totalDegree ≤ p.totalDegree := by
+  unfold multilinearize
+  rw [Finsupp.sum]
+  apply le_trans (MvPolynomial.totalDegree_finset_sum _ _)
+  apply Finset.sup_le
+  intro s hs
+  apply le_trans (MvPolynomial.totalDegree_monomial_le _ _)
+  exact le_trans (truncateToOne_sum_le s) (MvPolynomial.le_totalDegree hs)
+
 /-- Multilinear violation polynomial: V mod ⟨x²ᵢ - xᵢ⟩.
     Tautology terms vanish, leaving only the 24 core clause terms. -/
 noncomputable def violationPolyQ_ml {N : ℕ}
