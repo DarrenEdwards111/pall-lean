@@ -150,17 +150,18 @@ theorem rename_rank_le {m N : ℕ} (f : Fin m → Fin N) (hf : Function.Injectiv
   -- finrank(span lhs) ≤ finrank(image) ≤ finrank(span rhs)
   -- For the first ≤: rename f is injective → ker ∩ span = 0 → finrank preserved
   -- For the second ≤: image ≤ span rhs → finrank_mono
-  calc Module.finrank ℚ (Submodule.span ℚ lhs_gens)
-      ≤ Module.finrank ℚ ((Submodule.span ℚ lhs_gens).map
-          (rename f : MvPolynomial (Fin m) ℚ →ₐ[ℚ] MvPolynomial (Fin N) ℚ).toLinearMap) := by
-        -- For injective linear maps: finrank(source) ≤ finrank(image)
-        -- Actually Submodule.finrank_map_le gives ≥, so we need both directions = equality
-        sorry
-    _ ≤ Module.finrank ℚ (Submodule.span ℚ rhs_gens) := by
-        -- Need Module.Finite for finrank_mono
-        have : Module.Finite ℚ (Submodule.span ℚ rhs_gens) := by
-          sorry -- Finite-dim: rhs_gens span lies in restrictTotalDegree
-        exact Submodule.finrank_mono h_map_le
+  -- The RHS span is finite-dimensional (inside restrictTotalDegree)
+  have hfin_rhs : Module.Finite ℚ ↥(Submodule.span ℚ rhs_gens) := by
+    sorry -- SPDP span ⊆ restrictTotalDegree → Module.Finite
+  -- rename f is injective → finrank(span lhs) = finrank(image)
+  set ren := (rename f : MvPolynomial (Fin m) ℚ →ₐ[ℚ] MvPolynomial (Fin N) ℚ).toLinearMap
+  have hren_inj : Function.Injective ren := MvPolynomial.rename_injective f hf
+  have h_eq : Module.finrank ℚ (Submodule.span ℚ lhs_gens) =
+      Module.finrank ℚ ((Submodule.span ℚ lhs_gens).map ren) :=
+    (Submodule.equivMapOfInjective ren hren_inj (Submodule.span ℚ lhs_gens)).finrank_eq
+  -- Chain: finrank(LHS) = finrank(image) ≤ finrank(RHS)
+  rw [h_eq]
+  exact Submodule.finrank_mono h_map_le
 
 /-! ## Sub-fact (C): Cook-Levin extraction
 
