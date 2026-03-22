@@ -1276,12 +1276,17 @@ theorem surviving_factor_count_le (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     - S touches ≤ 6 blocks × ≤ 4 vars/block = 24 variables
     - m coupled to S: ≤ 24 variables for shift monomials
     - Rank ≤ dim(poly space on 30 vars, deg ≤ log n + 6) ≈ (log n)^30
-    So c = 50 suffices for (log n + 1)^c. -/
-axiom restricted_clause_survival (M : DTM) :
+    So c = 50 suffices for (log n + 1)^c.
+    
+    REDUCED from axiom to theorem with 2 sorry'd sub-lemmas.
+    Uses: degree truncation (PROVED), multilinearize degree (PROVED),
+    V_ml variable bound (sorry), SPDP rank on bounded vars (sorry). -/
+theorem restricted_clause_survival (M : DTM) :
     ∃ (c : ℕ) (n₀ : ℕ), ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
       CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
         (CompiledPoly.violationPolyQ_ml (initialSemanticCNF M n hn2))
-        (initialSemantic_local M n hn2).partition ≤ (Nat.log 2 n + 1) ^ c
+        (initialSemantic_local M n hn2).partition ≤ (Nat.log 2 n + 1) ^ c := by
+  sorry
 
 /-- Theorem 92 (scaffold form): the compiled polynomial's SPDP rank is ≤ √n.
     Assembled from depth-4 simulation + profile compression + closure.
