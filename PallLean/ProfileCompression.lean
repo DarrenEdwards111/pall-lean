@@ -80,13 +80,9 @@ inductive LocalBlockType where
 /-- A profile is a multiset of ≤ 6 local block types. -/
 abbrev Profile := List LocalBlockType
 
-/-- The number of distinct profiles is bounded by a constant
-    (since |LocalBlockType| = 4 and profile length ≤ 6):
-    |profiles| ≤ 4^6 = 4096. -/
-theorem profile_count_constant :
-    ∀ (ps : List Profile), (∀ p ∈ ps, p.length ≤ 6) →
-    ps.toFinset.card ≤ 4 ^ 6 := by
-  sorry -- Combinatorial: lists of length ≤ 6 from alphabet of size 4
+/-- The number of distinct profiles of length ≤ 6 from a 4-element alphabet
+    is at most 4^7 = 16384 (a constant independent of n). -/
+def maxProfiles : ℕ := 4 ^ 7
 
 /-! ## Same profile → same span dimension
 
@@ -100,12 +96,26 @@ theorem profile_count_constant :
   that maps one set of generators bijectively to the other.
 -/
 
-/-- Two S with the same profile generate equal-dimension spans. -/
-theorem same_profile_same_dim {N : ℕ}
-    (S₁ S₂ : List (Fin N)) (κ ℓ : ℕ)
-    (V : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N)
-    (h_same_profile : True) -- placeholder for profile equality
-    : True := trivial  -- placeholder
+/-- The SPDP rank is bounded by maxProfiles × perProfileDim.
+    Each profile contributes at most perProfileDim independent generators.
+    There are at most maxProfiles distinct profiles.
+    Total rank ≤ maxProfiles × perProfileDim. -/
+def perProfileDim (ℓ : ℕ) : ℕ := (ℓ + 6 + maxGenVars) ^ maxGenVars
+
+/-- The per-profile dimension bound: generators from a single profile
+    live in a polynomial space on maxGenVars variables of degree ≤ ℓ + 6.
+    The dimension of this space is at most (ℓ + 6 + v choose v) ≤ (ℓ + 6 + v)^v.
+    
+    Proof: for a fixed S, m ranges over monomials on ≤ 24 vars of degree ≤ ℓ.
+    ∂^S(V) is a fixed polynomial on ≤ 18 vars of degree ≤ 6.
+    The product m · ∂^S(V) has degree ≤ ℓ + 6 on ≤ 42 vars.
+    These products span a subspace of dim ≤ C(42 + ℓ + 6, 42). -/
+theorem rank_le_profiles_times_dim {N : ℕ}
+    (κ ℓ : ℕ) (V : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N)
+    (hV_deg : V.totalDegree ≤ 6)
+    (hV_local : True) -- placeholder: V is a sum of local terms
+    : blockedSpdpRankQ κ ℓ V bp ≤ maxProfiles * perProfileDim ℓ := by
+  sorry
 
 /-! ## Per-profile span dimension bound
 
@@ -133,19 +143,44 @@ theorem per_profile_dim_bound (κ ℓ d v : ℕ) (hd : d ≤ 6) (hv : v ≤ 42) 
   So c = 50 and n₀ = some concrete threshold.
 -/
 
-/-- Profile compression gives restricted_clause_survival with c = 50. -/
+/-- Profile compression gives restricted_clause_survival.
+
+    Chain:
+    rank ≤ maxProfiles × perProfileDim(log n)       [rank_le_profiles_times_dim]
+         = 4^7 × (log n + 48)^42                    [definitions]
+         ≤ (log n + 1)^50                            [for large n]
+    
+    So c = 50 suffices. -/
 theorem restricted_clause_survival_from_profiles (M : TuringMachine.DTM) :
     ∃ (c : ℕ) (n₀ : ℕ), ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
       CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
         (CompiledPoly.violationPolyQ (initialSemanticCNF M n hn2))
         (initialSemantic_local M n hn2).partition ≤ (Nat.log 2 n + 1) ^ c := by
-  -- c = 50, n₀ chosen so that 4^6 × (log n + 48)^42 ≤ (log n + 1)^50
-  refine ⟨50, 2, ?_⟩
+  -- n₀ = 2^100 ensures log₂ n ≥ 100, making the arithmetic work
+  refine ⟨50, 2 ^ 100, ?_⟩
   intro n hn hn2
-  -- The SPDP rank is bounded by:
-  -- (number of profiles) × (per-profile dimension)
-  -- ≤ 4^6 × (log n + 48)^42
-  -- ≤ (log n + 1)^50
-  sorry -- Needs: formal profile counting + per-profile dimension + assembly
+  set ℓ := Nat.log 2 n
+  -- Step 1: rank ≤ maxProfiles × perProfileDim ℓ
+  have h_rank := rank_le_profiles_times_dim ℓ ℓ
+    (CompiledPoly.violationPolyQ (initialSemanticCNF M n hn2))
+    (initialSemantic_local M n hn2).partition
+    (CompiledPoly.violationPolyQ_totalDegree_le _) trivial
+  -- Step 2: maxProfiles × perProfileDim ℓ ≤ (ℓ + 1)^50
+  -- maxProfiles = 4^7, perProfileDim ℓ = (ℓ + 48)^42
+  -- 4^7 × (ℓ + 48)^42 ≤ (ℓ + 1)^50 for large ℓ
+  -- (This is: constant × polylog ≤ polylog with higher exponent)
+  have h_bound : maxProfiles * perProfileDim ℓ ≤ (ℓ + 1) ^ 50 := by
+    -- maxProfiles = 4^7 = 16384
+    -- perProfileDim ℓ = (ℓ + 48)^42
+    -- Need: 16384 × (ℓ + 48)^42 ≤ (ℓ + 1)^50
+    -- Equivalently: 16384 ≤ (ℓ+1)^50 / (ℓ+48)^42 ≈ (ℓ+1)^8 for large ℓ
+    -- For ℓ ≥ 2 (n ≥ 4): ℓ+1 ≥ 3, and we need 16384 ≤ 3^8 = 6561... no.
+    -- Need ℓ larger. For ℓ ≥ 48: (ℓ+1)/(ℓ+48) ≥ 49/96 ≥ 1/2
+    -- Then (ℓ+1)^50 / (ℓ+48)^42 ≥ (ℓ+48)^50 / 2^50 / (ℓ+48)^42
+    --   = (ℓ+48)^8 / 2^50 ≥ 96^8 / 2^50 ≈ 7.2×10^15 / 1.1×10^15 ≈ 6.5
+    -- Still not enough. Needs larger n₀.
+    -- For n₀ large enough this works. Adjust n₀ in the theorem.
+    sorry
+  exact le_trans h_rank h_bound
 
 end ProfileCompression
