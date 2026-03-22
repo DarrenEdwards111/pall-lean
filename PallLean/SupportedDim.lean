@@ -57,10 +57,11 @@ theorem finrank_restrictSupportDeg_le {σ : Type*} [DecidableEq σ] [Fintype σ]
   -- |boundedSupp s d| = number of Finsupp n with n.sum id ≤ d and n.support ⊆ s
   -- = number of multisets of size ≤ d from s = C(|s|+d, |s|) ≤ (|s|+d)^|s|
   --
-  -- Use: finrank = card of basis (finrank_eq_card_basis)
-  -- basisRestrictSupport gives basis indexed by boundedSupp s d
-  -- So finrank = Fintype.card (boundedSupp s d)
-  -- Bound card by C(|s|+d, |s|) ≤ (|s|+d)^|s| = Nat.choose_le_pow
+  -- finrank(restrictSupportDeg s d) ≤ finrank(restrictTotalDegree d)
+  -- ≤ C(|σ|+d, |σ|) ≤ (|σ|+d)^|σ|
+  -- This is too weak (depends on |σ| not |s|).
+  -- For the tight bound: finrank = |boundedSupp s d| = C(|s|+d, |s|) ≤ (|s|+d)^|s|.
+  -- Needs Fintype instance for boundedSupp and card counting.
   sorry
 
 /-- Module.Finite for restrictSupportDeg (subset of restrictTotalDegree). -/
