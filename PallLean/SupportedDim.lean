@@ -14,6 +14,32 @@ namespace SupportedDim
 
 open MvPolynomial
 
+/-! ## Block closure: all variables in blocks touched by a set -/
+
+/-- The block closure of a variable set: all variables sharing a block with some element of s. -/
+def blockClosure {N : ℕ} (bp : CompiledPoly.BlockPartition N) (s : Finset (Fin N)) :
+    Finset (Fin N) :=
+  Finset.univ.filter (fun v => bp.blockOf v ∈ s.image bp.blockOf)
+
+theorem mem_blockClosure {N : ℕ} (bp : CompiledPoly.BlockPartition N) (s : Finset (Fin N))
+    (v : Fin N) : v ∈ blockClosure bp s ↔ bp.blockOf v ∈ s.image bp.blockOf := by
+  simp only [blockClosure, Finset.mem_filter, Finset.mem_univ, true_and]
+
+theorem subset_blockClosure {N : ℕ} (bp : CompiledPoly.BlockPartition N) (s : Finset (Fin N)) :
+    s ⊆ blockClosure bp s := by
+  intro v hv; rw [mem_blockClosure]; exact Finset.mem_image_of_mem _ hv
+
+/-- S-coupled variables are in the block closure of S. -/
+theorem scoupled_vars_subset_blockClosure {N : ℕ}
+    (bp : CompiledPoly.BlockPartition N)
+    (S : List (Fin N)) (ms : MvPolynomial (Fin N) ℚ)
+    (hcoupl : ∀ v ∈ ms.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) :
+    ↑ms.vars ⊆ ↑(blockClosure bp S.toFinset) := by
+  intro v hv
+  simp only [Finset.mem_coe] at hv ⊢
+  rw [mem_blockClosure]
+  exact hcoupl v hv
+
 /-- The set of Finsupp with support in s and sum ≤ d. -/
 def boundedSupp {σ : Type*} [DecidableEq σ] (s : Finset σ) (d : ℕ) :
     Set (σ →₀ ℕ) :=
@@ -43,32 +69,33 @@ theorem mem_restrictSupportDeg {σ : Type*} [DecidableEq σ] {R : Type*} [CommSe
     exact ⟨le_trans (le_totalDegree hn) hd, fun i hi =>
       hv ((mem_vars i).mpr ⟨n, hn, hi⟩)⟩
 
-/-- The SPDP span of V with vars.card ≤ k and deg ≤ d, under S-coupling,
-    lies inside restrictSupportDeg on a (3k)-element set of degree ≤ ℓ+d. -/
+/-- The SPDP span lies inside restrictSupportDeg on the block closure of V.vars. -/
 theorem spdp_span_in_restrictSupportDeg {N : ℕ}
     (κ ℓ : ℕ) (V : MvPolynomial (Fin N) ℚ)
     (bp : CompiledPoly.BlockPartition N)
-    (hV_deg : V.totalDegree ≤ 6)
-    (s : Finset (Fin N)) (hs : ↑V.vars ⊆ ↑s) (hs_card : s.card ≤ 24) :
+    (hV_deg : V.totalDegree ≤ 6) :
     Submodule.span ℚ
       { q | ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
         S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧
         (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
         (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
         q = m * SPDP.iterDerivList S V }
-    ≤ restrictSupportDeg ℚ s (ℓ + 6) := by
+    ≤ restrictSupportDeg ℚ (blockClosure bp V.vars) (ℓ + 6) := by
   apply Submodule.span_le.mpr
   intro q hq
   obtain ⟨S, ms, hlen, hdeg, htrans, hcoupl, heq⟩ := hq
-  have : ms * SPDP.iterDerivList S V ∈ restrictSupportDeg ℚ s (ℓ + 6) := by
+  have : ms * SPDP.iterDerivList S V ∈
+      restrictSupportDeg ℚ (blockClosure bp V.vars) (ℓ + 6) := by
     rw [mem_restrictSupportDeg]
-    exact ⟨by
-      calc (ms * SPDP.iterDerivList S V).totalDegree
+    constructor
+    · calc (ms * SPDP.iterDerivList S V).totalDegree
           ≤ ms.totalDegree + (SPDP.iterDerivList S V).totalDegree :=
             MvPolynomial.totalDegree_mul ms (SPDP.iterDerivList S V)
         _ ≤ ℓ + V.totalDegree := Nat.add_le_add hdeg (SPDP.totalDegree_iterDerivList_le S V)
-        _ ≤ ℓ + 6 := by omega,
-      by sorry⟩ -- vars ⊆ s
+        _ ≤ ℓ + 6 := by omega
+    · -- vars(ms * iterDerivList S V) ⊆ blockClosure bp V.vars
+      -- Uses: vars_mul, S-coupling, vars_pderiv_subset, subset_blockClosure
+      sorry
   exact heq ▸ this
 
 
