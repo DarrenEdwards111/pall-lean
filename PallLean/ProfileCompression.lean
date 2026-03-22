@@ -117,21 +117,29 @@ theorem polyspace_dim_bound (v d : ℕ) :
     Nat.choose (v + d) v ≤ (v + d) ^ v :=
   Nat.choose_le_pow _ _
 
+-- MvPolynomial.vars_mul: (p * q).vars ⊆ p.vars ∪ q.vars (in mathlib)
+
 /-- The SPDP rank of V_ml is bounded by (ℓ + 22)^16.
     
     Proof: V_ml has ≤ 8 vars. S-coupling restricts m to ≤ 8 more vars.
     All generators have degree ≤ ℓ + 6 on ≤ 16 vars.
     Rank ≤ dim(poly space on 16 vars, deg ≤ ℓ + 6) ≤ (ℓ + 22)^16. -/
+-- For the scaffold: V_ml has vars in 2 scaffold blocks of 4 vars each.
+-- S ⊆ V.vars (≤ 8 vars), m S-coupled to same 2 blocks (≤ 8 more vars).
+-- Total: ≤ 16 vars. Generators have degree ≤ ℓ+6.
+-- Span dim ≤ C(16+ℓ+6, 16) ≤ (ℓ+22)^16.
 theorem spdpRank_ml_le {N : ℕ}
     (κ ℓ : ℕ) (V : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N)
     (hV_vars : V.vars.card ≤ 8) (hV_deg : V.totalDegree ≤ 6) :
     blockedSpdpRankQ κ ℓ V bp ≤ (ℓ + 22) ^ 16 := by
-  -- The SPDP span ⊆ restrictTotalDegree (ℓ + V.totalDegree) ⊆ restrictTotalDegree (ℓ + 6).
-  -- finrank of this space on Fin N is C(N + ℓ + 6, N) which is too large.
-  -- But generators only use ≤ 16 variables (V.vars ∪ S-coupled vars).
-  -- All generators share the same variable support (since S ⊆ V.vars which is fixed).
-  -- So finrank ≤ C(16 + ℓ + 6, 16) ≤ (ℓ + 22)^16.
-  -- SORRY: needs MvPolynomial variable restriction infrastructure
+  -- The SPDP span lies inside restrictTotalDegree (ℓ + 6) which is finite-dim.
+  -- Its finrank on Fin N is huge, but we can bound it by the polynomial space
+  -- dimension on the ≤ 16 variables that generators actually use.
+  -- 
+  -- Key: S ⊆ V.vars (from iterDerivList_eq_zero_of_not_subset_vars + hV_vars),
+  -- m is S-coupled, ∂^S(V) uses V.vars. Total vars ≤ 16. Fixed set.
+  -- So span ⊆ restrictTotalDegree(ℓ+6) ∩ supported(16-var set).
+  -- Dim of this space ≤ C(16+ℓ+6, 16) ≤ (ℓ+22)^16.
   sorry
 
 /-- restricted_clause_survival with c = 20 and the correct multilinear V.
