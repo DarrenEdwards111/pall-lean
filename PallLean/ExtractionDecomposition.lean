@@ -82,16 +82,34 @@ private theorem rename_gen_mem {m N : ℕ} (f : Fin m → Fin N) (hf : Function.
   refine ⟨S.map f, rename f ms, by simp [hlen], ?_, ?_, ?_, ?_⟩
   · -- totalDegree preserved
     exact le_trans (totalDegree_rename_le f ms) hdeg
-  · -- Transversal transfers via f injective
-    -- (S.map f).toFinset.image bp.blockOf has same card as (S.map f).toFinset
-    -- because pullback.blockOf = bp.blockOf ∘ f
-    sorry -- Finset card manipulation with injective f
+  · -- Transversal: card((S.map f).toFinset.image bp.blockOf) = card((S.map f).toFinset)
+    -- Key: (S.map f).toFinset.image bp.blockOf = S.toFinset.image (bp.blockOf ∘ f)
+    --       = S.toFinset.image (pullback bp f).blockOf
+    -- And (S.map f).toFinset.card = S.toFinset.card (f injective)
+    -- So the equality follows from htrans.
+    have h1 : (S.map f).toFinset = S.toFinset.image f := by
+      ext x; simp [List.mem_toFinset, Finset.mem_image, List.mem_map]
+    rw [h1, Finset.image_image]
+    -- Now goal: card(S.toFinset.image (bp.blockOf ∘ f)) = card(S.toFinset.image f)
+    -- LHS = card(S.toFinset.image (pullback bp f).blockOf) = card(S.toFinset) = htrans
+    -- RHS = card(S.toFinset) (f injective)
+    rw [show bp.blockOf ∘ f = (CompiledPoly.BlockPartition.pullback bp f).blockOf from rfl]
+    rw [htrans]
+    exact (Finset.card_image_of_injective S.toFinset hf).symm
   · -- S-coupling: ∀ v ∈ (rename f ms).vars, bp.blockOf v ∈ (S.map f).toFinset.image bp.blockOf
-    -- rename f ms has vars ⊆ f '' ms.vars (by MvPolynomial.vars_rename)
-    -- For v ∈ f '' ms.vars: v = f w for some w ∈ ms.vars
-    -- bp.blockOf (f w) = (pullback bp f).blockOf w ∈ S.toFinset.image (pullback bp f).blockOf
+    intro v hv
+    -- vars(rename f ms) ⊆ f '' vars(ms)
+    have hv_range := MvPolynomial.vars_rename f ms hv
+    simp only [Finset.mem_image] at hv_range
+    obtain ⟨w, hw_mem, rfl⟩ := hv_range
+    -- bp.blockOf (f w) = (pullback bp f).blockOf w
+    -- ∈ S.toFinset.image (pullback bp f).blockOf (from hcoupl)
     -- = (S.map f).toFinset.image bp.blockOf
-    sorry -- vars_rename + pullback definition
+    have hw_coupled := hcoupl w hw_mem
+    simp only [Finset.mem_image] at hw_coupled ⊢
+    simp only [List.mem_toFinset, List.mem_map] at *
+    obtain ⟨u, hu_mem, hu_eq⟩ := hw_coupled
+    exact ⟨f u, ⟨u, hu_mem, rfl⟩, hu_eq⟩
   · -- Product + iterDerivList commute with rename
     rw [map_mul, iterDerivList_rename f hf]
 
@@ -100,9 +118,49 @@ theorem rename_rank_le {m N : ℕ} (f : Fin m → Fin N) (hf : Function.Injectiv
     blockedSpdpRankQ κ ℓ p (CompiledPoly.BlockPartition.pullback bp f) ≤
       blockedSpdpRankQ κ ℓ (rename f p) bp := by
   unfold blockedSpdpRankQ
-  -- rename f maps LHS span into RHS span, and is injective
-  -- So finrank(LHS) ≤ finrank(image of LHS under rename f) ≤ finrank(RHS)
-  sorry
+  -- Step 1: rename f maps LHS gens → RHS gens (via rename_gen_mem)
+  -- Step 2: So (span LHS).map (rename f) ≤ span RHS
+  -- Step 3: finrank(span LHS) ≤ finrank(span RHS) via injection + mono
+  
+  set pbp := CompiledPoly.BlockPartition.pullback bp f
+  set lhs_gens := { q : MvPolynomial (Fin m) ℚ | ∃ S ms,
+    S.length ≤ κ ∧ ms.totalDegree ≤ ℓ ∧
+    (S.toFinset.image pbp.blockOf).card = S.toFinset.card ∧
+    (∀ v ∈ ms.vars, pbp.blockOf v ∈ S.toFinset.image pbp.blockOf) ∧
+    q = ms * SPDP.iterDerivList S p }
+  set rhs_gens := { q : MvPolynomial (Fin N) ℚ | ∃ S ms,
+    S.length ≤ κ ∧ ms.totalDegree ≤ ℓ ∧
+    (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+    (∀ v ∈ ms.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
+    q = ms * SPDP.iterDerivList S (rename f p) }
+  
+  -- rename f maps lhs_gens into rhs_gens
+  have h_image : ∀ q ∈ lhs_gens, rename f q ∈ rhs_gens := fun q hq =>
+    rename_gen_mem f hf κ ℓ p bp q hq
+  
+  -- So (span lhs_gens).map (rename f).toLinearMap ≤ span rhs_gens
+  have h_map_le : (Submodule.span ℚ lhs_gens).map
+      (rename f : MvPolynomial (Fin m) ℚ →ₐ[ℚ] MvPolynomial (Fin N) ℚ).toLinearMap ≤
+      Submodule.span ℚ rhs_gens := by
+    rw [Submodule.map_le_iff_le_comap]
+    apply Submodule.span_le.mpr
+    intro q hq
+    exact Submodule.mem_comap.mpr (Submodule.subset_span (h_image q hq))
+  
+  -- finrank(span lhs) ≤ finrank(image) ≤ finrank(span rhs)
+  -- For the first ≤: rename f is injective → ker ∩ span = 0 → finrank preserved
+  -- For the second ≤: image ≤ span rhs → finrank_mono
+  calc Module.finrank ℚ (Submodule.span ℚ lhs_gens)
+      ≤ Module.finrank ℚ ((Submodule.span ℚ lhs_gens).map
+          (rename f : MvPolynomial (Fin m) ℚ →ₐ[ℚ] MvPolynomial (Fin N) ℚ).toLinearMap) := by
+        -- For injective linear maps: finrank(source) ≤ finrank(image)
+        -- Actually Submodule.finrank_map_le gives ≥, so we need both directions = equality
+        sorry
+    _ ≤ Module.finrank ℚ (Submodule.span ℚ rhs_gens) := by
+        -- Need Module.Finite for finrank_mono
+        have : Module.Finite ℚ (Submodule.span ℚ rhs_gens) := by
+          sorry -- Finite-dim: rhs_gens span lies in restrictTotalDegree
+        exact Submodule.finrank_mono h_map_le
 
 /-! ## Sub-fact (C): Cook-Levin extraction
 
