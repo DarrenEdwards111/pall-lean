@@ -1326,11 +1326,25 @@ theorem theorem92_scaffold_eventually (M : DTM) :
           = 2 ^ (2 ^ (2 * c + 1) + 2 ^ (2 * c + 1)) := by rw [← Nat.pow_add]
         _ = 2 ^ 2 ^ (2 * c + 2) := by ring_nf
         _ ≤ n := hn
-    -- (log₂ n + 1)^c ≤ √n
-    -- Proof: (log+1)^c ≤ 2^(c·√(log n)) ≤ 2^(log n / 2) ≤ √(2^(log n)) ≤ √n
-    -- Requires: log(k+1) ≤ √k (for large k) and c√k ≤ k/2 (when k ≥ 4c²).
-    -- Both hold for k = log₂ n ≥ 2^(2c+2) ≥ 4c² (for c ≥ 1).
-    -- ARITHMETIC SORRY: standard, no mathematical content.
+    -- (log₂ n + 1)^c ≤ √n via: (log+1)^c ≤ 2^(log/2) ≤ √n
+    -- Step A: (k+1)^c ≤ 2^(k/2) for k = log₂ n ≥ 2^(2c+2)
+    set k := Nat.log 2 n
+    have hk := hlog -- k ≥ 2^(2c+2)
+    -- Step B: 2^(k/2) ≤ √n (same as core_polylog_le_sqrt proof)
+    have hn0 : n ≠ 0 := by
+      have : 0 < 2 ^ 2 ^ (2 * c + 2) := Nat.pos_of_ne_zero (by positivity)
+      omega
+    have hpow : 2 ^ k ≤ n := Nat.pow_log_le_self 2 hn0
+    suffices h : (k + 1) ^ c ≤ 2 ^ (k / 2) by
+      calc (k + 1) ^ c ≤ 2 ^ (k / 2) := h
+        _ ≤ Nat.sqrt (2 ^ k) := by
+            apply Nat.le_sqrt.mpr
+            calc 2 ^ (k / 2) * 2 ^ (k / 2)
+                = 2 ^ (k / 2 + k / 2) := by rw [← Nat.pow_add]
+              _ ≤ 2 ^ k := Nat.pow_le_pow_right (by norm_num) (by omega)
+        _ ≤ Nat.sqrt n := Nat.sqrt_le_sqrt hpow
+    -- Remains: (k+1)^c ≤ 2^(k/2) for k ≥ 2^(2c+2)
+    -- SORRY: exp beats poly for universally quantified c.
     sorry
   refine ⟨max n₀ N₁, ?_⟩
   intro n hn hn2
