@@ -132,9 +132,19 @@ theorem spdpRank_ml_le {N : ℕ}
     (κ ℓ : ℕ) (V : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N)
     (hV_vars : V.vars.card ≤ 8) (hV_deg : V.totalDegree ≤ 6) :
     blockedSpdpRankQ κ ℓ V bp ≤ (ℓ + 30) ^ 24 := by
-  -- Generators m * ∂^S(V) have vars ⊆ some 24-element set (V.vars ∪ S-coupled).
-  -- So the span ⊆ supported ℚ s ⊓ restrictTotalDegree (ℓ+6) for |s| ≤ 24.
-  -- Via supportedEquivMvPolynomial, dim ≤ C(24+ℓ+6, 24) ≤ (ℓ+30)^24.
+  -- The SPDP span ⊆ restrictTotalDegree (ℓ + V.totalDegree) (finite-dim on Fin N).
+  -- But we need a TIGHTER bound: generators only use ≤ 24 variables.
+  -- So the span ⊆ supported ℚ s for |s| ≤ 24.
+  -- dim(supported s ∩ restrictTotalDegree (ℓ+6)) = C(|s|+ℓ+6, |s|) ≤ (ℓ+30)^24.
+  --
+  -- For now: sorry this, as it requires supported ↔ MvPolynomial subtype infra.
+  -- The mathematical argument is:
+  -- (1) Every generator m*∂^S(V) has vars ⊆ V.vars ∪ (S-coupled vars) ⊆ 24-elem set
+  --     [uses: vars_mul, vars_pderiv_subset, S-coupling condition, V.vars.card ≤ 8]
+  -- (2) Span of generators ⊆ supported ℚ s (subalgebra on 24 vars)
+  -- (3) supported ℚ s ≅ MvPolynomial s ℚ (supportedEquivMvPolynomial)
+  -- (4) Image of span ⊆ restrictTotalDegree s ℚ (ℓ+6)
+  -- (5) finrank = C(24+ℓ+6, 24) ≤ (ℓ+30)^24 (Nat.choose_le_pow)
   sorry
 
 /-- restricted_clause_survival with c = 20 and the correct multilinear V.
