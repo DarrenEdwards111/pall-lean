@@ -131,7 +131,10 @@ theorem polyspace_dim_bound (v d : ℕ) :
 theorem spdpRank_ml_le {N : ℕ}
     (κ ℓ : ℕ) (V : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N)
     (hV_vars : V.vars.card ≤ 8) (hV_deg : V.totalDegree ≤ 6) :
-    blockedSpdpRankQ κ ℓ V bp ≤ (ℓ + 30) ^ 24 := by
+    blockedSpdpRankQ κ ℓ V bp ≤ (ℓ + 30) ^ 30 := by
+  -- Bound rank by number of generators.
+  -- Valid generators: (S, m) with |S| ≤ min(κ,6), S ⊆ V.vars, m S-coupled deg ≤ ℓ
+  -- Count: ≤ P(8,≤6) × C(24+ℓ, 24) ≤ 28961 × (ℓ+24)^24 ≤ (ℓ+30)^30
   sorry
 
 /-- restricted_clause_survival with c = 20 and the correct multilinear V.
@@ -142,31 +145,33 @@ theorem restricted_clause_survival_from_ml (M : TuringMachine.DTM) :
       blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
         (violationPolyQ_ml (initialSemanticCNF M n hn2))
         (initialSemantic_local M n hn2).partition ≤ (Nat.log 2 n + 1) ^ c := by
-  refine ⟨30, 2 ^ 60, ?_⟩
+  refine ⟨35, 2 ^ 60, ?_⟩
   intro n hn hn2
   set ℓ := Nat.log 2 n
-  -- Step 1: rank ≤ (ℓ + 30)^24
+  -- Step 1: rank ≤ (ℓ + 30)^30
   have h1 := spdpRank_ml_le ℓ ℓ
     (violationPolyQ_ml (initialSemanticCNF M n hn2))
     (initialSemantic_local M n hn2).partition
     (violationPolyQ_ml_vars_le M n hn2)
     (by
       exact le_trans (totalDegree_multilinearize_le _) (violationPolyQ_totalDegree_le _))
-  -- Step 2: (ℓ + 30)^24 ≤ (ℓ + 1)^30 for ℓ ≥ 60
+  -- Step 2: (ℓ + 30)^30 ≤ (ℓ + 1)^30 trivially since ℓ+30 ≤ 2(ℓ+1) for ℓ≥29
+  -- Actually (ℓ+30)^30 could be > (ℓ+1)^30. Need c > 30.
+  -- Use c = 35: (ℓ+30)^30 ≤ (ℓ+1)^35 for large ℓ.
   have hℓ : ℓ ≥ 60 := by
     calc ℓ = Nat.log 2 n := rfl
       _ ≥ Nat.log 2 (2 ^ 60) := Nat.log_mono_right hn
       _ = 60 := by rw [Nat.log_pow]; norm_num
-  have h2 : (ℓ + 30) ^ 24 ≤ (ℓ + 1) ^ 30 := by
+  have h2 : (ℓ + 30) ^ 30 ≤ (ℓ + 1) ^ 35 := by
     have h_le : ℓ + 30 ≤ 2 * (ℓ + 1) := by omega
-    calc (ℓ + 30) ^ 24 ≤ (2 * (ℓ + 1)) ^ 24 := Nat.pow_le_pow_left h_le 24
-      _ = 2 ^ 24 * (ℓ + 1) ^ 24 := by ring
-      _ ≤ (ℓ + 1) ^ 6 * (ℓ + 1) ^ 24 := by
+    calc (ℓ + 30) ^ 30 ≤ (2 * (ℓ + 1)) ^ 30 := Nat.pow_le_pow_left h_le 30
+      _ = 2 ^ 30 * (ℓ + 1) ^ 30 := by ring
+      _ ≤ (ℓ + 1) ^ 5 * (ℓ + 1) ^ 30 := by
           apply Nat.mul_le_mul_right
-          calc 2 ^ 24 = 16777216 := by norm_num
-            _ ≤ 61 ^ 6 := by norm_num
-            _ ≤ (ℓ + 1) ^ 6 := Nat.pow_le_pow_left (by omega) 6
-      _ = (ℓ + 1) ^ 30 := by ring
+          calc 2 ^ 30 = 1073741824 := by norm_num
+            _ ≤ 61 ^ 5 := by norm_num
+            _ ≤ (ℓ + 1) ^ 5 := Nat.pow_le_pow_left (by omega) 5
+      _ = (ℓ + 1) ^ 35 := by ring
   exact le_trans h1 h2
 
 end ProfileCompression
