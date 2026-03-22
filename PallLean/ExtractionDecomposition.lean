@@ -66,7 +66,10 @@ theorem rename_rank_le {m N : ℕ} (f : Fin m → Fin N) (hf : Function.Injectiv
     (κ ℓ : ℕ) (p : MvPolynomial (Fin m) ℚ) (bp : BlockPartition N) :
     blockedSpdpRankQ κ ℓ p (CompiledPoly.BlockPartition.pullback bp f) ≤
       blockedSpdpRankQ κ ℓ (rename f p) bp := by
-  sorry -- Needs: finrank_mono via rename embedding + generator correspondence
+  -- rename f is injective on MvPolynomial, so it preserves linear independence.
+  -- Each LHS generator maps to a RHS generator via rename f.
+  -- Therefore LHS rank ≤ RHS rank.
+  sorry
 
 /-! ## Sub-fact (C): Cook-Levin extraction
 
