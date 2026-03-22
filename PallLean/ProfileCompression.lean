@@ -46,21 +46,26 @@ theorem vars_pderiv_subset {N : ℕ} {F : Type*} [CommRing F]
     (MvPolynomial.pderiv i p).vars ⊆ p.vars := by
   sorry -- Each output monomial's support ⊆ input monomial's support
 
-/-- If S contains a variable not in V.vars, iterDerivList S V = 0. -/
+/-- If S.toFinset ⊄ V.vars, iterDerivList S V = 0.
+    Avoids ∃ v ∈ S form (Lean 4 List.Mem constructor issue). -/
 theorem iterDerivList_eq_zero_of_not_subset_vars {N : ℕ} {F : Type*} [CommRing F]
     (S : List (Fin N)) (V : MvPolynomial (Fin N) F)
-    (h : ∃ v ∈ S, v ∉ V.vars) :
+    (h : ¬ S.toFinset ⊆ V.vars) :
     SPDP.iterDerivList S V = 0 := by
-  obtain ⟨v, hv_mem, hv_notin⟩ := h
   induction S generalizing V with
-  | nil => simp at hv_mem
+  | nil => simp at h
   | cons i T ih =>
     simp only [SPDP.iterDerivList, List.foldl_cons]
-    rcases List.mem_cons.mp hv_mem with rfl | hv_T
-    · rw [MvPolynomial.pderiv_eq_zero_of_notMem_vars hv_notin]
+    by_cases hi : i ∈ V.vars
+    · -- i ∈ V.vars, so the non-subset must come from T
+      apply ih (pderiv i V)
+      intro hsub
+      apply h
+      simp only [List.toFinset_cons]
+      exact Finset.insert_subset_iff.mpr ⟨hi, fun x hx => vars_pderiv_subset i V (hsub hx)⟩
+    · -- i ∉ V.vars → pderiv i V = 0 → iterDerivList = 0
+      rw [MvPolynomial.pderiv_eq_zero_of_notMem_vars hi]
       exact SPDP.foldl_pderiv_zero T
-    · -- v ∈ T and v ∉ (pderiv i V).vars → iterDerivList T (pderiv i V) = 0
-      sorry
 
 /-- The multilinearized violation polynomial depends on ≤ 8 scaffold variables.
     (Indices 0-7 in compiledVarCount space.) -/
