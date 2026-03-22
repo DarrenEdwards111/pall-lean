@@ -1327,8 +1327,10 @@ theorem theorem92_scaffold_eventually (M : DTM) :
         _ = 2 ^ 2 ^ (2 * c + 2) := by ring_nf
         _ ≤ n := hn
     -- (log₂ n + 1)^c ≤ √n
-    -- Chain: (log+1)^c ≤ (2·log)^c ≤ (2·2^(2c+2))^c = 2^(c(2c+3))
-    --        ≤ 2^(2^(2c+1)) ≤ √n
+    -- Proof: (log+1)^c ≤ 2^(c·√(log n)) ≤ 2^(log n / 2) ≤ √(2^(log n)) ≤ √n
+    -- Requires: log(k+1) ≤ √k (for large k) and c√k ≤ k/2 (when k ≥ 4c²).
+    -- Both hold for k = log₂ n ≥ 2^(2c+2) ≥ 4c² (for c ≥ 1).
+    -- ARITHMETIC SORRY: standard, no mathematical content.
     sorry
   refine ⟨max n₀ N₁, ?_⟩
   intro n hn hn2
