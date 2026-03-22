@@ -1302,7 +1302,27 @@ private theorem nat_succ_le_pow2 (n : ℕ) (hn : n ≥ 1) : n + 1 ≤ 2 ^ n := b
         _ ≤ 2 * 2 ^ m := by exact Nat.mul_le_mul_left 2 (ih (by omega))
         _ = 2 ^ (m + 1) := by ring
 
+-- m² ≤ 2^m for m ≥ 4
+private theorem sq_le_pow2 (m : ℕ) (hm : m ≥ 4) : m ^ 2 ≤ 2 ^ m := by
+  induction m with
+  | zero => omega
+  | succ n ih =>
+    by_cases hn4 : n ≥ 4
+    · -- (n+1)² = n² + 2n + 1 ≤ 2^n + 2n + 1 ≤ 2^n + 2^n = 2^(n+1)
+      have ihn := ih hn4
+      have : 2 * n + 1 ≤ 2 ^ n := by
+        calc 2 * n + 1 ≤ n ^ 2 := by nlinarith
+          _ ≤ 2 ^ n := ihn
+      calc (n + 1) ^ 2 = n ^ 2 + 2 * n + 1 := by ring
+        _ ≤ 2 ^ n + 2 ^ n := by omega
+        _ = 2 ^ (n + 1) := by ring
+    · -- n = 3 since n+1 ≥ 4 and n < 4
+      have : n = 3 := by omega
+      subst this; norm_num
+
 -- (k+1)^c ≤ 2^(k/2) for k ≥ 2^(2c+2)
+-- Proof sketch: let m = k/(2c). Then m ≥ 4 and m ≥ 2c+1.
+-- (k+1) ≤ 2c(m+1) ≤ m² ≤ 2^m. So (k+1)^c ≤ 2^(mc) = 2^(k/2).
 private theorem exp_beats_poly_general (c k : ℕ) (hk : k ≥ 2 ^ (2 * c + 2)) :
     (k + 1) ^ c ≤ 2 ^ (k / 2) := by
   sorry
