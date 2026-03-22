@@ -126,11 +126,12 @@ theorem spdpRank_ml_le {N : ℕ}
     (κ ℓ : ℕ) (V : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N)
     (hV_vars : V.vars.card ≤ 8) (hV_deg : V.totalDegree ≤ 6) :
     blockedSpdpRankQ κ ℓ V bp ≤ (ℓ + 22) ^ 16 := by
-  -- Every generator m · ∂^S(V) has:
-  -- - degree ≤ ℓ + 6 (from totalDegree bounds)
-  -- - variables from V.vars (≤ 8) ∪ m.vars (S-coupled, ≤ 8 more) = ≤ 16
-  -- So the span ⊆ poly space on 16 vars of degree ≤ ℓ + 6
-  -- dim(this space) = C(16 + ℓ + 6, 16) ≤ (ℓ + 22)^16
+  -- The SPDP span ⊆ restrictTotalDegree (ℓ + V.totalDegree) ⊆ restrictTotalDegree (ℓ + 6).
+  -- finrank of this space on Fin N is C(N + ℓ + 6, N) which is too large.
+  -- But generators only use ≤ 16 variables (V.vars ∪ S-coupled vars).
+  -- All generators share the same variable support (since S ⊆ V.vars which is fixed).
+  -- So finrank ≤ C(16 + ℓ + 6, 16) ≤ (ℓ + 22)^16.
+  -- SORRY: needs MvPolynomial variable restriction infrastructure
   sorry
 
 /-- restricted_clause_survival with c = 20 and the correct multilinear V.
