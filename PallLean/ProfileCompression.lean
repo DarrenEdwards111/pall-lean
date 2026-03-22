@@ -23,6 +23,7 @@
 import PallLean.CompiledPoly
 import PallLean.CookLevin
 import PallLean.DegreeDrop
+import PallLean.SupportedDim
 import Mathlib.Tactic
 
 namespace ProfileCompression
@@ -132,9 +133,9 @@ theorem spdpRank_ml_le {N : ℕ}
     (κ ℓ : ℕ) (V : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N)
     (hV_vars : V.vars.card ≤ 8) (hV_deg : V.totalDegree ≤ 6) :
     blockedSpdpRankQ κ ℓ V bp ≤ (ℓ + 30) ^ 30 := by
-  -- Bound rank by number of generators.
-  -- Valid generators: (S, m) with |S| ≤ min(κ,6), S ⊆ V.vars, m S-coupled deg ≤ ℓ
-  -- Count: ≤ P(8,≤6) × C(24+ℓ, 24) ≤ 28961 × (ℓ+24)^24 ≤ (ℓ+30)^30
+  unfold blockedSpdpRankQ
+  -- The SPDP span ⊆ restrictSupportDeg on 24 vars of degree ℓ+6
+  -- Use sorry'd s ⊇ V.vars with |s| ≤ 24
   sorry
 
 /-- restricted_clause_survival with c = 20 and the correct multilinear V.
