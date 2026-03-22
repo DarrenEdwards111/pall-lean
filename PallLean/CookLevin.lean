@@ -13,6 +13,7 @@
 import PallLean.CompiledPoly
 import PallLean.PermanentLower
 import PallLean.TuringMachine
+import PallLean.DegreeDrop
 import Mathlib.Tactic
 
 namespace CookLevin
