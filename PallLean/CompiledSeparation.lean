@@ -263,6 +263,15 @@ noncomputable def extractionBlockPartition (k n : ℕ) :
     (CookLevin.tableauPartition (compiledVarCount k n))
     (permToCompiledEmbed k n)
 
+/-- Cell-based extraction block partition: pullback of cellPartition via
+    the permanent-to-compiled embedding. Uses the paper-faithful cell
+    partition (n+2 blocks) instead of the old 3-block tableauPartition. -/
+noncomputable def extractionBlockPartitionCell (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    BlockPartition (Nat.sqrt n * Nat.sqrt n) :=
+  BlockPartition.pullback
+    (CookLevin.cellPartition M n hn2)
+    (permToCompiledEmbed (CookLevin.defaultK M) n)
+
 /-! ### Extraction rank monotonicity decomposition
 
   The extraction rank inequality decomposes into three independent facts:
@@ -283,18 +292,46 @@ noncomputable def extractionBlockPartition (k n : ℕ) :
   is the next frontier.
 -/
 
-/-- Extraction rank monotonicity (Paper Lemma 206).
-    Reduced from monolithic axiom: sub-facts (A) rename_rank_le and
-    (B) mono_params are PROVED in ExtractionDecomposition.lean.
-    Remaining content: Cook-Levin embedding (sub-fact C). -/
-axiom extraction_rank_monotone (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
-    blockedSpdpRankQ (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
-      (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
-      (permPolyFlat (Nat.sqrt n))
-      (extractionBlockPartition (CookLevin.defaultK M) n)
+/-- Cook-Levin embedding axiom: the renamed permanent's SPDP rank is bounded
+    by the violation polynomial's SPDP rank. This is the core Cook-Levin content.
+    Sub-facts (A) rename_rank_le and (B) mono_params handle the rest. -/
+axiom cookLevin_rank_bound (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+      (MvPolynomial.rename (permToCompiledEmbed (CookLevin.defaultK M) n)
+        (permPolyFlat (Nat.sqrt n)))
+      (CookLevin.initialSemantic_local M n hn2).partition
     ≤ blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
       (violationPolyQ (CookLevin.initialSemanticCNF M n hn2))
       (CookLevin.initialSemantic_local M n hn2).partition
+
+/-- Extraction rank monotonicity — PROVED from rename_rank_le + mono_params + cookLevin_rank_bound. -/
+theorem extraction_rank_monotone (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    blockedSpdpRankQ (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+      (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+      (permPolyFlat (Nat.sqrt n))
+      (extractionBlockPartitionCell M n hn2)
+    ≤ blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+      (violationPolyQ (CookLevin.initialSemanticCNF M n hn2))
+      (CookLevin.initialSemantic_local M n hn2).partition := by
+  set bp := (CookLevin.initialSemantic_local M n hn2).partition
+  set f := permToCompiledEmbed (CookLevin.defaultK M) n
+  calc blockedSpdpRankQ (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+        (Nat.log 2 (Nat.sqrt n * Nat.sqrt n))
+        (permPolyFlat (Nat.sqrt n))
+        (extractionBlockPartitionCell M n hn2)
+      ≤ blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+        (permPolyFlat (Nat.sqrt n))
+        (extractionBlockPartitionCell M n hn2) :=
+        blockedSpdpRankQ_mono_params _ _ _ _ _ _
+          (Nat.log_mono_right (Nat.sqrt_le _))
+          (Nat.log_mono_right (Nat.sqrt_le _))
+    _ ≤ blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+        (MvPolynomial.rename f (permPolyFlat (Nat.sqrt n))) bp :=
+        ExtractionDecomposition.rename_rank_le f
+          (CookLevin.embedVar_injective _) _ _ _ _
+    _ ≤ blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+        (violationPolyQ (CookLevin.initialSemanticCNF M n hn2)) bp :=
+        cookLevin_rank_bound M n hn2
 
 
 /-- Semantic target predicate for scaffold correctness at a fixed `n`.
@@ -524,14 +561,14 @@ theorem isCorrectEncoding_initialSemantic (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
       (CookLevin.initialSemanticCNF M n hn2)
       (CookLevin.initialSemantic_local M n hn2) := by
   intro _hdec
-  exact ⟨extractionBlockPartition (CookLevin.defaultK M) n,
+  exact ⟨extractionBlockPartitionCell M n hn2,
     extraction_rank_monotone M n hn2⟩
 
 /-- InitialSemanticCorrectAt from extraction: holds for all n ≥ 2. -/
 theorem initialSemanticCorrectAt_from_extraction (M : DTM) (n : ℕ) :
     InitialSemanticCorrectAt M n := by
   intro hn2 _hdec
-  exact ⟨extractionBlockPartition (CookLevin.defaultK M) n,
+  exact ⟨extractionBlockPartitionCell M n hn2,
     extraction_rank_monotone M n hn2⟩
 
 /-- The scaffold correctness contract (per-machine existential package),
@@ -879,7 +916,7 @@ theorem decisionExtraction_skolemPrimitives_exists_of_extractionWitnessPack
 theorem decisionExtraction_skolemPrimitives_exists :
     ∃ P : DecisionExtractionSkolemPrimitives, True :=
   ⟨{ nE := fun _ => 2
-     chooseBp := fun _ n _ _ _ => extractionBlockPartition (CookLevin.defaultK _) n
+     chooseBp := fun M n _ hn2 _ => extractionBlockPartitionCell M n hn2
      bound := fun M n _hn hn2 _hM => extraction_rank_monotone M n hn2 }, trivial⟩
 
 /-- Primitive skolem package recovered from the eventual extraction bridge
