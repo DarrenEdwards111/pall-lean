@@ -155,16 +155,35 @@ private axiom scaffold_blockClosure_card_le (M : TuringMachine.DTM) (n : ℕ) (h
     (SupportedDim.blockClosure (initialSemantic_local M n hn2).partition
       (violationPolyQ_ml (initialSemanticCNF M n hn2)).vars).card ≤ 24
 
-/-- restricted_clause_survival with c = 20 and the correct multilinear V.
-    
-    rank(V_ml) ≤ (log n + 30)^24 ≤ (log n + 1)^30 for large n. -/
--- restricted_clause_survival_from_ml is proved through the main import path.
--- Through diamond import paths, MvPolynomial instance resolution differs,
--- breaking some intermediate proofs. Axiomatized for diamond-safety.
-axiom restricted_clause_survival_from_ml (M : TuringMachine.DTM) :
+/-- restricted_clause_survival with c = 35.
+    rank(V_ml) ≤ (log n + 30)^24 ≤ (log n + 1)^35 for large n. -/
+theorem restricted_clause_survival_from_ml (M : TuringMachine.DTM) :
     ∃ (c : ℕ) (n₀ : ℕ), ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
       blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
         (violationPolyQ_ml (initialSemanticCNF M n hn2))
-        (initialSemantic_local M n hn2).partition ≤ (Nat.log 2 n + 1) ^ c
+        (initialSemantic_local M n hn2).partition ≤ (Nat.log 2 n + 1) ^ c := by
+  refine ⟨35, 2 ^ 63, ?_⟩
+  intro n hn hn2
+  set ℓ := Nat.log 2 n
+  have h1 := spdpRank_ml_le ℓ ℓ
+    (violationPolyQ_ml (initialSemanticCNF M n hn2))
+    (initialSemantic_local M n hn2).partition
+    (by exact le_trans (totalDegree_multilinearize_le _) (violationPolyQ_totalDegree_le _))
+    (scaffold_blockClosure_card_le M n hn2)
+  have hℓ : ℓ ≥ 63 := by
+    calc ℓ = Nat.log 2 n := rfl
+      _ ≥ Nat.log 2 (2 ^ 63) := Nat.log_mono_right hn
+      _ = 63 := by rw [Nat.log_pow]; norm_num
+  have h2 : (ℓ + 30) ^ 30 ≤ (ℓ + 1) ^ 35 := by
+    have h_le : ℓ + 30 ≤ 2 * (ℓ + 1) := by omega
+    have h_2_30 : (2 : ℕ) ^ 30 ≤ (ℓ + 1) ^ 5 := by
+      calc (2 : ℕ) ^ 30 = 64 ^ 5 := by norm_num
+        _ ≤ (ℓ + 1) ^ 5 := Nat.pow_le_pow_left (by omega) 5
+    calc (ℓ + 30) ^ 30
+        ≤ (2 * (ℓ + 1)) ^ 30 := Nat.pow_le_pow_left h_le 30
+      _ = 2 ^ 30 * (ℓ + 1) ^ 30 := Nat.mul_pow 2 (ℓ + 1) 30
+      _ ≤ (ℓ + 1) ^ 5 * (ℓ + 1) ^ 30 := Nat.mul_le_mul_right ((ℓ + 1) ^ 30) h_2_30
+      _ = (ℓ + 1) ^ 35 := by ring
+  exact le_trans h1 h2
 
 end ProfileCompression
