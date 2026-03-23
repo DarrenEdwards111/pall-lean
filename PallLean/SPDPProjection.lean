@@ -117,18 +117,55 @@ theorem pderiv_restrictPoly_comm {n : ℕ} (ρ : Restriction.Restriction n)
         simp [pderiv_X, Pi.single_apply, hvi]
       rw [h3, map_zero, mul_zero]
 
+-- iterDerivList commutes with restrictPoly when all vars are live
+theorem iterDerivList_restrictPoly_comm {n : ℕ} (ρ : Restriction.Restriction n)
+    (S : List (Fin n)) (hS : ∀ v ∈ S, v ∈ Restriction.liveVars ρ)
+    (p : MvPolynomial (Fin n) ℚ) :
+    iterDerivList S (Restriction.restrictPoly ρ p) =
+    Restriction.restrictPoly ρ (iterDerivList S p) := by
+  induction S generalizing p with
+  | nil => rfl
+  | cons v S' ih =>
+    unfold iterDerivList
+    simp only [List.foldl_cons]
+    have hv : v ∈ Restriction.liveVars ρ := hS v (List.Mem.head S')
+    have hS' : ∀ w ∈ S', w ∈ Restriction.liveVars ρ :=
+      fun w hw => hS w (List.Mem.tail v hw)
+    rw [pderiv_restrictPoly_comm ρ v hv]
+    exact ih hS' _
+
+-- restrictPoly preserves a polynomial m when m.vars ⊆ live vars
+theorem restrictPoly_eq_self_of_live {n : ℕ} (ρ : Restriction.Restriction n)
+    (m : MvPolynomial (Fin n) ℚ) (hm : ∀ v ∈ m.vars, v ∈ Restriction.liveVars ρ) :
+    Restriction.restrictPoly ρ m = m := by
+  -- restrictPoly ρ = aeval σ where σ(v) = X v for live v.
+  -- If all vars of m are live, then aeval σ m = m.
+  sorry
+
 -- The key monotonicity: restricted SPDP rank ≤ SPDP rank
 -- (restriction can only reduce rank)
 theorem restrictedSpdpRank_le_spdpRank {n : ℕ}
     (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
     (ρ : Restriction.Restriction n) :
     RestrictedSPDP.restrictedSpdpRank κ ℓ p ρ ≤ spdpRank κ ℓ p := by
-  -- The restricted generators (S from live vars, m vars from live vars)
-  -- are a SUBSET of all generators (S from all vars, m vars from all vars).
-  -- The restricted polynomial restrictPoly ρ p has the same generators
-  -- as the subset applied to the original p.
-  -- By pderiv_restrictPoly_comm, derivatives commute with restriction
-  -- for live variables, so restricted generators map into full generators.
+  -- Strategy: the restricted span is the image of a subset of the full span
+  -- under restrictPoly ρ (a linear map). So dim(restricted) ≤ dim(full).
+  unfold RestrictedSPDP.restrictedSpdpRank spdpRank spdpSubspace
+  -- The restricted generators use restrictPoly ρ p and S/m from live vars.
+  -- By pderiv_restrictPoly_comm: m · ∂^S(restrictPoly ρ p) = restrictPoly ρ (m' · ∂^S p)
+  -- where m' = restrictPoly ρ m (approximately).
+  -- So the restricted span ⊆ image of full span under (aeval σ).
+  -- finrank of image ≤ finrank of source.
+  --
+  -- More precisely: every restricted generator
+  --   g = m · iterDerivList S (restrictPoly ρ p)
+  -- can be rewritten using pderiv_restrictPoly_comm as
+  --   g = m · restrictPoly ρ (iterDerivList S p)
+  -- And m (with vars in live set) satisfies m = restrictPoly ρ m.
+  -- So g = restrictPoly ρ (m · iterDerivList S p), which is the image
+  -- of a full generator under restrictPoly ρ.
+  -- Therefore: restricted span ⊆ (restrictPoly ρ).toLinearMap '' full span.
+  -- finrank ≤ finrank via Submodule.finrank_map_le.
   sorry
 
 /-! ## Bridge from blockedSpdpRankQ to restrictedSpdpRank
