@@ -32,6 +32,18 @@ open PneqNP_Defs
 -- family with superpolynomial SPDP rank, which is the paper's A3+A5.
 -- 3-SAT is trivially in NP (witness = satisfying assignment).
 -- The SPDP lower bound comes from Tseitin formulas (paper Theorem 10.1).
+-- The paper's A3 claim: ∃ F ∈ NP, F ∉ FSPDP for large n.
+--
+-- The paper constructs this via Tseitin formulas:
+-- - 3-SAT is in NP (witness = satisfying assignment, trivial)
+-- - Tseitin formulas on expander graphs have SPDP rank ≥ n^Θ(log n)
+--   (paper Theorem 10.1, via permanent identity-minor lower bound)
+-- - Therefore 3-SAT, evaluated on Tseitin instances, escapes FSPDP
+--
+-- This packages: trivial NP membership + deep SPDP lower bound.
+-- The lower bound is the paper's core content (A3).
+-- It uses the permanent lower bound (proved in v1: PermanentLower.lean)
+-- plus verifier-sheet extraction (paper §11-12).
 axiom hard_np_family_exists :
     ∃ F : BoolFunFamily, UniformNP F ∧
       ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 → ¬ InFSPDP (F n)
