@@ -67,15 +67,17 @@ theorem identity_minor_gives_rank_lower_bound {R : Type*} [CommRing R]
     (hminor : ∀ i j : Fin r, M (rows i) (cols j) = if i = j then 1 else 0) :
     r ≤ M.rank := by
   -- The columns of M indexed by cols, restricted to rows, form I_r.
-  -- The column vectors are linearly independent (they have disjoint
-  -- "1" positions at the selected rows).
-  -- Therefore rank(M) ≥ r.
-  --
-  -- Proof: construct r linearly independent vectors in the column space.
-  -- For each j, the column M[_, cols j] has M[rows j, cols j] = 1
-  -- and M[rows i, cols j] = 0 for i ≠ j.
-  -- These vectors are lin indep because any linear combination
-  -- Σ c_j · col_j = 0 implies c_j = 0 (evaluate at row j).
+  -- Column vectors v_j are linearly independent (proved below).
+  set v : Fin r → (Fin m → R) := fun j i => M i (cols j)
+  have hv_li : LinearIndependent R v := by
+    rw [linearIndependent_iff']
+    intro s g hsum k hk
+    have h_eval := congr_fun hsum (rows k)
+    simp only [v, Finset.sum_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at h_eval
+    simp only [hminor, mul_ite, mul_one, mul_zero] at h_eval
+    rwa [Finset.sum_ite_eq s k, if_pos hk] at h_eval
+  -- hv_li: r lin indep columns → rank(M) ≥ r
+  -- Needs: v j ∈ range(M.mulVecLin), then finrank(range) ≥ r.
   sorry
 
 /-! ## §9.3: NP-side identity-minor lower bound (Theorem 9.3)
