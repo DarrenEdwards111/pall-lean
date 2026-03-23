@@ -69,6 +69,21 @@ theorem mem_restrictSupportDeg {σ : Type*} [DecidableEq σ] {R : Type*} [CommSe
       hv ((mem_vars i).mpr ⟨n, hn, hi⟩)⟩
 
 /-- The SPDP span lies inside restrictSupportDeg on the block closure of V.vars. -/
+-- Helpers to avoid fragile Finset.mem_coe rewrites (diamond-safe)
+private theorem subset_blockClosure_of_image {N : ℕ} {bp : CompiledPoly.BlockPartition N}
+    {S_fin : Finset (Fin N)} {s : Finset (Fin N)}
+    (hS_sub : S_fin ⊆ s) {v : Fin N}
+    (hv : bp.blockOf v ∈ S_fin.image bp.blockOf) :
+    v ∈ (blockClosure bp s : Set (Fin N)) := by
+  simp only [Set.mem_coe, Finset.mem_coe]
+  exact (mem_blockClosure bp s v).mpr (Finset.image_subset_image hS_sub hv)
+
+private theorem subset_blockClosure_of_vars {N : ℕ}
+    (bp : CompiledPoly.BlockPartition N) (s : Finset (Fin N)) {v : Fin N}
+    (hv : v ∈ s) :
+    v ∈ (blockClosure bp s : Set (Fin N)) := by
+  exact Finset.mem_coe.mpr (subset_blockClosure bp s hv)
+
 theorem spdp_span_in_restrictSupportDeg {N : ℕ}
     (κ ℓ : ℕ) (V : MvPolynomial (Fin N) ℚ)
     (bp : CompiledPoly.BlockPartition N)
@@ -97,14 +112,13 @@ theorem spdp_span_in_restrictSupportDeg {N : ℕ}
               MvPolynomial.totalDegree_mul ms (SPDP.iterDerivList S V)
           _ ≤ ℓ + V.totalDegree := Nat.add_le_add hdeg (SPDP.totalDegree_iterDerivList_le S V)
           _ ≤ ℓ + 6 := by omega
-      · classical
-        intro v hv
-        rcases Finset.mem_union.mp (MvPolynomial.vars_mul ms (SPDP.iterDerivList S V) hv) with
-          hms | hderiv
-        · rw [Finset.mem_coe, mem_blockClosure]
-          exact Finset.image_subset_image hS_sub (hcoupl v hms)
-        · exact Finset.mem_coe.mpr (subset_blockClosure bp V.vars
-            (VarsIterDeriv.vars_iterDerivList_subset S V hderiv))
+      · intro v hv
+        have hv' := MvPolynomial.vars_mul ms (SPDP.iterDerivList S V) hv
+        simp only [Finset.mem_union] at hv'
+        rcases hv' with hms | hderiv
+        · exact subset_blockClosure_of_image hS_sub (hcoupl v hms)
+        · exact subset_blockClosure_of_vars bp V.vars
+            (VarsIterDeriv.vars_iterDerivList_subset S V hderiv)
     exact heq ▸ hmem
 
 
