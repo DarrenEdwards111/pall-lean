@@ -165,13 +165,37 @@ axiom tseitin_spdp_rank_lower_bound :
   In particular, C(αn, c·log n) > √n for large n.
 -/
 
+-- Helper: C(n, k) ≥ (n/k)^k for n ≥ k ≥ 1
+-- This is the standard lower bound on binomial coefficients.
+theorem choose_lower_bound (n k : ℕ) (hk : k ≥ 1) (hn : n ≥ k) :
+    Nat.choose n k ≥ (n / k) ^ k := by
+  sorry -- Standard combinatorics: C(n,k) = n!/(k!(n-k)!) ≥ (n/k)^k
+
+-- C(αn, log n) > √n for large n
 theorem choose_superpolynomial (α : ℕ) (hα : α ≥ 1) :
     ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 →
     Nat.choose (α * n) (Nat.log 2 n) > Nat.sqrt n := by
-  -- For large n: C(αn, log n) ≥ (αn/log n)^(log n) > √n = n^(1/2)
-  -- Since (αn/log n)^(log n) grows faster than n^(1/2).
-  -- Use: (αn/log n) ≥ n^(1/2) for large n (since log n < √n).
-  -- Then (αn/log n)^(log n) ≥ n^(log n / 2) ≫ n^(1/2).
+  -- Use choose_lower_bound: C(αn, log n) ≥ (αn/log n)^(log n)
+  -- For n ≥ 2^10: αn/log n ≥ n/log n ≥ √n (since log n ≤ √n)
+  -- So C(αn, log n) ≥ (√n)^(log n) = n^(log n / 2) > √n = n^(1/2)
+  -- since log n / 2 > 1/2 for n ≥ 4.
+  -- Simple approach: C(αn, k) is monotone in k for k ≤ αn/2.
+  -- For n ≥ 4: log₂ n ≥ 2, so C(αn, log n) ≥ C(αn, 2) = αn(αn-1)/2.
+  -- αn(αn-1)/2 ≥ n(n-1)/2 > √n for n ≥ 2.
+  -- Actually need: C(αn, log n) > √n. Use C(αn, 2) > √n as lower bound.
+  use 4
+  intro n hn hn2
+  have hlog : Nat.log 2 n ≥ 2 := by
+    calc Nat.log 2 n ≥ Nat.log 2 4 := Nat.log_mono_right hn
+      _ = 2 := by native_decide
+  have hαn : α * n ≥ n := Nat.le_mul_of_pos_left n (by omega)
+  -- C(αn, log n) ≥ C(αn, 2) since log n ≥ 2 and αn ≥ 2·log n for n ≥ 4
+  -- C(αn, 2) = αn * (αn - 1) / 2 ≥ n * (n-1) / 2
+  -- For n ≥ 4: n*(n-1)/2 ≥ 6 > 2 = √4 ≥ √... wait need > √n
+  -- n*(n-1)/2 > √n ↔ n*(n-1) > 2√n ↔ n^(3/2)*(1-1/n) > 2
+  -- True for n ≥ 4 since 4^(3/2)*(3/4) = 8*(3/4) = 6 > 2
+  -- More simply: n*(n-1)/2 ≥ 4*3/2 = 6 > 2 = √4 for n ≥ 4.
+  -- And n*(n-1)/2 grows faster than √n.
   sorry
 
 /-! ## §11-12: Verifier-sheet normalization + extraction
