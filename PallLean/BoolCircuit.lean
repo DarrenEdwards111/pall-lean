@@ -69,6 +69,9 @@ open MvPolynomial SPDP LiveVarsDefs
   (counterexample: AND of w variables gives rank C(2w,w) > (k+1)w).
   The profile compression route is the paper's correct load-bearing path. -/
 
+-- PROVED in CookLevinBridge.lean from cook_levin_spdp_bridge + profile compression.
+-- Kept as axiom here for backward compatibility with SwitchingLemma.lean.
+-- The real dependency is cook_levin_spdp_bridge (Cook-Levin SPDP bridge).
 axiom ptime_spdp_collapse :
     ∀ (M : TuringMachine.DTM), ∃ (n₀ : ℕ), ∀ (n : ℕ), n ≥ n₀ → n ≥ 2 →
     ∀ (f : (Fin n → Bool) → Bool), M.decides f →
