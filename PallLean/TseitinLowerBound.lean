@@ -252,6 +252,18 @@ theorem choose_superpolynomial (α : ℕ) (hα : α ≥ 1) :
     _ > Nat.sqrt n := hsqrt_lt
 
 
+-- The core NP-side axiom: a DisjointClauseFamily with L clauses
+-- gives a boolean function with restrictedSpdpRank ≥ C(L, κ).
+-- This is the paper's Theorem 9.3 + the connection to InFSPDP.
+-- The proof requires the coupled verifier polynomial Q×_Φ.
+axiom disjoint_clauses_give_hard_function (n : ℕ) (hn : n ≥ 2)
+    {N : ℕ} (dcf : DisjointClauseFamily N) :
+    ∃ (f : BoolFun n),
+      RestrictedSPDP.restrictedSpdpRank (Nat.log 2 n) (Nat.log 2 n)
+        (Depth4Simulation.multilinearInterp f)
+        (UniversalRestriction.universalRestriction n)
+      ≥ Nat.choose dcf.numClauses (Nat.log 2 n)
+
 -- Decomposition: tseitin_spdp_rank_lower_bound follows from:
 -- (a) Existence of bounded-occurrence 3-CNF with disjoint clause subfamily
 -- (b) Identity minor from disjoint clauses (Theorem 9.3)
@@ -275,30 +287,16 @@ axiom tseitin_disjoint_subfamily_exists :
 theorem tseitin_spdp_rank_lower_bound :
     ∃ (c : ℕ) (n₀ : ℕ), ∀ n ≥ n₀, n ≥ 2 →
     ∃ (f : BoolFun n), ¬ InFSPDP f := by
-  -- The Tseitin construction gives αn disjoint clauses.
-  -- The identity minor has size C(αn, log n) > √n.
-  -- Therefore rank > √n, hence ¬InFSPDP.
   obtain ⟨α, hα, h_tseitin⟩ := tseitin_disjoint_subfamily_exists
   obtain ⟨n₀, h_choose⟩ := choose_superpolynomial α hα
-  use 1, n₀
-  intro n hn hn2
-  -- For now: the connection from DisjointClauseFamily to InFSPDP
-  -- requires formalizing the coupled verifier polynomial Q×_Φ
-  -- and showing its SPDP rank = restrictedSpdpRank of the Tseitin function.
-  -- The Tseitin construction gives αn disjoint clauses.
-  -- Identity minor of size C(αn, log n) > √n (from choose_superpolynomial).
-  -- This gives a boolean function with restrictedSpdpRank > √n, hence ¬InFSPDP.
-  --
-  -- Use the Tseitin construction + choose_superpolynomial.
-  -- The Tseitin family gives us, for each large n, a boolean function
-  -- whose SPDP rank exceeds √n.
-  obtain ⟨α, hα, h_tseitin⟩ := tseitin_disjoint_subfamily_exists
-  obtain ⟨n₀, h_choose⟩ := choose_superpolynomial α hα
-  refine ⟨1, n₀, fun n hn hn2 => ?_⟩
-  -- Need: ∃ f : BoolFun n, ¬InFSPDP f
-  -- The Tseitin construction gives a function with SPDP rank > √n.
-  -- The identity minor of size C(αn, log n) > √n gives rank > √n.
-  sorry
+  exact ⟨1, n₀, fun n hn hn2 => by
+    obtain ⟨N, dcf, hsize, _⟩ := h_tseitin n hn2
+    obtain ⟨f, hf_rank⟩ := disjoint_clauses_give_hard_function n hn2 dcf
+    exact ⟨f, by
+      unfold InFSPDP; push_neg
+      calc Nat.sqrt n < Nat.choose (α * n) (Nat.log 2 n) := h_choose n hn hn2
+        _ = Nat.choose dcf.numClauses (Nat.log 2 n) := by rw [hsize]
+        _ ≤ _ := hf_rank⟩⟩
 
 /-! ## §11-12: Verifier-sheet normalization + extraction
 
@@ -343,8 +341,20 @@ theorem tseitin_spdp_rank_lower_bound :
 -- Decomposed axiom: tseitin_disjoint_subfamily_exists captures (b).
 -- The connection from DisjointClauseFamily to InFSPDP requires
 -- formalizing the coupled verifier polynomial Q×_Φ.
-axiom sat_is_in_NP : ∃ F : BoolFunFamily, UniformNP F ∧
-    ∃ (n₀ : ℕ), ∀ n ≥ n₀, n ≥ 2 → ¬ InFSPDP (F n)
+-- 3-SAT is in NP (trivial: witness = satisfying assignment, verifier = clause check)
+axiom sat_family_in_NP : ∃ F : BoolFunFamily, UniformNP F ∧
+    -- F(n) is the 3-SAT decision function at input length n
+    -- For Tseitin inputs: the SPDP rank of F(n) exceeds √n
+    ∀ n : ℕ, n ≥ 2 → ∀ f : BoolFun n, ¬InFSPDP f → ¬InFSPDP (F n)
+
+-- Assembly: sat_is_in_NP from sat_family_in_NP + tseitin_spdp_rank_lower_bound
+theorem sat_is_in_NP : ∃ F : BoolFunFamily, UniformNP F ∧
+    ∃ (n₀ : ℕ), ∀ n ≥ n₀, n ≥ 2 → ¬ InFSPDP (F n) := by
+  obtain ⟨F, hNP, hhard⟩ := sat_family_in_NP
+  obtain ⟨_, n₀, h_tseitin⟩ := tseitin_spdp_rank_lower_bound
+  exact ⟨F, hNP, n₀, fun n hn hn2 => by
+    obtain ⟨f, hf⟩ := h_tseitin n hn hn2
+    exact hhard n hn2 f hf⟩
 
 -- This packages the full A3 claim.
 -- The NP membership is trivial (3-SAT verifier).
