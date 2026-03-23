@@ -216,9 +216,12 @@ theorem finrank_restrictSupportDeg_le {σ : Type*} [DecidableEq σ] [Fintype σ]
     _ ≤ h_finite.toFinset.card := by
         exact Finset.card_image_le
     _ ≤ (s.card + d) ^ s.card := by
-        -- |boundedSupp s d| ≤ (d+1)^|s| ≤ (|s|+d)^|s|
-        -- Each n ∈ boundedSupp is determined by n|_s ∈ (s → {0,...,d})
-        -- |(s → {0,...,d})| = (d+1)^|s| ≤ (|s|+d)^|s|
+        -- boundedSupp s d ⊆ {n | ∀ i, n i ≤ d} ∩ {n | n.support ⊆ s}
+        -- Each such n is determined by its values on s (vals outside s are 0).
+        -- Values on s are in {0,...,d}. So |boundedSupp| ≤ (d+1)^|s|.
+        -- (d+1)^|s| ≤ (|s|+d)^|s| since d+1 ≤ |s|+d for |s| ≥ 1.
+        -- For |s| = 0: boundedSupp has at most 1 element (the zero Finsupp),
+        -- and (0+d)^0 = 1. ✓
         sorry
 
 /-- Module.Finite for restrictSupportDeg (subset of restrictTotalDegree). -/
