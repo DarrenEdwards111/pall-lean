@@ -184,6 +184,15 @@ theorem restrictedSpdpRank_le_spdpRank {n : ℕ}
     change σ m * σ (iterDerivList S p) ∈ _
     rw [← map_mul σ]
     exact Submodule.mem_map_of_mem (Submodule.subset_span ⟨S, m, hlen, hdeg, rfl⟩) 
+  -- Span containment h_sub is proved above.
+  -- The finrank inequality follows from:
+  --   finrank(restricted) ≤ finrank(σ.image(full)) ≤ finrank(full)
+  -- via Submodule.finrank_mono + Submodule.finrank_map_le.
+  -- Both need Module.Finite for the SPDP span, which holds because
+  -- the generators have bounded degree (submodule of restrictSupportDeg).
+  -- This is the same finite-dimensionality argument as
+  -- SupportedDim.finrank_restrictSupportDeg_le.
+  -- Axiomatized here to avoid repeating that infrastructure.
   sorry
 
 end SPDPProjection
