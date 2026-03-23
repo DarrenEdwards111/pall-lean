@@ -145,9 +145,18 @@ theorem coeff_prod_disjoint {N : ℕ} {L : ℕ}
   induction L with
   | zero => simp
   | succ L ih =>
-    -- ∏_{i:Fin(L+1)} V_i = V_last * ∏_{i:Fin L} V_(cast i)
-    -- ∑ τ_i = τ_last + ∑_{i:Fin L} τ_(cast i)
-    -- By coeff_mul convolution + IH + disjoint vars uniqueness.
+    rw [Fin.prod_univ_succ, Fin.sum_univ_succ]
+    -- Goal: coeff (τ 0 + ∑ τ∘succ) (V 0 * ∏ V∘succ) = 1
+    -- IH: coeff (∑ τ∘succ) (∏ V∘succ) = 1
+    have hih := ih (V ∘ Fin.succ) (τ ∘ Fin.succ)
+      (fun i => hcoeff i.succ)
+      (fun i j hij => hdisjoint i.succ j.succ (by exact Fin.succ_injective _ |>.ne hij))
+      (fun i j hij => hvars i.succ j.succ (by exact Fin.succ_injective _ |>.ne hij))
+      (fun i => hvar_tau i.succ)
+    -- coeff (τ 0 + ∑ τ∘succ) (V 0 * ∏ V∘succ) = coeff (τ 0) (V 0) * coeff (∑ τ∘succ) (∏ V∘succ)
+    -- because V 0 and ∏ V∘succ have disjoint vars,
+    -- and τ 0 and ∑ τ∘succ have disjoint supports.
+    -- This is the 2-polynomial disjoint-vars coefficient multiplicativity.
     sorry
 
 -- The identity minor theorem follows from coeff_prod_disjoint
