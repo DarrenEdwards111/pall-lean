@@ -90,18 +90,45 @@ theorem transition_constraint_zero_on_valid (M : DTM) (n : ℕ)
         -- Then M.transition(q, b) = (q', b', dir) and state at t+1 is q'.
         -- So state_violation = 1 - s_{t+1,q'} = 1 - 1 = 0.
         -- The product is ... · 0 = 0.
-        obtain ⟨_, hst, _⟩ := hvalid ⟨t.1 + 1, ht⟩
-        -- state at t+1 matches run M n ... (t+1)
-        -- run at t+1 = step(run at t), and step applies transition
-        sorry -- requires showing step applies transition correctly
+        -- run at t+1 = step(run at t)
+        set cfg := run M n (initConfig M n x) t.1
+        have hrun_succ : run M n (initConfig M n x) (t.1 + 1) = step M n cfg := by
+          rfl
+        -- step applies M.transition(q, b) since head at i, state q, tape b
+        have hcfg_state : cfg.state = q := hstate
+        have hcfg_head : cfg.headPos = i.1 := hhead
+        have hcfg_tape : cfg.tape i = b := hbit
+        -- After step: new state = (M.transition q b).1
+        have hstep_state : (step M n cfg).state = (M.transition q b).1 := by
+          unfold step
+          simp only [hcfg_state]
+          have hbit_eq : cfg.tape ⟨cfg.headPos, cfg.headBound⟩ = b := by
+            have : (⟨cfg.headPos, cfg.headBound⟩ : Fin (tapeSize M n)) = i := by
+              exact Fin.ext hcfg_head
+            rw [this]; exact hcfg_tape
+          rw [hbit_eq]
+        -- The state at t+1 matches the transition output
+        obtain ⟨_, hst1, _⟩ := hvalid ⟨t.1 + 1, ht⟩
+        -- s_{t+1, q'} where q' = (M.transition q b).1 should be true
+        set q' := (M.transition q b).1
+        have hst_true : τ (stateIdx M n 0 ⟨t.1 + 1, ht⟩ q') = true := by
+          rw [hst1 q']
+          simp [BEq.beq, beq_iff_eq, hrun_succ, hstep_state]
+        -- state_violation = 1 - s_{t+1, q'} = 1 - 1 = 0
+        -- So the last factor is 0, making the product 0
+        simp [hst_true]
       · -- Tape bit doesn't match b: tape_match factor = 0
         obtain ⟨htape, _, _⟩ := hvalid t
-        sorry -- show tape_match evaluates to 0
+        -- tape_match = (if b then X(tape) else 1 - X(tape))
+        -- Since tape ≠ b, this evaluates to 0
+        have htv : τ (tapeIdx M n 0 t i) = (run M n (initConfig M n x) t.1).tape i :=
+          htape i
+        cases b <;> simp_all [hbit]
     · -- State doesn't match q: s_{t,q} factor = 0
       obtain ⟨_, hst, _⟩ := hvalid t
-      have : τ (stateIdx M n 0 t q) = false := by
-        rw [hst q]; simp [BEq.beq, hstate]
-      sorry -- show s_{t,q} evaluates to 0, making product 0
+      have hfalse : τ (stateIdx M n 0 t q) = false := by
+        rw [hst q]; simp [BEq.beq, beq_iff_eq, hstate]
+      simp [hfalse]
   · -- Head not at position i: h_{t,i} factor = 0
     obtain ⟨_, _, hh⟩ := hvalid t
     have hfalse : τ (headIdx M n 0 t i) = false := by
