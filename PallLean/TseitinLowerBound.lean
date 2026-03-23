@@ -66,9 +66,16 @@ theorem identity_minor_gives_rank_lower_bound {R : Type*} [CommRing R]
     (hrows : Function.Injective rows) (hcols : Function.Injective cols)
     (hminor : ∀ i j : Fin r, M (rows i) (cols j) = if i = j then 1 else 0) :
     r ≤ M.rank := by
-  -- The submatrix M[rows, cols] = I_r.
-  -- r linearly independent columns → rank ≥ r.
-  -- Standard linear algebra.
+  -- The columns of M indexed by cols, restricted to rows, form I_r.
+  -- The column vectors are linearly independent (they have disjoint
+  -- "1" positions at the selected rows).
+  -- Therefore rank(M) ≥ r.
+  --
+  -- Proof: construct r linearly independent vectors in the column space.
+  -- For each j, the column M[_, cols j] has M[rows j, cols j] = 1
+  -- and M[rows i, cols j] = 0 for i ≠ j.
+  -- These vectors are lin indep because any linear combination
+  -- Σ c_j · col_j = 0 implies c_j = 0 (evaluate at row j).
   sorry
 
 /-! ## §9.3: NP-side identity-minor lower bound (Theorem 9.3)
