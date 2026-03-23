@@ -17,6 +17,7 @@
   this gives: 3-SAT ∉ Ccoll, hence ∃ F ∈ NP, F ∉ FSPDP.
 -/
 import PallLean.SPDPDefs
+import Mathlib.LinearAlgebra.Matrix.Rank
 import PallLean.CompiledPoly
 import PallLean.PneqNP_Defs
 import Mathlib.Tactic
@@ -59,15 +60,13 @@ structure ExpanderFamily where
 -- of r rows and r columns forming the identity matrix.
 -- If M has an identity minor of size r, then rank(M) ≥ r.
 
-theorem identity_minor_gives_rank_lower_bound {R : Type*} [CommRing R]
-    [DecidableEq R] [Nontrivial R]
+theorem identity_minor_gives_rank_lower_bound {R : Type*} [Field R]
     {m n : ℕ} (M : Matrix (Fin m) (Fin n) R)
     {r : ℕ} (rows : Fin r → Fin m) (cols : Fin r → Fin n)
     (hrows : Function.Injective rows) (hcols : Function.Injective cols)
     (hminor : ∀ i j : Fin r, M (rows i) (cols j) = if i = j then 1 else 0) :
     r ≤ M.rank := by
   -- The columns of M indexed by cols, restricted to rows, form I_r.
-  -- Column vectors v_j are linearly independent (proved below).
   set v : Fin r → (Fin m → R) := fun j i => M i (cols j)
   have hv_li : LinearIndependent R v := by
     rw [linearIndependent_iff']
@@ -76,9 +75,17 @@ theorem identity_minor_gives_rank_lower_bound {R : Type*} [CommRing R]
     simp only [v, Finset.sum_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at h_eval
     simp only [hminor, mul_ite, mul_one, mul_zero] at h_eval
     rwa [Finset.sum_ite_eq s k, if_pos hk] at h_eval
-  -- hv_li: r lin indep columns → rank(M) ≥ r
-  -- Needs: v j ∈ range(M.mulVecLin), then finrank(range) ≥ r.
-  sorry
+  set S := LinearMap.range M.mulVecLin
+  have hvS : ∀ j, v j ∈ S := by
+    intro j; refine ⟨Pi.single (cols j) 1, ?_⟩
+    ext i; simp [v, Matrix.mulVecLin, Matrix.mulVec, Matrix.vecMul,
+      Pi.single_apply, Finset.sum_ite_eq', Finset.mem_univ, mul_comm]
+  set v' : Fin r → S := fun j => ⟨v j, hvS j⟩
+  have hv' : LinearIndependent R v' :=
+    LinearIndependent.of_comp S.subtype (by simpa using hv_li)
+  calc r = Fintype.card (Fin r) := (Fintype.card_fin r).symm
+    _ ≤ Module.finrank R S := hv'.fintype_card_le_finrank
+    _ = M.rank := rfl
 
 /-! ## §9.3: NP-side identity-minor lower bound (Theorem 9.3)
 
