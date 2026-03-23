@@ -138,11 +138,35 @@ theorem iterDerivList_restrictPoly_comm {n : ℕ} (ρ : Restriction.Restriction 
 theorem restrictPoly_eq_self_of_live {n : ℕ} (ρ : Restriction.Restriction n)
     (m : MvPolynomial (Fin n) ℚ) (hm : ∀ v ∈ m.vars, v ∈ Restriction.liveVars ρ) :
     Restriction.restrictPoly ρ m = m := by
-  -- restrictPoly ρ = aeval σ. If σ(v) = X v for all v ∈ m.vars,
-  -- then aeval σ m = aeval X m = m.
-  -- We use: aeval σ = aeval X when σ and X agree on m.vars.
-  -- And aeval X = id (AlgHom identity).
   unfold Restriction.restrictPoly
   -- aeval σ m = m when σ(v) = X v for all v ∈ vars(m).
-  -- Use induction on m.
+  rw [m.as_sum]
+  simp only [map_sum, aeval_monomial]
+  apply Finset.sum_congr rfl
+  intro d hd
+  rw [monomial_eq]
+  congr 1
+  apply Finsupp.prod_congr
+  intro v hv
+  -- Need: σ(v) = X v. We know v ∈ m.vars (from hd + hv) and m.vars ⊆ live.
+  have hv_in_vars : v ∈ m.vars := (mem_vars v).mpr ⟨d, hd, hv⟩
+  have hv_live := hm v hv_in_vars
+  have hρv : ρ v = none := (Finset.mem_filter.mp hv_live).2
+  simp [hρv]
+
+-- The key monotonicity: restricted SPDP rank ≤ SPDP rank
+theorem restrictedSpdpRank_le_spdpRank {n : ℕ}
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    (ρ : Restriction.Restriction n) :
+    RestrictedSPDP.restrictedSpdpRank κ ℓ p ρ ≤ spdpRank κ ℓ p := by
+  -- Every restricted generator g = m · iterDerivList S (restrictPoly ρ p)
+  -- equals restrictPoly ρ (m · iterDerivList S p) by:
+  -- 1. iterDerivList_restrictPoly_comm: ∂^S(restrictPoly ρ p) = restrictPoly ρ (∂^S p)
+  -- 2. restrictPoly_eq_self_of_live: m = restrictPoly ρ m (since m.vars ⊆ live)
+  -- 3. restrictPoly is an algebra hom: restrictPoly(a*b) = restrictPoly(a) * restrictPoly(b)
+  -- So g = restrictPoly ρ (m · ∂^S p), and m · ∂^S p is a full generator.
+  -- Therefore: restricted span ⊆ image of full span under restrictPoly ρ.
+  -- finrank of image ≤ finrank of source (Submodule.finrank_map_le).
   sorry
+
+end SPDPProjection
