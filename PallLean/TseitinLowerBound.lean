@@ -393,6 +393,34 @@ theorem tseitin_spdp_rank_lower_bound :
 -- (a) There exists an NP function family (3-SAT)
 -- (b) The NP family is "maximally hard" (NP-completeness → hardness transfer)
 
+-- Trivial DTM that always rejects (stays in state 0, never reaches accept state 1)
+private def rejectDTM : TuringMachine.DTM where
+  numStates := 3
+  hStates := by omega
+  transition := fun _ _ => (⟨0, by show 0 < 3; omega⟩, false, false)
+  timeBound := 1
+  hTimeBound := by omega
+
+private theorem rejectDTM_stays_state0 (n : ℕ) (c : TuringMachine.Config rejectDTM n) :
+    (TuringMachine.step rejectDTM n c).state = ⟨0, by show 0 < 3; omega⟩ := by
+  unfold TuringMachine.step rejectDTM; simp
+
+private theorem rejectDTM_run_state0 (n : ℕ) (x : Fin n → Bool) (t : ℕ) :
+    (TuringMachine.run rejectDTM n (TuringMachine.initConfig rejectDTM n x) t).state = ⟨0, by show 0 < 3; omega⟩ := by
+  induction t with
+  | zero => rfl
+  | succ t ih => simp [TuringMachine.run]; exact rejectDTM_stays_state0 n _
+
+private theorem rejectDTM_decides_false (n : ℕ) :
+    rejectDTM.decides (fun (_ : Fin n → Bool) => false) := by
+  intro x
+  simp only [TuringMachine.DTM.decides]
+  constructor
+  · intro h
+    have := rejectDTM_run_state0 n x (TuringMachine.timeSteps rejectDTM n)
+    rw [this] at h; simp [Fin.ext_iff] at h
+  · intro h; exact absurd h (by simp)
+
 -- (a) 3-SAT is in NP: witness = satisfying assignment, verifier = clause check.
 -- This is standard CS. The DTM verifier iterates over clauses and checks each.
 -- ANY function family is in NP if it has a poly-time verifier.
@@ -401,23 +429,9 @@ theorem tseitin_spdp_rank_lower_bound :
 theorem three_sat_in_NP : ∃ F : BoolFunFamily, UniformNP F := by
   -- F = always-false, k = 1, V = always-false
   refine ⟨fun _ _ => false, 1, fun _ _ => false, ?_, ?_⟩
-  · -- V is in P: decided by a trivial DTM that always rejects
-    -- Construct a trivial DTM that always rejects (stays in state 0)
-    refine ⟨⟨3, by omega, fun _ _ => (⟨0, by omega⟩, false, false), 1, by omega⟩, ?_⟩
-    -- This DTM: 3 states, always transitions to state 0, timeBound = 1.
-    -- Final state is always 0 ≠ 1, so it rejects all inputs.
-    intro n x
-    simp only [TuringMachine.DTM.decides]
-    constructor
-    · intro h; exfalso
-      -- The DTM always transitions to state 0.
-      -- So run ... t always has state 0 for all t.
-      -- But h says final.state = ⟨1, _⟩. Contradiction.
-      -- The trivial DTM: transition always → state 0. So run stays in state 0.
-      set M := (⟨3, by omega, fun _ _ => (⟨0, by omega⟩, false, false), 1, by omega⟩ : TuringMachine.DTM)
-      -- DTM stays in state 0 forever. Contradiction with h (state = 1).
-      sorry
-    · intro h; exact absurd h (by simp)
+  · -- V is in P: decided by rejectDTM
+    refine ⟨rejectDTM, ?_⟩
+    intro n x; exact rejectDTM_decides_false n x
   · -- F n x = true ↔ ∃ w, V(...) = true
     -- false ↔ ∃ w, false — both sides false
     intro n x; simp
