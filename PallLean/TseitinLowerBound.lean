@@ -289,15 +289,15 @@ theorem tseitin_spdp_rank_lower_bound :
   -- Identity minor of size C(αn, log n) > √n (from choose_superpolynomial).
   -- This gives a boolean function with restrictedSpdpRank > √n, hence ¬InFSPDP.
   --
-  -- The connection: the coupled verifier polynomial Q×_Φ has
-  -- identity minor of size C(αn, κ) in its SPDP matrix.
-  -- The boolean function f = χ_Φ (multilinear interpolation of satisfiability)
-  -- has restrictedSpdpRank ≥ identity minor size > √n.
-  --
-  -- For the formalization: this requires the full coupled verifier
-  -- polynomial construction and showing its SPDP matrix inherits
-  -- the identity minor from the disjoint clause structure.
-  -- This is paper §9.3 (Theorem 9.3) applied in the SPDP framework.
+  -- Use the Tseitin construction + choose_superpolynomial.
+  -- The Tseitin family gives us, for each large n, a boolean function
+  -- whose SPDP rank exceeds √n.
+  obtain ⟨α, hα, h_tseitin⟩ := tseitin_disjoint_subfamily_exists
+  obtain ⟨n₀, h_choose⟩ := choose_superpolynomial α hα
+  refine ⟨1, n₀, fun n hn hn2 => ?_⟩
+  -- Need: ∃ f : BoolFun n, ¬InFSPDP f
+  -- The Tseitin construction gives a function with SPDP rank > √n.
+  -- The identity minor of size C(αn, log n) > √n gives rank > √n.
   sorry
 
 /-! ## §11-12: Verifier-sheet normalization + extraction
