@@ -135,11 +135,20 @@ theorem coeff_prod_disjoint {N : ℕ} {L : ℕ}
     (V : Fin L → MvPolynomial (Fin N) ℚ)
     (τ : Fin L → (Fin N →₀ ℕ))
     (hcoeff : ∀ i, (V i).coeff (τ i) = 1)
-    (hdisjoint : ∀ i j, i ≠ j → Disjoint (τ i).support (τ j).support) :
+    (hdisjoint : ∀ i j, i ≠ j → Disjoint (τ i).support (τ j).support)
+    -- Additional: vars of V_i are contained in support of τ_i
+    -- (or more precisely, in the block for clause i, which contains τ_i.support)
+    (hvars : ∀ i j, i ≠ j → Disjoint (V i).vars (V j).vars)
+    (hvar_tau : ∀ i, (V i).vars ⊆ (τ i).support) :
     (Finset.univ.prod V).coeff (Finset.univ.sum τ) = 1 := by
-  -- Product of polynomials with disjoint support: coefficient of sum = product of coefficients.
-  -- This is a standard fact about multivariate polynomials with disjoint variables.
-  sorry
+  -- Induction on L
+  induction L with
+  | zero => simp
+  | succ L ih =>
+    -- ∏_{i:Fin(L+1)} V_i = V_last * ∏_{i:Fin L} V_(cast i)
+    -- ∑ τ_i = τ_last + ∑_{i:Fin L} τ_(cast i)
+    -- By coeff_mul convolution + IH + disjoint vars uniqueness.
+    sorry
 
 -- The identity minor theorem follows from coeff_prod_disjoint
 -- applied to subsets S ⊆ {0,...,L-1} of size κ.
