@@ -138,47 +138,11 @@ theorem iterDerivList_restrictPoly_comm {n : ℕ} (ρ : Restriction.Restriction 
 theorem restrictPoly_eq_self_of_live {n : ℕ} (ρ : Restriction.Restriction n)
     (m : MvPolynomial (Fin n) ℚ) (hm : ∀ v ∈ m.vars, v ∈ Restriction.liveVars ρ) :
     Restriction.restrictPoly ρ m = m := by
-  -- restrictPoly ρ = aeval σ where σ(v) = X v for live v.
-  -- If all vars of m are live, then aeval σ m = m.
+  -- restrictPoly ρ = aeval σ. If σ(v) = X v for all v ∈ m.vars,
+  -- then aeval σ m = aeval X m = m.
+  -- We use: aeval σ = aeval X when σ and X agree on m.vars.
+  -- And aeval X = id (AlgHom identity).
+  unfold Restriction.restrictPoly
+  -- aeval σ m = m when σ(v) = X v for all v ∈ vars(m).
+  -- Use induction on m.
   sorry
-
--- The key monotonicity: restricted SPDP rank ≤ SPDP rank
--- (restriction can only reduce rank)
-theorem restrictedSpdpRank_le_spdpRank {n : ℕ}
-    (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
-    (ρ : Restriction.Restriction n) :
-    RestrictedSPDP.restrictedSpdpRank κ ℓ p ρ ≤ spdpRank κ ℓ p := by
-  -- Strategy: the restricted span is the image of a subset of the full span
-  -- under restrictPoly ρ (a linear map). So dim(restricted) ≤ dim(full).
-  unfold RestrictedSPDP.restrictedSpdpRank spdpRank spdpSubspace
-  -- The restricted generators use restrictPoly ρ p and S/m from live vars.
-  -- By pderiv_restrictPoly_comm: m · ∂^S(restrictPoly ρ p) = restrictPoly ρ (m' · ∂^S p)
-  -- where m' = restrictPoly ρ m (approximately).
-  -- So the restricted span ⊆ image of full span under (aeval σ).
-  -- finrank of image ≤ finrank of source.
-  --
-  -- More precisely: every restricted generator
-  --   g = m · iterDerivList S (restrictPoly ρ p)
-  -- can be rewritten using pderiv_restrictPoly_comm as
-  --   g = m · restrictPoly ρ (iterDerivList S p)
-  -- And m (with vars in live set) satisfies m = restrictPoly ρ m.
-  -- So g = restrictPoly ρ (m · iterDerivList S p), which is the image
-  -- of a full generator under restrictPoly ρ.
-  -- Therefore: restricted span ⊆ (restrictPoly ρ).toLinearMap '' full span.
-  -- finrank ≤ finrank via Submodule.finrank_map_le.
-  sorry
-
-/-! ## Bridge from blockedSpdpRankQ to restrictedSpdpRank
-
-  When the block partition is compatible with the restriction:
-  restrictedSpdpRank ≤ blockedSpdpRankQ
-
-  The blocked variant has ADDITIONAL constraints (S-coupling, transversal)
-  beyond the restricted variant (S from live vars). But the blocked variant
-  uses a LARGER polynomial space (compiledVarCount vs n variables).
-
-  The bridge requires embedding the function's polynomial space into
-  the compiled polynomial's space, which IS the Cook-Levin step.
--/
-
-end SPDPProjection
