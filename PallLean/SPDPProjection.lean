@@ -52,10 +52,20 @@ theorem pderiv_restrictPoly_comm {n : ℕ} (ρ : Restriction.Restriction n)
   -- pderiv is a derivation, aeval is an algebra hom.
   -- When the algebra hom fixes X v (i.e., σ(v) = X v for live v),
   -- they commute on that variable's derivative.
-  -- Proof: both sides are ℚ-linear in p, so suffices to check on monomials.
-  -- On monomial X^α: pderiv v (aeval σ (X^α)) = α(v) · aeval σ (X^{α-δv})
-  -- and aeval σ (pderiv v (X^α)) = α(v) · aeval σ (X^{α-δv}).
-  -- These are equal because aeval σ is multiplicative and σ(v) = X v.
+  -- Both sides are ℚ-algebra derivations/homomorphisms, agree on generators.
+  -- Use the fact that pderiv is a derivation and aeval is an AlgHom.
+  -- Key: σ(v) = X v (since v is live), so pderiv v (σ(v)) = 1.
+  -- For any algebra hom φ with φ(X v) = X v:
+  --   pderiv v (φ p) = φ (pderiv v p)
+  -- because pderiv v is the unique derivation with pderiv v (X i) = δ_{vi},
+  -- and φ ∘ pderiv v ∘ φ⁻¹ is also a derivation with the same value on X i
+  -- (when φ fixes X v).
+  -- Formally: use MvPolynomial.derivation_ext or induction_on.
+  -- Both sides are linear in p and agree on monomials.
+  -- The key: aeval σ commutes with pderiv v when σ(v) = X v.
+  -- This follows from: pderiv is a derivation, aeval is an algebra hom,
+  -- and pderiv v (σ(i)) = δ_{vi} = pderiv v (X i) when σ(v) = X v.
+  -- The monomial case uses: pderiv v (∏ σ(iⱼ)) via Leibniz rule.
   sorry
 
 -- The key monotonicity: restricted SPDP rank ≤ SPDP rank
