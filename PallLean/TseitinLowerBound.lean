@@ -160,6 +160,18 @@ axiom tseitin_spdp_rank_lower_bound :
   In particular, C(αn, c·log n) > √n for large n.
 -/
 
+-- 2^k > 2k for k ≥ 3
+private theorem pow2_gt_twice (k : ℕ) (hk : k ≥ 3) : 2 ^ k > 2 * k := by
+  induction k with
+  | zero => omega
+  | succ k' ih =>
+    by_cases h : k' ≥ 3
+    · have ih' := ih h
+      calc 2 ^ (k' + 1) = 2 * 2 ^ k' := by ring
+        _ > 2 * (2 * k') := by omega
+        _ ≥ 2 * (k' + 1) := by omega
+    · interval_cases k' <;> omega
+
 -- Choose monotonicity in second argument
 theorem choose_mono_second (n k : ℕ) (hk : 2 * (k + 1) ≤ n) :
     Nat.choose n (k + 1) ≥ Nat.choose n k := by
@@ -213,8 +225,10 @@ theorem choose_superpolynomial (α : ℕ) (hα : α ≥ 1) :
     have h2k_le : 2 * Nat.log 2 n ≤ α * n := by
       -- log₂ n ≤ n/2 for n ≥ 4, so 2 * log n ≤ n ≤ αn
       have : Nat.log 2 n ≤ n / 2 := by
-        calc Nat.log 2 n ≤ Nat.log 2 n := le_refl _
-        sorry -- log₂ n ≤ n/2 for n ≥ 4
+        suffices h : n < 2 ^ (n / 2 + 1) by
+          have := Nat.log_lt_of_lt_pow (by omega : n ≠ 0) h; omega
+        have hk : n / 2 + 1 ≥ 3 := by omega
+        have h2k := pow2_gt_twice _ hk; omega
       have : α * n ≥ n := Nat.le_mul_of_pos_left n (by omega)
       omega
     calc Nat.choose (α * n) (Nat.log 2 n)
