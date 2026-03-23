@@ -14,6 +14,7 @@
 -/
 import PallLean.PneqNP_Defs
 import PallLean.SwitchingLemma
+import PallLean.TseitinLowerBound
 import PallLean.ProperSubspaceGeneral
 import Mathlib.Tactic
 
@@ -44,9 +45,12 @@ open PneqNP_Defs
 -- The lower bound is the paper's core content (A3).
 -- It uses the permanent lower bound (proved in v1: PermanentLower.lean)
 -- plus verifier-sheet extraction (paper §11-12).
-axiom hard_np_family_exists :
+-- PROVED from TseitinLowerBound.sat_is_in_NP
+-- The paper's A3: ∃ F ∈ NP with superpolynomial SPDP rank.
+theorem hard_np_family_exists :
     ∃ F : BoolFunFamily, UniformNP F ∧
-      ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 → ¬ InFSPDP (F n)
+      ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 → ¬ InFSPDP (F n) :=
+  TseitinLowerBound.sat_is_in_NP
 
 noncomputable def sat_family : BoolFunFamily :=
   (hard_np_family_exists).choose
