@@ -222,6 +222,21 @@ theorem finrank_restrictSupportDeg_le {σ : Type*} [DecidableEq σ] [Fintype σ]
         -- (d+1)^|s| ≤ (|s|+d)^|s| since d+1 ≤ |s|+d for |s| ≥ 1.
         -- For |s| = 0: boundedSupp has at most 1 element (the zero Finsupp),
         -- and (0+d)^0 = 1. ✓
+        -- h_finite was proved as subset of Set.pi univ (fun _ => Set.Iic d)
+        -- which has card (d+1)^|σ|. But we need (|s|+d)^|s|.
+        -- Use: h_finite.toFinset ⊆ the pi-based finite set.
+        -- Then: card ≤ card of pi set = (d+1)^|σ|.
+        -- This is too big. Need the |s|-dependent bound.
+        -- 
+        -- The injection approach: define f : boundedSupp → (s → Fin(d+1))
+        -- f(n)(i) = ⟨n i, n i ≤ d⟩. Injective since n.support ⊆ s.
+        -- |image| ≤ |(s → Fin(d+1))| = (d+1)^|s| ≤ (|s|+d)^|s|.
+        -- 
+        -- To avoid Set.Finite.toFinset_card_le_of_injOn (which may not exist),
+        -- just use transitivity with the containing finite set.
+        -- h_finite ⊆ {n | n.support ⊆ s ∧ ∀ i, n i ≤ d}
+        -- ⊆ {n | ∀ i ∈ s, n i ≤ d ∧ ∀ i ∉ s, n i = 0}
+        -- This set has card ≤ (d+1)^|s|.
         sorry
 
 /-- Module.Finite for restrictSupportDeg (subset of restrictTotalDegree). -/
