@@ -318,10 +318,17 @@ theorem tseitin_disjoint_subfamily_exists :
     -- Construct DisjointClauseFamily with n clauses on 3n variables.
     -- Each clause i uses variables {3i, 3i+1, 3i+2} — pairwise disjoint.
     refine ⟨3 * n, ⟨n,
-      fun i => {⟨3 * i.1, by omega⟩, ⟨3 * i.1 + 1, by omega⟩, ⟨3 * i.1 + 2, by omega⟩},
+      fun (i : Fin n) => Finset.image (fun k : Fin 3 => (⟨3 * i.1 + k.1, by omega⟩ : Fin (3 * n))) Finset.univ,
       fun i j hij => by
-        sorry, -- Disjoint: {3i,3i+1,3i+2} ∩ {3j,3j+1,3j+2} = ∅ for i ≠ j
-      trivial⟩, by omega, trivial⟩⟩
+        rw [Finset.disjoint_left]; intro v hv hv2
+        have hine : i.1 ≠ j.1 := Fin.val_ne_of_ne hij
+        simp only [Finset.mem_image, Finset.mem_univ, true_and] at hv hv2
+        obtain ⟨a, ha⟩ := hv; obtain ⟨b, hb⟩ := hv2
+        have h1 : 3 * i.1 + a.1 = v.1 := congr_arg Fin.val ha
+        have h2 : 3 * j.1 + b.1 = v.1 := congr_arg Fin.val hb
+        have : a.1 < 3 := a.isLt; have : b.1 < 3 := b.isLt
+        omega,
+      trivial⟩, by show n = 1 * n; ring, trivial⟩⟩
 
 -- From the sub-axiom + proved lemmas:
 theorem tseitin_spdp_rank_lower_bound :
