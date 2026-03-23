@@ -36,9 +36,48 @@ theorem numVars_le_compiledVarCount (M : DTM) :
   -- compiledVarCount timeBound n = n^(2*timeBound + 1)
   -- For large n: n^(2*tb+1) = n * n^(2*tb) ≥ n * (S-1)² ≥ 2*S² + S*|Q| + n
   -- Use n₀ = max(2, 2*numStates + 3) (generous)
-  use (2 * M.numStates + 3) ^ 2
+  -- Choose n₀ large enough that n^(2tb+1) ≥ numVars
+  -- numVars M n 0 = 2*S² + S*|Q| + n where S = n^tb + 1
+  -- ≤ 2*(n^tb+1)² + (n^tb+1)*|Q| + n
+  -- ≤ 3*n^(2*tb) + 5*n^tb + |Q|*n^tb + |Q| + n + 2
+  -- ≤ (3 + |Q| + 6) * n^(2*tb)  for n ≥ |Q| + 9
+  -- ≤ n * n^(2*tb) = n^(2*tb+1) for n ≥ |Q| + 9
+  -- Use a generous threshold
+  use max (M.numStates + 9) 2
   intro n hn
-  sorry -- Arithmetic: n^(2*tb+1) ≥ 2*(n^tb+1)² + (n^tb+1)*|Q| + n for large n
+  have hn2 : n ≥ 2 := le_trans (le_max_right _ _) hn
+  have hn_Q : n ≥ M.numStates + 9 := le_trans (le_max_left _ _) hn
+  -- Key: n^(2tb+1) = n * n^(2tb) and numVars ≤ 3*n^(2tb) + ... ≤ n * n^(2tb) for large n
+  -- We prove this via a chain of inequalities
+  unfold numVars tapeSize timeSteps compiledVarCount defaultK
+  simp only [Nat.add_zero]
+  -- Need: 2*(n^tb+1)² + (n^tb+1)*|Q| + n ≤ n^(2*tb+1)
+  -- Since n^(2*tb+1) = n * n^(2*tb) and n^tb+1 ≤ 2*n^tb (for n ≥ 1, tb ≥ 1)
+  -- we get 2*(2*n^tb)² + 2*n^tb*|Q| + n = 8*n^(2tb) + 2*|Q|*n^tb + n
+  -- ≤ (8 + 2*|Q| + 1) * n^(2tb) ≤ n * n^(2tb) for n ≥ 2|Q| + 9
+  have htb := M.hTimeBound -- timeBound ≥ 1
+  have hnt : n ^ M.timeBound ≥ n := Nat.le_self_pow (by omega : M.timeBound ≠ 0) n
+  have hnt2 : n ^ M.timeBound ≥ 2 := le_trans hn2 hnt
+  -- n^tb + 1 ≤ 2 * n^tb
+  have hS_le : n ^ M.timeBound + 1 ≤ 2 * n ^ M.timeBound := by omega
+  -- (n^tb + 1)² ≤ 4 * n^(2*tb)
+  have h_sq : (n ^ M.timeBound + 1) * (n ^ M.timeBound + 1) ≤
+      4 * (n ^ M.timeBound * n ^ M.timeBound) := by nlinarith [hS_le]
+  -- n^(2*tb) = (n^tb)²
+  have h_pow : n ^ (2 * M.timeBound) = n ^ M.timeBound * n ^ M.timeBound := by
+    ring_nf
+  -- n^(2*tb+1) = n * n^(2*tb)
+  have h_pow1 : n ^ (2 * M.timeBound + 1) = n * n ^ (2 * M.timeBound) := by
+    rw [pow_succ]; ring
+  rw [h_pow1, h_pow]
+  -- Goal: 2*(n^tb+1)² + (n^tb+1)*|Q| + n ≤ n * (n^tb * n^tb)
+  -- LHS ≤ 8*(n^tb)² + 2*|Q|*n^tb + n
+  -- ≤ (8 + 2*|Q| + 1) * (n^tb)²   [since n ≤ (n^tb)² for n ≥ 2, tb ≥ 1]
+  -- ≤ n * (n^tb)²                   [since n ≥ |Q| + 9 ≥ 2|Q| + 9]
+  have h_n_le_sq : n ≤ n ^ M.timeBound * n ^ M.timeBound := by
+    calc n ≤ n ^ M.timeBound := hnt
+      _ ≤ n ^ M.timeBound * n ^ M.timeBound := Nat.le_mul_of_pos_right _ (by omega)
+  nlinarith [h_sq, hS_le, hnt, h_n_le_sq, hn_Q, M.hStates]
 
 /-! ## The embedding: real vars → compiled vars -/
 
@@ -64,16 +103,10 @@ theorem realToScaffold_injective (M : DTM) (n : ℕ)
   Under the embedding, these land in distinct blocks of the cell partition.
 -/
 
-/-- Tape variables at different cells map to different scaffold blocks. -/
-theorem tape_vars_distinct_blocks (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
-    (h : numVars M n 0 ≤ compiledVarCount (defaultK M) n)
-    (t₁ t₂ : Fin (tapeSize M n)) (i₁ i₂ : Fin (tapeSize M n))
-    (hne : (t₁, i₁) ≠ (t₂, i₂)) :
-    (cellPartition M n hn2).blockOf
-      (realToScaffold M n h (tapeIdx M n 0 t₁ i₁)) ≠
-    (cellPartition M n hn2).blockOf
-      (realToScaffold M n h (tapeIdx M n 0 t₂ i₂)) := by
-  sorry -- Follows from tapeIdx being injective and cellPartition separating indices
+-- Note: the scaffold's cellPartition is designed for scaffold vars (indices 0..7).
+-- The real encoding uses different variable indices (tapeIdx, stateIdx, headIdx).
+-- For the real encoding, we need a partition based on the (time, position) cells.
+-- This is handled by compilerBlockPartition in TuringMachine.lean.
 
 /-! ## Clause mapping: real constraints → scaffold-compatible clauses
 
