@@ -49,10 +49,14 @@ theorem pderiv_mul_of_independent {N : ℕ} (v : Fin N)
     (f g : MvPolynomial (Fin N) ℚ) (hf : v ∉ f.vars) :
     pderiv v (f * g) = f * pderiv v g := by
   have hpf : pderiv v f = 0 := by
-    sorry
-  have := (pderiv v).leibniz f g
-  simp only [smul_eq_mul] at this
-  sorry
+    rw [f.as_sum]; simp only [map_sum, pderiv_monomial]
+    apply Finset.sum_eq_zero; intro m hm
+    have : m v = 0 := by
+      by_contra h; exact hf ((mem_vars v).mpr ⟨m, hm, Finsupp.mem_support_iff.mpr h⟩)
+    simp [this]
+  have h := (pderiv v).leibniz f g
+  simp only [smul_eq_mul] at h
+  rw [h, hpf, mul_zero, add_zero]
 
 /-! ## The κ-padding rank bound (Lemma 3.1)
 
