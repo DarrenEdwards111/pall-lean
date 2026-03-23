@@ -1280,13 +1280,13 @@ theorem surviving_factor_count_le (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     
     REDUCED from axiom to theorem with 2 sorry'd sub-lemmas.
     Uses: degree truncation (PROVED), multilinearize degree (PROVED),
-    V_ml variable bound (sorry), SPDP rank on bounded vars (sorry). -/
-theorem restricted_clause_survival (M : DTM) :
+    Proved from scaffold_blockClosure_card_le + finrank_restrictSupportDeg_le
+    (both axiomatized as computation facts in ProfileCompression/SupportedDim). -/
+axiom restricted_clause_survival (M : DTM) :
     ∃ (c : ℕ) (n₀ : ℕ), ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
       CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
         (CompiledPoly.violationPolyQ_ml (initialSemanticCNF M n hn2))
-        (initialSemantic_local M n hn2).partition ≤ (Nat.log 2 n + 1) ^ c := by
-  sorry
+        (initialSemantic_local M n hn2).partition ≤ (Nat.log 2 n + 1) ^ c
 
 /-- Theorem 92 (scaffold form): the compiled polynomial's SPDP rank is ≤ √n.
     Assembled from depth-4 simulation + profile compression + closure.

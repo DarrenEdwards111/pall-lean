@@ -361,11 +361,7 @@ theorem totalDegree_multilinearize_le {N : ℕ} (p : MvPolynomial (Fin N) ℚ) :
   apply le_trans (MvPolynomial.totalDegree_monomial_le _ _)
   exact le_trans (truncateToOne_sum_le s) (MvPolynomial.le_totalDegree hs)
 
-/-- vars(multilinearize p) ⊆ vars(p): multilinearization doesn't add variables.
-    Proof: each output monomial's support (truncateToOne s).support ⊆ s.support. -/
-theorem vars_multilinearize_subset {N : ℕ} (p : MvPolynomial (Fin N) ℚ) :
-    (multilinearize p).vars ⊆ p.vars := by
-  sorry
+-- vars_multilinearize_subset removed (not used in chain)
 
 /-- Multilinear violation polynomial: V mod ⟨x²ᵢ - xᵢ⟩.
     Tautology terms vanish, leaving only the 24 core clause terms. -/

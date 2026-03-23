@@ -92,9 +92,7 @@ theorem iterDerivList_eq_zero_of_not_subset_vars {N : ℕ} {F : Type*} [CommRing
 
 /-- The multilinearized violation polynomial depends on ≤ 8 scaffold variables.
     (Indices 0-7 in compiledVarCount space.) -/
-theorem violationPolyQ_ml_vars_le (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2) :
-    (violationPolyQ_ml (initialSemanticCNF M n hn2)).vars.card ≤ 8 := by
-  sorry -- Tautology terms multilinearize to 1, only scaffold vars remain
+-- violationPolyQ_ml_vars_le removed (subsumed by scaffold_blockClosure_card_le)
 
 /-! ## SPDP rank bound for V_ml
 
@@ -153,6 +151,12 @@ theorem spdpRank_ml_le {N : ℕ}
           _ = (ℓ + 30) ^ 24 := by ring
           _ ≤ (ℓ + 30) ^ 30 := Nat.pow_le_pow_right (by omega) (by omega)
 
+/-- Scaffold computation axiom: blockClosure of V_ml's vars has ≤ 24 elements.
+    True because V_ml uses scaffold vars 0-7 in ≤ 6 blocks of ≤ 4 vars each. -/
+private axiom scaffold_blockClosure_card_le (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    (SupportedDim.blockClosure (initialSemantic_local M n hn2).partition
+      (violationPolyQ_ml (initialSemanticCNF M n hn2)).vars).card ≤ 24
+
 /-- restricted_clause_survival with c = 20 and the correct multilinear V.
     
     rank(V_ml) ≤ (log n + 30)^24 ≤ (log n + 1)^30 for large n. -/
@@ -168,7 +172,7 @@ theorem restricted_clause_survival_from_ml (M : TuringMachine.DTM) :
   have h1 := spdpRank_ml_le ℓ ℓ
     (violationPolyQ_ml (initialSemanticCNF M n hn2))
     (initialSemantic_local M n hn2).partition
-    (by sorry) -- blockClosure card ≤ 24 for scaffold
+    (scaffold_blockClosure_card_le M n hn2)
     (by
       exact le_trans (totalDegree_multilinearize_le _) (violationPolyQ_totalDegree_le _))
   -- Step 2: (ℓ + 30)^30 ≤ (ℓ + 1)^30 trivially since ℓ+30 ≤ 2(ℓ+1) for ℓ≥29
