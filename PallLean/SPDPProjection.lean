@@ -159,14 +159,31 @@ theorem restrictedSpdpRank_le_spdpRank {n : ℕ}
     (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
     (ρ : Restriction.Restriction n) :
     RestrictedSPDP.restrictedSpdpRank κ ℓ p ρ ≤ spdpRank κ ℓ p := by
-  -- Every restricted generator g = m · iterDerivList S (restrictPoly ρ p)
-  -- equals restrictPoly ρ (m · iterDerivList S p) by:
-  -- 1. iterDerivList_restrictPoly_comm: ∂^S(restrictPoly ρ p) = restrictPoly ρ (∂^S p)
-  -- 2. restrictPoly_eq_self_of_live: m = restrictPoly ρ m (since m.vars ⊆ live)
-  -- 3. restrictPoly is an algebra hom: restrictPoly(a*b) = restrictPoly(a) * restrictPoly(b)
-  -- So g = restrictPoly ρ (m · ∂^S p), and m · ∂^S p is a full generator.
-  -- Therefore: restricted span ⊆ image of full span under restrictPoly ρ.
-  -- finrank of image ≤ finrank of source (Submodule.finrank_map_le).
+  -- The restricted span is contained in the image of the full span
+  -- under the linear map (aeval σ) = restrictPoly ρ.
+  -- Therefore finrank(restricted) ≤ finrank(full).
+  unfold RestrictedSPDP.restrictedSpdpRank spdpRank spdpSubspace
+  -- Show restricted span ≤ image of full span under restrictPoly
+  set σ := (aeval (fun i : Fin n => match ρ i with
+    | none => (X i : MvPolynomial (Fin n) ℚ)
+    | some false => 0
+    | some true => 1) : MvPolynomial (Fin n) ℚ →ₐ[ℚ] MvPolynomial (Fin n) ℚ)
+  set full_span := Submodule.span ℚ
+    { q | ∃ S m, S.length = κ ∧ m.totalDegree ≤ ℓ ∧ q = m * iterDerivList S p }
+  -- Every restricted generator is σ(full generator)
+  have h_sub : Submodule.span ℚ
+      { q | ∃ S m, S.length = κ ∧ m.totalDegree ≤ ℓ ∧
+        (∀ i ∈ S, i ∈ Restriction.liveVars ρ) ∧
+        (∀ v ∈ m.vars, v ∈ Restriction.liveVars ρ) ∧
+        q = m * iterDerivList S (Restriction.restrictPoly ρ p) }
+    ≤ full_span.map σ.toLinearMap := by
+    apply Submodule.span_le.mpr
+    intro g ⟨S, m, hlen, hdeg, hSlive, hmlive, hg_eq⟩
+    rw [hg_eq, iterDerivList_restrictPoly_comm ρ S hSlive,
+        ← restrictPoly_eq_self_of_live ρ m hmlive]
+    change σ m * σ (iterDerivList S p) ∈ _
+    rw [← map_mul σ]
+    exact Submodule.mem_map_of_mem (Submodule.subset_span ⟨S, m, hlen, hdeg, rfl⟩) 
   sorry
 
 end SPDPProjection
