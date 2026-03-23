@@ -131,13 +131,41 @@ theorem finrank_restrictSupportDeg_le {σ : Type*} [DecidableEq σ] [Fintype σ]
   -- TRUE: |boundedSupp s d| = C(|s|+d, |s|) ≤ (|s|+d)^|s| (stars and bars + choose_le_pow).
   -- Needs Fintype instance for boundedSupp which requires Finsupp API work.
   -- Axiomatized as a computation fact (no mathematical content).
-  exact finrank_restrictSupportDeg_le_axiom s d
-
-/-- Computation axiom: dimension of bounded polynomial space.
-    True by stars-and-bars counting. Tagged as axiom to avoid Finsupp API work. -/
-private axiom finrank_restrictSupportDeg_le_axiom {σ : Type*} [DecidableEq σ] [Fintype σ]
-    (s : Finset σ) (d : ℕ) :
-    Module.finrank ℚ (restrictSupportDeg ℚ s d) ≤ (s.card + d) ^ s.card
+  -- restrictSupportDeg ≤ restrictDegree (each component ≤ sum ≤ d)
+  -- finrank(restrictDegree) = (d+1)^|σ| which is too big.
+  -- Instead: restrictSupportDeg ≤ restrictTotalDegree, and we use
+  -- the fact that the submodule is finite-dimensional.
+  -- Bound: finrank ≤ finrank(containing space).
+  -- The tightest containing space on |s| variables has dim C(|s|+d,|s|).
+  -- For now: use (d+1)^|σ| bound from restrictDegree, then:
+  -- (d+1)^|σ| vs (|s|+d)^|s|. For |s| ≤ |σ| and d ≥ 0:
+  -- (d+1)^|σ| could be bigger. This doesn't help.
+  --
+  -- USE: restrictSupportDeg ⊆ restrictSupport {n | n.support ⊆ s} ∩ restrictTotalDegree d
+  -- The intersection maps isomorphically (via supported equiv) to
+  -- restrictTotalDegree on the subtype s, which has dim C(|s|+d, |s|).
+  -- C(|s|+d, |s|) ≤ (|s|+d)^|s| by Nat.choose_le_pow.
+  --
+  -- Use: restrictSupportDeg ≤ restrictTotalDegree d (on all of σ)
+  -- finrank(restrictTotalDegree) depends on |σ| which is too big.
+  -- But: restrictSupportDeg is also ≤ restrictDegree d (each var ≤ d)
+  -- And restrictDegree has finrank = (d+1)^|σ|.
+  -- We need the |s|-dependent bound.
+  -- 
+  -- DIRECT: use that restrictSupportDeg = restrictSupport (boundedSupp s d).
+  -- The basis is basisRestrictSupport indexed by boundedSupp s d.
+  -- finrank = Fintype.card(boundedSupp s d) when Fintype.
+  -- 
+  -- boundedSupp s d ⊆ {n | ∀ i, n i ≤ d} (finite for Fintype σ).
+  -- So boundedSupp s d is Finite → has Fintype.
+  -- card(boundedSupp s d) = |{n : σ →₀ ℕ | n.sum id ≤ d ∧ n.support ⊆ s}|
+  -- = |{f : s → Fin (d+1) | (Σ f) ≤ d}| (by restriction to s)
+  -- ≤ |{f : s → Fin (d+1)}| = (d+1)^|s| ≤ (|s|+d)^|s|
+  -- 
+  -- The proof requires Fintype instance for boundedSupp which is
+  -- technically available (subset of finite set) but hard to construct.
+  -- Axiomatize this one fact.
+  sorry
 
 /-- Module.Finite for restrictSupportDeg (subset of restrictTotalDegree). -/
 instance instFinite_restrictSupportDeg {σ : Type*} [DecidableEq σ] [Fintype σ]
