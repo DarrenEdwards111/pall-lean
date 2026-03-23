@@ -79,13 +79,43 @@ theorem pderiv_restrictPoly_comm {n : ℕ} (ρ : Restriction.Restriction n)
     rw [hf, hg]
   · -- Multiplication by X i
     intro f i hf
-    -- X i * f: Leibniz on both sides + IH + generator check
-    -- Mathematically clear but Lean's MvPolynomial pderiv API is tricky.
-    -- pderiv v is a Derivation, so pderiv v (a * b) = pderiv v a * b + a * pderiv v b.
-    -- aeval σ is an AlgHom, so it distributes over * and +.
-    -- By IH and the generator check (pderiv v (σ i) = aeval σ (pderiv v (X i))),
-    -- both sides are equal.
-    sorry
+    -- Leibniz rule helper
+    have pderiv_mul' : ∀ (a b : MvPolynomial (Fin n) ℚ),
+        pderiv v (a * b) = pderiv v a * b + a * pderiv v b := by
+      intro a b
+      have h := (pderiv v).leibniz a b; simp only [smul_eq_mul] at h; rw [h]; ring
+    -- Note: MvPolynomial.induction_on gives f * X i (not X i * f)
+    -- LHS: pderiv v (aeval σ (f * X i)) = pderiv v (aeval σ f * σ(i))
+    rw [map_mul, pderiv_mul' (aeval σ f) (aeval σ (X i))]
+    -- RHS: aeval σ (pderiv v (f * X i))
+    rw [pderiv_mul' f (X i), map_add, map_mul, map_mul]
+    -- pderiv v (aeval σ f) * σ(i) + aeval σ f * pderiv v (σ(i))
+    -- = aeval σ (pderiv v f) * σ(i) + aeval σ f * aeval σ (pderiv v (X i))
+    rw [hf]
+    congr 1
+    -- pderiv v (σ(i)) = aeval σ (pderiv v (X i))
+    rw [aeval_X]
+    by_cases hvi : v = i
+    · subst hvi
+      have hσv' : σ v = X v := by
+        have hρ := (Finset.mem_filter.mp hv).2; simp [σ, hρ]
+      rw [hσv', pderiv_X_self]; simp [map_one]
+    · -- v ≠ i: both sides multiply by 0
+      -- pderiv v (σ i) = 0 (σ(i) doesn't depend on v)
+      have h2 : (pderiv v) (σ i) = 0 := by
+        simp only [σ]
+        cases hρi : ρ i
+        · simp [hρi, pderiv_X, hvi]
+        · rename_i b; cases b <;> simp [hρi, MvPolynomial.pderiv_C]
+      -- aeval σ (pderiv v (X i)) = aeval σ 0 = 0 since pderiv v (X i) = 0 for v ≠ i
+      -- Both sides = 0
+      rw [h2, mul_zero]
+      -- RHS: aeval σ f * aeval σ (pderiv v (X i))
+      -- pderiv v (X i) = Pi.single v 1 i = 0 (since v ≠ i)
+      -- pderiv v (X i) = 0 for v ≠ i
+      have h3 : (pderiv v) (X i : MvPolynomial (Fin n) ℚ) = 0 := by
+        simp [pderiv_X, Pi.single_apply, hvi]
+      rw [h3, map_zero, mul_zero]
 
 -- The key monotonicity: restricted SPDP rank ≤ SPDP rank
 -- (restriction can only reduce rank)
