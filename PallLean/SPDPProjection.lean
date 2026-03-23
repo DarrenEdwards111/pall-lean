@@ -79,13 +79,12 @@ theorem pderiv_restrictPoly_comm {n : ℕ} (ρ : Restriction.Restriction n)
     rw [hf, hg]
   · -- Multiplication by X i
     intro f i hf
-    -- X i * f case: use Leibniz rule on both sides
-    -- pderiv v (aeval σ (X i * f)) = pderiv v (aeval σ (X i) * aeval σ f)
-    -- = pderiv v (σ(i) * aeval σ f)
-    -- = pderiv v (σ(i)) * aeval σ f + σ(i) * pderiv v (aeval σ f)
-    -- aeval σ (pderiv v (X i * f)) = aeval σ (pderiv v (X i) * f + X i * pderiv v f)
-    -- = aeval σ (pderiv v (X i)) * aeval σ f + σ(i) * aeval σ (pderiv v f)
-    -- By IH: last terms match. First terms: pderiv v (σ(i)) = aeval σ (pderiv v (X i)).
+    -- X i * f: Leibniz on both sides + IH + generator check
+    -- Mathematically clear but Lean's MvPolynomial pderiv API is tricky.
+    -- pderiv v is a Derivation, so pderiv v (a * b) = pderiv v a * b + a * pderiv v b.
+    -- aeval σ is an AlgHom, so it distributes over * and +.
+    -- By IH and the generator check (pderiv v (σ i) = aeval σ (pderiv v (X i))),
+    -- both sides are equal.
     sorry
 
 -- The key monotonicity: restricted SPDP rank ≤ SPDP rank
