@@ -198,7 +198,13 @@ theorem choose_superpolynomial (α : ℕ) (hα : α ≥ 1) :
   -- √n ≤ n - 1 for n ≥ 1, and Nat.sqrt n * Nat.sqrt n ≤ n
   have hsqrt_le : Nat.sqrt n < Nat.choose (α * n) 2 := by
     rw [hc2]
-    have : Nat.sqrt n ≤ n := Nat.sqrt_le_self n
+    have h_div : α * n * (α * n - 1) / 2 ≥ α * n := by
+      have : α * n - 1 ≥ 3 := by omega
+      have : α * n * (α * n - 1) ≥ α * n * 3 := Nat.mul_le_mul_left _ this
+      omega
+    have h_sqrt : Nat.sqrt n < α * n := by
+      calc Nat.sqrt n < n := Nat.sqrt_lt_self (by omega)
+        _ ≤ α * n := Nat.le_mul_of_pos_left n (by omega)
     omega
   -- C(αn, log n) ≥ C(αn, 2)
   -- Use: Nat.choose is monotone: if 2 ≤ k ≤ n/2 then C(n,2) ≤ C(n,k)
@@ -206,10 +212,12 @@ theorem choose_superpolynomial (α : ℕ) (hα : α ≥ 1) :
   -- 2 ≤ log n ≤ αn - 2 (both true for n ≥ 4, α ≥ 1).
   -- Nat.choose_le_choose: not exactly the right form.
   -- For now: since C(m, k) ≥ C(m, 2) for 2 ≤ k ≤ m/2 and m ≥ 2k:
-  calc Nat.choose (α * n) (Nat.log 2 n)
-      ≥ Nat.choose (α * n) 2 := by
-        sorry -- Nat.choose monotone: 2 ≤ log n ≤ αn/2
-    _ > Nat.sqrt n := hsqrt_le
+  -- C(αn, log n) ≥ C(αn, 2) since 2 ≤ log n ≤ αn/2
+  -- Nat.choose is monotone in the second arg up to n/2.
+  -- For n ≥ 4, α ≥ 1: log n ≤ n ≤ αn/2 (since αn ≥ 4 ≥ 2·log n)
+  have h_mono : Nat.choose (α * n) (Nat.log 2 n) ≥ Nat.choose (α * n) 2 := by
+    sorry -- Nat.choose_le_choose monotonicity for k ≤ n/2
+  linarith
 
 /-! ## §11-12: Verifier-sheet normalization + extraction
 
