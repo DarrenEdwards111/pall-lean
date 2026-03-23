@@ -61,12 +61,32 @@ theorem pderiv_restrictPoly_comm {n : ℕ} (ρ : Restriction.Restriction n)
   -- and φ ∘ pderiv v ∘ φ⁻¹ is also a derivation with the same value on X i
   -- (when φ fixes X v).
   -- Formally: use MvPolynomial.derivation_ext or induction_on.
-  -- Both sides are linear in p and agree on monomials.
-  -- The key: aeval σ commutes with pderiv v when σ(v) = X v.
-  -- This follows from: pderiv is a derivation, aeval is an algebra hom,
-  -- and pderiv v (σ(i)) = δ_{vi} = pderiv v (X i) when σ(v) = X v.
-  -- The monomial case uses: pderiv v (∏ σ(iⱼ)) via Leibniz rule.
-  sorry
+  -- Both sides are linear, so induction on p suffices.
+  -- σ = restrictPoly assignment: σ(i) = X i for live i, constant for fixed i
+  let σ : Fin n → MvPolynomial (Fin n) ℚ := fun i =>
+    match ρ i with | none => X i | some false => 0 | some true => 1
+  -- Key fact: σ(v) = X v since v is live
+  have hσv : σ v = X v := by
+    simp only [σ, Restriction.liveVars, Set.mem_setOf_eq] at hv ⊢
+    have hρ : ρ v = none := (Finset.mem_filter.mp hv).2; simp [hρ]
+  change pderiv v (aeval σ p) = aeval σ (pderiv v p)
+  apply MvPolynomial.induction_on p
+  · -- Constant: pderiv v (aeval σ (C r)) = pderiv v (C r) = 0
+    intro r; simp [MvPolynomial.pderiv_C]
+  · -- Addition
+    intro f g hf hg
+    simp only [map_add, (pderiv v).map_add]
+    rw [hf, hg]
+  · -- Multiplication by X i
+    intro f i hf
+    -- X i * f case: use Leibniz rule on both sides
+    -- pderiv v (aeval σ (X i * f)) = pderiv v (aeval σ (X i) * aeval σ f)
+    -- = pderiv v (σ(i) * aeval σ f)
+    -- = pderiv v (σ(i)) * aeval σ f + σ(i) * pderiv v (aeval σ f)
+    -- aeval σ (pderiv v (X i * f)) = aeval σ (pderiv v (X i) * f + X i * pderiv v f)
+    -- = aeval σ (pderiv v (X i)) * aeval σ f + σ(i) * aeval σ (pderiv v f)
+    -- By IH: last terms match. First terms: pderiv v (σ(i)) = aeval σ (pderiv v (X i)).
+    sorry
 
 -- The key monotonicity: restricted SPDP rank ≤ SPDP rank
 -- (restriction can only reduce rank)
