@@ -185,9 +185,31 @@ theorem restrictedSpdpRank_le_spdpRank {n : ℕ}
     rw [← map_mul σ]
     exact Submodule.mem_map_of_mem (Submodule.subset_span ⟨S, m, hlen, hdeg, rfl⟩) 
   -- h_sub: restricted span ≤ full_span.map σ (PROVED above)
-  -- finrank(restricted) ≤ finrank(full_span.map σ) ≤ finrank(full_span)
-  -- Requires Module.Finite for full_span (bounded-degree polynomial span).
-  -- This is the same finite-dimensionality issue as finrank_restrictSupportDeg_le.
-  sorry
+  -- Need: finrank(LHS) ≤ finrank(full_span)
+  -- Step 1: full_span ≤ restrictTotalDegree (bounded degree)
+  have h_deg : full_span ≤ MvPolynomial.restrictTotalDegree (Fin n) ℚ (ℓ + p.totalDegree) := by
+    apply Submodule.span_le.mpr
+    intro q ⟨S, m, hlen, hdeg, hq_eq⟩
+    subst hq_eq
+    intro mono hmono
+    exact le_trans (MvPolynomial.le_totalDegree hmono) (by
+      calc (m * iterDerivList S p).totalDegree
+          ≤ m.totalDegree + (iterDerivList S p).totalDegree :=
+            MvPolynomial.totalDegree_mul m (iterDerivList S p)
+        _ ≤ ℓ + p.totalDegree := by
+            linarith [SPDP.totalDegree_iterDerivList_le S p])
+  -- Step 2: Module.Finite for full_span (submodule of finite-dim space)
+  haveI : Module.Finite ℚ (MvPolynomial.restrictTotalDegree (Fin n) ℚ (ℓ + p.totalDegree)) :=
+    MvPolynomial.instFiniteSubtypeMemSubmoduleRestrictTotalDegreeOfFinite _ _ _
+  haveI h_finite : Module.Finite ℚ full_span :=
+    Module.Finite.of_injective (Submodule.inclusion h_deg) (Submodule.inclusion_injective _)
+  -- Step 3: finrank chain
+  haveI h_finite_map : Module.Finite ℚ (full_span.map σ.toLinearMap) :=
+    inferInstance
+  calc Module.finrank ℚ (Submodule.span ℚ _)
+      ≤ Module.finrank ℚ (full_span.map σ.toLinearMap) :=
+        Submodule.finrank_mono h_sub
+    _ ≤ Module.finrank ℚ full_span :=
+        Submodule.finrank_map_le σ.toLinearMap full_span
 
 end SPDPProjection
