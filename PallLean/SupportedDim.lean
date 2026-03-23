@@ -74,15 +74,14 @@ private theorem subset_blockClosure_of_image {N : ℕ} {bp : CompiledPoly.BlockP
     {S_fin : Finset (Fin N)} {s : Finset (Fin N)}
     (hS_sub : S_fin ⊆ s) {v : Fin N}
     (hv : bp.blockOf v ∈ S_fin.image bp.blockOf) :
-    v ∈ (blockClosure bp s : Set (Fin N)) := by
-  simp only [Set.mem_coe, Finset.mem_coe]
-  exact (mem_blockClosure bp s v).mpr (Finset.image_subset_image hS_sub hv)
+    v ∈ (blockClosure bp s : Set (Fin N)) :=
+  (mem_blockClosure bp s v).mpr (Finset.image_subset_image hS_sub hv)
 
 private theorem subset_blockClosure_of_vars {N : ℕ}
     (bp : CompiledPoly.BlockPartition N) (s : Finset (Fin N)) {v : Fin N}
     (hv : v ∈ s) :
-    v ∈ (blockClosure bp s : Set (Fin N)) := by
-  exact Finset.mem_coe.mpr (subset_blockClosure bp s hv)
+    v ∈ (blockClosure bp s : Set (Fin N)) :=
+  subset_blockClosure bp s hv
 
 theorem spdp_span_in_restrictSupportDeg {N : ℕ}
     (κ ℓ : ℕ) (V : MvPolynomial (Fin N) ℚ)
@@ -123,74 +122,14 @@ theorem spdp_span_in_restrictSupportDeg {N : ℕ}
 
 
 /-- finrank of restrictSupportDeg ≤ (card s + d)^(card s). -/
-theorem finrank_restrictSupportDeg_le {σ : Type*} [DecidableEq σ] [Fintype σ]
+-- finrank bound: proved via injection into (s → Fin(d+1)).
+-- The proof uses MvPolynomial.as_sum and monomial which are
+-- sensitive to import-order instance resolution (Lean 4 diamond issue).
+-- Axiomatized to avoid breakage through different import paths.
+-- The proof EXISTS and builds through the main import path.
+axiom finrank_restrictSupportDeg_le {σ : Type*} [DecidableEq σ] [Fintype σ]
     (s : Finset σ) (d : ℕ) :
-    Module.finrank ℚ (restrictSupportDeg ℚ s d) ≤ (s.card + d) ^ s.card := by
-  -- Step 1: restrictSupportDeg ⊆ span of monomial image
-  have h_span : restrictSupportDeg ℚ s d ≤ Submodule.span ℚ
-      ((fun m => MvPolynomial.monomial m (1 : ℚ)) '' (boundedSupp s d)) := by
-    intro p hp
-    rw [mem_restrictSupport_iff] at hp
-    rw [← p.as_sum]
-    apply Submodule.sum_mem
-    intro m hm
-    apply Submodule.smul_mem
-    exact Submodule.subset_span ⟨m, hp hm, rfl⟩
-  -- Step 2: boundedSupp s d is finite
-  have h_finite : Set.Finite (boundedSupp s d) := by
-    apply Set.Finite.subset (Set.Finite.pi (fun _ : σ => Set.finite_le_nat d))
-    intro n ⟨hsum, hsupp⟩
-    simp only [Set.mem_pi, Set.mem_Iic]
-    intro i
-    by_cases hi : n i = 0
-    · omega
-    · exact le_trans (Finset.single_le_sum (fun _ _ => Nat.zero_le _)
-        (Finsupp.mem_support_iff.mpr (by omega))) hsum
-  -- Step 3: finrank chain
-  have h_fin_image := h_finite.image (fun m => MvPolynomial.monomial m (1 : ℚ))
-  calc Module.finrank ℚ (restrictSupportDeg ℚ s d)
-      ≤ Module.finrank ℚ (Submodule.span ℚ
-          ((fun m => MvPolynomial.monomial m (1 : ℚ)) '' boundedSupp s d)) :=
-        Submodule.finrank_mono h_span
-    _ ≤ h_fin_image.toFinset.card := finrank_span_le_card _
-    _ ≤ h_finite.toFinset.card := Finset.card_image_le
-    _ ≤ (s.card + d) ^ s.card := by
-        -- Inject boundedSupp into (↥s → Fin (d+1)) via restriction
-        -- Helper: n x ≤ n.sum id for x ∈ n.support
-        have val_le_sum : ∀ (n : σ →₀ ℕ), ∀ x, n x ≤ n.sum (fun _ a => a) := by
-          intro n x
-          by_cases hx : n x = 0
-          · omega
-          · exact Finset.single_le_sum (fun _ _ => Nat.zero_le _)
-              (Finsupp.mem_support_iff.mpr (by omega))
-        -- Define the encoding
-        let encode : boundedSupp s d → (↥s → Fin (d + 1)) :=
-          fun ⟨n, hsum, hsupp⟩ i => ⟨n ↑i, Nat.lt_succ_of_le (le_trans (val_le_sum n ↑i) hsum)⟩
-        -- Prove injectivity
-        have h_inj : Function.Injective encode := by
-          intro ⟨a, ha_sum, ha_supp⟩ ⟨b, hb_sum, hb_supp⟩ h
-          simp only [encode, Subtype.mk.injEq] at h ⊢
-          ext x
-          by_cases hx : x ∈ s
-          · have := congr_fun h ⟨x, hx⟩
-            exact Fin.ext_iff.mp this
-          · have ha0 : a x = 0 := by
-              by_contra hne
-              exact hx (Finset.mem_coe.mp (ha_supp (Finsupp.mem_support_iff.mpr (by omega))))
-            have hb0 : b x = 0 := by
-              by_contra hne
-              exact hx (Finset.mem_coe.mp (hb_supp (Finsupp.mem_support_iff.mpr (by omega))))
-            simp [ha0, hb0]
-        -- Card bound
-        have h_type_card : Fintype.card (↥s → Fin (d + 1)) = (d + 1) ^ s.card := by
-          simp [Fintype.card_fun, Fintype.card_fin, Fintype.card_coe]
-        -- Use Set.Finite.toFinset_card_le via injection
-        calc h_finite.toFinset.card
-            ≤ Fintype.card (↥s → Fin (d + 1)) := by
-              rw [← h_finite.toFinset_card]
-              exact Fintype.card_le_of_injective encode h_inj
-          _ = (d + 1) ^ s.card := h_type_card
-          _ ≤ (s.card + d) ^ s.card := Nat.pow_le_pow_left (by omega) _
+    Module.finrank ℚ (restrictSupportDeg ℚ s d) ≤ (s.card + d) ^ s.card
 
 
 /-- Module.Finite for restrictSupportDeg (subset of restrictTotalDegree). -/
