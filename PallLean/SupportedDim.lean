@@ -112,132 +112,72 @@ theorem spdp_span_in_restrictSupportDeg {N : ℕ}
 theorem finrank_restrictSupportDeg_le {σ : Type*} [DecidableEq σ] [Fintype σ]
     (s : Finset σ) (d : ℕ) :
     Module.finrank ℚ (restrictSupportDeg ℚ s d) ≤ (s.card + d) ^ s.card := by
-  -- restrictSupportDeg ≤ restrictTotalDegree, so finrank ≤ finrank(restrictTotalDegree)
-  -- But that depends on |σ|. We need the tighter bound.
-  --
-  -- finrank(restrictSupportDeg) = |boundedSupp s d| (from basisRestrictSupport)
-  -- |boundedSupp s d| = number of Finsupp n with n.sum id ≤ d and n.support ⊆ s
-  -- = number of multisets of size ≤ d from s = C(|s|+d, |s|) ≤ (|s|+d)^|s|
-  --
-  -- The basis of restrictSupportDeg is indexed by boundedSupp s d.
-  -- |boundedSupp s d| = C(|s|+d, |s|) ≤ (|s|+d)^|s| (stars and bars + choose_le_pow).
-  -- We use: finrank ≤ finrank(restrictTotalDegree d) for any containing type,
-  -- but need the bound to depend on |s|.
-  -- 
-  -- restrictSupportDeg = restrictSupport (boundedSupp s d)
-  -- basisRestrictSupport gives basis of size |boundedSupp s d|
-  -- |boundedSupp s d| ≤ C(|s|+d, |s|) ≤ (|s|+d)^|s|
-  -- 
-  -- TRUE: |boundedSupp s d| = C(|s|+d, |s|) ≤ (|s|+d)^|s| (stars and bars + choose_le_pow).
-  -- Needs Fintype instance for boundedSupp which requires Finsupp API work.
-  -- Axiomatized as a computation fact (no mathematical content).
-  -- restrictSupportDeg ≤ restrictDegree (each component ≤ sum ≤ d)
-  -- finrank(restrictDegree) = (d+1)^|σ| which is too big.
-  -- Instead: restrictSupportDeg ≤ restrictTotalDegree, and we use
-  -- the fact that the submodule is finite-dimensional.
-  -- Bound: finrank ≤ finrank(containing space).
-  -- The tightest containing space on |s| variables has dim C(|s|+d,|s|).
-  -- For now: use (d+1)^|σ| bound from restrictDegree, then:
-  -- (d+1)^|σ| vs (|s|+d)^|s|. For |s| ≤ |σ| and d ≥ 0:
-  -- (d+1)^|σ| could be bigger. This doesn't help.
-  --
-  -- USE: restrictSupportDeg ⊆ restrictSupport {n | n.support ⊆ s} ∩ restrictTotalDegree d
-  -- The intersection maps isomorphically (via supported equiv) to
-  -- restrictTotalDegree on the subtype s, which has dim C(|s|+d, |s|).
-  -- C(|s|+d, |s|) ≤ (|s|+d)^|s| by Nat.choose_le_pow.
-  --
-  -- Use: restrictSupportDeg ≤ restrictTotalDegree d (on all of σ)
-  -- finrank(restrictTotalDegree) depends on |σ| which is too big.
-  -- But: restrictSupportDeg is also ≤ restrictDegree d (each var ≤ d)
-  -- And restrictDegree has finrank = (d+1)^|σ|.
-  -- We need the |s|-dependent bound.
-  -- 
-  -- DIRECT: use that restrictSupportDeg = restrictSupport (boundedSupp s d).
-  -- The basis is basisRestrictSupport indexed by boundedSupp s d.
-  -- finrank = Fintype.card(boundedSupp s d) when Fintype.
-  -- 
-  -- boundedSupp s d ⊆ {n | ∀ i, n i ≤ d} (finite for Fintype σ).
-  -- So boundedSupp s d is Finite → has Fintype.
-  -- card(boundedSupp s d) = |{n : σ →₀ ℕ | n.sum id ≤ d ∧ n.support ⊆ s}|
-  -- = |{f : s → Fin (d+1) | (Σ f) ≤ d}| (by restriction to s)
-  -- ≤ |{f : s → Fin (d+1)}| = (d+1)^|s| ≤ (|s|+d)^|s|
-  -- 
-  -- The proof requires Fintype instance for boundedSupp which is
-  -- technically available (subset of finite set) but hard to construct.
-  -- Axiomatize this one fact.
-  -- Step 1: The exponent set A = {m | m.support ⊆ s ∧ m.sum id ≤ d} is finite
-  -- because m is determined by values on s (finite), each ≤ d.
-  -- |A| ≤ (d+1)^|s| ≤ (|s|+d)^|s|.
-  --
-  -- Step 2: restrictSupportDeg = span{monomial m 1 | m ∈ A}
-  -- (every polynomial in restrictSupportDeg is a linear combination of these monomials)
-  --
-  -- Step 3: finrank(span of finite set) ≤ |set| ≤ (|s|+d)^|s|.
-  
-  -- Define A as a Finset using Finset.pi
-  -- A = { m : σ →₀ ℕ | m.support ⊆ s ∧ m.sum id ≤ d }
-  -- Embed into (s → Fin (d+1)) via restriction, which is injective.
-  -- |A| ≤ |(s → Fin (d+1))| = (d+1)^|s|
-  
-  -- The span of the monomial set contains restrictSupportDeg
+  -- Step 1: restrictSupportDeg ⊆ span of monomial image
   have h_span : restrictSupportDeg ℚ s d ≤ Submodule.span ℚ
       ((fun m => MvPolynomial.monomial m (1 : ℚ)) '' (boundedSupp s d)) := by
     intro p hp
     rw [mem_restrictSupport_iff] at hp
-    -- p = Σ_{m ∈ p.support} coeff(m) * monomial m 1
-    -- Each m ∈ p.support satisfies m ∈ boundedSupp s d (from hp)
-    -- So p is in span of {monomial m 1 | m ∈ boundedSupp}
     rw [← p.as_sum]
     apply Submodule.sum_mem
     intro m hm
     apply Submodule.smul_mem
     exact Submodule.subset_span ⟨m, hp hm, rfl⟩
-  -- boundedSupp s d is finite (subset of {n | ∀ i, n i ≤ d})
+  -- Step 2: boundedSupp s d is finite
   have h_finite : Set.Finite (boundedSupp s d) := by
-    apply Set.Finite.subset (Set.Finite.pi (fun i : σ => Set.finite_le_nat d))
+    apply Set.Finite.subset (Set.Finite.pi (fun _ : σ => Set.finite_le_nat d))
     intro n ⟨hsum, hsupp⟩
     simp only [Set.mem_pi, Set.mem_Iic]
     intro i
     by_cases hi : n i = 0
     · omega
-    · have hi_supp : i ∈ n.support := Finsupp.mem_support_iff.mpr (by omega)
-      exact le_trans (Finset.single_le_sum (fun _ _ => Nat.zero_le _) hi_supp) hsum
-  -- The monomial image is also finite
-  have h_fin_image : Set.Finite ((fun m => MvPolynomial.monomial m (1 : ℚ)) '' boundedSupp s d) :=
-    h_finite.image _
-  -- finrank(restrictSupportDeg) ≤ finrank(span) ≤ |image| ≤ (|s|+d)^|s|
-  have h_fin_inst := h_fin_image.toFinset
+    · exact le_trans (Finset.single_le_sum (fun _ _ => Nat.zero_le _)
+        (Finsupp.mem_support_iff.mpr (by omega))) hsum
+  -- Step 3: finrank chain
+  have h_fin_image := h_finite.image (fun m => MvPolynomial.monomial m (1 : ℚ))
   calc Module.finrank ℚ (restrictSupportDeg ℚ s d)
       ≤ Module.finrank ℚ (Submodule.span ℚ
-          ((fun m => MvPolynomial.monomial m (1 : ℚ)) '' boundedSupp s d)) := by
-        exact Submodule.finrank_mono h_span
-    _ ≤ h_fin_image.toFinset.card := by
-        exact finrank_span_le_card _
-    _ ≤ h_finite.toFinset.card := by
-        exact Finset.card_image_le
+          ((fun m => MvPolynomial.monomial m (1 : ℚ)) '' boundedSupp s d)) :=
+        Submodule.finrank_mono h_span
+    _ ≤ h_fin_image.toFinset.card := finrank_span_le_card _
+    _ ≤ h_finite.toFinset.card := Finset.card_image_le
     _ ≤ (s.card + d) ^ s.card := by
-        -- boundedSupp s d ⊆ {n | ∀ i, n i ≤ d} ∩ {n | n.support ⊆ s}
-        -- Each such n is determined by its values on s (vals outside s are 0).
-        -- Values on s are in {0,...,d}. So |boundedSupp| ≤ (d+1)^|s|.
-        -- (d+1)^|s| ≤ (|s|+d)^|s| since d+1 ≤ |s|+d for |s| ≥ 1.
-        -- For |s| = 0: boundedSupp has at most 1 element (the zero Finsupp),
-        -- and (0+d)^0 = 1. ✓
-        -- h_finite was proved as subset of Set.pi univ (fun _ => Set.Iic d)
-        -- which has card (d+1)^|σ|. But we need (|s|+d)^|s|.
-        -- Use: h_finite.toFinset ⊆ the pi-based finite set.
-        -- Then: card ≤ card of pi set = (d+1)^|σ|.
-        -- This is too big. Need the |s|-dependent bound.
-        -- 
-        -- The injection approach: define f : boundedSupp → (s → Fin(d+1))
-        -- f(n)(i) = ⟨n i, n i ≤ d⟩. Injective since n.support ⊆ s.
-        -- |image| ≤ |(s → Fin(d+1))| = (d+1)^|s| ≤ (|s|+d)^|s|.
-        -- 
-        -- To avoid Set.Finite.toFinset_card_le_of_injOn (which may not exist),
-        -- just use transitivity with the containing finite set.
-        -- h_finite ⊆ {n | n.support ⊆ s ∧ ∀ i, n i ≤ d}
-        -- ⊆ {n | ∀ i ∈ s, n i ≤ d ∧ ∀ i ∉ s, n i = 0}
-        -- This set has card ≤ (d+1)^|s|.
-        sorry
+        -- Inject boundedSupp into (↥s → Fin (d+1)) via restriction
+        -- Helper: n x ≤ n.sum id for x ∈ n.support
+        have val_le_sum : ∀ (n : σ →₀ ℕ), ∀ x, n x ≤ n.sum (fun _ a => a) := by
+          intro n x
+          by_cases hx : n x = 0
+          · omega
+          · exact Finset.single_le_sum (fun _ _ => Nat.zero_le _)
+              (Finsupp.mem_support_iff.mpr (by omega))
+        -- Define the encoding
+        let encode : boundedSupp s d → (↥s → Fin (d + 1)) :=
+          fun ⟨n, hsum, hsupp⟩ i => ⟨n ↑i, Nat.lt_succ_of_le (le_trans (val_le_sum n ↑i) hsum)⟩
+        -- Prove injectivity
+        have h_inj : Function.Injective encode := by
+          intro ⟨a, ha_sum, ha_supp⟩ ⟨b, hb_sum, hb_supp⟩ h
+          simp only [encode, Subtype.mk.injEq] at h ⊢
+          ext x
+          by_cases hx : x ∈ s
+          · have := congr_fun h ⟨x, hx⟩
+            exact Fin.ext_iff.mp this
+          · have ha0 : a x = 0 := by
+              by_contra hne
+              exact hx (Finset.mem_coe.mp (ha_supp (Finsupp.mem_support_iff.mpr (by omega))))
+            have hb0 : b x = 0 := by
+              by_contra hne
+              exact hx (Finset.mem_coe.mp (hb_supp (Finsupp.mem_support_iff.mpr (by omega))))
+            simp [ha0, hb0]
+        -- Card bound
+        have h_type_card : Fintype.card (↥s → Fin (d + 1)) = (d + 1) ^ s.card := by
+          simp [Fintype.card_fun, Fintype.card_fin, Fintype.card_coe]
+        -- Use Set.Finite.toFinset_card_le via injection
+        calc h_finite.toFinset.card
+            ≤ Fintype.card (↥s → Fin (d + 1)) := by
+              rw [← h_finite.toFinset_card]
+              exact Fintype.card_le_of_injective encode h_inj
+          _ = (d + 1) ^ s.card := h_type_card
+          _ ≤ (s.card + d) ^ s.card := Nat.pow_le_pow_left (by omega) _
+
 
 /-- Module.Finite for restrictSupportDeg (subset of restrictTotalDegree). -/
 instance instFinite_restrictSupportDeg {σ : Type*} [DecidableEq σ] [Fintype σ]
