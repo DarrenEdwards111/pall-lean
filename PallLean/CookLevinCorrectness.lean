@@ -155,16 +155,57 @@ theorem transition_constraint_zero_on_valid (M : DTM) (n : ℕ)
 noncomputable def correctTrace (M : DTM) (n : ℕ) (x : Fin n → Bool) :
     Fin (numVars M n 0) → Bool :=
   fun v =>
-    -- TODO: map variable index v to the correct boolean value
-    -- from the computation trace run M n (initConfig M n x)
-    sorry
+    -- The numVars layout: S*S tape + S*Q state + S*S head + n input + 0 padding
+    -- where S = tapeSize M n
+    let S := tapeSize M n
+    let Q := M.numStates
+    if h1 : v.1 < S * S then
+      -- Tape variable: b_{t,i} where t = v/S, i = v%S
+      let t := v.1 / S
+      let i := v.1 % S
+      (run M n (initConfig M n x) t).tape ⟨i, Nat.mod_lt _ (by simp only [S, tapeSize, timeSteps]; positivity)⟩
+    else if h2 : v.1 < S * S + S * Q then
+      -- State variable: s_{t,q} where t = (v-S²)/Q, q = (v-S²)%Q
+      let offset := v.1 - S * S
+      let t := offset / Q
+      let q := offset % Q
+      ((run M n (initConfig M n x) t).state.1 == q)
+    else if h3 : v.1 < S * S + S * Q + S * S then
+      -- Head variable: h_{t,i}
+      let offset := v.1 - S * S - S * Q
+      let t := offset / S
+      let i := offset % S
+      ((run M n (initConfig M n x) t).headPos == i)
+    else if h4 : v.1 < S * S + S * Q + S * S + n then
+      -- Input variable: x_i
+      x ⟨v.1 - S * S - S * Q - S * S, by omega⟩
+    else
+      -- Padding (κ = 0, so no padding vars)
+      false
 
 -- V_{M,n}(x, correctTrace(x)) = 0
 -- This follows from transition_constraint_zero_on_valid applied to each constraint.
 theorem violation_zero_on_correct_trace (M : DTM) (n : ℕ)
     (x : Fin n → Bool) :
-    isValidTrace M n x (correctTrace M n x) :=
-  sorry -- The correct trace IS valid by construction
+    isValidTrace M n x (correctTrace M n x) := by
+  intro t
+  refine ⟨?_, ?_, ?_⟩
+  · -- Tape matches: correctTrace(tapeIdx t i) = (run ... t).tape i
+    intro i
+    unfold correctTrace
+    -- tapeIdx M n 0 t i has index t.1 * S + i.1 which is < S * S
+    simp only [tapeIdx]
+    -- The index t.1 * S + i.1 < S * S
+    have h_lt : t.1 * tapeSize M n + i.1 < tapeSize M n * tapeSize M n := by
+      have := t.isLt; have := i.isLt; nlinarith
+    simp [h_lt, Nat.mul_div_cancel_left, Nat.mul_mod_right]
+    sorry -- index arithmetic: t.1*S+i.1 / S = t.1, %S = i.1
+  · -- State matches
+    intro q
+    sorry -- similar index arithmetic for stateIdx
+  · -- Head matches
+    intro i
+    sorry -- similar for headIdx
 
 /-! ## The key projection: multilinearInterp f is determined by V_{M,n}
 
