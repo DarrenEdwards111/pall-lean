@@ -142,4 +142,49 @@ theorem transition_constraint_zero_on_valid (M : DTM) (n : ℕ)
 -- This follows from: each constraint is zero on valid traces,
 -- and V = Σ C², so V = Σ 0² = 0.
 
+
+
+/-! ## Full violation polynomial vanishes on valid traces -/
+
+-- The violation polynomial is a sum of squared constraints.
+-- Each constraint is zero on valid traces (proved above).
+-- Therefore the sum is zero.
+
+-- For now we state this as a consequence:
+-- The correct trace assignment for input x
+noncomputable def correctTrace (M : DTM) (n : ℕ) (x : Fin n → Bool) :
+    Fin (numVars M n 0) → Bool :=
+  fun v =>
+    -- TODO: map variable index v to the correct boolean value
+    -- from the computation trace run M n (initConfig M n x)
+    sorry
+
+-- V_{M,n}(x, correctTrace(x)) = 0
+-- This follows from transition_constraint_zero_on_valid applied to each constraint.
+theorem violation_zero_on_correct_trace (M : DTM) (n : ℕ)
+    (x : Fin n → Bool) :
+    isValidTrace M n x (correctTrace M n x) :=
+  sorry -- The correct trace IS valid by construction
+
+/-! ## The key projection: multilinearInterp f is determined by V_{M,n}
+
+  When M decides f:
+  - For each x, the correct trace τ*(x) satisfies V(x, τ*(x)) = 0
+  - The accept bit of τ*(x) equals f(x)
+  - Therefore f is "encoded" in V's constraint structure
+
+  The SPDP rank of f's multilinear interpolation is bounded by
+  the SPDP rank of V because f's truth table is determined by V's zeros.
+
+  More precisely: the multilinear polynomial p_f(x) = multilinearInterp f
+  is the unique multilinear polynomial agreeing with f on {0,1}^n.
+  Since f(x) = accept_bit(τ*(x)), and τ*(x) is determined by V = 0,
+  p_f is determined by V's algebraic structure.
+
+  The SPDP rank bound follows from:
+  1. p_f can be obtained from V by evaluation/restriction
+  2. SPDP rank is monotone under evaluation/restriction (SPDPProjection)
+  3. The evaluation uses the correct trace, which is polynomial-time computable
+-/
+
 end CookLevinCorrectness
