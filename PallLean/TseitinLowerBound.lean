@@ -160,64 +160,70 @@ axiom tseitin_spdp_rank_lower_bound :
   In particular, C(αn, c·log n) > √n for large n.
 -/
 
--- Helper: C(n, k) ≥ (n/k)^k for n ≥ k ≥ 1
--- This is the standard lower bound on binomial coefficients.
-theorem choose_lower_bound (n k : ℕ) (hk : k ≥ 1) (hn : n ≥ k) :
-    Nat.choose n k ≥ (n / k) ^ k := by
-  sorry
+-- Choose monotonicity in second argument
+theorem choose_mono_second (n k : ℕ) (hk : 2 * (k + 1) ≤ n) :
+    Nat.choose n (k + 1) ≥ Nat.choose n k := by
+  have h_eq := Nat.choose_succ_right_eq n k
+  have h_nk : n - k ≥ k + 1 := by omega
+  have h1 : Nat.choose n k * (n - k) ≥ Nat.choose n k * (k + 1) :=
+    Nat.mul_le_mul_left _ h_nk
+  rw [← h_eq] at h1
+  exact Nat.le_of_mul_le_mul_right h1 (by omega)
+
+-- C(n, k) ≥ C(n, 2) for 2 ≤ k ≤ n/2
+theorem choose_ge_choose_two (n k : ℕ) (hk2 : k ≥ 2) (hkn : 2 * k ≤ n) :
+    Nat.choose n k ≥ Nat.choose n 2 := by
+  induction k with
+  | zero => omega
+  | succ k' ih =>
+    by_cases h : k' + 1 ≤ 2
+    · have : k' + 1 = 2 := by omega
+      rw [this]
+    · push_neg at h
+      calc Nat.choose n (k' + 1) ≥ Nat.choose n k' := choose_mono_second n k' (by omega)
+        _ ≥ Nat.choose n 2 := ih (by omega) (by omega)
+
+-- C(m, 2) ≥ m for m ≥ 3
+theorem choose_two_ge_self (m : ℕ) (hm : m ≥ 3) : Nat.choose m 2 ≥ m := by
+  rw [Nat.choose_two_right]
+  have : m - 1 ≥ 2 := by omega
+  have : m * (m - 1) ≥ m * 2 := Nat.mul_le_mul_left m this
+  omega
 
 
 -- C(αn, log n) > √n for large n
+-- Simple argument: C(m, k) ≥ m for 1 ≤ k ≤ m-1 (since C(m,k) ≥ C(m,1) = m).
+-- So C(αn, log n) ≥ αn ≥ n > √n for n ≥ 2.
 theorem choose_superpolynomial (α : ℕ) (hα : α ≥ 1) :
     ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 →
     Nat.choose (α * n) (Nat.log 2 n) > Nat.sqrt n := by
-  -- Use choose_lower_bound: C(αn, log n) ≥ (αn/log n)^(log n)
-  -- For n ≥ 2^10: αn/log n ≥ n/log n ≥ √n (since log n ≤ √n)
-  -- So C(αn, log n) ≥ (√n)^(log n) = n^(log n / 2) > √n = n^(1/2)
-  -- since log n / 2 > 1/2 for n ≥ 4.
-  -- Simple approach: C(αn, k) is monotone in k for k ≤ αn/2.
-  -- For n ≥ 4: log₂ n ≥ 2, so C(αn, log n) ≥ C(αn, 2) = αn(αn-1)/2.
-  -- αn(αn-1)/2 ≥ n(n-1)/2 > √n for n ≥ 2.
-  -- Actually need: C(αn, log n) > √n. Use C(αn, 2) > √n as lower bound.
   use 4
   intro n hn hn2
-  have hαn : α * n ≥ 4 := by nlinarith
-  have hlog : Nat.log 2 n ≥ 2 := by
+  -- C(αn, log n) ≥ αn ≥ n > √n
+  have hαn_ge : α * n ≥ 4 := by nlinarith
+  have hlog_pos : Nat.log 2 n ≥ 1 := by
     calc Nat.log 2 n ≥ Nat.log 2 4 := Nat.log_mono_right hn
       _ = 2 := by native_decide
-  -- C(αn, log n) ≥ C(αn, 2) (choose monotone in k for k ≤ n/2)
-  -- C(αn, 2) = αn * (αn - 1) / 2
-  -- For αn ≥ 4: C(αn, 2) = αn*(αn-1)/2 ≥ 4*3/2 = 6
-  -- √n ≤ n. For n ≥ 4: n*(n-1)/2 ≥ 6 > 2 = √4 and grows faster.
-  -- Use: Nat.choose m 2 = m * (m-1) / 2
-  have hc2 : Nat.choose (α * n) 2 = α * n * (α * n - 1) / 2 := by
-    rw [Nat.choose_two_right]
-  -- C(αn, 2) ≥ 4*3/2 = 6
-  have hc2_val : Nat.choose (α * n) 2 ≥ 6 := by
-    rw [hc2]; omega
-  -- √n ≤ n - 1 for n ≥ 1, and Nat.sqrt n * Nat.sqrt n ≤ n
-  have hsqrt_le : Nat.sqrt n < Nat.choose (α * n) 2 := by
-    rw [hc2]
-    have h_div : α * n * (α * n - 1) / 2 ≥ α * n := by
-      have : α * n - 1 ≥ 3 := by omega
-      have : α * n * (α * n - 1) ≥ α * n * 3 := Nat.mul_le_mul_left _ this
-      omega
-    have h_sqrt : Nat.sqrt n < α * n := by
-      calc Nat.sqrt n < n := Nat.sqrt_lt_self (by omega)
-        _ ≤ α * n := Nat.le_mul_of_pos_left n (by omega)
     omega
-  -- C(αn, log n) ≥ C(αn, 2)
-  -- Use: Nat.choose is monotone: if 2 ≤ k ≤ n/2 then C(n,2) ≤ C(n,k)
-  -- Actually we need C(αn, log n) ≥ C(αn, 2) which holds when
-  -- 2 ≤ log n ≤ αn - 2 (both true for n ≥ 4, α ≥ 1).
-  -- Nat.choose_le_choose: not exactly the right form.
-  -- For now: since C(m, k) ≥ C(m, 2) for 2 ≤ k ≤ m/2 and m ≥ 2k:
-  -- C(αn, log n) ≥ C(αn, 2) since 2 ≤ log n ≤ αn/2
-  -- Nat.choose is monotone in the second arg up to n/2.
-  -- For n ≥ 4, α ≥ 1: log n ≤ n ≤ αn/2 (since αn ≥ 4 ≥ 2·log n)
-  have h_mono : Nat.choose (α * n) (Nat.log 2 n) ≥ Nat.choose (α * n) 2 := by
-    sorry -- Nat.choose_le_choose monotonicity for k ≤ n/2
-  linarith
+  -- C(m, k) ≥ m for k ≥ 1 (since C(m, k) ≥ C(m, 1) = m when k ≤ m-1)
+  have hchoose_ge : Nat.choose (α * n) (Nat.log 2 n) ≥ α * n := by
+    have hlog2 : Nat.log 2 n ≥ 2 := by
+      calc Nat.log 2 n ≥ Nat.log 2 4 := Nat.log_mono_right hn
+        _ = 2 := by native_decide
+    have h2k_le : 2 * Nat.log 2 n ≤ α * n := by
+      -- log₂ n ≤ n/2 for n ≥ 4, so 2 * log n ≤ n ≤ αn
+      have : Nat.log 2 n ≤ n / 2 := by
+        calc Nat.log 2 n ≤ Nat.log 2 n := le_refl _
+        sorry -- log₂ n ≤ n/2 for n ≥ 4
+      have : α * n ≥ n := Nat.le_mul_of_pos_left n (by omega)
+      omega
+    calc Nat.choose (α * n) (Nat.log 2 n)
+        ≥ Nat.choose (α * n) 2 := choose_ge_choose_two _ _ hlog2 h2k_le
+      _ ≥ α * n := choose_two_ge_self _ (by nlinarith)
+  have hsqrt_lt : Nat.sqrt n < n := Nat.sqrt_lt_self (by omega)
+  calc Nat.choose (α * n) (Nat.log 2 n) ≥ α * n := hchoose_ge
+    _ ≥ n := Nat.le_mul_of_pos_left n (by omega)
+    _ > Nat.sqrt n := hsqrt_lt
 
 /-! ## §11-12: Verifier-sheet normalization + extraction
 
