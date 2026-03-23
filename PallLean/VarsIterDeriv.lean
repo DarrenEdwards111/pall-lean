@@ -39,8 +39,6 @@ theorem vars_iterDerivList_subset {N : ℕ} {F : Type*} [CommRing F]
     simp only [SPDP.iterDerivList, List.foldl_cons]
     exact (ih (pderiv i V)).trans (vars_pderiv_subset' i V)
 
-end VarsIterDeriv
-
 /-- If S.toFinset ⊄ V.vars, iterDerivList S V = 0. -/
 theorem iterDerivList_eq_zero_of_not_subset_vars {N : ℕ} {F : Type*} [CommRing F]
     (S : List (Fin N)) (V : MvPolynomial (Fin N) F)
@@ -51,9 +49,11 @@ theorem iterDerivList_eq_zero_of_not_subset_vars {N : ℕ} {F : Type*} [CommRing
   | cons i T ih =>
     simp only [SPDP.iterDerivList, List.foldl_cons]
     by_cases hi : i ∈ V.vars
-    · apply ih (pderiv i V)
+    · apply ih (MvPolynomial.pderiv i V)
       intro hsub; apply h
       simp only [List.toFinset_cons]
       exact Finset.insert_subset_iff.mpr ⟨hi, fun x hx => vars_pderiv_subset' i V (hsub hx)⟩
     · rw [MvPolynomial.pderiv_eq_zero_of_notMem_vars hi]
       exact SPDP.foldl_pderiv_zero T
+
+end VarsIterDeriv

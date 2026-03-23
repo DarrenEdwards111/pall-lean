@@ -87,7 +87,7 @@ theorem spdp_span_in_restrictSupportDeg {N : ℕ}
   · rw [heq, hzero, mul_zero]; exact zero_mem _
   · have hS_sub : S.toFinset ⊆ V.vars := by
       by_contra h; apply hzero
-      exact VarsIterDeriv.iterDerivList_eq_zero_of_not_subset_vars S V (by rwa [not_subset] at h)
+      exact VarsIterDeriv.iterDerivList_eq_zero_of_not_subset_vars S V h
     have hmem : ms * SPDP.iterDerivList S V ∈
         restrictSupportDeg ℚ (blockClosure bp V.vars) (ℓ + 6) := by
       rw [mem_restrictSupportDeg]
