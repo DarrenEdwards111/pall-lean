@@ -44,6 +44,21 @@ open TuringMachine CompiledPoly CookLevin RestrictedSPDP
 
 -- The core bridge: Cook-Levin compilation preserves rank relationship.
 -- This connects the two SPDP notions in the formalization.
+-- Decomposition of cook_levin_spdp_bridge into two sub-claims:
+--
+-- (A) Cook-Levin compilation: M + n → compiled polynomial V_{M,n}
+--     with blockedSpdpRankQ bounded by the scaffold's profile compression.
+--     THIS IS ALREADY PROVED in v1 (theorem92_scaffold_eventually).
+--
+-- (B) Compiled polynomial captures f: restrictedSpdpRank(multilinearInterp f)
+--     ≤ blockedSpdpRankQ(V_{M,n}) when M decides f.
+--     This is the projection/extraction step.
+--
+-- Step (A) is done. Step (B) is the remaining gap.
+-- Step (B) follows from: multilinearInterp f is a projection of V_{M,n}
+-- (set computation variables to their correct trace values),
+-- and SPDP rank is monotone under such projections.
+
 axiom cook_levin_spdp_bridge (M : DTM) :
     ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 →
     ∀ f : (Fin n → Bool) → Bool, M.decides f →
