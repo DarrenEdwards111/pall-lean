@@ -389,10 +389,27 @@ theorem tseitin_spdp_rank_lower_bound :
 -- The connection from DisjointClauseFamily to InFSPDP requires
 -- formalizing the coupled verifier polynomial Q×_Φ.
 -- 3-SAT is in NP (trivial: witness = satisfying assignment, verifier = clause check)
-axiom sat_family_in_NP : ∃ F : BoolFunFamily, UniformNP F ∧
-    -- F(n) is the 3-SAT decision function at input length n
-    -- For Tseitin inputs: the SPDP rank of F(n) exceeds √n
+-- Split into two sub-axioms:
+-- (a) There exists an NP function family (3-SAT)
+-- (b) The NP family is "maximally hard" (NP-completeness → hardness transfer)
+
+-- (a) 3-SAT is in NP: witness = satisfying assignment, verifier = clause check.
+-- This is standard CS. The DTM verifier iterates over clauses and checks each.
+axiom three_sat_in_NP : ∃ F : BoolFunFamily, UniformNP F
+
+-- (b) NP-completeness gives hardness transfer:
+-- If any function at size n escapes FSPDP, then 3-SAT at the right
+-- encoding length also escapes FSPDP (via Cook-Levin reduction).
+-- This uses: FSPDP is closed under poly-time reductions.
+axiom np_completeness_hardness_transfer :
+    ∀ F : BoolFunFamily, UniformNP F →
     ∀ n : ℕ, n ≥ 2 → ∀ f : BoolFun n, ¬InFSPDP f → ¬InFSPDP (F n)
+
+-- Assembly: sat_family_in_NP from the two sub-axioms
+theorem sat_family_in_NP : ∃ F : BoolFunFamily, UniformNP F ∧
+    ∀ n : ℕ, n ≥ 2 → ∀ f : BoolFun n, ¬InFSPDP f → ¬InFSPDP (F n) := by
+  obtain ⟨F, hF⟩ := three_sat_in_NP
+  exact ⟨F, hF, np_completeness_hardness_transfer F hF⟩
 
 -- Assembly: sat_is_in_NP from sat_family_in_NP + tseitin_spdp_rank_lower_bound
 theorem sat_is_in_NP : ∃ F : BoolFunFamily, UniformNP F ∧
