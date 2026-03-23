@@ -91,20 +91,20 @@ theorem spdp_span_in_restrictSupportDeg {N : ℕ}
     have hmem : ms * SPDP.iterDerivList S V ∈
         restrictSupportDeg ℚ (blockClosure bp V.vars) (ℓ + 6) := by
       rw [mem_restrictSupportDeg]
-      exact ⟨by
-        calc (ms * SPDP.iterDerivList S V).totalDegree
+      constructor
+      · calc (ms * SPDP.iterDerivList S V).totalDegree
             ≤ ms.totalDegree + (SPDP.iterDerivList S V).totalDegree :=
               MvPolynomial.totalDegree_mul ms (SPDP.iterDerivList S V)
           _ ≤ ℓ + V.totalDegree := Nat.add_le_add hdeg (SPDP.totalDegree_iterDerivList_le S V)
-          _ ≤ ℓ + 6 := by omega,
-        by
-          classical; intro v hv
-          rcases Finset.mem_union.mp (MvPolynomial.vars_mul ms (SPDP.iterDerivList S V) hv) with
-            hms | hderiv
-          · rw [Finset.mem_coe, mem_blockClosure]
-            exact Finset.image_subset_image hS_sub (hcoupl v hms)
-          · exact Finset.mem_coe.mpr (subset_blockClosure bp V.vars
-              (VarsIterDeriv.vars_iterDerivList_subset S V hderiv))⟩
+          _ ≤ ℓ + 6 := by omega
+      · classical
+        intro v hv
+        rcases Finset.mem_union.mp (MvPolynomial.vars_mul ms (SPDP.iterDerivList S V) hv) with
+          hms | hderiv
+        · rw [Finset.mem_coe, mem_blockClosure]
+          exact Finset.image_subset_image hS_sub (hcoupl v hms)
+        · exact Finset.mem_coe.mpr (subset_blockClosure bp V.vars
+            (VarsIterDeriv.vars_iterDerivList_subset S V hderiv))
     exact heq ▸ hmem
 
 
