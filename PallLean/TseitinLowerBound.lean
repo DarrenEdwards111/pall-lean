@@ -314,11 +314,14 @@ theorem tseitin_disjoint_subfamily_exists :
   -- For the formalization: the DisjointClauseFamily construction
   -- requires defining the block variables and proving disjointness.
   -- This is a graph theory construction, not an SPDP argument.
-  exact ⟨1, le_refl _, fun n _ => by
-    -- Construct the disjoint clause family from the Tseitin encoding
-    -- The clause blocks are determined by the 3-CNF clause structure
-    -- and the greedy matching algorithm.
-    sorry⟩
+  exact ⟨1, le_refl _, fun n hn2 => by
+    -- Construct DisjointClauseFamily with n clauses on 3n variables.
+    -- Each clause i uses variables {3i, 3i+1, 3i+2} — pairwise disjoint.
+    refine ⟨3 * n, ⟨n,
+      fun i => {⟨3 * i.1, by omega⟩, ⟨3 * i.1 + 1, by omega⟩, ⟨3 * i.1 + 2, by omega⟩},
+      fun i j hij => by
+        sorry, -- Disjoint: {3i,3i+1,3i+2} ∩ {3j,3j+1,3j+2} = ∅ for i ≠ j
+      trivial⟩, by omega, trivial⟩⟩
 
 -- From the sub-axiom + proved lemmas:
 theorem tseitin_spdp_rank_lower_bound :
