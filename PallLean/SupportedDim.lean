@@ -87,7 +87,7 @@ theorem spdp_span_in_restrictSupportDeg {N : ℕ}
   · rw [heq, hzero, mul_zero]; exact zero_mem _
   · have hS_sub : S.toFinset ⊆ V.vars := by
       by_contra h; apply hzero
-      exact ProfileCompression.iterDerivList_eq_zero_of_not_subset_vars S V (by rwa [not_subset] at h)
+      exact VarsIterDeriv.iterDerivList_eq_zero_of_not_subset_vars S V (by rwa [not_subset] at h)
     have hmem : ms * SPDP.iterDerivList S V ∈
         restrictSupportDeg ℚ (blockClosure bp V.vars) (ℓ + 6) := by
       rw [mem_restrictSupportDeg]
@@ -165,7 +165,61 @@ theorem finrank_restrictSupportDeg_le {σ : Type*} [DecidableEq σ] [Fintype σ]
   -- The proof requires Fintype instance for boundedSupp which is
   -- technically available (subset of finite set) but hard to construct.
   -- Axiomatize this one fact.
-  sorry
+  -- Step 1: The exponent set A = {m | m.support ⊆ s ∧ m.sum id ≤ d} is finite
+  -- because m is determined by values on s (finite), each ≤ d.
+  -- |A| ≤ (d+1)^|s| ≤ (|s|+d)^|s|.
+  --
+  -- Step 2: restrictSupportDeg = span{monomial m 1 | m ∈ A}
+  -- (every polynomial in restrictSupportDeg is a linear combination of these monomials)
+  --
+  -- Step 3: finrank(span of finite set) ≤ |set| ≤ (|s|+d)^|s|.
+  
+  -- Define A as a Finset using Finset.pi
+  -- A = { m : σ →₀ ℕ | m.support ⊆ s ∧ m.sum id ≤ d }
+  -- Embed into (s → Fin (d+1)) via restriction, which is injective.
+  -- |A| ≤ |(s → Fin (d+1))| = (d+1)^|s|
+  
+  -- The span of the monomial set contains restrictSupportDeg
+  have h_span : restrictSupportDeg ℚ s d ≤ Submodule.span ℚ
+      ((fun m => MvPolynomial.monomial m (1 : ℚ)) '' (boundedSupp s d)) := by
+    intro p hp
+    rw [mem_restrictSupport_iff] at hp
+    -- p = Σ_{m ∈ p.support} coeff(m) * monomial m 1
+    -- Each m ∈ p.support satisfies m ∈ boundedSupp s d (from hp)
+    -- So p is in span of {monomial m 1 | m ∈ boundedSupp}
+    rw [← p.as_sum]
+    apply Submodule.sum_mem
+    intro m hm
+    apply Submodule.smul_mem
+    exact Submodule.subset_span ⟨m, hp hm, rfl⟩
+  -- boundedSupp s d is finite (subset of {n | ∀ i, n i ≤ d})
+  have h_finite : Set.Finite (boundedSupp s d) := by
+    apply Set.Finite.subset (Set.Finite.pi (fun i : σ => Set.finite_le_nat d))
+    intro n ⟨hsum, hsupp⟩
+    simp only [Set.mem_pi, Set.mem_Iic]
+    intro i
+    by_cases hi : n i = 0
+    · omega
+    · have hi_supp : i ∈ n.support := Finsupp.mem_support_iff.mpr (by omega)
+      exact le_trans (Finset.single_le_sum (fun _ _ => Nat.zero_le _) hi_supp) hsum
+  -- The monomial image is also finite
+  have h_fin_image : Set.Finite ((fun m => MvPolynomial.monomial m (1 : ℚ)) '' boundedSupp s d) :=
+    h_finite.image _
+  -- finrank(restrictSupportDeg) ≤ finrank(span) ≤ |image| ≤ (|s|+d)^|s|
+  have h_fin_inst := h_fin_image.toFinset
+  calc Module.finrank ℚ (restrictSupportDeg ℚ s d)
+      ≤ Module.finrank ℚ (Submodule.span ℚ
+          ((fun m => MvPolynomial.monomial m (1 : ℚ)) '' boundedSupp s d)) := by
+        exact Submodule.finrank_mono h_span
+    _ ≤ h_fin_image.toFinset.card := by
+        exact finrank_span_le_card _
+    _ ≤ h_finite.toFinset.card := by
+        exact Finset.card_image_le
+    _ ≤ (s.card + d) ^ s.card := by
+        -- |boundedSupp s d| ≤ (d+1)^|s| ≤ (|s|+d)^|s|
+        -- Each n ∈ boundedSupp is determined by n|_s ∈ (s → {0,...,d})
+        -- |(s → {0,...,d})| = (d+1)^|s| ≤ (|s|+d)^|s|
+        sorry
 
 /-- Module.Finite for restrictSupportDeg (subset of restrictTotalDegree). -/
 instance instFinite_restrictSupportDeg {σ : Type*} [DecidableEq σ] [Fintype σ]
