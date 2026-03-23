@@ -158,32 +158,18 @@ theorem permanent_span_le_violation_span (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
       (cellPartition_local M n hn2).partition := by
   sorry -- The deep Cook-Levin content
 
-/-- Bridge: the embedded violation poly has rank ≤ the scaffold violation poly.
-    This follows from the scaffold violation polynomial being the
-    multilinearization of the embedded violation polynomial (or equal). -/
-theorem embedded_rank_le_scaffold_rank (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
-    (h : numVars M n 0 ≤ compiledVarCount (defaultK M) n) :
-    blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (embeddedViolationPoly M n h)
-      (cellPartition_local M n hn2).partition
-    ≤ blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (violationPolyQ_ml (initialSemanticCNF M n hn2))
-      (initialSemantic_local M n hn2).partition := by
-  sorry -- Scaffold violation poly contains embedded violation poly
+-- NOTE: embedded_rank_le_scaffold_rank is not needed if we upgrade
+-- the scaffold to use real transition clauses from RealTransition.lean.
+-- When initialSemanticCNF uses real DTM-dependent clauses, the scaffold
+-- violation polynomial IS the embedded violation polynomial (after rename).
+-- This makes the bridge trivial (refl or definitional equality).
+--
+-- Until the scaffold is upgraded, cookLevin_rank_bound remains an axiom
+-- that asserts the permanent embeds into the real computation's SPDP span.
+-- The semantic content is entirely in permanent_span_le_violation_span.
 
-/-- Assembly: cookLevin_rank_bound from the bridge.
-    permanent_rank ≤ embedded_violation_rank ≤ scaffold_violation_rank -/
-theorem cookLevin_rank_bound_from_bridge (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
-    (h : numVars M n 0 ≤ compiledVarCount (defaultK M) n)
-    (hM : M.decides (CompiledSeparation.hardNPFamily n)) :
-    blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (MvPolynomial.rename (CompiledSeparation.permToCompiledEmbed (defaultK M) n)
-        (permPolyFlat (Nat.sqrt n)))
-      (cellPartition_local M n hn2).partition
-    ≤ blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (violationPolyQ_ml (initialSemanticCNF M n hn2))
-      (initialSemantic_local M n hn2).partition :=
-  le_trans (permanent_span_le_violation_span M n hn2 h hM)
-    (embedded_rank_le_scaffold_rank M n hn2 h)
+-- cookLevin_rank_bound follows once the scaffold uses real transition clauses.
+-- At that point: scaffold violation poly = embedded violation poly,
+-- so cookLevin_rank_bound reduces to permanent_span_le_violation_span.
 
 end EncodingBridge
