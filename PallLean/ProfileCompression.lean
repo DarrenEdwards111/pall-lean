@@ -149,8 +149,22 @@ theorem spdpRank_ml_le {N : ℕ}
           _ = (ℓ + 30) ^ 24 := by ring
           _ ≤ (ℓ + 30) ^ 30 := Nat.pow_le_pow_right (by omega) (by omega)
 
-/-- Scaffold computation axiom: blockClosure of V_ml's vars has ≤ 24 elements.
-    True because V_ml uses scaffold vars 0-7 in ≤ 6 blocks of ≤ 4 vars each. -/
+/-- Scaffold: blockClosure of V_ml's vars has ≤ 24 elements.
+
+    Proof sketch:
+    - Input tautology clauses produce clausePoly = 1 after multilinearization
+      (since (1-x)(x) = x-x² →ml x-x = 0, so clausePoly = 1-0 = 1).
+    - So input tautologies contribute no variables to violationPolyQ_ml.
+    - All non-tautology scaffold clauses use only scaffoldVar slots 0-7.
+    - Under cellPartition (n ≥ 2), vars 0-7 each get their own block.
+    - blockClosure of {0,...,7} under cellPartition = {0,...,7}.
+    - card = 8 ≤ 24.
+
+    TODO: full formal proof requires unfolding violationPolyQ_ml.vars
+    through the sum-of-squares and multilinearization, then tracking
+    variable indices through each clause family. This is ~200 lines
+    of definitional unfolding but mathematically trivial.
+-/
 private axiom scaffold_blockClosure_card_le (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2) :
     (SupportedDim.blockClosure (initialSemantic_local M n hn2).partition
       (violationPolyQ_ml (initialSemanticCNF M n hn2)).vars).card ≤ 24
