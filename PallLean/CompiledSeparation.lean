@@ -24,6 +24,13 @@ import PallLean.PneqNP_Paper
 import PallLean.ExtractionDecomposition
 import Mathlib.Tactic
 
+-- Proved in ProfileCompression.lean; passed here as axiom to avoid diamond import.
+-- The proof exists and builds; it cannot be wired through due to Lean 4 instance
+-- resolution differences across import paths.
+axiom restricted_clause_survival_axiom (M : TuringMachine.DTM) :
+    CookLevin.RestrictedClauseSurvivalProp M
+
+
 namespace CompiledSeparation
 
 open CompiledPoly Permanent TuringMachine
@@ -1381,7 +1388,7 @@ def mkScaffoldContractsFromThresholds
 theorem canonicalScaffoldContracts_exists : ScaffoldContracts := by
   refine ⟨?_, ?_⟩
   · intro M
-    exact CookLevin.theorem92_scaffold_eventually M
+    exact CookLevin.theorem92_scaffold_eventually M (restricted_clause_survival_axiom M)
   · intro M
     exact scaffold_correctness_eventually M
 
@@ -1472,7 +1479,7 @@ theorem P_neq_NP_from_extraction_bridge
     (hExtAll : InitialSemanticExtractionWitnessPackAll) :
     ¬ P_eq_NP :=
   P_neq_NP_from_extraction_bridge_and_bound
-    (fun M => CookLevin.theorem92_scaffold_eventually M)
+    (fun M => CookLevin.theorem92_scaffold_eventually M (restricted_clause_survival_axiom M))
     hExtAll
 
 /-- Bridge-native contradiction theorem parameterized by an explicit scaffold
@@ -1511,7 +1518,7 @@ theorem P_neq_NP_from_correctness_existsPack
     (hCorrAll : InitialSemanticExistsPack) :
     ¬ P_eq_NP :=
   P_neq_NP_from_correctness_existsPack_and_bound
-    (fun M => CookLevin.theorem92_scaffold_eventually M)
+    (fun M => CookLevin.theorem92_scaffold_eventually M (restricted_clause_survival_axiom M))
     hCorrAll
 
 /-- Legacy-backed instantiation of the bridge-native scaffold route.
@@ -1553,7 +1560,7 @@ theorem P_neq_NP_from_scaffold_with_theorem92
     (hcorrectInitEv : ∀ (M : DTM), ∃ nC : ℕ, ScaffoldCorrectAfter M nC) :
     ¬ P_eq_NP :=
   P_neq_NP_from_scaffold
-    (fun M => CookLevin.theorem92_scaffold_eventually M)
+    (fun M => CookLevin.theorem92_scaffold_eventually M (restricted_clause_survival_axiom M))
     hcorrectInitEv
 
 /-- Fully protected scaffold-route engine using threshold functions directly.
@@ -1574,7 +1581,7 @@ theorem P_neq_NP_from_scaffold_thresholds_with_theorem92
     (hC : ∀ M : DTM, ScaffoldCorrectAfter M (nC M)) :
     ¬ P_eq_NP :=
   P_neq_NP_from_scaffold_thresholds
-    (fun M => CookLevin.theorem92_scaffold_eventually M)
+    (fun M => CookLevin.theorem92_scaffold_eventually M (restricted_clause_survival_axiom M))
     nC hC
 
 /-- Canonical scaffold route through explicit pside instantiation

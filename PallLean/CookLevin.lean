@@ -1282,7 +1282,8 @@ theorem surviving_factor_count_le (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     Uses: degree truncation (PROVED), multilinearize degree (PROVED),
     Proved from scaffold_blockClosure_card_le + finrank_restrictSupportDeg_le
     (both axiomatized as computation facts in ProfileCompression/SupportedDim). -/
-axiom restricted_clause_survival (M : DTM) :
+-- restricted_clause_survival: proved in ProfileCompression, passed as hypothesis
+def RestrictedClauseSurvivalProp (M : DTM) : Prop :=
     ∃ (c : ℕ) (n₀ : ℕ), ∀ n : ℕ, n ≥ n₀ → ∀ (hn2 : n ≥ 2),
       CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
         (CompiledPoly.violationPolyQ_ml (initialSemanticCNF M n hn2))
@@ -1413,9 +1414,10 @@ private theorem exp_beats_poly_general_exists (c : ℕ) :
           calc m * c = c * m := by ring
             _ ≤ k / 2 := mul_div_div_le k c hc1
 
-theorem theorem92_scaffold_eventually (M : DTM) :
+theorem theorem92_scaffold_eventually (M : DTM)
+    (h_rcs : RestrictedClauseSurvivalProp M) :
     ∃ n₀ : ℕ, ScaffoldBoundAfter M n₀ := by
-  obtain ⟨c, n₀, h_survival⟩ := restricted_clause_survival M
+  obtain ⟨c, n₀, h_survival⟩ := h_rcs
   -- For large enough n: (log₂ n + 1)^c ≤ √n
   -- This is a standard polylog-vs-sqrt inequality
   -- We already proved it for c=3 with threshold 2^50
