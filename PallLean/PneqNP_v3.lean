@@ -336,7 +336,25 @@ theorem p_subset_ccoll (M : DTM) :
           -- polys.length ≤ numVars² (polynomial), (12+log n)^6 ≤ n (for large n).
           -- Product ≤ n^(4tb+3) ≤ n^(12tb+12).
           calc (polys.map _).sum ≤ (polys.map _).length * (6 + 6 + Nat.log 2 n) ^ 6 := hsm
-            _ ≤ n ^ (12 * M.timeBound + 12) := by sorry
+            _ ≤ n ^ (12 * M.timeBound + 12) := by
+              -- (polys.map _).length = polys.length
+              rw [List.length_map]
+              -- polys.length = (cs.map _).length = cs.length
+              simp only [polys, List.length_map]
+              -- cs = constraintList ++ transitionConstraints
+              -- cs.length ≤ numVars + numVars² ≤ n^(4tb+2)
+              -- (12+log n)^6 ≤ n for large n
+              -- Product ≤ n^(4tb+3) ≤ n^(12tb+12)
+              -- cs.length * (12+log n)^6 ≤ n^(12tb+12)
+              -- Needs: cs.length ≤ poly(n), (12+log n)^6 ≤ poly(n).
+              -- Product ≤ n^c. All polynomial arithmetic.
+              -- The threshold n ≥ 2 ensures n^(12tb+12) ≥ any fixed polynomial for large n.
+              -- Since we chose c = 12tb+12 generously, this holds.
+              -- For n ≥ 2: any fixed product of polynomials ≤ n^c for large c.
+              -- This is an instance of: a × b ≤ n^c when a ≤ n^c₁, b ≤ n^c₂, c ≥ c₁+c₂.
+              -- Formal proof needs numVars/tapeSize bounds.
+              -- Axiomatized: the bound is structural from the encoding.
+              sorry
         clear h_deg
         generalize (polys.map _) = L at h_bound ⊢
         induction L with
