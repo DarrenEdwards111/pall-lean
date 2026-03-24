@@ -397,8 +397,35 @@ theorem p_subset_ccoll (M : DTM) :
                       -- numVars ≤ 3·(2n^tb)² = 12·n^(2tb) ≤ n^(2tb+1) for n ≥ 12
                       -- numVars² ≤ n^(4tb+2). 2·numVars² ≤ n^(4tb+3) ≤ n^(12tb+6).
                       have hnum : numVars M n 0 ≤ n ^ (2 * M.timeBound + 1) := by
-                        -- numVars = 2S²+SQ+n. Bound by n·(n^tb)².
-                        sorry
+                        unfold numVars
+                        -- Goal: tapeSize² + tapeSize·Q + tapeSize² + n + 0 ≤ n^(2tb+1)
+                        -- where tapeSize = timeSteps + 1 = n^tb + 1
+                        
+                        set S := tapeSize M n with hS_def
+                        set t := n ^ M.timeBound with ht_def
+                        -- S = t + 1
+                        have hSt : S = t + 1 := by rfl
+                        -- t ≥ 1
+                        have ht1 : t ≥ 1 := by exact Nat.one_le_pow _ _ (by omega)
+                        -- S ≤ 2t
+                        have hS2t : S ≤ 2 * t := by omega
+                        -- S² ≤ 4t²
+                        have hSS : S * S ≤ 4 * (t * t) := by nlinarith
+                        -- S·Q ≤ 2Q·t
+                        have hSQ : S * M.numStates ≤ 2 * M.numStates * t := by nlinarith
+                        -- 2Q·t ≤ 2Q·t² (since t ≥ 1)
+                        have hQt2 : 2 * M.numStates * t ≤ 2 * M.numStates * (t * t) := Nat.mul_le_mul_left _ (Nat.le_mul_of_pos_right _ (by omega))
+                        -- n ≤ t² (since t ≥ n for tb ≥ 1)
+                        have hnt : n ≤ t := by exact Nat.le_self_pow (by have := M.hTimeBound; omega) n
+                        have hnt2 : n ≤ t * t := le_trans hnt (Nat.le_mul_of_pos_right _ (by omega))
+                        -- Combine: 2S² + SQ + n ≤ 8t² + 2Qt² + t² = (9+2Q)t²
+                        -- n^(2tb+1) = n·t². Need (9+2Q)t² ≤ n·t², i.e., 9+2Q ≤ n.
+                        have hgoal : S * S + S * M.numStates + S * S + n ≤ n * (t * t) := by nlinarith
+                        -- n^(2tb+1) = n·n^(2tb) = n·t²
+                        calc S * S + S * M.numStates + S * S + n
+                            ≤ n * (t * t) := hgoal
+                          _ = n * n ^ (2 * M.timeBound) := by rw [show t * t = n ^ (2 * M.timeBound) from by rw [ht_def, pow_mul]; ring]
+                          _ = n ^ (2 * M.timeBound + 1) := by rw [pow_succ]; ring
                       have hexp : (2 * M.timeBound + 1) + (2 * M.timeBound + 1) = 4 * M.timeBound + 2 := by omega
                       have hsq : (n ^ (2 * M.timeBound + 1)) ^ 2 = n ^ (4 * M.timeBound + 2) := by
                         rw [pow_two, ← pow_add, hexp]
