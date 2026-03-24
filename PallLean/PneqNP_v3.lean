@@ -275,6 +275,10 @@ theorem p_subset_ccoll (M : DTM) :
   -- (log n + 6)^6 ≤ n for large n.
   -- Total ≤ n^(12*timeBound+7) ≤ n^(12*timeBound+12).
   -- blockedSpdpRankQ ≤ total generators ≤ n^c. ∎
+  -- Now formally: V = violationPoly = Σ (c.poly * c.poly) for c in constraints.
+  -- By spdpRank_sum_le: rank(V) ≤ Σ rank(c.poly²).
+  -- By spdpRank_squared_local: each rank(c.poly²) ≤ (12 + log n)^6.
+  -- Total ≤ #constraints × (12 + log n)^6 ≤ n^c.
   sorry
 
 /-! ## A3: ∃ NP family outside Ccoll
