@@ -216,6 +216,15 @@ def InCcoll (M : DTM) (n : ℕ) (c : ℕ) : Prop :=
 -- Axiomatized because connecting to the real encoding's constraint structure
 -- requires the paper's full width-to-rank analysis (§4, Theorem 5.16).
 -- Paper Theorem 6.3: rank ≤ n^O(1). The constant depends on M.
+-- P ⊆ Ccoll: rank ≤ n^c.
+-- For booleanity constraints: V = Σ z_i(1-z_i)².
+-- Each constraint uses 1 variable. The SPDP generators decompose per-constraint.
+-- Total: rank ≤ numVars × O(1) ≤ n^O(1).
+-- Take c = 2·timeBound + 2.
+-- For the blocked rank: the partition assigns each variable its own block,
+-- so the blocked rank ≤ unblocked rank ≤ total dimension.
+-- Total dimension = numVars × (per-variable poly dimension) ≤ n^(2tb+1) × 7.
+-- For n ≥ 7: 7·n^(2tb+1) ≤ n^(2tb+2). Take c = 2tb+2.
 axiom p_subset_ccoll (M : DTM) :
     ∃ (c : ℕ) (n₀ : ℕ), ∀ n ≥ n₀, n ≥ 2 → InCcoll M n c
 
