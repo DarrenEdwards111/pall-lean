@@ -368,7 +368,33 @@ theorem p_subset_ccoll (M : DTM) :
               calc (constraintList M n ++ transitionConstraints M n).length *
                     (6 + 6 + Nat.log 2 n) ^ 6
                   ≤ n ^ (12 * M.timeBound + 6) * n ^ 6 := Nat.mul_le_mul
-                    (by sorry) -- cs.length ≤ n^(12tb+6)
+                    (by
+                      -- cs.length = constraintList.length + transitionConstraints.length
+                      -- ≤ numVars + numVars² ≤ n^(12tb+6)
+                      simp only [List.length_append, constraintList, List.length_ofFn]
+                      -- Goal: numVars M n 0 + (transitionConstraints M n).length ≤ n^(12tb+6)
+                      have h_tc := transitionConstraints_count M n
+                      -- numVars + numVars² ≤ 2·numVars² ≤ n^(12tb+6)
+                      -- numVars M n 0 ≤ n^(2tb+1) (polynomial)
+                      -- numVars² ≤ n^(4tb+2)
+                      -- 2·numVars² ≤ n^(4tb+3) ≤ n^(12tb+6)
+                      -- numVars + tc.length ≤ numVars + numVars² ≤ n^(12tb+6)
+                      have h_nv := h_tc
+                      have : numVars M n 0 + (transitionConstraints M n).length ≤
+                          numVars M n 0 + (numVars M n 0) ^ 2 := by omega
+                      -- numVars + numVars² ≤ 2·numVars² for numVars ≥ 1
+                      -- numVars M n 0 ≥ n ≥ 32 ≥ 1
+                      have h_nv_pos : numVars M n 0 ≥ 1 := by
+                        show tapeSize M n * tapeSize M n + tapeSize M n * M.numStates + tapeSize M n * tapeSize M n + n + 0 ≥ 1; unfold tapeSize timeSteps; omega
+                      have : numVars M n 0 + (numVars M n 0) ^ 2 ≤
+                          2 * (numVars M n 0) ^ 2 := by nlinarith
+                      -- 2·numVars² ≤ n^(12tb+6): needs numVars ≤ n^(2tb+1)
+                      -- 2·numVars² ≤ n^(12tb+6)
+                      -- numVars = 2S² + S·Q + n ≤ 3S² (for S ≥ Q, n)
+                      -- S = n^tb + 1 ≤ 2·n^tb
+                      -- numVars ≤ 3·(2n^tb)² = 12·n^(2tb) ≤ n^(2tb+1) for n ≥ 12
+                      -- numVars² ≤ n^(4tb+2). 2·numVars² ≤ n^(4tb+3) ≤ n^(12tb+6).
+                      sorry)
                     (Nat.pow_le_pow_left (by
                       -- 12 + log₂ n ≤ n.
                       -- n ≥ 2^N₀ where N₀ ≥ 5. So log₂ n ≥ N₀ ≥ 5.
