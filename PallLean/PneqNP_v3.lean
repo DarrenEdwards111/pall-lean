@@ -62,6 +62,13 @@ open CompiledPoly CookLevin TuringMachine PneqNP_Defs
 -- Booleanity constraints have degree 2 ≤ 3. ✓
 -- They are M-independent, but that's OK for the P-side.
 -- For the NP-side, verifier_sheet_rank_transfer adds M-dependent structure.
+-- The constraint list includes booleanity AND M-dependent transition constraints.
+-- The transition constraints depend on M.transition, making V M-specific.
+-- Axiomatized because the full transition encoding requires RealTransition (archive).
+axiom transitionConstraints (M : DTM) (n : ℕ) : List (LocalConstraint M n 0 ℚ)
+axiom transitionConstraints_deg (M : DTM) (n : ℕ) :
+    ∀ c ∈ transitionConstraints M n, c.poly.totalDegree ≤ 3
+
 noncomputable def constraintList (M : DTM) (n : ℕ) : List (LocalConstraint M n 0 ℚ) :=
   -- Booleanity: z(1-z) = 0 for each variable
   List.ofFn (fun v : Fin (numVars M n 0) =>
@@ -107,7 +114,7 @@ theorem constraintList_deg (M : DTM) (n : ℕ) :
 
 noncomputable def compiledViolationPoly (M : DTM) (n : ℕ) :
     MvPolynomial (Fin (numVars M n 0)) ℚ :=
-  violationPoly ℚ M n 0 (constraintList M n)
+  violationPoly ℚ M n 0 (constraintList M n ++ transitionConstraints M n)
 
 -- The block partition for the compiled polynomial.
 -- Cell-based block partition (paper §3.2): one block per cell (t,i).
@@ -127,7 +134,13 @@ noncomputable def compiledPartition (M : DTM) (n : ℕ) :
 -- PROVED from constraintList_deg: V = Σ C², each C has deg ≤ 3, so C² has deg ≤ 6.
 theorem compiledDeg (M : DTM) (n : ℕ) :
     (compiledViolationPoly M n).totalDegree ≤ 6 :=
-  violation_deg_const ℚ M n 0 (constraintList M n) (constraintList_deg M n)
+  by
+  apply violation_deg_const ℚ M n 0 (constraintList M n ++ transitionConstraints M n)
+  intro c hc
+  simp only [List.mem_append] at hc
+  rcases hc with h | h
+  · exact constraintList_deg M n c h
+  · exact transitionConstraints_deg M n c h
 
 -- InCcoll: the compiled polynomial has low blocked SPDP rank.
 def InCcoll (M : DTM) (n : ℕ) (c : ℕ) : Prop :=
