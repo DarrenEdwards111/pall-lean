@@ -58,8 +58,31 @@ theorem spdpRank_sum_le {N : ℕ} (κ ℓ : ℕ)
     simp only [List.sum_nil, List.map_nil, List.sum_nil]
     unfold CompiledPoly.blockedSpdpRankQ
     -- All generators are 0: ∂^S(0) = 0, so m * 0 = 0.
-    -- All generators = 0 → span ⊆ span({0}) = ⊥ → finrank = 0
-    sorry
+    -- iterDerivList S 0 = 0 for any S
+    have h_zero : ∀ (S : List (Fin N)), SPDP.iterDerivList S (0 : MvPolynomial (Fin N) ℚ) = 0 := by
+      intro S; unfold SPDP.iterDerivList
+      induction S with
+      | nil => rfl
+      | cons v S ih =>
+        simp only [List.foldl_cons]
+        have : MvPolynomial.pderiv v (0 : MvPolynomial (Fin N) ℚ) = 0 := map_zero _
+        rw [this]; exact ih
+    -- All generators = m * 0 = 0
+    have h_gens : ∀ q, (∃ S m, S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧
+        (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+        (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
+        q = m * SPDP.iterDerivList S (0 : MvPolynomial _ ℚ)) → q = 0 := by
+      intro q ⟨S, m, _, _, _, _, hq⟩; rw [hq, h_zero, mul_zero]
+    -- span of {0} = ⊥, finrank = 0
+    have h_sub : { q | ∃ S m, S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧ _ ∧ _ ∧
+        q = m * SPDP.iterDerivList S (0 : MvPolynomial _ ℚ) } ⊆ {0} :=
+      fun q hq => h_gens q hq
+    calc Module.finrank ℚ (Submodule.span ℚ _)
+        ≤ Module.finrank ℚ (Submodule.span ℚ ({0} : Set (MvPolynomial (Fin N) ℚ))) :=
+          Submodule.finrank_mono (Submodule.span_mono h_sub)
+      _ = Module.finrank ℚ (⊥ : Submodule ℚ (MvPolynomial (Fin N) ℚ)) := by
+          rw [Submodule.span_singleton_eq_bot.mpr rfl]
+      _ = 0 := finrank_bot ℚ _
   | cons f rest ih =>
     simp only [List.sum_cons, List.map_cons]
     calc CompiledPoly.blockedSpdpRankQ κ ℓ (f + rest.sum) bp
