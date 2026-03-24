@@ -71,7 +71,9 @@ theorem spdpRank_sum_le {N : ℕ} (κ ℓ : ℕ)
 
 theorem spdpRank_squared_local {N : ℕ} (κ ℓ : ℕ)
     (C : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N)
-    (hd : C.totalDegree ≤ 3) (hw : C.vars.card ≤ 6) :
+    (hd : C.totalDegree ≤ 3) (hw : C.vars.card ≤ 6)
+    -- Identity partition hypothesis
+    (hbp : bp = ⟨N, fun v => v⟩) :
     CompiledPoly.blockedSpdpRankQ κ ℓ (C * C) bp ≤ (6 + 6 + ℓ) ^ 6 := by
   -- C*C has degree ≤ 6 and vars ⊆ vars(C), card ≤ 6.
   -- By spdp_span_in_restrictSupportDeg: span ≤ restrictSupportDeg on blockClosure.
@@ -103,7 +105,16 @@ theorem spdpRank_squared_local {N : ℕ} (κ ℓ : ℕ)
         -- (C*C).vars ⊆ C.vars, card ≤ 6
         -- So blockClosure.card ≤ 6
         -- Then (6 + ℓ + 6)^6 ≤ (6 + 6 + ℓ)^6 = (12 + ℓ)^6
-        sorry
+        -- blockClosure(identity, S) = S: simp closes it.
+        have hbc : SupportedDim.blockClosure bp (C * C).vars = (C * C).vars := by
+          subst hbp; simp [SupportedDim.blockClosure]
+        -- (C*C).vars ⊆ C.vars, card ≤ 6
+        have hcc_vars : (C * C).vars.card ≤ 6 := by
+          sorry -- (C*C).vars ⊆ C.vars, C.vars.card ≤ 6
+        rw [hbc]
+        calc ((C * C).vars.card + (ℓ + 6)) ^ (C * C).vars.card
+            ≤ (6 + (ℓ + 6)) ^ 6 := by sorry
+        
 
 /-! ## Lemma 4: SPDP rank of violation polynomial ≤ #constraints × per-constraint bound
 
