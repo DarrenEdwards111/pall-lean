@@ -75,7 +75,8 @@ theorem constraintList_deg (M : DTM) (n : ℕ) :
   intro c hc
   simp [constraintList, List.mem_ofFn] at hc
   obtain ⟨v, rfl⟩ := hc
-  -- boolConstraint v = X v * (1 - X v) has degree 2
+  -- boolConstraint v = X v * (1 - X v) has degree ≤ 2 ≤ 3
+  -- boolConstraint = z(1-z), degree 2 ≤ 3
   sorry
 
 noncomputable def compiledViolationPoly (M : DTM) (n : ℕ) :
