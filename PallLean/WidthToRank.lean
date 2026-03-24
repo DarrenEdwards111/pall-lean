@@ -129,7 +129,8 @@ theorem spdpRank_add_le {N : ℕ} (κ ℓ : ℕ)
 -/
 
 theorem spdpRank_sum_le {N : ℕ} (κ ℓ : ℕ)
-    (fs : List (MvPolynomial (Fin N) ℚ)) (bp : CompiledPoly.BlockPartition N) :
+    (fs : List (MvPolynomial (Fin N) ℚ)) (bp : CompiledPoly.BlockPartition N)
+    (hfs : ∀ f ∈ fs, f.totalDegree ≤ 6) :
     CompiledPoly.blockedSpdpRankQ κ ℓ fs.sum bp ≤
       (fs.map (fun f => CompiledPoly.blockedSpdpRankQ κ ℓ f bp)).sum := by
   induction fs with
@@ -166,9 +167,11 @@ theorem spdpRank_sum_le {N : ℕ} (κ ℓ : ℕ)
     simp only [List.sum_cons, List.map_cons]
     calc CompiledPoly.blockedSpdpRankQ κ ℓ (f + rest.sum) bp
         ≤ CompiledPoly.blockedSpdpRankQ κ ℓ f bp + CompiledPoly.blockedSpdpRankQ κ ℓ rest.sum bp :=
-          spdpRank_add_le κ ℓ f rest.sum bp sorry sorry
+          spdpRank_add_le κ ℓ f rest.sum bp
+            (hfs f (List.Mem.head rest))
+            (by sorry)  -- rest.sum.totalDegree ≤ 6
       _ ≤ CompiledPoly.blockedSpdpRankQ κ ℓ f bp + (rest.map (fun f => CompiledPoly.blockedSpdpRankQ κ ℓ f bp)).sum :=
-          Nat.add_le_add_left ih _
+          Nat.add_le_add_left (ih (fun g hg => hfs g (List.Mem.tail f hg))) _
 
 /-! ## Lemma 3: SPDP rank of C² when deg(C) ≤ d, using ≤ w variables
 
