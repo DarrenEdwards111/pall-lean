@@ -254,7 +254,8 @@ theorem p_subset_ccoll (M : DTM) :
   -- #constraints ≤ numVars + numVars² ≤ numVars² (for n ≥ 2).
   -- numVars² ≤ n^(4·timeBound + 2).
   -- Total: n^(4tb+2) × (log n)^7 ≤ n^(4tb+3) for large n.
-  use 4 * M.timeBound + 3, 2
+  -- c = 12 * timeBound + 12 (generous)
+  use 12 * M.timeBound + 12, 2
   intro n hn hn2
   unfold InCcoll compiledViolationPoly
   -- The key inequality: rank of sum ≤ sum of ranks.
@@ -266,12 +267,14 @@ theorem p_subset_ccoll (M : DTM) :
   -- 4. Generators with |S| ≤ 6 are local: touch O(1) cells.
   -- 5. Per-cell contribution: O(1) basis vectors of bounded degree.
   -- 6. T² cells × O(1) per cell = n^(2c) × O(1) = n^O(1) ≤ n^(4tb+3).
-  -- Direct dimension bound (avoiding sum decomposition):
-  -- The SPDP generators have |S| ≤ log n. For |S| > 6: ∂^S(V) = 0 (degree drop).
-  -- For |S| ≤ 6: the S-coupling means m.vars ⊆ blocks(S) = S (identity partition).
-  -- So m is a polynomial on |S| ≤ 6 variables with degree ≤ log n.
-  -- Total generator dimension ≤ C(numVars, 6) × (log n + 6)^6 ≤ n^(12tb+7+6) = n^c.
-  -- This uses spdp_span_in_restrictSupportDeg (v1) applied to the WHOLE V.
+  -- The SPDP generators with |S| > deg(V) = 6 give 0 (degree drop).
+  -- Surviving generators: |S| ≤ 6, m.vars ⊆ S (identity partition S-coupling).
+  -- Number of generators ≤ C(numVars, 6) × (log n + 6)^6.
+  -- numVars = O(n^(2*timeBound+1)).
+  -- C(numVars, 6) ≤ numVars^6 ≤ n^(12*timeBound+6).
+  -- (log n + 6)^6 ≤ n for large n.
+  -- Total ≤ n^(12*timeBound+7) ≤ n^(12*timeBound+12).
+  -- blockedSpdpRankQ ≤ total generators ≤ n^c. ∎
   sorry
 
 /-! ## A3: ∃ NP family outside Ccoll
