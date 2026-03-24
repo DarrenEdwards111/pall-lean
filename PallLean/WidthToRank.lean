@@ -33,7 +33,11 @@ theorem spdpRank_add_le {N : ℕ} (κ ℓ : ℕ)
     (f g : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N) :
     CompiledPoly.blockedSpdpRankQ κ ℓ (f + g) bp ≤
       CompiledPoly.blockedSpdpRankQ κ ℓ f bp + CompiledPoly.blockedSpdpRankQ κ ℓ g bp := by
-  sorry
+  -- ∂^S(f+g) = ∂^S(f) + ∂^S(g) by linearity.
+  -- So m·∂^S(f+g) = m·∂^S(f) + m·∂^S(g).
+  -- span(gens of f+g) ⊆ span(gens of f) + span(gens of g).
+  -- finrank(A) ≤ finrank(B) + finrank(C) when A ≤ B + C.
+  sorry -- Needs Submodule.finrank_sup_add_finrank_inf_le or similar
 
 /-! ## Lemma 2: SPDP rank is subadditive over finite sums
 
@@ -67,7 +71,13 @@ theorem spdpRank_squared_local {N : ℕ} (κ ℓ : ℕ)
     (C : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N)
     (hd : C.totalDegree ≤ 3) (hw : C.vars.card ≤ 6) :
     CompiledPoly.blockedSpdpRankQ κ ℓ (C * C) bp ≤ (6 + 6 + ℓ) ^ 6 := by
-  sorry
+  -- C*C has degree ≤ 6 and vars ⊆ vars(C), card ≤ 6.
+  -- By spdp_span_in_restrictSupportDeg: span ≤ restrictSupportDeg on blockClosure.
+  -- blockClosure of C*C ⊆ blockClosure of C.vars, card ≤ some bound.
+  -- By finrank_restrictSupportDeg_le: dim ≤ (card + degree)^card.
+  -- With card ≤ 6 (from hw) and degree ≤ ℓ + 6:
+  -- dim ≤ (6 + ℓ + 6)^6 = (ℓ + 12)^6.
+  sorry -- Needs spdp_span_in_restrictSupportDeg + finrank bound
 
 /-! ## Lemma 4: SPDP rank of violation polynomial ≤ #constraints × per-constraint bound
 

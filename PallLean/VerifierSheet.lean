@@ -75,12 +75,19 @@ theorem Sheet_timeBound (M : DTM) :
 -/
 
 -- Rank-monotone extraction: restrictions don't increase rank
+-- Rank-monotone extraction via aeval.
+-- Same argument as SPDPProjection.restrictedSpdpRank_le_spdpRank:
+-- aeval σ maps generators to generators, so span maps via linear map,
+-- and finrank of image ≤ finrank of source.
+-- The v1 proof (pderiv_restrictPoly_comm + iterDerivList_restrictPoly_comm)
+-- shows ∂^S commutes with aeval when σ fixes the derivative variables.
+-- For general σ: aeval is still a ring hom, so generators map to generators.
 theorem rank_restriction_le {N : ℕ} (κ ℓ : ℕ)
     (V : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N)
     (σ : Fin N → MvPolynomial (Fin N) ℚ) :
     CompiledPoly.blockedSpdpRankQ κ ℓ (MvPolynomial.aeval σ V) bp ≤
       CompiledPoly.blockedSpdpRankQ κ ℓ V bp := by
-  sorry -- Same argument as SPDPProjection.restrictedSpdpRank_le_spdpRank
+  sorry
 
 /-! ## Assembly: verifier_sheet_rank_transfer
 
