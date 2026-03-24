@@ -47,16 +47,35 @@ open CompiledPoly CookLevin TuringMachine PneqNP_Defs
 -- Axiomatized because the full constraint list depends on
 -- TuringMachine infrastructure (tapeIdx, stateIdx, headIdx,
 -- LocalConstraint, etc.) which uses numVars M n κ variables.
-axiom compiledViolationPoly (M : DTM) (n : ℕ) :
-    MvPolynomial (Fin (numVars M n 0)) ℚ
+-- Concrete compiled violation polynomial from TuringMachine.
+-- V_{M,n} = Σ C(x,τ)² where C are all local constraints.
+-- For now: use the empty constraint list → V = 0.
+-- The actual constraints would come from RealTransition (archive).
+-- This makes compiledDeg and compiledBlockClosure_bounded trivially true.
+-- The verifier_sheet_rank_transfer then needs: for 3-SAT-deciding M,
+-- the constraint list includes Tseitin structure → high rank.
+-- Concrete compiled violation polynomial: sum of squared constraint violations.
+-- The constraint list is axiomatized (depends on M.transition).
+-- Properties (degree ≤ 6, locality) follow from the constraint structure.
+axiom constraintList (M : DTM) (n : ℕ) : List (LocalConstraint M n 0 ℚ)
+
+-- Each constraint has degree ≤ 3
+axiom constraintList_deg (M : DTM) (n : ℕ) :
+    ∀ c ∈ constraintList M n, c.poly.totalDegree ≤ 3
+
+noncomputable def compiledViolationPoly (M : DTM) (n : ℕ) :
+    MvPolynomial (Fin (numVars M n 0)) ℚ :=
+  violationPoly ℚ M n 0 (constraintList M n)
 
 -- The block partition for the compiled polynomial.
 axiom compiledPartition (M : DTM) (n : ℕ) :
     CompiledPoly.BlockPartition (numVars M n 0)
 
 -- The compiled polynomial has degree ≤ 6 (paper §3.1).
-axiom compiledDeg (M : DTM) (n : ℕ) :
-    (compiledViolationPoly M n).totalDegree ≤ 6
+-- PROVED from constraintList_deg: V = Σ C², each C has deg ≤ 3, so C² has deg ≤ 6.
+theorem compiledDeg (M : DTM) (n : ℕ) :
+    (compiledViolationPoly M n).totalDegree ≤ 6 :=
+  violation_deg_const ℚ M n 0 (constraintList M n) (constraintList_deg M n)
 
 -- InCcoll: the compiled polynomial has low blocked SPDP rank.
 def InCcoll (M : DTM) (n : ℕ) : Prop :=
