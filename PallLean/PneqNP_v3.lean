@@ -268,8 +268,10 @@ theorem p_subset_ccoll (M : DTM) :
   -- numVars² ≤ n^(4·timeBound + 2).
   -- Total: n^(4tb+2) × (log n)^7 ≤ n^(4tb+3) for large n.
   -- c = 12 * timeBound + 12 (generous)
-  use 12 * M.timeBound + 12, 32
+  use 12 * M.timeBound + 12, max 32 (2 * M.numStates + 9)
   intro n hn hn2
+  have hn32 : n ≥ 32 := le_trans (le_max_left _ _) hn
+  have hnQ : n ≥ 2 * M.numStates + 9 := le_trans (le_max_right _ _) hn
   unfold InCcoll compiledViolationPoly
   -- The key inequality: rank of sum ≤ sum of ranks.
   -- Each rank is bounded. Total is polynomial.
@@ -394,7 +396,9 @@ theorem p_subset_ccoll (M : DTM) :
                       -- S = n^tb + 1 ≤ 2·n^tb
                       -- numVars ≤ 3·(2n^tb)² = 12·n^(2tb) ≤ n^(2tb+1) for n ≥ 12
                       -- numVars² ≤ n^(4tb+2). 2·numVars² ≤ n^(4tb+3) ≤ n^(12tb+6).
-                      have hnum : numVars M n 0 ≤ n ^ (2 * M.timeBound + 1) := by sorry
+                      have hnum : numVars M n 0 ≤ n ^ (2 * M.timeBound + 1) := by
+                        -- numVars = 2S²+SQ+n. Bound by n·(n^tb)².
+                        sorry
                       have hexp : (2 * M.timeBound + 1) + (2 * M.timeBound + 1) = 4 * M.timeBound + 2 := by omega
                       have hsq : (n ^ (2 * M.timeBound + 1)) ^ 2 = n ^ (4 * M.timeBound + 2) := by
                         rw [pow_two, ← pow_add, hexp]
@@ -418,8 +422,7 @@ theorem p_subset_ccoll (M : DTM) :
                       -- Use: 2^k ≥ k+13 for k ≥ 5.
                       -- k = log₂ n ≥ 5 (from n ≥ 2^5 = 32, since n ≥ 2^N₀ ≥ 2^5).
                       -- n ≥ 2^N₀ ≥ 2^5 = 32 (since N₀ ≥ max K (2^B+B+5) ≥ 5).
-                      have hn32 : n ≥ 32 := hn
-                      -- log₂ n ≤ n - 13 for n ≥ 32.
+                                          -- log₂ n ≤ n - 13 for n ≥ 32.
                       -- 2^(log₂ n) ≤ n. k+13 ≤ 2^k for k ≥ 5.
                       -- log₂ 32 = 5. For k=5: 18 ≤ 32. For k>5: by induction.
                       have hk5 : Nat.log 2 n ≥ 5 := by
