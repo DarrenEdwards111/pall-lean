@@ -70,7 +70,13 @@ theorem Sheet_decides (M : DTM) {n : ℕ} (f : BoolFun n)
   -- The key invariant: Sheet(M) stays in M's state space.
   -- Proof requires showing run traces match, which needs
   -- induction on time steps + the transition definition.
-  -- This is the same pattern as rejectDTM_run_state0 (TseitinLowerBound).
+  -- Key: Sheet(M) state stays < numStates (invariant).
+  -- Sheet(M).transition maps state < numStates to state < numStates
+  -- (because M.transition produces Fin numStates, embedded into Fin (numStates+3)).
+  -- By induction: run stays in M's state space.
+  -- Then final state of Sheet(M) = ⟨final state of M, _⟩.
+  -- Accept: state.val = 1 in both.
+  -- Invariant: Sheet(M) states stay < numStates
   sorry
 
 -- Sheet(M) has polynomial overhead

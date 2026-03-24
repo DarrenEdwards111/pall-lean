@@ -266,9 +266,12 @@ theorem p_subset_ccoll (M : DTM) :
   -- 4. Generators with |S| ≤ 6 are local: touch O(1) cells.
   -- 5. Per-cell contribution: O(1) basis vectors of bounded degree.
   -- 6. T² cells × O(1) per cell = n^(2c) × O(1) = n^O(1) ≤ n^(4tb+3).
-  -- Using WidthToRank.spdpRank_sum_le + spdpRank_squared_local:
-  -- rank(V) = rank(Σ C_i²) ≤ Σ rank(C_i²) ≤ #constraints × (12 + log n)^6
-  -- ≤ numVars² × (log n)^6 ≤ n^(4tb+2) × n = n^(4tb+3).
+  -- Direct dimension bound (avoiding sum decomposition):
+  -- The SPDP generators have |S| ≤ log n. For |S| > 6: ∂^S(V) = 0 (degree drop).
+  -- For |S| ≤ 6: the S-coupling means m.vars ⊆ blocks(S) = S (identity partition).
+  -- So m is a polynomial on |S| ≤ 6 variables with degree ≤ log n.
+  -- Total generator dimension ≤ C(numVars, 6) × (log n + 6)^6 ≤ n^(12tb+7+6) = n^c.
+  -- This uses spdp_span_in_restrictSupportDeg (v1) applied to the WHOLE V.
   sorry
 
 /-! ## A3: ∃ NP family outside Ccoll
