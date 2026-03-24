@@ -101,18 +101,28 @@ private theorem transitionPoly_vars_le (M : DTM) (n : ℕ)
     (t : Fin (tapeSize M n)) (ht : t.val + 1 < tapeSize M n)
     (i : Fin (tapeSize M n)) (q : Fin M.numStates) (b : Bool) :
     (transitionPoly M n t ht i q b).vars.card ≤ 6 := by
-  -- transitionPoly = X_a · X_b · (X_c - 1), uses vars ⊆ {a,b,c}, card ≤ 3 ≤ 6.
-  -- Proof via vars_mul union bound + vars_X singleton + card arithmetic.
-  -- MvPolynomial.vars API is notoriously tedious for product/difference.
-  sorry
+  unfold transitionPoly; simp only
+  have h1 := MvPolynomial.vars_mul (MvPolynomial.X (R := ℚ) (stateIdx M n 0 t q) * MvPolynomial.X (headIdx M n 0 t i)) (MvPolynomial.X (stateIdx M n 0 ⟨t.val + 1, ht⟩ (M.transition q b).1) - 1)
+  have h2 := MvPolynomial.vars_mul (MvPolynomial.X (R := ℚ) (stateIdx M n 0 t q)) (MvPolynomial.X (R := ℚ) (headIdx M n 0 t i))
+  have h3 := @MvPolynomial.vars_sub_subset ℚ _ _ (MvPolynomial.X (stateIdx M n 0 ⟨t.val + 1, ht⟩ (M.transition q b).1)) 1
+  calc _ ≤ _ := Finset.card_le_card h1
+    _ ≤ _ + _ := Finset.card_union_le _ _
+    _ ≤ _ + _ := Nat.add_le_add (Finset.card_le_card h2) (Finset.card_le_card h3)
+    _ ≤ (_ + _) + (_ + _) := Nat.add_le_add (Finset.card_union_le _ _) (Finset.card_union_le _ _)
+    _ ≤ 6 := by simp [MvPolynomial.vars_X, MvPolynomial.vars_one]
 
 -- Degree bound for transitionPoly: degree ≤ 3.
 private theorem transitionPoly_deg_le (M : DTM) (n : ℕ)
     (t : Fin (tapeSize M n)) (ht : t.val + 1 < tapeSize M n)
     (i : Fin (tapeSize M n)) (q : Fin M.numStates) (b : Bool) :
     (transitionPoly M n t ht i q b).totalDegree ≤ 3 := by
-  -- X_a * X_b * (X_c - 1): deg ≤ 1+1+1 = 3 via totalDegree_mul.
-  sorry
+  unfold transitionPoly; simp only
+  have h1 := MvPolynomial.totalDegree_mul (MvPolynomial.X (R := ℚ) (stateIdx M n 0 t q) * MvPolynomial.X (headIdx M n 0 t i)) (MvPolynomial.X (stateIdx M n 0 ⟨t.val + 1, ht⟩ (M.transition q b).1) - 1)
+  have h2 := MvPolynomial.totalDegree_mul (MvPolynomial.X (R := ℚ) (stateIdx M n 0 t q)) (MvPolynomial.X (R := ℚ) (headIdx M n 0 t i))
+  have h3 : (MvPolynomial.X (R := ℚ) (stateIdx M n 0 ⟨t.val + 1, ht⟩ (M.transition q b).1) - 1 : MvPolynomial _ ℚ).totalDegree ≤ 1 :=
+    le_trans (MvPolynomial.totalDegree_sub _ _)
+      (max_le (le_of_eq (MvPolynomial.totalDegree_X _)) (by simp))
+  simp only [MvPolynomial.totalDegree_X] at h2; linarith
 
 -- Build the constraint list from transitionPoly.
 -- For each time step t < T-1, position i, state q, bit b:
@@ -130,12 +140,25 @@ noncomputable def transitionConstraints (M : DTM) (n : ℕ) : List (LocalConstra
 -- Count bound
 theorem transitionConstraints_count (M : DTM) (n : ℕ) :
     (transitionConstraints M n).length ≤ (numVars M n 0) ^ 2 := by
+  -- length = Σ_t (if t+1 < S then S × (Q×2) else 0) ≤ S × S × (Q×2)
+  -- ≤ S² × 2Q ≤ numVars² (since numVars ≥ S² + SQ + S² + n ≥ S²)
+  unfold transitionConstraints
   sorry
 
 -- Degree bound
 theorem transitionConstraints_deg (M : DTM) (n : ℕ) :
     ∀ c ∈ transitionConstraints M n, c.poly.totalDegree ≤ 3 := by
-  sorry
+  unfold transitionConstraints
+  intro c hc
+  simp only [List.mem_flatten, List.mem_ofFn] at hc
+  obtain ⟨l1, ⟨t, rfl⟩, hc⟩ := hc
+  split_ifs at hc with ht
+  · simp only [List.mem_flatten, List.mem_ofFn] at hc
+    obtain ⟨l2, ⟨i, rfl⟩, hc⟩ := hc
+    simp only [List.mem_ofFn] at hc
+    obtain ⟨qi, rfl⟩ := hc
+    exact transitionPoly_deg_le M n t ht i _ _
+  · simp at hc
 
 noncomputable def constraintList (M : DTM) (n : ℕ) : List (LocalConstraint M n 0 ℚ) :=
   -- Booleanity: z(1-z) = 0 for each variable
