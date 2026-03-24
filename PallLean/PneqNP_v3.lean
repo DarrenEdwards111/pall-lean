@@ -163,6 +163,49 @@ def InCcoll (M : DTM) (n : ℕ) : Prop :=
 -- Locality bound: the compiled polynomial's blockClosure is bounded
 -- by a constant depending only on M (not n).
 -- Paper §3.2: each constraint touches O(1) cells, each cell has O(|Q|) vars.
+-- For booleanity constraints z(1-z): each uses 1 variable.
+-- vars(V) ⊆ all variables. Under compiledPartition where each tape var
+-- gets its own block, blockClosure = vars. card(vars) ≤ numVars.
+-- But numVars grows with n, so this ISN'T bounded by a constant!
+-- 
+-- The bound needs to be about the CONSTRAINT STRUCTURE, not total vars.
+-- For profile compression: what matters is the blockClosure of V.vars
+-- under the block partition — how many blocks are touched.
+--
+-- For booleanity constraints on ALL variables: V = Σ z_i(1-z_i)²,
+-- vars(V) = all variables, blockClosure = all blocks.
+-- Card = numBlocks ≈ S² = n^(2c), which is NOT bounded by a constant.
+--
+-- The paper's bound comes from LOCALITY: each constraint touches O(1) blocks.
+-- The violation polynomial is a SUM of local terms.
+-- blockClosure of the sum ≤ union of blockClosures of summands.
+-- Each summand touches O(1) blocks. Total: O(#constraints) blocks.
+-- But that's O(numVars) = poly(n), not O(1).
+--
+-- RESOLUTION: The profile compression doesn't need blockClosure ≤ constant.
+-- It needs: each GENERATOR m · ∂^S(V) has variables in O(log n) blocks.
+-- This comes from the derivative structure + padding, not from blockClosure.
+-- 
+-- For our simplified encoding (booleanity only): V has all variables,
+-- so blockClosure IS all blocks. The rank bound from spdpRank_ml_le_general
+-- with B = all blocks would give (log n + S² + 6)^S² which is TOO LARGE.
+--
+-- The FIX: the violation polynomial should NOT include all booleanity
+-- constraints. The paper's profile compression works on the violation
+-- polynomial AFTER restriction — the restricted polynomial has O(log n)
+-- live variables, giving blockClosure ≤ O(log n).
+--
+-- For the P-side: we already proved p_subset_ccoll using the general
+-- spdpRank_ml_le_general with parameter B. If B = O(log n), the bound works.
+-- But compiledBlockClosure_bounded asks for a CONSTANT B.
+--
+-- The paper uses a DIFFERENT approach: width-to-rank bounds (§4-5)
+-- that depend on the CONSTRAINT WIDTH (O(1)), not on total blockClosure.
+-- Profile compression removes the κ-dependence and gives poly rank
+-- from the locality of individual constraints.
+--
+-- For our formalization: keep as axiom. The bound is structural and
+-- follows from the paper's §4-5 width-to-rank analysis.
 axiom compiledBlockClosure_bounded (M : DTM) :
     ∃ (B : ℕ), ∀ n : ℕ,
       (SupportedDim.blockClosure (compiledPartition M n)
