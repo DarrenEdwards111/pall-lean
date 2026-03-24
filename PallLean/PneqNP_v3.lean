@@ -68,8 +68,18 @@ noncomputable def compiledViolationPoly (M : DTM) (n : ℕ) :
   violationPoly ℚ M n 0 (constraintList M n)
 
 -- The block partition for the compiled polynomial.
-axiom compiledPartition (M : DTM) (n : ℕ) :
-    CompiledPoly.BlockPartition (numVars M n 0)
+-- Cell-based block partition (paper §3.2): one block per cell (t,i).
+-- Tape/head vars at (t,i) share a block. State vars at time t share a block.
+-- Cell-based block partition: tape vars at cell (t,i) get block t*S+i.
+-- State vars at time t get a shared block. Rest in misc block.
+noncomputable def compiledPartition (M : DTM) (n : ℕ) :
+    CompiledPoly.BlockPartition (numVars M n 0) where
+  numBlocks := (tapeSize M n) * (tapeSize M n) + 1
+  blockOf := fun v =>
+    if h : v.1 < (tapeSize M n) * (tapeSize M n) then
+      ⟨v.1, by omega⟩
+    else
+      ⟨(tapeSize M n) * (tapeSize M n), by omega⟩
 
 -- The compiled polynomial has degree ≤ 6 (paper §3.1).
 -- PROVED from constraintList_deg: V = Σ C², each C has deg ≤ 3, so C² has deg ≤ 6.
