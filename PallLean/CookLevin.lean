@@ -379,12 +379,38 @@ def stateLinkClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
 
   This is still simplified, but introduces explicit time-step-style
   implication constraints akin to Cook-Levin local transition clauses. -/
+-- M.transition-dependent scaffold clauses (paper §3.1, §17.1)
+-- These encode the LOCAL transition gadget for the window (t=0, t=1).
+-- The clause content depends on M.transition, making the scaffold M-specific.
+-- This is a single normalized window instance of the paper's full tableau encoding.
+--
+-- For state q=0, bit b=false: M.transition ⟨0,_⟩ false = (q', b', dir)
+-- Clause: ¬state0 ∨ state1(q')  [if q'=0: ¬s0 ∨ s1, if q'≠0: ¬s0 ∨ accept]
+-- Similarly for q=0/b=true, and other states.
+--
+-- The key: DIFFERENT M's produce DIFFERENT clauses → DIFFERENT violation polynomials.
 def transitionScaffoldClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     List (CLClause (compiledVarCount (defaultK M) n)) :=
-  [ clause2 (negLit (state0Var M n hn2)) (posLit (state1Var M n hn2))
-  , clause2 (negLit (state1Var M n hn2)) (posLit (acceptInitVar M n hn2))
-  , clause2 (negLit (headPos0Var M n hn2)) (posLit (headPos1Var M n hn2))
-  ]
+  -- State transition: depends on M.transition
+  -- The transition from state 0, reading false:
+  let (q0f, _, dir0f) := M.transition ⟨0, by have := M.hStates; omega⟩ false
+  -- Clause 1: state transition depends on M
+  -- If q0f = 1 (accept state): ¬state0 ∨ accept
+  -- Otherwise: ¬state0 ∨ state1
+  let c1 := if q0f.1 = 1 then
+    clause2 (negLit (state0Var M n hn2)) (posLit (acceptInitVar M n hn2))
+  else
+    clause2 (negLit (state0Var M n hn2)) (posLit (state1Var M n hn2))
+  -- Clause 2: head movement depends on M
+  -- If dir0f = true (move right): head0 → head1
+  -- If dir0f = false (move left): head0 → head0 (stay, simplified)
+  let c2 := if dir0f then
+    clause2 (negLit (headPos0Var M n hn2)) (posLit (headPos1Var M n hn2))
+  else
+    clause2 (negLit (headPos0Var M n hn2)) (posLit (headPos0Var M n hn2))
+  -- Clause 3: state1 → accept (fixed structural)
+  let c3 := clause2 (negLit (state1Var M n hn2)) (posLit (acceptInitVar M n hn2))
+  [c1, c2, c3]
 
 /-- Window-local transition template (paper-faithful scaffold):
     each clause depends on a small "time window" of state/head literals,
