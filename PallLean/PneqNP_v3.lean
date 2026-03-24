@@ -13,9 +13,11 @@
 -/
 import PallLean.CompiledPoly
 import PallLean.CookLevin
+import PallLean.WidthToRank
 import PallLean.TseitinLowerBound
 import PallLean.ProfileCompression
 import PallLean.CookLevin
+import PallLean.WidthToRank
 import PallLean.TseitinLowerBound
 import PallLean.SwitchingLemma
 import PallLean.TuringMachine
@@ -279,7 +281,26 @@ theorem p_subset_ccoll (M : DTM) :
   -- By spdpRank_sum_le: rank(V) ≤ Σ rank(c.poly²).
   -- By spdpRank_squared_local: each rank(c.poly²) ≤ (12 + log n)^6.
   -- Total ≤ #constraints × (12 + log n)^6 ≤ n^c.
-  sorry
+  -- Formal wiring:
+  have hV : compiledViolationPoly M n =
+      ((constraintList M n ++ transitionConstraints M n).map
+        (fun c => c.poly * c.poly)).sum := rfl
+  simp only [compiledViolationPoly, violationPoly]
+  set polys := ((constraintList M n ++ transitionConstraints M n).map
+    (fun c => c.poly * c.poly))
+  have h_deg : ∀ p ∈ polys, p.totalDegree ≤ 6 := by
+    intro p hp; simp only [polys, List.mem_map] at hp
+    obtain ⟨c, hc, rfl⟩ := hp
+    have hcd : c.poly.totalDegree ≤ 3 := by
+      simp only [List.mem_append] at hc
+      rcases hc with h | h
+      · exact constraintList_deg M n c h
+      · exact transitionConstraints_deg M n c h
+    linarith [MvPolynomial.totalDegree_mul c.poly c.poly]
+  calc CompiledPoly.blockedSpdpRankQ _ _ polys.sum _
+      ≤ (polys.map (fun f => CompiledPoly.blockedSpdpRankQ _ _ f _)).sum :=
+        WidthToRank.spdpRank_sum_le _ _ polys _ h_deg
+    _ ≤ n ^ (12 * M.timeBound + 12) := by sorry -- arithmetic: sum ≤ len × max ≤ n^c
 
 /-! ## A3: ∃ NP family outside Ccoll
 
