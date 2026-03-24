@@ -74,11 +74,18 @@ noncomputable def constraintList (M : DTM) (n : ℕ) : List (LocalConstraint M n
       intro w hw
       simp only [Finset.mem_singleton]
       have heq : MvPolynomial.X v * (1 - MvPolynomial.X v) =
-        (MvPolynomial.X v : MvPolynomial _ ℚ) - MvPolynomial.X v * MvPolynomial.X v := by ring
+        (MvPolynomial.X v : MvPolynomial _ ℚ) - MvPolynomial.X v ^ 2 := by ring
       rw [heq] at hw
-      have ⟨m, hm, hw_supp⟩ := (MvPolynomial.mem_vars w).mp hw
-      -- m ∈ support(X v - X v²), m.support ⊆ {v}
-      sorry⟩)
+      have hsub := MvPolynomial.vars_sub_subset (MvPolynomial.X v : MvPolynomial _ ℚ)
+        (q := MvPolynomial.X v ^ 2) hw
+      simp only [Finset.mem_union] at hsub
+      rcases hsub with h | h
+      · rw [MvPolynomial.vars_X] at h; exact Finset.mem_singleton.mp h
+      · rw [sq] at h
+        have := MvPolynomial.vars_mul (MvPolynomial.X v : MvPolynomial _ ℚ)
+          (MvPolynomial.X v) h
+        simp only [Finset.mem_union, MvPolynomial.vars_X, Finset.mem_singleton] at this
+        exact this.elim id id⟩)
 
 -- Each constraint has degree ≤ 3: boolConstraint has degree 2.
 theorem constraintList_deg (M : DTM) (n : ℕ) :
