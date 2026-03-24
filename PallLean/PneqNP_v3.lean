@@ -330,7 +330,13 @@ theorem p_subset_ccoll (M : DTM) :
             (polys.map (fun f => CompiledPoly.blockedSpdpRankQ (Nat.log 2 n)
               (Nat.log 2 n) f (compiledPartition M n))).length *
               (6 + 6 + Nat.log 2 n) ^ 6 by
-          sorry
+          -- hsm gives sum ≤ length × (12+log n)^6.
+          -- Need: length × (12+log n)^6 ≤ n^(12tb+12).
+          -- This is nonlinear Nat arithmetic.
+          -- polys.length ≤ numVars² (polynomial), (12+log n)^6 ≤ n (for large n).
+          -- Product ≤ n^(4tb+3) ≤ n^(12tb+12).
+          calc (polys.map _).sum ≤ (polys.map _).length * (6 + 6 + Nat.log 2 n) ^ 6 := hsm
+            _ ≤ n ^ (12 * M.timeBound + 12) := by sorry
         clear h_deg
         generalize (polys.map _) = L at h_bound ⊢
         induction L with
