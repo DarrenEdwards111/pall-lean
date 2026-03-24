@@ -51,7 +51,7 @@ theorem spdpRank_sum_le {N : ℕ} (κ ℓ : ℕ)
     CompiledPoly.blockedSpdpRankQ κ ℓ fs.sum bp ≤
       (fs.map (fun f => CompiledPoly.blockedSpdpRankQ κ ℓ f bp)).sum := by
   induction fs with
-  | nil => simp [CompiledPoly.blockedSpdpRankQ, SPDP.iterDerivList]; sorry
+  | nil => sorry -- blockedSpdpRankQ of 0 = 0 (all generators are 0)
   | cons f rest ih =>
     simp only [List.sum_cons, List.map_cons]
     calc CompiledPoly.blockedSpdpRankQ κ ℓ (f + rest.sum) bp
