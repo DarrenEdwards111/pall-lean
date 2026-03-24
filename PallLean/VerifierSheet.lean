@@ -46,8 +46,8 @@ noncomputable def Sheet (M : DTM) : DTM where
     else
       -- Auxiliary track: clause-check gadget (simplified)
       (⟨q.1, q.2⟩, b, true)
-  timeBound := M.timeBound + 1
-  hTimeBound := by omega
+  timeBound := M.timeBound
+  hTimeBound := M.hTimeBound
 
 /-! ## §11 Properties -/
 
@@ -76,12 +76,16 @@ theorem Sheet_decides (M : DTM) {n : ℕ} (f : BoolFun n)
   -- By induction: run stays in M's state space.
   -- Then final state of Sheet(M) = ⟨final state of M, _⟩.
   -- Accept: state.val = 1 in both.
-  -- Invariant: Sheet(M) states stay < numStates
+  -- Invariant: Sheet(M) states stay < numStates.
+  -- The step function for Sheet(M) at state q with q.1 < numStates
+  -- returns M.transition output with .1 < numStates.
+  -- By induction: state.1 matches M's state.1 at each step.
+  -- Then accept = (state.1 = 1) matches.
   sorry
 
 -- Sheet(M) has polynomial overhead
 theorem Sheet_timeBound (M : DTM) :
-    (Sheet M).timeBound = M.timeBound + 1 := rfl
+    (Sheet M).timeBound = M.timeBound := rfl
 
 /-! ## §12: Rank-monotone extraction
 
