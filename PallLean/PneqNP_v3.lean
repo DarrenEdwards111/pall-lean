@@ -193,6 +193,27 @@ theorem p_subset_ccoll (M : DTM) :
 -- For any M deciding F, the compiled polynomial contains the
 -- coupled verifier structure for Tseitin instances.
 -- Formally: the compiled polynomial's rank ≥ the Tseitin identity minor size.
+-- Decomposition of verifier_sheet_rank_transfer (paper §11-12):
+--
+-- (a) Verifier-sheet construction M♯ = Sheet(M) (Definition 11.1)
+-- M♯ runs M on main track + computes clause gadgets on auxiliary track.
+-- Properties (Lemma 11.2):
+--   1. L(M♯) = L(M) (language preservation)
+--   2. M♯ ∈ DTIME(n^{c'}) if M ∈ DTIME(n^c)
+--   3. Compiled polynomial of M♯ contains Q×_Φ
+
+-- (b) Rank-monotone extraction (Lemma 12.1, Theorem 12.2)
+-- rank(Q×_Φ) ≤ rank(compiled M♯) via restrictions + submatrix + projection
+
+-- (c) Identity minor (Theorem 9.3): rank(Q×_Φ) ≥ C(αn, log n)
+--   PROVED in TseitinLowerBound.
+
+-- Combined: compiled polynomial of M♯ has rank ≥ C(αn, log n).
+-- Since M♯ decides the same language as M, and the axiom is about
+-- compiled polynomials of ANY DTM deciding F, this gives the bound.
+
+-- The core axiom: compiled polynomial rank ≥ identity minor size.
+-- This encodes §11 (verifier-sheet normalization) + §12 (extraction).
 axiom verifier_sheet_rank_transfer (M : DTM) (F : BoolFunFamily) 
     (hM : ∀ n, M.decides (F n)) (hNP : UniformNP F) :
     ∃ (α : ℕ), α ≥ 1 ∧
