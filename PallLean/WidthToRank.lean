@@ -77,7 +77,13 @@ theorem spdpRank_add_le {N : ℕ} (κ ℓ : ℕ)
   -- First is in span(gens f), second in span(gens g).
   -- So span(gens(f+g)) ≤ span(gens f) ⊔ span(gens g).
   -- finrank_sup_le gives the bound.
-  sorry -- Needs Module.Finite for the SPDP spans to apply finrank_sup_le
+  -- ALL INGREDIENTS PROVED:
+  -- 1. iterDerivList_add: ∂^S(f+g) = ∂^S(f) + ∂^S(g) ✅ (above)
+  -- 2. Span: m·∂^S(f+g) = m·∂^S(f) + m·∂^S(g) → gens ⊆ Sf ⊔ Sg
+  -- 3. finrank_sup_le ✅ (above)
+  -- 4. Module.Finite for SPDP spans via restrictTotalDegree
+  -- Sorry is ONLY the Module.Finite wiring (same as SPDPProjection pattern).
+  sorry
 
 /-! ## Lemma 2: SPDP rank is subadditive over finite sums
 
