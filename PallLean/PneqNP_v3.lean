@@ -300,7 +300,12 @@ theorem p_subset_ccoll (M : DTM) :
   calc CompiledPoly.blockedSpdpRankQ _ _ polys.sum _
       ≤ (polys.map (fun f => CompiledPoly.blockedSpdpRankQ _ _ f _)).sum :=
         WidthToRank.spdpRank_sum_le _ _ polys _ h_deg
-    _ ≤ n ^ (12 * M.timeBound + 12) := by sorry -- arithmetic: sum ≤ len × max ≤ n^c
+    _ ≤ n ^ (12 * M.timeBound + 12) := by
+        -- Each term ≤ (12 + log n)^6 by spdpRank_squared_local.
+        -- Sum ≤ |polys| × (12 + log n)^6.
+        -- |polys| ≤ numVars² (polynomial in n).
+        -- Total ≤ n^(12tb+12).
+        sorry
 
 /-! ## A3: ∃ NP family outside Ccoll
 
