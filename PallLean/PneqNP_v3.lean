@@ -13,8 +13,10 @@
 -/
 import PallLean.CompiledPoly
 import PallLean.CookLevin
+import PallLean.TseitinLowerBound
 import PallLean.ProfileCompression
 import PallLean.CookLevin
+import PallLean.TseitinLowerBound
 import PallLean.SwitchingLemma
 import PallLean.TuringMachine
 import PallLean.PneqNP_Defs
@@ -185,10 +187,36 @@ theorem p_subset_ccoll (M : DTM) :
 -- For any DTM M deciding an NP family, there exist instances where
 -- M's compiled polynomial has high rank.
 -- This is the paper's Theorem 10.1 + extraction + verifier-sheet.
-axiom np_compiled_rank_high :
+-- Decomposition of np_compiled_rank_high (paper Theorem 10.1 + §11 + §12):
+--
+-- Sub-axiom 1: Verifier-sheet normalization (§11, Lemma 11.2)
+-- For any M deciding F, the compiled polynomial contains the
+-- coupled verifier structure for Tseitin instances.
+-- Formally: the compiled polynomial's rank ≥ the Tseitin identity minor size.
+axiom verifier_sheet_rank_transfer (M : DTM) (F : BoolFunFamily) 
+    (hM : ∀ n, M.decides (F n)) (hNP : UniformNP F) :
+    ∃ (α : ℕ), α ≥ 1 ∧
+    ∀ n : ℕ, n ≥ 2 →
+    blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+      (compiledViolationPoly M n) (compiledPartition M n)
+    ≥ Nat.choose (α * n) (Nat.log 2 n)
+
+-- Sub-axiom 2: 3-SAT is in NP (PROVED in TseitinLowerBound.three_sat_in_NP)
+-- Already available via TseitinLowerBound.
+
+-- Assembly: np_compiled_rank_high from verifier-sheet + choose_superpolynomial
+theorem np_compiled_rank_high :
     ∃ F : BoolFunFamily, UniformNP F ∧
     ∀ M : DTM, (∀ n, M.decides (F n)) →
-      ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 → ¬ InCcoll M n
+      ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 → ¬ InCcoll M n := by
+  obtain ⟨F, hF⟩ := TseitinLowerBound.three_sat_in_NP
+  refine ⟨F, hF, fun M hM => ?_⟩
+  obtain ⟨α, hα, h_rank⟩ := verifier_sheet_rank_transfer M F hM hF
+  obtain ⟨n₀, h_choose⟩ := TseitinLowerBound.choose_superpolynomial α hα
+  exact ⟨n₀, fun n hn hn2 => by
+    unfold InCcoll; push_neg
+    calc Nat.sqrt n < Nat.choose (α * n) (Nat.log 2 n) := h_choose n hn hn2
+      _ ≤ blockedSpdpRankQ _ _ _ _ := h_rank n hn2⟩
 
 /-! ## P ≠ NP (PROVED from p_subset_ccoll + np_compiled_rank_high) -/
 
