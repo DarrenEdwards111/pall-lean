@@ -154,12 +154,22 @@ theorem spdpRank_sum_le {N : ℕ} (κ ℓ : ℕ)
     unfold CompiledPoly.blockedSpdpRankQ
     simp only [Nat.le_zero]
     have h_zero : ∀ (S : List (Fin N)), SPDP.iterDerivList S (0 : MvPolynomial (Fin N) ℚ) = 0 := by
-      intro S; induction S with
+      intro S; unfold SPDP.iterDerivList
+      suffices ∀ (p : MvPolynomial (Fin N) ℚ), p = 0 → List.foldl (fun p v => MvPolynomial.pderiv v p) p S = 0 by
+        exact this 0 rfl
+      intro p hp; subst hp
+      induction S with
       | nil => rfl
-      | cons v S ih => simp only [SPDP.iterDerivList, List.foldl_cons]; rw [ih]; exact map_zero _
-    convert finrank_bot ℚ (MvPolynomial (Fin N) ℚ) using 1
-    rw [eq_comm, Submodule.span_eq_bot]
-    intro q ⟨S, m, _, _, _, _, hq⟩; rw [hq, h_zero, mul_zero]
+      | cons v S ih => simp only [List.foldl_cons, ih, map_zero]
+    suffices h : (Submodule.span ℚ { q : MvPolynomial (Fin N) ℚ | ∃ S m,
+        S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧
+        (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+        (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
+        q = m * SPDP.iterDerivList S 0 }) = ⊥ by
+      rw [h]; exact finrank_bot ℚ _
+    rw [Submodule.span_eq_bot]
+    intro q ⟨S, m, _, _, _, _, hq⟩
+    rw [hq, h_zero, mul_zero]
   | cons f rest ih =>
     simp only [List.sum_cons, List.map_cons]
     calc CompiledPoly.blockedSpdpRankQ κ ℓ (f + rest.sum) bp
