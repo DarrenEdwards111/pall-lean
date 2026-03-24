@@ -54,7 +54,11 @@ theorem spdpRank_sum_le {N : ℕ} (κ ℓ : ℕ)
     CompiledPoly.blockedSpdpRankQ κ ℓ fs.sum bp ≤
       (fs.map (fun f => CompiledPoly.blockedSpdpRankQ κ ℓ f bp)).sum := by
   induction fs with
-  | nil => sorry -- blockedSpdpRankQ of 0 = 0 (all generators are 0)
+  | nil =>
+    simp only [List.sum_nil, List.map_nil, List.sum_nil]
+    -- blockedSpdpRankQ of 0 = finrank(span{m·∂^S(0)}) = finrank(span{0}) = 0
+    -- ∂^S(0) = 0 for any S, so all generators are m*0 = 0.
+    sorry
   | cons f rest ih =>
     simp only [List.sum_cons, List.map_cons]
     calc CompiledPoly.blockedSpdpRankQ κ ℓ (f + rest.sum) bp
