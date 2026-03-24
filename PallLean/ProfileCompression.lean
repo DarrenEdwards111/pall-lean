@@ -208,6 +208,17 @@ theorem spdpRank_ml_le_general {N : ℕ}
     (hV_deg : V.totalDegree ≤ 6)
     (hbc : (SupportedDim.blockClosure bp V.vars).card ≤ B) :
     blockedSpdpRankQ κ ℓ V bp ≤ (ℓ + B + 6) ^ B := by
-  sorry -- Same proof as spdpRank_ml_le but with B instead of 24
+  unfold blockedSpdpRankQ
+  set s := SupportedDim.blockClosure bp V.vars with hs_def
+  have h_span_le := SupportedDim.spdp_span_in_restrictSupportDeg κ ℓ V bp hV_deg
+  calc Module.finrank ℚ _ ≤ Module.finrank ℚ (SupportedDim.restrictSupportDeg ℚ s (ℓ + 6)) :=
+        Submodule.finrank_mono h_span_le
+    _ ≤ (s.card + (ℓ + 6)) ^ s.card :=
+        SupportedDim.finrank_restrictSupportDeg_le s (ℓ + 6)
+    _ ≤ (B + (ℓ + 6)) ^ B := by
+        calc (s.card + (ℓ + 6)) ^ s.card
+            ≤ (B + (ℓ + 6)) ^ s.card := Nat.pow_le_pow_left (by omega) _
+          _ ≤ (B + (ℓ + 6)) ^ B := Nat.pow_le_pow_right (by omega) (by omega)
+    _ = (ℓ + B + 6) ^ B := by ring_nf
 
 end ProfileCompression

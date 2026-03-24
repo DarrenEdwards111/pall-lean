@@ -148,40 +148,36 @@ theorem spdpRank_sum_le {N : ℕ} (κ ℓ : ℕ)
   induction fs with
   | nil =>
     simp only [List.sum_nil, List.map_nil, List.sum_nil]
+    -- blockedSpdpRankQ κ ℓ 0 bp = finrank(span{q | ...iterDerivList S 0...})
+    -- iterDerivList S 0 = 0 for all S, so all generators are 0, span = ⊥, finrank = 0
+    show CompiledPoly.blockedSpdpRankQ κ ℓ 0 bp ≤ 0
     unfold CompiledPoly.blockedSpdpRankQ
-    -- All generators are 0: ∂^S(0) = 0, so m * 0 = 0.
-    -- iterDerivList S 0 = 0 for any S
+    simp only [Nat.le_zero]
     have h_zero : ∀ (S : List (Fin N)), SPDP.iterDerivList S (0 : MvPolynomial (Fin N) ℚ) = 0 := by
-      intro S; unfold SPDP.iterDerivList
-      induction S with
+      intro S; induction S with
       | nil => rfl
-      | cons v S ih =>
-        simp only [List.foldl_cons]
-        have : MvPolynomial.pderiv v (0 : MvPolynomial (Fin N) ℚ) = 0 := map_zero _
-        rw [this]; exact ih
-    -- All generators = m * 0 = 0
-    have h_gens : ∀ q, (∃ S m, S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧
-        (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
-        (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
-        q = m * SPDP.iterDerivList S (0 : MvPolynomial _ ℚ)) → q = 0 := by
-      intro q ⟨S, m, _, _, _, _, hq⟩; rw [hq, h_zero, mul_zero]
-    -- span of {0} = ⊥, finrank = 0
-    have h_sub : { q | ∃ S m, S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧ _ ∧ _ ∧
-        q = m * SPDP.iterDerivList S (0 : MvPolynomial _ ℚ) } ⊆ {0} :=
-      fun q hq => h_gens q hq
-    calc Module.finrank ℚ (Submodule.span ℚ _)
-        ≤ Module.finrank ℚ (Submodule.span ℚ ({0} : Set (MvPolynomial (Fin N) ℚ))) :=
-          Submodule.finrank_mono (Submodule.span_mono h_sub)
-      _ = Module.finrank ℚ (⊥ : Submodule ℚ (MvPolynomial (Fin N) ℚ)) := by
-          rw [Submodule.span_singleton_eq_bot.mpr rfl]
-      _ = 0 := finrank_bot ℚ _
+      | cons v S ih => simp only [SPDP.iterDerivList, List.foldl_cons]; rw [ih]; exact map_zero _
+    convert finrank_bot ℚ (MvPolynomial (Fin N) ℚ) using 1
+    rw [eq_comm, Submodule.span_eq_bot]
+    intro q ⟨S, m, _, _, _, _, hq⟩; rw [hq, h_zero, mul_zero]
   | cons f rest ih =>
     simp only [List.sum_cons, List.map_cons]
     calc CompiledPoly.blockedSpdpRankQ κ ℓ (f + rest.sum) bp
         ≤ CompiledPoly.blockedSpdpRankQ κ ℓ f bp + CompiledPoly.blockedSpdpRankQ κ ℓ rest.sum bp :=
           spdpRank_add_le κ ℓ f rest.sum bp
             (hfs f (List.Mem.head rest))
-            (by sorry)  -- rest.sum.totalDegree ≤ 6
+            (by
+              -- rest.sum.totalDegree ≤ 6 (from all elements having degree ≤ 6)
+              have : ∀ g ∈ rest, g.totalDegree ≤ 6 :=
+                fun g hg => hfs g (List.Mem.tail f hg)
+              clear ih hfs
+              induction rest with
+              | nil => simp
+              | cons g rest' ih' =>
+                simp only [List.sum_cons]
+                exact le_trans (MvPolynomial.totalDegree_add _ _)
+                  (max_le (this g (List.Mem.head rest'))
+                    (ih' (fun h hh => this h (List.Mem.tail g hh)))))
       _ ≤ CompiledPoly.blockedSpdpRankQ κ ℓ f bp + (rest.map (fun f => CompiledPoly.blockedSpdpRankQ κ ℓ f bp)).sum :=
           Nat.add_le_add_left (ih (fun g hg => hfs g (List.Mem.tail f hg))) _
 
@@ -255,10 +251,7 @@ theorem spdpRank_squared_local {N : ℕ} (κ ℓ : ℕ)
   V = Σ C_i². CompiledPoly.blockedSpdpRankQ(V) ≤ Σ CompiledPoly.blockedSpdpRankQ(C_i²) ≤ #constraints × bound.
 -/
 
-theorem violationPoly_rank_le {N : ℕ} (κ ℓ : ℕ)
-    (constraints : List (LocalConstraint (sorry : DTM) (sorry : ℕ) (sorry : ℕ) ℚ))
-    (bp : CompiledPoly.BlockPartition N) :
-    True := trivial -- Placeholder for the combined bound
+-- violationPoly_rank_le: removed (dead code with sorry-typed params)
 
 /-! ## Assembly: p_subset_ccoll from the above lemmas
 
