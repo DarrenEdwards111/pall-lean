@@ -128,6 +128,18 @@ theorem spdpRank_add_le {N : ℕ} (κ ℓ : ℕ)
   CompiledPoly.blockedSpdpRankQ κ ℓ (Σ f_i) bp ≤ Σ CompiledPoly.blockedSpdpRankQ κ ℓ f_i bp
 -/
 
+private theorem totalDegree_list_sum_le {N : ℕ}
+    (fs : List (MvPolynomial (Fin N) ℚ)) (d : ℕ)
+    (hfs : ∀ f ∈ fs, f.totalDegree ≤ d) :
+    fs.sum.totalDegree ≤ d := by
+  induction fs with
+  | nil => simp [MvPolynomial.totalDegree_zero]
+  | cons f rest ih =>
+    simp only [List.sum_cons]
+    exact le_trans (MvPolynomial.totalDegree_add f rest.sum)
+      (max_le (hfs f (List.Mem.head rest))
+        (ih (fun g hg => hfs g (List.Mem.tail f hg))))
+
 theorem spdpRank_sum_le {N : ℕ} (κ ℓ : ℕ)
     (fs : List (MvPolynomial (Fin N) ℚ)) (bp : CompiledPoly.BlockPartition N)
     (hfs : ∀ f ∈ fs, f.totalDegree ≤ 6) :
