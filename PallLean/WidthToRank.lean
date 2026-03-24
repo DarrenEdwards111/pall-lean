@@ -39,11 +39,10 @@ theorem spdpRank_add_le {N : ℕ} (κ ℓ : ℕ)
   -- So m·∂^S(f+g) = m·∂^S(f) + m·∂^S(g).
   -- span(gens of f+g) ⊆ span(gens of f) + span(gens of g).
   -- finrank(A) ≤ finrank(B) + finrank(C) when A ≤ B + C.
-  -- Every generator of f+g is in span(gens of f) + span(gens of g).
-  -- Because ∂^S(f+g) = ∂^S(f) + ∂^S(g), so m·∂^S(f+g) = m·∂^S(f) + m·∂^S(g).
-  -- Span containment: span(gens(f+g)) ≤ span(gens(f)) ⊔ span(gens(g)).
-  -- finrank(A ⊔ B) ≤ finrank(A) + finrank(B).
-  sorry
+  -- ∂^S(f+g) = ∂^S(f) + ∂^S(g) → generators decompose.
+  -- span(gens(f+g)) ≤ span(gens(f)) ⊔ span(gens(g)).
+  -- finrank(A ⊔ B) ≤ finrank(A) + finrank(B) via coprod map.
+  sorry -- Needs: span containment + finrank_sup_le (coprod argument)
 
 /-! ## Lemma 2: SPDP rank is subadditive over finite sums
 
