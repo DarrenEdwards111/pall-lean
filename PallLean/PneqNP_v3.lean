@@ -306,7 +306,40 @@ theorem p_subset_ccoll (M : DTM) :
         -- polys.length ≤ numVars + numVars² ≤ n^(4tb+2).
         -- (12+log n)^6 ≤ n for large n.
         -- Total ≤ n^(4tb+3) ≤ n^(12tb+12).
-        sorry
+        -- Each mapped element ≤ (12 + log n)^6
+        -- by spdpRank_squared_local applied with identity partition (rfl).
+        -- Sum ≤ length × (12 + log n)^6. length = polys.length.
+        -- polys.length × (12 + log n)^6 ≤ n^(12tb+12) for n ≥ 2.
+        -- This is because polys.length ≤ n^(2tb+1)² and (12+log n)^6 ≤ n.
+        -- For n ≥ 2: n^(4tb+2) × n = n^(4tb+3) ≤ n^(12tb+12) since 4tb+3 ≤ 12tb+12.
+        -- Formal chain:
+        have h_bound : ∀ x ∈ (polys.map (fun f =>
+            CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+              f (compiledPartition M n))), x ≤ (6 + 6 + Nat.log 2 n) ^ 6 := by
+          intro x hx; simp only [List.mem_map] at hx
+          obtain ⟨f, hf, rfl⟩ := hx; simp only [polys, List.mem_map] at hf
+          obtain ⟨c, hc, rfl⟩ := hf
+          exact WidthToRank.spdpRank_squared_local _ _ c.poly _ (by
+            simp only [List.mem_append] at hc; rcases hc with h | h
+            · exact constraintList_deg M n c h
+            · exact transitionConstraints_deg M n c h) c.width_bound rfl
+        -- Sum ≤ length × max via induction
+        suffices hsm : (polys.map (fun f =>
+            CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+              f (compiledPartition M n))).sum ≤
+            (polys.map (fun f => CompiledPoly.blockedSpdpRankQ (Nat.log 2 n)
+              (Nat.log 2 n) f (compiledPartition M n))).length *
+              (6 + 6 + Nat.log 2 n) ^ 6 by
+          sorry
+        clear h_deg
+        generalize (polys.map _) = L at h_bound ⊢
+        induction L with
+        | nil => simp
+        | cons a rest ih =>
+          simp only [List.sum_cons, List.length_cons]
+          have ha := h_bound a (List.Mem.head rest)
+          have ih' := ih (fun x hx => h_bound x (List.Mem.tail a hx))
+          linarith
 
 /-! ## A3: ∃ NP family outside Ccoll
 
