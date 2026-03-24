@@ -142,7 +142,17 @@ theorem transitionConstraints_count (M : DTM) (n : ℕ) :
     (transitionConstraints M n).length ≤ (numVars M n 0) ^ 2 := by
   -- length = Σ_t (if t+1 < S then S × (Q×2) else 0) ≤ S × S × (Q×2)
   -- ≤ S² × 2Q ≤ numVars² (since numVars ≥ S² + SQ + S² + n ≥ S²)
-  unfold transitionConstraints
+  -- The list has ≤ S × S × (2Q) elements where S = tapeSize, Q = numStates.
+  -- numVars = 2S²+SQ+n, so numVars² ≥ 4S⁴ ≥ S²·2Q for S ≥ Q.
+  -- For the formal proof: bound length ≤ numVars directly (numVars ≥ 2S²)
+  -- then numVars ≤ numVars² (numVars ≥ 1).
+  -- Actually: just bound coarsely. The list is nested 3 levels deep.
+  -- Level 1: ofFn over Fin S → at most S sublists
+  -- Level 2: ofFn over Fin S → at most S sublists  
+  -- Level 3: ofFn over Fin (Q*2) → exactly Q*2 elements
+  -- Total: ≤ S * S * (Q*2) = 2S²Q.
+  -- numVars² = (2S²+SQ+n)² ≥ (SQ)² = S²Q² ≥ 2S²Q for Q ≥ 2.
+  -- Since Q ≥ 3, done.
   sorry
 
 -- Degree bound
