@@ -268,7 +268,7 @@ theorem p_subset_ccoll (M : DTM) :
   -- numVars² ≤ n^(4·timeBound + 2).
   -- Total: n^(4tb+2) × (log n)^7 ≤ n^(4tb+3) for large n.
   -- c = 12 * timeBound + 12 (generous)
-  use 12 * M.timeBound + 12, 2
+  use 12 * M.timeBound + 12, 32
   intro n hn hn2
   unfold InCcoll compiledViolationPoly
   -- The key inequality: rank of sum ≤ sum of ranks.
@@ -367,10 +367,37 @@ theorem p_subset_ccoll (M : DTM) :
               -- cs.length × (12+log n)^6 ≤ n^(12tb+6) × n^6 = n^(12tb+12)
               calc (constraintList M n ++ transitionConstraints M n).length *
                     (6 + 6 + Nat.log 2 n) ^ 6
-                  ≤ n ^ (12 * M.timeBound + 6) * n ^ 6 := Nat.mul_le_mul (by sorry) (Nat.pow_le_pow_left (by
-                  -- 12 + log₂ n ≤ n for n ≥ 24
-                  -- log₂ n ≤ n/2 for n ≥ 4. 12 + n/2 ≤ n for n ≥ 24.
-                  sorry) 6)
+                  ≤ n ^ (12 * M.timeBound + 6) * n ^ 6 := Nat.mul_le_mul
+                    (by sorry) -- cs.length ≤ n^(12tb+6)
+                    (Nat.pow_le_pow_left (by
+                      -- 12 + log₂ n ≤ n.
+                      -- n ≥ 2^N₀ where N₀ ≥ 5. So log₂ n ≥ N₀ ≥ 5.
+                      -- 2^(log₂ n) ≤ n. And log₂ n + 13 ≤ 2^(log₂ n) for log₂ n ≥ 5.
+                      -- So 12 + log₂ n ≤ log₂ n + 13 ≤ 2^(log₂ n) ≤ n.
+                      have h_pow := Nat.pow_log_le_self 2 (show n ≠ 0 by omega)
+                      -- Need: log₂ n + 13 ≤ 2^(log₂ n)
+                      -- Use: 2^k ≥ k+13 for k ≥ 5.
+                      -- k = log₂ n ≥ 5 (from n ≥ 2^5 = 32, since n ≥ 2^N₀ ≥ 2^5).
+                      -- n ≥ 2^N₀ ≥ 2^5 = 32 (since N₀ ≥ max K (2^B+B+5) ≥ 5).
+                      have hn32 : n ≥ 32 := hn
+                      -- log₂ n ≤ n - 13 for n ≥ 32.
+                      -- 2^(log₂ n) ≤ n. k+13 ≤ 2^k for k ≥ 5.
+                      -- log₂ 32 = 5. For k=5: 18 ≤ 32. For k>5: by induction.
+                      have hk5 : Nat.log 2 n ≥ 5 := by
+                        calc 5 = Nat.log 2 32 := by native_decide
+                          _ ≤ Nat.log 2 n := Nat.log_mono_right hn32
+                      have : Nat.log 2 n + 13 ≤ 2 ^ Nat.log 2 n := by
+                        have : ∀ k, k ≥ 5 → k + 13 ≤ 2 ^ k := by
+                          intro k hk; induction k with
+                          | zero => omega
+                          | succ k ih =>
+                            by_cases h : k ≥ 5
+                            · calc k + 14 ≤ 2 * (k + 13) := by omega
+                                _ ≤ 2 * 2 ^ k := Nat.mul_le_mul_left 2 (ih h)
+                                _ = 2 ^ (k + 1) := by ring
+                            · interval_cases k <;> omega
+                        exact this _ hk5
+                      omega) 6)
                 _ = n ^ (12 * M.timeBound + 12) := by rw [← pow_add]
         clear h_deg
         generalize (polys.map _) = L at h_bound ⊢
