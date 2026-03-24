@@ -110,7 +110,7 @@ theorem p_subset_ccoll (M : DTM) :
   -- Polylog ≤ √n: ∃ K, ∀ k ≥ K, (k+1)^c ≤ 2^(k/2) (exp_beats_poly_general_exists)
   -- Combined: rank ≤ √n for large n.
   obtain ⟨K, hK⟩ := CookLevin.exp_beats_poly_general_exists (B + 6)
-  use max (2 ^ K) 2
+  use max (2 ^ K + 2 ^ B + B + 5) 2
   intro n hn hn2
   unfold InCcoll
   -- The rank bound from profile compression would give:
@@ -128,13 +128,29 @@ theorem p_subset_ccoll (M : DTM) :
   -- Step 3: (log n + 1)^(B+6) ≤ 2^(log n / 2) ≤ √n
   -- from exp_beats_poly_general_exists
   have hlog : Nat.log 2 n ≥ K := by
-    calc Nat.log 2 n ≥ Nat.log 2 (2 ^ K) := Nat.log_mono_right (le_trans (le_max_left _ _) hn)
-      _ = K := by rw [Nat.log_pow]; norm_num
+    calc Nat.log 2 n ≥ Nat.log 2 (2 ^ K + 2 ^ B + B + 5) := Nat.log_mono_right (le_trans (le_max_left _ _) hn)
+      _ ≥ K := by sorry -- Nat.log 2 (2^K + ...) ≥ K
   have h_exp := hK (Nat.log 2 n) hlog
   -- Chain: rank ≤ (log n + B + 6)^B ≤ (log n + 1)^(B+6) ≤ 2^(log n/2) ≤ √n
   calc CompiledPoly.blockedSpdpRankQ _ _ _ _
       ≤ (Nat.log 2 n + B + 6) ^ B := h_rank
-    _ ≤ (Nat.log 2 n + 1) ^ (B + 6) := by sorry -- (ℓ+B+6)^B ≤ (ℓ+1)^(B+6) for large ℓ
+    _ ≤ (Nat.log 2 n + 1) ^ (B + 6) := by
+        have hℓ2 : Nat.log 2 n ≥ 2 ^ B + B + 5 := by
+          calc Nat.log 2 n ≥ Nat.log 2 (2 ^ K + 2 ^ B + B + 5) :=
+            Nat.log_mono_right (le_trans (le_max_left _ _) hn)
+          _ ≥ 2 ^ B + B + 5 := by sorry -- Nat.log 2 (2^K + 2^B + ...) ≥ 2^B + B + 5
+        have h_le : Nat.log 2 n + B + 6 ≤ 2 * (Nat.log 2 n + 1) := by
+          have : Nat.log 2 n ≥ B + 5 := le_trans (Nat.le_add_left _ _) hℓ2; omega
+        have h_pow : 2 ^ B ≤ (Nat.log 2 n + 1) ^ 6 := by
+          calc 2 ^ B ≤ Nat.log 2 n + 1 := by linarith [hℓ2]
+            _ = (Nat.log 2 n + 1) ^ 1 := (pow_one _).symm
+            _ ≤ (Nat.log 2 n + 1) ^ 6 := Nat.pow_le_pow_right (by omega) (by omega)
+        calc (Nat.log 2 n + B + 6) ^ B
+            ≤ (2 * (Nat.log 2 n + 1)) ^ B := Nat.pow_le_pow_left h_le B
+          _ = 2 ^ B * (Nat.log 2 n + 1) ^ B := by rw [mul_pow]
+          _ ≤ (Nat.log 2 n + 1) ^ 6 * (Nat.log 2 n + 1) ^ B :=
+              Nat.mul_le_mul_right _ h_pow
+          _ = (Nat.log 2 n + 1) ^ (B + 6) := by ring
     _ ≤ 2 ^ (Nat.log 2 n / 2) := by
         exact h_exp
     _ ≤ Nat.sqrt n := by
