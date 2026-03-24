@@ -98,7 +98,12 @@ theorem spdpRank_squared_local {N : ℕ} (κ ℓ : ℕ)
     _ ≤ ((SupportedDim.blockClosure bp (C * C).vars).card + (ℓ + 6)) ^
         (SupportedDim.blockClosure bp (C * C).vars).card :=
         SupportedDim.finrank_restrictSupportDeg_le _ _
-    _ ≤ (6 + 6 + ℓ) ^ 6 := by sorry -- card(blockClosure) ≤ 6 + arithmetic
+    _ ≤ (6 + 6 + ℓ) ^ 6 := by
+        -- For identity partition: blockClosure = vars
+        -- (C*C).vars ⊆ C.vars, card ≤ 6
+        -- So blockClosure.card ≤ 6
+        -- Then (6 + ℓ + 6)^6 ≤ (6 + 6 + ℓ)^6 = (12 + ℓ)^6
+        sorry
 
 /-! ## Lemma 4: SPDP rank of violation polynomial ≤ #constraints × per-constraint bound
 

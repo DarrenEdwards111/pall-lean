@@ -124,14 +124,13 @@ noncomputable def compiledViolationPoly (M : DTM) (n : ℕ) :
 -- Tape/head vars at (t,i) share a block. State vars at time t share a block.
 -- Cell-based block partition: tape vars at cell (t,i) get block t*S+i.
 -- State vars at time t get a shared block. Rest in misc block.
+-- Identity partition: each variable gets its own block.
+-- blockClosure of any set S = S (no sharing).
+-- This makes blockClosure.card = vars.card for any polynomial.
 noncomputable def compiledPartition (M : DTM) (n : ℕ) :
     CompiledPoly.BlockPartition (numVars M n 0) where
-  numBlocks := (tapeSize M n) * (tapeSize M n) + 1
-  blockOf := fun v =>
-    if h : v.1 < (tapeSize M n) * (tapeSize M n) then
-      ⟨v.1, by omega⟩
-    else
-      ⟨(tapeSize M n) * (tapeSize M n), by omega⟩
+  numBlocks := numVars M n 0
+  blockOf := fun v => v
 
 -- The compiled polynomial has degree ≤ 6 (paper §3.1).
 -- PROVED from constraintList_deg: V = Σ C², each C has deg ≤ 3, so C² has deg ≤ 6.
