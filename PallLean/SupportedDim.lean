@@ -6,6 +6,7 @@
 -/
 import PallLean.CompiledPoly
 import PallLean.VarsIterDeriv
+import PallLean.SupportedDimLight
 import Mathlib.Algebra.MvPolynomial.Supported
 import Mathlib.RingTheory.MvPolynomial.Basic
 import Mathlib.LinearAlgebra.Dimension.StrongRankCondition
@@ -122,14 +123,17 @@ theorem spdp_span_in_restrictSupportDeg {N : ℕ}
 
 
 /-- finrank of restrictSupportDeg ≤ (card s + d)^(card s). -/
--- finrank bound: proved via injection into (s → Fin(d+1)).
--- The proof uses MvPolynomial.as_sum and monomial which are
--- sensitive to import-order instance resolution (Lean 4 diamond issue).
--- Axiomatized to avoid breakage through different import paths.
--- The proof EXISTS and builds through the main import path.
-axiom finrank_restrictSupportDeg_le {σ : Type*} [DecidableEq σ] [Fintype σ]
+-- finrank bound: heavy proof in SupportedDimLight (minimal imports).
+-- Bridge: chain span_le + finrank_span_finset_le_card + spanFinset_card_le.
+-- No elaboration-heavy steps here — just theorem applications.
+theorem finrank_restrictSupportDeg_le {σ : Type*} [DecidableEq σ] [Fintype σ]
     (s : Finset σ) (d : ℕ) :
-    Module.finrank ℚ (restrictSupportDeg ℚ s d) ≤ (s.card + d) ^ s.card
+    Module.finrank ℚ (restrictSupportDeg ℚ s d) ≤ (s.card + d) ^ s.card :=
+  le_trans
+    (le_trans
+      (Submodule.finrank_mono (_root_.SupportedDimLight.span_le s d))
+      (finrank_span_finset_le_card (_root_.SupportedDimLight.spanFinset s d)))
+    (_root_.SupportedDimLight.spanFinset_card_le s d)
 
 
 /-- Module.Finite for restrictSupportDeg (subset of restrictTotalDegree). -/
