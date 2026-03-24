@@ -106,12 +106,45 @@ theorem p_subset_ccoll (M : DTM) :
   -- Then (log n + B + 6)^B ≤ √n for large n.
   -- The threshold depends on B (hence on M), but exists for each M.
   -- This is the same as CookLevin.exp_beats_poly_general_exists.
-  -- Profile compression gives rank ≤ (log n + C)^C for constant C.
-  -- For large n: (log n + C)^C ≤ √n (polylog vs root).
-  -- The threshold depends on B (hence on M), but exists for each M.
-  -- This is proved in v1 (theorem92_scaffold_eventually) for the scaffold.
-  -- The same argument applies here with the real encoding's constant B.
-  sorry
+  -- Profile compression: rank ≤ (log n + B + 6)^(B + 6)
+  -- Polylog ≤ √n: ∃ K, ∀ k ≥ K, (k+1)^c ≤ 2^(k/2) (exp_beats_poly_general_exists)
+  -- Combined: rank ≤ √n for large n.
+  obtain ⟨K, hK⟩ := CookLevin.exp_beats_poly_general_exists (B + 6)
+  use max (2 ^ K) 2
+  intro n hn hn2
+  unfold InCcoll
+  -- The rank bound from profile compression would give:
+  -- blockedSpdpRankQ ≤ (log n + B + 6)^(B + 6)
+  -- And from exp_beats_poly: (log n + 1)^(B+6) ≤ 2^(log n / 2) ≤ √n
+  -- for log n ≥ K. Since n ≥ 2^K, log n ≥ K.
+  -- Combining: blockedSpdpRankQ ≤ (log n + B + 6)^(B+6) ≤ √n.
+  --
+  -- Step 1: rank ≤ (log n + B + 6)^B via spdpRank_ml_le_general
+  have h_rank := ProfileCompression.spdpRank_ml_le_general
+    (Nat.log 2 n) (Nat.log 2 n)
+    (compiledViolationPoly M n) (compiledPartition M n) B
+    (compiledDeg M n) (hB n)
+  -- Step 2: (log n + B + 6)^B ≤ (log n + 1)^(B+6) for large log n
+  -- Step 3: (log n + 1)^(B+6) ≤ 2^(log n / 2) ≤ √n
+  -- from exp_beats_poly_general_exists
+  have hlog : Nat.log 2 n ≥ K := by
+    calc Nat.log 2 n ≥ Nat.log 2 (2 ^ K) := Nat.log_mono_right (le_trans (le_max_left _ _) hn)
+      _ = K := by rw [Nat.log_pow]; norm_num
+  have h_exp := hK (Nat.log 2 n) hlog
+  -- Chain: rank ≤ (log n + B + 6)^B ≤ (log n + 1)^(B+6) ≤ 2^(log n/2) ≤ √n
+  calc CompiledPoly.blockedSpdpRankQ _ _ _ _
+      ≤ (Nat.log 2 n + B + 6) ^ B := h_rank
+    _ ≤ (Nat.log 2 n + 1) ^ (B + 6) := by sorry -- (ℓ+B+6)^B ≤ (ℓ+1)^(B+6) for large ℓ
+    _ ≤ 2 ^ (Nat.log 2 n / 2) := by
+        exact h_exp
+    _ ≤ Nat.sqrt n := by
+        have hn0 : n ≠ 0 := by omega
+        calc 2 ^ (Nat.log 2 n / 2) ≤ Nat.sqrt (2 ^ Nat.log 2 n) := by
+              apply Nat.le_sqrt.mpr
+              calc 2 ^ (Nat.log 2 n / 2) * 2 ^ (Nat.log 2 n / 2)
+                  = 2 ^ (Nat.log 2 n / 2 + Nat.log 2 n / 2) := by rw [← Nat.pow_add]
+                _ ≤ 2 ^ Nat.log 2 n := Nat.pow_le_pow_right (by norm_num) (by omega)
+          _ ≤ Nat.sqrt n := Nat.sqrt_le_sqrt (Nat.pow_log_le_self 2 hn0)
 
 /-! ## A3: ∃ NP family outside Ccoll
 

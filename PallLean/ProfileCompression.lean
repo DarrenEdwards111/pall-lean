@@ -200,4 +200,14 @@ theorem restricted_clause_survival_from_ml (M : TuringMachine.DTM) :
       _ = (ℓ + 1) ^ 35 := by ring
   exact le_trans h1 h2
 
+
+-- Generalized version: for any blockClosure bound B
+theorem spdpRank_ml_le_general {N : ℕ}
+    (κ ℓ : ℕ) (V : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N)
+    (B : ℕ)
+    (hV_deg : V.totalDegree ≤ 6)
+    (hbc : (SupportedDim.blockClosure bp V.vars).card ≤ B) :
+    blockedSpdpRankQ κ ℓ V bp ≤ (ℓ + B + 6) ^ B := by
+  sorry -- Same proof as spdpRank_ml_le but with B instead of 24
+
 end ProfileCompression

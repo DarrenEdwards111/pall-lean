@@ -1422,7 +1422,7 @@ private theorem succ_le_sq_of_div (k c : ℕ) (hc : 1 ≤ c) (hm : k / (2 * c) �
   omega
 
 -- (k+1)^c ≤ 2^(k/2) for k ≥ 2^(2c+2)
-private theorem exp_beats_poly_general_exists (c : ℕ) :
+theorem exp_beats_poly_general_exists (c : ℕ) :
     ∃ K : ℕ, ∀ k ≥ K, (k + 1) ^ c ≤ 2 ^ (k / 2) := by
   by_cases hc : c = 0
   · subst hc; exact ⟨0, fun _ _ => Nat.one_le_two_pow⟩
