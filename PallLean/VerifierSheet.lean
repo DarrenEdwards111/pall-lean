@@ -76,11 +76,17 @@ theorem Sheet_decides (M : DTM) {n : ℕ} (f : BoolFun n)
   -- By induction: run stays in M's state space.
   -- Then final state of Sheet(M) = ⟨final state of M, _⟩.
   -- Accept: state.val = 1 in both.
-  -- Invariant: Sheet(M) states stay < numStates.
-  -- The step function for Sheet(M) at state q with q.1 < numStates
-  -- returns M.transition output with .1 < numStates.
-  -- By induction: state.1 matches M's state.1 at each step.
-  -- Then accept = (state.1 = 1) matches.
+  -- Sheet(M) and M have matching timeSteps (same timeBound).
+  -- Key: step (Sheet M) at state q with q.1 < numStates gives
+  -- the same transition as step M at state ⟨q.1, _⟩.
+  -- By induction: the entire run trace matches in state.1.
+  -- Therefore final state.1 is the same → accept condition matches.
+  --
+  -- The formal proof needs:
+  -- 1. State invariant: (run (Sheet M) ...).state.1 < M.numStates
+  -- 2. Tape/head matching: same as M at each step
+  -- 3. Accept: state.1 = 1 ↔ f(x)
+  -- All follow from step-by-step induction using the transition definition.
   sorry
 
 -- Sheet(M) has polynomial overhead

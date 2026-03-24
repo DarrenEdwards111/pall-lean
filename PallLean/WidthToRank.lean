@@ -31,6 +31,23 @@ open MvPolynomial SPDP CompiledPoly TuringMachine
   finrank(A + B) ≤ finrank(A) + finrank(B).
 -/
 
+set_option maxHeartbeats 1600000 in
+private theorem finrank_sup_le {M : Type*} [AddCommGroup M] [Module ℚ M]
+    (A B : Submodule ℚ M) [Module.Finite ℚ A] [Module.Finite ℚ B] :
+    Module.finrank ℚ ↥(A ⊔ B) ≤ Module.finrank ℚ A + Module.finrank ℚ B := by
+  haveI : Module.Finite ℚ (↥A × ↥B) := Module.Finite.prod
+  have h : A ⊔ B ≤ (A.subtype.coprod B.subtype).range := by
+    intro x hx; simp only [Submodule.mem_sup] at hx
+    obtain ⟨a, ha, b, hb, rfl⟩ := hx
+    exact ⟨(⟨a, ha⟩, ⟨b, hb⟩), rfl⟩
+  calc Module.finrank ℚ ↥(A ⊔ B)
+      ≤ Module.finrank ℚ ↥(A.subtype.coprod B.subtype).range :=
+        Submodule.finrank_mono h
+    _ = Module.finrank ℚ ↥(Submodule.map (A.subtype.coprod B.subtype) ⊤) := by rw [LinearMap.range_eq_map]
+    _ ≤ Module.finrank ℚ ↥(⊤ : Submodule ℚ (↥A × ↥B)) := Submodule.finrank_map_le _ _
+    _ = Module.finrank ℚ (↥A × ↥B) := by simp
+    _ = Module.finrank ℚ A + Module.finrank ℚ B := Module.finrank_prod
+
 theorem spdpRank_add_le {N : ℕ} (κ ℓ : ℕ)
     (f g : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N) :
     CompiledPoly.blockedSpdpRankQ κ ℓ (f + g) bp ≤
@@ -39,10 +56,12 @@ theorem spdpRank_add_le {N : ℕ} (κ ℓ : ℕ)
   -- So m·∂^S(f+g) = m·∂^S(f) + m·∂^S(g).
   -- span(gens of f+g) ⊆ span(gens of f) + span(gens of g).
   -- finrank(A) ≤ finrank(B) + finrank(C) when A ≤ B + C.
-  -- ∂^S(f+g) = ∂^S(f) + ∂^S(g) → generators decompose.
+  -- ∂^S(f+g) = ∂^S(f) + ∂^S(g) → each generator of f+g is sum of gens of f and g.
   -- span(gens(f+g)) ≤ span(gens(f)) ⊔ span(gens(g)).
-  -- finrank(A ⊔ B) ≤ finrank(A) + finrank(B) via coprod map.
-  sorry -- Needs: span containment + finrank_sup_le (coprod argument)
+  -- finrank(A ⊔ B) ≤ finrank(A) + finrank(B).
+  -- The span containment needs: iterDerivList S (f+g) = iterDerivList S f + iterDerivList S g.
+  -- This is linearity of pderiv.
+  sorry -- Needs: iterDerivList linearity + span containment + finrank_sup_le
 
 /-! ## Lemma 2: SPDP rank is subadditive over finite sums
 
