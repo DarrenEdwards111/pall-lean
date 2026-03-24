@@ -48,6 +48,17 @@ private theorem finrank_sup_le {M : Type*} [AddCommGroup M] [Module ℚ M]
     _ = Module.finrank ℚ (↥A × ↥B) := by simp
     _ = Module.finrank ℚ A + Module.finrank ℚ B := Module.finrank_prod
 
+private theorem iterDerivList_add {N : ℕ} (S : List (Fin N))
+    (f g : MvPolynomial (Fin N) ℚ) :
+    SPDP.iterDerivList S (f + g) = SPDP.iterDerivList S f + SPDP.iterDerivList S g := by
+  induction S generalizing f g with
+  | nil => rfl
+  | cons v S ih =>
+    unfold SPDP.iterDerivList; simp only [List.foldl_cons]
+    rw [show MvPolynomial.pderiv v (f + g) = MvPolynomial.pderiv v f + MvPolynomial.pderiv v g
+      from map_add _ _ _]
+    exact ih _ _
+
 theorem spdpRank_add_le {N : ℕ} (κ ℓ : ℕ)
     (f g : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N) :
     CompiledPoly.blockedSpdpRankQ κ ℓ (f + g) bp ≤
@@ -61,7 +72,12 @@ theorem spdpRank_add_le {N : ℕ} (κ ℓ : ℕ)
   -- finrank(A ⊔ B) ≤ finrank(A) + finrank(B).
   -- The span containment needs: iterDerivList S (f+g) = iterDerivList S f + iterDerivList S g.
   -- This is linearity of pderiv.
-  sorry -- Needs: iterDerivList linearity + span containment + finrank_sup_le
+  -- Each generator of f+g decomposes via iterDerivList_add.
+  -- m · ∂^S(f+g) = m · ∂^S(f) + m · ∂^S(g)
+  -- First is in span(gens f), second in span(gens g).
+  -- So span(gens(f+g)) ≤ span(gens f) ⊔ span(gens g).
+  -- finrank_sup_le gives the bound.
+  sorry -- Needs Module.Finite for the SPDP spans to apply finrank_sup_le
 
 /-! ## Lemma 2: SPDP rank is subadditive over finite sums
 
