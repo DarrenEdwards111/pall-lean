@@ -353,8 +353,11 @@ theorem p_subset_ccoll (M : DTM) :
               -- For n ≥ 2: any fixed product of polynomials ≤ n^c for large c.
               -- This is an instance of: a × b ≤ n^c when a ≤ n^c₁, b ≤ n^c₂, c ≥ c₁+c₂.
               -- Formal proof needs numVars/tapeSize bounds.
-              -- Axiomatized: the bound is structural from the encoding.
-              sorry
+              -- cs.length × (12+log n)^6 ≤ n^(12tb+6) × n^6 = n^(12tb+12)
+              calc (constraintList M n ++ transitionConstraints M n).length *
+                    (6 + 6 + Nat.log 2 n) ^ 6
+                  ≤ n ^ (12 * M.timeBound + 6) * n ^ 6 := Nat.mul_le_mul (by sorry) (Nat.pow_le_pow_left (by sorry) 6)
+                _ = n ^ (12 * M.timeBound + 12) := by rw [← pow_add]
         clear h_deg
         generalize (polys.map _) = L at h_bound ⊢
         induction L with
