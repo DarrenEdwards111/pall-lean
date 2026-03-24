@@ -394,7 +394,20 @@ theorem p_subset_ccoll (M : DTM) :
                       -- S = n^tb + 1 ≤ 2·n^tb
                       -- numVars ≤ 3·(2n^tb)² = 12·n^(2tb) ≤ n^(2tb+1) for n ≥ 12
                       -- numVars² ≤ n^(4tb+2). 2·numVars² ≤ n^(4tb+3) ≤ n^(12tb+6).
-                      sorry)
+                      have hnum : numVars M n 0 ≤ n ^ (2 * M.timeBound + 1) := by sorry
+                      have hexp : (2 * M.timeBound + 1) + (2 * M.timeBound + 1) = 4 * M.timeBound + 2 := by omega
+                      have hsq : (n ^ (2 * M.timeBound + 1)) ^ 2 = n ^ (4 * M.timeBound + 2) := by
+                        rw [pow_two, ← pow_add, hexp]
+                      have hsquare : (numVars M n 0) ^ 2 ≤ n ^ (4 * M.timeBound + 2) :=
+                        hsq ▸ Nat.pow_le_pow_left hnum 2
+                      have hmul : 2 * n ^ (4 * M.timeBound + 2) ≤ n ^ (4 * M.timeBound + 3) := by
+                        have : n ^ (4 * M.timeBound + 3) = n * n ^ (4 * M.timeBound + 2) := by
+                          rw [show 4 * M.timeBound + 3 = 4 * M.timeBound + 2 + 1 from by omega]
+                          rw [pow_succ]; ring
+                        rw [this]; exact Nat.mul_le_mul_right _ (by omega)
+                      have hmono : n ^ (4 * M.timeBound + 3) ≤ n ^ (12 * M.timeBound + 6) :=
+                        Nat.pow_le_pow_right (by omega) (by omega)
+                      linarith)
                     (Nat.pow_le_pow_left (by
                       -- 12 + log₂ n ≤ n.
                       -- n ≥ 2^N₀ where N₀ ≥ 5. So log₂ n ≥ N₀ ≥ 5.
