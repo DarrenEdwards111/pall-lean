@@ -266,9 +266,9 @@ theorem p_subset_ccoll (M : DTM) :
   -- 4. Generators with |S| ≤ 6 are local: touch O(1) cells.
   -- 5. Per-cell contribution: O(1) basis vectors of bounded degree.
   -- 6. T² cells × O(1) per cell = n^(2c) × O(1) = n^O(1) ≤ n^(4tb+3).
-  -- This is the paper's §4.2 counting argument.
-  -- The formal proof requires: Submodule finrank subadditivity over
-  -- cells, degree-drop for |S| > deg(V), and dimension counting per cell.
+  -- Using WidthToRank.spdpRank_sum_le + spdpRank_squared_local:
+  -- rank(V) = rank(Σ C_i²) ≤ Σ rank(C_i²) ≤ #constraints × (12 + log n)^6
+  -- ≤ numVars² × (log n)^6 ≤ n^(4tb+2) × n = n^(4tb+3).
   sorry
 
 /-! ## A3: ∃ NP family outside Ccoll
