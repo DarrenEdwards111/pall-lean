@@ -56,8 +56,9 @@ theorem spdpRank_sum_le {N : ℕ} (κ ℓ : ℕ)
   induction fs with
   | nil =>
     simp only [List.sum_nil, List.map_nil, List.sum_nil]
-    -- blockedSpdpRankQ of 0 = finrank(span{m·∂^S(0)}) = finrank(span{0}) = 0
-    -- ∂^S(0) = 0 for any S, so all generators are m*0 = 0.
+    unfold CompiledPoly.blockedSpdpRankQ
+    -- All generators are 0: ∂^S(0) = 0, so m * 0 = 0.
+    -- All generators = 0 → span ⊆ span({0}) = ⊥ → finrank = 0
     sorry
   | cons f rest ih =>
     simp only [List.sum_cons, List.map_cons]
