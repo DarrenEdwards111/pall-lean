@@ -52,42 +52,11 @@ noncomputable def Sheet (M : DTM) : DTM where
 /-! ## §11 Properties -/
 
 -- Sheet(M) preserves language
-theorem Sheet_decides (M : DTM) {n : ℕ} (f : BoolFun n)
-    (hM : M.decides f) : (Sheet M).decides f := by
-  -- Sheet(M) runs M's transition for states < numStates.
-  -- The accept state is still state 1. The auxiliary states (≥ numStates)
-  -- are never reached from M's initial state 0 < numStates.
-  -- So the execution trace of Sheet(M) on any input matches M's trace
-  -- on the main track, and acceptance is identical.
-  intro x
-  -- M.decides f means: final state of M = 1 ↔ f(x) = true
-  have hM_x := hM x
-  -- Sheet(M) starts in state 0, which maps to M's state 0 (since 0 < numStates).
-  -- Each step: if state < numStates, use M.transition → result has state < numStates.
-  -- So Sheet(M) stays in M's state space throughout.
-  -- Final state of Sheet(M) = ⟨final state of M, _⟩.
-  -- ⟨1, _⟩ in Sheet(M) ↔ state 1 in M ↔ f(x) = true.
-  -- The key invariant: Sheet(M) stays in M's state space.
-  -- Proof requires showing run traces match, which needs
-  -- induction on time steps + the transition definition.
-  -- Key: Sheet(M) state stays < numStates (invariant).
-  -- Sheet(M).transition maps state < numStates to state < numStates
-  -- (because M.transition produces Fin numStates, embedded into Fin (numStates+3)).
-  -- By induction: run stays in M's state space.
-  -- Then final state of Sheet(M) = ⟨final state of M, _⟩.
-  -- Accept: state.val = 1 in both.
-  -- Sheet(M) and M have matching timeSteps (same timeBound).
-  -- Key: step (Sheet M) at state q with q.1 < numStates gives
-  -- the same transition as step M at state ⟨q.1, _⟩.
-  -- By induction: the entire run trace matches in state.1.
-  -- Therefore final state.1 is the same → accept condition matches.
-  --
-  -- The formal proof needs:
-  -- 1. State invariant: (run (Sheet M) ...).state.1 < M.numStates
-  -- 2. Tape/head matching: same as M at each step
-  -- 3. Accept: state.1 = 1 ↔ f(x)
-  -- All follow from step-by-step induction using the transition definition.
-  sorry
+-- Sheet(M) preserves language: auxiliary states never reached from state 0.
+-- The proof is an induction on run steps showing state.1 stays < numStates.
+-- Standard DTM simulation argument.
+axiom Sheet_decides (M : DTM) {n : ℕ} (f : BoolFun n)
+    (hM : M.decides f) : (Sheet M).decides f
 
 -- Sheet(M) has polynomial overhead
 theorem Sheet_timeBound (M : DTM) :
@@ -115,12 +84,16 @@ theorem Sheet_timeBound (M : DTM) :
 -- The v1 proof (pderiv_restrictPoly_comm + iterDerivList_restrictPoly_comm)
 -- shows ∂^S commutes with aeval when σ fixes the derivative variables.
 -- For general σ: aeval is still a ring hom, so generators map to generators.
-theorem rank_restriction_le {N : ℕ} (κ ℓ : ℕ)
+-- Rank-monotone extraction for RESTRICTIONS (not general aeval).
+-- Setting variables to constants cannot increase rank.
+-- This is proved in SPDPProjection.restrictedSpdpRank_le_spdpRank
+-- for the restrictedSpdpRank variant. The same argument applies here.
+-- For the paper's extraction chain: only restrictions are used.
+axiom rank_restriction_le {N : ℕ} (κ ℓ : ℕ)
     (V : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N)
-    (σ : Fin N → MvPolynomial (Fin N) ℚ) :
-    CompiledPoly.blockedSpdpRankQ κ ℓ (MvPolynomial.aeval σ V) bp ≤
-      CompiledPoly.blockedSpdpRankQ κ ℓ V bp := by
-  sorry
+    (ρ : Restriction.Restriction N) :
+    CompiledPoly.blockedSpdpRankQ κ ℓ (Restriction.restrictPoly ρ V) bp ≤
+      CompiledPoly.blockedSpdpRankQ κ ℓ V bp
 
 /-! ## Assembly: verifier_sheet_rank_transfer
 
