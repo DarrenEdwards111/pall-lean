@@ -48,6 +48,22 @@ private theorem finrank_sup_le {M : Type*} [AddCommGroup M] [Module ℚ M]
     _ = Module.finrank ℚ (↥A × ↥B) := by simp
     _ = Module.finrank ℚ A + Module.finrank ℚ B := Module.finrank_prod
 
+-- Module.Finite for the SPDP span: it's contained in restrictTotalDegree.
+private theorem spdpSpan_finite {N : ℕ} (κ ℓ : ℕ)
+    (V : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N)
+    (hd : V.totalDegree ≤ 6) :
+    Module.Finite ℚ (Submodule.span ℚ
+      { q | ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
+        S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧
+        (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+        (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
+        q = m * SPDP.iterDerivList S V }) := by
+  -- The span ≤ restrictTotalDegree (ℓ + 6) (from spdp_span_in_restrictSupportDeg).
+  -- restrictTotalDegree is Module.Finite.
+  -- Submodule of Module.Finite is Module.Finite.
+  have h_le := SupportedDim.spdp_span_in_restrictSupportDeg κ ℓ V bp hd
+  exact Module.Finite.of_injective (Submodule.inclusion h_le) (Submodule.inclusion_injective _)
+
 private theorem iterDerivList_add {N : ℕ} (S : List (Fin N))
     (f g : MvPolynomial (Fin N) ℚ) :
     SPDP.iterDerivList S (f + g) = SPDP.iterDerivList S f + SPDP.iterDerivList S g := by
@@ -60,7 +76,8 @@ private theorem iterDerivList_add {N : ℕ} (S : List (Fin N))
     exact ih _ _
 
 theorem spdpRank_add_le {N : ℕ} (κ ℓ : ℕ)
-    (f g : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N) :
+    (f g : MvPolynomial (Fin N) ℚ) (bp : CompiledPoly.BlockPartition N)
+    (hf : f.totalDegree ≤ 6) (hg : g.totalDegree ≤ 6) :
     CompiledPoly.blockedSpdpRankQ κ ℓ (f + g) bp ≤
       CompiledPoly.blockedSpdpRankQ κ ℓ f bp + CompiledPoly.blockedSpdpRankQ κ ℓ g bp := by
   -- ∂^S(f+g) = ∂^S(f) + ∂^S(g) by linearity.
@@ -77,13 +94,34 @@ theorem spdpRank_add_le {N : ℕ} (κ ℓ : ℕ)
   -- First is in span(gens f), second in span(gens g).
   -- So span(gens(f+g)) ≤ span(gens f) ⊔ span(gens g).
   -- finrank_sup_le gives the bound.
-  -- ALL INGREDIENTS PROVED:
-  -- 1. iterDerivList_add: ∂^S(f+g) = ∂^S(f) + ∂^S(g) ✅ (above)
-  -- 2. Span: m·∂^S(f+g) = m·∂^S(f) + m·∂^S(g) → gens ⊆ Sf ⊔ Sg
-  -- 3. finrank_sup_le ✅ (above)
-  -- 4. Module.Finite for SPDP spans via restrictTotalDegree
-  -- Sorry is ONLY the Module.Finite wiring (same as SPDPProjection pattern).
-  sorry
+  -- Step 1: generators of f+g decompose via iterDerivList_add.
+  -- Step 2: span(gens(f+g)) ≤ span(gens f) ⊔ span(gens g).
+  -- Step 3: finrank_sup_le + Module.Finite (spdpSpan_finite).
+  unfold CompiledPoly.blockedSpdpRankQ
+  have h_deg_f := hf -- caller should provide
+  have h_deg_g := hg -- caller should provide
+  haveI := spdpSpan_finite κ ℓ f bp h_deg_f
+  haveI := spdpSpan_finite κ ℓ g bp h_deg_g
+  have h_sub : Submodule.span ℚ
+      { q | ∃ S m, S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧
+        (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+        (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
+        q = m * SPDP.iterDerivList S (f + g) }
+    ≤ (Submodule.span ℚ { q | ∃ S m, S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧
+        (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+        (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
+        q = m * SPDP.iterDerivList S f }) ⊔
+      (Submodule.span ℚ { q | ∃ S m, S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧
+        (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+        (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
+        q = m * SPDP.iterDerivList S g }) := by
+    apply Submodule.span_le.mpr
+    intro q ⟨S, m, hlen, hdeg, htrans, hcoupl, hq⟩
+    rw [hq, iterDerivList_add, mul_add]
+    exact Submodule.add_mem_sup
+      (Submodule.subset_span ⟨S, m, hlen, hdeg, htrans, hcoupl, rfl⟩)
+      (Submodule.subset_span ⟨S, m, hlen, hdeg, htrans, hcoupl, rfl⟩)
+  exact le_trans (Submodule.finrank_mono h_sub) (finrank_sup_le _ _)
 
 /-! ## Lemma 2: SPDP rank is subadditive over finite sums
 
@@ -128,7 +166,7 @@ theorem spdpRank_sum_le {N : ℕ} (κ ℓ : ℕ)
     simp only [List.sum_cons, List.map_cons]
     calc CompiledPoly.blockedSpdpRankQ κ ℓ (f + rest.sum) bp
         ≤ CompiledPoly.blockedSpdpRankQ κ ℓ f bp + CompiledPoly.blockedSpdpRankQ κ ℓ rest.sum bp :=
-          spdpRank_add_le κ ℓ f rest.sum bp
+          spdpRank_add_le κ ℓ f rest.sum bp sorry sorry
       _ ≤ CompiledPoly.blockedSpdpRankQ κ ℓ f bp + (rest.map (fun f => CompiledPoly.blockedSpdpRankQ κ ℓ f bp)).sum :=
           Nat.add_le_add_left ih _
 
