@@ -75,6 +75,7 @@ theorem spdpRank_squared_local {N : ℕ} (κ ℓ : ℕ)
     -- Identity partition hypothesis
     (hbp : bp = ⟨N, fun v => v⟩) :
     CompiledPoly.blockedSpdpRankQ κ ℓ (C * C) bp ≤ (6 + 6 + ℓ) ^ 6 := by
+  subst hbp
   -- C*C has degree ≤ 6 and vars ⊆ vars(C), card ≤ 6.
   -- By spdp_span_in_restrictSupportDeg: span ≤ restrictSupportDeg on blockClosure.
   -- blockClosure of C*C ⊆ blockClosure of C.vars, card ≤ some bound.
@@ -91,14 +92,14 @@ theorem spdpRank_squared_local {N : ℕ} (κ ℓ : ℕ)
       _ ≤ 3 + 3 := Nat.add_le_add hd hd
       _ = 6 := by omega
   -- SPDP span ≤ restrictSupportDeg
-  have h_span := SupportedDim.spdp_span_in_restrictSupportDeg κ ℓ (C * C) bp hCC_deg
+  have h_span := SupportedDim.spdp_span_in_restrictSupportDeg κ ℓ (C * C) ⟨N, fun v => v⟩ hCC_deg
   -- finrank of the span ≤ finrank of restrictSupportDeg
   unfold CompiledPoly.blockedSpdpRankQ
   calc Module.finrank ℚ _ ≤ Module.finrank ℚ (SupportedDim.restrictSupportDeg ℚ
-      (SupportedDim.blockClosure bp (C * C).vars) (ℓ + 6)) :=
+      (SupportedDim.blockClosure ⟨N, fun v => v⟩ (C * C).vars) (ℓ + 6)) :=
         Submodule.finrank_mono h_span
-    _ ≤ ((SupportedDim.blockClosure bp (C * C).vars).card + (ℓ + 6)) ^
-        (SupportedDim.blockClosure bp (C * C).vars).card :=
+    _ ≤ ((SupportedDim.blockClosure ⟨N, fun v => v⟩ (C * C).vars).card + (ℓ + 6)) ^
+        (SupportedDim.blockClosure ⟨N, fun v => v⟩ (C * C).vars).card :=
         SupportedDim.finrank_restrictSupportDeg_le _ _
     _ ≤ (6 + 6 + ℓ) ^ 6 := by
         -- For identity partition: blockClosure = vars
@@ -106,14 +107,17 @@ theorem spdpRank_squared_local {N : ℕ} (κ ℓ : ℕ)
         -- So blockClosure.card ≤ 6
         -- Then (6 + ℓ + 6)^6 ≤ (6 + 6 + ℓ)^6 = (12 + ℓ)^6
         -- blockClosure(identity, S) = S: simp closes it.
-        have hbc : SupportedDim.blockClosure bp (C * C).vars = (C * C).vars := by
-          subst hbp; simp [SupportedDim.blockClosure]
+        have hbc : SupportedDim.blockClosure ⟨N, fun v => v⟩ (C * C).vars = (C * C).vars := by
+          simp [SupportedDim.blockClosure]
         -- (C*C).vars ⊆ C.vars, card ≤ 6
         have hcc_vars : (C * C).vars.card ≤ 6 := by
           sorry -- (C*C).vars ⊆ C.vars, C.vars.card ≤ 6
         rw [hbc]
         calc ((C * C).vars.card + (ℓ + 6)) ^ (C * C).vars.card
-            ≤ (6 + (ℓ + 6)) ^ 6 := by sorry
+            ≤ (6 + (ℓ + 6)) ^ 6 :=
+              le_trans (Nat.pow_le_pow_left (by omega) _)
+                (Nat.pow_le_pow_right (by omega) hcc_vars)
+          _ = (6 + 6 + ℓ) ^ 6 := by ring
         
 
 /-! ## Lemma 4: SPDP rank of violation polynomial ≤ #constraints × per-constraint bound
