@@ -130,6 +130,48 @@ def embedU (N L : ℕ) (v : Fin N) : Fin (N + L) :=
   so the tag τ_j cannot appear, giving coefficient 0.
 -/
 
+set_option maxHeartbeats 800000 in
+private theorem coeff_mul_disjoint {N : ℕ}
+    (f g : MvPolynomial (Fin N) ℚ) (a b : (Fin N) →₀ ℕ)
+    (hfg : Disjoint f.vars g.vars)
+    (ha : a.support ⊆ f.vars) (hb : b.support ⊆ g.vars) :
+    coeff (a + b) (f * g) = coeff a f * coeff b g := by
+  rw [coeff_mul]
+  apply Finset.sum_eq_single (a, b)
+  · intro ⟨c, d⟩ hcd hne
+    have hcd' := Finset.mem_antidiagonal.mp hcd
+    by_cases hc : c.support ⊆ f.vars
+    · by_cases hd : d.support ⊆ g.vars
+      · exfalso; apply hne
+        have hca : c = a := by
+          ext v; have h := congr_fun (congr_arg DFunLike.coe hcd') v
+          simp [Finsupp.add_apply] at h
+          by_cases hv : v ∈ f.vars
+          · have : d v = 0 := by
+              by_contra h1; exact Finset.disjoint_left.mp hfg hv (hd (Finsupp.mem_support_iff.mpr h1))
+            have : b v = 0 := by
+              by_contra h1; exact Finset.disjoint_left.mp hfg hv (hb (Finsupp.mem_support_iff.mpr h1))
+            omega
+          · have : c v = 0 := by
+              by_contra h1; exact hv (hc (Finsupp.mem_support_iff.mpr h1))
+            have : a v = 0 := by
+              by_contra h1; exact hv (ha (Finsupp.mem_support_iff.mpr h1))
+            omega
+        have hdb : d = b := by
+          ext v; have h1 := congr_fun (congr_arg DFunLike.coe hcd') v
+          have h2 := congr_fun (congr_arg DFunLike.coe hca) v
+          simp [Finsupp.add_apply] at h1; omega
+        exact Prod.ext hca hdb
+      · obtain ⟨v, hv, hv2⟩ := Finset.not_subset.mp hd
+        have : coeff d g = 0 := by
+          by_contra hc; exact hv2 ((mem_vars v).mpr ⟨d, Finsupp.mem_support_iff.mpr hc, hv⟩)
+        rw [this, mul_zero]
+    · obtain ⟨v, hv, hv2⟩ := Finset.not_subset.mp hc
+      have : coeff c f = 0 := by
+        by_contra hc; exact hv2 ((mem_vars v).mpr ⟨c, Finsupp.mem_support_iff.mpr hc, hv⟩)
+      rw [this, zero_mul]
+  · intro h; exact absurd (by simp [Finset.mem_antidiagonal]) h
+
 -- Product of disjoint-block polynomials has multiplicative coefficients
 theorem coeff_prod_disjoint {N : ℕ} {L : ℕ}
     (V : Fin L → MvPolynomial (Fin N) ℚ)
@@ -164,10 +206,24 @@ theorem coeff_prod_disjoint {N : ℕ} {L : ℕ}
       have : (V 0).coeff (τ 0) = 0 := by
         by_contra hc; exact h_not ((mem_vars v).mpr ⟨τ 0, Finsupp.mem_support_iff.mpr hc, hv⟩)
       rw [hcoeff 0] at this; exact one_ne_zero this
-    -- Need: (∑ τ∘succ).support ⊆ (∏ V∘succ).vars
-    -- Need: Disjoint (V 0).vars (∏ V∘succ).vars
-    -- Both require tracking vars through products/sums — sorry for now
-    sorry
+    -- vars(∏ V∘succ) ⊆ ∪ vars(V i.succ)
+    have hvars_prod : (Finset.univ.prod (V ∘ Fin.succ)).vars ⊆
+        Finset.univ.biUnion (fun i : Fin L => (V i.succ).vars) := by
+      sorry -- vars(∏ f_i) ⊆ ∪ vars(f_i)
+    -- Disjoint (V 0).vars (∏ V∘succ).vars
+    have h_disj : Disjoint (V 0).vars (Finset.univ.prod (V ∘ Fin.succ)).vars := by
+      apply Finset.disjoint_of_subset_right hvars_prod
+      rw [Finset.disjoint_biUnion_right]
+      intro i _; exact hvars 0 i.succ (by exact Fin.succ_ne_zero i |>.symm)
+    -- (∑ τ∘succ).support ⊆ (∏ V∘succ).vars
+    have hsum_sub : (Finset.univ.sum (τ ∘ Fin.succ)).support ⊆
+        (Finset.univ.prod (V ∘ Fin.succ)).vars := by
+      sorry -- support(∑ τ_i) ⊆ ∪ support(τ_i) ⊆ ∪ vars(V_i) ⊆ vars(∏ V_i)
+    -- Apply coeff_mul_disjoint
+    set_option maxHeartbeats 800000 in
+    have h2 := coeff_mul_disjoint (V 0) (Finset.univ.prod (V ∘ Fin.succ)) (τ 0)
+        (Finset.univ.sum (τ ∘ Fin.succ)) h_disj hτ_sub_V hsum_sub
+    exact h2 ▸ by rw [hcoeff 0, hih, one_mul]
 
 -- The identity minor theorem follows from coeff_prod_disjoint
 -- applied to subsets S ⊆ {0,...,L-1} of size κ.
