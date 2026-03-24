@@ -247,6 +247,17 @@ def InCcoll (M : DTM) (n : ℕ) (c : ℕ) : Prop :=
 -- SPDP generators with |S| > 6 give 0 (degree drop).
 -- Generators with |S| ≤ 6 have bounded dimension per constraint.
 -- Total: poly(n).
+private theorem log2_lt_n (n : ℕ) (hn : n ≥ 1) : Nat.log 2 n < n := by
+  have h1 : 2 ^ Nat.log 2 n ≤ n := Nat.pow_log_le_self 2 (by omega)
+  have h2 : Nat.log 2 n + 1 ≤ 2 ^ Nat.log 2 n := by
+    induction Nat.log 2 n with
+    | zero => simp
+    | succ k ih =>
+      calc k + 2 ≤ 2 * (k + 1) := by omega
+        _ ≤ 2 * 2 ^ k := Nat.mul_le_mul_left 2 ih
+        _ = 2 ^ (k + 1) := by ring
+  omega
+
 theorem p_subset_ccoll (M : DTM) :
     ∃ (c : ℕ) (n₀ : ℕ), ∀ n ≥ n₀, n ≥ 2 → InCcoll M n c := by
   -- The violation poly is a sum over constraints.
@@ -356,7 +367,10 @@ theorem p_subset_ccoll (M : DTM) :
               -- cs.length × (12+log n)^6 ≤ n^(12tb+6) × n^6 = n^(12tb+12)
               calc (constraintList M n ++ transitionConstraints M n).length *
                     (6 + 6 + Nat.log 2 n) ^ 6
-                  ≤ n ^ (12 * M.timeBound + 6) * n ^ 6 := Nat.mul_le_mul (by sorry) (Nat.pow_le_pow_left (by sorry) 6)
+                  ≤ n ^ (12 * M.timeBound + 6) * n ^ 6 := Nat.mul_le_mul (by sorry) (Nat.pow_le_pow_left (by
+                  -- 12 + log₂ n ≤ n for n ≥ 24
+                  -- log₂ n ≤ n/2 for n ≥ 4. 12 + n/2 ≤ n for n ≥ 24.
+                  sorry) 6)
                 _ = n ^ (12 * M.timeBound + 12) := by rw [← pow_add]
         clear h_deg
         generalize (polys.map _) = L at h_bound ⊢
