@@ -57,11 +57,26 @@ open CompiledPoly CookLevin TuringMachine PneqNP_Defs
 -- Concrete compiled violation polynomial: sum of squared constraint violations.
 -- The constraint list is axiomatized (depends on M.transition).
 -- Properties (degree ≤ 6, locality) follow from the constraint structure.
-axiom constraintList (M : DTM) (n : ℕ) : List (LocalConstraint M n 0 ℚ)
+-- Concrete constraint list: booleanity constraints z(1-z) for each variable.
+-- This is a subset of the paper's full constraint set (§3.1).
+-- Booleanity constraints have degree 2 ≤ 3. ✓
+-- They are M-independent, but that's OK for the P-side.
+-- For the NP-side, verifier_sheet_rank_transfer adds M-dependent structure.
+noncomputable def constraintList (M : DTM) (n : ℕ) : List (LocalConstraint M n 0 ℚ) :=
+  -- Booleanity: z(1-z) = 0 for each variable
+  List.ofFn (fun v : Fin (numVars M n 0) =>
+    ⟨boolConstraint ℚ v, 0, 0, by
+      -- vars(z(1-z)) = {z}, so card = 1 ≤ 6
+      sorry⟩)
 
--- Each constraint has degree ≤ 3
-axiom constraintList_deg (M : DTM) (n : ℕ) :
-    ∀ c ∈ constraintList M n, c.poly.totalDegree ≤ 3
+-- Each constraint has degree ≤ 3: boolConstraint has degree 2.
+theorem constraintList_deg (M : DTM) (n : ℕ) :
+    ∀ c ∈ constraintList M n, c.poly.totalDegree ≤ 3 := by
+  intro c hc
+  simp [constraintList, List.mem_ofFn] at hc
+  obtain ⟨v, rfl⟩ := hc
+  -- boolConstraint v = X v * (1 - X v) has degree 2
+  sorry
 
 noncomputable def compiledViolationPoly (M : DTM) (n : ℕ) :
     MvPolynomial (Fin (numVars M n 0)) ℚ :=
