@@ -590,7 +590,8 @@ def family_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (tag : FamilyTag) :
     (stateLinkClauses M n hn2).length = 2 := by simp [stateLinkClauses]
 
 @[simp] theorem length_transitionScaffoldClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
-    (transitionScaffoldClauses M n hn2).length ≤ 8 := by sorry
+    (transitionScaffoldClauses M n hn2).length ≤ 8 := by
+  simp [transitionScaffoldClauses]; split_ifs <;> simp
 
 @[simp] theorem length_transitionWindowClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     (transitionWindowClauses M n hn2).length = 2 := by simp [transitionWindowClauses]
@@ -610,12 +611,10 @@ def family_local (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (tag : FamilyTag) :
 /-- Total scaffold clause count is linear in input length. -/
 theorem length_scaffoldPhaseClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     (scaffoldPhaseClauses M n hn2).length ≤ n + 30 := by
-  sorry
-
+  simp [scaffoldPhaseClauses, List.length_append]; omega
 theorem length_compressionCoreClauses (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     (compressionCoreClauses M n hn2).length ≤ 30 := by
-  sorry
-
+  simp [scaffoldPhaseClauses, List.length_append]; omega
 /-! ## Profile proxy layer (paper-faithful bridge)
 
   In the paper, profile compression bounds rank by controlling the number
