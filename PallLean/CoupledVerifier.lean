@@ -157,7 +157,8 @@ theorem coeff_prod_disjoint {N : ℕ} {L : ℕ}
     -- because V 0 and ∏ V∘succ have disjoint vars,
     -- and τ 0 and ∑ τ∘succ have disjoint supports.
     -- This is the 2-polynomial disjoint-vars coefficient multiplicativity.
-    sorry
+    -- Use coeff_mul_disjoint for the 2-poly case + IH
+    sorry -- Wire coeff_mul_disjoint here
 
 -- The identity minor theorem follows from coeff_prod_disjoint
 -- applied to subsets S ⊆ {0,...,L-1} of size κ.
