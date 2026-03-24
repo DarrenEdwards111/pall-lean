@@ -129,7 +129,12 @@ theorem p_subset_ccoll (M : DTM) :
   -- from exp_beats_poly_general_exists
   have hlog : Nat.log 2 n ≥ K := by
     calc Nat.log 2 n ≥ Nat.log 2 (2 ^ K + 2 ^ B + B + 5) := Nat.log_mono_right (le_trans (le_max_left _ _) hn)
-      _ ≥ K := by sorry -- Nat.log 2 (2^K + ...) ≥ K
+      _ ≥ K := by
+            have : 2 ^ K ≤ 2 ^ K + 2 ^ B + B + 5 := by linarith [Nat.zero_le (2 ^ B + B + 5)]
+            have h2 : K ≤ Nat.log 2 (2 ^ K + 2 ^ B + B + 5) := by
+              calc K = Nat.log 2 (2 ^ K) := (Nat.log_pow (by omega) K).symm
+                _ ≤ Nat.log 2 (2 ^ K + 2 ^ B + B + 5) := Nat.log_mono_right this
+            exact h2
   have h_exp := hK (Nat.log 2 n) hlog
   -- Chain: rank ≤ (log n + B + 6)^B ≤ (log n + 1)^(B+6) ≤ 2^(log n/2) ≤ √n
   calc CompiledPoly.blockedSpdpRankQ _ _ _ _
@@ -138,7 +143,14 @@ theorem p_subset_ccoll (M : DTM) :
         have hℓ2 : Nat.log 2 n ≥ 2 ^ B + B + 5 := by
           calc Nat.log 2 n ≥ Nat.log 2 (2 ^ K + 2 ^ B + B + 5) :=
             Nat.log_mono_right (le_trans (le_max_left _ _) hn)
-          _ ≥ 2 ^ B + B + 5 := by sorry -- Nat.log 2 (2^K + 2^B + ...) ≥ 2^B + B + 5
+          _ ≥ 2 ^ B + B + 5 := by
+              -- Need: log₂(2^K + 2^B + B + 5) ≥ 2^B + B + 5
+              -- This holds when 2^K + 2^B + B + 5 ≥ 2^(2^B + B + 5).
+              -- Sufficient: K ≥ 2^B + B + 5 (then 2^K ≥ 2^(2^B+B+5)).
+              -- K comes from exp_beats_poly_general_exists(B+6).
+              -- We don't know K ≥ 2^B + B + 5 directly.
+              -- FIX: change threshold to also require n ≥ 2^(2^B + B + 5).
+              sorry
         have h_le : Nat.log 2 n + B + 6 ≤ 2 * (Nat.log 2 n + 1) := by
           have : Nat.log 2 n ≥ B + 5 := le_trans (Nat.le_add_left _ _) hℓ2; omega
         have h_pow : 2 ^ B ≤ (Nat.log 2 n + 1) ^ 6 := by
