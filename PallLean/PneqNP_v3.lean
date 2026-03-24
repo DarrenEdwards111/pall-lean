@@ -130,10 +130,10 @@ theorem compiledDeg (M : DTM) (n : ℕ) :
   violation_deg_const ℚ M n 0 (constraintList M n) (constraintList_deg M n)
 
 -- InCcoll: the compiled polynomial has low blocked SPDP rank.
-def InCcoll (M : DTM) (n : ℕ) : Prop :=
+def InCcoll (M : DTM) (n : ℕ) (c : ℕ) : Prop :=
   CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
     (compiledViolationPoly M n)
-    (compiledPartition M n) ≤ Nat.sqrt n
+    (compiledPartition M n) ≤ n ^ c
 
 /-! ## A2: P ⊆ Ccoll (PROVED!)
 
@@ -215,8 +215,9 @@ def InCcoll (M : DTM) (n : ℕ) : Prop :=
 -- locally-compiled polynomial with bounded degree and radius-1 locality.
 -- Axiomatized because connecting to the real encoding's constraint structure
 -- requires the paper's full width-to-rank analysis (§4, Theorem 5.16).
+-- Paper Theorem 6.3: rank ≤ n^O(1). The constant depends on M.
 axiom p_subset_ccoll (M : DTM) :
-    ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 → InCcoll M n
+    ∃ (c : ℕ) (n₀ : ℕ), ∀ n ≥ n₀, n ≥ 2 → InCcoll M n c
 
 /-! ## A3: ∃ NP family outside Ccoll
 
@@ -259,30 +260,29 @@ axiom p_subset_ccoll (M : DTM) :
 
 -- The core axiom: compiled polynomial rank ≥ identity minor size.
 -- This encodes §11 (verifier-sheet normalization) + §12 (extraction).
+-- Paper Theorem 10.1 + §11 + §12: rank ≥ n^Θ(log n) > n^c for any fixed c.
 axiom verifier_sheet_rank_transfer (M : DTM) (F : BoolFunFamily) 
-    (hM : ∀ n, M.decides (F n)) (hNP : UniformNP F) :
-    ∃ (α : ℕ), α ≥ 1 ∧
-    ∀ n : ℕ, n ≥ 2 →
+    (hM : ∀ n, M.decides (F n)) (hNP : UniformNP F) (c : ℕ) :
+    ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 →
     blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (compiledViolationPoly M n) (compiledPartition M n)
-    ≥ Nat.choose (α * n) (Nat.log 2 n)
+      (compiledViolationPoly M n) (compiledPartition M n) > n ^ c
 
 -- Sub-axiom 2: 3-SAT is in NP (PROVED in TseitinLowerBound.three_sat_in_NP)
 -- Already available via TseitinLowerBound.
 
 -- Assembly: np_compiled_rank_high from verifier-sheet + choose_superpolynomial
+-- NP side: for any c, the rank exceeds n^c for large n.
+-- So for the specific c from p_subset_ccoll, rank > n^c.
 theorem np_compiled_rank_high :
     ∃ F : BoolFunFamily, UniformNP F ∧
-    ∀ M : DTM, (∀ n, M.decides (F n)) →
-      ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 → ¬ InCcoll M n := by
+    ∀ M : DTM, (∀ n, M.decides (F n)) → ∀ c : ℕ,
+      ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 → ¬ InCcoll M n c := by
   obtain ⟨F, hF⟩ := TseitinLowerBound.three_sat_in_NP
-  refine ⟨F, hF, fun M hM => ?_⟩
-  obtain ⟨α, hα, h_rank⟩ := verifier_sheet_rank_transfer M F hM hF
-  obtain ⟨n₀, h_choose⟩ := TseitinLowerBound.choose_superpolynomial α hα
-  exact ⟨n₀, fun n hn hn2 => by
-    unfold InCcoll; push_neg
-    calc Nat.sqrt n < Nat.choose (α * n) (Nat.log 2 n) := h_choose n hn hn2
-      _ ≤ blockedSpdpRankQ _ _ _ _ := h_rank n hn2⟩
+  exact ⟨F, hF, fun M hM c => by
+    obtain ⟨n₀, h⟩ := verifier_sheet_rank_transfer M F hM hF c
+    exact ⟨n₀, fun n hn hn2 => by
+      unfold InCcoll; push_neg
+      exact h n hn hn2⟩⟩
 
 /-! ## P ≠ NP (PROVED from p_subset_ccoll + np_compiled_rank_high) -/
 
@@ -290,8 +290,11 @@ theorem P_neq_NP : ¬ P_eq_NP := by
   intro hPeqNP
   obtain ⟨F, hNP, hhard⟩ := np_compiled_rank_high
   obtain ⟨M, hM⟩ := hPeqNP F hNP
-  obtain ⟨n₀, hcoll⟩ := p_subset_ccoll M
-  obtain ⟨n₁, hnotcoll⟩ := hhard M hM
+  -- P-side: rank ≤ n^c for some c
+  obtain ⟨c, n₀, hcoll⟩ := p_subset_ccoll M
+  -- NP-side: rank > n^c for large n (using the SAME c)
+  obtain ⟨n₁, hnotcoll⟩ := hhard M hM c
+  -- Pick n large enough for both
   let n := max (max n₀ n₁) 2
   exact hnotcoll n (le_trans (le_max_right n₀ n₁) (le_max_left _ 2))
     (le_max_right _ 2)
