@@ -260,6 +260,16 @@ theorem p_subset_ccoll (M : DTM) :
   unfold InCcoll compiledViolationPoly
   -- The key inequality: rank of sum ≤ sum of ranks.
   -- Each rank is bounded. Total is polynomial.
+  -- The rank bound follows from:
+  -- 1. V = Σ C_i². Each C_i has degree ≤ 3, uses O(1) variables.
+  -- 2. The partition groups vars by cell. Each C_i touches O(1) cells.
+  -- 3. SPDP generators with |S| > 6 give 0 (degree drop).
+  -- 4. Generators with |S| ≤ 6 are local: touch O(1) cells.
+  -- 5. Per-cell contribution: O(1) basis vectors of bounded degree.
+  -- 6. T² cells × O(1) per cell = n^(2c) × O(1) = n^O(1) ≤ n^(4tb+3).
+  -- This is the paper's §4.2 counting argument.
+  -- The formal proof requires: Submodule finrank subadditivity over
+  -- cells, degree-drop for |S| > deg(V), and dimension counting per cell.
   sorry
 
 /-! ## A3: ∃ NP family outside Ccoll
