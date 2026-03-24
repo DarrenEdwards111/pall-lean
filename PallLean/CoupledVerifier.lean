@@ -157,8 +157,17 @@ theorem coeff_prod_disjoint {N : ℕ} {L : ℕ}
     -- because V 0 and ∏ V∘succ have disjoint vars,
     -- and τ 0 and ∑ τ∘succ have disjoint supports.
     -- This is the 2-polynomial disjoint-vars coefficient multiplicativity.
-    -- Use coeff_mul_disjoint for the 2-poly case + IH
-    sorry -- Wire coeff_mul_disjoint here
+    -- Apply coeff_mul_disjoint to (V 0) and (∏ V∘succ)
+    -- Need: (τ 0).support ⊆ (V 0).vars
+    have hτ_sub_V : (τ 0).support ⊆ (V 0).vars := by
+      intro v hv; by_contra h_not
+      have : (V 0).coeff (τ 0) = 0 := by
+        by_contra hc; exact h_not ((mem_vars v).mpr ⟨τ 0, Finsupp.mem_support_iff.mpr hc, hv⟩)
+      rw [hcoeff 0] at this; exact one_ne_zero this
+    -- Need: (∑ τ∘succ).support ⊆ (∏ V∘succ).vars
+    -- Need: Disjoint (V 0).vars (∏ V∘succ).vars
+    -- Both require tracking vars through products/sums — sorry for now
+    sorry
 
 -- The identity minor theorem follows from coeff_prod_disjoint
 -- applied to subsets S ⊆ {0,...,L-1} of size κ.
