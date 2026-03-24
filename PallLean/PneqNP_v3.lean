@@ -66,7 +66,18 @@ noncomputable def constraintList (M : DTM) (n : ℕ) : List (LocalConstraint M n
   -- Booleanity: z(1-z) = 0 for each variable
   List.ofFn (fun v : Fin (numVars M n 0) =>
     ⟨boolConstraint ℚ v, 0, 0, by
-      -- vars(z(1-z)) = {z}, so card = 1 ≤ 6
+      -- vars(z(1-z)) ⊆ {v}, card ≤ 1 ≤ 6
+      unfold boolConstraint
+      suffices h : (MvPolynomial.X v * (1 - MvPolynomial.X v) :
+          MvPolynomial (Fin (numVars M n 0)) ℚ).vars ⊆ {v} by
+        linarith [Finset.card_le_card h, Finset.card_singleton v]
+      intro w hw
+      simp only [Finset.mem_singleton]
+      have heq : MvPolynomial.X v * (1 - MvPolynomial.X v) =
+        (MvPolynomial.X v : MvPolynomial _ ℚ) - MvPolynomial.X v * MvPolynomial.X v := by ring
+      rw [heq] at hw
+      have ⟨m, hm, hw_supp⟩ := (MvPolynomial.mem_vars w).mp hw
+      -- m ∈ support(X v - X v²), m.support ⊆ {v}
       sorry⟩)
 
 -- Each constraint has degree ≤ 3: boolConstraint has degree 2.
@@ -76,8 +87,16 @@ theorem constraintList_deg (M : DTM) (n : ℕ) :
   simp [constraintList, List.mem_ofFn] at hc
   obtain ⟨v, rfl⟩ := hc
   -- boolConstraint v = X v * (1 - X v) has degree ≤ 2 ≤ 3
-  -- boolConstraint = z(1-z), degree 2 ≤ 3
-  sorry
+  -- boolConstraint = z(1-z), degree ≤ 2 ≤ 3
+  unfold boolConstraint
+  have := MvPolynomial.totalDegree_mul
+    (MvPolynomial.X v : MvPolynomial (Fin (numVars M n 0)) ℚ)
+    (1 - MvPolynomial.X v)
+  have h1 : (MvPolynomial.X v : MvPolynomial (Fin (numVars M n 0)) ℚ).totalDegree = 1 :=
+    MvPolynomial.totalDegree_X v
+  have h2 : (1 - MvPolynomial.X v : MvPolynomial (Fin (numVars M n 0)) ℚ).totalDegree ≤ 1 :=
+    le_trans (MvPolynomial.totalDegree_sub _ _) (by rw [MvPolynomial.totalDegree_one, h1]; omega)
+  linarith
 
 noncomputable def compiledViolationPoly (M : DTM) (n : ℕ) :
     MvPolynomial (Fin (numVars M n 0)) ℚ :=
