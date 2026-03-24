@@ -111,7 +111,12 @@ theorem spdpRank_squared_local {N : ℕ} (κ ℓ : ℕ)
           simp [SupportedDim.blockClosure]
         -- (C*C).vars ⊆ C.vars, card ≤ 6
         have hcc_vars : (C * C).vars.card ≤ 6 := by
-          sorry -- (C*C).vars ⊆ C.vars, C.vars.card ≤ 6
+          have hsub : (C * C).vars ⊆ C.vars := by
+            intro v hv
+            have := MvPolynomial.vars_mul C C hv
+            simp only [Finset.mem_union] at this
+            rcases this with h | h <;> exact h
+          exact le_trans (Finset.card_le_card hsub) hw
         rw [hbc]
         calc ((C * C).vars.card + (ℓ + 6)) ^ (C * C).vars.card
             ≤ (6 + (ℓ + 6)) ^ 6 :=
