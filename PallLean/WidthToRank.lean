@@ -14,6 +14,8 @@ import PallLean.SPDPDefs
 import PallLean.CompiledPoly
 import PallLean.TuringMachine
 import PallLean.DegreeDrop
+import PallLean.SupportedDim
+import PallLean.ProfileCompression
 import Mathlib.Tactic
 
 namespace WidthToRank
@@ -77,7 +79,26 @@ theorem spdpRank_squared_local {N : ℕ} (κ ℓ : ℕ)
   -- By finrank_restrictSupportDeg_le: dim ≤ (card + degree)^card.
   -- With card ≤ 6 (from hw) and degree ≤ ℓ + 6:
   -- dim ≤ (6 + ℓ + 6)^6 = (ℓ + 12)^6.
-  sorry -- Needs spdp_span_in_restrictSupportDeg + finrank bound
+  -- By spdp_span_in_restrictSupportDeg: span ≤ restrictSupportDeg(blockClosure, ℓ+6)
+  -- blockClosure of (C*C).vars ≤ C.vars.card ≤ 6 (each var in own block)
+  -- By finrank_restrictSupportDeg_le: dim ≤ (6 + ℓ + 6)^6
+  -- So blockedSpdpRankQ ≤ (ℓ + 12)^6 ≤ (6 + 6 + ℓ)^6
+  have hCC_deg : (C * C).totalDegree ≤ 6 := by
+    calc (C * C).totalDegree ≤ C.totalDegree + C.totalDegree :=
+          MvPolynomial.totalDegree_mul C C
+      _ ≤ 3 + 3 := Nat.add_le_add hd hd
+      _ = 6 := by omega
+  -- SPDP span ≤ restrictSupportDeg
+  have h_span := SupportedDim.spdp_span_in_restrictSupportDeg κ ℓ (C * C) bp hCC_deg
+  -- finrank of the span ≤ finrank of restrictSupportDeg
+  unfold CompiledPoly.blockedSpdpRankQ
+  calc Module.finrank ℚ _ ≤ Module.finrank ℚ (SupportedDim.restrictSupportDeg ℚ
+      (SupportedDim.blockClosure bp (C * C).vars) (ℓ + 6)) :=
+        Submodule.finrank_mono h_span
+    _ ≤ ((SupportedDim.blockClosure bp (C * C).vars).card + (ℓ + 6)) ^
+        (SupportedDim.blockClosure bp (C * C).vars).card :=
+        SupportedDim.finrank_restrictSupportDeg_le _ _
+    _ ≤ (6 + 6 + ℓ) ^ 6 := by sorry -- card(blockClosure) ≤ 6 + arithmetic
 
 /-! ## Lemma 4: SPDP rank of violation polynomial ≤ #constraints × per-constraint bound
 

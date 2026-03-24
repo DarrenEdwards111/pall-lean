@@ -54,7 +54,24 @@ noncomputable def Sheet (M : DTM) : DTM where
 -- Sheet(M) preserves language
 theorem Sheet_decides (M : DTM) {n : ℕ} (f : BoolFun n)
     (hM : M.decides f) : (Sheet M).decides f := by
-  sorry -- The auxiliary track doesn't affect acceptance
+  -- Sheet(M) runs M's transition for states < numStates.
+  -- The accept state is still state 1. The auxiliary states (≥ numStates)
+  -- are never reached from M's initial state 0 < numStates.
+  -- So the execution trace of Sheet(M) on any input matches M's trace
+  -- on the main track, and acceptance is identical.
+  intro x
+  -- M.decides f means: final state of M = 1 ↔ f(x) = true
+  have hM_x := hM x
+  -- Sheet(M) starts in state 0, which maps to M's state 0 (since 0 < numStates).
+  -- Each step: if state < numStates, use M.transition → result has state < numStates.
+  -- So Sheet(M) stays in M's state space throughout.
+  -- Final state of Sheet(M) = ⟨final state of M, _⟩.
+  -- ⟨1, _⟩ in Sheet(M) ↔ state 1 in M ↔ f(x) = true.
+  -- The key invariant: Sheet(M) stays in M's state space.
+  -- Proof requires showing run traces match, which needs
+  -- induction on time steps + the transition definition.
+  -- This is the same pattern as rejectDTM_run_state0 (TseitinLowerBound).
+  sorry
 
 -- Sheet(M) has polynomial overhead
 theorem Sheet_timeBound (M : DTM) :
