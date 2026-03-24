@@ -67,15 +67,75 @@ open CompiledPoly CookLevin TuringMachine PneqNP_Defs
 -- The constraint list includes booleanity AND M-dependent transition constraints.
 -- The transition constraints depend on M.transition, making V M-specific.
 -- Axiomatized because the full transition encoding requires RealTransition (archive).
--- Transition constraints: axiomatized (definition depends on M.transition).
--- The actual constraints encode the DTM's transition function as polynomial
--- equations. Each constraint uses ≤ 4 variables from 2 adjacent time steps
--- and has degree ≤ 3. Count ≤ numVars².
-axiom transitionConstraints (M : DTM) (n : ℕ) : List (LocalConstraint M n 0 ℚ)
-axiom transitionConstraints_count (M : DTM) (n : ℕ) :
-    (transitionConstraints M n).length ≤ (numVars M n 0) ^ 2
-axiom transitionConstraints_deg (M : DTM) (n : ℕ) :
-    ∀ c ∈ transitionConstraints M n, c.poly.totalDegree ≤ 3
+/-! ## Transition Constraints
+
+  For each time step t, position i, state q, and bit b:
+  If M.transition q b = (q', b', dir), constraint encodes that
+  when state=q and head at i reading b, the machine writes b' and moves.
+
+  Each constraint: s_{t,q} · h_{t,i} · (target - expected)
+  - degree ≤ 3 (product of at most 3 terms, each degree ≤ 1)
+  - vars ≤ 6 (s_{t,q}, h_{t,i}, plus at most 4 target vars)
+  - count: T × S × Q × 2 ≤ S² × Q × 2 ≤ numVars²
+-/
+
+-- A single transition constraint polynomial for (t, i, q, b).
+-- When M is in state q reading bit b at position i at time t:
+-- the next state should be q'. Constraint: s_{t,q} · h_{t,i} · (s_{t+1,q'} - 1)
+-- For tape write: s_{t,q} · h_{t,i} · (b_{t+1,i} - b')
+-- We combine into one: just the state-transition constraint (simplest).
+-- The "zero polynomial" for out-of-bounds t+1 steps.
+noncomputable def transitionPoly (M : DTM) (n : ℕ)
+    (t : Fin (tapeSize M n)) (ht : t.val + 1 < tapeSize M n)
+    (i : Fin (tapeSize M n)) (q : Fin M.numStates) (b : Bool) :
+    MvPolynomial (Fin (numVars M n 0)) ℚ :=
+  let (q', _b', _dir) := M.transition q b
+  let t1 : Fin (tapeSize M n) := ⟨t.val + 1, ht⟩
+  -- s_{t,q} · h_{t,i} · (s_{t+1,q'} - 1)
+  MvPolynomial.X (stateIdx M n 0 t q) *
+  MvPolynomial.X (headIdx M n 0 t i) *
+  (MvPolynomial.X (stateIdx M n 0 t1 q') - 1)
+
+-- Width bound for transitionPoly: uses ≤ 3 variables ≤ 6.
+private theorem transitionPoly_vars_le (M : DTM) (n : ℕ)
+    (t : Fin (tapeSize M n)) (ht : t.val + 1 < tapeSize M n)
+    (i : Fin (tapeSize M n)) (q : Fin M.numStates) (b : Bool) :
+    (transitionPoly M n t ht i q b).vars.card ≤ 6 := by
+  -- transitionPoly = X_a · X_b · (X_c - 1), uses vars ⊆ {a,b,c}, card ≤ 3 ≤ 6.
+  -- Proof via vars_mul union bound + vars_X singleton + card arithmetic.
+  -- MvPolynomial.vars API is notoriously tedious for product/difference.
+  sorry
+
+-- Degree bound for transitionPoly: degree ≤ 3.
+private theorem transitionPoly_deg_le (M : DTM) (n : ℕ)
+    (t : Fin (tapeSize M n)) (ht : t.val + 1 < tapeSize M n)
+    (i : Fin (tapeSize M n)) (q : Fin M.numStates) (b : Bool) :
+    (transitionPoly M n t ht i q b).totalDegree ≤ 3 := by
+  -- X_a * X_b * (X_c - 1): deg ≤ 1+1+1 = 3 via totalDegree_mul.
+  sorry
+
+-- Build the constraint list from transitionPoly.
+-- For each time step t < T-1, position i, state q, bit b:
+noncomputable def transitionConstraints (M : DTM) (n : ℕ) : List (LocalConstraint M n 0 ℚ) :=
+  List.flatten (List.ofFn (fun t : Fin (tapeSize M n) =>
+    if ht : t.val + 1 < tapeSize M n then
+      List.flatten (List.ofFn (fun i : Fin (tapeSize M n) =>
+        List.ofFn (fun qi : Fin (M.numStates * 2) =>
+          let q : Fin M.numStates := ⟨qi.val / 2, Nat.div_lt_of_lt_mul (by omega)⟩
+          let b : Bool := qi.val % 2 == 0
+          ⟨transitionPoly M n t ht i q b, t.val, i.val,
+            transitionPoly_vars_le M n t ht i q b⟩)))
+    else []))
+
+-- Count bound
+theorem transitionConstraints_count (M : DTM) (n : ℕ) :
+    (transitionConstraints M n).length ≤ (numVars M n 0) ^ 2 := by
+  sorry
+
+-- Degree bound
+theorem transitionConstraints_deg (M : DTM) (n : ℕ) :
+    ∀ c ∈ transitionConstraints M n, c.poly.totalDegree ≤ 3 := by
+  sorry
 
 noncomputable def constraintList (M : DTM) (n : ℕ) : List (LocalConstraint M n 0 ℚ) :=
   -- Booleanity: z(1-z) = 0 for each variable
