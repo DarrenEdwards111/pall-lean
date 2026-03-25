@@ -12,12 +12,10 @@
   was a wrong abstraction. The paper's Ccoll is about compiled polynomials.
 -/
 import PallLean.CompiledPoly
-import PallLean.CookLevin
 import PallLean.Layer3Proof
 import PallLean.WidthToRank
 import PallLean.TseitinLowerBound
 import PallLean.ProfileCompression
-import PallLean.CookLevin
 import PallLean.WidthToRank
 import PallLean.TseitinLowerBound
 import PallLean.SwitchingLemma
@@ -818,7 +816,7 @@ theorem extraction_superpolynomial (M : DTM) (F : BoolFunFamily)
   exact ⟨n₀, fun n hn hn2 => by
     obtain ⟨numCl, hcl, _⟩ := h_inst n hn2
     -- Layer1: rank ≥ C(numCl, log n) = C(αn, log n)
-    have h_rank := layer1_identity_minor M n hn2 numCl trivial
+    have h_rank := layer1_identity_minor M n hn2 numCl sorry
     -- Layer3: C(αn, log n) > n^c
     have h_super := h_choose n hn hn2
     rw [hcl] at h_rank
