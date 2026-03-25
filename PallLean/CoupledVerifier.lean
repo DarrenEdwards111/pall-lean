@@ -271,13 +271,16 @@ theorem coeff_pderiv_zero (v : Fin (N + L)) (p : MvPolynomial (Fin (N + L)) ℚ)
 -- Iterated version: coeff m (iterDerivList S p) = coeff(m + ∑ δ_{s})(p)
 -- when m has zero exponents at all s ∈ S.
 theorem coeff_iterDerivList_zero (S : List (Fin (N + L))) (p : MvPolynomial (Fin (N + L)) ℚ)
-    (m : (Fin (N + L)) →₀ ℕ) (hm : ∀ s ∈ S, m s = 0) :
+    (m : (Fin (N + L)) →₀ ℕ) (hm : ∀ s ∈ S, m s = 0) (hnd : S.Nodup) :
     (SPDP.iterDerivList S p).coeff m = 
     p.coeff (m + S.foldl (fun acc s => acc + Finsupp.single s 1) 0) := by
   induction S with
   | nil => simp [SPDP.iterDerivList]
   | cons v S ih =>
     simp only [SPDP.iterDerivList, List.foldl_cons]
+    -- iterDerivList (v::S) p = iterDerivList S (pderiv v p)
+    -- By IH: coeff m (iterDerivList S (pderiv v p)) = 
+    --   (pderiv v p).coeff (m + S.foldl ... 0)
     sorry
 
 theorem coupled_identity_minor (N L : ℕ)
