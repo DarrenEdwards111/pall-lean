@@ -190,4 +190,45 @@ theorem extraction_superpolynomial_inst
   have h2' : n ^ c < Nat.choose L (Nat.log 2 n) := h2
   exact lt_of_lt_of_le h2' h1
 
+/-- Instance-aware P-side hook: compiled rank remains polynomial for any compiled instance. -/
+axiom p_subset_ccoll_inst
+    (M : DTM) :
+    ∃ c : ℕ, ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 →
+      ∀ (N L : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L),
+        InCcollInst M n N L c inst E
+
+/-- Instance-aware NP-side hardness (parallel to v3 np_compiled_rank_high). -/
+theorem np_compiled_rank_high_inst :
+    ∃ F : BoolFunFamily, UniformNP F ∧
+    ∀ M : DTM, (∀ n, M.decides (F n)) → ∀ c : ℕ,
+      ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 →
+        ∃ (N L : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L),
+          ¬ InCcollInst M n N L c inst E := by
+  obtain ⟨F, hF⟩ := TseitinLowerBound.three_sat_in_NP
+  refine ⟨F, hF, ?_⟩
+  intro M hM c
+  obtain ⟨n₀, h⟩ := extraction_superpolynomial_inst M F hM hF c
+  refine ⟨n₀, ?_⟩
+  intro n hn hn2
+  obtain ⟨N, L, inst, E, hgt⟩ := h n hn hn2
+  refine ⟨N, L, inst, E, ?_⟩
+  intro hIn
+  unfold InCcollInst blockedSpdpRankInst at hIn
+  exact not_lt_of_ge hIn hgt
+
+/-- Parallel final contradiction using instance-aware compiled objects. -/
+theorem P_neq_NP_inst : ¬ P_eq_NP := by
+  intro hPeqNP
+  obtain ⟨F, hNP, hhard⟩ := np_compiled_rank_high_inst
+  obtain ⟨M, hM⟩ := hPeqNP F hNP
+  obtain ⟨c, n₀, hcoll⟩ := p_subset_ccoll_inst M
+  obtain ⟨n₁, hnotcoll⟩ := hhard M hM c
+  let n := max (max n₀ n₁) 2
+  have hn0 : n ≥ n₀ := le_trans (le_max_left n₀ n₁) (le_max_left _ 2)
+  have hn1 : n ≥ n₁ := le_trans (le_max_right n₀ n₁) (le_max_left _ 2)
+  have hn2 : n ≥ 2 := le_max_right _ 2
+  obtain ⟨N, L, inst, E, hbad⟩ := hnotcoll n hn1 hn2
+  have hgood : InCcollInst M n N L c inst E := hcoll n hn0 hn2 N L inst E
+  exact hbad hgood
+
 end PneqNPv3
