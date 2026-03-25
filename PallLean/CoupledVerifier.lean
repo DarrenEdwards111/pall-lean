@@ -271,18 +271,7 @@ theorem coeff_pderiv_zero (v : Fin (N + L)) (p : MvPolynomial (Fin (N + L)) ℚ)
 
 -- Iterated version: coeff m (iterDerivList S p) = coeff(m + ∑ δ_{s})(p)
 -- when m has zero exponents at all s ∈ S.
--- foldl of single additions: coordinate v = 0 when v ∉ S
-theorem foldl_single_apply_eq_zero_of_not_mem
-    (S : List (Fin (N + L))) (v : Fin (N + L)) (hvS : v ∉ S) :
-    (List.foldl (fun acc s => acc + Finsupp.single s 1) (0 : (Fin (N+L)) →₀ ℕ) S) v = 0 := by
-  induction S with
-  | nil => simp
-  | cons x xs ih =>
-    simp only [List.foldl_cons, Finsupp.add_apply, Finsupp.single_apply]
-    simp only [List.mem_cons, not_or] at hvS
-    sorry
-
--- foldl accumulator shift: foldl (a + δ_v) S = foldl a S + δ_v
+-- foldl helpers for Finsupp.single additions
 theorem foldl_add_right_single
     (S : List (Fin (N + L))) (a : (Fin (N+L)) →₀ ℕ) (v : Fin (N + L)) :
     List.foldl (fun acc s => acc + Finsupp.single s 1) (a + Finsupp.single v 1) S
@@ -291,22 +280,46 @@ theorem foldl_add_right_single
   | nil => rfl
   | cons x xs ih =>
     simp only [List.foldl_cons]
-    rw [show a + Finsupp.single v 1 + Finsupp.single x 1 = 
+    rw [show a + Finsupp.single v 1 + Finsupp.single x 1 =
         a + Finsupp.single x 1 + Finsupp.single v 1 from by abel]
     exact ih (a := a + Finsupp.single x 1)
+
+theorem foldl_single_apply_eq_zero_of_not_mem
+    (S : List (Fin (N + L))) (v : Fin (N + L)) (hvS : v ∉ S) :
+    (List.foldl (fun acc s => acc + Finsupp.single s 1) (0 : (Fin (N+L)) →₀ ℕ) S) v = 0 := by
+  induction S with
+  | nil => simp [List.foldl]
+  | cons x xs ih =>
+    have hvx : v ≠ x := by intro h; apply hvS; simp [h]
+    have hvxs : v ∉ xs := by intro hx; apply hvS; simp [hx]
+    simp only [List.foldl_cons]
+    -- Goal: (foldl (0 + δ_x) xs) v = 0
+    rw [zero_add]
+    -- Goal: (foldl δ_x xs) v = 0
+    rw [← zero_add (Finsupp.single x 1), foldl_add_right_single xs 0 x]
+    -- Goal: (foldl 0 xs + δ_x) v = 0
+    simp [Finsupp.add_apply, ih hvxs, Finsupp.single_apply, hvx]
+
+
 
 theorem coeff_iterDerivList_zero (S : List (Fin (N + L))) (p : MvPolynomial (Fin (N + L)) ℚ)
     (m : (Fin (N + L)) →₀ ℕ) (hm : ∀ s ∈ S, m s = 0) (hnd : S.Nodup) :
     (SPDP.iterDerivList S p).coeff m = 
     p.coeff (m + S.foldl (fun acc s => acc + Finsupp.single s 1) 0) := by
   induction S generalizing p with
-  | nil => simp [SPDP.iterDerivList, List.foldl]
+  | nil => simp [SPDP.iterDerivList]
   | cons v S ih =>
     unfold SPDP.iterDerivList
     simp only [List.foldl_cons]
     rw [show List.foldl (fun q i => MvPolynomial.pderiv i q) (MvPolynomial.pderiv v p) S = SPDP.iterDerivList S (MvPolynomial.pderiv v p) from rfl]
     rw [ih (MvPolynomial.pderiv v p) (fun s hs => hm s (List.mem_cons_of_mem v hs)) (List.nodup_cons.mp hnd).2]
-    sorry
+    rw [coeff_pderiv_zero v _ _ (by
+      simp only [Finsupp.add_apply]
+      have := hm v (List.Mem.head S); rw [this]
+      exact foldl_single_apply_eq_zero_of_not_mem S v (List.nodup_cons.mp hnd).1)]
+    congr 1
+    rw [show (0 : (Fin (N+L)) →₀ ℕ) + Finsupp.single v 1 = Finsupp.single v 1 from zero_add _]
+    rw [← foldl_add_right_single S 0 v, zero_add]
 
 
 
