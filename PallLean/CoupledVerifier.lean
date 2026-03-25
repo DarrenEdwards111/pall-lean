@@ -228,6 +228,24 @@ axiom coeff_pderiv {σ R : Type*} [CommSemiring R] [DecidableEq σ]
     (i : σ) (p : MvPolynomial σ R) (m : σ →₀ ℕ) :
     (MvPolynomial.pderiv i p).coeff m = p.coeff (m + Finsupp.single i 1) * (↑(m i + 1) : R)
 
+-- coeff 0 of product = product of coeff 0's
+theorem coeff_zero_prod {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (f : ι → MvPolynomial (Fin (N + L)) ℚ) :
+    (∏ i ∈ s, f i).coeff 0 = ∏ i ∈ s, (f i).coeff 0 := by
+  induction s using Finset.induction with
+  | empty => simp
+  | @insert a s' ha ih =>
+    rw [Finset.prod_insert ha, MvPolynomial.coeff_mul]
+    simp only [Finset.antidiagonal_zero, Finset.sum_singleton]
+    rw [ih, Finset.prod_insert ha]
+
+-- coeff 0 of coupledFactor = 1
+theorem coeff_zero_coupledFactor (dcs : DisjointClauseSystem N L) (C : Fin L) :
+    (coupledFactor N L dcs C).coeff 0 = 1 := by
+  unfold coupledFactor
+  simp [MvPolynomial.coeff_sub, MvPolynomial.coeff_one, MvPolynomial.coeff_mul, 
+        Finset.antidiagonal_zero, MvPolynomial.coeff_X]
+
 theorem coupled_identity_minor (N L : ℕ)
     (dcs : DisjointClauseSystem N L) (κ ℓ : ℕ)
     (bp : CompiledPoly.BlockPartition (N + L))
@@ -302,7 +320,10 @@ theorem coupled_identity_minor (N L : ℕ)
   -- Both follow from the structure of coupledFactor = 1 - z_C · V_C².
   -- For now: sorry these two structural facts. Each is ~10 lines of induction.
   have h_coeff_zero_rest : ∀ T : kSubs, 
-      (∏ C ∈ (Finset.univ \ T.val), coupledFactor N L dcs C).coeff 0 = 1 := by sorry
+      (∏ C ∈ (Finset.univ \ T.val), coupledFactor N L dcs C).coeff 0 = 1 := by
+    intro T
+    rw [coeff_zero_prod]
+    exact Finset.prod_eq_one (fun C _ => coeff_zero_coupledFactor dcs C)
   -- hdiag from h_deriv_single structure
   have hdiag : ∀ T, (v T).coeff (tagMon T) ≠ 0 := by sorry
   -- hoff from coeff_zero_of_var_outside + disjoint blocks
