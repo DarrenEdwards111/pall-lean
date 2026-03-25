@@ -282,52 +282,13 @@ theorem coeff_iterDerivList_zero (S : List (Fin (N + L))) (p : MvPolynomial (Fin
     simp only [List.foldl_cons]
     sorry
 
-  -- hoff from coeff_zero_of_var_outside + disjoint blocks
-  have hoff : ∀ T T', T ≠ T' → (v T).coeff (tagMon T') = 0 := by
-    -- After shifting: coeff(tagMon T' + Σ_{C∈T} δ_{z_C})(Q).
-    -- T ≠ T': ∃ C* ∈ T' \\ T. tagMon T' has tag(C*) support in B_{C*}.
-    -- But the z-selector picks from T, not T'. Monomial mismatch → coeff = 0.
-    sorry
-  -- Linear independence from coord separation
-  have hli := linearIndependent_of_diag_offdiag_coeff v (fun T => tagMon T) hdiag hoff
-  -- finrank ≥ C(L, κ)
-  have hcard : kSubs.card = Nat.choose L κ := by simp [kSubs, Finset.card_powersetCard]
-  unfold CompiledPoly.blockedSpdpRankQ
-  -- v(T) ∈ SPDP span (m=1, selector list, admissible from bp_sel)
-  have hv_mem : ∀ T, v T ∈ Submodule.span ℚ
-      { q | ∃ (S : List _) (m : MvPolynomial _ ℚ),
-        S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧
-        (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
-        (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
-        q = m * SPDP.iterDerivList S Q } := by
-    intro ⟨T, hT⟩
-    apply Submodule.subset_span
-    refine ⟨selList T, 1, ?_, by simp, ?_, by simp, by simp [v, Q, one_mul]⟩
-    · -- S.length ≤ κ
-      simp only [selList, List.length_map, Multiset.length_toList]
-      exact le_of_eq (Finset.mem_powersetCard.mp hT).2
-    · -- admissible: distinct blocks from bp_sel
-      apply Finset.card_image_of_injOn
-      intro a ha b hb hab
-      simp only [Finset.mem_coe, selList, List.mem_toFinset] at ha hb
-      obtain ⟨Ca, _, rfl⟩ := List.mem_map.mp ha
-      obtain ⟨Cb, _, rfl⟩ := List.mem_map.mp hb
-      by_contra h
-      exact bp_sel Ca Cb (fun heq => h (congr_arg (selectorVarIdx N L) heq)) hab
-  -- LI family v maps into the span. finrank(span) ≥ card.
-  -- Lift v to subtype of span, show LI in subtype, apply fintype_card_le_finrank.
-  set Span := Submodule.span ℚ { q : MvPolynomial (Fin (N + L)) ℚ | ∃ S m,
-    S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧
-    (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
-    (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
-    q = m * SPDP.iterDerivList S Q }
-  let v' : kSubs → Span := fun T => ⟨v T, hv_mem T⟩
-  have hli' : LinearIndependent ℚ v' := by
-    rw [LinearIndependent] at hli ⊢
-    exact LinearIndependent.of_comp Span.subtype hli
-  calc Nat.choose L κ = kSubs.card := hcard.symm
-    _ = Fintype.card kSubs := by simp [Fintype.card_coe]
-    _ ≤ Module.finrank ℚ Span := by haveI : Module.Finite ℚ Span := Module.Finite.of_injective (Submodule.inclusion (CompiledPoly.spdp_span_le_restrictTotalDegree κ ℓ Q bp)) (Submodule.inclusion_injective _); exact hli'.fintype_card_le_finrank
+theorem coupled_identity_minor (N L : ℕ)
+    (dcs : DisjointClauseSystem N L) (κ ℓ : ℕ)
+    (bp : CompiledPoly.BlockPartition (N + L))
+    (bp_sel : ∀ i j : Fin L, i ≠ j →
+      bp.blockOf (selectorVarIdx N L i) ≠ bp.blockOf (selectorVarIdx N L j)) :
+    CompiledPoly.blockedSpdpRankQ κ ℓ (coupledPoly N L dcs) bp
+    ≥ Nat.choose L κ := by
+  sorry
 
 end CoupledVerifier
-
