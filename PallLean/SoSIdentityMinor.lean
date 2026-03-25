@@ -210,9 +210,11 @@ theorem sos_identity_minor {N : ℕ}
     · -- admissibility: bp.blockOf injective on derivList T
       apply Finset.card_image_of_injOn
       intro a ha b hb hab
-      -- bp.blockOf injective on {rep C | C ∈ T} from bp_sep.
-      -- Proof: extract Ca, Cb from membership, use bp_sep contrapositive.
-      sorry
+      simp only [Finset.mem_coe, derivList, List.mem_toFinset] at ha hb
+      obtain ⟨Ca, -, rfl⟩ := List.mem_map.mp ha
+      obtain ⟨Cb, -, rfl⟩ := List.mem_map.mp hb
+      by_contra h
+      exact bp_sep Ca Cb (fun heq => h (congr_arg rep heq)) hab
   -- Linear independence via coefficient extraction (identity minor argument)
   -- coeff(τ_T) is a linear functional. Applied to Σ c·v = 0:
   -- c_T · [τ_T](v(T)) = 0 (off-diagonal terms vanish).
