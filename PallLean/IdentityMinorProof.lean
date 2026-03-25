@@ -34,29 +34,40 @@ variable {N L : ℕ}
 -/
 
 -- ∂_{z_C}(1 - z_C · p) = -p  where p = V_C²
+-- Helper: pderiv of selector var on gadget = 0 (gadget uses only block vars)
+private theorem pderiv_selector_gadget (dcs : CoupledVerifier.DisjointClauseSystem N L) (C C' : Fin L) :
+    pderiv (selectorVarIdx N L C) (dcs.gadget C') = 0 := by
+  -- gadget C' uses only block variables (indices < N)
+  -- selectorVarIdx N L C has index ≥ N
+  -- So the selector var doesn't appear in gadget, hence pderiv = 0
+  apply MvPolynomial.pderiv_eq_zero_of_notMem_vars
+  -- selectorVarIdx N L C ∉ (gadget C').vars
+  -- because gadget uses only block vars (index < N) and selector has index ≥ N
+  intro hmem
+  obtain ⟨i, hvi, _⟩ := dcs.gadget_support C' _ hmem
+  -- selectorVarIdx has val = N + C.val ≥ N, but blockVarIdx has val = i.val < N
+  have : (selectorVarIdx N L C).val = N + C.val := rfl
+  have : (blockVarIdx N L i).val = i.val := rfl
+  rw [hvi] at *; unfold selectorVarIdx blockVarIdx at *; simp [Fin.ext_iff] at *; omega
+
 theorem pderiv_own_factor (dcs : CoupledVerifier.DisjointClauseSystem N L) (C : Fin L) :
     pderiv (selectorVarIdx N L C) (coupledFactor N L dcs C) =
     -(dcs.gadget C * dcs.gadget C) := by
   unfold coupledFactor
-  -- pderiv z_C (1 - z_C * V_C * V_C) = 0 - (1 * V_C * V_C + z_C * pderiv(V_C * V_C))
-  -- pderiv z_C (V_C) = 0 (V_C uses block vars, not selector vars)
-  -- So = -(V_C * V_C)
-  simp only [map_sub, MvPolynomial.pderiv_one, MvPolynomial.pderiv_mul, MvPolynomial.pderiv_X]
-  -- After simp: should reduce using pderiv linearity
-  sorry
+  have hp := pderiv_selector_gadget dcs C C
+  simp only [map_sub, MvPolynomial.pderiv_one, MvPolynomial.pderiv_mul, MvPolynomial.pderiv_X_self, hp]
+  ring_nf
 
 -- ∂_{z_C}(1 - z_{C'} · p) = 0  for C ≠ C'
 -- Because z_C doesn't appear in this factor (z_{C'} is a different variable).
 theorem pderiv_other_factor (dcs : CoupledVerifier.DisjointClauseSystem N L) (C C' : Fin L) (hne : C ≠ C') :
     pderiv (selectorVarIdx N L C) (coupledFactor N L dcs C') = 0 := by
   unfold coupledFactor
-  simp only [map_sub, MvPolynomial.pderiv_one, MvPolynomial.pderiv_mul, MvPolynomial.pderiv_X]
-  -- z_C ≠ z_{C'}: different selector variables
+  have hp := pderiv_selector_gadget dcs C C'
   have hv : selectorVarIdx N L C ≠ selectorVarIdx N L C' := by
     unfold selectorVarIdx; simp [Fin.ext_iff]; omega
-  -- pderiv z_C (X z_{C'}) = 0 since z_C ≠ z_{C'}
-  -- pderiv z_C (gadget C') = 0 since gadget uses only block vars
-  sorry
+  simp only [map_sub, MvPolynomial.pderiv_one, MvPolynomial.pderiv_mul, MvPolynomial.pderiv_X, hp]
+  simp [Ne.symm hv]
 
 /-! ## Sub-lemma (b): Derivative of product = signed product of gadgets
 
