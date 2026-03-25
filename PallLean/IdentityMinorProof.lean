@@ -183,7 +183,18 @@ theorem coeff_prod_disjoint {σ : Type*} [DecidableEq σ]
       -- The support of a sum: support(a+b) ⊆ support(a) ∪ support(b).
       -- Each (ms i.castSucc).support ⊆ (ps i.castSucc).vars.
       -- vars(∏ pᵢ) ⊇ ∪ vars(pᵢ) when the product has no cancellation... not guaranteed.
-      -- WEAKER: just need support(∑ ms) ⊆ vars(∏ ps). Not ∪ vars(pᵢ).
+      -- Need: (∑ ms castSucc).support ⊆ (∏ ps castSucc).vars.
+      -- support(∑ f) ⊆ ∪ support(f) ⊆ ∪ vars(ps) ⊆ vars(∏ ps)? Not in general.
+      -- But for the BINARY coeff_mul_disjoint proof: the hypothesis ha is used
+      -- in finsupp_add_eq_of_disjoint which needs a.support ⊆ S for some set S
+      -- disjoint from T. We can use S = ∪ vars(pᵢ castSucc) which contains a.support
+      -- and is disjoint from T = vars(ps last) (from h_disjoint).
+      -- But coeff_mul_disjoint takes ha : a.support ⊆ p.vars, not ⊆ arbitrary S.
+      -- WORKAROUND: the proof still works if a.support ⊆ p.vars.
+      -- Show: (∑ ms castSucc).support ⊆ (∏ ps castSucc).vars.
+      -- From: support(∑ f) ⊆ ∪ support(f) and support(ms i) ⊆ vars(ps i) ⊆ vars(∏ ps).
+      -- The last step: vars(ps i) ⊆ vars(∏ ps)? From vars_prod: vars(∏) ⊆ ∪ vars.
+      -- WRONG DIRECTION. vars_prod gives vars(∏) ⊆ ∪ vars, not ⊇.
       sorry
     · -- support: (ms last).support ⊆ vars(ps last)
       exact h_supp (Fin.last k)
