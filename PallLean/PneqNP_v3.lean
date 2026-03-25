@@ -763,13 +763,15 @@ theorem hard_tseitin_inputs_exist (_M : DTM) (_F : BoolFunFamily)
 -- (a) §9.3 Theorem 128: Q× has identity minor of size C(L, κ)
 -- (b) §12 God-Move ΠΦ: rank(compiled) ≥ rank(Q×)
 -- L is the number of disjoint clauses from the Tseitin construction.
-axiom layer1_identity_minor (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
-    (L : ℕ) -- number of disjoint Tseitin clauses available at size n
-    (hL_embed : True) -- placeholder: L disjoint clauses embed into compilation
-    :
+theorem layer1_identity_minor (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (L : ℕ) (hL_embed : True) :
     blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
       (compiledViolationPoly M n) (compiledPartition M n)
-    ≥ Nat.choose L (Nat.log 2 n)
+    ≥ Nat.choose L (Nat.log 2 n) := by
+  -- From sos_identity_minor: clause gadgets have identity minor of size C(L,κ).
+  -- From restriction rank monotonicity: rank(full) ≥ rank(clause part).
+  -- Combined: rank(compiledViolationPoly) ≥ C(L, log n).
+  sorry
 
 -- Layer 3: C(αn, log n) > n^c for any c and large n.
 -- Proof: C(αn, log n) ≥ C(αn, c+1) by monotonicity (for log n ≥ c+1).
