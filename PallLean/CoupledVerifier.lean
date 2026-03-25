@@ -264,7 +264,8 @@ theorem coeff_pderiv_zero (v : Fin (N + L)) (p : MvPolynomial (Fin (N + L)) ℚ)
   · intro s _ hs; split_ifs with h
     · by_cases hsv : s v ≥ 1
       · exact absurd (finsupp_sub_single_eq_aux v s m hm h hsv) hs
-      · push_neg at hsv; have : s v = 0 := by omega; simp [this]
+      · push_neg at hsv; have hsv0 : s v = 0 := by omega
+        simp [hsv0]
     · rfl
   · intro h; exact by rw [show p.coeff (m + Finsupp.single v 1) = 0 from by rwa [MvPolynomial.mem_support_iff, not_not] at h]; simp
 
@@ -274,13 +275,14 @@ theorem coeff_iterDerivList_zero (S : List (Fin (N + L))) (p : MvPolynomial (Fin
     (m : (Fin (N + L)) →₀ ℕ) (hm : ∀ s ∈ S, m s = 0) (hnd : S.Nodup) :
     (SPDP.iterDerivList S p).coeff m = 
     p.coeff (m + S.foldl (fun acc s => acc + Finsupp.single s 1) 0) := by
-  induction S with
-  | nil => simp [SPDP.iterDerivList]
+  induction S generalizing p with
+  | nil => unfold SPDP.iterDerivList; simp
   | cons v S ih =>
-    simp only [SPDP.iterDerivList, List.foldl_cons]
     -- iterDerivList (v::S) p = iterDerivList S (pderiv v p)
-    -- By IH: coeff m (iterDerivList S (pderiv v p)) = 
-    --   (pderiv v p).coeff (m + S.foldl ... 0)
+    -- IH: coeff m (iterDerivList S (pderiv v p)) = (pderiv v p).coeff(m + foldl 0 S)
+    -- coeff_pderiv_zero: = p.coeff(m + foldl 0 S + δ_v)
+    -- = p.coeff(m + foldl δ_v S) by commutativity
+    -- All ingredients proved. Lean foldl comm + generalized IH needed.
     sorry
 
 theorem coupled_identity_minor (N L : ℕ)
