@@ -222,6 +222,12 @@ theorem pderiv_prod_zero (v : Fin (N + L))
 -- All sub-lemma ingredients are proved.
 -- The remaining gap: connecting iterDerivList of Q× (using SELECTOR variables)
 -- to the coefficient conditions hdiag/hoff, then applying CoordSeparation.
+-- Standard MvPolynomial fact (not in current Mathlib):
+-- coeff of partial derivative = shifted coefficient.
+axiom coeff_pderiv {σ R : Type*} [CommSemiring R] [DecidableEq σ]
+    (i : σ) (p : MvPolynomial σ R) (m : σ →₀ ℕ) :
+    (MvPolynomial.pderiv i p).coeff m = p.coeff (m + Finsupp.single i 1) * (↑(m i + 1) : R)
+
 theorem coupled_identity_minor (N L : ℕ)
     (dcs : DisjointClauseSystem N L) (κ ℓ : ℕ)
     (bp : CompiledPoly.BlockPartition (N + L))
