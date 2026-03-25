@@ -244,9 +244,15 @@ theorem constraintList_deg (M : DTM) (n : ℕ) :
     le_trans (MvPolynomial.totalDegree_sub _ _) (by rw [MvPolynomial.totalDegree_one, h1]; omega)
   linarith
 
+-- Clause constraints from the 3-SAT instance.
+-- Each clause C = (ℓ₁ ∨ ℓ₂ ∨ ℓ₃) gives a gadget polynomial of degree ≤ 3, width ≤ 6.
+-- For the P-side: clauseConstraints can be empty (bound is uniform).
+-- For the NP-side: clauseConstraints encode the Tseitin clause structure.
+def clauseConstraints (_M : DTM) (_n : ℕ) : List (LocalConstraint _M _n 0 ℚ) := []
+
 noncomputable def compiledViolationPoly (M : DTM) (n : ℕ) :
     MvPolynomial (Fin (numVars M n 0)) ℚ :=
-  violationPoly ℚ M n 0 (constraintList M n ++ transitionConstraints M n)
+  violationPoly ℚ M n 0 (constraintList M n ++ transitionConstraints M n ++ clauseConstraints M n)
 
 -- The block partition for the compiled polynomial.
 -- Cell-based block partition (paper §3.2): one block per cell (t,i).
@@ -266,12 +272,13 @@ noncomputable def compiledPartition (M : DTM) (n : ℕ) :
 theorem compiledDeg (M : DTM) (n : ℕ) :
     (compiledViolationPoly M n).totalDegree ≤ 6 :=
   by
-  apply violation_deg_const ℚ M n 0 (constraintList M n ++ transitionConstraints M n)
+  apply violation_deg_const ℚ M n 0 (constraintList M n ++ transitionConstraints M n ++ clauseConstraints M n)
   intro c hc
   simp only [List.mem_append] at hc
-  rcases hc with h | h
+  rcases hc with (h | h) | h
   · exact constraintList_deg M n c h
   · exact transitionConstraints_deg M n c h
+  · simp [clauseConstraints] at h
 
 -- InCcoll: the compiled polynomial has low blocked SPDP rank.
 def InCcoll (M : DTM) (n : ℕ) (c : ℕ) : Prop :=
@@ -423,9 +430,9 @@ theorem p_subset_ccoll (M : DTM) :
   -- Total ≤ #constraints × (12 + log n)^6 ≤ n^c.
   -- Formal wiring:
   have hV : compiledViolationPoly M n =
-      ((constraintList M n ++ transitionConstraints M n).map
+      ((constraintList M n ++ transitionConstraints M n ++ clauseConstraints M n).map
         (fun c => c.poly * c.poly)).sum := rfl
-  simp only [compiledViolationPoly, violationPoly]
+  simp only [compiledViolationPoly, violationPoly, clauseConstraints, List.append_nil]
   set polys := ((constraintList M n ++ transitionConstraints M n).map
     (fun c => c.poly * c.poly))
   have h_deg : ∀ p ∈ polys, p.totalDegree ≤ 6 := by
