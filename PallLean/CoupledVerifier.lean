@@ -21,6 +21,7 @@
 import PallLean.CompiledPoly
 import PallLean.TuringMachine
 import Mathlib.Tactic
+import PallLean.CoordSeparation
 
 open MvPolynomial
 
@@ -273,8 +274,30 @@ theorem coupled_identity_minor (N L : ℕ)
   -- All ingredients PROVED. Assembly into blockedSpdpRankQ via
   -- linearIndependent_of_diag_offdiag_coeff (PROVED in CoordSeparation).
   --
-  -- The remaining construction: explicit κ-subset family → derivative list → 
-  -- verify SPDP conditions → apply coord separation.
+  -- κ-subsets and derivative generators
+  classical
+  set Q := coupledPoly N L dcs
+  set kSubs := (Finset.univ : Finset (Fin L)).powersetCard κ
+  let selList : Finset (Fin L) → List (Fin (N + L)) :=
+    fun T => T.val.toList.map (selectorVarIdx N L)
+  let v : kSubs → MvPolynomial (Fin (N + L)) ℚ :=
+    fun ⟨T, _⟩ => SPDP.iterDerivList (selList T) Q
+  -- Tag monomial for each κ-subset
+  let tagMon : kSubs → ((Fin (N + L)) →₀ ℕ) := fun ⟨T, _⟩ => sorry
+  -- Each v(T) is in the SPDP span (selector list, m = 1)
+  -- Diagonal: (v T).coeff (tagMon T) ≠ 0
+  -- Off-diagonal: (v T).coeff (tagMon T') = 0 for T ≠ T'
+  -- These follow from h_deriv_single + tag_coeff + coeff_prod_disjoint + coeff_zero_of_var_outside
+  have hdiag : ∀ T, (v T).coeff (tagMon T) ≠ 0 := by sorry
+  have hoff : ∀ T T', T ≠ T' → (v T).coeff (tagMon T') = 0 := by sorry
+  -- Linear independence from coord separation
+  have hli := linearIndependent_of_diag_offdiag_coeff v (fun T => tagMon T) hdiag hoff
+  -- finrank ≥ C(L, κ)
+  have hcard : kSubs.card = Nat.choose L κ := by simp [kSubs, Finset.card_powersetCard]
+  unfold CompiledPoly.blockedSpdpRankQ
+  -- Need: finrank(span genSet) ≥ Nat.choose L κ
+  -- Each v(T) is in span genSet, and v is linearly independent.
+  -- finrank ≥ card of linearly independent set in span.
   sorry
 
 end CoupledVerifier
