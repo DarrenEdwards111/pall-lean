@@ -104,7 +104,11 @@ theorem sos_identity_minor {N : ℕ}
     (tag_support : ∀ C, (tags C).support ⊆ blocks C)
     (tag_coeff : ∀ C, (gadgets C * gadgets C).coeff (tags C) ≠ 0)
     (blocks_nonempty : ∀ C, (blocks C).Nonempty) -- each block has ≥ 1 variable
-    (κ ℓ : ℕ) (bp : CompiledPoly.BlockPartition N) :
+    (κ ℓ : ℕ) (bp : CompiledPoly.BlockPartition N)
+    -- bp separates clause blocks: different clauses → different bp-blocks for their reps
+    (bp_sep : ∀ i j : Fin L, i ≠ j →
+      bp.blockOf (((blocks_nonempty i) : ∃ x, x ∈ blocks i).choose) ≠
+      bp.blockOf (((blocks_nonempty j) : ∃ x, x ∈ blocks j).choose)) :
     CompiledPoly.blockedSpdpRankQ κ ℓ
       ((Finset.univ : Finset (Fin L)).sum (fun C => gadgets C * gadgets C)) bp
     ≥ Nat.choose L κ := by
@@ -203,7 +207,12 @@ theorem sos_identity_minor {N : ℕ}
     intro ⟨T, hT⟩
     apply h_in_span
     · exact le_of_eq (hlen T hT)
-    · -- admissibility: distinct blocks from disjoint clause blocks + injective rep
+    · -- admissibility: distinct blocks from bp_sep
+      -- derivList T = T.val.toList.map rep
+      -- Need: (derivList T).toFinset.image bp.blockOf has same card as (derivList T).toFinset
+      -- This means bp.blockOf is injective on the rep variables.
+      -- From bp_sep: different clauses → different bp-blocks for reps.
+      -- Since T is a subset of [L], the reps are from distinct clauses.
       sorry
   -- Linear independence via coefficient extraction (identity minor argument)
   -- coeff(τ_T) is a linear functional. Applied to Σ c·v = 0:
