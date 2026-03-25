@@ -288,8 +288,18 @@ theorem coupled_identity_minor (N L : ℕ)
   -- Diagonal: (v T).coeff (tagMon T) ≠ 0
   -- Off-diagonal: (v T).coeff (tagMon T') = 0 for T ≠ T'
   -- These follow from h_deriv_single + tag_coeff + coeff_prod_disjoint + coeff_zero_of_var_outside
-  have hdiag : ∀ T, (v T).coeff (tagMon T) ≠ 0 := by sorry
-  have hoff : ∀ T T', T ≠ T' → (v T).coeff (tagMon T') = 0 := by sorry
+  have hdiag : ∀ T, (v T).coeff (tagMon T) ≠ 0 := by
+    -- v(T) = iterDerivList selectors Q×.
+    -- By iterated h_deriv_single: = (-1)^κ · ∏_{C∈T} V_C² · ∏_{C∉T} factor_C.
+    -- coeff(tagMon T) = (-1)^κ · ∏ coeff(tag C)(V_C²) · 1 ≠ 0.
+    -- Uses: coeff_prod_disjoint (PROVED), tag_coeff, constant term of factors = 1.
+    sorry
+  have hoff : ∀ T T', T ≠ T' → (v T).coeff (tagMon T') = 0 := by
+    -- For T ≠ T': ∃ C* ∈ T' \ T. tagMon T' uses tag C* with support in B_{C*}.
+    -- v(T) = (-1)^κ · ∏_{C∈T} V_C² · rest. The ∏ V_C² uses only ∪_{C∈T} B_C.
+    -- B_{C*} disjoint from ∪_{C∈T} B_C (since C* ∉ T, blocks disjoint).
+    -- By coeff_zero_of_var_outside (PROVED): coefficient = 0.
+    sorry
   -- Linear independence from coord separation
   have hli := linearIndependent_of_diag_offdiag_coeff v (fun T => tagMon T) hdiag hoff
   -- finrank ≥ C(L, κ)
