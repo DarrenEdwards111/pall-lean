@@ -246,6 +246,12 @@ theorem coeff_zero_coupledFactor (dcs : DisjointClauseSystem N L) (C : Fin L) :
   simp [MvPolynomial.coeff_sub, MvPolynomial.coeff_one, MvPolynomial.coeff_mul, 
         Finset.antidiagonal_zero, MvPolynomial.coeff_X]
 
+-- coeff m (pderiv i p) = coeff(m + δ_i)(p) when m(i) = 0.
+theorem coeff_pderiv_zero (i : Fin (N + L)) (p : MvPolynomial (Fin (N + L)) ℚ)
+    (m : (Fin (N + L)) →₀ ℕ) (hm : m i = 0) :
+    (MvPolynomial.pderiv i p).coeff m = p.coeff (m + Finsupp.single i 1) := by
+  sorry
+
 theorem coupled_identity_minor (N L : ℕ)
     (dcs : DisjointClauseSystem N L) (κ ℓ : ℕ)
     (bp : CompiledPoly.BlockPartition (N + L))
@@ -325,9 +331,18 @@ theorem coupled_identity_minor (N L : ℕ)
     rw [coeff_zero_prod]
     exact Finset.prod_eq_one (fun C _ => coeff_zero_coupledFactor dcs C)
   -- hdiag from h_deriv_single structure
-  have hdiag : ∀ T, (v T).coeff (tagMon T) ≠ 0 := by sorry
+  have hdiag : ∀ T, (v T).coeff (tagMon T) ≠ 0 := by
+    -- Iterate coeff_pderiv_zero: each selector derivative shifts the monomial.
+    -- After κ shifts: coeff(tagMon T)(v T) = coeff(tagMon T + Σ δ_{z_C})(Q).
+    -- In Q = ∏(1-z_C V²): the monomial tagMon T + Σ δ_{z_C} picks -z_C V² for C ∈ T, 1 for C ∉ T.
+    -- Coefficient = (-1)^κ ∏ coeff(tag C)(V²) ≠ 0 (from tag_coeff + coeff_prod_disjoint).
+    sorry
   -- hoff from coeff_zero_of_var_outside + disjoint blocks
-  have hoff : ∀ T T', T ≠ T' → (v T).coeff (tagMon T') = 0 := by sorry
+  have hoff : ∀ T T', T ≠ T' → (v T).coeff (tagMon T') = 0 := by
+    -- After shifting: coeff(tagMon T' + Σ_{C∈T} δ_{z_C})(Q).
+    -- T ≠ T': ∃ C* ∈ T' \\ T. tagMon T' has tag(C*) support in B_{C*}.
+    -- But the z-selector picks from T, not T'. Monomial mismatch → coeff = 0.
+    sorry
   -- Linear independence from coord separation
   have hli := linearIndependent_of_diag_offdiag_coeff v (fun T => tagMon T) hdiag hoff
   -- finrank ≥ C(L, κ)
