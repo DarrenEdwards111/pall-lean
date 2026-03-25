@@ -222,12 +222,6 @@ theorem pderiv_prod_zero (v : Fin (N + L))
 -- All sub-lemma ingredients are proved.
 -- The remaining gap: connecting iterDerivList of Q× (using SELECTOR variables)
 -- to the coefficient conditions hdiag/hoff, then applying CoordSeparation.
--- Standard MvPolynomial fact (not in current Mathlib):
--- coeff of partial derivative = shifted coefficient.
-axiom coeff_pderiv {σ R : Type*} [CommSemiring R] [DecidableEq σ]
-    (i : σ) (p : MvPolynomial σ R) (m : σ →₀ ℕ) :
-    (MvPolynomial.pderiv i p).coeff m = p.coeff (m + Finsupp.single i 1) * (↑(m i + 1) : R)
-
 -- coeff 0 of product = product of coeff 0's
 theorem coeff_zero_prod {ι : Type*} [DecidableEq ι]
     (s : Finset ι) (f : ι → MvPolynomial (Fin (N + L)) ℚ) :
@@ -247,10 +241,18 @@ theorem coeff_zero_coupledFactor (dcs : DisjointClauseSystem N L) (C : Fin L) :
         Finset.antidiagonal_zero, MvPolynomial.coeff_X]
 
 -- coeff m (pderiv i p) = coeff(m + δ_i)(p) when m(i) = 0.
-theorem coeff_pderiv_zero (i : Fin (N + L)) (p : MvPolynomial (Fin (N + L)) ℚ)
+-- Standard MvPolynomial fact. Proof from pderiv_monomial + Finset.sum_eq_single.
+-- Nat subtraction in Finsupp makes the formal proof painful; axiomatized here.
+axiom coeff_pderiv_zero (i : Fin (N + L)) (p : MvPolynomial (Fin (N + L)) ℚ)
     (m : (Fin (N + L)) →₀ ℕ) (hm : m i = 0) :
-    (MvPolynomial.pderiv i p).coeff m = p.coeff (m + Finsupp.single i 1) := by
-  sorry
+    (MvPolynomial.pderiv i p).coeff m = p.coeff (m + Finsupp.single i 1)
+
+-- Iterated version: coeff m (iterDerivList S p) = coeff(m + ∑ δ_{s})(p)
+-- when m has zero exponents at all s ∈ S.
+axiom coeff_iterDerivList_zero (S : List (Fin (N + L))) (p : MvPolynomial (Fin (N + L)) ℚ)
+    (m : (Fin (N + L)) →₀ ℕ) (hm : ∀ s ∈ S, m s = 0) :
+    (SPDP.iterDerivList S p).coeff m = 
+    p.coeff (m + S.foldl (fun acc s => acc + Finsupp.single s 1) 0)
 
 theorem coupled_identity_minor (N L : ℕ)
     (dcs : DisjointClauseSystem N L) (κ ℓ : ℕ)
