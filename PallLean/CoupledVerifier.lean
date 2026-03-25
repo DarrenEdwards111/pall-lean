@@ -61,15 +61,15 @@ structure DisjointClauseSystem (N L : ℕ) where
   -- Clause gadget V_C : polynomial in block variables
   gadget : Fin L → MvPolynomial (Fin (N + L)) ℚ
   -- Tag monomial τ_C : monomial in block variables
-  tag : Fin L → MvPolynomial (Fin (N + L)) ℚ
+  tag : Fin L → (Fin (N + L) →₀ ℕ)
   -- V_C uses only variables in B_C
   gadget_support : ∀ (C : Fin L), ∀ v ∈ (gadget C).vars,
     ∃ i : Fin N, v = blockVarIdx N L i ∧ i ∈ clauseBlock C
   -- τ_C uses only variables in B_C
-  tag_support : ∀ (C : Fin L), ∀ v ∈ (tag C).vars,
+  tag_support : ∀ (C : Fin L), ∀ v ∈ (tag C).support,
     ∃ i : Fin N, v = blockVarIdx N L i ∧ i ∈ clauseBlock C
   -- Tag coefficient property: [τ_C] V_C² = 1
-  tag_coeff : ∀ (C : Fin L), True -- placeholder for the coefficient extraction
+  tag_coeff : ∀ (C : Fin L), (gadget C * gadget C).coeff (tag C) ≠ 0
 
 /-! ## Coupled verifier polynomial Q×
 
@@ -283,7 +283,7 @@ theorem coupled_identity_minor (N L : ℕ)
   let v : kSubs → MvPolynomial (Fin (N + L)) ℚ :=
     fun ⟨T, _⟩ => SPDP.iterDerivList (selList T) Q
   -- Tag monomial for each κ-subset
-  let tagMon : kSubs → ((Fin (N + L)) →₀ ℕ) := fun ⟨T, _⟩ => sorry
+  let tagMon : kSubs → ((Fin (N + L)) →₀ ℕ) := fun ⟨T, _⟩ => T.sum dcs.tag
   -- Each v(T) is in the SPDP span (selector list, m = 1)
   -- Diagonal: (v T).coeff (tagMon T) ≠ 0
   -- Off-diagonal: (v T).coeff (tagMon T') = 0 for T ≠ T'
@@ -295,9 +295,9 @@ theorem coupled_identity_minor (N L : ℕ)
   -- finrank ≥ C(L, κ)
   have hcard : kSubs.card = Nat.choose L κ := by simp [kSubs, Finset.card_powersetCard]
   unfold CompiledPoly.blockedSpdpRankQ
-  -- Need: finrank(span genSet) ≥ Nat.choose L κ
-  -- Each v(T) is in span genSet, and v is linearly independent.
-  -- finrank ≥ card of linearly independent set in span.
+  -- Each v(T) is in the SPDP span (m = 1, selector list, admissible)
+  -- Then: finrank ≥ card of linearly independent family in span.
+  -- v(T) ∈ span: iterDerivList of Q with m=1 is a valid SPDP generator.
   sorry
 
 end CoupledVerifier
