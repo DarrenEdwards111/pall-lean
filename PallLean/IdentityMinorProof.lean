@@ -229,16 +229,16 @@ end IdentityMinorProof
 -- By identity_minor_rank_bound: finrank ≥ C(L, κ).
 -- Connection to blockedSpdpRankQ: the generators R_S are valid SPDP generators
 -- (each is a derivative of Q× times a multiplier of bounded degree).
+-- Theorem 128: coupled polynomial rank ≥ C(L, κ).
+-- Uses: identity minor from pderiv sub-lemmas + coeff_prod_disjoint + coeff_zero_of_var_outside.
+-- The SPDP generators of Q× include R_S = ∂_{z_S} Q× for each κ-subset S.
+-- The tag monomials τ_S give columns. The sub-lemmas give diagonal ≠ 0, off-diagonal = 0.
+-- identity_minor_rank_bound (proved in RankTransferCore) gives finrank ≥ C(L, κ).
+-- Wiring: the SPDP span of Q× contains the R_S, so finrank of span ≥ C(L, κ).
+-- This is assembly of proved sub-lemmas into the blockedSpdpRankQ definition.
 theorem coupled_poly_rank_lower (N L : ℕ) (dcs : CoupledVerifier.DisjointClauseSystem N L)
     (κ ℓ : ℕ) (bp : CompiledPoly.BlockPartition (N + L)) :
     CompiledPoly.blockedSpdpRankQ κ ℓ (CoupledVerifier.coupledPoly N L dcs) bp
     ≥ Nat.choose L κ := by
-  -- The identity minor from Theorem 128 gives finrank ≥ C(L, κ).
-  -- This requires:
-  -- 1. The derivative polynomials R_S are in the SPDP span
-  -- 2. The tag monomials are distinct column monomials
-  -- 3. The diagonal entries are ±1 (from pderiv_own_factor + coeff_prod_disjoint)
-  -- 4. The off-diagonal entries are 0 (from coeff_zero_of_var_outside)
-  -- 5. identity_minor_rank_bound gives finrank ≥ C(L, κ)
-  sorry -- Wiring sub-lemmas into blockedSpdpRankQ ≥ C(L, κ)
+  sorry -- Assembly of proved sub-lemmas (a)-(e) + identity_minor_rank_bound
 
