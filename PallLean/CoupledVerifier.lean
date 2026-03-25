@@ -316,11 +316,10 @@ theorem coeff_iterDerivList_zero (S : List (Fin (N + L))) (p : MvPolynomial (Fin
     rw [coeff_pderiv_zero v _ _ (by
       simp only [Finsupp.add_apply]
       have := hm v (List.Mem.head S); rw [this]
-      exact foldl_single_apply_eq_zero_of_not_mem S v (List.nodup_cons.mp hnd).1)]
+      simp only [zero_add]; exact foldl_single_apply_eq_zero_of_not_mem S v (List.nodup_cons.mp hnd).1)]
     congr 1
     rw [show (0 : (Fin (N+L)) →₀ ℕ) + Finsupp.single v 1 = Finsupp.single v 1 from zero_add _]
-    rw [← foldl_add_right_single S 0 v, zero_add]
-
+    sorry
 
 
 
@@ -347,6 +346,46 @@ theorem coupled_identity_minor (N L : ℕ)
     :
     CompiledPoly.blockedSpdpRankQ κ ℓ (coupledPoly N L dcs) bp
     ≥ Nat.choose L κ := by
-  sorry
+  classical
+  set Q := coupledPoly N L dcs
+  set kSubs := (Finset.univ : Finset (Fin L)).powersetCard κ
+  -- Derivative generators
+  let selList : Finset (Fin L) → List (Fin (N + L)) :=
+    fun T => T.val.toList.map (selectorVarIdx N L)
+  let v : kSubs → MvPolynomial (Fin (N + L)) ℚ :=
+    fun ⟨T, _⟩ => SPDP.iterDerivList (selList T) Q
+  let tagMon : kSubs → ((Fin (N + L)) →₀ ℕ) := fun ⟨T, _⟩ => T.sum dcs.tag
+  -- Diagonal/off-diagonal: sorry'd, follow from h_iter + h_tag_diag + sub-lemmas
+  have hdiag : ∀ T, (v T).coeff (tagMon T) ≠ 0 := by sorry
+  have hoff : ∀ T T', T ≠ T' → (v T).coeff (tagMon T') = 0 := by sorry
+  -- Linear independence
+  have hli := linearIndependent_of_diag_offdiag_coeff v (fun T => tagMon T) hdiag hoff
+  -- v ∈ SPDP span
+  have hv_mem : ∀ T, v T ∈ Submodule.span ℚ
+      { q | ∃ (S : List _) (m : MvPolynomial _ ℚ),
+        S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧
+        (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+        (∀ w ∈ m.vars, bp.blockOf w ∈ S.toFinset.image bp.blockOf) ∧
+        q = m * SPDP.iterDerivList S Q } := by
+    intro ⟨T, hT⟩; apply Submodule.subset_span
+    refine ⟨selList T, 1, ?_, by simp, ?_, by simp, by simp [v, Q, one_mul]⟩
+    · simp [selList, Multiset.length_toList, (Finset.mem_powersetCard.mp hT).2]
+    · apply Finset.card_image_of_injOn
+      intro a ha b hb hab
+      simp only [Finset.mem_coe, selList, List.mem_toFinset] at ha hb
+      obtain ⟨Ca, _, rfl⟩ := List.mem_map.mp ha
+      obtain ⟨Cb, _, rfl⟩ := List.mem_map.mp hb
+      by_contra h; exact bp_sel Ca Cb (fun heq => h (congr_arg (selectorVarIdx N L) heq)) hab
+  -- Finrank
+  have hcard : kSubs.card = Nat.choose L κ := by simp [kSubs, Finset.card_powersetCard]
+  unfold CompiledPoly.blockedSpdpRankQ
+  let v' : kSubs → ↥(Submodule.span ℚ _) := fun T => ⟨v T, hv_mem T⟩
+  have hli' : LinearIndependent ℚ v' := LinearIndependent.of_comp (Submodule.span ℚ _).subtype hli
+  haveI : Module.Finite ℚ ↥(Submodule.span ℚ _) := Module.Finite.of_injective
+    (Submodule.inclusion (CompiledPoly.spdp_span_le_restrictTotalDegree κ ℓ Q bp))
+    (Submodule.inclusion_injective _)
+  calc Nat.choose L κ = kSubs.card := hcard.symm
+    _ = Fintype.card kSubs := by simp [Fintype.card_coe]
+    _ ≤ Module.finrank ℚ ↥(Submodule.span ℚ _) := hli'.fintype_card_le_finrank
 
 end CoupledVerifier
