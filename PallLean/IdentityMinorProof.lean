@@ -162,8 +162,28 @@ theorem coeff_prod_disjoint {σ : Type*} [DecidableEq σ]
         (fun i => h_supp i.castSucc)]
       rw [Fin.prod_univ_castSucc]
     · -- vars disjoint: vars(∏ castSucc) vs vars(ps last)
-      sorry
+      apply Finset.disjoint_of_subset_left (MvPolynomial.vars_prod _)
+      rw [Finset.disjoint_biUnion_left]
+      intro i _
+      exact h_disjoint i.castSucc (Fin.last k) (by simp [Fin.ext_iff]; omega)
     · -- support: (∑ ms castSucc).support ⊆ vars(∏ castSucc)
+      -- support(∑ mᵢ) ⊆ ∪ support(mᵢ) ⊆ ∪ vars(pᵢ) ⊆ vars(∏ pᵢ) ... actually need ⊆ vars(∏)
+      -- This is subtle: need vars(∏ pᵢ) ⊇ ∪ vars(pᵢ) which is NOT true in general!
+      -- vars(p*q) ⊆ vars(p) ∪ vars(q) but can be strict (cancellation).
+      -- However: support(∑ mᵢ) ⊆ ∪ support(mᵢ) ⊆ ∪ vars(pᵢ castSucc).
+      -- And we need ⊆ vars(∏ pᵢ castSucc). This requires: if m has support in ∪ vars(pᵢ)
+      -- and coeff(m)(∏ pᵢ) ≠ 0, then m.support ⊆ vars(∏ pᵢ).
+      -- But we DON'T need coeff ≠ 0 — we need subset of vars of the PRODUCT.
+      -- Actually coeff_mul_disjoint needs support ⊆ vars, NOT that the coeff is nonzero.
+      -- This is about the monomial m: its support must be in vars of the polynomial.
+      -- h_supp says (ms i).support ⊆ (ps i).vars for all i.
+      -- Need: (∑ i:Fin k, ms (i.castSucc)).support ⊆ (∏ i:Fin k, ps (i.castSucc)).vars.
+      -- This is NOT obvious since vars of product can be smaller than union of vars.
+      -- BUT: coeff_mul_disjoint's hypothesis says support ⊆ vars of the polynomial.
+      -- The support of a sum: support(a+b) ⊆ support(a) ∪ support(b).
+      -- Each (ms i.castSucc).support ⊆ (ps i.castSucc).vars.
+      -- vars(∏ pᵢ) ⊇ ∪ vars(pᵢ) when the product has no cancellation... not guaranteed.
+      -- WEAKER: just need support(∑ ms) ⊆ vars(∏ ps). Not ∪ vars(pᵢ).
       sorry
     · -- support: (ms last).support ⊆ vars(ps last)
       exact h_supp (Fin.last k)
