@@ -764,7 +764,13 @@ axiom layer1_identity_minor (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     ≥ Nat.choose L (Nat.log 2 n)
 
 -- Layer 3: C(αn, log n) > n^c for any c and large n.
--- Standard combinatorics: C(m,k) ≥ (m/k)^k, k = log n gives superpolynomial.
+-- Proof: C(αn, log n) ≥ C(αn, c+1) by monotonicity (for log n ≥ c+1).
+--   C(αn, c+1) * (c+1)! ≥ (αn-c)^(c+1) ≥ (n-c)^(c+1) (by choose_factorial_ge).
+--   (n-c)^(c+1) > n^c * (c+1)! for n large (polynomial growth in degree c+1 vs c).
+--   So C(αn, c+1) > n^c.
+-- Building blocks (descFactorial_lower, choose_factorial_ge, choose_mono_iter)
+-- are proved in IdentityMinorProof.lean.
+-- The final assembly needs (n-c)^{c+1} > n^c · (c+1)! which is hard in ℕ.
 axiom layer3_choose_beats_poly (α : ℕ) (hα : α ≥ 1) (c : ℕ) :
     ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 →
     Nat.choose (α * n) (Nat.log 2 n) > n ^ c
