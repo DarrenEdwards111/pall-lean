@@ -132,6 +132,18 @@ theorem sos_identity_minor {N : ℕ}
   -- The concrete wiring: unwrap blockedSpdpRankQ, show each ∂_S(P) is
   -- a valid element, then apply Submodule.finrank_mono on the span
   -- containing the identity-minor family.
+  -- The SPDP generating set
+  set genSet := { q : MvPolynomial (Fin N) ℚ | ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
+    S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧
+    (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+    (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
+    q = m * SPDP.iterDerivList S P }
+  -- For each κ-subset, the derivative is in genSet (with m = 1)
+  -- and the identity minor gives linear independence.
+  -- This requires constructing the κ-subset → derivative map
+  -- and verifying all SPDP conditions.
+  -- The mathematical content is PROVED in the sub-lemmas.
+  -- The wiring connects sub-lemmas to the blockedSpdpRankQ definition.
   sorry
 
 end SoSIdentityMinor
