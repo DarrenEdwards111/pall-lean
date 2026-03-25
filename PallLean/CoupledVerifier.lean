@@ -244,9 +244,15 @@ theorem coeff_zero_coupledFactor (dcs : DisjointClauseSystem N L) (C : Fin L) :
 -- Standard MvPolynomial fact. Proof from pderiv_monomial + Finset.sum_eq_single.
 -- Nat subtraction in Finsupp makes the formal proof painful; axiomatized here.
 -- Finsupp subtraction helper (Nat subtraction in Finsupp makes this nontrivial)
-axiom finsupp_sub_single_eq_aux (v : Fin (N + L)) (s m : (Fin (N + L)) →₀ ℕ)
+theorem finsupp_sub_single_eq_aux (v : Fin (N + L)) (s m : (Fin (N + L)) →₀ ℕ)
     (hm : m v = 0) (h : s - Finsupp.single v 1 = m) (hsv : s v ≥ 1) :
-    s = m + Finsupp.single v 1
+    s = m + Finsupp.single v 1 := by
+  have h' : ∀ j, s j - (Finsupp.single v 1) j = m j :=
+    fun j => congr_fun (congr_arg DFunLike.coe h) j
+  ext j; simp only [Finsupp.add_apply, Finsupp.single_apply] at *; specialize h' j
+  by_cases hjv : j = v
+  · subst hjv; simp at h' ⊢; omega
+  · rw [if_neg (Ne.symm hjv)] at h' ⊢; omega
 
 theorem coeff_pderiv_zero (v : Fin (N + L)) (p : MvPolynomial (Fin (N + L)) ℚ)
     (m : (Fin (N + L)) →₀ ℕ) (hm : m v = 0) :
@@ -264,10 +270,15 @@ theorem coeff_pderiv_zero (v : Fin (N + L)) (p : MvPolynomial (Fin (N + L)) ℚ)
 
 -- Iterated version: coeff m (iterDerivList S p) = coeff(m + ∑ δ_{s})(p)
 -- when m has zero exponents at all s ∈ S.
-axiom coeff_iterDerivList_zero (S : List (Fin (N + L))) (p : MvPolynomial (Fin (N + L)) ℚ)
+theorem coeff_iterDerivList_zero (S : List (Fin (N + L))) (p : MvPolynomial (Fin (N + L)) ℚ)
     (m : (Fin (N + L)) →₀ ℕ) (hm : ∀ s ∈ S, m s = 0) :
     (SPDP.iterDerivList S p).coeff m = 
-    p.coeff (m + S.foldl (fun acc s => acc + Finsupp.single s 1) 0)
+    p.coeff (m + S.foldl (fun acc s => acc + Finsupp.single s 1) 0) := by
+  induction S with
+  | nil => simp [SPDP.iterDerivList]
+  | cons v S ih =>
+    simp only [SPDP.iterDerivList, List.foldl_cons]
+    sorry
 
 theorem coupled_identity_minor (N L : ℕ)
     (dcs : DisjointClauseSystem N L) (κ ℓ : ℕ)
