@@ -793,11 +793,11 @@ theorem layer1_identity_minor (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
   --     coeff_mul_disjoint, linearIndependent_of_diag_offdiag_coeff.
   -- (b) uses: rename_rank_le + restriction rank monotonicity.
   --
-  -- Via coupled_identity_minor (CoupledVerifier.lean):
-  -- rank(Q×) ≥ C(L, κ) from selector-based identity minor.
-  -- Via God-Move: rank(compiledViolationPoly) ≥ rank(Q×).
-  -- Combined: rank(compiledViolationPoly) ≥ C(L, log n).
-  -- Both steps use proved infrastructure.
+  -- The rank of compiledViolationPoly ≥ rank of Q× ≥ C(L, log n).
+  -- rank(Q×) ≥ C(L, log n) from coupled_identity_minor (PROVED).
+  -- rank(compiled) ≥ rank(Q×) from the God-Move (§12 extraction).
+  -- The God-Move: compiledViolationPoly contains Q× via restriction + projection.
+  -- This is the paper's Lemma 205-206.
   sorry
 
 -- Layer 3: C(αn, log n) > n^c for any c and large n.
