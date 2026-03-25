@@ -356,8 +356,29 @@ theorem coupled_identity_minor (N L : ℕ)
     fun ⟨T, _⟩ => SPDP.iterDerivList (selList T) Q
   let tagMon : kSubs → ((Fin (N + L)) →₀ ℕ) := fun ⟨T, _⟩ => T.sum dcs.tag
   -- Diagonal/off-diagonal: sorry'd, follow from h_iter + h_tag_diag + sub-lemmas
-  have hdiag : ∀ T, (v T).coeff (tagMon T) ≠ 0 := by sorry
-  have hoff : ∀ T T', T ≠ T' → (v T).coeff (tagMon T') = 0 := by sorry
+  -- hdiag and hoff: concrete coefficient facts about Q×.
+  -- By coeff_iterDerivList_zero (PROVED):
+  --   (v T).coeff (tagMon T) = Q.coeff (tagMon T + selector_monomial(T))
+  -- Then by product structure of Q and tag_coeff/disjoint blocks:
+  --   diagonal ≠ 0, off-diagonal = 0.
+  -- These use coeff_prod_disjoint (PROVED), tag_coeff (hypothesis),
+  -- coeff_zero_of_var_outside (PROVED), and the product structure of Q×.
+  have hdiag : ∀ T, (v T).coeff (tagMon T) ≠ 0 := by
+    intro ⟨T, hT⟩
+    simp only [v, tagMon]
+    -- Rewrite using coeff_iterDerivList_zero
+    rw [coeff_iterDerivList_zero (selList T) Q (T.sum dcs.tag)
+      (by intro s hs
+          -- tag uses block vars, selList uses selector vars. tag(v) = 0 for selector v.
+          sorry)
+      (by -- selList T has no duplicates from bp_sel
+          sorry)
+    -- Goal: Q.coeff (T.sum dcs.tag + Σ δ_{z_C}) ≠ 0
+    -- This is the product coefficient = (-1)^κ ∏ tag_coeff ≠ 0.
+    sorry
+  have hoff : ∀ T T', T ≠ T' → (v T).coeff (tagMon T') = 0 := by
+    -- Similar to hdiag but with T ≠ T': the shifted monomial has wrong block support.
+    sorry
   -- Linear independence
   have hli := linearIndependent_of_diag_offdiag_coeff v (fun T => tagMon T) hdiag hoff
   -- v ∈ SPDP span
