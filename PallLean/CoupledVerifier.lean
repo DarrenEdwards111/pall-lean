@@ -21,6 +21,7 @@
 import PallLean.CompiledPoly
 import PallLean.TuringMachine
 import Mathlib.Tactic
+import PallLean.CoupledVerifierAPI
 import PallLean.CoordSeparation
 
 open MvPolynomial
@@ -366,18 +367,17 @@ theorem coupled_identity_minor (N L : ℕ)
   have hdiag : ∀ T, (v T).coeff (tagMon T) ≠ 0 := by
     intro ⟨T, hT⟩
     simp only [v, tagMon]
-    -- Rewrite using coeff_iterDerivList_zero
-    rw [coeff_iterDerivList_zero (selList T) Q (T.sum dcs.tag)
-      (by intro s hs
-          -- tag uses block vars, selList uses selector vars. tag(v) = 0 for selector v.
-          sorry)
-      (by -- selList T has no duplicates from bp_sel
-          sorry)
-    -- Goal: Q.coeff (T.sum dcs.tag + Σ δ_{z_C}) ≠ 0
-    -- This is the product coefficient = (-1)^κ ∏ tag_coeff ≠ 0.
+    rw [coeff_iterDerivList_zero _ Q _ (CoupledVerifierAPI.tag_zero_at_selList dcs T) (CoupledVerifierAPI.selList_nodup dcs T)]
+    -- Goal: Q.coeff (shifted monomial) ≠ 0
+    -- = (-1)^κ ∏ tag_coeff from product structure. Needs coeff_prod_disjoint on Q.
     sorry
   have hoff : ∀ T T', T ≠ T' → (v T).coeff (tagMon T') = 0 := by
-    -- Similar to hdiag but with T ≠ T': the shifted monomial has wrong block support.
+    intro ⟨T, hT⟩ ⟨T', hT'⟩ hne
+    simp only [v, tagMon]
+    rw [coeff_iterDerivList_zero _ Q _ (CoupledVerifierAPI.tag_zero_at_selList dcs T) (CoupledVerifierAPI.selList_nodup dcs T)]
+    -- Goal: Q.coeff (shifted monomial for T') = 0
+    -- T ≠ T' → ∃ C* ∈ T' \ T. Tag uses B_{C*} var. Shifted monomial picks 1 from factor C*.
+    -- So the coefficient lacks the B_{C*} contribution → 0.
     sorry
   -- Linear independence
   have hli := linearIndependent_of_diag_offdiag_coeff v (fun T => tagMon T) hdiag hoff
