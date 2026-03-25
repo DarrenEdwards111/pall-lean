@@ -97,7 +97,7 @@ theorem pderiv_other_factor (dcs : CoupledVerifier.DisjointClauseSystem N L) (C 
 -- Coefficient of product monomial in product of disjoint polynomials
 -- This is the key algebraic fact for both diagonal and off-diagonal.
 -- Unique decomposition for disjoint-support Finsupp sums
-private lemma finsupp_add_eq_of_disjoint {σ : Type*} [DecidableEq σ]
+lemma finsupp_add_eq_of_disjoint {σ : Type*} [DecidableEq σ]
     (S T : Finset σ) (hST : Disjoint S T)
     (a b c d : σ →₀ ℕ) (hab : c + d = a + b)
     (hcS : c.support ⊆ S) (hdT : d.support ⊆ T)
@@ -139,86 +139,7 @@ theorem coeff_mul_disjoint {σ : Type*} [DecidableEq σ]
       hcd hc_supp hd_supp ha hb
     exact hne (Prod.ext hca hdb)
 
--- General version by induction from binary.
--- vars(p * q) ⊇ vars(p) when q ≠ 0 and vars disjoint.
--- Used to show support(∑ ms) ⊆ vars(∏ ps) in the inductive step.
-theorem vars_mul_right_subset {σ : Type*} [DecidableEq σ]
-    (p q : MvPolynomial σ ℚ) (hq : q ≠ 0) (hdisj : Disjoint p.vars q.vars) :
-    p.vars ⊆ (p * q).vars := by
-  intro v hv
-  rw [MvPolynomial.mem_vars] at hv ⊢
-  obtain ⟨m, hm, hvm⟩ := hv
-  obtain ⟨m', hm'⟩ := Finsupp.support_nonempty_iff.mpr hq
-  refine ⟨m + m', ?_, ?_⟩
-  · rw [MvPolynomial.mem_support_iff]
-    have hcm := coeff_mul_disjoint p q m m' hdisj
-      (fun v hv' => (MvPolynomial.mem_vars v).mpr ⟨m, hm, hv'⟩)
-      (fun v hv' => (MvPolynomial.mem_vars v).mpr ⟨m', hm', hv'⟩)
-    rw [hcm]
-    exact mul_ne_zero (MvPolynomial.mem_support_iff.mp hm) (MvPolynomial.mem_support_iff.mp hm')
-  · rw [Finsupp.mem_support_iff, Finsupp.add_apply]
-    have : m' v = 0 := by
-      by_contra h
-      exact Finset.disjoint_left.mp hdisj
-        ((MvPolynomial.mem_vars v).mpr ⟨m, hm, hvm⟩)
-        ((MvPolynomial.mem_vars v).mpr ⟨m', hm', Finsupp.mem_support_iff.mpr h⟩)
-    rw [this, add_zero]; exact Finsupp.mem_support_iff.mp hvm
 
-theorem coeff_prod_disjoint {σ : Type*} [DecidableEq σ]
-    {k : ℕ} (ps : Fin k → MvPolynomial σ ℚ) (ms : Fin k → (σ →₀ ℕ))
-    (h_disjoint : ∀ i j, i ≠ j → Disjoint (ps i).vars (ps j).vars)
-    (h_supp : ∀ i, (ms i).support ⊆ (ps i).vars) :
-    (∏ i, ps i).coeff (∑ i, ms i) = ∏ i, (ps i).coeff (ms i) := by
-  induction k with
-  | zero => simp
-  | succ k ih =>
-    rw [Fin.prod_univ_castSucc, Fin.sum_univ_castSucc]
-    -- Binary split: (∏_{i<k} ps(castSucc i)) * ps(last), (∑_{i<k} ms(castSucc i)) + ms(last)
-    -- Apply coeff_mul_disjoint + ih
-    -- coeff_mul_disjoint: need vars(∏ castSucc) disjoint from vars(ps last)
-    -- and support conditions.
-    -- For now: vars subset and disjointness transfer are tedious but routine.
-    -- The mathematical content is in coeff_mul_disjoint (PROVED) and ih.
-    rw [coeff_mul_disjoint]
-    · -- coeff(a)(∏ castSucc) = ∏ coeff by IH
-      rw [ih (fun i => ps (i.castSucc)) (fun i => ms (i.castSucc))
-        (fun i j hij => h_disjoint i.castSucc j.castSucc (by simp [Fin.ext_iff] at hij ⊢; exact hij))
-        (fun i => h_supp i.castSucc)]
-      rw [Fin.prod_univ_castSucc]
-    · -- vars disjoint: vars(∏ castSucc) vs vars(ps last)
-      apply Finset.disjoint_of_subset_left (MvPolynomial.vars_prod _)
-      rw [Finset.disjoint_biUnion_left]
-      intro i _
-      exact h_disjoint i.castSucc (Fin.last k) (by simp [Fin.ext_iff]; omega)
-    · -- support: (∑ ms castSucc).support ⊆ vars(∏ castSucc)
-      -- support(∑ mᵢ) ⊆ ∪ support(mᵢ) ⊆ ∪ vars(pᵢ) ⊆ vars(∏ pᵢ) ... actually need ⊆ vars(∏)
-      -- This is subtle: need vars(∏ pᵢ) ⊇ ∪ vars(pᵢ) which is NOT true in general!
-      -- vars(p*q) ⊆ vars(p) ∪ vars(q) but can be strict (cancellation).
-      -- However: support(∑ mᵢ) ⊆ ∪ support(mᵢ) ⊆ ∪ vars(pᵢ castSucc).
-      -- And we need ⊆ vars(∏ pᵢ castSucc). This requires: if m has support in ∪ vars(pᵢ)
-      -- and coeff(m)(∏ pᵢ) ≠ 0, then m.support ⊆ vars(∏ pᵢ).
-      -- But we DON'T need coeff ≠ 0 — we need subset of vars of the PRODUCT.
-      -- Actually coeff_mul_disjoint needs support ⊆ vars, NOT that the coeff is nonzero.
-      -- This is about the monomial m: its support must be in vars of the polynomial.
-      -- h_supp says (ms i).support ⊆ (ps i).vars for all i.
-      -- Need: (∑ i:Fin k, ms (i.castSucc)).support ⊆ (∏ i:Fin k, ps (i.castSucc)).vars.
-      -- This is NOT obvious since vars of product can be smaller than union of vars.
-      -- BUT: coeff_mul_disjoint's hypothesis says support ⊆ vars of the polynomial.
-            -- support(∑ ms) ⊆ vars(∏ ps): each ms(i).support ⊆ ps(i).vars ⊆ vars(∏ ps).
-      intro v hv
-      -- v ∈ (∑ ms castSucc).support
-      rw [Finsupp.mem_support_iff] at hv
-      -- v ∈ some ms(i).support, hence v ∈ vars(ps(i)) ⊆ vars(∏ ps)
-      -- Use: vars(∏ ps) ⊇ ∪ vars(ps i) (from vars_prod reversed via vars_mul_right_subset)
-      -- Actually: ∑ ms is a Finsupp sum, support ⊆ ∪ supports.
-      -- For Finset.sum of Finsupps: support ⊆ ∪ supports.
-      -- Then each support(ms i) ⊆ vars(ps i) ⊆ vars(∏) by vars_prod (reverse).
-      -- BUT vars_prod gives vars(∏) ⊆ ∪ vars, not ⊇.
-      -- Use vars_mul_right_subset iteratively instead.
-      -- Simpler: just pass the support condition.
-      sorry
-    · -- support: (ms last).support ⊆ vars(ps last)
-      exact h_supp (Fin.last k)
 
 /-! ## Sub-lemma (d): Diagonal entry = (-1)^κ ≠ 0
 
@@ -350,3 +271,78 @@ theorem choose_mono_iter (m k k' : ℕ) (hkk : k ≤ k') (hm : m ≥ 2 * k' + 1)
   | succ d ih => exact le_trans (ih (by omega) (by omega)) (choose_mono_k m _ (by omega))
 
 
+
+-- General version by induction from binary.
+-- vars(p * q) ⊇ vars(p) when q ≠ 0 and vars disjoint.
+-- Used to show support(∑ ms) ⊆ vars(∏ ps) in the inductive step.
+theorem vars_mul_right_subset {σ : Type*} [DecidableEq σ]
+    (p q : MvPolynomial σ ℚ) (hq : q ≠ 0) (hdisj : Disjoint p.vars q.vars) :
+    p.vars ⊆ (p * q).vars := by
+  intro v hv
+  rw [MvPolynomial.mem_vars] at hv ⊢
+  obtain ⟨m, hm, hvm⟩ := hv
+  obtain ⟨m', hm'⟩ := Finsupp.support_nonempty_iff.mpr hq
+  refine ⟨m + m', ?_, ?_⟩
+  · rw [MvPolynomial.mem_support_iff]
+    have hcm := IdentityMinorProof.coeff_mul_disjoint p q m m' hdisj
+      (fun v hv' => (MvPolynomial.mem_vars v).mpr ⟨m, hm, hv'⟩)
+      (fun v hv' => (MvPolynomial.mem_vars v).mpr ⟨m', hm', hv'⟩)
+    rw [hcm]
+    exact mul_ne_zero (MvPolynomial.mem_support_iff.mp hm) (MvPolynomial.mem_support_iff.mp hm')
+  · rw [Finsupp.mem_support_iff, Finsupp.add_apply]
+    have : m' v = 0 := by
+      by_contra h
+      exact Finset.disjoint_left.mp hdisj
+        ((MvPolynomial.mem_vars v).mpr ⟨m, hm, hvm⟩)
+        ((MvPolynomial.mem_vars v).mpr ⟨m', hm', Finsupp.mem_support_iff.mpr h⟩)
+    rw [this, add_zero]; exact Finsupp.mem_support_iff.mp hvm
+
+theorem coeff_mul_disjoint_gen {σ : Type*} [DecidableEq σ]
+    (p q : MvPolynomial σ ℚ) (a b : σ →₀ ℕ)
+    (S T : Finset σ) (hST : Disjoint S T)
+    (hpS : p.vars ⊆ S) (hqT : q.vars ⊆ T)
+    (haS : a.support ⊆ S) (hbT : b.support ⊆ T) :
+    (p * q).coeff (a + b) = p.coeff a * q.coeff b := by
+  rw [MvPolynomial.coeff_mul]
+  have hmem : (a, b) ∈ Finset.antidiagonal (a + b) := by simp [Finset.mem_antidiagonal]
+  convert Finset.sum_eq_single (a, b) (fun cd hcd hne => ?_) (fun h => absurd hmem h)
+  · simp [Finset.mem_antidiagonal] at hcd
+    by_contra h_nz; push_neg at h_nz
+    have hcS : cd.1.support ⊆ S := fun v hv => by
+      by_contra hvS; exact (mul_ne_zero_iff.mp h_nz).1
+        (by by_contra h2; exact hvS (hpS ((MvPolynomial.mem_vars _).mpr ⟨cd.1, Finsupp.mem_support_iff.mpr h2, hv⟩)))
+    have hdT : cd.2.support ⊆ T := fun v hv => by
+      by_contra hvT; exact (mul_ne_zero_iff.mp h_nz).2
+        (by by_contra h2; exact hvT (hqT ((MvPolynomial.mem_vars _).mpr ⟨cd.2, Finsupp.mem_support_iff.mpr h2, hv⟩)))
+    exact hne (Prod.ext (IdentityMinorProof.finsupp_add_eq_of_disjoint S T hST a b cd.1 cd.2 hcd hcS hdT haS hbT).1
+      (IdentityMinorProof.finsupp_add_eq_of_disjoint S T hST a b cd.1 cd.2 hcd hcS hdT haS hbT).2)
+
+theorem coeff_prod_disjoint {σ : Type*} [DecidableEq σ]
+    {k : ℕ} (ps : Fin k → MvPolynomial σ ℚ) (ms : Fin k → (σ →₀ ℕ))
+    (h_disjoint : ∀ i j, i ≠ j → Disjoint (ps i).vars (ps j).vars)
+    (h_supp : ∀ i, (ms i).support ⊆ (ps i).vars) :
+    (∏ i, ps i).coeff (∑ i, ms i) = ∏ i, (ps i).coeff (ms i) := by
+  induction k with
+  | zero => simp
+  | succ k ih =>
+    rw [Fin.prod_univ_castSucc, Fin.sum_univ_castSucc]
+    rw [coeff_mul_disjoint_gen _ _ _ _
+      (Finset.univ.biUnion (fun i : Fin k => (ps i.castSucc).vars))
+      (ps (Fin.last k)).vars
+      (by rw [Finset.disjoint_biUnion_left]; intro i _
+          exact h_disjoint i.castSucc (Fin.last k) (by simp [Fin.ext_iff]; omega))
+      (MvPolynomial.vars_prod _)
+      (Finset.Subset.refl _)
+      (by intro v hv; simp only [Finset.mem_biUnion, Finset.mem_univ, true_and]
+          -- v ∈ (∑ ms castSucc).support → ∃ i, v ∈ ms(i).support ⊆ vars(ps i)
+          have hsup := Finsupp.support_finset_sum (s := Finset.univ) (f := fun i : Fin k => ms i.castSucc)
+          have hv2 := hsup hv
+          simp only [Finset.mem_biUnion, Finset.mem_univ, true_and] at hv2
+          obtain ⟨i, hi⟩ := hv2
+          exact ⟨i, h_supp i.castSucc hi⟩
+          )
+      (h_supp (Fin.last k))]
+    rw [ih (fun i => ps i.castSucc) (fun i => ms i.castSucc)
+      (fun i j hij => h_disjoint i.castSucc j.castSucc (by simp [Fin.ext_iff] at hij ⊢; exact hij))
+      (fun i => h_supp i.castSucc)]
+    rw [Fin.prod_univ_castSucc]
