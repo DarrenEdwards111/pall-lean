@@ -295,9 +295,14 @@ theorem coupled_identity_minor (N L : ℕ)
   -- finrank ≥ C(L, κ)
   have hcard : kSubs.card = Nat.choose L κ := by simp [kSubs, Finset.card_powersetCard]
   unfold CompiledPoly.blockedSpdpRankQ
-  -- Each v(T) is in the SPDP span (m = 1, selector list, admissible)
-  -- Then: finrank ≥ card of linearly independent family in span.
-  -- v(T) ∈ span: iterDerivList of Q with m=1 is a valid SPDP generator.
+  -- v(T) ∈ SPDP span (m=1, selector list, admissible from bp_sel)
+  have hv_mem : ∀ T, v T ∈ Submodule.span ℚ
+      { q | ∃ (S : List _) (m : MvPolynomial _ ℚ),
+        S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧
+        (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+        (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
+        q = m * SPDP.iterDerivList S Q } := by sorry
+  -- LI + membership in span → finrank ≥ card
   sorry
 
 end CoupledVerifier
