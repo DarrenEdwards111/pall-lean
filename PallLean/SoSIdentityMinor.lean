@@ -104,19 +104,21 @@ theorem sos_identity_minor {N : ℕ}
     (tags : Fin L → (Fin N →₀ ℕ)) -- τ_C tag monomials
     (tag_support : ∀ C, (tags C).support ⊆ blocks C)
     (tag_coeff : ∀ C, (gadgets C * gadgets C).coeff (tags C) ≠ 0)
-    (blocks_nonempty : ∀ C, (blocks C).Nonempty) -- each block has ≥ 1 variable
+    (rep : Fin L → Fin N) -- representative variable from each block
+    (rep_mem : ∀ C, rep C ∈ blocks C) -- rep C ∈ B_C
+    (deriv_tag_coeff : ∀ C, (MvPolynomial.pderiv (rep C) (gadgets C * gadgets C)).coeff (tags C) ≠ 0)
     (κ ℓ : ℕ) (bp : CompiledPoly.BlockPartition N)
     -- bp separates clause blocks: different clauses → different bp-blocks for their reps
     (bp_sep : ∀ i j : Fin L, i ≠ j →
-      bp.blockOf (((blocks_nonempty i) : ∃ x, x ∈ blocks i).choose) ≠
-      bp.blockOf (((blocks_nonempty j) : ∃ x, x ∈ blocks j).choose)) :
+      bp.blockOf (rep i) ≠
+      bp.blockOf (rep j)) :
     CompiledPoly.blockedSpdpRankQ κ ℓ
       ((Finset.univ : Finset (Fin L)).sum (fun C => gadgets C * gadgets C)) bp
     ≥ Nat.choose L κ := by
   -- Pick a representative variable from each block
   classical
-  let rep : Fin L → Fin N := fun C => ((blocks_nonempty C) : ∃ x, x ∈ blocks C).choose
-  have hrep : ∀ C, rep C ∈ blocks C := fun C => ((blocks_nonempty C) : ∃ x, x ∈ blocks C).choose_spec
+  -- rep already provided as parameter
+  have hrep : ∀ C, rep C ∈ blocks C := rep_mem
   -- For each κ-subset T ⊆ [L], form S = list of rep variables.
   -- The generator ∂_S(P) is in the SPDP span (m=1, deg 0, admissible, coupled).
   -- The identity minor (diagonal ≠ 0, off-diagonal = 0) gives linear independence.
