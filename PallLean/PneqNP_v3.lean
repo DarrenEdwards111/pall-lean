@@ -816,6 +816,12 @@ theorem extraction_superpolynomial (M : DTM) (F : BoolFunFamily)
   exact ⟨n₀, fun n hn hn2 => by
     obtain ⟨numCl, hcl, _⟩ := h_inst n hn2
     -- Layer1: rank ≥ C(numCl, log n) = C(αn, log n)
+    -- THE ONE REMAINING SORRY: the God-Move extraction (paper §12).
+    -- rank(compiledViolationPoly M n) ≥ C(numCl, log n).
+    -- Proved from: coupled_identity_minor (PROVED) + God-Move rank monotonicity.
+    -- The God-Move ΠΦ: linear map from compiled to coupled, rank-monotone.
+    -- godMove_on_generators: every coupled SPDP generator is the image of a compiled one.
+    -- This is the paper's Lemma 205 / Definition 6.
     have h_rank := layer1_identity_minor M n hn2 numCl sorry
     -- Layer3: C(αn, log n) > n^c
     have h_super := h_choose n hn hn2
