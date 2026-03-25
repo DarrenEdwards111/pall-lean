@@ -178,8 +178,27 @@ end CoupledVerifier
 -- to the coefficient conditions hdiag/hoff, then applying CoordSeparation.
 theorem coupled_identity_minor (N L : ℕ)
     (dcs : DisjointClauseSystem N L) (κ ℓ : ℕ)
-    (bp : CompiledPoly.BlockPartition (N + L)) :
+    (bp : CompiledPoly.BlockPartition (N + L))
+    -- bp assigns different blocks to different selector variables
+    (bp_sel : ∀ i j : Fin L, i ≠ j →
+      bp.blockOf (selectorVarIdx N L i) ≠ bp.blockOf (selectorVarIdx N L j)) :
     CompiledPoly.blockedSpdpRankQ κ ℓ (coupledPoly N L dcs) bp
     ≥ Nat.choose L κ := by
+  -- For each κ-subset T of [L], the SPDP generator is:
+  -- v(T) = iterDerivList [z_{C₁},...,z_{Cκ}] Q×
+  -- which equals (-1)^κ ∏_{C∈T} V_C² (at z=0).
+  -- Tag coefficient: [τ_T] v(T) = (-1)^κ ∏[τ_C]V_C² = (-1)^κ ≠ 0 (diagonal).
+  -- Off-diagonal: [τ_{T'}] v(T) = 0 (disjoint blocks).
+  -- By linearIndependent_of_diag_offdiag_coeff: C(L,κ) independent generators.
+  -- finrank ≥ C(L,κ).
+  --
+  -- All sub-lemmas PROVED:
+  -- pderiv_own_factor, pderiv_other_factor (selector derivatives of coupled factors)
+  -- coeff_zero_of_var_outside (off-diagonal vanishing)
+  -- coeff_prod_disjoint (product coefficient factorization)
+  -- linearIndependent_of_diag_offdiag_coeff (coordinate separation)
+  --
+  -- The remaining wiring: constructing the κ-subset → selector derivative list
+  -- and verifying SPDP admissibility + applying the coordinate separation lemma.
   sorry
 
