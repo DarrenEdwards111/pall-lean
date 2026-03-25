@@ -151,8 +151,22 @@ theorem coeff_prod_disjoint {σ : Type*} [DecidableEq σ]
     rw [Fin.prod_univ_castSucc, Fin.sum_univ_castSucc]
     -- Binary split: (∏_{i<k} ps(castSucc i)) * ps(last), (∑_{i<k} ms(castSucc i)) + ms(last)
     -- Apply coeff_mul_disjoint + ih
-    sorry -- Needs: disjointness transfer from Fin(k+1) to Fin k + vars subset chain.
-    -- This is assembly of proved lemmas (coeff_mul_disjoint + ih), not new math.
+    -- coeff_mul_disjoint: need vars(∏ castSucc) disjoint from vars(ps last)
+    -- and support conditions.
+    -- For now: vars subset and disjointness transfer are tedious but routine.
+    -- The mathematical content is in coeff_mul_disjoint (PROVED) and ih.
+    rw [coeff_mul_disjoint]
+    · -- coeff(a)(∏ castSucc) = ∏ coeff by IH
+      rw [ih (fun i => ps (i.castSucc)) (fun i => ms (i.castSucc))
+        (fun i j hij => h_disjoint i.castSucc j.castSucc (by simp [Fin.ext_iff] at hij ⊢; exact hij))
+        (fun i => h_supp i.castSucc)]
+      rw [Fin.prod_univ_castSucc]
+    · -- vars disjoint: vars(∏ castSucc) vs vars(ps last)
+      sorry
+    · -- support: (∑ ms castSucc).support ⊆ vars(∏ castSucc)
+      sorry
+    · -- support: (ms last).support ⊆ vars(ps last)
+      exact h_supp (Fin.last k)
 
 /-! ## Sub-lemma (d): Diagonal entry = (-1)^κ ≠ 0
 
