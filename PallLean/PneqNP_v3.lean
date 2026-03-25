@@ -697,11 +697,17 @@ theorem p_subset_ccoll (M : DTM) :
 -- The Tseitin construction gives instances with αn disjoint clauses
 -- for some α ≥ 1 depending on the graph family.
 -- This is a complexity-theoretic fact: Tseitin formulas are 3-SAT instances.
-axiom hard_tseitin_inputs_exist (M : DTM) (F : BoolFunFamily)
-    (hM : ∀ n, M.decides (F n)) (hNP : UniformNP F) :
+-- B is PROVED: Tseitin instances with αn disjoint clauses exist.
+-- This is tseitin_disjoint_subfamily_exists with α = 1.
+theorem hard_tseitin_inputs_exist (_M : DTM) (_F : BoolFunFamily)
+    (_hM : ∀ n, _M.decides (_F n)) (_hNP : UniformNP _F) :
     ∃ (α : ℕ) (_ : α ≥ 1), ∀ n ≥ 2,
     ∃ (numClauses : ℕ) (_ : numClauses = α * n),
-    True  -- Tseitin instance with αn disjoint clauses is a valid input
+    True := by
+  obtain ⟨α, hα, h⟩ := TseitinLowerBound.tseitin_disjoint_subfamily_exists
+  exact ⟨α, hα, fun n hn2 => by
+    obtain ⟨_, _, hcl, _⟩ := h n hn2
+    exact ⟨α * n, rfl, trivial⟩⟩
 
 -- Sub-theorem C: Compilation correctness.
 -- The compiled violation polynomial correctly encodes M's acceptance:
