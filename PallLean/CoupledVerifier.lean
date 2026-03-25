@@ -276,13 +276,13 @@ theorem coeff_iterDerivList_zero (S : List (Fin (N + L))) (p : MvPolynomial (Fin
     (SPDP.iterDerivList S p).coeff m = 
     p.coeff (m + S.foldl (fun acc s => acc + Finsupp.single s 1) 0) := by
   induction S generalizing p with
-  | nil => sorry
+  | nil => simp [SPDP.iterDerivList, List.foldl]
   | cons v S ih =>
     unfold SPDP.iterDerivList
     simp only [List.foldl_cons]
     rw [show List.foldl (fun q i => MvPolynomial.pderiv i q) (MvPolynomial.pderiv v p) S = SPDP.iterDerivList S (MvPolynomial.pderiv v p) from rfl]
     rw [ih (MvPolynomial.pderiv v p) (fun s hs => hm s (List.mem_cons_of_mem v hs)) (List.nodup_cons.mp hnd).2]
-    rw [coeff_pderiv_zero v _ _ sorry]
+    rw [coeff_pderiv_zero v _ _ (by sorry)]
     congr 1; sorry
 
 theorem coupled_identity_minor (N L : ℕ)
