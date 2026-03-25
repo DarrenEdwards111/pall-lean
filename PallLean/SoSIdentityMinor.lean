@@ -107,10 +107,22 @@ theorem sos_identity_minor {N : ℕ}
     CompiledPoly.blockedSpdpRankQ κ ℓ
       ((Finset.univ : Finset (Fin L)).sum (fun C => gadgets C * gadgets C)) bp
     ≥ Nat.choose L κ := by
-  -- The SPDP span of P = Σ V_C² contains generators m · ∂_S(P).
-  -- For each κ-subset T of [L], choose S = one variable from each block B_C (C ∈ T).
-  -- The generator 1 · ∂_S(P) has coefficient matrix with identity minor.
-  -- By identity_minor_rank_bound: rank ≥ C(L, κ).
+  -- The SPDP span of P = Σ V_C² contains generators 1 · ∂_S(P) for each κ-subset.
+  -- These generators have an identity minor structure from the proved sub-lemmas.
+  -- The identity minor gives C(L, κ) linearly independent elements in the span.
+  -- Therefore finrank ≥ C(L, κ).
+  --
+  -- Full proof requires:
+  -- 1. For each κ-subset T of [L], construct the derivative list S
+  --    using one variable from each block B_C (C ∈ T)
+  -- 2. Show 1 · ∂_S(P) is in the SPDP generating set (admissibility + coupling)
+  -- 3. Show the tag monomial coefficients form an identity minor
+  --    (diagonal from coeff_prod_disjoint, off-diagonal from coeff_zero_of_var_outside)
+  -- 4. Apply RankTransferCore.identity_minor_rank_bound
+  -- 5. Conclude finrank of span ≥ C(L, κ)
+  --
+  -- Sub-lemmas 1-4 are ALL PROVED in IdentityMinorProof.lean.
+  -- The assembly connects them to the blockedSpdpRankQ definition.
   sorry
 
 end SoSIdentityMinor
