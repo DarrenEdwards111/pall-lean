@@ -329,7 +329,7 @@ theorem coupled_identity_minor (N L : ℕ)
     exact LinearIndependent.of_comp Span.subtype hli
   calc Nat.choose L κ = kSubs.card := hcard.symm
     _ = Fintype.card kSubs := by simp [Fintype.card_coe]
-    _ ≤ Module.finrank ℚ Span := by haveI : Module.Finite ℚ Span := sorry; exact hli'.fintype_card_le_finrank
+    _ ≤ Module.finrank ℚ Span := by haveI : Module.Finite ℚ Span := Module.Finite.of_injective (Submodule.inclusion (CompiledPoly.spdp_span_le_restrictTotalDegree κ ℓ Q bp)) (Submodule.inclusion_injective _); exact hli'.fintype_card_le_finrank
 
 end CoupledVerifier
 
