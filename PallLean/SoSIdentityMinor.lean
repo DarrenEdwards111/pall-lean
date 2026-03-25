@@ -208,6 +208,8 @@ theorem sos_identity_minor {N : ℕ}
     apply h_in_span
     · exact le_of_eq (hlen T hT)
     · -- admissibility: bp.blockOf injective on derivList T
+      -- (derivList T).toFinset = {rep C | C ∈ T}
+      -- bp.blockOf injective on this set from bp_sep.
       sorry
   -- Linear independence via coefficient extraction (identity minor argument)
   -- coeff(τ_T) is a linear functional. Applied to Σ c·v = 0:
