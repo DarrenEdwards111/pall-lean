@@ -207,12 +207,7 @@ theorem sos_identity_minor {N : ℕ}
     intro ⟨T, hT⟩
     apply h_in_span
     · exact le_of_eq (hlen T hT)
-    · -- admissibility: distinct blocks from bp_sep
-      -- derivList T = T.val.toList.map rep
-      -- Need: (derivList T).toFinset.image bp.blockOf has same card as (derivList T).toFinset
-      -- This means bp.blockOf is injective on the rep variables.
-      -- From bp_sep: different clauses → different bp-blocks for reps.
-      -- Since T is a subset of [L], the reps are from distinct clauses.
+    · -- admissibility: bp.blockOf injective on derivList T
       sorry
   -- Linear independence via coefficient extraction (identity minor argument)
   -- coeff(τ_T) is a linear functional. Applied to Σ c·v = 0:
