@@ -140,6 +140,30 @@ theorem coeff_mul_disjoint {σ : Type*} [DecidableEq σ]
     exact hne (Prod.ext hca hdb)
 
 -- General version by induction from binary.
+-- vars(p * q) ⊇ vars(p) when q ≠ 0 and vars disjoint.
+-- Used to show support(∑ ms) ⊆ vars(∏ ps) in the inductive step.
+theorem vars_mul_right_subset {σ : Type*} [DecidableEq σ]
+    (p q : MvPolynomial σ ℚ) (hq : q ≠ 0) (hdisj : Disjoint p.vars q.vars) :
+    p.vars ⊆ (p * q).vars := by
+  intro v hv
+  rw [MvPolynomial.mem_vars] at hv ⊢
+  obtain ⟨m, hm, hvm⟩ := hv
+  obtain ⟨m', hm'⟩ := Finsupp.support_nonempty_iff.mpr hq
+  refine ⟨m + m', ?_, ?_⟩
+  · rw [MvPolynomial.mem_support_iff]
+    have hcm := coeff_mul_disjoint p q m m' hdisj
+      (fun v hv' => (MvPolynomial.mem_vars v).mpr ⟨m, hm, hv'⟩)
+      (fun v hv' => (MvPolynomial.mem_vars v).mpr ⟨m', hm', hv'⟩)
+    rw [hcm]
+    exact mul_ne_zero (MvPolynomial.mem_support_iff.mp hm) (MvPolynomial.mem_support_iff.mp hm')
+  · rw [Finsupp.mem_support_iff, Finsupp.add_apply]
+    have : m' v = 0 := by
+      by_contra h
+      exact Finset.disjoint_left.mp hdisj
+        ((MvPolynomial.mem_vars v).mpr ⟨m, hm, hvm⟩)
+        ((MvPolynomial.mem_vars v).mpr ⟨m', hm', Finsupp.mem_support_iff.mpr h⟩)
+    rw [this, add_zero]; exact Finsupp.mem_support_iff.mp hvm
+
 theorem coeff_prod_disjoint {σ : Type*} [DecidableEq σ]
     {k : ℕ} (ps : Fin k → MvPolynomial σ ℚ) (ms : Fin k → (σ →₀ ℕ))
     (h_disjoint : ∀ i j, i ≠ j → Disjoint (ps i).vars (ps j).vars)
@@ -180,21 +204,11 @@ theorem coeff_prod_disjoint {σ : Type*} [DecidableEq σ]
       -- Need: (∑ i:Fin k, ms (i.castSucc)).support ⊆ (∏ i:Fin k, ps (i.castSucc)).vars.
       -- This is NOT obvious since vars of product can be smaller than union of vars.
       -- BUT: coeff_mul_disjoint's hypothesis says support ⊆ vars of the polynomial.
-      -- The support of a sum: support(a+b) ⊆ support(a) ∪ support(b).
-      -- Each (ms i.castSucc).support ⊆ (ps i.castSucc).vars.
-      -- vars(∏ pᵢ) ⊇ ∪ vars(pᵢ) when the product has no cancellation... not guaranteed.
-      -- Need: (∑ ms castSucc).support ⊆ (∏ ps castSucc).vars.
-      -- support(∑ f) ⊆ ∪ support(f) ⊆ ∪ vars(ps) ⊆ vars(∏ ps)? Not in general.
-      -- But for the BINARY coeff_mul_disjoint proof: the hypothesis ha is used
-      -- in finsupp_add_eq_of_disjoint which needs a.support ⊆ S for some set S
-      -- disjoint from T. We can use S = ∪ vars(pᵢ castSucc) which contains a.support
-      -- and is disjoint from T = vars(ps last) (from h_disjoint).
-      -- But coeff_mul_disjoint takes ha : a.support ⊆ p.vars, not ⊆ arbitrary S.
-      -- WORKAROUND: the proof still works if a.support ⊆ p.vars.
-      -- Show: (∑ ms castSucc).support ⊆ (∏ ps castSucc).vars.
-      -- From: support(∑ f) ⊆ ∪ support(f) and support(ms i) ⊆ vars(ps i) ⊆ vars(∏ ps).
-      -- The last step: vars(ps i) ⊆ vars(∏ ps)? From vars_prod: vars(∏) ⊆ ∪ vars.
-      -- WRONG DIRECTION. vars_prod gives vars(∏) ⊆ ∪ vars, not ⊇.
+            -- support(∑ ms) ⊆ vars(∏ ps) for disjoint factors
+      -- If ∏ ps = 0: coeff is 0 on both sides, equation trivial.
+      -- If ∏ ps ≠ 0: each vars(pᵢ) ⊆ vars(∏ ps) by vars_mul_right_subset.
+      -- Then support(ms i) ⊆ vars(pᵢ) ⊆ vars(∏ ps).
+      -- And support(∑ ms) ⊆ ∪ support(ms i) ⊆ vars(∏ ps).
       sorry
     · -- support: (ms last).support ⊆ vars(ps last)
       exact h_supp (Fin.last k)
