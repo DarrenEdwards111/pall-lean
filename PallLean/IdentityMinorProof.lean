@@ -267,3 +267,20 @@ theorem choose_factorial_ge (m k : ℕ) (hm : k ≤ m) :
     Nat.div_mul_cancel (Nat.factorial_dvd_descFactorial m k)]
   exact descFactorial_lower m k hm
 
+
+-- Choose monotonicity in k: C(m, k) ≤ C(m, k+1) when m ≥ 2k+2.
+theorem choose_mono_k (m k : ℕ) (hm : m ≥ 2 * k + 2) :
+    Nat.choose m k ≤ Nat.choose m (k + 1) := by
+  have h := Nat.choose_succ_right_eq m k
+  have : Nat.choose m k * (k + 1) ≤ Nat.choose m k * (m - k) :=
+    Nat.mul_le_mul_left _ (by omega)
+  rw [← h] at this; exact Nat.le_of_mul_le_mul_right this (by omega)
+
+-- Iterated monotonicity
+theorem choose_mono_iter (m k k' : ℕ) (hkk : k ≤ k') (hm : m ≥ 2 * k' + 1) :
+    Nat.choose m k ≤ Nat.choose m k' := by
+  obtain ⟨d, rfl⟩ := Nat.le.dest hkk
+  induction d with
+  | zero => simp
+  | succ d ih => exact le_trans (ih (by omega) (by omega)) (choose_mono_k m _ (by omega))
+
