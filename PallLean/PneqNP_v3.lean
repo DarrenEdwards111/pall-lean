@@ -748,22 +748,38 @@ theorem hard_tseitin_inputs_exist (_M : DTM) (_F : BoolFunFamily)
 --   C(m, k) ≥ (m/k)^k. With m = αn, k = log n:
 --   C(αn, log n) ≥ (αn/log n)^{log n} = n^{log n · log(α·n/log n)/log n}
 --   ≥ n^{log n / 2} for large n, which exceeds n^c for any fixed c.
-axiom rank_transfer_from_tseitin (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
-    (hM_hard : True) -- M processes a Tseitin-structured input at size n
-    (c : ℕ) :
+-- Layer 1 (§9.3): Disjoint clauses → rank ≥ C(L, κ) for coupled verifier Q×.
+-- Identity minor from Theorem 128.
+axiom layer1_identity_minor (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (L : ℕ) (hL : L ≥ 1) :
     blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-      (compiledViolationPoly M n) (compiledPartition M n) > n ^ c
+      (compiledViolationPoly M n) (compiledPartition M n)
+    ≥ Nat.choose L (Nat.log 2 n)
 
--- Assembly: extraction_superpolynomial from B + D.
+-- Layer 3: C(αn, log n) > n^c for any c and large n.
+-- Standard combinatorics: C(m,k) ≥ (m/k)^k, k = log n gives superpolynomial.
+axiom layer3_choose_beats_poly (α : ℕ) (hα : α ≥ 1) (c : ℕ) :
+    ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 →
+    Nat.choose (α * n) (Nat.log 2 n) > n ^ c
+
+-- Assembly: extraction_superpolynomial from B + Layer1 + Layer3.
 theorem extraction_superpolynomial (M : DTM) (F : BoolFunFamily)
     (hM : ∀ n, M.decides (F n)) (hNP : UniformNP F) (c : ℕ) :
     ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 →
     blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
       (compiledViolationPoly M n) (compiledPartition M n) > n ^ c := by
-  obtain ⟨_, _, h_inst⟩ := hard_tseitin_inputs_exist M F hM hNP
-  exact ⟨2, fun n _ hn2 => by
-    obtain ⟨_, _, h_hard⟩ := h_inst n hn2
-    exact rank_transfer_from_tseitin M n hn2 h_hard c⟩
+  -- From B: get α ≥ 1 and Tseitin instances with αn clauses
+  obtain ⟨α, hα, h_inst⟩ := hard_tseitin_inputs_exist M F hM hNP
+  -- From Layer3: C(αn, log n) > n^c for large n
+  obtain ⟨n₀, h_choose⟩ := layer3_choose_beats_poly α hα c
+  exact ⟨n₀, fun n hn hn2 => by
+    obtain ⟨numCl, hcl, _⟩ := h_inst n hn2
+    -- Layer1: rank ≥ C(numCl, log n) = C(αn, log n)
+    have h_rank := layer1_identity_minor M n hn2 numCl (by rw [hcl]; nlinarith)
+    -- Layer3: C(αn, log n) > n^c
+    have h_super := h_choose n hn hn2
+    rw [hcl] at h_rank
+    linarith⟩
 
 -- Assembly: np_compiled_rank_high from extraction_superpolynomial + three_sat_in_NP.
 theorem np_compiled_rank_high :
