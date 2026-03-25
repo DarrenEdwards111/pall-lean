@@ -147,7 +147,13 @@ theorem coeff_prod_disjoint {σ : Type*} [DecidableEq σ]
     (∏ i, ps i).coeff (∑ i, ms i) = ∏ i, (ps i).coeff (ms i) := by
   induction k with
   | zero => simp
-  | succ k ih => sorry -- Split last factor, apply coeff_mul_disjoint + ih
+  | succ k ih =>
+    rw [Fin.prod_univ_castSucc, Fin.sum_univ_castSucc]
+    -- Apply coeff_mul_disjoint on (∏ castSucc) * (last)
+    -- Need: vars(∏ castSucc) disjoint from vars(ps last)
+    -- Need: (∑ ms castSucc).support ⊆ vars(∏ castSucc)
+    -- Need: (ms last).support ⊆ vars(ps last)
+    sorry
 
 /-! ## Sub-lemma (d): Diagonal entry = (-1)^κ ≠ 0
 
