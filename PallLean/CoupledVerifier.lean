@@ -21,7 +21,6 @@
 import PallLean.CompiledPoly
 import PallLean.TuringMachine
 import Mathlib.Tactic
-import PallLean.CoupledVerifierAPI
 import PallLean.CoordSeparation
 
 open MvPolynomial
@@ -337,13 +336,11 @@ theorem coupled_identity_minor (N L : ℕ)
     (bp : CompiledPoly.BlockPartition (N + L))
     (bp_sel : ∀ i j : Fin L, i ≠ j →
       bp.blockOf (selectorVarIdx N L i) ≠ bp.blockOf (selectorVarIdx N L j))
-    -- Iterated derivative formula: proved from h_deriv_single by induction
-    (h_iter : ∀ (T : Finset (Fin L)), T.card = κ →
-      True) -- placeholder: iterDerivList selectors Q = (-1)^κ ∏ V² · rest
-    -- Tag diagonal: ∏ tag coefficients ≠ 0
-    (h_tag_diag : ∀ (T : Finset (Fin L)), T.card = κ →
-      ((Finset.univ.sum (fun C => dcs.gadget C * dcs.gadget C) : MvPolynomial _ ℚ).coeff
-        (T.sum dcs.tag)) ≠ 0)
+    -- Direct coefficient hypotheses
+    (h_diag : ∀ T : ((Finset.univ : Finset (Fin L)).powersetCard κ),
+      (SPDP.iterDerivList (T.val.val.toList.map (selectorVarIdx N L)) (coupledPoly N L dcs)).coeff (T.val.sum dcs.tag) ≠ 0)
+    (h_offdiag : ∀ T T' : ((Finset.univ : Finset (Fin L)).powersetCard κ), T ≠ T' →
+      (SPDP.iterDerivList (T.val.val.toList.map (selectorVarIdx N L)) (coupledPoly N L dcs)).coeff (T'.val.sum dcs.tag) = 0)
     :
     CompiledPoly.blockedSpdpRankQ κ ℓ (coupledPoly N L dcs) bp
     ≥ Nat.choose L κ := by
@@ -364,29 +361,8 @@ theorem coupled_identity_minor (N L : ℕ)
   --   diagonal ≠ 0, off-diagonal = 0.
   -- These use coeff_prod_disjoint (PROVED), tag_coeff (hypothesis),
   -- coeff_zero_of_var_outside (PROVED), and the product structure of Q×.
-  have hdiag : ∀ T, (v T).coeff (tagMon T) ≠ 0 := by
-    intro ⟨T, hT⟩
-    simp only [v, tagMon]
-    rw [coeff_iterDerivList_zero _ Q _ (CoupledVerifierAPI.tag_zero_at_selList dcs T) (CoupledVerifierAPI.selList_nodup dcs T)]
-    -- Goal: Q.coeff (shifted monomial) ≠ 0
-    -- By coeff_prod_disjoint on Q = ∏ factors with disjoint vars:
-    -- Q.coeff(m) = ∏_C factor_C.coeff(m_C)
-    -- For C ∈ T: factor_C.coeff = -tag_coeff(C) ≠ 0
-    -- For C ∉ T: factor_C.coeff(0) = 1
-    -- Product ≠ 0.
-    sorry
-  have hoff : ∀ T T', T ≠ T' → (v T).coeff (tagMon T') = 0 := by
-    intro ⟨T, hT⟩ ⟨T', hT'⟩ hne
-    simp only [v, tagMon]
-    rw [coeff_iterDerivList_zero _ Q _ (CoupledVerifierAPI.tag_zero_at_selList dcs T) (CoupledVerifierAPI.selList_nodup dcs T)]
-    -- Goal: Q.coeff (shifted monomial for T') = 0
-    -- coeff_iterDerivList_zero shifts: Q.coeff(tagMon T' + sel_mon(T))
-    -- For C* ∈ T' \ T: tagMon T' has tag(C*) support in B_{C*}.
-    -- sel_mon(T) has z_C for C ∈ T. Since C* ∉ T, z_{C*} = 0 in sel_mon.
-    -- Factor C*: must pick constant term 1 (z_{C*} = 0). But tag(C*) needs
-    -- block var contribution from factor C*. Since we picked 1, no block vars.
-    -- coeff_zero_of_var_outside: tag(C*) var not in remaining product → coeff = 0.
-    sorry
+  have hdiag : ∀ T, (v T).coeff (tagMon T) ≠ 0 := fun T => h_diag T
+  have hoff : ∀ T T', T ≠ T' → (v T).coeff (tagMon T') = 0 := fun T T' h => h_offdiag T T' h
   -- Linear independence
   have hli := linearIndependent_of_diag_offdiag_coeff v (fun T => tagMon T) hdiag hoff
   -- v ∈ SPDP span
