@@ -214,7 +214,20 @@ theorem sos_identity_minor {N : ℕ}
   -- c_T · [τ_T](v(T)) = 0 (off-diagonal terms vanish).
   -- [τ_T](v(T)) ≠ 0 (diagonal). So c_T = 0. For all T.
   -- This is the same argument as identity_minor_rank_bound.
-  -- Combined with hv_span: C(L,κ) independent elements in span → finrank ≥ C(L,κ).
+  -- Combined: C(L,κ) elements in span with identity minor → finrank ≥ C(L,κ).
+  -- The linear independence follows from:
+  -- For each T, define functional f_T(p) = p.coeff(tagMon T).
+  -- f_T is linear. f_T(v(T)) ≠ 0 (diagonal). f_T(v(T')) = 0 for T ≠ T' (off-diagonal).
+  -- Suppose Σ c(T) · v(T) = 0. Apply f_T: c(T) · f_T(v(T)) = 0. Since f_T(v(T)) ≠ 0: c(T) = 0.
+  -- So v is linearly independent. finrank(span) ≥ |kSubs| = C(L,κ).
+  --
+  -- Both the diagonal/off-diagonal facts follow from:
+  -- - ∂_S(Σ V_C²) = Σ ∂_S(V_C²) (linearity of derivative)
+  -- - ∂_S(V_C²) = 0 when S uses vars not in B_C (pderiv on absent vars = 0)
+  -- - coeff(τ_T)(∂_S(V_C²)) ≠ 0 only when T and C match (tag_coeff)
+  -- - coeff(τ_T)(∂_S(V_C²)) = 0 when τ_T uses vars from B_{C'} with C' ∉ S
+  --   (coeff_zero_of_var_outside, PROVED)
+  -- All sub-lemmas PROVED.
   sorry
 
 end SoSIdentityMinor

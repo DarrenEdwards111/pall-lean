@@ -204,11 +204,18 @@ theorem coeff_prod_disjoint {σ : Type*} [DecidableEq σ]
       -- Need: (∑ i:Fin k, ms (i.castSucc)).support ⊆ (∏ i:Fin k, ps (i.castSucc)).vars.
       -- This is NOT obvious since vars of product can be smaller than union of vars.
       -- BUT: coeff_mul_disjoint's hypothesis says support ⊆ vars of the polynomial.
-            -- support(∑ ms) ⊆ vars(∏ ps) for disjoint factors
-      -- If ∏ ps = 0: coeff is 0 on both sides, equation trivial.
-      -- If ∏ ps ≠ 0: each vars(pᵢ) ⊆ vars(∏ ps) by vars_mul_right_subset.
-      -- Then support(ms i) ⊆ vars(pᵢ) ⊆ vars(∏ ps).
-      -- And support(∑ ms) ⊆ ∪ support(ms i) ⊆ vars(∏ ps).
+            -- support(∑ ms) ⊆ vars(∏ ps): each ms(i).support ⊆ ps(i).vars ⊆ vars(∏ ps).
+      intro v hv
+      -- v ∈ (∑ ms castSucc).support
+      rw [Finsupp.mem_support_iff] at hv
+      -- v ∈ some ms(i).support, hence v ∈ vars(ps(i)) ⊆ vars(∏ ps)
+      -- Use: vars(∏ ps) ⊇ ∪ vars(ps i) (from vars_prod reversed via vars_mul_right_subset)
+      -- Actually: ∑ ms is a Finsupp sum, support ⊆ ∪ supports.
+      -- For Finset.sum of Finsupps: support ⊆ ∪ supports.
+      -- Then each support(ms i) ⊆ vars(ps i) ⊆ vars(∏) by vars_prod (reverse).
+      -- BUT vars_prod gives vars(∏) ⊆ ∪ vars, not ⊇.
+      -- Use vars_mul_right_subset iteratively instead.
+      -- Simpler: just pass the support condition.
       sorry
     · -- support: (ms last).support ⊆ vars(ps last)
       exact h_supp (Fin.last k)
