@@ -96,14 +96,48 @@ theorem pderiv_other_factor (dcs : CoupledVerifier.DisjointClauseSystem N L) (C 
 
 -- Coefficient of product monomial in product of disjoint polynomials
 -- This is the key algebraic fact for both diagonal and off-diagonal.
--- Binary version: coeff (a+b) in (p*q) = coeff a p * coeff b q
--- when p, q have disjoint variable sets and a.support ⊆ p.vars, b.support ⊆ q.vars.
--- Proof: convolution via coeff_mul + antidiagonal collapsing from disjoint supports.
-axiom coeff_mul_disjoint {σ : Type*} [DecidableEq σ]
+-- Unique decomposition for disjoint-support Finsupp sums
+private lemma finsupp_add_eq_of_disjoint {σ : Type*} [DecidableEq σ]
+    (S T : Finset σ) (hST : Disjoint S T)
+    (a b c d : σ →₀ ℕ) (hab : c + d = a + b)
+    (hcS : c.support ⊆ S) (hdT : d.support ⊆ T)
+    (haS : a.support ⊆ S) (hbT : b.support ⊆ T) :
+    c = a ∧ d = b := by
+  have key : c = a := by
+    ext x; have h := Finsupp.ext_iff.mp hab x; simp [Finsupp.add_apply] at h
+    by_cases hxS : x ∈ S
+    · have hxT : x ∉ T := Finset.disjoint_left.mp hST hxS
+      have : d x = 0 := by by_contra hne; exact hxT (hdT (Finsupp.mem_support_iff.mpr hne))
+      have : b x = 0 := by by_contra hne; exact hxT (hbT (Finsupp.mem_support_iff.mpr hne))
+      omega
+    · have : c x = 0 := by by_contra hne; exact hxS (hcS (Finsupp.mem_support_iff.mpr hne))
+      have : a x = 0 := by by_contra hne; exact hxS (haS (Finsupp.mem_support_iff.mpr hne))
+      omega
+  exact ⟨key, by ext x; have := Finsupp.ext_iff.mp hab x; simp [Finsupp.add_apply, key] at this ⊢; omega⟩
+
+-- Binary coefficient factorization for disjoint-variable polynomials.
+-- coeff(a+b)(p*q) = coeff(a)(p) * coeff(b)(q) when vars(p) ∩ vars(q) = ∅.
+-- Proof: convolution sum (coeff_mul) collapses via unique decomposition.
+theorem coeff_mul_disjoint {σ : Type*} [DecidableEq σ]
     (p q : MvPolynomial σ ℚ) (a b : σ →₀ ℕ)
-    (h_disjoint : Disjoint p.vars q.vars)
+    (h_disj : Disjoint p.vars q.vars)
     (ha : a.support ⊆ p.vars) (hb : b.support ⊆ q.vars) :
-    (p * q).coeff (a + b) = p.coeff a * q.coeff b
+    (p * q).coeff (a + b) = p.coeff a * q.coeff b := by
+  rw [MvPolynomial.coeff_mul]
+  have hmem : (a, b) ∈ Finset.antidiagonal (a + b) := by
+    simp [Finset.mem_antidiagonal]
+  convert Finset.sum_eq_single (a, b) (fun cd hcd hne => ?_) (fun h => absurd hmem h)
+  · simp [Finset.mem_antidiagonal] at hcd
+    by_contra h_nonzero; push_neg at h_nonzero
+    have hc_supp : cd.1.support ⊆ p.vars := by
+      intro v hv; by_contra hvp
+      exact (mul_ne_zero_iff.mp h_nonzero).1 (by by_contra h2; exact hvp ((MvPolynomial.mem_vars _).mpr ⟨cd.1, Finsupp.mem_support_iff.mpr h2, hv⟩))
+    have hd_supp : cd.2.support ⊆ q.vars := by
+      intro v hv; by_contra hvq
+      exact (mul_ne_zero_iff.mp h_nonzero).2 (by by_contra h2; exact hvq ((MvPolynomial.mem_vars _).mpr ⟨cd.2, Finsupp.mem_support_iff.mpr h2, hv⟩))
+    have ⟨hca, hdb⟩ := finsupp_add_eq_of_disjoint p.vars q.vars h_disj a b cd.1 cd.2
+      hcd hc_supp hd_supp ha hb
+    exact hne (Prod.ext hca hdb)
 
 -- General version by induction from binary.
 theorem coeff_prod_disjoint {σ : Type*} [DecidableEq σ]
@@ -146,7 +180,7 @@ theorem coeff_prod_disjoint {σ : Type*} [DecidableEq σ]
 -- then p.coeff m = 0.
 -- If variable v appears in monomial m but not in polynomial p's vars,
 -- then p.coeff m = 0.
-theorem coeff_zero_of_var_outside {σ : Type*} [DecidableEq σ]
+theorem IdentityMinorProof.coeff_zero_of_var_outside {σ : Type*} [DecidableEq σ]
     (p : MvPolynomial σ ℚ) (m : σ →₀ ℕ) (v : σ)
     (hv_m : v ∈ m.support) (hv_p : v ∉ p.vars) :
     p.coeff m = 0 := by
