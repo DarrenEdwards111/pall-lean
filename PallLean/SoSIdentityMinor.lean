@@ -103,26 +103,35 @@ theorem sos_identity_minor {N : ℕ}
     (tags : Fin L → (Fin N →₀ ℕ)) -- τ_C tag monomials
     (tag_support : ∀ C, (tags C).support ⊆ blocks C)
     (tag_coeff : ∀ C, (gadgets C * gadgets C).coeff (tags C) ≠ 0)
+    (blocks_nonempty : ∀ C, (blocks C).Nonempty) -- each block has ≥ 1 variable
     (κ ℓ : ℕ) (bp : CompiledPoly.BlockPartition N) :
     CompiledPoly.blockedSpdpRankQ κ ℓ
       ((Finset.univ : Finset (Fin L)).sum (fun C => gadgets C * gadgets C)) bp
     ≥ Nat.choose L κ := by
-  -- The SPDP span of P = Σ V_C² contains generators 1 · ∂_S(P) for each κ-subset.
-  -- These generators have an identity minor structure from the proved sub-lemmas.
-  -- The identity minor gives C(L, κ) linearly independent elements in the span.
-  -- Therefore finrank ≥ C(L, κ).
+  -- Pick a representative variable from each block
+  classical
+  let rep : Fin L → Fin N := fun C => ((blocks_nonempty C) : ∃ x, x ∈ blocks C).choose
+  have hrep : ∀ C, rep C ∈ blocks C := fun C => ((blocks_nonempty C) : ∃ x, x ∈ blocks C).choose_spec
+  -- For each κ-subset T ⊆ [L], form S = list of rep variables.
+  -- The generator ∂_S(P) is in the SPDP span (m=1, deg 0, admissible, coupled).
+  -- The identity minor (diagonal ≠ 0, off-diagonal = 0) gives linear independence.
+  -- So finrank ≥ C(L, κ).
+  set P := (Finset.univ : Finset (Fin L)).sum (fun C => gadgets C * gadgets C)
+  -- Each ∂_S(P) for a κ-subset is in the SPDP span:
+  -- S = [rep C₁, ..., rep Cκ] has length κ, m = 1 has degree 0,
+  -- admissibility: distinct blocks (from disjoint clause blocks),
+  -- coupling: m = 1 has no vars, so coupling is trivially satisfied.
+  -- The generators ∂_S(P) form a family indexed by κ-subsets of [L].
+  -- The identity minor on tag monomial coefficients gives linear independence.
+  -- By identity_minor_rank_bound: finrank ≥ C(L, κ).
   --
-  -- Full proof requires:
-  -- 1. For each κ-subset T of [L], construct the derivative list S
-  --    using one variable from each block B_C (C ∈ T)
-  -- 2. Show 1 · ∂_S(P) is in the SPDP generating set (admissibility + coupling)
-  -- 3. Show the tag monomial coefficients form an identity minor
-  --    (diagonal from coeff_prod_disjoint, off-diagonal from coeff_zero_of_var_outside)
-  -- 4. Apply RankTransferCore.identity_minor_rank_bound
-  -- 5. Conclude finrank of span ≥ C(L, κ)
+  -- Assembly: the generators are in the span, and the identity minor
+  -- structure (proved via pderiv sub-lemmas + coeff_zero_of_var_outside)
+  -- gives C(L,κ) linearly independent elements.
   --
-  -- Sub-lemmas 1-4 are ALL PROVED in IdentityMinorProof.lean.
-  -- The assembly connects them to the blockedSpdpRankQ definition.
+  -- The concrete wiring: unwrap blockedSpdpRankQ, show each ∂_S(P) is
+  -- a valid element, then apply Submodule.finrank_mono on the span
+  -- containing the identity-minor family.
   sorry
 
 end SoSIdentityMinor
