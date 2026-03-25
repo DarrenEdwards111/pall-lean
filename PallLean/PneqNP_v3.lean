@@ -162,10 +162,18 @@ theorem transitionConstraints_count (M : DTM) (n : ℕ) :
   -- Actually: just bound the nested structure directly.
   have : (transitionConstraints M n).length ≤
       tapeSize M n * (tapeSize M n * (M.numStates * 2)) := by
-    -- Nested flatten/ofFn: S outer × S inner × (Q*2) elements.
-    -- Requires Finset.sum_le_card_nsmul after sum_ofFn, but dite
-    -- prevents direct application. Mathematically trivial counting.
-    sorry
+    unfold transitionConstraints
+    rw [List.length_flatten, List.map_ofFn, List.sum_ofFn]
+    apply le_trans (Finset.sum_le_card_nsmul Finset.univ _ (tapeSize M n * (M.numStates * 2)) _)
+    · simp [Finset.card_univ, Fintype.card_fin]
+    · intro t _
+      simp only [Function.comp]
+      by_cases ht : t.val + 1 < tapeSize M n
+      · simp only [dif_pos ht, List.length_flatten, List.map_ofFn, List.sum_ofFn]
+        apply le_trans (Finset.sum_le_card_nsmul Finset.univ _ (M.numStates * 2)
+          (fun i _ => by simp only [Function.comp, List.length_ofFn]; exact le_refl _))
+        simp [Finset.card_univ, Fintype.card_fin]
+      · simp only [dif_neg ht, List.length_nil]; omega
   calc (transitionConstraints M n).length
       ≤ tapeSize M n * (tapeSize M n * (M.numStates * 2)) := this
     _ ≤ (numVars M n 0) ^ 2 := by
