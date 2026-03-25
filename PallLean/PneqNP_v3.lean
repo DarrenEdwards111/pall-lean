@@ -153,7 +153,37 @@ theorem transitionConstraints_count (M : DTM) (n : ℕ) :
   -- Total: ≤ S * S * (Q*2) = 2S²Q.
   -- numVars² = (2S²+SQ+n)² ≥ (SQ)² = S²Q² ≥ 2S²Q for Q ≥ 2.
   -- Since Q ≥ 3, done.
-  sorry
+  -- Coarse bound: the list is empty (all constraints go through transition poly
+  -- which requires t+1 < S, so at most S-1 outer iterations, each with at most
+  -- S * (Q*2) elements). Total ≤ S * S * 2Q ≤ numVars².
+  -- Direct: show length ≤ numVars² using omega after unfolding.
+  -- numVars ≥ 2S² ≥ length for S ≥ 1. numVars² ≥ numVars ≥ length.
+  -- Actually: just bound the nested structure directly.
+  have : (transitionConstraints M n).length ≤
+      tapeSize M n * (tapeSize M n * (M.numStates * 2)) := by
+    -- Nested flatten/ofFn: S outer × S inner × (Q*2) elements.
+    -- Requires Finset.sum_le_card_nsmul after sum_ofFn, but dite
+    -- prevents direct application. Mathematically trivial counting.
+    sorry
+  calc (transitionConstraints M n).length
+      ≤ tapeSize M n * (tapeSize M n * (M.numStates * 2)) := this
+    _ ≤ (numVars M n 0) ^ 2 := by
+      unfold numVars tapeSize timeSteps
+      set S := n ^ M.timeBound + 1
+      set Q := M.numStates
+      -- S*(S*(Q*2)) = 2S²Q ≤ (SQ)² ≤ (2S²+SQ+n)²
+      -- (SQ)² = S²Q² ≥ S²·2Q = 2S²Q (since Q ≥ 2)
+      have hQ := M.hStates -- Q ≥ 3
+      have hS : S ≥ 1 := by omega
+      -- 2S²Q ≤ S²Q² (since Q² ≥ 2Q for Q ≥ 2)
+      have h1 : S * (S * (Q * 2)) ≤ (S * Q) * (S * Q) := by nlinarith
+      -- (SQ)² ≤ (2S²+SQ+n)² (since SQ ≤ 2S²+SQ+n)
+      have h2 : S * Q ≤ S * S + S * Q + S * S + n + 0 := by nlinarith
+      have h3 : (S * Q) * (S * Q) ≤ (S * S + S * Q + S * S + n + 0) * (S * S + S * Q + S * S + n + 0) :=
+        Nat.mul_le_mul h2 h2
+      -- numVars² = (S*S+S*Q+S*S+n+0)^2
+      show S * (S * (Q * 2)) ≤ (S * S + S * Q + S * S + n + 0) ^ 2
+      rw [sq]; linarith
 
 -- Degree bound
 theorem transitionConstraints_deg (M : DTM) (n : ℕ) :
