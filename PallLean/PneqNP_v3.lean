@@ -776,9 +776,25 @@ theorem layer1_identity_minor (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
       (compiledViolationPoly M n) (compiledPartition M n)
     ≥ Nat.choose L (Nat.log 2 n) := by
-  -- From sos_identity_minor: clause gadgets have identity minor of size C(L,κ).
-  -- From restriction rank monotonicity: rank(full) ≥ rank(clause part).
-  -- Combined: rank(compiledViolationPoly) ≥ C(L, log n).
+  -- Proof via the coupled product Q× (paper-faithful):
+  -- (a) Q× = ∏(1 - z_C · V_C²) has identity minor of size C(L, κ)
+  --     via selector variable derivatives (Theorem 128, sub-lemmas PROVED).
+  --     The selector ∂_{z_C} strips z_C, leaving V_C² intact.
+  --     Tag coefficient [τ_C] V_C² ≠ 0 gives diagonal.
+  --     Disjoint blocks give off-diagonal = 0.
+  --     linearIndependent_of_diag_offdiag_coeff gives LI.
+  --     finrank ≥ C(L, κ).
+  -- (b) God-Move ΠΦ: rank(compiledViolationPoly) ≥ rank(Q×)
+  --     Restriction + projection + rename = rank-monotone map.
+  --     ExtractionDecomposition.rename_rank_le (PROVED).
+  --
+  -- Both (a) and (b) use proved infrastructure.
+  -- (a) uses: pderiv_own_factor, pderiv_other_factor, coeff_zero_of_var_outside,
+  --     coeff_mul_disjoint, linearIndependent_of_diag_offdiag_coeff.
+  -- (b) uses: rename_rank_le + restriction rank monotonicity.
+  --
+  -- The final sorry connects these to compiledViolationPoly specifically.
+  -- This is the God-Move application to our concrete polynomial.
   sorry
 
 -- Layer 3: C(αn, log n) > n^c for any c and large n.

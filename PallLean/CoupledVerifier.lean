@@ -157,3 +157,29 @@ noncomputable def coupledPoly (N L : ℕ) (dcs : CoupledVerifier.DisjointClauseS
 -/
 
 end CoupledVerifier
+
+/-! ## Theorem 128: Q× has identity minor of size C(L, κ)
+
+  For the coupled product Q× = ∏(1 - z_C · V_C²):
+  - Differentiating by selector z_C gives -V_C² (pderiv_own_factor, PROVED)
+  - Other factors unaffected (pderiv_other_factor, PROVED)
+  - Tag coefficient [τ_C] V_C² ≠ 0 (tag_coeff, hypothesis)
+  - Off-diagonal vanishing from disjoint blocks (coeff_zero_of_var_outside, PROVED)
+  
+  So the SPDP generators indexed by κ-subsets have identity minor.
+  By linearIndependent_of_diag_offdiag_coeff: LI.
+  finrank ≥ C(L, κ).
+-/
+
+-- The identity minor theorem for Q× (coupled product).
+-- This is the paper's Theorem 128.
+-- All sub-lemma ingredients are proved.
+-- The remaining gap: connecting iterDerivList of Q× (using SELECTOR variables)
+-- to the coefficient conditions hdiag/hoff, then applying CoordSeparation.
+theorem coupled_identity_minor (N L : ℕ)
+    (dcs : DisjointClauseSystem N L) (κ ℓ : ℕ)
+    (bp : CompiledPoly.BlockPartition (N + L)) :
+    CompiledPoly.blockedSpdpRankQ κ ℓ (coupledPoly N L dcs) bp
+    ≥ Nat.choose L κ := by
+  sorry
+
