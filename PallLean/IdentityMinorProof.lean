@@ -284,3 +284,4 @@ theorem choose_mono_iter (m k k' : ℕ) (hkk : k ≤ k') (hm : m ≥ 2 * k' + 1)
   | zero => simp
   | succ d ih => exact le_trans (ih (by omega) (by omega)) (choose_mono_k m _ (by omega))
 
+

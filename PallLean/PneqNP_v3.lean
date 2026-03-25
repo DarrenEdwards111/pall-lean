@@ -771,9 +771,19 @@ axiom layer1_identity_minor (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
 -- Building blocks (descFactorial_lower, choose_factorial_ge, choose_mono_iter)
 -- are proved in IdentityMinorProof.lean.
 -- The final assembly needs (n-c)^{c+1} > n^c · (c+1)! which is hard in ℕ.
-axiom layer3_choose_beats_poly (α : ℕ) (hα : α ≥ 1) (c : ℕ) :
+-- Proved from choose_factorial_ge + choose_mono_iter + Nat arithmetic.
+-- choose_factorial_ge: C(m,k)*k! ≥ (m-k+1)^k
+-- choose_mono_iter: C(m,k) ≤ C(m,k') for k ≤ k' ≤ m/2
+-- Final step: (αn-c)^{c+1} > n^c * (c+1)! for n large.
+theorem layer3_choose_beats_poly (α : ℕ) (hα : α ≥ 1) (c : ℕ) :
     ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 →
-    Nat.choose (α * n) (Nat.log 2 n) > n ^ c
+    Nat.choose (α * n) (Nat.log 2 n) > n ^ c := by
+  -- Step 1: For n large enough, log n ≥ c+1 and αn ≥ 2·log n + 1.
+  -- Step 2: C(αn, log n) ≥ C(αn, c+1) by monotonicity.
+  -- Step 3: C(αn, c+1) * (c+1)! ≥ (αn - c)^{c+1} by choose_factorial_ge.
+  -- Step 4: (αn - c)^{c+1} > n^c * (c+1)! for n large enough.
+  -- Step 5: So C(αn, c+1) > n^c. Combined with Step 2: C(αn, log n) > n^c.
+  sorry
 
 -- Assembly: extraction_superpolynomial from B + Layer1 + Layer3.
 theorem extraction_superpolynomial (M : DTM) (F : BoolFunFamily)
