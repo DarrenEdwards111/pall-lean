@@ -132,18 +132,65 @@ theorem sos_identity_minor {N : ℕ}
   -- The concrete wiring: unwrap blockedSpdpRankQ, show each ∂_S(P) is
   -- a valid element, then apply Submodule.finrank_mono on the span
   -- containing the identity-minor family.
-  -- The SPDP generating set
-  set genSet := { q : MvPolynomial (Fin N) ℚ | ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
-    S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧
-    (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
-    (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
-    q = m * SPDP.iterDerivList S P }
-  -- For each κ-subset, the derivative is in genSet (with m = 1)
-  -- and the identity minor gives linear independence.
-  -- This requires constructing the κ-subset → derivative map
-  -- and verifying all SPDP conditions.
-  -- The mathematical content is PROVED in the sub-lemmas.
-  -- The wiring connects sub-lemmas to the blockedSpdpRankQ definition.
+  -- Every iterDerivList S P (with m=1) is in the SPDP span
+  have h_in_span : ∀ (S : List (Fin N)),
+      S.length ≤ κ →
+      (S.toFinset.image bp.blockOf).card = S.toFinset.card →
+      SPDP.iterDerivList S P ∈ Submodule.span ℚ
+        { q | ∃ (S' : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
+          S'.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧
+          (S'.toFinset.image bp.blockOf).card = S'.toFinset.card ∧
+          (∀ v ∈ m.vars, bp.blockOf v ∈ S'.toFinset.image bp.blockOf) ∧
+          q = m * SPDP.iterDerivList S' P } := by
+    intro S hlen hadm
+    apply Submodule.subset_span
+    exact ⟨S, 1, hlen, by simp, hadm, by simp, by simp⟩
+  -- κ-subsets of [L]
+  set kSubs := (Finset.univ : Finset (Fin L)).powersetCard κ
+  -- For each κ-subset T, form derivative list S = T.val.toList.map rep
+  let derivList : Finset (Fin L) → List (Fin N) := fun T => T.val.toList.map rep
+  -- Each derivList T has length κ (when T ∈ kSubs)
+  have hlen : ∀ T ∈ kSubs, (derivList T).length = κ := by
+    intro T hT
+    simp only [derivList, List.length_map, Multiset.length_toList]
+    exact (Finset.mem_powersetCard.mp hT).2
+  -- Map each κ-subset to its SPDP generator (in the span)
+  -- The generators are ∂_S(P) for S = derivList T.
+  -- These C(L,κ) generators are linearly independent via identity minor.
+  -- |kSubs| = C(L, κ)
+  have hcard : kSubs.card = Nat.choose L κ := by
+    simp [kSubs, Finset.card_powersetCard]
+  -- The generators are in the span and linearly independent.
+  -- Linear independence: the tag monomial coefficient matrix has identity minor.
+  -- This follows from:
+  -- - Diagonal: [τ_T](∂_{S_T}(P)) ≠ 0 (coeff_prod_disjoint + tag_coeff)
+  -- - Off-diagonal: [τ_T](∂_{S_{T'}}(P)) = 0 (coeff_zero_of_var_outside + disjoint blocks)
+  -- Both are PROVED sub-lemmas.
+  -- Linear independence from identity minor: PROVED (identity_minor_rank_bound).
+  -- The C(L,κ) generators in the span have an identity minor on tag coefficients.
+  -- By RankTransferCore.identity_minor_rank_bound: linear independence → finrank ≥ C(L,κ).
+  -- The identity minor structure is:
+  --   A(T, T') = coeff(τ_T')(∂_{S_T}(P))
+  --   A(T, T) ≠ 0 (from tag_coeff + coeff_prod_disjoint)
+  --   A(T, T') = 0 for T ≠ T' (from coeff_zero_of_var_outside + disjoint blocks)
+  -- This gives C(L,κ) linearly independent elements in span, hence finrank ≥ C(L,κ).
+  -- Unfold blockedSpdpRankQ:
+  unfold CompiledPoly.blockedSpdpRankQ
+  -- Goal: finrank(span genSet) ≥ C(L, κ)
+  -- Construct the linearly independent family
+  -- v : kSubs → MvPolynomial, v(T) = iterDerivList (derivList T) P
+  -- Show: v is linearly independent (from identity minor on tag coefficients)
+  -- Then: finrank ≥ kSubs.card = C(L, κ)
+  --
+  -- The linear independence follows from the identity minor:
+  -- For each T, the tag coefficient [τ_T](v(T)) ≠ 0 and [τ_T](v(T')) = 0 for T ≠ T'.
+  -- This is exactly the argument in identity_minor_rank_bound.
+  -- The sub-lemmas (pderiv_own_factor, coeff_zero_of_var_outside, etc.) provide
+  -- the diagonal/off-diagonal conditions.
+  --
+  -- This requires constructing the tag monomial τ_T for each κ-subset T
+  -- as the sum of individual tag monomials, and verifying the coefficient conditions.
+  -- All ingredients are proved; this is purely connecting them.
   sorry
 
 end SoSIdentityMinor
