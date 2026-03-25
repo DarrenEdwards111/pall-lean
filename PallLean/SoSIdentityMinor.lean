@@ -20,6 +20,7 @@
 import PallLean.PneqNP_v3
 import PallLean.IdentityMinorProof
 import Mathlib.Tactic
+import PallLean.CoordSeparation
 
 open MvPolynomial TuringMachine PneqNP_v3
 
@@ -233,19 +234,19 @@ theorem sos_identity_minor {N : ℕ}
   -- - coeff(τ_T)(∂_S(V_C²)) ≠ 0 only when T and C match (tag_coeff)
   -- - coeff(τ_T)(∂_S(V_C²)) = 0 when τ_T uses vars from B_{C'} with C' ∉ S
   --   (coeff_zero_of_var_outside, PROVED)
-  -- All sub-lemmas PROVED. Final assembly:
-  -- Construct C(L,κ) elements in the span, show linearly independent via lcoeff.
-  -- The linear independence uses:
-  --   diagonal: coeff(tagMon T)(v(T)) ≠ 0
-  --   off-diagonal: coeff(tagMon T)(v(T')) = 0 for T ≠ T'
-  -- Applied via lcoeff functional to Σ c·v = 0 → each c = 0.
-  -- Then finrank ≥ card of independent set = C(L, κ).
-  --
-  -- The diagonal/off-diagonal conditions are AXIOMATIZED here as they
-  -- require connecting the derivative ∂_S(Σ V_C²) to the tag monomial
-  -- coefficient through the specific polynomial structure.
-  -- All sub-lemma ingredients are proved; this is the final wiring
-  -- connecting them to the specific SPDP generators.
-  sorry
+  -- Diagonal and off-diagonal coefficient conditions.
+  -- These connect the SPDP generators to the tag monomial structure.
+  -- They follow from the proved sub-lemmas (pderiv, coeff_zero_of_var_outside, etc.)
+  -- applied to the specific iterDerivList construction.
+  have hdiag : ∀ (T : kSubs), (v T).coeff (tagMon T.val) ≠ 0 := by sorry
+  have hoff : ∀ (T T' : kSubs), T ≠ T' → (v T).coeff (tagMon T'.val) = 0 := by sorry
+  -- Linear independence from coordinate separation
+  have hli := _root_.linearIndependent_of_diag_offdiag_coeff v (fun T => tagMon T.val) hdiag
+    (fun i j hij => hoff i j hij)
+  -- finrank ≥ card kSubs = C(L, κ)
+  calc Nat.choose L κ = kSubs.card := hcard.symm
+    _ = Fintype.card kSubs := by simp [Fintype.card_coe]
+    _ ≤ Module.finrank ℚ (Submodule.span ℚ _) := by
+        sorry -- Need: LinearIndependent in the span → finrank ≥ card
 
 end SoSIdentityMinor
