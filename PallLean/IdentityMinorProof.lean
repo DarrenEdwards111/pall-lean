@@ -242,3 +242,28 @@ theorem coupled_poly_rank_lower (N L : ℕ) (dcs : CoupledVerifier.DisjointClaus
     ≥ Nat.choose L κ := by
   sorry -- Assembly of proved sub-lemmas (a)-(e) + identity_minor_rank_bound
 
+
+/-! ## Falling factorial and binomial coefficient lower bounds -/
+
+-- descFactorial m k ≥ (m-k+1)^k: each factor ≥ m-k+1.
+theorem descFactorial_lower (m k : ℕ) (hm : k ≤ m) :
+    Nat.descFactorial m k ≥ (m - k + 1) ^ k := by
+  induction k with
+  | zero => simp [Nat.descFactorial]
+  | succ k ih =>
+    rw [Nat.descFactorial_succ]
+    have hk : k ≤ m := by omega
+    calc (m - k) * Nat.descFactorial m k
+        ≥ (m - k) * (m - k + 1) ^ k := Nat.mul_le_mul_left _ (ih hk)
+      _ ≥ (m - k) * (m - k) ^ k :=
+          Nat.mul_le_mul_left _ (Nat.pow_le_pow_left (by omega) k)
+      _ = (m - k) ^ (k + 1) := by rw [pow_succ]; ring
+      _ ≥ (m - (k + 1) + 1) ^ (k + 1) := Nat.pow_le_pow_left (by omega) _
+
+-- C(m,k) * k! ≥ (m-k+1)^k
+theorem choose_factorial_ge (m k : ℕ) (hm : k ≤ m) :
+    Nat.choose m k * Nat.factorial k ≥ (m - k + 1) ^ k := by
+  rw [Nat.choose_eq_descFactorial_div_factorial,
+    Nat.div_mul_cancel (Nat.factorial_dvd_descFactorial m k)]
+  exact descFactorial_lower m k hm
+
