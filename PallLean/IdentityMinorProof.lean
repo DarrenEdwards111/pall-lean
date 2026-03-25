@@ -96,11 +96,24 @@ theorem pderiv_other_factor (dcs : CoupledVerifier.DisjointClauseSystem N L) (C 
 
 -- Coefficient of product monomial in product of disjoint polynomials
 -- This is the key algebraic fact for both diagonal and off-diagonal.
-axiom coeff_prod_disjoint {σ : Type*} [DecidableEq σ]
+-- Binary version: coeff (a+b) in (p*q) = coeff a p * coeff b q
+-- when p, q have disjoint variable sets and a.support ⊆ p.vars, b.support ⊆ q.vars.
+-- Proof: convolution via coeff_mul + antidiagonal collapsing from disjoint supports.
+axiom coeff_mul_disjoint {σ : Type*} [DecidableEq σ]
+    (p q : MvPolynomial σ ℚ) (a b : σ →₀ ℕ)
+    (h_disjoint : Disjoint p.vars q.vars)
+    (ha : a.support ⊆ p.vars) (hb : b.support ⊆ q.vars) :
+    (p * q).coeff (a + b) = p.coeff a * q.coeff b
+
+-- General version by induction from binary.
+theorem coeff_prod_disjoint {σ : Type*} [DecidableEq σ]
     {k : ℕ} (ps : Fin k → MvPolynomial σ ℚ) (ms : Fin k → (σ →₀ ℕ))
     (h_disjoint : ∀ i j, i ≠ j → Disjoint (ps i).vars (ps j).vars)
     (h_supp : ∀ i, (ms i).support ⊆ (ps i).vars) :
-    (∏ i, ps i).coeff (∑ i, ms i) = ∏ i, (ps i).coeff (ms i)
+    (∏ i, ps i).coeff (∑ i, ms i) = ∏ i, (ps i).coeff (ms i) := by
+  induction k with
+  | zero => simp
+  | succ k ih => sorry -- Split last factor, apply coeff_mul_disjoint + ih
 
 /-! ## Sub-lemma (d): Diagonal entry = (-1)^κ ≠ 0
 
