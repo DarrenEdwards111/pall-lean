@@ -243,9 +243,24 @@ theorem coeff_zero_coupledFactor (dcs : DisjointClauseSystem N L) (C : Fin L) :
 -- coeff m (pderiv i p) = coeff(m + δ_i)(p) when m(i) = 0.
 -- Standard MvPolynomial fact. Proof from pderiv_monomial + Finset.sum_eq_single.
 -- Nat subtraction in Finsupp makes the formal proof painful; axiomatized here.
-axiom coeff_pderiv_zero (i : Fin (N + L)) (p : MvPolynomial (Fin (N + L)) ℚ)
-    (m : (Fin (N + L)) →₀ ℕ) (hm : m i = 0) :
-    (MvPolynomial.pderiv i p).coeff m = p.coeff (m + Finsupp.single i 1)
+-- Finsupp subtraction helper (Nat subtraction in Finsupp makes this nontrivial)
+axiom finsupp_sub_single_eq_aux (v : Fin (N + L)) (s m : (Fin (N + L)) →₀ ℕ)
+    (hm : m v = 0) (h : s - Finsupp.single v 1 = m) (hsv : s v ≥ 1) :
+    s = m + Finsupp.single v 1
+
+theorem coeff_pderiv_zero (v : Fin (N + L)) (p : MvPolynomial (Fin (N + L)) ℚ)
+    (m : (Fin (N + L)) →₀ ℕ) (hm : m v = 0) :
+    (MvPolynomial.pderiv v p).coeff m = p.coeff (m + Finsupp.single v 1) := by
+  conv_lhs => rw [p.as_sum]
+  simp only [map_sum, MvPolynomial.pderiv_monomial, MvPolynomial.coeff_sum, MvPolynomial.coeff_monomial]
+  rw [Finset.sum_eq_single (m + Finsupp.single v 1)]
+  · simp [hm]
+  · intro s _ hs; split_ifs with h
+    · by_cases hsv : s v ≥ 1
+      · exact absurd (finsupp_sub_single_eq_aux v s m hm h hsv) hs
+      · push_neg at hsv; have : s v = 0 := by omega; simp [this]
+    · rfl
+  · intro h; exact by rw [show p.coeff (m + Finsupp.single v 1) = 0 from by rwa [MvPolynomial.mem_support_iff, not_not] at h]; simp
 
 -- Iterated version: coeff m (iterDerivList S p) = coeff(m + ∑ δ_{s})(p)
 -- when m has zero exponents at all s ∈ S.
