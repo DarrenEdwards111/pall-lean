@@ -301,9 +301,35 @@ theorem coupled_identity_minor (N L : ℕ)
         S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧
         (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
         (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
-        q = m * SPDP.iterDerivList S Q } := by sorry
-  -- LI + membership in span → finrank ≥ card
-  sorry
+        q = m * SPDP.iterDerivList S Q } := by
+    intro ⟨T, hT⟩
+    apply Submodule.subset_span
+    refine ⟨selList T, 1, ?_, by simp, ?_, by simp, by simp [v, Q, one_mul]⟩
+    · -- S.length ≤ κ
+      simp only [selList, List.length_map, Multiset.length_toList]
+      exact le_of_eq (Finset.mem_powersetCard.mp hT).2
+    · -- admissible: distinct blocks from bp_sel
+      apply Finset.card_image_of_injOn
+      intro a ha b hb hab
+      simp only [Finset.mem_coe, selList, List.mem_toFinset] at ha hb
+      obtain ⟨Ca, _, rfl⟩ := List.mem_map.mp ha
+      obtain ⟨Cb, _, rfl⟩ := List.mem_map.mp hb
+      by_contra h
+      exact bp_sel Ca Cb (fun heq => h (congr_arg (selectorVarIdx N L) heq)) hab
+  -- LI family v maps into the span. finrank(span) ≥ card.
+  -- Lift v to subtype of span, show LI in subtype, apply fintype_card_le_finrank.
+  set Span := Submodule.span ℚ { q : MvPolynomial (Fin (N + L)) ℚ | ∃ S m,
+    S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧
+    (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+    (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
+    q = m * SPDP.iterDerivList S Q }
+  let v' : kSubs → Span := fun T => ⟨v T, hv_mem T⟩
+  have hli' : LinearIndependent ℚ v' := by
+    rw [LinearIndependent] at hli ⊢
+    exact LinearIndependent.of_comp Span.subtype hli
+  calc Nat.choose L κ = kSubs.card := hcard.symm
+    _ = Fintype.card kSubs := by simp [Fintype.card_coe]
+    _ ≤ Module.finrank ℚ Span := by haveI : Module.Finite ℚ Span := sorry; exact hli'.fintype_card_le_finrank
 
 end CoupledVerifier
 
