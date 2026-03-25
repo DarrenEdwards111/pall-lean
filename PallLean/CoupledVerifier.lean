@@ -157,6 +157,40 @@ noncomputable def coupledPoly (N L : ℕ) (dcs : DisjointClauseSystem N L) :
 -/
 
 
+private theorem pderiv_selector_gadget (dcs : DisjointClauseSystem N L) (C C' : Fin L) :
+    pderiv (selectorVarIdx N L C) (dcs.gadget C') = 0 := by
+  -- gadget C' uses only block variables (indices < N)
+  -- selectorVarIdx N L C has index ≥ N
+  -- So the selector var doesn't appear in gadget, hence pderiv = 0
+  apply MvPolynomial.pderiv_eq_zero_of_notMem_vars
+  -- selectorVarIdx N L C ∉ (gadget C').vars
+  -- because gadget uses only block vars (index < N) and selector has index ≥ N
+  intro hmem
+  obtain ⟨i, hvi, _⟩ := dcs.gadget_support C' _ hmem
+  -- selectorVarIdx has val = N + C.val ≥ N, but blockVarIdx has val = i.val < N
+  have : (selectorVarIdx N L C).val = N + C.val := rfl
+  have : (blockVarIdx N L i).val = i.val := rfl
+  rw [hvi] at *; unfold selectorVarIdx blockVarIdx at *; simp [Fin.ext_iff] at *; omega
+
+theorem pderiv_own_factor (dcs : DisjointClauseSystem N L) (C : Fin L) :
+    pderiv (selectorVarIdx N L C) (coupledFactor N L dcs C) =
+    -(dcs.gadget C * dcs.gadget C) := by
+  unfold coupledFactor
+  have hp := pderiv_selector_gadget dcs C C
+  simp only [map_sub, MvPolynomial.pderiv_one, MvPolynomial.pderiv_mul, MvPolynomial.pderiv_X_self, hp]
+  ring_nf
+
+-- ∂_{z_C}(1 - z_{C'} · p) = 0  for C ≠ C'
+-- Because z_C doesn't appear in this factor (z_{C'} is a different variable).
+theorem pderiv_other_factor (dcs : DisjointClauseSystem N L) (C C' : Fin L) (hne : C ≠ C') :
+    pderiv (selectorVarIdx N L C) (coupledFactor N L dcs C') = 0 := by
+  unfold coupledFactor
+  have hp := pderiv_selector_gadget dcs C C'
+  have hv : selectorVarIdx N L C ≠ selectorVarIdx N L C' := by
+    unfold selectorVarIdx; simp [Fin.ext_iff]; omega
+  simp only [map_sub, MvPolynomial.pderiv_one, MvPolynomial.pderiv_mul, MvPolynomial.pderiv_X, hp]
+  simp [Ne.symm hv]
+
 -- pderiv of product = 0 when all factor derivatives are 0.
 theorem pderiv_prod_zero (v : Fin (N + L))
     (s : Finset (Fin L)) (f : Fin L → MvPolynomial (Fin (N + L)) ℚ)
@@ -211,6 +245,36 @@ theorem coupled_identity_minor (N L : ℕ)
   --
   -- The remaining wiring: constructing the κ-subset → selector derivative list
   -- and verifying SPDP admissibility + applying the coordinate separation lemma.
+  -- KEY LEMMA: derivative of Q× w.r.t. selector z_C
+  have h_deriv_single : ∀ (C : Fin L),
+      MvPolynomial.pderiv (selectorVarIdx N L C) (coupledPoly N L dcs) =
+      -(dcs.gadget C * dcs.gadget C) * ∏ i ∈ (Finset.univ.erase C), coupledFactor N L dcs i := by
+    intro C
+    unfold coupledPoly
+    rw [← Finset.mul_prod_erase Finset.univ (coupledFactor N L dcs) (Finset.mem_univ C)]
+    rw [MvPolynomial.pderiv_mul]
+    rw [pderiv_prod_zero (selectorVarIdx N L C) (Finset.univ.erase C) (coupledFactor N L dcs)
+      (fun i hi => pderiv_other_factor dcs C i (Finset.ne_of_mem_erase hi).symm)]
+    rw [mul_zero, add_zero, pderiv_own_factor]
+    
+  -- For each selector variable z_C:
+  -- pderiv z_C (∏ coupledFactor) = pderiv z_C (coupledFactor C) · ∏_{C'≠C} coupledFactor C'
+  -- = (-V_C²) · ∏_{C'≠C} coupledFactor C'
+  -- by pderiv_own_factor + pderiv_prod_zero (for C' ≠ C: pderiv_other_factor gives 0).
+  --
+  -- Iterating for κ selector variables from distinct clauses:
+  -- iterDerivList [z_{C₁},...,z_{Cκ}] Q× = (-1)^κ · ∏_{C∈T} V_C² · ∏_{C∉T} factor_C
+  --
+  -- Tag coefficient [τ_T] of this generator:
+  -- τ_T uses only block variables (not z's), so the ∏_{C∉T} factor_C contributes 1.
+  -- [τ_T]((-1)^κ · ∏_{C∈T} V_C²) = (-1)^κ · ∏ [τ_C] V_C² = (-1)^κ ≠ 0 (diagonal).
+  -- Off-diagonal: [τ_{T'}] = 0 from disjoint blocks + coeff_zero_of_var_outside.
+  --
+  -- All ingredients PROVED. Assembly into blockedSpdpRankQ via
+  -- linearIndependent_of_diag_offdiag_coeff (PROVED in CoordSeparation).
+  --
+  -- The remaining construction: explicit κ-subset family → derivative list → 
+  -- verify SPDP conditions → apply coord separation.
   sorry
 
 end CoupledVerifier
