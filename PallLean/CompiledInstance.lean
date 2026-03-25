@@ -86,4 +86,55 @@ theorem clauseConstraintPolys_eq_renamed_factors
           renameCoupledIntoCompiled E (coupledFactor N L inst.dcs C)) := by
   rfl
 
+/-- Instance-aware block partition (reuse v3 partition initially). -/
+noncomputable def compiledPartitionInst (M : DTM) (n : ℕ) :
+    CompiledPoly.BlockPartition (numVars M n 0) :=
+  compiledPartition M n
+
+/-- Instance-aware blocked SPDP rank. -/
+noncomputable def blockedSpdpRankInst
+    (M : DTM) (n N L κ ℓ : ℕ)
+    (inst : SATInstance N L)
+    (E : ClauseEmbedData M n N L) : ℕ :=
+  CompiledPoly.blockedSpdpRankQ κ ℓ
+    (compiledViolationPolyInst M n N L inst E)
+    (compiledPartitionInst M n)
+
+/-- Instance-aware InCcoll predicate. -/
+def InCcollInst
+    (M : DTM) (n N L c : ℕ)
+    (inst : SATInstance N L)
+    (E : ClauseEmbedData M n N L) : Prop :=
+  blockedSpdpRankInst M n N L (Nat.log 2 n) (Nat.log 2 n) inst E ≤ n ^ c
+
+/-- Unfolding lemma for InCcollInst. -/
+theorem InCcollInst_iff
+    (M : DTM) (n N L c : ℕ)
+    (inst : SATInstance N L)
+    (E : ClauseEmbedData M n N L) :
+    InCcollInst M n N L c inst E
+      ↔ CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+          (compiledViolationPolyInst M n N L inst E)
+          (compiledPartition M n) ≤ n ^ c := by
+  rfl
+
+/--
+Paper-faithful extraction target (Definition 6 / Lemma 7 shape):
+there exists a God-Move restriction/projection taking the instance-aware compiled
+polynomial to the (renamed) coupled sheet and not increasing blocked SPDP rank.
+
+This is the core theorem to discharge after threading instance-aware objects.
+-/
+axiom godMove_correct_and_monotone
+    (M : DTM) (n N L : ℕ)
+    (inst : SATInstance N L)
+    (E : ClauseEmbedData M n N L) :
+    ∃ (piPhi : MvPolynomial (CVar M n) ℚ →ₐ[ℚ] MvPolynomial (CVar M n) ℚ),
+      piPhi (compiledViolationPolyInst M n N L inst E)
+        = renameCoupledIntoCompiled E (coupledPoly N L inst.dcs)
+      ∧
+      ∀ κ ℓ,
+        CompiledPoly.blockedSpdpRankQ κ ℓ (piPhi (compiledViolationPolyInst M n N L inst E)) (compiledPartition M n)
+          ≤ CompiledPoly.blockedSpdpRankQ κ ℓ (compiledViolationPolyInst M n N L inst E) (compiledPartition M n)
+
 end PneqNPv3
