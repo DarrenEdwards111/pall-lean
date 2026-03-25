@@ -52,7 +52,7 @@ def selectorVarIdx (N L : ℕ) (C : Fin L) : Fin (N + L) :=
 
 /-- A disjoint clause system: L clauses with pairwise disjoint blocks,
     each equipped with a gadget polynomial and tag monomial. -/
-structure CoupledVerifier.DisjointClauseSystem (N L : ℕ) where
+structure DisjointClauseSystem (N L : ℕ) where
   -- Block B_C for each clause C
   clauseBlock : Fin L → Finset (Fin N)
   -- Blocks are pairwise disjoint
@@ -78,12 +78,12 @@ structure CoupledVerifier.DisjointClauseSystem (N L : ℕ) where
 -/
 
 /-- Single factor: (1 - z_C · V_C²) -/
-noncomputable def coupledFactor (N L : ℕ) (dcs : CoupledVerifier.DisjointClauseSystem N L)
+noncomputable def coupledFactor (N L : ℕ) (dcs : DisjointClauseSystem N L)
     (C : Fin L) : MvPolynomial (Fin (N + L)) ℚ :=
   1 - X (selectorVarIdx N L C) * (dcs.gadget C) * (dcs.gadget C)
 
 /-- The coupled verifier polynomial Q× = ∏_{C} (1 - z_C · V_C²) -/
-noncomputable def coupledPoly (N L : ℕ) (dcs : CoupledVerifier.DisjointClauseSystem N L) :
+noncomputable def coupledPoly (N L : ℕ) (dcs : DisjointClauseSystem N L) :
     MvPolynomial (Fin (N + L)) ℚ :=
   (Finset.univ : Finset (Fin L)).prod (fun C => coupledFactor N L dcs C)
 
@@ -156,7 +156,18 @@ noncomputable def coupledPoly (N L : ℕ) (dcs : CoupledVerifier.DisjointClauseS
   has dimension ≥ C(L, κ), hence blockedSpdpRankQ ≥ C(L, κ).
 -/
 
-end CoupledVerifier
+
+-- pderiv of product = 0 when all factor derivatives are 0.
+theorem pderiv_prod_zero (v : Fin (N + L))
+    (s : Finset (Fin L)) (f : Fin L → MvPolynomial (Fin (N + L)) ℚ)
+    (h : ∀ i ∈ s, MvPolynomial.pderiv v (f i) = 0) :
+    MvPolynomial.pderiv v (∏ i ∈ s, f i) = 0 := by
+  induction s using Finset.induction with
+  | empty => simp
+  | @insert a s' hna ih =>
+    rw [Finset.prod_insert hna, MvPolynomial.pderiv_mul,
+      h a (Finset.mem_insert_self a s'), zero_mul, zero_add,
+      ih (fun i hi => h i (Finset.mem_insert_of_mem hi)), mul_zero]
 
 /-! ## Theorem 128: Q× has identity minor of size C(L, κ)
 
@@ -201,4 +212,6 @@ theorem coupled_identity_minor (N L : ℕ)
   -- The remaining wiring: constructing the κ-subset → selector derivative list
   -- and verifying SPDP admissibility + applying the coordinate separation lemma.
   sorry
+
+end CoupledVerifier
 
