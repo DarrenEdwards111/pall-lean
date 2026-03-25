@@ -188,9 +188,29 @@ theorem sos_identity_minor {N : ℕ}
   -- The sub-lemmas (pderiv_own_factor, coeff_zero_of_var_outside, etc.) provide
   -- the diagonal/off-diagonal conditions.
   --
-  -- This requires constructing the tag monomial τ_T for each κ-subset T
-  -- as the sum of individual tag monomials, and verifying the coefficient conditions.
-  -- All ingredients are proved; this is purely connecting them.
+  -- Construct: tag monomial for each κ-subset T = ∑_{C ∈ T} tags C
+  let tagMon : Finset (Fin L) → (Fin N →₀ ℕ) := fun T => T.val.toList.map tags |>.foldl (· + ·) 0
+  -- The derivative generators indexed by kSubs
+  let v : kSubs → MvPolynomial (Fin N) ℚ :=
+    fun ⟨T, _⟩ => SPDP.iterDerivList (derivList T) P
+  -- Each v(T) is in the SPDP span
+  have hv_span : ∀ (x : kSubs), v x ∈ Submodule.span ℚ
+      { q | ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
+        S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧
+        (S.toFinset.image bp.blockOf).card = S.toFinset.card ∧
+        (∀ v ∈ m.vars, bp.blockOf v ∈ S.toFinset.image bp.blockOf) ∧
+        q = m * SPDP.iterDerivList S P } := by
+    intro ⟨T, hT⟩
+    apply h_in_span
+    · exact le_of_eq (hlen T hT)
+    · -- admissibility: distinct blocks from disjoint clause blocks + injective rep
+      sorry
+  -- Linear independence via coefficient extraction (identity minor argument)
+  -- coeff(τ_T) is a linear functional. Applied to Σ c·v = 0:
+  -- c_T · [τ_T](v(T)) = 0 (off-diagonal terms vanish).
+  -- [τ_T](v(T)) ≠ 0 (diagonal). So c_T = 0. For all T.
+  -- This is the same argument as identity_minor_rank_bound.
+  -- Combined with hv_span: C(L,κ) independent elements in span → finrank ≥ C(L,κ).
   sorry
 
 end SoSIdentityMinor
