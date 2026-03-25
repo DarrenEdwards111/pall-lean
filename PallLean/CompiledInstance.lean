@@ -4,11 +4,8 @@ import PallLean.CoupledVerifier
 /-!
 Instance-aware compiled polynomial scaffold (paper-faithful direction).
 
-Goal: move from `compiledViolationPoly M n` to an object that can carry
-instance-dependent clause gadgets.
-
-This file is deliberately conservative: it introduces compile-safe definitions
-without changing the existing v3 critical path yet.
+This file keeps v3 untouched while introducing the instance-parameterized
+objects needed by §12.
 -/
 
 open MvPolynomial TuringMachine PneqNP_v3 CoupledVerifier
@@ -16,8 +13,9 @@ open scoped BigOperators
 
 namespace PneqNPv3
 
-/-- NP instance used by the clause sheet (currently a disjoint clause system). -/
-abbrev SATInstance (N L : ℕ) := DisjointClauseSystem N L
+/-- NP instance payload used by the clause sheet. -/
+structure SATInstance (N L : ℕ) where
+  dcs : DisjointClauseSystem N L
 
 /-- Compiled variable space (same as v3). -/
 abbrev CVar (M : DTM) (n : ℕ) := Fin (numVars M n 0)
@@ -34,6 +32,11 @@ noncomputable def renameCoupledIntoCompiled
     MvPolynomial (Fin (N + L)) ℚ →ₐ[ℚ] MvPolynomial (CVar M n) ℚ :=
   MvPolynomial.rename E.emb
 
+/-- Existing machine-side constraints as polynomials. -/
+noncomputable def tableauConstraintPolys (M : DTM) (n : ℕ) :
+    List (MvPolynomial (CVar M n) ℚ) :=
+  (constraintList M n ++ transitionConstraints M n).map LocalConstraint.poly
+
 /-- Instance-dependent clause factors in compiled variable space. -/
 noncomputable def clauseConstraintPolys
     (M : DTM) (n N L : ℕ)
@@ -41,12 +44,7 @@ noncomputable def clauseConstraintPolys
     (E : ClauseEmbedData M n N L) :
     List (MvPolynomial (CVar M n) ℚ) :=
   ((Finset.univ : Finset (Fin L)).toList.map fun C =>
-    renameCoupledIntoCompiled E (coupledFactor N L inst C))
-
-/-- Existing machine-side constraints as polynomials. -/
-noncomputable def tableauConstraintPolys (M : DTM) (n : ℕ) :
-    List (MvPolynomial (CVar M n) ℚ) :=
-  (constraintList M n ++ transitionConstraints M n).map LocalConstraint.poly
+    renameCoupledIntoCompiled E (coupledFactor N L inst.dcs C))
 
 /-- Full instance-aware compiled constraints (tableau ++ clause). -/
 noncomputable def compiledConstraintPolys
@@ -56,22 +54,36 @@ noncomputable def compiledConstraintPolys
     List (MvPolynomial (CVar M n) ℚ) :=
   tableauConstraintPolys M n ++ clauseConstraintPolys M n N L inst E
 
-/-- Instance-aware compiled violation polynomial (product form scaffold). -/
+/-- Raw violation polynomial on a list of polynomial constraints. -/
+noncomputable def violationPolyRaw {V : Type*} [DecidableEq V]
+    (constraints : List (MvPolynomial V ℚ)) : MvPolynomial V ℚ :=
+  (constraints.map (fun p => p * p)).sum
+
+/-- Instance-aware compiled violation polynomial (sum of squares). -/
 noncomputable def compiledViolationPolyInst
     (M : DTM) (n N L : ℕ)
     (inst : SATInstance N L)
     (E : ClauseEmbedData M n N L) :
     MvPolynomial (CVar M n) ℚ :=
-  (compiledConstraintPolys M n N L inst E).prod
+  violationPolyRaw (compiledConstraintPolys M n N L inst E)
 
-/-- Factorization by construction: tableau part times clause part. -/
-theorem compiledViolationPolyInst_factorization
+/-- Factor-list decomposition by construction (tableau ++ clause). -/
+theorem compiledConstraintPolys_append
     (M : DTM) (n N L : ℕ)
     (inst : SATInstance N L)
     (E : ClauseEmbedData M n N L) :
-    compiledViolationPolyInst M n N L inst E
-      = (tableauConstraintPolys M n).prod * (clauseConstraintPolys M n N L inst E).prod := by
-  unfold compiledViolationPolyInst compiledConstraintPolys
-  simp [List.prod_append]
+    compiledConstraintPolys M n N L inst E
+      = tableauConstraintPolys M n ++ clauseConstraintPolys M n N L inst E := by
+  rfl
+
+/-- Clause part is exactly renamed coupled factors list. -/
+theorem clauseConstraintPolys_eq_renamed_factors
+    (M : DTM) (n N L : ℕ)
+    (inst : SATInstance N L)
+    (E : ClauseEmbedData M n N L) :
+    clauseConstraintPolys M n N L inst E
+      = ((Finset.univ : Finset (Fin L)).toList.map fun C =>
+          renameCoupledIntoCompiled E (coupledFactor N L inst.dcs C)) := by
+  rfl
 
 end PneqNPv3
