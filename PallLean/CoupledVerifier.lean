@@ -319,7 +319,7 @@ theorem coeff_iterDerivList_zero (S : List (Fin (N + L))) (p : MvPolynomial (Fin
       simp only [zero_add]; exact foldl_single_apply_eq_zero_of_not_mem S v (List.nodup_cons.mp hnd).1)]
     congr 1
     rw [show (0 : (Fin (N+L)) →₀ ℕ) + Finsupp.single v 1 = Finsupp.single v 1 from zero_add _]
-    sorry
+    rw [add_assoc]; congr 1; rw [← foldl_add_right_single S 0 v]; simp
 
 
 
