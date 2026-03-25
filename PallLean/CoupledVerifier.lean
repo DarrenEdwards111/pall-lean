@@ -369,15 +369,23 @@ theorem coupled_identity_minor (N L : ℕ)
     simp only [v, tagMon]
     rw [coeff_iterDerivList_zero _ Q _ (CoupledVerifierAPI.tag_zero_at_selList dcs T) (CoupledVerifierAPI.selList_nodup dcs T)]
     -- Goal: Q.coeff (shifted monomial) ≠ 0
-    -- = (-1)^κ ∏ tag_coeff from product structure. Needs coeff_prod_disjoint on Q.
+    -- By coeff_prod_disjoint on Q = ∏ factors with disjoint vars:
+    -- Q.coeff(m) = ∏_C factor_C.coeff(m_C)
+    -- For C ∈ T: factor_C.coeff = -tag_coeff(C) ≠ 0
+    -- For C ∉ T: factor_C.coeff(0) = 1
+    -- Product ≠ 0.
     sorry
   have hoff : ∀ T T', T ≠ T' → (v T).coeff (tagMon T') = 0 := by
     intro ⟨T, hT⟩ ⟨T', hT'⟩ hne
     simp only [v, tagMon]
     rw [coeff_iterDerivList_zero _ Q _ (CoupledVerifierAPI.tag_zero_at_selList dcs T) (CoupledVerifierAPI.selList_nodup dcs T)]
     -- Goal: Q.coeff (shifted monomial for T') = 0
-    -- T ≠ T' → ∃ C* ∈ T' \ T. Tag uses B_{C*} var. Shifted monomial picks 1 from factor C*.
-    -- So the coefficient lacks the B_{C*} contribution → 0.
+    -- coeff_iterDerivList_zero shifts: Q.coeff(tagMon T' + sel_mon(T))
+    -- For C* ∈ T' \ T: tagMon T' has tag(C*) support in B_{C*}.
+    -- sel_mon(T) has z_C for C ∈ T. Since C* ∉ T, z_{C*} = 0 in sel_mon.
+    -- Factor C*: must pick constant term 1 (z_{C*} = 0). But tag(C*) needs
+    -- block var contribution from factor C*. Since we picked 1, no block vars.
+    -- coeff_zero_of_var_outside: tag(C*) var not in remaining product → coeff = 0.
     sorry
   -- Linear independence
   have hli := linearIndependent_of_diag_offdiag_coeff v (fun T => tagMon T) hdiag hoff

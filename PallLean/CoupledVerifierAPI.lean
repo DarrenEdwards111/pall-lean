@@ -64,3 +64,18 @@ theorem tag_zero_at_selList (T : Finset (Fin L)) :
   exact tag_zero_at_selector dcs T C
 
 end CoupledVerifierAPI
+
+-- Coupled factors have disjoint variable sets.
+-- Factor C uses {z_C} ∪ B_C. Different C → disjoint blocks + different selectors.
+theorem coupledFactor_vars_disjoint (i j : Fin L) (hij : i ≠ j) :
+    Disjoint (coupledFactor N L dcs i).vars (coupledFactor N L dcs j).vars := by
+  sorry -- From: dcs.disjoint + selectorVarIdx injective
+
+-- Coefficient of product of disjoint-variable coupled factors.
+-- Q.coeff(m) = ∏_C (coupledFactor C).coeff(m restricted to C's vars)
+-- For our specific monomial: this gives (-1)^κ ∏ tag_coeff.
+-- Uses coeff_prod_disjoint (PROVED in IdentityMinorProof).
+theorem coupledPoly_coeff_factored (m : (Fin (N + L)) →₀ ℕ) :
+    (coupledPoly N L dcs).coeff m = ∏ C : Fin L, (coupledFactor N L dcs C).coeff (sorry : (Fin (N + L)) →₀ ℕ) := by
+  sorry -- From coeff_prod_disjoint
+
