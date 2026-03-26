@@ -138,27 +138,19 @@ axiom godMove_correct_and_monotone
         CompiledPoly.blockedSpdpRankQ κ ℓ (piPhi (compiledViolationPolyInst M n N L inst E)) (compiledPartition M n)
           ≤ CompiledPoly.blockedSpdpRankQ κ ℓ (compiledViolationPolyInst M n N L inst E) (compiledPartition M n)
 
-/-- Paper §9.3 lower bound on the coupled sheet for hard instances (instance-aware hook). -/
-axiom coupled_rank_lower_inst
-    (M : DTM) (n N L : ℕ)
-    (hn2 : n ≥ 2)
-    (inst : SATInstance N L)
-    (E : ClauseEmbedData M n N L) :
-    Nat.choose L (Nat.log 2 n)
-      ≤ CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-          (renameCoupledIntoCompiled E (coupledPoly N L inst.dcs))
-          (compiledPartition M n)
-
 /-- Layer 1 (instance-aware): God-Move monotonicity + coupled lower bound. -/
 theorem layer1_identity_minor_inst
     (M : DTM) (n N L : ℕ)
     (hn2 : n ≥ 2)
     (inst : SATInstance N L)
-    (E : ClauseEmbedData M n N L) :
+    (E : ClauseEmbedData M n N L)
+    (hcoupled : Nat.choose L (Nat.log 2 n)
+      ≤ CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+          (renameCoupledIntoCompiled E (coupledPoly N L inst.dcs))
+          (compiledPartition M n)) :
     Nat.choose L (Nat.log 2 n)
       ≤ blockedSpdpRankInst M n N L (Nat.log 2 n) (Nat.log 2 n) inst E := by
   rcases godMove_correct_and_monotone M n N L inst E with ⟨piPhi, hpoly, hmono⟩
-  have hcoupled := coupled_rank_lower_inst M n N L hn2 inst E
   have hmono' := hmono (Nat.log 2 n) (Nat.log 2 n)
   rw [hpoly] at hmono'
   exact le_trans hcoupled hmono'
@@ -214,21 +206,18 @@ theorem instance_embed_exists
   have hv := congrArg Fin.val h
   simpa using hv
 
-/-- Hard-instance package for extraction: now derived with α = 1. -/
-theorem hard_instance_data
+/-- Hard-instance package with coupled lower bound (paper §9.3 hook). -/
+axiom hard_instance_rank_data
     (M : DTM) (F : BoolFunFamily)
     (hM : ∀ n, M.decides (F n)) (hNP : UniformNP F) :
     ∃ α : ℕ, α ≥ 1 ∧
       ∀ n, n ≥ 2 →
         ∃ (N L : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L),
-          L = α * n := by
-  refine ⟨1, by omega, ?_⟩
-  intro n hn2
-  have _ := hM n
-  have _ := hNP
-  rcases instance_embed_exists M n hn2 with ⟨N, L, inst, E, hL⟩
-  refine ⟨N, L, inst, E, ?_⟩
-  simpa [hL]
+          L = α * n ∧
+          Nat.choose L (Nat.log 2 n)
+            ≤ CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+                (renameCoupledIntoCompiled E (coupledPoly N L inst.dcs))
+                (compiledPartition M n)
 
 /-- Instance-aware extraction theorem (parallel to extraction_superpolynomial). -/
 theorem extraction_superpolynomial_inst
@@ -237,13 +226,13 @@ theorem extraction_superpolynomial_inst
     ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 →
       ∃ (N L : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L),
         blockedSpdpRankInst M n N L (Nat.log 2 n) (Nat.log 2 n) inst E > n ^ c := by
-  obtain ⟨α, hα, hhard⟩ := hard_instance_data M F hM hNP
+  obtain ⟨α, hα, hhard⟩ := hard_instance_rank_data M F hM hNP
   obtain ⟨n₀, hchoose⟩ := layer3_choose_beats_poly α hα c
   refine ⟨n₀, ?_⟩
   intro n hn hn2
-  obtain ⟨N, L, inst, E, hL⟩ := hhard n hn2
+  obtain ⟨N, L, inst, E, hL, hcoupled⟩ := hhard n hn2
   refine ⟨N, L, inst, E, ?_⟩
-  have h1 := layer1_identity_minor_inst M n N L hn2 inst E
+  have h1 := layer1_identity_minor_inst M n N L hn2 inst E hcoupled
   have h2 : Nat.choose L (Nat.log 2 n) > n ^ c := by simpa [hL] using hchoose n hn hn2
   have h2' : n ^ c < Nat.choose L (Nat.log 2 n) := h2
   exact lt_of_lt_of_le h2' h1
