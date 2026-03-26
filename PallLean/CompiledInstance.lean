@@ -206,8 +206,17 @@ theorem instance_embed_exists
   have hv := congrArg Fin.val h
   simpa using hv
 
-/-- Hard-instance package with coupled lower bound (paper §9.3 hook). -/
-axiom hard_instance_rank_data
+/-- Coupled-sheet lower bound hook (instance-level §9.3 payload). -/
+axiom coupled_sheet_lower_bound
+    (M : DTM) (n N L : ℕ) (hn2 : n ≥ 2)
+    (inst : SATInstance N L) (E : ClauseEmbedData M n N L) :
+    Nat.choose L (Nat.log 2 n)
+      ≤ CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+          (renameCoupledIntoCompiled E (coupledPoly N L inst.dcs))
+          (compiledPartition M n)
+
+/-- Hard-instance package with coupled lower bound (now derived with α=1). -/
+theorem hard_instance_rank_data
     (M : DTM) (F : BoolFunFamily)
     (hM : ∀ n, M.decides (F n)) (hNP : UniformNP F) :
     ∃ α : ℕ, α ≥ 1 ∧
@@ -217,7 +226,15 @@ axiom hard_instance_rank_data
           Nat.choose L (Nat.log 2 n)
             ≤ CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
                 (renameCoupledIntoCompiled E (coupledPoly N L inst.dcs))
-                (compiledPartition M n)
+                (compiledPartition M n) := by
+  refine ⟨1, by omega, ?_⟩
+  intro n hn2
+  have _ := hM n
+  have _ := hNP
+  rcases instance_embed_exists M n hn2 with ⟨N, L, inst, E, hL⟩
+  refine ⟨N, L, inst, E, ?_, ?_⟩
+  · simpa [hL]
+  · exact coupled_sheet_lower_bound M n N L hn2 inst E
 
 /-- Instance-aware extraction theorem (parallel to extraction_superpolynomial). -/
 theorem extraction_superpolynomial_inst
