@@ -229,22 +229,19 @@ axiom coupled_sheet_lower_bound
 theorem hard_instance_rank_data
     (M : DTM) (F : BoolFunFamily)
     (hM : ∀ n, M.decides (F n)) (hNP : UniformNP F) :
-    ∃ α : ℕ, α ≥ 1 ∧
-      ∀ n, n ≥ 2 →
-        ∃ (N L : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L),
-          L = α * n ∧
-          Nat.choose L (Nat.log 2 n)
-            ≤ CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
-                (renameCoupledIntoCompiled E (coupledPoly N L inst.dcs))
-                (compiledPartition M n) := by
-  refine ⟨1, by omega, ?_⟩
+    ∀ n, n ≥ 2 →
+      ∃ (N L : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L),
+        L = n ∧
+        Nat.choose L (Nat.log 2 n)
+          ≤ CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+              (renameCoupledIntoCompiled E (coupledPoly N L inst.dcs))
+              (compiledPartition M n) := by
   intro n hn2
   have _ := hM n
   have _ := hNP
   rcases instance_embed_exists M n hn2 with ⟨N, L, inst, E, hL⟩
-  refine ⟨N, L, inst, E, ?_, ?_⟩
-  · simpa [hL]
-  · exact coupled_sheet_lower_bound M n N L hn2 inst E
+  refine ⟨N, L, inst, E, hL, ?_⟩
+  exact coupled_sheet_lower_bound M n N L hn2 inst E
 
 /-- Instance-aware extraction theorem (parallel to extraction_superpolynomial). -/
 theorem extraction_superpolynomial_inst
@@ -252,13 +249,13 @@ theorem extraction_superpolynomial_inst
     (hM : ∀ n, M.decides (F n)) (hNP : UniformNP F) (c : ℕ) :
     ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 →
       ∃ (N L : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L),
-        blockedSpdpRankInst M n N L (Nat.log 2 n) (Nat.log 2 n) inst E > n ^ c := by
-  obtain ⟨α, hα, hhard⟩ := hard_instance_rank_data M F hM hNP
-  obtain ⟨n₀, hchoose⟩ := layer3_choose_beats_poly α hα c
+        L = n ∧ blockedSpdpRankInst M n N L (Nat.log 2 n) (Nat.log 2 n) inst E > n ^ c := by
+  have hhard := hard_instance_rank_data M F hM hNP
+  obtain ⟨n₀, hchoose⟩ := layer3_choose_beats_poly 1 (by omega) c
   refine ⟨n₀, ?_⟩
   intro n hn hn2
   obtain ⟨N, L, inst, E, hL, hcoupled⟩ := hhard n hn2
-  refine ⟨N, L, inst, E, ?_⟩
+  refine ⟨N, L, inst, E, hL, ?_⟩
   have h1 := layer1_identity_minor_inst M n N L hn2 inst E hcoupled
   have h2 : Nat.choose L (Nat.log 2 n) > n ^ c := by simpa [hL] using hchoose n hn hn2
   have h2' : n ^ c < Nat.choose L (Nat.log 2 n) := h2
@@ -344,11 +341,12 @@ theorem rank_subadd_inst
     (compiledPartition M n)
     htabdeg hcldeg
 
-/-- Clause-part polynomial bound hook (uniform over instances/embeddings). -/
+/-- Clause-part polynomial bound hook for linear-size instances (L ≤ n). -/
 axiom clause_part_rank_poly
     (M : DTM) :
     ∃ ccl : ℕ, ∃ ncl : ℕ, ∀ n ≥ ncl, n ≥ 2 →
       ∀ (N L : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L),
+        L ≤ n →
         CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
           (clauseViolationPolyInst M n N L inst E) (compiledPartition M n) ≤ n ^ ccl
 
@@ -357,11 +355,11 @@ theorem p_subset_ccoll_inst
     (M : DTM) :
     ∃ c : ℕ, ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 →
       ∀ (N L : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L),
-        InCcollInst M n N L c inst E := by
+        L ≤ n → InCcollInst M n N L c inst E := by
   obtain ⟨ct, n0t, htab⟩ := p_subset_ccoll M
   obtain ⟨cc, n0c, hclause⟩ := clause_part_rank_poly M
   refine ⟨max ct cc + 1, max (max n0t n0c) 2, ?_⟩
-  intro n hn hn2 N L inst E
+  intro n hn hn2 N L inst E hLn
   unfold InCcollInst blockedSpdpRankInst
   have hnt : n ≥ n0t := le_trans (le_max_left n0t n0c) (le_trans (le_max_left _ 2) hn)
   have hnc : n ≥ n0c := le_trans (le_max_right n0t n0c) (le_trans (le_max_left _ 2) hn)
@@ -371,7 +369,7 @@ theorem p_subset_ccoll_inst
     exact htab n hnt hn2
   have hcl' : CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
       (clauseViolationPolyInst M n N L inst E) (compiledPartition M n) ≤ n ^ cc :=
-    hclause n hnc hn2 N L inst E
+    hclause n hnc hn2 N L inst E hLn
   have hsub := rank_subadd_inst M n N L (Nat.log 2 n) (Nat.log 2 n) inst E
   have hpos : 0 < n := by omega
   have hmax1 : n ^ ct ≤ n ^ (max ct cc) := by
@@ -405,15 +403,15 @@ theorem np_compiled_rank_high_inst :
     ∀ M : DTM, (∀ n, M.decides (F n)) → ∀ c : ℕ,
       ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 →
         ∃ (N L : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L),
-          ¬ InCcollInst M n N L c inst E := by
+          L = n ∧ ¬ InCcollInst M n N L c inst E := by
   obtain ⟨F, hF⟩ := TseitinLowerBound.three_sat_in_NP
   refine ⟨F, hF, ?_⟩
   intro M hM c
   obtain ⟨n₀, h⟩ := extraction_superpolynomial_inst M F hM hF c
   refine ⟨n₀, ?_⟩
   intro n hn hn2
-  obtain ⟨N, L, inst, E, hgt⟩ := h n hn hn2
-  refine ⟨N, L, inst, E, ?_⟩
+  obtain ⟨N, L, inst, E, hL, hgt⟩ := h n hn hn2
+  refine ⟨N, L, inst, E, hL, ?_⟩
   intro hIn
   unfold InCcollInst blockedSpdpRankInst at hIn
   exact not_lt_of_ge hIn hgt
@@ -429,8 +427,9 @@ theorem P_neq_NP_inst : ¬ P_eq_NP := by
   have hn0 : n ≥ n₀ := le_trans (le_max_left n₀ n₁) (le_max_left _ 2)
   have hn1 : n ≥ n₁ := le_trans (le_max_right n₀ n₁) (le_max_left _ 2)
   have hn2 : n ≥ 2 := le_max_right _ 2
-  obtain ⟨N, L, inst, E, hbad⟩ := hnotcoll n hn1 hn2
-  have hgood : InCcollInst M n N L c inst E := hcoll n hn0 hn2 N L inst E
+  obtain ⟨N, L, inst, E, hL, hbad⟩ := hnotcoll n hn1 hn2
+  have hLn : L ≤ n := by simpa [hL]
+  have hgood : InCcollInst M n N L c inst E := hcoll n hn0 hn2 N L inst E hLn
   exact hbad hgood
 
 end PneqNPv3
