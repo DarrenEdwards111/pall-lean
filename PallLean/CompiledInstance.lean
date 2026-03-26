@@ -163,11 +163,56 @@ theorem layer1_identity_minor_inst
   rw [hpoly] at hmono'
   exact le_trans hcoupled hmono'
 
-/-- Existence of instance payload + embedding at size n (construction hook). -/
-axiom instance_embed_exists
+/-- Trivial disjoint clause system on N=0 variables and L clauses. -/
+noncomputable def trivialDCS (L : ℕ) : DisjointClauseSystem 0 L where
+  clauseBlock := fun _ => ∅
+  disjoint := by
+    intro i j hij
+    simp
+  gadget := fun _ => (1 : MvPolynomial (Fin (0 + L)) ℚ)
+  tag := fun _ => 0
+  gadget_support := by
+    intro C v hv
+    simp at hv
+  tag_support := by
+    intro C v hv
+    simp at hv
+  tag_coeff := by
+    intro C
+    simp
+
+/-- Trivial SAT instance built from the trivial disjoint clause system. -/
+noncomputable def trivialSATInstance (L : ℕ) : SATInstance 0 L where
+  dcs := trivialDCS L
+
+/-- numVars has at least the n input-variable slots. -/
+lemma numVars_ge_n (M : DTM) (n : ℕ) : n ≤ numVars M n 0 := by
+  unfold numVars
+  have h : n ≤ (tapeSize M n) * (tapeSize M n) + (tapeSize M n) * M.numStates +
+      (tapeSize M n) * (tapeSize M n) + n := by
+    exact Nat.le_add_left _ _
+  simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using h
+
+/-- Canonical embedding Fin n → Fin (numVars M n 0). -/
+def canonicalEmbed (M : DTM) (n : ℕ) : Fin n → CVar M n :=
+  fun i => ⟨i.1, lt_of_lt_of_le i.2 (numVars_ge_n M n)⟩
+
+lemma canonicalEmbed_injective (M : DTM) (n : ℕ) : Function.Injective (canonicalEmbed M n) := by
+  intro a b h
+  apply Fin.ext
+  simpa using congrArg Fin.val h
+
+/-- Concrete existence of instance payload + embedding at size n. -/
+theorem instance_embed_exists
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
     ∃ (N L : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L),
-      L = n
+      L = n := by
+  refine ⟨0, n, trivialSATInstance n, ?_, rfl⟩
+  refine ⟨(fun i : Fin (0 + n) => canonicalEmbed M n ⟨i.1, by simpa using i.2⟩), ?_⟩
+  intro a b h
+  apply Fin.ext
+  have hv := congrArg Fin.val h
+  simpa using hv
 
 /-- Hard-instance package for extraction: now derived with α = 1. -/
 theorem hard_instance_data
