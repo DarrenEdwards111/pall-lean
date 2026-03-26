@@ -285,12 +285,28 @@ theorem tableauViolation_eq_legacy
         = List.map (fun c => c.poly * c.poly) (transitionConstraints M n) := rfl
   simp [violationPoly, clauseConstraints, hmap1, hmap2]
 
-/-- Subadditivity hook at the instance level: rank(tableau+clause) ≤ rank(tableau)+rank(clause). -/
-axiom rank_subadd_inst
+/-- Clause-part degree bound hook (needed for WidthToRank subadditivity lemma). -/
+axiom clauseViolationPoly_deg_le6
+    (M : DTM) (n N L : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L) :
+    (clauseViolationPolyInst M n N L inst E).totalDegree ≤ 6
+
+/-- Subadditivity at instance level, derived from WidthToRank.spdpRank_add_le. -/
+theorem rank_subadd_inst
     (M : DTM) (n N L κ ℓ : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L) :
     CompiledPoly.blockedSpdpRankQ κ ℓ (compiledViolationPolyInst M n N L inst E) (compiledPartition M n)
       ≤ CompiledPoly.blockedSpdpRankQ κ ℓ (tableauViolationPolyInst M n) (compiledPartition M n)
-        + CompiledPoly.blockedSpdpRankQ κ ℓ (clauseViolationPolyInst M n N L inst E) (compiledPartition M n)
+        + CompiledPoly.blockedSpdpRankQ κ ℓ (clauseViolationPolyInst M n N L inst E) (compiledPartition M n) := by
+  have htabdeg : (tableauViolationPolyInst M n).totalDegree ≤ 6 := by
+    rw [tableauViolation_eq_legacy M n]
+    exact compiledDeg M n
+  have hcldeg : (clauseViolationPolyInst M n N L inst E).totalDegree ≤ 6 :=
+    clauseViolationPoly_deg_le6 M n N L inst E
+  rw [compiledViolationPolyInst_split]
+  exact WidthToRank.spdpRank_add_le κ ℓ
+    (tableauViolationPolyInst M n)
+    (clauseViolationPolyInst M n N L inst E)
+    (compiledPartition M n)
+    htabdeg hcldeg
 
 /-- Clause-part polynomial bound hook (uniform over instances/embeddings). -/
 axiom clause_part_rank_poly
