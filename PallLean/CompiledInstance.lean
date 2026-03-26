@@ -119,24 +119,24 @@ theorem InCcollInst_iff
           (compiledPartition M n) ≤ n ^ c := by
   rfl
 
-/--
-Paper-faithful extraction target (Definition 6 / Lemma 7 shape):
-there exists a God-Move restriction/projection taking the instance-aware compiled
-polynomial to the (renamed) coupled sheet and not increasing blocked SPDP rank.
-
-This is the core theorem to discharge after threading instance-aware objects.
--/
-axiom godMove_correct_and_monotone
+/-- God-Move polynomial correctness (paper Definition 6 identity). -/
+axiom godMove_poly_correct
     (M : DTM) (n N L : ℕ)
     (inst : SATInstance N L)
     (E : ClauseEmbedData M n N L) :
     ∃ (piPhi : MvPolynomial (CVar M n) ℚ →ₐ[ℚ] MvPolynomial (CVar M n) ℚ),
       piPhi (compiledViolationPolyInst M n N L inst E)
         = renameCoupledIntoCompiled E (coupledPoly N L inst.dcs)
-      ∧
-      ∀ κ ℓ,
-        CompiledPoly.blockedSpdpRankQ κ ℓ (piPhi (compiledViolationPolyInst M n N L inst E)) (compiledPartition M n)
-          ≤ CompiledPoly.blockedSpdpRankQ κ ℓ (compiledViolationPolyInst M n N L inst E) (compiledPartition M n)
+
+/-- God-Move rank monotonicity (paper Lemma 7 inequality). -/
+axiom godMove_rank_monotone
+    (M : DTM) (n N L κ ℓ : ℕ)
+    (inst : SATInstance N L)
+    (E : ClauseEmbedData M n N L) :
+    CompiledPoly.blockedSpdpRankQ κ ℓ
+      (renameCoupledIntoCompiled E (coupledPoly N L inst.dcs))
+      (compiledPartition M n)
+    ≤ blockedSpdpRankInst M n N L κ ℓ inst E
 
 /-- Layer 1 (instance-aware): God-Move monotonicity + coupled lower bound. -/
 theorem layer1_identity_minor_inst
@@ -150,9 +150,7 @@ theorem layer1_identity_minor_inst
           (compiledPartition M n)) :
     Nat.choose L (Nat.log 2 n)
       ≤ blockedSpdpRankInst M n N L (Nat.log 2 n) (Nat.log 2 n) inst E := by
-  rcases godMove_correct_and_monotone M n N L inst E with ⟨piPhi, hpoly, hmono⟩
-  have hmono' := hmono (Nat.log 2 n) (Nat.log 2 n)
-  rw [hpoly] at hmono'
+  have hmono' := godMove_rank_monotone M n N L (Nat.log 2 n) (Nat.log 2 n) inst E
   exact le_trans hcoupled hmono'
 
 /-- Trivial disjoint clause system on N=0 variables and L clauses. -/
