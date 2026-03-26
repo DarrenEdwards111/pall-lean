@@ -252,12 +252,100 @@ theorem extraction_superpolynomial_inst
   have h2' : n ^ c < Nat.choose L (Nat.log 2 n) := h2
   exact lt_of_lt_of_le h2' h1
 
-/-- Instance-aware P-side hook: compiled rank remains polynomial for any compiled instance. -/
-axiom p_subset_ccoll_inst
+/-- Tableau-only violation polynomial in the instance-aware file. -/
+noncomputable def tableauViolationPolyInst (M : DTM) (n : ℕ) :
+    MvPolynomial (CVar M n) ℚ :=
+  violationPolyRaw (tableauConstraintPolys M n)
+
+/-- Clause-only violation polynomial in the instance-aware file. -/
+noncomputable def clauseViolationPolyInst
+    (M : DTM) (n N L : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L) :
+    MvPolynomial (CVar M n) ℚ :=
+  violationPolyRaw (clauseConstraintPolys M n N L inst E)
+
+/-- Instance compiled polynomial splits as tableau part + clause part. -/
+theorem compiledViolationPolyInst_split
+    (M : DTM) (n N L : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L) :
+    compiledViolationPolyInst M n N L inst E
+      = tableauViolationPolyInst M n + clauseViolationPolyInst M n N L inst E := by
+  unfold compiledViolationPolyInst tableauViolationPolyInst clauseViolationPolyInst
+  unfold compiledConstraintPolys
+  simp [violationPolyRaw, List.map_append, List.sum_append]
+
+/-- Tableau part coincides with legacy compiledViolationPoly (where clauseConstraints = []). -/
+theorem tableauViolation_eq_legacy
+    (M : DTM) (n : ℕ) :
+    tableauViolationPolyInst M n = compiledViolationPoly M n := by
+  unfold tableauViolationPolyInst violationPolyRaw tableauConstraintPolys compiledViolationPoly
+  have hmap1 :
+      List.map ((fun p => p * p) ∘ LocalConstraint.poly) (constraintList M n)
+        = List.map (fun c => c.poly * c.poly) (constraintList M n) := rfl
+  have hmap2 :
+      List.map ((fun p => p * p) ∘ LocalConstraint.poly) (transitionConstraints M n)
+        = List.map (fun c => c.poly * c.poly) (transitionConstraints M n) := rfl
+  simp [violationPoly, clauseConstraints, hmap1, hmap2]
+
+/-- Subadditivity hook at the instance level: rank(tableau+clause) ≤ rank(tableau)+rank(clause). -/
+axiom rank_subadd_inst
+    (M : DTM) (n N L κ ℓ : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L) :
+    CompiledPoly.blockedSpdpRankQ κ ℓ (compiledViolationPolyInst M n N L inst E) (compiledPartition M n)
+      ≤ CompiledPoly.blockedSpdpRankQ κ ℓ (tableauViolationPolyInst M n) (compiledPartition M n)
+        + CompiledPoly.blockedSpdpRankQ κ ℓ (clauseViolationPolyInst M n N L inst E) (compiledPartition M n)
+
+/-- Clause-part polynomial bound hook (uniform over instances/embeddings). -/
+axiom clause_part_rank_poly
+    (M : DTM) :
+    ∃ ccl : ℕ, ∃ ncl : ℕ, ∀ n ≥ ncl, n ≥ 2 →
+      ∀ (N L : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L),
+        CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+          (clauseViolationPolyInst M n N L inst E) (compiledPartition M n) ≤ n ^ ccl
+
+/-- Instance-aware P-side theorem derived from legacy p-side + clause-part bound. -/
+theorem p_subset_ccoll_inst
     (M : DTM) :
     ∃ c : ℕ, ∃ n₀ : ℕ, ∀ n ≥ n₀, n ≥ 2 →
       ∀ (N L : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L),
-        InCcollInst M n N L c inst E
+        InCcollInst M n N L c inst E := by
+  obtain ⟨ct, n0t, htab⟩ := p_subset_ccoll M
+  obtain ⟨cc, n0c, hclause⟩ := clause_part_rank_poly M
+  refine ⟨max ct cc + 1, max (max n0t n0c) 2, ?_⟩
+  intro n hn hn2 N L inst E
+  unfold InCcollInst blockedSpdpRankInst
+  have hnt : n ≥ n0t := le_trans (le_max_left n0t n0c) (le_trans (le_max_left _ 2) hn)
+  have hnc : n ≥ n0c := le_trans (le_max_right n0t n0c) (le_trans (le_max_left _ 2) hn)
+  have htab' : CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+      (tableauViolationPolyInst M n) (compiledPartition M n) ≤ n ^ ct := by
+    rw [tableauViolation_eq_legacy M n]
+    exact htab n hnt hn2
+  have hcl' : CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+      (clauseViolationPolyInst M n N L inst E) (compiledPartition M n) ≤ n ^ cc :=
+    hclause n hnc hn2 N L inst E
+  have hsub := rank_subadd_inst M n N L (Nat.log 2 n) (Nat.log 2 n) inst E
+  have hpos : 0 < n := by omega
+  have hmax1 : n ^ ct ≤ n ^ (max ct cc) := by
+    exact Nat.pow_le_pow_right hpos (Nat.le_max_left ct cc)
+  have hmax2 : n ^ cc ≤ n ^ (max ct cc) := by
+    exact Nat.pow_le_pow_right hpos (Nat.le_max_right ct cc)
+  have hsum : n ^ ct + n ^ cc ≤ 2 * n ^ (max ct cc) := by
+    calc
+      n ^ ct + n ^ cc ≤ n ^ (max ct cc) + n ^ (max ct cc) := Nat.add_le_add hmax1 hmax2
+      _ = 2 * n ^ (max ct cc) := by ring
+  have htwo : 2 * n ^ (max ct cc) ≤ n ^ (max ct cc + 1) := by
+    have hnge2 : 2 ≤ n := hn2
+    have hpow : n ^ (max ct cc + 1) = n * n ^ (max ct cc) := by
+      rw [Nat.pow_succ]
+      ring
+    rw [hpow]
+    exact Nat.mul_le_mul_right _ hnge2
+  have hsumRanks :
+      CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n) (tableauViolationPolyInst M n) (compiledPartition M n)
+      + CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n) (clauseViolationPolyInst M n N L inst E) (compiledPartition M n)
+      ≤ n ^ ct + n ^ cc := Nat.add_le_add htab' hcl'
+  have hfinal : CompiledPoly.blockedSpdpRankQ (Nat.log 2 n) (Nat.log 2 n)
+      (compiledViolationPolyInst M n N L inst E) (compiledPartition M n)
+      ≤ n ^ (max ct cc + 1) :=
+    le_trans hsub (le_trans hsumRanks (le_trans hsum htwo))
+  exact hfinal
 
 /-- Instance-aware NP-side hardness (parallel to v3 np_compiled_rank_high). -/
 theorem np_compiled_rank_high_inst :
