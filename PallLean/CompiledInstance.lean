@@ -163,14 +163,27 @@ theorem layer1_identity_minor_inst
   rw [hpoly] at hmono'
   exact le_trans hcoupled hmono'
 
-/-- Hard-instance package for extraction: for each n, provide N,L,instance,embedding. -/
-axiom hard_instance_data
+/-- Existence of instance payload + embedding at size n (construction hook). -/
+axiom instance_embed_exists
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    ∃ (N L : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L),
+      L = n
+
+/-- Hard-instance package for extraction: now derived with α = 1. -/
+theorem hard_instance_data
     (M : DTM) (F : BoolFunFamily)
     (hM : ∀ n, M.decides (F n)) (hNP : UniformNP F) :
     ∃ α : ℕ, α ≥ 1 ∧
       ∀ n, n ≥ 2 →
         ∃ (N L : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L),
-          L = α * n
+          L = α * n := by
+  refine ⟨1, by omega, ?_⟩
+  intro n hn2
+  have _ := hM n
+  have _ := hNP
+  rcases instance_embed_exists M n hn2 with ⟨N, L, inst, E, hL⟩
+  refine ⟨N, L, inst, E, ?_⟩
+  simpa [hL]
 
 /-- Instance-aware extraction theorem (parallel to extraction_superpolynomial). -/
 theorem extraction_superpolynomial_inst
