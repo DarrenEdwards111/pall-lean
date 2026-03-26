@@ -17,6 +17,7 @@ namespace PneqNPv3
 /-- NP instance payload used by the clause sheet. -/
 structure SATInstance (N L : ℕ) where
   dcs : DisjointClauseSystem N L
+  factor_deg : ∀ C : Fin L, (coupledFactor N L dcs C).totalDegree ≤ 3
 
 /-- Compiled variable space (same as v3). -/
 abbrev CVar (M : DTM) (n : ℕ) := Fin (numVars M n 0)
@@ -174,6 +175,17 @@ noncomputable def trivialDCS (L : ℕ) : DisjointClauseSystem 0 L where
 /-- Trivial SAT instance built from the trivial disjoint clause system. -/
 noncomputable def trivialSATInstance (L : ℕ) : SATInstance 0 L where
   dcs := trivialDCS L
+  factor_deg := by
+    intro C
+    have hcf : coupledFactor 0 L (trivialDCS L) C =
+        (1 : MvPolynomial (Fin (0 + L)) ℚ) - MvPolynomial.X (selectorVarIdx 0 L C) := by
+      unfold coupledFactor trivialDCS
+      ring_nf
+    rw [hcf]
+    have hsub : ((1 : MvPolynomial (Fin (0 + L)) ℚ) - MvPolynomial.X (selectorVarIdx 0 L C)).totalDegree ≤ 1 := by
+      exact le_trans (MvPolynomial.totalDegree_sub _ _)
+        (by simp [MvPolynomial.totalDegree_X])
+    exact le_trans hsub (by omega)
 
 /-- numVars has at least the n input-variable slots. -/
 lemma numVars_ge_n (M : DTM) (n : ℕ) : n ≤ numVars M n 0 := by
@@ -285,10 +297,34 @@ theorem tableauViolation_eq_legacy
         = List.map (fun c => c.poly * c.poly) (transitionConstraints M n) := rfl
   simp [violationPoly, clauseConstraints, hmap1, hmap2]
 
-/-- Clause-part degree bound hook (needed for WidthToRank subadditivity lemma). -/
-axiom clauseViolationPoly_deg_le6
+private theorem totalDegree_list_sum_le {V : Type*} [DecidableEq V]
+    (fs : List (MvPolynomial V ℚ)) (d : ℕ)
+    (hfs : ∀ f ∈ fs, f.totalDegree ≤ d) :
+    fs.sum.totalDegree ≤ d := by
+  induction fs with
+  | nil => simpa using (MvPolynomial.totalDegree_zero : (0 : MvPolynomial V ℚ).totalDegree ≤ d)
+  | cons f rest ih =>
+      simp only [List.sum_cons]
+      exact le_trans (MvPolynomial.totalDegree_add _ _)
+        (max_le (hfs f (by simp)) (ih (fun g hg => hfs g (List.mem_cons_of_mem _ hg))))
+
+/-- Clause-part degree bound, derived from SATInstance.factor_deg and rename monotonicity. -/
+theorem clauseViolationPoly_deg_le6
     (M : DTM) (n N L : ℕ) (inst : SATInstance N L) (E : ClauseEmbedData M n N L) :
-    (clauseViolationPolyInst M n N L inst E).totalDegree ≤ 6
+    (clauseViolationPolyInst M n N L inst E).totalDegree ≤ 6 := by
+  unfold clauseViolationPolyInst violationPolyRaw clauseConstraintPolys
+  apply totalDegree_list_sum_le
+  intro q hq
+  rcases List.mem_map.mp hq with ⟨p, hp, rfl⟩
+  rcases List.mem_map.mp hp with ⟨C, hC, rfl⟩
+  have hren : (renameCoupledIntoCompiled E (coupledFactor N L inst.dcs C)).totalDegree ≤ 3 := by
+    exact le_trans (MvPolynomial.totalDegree_rename_le E.emb (coupledFactor N L inst.dcs C)) (inst.factor_deg C)
+  have hmul : ((renameCoupledIntoCompiled E (coupledFactor N L inst.dcs C)) *
+      (renameCoupledIntoCompiled E (coupledFactor N L inst.dcs C))).totalDegree
+      ≤ (renameCoupledIntoCompiled E (coupledFactor N L inst.dcs C)).totalDegree +
+        (renameCoupledIntoCompiled E (coupledFactor N L inst.dcs C)).totalDegree :=
+    MvPolynomial.totalDegree_mul _ _
+  linarith
 
 /-- Subadditivity at instance level, derived from WidthToRank.spdpRank_add_le. -/
 theorem rank_subadd_inst
