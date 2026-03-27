@@ -1,4 +1,5 @@
 import PallLean.LocalClauseFactorSpace
+import PallLean.PolynomialSupport
 import Mathlib.LinearAlgebra.Dimension.Finrank
 
 /-!
@@ -21,6 +22,7 @@ open SPDP
 open MultilinearSPDP
 open Tseitin
 open LocalClauseFactorSpace
+open PolynomialSupport
 open MvPolynomial
 
 variable {F : Type*} [Field F] [Nontrivial F]
@@ -48,6 +50,36 @@ def LocalClauseFactorEmbedsInAmbient (Φ : TseitinFormula) : Prop :=
   ∀ (c : Fin Φ.clauses.length) (k : Fin 5),
     localClauseFactorSpace (F := F) Φ c k ≤
       supportMultilinearAmbient (F := F) (verifierFactorSupport (F := F) Φ c)
+
+/-- Generator-level ambient membership for the local clause-factor space. -/
+theorem localClauseFactorGenerator_mem_ambient
+    (Φ : TseitinFormula)
+    (c : Fin Φ.clauses.length)
+    (k : Fin 5)
+    (S : List (Fin (tseitinNumVars Φ)))
+    (hS : S.length = k.val)
+    (hvars : ∀ x ∈ S, x ∈ (verifierFactor (F := F) Φ c).vars) :
+    mlProj (iterDerivList S (verifierFactor (F := F) Φ c)) ∈
+      supportMultilinearAmbient (F := F) (verifierFactorSupport (F := F) Φ c) := by
+  apply Submodule.subset_span
+  refine ⟨isMultilinear_mlProj _, ?_⟩
+  exact Set.Subset.trans
+    (vars_mlProj_subset _)
+    (Set.Subset.trans
+      (vars_iterDerivList_subset S _)
+      (by
+        intro x hx
+        simpa [verifierFactorSupport] using hx))
+
+/-- The local ambient embedding theorem is proved generatorwise. -/
+theorem LocalClauseFactorEmbedsInAmbient_proved
+    (Φ : TseitinFormula) :
+    LocalClauseFactorEmbedsInAmbient (F := F) Φ := by
+  intro c k
+  apply Submodule.span_le.mpr
+  intro q hq
+  rcases hq with ⟨S, hS, hvars, rfl⟩
+  exact localClauseFactorGenerator_mem_ambient (F := F) Φ c k S hS hvars
 
 /--
 Finite-dimensional ambient bound on a support-restricted multilinear space.
