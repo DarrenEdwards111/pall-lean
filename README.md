@@ -58,6 +58,22 @@ The real proof value now lives in:
 - **Proving GF(2) satisfiability** (HasSatisfiablePrefixes from linear algebra)
 - **Lifting from OBDD to general poly-time** (the L vs P question)
 
+## Paper-faithful God-Move branch note
+
+On branch `godmove-paper-faithful`, the repo now also exposes a paper-faithful
+God-Move / extraction route for the multilinear SPDP compiler path:
+
+- `PallLean/GodMoveMonotonicityML.lean`
+- `PallLean/GodMoveExtractionML.lean`
+- `PallLean/GodMoveCompilerRoute.lean`
+
+The concrete entry point there is:
+- `GodMoveCompilerRoute.godMove_extraction_rank_monotone`
+
+This packages the existing theorem-level multilinear extraction machinery from
+`MultilinearSPDP.lean` under a dedicated God-Move API, without introducing new
+axioms on that route.
+
 ## Route 1 files (archived/exploratory)
 
 The `MobiusBridge`, `TracedMobiusBridge`, `CoupledCompiler`, `ProfileDecomp`,

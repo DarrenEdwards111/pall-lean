@@ -15,3 +15,11 @@ import PallLean.MultilinearSPDP
 import PallLean.PneqNP
 import PallLean.Leibniz
 import PallLean.Profile
+
+-- Paper-faithful God-Move / extraction route scaffold
+import PallLean.GodMoveMonotonicity
+import PallLean.GodMoveExtraction
+import PallLean.GodMoveRoute
+import PallLean.GodMoveMonotonicityML
+import PallLean.GodMoveExtractionML
+import PallLean.GodMoveCompilerRoute
