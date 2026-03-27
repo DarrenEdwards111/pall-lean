@@ -9,7 +9,8 @@ For a multilinear exponent vector `α`, the statement
 
   monomial α a = a • squarefreeMonomial α.support
 
-reduces to the support/exponent fact that `α` is exactly the indicator of its support.
+reduces to the support/exponent fact that `α` is exactly the indicator of its support,
+together with the explicit monomial/product identity calculation.
 -/
 
 namespace MonomialSupportIdentityReduction
@@ -28,18 +29,19 @@ def MultilinearExponentIsSupportIndicator {n : ℕ} : Prop :=
     Finsupp.IsMultilinear α →
     ∀ i : Fin n, α i = if i ∈ α.support then 1 else 0
 
-/-- The support-indicator fact implies the multilinear monomial equals the squarefree support product. -/
-theorem multilinearMonomialEqSquarefree_of_supportIndicator
+/-- Explicit monomial/product identity once the exponent vector is known to be the support indicator. -/
+def MonomialOfSupportIndicatorEqSquarefree {n : ℕ} : Prop :=
+  ∀ (α : Fin n →₀ ℕ) (a : F),
+    (∀ i : Fin n, α i = if i ∈ α.support then 1 else 0) →
+    MvPolynomial.monomial α a = a • squarefreeMonomial (F := F) α.support
+
+/-- The two atomic support-side facts imply the squarefree monomial identity. -/
+theorem multilinearMonomialEqSquarefree_of_atomicFacts
     {n : ℕ}
-    (hind : MultilinearExponentIsSupportIndicator (n := n)) :
+    (hind : MultilinearExponentIsSupportIndicator (n := n))
+    (hmono : MonomialOfSupportIndicatorEqSquarefree (F := F) (n := n)) :
     MultilinearMonomialEqSquarefree (F := F) (n := n) := by
   intro α a hml
-  -- This is the exact remaining atomic monomial calculation.
-  -- Once α is the indicator of α.support, monomial α a is definitionally the scalar times
-  -- the product of X_i over i in α.support.
-  have hα := hind α hml
-  -- Leave the remaining content as the explicit monomial/product identity target.
-  -- The branch frontier is now this calculation.
-  admit
+  exact hmono α a (hind α hml)
 
 end MonomialSupportIdentityReduction
