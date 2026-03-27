@@ -6,9 +6,6 @@ import Mathlib.Algebra.MvPolynomial.Basic
 
 Paper-faithful monotonicity primitives for the God-Move / extraction route.
 
-These are intentionally stated as standalone theorem hooks so the extraction layer
-can be developed independently of the active OBDD/Tseitin route on `main`.
-
 They mirror the paper's decomposition of the extraction map into rank-nonincreasing
 operations: projection, restriction, and injective rename.
 -/
@@ -18,17 +15,12 @@ namespace GodMoveMonotonicity
 open SPDP
 open MvPolynomial
 
-variable {F : Type*} [Field F]
-
-/-- A block-local projection/restriction map from a compiled variable space to a
-smaller clause-sheet variable space. -/
-variable {n m : ℕ}
-
 /--
 Paper-faithful monotonicity primitive:
 block-local projection does not increase blocked SPDP rank.
 -/
 axiom blockedSpdpRank_projection_le
+    {F : Type*} [Field F] {n m : ℕ}
     (Bsrc : BlockPartition n)
     (Btgt : BlockPartition m)
     (κ ℓ : ℕ)
@@ -41,6 +33,7 @@ Paper-faithful monotonicity primitive:
 block-local restriction/partial evaluation does not increase blocked SPDP rank.
 -/
 axiom blockedSpdpRank_restriction_le
+    {F : Type*} [Field F] {n : ℕ}
     (B : BlockPartition n)
     (κ ℓ : ℕ)
     (restrict : MvPolynomial (Fin n) F →ₐ[F] MvPolynomial (Fin n) F)
@@ -52,6 +45,7 @@ Paper-faithful monotonicity primitive:
 injective rename preserves / does not increase blocked SPDP rank.
 -/
 axiom blockedSpdpRank_rename_le
+    {F : Type*} [Field F] {n m : ℕ}
     (Bsrc : BlockPartition n)
     (Btgt : BlockPartition m)
     (κ ℓ : ℕ)

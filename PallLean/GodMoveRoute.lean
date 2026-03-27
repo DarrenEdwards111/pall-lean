@@ -11,14 +11,22 @@ future active separation pipeline.
 
 namespace GodMoveRoute
 
-open GodMoveExtraction
+open GodMoveExtraction SPDP
 
 /-- Marker theorem name matching the paper-faithful extraction inequality route. -/
-abbrev godMove_extraction_rank_monotone :=
-  GodMoveExtraction.godMove_extraction_rank_monotone
+theorem godMove_extraction_rank_monotone
+    {F : Type*} [Field F] {n m : ℕ}
+    (D : GodMoveData (F := F) n m) :
+    blockedSpdpRank D.hardPart D.κ D.ℓ D.hardPoly ≤
+      blockedSpdpRank D.compiledPart D.κ D.ℓ D.compiledPoly :=
+  GodMoveExtraction.godMove_extraction_rank_monotone D
 
 /-- Same-space version for embedded hard objects already living in the compiled space. -/
-abbrev godMove_extraction_rank_monotone_sameSpace :=
-  GodMoveExtraction.godMove_extraction_rank_monotone_sameSpace
+theorem godMove_extraction_rank_monotone_sameSpace
+    {F : Type*} [Field F] {n : ℕ}
+    (D : SameSpaceGodMoveData (F := F) n) :
+    blockedSpdpRank D.part D.κ D.ℓ D.hardPoly ≤
+      blockedSpdpRank D.part D.κ D.ℓ D.compiledPoly :=
+  GodMoveExtraction.godMove_extraction_rank_monotone_sameSpace D
 
 end GodMoveRoute
