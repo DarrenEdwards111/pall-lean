@@ -30,3 +30,6 @@ import PallLean.ProfilePermutation
 import PallLean.ProfileSpace
 import PallLean.WidthRank
 import PallLean.TypeAnonymityProof
+import PallLean.CompiledSoS
+import PallLean.RepresentationInvariance
+import PallLean.PneqNP_SoS
