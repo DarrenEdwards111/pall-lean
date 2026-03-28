@@ -26,3 +26,4 @@ import PallLean.GodMoveCompilerRoute
 import PallLean.TypeAnonymity
 import PallLean.ProfileSpaceBound
 import PallLean.TypeAnonymityDirect
+import PallLean.ProfilePermutation

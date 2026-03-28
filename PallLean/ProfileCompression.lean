@@ -3,6 +3,7 @@ Copyright (c) 2026 Darren Edwards. All rights reserved.
 Released under Apache 2.0 license.
 -/
 import PallLean.MultilinearSPDP
+import PallLean.ProfilePermutation
 
 /-!
 # Profile Compression for Tseitin SPDP Rank (§9)
@@ -813,14 +814,28 @@ theorem within_profile_finrank_le (n κ : ℕ) (hn : n ≥ 4)
     -- all generators with the same profile share the same algebraic "shape" —
     -- they differ only in which specific clause variables are used.
     --
-    -- By the paper's symmetric power argument (Definition 19, Lemma 22),
-    -- the span of all such generators has dimension bounded by the profile
-    -- space dimension, independent of which specific clauses realize the profile.
-    --
-    -- Formalizing this requires: the profile space V_h as a concrete subspace,
-    -- and showing each generator lies in it. This is the paper's type-anonymity
-    -- claim (Theorem 23 row decomposition).
-    sorry
+    -- By ProfilePermutation.type_anonymity_rank_bound:
+    -- finrank(profileSubspace h) ≤ 2^{155κ} ≤ n^190
+    have h_rank := ProfilePermutation.type_anonymity_rank_bound n κ hn hparam
+      (profileSubspace n κ h)
+      (by apply Submodule.span_le.mpr; intro q ⟨w, m, _, hm_deg, hm_vars, hq⟩
+          rw [hq]; apply Submodule.subset_span
+          refine ⟨w.selectorList, m, ?_, hm_deg, hm_vars, ?_, rfl⟩
+          · -- w.selectorList.length = κ
+            simp [CanonicalWindow.selectorList, w.card_eq]
+          · -- isBlockAdmissible (tseitinPartition n) w.selectorList
+            sorry)
+      ⟨30 * κ, le_refl _, trivial⟩
+    have hκ := hparam.2
+    have hn0 : n ≠ 0 := by omega
+    have h2k : 2 ^ κ ≤ n :=
+      le_trans (Nat.pow_le_pow_right (by omega) hκ) (Nat.pow_log_le_self 2 hn0)
+    calc Module.finrank ℚ (profileSubspace n κ h)
+        ≤ 2 ^ (155 * κ) := h_rank
+      _ ≤ n ^ 190 := by
+          calc 2 ^ (155 * κ) = (2 ^ κ) ^ 155 := by ring
+            _ ≤ n ^ 155 := Nat.pow_le_pow_left h2k 155
+            _ ≤ n ^ 190 := Nat.pow_le_pow_right (by omega) (by omega)
   · have hsub : profileSubspace n κ h = ⊥ := by
       apply Submodule.span_eq_bot.mpr
       intro q hq
