@@ -25,3 +25,4 @@ import PallLean.GodMoveExtractionML
 import PallLean.GodMoveCompilerRoute
 import PallLean.TypeAnonymity
 import PallLean.ProfileSpaceBound
+import PallLean.TypeAnonymityDirect
