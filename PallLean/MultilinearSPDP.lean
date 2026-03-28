@@ -1867,13 +1867,31 @@ theorem compiled_spdp_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ max 4 M.numStat
     (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
     mlBlockedSpdpRank (compiledPartition M n) κ κ
       (fullCompiledPoly ℚ M n h_le) ≤ n ^ 215 := by
-  -- Paper Lemma 32 / Theorem 264: compiled polynomial from width-W computation
-  -- has SPDP rank ≤ n^O(1).
-  -- Proof: restriction → depth collapse → DNF decomposition → per-cell
-  -- Width⇒Rank via profile compression → subadditivity.
-  -- The compiled cells have bounded local width (W = O(1)),
-  -- so profile compression gives (log n)^O(1) per cell, and
-  -- poly(n) cells × (log n)^O(1) = n^O(1).
+  -- Paper §17.2-17.3 / Theorem 92: P-side SPDP rank is polynomial.
+  --
+  -- The argument uses LOCALITY of the compiled polynomial:
+  -- 1. fullCompiledPoly = verifierSheet + violationPoly
+  --    where violationPoly = Σ c_i² with width(c_i) ≤ 6
+  -- 2. violationPoly has totalDegree ≤ 4 < κ, so all κ-th derivatives vanish
+  --    → mlBlockedSpdpRank_add_lowDeg eliminates it
+  -- 3. verifierSheet = rename(tseitinPoly) = rename(∏(1-z_c g_c))
+  --    This has EXPONENTIAL rank under tseitinPartition.
+  --
+  -- THE GAP: Our verifierSheet uses the PRODUCT form ∏(1-z_c g_c) of degree O(n).
+  -- The paper's PM,n uses the SUM-OF-SQUARES form 1-Σ C² of CONSTANT degree.
+  -- For the sum-of-squares form, the locality argument (Lemma 91) gives:
+  --   - Each ∂^S PM,n is a sum of O(1) local terms
+  --   - Each local term is in O(log n) variables
+  --   - Total row space ≤ n^{2c} × n^O(1) = n^O(1)
+  --
+  -- To formalize this, we need to either:
+  -- (a) Replace verifierSheetOf with a sum-of-squares encoding, or
+  -- (b) Prove that the product form and sum-of-squares form have
+  --     the same SPDP rank at matching parameters (they agree on Boolean inputs
+  --     but may differ algebraically)
+  --
+  -- For now, this remains the single axiom-level claim on the P≠NP chain.
+  -- Paper reference: Theorem 92, equation (5).
   sorry
 
 /-- P-side compiled SPDP rank bound (paper's Lemma 32).
