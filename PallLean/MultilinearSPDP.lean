@@ -1624,7 +1624,20 @@ theorem tseitin_spdp_rank_bound (n : ℕ) (hn : n ≥ 4)
   --
   -- Steps 2-4 arithmetic is proved in ProfileSpaceBound.lean.
   -- Step 1 factored form is proved in IdentityMinor.lean.
-  -- The connection (type-anonymity: factored form implies bounded rank) is sorry.
+  -- Use the restrictTotalDegree bound + Module.Finite.
+  -- mlBlockedSpdpSubspace ≤ restrictTotalDegree(npNumVars, κ + totalDegree(tseitinPoly))
+  -- restrictTotalDegree is Module.Finite with computable finrank.
+  -- For the polynomial bound: finrank ≤ C(npNumVars + D, D) where D = κ + deg(p) - κ + κ = κ + deg(p).
+  -- This is exponential in general, but we use the multilinear restriction:
+  -- mlProj restricts to multilinear monomials, so the effective space has dim ≤ 2^{155κ} per window.
+  -- Profile compression (Theorem 23): the total across all profiles ≤ n^200.
+  --
+  -- The formal proof constructs a finite spanning set by enumerating
+  -- (profile, shift, activation_pattern) triples of which there are ≤ n^200.
+  -- Each triple determines a unique polynomial (up to the symmetric structure
+  -- of same-type clause contributions).
+  --
+  -- Paper §9.1 Theorem 23 type-anonymity: THIS IS THE SORRY.
   sorry
 
 /-- Rank transport: compiled verifier rank ≤ Tseitin verifier rank.
