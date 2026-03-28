@@ -38,3 +38,4 @@ import PallLean.CompilerInvariance
 import PallLean.PrivateVars
 import PallLean.CompilerNF
 import PallLean.UnifiedCompiler
+import PallLean.DeterministicCompiler
