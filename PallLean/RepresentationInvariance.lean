@@ -40,6 +40,10 @@ open SPDP MultilinearSPDP NPWitness Compiler CompiledSoS TuringMachine
     admitted source descriptions of the same function produce equivalent
     compiled outputs. Corollary 256 shows rank stability under equivalence.
     Together: rank(C(M)) ≥ rank(C(Φn)) / poly(n). -/
+-- NOTE: This theorem as stated is FALSE.
+-- tseitin rank is exponential; SoS rank = 0; so the inequality fails for large n.
+-- The correct paper statement requires the full paper compiler (§17 + §40).
+-- See RepresentationInvariance.lean docstring for details.
 theorem representation_invariance
     (M : DTM) (n : ℕ) (hn : n ≥ 32)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
@@ -47,12 +51,9 @@ theorem representation_invariance
     mlBlockedSpdpRank (tseitinPartition n) κ ℓ (tseitinPoly ℚ n) ≤
     mlBlockedSpdpRank (compiledPartition M n) κ ℓ
       (compiledPolySoS ℚ M n) + n ^ 10 := by
-  -- Paper Lemma 13 + Theorem 255 + Corollary 256.
-  -- The compiler maps both M and the Tseitin formula to compiled objects.
-  -- Since they compute the same Boolean function (M decides SAT),
-  -- the compiled ranks are related up to polynomial factors.
-  --
-  -- The "+ n^10" absorbs the polynomial correction from equivalence moves.
+  -- This is FALSE as stated: tseitin rank is exponential, SoS rank is 0.
+  -- The correct statement requires the full paper compiler.
+  -- See note above.
   sorry
 
 end RepresentationInvariance
