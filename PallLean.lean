@@ -35,3 +35,4 @@ import PallLean.CompilerInvariance
 import PallLean.PrivateVars
 import PallLean.CompilerNF
 import PallLean.RestrictionPipeline
+import PallLean.PneqNP_Restriction

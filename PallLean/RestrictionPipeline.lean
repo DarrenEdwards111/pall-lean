@@ -50,11 +50,11 @@ axiom restriction_rank_monotone_general {N : ℕ}
     mlBlockedSpdpRank B κ ℓ p
 
 /-- "Good restriction" predicate (paper §32.3 + Step 2).
-Encodes that `ρ` is one of the explicit derandomized restrictions that simultaneously
-satisfies the depth-collapse and NP-survival requirements used in Steps 4–5. -/
-def GoodRestriction (M : DTM) (n : ℕ)
-    (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment) : Prop :=
-  True
+Uninterpreted here on purpose: it denotes membership in the explicit
+pseudorandom restriction family plus the two required guarantees
+(depth collapse on the P-side and identity-minor survival on the NP-side). -/
+axiom GoodRestriction (M : DTM) (n : ℕ)
+    (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment) : Prop
 
 /-- Paper §32.3 existence claim: there exists an explicit good restriction `ρ*`. -/
 axiom explicit_restriction_exists (M : DTM) (n : ℕ) (hn : n ≥ 32) :
