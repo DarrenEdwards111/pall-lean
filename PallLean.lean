@@ -12,7 +12,6 @@ import PallLean.ProductDeriv
 import PallLean.BinomialBound
 import PallLean.BinomialBound2
 import PallLean.MultilinearSPDP
-import PallLean.PneqNP
 import PallLean.Leibniz
 import PallLean.Profile
 
@@ -32,11 +31,7 @@ import PallLean.WidthRank
 import PallLean.TypeAnonymityProof
 import PallLean.CompiledSoS
 import PallLean.RepresentationInvariance
-import PallLean.PneqNP_SoS
-import PallLean.PneqNP_v2
 import PallLean.CompilerInvariance
 import PallLean.PrivateVars
 import PallLean.CompilerNF
-import PallLean.UnifiedCompiler
-import PallLean.DeterministicCompiler
 import PallLean.RestrictionPipeline
