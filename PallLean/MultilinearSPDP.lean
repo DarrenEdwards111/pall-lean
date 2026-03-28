@@ -1654,25 +1654,22 @@ theorem near_vars_bounded (n κ : ℕ)
       ∀ (m : MvPolynomial (Fin (npNumVars n)) ℚ),
         m.totalDegree ≤ κ → m.vars ⊆ S.toFinset →
         (mlProj (m * iterDerivList S (tseitinPoly ℚ n))).vars ⊆ V := by
-  /-
-  Frontier for the paper-faithful locality argument.
-
-  The intended proof is:
-  1. Convert `S` to its hit-clause set using `hitClausesOf` and
-     `tseitinSelectorInv_spec`, discarding the unique possible block-0 variable.
-  2. Rewrite `iterDerivList S (tseitinPoly ℚ n)` via
-     `IdentityMinor.iterDeriv_cvProd_eq` on the selector sublist extracted from `S`.
-  3. Bound variables of the hit-gadget product using
-     `Tseitin.clauseGadget_vars_subset` / `Tseitin.clauseGadget_vars_bound`.
-  4. Bound the unhit contribution by restricting to neighbor clauses, using the
-     profile-compression neighborhood lemmas already formalized later on the branch:
-     `ProfileCompression.neighborClauses`,
-     `ProfileCompression.neighbor_clauses_card_le`,
-     `ProfileCompression.near_vars_card_le`.
-  5. Finish with `MvPolynomial.vars_mul`, `MvPolynomial.vars_prod`, and the
-     multilinear projection support monotonicity already used in
-     `generator_in_nearVarBasis_span`.
-  -/
+  -- The locality argument requires the bounded-degree Tseitin graph structure.
+  -- Each hit clause c touches 3 edge variables. Each edge has degree ≤ 10
+  -- in the expander graph, so each edge variable appears in ≤ 10 clauses.
+  -- The "near clauses" (sharing a variable with any hit clause) number ≤ 30κ.
+  -- Each near clause contributes ≤ 5 variables (3 edge + selector + aux).
+  -- Total near variables: ≤ 155κ.
+  --
+  -- After iterDeriv_cvProd_eq, the factored form is:
+  --   (-1)^κ × ∏_{hit} g_c × ∏_{unhit} (1 - z_c g_c)
+  -- After mlProj, variables from "far" unhit clauses (no shared edge variable
+  -- with any hit clause) CANCEL because their factors are independent of the
+  -- hit variables and the multilinear constraint forces them to contribute
+  -- only constant terms.
+  --
+  -- Formal proof requires tracking vars through iterDeriv_cvProd_eq and
+  -- clauseGadget_vars_subset/clauseGadget_vars_bound.
   sorry
 
 /-- The key spanning set: multilinear monomials in ≤ 155κ near variables.
@@ -1803,12 +1800,15 @@ theorem tseitin_spdp_rank_bound (n : ℕ) (hn : n ≥ 4)
   --    generators with the same profile land in a common subspace whose
   --    finrank is controlled by the Lemma 22 bound.
   --
-  -- Concretely, the missing bridge should factor through the later
-  -- `ProfileCompression.profileSubspace` architecture:
-  -- `hitClausesOf` / `near_vars_bounded`   -> single-window support control
-  -- `generator_in_nearVarBasis_span`       -> finite basis per window
-  -- profile identification (`windowProfile`) -> common profile subspace
-  -- then finite-dimensional subadditivity over all profiles.
+  -- COVERAGE: every generator lies in some profileSubspace
+  -- mlBlockedSpdpSubspace = canonicalSubspace (definitional)
+  --   = span of {canonicalGenerator w m | w : CanonicalWindow, m : shift}
+  --   ≤ ⨆_h profileSubspace n κ h
+  -- Each profileSubspace is finite-dimensional (from single_window_finrank_le)
+  -- finrank(⨆_h V_h) ≤ Σ_h finrank(V_h) by Submodule.finrank_sup_add_finrank_inf_le
+  -- |profiles| ≤ (30κ+1)^4 by num_profiles_le
+  -- Per-profile dim ≤ 2^{155κ} by single_window_finrank_le
+  -- Total ≤ (30κ+1)^4 × 2^{155κ} ≤ n^200 by tseitin_rank_via_profile_compression
   sorry
 
 /-- Rank transport: compiled verifier rank ≤ Tseitin verifier rank.
