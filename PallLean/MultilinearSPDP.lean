@@ -1660,9 +1660,12 @@ theorem generator_in_nearVarBasis_span (n κ : ℕ)
     (hV : (mlProj (m * iterDerivList S (tseitinPoly ℚ n))).vars ⊆ V) :
     mlProj (m * iterDerivList S (tseitinPoly ℚ n)) ∈
       Submodule.span ℚ (↑(nearVarBasis n κ V) : Set _) := by
-  -- mlProj produces a multilinear polynomial with vars ⊆ V.
+  -- p is multilinear with vars ⊆ V.
   -- Every multilinear polynomial with vars ⊆ V is a ℚ-linear combination
-  -- of {∏_{i∈T} X_i | T ⊆ V}, which is exactly nearVarBasis.
+  -- of {∏_{i∈T} X_i | T ⊆ V} = nearVarBasis.
+  -- Proof: p = Σ coeff(α) × monomial(α). Each α is multilinear with support ⊆ V.
+  -- monomial(α) = ∏_{i∈support(α)} X_i = element of nearVarBasis.
+  -- So p ∈ span(nearVarBasis).
   sorry
 
 /-- The profile compression spanning set has cardinality ≤ n^200.
