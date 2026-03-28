@@ -634,6 +634,9 @@ noncomputable def windowBasis {n κ : ℕ} (w : CanonicalWindow n κ) :
   (w.selectorList.toFinset.powerset).image (fun T =>
     canonicalGenerator w (T.prod (fun i => MvPolynomial.X i)))
 
+/-- Single-window dimension bound: generators from one window span ≤ 2^{155κ} dims.
+    Paper: each generator is determined by a multilinear monomial in ≤ 155κ selector + neighbor
+    variables, giving 2^{155κ} possible basis elements. -/
 theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
     (hparam : AdmissibleSpdpParams n κ)
     (w : CanonicalWindow n κ) :
@@ -642,6 +645,14 @@ theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
         m.totalDegree ≤ κ ∧
         m.vars ⊆ w.selectorList.toFinset ∧
         q = canonicalGenerator w m }) ≤ 2 ^ (155 * κ) := by
+  -- The generating set is contained in span(windowBasis w).
+  -- |windowBasis w| ≤ 2^{|selectors|} ≤ 2^{155κ}.
+  -- finrank(span S) ≤ |S| for any finite S.
+  -- Step 1: span(generators) ≤ span(windowBasis)
+  -- Step 2: finrank(span(windowBasis)) ≤ |windowBasis| ≤ 2^{155κ}
+  -- The detailed proof of step 1 requires showing every generator is
+  -- a linear combination of windowBasis elements (via multilinear decomposition).
+  -- This was previously proved but broke on a Mathlib API update.
   sorry
 
 /-- Type-anonymity (Paper Theorem 23, §9.1):
