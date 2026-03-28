@@ -81,16 +81,21 @@ theorem tseitin_rank_via_profile_compression (n : ℕ) (hn : n ≥ 4)
   have h2k : 2 ^ κ ≤ n := by
     calc 2 ^ κ ≤ 2 ^ (Nat.log 2 n) := Nat.pow_le_pow_right (by omega) hκ
       _ ≤ n := Nat.pow_log_le_self 2 hn0
-  -- 30κ + 16 ≤ 30 log n + 16 ≤ n (for n ≥ 4, since log₂ 4 = 2 and 30·2+16=76 > 4,
-  -- we need n large enough; for the n^200 bound we just need polynomial)
-  -- Actually: 30κ+16 ≤ 30 log n + 16. We bound (30 log n + 16)^64 ≤ n^C.
-  -- Since log n ≤ n, we have 30 log n + 16 ≤ 31n, so (31n)^64 ≤ 31^64 × n^64 ≤ n^{70} for large n.
-  -- Combined: 2^κ × (30κ+1)^4 × (30κ+16)^60 ≤ n × (31n)^4 × (31n)^60 = 31^64 × n^65 ≤ n^200.
-  -- Arithmetic bound: 2^κ × (30κ+1)^4 × (30κ+16)^60 ≤ n^200
-  -- Strategy: κ ≤ log₂ n ≤ n, so 30κ+16 ≤ 30n+16 ≤ 31n
-  -- LHS ≤ n × (31n)^4 × (31n)^60 = 31^64 × n^65
-  -- n^200 ≥ n^65 × n^135 ≥ 31^64 × n^65 for n ≥ 31 (since n^135 ≥ 31^135 ≥ 31^64)
-  -- For n < 31 (but n ≥ 4): κ ≤ log₂ n ≤ 4, and direct computation shows LHS < n^200
-  sorry
+  -- κ ≥ 5 and κ ≤ log₂ n implies n ≥ 32
+  have hn32 : n ≥ 32 := by
+    by_contra h; push_neg at h
+    have : Nat.log 2 n < 5 := Nat.log_lt_of_lt_pow (by omega) (by omega)
+    omega
+  have hκn : κ ≤ n := le_trans hκ (Nat.log_le_self 2 n)
+  -- 30κ+16 ≤ n² (since 30n+16 ≤ n² for n ≥ 32)
+  have hκ_sq : 30 * κ + 16 ≤ n ^ 2 := by nlinarith
+  have h1_sq : 30 * κ + 1 ≤ n ^ 2 := by omega
+  -- LHS ≤ n × (n²)^4 × (n²)^60 = n^129 ≤ n^200
+  calc 2 ^ κ * ((30 * κ + 1) ^ 4 * (30 * κ + 16) ^ 60)
+      ≤ n * ((n ^ 2) ^ 4 * (n ^ 2) ^ 60) := by
+        apply Nat.mul_le_mul h2k
+        exact Nat.mul_le_mul (Nat.pow_le_pow_left h1_sq 4) (Nat.pow_le_pow_left hκ_sq 60)
+    _ = n ^ 129 := by ring
+    _ ≤ n ^ 200 := Nat.pow_le_pow_right (by omega) (by omega)
 
 end ProfileSpaceBound
