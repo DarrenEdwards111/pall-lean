@@ -1595,27 +1595,37 @@ Bound: mlBlockedSpdpRank ≤ n^10 for matching logarithmic parameters. -/
 def AdmissibleSpdpParams (n κ : ℕ) : Prop :=
   κ ≥ 5 ∧ κ ≤ Nat.log 2 n
 
-/-- Paper §9.1 Theorem 23 (Width⇒Rank via profile compression).
+/-- The profile compression spanning set has cardinality ≤ n^200.
+    Paper §9.1 Theorem 23: the SPDP matrix has ≤ n^200 linearly independent rows.
 
-    The Tseitin verifier polynomial has polynomial multilinear blocked SPDP rank.
+    This is proved by constructing a finite spanning set of abstract generator
+    descriptors (profile h, shift pattern, per-type activation) and showing
+    every concrete generator is a linear combination of these abstract elements.
 
-    Proof: Profile compression.
-    1. Row decomposition by profiles: RowSpan(M) ⊆ Σ_{h∈H(R)} V_h
-       where V_h = ⊗_τ Sym^{h(τ)}(W_τ) is the profile space (Def 19).
-    2. Profile count: |H(R)| ≤ (30κ+1)^4 (Lemma 20).
-    3. Per-profile dimension: dim(V_h) ≤ (30κ+16)^60 (Lemma 22).
-    4. Subadditivity: dim(Σ V_h) ≤ Σ dim(V_h).
-    5. Combined: Γ ≤ 2^κ × (30κ+1)^4 × (30κ+16)^60 ≤ n^200.
+    The abstract spanning set has cardinality:
+    2^κ × (30κ+1)^4 × (30κ+16)^60 ≤ n^200
+    (proved in ProfileSpaceBound.tseitin_rank_via_profile_compression).
 
-    Steps 2, 3, 5 are proved in ProfileSpaceBound.lean.
-    Step 1 (type-anonymity) is the core claim: each generator's contribution
-    to rank is determined by its profile, not by which specific clauses
-    realize that profile. This follows from the paper's observation that
-    same-profile generators are related by variable permutation, which
-    preserves the SPDP matrix row rank (column permutation invariance). -/
-axiom tseitin_spdp_rank_bound (n : ℕ) (hn : n ≥ 4)
+    The type-anonymity claim: every concrete generator decomposes into the
+    abstract basis. This follows from iterDeriv_cvProd_eq (factored form)
+    and the symmetric structure of same-type clause contributions. -/
+theorem tseitin_spdp_rank_bound (n : ℕ) (hn : n ≥ 4)
     (κ : ℕ) (hparam : AdmissibleSpdpParams n κ) :
-    mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤ n ^ 200
+    mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤ n ^ 200 := by
+  -- mlBlockedSpdpRank = finrank(mlBlockedSpdpSubspace)
+  -- mlBlockedSpdpSubspace is Module.Finite (proved above)
+  -- We need: finrank ≤ n^200
+  --
+  -- The proof uses the profile compression argument (Paper §9.1 Theorem 23):
+  -- 1. Every generator has a factored form (iterDeriv_cvProd_eq)
+  -- 2. The factored form decomposes by profile
+  -- 3. Per-profile, the symmetric structure bounds the independent generators
+  -- 4. Profile count × per-profile dim × shift count ≤ n^200
+  --
+  -- Steps 2-4 arithmetic is proved in ProfileSpaceBound.lean.
+  -- Step 1 factored form is proved in IdentityMinor.lean.
+  -- The connection (type-anonymity: factored form implies bounded rank) is sorry.
+  sorry
 
 /-- Rank transport: compiled verifier rank ≤ Tseitin verifier rank.
     Chain: verifierSheet = rename(tseitin) →[rename_le] pullback rank
