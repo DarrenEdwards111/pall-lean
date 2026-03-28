@@ -37,3 +37,4 @@ import PallLean.PneqNP_v2
 import PallLean.CompilerInvariance
 import PallLean.CellPartition
 import PallLean.VariableSplitting
+import PallLean.PrivateVars
