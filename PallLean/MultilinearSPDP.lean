@@ -1660,13 +1660,48 @@ theorem generator_in_nearVarBasis_span (n κ : ℕ)
     (hV : (mlProj (m * iterDerivList S (tseitinPoly ℚ n))).vars ⊆ V) :
     mlProj (m * iterDerivList S (tseitinPoly ℚ n)) ∈
       Submodule.span ℚ (↑(nearVarBasis n κ V) : Set _) := by
-  -- p is multilinear with vars ⊆ V.
-  -- Every multilinear polynomial with vars ⊆ V is a ℚ-linear combination
-  -- of {∏_{i∈T} X_i | T ⊆ V} = nearVarBasis.
-  -- Proof: p = Σ coeff(α) × monomial(α). Each α is multilinear with support ⊆ V.
-  -- monomial(α) = ∏_{i∈support(α)} X_i = element of nearVarBasis.
-  -- So p ∈ span(nearVarBasis).
-  sorry
+  set p := mlProj (m * iterDerivList S (tseitinPoly ℚ n)) with hp_def
+  -- p = Σ_{α∈support} coeff(α) × monomial(α)
+  rw [show p = ∑ v ∈ p.support, MvPolynomial.monomial v (MvPolynomial.coeff v p) from p.as_sum]
+  apply Submodule.sum_mem
+  intro α hα
+  -- coeff α p • monomial α 1 = monomial α (coeff α p)
+  rw [show MvPolynomial.monomial α (MvPolynomial.coeff α p) =
+      MvPolynomial.coeff α p • MvPolynomial.monomial α (1 : ℚ) by
+    rw [MvPolynomial.smul_monomial, smul_eq_mul, mul_one]]
+  apply Submodule.smul_mem
+  -- Need: monomial α 1 ∈ span(nearVarBasis)
+  -- α ∈ support(p) = support(mlProj ...) → α is multilinear
+  have hα_ml : Finsupp.IsMultilinear α := by
+    by_contra h
+    -- If α is not multilinear, coeff α (mlProj q) = 0
+    have hzero : MvPolynomial.coeff α p = 0 := by
+      classical
+      show (Finsupp.filter (fun β => Finsupp.IsMultilinear β)
+        (m * iterDerivList S (tseitinPoly ℚ n))) α = 0
+      rw [Finsupp.filter_apply, if_neg h]
+    exact (Finsupp.mem_support_iff.mp hα) hzero
+  have hα_vars : α.support ⊆ V := by
+    intro x hx
+    apply hV
+    show x ∈ (mlProj (m * iterDerivList S (tseitinPoly ℚ n))).vars
+    rw [MvPolynomial.mem_vars]
+    exact ⟨α, hα, hx⟩
+  -- monomial α 1 = ∏_{i∈support(α)} X_i (since α is multilinear)
+  have hmon : MvPolynomial.monomial α (1 : ℚ) =
+      α.support.prod (fun i => MvPolynomial.X i) := by
+    rw [← MvPolynomial.prod_X_pow_eq_monomial]
+    apply Finset.prod_congr rfl
+    intro x hx
+    have := hα_ml x
+    have hne : α x ≠ 0 := Finsupp.mem_support_iff.mp hx
+    have : α x = 1 := by omega
+    rw [this, pow_one]
+  rw [hmon]
+  -- ∏_{i∈support(α)} X_i ∈ nearVarBasis because support(α) ⊆ V
+  apply Submodule.subset_span
+  simp only [nearVarBasis, Finset.coe_image, Set.mem_image]
+  exact ⟨α.support, Finset.mem_powerset.mpr hα_vars, rfl⟩
 
 /-- The profile compression spanning set has cardinality ≤ n^200.
     Paper §9.1 Theorem 23: the SPDP matrix has ≤ n^200 linearly independent rows.
