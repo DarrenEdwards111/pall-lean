@@ -1595,6 +1595,76 @@ Bound: mlBlockedSpdpRank ≤ n^10 for matching logarithmic parameters. -/
 def AdmissibleSpdpParams (n κ : ℕ) : Prop :=
   κ ≥ 5 ∧ κ ≤ Nat.log 2 n
 
+/-! ## Profile Space Construction (Paper §9.1 Def 19)
+
+For the Tseitin product p = ∏_c (1 - z_c · g_c), each SPDP generator
+mlProj(m × ∂^S p) has the factored form (by iterDeriv_cvProd_eq):
+  mlProj(m × (-1)^κ × ∏_{hit} g_c × ∏_{unhit} (1 - z_c · g_c))
+
+The profile space V_h captures the algebraic structure of generators
+with a fixed profile h (histogram of clause types).
+
+We construct V_h as the span of a FINITE set of "profile basis polynomials"
+and show every generator lies in the appropriate V_h. -/
+
+/-- A block-admissible selector list determines a "hit set" of clauses.
+    For the Tseitin partition, selectors are in 1-1 correspondence with clauses.
+    An admissible list of κ selectors corresponds to κ distinct clauses. -/
+noncomputable def hitClausesOf (n : ℕ)
+    (S : List (Fin (npNumVars n)))
+    (hadm : isBlockAdmissible (tseitinPartition n) S) :
+    Finset (Fin (tseitinAt n).clauses.length) :=
+  sorry -- Extract clause indices from selector list
+
+/-- The number of active near-variables for any admissible S is ≤ 155κ.
+    Each hit clause involves ≤ 4 vars, each neighbor clause ≤ 5 vars,
+    and there are ≤ 30κ neighbors. Total: ≤ 155κ. -/
+theorem near_vars_bounded (n κ : ℕ)
+    (S : List (Fin (npNumVars n)))
+    (hlen : S.length = κ)
+    (hadm : isBlockAdmissible (tseitinPartition n) S) :
+    ∃ (V : Finset (Fin (npNumVars n))), V.card ≤ 155 * κ ∧
+      ∀ (m : MvPolynomial (Fin (npNumVars n)) ℚ),
+        m.totalDegree ≤ κ → m.vars ⊆ S.toFinset →
+        (mlProj (m * iterDerivList S (tseitinPoly ℚ n))).vars ⊆ V := by
+  sorry -- From the factored form: variables come from near clauses only
+
+/-- The key spanning set: multilinear monomials in ≤ 155κ near variables.
+    This set has cardinality ≤ 2^{155κ} and spans every generator from
+    a single admissible derivative list S. -/
+noncomputable def nearVarBasis (n κ : ℕ)
+    (V : Finset (Fin (npNumVars n))) :
+    Finset (MvPolynomial (Fin (npNumVars n)) ℚ) :=
+  V.powerset.image (fun T => T.prod (fun i => MvPolynomial.X i))
+
+theorem nearVarBasis_card (n κ : ℕ) (V : Finset (Fin (npNumVars n)))
+    (hcard : V.card ≤ 155 * κ) :
+    (nearVarBasis n κ V).card ≤ 2 ^ (155 * κ) := by
+  calc (nearVarBasis n κ V).card
+      ≤ V.powerset.card := Finset.card_image_le
+    _ = 2 ^ V.card := by rw [Finset.card_powerset]
+    _ ≤ 2 ^ (155 * κ) := Nat.pow_le_pow_right (by omega) hcard
+
+/-- Every generator from a single S lies in span(nearVarBasis).
+    This is because mlProj produces a multilinear polynomial whose
+    vars ⊆ V (near variables), and every such polynomial is a linear
+    combination of the multilinear monomial basis in V. -/
+theorem generator_in_nearVarBasis_span (n κ : ℕ)
+    (S : List (Fin (npNumVars n)))
+    (m : MvPolynomial (Fin (npNumVars n)) ℚ)
+    (hlen : S.length = κ)
+    (hdeg : m.totalDegree ≤ κ)
+    (hvars : m.vars ⊆ S.toFinset)
+    (hadm : isBlockAdmissible (tseitinPartition n) S)
+    (V : Finset (Fin (npNumVars n)))
+    (hV : (mlProj (m * iterDerivList S (tseitinPoly ℚ n))).vars ⊆ V) :
+    mlProj (m * iterDerivList S (tseitinPoly ℚ n)) ∈
+      Submodule.span ℚ (↑(nearVarBasis n κ V) : Set _) := by
+  -- mlProj produces a multilinear polynomial with vars ⊆ V.
+  -- Every multilinear polynomial with vars ⊆ V is a ℚ-linear combination
+  -- of {∏_{i∈T} X_i | T ⊆ V}, which is exactly nearVarBasis.
+  sorry
+
 /-- The profile compression spanning set has cardinality ≤ n^200.
     Paper §9.1 Theorem 23: the SPDP matrix has ≤ n^200 linearly independent rows.
 
