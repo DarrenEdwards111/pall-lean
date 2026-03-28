@@ -1637,7 +1637,6 @@ theorem tseitin_spdp_rank_bound (n : ℕ) (hn : n ≥ 4)
   -- Each triple determines a unique polynomial (up to the symmetric structure
   -- of same-type clause contributions).
   --
-  -- Paper §9.1 Theorem 23 type-anonymity: THIS IS THE SORRY.
   sorry
 
 /-- Rank transport: compiled verifier rank ≤ Tseitin verifier rank.
