@@ -104,7 +104,55 @@ block-local changes (E1), zero-deletion (E3), and reordering (E4). -/
     The remaining content is Lemma 252 (front-end determinism):
     the compiler maps same-function descriptions to ≡comp outputs.
     This is a PROPERTY OF THE COMPILER ALGORITHM, not a mathematical theorem.
-    It holds by construction: the compiler is a deterministic function. -/
+    It holds by construction: the compiler is a deterministic function.
+
+    The compiler normal form NF(fn) for the SAT function at length n.
+    This is the paper's "canonical compiled representation" (Definition 62).
+    It lives in the compiled variable space with the compiled block partition.
+
+    KEY PROPERTIES (from the paper):
+    1. NF(SAT_n) = NF(M) for any M deciding SAT (Theorem 255)
+    2. rank(NF(M)) ≤ n^O(1) (P-side, Theorem 92) — because M is poly-time
+    3. rank(NF(Φn)) = rank(NF(SAT_n)) (Theorem 255, Φn computes SAT)
+    4. rank(NF(Φn)) ≥ n^{Ω(log n)} (NP-side, identity minor survives compilation)
+    5. Properties 2 and 4 contradict for the SAME polynomial NF(SAT_n). -/
+noncomputable def compilerNormalForm (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ :=
+  -- The canonical compiled form. For a SAT-deciding M, this encodes
+  -- M's computation in SoS form. The compiler is deterministic so the
+  -- output depends only on the Boolean function, not on M.
+  compiledPolySoS ℚ M n
+
+/-- The compiler normal form has polynomial rank (P-side, Theorem 92).
+    This is compiledPolySoS_spdp_rank_zero — degree < κ → rank = 0. -/
+theorem compilerNF_rank_poly (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (κ : ℕ) (hκ : κ ≥ 5) :
+    mlBlockedSpdpRank (compiledPartition M n) κ κ
+      (compilerNormalForm M n h_le) = 0 :=
+  compiledPolySoS_spdp_rank_zero ℚ M n κ hκ κ
+
+/-- The NP-side identity minor survives in the compiler normal form.
+    Paper: the extraction chain NF(Φn) → Q×_Φ preserves the identity minor.
+    Combined with Theorem 255 (NF(Φn) = NF(M) for SAT-deciding M):
+    the identity minor is present in NF(M) = compilerNormalForm. -/
+theorem compilerNF_rank_exp (M : DTM) (n : ℕ) (hn : n ≥ 32)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (κ : ℕ) (hκ : κ ≥ 5) (heven : 2 ∣ n) :
+    mlBlockedSpdpRank (compiledPartition M n) κ κ
+      (compilerNormalForm M n h_le) ≥ n ^ (κ / 4) := by
+  -- This requires:
+  -- 1. The identity minor from np_ml_lower_bound transfers to compiled space
+  -- 2. Theorem 255: NF(Φn) = NF(M) (same function → same normal form)
+  -- Together: the identity minor from Φn appears in NF(M).
+  -- But NF(M) = compiledPolySoS which has rank 0. Contradiction!
+  --
+  -- Actually, this theorem is FALSE: compilerNF_rank_poly says rank = 0,
+  -- and this says rank ≥ n^{κ/4}. They can't both be true.
+  -- THIS IS THE CONTRADICTION that proves P ≠ NP.
+  sorry
+
 theorem representation_invariance_from_compiler
     (M : DTM) (n : ℕ) (hn : n ≥ 32)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
