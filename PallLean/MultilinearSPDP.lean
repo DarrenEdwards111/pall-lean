@@ -1800,15 +1800,25 @@ theorem tseitin_spdp_rank_bound (n : ℕ) (hn : n ≥ 4)
   --    generators with the same profile land in a common subspace whose
   --    finrank is controlled by the Lemma 22 bound.
   --
-  -- COVERAGE: every generator lies in some profileSubspace
-  -- mlBlockedSpdpSubspace = canonicalSubspace (definitional)
-  --   = span of {canonicalGenerator w m | w : CanonicalWindow, m : shift}
-  --   ≤ ⨆_h profileSubspace n κ h
-  -- Each profileSubspace is finite-dimensional (from single_window_finrank_le)
-  -- finrank(⨆_h V_h) ≤ Σ_h finrank(V_h) by Submodule.finrank_sup_add_finrank_inf_le
-  -- |profiles| ≤ (30κ+1)^4 by num_profiles_le
-  -- Per-profile dim ≤ 2^{155κ} by single_window_finrank_le
-  -- Total ≤ (30κ+1)^4 × 2^{155κ} ≤ n^200 by tseitin_rank_via_profile_compression
+  -- ⚠ ARCHITECTURAL NOTE (2026-03-28):
+  -- This theorem AS STATED is FALSE.
+  -- np_ml_lower_bound gives mlBlockedSpdpRank (tseitinPartition) κ κ (tseitinPoly) ≥ n^{logn/4}
+  -- which grows FASTER than n^200 for large n.
+  --
+  -- The polynomial bound n^200 applies to the COMPILED polynomial fullCompiledPoly,
+  -- NOT to tseitinPoly. The P-side width bound (M uses O(log n) space) gives:
+  --   mlBlockedSpdpRank (compiledPartition) κ κ (fullCompiledPoly) ≤ n^C
+  --
+  -- The current proof architecture (compiled_verifier_rank → compiled_to_tseitin_rank_le
+  -- → this theorem) is WRONG because it bounds compiled rank via tseitin rank,
+  -- but tseitin rank is EXPONENTIAL.
+  --
+  -- CORRECT ARCHITECTURE needed:
+  -- pside_full_ml_rank_bound must be proved from WIDTH BOUND on fullCompiledPoly directly,
+  -- not through tseitinPartition rank.
+  --
+  -- This sorry will remain until the proof is restructured to use the correct
+  -- P-side width-bound argument.
   sorry
 
 /-- Rank transport: compiled verifier rank ≤ Tseitin verifier rank.
