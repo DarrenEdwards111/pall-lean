@@ -1740,11 +1740,15 @@ theorem tseitin_spdp_rank_bound (n : ℕ) (hn : n ≥ 4)
   -- mlProj restricts to multilinear monomials, so the effective space has dim ≤ 2^{155κ} per window.
   -- Profile compression (Theorem 23): the total across all profiles ≤ n^200.
   --
-  -- The formal proof constructs a finite spanning set by enumerating
-  -- (profile, shift, activation_pattern) triples of which there are ≤ n^200.
-  -- Each triple determines a unique polynomial (up to the symmetric structure
-  -- of same-type clause contributions).
+  -- Per-window bound: for each admissible S, generators lie in span(nearVarBasis V_S)
+  -- where |nearVarBasis V_S| ≤ 2^{155κ}.
+  -- Total: mlBlockedSpdpSubspace ≤ span(⋃_S nearVarBasis V_S).
+  -- The ⋃ has ≤ C(numClauses, κ) × 2^{155κ} elements — potentially superpolynomial.
+  -- Profile compression reduces this to ≤ (30κ+1)^4 × 2^{155κ} ≤ n^200.
   --
+  -- The remaining sorry's are:
+  -- 1. near_vars_bounded (generator vars ⊆ 155κ near vars)
+  -- 2. Profile compression (same-profile windows use the same spanning set)
   sorry
 
 /-- Rank transport: compiled verifier rank ≤ Tseitin verifier rank.
