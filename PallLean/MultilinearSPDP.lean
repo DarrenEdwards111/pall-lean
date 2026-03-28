@@ -1610,11 +1610,38 @@ and show every generator lies in the appropriate V_h. -/
 /-- A block-admissible selector list determines a "hit set" of clauses.
     For the Tseitin partition, selectors are in 1-1 correspondence with clauses.
     An admissible list of κ selectors corresponds to κ distinct clauses. -/
+private theorem tseitinPartition_nonzero_block_is_selector (n : ℕ)
+    (v : Fin (npNumVars n))
+    (hv : ((tseitinPartition n).assign v).val ≠ 0) :
+    ∃ c : Fin (tseitinAt n).clauses.length, v = selectorIdx (tseitinAt n) c := by
+  simp only [tseitinPartition, IdentityMinor.tseitinPartition] at hv
+  split at hv
+  · rename_i h
+    refine ⟨⟨v.val - ((tseitinAt n).graph.numEdges + 3 * (tseitinAt n).clauses.length), h.2⟩, ?_⟩
+    apply Fin.ext
+    simp [selectorIdx]
+    omega
+  · simp at hv
+
+private noncomputable def tseitinSelectorInv (n : ℕ) (v : Fin (npNumVars n))
+    (hv : ((tseitinPartition n).assign v).val ≠ 0) :
+    Fin (tseitinAt n).clauses.length :=
+  (tseitinPartition_nonzero_block_is_selector n v hv).choose
+
+private theorem tseitinSelectorInv_spec (n : ℕ) (v : Fin (npNumVars n))
+    (hv : ((tseitinPartition n).assign v).val ≠ 0) :
+    v = selectorIdx (tseitinAt n) (tseitinSelectorInv n v hv) :=
+  (tseitinPartition_nonzero_block_is_selector n v hv).choose_spec
+
 noncomputable def hitClausesOf (n : ℕ)
     (S : List (Fin (npNumVars n)))
     (hadm : isBlockAdmissible (tseitinPartition n) S) :
     Finset (Fin (tseitinAt n).clauses.length) :=
-  sorry -- Extract clause indices from selector list
+  ((S.filter (fun v => ((tseitinPartition n).assign v).val ≠ 0)).attach.map
+    (fun ⟨v, hv⟩ =>
+      tseitinSelectorInv n v (by
+        have hv' := (List.mem_filter.mp hv).2
+        simpa using hv'))).toFinset
 
 /-- The number of active near-variables for any admissible S is ≤ 155κ.
     Each hit clause involves ≤ 4 vars, each neighbor clause ≤ 5 vars,
@@ -1627,7 +1654,26 @@ theorem near_vars_bounded (n κ : ℕ)
       ∀ (m : MvPolynomial (Fin (npNumVars n)) ℚ),
         m.totalDegree ≤ κ → m.vars ⊆ S.toFinset →
         (mlProj (m * iterDerivList S (tseitinPoly ℚ n))).vars ⊆ V := by
-  sorry -- From the factored form: variables come from near clauses only
+  /-
+  Frontier for the paper-faithful locality argument.
+
+  The intended proof is:
+  1. Convert `S` to its hit-clause set using `hitClausesOf` and
+     `tseitinSelectorInv_spec`, discarding the unique possible block-0 variable.
+  2. Rewrite `iterDerivList S (tseitinPoly ℚ n)` via
+     `IdentityMinor.iterDeriv_cvProd_eq` on the selector sublist extracted from `S`.
+  3. Bound variables of the hit-gadget product using
+     `Tseitin.clauseGadget_vars_subset` / `Tseitin.clauseGadget_vars_bound`.
+  4. Bound the unhit contribution by restricting to neighbor clauses, using the
+     profile-compression neighborhood lemmas already formalized later on the branch:
+     `ProfileCompression.neighborClauses`,
+     `ProfileCompression.neighbor_clauses_card_le`,
+     `ProfileCompression.near_vars_card_le`.
+  5. Finish with `MvPolynomial.vars_mul`, `MvPolynomial.vars_prod`, and the
+     multilinear projection support monotonicity already used in
+     `generator_in_nearVarBasis_span`.
+  -/
+  sorry
 
 /-- The key spanning set: multilinear monomials in ≤ 155κ near variables.
     This set has cardinality ≤ 2^{155κ} and spans every generator from
@@ -1746,9 +1792,23 @@ theorem tseitin_spdp_rank_bound (n : ℕ) (hn : n ≥ 4)
   -- The ⋃ has ≤ C(numClauses, κ) × 2^{155κ} elements — potentially superpolynomial.
   -- Profile compression reduces this to ≤ (30κ+1)^4 × 2^{155κ} ≤ n^200.
   --
-  -- The remaining sorry's are:
-  -- 1. near_vars_bounded (generator vars ⊆ 155κ near vars)
-  -- 2. Profile compression (same-profile windows use the same spanning set)
+  -- The remaining frontier is exactly the profile-compression assembly:
+  -- 1. `near_vars_bounded` supplies the single-window locality bound.
+  -- 2. `ProfileSpaceBound.profile_space_dim_bound` proves the per-profile
+  --    symmetric-power dimension estimate from §9.1 Lemma 22.
+  -- 3. `ProfileSpaceBound.tseitin_rank_via_profile_compression` proves the
+  --    final arithmetic inequality
+  --      2^κ * (30κ+1)^4 * (30κ+16)^60 ≤ n^200.
+  -- 4. What remains to formalize here is the type-anonymity / slice-cover step:
+  --    generators with the same profile land in a common subspace whose
+  --    finrank is controlled by the Lemma 22 bound.
+  --
+  -- Concretely, the missing bridge should factor through the later
+  -- `ProfileCompression.profileSubspace` architecture:
+  -- `hitClausesOf` / `near_vars_bounded`   -> single-window support control
+  -- `generator_in_nearVarBasis_span`       -> finite basis per window
+  -- profile identification (`windowProfile`) -> common profile subspace
+  -- then finite-dimensional subadditivity over all profiles.
   sorry
 
 /-- Rank transport: compiled verifier rank ≤ Tseitin verifier rank.
