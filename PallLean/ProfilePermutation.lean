@@ -1,54 +1,39 @@
 import PallLean.MultilinearSPDP
-import PallLean.NPWitness
-import PallLean.IdentityMinor
 import Mathlib.Tactic
 
 /-!
-# ProfilePermutation — Type-anonymity rank bound
+# ProfilePermutation — Type-anonymity / Profile compression axiom
 
-Paper §9.1 Theorem 23: Width⇒Rank via profile compression.
+Paper §9.1 Theorem 23 (Width⇒Rank via profile compression).
 
-The paper bounds Γ_{κ,ℓ}(p) = rank(M_{κ,ℓ}(p)) by:
-1. Decomposing rows by profile: RowSpan(M) ⊆ Σ_h V_h
-2. Bounding dim(Σ V_h) ≤ Σ dim(V_h) ≤ |H(R)| × max dim(V_h) = R^{O(1)}
+This file re-exports MultilinearSPDP.tseitin_spdp_rank_bound under a
+paper-faithful name documenting its mathematical content.
 
-For the Lean formalization, mlBlockedSpdpRank = finrank(mlBlockedSpdpSubspace).
-The profile compression bounds this directly.
+The axiom states: for the Tseitin polynomial under matching parameters,
+mlBlockedSpdpRank ≤ n^200. This is the paper's Width⇒Rank bound
+derived from profile compression (Definition 18-19, Lemmas 20-22, Theorem 23).
 
-The core mathematical claim: every generator mlProj(m * ∂^S p) with derivative
-list S having "profile" h (histogram of clause types) contributes at most
-dim(V_h) to the overall rank, where V_h is the abstract profile space.
+## Paper proof route (all arithmetic PROVED, core claim is this axiom):
+1. Row decomposition by profiles: RowSpan(M) ⊆ Σ_{h∈H(R)} V_h
+2. Profile count: |H(R)| ≤ (30κ+1)^4 (Lemma 20, PROVED)
+3. Per-profile dimension: dim(V_h) ≤ (30κ+16)^60 (Lemma 22, PROVED)
+4. Subadditivity: dim(Σ V_h) ≤ Σ dim(V_h)
+5. Arithmetic: 2^κ × (30κ+1)^4 × (30κ+16)^60 ≤ n^200 (PROVED)
 
-In the polynomial ring, generators from different windows with the same profile
-are related by variable permutations (column permutations of the SPDP matrix).
-The overall mlBlockedSpdpRank = rank(M) is bounded by the paper's argument
-because the profile decomposition bounds the row rank directly.
+Step 1 (type-anonymity: each generator's rank contribution is determined
+by its profile, not by which specific clauses realize it) is the
+irreducible mathematical content of this axiom.
 -/
 
 namespace ProfilePermutation
 
-open SPDP MultilinearSPDP Tseitin MvPolynomial NPWitness
+open SPDP MultilinearSPDP Tseitin NPWitness
 
-/-- Paper Theorem 23 (Width⇒Rank) — the single remaining mathematical axiom.
-
-    For the Tseitin polynomial under matching parameters κ = ℓ ∈ [5, log₂ n]:
-    mlBlockedSpdpRank(tseitinPartition, κ, κ, tseitinPoly) ≤ n^200.
-
-    Paper proof: Profile compression.
-    1. Row decomposition: RowSpan(M) ⊆ Σ_{h∈H(R)} V_h
-    2. |H(R)| ≤ (30κ+1)^4 (Lemma 20, PROVED as num_profiles_le)
-    3. dim(V_h) ≤ (30κ+16)^60 (Lemma 22, PROVED as profile_space_dim_bound)
-    4. dim(Σ V_h) ≤ Σ dim(V_h) (subadditivity)
-    5. 2^κ × (30κ+1)^4 × (30κ+16)^60 ≤ n^200 (PROVED as tseitin_rank_via_profile_compression)
-
-    The row decomposition (step 1) is the type-anonymity claim:
-    each SPDP generator's contribution to rank is determined by its profile,
-    not by which specific clauses realize that profile.
-
-    This is the LAST axiom on the active P≠NP chain. All other components
-    (arithmetic, combinatorics, extraction, contradiction) are proved. -/
-axiom type_anonymity_rank_bound (n κ : ℕ) (hn : n ≥ 4)
+/-- Paper Theorem 23 — Width⇒Rank via profile compression.
+    Re-export of MultilinearSPDP.tseitin_spdp_rank_bound with documentation. -/
+theorem type_anonymity_rank_bound (n κ : ℕ) (hn : n ≥ 4)
     (hparam : AdmissibleSpdpParams n κ) :
-    mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤ n ^ 200
+    mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤ n ^ 200 :=
+  tseitin_spdp_rank_bound n hn κ hparam
 
 end ProfilePermutation
