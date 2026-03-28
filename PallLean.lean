@@ -38,3 +38,4 @@ import PallLean.CompilerInvariance
 import PallLean.CellPartition
 import PallLean.VariableSplitting
 import PallLean.PrivateVars
+import PallLean.PaperPartition
