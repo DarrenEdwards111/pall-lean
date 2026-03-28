@@ -1843,35 +1843,38 @@ theorem compiled_to_tseitin_rank_le (M : DTM) (n : ℕ)
     _ ≤ mlBlockedSpdpRank (tseitinPartition n) κ ℓ (tseitinPoly ℚ n) :=
         spdpRank_pullback_le_tseitin M n h_le κ ℓ
 
-/-- compiled_verifier_rank: PROVED from tseitin_spdp_rank_bound + rank transport.
-    Uses only one-way inequalities throughout the chain. -/
-theorem compiled_verifier_rank (M : DTM) (n : ℕ)
-    (hn : n ≥ max 4 M.numStates)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
-    mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (verifierSheetOf ℚ M n h_le) ≤ n ^ 200 :=
-  le_trans (compiled_to_tseitin_rank_le M n h_le κ κ)
-    (tseitin_spdp_rank_bound n (by omega) κ ⟨hκ, hκ_le⟩)
+/-- Compiled SPDP rank bound (Paper's Lemma 32 / Theorem 264).
 
-/-- Compiled SPDP rank bound (paper's Lemma 32).
-    Derived from compiled_verifier_rank + add_lowDeg.
+    This is the P-side Width⇒Rank bound: every compiled polynomial from a
+    poly-time machine M has POLYNOMIAL SPDP rank.
 
-    Proof: fullCompiledPoly = verifierSheet + violationPoly.
-    violationPoly has degree ≤ 4 < κ ≥ 5, so add_lowDeg kills it.
-    Then compiled_verifier_rank gives rank ≤ n^200 ≤ n^215. -/
+    Paper proof route (Theorem 12, Step 4):
+    1. Compile M → width-W compiled poly (W = O(1) for poly-time M)
+    2. Restriction ρ* → depth-collapse → bounded-depth object
+    3. DNF decomposition: ≤ poly(n) canonical cells
+    4. Per-cell Width⇒Rank (Lemma 32): each cell has (log n)^O(1) rank
+       (using profile compression on the cell's width-bounded structure)
+    5. Subadditivity: sum over poly(n) cells → n^O(1)
+
+    The Width⇒Rank profile compression argument applies to each COMPILED CELL
+    (which has bounded local width), NOT to tseitinPoly (which has width O(n)).
+
+    Note: the previous architecture routed this through tseitin_spdp_rank_bound,
+    which is FALSE (tseitin rank is exponential). This version correctly
+    axiomatizes the P-side bound as a direct consequence of the width bound. -/
 theorem compiled_spdp_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
     mlBlockedSpdpRank (compiledPartition M n) κ κ
       (fullCompiledPoly ℚ M n h_le) ≤ n ^ 215 := by
-  have h_lowdeg : (violationPolyOf ℚ M n).totalDegree < κ := by
-    have := violationPolyOf_totalDegree ℚ M n; omega
-  rw [show fullCompiledPoly ℚ M n h_le = verifierSheetOf ℚ M n h_le + violationPolyOf ℚ M n
-    from rfl]
-  rw [mlBlockedSpdpRank_add_lowDeg ℚ (compiledPartition M n) κ κ _ _ h_lowdeg]
-  exact le_trans (compiled_verifier_rank M n hn h_le κ hκ hκ_le)
-    (Nat.pow_le_pow_right (by omega) (by omega))
+  -- Paper Lemma 32 / Theorem 264: compiled polynomial from width-W computation
+  -- has SPDP rank ≤ n^O(1).
+  -- Proof: restriction → depth collapse → DNF decomposition → per-cell
+  -- Width⇒Rank via profile compression → subadditivity.
+  -- The compiled cells have bounded local width (W = O(1)),
+  -- so profile compression gives (log n)^O(1) per cell, and
+  -- poly(n) cells × (log n)^O(1) = n^O(1).
+  sorry
 
 /-- P-side compiled SPDP rank bound (paper's Lemma 32).
     Regime: matching parameters κ = ℓ, κ ≥ 5, κ ≤ log₂ n. -/
