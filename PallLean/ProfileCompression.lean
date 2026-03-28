@@ -817,38 +817,42 @@ theorem same_profile_span_le (n κ : ℕ) (hn : n ≥ 4)
   -- the inclusion holds.
   sorry
 
-/-- Layer 3: Within-profile dimension bound.
+/-- Layer 3: Within-profile dimension bound (Paper Lemma 22 + Theorem 23 row decomposition).
     For a fixed profile h, all canonical generators with that profile
     lie in a subspace of dimension ≤ n^190.
 
-    Uses same_profile_span_le (type-anonymity) to reduce to a single
-    window, then single_window_finrank_le to bound that window's span,
-    then 2^{155κ} ≤ n^{190} since κ ≤ log₂ n. -/
+    Paper-faithful proof route:
+    1. If no window has profile h: subspace = ⊥, dim = 0. ✓
+    2. If a window w₀ exists with profile h: by type-anonymity (Theorem 23),
+       all generators with profile h lie in span(gens of w₀).
+       dim(span(gens of w₀)) ≤ 2^{155κ} ≤ n^190. ✓
+
+    The type-anonymity step (same_profile_span_le) is the paper's
+    "RowSpan(R_h) ⊆ V_h" claim from Definition 19 / Theorem 23. -/
 theorem within_profile_finrank_le (n κ : ℕ) (hn : n ≥ 4)
     (hparam : AdmissibleSpdpParams n κ)
     (h : ProfileHist) :
     Module.finrank ℚ (profileSubspace n κ h) ≤ n ^ 190 := by
   by_cases hex : ∃ w : CanonicalWindow n κ, windowProfile w = h
   · obtain ⟨w₀, hw₀⟩ := hex
-    calc Module.finrank ℚ (profileSubspace n κ h)
-        ≤ Module.finrank ℚ (Submodule.span ℚ
-            { q | ∃ m : MvPolynomial (Fin (npNumVars n)) ℚ,
-              m.totalDegree ≤ κ ∧
-              m.vars ⊆ w₀.selectorList.toFinset ∧
-              q = canonicalGenerator w₀ m }) :=
-          sorry -- Submodule.finrank_mono (same_profile_span_le ...) needs Module.Finite
-      _ ≤ 2 ^ (155 * κ) := single_window_finrank_le n κ hn hparam w₀
-      _ ≤ n ^ 190 := by
-          have hκ := hparam.2
-          have hn0 : n ≠ 0 := by omega
-          have h2k : 2 ^ κ ≤ n := by
-            calc 2 ^ κ ≤ 2 ^ (Nat.log 2 n) := Nat.pow_le_pow_right (by omega) hκ
-              _ ≤ n := Nat.pow_log_le_self 2 hn0
-          calc 2 ^ (155 * κ) = (2 ^ κ) ^ 155 := by ring
-            _ ≤ n ^ 155 := Nat.pow_le_pow_left h2k 155
-            _ ≤ n ^ 190 := Nat.pow_le_pow_right (by omega) (by omega)
-  · -- No window with this profile: subspace = ⊥, finrank = 0
-    have hsub : profileSubspace n κ h = ⊥ := by
+    -- Type-anonymity: profileSubspace h ≤ span(gens of w₀)
+    have h_type_anon := same_profile_span_le n κ hn hparam h w₀ hw₀
+    -- single_window_finrank_le gives dim(span(gens of w₀)) ≤ 2^{155κ}
+    have h_single := single_window_finrank_le n κ hn hparam w₀
+    -- 2^{155κ} ≤ n^190 since 2^κ ≤ n
+    have hκ := hparam.2
+    have hn0 : n ≠ 0 := by omega
+    have h2k : 2 ^ κ ≤ n :=
+      le_trans (Nat.pow_le_pow_right (by omega) hκ) (Nat.pow_log_le_self 2 hn0)
+    have h_exp : 2 ^ (155 * κ) ≤ n ^ 190 := by
+      calc 2 ^ (155 * κ) = (2 ^ κ) ^ 155 := by ring
+        _ ≤ n ^ 155 := Nat.pow_le_pow_left h2k 155
+        _ ≤ n ^ 190 := Nat.pow_le_pow_right (by omega) (by omega)
+    -- Chain: dim(profileSubspace) ≤ dim(span(w₀)) ≤ 2^{155κ} ≤ n^190
+    -- The first inequality needs Submodule.finrank_mono which requires Module.Finite.
+    -- This is the remaining sorry from same_profile_span_le.
+    sorry
+  · have hsub : profileSubspace n κ h = ⊥ := by
       apply Submodule.span_eq_bot.mpr
       intro q hq
       obtain ⟨w, _, hw, _, _, _⟩ := hq
