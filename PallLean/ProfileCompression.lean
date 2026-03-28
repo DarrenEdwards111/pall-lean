@@ -707,10 +707,13 @@ theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
           -- monomial α 1 = ∏ X_i for multilinear α
           have hmon : MvPolynomial.monomial α (1 : ℚ) =
               α.support.prod (fun i => MvPolynomial.X i) := by
-            -- multilinear monomial = product of X_i for i ∈ support
-            -- Since hml : ∀ i, α i ≤ 1, each α i is 0 or 1
-            -- So monomial α 1 = ∏ X_i^{α i} = ∏_{i∈support} X_i
-            sorry
+            rw [← MvPolynomial.prod_X_pow_eq_monomial]
+            apply Finset.prod_congr rfl
+            intro x hx
+            have hne : α x ≠ 0 := Finsupp.mem_support_iff.mp hx
+            have hle := hml x
+            have : α x = 1 := by omega
+            rw [this, pow_one]
           rw [hmon]
           exact Submodule.subset_span hmem
         · -- α is not multilinear: canonicalGenerator w (monomial α 1) = 0
@@ -722,10 +725,27 @@ theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
             obtain ⟨i, hi⟩ := hml
             exact ⟨i, by omega⟩
           have : canonicalGenerator w (MvPolynomial.monomial α 1) = 0 := by
-            -- Non-multilinear α: after multiplication and mlProj, every monomial
-            -- in the result has some variable with exponent ≥ 2 (from α),
-            -- so mlProj (which keeps only multilinear monomials) kills everything.
-            sorry
+            -- mlProj = Finsupp.filter IsMultilinear
+            -- coeff γ (mlProj p) = if IsMultilinear γ then coeff γ p else 0
+            -- For IsMultilinear γ: coeff γ (monomial α 1 * D) = 0 because α ≤ γ
+            --   would require γ i ≥ α i ≥ 2, contradicting IsMultilinear γ (γ i ≤ 1)
+            -- For ¬IsMultilinear γ: filter drops it to 0
+            apply MvPolynomial.ext; intro γ
+            simp only [canonicalGenerator, MvPolynomial.coeff_zero]
+            haveI : DecidablePred (fun (β : (Fin (npNumVars n)) →₀ ℕ) =>
+                Finsupp.IsMultilinear β) := fun β => Classical.dec _
+            -- Both multilinear and non-multilinear cases reduce to:
+            -- coeff γ (monomial α 1 * D) = 0 when α ≤ γ fails (multilinear γ)
+            -- and coeff γ (mlProj p) = 0 when γ is not multilinear.
+            by_cases hγ : Finsupp.IsMultilinear γ
+            · -- multilinear γ: coeff(mlProj p, γ) = coeff(p, γ) = 0 since α ≤ γ fails
+              rw [MultilinearSPDP.coeff_mlProj_of_isMultilinear_mono _ _ hγ,
+                  MvPolynomial.coeff_monomial_mul']
+              split_ifs with hle
+              · exact absurd (hγ i) (by have := hle i; omega)
+              · rfl
+            · -- non-multilinear γ: mlProj filters it out
+              sorry
           rw [this]
           exact Submodule.zero_mem _
     _ ≤ (windowBasis w).card := by
