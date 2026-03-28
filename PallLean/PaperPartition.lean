@@ -134,7 +134,57 @@ theorem extraction_paper (M : DTM) (n : ℕ) (hn : n ≥ 32)
     mlBlockedSpdpRank (tseitinPartition n) κ ℓ (tseitinPoly ℚ n) ≤
     mlBlockedSpdpRank (paperPartition M n) κ ℓ
       (fullCompiledPoly ℚ M n h_le) := by
-  sorry
+  -- Same chain as extraction_rank_monotone but with paperPartition.
+  -- paperPartition agrees with compiledPartition on witness variables,
+  -- so the same extraction chain works.
+  -- Chain: tseitin rank ≤ pullback rank ≤ paperPartition rank
+  let f := witnessInclusion M n h_le
+  have hf := witnessInclusion_injective M n h_le
+  -- Step 1: restriction monotonicity (rename ≤ pullback)
+  have h1 := restriction_rank_monotone ℚ f hf (paperPartition M n) κ ℓ
+    (fullCompiledPoly ℚ M n h_le)
+  -- Step 2: restrictPoly(fullCompiled) = tseitin + low-degree remainder
+  have h_add : restrictPoly ℚ f hf (fullCompiledPoly ℚ M n h_le) =
+      restrictPoly ℚ f hf (verifierSheetOf ℚ M n h_le) +
+      restrictPoly ℚ f hf (violationPolyOf ℚ M n) := by
+    unfold fullCompiledPoly; exact map_add (restrictPoly ℚ f hf) _ _
+  have h_sheet : restrictPoly ℚ f hf (verifierSheetOf ℚ M n h_le) =
+      tseitinPoly ℚ n := restrictPoly_rename ℚ f hf (tseitinPoly ℚ n)
+  rw [h_add, h_sheet] at h1
+  -- Step 3: low-degree remainder (degree ≤ 4 < κ ≥ 5)
+  -- The pullback of paperPartition via f
+  set Bpull := pullbackPartition (paperPartition M n) f with Bpull_def
+  have h_lowdeg := tableau_restriction_lowDeg ℚ M n h_le
+  rw [mlBlockedSpdpRank_add_lowDeg ℚ Bpull κ ℓ (tseitinPoly ℚ n) _ (by linarith)]
+    at h1
+  -- Step 4: Bpull refines tseitinPartition → rank(tseitin, tseitinPoly) ≤ rank(Bpull, tseitinPoly)
+  have h_coarsen : mlBlockedSpdpRank (tseitinPartition n) κ ℓ (tseitinPoly ℚ n) ≤
+      mlBlockedSpdpRank Bpull κ ℓ (tseitinPoly ℚ n) := by
+    apply Submodule.finrank_mono
+    apply mlBlockedSpdpSubspace_mono_partition
+    -- Need: tseitinPartition refines Bpull
+    -- i.e., Bpull.assign i = Bpull.assign j → tseitinPartition.assign i = tseitinPartition.assign j
+    -- Bpull.assign i = (paperPartition M n).assign (f i)
+    -- paperPartition on witness vars agrees with compiledPartition
+    -- compiledPartition refines tseitinPartition (proved)
+    intro i j h_eq
+    exact compiledPartition_refines_tseitin M n h_le i j (by
+      -- paperPartition.assign(f i) = paperPartition.assign(f j)
+      -- On witness variables (range of f), paperPartition = compiledPartition
+      -- because both: selectors → block(c+1), edge vars → block 0
+      -- paperPartition and compiledPartition agree on witness variable assignment VALUES.
+      -- witnessInclusion i has .val = i.val < npNumVars n.
+      -- Both partitions: if selector (val ≥ base ∧ val - base < nc ∧ val < npNumVars)
+      -- then block value = val - base + 1; else block value = 0.
+      -- Same input → same block value → if paper assigns equal, compiled assigns equal.
+      show (compiledPartition M n).assign (witnessInclusion M n h_le i) =
+           (compiledPartition M n).assign (witnessInclusion M n h_le j)
+      -- paperPartition and compiledPartition assign the same block VALUE
+      -- to witness variables (both check selector condition identically).
+      -- The only difference is numBlocks (N vs N+1), but the .val is the same.
+      -- Trivial but requires careful Fin manipulation.
+      sorry)
+  linarith
 
 /-- P-side bound under paperPartition. -/
 theorem pside_paper (M : DTM) :
