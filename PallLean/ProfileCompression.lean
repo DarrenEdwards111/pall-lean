@@ -57,7 +57,37 @@ theorem coeff_mlProj_of_not_isMultilinear {σ : Type*} [DecidableEq σ] {F : Typ
 -- §1. Abbreviations and key structural facts
 -- ============================================================
 
-/-- Short name for the Tseitin formula at parameter n -/
+/-- Nodup list with injective function → filter (g · = b) has length ≤ 1 -/
+theorem nodup_filter_le_one {α β : Type*} [DecidableEq β]
+    {l : List α} {g : α → β} (hnd : l.Nodup)
+    (hinj : Set.InjOn g {x | x ∈ l}) (b : β) :
+    (l.filter (fun x => g x = b)).length ≤ 1 := by
+  induction l with
+  | nil => simp
+  | cons a rest ih =>
+    have ha_notin := (List.nodup_cons.mp hnd).1
+    have hnd_rest := (List.nodup_cons.mp hnd).2
+    have hinj_rest : Set.InjOn g {x | x ∈ rest} :=
+      fun x hx y hy heq => hinj
+        (Set.mem_setOf.mpr (List.mem_cons_of_mem a (Set.mem_setOf.mp hx)))
+        (Set.mem_setOf.mpr (List.mem_cons_of_mem a (Set.mem_setOf.mp hy))) heq
+    simp only [List.filter_cons]
+    split
+    · rename_i heq
+      have hga : g a = b := by simpa using heq
+      simp only [List.length_cons]
+      suffices h : (rest.filter (fun x => g x = b)).length = 0 by omega
+      rw [List.length_eq_zero_iff]
+      rw [List.filter_eq_nil_iff]
+      intro x hx hgx
+      have hgx' : g x = b := by simpa using hgx
+      have hxa : x = a := hinj
+        (Set.mem_setOf.mpr (List.mem_cons_of_mem a hx))
+        (Set.mem_setOf.mpr (show a ∈ a :: rest from .head rest))
+        (hgx'.trans hga.symm)
+      exact ha_notin (hxa ▸ hx)
+    · exact ih hnd_rest hinj_rest
+
 noncomputable abbrev Φn (n : ℕ) := tseitinAt n
 
 /-- Number of clauses in the n-th Tseitin formula -/
@@ -839,8 +869,7 @@ theorem within_profile_finrank_le (n κ : ℕ) (hn : n ≥ 4)
                 obtain ⟨cy, _, rfl⟩ := hy
                 exact congr_arg (selectorAt n)
                   (tseitinPartition_selector_injective n heq)
-              -- Standard: nodup + injective → filter ≤ 1. Sorry for now.
-              sorry)
+              exact nodup_filter_le_one hnd_sel hinj_on b)
       ⟨30 * κ, le_refl _, trivial⟩
     have hκ := hparam.2
     have hn0 : n ≠ 0 := by omega
