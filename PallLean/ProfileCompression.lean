@@ -824,6 +824,8 @@ theorem within_profile_finrank_le (n κ : ℕ) (hn : n ≥ 4)
           · -- w.selectorList.length = κ
             simp [CanonicalWindow.selectorList, w.card_eq]
           · -- isBlockAdmissible (tseitinPartition n) w.selectorList
+            -- Selectors from distinct clauses are in distinct blocks
+            -- (tseitinPartition_selector_injective), and hitClauses is a Finset (nodup).
             sorry)
       ⟨30 * κ, le_refl _, trivial⟩
     have hκ := hparam.2
@@ -867,9 +869,14 @@ theorem spdp_generator_in_profile (n κ : ℕ)
 theorem tseitin_spdp_rank_proved (n : ℕ) (hn : n ≥ 4)
     (κ : ℕ) (hparam : AdmissibleSpdpParams n κ) :
     mlBlockedSpdpRank (NPWitness.tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤ n ^ 200 := by
-  -- The bound follows from the profile compression chain.
-  -- Steps 2-5 are proved. Step 1 (row decomposition / type-anonymity)
-  -- propagates through within_profile_finrank_le.
+  -- Use ProfileSpaceBound.tseitin_rank_via_profile_compression for the arithmetic.
+  -- The bound 2^κ × (30κ+1)^4 × (30κ+16)^60 ≤ n^200 is proved there.
+  -- The chain: mlBlockedSpdpRank = finrank(mlBlockedSpdpSubspace)
+  --   ≤ ∑_h finrank(profileSubspace h)  [coverage + subadditivity]
+  --   ≤ |H(R)| × max finrank(profileSubspace h)  [uniform bound]
+  --   ≤ (30κ+1)^4 × n^190  [num_profiles_le + within_profile_finrank_le]
+  --   ≤ n^200  [arithmetic from ProfileSpaceBound]
+  -- Depends on type_anonymity_rank_bound (axiom) through within_profile_finrank_le.
   sorry
 
 end SPDP
