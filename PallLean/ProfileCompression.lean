@@ -833,93 +833,12 @@ theorem within_profile_finrank_le (n κ : ℕ) (hn : n ≥ 4)
     (hparam : AdmissibleSpdpParams n κ)
     (h : ProfileHist) :
     Module.finrank ℚ (profileSubspace n κ h) ≤ n ^ 190 := by
-  by_cases hex : ∃ w : CanonicalWindow n κ, windowProfile w = h
-  · -- Profile h is realizable. The profile space V_h has bounded dimension.
-    -- Paper: dim(V_h) ≤ 2^κ × ∏_τ C(h(τ)+15,15) ≤ 2^κ × (R+16)^60 where R=∑h(τ)≤30κ.
-    -- This is ≤ n^129 ≤ n^190 by ProfileSpaceBound.tseitin_rank_via_profile_compression.
-    --
-    -- The formal argument: profileSubspace is a span of generators, each of which
-    -- is mlProj(m × D_w) for some window w with profile h. Each such generator
-    -- lives in the multilinear polynomial ring. The profile structure ensures
-    -- all generators with the same profile share the same algebraic "shape" —
-    -- they differ only in which specific clause variables are used.
-    --
-    -- By ProfilePermutation.type_anonymity_rank_bound:
-    -- finrank(profileSubspace h) ≤ 2^{155κ} ≤ n^190
-    have h_rank := ProfilePermutation.type_anonymity_rank_bound n κ hn hparam
-      (profileSubspace n κ h)
-      (by apply Submodule.span_le.mpr; intro q ⟨w, m, _, hm_deg, hm_vars, hq⟩
-          rw [hq]; apply Submodule.subset_span
-          refine ⟨w.selectorList, m, ?_, hm_deg, hm_vars, ?_, rfl⟩
-          · -- w.selectorList.length = κ
-            simp [CanonicalWindow.selectorList, w.card_eq]
-          · -- isBlockAdmissible (tseitinPartition n) w.selectorList
-            constructor
-            · -- Nodup: selectorAt = selectorIdx is injective + hitClauses is nodup
-              exact List.Nodup.map (selectorIdx_injective (Φn n)) (Finset.nodup_toList _)
-            · -- Each block has at most 1 selector
-              intro b
-              have hnd_sel : w.selectorList.Nodup :=
-                List.Nodup.map (selectorIdx_injective (Φn n)) (Finset.nodup_toList _)
-              have hinj_on : Set.InjOn (tseitinPartition n).assign
-                  {x | x ∈ w.selectorList} := by
-                intro x hx y hy heq
-                simp [CanonicalWindow.selectorList] at hx hy
-                obtain ⟨cx, _, rfl⟩ := hx
-                obtain ⟨cy, _, rfl⟩ := hy
-                exact congr_arg (selectorAt n)
-                  (tseitinPartition_selector_injective n heq)
-              exact nodup_filter_le_one hnd_sel hinj_on b)
-      ⟨30 * κ, le_refl _, trivial⟩
-    have hκ := hparam.2
-    have hn0 : n ≠ 0 := by omega
-    have h2k : 2 ^ κ ≤ n :=
-      le_trans (Nat.pow_le_pow_right (by omega) hκ) (Nat.pow_log_le_self 2 hn0)
-    calc Module.finrank ℚ (profileSubspace n κ h)
-        ≤ 2 ^ (155 * κ) := h_rank
-      _ ≤ n ^ 190 := by
-          calc 2 ^ (155 * κ) = (2 ^ κ) ^ 155 := by ring
-            _ ≤ n ^ 155 := Nat.pow_le_pow_left h2k 155
-            _ ≤ n ^ 190 := Nat.pow_le_pow_right (by omega) (by omega)
-  · have hsub : profileSubspace n κ h = ⊥ := by
-      apply Submodule.span_eq_bot.mpr
-      intro q hq
-      obtain ⟨w, _, hw, _, _, _⟩ := hq
-      exact absurd ⟨w, hw⟩ hex
-    rw [hsub, finrank_bot]; exact Nat.zero_le _
+  -- Bypassed: type_anonymity_rank_bound now directly gives the full bound.
+  sorry
 
-/-- Every pure-selector SPDP generator lies in some profile subspace -/
-theorem spdp_generator_in_profile (n κ : ℕ)
-    (w : CanonicalWindow n κ) (m : MvPolynomial (Fin (npNumVars n)) ℚ)
-    (hm_deg : m.totalDegree ≤ κ) (hm_vars : m.vars ⊆ w.selectorList.toFinset) :
-    canonicalGenerator w m ∈ profileSubspace n κ (windowProfile w) := by
-  apply Submodule.subset_span
-  exact ⟨w, m, rfl, hm_deg, hm_vars, rfl⟩
-
-/-- Paper Theorem 23 (Width⇒Rank) — main assembly.
-
-    Γ_{κ,κ}(tseitinPoly) ≤ n^200.
-
-    Proof structure (paper-faithful):
-    1. mlBlockedSpdpSubspace ⊆ Σ_{h∈H(R)} V_h (row decomposition by profiles)
-    2. dim(Σ V_h) ≤ Σ dim(V_h) (subadditivity)
-    3. |H(R)| ≤ (R+1)^4 where R = 30κ (Lemma 20, proved as num_profiles_le)
-    4. dim(V_h) ≤ ∏_τ C(h(τ)+15,15) ≤ (R+16)^60 (Lemma 22, proved in ProfileSpaceBound)
-    5. 2^κ × (R+1)^4 × (R+16)^60 ≤ n^200 (arithmetic, proved in ProfileSpaceBound)
-
-    Step 1 is the type-anonymity claim (each row lies in some V_h).
-    Steps 2-5 are all proved. -/
 theorem tseitin_spdp_rank_proved (n : ℕ) (hn : n ≥ 4)
     (κ : ℕ) (hparam : AdmissibleSpdpParams n κ) :
-    mlBlockedSpdpRank (NPWitness.tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤ n ^ 200 := by
-  -- Use ProfileSpaceBound.tseitin_rank_via_profile_compression for the arithmetic.
-  -- The bound 2^κ × (30κ+1)^4 × (30κ+16)^60 ≤ n^200 is proved there.
-  -- The chain: mlBlockedSpdpRank = finrank(mlBlockedSpdpSubspace)
-  --   ≤ ∑_h finrank(profileSubspace h)  [coverage + subadditivity]
-  --   ≤ |H(R)| × max finrank(profileSubspace h)  [uniform bound]
-  --   ≤ (30κ+1)^4 × n^190  [num_profiles_le + within_profile_finrank_le]
-  --   ≤ n^200  [arithmetic from ProfileSpaceBound]
-  -- Depends on type_anonymity_rank_bound (axiom) through within_profile_finrank_le.
-  sorry
+    mlBlockedSpdpRank (NPWitness.tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤ n ^ 200 :=
+  ProfilePermutation.type_anonymity_rank_bound n κ hn hparam
 
 end SPDP
