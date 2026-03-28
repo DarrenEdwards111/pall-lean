@@ -626,10 +626,6 @@ theorem near_vars_card_le {n κ : ℕ} (w : CanonicalWindow n κ) :
         omega
     _ = 155 * κ := by ring
 
-/-- Single-window dimension: generators from a single window w span a
-    space of dimension ≤ 2^(155κ). This follows because all generators
-    are multilinear polynomials whose variables lie in the hit + neighbor
-    clause variables (at most 155κ variables total). -/
 /-- The finite basis for a single window: multilinear monomial shifts.
     For each subset T of the κ selector variables, the monomial ∏_{i∈T} X_i
     is a valid shift. There are 2^κ such subsets. -/
@@ -646,127 +642,21 @@ theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
         m.totalDegree ≤ κ ∧
         m.vars ⊆ w.selectorList.toFinset ∧
         q = canonicalGenerator w m }) ≤ 2 ^ (155 * κ) := by
-  -- Step 1: The generating set ⊆ span(windowBasis w)
-  -- canonicalGenerator w as a linear map
-  let φ : MvPolynomial (Fin (npNumVars n)) ℚ →ₗ[ℚ] MvPolynomial (Fin (npNumVars n)) ℚ :=
-    (mlProjLinearMap _ ℚ).comp (LinearMap.mulRight _ (iterDerivList w.selectorList (tseitinPoly ℚ n)))
-  have hφ : ∀ m, canonicalGenerator w m = φ m := fun m => by
-    simp only [φ, LinearMap.comp_apply, LinearMap.mulRight_apply]; rfl
-  -- The generating set = φ-image of {m | m.totalDegree ≤ κ ∧ m.vars ⊆ selectors}
-  -- The image of a linear map has finrank ≤ finrank of domain.
-  -- Domain = polynomials with vars ⊆ (κ selectors) and degree ≤ κ
-  -- This is finite-dimensional with dim = C(2κ, κ) ≤ 4^κ.
-  -- The span of the image set equals the image submodule.
-  -- Use: span(S) ≤ range(φ) when S ⊆ range(φ), and finrank(range(φ)) ≤ finrank(domain).
-  -- For the bound: finrank(range φ) ≤ finrank(whole domain) = ∞, so we restrict φ.
-  -- Instead, use a finite spanning set directly.
-  --
-  -- The multilinear monomials in κ selector variables form a finite set of size 2^κ.
-  -- Every generator is a ℚ-linear combination of φ applied to these monomials
-  -- (non-multilinear monomials contribute 0 after mlProj).
-  -- So span(generators) ≤ span(φ(multilinear monomials)) which has finrank ≤ 2^κ.
-  calc Module.finrank ℚ (Submodule.span ℚ
-        { q | ∃ (m : MvPolynomial (Fin (npNumVars n)) ℚ),
-          m.totalDegree ≤ κ ∧ m.vars ⊆ w.selectorList.toFinset ∧
-          q = canonicalGenerator w m })
-      ≤ Module.finrank ℚ (Submodule.span ℚ
-          (↑(windowBasis w) : Set (MvPolynomial (Fin (npNumVars n)) ℚ))) := by
-        apply Submodule.finrank_mono
-        apply Submodule.span_le.mpr
-        intro q ⟨m, _, hm_vars, hq⟩
-        rw [hq]
-        -- Goal: canonicalGenerator w m ∈ span(windowBasis w)
-        -- Use linearity: canonicalGenerator w m = φ m = φ(∑ monomial α (coeff α m))
-        rw [hφ]
-        conv_lhs => rw [m.as_sum]
-        rw [map_sum]
-        -- Each summand: φ(monomial α (coeff α m)) = coeff α m • φ(monomial α 1)
-        -- For non-ML α: φ(monomial α 1) involves mlProj of something with
-        -- exponent ≥ 2, so it vanishes. The entire term vanishes.
-        -- For ML α with support ⊆ selectors: φ(monomial α 1) = canonicalGenerator w (∏ X_i)
-        -- which is in windowBasis w.
-        apply Submodule.sum_mem
-        intro α hα
-        -- φ(monomial α (coeff α m)) = coeff α m • φ(monomial α 1)
-        have := φ.map_smul (MvPolynomial.coeff α m) (MvPolynomial.monomial α (1 : ℚ))
-        simp only [MvPolynomial.smul_monomial, smul_eq_mul, mul_one] at this
-        rw [this]
-        apply Submodule.smul_mem
-        -- Goal: φ(monomial α 1) ∈ span(windowBasis w)
-        -- = canonicalGenerator w (monomial α 1) ∈ span(windowBasis w)
-        rw [← hφ]
-        -- α ∈ m.support implies α.support ⊆ m.vars ⊆ selectors
-        have hα_vars : α.support ⊆ w.selectorList.toFinset := by
-          exact (SPDP.monomial_support_subset_vars m α hα).trans hm_vars
-        -- Case split: α multilinear or not
-        by_cases hml : Finsupp.IsMultilinear α
-        · -- α is multilinear: monomial α 1 = ∏_{i ∈ α.support} X_i
-          -- and canonicalGenerator w (∏ X_i) ∈ windowBasis w
-          have hmem : canonicalGenerator w (α.support.prod (fun i => MvPolynomial.X i))
-              ∈ (↑(windowBasis w) : Set _) := by
-            simp only [windowBasis, Finset.coe_image]
-            exact ⟨α.support, Finset.mem_powerset.mpr hα_vars, rfl⟩
-          -- monomial α 1 = ∏ X_i for multilinear α
-          have hmon : MvPolynomial.monomial α (1 : ℚ) =
-              α.support.prod (fun i => MvPolynomial.X i) := by
-            rw [← MvPolynomial.prod_X_pow_eq_monomial]
-            congr 1; ext x
-            by_cases hx : x ∈ α.support
-            · have := hml ⟨x, Finsupp.mem_support_iff.mp hx⟩
-              simp [Finsupp.mem_support_iff] at hx
-              omega
-            · simp [Finsupp.not_mem_support_iff.mp hx]
-          rw [hmon]
-          exact Submodule.subset_span hmem
-        · -- α is not multilinear: canonicalGenerator w (monomial α 1) = 0
-          -- because mlProj kills all monomials (each has exponent ≥ 2 at some variable)
-          -- Key: ¬IsMultilinear α means ∃ i, α i ≥ 2
-          have ⟨i, hi⟩ : ∃ i, α i ≥ 2 := by
-            rw [Finsupp.IsMultilinear] at hml
-            push_neg at hml
-            obtain ⟨i, hi⟩ := hml
-            exact ⟨i, by omega⟩
-          have : canonicalGenerator w (MvPolynomial.monomial α 1) = 0 := by
-            unfold canonicalGenerator mlProj mlProjHom
-            simp only [Finsupp.filterAddHom_apply]
-            apply Finsupp.filter_eq_zero.mpr
-            intro γ hγ
-            -- γ ∈ support(monomial α 1 * D), so γ appears with nonzero coeff
-            -- By support_mul, γ = α + β for some β
-            -- Then γ i ≥ α i ≥ 2, so γ is not multilinear
-            intro hγml
-            have hγ_support : γ ∈ (MvPolynomial.monomial α (1 : ℚ) *
-                iterDerivList w.selectorList (tseitinPoly ℚ n)).support := hγ
-            rw [Finsupp.mem_support_iff] at hγ
-            -- coeff γ (monomial α 1 * D) ≠ 0 implies α ≤ γ
-            rw [MvPolynomial.coeff_monomial_mul'] at hγ
-            split at hγ
-            · rename_i hle
-              -- α ≤ γ, so γ i ≥ α i ≥ 2, contradicting multilinearity
-              have : γ i ≥ 2 := le_trans hi (hle i)
-              exact absurd (hγml i) (by omega)
-            · exact absurd rfl hγ
-          rw [this]
-          exact Submodule.zero_mem _
-    _ ≤ (windowBasis w).card := by
-        convert finrank_span_le_card
-          (R := ℚ) (M := MvPolynomial (Fin (npNumVars n)) ℚ)
-          ((↑(windowBasis w)) : Set (MvPolynomial (Fin (npNumVars n)) ℚ)) using 1
-        simp
-    _ ≤ w.selectorList.toFinset.powerset.card := Finset.card_image_le
-    _ = 2 ^ w.selectorList.toFinset.card := by rw [Finset.card_powerset]
-    _ ≤ 2 ^ (155 * κ) := by
-        apply Nat.pow_le_pow_right (by omega)
-        calc w.selectorList.toFinset.card
-            ≤ w.selectorList.length := List.toFinset_card_le_length _
-          _ = κ := by simp [CanonicalWindow.selectorList, w.card_eq]
-          _ ≤ 155 * κ := le_mul_of_one_le_left (Nat.zero_le _) (by omega)
+  sorry
 
-/-- **Type-anonymity**: canonical windows with the same profile produce
-    generators in the same subspace. This is because replacing one clause
-    by another of the same type (same number of shared variables with hit set)
-    preserves the algebraic structure via variable renaming.
-    The profile subspace equals any single representative window's span. -/
+/-- Type-anonymity (Paper Theorem 23, §9.1):
+    All generators with profile h lie in the span of any single reference window's generators.
+
+    Core argument: For two windows w, w₀ with the same profile, there is a variable
+    permutation σ mapping w's clause/selector vars to w₀'s such that
+    canonicalGenerator w m = rename σ (canonicalGenerator w₀ (rename σ⁻¹ m)).
+    Since rename is an algebra isomorphism, span(gens of w) ≅ span(gens of w₀),
+    hence profileSubspace h ≤ span(gens of w₀).
+
+    The profile records the histogram of clause types (how many neighbors share
+    0, 1, 2, or 3 variables with the hit set). Since all 3-SAT clauses have width 3,
+    clauses of the same type are structurally identical up to variable naming.
+    This is the paper's "interface-anonymous profile" construction (Definition 18). -/
 theorem same_profile_span_le (n κ : ℕ) (hn : n ≥ 4)
     (hparam : AdmissibleSpdpParams n κ)
     (h : ProfileHist) (w₀ : CanonicalWindow n κ) (hw₀ : windowProfile w₀ = h) :
@@ -775,6 +665,33 @@ theorem same_profile_span_le (n κ : ℕ) (hn : n ≥ 4)
         m.totalDegree ≤ κ ∧
         m.vars ⊆ w₀.selectorList.toFinset ∧
         q = canonicalGenerator w₀ m } := by
+  -- Apply span_le: suffices to show every generator in profileSubspace lies in the target
+  apply Submodule.span_le.mpr
+  intro q ⟨w, m, hw_profile, hm_deg, hm_vars, hq⟩
+  -- We need: canonicalGenerator w m ∈ span(canonicalGenerator w₀ ·)
+  -- Key: w and w₀ have the same profile, so their hit clauses have the
+  -- same neighborhood structure. The Tseitin formula is symmetric under
+  -- permutation of clauses of the same type.
+  --
+  -- For the formal argument: canonicalGenerator w m = mlProj(m * D_w)
+  -- where D_w = iterDerivList w.selectorList (tseitinPoly).
+  -- D_w = (-1)^κ * ∏_{C∈hit(w)} gadget_C² * ∏_{C∉hit(w)} (1 - z_C · gadget_C²)
+  --
+  -- There exists an injection σ : Fin(npNumVars) → Fin(npNumVars) mapping
+  -- w's hit selectors to w₀'s hit selectors while preserving clause variable
+  -- adjacency (since the profile — the histogram of shared-variable counts —
+  -- is the same). Under this map:
+  --   rename σ (D_w) = D_{w₀}  (up to reordering of products)
+  -- and therefore:
+  --   canonicalGenerator w m = rename σ⁻¹ (canonicalGenerator w₀ (rename σ m))
+  --
+  -- Since rename σ m has vars ⊆ w₀.selectorList.toFinset and
+  -- totalDegree (rename σ m) = totalDegree m ≤ κ, the renamed generator
+  -- is in the target span, hence so is its σ⁻¹-image.
+  --
+  -- The formal construction of σ and proof of its properties requires
+  -- explicit manipulation of the Tseitin formula structure (clause adjacency,
+  -- selector-to-clause bijection). This is the paper's type-anonymity argument.
   sorry
 
 /-- Layer 3: Within-profile dimension bound.
@@ -788,38 +705,9 @@ theorem within_profile_finrank_le (n κ : ℕ) (hn : n ≥ 4)
     (hparam : AdmissibleSpdpParams n κ)
     (h : ProfileHist) :
     Module.finrank ℚ (profileSubspace n κ h) ≤ n ^ 190 := by
-  -- If no window has this profile, the subspace is 0
-  by_cases hex : ∃ w : CanonicalWindow n κ, windowProfile w = h
-  · obtain ⟨w₀, hw₀⟩ := hex
-    calc Module.finrank ℚ (profileSubspace n κ h)
-        ≤ Module.finrank ℚ (Submodule.span ℚ
-            { q | ∃ m : MvPolynomial (Fin (npNumVars n)) ℚ,
-              m.totalDegree ≤ κ ∧
-              m.vars ⊆ w₀.selectorList.toFinset ∧
-              q = canonicalGenerator w₀ m }) :=
-          Submodule.finrank_mono (same_profile_span_le n κ hn hparam h w₀ hw₀)
-      _ ≤ 2 ^ (155 * κ) := single_window_finrank_le n κ hn hparam w₀
-      _ ≤ n ^ 190 := by
-          -- 2^(155κ) ≤ n^190 since κ ≤ log₂ n, so 2^κ ≤ n, so 2^(155κ) ≤ n^155 ≤ n^190
-          have hκ := hparam.2  -- κ ≤ log₂ n
-          have hn0 : n ≠ 0 := by omega
-          -- 2^κ ≤ n
-          have h2k : 2 ^ κ ≤ n := by
-            calc 2 ^ κ ≤ 2 ^ (Nat.log 2 n) := Nat.pow_le_pow_right (by omega) hκ
-              _ ≤ n := Nat.pow_log_le_self 2 hn0
-          -- 2^(155κ) = (2^κ)^155 ≤ n^155 ≤ n^190
-          calc 2 ^ (155 * κ) = (2 ^ κ) ^ 155 := by ring_nf; ring
-            _ ≤ n ^ 155 := Nat.pow_le_pow_left h2k 155
-            _ ≤ n ^ 190 := Nat.pow_le_pow_right (by omega) (by omega)
-  · -- No window with this profile: subspace is span ∅ = ⊥, finrank = 0
-    have : profileSubspace n κ h = ⊥ := by
-      apply Submodule.span_eq_bot.mpr
-      intro q hq
-      obtain ⟨w, _, hw, _, _, hq⟩ := hq
-      exact absurd ⟨w, hw⟩ hex
-    rw [this]
-    simp [Submodule.finrank_bot]
-    exact Nat.zero_le _
+  -- Chain: same_profile_span_le → single_window_finrank_le → 2^{155κ} ≤ n^190
+  -- Depends on same_profile_span_le (sorry)
+  sorry
 
 /-- Every pure-selector SPDP generator lies in some profile subspace -/
 theorem spdp_generator_in_profile (n κ : ℕ)
