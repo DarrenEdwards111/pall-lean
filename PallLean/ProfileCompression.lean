@@ -637,6 +637,7 @@ noncomputable def windowBasis {n κ : ℕ} (w : CanonicalWindow n κ) :
 /-- Single-window dimension bound: generators from one window span ≤ 2^{155κ} dims.
     Paper: each generator is determined by a multilinear monomial in ≤ 155κ selector + neighbor
     variables, giving 2^{155κ} possible basis elements. -/
+
 theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
     (hparam : AdmissibleSpdpParams n κ)
     (w : CanonicalWindow n κ) :
@@ -645,15 +646,102 @@ theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
         m.totalDegree ≤ κ ∧
         m.vars ⊆ w.selectorList.toFinset ∧
         q = canonicalGenerator w m }) ≤ 2 ^ (155 * κ) := by
-  -- The generating set is contained in span(windowBasis w).
-  -- |windowBasis w| ≤ 2^{|selectors|} ≤ 2^{155κ}.
-  -- finrank(span S) ≤ |S| for any finite S.
-  -- Step 1: span(generators) ≤ span(windowBasis)
-  -- Step 2: finrank(span(windowBasis)) ≤ |windowBasis| ≤ 2^{155κ}
-  -- The detailed proof of step 1 requires showing every generator is
-  -- a linear combination of windowBasis elements (via multilinear decomposition).
-  -- This was previously proved but broke on a Mathlib API update.
-  sorry
+  -- Step 1: The generating set ⊆ span(windowBasis w)
+  -- canonicalGenerator w as a linear map
+  let φ : MvPolynomial (Fin (npNumVars n)) ℚ →ₗ[ℚ] MvPolynomial (Fin (npNumVars n)) ℚ :=
+    (mlProjLinearMap _ ℚ).comp (LinearMap.mulRight _ (iterDerivList w.selectorList (tseitinPoly ℚ n)))
+  have hφ : ∀ m, canonicalGenerator w m = φ m := fun m => by
+    simp only [φ, LinearMap.comp_apply, LinearMap.mulRight_apply]; rfl
+  -- The generating set = φ-image of {m | m.totalDegree ≤ κ ∧ m.vars ⊆ selectors}
+  -- The image of a linear map has finrank ≤ finrank of domain.
+  -- Domain = polynomials with vars ⊆ (κ selectors) and degree ≤ κ
+  -- This is finite-dimensional with dim = C(2κ, κ) ≤ 4^κ.
+  -- The span of the image set equals the image submodule.
+  -- Use: span(S) ≤ range(φ) when S ⊆ range(φ), and finrank(range(φ)) ≤ finrank(domain).
+  -- For the bound: finrank(range φ) ≤ finrank(whole domain) = ∞, so we restrict φ.
+  -- Instead, use a finite spanning set directly.
+  --
+  -- The multilinear monomials in κ selector variables form a finite set of size 2^κ.
+  -- Every generator is a ℚ-linear combination of φ applied to these monomials
+  -- (non-multilinear monomials contribute 0 after mlProj).
+  -- So span(generators) ≤ span(φ(multilinear monomials)) which has finrank ≤ 2^κ.
+  calc Module.finrank ℚ (Submodule.span ℚ
+        { q | ∃ (m : MvPolynomial (Fin (npNumVars n)) ℚ),
+          m.totalDegree ≤ κ ∧ m.vars ⊆ w.selectorList.toFinset ∧
+          q = canonicalGenerator w m })
+      ≤ Module.finrank ℚ (Submodule.span ℚ
+          (↑(windowBasis w) : Set (MvPolynomial (Fin (npNumVars n)) ℚ))) := by
+        apply Submodule.finrank_mono
+        apply Submodule.span_le.mpr
+        intro q ⟨m, _, hm_vars, hq⟩
+        rw [hq]
+        -- Goal: canonicalGenerator w m ∈ span(windowBasis w)
+        -- Use linearity: canonicalGenerator w m = φ m = φ(∑ monomial α (coeff α m))
+        rw [hφ, show m = ∑ v ∈ m.support, MvPolynomial.monomial v (MvPolynomial.coeff v m) from m.as_sum, map_sum]
+        -- Each summand: φ(monomial α (coeff α m)) = coeff α m • φ(monomial α 1)
+        -- For non-ML α: φ(monomial α 1) involves mlProj of something with
+        -- exponent ≥ 2, so it vanishes. The entire term vanishes.
+        -- For ML α with support ⊆ selectors: φ(monomial α 1) = canonicalGenerator w (∏ X_i)
+        -- which is in windowBasis w.
+        apply Submodule.sum_mem
+        intro α hα
+        -- φ(monomial α (coeff α m)) = coeff α m • φ(monomial α 1)
+        have := φ.map_smul (MvPolynomial.coeff α m) (MvPolynomial.monomial α (1 : ℚ))
+        simp only [MvPolynomial.smul_monomial, smul_eq_mul, mul_one] at this
+        rw [this]
+        apply Submodule.smul_mem
+        -- Goal: φ(monomial α 1) ∈ span(windowBasis w)
+        -- = canonicalGenerator w (monomial α 1) ∈ span(windowBasis w)
+        rw [← hφ]
+        -- α ∈ m.support implies α.support ⊆ m.vars ⊆ selectors
+        have hα_vars : α.support ⊆ w.selectorList.toFinset := by
+          exact (SPDP.monomial_support_subset_vars m α hα).trans hm_vars
+        -- Case split: α multilinear or not
+        by_cases hml : Finsupp.IsMultilinear α
+        · -- α is multilinear: monomial α 1 = ∏_{i ∈ α.support} X_i
+          -- and canonicalGenerator w (∏ X_i) ∈ windowBasis w
+          have hmem : canonicalGenerator w (α.support.prod (fun i => MvPolynomial.X i))
+              ∈ (↑(windowBasis w) : Set _) := by
+            simp only [windowBasis, Finset.coe_image]
+            exact ⟨α.support, Finset.mem_powerset.mpr hα_vars, rfl⟩
+          -- monomial α 1 = ∏ X_i for multilinear α
+          have hmon : MvPolynomial.monomial α (1 : ℚ) =
+              α.support.prod (fun i => MvPolynomial.X i) := by
+            -- multilinear monomial = product of X_i for i ∈ support
+            -- Since hml : ∀ i, α i ≤ 1, each α i is 0 or 1
+            -- So monomial α 1 = ∏ X_i^{α i} = ∏_{i∈support} X_i
+            sorry
+          rw [hmon]
+          exact Submodule.subset_span hmem
+        · -- α is not multilinear: canonicalGenerator w (monomial α 1) = 0
+          -- because mlProj kills all monomials (each has exponent ≥ 2 at some variable)
+          -- Key: ¬IsMultilinear α means ∃ i, α i ≥ 2
+          have ⟨i, hi⟩ : ∃ i, α i ≥ 2 := by
+            rw [Finsupp.IsMultilinear] at hml
+            push_neg at hml
+            obtain ⟨i, hi⟩ := hml
+            exact ⟨i, by omega⟩
+          have : canonicalGenerator w (MvPolynomial.monomial α 1) = 0 := by
+            -- Non-multilinear α: after multiplication and mlProj, every monomial
+            -- in the result has some variable with exponent ≥ 2 (from α),
+            -- so mlProj (which keeps only multilinear monomials) kills everything.
+            sorry
+          rw [this]
+          exact Submodule.zero_mem _
+    _ ≤ (windowBasis w).card := by
+        convert finrank_span_le_card
+          (R := ℚ) (M := MvPolynomial (Fin (npNumVars n)) ℚ)
+          ((↑(windowBasis w)) : Set (MvPolynomial (Fin (npNumVars n)) ℚ)) using 1
+        simp
+    _ ≤ w.selectorList.toFinset.powerset.card := Finset.card_image_le
+    _ = 2 ^ w.selectorList.toFinset.card := by rw [Finset.card_powerset]
+    _ ≤ 2 ^ (155 * κ) := by
+        apply Nat.pow_le_pow_right (by omega)
+        calc w.selectorList.toFinset.card
+            ≤ w.selectorList.length := by
+              exact @List.toFinset_card_le _ _ w.selectorList
+          _ = κ := by simp [CanonicalWindow.selectorList, w.card_eq]
+          _ ≤ 155 * κ := le_mul_of_one_le_left (Nat.zero_le _) (by omega)
 
 /-- Type-anonymity (Paper Theorem 23, §9.1):
     All generators with profile h lie in the span of any single reference window's generators.
