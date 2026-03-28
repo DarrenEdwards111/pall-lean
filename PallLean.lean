@@ -29,3 +29,4 @@ import PallLean.TypeAnonymityDirect
 import PallLean.ProfilePermutation
 import PallLean.ProfileSpace
 import PallLean.WidthRank
+import PallLean.TypeAnonymityProof
