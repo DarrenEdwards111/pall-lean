@@ -44,6 +44,14 @@ namespace SPDP
 
 open MvPolynomial Finset IdentityMinor Tseitin MultilinearSPDP NPWitness
 
+/-- mlProj applied to a polynomial at a non-multilinear monomial is zero. -/
+theorem coeff_mlProj_of_not_isMultilinear {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p : MvPolynomial σ F) (α : σ →₀ ℕ) (hα : ¬ Finsupp.IsMultilinear α) :
+    MvPolynomial.coeff α (mlProj p) = 0 := by
+  classical
+  show (Finsupp.filter (fun β => Finsupp.IsMultilinear β) p) α = 0
+  rw [Finsupp.filter_apply, if_neg hα]
+
 -- ============================================================
 -- §1. Abbreviations and key structural facts
 -- ============================================================
@@ -745,7 +753,7 @@ theorem single_window_finrank_le (n κ : ℕ) (hn : n ≥ 4)
               · exact absurd (hγ i) (by have := hle i; omega)
               · rfl
             · -- non-multilinear γ: mlProj filters it out
-              sorry
+              exact coeff_mlProj_of_not_isMultilinear _ _ hγ
           rw [this]
           exact Submodule.zero_mem _
     _ ≤ (windowBasis w).card := by
@@ -824,9 +832,32 @@ theorem within_profile_finrank_le (n κ : ℕ) (hn : n ≥ 4)
     (hparam : AdmissibleSpdpParams n κ)
     (h : ProfileHist) :
     Module.finrank ℚ (profileSubspace n κ h) ≤ n ^ 190 := by
-  -- Chain: same_profile_span_le → single_window_finrank_le → 2^{155κ} ≤ n^190
-  -- Depends on same_profile_span_le (sorry)
-  sorry
+  by_cases hex : ∃ w : CanonicalWindow n κ, windowProfile w = h
+  · obtain ⟨w₀, hw₀⟩ := hex
+    calc Module.finrank ℚ (profileSubspace n κ h)
+        ≤ Module.finrank ℚ (Submodule.span ℚ
+            { q | ∃ m : MvPolynomial (Fin (npNumVars n)) ℚ,
+              m.totalDegree ≤ κ ∧
+              m.vars ⊆ w₀.selectorList.toFinset ∧
+              q = canonicalGenerator w₀ m }) :=
+          sorry -- Submodule.finrank_mono (same_profile_span_le ...) needs Module.Finite
+      _ ≤ 2 ^ (155 * κ) := single_window_finrank_le n κ hn hparam w₀
+      _ ≤ n ^ 190 := by
+          have hκ := hparam.2
+          have hn0 : n ≠ 0 := by omega
+          have h2k : 2 ^ κ ≤ n := by
+            calc 2 ^ κ ≤ 2 ^ (Nat.log 2 n) := Nat.pow_le_pow_right (by omega) hκ
+              _ ≤ n := Nat.pow_log_le_self 2 hn0
+          calc 2 ^ (155 * κ) = (2 ^ κ) ^ 155 := by ring
+            _ ≤ n ^ 155 := Nat.pow_le_pow_left h2k 155
+            _ ≤ n ^ 190 := Nat.pow_le_pow_right (by omega) (by omega)
+  · -- No window with this profile: subspace = ⊥, finrank = 0
+    have hsub : profileSubspace n κ h = ⊥ := by
+      apply Submodule.span_eq_bot.mpr
+      intro q hq
+      obtain ⟨w, _, hw, _, _, _⟩ := hq
+      exact absurd ⟨w, hw⟩ hex
+    rw [hsub, finrank_bot]; exact Nat.zero_le _
 
 /-- Every pure-selector SPDP generator lies in some profile subspace -/
 theorem spdp_generator_in_profile (n κ : ℕ)
