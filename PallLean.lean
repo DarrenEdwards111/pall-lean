@@ -34,3 +34,4 @@ import PallLean.CompiledSoS
 import PallLean.RepresentationInvariance
 import PallLean.PneqNP_SoS
 import PallLean.PneqNP_v2
+import PallLean.CompilerInvariance
