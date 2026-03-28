@@ -41,13 +41,17 @@ noncomputable def paperPartition (M : DTM) (n : ℕ) :
     let Φ := tseitinAt n
     let nc := Φ.clauses.length
     let selectorBase := Φ.graph.numEdges + 3 * nc
+    let ne := Φ.graph.numEdges
     -- Selectors: z_c at index selectorBase + c → block (c + 1)
-    if h₁ : v.val ≥ selectorBase ∧ v.val - selectorBase < nc ∧
-             v.val < npNumVars n then
+    if v.val ≥ selectorBase ∧ v.val - selectorBase < nc ∧ v.val < npNumVars n then
       ⟨v.val - selectorBase + 1, by omega⟩
-    -- Edge/literal variables: index < selectorBase → block based on which clause
-    -- For simplicity: ALL edge vars in block 0 (shared between clauses)
-    -- Machine vars: each in their own block (offset past clause blocks)
+    -- Literal variables: index in [ne, ne + 3*nc) → clause (v-ne)/3, block ((v-ne)/3 + 1)
+    else if h₂ : v.val ≥ ne ∧ v.val < ne + 3 * nc then
+      ⟨(v.val - ne) / 3 + 1, by omega⟩
+    -- Edge variables: index < ne → block 0
+    else if v.val < ne then
+      ⟨0, by omega⟩
+    -- Machine vars: own blocks
     else if v.val ≥ npNumVars n then
       ⟨v.val + 1, by have := v.isLt; omega⟩
     else
