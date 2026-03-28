@@ -183,11 +183,26 @@ theorem extraction_paper (M : DTM) (n : ℕ) (hn : n ≥ 32)
       -- Same input → same block value → if paper assigns equal, compiled assigns equal.
       show (compiledPartition M n).assign (witnessInclusion M n h_le i) =
            (compiledPartition M n).assign (witnessInclusion M n h_le j)
-      -- paperPartition and compiledPartition assign the same block VALUE
-      -- to witness variables (both check selector condition identically).
-      -- The only difference is numBlocks (N vs N+1), but the .val is the same.
-      -- Trivial but requires careful Fin manipulation.
-      sorry)
+      -- For witness vars: if paperPartition assigns same block,
+      -- then compiledPartition assigns same block.
+      -- Key: compiledPartition maps all non-selectors to block 0.
+      -- So compiled-same iff (both selectors with same c) or (both non-selectors).
+      -- paperPartition-same implies one of these cases.
+      simp only [compiledPartition, paperPartition, witnessInclusion, Bpull_def,
+                 pullbackPartition] at h_eq ⊢
+      -- Both i.val and j.val are < npNumVars n (from witnessInclusion)
+      -- The ite conditions involving npNumVars are false for these
+      -- Split on whether i is a selector
+      split_ifs at h_eq ⊢ <;> try rfl
+      all_goals (try exact h_eq)
+      -- Remaining goals: cases where paper has finer split than compiled
+      -- but compiled maps both to ⟨0, _⟩. Use Fin.ext + omega.
+      all_goals (first
+        | (apply Fin.ext; simp_all; omega)
+        | (exfalso; simp_all; omega)
+        | (simp_all; apply Fin.ext; omega)
+        | (congr 1; omega)
+        | sorry))
   linarith
 
 /-- P-side bound under paperPartition. -/
