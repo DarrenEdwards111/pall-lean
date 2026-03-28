@@ -824,9 +824,23 @@ theorem within_profile_finrank_le (n κ : ℕ) (hn : n ≥ 4)
           · -- w.selectorList.length = κ
             simp [CanonicalWindow.selectorList, w.card_eq]
           · -- isBlockAdmissible (tseitinPartition n) w.selectorList
-            -- Selectors from distinct clauses are in distinct blocks
-            -- (tseitinPartition_selector_injective), and hitClauses is a Finset (nodup).
-            sorry)
+            constructor
+            · -- Nodup: selectorAt = selectorIdx is injective + hitClauses is nodup
+              exact List.Nodup.map (selectorIdx_injective (Φn n)) (Finset.nodup_toList _)
+            · -- Each block has at most 1 selector
+              intro b
+              have hnd_sel : w.selectorList.Nodup :=
+                List.Nodup.map (selectorIdx_injective (Φn n)) (Finset.nodup_toList _)
+              have hinj_on : Set.InjOn (tseitinPartition n).assign
+                  {x | x ∈ w.selectorList} := by
+                intro x hx y hy heq
+                simp [CanonicalWindow.selectorList] at hx hy
+                obtain ⟨cx, _, rfl⟩ := hx
+                obtain ⟨cy, _, rfl⟩ := hy
+                exact congr_arg (selectorAt n)
+                  (tseitinPartition_selector_injective n heq)
+              -- Standard: nodup + injective → filter ≤ 1. Sorry for now.
+              sorry)
       ⟨30 * κ, le_refl _, trivial⟩
     have hκ := hparam.2
     have hn0 : n ≠ 0 := by omega
