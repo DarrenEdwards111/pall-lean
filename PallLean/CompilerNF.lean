@@ -133,52 +133,17 @@ theorem compilerNF_rank_poly (M : DTM) (n : ℕ)
       (compilerNormalForm M n h_le) = 0 :=
   compiledPolySoS_spdp_rank_zero ℚ M n κ hκ κ
 
-/-- The NP-side identity minor survives in the compiler normal form.
-    Paper: the extraction chain NF(Φn) → Q×_Φ preserves the identity minor.
-    Combined with Theorem 255 (NF(Φn) = NF(M) for SAT-deciding M):
-    the identity minor is present in NF(M) = compilerNormalForm. -/
-theorem compilerNF_rank_exp (M : DTM) (n : ℕ) (hn : n ≥ 32)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (κ : ℕ) (hκ : κ ≥ 5) (heven : 2 ∣ n) :
-    mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (compilerNormalForm M n h_le) ≥ n ^ (κ / 4) := by
-  -- This requires:
-  -- 1. The identity minor from np_ml_lower_bound transfers to compiled space
-  -- 2. Theorem 255: NF(Φn) = NF(M) (same function → same normal form)
-  -- Together: the identity minor from Φn appears in NF(M).
-  -- But NF(M) = compiledPolySoS which has rank 0. Contradiction!
-  --
-  -- Actually, this theorem is FALSE: compilerNF_rank_poly says rank = 0,
-  -- and this says rank ≥ n^{κ/4}. They can't both be true.
-  -- THIS IS THE CONTRADICTION that proves P ≠ NP.
-  sorry
+/- NOTE:
+The previous exploratory lemmas
+  * compilerNF_rank_exp
+  * representation_invariance_from_compiler
+were removed because they encoded a stale bridge between mismatched objects
+(tseitin/product-form vs SoS machine form) and were unused on the active
+restriction-first route.
 
-theorem representation_invariance_from_compiler
-    (M : DTM) (n : ℕ) (hn : n ≥ 32)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (κ : ℕ) (hκ : κ ≥ 5) :
-    mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤
-    mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (compiledPolySoS ℚ M n) + n ^ 10 := by
-  -- The core mathematical content:
-  -- 1. compilerEquiv_preserves_rank (PROVED above)
-  -- 2. Front-end determinism (Lemma 252): same function → ≡comp outputs
-  --
-  -- Lemma 252 is a property of the compiler algorithm.
-  -- It says: Win(·) is deterministic, so two descriptions of fn produce
-  -- window forms that differ only by (E1)-(E4),(E6).
-  --
-  -- In our setting: the Tseitin formula Φn and machine M both encode SAT.
-  -- The compiler produces NF(Φn) and NF(M). By Lemma 252, NF(Φn) ≡comp NF(M).
-  -- By compilerEquiv_preserves_rank: rank(NF(Φn)) = rank(NF(M)).
-  -- rank(NF(M)) ≤ n^O(1) (P-side, Theorem 92).
-  -- rank(NF(Φn)) ≥ n^{Ω(log n)} (NP-side, identity minor).
-  -- These are about the COMPILED FORMS, not about tseitinPoly/compiledPolySoS directly.
-  --
-  -- The connection tseitinPoly ↔ NF(Φn) and compiledPolySoS ↔ NF(M) requires
-  -- the compiler pipeline mapping, which we don't have in Lean.
-  --
-  -- This sorry IS Lemma 252 (front-end determinism) + the compiler pipeline.
-  sorry
+Paper-consistent contradiction assembly now lives in:
+  * RestrictionPipeline.lean
+  * PneqNP_Restriction.lean
+-/
 
 end CompilerNF
