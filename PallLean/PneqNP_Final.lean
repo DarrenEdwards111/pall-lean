@@ -1,7 +1,4 @@
-import PallLean.CompiledSoS
-import PallLean.MultilinearSPDP
-import PallLean.NPWitness
-import PallLean.Compiler
+import PallLean.BPtoSPDP
 import Mathlib.Tactic
 
 /-!
@@ -37,7 +34,7 @@ set_option exponentiation.threshold 1024
 
 namespace PneqNP_Final
 
-open SPDP MultilinearSPDP NPWitness Compiler TuringMachine CompiledSoS MvPolynomial
+open SPDP MultilinearSPDP NPWitness Compiler TuringMachine CompiledSoS MvPolynomial BPtoSPDP
 
 /-- Paper Theorem 12 Step 4 (Width⇒Rank on PM',n = fullCompiledPoly):
 Γ(fullCompiledPoly) ≤ n^200 when M is poly-time.
@@ -50,12 +47,14 @@ Paper proof chain (Theorem 209 → 216):
 5. Therefore Γ(PM',n) ≤ n^O(1) ≤ n^200
 
 This is the single remaining axiom — the paper's compiler theory. -/
-axiom compiled_width_rank_step4 (M : DTM) (n : ℕ)
+-- Width⇒Rank: now sourced from BPtoSPDP module
+theorem compiled_width_rank_step4 (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (κ : ℕ) (hκ : κ ≥ 5) :
     mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 200
+      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 200 :=
+  BPtoSPDP.fullCompiledPoly_rank_from_bp M n hn h_le κ hκ
 
 /-- NP lower-bound threshold. -/
 noncomputable def npThreshold : ℕ :=
