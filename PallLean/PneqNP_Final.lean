@@ -120,14 +120,52 @@ This uses iterDeriv_cvProd_eq + clauseGadget_vars_subset + conflicting_card_le.
 For the VIOLATION POLY part: degree ≤ 4 < κ → rank contribution = 0
 (already proved in mlBlockedSpdpRank_add_lowDeg). -/
 
--- Single combined axiom (the formal gap is the near-variable span containment).
-axiom type_anonymity_assembly (M : DTM) (n : ℕ)
+-- The axiom, reduced to tseitinPartition level via extraction chain.
+axiom tseitin_profile_rank_bound (n : ℕ) (hn : n ≥ 4)
+    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
+    mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤
+    2 ^ κ * ((30 * κ + 1) ^ 4 * (30 * κ + 16) ^ 60)
+
+-- Lift to compiled space via extraction chain (PROVED).
+theorem type_anonymity_assembly (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
     mlBlockedSpdpRank (compiledPartition M n) κ κ
       (fullCompiledPoly ℚ M n h_le) ≤
-    2 ^ κ * ((30 * κ + 1) ^ 4 * (30 * κ + 16) ^ 60)
+    2 ^ κ * ((30 * κ + 1) ^ 4 * (30 * κ + 16) ^ 60) := by
+  -- Chain: compiled rank ≤ tseitin rank (via extraction reverse)
+  -- Wait — extraction gives tseitin ≤ compiled, not compiled ≤ tseitin!
+  -- We need compiled ≤ tseitin.
+  -- fullCompiledPoly = verifierSheet + violationPoly
+  -- mlBlockedSpdpRank_add_lowDeg: rank(full) = rank(verifierSheet) [viol degree < κ]
+  -- verifierSheet = rename(tseitin)
+  -- mlBlockedSpdpRank_rename_le: rank(compiled, rename(tseitin)) ≤ rank(pullback, tseitin)
+  -- spdpRank_pullback_le_tseitin: rank(pullback, tseitin) ≤ rank(tseitinPartition, tseitin)
+  -- tseitin_profile_rank_bound: rank(tseitinPartition, tseitin) ≤ bound
+  have h_lowdeg : (violationPolyOf ℚ M n).totalDegree ≤ 4 :=
+    violationPolyOf_totalDegree ℚ M n
+  have h_elim : mlBlockedSpdpRank (compiledPartition M n) κ κ
+      (fullCompiledPoly ℚ M n h_le) =
+    mlBlockedSpdpRank (compiledPartition M n) κ κ
+      (verifierSheetOf ℚ M n h_le) := by
+    show mlBlockedSpdpRank (compiledPartition M n) κ κ
+        (verifierSheetOf ℚ M n h_le + violationPolyOf ℚ M n) =
+      mlBlockedSpdpRank (compiledPartition M n) κ κ (verifierSheetOf ℚ M n h_le)
+    exact mlBlockedSpdpRank_add_lowDeg ℚ _ κ κ _ _ (by linarith)
+  have h_rename : mlBlockedSpdpRank (compiledPartition M n) κ κ
+      (verifierSheetOf ℚ M n h_le) ≤
+    mlBlockedSpdpRank (pullbackPartition (compiledPartition M n)
+        (witnessInclusion M n h_le)) κ κ (tseitinPoly ℚ n) := by
+    show mlBlockedSpdpRank (compiledPartition M n) κ κ
+        (MvPolynomial.rename (witnessInclusion M n h_le) (tseitinPoly ℚ n)) ≤ _
+    exact mlBlockedSpdpRank_rename_le _ (witnessInclusion_injective M n h_le) _ _ _ _
+  have h_pullback : mlBlockedSpdpRank (pullbackPartition (compiledPartition M n)
+      (witnessInclusion M n h_le)) κ κ (tseitinPoly ℚ n) ≤
+    mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) :=
+    spdpRank_pullback_le_tseitin M n h_le κ κ
+  have h_bound := tseitin_profile_rank_bound n (by omega) κ hκ hκ_le
+  linarith
 
 /-- Width⇒Rank on fullCompiledPoly (Paper Theorem 23/203).
     Proved by combining type_anonymity_assembly with the arithmetic
