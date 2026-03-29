@@ -1,2 +1,2 @@
--- Active entrypoint: paper-faithful P ≠ NP via representation invariance
+-- Active entrypoint
 import PallLean.PneqNP_Final

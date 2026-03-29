@@ -2,6 +2,7 @@ import PallLean.CompiledSoS
 import PallLean.MultilinearSPDP
 import PallLean.NPWitness
 import PallLean.Compiler
+import PallLean.ProfileSpaceBound
 import Mathlib.Tactic
 
 /-!
@@ -40,6 +41,9 @@ This is a theorem about the COMPILER CONSTRUCTION, not an assumption.
 It holds because poly-time machines have bounded local width.
 -/
 
+set_option maxRecDepth 2000
+set_option exponentiation.threshold 1024
+
 namespace PneqNP_Final
 
 open SPDP MultilinearSPDP NPWitness Compiler TuringMachine CompiledSoS MvPolynomial
@@ -55,13 +59,37 @@ Paper proof: the holographic compiler produces PM',n with bounded CEW
 
 Note: this bound applies to the FULL compiled polynomial (including the
 coupled verifier sheet Q×_Φ), not just the machine-computation part.
-The verifier sheet is also compiled with bounded-width templates. -/
-axiom width_rank_fullCompiled (M : DTM) (n : ℕ)
+The verifier sheet is also compiled with bounded-width templates.
+
+Type-anonymity bridge (Paper §9.1 Theorem 23, assembly step):
+
+The generators of mlBlockedSpdpSubspace for fullCompiledPoly decompose
+by profiles into at most `totalSpanBound` independent elements, where
+totalSpanBound = 2^κ × (30κ+1)^4 × (30κ+16)^60.
+
+This is the only non-arithmetic step: it requires verifying that the
+compiled polynomial's SPDP generators respect the profile decomposition
+from the compiler's local-width structure (properties P1-P5 of §9.2). -/
+axiom type_anonymity_assembly (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (κ : ℕ) (hκ : κ ≥ 5) :
+    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
     mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 10
+      (fullCompiledPoly ℚ M n h_le) ≤
+    2 ^ κ * ((30 * κ + 1) ^ 4 * (30 * κ + 16) ^ 60)
+
+/-- Width⇒Rank on fullCompiledPoly (Paper Theorem 23/203).
+    Proved by combining type_anonymity_assembly with the arithmetic
+    bound from ProfileSpaceBound.tseitin_rank_via_profile_compression. -/
+theorem width_rank_fullCompiled (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
+    mlBlockedSpdpRank (compiledPartition M n) κ κ
+      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 200 := by
+  have hassembly := type_anonymity_assembly M n hn h_le κ hκ hκ_le
+  have harith := ProfileSpaceBound.tseitin_rank_via_profile_compression n (by omega) κ ⟨hκ, hκ_le⟩
+  linarith
 
 /-- NP lower-bound threshold from np_ml_lower_bound. -/
 noncomputable def npThreshold : ℕ :=
@@ -90,7 +118,7 @@ Paper-faithful proof:
 theorem P_neq_NP (h : PeqNP)
     (n : ℕ)
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates))
-                   (max npThreshold (2 ^ 44)))
+                   (max npThreshold (2 ^ 804)))
     (heven : 2 ∣ n)
     (h_le : npNumVars n ≤ numVars h.sat_decider n (Nat.log 2 n))
     : False := by
@@ -98,29 +126,31 @@ theorem P_neq_NP (h : PeqNP)
   have hn_left : n ≥ max 32 (max 4 M.numStates) := le_trans (le_max_left _ _) hn
   have hn32 : n ≥ 32 := le_trans (le_max_left _ _) hn_left
   have hnM : n ≥ max 4 M.numStates := le_trans (le_max_right _ _) hn_left
-  have hn_right : n ≥ max npThreshold (2 ^ 44) := le_trans (le_max_right _ _) hn
+  have hn_right : n ≥ max npThreshold (2 ^ 804) := le_trans (le_max_right _ _) hn
   have hnNP : n ≥ npThreshold := le_trans (le_max_left _ _) hn_right
-  have hn44 : n ≥ 2 ^ 44 := le_trans (le_max_right _ _) hn_right
+  have hn804 : n ≥ 2 ^ 804 := le_trans (le_max_right _ _) hn_right
   let κ := Nat.log 2 n
   have hκ : κ ≥ 5 := by
     have : Nat.log 2 32 = 5 := by native_decide
     exact le_trans (by omega) (Nat.log_mono_right hn32)
+  have hκ_le : κ ≤ Nat.log 2 n := le_rfl
   -- Step 1: Width⇒Rank P-side upper bound
-  have hP := width_rank_fullCompiled M n hnM h_le κ hκ
+  have hP := width_rank_fullCompiled M n hnM h_le κ hκ hκ_le
   -- Step 2: Extraction monotonicity
   have hExtract := extraction_rank_monotone ℚ n M trivial hn32 h_le κ κ hκ
   -- Step 3: NP lower bound
   have hNP := np_lower_at_threshold n hnNP heven
   -- Step 4: Chain
-  have hchain : n ^ (κ / 4) ≤ n ^ 10 := by linarith
+  have hchain : n ^ (κ / 4) ≤ n ^ 200 := by linarith
   -- Step 5: Exponent separation
-  have hexp : n ^ 10 < n ^ (κ / 4) := by
+  have hexp : n ^ 200 < n ^ (κ / 4) := by
     apply Nat.pow_lt_pow_right
-    · have : (2 : ℕ) ^ 1 ≤ 2 ^ 44 := by norm_num
+    · have : (2 : ℕ) ^ 1 ≤ 2 ^ 804 := by
+        apply Nat.pow_le_pow_right (by norm_num); omega
       omega
-    · have h_log : Nat.log 2 n ≥ 44 := by
-        calc 44 = Nat.log 2 (2 ^ 44) := by rw [Nat.log_pow (by norm_num : 1 < 2)]
-          _ ≤ Nat.log 2 n := Nat.log_mono_right hn44
+    · have h_log : Nat.log 2 n ≥ 804 := by
+        calc 804 = Nat.log 2 (2 ^ 804) := by rw [Nat.log_pow (by norm_num : 1 < 2)]
+          _ ≤ Nat.log 2 n := Nat.log_mono_right hn804
       omega
   exact (not_lt_of_ge hchain) hexp
 

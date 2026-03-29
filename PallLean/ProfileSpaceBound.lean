@@ -1,4 +1,5 @@
 import PallLean.ProfileCompression
+import PallLean.MultilinearSPDP
 import Mathlib.Tactic
 
 /-!
