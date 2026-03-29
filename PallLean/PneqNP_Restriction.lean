@@ -72,12 +72,16 @@ we derive `False`.
 -/
 theorem P_neq_NP_from_restriction
     (h : PeqNP)
-    (n : ℕ) (hn : n ≥ 32) (hnNP : n ≥ npLowerThreshold)
-    (hnM : n ≥ max 4 h.sat_decider.numStates)
-    (hnHuge : n ≥ 2 ^ (4 * 215 + 4))
+    (n : ℕ)
+    (hnFloor : n ≥ max (max 32 (max 4 h.sat_decider.numStates))
+                        (max npLowerThreshold (2 ^ (4 * 215 + 4))))
     (heven : 2 ∣ n)
     (h_le : npNumVars n ≤ numVars h.sat_decider n (Nat.log 2 n))
     : False := by
+  have hn : n ≥ 32 := by omega
+  have hnM : n ≥ max 4 h.sat_decider.numStates := by omega
+  have hnNP : n ≥ npLowerThreshold := by omega
+  have hnHuge : n ≥ 2 ^ (4 * 215 + 4) := by omega
   have hdepth : depth_collapse_L171 h.sat_decider n (canonicalRestriction h.sat_decider n) :=
     depth_collapse_canonical h.sat_decider n
   have hminor : identity_minor_survives_Step5 h.sat_decider n (canonicalRestriction h.sat_decider n) :=
