@@ -2,58 +2,87 @@ import PallLean.MultilinearSPDP
 import Mathlib.Tactic
 
 /-!
-# MlProjFar — mlProj kills far-clause contributions
+# MlProjFar — Spanning set for mlProj generators (locality argument)
 
-Key lemma for the locality argument (sub-axiom A):
+Key theorem: if `mlProj(m * ∂^S p)` has vars ⊆ V, then it lies in
+the span of multilinear monomials on V. The set of such monomials
+has cardinality ≤ 2^|V|.
 
-When computing `mlProj(m * ∂^S (∏ cvFactor))`, the factored form
-(from iterDeriv_cvProd_eq) is:
-
-  (-1)^κ × ∏_{hit} g_c × ∏_{unhit} (1 - z_c g_c)
-
-A "far" unhit clause c has the property that NONE of its variables
-(z_c, var1_c, var2_c, var3_c) appear in any hit clause or near clause.
-
-For such a far clause, the factor (1 - z_c g_c) contributes to the
-product but after mlProj, only the constant term `1` survives because:
-- The variable z_c appears only in this one factor
-- In any multilinear monomial of the full product, z_c can appear at most once
-- The monomial `z_c * g_c` has degree ≥ 2 in z_c's block
-- After multiplying with the rest (which doesn't use z_c), we get z_c × (stuff)
-- This IS multilinear in z_c (degree 1), so it survives mlProj
-- BUT: the key is that the FULL product ∏_far (1-z_c g_c) over ALL far clauses,
-  when expanded, contains exponentially many terms
-- mlProj of this product contains all multilinear terms
-- The RANK argument doesn't need mlProj to kill individual monomials;
-  it needs the VARS of mlProj(product) to be bounded
-
-Actually, the correct locality argument is:
-
-After applying mlProj to `m * factored_form`, the VARS of the result
-are contained in the near-variable set because:
-1. The shift monomial m has vars ⊆ S ⊆ near vars (by admissibility)
-2. The hit gadgets ∏_{hit} g_c have vars ⊆ near vars (by definition)
-3. The far unhit factors ∏_{far} (1-z_c g_c) contribute vars outside near set
-4. BUT: mlProj acts monomial-by-monomial, keeping only multilinear ones
-5. A multilinear monomial can use each far variable at most once
-6. The SPAN of all such monomials is ≤ 2^{|near vars|} dimensional
-   because far variables can only appear in {0,1} exponents,
-   and the near-variable monomials determine the "type" of each generator
-
-The key insight: even though far variables survive mlProj, the number of
-INDEPENDENT generators (modulo far-variable choices) is bounded by 2^{155κ},
-because the near-variable part determines the generator up to a far-variable
-multilinear monomial factor. And the profile decomposition (Lemma 22)
-further compresses this to polynomial in R = 30κ.
-
-This file documents the argument structure. The formal proof requires
-tracking the factored form variables through mlProj, which uses
-iterDeriv_cvProd_eq + clauseGadget_vars_subset + conflicting_card_le
-(all PROVED).
+Combined with `near_vars_bounded` (each admissible S gives |V| ≤ 155κ),
+this gives ≤ 2^{155κ} independent generators per window.
 -/
 
 namespace MlProjFar
 
--- Documentation only — the formal proof connects to type_anonymity_assembly
+open SPDP MultilinearSPDP NPWitness Tseitin MvPolynomial
+
+/-- Multilinear monomial basis on a variable set V.
+    Each subset T ⊆ V gives a monomial ∏_{i∈T} X_i.
+    There are 2^|V| such monomials. -/
+noncomputable def mlMonomialBasis {n : ℕ}
+    (V : Finset (Fin n)) :
+    Finset (MvPolynomial (Fin n) ℚ) :=
+  V.powerset.image (fun T => T.prod (fun i => MvPolynomial.X i))
+
+theorem mlMonomialBasis_card {n : ℕ} (V : Finset (Fin n)) :
+    (mlMonomialBasis V).card ≤ 2 ^ V.card := by
+  calc (mlMonomialBasis V).card
+      ≤ V.powerset.card := Finset.card_image_le
+    _ = 2 ^ V.card := by rw [Finset.card_powerset]
+
+/-- Any multilinear polynomial whose vars ⊆ V lies in span(mlMonomialBasis V).
+
+This is the KEY connecting lemma for the locality argument.
+Proof: decompose p into its monomial sum; each multilinear monomial with
+support ⊆ V is a scalar multiple of ∏_{i∈support} X_i ∈ mlMonomialBasis V. -/
+theorem mlProj_in_span_of_vars_subset {n : ℕ}
+    (p : MvPolynomial (Fin n) ℚ)
+    (V : Finset (Fin n))
+    (hp_ml : ∀ α ∈ p.support, Finsupp.IsMultilinear α)
+    (hp_vars : p.vars ⊆ V) :
+    p ∈ Submodule.span ℚ (↑(mlMonomialBasis V) : Set _) := by
+  rw [show p = ∑ v ∈ p.support, MvPolynomial.monomial v (MvPolynomial.coeff v p) from p.as_sum]
+  apply Submodule.sum_mem
+  intro α hα
+  rw [show MvPolynomial.monomial α (MvPolynomial.coeff α p) =
+      MvPolynomial.coeff α p • MvPolynomial.monomial α (1 : ℚ) by
+    rw [MvPolynomial.smul_monomial, smul_eq_mul, mul_one]]
+  apply Submodule.smul_mem
+  have hα_ml := hp_ml α hα
+  have hα_vars : α.support ⊆ V := by
+    intro x hx
+    apply hp_vars
+    exact (MvPolynomial.mem_vars x).mpr ⟨α, hα, hx⟩
+  have hmon : MvPolynomial.monomial α (1 : ℚ) =
+      α.support.prod (fun i => MvPolynomial.X i) := by
+    rw [← MvPolynomial.prod_X_pow_eq_monomial]
+    apply Finset.prod_congr rfl
+    intro x hx
+    have hne : α x ≠ 0 := Finsupp.mem_support_iff.mp hx
+    have : α x = 1 := by have := hα_ml x; omega
+    rw [this, pow_one]
+  rw [hmon]
+  apply Submodule.subset_span
+  simp only [mlMonomialBasis, Finset.coe_image, Set.mem_image]
+  exact ⟨α.support, Finset.mem_powerset.mpr hα_vars, rfl⟩
+
+-- Corollary: if a submodule ≤ span(mlMonomialBasis V), finrank ≤ 2^|V|.
+set_option maxHeartbeats 400000 in
+theorem finrank_le_of_vars_bounded {n : ℕ}
+    (W : Submodule ℚ (MvPolynomial (Fin n) ℚ)) [Module.Finite ℚ W]
+    (V : Finset (Fin n))
+    (hW : W ≤ Submodule.span ℚ (↑(mlMonomialBasis V) : Set _)) :
+    Module.finrank ℚ W ≤ 2 ^ V.card := by
+  have hfin : Module.Finite ℚ
+      (Submodule.span ℚ (↑(mlMonomialBasis V) : Set (MvPolynomial (Fin n) ℚ))) :=
+    Module.Finite.span_of_finite ℚ (Finset.finite_toSet _)
+  have h1 : Module.finrank ℚ W ≤
+      Module.finrank ℚ (Submodule.span ℚ (↑(mlMonomialBasis V) : Set _)) :=
+    Submodule.finrank_mono hW
+  have h2 : Module.finrank ℚ
+      (Submodule.span ℚ (↑(mlMonomialBasis V) : Set (MvPolynomial (Fin n) ℚ))) ≤
+      (mlMonomialBasis V).card :=
+    finrank_span_finset_le_card (mlMonomialBasis V)
+  linarith [mlMonomialBasis_card V]
 
 end MlProjFar
