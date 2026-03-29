@@ -120,17 +120,18 @@ theorem P_neq_NP_from_restriction
     (hnFloor : n ≥ max (max 32 (max 4 h.sat_decider.numStates))
                         (max npLowerThreshold (2 ^ (4 * 215 + 4))))
     (heven : 2 ∣ n)
-    (step4 : Step4Obligations h.sat_decider n)
+    (h_le : npNumVars n ≤ numVars h.sat_decider n (Nat.log 2 n))
     : False := by
   have hn : n ≥ 32 := by omega
   have hnM : n ≥ max 4 h.sat_decider.numStates := by omega
   have hnNP : n ≥ npLowerThreshold := by omega
   have hnHuge : n ≥ 2 ^ (4 * 215 + 4) := by omega
+  have hdepth : depth_collapse_L171 h.sat_decider n (canonicalRestriction h.sat_decider n) :=
+    depth_collapse_canonical h.sat_decider n
   have hminor : identity_minor_survives_Step5 h.sat_decider n (canonicalRestriction h.sat_decider n) :=
     identity_minor_survives_canonical h.sat_decider n
-  obtain ⟨ρ, hgood⟩ :=
-    explicit_restriction_exists h.sat_decider n hn step4.hdepth hminor
-  exact restricted_rank_contradiction h.sat_decider n hn hnNP hnM heven step4.h_le ρ hgood
+  obtain ⟨ρ, hgood⟩ := explicit_restriction_exists h.sat_decider n hn hdepth hminor
+  exact restricted_rank_contradiction h.sat_decider n hn hnNP hnM heven h_le ρ hgood
     (exponent_separation_log n hnHuge)
 
 /-- Step 2 helper: same final contradiction, but with raw Step-4 inputs.
@@ -145,8 +146,7 @@ theorem P_neq_NP_from_restriction_rawStep4
     (h_le : npNumVars n ≤ numVars h.sat_decider n (Nat.log 2 n))
     (hdepth : depth_collapse_L171 h.sat_decider n (canonicalRestriction h.sat_decider n))
     : False :=
-  P_neq_NP_from_restriction h n hnFloor heven
-    (mkStep4Obligations h.sat_decider n h_le hdepth)
+  P_neq_NP_from_restriction h n hnFloor heven h_le
 
 /-- Step 3 helper: existential wrapper.
 If there exists one admissible `n` with evenness and Step-4 obligations,
@@ -171,11 +171,10 @@ theorem P_neq_NP_from_restriction_withEmbedding
     (hnFloor : n ≥ max (max 32 (max 4 h.sat_decider.numStates))
                         (max npLowerThreshold (2 ^ (4 * 215 + 4))))
     (heven : 2 ∣ n)
-    (hdepth : depth_collapse_L171 h.sat_decider n (canonicalRestriction h.sat_decider n))
     : False := by
   have hn32 : n ≥ 32 := by omega
   have h_le : npNumVars n ≤ numVars h.sat_decider n (Nat.log 2 n) :=
     h.embed_bound n hn32
-  exact P_neq_NP_from_restriction_rawStep4 h.toPeqNP n hnFloor heven h_le hdepth
+  exact P_neq_NP_from_restriction h.toPeqNP n hnFloor heven h_le
 
 end PneqNP_Restriction

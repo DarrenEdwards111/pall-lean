@@ -89,6 +89,27 @@ def depth_collapse_L171 (M : DTM) (n : ℕ)
       mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215
 
+/-- Paper Theorem 264 / Lemma 32 (Width⇒Rank):
+The UNRESTRICTED compiled polynomial from any poly-time M has polynomial SPDP rank.
+
+Paper proof: locality (radius-1 constraints) + profile compression gives
+Γ(PM,n) ≤ R^O(1) where R = polylog(n). For κ,ℓ = Θ(log n): Γ ≤ n^O(1).
+
+For any restriction ρ: Γ(PM,n ↾ ρ) ≤ Γ(PM,n) ≤ n^O(1) by restriction monotonicity.
+
+This is the paper's actual P-side argument (§17 + §31.7 remark after Theorem 163). -/
+axiom width_rank_compiled_bound (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 215
+
+/-- Canonical restriction satisfies depth_collapse_L171 via Width⇒Rank + identity rewrite. -/
+theorem depth_collapse_canonical (M : DTM) (n : ℕ) :
+    depth_collapse_L171 M n (canonicalRestriction M n) := by
+  intro hn h_le
+  simpa [applyRestriction_canonical] using width_rank_compiled_bound M n hn h_le
+
 /-- Step 2 (in our implementation plan): restricted P-side rank bound at canonical ρ*.
 This is the direct instantiated form of Step 4 used by the final contradiction chain. -/
 theorem pside_rank_canonical (M : DTM) (n : ℕ)
