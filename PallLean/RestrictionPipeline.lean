@@ -89,15 +89,28 @@ def depth_collapse_L171 (M : DTM) (n : ℕ)
       mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215
 
-/-- Paper Theorem 264 / Lemma 32 (Width⇒Rank):
+/-- Paper Theorem 23 / Theorem 264 (Width⇒Rank via profile compression):
 The UNRESTRICTED compiled polynomial from any poly-time M has polynomial SPDP rank.
 
-Paper proof: locality (radius-1 constraints) + profile compression gives
-Γ(PM,n) ≤ R^O(1) where R = polylog(n). For κ,ℓ = Θ(log n): Γ ≤ n^O(1).
+## Paper proof chain (§9, Theorem 23):
+1. **Profile count** (Lemma 20): |H(R)| ≤ C(R,m) = R^O(1)
+   Stars-and-bars on type histograms; independent of κ.
+2. **Within-profile dimension** (Lemma 22): dim(V_h) ≤ R^O(1)
+   Symmetric tensor powers Sym^{h(τ)}(W_τ) with dim(W_τ) = O(1).
+3. **Assembly** (Theorem 23): Γ(p) ≤ Σ_h dim(V_h) ≤ |H(R)| · R^O(1) = R^O(1)
+   Subadditivity of rank under sums of profile subspaces.
 
-For any restriction ρ: Γ(PM,n ↾ ρ) ≤ Γ(PM,n) ≤ n^O(1) by restriction monotonicity.
+## Applied to compiled polynomial:
+- Compiler properties (P1)-(P5) from §9.2 hold by construction:
+  (P1) radius-1 locality, (P2) finite local alphabet |Σ|=O(1),
+  (P3) CEW bound R ≤ C(log n)^c, (P4) κ,ℓ = Θ(log n),
+  (P5) diagonal-basis profile-subspace structure.
+- Therefore: Γ(PM,n) ≤ (log n)^O(1) ≤ n^215.
 
-This is the paper's actual P-side argument (§17 + §31.7 remark after Theorem 163). -/
+## Restriction monotonicity (§31.7):
+For any restriction ρ: Γ(PM,n ↾ ρ) ≤ Γ(PM,n) ≤ n^215.
+
+This is the single remaining axiom in the active proof chain. -/
 axiom width_rank_compiled_bound (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
