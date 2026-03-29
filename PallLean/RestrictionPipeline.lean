@@ -96,11 +96,19 @@ def GoodRestriction (M : DTM) (n : ℕ)
   depth_collapse_L171 M n ρ ∧
   identity_minor_survives_Step5 M n ρ
 
-/-- §32.3 existence claim (derandomized switching + enumeration):
-there exists a single `ρ*` satisfying all required conditions. -/
-axiom explicit_restriction_exists_S32_3 (M : DTM) (n : ℕ) (hn : n ≥ 32) :
+/-- §32.3 existence claim (scaffold theorem form):
+if the canonical family member satisfies depth-collapse and NP-survival,
+then a good restriction exists (choose the canonical witness).
+
+This removes a global axiom and surfaces the two substantive obligations
+as explicit hypotheses. -/
+theorem explicit_restriction_exists_S32_3 (M : DTM) (n : ℕ) (hn : n ≥ 32)
+    (hdepth : depth_collapse_L171 M n (canonicalRestriction M n))
+    (hminor : identity_minor_survives_Step5 M n (canonicalRestriction M n)) :
     ∃ (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment),
-      GoodRestriction M n ρ
+      GoodRestriction M n ρ := by
+  refine ⟨canonicalRestriction M n, ?_⟩
+  exact ⟨canonicalRestriction_in_family M n, hdepth, hminor⟩
 
 /-- Step 4 interface: depth collapse implies polynomial P-side rank after restriction. -/
 axiom pside_rank_from_depthcollapse_Step4 (M : DTM) (n : ℕ)

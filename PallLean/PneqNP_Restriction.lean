@@ -74,13 +74,16 @@ theorem P_neq_NP_from_restriction
     (n : ℕ) (hn : n ≥ 32) (hnM : n ≥ max 4 h.sat_decider.numStates)
     (hnHuge : n ≥ 2 ^ (4 * 215 + 4))
     (heven : 2 ∣ n)
-    (h_le : npNumVars n ≤ numVars h.sat_decider n (Nat.log 2 n)) : False := by
+    (h_le : npNumVars n ≤ numVars h.sat_decider n (Nat.log 2 n))
+    (hdepth : depth_collapse_L171 h.sat_decider n (canonicalRestriction h.sat_decider n))
+    (hminor : identity_minor_survives_Step5 h.sat_decider n (canonicalRestriction h.sat_decider n))
+    : False := by
   let κ := Nat.log 2 n
   have hκ : κ ≥ 5 := by
     have : Nat.log 2 32 = 5 := by native_decide
     exact le_trans (by omega) (Nat.log_mono_right hn)
   have hκ_le : κ ≤ Nat.log 2 n := le_rfl
-  obtain ⟨ρ, hgood⟩ := explicit_restriction_exists h.sat_decider n hn
+  obtain ⟨ρ, hgood⟩ := explicit_restriction_exists h.sat_decider n hn hdepth hminor
   exact restricted_rank_contradiction h.sat_decider n hn hnM heven h_le κ hκ hκ_le ρ hgood
     (by simpa [κ] using exponent_separation_log n hnHuge)
 
