@@ -20,6 +20,12 @@ structure PeqNP where
   sat_decider : DTM
   decides_sat : True
 
+/-- Optional strengthening: package with an explicit witness-embedding bound.
+This discharges the standalone `h_le` input in wrapper theorems. -/
+structure PeqNPWithEmbedding extends PeqNP where
+  embed_bound : ∀ n, n ≥ 32 →
+    npNumVars n ≤ numVars sat_decider n (Nat.log 2 n)
+
 /-- Explicit Step-4 side obligations for a fixed machine/length pair.
 This keeps the wrapper signature compact while preserving auditability. -/
 structure Step4Obligations (M : DTM) (n : ℕ) where
@@ -150,5 +156,20 @@ theorem P_neq_NP_from_restriction_exists
     : False := by
   rcases hexists with ⟨n, hnFloor, heven, h_le, hdepth⟩
   exact P_neq_NP_from_restriction_rawStep4 h n hnFloor heven h_le hdepth
+
+/-- Step 2 (closure helper): if embedding is packaged in the decider assumptions,
+the final contradiction no longer needs a separate `h_le` argument. -/
+theorem P_neq_NP_from_restriction_withEmbedding
+    (h : PeqNPWithEmbedding)
+    (n : ℕ)
+    (hnFloor : n ≥ max (max 32 (max 4 h.sat_decider.numStates))
+                        (max npLowerThreshold (2 ^ (4 * 215 + 4))))
+    (heven : 2 ∣ n)
+    (hdepth : depth_collapse_L171 h.sat_decider n (canonicalRestriction h.sat_decider n))
+    : False := by
+  have hn32 : n ≥ 32 := by omega
+  have h_le : npNumVars n ≤ numVars h.sat_decider n (Nat.log 2 n) :=
+    h.embed_bound n hn32
+  exact P_neq_NP_from_restriction_rawStep4 h.toPeqNP n hnFloor heven h_le hdepth
 
 end PneqNP_Restriction
