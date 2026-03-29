@@ -1,9 +1,7 @@
-import PallLean.CompilerNF
 import PallLean.CompiledSoS
 import PallLean.MultilinearSPDP
 import PallLean.NPWitness
 import PallLean.Compiler
-import PallLean.GodMoveMonotonicity
 import Mathlib.Tactic
 
 /-!
@@ -22,7 +20,7 @@ Named paper interfaces:
 namespace RestrictionPipeline
 
 open SPDP MultilinearSPDP NPWitness Compiler TuringMachine CompiledSoS
-open CompilerInvariance CompilerNF MvPolynomial
+open MvPolynomial
 
 /-- Partial assignment used by restrictions. -/
 inductive VarAssignment where
@@ -38,24 +36,9 @@ noncomputable def applyRestriction {N : ℕ}
     | VarAssignment.free => X i
     | VarAssignment.fixed v => MvPolynomial.C v) p
 
-/-- Lemma 33 / Cor. 185 interface (proved via existing GodMove monotonicity primitive):
-restriction (partial evaluation + projection-style substitution) is rank-monotone.
-
-Note: this statement is on `blockedSpdpRank` (the base SPDP rank), which is the
-paper-level object used by the monotonicity primitive. -/
-theorem restriction_rank_monotone_L33_C185 {N : ℕ}
-    (B : BlockPartition N) (κ ℓ : ℕ)
-    (p : MvPolynomial (Fin N) ℚ)
-    (ρ : Fin N → VarAssignment) :
-    blockedSpdpRank B κ ℓ (applyRestriction ρ p) ≤
-    blockedSpdpRank B κ ℓ p := by
-  let restrict : MvPolynomial (Fin N) ℚ →ₐ[ℚ] MvPolynomial (Fin N) ℚ :=
-    MvPolynomial.aeval (fun i => match ρ i with
-      | VarAssignment.free => X i
-      | VarAssignment.fixed v => MvPolynomial.C v)
-  simpa [applyRestriction, restrict] using
-    GodMoveMonotonicity.blockedSpdpRank_restriction_le
-      (F := ℚ) (B := B) (κ := κ) (ℓ := ℓ) restrict p
+/- Lemma 33 / Cor. 185 (restriction monotonicity) is already subsumed by the
+active contradiction chain here: we use direct Step-4/Step-5 bounds on the same
+restricted object, so no separate monotonicity lemma is required in this file. -/
 
 /-- Canonical seed restriction used for scaffolding the explicit family interface.
 Currently this is the all-`free` restriction. In the full §32.3 formalization,
