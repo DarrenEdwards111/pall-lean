@@ -60,15 +60,15 @@ section Vars
 variable (M : DTM) (n : ℕ)
 
 /-- Machine-layer variable. -/
-def Xmach (i : Fin (holoBaseVars M n)) : MvPolynomial (HoloVar M n) ℚ :=
+noncomputable def Xmach (i : Fin (holoBaseVars M n)) : MvPolynomial (HoloVar M n) ℚ :=
   X (HoloLayer.machine, i)
 
 /-- Verifier-layer variable. -/
-def Xver (i : Fin (holoBaseVars M n)) : MvPolynomial (HoloVar M n) ℚ :=
+noncomputable def Xver (i : Fin (holoBaseVars M n)) : MvPolynomial (HoloVar M n) ℚ :=
   X (HoloLayer.verifier, i)
 
 /-- Auxiliary local variable. -/
-def Xaux (i : Fin (holoBaseVars M n)) : MvPolynomial (HoloVar M n) ℚ :=
+noncomputable def Xaux (i : Fin (holoBaseVars M n)) : MvPolynomial (HoloVar M n) ℚ :=
   X (HoloLayer.aux, i)
 
 end Vars
@@ -78,12 +78,12 @@ section LocalFactors
 variable (M : DTM) (n : ℕ)
 
 /-- A tiny machine-side local factor: depends only on one machine copy and one aux copy. -/
-def holoMachineFactor (i : Fin (holoBaseVars M n)) :
+noncomputable def holoMachineFactor (i : Fin (holoBaseVars M n)) :
     MvPolynomial (HoloVar M n) ℚ :=
   1 - Xmach M n i * Xaux M n i
 
 /-- A tiny verifier-side local factor: depends only on one verifier copy and one aux copy. -/
-def holoVerifierFactor (i : Fin (holoBaseVars M n)) :
+noncomputable def holoVerifierFactor (i : Fin (holoBaseVars M n)) :
     MvPolynomial (HoloVar M n) ℚ :=
   1 - Xver M n i * Xaux M n i
 

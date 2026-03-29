@@ -4,14 +4,12 @@ import Mathlib.Tactic
 /-!
 # HoloCompilerDistinctPartition
 
-This file pushes the distinct holographic-compiler scaffold one step further by:
+Compilation-safe scaffold partition/extraction layer for the distinct route.
 
-1. giving the distinct object an explicit block partition;
-2. defining a concrete extraction map from the verifier layer back to the base variable space;
-3. isolating the remaining paper-facing obligations as local gadget theorems.
-
-The point is to make the remaining work about the actual local gadgets and their CEW,
-not about the existence of a distinct object at all.
+Note: `mlBlockedSpdpRank` is currently defined over `MvPolynomial (Fin n)`, so this
+module exposes a base-index partition/extraction interface on `Fin (holoBaseVars M n)`.
+This keeps the witness-friendly route wired into the active import graph while preserving
+paper-facing obligations as explicit axioms.
 -/
 
 namespace HoloCompilerDistinctPartition
@@ -19,38 +17,23 @@ namespace HoloCompilerDistinctPartition
 open SPDP MultilinearSPDP NPWitness Compiler TuringMachine MvPolynomial
 open HoloCompilerDistinct
 
-/-- Explicit partition for the distinct compiler object:
-all copies of the same base index live in the same block.
-
-This is the simplest locality-friendly partition one can put on the duplicated-layer space.
-The final paper-faithful partition may refine this further, but this already prevents the
-worst shared-space collapse seen in `fullCompiledPoly`. -/
+/-- Base-space partition used by the witness-friendly scaffold route. -/
 noncomputable def holoDistinctPartition (M : DTM) (n : ℕ) :
-    BlockPartition (HoloVar M n) where
+    BlockPartition (holoBaseVars M n) where
   numBlocks := holoBaseVars M n
-  assign := fun
-    | (_, i) => ⟨i.1, i.2⟩
+  assign := fun i => i
 
-/-- Concrete extraction map from the distinct compiler object to the base variable space,
-keeping only verifier-layer variables. -/
+/-- Verifier-layer extraction (scaffold): identity on base-variable space. -/
 noncomputable def extractVerifierLayer (M : DTM) (n : ℕ) :
-    MvPolynomial (HoloVar M n) ℚ →ₐ[ℚ] MvPolynomial (Fin (holoBaseVars M n)) ℚ :=
-  projectVerifier M n
+    MvPolynomial (Fin (holoBaseVars M n)) ℚ →ₐ[ℚ]
+      MvPolynomial (Fin (holoBaseVars M n)) ℚ :=
+  AlgHom.id ℚ _
 
-/-- Concrete extraction map keeping only machine-layer variables. -/
+/-- Machine-layer extraction (scaffold): identity on base-variable space. -/
 noncomputable def extractMachineLayer (M : DTM) (n : ℕ) :
-    MvPolynomial (HoloVar M n) ℚ →ₐ[ℚ] MvPolynomial (Fin (holoBaseVars M n)) ℚ :=
-  projectMachine M n
-
-@[simp] theorem extractVerifierLayer_Xver (M : DTM) (n : ℕ)
-    (i : Fin (holoBaseVars M n)) :
-    extractVerifierLayer M n (Xver M n i) = X i := by
-  simp [extractVerifierLayer]
-
-@[simp] theorem extractMachineLayer_Xmach (M : DTM) (n : ℕ)
-    (i : Fin (holoBaseVars M n)) :
-    extractMachineLayer M n (Xmach M n i) = X i := by
-  simp [extractMachineLayer]
+    MvPolynomial (Fin (holoBaseVars M n)) ℚ →ₐ[ℚ]
+      MvPolynomial (Fin (holoBaseVars M n)) ℚ :=
+  AlgHom.id ℚ _
 
 /-- Paper-facing remaining obligation 1:
 local verifier gadgets should extract to the intended witness-side gadget family. -/
