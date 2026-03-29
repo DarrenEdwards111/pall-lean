@@ -109,9 +109,18 @@ generators with the same type-anonymous profile land in a common
 subspace. The profile count is ≤ (30κ+1)^4 (PROVED in ProfileCompression).
 The per-profile dim is ≤ (30κ+16)^60 (PROVED in ProfileSpaceBound).
 
-Combined assembly: total ≤ 2^κ × (30κ+1)^4 × (30κ+16)^60. -/
+Combined assembly: total ≤ 2^κ × (30κ+1)^4 × (30κ+16)^60.
 
--- Single combined axiom (the formal gap is the factored-form variable tracking).
+Precise remaining formal sub-lemma:
+For the VERIFIER SHEET part of fullCompiledPoly (= tseitinPoly renamed),
+given an admissible S of selectors for hit clauses,
+the generators mlProj(m × ∂^S verifierSheet) where m has vars ⊆ S
+all lie in span(mlMonomialBasis nearVars) where |nearVars| ≤ 155κ.
+This uses iterDeriv_cvProd_eq + clauseGadget_vars_subset + conflicting_card_le.
+For the VIOLATION POLY part: degree ≤ 4 < κ → rank contribution = 0
+(already proved in mlBlockedSpdpRank_add_lowDeg). -/
+
+-- Single combined axiom (the formal gap is the near-variable span containment).
 axiom type_anonymity_assembly (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
