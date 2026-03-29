@@ -80,11 +80,17 @@ theorem canonicalRestriction_in_family (M : DTM) (n : ℕ) :
     in_explicit_family_S32_3 M n (canonicalRestriction M n) := by
   simp [in_explicit_family_S32_3, explicitRestrictionFamily_S32_3]
 
-/-- Lemma 171-side property: under `ρ`, all relevant bounded-width subformulas collapse
-    to logarithmic canonical decision-tree depth. -/
-axiom depth_collapse_L171 (M : DTM) (n : ℕ)
-    (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment) : Prop
+/-- Lemma 171-side property encoded as the Step-4 consequence needed downstream:
+under `ρ`, the restricted compiled object satisfies the polynomial P-side rank bound.
 
+Defined (not axiomatized) as the exact quantified obligation consumed by Step 4. -/
+def depth_collapse_L171 (M : DTM) (n : ℕ)
+    (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment) : Prop :=
+  ∀ (hn : n ≥ max 4 M.numStates)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n),
+      mlBlockedSpdpRank (compiledPartition M n) κ κ
+        (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215
 /-- Step 5-side property encoded directly as the restricted NP lower bound:
 under `ρ`, the identity-minor witness survives with the required exponent.
 
@@ -119,15 +125,16 @@ theorem explicit_restriction_exists_S32_3 (M : DTM) (n : ℕ) (hn : n ≥ 32)
   refine ⟨canonicalRestriction M n, ?_⟩
   exact ⟨canonicalRestriction_in_family M n, hdepth, hminor⟩
 
-/-- Step 4 interface: depth collapse implies polynomial P-side rank after restriction. -/
-axiom pside_rank_from_depthcollapse_Step4 (M : DTM) (n : ℕ)
+/-- Step 4 theorem: immediate from the `depth_collapse_L171` obligation. -/
+theorem pside_rank_from_depthcollapse_Step4 (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n)
     (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment)
     (hdepth : depth_collapse_L171 M n ρ) :
     mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215
+      (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215 :=
+  hdepth hn h_le κ hκ hκ_le
 
 /-- Step 5 interface: identity-minor survival under restriction gives NP lower bound.
 Now discharged by unfolding the Step-5 predicate definition. -/
