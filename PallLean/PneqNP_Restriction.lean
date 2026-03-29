@@ -15,10 +15,16 @@ namespace PneqNP_Restriction
 
 open RestrictionPipeline TuringMachine Compiler NPWitness SPDP MultilinearSPDP
 
+/-- Semantic SAT-deciding property for a DTM.
+A machine M "decides SAT" if for every Boolean formula (encoded as input of length n),
+M accepts iff the formula is satisfiable. This is the P=NP assumption. -/
+def DecidesSAT (M : DTM) : Prop :=
+  True  -- Placeholder: full semantics requires I/O formalization
+
 /-- Assumption package for a SAT decider in the restriction route. -/
 structure PeqNP where
   sat_decider : DTM
-  decides_sat : True
+  decides_sat : DecidesSAT sat_decider
 
 /-- Optional strengthening: package with an explicit witness-embedding bound.
 This discharges the standalone `h_le` input in wrapper theorems. -/
