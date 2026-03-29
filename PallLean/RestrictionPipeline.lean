@@ -8,17 +8,14 @@ import Mathlib.Tactic
 /-!
 # RestrictionPipeline — paper-consistent interface for §32–33 + Theorem 12 (Steps 2–5)
 
-This file exposes the restriction/depth-collapse bridge exactly at the level the paper uses.
-It intentionally avoids fake/trivial witnesses.
+This file now names assumptions by paper role (for auditability), instead of bundling
+all restriction-side obligations into opaque placeholders.
 
-Paper mapping:
-- Lemma 33 / Cor. 185: restriction is rank-monotone.
-- §32.3: explicit derandomized restriction family; existence of a good `ρ*`.
-- Step 4: under `ρ*`, P-side compiled object has polynomial rank.
-- Step 5: under the same `ρ*`, NP witness compiled object retains exponential rank.
-
-The heavy probabilistic/combinatorial construction (switching lemma + PRG + enumeration)
-is represented as axiomatic interface here; downstream contradictions are theorem-level.
+Named paper interfaces:
+- Lemma 33 / Cor. 185: restriction rank monotonicity.
+- Lemma 160 + §32.3: derandomized switching / explicit family yields a good `ρ*`.
+- Lemma 171 + Step 4: depth collapse implies polynomial P-side rank.
+- Step 5: NP identity-minor lower bound survives under the same `ρ*`.
 -/
 
 namespace RestrictionPipeline
@@ -40,46 +37,84 @@ noncomputable def applyRestriction {N : ℕ}
     | VarAssignment.free => X i
     | VarAssignment.fixed v => MvPolynomial.C v) p
 
-/-- Paper Lemma 33 / Cor. 185 interface:
+/-- Lemma 33 / Cor. 185 interface:
 restriction (partial evaluation + projection-style substitution) is rank-monotone. -/
-axiom restriction_rank_monotone_general {N : ℕ}
+axiom restriction_rank_monotone_L33_C185 {N : ℕ}
     (B : BlockPartition N) (κ ℓ : ℕ)
     (p : MvPolynomial (Fin N) ℚ)
     (ρ : Fin N → VarAssignment) :
     mlBlockedSpdpRank B κ ℓ (applyRestriction ρ p) ≤
     mlBlockedSpdpRank B κ ℓ p
 
-/-- "Good restriction" predicate (paper §32.3 + Step 2).
-Uninterpreted here on purpose: it denotes membership in the explicit
-pseudorandom restriction family plus the two required guarantees
-(depth collapse on the P-side and identity-minor survival on the NP-side). -/
-axiom GoodRestriction (M : DTM) (n : ℕ)
+/-- §32.3: `ρ` comes from the explicit derandomized restriction family. -/
+axiom in_explicit_family_S32_3 (M : DTM) (n : ℕ)
     (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment) : Prop
 
-/-- Paper §32.3 existence claim: there exists an explicit good restriction `ρ*`. -/
-axiom explicit_restriction_exists (M : DTM) (n : ℕ) (hn : n ≥ 32) :
+/-- Lemma 171-side property: under `ρ`, all relevant bounded-width subformulas collapse
+    to logarithmic canonical decision-tree depth. -/
+axiom depth_collapse_L171 (M : DTM) (n : ℕ)
+    (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment) : Prop
+
+/-- Step 5-side property: under `ρ`, the NP witness identity-minor structure survives. -/
+axiom identity_minor_survives_Step5 (M : DTM) (n : ℕ)
+    (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment) : Prop
+
+/-- Good restriction = explicit-family member + depth collapse + NP survival. -/
+def GoodRestriction (M : DTM) (n : ℕ)
+    (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment) : Prop :=
+  in_explicit_family_S32_3 M n ρ ∧
+  depth_collapse_L171 M n ρ ∧
+  identity_minor_survives_Step5 M n ρ
+
+/-- §32.3 existence claim (derandomized switching + enumeration):
+there exists a single `ρ*` satisfying all required conditions. -/
+axiom explicit_restriction_exists_S32_3 (M : DTM) (n : ℕ) (hn : n ≥ 32) :
     ∃ (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment),
       GoodRestriction M n ρ
 
-/-- Step 4 (P-side collapse): under a good restriction, rank is polynomial. -/
-axiom pside_restricted_rank (M : DTM) (n : ℕ)
+/-- Step 4 interface: depth collapse implies polynomial P-side rank after restriction. -/
+axiom pside_rank_from_depthcollapse_Step4 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n)
+    (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment)
+    (hdepth : depth_collapse_L171 M n ρ) :
+    mlBlockedSpdpRank (compiledPartition M n) κ κ
+      (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215
+
+/-- Step 5 interface: identity-minor survival under restriction gives NP lower bound. -/
+axiom npside_rank_from_identity_minor_Step5 (n : ℕ) (hn : n ≥ 32) (heven : 2 ∣ n)
+    (M : DTM)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (κ : ℕ) (hκ : κ ≥ 5)
+    (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment)
+    (hminor : identity_minor_survives_Step5 M n ρ) :
+    mlBlockedSpdpRank (compiledPartition M n) κ κ
+      (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≥ n ^ (κ / 4)
+
+/-- Compatibility wrappers with previous names (for downstream files). -/
+theorem pside_restricted_rank (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n)
     (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment)
     (hgood : GoodRestriction M n ρ) :
     mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215
+      (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215 :=
+  pside_rank_from_depthcollapse_Step4 M n hn h_le κ hκ hκ_le ρ hgood.2.1
 
-/-- Step 5 (NP-side non-collapse): under the same good restriction, rank is exponential. -/
-axiom npside_restricted_rank (n : ℕ) (hn : n ≥ 32) (heven : 2 ∣ n)
+theorem npside_restricted_rank (n : ℕ) (hn : n ≥ 32) (heven : 2 ∣ n)
     (M : DTM)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (κ : ℕ) (hκ : κ ≥ 5)
     (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment)
     (hgood : GoodRestriction M n ρ) :
     mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≥ n ^ (κ / 4)
+      (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≥ n ^ (κ / 4) :=
+  npside_rank_from_identity_minor_Step5 n hn heven M h_le κ hκ ρ hgood.2.2
+
+/-- Backward-compatible alias for existence theorem. -/
+abbrev explicit_restriction_exists := explicit_restriction_exists_S32_3
 
 /-- Pure contradiction combiner for Steps 4 + 5 once exponent separation is provided. -/
 theorem restricted_rank_contradiction
