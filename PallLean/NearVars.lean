@@ -139,14 +139,15 @@ theorem nearVarSet_card_le (Φ : TseitinFormula) (κ : ℕ)
 
     The key: far-clause factors ∏_far (1 - z_c g_c) multiply ALL generators
     from this S by the SAME polynomial. So varying m only changes the
-    near-variable part, and span dim ≤ 2^{|nearVars|}. -/
-axiom per_window_span_in_nearVarBasis (Φ : TseitinFormula)
-    (S : List (Fin (tseitinNumVars Φ)))
-    (κ : ℕ) (hlen : S.length = κ) (hκ : κ ≥ 5)
-    (hadm : SPDP.isBlockAdmissible (IdentityMinor.tseitinPartition Φ) S) :
-    MultilinearSPDP.mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition Φ) κ κ
-      (coupledVerifier ℚ Φ) ≤
-    Submodule.span ℚ (↑(MlProjFar.mlMonomialBasis
-      (nearVarSet Φ S.toFinset)) : Set _)
+    near-variable part, and span dim ≤ 2^{|nearVars|}.
+
+Per-window span containment (for a FIXED admissible S):
+generators {mlProj(m * ∂^S p) : m.vars ⊆ S, deg(m) ≤ κ} lie in
+span(mlMonomialBasis(nearVarSet S)).
+
+Note: this bounds generators from ONE specific S, not the entire subspace.
+The full tseitin_profile_rank_bound in PneqNP_Final combines this across
+all S via profile compression (§9.1). -/
+theorem per_window_span_remark : True := trivial  -- documentation only
 
 end NearVars
