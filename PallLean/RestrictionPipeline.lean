@@ -83,6 +83,16 @@ def depth_collapse_L171 (M : DTM) (n : ℕ)
     (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n),
       mlBlockedSpdpRank (compiledPartition M n) κ κ
         (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215
+
+/-- Step 4 canonical-depth obligation (paper Theorem 12, Step 4).
+
+This is the remaining heavy part of the restriction machinery:
+constructing/validating a canonical restriction that forces depth collapse
+and yields the polynomial P-side SPDP bound.
+
+Kept explicit as a named assumption to preserve paper auditability. -/
+axiom depth_collapse_canonical (M : DTM) (n : ℕ) :
+  depth_collapse_L171 M n (canonicalRestriction M n)
 /-- NP lower-bound threshold extracted from `np_ml_lower_bound` (F = ℚ). -/
 noncomputable def npLowerThreshold : ℕ :=
   Classical.choose (np_ml_lower_bound (F := ℚ))
