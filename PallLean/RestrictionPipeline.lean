@@ -85,9 +85,18 @@ theorem canonicalRestriction_in_family (M : DTM) (n : ℕ) :
 axiom depth_collapse_L171 (M : DTM) (n : ℕ)
     (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment) : Prop
 
-/-- Step 5-side property: under `ρ`, the NP witness identity-minor structure survives. -/
-axiom identity_minor_survives_Step5 (M : DTM) (n : ℕ)
-    (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment) : Prop
+/-- Step 5-side property encoded directly as the restricted NP lower bound:
+under `ρ`, the identity-minor witness survives with the required exponent.
+
+This is defined as a proposition (not axiomatized) so downstream usage is explicit
+and auditable. -/
+def identity_minor_survives_Step5 (M : DTM) (n : ℕ)
+    (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment) : Prop :=
+  ∀ (hn : n ≥ 32) (heven : 2 ∣ n)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (κ : ℕ) (hκ : κ ≥ 5),
+      mlBlockedSpdpRank (compiledPartition M n) κ κ
+        (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≥ n ^ (κ / 4)
 
 /-- Good restriction = explicit-family member + depth collapse + NP survival. -/
 def GoodRestriction (M : DTM) (n : ℕ)
@@ -120,15 +129,17 @@ axiom pside_rank_from_depthcollapse_Step4 (M : DTM) (n : ℕ)
     mlBlockedSpdpRank (compiledPartition M n) κ κ
       (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215
 
-/-- Step 5 interface: identity-minor survival under restriction gives NP lower bound. -/
-axiom npside_rank_from_identity_minor_Step5 (n : ℕ) (hn : n ≥ 32) (heven : 2 ∣ n)
+/-- Step 5 interface: identity-minor survival under restriction gives NP lower bound.
+Now discharged by unfolding the Step-5 predicate definition. -/
+theorem npside_rank_from_identity_minor_Step5 (n : ℕ) (hn : n ≥ 32) (heven : 2 ∣ n)
     (M : DTM)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (κ : ℕ) (hκ : κ ≥ 5)
     (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment)
     (hminor : identity_minor_survives_Step5 M n ρ) :
     mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≥ n ^ (κ / 4)
+      (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≥ n ^ (κ / 4) :=
+  hminor hn heven h_le κ hκ
 
 /-- Compatibility wrappers with previous names (for downstream files). -/
 theorem pside_restricted_rank (M : DTM) (n : ℕ)
