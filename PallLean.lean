@@ -1,2 +1,2 @@
--- Active entrypoint: paper-consistent restriction-first contradiction route
-import PallLean.PneqNP_Restriction
+-- Active entrypoint: paper-faithful P ≠ NP via representation invariance
+import PallLean.PneqNP_Final
