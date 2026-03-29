@@ -122,4 +122,19 @@ theorem P_neq_NP_from_restriction
   exact restricted_rank_contradiction h.sat_decider n hn hnNP hnM heven step4.h_le ρ hgood
     (exponent_separation_log n hnHuge)
 
+/-- Step 2 helper: same final contradiction, but with raw Step-4 inputs.
+This theorem is just a convenience wrapper around `P_neq_NP_from_restriction`.
+-/
+theorem P_neq_NP_from_restriction_rawStep4
+    (h : PeqNP)
+    (n : ℕ)
+    (hnFloor : n ≥ max (max 32 (max 4 h.sat_decider.numStates))
+                        (max npLowerThreshold (2 ^ (4 * 215 + 4))))
+    (heven : 2 ∣ n)
+    (h_le : npNumVars n ≤ numVars h.sat_decider n (Nat.log 2 n))
+    (hdepth : depth_collapse_L171 h.sat_decider n (canonicalRestriction h.sat_decider n))
+    : False :=
+  P_neq_NP_from_restriction h n hnFloor heven
+    (mkStep4Obligations h.sat_decider n h_le hdepth)
+
 end PneqNP_Restriction
