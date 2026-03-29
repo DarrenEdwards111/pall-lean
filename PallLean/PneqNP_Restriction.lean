@@ -41,23 +41,32 @@ theorem exponent_separation_log
     omega
 
 /-!
-## Paper map (Theorem 12 line-by-line)
+## Paper checklist (active obligations)
 
-`P_neq_NP_from_restriction` corresponds to the paper as follows:
+`P_neq_NP_from_restriction` is now a thin contradiction wrapper with an explicit
+paper-facing checklist. Remaining substantive proof obligations are exposed directly
+in the theorem inputs rather than hidden behind legacy bridge lemmas.
 
-1. **Set SPDP scale**: `κ := log₂ n` (paper uses κ,ℓ = Θ(log n)).
-2. **Lower-bound regime check**: `hκ : κ ≥ 5` from `n ≥ 32`.
-3. **Pick good restriction**: `explicit_restriction_exists` (paper §32.3).
-4. **P-side restricted upper bound**: inside `restricted_rank_contradiction`,
-   `pside_restricted_rank` (Step 4 / depth collapse + Width⇒Rank).
-5. **NP-side restricted lower bound**: inside `restricted_rank_contradiction`,
-   `npside_restricted_rank` (Step 5 / identity-minor survival).
-6. **Exponent separation**: `exponent_separation_log` gives
-   `n^215 < n^(log₂ n / 4)` for large `n`.
-7. **Contradiction**: same restricted compiled polynomial cannot satisfy both bounds.
+### Inputs interpreted as paper steps
 
-This wrapper is intentionally thin: all heavy switching-lemma and extraction machinery
-is isolated in `RestrictionPipeline` with paper-named assumptions.
+1. `hnFloor` + `heven`
+   - places us in the asymptotic/even regime used by the NP witness lower bound,
+     log-parameter arithmetic, and contradiction exponent split.
+
+2. `h_le : npNumVars n ≤ numVars ...`
+   - witness-variable embedding into compiled-variable space.
+
+3. `hdepth : depth_collapse_L171 ... (canonicalRestriction ...)`
+   - **Step 4** obligation (restriction/depth-collapse → polynomial P-side rank).
+
+4. (derived internally) `hminor : identity_minor_survives_Step5 ...`
+   - **Step 5** NP lower bound at κ = log₂ n (from extraction + NP witness bound).
+
+5. `exponent_separation_log`
+   - arithmetic separation `n^215 < n^(log₂ n/4)`.
+
+6. `restricted_rank_contradiction`
+   - combines Step 4 + Step 5 on the same restricted compiled polynomial.
 -/
 
 /-- Final contradiction in the restriction route.
