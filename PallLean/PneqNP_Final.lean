@@ -89,24 +89,29 @@ The assembly axiom encapsulates (A) + (B). Part (C) is already proved.
 
 Combined via profile count (C, PROVED): total ≤ 2^κ × (30κ+1)^4 × (30κ+16)^60.
 
-Sub-axiom (A): Locality bound on generators per admissible S.
-Paper §9.2 property P1 + near_vars_bounded. -/
-axiom locality_per_window (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (κ : ℕ) (hκ : κ ≥ 5)
-    (S : List (Fin (numVars M n (Nat.log 2 n))))
-    (hlen : S.length = κ)
-    (hadm : isBlockAdmissible (compiledPartition M n) S) :
-    ∃ (V : Finset (Fin (numVars M n (Nat.log 2 n)))), V.card ≤ 155 * κ
+Sub-axiom (A): Per-window dimension bound.
+Each admissible S gives a subspace of generators of dim ≤ 2^{155κ}.
 
--- Sub-axiom (B): Profile coverage — same-profile generators in bounded-dim subspace.
-axiom profile_coverage (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (κ : ℕ) (hκ : κ ≥ 5) :
-    True  -- placeholder: profile decomposition + Lemma 22
+Proof ingredients (all PROVED):
+- iterDeriv_cvProd_eq: factored form of derivatives
+- clauseGadget_vars_subset: ≤ 3 body vars per clause
+- conflicting_card_le: ≤ 30 conflicting clauses per clause
+- mlProj_in_span_of_vars_subset: multilinear poly with vars ⊆ V → in span(basis V)
+- finrank_le_of_vars_bounded: span(basis V) → dim ≤ 2^|V|
 
--- Combined type-anonymity assembly (A + B + C).
--- Encapsulates locality + profile coverage + profile count.
+The MISSING FORMAL STEP: showing that for each S, the generators
+factor as (near-variable multilinear part) × (fixed far-clause product),
+so the span dimension is ≤ 2^{|near vars|} ≤ 2^{155κ}.
+
+Sub-axiom (B): Profile assembly.
+Across all admissible S (of which there are ≤ C(numClauses, κ)),
+generators with the same type-anonymous profile land in a common
+subspace. The profile count is ≤ (30κ+1)^4 (PROVED in ProfileCompression).
+The per-profile dim is ≤ (30κ+16)^60 (PROVED in ProfileSpaceBound).
+
+Combined assembly: total ≤ 2^κ × (30κ+1)^4 × (30κ+16)^60. -/
+
+-- Single combined axiom (the formal gap is the factored-form variable tracking).
 axiom type_anonymity_assembly (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
