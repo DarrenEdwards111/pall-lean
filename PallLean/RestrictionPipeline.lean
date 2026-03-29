@@ -90,25 +90,16 @@ def depth_collapse_L171 (M : DTM) (n : ℕ)
       mlBlockedSpdpRank (compiledPartition M n) κ κ
         (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215
 
-/-- Step 4 canonical-depth obligation (paper Theorem 12, Step 4).
-
-This is the remaining heavy part of the restriction machinery:
-constructing/validating a canonical restriction that forces depth collapse
-and yields the polynomial P-side SPDP bound.
-
-Kept explicit as a named assumption to preserve paper auditability. -/
-axiom depth_collapse_canonical (M : DTM) (n : ℕ) :
-  depth_collapse_L171 M n (canonicalRestriction M n)
-
 /-- Step 2 (in our implementation plan): restricted P-side rank bound at canonical ρ*.
 This is the direct instantiated form of Step 4 used by the final contradiction chain. -/
 theorem pside_rank_canonical (M : DTM) (n : ℕ)
+    (hdepth : depth_collapse_L171 M n (canonicalRestriction M n))
     (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
     mlBlockedSpdpRank (compiledPartition M n) κ κ
       (applyRestriction (canonicalRestriction M n) (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215 :=
-  depth_collapse_canonical M n hn h_le κ hκ hκ_le
+  hdepth hn h_le κ hκ hκ_le
 
 /-- NP lower-bound threshold extracted from `np_ml_lower_bound` (F = ℚ). -/
 noncomputable def npLowerThreshold : ℕ :=
@@ -148,10 +139,12 @@ structure GoodRestriction (M : DTM) (n : ℕ)
   step4 : GoodRestrictionStep4 M n ρ
   step5 : identity_minor_survives_Step5 M n ρ
 
-/-- Canonical restriction satisfies the Step-4 qualification bundle. -/
-theorem canonical_step4 (M : DTM) (n : ℕ) :
+/-- Canonical restriction satisfies the Step-4 qualification bundle,
+given the Step-4 depth-collapse obligation. -/
+theorem canonical_step4 (M : DTM) (n : ℕ)
+    (hdepth : depth_collapse_L171 M n (canonicalRestriction M n)) :
     GoodRestrictionStep4 M n (canonicalRestriction M n) :=
-  ⟨canonicalRestriction_in_family M n, depth_collapse_canonical M n⟩
+  ⟨canonicalRestriction_in_family M n, hdepth⟩
 
 /-- §32.3 existence claim (scaffold theorem form):
 if the canonical family member satisfies depth-collapse and NP-survival,
