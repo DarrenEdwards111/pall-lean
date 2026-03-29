@@ -26,6 +26,13 @@ structure Step4Obligations (M : DTM) (n : ℕ) where
   h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)
   hdepth : depth_collapse_L171 M n (canonicalRestriction M n)
 
+/-- Step 1 helper: package raw Step-4 hypotheses into the wrapper structure. -/
+theorem mkStep4Obligations (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hdepth : depth_collapse_L171 M n (canonicalRestriction M n)) :
+    Step4Obligations M n :=
+  ⟨h_le, hdepth⟩
+
 
 /-- Concrete arithmetic separation at the paper regime `κ = log₂ n`.
 For sufficiently large `n`, `n^(log₂ n / 4)` dominates `n^215`.
