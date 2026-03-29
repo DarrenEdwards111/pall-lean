@@ -20,20 +20,6 @@ structure PeqNP where
   sat_decider : DTM
   decides_sat : True
 
-/-- Bundled remaining restriction-pipeline obligation for a fixed machine/length.
-
-`depth_collapse_L171` at the canonical restriction is now proved in
-`RestrictionPipeline.depth_collapse_canonical`, so only the NP-side survival
-obligation remains to be supplied here. -/
-structure RestrictionObligations (M : DTM) (n : ℕ) where
-  minor : identity_minor_survives_Step5 M n (canonicalRestriction M n)
-
-/-- Build the full pair of canonical obligations from the remaining NP-side one. -/
-theorem canonical_obligations (M : DTM) (n : ℕ)
-    (hob : RestrictionObligations M n) :
-    depth_collapse_L171 M n (canonicalRestriction M n) ∧
-    identity_minor_survives_Step5 M n (canonicalRestriction M n) := by
-  exact ⟨depth_collapse_canonical M n, hob.minor⟩
 
 /-- Concrete arithmetic separation at the paper regime `κ = log₂ n`.
 For sufficiently large `n`, `n^(log₂ n / 4)` dominates `n^215`.
@@ -86,20 +72,18 @@ we derive `False`.
 -/
 theorem P_neq_NP_from_restriction
     (h : PeqNP)
-    (n : ℕ) (hn : n ≥ 32) (hnM : n ≥ max 4 h.sat_decider.numStates)
+    (n : ℕ) (hn : n ≥ 32) (hnNP : n ≥ npLowerThreshold)
+    (hnM : n ≥ max 4 h.sat_decider.numStates)
     (hnHuge : n ≥ 2 ^ (4 * 215 + 4))
     (heven : 2 ∣ n)
     (h_le : npNumVars n ≤ numVars h.sat_decider n (Nat.log 2 n))
-    (hob : RestrictionObligations h.sat_decider n)
     : False := by
-  let κ := Nat.log 2 n
-  have hκ : κ ≥ 5 := by
-    have : Nat.log 2 32 = 5 := by native_decide
-    exact le_trans (by omega) (Nat.log_mono_right hn)
-  have hκ_le : κ ≤ Nat.log 2 n := le_rfl
-  have hcanon := canonical_obligations h.sat_decider n hob
-  obtain ⟨ρ, hgood⟩ := explicit_restriction_exists h.sat_decider n hn hcanon.1 hcanon.2
-  exact restricted_rank_contradiction h.sat_decider n hn hnM heven h_le κ hκ hκ_le ρ hgood
-    (by simpa [κ] using exponent_separation_log n hnHuge)
+  have hdepth : depth_collapse_L171 h.sat_decider n (canonicalRestriction h.sat_decider n) :=
+    depth_collapse_canonical h.sat_decider n
+  have hminor : identity_minor_survives_Step5 h.sat_decider n (canonicalRestriction h.sat_decider n) :=
+    identity_minor_survives_canonical h.sat_decider n
+  obtain ⟨ρ, hgood⟩ := explicit_restriction_exists h.sat_decider n hn hdepth hminor
+  exact restricted_rank_contradiction h.sat_decider n hn hnNP hnM heven h_le ρ hgood
+    (exponent_separation_log n hnHuge)
 
 end PneqNP_Restriction

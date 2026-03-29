@@ -100,18 +100,28 @@ def depth_collapse_L171 (M : DTM) (n : ℕ)
     (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n),
       mlBlockedSpdpRank (compiledPartition M n) κ κ
         (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215
-/-- Step 5-side property encoded directly as the restricted NP lower bound:
-under `ρ`, the identity-minor witness survives with the required exponent.
+/-- NP lower-bound threshold extracted from `np_ml_lower_bound` (F = ℚ). -/
+noncomputable def npLowerThreshold : ℕ :=
+  Classical.choose (np_ml_lower_bound (F := ℚ))
 
-This is defined as a proposition (not axiomatized) so downstream usage is explicit
-and auditable. -/
+/-- Specialization of `np_ml_lower_bound` at the extracted threshold. -/
+theorem np_ml_lower_bound_at_threshold (n : ℕ)
+    (hnNP : n ≥ npLowerThreshold) (heven : 2 ∣ n) :
+    mlBlockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
+      (tseitinPoly ℚ n) ≥ n ^ (Nat.log 2 n / 4) := by
+  have hspec := Classical.choose_spec (np_ml_lower_bound (F := ℚ))
+  exact hspec n hnNP heven
+
+/-- Step 5-side property (log-regime form):
+under `ρ`, the restricted compiled object has NP lower bound at κ = log₂ n.
+
+This is exactly the quantity used in the final contradiction wrapper. -/
 def identity_minor_survives_Step5 (M : DTM) (n : ℕ)
     (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment) : Prop :=
-  ∀ (hn : n ≥ 32) (heven : 2 ∣ n)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (κ : ℕ) (hκ : κ ≥ 5),
-      mlBlockedSpdpRank (compiledPartition M n) κ κ
-        (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≥ n ^ (κ / 4)
+  ∀ (hn : n ≥ 32) (hnNP : n ≥ npLowerThreshold) (heven : 2 ∣ n)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)),
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≥ n ^ (Nat.log 2 n / 4)
 
 /-- Good restriction = explicit-family member + depth collapse + NP survival. -/
 def GoodRestriction (M : DTM) (n : ℕ)
@@ -153,17 +163,36 @@ theorem pside_rank_from_depthcollapse_Step4 (M : DTM) (n : ℕ)
       (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215 :=
   hdepth hn h_le κ hκ hκ_le
 
-/-- Step 5 interface: identity-minor survival under restriction gives NP lower bound.
-Now discharged by unfolding the Step-5 predicate definition. -/
-theorem npside_rank_from_identity_minor_Step5 (n : ℕ) (hn : n ≥ 32) (heven : 2 ∣ n)
+/-- Canonical restriction satisfies the Step-5 NP lower-bound obligation,
+by chaining NP witness lower bound with extraction monotonicity. -/
+theorem identity_minor_survives_canonical (M : DTM) (n : ℕ) :
+    identity_minor_survives_Step5 M n (canonicalRestriction M n) := by
+  intro hn hnNP heven h_le
+  have hκ : Nat.log 2 n ≥ 5 := by
+    have : Nat.log 2 32 = 5 := by native_decide
+    exact le_trans (by omega) (Nat.log_mono_right hn)
+  have hnp : mlBlockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
+      (tseitinPoly ℚ n) ≥ n ^ (Nat.log 2 n / 4) :=
+    np_ml_lower_bound_at_threshold n hnNP heven
+  have hextract := extraction_rank_monotone (F := ℚ) n M trivial hn h_le
+    (Nat.log 2 n) (Nat.log 2 n) hκ
+  have hfull : n ^ (Nat.log 2 n / 4) ≤
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) := by
+    exact le_trans hnp hextract
+  simpa [applyRestriction_canonical] using hfull
+
+/-- Step 5 interface: identity-minor survival under restriction gives NP lower bound
+at κ = log₂ n. -/
+theorem npside_rank_from_identity_minor_Step5 (n : ℕ)
+    (hn : n ≥ 32) (hnNP : n ≥ npLowerThreshold) (heven : 2 ∣ n)
     (M : DTM)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (κ : ℕ) (hκ : κ ≥ 5)
     (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment)
     (hminor : identity_minor_survives_Step5 M n ρ) :
-    mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≥ n ^ (κ / 4) :=
-  hminor hn heven h_le κ hκ
+    mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≥ n ^ (Nat.log 2 n / 4) :=
+  hminor hn hnNP heven h_le
 
 /-- Compatibility wrappers with previous names (for downstream files). -/
 theorem pside_restricted_rank (M : DTM) (n : ℕ)
@@ -176,30 +205,34 @@ theorem pside_restricted_rank (M : DTM) (n : ℕ)
       (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215 :=
   pside_rank_from_depthcollapse_Step4 M n hn h_le κ hκ hκ_le ρ hgood.2.1
 
-theorem npside_restricted_rank (n : ℕ) (hn : n ≥ 32) (heven : 2 ∣ n)
+theorem npside_restricted_rank (n : ℕ)
+    (hn : n ≥ 32) (hnNP : n ≥ npLowerThreshold) (heven : 2 ∣ n)
     (M : DTM)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (κ : ℕ) (hκ : κ ≥ 5)
     (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment)
     (hgood : GoodRestriction M n ρ) :
-    mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≥ n ^ (κ / 4) :=
-  npside_rank_from_identity_minor_Step5 n hn heven M h_le κ hκ ρ hgood.2.2
+    mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≥ n ^ (Nat.log 2 n / 4) :=
+  npside_rank_from_identity_minor_Step5 n hn hnNP heven M h_le ρ hgood.2.2
 
 /-- Backward-compatible alias for existence theorem. -/
 abbrev explicit_restriction_exists := explicit_restriction_exists_S32_3
 
-/-- Pure contradiction combiner for Steps 4 + 5 once exponent separation is provided. -/
+/-- Pure contradiction combiner for Steps 4 + 5 in the log-regime κ = log₂ n. -/
 theorem restricted_rank_contradiction
-    (M : DTM) (n : ℕ) (hn : n ≥ 32) (hnM : n ≥ max 4 M.numStates) (heven : 2 ∣ n)
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 32) (hnNP : n ≥ npLowerThreshold)
+    (hnM : n ≥ max 4 M.numStates) (heven : 2 ∣ n)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n)
     (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment)
     (hgood : GoodRestriction M n ρ)
-    (hexp : n ^ 215 < n ^ (κ / 4)) : False := by
-  have hP := pside_restricted_rank M n hnM h_le κ hκ hκ_le ρ hgood
-  have hNP := npside_restricted_rank n hn heven M h_le κ hκ ρ hgood
-  have hle : n ^ (κ / 4) ≤ n ^ 215 := le_trans hNP hP
+    (hexp : n ^ 215 < n ^ (Nat.log 2 n / 4)) : False := by
+  have hκ : Nat.log 2 n ≥ 5 := by
+    have : Nat.log 2 32 = 5 := by native_decide
+    exact le_trans (by omega) (Nat.log_mono_right hn)
+  have hP := pside_restricted_rank M n hnM h_le (Nat.log 2 n) hκ (le_rfl) ρ hgood
+  have hNP := npside_restricted_rank n hn hnNP heven M h_le ρ hgood
+  have hle : n ^ (Nat.log 2 n / 4) ≤ n ^ 215 := le_trans hNP hP
   exact (not_lt_of_ge hle) hexp
 
 end RestrictionPipeline
