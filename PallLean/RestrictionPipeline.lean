@@ -122,12 +122,20 @@ def identity_minor_survives_Step5 (M : DTM) (n : ℕ)
       mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≥ n ^ (Nat.log 2 n / 4)
 
-/-- Good restriction = explicit-family member + depth collapse + NP survival. -/
-def GoodRestriction (M : DTM) (n : ℕ)
-    (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment) : Prop :=
-  in_explicit_family_S32_3 M n ρ ∧
-  depth_collapse_L171 M n ρ ∧
-  identity_minor_survives_Step5 M n ρ
+/-- Step-4 qualification bundle for a restriction witness.
+
+This isolates the depth-collapse side of the paper argument (Theorem 12 Step 4)
+from the NP-survival side (Step 5), making obligations auditable separately. -/
+structure GoodRestrictionStep4 (M : DTM) (n : ℕ)
+    (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment) : Prop where
+  inFamily : in_explicit_family_S32_3 M n ρ
+  depth : depth_collapse_L171 M n ρ
+
+/-- Full good restriction = Step-4 bundle + Step-5 survival. -/
+structure GoodRestriction (M : DTM) (n : ℕ)
+    (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment) : Prop where
+  step4 : GoodRestrictionStep4 M n ρ
+  step5 : identity_minor_survives_Step5 M n ρ
 
 /-- §32.3 existence claim (scaffold theorem form):
 if the canonical family member satisfies depth-collapse and NP-survival,
@@ -141,7 +149,7 @@ theorem explicit_restriction_exists_S32_3 (M : DTM) (n : ℕ) (hn : n ≥ 32)
     ∃ (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment),
       GoodRestriction M n ρ := by
   refine ⟨canonicalRestriction M n, ?_⟩
-  exact ⟨canonicalRestriction_in_family M n, hdepth, hminor⟩
+  exact ⟨⟨canonicalRestriction_in_family M n, hdepth⟩, hminor⟩
 
 /-- Step 4 theorem: immediate from the `depth_collapse_L171` obligation. -/
 theorem pside_rank_from_depthcollapse_Step4 (M : DTM) (n : ℕ)
@@ -198,7 +206,7 @@ theorem pside_restricted_rank (M : DTM) (n : ℕ)
     (hgood : GoodRestriction M n ρ) :
     mlBlockedSpdpRank (compiledPartition M n) κ κ
       (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215 :=
-  pside_rank_from_depthcollapse_Step4 M n hn h_le κ hκ hκ_le ρ hgood.2.1
+  pside_rank_from_depthcollapse_Step4 M n hn h_le κ hκ hκ_le ρ hgood.step4.depth
 
 theorem npside_restricted_rank (n : ℕ)
     (hn : n ≥ 32) (hnNP : n ≥ npLowerThreshold) (heven : 2 ∣ n)
@@ -208,7 +216,7 @@ theorem npside_restricted_rank (n : ℕ)
     (hgood : GoodRestriction M n ρ) :
     mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≥ n ^ (Nat.log 2 n / 4) :=
-  npside_rank_from_identity_minor_Step5 n hn hnNP heven M h_le ρ hgood.2.2
+  npside_rank_from_identity_minor_Step5 n hn hnNP heven M h_le ρ hgood.step5
 
 /-- Backward-compatible alias for existence theorem. -/
 abbrev explicit_restriction_exists := explicit_restriction_exists_S32_3
