@@ -75,6 +75,15 @@ def in_explicit_family_S32_3 (M : DTM) (n : ℕ)
     (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment) : Prop :=
   ρ ∈ explicitRestrictionFamily_S32_3 M n
 
+/-- Applying the canonical all-free restriction is identity. -/
+theorem applyRestriction_canonical (M : DTM) (n : ℕ)
+    (p : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
+    applyRestriction (canonicalRestriction M n) p = p := by
+  change (MvPolynomial.bind₁ (fun i : Fin (numVars M n (Nat.log 2 n)) => X i) p) = p
+  exact congrArg (fun φ => φ p)
+    (MvPolynomial.bind₁_X_left (R := ℚ)
+      (σ := Fin (numVars M n (Nat.log 2 n))))
+
 /-- Scaffold sanity: the canonical restriction is in the explicit family. -/
 theorem canonicalRestriction_in_family (M : DTM) (n : ℕ) :
     in_explicit_family_S32_3 M n (canonicalRestriction M n) := by
@@ -124,6 +133,14 @@ theorem explicit_restriction_exists_S32_3 (M : DTM) (n : ℕ) (hn : n ≥ 32)
       GoodRestriction M n ρ := by
   refine ⟨canonicalRestriction M n, ?_⟩
   exact ⟨canonicalRestriction_in_family M n, hdepth, hminor⟩
+
+/-- Canonical restriction satisfies the Step-4 depth-collapse obligation,
+using the existing compiled P-side bound on `fullCompiledPoly`. -/
+theorem depth_collapse_canonical (M : DTM) (n : ℕ) :
+    depth_collapse_L171 M n (canonicalRestriction M n) := by
+  intro hn h_le κ hκ hκ_le
+  simpa [applyRestriction_canonical] using
+    compiled_spdp_rank_bound M n hn h_le κ hκ hκ_le
 
 /-- Step 4 theorem: immediate from the `depth_collapse_L171` obligation. -/
 theorem pside_rank_from_depthcollapse_Step4 (M : DTM) (n : ℕ)

@@ -20,13 +20,20 @@ structure PeqNP where
   sat_decider : DTM
   decides_sat : True
 
-/-- Bundled restriction-pipeline obligations for a fixed machine/length.
+/-- Bundled remaining restriction-pipeline obligation for a fixed machine/length.
 
-This collects the two substantive Step-4/Step-5 assumptions at the canonical
-restriction witness, keeping the final theorem signature compact. -/
+`depth_collapse_L171` at the canonical restriction is now proved in
+`RestrictionPipeline.depth_collapse_canonical`, so only the NP-side survival
+obligation remains to be supplied here. -/
 structure RestrictionObligations (M : DTM) (n : ℕ) where
-  depth : depth_collapse_L171 M n (canonicalRestriction M n)
   minor : identity_minor_survives_Step5 M n (canonicalRestriction M n)
+
+/-- Build the full pair of canonical obligations from the remaining NP-side one. -/
+theorem canonical_obligations (M : DTM) (n : ℕ)
+    (hob : RestrictionObligations M n) :
+    depth_collapse_L171 M n (canonicalRestriction M n) ∧
+    identity_minor_survives_Step5 M n (canonicalRestriction M n) := by
+  exact ⟨depth_collapse_canonical M n, hob.minor⟩
 
 /-- Concrete arithmetic separation at the paper regime `κ = log₂ n`.
 For sufficiently large `n`, `n^(log₂ n / 4)` dominates `n^215`.
@@ -90,7 +97,8 @@ theorem P_neq_NP_from_restriction
     have : Nat.log 2 32 = 5 := by native_decide
     exact le_trans (by omega) (Nat.log_mono_right hn)
   have hκ_le : κ ≤ Nat.log 2 n := le_rfl
-  obtain ⟨ρ, hgood⟩ := explicit_restriction_exists h.sat_decider n hn hob.depth hob.minor
+  have hcanon := canonical_obligations h.sat_decider n hob
+  obtain ⟨ρ, hgood⟩ := explicit_restriction_exists h.sat_decider n hn hcanon.1 hcanon.2
   exact restricted_rank_contradiction h.sat_decider n hn hnM heven h_le κ hκ hκ_le ρ hgood
     (by simpa [κ] using exponent_separation_log n hnHuge)
 
