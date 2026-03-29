@@ -82,15 +82,6 @@ theorem hitClauses_card_le (Φ : TseitinFormula) (κ : ℕ)
           _ ≤ S.card := Finset.card_le_card himg_sub
     _ ≤ κ := hcard
 
-/-- Near-variable set: selectors + body vars of all hit and near clauses.
-    Defined abstractly; concrete cardinality bound below. -/
-axiom nearVarSet (Φ : TseitinFormula)
-    (S : Finset (Fin (tseitinNumVars Φ))) : Finset (Fin (tseitinNumVars Φ))
-
-axiom nearVarSet_card_le (Φ : TseitinFormula) (κ : ℕ)
-    (S : Finset (Fin (tseitinNumVars Φ))) (hcard : S.card ≤ κ) :
-    (nearVarSet Φ S).card ≤ 155 * κ
-
 theorem near_variable_count (Φ : TseitinFormula) (κ : ℕ)
     (S : Finset (Fin (tseitinNumVars Φ)))
     (hcard : S.card ≤ κ) :
@@ -98,6 +89,40 @@ theorem near_variable_count (Φ : TseitinFormula) (κ : ℕ)
   calc (nearClauses Φ (hitClauses Φ S)).card
       ≤ 30 * (hitClauses Φ S).card := nearClauses_card_le Φ _
     _ ≤ 30 * κ := Nat.mul_le_mul_left 30 (hitClauses_card_le Φ κ S hcard)
+
+
+/-- Near-variable set: S itself + selectors of hit/near clauses.
+    Simplified definition using only selector indices (avoiding body var coercion). -/
+noncomputable def nearVarSet (Φ : TseitinFormula)
+    (S : Finset (Fin (tseitinNumVars Φ))) : Finset (Fin (tseitinNumVars Φ)) :=
+  S ∪ (hitClauses Φ S ∪ nearClauses Φ (hitClauses Φ S)).biUnion
+    (fun c => {selectorIdx Φ c})
+
+theorem nearVarSet_card_le (Φ : TseitinFormula) (κ : ℕ)
+    (S : Finset (Fin (tseitinNumVars Φ))) (hcard : S.card ≤ κ) :
+    (nearVarSet Φ S).card ≤ 32 * κ := by
+  unfold nearVarSet
+  calc (S ∪ (hitClauses Φ S ∪ nearClauses Φ (hitClauses Φ S)).biUnion
+        (fun c => {selectorIdx Φ c})).card
+      ≤ S.card + ((hitClauses Φ S ∪ nearClauses Φ (hitClauses Φ S)).biUnion
+          (fun c => {selectorIdx Φ c})).card :=
+        Finset.card_union_le _ _
+    _ ≤ S.card + (hitClauses Φ S ∪ nearClauses Φ (hitClauses Φ S)).card := by
+        gcongr
+        calc ((hitClauses Φ S ∪ nearClauses Φ (hitClauses Φ S)).biUnion
+              (fun c => {selectorIdx Φ c})).card
+            ≤ (hitClauses Φ S ∪ nearClauses Φ (hitClauses Φ S)).card * 1 :=
+              Finset.card_biUnion_le_card_mul _ _ 1 (fun c _ => by simp)
+          _ = (hitClauses Φ S ∪ nearClauses Φ (hitClauses Φ S)).card := by ring
+    _ ≤ S.card + ((hitClauses Φ S).card + (nearClauses Φ (hitClauses Φ S)).card) := by
+        gcongr; exact Finset.card_union_le _ _
+    _ ≤ κ + (κ + 30 * κ) := by
+        have h1 : (hitClauses Φ S).card ≤ κ := hitClauses_card_le Φ κ S hcard
+        have h2 : (nearClauses Φ (hitClauses Φ S)).card ≤ 30 * κ :=
+          near_variable_count Φ κ S hcard
+        omega
+    _ = 32 * κ := by ring
+
 
 /-- The per-window subspace for a fixed admissible S lies in
     span(mlMonomialBasis nearVars). Combined with nearVarSet_card ≤ 155κ
