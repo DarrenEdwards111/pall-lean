@@ -99,6 +99,17 @@ and yields the polynomial P-side SPDP bound.
 Kept explicit as a named assumption to preserve paper auditability. -/
 axiom depth_collapse_canonical (M : DTM) (n : ℕ) :
   depth_collapse_L171 M n (canonicalRestriction M n)
+
+/-- Step 2 (in our implementation plan): restricted P-side rank bound at canonical ρ*.
+This is the direct instantiated form of Step 4 used by the final contradiction chain. -/
+theorem pside_rank_canonical (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
+    mlBlockedSpdpRank (compiledPartition M n) κ κ
+      (applyRestriction (canonicalRestriction M n) (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215 :=
+  depth_collapse_canonical M n hn h_le κ hκ hκ_le
+
 /-- NP lower-bound threshold extracted from `np_ml_lower_bound` (F = ℚ). -/
 noncomputable def npLowerThreshold : ℕ :=
   Classical.choose (np_ml_lower_bound (F := ℚ))
@@ -137,6 +148,11 @@ structure GoodRestriction (M : DTM) (n : ℕ)
   step4 : GoodRestrictionStep4 M n ρ
   step5 : identity_minor_survives_Step5 M n ρ
 
+/-- Canonical restriction satisfies the Step-4 qualification bundle. -/
+theorem canonical_step4 (M : DTM) (n : ℕ) :
+    GoodRestrictionStep4 M n (canonicalRestriction M n) :=
+  ⟨canonicalRestriction_in_family M n, depth_collapse_canonical M n⟩
+
 /-- §32.3 existence claim (scaffold theorem form):
 if the canonical family member satisfies depth-collapse and NP-survival,
 then a good restriction exists (choose the canonical witness).
@@ -149,7 +165,9 @@ theorem explicit_restriction_exists_S32_3 (M : DTM) (n : ℕ) (hn : n ≥ 32)
     ∃ (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment),
       GoodRestriction M n ρ := by
   refine ⟨canonicalRestriction M n, ?_⟩
-  exact ⟨⟨canonicalRestriction_in_family M n, hdepth⟩, hminor⟩
+  have hstep4 : GoodRestrictionStep4 M n (canonicalRestriction M n) :=
+    ⟨canonicalRestriction_in_family M n, hdepth⟩
+  exact ⟨hstep4, hminor⟩
 
 /-- Step 4 theorem: immediate from the `depth_collapse_L171` obligation. -/
 theorem pside_rank_from_depthcollapse_Step4 (M : DTM) (n : ℕ)
