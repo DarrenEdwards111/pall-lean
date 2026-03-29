@@ -39,6 +39,26 @@ theorem exponent_separation_log
         _ ≤ Nat.log 2 n := Nat.log_mono_right this
     omega
 
+/-!
+## Paper map (Theorem 12 line-by-line)
+
+`P_neq_NP_from_restriction` corresponds to the paper as follows:
+
+1. **Set SPDP scale**: `κ := log₂ n` (paper uses κ,ℓ = Θ(log n)).
+2. **Lower-bound regime check**: `hκ : κ ≥ 5` from `n ≥ 32`.
+3. **Pick good restriction**: `explicit_restriction_exists` (paper §32.3).
+4. **P-side restricted upper bound**: inside `restricted_rank_contradiction`,
+   `pside_restricted_rank` (Step 4 / depth collapse + Width⇒Rank).
+5. **NP-side restricted lower bound**: inside `restricted_rank_contradiction`,
+   `npside_restricted_rank` (Step 5 / identity-minor survival).
+6. **Exponent separation**: `exponent_separation_log` gives
+   `n^215 < n^(log₂ n / 4)` for large `n`.
+7. **Contradiction**: same restricted compiled polynomial cannot satisfy both bounds.
+
+This wrapper is intentionally thin: all heavy switching-lemma and extraction machinery
+is isolated in `RestrictionPipeline` with paper-named assumptions.
+-/
+
 /-- Final contradiction in the restriction route.
 
 Given:
