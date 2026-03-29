@@ -64,6 +64,15 @@ def in_explicit_family_S32_3 (M : DTM) (n : ℕ)
   ρ ∈ explicitRestrictionFamily_S32_3 M n
 
 
+/-- Applying the canonical all-free restriction is identity. -/
+theorem applyRestriction_canonical (M : DTM) (n : ℕ)
+    (p : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
+    applyRestriction (canonicalRestriction M n) p = p := by
+  change (MvPolynomial.bind₁ (fun i : Fin (numVars M n (Nat.log 2 n)) => X i) p) = p
+  exact congrArg (fun φ => φ p)
+    (MvPolynomial.bind₁_X_left (R := ℚ)
+      (σ := Fin (numVars M n (Nat.log 2 n))))
+
 /-- Scaffold sanity: the canonical restriction is in the explicit family. -/
 theorem canonicalRestriction_in_family (M : DTM) (n : ℕ) :
     in_explicit_family_S32_3 M n (canonicalRestriction M n) := by
@@ -146,9 +155,27 @@ theorem pside_rank_from_depthcollapse_Step4 (M : DTM) (n : ℕ)
   hdepth hn h_le κ hκ hκ_le
 
 /-- Step 5 canonical obligation (paper Theorem 12, Step 5):
-under the same canonical restriction `ρ*`, NP lower-bound structure survives. -/
-axiom identity_minor_survives_canonical (M : DTM) (n : ℕ) :
-    identity_minor_survives_Step5 M n (canonicalRestriction M n)
+under the same canonical restriction `ρ*`, NP lower-bound structure survives.
+
+In the current constructive scaffold (`canonicalRestriction = all-free`),
+this follows by chaining NP lower bound + extraction monotonicity, then
+rewriting by `applyRestriction_canonical`. -/
+theorem identity_minor_survives_canonical (M : DTM) (n : ℕ) :
+    identity_minor_survives_Step5 M n (canonicalRestriction M n) := by
+  intro hn hnNP heven h_le
+  have hκ : Nat.log 2 n ≥ 5 := by
+    have : Nat.log 2 32 = 5 := by native_decide
+    exact le_trans (by omega) (Nat.log_mono_right hn)
+  have hnp : mlBlockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
+      (tseitinPoly ℚ n) ≥ n ^ (Nat.log 2 n / 4) :=
+    np_ml_lower_bound_at_threshold n hnNP heven
+  have hextract := extraction_rank_monotone (F := ℚ) n M trivial hn h_le
+    (Nat.log 2 n) (Nat.log 2 n) hκ
+  have hfull : n ^ (Nat.log 2 n / 4) ≤
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) :=
+    le_trans hnp hextract
+  simpa [applyRestriction_canonical] using hfull
 
 /-- Step 5 interface: identity-minor survival under restriction gives NP lower bound
 at κ = log₂ n. -/
