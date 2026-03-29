@@ -61,15 +61,25 @@ Note: this bound applies to the FULL compiled polynomial (including the
 coupled verifier sheet Q×_Φ), not just the machine-computation part.
 The verifier sheet is also compiled with bounded-width templates.
 
-Type-anonymity bridge (Paper §9.1 Theorem 23, assembly step):
+## Sub-claims of the type-anonymity assembly:
 
-The generators of mlBlockedSpdpSubspace for fullCompiledPoly decompose
-by profiles into at most `totalSpanBound` independent elements, where
-totalSpanBound = 2^κ × (30κ+1)^4 × (30κ+16)^60.
+(A) **Locality** (near_vars_bounded, paper §9.2 property P1):
+    Each admissible derivative list S hits ≤ 155κ "near variables".
+    Each generator mlProj(m * ∂^S fullCompiledPoly) has vars in this near set.
 
-This is the only non-arithmetic step: it requires verifying that the
-compiled polynomial's SPDP generators respect the profile decomposition
-from the compiler's local-width structure (properties P1-P5 of §9.2). -/
+(B) **Profile coverage** (paper §9.1 Lemma 22 + Theorem 23):
+    Generators with the same type-anonymous profile h lie in a subspace
+    of dimension ≤ (R+16)^60 where R = 30κ (the near-variable budget).
+
+(C) **Profile count** (paper §9.1 Lemma 20, PROVED in ProfileCompression):
+    The number of distinct profiles is ≤ (R+1)^4.
+
+Combined: total independent generators ≤ 2^κ × (R+1)^4 × (R+16)^60.
+
+The assembly axiom encapsulates (A) + (B). Part (C) is already proved.
+
+Type-anonymity assembly (Paper §9.1 Theorem 23, compiler-specific step).
+Encapsulates locality (P1) + profile coverage (Lemma 22). -/
 axiom type_anonymity_assembly (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
