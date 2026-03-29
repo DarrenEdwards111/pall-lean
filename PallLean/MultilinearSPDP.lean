@@ -1015,10 +1015,44 @@ noncomputable def verifierSoS (F : Type*) [CommRing F] [Nontrivial F] (n : ℕ) 
     MvPolynomial (Fin (npNumVars n)) F :=
   Finset.univ.sum (fun c => (verifierConstraint F n c) ^ 2)
 
+/-- Degree bound for one verifier constraint: totalDegree ≤ 4. -/
+private theorem verifierConstraint_totalDegree (F : Type*) [CommRing F] [Nontrivial F]
+    (n : ℕ) (c : Fin (tseitinAt n).clauses.length) :
+    (verifierConstraint F n c).totalDegree ≤ 4 := by
+  unfold verifierConstraint
+  calc
+    (MvPolynomial.X (R := F) (selectorIdx (tseitinAt n) c) * clauseGadget F (tseitinAt n) c).totalDegree
+        ≤ (MvPolynomial.X (R := F) (selectorIdx (tseitinAt n) c)).totalDegree
+          + (clauseGadget F (tseitinAt n) c).totalDegree :=
+          MvPolynomial.totalDegree_mul _ _
+    _ ≤ 1 + 3 := by
+        have hx : (MvPolynomial.X (R := F) (selectorIdx (tseitinAt n) c)).totalDegree ≤ 1 := by
+          simpa [MvPolynomial.totalDegree_X]
+        have hg : (clauseGadget F (tseitinAt n) c).totalDegree ≤ 3 :=
+          clauseGadget_totalDegree F (tseitinAt n) c
+        omega
+    _ = 4 := by norm_num
+
 /-- Sum-of-squares verifier has totalDegree ≤ 8 -/
 theorem verifierSoS_totalDegree (F : Type*) [CommRing F] [Nontrivial F] (n : ℕ) :
     (verifierSoS F n).totalDegree ≤ 8 := by
-  sorry -- Each term (z_c g_c)² has degree ≤ 2×4 = 8; sum ≤ max = 8
+  unfold verifierSoS
+  classical
+  let t : Finset (Fin (tseitinAt n).clauses.length) := Finset.univ
+  have hsum : (t.sum (fun c => (verifierConstraint F n c) ^ 2)).totalDegree ≤ 8 := by
+    subst t
+    refine Finset.induction_on (Finset.univ : Finset (Fin (tseitinAt n).clauses.length)) ?h0 ?hstep
+    · simp [MvPolynomial.totalDegree_zero]
+    · intro a s ha ih
+      have ha8 : (((verifierConstraint F n a) ^ 2)).totalDegree ≤ 8 := by
+        calc
+          ((verifierConstraint F n a) ^ 2).totalDegree
+              ≤ 2 * (verifierConstraint F n a).totalDegree := MvPolynomial.totalDegree_pow _ _
+          _ ≤ 2 * 4 := Nat.mul_le_mul_left 2 (verifierConstraint_totalDegree F n a)
+          _ = 8 := by norm_num
+      rw [Finset.sum_insert ha]
+      exact le_trans (MvPolynomial.totalDegree_add _ _) (max_le ha8 ih)
+  simpa using hsum
 
 /-- The full compiled polynomial in SUM-OF-SQUARES form (Paper §17.1 Theorem 92):
     P_{M,n} = 1 - verifierSoS - violationPoly
@@ -1036,7 +1070,36 @@ noncomputable def fullCompiledPolySoS (F : Type*) [CommRing F] [Nontrivial F]
 theorem fullCompiledPolySoS_totalDegree (F : Type*) [CommRing F] [Nontrivial F]
     (M : DTM) (n : ℕ) (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
     (fullCompiledPolySoS F M n h_le).totalDegree ≤ 8 := by
-  sorry -- degree of (1 - rename(verifierSoS) - violationPoly) ≤ max(0, 8, 4) = 8
+  unfold fullCompiledPolySoS
+  have hrename_le :
+      (MvPolynomial.rename (witnessInclusion M n h_le) (verifierSoS F n)).totalDegree
+        ≤ (verifierSoS F n).totalDegree :=
+    MvPolynomial.totalDegree_rename_le (witnessInclusion M n h_le) (verifierSoS F n)
+  have hrename8 :
+      (MvPolynomial.rename (witnessInclusion M n h_le) (verifierSoS F n)).totalDegree ≤ 8 :=
+    le_trans hrename_le (verifierSoS_totalDegree F n)
+  have hsub1 :
+      (1 - MvPolynomial.rename (witnessInclusion M n h_le) (verifierSoS F n)).totalDegree
+        ≤ max 0 8 := by
+    calc
+      (1 - MvPolynomial.rename (witnessInclusion M n h_le) (verifierSoS F n)).totalDegree
+          ≤ max (1 : MvPolynomial _ F).totalDegree
+              (MvPolynomial.rename (witnessInclusion M n h_le) (verifierSoS F n)).totalDegree :=
+              MvPolynomial.totalDegree_sub _ _
+      _ ≤ max 0 8 := by
+          apply max_le_max
+          · simp [MvPolynomial.totalDegree_one]
+          · exact hrename8
+  calc
+    (1 - MvPolynomial.rename (witnessInclusion M n h_le) (verifierSoS F n)
+      - violationPolyOf F M n).totalDegree
+        ≤ max
+            (1 - MvPolynomial.rename (witnessInclusion M n h_le) (verifierSoS F n)).totalDegree
+            (violationPolyOf F M n).totalDegree :=
+          MvPolynomial.totalDegree_sub _ _
+    _ ≤ max (max 0 8) 4 := by
+          exact max_le_max hsub1 (violationPolyOf_totalDegree F M n)
+    _ = 8 := by norm_num
 
 /-- The old product-form compiled polynomial. Kept for extraction_rank_monotone. -/
 noncomputable def fullCompiledPoly (F : Type*) [CommRing F] [Nontrivial F]
