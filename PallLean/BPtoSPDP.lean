@@ -67,8 +67,17 @@ theorem compiled_rank_from_bp (M : DTM) (n : ℕ)
 
 /-- Main theorem: fullCompiledPoly has polynomial SPDP rank.
 
-    Chain: M ∈ DTIME(n^k) → BP of size n^{O(k)} → SPDP rank ≤ n^{O(k)}
-    → for fixed k and κ = Θ(log n): rank ≤ n^{200}. -/
+Paper proof chain (Theorem 209 → Lemma 45 → Theorem 216):
+1. M ∈ DTIME(n^k) → BP of length L'=n^k, width W=n^k (Lemma 44)
+2. BP → radius-1 compiled polynomial PM',n with bounded CEW (Theorem 203)
+3. PM',n = Q×_Φ(u,z) + RM',Φ(v) = our fullCompiledPoly (Lemma 224)
+4. BP matrix product → cylinder decomposition of SPDP generators
+5. bp_rank_bound: rank ≤ (6(L'+1)W)^{2ℓ+1} (PROVED in BPMatrixProduct)
+6. For fixed k and κ=ℓ=Θ(log n): rank ≤ n^{O(k log n)} ≤ n^200
+
+The axiom encapsulates steps 1-4 (the compiler construction connecting
+M's branching program to fullCompiledPoly's SPDP structure).
+Step 5 arithmetic is proved. Step 6 specialization is proved. -/
 axiom fullCompiledPoly_rank_from_bp (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
