@@ -20,6 +20,12 @@ structure PeqNP where
   sat_decider : DTM
   decides_sat : True
 
+/-- Explicit Step-4 side obligations for a fixed machine/length pair.
+This keeps the wrapper signature compact while preserving auditability. -/
+structure Step4Obligations (M : DTM) (n : ℕ) where
+  h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)
+  hdepth : depth_collapse_L171 M n (canonicalRestriction M n)
+
 
 /-- Concrete arithmetic separation at the paper regime `κ = log₂ n`.
 For sufficiently large `n`, `n^(log₂ n / 4)` dominates `n^215`.
@@ -53,19 +59,18 @@ in the theorem inputs rather than hidden behind legacy bridge lemmas.
    - places us in the asymptotic/even regime used by the NP witness lower bound,
      log-parameter arithmetic, and contradiction exponent split.
 
-2. `h_le : npNumVars n ≤ numVars ...`
-   - witness-variable embedding into compiled-variable space.
+2. `step4 : Step4Obligations ...`
+   - bundles the explicit Step-4 side inputs:
+     - witness-variable embedding `h_le`
+     - canonical depth-collapse bound `hdepth`.
 
-3. `hdepth : depth_collapse_L171 ... (canonicalRestriction ...)`
-   - **Step 4** obligation (restriction/depth-collapse → polynomial P-side rank).
-
-4. (derived internally) `hminor : identity_minor_survives_Step5 ...`
+3. (derived internally) `hminor : identity_minor_survives_Step5 ...`
    - **Step 5** NP lower bound at κ = log₂ n (from extraction + NP witness bound).
 
-5. `exponent_separation_log`
+4. `exponent_separation_log`
    - arithmetic separation `n^215 < n^(log₂ n/4)`.
 
-6. `restricted_rank_contradiction`
+5. `restricted_rank_contradiction`
    - combines Step 4 + Step 5 on the same restricted compiled polynomial.
 -/
 
@@ -85,8 +90,7 @@ theorem P_neq_NP_from_restriction
     (hnFloor : n ≥ max (max 32 (max 4 h.sat_decider.numStates))
                         (max npLowerThreshold (2 ^ (4 * 215 + 4))))
     (heven : 2 ∣ n)
-    (h_le : npNumVars n ≤ numVars h.sat_decider n (Nat.log 2 n))
-    (hdepth : depth_collapse_L171 h.sat_decider n (canonicalRestriction h.sat_decider n))
+    (step4 : Step4Obligations h.sat_decider n)
     : False := by
   have hn : n ≥ 32 := by omega
   have hnM : n ≥ max 4 h.sat_decider.numStates := by omega
@@ -94,8 +98,9 @@ theorem P_neq_NP_from_restriction
   have hnHuge : n ≥ 2 ^ (4 * 215 + 4) := by omega
   have hminor : identity_minor_survives_Step5 h.sat_decider n (canonicalRestriction h.sat_decider n) :=
     identity_minor_survives_canonical h.sat_decider n
-  obtain ⟨ρ, hgood⟩ := explicit_restriction_exists h.sat_decider n hn hdepth hminor
-  exact restricted_rank_contradiction h.sat_decider n hn hnNP hnM heven h_le ρ hgood
+  obtain ⟨ρ, hgood⟩ :=
+    explicit_restriction_exists h.sat_decider n hn step4.hdepth hminor
+  exact restricted_rank_contradiction h.sat_decider n hn hnNP hnM heven step4.h_le ρ hgood
     (exponent_separation_log n hnHuge)
 
 end PneqNP_Restriction
