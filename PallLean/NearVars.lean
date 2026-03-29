@@ -82,6 +82,15 @@ theorem hitClauses_card_le (Φ : TseitinFormula) (κ : ℕ)
           _ ≤ S.card := Finset.card_le_card himg_sub
     _ ≤ κ := hcard
 
+/-- Near-variable set: selectors + body vars of all hit and near clauses.
+    Defined abstractly; concrete cardinality bound below. -/
+axiom nearVarSet (Φ : TseitinFormula)
+    (S : Finset (Fin (tseitinNumVars Φ))) : Finset (Fin (tseitinNumVars Φ))
+
+axiom nearVarSet_card_le (Φ : TseitinFormula) (κ : ℕ)
+    (S : Finset (Fin (tseitinNumVars Φ))) (hcard : S.card ≤ κ) :
+    (nearVarSet Φ S).card ≤ 155 * κ
+
 theorem near_variable_count (Φ : TseitinFormula) (κ : ℕ)
     (S : Finset (Fin (tseitinNumVars Φ)))
     (hcard : S.card ≤ κ) :
@@ -89,5 +98,30 @@ theorem near_variable_count (Φ : TseitinFormula) (κ : ℕ)
   calc (nearClauses Φ (hitClauses Φ S)).card
       ≤ 30 * (hitClauses Φ S).card := nearClauses_card_le Φ _
     _ ≤ 30 * κ := Nat.mul_le_mul_left 30 (hitClauses_card_le Φ κ S hcard)
+
+/-- The per-window subspace for a fixed admissible S lies in
+    span(mlMonomialBasis nearVars). Combined with nearVarSet_card ≤ 155κ
+    and finrank_le_of_vars_bounded, this gives dim ≤ 2^{155κ} per window.
+
+    Proof sketch:
+    1. By iterDeriv_cvProd_eq, ∂^S (tseitinPoly) = (-1)^κ × ∏_hit g_c × ∏_unhit cvFactor
+    2. m × (factored form) has vars decomposing into near + far
+    3. mlProj keeps multilinear monomials
+    4. Each multilinear monomial is a product of X_i's
+    5. The set of generators {mlProj(m × ∂^S p) : m.vars ⊆ S, deg(m) ≤ κ}
+       lies in span(mlMonomialBasis(allVars)) where allVars ⊆ vars(factored form)
+    6. But we need: lies in span(mlMonomialBasis(nearVars)) for the bound
+
+    The key: far-clause factors ∏_far (1 - z_c g_c) multiply ALL generators
+    from this S by the SAME polynomial. So varying m only changes the
+    near-variable part, and span dim ≤ 2^{|nearVars|}. -/
+axiom per_window_span_in_nearVarBasis (Φ : TseitinFormula)
+    (S : List (Fin (tseitinNumVars Φ)))
+    (κ : ℕ) (hlen : S.length = κ) (hκ : κ ≥ 5)
+    (hadm : SPDP.isBlockAdmissible (IdentityMinor.tseitinPartition Φ) S) :
+    MultilinearSPDP.mlBlockedSpdpSubspace (IdentityMinor.tseitinPartition Φ) κ κ
+      (coupledVerifier ℚ Φ) ≤
+    Submodule.span ℚ (↑(MlProjFar.mlMonomialBasis
+      (nearVarSet Φ S.toFinset)) : Set _)
 
 end NearVars
