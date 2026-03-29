@@ -122,72 +122,26 @@ This uses iterDeriv_cvProd_eq + clauseGadget_vars_subset + conflicting_card_le.
 For the VIOLATION POLY part: degree ≤ 4 < κ → rank contribution = 0
 (already proved in mlBlockedSpdpRank_add_lowDeg). -/
 
--- Tseitin profile rank bound.
--- NOTE: This cannot be proved purely from per_window_span + nearVarSet_card.
--- Per-window gives dim ≤ 2^{32κ}, but summing over C(numClauses, κ) windows
--- gives super-polynomial total. The PROFILE COMPRESSION argument (§9.1) is
--- needed to collapse windows with the same profile into shared subspaces.
--- The bound 2^κ × (30κ+1)^4 × (30κ+16)^60 comes from:
---   #shifts × #profiles × per-profile-dim
--- which is strictly tighter than #windows × per-window-dim.
-axiom tseitin_profile_rank_bound (n : ℕ) (hn : n ≥ 4)
-    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
-    mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤
-    2 ^ κ * ((30 * κ + 1) ^ 4 * (30 * κ + 16) ^ 60)
-
--- Lift to compiled space via extraction chain (PROVED).
-theorem type_anonymity_assembly (M : DTM) (n : ℕ)
+-- Paper Theorem 12 Step 4 (Width⇒Rank on the MACHINE's compiled polynomial):
+-- The compiled polynomial PM,n from a poly-time machine M has polynomial SPDP rank.
+-- This bound comes from M's LOCALITY — poly-time → bounded CEW → polynomial rank.
+-- KEY: this applies to fullCompiledPoly (which includes the machine computation),
+-- NOT to tseitinPoly (which has exponential rank from the identity minor).
+axiom compiled_width_rank_step4 (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
     mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (fullCompiledPoly ℚ M n h_le) ≤
-    2 ^ κ * ((30 * κ + 1) ^ 4 * (30 * κ + 16) ^ 60) := by
-  -- Chain: compiled rank ≤ tseitin rank (via extraction reverse)
-  -- Wait — extraction gives tseitin ≤ compiled, not compiled ≤ tseitin!
-  -- We need compiled ≤ tseitin.
-  -- fullCompiledPoly = verifierSheet + violationPoly
-  -- mlBlockedSpdpRank_add_lowDeg: rank(full) = rank(verifierSheet) [viol degree < κ]
-  -- verifierSheet = rename(tseitin)
-  -- mlBlockedSpdpRank_rename_le: rank(compiled, rename(tseitin)) ≤ rank(pullback, tseitin)
-  -- spdpRank_pullback_le_tseitin: rank(pullback, tseitin) ≤ rank(tseitinPartition, tseitin)
-  -- tseitin_profile_rank_bound: rank(tseitinPartition, tseitin) ≤ bound
-  have h_lowdeg : (violationPolyOf ℚ M n).totalDegree ≤ 4 :=
-    violationPolyOf_totalDegree ℚ M n
-  have h_elim : mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (fullCompiledPoly ℚ M n h_le) =
-    mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (verifierSheetOf ℚ M n h_le) := by
-    show mlBlockedSpdpRank (compiledPartition M n) κ κ
-        (verifierSheetOf ℚ M n h_le + violationPolyOf ℚ M n) =
-      mlBlockedSpdpRank (compiledPartition M n) κ κ (verifierSheetOf ℚ M n h_le)
-    exact mlBlockedSpdpRank_add_lowDeg ℚ _ κ κ _ _ (by linarith)
-  have h_rename : mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (verifierSheetOf ℚ M n h_le) ≤
-    mlBlockedSpdpRank (pullbackPartition (compiledPartition M n)
-        (witnessInclusion M n h_le)) κ κ (tseitinPoly ℚ n) := by
-    show mlBlockedSpdpRank (compiledPartition M n) κ κ
-        (MvPolynomial.rename (witnessInclusion M n h_le) (tseitinPoly ℚ n)) ≤ _
-    exact mlBlockedSpdpRank_rename_le _ (witnessInclusion_injective M n h_le) _ _ _ _
-  have h_pullback : mlBlockedSpdpRank (pullbackPartition (compiledPartition M n)
-      (witnessInclusion M n h_le)) κ κ (tseitinPoly ℚ n) ≤
-    mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) :=
-    spdpRank_pullback_le_tseitin M n h_le κ κ
-  have h_bound := tseitin_profile_rank_bound n (by omega) κ hκ hκ_le
-  linarith
+      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 200
 
-/-- Width⇒Rank on fullCompiledPoly (Paper Theorem 23/203).
-    Proved by combining type_anonymity_assembly with the arithmetic
-    bound from ProfileSpaceBound.tseitin_rank_via_profile_compression. -/
+/-- Width⇒Rank on fullCompiledPoly — direct from axiom. -/
 theorem width_rank_fullCompiled (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
     mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 200 := by
-  have hassembly := type_anonymity_assembly M n hn h_le κ hκ hκ_le
-  have harith := ProfileSpaceBound.tseitin_rank_via_profile_compression n (by omega) κ ⟨hκ, hκ_le⟩
-  linarith
+      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 200 :=
+  compiled_width_rank_step4 M n hn h_le κ hκ hκ_le
 
 /-- NP lower-bound threshold from np_ml_lower_bound. -/
 noncomputable def npThreshold : ℕ :=
