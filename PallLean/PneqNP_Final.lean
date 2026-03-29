@@ -3,6 +3,8 @@ import PallLean.MultilinearSPDP
 import PallLean.NPWitness
 import PallLean.Compiler
 import PallLean.ProfileSpaceBound
+import PallLean.NearVars
+import PallLean.MlProjFar
 import Mathlib.Tactic
 
 /-!
@@ -120,7 +122,14 @@ This uses iterDeriv_cvProd_eq + clauseGadget_vars_subset + conflicting_card_le.
 For the VIOLATION POLY part: degree ≤ 4 < κ → rank contribution = 0
 (already proved in mlBlockedSpdpRank_add_lowDeg). -/
 
--- The axiom, reduced to tseitinPartition level via extraction chain.
+-- Tseitin profile rank bound.
+-- NOTE: This cannot be proved purely from per_window_span + nearVarSet_card.
+-- Per-window gives dim ≤ 2^{32κ}, but summing over C(numClauses, κ) windows
+-- gives super-polynomial total. The PROFILE COMPRESSION argument (§9.1) is
+-- needed to collapse windows with the same profile into shared subspaces.
+-- The bound 2^κ × (30κ+1)^4 × (30κ+16)^60 comes from:
+--   #shifts × #profiles × per-profile-dim
+-- which is strictly tighter than #windows × per-window-dim.
 axiom tseitin_profile_rank_bound (n : ℕ) (hn : n ≥ 4)
     (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
     mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤
