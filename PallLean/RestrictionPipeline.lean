@@ -85,9 +85,8 @@ Defined (not axiomatized) as the exact quantified obligation consumed by Step 4.
 def depth_collapse_L171 (M : DTM) (n : ℕ)
     (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment) : Prop :=
   ∀ (hn : n ≥ max 4 M.numStates)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n),
-      mlBlockedSpdpRank (compiledPartition M n) κ κ
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)),
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215
 
 /-- Step 2 (in our implementation plan): restricted P-side rank bound at canonical ρ*.
@@ -95,11 +94,10 @@ This is the direct instantiated form of Step 4 used by the final contradiction c
 theorem pside_rank_canonical (M : DTM) (n : ℕ)
     (hdepth : depth_collapse_L171 M n (canonicalRestriction M n))
     (hn : n ≥ max 4 M.numStates)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
-    mlBlockedSpdpRank (compiledPartition M n) κ κ
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (applyRestriction (canonicalRestriction M n) (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215 :=
-  hdepth hn h_le κ hκ hκ_le
+  hdepth hn h_le
 
 /-- NP lower-bound threshold extracted from `np_ml_lower_bound` (F = ℚ). -/
 noncomputable def npLowerThreshold : ℕ :=
@@ -166,12 +164,11 @@ theorem explicit_restriction_exists_S32_3 (M : DTM) (n : ℕ) (hn : n ≥ 32)
 theorem pside_rank_from_depthcollapse_Step4 (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n)
     (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment)
     (hdepth : depth_collapse_L171 M n ρ) :
-    mlBlockedSpdpRank (compiledPartition M n) κ κ
+    mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215 :=
-  hdepth hn h_le κ hκ hκ_le
+  hdepth hn h_le
 
 /-- Step 5 canonical obligation (paper Theorem 12, Step 5):
 under the same canonical restriction `ρ*`, NP lower-bound structure survives.
@@ -212,12 +209,11 @@ theorem npside_rank_from_identity_minor_Step5 (n : ℕ)
 theorem pside_restricted_rank (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n)
     (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment)
     (hgood : GoodRestriction M n ρ) :
-    mlBlockedSpdpRank (compiledPartition M n) κ κ
+    mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (applyRestriction ρ (fullCompiledPoly ℚ M n h_le)) ≤ n ^ 215 :=
-  pside_rank_from_depthcollapse_Step4 M n hn h_le κ hκ hκ_le ρ hgood.step4.depth
+  pside_rank_from_depthcollapse_Step4 M n hn h_le ρ hgood.step4.depth
 
 theorem npside_restricted_rank (n : ℕ)
     (hn : n ≥ 32) (hnNP : n ≥ npLowerThreshold) (heven : 2 ∣ n)
@@ -241,10 +237,7 @@ theorem restricted_rank_contradiction
     (ρ : Fin (numVars M n (Nat.log 2 n)) → VarAssignment)
     (hgood : GoodRestriction M n ρ)
     (hexp : n ^ 215 < n ^ (Nat.log 2 n / 4)) : False := by
-  have hκ : Nat.log 2 n ≥ 5 := by
-    have : Nat.log 2 32 = 5 := by native_decide
-    exact le_trans (by omega) (Nat.log_mono_right hn)
-  have hP := pside_restricted_rank M n hnM h_le (Nat.log 2 n) hκ (le_rfl) ρ hgood
+  have hP := pside_restricted_rank M n hnM h_le ρ hgood
   have hNP := npside_restricted_rank n hn hnNP heven M h_le ρ hgood
   have hle : n ^ (Nat.log 2 n / 4) ≤ n ^ 215 := le_trans hNP hP
   exact (not_lt_of_ge hle) hexp

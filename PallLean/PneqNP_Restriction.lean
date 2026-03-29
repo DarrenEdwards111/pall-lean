@@ -86,12 +86,11 @@ from the Step-4 bundle we can read off the canonical restricted P-side bound. -/
 theorem step2_pside_bound
     (h : PeqNP) (n : ℕ)
     (step4 : Step4Obligations h.sat_decider n)
-    (hnM : n ≥ max 4 h.sat_decider.numStates)
-    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
-    mlBlockedSpdpRank (compiledPartition h.sat_decider n) κ κ
+    (hnM : n ≥ max 4 h.sat_decider.numStates) :
+    mlBlockedSpdpRank (compiledPartition h.sat_decider n) (Nat.log 2 n) (Nat.log 2 n)
       (applyRestriction (canonicalRestriction h.sat_decider n)
         (fullCompiledPoly ℚ h.sat_decider n step4.h_le)) ≤ n ^ 215 :=
-  pside_rank_canonical h.sat_decider n step4.hdepth hnM step4.h_le κ hκ hκ_le
+  pside_rank_canonical h.sat_decider n step4.hdepth hnM step4.h_le
 
 /-- Final contradiction in the restriction route.
 
