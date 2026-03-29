@@ -1746,65 +1746,15 @@ noncomputable def hitClausesOf (n : ℕ)
 
 /- Legacy near-variable/profile-compression block archived from active route. -/
 
-/-- Compiled SPDP rank bound (Paper's Lemma 32 / Theorem 264).
-
-    This is the P-side Width⇒Rank bound: every compiled polynomial from a
-    poly-time machine M has POLYNOMIAL SPDP rank.
-
-    Paper proof route (Theorem 12, Step 4):
-    1. Compile M → width-W compiled poly (W = O(1) for poly-time M)
-    2. Restriction ρ* → depth-collapse → bounded-depth object
-    3. DNF decomposition: ≤ poly(n) canonical cells
-    4. Per-cell Width⇒Rank (Lemma 32): each cell has (log n)^O(1) rank
-       (using profile compression on the cell's width-bounded structure)
-    5. Subadditivity: sum over poly(n) cells → n^O(1)
-
-    The Width⇒Rank profile compression argument applies to each COMPILED CELL
-    (which has bounded local width), NOT to tseitinPoly (which has width O(n)).
-
-    Note: the previous architecture routed this through tseitin_spdp_rank_bound,
-    which is FALSE (tseitin rank is exponential). This version correctly
-    axiomatizes the P-side bound as a direct consequence of the width bound. -/
-theorem compiled_spdp_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ max 4 M.numStates)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ Nat.log 2 n) :
-    mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 215 := by
-  -- Paper §17 Theorem 92: compiled polynomial from poly-time M has rank n^O(1).
-  --
-  -- PAPER ARCHITECTURE (differs from current Lean formalization):
-  -- 1. Paper uses SUM-OF-SQUARES form: PM,n = 1 - Σ C² (constant degree ≤ 8)
-  --    Our fullCompiledPoly uses PRODUCT form: ∏(1-z_c g_c) + Σ c_i² (degree O(n))
-  -- 2. Paper's extraction uses SEMANTIC CLOSURE (Lemma 13):
-  --    same Boolean function → same SPDP rank under the compiler
-  --    Our extraction uses ALGEBRAIC RESTRICTION (set trace vars to 0)
-  -- 3. Paper's P-side bound uses LOCALITY (Lemma 91):
-  --    each ∂^S PM,n has O(1) local terms → row space ≤ n^O(1)
-  --    This works for the SoS form because of its constant degree.
-  --
-  -- TO CLOSE THIS SORRY, the formalization needs ONE of:
-  -- (A) Switch to SoS encoding + reprove extraction via semantic closure
-  -- (B) Prove fullCompiledPolySoS_totalDegree (≤ 8 < κ for large n)
-  --     and show rank(fullCompiledPolySoS) = 0 for κ ≥ 9
-  --     THEN bridge via representation invariance
-  -- (C) Direct locality argument on the product form
-  --     (unclear if possible — product form has degree O(n))
-  --
-  -- The mathematically correct claim is that PM,n (SoS form) has poly rank.
-  -- The fullCompiledPoly (product form) has EXPONENTIAL rank.
-  -- The gap is the ENCODING, not the mathematics.
-  sorry
-
-/-- P-side compiled SPDP rank bound (paper's Lemma 32).
-    Regime: matching parameters κ = ℓ, κ ≥ 5, κ ≤ log₂ n. -/
-theorem pside_full_ml_rank_bound (M : DTM) :
-    ∃ (C : ℕ), ∀ n, n ≥ max 4 M.numStates →
-    ∀ (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)),
-    ∀ (kk : ℕ), kk ≥ 5 → kk ≤ Nat.log 2 n →
-    mlBlockedSpdpRank (compiledPartition M n) kk kk
-      (fullCompiledPoly ℚ M n h_le) ≤ n ^ C := by
-  use 215; intro n hn h_le kk hk hk_le
-  exact compiled_spdp_rank_bound M n hn h_le kk hk hk_le
+/-!
+NOTE (active route):
+The old theorem pair
+  * `compiled_spdp_rank_bound`
+  * `pside_full_ml_rank_bound`
+was tied to a stale mixed encoding route (product-form object on the P-side).
+For paper-consistent active development, the P-side upper bound is treated as part
+of the restriction/depth-collapse obligation in `RestrictionPipeline.depth_collapse_L171`.
+-/
 
 /-- §34 Compiler extraction: NP-side rank ≤ P-side rank.
 

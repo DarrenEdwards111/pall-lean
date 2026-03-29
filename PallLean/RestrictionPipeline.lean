@@ -127,14 +127,6 @@ theorem explicit_restriction_exists_S32_3 (M : DTM) (n : ℕ) (hn : n ≥ 32)
   refine ⟨canonicalRestriction M n, ?_⟩
   exact ⟨canonicalRestriction_in_family M n, hdepth, hminor⟩
 
-/-- Canonical restriction satisfies the Step-4 depth-collapse obligation,
-using the existing compiled P-side bound on `fullCompiledPoly`. -/
-theorem depth_collapse_canonical (M : DTM) (n : ℕ) :
-    depth_collapse_L171 M n (canonicalRestriction M n) := by
-  intro hn h_le κ hκ hκ_le
-  simpa [applyRestriction_canonical] using
-    compiled_spdp_rank_bound M n hn h_le κ hκ hκ_le
-
 /-- Step 4 theorem: immediate from the `depth_collapse_L171` obligation. -/
 theorem pside_rank_from_depthcollapse_Step4 (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
