@@ -112,48 +112,14 @@ In our Lean formalization:
 - The compiler equivalence between them preserves rank
 -/
 
-/-- The compiler produces a canonical SPDP rank for each Boolean function.
-    This is the combined content of Theorem 255 + Lemma 253 + Corollary 256.
+/- NOTE:
+The old theorem `compiler_invariance_bridge` (tseitin-vs-SoS direct inequality)
+was removed from the active build because it belongs to the archived bridge path
+and is not used by the restriction-first proof assembly.
 
-    For any machine M deciding SAT:
-    - compiledPolySoS M n has rank = 0 (degree < κ)
-    - The Tseitin formula Φn encodes the same Boolean function (SAT)
-    - By representation invariance, their compiled ranks are equal
-
-    The "extraction" direction: NP rank is bounded by the compiled rank
-    (plus polynomial correction for padding/roundtrip encoding).
-
-    Paper: Lemma 13 proof uses Steps 4-6 of Theorem 12.
-    This is the mathematical content of the axiom in PneqNP_v2.lean. -/
-theorem compiler_invariance_bridge
-    (M : DTM) (n : ℕ) (hn : n ≥ 32)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (κ : ℕ) (hκ : κ ≥ 5) :
-    mlBlockedSpdpRank (tseitinPartition n) κ κ (tseitinPoly ℚ n) ≤
-    mlBlockedSpdpRank (compiledPartition M n) κ κ
-      (compiledPolySoS ℚ M n) + n ^ 10 := by
-  -- Paper proof chain:
-  -- 1. tseitinPoly encodes SAT verification (NP-side)
-  -- 2. compiledPolySoS encodes M's computation (P-side)
-  -- 3. M decides SAT ↔ tseitinPoly and compiledPolySoS compute same function
-  -- 4. Compiler produces canonical form C(SAT) for both
-  -- 5. Theorem 255: NF(Φn) ≡comp NF(M) (same function, related by core moves)
-  -- 6. Lemma 253: ≡comp preserves rank exactly
-  -- 7. Corollary 256: Γ(NF(Φn)) = Γ(NF(M))
-  --
-  -- The n^10 correction absorbs:
-  -- (a) The gap between tseitinPartition/compiledPartition and the canonical B
-  -- (b) Any padding polynomial factor (Lemma 254)
-  -- (c) The monotonicity gap from partition refinement
-  --
-  -- Formal proof requires:
-  -- (i) Implementing the compiler normalization NF(·) in Lean
-  -- (ii) Proving NF(M) and NF(Φn) are related by moves (E1)-(E4),(E6)
-  -- (iii) Proving each move preserves SPDP rank (from Lemma 37)
-  --
-  -- The mathematical content reduces to:
-  -- Block-local invertible linear transformations preserve SPDP rank,
-  -- and the compiler's canonicalization uses only such transformations.
-  sorry
+Active paper-consistent contradiction route is now:
+  * RestrictionPipeline.lean
+  * PneqNP_Restriction.lean
+-/
 
 end CompilerInvariance
