@@ -137,4 +137,19 @@ theorem P_neq_NP_from_restriction_rawStep4
   P_neq_NP_from_restriction h n hnFloor heven
     (mkStep4Obligations h.sat_decider n h_le hdepth)
 
+/-- Step 3 helper: existential wrapper.
+If there exists one admissible `n` with evenness and Step-4 obligations,
+we can conclude contradiction immediately. -/
+theorem P_neq_NP_from_restriction_exists
+    (h : PeqNP)
+    (hexists : ∃ n,
+      n ≥ max (max 32 (max 4 h.sat_decider.numStates))
+              (max npLowerThreshold (2 ^ (4 * 215 + 4))) ∧
+      2 ∣ n ∧
+      npNumVars n ≤ numVars h.sat_decider n (Nat.log 2 n) ∧
+      depth_collapse_L171 h.sat_decider n (canonicalRestriction h.sat_decider n))
+    : False := by
+  rcases hexists with ⟨n, hnFloor, heven, h_le, hdepth⟩
+  exact P_neq_NP_from_restriction_rawStep4 h n hnFloor heven h_le hdepth
+
 end PneqNP_Restriction
