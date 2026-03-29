@@ -32,7 +32,6 @@ import PallLean.TypeAnonymityProof
 import PallLean.CompiledSoS
 import PallLean.RepresentationInvariance
 import PallLean.CompilerInvariance
-import PallLean.PrivateVars
 import PallLean.CompilerNF
 import PallLean.RestrictionPipeline
 import PallLean.PneqNP_Restriction
