@@ -23,12 +23,12 @@ section WitnessGadgets
 variable (M : DTM) (n : ℕ)
 
 /-- A selector-visible latent gadget: survives selector extraction as `1 - X i`. -/
-def selectorWitnessGadget (i : Fin (latentBaseVars M n)) :
+noncomputable def selectorWitnessGadget (i : Fin (latentBaseVars M n)) :
     MvPolynomial (LatentVar M n) ℚ :=
   1 - Xsel M n i
 
 /-- A machine-visible latent gadget: survives machine extraction as `1 - X i`. -/
-def machineWitnessGadget (i : Fin (latentBaseVars M n)) :
+noncomputable def machineWitnessGadget (i : Fin (latentBaseVars M n)) :
     MvPolynomial (LatentVar M n) ℚ :=
   1 - Xmach M n i
 

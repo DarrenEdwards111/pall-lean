@@ -37,16 +37,16 @@ section Vars
 
 variable (M : DTM) (n : ℕ)
 
-def Xmach (i : Fin (latentBaseVars M n)) : MvPolynomial (LatentVar M n) ℚ :=
+noncomputable def Xmach (i : Fin (latentBaseVars M n)) : MvPolynomial (LatentVar M n) ℚ :=
   X (LatentLayer.machine, i)
 
-def Xcopy (i : Fin (latentBaseVars M n)) : MvPolynomial (LatentVar M n) ℚ :=
+noncomputable def Xcopy (i : Fin (latentBaseVars M n)) : MvPolynomial (LatentVar M n) ℚ :=
   X (LatentLayer.copy, i)
 
-def Xsel (i : Fin (latentBaseVars M n)) : MvPolynomial (LatentVar M n) ℚ :=
+noncomputable def Xsel (i : Fin (latentBaseVars M n)) : MvPolynomial (LatentVar M n) ℚ :=
   X (LatentLayer.selector, i)
 
-def Xcon (i : Fin (latentBaseVars M n)) : MvPolynomial (LatentVar M n) ℚ :=
+noncomputable def Xcon (i : Fin (latentBaseVars M n)) : MvPolynomial (LatentVar M n) ℚ :=
   X (LatentLayer.consistency, i)
 
 end Vars
@@ -55,15 +55,15 @@ section LocalGadgets
 
 variable (M : DTM) (n : ℕ)
 
-def machineLocalGadget (i : Fin (latentBaseVars M n)) :
+noncomputable def machineLocalGadget (i : Fin (latentBaseVars M n)) :
     MvPolynomial (LatentVar M n) ℚ :=
   1 - Xmach M n i * Xcopy M n i
 
-def consistencyLocalGadget (i : Fin (latentBaseVars M n)) :
+noncomputable def consistencyLocalGadget (i : Fin (latentBaseVars M n)) :
     MvPolynomial (LatentVar M n) ℚ :=
   1 - Xcopy M n i * Xcon M n i
 
-def selectorLocalGadget (i : Fin (latentBaseVars M n)) :
+noncomputable def selectorLocalGadget (i : Fin (latentBaseVars M n)) :
     MvPolynomial (LatentVar M n) ℚ :=
   1 - Xsel M n i * Xcon M n i
 
