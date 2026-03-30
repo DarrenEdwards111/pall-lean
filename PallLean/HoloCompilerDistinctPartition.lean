@@ -2,17 +2,14 @@ import PallLean.HoloCompilerDistinct
 import Mathlib.Tactic
 
 /-!
-# HoloCompilerDistinctPartition
+# HoloCompilerDistinctPartition — Fin-indexed distinct-layer encoding
 
-Fin-indexed partition and extraction layer for the distinct holographic compiler route.
+Encodes machine/verifier/aux layers into `Fin (3 * baseN)`:
+- Machine  slot i = 3*i
+- Verifier slot i = 3*i + 1
+- Aux      slot i = 3*i + 2
 
-The `mlBlockedSpdpRank` API requires `BlockPartition n` and `MvPolynomial (Fin n)`.
-This module provides:
-- A block partition on `Fin (holoDistinctVars M n)` grouping each triple
-  `{machSlot i, verSlot i, auxSlot i}` into block `i`.
-- Extraction algebra homomorphisms that project individual layers to the base
-  variable space `Fin (holoBaseVars M n)`.
-- Simp lemmas for extraction applied to each slot type.
+This gives a `Fin n` variable space compatible with `mlBlockedSpdpRank`.
 -/
 
 namespace HoloCompilerDistinctPartition
@@ -20,91 +17,117 @@ namespace HoloCompilerDistinctPartition
 open SPDP MultilinearSPDP NPWitness Compiler TuringMachine MvPolynomial
 open HoloCompilerDistinct
 
-/-- Partition on the Fin-indexed distinct variable space:
-groups `{3i, 3i+1, 3i+2}` into block `i`. -/
-def holoDistinctPartitionFin (M : DTM) (n : ℕ) :
-    BlockPartition (holoDistinctVars M n) where
+/-- Total variable count for distinct-layer encoding: 3 copies per base variable. -/
+def distinctNumVars (M : DTM) (n : ℕ) : ℕ := 3 * holoBaseVars M n
+
+private theorem three_i_lt (M : DTM) (n : ℕ) (i : Fin (holoBaseVars M n)) :
+    3 * i.val < distinctNumVars M n := by
+  unfold distinctNumVars; omega
+
+private theorem three_i_plus_one_lt (M : DTM) (n : ℕ) (i : Fin (holoBaseVars M n)) :
+    3 * i.val + 1 < distinctNumVars M n := by
+  unfold distinctNumVars; omega
+
+private theorem three_i_plus_two_lt (M : DTM) (n : ℕ) (i : Fin (holoBaseVars M n)) :
+    3 * i.val + 2 < distinctNumVars M n := by
+  unfold distinctNumVars; omega
+
+private theorem div3_lt (M : DTM) (n : ℕ) (j : Fin (distinctNumVars M n)) :
+    j.val / 3 < holoBaseVars M n := by
+  have := j.isLt; unfold distinctNumVars at this; omega
+
+/-- Machine slot for base index i. -/
+def machSlot (M : DTM) (n : ℕ) (i : Fin (holoBaseVars M n)) :
+    Fin (distinctNumVars M n) :=
+  ⟨3 * i.val, three_i_lt M n i⟩
+
+/-- Verifier slot for base index i. -/
+def verSlot (M : DTM) (n : ℕ) (i : Fin (holoBaseVars M n)) :
+    Fin (distinctNumVars M n) :=
+  ⟨3 * i.val + 1, three_i_plus_one_lt M n i⟩
+
+/-- Aux slot for base index i. -/
+def auxSlot (M : DTM) (n : ℕ) (i : Fin (holoBaseVars M n)) :
+    Fin (distinctNumVars M n) :=
+  ⟨3 * i.val + 2, three_i_plus_two_lt M n i⟩
+
+/-- Machine-layer variable polynomial. -/
+noncomputable def XMach (M : DTM) (n : ℕ)
+    (i : Fin (holoBaseVars M n)) : MvPolynomial (Fin (distinctNumVars M n)) ℚ :=
+  X (machSlot M n i)
+
+/-- Verifier-layer variable polynomial. -/
+noncomputable def XVer (M : DTM) (n : ℕ)
+    (i : Fin (holoBaseVars M n)) : MvPolynomial (Fin (distinctNumVars M n)) ℚ :=
+  X (verSlot M n i)
+
+/-- Aux-layer variable polynomial. -/
+noncomputable def XAux (M : DTM) (n : ℕ)
+    (i : Fin (holoBaseVars M n)) : MvPolynomial (Fin (distinctNumVars M n)) ℚ :=
+  X (auxSlot M n i)
+
+/-- Block partition: group all 3 copies of base index i into block i. -/
+noncomputable def holoDistinctPartition (M : DTM) (n : ℕ) :
+    BlockPartition (distinctNumVars M n) where
   numBlocks := holoBaseVars M n
-  assign := slotBase M n
+  assign := fun j => ⟨j.val / 3, div3_lt M n j⟩
 
-/-- Extract machine layer to base variable space:
-maps `machSlot i ↦ X i`, all other slots to `0`. -/
-noncomputable def extractMachineLayerFin (M : DTM) (n : ℕ) :
-    MvPolynomial (Fin (holoDistinctVars M n)) ℚ →ₐ[ℚ]
+/-- Verifier-layer extraction: project verifier slots to base vars, kill others. -/
+noncomputable def extractVerifierLayer (M : DTM) (n : ℕ) :
+    MvPolynomial (Fin (distinctNumVars M n)) ℚ →ₐ[ℚ]
       MvPolynomial (Fin (holoBaseVars M n)) ℚ :=
-  MvPolynomial.aeval (fun j : Fin (holoDistinctVars M n) =>
-    if slotLayer M n j = .machine then X (slotBase M n j) else 0)
+  aeval (fun j : Fin (distinctNumVars M n) =>
+    if j.val % 3 = 1 then X ⟨j.val / 3, div3_lt M n j⟩ else 0)
 
-/-- Extract verifier layer to base variable space:
-maps `verSlot i ↦ X i`, all other slots to `0`. -/
-noncomputable def extractVerifierLayerFin (M : DTM) (n : ℕ) :
-    MvPolynomial (Fin (holoDistinctVars M n)) ℚ →ₐ[ℚ]
+/-- Machine-layer extraction: project machine slots to base vars, kill others. -/
+noncomputable def extractMachineLayer (M : DTM) (n : ℕ) :
+    MvPolynomial (Fin (distinctNumVars M n)) ℚ →ₐ[ℚ]
       MvPolynomial (Fin (holoBaseVars M n)) ℚ :=
-  MvPolynomial.aeval (fun j : Fin (holoDistinctVars M n) =>
-    if slotLayer M n j = .verifier then X (slotBase M n j) else 0)
+  aeval (fun j : Fin (distinctNumVars M n) =>
+    if j.val % 3 = 0 then X ⟨j.val / 3, div3_lt M n j⟩ else 0)
 
-section ExtractionLemmas
+/-- Extraction sends verifier variable to base variable. -/
+theorem extractVerifierLayer_XVer (M : DTM) (n : ℕ)
+    (i : Fin (holoBaseVars M n)) :
+    extractVerifierLayer M n (XVer M n i) = X i := by
+  unfold extractVerifierLayer XVer verSlot
+  simp only [aeval_X]
+  have h3 : (3 * i.val + 1) % 3 = 1 := by omega
+  simp only [ite_true, h3]
+  congr 1; exact Fin.ext (by simp; omega)
 
-variable (M : DTM) (n : ℕ)
+/-- Extraction kills machine variable. -/
+theorem extractVerifierLayer_XMach (M : DTM) (n : ℕ)
+    (i : Fin (holoBaseVars M n)) :
+    extractVerifierLayer M n (XMach M n i) = 0 := by
+  unfold extractVerifierLayer XMach machSlot
+  simp only [aeval_X]
+  have h3 : ¬ ((3 * i.val) % 3 = 1) := by omega
+  simp [h3]
 
-@[simp] theorem extractMachineLayerFin_X_machSlot (i : Fin (holoBaseVars M n)) :
-    extractMachineLayerFin M n (X (machSlot M n i)) = X i := by
-  unfold extractMachineLayerFin
-  simp
+/-- Extraction kills aux variable. -/
+theorem extractVerifierLayer_XAux (M : DTM) (n : ℕ)
+    (i : Fin (holoBaseVars M n)) :
+    extractVerifierLayer M n (XAux M n i) = 0 := by
+  unfold extractVerifierLayer XAux auxSlot
+  simp only [aeval_X]
+  have h3 : ¬ ((3 * i.val + 2) % 3 = 1) := by omega
+  simp [h3]
 
-@[simp] theorem extractMachineLayerFin_X_verSlot (i : Fin (holoBaseVars M n)) :
-    extractMachineLayerFin M n (X (verSlot M n i)) = 0 := by
-  unfold extractMachineLayerFin
-  simp
+/-- Machine extraction sends machine variable to base variable. -/
+theorem extractMachineLayer_XMach (M : DTM) (n : ℕ)
+    (i : Fin (holoBaseVars M n)) :
+    extractMachineLayer M n (XMach M n i) = X i := by
+  unfold extractMachineLayer XMach machSlot
+  simp only [aeval_X]
+  have h3 : (3 * i.val) % 3 = 0 := by omega
+  simp [h3]
 
-@[simp] theorem extractMachineLayerFin_X_auxSlot (i : Fin (holoBaseVars M n)) :
-    extractMachineLayerFin M n (X (auxSlot M n i)) = 0 := by
-  unfold extractMachineLayerFin
-  simp
-
-@[simp] theorem extractVerifierLayerFin_X_verSlot (i : Fin (holoBaseVars M n)) :
-    extractVerifierLayerFin M n (X (verSlot M n i)) = X i := by
-  unfold extractVerifierLayerFin
-  simp
-
-@[simp] theorem extractVerifierLayerFin_X_machSlot (i : Fin (holoBaseVars M n)) :
-    extractVerifierLayerFin M n (X (machSlot M n i)) = 0 := by
-  unfold extractVerifierLayerFin
-  simp
-
-@[simp] theorem extractVerifierLayerFin_X_auxSlot (i : Fin (holoBaseVars M n)) :
-    extractVerifierLayerFin M n (X (auxSlot M n i)) = 0 := by
-  unfold extractVerifierLayerFin
-  simp
-
-end ExtractionLemmas
-
-section PaperObligations
-
-/-- Paper-facing remaining obligation:
-local verifier gadgets should extract to the intended witness-side gadget family. -/
-axiom holoDistinct_verifier_gadget_correct (M : DTM) (n : ℕ) :
-  True
-
-/-- Paper-facing remaining obligation:
-the distinct partition gives bounded CEW / local width for the new compiler object. -/
-axiom holoDistinct_partition_cew (M : DTM) (n : ℕ) :
-  True
-
-/-- Paper-facing remaining obligation:
-profile compression on the distinct partition yields polynomial SPDP rank. -/
+/-- Paper-facing remaining obligations (placeholders). -/
+axiom holoDistinct_verifier_gadget_correct (M : DTM) (n : ℕ) : True
+axiom holoDistinct_partition_cew (M : DTM) (n : ℕ) : True
 axiom holoDistinct_profile_compression (M : DTM) (n : ℕ)
-    (hn : n ≥ max 4 M.numStates)
-    (κ : ℕ) (hκ : κ ≥ 5) :
-  True
-
-/-- Paper-facing remaining obligation:
-the verifier-layer extraction is rank-monotone from the distinct object
-back to the base witness space. -/
-axiom holoDistinct_extraction_monotone (M : DTM) (n : ℕ)
-    (κ ℓ : ℕ) :
-  True
-
-end PaperObligations
+    (hn : n ≥ max 4 M.numStates) (κ : ℕ) (hκ : κ ≥ 5) : True
+axiom holoDistinct_extraction_monotone (M : DTM) (n : ℕ) (κ ℓ : ℕ) : True
 
 end HoloCompilerDistinctPartition
