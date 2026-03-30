@@ -88,6 +88,58 @@ noncomputable def extractMachine (M : DTM) (n : ℕ) :
   aeval (fun j : Fin (latentNumVars M n) =>
     if j.val % 4 = 0 then X ⟨j.val / 4, div4_lt M n j⟩ else 0)
 
+/-- Selector slots are injective on base indices. -/
+theorem selSlot_injective (M : DTM) (n : ℕ) : Function.Injective (selSlot M n) := by
+  intro a b hab
+  simp [selSlot, slot] at hab
+  exact Fin.ext (by omega)
+
+/-- Under latentPartition, selector slot i lands in block i. -/
+theorem latentPartition_assign_selSlot (M : DTM) (n : ℕ)
+    (i : Fin (latentBaseVars M n)) :
+    (latentPartition M n).assign (selSlot M n i) = i := by
+  simp [latentPartition, selSlot, slot]
+  exact Fin.ext (by simp; omega)
+
+/-- Admissibility of selector-slot lists: one selector slot per base block. -/
+theorem selSlotList_admissible (M : DTM) (n : ℕ)
+    (S : List (Fin (latentBaseVars M n))) (hnd : S.Nodup) :
+    isBlockAdmissible (latentPartition M n) (S.map (selSlot M n)) := by
+  constructor
+  · exact hnd.map (selSlot_injective M n)
+  · intro b
+    by_contra hgt
+    push_neg at hgt
+    set filt := (S.map (selSlot M n)).filter (fun j => (latentPartition M n).assign j = b)
+    have hmap_nd : (S.map (selSlot M n)).Nodup := hnd.map (selSlot_injective M n)
+    have hfilt_nd : filt.Nodup := hmap_nd.filter _
+    have h0 : 0 < filt.length := by omega
+    have h1 : 1 < filt.length := by omega
+    have hx_mem : filt[0] ∈ filt := List.getElem_mem h0
+    have hy_mem : filt[1] ∈ filt := List.getElem_mem h1
+    rw [List.mem_filter] at hx_mem hy_mem
+    obtain ⟨hx_in, hx_bl⟩ := hx_mem
+    obtain ⟨hy_in, hy_bl⟩ := hy_mem
+    rw [List.mem_map] at hx_in hy_in
+    obtain ⟨a, _, ha⟩ := hx_in
+    obtain ⟨c, _, hc⟩ := hy_in
+    have hx_eq : (latentPartition M n).assign filt[0] = b := by
+      exact (decide_eq_true_eq.mp hx_bl)
+    have hy_eq : (latentPartition M n).assign filt[1] = b := by
+      exact (decide_eq_true_eq.mp hy_bl)
+    have ha_bl : a = b := by
+      have h2 : (latentPartition M n).assign filt[0] = a := by
+        rw [show filt[0] = selSlot M n a from ha.symm]
+        exact latentPartition_assign_selSlot M n a
+      exact h2.symm.trans hx_eq
+    have hc_bl : c = b := by
+      have h2 : (latentPartition M n).assign filt[1] = c := by
+        rw [show filt[1] = selSlot M n c from hc.symm]
+        exact latentPartition_assign_selSlot M n c
+      exact h2.symm.trans hy_eq
+    have hac : a = c := ha_bl.trans hc_bl.symm
+    exact absurd (hfilt_nd.getElem_inj_iff.mp (by show filt[0] = filt[1]; rw [← ha, ← hc, hac])) (by omega)
+
 section ExtractedWitness
 
 /-- The extracted product witness on base-variable space.
@@ -96,16 +148,26 @@ noncomputable def extractedProductWitness (M : DTM) (n : ℕ) :
     MvPolynomial (Fin (latentBaseVars M n)) ℚ :=
   ∏ i : Fin (latentBaseVars M n), (1 - X i)
 
-/-- NP lower bound on the extracted product witness.
-This is the identity minor argument on ∏(1-X_i):
-- C(N,κ) linearly independent SPDP generators
-- Each from a κ-subset of base indices
-- Yields rank ≥ C(N,κ) ≥ n^{κ/4} -/
-axiom extractedProductWitness_rank_lower (M : DTM) (n : ℕ)
+/-- Identity-minor style lower bound: choose-many selector-slot generators. -/
+axiom extractedProductWitness_choose_lower (M : DTM) (n : ℕ)
+    (κ : ℕ) (hκ : κ ≥ 1) :
+    Nat.choose (latentBaseVars M n) κ ≤
+      mlBlockedSpdpRank (latentPartition M n) κ κ
+        (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n))
+
+/-- Combinatorial lower bound turning choose-count into exponential form. -/
+axiom choose_latentBaseVars_lower (M : DTM) (n : ℕ)
+    (κ : ℕ) (hκ : κ ≥ 5) :
+    n ^ (κ / 4) ≤ Nat.choose (latentBaseVars M n) κ
+
+/-- Assembled NP lower bound on extracted product witness. -/
+theorem extractedProductWitness_rank_lower (M : DTM) (n : ℕ)
     (κ : ℕ) (hκ : κ ≥ 5) :
     n ^ (κ / 4) ≤
       mlBlockedSpdpRank (latentPartition M n) κ κ
-        (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n))
+        (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n)) :=
+  le_trans (choose_latentBaseVars_lower M n κ hκ)
+           (extractedProductWitness_choose_lower M n κ (by omega))
 
 /-- Extraction monotonicity: extracting a layer is rank-monotone.
 Paper Lemma 7 applied to the selector projection. -/
