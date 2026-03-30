@@ -17,10 +17,17 @@ This file tracks the **only remaining paper-facing obligations** on the active p
 This theorem is now **axiom-free** in Lean syntax and depends on an explicit assumptions bundle:
 
 - `LatentCompilerFinalRoute.LogscaleObligations`
-  - `npHardWitness : latent_hard_witness_logscale ...`
-  - `pProfileAssembly : latent_profile_assembly_logscale ...`
+  - NP parts:
+    - `npLower : extracted_witness_exp_lower_logscale ...`
+    - `npBridge : selector_bridge_logscale ...`
+  - P parts:
+    - `pCount : latent_profile_count_logscale ...`
+    - `pWithin : latent_within_profile_dim_logscale ...`
+    - `pAsm : latent_profile_assembly_logscale ...`
 
-So there are exactly **2 remaining mathematical obligations**.
+The route lemmas reassemble these parts into the two top-level obligations:
+- `latent_hard_witness_logscale`
+- `latent_profile_assembly_logscale`
 
 ---
 

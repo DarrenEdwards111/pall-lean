@@ -33,12 +33,18 @@ structure PeqNP where
   sat_decider : DTM
   decides_sat : True
 
-/-- Bundled paper-facing obligations at contradiction scale. -/
+/-- Bundled paper-facing obligations at contradiction scale.
+Split into NP parts + P parts, then assembled through route lemmas. -/
 structure LogscaleObligations (M : DTM) (n : ℕ)
     (hnM : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804) where
-  npHardWitness : latent_hard_witness_logscale M n hn804
-  pProfileAssembly : latent_profile_assembly_logscale M n hnM hn804
+  -- NP-side parts
+  npLower : extracted_witness_exp_lower_logscale M n hn804
+  npBridge : selector_bridge_logscale M n hn804
+  -- P-side parts
+  pCount : latent_profile_count_logscale M n hn804
+  pWithin : latent_within_profile_dim_logscale M n hn804
+  pAsm : latent_profile_assembly_logscale M n hnM hn804
 
 /-- Derived machine-size bound from the contradiction-scale threshold assumption. -/
 lemma hnM_of_hn (h : PeqNP) (n : ℕ)
@@ -64,13 +70,17 @@ theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
   let κ := Nat.log 2 n
 
-  -- NP side (assembled obligation)
-  have hNP := latent_extracts_hard_witness_decomp M n hn804 hObl.npHardWitness κ rfl
+  -- NP side (assembled from parts)
+  have hNPobl : latent_hard_witness_logscale M n hn804 :=
+    latent_hard_witness_logscale_from_parts M n hn804 hObl.npLower hObl.npBridge
+  have hNP := latent_extracts_hard_witness_decomp M n hn804 hNPobl κ rfl
 
-  -- P side (assembled obligation)
+  -- P side (assembled from parts)
+  have hPobl : latent_profile_assembly_logscale M n hnM hn804 :=
+    latent_profile_assembly_logscale_from_parts M n hnM hn804 hObl.pCount hObl.pWithin hObl.pAsm
   have hP : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 200 :=
-    latent_width_rank_from_decomp M n hnM hn804 hObl.pProfileAssembly
+    latent_width_rank_from_decomp M n hnM hn804 hPobl
 
   have hchain : n ^ (κ / 4) ≤ n ^ 200 := le_trans hNP hP
   have hexp : n ^ 200 < n ^ (κ / 4) := by
