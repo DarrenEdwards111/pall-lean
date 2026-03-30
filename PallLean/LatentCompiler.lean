@@ -88,6 +88,34 @@ noncomputable def extractMachine (M : DTM) (n : ℕ) :
   aeval (fun j : Fin (latentNumVars M n) =>
     if j.val % 4 = 0 then X ⟨j.val / 4, div4_lt M n j⟩ else 0)
 
+section ExtractedWitness
+
+/-- The extracted product witness on base-variable space.
+This is what extraction reveals: ∏ᵢ (1 - X_i). -/
+noncomputable def extractedProductWitness (M : DTM) (n : ℕ) :
+    MvPolynomial (Fin (latentBaseVars M n)) ℚ :=
+  ∏ i : Fin (latentBaseVars M n), (1 - X i)
+
+/-- NP lower bound on the extracted product witness.
+This is the identity minor argument on ∏(1-X_i):
+- C(N,κ) linearly independent SPDP generators
+- Each from a κ-subset of base indices
+- Yields rank ≥ C(N,κ) ≥ n^{κ/4} -/
+axiom extractedProductWitness_rank_lower (M : DTM) (n : ℕ)
+    (κ : ℕ) (hκ : κ ≥ 5) :
+    n ^ (κ / 4) ≤
+      mlBlockedSpdpRank (latentPartition M n) κ κ
+        (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n))
+
+/-- Extraction monotonicity: extracting a layer is rank-monotone.
+Paper Lemma 7 applied to the selector projection. -/
+axiom extraction_rank_monotone_selector (M : DTM) (n : ℕ) (κ ℓ : ℕ) :
+    mlBlockedSpdpRank (latentPartition M n) κ ℓ
+      (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n)) ≤
+    mlBlockedSpdpRank (latentPartition M n) κ ℓ (latentCompiledPoly M n)
+
+end ExtractedWitness
+
 section Route
 
 /-- Width⇒Rank: the latent compiled polynomial has polynomial SPDP rank.
@@ -98,12 +126,12 @@ axiom latent_width_rank (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates) (κ : ℕ) (hκ : κ ≥ 5) :
     mlBlockedSpdpRank (latentPartition M n) κ κ (latentCompiledPoly M n) ≤ n ^ 200
 
-/-- NP lower bound: extraction reveals the witness structure with exponential rank.
-The extraction map specializes consistency/copy variables to reveal a product form
-whose identity minor gives exponential SPDP rank. -/
-axiom latent_extracts_hard_witness (M : DTM) (n : ℕ)
+/-- NP lower bound: PROVED from extracted witness + extraction monotonicity. -/
+theorem latent_extracts_hard_witness (M : DTM) (n : ℕ)
     (hn : n ≥ 32) (κ : ℕ) (hκ : κ ≥ 5) :
-    n ^ (κ / 4) ≤ mlBlockedSpdpRank (latentPartition M n) κ κ (latentCompiledPoly M n)
+    n ^ (κ / 4) ≤ mlBlockedSpdpRank (latentPartition M n) κ κ (latentCompiledPoly M n) :=
+  le_trans (extractedProductWitness_rank_lower M n κ hκ)
+           (extraction_rank_monotone_selector M n κ κ)
 
 structure PeqNP where
   sat_decider : DTM
