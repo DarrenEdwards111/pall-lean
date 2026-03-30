@@ -29,13 +29,15 @@ theorem witness_generators_independent (M : DTM) (n : ℕ)
     (κ : ℕ) :
     True := trivial
 
-/-- Assembled extracted-witness lower bound at contradiction scale.
-This bundles identity-minor count + combinatorial growth into one NP-side claim
-at κ = log₂ n (exactly the final theorem scale). -/
-axiom extractedProductWitness_exp_lower_from_decomp_logscale (M : DTM) (n : ℕ)
+/-- NP-side assembled lower bound at contradiction scale.
+This bundles:
+1) extracted-witness identity-minor lower bound at κ = log₂ n
+2) selector extraction rank-monotonicity bridge
+into one paper-facing NP theorem obligation. -/
+axiom latent_hard_witness_logscale (M : DTM) (n : ℕ)
     (hn804 : n ≥ 2 ^ 804) :
     n ^ (Nat.log 2 n / 4) ≤
       mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-        (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n))
+        (latentCompiledPoly M n)
 
 end LatentWitnessMinorDecomp
