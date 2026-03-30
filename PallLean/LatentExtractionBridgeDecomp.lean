@@ -31,28 +31,28 @@ theorem selector_generator_lift (M : DTM) (n : ℕ) :
   unfold extractedProductWitness
   simp [slot, selSlot]
 
-/-- Final assembly obligation for extraction monotonicity after compatibility + lift.
-This is the remaining paper-facing bridge claim (Lemma 7 style). -/
-axiom selector_extraction_monotone_assembly (M : DTM) (n : ℕ)
-    (κ ℓ : ℕ) :
-    mlBlockedSpdpRank (latentPartition M n) κ ℓ
+/-- Final assembly obligation for extraction monotonicity at the
+log-scale parameters used in the contradiction (κ = ℓ = log₂ n). -/
+axiom selector_extraction_monotone_assembly_logscale (M : DTM) (n : ℕ)
+    (hn804 : n ≥ 2 ^ 804) :
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n)) ≤
-    mlBlockedSpdpRank (latentPartition M n) κ ℓ (latentCompiledPoly M n)
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n) (latentCompiledPoly M n)
 
-/-- Assembled extraction-rank monotonicity (decomposed route).
-Uses the two geometric bridge facts as prerequisites and discharges
-with the final assembly obligation. -/
+/-- Assembled extraction-rank monotonicity at contradiction scale.
+Uses compatibility + lift prerequisites and discharges with the log-scale
+assembly obligation. -/
 theorem extraction_rank_monotone_selector_from_decomp (M : DTM) (n : ℕ)
-    (κ ℓ : ℕ) :
-    mlBlockedSpdpRank (latentPartition M n) κ ℓ
+    (hn804 : n ≥ 2 ^ 804) :
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n)) ≤
-    mlBlockedSpdpRank (latentPartition M n) κ ℓ (latentCompiledPoly M n) := by
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n) (latentCompiledPoly M n) := by
   have _hCompat : isBlockAdmissible (latentPartition M n) (([] : List (Fin (latentBaseVars M n))).map (selSlot M n)) :=
     selector_extraction_partition_compat M n [] List.nodup_nil
   have _hLift : MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n) =
       ∏ i : Fin (latentBaseVars M n),
         (1 - X (selSlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
     selector_generator_lift M n
-  exact selector_extraction_monotone_assembly M n κ ℓ
+  exact selector_extraction_monotone_assembly_logscale M n hn804
 
 end LatentExtractionBridgeDecomp

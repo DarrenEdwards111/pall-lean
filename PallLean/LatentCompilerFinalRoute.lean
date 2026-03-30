@@ -37,7 +37,7 @@ theorem latent_extracts_hard_witness_decomp (M : DTM) (n : ℕ)
   have hextract : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n)) ≤
       mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n) (latentCompiledPoly M n) :=
-    extraction_rank_monotone_selector_from_decomp M n (Nat.log 2 n) (Nat.log 2 n)
+    extraction_rank_monotone_selector_from_decomp M n hn804
   exact le_trans hchoose (le_trans hminor hextract)
 
 /-- P = NP assumption package. -/
