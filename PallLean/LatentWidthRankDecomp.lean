@@ -27,23 +27,83 @@ open LatentCompiler
 section Locality
 
 /-- Each raw latent gadget has support in at most 2 variables. -/
-axiom machCopyGadget_local (M : DTM) (n : ℕ)
+theorem machCopyGadget_local (M : DTM) (n : ℕ)
     (i : Fin (latentBaseVars M n)) :
-    (machCopyGadget M n i).vars.card ≤ 2
+    (machCopyGadget M n i).vars.card ≤ 2 := by
+  unfold machCopyGadget Xmach Xcopy
+  have hsub_mul : (X (machSlot M n i) * X (copySlot M n i) :
+      MvPolynomial (Fin (latentNumVars M n)) ℚ).vars ⊆
+      ({machSlot M n i, copySlot M n i} : Finset (Fin (latentNumVars M n))) := by
+    have hmul0 := MvPolynomial.vars_mul (X (machSlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ) (X (copySlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    apply Finset.Subset.trans hmul0
+    intro v hv
+    simp [MvPolynomial.vars_X] at hv ⊢
+    tauto
+  have hsub : (1 - X (machSlot M n i) * X (copySlot M n i) :
+      MvPolynomial (Fin (latentNumVars M n)) ℚ).vars ⊆
+      ({machSlot M n i, copySlot M n i} : Finset (Fin (latentNumVars M n))) := by
+    apply Finset.Subset.trans (MvPolynomial.vars_sub_subset (p := 1)
+      (q := (X (machSlot M n i) * X (copySlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ)))
+    exact Finset.union_subset (by simp) hsub_mul
+  exact le_trans (Finset.card_le_card hsub)
+    (by simpa using (Finset.card_le_two (a := machSlot M n i) (b := copySlot M n i)))
 
-axiom copyConGadget_local (M : DTM) (n : ℕ)
+theorem copyConGadget_local (M : DTM) (n : ℕ)
     (i : Fin (latentBaseVars M n)) :
-    (copyConGadget M n i).vars.card ≤ 2
+    (copyConGadget M n i).vars.card ≤ 2 := by
+  unfold copyConGadget Xcopy Xcon
+  have hsub_mul : (X (copySlot M n i) * X (conSlot M n i) :
+      MvPolynomial (Fin (latentNumVars M n)) ℚ).vars ⊆
+      ({copySlot M n i, conSlot M n i} : Finset (Fin (latentNumVars M n))) := by
+    have hmul0 := MvPolynomial.vars_mul (X (copySlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ) (X (conSlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    apply Finset.Subset.trans hmul0
+    intro v hv
+    simp [MvPolynomial.vars_X] at hv ⊢
+    tauto
+  have hsub : (1 - X (copySlot M n i) * X (conSlot M n i) :
+      MvPolynomial (Fin (latentNumVars M n)) ℚ).vars ⊆
+      ({copySlot M n i, conSlot M n i} : Finset (Fin (latentNumVars M n))) := by
+    apply Finset.Subset.trans (MvPolynomial.vars_sub_subset (p := 1)
+      (q := (X (copySlot M n i) * X (conSlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ)))
+    exact Finset.union_subset (by simp) hsub_mul
+  exact le_trans (Finset.card_le_card hsub)
+    (by simpa using (Finset.card_le_two (a := copySlot M n i) (b := conSlot M n i)))
 
-axiom selConGadget_local (M : DTM) (n : ℕ)
+theorem selConGadget_local (M : DTM) (n : ℕ)
     (i : Fin (latentBaseVars M n)) :
-    (selConGadget M n i).vars.card ≤ 2
+    (selConGadget M n i).vars.card ≤ 2 := by
+  unfold selConGadget Xsel Xcon
+  have hsub_mul : (X (selSlot M n i) * X (conSlot M n i) :
+      MvPolynomial (Fin (latentNumVars M n)) ℚ).vars ⊆
+      ({selSlot M n i, conSlot M n i} : Finset (Fin (latentNumVars M n))) := by
+    have hmul0 := MvPolynomial.vars_mul (X (selSlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ) (X (conSlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    apply Finset.Subset.trans hmul0
+    intro v hv
+    simp [MvPolynomial.vars_X] at hv ⊢
+    tauto
+  have hsub : (1 - X (selSlot M n i) * X (conSlot M n i) :
+      MvPolynomial (Fin (latentNumVars M n)) ℚ).vars ⊆
+      ({selSlot M n i, conSlot M n i} : Finset (Fin (latentNumVars M n))) := by
+    apply Finset.Subset.trans (MvPolynomial.vars_sub_subset (p := 1)
+      (q := (X (selSlot M n i) * X (conSlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ)))
+    exact Finset.union_subset (by simp) hsub_mul
+  exact le_trans (Finset.card_le_card hsub)
+    (by simpa using (Finset.card_le_two (a := selSlot M n i) (b := conSlot M n i)))
 
 /-- All layer-copies of one base index lie in the same block of the latent partition. -/
-axiom latent_same_base_same_block (M : DTM) (n : ℕ)
+theorem latent_same_base_same_block (M : DTM) (n : ℕ)
     (k1 k2 : Fin 4) (i : Fin (latentBaseVars M n)) :
     (latentPartition M n).assign (slot M n k1 i) =
-    (latentPartition M n).assign (slot M n k2 i)
+    (latentPartition M n).assign (slot M n k2 i) := by
+  apply Fin.ext
+  simp [latentPartition, slot]
+  have hdiv1 : (4 * i.val + k1.val) / 4 = i.val := by
+    rw [Nat.add_comm, Nat.add_mul_div_left, Nat.div_eq_of_lt k1.isLt, Nat.zero_add]
+    decide
+  have hdiv2 : (4 * i.val + k2.val) / 4 = i.val := by
+    rw [Nat.add_comm, Nat.add_mul_div_left, Nat.div_eq_of_lt k2.isLt, Nat.zero_add]
+    decide
+  omega
 
 end Locality
 
