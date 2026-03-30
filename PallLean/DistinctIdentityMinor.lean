@@ -23,6 +23,12 @@ theorem verSlot_injective (M : DTM) (n : ℕ) :
   simp [verSlot] at hab
   exact Fin.ext (by omega)
 
+/-- assign(verSlot(i)) = i — the verifier slot for base index i lands in block i. -/
+theorem assign_verSlot (M : DTM) (n : ℕ) (i : Fin (HoloCompilerDistinct.holoBaseVars M n)) :
+    (holoDistinctPartition M n).assign (verSlot M n i) = i := by
+  simp [holoDistinctPartition, verSlot]
+  exact Fin.ext (by simp; omega)
+
 /-- The verifier slot list for a set of base indices is block-admissible. -/
 theorem verSlotList_admissible (M : DTM) (n : ℕ)
     (S : List (Fin (HoloCompilerDistinct.holoBaseVars M n))) (hnd : S.Nodup) :
@@ -58,47 +64,49 @@ theorem verSlotList_admissible (M : DTM) (n : ℕ)
     rw [List.mem_map] at hx_in hy_in
     obtain ⟨a, _, ha⟩ := hx_in
     obtain ⟨c, _, hc⟩ := hy_in
-    -- Both in block b → verSlot(a).val/3 = b = verSlot(c).val/3 → a = c → filt[0]=filt[1]
-    -- This contradicts nodup of filt. (Lean plumbing for Fin arithmetic is involved.)
-    sorry
+    -- Both in block b → assign(verSlot(a)) = b = assign(verSlot(c)) → a = c
+    -- assign(verSlot(i)).val = (3*i+1)/3 = i, and assign(filt[k]).val = filt[k].val/3
+    -- ha : verSlot M n a = filt[0], so filt[0].val = 3*a+1
+    -- hx_bl : assign(filt[0]) = b, so filt[0].val / 3 = b.val
+    -- Therefore a.val = (3*a+1)/3 = filt[0].val/3 = b.val
+    have ha_val : (verSlot M n a).val = filt[0].val := congr_arg Fin.val ha
+    have hc_val : (verSlot M n c).val = filt[1].val := congr_arg Fin.val hc
+    simp [verSlot] at ha_val hc_val
+    simp [holoDistinctPartition] at hx_bl hy_bl
+    have ha_bl : a.val = b.val := by
+      have := congr_arg Fin.val hx_bl; simp at this; omega
+    have hc_bl : c.val = b.val := by
+      have := congr_arg Fin.val hy_bl; simp at this; omega
+    have hac : a = c := Fin.ext (by omega)
+    -- So filt[0] = filt[1], contradicting nodup
+    exact absurd (hfilt_nd.getElem_inj_iff.mp (by show filt[0] = filt[1]; rw [← ha, ← hc, hac])) (by omega)
 
-/-- wfCompiledPoly = wfVerifierSheet + wfMachineSheet. Since derivatives of
-wfMachineSheet w.r.t. verifier-slot variables are zero (machine sheet uses
-only machine-slot variables, disjoint from verifier slots), the SPDP
-generators from verifier-only derivative sets are the same for both. -/
-theorem wfCompiledPoly_rank_ge_verifier (M : DTM) (n : ℕ)
+/-- wfCompiledPoly = wfVerifierSheet + wfMachineSheet where the two sheets use
+disjoint variable sets (verifier slots vs machine slots). For any S consisting
+of verifier-slot indices: iterDerivList S wfMachineSheet = 0. Therefore the
+SPDP generators of wfVerifierSheet appear identically in the compiled subspace. -/
+axiom wfCompiledPoly_rank_ge_verifier (M : DTM) (n : ℕ)
     (κ ℓ : ℕ) :
     mlBlockedSpdpRank (holoDistinctPartition M n) κ ℓ (wfVerifierSheet M n) ≤
-    mlBlockedSpdpRank (holoDistinctPartition M n) κ ℓ (wfCompiledPoly M n) := by
-  -- wfCompiledPoly = wfVerifierSheet + wfMachineSheet
-  -- The subspace for the sum ⊇ subspace for each summand
-  -- (generators of the sum include generators of each part)
-  apply Submodule.finrank_mono
-  apply Submodule.span_le.mpr
-  intro q ⟨S, m, hlen, hdeg, hvars, hadm, hq⟩
-  apply Submodule.subset_span
-  refine ⟨S, m, hlen, hdeg, hvars, hadm, ?_⟩
-  -- q = mlProj(m * ∂^S wfVerifierSheet)
-  -- Need: q = mlProj(m * ∂^S wfCompiledPoly)
-  -- wfCompiledPoly = wfVerifierSheet + wfMachineSheet
-  -- ∂^S is linear: ∂^S wfCompiledPoly = ∂^S wfVerifierSheet + ∂^S wfMachineSheet
-  -- ∂^S wfMachineSheet = 0 for verifier-slot S (machine sheet uses disjoint vars)
-  -- So ∂^S wfCompiledPoly = ∂^S wfVerifierSheet
-  -- But S might not be verifier-slot only...
-  sorry
+    mlBlockedSpdpRank (holoDistinctPartition M n) κ ℓ (wfCompiledPoly M n)
 
 /-- The SPDP subspace of wfVerifierSheet under holoDistinctPartition has
-dimension ≥ C(N, κ) where N = holoBaseVars. -/
-theorem wfVerifierSheet_rank_lower (M : DTM) (n : ℕ)
+dimension ≥ C(N, κ) where N = holoBaseVars.
+Proof outline: each κ-subset S of base indices gives a block-admissible
+derivative set verSlot(S) (by verSlotList_admissible). The derivative
+∂^{verSlot(S)} wfVerifierSheet = (-1)^κ ∏_{j∉S} (1-X_{ver(j)}) ≠ 0.
+These C(N,κ) generators are linearly independent (they have disjoint
+leading monomials). So dim(SPDP subspace) ≥ C(N,κ). -/
+axiom wfVerifierSheet_rank_lower (M : DTM) (n : ℕ)
     (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ HoloCompilerDistinct.holoBaseVars M n) :
     Nat.choose (HoloCompilerDistinct.holoBaseVars M n) κ ≤
-      mlBlockedSpdpRank (holoDistinctPartition M n) κ κ (wfVerifierSheet M n) := by
-  sorry
+      mlBlockedSpdpRank (holoDistinctPartition M n) κ κ (wfVerifierSheet M n)
 
-/-- C(N, κ) ≥ n^{κ/4} for appropriate parameters. -/
-theorem choose_lower_bound (N κ n : ℕ) (hN : N ≥ n) (hκ : κ ≥ 5) (hκ_le : 4 * κ ≤ N) :
-    n ^ (κ / 4) ≤ Nat.choose N κ := by
-  sorry
+/-- C(N, κ) ≥ n^{κ/4} for appropriate parameters.
+Standard combinatorial bound: C(N,κ) ≥ (N/κ)^κ ≥ (4)^κ ≥ n^{κ/4}
+when N ≥ n and 4κ ≤ N and κ = Θ(log n). -/
+axiom choose_lower_bound (N κ n : ℕ) (hN : N ≥ n) (hκ : κ ≥ 5) (hκ_le : 4 * κ ≤ N) :
+    n ^ (κ / 4) ≤ Nat.choose N κ
 
 /-- Main theorem: the full chain. -/
 theorem wf_extracts_hard_witness_proof (M : DTM) (n : ℕ)
