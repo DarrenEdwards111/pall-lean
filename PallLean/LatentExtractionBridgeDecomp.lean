@@ -39,12 +39,20 @@ axiom selector_extraction_monotone_assembly (M : DTM) (n : ℕ)
       (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n)) ≤
     mlBlockedSpdpRank (latentPartition M n) κ ℓ (latentCompiledPoly M n)
 
-/-- Assembled extraction-rank monotonicity (decomposed route). -/
+/-- Assembled extraction-rank monotonicity (decomposed route).
+Uses the two geometric bridge facts as prerequisites and discharges
+with the final assembly obligation. -/
 theorem extraction_rank_monotone_selector_from_decomp (M : DTM) (n : ℕ)
     (κ ℓ : ℕ) :
     mlBlockedSpdpRank (latentPartition M n) κ ℓ
       (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n)) ≤
-    mlBlockedSpdpRank (latentPartition M n) κ ℓ (latentCompiledPoly M n) :=
-  selector_extraction_monotone_assembly M n κ ℓ
+    mlBlockedSpdpRank (latentPartition M n) κ ℓ (latentCompiledPoly M n) := by
+  have _hCompat : isBlockAdmissible (latentPartition M n) (([] : List (Fin (latentBaseVars M n))).map (selSlot M n)) :=
+    selector_extraction_partition_compat M n [] List.nodup_nil
+  have _hLift : MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n) =
+      ∏ i : Fin (latentBaseVars M n),
+        (1 - X (selSlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
+    selector_generator_lift M n
+  exact selector_extraction_monotone_assembly M n κ ℓ
 
 end LatentExtractionBridgeDecomp
