@@ -169,13 +169,6 @@ theorem extractedProductWitness_rank_lower (M : DTM) (n : ℕ)
   le_trans (choose_latentBaseVars_lower M n κ hκ)
            (extractedProductWitness_choose_lower M n κ (by omega))
 
-/-- Extraction monotonicity: extracting a layer is rank-monotone.
-Paper Lemma 7 applied to the selector projection. -/
-axiom extraction_rank_monotone_selector (M : DTM) (n : ℕ) (κ ℓ : ℕ) :
-    mlBlockedSpdpRank (latentPartition M n) κ ℓ
-      (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n)) ≤
-    mlBlockedSpdpRank (latentPartition M n) κ ℓ (latentCompiledPoly M n)
-
 end ExtractedWitness
 
 end LatentCompiler

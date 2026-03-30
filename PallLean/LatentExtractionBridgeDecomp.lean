@@ -31,12 +31,20 @@ theorem selector_generator_lift (M : DTM) (n : ℕ) :
   unfold extractedProductWitness
   simp [slot, selSlot]
 
+/-- Final assembly obligation for extraction monotonicity after compatibility + lift.
+This is the remaining paper-facing bridge claim (Lemma 7 style). -/
+axiom selector_extraction_monotone_assembly (M : DTM) (n : ℕ)
+    (κ ℓ : ℕ) :
+    mlBlockedSpdpRank (latentPartition M n) κ ℓ
+      (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n)) ≤
+    mlBlockedSpdpRank (latentPartition M n) κ ℓ (latentCompiledPoly M n)
+
 /-- Assembled extraction-rank monotonicity (decomposed route). -/
 theorem extraction_rank_monotone_selector_from_decomp (M : DTM) (n : ℕ)
     (κ ℓ : ℕ) :
     mlBlockedSpdpRank (latentPartition M n) κ ℓ
       (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n)) ≤
     mlBlockedSpdpRank (latentPartition M n) κ ℓ (latentCompiledPoly M n) :=
-  extraction_rank_monotone_selector M n κ ℓ
+  selector_extraction_monotone_assembly M n κ ℓ
 
 end LatentExtractionBridgeDecomp
