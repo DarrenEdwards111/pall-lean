@@ -40,18 +40,28 @@ structure LogscaleObligations (M : DTM) (n : ℕ)
   npHardWitness : latent_hard_witness_logscale M n hn804
   pProfileAssembly : latent_profile_assembly_logscale M n hnM hn804
 
+/-- Derived machine-size bound from the contradiction-scale threshold assumption. -/
+lemma hnM_of_hn (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)) :
+    n ≥ max 4 h.sat_decider.numStates :=
+  le_trans (le_max_right _ _) (le_trans (le_max_left _ _) hn)
+
+/-- Derived asymptotic threshold bound from the contradiction-scale assumption. -/
+lemma hn804_of_hn (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)) :
+    n ≥ 2 ^ 804 :=
+  le_trans (le_max_right _ _) hn
+
 /-- P ≠ NP via latent compiler, fully decomposed route usage.
 Requires explicit proofs of the two paper-facing assembled obligations. -/
 theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
-    (hObl : LogscaleObligations h.sat_decider n
-      (le_trans (le_max_right _ _) (le_trans (le_max_left _ _) hn))
-      (le_trans (le_max_right _ _) hn)) : False := by
+    (hObl : LogscaleObligations h.sat_decider n (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
   let M := h.sat_decider
   have hn_left : n ≥ max 32 (max 4 M.numStates) := le_trans (le_max_left _ _) hn
   have hn32 : n ≥ 32 := le_trans (le_max_left _ _) hn_left
-  have hnM : n ≥ max 4 M.numStates := le_trans (le_max_right _ _) hn_left
-  have hn804 : n ≥ 2 ^ 804 := le_trans (le_max_right _ _) hn
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
   let κ := Nat.log 2 n
 
   -- NP side (assembled obligation)
