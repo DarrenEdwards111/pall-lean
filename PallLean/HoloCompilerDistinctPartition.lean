@@ -1,4 +1,6 @@
-import PallLean.HoloCompilerDistinct
+import PallLean.MultilinearSPDP
+import PallLean.NPWitness
+import PallLean.Compiler
 import Mathlib.Tactic
 
 /-!
@@ -15,7 +17,9 @@ This gives a `Fin n` variable space compatible with `mlBlockedSpdpRank`.
 namespace HoloCompilerDistinctPartition
 
 open SPDP MultilinearSPDP NPWitness Compiler TuringMachine MvPolynomial
-open HoloCompilerDistinct
+
+/-- Base variable count (from existing machine-side index space). -/
+def holoBaseVars (M : DTM) (n : ℕ) : ℕ := numVars M n (Nat.log 2 n)
 
 /-- Total variable count for distinct-layer encoding: 3 copies per base variable. -/
 def distinctNumVars (M : DTM) (n : ℕ) : ℕ := 3 * holoBaseVars M n

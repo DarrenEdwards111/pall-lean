@@ -1,4 +1,3 @@
--- Active entrypoint
-import PallLean.PneqNP_Final
+-- Active entrypoint (witness-friendly distinct-layer route)
 import PallLean.HoloCompilerWitnessFriendlyRoute
 import PallLean.DistinctIdentityMinor

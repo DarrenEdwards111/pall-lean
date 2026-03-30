@@ -24,14 +24,14 @@ theorem verSlot_injective (M : DTM) (n : ℕ) :
   exact Fin.ext (by omega)
 
 /-- assign(verSlot(i)) = i — the verifier slot for base index i lands in block i. -/
-theorem assign_verSlot (M : DTM) (n : ℕ) (i : Fin (HoloCompilerDistinct.holoBaseVars M n)) :
+theorem assign_verSlot (M : DTM) (n : ℕ) (i : Fin (HoloCompilerDistinctPartition.holoBaseVars M n)) :
     (holoDistinctPartition M n).assign (verSlot M n i) = i := by
   simp [holoDistinctPartition, verSlot]
   exact Fin.ext (by simp; omega)
 
 /-- The verifier slot list for a set of base indices is block-admissible. -/
 theorem verSlotList_admissible (M : DTM) (n : ℕ)
-    (S : List (Fin (HoloCompilerDistinct.holoBaseVars M n))) (hnd : S.Nodup) :
+    (S : List (Fin (HoloCompilerDistinctPartition.holoBaseVars M n))) (hnd : S.Nodup) :
     isBlockAdmissible (holoDistinctPartition M n)
       (S.map (fun i => verSlot M n i)) := by
   constructor
@@ -83,29 +83,29 @@ theorem verSlotList_admissible (M : DTM) (n : ℕ)
 
 /-- verSlot(i) ≠ machSlot(j) for all i, j. They are different variable slots. -/
 theorem verSlot_ne_machSlot (M : DTM) (n : ℕ)
-    (i : Fin (HoloCompilerDistinct.holoBaseVars M n))
-    (j : Fin (HoloCompilerDistinct.holoBaseVars M n)) :
+    (i : Fin (HoloCompilerDistinctPartition.holoBaseVars M n))
+    (j : Fin (HoloCompilerDistinctPartition.holoBaseVars M n)) :
     verSlot M n i ≠ machSlot M n j := by
   simp [verSlot, machSlot]; omega
 
 /-- pderiv of XMach(j) w.r.t. verifier slot variable = 0. -/
 theorem pderiv_verSlot_XMach (M : DTM) (n : ℕ)
-    (i : Fin (HoloCompilerDistinct.holoBaseVars M n))
-    (j : Fin (HoloCompilerDistinct.holoBaseVars M n)) :
+    (i : Fin (HoloCompilerDistinctPartition.holoBaseVars M n))
+    (j : Fin (HoloCompilerDistinctPartition.holoBaseVars M n)) :
     MvPolynomial.pderiv (verSlot M n i) (XMach M n j) = 0 := by
   exact MvPolynomial.pderiv_X_of_ne (verSlot_ne_machSlot M n i j).symm
 
 /-- pderiv of wfMachineFactor(j) w.r.t. verifier slot i = 0. -/
 theorem pderiv_verSlot_wfMachineFactor (M : DTM) (n : ℕ)
-    (i : Fin (HoloCompilerDistinct.holoBaseVars M n))
-    (j : Fin (HoloCompilerDistinct.holoBaseVars M n)) :
+    (i : Fin (HoloCompilerDistinctPartition.holoBaseVars M n))
+    (j : Fin (HoloCompilerDistinctPartition.holoBaseVars M n)) :
     MvPolynomial.pderiv (verSlot M n i) (wfMachineFactor M n j) = 0 := by
   unfold wfMachineFactor XMach
   simp [map_sub, MvPolynomial.pderiv_X_of_ne (verSlot_ne_machSlot M n i j).symm]
 
 /-- vars(wfMachineSheet) ⊆ image of machSlot (only machine-slot variables appear). -/
 theorem wfMachineFactor_vars_subset (M : DTM) (n : ℕ)
-    (j : Fin (HoloCompilerDistinct.holoBaseVars M n)) :
+    (j : Fin (HoloCompilerDistinctPartition.holoBaseVars M n)) :
     (wfMachineFactor M n j).vars ⊆ {machSlot M n j} := by
   unfold wfMachineFactor XMach
   intro v hv
@@ -131,7 +131,7 @@ theorem wfMachineSheet_vars_subset (M : DTM) (n : ℕ) :
 /-- pderiv of wfMachineSheet w.r.t. verifier slot = 0.
 The machine sheet only involves machine-slot variables; verifier slots are disjoint. -/
 theorem pderiv_verSlot_wfMachineSheet (M : DTM) (n : ℕ)
-    (i : Fin (HoloCompilerDistinct.holoBaseVars M n)) :
+    (i : Fin (HoloCompilerDistinctPartition.holoBaseVars M n)) :
     MvPolynomial.pderiv (verSlot M n i) (wfMachineSheet M n) = 0 := by
   apply MvPolynomial.derivation_eq_zero_of_forall_mem_vars
   intro v hv
@@ -161,8 +161,8 @@ derivative set verSlot(S) (by verSlotList_admissible). The derivative
 These C(N,κ) generators are linearly independent (they have disjoint
 leading monomials). So dim(SPDP subspace) ≥ C(N,κ). -/
 axiom wfVerifierSheet_rank_lower (M : DTM) (n : ℕ)
-    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ HoloCompilerDistinct.holoBaseVars M n) :
-    Nat.choose (HoloCompilerDistinct.holoBaseVars M n) κ ≤
+    (κ : ℕ) (hκ : κ ≥ 5) (hκ_le : κ ≤ HoloCompilerDistinctPartition.holoBaseVars M n) :
+    Nat.choose (HoloCompilerDistinctPartition.holoBaseVars M n) κ ≤
       mlBlockedSpdpRank (holoDistinctPartition M n) κ κ (wfVerifierSheet M n)
 
 /-- C(N, κ) ≥ n^{κ/4} for appropriate parameters.
@@ -175,12 +175,12 @@ axiom choose_lower_bound (N κ n : ℕ) (hN : N ≥ n) (hκ : κ ≥ 5) (hκ_le 
 theorem wf_extracts_hard_witness_proof (M : DTM) (n : ℕ)
     (hn : n ≥ 32)
     (κ : ℕ) (hκ : κ ≥ 5)
-    (hbase : HoloCompilerDistinct.holoBaseVars M n ≥ n)
-    (hκ_le : 4 * κ ≤ HoloCompilerDistinct.holoBaseVars M n) :
+    (hbase : HoloCompilerDistinctPartition.holoBaseVars M n ≥ n)
+    (hκ_le : 4 * κ ≤ HoloCompilerDistinctPartition.holoBaseVars M n) :
     n ^ (κ / 4) ≤
       mlBlockedSpdpRank (holoDistinctPartition M n) κ κ (wfCompiledPoly M n) :=
   le_trans
-    (le_trans (choose_lower_bound (HoloCompilerDistinct.holoBaseVars M n) κ n hbase hκ hκ_le)
+    (le_trans (choose_lower_bound (HoloCompilerDistinctPartition.holoBaseVars M n) κ n hbase hκ hκ_le)
              (wfVerifierSheet_rank_lower M n κ hκ (by omega)))
     (wfCompiledPoly_rank_ge_verifier M n κ κ)
 
