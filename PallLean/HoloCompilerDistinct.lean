@@ -155,4 +155,110 @@ axiom holoDistinct_extracts_witness (M : DTM) (n : ℕ)
 
 end BridgeScaffold
 
+/-! ## Fin-indexed encoding for mlBlockedSpdpRank compatibility
+
+The `mlBlockedSpdpRank` API requires `MvPolynomial (Fin n)` and `BlockPartition n`.
+We encode the three-layer variable space as `Fin (3 * holoBaseVars M n)` with
+machine/verifier/aux slots interleaved at stride 3.
+-/
+
+/-- Total Fin-indexed variable count: three copies of each base variable. -/
+def holoDistinctVars (M : DTM) (n : ℕ) : ℕ := 3 * holoBaseVars M n
+
+section SlotArithmetic
+
+variable (M : DTM) (n : ℕ)
+
+/-- Machine-layer slot: base index i maps to Fin position 3*i. -/
+def machSlot (i : Fin (holoBaseVars M n)) : Fin (holoDistinctVars M n) :=
+  ⟨3 * i.val, by unfold holoDistinctVars; omega⟩
+
+/-- Verifier-layer slot: base index i maps to Fin position 3*i + 1. -/
+def verSlot (i : Fin (holoBaseVars M n)) : Fin (holoDistinctVars M n) :=
+  ⟨3 * i.val + 1, by unfold holoDistinctVars; omega⟩
+
+/-- Auxiliary-layer slot: base index i maps to Fin position 3*i + 2. -/
+def auxSlot (i : Fin (holoBaseVars M n)) : Fin (holoDistinctVars M n) :=
+  ⟨3 * i.val + 2, by unfold holoDistinctVars; omega⟩
+
+/-- Layer classification of a Fin-indexed variable. -/
+def slotLayer (j : Fin (holoDistinctVars M n)) : HoloLayer :=
+  if j.val % 3 = 0 then .machine
+  else if j.val % 3 = 1 then .verifier
+  else .aux
+
+/-- Base index of a Fin-indexed variable. -/
+def slotBase (j : Fin (holoDistinctVars M n)) : Fin (holoBaseVars M n) :=
+  ⟨j.val / 3, by have := j.isLt; unfold holoDistinctVars at *; omega⟩
+
+@[simp] theorem slotLayer_machSlot (i : Fin (holoBaseVars M n)) :
+    slotLayer M n (machSlot M n i) = .machine := by
+  simp only [slotLayer, machSlot, Fin.val_mk]
+  split
+  · rfl
+  · omega
+
+@[simp] theorem slotLayer_verSlot (i : Fin (holoBaseVars M n)) :
+    slotLayer M n (verSlot M n i) = .verifier := by
+  simp only [slotLayer, verSlot, Fin.val_mk]
+  split
+  · omega
+  · split
+    · rfl
+    · omega
+
+@[simp] theorem slotLayer_auxSlot (i : Fin (holoBaseVars M n)) :
+    slotLayer M n (auxSlot M n i) = .aux := by
+  simp only [slotLayer, auxSlot, Fin.val_mk]
+  split
+  · omega
+  · split
+    · omega
+    · rfl
+
+@[simp] theorem slotBase_machSlot (i : Fin (holoBaseVars M n)) :
+    slotBase M n (machSlot M n i) = i := by
+  ext; simp only [slotBase, machSlot, Fin.val_mk]; omega
+
+@[simp] theorem slotBase_verSlot (i : Fin (holoBaseVars M n)) :
+    slotBase M n (verSlot M n i) = i := by
+  ext; simp only [slotBase, verSlot, Fin.val_mk]; omega
+
+@[simp] theorem slotBase_auxSlot (i : Fin (holoBaseVars M n)) :
+    slotBase M n (auxSlot M n i) = i := by
+  ext; simp only [slotBase, auxSlot, Fin.val_mk]; omega
+
+end SlotArithmetic
+
+section FinIndexedPolys
+
+variable (M : DTM) (n : ℕ)
+
+/-- Machine-side local factor on the Fin-indexed space. -/
+noncomputable def holoMachineFactorFin (i : Fin (holoBaseVars M n)) :
+    MvPolynomial (Fin (holoDistinctVars M n)) ℚ :=
+  1 - X (machSlot M n i) * X (auxSlot M n i)
+
+/-- Verifier-side local factor on the Fin-indexed space. -/
+noncomputable def holoVerifierFactorFin (i : Fin (holoBaseVars M n)) :
+    MvPolynomial (Fin (holoDistinctVars M n)) ℚ :=
+  1 - X (verSlot M n i) * X (auxSlot M n i)
+
+/-- Machine sheet on the Fin-indexed space. -/
+noncomputable def holoMachineSheetFin :
+    MvPolynomial (Fin (holoDistinctVars M n)) ℚ :=
+  ∏ i : Fin (holoBaseVars M n), holoMachineFactorFin M n i
+
+/-- Verifier sheet on the Fin-indexed space. -/
+noncomputable def holoVerifierSheetFin :
+    MvPolynomial (Fin (holoDistinctVars M n)) ℚ :=
+  ∏ i : Fin (holoBaseVars M n), holoVerifierFactorFin M n i
+
+/-- Compiled polynomial on the Fin-indexed space, compatible with mlBlockedSpdpRank. -/
+noncomputable def holoCompiledPolyFin :
+    MvPolynomial (Fin (holoDistinctVars M n)) ℚ :=
+  holoVerifierSheetFin M n + holoMachineSheetFin M n
+
+end FinIndexedPolys
+
 end HoloCompilerDistinct

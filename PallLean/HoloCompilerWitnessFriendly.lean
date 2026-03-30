@@ -1,4 +1,4 @@
-import PallLean.HoloCompilerDistinctPartition
+import PallLean.HoloCompilerDistinctLocality
 import Mathlib.Tactic
 
 /-!
@@ -6,9 +6,8 @@ import Mathlib.Tactic
 
 Witness-friendly base-space gadget family used by the distinct-route scaffold.
 
-This module is intentionally minimal and compilation-safe: it provides a concrete
-`wfCompiledPoly` over `Fin (holoBaseVars M n)` so the route theorem can be imported
-in the active graph.
+This module provides concrete base-space polynomials over `Fin (holoBaseVars M n)`
+that serve as extraction targets for the Fin-indexed distinct-layer compiled object.
 -/
 
 namespace HoloCompilerWitnessFriendly
@@ -16,6 +15,7 @@ namespace HoloCompilerWitnessFriendly
 open SPDP MultilinearSPDP NPWitness Compiler TuringMachine MvPolynomial
 open HoloCompilerDistinct
 open HoloCompilerDistinctPartition
+open HoloCompilerDistinctLocality
 
 /-- Witness-friendly verifier factor on the base variable space. -/
 noncomputable def wfVerifierFactor (M : DTM) (n : ℕ)

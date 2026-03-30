@@ -7,14 +7,17 @@ import Mathlib.Tactic
 This file turns the witness-friendly layered gadget family into an explicit proof route.
 
 What is now concrete:
-- a distinct layered polynomial `wfCompiledPoly`;
-- a concrete partition `holoDistinctPartition`;
-- concrete layer extractions with proved behavior on local factors and sheets.
+- a distinct layered polynomial `holoCompiledPolyFin` on `Fin (holoDistinctVars M n)`;
+- a Fin-indexed partition `holoDistinctPartitionFin` grouping each triple of
+  machine/verifier/aux slots into one block;
+- concrete layer extractions with proved behavior on local factors and sheets;
+- proved partition-block consistency and slot injectivity/distinctness.
 
 What remains as the real paper-facing work:
-- prove a CEW / profile-compression bound for `wfCompiledPoly` under `holoDistinctPartition`;
-- connect the verifier-layer extracted sheet to the intended NP witness family strongly enough
-  to recover the lower-bound route.
+- prove a CEW / profile-compression bound for `holoCompiledPolyFin` under
+  `holoDistinctPartitionFin`;
+- connect the verifier-layer extracted sheet to the intended NP witness family
+  strongly enough to recover the lower-bound route.
 -/
 
 namespace HoloCompilerWitnessFriendlyRoute
@@ -22,20 +25,21 @@ namespace HoloCompilerWitnessFriendlyRoute
 open SPDP MultilinearSPDP NPWitness Compiler TuringMachine MvPolynomial
 open HoloCompilerDistinct
 open HoloCompilerDistinctPartition
+open HoloCompilerDistinctLocality
 open HoloCompilerWitnessFriendly
 
-/-- Width⇒Rank target for the witness-friendly distinct object. -/
+/-- Width⇒Rank target for the witness-friendly distinct object on the Fin-indexed space. -/
 axiom wf_width_rank (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (κ : ℕ) (hκ : κ ≥ 5) :
-    mlBlockedSpdpRank (holoDistinctPartition M n) κ κ (wfCompiledPoly M n) ≤ n ^ 200
+    mlBlockedSpdpRank (holoDistinctPartitionFin M n) κ κ (holoCompiledPolyFin M n) ≤ n ^ 200
 
-/-- Extraction target: the verifier-layer view of the witness-friendly object carries the NP witness hardness. -/
+/-- Extraction target: the Fin-indexed compiled object carries the NP witness hardness. -/
 axiom wf_extracts_hard_witness (M : DTM) (n : ℕ)
     (hn : n ≥ 32)
     (κ : ℕ) (hκ : κ ≥ 5) :
     n ^ (κ / 4) ≤
-      mlBlockedSpdpRank (holoDistinctPartition M n) κ κ (wfCompiledPoly M n)
+      mlBlockedSpdpRank (holoDistinctPartitionFin M n) κ κ (holoCompiledPolyFin M n)
 
 /-- P = NP assumption package. -/
 structure PeqNP where
