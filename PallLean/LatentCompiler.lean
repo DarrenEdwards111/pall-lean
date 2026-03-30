@@ -148,26 +148,11 @@ noncomputable def extractedProductWitness (M : DTM) (n : ℕ) :
     MvPolynomial (Fin (latentBaseVars M n)) ℚ :=
   ∏ i : Fin (latentBaseVars M n), (1 - X i)
 
-/-- Identity-minor style lower bound: choose-many selector-slot generators. -/
-axiom extractedProductWitness_choose_lower (M : DTM) (n : ℕ)
-    (κ : ℕ) (hκ : κ ≥ 1) :
-    Nat.choose (latentBaseVars M n) κ ≤
-      mlBlockedSpdpRank (latentPartition M n) κ κ
-        (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n))
-
-/-- Combinatorial lower bound turning choose-count into exponential form. -/
+/-- Combinatorial lower bound turning choose-count into exponential form.
+(The identity-minor rank step is carried in LatentWitnessMinorDecomp.) -/
 axiom choose_latentBaseVars_lower (M : DTM) (n : ℕ)
     (κ : ℕ) (hκ : κ ≥ 5) :
     n ^ (κ / 4) ≤ Nat.choose (latentBaseVars M n) κ
-
-/-- Assembled NP lower bound on extracted product witness. -/
-theorem extractedProductWitness_rank_lower (M : DTM) (n : ℕ)
-    (κ : ℕ) (hκ : κ ≥ 5) :
-    n ^ (κ / 4) ≤
-      mlBlockedSpdpRank (latentPartition M n) κ κ
-        (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n)) :=
-  le_trans (choose_latentBaseVars_lower M n κ hκ)
-           (extractedProductWitness_choose_lower M n κ (by omega))
 
 end ExtractedWitness
 

@@ -1,6 +1,7 @@
 import PallLean.LatentCompiler
 import PallLean.LatentWidthRankDecomp
 import PallLean.LatentExtractionBridgeDecomp
+import PallLean.LatentWitnessMinorDecomp
 import Mathlib.Tactic
 
 /-!
@@ -16,13 +17,26 @@ open SPDP MultilinearSPDP NPWitness Compiler TuringMachine MvPolynomial
 open LatentCompiler
 open LatentWidthRankDecomp
 open LatentExtractionBridgeDecomp
+open LatentWitnessMinorDecomp
 
-/-- NP hard-witness theorem via decomposed extraction bridge. -/
+/-- NP hard-witness theorem via decomposed witness-minor + decomposed extraction bridge.
+
+This route avoids the monolithic extractedProductWitness_choose_lower axiom in
+LatentCompiler by using the decomposed theorem from LatentWitnessMinorDecomp. -/
 theorem latent_extracts_hard_witness_decomp (M : DTM) (n : ℕ)
     (_hn : n ≥ 32) (κ : ℕ) (hκ : κ ≥ 5) :
-    n ^ (κ / 4) ≤ mlBlockedSpdpRank (latentPartition M n) κ κ (latentCompiledPoly M n) :=
-  le_trans (extractedProductWitness_rank_lower M n κ hκ)
-    (extraction_rank_monotone_selector_from_decomp M n κ κ)
+    n ^ (κ / 4) ≤ mlBlockedSpdpRank (latentPartition M n) κ κ (latentCompiledPoly M n) := by
+  have hchoose : n ^ (κ / 4) ≤ Nat.choose (latentBaseVars M n) κ :=
+    choose_latentBaseVars_lower M n κ hκ
+  have hminor : Nat.choose (latentBaseVars M n) κ ≤
+      mlBlockedSpdpRank (latentPartition M n) κ κ
+        (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n)) :=
+    extractedProductWitness_choose_lower_from_decomp M n κ (by omega)
+  have hextract : mlBlockedSpdpRank (latentPartition M n) κ κ
+      (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n)) ≤
+      mlBlockedSpdpRank (latentPartition M n) κ κ (latentCompiledPoly M n) :=
+    extraction_rank_monotone_selector_from_decomp M n κ κ
+  exact le_trans hchoose (le_trans hminor hextract)
 
 /-- P = NP assumption package. -/
 structure PeqNP where
