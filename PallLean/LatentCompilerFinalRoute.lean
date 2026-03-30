@@ -24,18 +24,20 @@ open LatentWitnessMinorDecomp
 This route avoids the monolithic extractedProductWitness_choose_lower axiom in
 LatentCompiler by using the decomposed theorem from LatentWitnessMinorDecomp. -/
 theorem latent_extracts_hard_witness_decomp (M : DTM) (n : ℕ)
-    (_hn : n ≥ 32) (κ : ℕ) (hκ : κ ≥ 5) :
+    (hn : n ≥ 32) (κ : ℕ) (hκ : κ ≥ 5)
+    (hk : κ = Nat.log 2 n) :
     n ^ (κ / 4) ≤ mlBlockedSpdpRank (latentPartition M n) κ κ (latentCompiledPoly M n) := by
-  have hchoose : n ^ (κ / 4) ≤ Nat.choose (latentBaseVars M n) κ :=
-    choose_latentBaseVars_lower M n κ hκ
-  have hminor : Nat.choose (latentBaseVars M n) κ ≤
-      mlBlockedSpdpRank (latentPartition M n) κ κ
+  subst hk
+  have hchoose : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (latentBaseVars M n) (Nat.log 2 n) :=
+    choose_latentBaseVars_lower M n hn
+  have hminor : Nat.choose (latentBaseVars M n) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n)) :=
-    extractedProductWitness_choose_lower_from_decomp M n κ (by omega)
-  have hextract : mlBlockedSpdpRank (latentPartition M n) κ κ
+    extractedProductWitness_choose_lower_from_decomp M n (Nat.log 2 n) (by omega)
+  have hextract : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n)) ≤
-      mlBlockedSpdpRank (latentPartition M n) κ κ (latentCompiledPoly M n) :=
-    extraction_rank_monotone_selector_from_decomp M n κ κ
+      mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n) (latentCompiledPoly M n) :=
+    extraction_rank_monotone_selector_from_decomp M n (Nat.log 2 n) (Nat.log 2 n)
   exact le_trans hchoose (le_trans hminor hextract)
 
 /-- P = NP assumption package. -/
@@ -57,7 +59,7 @@ theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
     exact le_trans (by omega) (Nat.log_mono_right hn32)
 
   -- NP side (decomposed extraction bridge)
-  have hNP := latent_extracts_hard_witness_decomp M n hn32 κ hκ
+  have hNP := latent_extracts_hard_witness_decomp M n hn32 κ hκ rfl
 
   -- P side (decomposed Width⇒Rank route)
   have hP := latent_width_rank_from_decomp M n hnM κ hκ

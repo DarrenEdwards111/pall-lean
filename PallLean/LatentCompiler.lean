@@ -148,11 +148,36 @@ noncomputable def extractedProductWitness (M : DTM) (n : ℕ) :
     MvPolynomial (Fin (latentBaseVars M n)) ℚ :=
   ∏ i : Fin (latentBaseVars M n), (1 - X i)
 
-/-- Combinatorial lower bound turning choose-count into exponential form.
-(The identity-minor rank step is carried in LatentWitnessMinorDecomp.) -/
-axiom choose_latentBaseVars_lower (M : DTM) (n : ℕ)
-    (κ : ℕ) (hκ : κ ≥ 5) :
-    n ^ (κ / 4) ≤ Nat.choose (latentBaseVars M n) κ
+/-- Basic size fact: latentBaseVars contains at least the raw input variables. -/
+theorem latentBaseVars_ge_n (M : DTM) (n : ℕ) :
+    n ≤ latentBaseVars M n := by
+  unfold latentBaseVars TuringMachine.numVars
+  set S := TuringMachine.tapeSize M n
+  have hbase : n ≤ n + Nat.log 2 n := Nat.le_add_right n (Nat.log 2 n)
+  have hrest : n + Nat.log 2 n ≤ S * S + S * M.numStates + S * S + (n + Nat.log 2 n) :=
+    Nat.le_add_left _ _
+  calc
+    n ≤ n + Nat.log 2 n := hbase
+    _ ≤ S * S + S * M.numStates + S * S + (n + Nat.log 2 n) := hrest
+    _ = S * S + S * M.numStates + S * S + n + Nat.log 2 n := by omega
+
+/-- Therefore log₂(n) is also bounded by latentBaseVars. -/
+theorem log_le_latentBaseVars (M : DTM) (n : ℕ) :
+    Nat.log 2 n ≤ latentBaseVars M n := by
+  exact le_trans (Nat.log_le_self 2 n) (latentBaseVars_ge_n M n)
+
+/-- Pure combinatorial log-scale lower bound (paper arithmetic side).
+This isolates the remaining non-compiler arithmetic burden from machine details. -/
+axiom choose_logscale_lower (N n : ℕ)
+    (hN : n ≤ N)
+    (hn32 : n ≥ 32) :
+    n ^ (Nat.log 2 n / 4) ≤ Nat.choose N (Nat.log 2 n)
+
+/-- Combinatorial lower bound specialized to latentBaseVars. -/
+theorem choose_latentBaseVars_lower (M : DTM) (n : ℕ)
+    (hn32 : n ≥ 32) :
+    n ^ (Nat.log 2 n / 4) ≤ Nat.choose (latentBaseVars M n) (Nat.log 2 n) :=
+  choose_logscale_lower (latentBaseVars M n) n (latentBaseVars_ge_n M n) hn32
 
 end ExtractedWitness
 
