@@ -33,7 +33,7 @@ theorem latent_extracts_hard_witness_decomp (M : DTM) (n : ℕ)
   have hminor : Nat.choose (latentBaseVars M n) (Nat.log 2 n) ≤
       mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n)) :=
-    extractedProductWitness_choose_lower_from_decomp M n (Nat.log 2 n) (by omega)
+    extractedProductWitness_choose_lower_from_decomp_logscale M n hn804
   have hextract : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n)) ≤
       mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n) (latentCompiledPoly M n) :=
@@ -61,8 +61,10 @@ theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
   -- NP side (decomposed extraction bridge)
   have hNP := latent_extracts_hard_witness_decomp M n hn804 κ hκ rfl
 
-  -- P side (decomposed Width⇒Rank route)
-  have hP := latent_width_rank_from_decomp M n hnM κ hκ
+  -- P side (decomposed Width⇒Rank route at log-scale)
+  have hP : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n) ≤ n ^ 200 :=
+    latent_width_rank_from_decomp M n hnM hn804
 
   have hchain : n ^ (κ / 4) ≤ n ^ 200 := le_trans hNP hP
   have hexp : n ^ 200 < n ^ (κ / 4) := by

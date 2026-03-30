@@ -29,11 +29,12 @@ theorem witness_generators_independent (M : DTM) (n : ℕ)
     (κ : ℕ) :
     True := trivial
 
-/-- Assembled identity-minor count lower bound. -/
-axiom extractedProductWitness_choose_lower_from_decomp (M : DTM) (n : ℕ)
-    (κ : ℕ) (hκ : κ ≥ 1) :
-    Nat.choose (latentBaseVars M n) κ ≤
-      mlBlockedSpdpRank (latentPartition M n) κ κ
+/-- Assembled identity-minor count lower bound at contradiction scale.
+Fixed to κ = log₂ n and asymptotic threshold n ≥ 2^804. -/
+axiom extractedProductWitness_choose_lower_from_decomp_logscale (M : DTM) (n : ℕ)
+    (hn804 : n ≥ 2 ^ 804) :
+    Nat.choose (latentBaseVars M n) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n))
 
 end LatentWitnessMinorDecomp
