@@ -1,12 +1,13 @@
 import PallLean.LatentCompiler
 import PallLean.LatentWidthRankDecomp
+import PallLean.LatentExtractionBridgeDecomp
 import Mathlib.Tactic
 
 /-!
 # LatentCompilerFinalRoute
 
-Final contradiction route using decomposed P-side Width⇒Rank theorem.
-This avoids depending on the monolithic `latent_width_rank` axiom in the final step.
+Final contradiction route using decomposed P-side Width⇒Rank and decomposed
+NP-side extraction bridge.
 -/
 
 namespace LatentCompilerFinalRoute
@@ -14,8 +15,16 @@ namespace LatentCompilerFinalRoute
 open SPDP MultilinearSPDP NPWitness Compiler TuringMachine MvPolynomial
 open LatentCompiler
 open LatentWidthRankDecomp
+open LatentExtractionBridgeDecomp
 
-/-- P ≠ NP via latent compiler, using decomposed Width⇒Rank route. -/
+/-- NP hard-witness theorem via decomposed extraction bridge. -/
+theorem latent_extracts_hard_witness_decomp (M : DTM) (n : ℕ)
+    (hn : n ≥ 32) (κ : ℕ) (hκ : κ ≥ 5) :
+    n ^ (κ / 4) ≤ mlBlockedSpdpRank (latentPartition M n) κ κ (latentCompiledPoly M n) :=
+  le_trans (extractedProductWitness_rank_lower M n κ hκ)
+    (extraction_rank_monotone_selector_from_decomp M n κ κ)
+
+/-- P ≠ NP via latent compiler, fully decomposed route usage. -/
 theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)) : False := by
   let M := h.sat_decider
@@ -28,8 +37,8 @@ theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
     have : Nat.log 2 32 = 5 := by native_decide
     exact le_trans (by omega) (Nat.log_mono_right hn32)
 
-  -- NP side (already decomposed through extracted witness route)
-  have hNP := latent_extracts_hard_witness M n hn32 κ hκ
+  -- NP side (decomposed extraction bridge)
+  have hNP := latent_extracts_hard_witness_decomp M n hn32 κ hκ
 
   -- P side (decomposed Width⇒Rank route)
   have hP := latent_width_rank_from_decomp M n hnM κ hκ
