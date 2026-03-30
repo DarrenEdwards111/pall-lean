@@ -166,18 +166,19 @@ theorem log_le_latentBaseVars (M : DTM) (n : ℕ) :
     Nat.log 2 n ≤ latentBaseVars M n := by
   exact le_trans (Nat.log_le_self 2 n) (latentBaseVars_ge_n M n)
 
-/-- Pure combinatorial log-scale lower bound (paper arithmetic side).
-This isolates the remaining non-compiler arithmetic burden from machine details. -/
+/-- Pure combinatorial log-scale lower bound (paper arithmetic side),
+instantiated only in the asymptotic regime used by the final contradiction.
+This narrows the remaining arithmetic burden to exactly what the proof needs. -/
 axiom choose_logscale_lower (N n : ℕ)
     (hN : n ≤ N)
-    (hn32 : n ≥ 32) :
+    (hn804 : n ≥ 2 ^ 804) :
     n ^ (Nat.log 2 n / 4) ≤ Nat.choose N (Nat.log 2 n)
 
 /-- Combinatorial lower bound specialized to latentBaseVars. -/
 theorem choose_latentBaseVars_lower (M : DTM) (n : ℕ)
-    (hn32 : n ≥ 32) :
+    (hn804 : n ≥ 2 ^ 804) :
     n ^ (Nat.log 2 n / 4) ≤ Nat.choose (latentBaseVars M n) (Nat.log 2 n) :=
-  choose_logscale_lower (latentBaseVars M n) n (latentBaseVars_ge_n M n) hn32
+  choose_logscale_lower (latentBaseVars M n) n (latentBaseVars_ge_n M n) hn804
 
 end ExtractedWitness
 

@@ -24,12 +24,12 @@ open LatentWitnessMinorDecomp
 This route avoids the monolithic extractedProductWitness_choose_lower axiom in
 LatentCompiler by using the decomposed theorem from LatentWitnessMinorDecomp. -/
 theorem latent_extracts_hard_witness_decomp (M : DTM) (n : ℕ)
-    (hn : n ≥ 32) (κ : ℕ) (hκ : κ ≥ 5)
+    (hn804 : n ≥ 2 ^ 804) (κ : ℕ) (hκ : κ ≥ 5)
     (hk : κ = Nat.log 2 n) :
     n ^ (κ / 4) ≤ mlBlockedSpdpRank (latentPartition M n) κ κ (latentCompiledPoly M n) := by
   subst hk
   have hchoose : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (latentBaseVars M n) (Nat.log 2 n) :=
-    choose_latentBaseVars_lower M n hn
+    choose_latentBaseVars_lower M n hn804
   have hminor : Nat.choose (latentBaseVars M n) (Nat.log 2 n) ≤
       mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n)) :=
@@ -59,7 +59,7 @@ theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
     exact le_trans (by omega) (Nat.log_mono_right hn32)
 
   -- NP side (decomposed extraction bridge)
-  have hNP := latent_extracts_hard_witness_decomp M n hn32 κ hκ rfl
+  have hNP := latent_extracts_hard_witness_decomp M n hn804 κ hκ rfl
 
   -- P side (decomposed Width⇒Rank route)
   have hP := latent_width_rank_from_decomp M n hnM κ hκ
