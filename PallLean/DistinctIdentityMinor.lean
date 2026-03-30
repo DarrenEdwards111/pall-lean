@@ -31,9 +31,35 @@ theorem verSlotList_admissible (M : DTM) (n : ℕ)
   constructor
   · exact hnd.map (verSlot_injective M n)
   · intro b
-    -- assign(verSlot(a)) = ⟨(3*a+1)/3, _⟩ = ⟨a, _⟩
-    -- So if two mapped elements land in block b, they came from same base index a
-    -- S.Nodup means at most one such a → filter length ≤ 1
+    -- assign(verSlot(a)).val = (3*a+1)/3 = a. So two elements in block b
+    -- come from the same base index → filter has ≤ 1 element.
+    -- Strategy: filter of nodup list is nodup. Show any two elements in
+    -- the filter are equal. Then nodup + all-equal → length ≤ 1.
+    have hmap_nd := hnd.map (verSlot_injective M n)
+    have hfilt_nd := hmap_nd.filter (fun j => (holoDistinctPartition M n).assign j = b)
+    -- Show: if x, y both in filter, then x = y
+    -- The filter selects verSlot(a) with a.val = b.val.
+    -- S.Nodup + verSlot injective → at most one such a → filter length ≤ 1.
+    -- Direct approach: bound by counting preimages
+    by_contra hgt
+    push_neg at hgt
+    -- hgt: 2 ≤ filter length
+    set filt := (S.map (fun i => verSlot M n i)).filter
+        (fun j => (holoDistinctPartition M n).assign j = b) with hfilt_def
+    have hfilt_nd := hmap_nd.filter (fun j => (holoDistinctPartition M n).assign j = b)
+    have h0 : 0 < filt.length := by omega
+    have h1 : 1 < filt.length := by omega
+    -- Get two elements from the filter
+    have hx_mem : filt[0] ∈ filt := List.getElem_mem h0
+    have hy_mem : filt[1] ∈ filt := List.getElem_mem h1
+    rw [List.mem_filter] at hx_mem hy_mem
+    obtain ⟨hx_in, hx_bl⟩ := hx_mem
+    obtain ⟨hy_in, hy_bl⟩ := hy_mem
+    rw [List.mem_map] at hx_in hy_in
+    obtain ⟨a, _, ha⟩ := hx_in
+    obtain ⟨c, _, hc⟩ := hy_in
+    -- Both in block b → verSlot(a).val/3 = b = verSlot(c).val/3 → a = c → filt[0]=filt[1]
+    -- This contradicts nodup of filt. (Lean plumbing for Fin arithmetic is involved.)
     sorry
 
 /-- wfCompiledPoly = wfVerifierSheet + wfMachineSheet. Since derivatives of
