@@ -81,10 +81,73 @@ theorem verSlotList_admissible (M : DTM) (n : ℕ)
     -- So filt[0] = filt[1], contradicting nodup
     exact absurd (hfilt_nd.getElem_inj_iff.mp (by show filt[0] = filt[1]; rw [← ha, ← hc, hac])) (by omega)
 
-/-- wfCompiledPoly = wfVerifierSheet + wfMachineSheet where the two sheets use
-disjoint variable sets (verifier slots vs machine slots). For any S consisting
-of verifier-slot indices: iterDerivList S wfMachineSheet = 0. Therefore the
-SPDP generators of wfVerifierSheet appear identically in the compiled subspace. -/
+/-- verSlot(i) ≠ machSlot(j) for all i, j. They are different variable slots. -/
+theorem verSlot_ne_machSlot (M : DTM) (n : ℕ)
+    (i : Fin (HoloCompilerDistinct.holoBaseVars M n))
+    (j : Fin (HoloCompilerDistinct.holoBaseVars M n)) :
+    verSlot M n i ≠ machSlot M n j := by
+  simp [verSlot, machSlot]; omega
+
+/-- pderiv of XMach(j) w.r.t. verifier slot variable = 0. -/
+theorem pderiv_verSlot_XMach (M : DTM) (n : ℕ)
+    (i : Fin (HoloCompilerDistinct.holoBaseVars M n))
+    (j : Fin (HoloCompilerDistinct.holoBaseVars M n)) :
+    MvPolynomial.pderiv (verSlot M n i) (XMach M n j) = 0 := by
+  exact MvPolynomial.pderiv_X_of_ne (verSlot_ne_machSlot M n i j).symm
+
+/-- pderiv of wfMachineFactor(j) w.r.t. verifier slot i = 0. -/
+theorem pderiv_verSlot_wfMachineFactor (M : DTM) (n : ℕ)
+    (i : Fin (HoloCompilerDistinct.holoBaseVars M n))
+    (j : Fin (HoloCompilerDistinct.holoBaseVars M n)) :
+    MvPolynomial.pderiv (verSlot M n i) (wfMachineFactor M n j) = 0 := by
+  unfold wfMachineFactor XMach
+  simp [map_sub, MvPolynomial.pderiv_X_of_ne (verSlot_ne_machSlot M n i j).symm]
+
+/-- vars(wfMachineSheet) ⊆ image of machSlot (only machine-slot variables appear). -/
+theorem wfMachineFactor_vars_subset (M : DTM) (n : ℕ)
+    (j : Fin (HoloCompilerDistinct.holoBaseVars M n)) :
+    (wfMachineFactor M n j).vars ⊆ {machSlot M n j} := by
+  unfold wfMachineFactor XMach
+  intro v hv
+  simp only [Finset.mem_singleton]
+  have h1 : (1 : MvPolynomial (Fin (distinctNumVars M n)) ℚ).vars = ∅ := by simp
+  have h2 : (X (machSlot M n j) : MvPolynomial (Fin (distinctNumVars M n)) ℚ).vars =
+    {machSlot M n j} := MvPolynomial.vars_X
+  have hsub := MvPolynomial.vars_sub_subset (R := ℚ) (p := 1)
+    (q := X (machSlot M n j))
+  rw [h1, h2, Finset.empty_union] at hsub
+  exact Finset.mem_singleton.mp (hsub hv)
+
+theorem wfMachineSheet_vars_subset (M : DTM) (n : ℕ) :
+    (wfMachineSheet M n).vars ⊆
+      Finset.image (machSlot M n) Finset.univ := by
+  unfold wfMachineSheet
+  apply (MvPolynomial.vars_prod _).trans
+  apply Finset.biUnion_subset.mpr
+  intro j _
+  apply (wfMachineFactor_vars_subset M n j).trans
+  simp
+
+/-- pderiv of wfMachineSheet w.r.t. verifier slot = 0.
+The machine sheet only involves machine-slot variables; verifier slots are disjoint. -/
+theorem pderiv_verSlot_wfMachineSheet (M : DTM) (n : ℕ)
+    (i : Fin (HoloCompilerDistinct.holoBaseVars M n)) :
+    MvPolynomial.pderiv (verSlot M n i) (wfMachineSheet M n) = 0 := by
+  apply MvPolynomial.derivation_eq_zero_of_forall_mem_vars
+  intro v hv
+  apply MvPolynomial.pderiv_X_of_ne
+  -- v ∈ vars(wfMachineSheet) → v = machSlot(j) for some j
+  -- verSlot(i) ≠ machSlot(j) for any j
+  have hv_mach := wfMachineSheet_vars_subset M n hv
+  simp only [Finset.mem_image, Finset.mem_univ, true_and] at hv_mach
+  obtain ⟨j, rfl⟩ := hv_mach
+  exact (verSlot_ne_machSlot M n i j).symm
+
+/-- The SPDP subspace of wfCompiledPoly ⊇ the subspace of wfVerifierSheet.
+Since iterDerivList S (verifierSheet + machineSheet) = iterDerivList S verifierSheet
++ iterDerivList S machineSheet, and pderiv(verSlot)(machineSheet) = 0 (proved above),
+for S ⊆ verifier slots: iterDerivList S machineSheet = 0.
+The generators of verifierSheet's subspace therefore appear in compiled subspace. -/
 axiom wfCompiledPoly_rank_ge_verifier (M : DTM) (n : ℕ)
     (κ ℓ : ℕ) :
     mlBlockedSpdpRank (holoDistinctPartition M n) κ ℓ (wfVerifierSheet M n) ≤
