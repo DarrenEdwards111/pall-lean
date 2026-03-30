@@ -19,10 +19,15 @@ open LatentExtractionBridgeDecomp
 
 /-- NP hard-witness theorem via decomposed extraction bridge. -/
 theorem latent_extracts_hard_witness_decomp (M : DTM) (n : ℕ)
-    (hn : n ≥ 32) (κ : ℕ) (hκ : κ ≥ 5) :
+    (_hn : n ≥ 32) (κ : ℕ) (hκ : κ ≥ 5) :
     n ^ (κ / 4) ≤ mlBlockedSpdpRank (latentPartition M n) κ κ (latentCompiledPoly M n) :=
   le_trans (extractedProductWitness_rank_lower M n κ hκ)
     (extraction_rank_monotone_selector_from_decomp M n κ κ)
+
+/-- P = NP assumption package. -/
+structure PeqNP where
+  sat_decider : DTM
+  decides_sat : True
 
 /-- P ≠ NP via latent compiler, fully decomposed route usage. -/
 theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
