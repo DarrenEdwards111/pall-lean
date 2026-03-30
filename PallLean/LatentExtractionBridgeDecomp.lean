@@ -17,15 +17,19 @@ namespace LatentExtractionBridgeDecomp
 open SPDP MultilinearSPDP NPWitness Compiler TuringMachine MvPolynomial
 open LatentCompiler
 
-/-- Selector extraction map is compatible with the latent partition's block geometry
-for selector-slot witness generators. -/
-axiom selector_extraction_partition_compat (M : DTM) (n : ℕ)
-    (κ ℓ : ℕ) : True
+/-- Selector-slot derivative lists are block-admissible under latentPartition. -/
+theorem selector_extraction_partition_compat (M : DTM) (n : ℕ)
+    (S : List (Fin (latentBaseVars M n))) (hnd : S.Nodup) :
+    isBlockAdmissible (latentPartition M n) (S.map (selSlot M n)) :=
+  selSlotList_admissible M n S hnd
 
-/-- Every extracted witness generator has a latent preimage generator
-with no SPDP rank loss. -/
-axiom selector_generator_lift (M : DTM) (n : ℕ)
-    (κ ℓ : ℕ) : True
+/-- The extracted product witness lifts back to the selector layer by rename. -/
+theorem selector_generator_lift (M : DTM) (n : ℕ) :
+    MvPolynomial.rename (fun i => slot M n 2 i) (extractedProductWitness M n) =
+      ∏ i : Fin (latentBaseVars M n),
+        (1 - X (selSlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ) := by
+  unfold extractedProductWitness
+  simp [slot, selSlot]
 
 /-- Assembled extraction-rank monotonicity (decomposed route). -/
 theorem extraction_rank_monotone_selector_from_decomp (M : DTM) (n : ℕ)
