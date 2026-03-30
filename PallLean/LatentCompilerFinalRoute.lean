@@ -56,6 +56,20 @@ lemma hn804_of_hn (h : PeqNP) (n : ℕ)
     n ≥ 2 ^ 804 :=
   le_trans (le_max_right _ _) hn
 
+/-- Assemble NP-side top-level obligation from bundled NP parts. -/
+lemma obligations_np_hard (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (hObl : LogscaleObligations h.sat_decider n (hnM_of_hn h n hn) (hn804_of_hn h n hn)) :
+    latent_hard_witness_logscale h.sat_decider n (hn804_of_hn h n hn) :=
+  latent_hard_witness_logscale_from_parts _ _ _ hObl.npLower hObl.npBridge
+
+/-- Assemble P-side top-level obligation from bundled P part. -/
+lemma obligations_p_profile (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (hObl : LogscaleObligations h.sat_decider n (hnM_of_hn h n hn) (hn804_of_hn h n hn)) :
+    latent_profile_assembly_logscale h.sat_decider n (hnM_of_hn h n hn) (hn804_of_hn h n hn) :=
+  latent_profile_assembly_logscale_from_parts _ _ _ _ (by trivial) (by trivial) hObl.pAsm
+
 /-- P ≠ NP via latent compiler, fully decomposed route usage.
 Requires explicit proofs of the two paper-facing assembled obligations. -/
 theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
@@ -70,12 +84,12 @@ theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
 
   -- NP side (assembled from parts)
   have hNPobl : latent_hard_witness_logscale M n hn804 :=
-    latent_hard_witness_logscale_from_parts M n hn804 hObl.npLower hObl.npBridge
+    obligations_np_hard h n hn hObl
   have hNP := latent_extracts_hard_witness_decomp M n hn804 hNPobl κ rfl
 
   -- P side (assembled from parts)
   have hPobl : latent_profile_assembly_logscale M n hnM hn804 :=
-    latent_profile_assembly_logscale_from_parts M n hnM hn804 (by trivial) (by trivial) hObl.pAsm
+    obligations_p_profile h n hn hObl
   have hP : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 200 :=
     latent_width_rank_from_decomp M n hnM hn804 hPobl
