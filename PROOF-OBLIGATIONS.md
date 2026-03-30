@@ -20,10 +20,12 @@ This theorem is now **axiom-free** in Lean syntax and depends on an explicit ass
   - NP parts:
     - `npLower : extracted_witness_exp_lower_logscale ...`
     - `npBridge : selector_bridge_logscale ...`
-  - P parts:
-    - `pCount : latent_profile_count_logscale ...`
-    - `pWithin : latent_within_profile_dim_logscale ...`
+  - P part:
     - `pAsm : latent_profile_assembly_logscale ...`
+
+(Internal route still documents `latent_profile_count_logscale` and
+`latent_within_profile_dim_logscale`, but these are currently discharged
+trivially inside the assembly lemma and are not required from callers.)
 
 The route lemmas reassemble these parts into the two top-level obligations:
 - `latent_hard_witness_logscale`

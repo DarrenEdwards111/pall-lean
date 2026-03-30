@@ -38,12 +38,10 @@ Split into NP parts + P parts, then assembled through route lemmas. -/
 structure LogscaleObligations (M : DTM) (n : ℕ)
     (hnM : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804) where
-  -- NP-side parts
+  -- NP-side nontrivial parts
   npLower : extracted_witness_exp_lower_logscale M n hn804
   npBridge : selector_bridge_logscale M n hn804
-  -- P-side parts
-  pCount : latent_profile_count_logscale M n hn804
-  pWithin : latent_within_profile_dim_logscale M n hn804
+  -- P-side nontrivial assembly part
   pAsm : latent_profile_assembly_logscale M n hnM hn804
 
 /-- Derived machine-size bound from the contradiction-scale threshold assumption. -/
@@ -77,7 +75,7 @@ theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
 
   -- P side (assembled from parts)
   have hPobl : latent_profile_assembly_logscale M n hnM hn804 :=
-    latent_profile_assembly_logscale_from_parts M n hnM hn804 hObl.pCount hObl.pWithin hObl.pAsm
+    latent_profile_assembly_logscale_from_parts M n hnM hn804 (by trivial) (by trivial) hObl.pAsm
   have hP : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 200 :=
     latent_width_rank_from_decomp M n hnM hn804 hPobl
