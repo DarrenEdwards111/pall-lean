@@ -20,20 +20,27 @@ open LatentWitnessMinorDecomp
 /-- NP hard-witness theorem at contradiction scale.
 Now sourced from a single NP-side assembled obligation in witness-minor decomposition. -/
 theorem latent_extracts_hard_witness_decomp (M : DTM) (n : ℕ)
-    (hn804 : n ≥ 2 ^ 804) (κ : ℕ) (hκ : κ ≥ 5)
+    (hn804 : n ≥ 2 ^ 804)
+    (hNPobl : latent_hard_witness_logscale M n hn804)
+    (κ : ℕ) (hκ : κ ≥ 5)
     (hk : κ = Nat.log 2 n) :
     n ^ (κ / 4) ≤ mlBlockedSpdpRank (latentPartition M n) κ κ (latentCompiledPoly M n) := by
   subst hk
-  exact latent_hard_witness_logscale M n hn804
+  simpa [latent_hard_witness_logscale] using hNPobl
 
 /-- P = NP assumption package. -/
 structure PeqNP where
   sat_decider : DTM
   decides_sat : True
 
-/-- P ≠ NP via latent compiler, fully decomposed route usage. -/
+/-- P ≠ NP via latent compiler, fully decomposed route usage.
+Requires explicit proofs of the two paper-facing assembled obligations. -/
 theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
-    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)) : False := by
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (hNPobl : latent_hard_witness_logscale h.sat_decider n (le_trans (le_max_right _ _) hn))
+    (hPobl : latent_profile_assembly_logscale h.sat_decider n
+      (le_trans (le_max_right _ _) (le_trans (le_max_left _ _) hn))
+      (le_trans (le_max_right _ _) hn)) : False := by
   let M := h.sat_decider
   have hn_left : n ≥ max 32 (max 4 M.numStates) := le_trans (le_max_left _ _) hn
   have hn32 : n ≥ 32 := le_trans (le_max_left _ _) hn_left
@@ -44,13 +51,13 @@ theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
     have : Nat.log 2 32 = 5 := by native_decide
     exact le_trans (by omega) (Nat.log_mono_right hn32)
 
-  -- NP side (decomposed extraction bridge)
-  have hNP := latent_extracts_hard_witness_decomp M n hn804 κ hκ rfl
+  -- NP side (assembled obligation)
+  have hNP := latent_extracts_hard_witness_decomp M n hn804 hNPobl κ hκ rfl
 
-  -- P side (decomposed Width⇒Rank route at log-scale)
+  -- P side (assembled obligation)
   have hP : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 200 :=
-    latent_width_rank_from_decomp M n hnM hn804
+    latent_width_rank_from_decomp M n hnM hn804 hPobl
 
   have hchain : n ^ (κ / 4) ≤ n ^ 200 := le_trans hNP hP
   have hexp : n ^ 200 < n ^ (κ / 4) := by

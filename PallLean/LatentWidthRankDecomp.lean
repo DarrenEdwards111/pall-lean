@@ -133,10 +133,12 @@ theorem latent_within_profile_dim (M : DTM) (n : ℕ)
   True := trivial
 
 /-- Assembly theorem (contradiction scale): profile count × within-profile dimension
-at κ = log₂ n gives polynomial total rank. -/
-axiom latent_profile_assembly_logscale (M : DTM) (n : ℕ)
+at κ = log₂ n gives polynomial total rank.
+
+Kept as an explicit proof obligation (Prop) rather than a global axiom. -/
+def latent_profile_assembly_logscale (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
-    (hn804 : n ≥ 2 ^ 804) :
+    (hn804 : n ≥ 2 ^ 804) : Prop :=
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 200
 
@@ -145,9 +147,10 @@ end ProfileCompression
 /-- Decomposed Width⇒Rank route at contradiction scale. -/
 theorem latent_width_rank_from_decomp (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
-    (hn804 : n ≥ 2 ^ 804) :
+    (hn804 : n ≥ 2 ^ 804)
+    (hProfile : latent_profile_assembly_logscale M n hn hn804) :
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 200 :=
-  latent_profile_assembly_logscale M n hn hn804
+  hProfile
 
 end LatentWidthRankDecomp
