@@ -199,6 +199,66 @@ theorem pderiv_selSlot_selConSheet (M : DTM) (n : ℕ)
   unfold selConSheet
   exact pderiv_selSlot_selConProd_of_mem M n Finset.univ j (by simp)
 
+/-! ## κ-level iterated derivative assembly for selCon products -/
+
+private theorem iterDerivList_mul_const_left
+    {n : ℕ} (indices : List (Fin n))
+    (f g : MvPolynomial (Fin n) ℚ)
+    (hf : ∀ i ∈ indices, pderiv i f = 0) :
+    iterDerivList indices (f * g) = f * iterDerivList indices g := by
+  induction indices generalizing g with
+  | nil => simp [iterDerivList]
+  | cons i rest ih =>
+    simp only [iterDerivList, List.foldl]
+    have hi : pderiv i f = 0 := hf i (by simp)
+    rw [MvPolynomial.pderiv_mul, hi, zero_mul, zero_add]
+    exact ih _ (fun j hj => hf j (by simp [hj]))
+
+/-- Full κ-level selector-derivative formula on a finite selCon product.
+For a nodup selector list `ks`, differentiating a selCon product over `s` gives:
+`(-1)^|ks| * (∏_{k∈ks} Xcon(k)) * (∏_{i∈s\ks} selConGadget(i))`. -/
+theorem iterDeriv_selConProd_eq (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n))) (hnd : ks.Nodup)
+    (s : Finset (Fin (latentBaseVars M n))) (hks : ∀ k ∈ ks, k ∈ s) :
+    iterDerivList (ks.map (selSlot M n)) (∏ i ∈ s, selConGadget M n i) =
+      C ((-1 : ℚ)^ks.length) * (ks.map (Xcon M n)).prod *
+        (∏ i ∈ (s \ ks.toFinset), selConGadget M n i) := by
+  induction ks generalizing s with
+  | nil =>
+      simp [iterDerivList]
+  | cons k rest ih =>
+      simp only [List.map_cons]
+      rw [show iterDerivList (selSlot M n k :: rest.map (selSlot M n)) (∏ i ∈ s, selConGadget M n i) =
+          iterDerivList (rest.map (selSlot M n))
+            (pderiv (selSlot M n k) (∏ i ∈ s, selConGadget M n i))
+        from by unfold iterDerivList; simp [List.foldl]]
+      have hk_mem : k ∈ s := hks k (by simp)
+      rw [pderiv_selSlot_selConProd_of_mem M n s k hk_mem]
+
+      have hconst : ∀ i ∈ rest.map (selSlot M n), pderiv i (-(Xcon M n k)) = 0 := by
+        intro i hi
+        obtain ⟨c, _, rfl⟩ := List.mem_map.mp hi
+        have hnot : selSlot M n c ∉ (Xcon M n k).vars := selSlot_not_in_Xcon_vars M n k c
+        rw [map_neg, MvPolynomial.pderiv_eq_zero_of_notMem_vars hnot, neg_zero]
+
+      rw [iterDerivList_mul_const_left _ _ _ hconst]
+
+      have hnd' : rest.Nodup := (List.nodup_cons.mp hnd).2
+      have hk_not : k ∉ rest := (List.nodup_cons.mp hnd).1
+      have hrest_in : ∀ j ∈ rest, j ∈ s.erase k := by
+        intro j hj
+        exact Finset.mem_erase.mpr ⟨fun h => hk_not (h ▸ hj), hks j (by simp [hj])⟩
+
+      rw [ih hnd' (s.erase k) hrest_in]
+      have hset : s.erase k \ rest.toFinset = s \ (k :: rest).toFinset := by
+        ext x
+        simp [Finset.mem_sdiff, Finset.mem_erase, List.toFinset_cons]
+        tauto
+      rw [hset]
+      simp only [List.length_cons, List.prod_cons]
+      rw [pow_succ, map_mul, map_neg, map_one]
+      ring
+
 /-! ## Direct NP lower bound -/
 
 /-- NP-side lower bound at contradiction scale — DIRECT on latentCompiledPoly.
