@@ -27,8 +27,9 @@ This theorem is now **axiom-free** in Lean syntax and depends on an explicit ass
 `latent_within_profile_dim_logscale`, but these are currently discharged
 trivially inside the assembly lemma and are not required from callers.)
 
-The route lemmas reassemble these parts into the two top-level obligations:
-- `theorem223_np_obligation` (alias of `latent_hard_witness_logscale`)
+The route lemmas reassemble NP/P parts into the final contradiction chain using:
+- `theorem223_extraction_obligation` (alias of `selector_bridge_logscale`)
+- `latent_hard_witness_logscale` (assembled NP lower bound)
 - `theorem216_p_obligation` (alias of `latent_profile_assembly_logscale`)
 
 ---
@@ -36,7 +37,8 @@ The route lemmas reassemble these parts into the two top-level obligations:
 ## Obligation 1 (NP side)
 
 ### Name
-`theorem223_np_obligation` (=`latent_hard_witness_logscale`)
+`latent_hard_witness_logscale` (assembled from NP parts, including
+`theorem223_extraction_obligation` = `selector_bridge_logscale`)
 
 ### Location
 `PallLean/LatentWitnessMinorDecomp.lean`
