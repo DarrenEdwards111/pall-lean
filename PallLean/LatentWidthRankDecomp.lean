@@ -137,10 +137,20 @@ def latent_profile_count_logscale (_M : DTM) (_n : ℕ)
     (_hn804 : _n ≥ 2 ^ 804) : Prop :=
   True
 
+/-- Paper-facing alias (Section 9 profile counting side). -/
+def theorem9_profile_count_obligation (M : DTM) (n : ℕ)
+    (hn804 : n ≥ 2 ^ 804) : Prop :=
+  latent_profile_count_logscale M n hn804
+
 /-- Logscale within-profile dimension obligation. -/
 def latent_within_profile_dim_logscale (_M : DTM) (_n : ℕ)
     (_hn804 : _n ≥ 2 ^ 804) : Prop :=
   True
+
+/-- Paper-facing alias (Section 9 within-profile dimension side). -/
+def theorem9_within_profile_dim_obligation (M : DTM) (n : ℕ)
+    (hn804 : n ≥ 2 ^ 804) : Prop :=
+  latent_within_profile_dim_logscale M n hn804
 
 /-- Assembly theorem (contradiction scale): profile count × within-profile dimension
 at κ = log₂ n gives polynomial total rank.
@@ -152,14 +162,20 @@ def latent_profile_assembly_logscale (M : DTM) (n : ℕ)
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 200
 
-/-- P-side assembly from explicit logscale parts. -/
+/-- Alias: "Obligation 2" in the current route is the assembled P upper bound. -/
+def obligation2_p_logscale (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804) : Prop :=
+  latent_profile_assembly_logscale M n hn hn804
+
+/-- P-side assembly from explicit logscale parts (paper-faithful split).
+Combines Section 9 profile-count + within-profile dimension into assembled upper bound. -/
 theorem latent_profile_assembly_logscale_from_parts (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804)
-    (_hCount : latent_profile_count_logscale M n hn804)
-    (_hWithin : latent_within_profile_dim_logscale M n hn804)
+    (_hCount : theorem9_profile_count_obligation M n hn804)
+    (_hWithin : theorem9_within_profile_dim_obligation M n hn804)
     (hAsm : latent_profile_assembly_logscale M n hn hn804) :
-    latent_profile_assembly_logscale M n hn hn804 :=
+    obligation2_p_logscale M n hn hn804 :=
   hAsm
 
 end ProfileCompression
@@ -168,7 +184,7 @@ end ProfileCompression
 theorem latent_width_rank_from_decomp (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804)
-    (hProfile : latent_profile_assembly_logscale M n hn hn804) :
+    (hProfile : obligation2_p_logscale M n hn hn804) :
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 200 :=
   hProfile

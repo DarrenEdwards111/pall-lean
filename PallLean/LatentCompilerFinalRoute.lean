@@ -43,7 +43,7 @@ def theorem223_extraction_obligation (M : DTM) (n : ℕ) (hn804 : n ≥ 2 ^ 804)
 Interpreted here as the assembled profile/Width⇒Rank upper bound for κ = log₂ n. -/
 def theorem216_p_obligation (M : DTM) (n : ℕ)
     (hnM : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804) : Prop :=
-  latent_profile_assembly_logscale M n hnM hn804
+  obligation2_p_logscale M n hnM hn804
 
 /-- Bundled paper-facing obligations at contradiction scale.
 Split into NP parts + P parts, then assembled through route lemmas. -/

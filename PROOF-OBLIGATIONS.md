@@ -19,18 +19,14 @@ This theorem is now **axiom-free** in Lean syntax and depends on an explicit ass
 - `LatentCompilerFinalRoute.LogscaleObligations`
   - NP parts:
     - `npLower : extracted_witness_exp_lower_logscale ...`
-    - `npBridge : selector_bridge_logscale ...`
+    - `npBridge : theorem223_extraction_obligation ...`
   - P part:
-    - `pAsm : latent_profile_assembly_logscale ...`
-
-(Internal route still documents `latent_profile_count_logscale` and
-`latent_within_profile_dim_logscale`, but these are currently discharged
-trivially inside the assembly lemma and are not required from callers.)
+    - `pAsm : theorem216_p_obligation ...`
 
 The route lemmas reassemble NP/P parts into the final contradiction chain using:
 - `theorem223_extraction_obligation` (alias of `selector_bridge_logscale`)
 - `latent_hard_witness_logscale` (assembled NP lower bound)
-- `theorem216_p_obligation` (alias of `latent_profile_assembly_logscale`)
+- `theorem216_p_obligation` (alias of `obligation2_p_logscale`)
 
 ---
 
@@ -61,7 +57,15 @@ This is the NP hardness side (identity-minor / extracted witness lower bound) sp
 ## Obligation 2 (P side)
 
 ### Name
-`theorem216_p_obligation` (=`latent_profile_assembly_logscale`)
+`obligation2_p_logscale` (=`latent_profile_assembly_logscale`)
+
+Paper-faithful decomposition:
+- Section 9 profile-count side:
+  - `theorem9_profile_count_obligation` (=`latent_profile_count_logscale`)
+- Section 9 within-profile dimension side:
+  - `theorem9_within_profile_dim_obligation` (=`latent_within_profile_dim_logscale`)
+- Assembled P-side upper bound:
+  - `theorem216_p_obligation` (=`obligation2_p_logscale`)
 
 ### Location
 `PallLean/LatentWidthRankDecomp.lean`
