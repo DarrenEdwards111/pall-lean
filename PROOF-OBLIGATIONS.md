@@ -28,15 +28,15 @@ This theorem is now **axiom-free** in Lean syntax and depends on an explicit ass
 trivially inside the assembly lemma and are not required from callers.)
 
 The route lemmas reassemble these parts into the two top-level obligations:
-- `latent_hard_witness_logscale`
-- `latent_profile_assembly_logscale`
+- `theorem223_np_obligation` (alias of `latent_hard_witness_logscale`)
+- `theorem216_p_obligation` (alias of `latent_profile_assembly_logscale`)
 
 ---
 
 ## Obligation 1 (NP side)
 
 ### Name
-`latent_hard_witness_logscale`
+`theorem223_np_obligation` (=`latent_hard_witness_logscale`)
 
 ### Location
 `PallLean/LatentWitnessMinorDecomp.lean`
@@ -54,7 +54,7 @@ This is the NP hardness side (identity-minor / extracted witness lower bound) sp
 ## Obligation 2 (P side)
 
 ### Name
-`latent_profile_assembly_logscale`
+`theorem216_p_obligation` (=`latent_profile_assembly_logscale`)
 
 ### Location
 `PallLean/LatentWidthRankDecomp.lean`

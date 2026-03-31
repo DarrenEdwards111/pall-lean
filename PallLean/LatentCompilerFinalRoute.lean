@@ -33,6 +33,17 @@ structure PeqNP where
   sat_decider : DTM
   decides_sat : True
 
+/-- Paper-facing NP obligation (Theorem 223 style) at contradiction scale.
+Interpreted here as the assembled hard-witness lower bound for κ = log₂ n. -/
+def theorem223_np_obligation (M : DTM) (n : ℕ) (hn804 : n ≥ 2 ^ 804) : Prop :=
+  latent_hard_witness_logscale M n hn804
+
+/-- Paper-facing P obligation (Theorem 216 style) at contradiction scale.
+Interpreted here as the assembled profile/Width⇒Rank upper bound for κ = log₂ n. -/
+def theorem216_p_obligation (M : DTM) (n : ℕ)
+    (hnM : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804) : Prop :=
+  latent_profile_assembly_logscale M n hnM hn804
+
 /-- Bundled paper-facing obligations at contradiction scale.
 Split into NP parts + P parts, then assembled through route lemmas. -/
 structure LogscaleObligations (M : DTM) (n : ℕ)
@@ -42,7 +53,7 @@ structure LogscaleObligations (M : DTM) (n : ℕ)
   npLower : extracted_witness_exp_lower_logscale M n hn804
   npBridge : selector_bridge_logscale M n hn804
   -- P-side nontrivial assembly part
-  pAsm : latent_profile_assembly_logscale M n hnM hn804
+  pAsm : theorem216_p_obligation M n hnM hn804
 
 /-- Derived machine-size bound from the contradiction-scale threshold assumption. -/
 lemma hnM_of_hn (h : PeqNP) (n : ℕ)
@@ -60,14 +71,14 @@ lemma hn804_of_hn (h : PeqNP) (n : ℕ)
 lemma obligations_np_hard (h : PeqNP) (n : ℕ)
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
     (hObl : LogscaleObligations h.sat_decider n (hnM_of_hn h n hn) (hn804_of_hn h n hn)) :
-    latent_hard_witness_logscale h.sat_decider n (hn804_of_hn h n hn) :=
+    theorem223_np_obligation h.sat_decider n (hn804_of_hn h n hn) :=
   latent_hard_witness_logscale_from_parts _ _ _ hObl.npLower hObl.npBridge
 
 /-- Assemble P-side top-level obligation from bundled P part. -/
 lemma obligations_p_profile (h : PeqNP) (n : ℕ)
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
     (hObl : LogscaleObligations h.sat_decider n (hnM_of_hn h n hn) (hn804_of_hn h n hn)) :
-    latent_profile_assembly_logscale h.sat_decider n (hnM_of_hn h n hn) (hn804_of_hn h n hn) :=
+    theorem216_p_obligation h.sat_decider n (hnM_of_hn h n hn) (hn804_of_hn h n hn) :=
   latent_profile_assembly_logscale_from_parts _ _ _ _ (by trivial) (by trivial) hObl.pAsm
 
 /-- P ≠ NP via latent compiler, fully decomposed route usage.
