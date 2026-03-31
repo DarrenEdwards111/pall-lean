@@ -17,15 +17,14 @@ This file tracks the **only remaining paper-facing obligations** on the active p
 This theorem is now **axiom-free** in Lean syntax and depends on an explicit assumptions bundle:
 
 - `LatentCompilerFinalRoute.LogscaleObligations`
-  - NP parts:
-    - `npLower : extracted_witness_exp_lower_logscale ...`
-    - `npBridge : theorem223_extraction_obligation ...`
+  - NP part:
+    - `npKron : selCon_kronecker_linear_independence_logscale ...`
   - P part:
     - `pAsm : theorem216_p_obligation ...`
 
 The route lemmas reassemble NP/P parts into the final contradiction chain using:
-- `theorem223_extraction_obligation` (alias of `selector_bridge_logscale`)
-- `latent_hard_witness_logscale` (assembled NP lower bound)
+- `latent_hard_witness_logscale_from_kronecker`
+- `latent_hard_witness_logscale` (NP lower bound)
 - `theorem216_p_obligation` (alias of `obligation2_p_logscale`)
 
 ---

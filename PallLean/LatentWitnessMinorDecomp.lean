@@ -268,14 +268,37 @@ theorem iterDeriv_selConSheet_eq (M : DTM) (n : ℕ)
   unfold selConSheet
   exact iterDeriv_selConProd_eq M n ks hnd Finset.univ (by intro k hk; simp)
 
-/-- Final κ-level Kronecker closure target (remaining NP hard-core step).
-This packages the choose-indexed linear-independence matrix claim needed to finish
-identity-minor lower bounds from `iterDeriv_selConSheet_eq`. -/
-def selCon_kronecker_linear_independence_logscale (M : DTM) (n : ℕ)
+/-- Kronecker/identity-minor choose-rank closure at logscale.
+This is the linear-independence matrix claim after κ-level derivative expansion. -/
+def selCon_choose_rank_logscale (M : DTM) (n : ℕ)
     (_hn804 : n ≥ 2 ^ 804) : Prop :=
-  n ^ (Nat.log 2 n / 4) ≤
+  Nat.choose (latentBaseVars M n) (Nat.log 2 n) ≤
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n)
+
+/-- Numeric choose-vs-n closure at logscale (combinatorial side). -/
+def selCon_choose_numeric_logscale (M : DTM) (n : ℕ)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  n ^ (Nat.log 2 n / 4) ≤ Nat.choose (latentBaseVars M n) (Nat.log 2 n)
+
+/-- Final κ-level NP closure package.
+Split into:
+1) choose-rank (Kronecker linear independence)
+2) choose numeric lower bound -/
+def selCon_kronecker_linear_independence_logscale (M : DTM) (n : ℕ)
+    (hn804 : n ≥ 2 ^ 804) : Prop :=
+  selCon_choose_rank_logscale M n hn804 ∧
+  selCon_choose_numeric_logscale M n hn804
+
+/-- Closing theorem for NP side from the two logscale closures. -/
+theorem latent_hard_witness_logscale_from_kronecker (M : DTM) (n : ℕ)
+    (hn804 : n ≥ 2 ^ 804)
+    (hK : selCon_kronecker_linear_independence_logscale M n hn804) :
+    n ^ (Nat.log 2 n / 4) ≤
+      mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n) := by
+  rcases hK with ⟨hRank, hNum⟩
+  exact le_trans hNum hRank
 
 /-! ## Direct NP lower bound -/
 
@@ -288,8 +311,10 @@ Proof sketch (paper-faithful, Section 18 style):
 2. Remaining selConSheet = ∏(1 - Xsel_i · Xcon_i) has product structure
 3. Tag monomials τ_S = ∏_{j∈S} e_{conSlot j} give Kronecker delta
 4. Linear independence → rank ≥ C(baseVars, κ) ≥ n^(κ/4) -/
-def latent_hard_witness_logscale (M : DTM) (n : ℕ) (hn804 : n ≥ 2 ^ 804) : Prop :=
-  selCon_kronecker_linear_independence_logscale M n hn804
+def latent_hard_witness_logscale (M : DTM) (n : ℕ) (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  n ^ (Nat.log 2 n / 4) ≤
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n)
 
 /-- Alias: "Obligation 1" in the current route is the direct NP lower bound. -/
 def obligation1_np_logscale (M : DTM) (n : ℕ) (hn804 : n ≥ 2 ^ 804) : Prop :=

@@ -45,8 +45,8 @@ P side is the profile assembly obligation. -/
 structure LogscaleObligations (M : DTM) (n : ℕ)
     (hnM : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804) where
-  -- NP-side: direct identity-minor lower bound on latentCompiledPoly
-  npDirect : obligation1_np_logscale M n hn804
+  -- NP-side: κ-level Kronecker closure package
+  npKron : selCon_kronecker_linear_independence_logscale M n hn804
   -- P-side: profile assembly upper bound
   pAsm : theorem216_p_obligation M n hnM hn804
 
@@ -74,8 +74,10 @@ theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
   let κ := Nat.log 2 n
 
-  -- NP side (direct obligation)
-  have hNP := latent_extracts_hard_witness_decomp M n hn804 hObl.npDirect κ rfl
+  -- NP side (from κ-level Kronecker closure package)
+  have hNPdirect : obligation1_np_logscale M n hn804 :=
+    latent_hard_witness_logscale_from_kronecker M n hn804 hObl.npKron
+  have hNP := latent_extracts_hard_witness_decomp M n hn804 hNPdirect κ rfl
 
   -- P side (assembled from profile obligation)
   have hP : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
