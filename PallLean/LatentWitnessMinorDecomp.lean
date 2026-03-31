@@ -129,6 +129,49 @@ theorem iterDerivList_selSlot_latentCompiled_eq_selCon (M : DTM) (n : ℕ)
     iterDerivList_selSlot_copyConSheet_zero M n S hS,
     zero_add, zero_add]
 
+/-! ## selConSheet identity-minor core lemmas -/
+
+private theorem selSlot_not_in_Xcon_vars (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) :
+    selSlot M n j ∉ (Xcon M n i).vars := by
+  unfold Xcon
+  rw [MvPolynomial.vars_X]
+  simp [selSlot_ne_conSlot M n i j]
+
+/-- Derivative of selConGadget at its own selector slot. -/
+theorem pderiv_selSlot_selConGadget_eq (M : DTM) (n : ℕ)
+    (i : Fin (latentBaseVars M n)) :
+    pderiv (selSlot M n i) (selConGadget M n i) = -(Xcon M n i) := by
+  unfold selConGadget Xsel
+  exact ProductDeriv.pderiv_one_sub_mul (selSlot_not_in_Xcon_vars M n i i)
+
+/-- Derivative of selConGadget at a different selector slot is zero. -/
+theorem pderiv_selSlot_selConGadget_ne (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) (hij : i ≠ j) :
+    pderiv (selSlot M n j) (selConGadget M n i) = 0 := by
+  unfold selConGadget Xsel
+  have hneq : selSlot M n j ≠ selSlot M n i := by
+    intro h
+    have hji : j = i := selSlot_injective M n h
+    exact hij hji.symm
+  exact ProductDeriv.pderiv_one_sub_mul_ne hneq (selSlot_not_in_Xcon_vars M n i j)
+
+/-- Single selector derivative of selConSheet isolates one factor by product rule. -/
+theorem pderiv_selSlot_selConSheet (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n)) :
+    pderiv (selSlot M n j) (selConSheet M n) =
+      (-(Xcon M n j)) * (∏ i ∈ (Finset.univ.erase j), selConGadget M n i) := by
+  unfold selConSheet
+  rw [ProductDeriv.pderiv_prod_single
+      (s := Finset.univ)
+      (f := fun i => selConGadget M n i)
+      (i := selSlot M n j)
+      (k := j)
+      (hk := by simp)]
+  · simpa [pderiv_selSlot_selConGadget_eq]
+  · intro i hi hij
+    exact pderiv_selSlot_selConGadget_ne M n i j hij
+
 /-! ## Direct NP lower bound -/
 
 /-- NP-side lower bound at contradiction scale — DIRECT on latentCompiledPoly.
