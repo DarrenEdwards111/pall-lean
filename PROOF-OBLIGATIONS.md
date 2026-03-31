@@ -52,14 +52,16 @@ Paper-faithful route: direct identity-minor lower bound on `latentCompiledPoly`.
 These isolate selConSheet under nonempty selSlot-derivative lists and prove
 selector-derivative hit/miss product rules on arbitrary finite selCon products.
 
-New κ-level assembly theorem proved:
+New κ-level assembly theorems proved:
 - `iterDeriv_selConProd_eq`
+- `iterDeriv_selConSheet_eq`
 
-This gives the closed-form iterated derivative formula over finite selCon products,
-matching the paper's product-derivative backbone.
+This gives the closed-form iterated derivative formula over finite selCon products
+and full `selConSheet`, matching the paper's product-derivative backbone.
 
 Remaining NP step: finish Kronecker matrix/linear-independence closure from this
-closed form (choose-indexed assembly into final rank lower bound).
+closed form (choose-indexed assembly into final rank lower bound), captured as:
+- `selCon_kronecker_linear_independence_logscale`
 
 ### Location
 `PallLean/LatentWitnessMinorDecomp.lean`

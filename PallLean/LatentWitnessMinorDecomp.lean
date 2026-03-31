@@ -259,6 +259,24 @@ theorem iterDeriv_selConProd_eq (M : DTM) (n : ℕ)
       rw [pow_succ, map_mul, map_neg, map_one]
       ring
 
+/-- κ-level iterated derivative closed form specialized to full selConSheet. -/
+theorem iterDeriv_selConSheet_eq (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n))) (hnd : ks.Nodup) :
+    iterDerivList (ks.map (selSlot M n)) (selConSheet M n) =
+      C ((-1 : ℚ)^ks.length) * (ks.map (Xcon M n)).prod *
+        (∏ i ∈ (Finset.univ \ ks.toFinset), selConGadget M n i) := by
+  unfold selConSheet
+  exact iterDeriv_selConProd_eq M n ks hnd Finset.univ (by intro k hk; simp)
+
+/-- Final κ-level Kronecker closure target (remaining NP hard-core step).
+This packages the choose-indexed linear-independence matrix claim needed to finish
+identity-minor lower bounds from `iterDeriv_selConSheet_eq`. -/
+def selCon_kronecker_linear_independence_logscale (M : DTM) (n : ℕ)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  n ^ (Nat.log 2 n / 4) ≤
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n)
+
 /-! ## Direct NP lower bound -/
 
 /-- NP-side lower bound at contradiction scale — DIRECT on latentCompiledPoly.
@@ -270,10 +288,8 @@ Proof sketch (paper-faithful, Section 18 style):
 2. Remaining selConSheet = ∏(1 - Xsel_i · Xcon_i) has product structure
 3. Tag monomials τ_S = ∏_{j∈S} e_{conSlot j} give Kronecker delta
 4. Linear independence → rank ≥ C(baseVars, κ) ≥ n^(κ/4) -/
-def latent_hard_witness_logscale (M : DTM) (n : ℕ) (_hn804 : n ≥ 2 ^ 804) : Prop :=
-  n ^ (Nat.log 2 n / 4) ≤
-    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      (latentCompiledPoly M n)
+def latent_hard_witness_logscale (M : DTM) (n : ℕ) (hn804 : n ≥ 2 ^ 804) : Prop :=
+  selCon_kronecker_linear_independence_logscale M n hn804
 
 /-- Alias: "Obligation 1" in the current route is the direct NP lower bound. -/
 def obligation1_np_logscale (M : DTM) (n : ℕ) (hn804 : n ≥ 2 ^ 804) : Prop :=
