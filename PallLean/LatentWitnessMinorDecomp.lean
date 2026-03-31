@@ -156,21 +156,48 @@ theorem pderiv_selSlot_selConGadget_ne (M : DTM) (n : ℕ)
     exact hij hji.symm
   exact ProductDeriv.pderiv_one_sub_mul_ne hneq (selSlot_not_in_Xcon_vars M n i j)
 
+/-- Selector derivative on a finite selCon product (hit case). -/
+theorem pderiv_selSlot_selConProd_of_mem (M : DTM) (n : ℕ)
+    (T : Finset (Fin (latentBaseVars M n)))
+    (j : Fin (latentBaseVars M n)) (hj : j ∈ T) :
+    pderiv (selSlot M n j) (∏ i ∈ T, selConGadget M n i) =
+      (-(Xcon M n j)) * (∏ i ∈ (T.erase j), selConGadget M n i) := by
+  rw [ProductDeriv.pderiv_prod_single
+      (s := T)
+      (f := fun i => selConGadget M n i)
+      (i := selSlot M n j)
+      (k := j)
+      (hk := hj)]
+  · simpa [pderiv_selSlot_selConGadget_eq]
+  · intro i hi hij
+    exact pderiv_selSlot_selConGadget_ne M n i j hij
+
+/-- Selector derivative on a finite selCon product (miss case). -/
+theorem pderiv_selSlot_selConProd_of_not_mem (M : DTM) (n : ℕ)
+    (T : Finset (Fin (latentBaseVars M n)))
+    (j : Fin (latentBaseVars M n)) (hj : j ∉ T) :
+    pderiv (selSlot M n j) (∏ i ∈ T, selConGadget M n i) = 0 := by
+  induction T using Finset.induction_on with
+  | empty => simp
+  | insert a T ha ih =>
+      have hja : j ≠ a := by
+        intro h
+        apply hj
+        simp [h, ha]
+      have hjT : j ∉ T := by
+        intro h
+        apply hj
+        simp [h, ha]
+      rw [Finset.prod_insert ha, MvPolynomial.pderiv_mul]
+      simp [pderiv_selSlot_selConGadget_ne M n a j (by simpa [eq_comm] using hja), ih hjT]
+
 /-- Single selector derivative of selConSheet isolates one factor by product rule. -/
 theorem pderiv_selSlot_selConSheet (M : DTM) (n : ℕ)
     (j : Fin (latentBaseVars M n)) :
     pderiv (selSlot M n j) (selConSheet M n) =
       (-(Xcon M n j)) * (∏ i ∈ (Finset.univ.erase j), selConGadget M n i) := by
   unfold selConSheet
-  rw [ProductDeriv.pderiv_prod_single
-      (s := Finset.univ)
-      (f := fun i => selConGadget M n i)
-      (i := selSlot M n j)
-      (k := j)
-      (hk := by simp)]
-  · simpa [pderiv_selSlot_selConGadget_eq]
-  · intro i hi hij
-    exact pderiv_selSlot_selConGadget_ne M n i j hij
+  exact pderiv_selSlot_selConProd_of_mem M n Finset.univ j (by simp)
 
 /-! ## Direct NP lower bound -/
 

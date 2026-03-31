@@ -45,11 +45,17 @@ Paper-faithful route: direct identity-minor lower bound on `latentCompiledPoly`.
 - `iterDerivList_selSlot_latentCompiled_eq_selCon`
 - `pderiv_selSlot_selConGadget_eq`
 - `pderiv_selSlot_selConGadget_ne`
+- `pderiv_selSlot_selConProd_of_mem`
+- `pderiv_selSlot_selConProd_of_not_mem`
 - `pderiv_selSlot_selConSheet`
 
-These isolate selConSheet under nonempty selSlot-derivative lists and prove the
-single-derivative product rule shape needed for the Kronecker identity-minor step.
-The remaining obligation is the assembled NP lower bound itself (full κ-level identity-minor/Kronecker linear independence).
+These isolate selConSheet under nonempty selSlot-derivative lists and prove
+selector-derivative hit/miss product rules on arbitrary finite selCon products.
+This is the induction core needed for full κ-level identity-minor/Kronecker
+linear-independence assembly.
+
+Remaining NP step: close the full κ-level iterDerivList assembly + Kronecker matrix
+argument (choose-indexed linear independence).
 
 ### Location
 `PallLean/LatentWitnessMinorDecomp.lean`
