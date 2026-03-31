@@ -68,6 +68,67 @@ theorem pderiv_selSlot_copyConGadget (M : DTM) (n : ℕ)
   exact ProductDeriv.pderiv_one_sub_mul_ne hcp (by
     rw [MvPolynomial.vars_X]; simp; exact hcn)
 
+private theorem foldl_pderiv_zero_sel {n : ℕ} (l : List (Fin n)) :
+    l.foldl (fun q i => pderiv i q) (0 : MvPolynomial (Fin n) ℚ) = 0 := by
+  induction l with
+  | nil => simp
+  | cons a rest ih => simpa [List.foldl] using ih
+
+private theorem pderiv_selSlot_prod_machCopy_zero (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n))
+    (t : Finset (Fin (latentBaseVars M n))) :
+    pderiv (selSlot M n j) (∏ i ∈ t, machCopyGadget M n i) = 0 := by
+  induction t using Finset.induction_on with
+  | empty => simp
+  | insert a t ha ih =>
+      simp [Finset.prod_insert, ha, MvPolynomial.pderiv_mul,
+        pderiv_selSlot_machCopyGadget, ih]
+
+private theorem pderiv_selSlot_prod_copyCon_zero (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n))
+    (t : Finset (Fin (latentBaseVars M n))) :
+    pderiv (selSlot M n j) (∏ i ∈ t, copyConGadget M n i) = 0 := by
+  induction t using Finset.induction_on with
+  | empty => simp
+  | insert a t ha ih =>
+      simp [Finset.prod_insert, ha, MvPolynomial.pderiv_mul,
+        pderiv_selSlot_copyConGadget, ih]
+
+/-- Any nonempty iterated selSlot-derivative kills machCopySheet. -/
+theorem iterDerivList_selSlot_machCopySheet_zero (M : DTM) (n : ℕ)
+    (S : List (Fin (latentBaseVars M n))) (hS : S ≠ []) :
+    iterDerivList (S.map (selSlot M n)) (machCopySheet M n) = 0 := by
+  cases S with
+  | nil => contradiction
+  | cons a rest =>
+      unfold machCopySheet
+      simp only [iterDerivList, List.map, List.foldl]
+      rw [pderiv_selSlot_prod_machCopy_zero M n a Finset.univ]
+      exact foldl_pderiv_zero_sel (rest.map (selSlot M n))
+
+/-- Any nonempty iterated selSlot-derivative kills copyConSheet. -/
+theorem iterDerivList_selSlot_copyConSheet_zero (M : DTM) (n : ℕ)
+    (S : List (Fin (latentBaseVars M n))) (hS : S ≠ []) :
+    iterDerivList (S.map (selSlot M n)) (copyConSheet M n) = 0 := by
+  cases S with
+  | nil => contradiction
+  | cons a rest =>
+      unfold copyConSheet
+      simp only [iterDerivList, List.map, List.foldl]
+      rw [pderiv_selSlot_prod_copyCon_zero M n a Finset.univ]
+      exact foldl_pderiv_zero_sel (rest.map (selSlot M n))
+
+/-- For nonempty selector-derivative lists, latentCompiledPoly derivatives reduce to selConSheet. -/
+theorem iterDerivList_selSlot_latentCompiled_eq_selCon (M : DTM) (n : ℕ)
+    (S : List (Fin (latentBaseVars M n))) (hS : S ≠ []) :
+    iterDerivList (S.map (selSlot M n)) (latentCompiledPoly M n) =
+      iterDerivList (S.map (selSlot M n)) (selConSheet M n) := by
+  unfold latentCompiledPoly
+  rw [iterDerivList_add, iterDerivList_add,
+    iterDerivList_selSlot_machCopySheet_zero M n S hS,
+    iterDerivList_selSlot_copyConSheet_zero M n S hS,
+    zero_add, zero_add]
+
 /-! ## Direct NP lower bound -/
 
 /-- NP-side lower bound at contradiction scale — DIRECT on latentCompiledPoly.

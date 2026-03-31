@@ -37,12 +37,15 @@ The route lemmas reassemble NP/P parts into the final contradiction chain using:
 
 Paper-faithful route: direct identity-minor lower bound on `latentCompiledPoly`.
 
-**Key proved lemmas** (no longer assumptions):
-- `pderiv_selSlot_machCopyGadget` — derivatives at selSlot positions kill machCopySheet
-- `pderiv_selSlot_copyConGadget` — derivatives at selSlot positions kill copyConSheet
+**Key proved structural lemmas** (no longer assumptions):
+- `pderiv_selSlot_machCopyGadget`
+- `pderiv_selSlot_copyConGadget`
+- `iterDerivList_selSlot_machCopySheet_zero`
+- `iterDerivList_selSlot_copyConSheet_zero`
+- `iterDerivList_selSlot_latentCompiled_eq_selCon`
 
-These are now **proved theorems** in `LatentWitnessMinorDecomp.lean`.
-The remaining obligation is the assembled NP lower bound itself.
+These isolate selConSheet under nonempty selSlot-derivative lists.
+The remaining obligation is the assembled NP lower bound itself (identity-minor/Kronecker step).
 
 ### Location
 `PallLean/LatentWitnessMinorDecomp.lean`
