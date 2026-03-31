@@ -35,11 +35,14 @@ The route lemmas reassemble NP/P parts into the final contradiction chain using:
 ### Name
 `obligation1_np_logscale` (=`latent_hard_witness_logscale`)
 
-Paper-faithful decomposition:
-- Theorem 18-style identity-minor side:
-  - `theorem18_identity_minor_obligation` (=`extracted_witness_exp_lower_logscale`)
-- Theorem 223 extraction side:
-  - `theorem223_extraction_obligation` (=`selector_bridge_logscale`)
+Paper-faithful route: direct identity-minor lower bound on `latentCompiledPoly`.
+
+**Key proved lemmas** (no longer assumptions):
+- `pderiv_selSlot_machCopyGadget` — derivatives at selSlot positions kill machCopySheet
+- `pderiv_selSlot_copyConGadget` — derivatives at selSlot positions kill copyConSheet
+
+These are now **proved theorems** in `LatentWitnessMinorDecomp.lean`.
+The remaining obligation is the assembled NP lower bound itself.
 
 ### Location
 `PallLean/LatentWitnessMinorDecomp.lean`
