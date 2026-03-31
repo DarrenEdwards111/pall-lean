@@ -37,8 +37,13 @@ The route lemmas reassemble NP/P parts into the final contradiction chain using:
 ## Obligation 1 (NP side)
 
 ### Name
-`latent_hard_witness_logscale` (assembled from NP parts, including
-`theorem223_extraction_obligation` = `selector_bridge_logscale`)
+`obligation1_np_logscale` (=`latent_hard_witness_logscale`)
+
+Paper-faithful decomposition:
+- Theorem 18-style identity-minor side:
+  - `theorem18_identity_minor_obligation` (=`extracted_witness_exp_lower_logscale`)
+- Theorem 223 extraction side:
+  - `theorem223_extraction_obligation` (=`selector_bridge_logscale`)
 
 ### Location
 `PallLean/LatentWitnessMinorDecomp.lean`
