@@ -166,6 +166,16 @@ theorem theorem9_within_profile_dim_obligation_proved (M : DTM) (n : ℕ)
   unfold theorem9_within_profile_dim_obligation latent_within_profile_dim_logscale
   trivial
 
+/-- Finer P-core witness: there is an explicit finite generating family `G` for the
+κ-logscale blocked SPDP subspace whose cardinality is polynomially bounded. -/
+def latent_profile_span_card_bound_logscale (M : DTM) (n : ℕ)
+    (_hn : n ≥ max 4 M.numStates)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∃ G : Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ),
+    mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n) ≤ Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ∧
+    G.card ≤ n ^ 200
+
 /-- Assembly theorem (contradiction scale): profile count × within-profile dimension
 at κ = log₂ n gives polynomial total rank.
 
@@ -175,6 +185,27 @@ def latent_profile_assembly_logscale (M : DTM) (n : ℕ)
     (_hn804 : n ≥ 2 ^ 804) : Prop :=
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 200
+
+/-- P-core upper bound from explicit finite span-card witness. -/
+theorem latent_profile_assembly_logscale_from_span_card_bound (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hSpan : latent_profile_span_card_bound_logscale M n hn hn804) :
+    latent_profile_assembly_logscale M n hn hn804 := by
+  rcases hSpan with ⟨G, hIncl, hCard⟩
+  unfold latent_profile_assembly_logscale mlBlockedSpdpRank
+  have hfin_span : Module.Finite ℚ
+      (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))) :=
+    Module.Finite.span_of_finite ℚ (Finset.finite_toSet G)
+  have hmono : Module.finrank ℚ
+      (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)) ≤
+      Module.finrank ℚ (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))) :=
+    Submodule.finrank_mono hIncl
+  have hspan_card : Module.finrank ℚ
+      (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))) ≤ G.card :=
+    finrank_span_finset_le_card G
+  exact le_trans (le_trans hmono hspan_card) hCard
 
 /-- Alias: "Obligation 2" in the current route is the assembled P upper bound. -/
 def obligation2_p_logscale (M : DTM) (n : ℕ)
@@ -205,6 +236,14 @@ theorem theorem216_profile_data_logscale_from_core (M : DTM) (n : ℕ)
     theorem216_profile_data_logscale M n hn hn804 := by
   refine ⟨theorem9_profile_count_obligation_proved M n hn804,
     theorem9_within_profile_dim_obligation_proved M n hn804, hCore⟩
+
+/-- Build P-data package from the finer finite span-card witness. -/
+theorem theorem216_profile_data_logscale_from_span_card_bound (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hSpan : latent_profile_span_card_bound_logscale M n hn hn804) :
+    theorem216_profile_data_logscale M n hn hn804 := by
+  exact theorem216_profile_data_logscale_from_core M n hn hn804
+    (latent_profile_assembly_logscale_from_span_card_bound M n hn hn804 hSpan)
 
 /-- P-side assembly from explicit logscale parts (paper-faithful split).
 Combines Section 9 profile-count + within-profile dimension into assembled upper bound. -/

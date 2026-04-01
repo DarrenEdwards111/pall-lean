@@ -147,4 +147,22 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_core (h : PeqNP) (n : ℕ)
     theorem216_profile_data_logscale_from_core M n hnM hn804 pCore
   exact P_neq_NP_latent_from_finer_decomp h n hn idxList hnd hlen hfinj pAsm
 
+/-- Narrowest current entry point: NP data from finer decomposition plus
+P-side finite span-card witness. Both paper-facing packages are built internally. -/
+theorem P_neq_NP_latent_from_finer_decomp_and_p_span_card (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (idxList : Fin (Nat.choose (latentBaseVars h.sat_decider n) (Nat.log 2 n)) →
+      List (Fin (latentBaseVars h.sat_decider n)))
+    (hnd : ∀ i, (idxList i).Nodup)
+    (hlen : ∀ i, (idxList i).length = Nat.log 2 n)
+    (hfinj : ∀ i j, (idxList i).toFinset = (idxList j).toFinset → i = j)
+    (pSpan : latent_profile_span_card_bound_logscale h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  have pAsm : theorem216_p_obligation M n hnM hn804 :=
+    theorem216_profile_data_logscale_from_span_card_bound M n hnM hn804 pSpan
+  exact P_neq_NP_latent_from_finer_decomp h n hn idxList hnd hlen hfinj pAsm
+
 end LatentCompilerFinalRoute
