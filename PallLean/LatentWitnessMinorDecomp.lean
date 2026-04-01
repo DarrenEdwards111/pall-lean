@@ -278,6 +278,39 @@ def selCon_kronecker_matrix_logscale (M : DTM) (n : ℕ)
         (latentCompiledPoly M n))),
     LinearIndependent ℚ (Subtype.val ∘ R)
 
+/-- Row polynomial built from a selector-subset witness list. -/
+noncomputable def selCon_rowPoly (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n))) :
+    MvPolynomial (Fin (latentNumVars M n)) ℚ :=
+  mlProj (iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n))
+
+/-- Any logscale selector-list derivative row lies in the blocked SPDP subspace. -/
+theorem selCon_row_in_subspace_from_list (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (hnd : ks.Nodup)
+    (hlen : ks.length = Nat.log 2 n) :
+    selCon_rowPoly M n ks ∈
+      mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n) := by
+  unfold selCon_rowPoly mlBlockedSpdpSubspace
+  apply Submodule.subset_span
+  refine ⟨ks.map (selSlot M n), 1, ?_, ?_, ?_, ?_, ?_⟩
+  · simpa [List.length_map] using hlen
+  · -- totalDegree(1) = 0 ≤ log₂ n
+    simp
+  · -- vars(1)=∅ ⊆ S.toFinset
+    simp
+  · exact witness_selector_list_admissible M n ks hnd
+  · simp [iterDerivList]
+
+/-- Choose-indexed selector-list data used to build Kronecker row families. -/
+def selCon_kronecker_rows_data_logscale (M : DTM) (n : ℕ)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  let K := Nat.choose (latentBaseVars M n) (Nat.log 2 n)
+  ∃ (idxList : Fin K → List (Fin (latentBaseVars M n))),
+    (∀ i, (idxList i).Nodup) ∧
+    (∀ i, (idxList i).length = Nat.log 2 n)
+
 /-- Kronecker rows at logscale (candidate independent family). -/
 def selCon_kronecker_rows_logscale (M : DTM) (n : ℕ)
     (_hn804 : n ≥ 2 ^ 804) : Prop :=
@@ -285,6 +318,17 @@ def selCon_kronecker_rows_logscale (M : DTM) (n : ℕ)
   ∃ (R : Fin K →
       ↥(mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (latentCompiledPoly M n))), True
+
+/-- Construct row-family witness from choose-indexed selector-list data. -/
+theorem selCon_kronecker_rows_logscale_from_index_lists (M : DTM) (n : ℕ)
+    (hn804 : n ≥ 2 ^ 804)
+    (hRows : selCon_kronecker_rows_data_logscale M n hn804) :
+    selCon_kronecker_rows_logscale M n hn804 := by
+  rcases hRows with ⟨idxList, hnd, hlen⟩
+  let K := Nat.choose (latentBaseVars M n) (Nat.log 2 n)
+  refine ⟨(fun i : Fin K =>
+    ⟨selCon_rowPoly M n (idxList i),
+      selCon_row_in_subspace_from_list M n (idxList i) (hnd i) (hlen i)⟩), trivial⟩
 
 /-- Kronecker signs at logscale (±1 diagonal values). -/
 def selCon_kronecker_signs_logscale (M : DTM) (n : ℕ)
