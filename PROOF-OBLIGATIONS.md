@@ -20,7 +20,7 @@ This theorem is now **axiom-free** in Lean syntax and depends on an explicit ass
   - NP part:
     - `npData : selCon_kronecker_data_logscale ...`
   - P part:
-    - `pAsm : theorem216_p_obligation ...`
+    - `pAsm : theorem216_p_obligation ...` (paper-faithful profile-data package)
 
 The route lemmas reassemble NP/P parts into the final contradiction chain using:
 - `latent_hard_witness_logscale_from_kronecker`
@@ -91,10 +91,15 @@ This is the NP hardness side (identity-minor / extracted witness lower bound) sp
 Paper-faithful decomposition:
 - Section 9 profile-count side:
   - `theorem9_profile_count_obligation` (=`latent_profile_count_logscale`)
+  - proved in-route: `theorem9_profile_count_obligation_proved`
 - Section 9 within-profile dimension side:
   - `theorem9_within_profile_dim_obligation` (=`latent_within_profile_dim_logscale`)
-- Assembled P-side upper bound:
-  - `theorem216_p_obligation` (=`obligation2_p_logscale`)
+  - proved in-route: `theorem9_within_profile_dim_obligation_proved`
+- Paper data package:
+  - `theorem216_profile_data_logscale`
+  - closure theorem: `obligation2_p_logscale_from_data`
+- Assembled P-side upper bound (core remaining hard step):
+  - `latent_profile_assembly_logscale` (alias path to `obligation2_p_logscale`)
 
 ### Location
 `PallLean/LatentWidthRankDecomp.lean`

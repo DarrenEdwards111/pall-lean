@@ -34,10 +34,11 @@ structure PeqNP where
   decides_sat : True
 
 /-- Paper-facing P obligation (Theorem 216 style) at contradiction scale.
-Interpreted here as the assembled profile/Width⇒Rank upper bound for κ = log₂ n. -/
+Represented as the paper-faithful profile-data package.
+Section 9 sides are discharged in-route; core is profile assembly bound. -/
 def theorem216_p_obligation (M : DTM) (n : ℕ)
     (hnM : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804) : Prop :=
-  obligation2_p_logscale M n hnM hn804
+  theorem216_profile_data_logscale M n hnM hn804
 
 /-- Bundled paper-facing obligations at contradiction scale.
 NP side is now a single direct obligation (no bridge needed).
@@ -81,10 +82,12 @@ theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
     latent_hard_witness_logscale_from_kronecker M n hn804 hNPkron
   have hNP := latent_extracts_hard_witness_decomp M n hn804 hNPdirect κ rfl
 
-  -- P side (assembled from profile obligation)
+  -- P side (assembled from profile-data package)
+  have hPobl : obligation2_p_logscale M n hnM hn804 :=
+    obligation2_p_logscale_from_data M n hnM hn804 hObl.pAsm
   have hP : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 200 :=
-    latent_width_rank_from_decomp M n hnM hn804 hObl.pAsm
+    latent_width_rank_from_decomp M n hnM hn804 hPobl
 
   have hchain : n ^ (κ / 4) ≤ n ^ 200 := le_trans hNP hP
   have hexp : n ^ 200 < n ^ (κ / 4) := by
