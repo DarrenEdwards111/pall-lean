@@ -86,7 +86,7 @@ def selCon_offdiag_closed_form_statement (M : DTM) (n : ℕ) : Prop :=
     ksi.Nodup → ksj.Nodup →
     ksi.length = Nat.log 2 n →
     ksj.length = Nat.log 2 n →
-    ksi ≠ ksj →
+    ksi.toFinset ≠ ksj.toFinset →
     MvPolynomial.coeff (selCon_tagMono M n ksi)
       (mlProj
         (C ((-1 : ℚ)^ksj.length) *
@@ -102,7 +102,7 @@ theorem selCon_kronecker_coeff_law_logscale_from_closed_forms
       List (Fin (latentBaseVars M n)))
     (hnd : ∀ i, (idxList i).Nodup)
     (hlen : ∀ i, (idxList i).length = Nat.log 2 n)
-    (hinj : Function.Injective idxList)
+    (hfinj : ∀ i j, (idxList i).toFinset = (idxList j).toFinset → i = j)
     (hdiag_cf : selCon_diag_closed_form_statement M n)
     (hoff_cf : selCon_offdiag_closed_form_statement M n) :
     selCon_kronecker_coeff_law_logscale M n hn804 := by
@@ -119,6 +119,6 @@ theorem selCon_kronecker_coeff_law_logscale_from_closed_forms
     have hred := selCon_offdiag_reduced_goal M n (idxList i) (idxList j) (hnd i) (hnd j) (hlen i) (hlen j) hn2
     rw [hred]
     exact hoff_cf (idxList i) (idxList j) (hnd i) (hnd j) (hlen i) (hlen j) (by
-      intro hEq; exact hij (hinj hEq))
+      intro hEq; exact hij (hfinj i j hEq))
 
 end SelConCoeffReduction

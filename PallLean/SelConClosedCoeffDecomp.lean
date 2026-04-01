@@ -137,20 +137,6 @@ theorem complement_prod_constant_term (M : DTM) (n : ℕ)
   change MvPolynomial.coeff 0 (selConGadget M n i) = 1
   exact selConGadget_constant_term M n i
 
-/-- The selConGadget complement uses only variables from {selSlot i, conSlot i | i ∉ ks}. -/
-theorem selConGadget_usesOnly_outsideSlots (M : DTM) (n : ℕ)
-    (i : Fin (latentBaseVars M n)) :
-    CoeffDisjoint.usesOnly (selConGadget M n i)
-      ({selSlot M n i, conSlot M n i} : Set (Fin (latentNumVars M n))) := by
-  sorry
-
-/-- The tag monomial's support is exactly {conSlot k | k ∈ ks}. -/
-theorem tagMono_support_eq (M : DTM) (n : ℕ)
-    (ks : List (Fin (latentBaseVars M n)))
-    (hnd : ks.Nodup) :
-    (selCon_tagMono M n ks).support = ks.toFinset.image (conSlot M n) := by
-  sorry
-
 /-- The selCon tag monomial at a member is nonzero. -/
 theorem tagMono_mem_eq_one (M : DTM) (n : ℕ)
     (ks : List (Fin (latentBaseVars M n))) (hnd : ks.Nodup)
@@ -177,6 +163,29 @@ theorem tagMono_mem_eq_one (M : DTM) (n : ℕ)
       rcases List.mem_cons.mp hk with h | h
       · exact absurd h hka
       · exact ih hnd_rest h
+
+/-- The tag monomial's support is exactly {conSlot k | k ∈ ks}. -/
+theorem tagMono_support_eq (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (hnd : ks.Nodup) :
+    (selCon_tagMono M n ks).support = ks.toFinset.image (conSlot M n) := by
+  ext v
+  simp only [Finsupp.mem_support_iff, ne_eq, Finset.mem_image, List.mem_toFinset]
+  constructor
+  · intro hv
+    by_contra h
+    push_neg at h
+    apply hv
+    have : v ∉ (ks.map (conSlot M n)) := by
+      intro hmem
+      obtain ⟨k, hk, hkv⟩ := List.mem_map.mp hmem
+      exact h k hk hkv
+    exact foldr_singles_zero_of_not_mem (ks.map (conSlot M n)) v this
+  · intro ⟨k, hk, hkv⟩
+    subst hkv
+    intro h0
+    have := tagMono_mem_eq_one M n ks hnd k hk
+    omega
 
 theorem selCon_diag_complement_support (M : DTM) (n : ℕ)
     (ks : List (Fin (latentBaseVars M n)))
@@ -221,15 +230,87 @@ theorem selCon_diag_complement_support (M : DTM) (n : ℕ)
     intro h
     simp [Finset.mem_antidiagonal] at h
 
+/-- Every nonzero monomial in a single selConGadget has selSlot support.
+selConGadget i = 1 - X(selSlot i) * X(conSlot i), so its support is
+{0, e_{selSlot} + e_{conSlot}}, and the nonzero monomial e_{sel}+e_{con}
+has selSlot i in its Finsupp support. -/
+theorem selConGadget_nonzero_mono_has_selSlot (M : DTM) (n : ℕ)
+    (i : Fin (latentBaseVars M n))
+    (m : (Fin (latentNumVars M n)) →₀ ℕ) (hm : m ∈ (selConGadget M n i).support)
+    (hm0 : m ≠ 0) :
+    selSlot M n i ∈ m.support := by
+  -- selConGadget i = 1 - X(selSlot i) * X(conSlot i)
+  -- coeff m (1 - X_s * X_c) ≠ 0 forces m = 0 or m = e_s + e_c
+  -- Since m ≠ 0, m = e_s + e_c, and selSlot i ∈ (e_s + e_c).support
+  simp only [MvPolynomial.mem_support_iff, ne_eq] at hm
+  unfold selConGadget Xsel Xcon at hm
+  rw [MvPolynomial.coeff_sub, MvPolynomial.coeff_one] at hm
+  -- coeff m (1 - X_s * X_c) = (if m=0 then 1 else 0) - coeff m (X_s * X_c)
+  by_cases hm_zero : m = 0
+  · exact absurd hm_zero hm0
+  · -- m ≠ 0, so (if m=0 then 1 else 0) = 0
+    simp only [hm_zero, ite_false, zero_sub, neg_ne_zero] at hm
+    -- hm : coeff m (X sel * X con) ≠ 0 (after negation of sub = 0)
+    have hmul : MvPolynomial.coeff m
+        (MvPolynomial.X (selSlot M n i) * MvPolynomial.X (conSlot M n i) :
+          MvPolynomial (Fin (latentNumVars M n)) ℚ) ≠ 0 := by
+      intro h; apply hm; simp [h, Ne.symm hm_zero]
+    rw [MvPolynomial.coeff_mul] at hmul
+    -- The only contributing antidiagonal pair is (e_sel, e_con)
+    have hpair : ∃ p ∈ Finset.antidiagonal m,
+        MvPolynomial.coeff p.1 (MvPolynomial.X (selSlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ) *
+        MvPolynomial.coeff p.2 (MvPolynomial.X (conSlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ) ≠ 0 := by
+      by_contra hall; push_neg at hall
+      exact hmul (Finset.sum_eq_zero hall)
+    obtain ⟨⟨a, b⟩, hab_mem, hprod⟩ := hpair
+    simp only [Finset.mem_antidiagonal] at hab_mem
+    rw [MvPolynomial.coeff_X', MvPolynomial.coeff_X'] at hprod
+    split_ifs at hprod with ha hb
+    · -- a = e_sel, b = e_con → m = e_sel + e_con
+      subst ha; subst hb
+      rw [← hab_mem]
+      simp [Finsupp.mem_support_iff, Finsupp.add_apply, Finsupp.single_apply]
+    · simp at hprod
+    · simp at hprod
+    · simp at hprod
+
+theorem complement_nonzero_mono_has_selSlot (M : DTM) (n : ℕ)
+    (ksj : List (Fin (latentBaseVars M n)))
+    (m : (Fin (latentNumVars M n)) →₀ ℕ)
+    (hm : m ∈ (∏ i ∈ (Finset.univ \ ksj.toFinset), selConGadget M n i).support)
+    (hm0 : m ≠ 0) :
+    ∃ i, i ∉ ksj.toFinset ∧ selSlot M n i ∈ m.support := by
+  sorry
+
+/-- tagMono only has conSlot variables (no selSlot). -/
+theorem tagMono_no_selSlot (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (hnd : ks.Nodup)
+    (i : Fin (latentBaseVars M n)) :
+    selSlot M n i ∉ (selCon_tagMono M n ks).support := by
+  rw [tagMono_support_eq M n ks hnd]
+  simp only [Finset.mem_image, List.mem_toFinset]
+  intro ⟨k, _, hkv⟩
+  -- selSlot M n i = conSlot M n k is impossible: different layer indices
+  simp [selSlot, conSlot, slot, Fin.ext_iff] at hkv
+  omega
+
 /-- For nodup lists, different toFinsets imply different tagMonos. -/
 theorem tagMono_ne_of_toFinset_ne (M : DTM) (n : ℕ)
     (ksi ksj : List (Fin (latentBaseVars M n)))
     (hndi : ksi.Nodup) (hndj : ksj.Nodup)
     (hne : ksi.toFinset ≠ ksj.toFinset) :
     selCon_tagMono M n ksi ≠ selCon_tagMono M n ksj := by
-  -- tagMono support = image of conSlot over toFinset (by tagMono_support_eq)
-  -- Different toFinsets → different conSlot images (conSlot injective) → different support → different Finsupp
-  sorry
+  intro heq
+  apply hne
+  -- If tagMono ksi = tagMono ksj, then their supports are equal
+  have hsup : (selCon_tagMono M n ksi).support = (selCon_tagMono M n ksj).support := by
+    rw [heq]
+  rw [tagMono_support_eq M n ksi hndi, tagMono_support_eq M n ksj hndj] at hsup
+  -- Finset.image conSlot ksi.toFinset = Finset.image conSlot ksj.toFinset
+  -- conSlot is injective, so this implies ksi.toFinset = ksj.toFinset
+  exact Finset.image_injective (by
+    intro a b hab; simp [conSlot, slot, Fin.ext_iff] at hab; omega) hsup
 
 theorem selCon_offdiag_complement_support (M : DTM) (n : ℕ)
     (ksi ksj : List (Fin (latentBaseVars M n)))
@@ -255,13 +336,44 @@ theorem selCon_offdiag_complement_support (M : DTM) (n : ℕ)
   by_cases ha : selCon_tagMono M n ksj = a
   · -- a = τ_ksj, so b = τ_ksi - τ_ksj
     subst ha
-    simp only [if_pos rfl, one_mul]
-    -- Need: coeff b (complement) = 0 where a + b = τ_ksi, a = τ_ksj
-    -- If b = 0 then τ_ksi = τ_ksj, contradicting tagMono_ne_of_toFinset_ne
-    -- If b ≠ 0 then complement must supply monomial b
-    -- But complement's non-constant terms all contain selSlot vars
-    -- while b only has conSlot vars (from τ_ksi - τ_ksj)
-    sorry
+    simp only [if_pos rfl, ite_true, one_mul, mul_comm]
+    -- Need: coeff b (complement) = 0
+    -- b satisfies: τ_ksj + b = τ_ksi (from antidiagonal)
+    -- If b = 0, then τ_ksi = τ_ksj, contradiction
+    have htne := tagMono_ne_of_toFinset_ne M n ksi ksj hndi hndj hneq
+    have hb0 : b ≠ 0 := by
+      intro h; subst h; simp at hab; exact htne hab.symm
+    -- b has no selSlot vars: from hab, b(v) = τ_ksi(v) - τ_ksj(v) for all v
+    -- Both τ's have 0 at selSlot positions, so b(selSlot i) = 0
+    -- Therefore selSlot i ∉ b.support for any i
+    have hb_no_sel : ∀ i : Fin (latentBaseVars M n), selSlot M n i ∉ b.support := by
+      intro i
+      rw [Finsupp.mem_support_iff]; push_neg
+      -- From hab: (τ_ksj + b)(selSlot i) = τ_ksi(selSlot i)
+      have hsum : (selCon_tagMono M n ksj + b) (selSlot M n i) =
+          (selCon_tagMono M n ksi) (selSlot M n i) := by
+        rw [hab]
+      simp only [Finsupp.add_apply] at hsum
+      -- τ_ksi(selSlot i) = 0 (tag has no selSlot)
+      have h1 : (selCon_tagMono M n ksi) (selSlot M n i) = 0 := by
+        by_contra hne
+        exact tagMono_no_selSlot M n ksi hndi i (Finsupp.mem_support_iff.mpr hne)
+      -- τ_ksj(selSlot i) = 0
+      have h2 : (selCon_tagMono M n ksj) (selSlot M n i) = 0 := by
+        by_contra hne
+        exact tagMono_no_selSlot M n ksj hndj i (Finsupp.mem_support_iff.mpr hne)
+      omega
+    -- Any nonzero monomial in complement's support has a selSlot var
+    -- b is nonzero but has no selSlot vars, so b ∉ complement's support
+    by_contra hcoeff
+    push_neg at hcoeff
+    have hcoeff' : MvPolynomial.coeff b (∏ i ∈ (Finset.univ \ ksj.toFinset), selConGadget M n i) ≠ 0 := by
+      intro h
+      simp [h] at hcoeff
+    have hb_supp : b ∈ (∏ i ∈ (Finset.univ \ ksj.toFinset), selConGadget M n i).support :=
+      Finsupp.mem_support_iff.mpr hcoeff'
+    obtain ⟨i, _, hsel⟩ := complement_nonzero_mono_has_selSlot M n ksj b hb_supp hb0
+    exact hb_no_sel i hsel
   · simp [ha]
 
 /-- Assembled diagonal closed-form statement. -/
@@ -280,20 +392,7 @@ theorem selCon_offdiag_closed_form_from_decomp (M : DTM) (n : ℕ) :
   change MvPolynomial.coeff (selCon_tagMono M n ksi)
     (mlProj (selCon_closedForm M n ksj)) = 0
   rw [selCon_offdiag_mlProj_preserves_coeff M n ksi ksj hndi]
-  -- Need toFinset ≠, not list ≠. For nodup lists, ≠ implies toFinset ≠ if sorted.
-  -- General: if ksi.toFinset = ksj.toFinset, then ksi and ksj are permutations,
-  -- and tagMono ksi = tagMono ksj, closedForm ksi = closedForm ksj,
-  -- so off-diagonal reduces to diagonal (giving sign, not 0).
-  -- The actual idxList uses canonical sorted representatives, so toFinset ≠ follows.
-  -- For now, add toFinset ≠ as hypothesis (caller ensures sorted/canonical lists).
-  by_cases hfs : ksi.toFinset = ksj.toFinset
-  · -- Permutation case: tagMono and closedForm are the same
-    -- closedForm only depends on toFinset, so closedForm ksi = closedForm ksj
-    -- This means coeff (tagMono ksi) (closedForm ksj) = coeff (tagMono ksi) (closedForm ksi) = sign ≠ 0
-    -- But we need 0, so this case can't arise for the actual idxList (which uses sorted reps)
-    -- Mark as sorry: requires sorted canonical representative constraint from caller
-    sorry
-  · exact selCon_offdiag_complement_support M n ksi ksj hndi hndj hfs
+  exact selCon_offdiag_complement_support M n ksi ksj hndi hndj hneq
 
 /-- Therefore the original Kronecker coefficient law follows from the finer decomposition. -/
 theorem selCon_kronecker_coeff_law_logscale_from_finer_decomp
@@ -302,10 +401,10 @@ theorem selCon_kronecker_coeff_law_logscale_from_finer_decomp
       List (Fin (latentBaseVars M n)))
     (hnd : ∀ i, (idxList i).Nodup)
     (hlen : ∀ i, (idxList i).length = Nat.log 2 n)
-    (hinj : Function.Injective idxList) :
+    (hfinj : ∀ i j, (idxList i).toFinset = (idxList j).toFinset → i = j) :
     selCon_kronecker_coeff_law_logscale M n hn804 := by
   exact selCon_kronecker_coeff_law_logscale_from_closed_forms
-    M n hn804 idxList hnd hlen hinj
+    M n hn804 idxList hnd hlen hfinj
     (selCon_diag_closed_form_from_decomp M n)
     (selCon_offdiag_closed_form_from_decomp M n)
 
