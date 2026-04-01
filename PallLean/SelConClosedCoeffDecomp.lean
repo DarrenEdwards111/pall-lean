@@ -123,26 +123,40 @@ theorem selConGadget_constant_term (M : DTM) (n : ℕ)
   simp [MvPolynomial.coeff_sub, MvPolynomial.coeff_one,
     MvPolynomial.coeff_mul, MvPolynomial.coeff_X]
 
-/-- The complementary `selConGadget` product contributes no extra `Xcon`-tag mass on the diagonal.
-So the target coefficient is determined entirely by the sign and the explicit `Xcon` product. -/
+/-- The complement product of selConGadgets has constant term 1. -/
+theorem complement_prod_constant_term (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n))) :
+    MvPolynomial.coeff 0
+      (∏ i ∈ (Finset.univ \ ks.toFinset), selConGadget M n i) = 1 := by
+  -- Each factor has constant term 1, and coeff 0 of a product = product of coeff 0
+  -- when factors are (1 - x*y) type (the only contribution at monomial 0 is from constant terms)
+  sorry
+
+/-- On the diagonal: coeff of tag at closed form = sign.
+
+The proof strategy is:
+- closedForm = monomial(τ, (-1)^len) * complement_prod
+- complement_prod's variables (for i ∉ ks) are disjoint from tag's conSlot vars (for k ∈ ks)
+- So coeff τ (monomial(τ, s) * complement) = s * coeff_0(complement) = s * 1 = s
+-/
 theorem selCon_diag_complement_support (M : DTM) (n : ℕ)
     (ks : List (Fin (latentBaseVars M n)))
     (hnd : ks.Nodup) :
     MvPolynomial.coeff (selCon_tagMono M n ks)
       (selCon_closedForm M n ks) = selCon_signOfList ks := by
   unfold selCon_closedForm selCon_signOfList
-  -- closedForm = C((-1)^|ks|) * monomial(τ_ks, 1) * complement_prod
   rw [Xcon_prod_eq_monomial M n ks hnd]
-  -- C((-1)^len) * monomial(τ, 1) = monomial(τ, (-1)^len)
   rw [MvPolynomial.C_mul_monomial, mul_one]
-  -- Now: coeff τ (monomial(τ, (-1)^len) * complement_prod)
-  -- The complement product's constant term is 1 (each gadget has constant 1)
-  -- and each non-constant term of complement_prod uses selSlot variables
-  -- which are NOT in τ (τ only uses conSlot variables for ks)
-  -- So coeff τ (monomial(τ, s) * complement) = s * coeff 0 complement = s * 1 = s
+  -- Now goal: coeff τ (monomial(τ, (-1)^|ks|) * complement) = if Even |ks| then 1 else -1
+  -- Use disjoint variable factorization: τ = τ + 0
   sorry
 
-/-- For distinct selector lists, the target tag does not appear in the other row's closed form. -/
+/-- Off-diagonal: coeff of one tag at another's closed form = 0.
+
+Strategy: ksi ≠ ksj implies τ_ksi ≠ τ_ksj (injective conSlot).
+The monomial part contributes only τ_ksj. The complement cannot supply the
+difference because it pairs every conSlot with a selSlot, but τ_ksi uses only conSlot vars.
+-/
 theorem selCon_offdiag_complement_support (M : DTM) (n : ℕ)
     (ksi ksj : List (Fin (latentBaseVars M n)))
     (hndi : ksi.Nodup) (hndj : ksj.Nodup) :
@@ -153,11 +167,6 @@ theorem selCon_offdiag_complement_support (M : DTM) (n : ℕ)
   unfold selCon_closedForm
   rw [Xcon_prod_eq_monomial M n ksj hndj]
   rw [MvPolynomial.C_mul_monomial, mul_one]
-  -- coeff τ_ksi (monomial(τ_ksj, (-1)^|ksj|) * complement)
-  -- Since ksi ≠ ksj, τ_ksi ≠ τ_ksj (injective conSlot + nodup)
-  -- The Xcon product only generates monomial τ_ksj
-  -- The complement can only add conSlot mass paired with selSlot mass
-  -- But τ_ksi has no selSlot variables, so any conSlot difference can't be made up
   sorry
 
 /-- Assembled diagonal closed-form statement. -/
