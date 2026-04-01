@@ -1,6 +1,7 @@
 import PallLean.LatentCompiler
 import PallLean.LatentWidthRankDecomp
 import PallLean.LatentWitnessMinorDecomp
+import PallLean.SelConClosedCoeffDecomp
 import Mathlib.Tactic
 
 /-!
@@ -16,6 +17,7 @@ open SPDP MultilinearSPDP NPWitness Compiler TuringMachine MvPolynomial
 open LatentCompiler
 open LatentWidthRankDecomp
 open LatentWitnessMinorDecomp
+open SelConClosedCoeffDecomp
 
 /-- NP hard-witness theorem at contradiction scale.
 Now sourced from a single direct NP-side obligation. -/
@@ -101,5 +103,26 @@ theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
           _ ≤ Nat.log 2 n := Nat.log_mono_right hn804
       omega
   exact (not_lt_of_ge hchain) hexp
+
+/-- Same final contradiction route, but NP-data is built internally from the
+finer closed-form decomposition package (SelConClosedCoeffDecomp).
+
+This reduces caller burden: instead of passing `npData` directly, pass the
+choose-indexed list family with nodup/length and toFinset-level injectivity. -/
+theorem P_neq_NP_latent_from_finer_decomp (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (idxList : Fin (Nat.choose (latentBaseVars h.sat_decider n) (Nat.log 2 n)) →
+      List (Fin (latentBaseVars h.sat_decider n)))
+    (hnd : ∀ i, (idxList i).Nodup)
+    (hlen : ∀ i, (idxList i).length = Nat.log 2 n)
+    (hfinj : ∀ i j, (idxList i).toFinset = (idxList j).toFinset → i = j)
+    (pAsm : theorem216_p_obligation h.sat_decider n (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  have hCoeff : selCon_kronecker_coeff_law_logscale M n hn804 :=
+    selCon_kronecker_coeff_law_logscale_from_finer_decomp M n hn804 idxList hnd hlen hfinj
+  have hNPData : selCon_kronecker_data_logscale M n hn804 := hCoeff
+  exact P_neq_NP_latent_decomp h n hn ⟨hNPData, pAsm⟩
 
 end LatentCompilerFinalRoute
