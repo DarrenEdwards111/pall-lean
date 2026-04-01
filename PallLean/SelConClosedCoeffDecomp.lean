@@ -137,13 +137,47 @@ theorem complement_prod_constant_term (M : DTM) (n : ℕ)
   change MvPolynomial.coeff 0 (selConGadget M n i) = 1
   exact selConGadget_constant_term M n i
 
-/-- On the diagonal: coeff of tag at closed form = sign.
+/-- The selConGadget complement uses only variables from {selSlot i, conSlot i | i ∉ ks}. -/
+theorem selConGadget_usesOnly_outsideSlots (M : DTM) (n : ℕ)
+    (i : Fin (latentBaseVars M n)) :
+    CoeffDisjoint.usesOnly (selConGadget M n i)
+      ({selSlot M n i, conSlot M n i} : Set (Fin (latentNumVars M n))) := by
+  sorry
 
-The proof strategy is:
-- closedForm = monomial(τ, (-1)^len) * complement_prod
-- complement_prod's variables (for i ∉ ks) are disjoint from tag's conSlot vars (for k ∈ ks)
-- So coeff τ (monomial(τ, s) * complement) = s * coeff_0(complement) = s * 1 = s
--/
+/-- The tag monomial's support is exactly {conSlot k | k ∈ ks}. -/
+theorem tagMono_support_eq (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (hnd : ks.Nodup) :
+    (selCon_tagMono M n ks).support = ks.toFinset.image (conSlot M n) := by
+  sorry
+
+/-- The selCon tag monomial at a member is nonzero. -/
+theorem tagMono_mem_eq_one (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n))) (hnd : ks.Nodup)
+    (k : Fin (latentBaseVars M n)) (hk : k ∈ ks) :
+    (selCon_tagMono M n ks) (conSlot M n k) = 1 := by
+  unfold selCon_tagMono
+  induction ks with
+  | nil => simp at hk
+  | cons a rest ih =>
+    have hnd_rest := (List.nodup_cons.mp hnd).2
+    have hna := (List.nodup_cons.mp hnd).1
+    simp only [List.map, List.foldr, Finsupp.add_apply, Finsupp.single_apply]
+    by_cases hka : k = a
+    · subst hka
+      simp only [ite_true]
+      have := foldr_singles_zero_of_not_mem (rest.map (conSlot M n)) (conSlot M n k) (by
+        intro hmem
+        obtain ⟨j, hj, hjk⟩ := List.mem_map.mp hmem
+        have : k = j := by simp [conSlot, slot, Fin.ext_iff] at hjk; omega
+        exact hna (this ▸ hj))
+      omega
+    · simp [show conSlot M n a ≠ conSlot M n k from by
+        intro h; simp [conSlot, slot, Fin.ext_iff] at h; omega]
+      rcases List.mem_cons.mp hk with h | h
+      · exact absurd h hka
+      · exact ih hnd_rest h
+
 theorem selCon_diag_complement_support (M : DTM) (n : ℕ)
     (ks : List (Fin (latentBaseVars M n)))
     (hnd : ks.Nodup) :
@@ -152,9 +186,40 @@ theorem selCon_diag_complement_support (M : DTM) (n : ℕ)
   unfold selCon_closedForm selCon_signOfList
   rw [Xcon_prod_eq_monomial M n ks hnd]
   rw [MvPolynomial.C_mul_monomial, mul_one]
-  -- Now goal: coeff τ (monomial(τ, (-1)^|ks|) * complement) = if Even |ks| then 1 else -1
-  -- Use disjoint variable factorization: τ = τ + 0
-  sorry
+  -- Goal: coeff τ (monomial(τ, (-1)^|ks|) * complement) = if Even len then 1 else -1
+  -- By coeff_mul: sum over antidiagonal. Only (τ, 0) contributes.
+  rw [MvPolynomial.coeff_mul]
+  -- The antidiagonal of τ: all pairs (a, b) with a + b = τ
+  -- Only (τ, 0) contributes: monomial(τ, s) contributes at τ (coeff τ = s)
+  -- complement contributes at 0 (coeff 0 = 1)
+  -- All other pairs: monomial(τ, s) has coeff 0 at anything ≠ τ
+  rw [Finset.sum_eq_single (selCon_tagMono M n ks, 0)]
+  · -- Main contribution: coeff τ (monomial(τ, s)) * coeff 0 (complement)
+    simp only [add_zero]
+    rw [MvPolynomial.coeff_monomial, if_pos rfl]
+    rw [complement_prod_constant_term M n ks]
+    by_cases heven : Even ks.length
+    · have : ((-1 : ℚ) ^ ks.length) = 1 :=
+        (neg_one_pow_eq_one_iff_even (by norm_num : (-1 : ℚ) ≠ 1)).mpr heven
+      simp [selCon_signOfList, heven, this]
+    · have : ((-1 : ℚ) ^ ks.length) = -1 := by
+        exact (neg_one_pow_eq_neg_one_iff_odd (by norm_num : (-1 : ℚ) ≠ 1)).mpr
+          ((Nat.even_or_odd ks.length).resolve_left heven)
+      simp [selCon_signOfList, heven, this]
+  · -- All other pairs (a, b) contribute 0
+    intro ⟨a, b⟩ hab hne
+    simp only [Finset.mem_antidiagonal] at hab
+    rw [MvPolynomial.coeff_monomial]
+    by_cases ha : selCon_tagMono M n ks = a
+    · subst ha
+      -- If a = τ, then b = 0 from antidiagonal, contradicting hne
+      have hb0 : b = 0 := by
+        have := hab; simp at this; exact this
+      exact absurd (by rw [hb0]) hne
+    · simp [ha]
+  · -- (τ, 0) is in the antidiagonal
+    intro h
+    simp [Finset.mem_antidiagonal] at h
 
 /-- Off-diagonal: coeff of one tag at another's closed form = 0.
 
