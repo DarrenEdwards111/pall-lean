@@ -58,9 +58,14 @@ New κ-level assembly theorems proved:
 This gives the closed-form iterated derivative formula over finite selCon products
 and full `selConSheet`, matching the paper's product-derivative backbone.
 
-Remaining NP step: finish Kronecker matrix/linear-independence closure from this
-closed form (choose-indexed assembly into final rank lower bound), captured as:
-- `selCon_kronecker_linear_independence_logscale`
+Remaining NP step: finish explicit choose-indexed Kronecker matrix construction from
+this closed form.
+
+New closure theorem proved:
+- `selCon_choose_rank_logscale_from_matrix`
+
+So once matrix data (`selCon_kronecker_matrix_logscale`) is constructed, choose-rank
+closure follows immediately and plugs into `selCon_kronecker_linear_independence_logscale`.
 
 ### Location
 `PallLean/LatentWitnessMinorDecomp.lean`

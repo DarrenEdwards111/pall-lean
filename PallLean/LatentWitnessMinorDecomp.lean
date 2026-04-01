@@ -268,6 +268,16 @@ theorem iterDeriv_selConSheet_eq (M : DTM) (n : ℕ)
   unfold selConSheet
   exact iterDeriv_selConProd_eq M n ks hnd Finset.univ (by intro k hk; simp)
 
+/-- Kronecker matrix data at logscale: choose-many independent generators
+inside the blocked SPDP subspace of latentCompiledPoly. -/
+def selCon_kronecker_matrix_logscale (M : DTM) (n : ℕ)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  let K := Nat.choose (latentBaseVars M n) (Nat.log 2 n)
+  ∃ (R : Fin K →
+      ↥(mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n))),
+    LinearIndependent ℚ (Subtype.val ∘ R)
+
 /-- Kronecker/identity-minor choose-rank closure at logscale.
 This is the linear-independence matrix claim after κ-level derivative expansion. -/
 def selCon_choose_rank_logscale (M : DTM) (n : ℕ)
@@ -275,6 +285,39 @@ def selCon_choose_rank_logscale (M : DTM) (n : ℕ)
   Nat.choose (latentBaseVars M n) (Nat.log 2 n) ≤
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n)
+
+private theorem finrank_submodule_ge_card
+    (M : DTM) (n : ℕ) (K : ℕ)
+    (R : Fin K →
+      ↥(mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)))
+    (hlin : LinearIndependent ℚ (Subtype.val ∘ R)) :
+    K ≤ Module.finrank ℚ
+      (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)) := by
+  have hrange : ∀ i, (Subtype.val ∘ R) i ∈
+      mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n) := fun i => (R i).2
+  have hspan : Submodule.span ℚ (Set.range (Subtype.val ∘ R)) ≤
+      mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n) :=
+    Submodule.span_le.mpr (Set.range_subset_iff.mpr hrange)
+  have hcard := finrank_span_eq_card hlin
+  haveI : Module.Finite ℚ
+      (Submodule.span ℚ (Set.range (Subtype.val ∘ R))) :=
+    Module.Finite.span_of_finite ℚ (Set.finite_range _)
+  have hmono := Submodule.finrank_mono hspan
+  simp [Fintype.card_fin] at hcard
+  omega
+
+/-- Rank closure from explicit Kronecker matrix linear-independence data. -/
+theorem selCon_choose_rank_logscale_from_matrix (M : DTM) (n : ℕ)
+    (hn804 : n ≥ 2 ^ 804)
+    (hMat : selCon_kronecker_matrix_logscale M n hn804) :
+    selCon_choose_rank_logscale M n hn804 := by
+  rcases hMat with ⟨R, hlin⟩
+  unfold selCon_choose_rank_logscale mlBlockedSpdpRank
+  exact finrank_submodule_ge_card M n _ R hlin
 
 /-- Numeric choose-vs-n closure at logscale (combinatorial side). -/
 def selCon_choose_numeric_logscale (M : DTM) (n : ℕ)
