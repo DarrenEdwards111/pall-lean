@@ -278,8 +278,22 @@ def selCon_kronecker_matrix_logscale (M : DTM) (n : ℕ)
         (latentCompiledPoly M n))),
     LinearIndependent ℚ (Subtype.val ∘ R)
 
-/-- Stronger Kronecker witness data (paper identity-minor form) at logscale. -/
-def selCon_kronecker_data_logscale (M : DTM) (n : ℕ)
+/-- Kronecker rows at logscale (candidate independent family). -/
+def selCon_kronecker_rows_logscale (M : DTM) (n : ℕ)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  let K := Nat.choose (latentBaseVars M n) (Nat.log 2 n)
+  ∃ (R : Fin K →
+      ↥(mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n))), True
+
+/-- Kronecker signs at logscale (±1 diagonal values). -/
+def selCon_kronecker_signs_logscale (M : DTM) (n : ℕ)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  let K := Nat.choose (latentBaseVars M n) (Nat.log 2 n)
+  ∃ (signs : Fin K → ℚ), ∀ i, signs i = 1 ∨ signs i = -1
+
+/-- Kronecker coefficient law at logscale, parameterized by row/tag/sign witnesses. -/
+def selCon_kronecker_coeff_law_logscale (M : DTM) (n : ℕ)
     (_hn804 : n ≥ 2 ^ 804) : Prop :=
   let K := Nat.choose (latentBaseVars M n) (Nat.log 2 n)
   ∃ (R : Fin K →
@@ -289,6 +303,20 @@ def selCon_kronecker_data_logscale (M : DTM) (n : ℕ)
     (signs : Fin K → ℚ),
       (∀ i, signs i = 1 ∨ signs i = -1) ∧
       (∀ i j, MvPolynomial.coeff (τ i) (R j).val = if i = j then signs i else 0)
+
+/-- Stronger Kronecker witness data (paper identity-minor form) at logscale. -/
+def selCon_kronecker_data_logscale (M : DTM) (n : ℕ)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  selCon_kronecker_coeff_law_logscale M n _hn804
+
+/-- Assemble Kronecker data from explicit parts (paper-faithful decomposition). -/
+theorem selCon_kronecker_data_logscale_from_parts (M : DTM) (n : ℕ)
+    (hn804 : n ≥ 2 ^ 804)
+    (_hRows : selCon_kronecker_rows_logscale M n hn804)
+    (_hSigns : selCon_kronecker_signs_logscale M n hn804)
+    (hCoeff : selCon_kronecker_coeff_law_logscale M n hn804) :
+    selCon_kronecker_data_logscale M n hn804 :=
+  hCoeff
 
 private theorem linearIndependent_from_kronecker
     (M : DTM) (n : ℕ) (K : ℕ)

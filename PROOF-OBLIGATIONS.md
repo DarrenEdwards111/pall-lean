@@ -58,8 +58,11 @@ New κ-level assembly theorems proved:
 This gives the closed-form iterated derivative formula over finite selCon products
 and full `selConSheet`, matching the paper's product-derivative backbone.
 
-Remaining NP step: finish explicit choose-indexed Kronecker matrix construction from
-this closed form.
+Remaining NP step (now decomposed):
+- construct `selCon_kronecker_coeff_law_logscale`
+- with row/sign scaffolding mirrored by
+  `selCon_kronecker_rows_logscale` and `selCon_kronecker_signs_logscale`
+- then assemble via `selCon_kronecker_data_logscale_from_parts`
 
 New closure theorems proved:
 - `selCon_choose_rank_logscale_from_matrix`
