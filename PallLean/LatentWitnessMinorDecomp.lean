@@ -278,6 +278,54 @@ def selCon_kronecker_matrix_logscale (M : DTM) (n : ℕ)
         (latentCompiledPoly M n))),
     LinearIndependent ℚ (Subtype.val ∘ R)
 
+/-- Stronger Kronecker witness data (paper identity-minor form) at logscale. -/
+def selCon_kronecker_data_logscale (M : DTM) (n : ℕ)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  let K := Nat.choose (latentBaseVars M n) (Nat.log 2 n)
+  ∃ (R : Fin K →
+      ↥(mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)))
+    (τ : Fin K → ((Fin (latentNumVars M n)) →₀ ℕ))
+    (signs : Fin K → ℚ),
+      (∀ i, signs i = 1 ∨ signs i = -1) ∧
+      (∀ i j, MvPolynomial.coeff (τ i) (R j).val = if i = j then signs i else 0)
+
+private theorem linearIndependent_from_kronecker
+    (M : DTM) (n : ℕ) (K : ℕ)
+    (R : Fin K →
+      ↥(mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)))
+    (τ : Fin K → ((Fin (latentNumVars M n)) →₀ ℕ))
+    (signs : Fin K → ℚ)
+    (hsigns : ∀ i, signs i = 1 ∨ signs i = -1)
+    (hkronecker : ∀ i j, MvPolynomial.coeff (τ i) (R j).val = if i = j then signs i else 0) :
+    LinearIndependent ℚ (Subtype.val ∘ R) := by
+  rw [linearIndependent_iff']
+  intro S g hg a ha
+  have h0 : (Tseitin.coeffLin ℚ (τ a)) (∑ j ∈ S, g j • (Subtype.val ∘ R) j) = 0 := by
+    rw [hg]
+    exact map_zero _
+  simp only [map_sum, LinearMap.map_smul, Function.comp, smul_eq_mul] at h0
+  simp only [Tseitin.coeffLin, LinearMap.coe_mk, AddHom.coe_mk] at h0
+  have hsub : ∀ j ∈ S, g j * MvPolynomial.coeff (τ a) (R j).val =
+      if j = a then g j * signs a else 0 := by
+    intro j _
+    rw [hkronecker a j]
+    by_cases h : a = j
+    · subst h
+      simp
+    · simp [h, show j ≠ a from fun h' => h (h' ▸ rfl)]
+  rw [Finset.sum_congr rfl hsub, Finset.sum_ite_eq' S a, if_pos ha] at h0
+  rcases hsigns a with hs | hs <;> simp [hs] at h0 <;> exact h0
+
+/-- Build matrix-level closure from explicit Kronecker coefficient data. -/
+theorem selCon_kronecker_matrix_logscale_from_data (M : DTM) (n : ℕ)
+    (hn804 : n ≥ 2 ^ 804)
+    (hData : selCon_kronecker_data_logscale M n hn804) :
+    selCon_kronecker_matrix_logscale M n hn804 := by
+  rcases hData with ⟨R, τ, signs, hsigns, hkronecker⟩
+  refine ⟨R, linearIndependent_from_kronecker M n _ R τ signs hsigns hkronecker⟩
+
 /-- Kronecker/identity-minor choose-rank closure at logscale.
 This is the linear-independence matrix claim after κ-level derivative expansion. -/
 def selCon_choose_rank_logscale (M : DTM) (n : ℕ)
