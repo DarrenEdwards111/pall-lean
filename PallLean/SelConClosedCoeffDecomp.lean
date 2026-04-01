@@ -128,9 +128,14 @@ theorem complement_prod_constant_term (M : DTM) (n : ℕ)
     (ks : List (Fin (latentBaseVars M n))) :
     MvPolynomial.coeff 0
       (∏ i ∈ (Finset.univ \ ks.toFinset), selConGadget M n i) = 1 := by
-  -- Each factor has constant term 1, and coeff 0 of a product = product of coeff 0
-  -- when factors are (1 - x*y) type (the only contribution at monomial 0 is from constant terms)
-  sorry
+  -- coeff 0 = constantCoeff (definitional), which is a ring hom
+  show MvPolynomial.constantCoeff (∏ i ∈ (Finset.univ \ ks.toFinset), selConGadget M n i) = 1
+  rw [map_prod]
+  apply Finset.prod_eq_one
+  intro i _
+  show MvPolynomial.constantCoeff (selConGadget M n i) = 1
+  change MvPolynomial.coeff 0 (selConGadget M n i) = 1
+  exact selConGadget_constant_term M n i
 
 /-- On the diagonal: coeff of tag at closed form = sign.
 
