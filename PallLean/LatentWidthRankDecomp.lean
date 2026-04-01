@@ -176,6 +176,24 @@ def latent_profile_span_card_bound_logscale (M : DTM) (n : ℕ)
       (latentCompiledPoly M n) ≤ Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ∧
     G.card ≤ n ^ 200
 
+/-- Profile block-cover package (paper-faithful §9 shape, reduced form):
+- profile index set `I` over a bounded type `Fin (n^40)`
+- each profile contributes a finite generator block (size ≤ n^160)
+- union of profile blocks spans the full logscale subspace.
+
+The profile-count bound `I.card ≤ n^40` is automatic from the index type.
+This is the sharpest constructive target before the final cardinal arithmetic. -/
+def latent_profile_block_cover_logscale (M : DTM) (n : ℕ)
+    (_hn : n ≥ max 4 M.numStates)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∃ (I : Finset (Fin (n ^ 40)))
+    (Gprof : Fin (n ^ 40) → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ)),
+    mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n)
+      ≤ Submodule.span ℚ (↑(I.biUnion (fun i => Gprof i))
+          : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ∧
+    (∀ i ∈ I, (Gprof i).card ≤ n ^ 160)
+
 /-- Profile-decomposed span-card package (paper-faithful §9 shape):
 - finitely many profiles (index set `I`, count ≤ n^40)
 - each profile contributes a finite generator block (size ≤ n^160)
@@ -193,6 +211,18 @@ def latent_profile_span_card_parts_logscale (M : DTM) (n : ℕ)
           : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ∧
     I.card ≤ n ^ 40 ∧
     (∀ i ∈ I, (Gprof i).card ≤ n ^ 160)
+
+/-- Build the full parts package from the reduced block-cover package.
+The profile-count side is automatic since `I : Finset (Fin (n^40))`. -/
+theorem latent_profile_span_card_parts_logscale_from_block_cover (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hCover : latent_profile_block_cover_logscale M n hn hn804) :
+    latent_profile_span_card_parts_logscale M n hn hn804 := by
+  rcases hCover with ⟨I, Gprof, hSpan, hBlock⟩
+  refine ⟨I, Gprof, hSpan, ?_, hBlock⟩
+  calc I.card ≤ (Finset.univ : Finset (Fin (n ^ 40))).card := Finset.card_le_card (Finset.subset_univ _)
+    _ = n ^ 40 := Fintype.card_fin (n ^ 40)
 
 /-- Assemble span-card witness `G` from profile blocks. -/
 theorem latent_profile_span_card_bound_logscale_from_parts (M : DTM) (n : ℕ)

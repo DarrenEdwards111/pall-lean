@@ -165,4 +165,24 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_span_card (h : PeqNP) (n : ℕ)
     theorem216_profile_data_logscale_from_span_card_bound M n hnM hn804 pSpan
   exact P_neq_NP_latent_from_finer_decomp h n hn idxList hnd hlen hfinj pAsm
 
+/-- Narrowest decomposition entry (current): NP finer decomposition +
+P-side profile block-cover package. -/
+theorem P_neq_NP_latent_from_finer_decomp_and_p_block_cover (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (idxList : Fin (Nat.choose (latentBaseVars h.sat_decider n) (Nat.log 2 n)) →
+      List (Fin (latentBaseVars h.sat_decider n)))
+    (hnd : ∀ i, (idxList i).Nodup)
+    (hlen : ∀ i, (idxList i).length = Nat.log 2 n)
+    (hfinj : ∀ i j, (idxList i).toFinset = (idxList j).toFinset → i = j)
+    (pCover : latent_profile_block_cover_logscale h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  have pParts : latent_profile_span_card_parts_logscale M n hnM hn804 :=
+    latent_profile_span_card_parts_logscale_from_block_cover M n hnM hn804 pCover
+  have pSpan : latent_profile_span_card_bound_logscale M n hnM hn804 :=
+    latent_profile_span_card_bound_logscale_from_parts M n hnM hn804 pParts
+  exact P_neq_NP_latent_from_finer_decomp_and_p_span_card h n hn idxList hnd hlen hfinj pSpan
+
 end LatentCompilerFinalRoute
