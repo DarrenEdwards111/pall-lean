@@ -65,14 +65,20 @@ axiom selCon_offdiag_complement_support (M : DTM) (n : ℕ)
 theorem selCon_diag_closed_form_from_decomp (M : DTM) (n : ℕ) :
     selCon_diag_closed_form_statement M n := by
   intro ks hnd hlen
-  rw [← selCon_diag_mlProj_preserves_coeff M n ks]
+  -- Goal is coeff tag (mlProj (C(-1)^len * Xcon-prod * complement-prod)) = sign
+  -- This equals coeff tag (mlProj (selCon_closedForm)) by definition
+  change MvPolynomial.coeff (selCon_tagMono M n ks)
+    (mlProj (selCon_closedForm M n ks)) = selCon_signOfList ks
+  rw [selCon_diag_mlProj_preserves_coeff M n ks]
   exact selCon_diag_complement_support M n ks
 
 /-- Assembled off-diagonal closed-form statement. -/
 theorem selCon_offdiag_closed_form_from_decomp (M : DTM) (n : ℕ) :
     selCon_offdiag_closed_form_statement M n := by
   intro ksi ksj hndi hndj hleni hlenj hneq
-  rw [← selCon_offdiag_mlProj_preserves_coeff M n ksi ksj]
+  change MvPolynomial.coeff (selCon_tagMono M n ksi)
+    (mlProj (selCon_closedForm M n ksj)) = 0
+  rw [selCon_offdiag_mlProj_preserves_coeff M n ksi ksj]
   exact selCon_offdiag_complement_support M n ksi ksj hneq
 
 /-- Therefore the original Kronecker coefficient law follows from the finer decomposition. -/
@@ -81,10 +87,11 @@ theorem selCon_kronecker_coeff_law_logscale_from_finer_decomp
     (idxList : Fin (Nat.choose (latentBaseVars M n) (Nat.log 2 n)) →
       List (Fin (latentBaseVars M n)))
     (hnd : ∀ i, (idxList i).Nodup)
-    (hlen : ∀ i, (idxList i).length = Nat.log 2 n) :
+    (hlen : ∀ i, (idxList i).length = Nat.log 2 n)
+    (hinj : Function.Injective idxList) :
     selCon_kronecker_coeff_law_logscale M n hn804 := by
   exact selCon_kronecker_coeff_law_logscale_from_closed_forms
-    M n hn804 idxList hnd hlen
+    M n hn804 idxList hnd hlen hinj
     (selCon_diag_closed_form_from_decomp M n)
     (selCon_offdiag_closed_form_from_decomp M n)
 
