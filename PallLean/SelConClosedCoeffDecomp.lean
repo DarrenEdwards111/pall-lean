@@ -274,13 +274,48 @@ theorem selConGadget_nonzero_mono_has_selSlot (M : DTM) (n : ℕ)
     · simp at hprod
     · simp at hprod
 
-theorem complement_nonzero_mono_has_selSlot (M : DTM) (n : ℕ)
-    (ksj : List (Fin (latentBaseVars M n)))
+/-- A nonzero monomial with no selSlot support has zero coefficient in any selConGadget product. -/
+theorem coeff_selConProd_eq_zero_of_no_sel (M : DTM) (n : ℕ)
+    (T : Finset (Fin (latentBaseVars M n)))
     (m : (Fin (latentNumVars M n)) →₀ ℕ)
-    (hm : m ∈ (∏ i ∈ (Finset.univ \ ksj.toFinset), selConGadget M n i).support)
-    (hm0 : m ≠ 0) :
-    ∃ i, i ∉ ksj.toFinset ∧ selSlot M n i ∈ m.support := by
-  sorry
+    (hm0 : m ≠ 0)
+    (hnoSel : ∀ i ∈ T, selSlot M n i ∉ m.support) :
+    MvPolynomial.coeff m (∏ i ∈ T, selConGadget M n i) = 0 := by
+  induction T using Finset.induction_on with
+  | empty => simp [MvPolynomial.coeff_one, if_neg (Ne.symm hm0)]
+  | @insert j S hjS ih =>
+    rw [Finset.prod_insert hjS, MvPolynomial.coeff_mul]
+    apply Finset.sum_eq_zero
+    intro p hp
+    rcases p with ⟨a, b⟩
+    rw [Finset.mem_antidiagonal] at hp
+    by_cases ha0 : a = 0
+    · subst ha0
+      simp only [zero_add] at hp
+      subst hp
+      have hnoSelS : ∀ i ∈ S, selSlot M n i ∉ b.support := by
+        intro i hi
+        exact hnoSel i (Finset.mem_insert_of_mem hi)
+      have hih := ih hnoSelS
+      rw [hih]
+      simp
+    · have hselA_not : selSlot M n j ∉ a.support := by
+        rw [Finsupp.mem_support_iff]
+        push_neg
+        have hsum := congrArg (fun f => f (selSlot M n j)) hp
+        simp only [Finsupp.add_apply] at hsum
+        have hmj : m (selSlot M n j) = 0 := by
+          by_contra hmj
+          exact hnoSel j (Finset.mem_insert_self j S) (Finsupp.mem_support_iff.mpr hmj)
+        omega
+      have hcoeffA0 : MvPolynomial.coeff a (selConGadget M n j) = 0 := by
+        by_contra hcoeffA
+        have ha_supp : a ∈ (selConGadget M n j).support :=
+          Finsupp.mem_support_iff.mpr hcoeffA
+        have hselA : selSlot M n j ∈ a.support :=
+          selConGadget_nonzero_mono_has_selSlot M n j a ha_supp ha0
+        exact hselA_not hselA
+      simp [hcoeffA0]
 
 /-- tagMono only has conSlot variables (no selSlot). -/
 theorem tagMono_no_selSlot (M : DTM) (n : ℕ)
@@ -363,17 +398,11 @@ theorem selCon_offdiag_complement_support (M : DTM) (n : ℕ)
         by_contra hne
         exact tagMono_no_selSlot M n ksj hndj i (Finsupp.mem_support_iff.mpr hne)
       omega
-    -- Any nonzero monomial in complement's support has a selSlot var
-    -- b is nonzero but has no selSlot vars, so b ∉ complement's support
-    by_contra hcoeff
-    push_neg at hcoeff
-    have hcoeff' : MvPolynomial.coeff b (∏ i ∈ (Finset.univ \ ksj.toFinset), selConGadget M n i) ≠ 0 := by
-      intro h
-      simp [h] at hcoeff
-    have hb_supp : b ∈ (∏ i ∈ (Finset.univ \ ksj.toFinset), selConGadget M n i).support :=
-      Finsupp.mem_support_iff.mpr hcoeff'
-    obtain ⟨i, _, hsel⟩ := complement_nonzero_mono_has_selSlot M n ksj b hb_supp hb0
-    exact hb_no_sel i hsel
+    -- b has no selSlot support and b ≠ 0, so its coefficient in complement is 0
+    have hcoeff0 : MvPolynomial.coeff b (∏ i ∈ (Finset.univ \ ksj.toFinset), selConGadget M n i) = 0 :=
+      coeff_selConProd_eq_zero_of_no_sel M n (Finset.univ \ ksj.toFinset) b hb0
+        (by intro i _; exact hb_no_sel i)
+    simpa [hcoeff0]
   · simp [ha]
 
 /-- Assembled diagonal closed-form statement. -/
