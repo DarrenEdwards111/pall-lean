@@ -176,6 +176,48 @@ def latent_profile_span_card_bound_logscale (M : DTM) (n : ℕ)
       (latentCompiledPoly M n) ≤ Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ∧
     G.card ≤ n ^ 200
 
+/-- Profile-decomposed span-card package (paper-faithful §9 shape):
+- finitely many profiles (index set `I`, count ≤ n^40)
+- each profile contributes a finite generator block (size ≤ n^160)
+- union of profile blocks spans the full logscale subspace.
+
+This isolates the final P-core to explicit profile count + per-profile dimension data. -/
+def latent_profile_span_card_parts_logscale (M : DTM) (n : ℕ)
+    (_hn : n ≥ max 4 M.numStates)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∃ (I : Finset (Fin (n ^ 40)))
+    (Gprof : Fin (n ^ 40) → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ)),
+    mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n)
+      ≤ Submodule.span ℚ (↑(I.biUnion (fun i => Gprof i))
+          : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ∧
+    I.card ≤ n ^ 40 ∧
+    (∀ i ∈ I, (Gprof i).card ≤ n ^ 160)
+
+/-- Assemble span-card witness `G` from profile blocks. -/
+theorem latent_profile_span_card_bound_logscale_from_parts (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hParts : latent_profile_span_card_parts_logscale M n hn hn804) :
+    latent_profile_span_card_bound_logscale M n hn hn804 := by
+  rcases hParts with ⟨I, Gprof, hSpan, hI, hBlock⟩
+  refine ⟨I.biUnion (fun i => Gprof i), hSpan, ?_⟩
+  have hbi : (I.biUnion (fun i => Gprof i)).card ≤ ∑ i ∈ I, (Gprof i).card :=
+    Finset.card_biUnion_le
+  have hsum : (∑ i ∈ I, (Gprof i).card) ≤ I.card * n ^ 160 := by
+    simpa [nsmul_eq_mul] using
+      (Finset.sum_le_card_nsmul I (fun i => (Gprof i).card) (n ^ 160)
+        (by intro i hi; exact hBlock i hi))
+  have hmul : I.card * n ^ 160 ≤ n ^ 40 * n ^ 160 :=
+    Nat.mul_le_mul hI (le_rfl)
+  calc
+    (I.biUnion (fun i => Gprof i)).card
+        ≤ ∑ i ∈ I, (Gprof i).card := hbi
+    _ ≤ I.card * n ^ 160 := hsum
+    _ ≤ n ^ 40 * n ^ 160 := hmul
+    _ = n ^ 200 := by
+      simpa using (Nat.pow_add n 40 160).symm
+
 /-- Assembly theorem (contradiction scale): profile count × within-profile dimension
 at κ = log₂ n gives polynomial total rank.
 
