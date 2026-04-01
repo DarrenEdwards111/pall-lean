@@ -375,10 +375,66 @@ theorem selCon_choose_rank_logscale_from_data (M : DTM) (n : ℕ)
   exact selCon_choose_rank_logscale_from_matrix M n hn804
     (selCon_kronecker_matrix_logscale_from_data M n hn804 hData)
 
+/-- Base numeric lower bound at logscale for choose(n, log₂ n), uniform from n ≥ 2^40.
+Paper-faithful combinatorial step (same arithmetic backbone as BinomialBound2). -/
+theorem choose_numeric_logscale_base (n : ℕ) (hn40 : 2 ^ 40 ≤ n) :
+    n ^ (Nat.log 2 n / 4) ≤ Nat.choose n (Nat.log 2 n) := by
+  set k := Nat.log 2 n
+  by_cases hk0 : k = 0
+  · simp [hk0]
+  · have hkpos : 0 < k := Nat.pos_of_ne_zero hk0
+    have hq4 : (n / (30 * k)) ^ 4 ≥ n := by
+      -- quotient_pow4_ge in BinomialBound is parameterized by log₂ n; rewrite k
+      have := BinomialBound.quotient_pow4_ge n hn40
+      simpa [k] using this
+    have hq1 : 1 ≤ n / (30 * k) := by
+      apply Nat.div_pos
+      · calc
+          30 * k ≤ 2 ^ (k / 2) := BinomialBound.thirty_k_le_pow_half k (by
+            have h40 : 40 ≤ k := by
+              have h1 : Nat.log 2 (2 ^ 40) = 40 := Nat.log_pow (by norm_num) 40
+              have h2 : Nat.log 2 (2 ^ 40) ≤ k := by
+                simpa [k] using Nat.log_mono (by norm_num) le_rfl hn40
+              omega
+            omega)
+          _ ≤ 2 ^ k := Nat.pow_le_pow_right (by norm_num) (by omega)
+          _ ≤ n := by
+            have hn_ne : n ≠ 0 := by omega
+            simpa [k] using (Nat.pow_log_le_self 2 hn_ne)
+      · omega
+    have hpow40 : (n / (30 * k)) ^ k ≥ n ^ (k / 4) :=
+      BinomialBound.pow_lift_four (n / (30 * k)) n k hq4 hq1
+    have hchoose_div : Nat.choose n k ≥ (n / k) ^ k :=
+      BinomialBound.choose_ge_div_pow n k hkpos
+    have hdiv_mono : n / (30 * k) ≤ n / k := by
+      -- larger denominator gives smaller quotient
+      exact Nat.div_le_div_left (by omega) hkpos
+    have hpow_mono : (n / (30 * k)) ^ k ≤ (n / k) ^ k :=
+      Nat.pow_le_pow_left hdiv_mono k
+    have hchoose40 : Nat.choose n k ≥ n ^ (k / 4) := by
+      exact le_trans hpow40 (le_trans hpow_mono hchoose_div)
+    simpa [k] using hchoose40
+
 /-- Numeric choose-vs-n closure at logscale (combinatorial side). -/
 def selCon_choose_numeric_logscale (M : DTM) (n : ℕ)
     (_hn804 : n ≥ 2 ^ 804) : Prop :=
   n ^ (Nat.log 2 n / 4) ≤ Nat.choose (latentBaseVars M n) (Nat.log 2 n)
+
+/-- Numeric closure proved from base choose bound + latentBaseVars monotonicity. -/
+theorem selCon_choose_numeric_logscale_proved (M : DTM) (n : ℕ)
+    (hn804 : n ≥ 2 ^ 804) :
+    selCon_choose_numeric_logscale M n hn804 := by
+  unfold selCon_choose_numeric_logscale
+  have hpow : (2 : ℕ) ^ 40 ≤ 2 ^ 804 := by
+    exact Nat.pow_le_pow_right (by norm_num) (by decide : 40 ≤ 804)
+  have hn40 : 2 ^ 40 ≤ n := le_trans hpow hn804
+  have hbase : n ^ (Nat.log 2 n / 4) ≤ Nat.choose n (Nat.log 2 n) :=
+    choose_numeric_logscale_base n hn40
+  have hmon : Nat.choose n (Nat.log 2 n) ≤
+      Nat.choose (latentBaseVars M n) (Nat.log 2 n) := by
+    apply Nat.choose_le_choose
+    exact latentBaseVars_ge_n M n
+  exact le_trans hbase hmon
 
 /-- Final κ-level NP closure package.
 Split into:
@@ -397,6 +453,15 @@ theorem selCon_kronecker_linear_independence_logscale_from_data_numeric
     (hNum : selCon_choose_numeric_logscale M n hn804) :
     selCon_kronecker_linear_independence_logscale M n hn804 := by
   refine ⟨selCon_choose_rank_logscale_from_data M n hn804 hData, hNum⟩
+
+/-- Numeric closure is now proved internally; NP package can be assembled from data only. -/
+theorem selCon_kronecker_linear_independence_logscale_from_data
+    (M : DTM) (n : ℕ)
+    (hn804 : n ≥ 2 ^ 804)
+    (hData : selCon_kronecker_data_logscale M n hn804) :
+    selCon_kronecker_linear_independence_logscale M n hn804 := by
+  exact selCon_kronecker_linear_independence_logscale_from_data_numeric
+    M n hn804 hData (selCon_choose_numeric_logscale_proved M n hn804)
 
 /-- Closing theorem for NP side from the two logscale closures. -/
 theorem latent_hard_witness_logscale_from_kronecker (M : DTM) (n : ℕ)

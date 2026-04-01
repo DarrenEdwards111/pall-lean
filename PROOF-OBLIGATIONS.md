@@ -18,7 +18,7 @@ This theorem is now **axiom-free** in Lean syntax and depends on an explicit ass
 
 - `LatentCompilerFinalRoute.LogscaleObligations`
   - NP part:
-    - `npKron : selCon_kronecker_linear_independence_logscale ...`
+    - `npData : selCon_kronecker_data_logscale ...`
   - P part:
     - `pAsm : theorem216_p_obligation ...`
 
@@ -66,9 +66,9 @@ New closure theorems proved:
 - `selCon_choose_rank_logscale_from_data`
 - `selCon_kronecker_linear_independence_logscale_from_data_numeric`
 
-So once Kronecker coefficient data is constructed (plus numeric choose closure),
-full NP package closure follows immediately and plugs into
-`latent_hard_witness_logscale_from_kronecker`.
+Numeric choose closure is now proved internally (`selCon_choose_numeric_logscale_proved`).
+So once Kronecker coefficient data is constructed, full NP package closure follows
+immediately and plugs into `latent_hard_witness_logscale_from_kronecker`.
 
 ### Location
 `PallLean/LatentWitnessMinorDecomp.lean`
