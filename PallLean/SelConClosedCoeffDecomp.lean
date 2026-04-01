@@ -437,4 +437,106 @@ theorem selCon_kronecker_coeff_law_logscale_from_finer_decomp
     (selCon_diag_closed_form_from_decomp M n)
     (selCon_offdiag_closed_form_from_decomp M n)
 
+/-! ## Canonical choose-indexed list family (Item 1)
+
+We instantiate idxList from `sublistsLen` over `List.finRange (latentBaseVars M n)`.
+This provides explicit witnesses for:
+- nodup rows (`hnd`)
+- κ-length rows (`hlen`)
+- toFinset-level injectivity (`hfinj`)
+-/
+
+noncomputable def selCon_baseList (M : DTM) (n : ℕ) :
+    List (Fin (latentBaseVars M n)) :=
+  List.finRange (latentBaseVars M n)
+
+noncomputable def selCon_subsetList (M : DTM) (n : ℕ) :
+    List (List (Fin (latentBaseVars M n))) :=
+  (selCon_baseList M n).sublistsLen (Nat.log 2 n)
+
+theorem selCon_subsetList_length (M : DTM) (n : ℕ) :
+    (selCon_subsetList M n).length =
+      Nat.choose (latentBaseVars M n) (Nat.log 2 n) := by
+  unfold selCon_subsetList selCon_baseList
+  simpa using List.length_sublistsLen (Nat.log 2 n) (List.finRange (latentBaseVars M n))
+
+noncomputable def selCon_idxList (M : DTM) (n : ℕ) :
+    Fin (Nat.choose (latentBaseVars M n) (Nat.log 2 n)) →
+      List (Fin (latentBaseVars M n)) :=
+  fun i => (selCon_subsetList M n).get (i.cast (selCon_subsetList_length M n).symm)
+
+private theorem sublistsLen_get_sublist {α : Type*} (l : List α) (k : ℕ)
+    (i : Fin (l.sublistsLen k).length) :
+    ((l.sublistsLen k).get i).Sublist l := by
+  have hmem := List.get_mem (l.sublistsLen k) i
+  exact List.mem_sublists'.mp (List.sublistsLen_sublist_sublists' k l |>.subset hmem)
+
+private theorem fin_eq_of_get_eq_of_nodup {α : Type*} {l : List α}
+    (hnd : l.Nodup) {i j : Fin l.length} (hget : l.get i = l.get j) : i = j := by
+  apply Fin.ext
+  have hopt : l[i.1]? = l[j.1]? := by
+    simpa [List.getElem?_eq_getElem i.2, List.getElem?_eq_getElem j.2] using congrArg some hget
+  exact List.getElem?_inj i.2 hnd hopt
+
+theorem selCon_idxList_nodup (M : DTM) (n : ℕ)
+    (i : Fin (Nat.choose (latentBaseVars M n) (Nat.log 2 n))) :
+    (selCon_idxList M n i).Nodup := by
+  unfold selCon_idxList
+  have hsub : (((selCon_baseList M n).sublistsLen (Nat.log 2 n)).get
+      (i.cast (selCon_subsetList_length M n).symm)).Sublist (selCon_baseList M n) :=
+    sublistsLen_get_sublist (selCon_baseList M n) (Nat.log 2 n)
+      (i.cast (selCon_subsetList_length M n).symm)
+  exact hsub.nodup (by unfold selCon_baseList; exact List.nodup_finRange _)
+
+theorem selCon_idxList_length (M : DTM) (n : ℕ)
+    (i : Fin (Nat.choose (latentBaseVars M n) (Nat.log 2 n))) :
+    (selCon_idxList M n i).length = Nat.log 2 n := by
+  unfold selCon_idxList
+  have hmem : ((selCon_baseList M n).sublistsLen (Nat.log 2 n)).get
+      (i.cast (selCon_subsetList_length M n).symm) ∈
+      (selCon_baseList M n).sublistsLen (Nat.log 2 n) :=
+    List.get_mem _ _
+  exact List.length_of_sublistsLen hmem
+
+theorem selCon_idxList_toFinset_injective (M : DTM) (n : ℕ) :
+    ∀ i j : Fin (Nat.choose (latentBaseVars M n) (Nat.log 2 n)),
+      (selCon_idxList M n i).toFinset = (selCon_idxList M n j).toFinset → i = j := by
+  intro i j hfs
+  have hsub_i : (selCon_idxList M n i).Sublist (selCon_baseList M n) := by
+    unfold selCon_idxList
+    exact sublistsLen_get_sublist (selCon_baseList M n) (Nat.log 2 n)
+      (i.cast (selCon_subsetList_length M n).symm)
+  have hsub_j : (selCon_idxList M n j).Sublist (selCon_baseList M n) := by
+    unfold selCon_idxList
+    exact sublistsLen_get_sublist (selCon_baseList M n) (Nat.log 2 n)
+      (j.cast (selCon_subsetList_length M n).symm)
+  have hnd_base : (selCon_baseList M n).Nodup := by
+    unfold selCon_baseList
+    exact List.nodup_finRange _
+  have hlist_eq : selCon_idxList M n i = selCon_idxList M n j :=
+    IdentityMinor.sublist_eq_of_nodup_toFinset_eq hnd_base hsub_i hsub_j hfs
+  -- Convert list equality back to index equality via nodup of sublistsLen + get-injectivity
+  have hnodup_subs : (selCon_subsetList M n).Nodup := by
+    unfold selCon_subsetList selCon_baseList
+    exact List.nodup_sublistsLen (Nat.log 2 n) (List.nodup_finRange _)
+  have hget_eq : (selCon_subsetList M n).get (i.cast (selCon_subsetList_length M n).symm) =
+      (selCon_subsetList M n).get (j.cast (selCon_subsetList_length M n).symm) := by
+    simpa [selCon_idxList] using hlist_eq
+  have hcast_eq : i.cast (selCon_subsetList_length M n).symm =
+      j.cast (selCon_subsetList_length M n).symm :=
+    fin_eq_of_get_eq_of_nodup hnodup_subs hget_eq
+  exact Fin.ext (by simpa using congrArg Fin.val hcast_eq)
+
+/-- Item 1 completed: canonical idxList package immediately discharges the
+finer decomposition theorem assumptions. -/
+theorem selCon_kronecker_coeff_law_logscale_from_canonical_idxList
+    (M : DTM) (n : ℕ) (hn804 : n ≥ 2 ^ 804) :
+    selCon_kronecker_coeff_law_logscale M n hn804 := by
+  exact selCon_kronecker_coeff_law_logscale_from_finer_decomp
+    M n hn804
+    (selCon_idxList M n)
+    (selCon_idxList_nodup M n)
+    (selCon_idxList_length M n)
+    (selCon_idxList_toFinset_injective M n)
+
 end SelConClosedCoeffDecomp
