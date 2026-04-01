@@ -212,6 +212,25 @@ def latent_profile_span_card_parts_logscale (M : DTM) (n : ℕ)
     I.card ≤ n ^ 40 ∧
     (∀ i ∈ I, (Gprof i).card ≤ n ^ 160)
 
+/-- Item 1 of the profile block-cover package:
+there is a bounded profile index set `I` with `I.card ≤ n^40`. -/
+def latent_profile_block_cover_item1_logscale (M : DTM) (n : ℕ)
+    (_hn : n ≥ max 4 M.numStates)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∃ I : Finset (Fin (n ^ 40)), I.card ≤ n ^ 40
+
+/-- Item 1 is immediate from any block-cover witness. -/
+theorem latent_profile_block_cover_item1_from_block_cover (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hCover : latent_profile_block_cover_logscale M n hn hn804) :
+    latent_profile_block_cover_item1_logscale M n hn hn804 := by
+  rcases hCover with ⟨I, _Gprof, _hSpan, _hBlock⟩
+  refine ⟨I, ?_⟩
+  calc I.card ≤ (Finset.univ : Finset (Fin (n ^ 40))).card :=
+      Finset.card_le_card (Finset.subset_univ _)
+    _ = n ^ 40 := Fintype.card_fin (n ^ 40)
+
 /-- Build the full parts package from the reduced block-cover package.
 The profile-count side is automatic since `I : Finset (Fin (n^40))`. -/
 theorem latent_profile_span_card_parts_logscale_from_block_cover (M : DTM) (n : ℕ)
