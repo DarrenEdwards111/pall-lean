@@ -61,11 +61,14 @@ and full `selConSheet`, matching the paper's product-derivative backbone.
 Remaining NP step: finish explicit choose-indexed Kronecker matrix construction from
 this closed form.
 
-New closure theorem proved:
+New closure theorems proved:
 - `selCon_choose_rank_logscale_from_matrix`
+- `selCon_choose_rank_logscale_from_data`
+- `selCon_kronecker_linear_independence_logscale_from_data_numeric`
 
-So once matrix data (`selCon_kronecker_matrix_logscale`) is constructed, choose-rank
-closure follows immediately and plugs into `selCon_kronecker_linear_independence_logscale`.
+So once Kronecker coefficient data is constructed (plus numeric choose closure),
+full NP package closure follows immediately and plugs into
+`latent_hard_witness_logscale_from_kronecker`.
 
 ### Location
 `PallLean/LatentWitnessMinorDecomp.lean`

@@ -367,6 +367,14 @@ theorem selCon_choose_rank_logscale_from_matrix (M : DTM) (n : ℕ)
   unfold selCon_choose_rank_logscale mlBlockedSpdpRank
   exact finrank_submodule_ge_card M n _ R hlin
 
+/-- Rank closure directly from explicit Kronecker coefficient data. -/
+theorem selCon_choose_rank_logscale_from_data (M : DTM) (n : ℕ)
+    (hn804 : n ≥ 2 ^ 804)
+    (hData : selCon_kronecker_data_logscale M n hn804) :
+    selCon_choose_rank_logscale M n hn804 := by
+  exact selCon_choose_rank_logscale_from_matrix M n hn804
+    (selCon_kronecker_matrix_logscale_from_data M n hn804 hData)
+
 /-- Numeric choose-vs-n closure at logscale (combinatorial side). -/
 def selCon_choose_numeric_logscale (M : DTM) (n : ℕ)
     (_hn804 : n ≥ 2 ^ 804) : Prop :=
@@ -380,6 +388,15 @@ def selCon_kronecker_linear_independence_logscale (M : DTM) (n : ℕ)
     (hn804 : n ≥ 2 ^ 804) : Prop :=
   selCon_choose_rank_logscale M n hn804 ∧
   selCon_choose_numeric_logscale M n hn804
+
+/-- Assemble NP package from explicit Kronecker data + numeric choose closure. -/
+theorem selCon_kronecker_linear_independence_logscale_from_data_numeric
+    (M : DTM) (n : ℕ)
+    (hn804 : n ≥ 2 ^ 804)
+    (hData : selCon_kronecker_data_logscale M n hn804)
+    (hNum : selCon_choose_numeric_logscale M n hn804) :
+    selCon_kronecker_linear_independence_logscale M n hn804 := by
+  refine ⟨selCon_choose_rank_logscale_from_data M n hn804 hData, hNum⟩
 
 /-- Closing theorem for NP side from the two logscale closures. -/
 theorem latent_hard_witness_logscale_from_kronecker (M : DTM) (n : ℕ)
