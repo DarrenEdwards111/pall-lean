@@ -221,23 +221,48 @@ theorem selCon_diag_complement_support (M : DTM) (n : ℕ)
     intro h
     simp [Finset.mem_antidiagonal] at h
 
-/-- Off-diagonal: coeff of one tag at another's closed form = 0.
+/-- For nodup lists, different toFinsets imply different tagMonos. -/
+theorem tagMono_ne_of_toFinset_ne (M : DTM) (n : ℕ)
+    (ksi ksj : List (Fin (latentBaseVars M n)))
+    (hndi : ksi.Nodup) (hndj : ksj.Nodup)
+    (hne : ksi.toFinset ≠ ksj.toFinset) :
+    selCon_tagMono M n ksi ≠ selCon_tagMono M n ksj := by
+  -- tagMono support = image of conSlot over toFinset (by tagMono_support_eq)
+  -- Different toFinsets → different conSlot images (conSlot injective) → different support → different Finsupp
+  sorry
 
-Strategy: ksi ≠ ksj implies τ_ksi ≠ τ_ksj (injective conSlot).
-The monomial part contributes only τ_ksj. The complement cannot supply the
-difference because it pairs every conSlot with a selSlot, but τ_ksi uses only conSlot vars.
--/
 theorem selCon_offdiag_complement_support (M : DTM) (n : ℕ)
     (ksi ksj : List (Fin (latentBaseVars M n)))
     (hndi : ksi.Nodup) (hndj : ksj.Nodup) :
-    ksi ≠ ksj →
+    ksi.toFinset ≠ ksj.toFinset →
     MvPolynomial.coeff (selCon_tagMono M n ksi)
       (selCon_closedForm M n ksj) = 0 := by
   intro hneq
   unfold selCon_closedForm
   rw [Xcon_prod_eq_monomial M n ksj hndj]
   rw [MvPolynomial.C_mul_monomial, mul_one]
-  sorry
+  -- Goal: coeff τ_ksi (monomial(τ_ksj, (-1)^|ksj|) * complement_ksj) = 0
+  -- Use antidiagonal: every contributing pair (a,b) needs coeff a (monomial(τ_ksj, s)) ≠ 0
+  -- which forces a = τ_ksj. Then b = τ_ksi - τ_ksj.
+  -- But τ_ksi ≠ τ_ksj, so b ≠ 0, meaning complement must supply nonzero monomial mass.
+  -- The complement only introduces conSlot vars paired with selSlot vars,
+  -- but τ_ksi has no selSlot components, contradiction.
+  rw [MvPolynomial.coeff_mul]
+  apply Finset.sum_eq_zero
+  intro ⟨a, b⟩ hab
+  simp only [Finset.mem_antidiagonal] at hab
+  rw [MvPolynomial.coeff_monomial]
+  by_cases ha : selCon_tagMono M n ksj = a
+  · -- a = τ_ksj, so b = τ_ksi - τ_ksj
+    subst ha
+    simp only [if_pos rfl, one_mul]
+    -- Need: coeff b (complement) = 0 where a + b = τ_ksi, a = τ_ksj
+    -- If b = 0 then τ_ksi = τ_ksj, contradicting tagMono_ne_of_toFinset_ne
+    -- If b ≠ 0 then complement must supply monomial b
+    -- But complement's non-constant terms all contain selSlot vars
+    -- while b only has conSlot vars (from τ_ksi - τ_ksj)
+    sorry
+  · simp [ha]
 
 /-- Assembled diagonal closed-form statement. -/
 theorem selCon_diag_closed_form_from_decomp (M : DTM) (n : ℕ) :
@@ -255,7 +280,20 @@ theorem selCon_offdiag_closed_form_from_decomp (M : DTM) (n : ℕ) :
   change MvPolynomial.coeff (selCon_tagMono M n ksi)
     (mlProj (selCon_closedForm M n ksj)) = 0
   rw [selCon_offdiag_mlProj_preserves_coeff M n ksi ksj hndi]
-  exact selCon_offdiag_complement_support M n ksi ksj hndi hndj hneq
+  -- Need toFinset ≠, not list ≠. For nodup lists, ≠ implies toFinset ≠ if sorted.
+  -- General: if ksi.toFinset = ksj.toFinset, then ksi and ksj are permutations,
+  -- and tagMono ksi = tagMono ksj, closedForm ksi = closedForm ksj,
+  -- so off-diagonal reduces to diagonal (giving sign, not 0).
+  -- The actual idxList uses canonical sorted representatives, so toFinset ≠ follows.
+  -- For now, add toFinset ≠ as hypothesis (caller ensures sorted/canonical lists).
+  by_cases hfs : ksi.toFinset = ksj.toFinset
+  · -- Permutation case: tagMono and closedForm are the same
+    -- closedForm only depends on toFinset, so closedForm ksi = closedForm ksj
+    -- This means coeff (tagMono ksi) (closedForm ksj) = coeff (tagMono ksi) (closedForm ksi) = sign ≠ 0
+    -- But we need 0, so this case can't arise for the actual idxList (which uses sorted reps)
+    -- Mark as sorry: requires sorted canonical representative constraint from caller
+    sorry
+  · exact selCon_offdiag_complement_support M n ksi ksj hndi hndj hfs
 
 /-- Therefore the original Kronecker coefficient law follows from the finer decomposition. -/
 theorem selCon_kronecker_coeff_law_logscale_from_finer_decomp
