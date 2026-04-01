@@ -60,10 +60,14 @@ and full `selConSheet`, matching the paper's product-derivative backbone.
 
 Remaining NP step (now decomposed):
 - construct `selCon_kronecker_coeff_law_logscale`
-- row scaffolding now has explicit constructor path:
+- row scaffolding has explicit constructor path:
   `selCon_kronecker_rows_data_logscale` ->
   `selCon_kronecker_rows_logscale_from_index_lists`
-- sign scaffolding: `selCon_kronecker_signs_logscale`
+- sign/tag scaffolding now explicit:
+  `selCon_signOfList`, `selCon_tagMono`,
+  `selCon_kronecker_signs_logscale_from_index_lists`
+- coefficient-law assembly skeleton added:
+  `selCon_kronecker_coeff_law_logscale_from_index_lists`
 - then assemble via `selCon_kronecker_data_logscale_from_parts`
 
 New closure theorems proved:

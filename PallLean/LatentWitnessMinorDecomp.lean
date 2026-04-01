@@ -330,11 +330,39 @@ theorem selCon_kronecker_rows_logscale_from_index_lists (M : DTM) (n : ℕ)
     ⟨selCon_rowPoly M n (idxList i),
       selCon_row_in_subspace_from_list M n (idxList i) (hnd i) (hlen i)⟩), trivial⟩
 
+/-- Canonical sign attached to a selector list: (-1)^(length). -/
+noncomputable def selCon_signOfList {α : Type*} (ks : List α) : ℚ :=
+  if Even ks.length then 1 else -1
+
+theorem selCon_signOfList_pm1 {α : Type*} (ks : List α) :
+    selCon_signOfList ks = 1 ∨ selCon_signOfList ks = -1 := by
+  unfold selCon_signOfList
+  by_cases h : Even ks.length
+  · left; simp [h]
+  · right; simp [h]
+
+/-- Tag monomial for a selector-list index set: τ = ∑ e_{conSlot(k)}. -/
+noncomputable def selCon_tagMono (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n))) :
+    (Fin (latentNumVars M n)) →₀ ℕ :=
+  (ks.map (conSlot M n)).foldr (fun j acc => acc + Finsupp.single j 1) 0
+
 /-- Kronecker signs at logscale (±1 diagonal values). -/
 def selCon_kronecker_signs_logscale (M : DTM) (n : ℕ)
     (_hn804 : n ≥ 2 ^ 804) : Prop :=
   let K := Nat.choose (latentBaseVars M n) (Nat.log 2 n)
   ∃ (signs : Fin K → ℚ), ∀ i, signs i = 1 ∨ signs i = -1
+
+/-- Build ±1 sign witnesses canonically from choose-indexed selector lists. -/
+theorem selCon_kronecker_signs_logscale_from_index_lists (M : DTM) (n : ℕ)
+    (hn804 : n ≥ 2 ^ 804)
+    (hRows : selCon_kronecker_rows_data_logscale M n hn804) :
+    selCon_kronecker_signs_logscale M n hn804 := by
+  rcases hRows with ⟨idxList, _hnd, _hlen⟩
+  let K := Nat.choose (latentBaseVars M n) (Nat.log 2 n)
+  refine ⟨fun i : Fin K => selCon_signOfList (idxList i), ?_⟩
+  intro i
+  exact selCon_signOfList_pm1 (idxList i)
 
 /-- Kronecker coefficient law at logscale, parameterized by row/tag/sign witnesses. -/
 def selCon_kronecker_coeff_law_logscale (M : DTM) (n : ℕ)
@@ -347,6 +375,43 @@ def selCon_kronecker_coeff_law_logscale (M : DTM) (n : ℕ)
     (signs : Fin K → ℚ),
       (∀ i, signs i = 1 ∨ signs i = -1) ∧
       (∀ i j, MvPolynomial.coeff (τ i) (R j).val = if i = j then signs i else 0)
+
+/-- Construct the Kronecker coefficient-law package from index-list data,
+plus explicit diagonal/off-diagonal coefficient equations.
+
+This isolates the remaining NP hard core to two concrete coefficient lemmas. -/
+theorem selCon_kronecker_coeff_law_logscale_from_index_lists
+    (M : DTM) (n : ℕ) (hn804 : n ≥ 2 ^ 804)
+    (idxList : Fin (Nat.choose (latentBaseVars M n) (Nat.log 2 n)) →
+      List (Fin (latentBaseVars M n)))
+    (hnd : ∀ i, (idxList i).Nodup)
+    (hlen : ∀ i, (idxList i).length = Nat.log 2 n)
+    (hdiag : ∀ i : Fin (Nat.choose (latentBaseVars M n) (Nat.log 2 n)),
+      MvPolynomial.coeff (selCon_tagMono M n (idxList i))
+        (selCon_rowPoly M n (idxList i)) = selCon_signOfList (idxList i))
+    (hoff : ∀ i j : Fin (Nat.choose (latentBaseVars M n) (Nat.log 2 n)), i ≠ j →
+      MvPolynomial.coeff (selCon_tagMono M n (idxList i))
+        (selCon_rowPoly M n (idxList j)) = 0) :
+    selCon_kronecker_coeff_law_logscale M n hn804 := by
+  let K := Nat.choose (latentBaseVars M n) (Nat.log 2 n)
+  let R : Fin K →
+      ↥(mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)) :=
+    fun i => ⟨selCon_rowPoly M n (idxList i),
+      selCon_row_in_subspace_from_list M n (idxList i) (hnd i) (hlen i)⟩
+  let τ : Fin K → ((Fin (latentNumVars M n)) →₀ ℕ) :=
+    fun i => selCon_tagMono M n (idxList i)
+  let signs : Fin K → ℚ :=
+    fun i => selCon_signOfList (idxList i)
+  refine ⟨R, τ, signs, ?_, ?_⟩
+  · intro i
+    exact selCon_signOfList_pm1 (idxList i)
+  · intro i j
+    by_cases hij : i = j
+    · subst hij
+      simpa [R, τ, signs] using hdiag i
+    · have h0 := hoff i j hij
+      simpa [R, τ, signs, hij] using h0
 
 /-- Stronger Kronecker witness data (paper identity-minor form) at logscale. -/
 def selCon_kronecker_data_logscale (M : DTM) (n : ℕ)
