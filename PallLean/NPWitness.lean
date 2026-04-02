@@ -107,10 +107,24 @@ noncomputable def cubicGraph (n : ℕ) (hn : n ≥ 6) (heven : 2 ∣ n) : Regula
       have : (e.val - n) < n / 2 := by omega
       omega⟩
   regular := fun v => by
-    -- The proof is a concrete enumeration: exactly 3 edges are incident to v.
-    -- This is technically correct but extremely tedious in Lean due to the
-    -- case analysis on edgeSrc/edgeTgt with dif_pos/dif_neg and modular arithmetic.
-    -- We defer to sorry for now and note this is purely mechanical (no math content).
+    -- Identify the 3 incident edges for vertex v:
+    -- e1 = v (forward cycle: src = v)
+    -- e2 = (v + n - 1) % n (backward cycle: tgt = v)
+    -- e3 = if v < n/2 then n + v else n + (v - n/2) (matching)
+    -- Then show the filter = {e1, e2, e3} with all 3 distinct.
+    have hv := v.isLt
+    have hn2 : n / 2 ≥ 3 := by rcases heven with ⟨k, hk⟩; omega
+    -- Forward cycle edge: e = v, src = v
+    set e_fwd : Fin (n + n / 2) := ⟨v.val, by omega⟩
+    -- Backward cycle edge: e = (v+n-1)%n, src = (v+n-1)%n, tgt = v
+    set e_bwd : Fin (n + n / 2) := ⟨(v.val + n - 1) % n, by
+      have : (v.val + n - 1) % n < n := Nat.mod_lt _ (by omega)
+      omega⟩
+    -- Matching edge
+    set e_match : Fin (n + n / 2) :=
+      if hv2 : v.val < n / 2 then ⟨n + v.val, by omega⟩
+      else ⟨n + (v.val - n / 2), by omega⟩
+    -- These 3 are the only incident edges. Proving this requires extensive case analysis.
     sorry
 
 /-- Round up to even ≥ 6 -/
@@ -260,17 +274,22 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
         xorClauses e1 e2 e3 b he12 he13 he23
       else []
   num_clauses_upper := by
-    -- clauses = flatMap over n vertices, each producing 4 clauses (when degree ≥ 3)
-    -- Total = 4n ≤ 10n
+    -- The clauses are flatMap over n vertices. Each vertex with degree ≥ 3 produces
+    -- exactly 4 clauses (from xorClauses). So total = 4n ≤ 10n.
+    -- This depends on G.regular (which has sorry). With G.regular v proved,
+    -- incidentEdgesList has length = G.degree = 3 ≥ 3, so the `if` fires.
     sorry
   num_clauses_lower := by
-    -- 4n ≥ n for n ≥ 1
+    -- Same reasoning: 4n ≥ n since n ≥ 1.
     sorry
   clause_vars_bound := by
-    -- Each clause variable is an edge index < numEdges, which is < numEdges + 3*|clauses|
+    -- Each clause variable comes from incidentEdgesList: it's a Fin G.numEdges value.
+    -- So var < G.numEdges ≤ G.numEdges + 3 * |clauses|.
     sorry
   bounded_occurrence := by
-    -- Each edge variable appears in exactly 2 vertices × 4 clauses per vertex = 8 ≤ 10
+    -- Each edge variable appears in at most 2 endpoint vertices.
+    -- Each vertex contributes 4 clauses, each mentioning 3 edge variables.
+    -- So each edge appears in ≤ 2 × 4 = 8 ≤ 10 clauses.
     sorry
 
 /-- Tseitin formula on the n-th graph, built concretely -/
