@@ -220,4 +220,25 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_item3_uniform2 (h : PeqNP) (n : 
     theorem216_profile_data_logscale_from_item3_uniform2 M n hnM hn804 p3u2
   exact P_neq_NP_latent_from_finer_decomp h n hn idxList hnd hlen hfinj pAsm
 
+/-- More constructive P-entry: provide an explicit global finite span witness `G`
+and an explicit 40×160 bucketization of `G`, then block-cover follows automatically. -/
+theorem P_neq_NP_latent_from_finer_decomp_and_p_span_bucket (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (idxList : Fin (Nat.choose (latentBaseVars h.sat_decider n) (Nat.log 2 n)) →
+      List (Fin (latentBaseVars h.sat_decider n)))
+    (hnd : ∀ i, (idxList i).Nodup)
+    (hlen : ∀ i, (idxList i).length = Nat.log 2 n)
+    (hfinj : ∀ i j, (idxList i).toFinset = (idxList j).toFinset → i = j)
+    (G : Finset (MvPolynomial (Fin (latentNumVars h.sat_decider n)) ℚ))
+    (hSpan : mlBlockedSpdpSubspace (latentPartition h.sat_decider n)
+      (Nat.log 2 n) (Nat.log 2 n) (latentCompiledPoly h.sat_decider n)
+      ≤ Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars h.sat_decider n)) ℚ)))
+    (hBuck : latent_bucketization_40_160 h.sat_decider n G) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  have pCover : latent_profile_block_cover_logscale M n hnM hn804 :=
+    latent_profile_block_cover_logscale_from_span_and_bucketization M n hnM hn804 G hSpan hBuck
+  exact P_neq_NP_latent_from_finer_decomp_and_p_block_cover h n hn idxList hnd hlen hfinj pCover
+
 end LatentCompilerFinalRoute
