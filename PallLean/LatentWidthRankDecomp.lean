@@ -313,6 +313,25 @@ def latent_profile_block_cover_item3_uniform2_logscale (M : DTM) (n : ℕ)
         ≤ Submodule.span ℚ (↑(I.biUnion (fun i => Gprof i))
             : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))
 
+/-- Do-1 constructive item (P-side): existence of a finite global span witness `G`
+for the logscale blocked-SPDP subspace. -/
+def latent_global_span_witness_logscale (M : DTM) (n : ℕ)
+    (_hn : n ≥ max 4 M.numStates)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∃ G : Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ),
+    mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n)
+      ≤ Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))
+
+/-- Do-1 extracted from the span-card package. -/
+theorem latent_global_span_witness_logscale_from_span_card (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hSpan : latent_profile_span_card_bound_logscale M n hn hn804) :
+    latent_global_span_witness_logscale M n hn hn804 := by
+  rcases hSpan with ⟨G, hIncl, _hCard⟩
+  exact ⟨G, hIncl⟩
+
 /-- Combinatorial bucketization witness for a finite generator set `G`:
 `G` is represented as a union of profile buckets indexed by `Fin (n^40)`,
 with each bucket of size at most `n^160`. -/
@@ -322,6 +341,15 @@ def latent_bucketization_40_160 (M : DTM) (n : ℕ)
     (Gprof : Fin (n ^ 40) → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ)),
       (I.biUnion (fun i => Gprof i)) = G ∧
       (∀ i : Fin (n ^ 40), (Gprof i).card ≤ n ^ 160)
+
+/-- Block-cover directly gives Do-1 global span witness by taking the union. -/
+theorem latent_global_span_witness_logscale_from_block_cover (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hCover : latent_profile_block_cover_logscale M n hn hn804) :
+    latent_global_span_witness_logscale M n hn hn804 := by
+  rcases hCover with ⟨I, Gprof, hSpan, _hBlock⟩
+  exact ⟨I.biUnion (fun i => Gprof i), hSpan⟩
 
 /-- Construct block cover from a global finite span witness + explicit bucketization. -/
 theorem latent_profile_block_cover_logscale_from_span_and_bucketization (M : DTM) (n : ℕ)
