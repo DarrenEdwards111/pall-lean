@@ -287,6 +287,18 @@ def latent_profile_block_cover_items_logscale (M : DTM) (n : ℕ)
         ≤ Submodule.span ℚ (↑(I.biUnion (fun i => Gprof i))
             : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))
 
+/-- Item-2+3 shared-witness package (count bound omitted; recovered from type bound). -/
+def latent_profile_block_cover_item23_logscale (M : DTM) (n : ℕ)
+    (_hn : n ≥ max 4 M.numStates)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∃ (I : Finset (Fin (n ^ 40)))
+    (Gprof : Fin (n ^ 40) → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ)),
+      (∀ i ∈ I, (Gprof i).card ≤ n ^ 160) ∧
+      mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)
+        ≤ Submodule.span ℚ (↑(I.biUnion (fun i => Gprof i))
+            : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))
+
 /-- Block cover implies the shared-witness item bundle. -/
 theorem latent_profile_block_cover_items_from_block_cover (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
@@ -305,6 +317,24 @@ theorem latent_profile_block_cover_from_items (M : DTM) (n : ℕ)
     (hItems : latent_profile_block_cover_items_logscale M n hn hn804) :
     latent_profile_block_cover_logscale M n hn hn804 := by
   rcases hItems with ⟨I, Gprof, _hI, hBlock, hSpan⟩
+  exact ⟨I, Gprof, hSpan, hBlock⟩
+
+/-- Block cover implies the shared-witness Item-2+3 package. -/
+theorem latent_profile_block_cover_item23_from_block_cover (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hCover : latent_profile_block_cover_logscale M n hn hn804) :
+    latent_profile_block_cover_item23_logscale M n hn hn804 := by
+  rcases hCover with ⟨I, Gprof, hSpan, hBlock⟩
+  exact ⟨I, Gprof, hBlock, hSpan⟩
+
+/-- Item-2+3 package already implies block cover (item 1 is automatic from index type). -/
+theorem latent_profile_block_cover_from_item23 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (h23 : latent_profile_block_cover_item23_logscale M n hn hn804) :
+    latent_profile_block_cover_logscale M n hn hn804 := by
+  rcases h23 with ⟨I, Gprof, hBlock, hSpan⟩
   exact ⟨I, Gprof, hSpan, hBlock⟩
 
 /-- Build the full parts package from the reduced block-cover package.

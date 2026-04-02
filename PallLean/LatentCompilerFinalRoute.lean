@@ -185,4 +185,22 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_block_cover (h : PeqNP) (n : ℕ
     latent_profile_span_card_bound_logscale_from_parts M n hnM hn804 pParts
   exact P_neq_NP_latent_from_finer_decomp_and_p_span_card h n hn idxList hnd hlen hfinj pSpan
 
+/-- Same as above, but accepts only the shared-witness Item-2+3 P package.
+Item 1 (profile count cap) is recovered automatically from the profile index type. -/
+theorem P_neq_NP_latent_from_finer_decomp_and_p_item23 (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (idxList : Fin (Nat.choose (latentBaseVars h.sat_decider n) (Nat.log 2 n)) →
+      List (Fin (latentBaseVars h.sat_decider n)))
+    (hnd : ∀ i, (idxList i).Nodup)
+    (hlen : ∀ i, (idxList i).length = Nat.log 2 n)
+    (hfinj : ∀ i j, (idxList i).toFinset = (idxList j).toFinset → i = j)
+    (p23 : latent_profile_block_cover_item23_logscale h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  have pCover : latent_profile_block_cover_logscale M n hnM hn804 :=
+    latent_profile_block_cover_from_item23 M n hnM hn804 p23
+  exact P_neq_NP_latent_from_finer_decomp_and_p_block_cover h n hn idxList hnd hlen hfinj pCover
+
 end LatentCompilerFinalRoute
