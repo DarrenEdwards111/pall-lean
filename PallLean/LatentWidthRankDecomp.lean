@@ -727,22 +727,87 @@ theorem mlProj_vars_subset {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F
   have hα_p : α ∈ p.support := mlProj_support_subset p hα_supp
   exact ⟨α, hα_p, hα_x⟩
 
-/-- Sub-lemma 3 (corrected): the SPDP rank of `latentCompiledPoly` is polynomial.
+/-
+The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
+latentCompiledPoly = sum of 3 product sheets → subadditivity reduces to per-sheet bounds.
+-/
 
-This is the core P-side content from the paper (Theorem 216/264):
-the compiled Width⇒Rank theorem shows that for polynomials compiled by the
-deterministic pipeline with CEW ≤ C log n, the SPDP rank is n^O(1).
+/-- Rank of a single cross-layer product sheet is bounded.
 
-For `latentCompiledPoly` specifically:
-- It is a sum of 3 product sheets, each a product of local 2-variable gadgets.
-- The compiled Width⇒Rank (Lemma 264) via profile compression gives rank poly bound.
-- We bound this by n^160 (with massive headroom). -/
+Each sheet is ∏_i gadget_i where gadget_i has total degree 2 and touches only block i.
+For κ = log₂ n ≥ 3, iterDerivList of length κ applied to a degree-2 polynomial gives 0
+when κ > 2. So the SPDP generators for a single gadget vanish for κ ≥ 3.
+
+For the PRODUCT of gadgets, the Leibniz rule distributes the κ derivatives across
+gadgets. Each gadget can absorb at most 2 derivatives (degree 2). With κ derivatives
+and at most 1 per block (block-admissibility), each gadget absorbs 0 or 1 derivatives.
+A gadget absorbing 0 derivatives contributes itself (degree 2, but after mlProj,
+the cross-term x_a * x_b is killed — only the constant 1 survives from `1 - x_a*x_b`).
+A gadget absorbing 1 derivative contributes a degree-1 polynomial in its block.
+
+So each generator is a multilinear polynomial that is constant on non-derivative blocks
+and degree ≤ 1 on derivative blocks. The number of such generators is at most
+(latentBaseVars choose κ) × 4^κ × ... which is polynomial via profile compression. -/
+theorem machCopySheet_spdp_rank_bound (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (machCopySheet M n) ≤ n ^ 50 := by
+  sorry
+
+theorem copyConSheet_spdp_rank_bound (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (copyConSheet M n) ≤ n ^ 50 := by
+  sorry
+
+theorem selConSheet_spdp_rank_bound (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (selConSheet M n) ≤ n ^ 50 := by
+  sorry
+
 theorem latentCompiledPoly_spdp_rank_poly_bound (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804) :
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 160 := by
-  sorry
+  -- latentCompiledPoly = machCopySheet + copyConSheet + selConSheet
+  unfold latentCompiledPoly
+  have hn1 : n ≥ 1 := le_trans (by decide : 1 ≤ 4) (le_trans (le_max_left 4 M.numStates) hn)
+  calc mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (machCopySheet M n + copyConSheet M n + selConSheet M n)
+      ≤ mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (machCopySheet M n + copyConSheet M n) +
+        mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (selConSheet M n) :=
+        mlBlockedSpdpRank_add_le _ _ _ _ _
+    _ ≤ (mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (machCopySheet M n) +
+        mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (copyConSheet M n)) +
+        mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (selConSheet M n) :=
+        Nat.add_le_add_right (mlBlockedSpdpRank_add_le _ _ _ _ _) _
+    _ ≤ (n ^ 50 + n ^ 50) + n ^ 50 := by
+        apply Nat.add_le_add
+        apply Nat.add_le_add
+        · exact machCopySheet_spdp_rank_bound M n hn hn804
+        · exact copyConSheet_spdp_rank_bound M n hn hn804
+        · exact selConSheet_spdp_rank_bound M n hn hn804
+    _ ≤ n ^ 50 + n ^ 50 + n ^ 50 := by omega
+    _ = 3 * n ^ 50 := by ring
+    _ ≤ n ^ 2 * n ^ 50 := by
+        apply Nat.mul_le_mul_right
+        -- 3 ≤ n^2 since n ≥ 2^804 ≥ 2, so n^2 ≥ 4 ≥ 3
+        have hn2 : n ≥ 2 := le_trans (by decide) (le_trans (le_max_left 4 M.numStates) hn)
+        calc 3 ≤ 4 := by omega
+          _ = 2 ^ 2 := by norm_num
+          _ ≤ n ^ 2 := Nat.pow_le_pow_left hn2 2
+    _ = n ^ 52 := by rw [← pow_add]
+    _ ≤ n ^ 160 := Nat.pow_le_pow_right hn1 (by decide : 52 ≤ 160)
 
 /-- Sub-lemma 4: the number of multilinear monomials on ≤ V variables is ≤ 2^V. -/
 theorem multilinear_monomial_count_le (V : ℕ) (vars : Finset (Fin V)) :
