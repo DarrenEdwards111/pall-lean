@@ -384,6 +384,19 @@ theorem P_neq_NP_latent_from_p_span160 (h : PeqNP) (n : ℕ)
     latent_p_witness_target_from_span160 M n hnM hn804 p160
   exact P_neq_NP_latent_from_p_witness_target h n hn pTarget
 
+/-- Move-3 route: profile parts with `(40,120)` bounds imply span160,
+then the Move-2 strong route closes the contradiction. -/
+theorem P_neq_NP_latent_from_p_parts_40_120 (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (pParts : latent_profile_span_card_parts_40_120_logscale h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  have p160 : latent_p_witness_span160_logscale M n hnM hn804 :=
+    latent_p_witness_span160_logscale_from_parts_40_120 M n hnM hn804 pParts
+  exact P_neq_NP_latent_from_p_span160 h n hn p160
+
 /-- Canonical-NP route from functional profile-id bucket schema (P-side).
 This is often the most natural constructive form to prove from paper definitions. -/
 theorem P_neq_NP_latent_from_p_bucket_function (h : PeqNP) (n : ℕ)

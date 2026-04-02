@@ -212,6 +212,21 @@ def latent_profile_span_card_parts_logscale (M : DTM) (n : ℕ)
     I.card ≤ n ^ 40 ∧
     (∀ i ∈ I, (Gprof i).card ≤ n ^ 160)
 
+/-- Move-3 constructive package: same profile decomposition shape, but with a tighter
+per-profile bound `n^120`. Combined with `|I| ≤ n^40` this yields a global `n^160` span
+witness in one arithmetic step. -/
+def latent_profile_span_card_parts_40_120_logscale (M : DTM) (n : ℕ)
+    (_hn : n ≥ max 4 M.numStates)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∃ (I : Finset (Fin (n ^ 40)))
+    (Gprof : Fin (n ^ 40) → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ)),
+    mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n)
+      ≤ Submodule.span ℚ (↑(I.biUnion (fun i => Gprof i))
+          : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ∧
+    I.card ≤ n ^ 40 ∧
+    (∀ i ∈ I, (Gprof i).card ≤ n ^ 120)
+
 /-- Item 1 of the profile block-cover package:
 there is a bounded profile index set `I` with `I.card ≤ n^40`. -/
 def latent_profile_block_cover_item1_logscale (M : DTM) (n : ℕ)
@@ -822,6 +837,30 @@ theorem latent_profile_span_card_bound_logscale_from_parts (M : DTM) (n : ℕ)
     _ ≤ n ^ 40 * n ^ 160 := hmul
     _ = n ^ 200 := by
       simpa using (Nat.pow_add n 40 160).symm
+
+/-- Move-3 arithmetic bridge: `(40,120)` parts package gives a global `n^160` span witness. -/
+theorem latent_p_witness_span160_logscale_from_parts_40_120 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hParts : latent_profile_span_card_parts_40_120_logscale M n hn hn804) :
+    latent_p_witness_span160_logscale M n hn hn804 := by
+  rcases hParts with ⟨I, Gprof, hSpan, hI, hBlock⟩
+  refine ⟨I.biUnion (fun i => Gprof i), hSpan, ?_⟩
+  have hbi : (I.biUnion (fun i => Gprof i)).card ≤ ∑ i ∈ I, (Gprof i).card :=
+    Finset.card_biUnion_le
+  have hsum : (∑ i ∈ I, (Gprof i).card) ≤ I.card * n ^ 120 := by
+    simpa [nsmul_eq_mul] using
+      (Finset.sum_le_card_nsmul I (fun i => (Gprof i).card) (n ^ 120)
+        (by intro i hi; exact hBlock i hi))
+  have hmul : I.card * n ^ 120 ≤ n ^ 40 * n ^ 120 :=
+    Nat.mul_le_mul hI (le_rfl)
+  calc
+    (I.biUnion (fun i => Gprof i)).card
+        ≤ ∑ i ∈ I, (Gprof i).card := hbi
+    _ ≤ I.card * n ^ 120 := hsum
+    _ ≤ n ^ 40 * n ^ 120 := hmul
+    _ = n ^ 160 := by
+      simpa using (Nat.pow_add n 40 120).symm
 
 /-- Direct span-card witness from Item-3+uniform-Item-2 package. -/
 theorem latent_profile_span_card_bound_logscale_from_item3_uniform2 (M : DTM) (n : ℕ)
