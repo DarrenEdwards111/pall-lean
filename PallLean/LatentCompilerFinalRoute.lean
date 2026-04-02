@@ -369,9 +369,14 @@ theorem P_neq_NP_latent_from_p_bucket_function (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have pSpan : latent_profile_span_card_bound_logscale M n hnM hn804 :=
-    latent_profile_span_card_bound_logscale_from_bucket_function M n hnM hn804 pFun
-  exact P_neq_NP_latent_from_p_span_card h n hn pSpan
+  have hCoeff : selCon_kronecker_coeff_law_logscale M n hn804 :=
+    selCon_kronecker_coeff_law_logscale_from_canonical_idxList M n hn804
+  have npData : selCon_kronecker_data_logscale M n hn804 := hCoeff
+  have pAsm : theorem216_p_obligation M n hnM hn804 :=
+    ⟨theorem9_profile_count_obligation_proved M n hn804,
+      theorem9_within_profile_dim_obligation_proved M n hn804,
+      latent_profile_assembly_logscale_from_bucket_function M n hnM hn804 pFun⟩
+  exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
 
 /-- Direct canonical-NP bridge: bucket-function witness can be routed through
 block-cover equivalence before entering the canonical final route. -/
