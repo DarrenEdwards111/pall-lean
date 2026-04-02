@@ -85,49 +85,34 @@ noncomputable def cycleRegularGraph (n : ℕ) (hn : n ≥ 3) : RegularGraph wher
 /-- Cubic (3-regular) graph on n vertices (n even, n ≥ 6).
     Edges: n cycle edges (v → v+1 mod n) + n/2 perfect matching edges (v → v+n/2).
     Total: 3n/2 edges. Each vertex has degree 3. -/
+-- Edge source/target as standalone functions for proof convenience
+def cubicSrc (n : ℕ) (e : Fin (n + n / 2)) : Fin n :=
+  if h : e.val < n then ⟨e.val, h⟩
+  else ⟨e.val - n, by omega⟩
+
+def cubicTgt (n : ℕ) (hn : n ≥ 6) (e : Fin (n + n / 2)) : Fin n :=
+  if h : e.val < n then ⟨(e.val + 1) % n, Nat.mod_lt _ (by omega)⟩
+  else ⟨e.val - n + n / 2, by omega⟩
+
+-- Key lemma: the incident edge filter has cardinality 3
+private theorem cubicGraph_regular_aux (n : ℕ) (hn : n ≥ 6) (heven : 2 ∣ n)
+    (v : Fin n) :
+    (Finset.univ.filter (fun e : Fin (n + n / 2) =>
+      cubicSrc n e = v ∨ cubicTgt n hn e = v)).card = 3 := by
+  sorry
+
 noncomputable def cubicGraph (n : ℕ) (hn : n ≥ 6) (heven : 2 ∣ n) : RegularGraph where
   numVertices := n
   degree := 3
   numEdges := n + n / 2
   vertices_pos := by omega
   degree_lower := by omega
-  edges_bound := by
-    -- n + n/2 ≤ n * 3
-    have : n / 2 ≤ n := Nat.div_le_self n 2
-    omega
+  edges_bound := by have : n / 2 ≤ n := Nat.div_le_self n 2; omega
   edges_lower := by omega
   degree_bound := by omega
-  edgeSrc := fun e =>
-    if h : e.val < n then ⟨e.val, by omega⟩
-    else ⟨e.val - n, by have := e.isLt; omega⟩
-  edgeTgt := fun e =>
-    if h : e.val < n then ⟨(e.val + 1) % n, Nat.mod_lt _ (by omega)⟩
-    else ⟨e.val - n + n / 2, by
-      have := e.isLt
-      have : (e.val - n) < n / 2 := by omega
-      omega⟩
-  regular := fun v => by
-    -- Identify the 3 incident edges for vertex v:
-    -- e1 = v (forward cycle: src = v)
-    -- e2 = (v + n - 1) % n (backward cycle: tgt = v)
-    -- e3 = if v < n/2 then n + v else n + (v - n/2) (matching)
-    -- Then show the filter = {e1, e2, e3} with all 3 distinct.
-    have hv := v.isLt
-    have hn2 : n / 2 ≥ 3 := by rcases heven with ⟨k, hk⟩; omega
-    -- Forward cycle edge: e = v, src = v
-    set e_fwd : Fin (n + n / 2) := ⟨v.val, by omega⟩
-    -- Backward cycle edge: e = (v+n-1)%n, src = (v+n-1)%n, tgt = v
-    set e_bwd : Fin (n + n / 2) := ⟨(v.val + n - 1) % n, by
-      have : (v.val + n - 1) % n < n := Nat.mod_lt _ (by omega)
-      omega⟩
-    -- Matching edge
-    set e_match : Fin (n + n / 2) :=
-      if hv2 : v.val < n / 2 then ⟨n + v.val, by omega⟩
-      else ⟨n + (v.val - n / 2), by omega⟩
-    -- The full case analysis on edgeSrc/edgeTgt with dite unfolding is extremely
-    -- tedious but mechanical. The 3 edges are correctly identified above.
-    -- This sorry is purely about Finset filter manipulation, not mathematical content.
-    sorry
+  edgeSrc := cubicSrc n
+  edgeTgt := cubicTgt n hn
+  regular := cubicGraph_regular_aux n hn heven
 
 /-- Round up to even ≥ 6 -/
 private def evenUp (n : ℕ) : ℕ :=
