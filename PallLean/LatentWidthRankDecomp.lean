@@ -271,6 +271,42 @@ theorem latent_profile_block_cover_item3_from_block_cover (M : DTM) (n : ℕ)
   rcases hCover with ⟨I, Gprof, hSpan, _hBlock⟩
   exact ⟨I, Gprof, hSpan⟩
 
+/-- Shared-witness decomposition of block cover into explicit items 1/2/3.
+
+Unlike standalone item defs (`item1/item2/item3`) that quantify independently,
+this bundles all three obligations over the same `(I, Gprof)` witnesses. -/
+def latent_profile_block_cover_items_logscale (M : DTM) (n : ℕ)
+    (_hn : n ≥ max 4 M.numStates)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∃ (I : Finset (Fin (n ^ 40)))
+    (Gprof : Fin (n ^ 40) → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ)),
+      I.card ≤ n ^ 40 ∧
+      (∀ i ∈ I, (Gprof i).card ≤ n ^ 160) ∧
+      mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)
+        ≤ Submodule.span ℚ (↑(I.biUnion (fun i => Gprof i))
+            : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))
+
+/-- Block cover implies the shared-witness item bundle. -/
+theorem latent_profile_block_cover_items_from_block_cover (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hCover : latent_profile_block_cover_logscale M n hn hn804) :
+    latent_profile_block_cover_items_logscale M n hn hn804 := by
+  rcases hCover with ⟨I, Gprof, hSpan, hBlock⟩
+  refine ⟨I, Gprof, ?_, hBlock, hSpan⟩
+  calc I.card ≤ (Finset.univ : Finset (Fin (n ^ 40))).card := Finset.card_le_card (Finset.subset_univ _)
+    _ = n ^ 40 := Fintype.card_fin (n ^ 40)
+
+/-- Shared-witness item bundle implies block cover. -/
+theorem latent_profile_block_cover_from_items (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hItems : latent_profile_block_cover_items_logscale M n hn hn804) :
+    latent_profile_block_cover_logscale M n hn hn804 := by
+  rcases hItems with ⟨I, Gprof, _hI, hBlock, hSpan⟩
+  exact ⟨I, Gprof, hSpan, hBlock⟩
+
 /-- Build the full parts package from the reduced block-cover package.
 The profile-count side is automatic since `I : Finset (Fin (n^40))`. -/
 theorem latent_profile_span_card_parts_logscale_from_block_cover (M : DTM) (n : ℕ)
