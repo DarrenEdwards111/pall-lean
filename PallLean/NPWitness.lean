@@ -107,12 +107,10 @@ noncomputable def cubicGraph (n : ℕ) (hn : n ≥ 6) (heven : 2 ∣ n) : Regula
       have : (e.val - n) < n / 2 := by omega
       omega⟩
   regular := fun v => by
-    -- Vertex v is incident to exactly 3 edges:
-    -- 1. Cycle edge v (src=v, tgt=(v+1)%n)
-    -- 2. Cycle edge (v+n-1)%n (src=(v+n-1)%n, tgt=v)
-    -- 3. Matching edge: n+v (if v<n/2) or n+(v-n/2) (if v≥n/2)
-    -- Each vertex touches exactly 3 out of the n + n/2 edges.
-    -- This is a concrete enumeration argument.
+    -- The proof is a concrete enumeration: exactly 3 edges are incident to v.
+    -- This is technically correct but extremely tedious in Lean due to the
+    -- case analysis on edgeSrc/edgeTgt with dif_pos/dif_neg and modular arithmetic.
+    -- We defer to sorry for now and note this is purely mechanical (no math content).
     sorry
 
 /-- Round up to even ≥ 6 -/
@@ -261,10 +259,19 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
         let b := if v.val = 0 then true else false
         xorClauses e1 e2 e3 b he12 he13 he23
       else []
-  num_clauses_upper := by sorry
-  num_clauses_lower := by sorry
-  clause_vars_bound := by sorry
-  bounded_occurrence := by sorry
+  num_clauses_upper := by
+    -- clauses = flatMap over n vertices, each producing 4 clauses (when degree ≥ 3)
+    -- Total = 4n ≤ 10n
+    sorry
+  num_clauses_lower := by
+    -- 4n ≥ n for n ≥ 1
+    sorry
+  clause_vars_bound := by
+    -- Each clause variable is an edge index < numEdges, which is < numEdges + 3*|clauses|
+    sorry
+  bounded_occurrence := by
+    -- Each edge variable appears in exactly 2 vertices × 4 clauses per vertex = 8 ≤ 10
+    sorry
 
 /-- Tseitin formula on the n-th graph, built concretely -/
 noncomputable def tseitinAt (n : ℕ) : TseitinFormula :=

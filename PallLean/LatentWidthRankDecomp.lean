@@ -783,19 +783,11 @@ theorem latentCompiledPoly_spdp_subspace_span_poly_bound (M : DTM) (n : ℕ)
       (latentCompiledPoly M n)
   -- Step 2: extract a finite spanning set from the subspace
   -- The subspace has a finite basis of size = finrank
-  let Sub := mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      (latentCompiledPoly M n)
-  have hSub_eq : Sub = Sub := rfl
-  -- Use `exists_finset_span_eq_linearIndepOn` on the subspace elements
-  -- We just need a finite spanning set with bounded cardinality.
-  -- Since Sub is finite-dimensional, it has a basis of size finrank Sub.
-  -- Any finite spanning set of the subspace works as G.
-  -- Sub is itself the span of the generators in mlBlockedSpdpSubspace definition.
-  -- We construct G by extracting a basis.
-  have hfree : Module.Free ℚ Sub := inferInstance
-  have hbasis : ∃ (s : Finset Sub), Submodule.span ℚ (↑s : Set Sub) = ⊤ ∧
-      s.card = Module.finrank ℚ Sub := by
-    sorry
+  -- The subspace is finite-dimensional with finrank = mlBlockedSpdpRank.
+  -- We need: ∃ G, subspace ≤ span(G) ∧ |G| ≤ n^160.
+  -- Key: finrank of the subspace ≤ n^160 (from sub-lemma 3 + dimension counting).
+  -- Then any basis gives |G| = finrank ≤ n^160.
+  -- For now, the dimension bound needs sub-lemma 3 (variable support bound).
   sorry
 
 /-- Move-2 bridge: strong `|G| ≤ n^160` span witness implies frozen target. -/
