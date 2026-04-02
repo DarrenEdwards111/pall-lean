@@ -742,6 +742,30 @@ theorem latent_profile_span_card_bound_logscale_from_item3_uniform2 (M : DTM) (n
     latent_profile_span_card_parts_logscale_from_block_cover M n hn hn804 hCover
   exact latent_profile_span_card_bound_logscale_from_parts M n hn hn804 hParts
 
+/-- Direct span-card witness from functional bucket schema. -/
+theorem latent_profile_span_card_bound_logscale_from_bucket_function (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hFun : latent_profile_bucket_function_bound_logscale M n hn hn804) :
+    latent_profile_span_card_bound_logscale M n hn hn804 := by
+  have hCover : latent_profile_block_cover_logscale M n hn hn804 :=
+    latent_profile_block_cover_logscale_from_bucket_function M n hn hn804 hFun
+  have hParts : latent_profile_span_card_parts_logscale M n hn hn804 :=
+    latent_profile_span_card_parts_logscale_from_block_cover M n hn hn804 hCover
+  exact latent_profile_span_card_bound_logscale_from_parts M n hn hn804 hParts
+
+/-- Direct span-card witness from explicit construction-data package. -/
+theorem latent_profile_span_card_bound_logscale_from_construction_data (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hData : latent_profile_block_cover_construction_data_logscale M n hn hn804) :
+    latent_profile_span_card_bound_logscale M n hn hn804 := by
+  have hCover : latent_profile_block_cover_logscale M n hn hn804 :=
+    latent_profile_block_cover_logscale_from_construction_data M n hn hn804 hData
+  have hParts : latent_profile_span_card_parts_logscale M n hn hn804 :=
+    latent_profile_span_card_parts_logscale_from_block_cover M n hn hn804 hCover
+  exact latent_profile_span_card_bound_logscale_from_parts M n hn hn804 hParts
+
 /-- Assembly theorem (contradiction scale): profile count × within-profile dimension
 at κ = log₂ n gives polynomial total rank.
 

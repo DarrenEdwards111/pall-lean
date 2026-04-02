@@ -343,9 +343,10 @@ theorem P_neq_NP_latent_from_p_global_span_bucket (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have pData : latent_profile_block_cover_construction_data_logscale M n hnM hn804 :=
-    latent_profile_block_cover_construction_data_from_global_span_and_bucket M n hnM hn804 pGB
-  exact P_neq_NP_latent_from_p_construction_data h n hn pData
+  rcases pGB with ⟨G, hSpan, hBuck⟩
+  have pCover : latent_profile_block_cover_logscale M n hnM hn804 :=
+    latent_profile_block_cover_logscale_from_span_and_bucketization M n hnM hn804 G hSpan hBuck
+  exact P_neq_NP_latent_from_p_block_cover h n hn pCover
 
 /-- Canonical-NP route with Item-3+uniform-Item-2 P witness only. -/
 theorem P_neq_NP_latent_from_p_item3_uniform2 (h : PeqNP) (n : ℕ)
@@ -368,9 +369,9 @@ theorem P_neq_NP_latent_from_p_bucket_function (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have pCover : latent_profile_block_cover_logscale M n hnM hn804 :=
-    latent_profile_block_cover_logscale_from_bucket_function M n hnM hn804 pFun
-  exact P_neq_NP_latent_from_p_block_cover h n hn pCover
+  have pSpan : latent_profile_span_card_bound_logscale M n hnM hn804 :=
+    latent_profile_span_card_bound_logscale_from_bucket_function M n hnM hn804 pFun
+  exact P_neq_NP_latent_from_p_span_card h n hn pSpan
 
 /-- Direct canonical-NP bridge: bucket-function witness can be routed through
 block-cover equivalence before entering the canonical final route. -/
