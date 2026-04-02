@@ -343,6 +343,26 @@ theorem P_neq_NP_latent_from_p_global_span_bucket (h : PeqNP) (n : ℕ)
     latent_profile_block_cover_logscale_from_span_and_bucketization M n hnM hn804 G hSpan hBuck
   exact P_neq_NP_latent_from_p_block_cover h n hn pCover
 
+/-- Move-4 canonical route: Item-3 with uniform `n^120` bound. -/
+theorem P_neq_NP_latent_from_p_item3_uniform120 (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (p3120 : latent_profile_block_cover_item3_uniform120_logscale h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  rcases p3120 with ⟨I, Gprof, hUni120, hSpan⟩
+  have hn1 : 1 ≤ n := by
+    exact le_trans (by decide : 1 ≤ 4) (le_trans (le_max_left 4 M.numStates) hnM)
+  have hpow120_160 : n ^ 120 ≤ n ^ 160 :=
+    Nat.pow_le_pow_right hn1 (by decide : 120 ≤ 160)
+  have hCover : latent_profile_block_cover_logscale M n hnM hn804 := by
+    refine ⟨I, Gprof, hSpan, ?_⟩
+    intro i hi
+    have hle120 : (Gprof i).card ≤ n ^ 120 := hUni120 i
+    exact le_trans hle120 hpow120_160
+  exact P_neq_NP_latent_from_p_block_cover h n hn hCover
+
 /-- Canonical-NP route with Item-3+uniform-Item-2 P witness only. -/
 theorem P_neq_NP_latent_from_p_item3_uniform2 (h : PeqNP) (n : ℕ)
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))

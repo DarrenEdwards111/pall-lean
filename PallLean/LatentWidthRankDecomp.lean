@@ -328,6 +328,18 @@ def latent_profile_block_cover_item3_uniform2_logscale (M : DTM) (n : ℕ)
         ≤ Submodule.span ℚ (↑(I.biUnion (fun i => Gprof i))
             : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))
 
+/-- Move-4 strengthening: uniform per-profile bound `n^120` with item-3 span inclusion. -/
+def latent_profile_block_cover_item3_uniform120_logscale (M : DTM) (n : ℕ)
+    (_hn : n ≥ max 4 M.numStates)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∃ (I : Finset (Fin (n ^ 40)))
+    (Gprof : Fin (n ^ 40) → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ)),
+      (∀ i : Fin (n ^ 40), (Gprof i).card ≤ n ^ 120) ∧
+      mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)
+        ≤ Submodule.span ℚ (↑(I.biUnion (fun i => Gprof i))
+            : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))
+
 /-- Do-1 constructive item (P-side): existence of a finite global span witness `G`
 for the logscale blocked-SPDP subspace. -/
 def latent_global_span_witness_logscale (M : DTM) (n : ℕ)
@@ -802,6 +814,20 @@ theorem latent_profile_block_cover_from_item3_uniform2 (M : DTM) (n : ℕ)
   exact latent_profile_block_cover_from_item23 M n hn hn804
     (latent_profile_block_cover_item23_from_item3_uniform2 M n hn hn804 h3u2)
 
+/-- Move-4 bridge: Item-3 with uniform `n^120` bound gives the `(40,120)` parts package. -/
+theorem latent_profile_span_card_parts_40_120_from_item3_uniform120 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (h3120 : latent_profile_block_cover_item3_uniform120_logscale M n hn hn804) :
+    latent_profile_span_card_parts_40_120_logscale M n hn hn804 := by
+  rcases h3120 with ⟨I, Gprof, hUni120, hSpan⟩
+  refine ⟨I, Gprof, hSpan, ?_, ?_⟩
+  · calc I.card ≤ (Finset.univ : Finset (Fin (n ^ 40))).card :=
+      Finset.card_le_card (Finset.subset_univ _)
+    _ = n ^ 40 := Fintype.card_fin (n ^ 40)
+  · intro i hi
+    exact hUni120 i
+
 /-- Build the full parts package from the reduced block-cover package.
 The profile-count side is automatic since `I : Finset (Fin (n^40))`. -/
 theorem latent_profile_span_card_parts_logscale_from_block_cover (M : DTM) (n : ℕ)
@@ -861,6 +887,15 @@ theorem latent_p_witness_span160_logscale_from_parts_40_120 (M : DTM) (n : ℕ)
     _ ≤ n ^ 40 * n ^ 120 := hmul
     _ = n ^ 160 := by
       simpa using (Nat.pow_add n 40 120).symm
+
+/-- Move-4 bridge: Item-3+uniform-120 directly implies strong span160 witness. -/
+theorem latent_p_witness_span160_logscale_from_item3_uniform120 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (h3120 : latent_profile_block_cover_item3_uniform120_logscale M n hn hn804) :
+    latent_p_witness_span160_logscale M n hn hn804 :=
+  latent_p_witness_span160_logscale_from_parts_40_120 M n hn hn804
+    (latent_profile_span_card_parts_40_120_from_item3_uniform120 M n hn hn804 h3120)
 
 /-- Direct span-card witness from Item-3+uniform-Item-2 package. -/
 theorem latent_profile_span_card_bound_logscale_from_item3_uniform2 (M : DTM) (n : ℕ)
