@@ -871,6 +871,30 @@ theorem theorem216_profile_data_logscale_from_item3_uniform2 (M : DTM) (n : ℕ)
   exact theorem216_profile_data_logscale_from_span_card_bound M n hn hn804
     (latent_profile_span_card_bound_logscale_from_item3_uniform2 M n hn hn804 h3u2)
 
+/-- Build P-data package directly from block-cover witness. -/
+theorem theorem216_profile_data_logscale_from_block_cover (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hCover : latent_profile_block_cover_logscale M n hn hn804) :
+    theorem216_profile_data_logscale M n hn hn804 := by
+  exact theorem216_profile_data_logscale_from_core M n hn hn804
+    (latent_profile_assembly_logscale_from_block_cover M n hn hn804 hCover)
+
+/-- Build P-data package directly from explicit construction-data witness. -/
+theorem theorem216_profile_data_logscale_from_construction_data (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hData : latent_profile_block_cover_construction_data_logscale M n hn hn804) :
+    theorem216_profile_data_logscale M n hn hn804 := by
+  exact theorem216_profile_data_logscale_from_core M n hn hn804
+    (latent_profile_assembly_logscale_from_construction_data M n hn hn804 hData)
+
+/-- Build P-data package directly from functional bucket schema witness. -/
+theorem theorem216_profile_data_logscale_from_bucket_function (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hFun : latent_profile_bucket_function_bound_logscale M n hn hn804) :
+    theorem216_profile_data_logscale M n hn hn804 := by
+  exact theorem216_profile_data_logscale_from_core M n hn hn804
+    (latent_profile_assembly_logscale_from_bucket_function M n hn hn804 hFun)
+
 /-- P-side assembly from explicit logscale parts (paper-faithful split).
 Combines Section 9 profile-count + within-profile dimension into assembled upper bound. -/
 theorem latent_profile_assembly_logscale_from_parts (M : DTM) (n : ℕ)
