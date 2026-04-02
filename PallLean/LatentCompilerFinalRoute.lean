@@ -351,9 +351,35 @@ theorem P_neq_NP_latent_from_p_bucket_function (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have pData : latent_profile_block_cover_construction_data_logscale M n hnM hn804 :=
-    latent_profile_block_cover_construction_data_from_bucket_function M n hnM hn804 pFun
-  exact P_neq_NP_latent_from_p_construction_data h n hn pData
+  have pCover : latent_profile_block_cover_logscale M n hnM hn804 :=
+    latent_profile_block_cover_logscale_from_bucket_function M n hnM hn804 pFun
+  exact P_neq_NP_latent_from_p_block_cover h n hn pCover
+
+/-- Direct canonical-NP bridge: bucket-function witness can be routed through
+block-cover equivalence before entering the canonical final route. -/
+theorem P_neq_NP_latent_from_p_bucket_function_via_block_cover (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (pFun : latent_profile_bucket_function_bound_logscale h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  have pCover : latent_profile_block_cover_logscale M n hnM hn804 :=
+    (latent_profile_block_cover_iff_bucket_function M n hnM hn804).2 pFun
+  exact P_neq_NP_latent_from_p_block_cover h n hn pCover
+
+/-- Symmetric canonical-NP bridge: block-cover witness can be routed through
+bucket-function equivalence before entering the canonical final route. -/
+theorem P_neq_NP_latent_from_p_block_cover_via_bucket_function (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (pCover : latent_profile_block_cover_logscale h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  have pFun : latent_profile_bucket_function_bound_logscale M n hnM hn804 :=
+    (latent_profile_block_cover_iff_bucket_function M n hnM hn804).1 pCover
+  exact P_neq_NP_latent_from_p_bucket_function h n hn pFun
 
 /-- Convenience bridge: block-cover input can be normalized to construction-data,
 then fed through the most concrete construction-data route. -/
