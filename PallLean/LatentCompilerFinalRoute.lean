@@ -275,6 +275,37 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_construction_data (h : PeqNP) (n
     latent_global_span_and_bucket_logscale_from_construction_data M n hnM hn804 pData
   exact P_neq_NP_latent_from_finer_decomp_and_p_global_span_bucket h n hn idxList hnd hlen hfinj pGB
 
+/-- Fully normalized contradiction route:
+NP-side is instantiated canonically (no external idxList inputs), and only the
+most concrete P construction-data package remains as an external witness. -/
+theorem P_neq_NP_latent_from_p_construction_data (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (pData : latent_profile_block_cover_construction_data_logscale h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+
+  -- Canonical NP data (no external idxList/hnd/hlen/hfinj needed)
+  have hCoeff : selCon_kronecker_coeff_law_logscale M n hn804 :=
+    selCon_kronecker_coeff_law_logscale_from_canonical_idxList M n hn804
+  have npData : selCon_kronecker_data_logscale M n hn804 := hCoeff
+
+  -- P data package from concrete construction-data witness
+  have pGB : latent_global_span_and_bucket_logscale M n hnM hn804 :=
+    latent_global_span_and_bucket_logscale_from_construction_data M n hnM hn804 pData
+  rcases pGB with ⟨G, hSpan, hBuck⟩
+  have pCover : latent_profile_block_cover_logscale M n hnM hn804 :=
+    latent_profile_block_cover_logscale_from_span_and_bucketization M n hnM hn804 G hSpan hBuck
+  have pParts : latent_profile_span_card_parts_logscale M n hnM hn804 :=
+    latent_profile_span_card_parts_logscale_from_block_cover M n hnM hn804 pCover
+  have pSpan : latent_profile_span_card_bound_logscale M n hnM hn804 :=
+    latent_profile_span_card_bound_logscale_from_parts M n hnM hn804 pParts
+  have pAsm : theorem216_p_obligation M n hnM hn804 :=
+    theorem216_profile_data_logscale_from_span_card_bound M n hnM hn804 pSpan
+
+  exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
+
 /-- Convenience bridge: block-cover input can be normalized to construction-data,
 then fed through the most concrete construction-data route. -/
 theorem P_neq_NP_latent_from_finer_decomp_and_p_block_cover_via_construction_data
