@@ -374,6 +374,35 @@ def latent_profile_block_cover_construction_data_logscale (M : DTM) (n : ℕ)
       (I.biUnion (fun i => Gprof i)) = G ∧
       (∀ i : Fin (n ^ 40), (Gprof i).card ≤ n ^ 160)
 
+/-- Block-cover package gives explicit construction data by taking
+`G := ⋃_{i∈I} Gprof(i)` and normalizing non-active buckets to `∅`. -/
+theorem latent_profile_block_cover_construction_data_from_block_cover (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hCover : latent_profile_block_cover_logscale M n hn hn804) :
+    latent_profile_block_cover_construction_data_logscale M n hn hn804 := by
+  rcases hCover with ⟨I, Gprof, hSpan, hBlock⟩
+  let Gprof' : Fin (n ^ 40) → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
+    fun i => if i ∈ I then Gprof i else ∅
+  have hUnion' : I.biUnion (fun i => Gprof' i) = I.biUnion (fun i => Gprof i) := by
+    ext x
+    constructor
+    · intro hx
+      rcases Finset.mem_biUnion.mp hx with ⟨i, hi, hix⟩
+      refine Finset.mem_biUnion.mpr ⟨i, hi, ?_⟩
+      simpa [Gprof', hi] using hix
+    · intro hx
+      rcases Finset.mem_biUnion.mp hx with ⟨i, hi, hix⟩
+      refine Finset.mem_biUnion.mpr ⟨i, hi, ?_⟩
+      simpa [Gprof', hi] using hix
+  refine ⟨I.biUnion (fun i => Gprof i), I, Gprof', ?_, ?_, ?_⟩
+  · simpa [hUnion'] using hSpan
+  · simpa [hUnion']
+  · intro i
+    by_cases hi : i ∈ I
+    · simpa [Gprof', hi] using hBlock i hi
+    · simp [Gprof', hi]
+
 /-- Construction-data package implies Do-2 combined package. -/
 theorem latent_global_span_and_bucket_logscale_from_construction_data (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
