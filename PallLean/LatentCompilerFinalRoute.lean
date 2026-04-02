@@ -342,6 +342,19 @@ theorem P_neq_NP_latent_from_p_item3_uniform2 (h : PeqNP) (n : ℕ)
     latent_profile_block_cover_from_item3_uniform2 M n hnM hn804 p3u2
   exact P_neq_NP_latent_from_p_block_cover h n hn pCover
 
+/-- Canonical-NP route from functional profile-id bucket schema (P-side).
+This is often the most natural constructive form to prove from paper definitions. -/
+theorem P_neq_NP_latent_from_p_bucket_function (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (pFun : latent_profile_bucket_function_bound_logscale h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  have pData : latent_profile_block_cover_construction_data_logscale M n hnM hn804 :=
+    latent_profile_block_cover_construction_data_from_bucket_function M n hnM hn804 pFun
+  exact P_neq_NP_latent_from_p_construction_data h n hn pData
+
 /-- Convenience bridge: block-cover input can be normalized to construction-data,
 then fed through the most concrete construction-data route. -/
 theorem P_neq_NP_latent_from_finer_decomp_and_p_block_cover_via_construction_data

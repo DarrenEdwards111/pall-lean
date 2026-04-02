@@ -374,6 +374,20 @@ def latent_profile_block_cover_construction_data_logscale (M : DTM) (n : ℕ)
       (I.biUnion (fun i => Gprof i)) = G ∧
       (∀ i : Fin (n ^ 40), (Gprof i).card ≤ n ^ 160)
 
+/-- Functional bucket schema: assign each generator in `G` a profile id,
+then each profile bucket is the corresponding filter of `G`.
+
+This is often easier to prove from paper constructions than arbitrary `Gprof`. -/
+def latent_profile_bucket_function_bound_logscale (M : DTM) (n : ℕ)
+    (_hn : n ≥ max 4 M.numStates)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∃ (G : Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ))
+    (profileId : MvPolynomial (Fin (latentNumVars M n)) ℚ → Fin (n ^ 40)),
+      mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)
+        ≤ Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ∧
+      (∀ i : Fin (n ^ 40), (G.filter fun g => profileId g = i).card ≤ n ^ 160)
+
 /-- Block-cover package gives explicit construction data by taking
 `G := ⋃_{i∈I} Gprof(i)` and normalizing non-active buckets to `∅`. -/
 theorem latent_profile_block_cover_construction_data_from_block_cover (M : DTM) (n : ℕ)
@@ -402,6 +416,31 @@ theorem latent_profile_block_cover_construction_data_from_block_cover (M : DTM) 
     by_cases hi : i ∈ I
     · simpa [Gprof', hi] using hBlock i hi
     · simp [Gprof', hi]
+
+/-- Functional bucket schema implies full construction-data package by taking
+`I = univ` and `Gprof i = G.filter (profileId = i)`. -/
+theorem latent_profile_block_cover_construction_data_from_bucket_function (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hFun : latent_profile_bucket_function_bound_logscale M n hn hn804) :
+    latent_profile_block_cover_construction_data_logscale M n hn hn804 := by
+  rcases hFun with ⟨G, profileId, hSpan, hBound⟩
+  let I : Finset (Fin (n ^ 40)) := Finset.univ
+  let Gprof : Fin (n ^ 40) → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
+    fun i => G.filter (fun g => profileId g = i)
+  refine ⟨G, I, Gprof, hSpan, ?_, ?_⟩
+  · -- union of all profile filters recovers G
+    ext x
+    constructor
+    · intro hx
+      rcases Finset.mem_biUnion.mp hx with ⟨i, _hi, hxi⟩
+      exact (Finset.mem_filter.mp hxi).1
+    · intro hx
+      refine Finset.mem_biUnion.mpr ?_
+      refine ⟨profileId x, Finset.mem_univ _, ?_⟩
+      exact Finset.mem_filter.mpr ⟨hx, rfl⟩
+  · intro i
+    simpa [Gprof] using hBound i
 
 /-- Construction-data package implies Do-2 combined package. -/
 theorem latent_global_span_and_bucket_logscale_from_construction_data (M : DTM) (n : ℕ)
