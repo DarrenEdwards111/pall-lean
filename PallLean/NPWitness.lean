@@ -377,6 +377,72 @@ private theorem buildTseitin_clauses_length (G : RegularGraph) (hdeg3 : G.degree
   rw [list_flatMap_length_eq _ _ 4, List.length_finRange]
   intro v _; exact vertexClauses_length G _ hdeg3
 
+/-- A nodup list whose elements all equal a or b has length ≤ 2. -/
+private theorem nodup_subset_pair_length_le_two {α : Type*} [DecidableEq α]
+    {l : List α} {a b : α} (hnd : l.Nodup)
+    (hsub : ∀ x ∈ l, x = a ∨ x = b) : l.length ≤ 2 := by
+  -- l is nodup, entries ⊆ {a, b}. So l.toFinset ⊆ {a, b}, card ≤ 2.
+  -- l.length = l.toFinset.card (since nodup).
+  rw [← List.toFinset_card_of_nodup hnd]
+  calc l.toFinset.card
+      ≤ ({a, b} : Finset α).card := by
+        apply Finset.card_le_card
+        intro x hx
+        simp only [List.mem_toFinset] at hx
+        simp only [Finset.mem_insert, Finset.mem_singleton]
+        exact hsub x hx
+    _ ≤ 2 := by
+        apply le_trans (Finset.card_insert_le a {b})
+        simp
+
+/-- Sum of a list of nats where each ≤ m is ≤ (count of positive entries) * m. -/
+private theorem sum_le_countNonzero_mul (l : List ℕ) (m : ℕ)
+    (hbound : ∀ x ∈ l, x ≤ m) :
+    l.sum ≤ (l.filter (· > 0)).length * m := by
+  induction l with
+  | nil => simp
+  | cons hd tl ih =>
+    simp only [List.sum_cons]
+    have htl_bound : ∀ x ∈ tl, x ≤ m := fun x hx => hbound x (List.mem_cons.mpr (Or.inr hx))
+    by_cases hhd : hd = 0
+    · simp [List.filter_cons, hhd, show ¬ (0 > 0) from by omega, Nat.zero_add]
+      exact ih htl_bound
+    · have hhd_le : hd ≤ m := hbound hd (List.mem_cons.mpr (Or.inl rfl))
+      have htl_sum := ih htl_bound
+      calc hd + tl.sum
+          ≤ m + (tl.filter (· > 0)).length * m := Nat.add_le_add hhd_le htl_sum
+        _ = ((tl.filter (· > 0)).length + 1) * m := by ring
+        _ = ((hd :: tl).filter (· > 0)).length * m := by
+            congr 1; simp [List.filter_cons, show 0 < hd from by omega]
+
+/-- If c ∈ vertexClauses G v mentions varIdx (< numEdges), then v is an endpoint. -/
+theorem vertexClauses_mention_incident (G : RegularGraph) (v : Fin G.numVertices)
+    (hdeg3 : G.degree ≥ 3) (c : Clause3) (hc : c ∈ vertexClauses G v)
+    (varIdx : ℕ) (hmention : c.var1 = varIdx ∨ c.var2 = varIdx ∨ c.var3 = varIdx)
+    (hvar_lt : varIdx < G.numEdges) :
+    G.edgeSrc ⟨varIdx, hvar_lt⟩ = v ∨ G.edgeTgt ⟨varIdx, hvar_lt⟩ = v := by
+  unfold vertexClauses at hc
+  have hedges_len : (incidentEdgesList G v).length = G.degree := incidentEdgesList_length G v
+  simp only [hedges_len, hdeg3, ↓reduceDIte] at hc
+  have ⟨hv1, hv2, hv3⟩ := xorClauses_vars _ _ _ _ _ _ _ c hc
+  set edges := incidentEdgesList G v
+  have hedges_len2 : edges.length = G.degree := hedges_len
+  have hmem : ∀ e ∈ edges, e ∈ incidentEdges G v := fun e he => (Finset.mem_sort _).mp he
+  have h0 := hmem _ (List.getElem_mem (show 0 < edges.length by omega))
+  have h1 := hmem _ (List.getElem_mem (show 1 < edges.length by omega))
+  have h2 := hmem _ (List.getElem_mem (show 2 < edges.length by omega))
+  simp only [incidentEdges, Finset.mem_filter, Finset.mem_univ, true_and] at h0 h1 h2
+  rcases hmention with hm | hm | hm
+  · have : (edges[0]'(by omega)) = ⟨varIdx, hvar_lt⟩ :=
+      Fin.ext (by show (edges[0]'(by omega)).val = varIdx; rw [← hv1]; exact hm)
+    rw [← this]; exact h0
+  · have : (edges[1]'(by omega)) = ⟨varIdx, hvar_lt⟩ :=
+      Fin.ext (by show (edges[1]'(by omega)).val = varIdx; rw [← hv2]; exact hm)
+    rw [← this]; exact h1
+  · have : (edges[2]'(by omega)) = ⟨varIdx, hvar_lt⟩ :=
+      Fin.ext (by show (edges[2]'(by omega)).val = varIdx; rw [← hv3]; exact hm)
+    rw [← this]; exact h2
+
 noncomputable def buildTseitin (G : RegularGraph) (hdeg3 : G.degree ≥ 3) : TseitinFormula where
   graph := G
   parityBit := fun v => if v.val = 0 then true else false
@@ -421,10 +487,82 @@ noncomputable def buildTseitin (G : RegularGraph) (hdeg3 : G.degree ≥ 3) : Tse
         ((vertexClauses G v).filter
           (fun c : Clause3 => c.var1 = varIdx ∨ c.var2 = varIdx ∨ c.var3 = varIdx)).length ≤ 4 :=
       fun v => le_trans (List.length_filter_le _ _) (le_of_eq (vertexClauses_length G v hdeg3))
-    -- If varIdx ≥ numEdges, all per-vertex filters are empty → sum = 0 ≤ 10
-    -- If varIdx < numEdges, at most 2 vertices contribute → sum ≤ 8 ≤ 10
-    -- Both cases: the sum of per-vertex filter lengths ≤ 10.
-    sorry
+    -- Use sum_le_countNonzero_mul: sum ≤ (count nonzero) * 4
+    -- Then show count nonzero ≤ 2.
+    -- Step 1: sum ≤ (count nonzero) * 4
+    have hsum := sum_le_countNonzero_mul
+      ((List.finRange G.numVertices).map (fun v =>
+        ((vertexClauses G ⟨v.val, v.isLt⟩).filter
+          (fun c : Clause3 => c.var1 = varIdx ∨ c.var2 = varIdx ∨ c.var3 = varIdx)).length))
+      4 (by intro x hx; simp only [List.mem_map] at hx; obtain ⟨v, _, rfl⟩ := hx; exact hper v)
+    -- Step 2: count nonzero ≤ 2
+    -- A nonzero entry at v means some clause at v mentions varIdx.
+    -- By vertexClauses_vars, clause vars < numEdges. If varIdx ≥ numEdges, impossible.
+    -- If varIdx < numEdges, by vertexClauses_mention_incident, v is an endpoint of edge varIdx.
+    -- At most 2 endpoints.
+    suffices hcnt :
+        (((List.finRange G.numVertices).map (fun v =>
+          ((vertexClauses G ⟨v.val, v.isLt⟩).filter
+            (fun c : Clause3 => c.var1 = varIdx ∨ c.var2 = varIdx ∨ c.var3 = varIdx)).length)
+        ).filter (· > 0)).length ≤ 2 by
+      linarith
+    -- Rewrite: filter (· > 0) over map = map over filter (pred ∘ map)
+    rw [List.filter_map]
+    simp only [List.length_map]
+    -- Now: length of finRange filtered by "v has nonempty filter" ≤ 2
+    -- Every such v satisfies: ∃ c ∈ vertexClauses G v, c mentions varIdx.
+    -- By vertexClauses_vars, varIdx < numEdges.
+    -- By vertexClauses_mention_incident, edgeSrc(varIdx) = v ∨ edgeTgt(varIdx) = v.
+    -- At most 2 such v (src and tgt).
+    -- Use Finset: the set {v | pred v} has card ≤ |{src, tgt}| ≤ 2.
+    -- Every v in the filtered list satisfies: ∃ c ∈ vertexClauses G v, c mentions varIdx.
+    -- So varIdx < numEdges and (edgeSrc(varIdx) = v ∨ edgeTgt(varIdx) = v).
+    -- The filtered list is a nodup sublist of finRange, with entries ⊆ {src, tgt}.
+    -- A nodup list whose entries ⊆ a 2-element set has length ≤ 2.
+    have hnodup : ((List.finRange G.numVertices).filter (fun v =>
+        ((vertexClauses G ⟨v.val, v.isLt⟩).filter
+          (fun c : Clause3 => c.var1 = varIdx ∨ c.var2 = varIdx ∨ c.var3 = varIdx)).length > 0
+      )).Nodup := (List.nodup_finRange _).filter _
+    -- Every v in filter satisfies v = src or v = tgt (for some src, tgt)
+    -- If varIdx ≥ numEdges: filter is empty (length 0 ≤ 2)
+    by_cases hvar : varIdx < G.numEdges
+    · -- Show every v with nonzero filter is src or tgt
+      have hsubset : ∀ v ∈ (List.finRange G.numVertices).filter (fun v =>
+          ((vertexClauses G ⟨v.val, v.isLt⟩).filter
+            (fun c : Clause3 => c.var1 = varIdx ∨ c.var2 = varIdx ∨ c.var3 = varIdx)).length > 0),
+          v = G.edgeSrc ⟨varIdx, hvar⟩ ∨ v = G.edgeTgt ⟨varIdx, hvar⟩ := by
+        intro v hv
+        simp only [List.mem_filter, List.mem_finRange, true_and] at hv
+        -- v has at least one clause mentioning varIdx
+        have hne : ((vertexClauses G v).filter
+            (fun c : Clause3 => c.var1 = varIdx ∨ c.var2 = varIdx ∨ c.var3 = varIdx)) ≠ [] := by
+          intro h; rw [h] at hv; simp at hv
+        obtain ⟨c, hc⟩ := List.exists_mem_of_ne_nil _ hne
+        have hcmem : c ∈ vertexClauses G v := List.mem_of_mem_filter hc
+        have hmention : c.var1 = varIdx ∨ c.var2 = varIdx ∨ c.var3 = varIdx := by
+          have := (List.mem_filter.mp hc).2
+          simpa using this
+        have h := vertexClauses_mention_incident G v hdeg3 c hcmem varIdx hmention hvar
+        rcases h with h | h <;> [left; right] <;> exact h.symm
+      -- A nodup list whose elements ⊆ {a, b} has length ≤ 2
+      exact nodup_subset_pair_length_le_two hnodup hsubset
+    · -- varIdx ≥ numEdges: all filters empty, so filtered list is empty
+      have hempty : ((List.finRange G.numVertices).filter (fun v =>
+          ((vertexClauses G ⟨v.val, v.isLt⟩).filter
+            (fun c : Clause3 => c.var1 = varIdx ∨ c.var2 = varIdx ∨ c.var3 = varIdx)).length > 0
+        )) = [] := by
+        rw [List.filter_eq_nil_iff]
+        intro v _
+        simp only [not_lt, Nat.le_zero, decide_eq_true_eq]
+        rw [List.length_eq_zero_iff, List.filter_eq_nil_iff]
+        intro c hc
+        simp only [not_or, decide_eq_false_iff_not, not_true_eq_false, Bool.not_eq_true,
+          decide_eq_true_eq]
+        push_neg
+        have ⟨h1, h2, h3⟩ := vertexClauses_vars G v c hc hdeg3
+        exact ⟨by omega, by omega, by omega⟩
+      convert (Nat.zero_le 2)
+      exact congrArg List.length hempty
 
 /-- Tseitin formula on the n-th graph, built concretely -/
 noncomputable def tseitinAt (n : ℕ) : TseitinFormula :=
