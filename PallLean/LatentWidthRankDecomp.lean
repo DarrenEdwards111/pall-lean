@@ -718,29 +718,39 @@ theorem mlProj_is_multilinear {n : ℕ} (p : MvPolynomial (Fin n) ℚ) :
   · -- coefficient is 0, contradicts hα
     exact absurd rfl hα
 
-/-- Sub-lemma 3: for block-admissible S of length κ with block size 4,
-the generator `mlProj (m * iterDerivList S p)` has variable support
+/-
+Sub-lemma 3 discussion: for block-admissible S of length κ with block size 4,
+the generator mlProj (m * iterDerivList S p) has variable support
 contained in the union of the κ blocks touched by S, i.e., ≤ 4κ variables.
+This is the key structural lemma about iterDerivList + mlProj.
+-/
+/-- Weaker but sufficient: mlProj doesn't add variables. -/
+theorem mlProj_vars_subset {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p : MvPolynomial σ F) : (mlProj p).vars ⊆ p.vars := by
+  intro x hx
+  rw [MvPolynomial.mem_vars] at hx ⊢
+  rcases hx with ⟨α, hα_supp, hα_x⟩
+  have hα_p : α ∈ p.support := mlProj_support_subset p hα_supp
+  exact ⟨α, hα_p, hα_x⟩
 
-NOTE: This is a key structural lemma about iterDerivList + mlProj. The difficulty
-is that iterDerivList S (∏ gadgets) expands via the Leibniz rule into a sum of
-terms, each touching only the blocks hit by S (since each gadget is local to one
-block). The mlProj then kills non-multilinear terms but doesn't add new variables.
+/-- Sub-lemma 3 (weakened): for the specific `latentCompiledPoly`, each SPDP generator
+`mlProj (m * iterDerivList S p)` has variable support in the blocks touched by S.
 
-For `latentCompiledPoly` specifically (sum of three product sheets), each sheet is
-a product of local gadgets, one per block. Taking |S|=κ derivatives selects κ
-gadgets to differentiate; the remaining factors are undifferentiated. After mlProj,
-each term's variables are confined to the blocks of the differentiated gadgets
-(≤ κ blocks × 4 vars per block = 4κ variables). -/
-theorem spdp_generator_var_support_bound {N : ℕ}
-    (B : BlockPartition N) (κ : ℕ)
-    (S : List (Fin N)) (m p : MvPolynomial (Fin N) ℚ)
-    (hlen : S.length = κ)
+This relies on the product-of-local-gadgets structure of latentCompiledPoly:
+each sheet is ∏_i gadget_i where gadget_i touches only block i's 4 variables.
+Differentiating w.r.t. variables in block j only affects gadget_j (Leibniz rule);
+undifferentiated gadgets contribute only constants after mlProj (they're degree 2,
+and mlProj kills degree > 1 per variable, so the undifferentiated factor from a
+block NOT in S contributes at most a constant coefficient, no new variables). -/
+theorem spdp_generator_var_support_bound_latent (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hlen : S.length = Nat.log 2 n)
     (hvars : m.vars ⊆ S.toFinset)
-    (hadm : isBlockAdmissible B S)
-    (hblock_size : ∀ b : Fin B.numBlocks, (Finset.univ.filter (fun j => B.assign j = b)).card ≤ 4) :
-    (mlProj (m * iterDerivList S p)).vars ⊆
-      Finset.univ.filter (fun j => B.assign j ∈ (S.map B.assign).toFinset) := by
+    (hadm : isBlockAdmissible (latentPartition M n) S) :
+    (mlProj (m * iterDerivList S (latentCompiledPoly M n))).vars ⊆
+      Finset.univ.filter (fun j => (latentPartition M n).assign j ∈
+        (S.map (latentPartition M n).assign).toFinset) := by
   sorry
 
 /-- Sub-lemma 4: the number of multilinear monomials on ≤ V variables is ≤ 2^V. -/
@@ -781,13 +791,21 @@ theorem latentCompiledPoly_spdp_subspace_span_poly_bound (M : DTM) (n : ℕ)
         (latentCompiledPoly M n)) :=
     mlBlockedSpdpSubspace_finite (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n)
-  -- Step 2: extract a finite spanning set from the subspace
-  -- The subspace has a finite basis of size = finrank
-  -- The subspace is finite-dimensional with finrank = mlBlockedSpdpRank.
-  -- We need: ∃ G, subspace ≤ span(G) ∧ |G| ≤ n^160.
-  -- Key: finrank of the subspace ≤ n^160 (from sub-lemma 3 + dimension counting).
-  -- Then any basis gives |G| = finrank ≤ n^160.
-  -- For now, the dimension bound needs sub-lemma 3 (variable support bound).
+  -- Step 2: the rank (= finrank) is ≤ n^160
+  have hn1 : n ≥ 1 := le_trans (by decide : 1 ≤ 4) (le_trans (le_max_left 4 M.numStates) hn)
+  have hrank : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n) ≤ n ^ 160 := by
+    -- This bound comes from: generators live in multilinear space on ≤ 4κ vars,
+    -- dim ≤ 2^(4κ) ≤ n^4 ≤ n^160.
+    -- Needs sub-lemma 3 (variable support bound) to close formally.
+    sorry
+  -- Step 3: extract a finite spanning set of size ≤ finrank from the subspace
+  -- Use the span definition: the subspace is already Submodule.span ℚ S for some S.
+  -- By `latent_profile_span_card_bound_logscale`, which chains through parts/block-cover,
+  -- we could close. But we already have hrank. We need to go from finrank bound to ∃ G.
+  -- Direct: the subspace has rank ≤ n^160, and the rank equals finrank of the subspace.
+  -- A basis (exists by Module.Free + Module.Finite) maps to ≤ n^160 ambient elements.
+  -- For now, this basis-extraction step is the remaining sorry.
   sorry
 
 /-- Move-2 bridge: strong `|G| ≤ n^160` span witness implies frozen target. -/
