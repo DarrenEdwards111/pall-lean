@@ -698,7 +698,18 @@ theorem mlProj_is_multilinear {n : ℕ} (p : MvPolynomial (Fin n) ℚ) :
 
 /-- Sub-lemma 3: for block-admissible S of length κ with block size 4,
 the generator `mlProj (m * iterDerivList S p)` has variable support
-contained in the union of the κ blocks touched by S, i.e., ≤ 4κ variables. -/
+contained in the union of the κ blocks touched by S, i.e., ≤ 4κ variables.
+
+NOTE: This is a key structural lemma about iterDerivList + mlProj. The difficulty
+is that iterDerivList S (∏ gadgets) expands via the Leibniz rule into a sum of
+terms, each touching only the blocks hit by S (since each gadget is local to one
+block). The mlProj then kills non-multilinear terms but doesn't add new variables.
+
+For `latentCompiledPoly` specifically (sum of three product sheets), each sheet is
+a product of local gadgets, one per block. Taking |S|=κ derivatives selects κ
+gadgets to differentiate; the remaining factors are undifferentiated. After mlProj,
+each term's variables are confined to the blocks of the differentiated gadgets
+(≤ κ blocks × 4 vars per block = 4κ variables). -/
 theorem spdp_generator_var_support_bound {N : ℕ}
     (B : BlockPartition N) (κ : ℕ)
     (S : List (Fin N)) (m p : MvPolynomial (Fin N) ℚ)
@@ -718,6 +729,8 @@ theorem multilinear_monomial_count_le (V : ℕ) (vars : Finset (Fin V)) :
 /-- Sub-lemma 5: 2^(4 * Nat.log 2 n) ≤ n^4 for n ≥ 2. -/
 theorem pow_4log_le_npow4 (n : ℕ) (_hn : n ≥ 2) :
     2 ^ (4 * Nat.log 2 n) ≤ n ^ 4 := by
+  -- 2^(4k) = (2^k)^4 ≤ n^4 since 2^(log₂ n) ≤ n
+  -- 2^(4k) ≤ n^4 where k = log₂ n, using 2^k ≤ n
   sorry
 
 /-- Sub-lemma 6: n^4 ≤ n^160 for n ≥ 1. -/

@@ -108,10 +108,11 @@ noncomputable def cubicGraph (n : ℕ) (hn : n ≥ 6) (heven : 2 ∣ n) : Regula
       omega⟩
   regular := fun v => by
     -- Vertex v is incident to exactly 3 edges:
-    -- 1. Cycle edge v (src=v)
-    -- 2. Cycle edge (v+n-1)%n (tgt=v)
+    -- 1. Cycle edge v (src=v, tgt=(v+1)%n)
+    -- 2. Cycle edge (v+n-1)%n (src=(v+n-1)%n, tgt=v)
     -- 3. Matching edge: n+v (if v<n/2) or n+(v-n/2) (if v≥n/2)
-    -- Proof: identify the 3-element filter, show distinctness, compute card.
+    -- Each vertex touches exactly 3 out of the n + n/2 edges.
+    -- This is a concrete enumeration argument.
     sorry
 
 /-- Round up to even ≥ 6 -/
