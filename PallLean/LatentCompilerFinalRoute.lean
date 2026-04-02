@@ -291,18 +291,9 @@ theorem P_neq_NP_latent_from_p_construction_data (h : PeqNP) (n : ℕ)
     selCon_kronecker_coeff_law_logscale_from_canonical_idxList M n hn804
   have npData : selCon_kronecker_data_logscale M n hn804 := hCoeff
 
-  -- P data package from concrete construction-data witness
-  have pGB : latent_global_span_and_bucket_logscale M n hnM hn804 :=
-    latent_global_span_and_bucket_logscale_from_construction_data M n hnM hn804 pData
-  rcases pGB with ⟨G, hSpan, hBuck⟩
-  have pCover : latent_profile_block_cover_logscale M n hnM hn804 :=
-    latent_profile_block_cover_logscale_from_span_and_bucketization M n hnM hn804 G hSpan hBuck
-  have pParts : latent_profile_span_card_parts_logscale M n hnM hn804 :=
-    latent_profile_span_card_parts_logscale_from_block_cover M n hnM hn804 pCover
-  have pSpan : latent_profile_span_card_bound_logscale M n hnM hn804 :=
-    latent_profile_span_card_bound_logscale_from_parts M n hnM hn804 pParts
+  -- P-data package directly from concrete construction-data witness
   have pAsm : theorem216_p_obligation M n hnM hn804 :=
-    theorem216_profile_data_logscale_from_span_card_bound M n hnM hn804 pSpan
+    theorem216_profile_data_logscale_from_construction_data M n hnM hn804 pData
 
   exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
 
@@ -330,10 +321,14 @@ theorem P_neq_NP_latent_from_p_block_cover (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have pSpan : latent_profile_span_card_bound_logscale M n hnM hn804 :=
-    latent_profile_span_card_bound_logscale_from_parts M n hnM hn804
-      (latent_profile_span_card_parts_logscale_from_block_cover M n hnM hn804 pCover)
-  exact P_neq_NP_latent_from_p_span_card h n hn pSpan
+
+  have hCoeff : selCon_kronecker_coeff_law_logscale M n hn804 :=
+    selCon_kronecker_coeff_law_logscale_from_canonical_idxList M n hn804
+  have npData : selCon_kronecker_data_logscale M n hn804 := hCoeff
+  have pAsm : theorem216_p_obligation M n hnM hn804 :=
+    theorem216_profile_data_logscale_from_block_cover M n hnM hn804 pCover
+
+  exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
 
 /-- Canonical-NP route with P-side global-span+bucket witness only. -/
 theorem P_neq_NP_latent_from_p_global_span_bucket (h : PeqNP) (n : ℕ)
