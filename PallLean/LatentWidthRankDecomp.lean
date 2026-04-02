@@ -413,6 +413,26 @@ theorem latent_global_span_and_bucket_logscale_from_construction_data (M : DTM) 
   refine ⟨G, hSpan, ?_⟩
   exact ⟨I, Gprof, hUnion, hUni⟩
 
+/-- Do-2 combined package implies explicit construction-data package. -/
+theorem latent_profile_block_cover_construction_data_from_global_span_and_bucket (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hGB : latent_global_span_and_bucket_logscale M n hn hn804) :
+    latent_profile_block_cover_construction_data_logscale M n hn hn804 := by
+  rcases hGB with ⟨G, hSpan, hBuck⟩
+  rcases hBuck with ⟨I, Gprof, hUnion, hUni⟩
+  exact ⟨G, I, Gprof, hSpan, hUnion, hUni⟩
+
+/-- Construction-data and Do-2 combined package are equivalent. -/
+theorem latent_profile_block_cover_construction_data_iff_global_span_and_bucket (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :
+    latent_profile_block_cover_construction_data_logscale M n hn hn804 ↔
+    latent_global_span_and_bucket_logscale M n hn hn804 := by
+  constructor
+  · exact latent_global_span_and_bucket_logscale_from_construction_data M n hn hn804
+  · exact latent_profile_block_cover_construction_data_from_global_span_and_bucket M n hn hn804
+
 /-- Do-2 projection: extract explicit bucketization from the combined package. -/
 theorem latent_bucketization_40_160_from_global_span_and_bucket (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)

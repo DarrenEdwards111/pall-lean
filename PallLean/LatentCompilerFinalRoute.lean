@@ -294,4 +294,23 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_block_cover_via_construction_dat
     latent_profile_block_cover_construction_data_from_block_cover M n hnM hn804 pCover
   exact P_neq_NP_latent_from_finer_decomp_and_p_construction_data h n hn idxList hnd hlen hfinj pData
 
+/-- Symmetric convenience bridge: global-span+bucket input routed via
+construction-data normalization. -/
+theorem P_neq_NP_latent_from_finer_decomp_and_p_global_span_bucket_via_construction_data
+    (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (idxList : Fin (Nat.choose (latentBaseVars h.sat_decider n) (Nat.log 2 n)) →
+      List (Fin (latentBaseVars h.sat_decider n)))
+    (hnd : ∀ i, (idxList i).Nodup)
+    (hlen : ∀ i, (idxList i).length = Nat.log 2 n)
+    (hfinj : ∀ i j, (idxList i).toFinset = (idxList j).toFinset → i = j)
+    (pGB : latent_global_span_and_bucket_logscale h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  have pData : latent_profile_block_cover_construction_data_logscale M n hnM hn804 :=
+    latent_profile_block_cover_construction_data_from_global_span_and_bucket M n hnM hn804 pGB
+  exact P_neq_NP_latent_from_finer_decomp_and_p_construction_data h n hn idxList hnd hlen hfinj pData
+
 end LatentCompilerFinalRoute
