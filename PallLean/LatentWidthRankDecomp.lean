@@ -610,6 +610,52 @@ theorem latent_p_witness_target_from_item3_uniform2 (M : DTM) (n : ℕ)
     exact hUni i
   exact latent_p_witness_target_from_block_cover M n hn hn804 hCover
 
+/-- Move-2 strengthening target: a single finite span witness `G` with `|G| ≤ n^160`.
+
+This is stronger than the frozen target. If we can build this, then the frozen target follows
+by taking a constant profile-id map (all mass in one bucket). -/
+def latent_p_witness_span160_logscale (M : DTM) (n : ℕ)
+    (_hn : n ≥ max 4 M.numStates)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∃ G : Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ),
+    mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n)
+      ≤ Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ∧
+    G.card ≤ n ^ 160
+
+/-- Move-2 bridge: strong `|G| ≤ n^160` span witness implies frozen target. -/
+theorem latent_p_witness_target_from_span160 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (h160 : latent_p_witness_span160_logscale M n hn hn804) :
+    latent_p_witness_target_logscale M n hn hn804 := by
+  rcases h160 with ⟨G, hSpan, hCard⟩
+  have h4 : 4 ≤ n := le_trans (le_max_left 4 M.numStates) hn
+  have hnPos : 0 < n := lt_of_lt_of_le (by decide : 0 < 4) h4
+  have hPowPos : 0 < n ^ 40 := by exact pow_pos hnPos 40
+  let i0 : Fin (n ^ 40) := ⟨0, hPowPos⟩
+  let profileId : MvPolynomial (Fin (latentNumVars M n)) ℚ → Fin (n ^ 40) :=
+    fun _ => i0
+  refine ⟨G, profileId, hSpan, ?_⟩
+  intro i
+  by_cases hi : i = i0
+  · subst hi
+    simpa [profileId] using hCard
+  · have hempty : G.filter (fun g => profileId g = i) = ∅ := by
+      ext g
+      constructor
+      · intro hg
+        have hEq : profileId g = i := (Finset.mem_filter.mp hg).2
+        have hconst : profileId g = i0 := rfl
+        have : i = i0 := by
+          calc
+            i = profileId g := hEq.symm
+            _ = i0 := hconst
+        exact False.elim (hi this)
+      · intro hg
+        exact False.elim (by simpa using hg)
+    simp [hempty]
+
 /-- Do-2 projection: extract explicit bucketization from the combined package. -/
 theorem latent_bucketization_40_160_from_global_span_and_bucket (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)

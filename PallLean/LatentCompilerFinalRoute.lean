@@ -371,6 +371,19 @@ theorem P_neq_NP_latent_from_p_witness_target (h : PeqNP) (n : ℕ)
     theorem216_profile_data_logscale_from_bucket_function M n hnM hn804 pTarget
   exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
 
+/-- Move-2 strong-entry route: if a single span witness of size `≤ n^160` is built,
+then frozen target follows immediately and the contradiction route closes. -/
+theorem P_neq_NP_latent_from_p_span160 (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (p160 : latent_p_witness_span160_logscale h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  have pTarget : latent_p_witness_target_logscale M n hnM hn804 :=
+    latent_p_witness_target_from_span160 M n hnM hn804 p160
+  exact P_neq_NP_latent_from_p_witness_target h n hn pTarget
+
 /-- Canonical-NP route from functional profile-id bucket schema (P-side).
 This is often the most natural constructive form to prove from paper definitions. -/
 theorem P_neq_NP_latent_from_p_bucket_function (h : PeqNP) (n : ℕ)
