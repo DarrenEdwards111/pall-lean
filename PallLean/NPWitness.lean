@@ -99,7 +99,109 @@ private theorem cubicGraph_regular_aux (n : ℕ) (hn : n ≥ 6) (heven : 2 ∣ n
     (v : Fin n) :
     (Finset.univ.filter (fun e : Fin (n + n / 2) =>
       cubicSrc n e = v ∨ cubicTgt n hn e = v)).card = 3 := by
-  sorry
+  have hv := v.isLt
+  have hn2 : n / 2 ≥ 3 := by rcases heven with ⟨k, hk⟩; omega
+  -- The 3 incident edges
+  set e_fwd : Fin (n + n / 2) := ⟨v.val, by omega⟩
+  set e_bwd : Fin (n + n / 2) := ⟨(v.val + n - 1) % n, by
+    exact Nat.lt_of_lt_of_le (Nat.mod_lt _ (by omega)) (by omega)⟩
+  set e_match : Fin (n + n / 2) :=
+    if hv2 : v.val < n / 2 then ⟨n + v.val, by omega⟩
+    else ⟨n + (v.val - n / 2), by omega⟩
+  -- Show filter = {e_fwd, e_bwd, e_match}
+  suffices h : Finset.univ.filter (fun e : Fin (n + n / 2) =>
+      cubicSrc n e = v ∨ cubicTgt n hn e = v) = {e_fwd, e_bwd, e_match} by
+    rw [h, Finset.card_insert_of_notMem, Finset.card_insert_of_notMem, Finset.card_singleton]
+    · -- e_bwd ∉ {e_match}
+      simp only [Finset.mem_singleton]; intro h
+      have hbwd_val : e_bwd.val = (v.val + n - 1) % n := rfl
+      have hbwd_lt : e_bwd.val < n := Nat.mod_lt _ (by omega)
+      have hmatch_val : e_match.val = if v.val < n / 2 then n + v.val else n + (v.val - n / 2) := by
+        simp [e_match]; split <;> rfl
+      have hmatch_ge : e_match.val ≥ n := by rw [hmatch_val]; split <;> omega
+      exact absurd (congrArg Fin.val h) (by omega)
+    · -- e_fwd ∉ {e_bwd, e_match}
+      simp only [Finset.mem_insert, Finset.mem_singleton, not_or]
+      refine ⟨?_, ?_⟩
+      · -- e_fwd ≠ e_bwd
+        intro h
+        have : e_fwd.val = e_bwd.val := congrArg Fin.val h
+        -- e_fwd.val = v.val, e_bwd.val = (v+n-1)%n
+        -- v = (v+n-1)%n → contradiction since n ≥ 6
+        -- this : v.val = (v.val + n - 1) % n
+        have hfwd : e_fwd.val = v.val := rfl
+        have hbwd : e_bwd.val = (v.val + n - 1) % n := rfl
+        rw [hfwd, hbwd] at this
+        rcases Nat.lt_or_ge v.val 1 with hv0 | hv0
+        · rw [show v.val = 0 from by omega, show 0 + n - 1 = n - 1 from by omega,
+              Nat.mod_eq_of_lt (by omega : n - 1 < n)] at this; omega
+        · rw [show v.val + n - 1 = (v.val - 1) + 1 * n from by omega,
+              Nat.add_mul_mod_self_right,
+              Nat.mod_eq_of_lt (by omega : v.val - 1 < n)] at this; omega
+      · -- e_fwd ≠ e_match
+        intro h
+        have heq : e_fwd.val = e_match.val := congrArg Fin.val h
+        have hfwd : e_fwd.val = v.val := rfl
+        have hmge : e_match.val ≥ n := by
+          show (if hv2 : v.val < n / 2 then (⟨n + v.val, _⟩ : Fin (n + n / 2))
+               else ⟨n + (v.val - n / 2), _⟩).val ≥ n
+          split <;> simp <;> omega
+        omega
+  -- Now prove filter = {e_fwd, e_bwd, e_match}
+  ext e
+  simp only [Finset.mem_filter, Finset.mem_univ, true_and,
+    Finset.mem_insert, Finset.mem_singleton]
+  constructor
+  · -- e incident to v → e ∈ {e_fwd, e_bwd, e_match}
+    intro hinc
+    simp only [cubicSrc, cubicTgt] at hinc
+    split_ifs at hinc with he_lt
+    · -- e.val < n (cycle edge)
+      rcases hinc with hsrc | htgt
+      · -- cubicSrc = v means e.val = v.val (since e < n)
+        left; ext; simp [e_fwd]; exact congrArg Fin.val hsrc
+      · -- cubicTgt = v means (e.val + 1) % n = v.val
+        right; left; ext; simp [e_bwd]
+        exact (mod_succ_eq_iff e.val v.val n (by omega) he_lt hv).mp (congrArg Fin.val htgt)
+    · -- e.val ≥ n (matching edge)
+      rcases hinc with hsrc | htgt
+      · -- cubicSrc e = v means e.val - n = v.val
+        have : e.val - n = v.val := congrArg Fin.val hsrc
+        have : e.val - n < n / 2 := by omega
+        have : v.val < n / 2 := by omega
+        right; right; simp [e_match, show v.val < n / 2 from ‹_›]; ext; simp; omega
+      · -- cubicTgt e = v means e.val - n + n/2 = v.val
+        have : e.val - n + n / 2 = v.val := congrArg Fin.val htgt
+        have : ¬ (v.val < n / 2) := by omega
+        right; right; simp [e_match, ‹¬ (v.val < n / 2)›]; ext; simp; omega
+  · -- e ∈ {e_fwd, e_bwd, e_match} → e incident to v
+    intro hmem
+    rcases hmem with rfl | rfl | rfl
+    · -- e_fwd: cubicSrc = v
+      left; show cubicSrc n e_fwd = v
+      unfold cubicSrc; simp [dif_pos hv, e_fwd]
+    · -- e_bwd: cubicTgt = v
+      right; show cubicTgt n hn e_bwd = v
+      have hmod_lt : (v.val + n - 1) % n < n := Nat.mod_lt _ (by omega)
+      unfold cubicTgt; simp [dif_pos hmod_lt, e_bwd]
+      -- Goal: ((v.val + n - 1) % n + 1) % n = v.val ... OR ... (v+n-1+1)%n = v
+      -- After unfold+simp, the goal should be about ((v+n-1)%n + 1) % n = v
+      -- which is exactly mod_succ_eq_iff backwards
+      ext; simp
+      -- Goal: (v+n-1+1) % n = v
+      rw [show v.val + n - 1 + 1 = v.val + 1 * n from by omega,
+          Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hv]
+    · -- e_match
+      show cubicSrc n e_match = v ∨ cubicTgt n hn e_match = v
+      simp only [e_match]
+      split
+      · -- v < n/2: e_match = ⟨n + v, _⟩
+        rename_i hv2
+        left; unfold cubicSrc; simp [show ¬ (n + v.val < n) from by omega]
+      · -- v ≥ n/2: e_match = ⟨n + (v - n/2), _⟩
+        rename_i hv2
+        right; unfold cubicTgt; simp [show ¬ (n + (v.val - n / 2) < n) from by omega]
+        ext; simp; omega
 
 noncomputable def cubicGraph (n : ℕ) (hn : n ≥ 6) (heven : 2 ∣ n) : RegularGraph where
   numVertices := n
