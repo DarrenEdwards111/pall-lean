@@ -299,6 +299,20 @@ def latent_profile_block_cover_item23_logscale (M : DTM) (n : ℕ)
         ≤ Submodule.span ℚ (↑(I.biUnion (fun i => Gprof i))
             : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))
 
+/-- Item-3 with a uniform item-2 bound over all profile indices.
+This is a stricter but convenient entrypoint: item-2 is automatically available
+for any chosen active profile subset `I`. -/
+def latent_profile_block_cover_item3_uniform2_logscale (M : DTM) (n : ℕ)
+    (_hn : n ≥ max 4 M.numStates)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∃ (I : Finset (Fin (n ^ 40)))
+    (Gprof : Fin (n ^ 40) → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ)),
+      (∀ i : Fin (n ^ 40), (Gprof i).card ≤ n ^ 160) ∧
+      mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)
+        ≤ Submodule.span ℚ (↑(I.biUnion (fun i => Gprof i))
+            : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))
+
 /-- Block cover implies the shared-witness item bundle. -/
 theorem latent_profile_block_cover_items_from_block_cover (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
@@ -336,6 +350,26 @@ theorem latent_profile_block_cover_from_item23 (M : DTM) (n : ℕ)
     latent_profile_block_cover_logscale M n hn hn804 := by
   rcases h23 with ⟨I, Gprof, hBlock, hSpan⟩
   exact ⟨I, Gprof, hSpan, hBlock⟩
+
+/-- Uniform item-2 + item-3 package implies the shared item-2+3 package. -/
+theorem latent_profile_block_cover_item23_from_item3_uniform2 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (h3u2 : latent_profile_block_cover_item3_uniform2_logscale M n hn hn804) :
+    latent_profile_block_cover_item23_logscale M n hn hn804 := by
+  rcases h3u2 with ⟨I, Gprof, hUni, hSpan⟩
+  refine ⟨I, Gprof, ?_, hSpan⟩
+  intro i hi
+  exact hUni i
+
+/-- Uniform item-2 + item-3 package implies full block cover directly. -/
+theorem latent_profile_block_cover_from_item3_uniform2 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (h3u2 : latent_profile_block_cover_item3_uniform2_logscale M n hn hn804) :
+    latent_profile_block_cover_logscale M n hn hn804 := by
+  exact latent_profile_block_cover_from_item23 M n hn hn804
+    (latent_profile_block_cover_item23_from_item3_uniform2 M n hn hn804 h3u2)
 
 /-- Build the full parts package from the reduced block-cover package.
 The profile-count side is automatic since `I : Finset (Fin (n^40))`. -/
