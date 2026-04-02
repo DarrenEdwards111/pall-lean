@@ -680,21 +680,43 @@ polynomials on ≤ 4κ variables has dimension ≤ 2^(4κ) = 2^(4 log₂ n) = n^
 So the subspace has dimension ≤ n^4, and any basis gives |G| ≤ n^4 ≤ n^160.
 -/
 
-/-- Sub-lemma 1: the multilinear polynomial space on N variables has dimension 2^N. -/
-theorem multilinear_poly_space_dim (N : ℕ) :
+/-- Sub-lemma 1: the finrank of the multilinear monomial span is ≤ 2^N. -/
+theorem multilinear_monomials_span_le_dim (N : ℕ) :
     Module.finrank ℚ (Submodule.span ℚ
       (Set.range (fun (s : Finset (Fin N)) =>
-        (∏ i ∈ s, (X i : MvPolynomial (Fin N) ℚ))))) = 2 ^ N := by
-  sorry
+        (∏ i ∈ s, (X i : MvPolynomial (Fin N) ℚ))))) ≤ 2 ^ N := by
+  let G : Finset (MvPolynomial (Fin N) ℚ) :=
+    Finset.univ.powerset.image (fun s => ∏ i ∈ s, (X i : MvPolynomial (Fin N) ℚ))
+  have hspanG : Submodule.span ℚ (Set.range (fun (s : Finset (Fin N)) =>
+        ∏ i ∈ s, (X i : MvPolynomial (Fin N) ℚ))) ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)) := by
+    apply Submodule.span_le.mpr
+    intro q hq
+    apply Submodule.subset_span
+    rcases Set.mem_range.mp hq with ⟨s, rfl⟩
+    simp only [G, Finset.coe_image, Set.mem_image, Finset.mem_coe]
+    exact ⟨s, Finset.mem_powerset.mpr (Finset.subset_univ s), rfl⟩
+  apply le_trans (Submodule.finrank_mono hspanG)
+  apply le_trans (finrank_span_finset_le_card G)
+  simp only [G]
+  calc (Finset.univ.powerset.image (fun s => ∏ i ∈ s, (X i : MvPolynomial (Fin N) ℚ))).card
+      ≤ Finset.univ.powerset.card := Finset.card_image_le
+    _ = 2 ^ N := by simp [Finset.card_powerset]
 
 /-- Sub-lemma 2: mlProj maps any polynomial to a multilinear polynomial
 (i.e., each variable has degree ≤ 1 in the result). -/
 theorem mlProj_is_multilinear {n : ℕ} (p : MvPolynomial (Fin n) ℚ) :
     ∀ (α : Fin n →₀ ℕ), (mlProj p).coeff α ≠ 0 → ∀ i, α i ≤ 1 := by
   intro α hα i
-  unfold mlProj at hα
-  simp [MvPolynomial.coeff_sum, Finsupp.indicator] at hα
-  sorry
+  -- mlProj keeps only monomials where Finsupp.IsMultilinear α holds
+  unfold mlProj mlProjHom at hα
+  simp only [Finsupp.filterAddHom, AddMonoidHom.coe_mk, ZeroHom.coe_mk] at hα
+  rw [MvPolynomial.coeff, Finsupp.filter_apply] at hα
+  split_ifs at hα with h
+  · -- α is multilinear, so α i ≤ 1 by definition
+    exact h i
+  · -- coefficient is 0, contradicts hα
+    exact absurd rfl hα
 
 /-- Sub-lemma 3: for block-admissible S of length κ with block size 4,
 the generator `mlProj (m * iterDerivList S p)` has variable support
@@ -730,8 +752,11 @@ theorem multilinear_monomial_count_le (V : ℕ) (vars : Finset (Fin V)) :
 theorem pow_4log_le_npow4 (n : ℕ) (_hn : n ≥ 2) :
     2 ^ (4 * Nat.log 2 n) ≤ n ^ 4 := by
   -- 2^(4k) = (2^k)^4 ≤ n^4 since 2^(log₂ n) ≤ n
-  -- 2^(4k) ≤ n^4 where k = log₂ n, using 2^k ≤ n
-  sorry
+  have hn0 : n ≠ 0 := by omega
+  have h2log : 2 ^ Nat.log 2 n ≤ n := Nat.pow_log_le_self 2 hn0
+  have hrw : 4 * Nat.log 2 n = Nat.log 2 n * 4 := by ring
+  rw [hrw, Nat.pow_mul]
+  exact Nat.pow_le_pow_left h2log 4
 
 /-- Sub-lemma 6: n^4 ≤ n^160 for n ≥ 1. -/
 theorem npow4_le_npow160 (n : ℕ) (hn : n ≥ 1) : n ^ 4 ≤ n ^ 160 :=
@@ -750,6 +775,27 @@ theorem latentCompiledPoly_spdp_subspace_span_poly_bound (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804) :
     latent_p_witness_span160_logscale M n hn hn804 := by
+  -- Step 1: the subspace is finite-dimensional (already proved in MultilinearSPDP)
+  have hfin : Module.Finite ℚ
+      (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)) :=
+    mlBlockedSpdpSubspace_finite (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n)
+  -- Step 2: extract a finite spanning set from the subspace
+  -- The subspace has a finite basis of size = finrank
+  let Sub := mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n)
+  have hSub_eq : Sub = Sub := rfl
+  -- Use `exists_finset_span_eq_linearIndepOn` on the subspace elements
+  -- We just need a finite spanning set with bounded cardinality.
+  -- Since Sub is finite-dimensional, it has a basis of size finrank Sub.
+  -- Any finite spanning set of the subspace works as G.
+  -- Sub is itself the span of the generators in mlBlockedSpdpSubspace definition.
+  -- We construct G by extracting a basis.
+  have hfree : Module.Free ℚ Sub := inferInstance
+  have hbasis : ∃ (s : Finset Sub), Submodule.span ℚ (↑s : Set Sub) = ⊤ ∧
+      s.card = Module.finrank ℚ Sub := by
+    sorry
   sorry
 
 /-- Move-2 bridge: strong `|G| ≤ n^160` span witness implies frozen target. -/
