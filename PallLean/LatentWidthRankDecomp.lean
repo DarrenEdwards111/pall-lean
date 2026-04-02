@@ -670,18 +670,74 @@ def latent_p_witness_span160_logscale (M : DTM) (n : ℕ)
       ≤ Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ∧
     G.card ≤ n ^ 160
 
-/-- Move-5 axiom: the SPDP subspace generators for `latentCompiledPoly` at
-κ = ℓ = log₂ n fit in a single finite set G with |G| ≤ n^160.
+/-
+Move-5 proof sketch for the generator-bound theorem below.
 
-Proof sketch (not yet formal): each generator is `mlProj (m * iterDerivList S p)` with
-|S|=κ block-admissible and m of degree ≤ κ. By mlProj, the generator is multilinear on
-at most 4κ variables (κ blocks × 4 slots per block in latentPartition). The number of
-multilinear monomials on ≤ 4κ variables is ≤ 2^(4κ) = 2^(4 log₂ n) = n^4, which is
-<<< n^160 for large n. -/
-axiom latentCompiledPoly_spdp_subspace_span_poly_bound (M : DTM) (n : ℕ)
+Each SPDP generator is mlProj (m * iterDerivList S p) with |S|=κ block-admissible
+and m of degree ≤ κ. By mlProj, the result is multilinear on ≤ 4κ variables
+(κ blocks × 4 slots per block in latentPartition). The space of all multilinear
+polynomials on ≤ 4κ variables has dimension ≤ 2^(4κ) = 2^(4 log₂ n) = n^4.
+So the subspace has dimension ≤ n^4, and any basis gives |G| ≤ n^4 ≤ n^160.
+-/
+
+/-- Sub-lemma 1: the multilinear polynomial space on N variables has dimension 2^N. -/
+theorem multilinear_poly_space_dim (N : ℕ) :
+    Module.finrank ℚ (Submodule.span ℚ
+      (Set.range (fun (s : Finset (Fin N)) =>
+        (∏ i ∈ s, (X i : MvPolynomial (Fin N) ℚ))))) = 2 ^ N := by
+  sorry
+
+/-- Sub-lemma 2: mlProj maps any polynomial to a multilinear polynomial
+(i.e., each variable has degree ≤ 1 in the result). -/
+theorem mlProj_is_multilinear {n : ℕ} (p : MvPolynomial (Fin n) ℚ) :
+    ∀ (α : Fin n →₀ ℕ), (mlProj p).coeff α ≠ 0 → ∀ i, α i ≤ 1 := by
+  intro α hα i
+  unfold mlProj at hα
+  simp [MvPolynomial.coeff_sum, Finsupp.indicator] at hα
+  sorry
+
+/-- Sub-lemma 3: for block-admissible S of length κ with block size 4,
+the generator `mlProj (m * iterDerivList S p)` has variable support
+contained in the union of the κ blocks touched by S, i.e., ≤ 4κ variables. -/
+theorem spdp_generator_var_support_bound {N : ℕ}
+    (B : BlockPartition N) (κ : ℕ)
+    (S : List (Fin N)) (m p : MvPolynomial (Fin N) ℚ)
+    (hlen : S.length = κ)
+    (hvars : m.vars ⊆ S.toFinset)
+    (hadm : isBlockAdmissible B S)
+    (hblock_size : ∀ b : Fin B.numBlocks, (Finset.univ.filter (fun j => B.assign j = b)).card ≤ 4) :
+    (mlProj (m * iterDerivList S p)).vars ⊆
+      Finset.univ.filter (fun j => B.assign j ∈ (S.map B.assign).toFinset) := by
+  sorry
+
+/-- Sub-lemma 4: the number of multilinear monomials on ≤ V variables is ≤ 2^V. -/
+theorem multilinear_monomial_count_le (V : ℕ) (vars : Finset (Fin V)) :
+    (vars.powerset).card = 2 ^ vars.card := by
+  exact Finset.card_powerset vars
+
+/-- Sub-lemma 5: 2^(4 * Nat.log 2 n) ≤ n^4 for n ≥ 2. -/
+theorem pow_4log_le_npow4 (n : ℕ) (_hn : n ≥ 2) :
+    2 ^ (4 * Nat.log 2 n) ≤ n ^ 4 := by
+  sorry
+
+/-- Sub-lemma 6: n^4 ≤ n^160 for n ≥ 1. -/
+theorem npow4_le_npow160 (n : ℕ) (hn : n ≥ 1) : n ^ 4 ≤ n ^ 160 :=
+  Nat.pow_le_pow_right hn (by decide : 4 ≤ 160)
+
+/-- The complete P-side witness: the SPDP subspace has a finite spanning set
+of size ≤ n^160.
+
+The argument chains sub-lemmas 1-6:
+- Each generator is multilinear on ≤ 4κ variables (sub-lemma 3)
+- The space of multilinear polys on ≤ 4κ vars has dim ≤ 2^(4κ) (sub-lemma 1)
+- 2^(4κ) = 2^(4 log₂ n) ≤ n^4 (sub-lemma 5)
+- n^4 ≤ n^160 (sub-lemma 6)
+- So any basis of the subspace has size ≤ n^160. -/
+theorem latentCompiledPoly_spdp_subspace_span_poly_bound (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804) :
-    latent_p_witness_span160_logscale M n hn hn804
+    latent_p_witness_span160_logscale M n hn hn804 := by
+  sorry
 
 /-- Move-2 bridge: strong `|G| ≤ n^160` span witness implies frozen target. -/
 theorem latent_p_witness_target_from_span160 (M : DTM) (n : ℕ)
