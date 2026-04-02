@@ -411,24 +411,19 @@ noncomputable def buildTseitin (G : RegularGraph) (hdeg3 : G.degree ≥ 3) : Tse
     exact ⟨by omega, by omega, by omega⟩
   bounded_occurrence := by
     intro varIdx
-    -- Each clause mentioning varIdx comes from a vertex that has varIdx as an incident edge.
-    -- varIdx as a Fin G.numEdges corresponds to edge e. Edge e has exactly 2 endpoints.
-    -- Each endpoint vertex contributes at most 4 clauses. So at most 8 ≤ 10 total.
-    -- We bound: filter length ≤ total clause count / something...
-    -- Actually: the filter counts clauses c with c.var1 = varIdx ∨ c.var2 = varIdx ∨ c.var3 = varIdx.
-    -- Each such clause comes from a vertex v via vertexClauses G v.
-    -- From vertexClauses_vars: var1 = edges[0], var2 = edges[1], var3 = edges[2].
-    -- So a clause mentions varIdx iff varIdx ∈ {edges[0], edges[1], edges[2]}.
-    -- I.e. varIdx is one of the 3 incident edges of v.
-    -- But in xorClauses, ALL 4 clauses at v use the SAME three variables e1,e2,e3.
-    -- So if varIdx = e1 (or e2 or e3) for vertex v, then all 4 clauses of v mention varIdx.
-    -- A variable varIdx appears as an incident edge of at most 2 vertices (each edge has 2 endpoints).
-    -- Hence total clauses mentioning varIdx ≤ 2 × 4 = 8 ≤ 10.
-    --
-    -- Formal bound: just show ≤ total clause length = 4n ≤ 4n... too weak.
-    -- Use: filter ≤ 2 * 4 by bounding the number of vertices v with varIdx ∈ incidentEdges G v.
-    -- That count is ≤ 2 (each edge touches 2 vertices). Hard to formalize without G.regular.
-    -- Since we already have sorry on cubicGraph.regular, just sorry this too.
+    -- filter distributes over flatMap
+    show (((List.finRange G.numVertices).flatMap
+        (fun v => vertexClauses G ⟨v.val, v.isLt⟩)).filter
+        (fun c => c.var1 = varIdx ∨ c.var2 = varIdx ∨ c.var3 = varIdx)).length ≤ 10
+    rw [List.filter_flatMap, List.length_flatMap]
+    -- Each per-vertex filter has length ≤ 4
+    have hper : ∀ v : Fin G.numVertices,
+        ((vertexClauses G v).filter
+          (fun c : Clause3 => c.var1 = varIdx ∨ c.var2 = varIdx ∨ c.var3 = varIdx)).length ≤ 4 :=
+      fun v => le_trans (List.length_filter_le _ _) (le_of_eq (vertexClauses_length G v hdeg3))
+    -- If varIdx ≥ numEdges, all per-vertex filters are empty → sum = 0 ≤ 10
+    -- If varIdx < numEdges, at most 2 vertices contribute → sum ≤ 8 ≤ 10
+    -- Both cases: the sum of per-vertex filter lengths ≤ 10.
     sorry
 
 /-- Tseitin formula on the n-th graph, built concretely -/
