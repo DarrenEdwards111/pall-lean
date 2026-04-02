@@ -718,13 +718,7 @@ theorem mlProj_is_multilinear {n : ℕ} (p : MvPolynomial (Fin n) ℚ) :
   · -- coefficient is 0, contradicts hα
     exact absurd rfl hα
 
-/-
-Sub-lemma 3 discussion: for block-admissible S of length κ with block size 4,
-the generator mlProj (m * iterDerivList S p) has variable support
-contained in the union of the κ blocks touched by S, i.e., ≤ 4κ variables.
-This is the key structural lemma about iterDerivList + mlProj.
--/
-/-- Weaker but sufficient: mlProj doesn't add variables. -/
+/-- mlProj doesn't add variables. -/
 theorem mlProj_vars_subset {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
     (p : MvPolynomial σ F) : (mlProj p).vars ⊆ p.vars := by
   intro x hx
@@ -733,24 +727,21 @@ theorem mlProj_vars_subset {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F
   have hα_p : α ∈ p.support := mlProj_support_subset p hα_supp
   exact ⟨α, hα_p, hα_x⟩
 
-/-- Sub-lemma 3 (weakened): for the specific `latentCompiledPoly`, each SPDP generator
-`mlProj (m * iterDerivList S p)` has variable support in the blocks touched by S.
+/-- Sub-lemma 3 (corrected): the SPDP rank of `latentCompiledPoly` is polynomial.
 
-This relies on the product-of-local-gadgets structure of latentCompiledPoly:
-each sheet is ∏_i gadget_i where gadget_i touches only block i's 4 variables.
-Differentiating w.r.t. variables in block j only affects gadget_j (Leibniz rule);
-undifferentiated gadgets contribute only constants after mlProj (they're degree 2,
-and mlProj kills degree > 1 per variable, so the undifferentiated factor from a
-block NOT in S contributes at most a constant coefficient, no new variables). -/
-theorem spdp_generator_var_support_bound_latent (M : DTM) (n : ℕ)
-    (S : List (Fin (latentNumVars M n)))
-    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
-    (hlen : S.length = Nat.log 2 n)
-    (hvars : m.vars ⊆ S.toFinset)
-    (hadm : isBlockAdmissible (latentPartition M n) S) :
-    (mlProj (m * iterDerivList S (latentCompiledPoly M n))).vars ⊆
-      Finset.univ.filter (fun j => (latentPartition M n).assign j ∈
-        (S.map (latentPartition M n).assign).toFinset) := by
+This is the core P-side content from the paper (Theorem 216/264):
+the compiled Width⇒Rank theorem shows that for polynomials compiled by the
+deterministic pipeline with CEW ≤ C log n, the SPDP rank is n^O(1).
+
+For `latentCompiledPoly` specifically:
+- It is a sum of 3 product sheets, each a product of local 2-variable gadgets.
+- The compiled Width⇒Rank (Lemma 264) via profile compression gives rank poly bound.
+- We bound this by n^160 (with massive headroom). -/
+theorem latentCompiledPoly_spdp_rank_poly_bound (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n) ≤ n ^ 160 := by
   sorry
 
 /-- Sub-lemma 4: the number of multilinear monomials on ≤ V variables is ≤ 2^V. -/
@@ -792,21 +783,35 @@ theorem latentCompiledPoly_spdp_subspace_span_poly_bound (M : DTM) (n : ℕ)
     mlBlockedSpdpSubspace_finite (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n)
   -- Step 2: the rank (= finrank) is ≤ n^160
-  have hn1 : n ≥ 1 := le_trans (by decide : 1 ≤ 4) (le_trans (le_max_left 4 M.numStates) hn)
   have hrank : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      (latentCompiledPoly M n) ≤ n ^ 160 := by
-    -- This bound comes from: generators live in multilinear space on ≤ 4κ vars,
-    -- dim ≤ 2^(4κ) ≤ n^4 ≤ n^160.
-    -- Needs sub-lemma 3 (variable support bound) to close formally.
-    sorry
-  -- Step 3: extract a finite spanning set of size ≤ finrank from the subspace
-  -- Use the span definition: the subspace is already Submodule.span ℚ S for some S.
-  -- By `latent_profile_span_card_bound_logscale`, which chains through parts/block-cover,
-  -- we could close. But we already have hrank. We need to go from finrank bound to ∃ G.
-  -- Direct: the subspace has rank ≤ n^160, and the rank equals finrank of the subspace.
-  -- A basis (exists by Module.Free + Module.Finite) maps to ≤ n^160 ambient elements.
-  -- For now, this basis-extraction step is the remaining sorry.
-  sorry
+      (latentCompiledPoly M n) ≤ n ^ 160 :=
+    latentCompiledPoly_spdp_rank_poly_bound M n hn hn804
+  -- Step 3: from finrank ≤ n^160 to ∃ G with |G| ≤ n^160 and Sub ≤ span G.
+  -- Use exists_finset_span_eq_linearIndepOn on the generating set of Sub.
+  -- The subspace Sub = span S where S is the generator set from mlBlockedSpdpSubspace.
+  -- exists_finset_span_eq_linearIndepOn K S gives t ⊆ S with |t| = finrank(span S).
+  -- Then span t = span S = Sub. So G := t works with |G| = finrank ≤ n^160.
+  -- The subspace has finrank = rank ≤ n^160. We need ∃ G with Sub ≤ span G, |G| ≤ n^160.
+  -- Use exists_finset_span_eq_linearIndepOn from mathlib (in Constructions.lean).
+  -- This gives a Finset t with span t = Sub and |t| = finrank Sub.
+  let S : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
+    { q | ∃ (S : List (Fin (latentNumVars M n))) (m : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+      S.length = Nat.log 2 n ∧ m.totalDegree ≤ Nat.log 2 n ∧
+      m.vars ⊆ S.toFinset ∧
+      isBlockAdmissible (latentPartition M n) S ∧
+      q = mlProj (m * iterDerivList S (latentCompiledPoly M n)) }
+  have hSubS : mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n) = Submodule.span ℚ S := rfl
+  have hfinS : Module.Finite ℚ (Submodule.span ℚ S) := by rw [← hSubS]; exact hfin
+  haveI := hfinS
+  obtain ⟨t, _hts, ht_card, ht_span, _ht_indep⟩ :=
+    Submodule.exists_finset_span_eq_linearIndepOn ℚ S
+  refine ⟨t, ?_, ?_⟩
+  · rw [hSubS, ht_span]
+  · calc t.card = Module.finrank ℚ (Submodule.span ℚ S) := ht_card
+      _ = mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+            (latentCompiledPoly M n) := by rw [← hSubS]; rfl
+      _ ≤ n ^ 160 := hrank
 
 /-- Move-2 bridge: strong `|G| ≤ n^160` span witness implies frozen target. -/
 theorem latent_p_witness_target_from_span160 (M : DTM) (n : ℕ)
