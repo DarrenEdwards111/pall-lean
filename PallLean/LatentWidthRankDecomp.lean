@@ -353,6 +353,37 @@ def latent_global_span_and_bucket_logscale (M : DTM) (n : ℕ)
       ≤ Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ∧
     latent_bucketization_40_160 M n G
 
+/-- Fully explicit construction-data package for the remaining P witness.
+
+This is the concrete target for proving the P-core:
+1) choose a finite global generator set `G`,
+2) prove subspace ≤ span(G),
+3) provide explicit profile bucketization data `(I, Gprof)`,
+4) prove bucket cardinal bound `|Gprof i| ≤ n^160`.
+
+The cover identity `⋃_{i∈I} Gprof(i) = G` ties all pieces together. -/
+def latent_profile_block_cover_construction_data_logscale (M : DTM) (n : ℕ)
+    (_hn : n ≥ max 4 M.numStates)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∃ (G : Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ))
+    (I : Finset (Fin (n ^ 40)))
+    (Gprof : Fin (n ^ 40) → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ)),
+      mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)
+        ≤ Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ∧
+      (I.biUnion (fun i => Gprof i)) = G ∧
+      (∀ i : Fin (n ^ 40), (Gprof i).card ≤ n ^ 160)
+
+/-- Construction-data package implies Do-2 combined package. -/
+theorem latent_global_span_and_bucket_logscale_from_construction_data (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hData : latent_profile_block_cover_construction_data_logscale M n hn hn804) :
+    latent_global_span_and_bucket_logscale M n hn hn804 := by
+  rcases hData with ⟨G, I, Gprof, hSpan, hUnion, hUni⟩
+  refine ⟨G, hSpan, ?_⟩
+  exact ⟨I, Gprof, hUnion, hUni⟩
+
 /-- Do-2 projection: extract explicit bucketization from the combined package. -/
 theorem latent_bucketization_40_160_from_global_span_and_bucket (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
@@ -415,6 +446,16 @@ theorem latent_profile_block_cover_logscale_from_span_and_bucketization (M : DTM
     simpa [hUnion] using hSpan
   · intro i hi
     exact hUni i
+
+/-- Construction-data package implies block cover directly. -/
+theorem latent_profile_block_cover_logscale_from_construction_data (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hData : latent_profile_block_cover_construction_data_logscale M n hn hn804) :
+    latent_profile_block_cover_logscale M n hn hn804 := by
+  rcases hData with ⟨G, I, Gprof, hSpan, hUnion, hUni⟩
+  exact latent_profile_block_cover_logscale_from_span_and_bucketization M n hn hn804 G hSpan
+    ⟨I, Gprof, hUnion, hUni⟩
 
 /-- Block cover implies the shared-witness item bundle. -/
 theorem latent_profile_block_cover_items_from_block_cover (M : DTM) (n : ℕ)
