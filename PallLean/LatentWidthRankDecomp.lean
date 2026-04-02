@@ -388,6 +388,51 @@ def latent_profile_bucket_function_bound_logscale (M : DTM) (n : ℕ)
         ≤ Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ∧
       (∀ i : Fin (n ^ 40), (G.filter fun g => profileId g = i).card ≤ n ^ 160)
 
+/-- Construction-data package implies functional bucket schema.
+
+For each `g ∈ G`, pick one profile bucket containing `g` from the cover witness;
+for `g ∉ G`, use a fixed default profile id. -/
+theorem latent_profile_bucket_function_bound_from_construction_data (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hData : latent_profile_block_cover_construction_data_logscale M n hn hn804) :
+    latent_profile_bucket_function_bound_logscale M n hn hn804 := by
+  rcases hData with ⟨G, I, Gprof, hSpan, hUnion, hUni⟩
+  have h4 : 4 ≤ n := le_trans (le_max_left 4 M.numStates) hn
+  have hnPos : 0 < n := lt_of_lt_of_le (by decide : 0 < 4) h4
+  have hPowPos : 0 < n ^ 40 := by
+    exact pow_pos hnPos 40
+
+  let defaultIdx : Fin (n ^ 40) := ⟨0, hPowPos⟩
+
+  have hex : ∀ g : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+      g ∈ G → ∃ i : Fin (n ^ 40), i ∈ I ∧ g ∈ Gprof i := by
+    intro g hg
+    have hg' : g ∈ I.biUnion (fun i => Gprof i) := by simpa [hUnion] using hg
+    rcases Finset.mem_biUnion.mp hg' with ⟨i, hi, hgi⟩
+    exact ⟨i, hi, hgi⟩
+
+  let profileId : MvPolynomial (Fin (latentNumVars M n)) ℚ → Fin (n ^ 40) :=
+    fun g => if hg : g ∈ G then Classical.choose (hex g hg) else defaultIdx
+
+  have hProfileMem : ∀ g : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+      g ∈ G → g ∈ Gprof (profileId g) := by
+    intro g hg
+    have hchoose : profileId g = Classical.choose (hex g hg) := by
+      simp [profileId, hg]
+    have hspec := (Classical.choose_spec (hex g hg)).2
+    simpa [hchoose] using hspec
+
+  refine ⟨G, profileId, hSpan, ?_⟩
+  intro i
+  have hsub : (G.filter fun g => profileId g = i) ⊆ Gprof i := by
+    intro g hg
+    have hgG : g ∈ G := (Finset.mem_filter.mp hg).1
+    have hEq : profileId g = i := (Finset.mem_filter.mp hg).2
+    have hMem : g ∈ Gprof (profileId g) := hProfileMem g hgG
+    simpa [hEq] using hMem
+  exact le_trans (Finset.card_le_card hsub) (hUni i)
+
 /-- Block-cover package gives explicit construction data by taking
 `G := ⋃_{i∈I} Gprof(i)` and normalizing non-active buckets to `∅`. -/
 theorem latent_profile_block_cover_construction_data_from_block_cover (M : DTM) (n : ℕ)
