@@ -388,6 +388,15 @@ def latent_profile_bucket_function_bound_logscale (M : DTM) (n : ℕ)
         ≤ Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ∧
       (∀ i : Fin (n ^ 40), (G.filter fun g => profileId g = i).card ≤ n ^ 160)
 
+/-- Frozen single-target P witness surface for the final route.
+
+Move-1 convention: use this as the canonical constructive target and route all other
+P witness shapes into it. -/
+def latent_p_witness_target_logscale (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) : Prop :=
+  latent_profile_bucket_function_bound_logscale M n hn hn804
+
 /-- Construction-data package implies functional bucket schema.
 
 For each `g ∈ G`, pick one profile bucket containing `g` from the cover witness;
@@ -562,6 +571,44 @@ theorem latent_profile_block_cover_iff_bucket_function (M : DTM) (n : ℕ)
   constructor
   · exact latent_profile_bucket_function_bound_from_block_cover M n hn hn804
   · exact latent_profile_block_cover_logscale_from_bucket_function M n hn hn804
+
+/-- Move-1 freeze bridge: block-cover witness -> canonical target witness. -/
+theorem latent_p_witness_target_from_block_cover (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hCover : latent_profile_block_cover_logscale M n hn hn804) :
+    latent_p_witness_target_logscale M n hn hn804 :=
+  (latent_profile_block_cover_iff_bucket_function M n hn hn804).1 hCover
+
+/-- Move-1 freeze bridge: construction-data witness -> canonical target witness. -/
+theorem latent_p_witness_target_from_construction_data (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hData : latent_profile_block_cover_construction_data_logscale M n hn hn804) :
+    latent_p_witness_target_logscale M n hn hn804 :=
+  latent_profile_bucket_function_bound_from_construction_data M n hn hn804 hData
+
+/-- Move-1 freeze bridge: global span+bucket witness -> canonical target witness. -/
+theorem latent_p_witness_target_from_global_span_bucket (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hGB : latent_global_span_and_bucket_logscale M n hn hn804) :
+    latent_p_witness_target_logscale M n hn hn804 := by
+  exact latent_p_witness_target_from_construction_data M n hn hn804
+    (latent_profile_block_cover_construction_data_from_global_span_and_bucket M n hn hn804 hGB)
+
+/-- Move-1 freeze bridge: Item-3+uniform-Item-2 witness -> canonical target witness. -/
+theorem latent_p_witness_target_from_item3_uniform2 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (h3u2 : latent_profile_block_cover_item3_uniform2_logscale M n hn hn804) :
+    latent_p_witness_target_logscale M n hn hn804 := by
+  rcases h3u2 with ⟨I, Gprof, hUni, hSpan⟩
+  have hCover : latent_profile_block_cover_logscale M n hn hn804 := by
+    refine ⟨I, Gprof, hSpan, ?_⟩
+    intro i hi
+    exact hUni i
+  exact latent_p_witness_target_from_block_cover M n hn hn804 hCover
 
 /-- Do-2 projection: extract explicit bucketization from the combined package. -/
 theorem latent_bucketization_40_160_from_global_span_and_bucket (M : DTM) (n : ℕ)

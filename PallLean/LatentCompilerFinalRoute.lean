@@ -355,11 +355,11 @@ theorem P_neq_NP_latent_from_p_item3_uniform2 (h : PeqNP) (n : ℕ)
     latent_profile_block_cover_from_item3_uniform2 M n hnM hn804 p3u2
   exact P_neq_NP_latent_from_p_block_cover h n hn pCover
 
-/-- Canonical-NP route from functional profile-id bucket schema (P-side).
-This is often the most natural constructive form to prove from paper definitions. -/
-theorem P_neq_NP_latent_from_p_bucket_function (h : PeqNP) (n : ℕ)
+/-- Frozen canonical final entrypoint (Move-1):
+assume exactly `latent_p_witness_target_logscale` on the P side. -/
+theorem P_neq_NP_latent_from_p_witness_target (h : PeqNP) (n : ℕ)
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
-    (pFun : latent_profile_bucket_function_bound_logscale h.sat_decider n
+    (pTarget : latent_p_witness_target_logscale h.sat_decider n
       (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
@@ -368,8 +368,16 @@ theorem P_neq_NP_latent_from_p_bucket_function (h : PeqNP) (n : ℕ)
     selCon_kronecker_coeff_law_logscale_from_canonical_idxList M n hn804
   have npData : selCon_kronecker_data_logscale M n hn804 := hCoeff
   have pAsm : theorem216_p_obligation M n hnM hn804 :=
-    theorem216_profile_data_logscale_from_bucket_function M n hnM hn804 pFun
+    theorem216_profile_data_logscale_from_bucket_function M n hnM hn804 pTarget
   exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
+
+/-- Canonical-NP route from functional profile-id bucket schema (P-side).
+This is often the most natural constructive form to prove from paper definitions. -/
+theorem P_neq_NP_latent_from_p_bucket_function (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (pFun : latent_profile_bucket_function_bound_logscale h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  exact P_neq_NP_latent_from_p_witness_target h n hn pFun
 
 /-- Direct canonical-NP bridge: bucket-function witness can be routed through
 block-cover equivalence before entering the canonical final route. -/
