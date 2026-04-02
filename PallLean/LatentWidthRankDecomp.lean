@@ -732,42 +732,51 @@ The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
 latentCompiledPoly = sum of 3 product sheets → subadditivity reduces to per-sheet bounds.
 -/
 
-/-- Rank of a single cross-layer product sheet is bounded.
+-- Per-sheet rank bound discussion: see product_sheet_spdp_rank_bound docstring below.
 
-Each sheet is ∏_i gadget_i where gadget_i has total degree 2 and touches only block i.
-For κ = log₂ n ≥ 3, iterDerivList of length κ applied to a degree-2 polynomial gives 0
-when κ > 2. So the SPDP generators for a single gadget vanish for κ ≥ 3.
+/-- Generic per-sheet rank bound: any product of B local degree-2 gadgets in
+disjoint blocks has SPDP rank ≤ n^50 at κ = ℓ = log₂ n.
 
-For the PRODUCT of gadgets, the Leibniz rule distributes the κ derivatives across
-gadgets. Each gadget can absorb at most 2 derivatives (degree 2). With κ derivatives
-and at most 1 per block (block-admissibility), each gadget absorbs 0 or 1 derivatives.
-A gadget absorbing 0 derivatives contributes itself (degree 2, but after mlProj,
-the cross-term x_a * x_b is killed — only the constant 1 survives from `1 - x_a*x_b`).
-A gadget absorbing 1 derivative contributes a degree-1 polynomial in its block.
+This is the core profile compression theorem (paper Lemma 264).
+The proof uses:
+1. Expand the product: ∏(1 - g_i) = Σ_{T⊆[B]} (-1)^|T| ∏_{i∈T} g_i
+2. Terms with |T| < κ/2 vanish under iterDerivList (degree too low)
+3. For surviving terms, block-admissibility constrains derivative allocations
+4. Profile compression: generators with the same block-hit pattern
+   span a subspace of bounded dimension
+5. Assembly: poly many profiles × poly per-profile = polynomial total
 
-So each generator is a multilinear polynomial that is constant on non-derivative blocks
-and degree ≤ 1 on derivative blocks. The number of such generators is at most
-(latentBaseVars choose κ) × 4^κ × ... which is polynomial via profile compression. -/
+The formal proof requires extensive Leibniz rule + profile counting machinery.
+All three sheets have identical structure up to layer renaming. -/
+theorem product_sheet_spdp_rank_bound (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (sheet : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hsheet : sheet = machCopySheet M n ∨ sheet = copyConSheet M n ∨ sheet = selConSheet M n) :
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      sheet ≤ n ^ 50 := by
+  sorry
+
 theorem machCopySheet_spdp_rank_bound (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804) :
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      (machCopySheet M n) ≤ n ^ 50 := by
-  sorry
+      (machCopySheet M n) ≤ n ^ 50 :=
+  product_sheet_spdp_rank_bound M n hn hn804 _ (Or.inl rfl)
 
 theorem copyConSheet_spdp_rank_bound (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804) :
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      (copyConSheet M n) ≤ n ^ 50 := by
-  sorry
+      (copyConSheet M n) ≤ n ^ 50 :=
+  product_sheet_spdp_rank_bound M n hn hn804 _ (Or.inr (Or.inl rfl))
 
 theorem selConSheet_spdp_rank_bound (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804) :
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      (selConSheet M n) ≤ n ^ 50 := by
-  sorry
+      (selConSheet M n) ≤ n ^ 50 :=
+  product_sheet_spdp_rank_bound M n hn hn804 _ (Or.inr (Or.inr rfl))
 
 theorem latentCompiledPoly_spdp_rank_poly_bound (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
