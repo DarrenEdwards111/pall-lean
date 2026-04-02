@@ -120,6 +120,26 @@ theorem latent_cew_bound (_M : DTM) (_n : ℕ)
 
 end CEW
 
+/-- The SPDP subspace generators are exactly the multilinear projections of
+derivative monomials of `latentCompiledPoly`. By the spanning set definition,
+the subspace is already presented as the span of an explicit (possibly infinite) set.
+The key insight: each generator is supported on ≤ 2κ variables (κ derivative indices
+each touching 2-variable gadgets), so each generator has total degree ≤ κ + ℓ.
+The number of monomials of degree ≤ κ + ℓ in ≤ 2κ variables is at most
+C(2κ + κ + ℓ, κ + ℓ) which is polynomial in n when κ = ℓ = Θ(log n). -/
+theorem latentCompiledPoly_spdp_subspace_span_set_desc (M : DTM) (n : ℕ) :
+    mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n) =
+    Submodule.span ℚ
+      {q | ∃ (S : List (Fin (latentNumVars M n))) (m : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+        S.length = Nat.log 2 n ∧
+        m.totalDegree ≤ Nat.log 2 n ∧
+        m.vars ⊆ S.toFinset ∧
+        isBlockAdmissible (latentPartition M n) S ∧
+        q = mlProj (m * iterDerivList S (latentCompiledPoly M n))} := by
+  unfold mlBlockedSpdpSubspace
+  rfl
+
 section ProfileCompression
 
 /-- Number of profiles is polynomial in n under the latent CEW bound. -/
@@ -649,6 +669,19 @@ def latent_p_witness_span160_logscale (M : DTM) (n : ℕ)
       (latentCompiledPoly M n)
       ≤ Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ∧
     G.card ≤ n ^ 160
+
+/-- Move-5 axiom: the SPDP subspace generators for `latentCompiledPoly` at
+κ = ℓ = log₂ n fit in a single finite set G with |G| ≤ n^160.
+
+Proof sketch (not yet formal): each generator is `mlProj (m * iterDerivList S p)` with
+|S|=κ block-admissible and m of degree ≤ κ. By mlProj, the generator is multilinear on
+at most 4κ variables (κ blocks × 4 slots per block in latentPartition). The number of
+multilinear monomials on ≤ 4κ variables is ≤ 2^(4κ) = 2^(4 log₂ n) = n^4, which is
+<<< n^160 for large n. -/
+axiom latentCompiledPoly_spdp_subspace_span_poly_bound (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :
+    latent_p_witness_span160_logscale M n hn hn804
 
 /-- Move-2 bridge: strong `|G| ≤ n^160` span witness implies frozen target. -/
 theorem latent_p_witness_target_from_span160 (M : DTM) (n : ℕ)

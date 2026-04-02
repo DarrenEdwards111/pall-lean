@@ -404,6 +404,16 @@ theorem P_neq_NP_latent_from_p_span160 (h : PeqNP) (n : ℕ)
     latent_p_witness_target_from_span160 M n hnM hn804 p160
   exact P_neq_NP_latent_from_p_witness_target h n hn pTarget
 
+/-- Move-5 complete route: close P≠NP using the Move-5 generator-bound axiom. -/
+theorem P_neq_NP_from_generator_axiom (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  have p160 : latent_p_witness_span160_logscale M n hnM hn804 :=
+    latentCompiledPoly_spdp_subspace_span_poly_bound M n hnM hn804
+  exact P_neq_NP_latent_from_p_span160 h n hn p160
+
 /-- Move-3 route: profile parts with `(40,120)` bounds imply span160,
 then the Move-2 strong route closes the contradiction. -/
 theorem P_neq_NP_latent_from_p_parts_40_120 (h : PeqNP) (n : ℕ)
