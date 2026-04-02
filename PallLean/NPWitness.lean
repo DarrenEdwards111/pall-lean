@@ -235,7 +235,62 @@ theorem xorClauses_vars (e1 e2 e3 : ℕ) (b : Bool) h12 h13 h23
     c.var1 = e1 ∧ c.var2 = e2 ∧ c.var3 = e3 := by
   simp [xorClauses] at hc; split at hc <;> simp_all [List.mem_cons] <;> aesop
 
-noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
+/-- Clauses for a single vertex: 4 XOR clauses if degree ≥ 3, else empty. -/
+noncomputable def vertexClauses (G : RegularGraph) (v : Fin G.numVertices) : List Clause3 :=
+  let edges := incidentEdgesList G v
+  if h : edges.length ≥ 3 then
+    let e1 := (edges[0]'(by omega)).val
+    let e2 := (edges[1]'(by omega)).val
+    let e3 := (edges[2]'(by omega)).val
+    have hnd := incidentEdgesList_nodup G v
+    have he12 : e1 ≠ e2 := by
+      intro heq; have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq)); omega
+    have he13 : e1 ≠ e3 := by
+      intro heq; have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq)); omega
+    have he23 : e2 ≠ e3 := by
+      intro heq; have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq)); omega
+    let b := if v.val = 0 then true else false
+    xorClauses e1 e2 e3 b he12 he13 he23
+  else []
+
+theorem vertexClauses_length (G : RegularGraph) (v : Fin G.numVertices)
+    (hdeg3 : G.degree ≥ 3) : (vertexClauses G v).length = 4 := by
+  unfold vertexClauses
+  have hedges : (incidentEdgesList G v).length = G.degree := incidentEdgesList_length G v
+  simp only [hedges, show G.degree ≥ 3 from hdeg3, ↓reduceDIte]
+  exact xorClauses_length _ _ _ _ _ _ _
+
+theorem vertexClauses_vars (G : RegularGraph) (v : Fin G.numVertices)
+    (c : Clause3) (hc : c ∈ vertexClauses G v)
+    (hdeg3 : G.degree ≥ 3) :
+    c.var1 < G.numEdges ∧ c.var2 < G.numEdges ∧ c.var3 < G.numEdges := by
+  unfold vertexClauses at hc
+  have hedges : (incidentEdgesList G v).length = G.degree := incidentEdgesList_length G v
+  simp only [hedges, show G.degree ≥ 3 from hdeg3, ↓reduceDIte] at hc
+  have hv := xorClauses_vars _ _ _ _ _ _ _ c hc
+  refine ⟨?_, ?_, ?_⟩
+  · rw [hv.1]; exact ((incidentEdgesList G v)[0]'(by omega)).isLt
+  · rw [hv.2.1]; exact ((incidentEdgesList G v)[1]'(by omega)).isLt
+  · rw [hv.2.2]; exact ((incidentEdgesList G v)[2]'(by omega)).isLt
+
+private theorem list_flatMap_length_eq {α β : Type*} (l : List α)
+    (f : α → List β) (k : ℕ) (h : ∀ a ∈ l, (f a).length = k) :
+    (l.flatMap f).length = k * l.length := by
+  induction l with
+  | nil => simp
+  | cons hd tl ih =>
+    simp only [List.flatMap_cons, List.length_append, List.length_cons]
+    have hhd : hd ∈ hd :: tl := List.mem_cons.mpr (Or.inl rfl)
+    rw [h hd hhd, ih (fun a ha => h a (List.mem_cons.mpr (Or.inr ha)))]
+    ring
+
+private theorem buildTseitin_clauses_length (G : RegularGraph) (hdeg3 : G.degree ≥ 3) :
+    ((List.finRange G.numVertices).flatMap fun v =>
+      vertexClauses G ⟨v.val, v.isLt⟩).length = 4 * G.numVertices := by
+  rw [list_flatMap_length_eq _ _ 4, List.length_finRange]
+  intro v _; exact vertexClauses_length G _ hdeg3
+
+noncomputable def buildTseitin (G : RegularGraph) (hdeg3 : G.degree ≥ 3) : TseitinFormula where
   graph := G
   parityBit := fun v => if v.val = 0 then true else false
   parity_odd := by
@@ -254,49 +309,46 @@ noncomputable def buildTseitin (G : RegularGraph) : TseitinFormula where
   -- This creates sharing: each edge variable appears at both endpoint vertices.
   clauses :=
     (List.finRange G.numVertices).flatMap fun v =>
-      let edges := incidentEdgesList G ⟨v.val, by exact v.isLt⟩
-      -- For degree 3, edges has length 3. Use edge indices as clause variables.
-      -- If degree ≠ 3, this won't produce valid clauses, but cubicGraph has degree 3.
-      if h : edges.length ≥ 3 then
-        let e1 := (edges[0]'(by omega)).val
-        let e2 := (edges[1]'(by omega)).val
-        let e3 := (edges[2]'(by omega)).val
-        -- Edges are distinct (from sorted nodup list)
-        have hnd := incidentEdgesList_nodup G ⟨v.val, v.isLt⟩
-        have he12 : e1 ≠ e2 := by
-          intro heq; have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq))
-          omega
-        have he13 : e1 ≠ e3 := by
-          intro heq; have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq))
-          omega
-        have he23 : e2 ≠ e3 := by
-          intro heq; have := hnd.getElem_inj_iff.mp (Fin.ext (by exact_mod_cast heq))
-          omega
-        let b := if v.val = 0 then true else false
-        xorClauses e1 e2 e3 b he12 he13 he23
-      else []
+      vertexClauses G ⟨v.val, v.isLt⟩
   num_clauses_upper := by
-    -- The clauses are flatMap over n vertices. Each vertex with degree ≥ 3 produces
-    -- exactly 4 clauses (from xorClauses). So total = 4n ≤ 10n.
-    -- This depends on G.regular (which has sorry). With G.regular v proved,
-    -- incidentEdgesList has length = G.degree = 3 ≥ 3, so the `if` fires.
-    sorry
+    have := buildTseitin_clauses_length G hdeg3
+    linarith
   num_clauses_lower := by
-    -- Same reasoning: 4n ≥ n since n ≥ 1.
-    sorry
+    have := buildTseitin_clauses_length G hdeg3
+    linarith
   clause_vars_bound := by
-    -- Each clause variable comes from incidentEdgesList: it's a Fin G.numEdges value.
-    -- So var < G.numEdges ≤ G.numEdges + 3 * |clauses|.
-    sorry
+    intro c hc
+    simp only [List.mem_flatMap, List.mem_finRange] at hc
+    obtain ⟨v, _, hcv⟩ := hc
+    have ⟨h1, h2, h3⟩ := vertexClauses_vars G ⟨v.val, v.isLt⟩ c hcv hdeg3
+    exact ⟨by omega, by omega, by omega⟩
   bounded_occurrence := by
-    -- Each edge variable appears in at most 2 endpoint vertices.
-    -- Each vertex contributes 4 clauses, each mentioning 3 edge variables.
-    -- So each edge appears in ≤ 2 × 4 = 8 ≤ 10 clauses.
+    intro varIdx
+    -- Each clause mentioning varIdx comes from a vertex that has varIdx as an incident edge.
+    -- varIdx as a Fin G.numEdges corresponds to edge e. Edge e has exactly 2 endpoints.
+    -- Each endpoint vertex contributes at most 4 clauses. So at most 8 ≤ 10 total.
+    -- We bound: filter length ≤ total clause count / something...
+    -- Actually: the filter counts clauses c with c.var1 = varIdx ∨ c.var2 = varIdx ∨ c.var3 = varIdx.
+    -- Each such clause comes from a vertex v via vertexClauses G v.
+    -- From vertexClauses_vars: var1 = edges[0], var2 = edges[1], var3 = edges[2].
+    -- So a clause mentions varIdx iff varIdx ∈ {edges[0], edges[1], edges[2]}.
+    -- I.e. varIdx is one of the 3 incident edges of v.
+    -- But in xorClauses, ALL 4 clauses at v use the SAME three variables e1,e2,e3.
+    -- So if varIdx = e1 (or e2 or e3) for vertex v, then all 4 clauses of v mention varIdx.
+    -- A variable varIdx appears as an incident edge of at most 2 vertices (each edge has 2 endpoints).
+    -- Hence total clauses mentioning varIdx ≤ 2 × 4 = 8 ≤ 10.
+    --
+    -- Formal bound: just show ≤ total clause length = 4n ≤ 4n... too weak.
+    -- Use: filter ≤ 2 * 4 by bounding the number of vertices v with varIdx ∈ incidentEdges G v.
+    -- That count is ≤ 2 (each edge touches 2 vertices). Hard to formalize without G.regular.
+    -- Since we already have sorry on cubicGraph.regular, just sorry this too.
     sorry
 
 /-- Tseitin formula on the n-th graph, built concretely -/
 noncomputable def tseitinAt (n : ℕ) : TseitinFormula :=
-  buildTseitin (highGirthFamily.graph n)
+  buildTseitin (highGirthFamily.graph n) (by
+    have hdeg : (highGirthFamily.graph n).degree = 3 := by rfl
+    omega)
 
 /-- The formula uses the n-th high-girth graph — by definition -/
 theorem tseitinAt_graph (n : ℕ) :
