@@ -407,6 +407,18 @@ theorem latent_profile_span_card_bound_logscale_from_parts (M : DTM) (n : ℕ)
     _ = n ^ 200 := by
       simpa using (Nat.pow_add n 40 160).symm
 
+/-- Direct span-card witness from Item-3+uniform-Item-2 package. -/
+theorem latent_profile_span_card_bound_logscale_from_item3_uniform2 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (h3u2 : latent_profile_block_cover_item3_uniform2_logscale M n hn hn804) :
+    latent_profile_span_card_bound_logscale M n hn hn804 := by
+  have hCover : latent_profile_block_cover_logscale M n hn hn804 :=
+    latent_profile_block_cover_from_item3_uniform2 M n hn hn804 h3u2
+  have hParts : latent_profile_span_card_parts_logscale M n hn hn804 :=
+    latent_profile_span_card_parts_logscale_from_block_cover M n hn hn804 hCover
+  exact latent_profile_span_card_bound_logscale_from_parts M n hn hn804 hParts
+
 /-- Assembly theorem (contradiction scale): profile count × within-profile dimension
 at κ = log₂ n gives polynomial total rank.
 
@@ -475,6 +487,14 @@ theorem theorem216_profile_data_logscale_from_span_card_bound (M : DTM) (n : ℕ
     theorem216_profile_data_logscale M n hn hn804 := by
   exact theorem216_profile_data_logscale_from_core M n hn hn804
     (latent_profile_assembly_logscale_from_span_card_bound M n hn hn804 hSpan)
+
+/-- Build P-data package directly from Item-3+uniform-Item-2 package. -/
+theorem theorem216_profile_data_logscale_from_item3_uniform2 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (h3u2 : latent_profile_block_cover_item3_uniform2_logscale M n hn hn804) :
+    theorem216_profile_data_logscale M n hn hn804 := by
+  exact theorem216_profile_data_logscale_from_span_card_bound M n hn hn804
+    (latent_profile_span_card_bound_logscale_from_item3_uniform2 M n hn hn804 h3u2)
 
 /-- P-side assembly from explicit logscale parts (paper-faithful split).
 Combines Section 9 profile-count + within-profile dimension into assembled upper bound. -/

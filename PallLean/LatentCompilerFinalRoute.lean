@@ -216,8 +216,8 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_item3_uniform2 (h : PeqNP) (n : 
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have pCover : latent_profile_block_cover_logscale M n hnM hn804 :=
-    latent_profile_block_cover_from_item3_uniform2 M n hnM hn804 p3u2
-  exact P_neq_NP_latent_from_finer_decomp_and_p_block_cover h n hn idxList hnd hlen hfinj pCover
+  have pAsm : theorem216_p_obligation M n hnM hn804 :=
+    theorem216_profile_data_logscale_from_item3_uniform2 M n hnM hn804 p3u2
+  exact P_neq_NP_latent_from_finer_decomp h n hn idxList hnd hlen hfinj pAsm
 
 end LatentCompilerFinalRoute
