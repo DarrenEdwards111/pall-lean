@@ -240,6 +240,19 @@ def latent_profile_block_cover_item2_logscale (M : DTM) (n : ℕ)
     (Gprof : Fin (n ^ 40) → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ)),
     ∀ i ∈ I, (Gprof i).card ≤ n ^ 160
 
+/-- Item 3 of the profile block-cover package:
+span inclusion of the full logscale blocked-SPDP subspace into the union of
+profile generator blocks. -/
+def latent_profile_block_cover_item3_logscale (M : DTM) (n : ℕ)
+    (_hn : n ≥ max 4 M.numStates)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∃ (I : Finset (Fin (n ^ 40)))
+    (Gprof : Fin (n ^ 40) → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ)),
+    mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n)
+      ≤ Submodule.span ℚ (↑(I.biUnion (fun i => Gprof i))
+          : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))
+
 /-- Item 2 is immediate from any block-cover witness. -/
 theorem latent_profile_block_cover_item2_from_block_cover (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
@@ -248,6 +261,15 @@ theorem latent_profile_block_cover_item2_from_block_cover (M : DTM) (n : ℕ)
     latent_profile_block_cover_item2_logscale M n hn hn804 := by
   rcases hCover with ⟨I, Gprof, _hSpan, hBlock⟩
   exact ⟨I, Gprof, hBlock⟩
+
+/-- Item 3 is immediate from any block-cover witness. -/
+theorem latent_profile_block_cover_item3_from_block_cover (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hCover : latent_profile_block_cover_logscale M n hn hn804) :
+    latent_profile_block_cover_item3_logscale M n hn hn804 := by
+  rcases hCover with ⟨I, Gprof, hSpan, _hBlock⟩
+  exact ⟨I, Gprof, hSpan⟩
 
 /-- Build the full parts package from the reduced block-cover package.
 The profile-count side is automatic since `I : Finset (Fin (n^40))`. -/
