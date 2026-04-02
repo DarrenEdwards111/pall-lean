@@ -517,6 +517,52 @@ theorem latent_profile_block_cover_construction_data_iff_global_span_and_bucket 
   · exact latent_global_span_and_bucket_logscale_from_construction_data M n hn hn804
   · exact latent_profile_block_cover_construction_data_from_global_span_and_bucket M n hn hn804
 
+/-- Functional bucket schema implies block cover. -/
+theorem latent_profile_block_cover_logscale_from_bucket_function (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hFun : latent_profile_bucket_function_bound_logscale M n hn hn804) :
+    latent_profile_block_cover_logscale M n hn hn804 := by
+  rcases hFun with ⟨G, profileId, hSpan, hBound⟩
+  let I : Finset (Fin (n ^ 40)) := Finset.univ
+  let Gprof : Fin (n ^ 40) → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
+    fun i => G.filter (fun g => profileId g = i)
+  refine ⟨I, Gprof, ?_, ?_⟩
+  · -- union of all filters recovers G, then rewrite span target
+    have hUnion : I.biUnion (fun i => Gprof i) = G := by
+      ext x
+      constructor
+      · intro hx
+        rcases Finset.mem_biUnion.mp hx with ⟨i, _hi, hxi⟩
+        exact (Finset.mem_filter.mp hxi).1
+      · intro hx
+        refine Finset.mem_biUnion.mpr ?_
+        refine ⟨profileId x, Finset.mem_univ _, ?_⟩
+        exact Finset.mem_filter.mpr ⟨hx, rfl⟩
+    simpa [I, Gprof, hUnion] using hSpan
+  · intro i hi
+    simpa [I, Gprof] using hBound i
+
+/-- Block cover implies functional bucket schema (via construction-data). -/
+theorem latent_profile_bucket_function_bound_from_block_cover (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hCover : latent_profile_block_cover_logscale M n hn hn804) :
+    latent_profile_bucket_function_bound_logscale M n hn hn804 := by
+  have hData : latent_profile_block_cover_construction_data_logscale M n hn hn804 :=
+    latent_profile_block_cover_construction_data_from_block_cover M n hn hn804 hCover
+  exact latent_profile_bucket_function_bound_from_construction_data M n hn hn804 hData
+
+/-- Block-cover and functional-bucket P witness forms are equivalent. -/
+theorem latent_profile_block_cover_iff_bucket_function (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :
+    latent_profile_block_cover_logscale M n hn hn804 ↔
+    latent_profile_bucket_function_bound_logscale M n hn hn804 := by
+  constructor
+  · exact latent_profile_bucket_function_bound_from_block_cover M n hn hn804
+  · exact latent_profile_block_cover_logscale_from_bucket_function M n hn hn804
+
 /-- Do-2 projection: extract explicit bucketization from the combined package. -/
 theorem latent_bucketization_40_160_from_global_span_and_bucket (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
