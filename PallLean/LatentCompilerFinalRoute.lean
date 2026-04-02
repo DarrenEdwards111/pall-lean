@@ -306,6 +306,22 @@ theorem P_neq_NP_latent_from_p_construction_data (h : PeqNP) (n : ℕ)
 
   exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
 
+/-- Canonical-NP route with only the span-card P witness package. -/
+theorem P_neq_NP_latent_from_p_span_card (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (pSpan : latent_profile_span_card_bound_logscale h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+
+  have hCoeff : selCon_kronecker_coeff_law_logscale M n hn804 :=
+    selCon_kronecker_coeff_law_logscale_from_canonical_idxList M n hn804
+  have npData : selCon_kronecker_data_logscale M n hn804 := hCoeff
+  have pAsm : theorem216_p_obligation M n hnM hn804 :=
+    theorem216_profile_data_logscale_from_span_card_bound M n hnM hn804 pSpan
+  exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
+
 /-- Canonical-NP route with P-side block-cover witness only. -/
 theorem P_neq_NP_latent_from_p_block_cover (h : PeqNP) (n : ℕ)
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
@@ -314,9 +330,10 @@ theorem P_neq_NP_latent_from_p_block_cover (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have pData : latent_profile_block_cover_construction_data_logscale M n hnM hn804 :=
-    latent_profile_block_cover_construction_data_from_block_cover M n hnM hn804 pCover
-  exact P_neq_NP_latent_from_p_construction_data h n hn pData
+  have pSpan : latent_profile_span_card_bound_logscale M n hnM hn804 :=
+    latent_profile_span_card_bound_logscale_from_parts M n hnM hn804
+      (latent_profile_span_card_parts_logscale_from_block_cover M n hnM hn804 pCover)
+  exact P_neq_NP_latent_from_p_span_card h n hn pSpan
 
 /-- Canonical-NP route with P-side global-span+bucket witness only. -/
 theorem P_neq_NP_latent_from_p_global_span_bucket (h : PeqNP) (n : ℕ)
