@@ -342,6 +342,27 @@ def latent_bucketization_40_160 (M : DTM) (n : ℕ)
       (I.biUnion (fun i => Gprof i)) = G ∧
       (∀ i : Fin (n ^ 40), (Gprof i).card ≤ n ^ 160)
 
+/-- Do-2 constructive item: global finite span witness plus explicit
+40×160 bucketization of the same witness set `G`. -/
+def latent_global_span_and_bucket_logscale (M : DTM) (n : ℕ)
+    (_hn : n ≥ max 4 M.numStates)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∃ G : Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ),
+    mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n)
+      ≤ Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ∧
+    latent_bucketization_40_160 M n G
+
+/-- Do-2 projection: extract explicit bucketization from the combined package. -/
+theorem latent_bucketization_40_160_from_global_span_and_bucket (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hGB : latent_global_span_and_bucket_logscale M n hn hn804) :
+    ∃ G : Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ),
+      latent_bucketization_40_160 M n G := by
+  rcases hGB with ⟨G, _hSpan, hBuck⟩
+  exact ⟨G, hBuck⟩
+
 /-- Block-cover directly gives Do-1 global span witness by taking the union. -/
 theorem latent_global_span_witness_logscale_from_block_cover (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
@@ -350,6 +371,34 @@ theorem latent_global_span_witness_logscale_from_block_cover (M : DTM) (n : ℕ)
     latent_global_span_witness_logscale M n hn hn804 := by
   rcases hCover with ⟨I, Gprof, hSpan, _hBlock⟩
   exact ⟨I.biUnion (fun i => Gprof i), hSpan⟩
+
+/-- Block-cover directly gives Do-2 package (same `G` with explicit bucketization). -/
+theorem latent_global_span_and_bucket_logscale_from_block_cover (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hCover : latent_profile_block_cover_logscale M n hn hn804) :
+    latent_global_span_and_bucket_logscale M n hn hn804 := by
+  rcases hCover with ⟨I, Gprof, hSpan, hBlock⟩
+  let Gprof' : Fin (n ^ 40) → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
+    fun i => if i ∈ I then Gprof i else ∅
+  have hUnion' : I.biUnion (fun i => Gprof' i) = I.biUnion (fun i => Gprof i) := by
+    ext x
+    constructor
+    · intro hx
+      rcases Finset.mem_biUnion.mp hx with ⟨i, hi, hix⟩
+      refine Finset.mem_biUnion.mpr ⟨i, hi, ?_⟩
+      simpa [Gprof', hi] using hix
+    · intro hx
+      rcases Finset.mem_biUnion.mp hx with ⟨i, hi, hix⟩
+      refine Finset.mem_biUnion.mpr ⟨i, hi, ?_⟩
+      simpa [Gprof', hi] using hix
+  refine ⟨I.biUnion (fun i => Gprof i), hSpan, ?_⟩
+  refine ⟨I, Gprof', ?_, ?_⟩
+  · simpa [hUnion']
+  · intro i
+    by_cases hi : i ∈ I
+    · simpa [Gprof', hi] using hBlock i hi
+    · simp [Gprof', hi]
 
 /-- Construct block cover from a global finite span witness + explicit bucketization. -/
 theorem latent_profile_block_cover_logscale_from_span_and_bucketization (M : DTM) (n : ℕ)

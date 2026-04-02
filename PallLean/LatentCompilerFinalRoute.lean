@@ -241,4 +241,20 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_span_bucket (h : PeqNP) (n : ℕ
     latent_profile_block_cover_logscale_from_span_and_bucketization M n hnM hn804 G hSpan hBuck
   exact P_neq_NP_latent_from_finer_decomp_and_p_block_cover h n hn idxList hnd hlen hfinj pCover
 
+/-- Same as `..._p_span_bucket`, but takes the combined Do-2 P package directly. -/
+theorem P_neq_NP_latent_from_finer_decomp_and_p_global_span_bucket (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (idxList : Fin (Nat.choose (latentBaseVars h.sat_decider n) (Nat.log 2 n)) →
+      List (Fin (latentBaseVars h.sat_decider n)))
+    (hnd : ∀ i, (idxList i).Nodup)
+    (hlen : ∀ i, (idxList i).length = Nat.log 2 n)
+    (hfinj : ∀ i j, (idxList i).toFinset = (idxList j).toFinset → i = j)
+    (pGB : latent_global_span_and_bucket_logscale h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  rcases pGB with ⟨G, hSpan, hBuck⟩
+  exact P_neq_NP_latent_from_finer_decomp_and_p_span_bucket h n hn idxList hnd hlen hfinj G hSpan hBuck
+
 end LatentCompilerFinalRoute
