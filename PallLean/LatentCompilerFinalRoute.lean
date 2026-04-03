@@ -144,7 +144,10 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_core (h : PeqNP) (n : ℕ)
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
   have pAsm : theorem216_p_obligation M n hnM hn804 :=
-    theorem216_profile_data_logscale_from_core M n hnM hn804 pCore
+    theorem216_profile_data_logscale_from_core M n hnM hn804
+      (theorem9_profile_count_obligation_proved M n hn804)
+      (theorem9_within_profile_dim_obligation_proved M n hn804)
+      pCore
   exact P_neq_NP_latent_from_finer_decomp h n hn idxList hnd hlen hfinj pAsm
 
 /-- Narrowest current entry point: NP data from finer decomposition plus
@@ -162,7 +165,10 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_span_card (h : PeqNP) (n : ℕ)
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
   have pAsm : theorem216_p_obligation M n hnM hn804 :=
-    theorem216_profile_data_logscale_from_span_card_bound M n hnM hn804 pSpan
+    theorem216_profile_data_logscale_from_span_card_bound M n hnM hn804
+      (theorem9_profile_count_obligation_proved M n hn804)
+      (theorem9_within_profile_dim_obligation_proved M n hn804)
+      pSpan
   exact P_neq_NP_latent_from_finer_decomp h n hn idxList hnd hlen hfinj pAsm
 
 /-- Narrowest decomposition entry (current): NP finer decomposition +
@@ -217,7 +223,10 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_item3_uniform2 (h : PeqNP) (n : 
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
   have pAsm : theorem216_p_obligation M n hnM hn804 :=
-    theorem216_profile_data_logscale_from_item3_uniform2 M n hnM hn804 p3u2
+    theorem216_profile_data_logscale_from_item3_uniform2 M n hnM hn804
+      (theorem9_profile_count_obligation_proved M n hn804)
+      (theorem9_within_profile_dim_obligation_proved M n hn804)
+      p3u2
   exact P_neq_NP_latent_from_finer_decomp h n hn idxList hnd hlen hfinj pAsm
 
 /-- More constructive P-entry: provide an explicit global finite span witness `G`
@@ -293,7 +302,10 @@ theorem P_neq_NP_latent_from_p_construction_data (h : PeqNP) (n : ℕ)
 
   -- P-data package directly from concrete construction-data witness
   have pAsm : theorem216_p_obligation M n hnM hn804 :=
-    theorem216_profile_data_logscale_from_construction_data M n hnM hn804 pData
+    theorem216_profile_data_logscale_from_construction_data M n hnM hn804
+      (theorem9_profile_count_obligation_proved M n hn804)
+      (theorem9_within_profile_dim_obligation_proved M n hn804)
+      pData
 
   exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
 
@@ -310,7 +322,10 @@ theorem P_neq_NP_latent_from_p_span_card (h : PeqNP) (n : ℕ)
     selCon_kronecker_coeff_law_logscale_from_canonical_idxList M n hn804
   have npData : selCon_kronecker_data_logscale M n hn804 := hCoeff
   have pAsm : theorem216_p_obligation M n hnM hn804 :=
-    theorem216_profile_data_logscale_from_span_card_bound M n hnM hn804 pSpan
+    theorem216_profile_data_logscale_from_span_card_bound M n hnM hn804
+      (theorem9_profile_count_obligation_proved M n hn804)
+      (theorem9_within_profile_dim_obligation_proved M n hn804)
+      pSpan
   exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
 
 /-- Canonical-NP route with P-side block-cover witness only. -/
@@ -326,7 +341,10 @@ theorem P_neq_NP_latent_from_p_block_cover (h : PeqNP) (n : ℕ)
     selCon_kronecker_coeff_law_logscale_from_canonical_idxList M n hn804
   have npData : selCon_kronecker_data_logscale M n hn804 := hCoeff
   have pAsm : theorem216_p_obligation M n hnM hn804 :=
-    theorem216_profile_data_logscale_from_block_cover M n hnM hn804 pCover
+    theorem216_profile_data_logscale_from_block_cover M n hnM hn804
+      (theorem9_profile_count_obligation_proved M n hn804)
+      (theorem9_within_profile_dim_obligation_proved M n hn804)
+      pCover
 
   exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
 
@@ -388,7 +406,10 @@ theorem P_neq_NP_latent_from_p_witness_target (h : PeqNP) (n : ℕ)
     selCon_kronecker_coeff_law_logscale_from_canonical_idxList M n hn804
   have npData : selCon_kronecker_data_logscale M n hn804 := hCoeff
   have pAsm : theorem216_p_obligation M n hnM hn804 :=
-    theorem216_profile_data_logscale_from_bucket_function M n hnM hn804 pTarget
+    theorem216_profile_data_logscale_from_bucket_function M n hnM hn804
+      (theorem9_profile_count_obligation_proved M n hn804)
+      (theorem9_within_profile_dim_obligation_proved M n hn804)
+      pTarget
   exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
 
 /-- Move-2 strong-entry route: if a single span witness of size `≤ n^160` is built,

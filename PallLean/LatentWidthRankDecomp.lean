@@ -1242,49 +1242,60 @@ theorem obligation2_p_logscale_from_data (M : DTM) (n : ℕ)
 Section 9 sides are discharged in-route. -/
 theorem theorem216_profile_data_logscale_from_core (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hCount : theorem9_profile_count_obligation M n hn804)
+    (hWithin : theorem9_within_profile_dim_obligation M n hn804)
     (hCore : latent_profile_assembly_logscale M n hn hn804) :
     theorem216_profile_data_logscale M n hn hn804 := by
-  refine ⟨theorem9_profile_count_obligation_proved M n hn804,
-    theorem9_within_profile_dim_obligation_proved M n hn804, hCore⟩
+  exact ⟨hCount, hWithin, hCore⟩
 
 /-- Build P-data package from the finer finite span-card witness. -/
 theorem theorem216_profile_data_logscale_from_span_card_bound (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hCount : theorem9_profile_count_obligation M n hn804)
+    (hWithin : theorem9_within_profile_dim_obligation M n hn804)
     (hSpan : latent_profile_span_card_bound_logscale M n hn hn804) :
     theorem216_profile_data_logscale M n hn hn804 := by
-  exact theorem216_profile_data_logscale_from_core M n hn hn804
+  exact theorem216_profile_data_logscale_from_core M n hn hn804 hCount hWithin
     (latent_profile_assembly_logscale_from_span_card_bound M n hn hn804 hSpan)
 
 /-- Build P-data package directly from Item-3+uniform-Item-2 package. -/
 theorem theorem216_profile_data_logscale_from_item3_uniform2 (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hCount : theorem9_profile_count_obligation M n hn804)
+    (hWithin : theorem9_within_profile_dim_obligation M n hn804)
     (h3u2 : latent_profile_block_cover_item3_uniform2_logscale M n hn hn804) :
     theorem216_profile_data_logscale M n hn hn804 := by
-  exact theorem216_profile_data_logscale_from_span_card_bound M n hn hn804
+  exact theorem216_profile_data_logscale_from_span_card_bound M n hn hn804 hCount hWithin
     (latent_profile_span_card_bound_logscale_from_item3_uniform2 M n hn hn804 h3u2)
 
 /-- Build P-data package directly from block-cover witness. -/
 theorem theorem216_profile_data_logscale_from_block_cover (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hCount : theorem9_profile_count_obligation M n hn804)
+    (hWithin : theorem9_within_profile_dim_obligation M n hn804)
     (hCover : latent_profile_block_cover_logscale M n hn hn804) :
     theorem216_profile_data_logscale M n hn hn804 := by
-  exact theorem216_profile_data_logscale_from_core M n hn hn804
+  exact theorem216_profile_data_logscale_from_core M n hn hn804 hCount hWithin
     (latent_profile_assembly_logscale_from_block_cover M n hn hn804 hCover)
 
 /-- Build P-data package directly from explicit construction-data witness. -/
 theorem theorem216_profile_data_logscale_from_construction_data (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hCount : theorem9_profile_count_obligation M n hn804)
+    (hWithin : theorem9_within_profile_dim_obligation M n hn804)
     (hData : latent_profile_block_cover_construction_data_logscale M n hn hn804) :
     theorem216_profile_data_logscale M n hn hn804 := by
-  exact theorem216_profile_data_logscale_from_core M n hn hn804
+  exact theorem216_profile_data_logscale_from_core M n hn hn804 hCount hWithin
     (latent_profile_assembly_logscale_from_construction_data M n hn hn804 hData)
 
 /-- Build P-data package directly from functional bucket schema witness. -/
 theorem theorem216_profile_data_logscale_from_bucket_function (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hCount : theorem9_profile_count_obligation M n hn804)
+    (hWithin : theorem9_within_profile_dim_obligation M n hn804)
     (hFun : latent_profile_bucket_function_bound_logscale M n hn hn804) :
     theorem216_profile_data_logscale M n hn hn804 := by
-  exact theorem216_profile_data_logscale_from_core M n hn hn804
+  exact theorem216_profile_data_logscale_from_core M n hn hn804 hCount hWithin
     (latent_profile_assembly_logscale_from_bucket_function M n hn hn804 hFun)
 
 /-- P-side assembly from explicit logscale parts (paper-faithful split).
