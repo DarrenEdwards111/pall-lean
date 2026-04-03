@@ -1291,6 +1291,14 @@ theorem latent_compiled_tableau_bound_logscale_from_bucket_function (M : DTM) (n
   latent_compiled_tableau_bound_logscale_from_span_card_bound M n hn hn804
     (latent_profile_span_card_bound_logscale_from_bucket_function M n hn hn804 hFun)
 
+/-- Direct compiled-tableau bound from the frozen Move-1 target witness. -/
+theorem latent_compiled_tableau_bound_logscale_from_p_witness_target (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hTarget : latent_p_witness_target_logscale M n hn hn804) :
+    latent_compiled_tableau_bound_logscale M n hn hn804 :=
+  latent_compiled_tableau_bound_logscale_from_bucket_function M n hn hn804 hTarget
+
 /-- Direct P-core assembly bound from functional bucket schema. -/
 theorem latent_profile_assembly_logscale_from_bucket_function (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
