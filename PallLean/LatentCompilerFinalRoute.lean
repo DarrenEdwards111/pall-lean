@@ -529,9 +529,9 @@ theorem P_neq_NP_latent_from_p_span160 (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have pTarget : latent_p_witness_target_logscale M n hnM hn804 :=
-    latent_p_witness_target_from_span160 M n hnM hn804 p160
-  exact P_neq_NP_latent_from_p_witness_target h n hn pTarget
+  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
+    latent_compiled_tableau_bound_logscale_from_span160_witness M n hnM hn804 p160
+  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn hCompiled
 
 /-- Move-5 complete route from an explicit `n^160` rank bound hypothesis.
 No global axiom is used here. -/
@@ -542,9 +542,9 @@ theorem P_neq_NP_from_generator_bound (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have p160 : latent_p_witness_span160_logscale M n hnM hn804 :=
-    latentCompiledPoly_spdp_subspace_span_poly_bound M n hnM hn804 hRank
-  exact P_neq_NP_latent_from_p_span160 h n hn p160
+  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
+    latent_compiled_tableau_bound_logscale_from_rank160 M n hnM hn804 hRank
+  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn hCompiled
 
 /-- Move-3 route: profile parts with `(40,120)` bounds imply span160,
 then the Move-2 strong route closes the contradiction. -/

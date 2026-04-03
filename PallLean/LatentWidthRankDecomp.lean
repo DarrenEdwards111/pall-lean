@@ -1201,6 +1201,40 @@ theorem latent_profile_assembly_logscale_iff_compiled_tableau_bound (M : DTM) (n
       latent_compiled_tableau_bound_logscale M n hn hn804 := by
   rfl
 
+/-- Any direct `n^160` rank upper bound immediately yields the contradiction-scale
+compiled-tableau obligation (`≤ n^200`). -/
+theorem latent_compiled_tableau_bound_logscale_from_rank160 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hRank160 : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n) ≤ n ^ 160) :
+    latent_compiled_tableau_bound_logscale M n hn hn804 := by
+  unfold latent_compiled_tableau_bound_logscale
+  have hn1 : 1 ≤ n := le_trans (by decide : 1 ≤ 4) (le_trans (le_max_left 4 M.numStates) hn)
+  have hpow : n ^ 160 ≤ n ^ 200 := Nat.pow_le_pow_right hn1 (by decide : 160 ≤ 200)
+  exact le_trans hRank160 hpow
+
+/-- A span witness of size `≤ n^160` already implies the contradiction-scale
+compiled-tableau obligation (`≤ n^200`). -/
+theorem latent_compiled_tableau_bound_logscale_from_span160_witness (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (h160 : latent_p_witness_span160_logscale M n hn hn804) :
+    latent_compiled_tableau_bound_logscale M n hn hn804 := by
+  rcases h160 with ⟨G, hIncl, hCard160⟩
+  unfold latent_compiled_tableau_bound_logscale mlBlockedSpdpRank
+  have hmono : Module.finrank ℚ
+      (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)) ≤
+      Module.finrank ℚ (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))) :=
+    Submodule.finrank_mono hIncl
+  have hspan_card : Module.finrank ℚ
+      (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))) ≤ G.card :=
+    finrank_span_finset_le_card G
+  have hn1 : 1 ≤ n := le_trans (by decide : 1 ≤ 4) (le_trans (le_max_left 4 M.numStates) hn)
+  have hpow : n ^ 160 ≤ n ^ 200 := Nat.pow_le_pow_right hn1 (by decide : 160 ≤ 200)
+  exact le_trans (le_trans (le_trans hmono hspan_card) hCard160) hpow
+
 /-- Direct compiled-tableau bound from explicit finite span-card witness. -/
 theorem latent_compiled_tableau_bound_logscale_from_span_card_bound (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
