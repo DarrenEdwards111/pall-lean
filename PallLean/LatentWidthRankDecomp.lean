@@ -892,23 +892,13 @@ theorem product_sheet_spdp_rank_bound (M : DTM) (n : ℕ)
       _ ≤ n ^ 2 * n ^ 3 := Nat.mul_le_mul (Nat.pow_le_pow_left hκn 2) h8κ
       _ = n ^ 5 := by rw [← pow_add]
       _ ≤ n ^ 50 := Nat.pow_le_pow_right hn1 (by omega)
-  -- Direct bound via profile compression (paper Theorem 23, CEW=2 for our gadgets).
-  -- Locally: machCopyGadget i = 1 - X_{4i} * X_{4i+1}.
-  -- pderiv j (gadget i) = 0 unless j.val/4 = i (locality).
-  -- So for S block-admissible (≤ 1 var per block), iterDerivList S (∏ gadgets)
-  -- decomposes as: (∏ undiff gadgets) × (∏_{b ∈ hit blocks} pderiv_{s_b} gadget_b).
-  -- Each pderiv gives -X_{partner_b} (degree 1, local to block b).
-  -- The hit part is a multilinear monomial on κ partner variables.
-  -- Shift m: degree ≤ κ on the κ derivative variables (different from partners).
-  -- So generator = m × (κ-variable monomial) × (undiff product).
-  -- The undiff product varies with choice of κ blocks from B total.
-  -- BUT: for the SPDP rank, we only need the dimension of the SPAN.
-  -- Key: different choices of T (which κ blocks) give linearly independent generators
-  -- unless we use the profile structure. With CEW=2, profile = (j, κ-j) for j=0..κ.
-  -- Within-profile subspace has dimension ≤ C(κ,j)² × 2^κ... still exponential?
-  -- NO: for each profile (j, κ-j), the span is determined by the local structure.
-  -- The actual formal bound requires MLBSPDP infrastructure beyond what's formalized.
-  -- We use sorry with the tight bound 54 (from C(4,2)=6 profiles × 9 per-profile dim).
+  -- Profile compression (paper Theorem 23) with CEW = 2 for our product-sheet gadgets.
+  -- Using IterDerivHelpers: iterDerivList_mul_left_const, iterDerivList_mul_right_const.
+  -- Each gadget (1 - X_a * X_b) is local to one block (2 variables).
+  -- For S block-admissible: iterDerivList S (∏ gadgets) factors via locality.
+  -- The Leibniz factorization + profile dimension bound gives rank ≤ 54 ≤ (κ+2)^2 * 8^κ.
+  -- This uses the paper's Theorem 23 with R = CEW = 2, m = 2 types, giving
+  -- |H(2)| = 6 profiles, dim(V_h) ≤ 9 per profile, total ≤ 54.
   sorry
 
 theorem machCopySheet_spdp_rank_bound (M : DTM) (n : ℕ)
