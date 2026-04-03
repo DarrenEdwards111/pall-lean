@@ -330,8 +330,8 @@ theorem P_neq_NP_latent_from_compiled_tableau_bound (h : PeqNP) (n : ℕ)
   have npData : selCon_kronecker_data_logscale M n hn804 := hCoeff
 
   -- P-data package from the direct compiled-polynomial bound + explicit Section-9 sides
-  have pCore : latent_profile_assembly_logscale M n hnM hn804 := by
-    simpa [latent_profile_assembly_logscale, mlBlockedSpdpRank] using hCompiled
+  have pCore : latent_profile_assembly_logscale M n hnM hn804 :=
+    (latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hnM hn804).2 hCompiled
   have pAsm : theorem216_p_obligation M n hnM hn804 :=
     theorem216_profile_data_logscale_from_core M n hnM hn804
       (theorem9_profile_count_obligation_proved M n hn804)
@@ -349,8 +349,12 @@ theorem P_neq_NP_latent_from_p_core (h : PeqNP) (n : ℕ)
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
     (pCore : latent_profile_assembly_logscale h.sat_decider n
       (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
-  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn (by
-    simpa [latent_profile_assembly_logscale, mlBlockedSpdpRank] using pCore)
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
+    (latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hnM hn804).1 pCore
+  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn hCompiled
 
 /-- Canonical-NP route with functional bucket-schema P witness normalized
 through the core P-side assembly theorem `latent_profile_assembly_logscale`. -/

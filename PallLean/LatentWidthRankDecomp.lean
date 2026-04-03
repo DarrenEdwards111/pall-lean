@@ -1201,14 +1201,14 @@ theorem latent_profile_assembly_logscale_iff_compiled_tableau_bound (M : DTM) (n
       latent_compiled_tableau_bound_logscale M n hn hn804 := by
   rfl
 
-/-- P-core upper bound from explicit finite span-card witness. -/
-theorem latent_profile_assembly_logscale_from_span_card_bound (M : DTM) (n : ℕ)
+/-- Direct compiled-tableau bound from explicit finite span-card witness. -/
+theorem latent_compiled_tableau_bound_logscale_from_span_card_bound (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804)
     (hSpan : latent_profile_span_card_bound_logscale M n hn hn804) :
-    latent_profile_assembly_logscale M n hn hn804 := by
+    latent_compiled_tableau_bound_logscale M n hn hn804 := by
   rcases hSpan with ⟨G, hIncl, hCard⟩
-  unfold latent_profile_assembly_logscale latent_compiled_tableau_bound_logscale mlBlockedSpdpRank
+  unfold latent_compiled_tableau_bound_logscale mlBlockedSpdpRank
   have hfin_span : Module.Finite ℚ
       (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))) :=
     Module.Finite.span_of_finite ℚ (Finset.finite_toSet G)
@@ -1222,14 +1222,39 @@ theorem latent_profile_assembly_logscale_from_span_card_bound (M : DTM) (n : ℕ
     finrank_span_finset_le_card G
   exact le_trans (le_trans hmono hspan_card) hCard
 
+/-- P-core upper bound from explicit finite span-card witness. -/
+theorem latent_profile_assembly_logscale_from_span_card_bound (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hSpan : latent_profile_span_card_bound_logscale M n hn hn804) :
+    latent_profile_assembly_logscale M n hn hn804 :=
+  latent_compiled_tableau_bound_logscale_from_span_card_bound M n hn hn804 hSpan
+
+/-- Direct compiled-tableau bound from functional bucket schema. -/
+theorem latent_compiled_tableau_bound_logscale_from_bucket_function (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hFun : latent_profile_bucket_function_bound_logscale M n hn hn804) :
+    latent_compiled_tableau_bound_logscale M n hn hn804 :=
+  latent_compiled_tableau_bound_logscale_from_span_card_bound M n hn hn804
+    (latent_profile_span_card_bound_logscale_from_bucket_function M n hn hn804 hFun)
+
 /-- Direct P-core assembly bound from functional bucket schema. -/
 theorem latent_profile_assembly_logscale_from_bucket_function (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804)
     (hFun : latent_profile_bucket_function_bound_logscale M n hn hn804) :
     latent_profile_assembly_logscale M n hn hn804 :=
-  latent_profile_assembly_logscale_from_span_card_bound M n hn hn804
-    (latent_profile_span_card_bound_logscale_from_bucket_function M n hn hn804 hFun)
+  latent_compiled_tableau_bound_logscale_from_bucket_function M n hn hn804 hFun
+
+/-- Direct compiled-tableau bound from explicit construction-data package. -/
+theorem latent_compiled_tableau_bound_logscale_from_construction_data (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hData : latent_profile_block_cover_construction_data_logscale M n hn hn804) :
+    latent_compiled_tableau_bound_logscale M n hn hn804 :=
+  latent_compiled_tableau_bound_logscale_from_span_card_bound M n hn hn804
+    (latent_profile_span_card_bound_logscale_from_construction_data M n hn hn804 hData)
 
 /-- Direct P-core assembly bound from explicit construction-data package. -/
 theorem latent_profile_assembly_logscale_from_construction_data (M : DTM) (n : ℕ)
@@ -1237,8 +1262,17 @@ theorem latent_profile_assembly_logscale_from_construction_data (M : DTM) (n : �
     (hn804 : n ≥ 2 ^ 804)
     (hData : latent_profile_block_cover_construction_data_logscale M n hn hn804) :
     latent_profile_assembly_logscale M n hn hn804 :=
-  latent_profile_assembly_logscale_from_span_card_bound M n hn hn804
-    (latent_profile_span_card_bound_logscale_from_construction_data M n hn hn804 hData)
+  latent_compiled_tableau_bound_logscale_from_construction_data M n hn hn804 hData
+
+/-- Direct compiled-tableau bound from block-cover package. -/
+theorem latent_compiled_tableau_bound_logscale_from_block_cover (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hCover : latent_profile_block_cover_logscale M n hn hn804) :
+    latent_compiled_tableau_bound_logscale M n hn hn804 :=
+  latent_compiled_tableau_bound_logscale_from_span_card_bound M n hn hn804
+    (latent_profile_span_card_bound_logscale_from_parts M n hn hn804
+      (latent_profile_span_card_parts_logscale_from_block_cover M n hn hn804 hCover))
 
 /-- Direct P-core assembly bound from block-cover package. -/
 theorem latent_profile_assembly_logscale_from_block_cover (M : DTM) (n : ℕ)
@@ -1246,9 +1280,7 @@ theorem latent_profile_assembly_logscale_from_block_cover (M : DTM) (n : ℕ)
     (hn804 : n ≥ 2 ^ 804)
     (hCover : latent_profile_block_cover_logscale M n hn hn804) :
     latent_profile_assembly_logscale M n hn hn804 :=
-  latent_profile_assembly_logscale_from_span_card_bound M n hn hn804
-    (latent_profile_span_card_bound_logscale_from_parts M n hn hn804
-      (latent_profile_span_card_parts_logscale_from_block_cover M n hn hn804 hCover))
+  latent_compiled_tableau_bound_logscale_from_block_cover M n hn hn804 hCover
 
 /-- Alias: "Obligation 2" in the current route is the assembled P upper bound. -/
 def obligation2_p_logscale (M : DTM) (n : ℕ)
