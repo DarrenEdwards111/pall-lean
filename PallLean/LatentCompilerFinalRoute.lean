@@ -309,6 +309,33 @@ theorem P_neq_NP_latent_from_p_construction_data (h : PeqNP) (n : ℕ)
 
   exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
 
+/-- Canonical-NP route from the core P-side profile assembly bound directly.
+
+This is the clean canonical entrypoint once the compiler/profile theorem is proved:
+provide `latent_profile_assembly_logscale` and the contradiction closes.
+No external NP decomposition data is required. -/
+theorem P_neq_NP_latent_from_p_core (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (pCore : latent_profile_assembly_logscale h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+
+  -- Canonical NP data
+  have hCoeff : selCon_kronecker_coeff_law_logscale M n hn804 :=
+    selCon_kronecker_coeff_law_logscale_from_canonical_idxList M n hn804
+  have npData : selCon_kronecker_data_logscale M n hn804 := hCoeff
+
+  -- P-data package from core profile assembly + explicit Section-9 sides
+  have pAsm : theorem216_p_obligation M n hnM hn804 :=
+    theorem216_profile_data_logscale_from_core M n hnM hn804
+      (theorem9_profile_count_obligation_proved M n hn804)
+      (theorem9_within_profile_dim_obligation_proved M n hn804)
+      pCore
+
+  exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
+
 /-- Canonical-NP route with only the span-card P witness package. -/
 theorem P_neq_NP_latent_from_p_span_card (h : PeqNP) (n : ℕ)
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
