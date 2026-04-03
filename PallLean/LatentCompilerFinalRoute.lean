@@ -314,12 +314,12 @@ theorem P_neq_NP_latent_from_p_construction_data (h : PeqNP) (n : ℕ)
 
 /-- Canonical-NP route from a direct bound on the compiled tableau polynomial.
 
-This exposes the actual mathematical frontier object explicitly:
-`mlBlockedSpdpRank ... (latentCompiledPoly M n) ≤ n^200`. -/
+This exposes the actual mathematical frontier object explicitly via
+`latent_compiled_tableau_bound_logscale`. -/
 theorem P_neq_NP_latent_from_compiled_tableau_bound (h : PeqNP) (n : ℕ)
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
-    (hCompiled : mlBlockedSpdpRank (latentPartition h.sat_decider n)
-      (Nat.log 2 n) (Nat.log 2 n) (latentCompiledPoly h.sat_decider n) ≤ n ^ 200) : False := by
+    (hCompiled : latent_compiled_tableau_bound_logscale h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn

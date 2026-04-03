@@ -1175,6 +1175,14 @@ theorem latent_profile_span_card_bound_logscale_from_construction_data (M : DTM)
     latent_profile_span_card_parts_logscale_from_block_cover M n hn hn804 hCover
   exact latent_profile_span_card_bound_logscale_from_parts M n hn hn804 hParts
 
+/-- Direct P-frontier obligation at contradiction scale: a polynomial SPDP-rank
+bound for the actual compiled tableau polynomial. -/
+def latent_compiled_tableau_bound_logscale (M : DTM) (n : ℕ)
+    (_hn : n ≥ max 4 M.numStates)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n) ≤ n ^ 200
+
 /-- Assembly theorem (contradiction scale): profile count × within-profile dimension
 at κ = log₂ n gives polynomial total rank.
 
@@ -1182,8 +1190,16 @@ Kept as an explicit proof obligation (Prop) rather than a global axiom. -/
 def latent_profile_assembly_logscale (M : DTM) (n : ℕ)
     (_hn : n ≥ max 4 M.numStates)
     (_hn804 : n ≥ 2 ^ 804) : Prop :=
-    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      (latentCompiledPoly M n) ≤ n ^ 200
+    latent_compiled_tableau_bound_logscale M n _hn _hn804
+
+/-- The profile-assembly label is definitionally the same as the direct compiled-tableau
+bound at contradiction scale. -/
+theorem latent_profile_assembly_logscale_iff_compiled_tableau_bound (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :
+    latent_profile_assembly_logscale M n hn hn804 ↔
+      latent_compiled_tableau_bound_logscale M n hn hn804 := by
+  rfl
 
 /-- P-core upper bound from explicit finite span-card witness. -/
 theorem latent_profile_assembly_logscale_from_span_card_bound (M : DTM) (n : ℕ)
@@ -1192,7 +1208,7 @@ theorem latent_profile_assembly_logscale_from_span_card_bound (M : DTM) (n : ℕ
     (hSpan : latent_profile_span_card_bound_logscale M n hn hn804) :
     latent_profile_assembly_logscale M n hn hn804 := by
   rcases hSpan with ⟨G, hIncl, hCard⟩
-  unfold latent_profile_assembly_logscale mlBlockedSpdpRank
+  unfold latent_profile_assembly_logscale latent_compiled_tableau_bound_logscale mlBlockedSpdpRank
   have hfin_span : Module.Finite ℚ
       (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))) :=
     Module.Finite.span_of_finite ℚ (Finset.finite_toSet G)
