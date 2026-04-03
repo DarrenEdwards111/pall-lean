@@ -1,5 +1,6 @@
 import Mathlib.Tactic
 import Mathlib.Algebra.MvPolynomial.PDeriv
+import PallLean.SPDPDefs
 /-!
 # Product Derivative for Independent Factors
 
@@ -16,7 +17,7 @@ This is the Leibniz rule for multilinear products in disjoint variables.
 
 namespace ProductDeriv
 
-open MvPolynomial
+open MvPolynomial SPDP
 
 variable {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
 
@@ -81,5 +82,8 @@ theorem pderiv_prod_single {ι : Type*} [DecidableEq ι] {s : Finset ι}
       hother j (Finset.mem_of_mem_erase hj) ((Finset.mem_erase.mp hj).1))
   -- Decompose s.prod f = f k * (s.erase k).prod f via mul_prod_erase, then Leibniz rule
   rw [← Finset.mul_prod_erase _ _ hk, pderiv_mul, h0, mul_zero, add_zero]
+
+-- The full iterated Leibniz product lemma is infrastructure for profile compression.
+-- For the SPDP rank bound, we use this indirectly.
 
 end ProductDeriv
