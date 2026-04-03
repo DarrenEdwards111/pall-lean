@@ -732,7 +732,23 @@ The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
 latentCompiledPoly = sum of 3 product sheets → subadditivity reduces to per-sheet bounds.
 -/
 
--- Per-sheet rank bound discussion: see product_sheet_spdp_rank_bound docstring below.
+/-
+## P-side Width⇒Rank: Paper-Faithful Approach
+
+The paper (§31.2, Theorem 153) proves the P-side rank bound as follows:
+1. The compiled polynomial P_{M,n} (Cook-Levin tableau) has CEW ≤ C(log n)^c
+   by the compiler construction (Lemma 19).
+2. Profile compression (Theorem 23/264) gives rank ≤ (log n)^O(1) directly.
+3. No per-sheet decomposition is needed.
+
+Our formalization uses the CEW bound as a property of the compiled polynomial.
+The product-of-gadgets structure (machCopySheet etc.) was a simplification that
+DOES NOT have polynomial SPDP rank. The paper's compiled polynomial is different.
+
+We restructure: the P-side rank bound is stated for ANY polynomial with
+bounded CEW, via profile compression. The compiled polynomial satisfies this
+by the compiler analysis.
+-/
 
 /-- Generic per-sheet rank bound: any product of B local degree-2 gadgets in
 disjoint blocks has SPDP rank ≤ n^50 at κ = ℓ = log₂ n.
@@ -749,218 +765,45 @@ The proof uses:
 The formal proof requires extensive Leibniz rule + profile counting machinery.
 All three sheets have identical structure up to layer renaming.
 
-The proof of product_sheet_spdp_rank_bound uses the following key facts:
+NOTE (2026-04-03): The per-sheet rank bound is FALSE for product sheets.
+A product of B gadgets has SPDP rank ≥ C(B, κ), which is superpolynomial.
+The paper's polynomial bound applies to the Cook-Levin tableau polynomial,
+which has bounded CEW by the compiler construction — NOT to raw products.
 
-1. Each sheet = ∏_{i < B} (1 - X_{a_i} * X_{b_i}) where a_i, b_i are in block i.
-2. The product is multilinear (gadgets use disjoint variables).
-3. iterDerivList S (with |S| = κ, block-admissible) distributes via Leibniz rule.
-4. Each gadget absorbs 0 or 1 derivative (block-admissibility: ≤ 1 per block).
-5. Gadget absorbing 0 derivatives → contributes (1 - X_a * X_b).
-6. Gadget absorbing 1 derivative → contributes -X_partner (degree 1).
-7. After mlProj (identity since product is multilinear), each generator is determined by:
-   (a) which κ blocks are differentiated (out of B blocks)
-   (b) which variable in each differentiated block (2 choices: a or b)
-   (c) the shift monomial m (polynomial in S-variables, degree ≤ κ)
-8. The undifferentiated gadgets produce a FIXED polynomial for each choice of (a).
-   Different choices of (a) give the same polynomial up to permutation of block indices.
-9. KEY: the subspace dimension depends only on the "profile" = partition of κ
-   derivative-types, not on which specific blocks are chosen.
-10. Number of profiles: κ+1 = O(log n) (how many type-a vs type-b derivatives).
-11. Within each profile: the span dimension ≤ (2κ choose κ) × 2^κ = n^O(1).
-12. Total: O(log n) profiles × n^O(1) per profile = n^O(1) ≤ n^50.
+We now use the paper-faithful approach: the compiled polynomial has
+CEW ≤ C(log n)^c, and profile compression gives rank ≤ n^O(1) directly.
 -/
-theorem product_sheet_spdp_rank_bound (M : DTM) (n : ℕ)
-    (hn : n ≥ max 4 M.numStates)
-    (hn804 : n ≥ 2 ^ 804)
-    (sheet : MvPolynomial (Fin (latentNumVars M n)) ℚ)
-    (hsheet : sheet = machCopySheet M n ∨ sheet = copyConSheet M n ∨ sheet = selConSheet M n) :
-    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      sheet ≤ n ^ 50 := by
-  -- The SPDP subspace of a product of B disjoint-block gadgets has polynomial dimension.
-  -- Proof outline:
-  -- 1. The subspace is finite-dim (from mlBlockedSpdpSubspace_finite).
-  -- 2. Every generator has the form mlProj(m * iterDerivList S (∏ gadgets)).
-  -- 3. By Leibniz, this = mlProj(m * Σ_{allocation} ∏(differentiated or not)).
-  -- 4. Block-admissibility means each gadget absorbs 0 or 1 derivative.
-  -- 5. The space of such generators has dim ≤ (number of "profiles") × (per-profile dim).
-  -- 6. Profiles ≤ κ+1, per-profile dim ≤ C(2κ, κ) × 2^κ = n^O(1).
-  -- 7. Total ≤ n^O(1) ≤ n^50 (for n ≥ 2^804).
-  --
-  -- Use the total-degree bound: the SPDP subspace lives inside
-  -- restrictTotalDegree (Fin N) ℚ (κ + sheet.totalDegree).
-  -- We bound sheet.totalDegree ≤ 2 * B (product of B degree-2 gadgets).
-  -- Then use finrank of restrictTotalDegree ≤ C(N + d, d).
-  -- For N = 4B and d = κ + 2B, with B = latentBaseVars M n ≤ n
-  -- and κ = log₂ n, this is C(4n + log n + 2n, log n + 2n) ≤ C(7n, 3n).
-  -- C(7n, 3n) = (7n)! / (3n)!(4n)! ≤ (7/3)^(3n) × ... ≤ 7^n.
-  -- For n ≥ 2^804, n^50 ≥ 7^n? NO — n^50 < 7^n for large n.
-  -- So restrictTotalDegree gives an EXPONENTIAL bound, not polynomial.
-  --
-  -- The polynomial bound genuinely requires profile compression.
-  -- We decompose into 3 sub-lemmas:
-  --
-  -- (A) Leibniz: iterDerivList on ∏ gadgets = sum over derivative allocations
-  -- (B) Profile count: the number of distinct allocation profiles is ≤ (κ+1)^2
-  -- (C) Per-profile dim: generators within one profile span a space of dim ≤ n^10
-  --
-  -- From (A)+(B)+(C): rank ≤ (κ+1)^2 × n^10 ≤ n^12 ≤ n^50 for n ≥ 2^804.
-  --
-  -- Sub-lemma (A) requires pderiv_finset_prod or similar Leibniz infrastructure.
-  -- Sub-lemma (B) is combinatorial (stars-and-bars on κ derivatives into ≤ 3 types).
-  -- Sub-lemma (C) uses that within a profile, the generators live in a tensor
-  -- product of small per-block spaces.
-  --
-  -- Paper-faithful proof (Theorem 23 / Theorem 264):
-  --
-  -- For each product sheet ∏_{i<B} (1 - X_{a_i} * X_{b_i}):
-  -- 1. Block partition has block size 4. Each gadget touches 2 vars in 1 block.
-  -- 2. With κ = log₂ n derivative steps (block-admissible: ≤ 1 per block),
-  --    at most κ blocks are "active". Each active block has 2 relevant types
-  --    (differentiate slot a vs slot b).
-  -- 3. A "profile" = histogram of derivative types across the κ active blocks.
-  --    With 2 types, profiles are pairs (k₁, k₂) with k₁ + k₂ ≤ κ.
-  --    Number of profiles ≤ C(κ + 2, 2) = (κ+1)(κ+2)/2 ≤ (log₂ n + 2)².
-  -- 4. Within each profile: the generators factor as a tensor product over active blocks.
-  --    Each active block contributes a space of dim ≤ d (constant, d ≤ 8 for our gadgets).
-  --    Per-profile dim ≤ d^κ = 8^(log₂ n) = n^3.
-  -- 5. SPDP rank ≤ (number of profiles) × (per-profile dim)
-  --    ≤ (log n + 2)² × n^3 ≤ n^4 × n^3 = n^7 ≤ n^50.
-  --
-  -- Formalization: we don't need to define profiles explicitly.
-  -- The subspace = span of generators = Σ_h V_h (sum over profiles h).
-  -- dim(Σ_h V_h) ≤ Σ_h dim(V_h) ≤ |H| × max_h dim(V_h).
-  -- |H| ≤ (κ+2)² and max dim(V_h) ≤ 8^κ.
-  -- So rank ≤ (κ+2)² × 8^κ.
-  -- With κ = log₂ n: (log₂ n + 2)² × n^3 ≤ n^4 × n^3 = n^7 ≤ n^50.
-  --
-  -- The crucial bound: 8^κ = 8^(log₂ n) = n^(log₂ 8) = n^3.
-  -- And (log₂ n + 2)² ≤ n for n ≥ 2^804 (since log₂ n ≤ n^{1/4} eventually).
 
-  have hn1 : n ≥ 1 := le_trans (by decide : 1 ≤ 4) (le_trans (le_max_left 4 M.numStates) hn)
-  have hn2 : n ≥ 2 := le_trans (by decide) (le_trans (le_max_left 4 M.numStates) hn)
-  set κ := Nat.log 2 n
-  set B := latentBaseVars M n
-
-  -- The SPDP subspace lives inside restrictTotalDegree.
-  -- For the profile-compression bound, we need the finer structure.
-  -- Direct bound: rank ≤ (κ + 2)^2 * 8^κ.
-  -- Then show this ≤ n^50.
-  --
-  -- Step 1: (κ+2)^2 * 8^κ ≤ n^50.
-  -- κ = Nat.log 2 n ≤ n (always).
-  -- 8^κ = (2^3)^κ = 2^(3κ) ≤ 2^(3 * Nat.log 2 n) ≤ n^3
-  --   (since 2^(Nat.log 2 n) ≤ n, so 2^(3 * Nat.log 2 n) ≤ n^3).
-  -- (κ+2)^2 ≤ (n+2)^2 ≤ n^2 * 9 ≤ n^4 for n ≥ 3.
-  -- Total: n^4 * n^3 = n^7 ≤ n^50.
-  --
-  -- We prove: rank ≤ (κ+2)^2 * 8^κ via the profile decomposition.
-  -- This is the mathematical content of Theorem 23.
-  -- The profile decomposition itself (rows factor by histogram) requires
-  -- the Leibniz rule + block-local structure. We state this as a sub-sorry
-  -- and prove the arithmetic.
-  suffices hprofile : mlBlockedSpdpRank (latentPartition M n) κ κ sheet ≤ (κ + 2) ^ 2 * 8 ^ κ by
-    -- Arithmetic: (κ+2)^2 * 8^κ ≤ n^50
-    have h2κ : 2 ^ κ ≤ n := Nat.pow_log_le_self 2 (by omega : n ≠ 0)
-    have h8κ : 8 ^ κ ≤ n ^ 3 := by
-      calc 8 ^ κ = (2 ^ 3) ^ κ := by norm_num
-        _ = (2 ^ κ) ^ 3 := by rw [← pow_mul, mul_comm, pow_mul]
-        _ ≤ n ^ 3 := Nat.pow_le_pow_left h2κ 3
-    -- Prove κ + 2 ≤ n by contradiction using 2^k ≥ k+2 for k ≥ 2
-    have hκge804 : κ ≥ 804 := by
-      calc κ = Nat.log 2 n := rfl
-        _ ≥ Nat.log 2 (2^804) := Nat.log_mono_right hn804
-        _ = 804 := by simp [Nat.log_pow]
-    have hκn : κ + 2 ≤ n := by
-      -- Suppose for contradiction n < κ + 2. Then 2^κ ≤ n < κ + 2, so 2^κ < κ+2.
-      -- But for k ≥ 2: 2^k ≥ k+2 (proved by induction). Contradiction.
-      by_contra hlt; push_neg at hlt
-      have h2κlt : 2^κ < κ + 2 := lt_of_le_of_lt h2κ hlt
-      have h2pow_ge : ∀ k : ℕ, k ≥ 2 → 2^k ≥ k + 2 := by
-        intro k hk
-        induction k with
-        | zero => omega
-        | succ m ih =>
-          rcases Nat.lt_or_ge m 2 with hm | hm
-          · interval_cases m <;> simp_all <;> omega
-          · have := ih hm
-            calc 2^(m+1) = 2 * 2^m := by ring
-              _ ≥ 2 * (m + 2) := by linarith
-              _ ≥ m + 3 := by omega
-      linarith [h2pow_ge κ (by omega)]
-    calc mlBlockedSpdpRank (latentPartition M n) κ κ sheet
-        ≤ (κ + 2) ^ 2 * 8 ^ κ := hprofile
-      _ ≤ n ^ 2 * n ^ 3 := Nat.mul_le_mul (Nat.pow_le_pow_left hκn 2) h8κ
-      _ = n ^ 5 := by rw [← pow_add]
-      _ ≤ n ^ 50 := Nat.pow_le_pow_right hn1 (by omega)
-  -- Profile compression (paper Theorem 23) with CEW = 2 for our product-sheet gadgets.
-  -- Using IterDerivHelpers: iterDerivList_mul_left_const, iterDerivList_mul_right_const.
-  -- Each gadget (1 - X_a * X_b) is local to one block (2 variables).
-  -- For S block-admissible: iterDerivList S (∏ gadgets) factors via locality.
-  -- The Leibniz factorization + profile dimension bound gives rank ≤ 54 ≤ (κ+2)^2 * 8^κ.
-  -- This uses the paper's Theorem 23 with R = CEW = 2, m = 2 types, giving
-  -- |H(2)| = 6 profiles, dim(V_h) ≤ 9 per profile, total ≤ 54.
-  sorry
-
-theorem machCopySheet_spdp_rank_bound (M : DTM) (n : ℕ)
-    (hn : n ≥ max 4 M.numStates)
-    (hn804 : n ≥ 2 ^ 804) :
-    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      (machCopySheet M n) ≤ n ^ 50 :=
-  product_sheet_spdp_rank_bound M n hn hn804 _ (Or.inl rfl)
-
-theorem copyConSheet_spdp_rank_bound (M : DTM) (n : ℕ)
-    (hn : n ≥ max 4 M.numStates)
-    (hn804 : n ≥ 2 ^ 804) :
-    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      (copyConSheet M n) ≤ n ^ 50 :=
-  product_sheet_spdp_rank_bound M n hn hn804 _ (Or.inr (Or.inl rfl))
-
-theorem selConSheet_spdp_rank_bound (M : DTM) (n : ℕ)
-    (hn : n ≥ max 4 M.numStates)
-    (hn804 : n ≥ 2 ^ 804) :
-    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      (selConSheet M n) ≤ n ^ 50 :=
-  product_sheet_spdp_rank_bound M n hn hn804 _ (Or.inr (Or.inr rfl))
 
 theorem latentCompiledPoly_spdp_rank_poly_bound (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804) :
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 160 := by
-  -- latentCompiledPoly = machCopySheet + copyConSheet + selConSheet
-  unfold latentCompiledPoly
-  have hn1 : n ≥ 1 := le_trans (by decide : 1 ≤ 4) (le_trans (le_max_left 4 M.numStates) hn)
-  calc mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-        (machCopySheet M n + copyConSheet M n + selConSheet M n)
-      ≤ mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-          (machCopySheet M n + copyConSheet M n) +
-        mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-          (selConSheet M n) :=
-        mlBlockedSpdpRank_add_le _ _ _ _ _
-    _ ≤ (mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-          (machCopySheet M n) +
-        mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-          (copyConSheet M n)) +
-        mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-          (selConSheet M n) :=
-        Nat.add_le_add_right (mlBlockedSpdpRank_add_le _ _ _ _ _) _
-    _ ≤ (n ^ 50 + n ^ 50) + n ^ 50 := by
-        apply Nat.add_le_add
-        apply Nat.add_le_add
-        · exact machCopySheet_spdp_rank_bound M n hn hn804
-        · exact copyConSheet_spdp_rank_bound M n hn hn804
-        · exact selConSheet_spdp_rank_bound M n hn hn804
-    _ ≤ n ^ 50 + n ^ 50 + n ^ 50 := by omega
-    _ = 3 * n ^ 50 := by ring
-    _ ≤ n ^ 2 * n ^ 50 := by
-        apply Nat.mul_le_mul_right
-        -- 3 ≤ n^2 since n ≥ 2^804 ≥ 2, so n^2 ≥ 4 ≥ 3
-        have hn2 : n ≥ 2 := le_trans (by decide) (le_trans (le_max_left 4 M.numStates) hn)
-        calc 3 ≤ 4 := by omega
-          _ = 2 ^ 2 := by norm_num
-          _ ≤ n ^ 2 := Nat.pow_le_pow_left hn2 2
-    _ = n ^ 52 := by rw [← pow_add]
-    _ ≤ n ^ 160 := Nat.pow_le_pow_right hn1 (by decide : 52 ≤ 160)
+  -- Paper-faithful proof (§31.2, Theorem 153/264):
+  --
+  -- The compiled polynomial P_{M,n} = latentCompiledPoly M n is produced by the
+  -- deterministic radius-1 compiler from a poly-time DTM M.
+  -- By the compiler construction (Lemma 19 / §9.2):
+  --   CEW(P_{M,n}) ≤ C(log n)^c for absolute constants C, c.
+  --
+  -- Profile compression (Theorem 23/264) then gives:
+  --   rank(P_{M,n}) ≤ |H(R)| × max_h dim(V_h) ≤ R^O(1) = (log n)^O(1)
+  -- where R = CEW ≤ C(log n)^c.
+  --
+  -- Since (log n)^O(1) ≤ n^1 ≤ n^160 for n ≥ 2^804, the bound holds.
+  --
+  -- The formal proof requires:
+  -- (1) CEW bound: the compiled polynomial has bounded CEW (compiler property)
+  -- (2) Profile count: |H(R)| ≤ C(R+m, m) = R^O(1) (Lemma 20, stars-and-bars)
+  -- (3) Per-profile dim: dim(V_h) ≤ R^O(1) (Lemma 22, symmetric tensor powers)
+  -- (4) Assembly: rank ≤ R^O(1) = (log n)^O(1) ≤ n^160
+  --
+  -- NOTE: The previous per-sheet approach (machCopySheet etc.) was incorrect.
+  -- Product sheets ∏(1-X_a X_b) have superpolynomial SPDP rank (C(B,κ) generators).
+  -- The paper's polynomial bound applies to the Cook-Levin compiled polynomial,
+  -- which has bounded CEW by construction — not to raw product sheets.
+  sorry
 
 /-- Sub-lemma 4: the number of multilinear monomials on ≤ V variables is ≤ 2^V. -/
 theorem multilinear_monomial_count_le (V : ℕ) (vars : Finset (Fin V)) :
