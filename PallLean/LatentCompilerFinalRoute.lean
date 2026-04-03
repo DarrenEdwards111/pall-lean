@@ -125,6 +125,29 @@ theorem P_neq_NP_latent_from_finer_decomp (h : PeqNP) (n : ℕ)
   have hNPData : selCon_kronecker_data_logscale M n hn804 := hCoeff
   exact P_neq_NP_latent_decomp h n hn ⟨hNPData, pAsm⟩
 
+/-- Item 2 narrowing via the direct compiled-tableau frontier obligation. -/
+theorem P_neq_NP_latent_from_finer_decomp_and_compiled_tableau_bound
+    (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (idxList : Fin (Nat.choose (latentBaseVars h.sat_decider n) (Nat.log 2 n)) →
+      List (Fin (latentBaseVars h.sat_decider n)))
+    (hnd : ∀ i, (idxList i).Nodup)
+    (hlen : ∀ i, (idxList i).length = Nat.log 2 n)
+    (hfinj : ∀ i j, (idxList i).toFinset = (idxList j).toFinset → i = j)
+    (hCompiled : latent_compiled_tableau_bound_logscale h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  have pCore : latent_profile_assembly_logscale M n hnM hn804 :=
+    (latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hnM hn804).2 hCompiled
+  have pAsm : theorem216_p_obligation M n hnM hn804 :=
+    theorem216_profile_data_logscale_from_core M n hnM hn804
+      (theorem9_profile_count_obligation_proved M n hn804)
+      (theorem9_within_profile_dim_obligation_proved M n hn804)
+      pCore
+  exact P_neq_NP_latent_from_finer_decomp h n hn idxList hnd hlen hfinj pAsm
+
 /-- Item 2 narrowing: same final contradiction route, but caller only supplies
 P-side core assembly bound (`latent_profile_assembly_logscale`) instead of the
 full paper-data package `theorem216_p_obligation`.
@@ -143,12 +166,10 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_core (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have pAsm : theorem216_p_obligation M n hnM hn804 :=
-    theorem216_profile_data_logscale_from_core M n hnM hn804
-      (theorem9_profile_count_obligation_proved M n hn804)
-      (theorem9_within_profile_dim_obligation_proved M n hn804)
-      pCore
-  exact P_neq_NP_latent_from_finer_decomp h n hn idxList hnd hlen hfinj pAsm
+  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
+    (latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hnM hn804).1 pCore
+  exact P_neq_NP_latent_from_finer_decomp_and_compiled_tableau_bound
+    h n hn idxList hnd hlen hfinj hCompiled
 
 /-- Narrowest current entry point: NP data from finer decomposition plus
 P-side finite span-card witness. Both paper-facing packages are built internally. -/
@@ -164,9 +185,10 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_span_card (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have pCore : latent_profile_assembly_logscale M n hnM hn804 :=
-    latent_profile_assembly_logscale_from_span_card_bound M n hnM hn804 pSpan
-  exact P_neq_NP_latent_from_finer_decomp_and_p_core h n hn idxList hnd hlen hfinj pCore
+  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
+    latent_compiled_tableau_bound_logscale_from_span_card_bound M n hnM hn804 pSpan
+  exact P_neq_NP_latent_from_finer_decomp_and_compiled_tableau_bound
+    h n hn idxList hnd hlen hfinj hCompiled
 
 /-- Narrowest decomposition entry (current): NP finer decomposition +
 P-side profile block-cover package. -/
@@ -182,9 +204,10 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_block_cover (h : PeqNP) (n : ℕ
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have pCore : latent_profile_assembly_logscale M n hnM hn804 :=
-    latent_profile_assembly_logscale_from_block_cover M n hnM hn804 pCover
-  exact P_neq_NP_latent_from_finer_decomp_and_p_core h n hn idxList hnd hlen hfinj pCore
+  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
+    latent_compiled_tableau_bound_logscale_from_block_cover M n hnM hn804 pCover
+  exact P_neq_NP_latent_from_finer_decomp_and_compiled_tableau_bound
+    h n hn idxList hnd hlen hfinj hCompiled
 
 /-- Same as above, but accepts only the shared-witness Item-2+3 P package.
 Item 1 (profile count cap) is recovered automatically from the profile index type. -/
