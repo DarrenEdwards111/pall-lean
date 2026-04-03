@@ -747,7 +747,28 @@ The proof uses:
 5. Assembly: poly many profiles × poly per-profile = polynomial total
 
 The formal proof requires extensive Leibniz rule + profile counting machinery.
-All three sheets have identical structure up to layer renaming. -/
+All three sheets have identical structure up to layer renaming.
+
+The proof of product_sheet_spdp_rank_bound uses the following key facts:
+
+1. Each sheet = ∏_{i < B} (1 - X_{a_i} * X_{b_i}) where a_i, b_i are in block i.
+2. The product is multilinear (gadgets use disjoint variables).
+3. iterDerivList S (with |S| = κ, block-admissible) distributes via Leibniz rule.
+4. Each gadget absorbs 0 or 1 derivative (block-admissibility: ≤ 1 per block).
+5. Gadget absorbing 0 derivatives → contributes (1 - X_a * X_b).
+6. Gadget absorbing 1 derivative → contributes -X_partner (degree 1).
+7. After mlProj (identity since product is multilinear), each generator is determined by:
+   (a) which κ blocks are differentiated (out of B blocks)
+   (b) which variable in each differentiated block (2 choices: a or b)
+   (c) the shift monomial m (polynomial in S-variables, degree ≤ κ)
+8. The undifferentiated gadgets produce a FIXED polynomial for each choice of (a).
+   Different choices of (a) give the same polynomial up to permutation of block indices.
+9. KEY: the subspace dimension depends only on the "profile" = partition of κ
+   derivative-types, not on which specific blocks are chosen.
+10. Number of profiles: κ+1 = O(log n) (how many type-a vs type-b derivatives).
+11. Within each profile: the span dimension ≤ (2κ choose κ) × 2^κ = n^O(1).
+12. Total: O(log n) profiles × n^O(1) per profile = n^O(1) ≤ n^50.
+-/
 theorem product_sheet_spdp_rank_bound (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804)
@@ -755,6 +776,20 @@ theorem product_sheet_spdp_rank_bound (M : DTM) (n : ℕ)
     (hsheet : sheet = machCopySheet M n ∨ sheet = copyConSheet M n ∨ sheet = selConSheet M n) :
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       sheet ≤ n ^ 50 := by
+  -- The SPDP subspace of a product of B disjoint-block gadgets has polynomial dimension.
+  -- Proof outline:
+  -- 1. The subspace is finite-dim (from mlBlockedSpdpSubspace_finite).
+  -- 2. Every generator has the form mlProj(m * iterDerivList S (∏ gadgets)).
+  -- 3. By Leibniz, this = mlProj(m * Σ_{allocation} ∏(differentiated or not)).
+  -- 4. Block-admissibility means each gadget absorbs 0 or 1 derivative.
+  -- 5. The space of such generators has dim ≤ (number of "profiles") × (per-profile dim).
+  -- 6. Profiles ≤ κ+1, per-profile dim ≤ C(2κ, κ) × 2^κ = n^O(1).
+  -- 7. Total ≤ n^O(1) ≤ n^50 (for n ≥ 2^804).
+  --
+  -- This is the core Width⇒Rank theorem (paper Theorem 216/Lemma 264).
+  -- The formal proof requires Leibniz rule infrastructure for finite products,
+  -- profile counting, and within-profile dimension bounds.
+  -- These are not yet formalized as separate lemmas.
   sorry
 
 theorem machCopySheet_spdp_rank_bound (M : DTM) (n : ℕ)
