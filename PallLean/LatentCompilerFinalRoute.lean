@@ -312,15 +312,14 @@ theorem P_neq_NP_latent_from_p_construction_data (h : PeqNP) (n : ℕ)
       (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
   exact P_neq_NP_latent_from_p_construction_data_via_core h n hn pData
 
-/-- Canonical-NP route from the core P-side profile assembly bound directly.
+/-- Canonical-NP route from a direct bound on the compiled tableau polynomial.
 
-This is the clean canonical entrypoint once the compiler/profile theorem is proved:
-provide `latent_profile_assembly_logscale` and the contradiction closes.
-No external NP decomposition data is required. -/
-theorem P_neq_NP_latent_from_p_core (h : PeqNP) (n : ℕ)
+This exposes the actual mathematical frontier object explicitly:
+`mlBlockedSpdpRank ... (latentCompiledPoly M n) ≤ n^200`. -/
+theorem P_neq_NP_latent_from_compiled_tableau_bound (h : PeqNP) (n : ℕ)
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
-    (pCore : latent_profile_assembly_logscale h.sat_decider n
-      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+    (hCompiled : mlBlockedSpdpRank (latentPartition h.sat_decider n)
+      (Nat.log 2 n) (Nat.log 2 n) (latentCompiledPoly h.sat_decider n) ≤ n ^ 200) : False := by
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
@@ -330,7 +329,9 @@ theorem P_neq_NP_latent_from_p_core (h : PeqNP) (n : ℕ)
     selCon_kronecker_coeff_law_logscale_from_canonical_idxList M n hn804
   have npData : selCon_kronecker_data_logscale M n hn804 := hCoeff
 
-  -- P-data package from core profile assembly + explicit Section-9 sides
+  -- P-data package from the direct compiled-polynomial bound + explicit Section-9 sides
+  have pCore : latent_profile_assembly_logscale M n hnM hn804 := by
+    simpa [latent_profile_assembly_logscale, mlBlockedSpdpRank] using hCompiled
   have pAsm : theorem216_p_obligation M n hnM hn804 :=
     theorem216_profile_data_logscale_from_core M n hnM hn804
       (theorem9_profile_count_obligation_proved M n hn804)
@@ -338,6 +339,18 @@ theorem P_neq_NP_latent_from_p_core (h : PeqNP) (n : ℕ)
       pCore
 
   exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
+
+/-- Canonical-NP route from the core P-side profile assembly bound directly.
+
+This is the clean canonical entrypoint once the compiler/profile theorem is proved:
+provide `latent_profile_assembly_logscale` and the contradiction closes.
+No external NP decomposition data is required. -/
+theorem P_neq_NP_latent_from_p_core (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (pCore : latent_profile_assembly_logscale h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn (by
+    simpa [latent_profile_assembly_logscale, mlBlockedSpdpRank] using pCore)
 
 /-- Canonical-NP route with functional bucket-schema P witness normalized
 through the core P-side assembly theorem `latent_profile_assembly_logscale`. -/
