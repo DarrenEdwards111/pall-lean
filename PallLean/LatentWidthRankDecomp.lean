@@ -810,8 +810,97 @@ theorem product_sheet_spdp_rank_bound (M : DTM) (n : ℕ)
   -- Sub-lemma (C) uses that within a profile, the generators live in a tensor
   -- product of small per-block spaces.
   --
-  -- For now, we leave this as the single remaining sorry.
-  -- All other parts of the P≠NP separation are fully proved.
+  -- Paper-faithful proof (Theorem 23 / Theorem 264):
+  --
+  -- For each product sheet ∏_{i<B} (1 - X_{a_i} * X_{b_i}):
+  -- 1. Block partition has block size 4. Each gadget touches 2 vars in 1 block.
+  -- 2. With κ = log₂ n derivative steps (block-admissible: ≤ 1 per block),
+  --    at most κ blocks are "active". Each active block has 2 relevant types
+  --    (differentiate slot a vs slot b).
+  -- 3. A "profile" = histogram of derivative types across the κ active blocks.
+  --    With 2 types, profiles are pairs (k₁, k₂) with k₁ + k₂ ≤ κ.
+  --    Number of profiles ≤ C(κ + 2, 2) = (κ+1)(κ+2)/2 ≤ (log₂ n + 2)².
+  -- 4. Within each profile: the generators factor as a tensor product over active blocks.
+  --    Each active block contributes a space of dim ≤ d (constant, d ≤ 8 for our gadgets).
+  --    Per-profile dim ≤ d^κ = 8^(log₂ n) = n^3.
+  -- 5. SPDP rank ≤ (number of profiles) × (per-profile dim)
+  --    ≤ (log n + 2)² × n^3 ≤ n^4 × n^3 = n^7 ≤ n^50.
+  --
+  -- Formalization: we don't need to define profiles explicitly.
+  -- The subspace = span of generators = Σ_h V_h (sum over profiles h).
+  -- dim(Σ_h V_h) ≤ Σ_h dim(V_h) ≤ |H| × max_h dim(V_h).
+  -- |H| ≤ (κ+2)² and max dim(V_h) ≤ 8^κ.
+  -- So rank ≤ (κ+2)² × 8^κ.
+  -- With κ = log₂ n: (log₂ n + 2)² × n^3 ≤ n^4 × n^3 = n^7 ≤ n^50.
+  --
+  -- The crucial bound: 8^κ = 8^(log₂ n) = n^(log₂ 8) = n^3.
+  -- And (log₂ n + 2)² ≤ n for n ≥ 2^804 (since log₂ n ≤ n^{1/4} eventually).
+
+  have hn1 : n ≥ 1 := le_trans (by decide : 1 ≤ 4) (le_trans (le_max_left 4 M.numStates) hn)
+  have hn2 : n ≥ 2 := le_trans (by decide) (le_trans (le_max_left 4 M.numStates) hn)
+  set κ := Nat.log 2 n
+  set B := latentBaseVars M n
+
+  -- The SPDP subspace lives inside restrictTotalDegree.
+  -- For the profile-compression bound, we need the finer structure.
+  -- Direct bound: rank ≤ (κ + 2)^2 * 8^κ.
+  -- Then show this ≤ n^50.
+  --
+  -- Step 1: (κ+2)^2 * 8^κ ≤ n^50.
+  -- κ = Nat.log 2 n ≤ n (always).
+  -- 8^κ = (2^3)^κ = 2^(3κ) ≤ 2^(3 * Nat.log 2 n) ≤ n^3
+  --   (since 2^(Nat.log 2 n) ≤ n, so 2^(3 * Nat.log 2 n) ≤ n^3).
+  -- (κ+2)^2 ≤ (n+2)^2 ≤ n^2 * 9 ≤ n^4 for n ≥ 3.
+  -- Total: n^4 * n^3 = n^7 ≤ n^50.
+  --
+  -- We prove: rank ≤ (κ+2)^2 * 8^κ via the profile decomposition.
+  -- This is the mathematical content of Theorem 23.
+  -- The profile decomposition itself (rows factor by histogram) requires
+  -- the Leibniz rule + block-local structure. We state this as a sub-sorry
+  -- and prove the arithmetic.
+  suffices hprofile : mlBlockedSpdpRank (latentPartition M n) κ κ sheet ≤ (κ + 2) ^ 2 * 8 ^ κ by
+    -- Arithmetic: (κ+2)^2 * 8^κ ≤ n^50
+    have h2κ : 2 ^ κ ≤ n := Nat.pow_log_le_self 2 (by omega : n ≠ 0)
+    have h8κ : 8 ^ κ ≤ n ^ 3 := by
+      calc 8 ^ κ = (2 ^ 3) ^ κ := by norm_num
+        _ = (2 ^ κ) ^ 3 := by rw [← pow_mul, mul_comm, pow_mul]
+        _ ≤ n ^ 3 := Nat.pow_le_pow_left h2κ 3
+    -- Prove κ + 2 ≤ n by contradiction using 2^k ≥ k+2 for k ≥ 2
+    have hκge804 : κ ≥ 804 := by
+      calc κ = Nat.log 2 n := rfl
+        _ ≥ Nat.log 2 (2^804) := Nat.log_mono_right hn804
+        _ = 804 := by simp [Nat.log_pow]
+    have hκn : κ + 2 ≤ n := by
+      -- Suppose for contradiction n < κ + 2. Then 2^κ ≤ n < κ + 2, so 2^κ < κ+2.
+      -- But for k ≥ 2: 2^k ≥ k+2 (proved by induction). Contradiction.
+      by_contra hlt; push_neg at hlt
+      have h2κlt : 2^κ < κ + 2 := lt_of_le_of_lt h2κ hlt
+      have h2pow_ge : ∀ k : ℕ, k ≥ 2 → 2^k ≥ k + 2 := by
+        intro k hk
+        induction k with
+        | zero => omega
+        | succ m ih =>
+          rcases Nat.lt_or_ge m 2 with hm | hm
+          · interval_cases m <;> simp_all <;> omega
+          · have := ih hm
+            calc 2^(m+1) = 2 * 2^m := by ring
+              _ ≥ 2 * (m + 2) := by linarith
+              _ ≥ m + 3 := by omega
+      linarith [h2pow_ge κ (by omega)]
+    calc mlBlockedSpdpRank (latentPartition M n) κ κ sheet
+        ≤ (κ + 2) ^ 2 * 8 ^ κ := hprofile
+      _ ≤ n ^ 2 * n ^ 3 := Nat.mul_le_mul (Nat.pow_le_pow_left hκn 2) h8κ
+      _ = n ^ 5 := by rw [← pow_add]
+      _ ≤ n ^ 50 := Nat.pow_le_pow_right hn1 (by omega)
+  -- Profile decomposition (paper Theorem 23): rank ≤ (κ+2)^2 * 8^κ.
+  -- Profile analysis for our product-sheet gadgets (1 - X_a * X_b):
+  -- - 2 types: type-a (differentiate X_a slot) and type-b (differentiate X_b slot)
+  -- - κ derivative steps → profile h = (j, κ-j) for j = 0..κ
+  -- - |H| = κ+1 profiles
+  -- - Per-profile dim(V_h) ≤ (j+1)*(κ-j+1) ≤ (κ/2+1)^2 ≤ (κ+2)^2/4
+  --   (from Sym^j(W_a) ⊗ Sym^(κ-j)(W_b) with dim(W_a)=dim(W_b)=2: shift+deriv options)
+  -- - Shift monomials m: already counted inside V_h structure
+  -- Total: rank ≤ |H| * max dim(V_h) ≤ (κ+1) * (κ+2)^2 ≤ (κ+2)^3 ≤ (κ+2)^2 * 8^κ
   sorry
 
 theorem machCopySheet_spdp_rank_bound (M : DTM) (n : ℕ)
