@@ -477,17 +477,9 @@ theorem P_neq_NP_latent_from_p_item3_uniform120 (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  rcases p3120 with ⟨I, Gprof, hUni120, hSpan⟩
-  have hn1 : 1 ≤ n := by
-    exact le_trans (by decide : 1 ≤ 4) (le_trans (le_max_left 4 M.numStates) hnM)
-  have hpow120_160 : n ^ 120 ≤ n ^ 160 :=
-    Nat.pow_le_pow_right hn1 (by decide : 120 ≤ 160)
-  have hCover : latent_profile_block_cover_logscale M n hnM hn804 := by
-    refine ⟨I, Gprof, hSpan, ?_⟩
-    intro i hi
-    have hle120 : (Gprof i).card ≤ n ^ 120 := hUni120 i
-    exact le_trans hle120 hpow120_160
-  exact P_neq_NP_latent_from_p_block_cover h n hn hCover
+  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
+    latent_compiled_tableau_bound_logscale_from_item3_uniform120 M n hnM hn804 p3120
+  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn hCompiled
 
 /-- Canonical-NP route with Item-3+uniform-Item-2 P witness only. -/
 theorem P_neq_NP_latent_from_p_item3_uniform2 (h : PeqNP) (n : ℕ)
@@ -555,9 +547,9 @@ theorem P_neq_NP_latent_from_p_parts_40_120 (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have p160 : latent_p_witness_span160_logscale M n hnM hn804 :=
-    latent_p_witness_span160_logscale_from_parts_40_120 M n hnM hn804 pParts
-  exact P_neq_NP_latent_from_p_span160 h n hn p160
+  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
+    latent_compiled_tableau_bound_logscale_from_parts_40_120 M n hnM hn804 pParts
+  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn hCompiled
 
 /-- Canonical-NP route from functional profile-id bucket schema (P-side).
 This is often the most natural constructive form to prove from paper definitions. -/

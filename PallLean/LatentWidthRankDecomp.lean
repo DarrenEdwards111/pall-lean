@@ -1235,6 +1235,24 @@ theorem latent_compiled_tableau_bound_logscale_from_span160_witness (M : DTM) (n
   have hpow : n ^ 160 ≤ n ^ 200 := Nat.pow_le_pow_right hn1 (by decide : 160 ≤ 200)
   exact le_trans (le_trans (le_trans hmono hspan_card) hCard160) hpow
 
+/-- Direct compiled-tableau bound from the `(40,120)` parts package via span160. -/
+theorem latent_compiled_tableau_bound_logscale_from_parts_40_120 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hParts : latent_profile_span_card_parts_40_120_logscale M n hn hn804) :
+    latent_compiled_tableau_bound_logscale M n hn hn804 := by
+  exact latent_compiled_tableau_bound_logscale_from_span160_witness M n hn hn804
+    (latent_p_witness_span160_logscale_from_parts_40_120 M n hn hn804 hParts)
+
+/-- Direct compiled-tableau bound from Item-3 + uniform-120 package via span160. -/
+theorem latent_compiled_tableau_bound_logscale_from_item3_uniform120 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (h3120 : latent_profile_block_cover_item3_uniform120_logscale M n hn hn804) :
+    latent_compiled_tableau_bound_logscale M n hn hn804 := by
+  exact latent_compiled_tableau_bound_logscale_from_span160_witness M n hn hn804
+    (latent_p_witness_span160_logscale_from_item3_uniform120 M n hn hn804 h3120)
+
 /-- Direct compiled-tableau bound from explicit finite span-card witness. -/
 theorem latent_compiled_tableau_bound_logscale_from_span_card_bound (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
