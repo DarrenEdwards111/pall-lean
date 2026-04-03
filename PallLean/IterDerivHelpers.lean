@@ -52,7 +52,8 @@ theorem iterDerivList_mul_left_const
       have hfrest : ∀ j ∈ rest, pderiv j f = 0 := by
         intro j hj
         exact hf j (by simp [hj])
-      rw [iterDerivList_cons, pderiv_mul, hfi, zero_mul, zero_add, ih _ hfrest]
+      simp only [iterDerivList_cons]
+      rw [pderiv_mul, hfi, zero_mul, zero_add, ih _ hfrest]
 
 /-- Dually, if every derivative in `S` kills `g`, then `g` factors out on the right. -/
 theorem iterDerivList_mul_right_const
@@ -67,7 +68,8 @@ theorem iterDerivList_mul_right_const
       have hgrest : ∀ j ∈ rest, pderiv j g = 0 := by
         intro j hj
         exact hg j (by simp [hj])
-      rw [iterDerivList_cons, pderiv_mul, hgi, mul_zero, add_zero, ih _ hgrest]
+      simp only [iterDerivList_cons]
+      rw [pderiv_mul, hgi, mul_zero, add_zero, ih _ hgrest]
 
 /-- If the first derivative yields zero, then any further iterated derivatives also yield zero. -/
 theorem iterDerivList_of_head_zero (i : Fin n) (S : List (Fin n))
