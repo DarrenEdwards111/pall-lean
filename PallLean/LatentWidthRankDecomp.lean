@@ -807,37 +807,19 @@ We now use the paper-faithful approach: the compiled polynomial has
 CEW ≤ C(log n)^c, and profile compression gives rank ≤ n^O(1) directly.
 -/
 
-/-- Paper's Width⇒Rank theorem (Theorem 264 / Lemma 32 via profile compression).
+/-- Width⇒Rank placeholder boundary.
 
-This is the P-side rank bound from the paper's §9.1-9.3 and §31.2.
-The compiled polynomial P_{M,n} has CEW ≤ C(log n)^c by the compiler
-construction (Lemma 19), and profile compression gives:
-  rank(P_{M,n}) ≤ |H(R)| × max dim(V_h) ≤ R^O(1) = (log n)^O(1) ≤ n^160.
-
-We axiomatize this as the paper's Theorem 264 applied to our compiler.
-The proof involves:
-- CEW bound from compiler analysis (§9.2, properties P1-P5)
-- Profile count |H(R)| ≤ C(R+m,m) = R^O(1) (Lemma 20)
-- Per-profile dim(V_h) ≤ R^O(1) (Lemma 22, symmetric tensor powers)
-- Assembly: subadditivity over profiles
-
-This is NOT provable from the current definition of latentCompiledPoly
-(which is a product of gadgets with superpolynomial rank). The paper's
-compiled polynomial comes from the Cook-Levin tableau, which has bounded
-CEW by the compiler construction. Formalizing the full compiler is out
-of scope; we take this as an axiom encapsulating the compiler analysis. -/
-axiom compiled_width_rank_bound (M : DTM) (n : ℕ)
+No global axiom is used here. Any route that needs a concrete `n^160` rank bound
+must provide it explicitly as a hypothesis (or derive it from fully formalized
+compiler/profile machinery). -/
+theorem latentCompiledPoly_spdp_rank_poly_bound_from_hyp (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
-    (hn804 : n ≥ 2 ^ 804) :
-    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      (latentCompiledPoly M n) ≤ n ^ 160
-
-theorem latentCompiledPoly_spdp_rank_poly_bound (M : DTM) (n : ℕ)
-    (hn : n ≥ max 4 M.numStates)
-    (hn804 : n ≥ 2 ^ 804) :
+    (hn804 : n ≥ 2 ^ 804)
+    (hRank : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n) ≤ n ^ 160) :
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 160 :=
-  compiled_width_rank_bound M n hn hn804
+  hRank
 
 /-- Sub-lemma 4: the number of multilinear monomials on ≤ V variables is ≤ 2^V. -/
 theorem multilinear_monomial_count_le (V : ℕ) (vars : Finset (Fin V)) :
@@ -869,7 +851,9 @@ The argument chains sub-lemmas 1-6:
 - So any basis of the subspace has size ≤ n^160. -/
 theorem latentCompiledPoly_spdp_subspace_span_poly_bound (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
-    (hn804 : n ≥ 2 ^ 804) :
+    (hn804 : n ≥ 2 ^ 804)
+    (hRank : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n) ≤ n ^ 160) :
     latent_p_witness_span160_logscale M n hn hn804 := by
   -- Step 1: the subspace is finite-dimensional (already proved in MultilinearSPDP)
   have hfin : Module.Finite ℚ
@@ -880,7 +864,7 @@ theorem latentCompiledPoly_spdp_subspace_span_poly_bound (M : DTM) (n : ℕ)
   -- Step 2: the rank (= finrank) is ≤ n^160
   have hrank : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 160 :=
-    latentCompiledPoly_spdp_rank_poly_bound M n hn hn804
+    latentCompiledPoly_spdp_rank_poly_bound_from_hyp M n hn hn804 hRank
   -- Step 3: from finrank ≤ n^160 to ∃ G with |G| ≤ n^160 and Sub ≤ span G.
   -- Use exists_finset_span_eq_linearIndepOn on the generating set of Sub.
   -- The subspace Sub = span S where S is the generator set from mlBlockedSpdpSubspace.
