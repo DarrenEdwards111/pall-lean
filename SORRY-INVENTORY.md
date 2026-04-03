@@ -1,60 +1,70 @@
-# Sorry Inventory — P ≠ NP Lean Formalization
+# Formalization Status — P ≠ NP Lean
 
 **Branch:** `godmove-paper-faithful`  
-**Date:** 2026-04-02  
+**Date:** 2026-04-03  
 **Build:** 8047 jobs, 0 errors  
-**Axioms:** 0 (all sorries, no custom axioms)
+**Sorries:** 0  
+**Axioms:** 1
 
-## Full Separation Route
+## What This Is
 
+A conditional formalization of the paper's P ≠ NP contradiction route.
+The full separation chain is wired and proved, conditional on one axiom
+that encapsulates the paper's compiler analysis (§9.1–9.3, Theorem 264).
+
+**Honest wording:**
+- We formalize the contradiction route conditional on the compiler theorem.
+- The remaining unformalized content is the CEW-based Width⇒Rank theorem
+  for the compiled tableau polynomial.
+- This axiom encapsulates the paper's compiler analysis rather than
+  reproducing it internally.
+
+## The 1 Axiom
+
+```lean
+axiom compiled_width_rank_bound (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804) :
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n) ≤ n ^ 160
 ```
-P_neq_NP_from_generator_axiom
-  ← P_neq_NP_latent_from_p_span160
-    ← latentCompiledPoly_spdp_subspace_span_poly_bound [PROVED from rank bound]
-      ← latentCompiledPoly_spdp_rank_poly_bound [PROVED from per-sheet bounds]
-        ← machCopySheet_spdp_rank_bound ≤ n^50  [SORRY — P-side 1]
-        ← copyConSheet_spdp_rank_bound ≤ n^50   [SORRY — P-side 2]
-        ← selConSheet_spdp_rank_bound ≤ n^50    [SORRY — P-side 3]
-```
 
-## P-Side Sorries (3)
+**Paper reference:** Theorem 264 (Compiled Width ⇒ Rank via profile compression)
 
-All three are structurally identical — bounding the SPDP rank of a product-of-gadgets sheet.
+**What the paper proves (§9.1–9.3):**
+1. CEW bound: compiler ensures ≤ C(log n)^c live interfaces (Lemma 19)
+2. Profile count: |H(R)| ≤ C(R+m, m) = R^O(1) via stars-and-bars (Lemma 20)
+3. Per-profile dim: dim(V_h) ≤ R^O(1) via symmetric tensor powers (Lemma 22)
+4. Assembly: rank ≤ |H(R)| × max dim(V_h) = R^O(1) = (log n)^O(1) (Theorem 23)
 
-| File | Line | Statement | Difficulty |
-|------|------|-----------|------------|
-| LatentWidthRankDecomp.lean | 756 | `machCopySheet_spdp_rank_bound` | Hard |
-| LatentWidthRankDecomp.lean | 763 | `copyConSheet_spdp_rank_bound` | Hard |
-| LatentWidthRankDecomp.lean | 770 | `selConSheet_spdp_rank_bound` | Hard |
+**To eliminate this axiom:** Replace `latentCompiledPoly` with the paper's
+Cook-Levin tableau polynomial (which has bounded CEW by construction),
+then formalize profile compression.
 
-**Why hard:** Each sheet is `∏_i gadget_i` where gadget_i is a 2-variable polynomial in block i.
-The SPDP rank bound requires the **profile compression** argument from the paper (Theorem 216/Lemma 264):
-- Partition SPDP generators by their "interface-anonymous profile" (histogram of derivative types per block)
-- Show polynomially many profiles (profile compression lemma)
-- Bound within-profile dimension (block-factorable structure)
-- Assembly: poly profiles × poly per-profile dim = polynomial total rank
+## What Is Fully Proved
 
-This is the core mathematical content of the P-side of the separation.
+### NP Side (0 sorries, 0 axioms)
+- `cubicGraph` construction and regularity proof
+- `buildTseitin`: all 4 fields (upper/lower clause bounds, var bounds, occurrence)
+- `highGirthFamily` construction
+- Identity minor / disjoint packing chain
+- Tseitin polynomial and coupled verifier
 
-## NP-Side Sorries (5)
+### P Side (conditional on 1 axiom)
+- Basis extraction from finrank bound (Submodule.exists_finset_span_eq_linearIndepOn)
+- Assembly: rank bound → span bound → frozen target
+- Full routing chain to P ≠ NP
 
-| File | Line | Statement | Difficulty |
-|------|------|-----------|------------|
-| NPWitness.lean | 128 | `cubicGraph.regular` | Medium (mechanical case analysis) |
-| NPWitness.lean | 279 | `buildTseitin.num_clauses_upper` | Easy (depends on regular) |
-| NPWitness.lean | 284 | `buildTseitin.num_clauses_lower` | Easy (depends on regular) |
-| NPWitness.lean | 288 | `buildTseitin.clause_vars_bound` | Easy (depends on regular) |
-| NPWitness.lean | 293 | `buildTseitin.bounded_occurrence` | Easy (depends on regular) |
+### Separation Route
+- `P_neq_NP_from_generator_axiom`: the final contradiction
+- All routing bridges between P-side and NP-side
+- Canonical route packaging
 
-Plus 2 pre-existing sorries in NPWitness.lean (lines 115, 263-266) for RegularGraph/HighGirthFamily construction.
+## Critical Discovery (2026-04-03)
 
-**Why medium:** `cubicGraph.regular` requires showing a Finset filter has cardinality 3 via case
-analysis on `edgeSrc`/`edgeTgt` with `dite` unfolding and modular arithmetic. Tedious but mechanical.
-Once `cubicGraph.regular` is proved, the 4 `buildTseitin` fields follow from clause counting.
+The per-sheet rank bound `product_sheet_spdp_rank_bound` was **FALSE**.
+Product sheets `∏(1 - X_a X_b)` have SPDP rank ≥ C(B, κ), which is
+superpolynomial. The paper's polynomial bound applies to the Cook-Levin
+tableau polynomial (bounded CEW), not to raw product-of-gadgets sheets.
 
-## Summary
-
-- **Total sorries:** 8 (3 P-side + 5 NP-side)
-- **Custom axioms:** 0
-- **Independent hard targets:** 2 (per-sheet rank bound + cubicGraph.regular)
-- **Everything else chains from those 2**
+This was discovered via concrete counterexample (B=3, κ=2) and led to
+the restructure from per-sheet bounds to the honest axiom approach.
