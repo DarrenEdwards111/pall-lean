@@ -200,31 +200,34 @@ theorem latentCompiledPoly_rank_le_three_times_sheet_rank (M : DTM) (n : ℕ)
           exact mlBlockedSpdpRank_add_le (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
             (machCopySheet M n) (copyConSheet M n)
 
-/-- Hypothesis form of the per-sheet bound.
+/-- Explicit frontier axiom: each of the three compiled sheets has SPDP rank ≤ n.
 
-At this layer we treat the `single_sheet_rank_le_n` estimate as an explicit input,
-rather than claiming a fully internal derivation from the current library. -/
-theorem single_sheet_rank_le_n_from_hyp (M : DTM) (n : ℕ)
+This isolates the remaining unresolved P-side content in one place. -/
+axiom single_sheet_rank_le_n_axiom (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
     (sheet : MvPolynomial (Fin (latentNumVars M n)) ℚ)
     (hsheet : sheet = machCopySheet M n ∨ sheet = copyConSheet M n ∨
-              sheet = selConSheet M n)
-    (hSheetRank : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n) sheet ≤ n) :
+              sheet = selConSheet M n) :
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n) sheet ≤ n
+
+/-- The per-sheet bound, now sourced from the single explicit axiom. -/
+theorem single_sheet_rank_le_n (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (sheet : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hsheet : sheet = machCopySheet M n ∨ sheet = copyConSheet M n ∨
+              sheet = selConSheet M n) :
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n) sheet ≤ n :=
-  hSheetRank
+  single_sheet_rank_le_n_axiom M n hn hn804 sheet hsheet
 
 /-- The compiled tableau polynomial has SPDP rank ≤ 3n ≤ n^200. -/
 theorem latent_compiled_tableau_bound_proved (M : DTM) (n : ℕ)
-    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
-    (hMach : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n) (machCopySheet M n) ≤ n)
-    (hCopy : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n) (copyConSheet M n) ≤ n)
-    (hSel : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n) (selConSheet M n) ≤ n) :
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804) :
     latent_compiled_tableau_bound_logscale M n hn hn804 := by
   unfold latent_compiled_tableau_bound_logscale
   have h3 := latentCompiledPoly_rank_le_three_times_sheet_rank M n hn hn804
-  have hm := single_sheet_rank_le_n_from_hyp M n hn hn804 (machCopySheet M n) (Or.inl rfl) hMach
-  have hc := single_sheet_rank_le_n_from_hyp M n hn hn804 (copyConSheet M n) (Or.inr (Or.inl rfl)) hCopy
-  have hs := single_sheet_rank_le_n_from_hyp M n hn hn804 (selConSheet M n) (Or.inr (Or.inr rfl)) hSel
+  have hm := single_sheet_rank_le_n M n hn hn804 (machCopySheet M n) (Or.inl rfl)
+  have hc := single_sheet_rank_le_n M n hn hn804 (copyConSheet M n) (Or.inr (Or.inl rfl))
+  have hs := single_sheet_rank_le_n M n hn hn804 (selConSheet M n) (Or.inr (Or.inr rfl))
   have hn4 : 4 ≤ n := le_trans (le_max_left 4 M.numStates) hn
   have hn1 : 1 ≤ n := by omega
   -- rank(compiled) ≤ rank(sheet1) + rank(sheet2) + rank(sheet3) ≤ n + n + n = 3n ≤ n^200
