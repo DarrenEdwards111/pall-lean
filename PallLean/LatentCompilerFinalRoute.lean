@@ -432,7 +432,7 @@ theorem P_neq_NP_latent_from_p_span_card (h : PeqNP) (n : ℕ)
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
     (pSpan : latent_profile_span_card_bound_logscale h.sat_decider n
       (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
-  exact P_neq_NP_latent_from_p_span_card_via_core h n hn pSpan
+  exact P_neq_NP_latent_from_p_span_card_via_compiled h n hn pSpan
 
 /-- Canonical-NP route from block-cover witness via the direct compiled-tableau
 frontier obligation. -/
@@ -460,7 +460,7 @@ theorem P_neq_NP_latent_from_p_block_cover (h : PeqNP) (n : ℕ)
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
     (pCover : latent_profile_block_cover_logscale h.sat_decider n
       (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
-  exact P_neq_NP_latent_from_p_block_cover_via_core h n hn pCover
+  exact P_neq_NP_latent_from_p_block_cover_via_compiled h n hn pCover
 
 /-- Canonical-NP route with P-side global-span+bucket witness only. -/
 theorem P_neq_NP_latent_from_p_global_span_bucket (h : PeqNP) (n : ℕ)
