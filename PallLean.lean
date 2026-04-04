@@ -1,4 +1,5 @@
 -- Active entrypoint (latent compiler route)
+import PallLean.CompilerProperties
 import PallLean.LatentCompiler
 import PallLean.LatentWidthRankDecomp
 import PallLean.LatentWitnessMinorDecomp
