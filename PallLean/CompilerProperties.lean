@@ -77,7 +77,20 @@ theorem live_blocks_le_kappa (M : DTM) (n : ℕ) (S : List (Fin (latentNumVars M
     (hadm : isBlockAdmissible (latentPartition M n) S) :
     (S.map (fun j => (latentPartition M n).assign j)).toFinset.card ≤ Nat.log 2 n := by
   calc (S.map (fun j => (latentPartition M n).assign j)).toFinset.card
-      ≤ S.length := by sorry
+      ≤ S.length := by
+        -- The image of S under assign has card ≤ S.length ≤ S.length
+        have himage : (S.map (fun j => (latentPartition M n).assign j)).toFinset
+            ⊆ Finset.image (fun j => (latentPartition M n).assign j) S.toFinset := by
+          intro x hx
+          simp only [List.mem_toFinset, List.mem_map] at hx
+          rcases hx with ⟨a, ha, rfl⟩
+          exact Finset.mem_image.mpr ⟨a, List.mem_toFinset.mpr ha, rfl⟩
+        calc (S.map (fun j => (latentPartition M n).assign j)).toFinset.card
+            ≤ (Finset.image (fun j => (latentPartition M n).assign j) S.toFinset).card :=
+              Finset.card_le_card himage
+          _ ≤ S.toFinset.card := Finset.card_image_le
+          _ ≤ S.length := by
+              exact Multiset.toFinset_card_le ⟦S⟧
     _ = Nat.log 2 n := hlen
 
 /-- Each block has exactly 4 variables (the 4 layer slots). -/
