@@ -230,4 +230,11 @@ theorem latent_compiled_tableau_bound_proved_from_item3_uniform2 (M : DTM) (n : 
     latent_compiled_tableau_bound_logscale M n hn hn804 :=
   latent_compiled_tableau_bound_logscale_from_item3_uniform2 M n hn hn804 h3u2
 
+/-- Strong-source wrapper: route directly from the span160 witness shape. -/
+theorem latent_compiled_tableau_bound_proved_from_span160 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (h160 : latent_p_witness_span160_logscale M n hn hn804) :
+    latent_compiled_tableau_bound_logscale M n hn hn804 :=
+  latent_compiled_tableau_bound_logscale_from_span160_witness M n hn hn804 h160
+
 end CompilerProperties
