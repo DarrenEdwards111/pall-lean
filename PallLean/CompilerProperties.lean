@@ -200,43 +200,31 @@ theorem latentCompiledPoly_rank_le_three_times_sheet_rank (M : DTM) (n : ℕ)
           exact mlBlockedSpdpRank_add_le (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
             (machCopySheet M n) (copyConSheet M n)
 
-/-- For a single product sheet ∏ᵢ gᵢ where each gᵢ is block-local,
-the SPDP rank at κ = log₂ n is at most C(L, κ) · 2^κ where L = latentBaseVars.
-But by the profile compression argument: at most C(κ+1, κ) · 2^κ = (κ+1) · 2^κ ≤ n^2.
+/-- Hypothesis form of the per-sheet bound.
 
-More precisely: each derivative support of size κ hits at most κ blocks.
-Within each hit block, the gadget contributes a 2-dim space.
-The product over κ blocks gives dim ≤ 2^κ = n (since κ = log₂ n, 2^κ ≤ n).
-Profile count (number of ways to allocate κ derivatives to ≤κ blocks with ≤1 per block)
-= C(L, κ) but by block-admissibility the allocation is exactly a κ-subset of L blocks,
-and the profile is determined by which blocks are hit → C(L, κ).
-But we don't need the raw count; the rank is bounded by
-  (number of profiles) × (within-profile dim) ≤ C(L,κ) × 2^κ.
-For L = latentBaseVars ≤ poly(n) and κ = log₂ n:
-  C(L, κ) ≤ L^κ / κ! ≤ n^{O(1)·log n} — this is QUASI-POLYNOMIAL, not polynomial!
-
-The paper's trick (profile compression) is needed: group by HISTOGRAM of block types,
-not by which blocks are hit. Since all gadgets are identical type (1 - X_a·X_b),
-there is only 1 interface type → only 1 possible profile histogram → |H| = 1!
-
-Therefore: rank of each sheet ≤ 1 × 2^κ ≤ n. Total ≤ 3n ≤ n^200. -/
-theorem single_sheet_rank_le_n (M : DTM) (n : ℕ)
+At this layer we treat the `single_sheet_rank_le_n` estimate as an explicit input,
+rather than claiming a fully internal derivation from the current library. -/
+theorem single_sheet_rank_le_n_from_hyp (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
     (sheet : MvPolynomial (Fin (latentNumVars M n)) ℚ)
     (hsheet : sheet = machCopySheet M n ∨ sheet = copyConSheet M n ∨
-              sheet = selConSheet M n) :
-    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n) sheet ≤ n := by
-  sorry
+              sheet = selConSheet M n)
+    (hSheetRank : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n) sheet ≤ n) :
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n) sheet ≤ n :=
+  hSheetRank
 
 /-- The compiled tableau polynomial has SPDP rank ≤ 3n ≤ n^200. -/
 theorem latent_compiled_tableau_bound_proved (M : DTM) (n : ℕ)
-    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804) :
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hMach : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n) (machCopySheet M n) ≤ n)
+    (hCopy : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n) (copyConSheet M n) ≤ n)
+    (hSel : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n) (selConSheet M n) ≤ n) :
     latent_compiled_tableau_bound_logscale M n hn hn804 := by
   unfold latent_compiled_tableau_bound_logscale
   have h3 := latentCompiledPoly_rank_le_three_times_sheet_rank M n hn hn804
-  have hm := single_sheet_rank_le_n M n hn hn804 (machCopySheet M n) (Or.inl rfl)
-  have hc := single_sheet_rank_le_n M n hn hn804 (copyConSheet M n) (Or.inr (Or.inl rfl))
-  have hs := single_sheet_rank_le_n M n hn hn804 (selConSheet M n) (Or.inr (Or.inr rfl))
+  have hm := single_sheet_rank_le_n_from_hyp M n hn hn804 (machCopySheet M n) (Or.inl rfl) hMach
+  have hc := single_sheet_rank_le_n_from_hyp M n hn hn804 (copyConSheet M n) (Or.inr (Or.inl rfl)) hCopy
+  have hs := single_sheet_rank_le_n_from_hyp M n hn hn804 (selConSheet M n) (Or.inr (Or.inr rfl)) hSel
   have hn4 : 4 ≤ n := le_trans (le_max_left 4 M.numStates) hn
   have hn1 : 1 ≤ n := by omega
   -- rank(compiled) ≤ rank(sheet1) + rank(sheet2) + rank(sheet3) ≤ n + n + n = 3n ≤ n^200
