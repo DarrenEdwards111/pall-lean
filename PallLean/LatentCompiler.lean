@@ -94,12 +94,36 @@ theorem selSlot_injective (M : DTM) (n : ℕ) : Function.Injective (selSlot M n)
   simp [selSlot, slot] at hab
   exact Fin.ext (by omega)
 
+/-- Under latentPartition, machine slot i lands in block i. -/
+theorem latentPartition_assign_machSlot (M : DTM) (n : ℕ)
+    (i : Fin (latentBaseVars M n)) :
+    (latentPartition M n).assign (machSlot M n i) = i := by
+  apply Fin.ext
+  simp [latentPartition, machSlot, slot]
+
+/-- Under latentPartition, copy slot i lands in block i. -/
+theorem latentPartition_assign_copySlot (M : DTM) (n : ℕ)
+    (i : Fin (latentBaseVars M n)) :
+    (latentPartition M n).assign (copySlot M n i) = i := by
+  apply Fin.ext
+  simp [latentPartition, copySlot, slot]
+  omega
+
+/-- Under latentPartition, consistency slot i lands in block i. -/
+theorem latentPartition_assign_conSlot (M : DTM) (n : ℕ)
+    (i : Fin (latentBaseVars M n)) :
+    (latentPartition M n).assign (conSlot M n i) = i := by
+  apply Fin.ext
+  simp [latentPartition, conSlot, slot]
+  omega
+
 /-- Under latentPartition, selector slot i lands in block i. -/
 theorem latentPartition_assign_selSlot (M : DTM) (n : ℕ)
     (i : Fin (latentBaseVars M n)) :
     (latentPartition M n).assign (selSlot M n i) = i := by
+  apply Fin.ext
   simp [latentPartition, selSlot, slot]
-  exact Fin.ext (by simp; omega)
+  omega
 
 /-- Admissibility of selector-slot lists: one selector slot per base block. -/
 theorem selSlotList_admissible (M : DTM) (n : ℕ)

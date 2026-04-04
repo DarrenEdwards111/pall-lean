@@ -28,15 +28,22 @@ theorem machCopyGadget_vars_in_block (M : DTM) (n : ℕ) (i : Fin (latentBaseVar
     ∀ v ∈ (machCopyGadget M n i).vars,
       (latentPartition M n).assign v = i := by
   intro v hv
-  simp only [machCopyGadget, Xmach, Xcopy, machSlot, copySlot, slot] at hv
-  -- The polynomial 1 - X_(4i) * X_(4i+1) has vars ⊆ {4i, 4i+1}
-  -- Both 4i/4 = i and (4i+1)/4 = i
-  simp only [latentPartition]
-  have hv_sub : v.val = 4 * i.val ∨ v.val = 4 * i.val + 1 := by
-    sorry -- vars(1 - X_a * X_b) ⊆ {a, b}
-  cases hv_sub with
-  | inl h => exact Fin.ext (by simp; omega)
-  | inr h => exact Fin.ext (by simp; omega)
+  have hsub := (MvPolynomial.vars_sub_subset
+    (p := (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ))
+    (q := (X (machSlot M n i) * X (copySlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ)))
+  have hv1 : v ∈ (X (machSlot M n i) * X (copySlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ).vars := by
+    have huv : v ∈ (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ).vars ∪
+        (X (machSlot M n i) * X (copySlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ).vars := by
+      simpa [machCopyGadget, Xmach, Xcopy] using hsub hv
+    have hnot : v ∉ (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ).vars := by
+      simpa using (MvPolynomial.not_mem_vars_C (1 : ℚ) v)
+    exact (Finset.mem_union.mp huv).resolve_left hnot
+  have hv' := (MvPolynomial.vars_mul (X (machSlot M n i)) (X (copySlot M n i))) hv1
+  have hv'' : v = machSlot M n i ∨ v = copySlot M n i := by
+    simpa [MvPolynomial.vars_X, Finset.mem_union, Finset.mem_singleton] using hv'
+  cases hv'' with
+  | inl h => simpa [h] using latentPartition_assign_machSlot M n i
+  | inr h => simpa [h] using latentPartition_assign_copySlot M n i
 
 /-- Each copyConGadget touches only variables in block i. -/
 theorem copyConGadget_vars_in_block (M : DTM) (n : ℕ) (i : Fin (latentBaseVars M n)) :
