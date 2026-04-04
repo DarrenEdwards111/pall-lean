@@ -119,8 +119,24 @@ theorem latentCompiledPoly_rank_le_three_times_sheet_rank (M : DTM) (n : ℕ)
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (selConSheet M n) := by
   unfold latentCompiledPoly
-  -- Use SPDP subadditivity: rank(p+q) ≤ rank(p) + rank(q)
-  sorry
+  calc
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (machCopySheet M n + copyConSheet M n + selConSheet M n)
+      ≤ mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (machCopySheet M n + copyConSheet M n)
+        + mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (selConSheet M n) :=
+        mlBlockedSpdpRank_add_le (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (machCopySheet M n + copyConSheet M n) (selConSheet M n)
+    _ ≤ mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (machCopySheet M n)
+        + mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (copyConSheet M n)
+        + mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (selConSheet M n) := by
+          gcongr
+          exact mlBlockedSpdpRank_add_le (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+            (machCopySheet M n) (copyConSheet M n)
 
 /-- For a single product sheet ∏ᵢ gᵢ where each gᵢ is block-local,
 the SPDP rank at κ = log₂ n is at most C(L, κ) · 2^κ where L = latentBaseVars.
