@@ -216,4 +216,11 @@ theorem latent_compiled_tableau_bound_proved_from_construction_data (M : DTM) (n
     latent_compiled_tableau_bound_logscale M n hn hn804 :=
   latent_compiled_tableau_bound_logscale_from_construction_data M n hn hn804 hData
 
+/-- Parallel wrapper: route from the frozen Move-1 target witness shape. -/
+theorem latent_compiled_tableau_bound_proved_from_p_witness_target (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hTarget : latent_p_witness_target_logscale M n hn hn804) :
+    latent_compiled_tableau_bound_logscale M n hn hn804 :=
+  latent_compiled_tableau_bound_logscale_from_p_witness_target M n hn hn804 hTarget
+
 end CompilerProperties
