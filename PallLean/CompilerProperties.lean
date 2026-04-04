@@ -208,4 +208,12 @@ theorem latent_compiled_tableau_bound_proved (M : DTM) (n : ℕ)
     latent_compiled_tableau_bound_logscale M n hn hn804 :=
   latent_compiled_tableau_bound_logscale_from_span_card_bound M n hn hn804 hSpan
 
+/-- Next-step wrapper: if you have the explicit construction-data package,
+recover the same compiled-tableau bound without any local axioms. -/
+theorem latent_compiled_tableau_bound_proved_from_construction_data (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hData : latent_profile_block_cover_construction_data_logscale M n hn hn804) :
+    latent_compiled_tableau_bound_logscale M n hn hn804 :=
+  latent_compiled_tableau_bound_logscale_from_construction_data M n hn hn804 hData
+
 end CompilerProperties
