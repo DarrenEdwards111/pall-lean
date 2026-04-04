@@ -240,9 +240,10 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_item3_uniform2 (h : PeqNP) (n : 
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have pSpan : latent_profile_span_card_bound_logscale M n hnM hn804 :=
-    latent_profile_span_card_bound_logscale_from_item3_uniform2 M n hnM hn804 p3u2
-  exact P_neq_NP_latent_from_finer_decomp_and_p_span_card h n hn idxList hnd hlen hfinj pSpan
+  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
+    latent_compiled_tableau_bound_logscale_from_item3_uniform2 M n hnM hn804 p3u2
+  exact P_neq_NP_latent_from_finer_decomp_and_compiled_tableau_bound
+    h n hn idxList hnd hlen hfinj hCompiled
 
 /-- More constructive P-entry: provide an explicit global finite span witness `G`
 and an explicit 40×160 bucketization of `G`, then block-cover follows automatically. -/
@@ -489,9 +490,9 @@ theorem P_neq_NP_latent_from_p_item3_uniform2 (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have pCover : latent_profile_block_cover_logscale M n hnM hn804 :=
-    latent_profile_block_cover_from_item3_uniform2 M n hnM hn804 p3u2
-  exact P_neq_NP_latent_from_p_block_cover h n hn pCover
+  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
+    latent_compiled_tableau_bound_logscale_from_item3_uniform2 M n hnM hn804 p3u2
+  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn hCompiled
 
 /-- Frozen canonical final entrypoint (Move-1):
 assume exactly `latent_p_witness_target_logscale` on the P side. -/

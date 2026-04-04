@@ -1282,6 +1282,15 @@ theorem latent_profile_assembly_logscale_from_span_card_bound (M : DTM) (n : ℕ
     latent_profile_assembly_logscale M n hn hn804 :=
   latent_compiled_tableau_bound_logscale_from_span_card_bound M n hn hn804 hSpan
 
+/-- Direct compiled-tableau bound from Item-3 + uniform-Item-2 package. -/
+theorem latent_compiled_tableau_bound_logscale_from_item3_uniform2 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (h3u2 : latent_profile_block_cover_item3_uniform2_logscale M n hn hn804) :
+    latent_compiled_tableau_bound_logscale M n hn hn804 :=
+  latent_compiled_tableau_bound_logscale_from_span_card_bound M n hn hn804
+    (latent_profile_span_card_bound_logscale_from_item3_uniform2 M n hn hn804 h3u2)
+
 /-- Direct compiled-tableau bound from functional bucket schema. -/
 theorem latent_compiled_tableau_bound_logscale_from_bucket_function (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
