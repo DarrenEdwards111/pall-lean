@@ -279,8 +279,12 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_global_span_bucket (h : PeqNP) (
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  rcases pGB with ⟨G, hSpan, hBuck⟩
-  exact P_neq_NP_latent_from_finer_decomp_and_p_span_bucket h n hn idxList hnd hlen hfinj G hSpan hBuck
+  have pData : latent_profile_block_cover_construction_data_logscale M n hnM hn804 :=
+    latent_profile_block_cover_construction_data_from_global_span_and_bucket M n hnM hn804 pGB
+  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
+    latent_compiled_tableau_bound_logscale_from_construction_data M n hnM hn804 pData
+  exact P_neq_NP_latent_from_finer_decomp_and_compiled_tableau_bound
+    h n hn idxList hnd hlen hfinj hCompiled
 
 /-- Most concrete current P entry: explicit construction data package
 (global `G`, span inclusion, explicit `(I,Gprof)` bucketization identity and bound). -/
@@ -465,10 +469,11 @@ theorem P_neq_NP_latent_from_p_global_span_bucket (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  rcases pGB with ⟨G, hSpan, hBuck⟩
-  have pCover : latent_profile_block_cover_logscale M n hnM hn804 :=
-    latent_profile_block_cover_logscale_from_span_and_bucketization M n hnM hn804 G hSpan hBuck
-  exact P_neq_NP_latent_from_p_block_cover h n hn pCover
+  have pData : latent_profile_block_cover_construction_data_logscale M n hnM hn804 :=
+    latent_profile_block_cover_construction_data_from_global_span_and_bucket M n hnM hn804 pGB
+  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
+    latent_compiled_tableau_bound_logscale_from_construction_data M n hnM hn804 pData
+  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn hCompiled
 
 /-- Move-4 canonical route: Item-3 with uniform `n^120` bound. -/
 theorem P_neq_NP_latent_from_p_item3_uniform120 (h : PeqNP) (n : ℕ)
@@ -560,12 +565,7 @@ theorem P_neq_NP_latent_from_p_bucket_function_via_block_cover (h : PeqNP) (n : 
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
     (pFun : latent_profile_bucket_function_bound_logscale h.sat_decider n
       (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
-  let M := h.sat_decider
-  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
-  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have pCover : latent_profile_block_cover_logscale M n hnM hn804 :=
-    (latent_profile_block_cover_iff_bucket_function M n hnM hn804).2 pFun
-  exact P_neq_NP_latent_from_p_block_cover h n hn pCover
+  exact P_neq_NP_latent_from_p_bucket_function_via_compiled h n hn pFun
 
 /-- Symmetric canonical-NP bridge: block-cover witness can be routed through
 bucket-function equivalence before entering the canonical final route. -/
@@ -573,12 +573,7 @@ theorem P_neq_NP_latent_from_p_block_cover_via_bucket_function (h : PeqNP) (n : 
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
     (pCover : latent_profile_block_cover_logscale h.sat_decider n
       (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
-  let M := h.sat_decider
-  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
-  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have pFun : latent_profile_bucket_function_bound_logscale M n hnM hn804 :=
-    (latent_profile_block_cover_iff_bucket_function M n hnM hn804).1 pCover
-  exact P_neq_NP_latent_from_p_bucket_function h n hn pFun
+  exact P_neq_NP_latent_from_p_block_cover_via_compiled h n hn pCover
 
 /-- Convenience bridge: block-cover input can be normalized to construction-data,
 then fed through the most concrete construction-data route. -/
