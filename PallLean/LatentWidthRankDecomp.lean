@@ -393,6 +393,19 @@ def latent_profile_block_cover_item3_uniform120_logscale (M : DTM) (n : ℕ)
         ≤ Submodule.span ℚ (↑(I.biUnion (fun i => Gprof i))
             : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))
 
+/-- Uniform-120 implies uniform-160 (monotone weakening of the per-profile cap). -/
+theorem latent_profile_block_cover_item3_uniform2_from_item3_uniform120 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (h3120 : latent_profile_block_cover_item3_uniform120_logscale M n hn hn804) :
+    latent_profile_block_cover_item3_uniform2_logscale M n hn hn804 := by
+  rcases h3120 with ⟨I, Gprof, h120, hSpan⟩
+  have hn1 : 1 ≤ n := le_trans (by decide : 1 ≤ 4) (le_trans (le_max_left 4 M.numStates) hn)
+  have hpow : n ^ 120 ≤ n ^ 160 := Nat.pow_le_pow_right hn1 (by decide : 120 ≤ 160)
+  refine ⟨I, Gprof, ?_, hSpan⟩
+  intro i
+  exact le_trans (h120 i) hpow
+
 /-- Do-1 constructive item (P-side): existence of a finite global span witness `G`
 for the logscale blocked-SPDP subspace. -/
 def latent_global_span_witness_logscale (M : DTM) (n : ℕ)
@@ -677,7 +690,7 @@ theorem latent_p_witness_target_from_global_span_bucket (M : DTM) (n : ℕ)
   exact latent_p_witness_target_from_construction_data M n hn hn804
     (latent_profile_block_cover_construction_data_from_global_span_and_bucket M n hn hn804 hGB)
 
-/-- Move-1 freeze bridge: Item-3+uniform-Item-2 witness -> canonical target witness. -/
+/-- Item-3+uniform-Item-2 directly yields the frozen Move-1 target witness. -/
 theorem latent_p_witness_target_from_item3_uniform2 (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804)
@@ -689,6 +702,40 @@ theorem latent_p_witness_target_from_item3_uniform2 (M : DTM) (n : ℕ)
     intro i hi
     exact hUni i
   exact latent_p_witness_target_from_block_cover M n hn hn804 hCover
+
+/-- Core locality bridge: a functional bucket witness immediately gives
+Item-3 + uniform-Item-2 (shared witnesses). -/
+theorem latent_profile_block_cover_item3_uniform2_from_bucket_function (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hFun : latent_profile_bucket_function_bound_logscale M n hn hn804) :
+    latent_profile_block_cover_item3_uniform2_logscale M n hn hn804 := by
+  rcases hFun with ⟨G, profileId, hSpan, hBound⟩
+  let I : Finset (Fin (n ^ 40)) := Finset.univ
+  let Gprof : Fin (n ^ 40) → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
+    fun i => G.filter (fun g => profileId g = i)
+  refine ⟨I, Gprof, ?_, ?_⟩
+  · intro i
+    simpa [Gprof] using hBound i
+  · have hUnion : I.biUnion (fun i => Gprof i) = G := by
+      ext x
+      constructor
+      · intro hx
+        rcases Finset.mem_biUnion.mp hx with ⟨i, _hi, hxi⟩
+        exact (Finset.mem_filter.mp hxi).1
+      · intro hx
+        refine Finset.mem_biUnion.mpr ?_
+        refine ⟨profileId x, Finset.mem_univ _, ?_⟩
+        exact Finset.mem_filter.mpr ⟨hx, rfl⟩
+    simpa [I, Gprof, hUnion] using hSpan
+
+/-- Frozen target witness implies Item-3 + uniform-Item-2. -/
+theorem latent_profile_block_cover_item3_uniform2_from_p_witness_target (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hTarget : latent_p_witness_target_logscale M n hn hn804) :
+    latent_profile_block_cover_item3_uniform2_logscale M n hn hn804 :=
+  latent_profile_block_cover_item3_uniform2_from_bucket_function M n hn hn804 hTarget
 
 /-- Move-2 strengthening target: a single finite span witness `G` with `|G| ≤ n^160`.
 
@@ -924,6 +971,15 @@ theorem latent_p_witness_target_from_span160 (M : DTM) (n : ℕ)
       · intro hg
         exact False.elim (by simpa using hg)
     simp [hempty]
+
+/-- Strong span160 witness implies Item-3 + uniform-Item-2. -/
+theorem latent_profile_block_cover_item3_uniform2_from_span160 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (h160 : latent_p_witness_span160_logscale M n hn hn804) :
+    latent_profile_block_cover_item3_uniform2_logscale M n hn hn804 := by
+  exact latent_profile_block_cover_item3_uniform2_from_p_witness_target M n hn hn804
+    (latent_p_witness_target_from_span160 M n hn hn804 h160)
 
 /-- Do-2 projection: extract explicit bucketization from the combined package. -/
 theorem latent_bucketization_40_160_from_global_span_and_bucket (M : DTM) (n : ℕ)
