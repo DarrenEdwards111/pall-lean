@@ -200,20 +200,12 @@ theorem latentCompiledPoly_rank_le_three_times_sheet_rank (M : DTM) (n : ℕ)
           exact mlBlockedSpdpRank_add_le (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
             (machCopySheet M n) (copyConSheet M n)
 
-/-- Replacement frontier statement (paper-faithful):
-
-Bound the compiled polynomial directly, rather than via per-sheet product bounds.
-This matches the CEW/profile-compression route in `LatentWidthRankDecomp`. -/
-axiom latentCompiledPoly_rank_le_n200_frontier (M : DTM) (n : ℕ)
-    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804) :
-    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      (latentCompiledPoly M n) ≤ n ^ 200
-
-/-- The compiled tableau polynomial bound now follows directly from the frontier statement. -/
+/-- Axiom-free wrapper: if the profile span-card witness is available, the compiled
+rank bound follows by existing width⇒rank machinery in `LatentWidthRankDecomp`. -/
 theorem latent_compiled_tableau_bound_proved (M : DTM) (n : ℕ)
-    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804) :
-    latent_compiled_tableau_bound_logscale M n hn hn804 := by
-  unfold latent_compiled_tableau_bound_logscale
-  exact latentCompiledPoly_rank_le_n200_frontier M n hn hn804
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hSpan : latent_profile_span_card_bound_logscale M n hn hn804) :
+    latent_compiled_tableau_bound_logscale M n hn hn804 :=
+  latent_compiled_tableau_bound_logscale_from_span_card_bound M n hn hn804 hSpan
 
 end CompilerProperties
