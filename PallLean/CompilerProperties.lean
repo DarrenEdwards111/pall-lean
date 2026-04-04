@@ -72,13 +72,22 @@ theorem selConGadget_vars_in_block (M : DTM) (n : ℕ) (i : Fin (latentBaseVars 
     ∀ v ∈ (selConGadget M n i).vars,
       (latentPartition M n).assign v = i := by
   intro v hv
-  simp only [selConGadget, Xsel, Xcon, selSlot, conSlot, slot] at hv
-  simp only [latentPartition]
-  have hv_sub : v.val = 4 * i.val + 2 ∨ v.val = 4 * i.val + 3 := by
-    sorry -- vars of (1 - X_(4i+2) * X_(4i+3)) ⊆ {4i+2, 4i+3}
-  cases hv_sub with
-  | inl h => exact Fin.ext (by simp; omega)
-  | inr h => exact Fin.ext (by simp; omega)
+  have hsub := (MvPolynomial.vars_sub_subset
+    (p := (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ))
+    (q := (X (selSlot M n i) * X (conSlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ)))
+  have hv1 : v ∈ (X (selSlot M n i) * X (conSlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ).vars := by
+    have huv : v ∈ (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ).vars ∪
+        (X (selSlot M n i) * X (conSlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ).vars := by
+      simpa [selConGadget, Xsel, Xcon] using hsub hv
+    have hnot : v ∉ (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ).vars := by
+      simpa using (MvPolynomial.not_mem_vars_C (1 : ℚ) v)
+    exact (Finset.mem_union.mp huv).resolve_left hnot
+  have hv' := (MvPolynomial.vars_mul (X (selSlot M n i)) (X (conSlot M n i))) hv1
+  have hv'' : v = selSlot M n i ∨ v = conSlot M n i := by
+    simpa [MvPolynomial.vars_X, Finset.mem_union, Finset.mem_singleton] using hv'
+  cases hv'' with
+  | inl h => simpa [h] using latentPartition_assign_selSlot M n i
+  | inr h => simpa [h] using latentPartition_assign_conSlot M n i
 
 /-- Each sheet is a product of per-block-local gadgets (P1: radius-1 locality).
 Gadget i only involves variables in block i. -/
