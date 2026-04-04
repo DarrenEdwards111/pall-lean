@@ -123,7 +123,44 @@ theorem block_size_eq_four (M : DTM) (n : ℕ) (b : Fin (latentBaseVars M n))
     (hn : 0 < latentBaseVars M n) :
     (Finset.univ.filter (fun j : Fin (latentNumVars M n) =>
       (latentPartition M n).assign j = b)).card = 4 := by
-  sorry -- Each block b contains exactly {4b, 4b+1, 4b+2, 4b+3}
+  classical
+  have hcard : Fintype.card {j : Fin (latentNumVars M n) // (latentPartition M n).assign j = b} = 4 := by
+    let e : {j : Fin (latentNumVars M n) // (latentPartition M n).assign j = b} ≃ Fin 4 :=
+      { toFun := fun x => ⟨x.1.1 % 4, Nat.mod_lt _ (by decide)⟩
+        , invFun := fun k =>
+            ⟨⟨4 * b.1 + k.1, by
+                change 4 * b.1 + k.1 < 4 * latentBaseVars M n
+                omega⟩, by
+                apply Fin.ext
+                simp [latentPartition]
+                omega⟩
+        , left_inv := by
+            intro x
+            apply Subtype.ext
+            apply Fin.ext
+            have hxdiv : x.1.1 / 4 = b.1 := congrArg Fin.val x.2
+            have hdecomp : 4 * (x.1.1 / 4) + x.1.1 % 4 = x.1.1 := Nat.div_add_mod x.1.1 4
+            calc
+              4 * b.1 + x.1.1 % 4 = 4 * (x.1.1 / 4) + x.1.1 % 4 := by simpa [hxdiv]
+              _ = x.1.1 := by omega
+        , right_inv := by
+            intro k
+            apply Fin.ext
+            have hk : k.1 < 4 := k.2
+            calc
+              (4 * b.1 + k.1) % 4 = ((4 * b.1) % 4 + k.1 % 4) % 4 := by simpa using Nat.add_mod (4 * b.1) k.1 4
+              _ = (0 + k.1 % 4) % 4 := by simp
+              _ = k.1 := by simpa [Nat.mod_eq_of_lt hk] }
+    exact Fintype.card_congr e
+  let p : Fin (latentNumVars M n) → Prop := fun j => (latentPartition M n).assign j = b
+  have hfilter : (Finset.univ.filter p).card = Fintype.card {j : Fin (latentNumVars M n) // p j} := by
+    calc
+      (Finset.univ.filter p).card = (Finset.univ.subtype p).card := by
+        symm
+        simpa using (Finset.card_subtype p (Finset.univ : Finset (Fin (latentNumVars M n))))
+      _ = Fintype.card {j : Fin (latentNumVars M n) // p j} := by
+        simpa using (Finset.card_univ : (Finset.univ : Finset {j : Fin (latentNumVars M n) // p j}).card = _)
+  simpa [p] using hfilter.trans hcard
 
 /-- Within a single block, each gadget polynomial (1 - X_a * X_b) has
 at most 2 monomials, hence its multilinear part spans a space of dimension ≤ 2. -/
