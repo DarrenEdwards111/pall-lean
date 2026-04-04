@@ -300,9 +300,10 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_construction_data (h : PeqNP) (n
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have pGB : latent_global_span_and_bucket_logscale M n hnM hn804 :=
-    latent_global_span_and_bucket_logscale_from_construction_data M n hnM hn804 pData
-  exact P_neq_NP_latent_from_finer_decomp_and_p_global_span_bucket h n hn idxList hnd hlen hfinj pGB
+  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
+    latent_compiled_tableau_bound_logscale_from_construction_data M n hnM hn804 pData
+  exact P_neq_NP_latent_from_finer_decomp_and_compiled_tableau_bound
+    h n hn idxList hnd hlen hfinj hCompiled
 
 /-- Fully normalized contradiction route:
 NP-side is instantiated canonically (no external idxList inputs), and the
@@ -315,14 +316,14 @@ theorem P_neq_NP_latent_from_p_construction_data_via_core (h : PeqNP) (n : ℕ)
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
 
-  -- Canonical NP data (no external idxList/hnd/hlen/hfinj needed)
   have hCoeff : selCon_kronecker_coeff_law_logscale M n hn804 :=
     selCon_kronecker_coeff_law_logscale_from_canonical_idxList M n hn804
   have npData : selCon_kronecker_data_logscale M n hn804 := hCoeff
 
-  -- P-data package reduced to core profile assembly from construction data
+  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
+    latent_compiled_tableau_bound_logscale_from_construction_data M n hnM hn804 pData
   have pCore : latent_profile_assembly_logscale M n hnM hn804 :=
-    latent_profile_assembly_logscale_from_construction_data M n hnM hn804 pData
+    (latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hnM hn804).2 hCompiled
   have pAsm : theorem216_p_obligation M n hnM hn804 :=
     theorem216_profile_data_logscale_from_core M n hnM hn804
       (theorem9_profile_count_obligation_proved M n hn804)
