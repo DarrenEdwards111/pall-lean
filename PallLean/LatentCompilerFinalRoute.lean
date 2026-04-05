@@ -756,6 +756,19 @@ theorem no_PeqNP_of_uniform_concrete_locality_profile_structure
       (hnM_of_hn h n hn) (hn804_of_hn h n hn) (hLoc h n hn))
 
 /-- Global closure theorem:
+if the concrete locality/profile structure is available uniformly, then the
+paper's span-card witness is also uniformly available, and `PeqNP` is impossible. -/
+theorem no_PeqNP_of_uniform_concrete_locality_profile_structure_via_span_card
+    (hLoc : ∀ (h : PeqNP) (n : ℕ),
+      (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)) →
+      concrete_locality_profile_structure_logscale h.sat_decider n
+        (hnM_of_hn h n hn) (hn804_of_hn h n hn)) :
+    PeqNP → False := by
+  exact no_PeqNP_of_uniform_span_card (fun h n hn =>
+    latent_profile_span_card_bound_from_concrete_locality_profile_structure h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn) (hLoc h n hn))
+
+/-- Global closure theorem:
 if a uniform span160 witness is available at contradiction scale,
 then `PeqNP` is impossible. -/
 theorem no_PeqNP_of_uniform_span160

@@ -1130,6 +1130,7 @@ theorem latent_profile_block_cover_from_concrete_locality_profile_structure (M :
     latent_profile_block_cover_logscale M n hn hn804 :=
   latent_profile_block_cover_from_item3_uniform2 M n hn hn804 hLoc
 
+
 /-- Move-4 bridge: Item-3 with uniform `n^120` bound gives the `(40,120)` parts package. -/
 theorem latent_profile_span_card_parts_40_120_from_item3_uniform120 (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
@@ -1224,6 +1225,15 @@ theorem latent_profile_span_card_bound_logscale_from_item3_uniform2 (M : DTM) (n
   have hParts : latent_profile_span_card_parts_logscale M n hn hn804 :=
     latent_profile_span_card_parts_logscale_from_block_cover M n hn hn804 hCover
   exact latent_profile_span_card_bound_logscale_from_parts M n hn hn804 hParts
+
+/-- Internal bridge: concrete locality/profile structure also yields the finite
+span-card witness directly (the §9 polynomial-cardinality package). -/
+theorem latent_profile_span_card_bound_from_concrete_locality_profile_structure (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hLoc : concrete_locality_profile_structure_logscale M n hn hn804) :
+    latent_profile_span_card_bound_logscale M n hn hn804 :=
+  latent_profile_span_card_bound_logscale_from_item3_uniform2 M n hn hn804 hLoc
 
 /-- Direct span-card witness from functional bucket schema. -/
 theorem latent_profile_span_card_bound_logscale_from_bucket_function (M : DTM) (n : ℕ)
