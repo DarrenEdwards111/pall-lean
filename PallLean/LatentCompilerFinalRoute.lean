@@ -2,6 +2,7 @@ import PallLean.LatentCompiler
 import PallLean.LatentWidthRankDecomp
 import PallLean.LatentWitnessMinorDecomp
 import PallLean.SelConClosedCoeffDecomp
+import PallLean.CompilerProperties
 import Mathlib.Tactic
 
 /-!
@@ -18,6 +19,7 @@ open LatentCompiler
 open LatentWidthRankDecomp
 open LatentWitnessMinorDecomp
 open SelConClosedCoeffDecomp
+open CompilerProperties
 
 /-- NP hard-witness theorem at contradiction scale.
 Now sourced from a single direct NP-side obligation. -/
@@ -522,8 +524,15 @@ theorem P_neq_NP_latent_from_p_span160 (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  have hAny :
+      latent_profile_block_cover_item3_uniform2_logscale M n hnM hn804 ∨
+      latent_p_witness_span160_logscale M n hnM hn804 ∨
+      latent_p_witness_target_logscale M n hnM hn804 ∨
+      latent_profile_block_cover_construction_data_logscale M n hnM hn804 ∨
+      latent_profile_span_card_bound_logscale M n hnM hn804 :=
+    latent_any_source_of_span160 M n hnM hn804 p160
   have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
-    latent_compiled_tableau_bound_logscale_from_span160_witness M n hnM hn804 p160
+    latent_compiled_tableau_bound_proved_from_any_source M n hnM hn804 hAny
   exact P_neq_NP_latent_from_compiled_tableau_bound h n hn hCompiled
 
 /-- Move-5 complete route from an explicit `n^160` rank bound hypothesis.
