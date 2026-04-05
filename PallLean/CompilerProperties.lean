@@ -244,4 +244,22 @@ theorem latent_compiled_tableau_bound_proved_from_span160 (M : DTM) (n : ℕ)
     latent_compiled_tableau_bound_logscale M n hn hn804 :=
   latent_compiled_tableau_bound_logscale_from_span160_witness M n hn hn804 h160
 
+/-- Consolidated entrypoint: any approved witness source yields the same
+compiled-tableau bound. This lets downstream lemmas depend on one theorem. -/
+theorem latent_compiled_tableau_bound_proved_from_any_source (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hAny :
+      latent_profile_block_cover_item3_uniform2_logscale M n hn hn804 ∨
+      latent_p_witness_span160_logscale M n hn hn804 ∨
+      latent_p_witness_target_logscale M n hn hn804 ∨
+      latent_profile_block_cover_construction_data_logscale M n hn hn804 ∨
+      latent_profile_span_card_bound_logscale M n hn hn804) :
+    latent_compiled_tableau_bound_logscale M n hn hn804 := by
+  rcases hAny with h3u2 | h160 | hTarget | hData | hSpan
+  · exact latent_compiled_tableau_bound_proved_from_item3_uniform2 M n hn hn804 h3u2
+  · exact latent_compiled_tableau_bound_proved_from_span160 M n hn hn804 h160
+  · exact latent_compiled_tableau_bound_proved_from_p_witness_target M n hn hn804 hTarget
+  · exact latent_compiled_tableau_bound_proved_from_construction_data M n hn hn804 hData
+  · exact latent_compiled_tableau_bound_proved_from_span_card M n hn hn804 hSpan
+
 end CompilerProperties
