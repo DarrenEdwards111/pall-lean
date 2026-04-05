@@ -656,6 +656,29 @@ theorem no_PeqNP_of_uniform_construction_data
   exact P_neq_NP_latent_from_p_construction_data h n hn (hData h n hn)
 
 /-- Global closure theorem:
+if the bucket-function witness is available uniformly at contradiction scale,
+then `PeqNP` is impossible (by normalization to construction-data). -/
+theorem no_PeqNP_of_uniform_bucket_function
+    (hFun : ∀ (h : PeqNP) (n : ℕ),
+      (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)) →
+      latent_profile_bucket_function_bound_logscale h.sat_decider n
+        (hnM_of_hn h n hn) (hn804_of_hn h n hn)) :
+    PeqNP → False := by
+  intro h
+  let n : ℕ := max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)
+  have hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804) := by
+    exact le_rfl
+  have hnM : n ≥ max 4 h.sat_decider.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  have pFun : latent_profile_bucket_function_bound_logscale h.sat_decider n hnM hn804 :=
+    hFun h n hn
+  have pData : latent_profile_block_cover_construction_data_logscale h.sat_decider n hnM hn804 :=
+    latent_profile_block_cover_construction_data_from_bucket_function h.sat_decider n hnM hn804 pFun
+  exact no_PeqNP_of_uniform_construction_data (fun h' n' hn' =>
+    latent_profile_block_cover_construction_data_from_bucket_function h'.sat_decider n'
+      (hnM_of_hn h' n' hn') (hn804_of_hn h' n' hn') (hFun h' n' hn')) h
+
+/-- Global closure theorem:
 if the compiled-tableau upper bound is available uniformly at contradiction scale,
 then `PeqNP` is impossible. -/
 theorem no_PeqNP_of_uniform_compiled_tableau_bound
