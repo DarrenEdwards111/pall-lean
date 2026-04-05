@@ -708,6 +708,23 @@ theorem no_PeqNP_of_uniform_any_compiler_source
   exact P_neq_NP_latent_from_compiled_tableau_bound h n hn hCompiled
 
 /-- Global closure theorem:
+if a uniform block-cover witness is available at contradiction scale,
+then `PeqNP` is impossible.
+
+This is the direct closure form for the paper's constructive profile-cover target. -/
+theorem no_PeqNP_of_uniform_block_cover
+    (hCover : ∀ (h : PeqNP) (n : ℕ),
+      (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)) →
+      latent_profile_block_cover_logscale h.sat_decider n
+        (hnM_of_hn h n hn) (hn804_of_hn h n hn)) :
+    PeqNP → False := by
+  intro h
+  let n : ℕ := max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)
+  have hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804) := by
+    exact le_rfl
+  exact P_neq_NP_latent_from_p_block_cover h n hn (hCover h n hn)
+
+/-- Global closure theorem:
 if a direct `n^160` SPDP-rank bound is available uniformly at contradiction scale,
 then `PeqNP` is impossible.
 
