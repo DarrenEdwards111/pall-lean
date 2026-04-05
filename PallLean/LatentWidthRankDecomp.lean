@@ -1181,6 +1181,13 @@ theorem latent_profile_span_card_bound_logscale_from_parts (M : DTM) (n : ℕ)
     _ = n ^ 200 := by
       simpa using (Nat.pow_add n 40 160).symm
 
+/-- Stronger paper-facing alias (Move-3 scale): concrete locality/profile structure
+with per-profile `n^120` bound, sufficient for a global `n^160` witness. -/
+def concrete_locality_profile_structure120_logscale (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) : Prop :=
+  latent_profile_block_cover_item3_uniform120_logscale M n hn hn804
+
 /-- Move-3 arithmetic bridge: `(40,120)` parts package gives a global `n^160` span witness. -/
 theorem latent_p_witness_span160_logscale_from_parts_40_120 (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
@@ -1213,6 +1220,15 @@ theorem latent_p_witness_span160_logscale_from_item3_uniform120 (M : DTM) (n : �
     latent_p_witness_span160_logscale M n hn hn804 :=
   latent_p_witness_span160_logscale_from_parts_40_120 M n hn hn804
     (latent_profile_span_card_parts_40_120_from_item3_uniform120 M n hn hn804 h3120)
+
+/-- Internal bridge: the stronger concrete locality/profile structure yields the
+strong `n^160` span witness via the established Move-3 route. -/
+theorem latent_p_witness_span160_from_concrete_locality_profile_structure120 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hLoc120 : concrete_locality_profile_structure120_logscale M n hn hn804) :
+    latent_p_witness_span160_logscale M n hn hn804 :=
+  latent_p_witness_span160_logscale_from_item3_uniform120 M n hn hn804 hLoc120
 
 /-- Direct span-card witness from Item-3+uniform-Item-2 package. -/
 theorem latent_profile_span_card_bound_logscale_from_item3_uniform2 (M : DTM) (n : ℕ)
