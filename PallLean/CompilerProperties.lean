@@ -208,6 +208,13 @@ theorem latent_compiled_tableau_bound_proved (M : DTM) (n : ℕ)
     latent_compiled_tableau_bound_logscale M n hn hn804 :=
   latent_compiled_tableau_bound_logscale_from_span_card_bound M n hn hn804 hSpan
 
+/-- Symmetric naming wrapper: route directly from the span-card witness shape. -/
+theorem latent_compiled_tableau_bound_proved_from_span_card (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hSpan : latent_profile_span_card_bound_logscale M n hn hn804) :
+    latent_compiled_tableau_bound_logscale M n hn hn804 :=
+  latent_compiled_tableau_bound_proved M n hn hn804 hSpan
+
 /-- Next-step wrapper: if you have the explicit construction-data package,
 recover the same compiled-tableau bound without any local axioms. -/
 theorem latent_compiled_tableau_bound_proved_from_construction_data (M : DTM) (n : ℕ)
