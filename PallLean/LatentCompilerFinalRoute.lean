@@ -782,6 +782,21 @@ theorem no_PeqNP_of_uniform_concrete_locality_profile_structure_via_span_card
   exact no_PeqNP_of_uniform_span_card
     (uniform_span_card_of_uniform_concrete_locality_profile_structure hLoc)
 
+/-- Uniform bridge theorem (Move-3 scale, no extra witness args): stronger
+concrete locality/profile structure uniformly implies the uniform span160 witness. -/
+theorem uniform_span160_of_uniform_concrete_locality_profile_structure120
+    (hLoc120 : ∀ (h : PeqNP) (n : ℕ),
+      (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)) →
+      concrete_locality_profile_structure120_logscale h.sat_decider n
+        (hnM_of_hn h n hn) (hn804_of_hn h n hn)) :
+    ∀ (h : PeqNP) (n : ℕ),
+      (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)) →
+      latent_p_witness_span160_logscale h.sat_decider n
+        (hnM_of_hn h n hn) (hn804_of_hn h n hn) := by
+  intro h n hn
+  exact latent_p_witness_span160_from_concrete_locality_profile_structure120 h.sat_decider n
+    (hnM_of_hn h n hn) (hn804_of_hn h n hn) (hLoc120 h n hn)
+
 /-- Global closure theorem:
 if the stronger concrete locality/profile structure (Move-3 scale, `n^120` per
 profile block) is available uniformly, then `PeqNP` is impossible via the span160
@@ -797,8 +812,7 @@ theorem no_PeqNP_of_uniform_concrete_locality_profile_structure120_via_span160
   have hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804) := by
     exact le_rfl
   exact P_neq_NP_latent_from_p_span160 h n hn
-    (latent_p_witness_span160_from_concrete_locality_profile_structure120 h.sat_decider n
-      (hnM_of_hn h n hn) (hn804_of_hn h n hn) (hLoc120 h n hn))
+    ((uniform_span160_of_uniform_concrete_locality_profile_structure120 hLoc120) h n hn)
 
 /-- Global closure theorem:
 if a uniform span160 witness is available at contradiction scale,
