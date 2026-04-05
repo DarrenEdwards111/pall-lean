@@ -708,6 +708,24 @@ theorem no_PeqNP_of_uniform_any_compiler_source
   exact P_neq_NP_latent_from_compiled_tableau_bound h n hn hCompiled
 
 /-- Global closure theorem:
+if a direct `n^160` SPDP-rank bound is available uniformly at contradiction scale,
+then `PeqNP` is impossible.
+
+This uses the proved bridge
+`latentCompiledPoly_spdp_subspace_span_poly_bound` to produce the span160 witness,
+then routes through the consolidated any-source closure. -/
+theorem no_PeqNP_of_uniform_rank160_bound
+    (hRank : ∀ (h : PeqNP) (n : ℕ),
+      (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)) →
+      mlBlockedSpdpRank (latentPartition h.sat_decider n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly h.sat_decider n) ≤ n ^ 160) :
+    PeqNP → False := by
+  exact no_PeqNP_of_uniform_any_compiler_source (fun h n hn =>
+    Or.inr (Or.inl
+      (latentCompiledPoly_spdp_subspace_span_poly_bound h.sat_decider n
+        (hnM_of_hn h n hn) (hn804_of_hn h n hn) (hRank h n hn))))
+
+/-- Global closure theorem:
 if the compiled-tableau upper bound is available uniformly at contradiction scale,
 then `PeqNP` is impossible. -/
 theorem no_PeqNP_of_uniform_compiled_tableau_bound
