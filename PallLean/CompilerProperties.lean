@@ -262,4 +262,59 @@ theorem latent_compiled_tableau_bound_proved_from_any_source (M : DTM) (n : ℕ)
   · exact latent_compiled_tableau_bound_proved_from_construction_data M n hn hn804 hData
   · exact latent_compiled_tableau_bound_proved_from_span_card M n hn hn804 hSpan
 
+/-- Helper: inject Item3+uniform2 source into the consolidated `any-source` shape. -/
+theorem latent_any_source_of_item3_uniform2 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (h3u2 : latent_profile_block_cover_item3_uniform2_logscale M n hn hn804) :
+    latent_profile_block_cover_item3_uniform2_logscale M n hn hn804 ∨
+    latent_p_witness_span160_logscale M n hn hn804 ∨
+    latent_p_witness_target_logscale M n hn hn804 ∨
+    latent_profile_block_cover_construction_data_logscale M n hn hn804 ∨
+    latent_profile_span_card_bound_logscale M n hn hn804 :=
+  Or.inl h3u2
+
+/-- Helper: inject span160 source into the consolidated `any-source` shape. -/
+theorem latent_any_source_of_span160 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (h160 : latent_p_witness_span160_logscale M n hn hn804) :
+    latent_profile_block_cover_item3_uniform2_logscale M n hn hn804 ∨
+    latent_p_witness_span160_logscale M n hn hn804 ∨
+    latent_p_witness_target_logscale M n hn hn804 ∨
+    latent_profile_block_cover_construction_data_logscale M n hn hn804 ∨
+    latent_profile_span_card_bound_logscale M n hn hn804 :=
+  Or.inr (Or.inl h160)
+
+/-- Helper: inject p-witness-target source into the consolidated `any-source` shape. -/
+theorem latent_any_source_of_p_witness_target (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hTarget : latent_p_witness_target_logscale M n hn hn804) :
+    latent_profile_block_cover_item3_uniform2_logscale M n hn hn804 ∨
+    latent_p_witness_span160_logscale M n hn hn804 ∨
+    latent_p_witness_target_logscale M n hn hn804 ∨
+    latent_profile_block_cover_construction_data_logscale M n hn hn804 ∨
+    latent_profile_span_card_bound_logscale M n hn hn804 :=
+  Or.inr (Or.inr (Or.inl hTarget))
+
+/-- Helper: inject construction-data source into the consolidated `any-source` shape. -/
+theorem latent_any_source_of_construction_data (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hData : latent_profile_block_cover_construction_data_logscale M n hn hn804) :
+    latent_profile_block_cover_item3_uniform2_logscale M n hn hn804 ∨
+    latent_p_witness_span160_logscale M n hn hn804 ∨
+    latent_p_witness_target_logscale M n hn hn804 ∨
+    latent_profile_block_cover_construction_data_logscale M n hn hn804 ∨
+    latent_profile_span_card_bound_logscale M n hn hn804 :=
+  Or.inr (Or.inr (Or.inr (Or.inl hData)))
+
+/-- Helper: inject span-card source into the consolidated `any-source` shape. -/
+theorem latent_any_source_of_span_card (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hSpan : latent_profile_span_card_bound_logscale M n hn hn804) :
+    latent_profile_block_cover_item3_uniform2_logscale M n hn hn804 ∨
+    latent_p_witness_span160_logscale M n hn hn804 ∨
+    latent_p_witness_target_logscale M n hn hn804 ∨
+    latent_profile_block_cover_construction_data_logscale M n hn hn804 ∨
+    latent_profile_span_card_bound_logscale M n hn hn804 :=
+  Or.inr (Or.inr (Or.inr (Or.inr hSpan)))
+
 end CompilerProperties
