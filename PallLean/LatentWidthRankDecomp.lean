@@ -1112,6 +1112,24 @@ theorem latent_profile_block_cover_from_item3_uniform2 (M : DTM) (n : ℕ)
   exact latent_profile_block_cover_from_item23 M n hn hn804
     (latent_profile_block_cover_item23_from_item3_uniform2 M n hn hn804 h3u2)
 
+/-- Paper-facing alias for the concrete locality/profile structure used in Section 9.
+
+This is the constructive shape saying: a bounded family of profile blocks `Gprof`
+exists, each block has uniform `≤ n^160` size, and the biUnion span covers the
+compiled logscale SPDP subspace (Item-3 + uniform Item-2 package). -/
+def concrete_locality_profile_structure_logscale (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) : Prop :=
+  latent_profile_block_cover_item3_uniform2_logscale M n hn hn804
+
+/-- Internal bridge: concrete locality/profile structure yields full block-cover witness. -/
+theorem latent_profile_block_cover_from_concrete_locality_profile_structure (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hLoc : concrete_locality_profile_structure_logscale M n hn hn804) :
+    latent_profile_block_cover_logscale M n hn hn804 :=
+  latent_profile_block_cover_from_item3_uniform2 M n hn hn804 hLoc
+
 /-- Move-4 bridge: Item-3 with uniform `n^120` bound gives the `(40,120)` parts package. -/
 theorem latent_profile_span_card_parts_40_120_from_item3_uniform120 (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
