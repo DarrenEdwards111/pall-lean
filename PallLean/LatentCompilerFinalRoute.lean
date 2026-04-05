@@ -679,6 +679,35 @@ theorem no_PeqNP_of_uniform_bucket_function
       (hnM_of_hn h' n' hn') (hn804_of_hn h' n' hn') (hFun h' n' hn')) h
 
 /-- Global closure theorem:
+if any approved compiler witness source is available uniformly at contradiction
+scale, then `PeqNP` is impossible.
+
+This uses the consolidated `any-source` wrapper from `CompilerProperties`. -/
+theorem no_PeqNP_of_uniform_any_compiler_source
+    (hAny : ∀ (h : PeqNP) (n : ℕ),
+      (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)) →
+      (latent_profile_block_cover_item3_uniform2_logscale h.sat_decider n
+          (hnM_of_hn h n hn) (hn804_of_hn h n hn) ∨
+       latent_p_witness_span160_logscale h.sat_decider n
+          (hnM_of_hn h n hn) (hn804_of_hn h n hn) ∨
+       latent_p_witness_target_logscale h.sat_decider n
+          (hnM_of_hn h n hn) (hn804_of_hn h n hn) ∨
+       latent_profile_block_cover_construction_data_logscale h.sat_decider n
+          (hnM_of_hn h n hn) (hn804_of_hn h n hn) ∨
+       latent_profile_span_card_bound_logscale h.sat_decider n
+          (hnM_of_hn h n hn) (hn804_of_hn h n hn))) :
+    PeqNP → False := by
+  intro h
+  let n : ℕ := max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)
+  have hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804) := by
+    exact le_rfl
+  have hnM : n ≥ max 4 h.sat_decider.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  have hCompiled : latent_compiled_tableau_bound_logscale h.sat_decider n hnM hn804 :=
+    latent_compiled_tableau_bound_proved_from_any_source h.sat_decider n hnM hn804 (hAny h n hn)
+  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn hCompiled
+
+/-- Global closure theorem:
 if the compiled-tableau upper bound is available uniformly at contradiction scale,
 then `PeqNP` is impossible. -/
 theorem no_PeqNP_of_uniform_compiled_tableau_bound
