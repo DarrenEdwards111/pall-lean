@@ -725,6 +725,21 @@ theorem no_PeqNP_of_uniform_block_cover
   exact P_neq_NP_latent_from_p_block_cover h n hn (hCover h n hn)
 
 /-- Global closure theorem:
+if a uniform finite span-card witness is available at contradiction scale,
+then `PeqNP` is impossible. -/
+theorem no_PeqNP_of_uniform_span_card
+    (hSpan : ∀ (h : PeqNP) (n : ℕ),
+      (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)) →
+      latent_profile_span_card_bound_logscale h.sat_decider n
+        (hnM_of_hn h n hn) (hn804_of_hn h n hn)) :
+    PeqNP → False := by
+  intro h
+  let n : ℕ := max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)
+  have hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804) := by
+    exact le_rfl
+  exact P_neq_NP_latent_from_p_span_card h n hn (hSpan h n hn)
+
+/-- Global closure theorem:
 if a direct `n^160` SPDP-rank bound is available uniformly at contradiction scale,
 then `PeqNP` is impossible.
 
