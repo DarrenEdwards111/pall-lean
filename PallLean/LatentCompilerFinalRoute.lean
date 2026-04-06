@@ -806,6 +806,19 @@ theorem no_PeqNP_of_uniform_item3_uniform2
     (uniform_block_cover_of_uniform_concrete_locality_profile_structure
       (uniform_concrete_locality_profile_structure_of_uniform_item3_uniform2 hItem3u2))
 
+/-- Global bridge theorem: a global internal block-cover theorem implies a global
+construction-data theorem (explicit witness extraction). -/
+theorem global_construction_data_of_global_block_cover
+    (hCover : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_block_cover_logscale M n hn hn804) :
+    ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_block_cover_construction_data_logscale M n hn hn804 := by
+  intro M n hn hn804
+  exact latent_profile_block_cover_construction_data_from_block_cover M n hn hn804
+    (hCover M n hn hn804)
+
 /-- Global bridge theorem: a global internal construction-data theorem implies a
 global span+bucket theorem (definition-level unpacking, lifted uniformly). -/
 theorem global_span_and_bucket_of_global_construction_data
@@ -832,6 +845,21 @@ theorem global_item3_uniform2_of_global_span_and_bucket
   intro M n hn hn804
   exact latent_profile_block_cover_item3_uniform2_from_global_span_and_bucket M n hn hn804
     (hGB M n hn hn804)
+
+/-- Composed global closure: global block-cover theorem is sufficient for
+`PeqNP → False` via construction-data and the established global bridge chain. -/
+theorem no_PeqNP_of_global_block_cover
+    (hCover : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_block_cover_logscale M n hn hn804) :
+    PeqNP → False :=
+  no_PeqNP_of_uniform_item3_uniform2 (fun h n hn =>
+    latent_profile_block_cover_item3_uniform2_from_global_span_and_bucket h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)
+      (latent_global_span_and_bucket_logscale_from_construction_data h.sat_decider n
+        (hnM_of_hn h n hn) (hn804_of_hn h n hn)
+        (global_construction_data_of_global_block_cover hCover h.sat_decider n
+          (hnM_of_hn h n hn) (hn804_of_hn h n hn))))
 
 /-- Composed global closure: global construction-data theorem is sufficient for
 `PeqNP → False` via global span+bucket and global item3+uniform2 bridges. -/
