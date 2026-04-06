@@ -112,6 +112,28 @@ theorem globalBridgeRankDominationOfGlobalAssumption
   intro M n hn hn804
   simpa [globalFullToLatentBridgeOfGlobalLe] using hDomAssumption M n hn hn804
 
+/-- Step-2 packaged API constructor: from a global domination assumption on the
+canonical cast bridge, produce both API components used by final closure:
+`hBridgeObj` and `hDom`. -/
+theorem globalBridgeAPI_ofGlobalDomination
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
+    (hLeWitness : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hDomAssumption : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      bridgeRankDomination M n (hLeWitness M n hn hn804)
+        (fullToLatentBridgeOfLe M n (hLeVar M n))) :
+    ∃ hBridgeObj : (∀ (M : DTM) (n : ℕ), FullToLatentBridge M n),
+      ∀ (M : DTM) (n : ℕ),
+        (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+        bridgeRankDomination M n (hLeWitness M n hn hn804)
+          (hBridgeObj M n) := by
+  refine ⟨globalFullToLatentBridgeOfGlobalLe hLeVar, ?_⟩
+  intro M n hn hn804
+  exact globalBridgeRankDominationOfGlobalAssumption hLeVar hLeWitness hDomAssumption M n hn hn804
+
 
 /-- Transport wrapper: once rank domination is established, we can read it as a
 usable inequality theorem directly. -/
