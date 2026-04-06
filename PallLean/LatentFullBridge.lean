@@ -174,6 +174,28 @@ theorem map_fullCompiledPoly_generators (M : DTM) (n : ℕ)
   unfold fullCompiledPoly
   simp [mapFullToLatentPoly]
 
+/-- Step-3 lifting lemma (algebra-hom extensionality/composition style):
+if each generator term is identified after transport and those identified
+generators recombine to `latentCompiledPoly`, then full polynomial
+identification follows. -/
+theorem bridgePolyIdentifiesLatent_of_generatorIdentities
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (V W : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hVer : mapFullToLatentPoly M n B (verifierSheetOf ℚ M n h_le) = V)
+    (hViol : mapFullToLatentPoly M n B (violationPolyOf ℚ M n) = W)
+    (hLatent : latentCompiledPoly M n = V + W) :
+    bridgePolyIdentifiesLatent M n h_le B := by
+  unfold bridgePolyIdentifiesLatent
+  calc
+    mapFullToLatentPoly M n B (fullCompiledPoly ℚ M n h_le)
+        = mapFullToLatentPoly M n B (verifierSheetOf ℚ M n h_le)
+          + mapFullToLatentPoly M n B (violationPolyOf ℚ M n) :=
+            map_fullCompiledPoly_generators M n h_le B
+    _ = V + W := by rw [hVer, hViol]
+    _ = latentCompiledPoly M n := by simpa [hLatent] using (Eq.symm hLatent)
+
 /-- Rank-domination obligation exported by a bridge at one `(M,n)` instance. -/
 def bridgeRankDomination (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
