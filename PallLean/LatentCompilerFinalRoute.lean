@@ -1011,6 +1011,26 @@ theorem no_PeqNP_of_full_compiled_rank160_with_packaged_bridge
   rcases globalBridgeAPI_ofGlobalDomination hLeVar hLeWitness hDomAssumption with ⟨hBridgeObj, hDom⟩
   exact no_PeqNP_of_full_compiled_rank160_via_bridge_api hLeWitness hBridgeObj hDom hFull
 
+/-- Step-3 packaged closure: same as above, but source `hFull` from the paper-side
+`pside_full_ml_rank_bound` wrapper in `LatentFullBridge`. -/
+theorem no_PeqNP_of_full_compiled_rank160_with_packaged_bridge_and_pside
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
+    (hLeWitness : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hDomAssumption : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      bridgeRankDomination M n (hLeWitness M n hn hn804)
+        (fullToLatentBridgeOfLe M n (hLeVar M n)))
+    (hPside : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n (hLeWitness M n hn hn804)) ≤ n ^ 160) :
+    PeqNP → False :=
+  no_PeqNP_of_full_compiled_rank160_with_packaged_bridge hLeVar hLeWitness hDomAssumption
+    (globalFullRank160API_ofPside hLeWitness hPside)
+
 theorem global_compiler_semantics_p_witness_target_of_global_rank160_bound
     (hRank : ∀ (M : DTM) (n : ℕ),
       (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
