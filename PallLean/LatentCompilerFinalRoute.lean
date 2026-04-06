@@ -755,6 +755,29 @@ theorem no_PeqNP_of_uniform_concrete_locality_profile_structure
     latent_profile_block_cover_from_concrete_locality_profile_structure h.sat_decider n
       (hnM_of_hn h n hn) (hn804_of_hn h n hn) (hLoc h n hn))
 
+/-- Step-1 structural normalization: pointwise equivalence between the paper-facing
+concrete locality/profile predicate and the Item-3+uniform-Item-2 package. -/
+theorem concrete_locality_profile_structure_logscale_iff_item3_uniform2
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804) :
+    concrete_locality_profile_structure_logscale M n hn hn804 ↔
+    latent_profile_block_cover_item3_uniform2_logscale M n hn hn804 := by
+  rfl
+
+/-- Step-1 uniform structural lemma (no per-instance witness args): a uniform
+Item-3+uniform-Item-2 theorem is exactly a uniform concrete locality/profile theorem. -/
+theorem uniform_concrete_locality_profile_structure_of_uniform_item3_uniform2
+    (hItem3u2 : ∀ (h : PeqNP) (n : ℕ),
+      (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)) →
+      latent_profile_block_cover_item3_uniform2_logscale h.sat_decider n
+        (hnM_of_hn h n hn) (hn804_of_hn h n hn)) :
+    ∀ (h : PeqNP) (n : ℕ),
+      (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)) →
+      concrete_locality_profile_structure_logscale h.sat_decider n
+        (hnM_of_hn h n hn) (hn804_of_hn h n hn) := by
+  intro h n hn
+  simpa [concrete_locality_profile_structure_logscale] using hItem3u2 h n hn
+
 /-- Uniform bridge theorem (no extra witness args): concrete locality/profile
 structure uniformly implies the uniform span-card witness. -/
 theorem uniform_span_card_of_uniform_concrete_locality_profile_structure
