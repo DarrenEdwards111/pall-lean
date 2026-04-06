@@ -44,6 +44,16 @@ noncomputable def globalFullToLatentBridgeOfGlobalLe
     ∀ (M : DTM) (n : ℕ), FullToLatentBridge M n :=
   fun M n => fullToLatentBridgeOfLe M n (hLe M n)
 
+/-- Step-1 semantic fact: latent variable universe is a 4x expansion of the base
+compiler variable universe, hence the canonical inequality needed by bridge
+construction holds globally. -/
+theorem global_numVars_le_latentNumVars :
+    ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n := by
+  intro M n
+  unfold latentNumVars latentBaseVars
+  omega
+
 /-- Polynomial transport (paper/full -> latent) induced by an index embedding. -/
 noncomputable def mapFullToLatentPoly (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
