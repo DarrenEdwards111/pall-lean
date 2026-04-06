@@ -102,6 +102,7 @@ theorem globalBridgeRankDominationOfGlobalAssumption
   intro M n hn hn804
   simpa [globalFullToLatentBridgeOfGlobalLe] using hDomAssumption M n hn hn804
 
+
 /-- Transport wrapper: once rank domination is established, we can read it as a
 usable inequality theorem directly. -/
 theorem latent_rank_le_full_rank_of_bridge (M : DTM) (n : ℕ)
