@@ -919,6 +919,34 @@ theorem global_latent_rank160_of_full_compiled_rank160_under_embedding
   intro M n hn hn804
   exact le_trans (hBridge M n hn hn804) (hFull M n hn hn804)
 
+/-- Step-2 closure wrapper for the typed interface bridge:
+if full-compiled rank160 is available globally and an embedding bridge transfers
+it to latent rank160, then the unconditional contradiction route closes. -/
+theorem no_PeqNP_of_full_compiled_rank160_under_embedding
+    (hLeWitness : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hBridge : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)
+      ≤ mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (fullCompiledPoly ℚ M n (hLeWitness M n hn hn804)))
+    (hFull : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n (hLeWitness M n hn hn804)) ≤ n ^ 160) :
+    PeqNP → False :=
+  no_PeqNP_of_uniform_any_compiler_source (fun h n hn =>
+    Or.inr (Or.inr (Or.inl
+      (latent_p_witness_target_from_span160 h.sat_decider n
+        (hnM_of_hn h n hn) (hn804_of_hn h n hn)
+        (latentCompiledPoly_spdp_subspace_span_poly_bound h.sat_decider n
+          (hnM_of_hn h n hn) (hn804_of_hn h n hn)
+          (global_latent_rank160_of_full_compiled_rank160_under_embedding
+            hLeWitness hBridge hFull h.sat_decider n
+            (hnM_of_hn h n hn) (hn804_of_hn h n hn)))))))
+
 /-- Core reduction theorem: a uniform direct SPDP-rank upper bound for the
 compiled polynomial yields the headline semantic target witness globally. -/
 theorem global_compiler_semantics_p_witness_target_of_global_rank160_bound
