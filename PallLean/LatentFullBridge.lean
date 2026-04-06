@@ -35,6 +35,15 @@ noncomputable def fullToLatentBridgeOfLe (M : DTM) (n : ℕ)
   toLatent := Fin.castLEEmb hLe
   inj := (Fin.castLEEmb hLe).inj'
 
+/-- Step-1 global constructor: if compiler semantics provides a global variable-count
+inequality `numVars ≤ latentNumVars`, we get a concrete bridge object for every
+instance. -/
+noncomputable def globalFullToLatentBridgeOfGlobalLe
+    (hLe : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n) :
+    ∀ (M : DTM) (n : ℕ), FullToLatentBridge M n :=
+  fun M n => fullToLatentBridgeOfLe M n (hLe M n)
+
 /-- Polynomial transport (paper/full -> latent) induced by an index embedding. -/
 noncomputable def mapFullToLatentPoly (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
