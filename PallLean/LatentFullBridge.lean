@@ -372,6 +372,28 @@ theorem latent_totalDegree_le_four_of_hViolMatches
       (violationPolyOf ℚ M n))
     (violationPolyOf_totalDegree ℚ M n)
 
+/-- Contradiction extractor for route-2 `hViolMatches`: any witnessed monomial
+of latent compiled polynomial with degree strictly greater than 4 refutes
+`hViolMatches` (under the canonical cast bridge). -/
+theorem no_hViolMatches_of_high_degree_coeff
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
+    (M : DTM) (n : ℕ)
+    (d : (Fin (latentNumVars M n)) →₀ ℕ)
+    (hd : 4 < ∑ i ∈ d.support, d i)
+    (hcoeff : MvPolynomial.coeff d (latentCompiledPoly M n) ≠ 0) :
+    ¬ (MvPolynomial.rename
+      (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+      (violationPolyOf ℚ M n) = latentCompiledPoly M n) := by
+  intro hViolMatches
+  have hdeg : (latentCompiledPoly M n).totalDegree ≤ 4 :=
+    latent_totalDegree_le_four_of_hViolMatches hLeVar M n hViolMatches
+  have hlt : (latentCompiledPoly M n).totalDegree < ∑ i ∈ d.support, d i :=
+    lt_of_le_of_lt hdeg hd
+  have hzero : MvPolynomial.coeff d (latentCompiledPoly M n) = 0 :=
+    MvPolynomial.coeff_eq_zero_of_totalDegree_lt hlt
+  exact hcoeff hzero
+
 /-- Step-3 concrete `hViolId` constructor in the active API shape.
 
 Instantiates the transported violation-polynomial identity exactly at the
