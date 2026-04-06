@@ -52,4 +52,37 @@ def bridgePolyIdentifiesLatent (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) : Prop :=
   mapFullToLatentPoly M n B (fullCompiledPoly ℚ M n h_le) = latentCompiledPoly M n
 
+/-- Rank-domination obligation exported by a bridge at one `(M,n)` instance. -/
+def bridgeRankDomination (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n) : Prop :=
+  mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n)
+    ≤ mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le)
+
+/-- Transport wrapper: once rank domination is established, we can read it as a
+usable inequality theorem directly. -/
+theorem latent_rank_le_full_rank_of_bridge (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (hDom : bridgeRankDomination M n h_le B) :
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n)
+    ≤ mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) :=
+  hDom
+
+/-- Transport-to-bound wrapper: combine bridge domination with any full-compiled
+rank bound to obtain the corresponding latent rank bound. -/
+theorem latent_rank_bound_of_full_rank_bound_of_bridge (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (hDom : bridgeRankDomination M n h_le B)
+    (hFull : mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160) :
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n) ≤ n ^ 160 :=
+  le_trans hDom hFull
+
 end LatentFullBridge
