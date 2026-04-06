@@ -291,23 +291,60 @@ theorem bridgeRankDomination_ofMappedAndPolyId (M : DTM) (n : ℕ)
   rw [hPolyId] at hMapDom
   exact hMapDom
 
-/-- Concrete mapped-domination constructor from partition pullback identity.
+/-- Concrete mapped-domination constructor from pointwise assignment
+correspondence between compiled and pullback(latent) partitions.
 
-If the latent partition is exactly the pullback of the compiled partition along
-`toLatent`, then mapped domination is immediate from `mlBlockedSpdpRank_rename_le`.
-This is the key concrete theorem for Step (2): it reduces `hMapDom` to a single
-partition-compatibility identity proof. -/
-theorem bridgeRankDominationMapped_of_pullbackPartition (M : DTM) (n : ℕ)
+This avoids requiring record-level partition equality and instead uses the exact
+semantic condition needed for SPDP-rank transfer. -/
+theorem bridgeRankDominationMapped_of_assignEq (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (B : FullToLatentBridge M n)
-    (hPart : compiledPartition M n =
-      pullbackPartition (latentPartition M n) B.toLatent) :
+    (hAssign : ∀ i : Fin (numVars M n (Nat.log 2 n)),
+      (compiledPartition M n).assign i =
+        (pullbackPartition (latentPartition M n) B.toLatent).assign i) :
     bridgeRankDominationMapped M n h_le B := by
+  let Bc := compiledPartition M n
+  let Bp := pullbackPartition (latentPartition M n) B.toLatent
+  have href_bc_to_bp : ∀ i j : Fin (numVars M n (Nat.log 2 n)),
+      Bc.assign i = Bc.assign j → Bp.assign i = Bp.assign j := by
+    intro i j hij
+    calc
+      Bp.assign i = Bc.assign i := (hAssign i).symm
+      _ = Bc.assign j := hij
+      _ = Bp.assign j := hAssign j
+  have href_bp_to_bc : ∀ i j : Fin (numVars M n (Nat.log 2 n)),
+      Bp.assign i = Bp.assign j → Bc.assign i = Bc.assign j := by
+    intro i j hij
+    calc
+      Bc.assign i = Bp.assign i := hAssign i
+      _ = Bp.assign j := hij
+      _ = Bc.assign j := (hAssign j).symm
+  have hsub1 : mlBlockedSpdpSubspace Bp (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le)
+      ≤ mlBlockedSpdpSubspace Bc (Nat.log 2 n) (Nat.log 2 n)
+          (fullCompiledPoly ℚ M n h_le) :=
+    mlBlockedSpdpSubspace_mono_partition Bc Bp (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le) href_bc_to_bp
+  have hsub2 : mlBlockedSpdpSubspace Bc (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le)
+      ≤ mlBlockedSpdpSubspace Bp (Nat.log 2 n) (Nat.log 2 n)
+          (fullCompiledPoly ℚ M n h_le) :=
+    mlBlockedSpdpSubspace_mono_partition Bp Bc (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le) href_bp_to_bc
+  have hrEq : mlBlockedSpdpRank Bp (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le)
+      = mlBlockedSpdpRank Bc (Nat.log 2 n) (Nat.log 2 n)
+          (fullCompiledPoly ℚ M n h_le) := by
+    unfold mlBlockedSpdpRank
+    apply le_antisymm
+    · exact Submodule.finrank_mono hsub1
+    · exact Submodule.finrank_mono hsub2
   unfold bridgeRankDominationMapped
-  simpa [mapFullToLatentPoly, hPart] using
-    (mlBlockedSpdpRank_rename_le B.toLatent B.inj
+  have hrename := mlBlockedSpdpRank_rename_le B.toLatent B.inj
       (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      (fullCompiledPoly ℚ M n h_le))
+      (fullCompiledPoly ℚ M n h_le)
+  -- Bp is definitional pullback(latent,toLatent)
+  simpa [mapFullToLatentPoly, Bp, Bc, hrEq] using hrename
 
 /-- Step-2 global constructor: package a global bridge-rank assumption into the
 exact API shape consumed by the final route (`hDom` over concrete bridge objects).
@@ -353,28 +390,29 @@ theorem globalBridgeAPI_ofGlobalDomination
   intro M n hn hn804
   exact globalBridgeRankDominationOfGlobalAssumption hLeVar hLeWitness hDomAssumption M n hn hn804
 
-/-- Global packaged Step-(2) mapped-domination constructor from pullback
-partition identities (instancewise). -/
-theorem globalMapDom_of_globalPullbackPartition
+/-- Global packaged Step-(2) mapped-domination constructor from pointwise
+compiled-vs-pullback assignment correspondence (instancewise). -/
+theorem globalMapDom_of_globalAssignEq
     (hLeVar : ∀ (M : DTM) (n : ℕ),
       numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
     (hLeWitness : ∀ (M : DTM) (n : ℕ),
       (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
       npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (hPart : ∀ (M : DTM) (n : ℕ)
-      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
-      compiledPartition M n =
-        pullbackPartition (latentPartition M n)
-          (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent) :
+    (hAssign : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+      (i : Fin (numVars M n (Nat.log 2 n))),
+      (compiledPartition M n).assign i =
+        (pullbackPartition (latentPartition M n)
+          (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent).assign i) :
     ∀ (M : DTM) (n : ℕ)
       (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
       bridgeRankDominationMapped M n (hLeWitness M n hn hn804)
         (fullToLatentBridgeOfLe M n (hLeVar M n)) := by
   intro M n hn hn804
-  exact bridgeRankDominationMapped_of_pullbackPartition M n
+  exact bridgeRankDominationMapped_of_assignEq M n
     (hLeWitness M n hn hn804)
     (fullToLatentBridgeOfLe M n (hLeVar M n))
-    (hPart M n hn hn804)
+    (hAssign M n hn hn804)
 
 theorem globalBridgeDomination_ofMappedAndPolyId
     (hLeVar : ∀ (M : DTM) (n : ℕ),
