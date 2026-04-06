@@ -832,6 +832,19 @@ theorem global_span_and_bucket_of_global_construction_data
   exact latent_global_span_and_bucket_logscale_from_construction_data M n hn hn804
     (hData M n hn hn804)
 
+/-- Global bridge theorem: a global block-cover theorem yields a global
+span+bucket theorem by explicit witness extraction. -/
+theorem global_span_and_bucket_of_global_block_cover
+    (hCover : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_block_cover_logscale M n hn hn804) :
+    ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_global_span_and_bucket_logscale M n hn hn804 := by
+  intro M n hn hn804
+  exact latent_global_span_and_bucket_logscale_from_block_cover M n hn hn804
+    (hCover M n hn hn804)
+
 /-- Global bridge theorem: a global span+bucket constructor yields a global
 block-cover theorem directly. -/
 theorem global_block_cover_of_global_span_and_bucket
