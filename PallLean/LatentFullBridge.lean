@@ -324,6 +324,22 @@ theorem globalVerId_of_mapVerifier
   exact map_verifierSheetOf M n (hLeWitness M n hn hn804)
     (fullToLatentBridgeOfLe M n (hLeVar M n))
 
+/-- Step-3 concrete `hViolId` constructor in the active API shape.
+
+Instantiates the transported violation-polynomial identity exactly at the
+canonical bridge used by the final route. -/
+theorem globalViolId_of_mapViolation
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n) :
+    ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      mapFullToLatentPoly M n (fullToLatentBridgeOfLe M n (hLeVar M n))
+        (violationPolyOf ℚ M n)
+      = MvPolynomial.rename (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+          (violationPolyOf ℚ M n) := by
+  intro M n hn hn804
+  exact map_violationPolyOf M n (fullToLatentBridgeOfLe M n (hLeVar M n))
+
 /-- Rank-domination obligation exported by a bridge at one `(M,n)` instance. -/
 def bridgeRankDomination (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
