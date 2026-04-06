@@ -1097,6 +1097,34 @@ theorem no_PeqNP_of_core_semantic_obligations
       (global_hLeWitness_of_npNumVars_le_tapeSquare hNP)
       hPside)
 
+/-- Step-2 packaged variant: consume mapped-domination + poly-id through the
+existential bridge-API constructor before final closure. -/
+theorem no_PeqNP_of_core_semantic_obligations_via_packaged_step2
+    (hNP : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ (n ^ M.timeBound + 1) ^ 2)
+    (hMapDom : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      bridgeRankDominationMapped M n
+        ((global_hLeWitness_of_npNumVars_le_tapeSquare hNP) M n hn hn804)
+        (fullToLatentBridgeOfLe M n (global_numVars_le_latentNumVars M n)))
+    (hPolyId : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      bridgePolyIdentifiesLatent M n
+        ((global_hLeWitness_of_npNumVars_le_tapeSquare hNP) M n hn hn804)
+        (fullToLatentBridgeOfLe M n (global_numVars_le_latentNumVars M n)))
+    (hPside : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n
+          ((global_hLeWitness_of_npNumVars_le_tapeSquare hNP) M n hn hn804)) ≤ n ^ 160) :
+    PeqNP → False := by
+  let hLeW := global_hLeWitness_of_npNumVars_le_tapeSquare hNP
+  rcases globalBridgeAPI_ofMappedAndPolyId
+      global_numVars_le_latentNumVars hLeW hMapDom hPolyId with ⟨hBridgeObj, hDom⟩
+  exact no_PeqNP_of_full_compiled_rank160_via_bridge_api hLeW hBridgeObj hDom
+    (globalFullRank160API_ofPside hLeW hPside)
+
 theorem global_compiler_semantics_p_witness_target_of_global_rank160_bound
     (hRank : ∀ (M : DTM) (n : ℕ),
       (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
