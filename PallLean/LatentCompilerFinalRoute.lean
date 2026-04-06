@@ -832,6 +832,19 @@ theorem global_span_and_bucket_of_global_construction_data
   exact latent_global_span_and_bucket_logscale_from_construction_data M n hn hn804
     (hData M n hn hn804)
 
+/-- Global bridge theorem: a global span+bucket constructor yields a global
+block-cover theorem directly. -/
+theorem global_block_cover_of_global_span_and_bucket
+    (hGB : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_global_span_and_bucket_logscale M n hn hn804) :
+    ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_block_cover_logscale M n hn hn804 := by
+  intro M n hn hn804
+  exact latent_profile_block_cover_logscale_from_global_span_and_bucket M n hn hn804
+    (hGB M n hn hn804)
+
 /-- Global bridge theorem: a global internal construction of span+bucket data
 for compiled logscale SPDP subspaces implies the global Item-3+uniform-Item-2
 theorem. -/
@@ -845,6 +858,18 @@ theorem global_item3_uniform2_of_global_span_and_bucket
   intro M n hn hn804
   exact latent_profile_block_cover_item3_uniform2_from_global_span_and_bucket M n hn hn804
     (hGB M n hn hn804)
+
+/-- Composed global closure: global span+bucket theorem is sufficient for
+`PeqNP → False` via the direct global block-cover bridge. -/
+theorem no_PeqNP_of_global_span_and_bucket
+    (hGB : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_global_span_and_bucket_logscale M n hn hn804) :
+    PeqNP → False :=
+  no_PeqNP_of_uniform_item3_uniform2 (fun h n hn =>
+    latent_profile_block_cover_item3_uniform2_from_global_span_and_bucket h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)
+      (hGB h.sat_decider n (hnM_of_hn h n hn) (hn804_of_hn h n hn)))
 
 /-- Composed global closure: global block-cover theorem is sufficient for
 `PeqNP → False` via construction-data and the established global bridge chain. -/
