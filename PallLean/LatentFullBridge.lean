@@ -204,6 +204,31 @@ theorem globalBridgeDomination_ofMappedAndPolyId
     (hMapDom M n hn hn804)
     (hPolyId M n hn hn804)
 
+/-- Step-2 packaged API constructor directly from mapped-domination + poly-id.
+This is the canonical constructor used by final-route closure theorems when the
+semantic proof is split into these two sub-obligations. -/
+theorem globalBridgeAPI_ofMappedAndPolyId
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
+    (hLeWitness : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hMapDom : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      bridgeRankDominationMapped M n (hLeWitness M n hn hn804)
+        (fullToLatentBridgeOfLe M n (hLeVar M n)))
+    (hPolyId : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      bridgePolyIdentifiesLatent M n (hLeWitness M n hn hn804)
+        (fullToLatentBridgeOfLe M n (hLeVar M n))) :
+    ∃ hBridgeObj : (∀ (M : DTM) (n : ℕ), FullToLatentBridge M n),
+      ∀ (M : DTM) (n : ℕ),
+        (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+        bridgeRankDomination M n (hLeWitness M n hn hn804)
+          (hBridgeObj M n) :=
+  globalBridgeAPI_ofGlobalDomination hLeVar hLeWitness
+    (globalBridgeDomination_ofMappedAndPolyId hLeVar hLeWitness hMapDom hPolyId)
+
 
 /-- Parameterized Step-3 API constructor (preferred): given `hLeWitness`, package
 any global full rank160 theorem in the exact shape consumed downstream. -/
