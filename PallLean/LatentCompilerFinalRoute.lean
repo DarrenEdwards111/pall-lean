@@ -891,6 +891,34 @@ theorem global_compiler_semantics_p_witness_target_of_global_item3_uniform2
   global_compiler_semantics_p_witness_target_of_global_items
     (global_items_of_global_item3_uniform2 hItem3u2)
 
+/-- Step-1 typed bridge theorem (compiler->latent interface):
+if a variable/partition embedding gives pointwise rank domination from latent to
+`fullCompiledPoly`, then any global rank160 bound on `fullCompiledPoly` transfers
+to a global rank160 bound on `latentCompiledPoly`.
+
+This isolates exactly the first hard formalization obligation: constructing that
+embedding domination hypothesis from compiler semantics. -/
+theorem global_latent_rank160_of_full_compiled_rank160_under_embedding
+    (hLeWitness : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hBridge : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)
+      ≤ mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (fullCompiledPoly ℚ M n (hLeWitness M n hn hn804)))
+    (hFull : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n (hLeWitness M n hn hn804)) ≤ n ^ 160) :
+    ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n) ≤ n ^ 160 := by
+  intro M n hn hn804
+  exact le_trans (hBridge M n hn hn804) (hFull M n hn hn804)
+
 /-- Core reduction theorem: a uniform direct SPDP-rank upper bound for the
 compiled polynomial yields the headline semantic target witness globally. -/
 theorem global_compiler_semantics_p_witness_target_of_global_rank160_bound
