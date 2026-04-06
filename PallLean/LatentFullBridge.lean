@@ -571,6 +571,19 @@ theorem globalBridgeAPI_ofGlobalDomination
   intro M n hn hn804
   exact globalBridgeRankDominationOfGlobalAssumption hLeVar hLeWitness hDomAssumption M n hn hn804
 
+/-- Local equivalence helper: a direct pointwise assignment equation
+`compiled.assign i = latent.assign (toLatent i)` implies the pullback-form
+pointwise equation consumed by `bridgeRankDominationMapped_of_assignEq`. -/
+theorem bridgeAssignEq_of_assignToLatent (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (hAssignToLatent : ∀ i : Fin (numVars M n (Nat.log 2 n)),
+      (compiledPartition M n).assign i = (latentPartition M n).assign (B.toLatent i)) :
+    ∀ i : Fin (numVars M n (Nat.log 2 n)),
+      (compiledPartition M n).assign i =
+        (pullbackPartition (latentPartition M n) B.toLatent).assign i := by
+  intro i
+  simpa [pullbackPartition] using hAssignToLatent i
+
 /-- Global packaged Step-(2) mapped-domination constructor from pointwise
 compiled-vs-pullback assignment correspondence (instancewise). -/
 theorem globalMapDom_of_globalAssignEq
@@ -594,6 +607,34 @@ theorem globalMapDom_of_globalAssignEq
     (hLeWitness M n hn hn804)
     (fullToLatentBridgeOfLe M n (hLeVar M n))
     (hAssign M n hn hn804)
+
+/-- Equivalent Step-(2) global constructor using the more semantic pointwise
+condition `compiled.assign i = latent.assign (toLatent i)`.
+
+This is often the natural endpoint of compiler/embedding semantics, and is
+immediately converted to `globalMapDom_of_globalAssignEq`. -/
+theorem globalMapDom_of_globalAssignToLatent
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
+    (hLeWitness : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hAssignToLatent : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+      (i : Fin (numVars M n (Nat.log 2 n))),
+      (compiledPartition M n).assign i =
+        (latentPartition M n).assign
+          ((fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent i)) :
+    ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      bridgeRankDominationMapped M n (hLeWitness M n hn hn804)
+        (fullToLatentBridgeOfLe M n (hLeVar M n)) := by
+  intro M n hn hn804
+  exact bridgeRankDominationMapped_of_assignEq M n
+    (hLeWitness M n hn hn804)
+    (fullToLatentBridgeOfLe M n (hLeVar M n))
+    (bridgeAssignEq_of_assignToLatent M n (fullToLatentBridgeOfLe M n (hLeVar M n))
+      (hAssignToLatent M n hn hn804))
 
 theorem globalBridgeDomination_ofMappedAndPolyId
     (hLeVar : ∀ (M : DTM) (n : ℕ),
