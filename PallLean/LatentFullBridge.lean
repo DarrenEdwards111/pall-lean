@@ -472,6 +472,33 @@ theorem bridgeRankDomination_ofMappedAndPolyId (M : DTM) (n : ℕ)
   rw [hPolyId] at hMapDom
   exact hMapDom
 
+/-- Concrete mapped-domination constructor from partition-compatibility.
+
+This is the semantic form needed by coarsening: if equal compiled blocks stay
+in equal latent blocks under `toLatent`, then the pullback latent partition is
+coarser than the compiled partition, yielding the required rank inequality. -/
+theorem bridgeRankDominationMapped_of_partitionCompatible (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (hCompat : bridgePartitionCompatible M n B) :
+    bridgeRankDominationMapped M n h_le B := by
+  let Bc := compiledPartition M n
+  let Bp := pullbackPartition (latentPartition M n) B.toLatent
+  have hcoarsen : mlBlockedSpdpRank Bp (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le)
+      ≤ mlBlockedSpdpRank Bc (Nat.log 2 n) (Nat.log 2 n)
+          (fullCompiledPoly ℚ M n h_le) := by
+    -- pullback latent partition is coarser than compiled under compatibility
+    refine mlBlockedSpdpRank_coarsen ℚ Bc Bp (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le) ?_
+    intro i j hij
+    simpa [Bp] using hCompat i j hij
+  have hrename := mlBlockedSpdpRank_rename_le B.toLatent B.inj
+      (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le)
+  unfold bridgeRankDominationMapped
+  exact le_trans (by simpa [mapFullToLatentPoly, Bp] using hrename) hcoarsen
+
 /-- Concrete mapped-domination constructor from pointwise assignment
 correspondence between compiled and pullback(latent) partitions.
 
@@ -635,6 +662,27 @@ theorem globalMapDom_of_globalAssignToLatent
     (fullToLatentBridgeOfLe M n (hLeVar M n))
     (bridgeAssignEq_of_assignToLatent M n (fullToLatentBridgeOfLe M n (hLeVar M n))
       (hAssignToLatent M n hn hn804))
+
+/-- Global packaged Step-(2) mapped-domination constructor from semantic
+partition-compatibility (equal compiled blocks map to equal latent blocks). -/
+theorem globalMapDom_of_globalPartitionCompatible
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
+    (hLeWitness : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hCompat : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      bridgePartitionCompatible M n (fullToLatentBridgeOfLe M n (hLeVar M n))) :
+    ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      bridgeRankDominationMapped M n (hLeWitness M n hn hn804)
+        (fullToLatentBridgeOfLe M n (hLeVar M n)) := by
+  intro M n hn hn804
+  exact bridgeRankDominationMapped_of_partitionCompatible M n
+    (hLeWitness M n hn hn804)
+    (fullToLatentBridgeOfLe M n (hLeVar M n))
+    (hCompat M n hn hn804)
 
 theorem globalBridgeDomination_ofMappedAndPolyId
     (hLeVar : ∀ (M : DTM) (n : ℕ),
