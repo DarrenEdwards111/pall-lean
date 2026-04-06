@@ -354,6 +354,24 @@ theorem verifierTransport_vanish_iff_tseitin_zero
   · intro hzero
     simpa [hzero]
 
+/-- Diagnostic consequence for route-2 `hViolMatches` under the canonical cast
+bridge: if transported violation equals `latentCompiledPoly`, then latent compiled
+polynomial has total degree ≤ 4 (inherited from `violationPolyOf`). -/
+theorem latent_totalDegree_le_four_of_hViolMatches
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
+    (M : DTM) (n : ℕ)
+    (hViolMatches : MvPolynomial.rename
+      (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+      (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
+    (latentCompiledPoly M n).totalDegree ≤ 4 := by
+  rw [← hViolMatches]
+  exact le_trans
+    (MvPolynomial.totalDegree_rename_le
+      (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+      (violationPolyOf ℚ M n))
+    (violationPolyOf_totalDegree ℚ M n)
+
 /-- Step-3 concrete `hViolId` constructor in the active API shape.
 
 Instantiates the transported violation-polynomial identity exactly at the
