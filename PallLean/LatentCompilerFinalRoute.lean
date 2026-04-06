@@ -793,6 +793,19 @@ theorem uniform_block_cover_of_uniform_concrete_locality_profile_structure
   exact latent_profile_block_cover_from_concrete_locality_profile_structure h.sat_decider n
     (hnM_of_hn h n hn) (hn804_of_hn h n hn) (hLoc h n hn)
 
+/-- Step-3 composed closure theorem: if the uniform Item-3+uniform-Item-2
+statement is proved internally, unconditional contradiction follows (via
+Step-1 normalization + Step-2 block-cover lift + existing closure route). -/
+theorem no_PeqNP_of_uniform_item3_uniform2
+    (hItem3u2 : ∀ (h : PeqNP) (n : ℕ),
+      (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)) →
+      latent_profile_block_cover_item3_uniform2_logscale h.sat_decider n
+        (hnM_of_hn h n hn) (hn804_of_hn h n hn)) :
+    PeqNP → False :=
+  no_PeqNP_of_uniform_block_cover
+    (uniform_block_cover_of_uniform_concrete_locality_profile_structure
+      (uniform_concrete_locality_profile_structure_of_uniform_item3_uniform2 hItem3u2))
+
 /-- Uniform bridge theorem (no extra witness args): concrete locality/profile
 structure uniformly implies the uniform span-card witness. -/
 theorem uniform_span_card_of_uniform_concrete_locality_profile_structure
