@@ -845,6 +845,18 @@ theorem global_span_and_bucket_of_global_block_cover
   exact latent_global_span_and_bucket_logscale_from_block_cover M n hn hn804
     (hCover M n hn hn804)
 
+/-- Step-2 bridge (first semantic-development milestone):
+a global Item-3+uniform-Item-2 theorem yields the global semantic
+P-side target witness theorem. -/
+theorem global_compiler_semantics_p_witness_target_of_global_item3_uniform2
+    (hItem3u2 : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_block_cover_item3_uniform2_logscale M n hn hn804) :
+    global_compiler_semantics_p_witness_target := by
+  intro M n hn hn804
+  exact latent_p_witness_target_from_item3_uniform2 M n hn hn804
+    (hItem3u2 M n hn hn804)
+
 /-- Final closure packaged against the paper-facing semantic hard target constant
 from `LatentWidthRankDecomp`. -/
 theorem no_PeqNP_of_global_compiler_semantics_p_witness_target
@@ -968,6 +980,15 @@ theorem no_PeqNP_of_global_item3_uniform2
   intro h
   exact no_PeqNP_of_uniform_item3_uniform2 (fun h' n hn =>
     hGlobal h'.sat_decider n (hnM_of_hn h' n hn) (hn804_of_hn h' n hn)) h
+
+/-- Alternate closure packaging through the semantic hard-target constant. -/
+theorem no_PeqNP_of_global_item3_uniform2_via_semantic_target
+    (hGlobal : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_block_cover_item3_uniform2_logscale M n hn hn804) :
+    PeqNP → False :=
+  no_PeqNP_of_global_compiler_semantics_p_witness_target
+    (global_compiler_semantics_p_witness_target_of_global_item3_uniform2 hGlobal)
 
 /-- Uniform bridge theorem (no extra witness args): concrete locality/profile
 structure uniformly implies the uniform span-card witness. -/
