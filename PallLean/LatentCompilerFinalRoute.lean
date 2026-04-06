@@ -1147,6 +1147,74 @@ theorem no_PeqNP_of_core_semantic_obligations_via_packaged_step2
   exact no_PeqNP_of_full_compiled_rank160_via_bridge_api hLeW hBridgeObj hDom
     (globalFullRank160API_ofPside hLeW hPside)
 
+/-- Fully semantic packaged closure (route-2 style): keep bridge as structural,
+and discharge polynomial transport through explicit compiler-semantics theorems.
+
+Inputs are exactly the three remaining semantic cores:
+1) partition-compatibility for mapped domination,
+2) verifier-transport vanishing + violation-transport matching latent compiled,
+3) core32 full-side rank bound.
+
+Everything else is assembled via existing bridge/API combinators. -/
+theorem no_PeqNP_of_semantic_transport_obligations
+    (hNP : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ (n ^ M.timeBound + 1) ^ 2)
+    (hCompat : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      bridgePartitionCompatible M n
+        (fullToLatentBridgeOfLe M n (global_numVars_le_latentNumVars M n)))
+    (hVerVanish : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      MvPolynomial.rename
+          (Function.comp
+            (fullToLatentBridgeOfLe M n (global_numVars_le_latentNumVars M n)).toLatent
+            (witnessInclusion M n
+              ((global_hLeWitness_of_npNumVars_le_tapeSquare hNP) M n hn hn804)))
+          (tseitinPoly ℚ n) = 0)
+    (hViolMatches : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      MvPolynomial.rename
+          (fullToLatentBridgeOfLe M n (global_numVars_le_latentNumVars M n)).toLatent
+          (violationPolyOf ℚ M n) = latentCompiledPoly M n)
+    (hPcore32 : ∀ (M : DTM) (n : ℕ),
+      n ≥ 32 →
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160) :
+    PeqNP → False := by
+  let hLeW := global_hLeWitness_of_npNumVars_le_tapeSquare hNP
+  have hMapDom : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      bridgeRankDominationMapped M n (hLeW M n hn hn804)
+        (fullToLatentBridgeOfLe M n (global_numVars_le_latentNumVars M n)) :=
+    globalMapDom_of_globalPartitionCompatible
+      global_numVars_le_latentNumVars hLeW hCompat
+  have hLatentDecomp : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      latentCompiledPoly M n
+        = MvPolynomial.rename
+            (Function.comp
+              (fullToLatentBridgeOfLe M n (global_numVars_le_latentNumVars M n)).toLatent
+              (witnessInclusion M n (hLeW M n hn hn804)))
+            (tseitinPoly ℚ n)
+          + MvPolynomial.rename
+              (fullToLatentBridgeOfLe M n (global_numVars_le_latentNumVars M n)).toLatent
+              (violationPolyOf ℚ M n) :=
+    globalLatentDecomp_ofVerifierVanish_andViolationMatches
+      global_numVars_le_latentNumVars hLeW hVerVanish hViolMatches
+  have hPolyId : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      bridgePolyIdentifiesLatent M n (hLeW M n hn hn804)
+        (fullToLatentBridgeOfLe M n (global_numVars_le_latentNumVars M n)) :=
+    globalPolyId_of_mapVerifier_mapViolation_and_latentDecomp
+      global_numVars_le_latentNumVars hLeW hLatentDecomp
+  exact no_PeqNP_of_full_compiled_rank160_with_packaged_bridge_and_pcore32
+    global_numVars_le_latentNumVars hLeW
+    (globalBridgeDomination_ofMappedAndPolyId
+      global_numVars_le_latentNumVars hLeW hMapDom hPolyId)
+    hPcore32
+
 /-- Concrete hNP instantiation on the even-`n` branch, using
 `LatentFullBridge.hNP_concrete_even`. -/
 theorem hNP_concrete_even_global
