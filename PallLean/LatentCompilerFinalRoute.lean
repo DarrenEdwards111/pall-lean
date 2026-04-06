@@ -868,6 +868,18 @@ theorem global_items_of_global_item3_uniform2
   exact latent_profile_block_cover_items_from_item3_uniform2 M n hn hn804
     (hItem3u2 M n hn hn804)
 
+/-- Strengthened bridge: a global Item-3+uniform-120 theorem already yields the
+headline semantic target (via span160 then frozen target). -/
+theorem global_compiler_semantics_p_witness_target_of_global_item3_uniform120
+    (hItem3120 : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_block_cover_item3_uniform120_logscale M n hn hn804) :
+    global_compiler_semantics_p_witness_target := by
+  intro M n hn hn804
+  exact latent_p_witness_target_from_span160 M n hn hn804
+    (latent_p_witness_span160_logscale_from_item3_uniform120 M n hn hn804
+      (hItem3120 M n hn hn804))
+
 /-- Step-2 bridge (first semantic-development milestone):
 a global Item-3+uniform-Item-2 theorem yields the global semantic
 P-side target witness theorem. -/
@@ -1122,6 +1134,15 @@ theorem no_PeqNP_of_global_items_via_semantic_target
     PeqNP → False :=
   no_PeqNP_of_global_compiler_semantics_p_witness_target
     (global_compiler_semantics_p_witness_target_of_global_items hItems)
+
+/-- Closure corollary for the strengthened Item-3+uniform-120 route. -/
+theorem no_PeqNP_of_global_item3_uniform120_via_semantic_target
+    (hItem3120 : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_block_cover_item3_uniform120_logscale M n hn hn804) :
+    PeqNP → False :=
+  no_PeqNP_of_global_compiler_semantics_p_witness_target
+    (global_compiler_semantics_p_witness_target_of_global_item3_uniform120 hItem3120)
 
 /-- Alternate closure packaging through the semantic hard-target constant. -/
 theorem no_PeqNP_of_global_item3_uniform2_via_semantic_target
