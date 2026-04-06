@@ -1060,6 +1060,43 @@ theorem no_PeqNP_of_full_compiled_rank160_from_core_bridge_obligations
     (globalBridgeDomination_ofMappedAndPolyId hLeVar hLeWitness hMapDom hPolyId)
     hPside
 
+/-- Step-3 fully packaged closure from the three semantic-core obligation families:
+(1) NP witness-variable bound by tape-square,
+(2) mapped-domination + polynomial identification,
+(3) full-compiled rank160 theorem in active route shape.
+
+This is the direct theorem-level endpoint of the bridge framework. -/
+theorem no_PeqNP_of_core_semantic_obligations
+    (hNP : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ (n ^ M.timeBound + 1) ^ 2)
+    (hMapDom : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      bridgeRankDominationMapped M n
+        ((global_hLeWitness_of_npNumVars_le_tapeSquare hNP) M n hn hn804)
+        (fullToLatentBridgeOfLe M n (global_numVars_le_latentNumVars M n)))
+    (hPolyId : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      bridgePolyIdentifiesLatent M n
+        ((global_hLeWitness_of_npNumVars_le_tapeSquare hNP) M n hn hn804)
+        (fullToLatentBridgeOfLe M n (global_numVars_le_latentNumVars M n)))
+    (hPside : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n
+          ((global_hLeWitness_of_npNumVars_le_tapeSquare hNP) M n hn hn804)) ≤ n ^ 160) :
+    PeqNP → False :=
+  no_PeqNP_of_full_compiled_rank160_with_packaged_bridge_and_pside
+    global_numVars_le_latentNumVars
+    (global_hLeWitness_of_npNumVars_le_tapeSquare hNP)
+    (globalBridgeDomination_ofMappedAndPolyId
+      global_numVars_le_latentNumVars
+      (global_hLeWitness_of_npNumVars_le_tapeSquare hNP)
+      hMapDom hPolyId)
+    (globalFullRank160API_ofPside
+      (global_hLeWitness_of_npNumVars_le_tapeSquare hNP)
+      hPside)
+
 theorem global_compiler_semantics_p_witness_target_of_global_rank160_bound
     (hRank : ∀ (M : DTM) (n : ℕ),
       (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
