@@ -25,6 +25,16 @@ structure FullToLatentBridge (M : DTM) (n : ℕ) where
   toLatent : Fin (numVars M n (Nat.log 2 n)) → Fin (latentNumVars M n)
   inj : Function.Injective toLatent
 
+/-- Canonical bridge object from a variable-count inequality.
+
+This discharges the existence part of the embedding assumption whenever we can
+prove `numVars ≤ latentNumVars` for the instance. -/
+noncomputable def fullToLatentBridgeOfLe (M : DTM) (n : ℕ)
+    (hLe : numVars M n (Nat.log 2 n) ≤ latentNumVars M n) :
+    FullToLatentBridge M n where
+  toLatent := Fin.castLEEmb hLe
+  inj := (Fin.castLEEmb hLe).inj'
+
 /-- Polynomial transport (paper/full -> latent) induced by an index embedding. -/
 noncomputable def mapFullToLatentPoly (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
