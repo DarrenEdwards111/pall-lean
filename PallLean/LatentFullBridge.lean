@@ -371,6 +371,48 @@ theorem globalLatentDecompAPI_ofAssumption
               (violationPolyOf ℚ M n) :=
   hLatentDecomp
 
+/-- Concrete constructor for `hLatentDecomp` from two semantic sub-obligations:
+(1) transported verifier term vanishes, and
+(2) transported violation term equals `latentCompiledPoly`.
+
+This isolates the actual semantic work while keeping the final API shape fixed. -/
+theorem globalLatentDecomp_ofVerifierVanish_andViolationMatches
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
+    (hLeWitness : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hVerVanish : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      MvPolynomial.rename
+          (Function.comp (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+            (witnessInclusion M n (hLeWitness M n hn hn804)))
+          (tseitinPoly ℚ n) = 0)
+    (hViolMatches : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      MvPolynomial.rename (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+          (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
+    ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      latentCompiledPoly M n
+        = MvPolynomial.rename
+            (Function.comp (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+              (witnessInclusion M n (hLeWitness M n hn hn804)))
+            (tseitinPoly ℚ n)
+          + MvPolynomial.rename (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+              (violationPolyOf ℚ M n) := by
+  intro M n hn hn804
+  calc
+    latentCompiledPoly M n
+        = 0 + latentCompiledPoly M n := by simp
+    _ = MvPolynomial.rename
+          (Function.comp (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+            (witnessInclusion M n (hLeWitness M n hn hn804)))
+          (tseitinPoly ℚ n)
+        + MvPolynomial.rename (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+            (violationPolyOf ℚ M n) := by
+          rw [hVerVanish M n hn hn804, hViolMatches M n hn hn804]
+
 /-- Step-3 closure helper: with the concrete global `hVerId` and `hViolId`
 constructors, plus a supplied latent decomposition witness in active API shape,
 produce concrete global `hPolyId`. -/
