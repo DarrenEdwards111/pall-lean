@@ -135,6 +135,22 @@ theorem globalBridgeAPI_ofGlobalDomination
   exact globalBridgeRankDominationOfGlobalAssumption hLeVar hLeWitness hDomAssumption M n hn hn804
 
 
+/-- Parameterized Step-3 API constructor (preferred): given `hLeWitness`, package
+any global full rank160 theorem in the exact shape consumed downstream. -/
+theorem globalFullRank160API_ofAssumption_withWitness
+    (hLeWitness : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hFullAssumption : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n (hLeWitness M n hn hn804)) ≤ n ^ 160) :
+    ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n (hLeWitness M n hn hn804)) ≤ n ^ 160 :=
+  hFullAssumption
+
 /-- Transport wrapper: once rank domination is established, we can read it as a
 usable inequality theorem directly. -/
 theorem latent_rank_le_full_rank_of_bridge (M : DTM) (n : ℕ)
