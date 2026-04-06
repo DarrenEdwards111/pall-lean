@@ -936,6 +936,37 @@ theorem global_block_cover_of_global_compiler_semantics_p_witness_target
   exact latent_profile_block_cover_logscale_from_global_span_and_bucket M n hn hn804
     (global_span_and_bucket_of_global_compiler_semantics_p_witness_target hSem M n hn hn804)
 
+/-- Tight frontier equivalence: proving global items is equivalent to proving the
+headline semantic target. -/
+theorem global_semantic_target_iff_global_items :
+    global_compiler_semantics_p_witness_target ↔
+    (∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_block_cover_items_logscale M n hn hn804) := by
+  constructor
+  · intro hSem
+    intro M n hn hn804
+    exact latent_profile_block_cover_items_from_block_cover M n hn hn804
+      (latent_profile_block_cover_logscale_from_global_span_and_bucket M n hn hn804
+        (latent_global_span_and_bucket_from_p_witness_target M n hn hn804
+          (hSem M n hn hn804)))
+  · intro hItems
+    exact global_compiler_semantics_p_witness_target_of_global_items hItems
+
+/-- Tight frontier equivalence: proving global block-cover is equivalent to proving
+the headline semantic target. -/
+theorem global_semantic_target_iff_global_block_cover :
+    global_compiler_semantics_p_witness_target ↔
+    (∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_block_cover_logscale M n hn hn804) := by
+  constructor
+  · intro hSem
+    exact global_block_cover_of_global_compiler_semantics_p_witness_target hSem
+  · intro hCover
+    exact global_compiler_semantics_p_witness_target_of_global_items
+      (fun M n hn hn804 => latent_profile_block_cover_items_from_block_cover M n hn hn804 (hCover M n hn hn804))
+
 /-- Derived corollary from the headline semantic target: shared-witness items form. -/
 theorem global_items_of_global_compiler_semantics_p_witness_target
     (hSem : global_compiler_semantics_p_witness_target) :
