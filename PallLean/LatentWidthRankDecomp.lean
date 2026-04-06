@@ -1144,6 +1144,16 @@ theorem latent_profile_block_cover_item3_uniform2_from_items (M : DTM) (n : ℕ)
     simpa [hBiUnion] using hSpan
   exact ⟨I, Gnorm, hUni, hSpan'⟩
 
+/-- First compiler-semantics feed lemma for the semantic hard target:
+shared-witness items directly yield the frozen Move-1 P-side target witness. -/
+theorem latent_p_witness_target_from_items (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hItems : latent_profile_block_cover_items_logscale M n hn hn804) :
+    latent_p_witness_target_logscale M n hn hn804 :=
+  latent_p_witness_target_from_item3_uniform2 M n hn hn804
+    (latent_profile_block_cover_item3_uniform2_from_items M n hn hn804 hItems)
+
 /-- Block cover implies the shared-witness Item-2+3 package. -/
 theorem latent_profile_block_cover_item23_from_block_cover (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)

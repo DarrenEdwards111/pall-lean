@@ -853,9 +853,7 @@ theorem global_compiler_semantics_p_witness_target_of_global_items
       latent_profile_block_cover_items_logscale M n hn hn804) :
     global_compiler_semantics_p_witness_target := by
   intro M n hn hn804
-  exact latent_p_witness_target_from_item3_uniform2 M n hn hn804
-    (latent_profile_block_cover_item3_uniform2_from_items M n hn hn804
-      (hItems M n hn hn804))
+  exact latent_p_witness_target_from_items M n hn hn804 (hItems M n hn hn804)
 
 /-- Step-2 bridge (first semantic-development milestone):
 a global Item-3+uniform-Item-2 theorem yields the global semantic
