@@ -855,6 +855,19 @@ theorem global_compiler_semantics_p_witness_target_of_global_items
   intro M n hn hn804
   exact latent_p_witness_target_from_items M n hn hn804 (hItems M n hn hn804)
 
+/-- Step-2a bridge: a global Item-3+uniform-Item-2 theorem yields the global
+shared-witness items theorem directly. -/
+theorem global_items_of_global_item3_uniform2
+    (hItem3u2 : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_block_cover_item3_uniform2_logscale M n hn hn804) :
+    ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_block_cover_items_logscale M n hn hn804 := by
+  intro M n hn hn804
+  exact latent_profile_block_cover_items_from_item3_uniform2 M n hn hn804
+    (hItem3u2 M n hn hn804)
+
 /-- Step-2 bridge (first semantic-development milestone):
 a global Item-3+uniform-Item-2 theorem yields the global semantic
 P-side target witness theorem. -/
@@ -862,10 +875,9 @@ theorem global_compiler_semantics_p_witness_target_of_global_item3_uniform2
     (hItem3u2 : ∀ (M : DTM) (n : ℕ),
       (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
       latent_profile_block_cover_item3_uniform2_logscale M n hn hn804) :
-    global_compiler_semantics_p_witness_target := by
-  intro M n hn hn804
-  exact latent_p_witness_target_from_item3_uniform2 M n hn hn804
-    (hItem3u2 M n hn hn804)
+    global_compiler_semantics_p_witness_target :=
+  global_compiler_semantics_p_witness_target_of_global_items
+    (global_items_of_global_item3_uniform2 hItem3u2)
 
 /-- Final closure packaged against the paper-facing semantic hard target constant
 from `LatentWidthRankDecomp`. -/

@@ -1114,6 +1114,19 @@ theorem latent_profile_block_cover_from_items (M : DTM) (n : ℕ)
   rcases hItems with ⟨I, Gprof, _hI, hBlock, hSpan⟩
   exact ⟨I, Gprof, hSpan, hBlock⟩
 
+/-- Converse normalization: strict Item-3+uniform-Item-2 package implies the
+shared-witness items package. (Item-1 follows from `I : Finset (Fin (n^40))`.) -/
+theorem latent_profile_block_cover_items_from_item3_uniform2 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (h3u2 : latent_profile_block_cover_item3_uniform2_logscale M n hn hn804) :
+    latent_profile_block_cover_items_logscale M n hn hn804 := by
+  rcases h3u2 with ⟨I, Gprof, hUni, hSpan⟩
+  refine ⟨I, Gprof, ?_, ?_, hSpan⟩
+  · simpa using (Finset.card_le_univ I)
+  · intro i hi
+    exact hUni i
+
 /-- Step-3 normalization lemma (first non-wrapper local structure result):
 from shared-witness items (bounds only on active profiles `i ∈ I`), construct a
 uniform profile family by zeroing inactive buckets. This upgrades to the strict
