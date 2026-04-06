@@ -895,6 +895,17 @@ theorem global_semantic_target_iff_global_span_and_bucket :
     exact latent_p_witness_target_from_global_span_bucket M n hn hn804
       (hGB M n hn hn804)
 
+/-- Step-1 packaging alias: global span+bucket semantics imply the headline
+semantic target theorem family. -/
+theorem global_compiler_semantics_p_witness_target_of_global_span_and_bucket
+    (hGB : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_global_span_and_bucket_logscale M n hn hn804) :
+    global_compiler_semantics_p_witness_target := by
+  intro M n hn hn804
+  exact latent_p_witness_target_from_global_span_bucket M n hn hn804
+    (hGB M n hn hn804)
+
 /-- Derived corollary from the headline semantic target: global span+bucket form. -/
 theorem global_span_and_bucket_of_global_compiler_semantics_p_witness_target
     (hSem : global_compiler_semantics_p_witness_target) :
@@ -996,10 +1007,8 @@ theorem no_PeqNP_of_global_span_and_bucket
       (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
       latent_global_span_and_bucket_logscale M n hn hn804) :
     PeqNP → False :=
-  no_PeqNP_of_uniform_item3_uniform2 (fun h n hn =>
-    latent_profile_block_cover_item3_uniform2_from_global_span_and_bucket h.sat_decider n
-      (hnM_of_hn h n hn) (hn804_of_hn h n hn)
-      (hGB h.sat_decider n (hnM_of_hn h n hn) (hn804_of_hn h n hn)))
+  no_PeqNP_of_global_compiler_semantics_p_witness_target
+    (global_compiler_semantics_p_witness_target_of_global_span_and_bucket hGB)
 
 /-- Composed global closure: global block-cover theorem is sufficient for
 `PeqNP → False` via construction-data and the established global bridge chain. -/
