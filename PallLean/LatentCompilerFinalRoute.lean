@@ -1169,6 +1169,19 @@ theorem no_PeqNP_of_global_items_via_semantic_target
   no_PeqNP_of_global_compiler_semantics_p_witness_target
     (global_compiler_semantics_p_witness_target_of_global_items hItems)
 
+/-- Forward packaging bridge: global Item-3+uniform-120 yields global `(40,120)`
+parts directly (paper Move-4 decomposition). -/
+theorem global_parts_40_120_of_global_item3_uniform120
+    (hItem3120 : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_block_cover_item3_uniform120_logscale M n hn hn804) :
+    ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_span_card_parts_40_120_logscale M n hn hn804 := by
+  intro M n hn hn804
+  exact latent_profile_span_card_parts_40_120_from_item3_uniform120 M n hn hn804
+    (hItem3120 M n hn hn804)
+
 /-- Converse packaging bridge: a global `(40,120)` parts theorem yields the
 global Item-3+uniform-120 package directly (via established Move-4 bridge). -/
 theorem global_item3_uniform120_of_global_parts_40_120
@@ -1181,6 +1194,21 @@ theorem global_item3_uniform120_of_global_parts_40_120
   intro M n hn hn804
   exact latent_profile_block_cover_item3_uniform120_from_parts_40_120 M n hn hn804
     (hParts M n hn hn804)
+
+/-- Tight profile-compression equivalence at the global level. -/
+theorem global_parts_40_120_iff_global_item3_uniform120 :
+    (∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_span_card_parts_40_120_logscale M n hn hn804)
+    ↔
+    (∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_block_cover_item3_uniform120_logscale M n hn hn804) := by
+  constructor
+  · intro hParts
+    exact global_item3_uniform120_of_global_parts_40_120 hParts
+  · intro hItem3120
+    exact global_parts_40_120_of_global_item3_uniform120 hItem3120
 
 /-- Paper-facing profile-compression bridge: a global `(40,120)` parts theorem
 already yields the global semantic hard target (via span160). -/
