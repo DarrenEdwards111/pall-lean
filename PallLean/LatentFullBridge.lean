@@ -90,6 +90,29 @@ def bridgeRankDomination (M : DTM) (n : ℕ)
     ≤ mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (fullCompiledPoly ℚ M n h_le)
 
+/-- Decomposed Step-2 obligation: domination where the latent side is written as
+transported full polynomial via the bridge map. -/
+def bridgeRankDominationMapped (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n) : Prop :=
+  mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (mapFullToLatentPoly M n B (fullCompiledPoly ℚ M n h_le))
+    ≤ mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le)
+
+/-- Step-2 reduction lemma: to prove `bridgeRankDomination`, it suffices to prove
+mapped domination plus polynomial identification (`full` transported = latent). -/
+theorem bridgeRankDomination_ofMappedAndPolyId (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (hMapDom : bridgeRankDominationMapped M n h_le B)
+    (hPolyId : bridgePolyIdentifiesLatent M n h_le B) :
+    bridgeRankDomination M n h_le B := by
+  unfold bridgeRankDomination at *
+  unfold bridgeRankDominationMapped at hMapDom
+  rw [hPolyId] at hMapDom
+  exact hMapDom
+
 /-- Step-2 global constructor: package a global bridge-rank assumption into the
 exact API shape consumed by the final route (`hDom` over concrete bridge objects).
 
