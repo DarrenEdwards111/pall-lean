@@ -1031,6 +1031,28 @@ theorem no_PeqNP_of_full_compiled_rank160_with_packaged_bridge_and_pside
   no_PeqNP_of_full_compiled_rank160_with_packaged_bridge hLeVar hLeWitness hDomAssumption
     (globalFullRank160API_ofPside hLeWitness hPside)
 
+/-- Concrete Step-3 closure variant where the P-side theorem is supplied in the
+paper/core shape (`n ≥ 32` + `h_le`) and instantiated to contradiction scale
+through `globalFullRank160API_ofCore32`. -/
+theorem no_PeqNP_of_full_compiled_rank160_with_packaged_bridge_and_pcore32
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
+    (hLeWitness : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hDomAssumption : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      bridgeRankDomination M n (hLeWitness M n hn hn804)
+        (fullToLatentBridgeOfLe M n (hLeVar M n)))
+    (hPcore32 : ∀ (M : DTM) (n : ℕ),
+      n ≥ 32 →
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160) :
+    PeqNP → False :=
+  no_PeqNP_of_full_compiled_rank160_with_packaged_bridge hLeVar hLeWitness hDomAssumption
+    (globalFullRank160API_ofCore32 hLeWitness hPcore32)
+
 /-- Step-3 fully packaged closure from core assumptions only:
 (1) variable inclusion witness,
 (2) mapped-domination + poly-identification (to build bridge domination),
