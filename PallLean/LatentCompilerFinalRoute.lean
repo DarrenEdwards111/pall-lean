@@ -845,6 +845,19 @@ theorem global_span_and_bucket_of_global_block_cover
   exact latent_global_span_and_bucket_logscale_from_block_cover M n hn hn804
     (hCover M n hn hn804)
 
+/-- Global bridge theorem: a global p-witness-target theorem yields a global
+span+bucket theorem directly (reverse Move-1 bridge). -/
+theorem global_span_and_bucket_of_global_p_witness_target
+    (hTarget : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_p_witness_target_logscale M n hn hn804) :
+    ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_global_span_and_bucket_logscale M n hn hn804 := by
+  intro M n hn hn804
+  exact latent_global_span_and_bucket_from_p_witness_target M n hn hn804
+    (hTarget M n hn hn804)
+
 /-- Global bridge theorem: a global span+bucket constructor yields a global
 p-witness-target theorem directly. -/
 theorem global_p_witness_target_of_global_span_and_bucket

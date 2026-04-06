@@ -690,6 +690,16 @@ theorem latent_p_witness_target_from_global_span_bucket (M : DTM) (n : ℕ)
   exact latent_p_witness_target_from_construction_data M n hn hn804
     (latent_profile_block_cover_construction_data_from_global_span_and_bucket M n hn hn804 hGB)
 
+/-- Reverse Move-1 bridge: frozen target witness -> global span+bucket witness
+(via construction-data normalization). -/
+theorem latent_global_span_and_bucket_from_p_witness_target (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hTarget : latent_p_witness_target_logscale M n hn hn804) :
+    latent_global_span_and_bucket_logscale M n hn hn804 := by
+  exact latent_global_span_and_bucket_logscale_from_construction_data M n hn hn804
+    (latent_profile_block_cover_construction_data_from_bucket_function M n hn hn804 hTarget)
+
 /-- Item-3+uniform-Item-2 directly yields the frozen Move-1 target witness. -/
 theorem latent_p_witness_target_from_item3_uniform2 (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
