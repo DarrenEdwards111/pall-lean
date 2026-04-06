@@ -174,6 +174,13 @@ theorem globalFullRank160API_ofAssumption_withWitness
         (fullCompiledPoly ℚ M n (hLeWitness M n hn hn804)) ≤ n ^ 160 :=
   hFullAssumption
 
+/-- Arithmetic helper: the contradiction-scale side condition `hn804 : n ≥ 2^804`
+implies the paper-side threshold `n ≥ 32`. -/
+theorem n32_of_hn804 (n : ℕ) (hn804 : n ≥ 2 ^ 804) : n ≥ 32 := by
+  have hpow : (32 : ℕ) ≤ 2 ^ 804 := by
+    native_decide
+  exact le_trans hpow hn804
+
 /-- Step-3 canonical API wrapper for the paper-side full rank theorem.
 
 Keep this theorem parameterized by the active full-side statement so it remains
@@ -191,6 +198,24 @@ theorem globalFullRank160API_ofPside
       mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (fullCompiledPoly ℚ M n (hLeWitness M n hn hn804)) ≤ n ^ 160 :=
   hPside
+
+/-- Step-3 helper wrapper for paper-style theorems that require only `n ≥ 32`
+(and `h_le`) rather than full contradiction-scale side conditions. -/
+theorem globalFullRank160API_ofCore32
+    (hLeWitness : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hCore : ∀ (M : DTM) (n : ℕ),
+      n ≥ 32 →
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160) :
+    ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n (hLeWitness M n hn hn804)) ≤ n ^ 160 := by
+  intro M n hn hn804
+  exact hCore M n (n32_of_hn804 n hn804) (hLeWitness M n hn hn804)
 
 /-- Transport wrapper: once rank domination is established, we can read it as a
 usable inequality theorem directly. -/
