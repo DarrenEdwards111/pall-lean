@@ -340,6 +340,64 @@ theorem globalViolId_of_mapViolation
   intro M n hn hn804
   exact map_violationPolyOf M n (fullToLatentBridgeOfLe M n (hLeVar M n))
 
+/-- Step-3 concrete `hLatentDecomp` API wrapper.
+
+Current route keeps this decomposition as an explicit semantic input; this theorem
+packages that input in the exact witness/indexing shape consumed by
+`globalPolyId_of_generatorIdentities`. -/
+theorem globalLatentDecompAPI_ofAssumption
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
+    (hLeWitness : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hLatentDecomp : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      latentCompiledPoly M n
+        = MvPolynomial.rename
+            (Function.comp (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+              (witnessInclusion M n (hLeWitness M n hn hn804)))
+            (tseitinPoly ℚ n)
+          + MvPolynomial.rename (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+              (violationPolyOf ℚ M n)) :
+    ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      latentCompiledPoly M n
+        = MvPolynomial.rename
+            (Function.comp (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+              (witnessInclusion M n (hLeWitness M n hn hn804)))
+            (tseitinPoly ℚ n)
+          + MvPolynomial.rename (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+              (violationPolyOf ℚ M n) :=
+  hLatentDecomp
+
+/-- Step-3 closure helper: with the concrete global `hVerId` and `hViolId`
+constructors, plus a supplied latent decomposition witness in active API shape,
+produce concrete global `hPolyId`. -/
+theorem globalPolyId_of_mapVerifier_mapViolation_and_latentDecomp
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
+    (hLeWitness : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hLatentDecomp : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      latentCompiledPoly M n
+        = MvPolynomial.rename
+            (Function.comp (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+              (witnessInclusion M n (hLeWitness M n hn hn804)))
+            (tseitinPoly ℚ n)
+          + MvPolynomial.rename (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+              (violationPolyOf ℚ M n)) :
+    ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      bridgePolyIdentifiesLatent M n (hLeWitness M n hn hn804)
+        (fullToLatentBridgeOfLe M n (hLeVar M n)) :=
+  globalPolyId_of_generatorIdentities hLeVar hLeWitness
+    (globalVerId_of_mapVerifier hLeVar hLeWitness)
+    (globalViolId_of_mapViolation hLeVar)
+    (globalLatentDecompAPI_ofAssumption hLeVar hLeWitness hLatentDecomp)
+
 /-- Rank-domination obligation exported by a bridge at one `(M,n)` instance. -/
 def bridgeRankDomination (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
