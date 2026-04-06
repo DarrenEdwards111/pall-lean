@@ -324,6 +324,36 @@ theorem globalVerId_of_mapVerifier
   exact map_verifierSheetOf M n (hLeWitness M n hn hn804)
     (fullToLatentBridgeOfLe M n (hLeVar M n))
 
+/-- Diagnostic equivalence for the route-2 semantic obligation `hVerVanish`.
+For the canonical cast bridge, transported verifier-sheet vanishing is equivalent
+to `tseitinPoly = 0`, because the transport map is injective. -/
+theorem verifierTransport_vanish_iff_tseitin_zero
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
+    (hLeWitness : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804) :
+    (MvPolynomial.rename
+      (Function.comp (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+        (witnessInclusion M n (hLeWitness M n hn hn804)))
+      (tseitinPoly ℚ n) = 0)
+    ↔ (tseitinPoly ℚ n = 0) := by
+  let f := Function.comp (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+    (witnessInclusion M n (hLeWitness M n hn hn804))
+  have hf : Function.Injective f := by
+    intro x y hxy
+    exact (witnessInclusion_injective M n (hLeWitness M n hn hn804))
+      ((fullToLatentBridgeOfLe M n (hLeVar M n)).inj hxy)
+  constructor
+  · intro hvanish
+    have h' : MvPolynomial.rename f (tseitinPoly ℚ n) = MvPolynomial.rename f 0 := by
+      simpa using hvanish
+    exact (MvPolynomial.rename_injective f hf) h'
+  · intro hzero
+    simpa [hzero]
+
 /-- Step-3 concrete `hViolId` constructor in the active API shape.
 
 Instantiates the transported violation-polynomial identity exactly at the
