@@ -73,6 +73,50 @@ theorem global_hLeWitness_of_npNumVars_le_tapeSquare
     simpa [S, pow_two, Nat.add_assoc, Nat.add_left_comm, Nat.add_comm] using hadd
   exact le_trans (hNP M n hn hn804) hcore
 
+/-- Concrete NP-side tape-square bound at contradiction scale for even `n`.
+This is a fully proved (non-placeholder) version of `hNP` under parity,
+matching the available `tseitinAt_vertices` theorem. -/
+theorem hNP_concrete_even
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (heven : 2 ∣ n) :
+    npNumVars n ≤ (n ^ M.timeBound + 1) ^ 2 := by
+  have hn6 : n ≥ 6 := by
+    have h6 : (6 : ℕ) ≤ 2 ^ 804 := by native_decide
+    exact le_trans h6 hn804
+  have hverts : (tseitinAt n).graph.numVertices = n :=
+    tseitinAt_vertices n hn6 heven
+  have hedges : (tseitinAt n).graph.numEdges ≤ n * 10 := by
+    have h0 := (tseitinAt n).graph.edges_bound
+    have h1 : (tseitinAt n).graph.degree ≤ 10 := (tseitinAt n).graph.degree_bound
+    rw [hverts] at h0
+    have : n * (tseitinAt n).graph.degree ≤ n * 10 := Nat.mul_le_mul_left _ h1
+    exact le_trans h0 this
+  have hclauses : (tseitinAt n).clauses.length ≤ 10 * n := by
+    have h0 := (tseitinAt n).num_clauses_upper
+    rw [hverts] at h0
+    exact h0
+  have hnp_linear : npNumVars n ≤ 50 * n := by
+    unfold npNumVars Tseitin.tseitinNumVars
+    omega
+  have h50 : 50 ≤ n := by
+    have h : (50 : ℕ) ≤ 2 ^ 804 := by native_decide
+    exact le_trans h hn804
+  have hlin_sq : 50 * n ≤ n ^ 2 := by
+    have hmul : 50 * n ≤ n * n := by
+      exact Nat.mul_le_mul_right n h50
+    simpa [pow_two, Nat.mul_comm] using hmul
+  have hn1 : 1 ≤ n := by
+    have h : (1 : ℕ) ≤ 2 ^ 804 := by native_decide
+    exact le_trans h hn804
+  have hpow : n ≤ n ^ M.timeBound := by
+    have h1 : n ^ 1 ≤ n ^ M.timeBound := Nat.pow_le_pow_right hn1 M.hTimeBound
+    simpa using h1
+  have hsq : n ^ 2 ≤ (n ^ M.timeBound + 1) ^ 2 := by
+    have hstep : n ≤ n ^ M.timeBound + 1 := le_trans hpow (Nat.le_succ _)
+    exact Nat.pow_le_pow_left hstep 2
+  exact le_trans hnp_linear (le_trans hlin_sq hsq)
+
 /-- Polynomial transport (paper/full -> latent) induced by an index embedding. -/
 noncomputable def mapFullToLatentPoly (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
