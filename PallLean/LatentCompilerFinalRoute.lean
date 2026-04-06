@@ -1135,6 +1135,19 @@ theorem no_PeqNP_of_global_items_via_semantic_target
   no_PeqNP_of_global_compiler_semantics_p_witness_target
     (global_compiler_semantics_p_witness_target_of_global_items hItems)
 
+/-- Converse packaging bridge: a global `(40,120)` parts theorem yields the
+global Item-3+uniform-120 package directly (via established Move-4 bridge). -/
+theorem global_item3_uniform120_of_global_parts_40_120
+    (hParts : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_span_card_parts_40_120_logscale M n hn hn804) :
+    ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_block_cover_item3_uniform120_logscale M n hn hn804 := by
+  intro M n hn hn804
+  exact latent_profile_block_cover_item3_uniform120_from_parts_40_120 M n hn hn804
+    (hParts M n hn hn804)
+
 /-- Paper-facing profile-compression bridge: a global `(40,120)` parts theorem
 already yields the global semantic hard target (via span160). -/
 theorem global_compiler_semantics_p_witness_target_of_global_parts_40_120

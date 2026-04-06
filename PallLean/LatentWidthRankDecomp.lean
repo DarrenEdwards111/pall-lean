@@ -1281,6 +1281,34 @@ def concrete_locality_profile_structure120_logscale (M : DTM) (n : ℕ)
     (hn804 : n ≥ 2 ^ 804) : Prop :=
   latent_profile_block_cover_item3_uniform120_logscale M n hn hn804
 
+/-- Converse Move-4 bridge: `(40,120)` parts package yields Item-3 + uniform-120
+by zeroing inactive profile buckets. -/
+theorem latent_profile_block_cover_item3_uniform120_from_parts_40_120 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hParts : latent_profile_span_card_parts_40_120_logscale M n hn hn804) :
+    latent_profile_block_cover_item3_uniform120_logscale M n hn hn804 := by
+  rcases hParts with ⟨I, Gprof, hSpan, _hI, hBlock⟩
+  let Gnorm : Fin (n ^ 40) → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
+    fun i => if i ∈ I then Gprof i else ∅
+  have hUni120 : ∀ i : Fin (n ^ 40), (Gnorm i).card ≤ n ^ 120 := by
+    intro i
+    by_cases hi : i ∈ I
+    · simpa [Gnorm, hi] using hBlock i hi
+    · simp [Gnorm, hi]
+  have hBiUnion : I.biUnion (fun i => Gnorm i) = I.biUnion (fun i => Gprof i) := by
+    refine Finset.biUnion_congr rfl ?_
+    intro i hi
+    simp [Gnorm, hi]
+  have hSpan' :
+      mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)
+      ≤ Submodule.span ℚ
+          (↑(I.biUnion (fun i => Gnorm i))
+            : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) := by
+    simpa [hBiUnion] using hSpan
+  exact ⟨I, Gnorm, hUni120, hSpan'⟩
+
 /-- Move-3 arithmetic bridge: `(40,120)` parts package gives a global `n^160` span witness. -/
 theorem latent_p_witness_span160_logscale_from_parts_40_120 (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
