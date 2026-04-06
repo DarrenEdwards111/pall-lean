@@ -913,6 +913,30 @@ theorem no_PeqNP_of_global_compiler_semantics_p_witness_target
     Or.inr (Or.inr (Or.inl
       (hSem h.sat_decider n (hnM_of_hn h n hn) (hn804_of_hn h n hn)))) )
 
+/-- Paper-facing profile-compression-to-rank bridge:
+global `(40,120)` profile parts imply a global direct rank160 upper bound. -/
+theorem global_rank160_bound_of_global_parts_40_120
+    (hParts : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_span_card_parts_40_120_logscale M n hn hn804) :
+    ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n) ≤ n ^ 160 := by
+  intro M n hn hn804
+  rcases latent_p_witness_span160_logscale_from_parts_40_120 M n hn hn804
+      (hParts M n hn hn804) with ⟨G, hIncl, hCard⟩
+  unfold mlBlockedSpdpRank
+  have hmono : Module.finrank ℚ
+      (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)) ≤
+      Module.finrank ℚ (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))) :=
+    Submodule.finrank_mono hIncl
+  have hspan_card : Module.finrank ℚ
+      (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))) ≤ G.card :=
+    finrank_span_finset_le_card G
+  exact le_trans (le_trans hmono hspan_card) hCard
+
 /-- Immediate closure corollary: a global direct rank160 bound already implies
 `PeqNP → False` via the semantic hard target. -/
 theorem no_PeqNP_of_global_rank160_bound
@@ -923,6 +947,16 @@ theorem no_PeqNP_of_global_rank160_bound
     PeqNP → False :=
   no_PeqNP_of_global_compiler_semantics_p_witness_target
     (global_compiler_semantics_p_witness_target_of_global_rank160_bound hRank)
+
+/-- Hooked closure corollary (paper §9/§40 profile-compression path):
+global `(40,120)` parts -> global rank160 -> contradiction. -/
+theorem no_PeqNP_of_global_parts_40_120_via_rank160
+    (hParts : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_span_card_parts_40_120_logscale M n hn hn804) :
+    PeqNP → False :=
+  no_PeqNP_of_global_rank160_bound
+    (global_rank160_bound_of_global_parts_40_120 hParts)
 
 /-- Equivalence packaging for the hard semantic frontier: global frozen Move-1
 P-target exists iff global span+bucket data exists. -/
