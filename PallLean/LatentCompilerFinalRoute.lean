@@ -845,6 +845,15 @@ theorem global_span_and_bucket_of_global_block_cover
   exact latent_global_span_and_bucket_logscale_from_block_cover M n hn hn804
     (hCover M n hn hn804)
 
+/-- Final closure packaged against the paper-facing semantic hard target constant
+from `LatentWidthRankDecomp`. -/
+theorem no_PeqNP_of_global_compiler_semantics_p_witness_target
+    (hSem : global_compiler_semantics_p_witness_target) :
+    PeqNP → False :=
+  no_PeqNP_of_uniform_any_compiler_source (fun h n hn =>
+    Or.inr (Or.inr (Or.inl
+      (hSem h.sat_decider n (hnM_of_hn h n hn) (hn804_of_hn h n hn)))) )
+
 /-- Global bridge theorem: a global p-witness-target theorem yields a global
 span+bucket theorem directly (reverse Move-1 bridge). -/
 theorem global_span_and_bucket_of_global_p_witness_target

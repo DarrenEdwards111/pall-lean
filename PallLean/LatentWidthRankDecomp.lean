@@ -690,6 +690,16 @@ theorem latent_p_witness_target_from_global_span_bucket (M : DTM) (n : ℕ)
   exact latent_p_witness_target_from_construction_data M n hn hn804
     (latent_profile_block_cover_construction_data_from_global_span_and_bucket M n hn hn804 hGB)
 
+/-- Paper-facing hard target (semantic form):
+for every compiled deterministic machine and contradiction-scale parameter,
+the frozen Move-1 P-side target witness exists directly from compiler semantics.
+
+This is the remaining substantive theorem needed to close the unconditional route. -/
+def global_compiler_semantics_p_witness_target : Prop :=
+  ∀ (M : DTM) (n : ℕ),
+    (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+    latent_p_witness_target_logscale M n hn hn804
+
 /-- Reverse Move-1 bridge: frozen target witness -> global span+bucket witness
 (via construction-data normalization). -/
 theorem latent_global_span_and_bucket_from_p_witness_target (M : DTM) (n : ℕ)
