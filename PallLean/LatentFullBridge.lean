@@ -168,6 +168,18 @@ theorem hNP_concrete_of_vertex_bound
     exact Nat.pow_le_pow_left hstep 2
   exact le_trans hnp_linearN (le_trans hlin_sq hsq)
 
+/-- Concrete global `hNP` theorem (unconditional): at contradiction scale,
+`npNumVars n` is bounded by the tape-square target with no parity assumption. -/
+theorem hNP_concrete_global
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804) :
+    npNumVars n ≤ (n ^ M.timeBound + 1) ^ 2 := by
+  have hn6 : n ≥ 6 := by
+    have h6 : (6 : ℕ) ≤ 2 ^ 804 := by native_decide
+    exact le_trans h6 hn804
+  exact hNP_concrete_of_vertex_bound M n hn hn804
+    (tseitinAt_vertices_le_succ n hn6)
+
 /-- Polynomial transport (paper/full -> latent) induced by an index embedding. -/
 noncomputable def mapFullToLatentPoly (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
