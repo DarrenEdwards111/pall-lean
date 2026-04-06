@@ -144,6 +144,36 @@ def bridgePolyIdentifiesLatent (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) : Prop :=
   mapFullToLatentPoly M n B (fullCompiledPoly ℚ M n h_le) = latentCompiledPoly M n
 
+/-- Generator-term mapping lemma (verifier sheet): transporting `verifierSheetOf`
+across the bridge is exactly renaming `tseitinPoly` by the composed inclusion map. -/
+theorem map_verifierSheetOf (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n) :
+    mapFullToLatentPoly M n B (verifierSheetOf ℚ M n h_le)
+      = MvPolynomial.rename (Function.comp B.toLatent (witnessInclusion M n h_le))
+          (tseitinPoly ℚ n) := by
+  unfold mapFullToLatentPoly verifierSheetOf
+  simpa [Function.comp] using
+    (MvPolynomial.rename_rename (witnessInclusion M n h_le) B.toLatent (tseitinPoly ℚ n))
+
+/-- Generator-term mapping lemma (violation polynomial): transport is just rename. -/
+theorem map_violationPolyOf (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n) :
+    mapFullToLatentPoly M n B (violationPolyOf ℚ M n)
+      = MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) :=
+  rfl
+
+/-- Generator decomposition under transport: transported full polynomial is the sum
+of transported verifier-sheet and transported violation polynomial. -/
+theorem map_fullCompiledPoly_generators (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n) :
+    mapFullToLatentPoly M n B (fullCompiledPoly ℚ M n h_le)
+      = mapFullToLatentPoly M n B (verifierSheetOf ℚ M n h_le)
+        + mapFullToLatentPoly M n B (violationPolyOf ℚ M n) := by
+  unfold fullCompiledPoly
+  simp [mapFullToLatentPoly]
+
 /-- Rank-domination obligation exported by a bridge at one `(M,n)` instance. -/
 def bridgeRankDomination (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
