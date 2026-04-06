@@ -878,6 +878,23 @@ theorem no_PeqNP_of_global_compiler_semantics_p_witness_target
     Or.inr (Or.inr (Or.inl
       (hSem h.sat_decider n (hnM_of_hn h n hn) (hn804_of_hn h n hn)))) )
 
+/-- Equivalence packaging for the hard semantic frontier: global frozen Move-1
+P-target exists iff global span+bucket data exists. -/
+theorem global_semantic_target_iff_global_span_and_bucket :
+    global_compiler_semantics_p_witness_target ↔
+    (∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_global_span_and_bucket_logscale M n hn hn804) := by
+  constructor
+  · intro hSem
+    intro M n hn hn804
+    exact latent_global_span_and_bucket_from_p_witness_target M n hn hn804
+      (hSem M n hn hn804)
+  · intro hGB
+    intro M n hn hn804
+    exact latent_p_witness_target_from_global_span_bucket M n hn hn804
+      (hGB M n hn hn804)
+
 /-- Global bridge theorem: a global p-witness-target theorem yields a global
 span+bucket theorem directly (reverse Move-1 bridge). -/
 theorem global_span_and_bucket_of_global_p_witness_target
