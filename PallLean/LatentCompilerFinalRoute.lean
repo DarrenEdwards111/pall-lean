@@ -846,6 +846,19 @@ theorem global_span_and_bucket_of_global_block_cover
     (hCover M n hn hn804)
 
 /-- Global bridge theorem: a global span+bucket constructor yields a global
+p-witness-target theorem directly. -/
+theorem global_p_witness_target_of_global_span_and_bucket
+    (hGB : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_global_span_and_bucket_logscale M n hn hn804) :
+    ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_p_witness_target_logscale M n hn hn804 := by
+  intro M n hn hn804
+  exact latent_p_witness_target_from_global_span_bucket M n hn hn804
+    (hGB M n hn hn804)
+
+/-- Global bridge theorem: a global span+bucket constructor yields a global
 block-cover theorem directly. -/
 theorem global_block_cover_of_global_span_and_bucket
     (hGB : ∀ (M : DTM) (n : ℕ),
@@ -871,6 +884,17 @@ theorem global_item3_uniform2_of_global_span_and_bucket
   intro M n hn hn804
   exact latent_profile_block_cover_item3_uniform2_from_global_span_and_bucket M n hn hn804
     (hGB M n hn hn804)
+
+/-- Composed global closure: global p-witness-target theorem is sufficient for
+`PeqNP → False` (paper-faithful Width⇒Rank-to-contradiction route). -/
+theorem no_PeqNP_of_global_p_witness_target
+    (hTarget : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_p_witness_target_logscale M n hn hn804) :
+    PeqNP → False :=
+  no_PeqNP_of_uniform_any_compiler_source (fun h n hn =>
+    Or.inr (Or.inr (Or.inl
+      (hTarget h.sat_decider n (hnM_of_hn h n hn) (hn804_of_hn h n hn)))))
 
 /-- Composed global closure: global span+bucket theorem is sufficient for
 `PeqNP → False` via the direct global block-cover bridge. -/
