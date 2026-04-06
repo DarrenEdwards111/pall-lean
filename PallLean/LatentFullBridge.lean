@@ -302,6 +302,28 @@ theorem globalPolyId_of_generatorIdentities
     (fullToLatentBridgeOfLe M n (hLeVar M n))
     _ _ (hVerId M n hn hn804) (hViolId M n hn hn804) (hLatentDecomp M n hn hn804)
 
+/-- Step-3 concrete `hVerId` constructor in the active API shape.
+
+Instantiates the transported verifier-sheet identity exactly at the canonical
+bridge/witness indexing used by the final route. -/
+theorem globalVerId_of_mapVerifier
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
+    (hLeWitness : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      mapFullToLatentPoly M n (fullToLatentBridgeOfLe M n (hLeVar M n))
+        (verifierSheetOf ℚ M n (hLeWitness M n hn hn804))
+      = MvPolynomial.rename
+          (Function.comp (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+            (witnessInclusion M n (hLeWitness M n hn hn804)))
+          (tseitinPoly ℚ n) := by
+  intro M n hn hn804
+  exact map_verifierSheetOf M n (hLeWitness M n hn hn804)
+    (fullToLatentBridgeOfLe M n (hLeVar M n))
+
 /-- Rank-domination obligation exported by a bridge at one `(M,n)` instance. -/
 def bridgeRankDomination (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
