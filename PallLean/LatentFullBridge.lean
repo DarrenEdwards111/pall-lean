@@ -117,6 +117,57 @@ theorem hNP_concrete_even
     exact Nat.pow_le_pow_left hstep 2
   exact le_trans hnp_linear (le_trans hlin_sq hsq)
 
+/-- Concrete global `hNP` from a single structural vertex bound.
+
+This packages the remaining parity/generalization gap into one explicit
+graph-size condition: if `(tseitinAt n).graph.numVertices ≤ n + 1`, then the
+required tape-square bound follows at contradiction scale. -/
+theorem hNP_concrete_of_vertex_bound
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hV : (tseitinAt n).graph.numVertices ≤ n + 1) :
+    npNumVars n ≤ (n ^ M.timeBound + 1) ^ 2 := by
+  have hedges : (tseitinAt n).graph.numEdges ≤ 10 * ((tseitinAt n).graph.numVertices) := by
+    have h0 := (tseitinAt n).graph.edges_bound
+    have h1 : (tseitinAt n).graph.degree ≤ 10 := (tseitinAt n).graph.degree_bound
+    have hmul : (tseitinAt n).graph.numVertices * (tseitinAt n).graph.degree ≤
+        (tseitinAt n).graph.numVertices * 10 := Nat.mul_le_mul_left _ h1
+    have hmul' : (tseitinAt n).graph.numVertices * 10 ≤ 10 * (tseitinAt n).graph.numVertices := by
+      simpa [Nat.mul_comm]
+    exact le_trans h0 (le_trans hmul hmul')
+  have hclauses : (tseitinAt n).clauses.length ≤ 10 * ((tseitinAt n).graph.numVertices) := by
+    have h0 := (tseitinAt n).num_clauses_upper
+    exact le_trans h0 (by omega)
+  have hnp_linearV : npNumVars n ≤ 50 * ((tseitinAt n).graph.numVertices) := by
+    unfold npNumVars Tseitin.tseitinNumVars
+    omega
+  have hnp_linearN : npNumVars n ≤ 50 * (n + 1) := by
+    exact le_trans hnp_linearV (Nat.mul_le_mul_left _ hV)
+  have h50 : 50 ≤ n := by
+    have h : (50 : ℕ) ≤ 2 ^ 804 := by native_decide
+    exact le_trans h hn804
+  have hlin_sq : 50 * (n + 1) ≤ n ^ 2 := by
+    have hnp : n + 1 ≤ 2 * n := by omega
+    have hmul : 50 * (n + 1) ≤ 50 * (2 * n) := Nat.mul_le_mul_left _ hnp
+    have h100 : 50 * (2 * n) = 100 * n := by ring
+    rw [h100] at hmul
+    have h100n : 100 * n ≤ n * n := by
+      have h100le : 100 ≤ n := by
+        have h : (100 : ℕ) ≤ 2 ^ 804 := by native_decide
+        exact le_trans h hn804
+      exact Nat.mul_le_mul_right n h100le
+    exact le_trans hmul (by simpa [pow_two, Nat.mul_comm] using h100n)
+  have hn1 : 1 ≤ n := by
+    have h : (1 : ℕ) ≤ 2 ^ 804 := by native_decide
+    exact le_trans h hn804
+  have hpow : n ≤ n ^ M.timeBound := by
+    have h1 : n ^ 1 ≤ n ^ M.timeBound := Nat.pow_le_pow_right hn1 M.hTimeBound
+    simpa using h1
+  have hsq : n ^ 2 ≤ (n ^ M.timeBound + 1) ^ 2 := by
+    have hstep : n ≤ n ^ M.timeBound + 1 := le_trans hpow (Nat.le_succ _)
+    exact Nat.pow_le_pow_left hstep 2
+  exact le_trans hnp_linearN (le_trans hlin_sq hsq)
+
 /-- Polynomial transport (paper/full -> latent) induced by an index embedding. -/
 noncomputable def mapFullToLatentPoly (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
