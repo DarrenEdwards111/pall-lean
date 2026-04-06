@@ -80,6 +80,28 @@ def bridgeRankDomination (M : DTM) (n : ℕ)
     ≤ mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (fullCompiledPoly ℚ M n h_le)
 
+/-- Step-2 global constructor: package a global bridge-rank assumption into the
+exact API shape consumed by the final route (`hDom` over concrete bridge objects).
+
+This is the canonical handoff point for the forthcoming semantic proof that
+establishes domination from partition-compatibility + polynomial identification. -/
+theorem globalBridgeRankDominationOfGlobalAssumption
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
+    (hLeWitness : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hDomAssumption : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      bridgeRankDomination M n (hLeWitness M n hn hn804)
+        (fullToLatentBridgeOfLe M n (hLeVar M n))) :
+    ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      bridgeRankDomination M n (hLeWitness M n hn hn804)
+        ((globalFullToLatentBridgeOfGlobalLe hLeVar) M n) := by
+  intro M n hn hn804
+  simpa [globalFullToLatentBridgeOfGlobalLe] using hDomAssumption M n hn hn804
+
 /-- Transport wrapper: once rank domination is established, we can read it as a
 usable inequality theorem directly. -/
 theorem latent_rank_le_full_rank_of_bridge (M : DTM) (n : ℕ)
