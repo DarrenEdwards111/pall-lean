@@ -737,6 +737,17 @@ theorem latent_profile_block_cover_item3_uniform2_from_p_witness_target (M : DTM
     latent_profile_block_cover_item3_uniform2_logscale M n hn hn804 :=
   latent_profile_block_cover_item3_uniform2_from_bucket_function M n hn hn804 hTarget
 
+/-- Direct constructive bridge: global-span+bucket data already implies
+Item-3 + uniform-Item-2 (via the frozen bucket-function target). -/
+theorem latent_profile_block_cover_item3_uniform2_from_global_span_and_bucket (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hGB : latent_global_span_and_bucket_logscale M n hn hn804) :
+    latent_profile_block_cover_item3_uniform2_logscale M n hn hn804 :=
+  latent_profile_block_cover_item3_uniform2_from_p_witness_target M n hn hn804
+    (latent_p_witness_target_from_construction_data M n hn hn804
+      (latent_profile_block_cover_construction_data_from_global_span_and_bucket M n hn hn804 hGB))
+
 /-- Move-2 strengthening target: a single finite span witness `G` with `|G| ≤ n^160`.
 
 This is stronger than the frozen target. If we can build this, then the frozen target follows

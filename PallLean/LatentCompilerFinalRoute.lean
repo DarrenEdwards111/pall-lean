@@ -806,6 +806,20 @@ theorem no_PeqNP_of_uniform_item3_uniform2
     (uniform_block_cover_of_uniform_concrete_locality_profile_structure
       (uniform_concrete_locality_profile_structure_of_uniform_item3_uniform2 hItem3u2))
 
+/-- Global bridge theorem: a global internal construction of span+bucket data
+for compiled logscale SPDP subspaces implies the global Item-3+uniform-Item-2
+theorem. -/
+theorem global_item3_uniform2_of_global_span_and_bucket
+    (hGB : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_global_span_and_bucket_logscale M n hn hn804) :
+    ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_block_cover_item3_uniform2_logscale M n hn hn804 := by
+  intro M n hn hn804
+  exact latent_profile_block_cover_item3_uniform2_from_global_span_and_bucket M n hn hn804
+    (hGB M n hn hn804)
+
 /-- Step-4 closure theorem: if Item-3+uniform-Item-2 is proved as a global
 internal compiler theorem for every DTM at contradiction scale, then `PeqNP`
 is impossible (no `h`-indexed witness assumptions left). -/
