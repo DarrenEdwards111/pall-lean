@@ -580,6 +580,20 @@ theorem tseitinAt_vertices (n : ℕ) (hn : n ≥ 6) (heven : 2 ∣ n) :
   unfold tseitinAt buildTseitin
   exact highGirthFamily.vertices_eq n hn heven
 
+/-- Uniform upper bound: the rounded-up graph has at most n+1 vertices.
+This removes parity from downstream size estimates. -/
+theorem tseitinAt_vertices_le_succ (n : ℕ) (hn : n ≥ 6) :
+    (tseitinAt n).graph.numVertices ≤ n + 1 := by
+  unfold tseitinAt buildTseitin highGirthFamily
+  simp only
+  unfold evenUp
+  have hmax : max n 6 = n := max_eq_left (by omega)
+  by_cases hEven : 2 ∣ n
+  · -- even branch: evenUp n = n
+    simp [hmax, hEven, cubicGraph]
+  · -- odd branch: evenUp n = n+1
+    simp [hmax, hEven, cubicGraph]
+
 /-- Number of variables in the n-th Tseitin polynomial -/
 noncomputable def npNumVars (n : ℕ) : ℕ := tseitinNumVars (tseitinAt n)
 
