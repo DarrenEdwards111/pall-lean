@@ -895,6 +895,36 @@ theorem global_semantic_target_iff_global_span_and_bucket :
     exact latent_p_witness_target_from_global_span_bucket M n hn hn804
       (hGB M n hn hn804)
 
+/-- Derived corollary from the headline semantic target: global span+bucket form. -/
+theorem global_span_and_bucket_of_global_compiler_semantics_p_witness_target
+    (hSem : global_compiler_semantics_p_witness_target) :
+    ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_global_span_and_bucket_logscale M n hn hn804 := by
+  intro M n hn hn804
+  exact latent_global_span_and_bucket_from_p_witness_target M n hn hn804
+    (hSem M n hn hn804)
+
+/-- Derived corollary from the headline semantic target: global block-cover form. -/
+theorem global_block_cover_of_global_compiler_semantics_p_witness_target
+    (hSem : global_compiler_semantics_p_witness_target) :
+    ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_block_cover_logscale M n hn hn804 := by
+  intro M n hn hn804
+  exact latent_profile_block_cover_logscale_from_global_span_and_bucket M n hn hn804
+    (global_span_and_bucket_of_global_compiler_semantics_p_witness_target hSem M n hn hn804)
+
+/-- Derived corollary from the headline semantic target: shared-witness items form. -/
+theorem global_items_of_global_compiler_semantics_p_witness_target
+    (hSem : global_compiler_semantics_p_witness_target) :
+    ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_block_cover_items_logscale M n hn hn804 := by
+  intro M n hn hn804
+  exact latent_profile_block_cover_items_from_block_cover M n hn hn804
+    (global_block_cover_of_global_compiler_semantics_p_witness_target hSem M n hn hn804)
+
 /-- Global bridge theorem: a global p-witness-target theorem yields a global
 span+bucket theorem directly (reverse Move-1 bridge). -/
 theorem global_span_and_bucket_of_global_p_witness_target
