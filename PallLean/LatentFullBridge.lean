@@ -176,6 +176,24 @@ theorem bridgeRankDomination_ofMappedAndPolyId (M : DTM) (n : ℕ)
   rw [hPolyId] at hMapDom
   exact hMapDom
 
+/-- Concrete mapped-domination constructor from partition pullback identity.
+
+If the latent partition is exactly the pullback of the compiled partition along
+`toLatent`, then mapped domination is immediate from `mlBlockedSpdpRank_rename_le`.
+This is the key concrete theorem for Step (2): it reduces `hMapDom` to a single
+partition-compatibility identity proof. -/
+theorem bridgeRankDominationMapped_of_pullbackPartition (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (hPart : compiledPartition M n =
+      pullbackPartition (latentPartition M n) B.toLatent) :
+    bridgeRankDominationMapped M n h_le B := by
+  unfold bridgeRankDominationMapped
+  simpa [mapFullToLatentPoly, hPart] using
+    (mlBlockedSpdpRank_rename_le B.toLatent B.inj
+      (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le))
+
 /-- Step-2 global constructor: package a global bridge-rank assumption into the
 exact API shape consumed by the final route (`hDom` over concrete bridge objects).
 
@@ -220,9 +238,29 @@ theorem globalBridgeAPI_ofGlobalDomination
   intro M n hn hn804
   exact globalBridgeRankDominationOfGlobalAssumption hLeVar hLeWitness hDomAssumption M n hn hn804
 
-/-- Step-2 semantic constructor: build global bridge domination from the two
-concrete sub-obligations highlighted in the proof plan:
-(1) mapped domination, and (2) polynomial identification. -/
+/-- Global packaged Step-(2) mapped-domination constructor from pullback
+partition identities (instancewise). -/
+theorem globalMapDom_of_globalPullbackPartition
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
+    (hLeWitness : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hPart : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      compiledPartition M n =
+        pullbackPartition (latentPartition M n)
+          (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent) :
+    ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      bridgeRankDominationMapped M n (hLeWitness M n hn hn804)
+        (fullToLatentBridgeOfLe M n (hLeVar M n)) := by
+  intro M n hn hn804
+  exact bridgeRankDominationMapped_of_pullbackPartition M n
+    (hLeWitness M n hn hn804)
+    (fullToLatentBridgeOfLe M n (hLeVar M n))
+    (hPart M n hn hn804)
+
 theorem globalBridgeDomination_ofMappedAndPolyId
     (hLeVar : ∀ (M : DTM) (n : ℕ),
       numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
