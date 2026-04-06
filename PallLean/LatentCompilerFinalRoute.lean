@@ -1125,6 +1125,15 @@ theorem no_PeqNP_of_core_semantic_obligations_via_packaged_step2
   exact no_PeqNP_of_full_compiled_rank160_via_bridge_api hLeW hBridgeObj hDom
     (globalFullRank160API_ofPside hLeW hPside)
 
+/-- Concrete hNP instantiation on the even-`n` branch, using
+`LatentFullBridge.hNP_concrete_even`. -/
+theorem hNP_concrete_even_global
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (heven : 2 ∣ n) :
+    npNumVars n ≤ (n ^ M.timeBound + 1) ^ 2 :=
+  hNP_concrete_even M n hn hn804 heven
+
 theorem global_compiler_semantics_p_witness_target_of_global_rank160_bound
     (hRank : ∀ (M : DTM) (n : ℕ),
       (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
