@@ -1114,6 +1114,36 @@ theorem latent_profile_block_cover_from_items (M : DTM) (n : ℕ)
   rcases hItems with ⟨I, Gprof, _hI, hBlock, hSpan⟩
   exact ⟨I, Gprof, hSpan, hBlock⟩
 
+/-- Step-3 normalization lemma (first non-wrapper local structure result):
+from shared-witness items (bounds only on active profiles `i ∈ I`), construct a
+uniform profile family by zeroing inactive buckets. This upgrades to the strict
+Item-3+uniform-Item-2 package. -/
+theorem latent_profile_block_cover_item3_uniform2_from_items (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hItems : latent_profile_block_cover_items_logscale M n hn hn804) :
+    latent_profile_block_cover_item3_uniform2_logscale M n hn hn804 := by
+  rcases hItems with ⟨I, Gprof, _hI, hBlock, hSpan⟩
+  let Gnorm : Fin (n ^ 40) → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
+    fun i => if i ∈ I then Gprof i else ∅
+  have hUni : ∀ i : Fin (n ^ 40), (Gnorm i).card ≤ n ^ 160 := by
+    intro i
+    by_cases hi : i ∈ I
+    · simpa [Gnorm, hi] using hBlock i hi
+    · simp [Gnorm, hi]
+  have hBiUnion : I.biUnion (fun i => Gnorm i) = I.biUnion (fun i => Gprof i) := by
+    refine Finset.biUnion_congr rfl ?_
+    intro i hi
+    simp [Gnorm, hi]
+  have hSpan' :
+      mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)
+      ≤ Submodule.span ℚ
+          (↑(I.biUnion (fun i => Gnorm i))
+            : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) := by
+    simpa [hBiUnion] using hSpan
+  exact ⟨I, Gnorm, hUni, hSpan'⟩
+
 /-- Block cover implies the shared-witness Item-2+3 package. -/
 theorem latent_profile_block_cover_item23_from_block_cover (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
