@@ -54,6 +54,25 @@ theorem global_numVars_le_latentNumVars :
   unfold latentNumVars latentBaseVars
   omega
 
+/-- Step-1 witness packaging (assumption-driven): if NP witness-variable count is
+bounded by the tape-square core term, then the exact downstream `hLeWitness`
+shape follows immediately. -/
+theorem global_hLeWitness_of_npNumVars_le_tapeSquare
+    (hNP : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ (n ^ M.timeBound + 1) ^ 2) :
+    ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ numVars M n (Nat.log 2 n) := by
+  intro M n hn hn804
+  have hcore : (n ^ M.timeBound + 1) ^ 2 ≤ numVars M n (Nat.log 2 n) := by
+    unfold numVars tapeSize timeSteps
+    set S : ℕ := n ^ M.timeBound + 1
+    have hadd : S * S ≤ S * S + (S * M.numStates + S * S + n + Nat.log 2 n) :=
+      Nat.le_add_right (S * S) (S * M.numStates + S * S + n + Nat.log 2 n)
+    simpa [S, pow_two, Nat.add_assoc, Nat.add_left_comm, Nat.add_comm] using hadd
+  exact le_trans (hNP M n hn hn804) hcore
+
 /-- Polynomial transport (paper/full -> latent) induced by an index embedding. -/
 noncomputable def mapFullToLatentPoly (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
