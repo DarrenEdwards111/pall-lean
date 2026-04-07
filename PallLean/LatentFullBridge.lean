@@ -1495,6 +1495,47 @@ theorem hDerive_of_compiledDerivationScaffold
       (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 :=
   hScaf.finalAssembly hOb
 
+/-- Canonical scaffold choice: use obligation fields directly as Step-1/Step-2
+premises, and leave only the final assembly inequality as a parameter. -/
+def compiledDerivationScaffold_default
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hFinal : CompiledProfileObligations M n →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160) :
+    CompiledDerivationScaffold M n h_le where
+  fromProfileCount := fun _ =>
+    ∃ m, m ≥ 4 ∧ ∀ R, Nat.choose (R + m) m ≤ (R + 1) ^ m
+  fromWithinProfile := fun _ =>
+    ∃ D, D ≥ 1 ∧ ∀ k d, d ≥ 1 → Nat.choose (k + d - 1) (d - 1) ≤ (k + 1) ^ (d - 1)
+  finalAssembly := hFinal
+
+/-- New target (Step-1): under the default scaffold, profile-count contribution
+is discharged directly from the obligation bundle. -/
+theorem compiled_step1_profileCount_default
+    (M : DTM) (n : ℕ)
+    (hn32 : n ≥ 32)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hOb : CompiledProfileObligations M n)
+    (hFinal : CompiledProfileObligations M n →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160) :
+    (compiledDerivationScaffold_default M n h_le hFinal).fromProfileCount hOb :=
+  hOb.profileCountBound
+
+/-- New target (Step-2): under the default scaffold, within-profile contribution
+is discharged directly from the obligation bundle. -/
+theorem compiled_step2_withinProfile_default
+    (M : DTM) (n : ℕ)
+    (hn32 : n ≥ 32)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hOb : CompiledProfileObligations M n)
+    (hFinal : CompiledProfileObligations M n →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160) :
+    (compiledDerivationScaffold_default M n h_le hFinal).fromWithinProfile hOb :=
+  hOb.withinProfileDimBound
+
 /-- Global packaged bridge: if you can provide the scaffold + step proofs at
 each `(M,n,h_le)`, you obtain concrete `hPcore32`. -/
 theorem hPcore32_of_compiledScaffold
