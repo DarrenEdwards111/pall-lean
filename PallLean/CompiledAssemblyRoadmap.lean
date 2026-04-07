@@ -3,228 +3,54 @@ import PallLean.LatentFullBridge
 /-!
 # CompiledAssemblyRoadmap
 
-This file isolates the final compiled-side math gap for the paper-faithful route.
+Clean target board for the remaining compiled-side gap.
 
-Goal: instantiate `CompiledAssemblyTheoremFamily` with real proofs.
+The only unresolved mathematical assumptions are now kept explicit as two axioms:
 
-## Remaining theorem targets
+1. `assembly_soundness_core_target_holds`
+2. `compiled_rank_le_profile_aggregation_target_holds`
 
-1. `assemblyAllThm_target`
-2. `assemblyToRankThm_target`
-
-Once both are proved, use
-`LatentFullBridge.hPcore32_of_compiledAssemblyTheoremFamily`.
-
-## Suggested proof plan (high level)
-
-- Step A: Build concrete compiled assembly evidence (`assemblyBound`) from
-  profile construction/coverage lemmas.
-- Step B: Prove assembly-to-rank implication by composing:
-  profile-count contribution + within-profile dimension + final aggregation.
-- Step C: Package as `CompiledAssemblyTheoremFamily`.
-
-## Concrete checklist for Target (1): `assemblyAllThm_target`
-
-The intended chain is:
-
-- A1.1 `assembly_witness_exists_target`
-- A1.2 `assembly_witness_sound_target`
-- A1.3 `assembly_witness_to_bound_target`
-
-and then:
-
-`assemblyWitnessData_target_holds` from A1.1,
-`assemblyWitnessData_implies_assemblyBound_target` from A1.2 + A1.3.
-
-These are declared below as explicit placeholders so we can replace them one-by-one.
-
-No assumptions are hidden here; this file is a proof-work target board.
+Everything else is theorem-level wiring around those two cores.
 -/
 
 namespace CompiledAssemblyRoadmap
 
 open LatentFullBridge LatentCompiler MultilinearSPDP NPWitness Compiler TuringMachine
 
-/-- NEW TARGET A1: construct raw compiled assembly witness data at `(M,n,h_le)`. -/
+/-- A1 witness predicate (placeholder carrier). -/
 def assemblyWitnessData_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
   True
 
-/-- A1.1: existence of a concrete compiled assembly witness object.
-(Currently immediate because `assemblyWitnessData_target` is the placeholder
-predicate `True`; replace this proof when A1 is refined to a substantive object.) -/
+/-- A1.1 (concrete, placeholder-level): witness exists. -/
 theorem assembly_witness_exists_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
     assemblyWitnessData_target M n h_le := by
   trivial
 
-/-- A1.2: soundness of the witness wrt compiled assembly semantics.
-(Current placeholder shape: witness data entails `assemblyBound` for obligation
-instances; replace its proof source with substantive compiled semantics.) -/
+/-- A1.2 target shape: witness implies assembly-bound evidence for obligations. -/
 def assembly_witness_sound_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
   assemblyWitnessData_target M n h_le →
     ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound
 
-/-- A1.2 source split (checklist):
-S1 = semantic soundness core, S2 = export into the A1.2 target shape. -/
-def assembly_soundness_core_target
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
-  assembly_witness_sound_target M n h_le
-
-theorem assembly_soundness_core_implies_target
+/-- CORE PLACEHOLDER #1: substantive compiled semantic soundness. -/
+axiom assembly_soundness_core_target_holds
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_soundness_core_target M n h_le →
-    assembly_witness_sound_target M n h_le := by
-  intro h
-  exact h
+    assembly_witness_sound_target M n h_le
 
-/-- Next checklist split for A1.2 core-holds replacement:
-S1a = seed proposition, S1b = seed -> core bridge, S1c = seed-holds witness. -/
-def assembly_soundness_seed_target
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
-  assembly_soundness_core_target M n h_le
-
-theorem assembly_soundness_core_target_of_seed
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_soundness_seed_target M n h_le →
-    assembly_soundness_core_target M n h_le := by
-  intro h
-  exact h
-
-/-- Deeper split for the A1.2 seed witness:
-S1c1 = root seed proposition, S1c2 = root->seed bridge, S1c3 = root-holds witness. -/
-def assembly_soundness_seed_root_target
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
-  assembly_soundness_seed_target M n h_le
-
-theorem assembly_soundness_seed_target_of_root
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_soundness_seed_root_target M n h_le →
-    assembly_soundness_seed_target M n h_le := by
-  intro h
-  exact h
-
-/-- Deeper split for root-seed witness: one extra root layer. -/
-def assembly_soundness_seed_root2_target
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
-  assembly_soundness_seed_root_target M n h_le
-
-theorem assembly_soundness_seed_root_target_of_root2
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_soundness_seed_root2_target M n h_le →
-    assembly_soundness_seed_root_target M n h_le := by
-  intro h
-  exact h
-
-/-- Deeper split for root2-seed witness: one extra root layer. -/
-def assembly_soundness_seed_root3_target
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
-  assembly_soundness_seed_root2_target M n h_le
-
-theorem assembly_soundness_seed_root2_target_of_root3
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_soundness_seed_root3_target M n h_le →
-    assembly_soundness_seed_root2_target M n h_le := by
-  intro h
-  exact h
-
-/-- One-more-level split for soundness seed root3 witness. -/
-def assembly_soundness_seed_root4_target
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
-  assembly_soundness_seed_root3_target M n h_le
-
-theorem assembly_soundness_seed_root3_target_of_root4
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_soundness_seed_root4_target M n h_le →
-    assembly_soundness_seed_root3_target M n h_le := by
-  intro h
-  exact h
-
-def assembly_soundness_seed_root5_target
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
-  assembly_soundness_seed_root4_target M n h_le
-
-theorem assembly_soundness_seed_root4_target_of_root5
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_soundness_seed_root5_target M n h_le →
-    assembly_soundness_seed_root4_target M n h_le := by
-  intro h
-  exact h
-
-axiom assembly_soundness_seed_root5_target_holds
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_soundness_seed_root5_target M n h_le
-
-theorem assembly_soundness_seed_root4_target_holds
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_soundness_seed_root4_target M n h_le :=
-  assembly_soundness_seed_root4_target_of_root5 M n h_le
-    (assembly_soundness_seed_root5_target_holds M n h_le)
-
-theorem assembly_soundness_seed_root3_target_holds
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_soundness_seed_root3_target M n h_le :=
-  assembly_soundness_seed_root3_target_of_root4 M n h_le
-    (assembly_soundness_seed_root4_target_holds M n h_le)
-
-theorem assembly_soundness_seed_root2_target_holds
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_soundness_seed_root2_target M n h_le :=
-  assembly_soundness_seed_root2_target_of_root3 M n h_le
-    (assembly_soundness_seed_root3_target_holds M n h_le)
-
-theorem assembly_soundness_seed_root_target_holds
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_soundness_seed_root_target M n h_le :=
-  assembly_soundness_seed_root_target_of_root2 M n h_le
-    (assembly_soundness_seed_root2_target_holds M n h_le)
-
-theorem assembly_soundness_seed_target_holds
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_soundness_seed_target M n h_le :=
-  assembly_soundness_seed_target_of_root M n h_le
-    (assembly_soundness_seed_root_target_holds M n h_le)
-
-theorem assembly_soundness_core_target_holds
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_soundness_core_target M n h_le :=
-  assembly_soundness_core_target_of_seed M n h_le
-    (assembly_soundness_seed_target_holds M n h_le)
-
-/-- Placeholder source for A1.2 until concrete witness semantics are proved. -/
+/-- A1.2 exported theorem (wired directly from core placeholder #1). -/
 theorem assembly_witness_sound_target_holds
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
     assembly_witness_sound_target M n h_le :=
-  assembly_soundness_core_implies_target M n h_le
-    (assembly_soundness_core_target_holds M n h_le)
-/-- A1.3: witness soundness implies `assemblyBound` for obligation instances.
-Now a real theorem (tautological bridge from A1.2). -/
+  assembly_soundness_core_target_holds M n h_le
+
+/-- A1.3 bridge (theorem): A1.2 yields assemblyBound evidence. -/
 theorem assembly_witness_to_bound_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
@@ -234,23 +60,32 @@ theorem assembly_witness_to_bound_target
   intro hSound
   exact hSound
 
-/-- NEW TARGET A2: show raw witness data implies `assemblyBound` for any
-obligation instance at `(M,n)`.
-Current implementation is routed through A1.2+A1.3. -/
-theorem assemblyWitnessData_implies_assemblyBound_target
+/-- Target 1: concrete assembly evidence theorem family member. -/
+theorem assemblyAllThm_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assemblyWitnessData_target M n h_le →
-    ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound :=
-  assembly_witness_to_bound_target M n h_le
-    (assembly_witness_sound_target_holds M n h_le)
+    ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound := by
+  have hA1 : assemblyWitnessData_target M n h_le :=
+    assembly_witness_exists_target M n h_le
+  exact (assembly_witness_to_bound_target M n h_le
+    (assembly_witness_sound_target_holds M n h_le)) hA1
 
+/-- Arithmetic sub-inequality used in Target-2 aggregation chain. -/
+theorem compiled_profile_aggregation_le_n160_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    ∀ hOb : CompiledProfileObligations M n,
+      hOb.assemblyBound →
+      (n ^ 40) * (n ^ 120) ≤ n ^ 160 := by
+  intro _ _
+  have hEq : (n ^ 40) * (n ^ 120) = n ^ 160 := by
+    calc
+      (n ^ 40) * (n ^ 120) = n ^ (40 + 120) := by
+        simpa [Nat.pow_add] using (Nat.pow_add n 40 120).symm
+      _ = n ^ 160 := by norm_num
+  exact le_of_eq hEq
 
-/-- Target-2 checklist split:
-R1 = core assembly->rank implication proposition, R2 = exported theorem family shape.
-
-We further expose an explicit first intermediate target:
-`compiled_aggregation_bound_target`, so R1 can be proved via an explicit bridge. -/
+/-- Target-2 core proposition shape. -/
 def assembly_to_rank_core_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
@@ -259,30 +94,8 @@ def assembly_to_rank_core_target
     mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160
 
-/-- First concrete aggregation sub-inequality target (A):
-a profile-aggregation quantity is polynomially bounded by `n^160`.
-
-Now proved arithmetically (independent of `hOb.assemblyBound`). -/
-theorem compiled_profile_aggregation_le_n160_target
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    ∀ hOb : CompiledProfileObligations M n,
-      hOb.assemblyBound →
-      (n ^ 40) * (n ^ 120) ≤ n ^ 160 := by
-  intro hOb hAsm
-  have hEq : (n ^ 40) * (n ^ 120) = n ^ 160 := by
-    calc
-      (n ^ 40) * (n ^ 120) = n ^ (40 + 120) := by
-        simpa [Nat.pow_add] using (Nat.pow_add n 40 120).symm
-      _ = n ^ 160 := by norm_num
-  exact le_of_eq hEq
-
-/-- Second concrete intermediate target (B): link compiled SPDP rank to the
-profile-aggregation quantity `(n^40)*(n^120)`.
-
-Refactored into core proposition + bridge theorem; deepest placeholder is
-`compiled_rank_le_profile_aggregation_seed_holds`. -/
-def compiled_rank_le_profile_aggregation_seed
+/-- Intermediate proposition: rank bounded by profile aggregation quantity. -/
+def compiled_rank_le_profile_aggregation_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
   ∀ hOb : CompiledProfileObligations M n,
@@ -290,192 +103,23 @@ def compiled_rank_le_profile_aggregation_seed
     mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (fullCompiledPoly ℚ M n h_le) ≤ (n ^ 40) * (n ^ 120)
 
-theorem compiled_rank_le_profile_aggregation_target
+/-- CORE PLACEHOLDER #2: substantive compiled rank->aggregation theorem. -/
+axiom compiled_rank_le_profile_aggregation_target_holds
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    compiled_rank_le_profile_aggregation_seed M n h_le →
-    (∀ hOb : CompiledProfileObligations M n,
-      hOb.assemblyBound →
-      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-        (fullCompiledPoly ℚ M n h_le) ≤ (n ^ 40) * (n ^ 120)) := by
-  intro h
-  exact h
-
-/-- Deeper split for rank-to-aggregation seed witness: one extra root layer. -/
-def compiled_rank_le_profile_aggregation_root_target
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
-  compiled_rank_le_profile_aggregation_seed M n h_le
-
-theorem compiled_rank_le_profile_aggregation_seed_of_root
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    compiled_rank_le_profile_aggregation_root_target M n h_le →
-    compiled_rank_le_profile_aggregation_seed M n h_le := by
-  intro h
-  exact h
-
-/-- Deeper split for rank-aggregation root witness: one extra root layer. -/
-def compiled_rank_le_profile_aggregation_root2_target
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
-  compiled_rank_le_profile_aggregation_root_target M n h_le
-
-theorem compiled_rank_le_profile_aggregation_root_target_of_root2
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    compiled_rank_le_profile_aggregation_root2_target M n h_le →
-    compiled_rank_le_profile_aggregation_root_target M n h_le := by
-  intro h
-  exact h
-
-/-- One-more-level split for rank-aggregation root2 witness. -/
-def compiled_rank_le_profile_aggregation_root3_target
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
-  compiled_rank_le_profile_aggregation_root2_target M n h_le
-
-theorem compiled_rank_le_profile_aggregation_root2_target_of_root3
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    compiled_rank_le_profile_aggregation_root3_target M n h_le →
-    compiled_rank_le_profile_aggregation_root2_target M n h_le := by
-  intro h
-  exact h
-
-def compiled_rank_le_profile_aggregation_root4_target
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
-  compiled_rank_le_profile_aggregation_root3_target M n h_le
-
-theorem compiled_rank_le_profile_aggregation_root3_target_of_root4
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    compiled_rank_le_profile_aggregation_root4_target M n h_le →
-    compiled_rank_le_profile_aggregation_root3_target M n h_le := by
-  intro h
-  exact h
-
-axiom compiled_rank_le_profile_aggregation_root4_target_holds
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    compiled_rank_le_profile_aggregation_root4_target M n h_le
-
-theorem compiled_rank_le_profile_aggregation_root3_target_holds
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    compiled_rank_le_profile_aggregation_root3_target M n h_le :=
-  compiled_rank_le_profile_aggregation_root3_target_of_root4 M n h_le
-    (compiled_rank_le_profile_aggregation_root4_target_holds M n h_le)
-
-theorem compiled_rank_le_profile_aggregation_root2_target_holds
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    compiled_rank_le_profile_aggregation_root2_target M n h_le :=
-  compiled_rank_le_profile_aggregation_root2_target_of_root3 M n h_le
-    (compiled_rank_le_profile_aggregation_root3_target_holds M n h_le)
-
-theorem compiled_rank_le_profile_aggregation_root_target_holds
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    compiled_rank_le_profile_aggregation_root_target M n h_le :=
-  compiled_rank_le_profile_aggregation_root_target_of_root2 M n h_le
-    (compiled_rank_le_profile_aggregation_root2_target_holds M n h_le)
-
-theorem compiled_rank_le_profile_aggregation_seed_holds
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    compiled_rank_le_profile_aggregation_seed M n h_le :=
-  compiled_rank_le_profile_aggregation_seed_of_root M n h_le
-    (compiled_rank_le_profile_aggregation_root_target_holds M n h_le)
-
-/-- First concrete intermediate theorem target for Target-2:
-compiled assembly-level aggregation bound in the exact rank160 shape. -/
-theorem compiled_aggregation_bound_target
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    ∀ hOb : CompiledProfileObligations M n,
-      hOb.assemblyBound →
-      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 := by
-  intro hOb hAsm
-  have hRankLeAgg : ∀ hOb : CompiledProfileObligations M n,
-      hOb.assemblyBound →
-      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-        (fullCompiledPoly ℚ M n h_le) ≤ (n ^ 40) * (n ^ 120) :=
     compiled_rank_le_profile_aggregation_target M n h_le
-      (compiled_rank_le_profile_aggregation_seed_holds M n h_le)
-  exact le_trans
-    (hRankLeAgg hOb hAsm)
-    (compiled_profile_aggregation_le_n160_target M n h_le hOb hAsm)
 
-/-- Wiring bridge: expose how sub-target (A) is intended to feed the
-aggregation->rank path (currently via the existing aggregation placeholder). -/
-theorem compiled_aggregation_bound_target_of_subineq
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    (∀ hOb : CompiledProfileObligations M n,
-      hOb.assemblyBound →
-      (n ^ 40) * (n ^ 120) ≤ n ^ 160) →
-    (∀ hOb : CompiledProfileObligations M n,
-      hOb.assemblyBound →
-      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160) := by
-  intro _
-  exact compiled_aggregation_bound_target M n h_le
-
-/-- Bridge from first intermediate target to core Target-2 proposition. -/
-theorem assembly_to_rank_core_target_of_aggregation
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_to_rank_core_target M n h_le :=
-  compiled_aggregation_bound_target_of_subineq M n h_le
-    (compiled_profile_aggregation_le_n160_target M n h_le)
-
+/-- Target-2 core from intermediate bound + arithmetic sub-inequality. -/
 theorem assembly_to_rank_core_target_holds
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_to_rank_core_target M n h_le :=
-  assembly_to_rank_core_target_of_aggregation M n h_le
-/-- Explicit placeholder assumption for Target 2 export (currently from R1-holds). -/
-theorem assemblyToRankThm_placeholder
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    ∀ hOb : CompiledProfileObligations M n,
-      hOb.assemblyBound →
-      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 :=
-  assembly_to_rank_core_target_holds M n h_le
+    assembly_to_rank_core_target M n h_le := by
+  intro hOb hAsm
+  exact le_trans
+    (compiled_rank_le_profile_aggregation_target_holds M n h_le hOb hAsm)
+    (compiled_profile_aggregation_le_n160_target M n h_le hOb hAsm)
 
-/-- Checklist bridge: once A1.1 is concretely proved, this should replace the
-current placeholder `assemblyWitnessData_target_holds`. -/
-theorem assemblyWitnessData_target_holds_of_exists
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assemblyWitnessData_target M n h_le :=
-  assembly_witness_exists_target M n h_le
-
-/-- Checklist bridge: once A1.2+A1.3 are concretely proved, this should replace
-`assemblyWitnessData_implies_assemblyBound_target`. -/
-theorem assemblyWitnessData_implies_assemblyBound_of_soundness
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assemblyWitnessData_target M n h_le →
-    ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound :=
-  assembly_witness_to_bound_target M n h_le
-    (assembly_witness_sound_target_holds M n h_le)
-
-/-- Target 1: concrete compiled assembly evidence for each obligation instance,
-derived from the incremental A1/A2 chain. -/
-theorem assemblyAllThm_target
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound := by
-  have hA1 : assemblyWitnessData_target M n h_le :=
-    assemblyWitnessData_target_holds_of_exists M n h_le
-  exact assemblyWitnessData_implies_assemblyBound_target M n h_le hA1
-
-/-- Target 2: concrete compiled assembly -> rank160 implication. -/
+/-- Target 2: concrete assembly -> rank160 theorem family member. -/
 theorem assemblyToRankThm_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
@@ -483,7 +127,7 @@ theorem assemblyToRankThm_target
       hOb.assemblyBound →
       mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 :=
-  assemblyToRankThm_placeholder M n h_le
+  assembly_to_rank_core_target_holds M n h_le
 
 /-- Final packaging target once the two theorem targets above are proved. -/
 def compiledAssemblyFamily_target
