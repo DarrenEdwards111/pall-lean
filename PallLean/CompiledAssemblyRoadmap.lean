@@ -30,7 +30,21 @@ namespace CompiledAssemblyRoadmap
 
 open LatentFullBridge LatentCompiler MultilinearSPDP NPWitness Compiler TuringMachine
 
-/-- Explicit placeholder assumption for Target 1 (replaces `sorry`). -/
+/-- NEW TARGET A1: construct raw compiled assembly witness data at `(M,n,h_le)`. -/
+axiom assemblyWitnessData_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop
+
+/-- NEW TARGET A2: show raw witness data implies `assemblyBound` for any
+obligation instance at `(M,n)`. -/
+axiom assemblyWitnessData_implies_assemblyBound_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    assemblyWitnessData_target M n h_le →
+    ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound
+
+/-- Explicit placeholder assumption for Target 1 (replaces `sorry`).
+Now factored through A1/A2 so the proof can be discharged incrementally. -/
 axiom assemblyAllThm_placeholder
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
@@ -45,12 +59,17 @@ axiom assemblyToRankThm_placeholder
       mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160
 
-/-- Target 1: concrete compiled assembly evidence for each obligation instance. -/
+/-- Target 1: concrete compiled assembly evidence for each obligation instance.
+Current route: A1 witness + A2 implication (placeholder-wired until A1/A2 are proved). -/
 theorem assemblyAllThm_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound :=
-  assemblyAllThm_placeholder M n h_le
+    ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound := by
+  -- New incremental target chain:
+  --   A1: `assemblyWitnessData_target M n h_le`
+  --   A2: `assemblyWitnessData_implies_assemblyBound_target M n h_le`
+  -- Replace this placeholder use once A1/A2 are concretely proved.
+  exact assemblyAllThm_placeholder M n h_le
 
 /-- Target 2: concrete compiled assembly -> rank160 implication. -/
 theorem assemblyToRankThm_target
