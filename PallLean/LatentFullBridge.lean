@@ -1555,6 +1555,29 @@ theorem hFinal_of_assemblyBound
   intro hOb
   exact hAssemblyToRank hOb (hAssemblyAll hOb)
 
+/-- Compiled-assembly package for the final remaining gap:
+(1) evidence that `assemblyBound` holds for each obligation instance,
+(2) implication `assemblyBound → rank160` at fixed `(M,n,h_le)`.
+
+Supplying this package is exactly what remains to close the compiled P-side path. -/
+structure CompiledAssemblyPackage (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) where
+  assemblyAll : ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound
+  assemblyToRank : ∀ hOb : CompiledProfileObligations M n,
+    hOb.assemblyBound →
+    mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160
+
+/-- Pointwise closure: a `CompiledAssemblyPackage` yields concrete `hFinal`. -/
+theorem hFinal_of_compiledAssemblyPackage
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hPkg : CompiledAssemblyPackage M n h_le) :
+    CompiledProfileObligations M n →
+    mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 :=
+  hFinal_of_assemblyBound M n h_le hPkg.assemblyAll hPkg.assemblyToRank
+
 /-- FinalAssembly implication bridge (default scaffold):
 if you can prove the single `finalAssembly` implication from
 `CompiledProfileObligations`, full concrete `hPcore32` follows. -/
@@ -1578,6 +1601,21 @@ theorem hPcore32_of_finalAssembly_default
     hScaf
     (compiled_step1_profileCount_default M n hn32 h_le (hObligations M n hn32) (hFinal M n h_le))
     (compiled_step2_withinProfile_default M n hn32 h_le (hObligations M n hn32) (hFinal M n h_le))
+
+/-- Package-based global closure: if each `(M,n,h_le)` has a
+`CompiledAssemblyPackage`, then `hPcore32` follows via the default scaffold. -/
+theorem hPcore32_of_compiledAssemblyPackages
+    (hObligations : ∀ (M : DTM) (n : ℕ), n ≥ 32 → CompiledProfileObligations M n)
+    (hPkg : ∀ (M : DTM) (n : ℕ)
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)),
+      CompiledAssemblyPackage M n h_le) :
+    ∀ (M : DTM) (n : ℕ),
+      n ≥ 32 →
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 :=
+  hPcore32_of_finalAssembly_default hObligations
+    (fun M n h_le => hFinal_of_compiledAssemblyPackage M n h_le (hPkg M n h_le))
 
 /-- Global packaged bridge: if you can provide the scaffold + step proofs at
 each `(M,n,h_le)`, you obtain concrete `hPcore32`. -/
