@@ -268,32 +268,45 @@ theorem compiled_rank_le_profile_aggregation_target_holds_of_global_latent_parts
   exact compiled_rank_le_profile_aggregation_target_holds_of_latent_parts
     M n h_le hn hn804 (hPartsGlobal M n hn hn804)
 
-/-- CORE PLACEHOLDER #2: substantive compiled rank->aggregation theorem
-for arbitrary `(M,n,h_le)` (stronger than contradiction-scale route). -/
+/-- Placeholder stronger arbitrary-domain closure kept for compatibility with the
+`CompiledAssemblyTheoremFamily` endpoint shape. -/
 axiom compiled_rank_le_profile_aggregation_target_holds
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
     compiled_rank_le_profile_aggregation_target M n h_le
 
-/-- Target-2 core from intermediate bound + arithmetic sub-inequality. -/
+/-- Target-2 core from intermediate bound + arithmetic sub-inequality,
+under contradiction-scale assumptions + global latent-parts supply. -/
 theorem assembly_to_rank_core_target_holds
+    (hPartsGlobal : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      LatentWidthRankDecomp.latent_profile_span_card_parts_40_120_logscale M n hn hn804)
     (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :
     assembly_to_rank_core_target M n h_le := by
   intro hOb hAsm
+  have hCore : compiled_rank_le_profile_aggregation_target M n h_le :=
+    compiled_rank_le_profile_aggregation_target_holds_of_global_latent_parts
+      hPartsGlobal M n h_le hn hn804
   exact le_trans
-    (compiled_rank_le_profile_aggregation_target_holds M n h_le hOb hAsm)
+    (hCore hOb hAsm)
     (compiled_profile_aggregation_le_n160_target M n h_le hOb hAsm)
 
-/-- Target 2: concrete assembly -> rank160 theorem family member. -/
+/-- Target 2: concrete assembly -> rank160 theorem family member (arbitrary
+`(M,n,h_le)` shape, still using the core Target-2 placeholder). -/
 theorem assemblyToRankThm_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
     ∀ hOb : CompiledProfileObligations M n,
       hOb.assemblyBound →
       mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 :=
-  assembly_to_rank_core_target_holds M n h_le
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 := by
+  intro hOb hAsm
+  exact le_trans
+    (compiled_rank_le_profile_aggregation_target_holds M n h_le hOb hAsm)
+    (compiled_profile_aggregation_le_n160_target M n h_le hOb hAsm)
 
 /-- Final packaging target once the two theorem targets above are proved. -/
 def compiledAssemblyFamily_target
