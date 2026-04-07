@@ -294,6 +294,22 @@ theorem assembly_to_rank_core_target_holds
     (hCore hOb hAsm)
     (compiled_profile_aggregation_le_n160_target M n h_le hOb hAsm)
 
+/-- Target 2: contradiction-scale concrete assembly -> rank160 theorem member,
+fully avoiding the arbitrary-domain placeholder. -/
+theorem assemblyToRankThm_target_of_global_latent_parts
+    (hPartsGlobal : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      LatentWidthRankDecomp.latent_profile_span_card_parts_40_120_logscale M n hn hn804)
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :
+    ∀ hOb : CompiledProfileObligations M n,
+      hOb.assemblyBound →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 :=
+  assembly_to_rank_core_target_holds hPartsGlobal M n h_le hn hn804
+
 /-- Target 2: concrete assembly -> rank160 theorem family member (arbitrary
 `(M,n,h_le)` shape, still using the core Target-2 placeholder). -/
 theorem assemblyToRankThm_target
@@ -315,5 +331,20 @@ def compiledAssemblyFamily_target
     CompiledAssemblyTheoremFamily M n h_le where
   assemblyAllThm := assemblyAllThm_target M n h_le
   assemblyToRankThm := assemblyToRankThm_target M n h_le
+
+/-- Contradiction-scale endpoint variant that uses only global latent-parts
+assumptions and avoids the arbitrary-domain Target-2 placeholder. -/
+def compiledAssemblyFamily_target_contradictionScale
+    (hPartsGlobal : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      LatentWidthRankDecomp.latent_profile_span_card_parts_40_120_logscale M n hn hn804)
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :
+    CompiledAssemblyTheoremFamily M n h_le where
+  assemblyAllThm := assemblyAllThm_target M n h_le
+  assemblyToRankThm := assemblyToRankThm_target_of_global_latent_parts
+    hPartsGlobal M n h_le hn hn804
 
 end CompiledAssemblyRoadmap
