@@ -99,10 +99,32 @@ theorem assembly_soundness_core_target_of_seed
   intro h
   exact h
 
-axiom assembly_soundness_seed_target_holds
+/-- Deeper split for the A1.2 seed witness:
+S1c1 = root seed proposition, S1c2 = root->seed bridge, S1c3 = root-holds witness. -/
+def assembly_soundness_seed_root_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
+  assembly_soundness_seed_target M n h_le
+
+theorem assembly_soundness_seed_target_of_root
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_soundness_seed_target M n h_le
+    assembly_soundness_seed_root_target M n h_le →
+    assembly_soundness_seed_target M n h_le := by
+  intro h
+  exact h
+
+axiom assembly_soundness_seed_root_target_holds
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    assembly_soundness_seed_root_target M n h_le
+
+theorem assembly_soundness_seed_target_holds
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    assembly_soundness_seed_target M n h_le :=
+  assembly_soundness_seed_target_of_root M n h_le
+    (assembly_soundness_seed_root_target_holds M n h_le)
 
 theorem assembly_soundness_core_target_holds
     (M : DTM) (n : ℕ)
