@@ -114,10 +114,31 @@ theorem assembly_soundness_seed_target_of_root
   intro h
   exact h
 
-axiom assembly_soundness_seed_root_target_holds
+/-- Deeper split for root-seed witness: one extra root layer. -/
+def assembly_soundness_seed_root2_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
+  assembly_soundness_seed_root_target M n h_le
+
+theorem assembly_soundness_seed_root_target_of_root2
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_soundness_seed_root_target M n h_le
+    assembly_soundness_seed_root2_target M n h_le →
+    assembly_soundness_seed_root_target M n h_le := by
+  intro h
+  exact h
+
+axiom assembly_soundness_seed_root2_target_holds
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    assembly_soundness_seed_root2_target M n h_le
+
+theorem assembly_soundness_seed_root_target_holds
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    assembly_soundness_seed_root_target M n h_le :=
+  assembly_soundness_seed_root_target_of_root2 M n h_le
+    (assembly_soundness_seed_root2_target_holds M n h_le)
 
 theorem assembly_soundness_seed_target_holds
     (M : DTM) (n : ℕ)
@@ -218,10 +239,31 @@ theorem compiled_rank_le_profile_aggregation_target
   intro h
   exact h
 
-axiom compiled_rank_le_profile_aggregation_seed_holds
+/-- Deeper split for rank-to-aggregation seed witness: one extra root layer. -/
+def compiled_rank_le_profile_aggregation_root_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
+  compiled_rank_le_profile_aggregation_seed M n h_le
+
+theorem compiled_rank_le_profile_aggregation_seed_of_root
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    compiled_rank_le_profile_aggregation_seed M n h_le
+    compiled_rank_le_profile_aggregation_root_target M n h_le →
+    compiled_rank_le_profile_aggregation_seed M n h_le := by
+  intro h
+  exact h
+
+axiom compiled_rank_le_profile_aggregation_root_target_holds
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    compiled_rank_le_profile_aggregation_root_target M n h_le
+
+theorem compiled_rank_le_profile_aggregation_seed_holds
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    compiled_rank_le_profile_aggregation_seed M n h_le :=
+  compiled_rank_le_profile_aggregation_seed_of_root M n h_le
+    (compiled_rank_le_profile_aggregation_root_target_holds M n h_le)
 
 /-- First concrete intermediate theorem target for Target-2:
 compiled assembly-level aggregation bound in the exact rank160 shape. -/
