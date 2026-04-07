@@ -433,6 +433,30 @@ theorem no_hViolMatches_of_selCon_sheet_split_witness
   no_hViolMatches_of_high_degree_coeff hLeVar M n d hd
     (latent_high_degree_coeff_of_selCon_sheet_split M n d hd hsel hmach hcopy)
 
+/-- Canonical candidate high-degree monomial for the sel/con sheet witness path:
+one sel-slot and one con-slot exponent for every base index. -/
+noncomputable def allSelConMono (M : DTM) (n : ℕ) :
+    (Fin (latentNumVars M n)) →₀ ℕ :=
+  (Finset.univ : Finset (Fin (latentBaseVars M n))).sum
+    (fun i => Finsupp.single (selSlot M n i) 1 + Finsupp.single (conSlot M n i) 1)
+
+/-- Fully concrete route-2 contradiction wrapper at the canonical sel/con witness
+monomial. This isolates the remaining sheet-level coefficient obligations as
+explicit, checkable lemmas. -/
+theorem no_hViolMatches_of_allSelCon_witness
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
+    (M : DTM) (n : ℕ)
+    (hdeg : 4 < ∑ i ∈ (allSelConMono M n).support, (allSelConMono M n) i)
+    (hsel : MvPolynomial.coeff (allSelConMono M n) (selConSheet M n) ≠ 0)
+    (hmach : MvPolynomial.coeff (allSelConMono M n) (machCopySheet M n) = 0)
+    (hcopy : MvPolynomial.coeff (allSelConMono M n) (copyConSheet M n) = 0) :
+    ¬ (MvPolynomial.rename
+      (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+      (violationPolyOf ℚ M n) = latentCompiledPoly M n) :=
+  no_hViolMatches_of_selCon_sheet_split_witness hLeVar M n (allSelConMono M n)
+    hdeg hsel hmach hcopy
+
 /-- Step-3 concrete `hViolId` constructor in the active API shape.
 
 Instantiates the transported violation-polynomial identity exactly at the
