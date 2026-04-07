@@ -1265,6 +1265,25 @@ theorem globalMapDom_of_globalAssignToLatent
     (bridgeAssignEq_of_assignToLatent M n (fullToLatentBridgeOfLe M n (hLeVar M n))
       (hAssignToLatent M n hn hn804))
 
+/-- Counterexample-schema negation for the explicit pointwise block-map claim.
+If one index violates `compiled.assign = latent.assign ∘ toLatent`, then the
+global pointwise condition cannot hold. -/
+theorem not_globalAssignToLatent_of_counterexample
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
+    (M : DTM) (n : ℕ)
+    (hcex : ∃ i : Fin (numVars M n (Nat.log 2 n)),
+      (compiledPartition M n).assign i ≠
+        (latentPartition M n).assign
+          ((fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent i)) :
+    ¬ (∀ i : Fin (numVars M n (Nat.log 2 n)),
+      (compiledPartition M n).assign i =
+        (latentPartition M n).assign
+          ((fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent i)) := by
+  intro hAll
+  rcases hcex with ⟨i, hi⟩
+  exact hi (hAll i)
+
 /-- Global packaged Step-(2) mapped-domination constructor from semantic
 partition-compatibility (equal compiled blocks map to equal latent blocks). -/
 theorem globalMapDom_of_globalPartitionCompatible
