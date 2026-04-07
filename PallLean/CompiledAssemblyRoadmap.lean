@@ -117,6 +117,25 @@ def compiled_rank_le_profile_aggregation_target
     mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (fullCompiledPoly ℚ M n h_le) ≤ (n ^ 40) * (n ^ 120)
 
+/-- Direct-proof phase lemma (real): reduce the core Target-2 bound on
+`compiledPartition` to any finer partition bound via coarsening monotonicity. -/
+theorem compiled_rank_le_profile_aggregation_of_finer_partition
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (Bfine : SPDP.BlockPartition (numVars M n (Nat.log 2 n)))
+    (hRefine : ∀ i j : Fin (numVars M n (Nat.log 2 n)),
+      Bfine.assign i = Bfine.assign j →
+      (compiledPartition M n).assign i = (compiledPartition M n).assign j)
+    (hFine : mlBlockedSpdpRank Bfine (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le) ≤ (n ^ 40) * (n ^ 120)) :
+    compiled_rank_le_profile_aggregation_target M n h_le := by
+  intro hOb hAsm
+  exact le_trans
+    (mlBlockedSpdpRank_coarsen ℚ Bfine (compiledPartition M n)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le) hRefine)
+    hFine
+
 /-- CORE PLACEHOLDER #2: substantive compiled rank->aggregation theorem. -/
 axiom compiled_rank_le_profile_aggregation_target_holds
     (M : DTM) (n : ℕ)
