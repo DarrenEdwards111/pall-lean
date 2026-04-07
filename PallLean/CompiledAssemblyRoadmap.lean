@@ -23,6 +23,21 @@ Once both are proved, use
   profile-count contribution + within-profile dimension + final aggregation.
 - Step C: Package as `CompiledAssemblyTheoremFamily`.
 
+## Concrete checklist for Target (1): `assemblyAllThm_target`
+
+The intended chain is:
+
+- A1.1 `assembly_witness_exists_target`
+- A1.2 `assembly_witness_sound_target`
+- A1.3 `assembly_witness_to_bound_target`
+
+and then:
+
+`assemblyWitnessData_target_holds` from A1.1,
+`assemblyWitnessData_implies_assemblyBound_target` from A1.2 + A1.3.
+
+These are declared below as explicit placeholders so we can replace them one-by-one.
+
 No assumptions are hidden here; this file is a proof-work target board.
 -/
 
@@ -35,6 +50,26 @@ def assemblyWitnessData_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
   True
+
+/-- A1.1: existence of a concrete compiled assembly witness object. -/
+axiom assembly_witness_exists_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    assemblyWitnessData_target M n h_le
+
+/-- A1.2: soundness of the witness wrt compiled assembly semantics. -/
+axiom assembly_witness_sound_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    assemblyWitnessData_target M n h_le → Prop
+
+/-- A1.3: witness soundness implies `assemblyBound` for obligation instances. -/
+axiom assembly_witness_to_bound_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    (assemblyWitnessData_target M n h_le → Prop) →
+    (assemblyWitnessData_target M n h_le →
+      ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound)
 
 /-- Placeholder witness that A1 holds (to be replaced by concrete construction). -/
 axiom assemblyWitnessData_target_holds
@@ -59,6 +94,24 @@ axiom assemblyToRankThm_placeholder
       hOb.assemblyBound →
       mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160
+
+/-- Checklist bridge: once A1.1 is concretely proved, this should replace the
+current placeholder `assemblyWitnessData_target_holds`. -/
+theorem assemblyWitnessData_target_holds_of_exists
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    assemblyWitnessData_target M n h_le :=
+  assembly_witness_exists_target M n h_le
+
+/-- Checklist bridge: once A1.2+A1.3 are concretely proved, this should replace
+`assemblyWitnessData_implies_assemblyBound_target`. -/
+theorem assemblyWitnessData_implies_assemblyBound_of_soundness
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    assemblyWitnessData_target M n h_le →
+    ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound :=
+  assembly_witness_to_bound_target M n h_le
+    (assembly_witness_sound_target M n h_le)
 
 /-- Target 1: concrete compiled assembly evidence for each obligation instance,
 derived from the incremental A1/A2 chain. -/
