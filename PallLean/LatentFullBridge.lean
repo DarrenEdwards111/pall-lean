@@ -1624,6 +1624,43 @@ theorem hPcore32_of_finalAssembly_default
     (compiled_step1_profileCount_default M n hn32 h_le (hObligations M n hn32) (hFinal M n h_le))
     (compiled_step2_withinProfile_default M n hn32 h_le (hObligations M n hn32) (hFinal M n h_le))
 
+/-- Concrete theorem-family interface for the remaining compiled assembly gap.
+Provide these two fields per `(M,n,h_le)` and everything downstream is automatic. -/
+structure CompiledAssemblyTheoremFamily (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) where
+  assemblyAllThm : ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound
+  assemblyToRankThm : ∀ hOb : CompiledProfileObligations M n,
+    hOb.assemblyBound →
+    mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160
+
+/-- Build a `CompiledAssemblyPackage` from the explicit theorem-family fields. -/
+def compiledAssemblyPackage_of_theoremFamily
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hFam : CompiledAssemblyTheoremFamily M n h_le) :
+    CompiledAssemblyPackage M n h_le where
+  assemblyAll := assemblyAll_of_compiledAssemblyTheorem M n h_le hFam.assemblyAllThm
+  assemblyToRank := assemblyToRank_of_compiledAssemblyTheorem M n h_le hFam.assemblyToRankThm
+
+/-- Global closure directly from a concrete theorem family (preferred final API
+for the remaining compiled assembly proof obligations). -/
+theorem hPcore32_of_compiledAssemblyTheoremFamily
+    (hObligations : ∀ (M : DTM) (n : ℕ), n ≥ 32 → CompiledProfileObligations M n)
+    (hFam : ∀ (M : DTM) (n : ℕ)
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)),
+      CompiledAssemblyTheoremFamily M n h_le) :
+    ∀ (M : DTM) (n : ℕ),
+      n ≥ 32 →
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 := by
+  intro M n hn32 h_le
+  exact hPcore32_of_finalAssembly_default hObligations
+    (fun M n h_le => hFinal_of_compiledAssemblyPackage M n h_le
+      (compiledAssemblyPackage_of_theoremFamily M n h_le (hFam M n h_le)))
+    M n hn32 h_le
+
 /-- Package-based global closure: if each `(M,n,h_le)` has a
 `CompiledAssemblyPackage`, then `hPcore32` follows via the default scaffold. -/
 theorem hPcore32_of_compiledAssemblyPackages
