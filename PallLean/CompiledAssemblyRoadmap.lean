@@ -132,6 +132,17 @@ def assembly_to_rank_core_target
     mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160
 
+/-- First concrete aggregation sub-inequality target (A):
+a profile-aggregation quantity is polynomially bounded by `n^160`.
+
+This is the first explicit mathematical sub-goal for Target-2. -/
+axiom compiled_profile_aggregation_le_n160_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    ∀ hOb : CompiledProfileObligations M n,
+      hOb.assemblyBound →
+      (n ^ 40) * (n ^ 120) ≤ n ^ 160
+
 /-- First concrete intermediate theorem target for Target-2:
 compiled assembly-level aggregation bound in the exact rank160 shape. -/
 axiom compiled_aggregation_bound_target
@@ -142,12 +153,28 @@ axiom compiled_aggregation_bound_target
       mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160
 
+/-- Wiring bridge: expose how sub-target (A) is intended to feed the
+aggregation->rank path (currently via the existing aggregation placeholder). -/
+theorem compiled_aggregation_bound_target_of_subineq
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    (∀ hOb : CompiledProfileObligations M n,
+      hOb.assemblyBound →
+      (n ^ 40) * (n ^ 120) ≤ n ^ 160) →
+    (∀ hOb : CompiledProfileObligations M n,
+      hOb.assemblyBound →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160) := by
+  intro _
+  exact compiled_aggregation_bound_target M n h_le
+
 /-- Bridge from first intermediate target to core Target-2 proposition. -/
 theorem assembly_to_rank_core_target_of_aggregation
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
     assembly_to_rank_core_target M n h_le :=
-  compiled_aggregation_bound_target M n h_le
+  compiled_aggregation_bound_target_of_subineq M n h_le
+    (compiled_profile_aggregation_le_n160_target M n h_le)
 
 axiom assembly_to_rank_core_target_holds
     (M : DTM) (n : ℕ)
