@@ -1397,6 +1397,38 @@ theorem globalFullRank160API_ofPside
         (fullCompiledPoly ℚ M n (hLeWitness M n hn hn804)) ≤ n ^ 160 :=
   hPside
 
+/-- Named compiled-side profile-compression obligation list (skeleton) for
+building the core32 full-rank theorem.
+
+This structure is intentionally theorem-agnostic: populate fields with concrete
+compiled/profile lemmas as they are proved, then discharge
+`hPcore32_of_compiledProfileObligations` below. -/
+structure CompiledProfileObligations (M : DTM) (n : ℕ) where
+  profileCountBound : Prop
+  withinProfileDimBound : Prop
+  assemblyBound : Prop
+
+/-- Bridge theorem skeleton: reduce the monolithic core32 P-side theorem to a
+named compiled-profile obligation bundle + one derivation theorem.
+
+Use this to keep the remaining gap explicit and modular instead of a single
+opaque `hPcore32` assumption. -/
+theorem hPcore32_of_compiledProfileObligations
+    (hObligations : ∀ (M : DTM) (n : ℕ), n ≥ 32 → CompiledProfileObligations M n)
+    (hDerive : ∀ (M : DTM) (n : ℕ),
+      n ≥ 32 →
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) →
+      CompiledProfileObligations M n →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160) :
+    ∀ (M : DTM) (n : ℕ),
+      n ≥ 32 →
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 := by
+  intro M n hn32 h_le
+  exact hDerive M n hn32 h_le (hObligations M n hn32)
+
 /-- Step-3 helper wrapper for paper-style theorems that require only `n ≥ 32`
 (and `h_le`) rather than full contradiction-scale side conditions. -/
 theorem globalFullRank160API_ofCore32
