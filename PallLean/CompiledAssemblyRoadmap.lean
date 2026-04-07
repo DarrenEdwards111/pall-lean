@@ -71,15 +71,18 @@ def assembly_witness_sound_target
 
 /-- A1.2 source split (checklist):
 S1 = semantic soundness core, S2 = export into the A1.2 target shape. -/
-axiom assembly_soundness_core_target
+def assembly_soundness_core_target
     (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
+  assembly_witness_sound_target M n h_le
 
-axiom assembly_soundness_core_implies_target
+theorem assembly_soundness_core_implies_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
     assembly_soundness_core_target M n h_le →
-    assembly_witness_sound_target M n h_le
+    assembly_witness_sound_target M n h_le := by
+  intro h
+  exact h
 
 axiom assembly_soundness_core_target_holds
     (M : DTM) (n : ℕ)
@@ -117,16 +120,21 @@ theorem assemblyWitnessData_implies_assemblyBound_target
 
 
 /-- Target-2 checklist split:
-R1 = core assembly->rank implication, R2 = exported theorem family shape. -/
-axiom assembly_to_rank_core_target
+R1 = core assembly->rank implication proposition, R2 = exported theorem family shape. -/
+def assembly_to_rank_core_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
+  ∀ hOb : CompiledProfileObligations M n,
+    hOb.assemblyBound →
+    mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160
+
+axiom assembly_to_rank_core_target_holds
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    ∀ hOb : CompiledProfileObligations M n,
-      hOb.assemblyBound →
-      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160
+    assembly_to_rank_core_target M n h_le
 
-/-- Explicit placeholder assumption for Target 2 export (currently identity to R1). -/
+/-- Explicit placeholder assumption for Target 2 export (currently from R1-holds). -/
 theorem assemblyToRankThm_placeholder
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
@@ -134,7 +142,7 @@ theorem assemblyToRankThm_placeholder
       hOb.assemblyBound →
       mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 :=
-  assembly_to_rank_core_target M n h_le
+  assembly_to_rank_core_target_holds M n h_le
 
 /-- Checklist bridge: once A1.1 is concretely proved, this should replace the
 current placeholder `assemblyWitnessData_target_holds`. -/
