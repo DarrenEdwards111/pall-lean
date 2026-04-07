@@ -217,15 +217,38 @@ theorem latent_rank160_from_parts_40_120_target
     finrank_span_finset_le_card G
   exact le_trans (le_trans hmono hspan_card) hCard
 
-/-- Transfer chain target T2: latent rank160 transfers to compiled fine-bound shape.
-This is currently the missing direct transfer theorem. -/
-axiom compiled_fine_bound_from_latent_rank160_target
+/-- Exact missing reverse-transfer lemma target (local form): compiled rank is
+bounded by latent rank at logscale. -/
+axiom compiled_rank_le_latent_rank_logscale_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le)
+    ≤ mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)
+
+/-- Transfer chain target T2: latent rank160 transfers to compiled fine-bound
+shape, via the reverse-transfer lemma + arithmetic aggregation inequality. -/
+theorem compiled_fine_bound_from_latent_rank160_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (hLat160 : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 160) :
     mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      (fullCompiledPoly ℚ M n h_le) ≤ (n ^ 40) * (n ^ 120)
+      (fullCompiledPoly ℚ M n h_le) ≤ (n ^ 40) * (n ^ 120) := by
+  have hCompLeLat : mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le)
+      ≤ mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n) :=
+    compiled_rank_le_latent_rank_logscale_target M n h_le
+  have hArith : n ^ 160 ≤ (n ^ 40) * (n ^ 120) := by
+    have hEq : (n ^ 40) * (n ^ 120) = n ^ 160 := by
+      calc
+        (n ^ 40) * (n ^ 120) = n ^ (40 + 120) := by
+          simpa [Nat.pow_add] using (Nat.pow_add n 40 120).symm
+        _ = n ^ 160 := by norm_num
+    exact le_of_eq hEq.symm
+  exact le_trans hCompLeLat (le_trans hLat160 hArith)
 
 /-- Single explicit bridge target (no wrapper churn):
 latent `(40,120)` parts -> latent rank160 -> compiled fine bound. -/
