@@ -135,13 +135,20 @@ def assembly_to_rank_core_target
 /-- First concrete aggregation sub-inequality target (A):
 a profile-aggregation quantity is polynomially bounded by `n^160`.
 
-This is the first explicit mathematical sub-goal for Target-2. -/
-axiom compiled_profile_aggregation_le_n160_target
+Now proved arithmetically (independent of `hOb.assemblyBound`). -/
+theorem compiled_profile_aggregation_le_n160_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
     ∀ hOb : CompiledProfileObligations M n,
       hOb.assemblyBound →
-      (n ^ 40) * (n ^ 120) ≤ n ^ 160
+      (n ^ 40) * (n ^ 120) ≤ n ^ 160 := by
+  intro hOb hAsm
+  have hEq : (n ^ 40) * (n ^ 120) = n ^ 160 := by
+    calc
+      (n ^ 40) * (n ^ 120) = n ^ (40 + 120) := by
+        simpa [Nat.pow_add] using (Nat.pow_add n 40 120).symm
+      _ = n ^ 160 := by norm_num
+  exact le_of_eq hEq
 
 /-- First concrete intermediate theorem target for Target-2:
 compiled assembly-level aggregation bound in the exact rank160 shape. -/
