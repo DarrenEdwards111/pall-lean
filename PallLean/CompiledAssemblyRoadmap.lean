@@ -240,6 +240,19 @@ theorem compiled_rank_le_profile_aggregation_from_latent_parts_target
   exact compiled_fine_bound_from_latent_rank160_target M n h_le
     (latent_rank160_from_parts_40_120_target M n hn hn804 hParts)
 
+/-- Next-step concrete closure: if latent `(40,120)` parts are available at
+contradiction scale, Target-2 core holds at `(M,n,h_le)`. -/
+theorem compiled_rank_le_profile_aggregation_target_holds_of_latent_parts
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hParts : LatentWidthRankDecomp.latent_profile_span_card_parts_40_120_logscale M n hn hn804) :
+    compiled_rank_le_profile_aggregation_target M n h_le := by
+  intro hOb hAsm
+  exact compiled_rank_le_profile_aggregation_from_latent_parts_target
+    M n h_le hn hn804 hParts
+
 /-- CORE PLACEHOLDER #2: substantive compiled rank->aggregation theorem. -/
 axiom compiled_rank_le_profile_aggregation_target_holds
     (M : DTM) (n : ℕ)
