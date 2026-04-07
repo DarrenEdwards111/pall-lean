@@ -457,6 +457,49 @@ theorem no_hViolMatches_of_allSelCon_witness
   no_hViolMatches_of_selCon_sheet_split_witness hLeVar M n (allSelConMono M n)
     hdeg hsel hmach hcopy
 
+/-- Single-gadget target coefficient for the sel/con witness monomial. -/
+theorem coeff_selConGadget_target_mono (M : DTM) (n : ℕ)
+    (i : Fin (latentBaseVars M n)) :
+    MvPolynomial.coeff
+      ((Finsupp.single (selSlot M n i) (1 : ℕ)) + (Finsupp.single (conSlot M n i) (1 : ℕ)))
+      (selConGadget M n i) = (-1 : ℚ) := by
+  let s := selSlot M n i
+  let c := conSlot M n i
+  have hsc : s ≠ c := by
+    intro h
+    simp [s, c, selSlot, conSlot, slot, Fin.ext_iff] at h
+  have hsub :
+      ((Finsupp.single s (1 : ℕ)) + (Finsupp.single c (1 : ℕ)) - Finsupp.single s 1)
+        = Finsupp.single c 1 := by
+    ext x
+    by_cases hx : x = s
+    · subst hx
+      simp [hsc]
+    · by_cases hxc : x = c
+      · subst hxc
+        simp [hsc]
+      · simp [hx, hxc]
+  unfold selConGadget Xsel Xcon
+  rw [MvPolynomial.coeff_sub]
+  have hmono_ne_zero : (Finsupp.single s 1 + Finsupp.single c 1 : (Fin (latentNumVars M n)) →₀ ℕ) ≠ 0 := by
+    intro hz
+    have : (Finsupp.single s 1 + Finsupp.single c 1 : (Fin (latentNumVars M n)) →₀ ℕ) s = 0 := by
+      simpa [hz]
+    simp [hsc] at this
+  have h1 : MvPolynomial.coeff (Finsupp.single s 1 + Finsupp.single c 1)
+      (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ) = 0 := by
+    rw [MvPolynomial.coeff_one]
+    by_cases hzero : (Finsupp.single s 1 + Finsupp.single c 1 : (Fin (latentNumVars M n)) →₀ ℕ) = 0
+    · exact (hmono_ne_zero hzero).elim
+    · have hzero' : ¬ (0 : (Fin (latentNumVars M n)) →₀ ℕ) = (Finsupp.single s 1 + Finsupp.single c 1) :=
+        fun h => hzero h.symm
+      simp [hzero']
+  have h2 : MvPolynomial.coeff (Finsupp.single s 1 + Finsupp.single c 1)
+      ((X s : MvPolynomial (Fin (latentNumVars M n)) ℚ) * X c) = 1 := by
+    rw [MvPolynomial.coeff_X_mul]
+    simpa [hsub] using (MvPolynomial.coeff_X (R := ℚ) c)
+  simpa [h1, h2]
+
 /-- A selector-slot variable never appears in a mach-copy gadget. -/
 theorem selSlot_not_mem_vars_machCopyGadget (M : DTM) (n : ℕ)
     (i j : Fin (latentBaseVars M n)) :
