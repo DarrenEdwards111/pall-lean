@@ -871,6 +871,31 @@ theorem allSelConMono_degree_gt_four_of_hn804 (M : DTM) (n : ℕ)
     exact lt_of_lt_of_le hpow hn804
   exact lt_of_lt_of_le h4_lt_n hsum_ge_n
 
+/-- Fully automatic route-2 contradiction trigger against `hViolMatches` at the
+canonical witness, using only the scale assumption `n ≥ 2^804`. -/
+theorem no_hViolMatches_of_allSelCon_witness_auto
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
+    (M : DTM) (n : ℕ)
+    (hn804 : n ≥ 2 ^ 804) :
+    ¬ (MvPolynomial.rename
+      (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+      (violationPolyOf ℚ M n) = latentCompiledPoly M n) := by
+  have hdeg : 4 < ∑ i ∈ (allSelConMono M n).support, (allSelConMono M n) i :=
+    allSelConMono_degree_gt_four_of_hn804 M n hn804
+  have hsel : MvPolynomial.coeff (allSelConMono M n) (selConSheet M n) ≠ 0 :=
+    coeff_allSelConMono_selConSheet_ne_zero M n
+  have hbase_pos : 0 < latentBaseVars M n := by
+    have hpow_pos : 0 < 2 ^ 804 := by norm_num
+    have hn_pos : 0 < n := lt_of_lt_of_le hpow_pos hn804
+    exact lt_of_lt_of_le hn_pos (latentBaseVars_ge_n M n)
+  let j : Fin (latentBaseVars M n) := ⟨0, hbase_pos⟩
+  have hmach : MvPolynomial.coeff (allSelConMono M n) (machCopySheet M n) = 0 :=
+    coeff_allSelConMono_machCopySheet_eq_zero M n j
+  have hcopy : MvPolynomial.coeff (allSelConMono M n) (copyConSheet M n) = 0 :=
+    coeff_allSelConMono_copyConSheet_eq_zero M n j
+  exact no_hViolMatches_of_allSelCon_witness hLeVar M n hdeg hsel hmach hcopy
+
 /-- Step-3 concrete `hViolId` constructor in the active API shape.
 
 Instantiates the transported violation-polynomial identity exactly at the
