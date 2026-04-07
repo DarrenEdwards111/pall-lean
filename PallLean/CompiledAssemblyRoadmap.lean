@@ -77,19 +77,16 @@ axiom assembly_witness_to_bound_target
     (assemblyWitnessData_target M n h_le →
       ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound)
 
-/-- Placeholder witness that A1 holds (to be replaced by concrete construction). -/
-axiom assemblyWitnessData_target_holds
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assemblyWitnessData_target M n h_le
-
 /-- NEW TARGET A2: show raw witness data implies `assemblyBound` for any
-obligation instance at `(M,n)`. -/
-axiom assemblyWitnessData_implies_assemblyBound_target
+obligation instance at `(M,n)`.
+Current implementation is routed through A1.2+A1.3. -/
+theorem assemblyWitnessData_implies_assemblyBound_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
     assemblyWitnessData_target M n h_le →
-    ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound
+    ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound :=
+  assembly_witness_to_bound_target M n h_le
+    (assembly_witness_sound_target M n h_le)
 
 
 /-- Explicit placeholder assumption for Target 2 (replaces `sorry`). -/
@@ -126,7 +123,7 @@ theorem assemblyAllThm_target
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
     ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound := by
   have hA1 : assemblyWitnessData_target M n h_le :=
-    assemblyWitnessData_target_holds M n h_le
+    assemblyWitnessData_target_holds_of_exists M n h_le
   exact assemblyWitnessData_implies_assemblyBound_target M n h_le hA1
 
 /-- Target 2: concrete compiled assembly -> rank160 implication. -/
