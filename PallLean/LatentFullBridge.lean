@@ -546,6 +546,30 @@ theorem mono_selConPair_supported (M : DTM) (n : ℕ)
         simp [Finsupp.single_apply, hxs, hxc]
       exact (Finsupp.mem_support_iff.mp hx) this
 
+/-- Pairwise disjointness of per-block sel/con variable sets. -/
+theorem selConPair_disjoint_of_ne (M : DTM) (n : ℕ)
+    {i j : Fin (latentBaseVars M n)} (hij : i ≠ j) :
+    Disjoint ({selSlot M n i, conSlot M n i} : Set (Fin (latentNumVars M n)))
+      ({selSlot M n j, conSlot M n j} : Set (Fin (latentNumVars M n))) := by
+  rw [Set.disjoint_left]
+  intro x hxI hxJ
+  rcases hxI with rfl | rfl <;> rcases hxJ with h | h
+  · exact hij (selSlot_injective M n h)
+  · -- sel i = con j impossible (2 mod 4 = 3 mod 4)
+    have : False := by
+      simp [selSlot, conSlot, slot, Fin.ext_iff] at h
+      omega
+    exact this.elim
+  · -- con i = sel j impossible
+    have : False := by
+      simp [selSlot, conSlot, slot, Fin.ext_iff] at h
+      omega
+    exact this.elim
+  · -- con i = con j implies i=j
+    have : i = j := by
+      simpa [conSlot, slot, Fin.ext_iff] using h
+    exact hij this
+
 /-- A selector-slot variable never appears in a mach-copy gadget. -/
 theorem selSlot_not_mem_vars_machCopyGadget (M : DTM) (n : ℕ)
     (i j : Fin (latentBaseVars M n)) :
