@@ -17,7 +17,7 @@ Everything else is theorem-level wiring around those two cores.
 
 namespace CompiledAssemblyRoadmap
 
-open LatentFullBridge LatentCompiler MultilinearSPDP NPWitness Compiler TuringMachine
+open LatentFullBridge LatentCompiler MultilinearSPDP NPWitness Compiler TuringMachine LatentWidthRankDecomp
 
 /-- Proof-carrying obligation wrapper: pairs a bundled obligation with an actual
 proof of its `assemblyBound` field. This removes the Prop-vs-proof blocker. -/
@@ -196,15 +196,26 @@ theorem compiled_rank_le_profile_aggregation_target_holds_of_compiled_hFine
   intro hOb hAsm
   simpa [BfineOf_compiled] using hFineOf
 
-/-- Transfer chain target T1: latent `(40,120)` parts imply a latent rank160 bound.
-Kept as an explicit node in the transfer chain. -/
-axiom latent_rank160_from_parts_40_120_target
+/-- Transfer chain target T1: latent `(40,120)` parts imply a latent rank160 bound. -/
+theorem latent_rank160_from_parts_40_120_target
     (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804)
     (hParts : LatentWidthRankDecomp.latent_profile_span_card_parts_40_120_logscale M n hn hn804) :
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      (latentCompiledPoly M n) ≤ n ^ 160
+      (latentCompiledPoly M n) ≤ n ^ 160 := by
+  rcases latent_p_witness_span160_logscale_from_parts_40_120 M n hn hn804 hParts with
+      ⟨G, hIncl, hCard⟩
+  unfold mlBlockedSpdpRank
+  have hmono : Module.finrank ℚ
+      (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)) ≤
+      Module.finrank ℚ (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))) :=
+    Submodule.finrank_mono hIncl
+  have hspan_card : Module.finrank ℚ
+      (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))) ≤ G.card :=
+    finrank_span_finset_le_card G
+  exact le_trans (le_trans hmono hspan_card) hCard
 
 /-- Transfer chain target T2: latent rank160 transfers to compiled fine-bound shape.
 This is currently the missing direct transfer theorem. -/
