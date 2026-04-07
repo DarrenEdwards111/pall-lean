@@ -150,15 +150,29 @@ theorem compiled_profile_aggregation_le_n160_target
       _ = n ^ 160 := by norm_num
   exact le_of_eq hEq
 
-/-- First concrete intermediate theorem target for Target-2:
-compiled assembly-level aggregation bound in the exact rank160 shape. -/
-axiom compiled_aggregation_bound_target
+/-- Second concrete intermediate target (B): link compiled SPDP rank to the
+profile-aggregation quantity `(n^40)*(n^120)`. -/
+axiom compiled_rank_le_profile_aggregation_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
     ∀ hOb : CompiledProfileObligations M n,
       hOb.assemblyBound →
       mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160
+        (fullCompiledPoly ℚ M n h_le) ≤ (n ^ 40) * (n ^ 120)
+
+/-- First concrete intermediate theorem target for Target-2:
+compiled assembly-level aggregation bound in the exact rank160 shape. -/
+theorem compiled_aggregation_bound_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    ∀ hOb : CompiledProfileObligations M n,
+      hOb.assemblyBound →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 := by
+  intro hOb hAsm
+  exact le_trans
+    (compiled_rank_le_profile_aggregation_target M n h_le hOb hAsm)
+    (compiled_profile_aggregation_le_n160_target M n h_le hOb hAsm)
 
 /-- Wiring bridge: expose how sub-target (A) is intended to feed the
 aggregation->rank path (currently via the existing aggregation placeholder). -/
