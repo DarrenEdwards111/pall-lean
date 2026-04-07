@@ -1,5 +1,6 @@
 import PallLean.LatentCompiler
 import PallLean.MultilinearSPDP
+import PallLean.ProfileCompression
 import Mathlib.Tactic
 
 /-!
@@ -1404,8 +1405,9 @@ This structure is intentionally theorem-agnostic: populate fields with concrete
 compiled/profile lemmas as they are proved, then discharge
 `hPcore32_of_compiledProfileObligations` below. -/
 structure CompiledProfileObligations (M : DTM) (n : ℕ) where
-  profileCountBound : Prop
-  withinProfileDimBound : Prop
+  profileCountBound : ∃ m, m ≥ 4 ∧ ∀ R, Nat.choose (R + m) m ≤ (R + 1) ^ m
+  withinProfileDimBound : ∃ D, D ≥ 1 ∧ ∀ k d, d ≥ 1 →
+      Nat.choose (k + d - 1) (d - 1) ≤ (k + 1) ^ (d - 1)
   assemblyBound : Prop
 
 /-- Bridge theorem skeleton: reduce the monolithic core32 P-side theorem to a
@@ -1428,6 +1430,19 @@ theorem hPcore32_of_compiledProfileObligations
         (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 := by
   intro M n hn32 h_le
   exact hDerive M n hn32 h_le (hObligations M n hn32)
+
+/-- Concrete instantiation helper: fill the first two compiled-profile
+obligations from proved `ProfileCompression` lemmas, leaving only the
+compiler-assembly obligation as an explicit input. -/
+def compiledProfileObligations_of_profileCompression
+    (hAssembly : ∀ (M : DTM) (n : ℕ), n ≥ 32 → Prop) :
+    ∀ (M : DTM) (n : ℕ), n ≥ 32 → CompiledProfileObligations M n := by
+  intro M n hn32
+  refine {
+    profileCountBound := ProfileCompression.profile_count_bound,
+    withinProfileDimBound := ProfileCompression.within_profile_dim_bound,
+    assemblyBound := hAssembly M n hn32
+  }
 
 /-- Step-3 helper wrapper for paper-style theorems that require only `n ≥ 32`
 (and `h_le`) rather than full contradiction-scale side conditions. -/
