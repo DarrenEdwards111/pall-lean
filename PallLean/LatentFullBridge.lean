@@ -457,6 +457,114 @@ theorem no_hViolMatches_of_allSelCon_witness
   no_hViolMatches_of_selCon_sheet_split_witness hLeVar M n (allSelConMono M n)
     hdeg hsel hmach hcopy
 
+/-- A selector-slot variable never appears in a mach-copy gadget. -/
+theorem selSlot_not_mem_vars_machCopyGadget (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) :
+    selSlot M n j ∉ (machCopyGadget M n i).vars := by
+  intro hsel
+  have hsub := (MvPolynomial.vars_sub_subset
+    (p := (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ))
+    (q := (X (machSlot M n i) * X (copySlot M n i) :
+      MvPolynomial (Fin (latentNumVars M n)) ℚ)))
+  have hprod : selSlot M n j ∈
+      (X (machSlot M n i) * X (copySlot M n i) :
+        MvPolynomial (Fin (latentNumVars M n)) ℚ).vars := by
+    have hunion : selSlot M n j ∈
+        (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ).vars ∪
+        (X (machSlot M n i) * X (copySlot M n i) :
+          MvPolynomial (Fin (latentNumVars M n)) ℚ).vars := by
+      simpa [machCopyGadget, Xmach, Xcopy] using hsub hsel
+    have hnotC : selSlot M n j ∉ (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ).vars := by
+      simpa using (MvPolynomial.not_mem_vars_C (1 : ℚ) (selSlot M n j))
+    exact (Finset.mem_union.mp hunion).resolve_left hnotC
+  have hmul := (MvPolynomial.vars_mul (X (machSlot M n i)) (X (copySlot M n i))) hprod
+  have hcases : selSlot M n j = machSlot M n i ∨ selSlot M n j = copySlot M n i := by
+    simpa [MvPolynomial.vars_X, Finset.mem_union, Finset.mem_singleton] using hmul
+  cases hcases with
+  | inl h =>
+      have : False := by
+        simp [selSlot, machSlot, slot, Fin.ext_iff] at h
+        omega
+      exact this.elim
+  | inr h =>
+      have : False := by
+        simp [selSlot, copySlot, slot, Fin.ext_iff] at h
+        omega
+      exact this.elim
+
+/-- A selector-slot variable never appears in a copy-consistency gadget. -/
+theorem selSlot_not_mem_vars_copyConGadget (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) :
+    selSlot M n j ∉ (copyConGadget M n i).vars := by
+  intro hsel
+  have hsub := (MvPolynomial.vars_sub_subset
+    (p := (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ))
+    (q := (X (copySlot M n i) * X (conSlot M n i) :
+      MvPolynomial (Fin (latentNumVars M n)) ℚ)))
+  have hprod : selSlot M n j ∈
+      (X (copySlot M n i) * X (conSlot M n i) :
+        MvPolynomial (Fin (latentNumVars M n)) ℚ).vars := by
+    have hunion : selSlot M n j ∈
+        (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ).vars ∪
+        (X (copySlot M n i) * X (conSlot M n i) :
+          MvPolynomial (Fin (latentNumVars M n)) ℚ).vars := by
+      simpa [copyConGadget, Xcopy, Xcon] using hsub hsel
+    have hnotC : selSlot M n j ∉ (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ).vars := by
+      simpa using (MvPolynomial.not_mem_vars_C (1 : ℚ) (selSlot M n j))
+    exact (Finset.mem_union.mp hunion).resolve_left hnotC
+  have hmul := (MvPolynomial.vars_mul (X (copySlot M n i)) (X (conSlot M n i))) hprod
+  have hcases : selSlot M n j = copySlot M n i ∨ selSlot M n j = conSlot M n i := by
+    simpa [MvPolynomial.vars_X, Finset.mem_union, Finset.mem_singleton] using hmul
+  cases hcases with
+  | inl h =>
+      have : False := by
+        simp [selSlot, copySlot, slot, Fin.ext_iff] at h
+        omega
+      exact this.elim
+  | inr h =>
+      have : False := by
+        simp [selSlot, conSlot, slot, Fin.ext_iff] at h
+        omega
+      exact this.elim
+
+/-- If a monomial support contains a selector slot, its coefficient in
+`machCopySheet` is zero. -/
+theorem coeff_machCopySheet_eq_zero_of_selSlot_support (M : DTM) (n : ℕ)
+    (d : (Fin (latentNumVars M n)) →₀ ℕ)
+    (hsupp : ∃ j : Fin (latentBaseVars M n), selSlot M n j ∈ d.support) :
+    MvPolynomial.coeff d (machCopySheet M n) = 0 := by
+  by_contra hcoeff
+  have hmem : d ∈ (machCopySheet M n).support := MvPolynomial.mem_support_iff.mpr hcoeff
+  obtain ⟨j, hj⟩ := hsupp
+  have hvar : selSlot M n j ∈ (machCopySheet M n).vars :=
+    (MvPolynomial.mem_vars _).mpr ⟨d, hmem, hj⟩
+  have hprodSub := MvPolynomial.vars_prod (s := (Finset.univ : Finset (Fin (latentBaseVars M n))))
+    (f := fun i => machCopyGadget M n i)
+  have hUnion : selSlot M n j ∈
+      (Finset.univ : Finset (Fin (latentBaseVars M n))).biUnion
+        (fun i => (machCopyGadget M n i).vars) := hprodSub hvar
+  rcases Finset.mem_biUnion.mp hUnion with ⟨i, -, hi⟩
+  exact (selSlot_not_mem_vars_machCopyGadget M n i j) hi
+
+/-- If a monomial support contains a selector slot, its coefficient in
+`copyConSheet` is zero. -/
+theorem coeff_copyConSheet_eq_zero_of_selSlot_support (M : DTM) (n : ℕ)
+    (d : (Fin (latentNumVars M n)) →₀ ℕ)
+    (hsupp : ∃ j : Fin (latentBaseVars M n), selSlot M n j ∈ d.support) :
+    MvPolynomial.coeff d (copyConSheet M n) = 0 := by
+  by_contra hcoeff
+  have hmem : d ∈ (copyConSheet M n).support := MvPolynomial.mem_support_iff.mpr hcoeff
+  obtain ⟨j, hj⟩ := hsupp
+  have hvar : selSlot M n j ∈ (copyConSheet M n).vars :=
+    (MvPolynomial.mem_vars _).mpr ⟨d, hmem, hj⟩
+  have hprodSub := MvPolynomial.vars_prod (s := (Finset.univ : Finset (Fin (latentBaseVars M n))))
+    (f := fun i => copyConGadget M n i)
+  have hUnion : selSlot M n j ∈
+      (Finset.univ : Finset (Fin (latentBaseVars M n))).biUnion
+        (fun i => (copyConGadget M n i).vars) := hprodSub hvar
+  rcases Finset.mem_biUnion.mp hUnion with ⟨i, -, hi⟩
+  exact (selSlot_not_mem_vars_copyConGadget M n i j) hi
+
 /-- Step-3 concrete `hViolId` constructor in the active API shape.
 
 Instantiates the transported violation-polynomial identity exactly at the
