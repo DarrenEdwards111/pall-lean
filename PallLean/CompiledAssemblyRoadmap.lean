@@ -17,6 +17,12 @@ namespace CompiledAssemblyRoadmap
 
 open LatentFullBridge LatentCompiler MultilinearSPDP NPWitness Compiler TuringMachine
 
+/-- Proof-carrying obligation wrapper: pairs a bundled obligation with an actual
+proof of its `assemblyBound` field. This removes the Prop-vs-proof blocker. -/
+structure CompiledProfileObligationsWithProof (M : DTM) (n : ℕ) where
+  ob : CompiledProfileObligations M n
+  assemblyProof : ob.assemblyBound
+
 /-- A1 witness predicate (placeholder carrier). -/
 def assemblyWitnessData_target
     (M : DTM) (n : ℕ)
@@ -37,11 +43,19 @@ def assembly_witness_sound_target
   assemblyWitnessData_target M n h_le →
     ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound
 
+/-- Refactored core target:
+kept in the executable A1.2 shape while `CompiledProfileObligationsWithProof`
+serves as the proof-carrying interface for future migration. -/
+def assembly_soundness_core_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
+  assembly_witness_sound_target M n h_le
+
 /-- CORE PLACEHOLDER #1: substantive compiled semantic soundness. -/
 axiom assembly_soundness_core_target_holds
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_witness_sound_target M n h_le
+    assembly_soundness_core_target M n h_le
 
 /-- A1.2 exported theorem (wired directly from core placeholder #1). -/
 theorem assembly_witness_sound_target_holds
