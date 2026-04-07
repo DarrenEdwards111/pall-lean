@@ -61,21 +61,30 @@ theorem assembly_witness_exists_target
   trivial
 
 /-- A1.2: soundness of the witness wrt compiled assembly semantics.
-(Current placeholder shape; replace with substantive semantic predicate/proof.) -/
+(Current placeholder shape: witness data entails `assemblyBound` for obligation
+instances; replace its proof source with substantive compiled semantics.) -/
 def assembly_witness_sound_target
     (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assemblyWitnessData_target M n h_le → Prop :=
-  fun _ => True
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
+  assemblyWitnessData_target M n h_le →
+    ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound
 
-/-- A1.3: witness soundness implies `assemblyBound` for obligation instances.
-(Still a placeholder theorem target to be replaced by real compiled assembly math.) -/
-axiom assembly_witness_to_bound_target
+/-- Placeholder source for A1.2 until concrete witness semantics are proved. -/
+axiom assembly_witness_sound_target_holds
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    (assemblyWitnessData_target M n h_le → Prop) →
+    assembly_witness_sound_target M n h_le
+
+/-- A1.3: witness soundness implies `assemblyBound` for obligation instances.
+Now a real theorem (tautological bridge from A1.2). -/
+theorem assembly_witness_to_bound_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    assembly_witness_sound_target M n h_le →
     (assemblyWitnessData_target M n h_le →
-      ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound)
+      ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound) := by
+  intro hSound
+  exact hSound
 
 /-- NEW TARGET A2: show raw witness data implies `assemblyBound` for any
 obligation instance at `(M,n)`.
@@ -86,7 +95,7 @@ theorem assemblyWitnessData_implies_assemblyBound_target
     assemblyWitnessData_target M n h_le →
     ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound :=
   assembly_witness_to_bound_target M n h_le
-    (assembly_witness_sound_target M n h_le)
+    (assembly_witness_sound_target_holds M n h_le)
 
 
 /-- Explicit placeholder assumption for Target 2 (replaces `sorry`). -/
@@ -114,7 +123,7 @@ theorem assemblyWitnessData_implies_assemblyBound_of_soundness
     assemblyWitnessData_target M n h_le →
     ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound :=
   assembly_witness_to_bound_target M n h_le
-    (assembly_witness_sound_target M n h_le)
+    (assembly_witness_sound_target_holds M n h_le)
 
 /-- Target 1: concrete compiled assembly evidence for each obligation instance,
 derived from the incremental A1/A2 chain. -/
