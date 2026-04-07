@@ -1462,6 +1462,66 @@ theorem globalFullRank160API_ofCore32
   intro M n hn hn804
   exact hCore M n (n32_of_hn804 n hn804) (hLeWitness M n hn hn804)
 
+/-- Named sub-implication scaffold for proving compiled-side `hDerive`.
+
+This decomposes the derivation into three explicit implication stages:
+1) profile-count contribution,
+2) within-profile contribution,
+3) final assembly to rank160.
+
+Each field is a theorem target to be filled by concrete compiled/profile lemmas.
+-/
+structure CompiledDerivationScaffold (M : DTM) (n : ℕ) (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) where
+  fromProfileCount :
+    CompiledProfileObligations M n → Prop
+  fromWithinProfile :
+    CompiledProfileObligations M n → Prop
+  finalAssembly :
+    CompiledProfileObligations M n →
+    mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160
+
+/-- Scaffold-to-derivation bridge: once the three compiled sub-implications are
+proved (packaged as `CompiledDerivationScaffold`), `hDerive` follows directly. -/
+theorem hDerive_of_compiledDerivationScaffold
+    (M : DTM) (n : ℕ)
+    (hn32 : n ≥ 32)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hOb : CompiledProfileObligations M n)
+    (hScaf : CompiledDerivationScaffold M n h_le)
+    (hStep1 : hScaf.fromProfileCount hOb)
+    (hStep2 : hScaf.fromWithinProfile hOb) :
+    mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 :=
+  hScaf.finalAssembly hOb
+
+/-- Global packaged bridge: if you can provide the scaffold + step proofs at
+each `(M,n,h_le)`, you obtain concrete `hPcore32`. -/
+theorem hPcore32_of_compiledScaffold
+    (hObligations : ∀ (M : DTM) (n : ℕ), n ≥ 32 → CompiledProfileObligations M n)
+    (hScaf : ∀ (M : DTM) (n : ℕ)
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)),
+      CompiledDerivationScaffold M n h_le)
+    (hStep1 : ∀ (M : DTM) (n : ℕ)
+      (hn32 : n ≥ 32)
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)),
+      (hScaf M n h_le).fromProfileCount (hObligations M n hn32))
+    (hStep2 : ∀ (M : DTM) (n : ℕ)
+      (hn32 : n ≥ 32)
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)),
+      (hScaf M n h_le).fromWithinProfile (hObligations M n hn32)) :
+    ∀ (M : DTM) (n : ℕ),
+      n ≥ 32 →
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 := by
+  intro M n hn32 h_le
+  exact hDerive_of_compiledDerivationScaffold M n hn32 h_le
+    (hObligations M n hn32)
+    (hScaf M n h_le)
+    (hStep1 M n hn32 h_le)
+    (hStep2 M n hn32 h_le)
+
 /-- Transport wrapper: once rank domination is established, we can read it as a
 usable inequality theorem directly. -/
 theorem latent_rank_le_full_rank_of_bridge (M : DTM) (n : ℕ)
