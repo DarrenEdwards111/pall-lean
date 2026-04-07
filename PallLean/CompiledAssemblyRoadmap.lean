@@ -1,4 +1,5 @@
 import PallLean.LatentFullBridge
+import PallLean.LatentWidthRankDecomp
 
 /-!
 # CompiledAssemblyRoadmap
@@ -193,6 +194,21 @@ theorem compiled_rank_le_profile_aggregation_target_holds_of_compiled_hFine
     compiled_rank_le_profile_aggregation_target M n h_le := by
   intro hOb hAsm
   simpa [BfineOf_compiled] using hFineOf
+
+/-- Single explicit bridge target (no wrapper churn):
+transfer a latent-side `(40,120)` profile-parts package into the compiled-side
+fine bound shape used in this roadmap.
+
+This is the direct missing link if one wants to discharge `hFineOf` from the
+existing latent theorem inventory. -/
+axiom compiled_rank_le_profile_aggregation_from_latent_parts_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hParts : LatentWidthRankDecomp.latent_profile_span_card_parts_40_120_logscale M n hn hn804) :
+    mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le) ≤ (n ^ 40) * (n ^ 120)
 
 /-- CORE PLACEHOLDER #2: substantive compiled rank->aggregation theorem. -/
 axiom compiled_rank_le_profile_aggregation_target_holds
