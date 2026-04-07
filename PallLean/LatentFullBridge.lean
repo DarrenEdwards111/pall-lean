@@ -1536,6 +1536,25 @@ theorem compiled_step2_withinProfile_default
     (compiledDerivationScaffold_default M n h_le hFinal).fromWithinProfile hOb :=
   hOb.withinProfileDimBound
 
+/-- Concrete `hFinal` constructor from an explicit assembly-to-rank implication.
+
+This is the remaining nontrivial step in the current scaffold: once you can show
+that `assemblyBound` entails the compiled rank160 inequality, `hFinal` is
+immediate. -/
+theorem hFinal_of_assemblyBound
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hAssemblyAll : ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound)
+    (hAssemblyToRank : ∀ hOb : CompiledProfileObligations M n,
+      hOb.assemblyBound →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160) :
+    CompiledProfileObligations M n →
+    mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 := by
+  intro hOb
+  exact hAssemblyToRank hOb (hAssemblyAll hOb)
+
 /-- FinalAssembly implication bridge (default scaffold):
 if you can prove the single `finalAssembly` implication from
 `CompiledProfileObligations`, full concrete `hPcore32` follows. -/
