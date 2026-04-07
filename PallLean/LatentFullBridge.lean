@@ -1536,6 +1536,30 @@ theorem compiled_step2_withinProfile_default
     (compiledDerivationScaffold_default M n h_le hFinal).fromWithinProfile hOb :=
   hOb.withinProfileDimBound
 
+/-- FinalAssembly implication bridge (default scaffold):
+if you can prove the single `finalAssembly` implication from
+`CompiledProfileObligations`, full concrete `hPcore32` follows. -/
+theorem hPcore32_of_finalAssembly_default
+    (hObligations : ∀ (M : DTM) (n : ℕ), n ≥ 32 → CompiledProfileObligations M n)
+    (hFinal : ∀ (M : DTM) (n : ℕ)
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)),
+      CompiledProfileObligations M n →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160) :
+    ∀ (M : DTM) (n : ℕ),
+      n ≥ 32 →
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 := by
+  intro M n hn32 h_le
+  let hScaf : CompiledDerivationScaffold M n h_le :=
+    compiledDerivationScaffold_default M n h_le (hFinal M n h_le)
+  exact hDerive_of_compiledDerivationScaffold M n hn32 h_le
+    (hObligations M n hn32)
+    hScaf
+    (compiled_step1_profileCount_default M n hn32 h_le (hObligations M n hn32) (hFinal M n h_le))
+    (compiled_step2_withinProfile_default M n hn32 h_le (hObligations M n hn32) (hFinal M n h_le))
+
 /-- Global packaged bridge: if you can provide the scaffold + step proofs at
 each `(M,n,h_le)`, you obtain concrete `hPcore32`. -/
 theorem hPcore32_of_compiledScaffold
