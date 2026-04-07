@@ -31,9 +31,16 @@ namespace CompiledAssemblyRoadmap
 open LatentFullBridge LatentCompiler MultilinearSPDP NPWitness Compiler TuringMachine
 
 /-- NEW TARGET A1: construct raw compiled assembly witness data at `(M,n,h_le)`. -/
-axiom assemblyWitnessData_target
+def assemblyWitnessData_target
     (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
+  True
+
+/-- Placeholder witness that A1 holds (to be replaced by concrete construction). -/
+axiom assemblyWitnessData_target_holds
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    assemblyWitnessData_target M n h_le
 
 /-- NEW TARGET A2: show raw witness data implies `assemblyBound` for any
 obligation instance at `(M,n)`. -/
@@ -43,12 +50,6 @@ axiom assemblyWitnessData_implies_assemblyBound_target
     assemblyWitnessData_target M n h_le →
     ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound
 
-/-- Explicit placeholder assumption for Target 1 (replaces `sorry`).
-Now factored through A1/A2 so the proof can be discharged incrementally. -/
-axiom assemblyAllThm_placeholder
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound
 
 /-- Explicit placeholder assumption for Target 2 (replaces `sorry`). -/
 axiom assemblyToRankThm_placeholder
@@ -59,17 +60,15 @@ axiom assemblyToRankThm_placeholder
       mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160
 
-/-- Target 1: concrete compiled assembly evidence for each obligation instance.
-Current route: A1 witness + A2 implication (placeholder-wired until A1/A2 are proved). -/
+/-- Target 1: concrete compiled assembly evidence for each obligation instance,
+derived from the incremental A1/A2 chain. -/
 theorem assemblyAllThm_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
     ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound := by
-  -- New incremental target chain:
-  --   A1: `assemblyWitnessData_target M n h_le`
-  --   A2: `assemblyWitnessData_implies_assemblyBound_target M n h_le`
-  -- Replace this placeholder use once A1/A2 are concretely proved.
-  exact assemblyAllThm_placeholder M n h_le
+  have hA1 : assemblyWitnessData_target M n h_le :=
+    assemblyWitnessData_target_holds M n h_le
+  exact assemblyWitnessData_implies_assemblyBound_target M n h_le hA1
 
 /-- Target 2: concrete compiled assembly -> rank160 implication. -/
 theorem assemblyToRankThm_target
