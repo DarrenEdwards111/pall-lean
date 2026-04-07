@@ -500,6 +500,34 @@ theorem coeff_selConGadget_target_mono (M : DTM) (n : ℕ)
     simpa [hsub] using (MvPolynomial.coeff_X (R := ℚ) c)
   simpa [h1, h2]
 
+/-- Single-gadget `usesOnly` for route-2 coefficient factorization.
+`selConGadget M n i` depends only on `{selSlot i, conSlot i}`. -/
+theorem selConGadget_usesOnly_selConPair (M : DTM) (n : ℕ)
+    (i : Fin (latentBaseVars M n)) :
+    CoeffDisjoint.usesOnly (selConGadget M n i)
+      ({selSlot M n i, conSlot M n i} : Set (Fin (latentNumVars M n))) := by
+  intro m hm x hx
+  have hvars : x ∈ (selConGadget M n i).vars :=
+    (MvPolynomial.mem_vars _).mpr ⟨m, hm, hx⟩
+  -- variables of gadget are contained in vars of X(sel)*X(con)
+  have hsub := (MvPolynomial.vars_sub_subset
+    (p := (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ))
+    (q := (X (selSlot M n i) * X (conSlot M n i) :
+      MvPolynomial (Fin (latentNumVars M n)) ℚ)))
+  have hprod : x ∈ (X (selSlot M n i) * X (conSlot M n i) :
+      MvPolynomial (Fin (latentNumVars M n)) ℚ).vars := by
+    have hunion : x ∈ (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ).vars ∪
+      (X (selSlot M n i) * X (conSlot M n i) :
+        MvPolynomial (Fin (latentNumVars M n)) ℚ).vars := by
+      simpa [selConGadget, Xsel, Xcon] using hsub hvars
+    have hnotC : x ∉ (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ).vars := by
+      simpa using (MvPolynomial.not_mem_vars_C (1 : ℚ) x)
+    exact (Finset.mem_union.mp hunion).resolve_left hnotC
+  have hmul := (MvPolynomial.vars_mul (X (selSlot M n i)) (X (conSlot M n i))) hprod
+  have hxpair : x = selSlot M n i ∨ x = conSlot M n i := by
+    simpa [MvPolynomial.vars_X, Finset.mem_union, Finset.mem_singleton] using hmul
+  rcases hxpair with rfl | rfl <;> simp
+
 /-- A selector-slot variable never appears in a mach-copy gadget. -/
 theorem selSlot_not_mem_vars_machCopyGadget (M : DTM) (n : ℕ)
     (i j : Fin (latentBaseVars M n)) :
