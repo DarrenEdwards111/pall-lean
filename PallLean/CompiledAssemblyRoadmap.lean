@@ -60,13 +60,16 @@ theorem assembly_witness_exists_target
     assemblyWitnessData_target M n h_le := by
   trivial
 
-/-- A1.2: soundness of the witness wrt compiled assembly semantics. -/
-axiom assembly_witness_sound_target
+/-- A1.2: soundness of the witness wrt compiled assembly semantics.
+(Current placeholder shape; replace with substantive semantic predicate/proof.) -/
+def assembly_witness_sound_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assemblyWitnessData_target M n h_le → Prop
+    assemblyWitnessData_target M n h_le → Prop :=
+  fun _ => True
 
-/-- A1.3: witness soundness implies `assemblyBound` for obligation instances. -/
+/-- A1.3: witness soundness implies `assemblyBound` for obligation instances.
+(Still a placeholder theorem target to be replaced by real compiled assembly math.) -/
 axiom assembly_witness_to_bound_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
