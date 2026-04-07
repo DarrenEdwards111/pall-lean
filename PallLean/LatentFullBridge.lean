@@ -1568,6 +1568,14 @@ structure CompiledAssemblyPackage (M : DTM) (n : ℕ)
     mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160
 
+/-- Step helper: build `assemblyAll` from a global compiled assembly theorem. -/
+theorem assemblyAll_of_compiledAssemblyTheorem
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hAsmGlobal : ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound) :
+    ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound :=
+  hAsmGlobal
+
 /-- Pointwise closure: a `CompiledAssemblyPackage` yields concrete `hFinal`. -/
 theorem hFinal_of_compiledAssemblyPackage
     (M : DTM) (n : ℕ)
