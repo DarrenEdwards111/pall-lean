@@ -681,6 +681,19 @@ theorem coeff_selConProd_sumMono_on_set (M : DTM) (n : ℕ)
       rw [coeff_selConGadget_target_mono, ih]
       simp [pow_succ, hi, mul_comm, mul_left_comm, mul_assoc]
 
+/-- Full-product coefficient identity at the canonical witness monomial. -/
+theorem coeff_allSelConMono_selConSheet_eq_pow_neg_one (M : DTM) (n : ℕ) :
+    MvPolynomial.coeff (allSelConMono M n) (selConSheet M n)
+      = ((-1 : ℚ) ^ (latentBaseVars M n)) := by
+  simpa [allSelConMono, selConSheet] using
+    (coeff_selConProd_sumMono_on_set M n (Finset.univ : Finset (Fin (latentBaseVars M n))))
+
+/-- In particular, the canonical sel/con witness coefficient is nonzero. -/
+theorem coeff_allSelConMono_selConSheet_ne_zero (M : DTM) (n : ℕ) :
+    MvPolynomial.coeff (allSelConMono M n) (selConSheet M n) ≠ 0 := by
+  rw [coeff_allSelConMono_selConSheet_eq_pow_neg_one]
+  exact pow_ne_zero _ (by norm_num)
+
 /-- A selector-slot variable never appears in a mach-copy gadget. -/
 theorem selSlot_not_mem_vars_machCopyGadget (M : DTM) (n : ℕ)
     (i j : Fin (latentBaseVars M n)) :
