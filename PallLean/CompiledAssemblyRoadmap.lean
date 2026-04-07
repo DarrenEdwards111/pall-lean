@@ -136,6 +136,34 @@ theorem compiled_rank_le_profile_aggregation_of_finer_partition
       (fullCompiledPoly ℚ M n h_le) hRefine)
     hFine
 
+/-- Global closure template for Target-2 core via a chosen finer partition family.
+
+This formalizes the exact three obligations to discharge in practice:
+1) choose `Bfine`,
+2) prove `Bfine` refines into `compiledPartition`,
+3) prove the fine-partition rank bound. -/
+theorem compiled_rank_le_profile_aggregation_target_holds_of_finer_partition
+    (BfineOf : ∀ (M : DTM) (n : ℕ)
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)),
+      SPDP.BlockPartition (numVars M n (Nat.log 2 n)))
+    (hRefineOf : ∀ (M : DTM) (n : ℕ)
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+      (i j : Fin (numVars M n (Nat.log 2 n))),
+      (BfineOf M n h_le).assign i = (BfineOf M n h_le).assign j →
+      (compiledPartition M n).assign i = (compiledPartition M n).assign j)
+    (hFineOf : ∀ (M : DTM) (n : ℕ)
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)),
+      mlBlockedSpdpRank (BfineOf M n h_le) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ (n ^ 40) * (n ^ 120)) :
+    ∀ (M : DTM) (n : ℕ)
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)),
+      compiled_rank_le_profile_aggregation_target M n h_le := by
+  intro M n h_le
+  exact compiled_rank_le_profile_aggregation_of_finer_partition M n h_le
+    (BfineOf M n h_le)
+    (hRefineOf M n h_le)
+    (hFineOf M n h_le)
+
 /-- CORE PLACEHOLDER #2: substantive compiled rank->aggregation theorem. -/
 axiom compiled_rank_le_profile_aggregation_target_holds
     (M : DTM) (n : ℕ)
