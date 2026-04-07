@@ -51,11 +51,14 @@ def assemblyWitnessData_target
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
   True
 
-/-- A1.1: existence of a concrete compiled assembly witness object. -/
-axiom assembly_witness_exists_target
+/-- A1.1: existence of a concrete compiled assembly witness object.
+(Currently immediate because `assemblyWitnessData_target` is the placeholder
+predicate `True`; replace this proof when A1 is refined to a substantive object.) -/
+theorem assembly_witness_exists_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assemblyWitnessData_target M n h_le
+    assemblyWitnessData_target M n h_le := by
+  trivial
 
 /-- A1.2: soundness of the witness wrt compiled assembly semantics. -/
 axiom assembly_witness_sound_target
