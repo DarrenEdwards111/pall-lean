@@ -204,7 +204,7 @@ theorem latent_rank160_from_parts_40_120_target
     (hParts : LatentWidthRankDecomp.latent_profile_span_card_parts_40_120_logscale M n hn hn804) :
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 160 := by
-  rcases latent_p_witness_span160_logscale_from_parts_40_120 M n hn hn804 hParts with
+  rcases LatentWidthRankDecomp.latent_p_witness_span160_logscale_from_parts_40_120 M n hn hn804 hParts with
       ⟨G, hIncl, hCard⟩
   unfold mlBlockedSpdpRank
   have hmono : Module.finrank ℚ
