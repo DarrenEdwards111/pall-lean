@@ -217,7 +217,20 @@ theorem latent_rank160_from_parts_40_120_target
     finrank_span_finset_le_card G
   exact le_trans (le_trans hmono hspan_card) hCard
 
-/-- Exact missing reverse-transfer lemma target (local form): compiled rank is
+/-- Exact missing reverse-transfer lemma (subspace form): compiled SPDP subspace
+is contained in the transported latent SPDP subspace at logscale. -/
+axiom compiled_subspace_le_latent_subspace_logscale_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
+    (mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le))
+    ≤ Submodule.map T
+      (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n))
+
+/-- Exact missing reverse-transfer lemma target (rank form): compiled rank is
 bounded by latent rank at logscale. -/
 axiom compiled_rank_le_latent_rank_logscale_target
     (M : DTM) (n : ℕ)
