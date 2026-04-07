@@ -173,14 +173,33 @@ theorem compiled_profile_aggregation_le_n160_target
   exact le_of_eq hEq
 
 /-- Second concrete intermediate target (B): link compiled SPDP rank to the
-profile-aggregation quantity `(n^40)*(n^120)`. -/
-axiom compiled_rank_le_profile_aggregation_target
+profile-aggregation quantity `(n^40)*(n^120)`.
+
+Refactored into core proposition + bridge theorem; deepest placeholder is
+`compiled_rank_le_profile_aggregation_seed_holds`. -/
+def compiled_rank_le_profile_aggregation_seed
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
+  ∀ hOb : CompiledProfileObligations M n,
+    hOb.assemblyBound →
+    mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le) ≤ (n ^ 40) * (n ^ 120)
+
+theorem compiled_rank_le_profile_aggregation_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    ∀ hOb : CompiledProfileObligations M n,
+    compiled_rank_le_profile_aggregation_seed M n h_le →
+    (∀ hOb : CompiledProfileObligations M n,
       hOb.assemblyBound →
       mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-        (fullCompiledPoly ℚ M n h_le) ≤ (n ^ 40) * (n ^ 120)
+        (fullCompiledPoly ℚ M n h_le) ≤ (n ^ 40) * (n ^ 120)) := by
+  intro h
+  exact h
+
+axiom compiled_rank_le_profile_aggregation_seed_holds
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    compiled_rank_le_profile_aggregation_seed M n h_le
 
 /-- First concrete intermediate theorem target for Target-2:
 compiled assembly-level aggregation bound in the exact rank160 shape. -/
@@ -192,8 +211,14 @@ theorem compiled_aggregation_bound_target
       mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 := by
   intro hOb hAsm
+  have hRankLeAgg : ∀ hOb : CompiledProfileObligations M n,
+      hOb.assemblyBound →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ (n ^ 40) * (n ^ 120) :=
+    compiled_rank_le_profile_aggregation_target M n h_le
+      (compiled_rank_le_profile_aggregation_seed_holds M n h_le)
   exact le_trans
-    (compiled_rank_le_profile_aggregation_target M n h_le hOb hAsm)
+    (hRankLeAgg hOb hAsm)
     (compiled_profile_aggregation_le_n160_target M n h_le hOb hAsm)
 
 /-- Wiring bridge: expose how sub-target (A) is intended to feed the
