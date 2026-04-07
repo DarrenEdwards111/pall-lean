@@ -565,6 +565,41 @@ theorem coeff_copyConSheet_eq_zero_of_selSlot_support (M : DTM) (n : ℕ)
   rcases Finset.mem_biUnion.mp hUnion with ⟨i, -, hi⟩
   exact (selSlot_not_mem_vars_copyConGadget M n i j) hi
 
+/-- `allSelConMono` contains selector-slot support (for any chosen base index). -/
+theorem allSelConMono_selSlot_mem_support (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n)) :
+    selSlot M n j ∈ (allSelConMono M n).support := by
+  classical
+  have hne : (allSelConMono M n) (selSlot M n j) ≠ 0 := by
+    intro hz
+    have hsum0 : (∑ i : Fin (latentBaseVars M n),
+        (((Finsupp.single (selSlot M n i) (1 : ℕ) + Finsupp.single (conSlot M n i) (1 : ℕ))
+            : (Fin (latentNumVars M n)) →₀ ℕ)
+          (selSlot M n j))) = 0 := by
+      simpa [allSelConMono, Finsupp.sum_apply] using hz
+    have htermj : ((((Finsupp.single (selSlot M n j) (1 : ℕ) + Finsupp.single (conSlot M n j) (1 : ℕ))
+          : (Fin (latentNumVars M n)) →₀ ℕ)
+        (selSlot M n j)) = 0) :=
+      (Finset.sum_eq_zero_iff.mp hsum0) j (by simp)
+    have : (1 : ℕ) = 0 := by
+      simpa [Finsupp.single_apply, selSlot, conSlot, slot, Fin.ext_iff] using htermj
+    exact Nat.one_ne_zero this
+  exact Finsupp.mem_support_iff.mpr hne
+
+/-- Concrete `hmach` for the canonical witness monomial. -/
+theorem coeff_allSelConMono_machCopySheet_eq_zero (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n)) :
+    MvPolynomial.coeff (allSelConMono M n) (machCopySheet M n) = 0 :=
+  coeff_machCopySheet_eq_zero_of_selSlot_support M n (allSelConMono M n)
+    ⟨j, allSelConMono_selSlot_mem_support M n j⟩
+
+/-- Concrete `hcopy` for the canonical witness monomial. -/
+theorem coeff_allSelConMono_copyConSheet_eq_zero (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n)) :
+    MvPolynomial.coeff (allSelConMono M n) (copyConSheet M n) = 0 :=
+  coeff_copyConSheet_eq_zero_of_selSlot_support M n (allSelConMono M n)
+    ⟨j, allSelConMono_selSlot_mem_support M n j⟩
+
 /-- Step-3 concrete `hViolId` constructor in the active API shape.
 
 Instantiates the transported violation-polynomial identity exactly at the
