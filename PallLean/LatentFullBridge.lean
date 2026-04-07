@@ -1576,6 +1576,20 @@ theorem assemblyAll_of_compiledAssemblyTheorem
     ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound :=
   hAsmGlobal
 
+/-- Step helper: build `assemblyToRank` from a compiled assembly→rank theorem. -/
+theorem assemblyToRank_of_compiledAssemblyTheorem
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hAsmToRank : ∀ hOb : CompiledProfileObligations M n,
+      hOb.assemblyBound →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160) :
+    ∀ hOb : CompiledProfileObligations M n,
+      hOb.assemblyBound →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 :=
+  hAsmToRank
+
 /-- Pointwise closure: a `CompiledAssemblyPackage` yields concrete `hFinal`. -/
 theorem hFinal_of_compiledAssemblyPackage
     (M : DTM) (n : ℕ)
