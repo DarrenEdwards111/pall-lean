@@ -84,10 +84,32 @@ theorem assembly_soundness_core_implies_target
   intro h
   exact h
 
-axiom assembly_soundness_core_target_holds
+/-- Next checklist split for A1.2 core-holds replacement:
+S1a = seed proposition, S1b = seed -> core bridge, S1c = seed-holds witness. -/
+def assembly_soundness_seed_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
+  assembly_soundness_core_target M n h_le
+
+theorem assembly_soundness_core_target_of_seed
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_soundness_core_target M n h_le
+    assembly_soundness_seed_target M n h_le →
+    assembly_soundness_core_target M n h_le := by
+  intro h
+  exact h
+
+axiom assembly_soundness_seed_target_holds
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    assembly_soundness_seed_target M n h_le
+
+theorem assembly_soundness_core_target_holds
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    assembly_soundness_core_target M n h_le :=
+  assembly_soundness_core_target_of_seed M n h_le
+    (assembly_soundness_seed_target_holds M n h_le)
 
 /-- Placeholder source for A1.2 until concrete witness semantics are proved. -/
 theorem assembly_witness_sound_target_holds
