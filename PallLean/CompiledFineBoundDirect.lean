@@ -1,4 +1,5 @@
 import PallLean.LatentFullBridge
+import PallLean.CompiledAssemblyRoadmap
 
 /-!
 # CompiledFineBoundDirect
@@ -17,12 +18,20 @@ namespace CompiledFineBoundDirect
 
 open LatentFullBridge LatentCompiler MultilinearSPDP NPWitness Compiler TuringMachine
 
-/-- Main direct compiled-side target (no latent transfer). -/
-axiom compiled_fine_bound_direct_target
+/-- Main direct compiled-side target (no latent transfer).
+Proved by reusing the roadmap Target-2 core closure. -/
+theorem compiled_fine_bound_direct_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
     mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      (fullCompiledPoly ℚ M n h_le) ≤ (n ^ 40) * (n ^ 120)
+      (fullCompiledPoly ℚ M n h_le) ≤ (n ^ 40) * (n ^ 120) := by
+  have hCore : CompiledAssemblyRoadmap.compiled_rank_le_profile_aggregation_target M n h_le :=
+    CompiledAssemblyRoadmap.compiled_rank_le_profile_aggregation_target_holds M n h_le
+  exact hCore
+    { profileCountBound := ProfileCompression.profile_count_bound
+      withinProfileDimBound := ProfileCompression.within_profile_dim_bound
+      assemblyBound := True }
+    trivial
 
 /-- First nontrivial direct-compiled lemma target:
 profile assembly cardinal/dimension aggregation implies direct fine bound.
