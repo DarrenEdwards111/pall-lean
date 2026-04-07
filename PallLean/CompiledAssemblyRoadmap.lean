@@ -253,7 +253,23 @@ theorem compiled_rank_le_profile_aggregation_target_holds_of_latent_parts
   exact compiled_rank_le_profile_aggregation_from_latent_parts_target
     M n h_le hn hn804 hParts
 
-/-- CORE PLACEHOLDER #2: substantive compiled rank->aggregation theorem. -/
+/-- Globalized contradiction-scale closure: if latent `(40,120)` parts are
+available uniformly at contradiction scale, then the compiled Target-2 core holds
+uniformly at contradiction scale. -/
+theorem compiled_rank_le_profile_aggregation_target_holds_of_global_latent_parts
+    (hPartsGlobal : ∀ (M : DTM) (n : ℕ)
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      LatentWidthRankDecomp.latent_profile_span_card_parts_40_120_logscale M n hn hn804) :
+    ∀ (M : DTM) (n : ℕ)
+      (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+      (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804),
+      compiled_rank_le_profile_aggregation_target M n h_le := by
+  intro M n h_le hn hn804
+  exact compiled_rank_le_profile_aggregation_target_holds_of_latent_parts
+    M n h_le hn hn804 (hPartsGlobal M n hn hn804)
+
+/-- CORE PLACEHOLDER #2: substantive compiled rank->aggregation theorem
+for arbitrary `(M,n,h_le)` (stronger than contradiction-scale route). -/
 axiom compiled_rank_le_profile_aggregation_target_holds
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
