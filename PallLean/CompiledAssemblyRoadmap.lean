@@ -69,12 +69,30 @@ def assembly_witness_sound_target
   assemblyWitnessData_target M n h_le →
     ∀ hOb : CompiledProfileObligations M n, hOb.assemblyBound
 
-/-- Placeholder source for A1.2 until concrete witness semantics are proved. -/
-axiom assembly_witness_sound_target_holds
+/-- A1.2 source split (checklist):
+S1 = semantic soundness core, S2 = export into the A1.2 target shape. -/
+axiom assembly_soundness_core_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop
+
+axiom assembly_soundness_core_implies_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    assembly_soundness_core_target M n h_le →
     assembly_witness_sound_target M n h_le
 
+axiom assembly_soundness_core_target_holds
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    assembly_soundness_core_target M n h_le
+
+/-- Placeholder source for A1.2 until concrete witness semantics are proved. -/
+theorem assembly_witness_sound_target_holds
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    assembly_witness_sound_target M n h_le :=
+  assembly_soundness_core_implies_target M n h_le
+    (assembly_soundness_core_target_holds M n h_le)
 /-- A1.3: witness soundness implies `assemblyBound` for obligation instances.
 Now a real theorem (tautological bridge from A1.2). -/
 theorem assembly_witness_to_bound_target
@@ -98,14 +116,25 @@ theorem assemblyWitnessData_implies_assemblyBound_target
     (assembly_witness_sound_target_holds M n h_le)
 
 
-/-- Explicit placeholder assumption for Target 2 (replaces `sorry`). -/
-axiom assemblyToRankThm_placeholder
+/-- Target-2 checklist split:
+R1 = core assembly->rank implication, R2 = exported theorem family shape. -/
+axiom assembly_to_rank_core_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
     ∀ hOb : CompiledProfileObligations M n,
       hOb.assemblyBound →
       mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160
+
+/-- Explicit placeholder assumption for Target 2 export (currently identity to R1). -/
+theorem assemblyToRankThm_placeholder
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    ∀ hOb : CompiledProfileObligations M n,
+      hOb.assemblyBound →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160 :=
+  assembly_to_rank_core_target M n h_le
 
 /-- Checklist bridge: once A1.1 is concretely proved, this should replace the
 current placeholder `assemblyWitnessData_target_holds`. -/
