@@ -164,6 +164,36 @@ theorem compiled_rank_le_profile_aggregation_target_holds_of_finer_partition
     (hRefineOf M n h_le)
     (hFineOf M n h_le)
 
+/-- Concrete choice of finer partition family for the Target-2 strategy:
+use `compiledPartition` itself. -/
+noncomputable def BfineOf_compiled
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    SPDP.BlockPartition (numVars M n (Nat.log 2 n)) :=
+  compiledPartition M n
+
+/-- Corresponding refinement proof for `BfineOf_compiled` is immediate. -/
+theorem hRefineOf_compiled
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (i j : Fin (numVars M n (Nat.log 2 n))) :
+    (BfineOf_compiled M n h_le).assign i = (BfineOf_compiled M n h_le).assign j →
+    (compiledPartition M n).assign i = (compiledPartition M n).assign j := by
+  intro h
+  simpa [BfineOf_compiled] using h
+
+/-- Local closure at fixed `(M,n,h_le)`: once `hFineOf` is proved for the
+concrete partition choice `BfineOf_compiled = compiledPartition`, the core
+Target-2 bound is immediate. -/
+theorem compiled_rank_le_profile_aggregation_target_holds_of_compiled_hFine
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (hFineOf : mlBlockedSpdpRank (BfineOf_compiled M n h_le) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le) ≤ (n ^ 40) * (n ^ 120)) :
+    compiled_rank_le_profile_aggregation_target M n h_le := by
+  intro hOb hAsm
+  simpa [BfineOf_compiled] using hFineOf
+
 /-- CORE PLACEHOLDER #2: substantive compiled rank->aggregation theorem. -/
 axiom compiled_rank_le_profile_aggregation_target_holds
     (M : DTM) (n : ℕ)
