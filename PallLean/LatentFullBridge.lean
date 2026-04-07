@@ -528,6 +528,24 @@ theorem selConGadget_usesOnly_selConPair (M : DTM) (n : ℕ)
     simpa [MvPolynomial.vars_X, Finset.mem_union, Finset.mem_singleton] using hmul
   rcases hxpair with rfl | rfl <;> simp
 
+/-- Per-block witness monomial is supported exactly on the sel/con pair. -/
+theorem mono_selConPair_supported (M : DTM) (n : ℕ)
+    (i : Fin (latentBaseVars M n)) :
+    CoeffDisjoint.monomSupportedIn
+      ((Finsupp.single (selSlot M n i) (1 : ℕ)) + (Finsupp.single (conSlot M n i) (1 : ℕ)))
+      ({selSlot M n i, conSlot M n i} : Set (Fin (latentNumVars M n))) := by
+  intro x hx
+  have hsc : selSlot M n i ≠ conSlot M n i := by
+    simp [selSlot, conSlot, slot, Fin.ext_iff]
+  by_cases hxs : x = selSlot M n i
+  · left; exact hxs
+  · by_cases hxc : x = conSlot M n i
+    · right; exact hxc
+    · exfalso
+      have : ((Finsupp.single (selSlot M n i) (1 : ℕ)) + (Finsupp.single (conSlot M n i) (1 : ℕ))) x = 0 := by
+        simp [Finsupp.single_apply, hxs, hxc]
+      exact (Finsupp.mem_support_iff.mp hx) this
+
 /-- A selector-slot variable never appears in a mach-copy gadget. -/
 theorem selSlot_not_mem_vars_machCopyGadget (M : DTM) (n : ℕ)
     (i j : Fin (latentBaseVars M n)) :
