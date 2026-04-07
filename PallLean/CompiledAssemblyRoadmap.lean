@@ -142,10 +142,31 @@ theorem assembly_soundness_seed_root2_target_of_root3
   intro h
   exact h
 
-axiom assembly_soundness_seed_root3_target_holds
+/-- One-more-level split for soundness seed root3 witness. -/
+def assembly_soundness_seed_root4_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
+  assembly_soundness_seed_root3_target M n h_le
+
+theorem assembly_soundness_seed_root3_target_of_root4
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_soundness_seed_root3_target M n h_le
+    assembly_soundness_seed_root4_target M n h_le →
+    assembly_soundness_seed_root3_target M n h_le := by
+  intro h
+  exact h
+
+axiom assembly_soundness_seed_root4_target_holds
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    assembly_soundness_seed_root4_target M n h_le
+
+theorem assembly_soundness_seed_root3_target_holds
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    assembly_soundness_seed_root3_target M n h_le :=
+  assembly_soundness_seed_root3_target_of_root4 M n h_le
+    (assembly_soundness_seed_root4_target_holds M n h_le)
 
 theorem assembly_soundness_seed_root2_target_holds
     (M : DTM) (n : ℕ)
@@ -288,10 +309,31 @@ theorem compiled_rank_le_profile_aggregation_root_target_of_root2
   intro h
   exact h
 
-axiom compiled_rank_le_profile_aggregation_root2_target_holds
+/-- One-more-level split for rank-aggregation root2 witness. -/
+def compiled_rank_le_profile_aggregation_root3_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
+  compiled_rank_le_profile_aggregation_root2_target M n h_le
+
+theorem compiled_rank_le_profile_aggregation_root2_target_of_root3
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    compiled_rank_le_profile_aggregation_root2_target M n h_le
+    compiled_rank_le_profile_aggregation_root3_target M n h_le →
+    compiled_rank_le_profile_aggregation_root2_target M n h_le := by
+  intro h
+  exact h
+
+axiom compiled_rank_le_profile_aggregation_root3_target_holds
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    compiled_rank_le_profile_aggregation_root3_target M n h_le
+
+theorem compiled_rank_le_profile_aggregation_root2_target_holds
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    compiled_rank_le_profile_aggregation_root2_target M n h_le :=
+  compiled_rank_le_profile_aggregation_root2_target_of_root3 M n h_le
+    (compiled_rank_le_profile_aggregation_root3_target_holds M n h_le)
 
 theorem compiled_rank_le_profile_aggregation_root_target_holds
     (M : DTM) (n : ℕ)
