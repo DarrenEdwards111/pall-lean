@@ -183,10 +183,11 @@ theorem assembly_to_rank_core_target_of_aggregation
   compiled_aggregation_bound_target_of_subineq M n h_le
     (compiled_profile_aggregation_le_n160_target M n h_le)
 
-axiom assembly_to_rank_core_target_holds
+theorem assembly_to_rank_core_target_holds
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
-    assembly_to_rank_core_target M n h_le
+    assembly_to_rank_core_target M n h_le :=
+  assembly_to_rank_core_target_of_aggregation M n h_le
 /-- Explicit placeholder assumption for Target 2 export (currently from R1-holds). -/
 theorem assemblyToRankThm_placeholder
     (M : DTM) (n : ℕ)
