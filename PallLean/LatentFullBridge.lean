@@ -600,6 +600,40 @@ theorem coeff_allSelConMono_copyConSheet_eq_zero (M : DTM) (n : ℕ)
   coeff_copyConSheet_eq_zero_of_selSlot_support M n (allSelConMono M n)
     ⟨j, allSelConMono_selSlot_mem_support M n j⟩
 
+/-- Degree lower bound for the canonical witness monomial at contradiction scale. -/
+theorem allSelConMono_degree_gt_four_of_hn804 (M : DTM) (n : ℕ)
+    (hn804 : n ≥ 2 ^ 804) :
+    4 < ∑ i ∈ (allSelConMono M n).support, (allSelConMono M n) i := by
+  classical
+  let d := allSelConMono M n
+  have himg_subset :
+      Finset.image (selSlot M n) (Finset.univ : Finset (Fin (latentBaseVars M n))) ⊆ d.support := by
+    intro x hx
+    rcases Finset.mem_image.mp hx with ⟨i, -, rfl⟩
+    exact allSelConMono_selSlot_mem_support M n i
+  have hcard_ge_base : latentBaseVars M n ≤ d.support.card := by
+    have hle := Finset.card_le_card himg_subset
+    have hcard_img :
+        (Finset.image (selSlot M n) (Finset.univ : Finset (Fin (latentBaseVars M n)))).card
+          = (Finset.univ : Finset (Fin (latentBaseVars M n))).card := by
+      exact Finset.card_image_of_injective (Finset.univ : Finset (Fin (latentBaseVars M n)))
+        (selSlot_injective M n)
+    -- rewrite card of `Fin.univ`
+    simpa [hcard_img] using hle
+  have hsum_ge_card : d.support.card ≤ ∑ i ∈ d.support, d i := by
+    calc
+      d.support.card = ∑ i ∈ d.support, (1 : ℕ) := by simp
+      _ ≤ ∑ i ∈ d.support, d i := by
+        refine Finset.sum_le_sum ?_
+        intro i hi
+        exact Nat.succ_le_of_lt (Nat.pos_of_ne_zero (Finsupp.mem_support_iff.mp hi))
+  have hsum_ge_n : n ≤ ∑ i ∈ d.support, d i := by
+    exact le_trans (latentBaseVars_ge_n M n) (le_trans hcard_ge_base hsum_ge_card)
+  have h4_lt_n : 4 < n := by
+    have hpow : 4 < 2 ^ 804 := by native_decide
+    exact lt_of_lt_of_le hpow hn804
+  exact lt_of_lt_of_le h4_lt_n hsum_ge_n
+
 /-- Step-3 concrete `hViolId` constructor in the active API shape.
 
 Instantiates the transported violation-polynomial identity exactly at the
