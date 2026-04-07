@@ -896,6 +896,36 @@ theorem no_hViolMatches_of_allSelCon_witness_auto
     coeff_allSelConMono_copyConSheet_eq_zero M n j
   exact no_hViolMatches_of_allSelCon_witness hLeVar M n hdeg hsel hmach hcopy
 
+/-- Refutation form of `hVerVanish` at one instance from a positive NP-side
+multilinear rank lower bound for `tseitinPoly`. -/
+theorem no_verifierTransport_vanish_of_mlLower
+    (hLeVar : ∀ (M : DTM) (n : ℕ),
+      numVars M n (Nat.log 2 n) ≤ latentNumVars M n)
+    (hLeWitness : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hNPml : mlBlockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
+      (tseitinPoly ℚ n) ≥ n ^ (Nat.log 2 n / 4)) :
+    MvPolynomial.rename
+      (Function.comp (fullToLatentBridgeOfLe M n (hLeVar M n)).toLatent
+        (witnessInclusion M n (hLeWitness M n hn hn804)))
+      (tseitinPoly ℚ n) ≠ 0 := by
+  intro hvanish
+  have ht0 : tseitinPoly ℚ n = 0 :=
+    (verifierTransport_vanish_iff_tseitin_zero hLeVar hLeWitness M n hn hn804).mp hvanish
+  have hr0 : mlBlockedSpdpRank (tseitinPartition n) (Nat.log 2 n) (Nat.log 2 n)
+      (tseitinPoly ℚ n) = 0 := by
+    simpa [ht0] using
+      (mlBlockedSpdpRank_zero (F := ℚ) (B := tseitinPartition n)
+        (κ := Nat.log 2 n) (ℓ := Nat.log 2 n))
+  have hn_pos : 0 < n := by
+    have h4 : (4 : ℕ) ≤ n := le_trans (by simp) hn
+    exact lt_of_lt_of_le (by decide : 0 < 4) h4
+  have hpow_pos : 0 < n ^ (Nat.log 2 n / 4) := Nat.pow_pos hn_pos
+  have hle0 : n ^ (Nat.log 2 n / 4) ≤ 0 := by simpa [hr0] using hNPml
+  exact (lt_irrefl _ (lt_of_lt_of_le hpow_pos hle0)).elim
 /-- Step-3 concrete `hViolId` constructor in the active API shape.
 
 Instantiates the transported violation-polynomial identity exactly at the
