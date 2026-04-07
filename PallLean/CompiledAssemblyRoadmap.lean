@@ -120,7 +120,10 @@ theorem assemblyWitnessData_implies_assemblyBound_target
 
 
 /-- Target-2 checklist split:
-R1 = core assembly->rank implication proposition, R2 = exported theorem family shape. -/
+R1 = core assembly->rank implication proposition, R2 = exported theorem family shape.
+
+We further expose an explicit first intermediate target:
+`compiled_aggregation_bound_target`, so R1 can be proved via an explicit bridge. -/
 def assembly_to_rank_core_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) : Prop :=
@@ -129,11 +132,27 @@ def assembly_to_rank_core_target
     mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160
 
+/-- First concrete intermediate theorem target for Target-2:
+compiled assembly-level aggregation bound in the exact rank160 shape. -/
+axiom compiled_aggregation_bound_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    ∀ hOb : CompiledProfileObligations M n,
+      hOb.assemblyBound →
+      mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (fullCompiledPoly ℚ M n h_le) ≤ n ^ 160
+
+/-- Bridge from first intermediate target to core Target-2 proposition. -/
+theorem assembly_to_rank_core_target_of_aggregation
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    assembly_to_rank_core_target M n h_le :=
+  compiled_aggregation_bound_target M n h_le
+
 axiom assembly_to_rank_core_target_holds
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
     assembly_to_rank_core_target M n h_le
-
 /-- Explicit placeholder assumption for Target 2 export (currently from R1-holds). -/
 theorem assemblyToRankThm_placeholder
     (M : DTM) (n : ℕ)
