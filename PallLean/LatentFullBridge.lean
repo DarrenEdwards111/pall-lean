@@ -570,6 +570,117 @@ theorem selConPair_disjoint_of_ne (M : DTM) (n : ℕ)
       simpa [conSlot, slot, Fin.ext_iff] using h
     exact hij this
 
+/-- Union of per-block sel/con variable pairs over a finite index set. -/
+def selConPairUnion (M : DTM) (n : ℕ) (S : Finset (Fin (latentBaseVars M n))) :
+    Set (Fin (latentNumVars M n)) :=
+  {x | ∃ i ∈ S, x ∈ ({selSlot M n i, conSlot M n i} : Set (Fin (latentNumVars M n)))}
+
+/-- Product over a finite set of sel/con gadgets uses only the corresponding
+union of per-block sel/con variable pairs. -/
+theorem usesOnly_selConProd_on_set (M : DTM) (n : ℕ)
+    (S : Finset (Fin (latentBaseVars M n))) :
+    CoeffDisjoint.usesOnly (∏ i ∈ S, selConGadget M n i) (selConPairUnion M n S) := by
+  classical
+  induction S using Finset.induction_on with
+  | empty =>
+      intro m hm x hx
+      have hmcoeff : MvPolynomial.coeff m (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ) ≠ 0 := by
+        exact MvPolynomial.mem_support_iff.mp (by simpa [Finset.prod_empty] using hm)
+      have hm0 : m = 0 := by
+        by_contra h
+        have : MvPolynomial.coeff m (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ) = 0 := by
+          rw [MvPolynomial.coeff_one]
+          split_ifs with hmz
+          · exact (h hmz.symm).elim
+          · rfl
+        exact hmcoeff this
+      exfalso
+      simpa [hm0] using hx
+  | @insert i S hi ih =>
+      have hp : CoeffDisjoint.usesOnly (selConGadget M n i)
+          ({selSlot M n i, conSlot M n i} : Set (Fin (latentNumVars M n))) :=
+        selConGadget_usesOnly_selConPair M n i
+      have hq : CoeffDisjoint.usesOnly (∏ j ∈ S, selConGadget M n j) (selConPairUnion M n S) := ih
+      have hmul : CoeffDisjoint.usesOnly
+          ((selConGadget M n i) * (∏ j ∈ S, selConGadget M n j))
+          (({selSlot M n i, conSlot M n i} : Set (Fin (latentNumVars M n))) ∪ selConPairUnion M n S) :=
+        CoeffDisjoint.usesOnly_mul hp hq
+      simpa [Finset.prod_insert hi, selConPairUnion, hi, Set.union_assoc, Set.union_left_comm,
+        Set.union_comm, Set.setOf_or] using hmul
+
+/-- Sum of per-block witness monomials is supported in the corresponding union set. -/
+theorem monomSupported_selConSum_on_set (M : DTM) (n : ℕ)
+    (S : Finset (Fin (latentBaseVars M n))) :
+    CoeffDisjoint.monomSupportedIn
+      (∑ i ∈ S,
+        ((Finsupp.single (selSlot M n i) (1 : ℕ)) + (Finsupp.single (conSlot M n i) (1 : ℕ))))
+      (selConPairUnion M n S) := by
+  classical
+  induction S using Finset.induction_on with
+  | empty =>
+      intro x hx
+      simpa using hx
+  | @insert i S hi ih =>
+      have hmI : CoeffDisjoint.monomSupportedIn
+          ((Finsupp.single (selSlot M n i) (1 : ℕ)) + (Finsupp.single (conSlot M n i) (1 : ℕ)))
+          ({selSlot M n i, conSlot M n i} : Set (Fin (latentNumVars M n))) :=
+        mono_selConPair_supported M n i
+      have hmS : CoeffDisjoint.monomSupportedIn
+          (∑ j ∈ S,
+            ((Finsupp.single (selSlot M n j) (1 : ℕ)) + (Finsupp.single (conSlot M n j) (1 : ℕ))))
+          (selConPairUnion M n S) := ih
+      have hsum : CoeffDisjoint.monomSupportedIn
+          (((Finsupp.single (selSlot M n i) (1 : ℕ)) + (Finsupp.single (conSlot M n i) (1 : ℕ)))
+            + (∑ j ∈ S,
+                ((Finsupp.single (selSlot M n j) (1 : ℕ)) + (Finsupp.single (conSlot M n j) (1 : ℕ)))))
+          (({selSlot M n i, conSlot M n i} : Set (Fin (latentNumVars M n))) ∪ selConPairUnion M n S) :=
+        CoeffDisjoint.monomSupportedIn_add hmI hmS
+      simpa [Finset.sum_insert hi, selConPairUnion, hi, Set.union_assoc, Set.union_left_comm,
+        Set.union_comm, Set.setOf_or, add_assoc] using hsum
+
+/-- Iterated disjoint-support coefficient factorization for sel/con gadgets. -/
+theorem coeff_selConProd_sumMono_on_set (M : DTM) (n : ℕ)
+    (S : Finset (Fin (latentBaseVars M n))) :
+    MvPolynomial.coeff
+      (∑ i ∈ S,
+        ((Finsupp.single (selSlot M n i) (1 : ℕ)) + (Finsupp.single (conSlot M n i) (1 : ℕ))))
+      (∏ i ∈ S, selConGadget M n i)
+    = ((-1 : ℚ) ^ S.card) := by
+  classical
+  induction S using Finset.induction_on with
+  | empty =>
+      simp
+  | @insert i S hi ih =>
+      have hp : CoeffDisjoint.usesOnly (selConGadget M n i)
+          ({selSlot M n i, conSlot M n i} : Set (Fin (latentNumVars M n))) :=
+        selConGadget_usesOnly_selConPair M n i
+      have hq : CoeffDisjoint.usesOnly (∏ j ∈ S, selConGadget M n j)
+          (selConPairUnion M n S) :=
+        usesOnly_selConProd_on_set M n S
+      have hdisj : Disjoint
+          ({selSlot M n i, conSlot M n i} : Set (Fin (latentNumVars M n)))
+          (selConPairUnion M n S) := by
+        rw [Set.disjoint_left]
+        intro x hxI hxS
+        rcases hxS with ⟨j, hjS, hxJ⟩
+        have hij : i ≠ j := by
+          intro h
+          exact hi (h ▸ hjS)
+        exact (Set.disjoint_left.mp (selConPair_disjoint_of_ne M n hij) hxI hxJ)
+      have hmA : CoeffDisjoint.monomSupportedIn
+          ((Finsupp.single (selSlot M n i) (1 : ℕ)) + (Finsupp.single (conSlot M n i) (1 : ℕ)))
+          ({selSlot M n i, conSlot M n i} : Set (Fin (latentNumVars M n))) :=
+        mono_selConPair_supported M n i
+      have hmB : CoeffDisjoint.monomSupportedIn
+          (∑ j ∈ S,
+            ((Finsupp.single (selSlot M n j) (1 : ℕ)) + (Finsupp.single (conSlot M n j) (1 : ℕ))))
+          (selConPairUnion M n S) :=
+        monomSupported_selConSum_on_set M n S
+      rw [Finset.sum_insert hi, Finset.prod_insert hi]
+      rw [CoeffDisjoint.coeff_mul_disjoint hp hq hdisj hmA hmB]
+      rw [coeff_selConGadget_target_mono, ih]
+      simp [pow_succ, hi, mul_comm, mul_left_comm, mul_assoc]
+
 /-- A selector-slot variable never appears in a mach-copy gadget. -/
 theorem selSlot_not_mem_vars_machCopyGadget (M : DTM) (n : ℕ)
     (i j : Fin (latentBaseVars M n)) :
