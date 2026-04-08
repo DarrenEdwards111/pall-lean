@@ -156,6 +156,23 @@ axiom bridgeMap_comp_id_target
       MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
     (mapFullToLatentPoly M n B).toLinearMap.comp T = LinearMap.id
 
+/-- Intended concrete reconstruction map for the bridge route.
+This is the `T` that should ultimately replace the abstract parameter in the
+pipeline once constructed/proved from LatentFullBridge-side machinery. -/
+axiom bridgeReconstructionMap
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n) :
+    MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ
+
+/-- Exact missing bridge theorem statement for the intended concrete `T`:
+composition identity against `mapFullToLatentPoly`. -/
+axiom bridgeMap_comp_id_for_bridgeReconstructionMap
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n) :
+    (mapFullToLatentPoly M n B).toLinearMap.comp (bridgeReconstructionMap M n B)
+      = LinearMap.id
+
 /-- Immediate closure from the composition-identity target to the staged
 left-inverse bridge target. -/
 theorem bridgeMap_leftInverse_target_of_comp_id_target
@@ -166,6 +183,15 @@ theorem bridgeMap_leftInverse_target_of_comp_id_target
     Function.LeftInverse (mapFullToLatentPoly M n B).toLinearMap T :=
   bridgeMap_leftInverse_target_of_comp_id M n B T
     (bridgeMap_comp_id_target M n B T)
+
+/-- Concrete instantiation for the intended reconstruction map. -/
+theorem bridgeMap_leftInverse_for_bridgeReconstructionMap
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n) :
+    Function.LeftInverse (mapFullToLatentPoly M n B).toLinearMap
+      (bridgeReconstructionMap M n B) :=
+  bridgeMap_leftInverse_target_of_comp_id M n B (bridgeReconstructionMap M n B)
+    (bridgeMap_comp_id_for_bridgeReconstructionMap M n B)
 
 axiom mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse
     (M : DTM) (n : ℕ)
