@@ -150,6 +150,115 @@ def ViolationGeneratorSemanticTransport
       mlProj (m * SPDP.iterDerivList S (violationPolyOf ℚ M n)) =
         T (mlProj (m' * SPDP.iterDerivList S' (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))))
 
+/-- Compiled-witness reformulation of the semantic violation transport: instead
+of asking directly for a latent witness polynomial, package a compiled witness
+whose image under `mapFullToLatentPoly` supplies the latent-side generator.
+
+This matches the orientation of concrete reconstruction facts such as
+`restrictPoly_mapFullToLatentPoly`, which naturally start from compiled inputs. -/
+def ViolationGeneratorSemanticTransportCompiledWitness
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) : Prop :=
+  (∀ i : Fin (numVars M n (Nat.log 2 n)),
+    (compiledPartition M n).assign i = (latentPartition M n).assign (B.toLatent i)) ∧
+  ∀ (S : List (Fin (numVars M n (Nat.log 2 n))))
+    (m : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ),
+    S.length = Nat.log 2 n →
+    m.totalDegree ≤ Nat.log 2 n →
+    m.vars ⊆ S.toFinset →
+    SPDP.isBlockAdmissible (compiledPartition M n) S →
+    ∃ mc : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ,
+      mc.totalDegree ≤ Nat.log 2 n ∧
+      mc.vars ⊆ S.toFinset ∧
+      mlProj (m * SPDP.iterDerivList S (violationPolyOf ℚ M n)) =
+        T (mlProj ((mapFullToLatentPoly M n B mc) *
+          SPDP.iterDerivList (S.map B.toLatent)
+            (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))))
+
+/-- The compiled-witness semantic package implies the original latent-witness
+formulation by choosing the mapped witness list and polynomial. -/
+private theorem map_filter_length_eq_filter_length
+    {α β : Type*} (f : α → β) (p : β → Bool) :
+    ∀ S : List α,
+      ((S.map f).filter p).length = (S.filter (fun a => p (f a))).length := by
+  intro S
+  induction S with
+  | nil => simp
+  | cons a rest ih =>
+    simp only [List.map_cons, List.filter_cons]
+    by_cases h : p (f a)
+    · simp [h, ih]
+    · simp [h, ih]
+
+private theorem filter_length_eq_of_pointwise
+    {α : Type*} (p q : α → Bool)
+    (hpoint : ∀ a, p a = q a) :
+    ∀ S : List α, (S.filter p).length = (S.filter q).length := by
+  intro S
+  induction S with
+  | nil => simp
+  | cons a rest ih =>
+    simp only [List.filter_cons]
+    rw [hpoint a]
+    split <;> simp [ih]
+
+theorem violationGeneratorTransportFrontier_of_compiledWitnessSemantic
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hSem : ViolationGeneratorSemanticTransportCompiledWitness M n B T) :
+    violationGeneratorTransportFrontier M n B T := by
+  intro S m hLen hdeg hvars hadm
+  rcases hSem.2 S m hLen hdeg hvars hadm with ⟨mc, hdegc, hvarsc, hEq⟩
+  refine ⟨S.map B.toLatent, mapFullToLatentPoly M n B mc, ?_, ?_, ?_, ?_, ?_⟩
+  · simpa using hLen
+  · exact le_trans (MvPolynomial.totalDegree_rename_le B.toLatent mc) hdegc
+  ·
+    show (mapFullToLatentPoly M n B mc).vars ⊆ (S.map B.toLatent).toFinset
+    simpa [mapFullToLatentPoly] using
+      (show (MvPolynomial.rename B.toLatent mc).vars ⊆ (S.map B.toLatent).toFinset from by
+        intro i hi
+        have hsub := MvPolynomial.vars_rename B.toLatent mc
+        rcases Finset.mem_image.mp (hsub hi) with ⟨j, hj, rfl⟩
+        exact Finset.mem_coe.mpr <| List.mem_toFinset.mpr <| List.mem_map.mpr ⟨j, List.mem_toFinset.mp (hvarsc hj), rfl⟩)
+  ·
+    constructor
+    · exact List.Nodup.map B.inj hadm.1
+    · intro b
+      have hpoint :
+          ∀ i : Fin (numVars M n (Nat.log 2 n)),
+            decide ((latentPartition M n).assign (B.toLatent i) = b) =
+              decide ((compiledPartition M n).assign i = b) := by
+        intro i
+        by_cases h : (latentPartition M n).assign (B.toLatent i) = b
+        · have hc : (compiledPartition M n).assign i = b := by
+            calc
+              (compiledPartition M n).assign i = (latentPartition M n).assign (B.toLatent i) := hSem.1 i
+              _ = b := h
+          simp [h, hc]
+        · have hc : ¬ (compiledPartition M n).assign i = b := by
+            intro hc
+            apply h
+            calc
+              (latentPartition M n).assign (B.toLatent i) = (compiledPartition M n).assign i := (hSem.1 i).symm
+              _ = b := hc
+          simp [h, hc]
+      calc
+        ((S.map B.toLatent).filter (fun j => decide ((latentPartition M n).assign j = b))).length
+            = (S.filter (fun i => decide ((latentPartition M n).assign (B.toLatent i) = b))).length :=
+              map_filter_length_eq_filter_length B.toLatent
+                (fun j => decide ((latentPartition M n).assign j = b)) S
+        _ = (S.filter (fun i => decide ((compiledPartition M n).assign i = b))).length :=
+              filter_length_eq_of_pointwise
+                (fun i => decide ((latentPartition M n).assign (B.toLatent i) = b))
+                (fun i => decide ((compiledPartition M n).assign i = b))
+                hpoint S
+        _ ≤ 1 := hadm.2 b
+  · simpa [mapFullToLatentPoly] using hEq
+
 /-- The semantic violation theorem is exactly the generator frontier. -/
 theorem violationGeneratorTransportFrontier_of_semantic
     (M : DTM) (n : ℕ)

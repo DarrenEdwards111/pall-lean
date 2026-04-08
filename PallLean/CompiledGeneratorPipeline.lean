@@ -1246,6 +1246,78 @@ theorem violationBranchTransportFrontier_for_bridgeReconstructionMap
   apply violationGeneratorTransportFrontier_of_semantic
   exact violation_generator_reconstruction_semantic_target M n B hAssignToLatent
 
+/-- Concrete compiled-witness semantic violation transport specialized to the
+preferred `restrictPoly` reconstruction map. The witness remains in compiled
+space and is pushed down by `mapFullToLatentPoly`, matching the orientation of
+`restrictPoly_mapFullToLatentPoly`. -/
+theorem violation_generator_restrictPoly_semantic
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (hAssignToLatent : ∀ i : Fin (numVars M n (Nat.log 2 n)),
+      (compiledPartition M n).assign i = (latentPartition M n).assign (B.toLatent i)) :
+    ViolationGeneratorSemanticTransportCompiledWitness M n B
+      (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap := by
+  refine ⟨hAssignToLatent, ?_⟩
+  intro S m hLen hdeg hvars hadm
+  refine ⟨m, hdeg, hvars, ?_⟩
+  have h_iter :
+      SPDP.iterDerivList (S.map B.toLatent)
+        (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n)) =
+      MvPolynomial.rename B.toLatent
+        (SPDP.iterDerivList S (violationPolyOf ℚ M n)) := by
+    simpa using
+      (iterDerivList_rename B.toLatent B.inj S (violationPolyOf ℚ M n))
+  have h_mult :
+      (mapFullToLatentPoly M n B m) *
+        SPDP.iterDerivList (S.map B.toLatent)
+          (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n)) =
+      MvPolynomial.rename B.toLatent
+        (m * SPDP.iterDerivList S (violationPolyOf ℚ M n)) := by
+    rw [mapFullToLatentPoly, h_iter, ← map_mul (MvPolynomial.rename B.toLatent)]
+  have h_proj :
+      mlProj ((mapFullToLatentPoly M n B m) *
+        SPDP.iterDerivList (S.map B.toLatent)
+          (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))) =
+      MvPolynomial.rename B.toLatent
+        (mlProj (m * SPDP.iterDerivList S (violationPolyOf ℚ M n))) := by
+    rw [h_mult, mlProj_rename B.toLatent B.inj]
+  rw [h_proj]
+  symm
+  exact restrictPoly_mapFullToLatentPoly M n B
+    (mlProj (m * SPDP.iterDerivList S (violationPolyOf ℚ M n)))
+
+/-- Concrete `restrictPoly`-based violation frontier, obtained via the new
+compiled-witness semantic package. -/
+theorem violationBranchTransportFrontier_for_restrictPoly
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (hAssignToLatent : ∀ i : Fin (numVars M n (Nat.log 2 n)),
+      (compiledPartition M n).assign i = (latentPartition M n).assign (B.toLatent i)) :
+    violationBranchTransportFrontier M n B
+      (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap := by
+  apply violationBranchTransportFrontier_of_generatorFrontier
+  apply violationGeneratorTransportFrontier_of_compiledWitnessSemantic
+  exact violation_generator_restrictPoly_semantic M n B hAssignToLatent
+
+/-- Concrete `restrictPoly`-specialized packaged violation transport into
+`latentCompiledPoly`. This is the preferred concrete violation endpoint when the
+bridge is realized by `restrictPoly`. -/
+theorem mlBlockedSpdpSubspace_violation_le_map_for_restrictPoly
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (hAssignToLatent : ∀ i : Fin (numVars M n (Nat.log 2 n)),
+      (compiledPartition M n).assign i = (latentPartition M n).assign (B.toLatent i))
+    (hViolMatches :
+      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (violationPolyOf ℚ M n)
+    ≤ Submodule.map (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches M n B
+    (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+    hViolMatches (violationBranchTransportFrontier_for_restrictPoly M n B hAssignToLatent)
+
 /-- Concrete bridge-specialized packaged violation transport into
 `latentCompiledPoly`, using the existing rewrite target `hViolMatches`. -/
 theorem mlBlockedSpdpSubspace_violation_le_map_for_bridgeReconstructionMap
