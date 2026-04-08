@@ -442,6 +442,26 @@ theorem bridgeReconstructionMap_retracts_latent_generator_target
     bridgeReconstructionMap_retracts_on_generated_algebra M n B
       (mlProj (m * SPDP.iterDerivList S (latentCompiledPoly M n)))
 
+/-
+Attempted next downstream mirror theorem: a direct `restrictPoly` analogue of
+`bridgeReconstructionMap_retracts_latent_generator_target`.
+
+That naive port fails for a real type reason. The legacy theorem is phrased on a
+latent polynomial `mlProj (m * iterDerivList S (latentCompiledPoly M n))` after
+applying a latent → compiled map and then mapping back down with
+`mapFullToLatentPoly`. By contrast, `restrictPoly_mapFullToLatentPoly` applies
+only to compiled-polynomial inputs:
+
+`restrictPoly ℚ B.toLatent B.inj ((mapFullToLatentPoly M n B) p) = p`
+
+with `p : MvPolynomial (Fin (numVars ...)) ℚ`.
+
+So the smallest honest next theorem is not this verbatim generator-level mirror.
+It must first repackage the latent generator term through an explicit compiled
+preimage, or else formulate a different later theorem surface that starts from a
+compiled polynomial and only then specializes to the desired generator family.
+-/
+
 /-- Planned lift template: once generator-level retraction is proved for the
 concrete reconstruction map, the restricted transfer-back law follows on the
 entire latent SPDP subspace by `Submodule.span_le`. -/
