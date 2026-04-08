@@ -130,6 +130,25 @@ theorem rename_branch_transport_target_via_bridgeMapU
     (rename_branch_globalDomStyleU_for_bridgeMap M n h_le B)
     hBack
 
+/-- End-to-end staged closure through the bridge-direction `U` route:
+if transfer-back holds on latent branch subspace and `hViolMatches` is given,
+then full compiled subspace transport follows. -/
+axiom mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hBack : HasTransferBackOnLatentSubspace M n T
+      (mapFullToLatentPoly M n B).toLinearMap)
+    (hViolMatches :
+      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le)
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n))
+
 /-- Semantic generator transport hypothesis package for the renamed
 witness/Tseitin branch under a chosen bridge map `T`.
 
