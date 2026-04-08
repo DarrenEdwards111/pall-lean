@@ -193,6 +193,17 @@ theorem bridgeMap_leftInverse_for_bridgeReconstructionMap
   bridgeMap_leftInverse_target_of_comp_id M n B (bridgeReconstructionMap M n B)
     (bridgeMap_comp_id_for_bridgeReconstructionMap M n B)
 
+/-- Transfer-back on latent branch subspace for the concrete reconstruction map,
+derived from the bridge composition identity. -/
+theorem hasTransferBack_for_bridgeReconstructionMap
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n) :
+    HasTransferBackOnLatentSubspace M n (bridgeReconstructionMap M n B)
+      (mapFullToLatentPoly M n B).toLinearMap :=
+  hasTransferBackOnLatentSubspace_bridgeMap_of_leftInverse M n B
+    (bridgeReconstructionMap M n B)
+    (bridgeMap_leftInverse_for_bridgeReconstructionMap M n B)
+
 axiom mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
