@@ -61,6 +61,40 @@ theorem generatorTransportFrontier_iff_roadmap_target
             T (mlProj (m' * SPDP.iterDerivList S' (latentCompiledPoly M n)))) := by
   rfl
 
+/-- Violation-branch frontier in the direction that actually matches the bridge
+map `B.toLatent : compiled → latent`. This is the honest missing statement
+behind the staged violation subspace target in `CompiledGeneratorPipeline`.
+
+Unlike the current packaged axiom there, this formulation keeps the bridge map
+visible and places the latent polynomial on the latent side from the start,
+which is the shape suggested by the failed local reproving attempt. -/
+def violationBranchTransportFrontier
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) : Prop :=
+  mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (violationPolyOf ℚ M n)
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n)))
+
+/-- The staged violation target in `CompiledGeneratorPipeline` is exactly this
+frontier proposition. Keeping it named here makes the remaining obstruction
+explicit without pretending the proof already exists. -/
+theorem violationBranchTransportFrontier_iff_pipeline_target
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
+    violationBranchTransportFrontier M n B T ↔
+      mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (violationPolyOf ℚ M n)
+      ≤ Submodule.map T
+          (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+            (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))) := by
+  rfl
+
 /-- One-line handoff: once generator transport is proved, the roadmap's exact
 minimal elementwise transport target is immediately available. -/
 theorem compiled_subspace_element_transport_of_generator_frontier
