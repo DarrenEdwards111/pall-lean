@@ -840,10 +840,11 @@ theorem mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_later
           (latentCompiledPoly M n)) :=
   mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target M n B T hViolMatches
 
-/-- Concrete bridge-specialized semantic target for the remaining violation-side
-obligation. This keeps the unresolved step honest and local to the module where
-`bridgeReconstructionMap` actually lives. -/
-axiom violation_generator_transport_semantic_for_bridgeReconstructionMap
+/-- Concrete semantic violation-generator transport target for the reconstruction
+map. This is now the exact remaining bridge-side obligation: given a compiled
+violation SPDP generator, exhibit a latent renamed violation generator whose
+image under `bridgeReconstructionMap` is that compiled generator. -/
+axiom violation_generator_reconstruction_semantic_target
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
     ViolationGeneratorSemanticTransport M n B (bridgeReconstructionMap M n B)
@@ -858,7 +859,7 @@ theorem violationBranchTransportFrontier_for_bridgeReconstructionMap
     violationBranchTransportFrontier M n B (bridgeReconstructionMap M n B) := by
   apply violationBranchTransportFrontier_of_generatorFrontier
   apply violationGeneratorTransportFrontier_of_semantic
-  exact violation_generator_transport_semantic_for_bridgeReconstructionMap M n B
+  exact violation_generator_reconstruction_semantic_target M n B
 
 /-- Concrete bridge-specialized packaged violation transport into
 `latentCompiledPoly`, using the existing rewrite target `hViolMatches`. -/
