@@ -200,7 +200,14 @@ to `0` at the full level. This remains staged until the concrete
 inverse-on-image variable map is defined constructively in `LatentFullBridge`.
 
 Additional bridge-section data needed to make the reconstruction map
-constructive: choose a full-variable preimage for each relevant latent variable. -/
+constructive: choose a full-variable preimage for each relevant latent variable.
+
+Important: this cannot be reduced from `B.inj` alone. Injectivity of
+`B.toLatent` gives a left inverse on the full-variable source, but the section
+law needed here is a right inverse on latent variables,
+`B.toLatent (bridgeSectionVar ... i) = i`, which requires surjectivity onto the
+relevant latent variable set (or an explicit chosen image-subset interface), not
+mere injectivity. -/
 axiom bridgeSectionVar
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
