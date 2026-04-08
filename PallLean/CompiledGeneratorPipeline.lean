@@ -896,7 +896,9 @@ theorem violation_generator_reconstruction_atomic
       bridgeReconstructionMap_retracts_on_generated_algebra M n B
         (MvPolynomial.rename B.toLatent
           (mlProj (m * SPDP.iterDerivList S (violationPolyOf ℚ M n))))
-  sorry
+  apply (MvPolynomial.rename_injective B.toLatent hf)
+  symm
+  simpa [mapFullToLatentPoly, h_proj] using h_retract
 
 /-- Filtering a mapped list by a target-block predicate has the same length as
 filtering the source list by the pulled-back predicate. -/
