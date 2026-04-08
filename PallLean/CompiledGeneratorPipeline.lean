@@ -350,6 +350,29 @@ That is the correctly typed bridge idempotence statement from which a later
 latent-side retraction theorem may be packaged.
 -/
 
+/-
+Attempted next concrete theorem:
+
+`(mapFullToLatentPoly M n B).comp
+    (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj)
+  = mapFullToLatentPoly M n B`
+
+This appears to be the right mathematical AlgHom identity, but the first direct
+proof attempt hit a deterministic typeclass/coercion timeout before the real
+proof state was visible. The likely issue is that Lean is struggling to infer
+that the composite should be viewed as a latent-endomorphism AlgHom, not that
+the theorem is false.
+
+So the next proof attempt here should use explicit named maps and codomain
+annotations, for example by introducing a local
+
+`let ψ : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ →ₐ[ℚ]
+    MvPolynomial (Fin (latentNumVars M n)) ℚ := ...`
+
+or by proving pointwise equality first and only then wrapping it into an
+AlgHom equality.
+-/
+
 /-- Corrected missing bridge theorem statement for the intended concrete `T`:
 retraction identity on the relevant latent SPDP subspace (not globally). -/
 theorem bridgeMap_retract_on_latentSubspace_for_bridgeReconstructionMap
