@@ -45,6 +45,57 @@ axiom rename_branch_transport_target
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n))
 
+/-- Bridge-direction recast: use `U : compiled → latent` first, proving renamed
+witness/Tseitin generators land directly in the latent SPDP subspace. -/
+def RenameBranchGlobalDomStyleU
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (U : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (latentNumVars M n)) ℚ) : Prop :=
+  ∀ (S : List (Fin (npNumVars n)))
+    (m : MvPolynomial (Fin (npNumVars n)) ℚ),
+    S.length = Nat.log 2 n →
+    m.totalDegree ≤ Nat.log 2 n →
+    m.vars ⊆ S.toFinset →
+    SPDP.isBlockAdmissible (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le)) S →
+    U ((MvPolynomial.rename (witnessInclusion M n h_le))
+      (mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n))))
+      ∈ mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)
+
+/-- Separate transfer-back hypothesis: `T` is a right-inverse of `U` on the
+latent SPDP subspace image used by the rename branch. -/
+def HasTransferBackOnLatentSubspace
+    (M : DTM) (n : ℕ)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (U : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (latentNumVars M n)) ℚ) : Prop :=
+  ∀ r,
+    r ∈ mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n) →
+    U (T r) = r
+
+/-- Transfer-back lemma: once branch transport is proved in bridge direction
+(`U`), and `T` is a right-inverse on the latent branch subspace, recover the
+original `map T` branch target. -/
+axiom rename_branch_transport_target_of_U
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (U : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hU : RenameBranchGlobalDomStyleU M n h_le U)
+    (hBack : HasTransferBackOnLatentSubspace M n T U) :
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n))
+
 /-- Semantic generator transport hypothesis package for the renamed
 witness/Tseitin branch under a chosen bridge map `T`.
 
