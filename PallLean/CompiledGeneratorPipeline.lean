@@ -512,20 +512,28 @@ theorem bridgeReconstructionMap_retracts_latent_generator_target
 Attempted next downstream mirror theorem: a direct `restrictPoly` analogue of
 `bridgeReconstructionMap_retracts_latent_generator_target`.
 
-That naive port fails for a real type reason. The legacy theorem is phrased on a
-latent polynomial `mlProj (m * iterDerivList S (latentCompiledPoly M n))` after
-applying a latent → compiled map and then mapping back down with
-`mapFullToLatentPoly`. By contrast, `restrictPoly_mapFullToLatentPoly` applies
-only to compiled-polynomial inputs:
+That naive generator-level port still fails for a real type reason. The legacy
+reconstruction theorem is phrased on a latent polynomial
+`mlProj (m * iterDerivList S (latentCompiledPoly M n))` after applying a latent
+→ compiled map and then mapping back down with `mapFullToLatentPoly`. By
+contrast, `restrictPoly_mapFullToLatentPoly` applies only to compiled-polynomial
+inputs:
 
 `restrictPoly ℚ B.toLatent B.inj ((mapFullToLatentPoly M n B) p) = p`
 
 with `p : MvPolynomial (Fin (numVars ...)) ℚ`.
 
-So the smallest honest next theorem is not this verbatim generator-level mirror.
-It must first repackage the latent generator term through an explicit compiled
-preimage, or else formulate a different later theorem surface that starts from a
-compiled polynomial and only then specializes to the desired generator family.
+What changed since this note was first added is that the concrete route now does
+have a correct higher-level full-compiled endpoint,
+`mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly`, obtained by adding
+an oriented sibling to the old staged full-compiled API.
+
+So the remaining blocker is specifically the *generator-level latent-side mirror*
+shape, not the concrete `restrictPoly` route as a whole. Any further cleanup
+here should therefore either:
+- package compiled-preimage data for the latent generator family, or
+- bypass this generator-level theorem entirely by rewriting downstream concrete
+  full-compiled uses to `mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly`.
 -/
 
 /-- Planned lift template: once generator-level retraction is proved for the
