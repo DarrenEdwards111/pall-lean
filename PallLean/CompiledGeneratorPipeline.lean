@@ -9,6 +9,31 @@ Assemble the verifier-side transport packaging with the compiled decomposition
 
 namespace CompiledGeneratorTransportFrontier
 
+/-!
+## Status note on staged declarations
+
+This file now mixes three layers:
+
+1. Concrete bridge-specialized theorems that are actually proved later in the file.
+2. Generic packaging statements that are still stronger than what the current
+   theorem layer establishes, so they remain explicit axioms.
+3. Bridge-construction axioms (`bridgeSectionVar`, `bridgeReconstructionMap`,
+   composition/left-inverse targets) that are still genuine upstream
+   dependencies of the proved bridge-specialized route.
+
+In particular:
+- `rename_branch_transport_target` is now bypassed by the later theorem
+  `map_rename_witness_tseitin_subspace_le_map_latent_subspace`, but remains as
+  an early generic placeholder because of declaration order.
+- `rename_branch_transport_target_of_U` is currently underpowered: the present
+  hypotheses do not suffice to prove it, as they give only latent-side
+  retraction `U (T r) = r`, not the source-side retraction needed by the natural
+  span-induction proof.
+- `violation_branch_rename_transport_target` remains the generic arbitrary-`T`
+  target, even though the concrete bridge-specialized violation route is proved
+  later.
+-/
+
 open CompiledAssemblyRoadmap
 open LatentFullBridge LatentCompiler MultilinearSPDP NPWitness Compiler TuringMachine
 open MvPolynomial SPDP
