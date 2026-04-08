@@ -437,6 +437,21 @@ that `restrictPoly` lands in compiled space, while `mapFullToLatentPoly` lands i
 latent space.
 -/
 
+/-- Correctly codomain-matched latent-side packaging of the concrete
+`restrictPoly` seam: after mapping back down once more, the composite
+latent → compiled → latent fixes every latent polynomial coming from a compiled
+input. This is the smallest honest pointwise retarget surface suggested by the
+preceding direction note. -/
+theorem mapFullToLatentPoly_restrictPoly_mapFullToLatentPoly
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (p : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
+    (mapFullToLatentPoly M n B)
+      ((MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj)
+        ((mapFullToLatentPoly M n B) p))
+      = (mapFullToLatentPoly M n B) p := by
+  rw [restrictPoly_mapFullToLatentPoly M n B p]
+
 /-- Corrected missing bridge theorem statement for the intended concrete `T`:
 retraction identity on the relevant latent SPDP subspace (not globally). -/
 theorem bridgeMap_retract_on_latentSubspace_for_bridgeReconstructionMap
