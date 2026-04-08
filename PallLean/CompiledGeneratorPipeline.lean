@@ -840,6 +840,26 @@ theorem mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_later
           (latentCompiledPoly M n)) :=
   mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target M n B T hViolMatches
 
+/-- Atomic bridge-side target for the remaining violation branch: a compiled
+violation generator should be the reconstruction-image of its renamed latent
+counterpart. If this theorem can be proved, the concrete semantic frontier for
+`bridgeReconstructionMap` should collapse with only bookkeeping around the
+pulled-forward derivative list and multiplier. -/
+axiom violation_generator_reconstruction_atomic
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n) :
+    ∀ (S : List (Fin (numVars M n (Nat.log 2 n))))
+      (m : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ),
+      S.length = Nat.log 2 n →
+      m.totalDegree ≤ Nat.log 2 n →
+      m.vars ⊆ S.toFinset →
+      SPDP.isBlockAdmissible (compiledPartition M n) S →
+      mlProj (m * SPDP.iterDerivList S (violationPolyOf ℚ M n)) =
+        (bridgeReconstructionMap M n B)
+          (mlProj ((MvPolynomial.rename B.toLatent m) *
+            SPDP.iterDerivList (S.map B.toLatent)
+              (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))))
+
 /-- Concrete semantic violation-generator transport target for the reconstruction
 map. This is now the exact remaining bridge-side obligation: given a compiled
 violation SPDP generator, exhibit a latent renamed violation generator whose
