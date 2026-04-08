@@ -741,9 +741,12 @@ axiom rename_branch_transport_target_of_U
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n))
 
-/-- Immediate bridge-map closure: once transfer-back holds for `(T,U)` with
-`U = mapFullToLatentPoly.toLinearMap`, the rename-branch subspace transport
-follows. -/
+/-- Immediate legacy bridge-map closure: once transfer-back holds for `(T,U)`
+with `U = mapFullToLatentPoly.toLinearMap`, the rename-branch subspace
+transport follows.
+
+This is compatibility glue for the older bridge-map packaging, not the
+preferred `restrictPoly`-oriented staged interface. -/
 theorem rename_branch_transport_target_via_bridgeMapU
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
