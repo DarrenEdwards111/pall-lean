@@ -13,6 +13,21 @@ open CompiledAssemblyRoadmap
 open LatentFullBridge LatentCompiler MultilinearSPDP NPWitness Compiler TuringMachine
 open MvPolynomial SPDP
 
+/-- Critical remaining obligation (isolated): raw rename/map transport inequality
+for the violation branch. Once this is proved, `hViolMatches` rewrites the target
+to `latentCompiledPoly` via `mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches`.
+-/
+axiom violation_branch_rename_transport_target
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (violationPolyOf ℚ M n)
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n)))
+
 /-- Subspace-level decomposition through the compiled polynomial split, with the
 verifier side already reduced to renamed Tseitin generators. -/
 theorem mlBlockedSpdpSubspace_fullCompiled_le_rename_tseitin_sup_violation
@@ -130,5 +145,21 @@ theorem mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n)) := by
   simpa [hViolMatches] using hRenameTransport
+
+/-- Canonical packaged version using the isolated raw target axiom. -/
+theorem mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hViolMatches :
+      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (violationPolyOf ℚ M n)
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches M n B T hViolMatches
+    (violation_branch_rename_transport_target M n B T)
 
 end CompiledGeneratorTransportFrontier
