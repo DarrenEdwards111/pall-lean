@@ -304,13 +304,17 @@ theorem bridgeReconstruction_comp_X
   simpa using bridgeReconstructionVarMap_retracts_on_image M n B i
 
 /-- Expected global consequence on the bridge-image-generated latent algebra:
-this is the theorem family from which generator retraction should be proved by
-induction / `aeval` extensionality.
+this is the theorem family from which generator retraction is proved by
+induction / `aeval` extensionality for the legacy section-variable route.
 
-Refactor note: the later concrete replacement target here is to reprove this
-same conclusion using `restrictPoly ℚ B.toLatent B.inj` directly, then retarget
-bridge-specialized downstream theorems to that later concrete theorem rather
-than replacing the early `bridgeReconstructionMap` surface in place. -/
+Refactor note: the concrete `restrictPoly` route is already live later in this
+file at the full-compiled level, but this exact latent-side theorem slot has
+not been replaced directly. The remaining gap here is local theorem packaging,
+not absence of a concrete reconstruction map. In particular, the naive direct
+replacement by `restrictPoly ℚ B.toLatent B.inj` still runs into the same
+latent-side/generator-level shape mismatch documented below, so downstream
+retargeting should keep happening through the later concrete `restrictPoly`
+seams rather than by mutating this early theorem surface in place. -/
 theorem bridgeReconstructionMap_retracts_on_generated_algebra
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
