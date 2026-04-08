@@ -191,4 +191,35 @@ theorem compiled_generator_verifier_mem_bot_sup_rename_tseitin
       exact Submodule.zero_mem _
     exact Submodule.mem_sup_left hBot
 
+/-- Subspace-level lift of the verifier packaging: the entire verifier-side
+multilinear blocked SPDP subspace is contained in `⊥ ⊔ map(rename)(pullback
+Tseitin subspace)`. -/
+theorem mlBlockedSpdpSubspace_verifier_le_bot_sup_rename_tseitin
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (verifierSheetOf ℚ M n h_le) ≤
+      (⊥ : Submodule ℚ (MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)) ⊔
+      Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+        (mlBlockedSpdpSubspace
+          (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+          (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n)) := by
+  apply Submodule.span_le.mpr
+  intro q hq
+  rcases hq with ⟨S, m, hlen, hdeg, hvars, hadm, rfl⟩
+  exact compiled_generator_verifier_mem_bot_sup_rename_tseitin
+    M n h_le S m hlen hdeg hvars hadm
+
+/-- Simplified corollary of the previous theorem (`⊥ ⊔ X = X`). -/
+theorem mlBlockedSpdpSubspace_verifier_le_rename_tseitin
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (verifierSheetOf ℚ M n h_le) ≤
+      Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+        (mlBlockedSpdpSubspace
+          (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+          (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n)) := by
+  simpa using mlBlockedSpdpSubspace_verifier_le_bot_sup_rename_tseitin M n h_le
+
 end CompiledGeneratorTransportFrontier
