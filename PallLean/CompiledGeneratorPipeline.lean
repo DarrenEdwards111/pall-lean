@@ -123,6 +123,19 @@ axiom bridgeMap_leftInverse_target
       MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
     Function.LeftInverse (mapFullToLatentPoly M n B).toLinearMap T
 
+/-- Concrete sufficient condition for the left-inverse target:
+if `U.comp T = LinearMap.id`, then `U` is a left inverse of `T`. -/
+theorem bridgeMap_leftInverse_of_comp_id
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hComp : (mapFullToLatentPoly M n B).toLinearMap.comp T = LinearMap.id) :
+    Function.LeftInverse (mapFullToLatentPoly M n B).toLinearMap T := by
+  intro r
+  have := LinearMap.congr_fun hComp r
+  simpa using this
+
 axiom mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
