@@ -287,11 +287,33 @@ theorem bridgeReconstructionMap_retracts_latent_generator_target
 /-- Planned lift template: once generator-level retraction is proved for the
 concrete reconstruction map, the restricted transfer-back law follows on the
 entire latent SPDP subspace by `Submodule.span_le`. -/
-axiom bridgeMap_retract_on_latentSubspace_for_bridgeReconstructionMap_of_generators
+theorem bridgeMap_retract_on_latentSubspace_for_bridgeReconstructionMap_of_generators
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
     HasTransferBackOnLatentSubspace M n (bridgeReconstructionMap M n B)
-      (mapFullToLatentPoly M n B).toLinearMap
+      (mapFullToLatentPoly M n B).toLinearMap := by
+  intro q hq
+  rw [mlBlockedSpdpSubspace] at hq
+  let s : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
+    {q | ∃ (S : List (Fin (latentNumVars M n))) (m : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+        S.length = Nat.log 2 n ∧
+        m.totalDegree ≤ Nat.log 2 n ∧
+        m.vars ⊆ S.toFinset ∧
+        SPDP.isBlockAdmissible (latentPartition M n) S ∧
+        q = mlProj (m * SPDP.iterDerivList S (latentCompiledPoly M n))}
+  have hPq : ((mapFullToLatentPoly M n B).toLinearMap ((bridgeReconstructionMap M n B) q) = q) := by
+    refine Submodule.span_induction (R := ℚ) (s := s)
+      (p := fun r _ => (mapFullToLatentPoly M n B).toLinearMap ((bridgeReconstructionMap M n B) r) = r)
+      ?hmem ?hzero ?hadd ?hsmul hq
+    · intro r hr
+      rcases hr with ⟨S, m, hLen, hdeg, hvars, hadm, rfl⟩
+      exact bridgeReconstructionMap_retracts_latent_generator_target M n B S m hLen hdeg hvars hadm
+    · simp
+    · intro x y hx hy hxP hyP
+      simp [LinearMap.map_add, hxP, hyP]
+    · intro c x hx hxP
+      simp [LinearMap.map_smul, hxP]
+  exact hPq
 
 /-- Immediate closure from the composition-identity target to the staged
 left-inverse bridge target. -/
