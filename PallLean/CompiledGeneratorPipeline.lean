@@ -330,6 +330,19 @@ this slot. The issue is not declaration order but variable-space direction:
 So the future concrete `restrictPoly` refactor still needs an intermediate
  theorem packaged in the correct variable spaces, not just a one-line reuse of
 `restrictPoly_rename` at this exact theorem slot.
+
+Concretely, the next typed target should quantify over a compiled polynomial
+`q : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ` and prove a statement of
+shape
+
+`(mapFullToLatentPoly M n B).toLinearMap
+    (((MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap)
+      ((mapFullToLatentPoly M n B).toLinearMap q))
+  = (mapFullToLatentPoly M n B).toLinearMap q`
+
+or an equivalent AlgHom-level formulation. That is the correctly typed bridge
+idempotence statement from which a later latent-side retraction theorem may be
+packaged.
 -/
 
 /-- Corrected missing bridge theorem statement for the intended concrete `T`:
