@@ -340,9 +340,14 @@ shape
       ((mapFullToLatentPoly M n B).toLinearMap q))
   = (mapFullToLatentPoly M n B).toLinearMap q`
 
-or an equivalent AlgHom-level formulation. That is the correctly typed bridge
-idempotence statement from which a later latent-side retraction theorem may be
-packaged.
+or, more canonically, the AlgHom-level identity
+
+`(mapFullToLatentPoly M n B).comp
+    (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj)
+  = mapFullToLatentPoly M n B`.
+
+That is the correctly typed bridge idempotence statement from which a later
+latent-side retraction theorem may be packaged.
 -/
 
 /-- Corrected missing bridge theorem statement for the intended concrete `T`:
