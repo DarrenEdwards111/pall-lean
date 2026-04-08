@@ -258,11 +258,15 @@ theorem bridgeReconstructionMap_retracts_on_generated_algebra
 
 /-- Corrected missing bridge theorem statement for the intended concrete `T`:
 retraction identity on the relevant latent SPDP subspace (not globally). -/
-axiom bridgeMap_retract_on_latentSubspace_for_bridgeReconstructionMap
+theorem bridgeMap_retract_on_latentSubspace_for_bridgeReconstructionMap
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
     HasTransferBackOnLatentSubspace M n (bridgeReconstructionMap M n B)
-      (mapFullToLatentPoly M n B).toLinearMap
+      (mapFullToLatentPoly M n B).toLinearMap :=
+  hasTransferBackOnLatentSubspace_bridgeMap_of_leftInverse M n B
+    (bridgeReconstructionMap M n B)
+    (bridgeMap_leftInverse_target_of_comp_id M n B (bridgeReconstructionMap M n B)
+      (bridgeMap_comp_id_target M n B (bridgeReconstructionMap M n B)))
 
 /-- Generator-level retraction target for the concrete reconstruction map:
 prove `U(T(g)) = g` first on latent SPDP generators, then lift by span. -/
