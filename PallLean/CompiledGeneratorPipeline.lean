@@ -194,12 +194,19 @@ axiom bridgeMap_comp_id_target
 This is the `T` that should ultimately replace the abstract parameter in the
 pipeline once constructed/proved from LatentFullBridge-side machinery.
 
-Design skeleton: extend a latent polynomial back to full coordinates by choosing
-a preimage on the bridge-image variables and sending off-image latent variables
-to `0` at the full level. This remains staged until the concrete
-inverse-on-image variable map is defined constructively in `LatentFullBridge`.
+Current best local design: use `MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj`.
+That map already sends off-image latent variables to `0` and is a left inverse
+to `MvPolynomial.rename B.toLatent` on renamed full-source polynomials.
+So the main remaining issue is not defining some map at all, but packaging the
+specific generator/image facts needed by the later bridge-specialized transport
+proofs in this file.
 
-Additional bridge-section data needed to make the reconstruction map
+The older section-variable presentation is retained here because the current
+proof layer below is written in terms of an `aeval`-style reconstruction map.
+If the file is refactored around `restrictPoly`, these section axioms should
+become removable.
+
+Additional bridge-section data needed to make the current `aeval` presentation
 constructive: choose a full-variable preimage for each relevant latent variable.
 
 Important: this cannot be reduced from `B.inj` alone. Injectivity of
