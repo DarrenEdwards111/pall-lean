@@ -150,14 +150,6 @@ def ViolationGeneratorSemanticTransport
       mlProj (m * SPDP.iterDerivList S (violationPolyOf ℚ M n)) =
         T (mlProj (m' * SPDP.iterDerivList S' (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))))
 
-/-- Explicit semantic frontier theorem to prove next for the violation branch. -/
-axiom violation_generator_transport_semantic
-    (M : DTM) (n : ℕ)
-    (B : FullToLatentBridge M n)
-    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
-      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
-    ViolationGeneratorSemanticTransport M n B T
-
 /-- The semantic violation theorem is exactly the generator frontier. -/
 theorem violationGeneratorTransportFrontier_of_semantic
     (M : DTM) (n : ℕ)
