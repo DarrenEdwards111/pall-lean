@@ -410,6 +410,33 @@ theorem restrictPoly_retracts_on_mapFullToLatentPoly_image
   intro p
   exact restrictPoly_mapFullToLatentPoly M n B p
 
+/-
+Tried next to package the `restrictPoly` seam at subspace level via a `≤`
+between `Submodule.map`s. That also exposed a real direction issue, not a mere
+Lean nuisance:
+
+- `Submodule.map (mapFullToLatentPoly M n B).toLinearMap ⊤` lives in the latent
+  polynomial space.
+- `Submodule.map (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap ⊤`
+  lives in the compiled polynomial space.
+
+So there is no direct same-codomain inclusion theorem of that naive shape.
+The correct next downstream retargeting theorem must either:
+
+1. stay pointwise, with an explicit compiled witness produced from a latent-side
+   element of interest, or
+2. package a relation after one more application of `mapFullToLatentPoly`, so
+   both sides live back in the latent polynomial space.
+
+In other words, the current proved seam
+
+`restrictPoly_mapFullToLatentPoly : restrictPoly ((mapFullToLatentPoly) p) = p`
+
+is still the right primitive. The missing later theorem surface must respect
+that `restrictPoly` lands in compiled space, while `mapFullToLatentPoly` lands in
+latent space.
+-/
+
 /-- Corrected missing bridge theorem statement for the intended concrete `T`:
 retraction identity on the relevant latent SPDP subspace (not globally). -/
 theorem bridgeMap_retract_on_latentSubspace_for_bridgeReconstructionMap
