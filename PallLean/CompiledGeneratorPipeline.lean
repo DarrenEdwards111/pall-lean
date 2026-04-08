@@ -266,7 +266,7 @@ axiom bridgeMap_retract_on_latentSubspace_for_bridgeReconstructionMap
 
 /-- Generator-level retraction target for the concrete reconstruction map:
 prove `U(T(g)) = g` first on latent SPDP generators, then lift by span. -/
-axiom bridgeReconstructionMap_retracts_latent_generator_target
+theorem bridgeReconstructionMap_retracts_latent_generator_target
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
     ∀ (S : List (Fin (latentNumVars M n)))
@@ -278,7 +278,11 @@ axiom bridgeReconstructionMap_retracts_latent_generator_target
       (mapFullToLatentPoly M n B).toLinearMap
         ((bridgeReconstructionMap M n B)
           (mlProj (m * SPDP.iterDerivList S (latentCompiledPoly M n))))
-      = mlProj (m * SPDP.iterDerivList S (latentCompiledPoly M n))
+      = mlProj (m * SPDP.iterDerivList S (latentCompiledPoly M n)) := by
+  intro S m hLen hdeg hvars hadm
+  simpa using
+    bridgeReconstructionMap_retracts_on_generated_algebra M n B
+      (mlProj (m * SPDP.iterDerivList S (latentCompiledPoly M n)))
 
 /-- Planned lift template: once generator-level retraction is proved for the
 concrete reconstruction map, the restricted transfer-back law follows on the
