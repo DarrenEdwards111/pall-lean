@@ -136,6 +136,17 @@ theorem bridgeMap_leftInverse_of_comp_id
   have := LinearMap.congr_fun hComp r
   simpa using this
 
+/-- Next closure reduction: if the bridge-map composition identity holds,
+then the staged bridge-map left-inverse target follows immediately. -/
+theorem bridgeMap_leftInverse_target_of_comp_id
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hComp : (mapFullToLatentPoly M n B).toLinearMap.comp T = LinearMap.id) :
+    Function.LeftInverse (mapFullToLatentPoly M n B).toLinearMap T :=
+  bridgeMap_leftInverse_of_comp_id M n B T hComp
+
 axiom mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
