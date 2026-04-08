@@ -62,8 +62,10 @@ private lemma isBlockAdmissible_pullback_public {n m : ℕ}
       | cons a rest ih =>
         simp only [List.map_cons, List.filter_cons]
         by_cases h : B.assign (f a) = b <;> simp [h, ih]
-    rw [← hlen]
-    exact hadm.2 b
+    have hS' : (S'.filter (fun i => B.assign (f i) = b)).length ≤ 1 := by
+      rw [← hlen S']
+      exact hadm.2 b
+    simpa [pullbackPartition] using hS'
 
 private lemma restrictPoly_vars_subset_public {n m : ℕ} {F : Type*} [CommRing F]
     (f : Fin n → Fin m) (hf : Function.Injective f)
@@ -112,7 +114,7 @@ theorem compiled_generator_verifier_transport_of_inside_witness_range
       S'.length = Nat.log 2 n ∧
       m'.totalDegree ≤ Nat.log 2 n ∧
       m'.vars ⊆ S'.toFinset ∧
-      SPDP.isBlockAdmissible (SPDP.pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le)) S' ∧
+      SPDP.isBlockAdmissible (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le)) S' ∧
       mlProj (m * SPDP.iterDerivList S (verifierSheetOf ℚ M n h_le)) =
         MvPolynomial.rename (witnessInclusion M n h_le)
           (mlProj (m' * SPDP.iterDerivList S' (tseitinPoly ℚ n))) := by
@@ -138,5 +140,55 @@ theorem compiled_generator_verifier_transport_of_inside_witness_range
       dsimp [m']
       exact rename_restrictPoly_of_vars_range_public (witnessInclusion M n h_le) hf m h_range
     rw [h_iter, ← h_mult, ← map_mul (MvPolynomial.rename (witnessInclusion M n h_le)), mlProj_rename (witnessInclusion M n h_le) hf]
+
+/-- Packaging lemma: every verifier-side compiled generator lies in the sum of
+`⊥` and the rename-image of the Tseitin-side SPDP subspace over the pullback
+partition. The proof is exactly the case split on whether `S` is fully inside
+witness-image. -/
+theorem compiled_generator_verifier_mem_bot_sup_rename_tseitin
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (S : List (Fin (numVars M n (Nat.log 2 n))))
+    (m : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hlen : S.length = Nat.log 2 n)
+    (hdeg : m.totalDegree ≤ Nat.log 2 n)
+    (hvars : m.vars ⊆ S.toFinset)
+    (hadm : SPDP.isBlockAdmissible (compiledPartition M n) S) :
+    mlProj (m * SPDP.iterDerivList S (verifierSheetOf ℚ M n h_le)) ∈
+      (⊥ : Submodule ℚ (MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)) ⊔
+      Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+        (mlBlockedSpdpSubspace
+          (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+          (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n)) := by
+  classical
+  by_cases hS : ∀ v ∈ S, v ∈ Set.range (witnessInclusion M n h_le)
+  · rcases compiled_generator_verifier_transport_of_inside_witness_range
+      M n h_le S m hlen hdeg hvars hadm hS with
+      ⟨S', m', hlen', hdeg', hvars', hadm', hEq⟩
+    have hGen :
+        mlProj (m' * SPDP.iterDerivList S' (tseitinPoly ℚ n)) ∈
+          mlBlockedSpdpSubspace
+            (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+            (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n) :=
+      Submodule.subset_span ⟨S', m', hlen', hdeg', hvars', hadm', rfl⟩
+    have hMap :
+        mlProj (m * SPDP.iterDerivList S (verifierSheetOf ℚ M n h_le)) ∈
+          Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+            (mlBlockedSpdpSubspace
+              (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+              (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n)) := by
+      refine ⟨mlProj (m' * SPDP.iterDerivList S' (tseitinPoly ℚ n)), hGen, ?_⟩
+      simpa [hEq] using rfl
+    exact Submodule.mem_sup_right hMap
+  · push_neg at hS
+    have hZero :
+        mlProj (m * SPDP.iterDerivList S (verifierSheetOf ℚ M n h_le)) = 0 :=
+      compiled_generator_verifier_zero_of_outside_witness_range M n h_le S m hS
+    have hBot :
+        mlProj (m * SPDP.iterDerivList S (verifierSheetOf ℚ M n h_le)) ∈
+          (⊥ : Submodule ℚ (MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)) := by
+      rw [hZero]
+      exact Submodule.zero_mem _
+    exact Submodule.mem_sup_left hBot
 
 end CompiledGeneratorTransportFrontier
