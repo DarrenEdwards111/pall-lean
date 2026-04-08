@@ -217,6 +217,25 @@ theorem latent_rank160_from_parts_40_120_target
     finrank_span_finset_le_card G
   exact le_trans (le_trans hmono hspan_card) hCard
 
+/-- Restricted transport-generator target (exact blocker for the restricted
+attempt): each compiled generator belongs to the transported latent SPDP
+subspace at logscale. -/
+axiom compiled_generator_in_latent_subspace_transport_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
+    ∀ (S : List (Fin (numVars M n (Nat.log 2 n))))
+      (m : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ),
+      S.length = Nat.log 2 n →
+      m.totalDegree ≤ Nat.log 2 n →
+      m.vars ⊆ S.toFinset →
+      SPDP.isBlockAdmissible (compiledPartition M n) S →
+      mlProj (m * SPDP.iterDerivList S (fullCompiledPoly ℚ M n h_le))
+        ∈ Submodule.map T
+            (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+              (latentCompiledPoly M n))
+
 /-- Single explicit generator correspondence target (minimal blocker):
 each compiled generator is the transport of a latent generator. -/
 axiom compiled_generator_transport_target
@@ -238,6 +257,30 @@ axiom compiled_generator_transport_target
         SPDP.isBlockAdmissible (latentPartition M n) S' ∧
         mlProj (m * SPDP.iterDerivList S (fullCompiledPoly ℚ M n h_le)) =
           T (mlProj (m' * SPDP.iterDerivList S' (latentCompiledPoly M n)))
+
+/-- Restricted transport elementwise target, derived from the restricted
+generator target (focused blocker node). -/
+axiom compiled_subspace_element_transport_restricted_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
+    (∀ (S : List (Fin (numVars M n (Nat.log 2 n))))
+      (m : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ),
+      S.length = Nat.log 2 n →
+      m.totalDegree ≤ Nat.log 2 n →
+      m.vars ⊆ S.toFinset →
+      SPDP.isBlockAdmissible (compiledPartition M n) S →
+      mlProj (m * SPDP.iterDerivList S (fullCompiledPoly ℚ M n h_le))
+        ∈ Submodule.map T
+            (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+              (latentCompiledPoly M n))) →
+    ∀ q : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ,
+      q ∈ mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+            (fullCompiledPoly ℚ M n h_le) →
+      q ∈ Submodule.map T
+            (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+              (latentCompiledPoly M n))
 
 /-- Exact minimal missing lemma (elementwise transport form):
 every element of compiled SPDP subspace is a transported latent SPDP element.
