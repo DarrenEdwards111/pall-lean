@@ -389,9 +389,17 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target
   mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse M n h_le B T
     (bridgeMap_leftInverse_target M n B T) hViolMatches
 
-/-- Transfer-back lemma: once branch transport is proved in bridge direction
-(`U`), and `T` is a right-inverse on the latent branch subspace, recover the
-original `map T` branch target. -/
+/-- Staged transfer-back lemma for the rename branch.
+
+Important: the current hypothesis `HasTransferBackOnLatentSubspace M n T U`
+only gives `U (T r) = r` on the latent branch subspace. That is not strong
+enough to derive this conclusion by the natural source-space span induction,
+because the generator step needs a source-side retraction of the form
+`T (U x) = x` on the relevant rename-branch image (or an equivalent membership
+principle placing each source generator directly in `Submodule.map T ...`).
+
+So this remains an explicit axiom target for now rather than a theorem proved
+from `hBack`. -/
 axiom rename_branch_transport_target_of_U
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
