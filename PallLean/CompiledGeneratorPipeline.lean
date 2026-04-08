@@ -292,7 +292,12 @@ theorem bridgeReconstruction_comp_X
 
 /-- Expected global consequence on the bridge-image-generated latent algebra:
 this is the theorem family from which generator retraction should be proved by
-induction / `aeval` extensionality. -/
+induction / `aeval` extensionality.
+
+Refactor note: the later concrete replacement target here is to reprove this
+same conclusion using `restrictPoly ℚ B.toLatent B.inj` directly, then retarget
+bridge-specialized downstream theorems to that later concrete theorem rather
+than replacing the early `bridgeReconstructionMap` surface in place. -/
 theorem bridgeReconstructionMap_retracts_on_generated_algebra
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
