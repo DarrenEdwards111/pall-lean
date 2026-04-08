@@ -752,27 +752,6 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_of_staged_targets
   mlBlockedSpdpSubspace_fullCompiled_le_map_of_targets M n h_le B T hViolMatches
     (map_rename_witness_tseitin_subspace_le_map_latent_subspace M n h_le T)
 
-/-- Later theorem-level closure of the bridge-map-U staged endpoint. This avoids
-replacing the earlier declaration in place, while still collapsing one more
-staged downstream use once all required ingredients are in scope. -/
-theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_later
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (B : FullToLatentBridge M n)
-    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
-      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
-    (hBack : HasTransferBackOnLatentSubspace M n T
-      (mapFullToLatentPoly M n B).toLinearMap)
-    (hViolMatches :
-      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
-    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      (fullCompiledPoly ℚ M n h_le)
-    ≤ Submodule.map T
-        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-          (latentCompiledPoly M n)) :=
-  mlBlockedSpdpSubspace_fullCompiled_le_map_of_targets M n h_le B T hViolMatches
-    (rename_branch_transport_target_via_bridgeMapU M n h_le B T hBack)
-
 /-- Atomic bridge-side target for the remaining violation branch: a compiled
 violation generator should be the reconstruction-image of its renamed latent
 counterpart. If this theorem can be proved, the concrete semantic frontier for
