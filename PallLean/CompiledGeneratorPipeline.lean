@@ -213,12 +213,17 @@ axiom bridgeReconstructionMap_def
 
 /-- Expected inverse-on-image behavior for reconstructed variables: after mapping
 back down with `mapFullToLatentPoly`, bridge-image latent variables are fixed. -/
-axiom bridgeReconstructionVarMap_retracts_on_image
+theorem bridgeReconstructionVarMap_retracts_on_image
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
     ∀ i : Fin (latentNumVars M n),
       (mapFullToLatentPoly M n B).toLinearMap ((bridgeReconstructionVarMap M n B) i) =
-        MvPolynomial.X i
+        MvPolynomial.X i := by
+  intro i
+  unfold bridgeReconstructionVarMap
+  rw [mapFullToLatentPoly_X]
+  rw [bridgeSectionVar_spec]
+
 
 /-- Expected global consequence on the bridge-image-generated latent algebra:
 this is the theorem family from which generator retraction should be proved by
