@@ -640,10 +640,10 @@ axiom mlBlockedSpdpSubspace_fullCompiled_le_map_of_restrictPoly_leftInverse
 /-- Legacy concrete endpoint for the section-variable/`bridgeReconstructionMap`
 presentation, using the older bridge-reconstruction packaging.
 
-This remains useful while the file still contains generic bridge-map-U wrappers,
-but new concrete downstream retargeting should prefer
-`mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly`, whose theorem
-surface matches the proved `restrictPoly` orientation directly. -/
+This theorem is kept mainly for compatibility with the older bridge-map-U layer
+that still exists in this file. New concrete downstream retargeting should
+prefer `mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly`, whose
+theorem surface matches the proved `restrictPoly` orientation directly. -/
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
@@ -664,8 +664,8 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap
 
 Unlike the legacy `bridgeReconstructionMap` wrapper, this theorem is stated at
 exactly the orientation furnished by the proved concrete seam
-`restrictPoly_leftInverse_target`, so downstream bridge-specialized rewrites
-should target this theorem first. -/
+`restrictPoly_leftInverse_target`. It should be treated as the default concrete
+full-compiled endpoint for downstream bridge-specialized rewrites. -/
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
