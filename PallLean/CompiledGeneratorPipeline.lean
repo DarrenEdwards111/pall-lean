@@ -179,6 +179,16 @@ axiom bridgeSectionVar_spec
     ∀ i : Fin (latentNumVars M n),
       B.toLatent (bridgeSectionVar M n B i) = i
 
+/-- Missing bridge-side monomial action lemma needed for the reconstruction
+calculation: `mapFullToLatentPoly` sends a full variable `X j` to the latent
+variable `X (B.toLatent j)`. -/
+axiom mapFullToLatentPoly_X
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (j : Fin (numVars M n (Nat.log 2 n))) :
+    (mapFullToLatentPoly M n B).toLinearMap (MvPolynomial.X j) =
+      MvPolynomial.X (B.toLatent j)
+
 /-- Concrete variable-level reconstruction assignment induced by the chosen
 bridge section. -/
 noncomputable def bridgeReconstructionVarMap
