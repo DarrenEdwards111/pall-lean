@@ -182,7 +182,10 @@ theorem bridgeMap_leftInverse_of_comp_id
   simpa using this
 
 /-- Next closure reduction: if the bridge-map composition identity holds,
-then the staged bridge-map left-inverse target follows immediately. -/
+then the older staged bridge-map left-inverse target follows immediately.
+
+This is part of the legacy bridge-map packaging layer, not the preferred
+`restrictPoly`-oriented surface. -/
 theorem bridgeMap_leftInverse_target_of_comp_id
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n)
@@ -577,8 +580,10 @@ theorem bridgeMap_retract_on_latentSubspace_for_bridgeReconstructionMap_of_gener
       simp [LinearMap.map_smul, hxP]
   exact hPq
 
-/-- Immediate closure from the composition-identity target to the staged
-left-inverse bridge target. -/
+/-- Immediate closure from the composition-identity target to the older staged
+left-inverse bridge target.
+
+This remains as compatibility support for the legacy bridge-map layer. -/
 theorem bridgeMap_leftInverse_target_of_comp_id_target
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n)
