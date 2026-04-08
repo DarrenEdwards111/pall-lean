@@ -12,14 +12,20 @@ namespace CompiledGeneratorTransportFrontier
 /-!
 ## Status note on staged declarations
 
-This file now mixes three layers:
+This file now mixes four layers:
 
-1. Concrete bridge-specialized theorems that are actually proved later in the file.
-2. Generic packaging statements that are still stronger than what the current
+1. Concrete bridge-specialized theorems that are actually proved later in the
+   file.
+2. A newer concrete `restrictPoly` route, now exposed by preferred theorem
+   surfaces such as `restrictPoly_mapFullToLatentPoly`,
+   `restrictPoly_leftInverse_target`, and
+   `mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly`.
+3. Generic packaging statements that are still stronger than what the current
    theorem layer establishes, so they remain explicit axioms.
-3. Bridge-construction axioms (`bridgeSectionVar`, `bridgeReconstructionMap`,
-   composition/left-inverse targets) that are still genuine upstream
-   dependencies of the proved bridge-specialized route.
+4. Legacy bridge-construction axioms (`bridgeSectionVar`,
+   `bridgeReconstructionMap`, composition/left-inverse targets) that remain live
+   only where the file still routes through the older section-variable/
+   `bridgeReconstructionMap` presentation.
 
 In particular:
 - `rename_branch_transport_target` is now bypassed by the later theorem
@@ -32,6 +38,11 @@ In particular:
 - `violation_branch_rename_transport_target` remains the generic arbitrary-`T`
   target, even though the concrete bridge-specialized violation route is proved
   later.
+- The concrete full-compiled route should now be read primarily through the
+  `restrictPoly`-oriented endpoint
+  `mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly`; the older
+  `bridgeReconstructionMap` endpoint remains a legacy wrapper while downstream
+  cleanup is still in progress.
 -/
 
 open CompiledAssemblyRoadmap
