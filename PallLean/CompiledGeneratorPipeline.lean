@@ -823,4 +823,21 @@ theorem rename_branch_transport_target_via_bridgeMapU_later
           (latentCompiledPoly M n)) :=
   map_rename_witness_tseitin_subspace_le_map_latent_subspace M n h_le T
 
+/-- Later theorem-level alias for the packaged violation-branch target. This keeps
+later downstream wiring symmetric with the rename-branch and bridge-map-U later
+closures, even though the raw violation transport obligation is still staged. -/
+theorem mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_later
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hViolMatches :
+      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (violationPolyOf ℚ M n)
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target M n B T hViolMatches
+
 end CompiledGeneratorTransportFrontier
