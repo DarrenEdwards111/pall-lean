@@ -898,6 +898,34 @@ theorem violation_generator_reconstruction_atomic
           (mlProj (m * SPDP.iterDerivList S (violationPolyOf ℚ M n))))
   sorry
 
+/-- Filtering a mapped list by a target-block predicate has the same length as
+filtering the source list by the pulled-back predicate. -/
+private theorem map_filter_length_eq_filter_length
+    {α β : Type*} (f : α → β) (p : β → Bool) :
+    ∀ S : List α,
+      ((S.map f).filter p).length = (S.filter (fun a => p (f a))).length := by
+  intro S
+  induction S with
+  | nil => simp
+  | cons a rest ih =>
+    simp only [List.map_cons, List.filter_cons]
+    by_cases h : p (f a)
+    · simp [h, ih]
+    · simp [h, ih]
+
+/-- If two predicates agree pointwise on a list, their filtered lengths agree. -/
+private theorem filter_length_eq_of_pointwise
+    {α : Type*} (p q : α → Bool)
+    (hpoint : ∀ a, p a = q a) :
+    ∀ S : List α, (S.filter p).length = (S.filter q).length := by
+  intro S
+  induction S with
+  | nil => simp
+  | cons a rest ih =>
+    simp only [List.filter_cons]
+    rw [hpoint a]
+    split <;> simp [ih]
+
 /-- Concrete semantic violation-generator transport target for the reconstruction
 map. This is now the exact remaining bridge-side obligation: given a compiled
 violation SPDP generator, exhibit a latent renamed violation generator whose
@@ -905,9 +933,10 @@ image under `bridgeReconstructionMap` is that compiled generator. -/
 theorem violation_generator_reconstruction_semantic_target
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n)
-    (hCompat : bridgePartitionCompatible M n B) :
+    (hAssignToLatent : ∀ i : Fin (numVars M n (Nat.log 2 n)),
+      (compiledPartition M n).assign i = (latentPartition M n).assign (B.toLatent i)) :
     ViolationGeneratorSemanticTransport M n B (bridgeReconstructionMap M n B) := by
-  refine ⟨hCompat, ?_⟩
+  refine ⟨hAssignToLatent, ?_⟩
   intro S m hLen hdeg hvars hadm
   refine ⟨S.map B.toLatent, MvPolynomial.rename B.toLatent m, ?_, ?_, ?_, ?_, ?_⟩
   · simpa using hLen
@@ -919,7 +948,37 @@ theorem violation_generator_reconstruction_semantic_target
     rcases Finset.mem_image.mp (hsub hi) with ⟨j, hj, rfl⟩
     exact Finset.mem_coe.mpr <| List.mem_toFinset.mpr <| List.mem_map.mpr ⟨j, List.mem_toFinset.mp (hvars hj), rfl⟩
   ·
-    sorry
+    constructor
+    · exact List.Nodup.map B.inj hadm.1
+    · intro b
+      have hpoint :
+          ∀ i : Fin (numVars M n (Nat.log 2 n)),
+            decide ((latentPartition M n).assign (B.toLatent i) = b) =
+              decide ((compiledPartition M n).assign i = b) := by
+        intro i
+        by_cases h : (latentPartition M n).assign (B.toLatent i) = b
+        · have hc : (compiledPartition M n).assign i = b := by
+            calc
+              (compiledPartition M n).assign i = (latentPartition M n).assign (B.toLatent i) := hAssignToLatent i
+              _ = b := h
+          simp [h, hc]
+        · have hc : ¬ (compiledPartition M n).assign i = b := by
+            intro hc
+            apply h
+            calc
+              (latentPartition M n).assign (B.toLatent i) = (compiledPartition M n).assign i := (hAssignToLatent i).symm
+              _ = b := hc
+          simp [h, hc]
+      calc
+        ((S.map B.toLatent).filter (fun j => decide ((latentPartition M n).assign j = b))).length
+            = (S.filter (fun i => decide ((latentPartition M n).assign (B.toLatent i) = b))).length :=
+              map_filter_length_eq_filter_length B.toLatent (fun j => decide ((latentPartition M n).assign j = b)) S
+        _ = (S.filter (fun i => decide ((compiledPartition M n).assign i = b))).length :=
+              filter_length_eq_of_pointwise
+                (fun i => decide ((latentPartition M n).assign (B.toLatent i) = b))
+                (fun i => decide ((compiledPartition M n).assign i = b))
+                hpoint S
+        _ ≤ 1 := hadm.2 b
   ·
     simpa [map_violationPolyOf] using
       (violation_generator_reconstruction_atomic M n B S m hLen hdeg hvars hadm)
@@ -931,18 +990,20 @@ frontier chain. -/
 theorem violationBranchTransportFrontier_for_bridgeReconstructionMap
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n)
-    (hCompat : bridgePartitionCompatible M n B) :
+    (hAssignToLatent : ∀ i : Fin (numVars M n (Nat.log 2 n)),
+      (compiledPartition M n).assign i = (latentPartition M n).assign (B.toLatent i)) :
     violationBranchTransportFrontier M n B (bridgeReconstructionMap M n B) := by
   apply violationBranchTransportFrontier_of_generatorFrontier
   apply violationGeneratorTransportFrontier_of_semantic
-  exact violation_generator_reconstruction_semantic_target M n B hCompat
+  exact violation_generator_reconstruction_semantic_target M n B hAssignToLatent
 
 /-- Concrete bridge-specialized packaged violation transport into
 `latentCompiledPoly`, using the existing rewrite target `hViolMatches`. -/
 theorem mlBlockedSpdpSubspace_violation_le_map_for_bridgeReconstructionMap
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n)
-    (hCompat : bridgePartitionCompatible M n B)
+    (hAssignToLatent : ∀ i : Fin (numVars M n (Nat.log 2 n)),
+      (compiledPartition M n).assign i = (latentPartition M n).assign (B.toLatent i))
     (hViolMatches :
       MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
     mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
@@ -951,6 +1012,6 @@ theorem mlBlockedSpdpSubspace_violation_le_map_for_bridgeReconstructionMap
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n)) :=
   mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches M n B (bridgeReconstructionMap M n B)
-    hViolMatches (violationBranchTransportFrontier_for_bridgeReconstructionMap M n B hCompat)
+    hViolMatches (violationBranchTransportFrontier_for_bridgeReconstructionMap M n B hAssignToLatent)
 
 end CompiledGeneratorTransportFrontier

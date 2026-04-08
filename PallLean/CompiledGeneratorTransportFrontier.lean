@@ -133,7 +133,8 @@ def ViolationGeneratorSemanticTransport
     (B : FullToLatentBridge M n)
     (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
       MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) : Prop :=
-  bridgePartitionCompatible M n B ∧
+  (∀ i : Fin (numVars M n (Nat.log 2 n)),
+    (compiledPartition M n).assign i = (latentPartition M n).assign (B.toLatent i)) ∧
   ∀ (S : List (Fin (numVars M n (Nat.log 2 n))))
     (m : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ),
     S.length = Nat.log 2 n →
