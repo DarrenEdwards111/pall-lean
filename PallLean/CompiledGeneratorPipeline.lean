@@ -452,26 +452,29 @@ theorem mapFullToLatentPoly_restrictPoly_mapFullToLatentPoly
       = (mapFullToLatentPoly M n B) p := by
   rw [restrictPoly_mapFullToLatentPoly M n B p]
 
-/-
-Tried next to package the concrete route as a direct `Function.LeftInverse`
-statement. That also fails for a real domain reason.
+/-- Correctly packaged `Function.LeftInverse` form of the concrete `restrictPoly`
+retraction: the domain is the compiled polynomial space, matching the domain of
+`mapFullToLatentPoly M n B`. -/
+theorem restrictPoly_leftInverse_compiled
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n) :
+    Function.LeftInverse
+      (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj)
+      (mapFullToLatentPoly M n B) := by
+  intro p
+  exact restrictPoly_mapFullToLatentPoly M n B p
 
-`Function.LeftInverse f g` means `g (f x) = x`, where `x` lives in the domain of
-`f`. Here:
-
-- `f := mapFullToLatentPoly M n B` has domain = compiled polynomials,
-- `g := MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj` has domain = latent
-  polynomials.
-
-So this *is* the right abstract shape, but only with `x` ranging over compiled
-polynomials. The attempted theorem statement accidentally let Lean infer `x` in
-latent space, reproducing the same orientation bug in another form.
-
-The proved theorem `restrictPoly_mapFullToLatentPoly` already is the concrete
-pointwise left-inverse fact; if we want a packaged `Function.LeftInverse`
-version, it must be stated with the compiled polynomial domain made explicit, or
-by guiding inference through a fully elaborated theorem surface.
--/
+/-- Concrete left-inverse packaging at the linear-map theorem surface used by the
+existing bridge reconstruction layer. This is the same compiled-domain fact as
+`restrictPoly_leftInverse_compiled`, just with the codomain/domain made explicit
+through the inherited linear maps. -/
+theorem restrictPoly_leftInverse_target
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n) :
+    Function.LeftInverse (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+      (mapFullToLatentPoly M n B).toLinearMap := by
+  intro p
+  exact restrictPoly_mapFullToLatentPoly M n B p
 
 /-- Corrected missing bridge theorem statement for the intended concrete `T`:
 retraction identity on the relevant latent SPDP subspace (not globally). -/
@@ -608,6 +611,41 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap
     (bridgeReconstructionMap M n B)
     (bridgeMap_leftInverse_target_of_comp_id_target M n B (bridgeReconstructionMap M n B))
     hViolMatches
+
+/-
+Tried to retarget the concrete bridge-specialized full-compiled endpoint
+through `restrictPoly_leftInverse_target`. That fails for a real theorem-surface
+reason.
+
+The surviving staged endpoint
+`mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse`
+expects a hypothesis of shape
+
+`Function.LeftInverse (mapFullToLatentPoly M n B).toLinearMap T`,
+
+that is, `T ((mapFullToLatentPoly M n B) p) = p` on compiled polynomials.
+
+But the honest concrete `restrictPoly` seam packages as
+
+`Function.LeftInverse (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+  (mapFullToLatentPoly M n B).toLinearMap`,
+
+which says
+
+`(MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj)
+    ((mapFullToLatentPoly M n B) p) = p`.
+
+So the mathematical content is right, but the *argument order in the old staged
+API is reversed*: it treats the latent→compiled bridge map as the second map in
+`LeftInverse`, whereas the concrete `restrictPoly` seam naturally makes that map
+the first one.
+
+This is therefore not a proof gap but a packaging mismatch in the old theorem
+surface. A future refactor should replace that endpoint with one stated directly
+in terms of the concrete `restrictPoly_mapFullToLatentPoly` /
+`restrictPoly_leftInverse_target` orientation, rather than trying to shoehorn
+`restrictPoly` into the legacy argument order.
+-/
 
 /-- Closure endpoint instantiated from the isolated left-inverse target. -/
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target
