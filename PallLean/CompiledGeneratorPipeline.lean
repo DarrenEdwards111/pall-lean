@@ -452,6 +452,27 @@ theorem mapFullToLatentPoly_restrictPoly_mapFullToLatentPoly
       = (mapFullToLatentPoly M n B) p := by
   rw [restrictPoly_mapFullToLatentPoly M n B p]
 
+/-
+Tried next to package the concrete route as a direct `Function.LeftInverse`
+statement. That also fails for a real domain reason.
+
+`Function.LeftInverse f g` means `g (f x) = x`, where `x` lives in the domain of
+`f`. Here:
+
+- `f := mapFullToLatentPoly M n B` has domain = compiled polynomials,
+- `g := MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj` has domain = latent
+  polynomials.
+
+So this *is* the right abstract shape, but only with `x` ranging over compiled
+polynomials. The attempted theorem statement accidentally let Lean infer `x` in
+latent space, reproducing the same orientation bug in another form.
+
+The proved theorem `restrictPoly_mapFullToLatentPoly` already is the concrete
+pointwise left-inverse fact; if we want a packaged `Function.LeftInverse`
+version, it must be stated with the compiled polynomial domain made explicit, or
+by guiding inference through a fully elaborated theorem surface.
+-/
+
 /-- Corrected missing bridge theorem statement for the intended concrete `T`:
 retraction identity on the relevant latent SPDP subspace (not globally). -/
 theorem bridgeMap_retract_on_latentSubspace_for_bridgeReconstructionMap
