@@ -147,6 +147,26 @@ theorem bridgeMap_leftInverse_target_of_comp_id
     Function.LeftInverse (mapFullToLatentPoly M n B).toLinearMap T :=
   bridgeMap_leftInverse_of_comp_id M n B T hComp
 
+/-- Next algebraic target (fully explicit): prove the bridge composition
+identity for the chosen reconstruction map `T`. -/
+axiom bridgeMap_comp_id_target
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
+    (mapFullToLatentPoly M n B).toLinearMap.comp T = LinearMap.id
+
+/-- Immediate closure from the composition-identity target to the staged
+left-inverse bridge target. -/
+theorem bridgeMap_leftInverse_target_of_comp_id_target
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
+    Function.LeftInverse (mapFullToLatentPoly M n B).toLinearMap T :=
+  bridgeMap_leftInverse_target_of_comp_id M n B T
+    (bridgeMap_comp_id_target M n B T)
+
 axiom mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
