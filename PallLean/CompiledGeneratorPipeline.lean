@@ -239,11 +239,22 @@ theorem bridgeReconstruction_comp_X
 /-- Expected global consequence on the bridge-image-generated latent algebra:
 this is the theorem family from which generator retraction should be proved by
 induction / `aeval` extensionality. -/
-axiom bridgeReconstructionMap_retracts_on_generated_algebra
+theorem bridgeReconstructionMap_retracts_on_generated_algebra
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
     ∀ p : MvPolynomial (Fin (latentNumVars M n)) ℚ,
-      (mapFullToLatentPoly M n B).toLinearMap ((bridgeReconstructionMap M n B) p) = p
+      (mapFullToLatentPoly M n B).toLinearMap ((bridgeReconstructionMap M n B) p) = p := by
+  intro p
+  rw [bridgeReconstructionMap_def]
+  let ψ : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₐ[ℚ]
+      MvPolynomial (Fin (latentNumVars M n)) ℚ :=
+    (mapFullToLatentPoly M n B).comp (MvPolynomial.aeval (bridgeReconstructionVarMap M n B))
+  have hψ : ψ = AlgHom.id ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ) := by
+    apply MvPolynomial.algHom_ext
+    intro i
+    simpa [ψ] using bridgeReconstruction_comp_X M n B i
+  change ψ p = p
+  simpa [ψ] using congrArg (fun f => f p) hψ
 
 /-- Corrected missing bridge theorem statement for the intended concrete `T`:
 retraction identity on the relevant latent SPDP subspace (not globally). -/
