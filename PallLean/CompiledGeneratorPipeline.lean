@@ -802,4 +802,25 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_later
   mlBlockedSpdpSubspace_fullCompiled_le_map_of_targets M n h_le B T hViolMatches
     (rename_branch_transport_target_via_bridgeMapU M n h_le B T hBack)
 
+/-- Later theorem-level bridge-map-U rename-branch closure. This records the
+same endpoint as the earlier `rename_branch_transport_target_via_bridgeMapU`, but
+through the later theorem-level rename-branch closure already available in scope.
+It does not replace the earlier declaration, so declaration order stays intact. -/
+theorem rename_branch_transport_target_via_bridgeMapU_later
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hBack : HasTransferBackOnLatentSubspace M n T
+      (mapFullToLatentPoly M n B).toLinearMap) :
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  map_rename_witness_tseitin_subspace_le_map_latent_subspace M n h_le T
+
 end CompiledGeneratorTransportFrontier
