@@ -351,26 +351,35 @@ latent-side retraction theorem may be packaged.
 -/
 
 /-
-Attempted next concrete theorem:
+Attempted concrete `restrictPoly` bridge theorem here and got the real type
+obstruction cleanly:
+
+`MultilinearSPDP.restrictPoly F f hf` has type
+`MvPolynomial (Fin m) F →ₐ[F] MvPolynomial (Fin n) F`
+for `f : Fin n → Fin m`.
+
+So if we instantiate `f := B.toLatent`, then `restrictPoly ℚ B.toLatent B.inj`
+has type
+
+`MvPolynomial (Fin (latentNumVars M n)) ℚ →ₐ[ℚ]
+    MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ`,
+
+which is a latent → compiled map.
+
+That means the naive AlgHom composite
 
 `(mapFullToLatentPoly M n B).comp
-    (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj)
-  = mapFullToLatentPoly M n B`
+    (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj)`
 
-This appears to be the right mathematical AlgHom identity, but the first direct
-proof attempt hit a deterministic typeclass/coercion timeout before the real
-proof state was visible. The likely issue is that Lean is struggling to infer
-that the composite should be viewed as a latent-endomorphism AlgHom, not that
-the theorem is false.
+is not even composable in the direction previously recorded here, because
+`AlgHom.comp g f` expects the codomain of `f` to match the domain of `g`, while
+`mapFullToLatentPoly M n B` itself is already compiled → latent.
 
-So the next proof attempt here should use explicit named maps and codomain
-annotations, for example by introducing a local
-
-`let ψ : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ →ₐ[ℚ]
-    MvPolynomial (Fin (latentNumVars M n)) ℚ := ...`
-
-or by proving pointwise equality first and only then wrapping it into an
-AlgHom equality.
+So the earlier note saying this was the "correctly typed" next AlgHom identity
+was still wrong. The genuine next step is to formulate the bridge idempotence
+statement in the actual latent → compiled → latent order, or equivalently as a
+pointwise theorem without forcing it first into the mistaken `AlgHom.comp`
+surface.
 -/
 
 /-- Corrected missing bridge theorem statement for the intended concrete `T`:
