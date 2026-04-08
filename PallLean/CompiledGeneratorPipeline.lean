@@ -845,7 +845,7 @@ violation generator should be the reconstruction-image of its renamed latent
 counterpart. If this theorem can be proved, the concrete semantic frontier for
 `bridgeReconstructionMap` should collapse with only bookkeeping around the
 pulled-forward derivative list and multiplier. -/
-axiom violation_generator_reconstruction_atomic
+theorem violation_generator_reconstruction_atomic
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
     ∀ (S : List (Fin (numVars M n (Nat.log 2 n))))
@@ -858,16 +858,69 @@ axiom violation_generator_reconstruction_atomic
         (bridgeReconstructionMap M n B)
           (mlProj ((MvPolynomial.rename B.toLatent m) *
             SPDP.iterDerivList (S.map B.toLatent)
-              (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))))
+              (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n)))) := by
+  intro S m hLen hdeg hvars hadm
+  have hf := B.inj
+  have h_iter :
+      SPDP.iterDerivList (S.map B.toLatent)
+        (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n)) =
+        MvPolynomial.rename B.toLatent
+          (SPDP.iterDerivList S (violationPolyOf ℚ M n)) := by
+    simpa using
+      (iterDerivList_rename B.toLatent hf S (violationPolyOf ℚ M n))
+  have h_mult :
+      (MvPolynomial.rename B.toLatent m) *
+        SPDP.iterDerivList (S.map B.toLatent)
+          (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n)) =
+      MvPolynomial.rename B.toLatent
+        (m * SPDP.iterDerivList S (violationPolyOf ℚ M n)) := by
+    rw [h_iter, ← map_mul (MvPolynomial.rename B.toLatent)]
+  have h_proj :
+      mlProj ((MvPolynomial.rename B.toLatent m) *
+        SPDP.iterDerivList (S.map B.toLatent)
+          (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))) =
+      MvPolynomial.rename B.toLatent
+        (mlProj (m * SPDP.iterDerivList S (violationPolyOf ℚ M n))) := by
+    rw [h_mult, mlProj_rename B.toLatent hf]
+  have h_retract :
+      (mapFullToLatentPoly M n B).toLinearMap
+        ((bridgeReconstructionMap M n B)
+          (mlProj ((MvPolynomial.rename B.toLatent m) *
+            SPDP.iterDerivList (S.map B.toLatent)
+              (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))))) =
+      mlProj ((MvPolynomial.rename B.toLatent m) *
+        SPDP.iterDerivList (S.map B.toLatent)
+          (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))) := by
+    rw [h_proj]
+    simpa [h_proj] using
+      bridgeReconstructionMap_retracts_on_generated_algebra M n B
+        (MvPolynomial.rename B.toLatent
+          (mlProj (m * SPDP.iterDerivList S (violationPolyOf ℚ M n))))
+  sorry
 
 /-- Concrete semantic violation-generator transport target for the reconstruction
 map. This is now the exact remaining bridge-side obligation: given a compiled
 violation SPDP generator, exhibit a latent renamed violation generator whose
 image under `bridgeReconstructionMap` is that compiled generator. -/
-axiom violation_generator_reconstruction_semantic_target
+theorem violation_generator_reconstruction_semantic_target
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
-    ViolationGeneratorSemanticTransport M n B (bridgeReconstructionMap M n B)
+    ViolationGeneratorSemanticTransport M n B (bridgeReconstructionMap M n B) := by
+  intro S m hLen hdeg hvars hadm
+  refine ⟨S.map B.toLatent, MvPolynomial.rename B.toLatent m, ?_, ?_, ?_, ?_, ?_⟩
+  · simpa using hLen
+  · exact le_trans (MvPolynomial.totalDegree_rename_le B.toLatent m) hdeg
+  ·
+    show (MvPolynomial.rename B.toLatent m).vars ⊆ (S.map B.toLatent).toFinset
+    intro i hi
+    have hsub := MvPolynomial.vars_rename B.toLatent m
+    rcases Finset.mem_image.mp (hsub hi) with ⟨j, hj, rfl⟩
+    exact Finset.mem_coe.mpr <| List.mem_toFinset.mpr <| List.mem_map.mpr ⟨j, List.mem_toFinset.mp (hvars hj), rfl⟩
+  ·
+    sorry
+  ·
+    simpa [map_violationPolyOf] using
+      (violation_generator_reconstruction_atomic M n B S m hLen hdeg hvars hadm)
 
 /-- Concrete bridge-specialized packaging of the remaining violation frontier.
 Once the semantic generator theorem for `bridgeReconstructionMap` is proved, the
