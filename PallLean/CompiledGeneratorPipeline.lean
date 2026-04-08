@@ -13,10 +13,19 @@ open CompiledAssemblyRoadmap
 open LatentFullBridge LatentCompiler MultilinearSPDP NPWitness Compiler TuringMachine
 open MvPolynomial SPDP
 
-/-- Critical remaining obligation (isolated): raw rename/map transport inequality
-for the violation branch. Once this is proved, `hViolMatches` rewrites the target
-to `latentCompiledPoly` via `mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches`.
--/
+/-- Critical remaining generic obligation for the violation branch.
+
+Note: the concrete bridge-specialized route has been proved later in this file
+for `T = bridgeReconstructionMap M n B`, via
+`violation_generator_reconstruction_atomic` and its semantic/frontier lift.
+What remains staged here is strictly stronger: a raw rename/map transport
+inequality for an arbitrary linear map `T` into the full-variable polynomial
+space.
+
+So this axiom is now best read as the generic packaging target still missing
+beyond the proved bridge-specialized theorem. Once it is proved,
+`hViolMatches` rewrites the target to `latentCompiledPoly` via
+`mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches`. -/
 axiom violation_branch_rename_transport_target
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n)
