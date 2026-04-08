@@ -101,6 +101,19 @@ theorem hasTransferBackOnLatentSubspace_of_leftInverse
   intro r hr
   exact hLeftInv r
 
+/-- Bridge-map specialization: if `T` is a global right-inverse of
+`(mapFullToLatentPoly M n B).toLinearMap`, then the transfer-back condition used
+by the rename-branch pipeline holds. -/
+theorem hasTransferBackOnLatentSubspace_bridgeMap_of_leftInverse
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hLeftInv : Function.LeftInverse (mapFullToLatentPoly M n B).toLinearMap T) :
+    HasTransferBackOnLatentSubspace M n T (mapFullToLatentPoly M n B).toLinearMap :=
+  hasTransferBackOnLatentSubspace_of_leftInverse M n T
+    (mapFullToLatentPoly M n B).toLinearMap hLeftInv
+
 /-- Transfer-back lemma: once branch transport is proved in bridge direction
 (`U`), and `T` is a right-inverse on the latent branch subspace, recover the
 original `map T` branch target. -/
