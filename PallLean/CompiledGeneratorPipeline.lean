@@ -383,9 +383,9 @@ surface.
 -/
 
 /-- Correctly oriented concrete `restrictPoly` bridge identity: restricting a
-renamed latent polynomial back along the bridge recovers the original latent
-polynomial. This is the honest latent → compiled → latent theorem seam for the
-future `bridgeReconstructionMap` refactor. -/
+renamed compiled polynomial back along the bridge recovers the original
+compiled polynomial. This is the honest latent → compiled → latent theorem seam
+for the future `bridgeReconstructionMap` refactor. -/
 theorem restrictPoly_mapFullToLatentPoly
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n)
@@ -395,6 +395,20 @@ theorem restrictPoly_mapFullToLatentPoly
       = p := by
   simpa [mapFullToLatentPoly] using
     (MultilinearSPDP.restrictPoly_rename ℚ B.toLatent B.inj p)
+
+/-- Later concrete replacement seam for the legacy reconstruction theorem:
+using `restrictPoly` directly, the latent → compiled → latent composite is the
+identity on all compiled-space inputs. This mirrors the role of
+`bridgeReconstructionMap_retracts_on_generated_algebra`, but at the correctly
+typed compiled-polynomial interface exposed by `restrictPoly_rename`. -/
+theorem restrictPoly_retracts_on_mapFullToLatentPoly_image
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n) :
+    ∀ p : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ,
+      (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj)
+        ((mapFullToLatentPoly M n B) p) = p := by
+  intro p
+  exact restrictPoly_mapFullToLatentPoly M n B p
 
 /-- Corrected missing bridge theorem statement for the intended concrete `T`:
 retraction identity on the relevant latent SPDP subspace (not globally). -/
