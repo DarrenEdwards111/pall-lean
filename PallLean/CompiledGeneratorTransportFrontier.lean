@@ -61,13 +61,35 @@ theorem generatorTransportFrontier_iff_roadmap_target
             T (mlProj (m' * SPDP.iterDerivList S' (latentCompiledPoly M n)))) := by
   rfl
 
-/-- Violation-branch frontier in the direction that actually matches the bridge
-map `B.toLatent : compiled → latent`. This is the honest missing statement
-behind the staged violation subspace target in `CompiledGeneratorPipeline`.
+/-- Generator-level frontier for the violation branch, in the direction that
+actually matches the bridge map `B.toLatent : compiled → latent`.
 
-Unlike the current packaged axiom there, this formulation keeps the bridge map
-visible and places the latent polynomial on the latent side from the start,
-which is the shape suggested by the failed local reproving attempt. -/
+This is the natural analogue of `generatorTransportFrontier`, but specialized to
+`violationPolyOf` and the renamed latent-side target polynomial that already
+appears in the staged pipeline target. -/
+def violationGeneratorTransportFrontier
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) : Prop :=
+  ∀ (S : List (Fin (numVars M n (Nat.log 2 n))))
+    (m : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ),
+    S.length = Nat.log 2 n →
+    m.totalDegree ≤ Nat.log 2 n →
+    m.vars ⊆ S.toFinset →
+    SPDP.isBlockAdmissible (compiledPartition M n) S →
+    ∃ (S' : List (Fin (latentNumVars M n)))
+      (m' : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+      S'.length = Nat.log 2 n ∧
+      m'.totalDegree ≤ Nat.log 2 n ∧
+      m'.vars ⊆ S'.toFinset ∧
+      SPDP.isBlockAdmissible (latentPartition M n) S' ∧
+      mlProj (m * SPDP.iterDerivList S (violationPolyOf ℚ M n)) =
+        T (mlProj (m' * SPDP.iterDerivList S' (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))))
+
+/-- Subspace-level violation frontier in the same direction. This is the honest
+missing statement behind the staged violation target in
+`CompiledGeneratorPipeline`. -/
 def violationBranchTransportFrontier
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n)
@@ -78,6 +100,31 @@ def violationBranchTransportFrontier
     ≤ Submodule.map T
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n)))
+
+/-- The generator-level violation frontier is exactly the elementwise generator
+transport statement one would use to derive the subspace-level frontier by the
+same span-lift pattern as elsewhere in the file family. -/
+theorem violationGeneratorTransportFrontier_iff_generator_target
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
+    violationGeneratorTransportFrontier M n B T ↔
+      (∀ (S : List (Fin (numVars M n (Nat.log 2 n))))
+        (m : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ),
+        S.length = Nat.log 2 n →
+        m.totalDegree ≤ Nat.log 2 n →
+        m.vars ⊆ S.toFinset →
+        SPDP.isBlockAdmissible (compiledPartition M n) S →
+        ∃ (S' : List (Fin (latentNumVars M n)))
+          (m' : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+          S'.length = Nat.log 2 n ∧
+          m'.totalDegree ≤ Nat.log 2 n ∧
+          m'.vars ⊆ S'.toFinset ∧
+          SPDP.isBlockAdmissible (latentPartition M n) S' ∧
+          mlProj (m * SPDP.iterDerivList S (violationPolyOf ℚ M n)) =
+            T (mlProj (m' * SPDP.iterDerivList S' (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))))) := by
+  rfl
 
 /-- The staged violation target in `CompiledGeneratorPipeline` is exactly this
 frontier proposition. Keeping it named here makes the remaining obstruction
