@@ -206,6 +206,12 @@ proof layer below is written in terms of an `aeval`-style reconstruction map.
 If the file is refactored around `restrictPoly`, these section axioms should
 become removable.
 
+A direct in-place replacement was attempted and backed out: the main blockers
+are (1) declaration order, since some early generic bridge wrappers are stated
+before the later concrete reconstruction layer, and (2) surviving wrappers that
+still quantify over arbitrary `T`, whereas the clean `restrictPoly` route first
+collapses only the concrete `bridgeReconstructionMap` specialization.
+
 Additional bridge-section data needed to make the current `aeval` presentation
 constructive: choose a full-variable preimage for each relevant latent variable.
 
