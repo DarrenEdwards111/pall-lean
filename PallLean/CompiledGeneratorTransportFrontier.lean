@@ -133,6 +133,7 @@ def ViolationGeneratorSemanticTransport
     (B : FullToLatentBridge M n)
     (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
       MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) : Prop :=
+  bridgePartitionCompatible M n B ∧
   ∀ (S : List (Fin (numVars M n (Nat.log 2 n))))
     (m : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ),
     S.length = Nat.log 2 n →
@@ -164,7 +165,7 @@ theorem violationGeneratorTransportFrontier_of_semantic
       MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
     (hSem : ViolationGeneratorSemanticTransport M n B T) :
     violationGeneratorTransportFrontier M n B T :=
-  hSem
+  hSem.2
 
 /-- The staged violation target in `CompiledGeneratorPipeline` is exactly this
 frontier proposition. Keeping it named here makes the remaining obstruction

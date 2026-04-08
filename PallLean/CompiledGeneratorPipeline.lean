@@ -904,8 +904,10 @@ violation SPDP generator, exhibit a latent renamed violation generator whose
 image under `bridgeReconstructionMap` is that compiled generator. -/
 theorem violation_generator_reconstruction_semantic_target
     (M : DTM) (n : ℕ)
-    (B : FullToLatentBridge M n) :
+    (B : FullToLatentBridge M n)
+    (hCompat : bridgePartitionCompatible M n B) :
     ViolationGeneratorSemanticTransport M n B (bridgeReconstructionMap M n B) := by
+  refine ⟨hCompat, ?_⟩
   intro S m hLen hdeg hvars hadm
   refine ⟨S.map B.toLatent, MvPolynomial.rename B.toLatent m, ?_, ?_, ?_, ?_, ?_⟩
   · simpa using hLen
@@ -928,17 +930,19 @@ subspace-level violation transport follows immediately by the established
 frontier chain. -/
 theorem violationBranchTransportFrontier_for_bridgeReconstructionMap
     (M : DTM) (n : ℕ)
-    (B : FullToLatentBridge M n) :
+    (B : FullToLatentBridge M n)
+    (hCompat : bridgePartitionCompatible M n B) :
     violationBranchTransportFrontier M n B (bridgeReconstructionMap M n B) := by
   apply violationBranchTransportFrontier_of_generatorFrontier
   apply violationGeneratorTransportFrontier_of_semantic
-  exact violation_generator_reconstruction_semantic_target M n B
+  exact violation_generator_reconstruction_semantic_target M n B hCompat
 
 /-- Concrete bridge-specialized packaged violation transport into
 `latentCompiledPoly`, using the existing rewrite target `hViolMatches`. -/
 theorem mlBlockedSpdpSubspace_violation_le_map_for_bridgeReconstructionMap
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n)
+    (hCompat : bridgePartitionCompatible M n B)
     (hViolMatches :
       MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
     mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
@@ -947,6 +951,6 @@ theorem mlBlockedSpdpSubspace_violation_le_map_for_bridgeReconstructionMap
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n)) :=
   mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches M n B (bridgeReconstructionMap M n B)
-    hViolMatches (violationBranchTransportFrontier_for_bridgeReconstructionMap M n B)
+    hViolMatches (violationBranchTransportFrontier_for_bridgeReconstructionMap M n B hCompat)
 
 end CompiledGeneratorTransportFrontier
