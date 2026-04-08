@@ -671,10 +671,13 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap
 
 /-- Preferred concrete full-compiled endpoint for the `restrictPoly` route.
 
-Unlike the legacy `bridgeReconstructionMap` wrapper, this theorem is stated at
-exactly the orientation furnished by the proved concrete seam
-`restrictPoly_leftInverse_target`. It should be treated as the default concrete
-full-compiled endpoint for downstream bridge-specialized rewrites. -/
+For declaration-order reasons, this early theorem still uses the proved
+`restrictPoly`-oriented staged interface. A later theorem in this file,
+`mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly_direct`, upgrades
+this to the fully concrete branch-by-branch route using the concrete violation
+`restrictPoly` theorem as well. Concrete downstream use should still target the
+present theorem name; later in the file it is shown to coincide with the more
+explicit direct branch proof. -/
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
@@ -1334,5 +1337,48 @@ theorem mlBlockedSpdpSubspace_violation_le_map_for_bridgeReconstructionMap
           (latentCompiledPoly M n)) :=
   mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches M n B (bridgeReconstructionMap M n B)
     hViolMatches (violationBranchTransportFrontier_for_bridgeReconstructionMap M n B hAssignToLatent)
+
+/-- Late direct concrete full-compiled endpoint for the `restrictPoly` route,
+using both proved concrete branch theorems: the rename-branch theorem and the
+concrete violation `restrictPoly` endpoint.
+
+This theorem is the explicit branch-by-branch form of the preferred concrete
+route. It no longer depends on the older staged generic violation target. -/
+theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly_direct
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (hAssignToLatent : ∀ i : Fin (numVars M n (Nat.log 2 n)),
+      (compiledPartition M n).assign i = (latentPartition M n).assign (B.toLatent i))
+    (hViolMatches :
+      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le)
+    ≤ Submodule.map (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) := by
+  refine mlBlockedSpdpSubspace_fullCompiled_le_map_of_branch_transports M n h_le
+    (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+    ?_ ?_
+  · exact map_rename_witness_tseitin_subspace_le_map_latent_subspace M n h_le
+      (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+  · exact mlBlockedSpdpSubspace_violation_le_map_for_restrictPoly M n B
+      hAssignToLatent hViolMatches
+
+/-- The earlier preferred concrete `restrictPoly` endpoint agrees with the late
+fully concrete branch-by-branch route once the stronger assignment-style bridge
+hypothesis needed by the violation theorem is available. -/
+theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly_eq_direct
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (hAssignToLatent : ∀ i : Fin (numVars M n (Nat.log 2 n)),
+      (compiledPartition M n).assign i = (latentPartition M n).assign (B.toLatent i))
+    (hViolMatches :
+      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
+    mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly M n h_le B hViolMatches =
+      mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly_direct M n h_le B
+        hAssignToLatent hViolMatches := by
+  rfl
 
 end CompiledGeneratorTransportFrontier
