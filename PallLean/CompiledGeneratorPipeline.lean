@@ -482,16 +482,6 @@ axiom rename_branch_generator_transport_semantic
       MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
     RenameBranchGlobalDomStyle M n h_le T
 
-/-- Convert the global-domination style statement into the semantic transport
-package consumed by the branch pipeline. -/
-theorem rename_branch_semantic_of_globalDomStyle
-    (M : DTM) (n : ℕ)
-    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
-      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
-    (hDom : RenameBranchGlobalDomStyle M n h_le T) :
-    RenameBranchSemanticTransport M n h_le T := hDom
-
 theorem rename_branch_generator_transport_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
@@ -782,23 +772,6 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_later
           (latentCompiledPoly M n)) :=
   mlBlockedSpdpSubspace_fullCompiled_le_map_of_targets M n h_le B T hViolMatches
     (rename_branch_transport_target_via_bridgeMapU M n h_le B T hBack)
-
-/-- Later theorem-level alias for the packaged violation-branch target. This keeps
-later downstream wiring symmetric with the rename-branch and bridge-map-U later
-closures, even though the raw violation transport obligation is still staged. -/
-theorem mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_later
-    (M : DTM) (n : ℕ)
-    (B : FullToLatentBridge M n)
-    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
-      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
-    (hViolMatches :
-      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
-    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      (violationPolyOf ℚ M n)
-    ≤ Submodule.map T
-        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-          (latentCompiledPoly M n)) :=
-  mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target M n B T hViolMatches
 
 /-- Atomic bridge-side target for the remaining violation branch: a compiled
 violation generator should be the reconstruction-image of its renamed latent
