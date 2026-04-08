@@ -315,6 +315,23 @@ theorem bridgeReconstructionMap_retracts_on_generated_algebra
   change ψ p = p
   simpa [ψ] using congrArg (fun f => f p) hψ
 
+/-
+Refactor checkpoint: a direct late theorem here using
+`MultilinearSPDP.restrictPoly_rename ℚ B.toLatent B.inj` does NOT typecheck in
+this slot. The issue is not declaration order but variable-space direction:
+
+- `mapFullToLatentPoly` is the compiled → latent rename along `B.toLatent`
+- `restrictPoly_rename` applies to `restrictPoly f (rename f p)` where `p`
+  lives on the source variable space of `f`
+- here the ambient theorem input `p` already lives on latent variables, so the
+  naive rewrite would incorrectly try to apply `rename B.toLatent` to a latent
+  polynomial, but `B.toLatent` has type compiled → latent
+
+So the future concrete `restrictPoly` refactor still needs an intermediate
+ theorem packaged in the correct variable spaces, not just a one-line reuse of
+`restrictPoly_rename` at this exact theorem slot.
+-/
+
 /-- Corrected missing bridge theorem statement for the intended concrete `T`:
 retraction identity on the relevant latent SPDP subspace (not globally). -/
 theorem bridgeMap_retract_on_latentSubspace_for_bridgeReconstructionMap
