@@ -1322,7 +1322,11 @@ theorem mlBlockedSpdpSubspace_violation_le_map_for_restrictPoly
     hViolMatches (violationBranchTransportFrontier_for_restrictPoly M n B hAssignToLatent)
 
 /-- Concrete bridge-specialized packaged violation transport into
-`latentCompiledPoly`, using the existing rewrite target `hViolMatches`. -/
+`latentCompiledPoly`, using the existing rewrite target `hViolMatches`.
+
+This remains as a compatibility surface for the legacy bridge reconstruction
+presentation, but the actual concrete route is now pinned down later by
+`mlBlockedSpdpSubspace_violation_le_map_for_bridgeReconstructionMap_eq_restrictPoly`. -/
 theorem mlBlockedSpdpSubspace_violation_le_map_for_bridgeReconstructionMap
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n)
