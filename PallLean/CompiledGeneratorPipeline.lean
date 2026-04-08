@@ -356,7 +356,7 @@ axiom mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse
 
 /-- Collapsed endpoint for the concrete reconstruction map, using the corrected
 restricted transfer-back route. -/
-axiom mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap
+theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (B : FullToLatentBridge M n)
@@ -366,7 +366,11 @@ axiom mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap
       (fullCompiledPoly ℚ M n h_le)
     ≤ Submodule.map (bridgeReconstructionMap M n B)
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-          (latentCompiledPoly M n))
+          (latentCompiledPoly M n)) :=
+  mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse M n h_le B
+    (bridgeReconstructionMap M n B)
+    (bridgeMap_leftInverse_target_of_comp_id_target M n B (bridgeReconstructionMap M n B))
+    hViolMatches
 
 /-- Closure endpoint instantiated from the isolated left-inverse target. -/
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target
