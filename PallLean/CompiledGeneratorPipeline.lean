@@ -173,6 +173,31 @@ axiom bridgeMap_retract_on_latentSubspace_for_bridgeReconstructionMap
     HasTransferBackOnLatentSubspace M n (bridgeReconstructionMap M n B)
       (mapFullToLatentPoly M n B).toLinearMap
 
+/-- Generator-level retraction target for the concrete reconstruction map:
+prove `U(T(g)) = g` first on latent SPDP generators, then lift by span. -/
+axiom bridgeReconstructionMap_retracts_latent_generator_target
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n) :
+    ∀ (S : List (Fin (latentNumVars M n)))
+      (m : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+      S.length = Nat.log 2 n →
+      m.totalDegree ≤ Nat.log 2 n →
+      m.vars ⊆ S.toFinset →
+      SPDP.isBlockAdmissible (latentPartition M n) S →
+      (mapFullToLatentPoly M n B).toLinearMap
+        ((bridgeReconstructionMap M n B)
+          (mlProj (m * SPDP.iterDerivList S (latentCompiledPoly M n))))
+      = mlProj (m * SPDP.iterDerivList S (latentCompiledPoly M n))
+
+/-- Planned lift template: once generator-level retraction is proved for the
+concrete reconstruction map, the restricted transfer-back law follows on the
+entire latent SPDP subspace by `Submodule.span_le`. -/
+axiom bridgeMap_retract_on_latentSubspace_for_bridgeReconstructionMap_of_generators
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n) :
+    HasTransferBackOnLatentSubspace M n (bridgeReconstructionMap M n B)
+      (mapFullToLatentPoly M n B).toLinearMap
+
 /-- Immediate closure from the composition-identity target to the staged
 left-inverse bridge target. -/
 theorem bridgeMap_leftInverse_target_of_comp_id_target
