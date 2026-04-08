@@ -682,7 +682,12 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly
     (restrictPoly_leftInverse_target M n B)
     hViolMatches
 
-/-- Closure endpoint instantiated from the isolated left-inverse target. -/
+/-- Legacy closure endpoint instantiated through the older bridge-map-U
+left-inverse target.
+
+This remains only as compatibility glue for theorem surfaces still phrased in
+that older argument order; new concrete retargeting should prefer the
+`restrictPoly`-oriented endpoint above. -/
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
