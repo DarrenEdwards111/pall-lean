@@ -382,6 +382,20 @@ pointwise theorem without forcing it first into the mistaken `AlgHom.comp`
 surface.
 -/
 
+/-- Correctly oriented concrete `restrictPoly` bridge identity: restricting a
+renamed latent polynomial back along the bridge recovers the original latent
+polynomial. This is the honest latent → compiled → latent theorem seam for the
+future `bridgeReconstructionMap` refactor. -/
+theorem restrictPoly_mapFullToLatentPoly
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (p : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
+    (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj)
+      ((mapFullToLatentPoly M n B) p)
+      = p := by
+  simpa [mapFullToLatentPoly] using
+    (MultilinearSPDP.restrictPoly_rename ℚ B.toLatent B.inj p)
+
 /-- Corrected missing bridge theorem statement for the intended concrete `T`:
 retraction identity on the relevant latent SPDP subspace (not globally). -/
 theorem bridgeMap_retract_on_latentSubspace_for_bridgeReconstructionMap
