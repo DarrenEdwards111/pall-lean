@@ -163,11 +163,29 @@ pipeline once constructed/proved from LatentFullBridge-side machinery.
 Design skeleton: extend a latent polynomial back to full coordinates by choosing
 a preimage on the bridge-image variables and sending off-image latent variables
 to `0` at the full level. This remains staged until the concrete
-inverse-on-image variable map is defined constructively in `LatentFullBridge`. -/
-axiom bridgeReconstructionVarMap
+inverse-on-image variable map is defined constructively in `LatentFullBridge`.
+
+Additional bridge-section data needed to make the reconstruction map
+constructive: choose a full-variable preimage for each relevant latent variable. -/
+axiom bridgeSectionVar
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
-    Fin (latentNumVars M n) → MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ
+    Fin (latentNumVars M n) → Fin (numVars M n (Nat.log 2 n))
+
+/-- Section law expected of the chosen bridge-section variables. -/
+axiom bridgeSectionVar_spec
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n) :
+    ∀ i : Fin (latentNumVars M n),
+      B.toLatent (bridgeSectionVar M n B i) = i
+
+/-- Concrete variable-level reconstruction assignment induced by the chosen
+bridge section. -/
+noncomputable def bridgeReconstructionVarMap
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n) :
+    Fin (latentNumVars M n) → MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ :=
+  fun i => MvPolynomial.X (bridgeSectionVar M n B i)
 
 axiom bridgeReconstructionMap
     (M : DTM) (n : ℕ)
