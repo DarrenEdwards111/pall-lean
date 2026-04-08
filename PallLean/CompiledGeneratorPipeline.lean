@@ -107,4 +107,28 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_of_branch_transports
     sup_le hRenameBranch hViolationBranch
   exact le_trans hSplit hSupToMap
 
+/-- Violation-branch transport packaged in the bridge-facing form:
+if a rename-transport lemma is available for the violation polynomial under the
+chosen bridge map, then `hViolMatches` rewrites the target to
+`latentCompiledPoly`. -/
+theorem mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hViolMatches :
+      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n)
+    (hRenameTransport :
+      mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (violationPolyOf ℚ M n)
+      ≤ Submodule.map T
+          (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+            (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n)))) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (violationPolyOf ℚ M n)
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) := by
+  simpa [hViolMatches] using hRenameTransport
+
 end CompiledGeneratorTransportFrontier
