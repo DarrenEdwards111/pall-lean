@@ -224,6 +224,17 @@ theorem bridgeReconstructionVarMap_retracts_on_image
   rw [mapFullToLatentPoly_X]
   rw [bridgeSectionVar_spec]
 
+/-- On variables, the composite latent endomorphism obtained by reconstructing
+with the chosen bridge section and mapping back down is the identity. -/
+theorem bridgeReconstruction_comp_X
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (i : Fin (latentNumVars M n)) :
+    ((mapFullToLatentPoly M n B).comp
+      (MvPolynomial.aeval (bridgeReconstructionVarMap M n B)))
+        (MvPolynomial.X i) = MvPolynomial.X i := by
+  simp only [MvPolynomial.aeval_X, AlgHom.comp_apply]
+  simpa using bridgeReconstructionVarMap_retracts_on_image M n B i
 
 /-- Expected global consequence on the bridge-image-generated latent algebra:
 this is the theorem family from which generator retraction should be proved by
