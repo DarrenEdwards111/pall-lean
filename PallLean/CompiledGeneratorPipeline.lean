@@ -201,27 +201,26 @@ axiom bridgeMap_comp_id_target
       MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
     (mapFullToLatentPoly M n B).toLinearMap.comp T = LinearMap.id
 
-/-- Intended concrete reconstruction map for the bridge route.
-This is the `T` that should ultimately replace the abstract parameter in the
-pipeline once constructed/proved from LatentFullBridge-side machinery.
+/-- Legacy concrete reconstruction map for the section-variable bridge route.
+This is the older `T`-surface used by the `aeval`-style reconstruction layer
+below.
 
-Current best local design: use `MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj`.
-That map already sends off-image latent variables to `0` and is a left inverse
-to `MvPolynomial.rename B.toLatent` on renamed full-source polynomials.
-So the main remaining issue is not defining some map at all, but packaging the
-specific generator/image facts needed by the later bridge-specialized transport
-proofs in this file.
+Current preferred concrete design: use
+`MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj`.
+That route is already live later in this file at the full-compiled level via
+results such as `restrictPoly_leftInverse_target` and
+`mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly`.
+So the main remaining issue is not defining a concrete reconstruction map, but
+cleaning up the residual theorem surfaces that still talk in terms of the older
+`bridgeReconstructionMap` presentation.
 
-The older section-variable presentation is retained here because the current
-proof layer below is written in terms of an `aeval`-style reconstruction map.
-If the file is refactored around `restrictPoly`, these section axioms should
-become removable.
-
-A direct in-place replacement was attempted and backed out: the main blockers
-are (1) declaration order, since some early generic bridge wrappers are stated
-before the later concrete reconstruction layer, and (2) surviving wrappers that
-still quantify over arbitrary `T`, whereas the clean `restrictPoly` route first
-collapses only the concrete `bridgeReconstructionMap` specialization.
+This section-variable interface is retained only because some earlier wrappers
+and bridge-specialized proofs below are still written against an
+`aeval`-style map. A direct in-place replacement was attempted and backed out:
+the real blockers are (1) declaration order, since some early generic bridge
+wrappers are stated before the later concrete reconstruction layer, and
+(2) surviving wrappers that still quantify over arbitrary `T`, whereas the
+clean `restrictPoly` route first collapses the concrete specialization.
 
 Additional bridge-section data needed to make the current `aeval` presentation
 constructive: choose a full-variable preimage for each relevant latent variable.
