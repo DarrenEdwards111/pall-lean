@@ -87,6 +87,20 @@ def HasTransferBackOnLatentSubspace
         (latentCompiledPoly M n) →
     U (T r) = r
 
+/-- Sufficient condition for transfer-back on the latent branch subspace:
+if `U ∘ T = id` globally on latent polynomials, then it holds in particular on
+`mlBlockedSpdpSubspace ... (latentCompiledPoly)`. -/
+theorem hasTransferBackOnLatentSubspace_of_leftInverse
+    (M : DTM) (n : ℕ)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (U : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLeftInv : Function.LeftInverse U T) :
+    HasTransferBackOnLatentSubspace M n T U := by
+  intro r hr
+  exact hLeftInv r
+
 /-- Transfer-back lemma: once branch transport is proved in bridge direction
 (`U`), and `T` is a right-inverse on the latent branch subspace, recover the
 original `map T` branch target. -/
