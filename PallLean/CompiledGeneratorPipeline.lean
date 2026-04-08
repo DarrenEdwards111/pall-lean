@@ -1347,11 +1347,23 @@ A naive `rfl` proof fails even after `bridgeReconstructionMap_def`; the two maps
 are not definitionally equal and the reduction needs real coefficient/algebraic
 work. Keeping this target explicit avoids pretending the legacy wrapper has
 already collapsed. -/
-axiom bridgeReconstructionMap_eq_restrictPoly_target
+theorem bridgeReconstructionMap_eq_restrictPoly_target
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
     bridgeReconstructionMap M n B =
-      (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+      (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap := by
+  rw [bridgeReconstructionMap_def, MultilinearSPDP.restrictPoly]
+  congr
+  funext j
+  by_cases h : ∃ i, B.toLatent i = j
+  · have hsec : ∃ i, B.toLatent i = j := ⟨bridgeSectionVar M n B j, bridgeSectionVar_spec M n B j⟩
+    simp only [dif_pos h]
+    change MvPolynomial.X (bridgeSectionVar M n B j) = MvPolynomial.X h.choose
+    congr
+    exact B.inj ((bridgeSectionVar_spec M n B j).trans h.choose_spec.symm)
+  · simp only [dif_neg h]
+    exfalso
+    exact h ⟨bridgeSectionVar M n B j, bridgeSectionVar_spec M n B j⟩
 
 /-- Late direct concrete full-compiled endpoint for the `restrictPoly` route,
 using both proved concrete branch theorems: the rename-branch theorem and the
@@ -1394,6 +1406,31 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly_eq_direct
     mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly M n h_le B hViolMatches =
       mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly_direct M n h_le B
         hAssignToLatent hViolMatches := by
+  rfl
+
+theorem mlBlockedSpdpSubspace_violation_le_map_for_bridgeReconstructionMap_eq_restrictPoly
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (hAssignToLatent : ∀ i : Fin (numVars M n (Nat.log 2 n)),
+      (compiledPartition M n).assign i = (latentPartition M n).assign (B.toLatent i))
+    (hViolMatches :
+      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
+    mlBlockedSpdpSubspace_violation_le_map_for_bridgeReconstructionMap M n B hAssignToLatent hViolMatches =
+      by
+        rw [bridgeReconstructionMap_eq_restrictPoly_target M n B]
+        exact mlBlockedSpdpSubspace_violation_le_map_for_restrictPoly M n B hAssignToLatent hViolMatches := by
+  rfl
+
+theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap_eq_restrictPoly
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (hViolMatches :
+      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
+    mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap M n h_le B hViolMatches =
+      by
+        rw [bridgeReconstructionMap_eq_restrictPoly_target M n B]
+        exact mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly M n h_le B hViolMatches := by
   rfl
 
 end CompiledGeneratorTransportFrontier
