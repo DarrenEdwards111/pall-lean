@@ -230,16 +230,42 @@ axiom compiled_subspace_le_latent_subspace_logscale_target
       (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
         (latentCompiledPoly M n))
 
+/-- Derived rank-form reverse transfer from the subspace-form target.
+This reduces the core blocker to the single subspace inclusion theorem. -/
+theorem compiled_rank_le_latent_rank_logscale_of_subspace_target
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hSub : (mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le))
+      ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n))) :
+    mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le)
+    ≤ mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n) := by
+  unfold mlBlockedSpdpRank
+  exact le_trans
+    (Submodule.finrank_mono hSub)
+    (Submodule.finrank_map_le _ _)
+
 /-- Exact missing reverse-transfer lemma target (rank form): compiled rank is
 bounded by latent rank at logscale. -/
-axiom compiled_rank_le_latent_rank_logscale_target
+theorem compiled_rank_le_latent_rank_logscale_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
     mlBlockedSpdpRank (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (fullCompiledPoly ℚ M n h_le)
     ≤ mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-        (latentCompiledPoly M n)
-
+        (latentCompiledPoly M n) :=
+  compiled_rank_le_latent_rank_logscale_of_subspace_target M n h_le
+    (0 : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (compiled_subspace_le_latent_subspace_logscale_target M n h_le
+      (0 : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+        MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ))
 /-- Transfer chain target T2: latent rank160 transfers to compiled fine-bound
 shape, via the reverse-transfer lemma + arithmetic aggregation inequality. -/
 theorem compiled_fine_bound_from_latent_rank160_target
