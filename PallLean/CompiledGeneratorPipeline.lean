@@ -594,6 +594,31 @@ axiom mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n))
 
+/-- Correctly oriented sibling of the legacy staged endpoint above. This is the
+natural theorem surface for the concrete `restrictPoly` seam, whose packaged
+fact is
+
+`Function.LeftInverse (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+  (mapFullToLatentPoly M n B).toLinearMap`.
+
+At present this is only recorded as the right future staging target; the older
+axiom remains because existing generic bridge-map-U packaging was written in the
+opposite argument order. -/
+axiom mlBlockedSpdpSubspace_fullCompiled_le_map_of_restrictPoly_leftInverse
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hLeftInv : Function.LeftInverse T (mapFullToLatentPoly M n B).toLinearMap)
+    (hViolMatches :
+      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le)
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n))
+
 /-- Collapsed endpoint for the concrete reconstruction map, using the corrected
 restricted transfer-back route. -/
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap
@@ -612,40 +637,25 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap
     (bridgeMap_leftInverse_target_of_comp_id_target M n B (bridgeReconstructionMap M n B))
     hViolMatches
 
-/-
-Tried to retarget the concrete bridge-specialized full-compiled endpoint
-through `restrictPoly_leftInverse_target`. That fails for a real theorem-surface
-reason.
-
-The surviving staged endpoint
-`mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse`
-expects a hypothesis of shape
-
-`Function.LeftInverse (mapFullToLatentPoly M n B).toLinearMap T`,
-
-that is, `T ((mapFullToLatentPoly M n B) p) = p` on compiled polynomials.
-
-But the honest concrete `restrictPoly` seam packages as
-
-`Function.LeftInverse (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
-  (mapFullToLatentPoly M n B).toLinearMap`,
-
-which says
-
-`(MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj)
-    ((mapFullToLatentPoly M n B) p) = p`.
-
-So the mathematical content is right, but the *argument order in the old staged
-API is reversed*: it treats the latent→compiled bridge map as the second map in
-`LeftInverse`, whereas the concrete `restrictPoly` seam naturally makes that map
-the first one.
-
-This is therefore not a proof gap but a packaging mismatch in the old theorem
-surface. A future refactor should replace that endpoint with one stated directly
-in terms of the concrete `restrictPoly_mapFullToLatentPoly` /
-`restrictPoly_leftInverse_target` orientation, rather than trying to shoehorn
-`restrictPoly` into the legacy argument order.
--/
+/-- Concrete bridge-specialized full-compiled endpoint at the correct
+`restrictPoly` orientation. This does not remove the older legacy-ordered stage,
+but it gives the concrete route an honest theorem surface matching the proved
+`restrictPoly_leftInverse_target`. -/
+theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (hViolMatches :
+      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le)
+    ≤ Submodule.map (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  mlBlockedSpdpSubspace_fullCompiled_le_map_of_restrictPoly_leftInverse M n h_le B
+    (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+    (restrictPoly_leftInverse_target M n B)
+    hViolMatches
 
 /-- Closure endpoint instantiated from the isolated left-inverse target. -/
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target
