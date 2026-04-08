@@ -613,15 +613,15 @@ axiom mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse
           (latentCompiledPoly M n))
 
 /-- Correctly oriented sibling of the legacy staged endpoint above. This is the
-natural theorem surface for the concrete `restrictPoly` seam, whose packaged
-fact is
+natural staged theorem surface for the concrete `restrictPoly` seam, whose
+packaged fact is
 
 `Function.LeftInverse (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
   (mapFullToLatentPoly M n B).toLinearMap`.
 
-At present this is only recorded as the right future staging target; the older
-axiom remains because existing generic bridge-map-U packaging was written in the
-opposite argument order. -/
+This is now the right staged interface for concrete full-compiled retargeting.
+The older axiom remains only because existing generic bridge-map-U packaging was
+written in the opposite argument order. -/
 axiom mlBlockedSpdpSubspace_fullCompiled_le_map_of_restrictPoly_leftInverse
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
