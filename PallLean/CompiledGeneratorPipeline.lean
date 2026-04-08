@@ -557,8 +557,49 @@ theorem map_rename_witness_tseitin_subspace_le_map_latent_subspace
         (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
     ≤ Submodule.map T
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-          (latentCompiledPoly M n)) :=
-  rename_branch_transport_target M n h_le T
+          (latentCompiledPoly M n)) := by
+  intro q hq
+  rcases hq with ⟨r, hr, rfl⟩
+  rw [mlBlockedSpdpSubspace] at hr
+  let s : Set (MvPolynomial (Fin (npNumVars n)) ℚ) :=
+    {q | ∃ (S : List (Fin (npNumVars n))) (m : MvPolynomial (Fin (npNumVars n)) ℚ),
+        S.length = Nat.log 2 n ∧
+        m.totalDegree ≤ Nat.log 2 n ∧
+        m.vars ⊆ S.toFinset ∧
+        SPDP.isBlockAdmissible
+          (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le)) S ∧
+        q = mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n))}
+  have hMap :
+      (MvPolynomial.rename (witnessInclusion M n h_le)) r ∈
+        Submodule.map T
+          (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+            (latentCompiledPoly M n)) := by
+    refine Submodule.span_induction (R := ℚ) (s := s)
+      (p := fun x _ =>
+        (MvPolynomial.rename (witnessInclusion M n h_le)) x ∈
+          Submodule.map T
+            (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+              (latentCompiledPoly M n)))
+      ?_ ?_ ?_ ?_ hr
+    · intro x hx
+      rcases hx with ⟨S, m, hLen, hdeg, hvars, hadm, rfl⟩
+      exact (rename_branch_generator_transport_semantic M n h_le T)
+        S m hLen hdeg hvars hadm
+    · simpa using (Submodule.zero_mem
+        (Submodule.map T
+          (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+            (latentCompiledPoly M n))))
+    · intro x y _ _ hx hy
+      simpa using Submodule.add_mem
+        (Submodule.map T
+          (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+            (latentCompiledPoly M n))) hx hy
+    · intro c x _ hx
+      simpa using Submodule.smul_mem
+        (Submodule.map T
+          (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+            (latentCompiledPoly M n))) c hx
+  simpa [s] using hMap
 
 /-- Subspace-level decomposition through the compiled polynomial split, with the
 verifier side already reduced to renamed Tseitin generators. -/
@@ -738,6 +779,6 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_of_staged_targets
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n)) :=
   mlBlockedSpdpSubspace_fullCompiled_le_map_of_targets M n h_le B T hViolMatches
-    (rename_branch_transport_target M n h_le T)
+    (map_rename_witness_tseitin_subspace_le_map_latent_subspace M n h_le T)
 
 end CompiledGeneratorTransportFrontier
