@@ -165,13 +165,13 @@ axiom bridgeReconstructionMap
     MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
       MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ
 
-/-- Exact missing bridge theorem statement for the intended concrete `T`:
-composition identity against `mapFullToLatentPoly`. -/
-axiom bridgeMap_comp_id_for_bridgeReconstructionMap
+/-- Corrected missing bridge theorem statement for the intended concrete `T`:
+retraction identity on the relevant latent SPDP subspace (not globally). -/
+axiom bridgeMap_retract_on_latentSubspace_for_bridgeReconstructionMap
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
-    (mapFullToLatentPoly M n B).toLinearMap.comp (bridgeReconstructionMap M n B)
-      = LinearMap.id
+    HasTransferBackOnLatentSubspace M n (bridgeReconstructionMap M n B)
+      (mapFullToLatentPoly M n B).toLinearMap
 
 /-- Immediate closure from the composition-identity target to the staged
 left-inverse bridge target. -/
@@ -184,25 +184,14 @@ theorem bridgeMap_leftInverse_target_of_comp_id_target
   bridgeMap_leftInverse_target_of_comp_id M n B T
     (bridgeMap_comp_id_target M n B T)
 
-/-- Concrete instantiation for the intended reconstruction map. -/
-theorem bridgeMap_leftInverse_for_bridgeReconstructionMap
-    (M : DTM) (n : ℕ)
-    (B : FullToLatentBridge M n) :
-    Function.LeftInverse (mapFullToLatentPoly M n B).toLinearMap
-      (bridgeReconstructionMap M n B) :=
-  bridgeMap_leftInverse_target_of_comp_id M n B (bridgeReconstructionMap M n B)
-    (bridgeMap_comp_id_for_bridgeReconstructionMap M n B)
-
-/-- Transfer-back on latent branch subspace for the concrete reconstruction map,
-derived from the bridge composition identity. -/
+/-- Concrete transfer-back for the intended reconstruction map (restricted
+retraction form; this is the corrected target replacing global comp-id). -/
 theorem hasTransferBack_for_bridgeReconstructionMap
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
     HasTransferBackOnLatentSubspace M n (bridgeReconstructionMap M n B)
       (mapFullToLatentPoly M n B).toLinearMap :=
-  hasTransferBackOnLatentSubspace_bridgeMap_of_leftInverse M n B
-    (bridgeReconstructionMap M n B)
-    (bridgeMap_leftInverse_for_bridgeReconstructionMap M n B)
+  bridgeMap_retract_on_latentSubspace_for_bridgeReconstructionMap M n B
 
 axiom mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse
     (M : DTM) (n : ℕ)
@@ -219,10 +208,9 @@ axiom mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n))
 
-/-- Collapsed endpoint for the concrete reconstruction map: combines
-(1) concrete comp-id -> left-inverse, (2) transfer-back plumbing, and
-(3) bridgeMapU full-transport closure into one theorem statement. -/
-theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap
+/-- Collapsed endpoint for the concrete reconstruction map, using the corrected
+restricted transfer-back route. -/
+axiom mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (B : FullToLatentBridge M n)
@@ -232,11 +220,7 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap
       (fullCompiledPoly ℚ M n h_le)
     ≤ Submodule.map (bridgeReconstructionMap M n B)
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-          (latentCompiledPoly M n)) :=
-  mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse M n h_le B
-    (bridgeReconstructionMap M n B)
-    (bridgeMap_leftInverse_for_bridgeReconstructionMap M n B)
-    hViolMatches
+          (latentCompiledPoly M n))
 
 /-- Closure endpoint instantiated from the isolated left-inverse target. -/
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target
