@@ -45,8 +45,37 @@ axiom rename_branch_transport_target
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n))
 
-/-- Generator-level transport obtained from the staged subspace transport target:
-each mapped generator lands in the latent mapped SPDP subspace. -/
+/-- Semantic generator transport hypothesis package for the renamed
+witness/Tseitin branch under a chosen bridge map `T`.
+
+This is the concrete bridge property that must be proved to remove
+`rename_branch_transport_target` as an axiom. -/
+def RenameBranchSemanticTransport
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) : Prop :=
+  ∀ (S : List (Fin (npNumVars n)))
+    (m : MvPolynomial (Fin (npNumVars n)) ℚ),
+    S.length = Nat.log 2 n →
+    m.totalDegree ≤ Nat.log 2 n →
+    m.vars ⊆ S.toFinset →
+    SPDP.isBlockAdmissible (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le)) S →
+    (MvPolynomial.rename (witnessInclusion M n h_le))
+      (mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n)))
+      ∈ Submodule.map T
+          (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+            (latentCompiledPoly M n))
+
+/-- Bridge-facing semantic lemma skeleton to prove next (independent of the
+staged subspace target axiom). -/
+axiom rename_branch_generator_transport_semantic
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
+    RenameBranchSemanticTransport M n h_le T
+
 theorem rename_branch_generator_transport_target
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
