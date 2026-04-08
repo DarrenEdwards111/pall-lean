@@ -1338,6 +1338,21 @@ theorem mlBlockedSpdpSubspace_violation_le_map_for_bridgeReconstructionMap
   mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches M n B (bridgeReconstructionMap M n B)
     hViolMatches (violationBranchTransportFrontier_for_bridgeReconstructionMap M n B hAssignToLatent)
 
+/-- The next honest reduction target for the legacy concrete wrapper is an
+actual theorem, not a doc cleanup: prove that the legacy section-variable
+reconstruction map agrees with the concrete `restrictPoly` bridge on the latent
+polynomial space.
+
+A naive `rfl` proof fails even after `bridgeReconstructionMap_def`; the two maps
+are not definitionally equal and the reduction needs real coefficient/algebraic
+work. Keeping this target explicit avoids pretending the legacy wrapper has
+already collapsed. -/
+axiom bridgeReconstructionMap_eq_restrictPoly_target
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n) :
+    bridgeReconstructionMap M n B =
+      (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+
 /-- Late direct concrete full-compiled endpoint for the `restrictPoly` route,
 using both proved concrete branch theorems: the rename-branch theorem and the
 concrete violation `restrictPoly` endpoint.
