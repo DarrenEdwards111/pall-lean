@@ -142,6 +142,29 @@ theorem violationBranchTransportFrontier_iff_pipeline_target
             (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))) := by
   rfl
 
+/-- Span-lift for the violation branch: once each compiled SPDP generator for
+`violationPolyOf` transports into a latent SPDP generator after renaming by the
+bridge, the full violation subspace transport follows. This reduces the
+remaining violation gap to the generator-level frontier only. -/
+theorem violationBranchTransportFrontier_of_generatorFrontier
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hGen : violationGeneratorTransportFrontier M n B T) :
+    violationBranchTransportFrontier M n B T := by
+  rw [violationBranchTransportFrontier, mlBlockedSpdpSubspace, Submodule.span_le]
+  intro q hq
+  obtain ⟨S, m, hlen, hdeg, hvars, hadm, rfl⟩ := hq
+  rcases hGen S m hlen hdeg hvars hadm with ⟨S', m', hlen', hdeg', hvars', hadm', hEq⟩
+  have hGen' :
+      mlProj (m' * SPDP.iterDerivList S' (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))) ∈
+        mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n)) :=
+    Submodule.subset_span ⟨S', m', hlen', hdeg', hvars', hadm', rfl⟩
+  refine ⟨mlProj (m' * SPDP.iterDerivList S' (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))), hGen', ?_⟩
+  exact hEq.symm
+
 /-- One-line handoff: once generator transport is proved, the roadmap's exact
 minimal elementwise transport target is immediately available. -/
 theorem compiled_subspace_element_transport_of_generator_frontier
