@@ -158,12 +158,48 @@ axiom bridgeMap_comp_id_target
 
 /-- Intended concrete reconstruction map for the bridge route.
 This is the `T` that should ultimately replace the abstract parameter in the
-pipeline once constructed/proved from LatentFullBridge-side machinery. -/
+pipeline once constructed/proved from LatentFullBridge-side machinery.
+
+Design skeleton: extend a latent polynomial back to full coordinates by choosing
+a preimage on the bridge-image variables and sending off-image latent variables
+to `0` at the full level. This remains staged until the concrete
+inverse-on-image variable map is defined constructively in `LatentFullBridge`. -/
+axiom bridgeReconstructionVarMap
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n) :
+    Fin (latentNumVars M n) → MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ
+
 axiom bridgeReconstructionMap
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n) :
     MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
       MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ
+
+/-- Expected construction theorem: `bridgeReconstructionMap` is the `aeval`
+linear map induced by the variable-level reconstruction assignment. -/
+axiom bridgeReconstructionMap_def
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n) :
+    bridgeReconstructionMap M n B =
+      (MvPolynomial.aeval (bridgeReconstructionVarMap M n B)).toLinearMap
+
+/-- Expected inverse-on-image behavior for reconstructed variables: after mapping
+back down with `mapFullToLatentPoly`, bridge-image latent variables are fixed. -/
+axiom bridgeReconstructionVarMap_retracts_on_image
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n) :
+    ∀ i : Fin (latentNumVars M n),
+      (mapFullToLatentPoly M n B).toLinearMap ((bridgeReconstructionVarMap M n B) i) =
+        MvPolynomial.X i
+
+/-- Expected global consequence on the bridge-image-generated latent algebra:
+this is the theorem family from which generator retraction should be proved by
+induction / `aeval` extensionality. -/
+axiom bridgeReconstructionMap_retracts_on_generated_algebra
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n) :
+    ∀ p : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+      (mapFullToLatentPoly M n B).toLinearMap ((bridgeReconstructionMap M n B) p) = p
 
 /-- Corrected missing bridge theorem statement for the intended concrete `T`:
 retraction identity on the relevant latent SPDP subspace (not globally). -/
