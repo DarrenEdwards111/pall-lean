@@ -3378,7 +3378,7 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_for_b
   exact mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_for_restrictPoly_of_assignToLatent
     M n h_le B hAssignToLatent hViolMatches
 
-theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_for_bridgeReconstructionMap_eq_restrictPoly
+theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_for_bridgeReconstructionMap_consequence_of_restrictPoly
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (B : FullToLatentBridge M n)
