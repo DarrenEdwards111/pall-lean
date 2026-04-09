@@ -2860,7 +2860,7 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_compi
   refine mlBlockedSpdpSubspace_fullCompiled_le_map_of_branch_transports M n h_le T ?_ ?_
   · exact rename_branch_transport_target_via_bridgeMapU_of_source_membership_of_semantic M n h_le B T
       (rename_branch_generator_transport_semantic M n h_le T)
-  · exact mlBlockedSpdpSubspace_violation_le_map_of_compiledWitnessSemantic M n B T
+  · exact mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_compiledWitness M n B T
       hViolMatches hSem
 
 /-- Honest stronger bridge-map-U-target concrete endpoint for the preferred
