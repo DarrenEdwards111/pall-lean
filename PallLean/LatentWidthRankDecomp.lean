@@ -614,6 +614,66 @@ theorem imported_profile_space_dim_bound
     (∏ τ : Fin 4, Nat.choose (h τ + 15) 15) ≤ (R + 16) ^ 60 :=
   ProfileSpaceBound.profile_space_dim_bound h R hR
 
+/-- Minimal coarse bridge from a latent signature to the abstract profile-function
+language used by `ProfileSpaceBound`. At the current scaffold level we only track
+hit-block count and multiplier degree, so those fill the first two coordinates and
+the remaining two coordinates are set to zero. -/
+def latent_profile_function_of_signature
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) : Fin 4 → ℕ
+  | ⟨0, _⟩ => σ.hitBlocks.card
+  | ⟨1, _⟩ => σ.multDeg
+  | ⟨2, _⟩ => 0
+  | ⟨3, _⟩ => 0
+
+@[simp] theorem latent_profile_function_of_signature_zero
+    (M : DTM) (n : ℕ) (σ : latentProfileSignature M n) :
+    latent_profile_function_of_signature M n σ 0 = σ.hitBlocks.card := by
+  rfl
+
+@[simp] theorem latent_profile_function_of_signature_one
+    (M : DTM) (n : ℕ) (σ : latentProfileSignature M n) :
+    latent_profile_function_of_signature M n σ 1 = σ.multDeg := by
+  rfl
+
+@[simp] theorem latent_profile_function_of_signature_two
+    (M : DTM) (n : ℕ) (σ : latentProfileSignature M n) :
+    latent_profile_function_of_signature M n σ 2 = 0 := by
+  rfl
+
+@[simp] theorem latent_profile_function_of_signature_three
+    (M : DTM) (n : ℕ) (σ : latentProfileSignature M n) :
+    latent_profile_function_of_signature M n σ 3 = 0 := by
+  rfl
+
+/-- The total mass of the coarse profile extracted from a latent signature is bounded
+by `2 * log₂ n`, since both tracked coordinates are individually bounded by `log₂ n`. -/
+theorem latent_profile_function_of_signature_sum_le
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    (∑ i : Fin 4, latent_profile_function_of_signature M n σ i) ≤ 2 * Nat.log 2 n := by
+  dsimp [latent_profile_function_of_signature]
+  rw [Fin.sum_univ_four]
+  simp
+  calc
+    σ.hitBlocks.card + σ.multDeg ≤ Nat.log 2 n + Nat.log 2 n := by
+      exact Nat.add_le_add σ.hitCardBound σ.multDegBound
+    _ = 2 * Nat.log 2 n := by omega
+
+/-- Imported profile-space dimension bound specialized to the coarse signature profile
+function. This packages the upstream symmetric-power estimate in the exact shape the
+remaining latent bridge will need. -/
+theorem imported_profile_space_dim_bound_of_signature
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    (∏ τ : Fin 4,
+        Nat.choose (latent_profile_function_of_signature M n σ τ + 15) 15)
+      ≤ (2 * Nat.log 2 n + 16) ^ 60 := by
+  exact imported_profile_space_dim_bound
+    (latent_profile_function_of_signature M n σ)
+    (2 * Nat.log 2 n)
+    (latent_profile_function_of_signature_sum_le M n σ)
+
 -- Next honest step after `latent_profile_bucket_finrank120_logscale`:
 -- package a finite active family of realized coarse profile signatures together
 -- with per-bucket finrank `≤ n^120` into the existing finset-valued endpoint
