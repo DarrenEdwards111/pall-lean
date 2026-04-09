@@ -742,6 +742,49 @@ theorem latent_profile_space_candidate_nontrivial_refinement_current
   refine ⟨latent_profile_space_candidate M n σ, ?_⟩
   exact latent_profile_space_candidate_extends_fixedProfileSlice_current M n σ
 
+/-- The current ambient candidate is independent of the coarse signature parameter. That
+shows the present construction is only a global span over all generators, not yet the
+true profile-controlled space. Making this independence explicit helps isolate the next
+substantive step: reintroducing genuine `σ`-dependence. -/
+@[simp] theorem latent_profile_space_candidate_eq_of_signature
+    (M : DTM) (n : ℕ)
+    (σ τ : latentProfileSignature M n) :
+    latent_profile_space_candidate M n σ = latent_profile_space_candidate M n τ := by
+  rfl
+
+/-- The current ambient candidate can be re-expressed without mentioning the signature at
+all. This packages the fact that the new nontrivial candidate is still only the global
+latent blocked-SPDP generator span. -/
+def latent_global_generator_span
+    (M : DTM) (n : ℕ) : Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
+  Submodule.span ℚ
+    { q | ∃ (S : List (Fin (latentNumVars M n)))
+            (m : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+        S.length = Nat.log 2 n ∧
+        m.totalDegree ≤ Nat.log 2 n ∧
+        m.vars ⊆ S.toFinset ∧
+        isBlockAdmissible (latentPartition M n) S ∧
+        q = mlProj (m * iterDerivList S (latentCompiledPoly M n)) }
+
+@[simp] theorem latent_global_generator_span_def
+    (M : DTM) (n : ℕ) :
+    latent_global_generator_span M n =
+      Submodule.span ℚ
+        { q | ∃ (S : List (Fin (latentNumVars M n)))
+                (m : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+            S.length = Nat.log 2 n ∧
+            m.totalDegree ≤ Nat.log 2 n ∧
+            m.vars ⊆ S.toFinset ∧
+            isBlockAdmissible (latentPartition M n) S ∧
+            q = mlProj (m * iterDerivList S (latentCompiledPoly M n)) } := by
+  rfl
+
+@[simp] theorem latent_profile_space_candidate_eq_global_generator_span
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    latent_profile_space_candidate M n σ = latent_global_generator_span M n := by
+  rfl
+
 /-- If a later construction provides any ambient submodule extending the coarse
 fixed-profile slice, then the named nontrivial-refinement target is discharged. This is
 an intentionally minimal packaging lemma for future genuine Section 9 candidates. -/
