@@ -666,8 +666,10 @@ packaged fact is
   (mapFullToLatentPoly M n B).toLinearMap`.
 
 This is now the right staged interface for concrete full-compiled retargeting.
-The older axiom remains only because existing generic bridge-map-U packaging was
-written in the opposite argument order. -/
+The older axiom remains only as part of the boxed compatibility frontier,
+because existing generic bridge-map-U packaging was written in the opposite
+argument order. Downstream compiler-layer work should prefer the later semantic
+/ compiled-witness / concrete consequence theorems instead. -/
 axiom mlBlockedSpdpSubspace_fullCompiled_le_map_of_restrictPoly_leftInverse
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
@@ -945,8 +947,9 @@ Status: this theorem is still only a thin wrapper around the raw generic axiom
 `rename_branch_transport_target_of_U`. The honest theorem layer established
 below shows stronger sufficient hypotheses, but declaration order prevents this
 legacy wrapper from being rewritten directly in-place. Treat this as part of
-the same explicit generic gap, not as proved content sourced from `hBack`
-alone. -/
+the same explicit boxed compatibility frontier, not as proved content sourced
+from `hBack` alone. Downstream compiler-layer work should use the later
+source-membership / semantic / concrete consequence theorems instead. -/
 theorem rename_branch_transport_target_via_bridgeMapU
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
@@ -1803,9 +1806,11 @@ violation transport theorem is available, and therefore full compiled subspace
 transport follows.
 
 Status: this early theorem still uses the raw staged violation target through
-`mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target`. The honest
-replacement layer is the later compiled-witness semantic family, and that is the
-preferred proof source downstream whenever declaration order allows. -/
+`mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target`. Treat this as
+part of the same boxed compatibility frontier as the earlier raw violation
+wrapper layer. The honest replacement layer is the later semantic /
+compiled-witness family, and that is the preferred proof source for downstream
+compiler-layer work whenever declaration order allows. -/
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_of_targets
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
