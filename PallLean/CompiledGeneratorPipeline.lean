@@ -1565,6 +1565,43 @@ theorem mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target_compiledWi
           (latentCompiledPoly M n)) :=
   mlBlockedSpdpSubspace_violation_le_map_of_compiledWitnessSemantic M n B T hViolMatches hSem
 
+/-- Later replacement for the early generator-level rename transport wrapper
+`rename_branch_generator_transport_target`: same endpoint, but discharged by the
+proved semantic rename branch theorem instead of the early staged
+`rename_branch_transport_target` axiom layer. -/
+theorem rename_branch_generator_transport_target_of_semantic
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
+    ∀ (S : List (Fin (npNumVars n)))
+      (m : MvPolynomial (Fin (npNumVars n)) ℚ),
+      S.length = Nat.log 2 n →
+      m.totalDegree ≤ Nat.log 2 n →
+      m.vars ⊆ S.toFinset →
+      SPDP.isBlockAdmissible (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le)) S →
+      (MvPolynomial.rename (witnessInclusion M n h_le))
+        (mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n)))
+        ∈ Submodule.map T
+            (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+              (latentCompiledPoly M n)) := by
+  intro S m hlen hdeg hvars hadm
+  have hgen :
+      mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n)) ∈
+        mlBlockedSpdpSubspace
+          (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+          (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n) :=
+    Submodule.subset_span ⟨S, m, hlen, hdeg, hvars, hadm, rfl⟩
+  have hmap :
+      (MvPolynomial.rename (witnessInclusion M n h_le))
+        (mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n)))
+      ∈ Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+          (mlBlockedSpdpSubspace
+            (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+            (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n)) :=
+    ⟨_, hgen, rfl⟩
+  exact rename_branch_transport_target_of_semantic M n h_le T hmap
+
 /-- Later arbitrary-`T` replacement for the old bridge-map-U left-inverse full
 compiled route. This packages the already-proved semantic rename branch with the
 compiled-witness semantic violation branch, bypassing the legacy bridge-map-U
