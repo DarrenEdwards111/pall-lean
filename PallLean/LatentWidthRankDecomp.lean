@@ -709,6 +709,27 @@ def latent_profile_space_candidate_extends_fixedProfileSlice
   intro q hq
   exact Submodule.mem_top
 
+/-- The first honest strengthening target for the ambient profile-space candidate:
+replace the placeholder `⊤` by a nontrivial submodule while preserving the fixed-slice
+extension property. Keeping this as a separate proposition makes the next refinement
+step explicit without forcing us to commit to the internal construction yet. -/
+def latent_profile_space_candidate_nontrivial_refinement
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) : Prop :=
+  ∃ V : Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ),
+    latent_fixedProfileSlice M n σ ≤ V
+
+/-- The current placeholder candidate already yields a witness to the nontrivial
+refinement target, albeit the completely uninformative one `V = ⊤`. This theorem is
+useful because future real refinements can replace the witness while preserving the
+same theorem shape. -/
+theorem latent_profile_space_candidate_nontrivial_refinement_current
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    latent_profile_space_candidate_nontrivial_refinement M n σ := by
+  refine ⟨latent_profile_space_candidate M n σ, ?_⟩
+  exact latent_profile_space_candidate_extends_fixedProfileSlice_current M n σ
+
 /-- Pure containment-style local frontier: the coarse fixed-profile slice for `σ` should
 sit inside the eventual ambient profile-space candidate. This keeps the new local bridge
 completely free of `finrank` / `Module.Finite` requirements, which can be reintroduced
