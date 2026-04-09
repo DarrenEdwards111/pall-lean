@@ -686,6 +686,29 @@ def latent_profile_space_candidate
     (σ : latentProfileSignature M n) : Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
   ⊤
 
+@[simp] theorem latent_profile_space_candidate_def
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    latent_profile_space_candidate M n σ =
+      (⊤ : Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ)) := by
+  rfl
+
+/-- The eventual nontrivial refinement of `latent_profile_space_candidate` should first
+at least contain the coarse fixed-profile slice itself. Recording that minimal target as a
+named theorem surface makes the next strengthening step more explicit than directly
+editing the candidate definition again. -/
+def latent_profile_space_candidate_extends_fixedProfileSlice
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) : Prop :=
+  latent_fixedProfileSlice M n σ ≤ latent_profile_space_candidate M n σ
+
+@[simp] theorem latent_profile_space_candidate_extends_fixedProfileSlice_current
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    latent_profile_space_candidate_extends_fixedProfileSlice M n σ := by
+  intro q hq
+  exact Submodule.mem_top
+
 /-- Pure containment-style local frontier: the coarse fixed-profile slice for `σ` should
 sit inside the eventual ambient profile-space candidate. This keeps the new local bridge
 completely free of `finrank` / `Module.Finite` requirements, which can be reintroduced
@@ -693,7 +716,7 @@ later only after the ambient space is properly packaged. -/
 def latent_fixedProfileSlice_contained_in_profile_space
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n) : Prop :=
-  latent_fixedProfileSlice M n σ ≤ latent_profile_space_candidate M n σ
+  latent_profile_space_candidate_extends_fixedProfileSlice M n σ
 
 /-- Trivial top-level containment for the current placeholder ambient space. This is not
 yet the substantive Section 9 bridge, but it pins the exact theorem slot that will need
