@@ -1815,6 +1815,27 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_of_staged_targets_compiledWitn
     (map_rename_witness_tseitin_subspace_le_map_latent_subspace M n h_le T)
     hSem
 
+/-- Honest theorem-level consequence of the early staged full-compiled closure
+`mlBlockedSpdpSubspace_fullCompiled_le_map_of_staged_targets`.
+This keeps the same no-extra-rename-hypothesis endpoint while discharging the
+violation side by compiled-witness semantics instead of the raw staged target. -/
+theorem mlBlockedSpdpSubspace_fullCompiled_le_map_of_staged_targets_consequence
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hViolMatches :
+      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n)
+    (hSem : ViolationGeneratorSemanticTransportCompiledWitness M n B T) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le)
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  mlBlockedSpdpSubspace_fullCompiled_le_map_of_staged_targets_compiledWitness M n h_le B T
+    hViolMatches hSem
+
 /-- Honest theorem-level consequence of the early staged full-compiled target
 surface `mlBlockedSpdpSubspace_fullCompiled_le_map_of_targets`.
 This keeps the same endpoint available when the violation branch is supplied by
