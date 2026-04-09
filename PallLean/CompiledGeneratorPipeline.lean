@@ -1090,6 +1090,41 @@ theorem rename_branch_transport_target_via_bridgeMapU_eq_semantic
       rename_branch_transport_target_of_semantic M n h_le T := by
   rfl
 
+/-- Honest bridge-facing consequence of the new strengthened early `of_U`
+theorem surface. For the concrete bridge map, a source-side witness
+`T (U generator) = generator` yields the same rename-branch transport target as
+before, but now through a genuine theorem instead of the underpowered
+transfer-back story. -/
+theorem rename_branch_transport_target_of_U_source_membership_consequence
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hSource : ∀ (S : List (Fin (npNumVars n)))
+      (m : MvPolynomial (Fin (npNumVars n)) ℚ),
+      S.length = Nat.log 2 n →
+      m.totalDegree ≤ Nat.log 2 n →
+      m.vars ⊆ S.toFinset →
+      SPDP.isBlockAdmissible
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le)) S →
+      T ((mapFullToLatentPoly M n B).toLinearMap
+        ((MvPolynomial.rename (witnessInclusion M n h_le))
+          (mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n))))) =
+        (MvPolynomial.rename (witnessInclusion M n h_le))
+          (mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n)))) :
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  rename_branch_transport_target_of_U_source_membership M n h_le T
+    (mapFullToLatentPoly M n B).toLinearMap
+    (rename_branch_globalDomStyleU_for_bridgeMap M n h_le B)
+    hSource
+
 /-- Earliest rename-target surface collapsed to the proved semantic rename
 transport theorem. This pins the old staged theorem endpoint to the actual
 semantic route, even though the early declaration itself remains for
