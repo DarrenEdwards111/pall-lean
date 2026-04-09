@@ -999,6 +999,37 @@ theorem rename_branch_transport_target_of_U_consequence
           (latentCompiledPoly M n)) :=
   rename_branch_transport_target_of_U_source_membership M n h_le T U hU hSource
 
+/-- Explicit source-membership replacement surface for the old generic `of_U`
+family. This names the actual sufficient raw hypothesis directly: source-side
+control of each compiled rename generator through `T ∘ U`. -/
+theorem rename_branch_transport_target_of_U_of_source_membership
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (U : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hU : RenameBranchGlobalDomStyleU M n h_le U)
+    (hSource : ∀ (S : List (Fin (npNumVars n)))
+      (m : MvPolynomial (Fin (npNumVars n)) ℚ),
+      S.length = Nat.log 2 n →
+      m.totalDegree ≤ Nat.log 2 n →
+      m.vars ⊆ S.toFinset →
+      SPDP.isBlockAdmissible
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le)) S →
+      T (U ((MvPolynomial.rename (witnessInclusion M n h_le))
+        (mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n))))) =
+        (MvPolynomial.rename (witnessInclusion M n h_le))
+          (mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n)))) :
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  rename_branch_transport_target_of_U_source_membership M n h_le T U hU hSource
+
 /-- Explicit source-membership sibling for the old generic `of_U` family.
 This keeps the legacy endpoint shape while naming the actual sufficient raw
 hypothesis directly: membership of each compiled-side rename generator in the
