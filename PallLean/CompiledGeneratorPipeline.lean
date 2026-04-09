@@ -744,8 +744,15 @@ because the generator step needs a source-side retraction of the form
 `T (U x) = x` on the relevant rename-branch image (or an equivalent membership
 principle placing each source generator directly in `Submodule.map T ...`).
 
-So this remains an explicit axiom target for now rather than a theorem proved
-from `hBack`. -/
+Equivalently, the proved theorem layer below shows that what actually suffices
+is one of the explicit stronger hypotheses:
+- source-membership of each renamed generator,
+- source-image control through `T ∘ U`, or
+- the concrete `restrictPoly`/`bridgeReconstructionMap` collapse theorems.
+
+No derivation from `hBack` alone exists in this file. This declaration is the
+remaining raw generic gap, kept explicit rather than hidden behind later
+wrappers. -/
 axiom rename_branch_transport_target_of_U
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
@@ -915,8 +922,12 @@ theorem rename_branch_transport_target_of_source_membership
 with `U = mapFullToLatentPoly.toLinearMap`, the rename-branch subspace
 transport follows.
 
-This is compatibility glue for the older bridge-map packaging, not the
-preferred `restrictPoly`-oriented staged interface. -/
+Status: this theorem is still only a thin wrapper around the raw generic axiom
+`rename_branch_transport_target_of_U`. The honest theorem layer established
+below shows stronger sufficient hypotheses, but declaration order prevents this
+legacy wrapper from being rewritten directly in-place. Treat this as part of
+the same explicit generic gap, not as proved content sourced from `hBack`
+alone. -/
 theorem rename_branch_transport_target_via_bridgeMapU
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
