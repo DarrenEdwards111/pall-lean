@@ -2945,7 +2945,7 @@ theorem rename_branch_transport_target_via_bridgeMapU_consequence_of_source_imag
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n)) := by
   rw [bridgeReconstructionMap_eq_restrictPoly_target M n B]
-  exact rename_branch_transport_target_via_bridgeMapU_consequence_of_source_image_for_restrictPoly M n h_le B
+  exact rename_branch_transport_target_via_bridgeMapU_of_source_image_for_restrictPoly M n h_le B
 
 /-- Honest preferred-route consequence for the later bridge-shaped
 compiled-witness rename wrapper. This keeps that endpoint on the concrete
@@ -2979,7 +2979,7 @@ theorem rename_branch_transport_target_via_bridgeMapU_compiledWitness_consequenc
     ≤ Submodule.map (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n)) :=
-  rename_branch_transport_target_via_bridgeMapU_consequence_of_source_image_for_restrictPoly M n h_le B
+  rename_branch_transport_target_via_bridgeMapU_of_source_image_for_restrictPoly M n h_le B
 
 /-- Honest preferred-route consequence for the later bridge-shaped semantic
 membership wrapper. This keeps that endpoint on the concrete `restrictPoly`
@@ -3012,7 +3012,7 @@ theorem rename_branch_transport_target_via_bridgeMapU_of_semantic_membership_con
     ≤ Submodule.map (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n)) :=
-  rename_branch_transport_target_via_bridgeMapU_consequence_of_source_image_for_restrictPoly M n h_le B
+  rename_branch_transport_target_via_bridgeMapU_of_source_image_for_restrictPoly M n h_le B
 
 /-- Honest bridge-facing consequence for the later bridge-shaped semantic
 membership wrapper, specialized to the concrete bridge reconstruction map.
