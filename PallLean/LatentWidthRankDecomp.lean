@@ -538,6 +538,12 @@ def latent_profile_bucket_finrank120_logscale (M : DTM) (n : ℕ)
     Module.finrank ℚ
       (Submodule.span ℚ (latent_profile_bucket_generators M n σ)) ≤ n ^ 120
 
+-- The new per-bucket finrank frontier is the concrete set-level realization of
+-- Section 9's within-profile dimension obligation. The latter already fixes the
+-- intended exponent `120`; the remaining local theorem is to connect each coarse
+-- bucket `latent_profile_bucket_generators M n σ` to the corresponding fixed-profile
+-- SPDP slice controlled by that obligation.
+
 -- Next honest step after `latent_profile_bucket_finrank120_logscale`:
 -- package a finite active family of realized coarse profile signatures together
 -- with per-bucket finrank `≤ n^120` into the existing finset-valued endpoint
