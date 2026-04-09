@@ -2844,8 +2844,8 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_seman
   refine mlBlockedSpdpSubspace_fullCompiled_le_map_of_branch_transports M n h_le T ?_ ?_
   · exact rename_branch_transport_target_via_bridgeMapU_of_source_membership_of_semantic M n h_le B T
       (rename_branch_generator_transport_semantic M n h_le T)
-  · exact mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches M n B T hViolMatches
-      (violation_branch_rename_transport_target_consequence_of_semantic M n B T hSem)
+  · simpa [hViolMatches] using
+      (violation_branch_rename_transport_target_of_source_membership_of_semantic M n B T hSem)
 
 /-- Later replacement for the early legacy wrapper
 `mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target`: same
