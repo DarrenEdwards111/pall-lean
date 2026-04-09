@@ -92,9 +92,7 @@ theorem violation_branch_rename_transport_target_consequence_of_compiledWitnessS
     ≤ Submodule.map T
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))) := by
-  apply violationBranchTransportFrontier_of_generatorFrontier
-  apply violationGeneratorTransportFrontier_of_compiledWitnessSemantic
-  exact hSem
+  exact violationBranchTransportFrontier_of_compiledWitnessSemantic M n B T hSem
 
 /-- Renamed-Tseitin branch transport into the latent map-image under the chosen
 bridge map. (Current project staging keeps this as a target obligation while the

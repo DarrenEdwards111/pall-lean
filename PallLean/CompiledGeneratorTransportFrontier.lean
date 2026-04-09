@@ -308,6 +308,19 @@ theorem violationBranchTransportFrontier_of_generatorFrontier
   refine ⟨mlProj (m' * SPDP.iterDerivList S' (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))), hGen', ?_⟩
   exact hEq.symm
 
+/-- Direct theoremic lift on the violation side: the compiled-witness semantic
+package is already enough to prove the full branch frontier, by first obtaining
+the generator frontier and then span-lifting it. -/
+theorem violationBranchTransportFrontier_of_compiledWitnessSemantic
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hSem : ViolationGeneratorSemanticTransportCompiledWitness M n B T) :
+    violationBranchTransportFrontier M n B T := by
+  exact violationBranchTransportFrontier_of_generatorFrontier M n B T
+    (violationGeneratorTransportFrontier_of_compiledWitnessSemantic M n B T hSem)
+
 /-- One-line handoff: once generator transport is proved, the roadmap's exact
 minimal elementwise transport target is immediately available. -/
 theorem compiled_subspace_element_transport_of_generator_frontier
