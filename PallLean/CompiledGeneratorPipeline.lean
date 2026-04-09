@@ -2729,8 +2729,8 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_semantic_targets_of_compil
   refine mlBlockedSpdpSubspace_fullCompiled_le_map_of_branch_transports M n h_le T
     (rename_branch_transport_target_via_bridgeMapU_of_source_membership_of_semantic M n h_le B T
       (rename_branch_generator_transport_semantic M n h_le T)) ?_
-  exact mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target_consequence_of_compiledWitness
-    M n B T hViolMatches hSem
+  exact mlBlockedSpdpSubspace_violation_le_map_of_compiledWitnessSemantic M n B T
+    hViolMatches hSem
 
 /-- Later arbitrary-`T` replacement for the old bridge-map-U left-inverse full
 compiled route. This packages the already-proved semantic rename branch with the
@@ -2753,8 +2753,8 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_semantic_targets
   refine mlBlockedSpdpSubspace_fullCompiled_le_map_of_branch_transports M n h_le T
     (rename_branch_transport_target_via_bridgeMapU_of_source_membership_of_semantic M n h_le B T
       (rename_branch_generator_transport_semantic M n h_le T)) ?_
-  exact mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target_compiledWitness
-    M n B T hViolMatches hSem
+  exact mlBlockedSpdpSubspace_violation_le_map_of_compiledWitnessSemantic M n B T
+    hViolMatches hSem
 
 /-- Honest later consequence for the legacy left-inverse full-compiled wrapper:
 same endpoint as `mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse`,
