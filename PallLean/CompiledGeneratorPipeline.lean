@@ -3023,15 +3023,24 @@ theorem rename_branch_transport_target_via_bridgeMapU_of_source_membership_for_b
   rw [bridgeReconstructionMap_eq_restrictPoly_target M n B]
   exact rename_branch_transport_target_via_bridgeMapU_of_source_membership_for_restrictPoly M n h_le B
 
-theorem rename_branch_transport_target_via_bridgeMapU_for_bridgeReconstructionMap_eq_restrictPoly
+/-- Honest one-way consequence replacing the old proof-term equality pin for
+`rename_branch_transport_target_via_bridgeMapU_for_bridgeReconstructionMap`.
+The bridge-reconstruction endpoint follows from the preferred `restrictPoly`
+route after rewriting the target map, but the two subspace-inclusion proofs
+should not be identified by definitional equality. -/
+theorem rename_branch_transport_target_via_bridgeMapU_for_bridgeReconstructionMap_consequence_of_restrictPoly
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (B : FullToLatentBridge M n) :
-    rename_branch_transport_target_via_bridgeMapU_for_bridgeReconstructionMap M n h_le B =
-      by
-        rw [bridgeReconstructionMap_eq_restrictPoly_target M n B]
-        exact rename_branch_transport_target_via_bridgeMapU_of_source_membership_for_restrictPoly M n h_le B := by
-  rfl
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map (bridgeReconstructionMap M n B)
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) := by
+  rw [bridgeReconstructionMap_eq_restrictPoly_target M n B]
+  exact rename_branch_transport_target_via_bridgeMapU_of_source_membership_for_restrictPoly M n h_le B
 
 /-- Honest preferred-route raw replacement surface for the earliest
 bridge-map wrapper under the explicit source-image hypothesis, specialized to
