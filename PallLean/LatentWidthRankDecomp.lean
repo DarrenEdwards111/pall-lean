@@ -476,6 +476,41 @@ def latent_profile_bucket_generators
       latent_profile_signature_of_generator_data M n S m hLen hDeg = σ ∧
       q = mlProj (m * iterDerivList S (latentCompiledPoly M n)) }
 
+/-- Explicit fixed-profile slice attached to a coarse signature `σ`: the span of all
+latent blocked-SPDP generators whose presentation data has coarse signature `σ`.
+This gives a concrete subspace target for the next containment theorem
+`span(bucket σ) ≤ fixedProfileSlice σ` and makes the within-profile frontier local. -/
+def latent_fixedProfileSlice
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
+  Submodule.span ℚ (latent_profile_bucket_generators M n σ)
+
+@[simp] theorem latent_fixedProfileSlice_def
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    latent_fixedProfileSlice M n σ =
+      Submodule.span ℚ (latent_profile_bucket_generators M n σ) := by
+  rfl
+
+@[simp] theorem latent_profile_bucket_generators_subset_fixedProfileSlice
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    latent_profile_bucket_generators M n σ ⊆ latent_fixedProfileSlice M n σ := by
+  intro q hq
+  exact Submodule.subset_span hq
+
+/-- The bucket span is definitionally contained in its fixed-profile slice. This is
+currently tautological because the slice is introduced as that span; the next real
+step is to connect this explicit slice to the abstract within-profile-dimension
+control from Section 9. -/
+theorem latent_profile_bucket_span_le_fixedProfileSlice
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    Submodule.span ℚ (latent_profile_bucket_generators M n σ) ≤
+      latent_fixedProfileSlice M n σ := by
+  rfl
+
 /-- Every coarse profile bucket is contained in the full latent blocked-SPDP
  generator set. -/
 theorem latent_profile_bucket_generators_subset_spdp_generators
