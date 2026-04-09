@@ -1065,6 +1065,37 @@ theorem rename_branch_transport_target_via_bridgeMapU_of_source_image
     (rename_branch_globalDomStyleU_for_bridgeMap M n h_le B)
     hSource
 
+/-- Honest consequence theorem for the earliest bridge-map wrapper under the
+actual source-image hypothesis it needs. This keeps the old bridge-shaped
+endpoint available, but now tied to the right image-control assumption rather
+than the insufficient latent-side transfer-back story. -/
+theorem rename_branch_transport_target_via_bridgeMapU_consequence_of_source_image
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hSource : ∀ (S : List (Fin (npNumVars n)))
+      (m : MvPolynomial (Fin (npNumVars n)) ℚ),
+      S.length = Nat.log 2 n →
+      m.totalDegree ≤ Nat.log 2 n →
+      m.vars ⊆ S.toFinset →
+      SPDP.isBlockAdmissible
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le)) S →
+      T ((mapFullToLatentPoly M n B).toLinearMap
+        ((MvPolynomial.rename (witnessInclusion M n h_le))
+          (mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n))))) =
+        (MvPolynomial.rename (witnessInclusion M n h_le))
+          (mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n)))) :
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  rename_branch_transport_target_via_bridgeMapU_of_source_image M n h_le B T hSource
+
 
 /-- Semantic generator transport hypothesis package for the renamed
 witness/Tseitin branch under a chosen bridge map `T`.
