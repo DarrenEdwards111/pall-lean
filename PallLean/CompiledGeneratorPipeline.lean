@@ -1125,6 +1125,28 @@ theorem rename_branch_transport_target_of_U_source_membership_consequence
     (rename_branch_globalDomStyleU_for_bridgeMap M n h_le B)
     hSource
 
+/-- Concrete strengthened rename transport for the preferred reconstruction map
+`restrictPoly`. This is the first honest bridge-map theorem in this family that
+supplies the required source-side witness `T (U generator) = generator`
+directly, via the compiled-input left-inverse seam. -/
+theorem rename_branch_transport_target_of_U_source_membership_for_restrictPoly
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n) :
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  rename_branch_transport_target_of_U_source_membership_consequence M n h_le B
+    (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+    (fun S m hLen hdeg hvars hadm =>
+      restrictPoly_mapFullToLatentPoly M n B
+        ((MvPolynomial.rename (witnessInclusion M n h_le))
+          (mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n)))))
+
 /-- Earliest rename-target surface collapsed to the proved semantic rename
 transport theorem. This pins the old staged theorem endpoint to the actual
 semantic route, even though the early declaration itself remains for
