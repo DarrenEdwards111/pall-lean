@@ -1711,6 +1711,92 @@ theorem mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target
   mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches M n B T hViolMatches
     (violation_branch_rename_transport_target M n B T)
 
+/-- Honest strengthened replacement surface for the raw arbitrary-`T` violation
+frontier: what actually suffices is direct source-membership of each compiled
+violation generator in `Submodule.map T ...`, not the bare staged axiom.
+This is the violation-branch analogue of the rename-side explicit
+source-membership reformulation. -/
+theorem violation_branch_rename_transport_target_of_source_membership
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hT : ∀ (S : List (Fin (numVars M n (Nat.log 2 n))))
+      (m : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ),
+      S.length = Nat.log 2 n →
+      m.totalDegree ≤ Nat.log 2 n →
+      m.vars ⊆ S.toFinset →
+      SPDP.isBlockAdmissible (compiledPartition M n) S →
+      mlProj (m * SPDP.iterDerivList S (violationPolyOf ℚ M n))
+        ∈ Submodule.map T
+            (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+              (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n)))) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (violationPolyOf ℚ M n)
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))) := by
+  intro q hq
+  rw [mlBlockedSpdpSubspace] at hq
+  let s : Set (MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :=
+    {q | ∃ (S : List (Fin (numVars M n (Nat.log 2 n))))
+        (m : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ),
+        S.length = Nat.log 2 n ∧
+        m.totalDegree ≤ Nat.log 2 n ∧
+        m.vars ⊆ S.toFinset ∧
+        SPDP.isBlockAdmissible (compiledPartition M n) S ∧
+        q = mlProj (m * SPDP.iterDerivList S (violationPolyOf ℚ M n))}
+  simpa [s] using
+    (Submodule.span_induction (R := ℚ) (s := s)
+      (p := fun x _ =>
+        x ∈ Submodule.map T
+          (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+            (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))))
+      (by
+        intro x hx
+        rcases hx with ⟨S, m, hLen, hdeg, hvars, hadm, rfl⟩
+        exact hT S m hLen hdeg hvars hadm)
+      (by
+        simpa using (Submodule.zero_mem
+          (Submodule.map T
+            (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+              (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))))))
+      (by
+        intro x y _ _ hx hy
+        simpa using Submodule.add_mem
+          (Submodule.map T
+            (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+              (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n)))) hx hy)
+      (by
+        intro c x _ hx
+        simpa using Submodule.smul_mem
+          (Submodule.map T
+            (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+              (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n)))) c hx)
+      hq)
+
+/-- Honest semantic consequence of the raw arbitrary-`T` violation frontier:
+the direct semantic generator package already implies the explicit
+source-membership condition above, so the subspace target follows without using
+the raw axiom. -/
+theorem violation_branch_rename_transport_target_of_source_membership_of_semantic
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hSem : ViolationGeneratorSemanticTransport M n B T) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (violationPolyOf ℚ M n)
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))) := by
+  apply violation_branch_rename_transport_target_of_source_membership M n B T
+  intro S m hLen hdeg hvars hadm
+  rcases hSem.2 S m hLen hdeg hvars hadm with ⟨S', m', hLen', hdeg', hvars', hadm', hEq⟩
+  refine ⟨mlProj (m' * SPDP.iterDerivList S' (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))), ?_, ?_⟩
+  · exact Submodule.subset_span ⟨S', m', hLen', hdeg', hvars', hadm', rfl⟩
+  · simpa [hEq]
+
 /-- Immediate post-target wiring: once the renamed-Tseitin branch transport is
 supplied, the violation branch closes from `hViolMatches` plus whichever
 violation transport theorem is available, and therefore full compiled subspace
@@ -2394,8 +2480,8 @@ theorem mlBlockedSpdpSubspace_violation_le_map_of_compiledWitnessSemantic
 
 /-- Later replacement for the early violation wrapper
 `mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target`: same endpoint,
-but discharged by the direct semantic theorem instead of the raw staged generic
-violation axiom. -/
+but now routed through the explicit early source-membership reformulation rather
+than the raw staged generic violation axiom. -/
 theorem mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target_semantic
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n)
@@ -2408,8 +2494,9 @@ theorem mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target_semantic
       (violationPolyOf ℚ M n)
     ≤ Submodule.map T
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-          (latentCompiledPoly M n)) :=
-  mlBlockedSpdpSubspace_violation_le_map_of_semantic M n B T hViolMatches hSem
+          (latentCompiledPoly M n)) := by
+  simpa [hViolMatches] using
+    (violation_branch_rename_transport_target_of_source_membership_of_semantic M n B T hSem)
 
 /-- Later replacement for the early violation wrapper
 `mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target`: same endpoint,
