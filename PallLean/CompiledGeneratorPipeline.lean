@@ -910,6 +910,39 @@ theorem map_rename_witness_tseitin_subspace_le_map_latent_subspace
             (latentCompiledPoly M n))) c hx
   simpa [s] using hMap
 
+/-- Later replacement for the old bridge-map-U/transfer-back rename route.
+This theorem gives the actual proved arbitrary-`T` rename-branch transport
+surface, bypassing `rename_branch_transport_target_of_U` and
+`rename_branch_transport_target_via_bridgeMapU` wherever declaration order
+allows. -/
+theorem rename_branch_transport_target_of_semantic
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  map_rename_witness_tseitin_subspace_le_map_latent_subspace M n h_le T
+
+/-- Bridge-map-U legacy wrapper collapse, theoremically pinned to the proved
+semantic rename-branch transport surface. -/
+theorem rename_branch_transport_target_via_bridgeMapU_eq_semantic
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hBack : HasTransferBackOnLatentSubspace M n T
+      (mapFullToLatentPoly M n B).toLinearMap) :
+    rename_branch_transport_target_via_bridgeMapU M n h_le B T hBack =
+      rename_branch_transport_target_of_semantic M n h_le T := by
+  rfl
+
 /-- Subspace-level decomposition through the compiled polynomial split, with the
 verifier side already reduced to renamed Tseitin generators. -/
 theorem mlBlockedSpdpSubspace_fullCompiled_le_rename_tseitin_sup_violation
