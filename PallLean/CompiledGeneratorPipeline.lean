@@ -1602,6 +1602,26 @@ theorem rename_branch_generator_transport_target_of_semantic
     ⟨_, hgen, rfl⟩
   exact rename_branch_transport_target_of_semantic M n h_le T hmap
 
+/-- Later replacement for the legacy bridge-map-U rename wrapper
+`rename_branch_transport_target_via_bridgeMapU`: same endpoint, but discharged
+by the proved semantic rename branch theorem instead of the underpowered
+`rename_branch_transport_target_of_U` route. -/
+theorem rename_branch_transport_target_via_bridgeMapU_compiledWitness
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hBack : HasTransferBackOnLatentSubspace M n T (mapFullToLatentPoly M n B).toLinearMap) :
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  rename_branch_transport_target_of_semantic M n h_le T
+
 /-- Later arbitrary-`T` replacement for the old bridge-map-U left-inverse full
 compiled route. This packages the already-proved semantic rename branch with the
 compiled-witness semantic violation branch, bypassing the legacy bridge-map-U
