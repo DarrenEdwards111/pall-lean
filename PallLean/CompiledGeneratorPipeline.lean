@@ -1644,8 +1644,7 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly_direct
   refine mlBlockedSpdpSubspace_fullCompiled_le_map_of_branch_transports M n h_le
     (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
     ?_ ?_
-  · exact map_rename_witness_tseitin_subspace_le_map_latent_subspace M n h_le
-      (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+  · exact rename_branch_transport_target_of_U_source_membership_for_restrictPoly M n h_le B
   · exact mlBlockedSpdpSubspace_violation_le_map_for_restrictPoly M n B
       hAssignToLatent hViolMatches
 
