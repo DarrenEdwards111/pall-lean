@@ -541,8 +541,10 @@ def latent_profile_bucket_finrank120_logscale (M : DTM) (n : ℕ)
 -- The new per-bucket finrank frontier is the concrete set-level realization of
 -- Section 9's within-profile dimension obligation. The latter already fixes the
 -- intended exponent `120`; the remaining local theorem is to connect each coarse
--- bucket `latent_profile_bucket_generators M n σ` to the corresponding fixed-profile
--- SPDP slice controlled by that obligation.
+-- bucket `latent_profile_bucket_generators M n σ` to a concrete fixed-profile
+-- SPDP slice. At present that slice is not yet named separately in this file,
+-- so the next honest theorem step is to introduce an explicit fixed-profile
+-- slice subspace and prove bucket-span containment into it.
 
 -- Next honest step after `latent_profile_bucket_finrank120_logscale`:
 -- package a finite active family of realized coarse profile signatures together
