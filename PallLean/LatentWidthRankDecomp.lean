@@ -570,16 +570,36 @@ def latent_profile_bucket_finrank120_logscale (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804) : Prop :=
   ∀ σ : latentProfileSignature M n,
-    Module.finrank ℚ
-      (Submodule.span ℚ (latent_profile_bucket_generators M n σ)) ≤ n ^ 120
+    Module.finrank ℚ (latent_fixedProfileSlice M n σ) ≤ n ^ 120
+
+@[simp] theorem latent_profile_bucket_finrank120_logscale_iff_fixedProfileSlice
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :
+    latent_profile_bucket_finrank120_logscale M n hn hn804 ↔
+      ∀ σ : latentProfileSignature M n,
+        Module.finrank ℚ (latent_fixedProfileSlice M n σ) ≤ n ^ 120 := by
+  rfl
+
+/-- Equivalent pointwise form of the per-bucket finrank frontier, expanded back to
+bucket spans. This keeps the old target shape available while the named
+`latent_fixedProfileSlice` becomes the canonical carrier for future theorems. -/
+theorem latent_profile_bucket_finrank120_logscale_iff_bucket_span
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :
+    latent_profile_bucket_finrank120_logscale M n hn hn804 ↔
+      ∀ σ : latentProfileSignature M n,
+        Module.finrank ℚ
+          (Submodule.span ℚ (latent_profile_bucket_generators M n σ)) ≤ n ^ 120 := by
+  unfold latent_profile_bucket_finrank120_logscale
+  simp [latent_fixedProfileSlice]
 
 -- The new per-bucket finrank frontier is the concrete set-level realization of
 -- Section 9's within-profile dimension obligation. The latter already fixes the
 -- intended exponent `120`; the remaining local theorem is to connect each coarse
--- bucket `latent_profile_bucket_generators M n σ` to a concrete fixed-profile
--- SPDP slice. At present that slice is not yet named separately in this file,
--- so the next honest theorem step is to introduce an explicit fixed-profile
--- slice subspace and prove bucket-span containment into it.
+-- bucket `latent_fixedProfileSlice M n σ` to the abstract within-profile slice
+-- whose dimension is controlled in Section 9.
 
 -- Next honest step after `latent_profile_bucket_finrank120_logscale`:
 -- package a finite active family of realized coarse profile signatures together
