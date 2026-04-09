@@ -2849,8 +2849,9 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap_co
       (fullCompiledPoly ℚ M n h_le)
     ≤ Submodule.map (bridgeReconstructionMap M n B)
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-          (latentCompiledPoly M n)) :=
-  mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap_of_assignToLatent
+          (latentCompiledPoly M n)) := by
+  rw [bridgeReconstructionMap_eq_restrictPoly_target M n B]
+  exact mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly_of_assignToLatent
     M n h_le B hAssignToLatent hViolMatches
 
 /-- Honest preferred-route consequence name for the old concrete full-compiled
