@@ -674,13 +674,22 @@ theorem imported_profile_space_dim_bound_of_signature
     (2 * Nat.log 2 n)
     (latent_profile_function_of_signature_sum_le M n σ)
 
+/-- Pure containment-style local frontier: the coarse fixed-profile slice for `σ` should
+sit inside some ambient submodule intended to model the abstract Section 9 profile space.
+This keeps the new local bridge completely free of `finrank` / `Module.Finite`
+requirements, which can be reintroduced later only after the ambient space is properly
+packaged. -/
+def latent_fixedProfileSlice_contained_in_profile_space
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) : Prop :=
+  ∃ V : Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ),
+    latent_fixedProfileSlice M n σ ≤ V
+
 /-- Honest named frontier for the next latent/profile bridge: the concrete fixed-profile
 slice attached to a coarse signature `σ` should admit a linear-control theorem by the
 abstract Section 9 profile space indexed by `latent_profile_function_of_signature M n σ`.
-We do not yet define that ambient profile-space submodule here, because the current
-`ProfileSpaceBound` import only provides the dimension estimate and not a packaged
-subspace object in this file's language. This proposition records the exact remaining
-local obligation without pretending that the bridge has already been formalized. -/
+This remains the downstream quantitative target, but the new containment-only statement
+above is now the sharper local seam for future work. -/
 def latent_fixedProfileSlice_controlled_by_profile_space
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n) : Prop :=
@@ -688,6 +697,12 @@ def latent_fixedProfileSlice_controlled_by_profile_space
     Module.finrank ℚ (latent_fixedProfileSlice M n σ) ≤ d ∧
     d ≤ (∏ τ : Fin 4,
       Nat.choose (latent_profile_function_of_signature M n σ τ + 15) 15)
+
+-- The next honest theorem after introducing
+-- `latent_fixedProfileSlice_contained_in_profile_space` is to package an ambient
+-- profile-space submodule `V` together with its finite-dimensional bound in a form
+-- that can recover `latent_fixedProfileSlice_controlled_by_profile_space` without
+-- forcing premature `Module.Finite` obligations at definition time.
 
 /-- Once the concrete fixed-profile slice is controlled by the abstract profile-space,
 the imported Section 9 estimate immediately yields the expected coarse within-profile
