@@ -1662,7 +1662,6 @@ by the proved semantic rename branch theorem instead of the underpowered
 theorem rename_branch_transport_target_via_bridgeMapU_compiledWitness
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (B : FullToLatentBridge M n)
     (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
       MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
     Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
@@ -1681,7 +1680,6 @@ membership theorem family rather than latent-side transfer-back. -/
 theorem rename_branch_transport_target_via_bridgeMapU_of_semantic_membership
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
-    (B : FullToLatentBridge M n)
     (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
       MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
     (hSem : RenameBranchSemanticTransport M n h_le T) :
