@@ -599,7 +599,9 @@ theorem latent_profile_bucket_finrank120_logscale_iff_bucket_span
 -- Section 9's within-profile dimension obligation. The latter already fixes the
 -- intended exponent `120`; the remaining local theorem is to connect each coarse
 -- bucket `latent_fixedProfileSlice M n σ` to the abstract within-profile slice
--- whose dimension is controlled in Section 9.
+-- whose dimension is controlled in Section 9. The likely upstream source for that
+-- abstract dimension bound is the separate `ProfileSpaceBound` development, which
+-- already formalizes the paper's symmetric-power within-profile estimate.
 
 -- Next honest step after `latent_profile_bucket_finrank120_logscale`:
 -- package a finite active family of realized coarse profile signatures together
