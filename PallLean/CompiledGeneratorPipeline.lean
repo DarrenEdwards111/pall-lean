@@ -1736,8 +1736,12 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_compi
       (fullCompiledPoly ℚ M n h_le)
     ≤ Submodule.map T
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-          (latentCompiledPoly M n)) :=
-  mlBlockedSpdpSubspace_fullCompiled_le_map_via_semantic_targets M n h_le B T hViolMatches hSem
+          (latentCompiledPoly M n)) := by
+  refine mlBlockedSpdpSubspace_fullCompiled_le_map_of_branch_transports M n h_le T
+    (rename_branch_transport_target_via_bridgeMapU_of_semantic_membership M n h_le B T
+      (rename_branch_generator_transport_semantic M n h_le T)) ?_
+  exact mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target_compiledWitness
+    M n B T hViolMatches hSem
 
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap_eq_restrictPoly
     (M : DTM) (n : ℕ)
