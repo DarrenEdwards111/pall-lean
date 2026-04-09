@@ -1834,6 +1834,38 @@ theorem rename_branch_transport_target_via_bridgeMapU_of_semantic_membership
           (latentCompiledPoly M n)) :=
   rename_branch_transport_target_of_semantic_membership M n h_le T hSem
 
+/-- Later bridge-flavored packaging of the strengthened early `of_U` theorem
+surface: if a concrete bridge-direction map `U` comes with the actual
+source-side witness `T (U generator) = generator`, then rename transport follows
+through the new early theorem rather than the old `hBack` route. -/
+theorem rename_branch_transport_target_of_U_source_membership_of_semantic
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (U : MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hU : RenameBranchGlobalDomStyleU M n h_le U)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hSource : ∀ (S : List (Fin (npNumVars n)))
+      (m : MvPolynomial (Fin (npNumVars n)) ℚ),
+      S.length = Nat.log 2 n →
+      m.totalDegree ≤ Nat.log 2 n →
+      m.vars ⊆ S.toFinset →
+      SPDP.isBlockAdmissible
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le)) S →
+      T (U ((MvPolynomial.rename (witnessInclusion M n h_le))
+        (mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n))))) =
+        (MvPolynomial.rename (witnessInclusion M n h_le))
+          (mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n)))) :
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  rename_branch_transport_target_of_U_source_membership M n h_le T U hU hSource
+
 /-- Later arbitrary-`T` replacement for the old bridge-map-U left-inverse full
 compiled route. This packages the already-proved semantic rename branch with the
 compiled-witness semantic violation branch, bypassing the legacy bridge-map-U
