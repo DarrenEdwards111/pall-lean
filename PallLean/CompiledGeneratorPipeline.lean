@@ -2870,8 +2870,8 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly_consequence_o
       (fullCompiledPoly ℚ M n h_le)
     ≤ Submodule.map (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-          (latentCompiledPoly M n)) :=
-  mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly_of_assignToLatent
+          (latentCompiledPoly M n)) := by
+  exact mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly_of_assignToLatent
     M n h_le B hAssignToLatent hViolMatches
 
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap_eq_restrictPoly
