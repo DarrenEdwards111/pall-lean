@@ -3028,6 +3028,27 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_conse
   exact mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_for_restrictPoly_of_assignToLatent
     M n h_le B hAssignToLatent hViolMatches
 
+/-- Honest consequence theorem for the early bridge-map-U target endpoint when
+one has direct semantic violation transport. This keeps the old theorem shape
+available while sourcing it from the later proved semantic branch transport
+route rather than the legacy bridge-map-U axiom layer. -/
+theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_consequence_of_semantic
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hViolMatches :
+      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n)
+    (hSem : ViolationGeneratorSemanticTransport M n B T) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le)
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_semantic M n h_le B T
+    hViolMatches hSem
+
 /-- Honest bridge-reconstruction consequence name for the old target-shaped
 full-compiled wrapper under the explicit assignment-style hypothesis. -/
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_consequence_for_bridgeReconstructionMap_of_assignToLatent
