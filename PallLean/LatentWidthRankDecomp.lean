@@ -674,16 +674,37 @@ theorem imported_profile_space_dim_bound_of_signature
     (2 * Nat.log 2 n)
     (latent_profile_function_of_signature_sum_le M n σ)
 
+/-- Named placeholder for the ambient Section 9 profile-space candidate attached to the
+coarse signature `σ`. We do not define its internal structure yet, because the current
+imports only expose the dimension theorem surface (`profile_space_dim_bound`) and paper
+comments (`RowSpan(R_h) ⊆ V_h`), not a packaged submodule in this file's language.
+Making the ambient space explicit as a parameterized placeholder is still useful: it
+lets the next local theorem target a concrete containment statement rather than another
+opaque existential. -/
+def latent_profile_space_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) : Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
+  ⊤
+
 /-- Pure containment-style local frontier: the coarse fixed-profile slice for `σ` should
-sit inside some ambient submodule intended to model the abstract Section 9 profile space.
-This keeps the new local bridge completely free of `finrank` / `Module.Finite`
-requirements, which can be reintroduced later only after the ambient space is properly
-packaged. -/
+sit inside the eventual ambient profile-space candidate. This keeps the new local bridge
+completely free of `finrank` / `Module.Finite` requirements, which can be reintroduced
+later only after the ambient space is properly packaged. -/
 def latent_fixedProfileSlice_contained_in_profile_space
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n) : Prop :=
-  ∃ V : Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ),
-    latent_fixedProfileSlice M n σ ≤ V
+  latent_fixedProfileSlice M n σ ≤ latent_profile_space_candidate M n σ
+
+/-- Trivial top-level containment for the current placeholder ambient space. This is not
+yet the substantive Section 9 bridge, but it pins the exact theorem slot that will need
+to be strengthened once `latent_profile_space_candidate` is replaced by the real ambient
+profile-controlled submodule. -/
+theorem latent_fixedProfileSlice_contained_in_profile_space_current_placeholder
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    latent_fixedProfileSlice_contained_in_profile_space M n σ := by
+  intro q hq
+  exact Submodule.mem_top
 
 /-- Honest named frontier for the next latent/profile bridge: the concrete fixed-profile
 slice attached to a coarse signature `σ` should admit a linear-control theorem by the
