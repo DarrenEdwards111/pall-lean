@@ -2535,8 +2535,7 @@ theorem mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target_consequenc
     ≤ Submodule.map T
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n)) :=
-  mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target_semantic M n B T
-    hViolMatches hSem
+  mlBlockedSpdpSubspace_violation_le_map_of_semantic M n B T hViolMatches hSem
 
 /-- Honest theorem-level consequence of the early packaged violation-target
 surface `mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target`.
@@ -2555,8 +2554,7 @@ theorem mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target_consequenc
     ≤ Submodule.map T
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n)) :=
-  mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target_compiledWitness M n B T
-    hViolMatches hSem
+  mlBlockedSpdpSubspace_violation_le_map_of_compiledWitnessSemantic M n B T hViolMatches hSem
 
 /-- Explicit compiled-witness sibling of
 `mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target_consequence_of_semantic`.
@@ -2575,8 +2573,7 @@ theorem mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target_consequenc
     ≤ Submodule.map T
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n)) :=
-  mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target_consequence M n B T
-    hViolMatches hSem
+  mlBlockedSpdpSubspace_violation_le_map_of_compiledWitnessSemantic M n B T hViolMatches hSem
 
 /-- Later replacement for the early generator-level rename transport wrapper
 `rename_branch_generator_transport_target`: same endpoint, but discharged by the
