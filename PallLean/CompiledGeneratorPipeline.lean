@@ -1952,6 +1952,26 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_compi
           (latentCompiledPoly M n)) :=
   mlBlockedSpdpSubspace_fullCompiled_le_map_via_semantic_targets M n h_le B T hViolMatches hSem
 
+/-- Honest stronger bridge-map-U-target concrete endpoint for the preferred
+`restrictPoly` map: once the bridge satisfies the assignment-style hypothesis
+actually needed on the violation branch, the old target-shaped theorem surface
+collapses to the stronger concrete `restrictPoly` endpoint. -/
+theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_for_restrictPoly_of_assignToLatent
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (hAssignToLatent : ∀ i : Fin (numVars M n (Nat.log 2 n)),
+      (compiledPartition M n).assign i = (latentPartition M n).assign (B.toLatent i))
+    (hViolMatches :
+      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le)
+    ≤ Submodule.map (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly_of_assignToLatent M n h_le B
+    hAssignToLatent hViolMatches
+
 theorem rename_branch_transport_target_via_bridgeMapU_compiledWitness_eq_semantic
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
