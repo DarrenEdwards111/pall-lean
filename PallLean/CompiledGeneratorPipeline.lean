@@ -943,6 +943,19 @@ theorem rename_branch_transport_target_via_bridgeMapU_eq_semantic
       rename_branch_transport_target_of_semantic M n h_le T := by
   rfl
 
+/-- Earliest rename-target surface collapsed to the proved semantic rename
+transport theorem. This pins the old staged theorem endpoint to the actual
+semantic route, even though the early declaration itself remains for
+compatibility/declaration-order reasons. -/
+theorem rename_branch_transport_target_eq_semantic
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
+    rename_branch_transport_target M n h_le T =
+      rename_branch_transport_target_of_semantic M n h_le T := by
+  rfl
+
 /-- Subspace-level decomposition through the compiled polynomial split, with the
 verifier side already reduced to renamed Tseitin generators. -/
 theorem mlBlockedSpdpSubspace_fullCompiled_le_rename_tseitin_sup_violation
