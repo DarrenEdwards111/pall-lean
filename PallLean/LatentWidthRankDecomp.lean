@@ -393,6 +393,140 @@ def latent_profile_block_cover_item3_uniform120_logscale (M : DTM) (n : ℕ)
         ≤ Submodule.span ℚ (↑(I.biUnion (fun i => Gprof i))
             : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))
 
+/-- Coarse block-level profile signature for latent blocked-SPDP generators.
+This records only bounded combinatorial data at the latent block level:
+which base blocks are hit, and the multiplier degree. This is the first
+concrete profile object for the final Move-4 theorem path. -/
+structure latentProfileSignature (M : DTM) (n : ℕ) where
+  hitBlocks : Finset (Fin (latentBaseVars M n))
+  hitCardBound : hitBlocks.card ≤ Nat.log 2 n
+  multDeg : ℕ
+  multDegBound : multDeg ≤ Nat.log 2 n
+
+/-- Extract the latent block hit-set from a derivative list `S` by projecting
+latent variables to their base block under `latentPartition`. -/
+noncomputable def latent_hitBlocks_of_list
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n))) :
+    Finset (Fin (latentBaseVars M n)) :=
+  (S.map (fun i => (latentPartition M n).assign i)).toFinset
+
+/-- The number of hit base blocks is bounded by the derivative-list length. -/
+theorem latent_hitBlocks_of_list_card_le_length
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n))) :
+    (latent_hitBlocks_of_list M n S).card ≤ S.length := by
+  unfold latent_hitBlocks_of_list
+  simpa using List.toFinset_card_le (S.map (fun i => (latentPartition M n).assign i))
+
+/-- Concrete coarse profile signature attached to a generator presentation
+`(S,m)` with the standard logscale length/degree bounds. -/
+noncomputable def latent_profile_signature_of_generator_data
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n) :
+    latentProfileSignature M n := by
+  refine
+    { hitBlocks := latent_hitBlocks_of_list M n S
+      hitCardBound := ?_
+      multDeg := m.totalDegree
+      multDegBound := hDeg }
+  calc
+    (latent_hitBlocks_of_list M n S).card ≤ S.length :=
+      latent_hitBlocks_of_list_card_le_length M n S
+    _ = Nat.log 2 n := hLen
+
+/-- The coarse signature records exactly the multiplier degree coming from the
+generator presentation. -/
+@[simp] theorem latent_profile_signature_of_generator_data_multDeg
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n) :
+    (latent_profile_signature_of_generator_data M n S m hLen hDeg).multDeg = m.totalDegree := by
+  rfl
+
+/-- The coarse signature hit-set is exactly the block projection of the
+ derivative list. -/
+@[simp] theorem latent_profile_signature_of_generator_data_hitBlocks
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n) :
+    (latent_profile_signature_of_generator_data M n S m hLen hDeg).hitBlocks =
+      latent_hitBlocks_of_list M n S := by
+  rfl
+
+/-- A polynomial lies in the coarse latent profile bucket `σ` if it is generated
+by some blocked-SPDP generator presentation `(S,m)` with coarse signature `σ`. -/
+def latent_profile_bucket_generators
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    Set (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
+  { q | ∃ (S : List (Fin (latentNumVars M n)))
+          (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+          (hLen : S.length = Nat.log 2 n)
+          (hDeg : m.totalDegree ≤ Nat.log 2 n)
+          (hVars : m.vars ⊆ S.toFinset)
+          (hAdm : isBlockAdmissible (latentPartition M n) S),
+      latent_profile_signature_of_generator_data M n S m hLen hDeg = σ ∧
+      q = mlProj (m * iterDerivList S (latentCompiledPoly M n)) }
+
+/-- Every coarse profile bucket is contained in the full latent blocked-SPDP
+ generator set. -/
+theorem latent_profile_bucket_generators_subset_spdp_generators
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    latent_profile_bucket_generators M n σ ⊆
+      { q | ∃ (S : List (Fin (latentNumVars M n)))
+              (m : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+          S.length = Nat.log 2 n ∧
+          m.totalDegree ≤ Nat.log 2 n ∧
+          m.vars ⊆ S.toFinset ∧
+          isBlockAdmissible (latentPartition M n) S ∧
+          q = mlProj (m * iterDerivList S (latentCompiledPoly M n)) } := by
+  intro q hq
+  rcases hq with ⟨S, m, hLen, hDeg, hVars, hAdm, _hSig, rfl⟩
+  exact ⟨S, m, hLen, hDeg, hVars, hAdm, rfl⟩
+
+/-- Every blocked-SPDP generator belongs to the coarse profile bucket determined
+by its own generator presentation. -/
+theorem latent_generator_mem_own_profile_bucket
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S) :
+    mlProj (m * iterDerivList S (latentCompiledPoly M n)) ∈
+      latent_profile_bucket_generators M n
+        (latent_profile_signature_of_generator_data M n S m hLen hDeg) := by
+  refine ⟨S, m, hLen, hDeg, hVars, hAdm, rfl, rfl⟩
+
+/-- The full blocked-SPDP generator set is covered by the union of all coarse
+profile buckets. -/
+theorem latent_spdp_generators_subset_union_profile_buckets
+    (M : DTM) (n : ℕ) :
+    { q | ∃ (S : List (Fin (latentNumVars M n)))
+            (m : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+        S.length = Nat.log 2 n ∧
+        m.totalDegree ≤ Nat.log 2 n ∧
+        m.vars ⊆ S.toFinset ∧
+        isBlockAdmissible (latentPartition M n) S ∧
+        q = mlProj (m * iterDerivList S (latentCompiledPoly M n)) }
+    ⊆
+    ⋃ σ : latentProfileSignature M n, latent_profile_bucket_generators M n σ := by
+  intro q hq
+  rcases hq with ⟨S, m, hLen, hDeg, hVars, hAdm, rfl⟩
+  refine Set.mem_iUnion.mpr ?_
+  refine ⟨latent_profile_signature_of_generator_data M n S m hLen hDeg, ?_⟩
+  exact latent_generator_mem_own_profile_bucket M n S m hLen hDeg hVars hAdm
+
 /-- Uniform-120 implies uniform-160 (monotone weakening of the per-profile cap). -/
 theorem latent_profile_block_cover_item3_uniform2_from_item3_uniform120 (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
