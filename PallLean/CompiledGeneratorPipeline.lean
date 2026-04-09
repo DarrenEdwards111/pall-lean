@@ -1538,7 +1538,8 @@ theorem rename_branch_transport_target_consequence_of_semantic
     ≤ Submodule.map T
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n)) :=
-  rename_branch_transport_target_of_semantic M n h_le T
+  rename_branch_transport_target_of_source_membership M n h_le T
+    (rename_branch_generator_transport_semantic M n h_le T)
 
 /-- Honest consequence theorem for the earliest rename-target axiom under the
 actual source-membership hypothesis. This exposes the raw endpoint directly from
