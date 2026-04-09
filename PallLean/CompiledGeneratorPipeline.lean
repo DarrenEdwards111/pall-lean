@@ -1400,6 +1400,26 @@ theorem rename_branch_transport_target_via_bridgeMapU_consequence_of_semantic
           (latentCompiledPoly M n)) :=
   rename_branch_transport_target_of_semantic M n h_le T
 
+/-- Honest bridge-facing source-membership consequence of the semantic-membership
+rename route. This makes explicit that the early bridge-shaped
+source-membership endpoint is already covered by the proved semantic theorem
+layer, without routing through the weak `hBack` wrapper. -/
+theorem rename_branch_transport_target_via_bridgeMapU_of_source_membership_of_semantic
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hSem : RenameBranchSemanticTransport M n h_le T) :
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  rename_branch_transport_target_via_bridgeMapU_of_source_membership M n h_le B T hSem
+
 /-- Honest bridge-facing consequence of the new strengthened early `of_U`
 theorem surface. For the concrete bridge map, a source-side witness
 `T (U generator) = generator` yields the same rename-branch transport target as
