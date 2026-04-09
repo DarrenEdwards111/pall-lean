@@ -1972,6 +1972,24 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_for_r
   mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly_of_assignToLatent M n h_le B
     hAssignToLatent hViolMatches
 
+/-- Honest concrete rename-branch transport for the legacy
+`bridgeReconstructionMap` surface, obtained by collapsing to the preferred
+`restrictPoly` theorem through `bridgeReconstructionMap = restrictPoly`. This
+bypasses the weak `hBack` story entirely for the concrete bridge map. -/
+theorem rename_branch_transport_target_via_bridgeMapU_for_bridgeReconstructionMap
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n) :
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map (bridgeReconstructionMap M n B)
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) := by
+  rw [bridgeReconstructionMap_eq_restrictPoly_target M n B]
+  exact rename_branch_transport_target_of_U_source_membership_for_restrictPoly M n h_le B
+
 theorem rename_branch_transport_target_via_bridgeMapU_compiledWitness_eq_semantic
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
