@@ -2441,6 +2441,28 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_semantic_targets
 
 /-- Honest later consequence for the legacy left-inverse full-compiled wrapper:
 same endpoint as `mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse`,
+but sourced from the proved direct-semantic branch transport theorem rather than
+the old bridge-map-U axiom layer. -/
+theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse_consequence_of_semantic
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (_hLeftInv : Function.LeftInverse (mapFullToLatentPoly M n B).toLinearMap T)
+    (hViolMatches :
+      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n)
+    (hSem : ViolationGeneratorSemanticTransport M n B T) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le)
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  mlBlockedSpdpSubspace_fullCompiled_le_map_via_semantic_targets_of_semantic M n h_le B T
+    hViolMatches hSem
+
+/-- Honest later consequence for the legacy left-inverse full-compiled wrapper:
+same endpoint as `mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse`,
 but sourced from the proved semantic/compiled-witness branch transport theorem
 rather than the old bridge-map-U axiom layer. -/
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse_consequence
