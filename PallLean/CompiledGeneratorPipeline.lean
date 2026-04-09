@@ -73,6 +73,24 @@ axiom violation_branch_rename_transport_target
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n)))
 
+/-- Honest consequence form of the early generic violation-branch transport
+surface. This records the actual downstream content now available from the
+later compiled-witness semantic route, without pretending the early axiom has
+been proved in place. -/
+theorem violation_branch_rename_transport_target_consequence_of_compiledWitnessSemantic
+    (M : DTM) (n : ℕ)
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hSem : ViolationGeneratorSemanticTransportCompiledWitness M n B T) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (violationPolyOf ℚ M n)
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n))) := by
+  apply violationBranchTransportFrontier_of_generatorFrontier
+  apply violationGeneratorTransportFrontier_of_compiledWitnessSemantic
+  exact hSem
 
 /-- Renamed-Tseitin branch transport into the latent map-image under the chosen
 bridge map. (Current project staging keeps this as a target obligation while the
