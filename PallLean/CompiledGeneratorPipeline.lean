@@ -2852,7 +2852,16 @@ theorem rename_branch_transport_target_of_U_consequence_of_source_image_for_brid
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n)) := by
   rw [bridgeReconstructionMap_eq_restrictPoly_target M n B]
-  exact rename_branch_transport_target_of_U_consequence_of_source_image_for_restrictPoly M n h_le B
+  exact rename_branch_transport_target_of_U_of_source_image M n h_le
+    (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+    (mapFullToLatentPoly M n B).toLinearMap
+    (rename_branch_globalDomStyleU_for_bridgeMap M n h_le B)
+    (by
+      intro S m hlen hmdeg hvars hadm
+      simpa using
+        restrictPoly_mapFullToLatentPoly M n B
+          ((MvPolynomial.rename (witnessInclusion M n h_le))
+            (mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n)))))
 
 /-- Honest bridge-facing consequence theorem for the old rename-wrapper surface
 `rename_branch_transport_target_via_bridgeMapU`: for the concrete bridge
