@@ -2430,18 +2430,25 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_of_targets_consequence_of_comp
   mlBlockedSpdpSubspace_fullCompiled_le_map_of_targets_compiledWitness M n h_le B T
     hViolMatches hRenameBranch hSem
 
-theorem mlBlockedSpdpSubspace_violation_le_map_for_bridgeReconstructionMap_eq_restrictPoly
+/-- Honest one-way consequence replacing the old proof-term equality pin for
+`mlBlockedSpdpSubspace_violation_le_map_for_bridgeReconstructionMap`.
+The bridge endpoint follows from the preferred `restrictPoly` route after
+rewriting the target map, but the two `≤` proofs should not be identified by
+`rfl`. -/
+theorem mlBlockedSpdpSubspace_violation_le_map_for_bridgeReconstructionMap_consequence_of_restrictPoly
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n)
     (hAssignToLatent : ∀ i : Fin (numVars M n (Nat.log 2 n)),
       (compiledPartition M n).assign i = (latentPartition M n).assign (B.toLatent i))
     (hViolMatches :
       MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
-    mlBlockedSpdpSubspace_violation_le_map_for_bridgeReconstructionMap M n B hAssignToLatent hViolMatches =
-      by
-        rw [bridgeReconstructionMap_eq_restrictPoly_target M n B]
-        exact mlBlockedSpdpSubspace_violation_le_map_for_restrictPoly M n B hAssignToLatent hViolMatches := by
-  rfl
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (violationPolyOf ℚ M n)
+    ≤ Submodule.map (bridgeReconstructionMap M n B)
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) := by
+  rw [bridgeReconstructionMap_eq_restrictPoly_target M n B]
+  exact mlBlockedSpdpSubspace_violation_le_map_for_restrictPoly M n B hAssignToLatent hViolMatches
 
 theorem mlBlockedSpdpSubspace_violation_le_map_of_semantic
     (M : DTM) (n : ℕ)
