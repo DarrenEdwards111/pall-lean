@@ -2289,6 +2289,23 @@ theorem rename_branch_transport_target_via_bridgeMapU_of_semantic_membership_con
           (latentCompiledPoly M n)) :=
   rename_branch_transport_target_via_bridgeMapU_for_bridgeReconstructionMap M n h_le B
 
+/-- Honest bridge-facing consequence for the later bridge-shaped
+compiled-witness wrapper, specialized to the concrete bridge reconstruction
+map. This keeps that theorem surface collapsed to the proved concrete bridge
+route instead of relying on the weak generic wrapper story. -/
+theorem rename_branch_transport_target_via_bridgeMapU_compiledWitness_consequence_for_bridgeReconstructionMap
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n) :
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map (bridgeReconstructionMap M n B)
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  rename_branch_transport_target_via_bridgeMapU_for_bridgeReconstructionMap M n h_le B
+
 /-- Honest consequence form of the later bridge-shaped compiled-witness
 wrapper. This keeps the bridge-facing theorem surface available without
 claiming proof-term definitional equality with the semantic endpoint. -/
