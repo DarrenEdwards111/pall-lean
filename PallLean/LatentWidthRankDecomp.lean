@@ -730,6 +730,17 @@ theorem latent_profile_space_candidate_nontrivial_refinement_current
   refine ⟨latent_profile_space_candidate M n σ, ?_⟩
   exact latent_profile_space_candidate_extends_fixedProfileSlice_current M n σ
 
+/-- If a later construction provides any ambient submodule extending the coarse
+fixed-profile slice, then the named nontrivial-refinement target is discharged. This is
+an intentionally minimal packaging lemma for future genuine Section 9 candidates. -/
+theorem latent_profile_space_candidate_nontrivial_refinement_of_le
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    {V : Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ)}
+    (hV : latent_fixedProfileSlice M n σ ≤ V) :
+    latent_profile_space_candidate_nontrivial_refinement M n σ := by
+  exact ⟨V, hV⟩
+
 /-- Pure containment-style local frontier: the coarse fixed-profile slice for `σ` should
 sit inside the eventual ambient profile-space candidate. This keeps the new local bridge
 completely free of `finrank` / `Module.Finite` requirements, which can be reintroduced
