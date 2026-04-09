@@ -2790,7 +2790,7 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse_
     ≤ Submodule.map T
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n)) :=
-  mlBlockedSpdpSubspace_fullCompiled_le_map_via_semantic_targets M n h_le B T
+  mlBlockedSpdpSubspace_fullCompiled_le_map_via_semantic_targets_of_compiledWitness M n h_le B T
     hViolMatches hSem
 
 /-- Explicit compiled-witness sibling of
