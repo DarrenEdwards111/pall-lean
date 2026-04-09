@@ -2195,6 +2195,23 @@ theorem rename_branch_transport_target_via_bridgeMapU_for_bridgeReconstructionMa
   rw [bridgeReconstructionMap_eq_restrictPoly_target M n B]
   exact rename_branch_transport_target_of_U_source_membership_for_restrictPoly M n h_le B
 
+/-- Honest preferred-route consequence theorem for the old rename-wrapper
+surface `rename_branch_transport_target_via_bridgeMapU`: on the concrete
+`restrictPoly` route, the same endpoint follows from the proved concrete
+source-membership theorem rather than the weak bridge-map-U story. -/
+theorem rename_branch_transport_target_via_bridgeMapU_consequence_for_restrictPoly
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n) :
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  rename_branch_transport_target_of_U_consequence_for_restrictPoly M n h_le B
+
 /-- Honest bridge-facing consequence theorem for the old rename-wrapper surface
 `rename_branch_transport_target_via_bridgeMapU`: for the concrete bridge
 reconstruction map, the legacy endpoint follows from the concrete theorem that
