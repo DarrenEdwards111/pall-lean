@@ -674,23 +674,34 @@ theorem imported_profile_space_dim_bound_of_signature
     (2 * Nat.log 2 n)
     (latent_profile_function_of_signature_sum_le M n σ)
 
-/-- Named placeholder for the ambient Section 9 profile-space candidate attached to the
-coarse signature `σ`. We do not define its internal structure yet, because the current
-imports only expose the dimension theorem surface (`profile_space_dim_bound`) and paper
-comments (`RowSpan(R_h) ⊆ V_h`), not a packaged submodule in this file's language.
-Making the ambient space explicit as a parameterized placeholder is still useful: it
-lets the next local theorem target a concrete containment statement rather than another
-opaque existential. -/
+/-- First nontrivial ambient candidate for the coarse fixed-profile slice: use the span
+of all latent blocked-SPDP generators. This is still larger than the intended Section 9
+profile space, but it is a genuine ambient submodule already available in this file's
+language and is strictly more informative than the old placeholder `⊤`. -/
 def latent_profile_space_candidate
     (M : DTM) (n : ℕ)
-    (σ : latentProfileSignature M n) : Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
-  ⊤
+    (_σ : latentProfileSignature M n) : Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
+  Submodule.span ℚ
+    { q | ∃ (S : List (Fin (latentNumVars M n)))
+            (m : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+        S.length = Nat.log 2 n ∧
+        m.totalDegree ≤ Nat.log 2 n ∧
+        m.vars ⊆ S.toFinset ∧
+        isBlockAdmissible (latentPartition M n) S ∧
+        q = mlProj (m * iterDerivList S (latentCompiledPoly M n)) }
 
 @[simp] theorem latent_profile_space_candidate_def
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n) :
     latent_profile_space_candidate M n σ =
-      (⊤ : Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ)) := by
+      Submodule.span ℚ
+        { q | ∃ (S : List (Fin (latentNumVars M n)))
+                (m : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+            S.length = Nat.log 2 n ∧
+            m.totalDegree ≤ Nat.log 2 n ∧
+            m.vars ⊆ S.toFinset ∧
+            isBlockAdmissible (latentPartition M n) S ∧
+            q = mlProj (m * iterDerivList S (latentCompiledPoly M n)) } := by
   rfl
 
 /-- The eventual nontrivial refinement of `latent_profile_space_candidate` should first
@@ -707,7 +718,8 @@ def latent_profile_space_candidate_extends_fixedProfileSlice
     (σ : latentProfileSignature M n) :
     latent_profile_space_candidate_extends_fixedProfileSlice M n σ := by
   intro q hq
-  exact Submodule.mem_top
+  rw [latent_profile_space_candidate_def]
+  exact Submodule.span_mono (latent_profile_bucket_generators_subset_spdp_generators M n σ) hq
 
 /-- The first honest strengthening target for the ambient profile-space candidate:
 replace the placeholder `⊤` by a nontrivial submodule while preserving the fixed-slice
