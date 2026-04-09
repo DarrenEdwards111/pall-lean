@@ -1045,8 +1045,11 @@ theorem mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target
     (violation_branch_rename_transport_target M n B T)
 
 /-- Immediate post-target wiring: once the renamed-Tseitin branch transport is
-supplied, the violation branch closes from `hViolMatches` + isolated target, and
-therefore full compiled subspace transport follows. -/
+supplied, the violation branch closes from `hViolMatches` plus whichever
+violation transport theorem is available, and therefore full compiled subspace
+transport follows. This early theorem still uses the raw staged violation target
+for declaration-order reasons; later siblings replace that dependency with real
+compiled-witness semantics where possible. -/
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_of_targets
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
@@ -1071,9 +1074,9 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_of_targets
   refine mlBlockedSpdpSubspace_fullCompiled_le_map_of_branch_transports M n h_le T hRenameBranch ?_
   exact mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target M n B T hViolMatches
 
-/-- Fully staged closure: both branch transports are consumed from isolated
-target obligations (`rename_branch_transport_target` and
-`violation_branch_rename_transport_target` + `hViolMatches`). -/
+/-- Staged closure using the proved later rename-branch theorem. This removes
+one dependency on the old staged stack, leaving only the surviving generic
+violation transport target on this early route. -/
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_of_staged_targets
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
@@ -1455,6 +1458,29 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_of_targets_compiledWitness
   exact mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches M n B T hViolMatches
     (violationBranchTransportFrontier_of_generatorFrontier M n B T
       (violationGeneratorTransportFrontier_of_compiledWitnessSemantic M n B T hSem))
+
+/-- Later replacement for the early staged closure: same endpoint, but the
+violation branch is discharged by compiled-witness semantics rather than the raw
+staged generic violation axiom. This is the preferred arbitrary-`T` full-compiled
+surface once a compiled-witness semantic package is available. -/
+theorem mlBlockedSpdpSubspace_fullCompiled_le_map_of_staged_targets_compiledWitness
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hViolMatches :
+      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n)
+    (hSem : ViolationGeneratorSemanticTransportCompiledWitness M n B T) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le)
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  mlBlockedSpdpSubspace_fullCompiled_le_map_of_targets_compiledWitness M n h_le B T
+    hViolMatches
+    (map_rename_witness_tseitin_subspace_le_map_latent_subspace M n h_le T)
+    hSem
 
 theorem mlBlockedSpdpSubspace_violation_le_map_for_bridgeReconstructionMap_eq_restrictPoly
     (M : DTM) (n : ℕ)
