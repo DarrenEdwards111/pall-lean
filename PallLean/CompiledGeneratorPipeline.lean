@@ -1736,6 +1736,25 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_compi
           (latentCompiledPoly M n)) :=
   mlBlockedSpdpSubspace_fullCompiled_le_map_via_semantic_targets M n h_le B T hViolMatches hSem
 
+theorem rename_branch_transport_target_via_bridgeMapU_compiledWitness_eq_semantic
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
+    rename_branch_transport_target_via_bridgeMapU_compiledWitness M n h_le T =
+      rename_branch_transport_target_of_semantic M n h_le T := by
+  rfl
+
+theorem rename_branch_transport_target_via_bridgeMapU_of_semantic_membership_eq_generic
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hSem : RenameBranchSemanticTransport M n h_le T) :
+    rename_branch_transport_target_via_bridgeMapU_of_semantic_membership M n h_le T hSem =
+      rename_branch_transport_target_of_semantic_membership M n h_le T hSem := by
+  rfl
+
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap_eq_restrictPoly
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
