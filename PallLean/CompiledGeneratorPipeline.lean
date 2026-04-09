@@ -744,6 +744,78 @@ axiom rename_branch_transport_target_of_U
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n))
 
+/-- Honest strengthened replacement for `rename_branch_transport_target_of_U`:
+what actually suffices is not latent-side transfer-back `U (T r) = r`, but a
+direct source-generator image-membership hypothesis. Stated this early, before
+the later `RenameBranchGlobalDomStyle` alias exists, the condition is exactly
+that every renamed witness/Tseitin generator already lands in
+`Submodule.map T ...`. -/
+theorem rename_branch_transport_target_of_source_membership
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (hT : ∀ (S : List (Fin (npNumVars n)))
+      (m : MvPolynomial (Fin (npNumVars n)) ℚ),
+      S.length = Nat.log 2 n →
+      m.totalDegree ≤ Nat.log 2 n →
+      m.vars ⊆ S.toFinset →
+      SPDP.isBlockAdmissible
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le)) S →
+      (MvPolynomial.rename (witnessInclusion M n h_le))
+        (mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n)))
+        ∈ Submodule.map T
+            (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+              (latentCompiledPoly M n))) :
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) := by
+  intro q hq
+  rcases hq with ⟨r, hr, rfl⟩
+  rw [mlBlockedSpdpSubspace] at hr
+  let s : Set (MvPolynomial (Fin (npNumVars n)) ℚ) :=
+    {q | ∃ (S : List (Fin (npNumVars n))) (m : MvPolynomial (Fin (npNumVars n)) ℚ),
+        S.length = Nat.log 2 n ∧
+        m.totalDegree ≤ Nat.log 2 n ∧
+        m.vars ⊆ S.toFinset ∧
+        SPDP.isBlockAdmissible
+          (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le)) S ∧
+        q = mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n))}
+  have hMap :
+      (MvPolynomial.rename (witnessInclusion M n h_le)) r ∈
+        Submodule.map T
+          (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+            (latentCompiledPoly M n)) := by
+    refine Submodule.span_induction (R := ℚ) (s := s)
+      (p := fun x _ =>
+        (MvPolynomial.rename (witnessInclusion M n h_le)) x ∈
+          Submodule.map T
+            (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+              (latentCompiledPoly M n)))
+      ?_ ?_ ?_ ?_ hr
+    · intro x hx
+      rcases hx with ⟨S, m, hLen, hdeg, hvars, hadm, rfl⟩
+      exact hT S m hLen hdeg hvars hadm
+    · simpa using (Submodule.zero_mem
+        (Submodule.map T
+          (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+            (latentCompiledPoly M n))))
+    · intro x y _ _ hx hy
+      simpa using Submodule.add_mem
+        (Submodule.map T
+          (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+            (latentCompiledPoly M n))) hx hy
+    · intro c x _ hx
+      simpa using Submodule.smul_mem
+        (Submodule.map T
+          (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+            (latentCompiledPoly M n))) c hx
+  simpa [s] using hMap
+
 /-- Immediate legacy bridge-map closure: once transfer-back holds for `(T,U)`
 with `U = mapFullToLatentPoly.toLinearMap`, the rename-branch subspace
 transport follows.
