@@ -1648,9 +1648,30 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly_direct
   · exact mlBlockedSpdpSubspace_violation_le_map_for_restrictPoly M n B
       hAssignToLatent hViolMatches
 
-/-- The earlier preferred concrete `restrictPoly` endpoint agrees with the late
+/- The earlier preferred concrete `restrictPoly` endpoint agrees with the late
 fully concrete branch-by-branch route once the stronger assignment-style bridge
 hypothesis needed by the violation theorem is available. -/
+/-- Honest stronger concrete endpoint for `restrictPoly`: once the bridge also
+satisfies the assignment-style compatibility actually needed on the violation
+branch, the full compiled transport closes by the fully concrete branch-by-
+branch proof. This makes the missing hypothesis explicit on a real theorem
+surface rather than burying it inside the older staged left-inverse route. -/
+theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly_of_assignToLatent
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (hAssignToLatent : ∀ i : Fin (numVars M n (Nat.log 2 n)),
+      (compiledPartition M n).assign i = (latentPartition M n).assign (B.toLatent i))
+    (hViolMatches :
+      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le)
+    ≤ Submodule.map (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly_direct M n h_le B
+    hAssignToLatent hViolMatches
+
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_restrictPoly_eq_direct
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
