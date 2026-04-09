@@ -2881,6 +2881,30 @@ theorem rename_branch_transport_target_via_bridgeMapU_for_bridgeReconstructionMa
         exact rename_branch_transport_target_of_U_source_membership_for_restrictPoly M n h_le B := by
   rfl
 
+/-- Honest preferred-route raw replacement surface for the earliest
+bridge-map wrapper under the explicit source-image hypothesis, specialized to
+`restrictPoly`. This lands the bridge-shaped source-image theorem itself on
+the preferred concrete route, not just its later consequence name. -/
+theorem rename_branch_transport_target_via_bridgeMapU_of_source_image_for_restrictPoly
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n) :
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  rename_branch_transport_target_via_bridgeMapU_of_source_image M n h_le B
+    (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+    (by
+      intro S m hlen hmdeg hvars hadm
+      simpa using
+        restrictPoly_mapFullToLatentPoly M n B
+          ((MvPolynomial.rename (witnessInclusion M n h_le))
+            (mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n)))))
+
 /-- Honest preferred-route consequence for the earliest bridge-map wrapper
 under the explicit source-image hypothesis, specialized to `restrictPoly`.
 This lands the old bridge-shaped endpoint on the concrete source-image route
