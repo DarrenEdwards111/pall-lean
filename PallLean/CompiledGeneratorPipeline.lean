@@ -687,6 +687,7 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap
     (bridgeMap_leftInverse_target_of_comp_id_target M n B (bridgeReconstructionMap M n B))
     hViolMatches
 
+
 /-- Preferred concrete full-compiled endpoint for the `restrictPoly` route.
 
 For declaration-order reasons, this early theorem still uses the proved
@@ -2095,6 +2096,28 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_semantic_targets
       (rename_branch_generator_transport_semantic M n h_le T)) ?_
   exact mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target_compiledWitness
     M n B T hViolMatches hSem
+
+/-- Honest later consequence for the legacy left-inverse full-compiled wrapper:
+same endpoint as `mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse`,
+but sourced from the proved semantic/compiled-witness branch transport theorem
+rather than the old bridge-map-U axiom layer. -/
+theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_leftInverse_consequence
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
+    (_hLeftInv : Function.LeftInverse (mapFullToLatentPoly M n B).toLinearMap T)
+    (hViolMatches :
+      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n)
+    (hSem : ViolationGeneratorSemanticTransportCompiledWitness M n B T) :
+    mlBlockedSpdpSubspace (compiledPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (fullCompiledPoly ℚ M n h_le)
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  mlBlockedSpdpSubspace_fullCompiled_le_map_via_semantic_targets M n h_le B T
+    hViolMatches hSem
 
 /-- Later replacement for the early legacy wrapper
 `mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target`: same
