@@ -909,21 +909,8 @@ theorem rename_branch_generator_transport_target
             (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
               (latentCompiledPoly M n)) := by
   intro S m hlen hdeg hvars hadm
-  have hgen :
-      mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n)) ∈
-        mlBlockedSpdpSubspace
-          (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
-          (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n) :=
-    Submodule.subset_span ⟨S, m, hlen, hdeg, hvars, hadm, rfl⟩
-  have hmap :
-      (MvPolynomial.rename (witnessInclusion M n h_le))
-        (mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n)))
-      ∈ Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
-          (mlBlockedSpdpSubspace
-            (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
-            (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n)) :=
-    ⟨_, hgen, rfl⟩
-  exact rename_branch_transport_target M n h_le T hmap
+  exact (rename_branch_generator_transport_semantic M n h_le T)
+    S m hlen hdeg hvars hadm
 
 /-- Explicit missing-piece theorem shape (rename-witness branch transport).
 Currently instantiated from the isolated target obligation above. -/
