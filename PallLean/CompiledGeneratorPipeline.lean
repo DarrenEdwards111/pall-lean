@@ -1237,6 +1237,24 @@ theorem rename_branch_transport_target_of_U_source_membership_for_restrictPoly
         ((MvPolynomial.rename (witnessInclusion M n h_le))
           (mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n)))))
 
+/-- Honest concrete consequence for the old `rename_branch_transport_target_of_U`
+surface on the preferred `restrictPoly` route. This keeps the earlier theorem
+shape alive for the concrete bridge map, but its proof source is now the
+compiled-input/source-membership theorem rather than the underpowered generic
+`hBack` story. -/
+theorem rename_branch_transport_target_of_U_consequence_for_restrictPoly
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n) :
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  rename_branch_transport_target_of_U_source_membership_for_restrictPoly M n h_le B
+
 /-- Honest consequence form of the earliest rename-target wrapper.
 This removes the remaining proof-term equality pin at the generic rename
 surface: the old staged endpoint implies the proved semantic transport result,
