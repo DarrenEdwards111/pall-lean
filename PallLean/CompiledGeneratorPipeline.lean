@@ -53,15 +53,19 @@ open MvPolynomial SPDP
 
 Note: the concrete bridge-specialized route has been proved later in this file
 for `T = bridgeReconstructionMap M n B`, via
-`violation_generator_reconstruction_atomic` and its semantic/frontier lift.
+`violation_generator_reconstruction_atomic` and its semantic/frontier lift,
+and also for the preferred concrete `restrictPoly` route via the later
+compiled-witness semantic package.
+
 What remains staged here is strictly stronger: a raw rename/map transport
 inequality for an arbitrary linear map `T` into the full-variable polynomial
-space.
+space. The actual proved theorem layer below shows that the honest sufficient
+hypothesis is compiled-witness semantic transport, not this bare arbitrary-`T`
+statement alone.
 
-So this axiom is now best read as the generic packaging target still missing
-beyond the proved bridge-specialized theorem. Once it is proved,
-`hViolMatches` rewrites the target to `latentCompiledPoly` via
-`mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches`. -/
+So this axiom is now best read as the residual generic violation frontier.
+Once it is proved, `hViolMatches` rewrites the target to `latentCompiledPoly`
+via `mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches`. -/
 axiom violation_branch_rename_transport_target
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n)
@@ -1560,7 +1564,12 @@ theorem mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches
           (latentCompiledPoly M n)) := by
   simpa [hViolMatches] using hRenameTransport
 
-/-- Canonical packaged version using the isolated raw target axiom. -/
+/-- Canonical packaged version using the isolated raw target axiom.
+
+Status: this remains a legacy early wrapper over the residual generic violation
+axiom `violation_branch_rename_transport_target`. The honest theorem layer is
+now the compiled-witness semantic route proved later in the file; this wrapper
+persists only for declaration-order compatibility. -/
 theorem mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target
     (M : DTM) (n : ℕ)
     (B : FullToLatentBridge M n)
@@ -1579,9 +1588,12 @@ theorem mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target
 /-- Immediate post-target wiring: once the renamed-Tseitin branch transport is
 supplied, the violation branch closes from `hViolMatches` plus whichever
 violation transport theorem is available, and therefore full compiled subspace
-transport follows. This early theorem still uses the raw staged violation target
-for declaration-order reasons; later siblings replace that dependency with real
-compiled-witness semantics where possible. -/
+transport follows.
+
+Status: this early theorem still uses the raw staged violation target through
+`mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_target`. The honest
+replacement layer is the later compiled-witness semantic family, and that is the
+preferred proof source downstream whenever declaration order allows. -/
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_of_targets
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
