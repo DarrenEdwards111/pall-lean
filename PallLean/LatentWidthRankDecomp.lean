@@ -674,6 +674,33 @@ theorem imported_profile_space_dim_bound_of_signature
     (2 * Nat.log 2 n)
     (latent_profile_function_of_signature_sum_le M n σ)
 
+/-- Honest named frontier for the next latent/profile bridge: the concrete fixed-profile
+slice attached to a coarse signature `σ` should admit a linear-control theorem by the
+abstract Section 9 profile space indexed by `latent_profile_function_of_signature M n σ`.
+We do not yet define that ambient profile-space submodule here, because the current
+`ProfileSpaceBound` import only provides the dimension estimate and not a packaged
+subspace object in this file's language. This proposition records the exact remaining
+local obligation without pretending that the bridge has already been formalized. -/
+def latent_fixedProfileSlice_controlled_by_profile_space
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) : Prop :=
+  ∃ d : ℕ,
+    Module.finrank ℚ (latent_fixedProfileSlice M n σ) ≤ d ∧
+    d ≤ (∏ τ : Fin 4,
+      Nat.choose (latent_profile_function_of_signature M n σ τ + 15) 15)
+
+/-- Once the concrete fixed-profile slice is controlled by the abstract profile-space,
+the imported Section 9 estimate immediately yields the expected coarse within-profile
+bound at scale `(2 log₂ n + 16)^60`. This is the first honest downstream consequence of
+the new coarse signature → profile-function bridge. -/
+theorem latent_fixedProfileSlice_finrank_le_profile_bound_of_control
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hctrl : latent_fixedProfileSlice_controlled_by_profile_space M n σ) :
+    Module.finrank ℚ (latent_fixedProfileSlice M n σ) ≤ (2 * Nat.log 2 n + 16) ^ 60 := by
+  rcases hctrl with ⟨d, hfin, hd⟩
+  exact le_trans hfin <| le_trans hd (imported_profile_space_dim_bound_of_signature M n σ)
+
 -- Next honest step after `latent_profile_bucket_finrank120_logscale`:
 -- package a finite active family of realized coarse profile signatures together
 -- with per-bucket finrank `≤ n^120` into the existing finset-valued endpoint
