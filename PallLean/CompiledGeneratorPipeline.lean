@@ -2339,7 +2339,7 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_of_staged_targets_consequence_
     ≤ Submodule.map T
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n)) :=
-  mlBlockedSpdpSubspace_fullCompiled_le_map_of_staged_targets_consequence M n h_le B T
+  mlBlockedSpdpSubspace_fullCompiled_le_map_of_staged_targets_compiledWitness M n h_le B T
     hViolMatches hSem
 
 /-- Honest theorem-level consequence of the early staged full-compiled target
@@ -2427,7 +2427,7 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_of_targets_consequence_of_comp
     ≤ Submodule.map T
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n)) :=
-  mlBlockedSpdpSubspace_fullCompiled_le_map_of_targets_consequence M n h_le B T
+  mlBlockedSpdpSubspace_fullCompiled_le_map_of_targets_compiledWitness M n h_le B T
     hViolMatches hRenameBranch hSem
 
 theorem mlBlockedSpdpSubspace_violation_le_map_for_bridgeReconstructionMap_eq_restrictPoly
