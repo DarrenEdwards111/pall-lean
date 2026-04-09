@@ -527,6 +527,24 @@ theorem latent_spdp_generators_subset_union_profile_buckets
   refine ⟨latent_profile_signature_of_generator_data M n S m hLen hDeg, ?_⟩
   exact latent_generator_mem_own_profile_bucket M n S m hLen hDeg hVars hAdm
 
+/-- Honest next frontier: a single coarse profile bucket should span a subspace
+of dimension at most `n^120`. This is the finrank-shaped per-profile theorem
+that would convert the coarse signature scaffold into the final uniform-120
+Move-4 package. -/
+def latent_profile_bucket_finrank120_logscale (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∀ σ : latentProfileSignature M n,
+    Module.finrank ℚ
+      (Submodule.span ℚ (latent_profile_bucket_generators M n σ)) ≤ n ^ 120
+
+-- Next honest step after `latent_profile_bucket_finrank120_logscale`:
+-- package a finite active family of realized coarse profile signatures together
+-- with per-bucket finrank `≤ n^120` into the existing finset-valued endpoint
+-- `latent_profile_block_cover_item3_uniform120_logscale`. This bridge is the
+-- remaining local theorem needed to convert the new set/finrank scaffold into
+-- the established Move-4 formulation.
+
 /-- Uniform-120 implies uniform-160 (monotone weakening of the per-profile cap). -/
 theorem latent_profile_block_cover_item3_uniform2_from_item3_uniform120 (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
