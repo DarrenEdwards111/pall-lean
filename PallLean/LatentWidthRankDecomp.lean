@@ -746,9 +746,18 @@ profile-controlled submodule. -/
 theorem latent_fixedProfileSlice_contained_in_profile_space_current_placeholder
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n) :
-    latent_fixedProfileSlice_contained_in_profile_space M n σ := by
-  intro q hq
-  exact Submodule.mem_top
+    latent_fixedProfileSlice_contained_in_profile_space M n σ :=
+  latent_profile_space_candidate_extends_fixedProfileSlice_current M n σ
+
+/-- The placeholder containment theorem is just the current fixed-slice extension theorem
+for the ambient candidate. Keeping this alias explicit will make the future replacement by
+a genuine Section 9 containment bridge mechanically simpler. -/
+@[simp] theorem latent_fixedProfileSlice_contained_in_profile_space_iff_candidate_extension
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    latent_fixedProfileSlice_contained_in_profile_space M n σ ↔
+      latent_profile_space_candidate_extends_fixedProfileSlice M n σ := by
+  rfl
 
 /-- Honest named frontier for the next latent/profile bridge: the concrete fixed-profile
 slice attached to a coarse signature `σ` should admit a linear-control theorem by the
