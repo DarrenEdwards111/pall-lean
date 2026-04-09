@@ -1,4 +1,5 @@
 import PallLean.LatentCompiler
+import PallLean.ProfileSpaceBound
 import Mathlib.Tactic
 
 /-!
@@ -599,9 +600,19 @@ theorem latent_profile_bucket_finrank120_logscale_iff_bucket_span
 -- Section 9's within-profile dimension obligation. The latter already fixes the
 -- intended exponent `120`; the remaining local theorem is to connect each coarse
 -- bucket `latent_fixedProfileSlice M n σ` to the abstract within-profile slice
--- whose dimension is controlled in Section 9. The likely upstream source for that
--- abstract dimension bound is the separate `ProfileSpaceBound` development, which
--- already formalizes the paper's symmetric-power within-profile estimate.
+-- whose dimension is controlled in Section 9. We import `ProfileSpaceBound`
+-- because that file already proves the symmetric-power dimension estimate
+-- (`profile_space_dim_bound`), but a bridge from coarse latent signatures to the
+-- corresponding profile function `h : Fin 4 → ℕ` is still missing here.
+
+/-- Upstream within-profile bound available from `ProfileSpaceBound`: for any profile
+function `h : Fin 4 → ℕ` with total mass at most `R`, the abstract profile-space
+contribution is bounded by `(R + 16)^60`. This is the imported paper-faithful
+symmetric-power estimate that the latent fixed-profile slices still need to map into. -/
+theorem imported_profile_space_dim_bound
+    (h : Fin 4 → ℕ) (R : ℕ) (hR : ∑ i, h i ≤ R) :
+    (∏ τ : Fin 4, Nat.choose (h τ + 15) 15) ≤ (R + 16) ^ 60 :=
+  ProfileSpaceBound.profile_space_dim_bound h R hR
 
 -- Next honest step after `latent_profile_bucket_finrank120_logscale`:
 -- package a finite active family of realized coarse profile signatures together
