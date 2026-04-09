@@ -2370,6 +2370,49 @@ theorem rename_branch_transport_target_via_bridgeMapU_consequence_for_restrictPo
           (latentCompiledPoly M n)) :=
   rename_branch_transport_target_of_U_consequence_for_restrictPoly M n h_le B
 
+/-- Honest preferred-route consequence for the old generic `of_U` family under
+explicit source-image control, specialized to `restrictPoly`. This pins that
+legacy theorem shape directly to the concrete source-image identity already
+proved by `restrictPoly_mapFullToLatentPoly`. -/
+theorem rename_branch_transport_target_of_U_consequence_of_source_image_for_restrictPoly
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n) :
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  rename_branch_transport_target_of_U_consequence_of_source_image M n h_le
+    (MultilinearSPDP.restrictPoly ℚ B.toLatent B.inj).toLinearMap
+    (mapFullToLatentPoly M n B).toLinearMap
+    (rename_branch_globalDomStyleU_for_bridgeMap M n h_le B)
+    (by
+      intro S m hlen hmdeg hvars hadm
+      simpa using
+        restrictPoly_mapFullToLatentPoly M n B
+          ((MvPolynomial.rename (witnessInclusion M n h_le))
+            (mlProj (m * SPDP.iterDerivList S (tseitinPoly ℚ n)))))
+
+/-- Concrete bridge-reconstruction version of the old generic `of_U`
+source-image consequence theorem. This collapses the concrete endpoint through
+`bridgeReconstructionMap = restrictPoly`. -/
+theorem rename_branch_transport_target_of_U_consequence_of_source_image_for_bridgeReconstructionMap
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n) :
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map (bridgeReconstructionMap M n B)
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) := by
+  rw [bridgeReconstructionMap_eq_restrictPoly_target M n B]
+  exact rename_branch_transport_target_of_U_consequence_of_source_image_for_restrictPoly M n h_le B
+
 /-- Honest bridge-facing consequence theorem for the old rename-wrapper surface
 `rename_branch_transport_target_via_bridgeMapU`: for the concrete bridge
 reconstruction map, the legacy endpoint follows from the concrete theorem that
