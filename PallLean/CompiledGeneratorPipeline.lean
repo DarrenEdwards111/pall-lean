@@ -1664,8 +1664,7 @@ theorem rename_branch_transport_target_via_bridgeMapU_compiledWitness
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (B : FullToLatentBridge M n)
     (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
-      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
-    (hBack : HasTransferBackOnLatentSubspace M n T (mapFullToLatentPoly M n B).toLinearMap) :
+      MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
     Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
       (mlBlockedSpdpSubspace
         (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
