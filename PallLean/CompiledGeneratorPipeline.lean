@@ -2257,8 +2257,7 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_of_targets_compiledWitness
         (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
           (latentCompiledPoly M n)) := by
   refine mlBlockedSpdpSubspace_fullCompiled_le_map_of_branch_transports M n h_le T hRenameBranch ?_
-  exact mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches M n B T hViolMatches
-    (violationBranchTransportFrontier_of_compiledWitnessSemantic M n B T hSem)
+  exact mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_compiledWitness M n B T hViolMatches hSem
 
 /-- Later replacement for the early staged closure: same endpoint, but the
 violation branch is discharged by compiled-witness semantics rather than the raw
@@ -2280,8 +2279,7 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_of_staged_targets_compiledWitn
           (latentCompiledPoly M n)) := by
   refine mlBlockedSpdpSubspace_fullCompiled_le_map_of_branch_transports M n h_le T ?_ ?_
   · exact map_rename_witness_tseitin_subspace_le_map_latent_subspace M n h_le T
-  · exact mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches M n B T hViolMatches
-      (violationBranchTransportFrontier_of_compiledWitnessSemantic M n B T hSem)
+  · exact mlBlockedSpdpSubspace_violation_le_map_of_hViolMatches_compiledWitness M n B T hViolMatches hSem
 
 /-- Honest theorem-level consequence of the early staged full-compiled closure
 `mlBlockedSpdpSubspace_fullCompiled_le_map_of_staged_targets`.
