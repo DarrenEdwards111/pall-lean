@@ -715,6 +715,34 @@ theorem latent_fixedProfileSlice_finrank120_of_control_and_growth
     Module.finrank ℚ (latent_fixedProfileSlice M n σ) ≤ n ^ 120 := by
   exact le_trans (latent_fixedProfileSlice_finrank_le_profile_bound_of_control M n σ hctrl) hgrowth
 
+/-- Small arithmetic bridge for the coarse latent profile scaffold: once `n ≥ 16`,
+the coarse profile-space bound is dominated by the simpler within-profile base
+`(log₂ n + 1)^120`. This isolates the log-vs-log comparison from the harder final
+comparison with a pure power of `n`. -/
+theorem coarse_profile_space_bound_le_log120
+    (n : ℕ) (hn16 : 2 ^ 4 ≤ n) :
+    (2 * Nat.log 2 n + 16) ^ 60 ≤ (Nat.log 2 n + 1) ^ 120 := by
+  have hlog4 : 4 ≤ Nat.log 2 n := by
+    have hpow : Nat.log 2 (2 ^ 4) = 4 := Nat.log_pow (by norm_num) 4
+    have hmono : Nat.log 2 (2 ^ 4) ≤ Nat.log 2 n :=
+      Nat.log_mono (by norm_num) le_rfl hn16
+    rw [hpow] at hmono
+    exact hmono
+  have hsq : 16 ≤ (Nat.log 2 n) ^ 2 := by
+    calc
+      16 = 4 ^ 2 := by norm_num
+      _ ≤ (Nat.log 2 n) ^ 2 := by
+        gcongr
+  have hbase : 2 * Nat.log 2 n + 16 ≤ (Nat.log 2 n + 1) ^ 2 := by
+    calc
+      2 * Nat.log 2 n + 16 ≤ 2 * Nat.log 2 n + (Nat.log 2 n) ^ 2 := by omega
+      _ ≤ (Nat.log 2 n) ^ 2 + 2 * Nat.log 2 n + 1 := by omega
+      _ = (Nat.log 2 n + 1) ^ 2 := by ring
+  calc
+    (2 * Nat.log 2 n + 16) ^ 60 ≤ ((Nat.log 2 n + 1) ^ 2) ^ 60 := Nat.pow_le_pow_left hbase 60
+    _ = (Nat.log 2 n + 1) ^ (2 * 60) := by rw [← Nat.pow_mul]
+    _ = (Nat.log 2 n + 1) ^ 120 := by norm_num
+
 -- Next honest step after `latent_profile_bucket_finrank120_logscale`:
 -- package a finite active family of realized coarse profile signatures together
 -- with per-bucket finrank `≤ n^120` into the existing finset-valued endpoint
