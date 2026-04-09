@@ -2062,24 +2062,40 @@ theorem rename_branch_transport_target_via_bridgeMapU_for_bridgeReconstructionMa
         exact rename_branch_transport_target_of_U_source_membership_for_restrictPoly M n h_le B := by
   rfl
 
-theorem rename_branch_transport_target_via_bridgeMapU_compiledWitness_eq_semantic
+/-- Honest consequence form of the later bridge-shaped compiled-witness
+wrapper. This keeps the bridge-facing theorem surface available without
+claiming proof-term definitional equality with the semantic endpoint. -/
+theorem rename_branch_transport_target_via_bridgeMapU_compiledWitness_consequence_of_semantic
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
       MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ) :
-    rename_branch_transport_target_via_bridgeMapU_compiledWitness M n h_le T =
-      rename_branch_transport_target_of_semantic M n h_le T := by
-  rfl
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  rename_branch_transport_target_of_semantic M n h_le T
 
-theorem rename_branch_transport_target_via_bridgeMapU_of_semantic_membership_eq_generic
+/-- Honest consequence form of the bridge-flavored semantic-membership wrapper.
+Again, this exposes the actual downstream theorem content without pinning the
+wrapper to the generic theorem by `rfl`. -/
+theorem rename_branch_transport_target_via_bridgeMapU_of_semantic_membership_consequence
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (T : MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
       MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
     (hSem : RenameBranchSemanticTransport M n h_le T) :
-    rename_branch_transport_target_via_bridgeMapU_of_semantic_membership M n h_le T hSem =
-      rename_branch_transport_target_of_semantic_membership M n h_le T hSem := by
-  rfl
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  rename_branch_transport_target_of_semantic_membership M n h_le T hSem
 
 /-- Honest stronger concrete endpoint for the legacy bridge-reconstruction-map
 surface: once the same assignment-style compatibility needed by the concrete
