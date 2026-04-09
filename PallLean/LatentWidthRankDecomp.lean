@@ -701,6 +701,20 @@ theorem latent_fixedProfileSlice_finrank_le_profile_bound_of_control
   rcases hctrl with ⟨d, hfin, hd⟩
   exact le_trans hfin <| le_trans hd (imported_profile_space_dim_bound_of_signature M n σ)
 
+/-- The concrete fixed-profile slice frontier now splits cleanly into two local tasks:
+(1) prove `latent_fixedProfileSlice_controlled_by_profile_space`, and
+(2) compare the resulting `(2 log₂ n + 16)^60` bound with the target `n^120`.
+This theorem packages step (1) into the exact polynomial cap needed by the later
+uniform-120 endpoint, leaving the final arithmetic domination as a separate explicit
+hypothesis rather than hiding it inside the slice-control bridge. -/
+theorem latent_fixedProfileSlice_finrank120_of_control_and_growth
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hctrl : latent_fixedProfileSlice_controlled_by_profile_space M n σ)
+    (hgrowth : (2 * Nat.log 2 n + 16) ^ 60 ≤ n ^ 120) :
+    Module.finrank ℚ (latent_fixedProfileSlice M n σ) ≤ n ^ 120 := by
+  exact le_trans (latent_fixedProfileSlice_finrank_le_profile_bound_of_control M n σ hctrl) hgrowth
+
 -- Next honest step after `latent_profile_bucket_finrank120_logscale`:
 -- package a finite active family of realized coarse profile signatures together
 -- with per-bucket finrank `≤ n^120` into the existing finset-valued endpoint
