@@ -2051,6 +2051,22 @@ theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_for_b
   mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap_of_assignToLatent
     M n h_le B hAssignToLatent hViolMatches
 
+theorem mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_for_bridgeReconstructionMap_eq_restrictPoly
+    (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
+    (B : FullToLatentBridge M n)
+    (hAssignToLatent : ∀ i : Fin (numVars M n (Nat.log 2 n)),
+      (compiledPartition M n).assign i = (latentPartition M n).assign (B.toLatent i))
+    (hViolMatches :
+      MvPolynomial.rename B.toLatent (violationPolyOf ℚ M n) = latentCompiledPoly M n) :
+    mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_for_bridgeReconstructionMap_of_assignToLatent
+      M n h_le B hAssignToLatent hViolMatches =
+      by
+        rw [bridgeReconstructionMap_eq_restrictPoly_target M n B]
+        exact mlBlockedSpdpSubspace_fullCompiled_le_map_via_bridgeMapU_of_target_for_restrictPoly_of_assignToLatent
+          M n h_le B hAssignToLatent hViolMatches := by
+  rfl
+
 theorem mlBlockedSpdpSubspace_fullCompiled_le_map_for_bridgeReconstructionMap_eq_restrictPoly
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
