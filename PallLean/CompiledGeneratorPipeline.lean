@@ -1108,9 +1108,12 @@ theorem rename_branch_transport_target_of_semantic
           (latentCompiledPoly M n)) :=
   map_rename_witness_tseitin_subspace_le_map_latent_subspace M n h_le T
 
-/-- Bridge-map-U legacy wrapper collapse, theoremically pinned to the proved
-semantic rename-branch transport surface. -/
-theorem rename_branch_transport_target_via_bridgeMapU_eq_semantic
+/-- Honest consequence form of the old bridge-map-U/transfer-back wrapper.
+This avoids pretending the legacy wrapper is definitionally the same theorem as
+`rename_branch_transport_target_of_semantic`; instead it states the actual
+downstream fact that the old bridge-facing hypothesis implies the proved
+semantic endpoint. -/
+theorem rename_branch_transport_target_via_bridgeMapU_consequence_of_semantic
     (M : DTM) (n : ℕ)
     (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n))
     (B : FullToLatentBridge M n)
@@ -1118,9 +1121,14 @@ theorem rename_branch_transport_target_via_bridgeMapU_eq_semantic
       MvPolynomial (Fin (numVars M n (Nat.log 2 n))) ℚ)
     (hBack : HasTransferBackOnLatentSubspace M n T
       (mapFullToLatentPoly M n B).toLinearMap) :
-    rename_branch_transport_target_via_bridgeMapU M n h_le B T hBack =
-      rename_branch_transport_target_of_semantic M n h_le T := by
-  rfl
+    Submodule.map (MvPolynomial.rename (witnessInclusion M n h_le)).toLinearMap
+      (mlBlockedSpdpSubspace
+        (pullbackPartition (compiledPartition M n) (witnessInclusion M n h_le))
+        (Nat.log 2 n) (Nat.log 2 n) (tseitinPoly ℚ n))
+    ≤ Submodule.map T
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n)) :=
+  rename_branch_transport_target_of_semantic M n h_le T
 
 /-- Honest bridge-facing consequence of the new strengthened early `of_U`
 theorem surface. For the concrete bridge map, a source-side witness
