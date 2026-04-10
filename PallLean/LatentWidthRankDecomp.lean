@@ -2003,6 +2003,43 @@ theorem latent_bucket_generator_branch_factorization_menu_proved
   · intro hsel
     exact latent_bucket_generator_selCon_branch_of_compatible M n σ hn2 q hq S m hLen hDeg hVars hAdm hsplit hsel
 
+/-- Distinct slot families cannot present the same nonempty derivative list. This is the
+first honest overlap-control fact for the compatibility predicates. -/
+theorem machSlot_list_ne_copySlot_list_of_nodup
+    (M : DTM) (n : ℕ)
+    (ks ls : List (Fin (latentBaseVars M n)))
+    (hknil : ks ≠ []) :
+    ks.map (machSlot M n) ≠ ls.map (copySlot M n) := by
+  intro h
+  have hlen : ks.length = ls.length := by simpa [h]
+  rcases ks with _ | ⟨k, ks'⟩
+  · contradiction
+  · cases ls with
+    | nil => simp at hlen
+    | cons l ls' =>
+        have hhead : machSlot M n k = copySlot M n l := by
+          simpa using List.cons.inj h |>.1
+        simp [machSlot, copySlot, slot, Fin.ext_iff] at hhead
+
+/-- Hence machine-slot compatibility and copy-slot compatibility are disjoint on nonempty
+lists. This begins to control which branches can honestly coexist. -/
+theorem latent_machCopy_and_copyCon_compatible_disjoint
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hS : S ≠ []) :
+    ¬ (latent_machCopy_single_sheet_compatible M n S m ∧
+       latent_copyCon_single_sheet_compatible M n S m) := by
+  intro hboth
+  rcases hboth with ⟨⟨ks, hndk, hSmach, hVarsMach⟩, ⟨ls, hndl, hScopy, hVarsCopy⟩⟩
+  have hneq : ks.map (machSlot M n) ≠ ls.map (copySlot M n) :=
+    machSlot_list_ne_copySlot_list_of_nodup M n ks ls (by
+      intro hk
+      apply hS
+      rw [hSmach, hk]
+      simp)
+  exact hneq (hSmach.trans hScopy.symm)
+
 /-- Under selector-only compatibility, the machCopy branch vanishes because selSlot
  derivatives kill `machCopySheet`. -/
 theorem latent_bucket_generator_machCopy_branch_zero_of_sel_compatible
