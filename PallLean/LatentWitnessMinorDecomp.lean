@@ -177,6 +177,41 @@ theorem pderiv_machSlot_machCopyGadget_ne (M : DTM) (n : ℕ)
     simp [machSlot, copySlot, slot, Fin.ext_iff]
   exact ProductDeriv.pderiv_one_sub_mul_ne hneq hnot
 
+/-- Machine-slot derivative on a finite machCopy product (hit case). -/
+theorem pderiv_machSlot_machCopyProd_of_mem (M : DTM) (n : ℕ)
+    (T : Finset (Fin (latentBaseVars M n)))
+    (j : Fin (latentBaseVars M n)) (hj : j ∈ T) :
+    pderiv (machSlot M n j) (∏ i ∈ T, machCopyGadget M n i) =
+      (-(Xcopy M n j)) * (∏ i ∈ (T.erase j), machCopyGadget M n i) := by
+  rw [ProductDeriv.pderiv_prod_single
+      (s := T)
+      (f := fun i => machCopyGadget M n i)
+      (i := machSlot M n j)
+      (k := j)
+      (hk := hj)]
+  · simpa [pderiv_machSlot_machCopyGadget_eq]
+  · intro i hi hij
+    exact pderiv_machSlot_machCopyGadget_ne M n i j hij
+
+/-- Machine-slot derivative on a finite machCopy product (miss case). -/
+theorem pderiv_machSlot_machCopyProd_of_not_mem (M : DTM) (n : ℕ)
+    (T : Finset (Fin (latentBaseVars M n)))
+    (j : Fin (latentBaseVars M n)) (hj : j ∉ T) :
+    pderiv (machSlot M n j) (∏ i ∈ T, machCopyGadget M n i) = 0 := by
+  induction T using Finset.induction_on with
+  | empty => simp
+  | insert a T ha ih =>
+      have hja : j ≠ a := by
+        intro h
+        apply hj
+        simp [h, ha]
+      have hjT : j ∉ T := by
+        intro h
+        apply hj
+        simp [h, ha]
+      rw [Finset.prod_insert ha, MvPolynomial.pderiv_mul]
+      simp [pderiv_machSlot_machCopyGadget_ne M n a j (by simpa [eq_comm] using hja), ih hjT]
+
 private theorem foldl_pderiv_zero_sel {n : ℕ} (l : List (Fin n)) :
     l.foldl (fun q i => pderiv i q) (0 : MvPolynomial (Fin n) ℚ) = 0 := by
   induction l with
