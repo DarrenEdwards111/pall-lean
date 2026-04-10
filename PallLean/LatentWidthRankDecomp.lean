@@ -1760,6 +1760,34 @@ theorem latent_bucket_generator_copyCon_branch_zero_of_sel_compatible
 /-- Selector-only compatibility closes the full sheet split: the machCopy and copyCon
 branches vanish, so the arbitrary bucket generator is exactly the selCon branch, which is
 already handled by the existing selCon factor route. -/
+/-- Reusable closure schema: if a compatibility hypothesis kills two branches of the formal
+three-sheet split and provides a factor route for the survivor, then the whole bucket
+generator factors through that surviving sheet. This packages the exact pattern first used
+for the selector-only case. -/
+theorem latent_bucket_generator_factor_through_surviving_sheet_of_split
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (sheet : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (branch1 branch2 branch3 : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hsheet : sheet = branch3)
+    (hbranch1zero : branch1 = 0)
+    (hbranch2zero : branch2 = 0)
+    {q residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ}
+    (hsplit : q = branch1 + branch2 + branch3)
+    (hsurvive : branch3 = mlProj (residual * varying))
+    (hvary : varying ∈ latent_profile_varying_space M n σ) :
+    ∃ outSheet outResidual outVarying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+      (outSheet = machCopySheet M n ∨ outSheet = copyConSheet M n ∨ outSheet = selConSheet M n) ∧
+      q = mlProj (outResidual * outVarying) ∧
+      outVarying ∈ latent_profile_varying_space M n σ := by
+  refine ⟨sheet, residual, varying, ?_, ?_, hvary⟩
+  · rcases hsheet with rfl
+    exact Or.inr (Or.inr rfl)
+  · rw [hsplit, hbranch1zero, hbranch2zero, zero_add, hsurvive]
+
+/-- Selector-only compatibility closes the full sheet split: the machCopy and copyCon
+branches vanish, so the arbitrary bucket generator is exactly the selCon branch, which is
+already handled by the existing selCon factor route. -/
 theorem latent_bucket_generator_of_sel_compatible_factors_through_sheet_varying_space
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
@@ -1779,8 +1807,12 @@ theorem latent_bucket_generator_of_sel_compatible_factors_through_sheet_varying_
   have hcopy0 := latent_bucket_generator_copyCon_branch_zero_of_sel_compatible M n S m hcomp
   rcases latent_bucket_generator_selCon_branch_of_compatible M n σ hn2 q hq S m hLen hDeg hVars hAdm hsplit hcomp with
     ⟨residual, varying, hsel, hvary⟩
-  refine ⟨selConSheet M n, residual, varying, Or.inr (Or.inr rfl), ?_, hvary⟩
-  rw [hsplit, hmach0, hcopy0, zero_add, hsel]
+  exact latent_bucket_generator_factor_through_surviving_sheet_of_split M n σ
+    (selConSheet M n)
+    (mlProj (m * iterDerivList S (machCopySheet M n)))
+    (mlProj (m * iterDerivList S (copyConSheet M n)))
+    (mlProj (m * iterDerivList S (selConSheet M n)))
+    rfl hmach0 hcopy0 hsplit hsel hvary
 
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
