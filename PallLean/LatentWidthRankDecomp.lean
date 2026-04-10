@@ -2474,6 +2474,55 @@ theorem latent_selCon_compatible_bucket_member_clean_unique_branch_factorization
       omega)).2.2 hcomp with ⟨residual, varying, hfac, hvary, _, _⟩
   exact ⟨ks, m, residual, varying, hnd, hlen, hVars, hqeq, hfac, hvary⟩
 
+/-- Uniform top-level compatibility-indexed menu: rather than three separate top-level entry
+points, this packages the cleaned mach/copy/sel consequences together. The statement stays
+honest by remaining a menu, not by forcing a new inductive index abstraction. -/
+def latent_clean_compatible_bucket_member_menu
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ) : Prop :=
+  latent_machCopy_compatible_bucket_member M n σ q ∨
+  latent_copyCon_compatible_bucket_member M n σ q ∨
+  latent_selCon_compatible_bucket_member_clean M n σ q
+
+/-- Uniform cleaned top-level consequence: any of the three cleaned compatibility witnesses
+produces the corresponding unique branch factorization data. This is the top-level analogue
+of the earlier branch menu, but now in cleaned bucket-member language. -/
+theorem latent_clean_compatible_bucket_member_menu_unique_branch_factorization
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hn2 : n ≥ 2)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hq : latent_clean_compatible_bucket_member_menu M n σ q) :
+    (∃ ks m residual varying,
+        ks.Nodup ∧
+        ks.length = Nat.log 2 n ∧
+        m.vars ⊆ (ks.map (machSlot M n)).toFinset ∧
+        q = mlProj (m * iterDerivList (ks.map (machSlot M n)) (latentCompiledPoly M n)) ∧
+        mlProj (m * iterDerivList (ks.map (machSlot M n)) (machCopySheet M n)) =
+          mlProj (residual * varying) ∧
+        varying ∈ latent_profile_varying_space M n σ) ∨
+    (∃ ks m residual varying,
+        ks.Nodup ∧
+        ks.length = Nat.log 2 n ∧
+        m.vars ⊆ (ks.map (copySlot M n)).toFinset ∧
+        q = mlProj (m * iterDerivList (ks.map (copySlot M n)) (latentCompiledPoly M n)) ∧
+        mlProj (m * iterDerivList (ks.map (copySlot M n)) (copyConSheet M n)) =
+          mlProj (residual * varying) ∧
+        varying ∈ latent_profile_varying_space M n σ) ∨
+    (∃ ks m residual varying,
+        ks.Nodup ∧
+        ks.length = Nat.log 2 n ∧
+        m.vars ⊆ (ks.map (selSlot M n)).toFinset ∧
+        q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n)) ∧
+        mlProj (m * iterDerivList (ks.map (selSlot M n)) (selConSheet M n)) =
+          mlProj (residual * varying) ∧
+        varying ∈ latent_profile_varying_space M n σ) := by
+  rcases hq with hmach | hcopy | hsel
+  · exact Or.inl <| latent_machCopy_compatible_bucket_member_unique_branch_factorization M n σ hn2 q hmach
+  · exact Or.inr <| Or.inl <| latent_copyCon_compatible_bucket_member_unique_branch_factorization M n σ hn2 q hcopy
+  · exact Or.inr <| Or.inr <| latent_selCon_compatible_bucket_member_clean_unique_branch_factorization M n σ hn2 q hsel
+
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
 latentCompiledPoly = sum of 3 product sheets → subadditivity reduces to per-sheet bounds.
