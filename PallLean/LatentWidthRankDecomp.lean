@@ -674,6 +674,25 @@ theorem imported_profile_space_dim_bound_of_signature
     (2 * Nat.log 2 n)
     (latent_profile_function_of_signature_sum_le M n σ)
 
+/-- σ-controlled variable window suggested by the coarse hit-block set: for each hit base
+block, keep all four latent layer copies. This is the first natural ambient object that is
+larger than the coarse bucket span while still remaining genuinely signature-dependent. -/
+noncomputable def latent_profile_var_window
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) : Finset (Fin (latentNumVars M n)) :=
+  σ.hitBlocks.biUnion (fun i => ({machSlot M n i, copySlot M n i, selSlot M n i, conSlot M n i} : Finset _))
+
+/-- Candidate widened ambient profile space suggested by the coarse signature: the span of
+all polynomials whose variables stay inside the four-layer lift of `σ.hitBlocks`.
+
+This is recorded as a separate object first, rather than replacing the working candidate
+immediately, because the key remaining theorem is still the containment
+`latent_fixedProfileSlice M n σ ≤ latent_profile_window_space M n σ`. -/
+def latent_profile_window_space
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) : Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
+  Submodule.span ℚ { q | q.vars ⊆ latent_profile_var_window M n σ }
+
 /-- Sharpened σ-dependent ambient candidate: use exactly the span of the coarse bucket for
 `σ`. This is the first genuinely signature-sensitive ambient space in the local bridge.
 It is still only the coarse latent slice, not yet the Section 9 profile space, but it
@@ -682,6 +701,13 @@ def latent_profile_space_candidate
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n) : Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
   Submodule.span ℚ (latent_profile_bucket_generators M n σ)
+
+@[simp] theorem latent_profile_window_space_def
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    latent_profile_window_space M n σ =
+      Submodule.span ℚ { q | q.vars ⊆ latent_profile_var_window M n σ } := by
+  rfl
 
 @[simp] theorem latent_profile_space_candidate_def
     (M : DTM) (n : ℕ)
@@ -705,6 +731,15 @@ def latent_profile_space_candidate_extends_fixedProfileSlice
     latent_profile_space_candidate_extends_fixedProfileSlice M n σ := by
   simp [latent_profile_space_candidate_extends_fixedProfileSlice, latent_profile_space_candidate_def,
     latent_fixedProfileSlice_def]
+
+/-- Exact widened-ambient frontier suggested by the current coarse signature: prove that the
+concrete fixed-profile slice sits inside the σ-controlled four-layer variable window. This
+is the first honest structural theorem needed before any `MlProjFar`-style finrank bound can
+be applied to the widened ambient space. -/
+def latent_fixedProfileSlice_le_profile_window_space
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) : Prop :=
+  latent_fixedProfileSlice M n σ ≤ latent_profile_window_space M n σ
 
 /-- The first honest strengthening target for the ambient profile-space candidate:
 replace the placeholder `⊤` by a nontrivial submodule while preserving the fixed-slice
@@ -790,9 +825,9 @@ def latent_fixedProfileSlice_controlled_by_profile_space
       Nat.choose (latent_profile_function_of_signature M n σ τ + 15) 15)
 
 /-- Any future finite-dimensional control theorem proved for the current ambient
-candidate immediately transfers to the concrete fixed-profile slice, because the current
-candidate is definitionally the same subspace. This packages the exact handoff the next
-true widening step will need to preserve. -/
+candidate immediately transfers to the concrete fixed-profile slice by monotonicity,
+because the candidate was widened in a way that still contains the slice. This packages
+the exact handoff the next finrank theorem needs to use. -/
 theorem latent_fixedProfileSlice_controlled_by_candidate_finrank
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
