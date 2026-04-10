@@ -1870,6 +1870,49 @@ theorem latent_bucket_generator_of_sel_compatible_factors_through_sheet_varying_
     (mlProj (m * iterDerivList S (selConSheet M n)))
     rfl hmach0 hcopy0 hsplit hsel hvary
 
+/-- Direct selector-only bucket-membership package: a coarse bucket generator together with
+its selector-only presentation data. This is the clean top-level input shape for using the
+completed selector-only closure theorem without manually carrying split data around. -/
+def latent_selCon_compatible_bucket_member
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ) : Prop :=
+  ∃ (ks : List (Fin (latentBaseVars M n)))
+      (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+      (hnd : ks.Nodup)
+      (hlen : ks.length = Nat.log 2 n)
+      (hDeg : m.totalDegree ≤ Nat.log 2 n)
+      (hVars : m.vars ⊆ (ks.map (selSlot M n)).toFinset),
+    latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) m
+      (by simp [List.length_map, hlen]) hDeg = σ ∧
+    q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n))
+
+/-- Clean top-level selector-only closure theorem in bucket language. This repackages the
+already-closed selector-only case so downstream uses can work directly from a selector-only
+bucket-member witness instead of threading explicit sheet-split data by hand. -/
+theorem latent_selCon_compatible_bucket_member_factors_through_sheet_varying_space
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hn2 : n ≥ 2)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hq : latent_selCon_compatible_bucket_member M n σ q) :
+    ∃ sheet residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+      (sheet = machCopySheet M n ∨ sheet = copyConSheet M n ∨ sheet = selConSheet M n) ∧
+      q = mlProj (residual * varying) ∧
+      varying ∈ latent_profile_varying_space M n σ := by
+  rcases hq with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
+  have hbucket : q ∈ latent_profile_bucket_generators M n σ := by
+    refine ⟨ks.map (selSlot M n), m, by simp [List.length_map, hlen], hDeg, ?_, ?_, hSig, hqeq⟩
+    · simpa using hVars
+    · exact LatentWitnessMinorDecomp.witness_selector_list_admissible M n ks hnd
+  have hsplit := latent_bucket_generator_sheet_split_of_mem M n σ q hbucket
+  have hcomp : latent_selCon_single_sheet_compatible M n (ks.map (selSlot M n)) m := by
+    refine ⟨ks, hnd, rfl, ?_⟩
+    simpa using hVars
+  exact latent_bucket_generator_of_sel_compatible_factors_through_sheet_varying_space M n σ hn2 q hbucket
+    (ks.map (selSlot M n)) m (by simp [List.length_map, hlen]) hDeg (by simpa using hVars)
+    (LatentWitnessMinorDecomp.witness_selector_list_admissible M n ks hnd) hsplit hcomp
+
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
 latentCompiledPoly = sum of 3 product sheets → subadditivity reduces to per-sheet bounds.
