@@ -2040,6 +2040,112 @@ theorem latent_machCopy_and_copyCon_compatible_disjoint
       simp)
   exact hneq (hSmach.trans hScopy.symm)
 
+/-- Machine-slot and selector-slot presentations are disjoint on nonempty lists. -/
+theorem machSlot_list_ne_selSlot_list_of_nodup
+    (M : DTM) (n : ℕ)
+    (ks ls : List (Fin (latentBaseVars M n)))
+    (hknil : ks ≠ []) :
+    ks.map (machSlot M n) ≠ ls.map (selSlot M n) := by
+  intro h
+  have hlen : ks.length = ls.length := by simpa [h]
+  rcases ks with _ | ⟨k, ks'⟩
+  · contradiction
+  · cases ls with
+    | nil => simp at hlen
+    | cons l ls' =>
+        have hhead : machSlot M n k = selSlot M n l := by
+          simpa using List.cons.inj h |>.1
+        simp [machSlot, selSlot, slot, Fin.ext_iff] at hhead
+
+/-- Copy-slot and selector-slot presentations are disjoint on nonempty lists. -/
+theorem copySlot_list_ne_selSlot_list_of_nodup
+    (M : DTM) (n : ℕ)
+    (ks ls : List (Fin (latentBaseVars M n)))
+    (hknil : ks ≠ []) :
+    ks.map (copySlot M n) ≠ ls.map (selSlot M n) := by
+  intro h
+  have hlen : ks.length = ls.length := by simpa [h]
+  rcases ks with _ | ⟨k, ks'⟩
+  · contradiction
+  · cases ls with
+    | nil => simp at hlen
+    | cons l ls' =>
+        have hhead : copySlot M n k = selSlot M n l := by
+          simpa using List.cons.inj h |>.1
+        simp [copySlot, selSlot, slot, Fin.ext_iff] at hhead
+
+/-- Machine-slot and selector-slot compatibilities are disjoint on nonempty lists. -/
+theorem latent_machCopy_and_selCon_compatible_disjoint
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hS : S ≠ []) :
+    ¬ (latent_machCopy_single_sheet_compatible M n S m ∧
+       latent_selCon_single_sheet_compatible M n S m) := by
+  intro hboth
+  rcases hboth with ⟨⟨ks, hndk, hSmach, hVarsMach⟩, ⟨ls, hndl, hSsel, hVarsSel⟩⟩
+  have hneq : ks.map (machSlot M n) ≠ ls.map (selSlot M n) :=
+    machSlot_list_ne_selSlot_list_of_nodup M n ks ls (by
+      intro hk
+      apply hS
+      rw [hSmach, hk]
+      simp)
+  exact hneq (hSmach.trans hSsel.symm)
+
+/-- Copy-slot and selector-slot compatibilities are disjoint on nonempty lists. -/
+theorem latent_copyCon_and_selCon_compatible_disjoint
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hS : S ≠ []) :
+    ¬ (latent_copyCon_single_sheet_compatible M n S m ∧
+       latent_selCon_single_sheet_compatible M n S m) := by
+  intro hboth
+  rcases hboth with ⟨⟨ks, hndk, hScopy, hVarsCopy⟩, ⟨ls, hndl, hSsel, hVarsSel⟩⟩
+  have hneq : ks.map (copySlot M n) ≠ ls.map (selSlot M n) :=
+    copySlot_list_ne_selSlot_list_of_nodup M n ks ls (by
+      intro hk
+      apply hS
+      rw [hScopy, hk]
+      simp)
+  exact hneq (hScopy.trans hSsel.symm)
+
+/-- On a nonempty derivative list, at most one of the three single-sheet compatibility
+predicates can hold. This packages the overlap-control picture into one usable theorem. -/
+theorem latent_single_sheet_compatibility_at_most_one
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hS : S ≠ []) :
+    (latent_machCopy_single_sheet_compatible M n S m →
+      ¬ latent_copyCon_single_sheet_compatible M n S m ∧
+      ¬ latent_selCon_single_sheet_compatible M n S m) ∧
+    (latent_copyCon_single_sheet_compatible M n S m →
+      ¬ latent_machCopy_single_sheet_compatible M n S m ∧
+      ¬ latent_selCon_single_sheet_compatible M n S m) ∧
+    (latent_selCon_single_sheet_compatible M n S m →
+      ¬ latent_machCopy_single_sheet_compatible M n S m ∧
+      ¬ latent_copyCon_single_sheet_compatible M n S m) := by
+  refine ⟨?_, ?_, ?_⟩
+  · intro hmach
+    refine ⟨?_, ?_⟩
+    · intro hcopy
+      exact latent_machCopy_and_copyCon_compatible_disjoint M n S m hS ⟨hmach, hcopy⟩
+    · intro hsel
+      exact latent_machCopy_and_selCon_compatible_disjoint M n S m hS ⟨hmach, hsel⟩
+  · intro hcopy
+    refine ⟨?_, ?_⟩
+    · intro hmach
+      exact latent_machCopy_and_copyCon_compatible_disjoint M n S m hS ⟨hmach, hcopy⟩
+    · intro hsel
+      exact latent_copyCon_and_selCon_compatible_disjoint M n S m hS ⟨hcopy, hsel⟩
+  · intro hsel
+    refine ⟨?_, ?_⟩
+    · intro hmach
+      exact latent_machCopy_and_selCon_compatible_disjoint M n S m hS ⟨hmach, hsel⟩
+    · intro hcopy
+      exact latent_copyCon_and_selCon_compatible_disjoint M n S m hS ⟨hcopy, hsel⟩
+
 /-- Under selector-only compatibility, the machCopy branch vanishes because selSlot
  derivatives kill `machCopySheet`. -/
 theorem latent_bucket_generator_machCopy_branch_zero_of_sel_compatible
