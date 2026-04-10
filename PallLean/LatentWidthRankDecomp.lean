@@ -674,24 +674,27 @@ theorem imported_profile_space_dim_bound_of_signature
     (2 * Nat.log 2 n)
     (latent_profile_function_of_signature_sum_le M n σ)
 
-/-- σ-controlled variable window suggested by the coarse hit-block set: for each hit base
-block, keep all four latent layer copies. This is the first natural ambient object that is
-larger than the coarse bucket span while still remaining genuinely signature-dependent. -/
-noncomputable def latent_profile_var_window
+/-- σ-controlled local varying window suggested by the coarse hit-block set: for each hit
+base block, keep all four latent layer copies. This is intended to capture only the
+locally varying factors after differentiation, not the full residual product tail of the
+sheets. -/
+noncomputable def latent_profile_varying_window
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n) : Finset (Fin (latentNumVars M n)) :=
   σ.hitBlocks.biUnion (fun i => ({machSlot M n i, copySlot M n i, selSlot M n i, conSlot M n i} : Finset _))
 
-/-- Candidate widened ambient profile space suggested by the coarse signature: the span of
+/-- Local varying-factor ambient space suggested by the coarse signature: the span of
 all polynomials whose variables stay inside the four-layer lift of `σ.hitBlocks`.
 
-This is recorded as a separate object first, rather than replacing the working candidate
-immediately, because the key remaining theorem is still the containment
-`latent_fixedProfileSlice M n σ ≤ latent_profile_window_space M n σ`. -/
-def latent_profile_window_space
+This is deliberately the local-varying piece only. It is not meant to contain the full
+generator `mlProj (m * iterDerivList S (latentCompiledPoly M n))`, because the undifferentiated
+tail of each global sheet generally still contributes variables outside `σ.hitBlocks`.
+The honest intended use is to factor the generator into a global residual times an element
+of this local varying space. -/
+def latent_profile_varying_space
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n) : Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
-  Submodule.span ℚ { q | q.vars ⊆ latent_profile_var_window M n σ }
+  Submodule.span ℚ { q | q.vars ⊆ latent_profile_varying_window M n σ }
 
 /-- Sharpened σ-dependent ambient candidate: use exactly the span of the coarse bucket for
 `σ`. This is the first genuinely signature-sensitive ambient space in the local bridge.
@@ -702,11 +705,11 @@ def latent_profile_space_candidate
     (σ : latentProfileSignature M n) : Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
   Submodule.span ℚ (latent_profile_bucket_generators M n σ)
 
-@[simp] theorem latent_profile_window_space_def
+@[simp] theorem latent_profile_varying_space_def
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n) :
-    latent_profile_window_space M n σ =
-      Submodule.span ℚ { q | q.vars ⊆ latent_profile_var_window M n σ } := by
+    latent_profile_varying_space M n σ =
+      Submodule.span ℚ { q | q.vars ⊆ latent_profile_varying_window M n σ } := by
   rfl
 
 @[simp] theorem latent_profile_space_candidate_def
@@ -732,14 +735,27 @@ def latent_profile_space_candidate_extends_fixedProfileSlice
   simp [latent_profile_space_candidate_extends_fixedProfileSlice, latent_profile_space_candidate_def,
     latent_fixedProfileSlice_def]
 
-/-- Exact widened-ambient frontier suggested by the current coarse signature: prove that the
-concrete fixed-profile slice sits inside the σ-controlled four-layer variable window. This
-is the first honest structural theorem needed before any `MlProjFar`-style finrank bound can
-be applied to the widened ambient space. -/
-def latent_fixedProfileSlice_le_profile_window_space
+/-- Exact local-factor frontier suggested by the current coarse signature: isolate the
+σ-controlled varying part of each generator inside the four-layer local window. Unlike the
+older full-slice window target, this does not claim the whole generator is localized to the
+hit blocks. -/
+def latent_fixedProfileSlice_factors_through_profile_varying_space
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n) : Prop :=
-  latent_fixedProfileSlice M n σ ≤ latent_profile_window_space M n σ
+  ∀ q ∈ latent_profile_bucket_generators M n σ,
+    ∃ r v : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+      q = mlProj (r * v) ∧
+      v ∈ latent_profile_varying_space M n σ
+
+/-- Generator-level local-factor form of the new target. This replaces the earlier false
+claim that the whole bucket generator already lives in the hit-block window space. -/
+def latent_profile_bucket_generators_factor_through_profile_varying_space
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) : Prop :=
+  ∀ q ∈ latent_profile_bucket_generators M n σ,
+    ∃ r v : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+      q = mlProj (r * v) ∧
+      v ∈ latent_profile_varying_space M n σ
 
 /-- The first honest strengthening target for the ambient profile-space candidate:
 replace the placeholder `⊤` by a nontrivial submodule while preserving the fixed-slice
@@ -1390,6 +1406,25 @@ theorem mlProj_vars_subset {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F
   rcases hx with ⟨α, hα_supp, hα_x⟩
   have hα_p : α ∈ p.support := mlProj_support_subset p hα_supp
   exact ⟨α, hα_p, hα_x⟩
+
+theorem latent_profile_bucket_generators_factor_through_profile_varying_space_refl
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    latent_profile_bucket_generators_factor_through_profile_varying_space M n σ := by
+  intro q hq
+  refine ⟨q, 1, ?_, ?_⟩
+  · simp
+  · rw [latent_profile_varying_space_def]
+    apply Submodule.subset_span
+    simp
+
+theorem latent_fixedProfileSlice_factors_through_profile_varying_space_of_generators
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hgen : latent_profile_bucket_generators_factor_through_profile_varying_space M n σ) :
+    latent_fixedProfileSlice_factors_through_profile_varying_space M n σ := by
+  intro q hq
+  exact hgen q hq
 
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
