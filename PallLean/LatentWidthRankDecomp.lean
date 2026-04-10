@@ -674,34 +674,20 @@ theorem imported_profile_space_dim_bound_of_signature
     (2 * Nat.log 2 n)
     (latent_profile_function_of_signature_sum_le M n σ)
 
-/-- First nontrivial ambient candidate for the coarse fixed-profile slice: use the span
-of all latent blocked-SPDP generators. This is still larger than the intended Section 9
-profile space, but it is a genuine ambient submodule already available in this file's
-language and is strictly more informative than the old placeholder `⊤`. -/
+/-- Sharpened σ-dependent ambient candidate: use exactly the span of the coarse bucket for
+`σ`. This is the first genuinely signature-sensitive ambient space in the local bridge.
+It is still only the coarse latent slice, not yet the Section 9 profile space, but it
+restores the missing profile dependence honestly. -/
 def latent_profile_space_candidate
     (M : DTM) (n : ℕ)
-    (_σ : latentProfileSignature M n) : Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
-  Submodule.span ℚ
-    { q | ∃ (S : List (Fin (latentNumVars M n)))
-            (m : MvPolynomial (Fin (latentNumVars M n)) ℚ),
-        S.length = Nat.log 2 n ∧
-        m.totalDegree ≤ Nat.log 2 n ∧
-        m.vars ⊆ S.toFinset ∧
-        isBlockAdmissible (latentPartition M n) S ∧
-        q = mlProj (m * iterDerivList S (latentCompiledPoly M n)) }
+    (σ : latentProfileSignature M n) : Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
+  Submodule.span ℚ (latent_profile_bucket_generators M n σ)
 
 @[simp] theorem latent_profile_space_candidate_def
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n) :
     latent_profile_space_candidate M n σ =
-      Submodule.span ℚ
-        { q | ∃ (S : List (Fin (latentNumVars M n)))
-                (m : MvPolynomial (Fin (latentNumVars M n)) ℚ),
-            S.length = Nat.log 2 n ∧
-            m.totalDegree ≤ Nat.log 2 n ∧
-            m.vars ⊆ S.toFinset ∧
-            isBlockAdmissible (latentPartition M n) S ∧
-            q = mlProj (m * iterDerivList S (latentCompiledPoly M n)) } := by
+      Submodule.span ℚ (latent_profile_bucket_generators M n σ) := by
   rfl
 
 /-- The eventual nontrivial refinement of `latent_profile_space_candidate` should first
@@ -717,9 +703,8 @@ def latent_profile_space_candidate_extends_fixedProfileSlice
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n) :
     latent_profile_space_candidate_extends_fixedProfileSlice M n σ := by
-  intro q hq
-  rw [latent_profile_space_candidate_def]
-  exact Submodule.span_mono (latent_profile_bucket_generators_subset_spdp_generators M n σ) hq
+  simp [latent_profile_space_candidate_extends_fixedProfileSlice, latent_profile_space_candidate_def,
+    latent_fixedProfileSlice_def]
 
 /-- The first honest strengthening target for the ambient profile-space candidate:
 replace the placeholder `⊤` by a nontrivial submodule while preserving the fixed-slice
@@ -742,48 +727,14 @@ theorem latent_profile_space_candidate_nontrivial_refinement_current
   refine ⟨latent_profile_space_candidate M n σ, ?_⟩
   exact latent_profile_space_candidate_extends_fixedProfileSlice_current M n σ
 
-/-- The current ambient candidate is independent of the coarse signature parameter. That
-shows the present construction is only a global span over all generators, not yet the
-true profile-controlled space. Making this independence explicit helps isolate the next
-substantive step: reintroducing genuine `σ`-dependence. -/
-@[simp] theorem latent_profile_space_candidate_eq_of_signature
-    (M : DTM) (n : ℕ)
-    (σ τ : latentProfileSignature M n) :
-    latent_profile_space_candidate M n σ = latent_profile_space_candidate M n τ := by
-  rfl
-
-/-- The current ambient candidate can be re-expressed without mentioning the signature at
-all. This packages the fact that the new nontrivial candidate is still only the global
-latent blocked-SPDP generator span. -/
-def latent_global_generator_span
-    (M : DTM) (n : ℕ) : Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
-  Submodule.span ℚ
-    { q | ∃ (S : List (Fin (latentNumVars M n)))
-            (m : MvPolynomial (Fin (latentNumVars M n)) ℚ),
-        S.length = Nat.log 2 n ∧
-        m.totalDegree ≤ Nat.log 2 n ∧
-        m.vars ⊆ S.toFinset ∧
-        isBlockAdmissible (latentPartition M n) S ∧
-        q = mlProj (m * iterDerivList S (latentCompiledPoly M n)) }
-
-@[simp] theorem latent_global_generator_span_def
-    (M : DTM) (n : ℕ) :
-    latent_global_generator_span M n =
-      Submodule.span ℚ
-        { q | ∃ (S : List (Fin (latentNumVars M n)))
-                (m : MvPolynomial (Fin (latentNumVars M n)) ℚ),
-            S.length = Nat.log 2 n ∧
-            m.totalDegree ≤ Nat.log 2 n ∧
-            m.vars ⊆ S.toFinset ∧
-            isBlockAdmissible (latentPartition M n) S ∧
-            q = mlProj (m * iterDerivList S (latentCompiledPoly M n)) } := by
-  rfl
-
-@[simp] theorem latent_profile_space_candidate_eq_global_generator_span
+/-- The sharpened candidate now coincides with the already-named fixed-profile slice. This
+is still not the final Section 9 ambient profile space, but it means the bridge has
+recovered genuine `σ`-dependence rather than using one global ambient span. -/
+@[simp] theorem latent_profile_space_candidate_eq_fixedProfileSlice
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n) :
-    latent_profile_space_candidate M n σ = latent_global_generator_span M n := by
-  rfl
+    latent_profile_space_candidate M n σ = latent_fixedProfileSlice M n σ := by
+  simp [latent_profile_space_candidate_def, latent_fixedProfileSlice_def]
 
 /-- If a later construction provides any ambient submodule extending the coarse
 fixed-profile slice, then the named nontrivial-refinement target is discharged. This is
