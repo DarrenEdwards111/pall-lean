@@ -853,6 +853,29 @@ theorem latent_fixedProfileSlice_finrank120_of_candidate_finrank_and_growth
   · exact latent_fixedProfileSlice_controlled_by_candidate_finrank M n σ d hfin hd
   · exact hgrowth
 
+/-- The exact remaining local theorem behind the current σ-dependent candidate route:
+show that the coarse bucket span itself has dimension bounded by the abstract profile
+count for `latent_profile_function_of_signature M n σ`. This is the first point where
+real finite-dimensional structure, rather than theorem-graph packaging, must enter. -/
+def latent_profile_space_candidate_finrank_le_profile_bound
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) : Prop :=
+  ∃ d : ℕ,
+    Module.finrank ℚ (latent_profile_space_candidate M n σ) ≤ d ∧
+    d ≤ ∏ τ : Fin 4,
+      Nat.choose (latent_profile_function_of_signature M n σ τ + 15) 15
+
+/-- Once the candidate-finrank frontier is proved, the current σ-dependent route to the
+uniform `n^120` slice bound is automatic. -/
+theorem latent_fixedProfileSlice_finrank120_of_candidate_frontier
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hfront : latent_profile_space_candidate_finrank_le_profile_bound M n σ)
+    (hgrowth : (2 * Nat.log 2 n + 16) ^ 60 ≤ n ^ 120) :
+    Module.finrank ℚ (latent_fixedProfileSlice M n σ) ≤ n ^ 120 := by
+  rcases hfront with ⟨d, hfin, hd⟩
+  exact latent_fixedProfileSlice_finrank120_of_candidate_finrank_and_growth M n σ d hfin hd hgrowth
+
 /-- Small arithmetic bridge for the coarse latent profile scaffold: once `n ≥ 16`,
 the coarse profile-space bound is dominated by the simpler within-profile base
 `(log₂ n + 1)^120`. This isolates the log-vs-log comparison from the harder final
