@@ -1,5 +1,6 @@
 import PallLean.LatentCompiler
 import PallLean.LatentWitnessMinorDecomp
+import PallLean.IterDerivHelpers
 import PallLean.ProfileSpaceBound
 import Mathlib.Tactic
 
@@ -2867,6 +2868,89 @@ theorem latent_raw_bucket_member_enters_clean_lane
     have hq' : q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n)) := by
       simpa [hS] using hq
     exact latent_bucket_generator_to_clean_sel_menu M n σ q ks m hnd hLen' hDeg hVars' hSig' hq'
+
+/-- Move 1 sheet-level kill: for any raw S, if S contains a variable v from a "killing" layer
+for a given sheet, then `iterDerivList S` of that sheet is zero. This uses `pderiv_comm`
+(via `iterDerivList_eq_zero_of_mem_and_pderiv_zero`) to propagate the kill regardless of
+where v appears in S. -/
+theorem iterDerivList_raw_kills_machCopySheet_of_has_selSlot
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (j : Fin (latentBaseVars M n))
+    (hv : selSlot M n j ∈ S) :
+    iterDerivList S (machCopySheet M n) = 0 :=
+  IterDerivHelpers.iterDerivList_eq_zero_of_mem_and_pderiv_zero S (selSlot M n j)
+    (machCopySheet M n) hv
+    (LatentWitnessMinorDecomp.pderiv_selSlot_machCopySheet_zero_single M n j)
+
+theorem iterDerivList_raw_kills_machCopySheet_of_has_conSlot
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (j : Fin (latentBaseVars M n))
+    (hv : conSlot M n j ∈ S) :
+    iterDerivList S (machCopySheet M n) = 0 :=
+  IterDerivHelpers.iterDerivList_eq_zero_of_mem_and_pderiv_zero S (conSlot M n j)
+    (machCopySheet M n) hv
+    (LatentWitnessMinorDecomp.pderiv_conSlot_machCopySheet_zero_single M n j)
+
+theorem iterDerivList_raw_kills_copyConSheet_of_has_machSlot
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (j : Fin (latentBaseVars M n))
+    (hv : machSlot M n j ∈ S) :
+    iterDerivList S (copyConSheet M n) = 0 :=
+  IterDerivHelpers.iterDerivList_eq_zero_of_mem_and_pderiv_zero S (machSlot M n j)
+    (copyConSheet M n) hv
+    (LatentWitnessMinorDecomp.pderiv_machSlot_copyConSheet_zero M n j)
+
+theorem iterDerivList_raw_kills_copyConSheet_of_has_selSlot
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (j : Fin (latentBaseVars M n))
+    (hv : selSlot M n j ∈ S) :
+    iterDerivList S (copyConSheet M n) = 0 :=
+  IterDerivHelpers.iterDerivList_eq_zero_of_mem_and_pderiv_zero S (selSlot M n j)
+    (copyConSheet M n) hv
+    (LatentWitnessMinorDecomp.pderiv_selSlot_copyConSheet_zero_single M n j)
+
+theorem iterDerivList_raw_kills_selConSheet_of_has_machSlot
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (j : Fin (latentBaseVars M n))
+    (hv : machSlot M n j ∈ S) :
+    iterDerivList S (selConSheet M n) = 0 :=
+  IterDerivHelpers.iterDerivList_eq_zero_of_mem_and_pderiv_zero S (machSlot M n j)
+    (selConSheet M n) hv
+    (LatentWitnessMinorDecomp.pderiv_machSlot_selConSheet_zero M n j)
+
+theorem iterDerivList_raw_kills_selConSheet_of_has_copySlot
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (j : Fin (latentBaseVars M n))
+    (hv : copySlot M n j ∈ S) :
+    iterDerivList S (selConSheet M n) = 0 :=
+  IterDerivHelpers.iterDerivList_eq_zero_of_mem_and_pderiv_zero S (copySlot M n j)
+    (selConSheet M n) hv
+    (LatentWitnessMinorDecomp.pderiv_copySlot_selConSheet_zero M n j)
+
+/-- Sheet decomposition for raw derivative lists: `iterDerivList S (latentCompiledPoly)` splits
+as the sum of three sheet contributions, each of which may be independently killed when S
+contains a variable from a non-participating layer. -/
+theorem iterDerivList_raw_latentCompiledPoly_eq_sum_sheets
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n))) :
+    iterDerivList S (latentCompiledPoly M n) =
+      iterDerivList S (machCopySheet M n) +
+      iterDerivList S (copyConSheet M n) +
+      iterDerivList S (selConSheet M n) := by
+  unfold latentCompiledPoly
+  rw [IterDerivHelpers.iterDerivList_add, IterDerivHelpers.iterDerivList_add]
+
+-- [v2 body removed — see sheet decomposition theorems above for raw-list infrastructure]
+-- NOTE: The previous v2 theorem attempted a conSlot case but the 3-lane clean menu
+-- cannot accommodate pure conSlot presentations in general. See the sheet decomposition
+-- theorems (iterDerivList_raw_kills_*) above for the infrastructure needed to handle
+-- mixed-layer derivative lists at the sheet level.
 
 /-- Candidate classifier frontier for Move 1: a raw admissible list should collapse to one
 uniform lane. This is intentionally left as the next honest local theorem target, not yet
