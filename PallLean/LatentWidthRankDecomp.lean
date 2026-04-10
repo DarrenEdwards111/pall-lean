@@ -1962,6 +1962,47 @@ theorem latent_bucket_generator_copyCon_branch_of_compatible_proved
       latent_copyCon_varying_factor_mem_varying_space M n ks m hVarsCopy hDeg
         (by simpa [List.length_map] using hLen)
 
+/-- Honest multi-branch package after sheet splitting: under any chosen compatibility lane,
+we can at least factor the corresponding branch, even when the other branches do not vanish.
+This is the right next theorem surface now that all three positive branch handlers exist. -/
+def latent_bucket_generator_branch_factorization_menu
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) : Prop :=
+  ∀ q ∈ latent_profile_bucket_generators M n σ,
+    ∀ S m hLen hDeg hVars hAdm,
+      q = mlProj (m * iterDerivList S (machCopySheet M n))
+        + mlProj (m * iterDerivList S (copyConSheet M n))
+        + mlProj (m * iterDerivList S (selConSheet M n)) →
+      ((latent_machCopy_single_sheet_compatible M n S m →
+          ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+            mlProj (m * iterDerivList S (machCopySheet M n)) = mlProj (residual * varying) ∧
+            varying ∈ latent_profile_varying_space M n σ) ∧
+       (latent_copyCon_single_sheet_compatible M n S m →
+          ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+            mlProj (m * iterDerivList S (copyConSheet M n)) = mlProj (residual * varying) ∧
+            varying ∈ latent_profile_varying_space M n σ) ∧
+       (latent_selCon_single_sheet_compatible M n S m →
+          ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+            mlProj (m * iterDerivList S (selConSheet M n)) = mlProj (residual * varying) ∧
+            varying ∈ latent_profile_varying_space M n σ))
+
+/-- Unified menu theorem: after formal sheet splitting, each of the three compatibility lanes
+can immediately invoke its proved branch handler. This does not force a false one-branch
+collapse; it records the honest branchwise factor information now available. -/
+theorem latent_bucket_generator_branch_factorization_menu_proved
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hn2 : n ≥ 2) :
+    latent_bucket_generator_branch_factorization_menu M n σ := by
+  intro q hq S m hLen hDeg hVars hAdm hsplit
+  refine ⟨?_, ?_, ?_⟩
+  · intro hmach
+    exact latent_bucket_generator_machCopy_branch_of_compatible_proved M n σ q hq S m hLen hDeg hVars hAdm hsplit hmach
+  · intro hcopy
+    exact latent_bucket_generator_copyCon_branch_of_compatible_proved M n σ q hq S m hLen hDeg hVars hAdm hsplit hcopy
+  · intro hsel
+    exact latent_bucket_generator_selCon_branch_of_compatible M n σ hn2 q hq S m hLen hDeg hVars hAdm hsplit hsel
+
 /-- Under selector-only compatibility, the machCopy branch vanishes because selSlot
  derivatives kill `machCopySheet`. -/
 theorem latent_bucket_generator_machCopy_branch_zero_of_sel_compatible
