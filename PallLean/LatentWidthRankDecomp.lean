@@ -1,4 +1,5 @@
 import PallLean.LatentCompiler
+import PallLean.LatentWitnessMinorDecomp
 import PallLean.ProfileSpaceBound
 import Mathlib.Tactic
 
@@ -1414,6 +1415,46 @@ theorem latent_fixedProfileSlice_factors_through_sheet_varying_space_of_generato
     (hgen : latent_profile_bucket_generators_factor_through_sheet_varying_space M n σ) :
     latent_fixedProfileSlice_factors_through_sheet_varying_space M n σ := by
   exact hgen
+
+/-- First concrete sheet-specific factorization route: for selector-only derivative data,
+`latentCompiledPoly` collapses to `selConSheet`, and the iterated derivative already has a
+closed product form. This is the cleanest first honest lane for the new sheetwise varying
+factor frontier. -/
+def latent_selCon_selector_factor_route
+    (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n))) : Prop :=
+  ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+    mlProj (iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n)) =
+      mlProj (residual * varying) ∧
+    varying ∈ latent_profile_varying_space M n
+      (latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) 1
+        (by simp [List.length_map]) (by simp))
+
+/-- Selector-only derivatives give an explicit sheetwise route through `selConSheet`.
+This is not yet the final bucket theorem, but it pins down the first real nontrivial case
+of the new frontier using already-proved derivative collapse and closed-form product data. -/
+theorem latent_selCon_selector_factor_route_of_nodup
+    (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (hnd : ks.Nodup)
+    (hlen : ks.length = Nat.log 2 n)
+    (hn2 : n ≥ 2) :
+    latent_selCon_selector_factor_route M n ks := by
+  refine ⟨C ((-1 : ℚ)^ks.length), (ks.map (Xcon M n)).prod *
+    (∏ i ∈ (Finset.univ \ ks.toFinset), selConGadget M n i), ?_, ?_⟩
+  · unfold latentCompiledPoly
+    have hne : ks ≠ [] := by
+      intro hk
+      subst hk
+      simp at hlen
+      have hlog_pos : 0 < Nat.log 2 n := Nat.log_pos (by omega) hn2
+      omega
+    rw [LatentWitnessMinorDecomp.iterDerivList_selSlot_latentCompiled_eq_selCon M n ks hne]
+    rw [LatentWitnessMinorDecomp.iterDeriv_selConSheet_eq M n ks hnd]
+    simp [mul_assoc]
+  · rw [latent_profile_varying_space_def]
+    apply Submodule.subset_span
+    simp
 
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
