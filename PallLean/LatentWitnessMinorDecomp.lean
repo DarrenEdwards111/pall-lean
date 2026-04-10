@@ -212,6 +212,69 @@ theorem pderiv_machSlot_machCopyProd_of_not_mem (M : DTM) (n : ℕ)
       rw [Finset.prod_insert ha, MvPolynomial.pderiv_mul]
       simp [pderiv_machSlot_machCopyGadget_ne M n a j (by simpa [eq_comm] using hja), ih hjT]
 
+private theorem iterDerivList_mul_const_left_mach
+    {n : ℕ} (indices : List (Fin n))
+    (f g : MvPolynomial (Fin n) ℚ)
+    (hf : ∀ i ∈ indices, pderiv i f = 0) :
+    iterDerivList indices (f * g) = f * iterDerivList indices g := by
+  induction indices generalizing g with
+  | nil => simp [iterDerivList]
+  | cons i rest ih =>
+    simp only [iterDerivList, List.foldl]
+    have hi : pderiv i f = 0 := hf i (by simp)
+    rw [MvPolynomial.pderiv_mul, hi, zero_mul, zero_add]
+    exact ih _ (fun j hj => hf j (by simp [hj]))
+
+/-- Full machine-slot iterated derivative formula on a finite machCopy product. -/
+theorem iterDeriv_machCopyProd_eq (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n))) (hnd : ks.Nodup)
+    (s : Finset (Fin (latentBaseVars M n))) (hks : ∀ k ∈ ks, k ∈ s) :
+    iterDerivList (ks.map (machSlot M n)) (∏ i ∈ s, machCopyGadget M n i) =
+      C ((-1 : ℚ)^ks.length) * (ks.map (Xcopy M n)).prod *
+        (∏ i ∈ (s \ ks.toFinset), machCopyGadget M n i) := by
+  induction ks generalizing s with
+  | nil =>
+      simp [iterDerivList]
+  | cons k rest ih =>
+      simp only [List.map_cons]
+      rw [show iterDerivList (machSlot M n k :: rest.map (machSlot M n)) (∏ i ∈ s, machCopyGadget M n i) =
+          iterDerivList (rest.map (machSlot M n))
+            (pderiv (machSlot M n k) (∏ i ∈ s, machCopyGadget M n i))
+        from by unfold iterDerivList; simp [List.foldl]]
+      have hk_mem : k ∈ s := hks k (by simp)
+      rw [pderiv_machSlot_machCopyProd_of_mem M n s k hk_mem]
+      have hconst : ∀ i ∈ rest.map (machSlot M n), pderiv i (-(Xcopy M n k)) = 0 := by
+        intro i hi
+        obtain ⟨c, _, rfl⟩ := List.mem_map.mp hi
+        have hnot : machSlot M n c ∉ (Xcopy M n k).vars := by
+          rw [MvPolynomial.vars_X]
+          simp [machSlot, copySlot, slot, Fin.ext_iff]
+        rw [map_neg, MvPolynomial.pderiv_eq_zero_of_notMem_vars hnot, neg_zero]
+      rw [iterDerivList_mul_const_left_mach _ _ _ hconst]
+      have hnd' : rest.Nodup := (List.nodup_cons.mp hnd).2
+      have hk_not : k ∉ rest := (List.nodup_cons.mp hnd).1
+      have hrest_in : ∀ j ∈ rest, j ∈ s.erase k := by
+        intro j hj
+        exact Finset.mem_erase.mpr ⟨fun h => hk_not (h ▸ hj), hks j (by simp [hj])⟩
+      rw [ih hnd' (s.erase k) hrest_in]
+      have hset : s.erase k \ rest.toFinset = s \ (k :: rest).toFinset := by
+        ext x
+        simp [Finset.mem_sdiff, Finset.mem_erase, List.toFinset_cons]
+        tauto
+      rw [hset]
+      simp only [List.length_cons, List.prod_cons]
+      rw [pow_succ, map_mul, map_neg, map_one]
+      ring
+
+/-- κ-level iterated derivative closed form specialized to full machCopySheet. -/
+theorem iterDeriv_machCopySheet_eq (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n))) (hnd : ks.Nodup) :
+    iterDerivList (ks.map (machSlot M n)) (machCopySheet M n) =
+      C ((-1 : ℚ)^ks.length) * (ks.map (Xcopy M n)).prod *
+        (∏ i ∈ (Finset.univ \ ks.toFinset), machCopyGadget M n i) := by
+  unfold machCopySheet
+  exact iterDeriv_machCopyProd_eq M n ks hnd Finset.univ (by intro k hk; simp)
+
 private theorem foldl_pderiv_zero_sel {n : ℕ} (l : List (Fin n)) :
     l.foldl (fun q i => pderiv i q) (0 : MvPolynomial (Fin n) ℚ) = 0 := by
   induction l with
