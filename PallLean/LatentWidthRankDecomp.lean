@@ -1759,6 +1759,74 @@ def latent_bucket_generator_machCopy_branch_of_compatible
         mlProj (m * iterDerivList S (machCopySheet M n)) = mlProj (residual * varying) ∧
         varying ∈ latent_profile_varying_space M n σ
 
+/-- First concrete machCopy factor route with a multiplier supported on machine-slot hits.
+This is the machCopy-lane analogue of the earlier selCon route, now powered by the new
+iterated derivative closed form for `machCopySheet`. -/
+def latent_machCopy_factor_route_with_multiplier
+    (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ) : Prop :=
+  ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+    mlProj (m * iterDerivList (ks.map (machSlot M n)) (machCopySheet M n)) =
+      mlProj (residual * varying)
+
+/-- The explicit machCopy varying factor is supported on the hit blocks determined by the
+machine-slot list. -/
+theorem latent_machCopy_varying_factor_mem_varying_space
+    (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hVars : m.vars ⊆ (ks.map (machSlot M n)).toFinset)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hlen : ks.length = Nat.log 2 n) :
+    (m * (ks.map (Xcopy M n)).prod) ∈ latent_profile_varying_space M n
+      (latent_profile_signature_of_generator_data M n (ks.map (machSlot M n)) m
+        (by simp [List.length_map, hlen]) hDeg) := by
+  rw [latent_profile_varying_space_def]
+  apply Submodule.subset_span
+  intro v hv
+  rw [latent_profile_signature_of_generator_data_hitBlocks]
+  unfold latent_hitBlocks_of_list latent_profile_varying_window
+  have hvmul := MvPolynomial.vars_mul m ((ks.map (Xcopy M n)).prod) hv
+  rcases Finset.mem_union.mp hvmul with hm | hx
+  · have hmS : v ∈ (ks.map (machSlot M n)).toFinset := hVars hm
+    rcases List.mem_toFinset.mp hmS with hmList
+    apply Finset.mem_biUnion.mpr
+    refine ⟨(latentPartition M n).assign v, ?_, ?_⟩
+    · apply List.mem_toFinset.mpr
+      exact List.mem_map.mpr ⟨machSlot M n hmList, List.mem_map.mpr ⟨hmList, hmList, rfl⟩, rfl⟩
+    · rcases v with ⟨vv, hvv⟩
+      have hs0 : (⟨vv, hvv⟩ : Fin (latentNumVars M n)) = machSlot M n ((latentPartition M n).assign ⟨vv, hvv⟩) := by
+        apply Fin.ext
+        simp [latentPartition, machSlot, slot]
+        omega
+      simpa [hs0]
+  · have hvprod := MvPolynomial.vars_prod (s := ks.toFinset) (f := Xcopy M n) hx
+    rcases List.mem_toFinset.mp (by simpa [MvPolynomial.vars_X] using hvprod) with hmem
+    apply Finset.mem_biUnion.mpr
+    refine ⟨hmem, ?_, ?_⟩
+    · rw [latent_profile_signature_of_generator_data_hitBlocks]
+      unfold latent_hitBlocks_of_list
+      apply List.mem_toFinset.mpr
+      exact List.mem_map.mpr ⟨machSlot M n hmem, List.mem_map.mpr ⟨hmem, hmem, rfl⟩, by simp [latentPartition_assign_machSlot]⟩
+    · simp
+
+/-- Positive machCopy factor route with a machine-slot-supported multiplier. -/
+theorem latent_machCopy_factor_route_with_multiplier_of_nodup
+    (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hnd : ks.Nodup)
+    (hlen : ks.length = Nat.log 2 n)
+    (hVars : m.vars ⊆ (ks.map (machSlot M n)).toFinset)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n) :
+    latent_machCopy_factor_route_with_multiplier M n ks m := by
+  refine ⟨m * (C ((-1 : ℚ)^ks.length) *
+      (∏ i ∈ (Finset.univ \ ks.toFinset), machCopyGadget M n i)),
+    (ks.map (Xcopy M n)).prod, ?_⟩
+  rw [LatentWitnessMinorDecomp.iterDeriv_machCopySheet_eq M n ks hnd]
+  ring
+
 /-- The future copyCon branch handler should consume this exact hypothesis shape after the
 formal three-sheet split. It is kept as a named theorem slot now so later proof work can
 land directly against the stable frontier. -/
