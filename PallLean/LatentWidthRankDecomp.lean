@@ -3005,11 +3005,77 @@ def latent_raw_admissible_has_canonical_profile_control_candidate
     latent_raw_slot_family_classifier_candidate M n S' ∧
     latent_profile_signature_of_generator_data M n S' m hLen' _hDeg = σ
 
+/-- First missing downstream link for the revised Move 1 route: once a canonical/profile-controlled
+witness `S'` exists, show that it actually collapses from the honest 4-family frontier to the
+non-`conSlot` 3-family frontier. This is stated explicitly so we do not pretend the collapse is
+already contained in the profile-control package. -/
+def latent_canonical_profile_control_witness_is_noncon_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ) : Prop :=
+  ∃ (S' : List (Fin (latentNumVars M n)))
+    (hLen' : S'.length = Nat.log 2 n),
+    isBlockAdmissible (latentPartition M n) S' ∧
+    latent_profile_signature_of_generator_data M n S' m hLen' hDeg = σ ∧
+    latent_raw_slot_family_classifier_candidate M n S' ∧
+    latent_raw_noncon_slot_family_classifier_candidate M n S'
+
+/-- Second missing downstream link for the revised Move 1 route: the canonical/profile-controlled
+witness should compute the same target projection `q`, not merely share the same profile
+signature. This candidate isolates that computation-equality frontier explicitly. -/
+def latent_canonical_profile_control_witness_computes_q_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n))) : Prop :=
+  ∃ (S' : List (Fin (latentNumVars M n)))
+    (hLen' : S'.length = Nat.log 2 n),
+    isBlockAdmissible (latentPartition M n) S' ∧
+    latent_profile_signature_of_generator_data M n S' m hLen' hDeg = σ ∧
+    latent_raw_slot_family_classifier_candidate M n S' ∧
+    q = mlProj (m * iterDerivList S' (latentCompiledPoly M n))
+
+/-- Third missing downstream link for the revised Move 1 route: the canonical/profile-controlled
+witness should also carry the support-side condition needed by the existing clean-lane theorem,
+namely that all variables of `m` lie inside the canonical list `S'`. At the current layer this is
+best treated as extra witness data, because the coarse profile signature stores hit blocks and
+multiplier degree, but does not by itself visibly determine `m.vars ⊆ S'.toFinset`. -/
+def latent_canonical_profile_control_witness_supports_m_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ) : Prop :=
+  ∃ (S' : List (Fin (latentNumVars M n)))
+    (hLen' : S'.length = Nat.log 2 n),
+    isBlockAdmissible (latentPartition M n) S' ∧
+    latent_profile_signature_of_generator_data M n S' m hLen' hDeg = σ ∧
+    latent_raw_slot_family_classifier_candidate M n S' ∧
+    m.vars ⊆ S'.toFinset
+
 /-- Candidate packaging for the revised Move 1 route: if raw admissible data first admits a
-canonical/profile-controlled 4-family presentation, and if that presentation can then be shown
-not to be purely `conSlot`, the existing 3-lane clean-menu theorem becomes applicable. This
-records the correct theorem shape without pretending the classifier/collapse steps are already
-proved. -/
+canonical/profile-controlled 4-family presentation, and if the three remaining explicit frontiers
+can be discharged for the resulting canonical witness `S'` (namely: `S'` is noncon, `S'`
+computes the same `q`, and `S'` carries the support condition for `m`), then the existing
+3-lane clean-menu theorem becomes applicable. This records the correct theorem shape without
+pretending those collapse links are already proved. -/
 def latent_raw_admissible_to_clean_menu_via_profile_control_candidate
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
@@ -3023,8 +3089,149 @@ def latent_raw_admissible_to_clean_menu_via_profile_control_candidate
     (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
     (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n))) : Prop :=
   latent_raw_admissible_has_canonical_profile_control_candidate M n σ S m hLen hDeg hVars hAdm hSig →
-  latent_raw_noncon_slot_family_classifier_candidate M n S →
+  latent_canonical_profile_control_witness_is_noncon_candidate M n σ S m hLen hDeg hVars hAdm hSig →
+  latent_canonical_profile_control_witness_computes_q_candidate M n σ q S m hLen hDeg hVars hAdm hSig hq →
+  latent_canonical_profile_control_witness_supports_m_candidate M n σ S m hLen hDeg hVars hAdm hSig →
   latent_clean_compatible_bucket_member_menu M n σ q
+
+/-- Substantial honest reduction step for the revised Move 1 route: if a single canonical/profile-
+controlled witness `S'` is provided explicitly together with the two real missing links
+(noncon classification and computation of the same `q`), then the existing cleaned-lane theorem
+applies to that witness directly. This avoids pretending uniqueness of the canonical witness has
+already been proved. -/
+theorem latent_explicit_canonical_witness_enters_clean_lane
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (S' : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hLen' : S'.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hVars' : m.vars ⊆ S'.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hAdm' : isBlockAdmissible (latentPartition M n) S')
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hSig' : latent_profile_signature_of_generator_data M n S' m hLen' hDeg = σ)
+    (hq' : q = mlProj (m * iterDerivList S' (latentCompiledPoly M n)))
+    (hnoncon' : latent_raw_noncon_slot_family_classifier_candidate M n S') :
+    latent_clean_compatible_bucket_member_menu M n σ q := by
+  exact latent_raw_bucket_member_enters_clean_lane M n σ q S' m hLen' hDeg
+    hVars' hAdm' hSig' hq' hnoncon'
+
+/-- Honest reduction for the first missing Move 1 link: to prove the canonical/profile-controlled
+witness is noncon, it is enough to provide one canonical witness `S'` with the right profile
+signature together with a direct 3-family raw classifier for that same witness. This does not yet
+explain how the 4-family classifier collapses, but it turns any such collapse argument into the
+exact candidate theorem currently required downstream. -/
+theorem latent_explicit_canonical_noncon_witness_yields_noncon_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (S : List (Fin (latentNumVars M n)))
+    (S' : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hLen' : S'.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hAdm' : isBlockAdmissible (latentPartition M n) S')
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hSig' : latent_profile_signature_of_generator_data M n S' m hLen' hDeg = σ)
+    (hclass4' : latent_raw_slot_family_classifier_candidate M n S')
+    (hnoncon' : latent_raw_noncon_slot_family_classifier_candidate M n S') :
+    latent_canonical_profile_control_witness_is_noncon_candidate M n σ S m hLen hDeg hVars hAdm hSig := by
+  exact ⟨S', hLen', hAdm', hSig', hclass4', hnoncon'⟩
+
+/-- Honest reduction for the second missing Move 1 link: to prove that the canonical/profile-
+controlled witness computes the same target `q`, it is enough to provide one canonical witness
+`S'` with the right profile signature together with the actual equality
+`q = mlProj (m * iterDerivList S' (latentCompiledPoly M n))`. This turns any future computation-
+preservation argument into the exact candidate theorem currently required downstream. -/
+theorem latent_explicit_canonical_q_witness_yields_computes_q_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (S' : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hLen' : S'.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hAdm' : isBlockAdmissible (latentPartition M n) S')
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n)))
+    (hSig' : latent_profile_signature_of_generator_data M n S' m hLen' hDeg = σ)
+    (hclass4' : latent_raw_slot_family_classifier_candidate M n S')
+    (hq' : q = mlProj (m * iterDerivList S' (latentCompiledPoly M n))) :
+    latent_canonical_profile_control_witness_computes_q_candidate
+      M n σ q S m hLen hDeg hVars hAdm hSig hq := by
+  exact ⟨S', hLen', hAdm', hSig', hclass4', hq'⟩
+
+/-- Honest obstruction note for the second revised Move 1 link: equality of the current coarse
+profile signature does not by itself encode equality of the generated bucket polynomial. The
+signature remembers only the hit-block set of `S` and the total degree of `m`, so any genuine
+proof of `computes_q` must use additional structure beyond profile equality alone. -/
+theorem latent_profile_signature_records_only_hit_blocks_and_multiplier_degree
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (S' : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (m' : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hLen' : S'.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hDeg' : m'.totalDegree ≤ Nat.log 2 n)
+    (hSigEq : latent_profile_signature_of_generator_data M n S m hLen hDeg =
+      latent_profile_signature_of_generator_data M n S' m' hLen' hDeg') :
+    latent_hitBlocks_of_list M n S = latent_hitBlocks_of_list M n S' ∧
+    m.totalDegree = m'.totalDegree := by
+  constructor
+  · simpa [latent_profile_signature_of_generator_data_hitBlocks] using
+      congrArg latentProfileSignature.hitBlocks hSigEq
+  · simpa [latent_profile_signature_of_generator_data_multDeg] using
+      congrArg latentProfileSignature.multDeg hSigEq
+
+/-- Selector-first structural reduction for the second Move 1 link: if canonicalization can be
+strengthened all the way to the existing selector-compatible bucket-member package while keeping the
+same multiplier `m`, then the required `computes_q` candidate follows immediately. This is the
+cleanest current route because the selector lane already has the most developed sheet-level
+transport. -/
+theorem latent_selCon_compatible_bucket_member_with_same_multiplier_yields_computes_q_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n)))
+    (hsel :
+      ∃ (ks : List (Fin (latentBaseVars M n)))
+          (hnd : ks.Nodup)
+          (hlen : ks.length = Nat.log 2 n)
+          (hVars' : m.vars ⊆ (ks.map (selSlot M n)).toFinset),
+        latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) m
+          (by simp [List.length_map, hlen]) hDeg = σ ∧
+        q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n))) :
+    latent_canonical_profile_control_witness_computes_q_candidate
+      M n σ q S m hLen hDeg hVars hAdm hSig hq := by
+  rcases hsel with ⟨ks, hnd, hlen, hVars', hSig', hq'⟩
+  refine ⟨ks.map (selSlot M n), by simpa [List.length_map] using hlen, ?_, ?_, ?_, ?_⟩
+  · exact LatentWitnessMinorDecomp.witness_selector_list_admissible M n ks hnd
+  · exact hSig'
+  · exact Or.inr <| Or.inr <| Or.inl (by
+      intro v hv
+      rcases List.mem_map.mp hv with ⟨i, hi, rfl⟩
+      exact ⟨i, rfl⟩)
+  · exact hq'
 
 /-- Pure con-slot lists are automatically disjoint from all three existing clean compatibility
 lanes. This does not yet solve the con-slot case, but it sharpens the frontier: a genuine
