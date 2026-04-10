@@ -632,6 +632,18 @@ private theorem pderiv_conSlot_prod_selCon_zero_of_not_mem (M : DTM) (n : ℕ)
       rw [Finset.prod_insert ha, MvPolynomial.pderiv_mul, pderiv_conSlot_selConGadget_ne M n a j hja.symm]
       simp [ih hjT]
 
+private theorem iterDerivList_mul_const_left_con
+    {n : ℕ} (indices : List (Fin n))
+    (f g : MvPolynomial (Fin n) ℚ)
+    (hf : ∀ i ∈ indices, pderiv i f = 0) :
+    iterDerivList indices (f * g) = f * iterDerivList indices g := by
+  induction indices generalizing g with
+  | nil => simp [iterDerivList]
+  | cons i rest ih =>
+      simp only [iterDerivList, List.foldl]
+      have hi : pderiv i f = 0 := hf i (by simp)
+      rw [MvPolynomial.pderiv_mul, hi, zero_mul, zero_add]
+      exact ih _ (fun j hj => hf j (by simp [hj]))
 
 /-! ## selConSheet identity-minor core lemmas -/
 
@@ -771,6 +783,20 @@ theorem iterDeriv_selConSheet_eq (M : DTM) (n : ℕ)
         (∏ i ∈ (Finset.univ \ ks.toFinset), selConGadget M n i) := by
   unfold selConSheet
   exact iterDeriv_selConProd_eq M n ks hnd Finset.univ (by intro k hk; simp)
+
+/-- Any nonempty iterated con-slot-derivative kills machCopySheet. -/
+theorem iterDerivList_conSlot_machCopySheet_zero (M : DTM) (n : ℕ)
+    (S : List (Fin (latentBaseVars M n))) (hS : S ≠ []) :
+    iterDerivList (S.map (conSlot M n)) (machCopySheet M n) = 0 := by
+  cases S with
+  | nil => contradiction
+  | cons a rest =>
+      unfold machCopySheet
+      simp only [iterDerivList, List.map, List.foldl]
+      rw [pderiv_conSlot_prod_machCopy_zero M n a Finset.univ]
+      exact foldl_pderiv_zero_sel (rest.map (conSlot M n))
+
+
 
 /-- Kronecker matrix data at logscale: choose-many independent generators
 inside the blocked SPDP subspace of latentCompiledPoly. -/
