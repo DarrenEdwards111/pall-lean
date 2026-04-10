@@ -2758,6 +2758,97 @@ theorem latent_bucket_generator_to_clean_sel_menu
   right
   exact ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hq⟩
 
+/-- Direct raw machine-slot resolver: explicit machine-slot witness data now goes all the way to
+factorization plus exclusion of the other cleaned presentations in one step. -/
+theorem latent_raw_mach_bucket_member_resolves
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hn2 : n ≥ 2)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hnd : ks.Nodup)
+    (hlen : ks.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ (ks.map (machSlot M n)).toFinset)
+    (hSig : latent_profile_signature_of_generator_data M n (ks.map (machSlot M n)) m
+      (by simp [List.length_map, hlen]) hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList (ks.map (machSlot M n)) (latentCompiledPoly M n))) :
+    (∃ ks' m' residual varying,
+      ks'.Nodup ∧
+      ks'.length = Nat.log 2 n ∧
+      m'.vars ⊆ (ks'.map (machSlot M n)).toFinset ∧
+      q = mlProj (m' * iterDerivList (ks'.map (machSlot M n)) (latentCompiledPoly M n)) ∧
+      mlProj (m' * iterDerivList (ks'.map (machSlot M n)) (machCopySheet M n)) =
+        mlProj (residual * varying) ∧
+      varying ∈ latent_profile_varying_space M n σ) ∧
+    ¬ latent_copyCon_compatible_bucket_member M n σ q ∧
+    ¬ latent_selCon_compatible_bucket_member_clean M n σ q := by
+  have hmenu := latent_bucket_generator_to_clean_mach_menu M n σ q ks m hnd hlen hDeg hVars hSig hq
+  have hmach : latent_machCopy_compatible_bucket_member M n σ q :=
+    ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hq⟩
+  exact latent_clean_mach_bucket_member_resolves M n σ hn2 q hmenu hmach
+
+/-- Direct raw copy-slot resolver. -/
+theorem latent_raw_copy_bucket_member_resolves
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hn2 : n ≥ 2)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hnd : ks.Nodup)
+    (hlen : ks.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ (ks.map (copySlot M n)).toFinset)
+    (hSig : latent_profile_signature_of_generator_data M n (ks.map (copySlot M n)) m
+      (by simp [List.length_map, hlen]) hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList (ks.map (copySlot M n)) (latentCompiledPoly M n))) :
+    (∃ ks' m' residual varying,
+      ks'.Nodup ∧
+      ks'.length = Nat.log 2 n ∧
+      m'.vars ⊆ (ks'.map (copySlot M n)).toFinset ∧
+      q = mlProj (m' * iterDerivList (ks'.map (copySlot M n)) (latentCompiledPoly M n)) ∧
+      mlProj (m' * iterDerivList (ks'.map (copySlot M n)) (copyConSheet M n)) =
+        mlProj (residual * varying) ∧
+      varying ∈ latent_profile_varying_space M n σ) ∧
+    ¬ latent_machCopy_compatible_bucket_member M n σ q ∧
+    ¬ latent_selCon_compatible_bucket_member_clean M n σ q := by
+  have hmenu := latent_bucket_generator_to_clean_copy_menu M n σ q ks m hnd hlen hDeg hVars hSig hq
+  have hcopy : latent_copyCon_compatible_bucket_member M n σ q :=
+    ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hq⟩
+  exact latent_clean_copy_bucket_member_resolves M n σ hn2 q hmenu hcopy
+
+/-- Direct raw selector-slot resolver. -/
+theorem latent_raw_sel_bucket_member_resolves
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hn2 : n ≥ 2)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hnd : ks.Nodup)
+    (hlen : ks.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ (ks.map (selSlot M n)).toFinset)
+    (hSig : latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) m
+      (by simp [List.length_map, hlen]) hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n))) :
+    (∃ ks' m' residual varying,
+      ks'.Nodup ∧
+      ks'.length = Nat.log 2 n ∧
+      m'.vars ⊆ (ks'.map (selSlot M n)).toFinset ∧
+      q = mlProj (m' * iterDerivList (ks'.map (selSlot M n)) (latentCompiledPoly M n)) ∧
+      mlProj (m' * iterDerivList (ks'.map (selSlot M n)) (selConSheet M n)) =
+        mlProj (residual * varying) ∧
+      varying ∈ latent_profile_varying_space M n σ) ∧
+    ¬ latent_machCopy_compatible_bucket_member M n σ q ∧
+    ¬ latent_copyCon_compatible_bucket_member M n σ q := by
+  have hmenu := latent_bucket_generator_to_clean_sel_menu M n σ q ks m hnd hlen hDeg hVars hSig hq
+  have hsel : latent_selCon_compatible_bucket_member_clean M n σ q :=
+    ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hq⟩
+  exact latent_clean_sel_bucket_member_resolves M n σ hn2 q hmenu hsel
+
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
 latentCompiledPoly = sum of 3 product sheets → subadditivity reduces to per-sheet bounds.
