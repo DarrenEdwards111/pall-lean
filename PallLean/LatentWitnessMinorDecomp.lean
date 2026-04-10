@@ -1,4 +1,5 @@
 import PallLean.LatentCompiler
+import PallLean.IterDerivHelpers
 import PallLean.ProductDeriv
 import Mathlib.Tactic
 
@@ -407,6 +408,22 @@ theorem pderiv_copySlot_copyConProd_of_mem (M : DTM) (n : ℕ)
   · intro i hi hij
     exact pderiv_copySlot_copyConGadget_ne M n i j hij
 
+/-- Con-slot derivative on a finite copyCon product (hit case). -/
+theorem pderiv_conSlot_copyConProd_of_mem (M : DTM) (n : ℕ)
+    (T : Finset (Fin (latentBaseVars M n)))
+    (j : Fin (latentBaseVars M n)) (hj : j ∈ T) :
+    pderiv (conSlot M n j) (∏ i ∈ T, copyConGadget M n i) =
+      (-(Xcopy M n j)) * (∏ i ∈ (T.erase j), copyConGadget M n i) := by
+  rw [ProductDeriv.pderiv_prod_single
+      (s := T)
+      (f := fun i => copyConGadget M n i)
+      (i := conSlot M n j)
+      (k := j)
+      (hk := hj)]
+  · simpa [pderiv_conSlot_copyConGadget_eq]
+  · intro i hi hij
+    exact pderiv_conSlot_copyConGadget_ne M n i j hij
+
 /-- Copy-slot derivative on a finite copyCon product (miss case). -/
 theorem pderiv_copySlot_copyConProd_of_not_mem (M : DTM) (n : ℕ)
     (T : Finset (Fin (latentBaseVars M n)))
@@ -481,6 +498,58 @@ theorem iterDeriv_copyConProd_eq (M : DTM) (n : ℕ)
       simp only [List.length_cons, List.prod_cons]
       rw [pow_succ, map_mul, map_neg, map_one]
       ring
+
+/-- Full con-slot iterated derivative formula on a finite copyCon product. -/
+theorem iterDeriv_conSlot_copyConProd_eq (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n))) (hnd : ks.Nodup)
+    (s : Finset (Fin (latentBaseVars M n))) (hks : ∀ k ∈ ks, k ∈ s) :
+    iterDerivList (ks.map (conSlot M n)) (∏ i ∈ s, copyConGadget M n i) =
+      C ((-1 : ℚ)^ks.length) * (ks.map (Xcopy M n)).prod *
+        (∏ i ∈ (s \ ks.toFinset), copyConGadget M n i) := by
+  induction ks generalizing s with
+  | nil =>
+      simp [iterDerivList]
+  | cons k rest ih =>
+      simp only [List.map_cons]
+      rw [show iterDerivList (conSlot M n k :: rest.map (conSlot M n)) (∏ i ∈ s, copyConGadget M n i) =
+          iterDerivList (rest.map (conSlot M n))
+            (pderiv (conSlot M n k) (∏ i ∈ s, copyConGadget M n i))
+        from by unfold iterDerivList; simp [List.foldl]]
+      have hk_mem : k ∈ s := hks k (by simp)
+      rw [pderiv_conSlot_copyConProd_of_mem M n s k hk_mem]
+      have hconst : ∀ i ∈ rest.map (conSlot M n), pderiv i (-(Xcopy M n k)) = 0 := by
+        intro i hi
+        obtain ⟨c, _, rfl⟩ := List.mem_map.mp hi
+        have hnot : conSlot M n c ∉ (Xcopy M n k).vars := by
+          unfold Xcopy
+          rw [MvPolynomial.vars_X]
+          simp only [Finset.mem_singleton]
+          exact conSlot_ne_copySlot M n k c
+        rw [map_neg, MvPolynomial.pderiv_eq_zero_of_notMem_vars hnot, neg_zero]
+      rw [IterDerivHelpers.iterDerivList_mul_left_const _ _ _ hconst]
+      have hnd' : rest.Nodup := (List.nodup_cons.mp hnd).2
+      have hk_not : k ∉ rest := (List.nodup_cons.mp hnd).1
+      have hrest_in : ∀ j ∈ rest, j ∈ s.erase k := by
+        intro j hj
+        exact Finset.mem_erase.mpr ⟨fun h => hk_not (h ▸ hj), hks j (by simp [hj])⟩
+      rw [ih hnd' (s.erase k) hrest_in]
+      have hset : s.erase k \ rest.toFinset = s \ (k :: rest).toFinset := by
+        ext x
+        simp [Finset.mem_sdiff, Finset.mem_erase, List.toFinset_cons]
+        tauto
+      rw [hset]
+      simp only [List.length_cons, List.prod_cons]
+      rw [pow_succ, map_mul, map_neg, map_one]
+      ring
+
+/-- κ-level iterated derivative closed form specialized to full con/copy sheet. -/
+theorem iterDeriv_conSlot_copyConSheet_eq (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n))) (hnd : ks.Nodup) :
+    iterDerivList (ks.map (conSlot M n)) (copyConSheet M n) =
+      C ((-1 : ℚ)^ks.length) * (ks.map (Xcopy M n)).prod *
+        (∏ i ∈ (Finset.univ \ ks.toFinset), copyConGadget M n i) := by
+  unfold copyConSheet
+  exact iterDeriv_conSlot_copyConProd_eq M n ks hnd Finset.univ (by intro k hk; simp)
 
 /-- κ-level iterated derivative closed form specialized to full copyConSheet. -/
 theorem iterDeriv_copyConSheet_eq (M : DTM) (n : ℕ)
