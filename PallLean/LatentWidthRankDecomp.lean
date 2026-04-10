@@ -2701,6 +2701,63 @@ theorem latent_clean_sel_bucket_member_resolves
     ¬ latent_copyCon_compatible_bucket_member M n σ q := by
   exact (latent_clean_bucket_member_menu_unique M n σ hn2 q hmenu).2.2 hsel
 
+/-- Raw-to-clean bridge for machine-slot lane: if a bucket generator is already presented with
+explicit machine-slot witness data, then it can enter the cleaned top-level API directly. -/
+theorem latent_bucket_generator_to_clean_mach_menu
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hnd : ks.Nodup)
+    (hlen : ks.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ (ks.map (machSlot M n)).toFinset)
+    (hSig : latent_profile_signature_of_generator_data M n (ks.map (machSlot M n)) m
+      (by simp [List.length_map, hlen]) hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList (ks.map (machSlot M n)) (latentCompiledPoly M n))) :
+    latent_clean_compatible_bucket_member_menu M n σ q := by
+  left
+  exact ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hq⟩
+
+/-- Raw-to-clean bridge for copy-slot lane. -/
+theorem latent_bucket_generator_to_clean_copy_menu
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hnd : ks.Nodup)
+    (hlen : ks.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ (ks.map (copySlot M n)).toFinset)
+    (hSig : latent_profile_signature_of_generator_data M n (ks.map (copySlot M n)) m
+      (by simp [List.length_map, hlen]) hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList (ks.map (copySlot M n)) (latentCompiledPoly M n))) :
+    latent_clean_compatible_bucket_member_menu M n σ q := by
+  right
+  left
+  exact ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hq⟩
+
+/-- Raw-to-clean bridge for selector-slot lane. -/
+theorem latent_bucket_generator_to_clean_sel_menu
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hnd : ks.Nodup)
+    (hlen : ks.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ (ks.map (selSlot M n)).toFinset)
+    (hSig : latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) m
+      (by simp [List.length_map, hlen]) hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n))) :
+    latent_clean_compatible_bucket_member_menu M n σ q := by
+  right
+  right
+  exact ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hq⟩
+
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
 latentCompiledPoly = sum of 3 product sheets → subadditivity reduces to per-sheet bounds.
