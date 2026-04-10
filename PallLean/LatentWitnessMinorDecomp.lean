@@ -81,7 +81,70 @@ theorem conSlot_ne_selSlot (M : DTM) (n : ℕ)
     conSlot M n j ≠ selSlot M n i := by
   simp [conSlot, selSlot, slot, Fin.ext_iff]; omega
 
-/-- machCopyGadget has no conSlot variables. -/
+theorem machSlot_ne_selSlot (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) :
+    machSlot M n i ≠ selSlot M n j := by
+  simp [machSlot, selSlot, slot, Fin.ext_iff]; omega
+
+theorem machSlot_ne_conSlot (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) :
+    machSlot M n i ≠ conSlot M n j := by
+  simp [machSlot, conSlot, slot, Fin.ext_iff]; omega
+
+theorem copySlot_ne_selSlot (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) :
+    copySlot M n i ≠ selSlot M n j := by
+  simp [copySlot, selSlot, slot, Fin.ext_iff]; omega
+
+theorem copySlot_ne_machSlot (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) :
+    copySlot M n i ≠ machSlot M n j := by
+  exact (machSlot_ne_copySlot M n j i).symm
+
+/-- machSlot derivative of copyConGadget is always zero (machSlot not in copyConGadget vars). -/
+theorem pderiv_machSlot_copyConGadget (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) :
+    pderiv (machSlot M n j) (copyConGadget M n i) = 0 := by
+  unfold copyConGadget Xcopy Xcon
+  have hcp := copySlot_ne_machSlot M n i j
+  have hcn := machSlot_ne_conSlot M n j i
+  exact ProductDeriv.pderiv_one_sub_mul_ne hcp.symm (by
+    rw [MvPolynomial.vars_X]; simp; exact hcn)
+
+/-- machSlot derivative of selConGadget is always zero (machSlot not in selConGadget vars). -/
+theorem pderiv_machSlot_selConGadget (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) :
+    pderiv (machSlot M n j) (selConGadget M n i) = 0 := by
+  unfold selConGadget Xsel Xcon
+  have hsp := machSlot_ne_selSlot M n j i
+  have hcn := machSlot_ne_conSlot M n j i
+  exact ProductDeriv.pderiv_one_sub_mul_ne hsp (by
+    rw [MvPolynomial.vars_X]; simp; exact hcn)
+
+/-- copySlot derivative of selConGadget is always zero (copySlot not in selConGadget vars). -/
+theorem pderiv_copySlot_selConGadget (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) :
+    pderiv (copySlot M n j) (selConGadget M n i) = 0 := by
+  unfold selConGadget Xsel Xcon
+  have hsp := copySlot_ne_selSlot M n j i
+  have hcn := copySlot_ne_conSlot M n j i
+  exact ProductDeriv.pderiv_one_sub_mul_ne hsp (by
+    rw [MvPolynomial.vars_X]; simp; exact hcn)
+
+/-- copySlot derivative of machCopyGadget at a different index is zero. -/
+theorem pderiv_copySlot_machCopyGadget_ne (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) (hij : i ≠ j) :
+    pderiv (copySlot M n j) (machCopyGadget M n i) = 0 := by
+  unfold machCopyGadget Xmach
+  have hneq : copySlot M n j ≠ machSlot M n i := (machSlot_ne_copySlot M n i j).symm
+  have hnot : copySlot M n j ∉ (Xcopy M n i).vars := by
+    unfold Xcopy
+    rw [MvPolynomial.vars_X]
+    intro h
+    exact hij.symm ((copySlot_injective M n) (Finset.mem_singleton.mp h))
+  exact ProductDeriv.pderiv_one_sub_mul_ne hneq hnot
+
+/-- machCopySheet has no conSlot variables. -/
 theorem pderiv_conSlot_machCopyGadget (M : DTM) (n : ℕ)
     (i j : Fin (latentBaseVars M n)) :
     pderiv (conSlot M n j) (machCopyGadget M n i) = 0 := by
@@ -797,6 +860,78 @@ theorem iterDerivList_conSlot_machCopySheet_zero (M : DTM) (n : ℕ)
       exact foldl_pderiv_zero_sel (rest.map (conSlot M n))
 
 
+
+/-- Any machSlot derivative kills copyConSheet (machSlot variables do not appear in copyConSheet). -/
+theorem pderiv_machSlot_copyConSheet_zero (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n)) :
+    pderiv (machSlot M n j) (copyConSheet M n) = 0 := by
+  unfold copyConSheet
+  induction Finset.univ (α := Fin (latentBaseVars M n)) using Finset.induction_on with
+  | empty => simp
+  | insert a t ha ih =>
+      rw [Finset.prod_insert ha, MvPolynomial.pderiv_mul,
+        pderiv_machSlot_copyConGadget M n a j, zero_mul, zero_add]
+      rw [ih, mul_zero]
+
+/-- Any machSlot derivative kills selConSheet (machSlot variables do not appear in selConSheet). -/
+theorem pderiv_machSlot_selConSheet_zero (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n)) :
+    pderiv (machSlot M n j) (selConSheet M n) = 0 := by
+  unfold selConSheet
+  induction Finset.univ (α := Fin (latentBaseVars M n)) using Finset.induction_on with
+  | empty => simp
+  | insert a t ha ih =>
+      rw [Finset.prod_insert ha, MvPolynomial.pderiv_mul,
+        pderiv_machSlot_selConGadget M n a j, zero_mul, zero_add]
+      rw [ih, mul_zero]
+
+/-- Any copySlot derivative kills selConSheet (copySlot variables do not appear in selConSheet). -/
+theorem pderiv_copySlot_selConSheet_zero (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n)) :
+    pderiv (copySlot M n j) (selConSheet M n) = 0 := by
+  unfold selConSheet
+  induction Finset.univ (α := Fin (latentBaseVars M n)) using Finset.induction_on with
+  | empty => simp
+  | insert a t ha ih =>
+      rw [Finset.prod_insert ha, MvPolynomial.pderiv_mul,
+        pderiv_copySlot_selConGadget M n a j, zero_mul, zero_add]
+      rw [ih, mul_zero]
+
+/-- Any selSlot derivative kills machCopySheet (from existing pderiv_selSlot_machCopyGadget). -/
+theorem pderiv_selSlot_machCopySheet_zero_single (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n)) :
+    pderiv (selSlot M n j) (machCopySheet M n) = 0 := by
+  unfold machCopySheet
+  induction Finset.univ (α := Fin (latentBaseVars M n)) using Finset.induction_on with
+  | empty => simp
+  | insert a t ha ih =>
+      rw [Finset.prod_insert ha, MvPolynomial.pderiv_mul,
+        pderiv_selSlot_machCopyGadget M n a j, zero_mul, zero_add]
+      rw [ih, mul_zero]
+
+/-- Any selSlot derivative kills copyConSheet (from existing pderiv_selSlot_copyConGadget). -/
+theorem pderiv_selSlot_copyConSheet_zero_single (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n)) :
+    pderiv (selSlot M n j) (copyConSheet M n) = 0 := by
+  unfold copyConSheet
+  induction Finset.univ (α := Fin (latentBaseVars M n)) using Finset.induction_on with
+  | empty => simp
+  | insert a t ha ih =>
+      rw [Finset.prod_insert ha, MvPolynomial.pderiv_mul,
+        pderiv_selSlot_copyConGadget M n a j, zero_mul, zero_add]
+      rw [ih, mul_zero]
+
+/-- Any conSlot derivative kills machCopySheet (from existing pderiv_conSlot_machCopyGadget). -/
+theorem pderiv_conSlot_machCopySheet_zero_single (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n)) :
+    pderiv (conSlot M n j) (machCopySheet M n) = 0 := by
+  unfold machCopySheet
+  induction Finset.univ (α := Fin (latentBaseVars M n)) using Finset.induction_on with
+  | empty => simp
+  | insert a t ha ih =>
+      rw [Finset.prod_insert ha, MvPolynomial.pderiv_mul,
+        pderiv_conSlot_machCopyGadget M n a j, zero_mul, zero_add]
+      rw [ih, mul_zero]
 
 /-- Kronecker matrix data at logscale: choose-many independent generators
 inside the blocked SPDP subspace of latentCompiledPoly. -/

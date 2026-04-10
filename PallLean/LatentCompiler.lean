@@ -125,6 +125,88 @@ theorem latentPartition_assign_selSlot (M : DTM) (n : ℕ)
   simp [latentPartition, selSlot, slot]
   omega
 
+/-- Every variable in `Fin (latentNumVars M n)` belongs to exactly one of the 4 slot families.
+    This is because `latentNumVars = 4 * latentBaseVars` and `slot M n k i = ⟨4*i+k, _⟩`. -/
+theorem var_layer_exhaustive (M : DTM) (n : ℕ) (v : Fin (latentNumVars M n)) :
+    (∃ i : Fin (latentBaseVars M n), v = machSlot M n i) ∨
+    (∃ i : Fin (latentBaseVars M n), v = copySlot M n i) ∨
+    (∃ i : Fin (latentBaseVars M n), v = selSlot M n i) ∨
+    (∃ i : Fin (latentBaseVars M n), v = conSlot M n i) := by
+  have hmod : v.val % 4 < 4 := Nat.mod_lt _ (by omega)
+  have hdiv : v.val / 4 < latentBaseVars M n := by
+    have hv := v.isLt
+    simp only [latentNumVars] at hv
+    exact Nat.div_lt_of_lt_mul hv
+  set b : Fin (latentBaseVars M n) := ⟨v.val / 4, hdiv⟩
+  have hm := Nat.mod_two_eq_zero_or_one (v.val % 4)
+  -- Manually case split on v.val % 4
+  have h04 : v.val % 4 = 0 ∨ v.val % 4 = 1 ∨ v.val % 4 = 2 ∨ v.val % 4 = 3 := by omega
+  rcases h04 with h0 | h1 | h2 | h3
+  · left; refine ⟨b, Fin.ext ?_⟩
+    show v.val = (slot M n 0 b).val
+    unfold slot
+    simp only [Fin.val_mk]
+    -- Goal: v.val = 4 * b.val + (0 : Fin 4).val
+    -- b.val = v.val / 4, h0: v.val % 4 = 0
+    change v.val = 4 * (v.val / 4) + (0 : Fin 4).val
+    omega
+  · right; left; refine ⟨b, Fin.ext ?_⟩
+    show v.val = (slot M n 1 b).val
+    unfold slot; simp only [Fin.val_mk]
+    change v.val = 4 * (v.val / 4) + (1 : Fin 4).val
+    omega
+  · right; right; left; refine ⟨b, Fin.ext ?_⟩
+    show v.val = (slot M n 2 b).val
+    unfold slot; simp only [Fin.val_mk]
+    change v.val = 4 * (v.val / 4) + (2 : Fin 4).val
+    omega
+  · right; right; right; refine ⟨b, Fin.ext ?_⟩
+    show v.val = (slot M n 3 b).val
+    unfold slot; simp only [Fin.val_mk]
+    change v.val = 4 * (v.val / 4) + (3 : Fin 4).val
+    omega
+
+/-- The layer (mod-4 residue) of a variable determines which slot family it belongs to. -/
+theorem var_layer_eq_machSlot_of_mod (M : DTM) (n : ℕ) (v : Fin (latentNumVars M n))
+    (hv : v.val % 4 = 0) :
+    ∃ i : Fin (latentBaseVars M n), v = machSlot M n i := by
+  have hdiv : v.val / 4 < latentBaseVars M n := by
+    have := v.isLt; simp only [latentNumVars] at this; exact Nat.div_lt_of_lt_mul this
+  refine ⟨⟨v.val / 4, hdiv⟩, Fin.ext ?_⟩
+  show v.val = (slot M n 0 ⟨v.val / 4, hdiv⟩).val
+  unfold slot; simp only [Fin.val_mk]
+  change v.val = 4 * (v.val / 4) + (0 : Fin 4).val; omega
+
+theorem var_layer_eq_copySlot_of_mod (M : DTM) (n : ℕ) (v : Fin (latentNumVars M n))
+    (hv : v.val % 4 = 1) :
+    ∃ i : Fin (latentBaseVars M n), v = copySlot M n i := by
+  have hdiv : v.val / 4 < latentBaseVars M n := by
+    have := v.isLt; simp only [latentNumVars] at this; exact Nat.div_lt_of_lt_mul this
+  refine ⟨⟨v.val / 4, hdiv⟩, Fin.ext ?_⟩
+  show v.val = (slot M n 1 ⟨v.val / 4, hdiv⟩).val
+  unfold slot; simp only [Fin.val_mk]
+  change v.val = 4 * (v.val / 4) + (1 : Fin 4).val; omega
+
+theorem var_layer_eq_selSlot_of_mod (M : DTM) (n : ℕ) (v : Fin (latentNumVars M n))
+    (hv : v.val % 4 = 2) :
+    ∃ i : Fin (latentBaseVars M n), v = selSlot M n i := by
+  have hdiv : v.val / 4 < latentBaseVars M n := by
+    have := v.isLt; simp only [latentNumVars] at this; exact Nat.div_lt_of_lt_mul this
+  refine ⟨⟨v.val / 4, hdiv⟩, Fin.ext ?_⟩
+  show v.val = (slot M n 2 ⟨v.val / 4, hdiv⟩).val
+  unfold slot; simp only [Fin.val_mk]
+  change v.val = 4 * (v.val / 4) + (2 : Fin 4).val; omega
+
+theorem var_layer_eq_conSlot_of_mod (M : DTM) (n : ℕ) (v : Fin (latentNumVars M n))
+    (hv : v.val % 4 = 3) :
+    ∃ i : Fin (latentBaseVars M n), v = conSlot M n i := by
+  have hdiv : v.val / 4 < latentBaseVars M n := by
+    have := v.isLt; simp only [latentNumVars] at this; exact Nat.div_lt_of_lt_mul this
+  refine ⟨⟨v.val / 4, hdiv⟩, Fin.ext ?_⟩
+  show v.val = (slot M n 3 ⟨v.val / 4, hdiv⟩).val
+  unfold slot; simp only [Fin.val_mk]
+  change v.val = 4 * (v.val / 4) + (3 : Fin 4).val; omega
+
 /-- Admissibility of selector-slot lists: one selector slot per base block. -/
 theorem selSlotList_admissible (M : DTM) (n : ℕ)
     (S : List (Fin (latentBaseVars M n))) (hnd : S.Nodup) :

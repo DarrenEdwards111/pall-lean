@@ -117,4 +117,86 @@ theorem iterDerivList_neg_mul_left_const
     iterDerivList S (-(f * g)) = -(f * iterDerivList S g) := by
   rw [iterDerivList_neg, iterDerivList_mul_left_const S f g hf]
 
+/-- Partial derivatives of `MvPolynomial` commute: `pderiv i (pderiv j f) = pderiv j (pderiv i f)`.
+    Proved by the monomial induction: for monomials it's a direct computation; for sums it
+    follows from linearity. -/
+theorem pderiv_comm (i j : Fin n) (f : MvPolynomial (Fin n) F) :
+    pderiv i (pderiv j f) = pderiv j (pderiv i f) := by
+  induction f using MvPolynomial.induction_on' with
+  | monomial s a =>
+    simp only [MvPolynomial.pderiv_monomial]
+    -- LHS: pderiv i (monomial (s - single j 1) (a * s j))
+    --    = monomial ((s - single j 1) - single i 1) ((a * s j) * (s - single j 1) i)
+    -- RHS: pderiv j (monomial (s - single i 1) (a * s i))
+    --    = monomial ((s - single i 1) - single j 1) ((a * s i) * (s - single i 1) j)
+    -- These are equal because:
+    -- 1. (s - single j 1) - single i 1 = (s - single i 1) - single j 1
+    -- 2. (a * s j) * (s - single j 1) i = (a * s i) * (s - single i 1) j
+    -- After pderiv_monomial twice, we need to show:
+    -- monomial ((s - single j 1) - single i 1) ((a * ↑(s j)) * ↑((s - single j 1) i))
+    -- = monomial ((s - single i 1) - single j 1) ((a * ↑(s i)) * ↑((s - single i 1) j))
+    change MvPolynomial.monomial _ _ = MvPolynomial.monomial _ _
+    -- We use the fact that pderiv i (pderiv j (monomial s a)) computes to
+    -- monomial ((s - single j 1) - single i 1) ((a * s j) * (s - single j 1) i)
+    -- and similarly with i,j swapped.
+    -- Both the exponent and coefficient are symmetric in i,j at the ℕ level.
+    have key : ∀ (x y : Fin n),
+        (s - Finsupp.single x 1 - Finsupp.single y 1 : Fin n →₀ ℕ)
+        = (s - Finsupp.single y 1 - Finsupp.single x 1 : Fin n →₀ ℕ) := by
+      intro x y
+      ext k
+      simp only [Finsupp.tsub_apply, Finsupp.single_apply]
+      split_ifs with h1 h2
+      · subst h1; subst h2; omega
+      · omega
+      · omega
+      · rfl
+    rw [key j i]
+    congr 1
+    -- Coefficient: (a * s j) * (s - single j 1) i = (a * s i) * (s - single i 1) j
+    simp only [Finsupp.tsub_apply, Finsupp.single_apply]
+    by_cases hij : j = i
+    · subst hij; ring
+    · have hij' : ¬(i = j) := Ne.symm hij
+      simp only [hij, hij', ↓reduceIte, Nat.sub_zero]
+      ring
+  | add p q hp hq =>
+    simp only [map_add, hp, hq]
+
+/-- If `v ∉ f.vars`, then `v ∉ (pderiv w f).vars`.
+    Equivalently: `pderiv v (pderiv w f) = 0` when `pderiv v f = 0`.
+    This follows from pderiv commutativity. -/
+theorem pderiv_eq_zero_of_pderiv_eq_zero
+    (v w : Fin n) (f : MvPolynomial (Fin n) F)
+    (hf : pderiv v f = 0) :
+    pderiv v (pderiv w f) = 0 := by
+  rw [pderiv_comm v w f, hf, map_zero]
+
+/-- If `v ∈ S` and `pderiv v p = 0`, then `iterDerivList S p = 0`.
+    The proof uses pderiv commutativity to "move" the killing variable to the front. -/
+theorem iterDerivList_eq_zero_of_mem_and_pderiv_zero
+    (S : List (Fin n)) (v : Fin n) (p : MvPolynomial (Fin n) F)
+    (hv : v ∈ S) (hp : pderiv v p = 0) :
+    iterDerivList S p = 0 := by
+  induction S generalizing p with
+  | nil => simp at hv
+  | cons a rest ih =>
+    simp only [iterDerivList_cons]
+    rcases List.mem_cons.mp hv with ha | hrest
+    · -- v = a, so pderiv a p = pderiv v p = 0
+      subst ha
+      rw [hp]
+      exact foldl_pderiv_zero rest
+    · -- v ∈ rest
+      exact ih (pderiv a p) hrest (pderiv_eq_zero_of_pderiv_eq_zero v a p hp)
+
+/-- If `v ∈ S` and `v ∉ p.vars`, then `iterDerivList S p = 0`.
+    Combines `pderiv_eq_zero_of_notMem_vars` with the general killing lemma. -/
+theorem iterDerivList_eq_zero_of_mem_notMem_vars
+    (S : List (Fin n)) (v : Fin n) (p : MvPolynomial (Fin n) F)
+    (hv : v ∈ S) (hvp : v ∉ p.vars) :
+    iterDerivList S p = 0 :=
+  iterDerivList_eq_zero_of_mem_and_pderiv_zero S v p hv
+    (MvPolynomial.pderiv_eq_zero_of_notMem_vars hvp)
+
 end IterDerivHelpers
