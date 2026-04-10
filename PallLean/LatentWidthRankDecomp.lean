@@ -1870,6 +1870,98 @@ def latent_bucket_generator_copyCon_branch_of_compatible
         mlProj (m * iterDerivList S (copyConSheet M n)) = mlProj (residual * varying) ∧
         varying ∈ latent_profile_varying_space M n σ
 
+/-- Positive copyCon factor route with a multiplier supported on copy-slot hits. -/
+def latent_copyCon_factor_route_with_multiplier
+    (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ) : Prop :=
+  ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+    mlProj (m * iterDerivList (ks.map (copySlot M n)) (copyConSheet M n)) =
+      mlProj (residual * varying)
+
+/-- The explicit copyCon varying factor is supported on the hit blocks determined by the
+copy-slot list. -/
+theorem latent_copyCon_varying_factor_mem_varying_space
+    (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hVars : m.vars ⊆ (ks.map (copySlot M n)).toFinset)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hlen : ks.length = Nat.log 2 n) :
+    (m * (ks.map (Xcon M n)).prod) ∈ latent_profile_varying_space M n
+      (latent_profile_signature_of_generator_data M n (ks.map (copySlot M n)) m
+        (by simp [List.length_map, hlen]) hDeg) := by
+  rw [latent_profile_varying_space_def]
+  apply Submodule.subset_span
+  intro v hv
+  rw [latent_profile_signature_of_generator_data_hitBlocks]
+  unfold latent_hitBlocks_of_list latent_profile_varying_window
+  have hvmul := MvPolynomial.vars_mul m ((ks.map (Xcon M n)).prod) hv
+  rcases Finset.mem_union.mp hvmul with hm | hx
+  · have hmS : v ∈ (ks.map (copySlot M n)).toFinset := hVars hm
+    rcases List.mem_toFinset.mp hmS with hmList
+    apply Finset.mem_biUnion.mpr
+    refine ⟨(latentPartition M n).assign v, ?_, ?_⟩
+    · apply List.mem_toFinset.mpr
+      exact List.mem_map.mpr ⟨copySlot M n hmList, List.mem_map.mpr ⟨hmList, hmList, rfl⟩, rfl⟩
+    · rcases v with ⟨vv, hvv⟩
+      have hs0 : (⟨vv, hvv⟩ : Fin (latentNumVars M n)) = copySlot M n ((latentPartition M n).assign ⟨vv, hvv⟩) := by
+        apply Fin.ext
+        simp [latentPartition, copySlot, slot]
+        omega
+      simpa [hs0]
+  · have hvprod := MvPolynomial.vars_prod (s := ks.toFinset) (f := Xcon M n) hx
+    rcases List.mem_toFinset.mp (by simpa [MvPolynomial.vars_X] using hvprod) with hmem
+    apply Finset.mem_biUnion.mpr
+    refine ⟨hmem, ?_, ?_⟩
+    · rw [latent_profile_signature_of_generator_data_hitBlocks]
+      unfold latent_hitBlocks_of_list
+      apply List.mem_toFinset.mpr
+      exact List.mem_map.mpr ⟨copySlot M n hmem, List.mem_map.mpr ⟨hmem, hmem, rfl⟩, by simp [latentPartition_assign_copySlot]⟩
+    · simp
+
+/-- Positive copyCon factor route with a copy-slot-supported multiplier. -/
+theorem latent_copyCon_factor_route_with_multiplier_of_nodup
+    (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hnd : ks.Nodup)
+    (hlen : ks.length = Nat.log 2 n)
+    (hVars : m.vars ⊆ (ks.map (copySlot M n)).toFinset)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n) :
+    latent_copyCon_factor_route_with_multiplier M n ks m := by
+  refine ⟨m * (C ((-1 : ℚ)^ks.length) *
+      (∏ i ∈ (Finset.univ \ ks.toFinset), copyConGadget M n i)),
+    (ks.map (Xcon M n)).prod, ?_⟩
+  rw [LatentWitnessMinorDecomp.iterDeriv_copyConSheet_eq M n ks hnd]
+  ring
+
+/-- The positive copyCon factor route feeds directly into the copyCon branch theorem slot
+once the recovered generator data is copy-slot compatible. -/
+theorem latent_bucket_generator_copyCon_branch_of_compatible_proved
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    latent_bucket_generator_copyCon_branch_of_compatible M n σ := by
+  intro q hq S m hLen hDeg hVars hAdm hsplit hcomp
+  rcases hcomp with ⟨ks, hnd, rfl, hVarsCopy⟩
+  have hSig : latent_profile_signature_of_generator_data M n (ks.map (copySlot M n)) m
+      (by simpa [List.length_map] using hLen) hDeg = σ := by
+    rcases hq with ⟨S', m', hLen', hDeg', hVars', hAdm', hSig', hqeq⟩
+    simp only at hqeq
+    subst hqeq
+    have : S' = ks.map (copySlot M n) := by simp
+    subst this
+    have : m' = m := by rfl
+    subst this
+    simpa [List.length_map] using hSig'
+  rcases latent_copyCon_factor_route_with_multiplier_of_nodup M n ks m hnd
+    (by simpa [List.length_map] using hLen) hVarsCopy hDeg with ⟨residual, varying, hfac⟩
+  refine ⟨residual, varying, ?_, ?_⟩
+  · simpa using hfac
+  · simpa [hSig] using
+      latent_copyCon_varying_factor_mem_varying_space M n ks m hVarsCopy hDeg
+        (by simpa [List.length_map] using hLen)
+
 /-- Under selector-only compatibility, the machCopy branch vanishes because selSlot
  derivatives kill `machCopySheet`. -/
 theorem latent_bucket_generator_machCopy_branch_zero_of_sel_compatible
