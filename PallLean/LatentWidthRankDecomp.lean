@@ -2359,6 +2359,21 @@ def latent_copyCon_compatible_bucket_member
       (by simp [List.length_map, hlen]) hDeg = σ ∧
     q = mlProj (m * iterDerivList (ks.map (copySlot M n)) (latentCompiledPoly M n))
 
+/-- Clean top-level selector-compatible bucket package, matching the mach/copy interfaces. -/
+def latent_selCon_compatible_bucket_member_clean
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ) : Prop :=
+  ∃ (ks : List (Fin (latentBaseVars M n)))
+      (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+      (hnd : ks.Nodup)
+      (hlen : ks.length = Nat.log 2 n)
+      (hDeg : m.totalDegree ≤ Nat.log 2 n)
+      (hVars : m.vars ⊆ (ks.map (selSlot M n)).toFinset),
+    latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) m
+      (by simp [List.length_map, hlen]) hDeg = σ ∧
+    q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n))
+
 /-- Clean top-level machCopy-compatible branch theorem: from a machine-slot-compatible bucket
 member, recover the unique branch factorization data directly in bucket language. -/
 theorem latent_machCopy_compatible_bucket_member_unique_branch_factorization
@@ -2424,6 +2439,39 @@ theorem latent_copyCon_compatible_bucket_member_unique_branch_factorization
       intro hnil
       simp at hlen
       omega)).2.1 hcomp with ⟨residual, varying, hfac, hvary, _, _⟩
+  exact ⟨ks, m, residual, varying, hnd, hlen, hVars, hqeq, hfac, hvary⟩
+
+/-- Cleaned selector-lane top-level consequence, parallel to the mach/copy versions. -/
+theorem latent_selCon_compatible_bucket_member_clean_unique_branch_factorization
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hn2 : n ≥ 2)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hq : latent_selCon_compatible_bucket_member_clean M n σ q) :
+    ∃ ks m residual varying,
+      ks.Nodup ∧
+      ks.length = Nat.log 2 n ∧
+      m.vars ⊆ (ks.map (selSlot M n)).toFinset ∧
+      q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n)) ∧
+      mlProj (m * iterDerivList (ks.map (selSlot M n)) (selConSheet M n)) =
+        mlProj (residual * varying) ∧
+      varying ∈ latent_profile_varying_space M n σ := by
+  rcases hq with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
+  have hbucket : q ∈ latent_profile_bucket_generators M n σ := by
+    refine ⟨ks.map (selSlot M n), m, by simp [List.length_map, hlen], hDeg, ?_, ?_, hSig, hqeq⟩
+    · simpa using hVars
+    · exact LatentWitnessMinorDecomp.witness_selector_list_admissible M n ks hnd
+  have hsplit := latent_bucket_generator_sheet_split_of_mem M n σ q hbucket
+  have hcomp : latent_selCon_single_sheet_compatible M n (ks.map (selSlot M n)) m := by
+    refine ⟨ks, hnd, rfl, ?_⟩
+    simpa using hVars
+  rcases (latent_unique_branch_factorization_of_compatible M n σ hn2 q hbucket
+    (ks.map (selSlot M n)) m (by simp [List.length_map, hlen]) hDeg (by simpa using hVars)
+    (LatentWitnessMinorDecomp.witness_selector_list_admissible M n ks hnd) hsplit
+    (by
+      intro hnil
+      simp at hlen
+      omega)).2.2 hcomp with ⟨residual, varying, hfac, hvary, _, _⟩
   exact ⟨ks, m, residual, varying, hnd, hlen, hVars, hqeq, hfac, hvary⟩
 
 /-
