@@ -2773,6 +2773,101 @@ theorem latent_bucket_generator_to_clean_sel_menu
   right
   exact ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hq⟩
 
+/-- Move 1 frontier: any raw bucket member whose derivative list is already uniformly in one
+slot family enters the cleaned compatibility menu immediately. This isolates the remaining
+work to the missing lane-classification lemma for arbitrary raw admissible lists. -/
+theorem latent_raw_bucket_member_enters_clean_lane
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n)))
+    (hUniform :
+      (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = machSlot M n i) ∨
+      (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = copySlot M n i) ∨
+      (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = selSlot M n i)) :
+    latent_clean_compatible_bucket_member_menu M n σ q := by
+  rcases hAdm with ⟨hNodup, _hBlockAdm⟩
+  rcases hUniform with hmach | hcopy | hsel
+  · let ks : List (Fin (latentBaseVars M n)) := S.map (fun v => (latentPartition M n).assign v)
+    have hS : S = ks.map (machSlot M n) := by
+      unfold ks
+      apply List.ext_getElem <;> simp [List.length_map]
+      intro i hi1 hi2
+      rcases hmach (S[i]) (List.getElem_mem hi1) with ⟨b, hb⟩
+      have hassign : (latentPartition M n).assign (S[i]) = b := by
+        simpa [hb] using latentPartition_assign_machSlot M n b
+      calc
+        S[i] = machSlot M n b := hb
+        _ = machSlot M n ((latentPartition M n).assign (S[i])) := by rw [hassign.symm]
+    have hmapNodup : (ks.map (machSlot M n)).Nodup := by simpa [hS] using hNodup
+    have hnd : ks.Nodup :=
+      (List.nodup_map_iff (LatentWitnessMinorDecomp.machSlot_injective M n)).mp hmapNodup
+    have hVars' : m.vars ⊆ (ks.map (machSlot M n)).toFinset := by
+      simpa [hS] using hVars
+    have hLen' : ks.length = Nat.log 2 n := by
+      simpa [ks, List.length_map] using hLen
+    have hSig' : latent_profile_signature_of_generator_data M n (ks.map (machSlot M n)) m
+        (by simpa [List.length_map] using hLen') hDeg = σ := by
+      simpa [hS] using hSig
+    have hq' : q = mlProj (m * iterDerivList (ks.map (machSlot M n)) (latentCompiledPoly M n)) := by
+      simpa [hS] using hq
+    exact latent_bucket_generator_to_clean_mach_menu M n σ q ks m hnd hLen' hDeg hVars' hSig' hq'
+  · let ks : List (Fin (latentBaseVars M n)) := S.map (fun v => (latentPartition M n).assign v)
+    have hS : S = ks.map (copySlot M n) := by
+      unfold ks
+      apply List.ext_getElem <;> simp [List.length_map]
+      intro i hi1 hi2
+      rcases hcopy (S[i]) (List.getElem_mem hi1) with ⟨b, hb⟩
+      have hassign : (latentPartition M n).assign (S[i]) = b := by
+        simpa [hb] using latentPartition_assign_copySlot M n b
+      calc
+        S[i] = copySlot M n b := hb
+        _ = copySlot M n ((latentPartition M n).assign (S[i])) := by rw [hassign.symm]
+    have hmapNodup : (ks.map (copySlot M n)).Nodup := by simpa [hS] using hNodup
+    have hnd : ks.Nodup :=
+      (List.nodup_map_iff (LatentWitnessMinorDecomp.copySlot_injective M n)).mp hmapNodup
+    have hVars' : m.vars ⊆ (ks.map (copySlot M n)).toFinset := by
+      simpa [hS] using hVars
+    have hLen' : ks.length = Nat.log 2 n := by
+      simpa [ks, List.length_map] using hLen
+    have hSig' : latent_profile_signature_of_generator_data M n (ks.map (copySlot M n)) m
+        (by simpa [List.length_map] using hLen') hDeg = σ := by
+      simpa [hS] using hSig
+    have hq' : q = mlProj (m * iterDerivList (ks.map (copySlot M n)) (latentCompiledPoly M n)) := by
+      simpa [hS] using hq
+    exact latent_bucket_generator_to_clean_copy_menu M n σ q ks m hnd hLen' hDeg hVars' hSig' hq'
+  · let ks : List (Fin (latentBaseVars M n)) := S.map (fun v => (latentPartition M n).assign v)
+    have hS : S = ks.map (selSlot M n) := by
+      unfold ks
+      apply List.ext_getElem <;> simp [List.length_map]
+      intro i hi1 hi2
+      rcases hsel (S[i]) (List.getElem_mem hi1) with ⟨b, hb⟩
+      have hassign : (latentPartition M n).assign (S[i]) = b := by
+        simpa [hb] using latentPartition_assign_selSlot M n b
+      calc
+        S[i] = selSlot M n b := hb
+        _ = selSlot M n ((latentPartition M n).assign (S[i])) := by rw [hassign.symm]
+    have hmapNodup : (ks.map (selSlot M n)).Nodup := by simpa [hS] using hNodup
+    have hnd : ks.Nodup :=
+      (List.nodup_map_iff (selSlot_injective M n)).mp hmapNodup
+    have hVars' : m.vars ⊆ (ks.map (selSlot M n)).toFinset := by
+      simpa [hS] using hVars
+    have hLen' : ks.length = Nat.log 2 n := by
+      simpa [ks, List.length_map] using hLen
+    have hSig' : latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) m
+        (by simpa [List.length_map] using hLen') hDeg = σ := by
+      simpa [hS] using hSig
+    have hq' : q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n)) := by
+      simpa [hS] using hq
+    exact latent_bucket_generator_to_clean_sel_menu M n σ q ks m hnd hLen' hDeg hVars' hSig' hq'
+
 /-- Direct raw machine-slot resolver: explicit machine-slot witness data now goes all the way to
 factorization plus exclusion of the other cleaned presentations in one step. -/
 theorem latent_raw_mach_bucket_member_resolves
