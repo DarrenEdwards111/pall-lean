@@ -1,4 +1,5 @@
 import PallLean.LatentCompiler
+import PallLean.CompilerProperties
 import PallLean.LatentWitnessMinorDecomp
 import PallLean.ProfileSpaceBound
 import Mathlib.Tactic
@@ -1430,6 +1431,35 @@ def latent_selCon_selector_factor_route
       (latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) 1
         (by simp [List.length_map]) (by simp))
 
+/-- The explicit selector-only varying factor is block-supported on the hit blocks `ks`.
+This is the first honest support statement behind the selCon factor route. -/
+theorem latent_selCon_selector_varying_factor_mem_varying_space
+    (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (hnd : ks.Nodup)
+    (hlen : ks.length = Nat.log 2 n) :
+    (ks.map (Xcon M n)).prod ∈ latent_profile_varying_space M n
+      (latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) 1
+        (by simp [List.length_map, hlen]) (by simp)) := by
+  rw [latent_profile_varying_space_def]
+  apply Submodule.subset_span
+  intro v hv
+  rw [latent_profile_signature_of_generator_data_hitBlocks]
+  unfold latent_hitBlocks_of_list latent_profile_varying_window
+  have hvprod := MvPolynomial.vars_prod (s := ks.toFinset) (f := Xcon M n) hv
+  rcases List.mem_toFinset.mp (by
+    simpa [MvPolynomial.vars_X] using hvprod) with hmem
+  have hbi : conSlot M n v ∈
+      (List.map (fun i => (latentPartition M n).assign i) (List.map (selSlot M n) ks)).toFinset := by
+    apply List.mem_toFinset.mpr
+    apply List.mem_map.mpr
+    refine ⟨v, ?_, ?_⟩
+    · exact List.mem_map.mpr ⟨v, hmem, by simp⟩
+    · simp [latentPartition_assign_selSlot]
+  apply Finset.mem_biUnion.mpr
+  refine ⟨v, hbi, ?_⟩
+  simp
+
 /-- Selector-only derivatives give an explicit sheetwise route through `selConSheet`.
 This is not yet the final bucket theorem, but it pins down the first real nontrivial case
 of the new frontier using already-proved derivative collapse and closed-form product data. -/
@@ -1440,8 +1470,9 @@ theorem latent_selCon_selector_factor_route_of_nodup
     (hlen : ks.length = Nat.log 2 n)
     (hn2 : n ≥ 2) :
     latent_selCon_selector_factor_route M n ks := by
-  refine ⟨C ((-1 : ℚ)^ks.length), (ks.map (Xcon M n)).prod *
-    (∏ i ∈ (Finset.univ \ ks.toFinset), selConGadget M n i), ?_, ?_⟩
+  refine ⟨C ((-1 : ℚ)^ks.length) *
+      (∏ i ∈ (Finset.univ \ ks.toFinset), selConGadget M n i),
+    (ks.map (Xcon M n)).prod, ?_, ?_⟩
   · unfold latentCompiledPoly
     have hne : ks ≠ [] := by
       intro hk
@@ -1451,10 +1482,8 @@ theorem latent_selCon_selector_factor_route_of_nodup
       omega
     rw [LatentWitnessMinorDecomp.iterDerivList_selSlot_latentCompiled_eq_selCon M n ks hne]
     rw [LatentWitnessMinorDecomp.iterDeriv_selConSheet_eq M n ks hnd]
-    simp [mul_assoc]
-  · rw [latent_profile_varying_space_def]
-    apply Submodule.subset_span
-    simp
+    ring
+  · exact latent_selCon_selector_varying_factor_mem_varying_space M n ks hnd hlen
 
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
