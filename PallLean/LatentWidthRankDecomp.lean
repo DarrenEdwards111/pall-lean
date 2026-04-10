@@ -789,6 +789,21 @@ def latent_fixedProfileSlice_controlled_by_profile_space
     d ≤ (∏ τ : Fin 4,
       Nat.choose (latent_profile_function_of_signature M n σ τ + 15) 15)
 
+/-- Any future finite-dimensional control theorem proved for the current ambient
+candidate immediately transfers to the concrete fixed-profile slice, because the current
+candidate is definitionally the same subspace. This packages the exact handoff the next
+true widening step will need to preserve. -/
+theorem latent_fixedProfileSlice_controlled_by_candidate_finrank
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (d : ℕ)
+    (hfin : Module.finrank ℚ (latent_profile_space_candidate M n σ) ≤ d)
+    (hd : d ≤ ∏ τ : Fin 4,
+      Nat.choose (latent_profile_function_of_signature M n σ τ + 15) 15) :
+    latent_fixedProfileSlice_controlled_by_profile_space M n σ := by
+  refine ⟨d, ?_, hd⟩
+  simpa [latent_profile_space_candidate_eq_fixedProfileSlice M n σ] using hfin
+
 -- The next honest theorem after introducing
 -- `latent_fixedProfileSlice_contained_in_profile_space` is to package an ambient
 -- profile-space submodule `V` together with its finite-dimensional bound in a form
