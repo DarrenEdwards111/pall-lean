@@ -2938,6 +2938,65 @@ theorem latent_pure_conSlot_incompatible_with_existing_clean_lanes
     rcases List.mem_map.mp hmem with ⟨j, _hj, hj⟩
     exact (LatentWitnessMinorDecomp.selSlot_ne_conSlot M n i j) (by simpa [hi] using hj)
 
+
+/-- Honest downstream packaging of the previous obstruction: for nonempty pure-con raw data,
+the current three clean single-sheet compatibility predicates all fail. This is the precise
+local reason the 4-family raw frontier cannot yet be collapsed to the 3-lane clean menu. -/
+theorem latent_nonempty_pure_conSlot_rules_out_all_existing_clean_single_sheet_compatibility
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hS : S ≠ [])
+    (hcon : ∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = conSlot M n i) :
+    ¬ latent_machCopy_single_sheet_compatible M n S m ∧
+    ¬ latent_copyCon_single_sheet_compatible M n S m ∧
+    ¬ latent_selCon_single_sheet_compatible M n S m :=
+  latent_pure_conSlot_incompatible_with_existing_clean_lanes M n S m hS hcon
+
+
+/-- Honest menu-level frontier note: the current clean-menu API is still only wired from the
+mach/copy/sel raw lanes. So for a nonempty pure-con raw presentation, the obstruction theorem
+shows incompatibility with every existing clean single-sheet lane, but a full contradiction at
+menu level still needs an additional raw-to-clean uniqueness bridge or a con-slot impossibility
+argument. -/
+def latent_nonempty_pure_conSlot_menu_exclusion_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (_hLen : S.length = Nat.log 2 n)
+    (_hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (_hVars : m.vars ⊆ S.toFinset)
+    (_hAdm : isBlockAdmissible (latentPartition M n) S)
+    (_hSig : latent_profile_signature_of_generator_data M n S m _hLen _hDeg = σ)
+    (_hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n)))
+    (_hS : S ≠ [])
+    (_hcon : ∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = conSlot M n i) : Prop :=
+  ¬ latent_clean_compatible_bucket_member_menu M n σ q
+
+/-- Honest downstream obstruction package: if a future theorem proves the menu-level exclusion
+candidate for a given nonempty pure-con raw presentation, then that presentation cannot enter
+the existing cleaned bucket-member API. This keeps the current frontier executable without
+pretending the missing bridge is already proved. -/
+theorem latent_nonempty_pure_conSlot_raw_bucket_exits_clean_menu_of_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n)))
+    (hS : S ≠ [])
+    (hcon : ∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = conSlot M n i)
+    (hfrontier : latent_nonempty_pure_conSlot_menu_exclusion_candidate
+      M n σ q S m hLen hDeg hVars hAdm hSig hq hS hcon) :
+    ¬ latent_clean_compatible_bucket_member_menu M n σ q :=
+  hfrontier
 /-- Direct raw machine-slot resolver: explicit machine-slot witness data now goes all the way to
 factorization plus exclusion of the other cleaned presentations in one step. -/
 theorem latent_raw_mach_bucket_member_resolves

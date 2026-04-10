@@ -65,6 +65,98 @@ theorem copySlot_ne_conSlot (M : DTM) (n : ℕ)
   rw [hmod_con] at hcopy
   omega
 
+
+theorem conSlot_ne_machSlot (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) :
+    conSlot M n j ≠ machSlot M n i := by
+  simp [conSlot, machSlot, slot, Fin.ext_iff]; omega
+
+theorem conSlot_ne_copySlot (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) :
+    conSlot M n j ≠ copySlot M n i := by
+  simp [conSlot, copySlot, slot, Fin.ext_iff]; omega
+
+theorem conSlot_ne_selSlot (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) :
+    conSlot M n j ≠ selSlot M n i := by
+  simp [conSlot, selSlot, slot, Fin.ext_iff]; omega
+
+/-- machCopyGadget has no conSlot variables. -/
+theorem pderiv_conSlot_machCopyGadget (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) :
+    pderiv (conSlot M n j) (machCopyGadget M n i) = 0 := by
+  unfold machCopyGadget Xmach Xcopy
+  have hm := conSlot_ne_machSlot M n i j
+  have hc := conSlot_ne_copySlot M n i j
+  exact ProductDeriv.pderiv_one_sub_mul_ne hm (by
+    rw [MvPolynomial.vars_X]
+    simp
+    exact hc)
+
+/-- copyConGadget differentiated at its own con slot. -/
+theorem pderiv_conSlot_copyConGadget_eq (M : DTM) (n : ℕ)
+    (i : Fin (latentBaseVars M n)) :
+    pderiv (conSlot M n i) (copyConGadget M n i) = -(Xcopy M n i) := by
+  unfold copyConGadget Xcon
+  have hnot : conSlot M n i ∉ (Xcopy M n i).vars := by
+    unfold Xcopy
+    rw [MvPolynomial.vars_X]
+    intro h
+    exact conSlot_ne_copySlot M n i i (Finset.mem_singleton.mp h)
+  rw [mul_comm]
+  exact ProductDeriv.pderiv_one_sub_mul hnot
+
+/-- copyConGadget differentiated at a different con slot is zero. -/
+theorem pderiv_conSlot_copyConGadget_ne (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) (hij : i ≠ j) :
+    pderiv (conSlot M n j) (copyConGadget M n i) = 0 := by
+  unfold copyConGadget Xcopy Xcon
+  have hneq : conSlot M n j ≠ conSlot M n i := by
+    intro h
+    have : j = i := by
+      simp [conSlot, slot] at h
+      exact Fin.ext (by omega)
+    exact hij this.symm
+  have hnot : conSlot M n j ∉ (Xcopy M n i).vars := by
+    unfold Xcopy
+    rw [MvPolynomial.vars_X]
+    intro h
+    exact conSlot_ne_copySlot M n i j (Finset.mem_singleton.mp h)
+  rw [mul_comm]
+  exact ProductDeriv.pderiv_one_sub_mul_ne hneq hnot
+
+/-- selConGadget differentiated at its own con slot. -/
+theorem pderiv_conSlot_selConGadget_eq (M : DTM) (n : ℕ)
+    (i : Fin (latentBaseVars M n)) :
+    pderiv (conSlot M n i) (selConGadget M n i) = -(Xsel M n i) := by
+  unfold selConGadget Xcon
+  have hnot : conSlot M n i ∉ (Xsel M n i).vars := by
+    unfold Xsel
+    rw [MvPolynomial.vars_X]
+    intro h
+    exact conSlot_ne_selSlot M n i i (Finset.mem_singleton.mp h)
+  rw [mul_comm]
+  exact ProductDeriv.pderiv_one_sub_mul hnot
+
+/-- selConGadget differentiated at a different con slot is zero. -/
+theorem pderiv_conSlot_selConGadget_ne (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) (hij : i ≠ j) :
+    pderiv (conSlot M n j) (selConGadget M n i) = 0 := by
+  unfold selConGadget Xsel Xcon
+  have hneq : conSlot M n j ≠ conSlot M n i := by
+    intro h
+    have : j = i := by
+      simp [conSlot, slot] at h
+      exact Fin.ext (by omega)
+    exact hij this.symm
+  have hnot : conSlot M n j ∉ (Xsel M n i).vars := by
+    unfold Xsel
+    rw [MvPolynomial.vars_X]
+    intro h
+    exact conSlot_ne_selSlot M n i j (Finset.mem_singleton.mp h)
+  rw [mul_comm]
+  exact ProductDeriv.pderiv_one_sub_mul_ne hneq hnot
+
 /-- Admissibility of machine-slot witness lists under latentPartition. -/
 theorem witness_mach_list_admissible (M : DTM) (n : ℕ)
     (S : List (Fin (latentBaseVars M n))) (hnd : S.Nodup) :
@@ -496,6 +588,50 @@ theorem iterDerivList_selSlot_latentCompiled_eq_selCon (M : DTM) (n : ℕ)
     iterDerivList_selSlot_machCopySheet_zero M n S hS,
     iterDerivList_selSlot_copyConSheet_zero M n S hS,
     zero_add, zero_add]
+
+
+private theorem pderiv_conSlot_prod_machCopy_zero (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n))
+    (t : Finset (Fin (latentBaseVars M n))) :
+    pderiv (conSlot M n j) (∏ i ∈ t, machCopyGadget M n i) = 0 := by
+  induction t using Finset.induction_on with
+  | empty => simp
+  | insert a t ha ih =>
+      simp [Finset.prod_insert, ha, MvPolynomial.pderiv_mul,
+        pderiv_conSlot_machCopyGadget, ih]
+
+private theorem pderiv_conSlot_prod_copyCon_zero_of_not_mem (M : DTM) (n : ℕ)
+    (T : Finset (Fin (latentBaseVars M n)))
+    (j : Fin (latentBaseVars M n)) (hj : j ∉ T) :
+    pderiv (conSlot M n j) (∏ i ∈ T, copyConGadget M n i) = 0 := by
+  induction T using Finset.induction_on with
+  | empty => simp
+  | insert a T ha ih =>
+      have hja : j ≠ a := by
+        intro h
+        exact hj (by simpa [h] using Finset.mem_insert_self a T)
+      have hjT : j ∉ T := by
+        intro hjT'
+        exact hj (by simp [ha, hjT'])
+      rw [Finset.prod_insert ha, MvPolynomial.pderiv_mul, pderiv_conSlot_copyConGadget_ne M n a j hja.symm]
+      simp [ih hjT]
+
+private theorem pderiv_conSlot_prod_selCon_zero_of_not_mem (M : DTM) (n : ℕ)
+    (T : Finset (Fin (latentBaseVars M n)))
+    (j : Fin (latentBaseVars M n)) (hj : j ∉ T) :
+    pderiv (conSlot M n j) (∏ i ∈ T, selConGadget M n i) = 0 := by
+  induction T using Finset.induction_on with
+  | empty => simp
+  | insert a T ha ih =>
+      have hja : j ≠ a := by
+        intro h
+        exact hj (by simpa [h] using Finset.mem_insert_self a T)
+      have hjT : j ∉ T := by
+        intro hjT'
+        exact hj (by simp [ha, hjT'])
+      rw [Finset.prod_insert ha, MvPolynomial.pderiv_mul, pderiv_conSlot_selConGadget_ne M n a j hja.symm]
+      simp [ih hjT]
+
 
 /-! ## selConSheet identity-minor core lemmas -/
 
