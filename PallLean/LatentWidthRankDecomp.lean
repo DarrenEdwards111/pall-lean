@@ -1485,6 +1485,95 @@ theorem latent_selCon_selector_factor_route_of_nodup
     ring
   · exact latent_selCon_selector_varying_factor_mem_varying_space M n ks hnd hlen
 
+/-- Generalized selector-only factor route with a multiplier supported on the same hit
+blocks. This is the first genuine bridge from the bare selCon row to an SPDP-style
+ generator `mlProj (m * iterDerivList S p)`. -/
+def latent_selCon_selector_factor_route_with_multiplier
+    (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ) : Prop :=
+  ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+    mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n)) =
+      mlProj (residual * varying) ∧
+    varying ∈ latent_profile_varying_space M n
+      (latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) m
+        (by simp [List.length_map]) (by simp))
+
+/-- If the multiplier `m` is already supported on the selector-hit blocks, then multiplying
+it into the selector-only varying factor stays inside the same σ-window. This is the key
+support bridge for the first SPDP-style generalization of the selCon route. -/
+theorem latent_selCon_selector_multiplier_varying_factor_mem_varying_space
+    (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hVars : m.vars ⊆ (ks.map (selSlot M n)).toFinset)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hlen : ks.length = Nat.log 2 n) :
+    (m * (ks.map (Xcon M n)).prod) ∈ latent_profile_varying_space M n
+      (latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) m
+        (by simp [List.length_map, hlen]) hDeg) := by
+  rw [latent_profile_varying_space_def]
+  apply Submodule.subset_span
+  intro v hv
+  rw [latent_profile_signature_of_generator_data_hitBlocks]
+  unfold latent_hitBlocks_of_list latent_profile_varying_window
+  have hvmul := MvPolynomial.vars_mul m ((ks.map (Xcon M n)).prod) hv
+  rcases Finset.mem_union.mp hvmul with hm | hx
+  · have hmS : v ∈ (ks.map (selSlot M n)).toFinset := hVars hm
+    rcases List.mem_toFinset.mp hmS with hmList
+    apply Finset.mem_biUnion.mpr
+    refine ⟨(latentPartition M n).assign v, ?_, ?_⟩
+    · apply List.mem_toFinset.mpr
+      exact List.mem_map.mpr ⟨selSlot M n hmList, List.mem_map.mpr ⟨hmList, hmList, rfl⟩, rfl⟩
+    · rcases v with ⟨vv, hvv⟩
+      have hSel : vv % 4 = 2 := by
+        have : ⟨vv, hvv⟩ ∈ (ks.map (selSlot M n)).toFinset := hmS
+        rcases List.mem_toFinset.mp this with hmem
+        rcases List.mem_map.mp hmem with ⟨i, _, hi⟩
+        simp [selSlot, slot] at hi
+        omega
+      have hs0 : (⟨vv, hvv⟩ : Fin (latentNumVars M n)) = selSlot M n ((latentPartition M n).assign ⟨vv, hvv⟩) := by
+        apply Fin.ext
+        simp [latentPartition, selSlot, slot]
+        omega
+      simpa [hs0]
+  · have hvprod := MvPolynomial.vars_prod (s := ks.toFinset) (f := Xcon M n) hx
+    rcases List.mem_toFinset.mp (by simpa [MvPolynomial.vars_X] using hvprod) with hmem
+    apply Finset.mem_biUnion.mpr
+    refine ⟨hmem, ?_, ?_⟩
+    · rw [latent_profile_signature_of_generator_data_hitBlocks]
+      unfold latent_hitBlocks_of_list
+      apply List.mem_toFinset.mpr
+      exact List.mem_map.mpr ⟨selSlot M n hmem, List.mem_map.mpr ⟨hmem, hmem, rfl⟩, by simp [latentPartition_assign_selSlot]⟩
+    · simp
+
+/-- First SPDP-style generalization of the selector-only selCon factor route: allow a
+multiplier `m` whose support stays inside the selector-hit blocks. -/
+theorem latent_selCon_selector_factor_route_with_multiplier_of_nodup
+    (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hnd : ks.Nodup)
+    (hlen : ks.length = Nat.log 2 n)
+    (hn2 : n ≥ 2)
+    (hVars : m.vars ⊆ (ks.map (selSlot M n)).toFinset)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n) :
+    latent_selCon_selector_factor_route_with_multiplier M n ks m := by
+  refine ⟨m * (C ((-1 : ℚ)^ks.length) *
+      (∏ i ∈ (Finset.univ \ ks.toFinset), selConGadget M n i)),
+    (ks.map (Xcon M n)).prod, ?_, ?_⟩
+  · unfold latentCompiledPoly
+    have hne : ks ≠ [] := by
+      intro hk
+      subst hk
+      simp at hlen
+      have hlog_pos : 0 < Nat.log 2 n := Nat.log_pos (by omega) hn2
+      omega
+    rw [LatentWitnessMinorDecomp.iterDerivList_selSlot_latentCompiled_eq_selCon M n ks hne]
+    rw [LatentWitnessMinorDecomp.iterDeriv_selConSheet_eq M n ks hnd]
+    ring
+  · exact latent_selCon_selector_multiplier_varying_factor_mem_varying_space M n ks m hVars hDeg hlen
+
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
 latentCompiledPoly = sum of 3 product sheets → subadditivity reduces to per-sheet bounds.
