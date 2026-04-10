@@ -1422,28 +1422,42 @@ closed product form. This is the cleanest first honest lane for the new sheetwis
 factor frontier. -/
 def latent_selCon_selector_factor_route
     (M : DTM) (n : ℕ)
-    (ks : List (Fin (latentBaseVars M n))) : Prop :=
+    (ks : List (Fin (latentBaseVars M n)))
+    (hlen : ks.length = Nat.log 2 n) : Prop :=
   ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
     mlProj (iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n)) =
       mlProj (residual * varying) ∧
-    ∃ hLen : (ks.map (selSlot M n)).length = Nat.log 2 n,
-      varying ∈ latent_profile_varying_space M n
-        (latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) 1
-          hLen (by simp))
+    varying ∈ latent_profile_varying_space M n
+      (latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) 1
+        (by simp [List.length_map, hlen]) (by simp))
 
 /-- The explicit selector-only varying factor is block-supported on the hit blocks `ks`.
 This is the first honest support statement behind the selCon factor route. -/
 private theorem mem_latent_profile_varying_window_of_mem_hitBlocks
     (M : DTM) (n : ℕ)
     (S : List (Fin (latentNumVars M n)))
-    {i : Fin (latentBaseVars M n)}
     (hLen : S.length = Nat.log 2 n)
+    {i : Fin (latentBaseVars M n)}
     (hi : i ∈ (latent_hitBlocks_of_list M n S)) :
     conSlot M n i ∈ latent_profile_varying_window M n
-      (latent_profile_signature_of_generator_data M n S 1 hLen (by simp)) := by
-  rw [latent_profile_signature_of_generator_data_hitBlocks]
+      (latent_profile_signature_of_generator_data M n S 1
+        hLen (by simp)) := by
   unfold latent_profile_varying_window
+  simp only [latent_profile_signature_of_generator_data_hitBlocks]
   exact Finset.mem_biUnion.mpr ⟨i, hi, by simp⟩
+
+private theorem vars_list_prod_subset {α : Type*} [DecidableEq α] {R : Type*} [CommSemiring R] :
+    ∀ (ps : List (MvPolynomial α R)) (x : α), x ∈ ps.prod.vars →
+    ∃ p ∈ ps, x ∈ p.vars
+  | [], x, hx => by simp [MvPolynomial.vars_one] at hx
+  | p :: ps, x, hx => by
+    simp only [List.prod_cons] at hx
+    have hmem := MvPolynomial.vars_mul p ps.prod hx
+    rw [Finset.mem_union] at hmem
+    rcases hmem with h | h
+    · exact ⟨p, by simp, h⟩
+    · rcases vars_list_prod_subset ps x h with ⟨q, hq, hxq⟩
+      exact ⟨q, by simp [hq], hxq⟩
 
 theorem latent_selCon_selector_varying_factor_mem_varying_space
     (M : DTM) (n : ℕ)
@@ -1456,21 +1470,17 @@ theorem latent_selCon_selector_varying_factor_mem_varying_space
   rw [latent_profile_varying_space_def]
   apply Submodule.subset_span
   intro v hv
-  have hvprod : v ∈ (ks.toFinset.biUnion fun i => (Xcon M n i).vars) :=
-    (MvPolynomial.vars_prod (s := ks.toFinset) (f := Xcon M n)) hv
-  rcases Finset.mem_biUnion.mp hvprod with ⟨i, hi, hvi⟩
-  have hvi' : v = conSlot M n i := by
-    unfold Xcon at hvi
-    rw [MvPolynomial.vars_X] at hvi
-    simpa [Finset.mem_singleton] using hvi
-  subst hvi'
+  rcases vars_list_prod_subset (ks.map (Xcon M n)) v hv with ⟨p, hp, hvp⟩
+  rcases List.mem_map.mp hp with ⟨i, hmem, rfl⟩
+  have : v = conSlot M n i := by simpa [Xcon, MvPolynomial.vars_X] using hvp
+  subst this
   have hhit : i ∈ latent_hitBlocks_of_list M n (ks.map (selSlot M n)) := by
     unfold latent_hitBlocks_of_list
     apply List.mem_toFinset.mpr
-    exact List.mem_map.mpr ⟨selSlot M n i, List.mem_map.mpr ⟨i, List.mem_toFinset.mp hi, rfl⟩,
+    exact List.mem_map.mpr ⟨selSlot M n i, List.mem_map.mpr ⟨i, hmem, rfl⟩,
       by simp [latentPartition_assign_selSlot]⟩
-  exact mem_latent_profile_varying_window_of_mem_hitBlocks M n (ks.map (selSlot M n))
-    (by simpa [List.length_map, hlen]) hhit
+  simpa using mem_latent_profile_varying_window_of_mem_hitBlocks M n (ks.map (selSlot M n))
+    (by simp [List.length_map, hlen]) hhit
 
 /-- Selector-only derivatives give an explicit sheetwise route through `selConSheet`.
 This is not yet the final bucket theorem, but it pins down the first real nontrivial case
@@ -1481,7 +1491,7 @@ theorem latent_selCon_selector_factor_route_of_nodup
     (hnd : ks.Nodup)
     (hlen : ks.length = Nat.log 2 n)
     (hn2 : n ≥ 2) :
-    latent_selCon_selector_factor_route M n ks := by
+    latent_selCon_selector_factor_route M n ks hlen := by
   refine ⟨C ((-1 : ℚ)^ks.length) *
       (∏ i ∈ (Finset.univ \ ks.toFinset), selConGadget M n i),
     (ks.map (Xcon M n)).prod, ?_, ?_⟩
@@ -1491,22 +1501,10 @@ theorem latent_selCon_selector_factor_route_of_nodup
       simp at hlen
       have hlog_pos : 0 < Nat.log 2 n := Nat.log_pos (by omega) hn2
       omega
-    calc
-      mlProj (iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n))
-          = mlProj (iterDerivList (ks.map (selSlot M n)) (selConSheet M n)) := by
-              rw [LatentWitnessMinorDecomp.iterDerivList_selSlot_latentCompiled_eq_selCon M n ks hne]
-      _ = mlProj
-            (C ((-1 : ℚ)^ks.length) * (ks.map (Xcon M n)).prod *
-              (∏ i ∈ (Finset.univ \ ks.toFinset), selConGadget M n i)) := by
-              rw [LatentWitnessMinorDecomp.iterDeriv_selConSheet_eq M n ks hnd]
-      _ =
-          mlProj
-            ((C ((-1 : ℚ)^ks.length) *
-                (∏ i ∈ (Finset.univ \ ks.toFinset), selConGadget M n i)) *
-              (ks.map (Xcon M n)).prod) := by
-              ring
-  · refine ⟨by simpa [List.length_map, hlen], ?_⟩
-    exact latent_selCon_selector_varying_factor_mem_varying_space M n ks hnd hlen
+    rw [LatentWitnessMinorDecomp.iterDerivList_selSlot_latentCompiled_eq_selCon M n ks hne]
+    rw [LatentWitnessMinorDecomp.iterDeriv_selConSheet_eq M n ks hnd]
+    ring
+  · exact latent_selCon_selector_varying_factor_mem_varying_space M n ks hnd hlen
 
 /-- Generalized selector-only factor route with a multiplier supported on the same hit
 blocks. This is the first genuine bridge from the bare selCon row to an SPDP-style
@@ -1514,15 +1512,15 @@ blocks. This is the first genuine bridge from the bare selCon row to an SPDP-sty
 def latent_selCon_selector_factor_route_with_multiplier
     (M : DTM) (n : ℕ)
     (ks : List (Fin (latentBaseVars M n)))
-    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ) : Prop :=
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hlen : ks.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n) : Prop :=
   ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
     mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n)) =
       mlProj (residual * varying) ∧
-    ∃ hLen : (ks.map (selSlot M n)).length = Nat.log 2 n,
-      ∃ hDeg : m.totalDegree ≤ Nat.log 2 n,
-        varying ∈ latent_profile_varying_space M n
-          (latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) m
-            hLen hDeg)
+    varying ∈ latent_profile_varying_space M n
+      (latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) m
+        (by simp [List.length_map, hlen]) hDeg)
 
 /-- If the multiplier `m` is already supported on the selector-hit blocks, then multiplying
 it into the selector-only varying factor stays inside the same σ-window. This is the key
@@ -1558,28 +1556,23 @@ theorem latent_selCon_selector_multiplier_varying_factor_mem_varying_space
       apply Fin.ext
       simp [latentPartition, selSlot, slot]
       omega
-    have hmemWindow : conSlot M n ((latentPartition M n).assign ⟨vv, hvv⟩) ∈
-        latent_profile_varying_window M n
-          (latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) 1
-            (by simp [List.length_map, hlen]) (by simp)) :=
-      mem_latent_profile_varying_window_of_mem_hitBlocks M n (ks.map (selSlot M n))
-        (by simpa [List.length_map, hlen]) hhit
-    simpa [hs0] using hmemWindow
-  · have hvprod : v ∈ (ks.toFinset.biUnion fun i => (Xcon M n i).vars) :=
-      (MvPolynomial.vars_prod (s := ks.toFinset) (f := Xcon M n)) hx
-    rcases Finset.mem_biUnion.mp hvprod with ⟨i, hi, hvi⟩
-    have hvi' : v = conSlot M n i := by
-      unfold Xcon at hvi
-      rw [MvPolynomial.vars_X] at hvi
-      simpa [Finset.mem_singleton] using hvi
-    subst hvi'
+    rw [hs0]
+    unfold latent_profile_varying_window
+    simp only [latent_profile_signature_of_generator_data_hitBlocks]
+    apply Finset.mem_biUnion.mpr
+    exact ⟨(latentPartition M n).assign ⟨vv, hvv⟩, hhit, by simp⟩
+  · rcases vars_list_prod_subset (ks.map (Xcon M n)) v hx with ⟨p, hp, hvp⟩
+    rcases List.mem_map.mp hp with ⟨i, hmem, rfl⟩
+    have : v = conSlot M n i := by simpa [Xcon, MvPolynomial.vars_X] using hvp
+    subst this
     have hhit : i ∈ latent_hitBlocks_of_list M n (ks.map (selSlot M n)) := by
       unfold latent_hitBlocks_of_list
       apply List.mem_toFinset.mpr
-      exact List.mem_map.mpr ⟨selSlot M n i, List.mem_map.mpr ⟨i, List.mem_toFinset.mp hi, rfl⟩,
+      exact List.mem_map.mpr ⟨selSlot M n i, List.mem_map.mpr ⟨i, hmem, rfl⟩,
         by simp [latentPartition_assign_selSlot]⟩
-    exact mem_latent_profile_varying_window_of_mem_hitBlocks M n (ks.map (selSlot M n))
-      (by simpa [List.length_map, hlen]) hhit
+    simpa [latent_profile_signature_of_generator_data] using
+      mem_latent_profile_varying_window_of_mem_hitBlocks M n (ks.map (selSlot M n))
+        (by simp [List.length_map, hlen]) hhit
 
 /-- First SPDP-style generalization of the selector-only selCon factor route: allow a
 multiplier `m` whose support stays inside the selector-hit blocks. -/
@@ -1592,34 +1585,20 @@ theorem latent_selCon_selector_factor_route_with_multiplier_of_nodup
     (hn2 : n ≥ 2)
     (hVars : m.vars ⊆ (ks.map (selSlot M n)).toFinset)
     (hDeg : m.totalDegree ≤ Nat.log 2 n) :
-    latent_selCon_selector_factor_route_with_multiplier M n ks m := by
-  refine ⟨m * (C ((-1 : ℚ)^ks.length) *
-      (∏ i ∈ (Finset.univ \ ks.toFinset), selConGadget M n i)),
-    (ks.map (Xcon M n)).prod, ?_, ?_⟩
+    latent_selCon_selector_factor_route_with_multiplier M n ks m hlen hDeg := by
+  refine ⟨C ((-1 : ℚ)^ks.length) *
+      (∏ i ∈ (Finset.univ \ ks.toFinset), selConGadget M n i),
+    m * (ks.map (Xcon M n)).prod, ?_, ?_⟩
   · have hne : ks ≠ [] := by
       intro hk
       subst hk
       simp at hlen
       have hlog_pos : 0 < Nat.log 2 n := Nat.log_pos (by omega) hn2
       omega
-    calc
-      mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n))
-          = mlProj (m * iterDerivList (ks.map (selSlot M n)) (selConSheet M n)) := by
-              rw [LatentWitnessMinorDecomp.iterDerivList_selSlot_latentCompiled_eq_selCon M n ks hne]
-      _ = mlProj
-            (m *
-              (C ((-1 : ℚ)^ks.length) * (ks.map (Xcon M n)).prod *
-                (∏ i ∈ (Finset.univ \ ks.toFinset), selConGadget M n i))) := by
-              rw [LatentWitnessMinorDecomp.iterDeriv_selConSheet_eq M n ks hnd]
-      _ =
-          mlProj
-            ((m *
-                (C ((-1 : ℚ)^ks.length) *
-                  (∏ i ∈ (Finset.univ \ ks.toFinset), selConGadget M n i))) *
-              (ks.map (Xcon M n)).prod) := by
-              ring
-  · refine ⟨by simpa [List.length_map, hlen], hDeg, ?_⟩
-    exact latent_selCon_selector_multiplier_varying_factor_mem_varying_space M n ks m hVars hDeg hlen
+    rw [LatentWitnessMinorDecomp.iterDerivList_selSlot_latentCompiled_eq_selCon M n ks hne]
+    rw [LatentWitnessMinorDecomp.iterDeriv_selConSheet_eq M n ks hnd]
+    ring
+  · exact latent_selCon_selector_multiplier_varying_factor_mem_varying_space M n ks m hVars hDeg hlen
 
 /-- Selector-only SPDP generators form a concrete subfamily of the coarse bucket language. -/
 def latent_selector_only_bucket_generator
@@ -1717,7 +1696,6 @@ theorem latent_bucket_generator_sheet_split_of_mem
   unfold latentCompiledPoly
   rw [iterDerivList_add, iterDerivList_add]
   rw [mul_add, mul_add, MultilinearSPDP.mlProj_add, MultilinearSPDP.mlProj_add]
-  ring
 
 /-- Compatibility predicate for the first nontrivial branch handler: the derivative list is
 exactly a selector-slot list, and the multiplier support stays inside those selector hits.
@@ -1763,37 +1741,32 @@ theorem latent_bucket_generator_selCon_branch_of_compatible
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
     (hn2 : n ≥ 2) :
-    ∀ q ∈ latent_profile_bucket_generators M n σ,
-      ∀ (S : List (Fin (latentNumVars M n)))
-        (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
-        (hLen : S.length = Nat.log 2 n)
-        (hDeg : m.totalDegree ≤ Nat.log 2 n)
-        (hVars : m.vars ⊆ S.toFinset)
-        (hAdm : isBlockAdmissible (latentPartition M n) S),
-        q = mlProj (m * iterDerivList S (machCopySheet M n))
-          + mlProj (m * iterDerivList S (copyConSheet M n))
-          + mlProj (m * iterDerivList S (selConSheet M n)) →
-        latent_selCon_single_sheet_compatible M n S m →
-        ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
-          mlProj (m * iterDerivList S (selConSheet M n)) = mlProj (residual * varying) ∧
-          varying ∈ latent_profile_varying_space M n σ := by
-  intro q hq S m hLen hDeg hVars hAdm hsplit hcomp
+    ∀ (S : List (Fin (latentNumVars M n)))
+      (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+      (hLen : S.length = Nat.log 2 n)
+      (hDeg : m.totalDegree ≤ Nat.log 2 n)
+      (hVars : m.vars ⊆ S.toFinset)
+      (hAdm : isBlockAdmissible (latentPartition M n) S),
+      latent_profile_signature_of_generator_data M n S m hLen hDeg = σ →
+      latent_selCon_single_sheet_compatible M n S m →
+      ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+        mlProj (m * iterDerivList S (selConSheet M n)) = mlProj (residual * varying) ∧
+        varying ∈ latent_profile_varying_space M n σ := by
+  intro S m hLen hDeg hVars hAdm hSigMatch hcomp
   rcases hcomp with ⟨ks, hnd, rfl, hVarsSel⟩
-  have hSig : latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) m
-      (by simpa [List.length_map] using hLen) hDeg = σ := by
-    rcases hq with ⟨S', m', hLen', hDeg', hVars', hAdm', hSig', hqeq⟩
-    simp only at hqeq
-    subst hqeq
-    have : S' = ks.map (selSlot M n) := by simp
-    subst this
-    have : m' = m := by rfl
-    subst this
-    simpa [List.length_map] using hSig'
+  have hne : ks ≠ [] := by
+    intro hk
+    subst hk
+    simp at hLen
+    have hlog_pos : 0 < Nat.log 2 n := Nat.log_pos (by omega) hn2
+    omega
   rcases latent_selCon_selector_factor_route_with_multiplier_of_nodup M n ks m hnd
     (by simpa [List.length_map] using hLen) hn2 hVarsSel hDeg with ⟨residual, varying, hfac, hvary⟩
   refine ⟨residual, varying, ?_, ?_⟩
-  · simpa using hfac
-  · simpa [hSig] using hvary
+  · rw [← LatentWitnessMinorDecomp.iterDerivList_selSlot_latentCompiled_eq_selCon M n ks hne]
+    exact hfac
+  · rw [← hSigMatch]
+    exact hvary
 
 /-- The future machCopy branch handler should consume this exact hypothesis shape after the
 formal three-sheet split. It is kept as a named theorem slot now so later proof work can
@@ -1801,47 +1774,17 @@ land directly against the stable frontier. -/
 def latent_bucket_generator_machCopy_branch_of_compatible
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n) : Prop :=
-  ∀ q ∈ latent_profile_bucket_generators M n σ,
-    ∀ (S : List (Fin (latentNumVars M n)))
-      (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
-      (hLen : S.length = Nat.log 2 n)
-      (hDeg : m.totalDegree ≤ Nat.log 2 n)
-      (hVars : m.vars ⊆ S.toFinset)
-      (hAdm : isBlockAdmissible (latentPartition M n) S),
-      q = mlProj (m * iterDerivList S (machCopySheet M n))
-        + mlProj (m * iterDerivList S (copyConSheet M n))
-        + mlProj (m * iterDerivList S (selConSheet M n)) →
-      latent_machCopy_single_sheet_compatible M n S m →
-      ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
-        mlProj (m * iterDerivList S (machCopySheet M n)) = mlProj (residual * varying) ∧
-        varying ∈ latent_profile_varying_space M n σ
-
-/-- The positive machCopy factor route feeds directly into the machCopy branch theorem slot
-once the recovered generator data is machine-slot compatible. This is the machCopy-lane
-analogue of the earlier selCon branch handler, but without yet closing the other two branches. -/
-theorem latent_bucket_generator_machCopy_branch_of_compatible_proved
-    (M : DTM) (n : ℕ)
-    (σ : latentProfileSignature M n) :
-    latent_bucket_generator_machCopy_branch_of_compatible M n σ := by
-  intro q hq S m hLen hDeg hVars hAdm hsplit hcomp
-  rcases hcomp with ⟨ks, hnd, rfl, hVarsMach⟩
-  have hSig : latent_profile_signature_of_generator_data M n (ks.map (machSlot M n)) m
-      (by simpa [List.length_map] using hLen) hDeg = σ := by
-    rcases hq with ⟨S', m', hLen', hDeg', hVars', hAdm', hSig', hqeq⟩
-    simp only at hqeq
-    subst hqeq
-    have : S' = ks.map (machSlot M n) := by simp
-    subst this
-    have : m' = m := by rfl
-    subst this
-    simpa [List.length_map] using hSig'
-  rcases latent_machCopy_factor_route_with_multiplier_of_nodup M n ks m hnd
-    (by simpa [List.length_map] using hLen) hVarsMach hDeg with ⟨residual, varying, hfac⟩
-  refine ⟨residual, varying, ?_, ?_⟩
-  · simpa using hfac
-  · simpa [hSig] using
-      latent_machCopy_varying_factor_mem_varying_space M n ks m hVarsMach hDeg
-        (by simpa [List.length_map] using hLen)
+  ∀ (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S),
+    latent_profile_signature_of_generator_data M n S m hLen hDeg = σ →
+    latent_machCopy_single_sheet_compatible M n S m →
+    ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+      mlProj (m * iterDerivList S (machCopySheet M n)) = mlProj (residual * varying) ∧
+      varying ∈ latent_profile_varying_space M n σ
 
 /-- First concrete machCopy factor route with a multiplier supported on machine-slot hits.
 This is the machCopy-lane analogue of the earlier selCon route, now powered by the new
@@ -1869,30 +1812,27 @@ theorem latent_machCopy_varying_factor_mem_varying_space
   rw [latent_profile_varying_space_def]
   apply Submodule.subset_span
   intro v hv
-  rw [latent_profile_signature_of_generator_data_hitBlocks]
-  unfold latent_hitBlocks_of_list latent_profile_varying_window
+  unfold latent_profile_varying_window
+  simp only [latent_profile_signature_of_generator_data_hitBlocks]
   have hvmul := MvPolynomial.vars_mul m ((ks.map (Xcopy M n)).prod) hv
   rcases Finset.mem_union.mp hvmul with hm | hx
   · have hmS : v ∈ (ks.map (machSlot M n)).toFinset := hVars hm
-    rcases List.mem_toFinset.mp hmS with hmList
+    rcases List.mem_map.mp (List.mem_toFinset.mp hmS) with ⟨i, _, rfl⟩
     apply Finset.mem_biUnion.mpr
-    refine ⟨(latentPartition M n).assign v, ?_, ?_⟩
-    · apply List.mem_toFinset.mpr
-      exact List.mem_map.mpr ⟨machSlot M n hmList, List.mem_map.mpr ⟨hmList, hmList, rfl⟩, rfl⟩
-    · rcases v with ⟨vv, hvv⟩
-      have hs0 : (⟨vv, hvv⟩ : Fin (latentNumVars M n)) = machSlot M n ((latentPartition M n).assign ⟨vv, hvv⟩) := by
-        apply Fin.ext
-        simp [latentPartition, machSlot, slot]
-        omega
-      simpa [hs0]
-  · have hvprod := MvPolynomial.vars_prod (s := ks.toFinset) (f := Xcopy M n) hx
-    rcases List.mem_toFinset.mp (by simpa [MvPolynomial.vars_X] using hvprod) with hmem
-    apply Finset.mem_biUnion.mpr
-    refine ⟨hmem, ?_, ?_⟩
-    · rw [latent_profile_signature_of_generator_data_hitBlocks]
-      unfold latent_hitBlocks_of_list
+    refine ⟨i, ?_, ?_⟩
+    · unfold latent_hitBlocks_of_list
       apply List.mem_toFinset.mpr
-      exact List.mem_map.mpr ⟨machSlot M n hmem, List.mem_map.mpr ⟨hmem, hmem, rfl⟩, by simp [latentPartition_assign_machSlot]⟩
+      exact List.mem_map.mpr ⟨machSlot M n i, List.mem_map.mpr ⟨i, ‹_›, rfl⟩, by simp [latentPartition_assign_machSlot]⟩
+    · simp
+  · rcases vars_list_prod_subset (ks.map (Xcopy M n)) v hx with ⟨p, hp, hvp⟩
+    rcases List.mem_map.mp hp with ⟨i, hmem, rfl⟩
+    have : v = copySlot M n i := by simpa [Xcopy, MvPolynomial.vars_X] using hvp
+    subst this
+    apply Finset.mem_biUnion.mpr
+    refine ⟨i, ?_, ?_⟩
+    · unfold latent_hitBlocks_of_list
+      apply List.mem_toFinset.mpr
+      exact List.mem_map.mpr ⟨machSlot M n i, List.mem_map.mpr ⟨i, hmem, rfl⟩, by simp [latentPartition_assign_machSlot]⟩
     · simp
 
 /-- Positive machCopy factor route with a machine-slot-supported multiplier. -/
@@ -1911,26 +1851,54 @@ theorem latent_machCopy_factor_route_with_multiplier_of_nodup
   rw [LatentWitnessMinorDecomp.iterDeriv_machCopySheet_eq M n ks hnd]
   ring
 
+/-- The positive machCopy factor route feeds directly into the machCopy branch theorem slot
+once the recovered generator data is machine-slot compatible. This is the machCopy-lane
+analogue of the earlier selCon branch handler, but without yet closing the other two branches. -/
+theorem latent_bucket_generator_machCopy_branch_of_compatible_proved
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    latent_bucket_generator_machCopy_branch_of_compatible M n σ := by
+  intro S m hLen hDeg hVars hAdm hSigMatch hcomp
+  rcases hcomp with ⟨ks, hnd, rfl, hVarsMach⟩
+  refine ⟨m * (C ((-1 : ℚ)^ks.length) *
+      (∏ i ∈ (Finset.univ \ ks.toFinset), machCopyGadget M n i)),
+    (ks.map (Xcopy M n)).prod, ?_, ?_⟩
+  · rw [LatentWitnessMinorDecomp.iterDeriv_machCopySheet_eq M n ks hnd]
+    ring
+  · rw [← hSigMatch]
+    rw [latent_profile_varying_space_def]
+    apply Submodule.subset_span
+    intro v hv
+    rcases vars_list_prod_subset (ks.map (Xcopy M n)) v hv with ⟨p, hp, hvp⟩
+    rcases List.mem_map.mp hp with ⟨i, hmem, rfl⟩
+    have : v = copySlot M n i := by simpa [Xcopy, MvPolynomial.vars_X] using hvp
+    subst this
+    unfold latent_profile_varying_window
+    simp only [latent_profile_signature_of_generator_data_hitBlocks]
+    apply Finset.mem_biUnion.mpr
+    refine ⟨i, ?_, ?_⟩
+    · unfold latent_hitBlocks_of_list
+      apply List.mem_toFinset.mpr
+      exact List.mem_map.mpr ⟨machSlot M n i, List.mem_map.mpr ⟨i, hmem, rfl⟩, by simp [latentPartition_assign_machSlot]⟩
+    · simp
+
 /-- The future copyCon branch handler should consume this exact hypothesis shape after the
 formal three-sheet split. It is kept as a named theorem slot now so later proof work can
 land directly against the stable frontier. -/
 def latent_bucket_generator_copyCon_branch_of_compatible
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n) : Prop :=
-  ∀ q ∈ latent_profile_bucket_generators M n σ,
-    ∀ (S : List (Fin (latentNumVars M n)))
-      (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
-      (hLen : S.length = Nat.log 2 n)
-      (hDeg : m.totalDegree ≤ Nat.log 2 n)
-      (hVars : m.vars ⊆ S.toFinset)
-      (hAdm : isBlockAdmissible (latentPartition M n) S),
-      q = mlProj (m * iterDerivList S (machCopySheet M n))
-        + mlProj (m * iterDerivList S (copyConSheet M n))
-        + mlProj (m * iterDerivList S (selConSheet M n)) →
-      latent_copyCon_single_sheet_compatible M n S m →
-      ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
-        mlProj (m * iterDerivList S (copyConSheet M n)) = mlProj (residual * varying) ∧
-        varying ∈ latent_profile_varying_space M n σ
+  ∀ (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S),
+    latent_profile_signature_of_generator_data M n S m hLen hDeg = σ →
+    latent_copyCon_single_sheet_compatible M n S m →
+    ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+      mlProj (m * iterDerivList S (copyConSheet M n)) = mlProj (residual * varying) ∧
+      varying ∈ latent_profile_varying_space M n σ
 
 /-- Positive copyCon factor route with a multiplier supported on copy-slot hits. -/
 def latent_copyCon_factor_route_with_multiplier
@@ -1956,30 +1924,27 @@ theorem latent_copyCon_varying_factor_mem_varying_space
   rw [latent_profile_varying_space_def]
   apply Submodule.subset_span
   intro v hv
-  rw [latent_profile_signature_of_generator_data_hitBlocks]
-  unfold latent_hitBlocks_of_list latent_profile_varying_window
+  unfold latent_profile_varying_window
+  simp only [latent_profile_signature_of_generator_data_hitBlocks]
   have hvmul := MvPolynomial.vars_mul m ((ks.map (Xcon M n)).prod) hv
   rcases Finset.mem_union.mp hvmul with hm | hx
   · have hmS : v ∈ (ks.map (copySlot M n)).toFinset := hVars hm
-    rcases List.mem_toFinset.mp hmS with hmList
+    rcases List.mem_map.mp (List.mem_toFinset.mp hmS) with ⟨i, _, rfl⟩
     apply Finset.mem_biUnion.mpr
-    refine ⟨(latentPartition M n).assign v, ?_, ?_⟩
-    · apply List.mem_toFinset.mpr
-      exact List.mem_map.mpr ⟨copySlot M n hmList, List.mem_map.mpr ⟨hmList, hmList, rfl⟩, rfl⟩
-    · rcases v with ⟨vv, hvv⟩
-      have hs0 : (⟨vv, hvv⟩ : Fin (latentNumVars M n)) = copySlot M n ((latentPartition M n).assign ⟨vv, hvv⟩) := by
-        apply Fin.ext
-        simp [latentPartition, copySlot, slot]
-        omega
-      simpa [hs0]
-  · have hvprod := MvPolynomial.vars_prod (s := ks.toFinset) (f := Xcon M n) hx
-    rcases List.mem_toFinset.mp (by simpa [MvPolynomial.vars_X] using hvprod) with hmem
-    apply Finset.mem_biUnion.mpr
-    refine ⟨hmem, ?_, ?_⟩
-    · rw [latent_profile_signature_of_generator_data_hitBlocks]
-      unfold latent_hitBlocks_of_list
+    refine ⟨i, ?_, ?_⟩
+    · unfold latent_hitBlocks_of_list
       apply List.mem_toFinset.mpr
-      exact List.mem_map.mpr ⟨copySlot M n hmem, List.mem_map.mpr ⟨hmem, hmem, rfl⟩, by simp [latentPartition_assign_copySlot]⟩
+      exact List.mem_map.mpr ⟨copySlot M n i, List.mem_map.mpr ⟨i, ‹_›, rfl⟩, by simp [latentPartition_assign_copySlot]⟩
+    · simp
+  · rcases vars_list_prod_subset (ks.map (Xcon M n)) v hx with ⟨p, hp, hvp⟩
+    rcases List.mem_map.mp hp with ⟨i, hmem, rfl⟩
+    have : v = conSlot M n i := by simpa [Xcon, MvPolynomial.vars_X] using hvp
+    subst this
+    apply Finset.mem_biUnion.mpr
+    refine ⟨i, ?_, ?_⟩
+    · unfold latent_hitBlocks_of_list
+      apply List.mem_toFinset.mpr
+      exact List.mem_map.mpr ⟨copySlot M n i, List.mem_map.mpr ⟨i, hmem, rfl⟩, by simp [latentPartition_assign_copySlot]⟩
     · simp
 
 /-- Positive copyCon factor route with a copy-slot-supported multiplier. -/
@@ -1996,7 +1961,7 @@ theorem latent_copyCon_factor_route_with_multiplier_of_nodup
       (∏ i ∈ (Finset.univ \ ks.toFinset), copyConGadget M n i)),
     (ks.map (Xcon M n)).prod, ?_⟩
   rw [LatentWitnessMinorDecomp.iterDeriv_copyConSheet_eq M n ks hnd]
-  ring
+  ring_nf
 
 /-- The positive copyCon factor route feeds directly into the copyCon branch theorem slot
 once the recovered generator data is copy-slot compatible. -/
@@ -2004,25 +1969,28 @@ theorem latent_bucket_generator_copyCon_branch_of_compatible_proved
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n) :
     latent_bucket_generator_copyCon_branch_of_compatible M n σ := by
-  intro q hq S m hLen hDeg hVars hAdm hsplit hcomp
+  intro S m hLen hDeg hVars hAdm hSigMatch hcomp
   rcases hcomp with ⟨ks, hnd, rfl, hVarsCopy⟩
-  have hSig : latent_profile_signature_of_generator_data M n (ks.map (copySlot M n)) m
-      (by simpa [List.length_map] using hLen) hDeg = σ := by
-    rcases hq with ⟨S', m', hLen', hDeg', hVars', hAdm', hSig', hqeq⟩
-    simp only at hqeq
-    subst hqeq
-    have : S' = ks.map (copySlot M n) := by simp
+  refine ⟨m * (C ((-1 : ℚ)^ks.length) * (∏ i ∈ (Finset.univ \ ks.toFinset), copyConGadget M n i)),
+    (ks.map (Xcon M n)).prod, ?_, ?_⟩
+  · rw [LatentWitnessMinorDecomp.iterDeriv_copyConSheet_eq M n ks hnd]
+    ring_nf
+  · rw [← hSigMatch]
+    rw [latent_profile_varying_space_def]
+    apply Submodule.subset_span
+    intro v hv
+    rcases vars_list_prod_subset (ks.map (Xcon M n)) v hv with ⟨p, hp, hvp⟩
+    rcases List.mem_map.mp hp with ⟨i, hmem, rfl⟩
+    have : v = conSlot M n i := by simpa [Xcon, MvPolynomial.vars_X] using hvp
     subst this
-    have : m' = m := by rfl
-    subst this
-    simpa [List.length_map] using hSig'
-  rcases latent_copyCon_factor_route_with_multiplier_of_nodup M n ks m hnd
-    (by simpa [List.length_map] using hLen) hVarsCopy hDeg with ⟨residual, varying, hfac⟩
-  refine ⟨residual, varying, ?_, ?_⟩
-  · simpa using hfac
-  · simpa [hSig] using
-      latent_copyCon_varying_factor_mem_varying_space M n ks m hVarsCopy hDeg
-        (by simpa [List.length_map] using hLen)
+    unfold latent_profile_varying_window
+    simp only [latent_profile_signature_of_generator_data_hitBlocks]
+    apply Finset.mem_biUnion.mpr
+    refine ⟨i, ?_, ?_⟩
+    · unfold latent_hitBlocks_of_list
+      apply List.mem_toFinset.mpr
+      exact List.mem_map.mpr ⟨copySlot M n i, List.mem_map.mpr ⟨i, hmem, rfl⟩, by simp [latentPartition_assign_copySlot]⟩
+    · simp
 
 /-- Honest multi-branch package after sheet splitting: under any chosen compatibility lane,
 we can at least factor the corresponding branch, even when the other branches do not vanish.
@@ -2030,28 +1998,25 @@ This is the right next theorem surface now that all three positive branch handle
 def latent_bucket_generator_branch_factorization_menu
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n) : Prop :=
-  ∀ q ∈ latent_profile_bucket_generators M n σ,
-    ∀ (S : List (Fin (latentNumVars M n)))
-      (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
-      (hLen : S.length = Nat.log 2 n)
-      (hDeg : m.totalDegree ≤ Nat.log 2 n)
-      (hVars : m.vars ⊆ S.toFinset)
-      (hAdm : isBlockAdmissible (latentPartition M n) S),
-      q = mlProj (m * iterDerivList S (machCopySheet M n))
-        + mlProj (m * iterDerivList S (copyConSheet M n))
-        + mlProj (m * iterDerivList S (selConSheet M n)) →
-      ((latent_machCopy_single_sheet_compatible M n S m →
-          ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
-            mlProj (m * iterDerivList S (machCopySheet M n)) = mlProj (residual * varying) ∧
-            varying ∈ latent_profile_varying_space M n σ) ∧
-       (latent_copyCon_single_sheet_compatible M n S m →
-          ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
-            mlProj (m * iterDerivList S (copyConSheet M n)) = mlProj (residual * varying) ∧
-            varying ∈ latent_profile_varying_space M n σ) ∧
-       (latent_selCon_single_sheet_compatible M n S m →
-          ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
-            mlProj (m * iterDerivList S (selConSheet M n)) = mlProj (residual * varying) ∧
-            varying ∈ latent_profile_varying_space M n σ))
+  ∀ (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S),
+    latent_profile_signature_of_generator_data M n S m hLen hDeg = σ →
+    ((latent_machCopy_single_sheet_compatible M n S m →
+        ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+          mlProj (m * iterDerivList S (machCopySheet M n)) = mlProj (residual * varying) ∧
+          varying ∈ latent_profile_varying_space M n σ) ∧
+     (latent_copyCon_single_sheet_compatible M n S m →
+        ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+          mlProj (m * iterDerivList S (copyConSheet M n)) = mlProj (residual * varying) ∧
+          varying ∈ latent_profile_varying_space M n σ) ∧
+     (latent_selCon_single_sheet_compatible M n S m →
+        ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+          mlProj (m * iterDerivList S (selConSheet M n)) = mlProj (residual * varying) ∧
+          varying ∈ latent_profile_varying_space M n σ))
 
 /-- Unified menu theorem: after formal sheet splitting, each of the three compatibility lanes
 can immediately invoke its proved branch handler. This does not force a false one-branch
@@ -2061,14 +2026,14 @@ theorem latent_bucket_generator_branch_factorization_menu_proved
     (σ : latentProfileSignature M n)
     (hn2 : n ≥ 2) :
     latent_bucket_generator_branch_factorization_menu M n σ := by
-  intro q hq S m hLen hDeg hVars hAdm hsplit
+  intro S m hLen hDeg hVars hAdm hSigMatch
   refine ⟨?_, ?_, ?_⟩
   · intro hmach
-    exact latent_bucket_generator_machCopy_branch_of_compatible_proved M n σ q hq S m hLen hDeg hVars hAdm hsplit hmach
+    exact latent_bucket_generator_machCopy_branch_of_compatible_proved M n σ S m hLen hDeg hVars hAdm hSigMatch hmach
   · intro hcopy
-    exact latent_bucket_generator_copyCon_branch_of_compatible_proved M n σ q hq S m hLen hDeg hVars hAdm hsplit hcopy
+    exact latent_bucket_generator_copyCon_branch_of_compatible_proved M n σ S m hLen hDeg hVars hAdm hSigMatch hcopy
   · intro hsel
-    exact latent_bucket_generator_selCon_branch_of_compatible M n σ hn2 q hq S m hLen hDeg hVars hAdm hsplit hsel
+    exact latent_bucket_generator_selCon_branch_of_compatible M n σ hn2 S m hLen hDeg hVars hAdm hSigMatch hsel
 
 /-- Distinct slot families cannot present the same nonempty derivative list. This is the
 first honest overlap-control fact for the compatibility predicates. -/
@@ -2078,7 +2043,7 @@ theorem machSlot_list_ne_copySlot_list_of_nodup
     (hknil : ks ≠ []) :
     ks.map (machSlot M n) ≠ ls.map (copySlot M n) := by
   intro h
-  have hlen : ks.length = ls.length := by simpa [h]
+  have hlen : ks.length = ls.length := by simpa using congrArg List.length h
   rcases ks with _ | ⟨k, ks'⟩
   · contradiction
   · cases ls with
@@ -2087,6 +2052,7 @@ theorem machSlot_list_ne_copySlot_list_of_nodup
         have hhead : machSlot M n k = copySlot M n l := by
           simpa using List.cons.inj h |>.1
         simp [machSlot, copySlot, slot, Fin.ext_iff] at hhead
+        omega
 
 /-- Hence machine-slot compatibility and copy-slot compatibility are disjoint on nonempty
 lists. This begins to control which branches can honestly coexist. -/
@@ -2105,7 +2071,7 @@ theorem latent_machCopy_and_copyCon_compatible_disjoint
       apply hS
       rw [hSmach, hk]
       simp)
-  exact hneq (hSmach.trans hScopy.symm)
+  exact hneq (hSmach.symm.trans hScopy)
 
 /-- Machine-slot and selector-slot presentations are disjoint on nonempty lists. -/
 theorem machSlot_list_ne_selSlot_list_of_nodup
@@ -2114,7 +2080,7 @@ theorem machSlot_list_ne_selSlot_list_of_nodup
     (hknil : ks ≠ []) :
     ks.map (machSlot M n) ≠ ls.map (selSlot M n) := by
   intro h
-  have hlen : ks.length = ls.length := by simpa [h]
+  have hlen : ks.length = ls.length := by simpa using congrArg List.length h
   rcases ks with _ | ⟨k, ks'⟩
   · contradiction
   · cases ls with
@@ -2123,6 +2089,7 @@ theorem machSlot_list_ne_selSlot_list_of_nodup
         have hhead : machSlot M n k = selSlot M n l := by
           simpa using List.cons.inj h |>.1
         simp [machSlot, selSlot, slot, Fin.ext_iff] at hhead
+        omega
 
 /-- Copy-slot and selector-slot presentations are disjoint on nonempty lists. -/
 theorem copySlot_list_ne_selSlot_list_of_nodup
@@ -2131,7 +2098,7 @@ theorem copySlot_list_ne_selSlot_list_of_nodup
     (hknil : ks ≠ []) :
     ks.map (copySlot M n) ≠ ls.map (selSlot M n) := by
   intro h
-  have hlen : ks.length = ls.length := by simpa [h]
+  have hlen : ks.length = ls.length := by simpa using congrArg List.length h
   rcases ks with _ | ⟨k, ks'⟩
   · contradiction
   · cases ls with
@@ -2140,6 +2107,7 @@ theorem copySlot_list_ne_selSlot_list_of_nodup
         have hhead : copySlot M n k = selSlot M n l := by
           simpa using List.cons.inj h |>.1
         simp [copySlot, selSlot, slot, Fin.ext_iff] at hhead
+        omega
 
 /-- Machine-slot and selector-slot compatibilities are disjoint on nonempty lists. -/
 theorem latent_machCopy_and_selCon_compatible_disjoint
@@ -2220,37 +2188,34 @@ theorem latent_unique_branch_factorization_of_compatible
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
     (hn2 : n ≥ 2) :
-    ∀ q ∈ latent_profile_bucket_generators M n σ,
-      ∀ (S : List (Fin (latentNumVars M n)))
-        (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
-        (hLen : S.length = Nat.log 2 n)
-        (hDeg : m.totalDegree ≤ Nat.log 2 n)
-        (hVars : m.vars ⊆ S.toFinset)
-        (hAdm : isBlockAdmissible (latentPartition M n) S),
-        q = mlProj (m * iterDerivList S (machCopySheet M n))
-          + mlProj (m * iterDerivList S (copyConSheet M n))
-          + mlProj (m * iterDerivList S (selConSheet M n)) →
-        S ≠ [] →
-        ((latent_machCopy_single_sheet_compatible M n S m →
-            ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
-              mlProj (m * iterDerivList S (machCopySheet M n)) = mlProj (residual * varying) ∧
-              varying ∈ latent_profile_varying_space M n σ ∧
-              ¬ latent_copyCon_single_sheet_compatible M n S m ∧
-              ¬ latent_selCon_single_sheet_compatible M n S m) ∧
-         (latent_copyCon_single_sheet_compatible M n S m →
-            ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
-              mlProj (m * iterDerivList S (copyConSheet M n)) = mlProj (residual * varying) ∧
-              varying ∈ latent_profile_varying_space M n σ ∧
-              ¬ latent_machCopy_single_sheet_compatible M n S m ∧
-              ¬ latent_selCon_single_sheet_compatible M n S m) ∧
-         (latent_selCon_single_sheet_compatible M n S m →
-            ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
-              mlProj (m * iterDerivList S (selConSheet M n)) = mlProj (residual * varying) ∧
-              varying ∈ latent_profile_varying_space M n σ ∧
-              ¬ latent_machCopy_single_sheet_compatible M n S m ∧
-              ¬ latent_copyCon_single_sheet_compatible M n S m)) := by
-  intro q hq S m hLen hDeg hVars hAdm hsplit hS
-  have hmenu := latent_bucket_generator_branch_factorization_menu_proved M n σ hn2 q hq S m hLen hDeg hVars hAdm hsplit
+    ∀ (S : List (Fin (latentNumVars M n)))
+      (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+      (hLen : S.length = Nat.log 2 n)
+      (hDeg : m.totalDegree ≤ Nat.log 2 n)
+      (hVars : m.vars ⊆ S.toFinset)
+      (hAdm : isBlockAdmissible (latentPartition M n) S),
+      latent_profile_signature_of_generator_data M n S m hLen hDeg = σ →
+      S ≠ [] →
+      ((latent_machCopy_single_sheet_compatible M n S m →
+          ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+            mlProj (m * iterDerivList S (machCopySheet M n)) = mlProj (residual * varying) ∧
+            varying ∈ latent_profile_varying_space M n σ ∧
+            ¬ latent_copyCon_single_sheet_compatible M n S m ∧
+            ¬ latent_selCon_single_sheet_compatible M n S m) ∧
+       (latent_copyCon_single_sheet_compatible M n S m →
+          ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+            mlProj (m * iterDerivList S (copyConSheet M n)) = mlProj (residual * varying) ∧
+            varying ∈ latent_profile_varying_space M n σ ∧
+            ¬ latent_machCopy_single_sheet_compatible M n S m ∧
+            ¬ latent_selCon_single_sheet_compatible M n S m) ∧
+       (latent_selCon_single_sheet_compatible M n S m →
+          ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+            mlProj (m * iterDerivList S (selConSheet M n)) = mlProj (residual * varying) ∧
+            varying ∈ latent_profile_varying_space M n σ ∧
+            ¬ latent_machCopy_single_sheet_compatible M n S m ∧
+            ¬ latent_copyCon_single_sheet_compatible M n S m)) := by
+  intro S m hLen hDeg hVars hAdm hSigMatch hS
+  have hmenu := latent_bucket_generator_branch_factorization_menu_proved M n σ hn2 S m hLen hDeg hVars hAdm hSigMatch
   have hexcl := latent_single_sheet_compatibility_at_most_one M n S m hS
   refine ⟨?_, ?_, ?_⟩
   · intro hmach
@@ -2269,18 +2234,17 @@ theorem latent_bucket_generator_machCopy_branch_zero_of_sel_compatible
     (M : DTM) (n : ℕ)
     (S : List (Fin (latentNumVars M n)))
     (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hS : S ≠ [])
     (hcomp : latent_selCon_single_sheet_compatible M n S m) :
     mlProj (m * iterDerivList S (machCopySheet M n)) = 0 := by
-  rcases hcomp with ⟨ks, hnd, rfl, hVarsSel⟩
-  have hne : ks.map (selSlot M n) ≠ [] := by
-    intro h
-    have : ks = [] := (List.map_eq_nil_iff.mp h)
-    subst this
-    simp at hVarsSel
-  rw [LatentWitnessMinorDecomp.iterDerivList_selSlot_machCopySheet_zero M n ks (by
-    intro h
-    apply hne
-    simpa [h]), mul_zero, MultilinearSPDP.mlProj_zero]
+  rcases hcomp with ⟨ks, hnd, hSks, hVarsSel⟩
+  have hne : ks ≠ [] := by
+    intro hk
+    apply hS
+    rw [hSks, hk]
+    simp
+  rw [hSks, LatentWitnessMinorDecomp.iterDerivList_selSlot_machCopySheet_zero M n ks hne,
+    mul_zero, MultilinearSPDP.mlProj_zero]
 
 /-- Under selector-only compatibility, the copyCon branch vanishes because selSlot
  derivatives kill `copyConSheet`. -/
@@ -2288,22 +2252,18 @@ theorem latent_bucket_generator_copyCon_branch_zero_of_sel_compatible
     (M : DTM) (n : ℕ)
     (S : List (Fin (latentNumVars M n)))
     (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hS : S ≠ [])
     (hcomp : latent_selCon_single_sheet_compatible M n S m) :
     mlProj (m * iterDerivList S (copyConSheet M n)) = 0 := by
-  rcases hcomp with ⟨ks, hnd, rfl, hVarsSel⟩
-  have hne : ks.map (selSlot M n) ≠ [] := by
-    intro h
-    have : ks = [] := (List.map_eq_nil_iff.mp h)
-    subst this
-    simp at hVarsSel
-  rw [LatentWitnessMinorDecomp.iterDerivList_selSlot_copyConSheet_zero M n ks (by
-    intro h
-    apply hne
-    simpa [h]), mul_zero, MultilinearSPDP.mlProj_zero]
+  rcases hcomp with ⟨ks, hnd, hSks, hVarsSel⟩
+  have hne : ks ≠ [] := by
+    intro hk
+    apply hS
+    rw [hSks, hk]
+    simp
+  rw [hSks, LatentWitnessMinorDecomp.iterDerivList_selSlot_copyConSheet_zero M n ks hne,
+    mul_zero, MultilinearSPDP.mlProj_zero]
 
-/-- Selector-only compatibility closes the full sheet split: the machCopy and copyCon
-branches vanish, so the arbitrary bucket generator is exactly the selCon branch, which is
-already handled by the existing selCon factor route. -/
 /-- Reusable closure schema: if a compatibility hypothesis kills two branches of the formal
 three-sheet split and provides a factor route for the survivor, then the whole bucket
 generator factors through that surviving sheet. This packages the exact pattern first used
@@ -2313,7 +2273,7 @@ theorem latent_bucket_generator_factor_through_surviving_sheet_of_split
     (σ : latentProfileSignature M n)
     (sheet : MvPolynomial (Fin (latentNumVars M n)) ℚ)
     (branch1 branch2 branch3 : MvPolynomial (Fin (latentNumVars M n)) ℚ)
-    (hsheet : sheet = branch3)
+    (hsheet : sheet = machCopySheet M n ∨ sheet = copyConSheet M n ∨ sheet = selConSheet M n)
     (hbranch1zero : branch1 = 0)
     (hbranch2zero : branch2 = 0)
     {q residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ}
@@ -2324,10 +2284,8 @@ theorem latent_bucket_generator_factor_through_surviving_sheet_of_split
       (outSheet = machCopySheet M n ∨ outSheet = copyConSheet M n ∨ outSheet = selConSheet M n) ∧
       q = mlProj (outResidual * outVarying) ∧
       outVarying ∈ latent_profile_varying_space M n σ := by
-  refine ⟨sheet, residual, varying, ?_, ?_, hvary⟩
-  · rcases hsheet with rfl
-    exact Or.inr (Or.inr rfl)
-  · rw [hsplit, hbranch1zero, hbranch2zero, zero_add, hsurvive]
+  refine ⟨sheet, residual, varying, hsheet, ?_, hvary⟩
+  rw [hsplit, hbranch1zero, hbranch2zero, zero_add, zero_add, hsurvive]
 
 /-- Selector-only compatibility closes the full sheet split: the machCopy and copyCon
 branches vanish, so the arbitrary bucket generator is exactly the selCon branch, which is
@@ -2336,27 +2294,39 @@ theorem latent_bucket_generator_of_sel_compatible_factors_through_sheet_varying_
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
     (hn2 : n ≥ 2) :
-    ∀ q ∈ latent_profile_bucket_generators M n σ,
-      ∀ S m hLen hDeg hVars hAdm,
-        q = mlProj (m * iterDerivList S (machCopySheet M n))
-          + mlProj (m * iterDerivList S (copyConSheet M n))
-          + mlProj (m * iterDerivList S (selConSheet M n)) →
-        latent_selCon_single_sheet_compatible M n S m →
-        ∃ sheet residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
-          (sheet = machCopySheet M n ∨ sheet = copyConSheet M n ∨ sheet = selConSheet M n) ∧
-          q = mlProj (residual * varying) ∧
-          varying ∈ latent_profile_varying_space M n σ := by
-  intro q hq S m hLen hDeg hVars hAdm hsplit hcomp
-  have hmach0 := latent_bucket_generator_machCopy_branch_zero_of_sel_compatible M n S m hcomp
-  have hcopy0 := latent_bucket_generator_copyCon_branch_zero_of_sel_compatible M n S m hcomp
-  rcases latent_bucket_generator_selCon_branch_of_compatible M n σ hn2 q hq S m hLen hDeg hVars hAdm hsplit hcomp with
+    ∀ (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+      (S : List (Fin (latentNumVars M n)))
+      (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+      (hLen : S.length = Nat.log 2 n)
+      (hDeg : m.totalDegree ≤ Nat.log 2 n)
+      (hVars : m.vars ⊆ S.toFinset)
+      (hAdm : isBlockAdmissible (latentPartition M n) S),
+      latent_profile_signature_of_generator_data M n S m hLen hDeg = σ →
+      q = mlProj (m * iterDerivList S (machCopySheet M n))
+        + mlProj (m * iterDerivList S (copyConSheet M n))
+        + mlProj (m * iterDerivList S (selConSheet M n)) →
+      latent_selCon_single_sheet_compatible M n S m →
+      ∃ sheet residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+        (sheet = machCopySheet M n ∨ sheet = copyConSheet M n ∨ sheet = selConSheet M n) ∧
+        q = mlProj (residual * varying) ∧
+        varying ∈ latent_profile_varying_space M n σ := by
+  intro q S m hLen hDeg hVars hAdm hSigMatch hsplit hcomp
+  have hS : S ≠ [] := by
+    intro hnil
+    subst hnil
+    simp at hLen
+    have hlogpos : 0 < Nat.log 2 n := Nat.log_pos (by omega) hn2
+    omega
+  have hmach0 := latent_bucket_generator_machCopy_branch_zero_of_sel_compatible M n S m hS hcomp
+  have hcopy0 := latent_bucket_generator_copyCon_branch_zero_of_sel_compatible M n S m hS hcomp
+  rcases latent_bucket_generator_selCon_branch_of_compatible M n σ hn2 S m hLen hDeg hVars hAdm hSigMatch hcomp with
     ⟨residual, varying, hsel, hvary⟩
   exact latent_bucket_generator_factor_through_surviving_sheet_of_split M n σ
     (selConSheet M n)
     (mlProj (m * iterDerivList S (machCopySheet M n)))
     (mlProj (m * iterDerivList S (copyConSheet M n)))
     (mlProj (m * iterDerivList S (selConSheet M n)))
-    rfl hmach0 hcopy0 hsplit hsel hvary
+    (Or.inr (Or.inr rfl)) hmach0 hcopy0 hsplit hsel hvary
 
 /-- Direct selector-only bucket-membership package: a coarse bucket generator together with
 its selector-only presentation data. This is the clean top-level input shape for using the
@@ -2393,13 +2363,24 @@ theorem latent_selCon_compatible_bucket_member_factors_through_sheet_varying_spa
     refine ⟨ks.map (selSlot M n), m, by simp [List.length_map, hlen], hDeg, ?_, ?_, hSig, hqeq⟩
     · simpa using hVars
     · exact LatentWitnessMinorDecomp.witness_selector_list_admissible M n ks hnd
-  have hsplit := latent_bucket_generator_sheet_split_of_mem M n σ q hbucket
-  have hcomp : latent_selCon_single_sheet_compatible M n (ks.map (selSlot M n)) m := by
-    refine ⟨ks, hnd, rfl, ?_⟩
+  have hsplit :
+      q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (machCopySheet M n))
+        + mlProj (m * iterDerivList (ks.map (selSlot M n)) (copyConSheet M n))
+        + mlProj (m * iterDerivList (ks.map (selSlot M n)) (selConSheet M n)) := by
+    rw [hqeq]
+    unfold latentCompiledPoly
+    rw [iterDerivList_add, iterDerivList_add]
+    rw [mul_add, mul_add, MultilinearSPDP.mlProj_add, MultilinearSPDP.mlProj_add]
+  have hLenSel : (ks.map (selSlot M n)).length = Nat.log 2 n := by
+    simpa [List.length_map] using hlen
+  have hVarsSel : m.vars ⊆ (ks.map (selSlot M n)).toFinset := by
     simpa using hVars
-  exact latent_bucket_generator_of_sel_compatible_factors_through_sheet_varying_space M n σ hn2 q hbucket
-    (ks.map (selSlot M n)) m (by simp [List.length_map, hlen]) hDeg (by simpa using hVars)
-    (LatentWitnessMinorDecomp.witness_selector_list_admissible M n ks hnd) hsplit hcomp
+  have hAdmSel : isBlockAdmissible (latentPartition M n) (ks.map (selSlot M n)) :=
+    LatentWitnessMinorDecomp.witness_selector_list_admissible M n ks hnd
+  have hcomp : latent_selCon_single_sheet_compatible M n (ks.map (selSlot M n)) m := by
+    refine ⟨ks, hnd, rfl, hVarsSel⟩
+  exact latent_bucket_generator_of_sel_compatible_factors_through_sheet_varying_space M n σ hn2 q
+    (ks.map (selSlot M n)) m hLenSel hDeg hVarsSel hAdmSel hSig hsplit hcomp
 
 /-- Direct machine-slot-compatible bucket-member package, parallel to the selector-only one. -/
 def latent_machCopy_compatible_bucket_member
@@ -2451,12 +2432,12 @@ member, recover the unique branch factorization data directly in bucket language
 theorem latent_machCopy_compatible_bucket_member_unique_branch_factorization
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
-    (hn2 : n ≥ 2)
+    (_hn2 : n ≥ 2)
     (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
     (hq : latent_machCopy_compatible_bucket_member M n σ q) :
     ∃ (ks : List (Fin (latentBaseVars M n)))
       (m residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ),
-      List.Nodup ks ∧
+      ks.Nodup ∧
       ks.length = Nat.log 2 n ∧
       m.vars ⊆ (ks.map (machSlot M n)).toFinset ∧
       q = mlProj (m * iterDerivList (ks.map (machSlot M n)) (latentCompiledPoly M n)) ∧
@@ -2464,33 +2445,23 @@ theorem latent_machCopy_compatible_bucket_member_unique_branch_factorization
         mlProj (residual * varying) ∧
       varying ∈ latent_profile_varying_space M n σ := by
   rcases hq with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
-  have hbucket : q ∈ latent_profile_bucket_generators M n σ := by
-    refine ⟨ks.map (machSlot M n), m, by simp [List.length_map, hlen], hDeg, ?_, ?_, hSig, hqeq⟩
-    · simpa using hVars
-    · exact LatentWitnessMinorDecomp.witness_mach_list_admissible M n ks hnd
-  have hsplit := latent_bucket_generator_sheet_split_of_mem M n σ q hbucket
-  have hcomp : latent_machCopy_single_sheet_compatible M n (ks.map (machSlot M n)) m := by
-    refine ⟨ks, hnd, rfl, ?_⟩
-    simpa using hVars
-  rcases (latent_unique_branch_factorization_of_compatible M n σ hn2 q hbucket
-    (ks.map (machSlot M n)) m (by simp [List.length_map, hlen]) hDeg (by simpa using hVars)
-    (LatentWitnessMinorDecomp.witness_mach_list_admissible M n ks hnd) hsplit
-    (by
-      intro hnil
-      simp at hlen
-      omega)).1 hcomp with ⟨residual, varying, hfac, hvary, _, _⟩
-  exact ⟨ks, m, residual, varying, hnd, hlen, hVars, hqeq, hfac, hvary⟩
+  refine ⟨ks, m,
+    C ((-1 : ℚ)^ks.length) * (∏ i ∈ (Finset.univ \ ks.toFinset), machCopyGadget M n i),
+    m * (ks.map (Xcopy M n)).prod, hnd, hlen, hVars, hqeq, ?_, ?_⟩
+  · rw [LatentWitnessMinorDecomp.iterDeriv_machCopySheet_eq M n ks hnd]
+    ring_nf
+  · simpa [hSig] using latent_machCopy_varying_factor_mem_varying_space M n ks m hVars hDeg hlen
 
 /-- CopyCon parallel of the cleaned machine-slot bucket consequence. -/
 theorem latent_copyCon_compatible_bucket_member_unique_branch_factorization
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
-    (hn2 : n ≥ 2)
+    (_hn2 : n ≥ 2)
     (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
     (hq : latent_copyCon_compatible_bucket_member M n σ q) :
     ∃ (ks : List (Fin (latentBaseVars M n)))
       (m residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ),
-      List.Nodup ks ∧
+      ks.Nodup ∧
       ks.length = Nat.log 2 n ∧
       m.vars ⊆ (ks.map (copySlot M n)).toFinset ∧
       q = mlProj (m * iterDerivList (ks.map (copySlot M n)) (latentCompiledPoly M n)) ∧
@@ -2498,33 +2469,23 @@ theorem latent_copyCon_compatible_bucket_member_unique_branch_factorization
         mlProj (residual * varying) ∧
       varying ∈ latent_profile_varying_space M n σ := by
   rcases hq with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
-  have hbucket : q ∈ latent_profile_bucket_generators M n σ := by
-    refine ⟨ks.map (copySlot M n), m, by simp [List.length_map, hlen], hDeg, ?_, ?_, hSig, hqeq⟩
-    · simpa using hVars
-    · exact LatentWitnessMinorDecomp.witness_copy_list_admissible M n ks hnd
-  have hsplit := latent_bucket_generator_sheet_split_of_mem M n σ q hbucket
-  have hcomp : latent_copyCon_single_sheet_compatible M n (ks.map (copySlot M n)) m := by
-    refine ⟨ks, hnd, rfl, ?_⟩
-    simpa using hVars
-  rcases (latent_unique_branch_factorization_of_compatible M n σ hn2 q hbucket
-    (ks.map (copySlot M n)) m (by simp [List.length_map, hlen]) hDeg (by simpa using hVars)
-    (LatentWitnessMinorDecomp.witness_copy_list_admissible M n ks hnd) hsplit
-    (by
-      intro hnil
-      simp at hlen
-      omega)).2.1 hcomp with ⟨residual, varying, hfac, hvary, _, _⟩
-  exact ⟨ks, m, residual, varying, hnd, hlen, hVars, hqeq, hfac, hvary⟩
+  refine ⟨ks, m,
+    C ((-1 : ℚ)^ks.length) * (∏ i ∈ (Finset.univ \ ks.toFinset), copyConGadget M n i),
+    m * (ks.map (Xcon M n)).prod, hnd, hlen, hVars, hqeq, ?_, ?_⟩
+  · rw [LatentWitnessMinorDecomp.iterDeriv_copyConSheet_eq M n ks hnd]
+    ring_nf
+  · simpa [hSig] using latent_copyCon_varying_factor_mem_varying_space M n ks m hVars hDeg hlen
 
 /-- Cleaned selector-lane top-level consequence, parallel to the mach/copy versions. -/
 theorem latent_selCon_compatible_bucket_member_clean_unique_branch_factorization
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
-    (hn2 : n ≥ 2)
+    (_hn2 : n ≥ 2)
     (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
     (hq : latent_selCon_compatible_bucket_member_clean M n σ q) :
     ∃ (ks : List (Fin (latentBaseVars M n)))
       (m residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ),
-      List.Nodup ks ∧
+      ks.Nodup ∧
       ks.length = Nat.log 2 n ∧
       m.vars ⊆ (ks.map (selSlot M n)).toFinset ∧
       q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n)) ∧
@@ -2532,22 +2493,12 @@ theorem latent_selCon_compatible_bucket_member_clean_unique_branch_factorization
         mlProj (residual * varying) ∧
       varying ∈ latent_profile_varying_space M n σ := by
   rcases hq with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
-  have hbucket : q ∈ latent_profile_bucket_generators M n σ := by
-    refine ⟨ks.map (selSlot M n), m, by simp [List.length_map, hlen], hDeg, ?_, ?_, hSig, hqeq⟩
-    · simpa using hVars
-    · exact LatentWitnessMinorDecomp.witness_selector_list_admissible M n ks hnd
-  have hsplit := latent_bucket_generator_sheet_split_of_mem M n σ q hbucket
-  have hcomp : latent_selCon_single_sheet_compatible M n (ks.map (selSlot M n)) m := by
-    refine ⟨ks, hnd, rfl, ?_⟩
-    simpa using hVars
-  rcases (latent_unique_branch_factorization_of_compatible M n σ hn2 q hbucket
-    (ks.map (selSlot M n)) m (by simp [List.length_map, hlen]) hDeg (by simpa using hVars)
-    (LatentWitnessMinorDecomp.witness_selector_list_admissible M n ks hnd) hsplit
-    (by
-      intro hnil
-      simp at hlen
-      omega)).2.2 hcomp with ⟨residual, varying, hfac, hvary, _, _⟩
-  exact ⟨ks, m, residual, varying, hnd, hlen, hVars, hqeq, hfac, hvary⟩
+  refine ⟨ks, m,
+    C ((-1 : ℚ)^ks.length) * (∏ i ∈ (Finset.univ \ ks.toFinset), selConGadget M n i),
+    m * (ks.map (Xcon M n)).prod, hnd, hlen, hVars, hqeq, ?_, ?_⟩
+  · rw [LatentWitnessMinorDecomp.iterDeriv_selConSheet_eq M n ks hnd]
+    ring_nf
+  · simpa [hSig] using latent_selCon_selector_multiplier_varying_factor_mem_varying_space M n ks m hVars hDeg hlen
 
 /-- Uniform top-level compatibility-indexed menu: rather than three separate top-level entry
 points, this packages the cleaned mach/copy/sel consequences together. The statement stays
@@ -2571,7 +2522,7 @@ theorem latent_clean_compatible_bucket_member_menu_unique_branch_factorization
     (hq : latent_clean_compatible_bucket_member_menu M n σ q) :
     (∃ (ks : List (Fin (latentBaseVars M n)))
         (m residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ),
-        List.Nodup ks ∧
+        ks.Nodup ∧
         ks.length = Nat.log 2 n ∧
         m.vars ⊆ (ks.map (machSlot M n)).toFinset ∧
         q = mlProj (m * iterDerivList (ks.map (machSlot M n)) (latentCompiledPoly M n)) ∧
@@ -2580,7 +2531,7 @@ theorem latent_clean_compatible_bucket_member_menu_unique_branch_factorization
         varying ∈ latent_profile_varying_space M n σ) ∨
     (∃ (ks : List (Fin (latentBaseVars M n)))
         (m residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ),
-        List.Nodup ks ∧
+        ks.Nodup ∧
         ks.length = Nat.log 2 n ∧
         m.vars ⊆ (ks.map (copySlot M n)).toFinset ∧
         q = mlProj (m * iterDerivList (ks.map (copySlot M n)) (latentCompiledPoly M n)) ∧
@@ -2589,7 +2540,7 @@ theorem latent_clean_compatible_bucket_member_menu_unique_branch_factorization
         varying ∈ latent_profile_varying_space M n σ) ∨
     (∃ (ks : List (Fin (latentBaseVars M n)))
         (m residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ),
-        List.Nodup ks ∧
+        ks.Nodup ∧
         ks.length = Nat.log 2 n ∧
         m.vars ⊆ (ks.map (selSlot M n)).toFinset ∧
         q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n)) ∧
@@ -2597,9 +2548,27 @@ theorem latent_clean_compatible_bucket_member_menu_unique_branch_factorization
           mlProj (residual * varying) ∧
         varying ∈ latent_profile_varying_space M n σ) := by
   rcases hq with hmach | hcopy | hsel
-  · exact Or.inl <| latent_machCopy_compatible_bucket_member_unique_branch_factorization M n σ hn2 q hmach
-  · exact Or.inr <| Or.inl <| latent_copyCon_compatible_bucket_member_unique_branch_factorization M n σ hn2 q hcopy
-  · exact Or.inr <| Or.inr <| latent_selCon_compatible_bucket_member_clean_unique_branch_factorization M n σ hn2 q hsel
+  · rcases hmach with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
+    refine Or.inl <| ⟨ks, m,
+      C ((-1 : ℚ)^ks.length) * (∏ i ∈ (Finset.univ \ ks.toFinset), machCopyGadget M n i),
+      m * (ks.map (Xcopy M n)).prod, hnd, hlen, hVars, hqeq, ?_, ?_⟩
+    · rw [LatentWitnessMinorDecomp.iterDeriv_machCopySheet_eq M n ks hnd]
+      ring_nf
+    · simpa [hSig] using latent_machCopy_varying_factor_mem_varying_space M n ks m hVars hDeg hlen
+  · rcases hcopy with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
+    refine Or.inr <| Or.inl <| ⟨ks, m,
+      C ((-1 : ℚ)^ks.length) * (∏ i ∈ (Finset.univ \ ks.toFinset), copyConGadget M n i),
+      m * (ks.map (Xcon M n)).prod, hnd, hlen, hVars, hqeq, ?_, ?_⟩
+    · rw [LatentWitnessMinorDecomp.iterDeriv_copyConSheet_eq M n ks hnd]
+      ring_nf
+    · simpa [hSig] using latent_copyCon_varying_factor_mem_varying_space M n ks m hVars hDeg hlen
+  · rcases hsel with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
+    refine Or.inr <| Or.inr <| ⟨ks, m,
+      C ((-1 : ℚ)^ks.length) * (∏ i ∈ (Finset.univ \ ks.toFinset), selConGadget M n i),
+      m * (ks.map (Xcon M n)).prod, hnd, hlen, hVars, hqeq, ?_, ?_⟩
+    · rw [LatentWitnessMinorDecomp.iterDeriv_selConSheet_eq M n ks hnd]
+      ring_nf
+    · simpa [hSig] using latent_selCon_selector_multiplier_varying_factor_mem_varying_space M n ks m hVars hDeg hlen
 
 /-- Nonempty cleaned top-level uniqueness package: if a bucket member is given in one cleaned
 compatibility presentation, then the other two cleaned compatibility presentations are impossible.
@@ -2619,7 +2588,7 @@ counterpart of `latent_unique_branch_factorization_of_compatible`. -/
 theorem latent_clean_bucket_member_menu_unique_mach
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
-    (hn2 : n ≥ 2)
+    (_hn2 : n ≥ 2)
     (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
     (_hq : latent_clean_compatible_bucket_member_menu M n σ q)
     (hmach : latent_machCopy_compatible_bucket_member M n σ q) :
@@ -2632,12 +2601,18 @@ theorem latent_clean_bucket_member_menu_unique_mach
       mlProj (m * iterDerivList (ks.map (machSlot M n)) (machCopySheet M n)) =
         mlProj (residual * varying) ∧
       varying ∈ latent_profile_varying_space M n σ := by
-  exact latent_machCopy_compatible_bucket_member_unique_branch_factorization M n σ hn2 q hmach
+  rcases hmach with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
+  refine ⟨ks, m,
+    C ((-1 : ℚ)^ks.length) * (∏ i ∈ (Finset.univ \ ks.toFinset), machCopyGadget M n i),
+    m * (ks.map (Xcopy M n)).prod, hnd, hlen, hVars, hqeq, ?_, ?_⟩
+  · rw [LatentWitnessMinorDecomp.iterDeriv_machCopySheet_eq M n ks hnd]
+    ring_nf
+  · simpa [hSig] using latent_machCopy_varying_factor_mem_varying_space M n ks m hVars hDeg hlen
 
 theorem latent_clean_bucket_member_menu_unique_copy
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
-    (hn2 : n ≥ 2)
+    (_hn2 : n ≥ 2)
     (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
     (_hq : latent_clean_compatible_bucket_member_menu M n σ q)
     (hcopy : latent_copyCon_compatible_bucket_member M n σ q) :
@@ -2650,7 +2625,13 @@ theorem latent_clean_bucket_member_menu_unique_copy
       mlProj (m * iterDerivList (ks.map (copySlot M n)) (copyConSheet M n)) =
         mlProj (residual * varying) ∧
       varying ∈ latent_profile_varying_space M n σ := by
-  exact latent_copyCon_compatible_bucket_member_unique_branch_factorization M n σ hn2 q hcopy
+  rcases hcopy with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
+  refine ⟨ks, m,
+    C ((-1 : ℚ)^ks.length) * (∏ i ∈ (Finset.univ \ ks.toFinset), copyConGadget M n i),
+    m * (ks.map (Xcon M n)).prod, hnd, hlen, hVars, hqeq, ?_, ?_⟩
+  · rw [LatentWitnessMinorDecomp.iterDeriv_copyConSheet_eq M n ks hnd]
+    ring_nf
+  · simpa [hSig] using latent_copyCon_varying_factor_mem_varying_space M n ks m hVars hDeg hlen
 
 theorem latent_clean_bucket_member_menu_unique_sel
     (M : DTM) (n : ℕ)
@@ -2668,7 +2649,13 @@ theorem latent_clean_bucket_member_menu_unique_sel
       mlProj (m * iterDerivList (ks.map (selSlot M n)) (selConSheet M n)) =
         mlProj (residual * varying) ∧
       varying ∈ latent_profile_varying_space M n σ := by
-  exact latent_selCon_compatible_bucket_member_clean_unique_branch_factorization M n σ hn2 q hsel
+  rcases hsel with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
+  refine ⟨ks, m,
+    C ((-1 : ℚ)^ks.length) * (∏ i ∈ (Finset.univ \ ks.toFinset), selConGadget M n i),
+    m * (ks.map (Xcon M n)).prod, hnd, hlen, hVars, hqeq, ?_, ?_⟩
+  · rw [LatentWitnessMinorDecomp.iterDeriv_selConSheet_eq M n ks hnd]
+    ring_nf
+  · simpa [hSig] using latent_selCon_selector_multiplier_varying_factor_mem_varying_space M n ks m hVars hDeg hlen
 
 /-- A genuinely useful downstream corollary: if a cleaned compatible bucket member is known to
 be machine-slot compatible, then the top-level menu collapses all the way to the machCopy branch
