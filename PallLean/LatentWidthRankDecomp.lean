@@ -1685,6 +1685,30 @@ def latent_selCon_single_sheet_compatible
     S = ks.map (selSlot M n) ∧
     m.vars ⊆ S.toFinset
 
+/-- The analogous compatibility shape for the machCopy lane: derivative data comes purely
+from machine-slot hits, and the multiplier support stays inside those same hits. This is the
+natural hypothesis under which a future `machCopySheet` branch theorem should run. -/
+def latent_machCopy_single_sheet_compatible
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ) : Prop :=
+  ∃ ks : List (Fin (latentBaseVars M n)),
+    ks.Nodup ∧
+    S = ks.map (machSlot M n) ∧
+    m.vars ⊆ S.toFinset
+
+/-- The analogous compatibility shape for the copyCon lane: derivative data comes purely
+from copy-slot hits, and the multiplier support stays inside those same hits. This is the
+natural hypothesis under which a future `copyConSheet` branch theorem should run. -/
+def latent_copyCon_single_sheet_compatible
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ) : Prop :=
+  ∃ ks : List (Fin (latentBaseVars M n)),
+    ks.Nodup ∧
+    S = ks.map (copySlot M n) ∧
+    m.vars ⊆ S.toFinset
+
 /-- Under selector-only single-sheet compatibility, the selCon branch produced by the formal
 sheet split already satisfies the sheetwise varying-factor frontier. This is the first true
 branch handler sitting directly after `latent_bucket_generator_sheet_split`. -/
@@ -1718,6 +1742,38 @@ theorem latent_bucket_generator_selCon_branch_of_compatible
   refine ⟨residual, varying, ?_, ?_⟩
   · simpa using hfac
   · simpa [hSig] using hvary
+
+/-- The future machCopy branch handler should consume this exact hypothesis shape after the
+formal three-sheet split. It is kept as a named theorem slot now so later proof work can
+land directly against the stable frontier. -/
+def latent_bucket_generator_machCopy_branch_of_compatible
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) : Prop :=
+  ∀ q ∈ latent_profile_bucket_generators M n σ,
+    ∀ S m hLen hDeg hVars hAdm,
+      q = mlProj (m * iterDerivList S (machCopySheet M n))
+        + mlProj (m * iterDerivList S (copyConSheet M n))
+        + mlProj (m * iterDerivList S (selConSheet M n)) →
+      latent_machCopy_single_sheet_compatible M n S m →
+      ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+        mlProj (m * iterDerivList S (machCopySheet M n)) = mlProj (residual * varying) ∧
+        varying ∈ latent_profile_varying_space M n σ
+
+/-- The future copyCon branch handler should consume this exact hypothesis shape after the
+formal three-sheet split. It is kept as a named theorem slot now so later proof work can
+land directly against the stable frontier. -/
+def latent_bucket_generator_copyCon_branch_of_compatible
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) : Prop :=
+  ∀ q ∈ latent_profile_bucket_generators M n σ,
+    ∀ S m hLen hDeg hVars hAdm,
+      q = mlProj (m * iterDerivList S (machCopySheet M n))
+        + mlProj (m * iterDerivList S (copyConSheet M n))
+        + mlProj (m * iterDerivList S (selConSheet M n)) →
+      latent_copyCon_single_sheet_compatible M n S m →
+      ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+        mlProj (m * iterDerivList S (copyConSheet M n)) = mlProj (residual * varying) ∧
+        varying ∈ latent_profile_varying_space M n σ
 
 /-- Under selector-only compatibility, the machCopy branch vanishes because selSlot
  derivatives kill `machCopySheet`. -/
