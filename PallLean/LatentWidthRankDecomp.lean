@@ -2868,6 +2868,16 @@ theorem latent_raw_bucket_member_enters_clean_lane
       simpa [hS] using hq
     exact latent_bucket_generator_to_clean_sel_menu M n σ q ks m hnd hLen' hDeg hVars' hSig' hq'
 
+/-- Candidate classifier frontier for Move 1: a raw admissible list should collapse to one
+uniform lane. This is intentionally left as the next honest local theorem target, not yet
+claimed as proved. -/
+def latent_uniform_lane_classifier_candidate
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n))) : Prop :=
+  (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = machSlot M n i) ∨
+  (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = copySlot M n i) ∨
+  (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = selSlot M n i)
+
 /-- Direct raw machine-slot resolver: explicit machine-slot witness data now goes all the way to
 factorization plus exclusion of the other cleaned presentations in one step. -/
 theorem latent_raw_mach_bucket_member_resolves
