@@ -735,27 +735,24 @@ def latent_profile_space_candidate_extends_fixedProfileSlice
   simp [latent_profile_space_candidate_extends_fixedProfileSlice, latent_profile_space_candidate_def,
     latent_fixedProfileSlice_def]
 
-/-- Exact local-factor frontier suggested by the current coarse signature: isolate the
-σ-controlled varying part of each generator inside the four-layer local window. Unlike the
-older full-slice window target, this does not claim the whole generator is localized to the
-hit blocks. -/
-def latent_fixedProfileSlice_factors_through_profile_varying_space
+/-- Sheetwise local-factor frontier suggested by the current coarse signature: each bucket
+ generator should admit a decomposition through one of the three global sheets, with a
+ residual global factor and a σ-controlled local varying factor. This is the honest
+ replacement for the earlier false hit-block-only window theorem. -/
+def latent_profile_bucket_generators_factor_through_sheet_varying_space
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n) : Prop :=
   ∀ q ∈ latent_profile_bucket_generators M n σ,
-    ∃ r v : MvPolynomial (Fin (latentNumVars M n)) ℚ,
-      q = mlProj (r * v) ∧
-      v ∈ latent_profile_varying_space M n σ
+    ∃ sheet residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+      (sheet = machCopySheet M n ∨ sheet = copyConSheet M n ∨ sheet = selConSheet M n) ∧
+      q = mlProj (residual * varying) ∧
+      varying ∈ latent_profile_varying_space M n σ
 
-/-- Generator-level local-factor form of the new target. This replaces the earlier false
-claim that the whole bucket generator already lives in the hit-block window space. -/
-def latent_profile_bucket_generators_factor_through_profile_varying_space
+/-- Slice-level packaging of the same sheetwise local-factor target. -/
+def latent_fixedProfileSlice_factors_through_sheet_varying_space
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n) : Prop :=
-  ∀ q ∈ latent_profile_bucket_generators M n σ,
-    ∃ r v : MvPolynomial (Fin (latentNumVars M n)) ℚ,
-      q = mlProj (r * v) ∧
-      v ∈ latent_profile_varying_space M n σ
+  latent_profile_bucket_generators_factor_through_sheet_varying_space M n σ
 
 /-- The first honest strengthening target for the ambient profile-space candidate:
 replace the placeholder `⊤` by a nontrivial submodule while preserving the fixed-slice
@@ -1407,24 +1404,16 @@ theorem mlProj_vars_subset {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F
   have hα_p : α ∈ p.support := mlProj_support_subset p hα_supp
   exact ⟨α, hα_p, hα_x⟩
 
-theorem latent_profile_bucket_generators_factor_through_profile_varying_space_refl
-    (M : DTM) (n : ℕ)
-    (σ : latentProfileSignature M n) :
-    latent_profile_bucket_generators_factor_through_profile_varying_space M n σ := by
-  intro q hq
-  refine ⟨q, 1, ?_, ?_⟩
-  · simp
-  · rw [latent_profile_varying_space_def]
-    apply Submodule.subset_span
-    simp
-
-theorem latent_fixedProfileSlice_factors_through_profile_varying_space_of_generators
+/-- Immediate theorem-surface wrapper: the bucket-level sheetwise factor target is the
+actual slice-level target, since `latent_fixedProfileSlice` is defined from the bucket
+generators. The substantive next step is to replace this packaging theorem by an honest
+construction of `sheet`, `residual`, and `varying` from the generator presentation. -/
+theorem latent_fixedProfileSlice_factors_through_sheet_varying_space_of_generators
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
-    (hgen : latent_profile_bucket_generators_factor_through_profile_varying_space M n σ) :
-    latent_fixedProfileSlice_factors_through_profile_varying_space M n σ := by
-  intro q hq
-  exact hgen q hq
+    (hgen : latent_profile_bucket_generators_factor_through_sheet_varying_space M n σ) :
+    latent_fixedProfileSlice_factors_through_sheet_varying_space M n σ := by
+  exact hgen
 
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
