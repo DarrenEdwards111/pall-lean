@@ -1639,6 +1639,39 @@ theorem latent_selector_only_bucket_generator_mem_sheetwise_frontier
   refine ⟨sheet, residual, varying, ?_, hfac, hvary⟩
   exact Or.inr (Or.inr hsheet)
 
+/-- Formal sheet-splitting surface for an arbitrary bucket generator: expand the latent
+compiled polynomial into its three sheet contributions, then express the generator as the sum
+of the three corresponding mlProj terms. This is the first honest full-frontier seam before
+any branch-specific routing theorems are applied. -/
+def latent_bucket_generator_sheet_split
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) : Prop :=
+  ∀ q ∈ latent_profile_bucket_generators M n σ,
+    ∃ (S : List (Fin (latentNumVars M n)))
+      (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+      (hLen : S.length = Nat.log 2 n)
+      (hDeg : m.totalDegree ≤ Nat.log 2 n)
+      (hVars : m.vars ⊆ S.toFinset)
+      (hAdm : isBlockAdmissible (latentPartition M n) S),
+      q = mlProj (m * iterDerivList S (machCopySheet M n))
+        + mlProj (m * iterDerivList S (copyConSheet M n))
+        + mlProj (m * iterDerivList S (selConSheet M n))
+
+/-- Every bucket generator admits the formal sheet splitting obtained by linearity of
+`iterDerivList`, multiplication, and `mlProj`. This does not yet choose a surviving branch,
+but it exposes the exact decomposition theorem the full frontier needs next. -/
+theorem latent_bucket_generator_sheet_split_of_mem
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    latent_bucket_generator_sheet_split M n σ := by
+  intro q hq
+  rcases hq with ⟨S, m, hLen, hDeg, hVars, hAdm, hSig, rfl⟩
+  refine ⟨S, m, hLen, hDeg, hVars, hAdm, ?_⟩
+  unfold latentCompiledPoly
+  rw [MultilinearSPDP.iterDerivList_add, MultilinearSPDP.iterDerivList_add]
+  rw [mul_add, mul_add, MultilinearSPDP.mlProj_add, MultilinearSPDP.mlProj_add]
+  ring
+
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
 latentCompiledPoly = sum of 3 product sheets → subadditivity reduces to per-sheet bounds.
