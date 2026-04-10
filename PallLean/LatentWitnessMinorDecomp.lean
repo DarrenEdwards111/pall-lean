@@ -177,6 +177,29 @@ theorem pderiv_machSlot_machCopyGadget_ne (M : DTM) (n : ℕ)
     simp [machSlot, copySlot, slot, Fin.ext_iff]
   exact ProductDeriv.pderiv_one_sub_mul_ne hneq hnot
 
+/-- Derivative of copyConGadget at its own copy slot. -/
+theorem pderiv_copySlot_copyConGadget_eq (M : DTM) (n : ℕ)
+    (i : Fin (latentBaseVars M n)) :
+    pderiv (copySlot M n i) (copyConGadget M n i) = -(Xcon M n i) := by
+  unfold copyConGadget Xcopy
+  have hnot : copySlot M n i ∉ (Xcon M n i).vars := by
+    rw [MvPolynomial.vars_X]
+    simp [copySlot, conSlot, slot, Fin.ext_iff]
+  exact ProductDeriv.pderiv_one_sub_mul hnot
+
+/-- Derivative of copyConGadget at a different copy slot is zero. -/
+theorem pderiv_copySlot_copyConGadget_ne (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) (hij : i ≠ j) :
+    pderiv (copySlot M n j) (copyConGadget M n i) = 0 := by
+  unfold copyConGadget Xcopy
+  have hneq : copySlot M n j ≠ copySlot M n i := by
+    intro h
+    exact hij ((copySlot_injective M n) h).symm
+  have hnot : copySlot M n j ∉ (Xcon M n i).vars := by
+    rw [MvPolynomial.vars_X]
+    simp [copySlot, conSlot, slot, Fin.ext_iff]
+  exact ProductDeriv.pderiv_one_sub_mul_ne hneq hnot
+
 /-- Machine-slot derivative on a finite machCopy product (hit case). -/
 theorem pderiv_machSlot_machCopyProd_of_mem (M : DTM) (n : ℕ)
     (T : Finset (Fin (latentBaseVars M n)))
