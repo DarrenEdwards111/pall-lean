@@ -1,5 +1,4 @@
 import PallLean.LatentCompiler
-import PallLean.CompilerProperties
 import PallLean.LatentWitnessMinorDecomp
 import PallLean.ProfileSpaceBound
 import Mathlib.Tactic
@@ -1433,6 +1432,18 @@ def latent_selCon_selector_factor_route
 
 /-- The explicit selector-only varying factor is block-supported on the hit blocks `ks`.
 This is the first honest support statement behind the selCon factor route. -/
+private theorem mem_latent_profile_varying_window_of_mem_hitBlocks
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    {i : Fin (latentBaseVars M n)}
+    (hi : i ∈ (latent_hitBlocks_of_list M n S)) :
+    conSlot M n i ∈ latent_profile_varying_window M n
+      (latent_profile_signature_of_generator_data M n S 1
+        (by simp) (by simp)) := by
+  rw [latent_profile_signature_of_generator_data_hitBlocks]
+  unfold latent_profile_varying_window
+  exact Finset.mem_biUnion.mpr ⟨i, hi, by simp⟩
+
 theorem latent_selCon_selector_varying_factor_mem_varying_space
     (M : DTM) (n : ℕ)
     (ks : List (Fin (latentBaseVars M n)))
@@ -1444,21 +1455,15 @@ theorem latent_selCon_selector_varying_factor_mem_varying_space
   rw [latent_profile_varying_space_def]
   apply Submodule.subset_span
   intro v hv
-  rw [latent_profile_signature_of_generator_data_hitBlocks]
-  unfold latent_hitBlocks_of_list latent_profile_varying_window
   have hvprod := MvPolynomial.vars_prod (s := ks.toFinset) (f := Xcon M n) hv
   rcases List.mem_toFinset.mp (by
     simpa [MvPolynomial.vars_X] using hvprod) with hmem
-  have hbi : conSlot M n v ∈
-      (List.map (fun i => (latentPartition M n).assign i) (List.map (selSlot M n) ks)).toFinset := by
+  have hhit : v ∈ latent_hitBlocks_of_list M n (ks.map (selSlot M n)) := by
+    unfold latent_hitBlocks_of_list
     apply List.mem_toFinset.mpr
-    apply List.mem_map.mpr
-    refine ⟨v, ?_, ?_⟩
-    · exact List.mem_map.mpr ⟨v, hmem, by simp⟩
-    · simp [latentPartition_assign_selSlot]
-  apply Finset.mem_biUnion.mpr
-  refine ⟨v, hbi, ?_⟩
-  simp
+    exact List.mem_map.mpr ⟨selSlot M n v, List.mem_map.mpr ⟨v, hmem, rfl⟩,
+      by simp [latentPartition_assign_selSlot]⟩
+  simpa using mem_latent_profile_varying_window_of_mem_hitBlocks M n (ks.map (selSlot M n)) hhit
 
 /-- Selector-only derivatives give an explicit sheetwise route through `selConSheet`.
 This is not yet the final bucket theorem, but it pins down the first real nontrivial case
@@ -1515,37 +1520,38 @@ theorem latent_selCon_selector_multiplier_varying_factor_mem_varying_space
   rw [latent_profile_varying_space_def]
   apply Submodule.subset_span
   intro v hv
-  rw [latent_profile_signature_of_generator_data_hitBlocks]
-  unfold latent_hitBlocks_of_list latent_profile_varying_window
   have hvmul := MvPolynomial.vars_mul m ((ks.map (Xcon M n)).prod) hv
   rcases Finset.mem_union.mp hvmul with hm | hx
   · have hmS : v ∈ (ks.map (selSlot M n)).toFinset := hVars hm
-    rcases List.mem_toFinset.mp hmS with hmList
-    apply Finset.mem_biUnion.mpr
-    refine ⟨(latentPartition M n).assign v, ?_, ?_⟩
-    · apply List.mem_toFinset.mpr
-      exact List.mem_map.mpr ⟨selSlot M n hmList, List.mem_map.mpr ⟨hmList, hmList, rfl⟩, rfl⟩
-    · rcases v with ⟨vv, hvv⟩
-      have hSel : vv % 4 = 2 := by
-        have : ⟨vv, hvv⟩ ∈ (ks.map (selSlot M n)).toFinset := hmS
-        rcases List.mem_toFinset.mp this with hmem
-        rcases List.mem_map.mp hmem with ⟨i, _, hi⟩
-        simp [selSlot, slot] at hi
-        omega
-      have hs0 : (⟨vv, hvv⟩ : Fin (latentNumVars M n)) = selSlot M n ((latentPartition M n).assign ⟨vv, hvv⟩) := by
-        apply Fin.ext
-        simp [latentPartition, selSlot, slot]
-        omega
-      simpa [hs0]
-  · have hvprod := MvPolynomial.vars_prod (s := ks.toFinset) (f := Xcon M n) hx
-    rcases List.mem_toFinset.mp (by simpa [MvPolynomial.vars_X] using hvprod) with hmem
-    apply Finset.mem_biUnion.mpr
-    refine ⟨hmem, ?_, ?_⟩
-    · rw [latent_profile_signature_of_generator_data_hitBlocks]
+    have hhit : (latentPartition M n).assign v ∈ latent_hitBlocks_of_list M n (ks.map (selSlot M n)) := by
       unfold latent_hitBlocks_of_list
       apply List.mem_toFinset.mpr
-      exact List.mem_map.mpr ⟨selSlot M n hmem, List.mem_map.mpr ⟨hmem, hmem, rfl⟩, by simp [latentPartition_assign_selSlot]⟩
-    · simp
+      exact List.mem_map.mpr ⟨v, List.mem_toFinset.mp hmS, rfl⟩
+    rcases v with ⟨vv, hvv⟩
+    have hSel : vv % 4 = 2 := by
+      have : (⟨vv, hvv⟩ : Fin (latentNumVars M n)) ∈ (ks.map (selSlot M n)).toFinset := hmS
+      rcases List.mem_toFinset.mp this with hmem
+      rcases List.mem_map.mp hmem with ⟨i, _, hi⟩
+      simp [selSlot, slot] at hi
+      omega
+    have hs0 : (⟨vv, hvv⟩ : Fin (latentNumVars M n)) = selSlot M n ((latentPartition M n).assign ⟨vv, hvv⟩) := by
+      apply Fin.ext
+      simp [latentPartition, selSlot, slot]
+      omega
+    have hmemWindow : conSlot M n ((latentPartition M n).assign ⟨vv, hvv⟩) ∈
+        latent_profile_varying_window M n
+          (latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) 1
+            (by simp [List.length_map, hlen]) (by simp)) :=
+      mem_latent_profile_varying_window_of_mem_hitBlocks M n (ks.map (selSlot M n)) hhit
+    simpa [hs0] using hmemWindow
+  · have hvprod := MvPolynomial.vars_prod (s := ks.toFinset) (f := Xcon M n) hx
+    rcases List.mem_toFinset.mp (by simpa [MvPolynomial.vars_X] using hvprod) with hmem
+    have hhit : hmem ∈ latent_hitBlocks_of_list M n (ks.map (selSlot M n)) := by
+      unfold latent_hitBlocks_of_list
+      apply List.mem_toFinset.mpr
+      exact List.mem_map.mpr ⟨selSlot M n hmem, List.mem_map.mpr ⟨hmem, hmem, rfl⟩,
+        by simp [latentPartition_assign_selSlot]⟩
+    simpa using mem_latent_profile_varying_window_of_mem_hitBlocks M n (ks.map (selSlot M n)) hhit
 
 /-- First SPDP-style generalization of the selector-only selCon factor route: allow a
 multiplier `m` whose support stays inside the selector-hit blocks. -/

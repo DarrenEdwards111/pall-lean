@@ -2,6 +2,8 @@ import PallLean.LatentCompiler
 import PallLean.ProductDeriv
 import Mathlib.Tactic
 
+set_option exponentiation.threshold 1024
+
 /-!
 # LatentWitnessMinorDecomp
 
@@ -36,6 +38,32 @@ theorem copySlot_injective (M : DTM) (n : ℕ) : Function.Injective (copySlot M 
   intro a b hab
   simp [copySlot, slot] at hab
   exact Fin.ext (by omega)
+
+theorem machSlot_ne_copySlot (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) :
+    machSlot M n i ≠ copySlot M n j := by
+  have hmod_mach : (machSlot M n i).val % 4 = 0 := by
+    simp [machSlot, slot]
+  have hmod_copy : (copySlot M n j).val % 4 = 1 := by
+    simp [copySlot, slot]
+  intro h
+  have hmach : (machSlot M n i).val % 4 = (copySlot M n j).val % 4 := by
+    simpa [h] using hmod_mach
+  rw [hmod_copy] at hmach
+  omega
+
+theorem copySlot_ne_conSlot (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) :
+    copySlot M n i ≠ conSlot M n j := by
+  have hmod_copy : (copySlot M n i).val % 4 = 1 := by
+    simp [copySlot, slot]
+  have hmod_con : (conSlot M n j).val % 4 = 3 := by
+    simp [conSlot, slot]
+  intro h
+  have hcopy : (copySlot M n i).val % 4 = (conSlot M n j).val % 4 := by
+    simpa [h] using hmod_copy
+  rw [hmod_con] at hcopy
+  omega
 
 /-- Admissibility of machine-slot witness lists under latentPartition. -/
 theorem witness_mach_list_admissible (M : DTM) (n : ℕ)
@@ -160,8 +188,10 @@ theorem pderiv_machSlot_machCopyGadget_eq (M : DTM) (n : ℕ)
     pderiv (machSlot M n i) (machCopyGadget M n i) = -(Xcopy M n i) := by
   unfold machCopyGadget Xmach
   have hnot : machSlot M n i ∉ (Xcopy M n i).vars := by
+    unfold Xcopy
     rw [MvPolynomial.vars_X]
-    simp [machSlot, copySlot, slot, Fin.ext_iff]
+    intro h
+    exact machSlot_ne_copySlot M n i i (Finset.mem_singleton.mp h)
   exact ProductDeriv.pderiv_one_sub_mul hnot
 
 /-- Derivative of machCopyGadget at a different machine slot is zero. -/
@@ -173,8 +203,10 @@ theorem pderiv_machSlot_machCopyGadget_ne (M : DTM) (n : ℕ)
     intro h
     exact hij ((machSlot_injective M n) h).symm
   have hnot : machSlot M n j ∉ (Xcopy M n i).vars := by
+    unfold Xcopy
     rw [MvPolynomial.vars_X]
-    simp [machSlot, copySlot, slot, Fin.ext_iff]
+    intro h
+    exact machSlot_ne_copySlot M n j i (Finset.mem_singleton.mp h)
   exact ProductDeriv.pderiv_one_sub_mul_ne hneq hnot
 
 /-- Derivative of copyConGadget at its own copy slot. -/
@@ -183,8 +215,10 @@ theorem pderiv_copySlot_copyConGadget_eq (M : DTM) (n : ℕ)
     pderiv (copySlot M n i) (copyConGadget M n i) = -(Xcon M n i) := by
   unfold copyConGadget Xcopy
   have hnot : copySlot M n i ∉ (Xcon M n i).vars := by
+    unfold Xcon
     rw [MvPolynomial.vars_X]
-    simp [copySlot, conSlot, slot, Fin.ext_iff]
+    intro h
+    exact copySlot_ne_conSlot M n i i (Finset.mem_singleton.mp h)
   exact ProductDeriv.pderiv_one_sub_mul hnot
 
 /-- Derivative of copyConGadget at a different copy slot is zero. -/
@@ -196,8 +230,10 @@ theorem pderiv_copySlot_copyConGadget_ne (M : DTM) (n : ℕ)
     intro h
     exact hij ((copySlot_injective M n) h).symm
   have hnot : copySlot M n j ∉ (Xcon M n i).vars := by
+    unfold Xcon
     rw [MvPolynomial.vars_X]
-    simp [copySlot, conSlot, slot, Fin.ext_iff]
+    intro h
+    exact copySlot_ne_conSlot M n j i (Finset.mem_singleton.mp h)
   exact ProductDeriv.pderiv_one_sub_mul_ne hneq hnot
 
 /-- Copy-slot derivative on a finite copyCon product (hit case). -/
@@ -270,8 +306,10 @@ theorem iterDeriv_copyConProd_eq (M : DTM) (n : ℕ)
         intro i hi
         obtain ⟨c, _, rfl⟩ := List.mem_map.mp hi
         have hnot : copySlot M n c ∉ (Xcon M n k).vars := by
+          unfold Xcon
           rw [MvPolynomial.vars_X]
-          simp [copySlot, conSlot, slot, Fin.ext_iff]
+          intro h
+          exact copySlot_ne_conSlot M n c k (Finset.mem_singleton.mp h)
         rw [map_neg, MvPolynomial.pderiv_eq_zero_of_notMem_vars hnot, neg_zero]
       rw [iterDerivList_mul_const_left_copy _ _ _ hconst]
       have hnd' : rest.Nodup := (List.nodup_cons.mp hnd).2
@@ -368,8 +406,10 @@ theorem iterDeriv_machCopyProd_eq (M : DTM) (n : ℕ)
         intro i hi
         obtain ⟨c, _, rfl⟩ := List.mem_map.mp hi
         have hnot : machSlot M n c ∉ (Xcopy M n k).vars := by
+          unfold Xcopy
           rw [MvPolynomial.vars_X]
-          simp [machSlot, copySlot, slot, Fin.ext_iff]
+          intro hmem
+          exact machSlot_ne_copySlot M n c k (Finset.mem_singleton.mp hmem)
         rw [map_neg, MvPolynomial.pderiv_eq_zero_of_notMem_vars hnot, neg_zero]
       rw [iterDerivList_mul_const_left_mach _ _ _ hconst]
       have hnd' : rest.Nodup := (List.nodup_cons.mp hnd).2
