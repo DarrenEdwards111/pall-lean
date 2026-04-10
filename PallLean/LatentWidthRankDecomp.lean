@@ -1719,6 +1719,69 @@ theorem latent_bucket_generator_selCon_branch_of_compatible
   · simpa using hfac
   · simpa [hSig] using hvary
 
+/-- Under selector-only compatibility, the machCopy branch vanishes because selSlot
+ derivatives kill `machCopySheet`. -/
+theorem latent_bucket_generator_machCopy_branch_zero_of_sel_compatible
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hcomp : latent_selCon_single_sheet_compatible M n S m) :
+    mlProj (m * iterDerivList S (machCopySheet M n)) = 0 := by
+  rcases hcomp with ⟨ks, hnd, rfl, hVarsSel⟩
+  have hne : ks.map (selSlot M n) ≠ [] := by
+    intro h
+    have : ks = [] := by simpa using List.map_eq_nil.mp h
+    subst this
+    simp at hVarsSel
+  rw [LatentWitnessMinorDecomp.iterDerivList_selSlot_machCopySheet_zero M n ks (by
+    intro h
+    apply hne
+    simpa [h]), mul_zero, MultilinearSPDP.mlProj_zero]
+
+/-- Under selector-only compatibility, the copyCon branch vanishes because selSlot
+ derivatives kill `copyConSheet`. -/
+theorem latent_bucket_generator_copyCon_branch_zero_of_sel_compatible
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hcomp : latent_selCon_single_sheet_compatible M n S m) :
+    mlProj (m * iterDerivList S (copyConSheet M n)) = 0 := by
+  rcases hcomp with ⟨ks, hnd, rfl, hVarsSel⟩
+  have hne : ks.map (selSlot M n) ≠ [] := by
+    intro h
+    have : ks = [] := by simpa using List.map_eq_nil.mp h
+    subst this
+    simp at hVarsSel
+  rw [LatentWitnessMinorDecomp.iterDerivList_selSlot_copyConSheet_zero M n ks (by
+    intro h
+    apply hne
+    simpa [h]), mul_zero, MultilinearSPDP.mlProj_zero]
+
+/-- Selector-only compatibility closes the full sheet split: the machCopy and copyCon
+branches vanish, so the arbitrary bucket generator is exactly the selCon branch, which is
+already handled by the existing selCon factor route. -/
+theorem latent_bucket_generator_of_sel_compatible_factors_through_sheet_varying_space
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hn2 : n ≥ 2) :
+    ∀ q ∈ latent_profile_bucket_generators M n σ,
+      ∀ S m hLen hDeg hVars hAdm,
+        q = mlProj (m * iterDerivList S (machCopySheet M n))
+          + mlProj (m * iterDerivList S (copyConSheet M n))
+          + mlProj (m * iterDerivList S (selConSheet M n)) →
+        latent_selCon_single_sheet_compatible M n S m →
+        ∃ sheet residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+          (sheet = machCopySheet M n ∨ sheet = copyConSheet M n ∨ sheet = selConSheet M n) ∧
+          q = mlProj (residual * varying) ∧
+          varying ∈ latent_profile_varying_space M n σ := by
+  intro q hq S m hLen hDeg hVars hAdm hsplit hcomp
+  have hmach0 := latent_bucket_generator_machCopy_branch_zero_of_sel_compatible M n S m hcomp
+  have hcopy0 := latent_bucket_generator_copyCon_branch_zero_of_sel_compatible M n S m hcomp
+  rcases latent_bucket_generator_selCon_branch_of_compatible M n σ hn2 q hq S m hLen hDeg hVars hAdm hsplit hcomp with
+    ⟨residual, varying, hsel, hvary⟩
+  refine ⟨selConSheet M n, residual, varying, Or.inr (Or.inr rfl), ?_, hvary⟩
+  rw [hsplit, hmach0, hcopy0, zero_add, hsel]
+
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
 latentCompiledPoly = sum of 3 product sheets → subadditivity reduces to per-sheet bounds.
