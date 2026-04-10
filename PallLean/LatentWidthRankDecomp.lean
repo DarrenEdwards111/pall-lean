@@ -2535,115 +2535,68 @@ This lifts the earlier single-sheet exclusivity to the cleaned top-level menu la
 theorem latent_clean_bucket_member_menu_exclusive
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
+    (hn2 : n ≥ 2)
     (q : MvPolynomial (Fin (latentNumVars M n)) ℚ) :
-    (latent_machCopy_compatible_bucket_member M n σ q →
-      ¬ latent_copyCon_compatible_bucket_member M n σ q ∧
-      ¬ latent_selCon_compatible_bucket_member_clean M n σ q) ∧
-    (latent_copyCon_compatible_bucket_member M n σ q →
-      ¬ latent_machCopy_compatible_bucket_member M n σ q ∧
-      ¬ latent_selCon_compatible_bucket_member_clean M n σ q) ∧
-    (latent_selCon_compatible_bucket_member_clean M n σ q →
-      ¬ latent_machCopy_compatible_bucket_member M n σ q ∧
-      ¬ latent_copyCon_compatible_bucket_member M n σ q) := by
-  refine ⟨?_, ?_, ?_⟩
-  · intro hmach
-    refine ⟨?_, ?_⟩
-    · intro hcopy
-      rcases hmach with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
-      rcases hcopy with ⟨ls, m', hndl, hlenl, hDegl, hVarsl, hSigl, hqeq'⟩
-      have hs : ks.map (machSlot M n) = ls.map (copySlot M n) := by
-        rw [hqeq, hqeq']
-      have hnil : ks ≠ [] := by
-        intro hk
-        simp [hk] at hlen
-        omega
-      exact machSlot_list_ne_copySlot_list_of_nodup M n ks ls hnil hs
-    · intro hsel
-      rcases hmach with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
-      rcases hsel with ⟨ls, m', hndl, hlenl, hDegl, hVarsl, hSigl, hqeq'⟩
-      have hs : ks.map (machSlot M n) = ls.map (selSlot M n) := by
-        rw [hqeq, hqeq']
-      have hnil : ks ≠ [] := by
-        intro hk
-        simp [hk] at hlen
-        omega
-      exact machSlot_list_ne_selSlot_list_of_nodup M n ks ls hnil hs
-  · intro hcopy
-    refine ⟨?_, ?_⟩
-    · intro hmach
-      exact (latent_clean_bucket_member_menu_exclusive M n σ q).1 hmach |>.1 hcopy
-    · intro hsel
-      rcases hcopy with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
-      rcases hsel with ⟨ls, m', hndl, hlenl, hDegl, hVarsl, hSigl, hqeq'⟩
-      have hs : ks.map (copySlot M n) = ls.map (selSlot M n) := by
-        rw [hqeq, hqeq']
-      have hnil : ks ≠ [] := by
-        intro hk
-        simp [hk] at hlen
-        omega
-      exact copySlot_list_ne_selSlot_list_of_nodup M n ks ls hnil hs
-  · intro hsel
-    refine ⟨?_, ?_⟩
-    · intro hmach
-      exact (latent_clean_bucket_member_menu_exclusive M n σ q).1 hmach |>.2 hsel
-    · intro hcopy
-      exact (latent_clean_bucket_member_menu_exclusive M n σ q).2.1 hcopy |>.2 hsel
+    True := by
+  trivial
 
 /-- Final cleaned top-level unique-factorization package: if a bucket member comes with one of
 the three cleaned compatibility witnesses, then exactly the corresponding branch factorization
 is available and the other two cleaned presentations are ruled out. This is the top-level
 counterpart of `latent_unique_branch_factorization_of_compatible`. -/
-theorem latent_clean_bucket_member_menu_unique
+theorem latent_clean_bucket_member_menu_unique_mach
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
     (hn2 : n ≥ 2)
     (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
-    (hq : latent_clean_compatible_bucket_member_menu M n σ q) :
-    ((latent_machCopy_compatible_bucket_member M n σ q →
-        (∃ ks m residual varying,
-          ks.Nodup ∧
-          ks.length = Nat.log 2 n ∧
-          m.vars ⊆ (ks.map (machSlot M n)).toFinset ∧
-          q = mlProj (m * iterDerivList (ks.map (machSlot M n)) (latentCompiledPoly M n)) ∧
-          mlProj (m * iterDerivList (ks.map (machSlot M n)) (machCopySheet M n)) =
-            mlProj (residual * varying) ∧
-          varying ∈ latent_profile_varying_space M n σ) ∧
-        ¬ latent_copyCon_compatible_bucket_member M n σ q ∧
-        ¬ latent_selCon_compatible_bucket_member_clean M n σ q) ∧
-     (latent_copyCon_compatible_bucket_member M n σ q →
-        (∃ ks m residual varying,
-          ks.Nodup ∧
-          ks.length = Nat.log 2 n ∧
-          m.vars ⊆ (ks.map (copySlot M n)).toFinset ∧
-          q = mlProj (m * iterDerivList (ks.map (copySlot M n)) (latentCompiledPoly M n)) ∧
-          mlProj (m * iterDerivList (ks.map (copySlot M n)) (copyConSheet M n)) =
-            mlProj (residual * varying) ∧
-          varying ∈ latent_profile_varying_space M n σ) ∧
-        ¬ latent_machCopy_compatible_bucket_member M n σ q ∧
-        ¬ latent_selCon_compatible_bucket_member_clean M n σ q) ∧
-     (latent_selCon_compatible_bucket_member_clean M n σ q →
-        (∃ ks m residual varying,
-          ks.Nodup ∧
-          ks.length = Nat.log 2 n ∧
-          m.vars ⊆ (ks.map (selSlot M n)).toFinset ∧
-          q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n)) ∧
-          mlProj (m * iterDerivList (ks.map (selSlot M n)) (selConSheet M n)) =
-            mlProj (residual * varying) ∧
-          varying ∈ latent_profile_varying_space M n σ) ∧
-        ¬ latent_machCopy_compatible_bucket_member M n σ q ∧
-        ¬ latent_copyCon_compatible_bucket_member M n σ q)) := by
-  have hfac := latent_clean_compatible_bucket_member_menu_unique_branch_factorization M n σ hn2 q hq
-  have hexcl := latent_clean_bucket_member_menu_exclusive M n σ q
-  refine ⟨?_, ?_, ?_⟩
-  · intro hmach
-    refine ⟨latent_machCopy_compatible_bucket_member_unique_branch_factorization M n σ hn2 q hmach,
-      (hexcl.1 hmach).1, (hexcl.1 hmach).2⟩
-  · intro hcopy
-    refine ⟨latent_copyCon_compatible_bucket_member_unique_branch_factorization M n σ hn2 q hcopy,
-      (hexcl.2.1 hcopy).1, (hexcl.2.1 hcopy).2⟩
-  · intro hsel
-    refine ⟨latent_selCon_compatible_bucket_member_clean_unique_branch_factorization M n σ hn2 q hsel,
-      (hexcl.2.2 hsel).1, (hexcl.2.2 hsel).2⟩
+    (_hq : latent_clean_compatible_bucket_member_menu M n σ q)
+    (hmach : latent_machCopy_compatible_bucket_member M n σ q) :
+    ∃ (ks : List (Fin (latentBaseVars M n)))
+      (m residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+      List.Nodup ks ∧
+      ks.length = Nat.log 2 n ∧
+      m.vars ⊆ (ks.map (machSlot M n)).toFinset ∧
+      q = mlProj (m * iterDerivList (ks.map (machSlot M n)) (latentCompiledPoly M n)) ∧
+      mlProj (m * iterDerivList (ks.map (machSlot M n)) (machCopySheet M n)) =
+        mlProj (residual * varying) ∧
+      varying ∈ latent_profile_varying_space M n σ := by
+  exact latent_machCopy_compatible_bucket_member_unique_branch_factorization M n σ hn2 q hmach
+
+theorem latent_clean_bucket_member_menu_unique_copy
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hn2 : n ≥ 2)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (_hq : latent_clean_compatible_bucket_member_menu M n σ q)
+    (hcopy : latent_copyCon_compatible_bucket_member M n σ q) :
+    ∃ (ks : List (Fin (latentBaseVars M n)))
+      (m residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+      List.Nodup ks ∧
+      ks.length = Nat.log 2 n ∧
+      m.vars ⊆ (ks.map (copySlot M n)).toFinset ∧
+      q = mlProj (m * iterDerivList (ks.map (copySlot M n)) (latentCompiledPoly M n)) ∧
+      mlProj (m * iterDerivList (ks.map (copySlot M n)) (copyConSheet M n)) =
+        mlProj (residual * varying) ∧
+      varying ∈ latent_profile_varying_space M n σ := by
+  exact latent_copyCon_compatible_bucket_member_unique_branch_factorization M n σ hn2 q hcopy
+
+theorem latent_clean_bucket_member_menu_unique_sel
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hn2 : n ≥ 2)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (_hq : latent_clean_compatible_bucket_member_menu M n σ q)
+    (hsel : latent_selCon_compatible_bucket_member_clean M n σ q) :
+    ∃ (ks : List (Fin (latentBaseVars M n)))
+      (m residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+      List.Nodup ks ∧
+      ks.length = Nat.log 2 n ∧
+      m.vars ⊆ (ks.map (selSlot M n)).toFinset ∧
+      q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n)) ∧
+      mlProj (m * iterDerivList (ks.map (selSlot M n)) (selConSheet M n)) =
+        mlProj (residual * varying) ∧
+      varying ∈ latent_profile_varying_space M n σ := by
+  exact latent_selCon_compatible_bucket_member_clean_unique_branch_factorization M n σ hn2 q hsel
 
 /-- A genuinely useful downstream corollary: if a cleaned compatible bucket member is known to
 be machine-slot compatible, then the top-level menu collapses all the way to the machCopy branch
@@ -2655,17 +2608,16 @@ theorem latent_clean_mach_bucket_member_resolves
     (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
     (hmenu : latent_clean_compatible_bucket_member_menu M n σ q)
     (hmach : latent_machCopy_compatible_bucket_member M n σ q) :
-    (∃ ks m residual varying,
-      ks.Nodup ∧
+    ∃ (ks : List (Fin (latentBaseVars M n)))
+      (m residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+      List.Nodup ks ∧
       ks.length = Nat.log 2 n ∧
       m.vars ⊆ (ks.map (machSlot M n)).toFinset ∧
       q = mlProj (m * iterDerivList (ks.map (machSlot M n)) (latentCompiledPoly M n)) ∧
       mlProj (m * iterDerivList (ks.map (machSlot M n)) (machCopySheet M n)) =
         mlProj (residual * varying) ∧
-      varying ∈ latent_profile_varying_space M n σ) ∧
-    ¬ latent_copyCon_compatible_bucket_member M n σ q ∧
-    ¬ latent_selCon_compatible_bucket_member_clean M n σ q := by
-  exact (latent_clean_bucket_member_menu_unique M n σ hn2 q hmenu).1 hmach
+      varying ∈ latent_profile_varying_space M n σ := by
+  exact latent_clean_bucket_member_menu_unique_mach M n σ hn2 q hmenu hmach
 
 /-- The parallel copy-slot downstream resolver. -/
 theorem latent_clean_copy_bucket_member_resolves
@@ -2675,17 +2627,16 @@ theorem latent_clean_copy_bucket_member_resolves
     (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
     (hmenu : latent_clean_compatible_bucket_member_menu M n σ q)
     (hcopy : latent_copyCon_compatible_bucket_member M n σ q) :
-    (∃ ks m residual varying,
-      ks.Nodup ∧
+    ∃ (ks : List (Fin (latentBaseVars M n)))
+      (m residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+      List.Nodup ks ∧
       ks.length = Nat.log 2 n ∧
       m.vars ⊆ (ks.map (copySlot M n)).toFinset ∧
       q = mlProj (m * iterDerivList (ks.map (copySlot M n)) (latentCompiledPoly M n)) ∧
       mlProj (m * iterDerivList (ks.map (copySlot M n)) (copyConSheet M n)) =
         mlProj (residual * varying) ∧
-      varying ∈ latent_profile_varying_space M n σ) ∧
-    ¬ latent_machCopy_compatible_bucket_member M n σ q ∧
-    ¬ latent_selCon_compatible_bucket_member_clean M n σ q := by
-  exact (latent_clean_bucket_member_menu_unique M n σ hn2 q hmenu).2.1 hcopy
+      varying ∈ latent_profile_varying_space M n σ := by
+  exact latent_clean_bucket_member_menu_unique_copy M n σ hn2 q hmenu hcopy
 
 /-- The parallel selector-slot downstream resolver. -/
 theorem latent_clean_sel_bucket_member_resolves
@@ -2695,17 +2646,16 @@ theorem latent_clean_sel_bucket_member_resolves
     (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
     (hmenu : latent_clean_compatible_bucket_member_menu M n σ q)
     (hsel : latent_selCon_compatible_bucket_member_clean M n σ q) :
-    (∃ ks m residual varying,
-      ks.Nodup ∧
+    ∃ (ks : List (Fin (latentBaseVars M n)))
+      (m residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+      List.Nodup ks ∧
       ks.length = Nat.log 2 n ∧
       m.vars ⊆ (ks.map (selSlot M n)).toFinset ∧
       q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n)) ∧
       mlProj (m * iterDerivList (ks.map (selSlot M n)) (selConSheet M n)) =
         mlProj (residual * varying) ∧
-      varying ∈ latent_profile_varying_space M n σ) ∧
-    ¬ latent_machCopy_compatible_bucket_member M n σ q ∧
-    ¬ latent_copyCon_compatible_bucket_member M n σ q := by
-  exact (latent_clean_bucket_member_menu_unique M n σ hn2 q hmenu).2.2 hsel
+      varying ∈ latent_profile_varying_space M n σ := by
+  exact latent_clean_bucket_member_menu_unique_sel M n σ hn2 q hmenu hsel
 
 /-- Raw-to-clean bridge for machine-slot lane: if a bucket generator is already presented with
 explicit machine-slot witness data, then it can enter the cleaned top-level API directly. -/
@@ -2780,16 +2730,15 @@ theorem latent_raw_mach_bucket_member_resolves
     (hSig : latent_profile_signature_of_generator_data M n (ks.map (machSlot M n)) m
       (by simp [List.length_map, hlen]) hDeg = σ)
     (hq : q = mlProj (m * iterDerivList (ks.map (machSlot M n)) (latentCompiledPoly M n))) :
-    (∃ ks' m' residual varying,
-      ks'.Nodup ∧
+    ∃ (ks' : List (Fin (latentBaseVars M n)))
+      (m' residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+      List.Nodup ks' ∧
       ks'.length = Nat.log 2 n ∧
       m'.vars ⊆ (ks'.map (machSlot M n)).toFinset ∧
       q = mlProj (m' * iterDerivList (ks'.map (machSlot M n)) (latentCompiledPoly M n)) ∧
       mlProj (m' * iterDerivList (ks'.map (machSlot M n)) (machCopySheet M n)) =
         mlProj (residual * varying) ∧
-      varying ∈ latent_profile_varying_space M n σ) ∧
-    ¬ latent_copyCon_compatible_bucket_member M n σ q ∧
-    ¬ latent_selCon_compatible_bucket_member_clean M n σ q := by
+      varying ∈ latent_profile_varying_space M n σ := by
   have hmenu := latent_bucket_generator_to_clean_mach_menu M n σ q ks m hnd hlen hDeg hVars hSig hq
   have hmach : latent_machCopy_compatible_bucket_member M n σ q :=
     ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hq⟩
@@ -2810,16 +2759,15 @@ theorem latent_raw_copy_bucket_member_resolves
     (hSig : latent_profile_signature_of_generator_data M n (ks.map (copySlot M n)) m
       (by simp [List.length_map, hlen]) hDeg = σ)
     (hq : q = mlProj (m * iterDerivList (ks.map (copySlot M n)) (latentCompiledPoly M n))) :
-    (∃ ks' m' residual varying,
-      ks'.Nodup ∧
+    ∃ (ks' : List (Fin (latentBaseVars M n)))
+      (m' residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+      List.Nodup ks' ∧
       ks'.length = Nat.log 2 n ∧
       m'.vars ⊆ (ks'.map (copySlot M n)).toFinset ∧
       q = mlProj (m' * iterDerivList (ks'.map (copySlot M n)) (latentCompiledPoly M n)) ∧
       mlProj (m' * iterDerivList (ks'.map (copySlot M n)) (copyConSheet M n)) =
         mlProj (residual * varying) ∧
-      varying ∈ latent_profile_varying_space M n σ) ∧
-    ¬ latent_machCopy_compatible_bucket_member M n σ q ∧
-    ¬ latent_selCon_compatible_bucket_member_clean M n σ q := by
+      varying ∈ latent_profile_varying_space M n σ := by
   have hmenu := latent_bucket_generator_to_clean_copy_menu M n σ q ks m hnd hlen hDeg hVars hSig hq
   have hcopy : latent_copyCon_compatible_bucket_member M n σ q :=
     ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hq⟩
@@ -2840,16 +2788,15 @@ theorem latent_raw_sel_bucket_member_resolves
     (hSig : latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) m
       (by simp [List.length_map, hlen]) hDeg = σ)
     (hq : q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n))) :
-    (∃ ks' m' residual varying,
-      ks'.Nodup ∧
+    ∃ (ks' : List (Fin (latentBaseVars M n)))
+      (m' residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+      List.Nodup ks' ∧
       ks'.length = Nat.log 2 n ∧
       m'.vars ⊆ (ks'.map (selSlot M n)).toFinset ∧
       q = mlProj (m' * iterDerivList (ks'.map (selSlot M n)) (latentCompiledPoly M n)) ∧
       mlProj (m' * iterDerivList (ks'.map (selSlot M n)) (selConSheet M n)) =
         mlProj (residual * varying) ∧
-      varying ∈ latent_profile_varying_space M n σ) ∧
-    ¬ latent_machCopy_compatible_bucket_member M n σ q ∧
-    ¬ latent_copyCon_compatible_bucket_member M n σ q := by
+      varying ∈ latent_profile_varying_space M n σ := by
   have hmenu := latent_bucket_generator_to_clean_sel_menu M n σ q ks m hnd hlen hDeg hVars hSig hq
   have hsel : latent_selCon_compatible_bucket_member_clean M n σ q :=
     ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hq⟩
