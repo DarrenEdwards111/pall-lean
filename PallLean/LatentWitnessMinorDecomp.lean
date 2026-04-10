@@ -25,6 +25,92 @@ theorem witness_selector_list_admissible (M : DTM) (n : ℕ)
     isBlockAdmissible (latentPartition M n) (S.map (selSlot M n)) :=
   selSlotList_admissible M n S hnd
 
+/-- Machine slots are injective on base indices. -/
+theorem machSlot_injective (M : DTM) (n : ℕ) : Function.Injective (machSlot M n) := by
+  intro a b hab
+  simp [machSlot, slot] at hab
+  exact Fin.ext (by omega)
+
+/-- Copy slots are injective on base indices. -/
+theorem copySlot_injective (M : DTM) (n : ℕ) : Function.Injective (copySlot M n) := by
+  intro a b hab
+  simp [copySlot, slot] at hab
+  exact Fin.ext (by omega)
+
+/-- Admissibility of machine-slot witness lists under latentPartition. -/
+theorem witness_mach_list_admissible (M : DTM) (n : ℕ)
+    (S : List (Fin (latentBaseVars M n))) (hnd : S.Nodup) :
+    isBlockAdmissible (latentPartition M n) (S.map (machSlot M n)) := by
+  constructor
+  · exact hnd.map (machSlot_injective M n)
+  · intro b
+    by_contra hgt
+    push_neg at hgt
+    set filt := (S.map (machSlot M n)).filter (fun j => (latentPartition M n).assign j = b)
+    have hmap_nd : (S.map (machSlot M n)).Nodup := hnd.map (machSlot_injective M n)
+    have hfilt_nd : filt.Nodup := hmap_nd.filter _
+    have h0 : 0 < filt.length := by omega
+    have h1 : 1 < filt.length := by omega
+    have hx_mem : filt[0] ∈ filt := List.getElem_mem h0
+    have hy_mem : filt[1] ∈ filt := List.getElem_mem h1
+    rw [List.mem_filter] at hx_mem hy_mem
+    obtain ⟨hx_in, hx_bl⟩ := hx_mem
+    obtain ⟨hy_in, hy_bl⟩ := hy_mem
+    rw [List.mem_map] at hx_in hy_in
+    obtain ⟨a, _, ha⟩ := hx_in
+    obtain ⟨c, _, hc⟩ := hy_in
+    have hx_eq : (latentPartition M n).assign filt[0] = b := by exact (decide_eq_true_eq.mp hx_bl)
+    have hy_eq : (latentPartition M n).assign filt[1] = b := by exact (decide_eq_true_eq.mp hy_bl)
+    have ha_bl : a = b := by
+      have h2 : (latentPartition M n).assign filt[0] = a := by
+        rw [show filt[0] = machSlot M n a from ha.symm]
+        exact latentPartition_assign_machSlot M n a
+      exact h2.symm.trans hx_eq
+    have hc_bl : c = b := by
+      have h2 : (latentPartition M n).assign filt[1] = c := by
+        rw [show filt[1] = machSlot M n c from hc.symm]
+        exact latentPartition_assign_machSlot M n c
+      exact h2.symm.trans hy_eq
+    have hac : a = c := ha_bl.trans hc_bl.symm
+    exact absurd (hfilt_nd.getElem_inj_iff.mp (by show filt[0] = filt[1]; rw [← ha, ← hc, hac])) (by omega)
+
+/-- Admissibility of copy-slot witness lists under latentPartition. -/
+theorem witness_copy_list_admissible (M : DTM) (n : ℕ)
+    (S : List (Fin (latentBaseVars M n))) (hnd : S.Nodup) :
+    isBlockAdmissible (latentPartition M n) (S.map (copySlot M n)) := by
+  constructor
+  · exact hnd.map (copySlot_injective M n)
+  · intro b
+    by_contra hgt
+    push_neg at hgt
+    set filt := (S.map (copySlot M n)).filter (fun j => (latentPartition M n).assign j = b)
+    have hmap_nd : (S.map (copySlot M n)).Nodup := hnd.map (copySlot_injective M n)
+    have hfilt_nd : filt.Nodup := hmap_nd.filter _
+    have h0 : 0 < filt.length := by omega
+    have h1 : 1 < filt.length := by omega
+    have hx_mem : filt[0] ∈ filt := List.getElem_mem h0
+    have hy_mem : filt[1] ∈ filt := List.getElem_mem h1
+    rw [List.mem_filter] at hx_mem hy_mem
+    obtain ⟨hx_in, hx_bl⟩ := hx_mem
+    obtain ⟨hy_in, hy_bl⟩ := hy_mem
+    rw [List.mem_map] at hx_in hy_in
+    obtain ⟨a, _, ha⟩ := hx_in
+    obtain ⟨c, _, hc⟩ := hy_in
+    have hx_eq : (latentPartition M n).assign filt[0] = b := by exact (decide_eq_true_eq.mp hx_bl)
+    have hy_eq : (latentPartition M n).assign filt[1] = b := by exact (decide_eq_true_eq.mp hy_bl)
+    have ha_bl : a = b := by
+      have h2 : (latentPartition M n).assign filt[0] = a := by
+        rw [show filt[0] = copySlot M n a from ha.symm]
+        exact latentPartition_assign_copySlot M n a
+      exact h2.symm.trans hx_eq
+    have hc_bl : c = b := by
+      have h2 : (latentPartition M n).assign filt[1] = c := by
+        rw [show filt[1] = copySlot M n c from hc.symm]
+        exact latentPartition_assign_copySlot M n c
+      exact h2.symm.trans hy_eq
+    have hac : a = c := ha_bl.trans hc_bl.symm
+    exact absurd (hfilt_nd.getElem_inj_iff.mp (by show filt[0] = filt[1]; rw [← ha, ← hc, hac])) (by omega)
+
 /-! ## Structural: selSlot derivatives isolate selConSheet -/
 
 /-- machCopyGadget has no selSlot variables (uses machSlot and copySlot only).
@@ -67,6 +153,29 @@ theorem pderiv_selSlot_copyConGadget (M : DTM) (n : ℕ)
   have hcn := selSlot_ne_conSlot M n i j
   exact ProductDeriv.pderiv_one_sub_mul_ne hcp (by
     rw [MvPolynomial.vars_X]; simp; exact hcn)
+
+/-- Derivative of machCopyGadget at its own machine slot. -/
+theorem pderiv_machSlot_machCopyGadget_eq (M : DTM) (n : ℕ)
+    (i : Fin (latentBaseVars M n)) :
+    pderiv (machSlot M n i) (machCopyGadget M n i) = -(Xcopy M n i) := by
+  unfold machCopyGadget Xmach
+  have hnot : machSlot M n i ∉ (Xcopy M n i).vars := by
+    rw [MvPolynomial.vars_X]
+    simp [machSlot, copySlot, slot, Fin.ext_iff]
+  exact ProductDeriv.pderiv_one_sub_mul hnot
+
+/-- Derivative of machCopyGadget at a different machine slot is zero. -/
+theorem pderiv_machSlot_machCopyGadget_ne (M : DTM) (n : ℕ)
+    (i j : Fin (latentBaseVars M n)) (hij : i ≠ j) :
+    pderiv (machSlot M n j) (machCopyGadget M n i) = 0 := by
+  unfold machCopyGadget Xmach
+  have hneq : machSlot M n j ≠ machSlot M n i := by
+    intro h
+    exact hij ((machSlot_injective M n) h).symm
+  have hnot : machSlot M n j ∉ (Xcopy M n i).vars := by
+    rw [MvPolynomial.vars_X]
+    simp [machSlot, copySlot, slot, Fin.ext_iff]
+  exact ProductDeriv.pderiv_one_sub_mul_ne hneq hnot
 
 private theorem foldl_pderiv_zero_sel {n : ℕ} (l : List (Fin n)) :
     l.foldl (fun q i => pderiv i q) (0 : MvPolynomial (Fin n) ℚ) = 0 := by
