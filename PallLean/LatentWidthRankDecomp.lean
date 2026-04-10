@@ -2973,6 +2973,7 @@ def latent_raw_slot_family_classifier_candidate
   (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = selSlot M n i) ∨
   (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = conSlot M n i)
 
+
 /-- Sharper candidate if the eventual argument can rule out pure-`conSlot` derivative lists
 from genuine bucket presentations. This is the likely bridge back from the safe 4-family
 frontier to the original 3-lane clean-menu route. -/
@@ -2982,6 +2983,48 @@ def latent_raw_noncon_slot_family_classifier_candidate
   (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = machSlot M n i) ∨
   (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = copySlot M n i) ∨
   (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = selSlot M n i)
+
+
+/-- Intermediate Move 1 frontier, revised to match the paper structure more honestly:
+starting from a raw admissible list, first pass through a canonical/profile-controlled stage
+before attempting any collapse into the existing 3-lane clean menu. This avoids the false
+claim that bare block-admissibility alone forces a mach/copy/sel raw classifier. -/
+def latent_raw_admissible_has_canonical_profile_control_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (_hLen : S.length = Nat.log 2 n)
+    (_hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (_hVars : m.vars ⊆ S.toFinset)
+    (_hAdm : isBlockAdmissible (latentPartition M n) S)
+    (_hSig : latent_profile_signature_of_generator_data M n S m _hLen _hDeg = σ) : Prop :=
+  ∃ (S' : List (Fin (latentNumVars M n)))
+    (hLen' : S'.length = Nat.log 2 n),
+    isBlockAdmissible (latentPartition M n) S' ∧
+    latent_raw_slot_family_classifier_candidate M n S' ∧
+    latent_profile_signature_of_generator_data M n S' m hLen' _hDeg = σ
+
+/-- Candidate packaging for the revised Move 1 route: if raw admissible data first admits a
+canonical/profile-controlled 4-family presentation, and if that presentation can then be shown
+not to be purely `conSlot`, the existing 3-lane clean-menu theorem becomes applicable. This
+records the correct theorem shape without pretending the classifier/collapse steps are already
+proved. -/
+def latent_raw_admissible_to_clean_menu_via_profile_control_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n))) : Prop :=
+  latent_raw_admissible_has_canonical_profile_control_candidate M n σ S m hLen hDeg hVars hAdm hSig →
+  latent_raw_noncon_slot_family_classifier_candidate M n S →
+  latent_clean_compatible_bucket_member_menu M n σ q
 
 /-- Pure con-slot lists are automatically disjoint from all three existing clean compatibility
 lanes. This does not yet solve the con-slot case, but it sharpens the frontier: a genuine
