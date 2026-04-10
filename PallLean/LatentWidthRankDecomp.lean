@@ -2583,6 +2583,62 @@ theorem latent_clean_bucket_member_menu_exclusive
     · intro hcopy
       exact (latent_clean_bucket_member_menu_exclusive M n σ q).2.1 hcopy |>.2 hsel
 
+/-- Final cleaned top-level unique-factorization package: if a bucket member comes with one of
+the three cleaned compatibility witnesses, then exactly the corresponding branch factorization
+is available and the other two cleaned presentations are ruled out. This is the top-level
+counterpart of `latent_unique_branch_factorization_of_compatible`. -/
+theorem latent_clean_bucket_member_menu_unique
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hn2 : n ≥ 2)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hq : latent_clean_compatible_bucket_member_menu M n σ q) :
+    ((latent_machCopy_compatible_bucket_member M n σ q →
+        (∃ ks m residual varying,
+          ks.Nodup ∧
+          ks.length = Nat.log 2 n ∧
+          m.vars ⊆ (ks.map (machSlot M n)).toFinset ∧
+          q = mlProj (m * iterDerivList (ks.map (machSlot M n)) (latentCompiledPoly M n)) ∧
+          mlProj (m * iterDerivList (ks.map (machSlot M n)) (machCopySheet M n)) =
+            mlProj (residual * varying) ∧
+          varying ∈ latent_profile_varying_space M n σ) ∧
+        ¬ latent_copyCon_compatible_bucket_member M n σ q ∧
+        ¬ latent_selCon_compatible_bucket_member_clean M n σ q) ∧
+     (latent_copyCon_compatible_bucket_member M n σ q →
+        (∃ ks m residual varying,
+          ks.Nodup ∧
+          ks.length = Nat.log 2 n ∧
+          m.vars ⊆ (ks.map (copySlot M n)).toFinset ∧
+          q = mlProj (m * iterDerivList (ks.map (copySlot M n)) (latentCompiledPoly M n)) ∧
+          mlProj (m * iterDerivList (ks.map (copySlot M n)) (copyConSheet M n)) =
+            mlProj (residual * varying) ∧
+          varying ∈ latent_profile_varying_space M n σ) ∧
+        ¬ latent_machCopy_compatible_bucket_member M n σ q ∧
+        ¬ latent_selCon_compatible_bucket_member_clean M n σ q) ∧
+     (latent_selCon_compatible_bucket_member_clean M n σ q →
+        (∃ ks m residual varying,
+          ks.Nodup ∧
+          ks.length = Nat.log 2 n ∧
+          m.vars ⊆ (ks.map (selSlot M n)).toFinset ∧
+          q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n)) ∧
+          mlProj (m * iterDerivList (ks.map (selSlot M n)) (selConSheet M n)) =
+            mlProj (residual * varying) ∧
+          varying ∈ latent_profile_varying_space M n σ) ∧
+        ¬ latent_machCopy_compatible_bucket_member M n σ q ∧
+        ¬ latent_copyCon_compatible_bucket_member M n σ q)) := by
+  have hfac := latent_clean_compatible_bucket_member_menu_unique_branch_factorization M n σ hn2 q hq
+  have hexcl := latent_clean_bucket_member_menu_exclusive M n σ q
+  refine ⟨?_, ?_, ?_⟩
+  · intro hmach
+    refine ⟨latent_machCopy_compatible_bucket_member_unique_branch_factorization M n σ hn2 q hmach,
+      (hexcl.1 hmach).1, (hexcl.1 hmach).2⟩
+  · intro hcopy
+    refine ⟨latent_copyCon_compatible_bucket_member_unique_branch_factorization M n σ hn2 q hcopy,
+      (hexcl.2.1 hcopy).1, (hexcl.2.1 hcopy).2⟩
+  · intro hsel
+    refine ⟨latent_selCon_compatible_bucket_member_clean_unique_branch_factorization M n σ hn2 q hsel,
+      (hexcl.2.2 hsel).1, (hexcl.2.2 hsel).2⟩
+
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
 latentCompiledPoly = sum of 3 product sheets → subadditivity reduces to per-sheet bounds.
