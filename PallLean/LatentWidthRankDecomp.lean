@@ -2523,6 +2523,66 @@ theorem latent_clean_compatible_bucket_member_menu_unique_branch_factorization
   · exact Or.inr <| Or.inl <| latent_copyCon_compatible_bucket_member_unique_branch_factorization M n σ hn2 q hcopy
   · exact Or.inr <| Or.inr <| latent_selCon_compatible_bucket_member_clean_unique_branch_factorization M n σ hn2 q hsel
 
+/-- Nonempty cleaned top-level uniqueness package: if a bucket member is given in one cleaned
+compatibility presentation, then the other two cleaned compatibility presentations are impossible.
+This lifts the earlier single-sheet exclusivity to the cleaned top-level menu language. -/
+theorem latent_clean_bucket_member_menu_exclusive
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ) :
+    (latent_machCopy_compatible_bucket_member M n σ q →
+      ¬ latent_copyCon_compatible_bucket_member M n σ q ∧
+      ¬ latent_selCon_compatible_bucket_member_clean M n σ q) ∧
+    (latent_copyCon_compatible_bucket_member M n σ q →
+      ¬ latent_machCopy_compatible_bucket_member M n σ q ∧
+      ¬ latent_selCon_compatible_bucket_member_clean M n σ q) ∧
+    (latent_selCon_compatible_bucket_member_clean M n σ q →
+      ¬ latent_machCopy_compatible_bucket_member M n σ q ∧
+      ¬ latent_copyCon_compatible_bucket_member M n σ q) := by
+  refine ⟨?_, ?_, ?_⟩
+  · intro hmach
+    refine ⟨?_, ?_⟩
+    · intro hcopy
+      rcases hmach with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
+      rcases hcopy with ⟨ls, m', hndl, hlenl, hDegl, hVarsl, hSigl, hqeq'⟩
+      have hs : ks.map (machSlot M n) = ls.map (copySlot M n) := by
+        rw [hqeq, hqeq']
+      have hnil : ks ≠ [] := by
+        intro hk
+        simp [hk] at hlen
+        omega
+      exact machSlot_list_ne_copySlot_list_of_nodup M n ks ls hnil hs
+    · intro hsel
+      rcases hmach with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
+      rcases hsel with ⟨ls, m', hndl, hlenl, hDegl, hVarsl, hSigl, hqeq'⟩
+      have hs : ks.map (machSlot M n) = ls.map (selSlot M n) := by
+        rw [hqeq, hqeq']
+      have hnil : ks ≠ [] := by
+        intro hk
+        simp [hk] at hlen
+        omega
+      exact machSlot_list_ne_selSlot_list_of_nodup M n ks ls hnil hs
+  · intro hcopy
+    refine ⟨?_, ?_⟩
+    · intro hmach
+      exact (latent_clean_bucket_member_menu_exclusive M n σ q).1 hmach |>.1 hcopy
+    · intro hsel
+      rcases hcopy with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
+      rcases hsel with ⟨ls, m', hndl, hlenl, hDegl, hVarsl, hSigl, hqeq'⟩
+      have hs : ks.map (copySlot M n) = ls.map (selSlot M n) := by
+        rw [hqeq, hqeq']
+      have hnil : ks ≠ [] := by
+        intro hk
+        simp [hk] at hlen
+        omega
+      exact copySlot_list_ne_selSlot_list_of_nodup M n ks ls hnil hs
+  · intro hsel
+    refine ⟨?_, ?_⟩
+    · intro hmach
+      exact (latent_clean_bucket_member_menu_exclusive M n σ q).1 hmach |>.2 hsel
+    · intro hcopy
+      exact (latent_clean_bucket_member_menu_exclusive M n σ q).2.1 hcopy |>.2 hsel
+
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
 latentCompiledPoly = sum of 3 product sheets → subadditivity reduces to per-sheet bounds.
