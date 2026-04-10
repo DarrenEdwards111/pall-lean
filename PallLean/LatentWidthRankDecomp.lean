@@ -2329,6 +2329,57 @@ theorem latent_selCon_compatible_bucket_member_factors_through_sheet_varying_spa
     (ks.map (selSlot M n)) m (by simp [List.length_map, hlen]) hDeg (by simpa using hVars)
     (LatentWitnessMinorDecomp.witness_selector_list_admissible M n ks hnd) hsplit hcomp
 
+/-- Direct machine-slot-compatible bucket-member package, parallel to the selector-only one. -/
+def latent_machCopy_compatible_bucket_member
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ) : Prop :=
+  ∃ (ks : List (Fin (latentBaseVars M n)))
+      (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+      (hnd : ks.Nodup)
+      (hlen : ks.length = Nat.log 2 n)
+      (hDeg : m.totalDegree ≤ Nat.log 2 n)
+      (hVars : m.vars ⊆ (ks.map (machSlot M n)).toFinset),
+    latent_profile_signature_of_generator_data M n (ks.map (machSlot M n)) m
+      (by simp [List.length_map, hlen]) hDeg = σ ∧
+    q = mlProj (m * iterDerivList (ks.map (machSlot M n)) (latentCompiledPoly M n))
+
+/-- Clean top-level machCopy-compatible branch theorem: from a machine-slot-compatible bucket
+member, recover the unique branch factorization data directly in bucket language. -/
+theorem latent_machCopy_compatible_bucket_member_unique_branch_factorization
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hn2 : n ≥ 2)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hq : latent_machCopy_compatible_bucket_member M n σ q) :
+    ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+      mlProj ((Classical.choose (by
+        rcases hq with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
+        exact ⟨m, rfl⟩)) *
+        iterDerivList ((Classical.choose (by
+          rcases hq with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
+          exact ⟨ks, rfl⟩)).map (machSlot M n)) (machCopySheet M n)) =
+        mlProj (residual * varying) ∧
+      varying ∈ latent_profile_varying_space M n σ := by
+  rcases hq with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
+  have hbucket : q ∈ latent_profile_bucket_generators M n σ := by
+    refine ⟨ks.map (machSlot M n), m, by simp [List.length_map, hlen], hDeg, ?_, ?_, hSig, hqeq⟩
+    · simpa using hVars
+    · exact LatentWitnessMinorDecomp.witness_mach_list_admissible M n ks hnd
+  have hsplit := latent_bucket_generator_sheet_split_of_mem M n σ q hbucket
+  have hcomp : latent_machCopy_single_sheet_compatible M n (ks.map (machSlot M n)) m := by
+    refine ⟨ks, hnd, rfl, ?_⟩
+    simpa using hVars
+  rcases latent_unique_branch_factorization_of_compatible M n σ hn2 q hbucket
+    (ks.map (machSlot M n)) m (by simp [List.length_map, hlen]) hDeg (by simpa using hVars)
+    (LatentWitnessMinorDecomp.witness_mach_list_admissible M n ks hnd) hsplit
+    (by
+      intro hnil
+      simp at hlen
+      omega)
+    |>.1 hcomp with ⟨residual, varying, hfac, hvary, _, _⟩
+  exact ⟨residual, varying, hfac, hvary⟩
+
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
 latentCompiledPoly = sum of 3 product sheets → subadditivity reduces to per-sheet bounds.
