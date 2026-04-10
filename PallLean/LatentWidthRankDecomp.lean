@@ -2878,6 +2878,17 @@ def latent_uniform_lane_classifier_candidate
   (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = copySlot M n i) ∨
   (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = selSlot M n i)
 
+/-- More cautious raw slot-family frontier: before claiming a 3-lane classifier, keep the
+structurally honest 4-family alternative visible. The existing sheet definitions really do
+use `conSlot`, so this is the safer next theorem surface to test. -/
+def latent_raw_slot_family_classifier_candidate
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n))) : Prop :=
+  (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = machSlot M n i) ∨
+  (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = copySlot M n i) ∨
+  (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = selSlot M n i) ∨
+  (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = conSlot M n i)
+
 /-- Direct raw machine-slot resolver: explicit machine-slot witness data now goes all the way to
 factorization plus exclusion of the other cleaned presentations in one step. -/
 theorem latent_raw_mach_bucket_member_resolves
