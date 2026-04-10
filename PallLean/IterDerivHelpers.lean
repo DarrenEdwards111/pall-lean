@@ -79,4 +79,42 @@ theorem iterDerivList_of_head_zero (i : Fin n) (S : List (Fin n))
   rw [iterDerivList_cons, h0]
   exact foldl_pderiv_zero S
 
+/-- Iterated derivative distributes over negation. -/
+theorem iterDerivList_neg
+    (S : List (Fin n))
+    (p : MvPolynomial (Fin n) F) :
+    iterDerivList S (-p) = -(iterDerivList S p) := by
+  induction S generalizing p with
+  | nil => simp
+  | cons i rest ih =>
+      simp only [iterDerivList_cons, map_neg]
+      exact ih _
+
+/-- Iterated derivative distributes over addition. -/
+theorem iterDerivList_add
+    (S : List (Fin n))
+    (p q : MvPolynomial (Fin n) F) :
+    iterDerivList S (p + q) = iterDerivList S p + iterDerivList S q := by
+  induction S generalizing p q with
+  | nil => simp
+  | cons i rest ih =>
+      simp only [iterDerivList_cons, map_add]
+      exact ih _ _
+
+/-- Iterated derivative distributes over subtraction. -/
+theorem iterDerivList_sub
+    (S : List (Fin n))
+    (p q : MvPolynomial (Fin n) F) :
+    iterDerivList S (p - q) = iterDerivList S p - iterDerivList S q := by
+  rw [sub_eq_add_neg, iterDerivList_add S p (-q), iterDerivList_neg, sub_eq_add_neg]
+
+/-- Combined: constant factor on the left passes through negation.
+    `iterDerivList S (-(f * g)) = -(f * iterDerivList S g)` when `f` is killed by all derivs. -/
+theorem iterDerivList_neg_mul_left_const
+    (S : List (Fin n))
+    (f g : MvPolynomial (Fin n) F)
+    (hf : ∀ i ∈ S, pderiv i f = 0) :
+    iterDerivList S (-(f * g)) = -(f * iterDerivList S g) := by
+  rw [iterDerivList_neg, iterDerivList_mul_left_const S f g hf]
+
 end IterDerivHelpers
