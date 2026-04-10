@@ -2146,6 +2146,51 @@ theorem latent_single_sheet_compatibility_at_most_one
     · intro hcopy
       exact latent_copyCon_and_selCon_compatible_disjoint M n S m hS ⟨hcopy, hsel⟩
 
+/-- Unified unique-branch consequence: on a nonempty derivative list, once one compatibility
+lane is known, the branchwise factorization menu collapses to that lane alone. This fuses the
+previous branch-menu theorem with the new exclusivity theorem into a cleaner downstream tool. -/
+theorem latent_unique_branch_factorization_of_compatible
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hn2 : n ≥ 2) :
+    ∀ q ∈ latent_profile_bucket_generators M n σ,
+      ∀ S m hLen hDeg hVars hAdm,
+        q = mlProj (m * iterDerivList S (machCopySheet M n))
+          + mlProj (m * iterDerivList S (copyConSheet M n))
+          + mlProj (m * iterDerivList S (selConSheet M n)) →
+        S ≠ [] →
+        ((latent_machCopy_single_sheet_compatible M n S m →
+            ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+              mlProj (m * iterDerivList S (machCopySheet M n)) = mlProj (residual * varying) ∧
+              varying ∈ latent_profile_varying_space M n σ ∧
+              ¬ latent_copyCon_single_sheet_compatible M n S m ∧
+              ¬ latent_selCon_single_sheet_compatible M n S m) ∧
+         (latent_copyCon_single_sheet_compatible M n S m →
+            ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+              mlProj (m * iterDerivList S (copyConSheet M n)) = mlProj (residual * varying) ∧
+              varying ∈ latent_profile_varying_space M n σ ∧
+              ¬ latent_machCopy_single_sheet_compatible M n S m ∧
+              ¬ latent_selCon_single_sheet_compatible M n S m) ∧
+         (latent_selCon_single_sheet_compatible M n S m →
+            ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+              mlProj (m * iterDerivList S (selConSheet M n)) = mlProj (residual * varying) ∧
+              varying ∈ latent_profile_varying_space M n σ ∧
+              ¬ latent_machCopy_single_sheet_compatible M n S m ∧
+              ¬ latent_copyCon_single_sheet_compatible M n S m)) := by
+  intro q hq S m hLen hDeg hVars hAdm hsplit hS
+  have hmenu := latent_bucket_generator_branch_factorization_menu_proved M n σ hn2 q hq S m hLen hDeg hVars hAdm hsplit
+  have hexcl := latent_single_sheet_compatibility_at_most_one M n S m hS
+  refine ⟨?_, ?_, ?_⟩
+  · intro hmach
+    rcases hmenu.1 hmach with ⟨residual, varying, hfac, hvary⟩
+    exact ⟨residual, varying, hfac, hvary, (hexcl.1 hmach).1, (hexcl.1 hmach).2⟩
+  · intro hcopy
+    rcases hmenu.2.1 hcopy with ⟨residual, varying, hfac, hvary⟩
+    exact ⟨residual, varying, hfac, hvary, (hexcl.2.1 hcopy).1, (hexcl.2.1 hcopy).2⟩
+  · intro hsel
+    rcases hmenu.2.2 hsel with ⟨residual, varying, hfac, hvary⟩
+    exact ⟨residual, varying, hfac, hvary, (hexcl.2.2 hsel).1, (hexcl.2.2 hsel).2⟩
+
 /-- Under selector-only compatibility, the machCopy branch vanishes because selSlot
  derivatives kill `machCopySheet`. -/
 theorem latent_bucket_generator_machCopy_branch_zero_of_sel_compatible
