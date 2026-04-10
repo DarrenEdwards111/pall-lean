@@ -1672,6 +1672,53 @@ theorem latent_bucket_generator_sheet_split_of_mem
   rw [mul_add, mul_add, MultilinearSPDP.mlProj_add, MultilinearSPDP.mlProj_add]
   ring
 
+/-- Compatibility predicate for the first nontrivial branch handler: the derivative list is
+exactly a selector-slot list, and the multiplier support stays inside those selector hits.
+This is the hypothesis shape under which the existing selCon factor-route theorem applies
+immediately after sheet-splitting. -/
+def latent_selCon_single_sheet_compatible
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ) : Prop :=
+  ∃ ks : List (Fin (latentBaseVars M n)),
+    ks.Nodup ∧
+    S = ks.map (selSlot M n) ∧
+    m.vars ⊆ S.toFinset
+
+/-- Under selector-only single-sheet compatibility, the selCon branch produced by the formal
+sheet split already satisfies the sheetwise varying-factor frontier. This is the first true
+branch handler sitting directly after `latent_bucket_generator_sheet_split`. -/
+theorem latent_bucket_generator_selCon_branch_of_compatible
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hn2 : n ≥ 2) :
+    ∀ q ∈ latent_profile_bucket_generators M n σ,
+      ∀ S m hLen hDeg hVars hAdm,
+        q = mlProj (m * iterDerivList S (machCopySheet M n))
+          + mlProj (m * iterDerivList S (copyConSheet M n))
+          + mlProj (m * iterDerivList S (selConSheet M n)) →
+        latent_selCon_single_sheet_compatible M n S m →
+        ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+          mlProj (m * iterDerivList S (selConSheet M n)) = mlProj (residual * varying) ∧
+          varying ∈ latent_profile_varying_space M n σ := by
+  intro q hq S m hLen hDeg hVars hAdm hsplit hcomp
+  rcases hcomp with ⟨ks, hnd, rfl, hVarsSel⟩
+  have hSig : latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) m
+      (by simpa [List.length_map] using hLen) hDeg = σ := by
+    rcases hq with ⟨S', m', hLen', hDeg', hVars', hAdm', hSig', hqeq⟩
+    simp only at hqeq
+    subst hqeq
+    have : S' = ks.map (selSlot M n) := by simp
+    subst this
+    have : m' = m := by rfl
+    subst this
+    simpa [List.length_map] using hSig'
+  rcases latent_selCon_selector_factor_route_with_multiplier_of_nodup M n ks m hnd
+    (by simpa [List.length_map] using hLen) hn2 hVarsSel hDeg with ⟨residual, varying, hfac, hvary⟩
+  refine ⟨residual, varying, ?_, ?_⟩
+  · simpa using hfac
+  · simpa [hSig] using hvary
+
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
 latentCompiledPoly = sum of 3 product sheets → subadditivity reduces to per-sheet bounds.
