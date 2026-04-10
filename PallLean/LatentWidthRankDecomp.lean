@@ -1574,6 +1574,71 @@ theorem latent_selCon_selector_factor_route_with_multiplier_of_nodup
     ring
   · exact latent_selCon_selector_multiplier_varying_factor_mem_varying_space M n ks m hVars hDeg hlen
 
+/-- Selector-only SPDP generators form a concrete subfamily of the coarse bucket language. -/
+def latent_selector_only_bucket_generator
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ) : Prop :=
+  ∃ (ks : List (Fin (latentBaseVars M n)))
+      (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+      (hnd : ks.Nodup)
+      (hlen : ks.length = Nat.log 2 n)
+      (hDeg : m.totalDegree ≤ Nat.log 2 n)
+      (hVars : m.vars ⊆ (ks.map (selSlot M n)).toFinset),
+    latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) m
+      (by simp [List.length_map, hlen]) hDeg = σ ∧
+    q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n))
+
+/-- Every selector-only bucket generator is an actual coarse bucket generator. -/
+theorem latent_selector_only_bucket_generator_subset_bucket
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    { q | latent_selector_only_bucket_generator M n σ q } ⊆
+      latent_profile_bucket_generators M n σ := by
+  intro q hq
+  rcases hq with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, rfl⟩
+  refine ⟨ks.map (selSlot M n), m, by simp [List.length_map, hlen], hDeg, ?_, ?_, hSig, rfl⟩
+  · simpa using hVars
+  · exact LatentWitnessMinorDecomp.witness_selector_list_admissible M n ks hnd
+
+/-- The proved selCon multiplier route feeds the sheetwise varying frontier on the
+selector-only bucket subfamily. This is the first direct bridge from a genuine factor-route
+ theorem back into the bucket-language frontier. -/
+theorem latent_selector_only_bucket_generator_factors_through_sheet_varying_space
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hn2 : n ≥ 2) :
+    ∀ q, latent_selector_only_bucket_generator M n σ q →
+      ∃ sheet residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+        (sheet = selConSheet M n) ∧
+        q = mlProj (residual * varying) ∧
+        varying ∈ latent_profile_varying_space M n σ := by
+  intro q hq
+  rcases hq with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
+  rcases latent_selCon_selector_factor_route_with_multiplier_of_nodup M n ks m hnd hlen hn2 hVars hDeg with
+    ⟨residual, varying, hfac, hvary⟩
+  refine ⟨selConSheet M n, residual, varying, rfl, ?_, ?_⟩
+  · rw [hqeq]
+    exact hfac
+  · simpa [hSig] using hvary
+
+/-- Selector-only bucket generators already satisfy the full sheetwise varying-factor
+frontier, restricted to the `selConSheet` branch. -/
+theorem latent_selector_only_bucket_generator_mem_sheetwise_frontier
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hn2 : n ≥ 2) :
+    ∀ q, latent_selector_only_bucket_generator M n σ q →
+      ∃ sheet residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+        (sheet = machCopySheet M n ∨ sheet = copyConSheet M n ∨ sheet = selConSheet M n) ∧
+        q = mlProj (residual * varying) ∧
+        varying ∈ latent_profile_varying_space M n σ := by
+  intro q hq
+  rcases latent_selector_only_bucket_generator_factors_through_sheet_varying_space M n σ hn2 q hq with
+    ⟨sheet, residual, varying, hsheet, hfac, hvary⟩
+  refine ⟨sheet, residual, varying, ?_, hfac, hvary⟩
+  exact Or.inr (Or.inr hsheet)
+
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
 latentCompiledPoly = sum of 3 product sheets → subadditivity reduces to per-sheet bounds.
