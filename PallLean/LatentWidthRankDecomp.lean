@@ -2889,6 +2889,55 @@ def latent_raw_slot_family_classifier_candidate
   (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = selSlot M n i) ∨
   (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = conSlot M n i)
 
+/-- Sharper candidate if the eventual argument can rule out pure-`conSlot` derivative lists
+from genuine bucket presentations. This is the likely bridge back from the safe 4-family
+frontier to the original 3-lane clean-menu route. -/
+def latent_raw_noncon_slot_family_classifier_candidate
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n))) : Prop :=
+  (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = machSlot M n i) ∨
+  (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = copySlot M n i) ∨
+  (∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = selSlot M n i)
+
+/-- Pure con-slot lists are automatically disjoint from all three existing clean compatibility
+lanes. This does not yet solve the con-slot case, but it sharpens the frontier: a genuine
+pure-con presentation cannot be silently reclassified by the current mach/copy/sel menus. -/
+theorem latent_pure_conSlot_incompatible_with_existing_clean_lanes
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hS : S ≠ [])
+    (hcon : ∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = conSlot M n i) :
+    ¬ latent_machCopy_single_sheet_compatible M n S m ∧
+    ¬ latent_copyCon_single_sheet_compatible M n S m ∧
+    ¬ latent_selCon_single_sheet_compatible M n S m := by
+  have hpos : 0 < S.length := List.length_pos_iff_ne_nil.mpr hS
+  have hv : S[0] ∈ S := List.getElem_mem hpos
+  rcases hcon S[0] hv with ⟨i, hi⟩
+  refine ⟨?_, ?_, ?_⟩
+  · intro hmach
+    rcases hmach with ⟨ks, _hnd, hS, _hVars⟩
+    have hmem : S[0] ∈ ks.map (machSlot M n) := by simpa [hS] using hv
+    rcases List.mem_map.mp hmem with ⟨j, _hj, hj⟩
+    have hmod_mach : (machSlot M n j).val % 4 = 0 := by simp [machSlot, slot]
+    have hmod_con : (conSlot M n i).val % 4 = 3 := by simp [conSlot, slot]
+    have : machSlot M n j ≠ conSlot M n i := by
+      intro h
+      have hm : (machSlot M n j).val % 4 = (conSlot M n i).val % 4 := by simpa [h] using hmod_mach
+      rw [hmod_con] at hm
+      omega
+    exact this (by simpa [hi] using hj)
+  · intro hcopy
+    rcases hcopy with ⟨ks, _hnd, hS, _hVars⟩
+    have hmem : S[0] ∈ ks.map (copySlot M n) := by simpa [hS] using hv
+    rcases List.mem_map.mp hmem with ⟨j, _hj, hj⟩
+    exact (LatentWitnessMinorDecomp.copySlot_ne_conSlot M n j i) (by simpa [hi] using hj)
+  · intro hsel
+    rcases hsel with ⟨ks, _hnd, hS, _hVars⟩
+    have hmem : S[0] ∈ ks.map (selSlot M n) := by simpa [hS] using hv
+    rcases List.mem_map.mp hmem with ⟨j, _hj, hj⟩
+    exact (LatentWitnessMinorDecomp.selSlot_ne_conSlot M n i j) (by simpa [hi] using hj)
+
 /-- Direct raw machine-slot resolver: explicit machine-slot witness data now goes all the way to
 factorization plus exclusion of the other cleaned presentations in one step. -/
 theorem latent_raw_mach_bucket_member_resolves
