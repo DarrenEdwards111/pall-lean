@@ -1759,6 +1759,33 @@ def latent_bucket_generator_machCopy_branch_of_compatible
         mlProj (m * iterDerivList S (machCopySheet M n)) = mlProj (residual * varying) ∧
         varying ∈ latent_profile_varying_space M n σ
 
+/-- The positive machCopy factor route feeds directly into the machCopy branch theorem slot
+once the recovered generator data is machine-slot compatible. This is the machCopy-lane
+analogue of the earlier selCon branch handler, but without yet closing the other two branches. -/
+theorem latent_bucket_generator_machCopy_branch_of_compatible_proved
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n) :
+    latent_bucket_generator_machCopy_branch_of_compatible M n σ := by
+  intro q hq S m hLen hDeg hVars hAdm hsplit hcomp
+  rcases hcomp with ⟨ks, hnd, rfl, hVarsMach⟩
+  have hSig : latent_profile_signature_of_generator_data M n (ks.map (machSlot M n)) m
+      (by simpa [List.length_map] using hLen) hDeg = σ := by
+    rcases hq with ⟨S', m', hLen', hDeg', hVars', hAdm', hSig', hqeq⟩
+    simp only at hqeq
+    subst hqeq
+    have : S' = ks.map (machSlot M n) := by simp
+    subst this
+    have : m' = m := by rfl
+    subst this
+    simpa [List.length_map] using hSig'
+  rcases latent_machCopy_factor_route_with_multiplier_of_nodup M n ks m hnd
+    (by simpa [List.length_map] using hLen) hVarsMach hDeg with ⟨residual, varying, hfac⟩
+  refine ⟨residual, varying, ?_, ?_⟩
+  · simpa using hfac
+  · simpa [hSig] using
+      latent_machCopy_varying_factor_mem_varying_space M n ks m hVarsMach hDeg
+        (by simpa [List.length_map] using hLen)
+
 /-- First concrete machCopy factor route with a multiplier supported on machine-slot hits.
 This is the machCopy-lane analogue of the earlier selCon route, now powered by the new
 iterated derivative closed form for `machCopySheet`. -/
