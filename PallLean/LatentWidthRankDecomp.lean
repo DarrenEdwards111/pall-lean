@@ -2192,8 +2192,8 @@ theorem latent_unique_branch_factorization_of_compatible
       (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
       (hLen : S.length = Nat.log 2 n)
       (hDeg : m.totalDegree ≤ Nat.log 2 n)
-      (hVars : m.vars ⊆ S.toFinset)
-      (hAdm : isBlockAdmissible (latentPartition M n) S),
+      (_hVars : m.vars ⊆ S.toFinset)
+      (_hAdm : isBlockAdmissible (latentPartition M n) S),
       latent_profile_signature_of_generator_data M n S m hLen hDeg = σ →
       S ≠ [] →
       ((latent_machCopy_single_sheet_compatible M n S m →
@@ -2299,8 +2299,8 @@ theorem latent_bucket_generator_of_sel_compatible_factors_through_sheet_varying_
       (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
       (hLen : S.length = Nat.log 2 n)
       (hDeg : m.totalDegree ≤ Nat.log 2 n)
-      (hVars : m.vars ⊆ S.toFinset)
-      (hAdm : isBlockAdmissible (latentPartition M n) S),
+      (_hVars : m.vars ⊆ S.toFinset)
+      (_hAdm : isBlockAdmissible (latentPartition M n) S),
       latent_profile_signature_of_generator_data M n S m hLen hDeg = σ →
       q = mlProj (m * iterDerivList S (machCopySheet M n))
         + mlProj (m * iterDerivList S (copyConSheet M n))
@@ -2517,7 +2517,7 @@ of the earlier branch menu, but now in cleaned bucket-member language. -/
 theorem latent_clean_compatible_bucket_member_menu_unique_branch_factorization
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
-    (hn2 : n ≥ 2)
+    (_hn2 : n ≥ 2)
     (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
     (hq : latent_clean_compatible_bucket_member_menu M n σ q) :
     (∃ (ks : List (Fin (latentBaseVars M n)))
@@ -2575,9 +2575,9 @@ compatibility presentation, then the other two cleaned compatibility presentatio
 This lifts the earlier single-sheet exclusivity to the cleaned top-level menu language. -/
 theorem latent_clean_bucket_member_menu_exclusive
     (M : DTM) (n : ℕ)
-    (σ : latentProfileSignature M n)
-    (hn2 : n ≥ 2)
-    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ) :
+    (_σ : latentProfileSignature M n)
+    (_hn2 : n ≥ 2)
+    (_q : MvPolynomial (Fin (latentNumVars M n)) ℚ) :
     True := by
   trivial
 
@@ -2636,7 +2636,7 @@ theorem latent_clean_bucket_member_menu_unique_copy
 theorem latent_clean_bucket_member_menu_unique_sel
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
-    (hn2 : n ≥ 2)
+    (_hn2 : n ≥ 2)
     (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
     (_hq : latent_clean_compatible_bucket_member_menu M n σ q)
     (hsel : latent_selCon_compatible_bucket_member_clean M n σ q) :
@@ -2914,8 +2914,8 @@ No global axiom is used here. Any route that needs a concrete `n^160` rank bound
 must provide it explicitly as a hypothesis (or derive it from fully formalized
 compiler/profile machinery). -/
 theorem latentCompiledPoly_spdp_rank_poly_bound_from_hyp (M : DTM) (n : ℕ)
-    (hn : n ≥ max 4 M.numStates)
-    (hn804 : n ≥ 2 ^ 804)
+    (_hn : n ≥ max 4 M.numStates)
+    (_hn804 : n ≥ 2 ^ 804)
     (hRank : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 160) :
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
@@ -3023,7 +3023,7 @@ theorem latent_p_witness_target_from_span160 (M : DTM) (n : ℕ)
             _ = i0 := hconst
         exact False.elim (hi this)
       · intro hg
-        exact False.elim (by simpa using hg)
+        exact False.elim (by simp at hg)
     simp [hempty]
 
 /-- Strong span160 witness implies Item-3 + uniform-Item-2. -/
@@ -3076,7 +3076,7 @@ theorem latent_global_span_and_bucket_logscale_from_block_cover (M : DTM) (n : �
       simpa [Gprof', hi] using hix
   refine ⟨I.biUnion (fun i => Gprof i), hSpan, ?_⟩
   refine ⟨I, Gprof', ?_, ?_⟩
-  · simpa [hUnion']
+  · simp [hUnion']
   · intro i
     by_cases hi : i ∈ I
     · simpa [Gprof', hi] using hBlock i hi
