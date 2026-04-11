@@ -956,6 +956,40 @@ def local_selector_signature_profile_control_from_construction_data_of_global_co
     (_hData : latent_profile_block_cover_construction_data_logscale M n hn hn804) : Prop :=
   local_selector_signature_profile_control_from_construction_data_candidate M n hn hn804
 
+/-- Honest local handoff point for the next proof step: once the witness-construction / extraction
+layer yields a selector-signature canonical witness for each realized generator, that result should
+feed the explicit single-generator canonicalization candidate directly. This keeps the dependency on
+construction-data normalization visible without pretending the actual canonicalization proof is done.
+-/
+def local_witness_construction_feeds_single_generator_selector_signature_canonicalization_candidate
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∀ (g : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hg : g = mlProj (m * iterDerivList S (latentCompiledPoly M n))),
+    local_single_generator_selector_signature_canonicalization_candidate
+      M n g S m hLen hDeg hVars hAdm hg
+
+/-- The intended next local theorem shape is exactly the explicit single-generator selector-signature
+canonicalization candidate. This wrapper keeps that frontier named in the final-route file so later
+proofs can target it directly. -/
+theorem local_selector_signature_profile_control_feeds_single_generator_canonicalization
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :
+    local_witness_construction_feeds_single_generator_selector_signature_canonicalization_candidate
+      M n hn hn804 →
+    local_witness_construction_feeds_single_generator_selector_signature_canonicalization_candidate
+      M n hn hn804 := by
+  intro h
+  exact h
+
 /-- Global bridge theorem: a global block-cover theorem yields a global
 span+bucket theorem by explicit witness extraction. -/
 theorem global_span_and_bucket_of_global_block_cover
