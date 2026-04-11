@@ -2,6 +2,7 @@ import PallLean.LatentCompiler
 import PallLean.LatentWitnessMinorDecomp
 import PallLean.IterDerivHelpers
 import PallLean.ProfileSpaceBound
+import PallLean.LatentSelectorSignatureCore
 import Mathlib.Tactic
 
 /-!
@@ -441,65 +442,6 @@ noncomputable def latent_profile_signature_of_generator_data
       latent_hitBlocks_of_list_card_le_length M n S
     _ = Nat.log 2 n := hLen
 
-/-- The coarse signature records exactly the multiplier degree coming from the
-generator presentation. -/
-@[simp] theorem latent_profile_signature_of_generator_data_multDeg
-    (M : DTM) (n : ℕ)
-    (S : List (Fin (latentNumVars M n)))
-    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
-    (hLen : S.length = Nat.log 2 n)
-    (hDeg : m.totalDegree ≤ Nat.log 2 n) :
-    (latent_profile_signature_of_generator_data M n S m hLen hDeg).multDeg = m.totalDegree := by
-  rfl
-
-/-- The coarse signature hit-set is exactly the block projection of the
- derivative list. -/
-@[simp] theorem latent_profile_signature_of_generator_data_hitBlocks
-    (M : DTM) (n : ℕ)
-    (S : List (Fin (latentNumVars M n)))
-    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
-    (hLen : S.length = Nat.log 2 n)
-    (hDeg : m.totalDegree ≤ Nat.log 2 n) :
-    (latent_profile_signature_of_generator_data M n S m hLen hDeg).hitBlocks =
-      latent_hitBlocks_of_list M n S := by
-  rfl
-
-/-- Selector-aware refinement of the coarse profile signature. Besides hit blocks and multiplier
- degree, it also remembers the actual selector support set for the multiplier witness. This is the
- minimal local strengthening aimed at making support transport discussable at the invariant level,
- instead of hoping to recover it from hit blocks alone. -/
-structure latentSelectorProfileSignature (M : DTM) (n : ℕ) where
-  coarse : latentProfileSignature M n
-  selSupport : Finset (Fin (latentNumVars M n))
-
-/-- Build the selector-aware profile signature attached to selector-compatible generator data. -/
-noncomputable def latent_selector_profile_signature_of_generator_data
-    (M : DTM) (n : ℕ)
-    (S : List (Fin (latentNumVars M n)))
-    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
-    (hLen : S.length = Nat.log 2 n)
-    (hDeg : m.totalDegree ≤ Nat.log 2 n) : latentSelectorProfileSignature M n :=
-  { coarse := latent_profile_signature_of_generator_data M n S m hLen hDeg
-    selSupport := m.vars }
-
-@[simp] theorem latent_selector_profile_signature_of_generator_data_coarse
-    (M : DTM) (n : ℕ)
-    (S : List (Fin (latentNumVars M n)))
-    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
-    (hLen : S.length = Nat.log 2 n)
-    (hDeg : m.totalDegree ≤ Nat.log 2 n) :
-    (latent_selector_profile_signature_of_generator_data M n S m hLen hDeg).coarse =
-      latent_profile_signature_of_generator_data M n S m hLen hDeg := by
-  rfl
-
-@[simp] theorem latent_selector_profile_signature_of_generator_data_selSupport
-    (M : DTM) (n : ℕ)
-    (S : List (Fin (latentNumVars M n)))
-    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
-    (hLen : S.length = Nat.log 2 n)
-    (hDeg : m.totalDegree ≤ Nat.log 2 n) :
-    (latent_selector_profile_signature_of_generator_data M n S m hLen hDeg).selSupport = m.vars := by
-  rfl
 
 /-- A polynomial lies in the coarse latent profile bucket `σ` if it is generated
 by some blocked-SPDP generator presentation `(S,m)` with coarse signature `σ`. -/
@@ -1511,7 +1453,9 @@ private theorem mem_latent_profile_varying_window_of_mem_hitBlocks
       (latent_profile_signature_of_generator_data M n S 1
         hLen (by simp)) := by
   unfold latent_profile_varying_window
-  simp only [latent_profile_signature_of_generator_data_hitBlocks]
+  change conSlot M n i ∈
+    (latent_hitBlocks_of_list M n S).biUnion
+      (fun j => ({machSlot M n j, copySlot M n j, selSlot M n j, conSlot M n j} : Finset _))
   exact Finset.mem_biUnion.mpr ⟨i, hi, by simp⟩
 
 private theorem vars_list_prod_subset {α : Type*} [DecidableEq α] {R : Type*} [CommSemiring R] :
@@ -1626,7 +1570,9 @@ theorem latent_selCon_selector_multiplier_varying_factor_mem_varying_space
       omega
     rw [hs0]
     unfold latent_profile_varying_window
-    simp only [latent_profile_signature_of_generator_data_hitBlocks]
+    change selSlot M n ((latentPartition M n).assign ⟨vv, hvv⟩) ∈
+      (latent_hitBlocks_of_list M n (ks.map (selSlot M n))).biUnion
+        (fun j => ({machSlot M n j, copySlot M n j, selSlot M n j, conSlot M n j} : Finset _))
     apply Finset.mem_biUnion.mpr
     exact ⟨(latentPartition M n).assign ⟨vv, hvv⟩, hhit, by simp⟩
   · rcases vars_list_prod_subset (ks.map (Xcon M n)) v hx with ⟨p, hp, hvp⟩
@@ -1900,7 +1846,9 @@ theorem latent_machCopy_varying_factor_mem_varying_space
   apply Submodule.subset_span
   intro v hv
   unfold latent_profile_varying_window
-  simp only [latent_profile_signature_of_generator_data_hitBlocks]
+  change v ∈
+    (latent_hitBlocks_of_list M n (ks.map (machSlot M n))).biUnion
+      (fun j => ({machSlot M n j, copySlot M n j, selSlot M n j, conSlot M n j} : Finset _))
   have hvmul := MvPolynomial.vars_mul m ((ks.map (Xcopy M n)).prod) hv
   rcases Finset.mem_union.mp hvmul with hm | hx
   · have hmS : v ∈ (ks.map (machSlot M n)).toFinset := hVars hm
@@ -1961,7 +1909,9 @@ theorem latent_bucket_generator_machCopy_branch_of_compatible_proved
     have : v = copySlot M n i := by simpa [Xcopy, MvPolynomial.vars_X] using hvp
     subst this
     unfold latent_profile_varying_window
-    simp only [latent_profile_signature_of_generator_data_hitBlocks]
+    change copySlot M n i ∈
+      (latent_hitBlocks_of_list M n (ks.map (machSlot M n))).biUnion
+        (fun j => ({machSlot M n j, copySlot M n j, selSlot M n j, conSlot M n j} : Finset _))
     apply Finset.mem_biUnion.mpr
     refine ⟨i, ?_, ?_⟩
     · unfold latent_hitBlocks_of_list
@@ -2012,7 +1962,9 @@ theorem latent_copyCon_varying_factor_mem_varying_space
   apply Submodule.subset_span
   intro v hv
   unfold latent_profile_varying_window
-  simp only [latent_profile_signature_of_generator_data_hitBlocks]
+  change v ∈
+    (latent_hitBlocks_of_list M n (ks.map (copySlot M n))).biUnion
+      (fun j => ({machSlot M n j, copySlot M n j, selSlot M n j, conSlot M n j} : Finset _))
   have hvmul := MvPolynomial.vars_mul m ((ks.map (Xcon M n)).prod) hv
   rcases Finset.mem_union.mp hvmul with hm | hx
   · have hmS : v ∈ (ks.map (copySlot M n)).toFinset := hVars hm
@@ -2062,16 +2014,18 @@ theorem latent_bucket_generator_copyCon_branch_of_compatible_proved
     (ks.map (Xcon M n)).prod, ?_, ?_⟩
   · rw [LatentWitnessMinorDecomp.iterDeriv_copyConSheet_eq M n ks hnd]
     ring_nf
-  · rw [← hSigMatch]
-    rw [latent_profile_varying_space_def]
+  · rw [latent_profile_varying_space_def]
     apply Submodule.subset_span
     intro v hv
+    rw [← hSigMatch]
+    unfold latent_profile_varying_window
+    change v ∈
+      (latent_hitBlocks_of_list M n (ks.map (copySlot M n))).biUnion
+        (fun j => ({machSlot M n j, copySlot M n j, selSlot M n j, conSlot M n j} : Finset _))
     rcases vars_list_prod_subset (ks.map (Xcon M n)) v hv with ⟨p, hp, hvp⟩
     rcases List.mem_map.mp hp with ⟨i, hmem, rfl⟩
     have : v = conSlot M n i := by simpa [Xcon, MvPolynomial.vars_X] using hvp
     subst this
-    unfold latent_profile_varying_window
-    simp only [latent_profile_signature_of_generator_data_hitBlocks]
     apply Finset.mem_biUnion.mpr
     refine ⟨i, ?_, ?_⟩
     · unfold latent_hitBlocks_of_list

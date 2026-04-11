@@ -1,4 +1,5 @@
 import PallLean.LatentCompiler
+import PallLean.LatentSelectorSignatureCore
 import PallLean.LatentWidthRankDecomp
 import PallLean.LatentWitnessMinorDecomp
 import PallLean.SelConClosedCoeffDecomp
