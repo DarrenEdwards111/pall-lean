@@ -585,6 +585,24 @@ def coeff_copyConProd_eq_zero_of_exists_copy
   (∃ i ∈ T, copySlot M n i ∈ m.support) →
     MvPolynomial.coeff m (∏ i ∈ T, copyConGadget M n i) = 0
 
+/-- Exact local frontier exposed by the failed full induction retry.
+For an insert-step antidiagonal term with left coefficient supported on the exact copy-con shape,
+if the witness split lands in the residual branch, then the summand should vanish by applying the
+induction hypothesis to the residual coefficient. This isolates the remaining bookkeeping problem:
+one must move from `a + b = m` and `a = exactShape` to a clean right-factor zero statement without
+mixing up the total monomial `m` and the residual monomial `b`. -/
+def copyCon_insert_exact_shape_residual_summand_zero
+    (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n))
+    (S : Finset (Fin (latentBaseVars M n)))
+    (m a b : (Fin (latentNumVars M n)) →₀ ℕ) : Prop :=
+  a + b = m →
+  a = Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1 →
+  (∃ i ∈ S, copySlot M n i ∈ b.support) →
+  b ≠ 0 →
+    MvPolynomial.coeff a (copyConGadget M n j) *
+      MvPolynomial.coeff b (∏ i ∈ S, copyConGadget M n i) = 0
+
 /-- Local residual-support frontier for the copyCon off-diagonal argument. Once one has a witness
 `i0 ∈ ksi.toFinset` with `i0 ∉ ksj.toFinset`, the remaining missing step is to show that any
 residual monomial `b` satisfying `copyCon_tagMono M n ksj + b = copyCon_tagMono M n ksi` must carry
