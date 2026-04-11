@@ -466,6 +466,23 @@ theorem copyCon_copySlot_support_moves_to_residual_of_left_zero
   simp only [Finsupp.add_apply] at hsum
   omega
 
+/-- In the exact-shape branch, any residual witness copy-slot `copySlot i` with `i ≠ j` is absent
+from the left monomial `single(copy j)+single(con j)`, so the pointwise residual-support transport
+applies directly. -/
+theorem copyCon_exact_shape_other_copySlot_zero
+    (M : DTM) (n : ℕ)
+    {i j : Fin (latentBaseVars M n)}
+    (hij : i ≠ j) :
+    ((Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1 :
+      (Fin (latentNumVars M n)) →₀ ℕ)) (copySlot M n i) = 0 := by
+  have hneq : copySlot M n j ≠ copySlot M n i := by
+    intro hEq
+    exact hij ((copySlot_injective M n hEq).symm)
+  have hneq' : conSlot M n j ≠ copySlot M n i := by
+    intro hEq
+    exact (copySlot_ne_conSlot M n i j) hEq.symm
+  simp [hneq, hneq']
+
 /-- Constant term of a single copyCon gadget. -/
 theorem copyConGadget_constant_term (M : DTM) (n : ℕ)
     (i : Fin (latentBaseVars M n)) :
