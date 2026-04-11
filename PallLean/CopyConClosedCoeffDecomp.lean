@@ -483,6 +483,24 @@ theorem copyCon_exact_shape_other_copySlot_zero
     exact (copySlot_ne_conSlot M n i j) hEq.symm
   simp [hneq, hneq']
 
+/-- Local insert-step summand frontier for the positive-witness induction.
+If the left antidiagonal monomial is a nonzero support monomial of `copyConGadget j`, and the total
+monomial `m` contains some copy-slot witness from `insert j S`, then either the witness is on `j`
+and the left coefficient already vanishes against `copyConGadget_constant_term`, or the witness is
+pushed into the residual `b`, where the induction hypothesis should apply. This packages the exact
+branch split still needed before reproving `coeff_copyConProd_eq_zero_of_exists_copy`. -/
+def copyCon_insert_antidiagonal_summand_zero
+    (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n))
+    (S : Finset (Fin (latentBaseVars M n)))
+    (hjS : j ∉ S)
+    (m : (Fin (latentNumVars M n)) →₀ ℕ)
+    (a b : (Fin (latentNumVars M n)) →₀ ℕ) : Prop :=
+  a + b = m →
+  a ∈ (copyConGadget M n j).support →
+  (∃ i ∈ insert j S, copySlot M n i ∈ m.support) →
+    ((copySlot M n j ∈ m.support) ∨ (∃ i ∈ S, copySlot M n i ∈ b.support))
+
 /-- Constant term of a single copyCon gadget. -/
 theorem copyConGadget_constant_term (M : DTM) (n : ℕ)
     (i : Fin (latentBaseVars M n)) :
@@ -539,14 +557,11 @@ A single forbidden copy-slot support inside the gadget-product index set should 
 coefficient to vanish, which is exactly the positive-witness form needed by the off-diagonal
 copyCon argument.
 
-After proving the two real insert-case support lemmas
-`copyConGadget_nonzero_mono_no_other_copySlot` and
-`copyCon_insert_witness_survives_in_residual`, plus the exact-shape theorem
-`copyConGadget_nonzero_mono_exact_shape_candidate`, the remaining gap is now only the final
-induction packaging for this theorem. The failed first proof attempt showed the honest sticking
-point precisely: in the insert step, one still needs a clean residual transport that handles both
-(a) the `a = 0` branch and (b) the `a = single(copy j)+single(con j)` branch without illicitly
-reusing support hypotheses across the antidiagonal split. -/
+After proving the insert-step transport lemmas
+`copyCon_copySlot_support_moves_to_residual_of_left_zero` and
+`copyCon_exact_shape_other_copySlot_zero`, the remaining work is now the actual induction
+packaging for the positive-witness vanishing statement. So this is back to being a real theorem
+attempt rather than a placeholder about missing local transport. -/
 def coeff_copyConProd_eq_zero_of_exists_copy
     (M : DTM) (n : ℕ)
     (T : Finset (Fin (latentBaseVars M n)))
