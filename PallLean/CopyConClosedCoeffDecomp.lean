@@ -510,6 +510,20 @@ theorem copyConGadget_constant_term (M : DTM) (n : ℕ)
   simp [MvPolynomial.coeff_sub, MvPolynomial.coeff_one,
     MvPolynomial.coeff_mul, MvPolynomial.coeff_X]
 
+/-- Coefficient classification for a single copyCon gadget: the only monomials with nonzero
+coefficient are the constant monomial and the exact copy-con pair monomial. -/
+theorem copyConGadget_coeff_nonzero_classification
+    (M : DTM) (n : ℕ)
+    (i : Fin (latentBaseVars M n))
+    (m : (Fin (latentNumVars M n)) →₀ ℕ)
+    (hm : MvPolynomial.coeff m (copyConGadget M n i) ≠ 0) :
+    m = 0 ∨ m = Finsupp.single (copySlot M n i) 1 + Finsupp.single (conSlot M n i) 1 := by
+  by_cases hm0 : m = 0
+  · exact Or.inl hm0
+  · right
+    have hsupp : m ∈ (copyConGadget M n i).support := Finsupp.mem_support_iff.mpr hm
+    exact copyConGadget_nonzero_mono_exact_shape_candidate M n i m hsupp hm0
+
 /-- Constant term of the complement copyCon gadget product. -/
 theorem copyCon_complement_prod_constant_term (M : DTM) (n : ℕ)
     (ks : List (Fin (latentBaseVars M n))) :
