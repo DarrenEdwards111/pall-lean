@@ -1778,6 +1778,25 @@ def latent_selCon_single_sheet_compatible
     S = ks.map (selSlot M n) ∧
     m.vars ⊆ S.toFinset
 
+/-- Constructive witness version of selector compatibility, for downstream routes that need to
+reuse the selector list data in data-valued structures rather than only as a proposition. -/
+structure latent_selCon_single_sheet_compatible_data
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ) where
+  ks : List (Fin (latentBaseVars M n))
+  nodup : ks.Nodup
+  eq_slots : S = ks.map (selSlot M n)
+  vars_subset : m.vars ⊆ S.toFinset
+
+/-- Forgetful map from constructive selector compatibility to the original proposition-valued API. -/
+def latent_selCon_single_sheet_compatible_data.toProp
+    {M : DTM} {n : ℕ} {S : List (Fin (latentNumVars M n))}
+    {m : MvPolynomial (Fin (latentNumVars M n)) ℚ}
+    (h : latent_selCon_single_sheet_compatible_data M n S m) :
+    latent_selCon_single_sheet_compatible M n S m :=
+  ⟨h.ks, h.nodup, h.eq_slots, h.vars_subset⟩
+
 /-- The analogous compatibility shape for the machCopy lane: derivative data comes purely
 from machine-slot hits, and the multiplier support stays inside those same hits. This is the
 natural hypothesis under which a future `machCopySheet` branch theorem should run. -/
@@ -3095,8 +3114,10 @@ structure latent_canonical_profile_control_witness_is_noncon_candidate
 
 /-- Final-route selector-signature handoff, viewed from the downstream width-rank file: once the
 strengthened route supplies an explicit canonical witness `S'` with the same profile signature and
-selector compatibility, that is exactly the shared target Move 1 wants to consume. -/
-def latent_selector_signature_shared_target_yields_noncon_candidate
+selector compatibility, that is exactly the shared target Move 1 wants to consume. We keep that
+handoff as explicit data rather than a mere existential proposition so downstream reductions can
+reuse the witness constructively. -/
+structure latent_selector_signature_shared_target_yields_noncon_candidate
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
     (S : List (Fin (latentNumVars M n)))
@@ -3105,18 +3126,18 @@ def latent_selector_signature_shared_target_yields_noncon_candidate
     (hDeg : m.totalDegree ≤ Nat.log 2 n)
     (hVars : m.vars ⊆ S.toFinset)
     (hAdm : isBlockAdmissible (latentPartition M n) S)
-    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ) : Prop :=
-  ∃ (S' : List (Fin (latentNumVars M n)))
-    (hLen' : S'.length = Nat.log 2 n),
-    isBlockAdmissible (latentPartition M n) S' ∧
-    latent_profile_signature_of_generator_data M n S' m hLen' hDeg = σ ∧
-    latent_selCon_single_sheet_compatible M n S' m
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ) where
+  witness : List (Fin (latentNumVars M n))
+  witness_len : witness.length = Nat.log 2 n
+  witness_adm : isBlockAdmissible (latentPartition M n) witness
+  witness_sig : latent_profile_signature_of_generator_data M n witness m witness_len hDeg = σ
+  witness_selCompat : latent_selCon_single_sheet_compatible_data M n witness m
 
-/-- Honest downstream reduction frontier: the strengthened final-route package now proves the shared
-selector-signature target itself, but the extra collapse from that shared target to an explicit
-non-`conSlot` classifier for Move 1 is still a separate downstream obligation. We name that exact
-frontier here instead of pretending the collapse has already been proved. -/
-axiom latent_selector_signature_shared_target_reduces_to_noncon_candidate
+/-- Honest downstream reduction, now fully constructive: once the shared target is stored as an
+explicit selector-compatible witness package, the non-`conSlot` candidate follows immediately by
+reusing the same witness and packaging the selector lane as both a 4-family and 3-family raw
+classifier. -/
+def latent_selector_signature_shared_target_reduces_to_noncon_candidate
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
     (S : List (Fin (latentNumVars M n)))
@@ -3129,7 +3150,19 @@ axiom latent_selector_signature_shared_target_reduces_to_noncon_candidate
     latent_selector_signature_shared_target_yields_noncon_candidate
       M n σ S m hLen hDeg hVars hAdm hSig →
     latent_canonical_profile_control_witness_is_noncon_candidate
-      M n σ S m hLen hDeg hVars hAdm hSig
+      M n σ S m hLen hDeg hVars hAdm hSig := by
+  intro hshared
+  let ks := hshared.witness_selCompat.ks
+  have hnd : ks.Nodup := hshared.witness_selCompat.nodup
+  have hS : hshared.witness = ks.map (selSlot M n) := hshared.witness_selCompat.eq_slots
+  have hVars' : m.vars ⊆ hshared.witness.toFinset := hshared.witness_selCompat.vars_subset
+  have hSelFamily : ∀ v ∈ hshared.witness, ∃ i : Fin (latentBaseVars M n), v = selSlot M n i := by
+    intro v hv
+    rw [hS] at hv
+    rcases List.mem_map.mp hv with ⟨i, _hi, rfl⟩
+    exact ⟨i, rfl⟩
+  refine ⟨hshared.witness, hshared.witness_len, hshared.witness_adm, hshared.witness_sig,
+    Or.inr (Or.inr (Or.inl hSelFamily)), Or.inr (Or.inr hSelFamily)⟩
 
 /-- Second missing downstream link for the revised Move 1 route: the canonical/profile-controlled
 witness should compute the same target projection `q`, not merely share the same profile
