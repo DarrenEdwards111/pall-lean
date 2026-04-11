@@ -3194,6 +3194,126 @@ theorem latent_selector_enriched_profile_control_enters_clean_lane
   exact latent_raw_bucket_member_enters_clean_lane M n σ q S' m hLen' hDeg
     hVars' hAdm' hSig' hq' hnoncon'
 
+/-- Sharp hard-theorem target for selector-first Move 1: to actually prove the enriched canonical
+profile-control witness, it would be enough to show that every raw admissible generator can be
+re-presented by a witness `S'` with the same coarse profile/signature and the same target `q`, and
+that this witness is selector-compatible. This isolates the exact missing bridge from arbitrary raw
+admissible data to the selector branch exposed by the sheet-splitting/branch-kill machinery. -/
+def latent_raw_admissible_has_selector_realization_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n))) : Prop :=
+  ∃ (S' : List (Fin (latentNumVars M n)))
+    (hLen' : S'.length = Nat.log 2 n),
+    isBlockAdmissible (latentPartition M n) S' ∧
+    latent_profile_signature_of_generator_data M n S' m hLen' hDeg = σ ∧
+    latent_selCon_single_sheet_compatible M n S' m ∧
+    m.vars ⊆ S'.toFinset ∧
+    latent_raw_noncon_slot_family_classifier_candidate M n S' ∧
+    q = mlProj (m * iterDerivList S' (latentCompiledPoly M n))
+
+/-- Once the sharp selector-realization theorem is available, the full selector-enriched Move 1
+package follows immediately. This pins the remaining work to a single exact witness-construction
+obligation, rather than leaving it diffused across several downstream candidate surfaces. -/
+theorem latent_selector_realization_yields_selector_enriched_profile_control
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n))) :
+    latent_raw_admissible_has_selector_realization_candidate
+      M n σ q S m hLen hDeg hVars hAdm hSig hq →
+    latent_raw_admissible_has_selector_enriched_profile_control_candidate
+      M n σ S m hLen hDeg hVars hAdm hSig := by
+  intro hreal
+  rcases hreal with ⟨S', hLen', hAdm', hSig', hsel', _hVars', hnoncon', hq'⟩
+  refine ⟨S', hLen', hAdm', hSig', ?_, hsel'⟩
+  exact Or.inr <| Or.inr <| Or.inl (by
+    intro v hv
+    rcases hsel' with ⟨ks, _hnd, hS', _hVarsSel⟩
+    rw [hS'] at hv
+    rcases List.mem_map.mp hv with ⟨i, hi, rfl⟩
+    exact ⟨i, rfl⟩)
+
+/-- The sharp selector-realization target naturally splits into three independent downstream
+obligations on the same witness `S'`: support transport for `m`, noncon classification, and
+preservation of the same target `q`. Naming this decomposition makes the remaining hard theorem
+less monolithic and matches the way the downstream clean-lane bridge already consumes the data. -/
+def latent_selector_realization_obligations_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n))) : Prop :=
+  ∃ (S' : List (Fin (latentNumVars M n)))
+    (hLen' : S'.length = Nat.log 2 n),
+    isBlockAdmissible (latentPartition M n) S' ∧
+    latent_profile_signature_of_generator_data M n S' m hLen' hDeg = σ ∧
+    latent_selCon_single_sheet_compatible M n S' m ∧
+    (m.vars ⊆ S'.toFinset ∧
+      latent_raw_noncon_slot_family_classifier_candidate M n S' ∧
+      q = mlProj (m * iterDerivList S' (latentCompiledPoly M n)))
+
+/-- The split-obligations form is equivalent to the sharp selector-realization target, just packaged
+so later proofs can attack support, noncon, and `q` preservation separately while sharing the same
+selector-compatible witness `S'`. -/
+theorem latent_selector_realization_of_obligations
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n))) :
+    latent_selector_realization_obligations_candidate
+      M n σ q S m hLen hDeg hVars hAdm hSig hq →
+    latent_raw_admissible_has_selector_realization_candidate
+      M n σ q S m hLen hDeg hVars hAdm hSig hq := by
+  intro hsplit
+  rcases hsplit with ⟨S', hLen', hAdm', hSig', hsel', hVars', hnoncon', hq'⟩
+  exact ⟨S', hLen', hAdm', hSig', hsel', hVars', hnoncon', hq'⟩
+
+/-- Selector compatibility automatically supplies the noncon 3-family classifier. This peels one
+real obligation off the sharp selector-realization target: once the witness is known to be purely
+selector-slot, the noncon side is no longer a separate theorem burden. -/
+theorem latent_selCon_compatible_implies_noncon_classifier
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hsel : latent_selCon_single_sheet_compatible M n S m) :
+    latent_raw_noncon_slot_family_classifier_candidate M n S := by
+  rcases hsel with ⟨ks, _hnd, hS, _hVars⟩
+  right
+  right
+  intro v hv
+  rw [hS] at hv
+  rcases List.mem_map.mp hv with ⟨i, hi, rfl⟩
+  exact ⟨i, rfl⟩
+
 /-- Candidate packaging for the revised Move 1 route: if raw admissible data first admits a
 canonical/profile-controlled 4-family presentation, and if the three remaining explicit frontiers
 can be discharged for the resulting canonical witness `S'` (namely: `S'` is noncon, `S'`
