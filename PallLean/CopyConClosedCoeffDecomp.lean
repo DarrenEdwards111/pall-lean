@@ -489,17 +489,18 @@ monomial `m` contains some copy-slot witness from `insert j S`, then either the 
 and the left coefficient already vanishes against `copyConGadget_constant_term`, or the witness is
 pushed into the residual `b`, where the induction hypothesis should apply. This packages the exact
 branch split still needed before reproving `coeff_copyConProd_eq_zero_of_exists_copy`. -/
-def copyCon_insert_antidiagonal_summand_zero
+theorem copyCon_insert_antidiagonal_summand_zero
     (M : DTM) (n : ℕ)
     (j : Fin (latentBaseVars M n))
     (S : Finset (Fin (latentBaseVars M n)))
     (hjS : j ∉ S)
     (m : (Fin (latentNumVars M n)) →₀ ℕ)
-    (a b : (Fin (latentNumVars M n)) →₀ ℕ) : Prop :=
-  a + b = m →
-  a ∈ (copyConGadget M n j).support →
-  (∃ i ∈ insert j S, copySlot M n i ∈ m.support) →
-    ((copySlot M n j ∈ m.support) ∨ (∃ i ∈ S, copySlot M n i ∈ b.support))
+    (a b : (Fin (latentNumVars M n)) →₀ ℕ)
+    (hp : a + b = m)
+    (ha_supp : a ∈ (copyConGadget M n j).support)
+    (hcopy : ∃ i ∈ insert j S, copySlot M n i ∈ m.support) :
+    (copySlot M n j ∈ m.support) ∨ (∃ i ∈ S, copySlot M n i ∈ b.support) := by
+  exact copyCon_exists_copy_insert_cases M n hjS hp ha_supp hcopy
 
 /-- Constant term of a single copyCon gadget. -/
 theorem copyConGadget_constant_term (M : DTM) (n : ℕ)
