@@ -3441,6 +3441,28 @@ def latent_selector_realization_of_obligations
   rcases hsplit with ⟨S', hLen', hAdm', hSig', hsel', hVars', hnoncon', hq'⟩
   refine ⟨S', hLen', hAdm', hSig', hsel', hVars', hnoncon', hq'⟩
 
+/-- The previous clean-lane handoff can be expressed directly from the sharp selector-realization
+package, without unpacking the witness data by hand each time. This is the clean downstream bridge
+from the Move 1 selector-realization frontier into the existing clean-menu theorem. -/
+theorem latent_selector_realization_enters_clean_lane
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n))) :
+    latent_raw_admissible_has_selector_realization_candidate
+      M n σ q S m hLen hDeg hVars hAdm hSig hq →
+    latent_clean_compatible_bucket_member_menu M n σ q := by
+  intro hreal
+  exact latent_raw_bucket_member_enters_clean_lane M n σ q hreal.witness m hreal.witness_len hDeg
+    hreal.witness_support hreal.witness_adm hreal.witness_sig hreal.witness_q hreal.witness_noncon
+
 /-- Selector compatibility automatically supplies the noncon 3-family classifier. This peels one
 real obligation off the sharp selector-realization target: once the witness is known to be purely
 selector-slot, the noncon side is no longer a separate theorem burden. -/
