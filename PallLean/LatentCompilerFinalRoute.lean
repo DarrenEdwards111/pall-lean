@@ -888,6 +888,70 @@ def local_selector_signature_profile_control_from_selector_signature_constructio
     local_selector_signature_profile_control_from_selector_signature_construction_data_candidate M n hn hn804 := by
   exact hSelData
 
+/-- Small packaged form of extracted generator witness data. Using a structure here avoids repeated
+transport across arbitrary proof arguments when routing from construction-data packages into the
+shared selector-signature target. -/
+structure local_extracted_generator_witness_data
+    (M : DTM) (n : ℕ)
+    (g : MvPolynomial (Fin (latentNumVars M n)) ℚ) where
+  S : List (Fin (latentNumVars M n))
+  m : MvPolynomial (Fin (latentNumVars M n)) ℚ
+  hLen : S.length = Nat.log 2 n
+  hDeg : m.totalDegree ≤ Nat.log 2 n
+  hVars : m.vars ⊆ S.toFinset
+  hAdm : isBlockAdmissible (latentPartition M n) S
+  hg : g = mlProj (m * iterDerivList S (latentCompiledPoly M n))
+
+/-- Direct local theorem surface induced by the stronger selector-signature construction-data
+package: for each realized generator `g`, the package contains extracted witness data together with
+exactly the additional selector-signature canonical witness needed by the shared downstream target.
+-/
+def local_selector_signature_construction_data_yields_shared_target_candidate
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∀ (hSelData : latent_profile_block_cover_selector_signature_construction_data_logscale M n hn hn804)
+    (g : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hg : g ∈ hSelData.G),
+    let hex := hSelData.witness_realizes g hg
+    let S := hSelData.witnessS g
+    let m := hSelData.witnessM g
+    let hLen : S.length = Nat.log 2 n := Classical.choose hex
+    let hDeg : m.totalDegree ≤ Nat.log 2 n := Classical.choose (Classical.choose_spec hex)
+    let hVars : m.vars ⊆ S.toFinset := Classical.choose (Classical.choose_spec (Classical.choose_spec hex))
+    let hAdm : isBlockAdmissible (latentPartition M n) S :=
+      Classical.choose (Classical.choose_spec (Classical.choose_spec (Classical.choose_spec hex)))
+    latent_construction_data_normalization_yields_selector_signature_profile_control_candidate
+      M n
+      (latent_selector_profile_signature_of_generator_data M n S m hLen hDeg)
+      S m hLen hDeg hVars hAdm rfl
+
+/-- Once the stronger selector-signature construction-data package is available, the shared target is
+actually provable from its stored fields. This is the first real proof step on the new route. -/
+noncomputable def local_selector_signature_construction_data_feeds_shared_target
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :
+    local_selector_signature_construction_data_yields_shared_target_candidate M n hn hn804 := by
+  intro hSelData g hg
+  let hex := hSelData.witness_realizes g hg
+  let wd : local_extracted_generator_witness_data M n g := {
+    S := hSelData.witnessS g
+    m := hSelData.witnessM g
+    hLen := Classical.choose hex
+    hDeg := Classical.choose (Classical.choose_spec hex)
+    hVars := Classical.choose (Classical.choose_spec (Classical.choose_spec hex))
+    hAdm := Classical.choose (Classical.choose_spec (Classical.choose_spec (Classical.choose_spec hex)))
+    hg := Classical.choose_spec (Classical.choose_spec (Classical.choose_spec (Classical.choose_spec hex)))
+  }
+  rcases hSelData.canon_selector_signature g hg with
+    ⟨hLen', hLenCanon, hDeg', hVars', hAdm', hAdmCanon, hg', hSigCanon, hselCanon⟩
+  have hhLen : hLen' = wd.hLen := by apply Subsingleton.elim
+  have hhDeg : hDeg' = wd.hDeg := by apply Subsingleton.elim
+  subst hhLen
+  subst hhDeg
+  exact ⟨hSelData.canonS g, hLenCanon, hAdmCanon, hSigCanon, hselCanon⟩
+
 /-- First concrete local extraction interface from the witness-carrying construction-data layer:
 choose a realized generator `g ∈ G`, then recover its stored witness presentation `(S,m)` together
 with the usual blocked-SPDP side conditions. This is the minimal upstream local theorem needed before
