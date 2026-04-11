@@ -3132,6 +3132,36 @@ theorem latent_selector_enriched_profile_control_yields_selector_compatible_cand
   rcases hrich with ⟨S', hLen', hAdm', hSig', _hclass4', hsel'⟩
   exact ⟨S', hLen', hAdm', hSig', hsel'⟩
 
+/-- First substantive selector-first downstream step from the enriched Move 1 surface: once the
+canonical/profile-controlled witness is strengthened to carry selector-compatible single-sheet data,
+any proof that the same witness computes the same target `q` immediately discharges the formal
+`computes_q` candidate. This is the direct bridge from enriched profile control into the second
+explicit Move 1 obligation. -/
+theorem latent_selector_enriched_profile_control_yields_computes_q_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n))) :
+    (∃ (S' : List (Fin (latentNumVars M n)))
+        (hLen' : S'.length = Nat.log 2 n),
+        isBlockAdmissible (latentPartition M n) S' ∧
+        latent_profile_signature_of_generator_data M n S' m hLen' hDeg = σ ∧
+        latent_raw_slot_family_classifier_candidate M n S' ∧
+        latent_selCon_single_sheet_compatible M n S' m ∧
+        q = mlProj (m * iterDerivList S' (latentCompiledPoly M n))) →
+    latent_canonical_profile_control_witness_computes_q_candidate
+      M n σ q S m hLen hDeg hVars hAdm hSig hq := by
+  intro hrich
+  rcases hrich with ⟨S', hLen', hAdm', hSig', hclass4', _hsel', hq'⟩
+  exact ⟨S', hLen', hAdm', hSig', hclass4', hq'⟩
+
 /-- Candidate packaging for the revised Move 1 route: if raw admissible data first admits a
 canonical/profile-controlled 4-family presentation, and if the three remaining explicit frontiers
 can be discharged for the resulting canonical witness `S'` (namely: `S'` is noncon, `S'`
