@@ -3739,6 +3739,34 @@ theorem latent_construction_data_normalization_feeds_selector_signature_profile_
   intro h
   exact h
 
+/-- Once a selector-aware canonical witness is available together with the explicit support-side
+candidate for its selector signature, the actual multiplier-support inclusion follows immediately.
+This keeps the selector-signature route usable downstream without reopening the support proof each
+time. -/
+theorem latent_selector_signature_profile_control_yields_support
+    (M : DTM) (n : ℕ)
+    (sigSel : latentSelectorProfileSignature M n)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSelSig : latent_selector_profile_signature_of_generator_data M n S m hLen hDeg = sigSel)
+    (hprof : latent_raw_admissible_has_selector_signature_profile_control_candidate
+      M n sigSel S m hLen hDeg hVars hAdm hSelSig)
+    (htransport : latent_selector_signature_profile_control_yields_support_transport_candidate
+      M n sigSel S m hLen hDeg hVars hAdm hSelSig) :
+    ∃ (S' : List (Fin (latentNumVars M n)))
+      (hLen' : S'.length = Nat.log 2 n)
+      (hAdm' : isBlockAdmissible (latentPartition M n) S')
+      (hSelSig' : latent_selector_profile_signature_of_generator_data M n S' m hLen' hDeg = sigSel)
+      (hsel' : latent_selCon_single_sheet_compatible M n S' m),
+      m.vars ⊆ S'.toFinset := by
+  rcases htransport hprof with ⟨S', hLen', hAdm', hSelSig', hsel', hsigSel⟩
+  exact ⟨S', hLen', hAdm', hSelSig', hsel',
+    latent_selector_signature_support_transport_of_eq M n sigSel S' m hLen' hDeg hAdm' hSelSig' hsel' hsigSel⟩
+
 /-- Proposed stronger normalization package for the selector-aware Move-1 route. In addition to the
 basic extracted witness `(S,m)` for each realized generator `g`, retain an explicit canonical
 selector-compatible witness `S'` with the same selector-aware signature. This is the exact extra
