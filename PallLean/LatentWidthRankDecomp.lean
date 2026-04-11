@@ -3162,6 +3162,38 @@ theorem latent_selector_enriched_profile_control_yields_computes_q_candidate
   rcases hrich with ⟨S', hLen', hAdm', hSig', hclass4', _hsel', hq'⟩
   exact ⟨S', hLen', hAdm', hSig', hclass4', hq'⟩
 
+/-- Strong selector-enriched clean-lane reduction: once the enriched Move 1 witness carries the
+same profile signature, the same target `q`, support transport for `m`, and a genuine noncon
+classifier, the existing clean-lane entry theorem applies immediately. This packages step 2 in the
+strongest honest form currently available, so that proving the selector-enriched canonical witness
+later will feed directly into the clean-menu route. -/
+theorem latent_selector_enriched_profile_control_enters_clean_lane
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n))) :
+    (∃ (S' : List (Fin (latentNumVars M n)))
+        (hLen' : S'.length = Nat.log 2 n),
+        isBlockAdmissible (latentPartition M n) S' ∧
+        latent_profile_signature_of_generator_data M n S' m hLen' hDeg = σ ∧
+        latent_raw_slot_family_classifier_candidate M n S' ∧
+        latent_selCon_single_sheet_compatible M n S' m ∧
+        m.vars ⊆ S'.toFinset ∧
+        latent_raw_noncon_slot_family_classifier_candidate M n S' ∧
+        q = mlProj (m * iterDerivList S' (latentCompiledPoly M n))) →
+    latent_clean_compatible_bucket_member_menu M n σ q := by
+  intro hrich
+  rcases hrich with ⟨S', hLen', hAdm', hSig', _hclass4', _hsel', hVars', hnoncon', hq'⟩
+  exact latent_raw_bucket_member_enters_clean_lane M n σ q S' m hLen' hDeg
+    hVars' hAdm' hSig' hq' hnoncon'
+
 /-- Candidate packaging for the revised Move 1 route: if raw admissible data first admits a
 canonical/profile-controlled 4-family presentation, and if the three remaining explicit frontiers
 can be discharged for the resulting canonical witness `S'` (namely: `S'` is noncon, `S'`
