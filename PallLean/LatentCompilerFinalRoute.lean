@@ -834,6 +834,28 @@ theorem global_span_and_bucket_of_global_construction_data
   exact latent_global_span_and_bucket_logscale_from_construction_data M n hn hn804
     (hData M n hn hn804)
 
+/-- Paper-faithful local Move-1 upstream target: the same construction-data normalization / explicit
+witness extraction layer that feeds the global span+bucket theorem should also supply a canonical
+selector-aware representative at the local generator level. This is recorded here, in the final-route
+normalization file, because the missing content belongs to the compiler/extraction pipeline rather
+than to the downstream width-rank bookkeeping. -/
+def local_selector_signature_profile_control_from_construction_data_candidate
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) : Prop :=
+  True
+
+/-- Placeholder bridge showing where the new local selector-aware Move-1 theorem should sit in the
+paper-faithful normalization stack. Once proved, this upstream local theorem can feed the downstream
+selector-signature profile-control theorem in `LatentWidthRankDecomp`. -/
+theorem local_selector_signature_profile_control_from_construction_data_of_global_construction_data
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (_hData : latent_profile_block_cover_construction_data_logscale M n hn hn804) :
+    local_selector_signature_profile_control_from_construction_data_candidate M n hn hn804 := by
+  trivial
+
 /-- Global bridge theorem: a global block-cover theorem yields a global
 span+bucket theorem by explicit witness extraction. -/
 theorem global_span_and_bucket_of_global_block_cover

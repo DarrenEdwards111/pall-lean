@@ -3490,6 +3490,129 @@ theorem latent_selector_signature_support_transport_of_eq
     simpa [latent_selector_profile_signature_of_generator_data_selSupport] using hv
   exact hsigSel hmemSigSel
 
+/-- Stronger selector-aware version of the revised Move 1 canonical/profile-control frontier. In
+addition to the coarse profile/signature data, the canonical witness is required to preserve the
+selector-aware support signature. This is the correct target once support transport is treated as a
+first-class invariant rather than an accidental consequence of coarse hit-block data. -/
+def latent_raw_admissible_has_selector_signature_profile_control_candidate
+    (M : DTM) (n : ℕ)
+    (sigSel : latentSelectorProfileSignature M n)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (_hLen : S.length = Nat.log 2 n)
+    (_hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (_hVars : m.vars ⊆ S.toFinset)
+    (_hAdm : isBlockAdmissible (latentPartition M n) S)
+    (_hSelSig : latent_selector_profile_signature_of_generator_data M n S m _hLen _hDeg = sigSel) : Prop :=
+  ∃ (S' : List (Fin (latentNumVars M n)))
+    (hLen' : S'.length = Nat.log 2 n),
+    isBlockAdmissible (latentPartition M n) S' ∧
+    latent_selector_profile_signature_of_generator_data M n S' m hLen' _hDeg = sigSel ∧
+    latent_selCon_single_sheet_compatible M n S' m
+
+/-- Once the selector-aware canonical/profile-control theorem is proved, the support side of the
+selector route should be attacked via the stronger invariant, rather than as a blind consequence of
+coarse signatures. This theorem surface records the exact next handoff point without pretending the
+final inclusion `m.vars ⊆ S'.toFinset` already follows from selector compatibility alone. -/
+def latent_selector_signature_profile_control_yields_support_transport_candidate
+    (M : DTM) (n : ℕ)
+    (sigSel : latentSelectorProfileSignature M n)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSelSig : latent_selector_profile_signature_of_generator_data M n S m hLen hDeg = sigSel) : Prop :=
+  latent_raw_admissible_has_selector_signature_profile_control_candidate
+    M n sigSel S m hLen hDeg hVars hAdm hSelSig →
+  ∃ (S' : List (Fin (latentNumVars M n)))
+    (hLen' : S'.length = Nat.log 2 n)
+    (hAdm' : isBlockAdmissible (latentPartition M n) S')
+    (hSelSig' : latent_selector_profile_signature_of_generator_data M n S' m hLen' hDeg = sigSel)
+    (hsel' : latent_selCon_single_sheet_compatible M n S' m),
+    latent_selector_signature_support_transport_candidate M n sigSel S' m hLen' hDeg hAdm' hSelSig' hsel'
+
+/-- Paper-faithful compiler-side target: the canonicalization / extraction pipeline should produce a
+canonical compiled representative witness that already preserves the selector-aware signature. This
+is the right upstream theorem shape if the paper's Move 1 route runs through canonical compiled
+representatives rather than through a local raw-list classifier. -/
+def latent_compiler_produces_selector_signature_profile_control_candidate
+    (M : DTM) (n : ℕ)
+    (sigSel : latentSelectorProfileSignature M n)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSelSig : latent_selector_profile_signature_of_generator_data M n S m hLen hDeg = sigSel) : Prop :=
+  ∃ (S' : List (Fin (latentNumVars M n)))
+    (hLen' : S'.length = Nat.log 2 n),
+    isBlockAdmissible (latentPartition M n) S' ∧
+    latent_selector_profile_signature_of_generator_data M n S' m hLen' hDeg = sigSel ∧
+    latent_selCon_single_sheet_compatible M n S' m
+
+/-- Once the paper-faithful compiler-side canonical representative theorem is available, it feeds
+straight into the selector-aware canonical/profile-control frontier. This records that handoff
+explicitly so the remaining work can be moved upstream without changing the downstream Move 1 graph.
+-/
+theorem latent_compiler_selector_signature_profile_control_yields_profile_control
+    (M : DTM) (n : ℕ)
+    (sigSel : latentSelectorProfileSignature M n)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSelSig : latent_selector_profile_signature_of_generator_data M n S m hLen hDeg = sigSel) :
+    latent_compiler_produces_selector_signature_profile_control_candidate
+      M n sigSel S m hLen hDeg hVars hAdm hSelSig →
+    latent_raw_admissible_has_selector_signature_profile_control_candidate
+      M n sigSel S m hLen hDeg hVars hAdm hSelSig := by
+  intro hcomp
+  rcases hcomp with ⟨S', hLen', hAdm', hSelSig', hsel'⟩
+  exact ⟨S', hLen', hAdm', hSelSig', hsel'⟩
+
+/-- Paper-faithful upstream source for the previous compiler-side target: the canonical selector-aware
+profile-control witness should come from the existing construction-data normalization / explicit
+witness extraction layer, not from ad hoc local case analysis on raw derivative lists. This theorem
+surface records that the remaining local Move-1 theorem is expected to be discharged by the same
+normalization machinery used in `LatentCompilerFinalRoute`. -/
+def latent_construction_data_normalization_yields_selector_signature_profile_control_candidate
+    (M : DTM) (n : ℕ)
+    (sigSel : latentSelectorProfileSignature M n)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSelSig : latent_selector_profile_signature_of_generator_data M n S m hLen hDeg = sigSel) : Prop :=
+  latent_compiler_produces_selector_signature_profile_control_candidate
+    M n sigSel S m hLen hDeg hVars hAdm hSelSig
+
+/-- The construction-data normalization layer is the intended paper-faithful source of the local
+selector-aware canonical/profile-control theorem. This identity wrapper keeps that dependency
+explicit in the theorem graph. -/
+theorem latent_construction_data_normalization_feeds_selector_signature_profile_control
+    (M : DTM) (n : ℕ)
+    (sigSel : latentSelectorProfileSignature M n)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSelSig : latent_selector_profile_signature_of_generator_data M n S m hLen hDeg = sigSel) :
+    latent_construction_data_normalization_yields_selector_signature_profile_control_candidate
+      M n sigSel S m hLen hDeg hVars hAdm hSelSig →
+    latent_compiler_produces_selector_signature_profile_control_candidate
+      M n sigSel S m hLen hDeg hVars hAdm hSelSig := by
+  intro h
+  exact h
+
 /-- Candidate packaging for the revised Move 1 route: if raw admissible data first admits a
 canonical/profile-controlled 4-family presentation, and if the three remaining explicit frontiers
 can be discharged for the resulting canonical witness `S'` (namely: `S'` is noncon, `S'`
