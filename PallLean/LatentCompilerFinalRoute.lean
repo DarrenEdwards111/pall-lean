@@ -866,29 +866,27 @@ def local_selector_signature_profile_control_from_construction_data_obstruction
     (hn804 : n ≥ 2 ^ 804) : Prop :=
   latent_profile_block_cover_construction_data_logscale M n hn hn804
 
-/-- Stronger paper-faithful upstream target: once the construction-data layer is enriched to retain
-local witness presentations for each generator, it becomes plausible to derive a canonical
-selector-aware representative theorem. This is the actual structural strengthening identified by the
-current obstruction analysis. -/
-def local_selector_signature_profile_control_from_witness_construction_data_candidate
+/-- Stronger paper-faithful upstream target: once the construction-data layer is enriched all the
+way to selector-signature-preserving canonical witnesses, the local selector-aware representative
+route has the right upstream source. This is the actual strengthening identified by the obstruction
+analysis, not merely the older witness-enriched package. -/
+def local_selector_signature_profile_control_from_selector_signature_construction_data_candidate
     (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804) :=
-  latent_profile_block_cover_witness_construction_data_logscale M n hn hn804
+  latent_profile_block_cover_selector_signature_construction_data_logscale M n hn hn804
 
-/-- First honest upstream bridge from the strengthened witness-carrying construction-data layer:
-if the construction-data package already retains explicit local witness presentations `(S,m)` for
-all generators, then the local selector-signature profile-control theorem has the right upstream
-source. This does not yet prove the selector-compatible canonical representative exists, but it pins
-that existence theorem to the witness-enriched construction-data layer instead of the older lossy
-package. -/
-def local_selector_signature_profile_control_from_witness_construction_data
+/-- First honest upstream bridge from the selector-signature construction-data layer: if the
+normalization package already retains selector-compatible canonical witnesses with preserved
+selector-aware signatures, then the local selector-signature profile-control theorem has the right
+upstream source. -/
+def local_selector_signature_profile_control_from_selector_signature_construction_data
     (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804)
-    (hWData : latent_profile_block_cover_witness_construction_data_logscale M n hn hn804) :
-    local_selector_signature_profile_control_from_witness_construction_data_candidate M n hn hn804 := by
-  exact hWData
+    (hSelData : latent_profile_block_cover_selector_signature_construction_data_logscale M n hn hn804) :
+    local_selector_signature_profile_control_from_selector_signature_construction_data_candidate M n hn hn804 := by
+  exact hSelData
 
 /-- First concrete local extraction interface from the witness-carrying construction-data layer:
 choose a realized generator `g ∈ G`, then recover its stored witness presentation `(S,m)` together
@@ -1032,8 +1030,8 @@ theorem local_shared_selector_signature_target_feeds_single_generator_canonicali
 /-- Structural obstruction, now made explicit: the current witness-construction package records only
 that each generator `g` is realized by some extracted pair `(S,m)`. It does not additionally carry a
 selector-compatible canonical representative `S'` preserving the selector-aware signature of `(S,m)`.
-So the shared selector-signature target cannot honestly be derived from the present structure alone;
-a stronger normalization package or a new theorem is genuinely required. -/
+So the shared selector-signature target cannot honestly be derived from the present structure alone.
+The new selector-signature construction-data package below is the proposed stronger replacement. -/
 def local_extracted_generator_witness_selector_signature_target_obstruction
     (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)

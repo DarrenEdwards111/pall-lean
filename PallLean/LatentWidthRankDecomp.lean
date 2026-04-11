@@ -3648,6 +3648,51 @@ theorem latent_construction_data_normalization_feeds_selector_signature_profile_
   intro h
   exact h
 
+/-- Proposed stronger normalization package for the selector-aware Move-1 route. In addition to the
+basic extracted witness `(S,m)` for each realized generator `g`, retain an explicit canonical
+selector-compatible witness `S'` with the same selector-aware signature. This is the exact extra
+upstream data needed by the final-route obstruction analysis. -/
+structure latent_profile_block_cover_selector_signature_construction_data_logscale
+    (M : DTM) (n : ℕ)
+    (_hn : n ≥ max 4 M.numStates)
+    (_hn804 : n ≥ 2 ^ 804) where
+  G : Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ)
+  I : Finset (Fin (n ^ 40))
+  Gprof : Fin (n ^ 40) → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ)
+  witnessS : MvPolynomial (Fin (latentNumVars M n)) ℚ → List (Fin (latentNumVars M n))
+  witnessM : MvPolynomial (Fin (latentNumVars M n)) ℚ → MvPolynomial (Fin (latentNumVars M n)) ℚ
+  canonS : MvPolynomial (Fin (latentNumVars M n)) ℚ → List (Fin (latentNumVars M n))
+  span_le :
+    mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n)
+      ≤ Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))
+  cover_eq : (I.biUnion (fun i => Gprof i)) = G
+  bucket_card_le : ∀ i : Fin (n ^ 40), (Gprof i).card ≤ n ^ 160
+  witness_realizes :
+    ∀ g ∈ G,
+      let S := witnessS g
+      let m := witnessM g
+      ∃ (hLen : S.length = Nat.log 2 n)
+        (hDeg : m.totalDegree ≤ Nat.log 2 n)
+        (hVars : m.vars ⊆ S.toFinset)
+        (hAdm : isBlockAdmissible (latentPartition M n) S),
+        g = mlProj (m * iterDerivList S (latentCompiledPoly M n))
+  canon_selector_signature :
+    ∀ g ∈ G,
+      let S := witnessS g
+      let m := witnessM g
+      let S' := canonS g
+      ∃ (hLen : S.length = Nat.log 2 n)
+        (hLen' : S'.length = Nat.log 2 n)
+        (hDeg : m.totalDegree ≤ Nat.log 2 n)
+        (hVars : m.vars ⊆ S.toFinset)
+        (hAdm : isBlockAdmissible (latentPartition M n) S)
+        (hAdm' : isBlockAdmissible (latentPartition M n) S')
+        (hg : g = mlProj (m * iterDerivList S (latentCompiledPoly M n))),
+        latent_selector_profile_signature_of_generator_data M n S' m hLen' hDeg =
+          latent_selector_profile_signature_of_generator_data M n S m hLen hDeg ∧
+        latent_selCon_single_sheet_compatible M n S' m
+
 /-- Candidate packaging for the revised Move 1 route: if raw admissible data first admits a
 canonical/profile-controlled 4-family presentation, and if the three remaining explicit frontiers
 can be discharged for the resulting canonical witness `S'` (namely: `S'` is noncon, `S'`
