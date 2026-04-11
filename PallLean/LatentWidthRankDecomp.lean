@@ -4098,7 +4098,37 @@ witness list `S`, so the previous pure-con single-sheet obstruction does not yet
 whole menu automatically. A future proof here needs a witness-preserving uniqueness bridge from
 menu membership back to the originating raw presentation, or a direct contradiction for pure-con
 presentations at menu level. For now we keep the executable downstream consumer phrased in terms
-of the explicit exclusion candidate above. -/
+of the explicit exclusion candidate above.
+
+Exact missing bridge for the remaining pure-con frontier: if the current raw presentation
+`(S, m)` computes `(σ, q)` and the same `(σ, q)` also lies in the cleaned compatibility menu,
+then one still needs a witness-preserving theorem showing that this very raw witness already
+belongs to one of the three single-sheet lanes. The current file can recover some cleaned
+witness for `(σ, q)`, but it does not yet relate that recovered witness back to the original raw
+presentation `(S, m)`.
+
+Status: after the selector-first `computes_q` work, the file still only provides transport from
+an explicitly supplied alternate witness `S'` that is known to compute the same target `q` with
+the same multiplier `m`. The clean menu itself supplies only existence of some cleaned witness in
+one of the three lanes; it does not identify that witness with the current raw presentation `S`,
+and the coarse profile signature records only hit-blocks and multiplier degree. So this remains a
+genuine missing theorem surface rather than something derivable from the current menu API. -/
+def latent_clean_menu_membership_preserves_originating_raw_witness_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (_hLen : S.length = Nat.log 2 n)
+    (_hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (_hVars : m.vars ⊆ S.toFinset)
+    (_hAdm : isBlockAdmissible (latentPartition M n) S)
+    (_hSig : latent_profile_signature_of_generator_data M n S m _hLen _hDeg = σ)
+    (_hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n))) : Prop :=
+  latent_clean_compatible_bucket_member_menu M n σ q →
+    (latent_machCopy_single_sheet_compatible M n S m ∨
+      latent_copyCon_single_sheet_compatible M n S m ∨
+      latent_selCon_single_sheet_compatible M n S m)
 theorem latent_nonempty_pure_conSlot_raw_bucket_exits_clean_menu_of_candidate
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
@@ -4117,6 +4147,63 @@ theorem latent_nonempty_pure_conSlot_raw_bucket_exits_clean_menu_of_candidate
       M n σ q S m hLen hDeg hVars hAdm hSig hq hS hcon) :
     ¬ latent_clean_compatible_bucket_member_menu M n σ q :=
   hfrontier
+
+/-- Sharpened remaining pure-con frontier: a direct contradiction will likely have to compare the
+raw pure-`conSlot` presentation against the only still-live cleaned lane, namely the cleaned
+copy-slot presentation on the `copyConSheet`. The current infrastructure can factor both sides
+through the same profile-varying space, but it does not yet provide a theorem saying that two
+such copyCon-side presentations with the same `(σ, q)` must agree or contradict.
+
+More concretely, the file already has:
+- the pure-con raw formula on the live sheet, via `LatentWitnessMinorDecomp.iterDeriv_conSlot_copyConSheet_eq`,
+- clean copy-lane resolution, via `latent_raw_copy_bucket_member_resolves` and
+  `latent_copyCon_compatible_bucket_member_unique_branch_factorization`, and
+- the obstruction that pure con-lists are not themselves any of the existing clean single-sheet lanes.
+
+What is still missing is a comparison theorem on the `copyConSheet` saying that if a pure-con raw
+presentation and an explicit cleaned copy-slot presentation compute the same bucket target `q`,
+then those copyCon-side realizations must either coincide in a controlled way or contradict.
+This candidate is therefore phrased directly against explicit copy-lane witness data, not the
+coarser top-level menu membership, so the missing seam is exactly a pure-con versus clean-copy
+same-`q` comparison theorem on the live sheet.
+
+A likely next algebraic sub-frontier is to construct a tagged coefficient witness that distinguishes
+the pure-con `copyConSheet` closed form from the clean copy-slot `copyConSheet` closed form when
+both allegedly compute the same `(σ, q)`. That would be the copyCon-side analogue of the tagged
+coefficient route already used for `selCon` closed forms. -/
+def latent_copyCon_tagged_coefficient_separation_candidate
+    (M : DTM) (n : ℕ) : Prop :=
+  True
+
+/-- Current direct comparison frontier: if a raw pure-`conSlot` presentation and an explicit clean
+copy-slot presentation compute the same `(σ, q)`, then they should contradict on the live
+`copyConSheet` branch. The missing theorem is now explicitly about witness data on both sides,
+not about coarse menu membership. -/
+def latent_pure_conSlot_vs_clean_copy_same_q_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (Scon : List (Fin (latentNumVars M n)))
+    (mcon : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (_hLenCon : Scon.length = Nat.log 2 n)
+    (_hDegCon : mcon.totalDegree ≤ Nat.log 2 n)
+    (_hVarsCon : mcon.vars ⊆ Scon.toFinset)
+    (_hAdmCon : isBlockAdmissible (latentPartition M n) Scon)
+    (_hSigCon : latent_profile_signature_of_generator_data M n Scon mcon _hLenCon _hDegCon = σ)
+    (_hqCon : q = mlProj (mcon * iterDerivList Scon (latentCompiledPoly M n)))
+    (_hScon : Scon ≠ [])
+    (_hcon : ∀ v ∈ Scon, ∃ i : Fin (latentBaseVars M n), v = conSlot M n i) : Prop :=
+  ∀ (ks : List (Fin (latentBaseVars M n)))
+    (mcopy : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hnd : ks.Nodup)
+    (hlen : ks.length = Nat.log 2 n)
+    (hDegCopy : mcopy.totalDegree ≤ Nat.log 2 n)
+    (hVarsCopy : mcopy.vars ⊆ (ks.map (copySlot M n)).toFinset),
+    latent_profile_signature_of_generator_data M n (ks.map (copySlot M n)) mcopy
+      (by simp [List.length_map, hlen]) hDegCopy = σ →
+    q = mlProj (mcopy * iterDerivList (ks.map (copySlot M n)) (latentCompiledPoly M n)) →
+    False
+
 /-- Direct raw machine-slot resolver: explicit machine-slot witness data now goes all the way to
 factorization plus exclusion of the other cleaned presentations in one step. -/
 theorem latent_raw_mach_bucket_member_resolves
