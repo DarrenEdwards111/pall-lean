@@ -574,9 +574,9 @@ copyCon argument.
 
 After proving the insert-step transport lemmas
 `copyCon_copySlot_support_moves_to_residual_of_left_zero` and
-`copyCon_exact_shape_other_copySlot_zero`, the remaining work is now the actual induction
-packaging for the positive-witness vanishing statement. So this is back to being a real theorem
-attempt rather than a placeholder about missing local transport. -/
+`copyCon_exact_shape_other_copySlot_zero`, plus the exact-shape residual summand packaging theorem
+`copyCon_insert_exact_shape_residual_summand_zero`, the remaining work is now the final induction
+assembly over `MvPolynomial.coeff_mul`. So this is still the main theorem frontier. -/
 def coeff_copyConProd_eq_zero_of_exists_copy
     (M : DTM) (n : ℕ)
     (T : Finset (Fin (latentBaseVars M n)))
@@ -591,17 +591,22 @@ if the witness split lands in the residual branch, then the summand should vanis
 induction hypothesis to the residual coefficient. This isolates the remaining bookkeeping problem:
 one must move from `a + b = m` and `a = exactShape` to a clean right-factor zero statement without
 mixing up the total monomial `m` and the residual monomial `b`. -/
-def copyCon_insert_exact_shape_residual_summand_zero
+theorem copyCon_insert_exact_shape_residual_summand_zero
     (M : DTM) (n : ℕ)
     (j : Fin (latentBaseVars M n))
     (S : Finset (Fin (latentBaseVars M n)))
-    (m a b : (Fin (latentNumVars M n)) →₀ ℕ) : Prop :=
-  a + b = m →
-  a = Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1 →
-  (∃ i ∈ S, copySlot M n i ∈ b.support) →
-  b ≠ 0 →
+    (m a b : (Fin (latentNumVars M n)) →₀ ℕ)
+    (hp : a + b = m)
+    (hshape : a = Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1)
+    (hcopyS : ∃ i ∈ S, copySlot M n i ∈ b.support)
+    (hb : b ≠ 0)
+    (hzero : coeff_copyConProd_eq_zero_of_exists_copy M n S b) :
     MvPolynomial.coeff a (copyConGadget M n j) *
-      MvPolynomial.coeff b (∏ i ∈ S, copyConGadget M n i) = 0
+      MvPolynomial.coeff b (∏ i ∈ S, copyConGadget M n i) = 0 := by
+  have hbcoeff : MvPolynomial.coeff b (∏ i ∈ S, copyConGadget M n i) = 0 :=
+    hzero hb hcopyS
+  rw [hbcoeff]
+  ring
 
 /-- Local residual-support frontier for the copyCon off-diagonal argument. Once one has a witness
 `i0 ∈ ksi.toFinset` with `i0 ∉ ksj.toFinset`, the remaining missing step is to show that any
