@@ -167,6 +167,36 @@ theorem copyCon_tagMono_no_conSlot (M : DTM) (n : ℕ)
   intro ⟨k, _, hkv⟩
   exact (LatentWitnessMinorDecomp.copySlot_ne_conSlot M n k i) hkv
 
+/-- At a copy slot outside the tag support, `copyCon_tagMono` evaluates to zero. -/
+theorem copyCon_tagMono_apply_copySlot_eq_zero_of_not_mem
+    (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (hnd : ks.Nodup)
+    (i : Fin (latentBaseVars M n))
+    (hi : i ∉ ks.toFinset) :
+    (copyCon_tagMono M n ks) (copySlot M n i) = 0 := by
+  by_contra hne
+  have hsupp : copySlot M n i ∈ (copyCon_tagMono M n ks).support :=
+    Finsupp.mem_support_iff.mpr hne
+  rw [copyCon_tagMono_support_eq M n ks hnd] at hsupp
+  simp only [Finset.mem_image, List.mem_toFinset] at hsupp
+  rcases hsupp with ⟨j, hj, hEq⟩
+  have : j = i := copySlot_injective M n hEq
+  exact hi (this ▸ List.mem_toFinset.mpr hj)
+
+/-- At a copy slot inside the tag support, `copyCon_tagMono` evaluates nontrivially. -/
+theorem copyCon_tagMono_apply_copySlot_ne_zero_of_mem
+    (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (hnd : ks.Nodup)
+    (i : Fin (latentBaseVars M n))
+    (hi : i ∈ ks.toFinset) :
+    (copyCon_tagMono M n ks) (copySlot M n i) ≠ 0 := by
+  have hsupp : copySlot M n i ∈ (copyCon_tagMono M n ks).support := by
+    rw [copyCon_tagMono_support_eq M n ks hnd]
+    exact Finset.mem_image.mpr ⟨i, hi, rfl⟩
+  exact Finsupp.mem_support_iff.mp hsupp
+
 /-- Distinct copy-slot supports give distinct copyCon tags. -/
 theorem copyCon_tagMono_ne_of_toFinset_ne (M : DTM) (n : ℕ)
     (ksi ksj : List (Fin (latentBaseVars M n)))
@@ -180,14 +210,25 @@ theorem copyCon_tagMono_ne_of_toFinset_ne (M : DTM) (n : ℕ)
   rw [copyCon_tagMono_support_eq M n ksi hndi, copyCon_tagMono_support_eq M n ksj hndj] at hsup
   exact Finset.image_injective (copySlot_injective M n) hsup
 
-/-- Off-diagonal copyCon still needs an explicit set-difference witness: from
-`ksi.toFinset ≠ ksj.toFinset`, choose an index whose copy-slot lies in the support tag for `ksi`
-but not for `ksj`. Keeping this as an explicit frontier is more honest than smuggling in a broken
-helper proof. -/
-def exists_mem_toFinset_not_mem_toFinset_of_ne
+/-- If two nodup copy-slot index lists have the same length but different `toFinset`, some index
+lies in `ksi` but not in `ksj`. This is the exact set-difference witness needed in the off-diagonal
+copyCon coefficient argument. -/
+theorem exists_mem_toFinset_not_mem_toFinset_of_ne_of_length_eq
     (ksi ksj : List (Fin (latentBaseVars M n)))
-    (_hne : ksi.toFinset ≠ ksj.toFinset) : Prop :=
-  ∃ i : Fin (latentBaseVars M n), i ∈ ksi.toFinset ∧ i ∉ ksj.toFinset
+    (hndi : ksi.Nodup) (hndj : ksj.Nodup)
+    (hlen : ksi.length = ksj.length)
+    (hne : ksi.toFinset ≠ ksj.toFinset) :
+    ∃ i : Fin (latentBaseVars M n), i ∈ ksi.toFinset ∧ i ∉ ksj.toFinset := by
+  classical
+  by_contra hall
+  push_neg at hall
+  have hsub : ksi.toFinset ⊆ ksj.toFinset := by
+    intro x hx
+    exact hall x hx
+  have hcard_eq : ksi.toFinset.card = ksj.toFinset.card := by
+    rw [List.toFinset_card_of_nodup hndi, List.toFinset_card_of_nodup hndj, hlen]
+  have hfs_eq : ksi.toFinset = ksj.toFinset := Finset.eq_of_subset_of_card_le hsub (by omega)
+  exact hne hfs_eq
 
 /-- Every nonzero monomial in a single `copyConGadget` has copy-slot support. -/
 theorem copyConGadget_nonzero_mono_has_copySlot (M : DTM) (n : ℕ)
@@ -226,9 +267,20 @@ theorem copyConGadget_nonzero_mono_has_copySlot (M : DTM) (n : ℕ)
     · simp at hprod
     · simp at hprod
 
-/-- A nonzero monomial with no copy-slot support has zero coefficient in any `copyConGadget`
-product. This is the copyCon analogue of the no-selector-support vanishing lemma used in the
-selCon closed-form decomposition. -/
+/-- Support transports forward through a sum: if `x` appears in `b.support` and `a + b = m`, then
+it also appears in `m.support`. -/
+theorem mem_support_of_mem_support_right_of_add
+    {σ : Type*} [DecidableEq σ]
+    (a b m : σ →₀ ℕ)
+    (x : σ)
+    (hx : x ∈ b.support)
+    (hadd : a + b = m) :
+    x ∈ m.support := by
+  rw [Finsupp.mem_support_iff] at hx ⊢
+  have hsum := congrArg (fun f => f x) hadd
+  simp only [Finsupp.add_apply] at hsum
+  omega
+
 theorem coeff_copyConProd_eq_zero_of_no_copy (M : DTM) (n : ℕ)
     (T : Finset (Fin (latentBaseVars M n)))
     (m : (Fin (latentNumVars M n)) →₀ ℕ)
@@ -271,6 +323,26 @@ theorem coeff_copyConProd_eq_zero_of_no_copy (M : DTM) (n : ℕ)
         exact hcopyA_not hcopyA
       simp [hcoeffA0]
 
+/-- Positive-witness gadget-product vanishing frontier.
+
+A single forbidden copy-slot support inside the gadget-product index set should already force the
+coefficient to vanish, which is exactly the positive-witness form needed by the off-diagonal
+copyCon argument.
+
+This remains blocked by one local gadget-support lemma. In the insert-step of the natural
+induction, after splitting `a + b = m`, the `i ≠ j` branch needs an additional fact about monomials
+appearing in `copyConGadget M n j`: namely, if `MvPolynomial.coeff a (copyConGadget M n j) ≠ 0`,
+then any copy-slot support of `a` must be exactly `copySlot M n j` and cannot occur at a different
+index `copySlot M n i` with `i ≠ j`. Without that local support-separation lemma, the
+positive-witness induction cannot justify that the surviving witness moves to `b` in the `i ≠ j`
+branch. -/
+def coeff_copyConProd_eq_zero_of_exists_copy
+    (M : DTM) (n : ℕ)
+    (T : Finset (Fin (latentBaseVars M n)))
+    (m : (Fin (latentNumVars M n)) →₀ ℕ) : Prop :=
+  m ≠ 0 →
+  (∃ i ∈ T, copySlot M n i ∈ m.support) →
+    MvPolynomial.coeff m (∏ i ∈ T, copyConGadget M n i) = 0
 /-- Constant term of a single copyCon gadget. -/
 theorem copyConGadget_constant_term (M : DTM) (n : ℕ)
     (i : Fin (latentBaseVars M n)) :
@@ -321,15 +393,48 @@ theorem copyCon_diag_complement_support (M : DTM) (n : ℕ)
   · intro h
     simp [Finset.mem_antidiagonal] at h
 
-/-- Honest off-diagonal frontier for the copyCon closed forms. The remaining missing step is an
-explicit set-difference witness argument: from `ksi.toFinset ≠ ksj.toFinset`, choose an index in
-`ksi \ ksj` and use it to force forbidden copy-slot support in the residual monomial coming from
-`copyCon_tagMono ksj + b = copyCon_tagMono ksi`. Until that witness argument is proved, the full
-off-diagonal coefficient vanishing should remain an explicit frontier rather than a fake theorem. -/
+/-- Local residual-support frontier for the copyCon off-diagonal argument. Once one has a witness
+`i0 ∈ ksi.toFinset` with `i0 ∉ ksj.toFinset`, the remaining missing step is to show that any
+residual monomial `b` satisfying `copyCon_tagMono M n ksj + b = copyCon_tagMono M n ksi` must carry
+`copySlot M n i0` in its support. This is the exact support contradiction needed to combine the
+set-difference witness with `coeff_copyConProd_eq_zero_of_no_copy`. -/
+theorem copyCon_residual_support_from_offdiag_witness
+    (M : DTM) (n : ℕ)
+    (ksi ksj : List (Fin (latentBaseVars M n)))
+    (i0 : Fin (latentBaseVars M n))
+    (hndi : ksi.Nodup) (hndj : ksj.Nodup)
+    (hi0_ksi : i0 ∈ ksi.toFinset)
+    (hi0_not_ksj : i0 ∉ ksj.toFinset) :
+    ∀ b : (Fin (latentNumVars M n)) →₀ ℕ,
+      copyCon_tagMono M n ksj + b = copyCon_tagMono M n ksi →
+        copySlot M n i0 ∈ b.support := by
+  intro b hab
+  rw [Finsupp.mem_support_iff]
+  have hsum : (copyCon_tagMono M n ksj + b) (copySlot M n i0) =
+      (copyCon_tagMono M n ksi) (copySlot M n i0) := by
+    rw [hab]
+  simp only [Finsupp.add_apply] at hsum
+  have hleft : (copyCon_tagMono M n ksj) (copySlot M n i0) = 0 := by
+    exact copyCon_tagMono_apply_copySlot_eq_zero_of_not_mem M n ksj hndj i0 hi0_not_ksj
+  have hright : (copyCon_tagMono M n ksi) (copySlot M n i0) ≠ 0 := by
+    exact copyCon_tagMono_apply_copySlot_ne_zero_of_mem M n ksi hndi i0 hi0_ksi
+  intro hb0
+  rw [hleft, hb0, zero_add] at hsum
+  exact hright hsum.symm
+
+/-- Honest off-diagonal frontier for the copyCon pure-con closed form. The combinatorial witness
+and the local residual-support theorem are now both proved, but the final coefficient-vanishing
+step still needs a positively phrased gadget-product lemma that consumes the forbidden support
+witness `copySlot M n i0 ∈ b.support` for some `i0 ∈ Finset.univ \ ksj.toFinset`. The existing
+vanishing lemma `coeff_copyConProd_eq_zero_of_no_copy` is shaped in the opposite direction, asking
+for absence of all such support. So the remaining gap is no longer about witness extraction or
+local slot evaluation; it is specifically about matching the final gadget-product coefficient lemma
+to the positive witness shape produced by `copyCon_residual_support_from_offdiag_witness`. -/
 def copyCon_offdiag_complement_support
     (M : DTM) (n : ℕ)
     (ksi ksj : List (Fin (latentBaseVars M n)))
-    (hndi : ksi.Nodup) (hndj : ksj.Nodup) : Prop :=
+    (hndi : ksi.Nodup) (hndj : ksj.Nodup)
+    (hlen : ksi.length = ksj.length) : Prop :=
   ksi.toFinset ≠ ksj.toFinset →
     MvPolynomial.coeff (copyCon_tagMono M n ksi)
       (copyCon_con_closedForm M n ksj) = 0
