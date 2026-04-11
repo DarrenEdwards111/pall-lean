@@ -449,6 +449,23 @@ theorem copyCon_exists_copy_insert_cases
   · exact Or.inl hm_copy
   · exact Or.inr <| copyCon_exists_copy_insert_reduce_to_residual M n hjS hp ha_supp hiS hm_copy
 
+/-- Pointwise residual-support transport for the insert-step seam.
+If the left antidiagonal factor contributes zero at `copySlot i`, then any support of the full sum
+at that slot must already come from the residual monomial `b`. This is the honest transport shape
+needed to treat both `a = 0` and exact-shape left factors uniformly. -/
+theorem copyCon_copySlot_support_moves_to_residual_of_left_zero
+    (M : DTM) (n : ℕ)
+    {i : Fin (latentBaseVars M n)}
+    {a b m : (Fin (latentNumVars M n)) →₀ ℕ}
+    (hp : a + b = m)
+    (ha_zero : a (copySlot M n i) = 0)
+    (hm_copy : copySlot M n i ∈ m.support) :
+    copySlot M n i ∈ b.support := by
+  rw [Finsupp.mem_support_iff] at hm_copy ⊢
+  have hsum := congrArg (fun f => f (copySlot M n i)) hp
+  simp only [Finsupp.add_apply] at hsum
+  omega
+
 /-- Constant term of a single copyCon gadget. -/
 theorem copyConGadget_constant_term (M : DTM) (n : ℕ)
     (i : Fin (latentBaseVars M n)) :
