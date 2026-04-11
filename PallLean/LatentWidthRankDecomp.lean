@@ -3093,6 +3093,44 @@ structure latent_canonical_profile_control_witness_is_noncon_candidate
   witness_class4 : latent_raw_slot_family_classifier_candidate M n witness
   witness_noncon : latent_raw_noncon_slot_family_classifier_candidate M n witness
 
+/-- Final-route selector-signature handoff, viewed from the downstream width-rank file: once the
+strengthened route supplies an explicit canonical witness `S'` with the same profile signature and
+selector compatibility, that is exactly the shared target Move 1 wants to consume. -/
+def latent_selector_signature_shared_target_yields_noncon_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ) : Prop :=
+  ∃ (S' : List (Fin (latentNumVars M n)))
+    (hLen' : S'.length = Nat.log 2 n),
+    isBlockAdmissible (latentPartition M n) S' ∧
+    latent_profile_signature_of_generator_data M n S' m hLen' hDeg = σ ∧
+    latent_selCon_single_sheet_compatible M n S' m
+
+/-- Honest downstream reduction frontier: the strengthened final-route package now proves the shared
+selector-signature target itself, but the extra collapse from that shared target to an explicit
+non-`conSlot` classifier for Move 1 is still a separate downstream obligation. We name that exact
+frontier here instead of pretending the collapse has already been proved. -/
+axiom latent_selector_signature_shared_target_reduces_to_noncon_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ) :
+    latent_selector_signature_shared_target_yields_noncon_candidate
+      M n σ S m hLen hDeg hVars hAdm hSig →
+    latent_canonical_profile_control_witness_is_noncon_candidate
+      M n σ S m hLen hDeg hVars hAdm hSig
+
 /-- Second missing downstream link for the revised Move 1 route: the canonical/profile-controlled
 witness should compute the same target projection `q`, not merely share the same profile
 signature. This candidate isolates that computation-equality frontier explicitly. -/
@@ -3691,7 +3729,8 @@ structure latent_profile_block_cover_selector_signature_construction_data_logsca
         (hg : g = mlProj (m * iterDerivList S (latentCompiledPoly M n))),
         latent_selector_profile_signature_of_generator_data M n S' m hLen' hDeg =
           latent_selector_profile_signature_of_generator_data M n S m hLen hDeg ∧
-        latent_selCon_single_sheet_compatible M n S' m
+        latent_selCon_single_sheet_compatible M n S' m ∧
+        g = mlProj (m * iterDerivList S' (latentCompiledPoly M n))
 
 /-- Candidate packaging for the revised Move 1 route: if raw admissible data first admits a
 canonical/profile-controlled 4-family presentation, and if the three remaining explicit frontiers

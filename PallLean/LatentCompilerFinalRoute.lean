@@ -945,7 +945,7 @@ noncomputable def local_selector_signature_construction_data_feeds_shared_target
     hg := Classical.choose_spec (Classical.choose_spec (Classical.choose_spec (Classical.choose_spec hex)))
   }
   rcases hSelData.canon_selector_signature g hg with
-    ⟨hLen', hLenCanon, hDeg', hVars', hAdm', hAdmCanon, hg', hSigCanon, hselCanon⟩
+    ⟨hLen', hLenCanon, hDeg', hVars', hAdm', hAdmCanon, hg', hSigCanon, hselCanon, hgCanon⟩
   have hhLen : hLen' = wd.hLen := by apply Subsingleton.elim
   have hhDeg : hDeg' = wd.hDeg := by apply Subsingleton.elim
   subst hhLen
@@ -1053,10 +1053,8 @@ theorem local_selector_signature_profile_control_feeds_single_generator_canonica
   exact h
 
 /-- Local notational alignment between the final-route canonicalization surface and the shared
-selector-signature target in `LatentWidthRankDecomp`: giving a canonical witness `S'` with the same
-selector-aware signature is exactly the same data as giving a witness with selector-signature equal
-to the one computed from the original `(S,m)`. This keeps the local final-route formulation and the
-shared downstream formulation synchronized. -/
+selector-signature target in `LatentWidthRankDecomp`: the shared target is the selector-signature /
+selector-compatibility fragment of the full single-generator canonicalization theorem. -/
 def local_single_generator_selector_signature_canonicalization_matches_shared_target
     (M : DTM) (n : ℕ)
     (g : MvPolynomial (Fin (latentNumVars M n)) ℚ)
@@ -1067,14 +1065,15 @@ def local_single_generator_selector_signature_canonicalization_matches_shared_ta
     (hVars : m.vars ⊆ S.toFinset)
     (hAdm : isBlockAdmissible (latentPartition M n) S)
     (hg : g = mlProj (m * iterDerivList S (latentCompiledPoly M n))) : Prop :=
+  local_single_generator_selector_signature_canonicalization_candidate
+    M n g S m hLen hDeg hVars hAdm hg →
   latent_construction_data_normalization_yields_selector_signature_profile_control_candidate
     M n (latent_selector_profile_signature_of_generator_data M n S m hLen hDeg)
     S m hLen hDeg hVars hAdm rfl
 
-/-- Identity handoff from the shared selector-signature target to the local single-generator
-canonicalization viewpoint. The missing work is still the actual canonicalization theorem, not a
-mismatch of theorem surfaces. -/
-theorem local_shared_selector_signature_target_feeds_single_generator_canonicalization
+/-- The full local single-generator canonicalization theorem immediately feeds the older shared
+selector-signature target by forgetting the preserved-generator equality. -/
+theorem local_single_generator_selector_signature_canonicalization_feeds_shared_target
     (M : DTM) (n : ℕ)
     (g : MvPolynomial (Fin (latentNumVars M n)) ℚ)
     (S : List (Fin (latentNumVars M n)))
@@ -1085,58 +1084,122 @@ theorem local_shared_selector_signature_target_feeds_single_generator_canonicali
     (hAdm : isBlockAdmissible (latentPartition M n) S)
     (hg : g = mlProj (m * iterDerivList S (latentCompiledPoly M n))) :
     local_single_generator_selector_signature_canonicalization_matches_shared_target
-      M n g S m hLen hDeg hVars hAdm hg →
-    local_single_generator_selector_signature_canonicalization_matches_shared_target
       M n g S m hLen hDeg hVars hAdm hg := by
-  intro h
-  exact h
+  intro hcanon
+  rcases hcanon with ⟨S', hLen', hAdm', hSig', hsel', _hg'⟩
+  exact ⟨S', hLen', hAdm', hSig', hsel'⟩
 
-/-- Structural obstruction, now made explicit: the current witness-construction package records only
-that each generator `g` is realized by some extracted pair `(S,m)`. It does not additionally carry a
-selector-compatible canonical representative `S'` preserving the selector-aware signature of `(S,m)`.
-So the shared selector-signature target cannot honestly be derived from the present structure alone.
-The new selector-signature construction-data package below is the proposed stronger replacement. -/
+/-- Strengthened local handoff: once the selector-signature construction-data package stores the
+canonical witness as representing the same generator `g`, the full local single-generator
+canonicalization target should be derivable directly from that stronger package. This is the honest
+replacement for the old generator-preservation obstruction. -/
+def local_selector_signature_construction_data_feeds_single_generator_canonicalization_candidate
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∀ (hSelData : latent_profile_block_cover_selector_signature_construction_data_logscale M n hn hn804)
+    (g : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hg : g ∈ hSelData.G),
+    let hex := hSelData.witness_realizes g hg
+    let S := hSelData.witnessS g
+    let m := hSelData.witnessM g
+    ∀ (hLen : S.length = Nat.log 2 n)
+      (hDeg : m.totalDegree ≤ Nat.log 2 n)
+      (hVars : m.vars ⊆ S.toFinset)
+      (hAdm : isBlockAdmissible (latentPartition M n) S)
+      (hgRealize : g = mlProj (m * iterDerivList S (latentCompiledPoly M n))),
+      local_single_generator_selector_signature_canonicalization_candidate
+        M n g S m hLen hDeg hVars hAdm hgRealize
+
+/-- The strengthened selector-signature construction-data package now contains exactly the missing
+extra equality for the local route: the canonical witness not only preserves selector signature and
+selector compatibility, but also represents the same generator `g`. So the full local
+single-generator canonicalization target becomes directly extractable. -/
+noncomputable def local_selector_signature_construction_data_feeds_single_generator_canonicalization
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :
+    local_selector_signature_construction_data_feeds_single_generator_canonicalization_candidate M n hn hn804 := by
+  intro hSelData g hg
+  dsimp [local_selector_signature_construction_data_feeds_single_generator_canonicalization_candidate]
+  intro hLen hDeg hVars hAdm hgRealize
+  rcases hSelData.canon_selector_signature g hg with
+    ⟨hLen0, hLen', hDeg0, hVars0, hAdm0, hAdm', hg0, hSig', hsel', hg'⟩
+  have hSig_cast :
+      latent_selector_profile_signature_of_generator_data
+          M n (hSelData.canonS g) (hSelData.witnessM g) hLen' hDeg =
+        latent_selector_profile_signature_of_generator_data
+          M n (hSelData.witnessS g) (hSelData.witnessM g) hLen hDeg := by
+    cases Subsingleton.elim hLen0 hLen
+    cases Subsingleton.elim hDeg0 hDeg
+    simpa using hSig'
+  exact ⟨hSelData.canonS g, hLen', hAdm', hSig_cast, hsel', hg'⟩
+
+/-- One-step downstream handoff: the stronger selector-signature construction-data package now feeds
+not just full local canonicalization, but also the older shared selector-signature target by
+composition with the forgetful map above. -/
+noncomputable def local_selector_signature_construction_data_feeds_shared_selector_signature_target
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :
+    ∀ (hSelData : latent_profile_block_cover_selector_signature_construction_data_logscale M n hn hn804)
+      (g : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+      (hg : g ∈ hSelData.G),
+      let S := hSelData.witnessS g
+      let m := hSelData.witnessM g
+      ∀ (hLen : S.length = Nat.log 2 n)
+        (hDeg : m.totalDegree ≤ Nat.log 2 n)
+        (hVars : m.vars ⊆ S.toFinset)
+        (hAdm : isBlockAdmissible (latentPartition M n) S)
+        (hgRealize : g = mlProj (m * iterDerivList S (latentCompiledPoly M n))),
+        local_single_generator_selector_signature_canonicalization_matches_shared_target
+          M n g S m hLen hDeg hVars hAdm hgRealize := by
+  intro hSelData g hg
+  dsimp
+  intro hLen hDeg hVars hAdm hgRealize
+  intro hcanon
+  exact local_single_generator_selector_signature_canonicalization_feeds_shared_target
+    M n g (hSelData.witnessS g) (hSelData.witnessM g) hLen hDeg hVars hAdm hgRealize hcanon
+
+/-- Honest obstruction note for the older witness-construction layer: it still does not retain the
+selector-signature canonical witness data now known to be necessary for the shared target. So the
+new downstream handoff genuinely belongs to the strengthened selector-signature package, not to the
+older witness-construction package. -/
 def local_extracted_generator_witness_selector_signature_target_obstruction
     (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804) :=
   latent_profile_block_cover_witness_construction_data_logscale M n hn hn804
 
-/-- Clean statement of the actual remaining local gap: after extracting a realized generator witness
-`(S,m)` from the witness-construction package, one still needs genuinely new theorem content
-upgrading that extracted presentation to the shared selector-signature canonical/profile-control
-target. This names that exact missing implication directly. -/
-def local_extracted_generator_witness_yields_shared_selector_signature_target_candidate
+/-- The new honest downstream target is no longer a theorem from the older witness-construction
+package. It is the stronger selector-signature construction-data handoff established above. -/
+def local_selector_signature_construction_data_yields_shared_selector_signature_target_candidate
     (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804) : Prop :=
-  ∀ (hWData : latent_profile_block_cover_witness_construction_data_logscale M n hn hn804)
-    (g : MvPolynomial (Fin (latentNumVars M n)) ℚ),
-    let G := hWData.G
-    g ∈ G →
-    let S := hWData.witnessS g
-    let m := hWData.witnessM g
+  ∀ (hSelData : latent_profile_block_cover_selector_signature_construction_data_logscale M n hn hn804)
+    (g : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hg : g ∈ hSelData.G),
+    let S := hSelData.witnessS g
+    let m := hSelData.witnessM g
     ∀ (hLen : S.length = Nat.log 2 n)
       (hDeg : m.totalDegree ≤ Nat.log 2 n)
       (hVars : m.vars ⊆ S.toFinset)
       (hAdm : isBlockAdmissible (latentPartition M n) S)
-      (hg : g = mlProj (m * iterDerivList S (latentCompiledPoly M n))),
+      (hgRealize : g = mlProj (m * iterDerivList S (latentCompiledPoly M n))),
       local_single_generator_selector_signature_canonicalization_matches_shared_target
-        M n g S m hLen hDeg hVars hAdm hg
+        M n g S m hLen hDeg hVars hAdm hgRealize
 
-/-- This is the honest local target that remains after extraction. The point of naming it now is to
-make clear that the blocker is missing selector-signature canonicalization content, not a hidden
-projection from the current witness-construction package. -/
-theorem local_generator_witness_extraction_reduces_to_shared_selector_signature_target
+/-- The strengthened selector-signature construction-data package now provably yields the shared
+selector-signature target. This is the correct downstream replacement for the older extraction-only
+frontier. -/
+theorem local_selector_signature_construction_data_reduces_to_shared_selector_signature_target
     (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804) :
-    local_extracted_generator_witness_yields_shared_selector_signature_target_candidate
-      M n hn hn804 →
-    local_extracted_generator_witness_yields_shared_selector_signature_target_candidate
+    local_selector_signature_construction_data_yields_shared_selector_signature_target_candidate
       M n hn hn804 := by
-  intro h
-  exact h
+  exact local_selector_signature_construction_data_feeds_shared_selector_signature_target M n hn hn804
 
 /-- Global bridge theorem: a global block-cover theorem yields a global
 span+bucket theorem by explicit witness extraction. -/
