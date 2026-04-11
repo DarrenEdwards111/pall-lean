@@ -3314,6 +3314,53 @@ theorem latent_selCon_compatible_implies_noncon_classifier
   rcases List.mem_map.mp hv with ⟨i, hi, rfl⟩
   exact ⟨i, rfl⟩
 
+/-- Selector-realization burden after the previous simplification: once selector compatibility is
+available, the only genuinely extra obligations left are support transport for `m` and preservation
+of the same target `q`. This repackages the sharp realization frontier with the noncon side removed,
+using `latent_selCon_compatible_implies_noncon_classifier` internally. -/
+def latent_selector_realization_reduced_obligations_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n))) : Prop :=
+  ∃ (S' : List (Fin (latentNumVars M n)))
+    (hLen' : S'.length = Nat.log 2 n),
+    isBlockAdmissible (latentPartition M n) S' ∧
+    latent_profile_signature_of_generator_data M n S' m hLen' hDeg = σ ∧
+    latent_selCon_single_sheet_compatible M n S' m ∧
+    m.vars ⊆ S'.toFinset ∧
+    q = mlProj (m * iterDerivList S' (latentCompiledPoly M n))
+
+/-- Reduced selector-realization obligations are enough for the full sharp selector-realization
+frontier, because selector compatibility itself already implies the noncon classifier. -/
+theorem latent_selector_realization_of_reduced_obligations
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n))) :
+    latent_selector_realization_reduced_obligations_candidate
+      M n σ q S m hLen hDeg hVars hAdm hSig hq →
+    latent_raw_admissible_has_selector_realization_candidate
+      M n σ q S m hLen hDeg hVars hAdm hSig hq := by
+  intro hred
+  rcases hred with ⟨S', hLen', hAdm', hSig', hsel', hVars', hq'⟩
+  exact ⟨S', hLen', hAdm', hSig', hsel', hVars',
+    latent_selCon_compatible_implies_noncon_classifier M n S' m hsel', hq'⟩
+
 /-- Candidate packaging for the revised Move 1 route: if raw admissible data first admits a
 canonical/profile-controlled 4-family presentation, and if the three remaining explicit frontiers
 can be discharged for the resulting canonical witness `S'` (namely: `S'` is noncon, `S'`
