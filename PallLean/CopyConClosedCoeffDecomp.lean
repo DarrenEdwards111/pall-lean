@@ -507,8 +507,12 @@ copyCon argument.
 
 After proving the two real insert-case support lemmas
 `copyConGadget_nonzero_mono_no_other_copySlot` and
-`copyCon_insert_witness_survives_in_residual`, the remaining gap is now only the final induction
-packaging for this theorem. -/
+`copyCon_insert_witness_survives_in_residual`, plus the exact-shape theorem
+`copyConGadget_nonzero_mono_exact_shape_candidate`, the remaining gap is now only the final
+induction packaging for this theorem. The failed first proof attempt showed the honest sticking
+point precisely: in the insert step, one still needs a clean residual transport that handles both
+(a) the `a = 0` branch and (b) the `a = single(copy j)+single(con j)` branch without illicitly
+reusing support hypotheses across the antidiagonal split. -/
 def coeff_copyConProd_eq_zero_of_exists_copy
     (M : DTM) (n : ℕ)
     (T : Finset (Fin (latentBaseVars M n)))
