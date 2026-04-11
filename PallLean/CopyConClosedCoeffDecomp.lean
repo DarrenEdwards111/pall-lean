@@ -267,6 +267,47 @@ theorem copyConGadget_nonzero_mono_has_copySlot (M : DTM) (n : ℕ)
     · simp at hprod
     · simp at hprod
 
+/-- Any nonzero monomial supported by `copyConGadget M n i` must be exactly the two-slot monomial
+`single (copySlot M n i) 1 + single (conSlot M n i) 1`. This is the literal support classification
+needed to kill the inserted-index witness branch in the positive-witness induction. -/
+theorem copyConGadget_nonzero_mono_exact_shape_candidate
+    (M : DTM) (n : ℕ)
+    (i : Fin (latentBaseVars M n)) :
+    ∀ m : (Fin (latentNumVars M n)) →₀ ℕ,
+      m ∈ (copyConGadget M n i).support →
+      m ≠ 0 →
+      m = Finsupp.single (copySlot M n i) 1 + Finsupp.single (conSlot M n i) 1 := by
+  intro m hm hm0
+  simp only [MvPolynomial.mem_support_iff, ne_eq] at hm
+  unfold copyConGadget Xcopy Xcon at hm
+  rw [MvPolynomial.coeff_sub, MvPolynomial.coeff_one] at hm
+  by_cases hm_zero : m = 0
+  · exact absurd hm_zero hm0
+  · simp only [hm_zero, ite_false, zero_sub, neg_ne_zero] at hm
+    have hmul : MvPolynomial.coeff m
+        (MvPolynomial.X (copySlot M n i) * MvPolynomial.X (conSlot M n i) :
+          MvPolynomial (Fin (latentNumVars M n)) ℚ) ≠ 0 := by
+      intro h
+      apply hm
+      simp [h, Ne.symm hm_zero]
+    rw [MvPolynomial.coeff_mul] at hmul
+    have hpair : ∃ p ∈ Finset.antidiagonal m,
+        MvPolynomial.coeff p.1 (MvPolynomial.X (copySlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ) *
+        MvPolynomial.coeff p.2 (MvPolynomial.X (conSlot M n i) : MvPolynomial (Fin (latentNumVars M n)) ℚ) ≠ 0 := by
+      by_contra hall
+      push_neg at hall
+      exact hmul (Finset.sum_eq_zero hall)
+    obtain ⟨⟨a, b⟩, hab_mem, hprod⟩ := hpair
+    simp only [Finset.mem_antidiagonal] at hab_mem
+    rw [MvPolynomial.coeff_X', MvPolynomial.coeff_X'] at hprod
+    split_ifs at hprod with ha hb
+    · subst ha
+      subst hb
+      exact hab_mem.symm
+    · simp at hprod
+    · simp at hprod
+    · simp at hprod
+
 /-- Support transports forward through a sum: if `x` appears in `b.support` and `a + b = m`, then
 it also appears in `m.support`. -/
 theorem mem_support_of_mem_support_right_of_add
@@ -323,26 +364,91 @@ theorem coeff_copyConProd_eq_zero_of_no_copy (M : DTM) (n : ℕ)
         exact hcopyA_not hcopyA
       simp [hcoeffA0]
 
-/-- Positive-witness gadget-product vanishing frontier.
-
-A single forbidden copy-slot support inside the gadget-product index set should already force the
-coefficient to vanish, which is exactly the positive-witness form needed by the off-diagonal
-copyCon argument.
-
-This remains blocked by one local gadget-support lemma. In the insert-step of the natural
-induction, after splitting `a + b = m`, the `i ≠ j` branch needs an additional fact about monomials
-appearing in `copyConGadget M n j`: namely, if `MvPolynomial.coeff a (copyConGadget M n j) ≠ 0`,
-then any copy-slot support of `a` must be exactly `copySlot M n j` and cannot occur at a different
-index `copySlot M n i` with `i ≠ j`. Without that local support-separation lemma, the
-positive-witness induction cannot justify that the surviving witness moves to `b` in the `i ≠ j`
-branch. -/
-def coeff_copyConProd_eq_zero_of_exists_copy
+/-- If a nonzero monomial occurs in `copyConGadget M n j`, it cannot use a different copy slot
+`copySlot M n i` with `i ≠ j`. -/
+theorem copyConGadget_nonzero_mono_no_other_copySlot
     (M : DTM) (n : ℕ)
-    (T : Finset (Fin (latentBaseVars M n)))
-    (m : (Fin (latentNumVars M n)) →₀ ℕ) : Prop :=
-  m ≠ 0 →
-  (∃ i ∈ T, copySlot M n i ∈ m.support) →
-    MvPolynomial.coeff m (∏ i ∈ T, copyConGadget M n i) = 0
+    (i j : Fin (latentBaseVars M n))
+    (hij : i ≠ j)
+    (m : (Fin (latentNumVars M n)) →₀ ℕ)
+    (hm : m ∈ (copyConGadget M n j).support) :
+    copySlot M n i ∉ m.support := by
+  intro hcopy
+  have hm_copy : m (copySlot M n i) ≠ 0 := Finsupp.mem_support_iff.mp hcopy
+  have hm0 : m ≠ 0 := by
+    intro hmz
+    exact hm_copy (by simp [hmz])
+  have hshape := copyConGadget_nonzero_mono_exact_shape_candidate M n j m hm hm0
+  rw [hshape] at hcopy
+  have hneq : copySlot M n i ≠ copySlot M n j := by
+    intro hEq
+    exact hij (copySlot_injective M n hEq)
+  simp [Finsupp.mem_support_iff, Finsupp.add_apply, hneq,
+    show copySlot M n i ≠ conSlot M n j from copySlot_ne_conSlot M n i j] at hcopy
+
+/-- In the insert-step for the copyCon gadget product, any witness copy-slot belonging to an index
+`i ≠ j` cannot come from the left gadget factor `copyConGadget M n j`, so it survives in the
+residual monomial `b`. -/
+theorem copyCon_insert_witness_survives_in_residual
+    (M : DTM) (n : ℕ)
+    {i j : Fin (latentBaseVars M n)}
+    (hij : i ≠ j)
+    {a b m : (Fin (latentNumVars M n)) →₀ ℕ}
+    (ha_supp : a ∈ (copyConGadget M n j).support)
+    (hm_copy : copySlot M n i ∈ m.support)
+    (hb_add : a + b = m) :
+    copySlot M n i ∈ b.support := by
+  have hcopyA_not : copySlot M n i ∉ a.support :=
+    copyConGadget_nonzero_mono_no_other_copySlot M n i j hij a ha_supp
+  rw [Finsupp.mem_support_iff] at hm_copy hcopyA_not ⊢
+  have hsum := congrArg (fun f => f (copySlot M n i)) hb_add
+  simp only [Finsupp.add_apply] at hsum
+  have ha_zero : a (copySlot M n i) = 0 := by
+    by_contra ha_ne
+    exact hcopyA_not ha_ne
+  omega
+
+/-- Insert-step splitter for the positive-witness copyCon induction.
+If a witness copy-slot belongs to an index from the residual set `S`, then any nonzero left factor
+from `copyConGadget M n j` forces that witness to remain in the residual monomial `b`. -/
+theorem copyCon_exists_copy_insert_reduce_to_residual
+    (M : DTM) (n : ℕ)
+    {j : Fin (latentBaseVars M n)}
+    {S : Finset (Fin (latentBaseVars M n))}
+    (hjS : j ∉ S)
+    {a b m : (Fin (latentNumVars M n)) →₀ ℕ}
+    (hp : a + b = m)
+    (ha_supp : a ∈ (copyConGadget M n j).support)
+    {i : Fin (latentBaseVars M n)}
+    (hiS : i ∈ S)
+    (hm_copy : copySlot M n i ∈ m.support) :
+    ∃ i' ∈ S, copySlot M n i' ∈ b.support := by
+  refine ⟨i, hiS, ?_⟩
+  exact copyCon_insert_witness_survives_in_residual M n
+    (i := i) (j := j)
+    (hij := by
+      intro hEq
+      exact hjS (hEq ▸ hiS))
+    (a := a) (b := b) (m := m)
+    ha_supp hm_copy hp
+
+/-- Insert-step repackaging of a witness in `insert j S`: if the witness is not on the inserted
+index `j`, then a nonzero left gadget factor pushes the witness down into the residual monomial. -/
+theorem copyCon_exists_copy_insert_cases
+    (M : DTM) (n : ℕ)
+    {j : Fin (latentBaseVars M n)}
+    {S : Finset (Fin (latentBaseVars M n))}
+    (hjS : j ∉ S)
+    {a b m : (Fin (latentNumVars M n)) →₀ ℕ}
+    (hp : a + b = m)
+    (ha_supp : a ∈ (copyConGadget M n j).support)
+    (hhasCopy : ∃ i ∈ insert j S, copySlot M n i ∈ m.support) :
+    (copySlot M n j ∈ m.support) ∨ (∃ i' ∈ S, copySlot M n i' ∈ b.support) := by
+  rcases hhasCopy with ⟨i, hiT, hm_copy⟩
+  rcases Finset.mem_insert.mp hiT with rfl | hiS
+  · exact Or.inl hm_copy
+  · exact Or.inr <| copyCon_exists_copy_insert_reduce_to_residual M n hjS hp ha_supp hiS hm_copy
+
 /-- Constant term of a single copyCon gadget. -/
 theorem copyConGadget_constant_term (M : DTM) (n : ℕ)
     (i : Fin (latentBaseVars M n)) :
@@ -393,6 +499,24 @@ theorem copyCon_diag_complement_support (M : DTM) (n : ℕ)
   · intro h
     simp [Finset.mem_antidiagonal] at h
 
+/-- Positive-witness gadget-product vanishing frontier.
+
+A single forbidden copy-slot support inside the gadget-product index set should already force the
+coefficient to vanish, which is exactly the positive-witness form needed by the off-diagonal
+copyCon argument.
+
+After proving the two real insert-case support lemmas
+`copyConGadget_nonzero_mono_no_other_copySlot` and
+`copyCon_insert_witness_survives_in_residual`, the remaining gap is now only the final induction
+packaging for this theorem. -/
+def coeff_copyConProd_eq_zero_of_exists_copy
+    (M : DTM) (n : ℕ)
+    (T : Finset (Fin (latentBaseVars M n)))
+    (m : (Fin (latentNumVars M n)) →₀ ℕ) : Prop :=
+  m ≠ 0 →
+  (∃ i ∈ T, copySlot M n i ∈ m.support) →
+    MvPolynomial.coeff m (∏ i ∈ T, copyConGadget M n i) = 0
+
 /-- Local residual-support frontier for the copyCon off-diagonal argument. Once one has a witness
 `i0 ∈ ksi.toFinset` with `i0 ∉ ksj.toFinset`, the remaining missing step is to show that any
 residual monomial `b` satisfying `copyCon_tagMono M n ksj + b = copyCon_tagMono M n ksi` must carry
@@ -423,13 +547,12 @@ theorem copyCon_residual_support_from_offdiag_witness
   exact hright hsum.symm
 
 /-- Honest off-diagonal frontier for the copyCon pure-con closed form. The combinatorial witness
-and the local residual-support theorem are now both proved, but the final coefficient-vanishing
-step still needs a positively phrased gadget-product lemma that consumes the forbidden support
-witness `copySlot M n i0 ∈ b.support` for some `i0 ∈ Finset.univ \ ksj.toFinset`. The existing
-vanishing lemma `coeff_copyConProd_eq_zero_of_no_copy` is shaped in the opposite direction, asking
-for absence of all such support. So the remaining gap is no longer about witness extraction or
-local slot evaluation; it is specifically about matching the final gadget-product coefficient lemma
-to the positive witness shape produced by `copyCon_residual_support_from_offdiag_witness`. -/
+and the local residual-support theorem are now both proved, and the exact remaining gap is now
+very specific: one must prove the positive-witness gadget-product vanishing statement
+`coeff_copyConProd_eq_zero_of_exists_copy`, then compose it with
+`copyCon_residual_support_from_offdiag_witness` to finish the off-diagonal coefficient argument.
+So the remaining blocker is no longer witness extraction or local slot evaluation, but precisely
+that final positive-support coefficient lemma for the complement gadget product. -/
 def copyCon_offdiag_complement_support
     (M : DTM) (n : ℕ)
     (ksi ksj : List (Fin (latentBaseVars M n)))
