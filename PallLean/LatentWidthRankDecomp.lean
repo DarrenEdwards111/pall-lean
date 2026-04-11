@@ -3153,9 +3153,7 @@ def latent_selector_signature_shared_target_reduces_to_noncon_candidate
       M n σ S m hLen hDeg hVars hAdm hSig := by
   intro hshared
   let ks := hshared.witness_selCompat.ks
-  have hnd : ks.Nodup := hshared.witness_selCompat.nodup
   have hS : hshared.witness = ks.map (selSlot M n) := hshared.witness_selCompat.eq_slots
-  have hVars' : m.vars ⊆ hshared.witness.toFinset := hshared.witness_selCompat.vars_subset
   have hSelFamily : ∀ v ∈ hshared.witness, ∃ i : Fin (latentBaseVars M n), v = selSlot M n i := by
     intro v hv
     rw [hS] at hv
@@ -4178,7 +4176,14 @@ def latent_copyCon_tagged_coefficient_separation_candidate
 /-- Current direct comparison frontier: if a raw pure-`conSlot` presentation and an explicit clean
 copy-slot presentation compute the same `(σ, q)`, then they should contradict on the live
 `copyConSheet` branch. The missing theorem is now explicitly about witness data on both sides,
-not about coarse menu membership. -/
+not about coarse menu membership.
+
+Status update: the equal-size side of the off-diagonal copyCon coefficient argument is no longer
+mysterious. In this comparison context, the pure-con witness carries `_hLenCon : Scon.length =
+Nat.log 2 n`, while the clean copy witness carries `hlen : ks.length = Nat.log 2 n`, so the two
+presentations automatically have the same size. The remaining gap is therefore narrower: transport
+that equal-length fact into the copyCon tagged-coefficient comparison, then finish the residual
+support contradiction on the live `copyConSheet`. -/
 def latent_pure_conSlot_vs_clean_copy_same_q_candidate
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
