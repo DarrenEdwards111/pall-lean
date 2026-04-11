@@ -3070,6 +3070,68 @@ def latent_canonical_profile_control_witness_supports_m_candidate
     latent_raw_slot_family_classifier_candidate M n S' ∧
     m.vars ⊆ S'.toFinset
 
+/-- Selector-first sharpening of the canonical/profile-control frontier: the cleanest currently
+viable path to `computes_q` is to strengthen the canonical witness all the way to selector-only
+single-sheet compatibility while keeping the same multiplier `m`. This candidate isolates that
+exact remaining theorem target explicitly. -/
+def latent_canonical_profile_control_witness_is_selector_compatible_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ) : Prop :=
+  ∃ (S' : List (Fin (latentNumVars M n)))
+    (hLen' : S'.length = Nat.log 2 n),
+    isBlockAdmissible (latentPartition M n) S' ∧
+    latent_profile_signature_of_generator_data M n S' m hLen' hDeg = σ ∧
+    latent_selCon_single_sheet_compatible M n S' m
+
+/-- Selector-enriched version of canonical/profile control: rather than remembering only a coarse
+4-family raw classifier, record enough selector-specific witness data to make the selector-first
+`computes_q` route executable. This is the natural strengthened Move 1 target if the coarse
+profile-control layer is too weak to recover selector compatibility on its own. -/
+def latent_raw_admissible_has_selector_enriched_profile_control_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (_hLen : S.length = Nat.log 2 n)
+    (_hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (_hVars : m.vars ⊆ S.toFinset)
+    (_hAdm : isBlockAdmissible (latentPartition M n) S)
+    (_hSig : latent_profile_signature_of_generator_data M n S m _hLen _hDeg = σ) : Prop :=
+  ∃ (S' : List (Fin (latentNumVars M n)))
+    (hLen' : S'.length = Nat.log 2 n),
+    isBlockAdmissible (latentPartition M n) S' ∧
+    latent_profile_signature_of_generator_data M n S' m hLen' _hDeg = σ ∧
+    latent_raw_slot_family_classifier_candidate M n S' ∧
+    latent_selCon_single_sheet_compatible M n S' m
+
+/-- Honest selector-first reduction from the enriched canonical/profile-control target to the
+selector-compatibility candidate. This is tautological once the stronger witness data is carried
+inside Move 1, but worth naming so later proofs can route through the enriched surface directly. -/
+theorem latent_selector_enriched_profile_control_yields_selector_compatible_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ) :
+    latent_raw_admissible_has_selector_enriched_profile_control_candidate
+      M n σ S m hLen hDeg hVars hAdm hSig →
+    latent_canonical_profile_control_witness_is_selector_compatible_candidate
+      M n σ S m hLen hDeg hVars hAdm hSig := by
+  intro hrich
+  rcases hrich with ⟨S', hLen', hAdm', hSig', _hclass4', hsel'⟩
+  exact ⟨S', hLen', hAdm', hSig', hsel'⟩
+
 /-- Candidate packaging for the revised Move 1 route: if raw admissible data first admits a
 canonical/profile-controlled 4-family presentation, and if the three remaining explicit frontiers
 can be discharged for the resulting canonical witness `S'` (namely: `S'` is noncon, `S'`
@@ -3217,13 +3279,13 @@ theorem latent_selCon_compatible_bucket_member_with_same_multiplier_yields_compu
       ∃ (ks : List (Fin (latentBaseVars M n)))
           (hnd : ks.Nodup)
           (hlen : ks.length = Nat.log 2 n)
-          (hVars' : m.vars ⊆ (ks.map (selSlot M n)).toFinset),
+          (_hVars' : m.vars ⊆ (ks.map (selSlot M n)).toFinset),
         latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) m
           (by simp [List.length_map, hlen]) hDeg = σ ∧
         q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n))) :
     latent_canonical_profile_control_witness_computes_q_candidate
       M n σ q S m hLen hDeg hVars hAdm hSig hq := by
-  rcases hsel with ⟨ks, hnd, hlen, hVars', hSig', hq'⟩
+  rcases hsel with ⟨ks, hnd, hlen, _hVars', hSig', hq'⟩
   refine ⟨ks.map (selSlot M n), by simpa [List.length_map] using hlen, ?_, ?_, ?_, ?_⟩
   · exact LatentWitnessMinorDecomp.witness_selector_list_admissible M n ks hnd
   · exact hSig'
@@ -3232,6 +3294,37 @@ theorem latent_selCon_compatible_bucket_member_with_same_multiplier_yields_compu
       rcases List.mem_map.mp hv with ⟨i, hi, rfl⟩
       exact ⟨i, rfl⟩)
   · exact hq'
+
+/-- Selector-first canonicalization reduction: the revised Move 1 `computes_q` goal follows as soon
+as canonical/profile control can be strengthened to an explicit selector-compatible witness with the
+same multiplier `m` and the same target `q`. This packages the exact selector-lane theorem shape
+that remains to be proved, without pretending that canonical/profile control alone already implies
+selector compatibility. -/
+theorem latent_selector_compatible_witness_yields_computes_q_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (S' : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hLen' : S'.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hAdm' : isBlockAdmissible (latentPartition M n) S')
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n)))
+    (hSig' : latent_profile_signature_of_generator_data M n S' m hLen' hDeg = σ)
+    (hsel' : latent_selCon_single_sheet_compatible M n S' m)
+    (hq' : q = mlProj (m * iterDerivList S' (latentCompiledPoly M n))) :
+    latent_canonical_profile_control_witness_computes_q_candidate
+      M n σ q S m hLen hDeg hVars hAdm hSig hq := by
+  rcases hsel' with ⟨ks, hnd, hS', hVars'⟩
+  subst hS'
+  exact latent_selCon_compatible_bucket_member_with_same_multiplier_yields_computes_q_candidate
+    M n σ q S m hLen hDeg hVars hAdm hSig hq
+    ⟨ks, hnd, by simpa [List.length_map] using hLen', hVars', hSig', hq'⟩
 
 /-- Pure con-slot lists are automatically disjoint from all three existing clean compatibility
 lanes. This does not yet solve the con-slot case, but it sharpens the frontier: a genuine
