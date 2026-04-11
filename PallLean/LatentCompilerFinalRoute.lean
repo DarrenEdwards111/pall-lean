@@ -843,7 +843,16 @@ def local_selector_signature_profile_control_from_construction_data_candidate
     (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804) : Prop :=
-  True
+  ∀ (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S),
+    latent_construction_data_normalization_yields_selector_signature_profile_control_candidate
+      M n
+      (latent_selector_profile_signature_of_generator_data M n S m hLen hDeg)
+      S m hLen hDeg hVars hAdm rfl
 
 /-- Honest upstream obstruction note: the existing construction-data package is phrased only in terms
 of a finite global generating set `G` and bucket partitions of generated polynomials. It does not
