@@ -4065,6 +4065,34 @@ noncomputable def latent_full_selector_signature_canonicalization_yields_compute
   exact latent_selector_compatible_witness_yields_computes_q_candidate
     M n σ q S S' m hLen hLen' hDeg hVars hAdm hAdm' hSig hq hSig' hsel' hq'
 
+/-- Direct q-side packaging for the selector-signature route: once selector-signature
+canonicalization provides a selector-compatible witness with the same target `q`, the revised Move 1
+`computes_q` candidate follows in one step. This lets downstream consumers avoid manually opening
+both the selector-signature witness package and the coarse-signature reduction. -/
+noncomputable def latent_selector_signature_profile_control_yields_computes_q
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n)))
+    (hcanon : ∃ (S' : List (Fin (latentNumVars M n)))
+        (hLen' : S'.length = Nat.log 2 n),
+        isBlockAdmissible (latentPartition M n) S' ∧
+        latent_selector_profile_signature_of_generator_data M n S' m hLen' hDeg =
+          latent_selector_profile_signature_of_generator_data M n S m hLen hDeg ∧
+        latent_selCon_single_sheet_compatible M n S' m ∧
+        q = mlProj (m * iterDerivList S' (latentCompiledPoly M n))) :
+    latent_canonical_profile_control_witness_computes_q_candidate
+      M n σ q S m hLen hDeg hVars hAdm hSig hq := by
+  exact latent_full_selector_signature_canonicalization_yields_computes_q_candidate
+    M n σ q S m hLen hDeg hVars hAdm hSig hq hcanon
+
 /-- Pure con-slot lists are automatically disjoint from all three existing clean compatibility
 lanes. This does not yet solve the con-slot case, but it sharpens the frontier: a genuine
 pure-con presentation cannot be silently reclassified by the current mach/copy/sel menus. -/
