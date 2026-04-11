@@ -464,6 +464,43 @@ generator presentation. -/
       latent_hitBlocks_of_list M n S := by
   rfl
 
+/-- Selector-aware refinement of the coarse profile signature. Besides hit blocks and multiplier
+ degree, it also remembers the actual selector support set for the multiplier witness. This is the
+ minimal local strengthening aimed at making support transport discussable at the invariant level,
+ instead of hoping to recover it from hit blocks alone. -/
+structure latentSelectorProfileSignature (M : DTM) (n : ℕ) where
+  coarse : latentProfileSignature M n
+  selSupport : Finset (Fin (latentNumVars M n))
+
+/-- Build the selector-aware profile signature attached to selector-compatible generator data. -/
+noncomputable def latent_selector_profile_signature_of_generator_data
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n) : latentSelectorProfileSignature M n :=
+  { coarse := latent_profile_signature_of_generator_data M n S m hLen hDeg
+    selSupport := m.vars }
+
+@[simp] theorem latent_selector_profile_signature_of_generator_data_coarse
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n) :
+    (latent_selector_profile_signature_of_generator_data M n S m hLen hDeg).coarse =
+      latent_profile_signature_of_generator_data M n S m hLen hDeg := by
+  rfl
+
+@[simp] theorem latent_selector_profile_signature_of_generator_data_selSupport
+    (M : DTM) (n : ℕ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n) :
+    (latent_selector_profile_signature_of_generator_data M n S m hLen hDeg).selSupport = m.vars := by
+  rfl
+
 /-- A polynomial lies in the coarse latent profile bucket `σ` if it is generated
 by some blocked-SPDP generator presentation `(S,m)` with coarse signature `σ`. -/
 def latent_profile_bucket_generators
@@ -3392,6 +3429,66 @@ theorem latent_selector_compatible_q_witness_yields_computes_q_candidate
       rcases List.mem_map.mp hv with ⟨i, hi, rfl⟩
       exact ⟨i, rfl⟩),
     hq'⟩
+
+/-- Honest support-transport frontier after the selector reduction work: selector compatibility and
+coarse profile/signature equality do not by themselves transport multiplier support onto the new
+witness. The currently available local support lemmas only show how to use `m.vars ⊆ S'.toFinset`
+once it is already present, for example to place multiplier variables inside the selector-hit block
+window. So support transport remains a separate theorem obligation. -/
+def latent_selector_support_transport_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (S : List (Fin (latentNumVars M n)))
+    (S' : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hLen' : S'.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (_hVars : m.vars ⊆ S.toFinset)
+    (_hAdm : isBlockAdmissible (latentPartition M n) S)
+    (_hAdm' : isBlockAdmissible (latentPartition M n) S')
+    (_hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (_hSig' : latent_profile_signature_of_generator_data M n S' m hLen' hDeg = σ)
+    (_hsel' : latent_selCon_single_sheet_compatible M n S' m) : Prop :=
+  m.vars ⊆ S'.toFinset
+
+/-- Selector-aware support transport frontier: once the invariant remembers the multiplier support
+set itself, support transport can be stated as equality of selector-aware signatures rather than as a
+fact that should somehow emerge from coarse hit-block data alone. This is the strengthened local
+formulation of the support problem. -/
+def latent_selector_signature_support_transport_candidate
+    (M : DTM) (n : ℕ)
+    (sigSel : latentSelectorProfileSignature M n)
+    (S' : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen' : S'.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (_hAdm' : isBlockAdmissible (latentPartition M n) S')
+    (_hSelSig' : latent_selector_profile_signature_of_generator_data M n S' m hLen' hDeg = sigSel)
+    (_hsel' : latent_selCon_single_sheet_compatible M n S' m) : Prop :=
+  sigSel.selSupport ⊆ S'.toFinset
+
+/-- If a selector-aware signature is realized by generator data `(S',m)`, its remembered support set
+is definitionally the multiplier support. So transporting support from the stronger invariant to the
+witness `S'` reduces exactly to the inclusion `sigSel.selSupport ⊆ S'.toFinset`. This is the clean
+replacement for the old impossible hope of deriving support from coarse signatures alone. -/
+theorem latent_selector_signature_support_transport_of_eq
+    (M : DTM) (n : ℕ)
+    (sigSel : latentSelectorProfileSignature M n)
+    (S' : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen' : S'.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hAdm' : isBlockAdmissible (latentPartition M n) S')
+    (hSelSig' : latent_selector_profile_signature_of_generator_data M n S' m hLen' hDeg = sigSel)
+    (hsel' : latent_selCon_single_sheet_compatible M n S' m)
+    (hsigSel : latent_selector_signature_support_transport_candidate M n sigSel S' m hLen' hDeg hAdm' hSelSig' hsel') :
+    m.vars ⊆ S'.toFinset := by
+  intro v hv
+  have hmemSigSel : v ∈ sigSel.selSupport := by
+    rw [← hSelSig']
+    simpa [latent_selector_profile_signature_of_generator_data_selSupport] using hv
+  exact hsigSel hmemSigSel
 
 /-- Candidate packaging for the revised Move 1 route: if raw admissible data first admits a
 canonical/profile-controlled 4-family presentation, and if the three remaining explicit frontiers
