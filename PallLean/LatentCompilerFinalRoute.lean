@@ -845,16 +845,107 @@ def local_selector_signature_profile_control_from_construction_data_candidate
     (hn804 : n ≥ 2 ^ 804) : Prop :=
   True
 
-/-- Placeholder bridge showing where the new local selector-aware Move-1 theorem should sit in the
-paper-faithful normalization stack. Once proved, this upstream local theorem can feed the downstream
-selector-signature profile-control theorem in `LatentWidthRankDecomp`. -/
-theorem local_selector_signature_profile_control_from_construction_data_of_global_construction_data
+/-- Honest upstream obstruction note: the existing construction-data package is phrased only in terms
+of a finite global generating set `G` and bucket partitions of generated polynomials. It does not
+currently retain the local witness-level data `(S, m)` needed to state or prove selector-aware
+canonical/profile control for a specific raw generator. So a direct derivation of the local selector
+signature theorem from `latent_profile_block_cover_construction_data_logscale` is not yet available
+without enriching the construction-data layer itself. -/
+def local_selector_signature_profile_control_from_construction_data_obstruction
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) : Prop :=
+  latent_profile_block_cover_construction_data_logscale M n hn hn804
+
+/-- Stronger paper-faithful upstream target: once the construction-data layer is enriched to retain
+local witness presentations for each generator, it becomes plausible to derive a canonical
+selector-aware representative theorem. This is the actual structural strengthening identified by the
+current obstruction analysis. -/
+def local_selector_signature_profile_control_from_witness_construction_data_candidate
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :=
+  latent_profile_block_cover_witness_construction_data_logscale M n hn hn804
+
+/-- First honest upstream bridge from the strengthened witness-carrying construction-data layer:
+if the construction-data package already retains explicit local witness presentations `(S,m)` for
+all generators, then the local selector-signature profile-control theorem has the right upstream
+source. This does not yet prove the selector-compatible canonical representative exists, but it pins
+that existence theorem to the witness-enriched construction-data layer instead of the older lossy
+package. -/
+def local_selector_signature_profile_control_from_witness_construction_data
     (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804)
-    (_hData : latent_profile_block_cover_construction_data_logscale M n hn hn804) :
-    local_selector_signature_profile_control_from_construction_data_candidate M n hn hn804 := by
-  trivial
+    (hWData : latent_profile_block_cover_witness_construction_data_logscale M n hn hn804) :
+    local_selector_signature_profile_control_from_witness_construction_data_candidate M n hn hn804 := by
+  exact hWData
+
+/-- First concrete local extraction interface from the witness-carrying construction-data layer:
+choose a realized generator `g ∈ G`, then recover its stored witness presentation `(S,m)` together
+with the usual blocked-SPDP side conditions. This is the minimal upstream local theorem needed before
+one can even begin proving a selector-aware canonical representative for a single generator. -/
+def local_generator_witness_extraction_from_witness_construction_data_candidate
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :=
+  ∀ (hWData : latent_profile_block_cover_witness_construction_data_logscale M n hn hn804)
+    (g : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+    let G := hWData.G
+    g ∈ G →
+    let S := hWData.witnessS g
+    let m := hWData.witnessM g
+    ∃ (hLen : S.length = Nat.log 2 n)
+      (hDeg : m.totalDegree ≤ Nat.log 2 n)
+      (hVars : m.vars ⊆ S.toFinset)
+      (hAdm : isBlockAdmissible (latentPartition M n) S),
+      g = mlProj (m * iterDerivList S (latentCompiledPoly M n))
+
+/-- The witness-carrying construction-data package already contains the previous extraction theorem
+by definition. This wrapper exposes it as a named local interface for downstream canonical
+representative work. -/
+def local_generator_witness_extraction_from_witness_construction_data
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804) :
+    local_generator_witness_extraction_from_witness_construction_data_candidate M n hn hn804 := by
+  intro hWData g
+  dsimp [local_generator_witness_extraction_from_witness_construction_data_candidate]
+  intro hg
+  exact hWData.witness_realizes g hg
+
+/-- Single-generator paper-faithful local target: after extracting a concrete witness presentation
+`(S,m)` for a realized generator `g`, construct a selector-compatible canonical representative for
+that same generator while preserving the selector-aware signature. This is the first genuinely local
+canonical-representative theorem that can use the upstream witness data. -/
+def local_single_generator_selector_signature_canonicalization_candidate
+    (M : DTM) (n : ℕ)
+    (g : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hg : g = mlProj (m * iterDerivList S (latentCompiledPoly M n))) : Prop :=
+  ∃ (S' : List (Fin (latentNumVars M n)))
+    (hLen' : S'.length = Nat.log 2 n),
+    isBlockAdmissible (latentPartition M n) S' ∧
+    latent_selector_profile_signature_of_generator_data M n S' m hLen' hDeg =
+      latent_selector_profile_signature_of_generator_data M n S m hLen hDeg ∧
+    latent_selCon_single_sheet_compatible M n S' m ∧
+    g = mlProj (m * iterDerivList S' (latentCompiledPoly M n))
+
+/-- Placeholder bridge showing where the new local selector-aware Move-1 theorem should sit in the
+paper-faithful normalization stack. Once the construction-data layer is enriched to retain local
+witness data, this upstream local theorem can feed the downstream selector-signature profile-control
+ theorem in `LatentWidthRankDecomp`. -/
+def local_selector_signature_profile_control_from_construction_data_of_global_construction_data
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (_hData : latent_profile_block_cover_construction_data_logscale M n hn hn804) : Prop :=
+  local_selector_signature_profile_control_from_construction_data_candidate M n hn hn804
 
 /-- Global bridge theorem: a global block-cover theorem yields a global
 span+bucket theorem by explicit witness extraction. -/
