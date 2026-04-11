@@ -4093,10 +4093,12 @@ def latent_nonempty_pure_conSlot_menu_exclusion_candidate
     (_hcon : ∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = conSlot M n i) : Prop :=
   ¬ latent_clean_compatible_bucket_member_menu M n σ q
 
-/-- Honest downstream obstruction package: if a future theorem proves the menu-level exclusion
-candidate for a given nonempty pure-con raw presentation, then that presentation cannot enter
-the existing cleaned bucket-member API. This keeps the current frontier executable without
-pretending the missing bridge is already proved. -/
+/-- Honest downstream obstruction package: the top-level cleaned menu forgets the original raw
+witness list `S`, so the previous pure-con single-sheet obstruction does not yet collapse the
+whole menu automatically. A future proof here needs a witness-preserving uniqueness bridge from
+menu membership back to the originating raw presentation, or a direct contradiction for pure-con
+presentations at menu level. For now we keep the executable downstream consumer phrased in terms
+of the explicit exclusion candidate above. -/
 theorem latent_nonempty_pure_conSlot_raw_bucket_exits_clean_menu_of_candidate
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
