@@ -3973,6 +3973,50 @@ noncomputable def latent_selector_compatible_witness_yields_computes_q_candidate
     M n σ q S m hLen hDeg hVars hAdm hSig hq
     ⟨ks, hnd, hlenMap, hVarsMap, hSigMap, hqMap⟩
 
+/-- Stronger downstream consumer for the final-route selector-signature canonicalization surface:
+if the upstream local theorem supplies a selector-compatible canonical witness `S'` for the same
+multiplier `m` and the same generated polynomial `q`, then the revised Move 1 `computes_q`
+candidate follows immediately. This is the honest data-preserving route beyond the weaker shared
+selector-signature target, which forgets the generator equality. -/
+noncomputable def latent_full_selector_signature_canonicalization_yields_computes_q_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n))) :
+    (∃ (S' : List (Fin (latentNumVars M n)))
+        (hLen' : S'.length = Nat.log 2 n),
+        isBlockAdmissible (latentPartition M n) S' ∧
+        latent_selector_profile_signature_of_generator_data M n S' m hLen' hDeg =
+          latent_selector_profile_signature_of_generator_data M n S m hLen hDeg ∧
+        latent_selCon_single_sheet_compatible M n S' m ∧
+        q = mlProj (m * iterDerivList S' (latentCompiledPoly M n))) →
+    latent_canonical_profile_control_witness_computes_q_candidate
+      M n σ q S m hLen hDeg hVars hAdm hSig hq := by
+  intro hcanon
+  let S' := Classical.choose hcanon
+  let h1 := Classical.choose_spec hcanon
+  let hLen' : S'.length = Nat.log 2 n := Classical.choose h1
+  let h2 := Classical.choose_spec h1
+  let hAdm' : isBlockAdmissible (latentPartition M n) S' := h2.1
+  let h3 := h2.2
+  let hSelSig' : latent_selector_profile_signature_of_generator_data M n S' m hLen' hDeg =
+      latent_selector_profile_signature_of_generator_data M n S m hLen hDeg := h3.1
+  let h4 := h3.2
+  let hsel' : latent_selCon_single_sheet_compatible M n S' m := h4.1
+  let hq' : q = mlProj (m * iterDerivList S' (latentCompiledPoly M n)) := h4.2
+  have hSig' : latent_profile_signature_of_generator_data M n S' m hLen' hDeg = σ := by
+    have hcoarse := congrArg latentSelectorProfileSignature.coarse hSelSig'
+    simpa [latent_selector_profile_signature_of_generator_data_coarse] using hcoarse.trans hSig
+  exact latent_selector_compatible_witness_yields_computes_q_candidate
+    M n σ q S S' m hLen hLen' hDeg hVars hAdm hAdm' hSig hq hSig' hsel' hq'
+
 /-- Pure con-slot lists are automatically disjoint from all three existing clean compatibility
 lanes. This does not yet solve the con-slot case, but it sharpens the frontier: a genuine
 pure-con presentation cannot be silently reclassified by the current mach/copy/sel menus. -/
