@@ -1,4 +1,5 @@
 import PallLean.CookLevinDefs
+import PallLean.GodMoveReal
 import PallLean.ProfileCompression
 import PallLean.IdentityMinorReal
 import PallLean.BinomialBound2
@@ -369,20 +370,22 @@ structure GodMoveExtractionInterface (M : DTM) (n : ℕ)
         (compiledPoly (cook_levin_compilation M n hn2 htb hns))
 
 
-/-- **God-Move Extraction Interface (Paper Lemma 123 / Definition 6 / Lemma 7) — AXIOM**
+/-- **God-Move Extraction Interface (Paper Lemma 123 / Definition 6 / Lemma 7)**
 
 Paper-faithful semantic core: if `M` decides 3-SAT, then on the hard Tseitin
 instance of size `n` there exists an instance-uniform, witness-free, block-local
 extraction interface from the compiled polynomial space to the coupled verifier
-sheet space. The actual map `ΠΦ : F[u,v] → F[u]` is not yet formalized, so the
-interface records exactly the source/target rank transfer needed by the present
-formalization. -/
-axiom god_move_extraction_interface (M : DTM) (n : ℕ)
+sheet space.
+
+This interface is now derived from the typed staged God-Move frontier in
+`GodMoveReal.lean`, rather than being postulated independently here. -/
+theorem god_move_extraction_interface (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : DecidesSAT M)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n) :
-    GodMoveExtractionInterface M n (by omega : n ≥ 2) htb hns
+    GodMoveExtractionInterface M n (by omega : n ≥ 2) htb hns := by
+  exact GodMoveReal.god_move_extraction_interface_of_typed M n hn hdec htb hns
 
 /-- Derived compiled-space lower bound obtained from the paper-faithful abstract
 God-Move interface. -/

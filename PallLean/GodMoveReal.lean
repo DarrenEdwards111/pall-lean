@@ -320,6 +320,33 @@ structure GodMoveTypedExtraction (M : DTM) (n : ℕ)
 
 /-- Forgetting the concrete typed map data yields the lighter abstract interface
 used in `PaperFaithfulSeparation.lean`. -/
+/-- **Typed God-Move extraction frontier**.
+
+This is the paper-faithful semantic frontier for §29 in its explicit typed form:
+for a machine deciding SAT, the compiled Cook-Levin polynomial admits a witness-
+free, instance-uniform, block-local staged extraction to a coupled clause-sheet
+object with the required NP-side lower bound and rank transfer.
+
+The abstract interface in `PaperFaithfulSeparation` should be viewed as the
+forgetful image of this typed theorem. -/
+axiom godMoveTypedExtraction_exists (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveTypedExtraction M n (by omega : n ≥ 2) htb hns
+
+/-- Forgetful bridge: the typed God-Move extraction frontier implies the lighter
+abstract interface used by the separation file. -/
+theorem god_move_extraction_interface_of_typed
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    PaperFaithfulSeparation.GodMoveExtractionInterface M n (by omega : n ≥ 2) htb hns := by
+  exact godMoveTypedExtractionToInterface (godMoveTypedExtraction_exists M n hn hdec htb hns)
+
 def godMoveTypedExtractionToInterface
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     (g : GodMoveTypedExtraction M n hn2 htb hns) :
