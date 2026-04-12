@@ -198,6 +198,7 @@ structure GodMoveRestrictionData (compiledVars : ℕ) where
   fixes_administrative_vars : Prop
   fixes_tableau_vars_to_constants : Prop
   preserves_clause_sheet_vars : Prop
+  specializedVars : Finset (Fin compiledVars)
   fixedVars_cover_specialized_coordinates : Prop
   free_embedding_avoids_fixed : Prop
 
@@ -212,6 +213,7 @@ structure GodMoveProjectionData (restrictedVars : ℕ) where
   keptVars : Finset (Fin restrictedVars)
   projectedVars : ℕ
   coordinateMap : Fin projectedVars → Fin restrictedVars
+  keptVarEmbedding : Fin projectedVars → Fin restrictedVars
   selects_clause_sheet_coordinates : Prop
   discards_non_clause_sheet_coordinates : Prop
   keptVars_match_clauseSheetVars : Prop
@@ -229,6 +231,7 @@ structure GodMoveRelabelData (projectedVars coupledVars : ℕ) where
   sourceBlockMap : Fin projectedVars → Fin sourceBlocks
   targetBlockMap : Fin coupledVars → Fin targetBlocks
   variableRelabel : Fin projectedVars → Fin coupledVars
+  normalizedVarEmbedding : Fin projectedVars → Fin coupledVars
   respects_block_locality : Prop
   is_basis_normalization : Prop
   is_instance_uniform_relabeling : Prop
