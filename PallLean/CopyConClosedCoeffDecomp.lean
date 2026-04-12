@@ -1655,7 +1655,8 @@ theorem copyCon_offdiag_complement_support
       ((ksj.map (Xcopy M n)).prod * ∏ i ∈ (Finset.univ \ ksj.toFinset), copyConGadget M n i) ≠ 0 := by
     intro hzero
     apply hcoeff'
-    simp [hzero, hscalar_ne]
+    rw [hzero]
+    simp [hscalar_ne]
   rw [Xcopy_prod_eq_monomial M n ksj hndj] at hresid_copy
   have htag_diff : copyCon_tagMono M n ksi ≠ copyCon_tagMono M n ksj :=
     copyCon_tagMono_ne_of_toFinset_ne M n ksi ksj hndi hndj hne
@@ -1666,18 +1667,22 @@ theorem copyCon_offdiag_complement_support
           MvPolynomial.coeff ab.2 (∏ i ∈ (Finset.univ \ ksj.toFinset), copyConGadget M n i) ≠ 0 := by
     by_contra hnone
     apply hresid_copy
-    rw [Finset.sum_eq_zero]
+    apply Finset.sum_eq_zero
     intro ab hab
-    have hmem : ab ∈ Finset.antidiagonal (copyCon_tagMono M n ksi) := hab
-    have := hnone ab hmem
-    simpa [Finset.mem_antidiagonal] using this
+    by_contra habnz
+    exact hnone ⟨ab, hab, habnz⟩
   rcases hsum_nonzero with ⟨⟨a, b⟩, hab, habnz⟩
   have hab_add : a + b = copyCon_tagMono M n ksi := by
     simpa [Finset.mem_antidiagonal] using hab
   have ha_coeff_ne : MvPolynomial.coeff a (MvPolynomial.monomial (copyCon_tagMono M n ksj) 1) ≠ 0 := by
     intro hzero
-    apply habnz
-    simp [hzero]
+    rw [MvPolynomial.coeff_monomial] at hzero
+    by_cases hEq : copyCon_tagMono M n ksj = a
+    · have : (1 : ℚ) = 0 := by simpa [hEq] using hzero
+      norm_num at this
+    · apply habnz
+      rw [MvPolynomial.coeff_monomial]
+      simp [hEq]
   have ha_eq : a = copyCon_tagMono M n ksj := by
     by_cases hEq : a = copyCon_tagMono M n ksj
     · exact hEq
@@ -1709,6 +1714,10 @@ theorem copyCon_offdiag_complement_support
   have hpair := copyCon_prod_nonzero_mono_copy_support_control_candidate M n
     (Finset.univ \ ksj.toFinset) b hb_coeff_ne i0 hcopy_missing
   rcases hpair with ⟨hi0_resid, hcon_resid⟩
-  exact hi0_not_ksj hi0_resid
+  have hfinRange_nodup : (List.finRange (latentBaseVars M n)).Nodup := List.nodup_finRange _
+  have hmem_diff : i0 ∈ List.finRange (latentBaseVars M n) ∧ i0 ∉ ksj.dedup :=
+    (List.Nodup.mem_diff_iff hfinRange_nodup).mp hi0_resid
+  have hi0_not_dedup : i0 ∉ ksj.dedup := hmem_diff.2
+  exact hi0_not_ksj ((List.mem_dedup).1 (by_contra fun h => hi0_not_dedup h))
 
 end CopyConClosedCoeffDecomp
