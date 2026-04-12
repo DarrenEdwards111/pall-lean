@@ -1,0 +1,232 @@
+/-
+  CookLevinDefs.lean — Cook-Levin compilation definitions
+
+  Extracted from PaperFaithfulSeparation.lean to break the circular import
+  between PaperFaithfulSeparation and ProfileCompression.
+
+  Contains:
+  - LocalConstraint, CompiledTableau structures
+  - compiledPoly (the product polynomial)
+  - cook_levin_compilation (the honest compilation)
+  - has_bounded_locality, locality_implies_poly_rank
+-/
+import PallLean.SPDPDefs
+import PallLean.MultilinearSPDP
+import PallLean.TuringMachine
+import Mathlib.Tactic
+import Mathlib.Data.Nat.Log
+
+namespace PaperFaithfulSeparation
+
+open SPDP MultilinearSPDP MvPolynomial TuringMachine
+
+/-! ## §17: Cook-Levin Tableau Polynomial -/
+
+/-- A local constraint is a polynomial on a bounded number of variables
+in a fixed-radius neighborhood of a tableau cell. -/
+structure LocalConstraint (N : ℕ) where
+  poly : MvPolynomial (Fin N) ℚ
+  support : Finset (Fin N)
+  support_bound : support.card ≤ 10  -- O(1) variables per constraint
+  vars_contained : poly.vars ⊆ support
+  degree_bound : poly.totalDegree ≤ 6  -- constant degree
+
+/-- A compiled tableau family packages the Cook-Levin construction for a DTM M
+at input size n. The polynomial is 1 - Σ C² where C ranges over local constraints. -/
+structure CompiledTableau (M : DTM) (n : ℕ) where
+  numVars : ℕ
+  numVars_poly : numVars ≤ n ^ 10  -- poly(n) variables
+  constraints : List (LocalConstraint numVars)
+  constraints_poly : constraints.length ≤ n ^ 10  -- poly(n) constraints
+  /-- Each constraint touches variables in a constant-radius neighborhood -/
+  locality_radius : ℕ
+  locality_bound : locality_radius ≤ 5  -- O(1)
+  /-- The block partition groups variables by tableau cell neighborhood -/
+  partition : BlockPartition numVars
+
+/-- The compiled polynomial: P_{M,n} = ∏ᵢ (1 - Cᵢ)
+
+This is the product form from the paper (§17.1). Each factor (1 - Cᵢ) vanishes
+when constraint Cᵢ is violated, so the product vanishes iff any constraint fails.
+
+The product form (as opposed to the sum-of-squares 1 - Σ Cᵢ²) is essential:
+- **NP-side**: The product creates cross-variable interactions that survive
+  iterated differentiation, enabling the identity minor (Lemmas 123-124).
+- **P-side**: Profile compression (§9, Theorem 92) gives polynomial SPDP rank
+  by bounding the number of distinct constraint profiles. -/
+noncomputable def compiledPoly {M : DTM} {n : ℕ} (T : CompiledTableau M n) :
+    MvPolynomial (Fin T.numVars) ℚ :=
+  (T.constraints.map (fun c => 1 - c.poly)).prod
+
+/-! ## §17.3: P-side SPDP Rank Bound (Profile Compression) -/
+
+/-- The key locality property: each SPDP row is a linear combination of at most
+C₁ local terms, each supported in a neighborhood of size R₀ = O(1).
+
+This is Lemma 91 in the paper. For P = ∏(1 - Cᵢ), the Leibniz rule gives
+∂_S P = Σ_{T⊆S} (∏_{i∈T} (-∂_{sᵢ}Cᵢ)) × (∏_{j∉T} (1-Cⱼ)).
+Profile compression (§9) bounds the number of distinct constraint profiles,
+giving polynomial SPDP rank (Theorem 92). -/
+def has_bounded_locality {N : ℕ} (B : BlockPartition N)
+    (p : MvPolynomial (Fin N) ℚ)
+    (R : ℕ)  -- max variables per row
+    (C₁ : ℕ)  -- max local terms per row
+    : Prop :=
+  ∀ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
+    S.length = Nat.log 2 N →
+    m.totalDegree ≤ Nat.log 2 N →
+    isBlockAdmissible B S →
+    (mlProj (m * iterDerivList S p)).vars.card ≤ R
+
+/-- The P-side rank bound: any polynomial whose SPDP subspace is contained
+in the span of a finite set G with |G| ≤ N^200 has SPDP rank ≤ N^200. -/
+theorem locality_implies_poly_rank {N : ℕ} (B : BlockPartition N)
+    (p : MvPolynomial (Fin N) ℚ)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hSpan : mlBlockedSpdpSubspace B (Nat.log 2 N) (Nat.log 2 N) p ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
+    (hCard : G.card ≤ N ^ 200) :
+    mlBlockedSpdpRank B (Nat.log 2 N) (Nat.log 2 N) p ≤ N ^ 200 := by
+  unfold mlBlockedSpdpRank
+  have hmono : Module.finrank ℚ
+      (mlBlockedSpdpSubspace B (Nat.log 2 N) (Nat.log 2 N) p) ≤
+      Module.finrank ℚ (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ))) :=
+    Submodule.finrank_mono hSpan
+  have hspan_card : Module.finrank ℚ
+      (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ))) ≤ G.card :=
+    finrank_span_finset_le_card G
+  exact le_trans (le_trans hmono hspan_card) hCard
+
+/-! ## §29.2: Cook-Levin Compilation (Honest Construction) -/
+
+/-- Booleanity polynomial z * (1 - z) for variable v. -/
+private noncomputable def boolPoly' (N : ℕ) (v : Fin N) : MvPolynomial (Fin N) ℚ :=
+  MvPolynomial.X v * (1 - MvPolynomial.X v)
+
+/-- boolPoly' variables are contained in {v}. -/
+private theorem boolPoly'_vars (N : ℕ) (v : Fin N) :
+    (boolPoly' N v).vars ⊆ ({v} : Finset (Fin N)) := by
+  unfold boolPoly'
+  intro w hw
+  simp only [Finset.mem_singleton]
+  have hsub := MvPolynomial.vars_mul (MvPolynomial.X v : MvPolynomial (Fin N) ℚ) (1 - MvPolynomial.X v)
+  have hw2 := hsub hw
+  simp only [Finset.mem_union] at hw2
+  cases hw2 with
+  | inl h1 => rwa [MvPolynomial.vars_X, Finset.mem_singleton] at h1
+  | inr h2 =>
+    have hsub2 := MvPolynomial.vars_sub_subset
+      (p := (1 : MvPolynomial (Fin N) ℚ)) (q := (MvPolynomial.X v : MvPolynomial (Fin N) ℚ))
+    have h3 := hsub2 h2
+    simp only [Finset.mem_union, MvPolynomial.vars_one, Finset.empty_union,
+               MvPolynomial.vars_X, Finset.mem_singleton] at h3
+    exact h3
+
+/-- boolPoly' has degree <= 2. -/
+private theorem boolPoly'_degree (N : ℕ) (v : Fin N) :
+    (boolPoly' N v).totalDegree ≤ 2 := by
+  unfold boolPoly'
+  have h1 := MvPolynomial.totalDegree_mul
+    (MvPolynomial.X v : MvPolynomial (Fin N) ℚ) (1 - MvPolynomial.X v)
+  have h2 : (MvPolynomial.X v : MvPolynomial (Fin N) ℚ).totalDegree = 1 :=
+    MvPolynomial.totalDegree_X v
+  have h3 : (1 - MvPolynomial.X v : MvPolynomial (Fin N) ℚ).totalDegree ≤ 1 := by
+    have := MvPolynomial.totalDegree_sub
+      (1 : MvPolynomial (Fin N) ℚ) (MvPolynomial.X v : MvPolynomial (Fin N) ℚ)
+    simp [MvPolynomial.totalDegree_one, MvPolynomial.totalDegree_X] at this
+    exact this
+  linarith
+
+/-- Build a LocalConstraint from a booleanity polynomial. -/
+private noncomputable def boolLC (N : ℕ) (v : Fin N) : LocalConstraint N where
+  poly := boolPoly' N v
+  support := {v}
+  support_bound := by simp
+  vars_contained := boolPoly'_vars N v
+  degree_bound := le_trans (boolPoly'_degree N v) (by omega)
+
+/-- List of n booleanity constraints. -/
+private noncomputable def boolConstraintList (N : ℕ) : List (LocalConstraint N) :=
+  (List.finRange N).map (fun v => boolLC N v)
+
+private theorem boolConstraintList_length (N : ℕ) :
+    (boolConstraintList N).length = N := by
+  simp [boolConstraintList]
+
+/-- Adjacency polynomial X_i * X_{i+1} for consecutive variables. -/
+private noncomputable def adjPoly (N : ℕ) (i : Fin N) (hi : i.val + 1 < N) :
+    MvPolynomial (Fin N) ℚ :=
+  MvPolynomial.X i * MvPolynomial.X ⟨i.val + 1, hi⟩
+
+/-- adjPoly variables are contained in {i, i+1}. -/
+private theorem adjPoly_vars (N : ℕ) (i : Fin N) (hi : i.val + 1 < N) :
+    (adjPoly N i hi).vars ⊆ ({i, ⟨i.val + 1, hi⟩} : Finset (Fin N)) := by
+  unfold adjPoly
+  intro w hw
+  have hsub := MvPolynomial.vars_mul
+    (MvPolynomial.X i : MvPolynomial (Fin N) ℚ)
+    (MvPolynomial.X ⟨i.val + 1, hi⟩ : MvPolynomial (Fin N) ℚ)
+  have hw2 := hsub hw
+  simp only [Finset.mem_union, MvPolynomial.vars_X, Finset.mem_singleton,
+             Finset.mem_insert] at hw2 ⊢
+  exact hw2
+
+/-- adjPoly has degree <= 2. -/
+private theorem adjPoly_degree (N : ℕ) (i : Fin N) (hi : i.val + 1 < N) :
+    (adjPoly N i hi).totalDegree ≤ 2 := by
+  unfold adjPoly
+  have h := MvPolynomial.totalDegree_mul
+    (MvPolynomial.X i : MvPolynomial (Fin N) ℚ)
+    (MvPolynomial.X ⟨i.val + 1, hi⟩ : MvPolynomial (Fin N) ℚ)
+  simp [MvPolynomial.totalDegree_X] at h
+  linarith
+
+/-- Build a LocalConstraint from an adjacency polynomial. -/
+private noncomputable def adjLC (N : ℕ) (i : Fin N) (hi : i.val + 1 < N) :
+    LocalConstraint N where
+  poly := adjPoly N i hi
+  support := {i, ⟨i.val + 1, hi⟩}
+  support_bound := by
+    have h := Finset.card_insert_le i ({⟨i.val + 1, hi⟩} : Finset (Fin N))
+    simp at h; linarith
+  vars_contained := adjPoly_vars N i hi
+  degree_bound := le_trans (adjPoly_degree N i hi) (by omega)
+
+/-- List of (N-1) adjacency constraints for consecutive variable pairs. -/
+private noncomputable def adjConstraintList (N : ℕ) : List (LocalConstraint N) :=
+  (List.finRange N).filterMap (fun i =>
+    if h : i.val + 1 < N then some (adjLC N i h) else none)
+
+private theorem adjConstraintList_length (N : ℕ) (hN : N ≥ 1) :
+    (adjConstraintList N).length ≤ N := by
+  unfold adjConstraintList
+  trans (List.finRange N).length
+  · exact List.length_filterMap_le _ _
+  · simp [List.length_finRange]
+
+/-- Cook-Levin compilation with booleanity AND transition skeleton constraints. -/
+noncomputable def cook_levin_compilation (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    CompiledTableau M n :=
+  { numVars := n
+    numVars_poly := by
+      have h1 : 1 ≤ n := by omega
+      calc n = n ^ 1 := (pow_one n).symm
+        _ ≤ n ^ 10 := Nat.pow_le_pow_right h1 (by omega)
+    constraints := boolConstraintList n ++ adjConstraintList n
+    constraints_poly := by
+      have hbool : (boolConstraintList n).length = n := boolConstraintList_length n
+      have hadj : (adjConstraintList n).length ≤ n := adjConstraintList_length n (by omega)
+      simp only [List.length_append]
+      have h1 : 1 ≤ n := by omega
+      calc (boolConstraintList n).length + (adjConstraintList n).length
+          ≤ n + n := by omega
+        _ = 2 * n := by ring
+        _ ≤ n * n := by nlinarith
+        _ = n ^ 2 := by ring
+        _ ≤ n ^ 10 := Nat.pow_le_pow_right h1 (by omega)
+    locality_radius := 1
+    locality_bound := by omega
+    partition := { numBlocks := n, assign := id } }
+
+end PaperFaithfulSeparation

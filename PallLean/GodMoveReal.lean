@@ -182,9 +182,41 @@ They only make the typed ingredients explicit so later work can state the real
 God-Move without collapsing compiled and coupled polynomials into one variable
 space. -/
 
-/-- A typed map from compiled tableau space to coupled clause-sheet space. -/
+/-- Explicit data for the restriction stage of the God-Move.
+
+This records which compiled variables are being fixed as administrative/tableau
+coordinates and what constant specialization is applied to them. The remaining
+semantic burden is to connect this abstract record to the actual Cook-Levin
+variable layout for the hard instance. -/
+structure GodMoveRestrictionData (compiledVars : ℕ) where
+  fixedVars : Finset (Fin compiledVars)
+  freeVarsAfterRestriction : ℕ
+  assignment : Fin compiledVars → ℚ
+  fixes_administrative_vars : Prop
+  preserves_clause_sheet_vars : Prop
+
+/-- A typed map from compiled tableau space to coupled clause-sheet space.
+
+The paper's `ΠΦ` is described as a composite of three operations:
+1. restrict administrative/tableau variables to fixed constants,
+2. project to the clause-sheet coordinates,
+3. apply a fixed block-local relabeling / basis normalization.
+
+We expose those layers here as explicit fields, while still packaging the final
+composite map as `toFun`. The fields are descriptive scaffolding for the real
+semantic theorem, not a claim that the construction has already been proved. -/
 structure GodMoveTypedMap (compiledVars coupledVars : ℕ) where
+  restrictionData : GodMoveRestrictionData compiledVars
+  restrictedVars : ℕ
+  projectedVars : ℕ
+  restrictFun : MvPolynomial (Fin compiledVars) ℚ → MvPolynomial (Fin restrictedVars) ℚ
+  projectFun : MvPolynomial (Fin restrictedVars) ℚ → MvPolynomial (Fin projectedVars) ℚ
+  relabelFun : MvPolynomial (Fin projectedVars) ℚ → MvPolynomial (Fin coupledVars) ℚ
   toFun : MvPolynomial (Fin compiledVars) ℚ → MvPolynomial (Fin coupledVars) ℚ
+  factors_through : ∀ p, toFun p = relabelFun (projectFun (restrictFun p))
+  restriction_is_constant_specialization : Prop
+  projection_is_clause_sheet : Prop
+  relabel_is_block_local_normalization : Prop
   instance_uniform : Prop
   witness_free : Prop
   block_local : Prop

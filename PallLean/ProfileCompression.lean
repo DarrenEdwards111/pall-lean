@@ -40,7 +40,7 @@
   rule and within-profile span analysis. From these + the counting lemmas,
   the full rank bound follows.
 -/
-import PallLean.PaperFaithfulSeparation
+import PallLean.CookLevinDefs
 import PallLean.MultilinearSPDP
 import Mathlib.Tactic
 
