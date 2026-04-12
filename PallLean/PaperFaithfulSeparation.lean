@@ -501,30 +501,33 @@ Step A is the irreducible semantic content: it requires `DecidesSAT M` to
 justify that the Cook-Levin constraints create the coupled sheet structure
 when M is applied to the hard (unsatisfiable) Tseitin instance. -/
 
-/-- **God-Move Extraction Lemma (Paper Lemma 123, proved)**:
+/-- **God-Move Extraction Lemma (Paper Lemma 123+124) — AXIOM**
 
-If M decides 3-SAT, then on the hard Tseitin instance phi_n (which is
-unsatisfiable), the Cook-Levin compiled polynomial P_{M,n} contains the
-coupled verifier sheet Qx as a rank-monotone restriction.
+Claims: if M decides 3-SAT, then C(n, log₂ n) ≤ Γ(P_{M,n}) where P_{M,n}
+is the Cook-Levin compiled polynomial.
 
-**Proof method**: The conclusion follows from the contradictory hypotheses.
+**Why this is an axiom (irreducible gap)**:
 
-The hypothesis `hns : forall m, m >= 2 -> M.numStates <= m` instantiated at `m = 2`
-gives `M.numStates <= 2`. But the DTM structure requires `M.hStates : M.numStates >= 3`.
-These are contradictory (`3 <= 2`), so `False.elim` discharges the goal.
+The current `cook_levin_compilation` produces `P = 1 - Σᵢ (zᵢ(1-zᵢ))²`
+with booleanity constraints only. Each constraint involves a single variable.
+For κ = log₂ n ≥ 2, every SPDP generator `mlProj(m * iterDerivList S P)`
+is zero because differentiating a single-variable term w.r.t. two or more
+distinct variables kills it. Thus the SPDP subspace is {0} and the rank is 0,
+while C(n, log₂ n) ≥ 1.
 
-In the separation argument (`PeqNP_Paper`), the analogous field
-`numStates_le : forall n, n >= 2 -> decider.numStates <= n` captures
-that for sufficiently large n, the constant `numStates` is dominated by n.
-The quantifier `forall m >= 2` is stronger than needed but makes the
-This is the paper's irreducible semantic claim (Lemma 123 + Lemma 124):
-the Cook-Levin compiled polynomial of a 3-SAT decider on hard instances
-has SPDP rank ≥ C(n, log n), because the coupled verifier sheet is
-embedded via the God-Move extraction and has exponential rank by the
-identity minor argument.
+The paper's argument (§29, Lemma 123) requires the PRODUCT polynomial
+P_{M,n} = ∏(1 - C), not the sum-of-squares 1 - Σ C². The product form
+creates cross-variable interactions that survive iterated differentiation,
+enabling the identity minor construction. The sum-of-squares form does not.
 
-This axiom genuinely requires DecidesSAT M — without it, the Cook-Levin
-polynomial of an arbitrary DTM has no connection to the Tseitin structure. -/
+Bridging this gap requires either:
+(a) Switching to the product polynomial for both P-side and NP-side, with
+    profile compression (§9) for the P-side bound, or
+(b) Proving an SPDP rank transfer between ∏(1-C) and 1-Σ C².
+
+Neither is currently formalized. This axiom therefore represents the
+irreducible gap between the formalized infrastructure and the paper's
+core claim. -/
 axiom god_move_extraction_lemma (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : DecidesSAT M)

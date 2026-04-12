@@ -12,11 +12,16 @@ LocalityRankBound.lean.
 ## Axiom inventory
 
 **One genuine axiom:** `god_move_extraction_lemma` — the paper's core claim
-(Lemmas 123+124): if DecidesSAT M, then C(n, log n) linearly independent
-identity-minor vectors live in the SPDP subspace of the Cook-Levin compiled
-polynomial. This genuinely requires DecidesSAT and cannot be proved without
-formalizing the full semantic connection between DTM acceptance and the
-coupled verifier sheet structure.
+(Lemmas 123+124): if DecidesSAT M, then C(n, log n) ≤ SPDP rank of the
+Cook-Levin compiled polynomial.
+
+This axiom represents an **irreducible formalization gap**: the current
+`cook_levin_compilation` produces `1 - Σ (zᵢ(1-zᵢ))²` (booleanity-only,
+sum-of-squares form), which has SPDP rank 0 at κ ≥ 2 because each constraint
+involves only one variable. The paper's argument uses the **product** polynomial
+`∏(1-C)`, whose cross-variable interactions enable the identity minor. Bridging
+the product-vs-sum-of-squares gap requires profile compression (paper §9),
+which is not yet formalized.
 
 **One import-cycle axiom:** `p_side_rank_bound_for_cook_levin` — proved in
 LocalityRankBound.lean, verified here by `p_side_verified`.
@@ -41,10 +46,11 @@ theorem p_side_verified (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     Axiom count: ONE genuine (god_move_extraction_lemma)
     Sorry count: ZERO
 
-    The god_move_extraction_lemma axiom is the paper's irreducible core:
-    "If M decides 3-SAT, then C(n, log n) identity-minor vectors live in
-    the SPDP subspace of the Cook-Levin compiled polynomial."
-    This genuinely requires DecidesSAT M (not vacuously true).
+    The god_move_extraction_lemma axiom encodes the paper's NP-side claim
+    (Lemmas 123+124). It cannot be proved from the current infrastructure
+    because `cook_levin_compilation` uses sum-of-squares form `1 - Σ C²`
+    while the paper's identity minor argument requires product form `∏(1-C)`.
+    See the axiom's docstring for a detailed explanation.
 
     The p_side_rank_bound_for_cook_levin axiom (import-ordering artifact)
     is proved in LocalityRankBound.lean and verified by p_side_verified above. -/
