@@ -7,9 +7,13 @@
      Each Cook-Levin constraint type τ has a local interface space W_τ
      of dimension ≤ localInterfaceDimBound (= 100, i.e. d² for d ≤ 10).
 
-  B. Profile factors through symmetric powers (AXIOM — the one hard step)
-     For each profile histogram h, the profile subspace V_h is contained
-     in the image of the multilinear map from ⊗_τ Sym^{h(τ)}(W_τ).
+  B. Fixed-profile symmetric-power factorization (AXIOM — the one hard step)
+     For each profile histogram h, the fixed-profile space V_h factors through
+     bounded local interface spaces and symmetric powers.
+
+  B2. Profile decomposition / assembly plumbing (partly axiomatic)
+      The passage from fixed-profile factorization to the global rank bound is
+      now split into explicit decomposition and assembly seams.
 
   C. Symmetric power dimension bound (PROVED)
      dim(Sym^m(W)) = C(m + dim(W) - 1, dim(W) - 1) ≤ (m+1)^(dim(W)-1).
@@ -18,8 +22,9 @@
      Total profile compression bound ≤ (κ+1)^C₀ for a constant C₀,
      yielding totalProfileBound n = (3*log₂ n + 1)^14.
 
-  The single remaining axiom (Step B) is a precise, minimal claim about
-  the symmetric power factorization of Leibniz product rule terms.
+  The remaining frontier is now split explicitly: one hard fixed-profile
+  factorization axiom, plus decomposition/assembly seams that are tracked
+  separately instead of being hidden in one bundled rank statement.
 -/
 import PallLean.CookLevinDefs
 import PallLean.MultilinearSPDP
@@ -350,13 +355,23 @@ structure SpdpProfileDecomposition {N : ℕ} (B : BlockPartition N) (κ ℓ : �
 /-- Assembly lemma: given a profile decomposition with `m` profiles each of
 finrank ≤ `D`, the SPDP rank is ≤ `m * D`.
 
-This should ultimately be a direct application of a finite-dimensional sup bound.
-It is left axiomatic here so the file does not overclaim while the decomposition
-layer is still being formalized. -/
-axiom spdp_rank_le_of_profile_decomposition {N : ℕ}
+This is a direct application of `finrank_le_of_le_iSup_bounded` from
+ProfileCompression.lean. -/
+theorem spdp_rank_le_of_profile_decomposition {N : ℕ}
     (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
     (dec : SpdpProfileDecomposition B κ ℓ p) :
-    mlBlockedSpdpRank B κ ℓ p ≤ dec.numProfiles * dec.perProfileDimBound
+    mlBlockedSpdpRank B κ ℓ p ≤ dec.numProfiles * dec.perProfileDimBound := by
+  unfold mlBlockedSpdpRank
+  have inst : ∀ i, Module.Finite ℚ ↥(dec.profileSpaces i) := dec.perProfileFinite
+  calc Module.finrank ℚ ↥(mlBlockedSpdpSubspace B κ ℓ p)
+      ≤ Module.finrank ℚ ↥(⨆ i : Fin dec.numProfiles, dec.profileSpaces i) :=
+        Submodule.finrank_mono dec.covers
+    _ ≤ ∑ i : Fin dec.numProfiles, Module.finrank ℚ ↥(dec.profileSpaces i) :=
+        finrank_iSup_fin_le dec.numProfiles dec.profileSpaces
+    _ ≤ ∑ _i : Fin dec.numProfiles, dec.perProfileDimBound :=
+        Finset.sum_le_sum (fun i _ => dec.perProfileBound i)
+    _ = dec.numProfiles * dec.perProfileDimBound := by
+        simp [Finset.sum_const, Finset.card_fin]
 
 /-- Placeholder decomposition theorem.
 
