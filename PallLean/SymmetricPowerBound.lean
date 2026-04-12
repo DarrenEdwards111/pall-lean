@@ -294,6 +294,8 @@ structure ProfileFactorizationClaim (σ : Type) [DecidableEq σ]
   permutationInvariant : ProfilePermutationInvariant terms histogram
   image_contains_profile_span :
     fixedProfileSpan terms histogram ≤ factorization.imageSpace
+  sourceDim_matches_profileSymmetricDimBound :
+    factorization.sourceDimBound = profileSymmetricDimBound W histogram
   image_dim_le : factorization.sourceDimBound ≤ withinProfileBound κ
 
 /-- A uniformly bounded family of local interface spaces, matching the Step A
