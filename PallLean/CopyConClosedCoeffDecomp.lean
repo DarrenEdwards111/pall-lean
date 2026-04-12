@@ -605,17 +605,13 @@ theorem coeff_one_eq_zero_of_ne_zero
   simp [show (0 : σ →₀ ℕ) ≠ m from by simpa [eq_comm] using hm]
 
 /-- Temporary wrapper for the stronger `any_copy` target while it remains recorded as
-`def ... : Prop`. The theorem-order blocker is now understood, but the latest honest retry exposed a
-new structural issue: the insert-step proof cannot be organized by picking an arbitrary witness on
-`m` first and then trying to push it through every branch. In the exact-shape inserted-slot case,
-that witness is already explained by the left monomial.
+`def ... : Prop`. The latest honest retry confirmed the right insert-step organization,
+left-factor classification first and witness usage branchwise, but also re-confirmed the theorem
+order issue: the full stronger theorem cannot be placed here yet because it depends on local seam
+lemmas stated later in the file.
 
-So the next full retry must be organized in the opposite order: classify the left gadget monomial
-first (zero / constant / exact-shape), then choose the witness strategy adapted to that branch.
-
-This theorem now records that rewrite plan explicitly, without pretending the branch assembly is
-done. The real next move is to reintroduce the stronger theorem with the insert step organized by
-left-factor classification first, then witness usage branchwise. -/
+So this wrapper stays as the executable entry point for now, and the branch-first theorem rewrite
+is recorded in the surrounding local seam theorems plus the blocker note below. -/
 theorem coeff_copyConProd_eq_zero_of_any_copy_apply
     (M : DTM) (n : ℕ)
     (T : Finset (Fin (latentBaseVars M n)))
@@ -717,6 +713,10 @@ This means the remaining problem is no longer a missing transport lemma. The ind
 itself must be rearranged: in the exact-shape branch one cannot first choose an arbitrary witness on
 `m` and then try to push it uniformly to `b`. Instead, the proof has to classify the left monomial
 first and only then choose the witness strategy adapted to that branch.
+
+The latest retry also exposed a concrete file-organization constraint: the stronger theorem cannot
+honestly live above these local seam lemmas while it calls them, so either the seam lemmas must be
+moved earlier or the full theorem must be reintroduced later in the file.
 
 Do not retry the full theorem in the old shape until that proof reorganization is made explicit. -/
 def copyCon_insert_exact_shape_inserted_witness_blocker
