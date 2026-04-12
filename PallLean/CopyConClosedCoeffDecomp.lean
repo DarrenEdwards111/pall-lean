@@ -827,7 +827,14 @@ single con)` into the full exact-shape coefficient theorem. -/
 def copyCon_exact_shape_coeff_antidiagonal_blocker : Prop :=
   True
 
-/-- Zero-residual exact-shape branch, reduced to the explicit local coefficient calculation. -/
+/-- Zero-residual exact-shape branch, now reduced to the explicit gadget coefficient and the
+constant term of the residual product.
+
+Importantly, this summand is not zero: when `b = 0`, the residual product contributes its constant
+term `1`, so the exact-shape gadget contribution survives as `-1`.
+
+The remaining missing lemma is exactly the copyCon analogue of `coeff_zero_cvFactor_prod` from
+IdentityMinor: `coeff 0 (∏ i ∈ S, copyConGadget M n i) = 1`. -/
 def copyCon_insert_exact_shape_zero_residual_summand_candidate
     (M : DTM) (n : ℕ)
     (j : Fin (latentBaseVars M n))
@@ -837,7 +844,7 @@ def copyCon_insert_exact_shape_zero_residual_summand_candidate
   a = Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1 →
   b = 0 →
     MvPolynomial.coeff a (copyConGadget M n j) *
-      MvPolynomial.coeff b (∏ i ∈ S, copyConGadget M n i) = 0
+      MvPolynomial.coeff b (∏ i ∈ S, copyConGadget M n i) = -1
 
 /-- Candidate exact-shape inserted-slot split for the stronger `any_copy` induction.
 
@@ -894,16 +901,12 @@ confirmed the branch-first induction shape is the right one. The constant branch
 exact-shape residual-witness branch both wire up cleanly against the proved seam lemmas.
 
 The remaining live branch is exactly the expected one: the exact-shape inserted-slot case with
-`copySlot j ∈ m.support`. The attempted explicit gadget coefficient theorem did not land yet, so
-that fact is now recorded honestly as `copyCon_exact_shape_coeff_nonzero_candidate`.
+`copySlot j ∈ m.support`. The explicit one-gadget coefficient theorem now lands, and the
+zero-residual subcase is discharged from it.
 
-So the true remaining blockers are now:
-1. prove `copyCon_exact_shape_coeff_nonzero_candidate`, then finish
-   `copyCon_insert_exact_shape_zero_residual_summand_candidate` using the explicit gadget
-   coefficient plus the constant term of the residual product, and
-2. for the nonzero-residual half of
-   `copyCon_insert_exact_shape_inserted_witness_split_candidate`, find a copy-slot witness in `b`
-   or replace that need with a stronger direct argument. -/
+So the true remaining blocker is now the nonzero-residual half of
+`copyCon_insert_exact_shape_inserted_witness_split_candidate`: find a copy-slot witness in `b` or
+replace that need with a stronger direct argument. -/
 def coeff_copyConProd_eq_zero_of_any_copy_later_candidate : Prop :=
   True
 
