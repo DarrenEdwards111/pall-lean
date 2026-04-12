@@ -198,6 +198,7 @@ structure GodMoveRestrictionData (compiledVars : ℕ) where
   fixes_administrative_vars : Prop
   fixes_tableau_vars_to_constants : Prop
   preserves_clause_sheet_vars : Prop
+  fixedVars_cover_specialized_coordinates : Prop
   free_embedding_avoids_fixed : Prop
 
 /-- Explicit data for the projection stage of the God-Move.
@@ -213,6 +214,7 @@ structure GodMoveProjectionData (restrictedVars : ℕ) where
   coordinateMap : Fin projectedVars → Fin restrictedVars
   selects_clause_sheet_coordinates : Prop
   discards_non_clause_sheet_coordinates : Prop
+  keptVars_match_clauseSheetVars : Prop
   coordinateMap_hits_keptVars : Prop
 
 /-- Explicit data for the relabeling / normalization stage of the God-Move.
@@ -231,6 +233,7 @@ structure GodMoveRelabelData (projectedVars coupledVars : ℕ) where
   is_basis_normalization : Prop
   is_instance_uniform_relabeling : Prop
   variableRelabel_respects_blocks : Prop
+  source_target_blocks_cohere : Prop
 
 /-- A typed map from compiled tableau space to coupled clause-sheet space.
 
