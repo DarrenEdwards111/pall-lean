@@ -1714,10 +1714,17 @@ theorem copyCon_offdiag_complement_support
   have hpair := copyCon_prod_nonzero_mono_copy_support_control_candidate M n
     (Finset.univ \ ksj.toFinset) b hb_coeff_ne i0 hcopy_missing
   rcases hpair with ⟨hi0_resid, hcon_resid⟩
-  have hfinRange_nodup : (List.finRange (latentBaseVars M n)).Nodup := List.nodup_finRange _
-  have hmem_diff : i0 ∈ List.finRange (latentBaseVars M n) ∧ i0 ∉ ksj.dedup :=
-    (List.Nodup.mem_diff_iff hfinRange_nodup).mp hi0_resid
-  have hi0_not_dedup : i0 ∉ ksj.dedup := hmem_diff.2
-  exact hi0_not_ksj ((List.mem_dedup).1 (by_contra fun h => hi0_not_dedup h))
+  have hb_no_con : conSlot M n i0 ∉ b.support := by
+    rw [Finsupp.mem_support_iff]
+    push_neg
+    have hsum := congrArg (fun f => f (conSlot M n i0)) hab_add
+    have hksi_zero : (copyCon_tagMono M n ksi) (conSlot M n i0) = 0 := by
+      exact not_not.mp (by
+        simpa [Finsupp.mem_support_iff] using copyCon_tagMono_no_conSlot M n ksi hndi i0)
+    have hksj_zero : (copyCon_tagMono M n ksj) (conSlot M n i0) = 0 := by
+      exact not_not.mp (by
+        simpa [Finsupp.mem_support_iff] using copyCon_tagMono_no_conSlot M n ksj hndj i0)
+    simpa [Finsupp.add_apply, hksj_zero, hksi_zero] using hsum
+  exact hb_no_con hcon_resid
 
 end CopyConClosedCoeffDecomp
