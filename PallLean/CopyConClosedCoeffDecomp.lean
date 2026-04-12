@@ -805,7 +805,7 @@ that fact is now recorded honestly as `copyCon_exact_shape_coeff_nonzero_candida
 
 So the true remaining blockers are now:
 1. prove `copyCon_exact_shape_coeff_nonzero_candidate`, then finish
-   `copyCon_insert_exact_shape_zero_residual_summand_candidate` using that gadget coefficient
+   `copyCon_insert_exact_shape_zero_residual_summand_candidate` using the explicit gadget
    coefficient plus the constant term of the residual product, and
 2. for the nonzero-residual half of
    `copyCon_insert_exact_shape_inserted_witness_split_candidate`, find a copy-slot witness in `b`
