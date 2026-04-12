@@ -16,12 +16,18 @@
   the mlBlockedSpdpRank is at most N^200.
 -/
 import PallLean.PaperFaithfulSeparation
+import PallLean.MlProjFar
+import PallLean.GodMoveReal
+import PallLean.IterDerivHelpers
+import PallLean.PDerivVars
 import Mathlib.Tactic
 import Mathlib.Data.Nat.Log
 
 namespace LocalityRankBound
 
 open SPDP MultilinearSPDP MvPolynomial TuringMachine
+
+attribute [local instance] Classical.dec
 
 /-! ## Foundational Lemmas for Constant Polynomials -/
 
@@ -251,5 +257,226 @@ noncomputable def buildLocalSpanningSet_cookLevin (M : DTM) (n : ℕ) (hn : n �
     rw [mlBlockedSpdpSubspace_one_eq_bot _ _ _ hκ]
     simp
   card_bound := by simp
+
+/-! ## General P-side Rank Bound for Any CompiledTableau
+
+We prove that for ANY CompiledTableau (not just cook_levin_compilation),
+the SPDP rank of compiledPoly T is ≤ n^200.
+
+The argument:
+1. compiledPoly T = 1 - Σ C² where each C has vars ⊆ support, |support| ≤ 10
+2. Γ(1 - Σ C²) ≤ Γ(1) + Γ(Σ C²) = 0 + Γ(Σ C²)  (via add/neg lemmas)
+3. Γ(Σ C²) ≤ Σ Γ(C²)  (subadditivity)
+4. Γ(C²) ≤ 2^|support| ≤ 2^10 = 1024  (locality: SPDP generators have vars ⊆ support)
+5. |constraints| × 1024 ≤ n^10 × n^10 = n^20 ≤ n^200
+-/
+
+/-- vars of p^2 are contained in vars of p. -/
+theorem vars_sq_subset {N : ℕ} (p : MvPolynomial (Fin N) ℚ) :
+    (p ^ 2).vars ⊆ p.vars := by
+  rw [sq]
+  intro x hx
+  have := MvPolynomial.vars_mul p p hx
+  simp only [Finset.mem_union] at this
+  exact this.elim id id
+
+/-- iterDerivList S p = 0 when S has an element not in p.vars.
+    Wrapper around iterDerivList_eq_zero_of_mem_notMem_vars. -/
+theorem iterDerivList_eq_zero_of_not_subset {N : ℕ}
+    (S : List (Fin N)) (p : MvPolynomial (Fin N) ℚ)
+    (V : Finset (Fin N)) (hpv : p.vars ⊆ V)
+    (hS : ∃ v, v ∈ S ∧ v ∉ V) :
+    iterDerivList S p = 0 := by
+  obtain ⟨v, hv_mem, hv_not⟩ := hS
+  exact IterDerivHelpers.iterDerivList_eq_zero_of_mem_notMem_vars S v p hv_mem
+    (fun hv => hv_not (hpv hv))
+
+/-- vars of iterDerivList S p are contained in vars of p. -/
+theorem iterDerivList_vars_subset {N : ℕ}
+    (S : List (Fin N)) (p : MvPolynomial (Fin N) ℚ) :
+    (iterDerivList S p).vars ⊆ p.vars := by
+  induction S generalizing p with
+  | nil => unfold iterDerivList; exact Finset.Subset.refl _
+  | cons a rest ih =>
+    unfold iterDerivList
+    exact Finset.Subset.trans (ih (MvPolynomial.pderiv a p))
+      (PDerivVars.pderiv_vars_subset a p)
+
+/-- vars(mlProj p) ⊆ vars(p). -/
+theorem mlProj_vars_subset' {N : ℕ}
+    (p : MvPolynomial (Fin N) ℚ) : (mlProj p).vars ⊆ p.vars := by
+  intro x hx
+  rw [MvPolynomial.mem_vars] at hx ⊢
+  obtain ⟨α, hα_supp, hα_x⟩ := hx
+  exact ⟨α, mlProj_support_subset p hα_supp, hα_x⟩
+
+/-- vars of mlProj(m * iterDerivList S p) ⊆ vars(m) ∪ vars(p). -/
+theorem mlProj_mul_iterDerivList_vars {N : ℕ}
+    (S : List (Fin N)) (m p : MvPolynomial (Fin N) ℚ) :
+    (mlProj (m * iterDerivList S p)).vars ⊆ m.vars ∪ p.vars := by
+  calc (mlProj (m * iterDerivList S p)).vars
+      ⊆ (m * iterDerivList S p).vars := mlProj_vars_subset' _
+    _ ⊆ m.vars ∪ (iterDerivList S p).vars :=
+        MvPolynomial.vars_mul m (iterDerivList S p)
+    _ ⊆ m.vars ∪ p.vars :=
+        Finset.union_subset_union (Finset.Subset.refl _) (iterDerivList_vars_subset S p)
+
+set_option maxHeartbeats 400000 in
+/-- The SPDP subspace of a polynomial p with vars ⊆ V is contained in
+    Submodule.span ℚ (mlMonomialBasis V).
+
+    Key argument: every generator mlProj(m * iterDerivList S p) either is 0
+    (if S has element outside V) or has vars ⊆ V (if S ⊆ V, since vars(m) ⊆ S ⊆ V). -/
+theorem spdp_subspace_le_span_of_vars_subset {N : ℕ}
+    (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ)
+    (V : Finset (Fin N))
+    (hpv : p.vars ⊆ V) :
+    mlBlockedSpdpSubspace B κ ℓ p ≤
+      Submodule.span ℚ (↑(MlProjFar.mlMonomialBasis V) : Set _) := by
+  apply Submodule.span_le.mpr
+  intro q ⟨S, m, hlen, hdeg, hvars, hadm, hq⟩
+  rw [hq]
+  -- Case split: does S have an element outside V?
+  by_cases hS_sub : ∀ v, v ∈ S → v ∈ V
+  · -- All elements of S are in V
+    -- vars(m) ⊆ S.toFinset ⊆ V
+    have hm_vars : m.vars ⊆ V :=
+      Finset.Subset.trans hvars (fun x hx => hS_sub x (List.mem_toFinset.mp hx))
+    -- So mlProj(m * iterDerivList S p) has vars ⊆ V
+    have hgen_vars : (mlProj (m * iterDerivList S p)).vars ⊆ V :=
+      Finset.Subset.trans (mlProj_mul_iterDerivList_vars S m p)
+        (Finset.union_subset hm_vars hpv)
+    -- mlProj is multilinear: its support monomials satisfy IsMultilinear
+    -- Proof: mlProj = Finsupp.filter IsMultilinear; any α in the filtered support is multilinear.
+    have hgen_ml : ∀ α ∈ (mlProj (m * iterDerivList S p)).support,
+        Finsupp.IsMultilinear α := by
+      intro α hα
+      -- α ∈ (mlProj q).support = (filter IsMultilinear q).support
+      -- If ¬IsMultilinear α, then filter at α = 0, contradicting α ∈ support.
+      by_contra h_neg
+      have : MvPolynomial.coeff α (mlProj (m * iterDerivList S p)) = 0 := by
+        show (Finsupp.filter (fun β => Finsupp.IsMultilinear β) (m * iterDerivList S p)) α = 0
+        rw [Finsupp.filter_apply]
+        exact if_neg h_neg
+      exact absurd this (Finsupp.mem_support_iff.mp hα)
+    -- Apply mlProj_in_span_of_vars_subset
+    exact MlProjFar.mlProj_in_span_of_vars_subset
+      (mlProj (m * iterDerivList S p)) V hgen_ml hgen_vars
+  · -- S has an element outside V, so iterDerivList S p = 0
+    push_neg at hS_sub
+    obtain ⟨v, hv_mem, hv_not⟩ := hS_sub
+    rw [iterDerivList_eq_zero_of_not_subset S p V hpv ⟨v, hv_mem, hv_not⟩,
+        mul_zero, mlProj_zero]
+    exact Submodule.zero_mem _
+
+set_option maxHeartbeats 3200000 in
+/-- The SPDP rank of C² is ≤ 2^|support| when C.vars ⊆ support.
+    This is the per-constraint locality rank bound. -/
+theorem spdp_rank_sq_le_pow_support {N : ℕ}
+    (B : BlockPartition N) (κ ℓ : ℕ)
+    (C : PaperFaithfulSeparation.LocalConstraint N) :
+    mlBlockedSpdpRank B κ ℓ (C.poly ^ 2) ≤ 2 ^ C.support.card := by
+  unfold mlBlockedSpdpRank
+  have hpv : (C.poly ^ 2).vars ⊆ C.support :=
+    Finset.Subset.trans (vars_sq_subset C.poly) C.vars_contained
+  have hle := spdp_subspace_le_span_of_vars_subset B κ ℓ (C.poly ^ 2) C.support hpv
+  -- finrank(SPDP subspace) ≤ finrank(span(mlMonomialBasis)) ≤ |mlMonomialBasis| ≤ 2^|support|
+  exact le_trans (le_trans (Submodule.finrank_mono hle) (finrank_span_finset_le_card _))
+    (MlProjFar.mlMonomialBasis_card C.support)
+
+/-- The SPDP rank of C² is ≤ 1024 for any LocalConstraint (support ≤ 10). -/
+theorem spdp_rank_sq_le_1024 {N : ℕ}
+    (B : BlockPartition N) (κ ℓ : ℕ)
+    (C : PaperFaithfulSeparation.LocalConstraint N) :
+    mlBlockedSpdpRank B κ ℓ (C.poly ^ 2) ≤ 1024 := by
+  calc mlBlockedSpdpRank B κ ℓ (C.poly ^ 2)
+      ≤ 2 ^ C.support.card := spdp_rank_sq_le_pow_support B κ ℓ C
+    _ ≤ 2 ^ 10 := Nat.pow_le_pow_right (by omega) C.support_bound
+    _ = 1024 := by norm_num
+
+/-- List.map+sum equals Finset.sum over Fin. -/
+theorem list_sum_eq_finset_sum {N : ℕ}
+    (L : List (PaperFaithfulSeparation.LocalConstraint N)) :
+    (L.map (fun c => c.poly ^ 2)).sum =
+    ∑ i : Fin L.length, ((L.get i).poly ^ 2) := by
+  conv_lhs => rw [show L.map (fun c => c.poly ^ 2) =
+    List.ofFn (fun i : Fin L.length => (L.get i).poly ^ 2) from by
+      apply List.ext_get
+      · simp
+      · intro i h1 h2
+        simp [List.get_ofFn]]
+  exact List.sum_ofFn
+
+/-- Subadditivity for list sums: Γ(Σ C²) ≤ Σ Γ(C²). -/
+theorem spdp_rank_list_sum_le {N : ℕ}
+    (B : BlockPartition N) (κ ℓ : ℕ)
+    (L : List (PaperFaithfulSeparation.LocalConstraint N)) :
+    mlBlockedSpdpRank B κ ℓ (L.map (fun c => c.poly ^ 2)).sum ≤
+      L.length * 1024 := by
+  rw [list_sum_eq_finset_sum L]
+  calc mlBlockedSpdpRank B κ ℓ (∑ i : Fin L.length, ((L.get i).poly ^ 2))
+      ≤ ∑ i : Fin L.length, mlBlockedSpdpRank B κ ℓ ((L.get i).poly ^ 2) :=
+        mlBlockedSpdpRank_finsum_le B κ ℓ L.length _
+    _ ≤ ∑ _i : Fin L.length, 1024 := by
+        apply Finset.sum_le_sum
+        intro i _
+        exact spdp_rank_sq_le_1024 B κ ℓ (L.get i)
+    _ = L.length * 1024 := by simp [Finset.sum_const]
+
+/-- 1024 ≤ n^10 for n ≥ 2. -/
+theorem bound_1024_le_pow10 (n : ℕ) (hn : n ≥ 2) : 1024 ≤ n ^ 10 := by
+  calc 1024 = 2 ^ 10 := by norm_num
+    _ ≤ n ^ 10 := Nat.pow_le_pow_left hn 10
+
+/-- General P-side rank bound for ANY CompiledTableau.
+
+    For any DTM M and input size n ≥ 2, the compiled polynomial of a
+    CompiledTableau has SPDP rank ≤ n^200.
+
+    Proof:
+    - compiledPoly T = 1 - Σ C²
+    - Γ(1 - Σ C²) ≤ Γ(1) + Γ(Σ C²) = 0 + Γ(Σ C²) ≤ Σ Γ(C²)
+    - Each Γ(C²) ≤ 2^10 = 1024 (locality)
+    - Total: |constraints| × 1024 ≤ n^10 × n^10 = n^20 ≤ n^200 -/
+theorem general_p_side_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (T : PaperFaithfulSeparation.CompiledTableau M n) :
+    PaperFaithfulSeparation.p_side_rank_bound M n T := by
+  unfold PaperFaithfulSeparation.p_side_rank_bound
+  -- compiledPoly T = 1 - sum_of_squares
+  -- Step 1: Reduce to bounding Γ(sum_of_squares)
+  -- 1 - s = (-s) + 1
+  have hcp : PaperFaithfulSeparation.compiledPoly T =
+      (-(T.constraints.map (fun c => c.poly ^ 2)).sum) + 1 := by
+    unfold PaperFaithfulSeparation.compiledPoly
+    ring
+  rw [hcp]
+  -- Γ((-s) + 1) = Γ((-s) + C 1) = Γ(-s) using add_const
+  have h1_eq : (1 : MvPolynomial (Fin T.numVars) ℚ) = MvPolynomial.C 1 := by simp
+  rw [h1_eq]
+  have hκ_pos : Nat.log 2 n ≥ 1 := by
+    exact Nat.le_log_of_pow_le (by norm_num : 1 < 2) (by omega : 2 ^ 1 ≤ n)
+  rw [GodMoveReal.mlBlockedSpdpRank_add_const T.partition
+      (Nat.log 2 n) (Nat.log 2 n) hκ_pos
+      (-(T.constraints.map (fun c => c.poly ^ 2)).sum) 1]
+  -- Γ(-s) = Γ(s) using neg
+  have hneg_eq : mlBlockedSpdpSubspace T.partition (Nat.log 2 n) (Nat.log 2 n)
+      (-(T.constraints.map (fun c => c.poly ^ 2)).sum) =
+      mlBlockedSpdpSubspace T.partition (Nat.log 2 n) (Nat.log 2 n)
+      (T.constraints.map (fun c => c.poly ^ 2)).sum :=
+    GodMoveReal.mlBlockedSpdpSubspace_neg T.partition _ _ _
+  unfold mlBlockedSpdpRank
+  rw [hneg_eq]
+  -- Now bound Γ(Σ C²) ≤ |constraints| × 1024 ≤ n^200
+  have hrank_sum := spdp_rank_list_sum_le T.partition
+    (Nat.log 2 n) (Nat.log 2 n) T.constraints
+  unfold mlBlockedSpdpRank at hrank_sum
+  calc Module.finrank ℚ (mlBlockedSpdpSubspace T.partition (Nat.log 2 n) (Nat.log 2 n)
+        (List.map (fun c => c.poly ^ 2) T.constraints).sum)
+      ≤ T.constraints.length * 1024 := hrank_sum
+    _ ≤ n ^ 10 * 1024 := Nat.mul_le_mul_right 1024 T.constraints_poly
+    _ ≤ n ^ 10 * n ^ 10 := Nat.mul_le_mul_left (n ^ 10) (bound_1024_le_pow10 n hn)
+    _ = n ^ 20 := by rw [← pow_add]
+    _ ≤ n ^ 200 := Nat.pow_le_pow_right (by omega : 1 ≤ n) (by omega : 20 ≤ 200)
 
 end LocalityRankBound
