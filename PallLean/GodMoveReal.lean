@@ -275,6 +275,9 @@ structure GodMoveTypedMap (compiledVars coupledVars : ℕ) where
   instance_uniform : Prop
   witness_free : Prop
   block_local : Prop
+  instance_uniform_coheres_with_relabel : Prop
+  witness_free_coheres_with_restriction : Prop
+  block_local_coheres_with_projection_relabel : Prop
 
 /-- Typed target data for the coupled clause-sheet side. -/
 structure GodMoveTypedTarget (coupledVars : ℕ) where
