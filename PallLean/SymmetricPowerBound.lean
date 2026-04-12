@@ -326,10 +326,13 @@ axiom fixed_profile_factors_through_symmetric_powers
       { c : ProfileFactorizationClaim σ κ terms WF.family //
           c.histogram = h ∧ ProfileAdmissible κ c.histogram }
 
-/-- Step B reformulated as a profile-count times within-profile-dimension bound.
-This is still abstract, but it names the exact bridge from the fixed-profile
-factorization theorem to the final rank bound. -/
-axiom profile_factorization_implies_rank_bound
+/-- Assembly theorem: once the fixed-profile factorization is available for all
+admissible profiles, the global rank bound follows by summing over profiles and
+applying the within-profile dimension bound.
+
+This remains axiomatic for now, but it is an assembly target rather than part of
+the irreducible algebraic Step B core. -/
+axiom rank_bound_from_fixed_profile_factorization
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
     mlBlockedSpdpRank
