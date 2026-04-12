@@ -3,6 +3,7 @@ import PallLean.MultilinearSPDP
 import PallLean.TuringMachine
 import PallLean.IdentityMinorReal
 import PallLean.LatentFullBridge
+import PallLean.CompiledFineBoundDirect
 import Mathlib.Tactic
 import Mathlib.Data.Nat.Log
 
@@ -260,21 +261,50 @@ structure PeqNP_Paper where
       numStates ≤ n holds trivially since numStates is a constant of
       the machine while n → ∞. We require it for n ≥ 2. -/
   numStates_le : ∀ (n : ℕ), n ≥ 2 → decider.numStates ≤ n
-  /-- P-side compiled rank bound: the compiled polynomial has SPDP rank
-      ≤ n^200, proved via locality counting (Paper Theorem 92/139).
-      Uses the fullCompiledPoly from the extraction infrastructure. -/
-  p_bound : ∀ (n : ℕ) (hn : n ≥ 2)
-    (h_le : npNumVars n ≤ numVars decider n (Nat.log 2 n)),
-    mlBlockedSpdpRank (compiledPartition decider n)
+
+/-! ### Derived P-side and NP-side bounds
+
+These were previously hypothesis fields of PeqNP_Paper but are now PROVED
+from existing infrastructure:
+
+- **P-side**: `compiled_fine_bound_direct_target` (CompiledFineBoundDirect.lean) gives
+  `mlBlockedSpdpRank ... fullCompiledPoly ≤ n^40 * n^120 = n^160 ≤ n^200`.
+
+- **NP-side**: `np_ml_lower_bound_any_ell` (MultilinearSPDP.lean) gives the
+  identity minor lower bound `mlBlockedSpdpRank ... tseitinPoly ≥ n^(log n / 4)`
+  at ℓ = 0, for all sufficiently large even n.  Since we only need this at
+  n = 2^804 (which is even and large enough), we instantiate and discharge. -/
+
+/-- P-side compiled rank bound (PROVED): the compiled polynomial of ANY DTM
+    has SPDP rank ≤ n^200, via the profile compression route.
+
+    Chain: compiled_fine_bound_direct_target gives ≤ n^40 * n^120 = n^160 ≤ n^200. -/
+theorem p_bound_derived (M : DTM) (n : ℕ)
+    (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) :
+    mlBlockedSpdpRank (compiledPartition M n)
       (Nat.log 2 n) (Nat.log 2 n)
-      (fullCompiledPoly ℚ decider n h_le) ≤ n ^ 200
-  /-- NP-side identity minor bound: the coupled verifier sheet of the
-      hard family has SPDP rank ≥ n^{Ω(log n)}, proved via the
-      Kronecker tag monomial argument (Paper Theorem 125). -/
-  np_bound : ∀ (n : ℕ) (hn : n ≥ 2),
+      (fullCompiledPoly ℚ M n h_le) ≤ n ^ 200 := by
+  have hfine := CompiledFineBoundDirect.compiled_fine_bound_direct_target M n h_le
+  calc mlBlockedSpdpRank (compiledPartition M n)
+        (Nat.log 2 n) (Nat.log 2 n) (fullCompiledPoly ℚ M n h_le)
+      ≤ n ^ 40 * n ^ 120 := hfine
+    _ = n ^ 160 := by rw [← pow_add]
+    _ ≤ n ^ 200 := by
+        rcases Nat.eq_zero_or_pos n with rfl | hn_pos
+        · simp
+        · exact Nat.pow_le_pow_right hn_pos (by omega)
+
+/-- NP-side identity minor bound (PROVED): the coupled verifier sheet of the
+    hard family has SPDP rank ≥ n^{Ω(log n)}, via the identity minor construction.
+
+    Uses np_ml_lower_bound_concrete at ℓ = 0 from MultilinearSPDP.lean.
+    The bound holds for all n ≥ 2^804 (which is even and ≥ 2^40). -/
+theorem np_bound_derived (n : ℕ) (hn : n ≥ 2 ^ 804) (heven : 2 ∣ n) :
     np_side_rank_bound n
       (mlBlockedSpdpRank (tseitinPartition n)
-        (Nat.log 2 n) 0 (tseitinPoly ℚ n))
+        (Nat.log 2 n) 0 (tseitinPoly ℚ n)) := by
+  unfold np_side_rank_bound
+  exact np_ml_lower_bound_concrete ℚ 0 n hn heven
 
 /-- The separation theorem (Theorem 147).
 
@@ -718,7 +748,8 @@ noncomputable def god_move_extraction (h : PeqNP_Paper) (n : ℕ) (hn : n ≥ 2 
 The Kronecker delta / tag monomial argument: for the Ramanujan-Tseitin family,
 the coupled verifier sheet Q×_{Φ_n} has SPDP rank ≥ C(m,κ) where m = |Cl(Φ_n)|
 and κ = log₂ n. -/
-theorem np_identity_minor_bound (h : PeqNP_Paper) (n : ℕ) (hn : n ≥ 2 ^ 804) :
+theorem np_identity_minor_bound (h : PeqNP_Paper) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (heven : 2 ∣ n) :
     np_side_rank_bound n
       ((god_move_extraction h n hn).coupledRank (Nat.log 2 n) 0) := by
   have hκ : Nat.log 2 n ≥ 5 := by
@@ -734,7 +765,7 @@ theorem np_identity_minor_bound (h : PeqNP_Paper) (n : ℕ) (hn : n ≥ 2 ^ 804)
     dsimp only
     exact if_pos hcond
   rw [hcr]
-  exact h.np_bound n (le_trans two_le_two_pow_804 hn)
+  exact np_bound_derived n hn heven
 
 /-! ### Obligation 1 (wiring): P-side bound for compiled polynomial
 
@@ -748,7 +779,7 @@ theorem p_side_compiled_rank_bound (h : PeqNP_Paper) (n : ℕ) (hn : n ≥ 2 ^ 8
     (Nat.log 2 n) (Nat.log 2 n) (god_move_extraction h n hn).poly ≤ n ^ 200
   unfold god_move_extraction god_move_extraction_of_h_le
   dsimp only
-  exact h.p_bound n (le_trans two_le_two_pow_804 hn)
+  exact p_bound_derived h.decider n
     (numVars_ge_at_contradiction_scale h.decider h.timeBound_le h.numStates_le n hn)
 
 /-! ## The Unconditional Separation Theorem
@@ -810,7 +841,7 @@ theorem P_ne_NP_unconditional : ∀ (h : PeqNP_Paper), False := by
     exact p_side_compiled_rank_bound hPeqNP (2 ^ 804) hn₀
   -- NP-side at 2^804
   have hNS : np_side_rank_bound (2 ^ 804) npRank₀ :=
-    np_identity_minor_bound hPeqNP (2 ^ 804) hn₀
+    np_identity_minor_bound hPeqNP (2 ^ 804) hn₀ (dvd_pow_self 2 (by omega))
   -- Chain: (2^804)^(log(2^804)/4) ≤ npRank₀ ≤ pRank₀ ≤ (2^804)^200
   have hchain : (2 ^ 804) ^ (Nat.log 2 (2 ^ 804) / 4) ≤ (2 ^ 804) ^ 200 :=
     le_trans hNS (le_trans hGM hPS)

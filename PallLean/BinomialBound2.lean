@@ -116,4 +116,32 @@ theorem binomial_lower_bound' :
             choose_ge_div_pow _ _ (Nat.pos_of_ne_zero hk0)
       _ ≥ n ^ (Nat.log 2 n / 4) := hn₀ n hn
 
+/-- Concrete-threshold binomial lower bound: for n ≥ 2^40,
+    C(n/30, log₂ n) ≥ n^(log₂ n / 4).
+    Eliminates the existential quantifier from binomial_lower_bound'. -/
+theorem binomial_lower_bound_concrete (n : ℕ) (hn : n ≥ 2 ^ 40) :
+    Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4) := by
+  by_cases hk0 : Nat.log 2 n = 0
+  · simp [hk0]
+  · have hk_pos := Nat.pos_of_ne_zero hk0
+    set k := Nat.log 2 n with hk_def
+    -- poly_beats_log core: (n / (30 * k))^k ≥ n^(k/4) for n ≥ 2^40
+    have hpbl : (n / 30 / k) ^ k ≥ n ^ (k / 4) := by
+      rw [Nat.div_div_eq_div_mul]
+      have hq4 := quotient_pow4_ge n hn
+      have hk40 : 40 ≤ k := by
+        have h1 : Nat.log 2 (2^40) = 40 := Nat.log_pow (by norm_num) 40
+        have h2 : Nat.log 2 (2^40) ≤ k := Nat.log_mono (by norm_num) le_rfl hn
+        omega
+      have hq1 : 1 ≤ n / (30 * k) := by
+        apply Nat.div_pos
+        · calc 30 * k ≤ 2 ^ (k / 2) := thirty_k_le_pow_half k (by omega)
+            _ ≤ 2 ^ k := Nat.pow_le_pow_right (by norm_num) (by omega)
+            _ ≤ n := Nat.pow_log_le_self 2 (by omega)
+        · omega
+      exact pow_lift_four _ n k hq4 hq1
+    calc Nat.choose (n / 30) k
+        ≥ (n / 30 / k) ^ k := choose_ge_div_pow _ _ hk_pos
+      _ ≥ n ^ (k / 4) := hpbl
+
 end BinomialBound

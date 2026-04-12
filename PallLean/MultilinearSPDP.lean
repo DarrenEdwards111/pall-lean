@@ -439,6 +439,130 @@ theorem np_ml_lower_bound (F : Type*) [Field F] [Nontrivial F] :
         have := pack.size_bound; rw [hv] at this; exact this
     _ ≥ n ^ (Nat.log 2 n / 4) := hn₀ n hn₀'
 
+/-- Generalized NP-side lower bound for any shift-degree parameter ℓ.
+    Since the identity minor rows use shift m = 1 (degree 0), they live in
+    mlBlockedSpdpSubspace B κ ℓ p for ANY ℓ ≥ 0.  In particular ℓ = 0 works. -/
+theorem np_ml_lower_bound_any_ell (F : Type*) [Field F] [Nontrivial F] (ℓ : ℕ) :
+    ∃ n₀, ∀ n, n ≥ n₀ → 2 ∣ n →
+      mlBlockedSpdpRank (tseitinPartition n) (Nat.log 2 n) ℓ
+        (tseitinPoly F n) ≥ n ^ (Nat.log 2 n / 4) := by
+  obtain ⟨n₀, hn₀⟩ := NPWitness.binomial_lower_bound
+  use max n₀ (2^10)
+  intro n hn heven
+  have hn₀' : n ≥ n₀ := le_trans (le_max_left _ _) hn
+  have hn1024 : n ≥ 2^10 := le_trans (le_max_right _ _) hn
+  have hv := tseitinAt_vertices n (by omega) heven
+  have pack := Tseitin.disjoint_packing_exists (tseitinAt n) (by omega)
+  let κ := Nat.log 2 n
+  have hκ : κ ≤ pack.selected.length := by
+    have hps := pack.size_bound; rw [hv] at hps
+    exact (log2_le_div30 n (by linarith [show (2:ℕ)^10 = 1024 from by norm_num])).trans hps
+  let c := IdentityMinor.identity_minor_components (F := F) (tseitinAt n) pack κ ℓ hκ
+  obtain ⟨hsigns, hkron⟩ := IdentityMinor.identity_minor_components_signs
+    (tseitinAt n) pack κ ℓ hκ (F := F)
+  let mlV := mlBlockedSpdpSubspace (tseitinPartition n) κ ℓ (tseitinPoly F n)
+  have hmem : ∀ i, mlProj (c.1 i).val ∈ mlV :=
+    fun i => rowPoly_mem_ml_subspace (tseitinAt n) _ pack κ ℓ i
+      (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general (tseitinAt n) cs hnd)
+  let R' : Fin (Nat.choose pack.selected.length κ) → ↥mlV :=
+    fun i => ⟨mlProj (c.1 i).val, hmem i⟩
+  have hkron' : ∀ i j, MvPolynomial.coeff (c.2.1 i) (R' j).val =
+      if i = j then c.2.2 i else 0 := by
+    intro i j
+    show MvPolynomial.coeff (c.2.1 i) (mlProj (c.1 j).val) = _
+    have hml : Finsupp.IsMultilinear (c.2.1 i) := by
+      show Finsupp.IsMultilinear (IdentityMinor.tagMono F (tseitinAt n) pack κ i)
+      exact tagMono_isMultilinear (tseitinAt n) pack κ i
+    rw [coeff_mlProj_of_isMultilinear_mono _ _ hml]
+    exact hkron i j
+  have hli : LinearIndependent F (Subtype.val ∘ R') := by
+    rw [linearIndependent_iff']
+    intro S g hg a ha
+    have h0 : (coeffLin F (c.2.1 a))
+        (∑ j ∈ S, g j • (Subtype.val ∘ R') j) = 0 := by rw [hg]; exact map_zero _
+    simp only [map_sum, LinearMap.map_smul, Function.comp, smul_eq_mul] at h0
+    simp only [coeffLin, LinearMap.coe_mk, AddHom.coe_mk] at h0
+    have hsub : ∀ j ∈ S, g j * MvPolynomial.coeff (c.2.1 a) (R' j).val =
+        if j = a then g j * c.2.2 a else 0 := by
+      intro j _
+      rw [hkron' a j]
+      by_cases h : a = j
+      · subst h; simp
+      · simp [h, show j ≠ a from fun h' => h (h' ▸ rfl)]
+    rw [Finset.sum_congr rfl hsub, Finset.sum_ite_eq' S a, if_pos ha] at h0
+    rcases hsigns a with hs | hs <;> rw [hs] at h0 <;> simp at h0 <;> exact h0
+  have hfr := finrank_ge_of_linearIndependent mlV _ R' hli
+  calc mlBlockedSpdpRank (tseitinPartition n) κ ℓ (tseitinPoly F n) ≥
+        Nat.choose pack.selected.length κ := hfr
+    _ ≥ Nat.choose (n / 30) κ := by
+        apply Nat.choose_le_choose
+        have := pack.size_bound; rw [hv] at this; exact this
+    _ ≥ n ^ (Nat.log 2 n / 4) := hn₀ n hn₀'
+
+/-- Concrete-threshold version: for n ≥ 2^804 and even, the NP lower bound holds
+    at any ℓ.  This avoids existential quantification over the threshold. -/
+theorem np_ml_lower_bound_concrete (F : Type*) [Field F] [Nontrivial F] (ℓ : ℕ)
+    (n : ℕ) (hn : n ≥ 2 ^ 804) (heven : 2 ∣ n) :
+    mlBlockedSpdpRank (tseitinPartition n) (Nat.log 2 n) ℓ
+      (tseitinPoly F n) ≥ n ^ (Nat.log 2 n / 4) := by
+  have hn1024 : n ≥ 1024 := by
+    have : (1024 : ℕ) ≤ 2 ^ 804 := by
+      calc (1024 : ℕ) = 2 ^ 10 := by norm_num
+      _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    omega
+  have hv := tseitinAt_vertices n (by omega) heven
+  have pack := Tseitin.disjoint_packing_exists (tseitinAt n) (by omega)
+  let κ := Nat.log 2 n
+  have hκ : κ ≤ pack.selected.length := by
+    have hps := pack.size_bound; rw [hv] at hps
+    exact (log2_le_div30 n (by omega)).trans hps
+  let c := IdentityMinor.identity_minor_components (F := F) (tseitinAt n) pack κ ℓ hκ
+  obtain ⟨hsigns, hkron⟩ := IdentityMinor.identity_minor_components_signs
+    (tseitinAt n) pack κ ℓ hκ (F := F)
+  let mlV := mlBlockedSpdpSubspace (tseitinPartition n) κ ℓ (tseitinPoly F n)
+  have hmem : ∀ i, mlProj (c.1 i).val ∈ mlV :=
+    fun i => rowPoly_mem_ml_subspace (tseitinAt n) _ pack κ ℓ i
+      (fun cs hnd _ _ => IdentityMinor.tseitinPartition_admissible_general (tseitinAt n) cs hnd)
+  let R' : Fin (Nat.choose pack.selected.length κ) → ↥mlV :=
+    fun i => ⟨mlProj (c.1 i).val, hmem i⟩
+  have hkron' : ∀ i j, MvPolynomial.coeff (c.2.1 i) (R' j).val =
+      if i = j then c.2.2 i else 0 := by
+    intro i j
+    show MvPolynomial.coeff (c.2.1 i) (mlProj (c.1 j).val) = _
+    have hml : Finsupp.IsMultilinear (c.2.1 i) := by
+      show Finsupp.IsMultilinear (IdentityMinor.tagMono F (tseitinAt n) pack κ i)
+      exact tagMono_isMultilinear (tseitinAt n) pack κ i
+    rw [coeff_mlProj_of_isMultilinear_mono _ _ hml]
+    exact hkron i j
+  have hli : LinearIndependent F (Subtype.val ∘ R') := by
+    rw [linearIndependent_iff']
+    intro S g hg a ha
+    have h0 : (coeffLin F (c.2.1 a))
+        (∑ j ∈ S, g j • (Subtype.val ∘ R') j) = 0 := by rw [hg]; exact map_zero _
+    simp only [map_sum, LinearMap.map_smul, Function.comp, smul_eq_mul] at h0
+    simp only [coeffLin, LinearMap.coe_mk, AddHom.coe_mk] at h0
+    have hsub : ∀ j ∈ S, g j * MvPolynomial.coeff (c.2.1 a) (R' j).val =
+        if j = a then g j * c.2.2 a else 0 := by
+      intro j _
+      rw [hkron' a j]
+      by_cases h : a = j
+      · subst h; simp
+      · simp [h, show j ≠ a from fun h' => h (h' ▸ rfl)]
+    rw [Finset.sum_congr rfl hsub, Finset.sum_ite_eq' S a, if_pos ha] at h0
+    rcases hsigns a with hs | hs <;> rw [hs] at h0 <;> simp at h0 <;> exact h0
+  have hfr := finrank_ge_of_linearIndependent mlV _ R' hli
+  -- Binomial bound: n ≥ 2^804 ≥ 2^40
+  have hn40 : n ≥ 2 ^ 40 := le_trans (by
+    calc (2 : ℕ) ^ 40 ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)) hn
+  have hbin : Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4) :=
+    BinomialBound.binomial_lower_bound_concrete n hn40
+  calc mlBlockedSpdpRank (tseitinPartition n) κ ℓ (tseitinPoly F n) ≥
+        Nat.choose pack.selected.length κ := hfr
+    _ ≥ Nat.choose (n / 30) κ := by
+        apply Nat.choose_le_choose
+        have := pack.size_bound; rw [hv] at this; exact this
+    _ ≥ n ^ (Nat.log 2 n / 4) := hbin
+
 /-! ## Restriction monotonicity for SPDP rank -/
 
 /-- Restriction map: given injection f : Fin n ↪ Fin m, restrict p from Fin m to Fin n
