@@ -1148,16 +1148,18 @@ theorem copyCon_left_factor_support_of_nonzero_coeff
   exact Finsupp.mem_support_iff.mpr ha_coeff
 
 /-- If a monomial has nonzero coefficient in a polynomial, every atom in that monomial support lies
-in the polynomial's variable set.
-
-This is expected to be a standard `MvPolynomial.vars` fact or a short consequence of the support
-characterization of `vars`. -/
-def copyCon_support_atom_mem_vars_of_nonzero_coeff_candidate
+in the polynomial's variable set. -/
+theorem copyCon_support_atom_mem_vars_of_nonzero_coeff_candidate
     (p : MvPolynomial (Fin (latentNumVars M n)) ℚ)
-    (m : (Fin (latentNumVars M n)) →₀ ℕ) : Prop :=
+    (m : (Fin (latentNumVars M n)) →₀ ℕ) :
   MvPolynomial.coeff m p ≠ 0 →
     ∀ v ∈ m.support,
-      v ∈ p.vars
+      v ∈ p.vars := by
+  intro hm_nonzero v hv
+  have hm_supp : m ∈ p.support := Finsupp.mem_support_iff.mpr hm_nonzero
+  by_contra hv_not
+  have hz : m v = 0 := MvPolynomial.mem_support_notMem_vars_zero hm_supp hv_not
+  exact hv (Finsupp.mem_support_iff.mpr hz)
 
 /-- Insert-step reduction surface for the factor-support exclusion induction.
 
@@ -1339,46 +1341,56 @@ theorem copyCon_prod_vars_subset_copy_or_con_candidate
       · exact copyConGadget_vars_subset_copy_or_con M n j hv
       · exact ih hv
 
-/-- Final missing atom-shape classification bridge for nonzero copyCon product monomials.
-
-This should be recovered from `copyCon_prod_vars_subset_copy_or_con_candidate` plus the standard
-fact that any support atom of a monomial with nonzero coefficient in a polynomial lies in the
-polynomial's variable set.
--/
-def copyCon_prod_nonzero_mono_support_atoms_are_copy_or_con_candidate
+/-- Final atom-shape classification for nonzero copyCon product monomials. -/
+theorem copyCon_prod_nonzero_mono_support_atoms_are_copy_or_con_candidate
     (M : DTM) (n : ℕ)
     (S : Finset (Fin (latentBaseVars M n)))
-    (m : (Fin (latentNumVars M n)) →₀ ℕ) : Prop :=
+    (m : (Fin (latentNumVars M n)) →₀ ℕ) :
   MvPolynomial.coeff m (∏ i ∈ S, copyConGadget M n i) ≠ 0 →
     ∀ v ∈ m.support,
       (∃ i : Fin (latentBaseVars M n), v = copySlot M n i) ∨
-      (∃ i : Fin (latentBaseVars M n), v = conSlot M n i)
+      (∃ i : Fin (latentBaseVars M n), v = conSlot M n i) := by
+  intro hm_nonzero v hv
+  have hvars : v ∈ (∏ i ∈ S, copyConGadget M n i).vars :=
+    copyCon_support_atom_mem_vars_of_nonzero_coeff_candidate
+      (p := ∏ i ∈ S, copyConGadget M n i) (m := m) hm_nonzero v hv
+  have hsubset := copyCon_prod_vars_subset_copy_or_con_candidate M n S hvars
+  rw [Finset.mem_union, Finset.mem_image, Finset.mem_image] at hsubset
+  rcases hsubset with hcopy | hcon
+  · rcases hcopy with ⟨i, _, rfl⟩
+    exact Or.inl ⟨i, rfl⟩
+  · rcases hcon with ⟨i, _, rfl⟩
+    exact Or.inr ⟨i, rfl⟩
 
-/-- Pointwise factor extraction at the copy/con support level.
-
-This is the maximally honest extraction theorem justified by the currently proved results. Once
-`copyCon_prod_nonzero_mono_support_atoms_are_copy_or_con_candidate` is proved, this restricted form
-should upgrade to the fully generic `∀ v ∈ m.support` statement by a final case split on the atom
-shape.
--/
-def copyCon_prod_nonzero_mono_pointwise_factor_extraction_candidate
+/-- Fully generic pointwise factor extraction for nonzero copyCon product monomials. -/
+theorem copyCon_prod_nonzero_mono_pointwise_factor_extraction_candidate
     (M : DTM) (n : ℕ)
     (S : Finset (Fin (latentBaseVars M n)))
-    (m : (Fin (latentNumVars M n)) →₀ ℕ) : Prop :=
+    (m : (Fin (latentNumVars M n)) →₀ ℕ) :
   MvPolynomial.coeff m (∏ i ∈ S, copyConGadget M n i) ≠ 0 →
-    ((∀ i : Fin (latentBaseVars M n),
-        copySlot M n i ∈ m.support →
-          i ∈ S ∧ conSlot M n i ∈ m.support) ∧
-     (∀ i : Fin (latentBaseVars M n),
-        conSlot M n i ∈ m.support →
-          i ∈ S ∧ copySlot M n i ∈ m.support))
+    (∀ v ∈ m.support,
+      (∃ i ∈ S,
+        v = copySlot M n i ∧ conSlot M n i ∈ m.support) ∨
+      (∃ i ∈ S,
+        v = conSlot M n i ∧ copySlot M n i ∈ m.support)) := by
+  intro hm_nonzero v hv
+  rcases copyCon_prod_nonzero_mono_support_atoms_are_copy_or_con_candidate M n S m hm_nonzero v hv with
+    ⟨i, rfl⟩ | ⟨i, rfl⟩
+  · have hcopy := copyCon_prod_nonzero_mono_copy_support_control_candidate M n S m hm_nonzero i hv
+    exact Or.inl ⟨i, hcopy.1, rfl, hcopy.2⟩
+  · have hcon := copyCon_prod_nonzero_mono_con_support_control_candidate M n S m hm_nonzero i hv
+    exact Or.inr ⟨i, hcon.1, rfl, hcon.2⟩
 
 /-- Dependency note for the live residual-branch frontier.
 
-The exact-shape nonzero-residual branch below should not be attacked first anymore. Its real parent
-frontier is product-level support control: once nonzero monomials of `∏ i ∈ S, copyConGadget M n i`
-are known to use only indices from `S`, the residual branch can target a concrete offending support
-atom instead of guessing a witness globally.
+The exact-shape nonzero-residual branch below should not be attacked first anymore. Its former
+parent frontiers are now complete: we have copy-slot support control, con-slot support control, atom
+shape classification, and the fully generic pointwise factor-extraction theorem for nonzero monomials
+of `∏ i ∈ S, copyConGadget M n i`.
+
+What this now buys downstream is a concrete way to attack the residual branch: given any support atom
+of a nonzero residual monomial, extract the specific index `i ∈ S` witnessing the paired local
+copy/con contribution, instead of reasoning via an undirected existential subset.
 -/
 def copyCon_prod_support_control_feeds_residual_branch_note : Prop :=
   True
