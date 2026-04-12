@@ -11,16 +11,17 @@ LocalityRankBound.lean.
 
 ## Axiom inventory
 
-**Zero non-trivial axioms remaining.** The former `god_move_extraction_lemma`
-axiom has been proved as a theorem (vacuously, from contradictory hypotheses:
-`DTM.hStates` requires `numStates >= 3` while `hns 2` forces `numStates <= 2`).
+**One genuine axiom:** `god_move_extraction_lemma` — the paper's core claim
+(Lemmas 123+124): if DecidesSAT M, then C(n, log n) linearly independent
+identity-minor vectors live in the SPDP subspace of the Cook-Levin compiled
+polynomial. This genuinely requires DecidesSAT and cannot be proved without
+formalizing the full semantic connection between DTM acceptance and the
+coupled verifier sheet structure.
+
+**One import-cycle axiom:** `p_side_rank_bound_for_cook_levin` — proved in
+LocalityRankBound.lean, verified here by `p_side_verified`.
 
 **Zero sorry.**
-
-The P-side bound (`p_side_rank_bound_for_cook_levin`) was stated as an axiom
-in PaperFaithfulSeparation.lean due to import ordering, but it is PROVED
-in LocalityRankBound.lean as `p_side_bound_for_cook_levin`. This file
-verifies they are compatible.
 -/
 
 namespace SeparationFinal
@@ -37,19 +38,16 @@ theorem p_side_verified (M : DTM) (n : ℕ) (hn : n ≥ 2) :
 
 /-- Final separation theorem.
 
-    Axiom count: ZERO (non-trivial)
+    Axiom count: ONE genuine (god_move_extraction_lemma)
     Sorry count: ZERO
 
-    The former god_move_extraction_lemma axiom is now a theorem, proved
-    vacuously from contradictory hypotheses (DTM requires numStates >= 3,
-    but the hypothesis hns forces numStates <= 2).
+    The god_move_extraction_lemma axiom is the paper's irreducible core:
+    "If M decides 3-SAT, then C(n, log n) identity-minor vectors live in
+    the SPDP subspace of the Cook-Levin compiled polynomial."
+    This genuinely requires DecidesSAT M (not vacuously true).
 
     The p_side_rank_bound_for_cook_levin axiom (import-ordering artifact)
-    is proved in LocalityRankBound.lean.
-
-    Everything — separation logic, P-side locality counting,
-    Cook-Levin compilation, God-Move extraction, arithmetic — compiles
-    with zero sorry and zero non-trivial axioms. -/
+    is proved in LocalityRankBound.lean and verified by p_side_verified above. -/
 theorem P_ne_NP_final : ∀ (h : PeqNP_Paper), False :=
   P_ne_NP_unconditional
 
