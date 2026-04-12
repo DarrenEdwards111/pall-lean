@@ -479,4 +479,12 @@ theorem general_p_side_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ 2)
     _ = n ^ 20 := by rw [← pow_add]
     _ ≤ n ^ 200 := Nat.pow_le_pow_right (by omega : 1 ≤ n) (by omega : 20 ≤ 200)
 
+/-- The P-side bound is provable from the actual locality construction
+    for ANY GodMoveExtraction. This discharges the p_bound field of PeqNP_Paper
+    from the actual construction, without assuming it as a hypothesis. -/
+theorem p_bound_from_locality (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (ext : PaperFaithfulSeparation.GodMoveExtraction M n) :
+    PaperFaithfulSeparation.p_side_rank_bound M n ext.compiled :=
+  general_p_side_rank_bound M n hn ext.compiled
+
 end LocalityRankBound
