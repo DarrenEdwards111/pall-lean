@@ -152,20 +152,23 @@ theorem rank_summand_le_of_zero_remainder {N : ℕ}
 
 /-- The God-Move extraction data. -/
 structure GodMoveData (M : DTM) (n : ℕ) where
-  compiled : PaperFaithfulSeparation.CompiledTableau M n
+  N : ℕ
+  partition : BlockPartition N
+  poly : MvPolynomial (Fin N) ℚ
   coupled : PaperFaithfulSeparation.CoupledVerifierSheet
   coupledRank : ℕ → ℕ → ℕ
   compiledRank : ℕ → ℕ → ℕ
   rank_monotone : ∀ κ ℓ : ℕ, coupledRank κ ℓ ≤ compiledRank κ ℓ
   compiledRank_eq : ∀ κ ℓ : ℕ,
-    compiledRank κ ℓ = mlBlockedSpdpRank compiled.partition κ ℓ
-      (PaperFaithfulSeparation.compiledPoly compiled)
+    compiledRank κ ℓ = mlBlockedSpdpRank partition κ ℓ poly
 
 /-- Converting GodMoveData to GodMoveExtraction. -/
 noncomputable def GodMoveData.toExtraction {M : DTM} {n : ℕ}
     (gm : GodMoveData M n) :
     PaperFaithfulSeparation.GodMoveExtraction M n where
-  compiled := gm.compiled
+  N := gm.N
+  partition := gm.partition
+  poly := gm.poly
   formula := { numVars := 0, clauses := [] }
   coupled := gm.coupled
   coupledRank := gm.coupledRank
@@ -186,13 +189,12 @@ theorem god_move_rank_chain {M : DTM} {n : ℕ}
 /-- The full God-Move bridge: coupledRank ≤ n^200 when P-side bound holds. -/
 theorem god_move_bridge {M : DTM} {n : ℕ}
     (ext : PaperFaithfulSeparation.GodMoveExtraction M n)
-    (h_pside : PaperFaithfulSeparation.p_side_rank_bound M n ext.compiled) :
+    (h_pside : PaperFaithfulSeparation.p_side_rank_bound M n ext) :
     ext.coupledRank (Nat.log 2 n) 0 ≤ n ^ 200 :=
   calc ext.coupledRank (Nat.log 2 n) 0
       ≤ ext.compiledRank (Nat.log 2 n) (Nat.log 2 n) :=
         god_move_rank_chain ext (Nat.log 2 n)
-    _ = mlBlockedSpdpRank ext.compiled.partition (Nat.log 2 n) (Nat.log 2 n)
-        (PaperFaithfulSeparation.compiledPoly ext.compiled) :=
+    _ = mlBlockedSpdpRank ext.partition (Nat.log 2 n) (Nat.log 2 n) ext.poly :=
         ext.compiledRank_eq (Nat.log 2 n) (Nat.log 2 n)
     _ ≤ n ^ 200 := h_pside
 

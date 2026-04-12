@@ -104,7 +104,9 @@ theorem godMove_compiledRank_eq (M : DTM) (n : ℕ) (hn : n ≥ 2) (κ ℓ : ℕ
 /-- Construct a complete GodMoveExtraction from the God-Move + identity minor. -/
 noncomputable def buildGodMoveExtraction (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (packSize : ℕ) : GodMoveExtraction M n where
-  compiled := cook_levin_compilation M n hn
+  N := (cook_levin_compilation M n hn).numVars
+  partition := (cook_levin_compilation M n hn).partition
+  poly := compiledPoly (cook_levin_compilation M n hn)
   formula := { numVars := 0, clauses := [] }
   coupled := {
     numVerifierVars := 0
@@ -183,9 +185,10 @@ argument: the hypothesis bundle is satisfiable whenever a 3-SAT decider exists.
 /-- The P-side bound holds for the God-Move extraction's compiled polynomial. -/
 theorem p_bound_for_extraction (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (packSize : ℕ) :
-    p_side_rank_bound M n (buildGodMoveExtraction M n hn packSize).compiled := by
-  unfold buildGodMoveExtraction
-  exact LocalityRankBound.p_side_locality_bound_cook_levin M n hn
+    p_side_rank_bound M n (buildGodMoveExtraction M n hn packSize) := by
+  unfold p_side_rank_bound buildGodMoveExtraction
+  dsimp only
+  exact LocalityRankBound.p_side_bound_for_cook_levin M n hn
 
 /-- The compiled rank monotonicity in ℓ for the God-Move extraction. -/
 theorem extraction_compiled_rank_mono (M : DTM) (n : ℕ) (hn : n ≥ 2)

@@ -203,8 +203,8 @@ theorem p_side_rank_bound_from_compilation (M : DTM) (n : ℕ) (hn : n ≥ 2)
         (PaperFaithfulSeparation.compiledPoly T) ≤
       Submodule.span ℚ (↑G : Set (MvPolynomial (Fin T.numVars) ℚ)))
     (hCard : G.card ≤ n ^ 200) :
-    PaperFaithfulSeparation.p_side_rank_bound M n T := by
-  unfold PaperFaithfulSeparation.p_side_rank_bound
+    mlBlockedSpdpRank T.partition (Nat.log 2 n) (Nat.log 2 n)
+      (PaperFaithfulSeparation.compiledPoly T) ≤ n ^ 200 := by
   unfold mlBlockedSpdpRank
   calc Module.finrank ℚ (mlBlockedSpdpSubspace T.partition (Nat.log 2 n) (Nat.log 2 n)
         (PaperFaithfulSeparation.compiledPoly T))
@@ -399,8 +399,8 @@ theorem bound_1024_le_pow10 (n : ℕ) (hn : n ≥ 2) : 1024 ≤ n ^ 10 := by
     - Total: |constraints| × 1024 ≤ n^10 × n^10 = n^20 ≤ n^200 -/
 theorem general_p_side_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (T : PaperFaithfulSeparation.CompiledTableau M n) :
-    PaperFaithfulSeparation.p_side_rank_bound M n T := by
-  unfold PaperFaithfulSeparation.p_side_rank_bound
+    mlBlockedSpdpRank T.partition (Nat.log 2 n) (Nat.log 2 n)
+      (PaperFaithfulSeparation.compiledPoly T) ≤ n ^ 200 := by
   -- compiledPoly T = 1 - sum_of_squares
   -- Step 1: Reduce to bounding Γ(sum_of_squares)
   -- 1 - s = (-s) + 1
@@ -438,18 +438,20 @@ theorem general_p_side_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ 2)
     _ ≤ n ^ 200 := Nat.pow_le_pow_right (by omega : 1 ≤ n) (by omega : 20 ≤ 200)
 
 /-- The P-side bound is provable from the actual locality construction
-    for ANY GodMoveExtraction. This discharges the p_bound field of PeqNP_Paper
-    from the actual construction, without assuming it as a hypothesis. -/
+    for ANY CompiledTableau. -/
 theorem p_bound_from_locality (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (ext : PaperFaithfulSeparation.GodMoveExtraction M n) :
-    PaperFaithfulSeparation.p_side_rank_bound M n ext.compiled :=
-  general_p_side_rank_bound M n hn ext.compiled
+    (T : PaperFaithfulSeparation.CompiledTableau M n) :
+    mlBlockedSpdpRank T.partition (Nat.log 2 n) (Nat.log 2 n)
+      (PaperFaithfulSeparation.compiledPoly T) ≤ n ^ 200 :=
+  general_p_side_rank_bound M n hn T
 
 /-- The P-side rank bound is satisfied for cook_levin_compilation.
     Uses the general locality bound. -/
 theorem p_side_bound_for_cook_levin (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    PaperFaithfulSeparation.p_side_rank_bound M n
-      (PaperFaithfulSeparation.cook_levin_compilation M n hn) :=
+    mlBlockedSpdpRank (PaperFaithfulSeparation.cook_levin_compilation M n hn).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (PaperFaithfulSeparation.compiledPoly
+        (PaperFaithfulSeparation.cook_levin_compilation M n hn)) ≤ n ^ 200 :=
   general_p_side_rank_bound M n hn (PaperFaithfulSeparation.cook_levin_compilation M n hn)
 
 end LocalityRankBound
