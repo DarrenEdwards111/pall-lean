@@ -777,15 +777,40 @@ theorem copyCon_exact_shape_antidiagonal_pair_zero
   · rw [copyCon_exact_shape_coeff_single_copy M n j ha]
     ring
 
-/-- Exact-shape coefficient in a single copyCon gadget.
-
-This is the one-gadget antidiagonal micro-goal currently blocking the zero-residual branch. -/
-def copyCon_exact_shape_coeff_nonzero_candidate
+/-- Exact-shape coefficient in a single copyCon gadget. -/
+theorem copyCon_exact_shape_coeff_nonzero
     (M : DTM) (n : ℕ)
-    (j : Fin (latentBaseVars M n)) : Prop :=
+    (j : Fin (latentBaseVars M n)) :
   MvPolynomial.coeff
     (Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1)
-    (copyConGadget M n j) = -1
+    (copyConGadget M n j) = -1 := by
+  unfold copyConGadget Xcopy Xcon
+  rw [MvPolynomial.coeff_sub, MvPolynomial.coeff_one]
+  have hne :
+      ((Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1 :
+        (Fin (latentNumVars M n)) →₀ ℕ)) ≠ 0 := by
+    intro hzero
+    have hval := congrArg (fun f => f (copySlot M n j)) hzero
+    simp at hval
+  have hconst : MvPolynomial.coeff
+      (Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1)
+      (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ) = 0 := by
+    exact coeff_one_eq_zero_of_ne_zero _ hne
+  have hif : (if 0 = (Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1 :
+      (Fin (latentNumVars M n)) →₀ ℕ) then (1 : ℚ) else 0) = 0 := by
+    by_cases h : (0 : (Fin (latentNumVars M n)) →₀ ℕ) =
+        Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1
+    · exact False.elim (hne h.symm)
+    · simp [h]
+  rw [hif, zero_sub, MvPolynomial.coeff_mul]
+  rw [Finset.sum_eq_single
+    (Finsupp.single (copySlot M n j) 1, Finsupp.single (conSlot M n j) 1)]
+  · norm_num
+  · intro ab hab hnepair
+    rcases ab with ⟨a, b⟩
+    exact copyCon_exact_shape_antidiagonal_pair_zero M n j (by
+      simpa [Finset.mem_antidiagonal] using hab) hnepair
+  · simp [Finset.mem_antidiagonal]
 
 /-- Micro-blocker note for the exact-shape gadget coefficient.
 
@@ -796,19 +821,11 @@ coefficient by isolating the unique antidiagonal pair `(single copy, single con)
 What is still missing is the last antidiagonal singleton/coefficient calculation in a form Lean
 accepts without extra local normalization lemmas. Two tiny ingredients are now isolated as the
 helpers `copyCon_exact_shape_coeff_single_copy` and `copyCon_exact_shape_coeff_single_con`; the
-remaining gap is promoting the antidiagonal uniqueness step for the exact pair `(single copy,
+remaining gap was promoting the antidiagonal uniqueness step for the exact pair `(single copy,
 single con)` into the full exact-shape coefficient theorem. -/
 
-theorem copyCon_exact_shape_coeff_normalization
-    (M : DTM) (n : ℕ)
-    (j : Fin (latentBaseVars M n)) :
-    (((1 : ℚ) * (1 : ℚ)) : ℚ) = 1 := by
-  norm_num
-
-def copyCon_exact_shape_coeff_antidiagonal_blocker
-    (M : DTM) (n : ℕ)
-    (j : Fin (latentBaseVars M n)) : Prop :=
-  copyCon_exact_shape_coeff_nonzero_candidate M n j
+def copyCon_exact_shape_coeff_antidiagonal_blocker : Prop :=
+  True
 
 /-- Zero-residual exact-shape branch, reduced to the explicit local coefficient calculation. -/
 def copyCon_insert_exact_shape_zero_residual_summand_candidate
