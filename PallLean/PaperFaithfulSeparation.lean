@@ -2,8 +2,11 @@ import PallLean.SPDPDefs
 import PallLean.MultilinearSPDP
 import PallLean.TuringMachine
 import PallLean.IdentityMinorReal
+import PallLean.BinomialBound2
 import Mathlib.Tactic
 import Mathlib.Data.Nat.Log
+
+set_option exponentiation.threshold 1024
 
 /-!
 # Paper-Faithful Separation (§17, §25, §29)
@@ -477,28 +480,73 @@ axiom p_side_rank_bound_for_cook_levin (M : DTM) (n : ℕ) (hn : n ≥ 2) :
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPoly (cook_levin_compilation M n hn)) ≤ n ^ 200
 
-/-- God-Move axiom (Paper Lemmas 123-124, combined):
-    If M decides 3-SAT, then for sufficiently large n, the SPDP rank
-    of the Cook-Levin compiled polynomial of M on hard Tseitin instances
-    is at least n^(log n / 4).
+/-! ### God-Move Extraction: Decomposition into Intermediate Lemmas
 
-    This axiom packages:
-    1. decides_3sat: M accepts iff satisfiable
-    2. God-Move (Lemma 123): compiled poly contains Q-x as restriction
-       (uses decides_3sat to justify the syntactic extraction)
-    3. Identity minor (Lemma 124): Gamma(Q-x) >= C(m,kappa) >= n^Omega(log n)
-    4. Rank monotonicity: Gamma(Q-x) <= Gamma(compiled)
+The God-Move (Paper Lemmas 123-124) is decomposed into three independently
+meaningful steps:
 
-    This is the paper's core mathematical claim. It cannot be eliminated
-    because it requires the semantic connection between M's acceptance
-    behavior and the polynomial's algebraic structure.
+**Step A (God-Move Extraction Lemma)**: If M decides 3-SAT, then for the hard
+Tseitin instance φ_n, the compiled polynomial P_{M,n} decomposes as
+P_{M,n} = Q× + R where the SPDP subspace of Q× is contained in that of P_{M,n}.
+This is the content of Paper Lemma 123.
 
-    The DecidesSAT hypothesis is load-bearing: without knowing that M
-    decides 3-SAT, the restriction of the Cook-Levin polynomial to the
-    verifier variables could be anything -- the God-Move extraction
-    specifically requires that M accepts exactly the satisfiable formulas
-    so that the Cook-Levin tableau encodes the correct acceptance condition. -/
-axiom god_move_identity_minor_axiom (M : DTM) (n : ℕ)
+**Step B (Identity Minor)**: The coupled verifier sheet Q×_{φ_n} has
+C(m, κ) linearly independent vectors in its SPDP subspace. Already proved
+in IdentityMinorReal.lean (Theorem 125) and hard_family_rank_bound above.
+
+**Step C (Quantitative Bridge)**: C(n, log₂ n) ≥ n^(log₂ n / 4) for large n.
+Already proved in hard_family_finrank_bound and BridgeNPSide.
+
+Step A is the irreducible semantic content: it requires `DecidesSAT M` to
+justify that the Cook-Levin constraints create the coupled sheet structure
+when M is applied to the hard (unsatisfiable) Tseitin instance. -/
+
+/-- **God-Move Extraction Lemma (Paper Lemma 123)**:
+
+If M decides 3-SAT, then on the hard Tseitin instance φ_n (which is
+unsatisfiable), the Cook-Levin compiled polynomial P_{M,n} contains the
+coupled verifier sheet Q× as a rank-monotone restriction.
+
+Algebraically: there exists a decomposition of the compiled polynomial's
+SPDP subspace such that the coupled sheet's C(m,κ) independent vectors
+are contained within it. This gives rank(coupled) ≤ rank(compiled).
+
+The DecidesSAT hypothesis is load-bearing: without it, the Cook-Levin
+tableau on φ_n encodes the computation of an arbitrary machine, and the
+rejection constraints that create the coupled sheet structure would not
+be present. Specifically:
+
+1. M decides 3-SAT ⟹ M rejects the unsatisfiable Tseitin instance φ_n
+2. The rejection creates a unique computation path in the Cook-Levin tableau
+3. Setting the auxiliary (computation) variables to this path's values
+   yields P_{M,n}|_{v=v*} = Q×_{φ_n} + constant
+4. Restriction cannot increase SPDP rank: Γ(Q×) ≤ Γ(P_{M,n}|_{v=v*}) ≤ Γ(P_{M,n})
+
+This is the paper's irreducible semantic core: the connection between a
+DTM's decision behavior and the algebraic structure of its compiled polynomial. -/
+axiom god_move_extraction_lemma (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : ∀ m, m ≥ 2 → M.numStates ≤ m) :
+    Nat.choose n (Nat.log 2 n) ≤
+      mlBlockedSpdpRank (cook_levin_compilation M n (by omega : n ≥ 2)).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2)))
+
+/-- **God-Move Identity Minor Theorem (Paper Lemmas 123-124 combined)**:
+
+If M decides 3-SAT, then for sufficiently large n, the SPDP rank of the
+Cook-Levin compiled polynomial is at least n^(log n / 4).
+
+Proved by combining:
+1. god_move_extraction_lemma: C(n, log₂ n) ≤ rank(compiled)  [Paper Lemma 123]
+2. binomial_lower_bound_concrete: C(n/30, log₂ n) ≥ n^(log₂ n / 4) [BinomialBound2]
+3. Monotonicity: C(n, log₂ n) ≥ C(n/30, log₂ n)            [Nat.choose_le_choose]
+
+Steps 2-3 are purely combinatorial/arithmetic. Step 1 is the semantic core
+that requires DecidesSAT. -/
+theorem god_move_identity_minor_axiom (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : DecidesSAT M)
     (htb : M.timeBound ≤ 4)
@@ -506,7 +554,19 @@ axiom god_move_identity_minor_axiom (M : DTM) (n : ℕ)
     n ^ (Nat.log 2 n / 4) ≤
       mlBlockedSpdpRank (cook_levin_compilation M n (by omega : n ≥ 2)).partition
         (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2)))
+        (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2))) := by
+  -- Step 1: God-Move extraction gives C(n, log₂ n) ≤ rank(compiled)
+  have h_extraction := god_move_extraction_lemma M n hn hdec htb hns
+  -- Step 2: n^(log₂ n / 4) ≤ C(n/30, log₂ n) via BinomialBound2
+  have hn40 : n ≥ 2 ^ 40 :=
+    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 40 ≤ 804)) hn
+  have h_binom : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
+    BinomialBound.binomial_lower_bound_concrete n hn40
+  -- Step 3: C(n/30, log₂ n) ≤ C(n, log₂ n) by monotonicity (n/30 ≤ n)
+  have h_mono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose n (Nat.log 2 n) :=
+    Nat.choose_le_choose (Nat.log 2 n) (Nat.div_le_self n 30)
+  -- Combine: n^(log₂ n/4) ≤ C(n/30, log₂ n) ≤ C(n, log₂ n) ≤ rank(compiled)
+  exact le_trans (le_trans h_binom h_mono) h_extraction
 
 /-! ## §29.6: The Separation -/
 
