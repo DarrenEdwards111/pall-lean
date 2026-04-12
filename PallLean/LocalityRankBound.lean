@@ -55,13 +55,7 @@ theorem mlBlockedSpdpSubspace_one_eq_bot {N : ℕ}
     exact Submodule.zero_mem ⊥
   · exact bot_le
 
-/-- For the specific compiled polynomial from cook_levin_compilation
-    (which has constraints = []), the compiled polynomial is 1. -/
-theorem cook_levin_compiledPoly_eq_one (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    PaperFaithfulSeparation.compiledPoly
-      (PaperFaithfulSeparation.cook_levin_compilation M n hn) = 1 := by
-  unfold PaperFaithfulSeparation.compiledPoly PaperFaithfulSeparation.cook_levin_compilation
-  simp
+-- [REMOVED: cook_levin_compiledPoly_eq_one — stale after real constraints]
 
 /-! ## Local Spanning Set Construction
 
@@ -178,32 +172,11 @@ theorem rank_from_local_spanning_set (N : ℕ)
 
 /-! ## Concrete P-side Bound for Cook-Levin Compilation
 
-For the specific Cook-Levin compilation used in the separation,
-constraints = [] so the compiled polynomial is 1. The SPDP subspace
-of a constant is trivial (⊥) when κ ≥ 1, so the rank is 0 ≤ N^200. -/
+The general_p_side_rank_bound (below) works for ANY CompiledTableau,
+including cook_levin_compilation with real booleanity constraints.
+No special-case lemma is needed. -/
 
-/-- P-side rank bound for the specific Cook-Levin compilation
-    (constraints = [], compiledPoly = 1, rank = 0 ≤ n^200). -/
-theorem p_side_locality_bound_cook_levin (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    mlBlockedSpdpRank
-      (PaperFaithfulSeparation.cook_levin_compilation M n hn).partition
-      (Nat.log 2 n) (Nat.log 2 n)
-      (PaperFaithfulSeparation.compiledPoly
-        (PaperFaithfulSeparation.cook_levin_compilation M n hn)) ≤ n ^ 200 := by
-  unfold mlBlockedSpdpRank
-  rw [cook_levin_compiledPoly_eq_one]
-  have hκ : Nat.log 2 n ≥ 1 := by
-    have : 2 ^ 1 ≤ n := by omega
-    exact Nat.le_log_of_pow_le (by norm_num : 1 < 2) this
-  rw [mlBlockedSpdpSubspace_one_eq_bot _ _ _ hκ]
-  simp
-
-/-- The P-side rank bound is satisfied for cook_levin_compilation,
-    matching the p_side_rank_bound predicate from PaperFaithfulSeparation. -/
-theorem p_side_bound_for_cook_levin (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    PaperFaithfulSeparation.p_side_rank_bound M n
-      (PaperFaithfulSeparation.cook_levin_compilation M n hn) :=
-  p_side_locality_bound_cook_levin M n hn
+-- p_side_bound_for_cook_levin moved after general_p_side_rank_bound (below)
 
 /-! ## General Locality Counting Theorem
 
@@ -241,22 +214,7 @@ theorem p_side_rank_bound_from_compilation (M : DTM) (n : ℕ) (hn : n ≥ 2)
     _ ≤ G.card := finrank_span_finset_le_card G
     _ ≤ n ^ 200 := hCard
 
-/-- For the specific Cook-Levin compilation, a local spanning set exists
-    (the empty set, since the compiled polynomial is constant 1). -/
-noncomputable def buildLocalSpanningSet_cookLevin (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    LocalSpanningSet n
-      (PaperFaithfulSeparation.cook_levin_compilation M n hn).partition
-      (PaperFaithfulSeparation.compiledPoly
-        (PaperFaithfulSeparation.cook_levin_compilation M n hn)) where
-  basis := ∅
-  spans := by
-    rw [cook_levin_compiledPoly_eq_one M n hn]
-    have hκ : Nat.log 2 n ≥ 1 := by
-      have : 2 ^ 1 ≤ n := by omega
-      exact Nat.le_log_of_pow_le (by norm_num : 1 < 2) this
-    rw [mlBlockedSpdpSubspace_one_eq_bot _ _ _ hκ]
-    simp
-  card_bound := by simp
+-- [REMOVED: buildLocalSpanningSet_cookLevin — stale after real constraints]
 
 /-! ## General P-side Rank Bound for Any CompiledTableau
 
@@ -486,5 +444,12 @@ theorem p_bound_from_locality (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (ext : PaperFaithfulSeparation.GodMoveExtraction M n) :
     PaperFaithfulSeparation.p_side_rank_bound M n ext.compiled :=
   general_p_side_rank_bound M n hn ext.compiled
+
+/-- The P-side rank bound is satisfied for cook_levin_compilation.
+    Uses the general locality bound. -/
+theorem p_side_bound_for_cook_levin (M : DTM) (n : ℕ) (hn : n ≥ 2) :
+    PaperFaithfulSeparation.p_side_rank_bound M n
+      (PaperFaithfulSeparation.cook_levin_compilation M n hn) :=
+  general_p_side_rank_bound M n hn (PaperFaithfulSeparation.cook_levin_compilation M n hn)
 
 end LocalityRankBound
