@@ -922,7 +922,11 @@ zero-residual subcase is discharged from it.
 
 So the true remaining blocker is now the direct nonzero-residual witness statement
 `copyCon_insert_exact_shape_nonzero_residual_witness_candidate`: find a copy-slot witness in `b` or
-replace that need with a stronger direct argument. -/
+replace that need with a stronger direct argument.
+
+A direct retry confirms again that the naive witness `i = j` is false here: evaluating
+`a + b = m` at `copySlot j` only shows that `m(copySlot j)` can already be supplied by the left
+exact-shape monomial, so it does not force `b(copySlot j) ≠ 0`. -/
 def coeff_copyConProd_eq_zero_of_any_copy_later_candidate : Prop :=
   True
 
