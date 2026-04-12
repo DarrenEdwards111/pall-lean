@@ -189,11 +189,16 @@ coordinates and what constant specialization is applied to them. The remaining
 semantic burden is to connect this abstract record to the actual Cook-Levin
 variable layout for the hard instance. -/
 structure GodMoveRestrictionData (compiledVars : ℕ) where
+  administrativeVars : Finset (Fin compiledVars)
+  tableauVars : Finset (Fin compiledVars)
   fixedVars : Finset (Fin compiledVars)
   freeVarsAfterRestriction : ℕ
+  freeVarEmbedding : Fin freeVarsAfterRestriction → Fin compiledVars
   assignment : Fin compiledVars → ℚ
   fixes_administrative_vars : Prop
+  fixes_tableau_vars_to_constants : Prop
   preserves_clause_sheet_vars : Prop
+  free_embedding_avoids_fixed : Prop
 
 /-- Explicit data for the projection stage of the God-Move.
 
@@ -202,10 +207,13 @@ paper projects onto the clause-sheet coordinates `u`. This record makes that
 coordinate-selection step explicit without yet claiming the real semantic proof
 that the chosen coordinates are the correct ones for the hard instance. -/
 structure GodMoveProjectionData (restrictedVars : ℕ) where
+  clauseSheetVars : Finset (Fin restrictedVars)
   keptVars : Finset (Fin restrictedVars)
   projectedVars : ℕ
+  coordinateMap : Fin projectedVars → Fin restrictedVars
   selects_clause_sheet_coordinates : Prop
   discards_non_clause_sheet_coordinates : Prop
+  coordinateMap_hits_keptVars : Prop
 
 /-- Explicit data for the relabeling / normalization stage of the God-Move.
 
@@ -216,9 +224,13 @@ leaving it only as an opaque map. -/
 structure GodMoveRelabelData (projectedVars coupledVars : ℕ) where
   sourceBlocks : ℕ
   targetBlocks : ℕ
+  sourceBlockMap : Fin projectedVars → Fin sourceBlocks
+  targetBlockMap : Fin coupledVars → Fin targetBlocks
+  variableRelabel : Fin projectedVars → Fin coupledVars
   respects_block_locality : Prop
   is_basis_normalization : Prop
   is_instance_uniform_relabeling : Prop
+  variableRelabel_respects_blocks : Prop
 
 /-- A typed map from compiled tableau space to coupled clause-sheet space.
 
