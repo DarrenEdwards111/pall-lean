@@ -1,19 +1,29 @@
 /-
-  LocalityRankBound.lean — P-side compiled rank bound via locality counting
+  LocalityRankBound.lean — P-side compiled rank bound
 
-  Paper §17.3, Lemma 32 / Theorem 92:
+  Paper §9 / §17.3, Theorem 92:
 
-  For a polynomial P = 1 - Σ_i C_i² where each C_i touches ≤ d₀ variables:
+  For the product polynomial P = ∏ᵢ (1 - Cᵢ) where each Cᵢ touches ≤ d₀ variables:
 
-  1. ∂_S P = -Σ_i ∂_S(C_i²) by linearity
-  2. ∂_S(C_i²) = 0 unless supp(S) ∩ vars(C_i) ≠ ∅ (locality)
-  3. Each surviving term is supported in vars(C_i) ∪ supp(S), size O(d₀ + κ)
-  4. The multilinear projections span a subspace of dimension ≤ 2^O(d₀+κ)
-  5. There are at most |C| constraints, each contributing ≤ 1 surviving term per row
-  6. Total basis size ≤ |C| × 2^O(d₀+κ) = poly(n) (since d₀ = O(1) and κ = O(log n))
+  The P-side rank bound uses profile compression (§9): rows of the SPDP matrix
+  with the same constraint-type histogram ("profile") contribute to the same
+  subspace. The number of distinct profiles is polynomial, giving:
 
-  We prove: locality_rank_bound — for the compiled polynomial from a P-time DTM,
-  the mlBlockedSpdpRank is at most N^200.
+    Γ_{κ,ℓ}(P) ≤ poly(n)
+
+  The profile compression argument is not yet formalized. The P-side bound is
+  stated as an axiom in PaperFaithfulSeparation.lean (`p_side_rank_bound_for_cook_levin`).
+
+  This file provides:
+  1. General-purpose lemmas about SPDP subspaces (locality, spanning sets, etc.)
+     that are valid for any polynomial form.
+  2. A re-export of the P-side axiom for use by SeparationFinal.lean.
+
+  Historical note: this file previously contained a complete proof of the P-side
+  bound for the sum-of-squares form 1 - Σ Cᵢ². That proof used linearity of
+  differentiation and subadditivity of SPDP rank across summands. The product
+  form ∏(1-Cᵢ) requires profile compression instead, because the Leibniz rule
+  for products yields numConstraints^κ terms (superpolynomial by simple counting).
 -/
 import PallLean.PaperFaithfulSeparation
 import PallLean.MlProjFar
@@ -55,22 +65,13 @@ theorem mlBlockedSpdpSubspace_one_eq_bot {N : ℕ}
     exact Submodule.zero_mem ⊥
   · exact bot_le
 
--- [REMOVED: cook_levin_compiledPoly_eq_one — stale after real constraints]
-
 /-! ## Local Spanning Set Construction
 
-The key idea: every generator mlProj(m · ∂_S p) of the SPDP subspace,
-where p = 1 - Σ C_i², can be expressed as a linear combination of
-"local basis vectors" — multilinear monomials on at most d₀ + 2κ variables.
+The key idea: every generator mlProj(m · ∂_S p) of the SPDP subspace
+can be expressed as a linear combination of "local basis vectors" —
+multilinear monomials on a bounded number of variables.
 
-The total number of such local basis vectors is bounded by:
-  (number of constraints) × (multilinear monomials per local neighborhood)
-  ≤ |C| × 2^(d₀ + 2κ)
-
-For the Cook-Levin compilation: d₀ = 10 (constant), κ = log₂(N),
-|C| ≤ N^10, so:
-  total ≤ N^10 × 2^(10 + 2·log₂(N)) = N^10 × 2^10 × N^2 ≤ N^13 ≤ N^200
--/
+These general-purpose lemmas apply to ANY polynomial form (product or SoS). -/
 
 /-- The maximum number of multilinear monomials on k variables is 2^k.
     This is the fundamental counting bound for the locality argument. -/
@@ -97,7 +98,7 @@ theorem local_monomial_bound (N : ℕ) (hN : N ≥ 2)
     each touching d₀ variables, and SPDP parameter κ = log₂ N:
       |C| × 2^(d₀ + 2κ) ≤ N^10 × 2^10 × N^2 ≤ N^200.
 
-    This is the combinatorial core of the P-side rank bound. -/
+    This is the combinatorial core of the per-summand rank bound. -/
 theorem spanning_set_size_bound (N : ℕ) (hN : N ≥ 4)
     (numConstraints : ℕ) (hC : numConstraints ≤ N ^ 10)
     (d₀ : ℕ) (hd₀ : d₀ ≤ 10)
@@ -123,13 +124,10 @@ theorem spanning_set_size_bound (N : ℕ) (hN : N ≥ 4)
 
 /-! ## The Main Locality Rank Bound
 
-The theorem states: for the compiled polynomial of a P-time DTM,
+The theorem states: given a spanning set G with |G| ≤ N^200,
 the multilinear blocked SPDP rank is bounded by N^200.
 
-The proof uses the spanning set argument:
-- If G is a finite set with the SPDP subspace ≤ span(G) and |G| ≤ N^200,
-  then rank ≤ |G| ≤ N^200.
--/
+This is a general-purpose tool used by the P-side argument. -/
 
 /-- The P-side locality rank bound for a compiled tableau polynomial.
 
@@ -170,64 +168,7 @@ theorem rank_from_local_spanning_set (N : ℕ)
     mlBlockedSpdpRank B (Nat.log 2 N) (Nat.log 2 N) p ≤ N ^ 200 :=
   locality_rank_bound N B _ _ p lss.basis lss.spans lss.card_bound
 
-/-! ## Concrete P-side Bound for Cook-Levin Compilation
-
-The general_p_side_rank_bound (below) works for ANY CompiledTableau,
-including cook_levin_compilation with real booleanity constraints.
-No special-case lemma is needed. -/
-
--- p_side_bound_for_cook_levin moved after general_p_side_rank_bound (below)
-
-/-! ## General Locality Counting Theorem
-
-For the general case where constraints ≠ [], we prove the rank bound
-given a spanning set. The spanning set existence is a combinatorial
-fact about the structure of 1 - Σ C_i². -/
-
-/-- The compiled polynomial satisfies: compiledPoly T = 1 - sum_of_squares. -/
-theorem compiledPoly_decomp {M : DTM} {n : ℕ}
-    (T : PaperFaithfulSeparation.CompiledTableau M n) :
-    PaperFaithfulSeparation.compiledPoly T =
-      1 - (T.constraints.map (fun c => c.poly ^ 2)).sum := rfl
-
-/-- Core locality theorem: given a spanning set of polynomial size,
-    the mlBlockedSpdpRank is bounded by N^200.
-
-    For any compiled polynomial P = 1 - Σ C_i² from a CompiledTableau T,
-    if we can construct a finite spanning set G with |G| ≤ n^200 for the
-    SPDP subspace, then the SPDP rank is at most n^200. -/
-theorem p_side_rank_bound_from_compilation (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (T : PaperFaithfulSeparation.CompiledTableau M n)
-    (G : Finset (MvPolynomial (Fin T.numVars) ℚ))
-    (hSpan : mlBlockedSpdpSubspace T.partition (Nat.log 2 n) (Nat.log 2 n)
-        (PaperFaithfulSeparation.compiledPoly T) ≤
-      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin T.numVars) ℚ)))
-    (hCard : G.card ≤ n ^ 200) :
-    mlBlockedSpdpRank T.partition (Nat.log 2 n) (Nat.log 2 n)
-      (PaperFaithfulSeparation.compiledPoly T) ≤ n ^ 200 := by
-  unfold mlBlockedSpdpRank
-  calc Module.finrank ℚ (mlBlockedSpdpSubspace T.partition (Nat.log 2 n) (Nat.log 2 n)
-        (PaperFaithfulSeparation.compiledPoly T))
-      ≤ Module.finrank ℚ (Submodule.span ℚ
-        (↑G : Set (MvPolynomial (Fin T.numVars) ℚ))) :=
-        Submodule.finrank_mono hSpan
-    _ ≤ G.card := finrank_span_finset_le_card G
-    _ ≤ n ^ 200 := hCard
-
--- [REMOVED: buildLocalSpanningSet_cookLevin — stale after real constraints]
-
-/-! ## General P-side Rank Bound for Any CompiledTableau
-
-We prove that for ANY CompiledTableau (not just cook_levin_compilation),
-the SPDP rank of compiledPoly T is ≤ n^200.
-
-The argument:
-1. compiledPoly T = 1 - Σ C² where each C has vars ⊆ support, |support| ≤ 10
-2. Γ(1 - Σ C²) ≤ Γ(1) + Γ(Σ C²) = 0 + Γ(Σ C²)  (via add/neg lemmas)
-3. Γ(Σ C²) ≤ Σ Γ(C²)  (subadditivity)
-4. Γ(C²) ≤ 2^|support| ≤ 2^10 = 1024  (locality: SPDP generators have vars ⊆ support)
-5. |constraints| × 1024 ≤ n^10 × n^10 = n^20 ≤ n^200
--/
+/-! ## General-Purpose Lemmas for SPDP Subspace Analysis -/
 
 /-- vars of p^2 are contained in vars of p. -/
 theorem vars_sq_subset {N : ℕ} (p : MvPolynomial (Fin N) ℚ) :
@@ -328,130 +269,31 @@ theorem spdp_subspace_le_span_of_vars_subset {N : ℕ}
         mul_zero, mlProj_zero]
     exact Submodule.zero_mem _
 
-set_option maxHeartbeats 3200000 in
-/-- The SPDP rank of C² is ≤ 2^|support| when C.vars ⊆ support.
-    This is the per-constraint locality rank bound. -/
-theorem spdp_rank_sq_le_pow_support {N : ℕ}
-    (B : BlockPartition N) (κ ℓ : ℕ)
-    (C : PaperFaithfulSeparation.LocalConstraint N) :
-    mlBlockedSpdpRank B κ ℓ (C.poly ^ 2) ≤ 2 ^ C.support.card := by
-  unfold mlBlockedSpdpRank
-  have hpv : (C.poly ^ 2).vars ⊆ C.support :=
-    Finset.Subset.trans (vars_sq_subset C.poly) C.vars_contained
-  have hle := spdp_subspace_le_span_of_vars_subset B κ ℓ (C.poly ^ 2) C.support hpv
-  -- finrank(SPDP subspace) ≤ finrank(span(mlMonomialBasis)) ≤ |mlMonomialBasis| ≤ 2^|support|
-  exact le_trans (le_trans (Submodule.finrank_mono hle) (finrank_span_finset_le_card _))
-    (MlProjFar.mlMonomialBasis_card C.support)
+/-! ## P-side Bound for Cook-Levin Compilation
 
-/-- The SPDP rank of C² is ≤ 1024 for any LocalConstraint (support ≤ 10). -/
-theorem spdp_rank_sq_le_1024 {N : ℕ}
-    (B : BlockPartition N) (κ ℓ : ℕ)
-    (C : PaperFaithfulSeparation.LocalConstraint N) :
-    mlBlockedSpdpRank B κ ℓ (C.poly ^ 2) ≤ 1024 := by
-  calc mlBlockedSpdpRank B κ ℓ (C.poly ^ 2)
-      ≤ 2 ^ C.support.card := spdp_rank_sq_le_pow_support B κ ℓ C
-    _ ≤ 2 ^ 10 := Nat.pow_le_pow_right (by omega) C.support_bound
-    _ = 1024 := by norm_num
+The compiled polynomial is now P = ∏(1-Cᵢ) (product form, matching the paper §17.1).
 
-/-- List.map+sum equals Finset.sum over Fin. -/
-theorem list_sum_eq_finset_sum {N : ℕ}
-    (L : List (PaperFaithfulSeparation.LocalConstraint N)) :
-    (L.map (fun c => c.poly ^ 2)).sum =
-    ∑ i : Fin L.length, ((L.get i).poly ^ 2) := by
-  conv_lhs => rw [show L.map (fun c => c.poly ^ 2) =
-    List.ofFn (fun i : Fin L.length => (L.get i).poly ^ 2) from by
-      apply List.ext_get
-      · simp
-      · intro i h1 h2
-        simp [List.get_ofFn]]
-  exact List.sum_ofFn
+For the product form, simple locality counting gives a superpolynomial bound:
+  numConstraints^κ = poly(n)^{log n} = n^{c log n}
 
-/-- Subadditivity for list sums: Γ(Σ C²) ≤ Σ Γ(C²). -/
-theorem spdp_rank_list_sum_le {N : ℕ}
-    (B : BlockPartition N) (κ ℓ : ℕ)
-    (L : List (PaperFaithfulSeparation.LocalConstraint N)) :
-    mlBlockedSpdpRank B κ ℓ (L.map (fun c => c.poly ^ 2)).sum ≤
-      L.length * 1024 := by
-  rw [list_sum_eq_finset_sum L]
-  calc mlBlockedSpdpRank B κ ℓ (∑ i : Fin L.length, ((L.get i).poly ^ 2))
-      ≤ ∑ i : Fin L.length, mlBlockedSpdpRank B κ ℓ ((L.get i).poly ^ 2) :=
-        mlBlockedSpdpRank_finsum_le B κ ℓ L.length _
-    _ ≤ ∑ _i : Fin L.length, 1024 := by
-        apply Finset.sum_le_sum
-        intro i _
-        exact spdp_rank_sq_le_1024 B κ ℓ (L.get i)
-    _ = L.length * 1024 := by simp [Finset.sum_const]
+The paper's profile compression (§9, Theorem 92) reduces this to polynomial
+by grouping SPDP rows with identical constraint-type histograms ("profiles").
+The number of distinct profiles is bounded by a polynomial in n.
 
-/-- 1024 ≤ n^10 for n ≥ 2. -/
-theorem bound_1024_le_pow10 (n : ℕ) (hn : n ≥ 2) : 1024 ≤ n ^ 10 := by
-  calc 1024 = 2 ^ 10 := by norm_num
-    _ ≤ n ^ 10 := Nat.pow_le_pow_left hn 10
+Profile compression is not yet formalized. The P-side bound is therefore
+obtained from the axiom `p_side_rank_bound_for_cook_levin` declared in
+PaperFaithfulSeparation.lean. -/
 
-/-- General P-side rank bound for ANY CompiledTableau.
+/-- The P-side rank bound for cook_levin_compilation.
 
-    For any DTM M and input size n ≥ 2, the compiled polynomial of a
-    CompiledTableau has SPDP rank ≤ n^200.
-
-    Proof:
-    - compiledPoly T = 1 - Σ C²
-    - Γ(1 - Σ C²) ≤ Γ(1) + Γ(Σ C²) = 0 + Γ(Σ C²) ≤ Σ Γ(C²)
-    - Each Γ(C²) ≤ 2^10 = 1024 (locality)
-    - Total: |constraints| × 1024 ≤ n^10 × n^10 = n^20 ≤ n^200 -/
-theorem general_p_side_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (T : PaperFaithfulSeparation.CompiledTableau M n) :
-    mlBlockedSpdpRank T.partition (Nat.log 2 n) (Nat.log 2 n)
-      (PaperFaithfulSeparation.compiledPoly T) ≤ n ^ 200 := by
-  -- compiledPoly T = 1 - sum_of_squares
-  -- Step 1: Reduce to bounding Γ(sum_of_squares)
-  -- 1 - s = (-s) + 1
-  have hcp : PaperFaithfulSeparation.compiledPoly T =
-      (-(T.constraints.map (fun c => c.poly ^ 2)).sum) + 1 := by
-    unfold PaperFaithfulSeparation.compiledPoly
-    ring
-  rw [hcp]
-  -- Γ((-s) + 1) = Γ((-s) + C 1) = Γ(-s) using add_const
-  have h1_eq : (1 : MvPolynomial (Fin T.numVars) ℚ) = MvPolynomial.C 1 := by simp
-  rw [h1_eq]
-  have hκ_pos : Nat.log 2 n ≥ 1 := by
-    exact Nat.le_log_of_pow_le (by norm_num : 1 < 2) (by omega : 2 ^ 1 ≤ n)
-  rw [GodMoveReal.mlBlockedSpdpRank_add_const T.partition
-      (Nat.log 2 n) (Nat.log 2 n) hκ_pos
-      (-(T.constraints.map (fun c => c.poly ^ 2)).sum) 1]
-  -- Γ(-s) = Γ(s) using neg
-  have hneg_eq : mlBlockedSpdpSubspace T.partition (Nat.log 2 n) (Nat.log 2 n)
-      (-(T.constraints.map (fun c => c.poly ^ 2)).sum) =
-      mlBlockedSpdpSubspace T.partition (Nat.log 2 n) (Nat.log 2 n)
-      (T.constraints.map (fun c => c.poly ^ 2)).sum :=
-    GodMoveReal.mlBlockedSpdpSubspace_neg T.partition _ _ _
-  unfold mlBlockedSpdpRank
-  rw [hneg_eq]
-  -- Now bound Γ(Σ C²) ≤ |constraints| × 1024 ≤ n^200
-  have hrank_sum := spdp_rank_list_sum_le T.partition
-    (Nat.log 2 n) (Nat.log 2 n) T.constraints
-  unfold mlBlockedSpdpRank at hrank_sum
-  calc Module.finrank ℚ (mlBlockedSpdpSubspace T.partition (Nat.log 2 n) (Nat.log 2 n)
-        (List.map (fun c => c.poly ^ 2) T.constraints).sum)
-      ≤ T.constraints.length * 1024 := hrank_sum
-    _ ≤ n ^ 10 * 1024 := Nat.mul_le_mul_right 1024 T.constraints_poly
-    _ ≤ n ^ 10 * n ^ 10 := Nat.mul_le_mul_left (n ^ 10) (bound_1024_le_pow10 n hn)
-    _ = n ^ 20 := by rw [← pow_add]
-    _ ≤ n ^ 200 := Nat.pow_le_pow_right (by omega : 1 ≤ n) (by omega : 20 ≤ 200)
-
-/-- The P-side bound is provable from the actual locality construction
-    for ANY CompiledTableau. -/
-theorem p_bound_from_locality (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (T : PaperFaithfulSeparation.CompiledTableau M n) :
-    mlBlockedSpdpRank T.partition (Nat.log 2 n) (Nat.log 2 n)
-      (PaperFaithfulSeparation.compiledPoly T) ≤ n ^ 200 :=
-  general_p_side_rank_bound M n hn T
-
-/-- The P-side rank bound is satisfied for cook_levin_compilation.
-    Uses the general locality bound. -/
+    For the product polynomial P = ∏(1-Cᵢ), this requires profile compression
+    (paper §9, Theorem 92). The bound is obtained from the axiom
+    `p_side_rank_bound_for_cook_levin` in PaperFaithfulSeparation.lean. -/
 theorem p_side_bound_for_cook_levin (M : DTM) (n : ℕ) (hn : n ≥ 2) :
     mlBlockedSpdpRank (PaperFaithfulSeparation.cook_levin_compilation M n hn).partition
       (Nat.log 2 n) (Nat.log 2 n)
       (PaperFaithfulSeparation.compiledPoly
         (PaperFaithfulSeparation.cook_levin_compilation M n hn)) ≤ n ^ 200 :=
-  general_p_side_rank_bound M n hn (PaperFaithfulSeparation.cook_levin_compilation M n hn)
+  PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin M n hn
 
 end LocalityRankBound
