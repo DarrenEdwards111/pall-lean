@@ -310,7 +310,8 @@ axiom fixed_profile_factors_through_symmetric_powers
     (κ : ℕ) (terms : Finset (LeibnizTerm σ κ))
     (h : ProfileHistogram) (hh : ProfileAdmissible κ h) :
     Σ' WF : BoundedInterfaceFamily σ,
-      { c : ProfileFactorizationClaim σ κ terms WF.family // c.histogram = h }
+      { c : ProfileFactorizationClaim σ κ terms WF.family //
+          c.histogram = h ∧ ProfileAdmissible κ c.histogram }
 
 /-- Step B reformulated as a profile-count times within-profile-dimension bound.
 This is still abstract, but it names the exact bridge from the fixed-profile
