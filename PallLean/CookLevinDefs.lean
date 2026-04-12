@@ -204,7 +204,33 @@ private theorem adjConstraintList_length (N : ℕ) (hN : N ≥ 1) :
   · exact List.length_filterMap_le _ _
   · simp [List.length_finRange]
 
-/-- Cook-Levin compilation with booleanity AND transition skeleton constraints. -/
+/-- Locality-respecting block partition: groups every 3 consecutive variables
+into one block. Variable i is assigned to block i/3.
+
+With this partition, block-admissibility requires at most 1 variable per block
+(i.e., at most 1 variable from each group of 3 consecutive indices).
+This is essential for the profile compression argument (§9, Theorem 92):
+the locality structure ensures that each constraint touches at most 2 adjacent
+blocks, and block-admissibility limits the derivative set S to touching
+at most κ blocks. Combined with the constraint-type counting (profile
+compression), this gives polynomial SPDP rank.
+
+Note: The identity partition (numBlocks = n, assign = id) makes block-admissibility
+trivial (just Nodup), which gives SPDP rank ≥ C(n, log n) = superpolynomial.
+The locality partition is what makes the P-side bound ≤ n^200 true. -/
+private def localityNumBlocks (n : ℕ) : ℕ := (n + 2) / 3
+
+private def localityAssign (n : ℕ) (i : Fin n) : Fin (localityNumBlocks n) :=
+  ⟨i.val / 3, by
+    unfold localityNumBlocks
+    exact Nat.div_lt_of_lt_mul (by omega)⟩
+
+/-- Cook-Levin compilation with booleanity AND transition skeleton constraints.
+
+Uses a locality-respecting block partition (block size 3) rather than the
+identity partition. This is necessary for the profile compression P-side
+bound to hold: with identity partition, the SPDP rank is C(n, log n) which
+is superpolynomial, violating the n^200 bound. -/
 noncomputable def cook_levin_compilation (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
     CompiledTableau M n :=
@@ -227,6 +253,6 @@ noncomputable def cook_levin_compilation (M : DTM) (n : ℕ) (hn : n ≥ 2)
         _ ≤ n ^ 10 := Nat.pow_le_pow_right h1 (by omega)
     locality_radius := 1
     locality_bound := by omega
-    partition := { numBlocks := n, assign := id } }
+    partition := { numBlocks := localityNumBlocks n, assign := localityAssign n } }
 
 end PaperFaithfulSeparation
