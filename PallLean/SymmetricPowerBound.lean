@@ -351,6 +351,17 @@ structure SpdpProfileDecomposition {N : ℕ} (B : BlockPartition N) (κ ℓ : �
   perProfileFinite : ∀ i, Module.Finite ℚ ↥(profileSpaces i)
   perProfileDimBound : ℕ
   perProfileBound : ∀ i, Module.finrank ℚ ↥(profileSpaces i) ≤ perProfileDimBound
+
+
+/-- A paper-shaped decoration on a profile decomposition: each indexed subspace is
+intended to correspond to a concrete profile histogram. This does not yet build
+those spaces from Leibniz data, but it records the intended semantic labeling so
+future work does not treat the decomposition as an arbitrary bounded cover. -/
+structure LabeledSpdpProfileDecomposition {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) extends SpdpProfileDecomposition B κ ℓ p where
+  profileLabel : Fin numProfiles → ProfileHistogram
+  profileLabel_admissible : ∀ i, ProfileAdmissible κ (profileLabel i)
+
   assemblyBound : numProfiles * perProfileDimBound ≤ combinedProfileBound κ
 
 /-- Assembly lemma: given a profile decomposition with `m` profiles each of
@@ -381,7 +392,7 @@ remains axiomatic until the real profile-classified decomposition is built. -/
 axiom compiled_poly_profile_decomposition_placeholder
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
-    { dec : SpdpProfileDecomposition
+    { dec : LabeledSpdpProfileDecomposition
         (cook_levin_compilation M n hn htb hns).partition
         (Nat.log 2 n) (Nat.log 2 n)
         (compiledPoly (cook_levin_compilation M n hn htb hns)) //
@@ -416,7 +427,7 @@ theorem rank_bound_from_fixed_profile_factorization
         (Nat.log 2 n) (Nat.log 2 n)
         (compiledPoly (cook_levin_compilation M n hn htb hns))
       ≤ dec.numProfiles * dec.perProfileDimBound :=
-        spdp_rank_le_of_profile_decomposition _ _ _ _ dec
+        spdp_rank_le_of_profile_decomposition _ _ _ _ dec.toSpdpProfileDecomposition
     _ ≤ combinedProfileBound (Nat.log 2 n) := dec.assemblyBound
 
 
