@@ -370,10 +370,18 @@ can only grow, and the rank is monotone.
 This is a direct consequence of the definition of mlBlockedSpdpSubspace:
 the generating set for ℓ₁ is a subset of the generating set for ℓ₂ when
 ℓ₁ ≤ ℓ₂. -/
-axiom compiled_rank_mono_ell (M : DTM) (n : ℕ) (hn : n ≥ 2)
+theorem compiled_rank_mono_ell (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (κ ℓ₁ ℓ₂ : ℕ) (hℓ : ℓ₁ ≤ ℓ₂) :
     (god_move_extraction M n hn).compiledRank κ ℓ₁ ≤
-    (god_move_extraction M n hn).compiledRank κ ℓ₂
+    (god_move_extraction M n hn).compiledRank κ ℓ₂ := by
+  let ext := god_move_extraction M n hn
+  rw [ext.compiledRank_eq κ ℓ₁, ext.compiledRank_eq κ ℓ₂]
+  unfold mlBlockedSpdpRank
+  apply Submodule.finrank_mono
+  apply Submodule.span_le.mpr
+  intro q ⟨S, m, hlen, hdeg, hvars, hadm, hq⟩
+  apply Submodule.subset_span
+  exact ⟨S, m, hlen, le_trans hdeg hℓ, hvars, hadm, hq⟩
 
 /-- P ≠ NP, unconditionally modulo the five axiomatised obligations.
 
