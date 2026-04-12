@@ -1828,4 +1828,38 @@ theorem no_PeqNP_of_uniform_compiled_tableau_bound
     exact le_rfl
   exact P_neq_NP_latent_from_compiled_tableau_bound h n hn (hBound h n hn)
 
+/-- Profile decomposition route: from a uniform profile (40,120) parts package,
+derive the n^160 rank bound and then the contradiction.
+
+This wires the P-side SPDP rank bound through the profile decomposition
+hypothesis from §9/§17.3, avoiding the need to supply the rank bound directly.
+
+The chain: parts_40_120 → span160 → rank ≤ n^160 → rank ≤ n^200 → ⊥ -/
+theorem P_neq_NP_from_profile_decomposition (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (hParts : latent_profile_span_card_parts_40_120_logscale h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  have hRank : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n) ≤ n ^ 160 :=
+    latentCompiledPoly_spdp_rank_poly_bound M n hnM hn804 hParts
+  exact P_neq_NP_from_generator_bound h n hn hRank
+
+/-- Global closure from uniform profile decomposition: if the (40,120) profile
+parts package is available for every DTM at contradiction scale, then P ≠ NP. -/
+theorem no_PeqNP_of_uniform_profile_decomposition
+    (hParts : ∀ (M : DTM) (n : ℕ),
+      (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
+      latent_profile_span_card_parts_40_120_logscale M n hn hn804) :
+    PeqNP → False := by
+  intro h
+  let M := h.sat_decider
+  let n := max (max 32 (max 4 M.numStates)) (2 ^ 804)
+  have hn : n ≥ max (max 32 (max 4 M.numStates)) (2 ^ 804) := le_refl _
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  exact P_neq_NP_from_profile_decomposition h n hn (hParts M n hnM hn804)
+
 end LatentCompilerFinalRoute

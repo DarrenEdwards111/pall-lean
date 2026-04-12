@@ -1627,13 +1627,47 @@ Concretely, the proof now depends only on verifying the expected coefficient ide
 - scalar extraction through `MvPolynomial.coeff_C_mul`, and
 - the `Xcopy`-product/monomial rewrite in the tagged coefficient.
 -/
-def copyCon_offdiag_complement_support
+theorem copyCon_offdiag_complement_support
     (M : DTM) (n : ℕ)
     (ksi ksj : List (Fin (latentBaseVars M n)))
     (hndi : ksi.Nodup) (hndj : ksj.Nodup)
-    (hlen : ksi.length = ksj.length) : Prop :=
+    (hlen : ksi.length = ksj.length) :
   ksi.toFinset ≠ ksj.toFinset →
     MvPolynomial.coeff (copyCon_tagMono M n ksi)
-      (copyCon_con_closedForm M n ksj) = 0
+      (copyCon_con_closedForm M n ksj) = 0 := by
+  intro hne
+  by_contra hcoeff
+  rcases exists_mem_toFinset_not_mem_toFinset_of_ne_of_length_eq
+    (n := n) ksi ksj hndi hndj hlen hne with ⟨i0, hi0_ksi, hi0_not_ksj⟩
+  have hsub : ∃ k ∈ ksi, k ∉ ksj := by
+    refine ⟨i0, ?_, ?_⟩
+    · simpa [List.mem_toFinset] using hi0_ksi
+    · simpa [List.mem_toFinset] using hi0_not_ksj
+  unfold copyCon_con_closedForm at hcoeff
+  have hscalar_ne : ((-1 : ℚ) ^ ksj.length) ≠ 0 := by
+    exact pow_ne_zero _ (by norm_num)
+  have hcoeff' : MvPolynomial.coeff (copyCon_tagMono M n ksi)
+      (C ((-1 : ℚ) ^ ksj.length) *
+        ((ksj.map (Xcopy M n)).prod * ∏ i ∈ (Finset.univ \ ksj.toFinset), copyConGadget M n i)) ≠ 0 := by
+    simpa [mul_assoc] using hcoeff
+  rw [MvPolynomial.coeff_C_mul] at hcoeff'
+  have hresid_copy : MvPolynomial.coeff (copyCon_tagMono M n ksi)
+      ((ksj.map (Xcopy M n)).prod * ∏ i ∈ (Finset.univ \ ksj.toFinset), copyConGadget M n i) ≠ 0 := by
+    intro hzero
+    apply hcoeff'
+    simp [hzero, hscalar_ne]
+  rw [Xcopy_prod_eq_monomial M n ksj hndj] at hresid_copy
+  /- The tempting direct shortcut via `coeff_monomial_mul'` is false here: off-diagonality only
+  gives a witness `i0 ∈ ksi.toFinset \ ksj.toFinset`, which is compatible with
+  `copyCon_tagMono M n ksj ≤ copyCon_tagMono M n ksi` because the missing copy-slot has coefficient
+  `0` on the `ksj` tag and `1` on the `ksi` tag.
+
+  So the actual remaining bridge is subtler: from the nonzero coefficient of
+  `monomial (copyCon_tagMono M n ksj) 1 * residual` at `copyCon_tagMono M n ksi`, one must show
+  that the residual factor contributes the missing copy-slot `copySlot M n i0`. Once that missing
+  support is transported into the residual gadget product, the proved residual pair-extraction
+  theorem yields a con-slot in the tag monomial, contradicting `copyCon_tagMono_no_conSlot`.
+  -/
+  admit
 
 end CopyConClosedCoeffDecomp

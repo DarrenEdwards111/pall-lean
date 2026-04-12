@@ -3247,7 +3247,9 @@ def latent_copyCon_tagged_coefficient_separation_candidate_current
     (hndi : ksi.Nodup)
     (hndj : ksj.Nodup)
     (hlen : ksi.length = ksj.length),
-    CopyConClosedCoeffDecomp.copyCon_offdiag_complement_support M n ksi ksj hndi hndj hlen
+    ksi.toFinset ≠ ksj.toFinset →
+      MvPolynomial.coeff (CopyConClosedCoeffDecomp.copyCon_tagMono M n ksi)
+        (CopyConClosedCoeffDecomp.copyCon_con_closedForm M n ksj) = 0
 
 /-- Current direct comparison frontier: if a raw pure-`conSlot` presentation and an explicit clean
 copy-slot presentation compute the same `(σ, q)`, then they should contradict on the live
@@ -4213,5 +4215,66 @@ theorem latent_width_rank_from_decomp (M : DTM) (n : ℕ)
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 200 :=
   hProfile
+
+/-- P-side SPDP rank polynomial bound for latentCompiledPoly, proved from the
+profile decomposition hypothesis (paper §9/§17 locality/support counting).
+
+The argument proceeds in three stages:
+1. Profile decomposition (hypothesis `hParts`): the SPDP subspace decomposes
+   into ≤ n^40 profile-indexed groups, each generating a subspace spanned by
+   ≤ n^120 elements. This uses the paper's §9 profile compression applied to
+   the latent cross-layer gadget structure (§17.3).
+2. Span cardinality: by Finset.card_biUnion_le and Finset.sum_le_card_nsmul,
+   the union of profile generators has cardinality ≤ n^40 × n^120 = n^160.
+3. Finrank bound: since the SPDP subspace is contained in the span of a Finset
+   of size ≤ n^160, its finrank (= mlBlockedSpdpRank) is ≤ n^160.
+
+The profile decomposition hypothesis encodes:
+- Profile count ≤ n^40 (§9.1 Lemma 20, stars-and-bars on the derivative histogram)
+- Per-profile dim ≤ n^120 (§9.1 Lemma 22, symmetric tensor dimension)
+Both arithmetic bounds are proved in ProfileSpaceBound.lean and
+theorem9_profile_count_obligation_proved / theorem9_within_profile_dim_obligation_proved. -/
+theorem latentCompiledPoly_spdp_rank_poly_bound (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hParts : latent_profile_span_card_parts_40_120_logscale M n hn hn804) :
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n) ≤ n ^ 160 := by
+  -- Stage 1: from profile parts (40,120) to a global span160 witness
+  have h160 : latent_p_witness_span160_logscale M n hn hn804 :=
+    latent_p_witness_span160_logscale_from_parts_40_120 M n hn hn804 hParts
+  -- Stage 2: extract the Finset G with sub ≤ span G and |G| ≤ n^160
+  rcases h160 with ⟨G, hSpan, hCard⟩
+  -- Stage 3: finrank ≤ |G| ≤ n^160
+  unfold mlBlockedSpdpRank
+  calc Module.finrank ℚ
+        (mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+          (latentCompiledPoly M n))
+      ≤ Module.finrank ℚ
+          (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))) :=
+        Submodule.finrank_mono hSpan
+    _ ≤ G.card := finrank_span_finset_le_card G
+    _ ≤ n ^ 160 := hCard
+
+/-- Variant: the rank bound from the Item-3 + uniform-120 locality structure package,
+which is a more granular form of the profile decomposition hypothesis. -/
+theorem latentCompiledPoly_spdp_rank_poly_bound_from_item3_uniform120 (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hLoc : latent_profile_block_cover_item3_uniform120_logscale M n hn hn804) :
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n) ≤ n ^ 160 :=
+  latentCompiledPoly_spdp_rank_poly_bound M n hn hn804
+    (latent_profile_span_card_parts_40_120_from_item3_uniform120 M n hn hn804 hLoc)
+
+/-- Variant: the rank bound from the concrete locality/profile structure at the
+120-exponent level (§17.3 specialized to the latent cross-layer compiler). -/
+theorem latentCompiledPoly_spdp_rank_poly_bound_from_concrete_locality (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hLoc : concrete_locality_profile_structure120_logscale M n hn hn804) :
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n) ≤ n ^ 160 :=
+  latentCompiledPoly_spdp_rank_poly_bound_from_item3_uniform120 M n hn hn804 hLoc
 
 end LatentWidthRankDecomp
