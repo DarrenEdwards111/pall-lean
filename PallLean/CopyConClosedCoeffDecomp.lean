@@ -745,6 +745,17 @@ theorem copyCon_exact_shape_coeff_single_copy
   · exact False.elim (ha h.symm)
   · simp [h]
 
+theorem copyCon_exact_shape_coeff_single_con
+    (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n))
+    {b : (Fin (latentNumVars M n)) →₀ ℕ}
+    (hb : b ≠ Finsupp.single (conSlot M n j) 1) :
+    MvPolynomial.coeff b (MvPolynomial.X (conSlot M n j) : MvPolynomial (Fin (latentNumVars M n)) ℚ) = 0 := by
+  rw [MvPolynomial.coeff_X']
+  by_cases h : Finsupp.single (conSlot M n j) 1 = b
+  · exact False.elim (hb h.symm)
+  · simp [h]
+
 /-- Exact-shape coefficient in a single copyCon gadget.
 
 This is the one-gadget antidiagonal micro-goal currently blocking the zero-residual branch. -/
@@ -762,9 +773,9 @@ constant branch because the target monomial is nonzero, then prove the remaining
 coefficient by isolating the unique antidiagonal pair `(single copy, single con)`.
 
 What is still missing is the last antidiagonal singleton/coefficient calculation in a form Lean
-accepts without extra local normalization lemmas. One tiny ingredient is now isolated as the helper
-`copyCon_exact_shape_coeff_single_copy`; the remaining gap is the matching antidiagonal uniqueness
-step for the exact pair `(single copy, single con)`. -/
+accepts without extra local normalization lemmas. Two tiny ingredients are now isolated as the
+helpers `copyCon_exact_shape_coeff_single_copy` and `copyCon_exact_shape_coeff_single_con`; the
+remaining gap is the antidiagonal uniqueness step for the exact pair `(single copy, single con)`. -/
 
 theorem copyCon_exact_shape_coeff_normalization
     (M : DTM) (n : ℕ)
