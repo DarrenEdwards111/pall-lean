@@ -1418,6 +1418,68 @@ statement `coeff_copyConProd_eq_zero_of_any_copy`. So the remaining blocker is n
 full induction assembly for that stronger gadget-product vanishing statement, followed by its use
 with `copyCon_residual_support_from_offdiag_witness` to finish the off-diagonal coefficient
 argument. -/
+/-- Honest remaining off-diagonal contradiction frontier for copyCon closed forms.
+
+The infrastructure below is now substantially stronger than when this surface was first introduced:
+- an off-diagonal set-difference witness is available,
+- residual support transport is proved,
+- and nonzero monomials of copyCon gadget products now admit full pointwise factor extraction.
+
+So the live gap is no longer vague support bookkeeping. The remaining issue is the final coefficient
+kill: from an alleged nonzero tagged coefficient on the off-diagonal closed form, extract a concrete
+copy/con index witness in the residual gadget product and contradict the set-difference witness
+coming from `ksi.toFinset ≠ ksj.toFinset`.
+-/
+/-- Final local witness-extraction frontier for the copyCon off-diagonal coefficient kill.
+
+The previous first pass was too loose about which witness should be produced. The actual coefficient
+shape is this: if the tagged coefficient of the residual gadget product is nonzero, then the
+pointwise extraction theorem must produce an index from the residual factor set whose copy-slot (and
+paired con-slot) occur in the tagged monomial `copyCon_tagMono M n ksi`. Since that tag monomial has
+no con-slot support at all, this should force the contradiction.
+-/
+/-- Empty-tag nuisance isolated for the copyCon off-diagonal kill.
+
+The residual-pair extraction theorem wants an actual copy-slot witness in the tag monomial, so the
+empty-tag case should be split off explicitly instead of being smuggled through a bogus proof by
+cases on `ksi`.
+-/
+theorem copyCon_tagMono_nonzero_coeff_forces_nonempty_candidate
+    (M : DTM) (n : ℕ)
+    (ksi : List (Fin (latentBaseVars M n)))
+    (ksj : List (Fin (latentBaseVars M n))) :
+  MvPolynomial.coeff (copyCon_tagMono M n ksi)
+      (∏ i ∈ (Finset.univ \ ksj.toFinset), copyConGadget M n i) ≠ 0 →
+    ksi ≠ [] := by
+  intro hcoeff hnil
+  subst hnil
+  unfold copyCon_tagMono at hcoeff
+  simp at hcoeff
+
+/-- Final local witness-extraction frontier for the copyCon off-diagonal coefficient kill,
+with the empty-tag nuisance separated out. -/
+def copyCon_offdiag_nonzero_coeff_forces_residual_pair_candidate
+    (M : DTM) (n : ℕ)
+    (ksi ksj : List (Fin (latentBaseVars M n))) : Prop :=
+  ksi ≠ [] →
+  MvPolynomial.coeff (copyCon_tagMono M n ksi)
+      (∏ i ∈ (Finset.univ \ ksj.toFinset), copyConGadget M n i) ≠ 0 →
+    ∃ j0 ∈ (Finset.univ \ ksj.toFinset),
+      copySlot M n j0 ∈ (copyCon_tagMono M n ksi).support ∧
+      conSlot M n j0 ∈ (copyCon_tagMono M n ksi).support
+
+/-- Honest remaining off-diagonal contradiction frontier for copyCon closed forms.
+
+The infrastructure below is now substantially stronger than when this surface was first introduced:
+- an off-diagonal set-difference witness is available,
+- residual support transport is proved,
+- and nonzero monomials of copyCon gadget products now admit full pointwise factor extraction.
+
+So the live gap is no longer vague support bookkeeping. The remaining issue is the final coefficient
+kill: from an alleged nonzero tagged coefficient on the off-diagonal closed form, extract a concrete
+copy/con index witness in the residual gadget product and contradict the set-difference witness
+coming from `ksi.toFinset ≠ ksj.toFinset`.
+-/
 def copyCon_offdiag_complement_support
     (M : DTM) (n : ℕ)
     (ksi ksj : List (Fin (latentBaseVars M n)))
