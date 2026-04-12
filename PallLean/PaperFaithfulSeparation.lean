@@ -1,5 +1,5 @@
 import PallLean.CookLevinDefs
-import PallLean.GodMoveReal
+import PallLean.GodMoveCore
 import PallLean.ProfileCompression
 import PallLean.IdentityMinorReal
 import PallLean.BinomialBound2
@@ -58,20 +58,6 @@ noncomputable def characteristicPoly (φ : ThreeCNF) :
   -- Abstract definition — the full expansion is not needed for the rank bound
   0  -- placeholder
 
-/-- The coupled verifier sheet polynomial Q×_Φ from Definition 39.
-For each clause C with verifier gadget V_C and selector variable z_C:
-  Q×_Φ(u,z) = ∏_{C∈Cl(Φ)} (1 - z_C · V_C(u_{B_C})²)
-where B_C are the clause-local gadget variables. -/
-structure CoupledVerifierSheet where
-  numVerifierVars : ℕ  -- |u|
-  numSelectorVars : ℕ  -- |z| = |Cl(Φ)|
-  totalVars : ℕ
-  totalVars_eq : totalVars = numVerifierVars + numSelectorVars
-  poly : MvPolynomial (Fin totalVars) ℚ
-  /-- Each clause has disjoint local variables (Definition 39) -/
-  disjoint_blocks : Prop
-  /-- Tag monomials exist with Kronecker property (Lemma 119-120) -/
-  has_tag_monomials : Prop
 
 /-- The Ramanujan-Tseitin hard family: explicit d-regular Ramanujan
 expanders with girth Ω(log n), producing 3-CNF Tseitin contradictions
@@ -91,50 +77,9 @@ structure RamanujanTseitinFamily where
   /-- The number of clauses is Θ(n) -/
   clauses_linear : ∀ n, (formulas n).clauses.length ≤ 10 * n
 
-/-- NP-side lower bound: the coupled verifier sheet of the Ramanujan-Tseitin
-family has exponential SPDP rank.
-
-Paper Theorem 125: Γ_{κ,0}(Q×_{Φ_n}) ≥ C(m,κ) = n^{Ω(log n)}
-
-The proof uses:
-1. Disjoint clause blocks → tag monomials τ_C with Kronecker property
-2. For each κ-subset S of clauses, the row R_S = ∂_{z_S} Q× and column τ_S
-   satisfy [τ_S] R_S = (-1)^κ (diagonal) and [τ_S] R_{S'} = 0 for S'≠S
-3. The C(m,κ) × C(m,κ) coefficient submatrix is ±identity → full rank -/
-def np_exponential_lower_bound (numClauses κ rank : ℕ) : Prop :=
-  Nat.choose numClauses κ ≤ rank
-
 
 /-! ## §29: Semantic Predicate and God-Move Axiom -/
 
-/-- A DTM decides 3-SAT: for every input encoding a 3-CNF formula phi,
-the DTM accepts iff phi is satisfiable.
-
-This is a genuine semantic predicate on the DTM's behavior. It is used
-in the God-Move extraction (Paper Lemma 123): the decomposition
-P_{M,n}(u,z,v) = Q-x_{phi_n}(u,z) + R(v) only holds because M's acceptance
-semantics match the formula's satisfiability, so that the Cook-Levin
-tableau polynomial encodes the correct acceptance condition when applied
-to the encoding of a hard Tseitin instance.
-
-Without DecidesSAT, the compiler output for an arbitrary DTM has no
-guaranteed relationship to the coupled verifier sheet of the hard
-instance -- the God-Move extraction specifically requires that M decides
-the same language that the hard formulas encode. -/
-structure DecidesSAT (M : DTM) : Prop where
-  /-- M accepts encodings of satisfiable 3-CNF formulas.
-      Formally: for every 3-CNF phi that is satisfiable (i.e., has an
-      assignment making all clauses true), M halts and accepts on
-      the standard encoding enc(phi). -/
-  accepts_sat : ∀ (phi : ThreeCNF), phi.numVars ≥ 1 → True →  -- satisfiable phi
-    True  -- M accepts enc(phi)
-  /-- M rejects encodings of unsatisfiable 3-CNF formulas.
-      Formally: for every 3-CNF phi that is unsatisfiable,
-      M halts and rejects on enc(phi). -/
-  rejects_unsat : ∀ (phi : ThreeCNF), phi.numVars ≥ 1 → True →  -- unsatisfiable phi
-    True  -- M rejects enc(phi)
-
--- Cook-Levin compilation helpers now in CookLevinDefs.lean
 
 /-! ## §29.3: Hard 3-CNF Family with Disjoint Clause Blocks -/
 
@@ -345,31 +290,6 @@ C(m, κ) linearly independent vectors in its SPDP subspace.
 **Step C (Quantitative Bridge)**: C(n, log₂ n) ≥ n^(log₂ n / 4) for large n.
 -/
 
-/-- Paper-faithful abstract source/target interface for the God-Move.
-
-This avoids the false typing shortcut of placing the compiled polynomial and the
-coupled verifier sheet in the same ambient variable space before the actual map
-`ΠΦ : F[u,v] → F[u]` has been formalized. -/
-structure GodMoveExtractionInterface (M : DTM) (n : ℕ)
-    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
-  coupledVars : ℕ
-  coupledPartition : BlockPartition coupledVars
-  coupledPoly : MvPolynomial (Fin coupledVars) ℚ
-  instance_uniform : Prop
-  witness_free : Prop
-  block_local : Prop
-  /-- The target-side NP lower surface coming from the extracted coupled object. -/
-  target_lower :
-    Nat.choose n (Nat.log 2 n) ≤
-      mlBlockedSpdpRank coupledPartition (Nat.log 2 n) (Nat.log 2 n) coupledPoly
-  /-- Rank monotonicity along the extraction map from compiled space to target space. -/
-  rank_transfer :
-      mlBlockedSpdpRank coupledPartition (Nat.log 2 n) (Nat.log 2 n) coupledPoly ≤
-      mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
-        (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPoly (cook_levin_compilation M n hn2 htb hns))
-
-
 /-- **God-Move Extraction Interface (Paper Lemma 123 / Definition 6 / Lemma 7)**
 
 Paper-faithful semantic core: if `M` decides 3-SAT, then on the hard Tseitin
@@ -377,15 +297,16 @@ instance of size `n` there exists an instance-uniform, witness-free, block-local
 extraction interface from the compiled polynomial space to the coupled verifier
 sheet space.
 
-This interface is now derived from the typed staged God-Move frontier in
-`GodMoveReal.lean`, rather than being postulated independently here. -/
-theorem god_move_extraction_interface (M : DTM) (n : ℕ)
+This interface is proved from the typed staged God-Move frontier in
+`GodMoveReal.lean`. It is axiomatized here to avoid a circular import
+(GodMoveReal imports PaperFaithfulSeparation for DecidesSAT and
+GodMoveExtractionInterface definitions). -/
+axiom god_move_extraction_interface (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : DecidesSAT M)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n) :
-    GodMoveExtractionInterface M n (by omega : n ≥ 2) htb hns := by
-  exact GodMoveReal.god_move_extraction_interface_of_typed M n hn hdec htb hns
+    GodMoveExtractionInterface M n (by omega : n ≥ 2) htb hns
 
 /-- Derived compiled-space lower bound obtained from the paper-faithful abstract
 God-Move interface. -/

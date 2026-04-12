@@ -11,7 +11,7 @@
   2. The God-Move extraction structure connecting compiled and coupled sheets
   3. The rank monotonicity chain for the separation
 -/
-import PallLean.PaperFaithfulSeparation
+import PallLean.GodMoveCore
 import Mathlib.Tactic
 import Mathlib.Data.Nat.Log
 
@@ -318,8 +318,6 @@ structure GodMoveTypedExtraction (M : DTM) (n : ℕ)
         (Nat.log 2 n) (Nat.log 2 n)
         (compiledPoly (cook_levin_compilation M n hn2 htb hns))
 
-/-- Forgetting the concrete typed map data yields the lighter abstract interface
-used in `PaperFaithfulSeparation.lean`. -/
 /-- **Typed God-Move extraction frontier**.
 
 This is the paper-faithful semantic frontier for §29 in its explicit typed form:
@@ -336,18 +334,9 @@ axiom godMoveTypedExtraction_exists (M : DTM) (n : ℕ)
     (hns : M.numStates ≤ n) :
     GodMoveTypedExtraction M n (by omega : n ≥ 2) htb hns
 
-/-- Forgetful bridge: the typed God-Move extraction frontier implies the lighter
-abstract interface used by the separation file. -/
-theorem god_move_extraction_interface_of_typed
-    (M : DTM) (n : ℕ)
-    (hn : n ≥ 2 ^ 804)
-    (hdec : PaperFaithfulSeparation.DecidesSAT M)
-    (htb : M.timeBound ≤ 4)
-    (hns : M.numStates ≤ n) :
-    PaperFaithfulSeparation.GodMoveExtractionInterface M n (by omega : n ≥ 2) htb hns := by
-  exact godMoveTypedExtractionToInterface (godMoveTypedExtraction_exists M n hn hdec htb hns)
-
-def godMoveTypedExtractionToInterface
+/-- Forgetting the concrete typed map data yields the lighter abstract interface
+used in `PaperFaithfulSeparation.lean`. -/
+noncomputable def godMoveTypedExtractionToInterface
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     (g : GodMoveTypedExtraction M n hn2 htb hns) :
     PaperFaithfulSeparation.GodMoveExtractionInterface M n hn2 htb hns where
@@ -359,5 +348,16 @@ def godMoveTypedExtractionToInterface
   block_local := g.map.block_local
   target_lower := g.target_lower
   rank_transfer := g.rank_transfer
+
+/-- Forgetful bridge: the typed God-Move extraction frontier implies the lighter
+abstract interface used by the separation file. -/
+noncomputable def god_move_extraction_interface_of_typed
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    PaperFaithfulSeparation.GodMoveExtractionInterface M n (by omega : n ≥ 2) htb hns :=
+  godMoveTypedExtractionToInterface (godMoveTypedExtraction_exists M n hn hdec htb hns)
 
 end GodMoveReal
