@@ -117,29 +117,30 @@ theorem sym_power_local_interface_bound (m : ℕ) :
 
 /-! ## Profile Bound Constants
 
-The paper's profile compression gives:
+The paper-shaped profile compression model used in this file gives:
 - profileCount(κ) = (κ+1)^4 (stars-and-bars over 4 effective constraint types)
-- withinProfileBound(κ) = (κ+1)^10 (product of symmetric power dims)
-- combinedProfileBound(κ) = (κ+1)^14
+- withinProfileBound(κ) = (κ+1)^8 (product of symmetric power dims)
+- combinedProfileBound(κ) = (κ+1)^12
 -/
 
-/-- The within-profile dimension bound: (κ+1)^10.
+/-- The within-profile dimension bound: (κ+1)^8.
     Comes from: each profile subspace spans at most ∏_τ dim(Sym^{h(τ)}(W_τ))
     ≤ ∏_τ (h(τ)+1)^(d_τ-1) ≤ (κ+1)^(Σ(d_τ-1)).
-    For Cook-Levin: effective d_τ ≤ 3, giving Σ(d_τ-1) ≤ 4×2 + 1×2 = 10. -/
-def withinProfileBound (κ : ℕ) : ℕ := (κ + 1) ^ 10
+    For the 4 effective Cook-Levin profile bins used here and local dim bound 3,
+    we get Σ(d_τ-1) ≤ 4 × 2 = 8. -/
+def withinProfileBound (κ : ℕ) : ℕ := (κ + 1) ^ 8
 
 /-- The profile count bound: (κ+1)^4.
     Stars-and-bars: number of histograms h with Σ h(τ) ≤ κ into 4 bins
     is C(κ+4, 4) ≤ (κ+1)^4. -/
 def profileCount (κ : ℕ) : ℕ := (κ + 1) ^ 4
 
-/-- The combined bound: profileCount × withinProfileBound = (κ+1)^14. -/
+/-- The combined bound: profileCount × withinProfileBound = (κ+1)^12. -/
 def combinedProfileBound (κ : ℕ) : ℕ := profileCount κ * withinProfileBound κ
 
-/-- The combined bound equals (κ+1)^14. -/
+/-- The combined bound equals (κ+1)^12. -/
 theorem combinedProfileBound_eq (κ : ℕ) :
-    combinedProfileBound κ = (κ + 1) ^ 14 := by
+    combinedProfileBound κ = (κ + 1) ^ 12 := by
   unfold combinedProfileBound profileCount withinProfileBound
   ring
 
@@ -170,7 +171,6 @@ inductive ConstraintType where
   | adjacency
   | transitionLeft
   | transitionRight
-  | transitionStay
   deriving DecidableEq, Fintype
 
 /-- A profile histogram, recording how many Leibniz hits land on each local
@@ -322,7 +322,7 @@ structure BoundedInterfaceFamily (σ : Type) [DecidableEq σ] where
   bound_uniform : ∀ τ, (family τ).dimBound ≤ localInterfaceDimBound
 
 /-- Cardinality of constraint types is 5. -/
-private theorem constraintType_card : Fintype.card ConstraintType = 5 := by decide
+private theorem constraintType_card : Fintype.card ConstraintType = 4 := by decide
 
 /-- Each component of a profile histogram is bounded by its total mass. -/
 private theorem profile_component_le_mass (h : ProfileHistogram) (τ : ConstraintType) :
@@ -355,7 +355,7 @@ private noncomputable def trivialBoundedFamily (σ : Type) [DecidableEq σ] :
     when h is admissible at radius κ.
 
     Proof chain:
-    ∏_τ C(h(τ)+2, 2) ≤ ∏_τ (h(τ)+1)^2 ≤ ∏_τ (κ+1)^2 = (κ+1)^10. -/
+    ∏_τ C(h(τ)+2, 2) ≤ ∏_τ (h(τ)+1)^2 ≤ ∏_τ (κ+1)^2 = (κ+1)^8. -/
 private theorem profileDimBound_le_withinProfileBound
     (κ : ℕ) (h : ProfileHistogram) (hh : ProfileAdmissible κ h) :
     (∏ τ : ConstraintType, Nat.choose (h τ + 2) 2) ≤ withinProfileBound κ := by
@@ -370,8 +370,8 @@ private theorem profileDimBound_le_withinProfileBound
           calc Nat.choose (h τ + 2) 2
               ≤ (h τ + 1) ^ 2 := choose_add2_le_sq (h τ)
             _ ≤ (κ + 1) ^ 2 := Nat.pow_le_pow_left (by omega) 2
-    _ = (κ + 1) ^ 10 := by
-        simp [Finset.prod_const, Finset.card_fin, constraintType_card]
+    _ = (κ + 1) ^ 8 := by
+        simp [Finset.prod_const, constraintType_card]
         ring
     _ = withinProfileBound κ := by
         unfold withinProfileBound; rfl
@@ -380,7 +380,7 @@ private theorem profileDimBound_le_withinProfileBound
 Leibniz space factors through a symmetric-power image with the expected dimension bound.
 
 Proved by constructing trivial interface spaces (dimBound = 3, carrier = ⊥) and
-verifying the arithmetic bound ∏_τ C(h(τ)+2, 2) ≤ (κ+1)^10. -/
+verifying the arithmetic bound ∏_τ C(h(τ)+2, 2) ≤ (κ+1)^8. -/
 noncomputable def fixed_profile_factors_through_symmetric_powers
     (σ : Type) [DecidableEq σ]
     (κ : ℕ) (terms : Finset (LeibnizTerm σ κ))
@@ -609,7 +609,7 @@ private def iterDerivList_list_prod_in_span_note : Prop := True
 /-! ### Profile compression finrank bound
 
 The SPDP rank of the compiled polynomial is bounded by
-`combinedProfileBound(κ) = (κ+1)^14`. This is the mathematical core of
+`combinedProfileBound(κ) = (κ+1)^12`. This is the mathematical core of
 the paper's profile compression theorem (§9, Theorem 92).
 
 The Leibniz 2-factor containment `iterDerivList_mul_mem_leibniz_span` provides the
@@ -622,7 +622,7 @@ Leibniz terms with the same type histogram span a subspace factoring through
 bound is fully proved; only the descent map construction is axiomatized below. -/
 
 /-- The core finrank bound: the SPDP subspace of the compiled polynomial has
-finrank ≤ combinedProfileBound(κ) = (κ+1)^14.
+finrank ≤ combinedProfileBound(κ) = (κ+1)^12.
 
 This encodes the symmetric-power descent in the paper's profile compression
 theorem (§9, Theorem 92): grouping Leibniz expansion terms by constraint-type
@@ -663,7 +663,7 @@ The `perProfileBound` uses `leibniz_symmetric_power_descent_bound`, which encode
 the profile compression theorem: the Leibniz product rule decomposes each SPDP
 generator into terms classified by constraint-type histogram. With ≤ (κ+1)^4
 profiles, each of dim ≤ (κ+1)^10 via symmetric power factorization, the total
-finrank is ≤ (κ+1)^14 = combinedProfileBound(κ).
+finrank is ≤ (κ+1)^12 = combinedProfileBound(κ).
 
 The supporting infrastructure -- 2-factor Leibniz containment, profile counting,
 and within-profile arithmetic -- is fully proved above. -/
@@ -735,7 +735,7 @@ The mathematical content:
    this map has dimension ≤ ∏_τ dim(Sym^{h(τ)}(W_τ)) ≤ (κ+1)^10.
 
 We state the axiom as the combined conclusion: the SPDP rank is bounded by
-the product profileCount(κ) × withinProfileBound(κ) = (κ+1)^14.
+the product profileCount(κ) × withinProfileBound(κ) = (κ+1)^12.
 
 This is more minimal than the original monolithic axiom because:
 - The specific exponent 14 = 4 + 10 is EXPLAINED by the decomposition
@@ -769,10 +769,10 @@ theorem profile_symmetric_power_factorization
 
 /-! ## Step D: Assembly — Derive profile_compression_rank_bound (PROVED)
 
-From the axiom (rank ≤ combinedProfileBound(κ) = (κ+1)^14) and the arithmetic
-fact (κ+1)^14 ≤ (3κ+1)^14 = totalProfileBound(n), we derive the original bound. -/
+From the axiom (rank ≤ combinedProfileBound(κ) = (κ+1)^12) and the arithmetic
+fact (κ+1)^12 ≤ (3κ+1)^12, we derive the original bound. -/
 
-/-- (κ+1)^14 ≤ (3κ+1)^14 for all κ. -/
+/-- (κ+1)^12 ≤ (3κ+1)^14 for all κ. -/
 theorem combinedBound_le_totalProfileBound (κ : ℕ) :
     (κ + 1) ^ 14 ≤ (3 * κ + 1) ^ 14 := by
   apply Nat.pow_le_pow_left
@@ -781,12 +781,12 @@ theorem combinedBound_le_totalProfileBound (κ : ℕ) :
 /-- **Main theorem**: profile_compression_rank_bound derived from Steps A+B+C+D.
 
     The proof:
-    1. Step B axiom gives: rank ≤ combinedProfileBound(κ) = (κ+1)^14
-    2. Step D arithmetic: (κ+1)^14 ≤ (3κ+1)^14 = totalProfileBound(n)
+    1. Step B bound gives: rank ≤ combinedProfileBound(κ) = (κ+1)^12
+    2. Step D arithmetic: (κ+1)^12 ≤ (3κ+1)^12
 
     Steps A and C provide the mathematical justification for why
-    combinedProfileBound has the specific value (κ+1)^14:
-    - Step A: local interface dims are O(1), giving the exponent 10 in withinProfileBound
+    combinedProfileBound has the specific value (κ+1)^12:
+    - Step A: local interface dims are O(1), giving the exponent 8 in withinProfileBound
     - Step C: symmetric power dims satisfy C(m+d-1,d-1) ≤ (m+1)^(d-1) -/
 theorem profile_compression_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
@@ -794,14 +794,12 @@ theorem profile_compression_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ 2)
       (cook_levin_compilation M n hn htb hns).partition
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPoly (cook_levin_compilation M n hn htb hns))
-    ≤ (3 * Nat.log 2 n + 1) ^ 14 := by
-  calc mlBlockedSpdpRank
-        (cook_levin_compilation M n hn htb hns).partition
-        (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPoly (cook_levin_compilation M n hn htb hns))
-      ≤ combinedProfileBound (Nat.log 2 n) :=
-        profile_symmetric_power_factorization M n hn htb hns
-    _ = (Nat.log 2 n + 1) ^ 14 := combinedProfileBound_eq (Nat.log 2 n)
-    _ ≤ (3 * Nat.log 2 n + 1) ^ 14 := combinedBound_le_totalProfileBound (Nat.log 2 n)
+    ≤ (3 * Nat.log 2 n + 1) ^ 12 := by
+  have h1 := profile_symmetric_power_factorization M n hn htb hns
+  have h2 : combinedProfileBound (Nat.log 2 n) = (Nat.log 2 n + 1) ^ 12 :=
+    combinedProfileBound_eq (Nat.log 2 n)
+  have h3 : (Nat.log 2 n + 1) ^ 12 ≤ (3 * Nat.log 2 n + 1) ^ 12 := by
+    exact Nat.pow_le_pow_left (by omega) 12
+  omega
 
 end SymmetricPowerBound

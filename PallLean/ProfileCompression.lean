@@ -232,8 +232,16 @@ theorem profile_compression_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ 2)
       (cook_levin_compilation M n hn htb hns).partition
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ totalProfileBound n := by
-  rw [totalProfileBound_eq]
-  exact SymmetricPowerBound.profile_compression_rank_bound M n hn htb hns
+  have h := SymmetricPowerBound.profile_compression_rank_bound M n hn htb hns
+  have heq : totalProfileBound n = (3 * Nat.log 2 n + 1) ^ 14 := totalProfileBound_eq n
+  rw [heq]
+  calc mlBlockedSpdpRank
+        (cook_levin_compilation M n hn htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn htb hns))
+      ≤ (3 * Nat.log 2 n + 1) ^ 12 := h
+    _ ≤ (3 * Nat.log 2 n + 1) ^ 14 :=
+        Nat.pow_le_pow_right (by omega) (by omega)
 
 /-! ## Assembly: P-side Rank Bound
 

@@ -3236,20 +3236,19 @@ def latent_copyCon_tagged_coefficient_separation_candidate
       MvPolynomial.coeff (CopyConClosedCoeffDecomp.copyCon_tagMono M n ksi)
         (CopyConClosedCoeffDecomp.copyCon_con_closedForm M n ksj) = 0
 
-/-- The local copyCon closed-coefficient file already isolates the honest remaining off-diagonal
-shape: once the tag-support sets differ and the two copy witnesses have the same size, the tagged
-coefficient on the `ksj` closed form should vanish. At present this is still only a blocked lower-
-level candidate surface, not a proved theorem, so we expose that lower obstruction here as a
-separate status alias instead of pretending the vanishing result is already available. -/
-def latent_copyCon_tagged_coefficient_separation_candidate_current
-    (M : DTM) (n : ℕ) : Prop :=
-  ∀ (ksi ksj : List (Fin (latentBaseVars M n)))
+/-- The local copyCon closed-coefficient file now proves the off-diagonal tagged-coefficient
+vanishing theorem directly. We expose that proved lower-layer result here in the latent file so
+later comparison frontiers can depend on an actual theorem instead of a status alias. -/
+theorem latent_copyCon_tagged_coefficient_separation_current
+    (M : DTM) (n : ℕ)
+    (ksi ksj : List (Fin (latentBaseVars M n)))
     (hndi : ksi.Nodup)
     (hndj : ksj.Nodup)
-    (hlen : ksi.length = ksj.length),
-    ksi.toFinset ≠ ksj.toFinset →
-      MvPolynomial.coeff (CopyConClosedCoeffDecomp.copyCon_tagMono M n ksi)
-        (CopyConClosedCoeffDecomp.copyCon_con_closedForm M n ksj) = 0
+    (hlen : ksi.length = ksj.length)
+    (hne : ksi.toFinset ≠ ksj.toFinset) :
+    MvPolynomial.coeff (CopyConClosedCoeffDecomp.copyCon_tagMono M n ksi)
+      (CopyConClosedCoeffDecomp.copyCon_con_closedForm M n ksj) = 0 := by
+  exact CopyConClosedCoeffDecomp.copyCon_offdiag_complement_support M n ksi ksj hndi hndj hlen hne
 
 /-- Current direct comparison frontier: if a raw pure-`conSlot` presentation and an explicit clean
 copy-slot presentation compute the same `(σ, q)`, then they should contradict on the live
