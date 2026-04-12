@@ -863,16 +863,14 @@ theorem copyCon_insert_exact_shape_zero_residual_summand_candidate
   rw [copyCon_exact_shape_coeff_nonzero, copyCon_prod_constant_term]
   norm_num
 
-/-- Candidate exact-shape inserted-slot split for the stronger `any_copy` induction.
+/-- Nonzero-residual exact-shape inserted-slot frontier.
 
-The current honest state is asymmetric:
-- the `b = 0` subcase is now isolated, and should reduce to the explicit coefficient of the
-  exact-shape monomial in a single `copyConGadget`, but that coefficient fact itself is still only
-  a candidate;
-- the `b ≠ 0` branch still needs either an independent witness in `b` or some stronger structural
-  argument.
--/
-def copyCon_insert_exact_shape_inserted_witness_split_candidate
+The old split statement was too weakly targeted. The real remaining local need is the direct
+nonzero branch: if `a` is the exact inserted gadget shape, `copySlot j` appears in the total
+monomial `m`, and the residual `b` is nonzero, then one must show that some copy-slot appears in
+`b.support`. This is exactly what is needed to feed the induction hypothesis on the residual
+factor. -/
+def copyCon_insert_exact_shape_nonzero_residual_witness_candidate
     (M : DTM) (n : ℕ)
     (j : Fin (latentBaseVars M n))
     (S : Finset (Fin (latentBaseVars M n)))
@@ -880,7 +878,8 @@ def copyCon_insert_exact_shape_inserted_witness_split_candidate
   a + b = m →
   a = Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1 →
   copySlot M n j ∈ m.support →
-  (b = 0 ∨ (b ≠ 0 ∧ ∃ i : Fin (latentBaseVars M n), copySlot M n i ∈ b.support))
+  b ≠ 0 →
+  ∃ i : Fin (latentBaseVars M n), copySlot M n i ∈ b.support
 
 /-- Local residual-support frontier for the copyCon off-diagonal argument. Once one has a witness
 `i0 ∈ ksi.toFinset` with `i0 ∉ ksj.toFinset`, the remaining missing step is to show that any
@@ -921,8 +920,8 @@ The remaining live branch is exactly the expected one: the exact-shape inserted-
 `copySlot j ∈ m.support`. The explicit one-gadget coefficient theorem now lands, and the
 zero-residual subcase is discharged from it.
 
-So the true remaining blocker is now the nonzero-residual half of
-`copyCon_insert_exact_shape_inserted_witness_split_candidate`: find a copy-slot witness in `b` or
+So the true remaining blocker is now the direct nonzero-residual witness statement
+`copyCon_insert_exact_shape_nonzero_residual_witness_candidate`: find a copy-slot witness in `b` or
 replace that need with a stronger direct argument. -/
 def coeff_copyConProd_eq_zero_of_any_copy_later_candidate : Prop :=
   True
