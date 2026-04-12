@@ -301,6 +301,11 @@ structure GodMoveTypedExtraction (M : DTM) (n : ℕ)
         (map.projectFun
           (map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) =
       target.poly
+  extraction_correct_coherent :
+    map.toFun (compiledPoly (cook_levin_compilation M n hn2 htb hns)) =
+      map.relabelFun
+        (map.projectFun
+          (map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
   target_lower :
     Nat.choose n (Nat.log 2 n) ≤
       mlBlockedSpdpRank target.partition (Nat.log 2 n) (Nat.log 2 n) target.poly

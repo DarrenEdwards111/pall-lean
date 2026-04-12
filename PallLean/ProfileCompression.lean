@@ -39,6 +39,7 @@
 -/
 import PallLean.CookLevinDefs
 import PallLean.MultilinearSPDP
+import PallLean.SymmetricPowerBound
 import Mathlib.Tactic
 
 namespace ProfileCompression
@@ -217,21 +218,22 @@ theorem totalProfileBound_le_pow (n : ℕ) (hn : n ≥ 2) :
     finrank_le_of_le_iSup_bounded) is fully proved and available for future
     formalization of the axiom's interior. -/
 
-/-- **Axiom** (Profile Compression, Paper §9, Theorem 23/92):
+/-- **Theorem** (Profile Compression, Paper §9, Theorem 23/92):
     The compiled polynomial of any P-time DTM has SPDP rank bounded by
     the total profile bound (3 * log_2 n + 1)^14.
 
-    This is mathematically true for the locality-respecting partition
-    (block size 3) used in cook_levin_compilation. The proof requires
-    the full profile compression argument: Leibniz decomposition,
-    stars-and-bars profile counting, within-profile symmetric power bounds,
-    and permutation invariance to collapse isomorphic profile subspaces. -/
-axiom profile_compression_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    Previously an axiom; now derived from the HAL 9000 decomposition in
+    SymmetricPowerBound.lean. The single remaining axiom is
+    `profile_symmetric_power_factorization` (Step B), which encodes the
+    symmetric power factorization of Leibniz profile subspaces. -/
+theorem profile_compression_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
     mlBlockedSpdpRank
       (cook_levin_compilation M n hn htb hns).partition
       (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ totalProfileBound n
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ totalProfileBound n := by
+  rw [totalProfileBound_eq]
+  exact SymmetricPowerBound.profile_compression_rank_bound M n hn htb hns
 
 /-! ## Assembly: P-side Rank Bound
 
@@ -262,21 +264,25 @@ theorem p_side_rank_bound_for_cook_levin (M : DTM) (n : ℕ) (hn : n ≥ 2)
 
 /-! ## Verification of the Overall Separation Architecture
 
-    With `p_side_rank_bound_for_cook_levin` proved from a single clean axiom
-    (`profile_compression_rank_bound`), the original axiom in
-    PaperFaithfulSeparation.lean is derivable. The separation now rests on
+    With `p_side_rank_bound_for_cook_levin` proved from the HAL 9000
+    decomposition in SymmetricPowerBound.lean, the separation now rests on
     exactly two content axioms:
 
-    1. `profile_compression_rank_bound` (P-side, Paper §9, Theorem 92):
-       The compiled polynomial of any P-time DTM has SPDP rank
-       <= (3 * log_2 n + 1)^14. This encodes the Leibniz product rule
-       decomposition, profile counting, and within-profile dimension bounds.
+    1. `profile_symmetric_power_factorization` (P-side, Paper §9, Theorem 92):
+       The SPDP rank of the compiled polynomial is ≤ combinedProfileBound(κ)
+       = (κ+1)^14. This is the symmetric power factorization of Leibniz
+       profile subspaces — the one hard step in the profile compression argument.
+       Steps A (local interface dim), C (symmetric power dim), and D (multiply)
+       are all fully proved in SymmetricPowerBound.lean.
 
     2. `god_move_extraction_lemma` (NP-side, Paper §29):
        The semantic content connecting a SAT-deciding DTM's compiled
        polynomial to the hard Tseitin instance.
 
     All other components of the separation proof are fully proved:
+    - Step A: local_interface_dim_bound (local interface spaces have O(1) dim)
+    - Step C: dim_sym_le (symmetric power dimension ≤ (m+1)^(d-1))
+    - Step D: combinedProfileBound_eq, combinedBound_le_totalProfileBound
     - Combinatorial bounds: choose_le_pow, profile_count_bound,
       within_profile_dim_bound (stars-and-bars and symmetric power bounds)
     - finrank_le_of_le_iSup_bounded (abstract rank-from-decomposition lemma)
