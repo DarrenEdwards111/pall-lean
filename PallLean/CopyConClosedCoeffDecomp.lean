@@ -751,10 +751,11 @@ What is still missing is the last antidiagonal singleton/coefficient calculation
 accepts without extra local normalization lemmas, together with the tiny scalar normalization step
 captured by `copyCon_exact_shape_coeff_normalization_blocker`. -/
 
-def copyCon_exact_shape_coeff_normalization_blocker
+theorem copyCon_exact_shape_coeff_normalization
     (M : DTM) (n : ℕ)
-    (j : Fin (latentBaseVars M n)) : Prop :=
-  (((1 : ℚ) * (1 : ℚ)) : ℚ) = 1
+    (j : Fin (latentBaseVars M n)) :
+    (((1 : ℚ) * (1 : ℚ)) : ℚ) = 1 := by
+  norm_num
 
 def copyCon_exact_shape_coeff_antidiagonal_blocker
     (M : DTM) (n : ℕ)
