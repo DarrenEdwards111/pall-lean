@@ -303,6 +303,20 @@ structure GodMoveSemanticObligations (M : DTM) (n : ℕ)
   compiled_poly_maps_to_coupled_poly_by_semantics : Prop
   rank_transfer_justified_by_staged_monotonicity : Prop
 
+/-- Abstract rank-monotonicity obligations for the staged God-Move map.
+
+These isolate the algebraic part of the God-Move from the Cook-Levin-specific
+semantic identification of the stages. Once these are proved for the concrete
+restriction/projection/relabel maps, the `rank_transfer` field of a typed
+extraction should be derivable rather than primitive. -/
+structure GodMoveRankTransferObligations (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (g : GodMoveTypedExtraction M n hn2 htb hns) where
+  restriction_rank_nonincreasing : Prop
+  projection_rank_nonincreasing : Prop
+  relabel_rank_nonincreasing : Prop
+  staged_rank_transfer_recovers_field : Prop
+
 structure GodMoveTypedExtraction (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
   coupledVars : ℕ
@@ -326,6 +340,9 @@ structure GodMoveTypedExtraction (M : DTM) (n : ℕ)
   target_lower :
     Nat.choose n (Nat.log 2 n) ≤
       mlBlockedSpdpRank target.partition (Nat.log 2 n) (Nat.log 2 n) target.poly
+  /-- Current quantitative endpoint of the staged extraction.
+  This is still primitive at the typed level, but the intended route is to
+  derive it from the staged restriction/projection/relabel monotonicity chain. -/
   rank_transfer :
     mlBlockedSpdpRank target.partition (Nat.log 2 n) (Nat.log 2 n) target.poly ≤
       mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
