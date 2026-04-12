@@ -376,46 +376,74 @@ private theorem profileDimBound_le_withinProfileBound
     _ = withinProfileBound κ := by
         unfold withinProfileBound; rfl
 
-/-- The paper's Step B theorem: for each admissible profile h, the fixed-profile
-Leibniz space factors through a symmetric-power image with the expected dimension bound.
+/-- A fixed-profile generator cover datum.
 
-Proved by constructing trivial interface spaces (dimBound = 3, carrier = ⊥) and
-verifying the arithmetic bound ∏_τ C(h(τ)+2, 2) ≤ (κ+1)^8. -/
+This is the honest seam needed for the generator-to-profile-cover route: for a
+given admissible histogram `h`, exhibit a concrete finite-dimensional subspace
+which covers the fixed-profile Leibniz span and whose dimension is bounded by the
+expected within-profile expression. The actual construction of this cover is the
+remaining mathematical frontier, we keep the target explicit here rather than
+silently packaging the whole SPDP space as one fake "profile". -/
+structure FixedProfileGeneratorCover (σ : Type) [DecidableEq σ]
+    (κ : ℕ) (terms : Finset (LeibnizTerm σ κ))
+    (W : InterfaceFamily σ) (h : ProfileHistogram) where
+  admissible : ProfileAdmissible κ h
+  coverSpace : Submodule ℚ (MvPolynomial σ ℚ)
+  coverFinite : Module.Finite ℚ coverSpace
+  profileSpan_le_cover : fixedProfileSpan terms h ≤ coverSpace
+  coverDim_le_profileSymmetricDimBound :
+    Module.finrank ℚ coverSpace ≤ profileSymmetricDimBound W h
+  profileSymmetricDimBound_le_within :
+    profileSymmetricDimBound W h ≤ withinProfileBound κ
+
+attribute [instance] FixedProfileGeneratorCover.coverFinite
+
+/-- Step B surface, fixed-profile form: for each admissible profile `h`, the
+Leibniz span with histogram `h` is contained in a bounded cover space whose
+dimension is controlled by the symmetric-power profile bound.
+
+This is now stated as an explicit cover theorem instead of being faked by a
+trivial `⊤`-valued construction. -/
+axiom fixed_profile_generator_cover
+    (σ : Type) [DecidableEq σ]
+    (κ : ℕ) (terms : Finset (LeibnizTerm σ κ))
+    (h : ProfileHistogram) (hh : ProfileAdmissible κ h) :
+    Σ' WF : BoundedInterfaceFamily σ,
+      FixedProfileGeneratorCover σ κ terms WF.family h
+
+/-- The paper's Step B theorem, reformulated as the existence of a bounded
+fixed-profile cover through symmetric-power data.
+
+This theorem is just the surface-level handoff from the explicit
+`fixed_profile_generator_cover` frontier to the previously defined
+`ProfileFactorizationClaim` packaging. -/
 noncomputable def fixed_profile_factors_through_symmetric_powers
     (σ : Type) [DecidableEq σ]
     (κ : ℕ) (terms : Finset (LeibnizTerm σ κ))
     (h : ProfileHistogram) (hh : ProfileAdmissible κ h) :
     Σ' WF : BoundedInterfaceFamily σ,
       { c : ProfileFactorizationClaim σ κ terms WF.family //
-          c.histogram = h ∧ ProfileAdmissible κ c.histogram } :=
-  let WF := trivialBoundedFamily σ
-  ⟨WF, ⟨{
+          c.histogram = h ∧ ProfileAdmissible κ c.histogram } := by
+  rcases fixed_profile_generator_cover σ κ terms h hh with ⟨WF, cover⟩
+  refine ⟨WF, ⟨{
     histogram := h
-    admissible := hh
+    admissible := cover.admissible
     factorization := {
       sourceDimBound := profileSymmetricDimBound WF.family h
       sourceDimBound_eq := rfl
-      imageSpace := ⊤
+      imageSpace := cover.coverSpace
       mapToAmbient := id
       map_linear := True
     }
     permutationInvariant := fun _ _ _ _ hp1 hp2 => by
-      simp only [HasProfile] at hp1 hp2; rw [hp1, hp2]
-    image_contains_profile_span := le_top
+      simp only [HasProfile] at hp1 hp2
+      rw [hp1, hp2]
+    image_contains_profile_span := cover.profileSpan_le_cover
     sourceDim_matches_profileSymmetricDimBound := rfl
     image_dim_le := by
-      -- profileSymmetricDimBound WF.family h = ∏ τ, C(h τ + 3 - 1, 3 - 1)
-      -- = ∏ τ, C(h τ + 2, 2) ≤ withinProfileBound κ
-      show profileSymmetricDimBound WF.family h ≤ withinProfileBound κ
-      have dimBound_eq : ∀ τ : ConstraintType, (WF.family τ).dimBound = 3 :=
-        fun _ => rfl
-      have key : profileSymmetricDimBound WF.family h =
-          ∏ τ : ConstraintType, Nat.choose (h τ + 2) 2 := by
-        simp only [profileSymmetricDimBound, localSymmetricCarrier, dimBound_eq]
-        congr 1
-      rw [key]
-      exact profileDimBound_le_withinProfileBound κ h hh
-  }, rfl, hh⟩⟩
+      exact le_trans cover.coverDim_le_profileSymmetricDimBound
+        cover.profileSymmetricDimBound_le_within
+  }, rfl, cover.admissible⟩⟩
 
 /-- A profile decomposition of an SPDP subspace: the subspace is contained in the
 sup of finitely many submodules (indexed by profile classes), each of bounded
