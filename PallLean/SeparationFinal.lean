@@ -31,12 +31,13 @@ namespace SeparationFinal
 open SPDP MultilinearSPDP TuringMachine PaperFaithfulSeparation
 
 /-- The P-side axiom from PaperFaithfulSeparation is re-exported via LocalityRankBound. -/
-theorem p_side_verified (M : DTM) (n : ℕ) (hn : n ≥ 2) :
+theorem p_side_verified (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
     mlBlockedSpdpRank
-      (cook_levin_compilation M n hn).partition
+      (cook_levin_compilation M n hn htb hns).partition
       (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPoly (cook_levin_compilation M n hn)) ≤ n ^ 200 :=
-  LocalityRankBound.p_side_bound_for_cook_levin M n hn
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 :=
+  LocalityRankBound.p_side_bound_for_cook_levin M n hn htb hns
 
 /-- Final separation theorem.
 

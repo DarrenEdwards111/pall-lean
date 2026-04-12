@@ -74,32 +74,37 @@ exponential lower bound from the identity minor. -/
     by the identity minor, and rank ≤ rank(compiled) by the God-Move restriction. -/
 noncomputable def godMoveCoupledRank
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (packSize : ℕ) : ℕ → ℕ → ℕ :=
   fun κ ℓ => min
     (Nat.choose packSize κ)
     (mlBlockedSpdpRank
-      (cook_levin_compilation M n hn).partition κ ℓ
-      (compiledPoly (cook_levin_compilation M n hn)))
+      (cook_levin_compilation M n hn htb hns).partition κ ℓ
+      (compiledPoly (cook_levin_compilation M n hn htb hns)))
 
 /-- The God-Move compiled rank: the actual SPDP rank of the compiled polynomial. -/
 noncomputable def godMoveCompiledRank
-    (M : DTM) (n : ℕ) (hn : n ≥ 2) : ℕ → ℕ → ℕ :=
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : ℕ → ℕ → ℕ :=
   fun κ ℓ => mlBlockedSpdpRank
-    (cook_levin_compilation M n hn).partition κ ℓ
-    (compiledPoly (cook_levin_compilation M n hn))
+    (cook_levin_compilation M n hn htb hns).partition κ ℓ
+    (compiledPoly (cook_levin_compilation M n hn htb hns))
 
 /-- Rank monotonicity: coupledRank ≤ compiledRank by definition (min). -/
 theorem godMove_rank_monotone (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (packSize : ℕ) (κ ℓ : ℕ) :
-    godMoveCoupledRank M n hn packSize κ ℓ ≤ godMoveCompiledRank M n hn κ ℓ := by
+    godMoveCoupledRank M n hn htb hns packSize κ ℓ ≤
+      godMoveCompiledRank M n hn htb hns κ ℓ := by
   unfold godMoveCoupledRank godMoveCompiledRank
   exact Nat.min_le_right _ _
 
 /-- CompiledRank equals the actual SPDP rank of the compiled polynomial. -/
-theorem godMove_compiledRank_eq (M : DTM) (n : ℕ) (hn : n ≥ 2) (κ ℓ : ℕ) :
-    godMoveCompiledRank M n hn κ ℓ =
-    mlBlockedSpdpRank (cook_levin_compilation M n hn).partition κ ℓ
-      (compiledPoly (cook_levin_compilation M n hn)) := rfl
+theorem godMove_compiledRank_eq (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (κ ℓ : ℕ) :
+    godMoveCompiledRank M n hn htb hns κ ℓ =
+    mlBlockedSpdpRank (cook_levin_compilation M n hn htb hns).partition κ ℓ
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) := rfl
 
 /-  buildGodMoveExtraction removed: the GodMoveExtraction type was part of
     the unsound fullCompiledPoly chain.  The separation now uses
@@ -141,12 +146,13 @@ minor construction. -/
 theorem np_bound_from_extraction (n : ℕ) (hn : n ≥ 2 ^ 960)
     (packSize : ℕ) (hpack : packSize ≥ n / 30)
     (M : DTM) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hCompiled : Nat.choose packSize (Nat.log 2 n) ≤
       mlBlockedSpdpRank
-        (cook_levin_compilation M n hn2).partition (Nat.log 2 n) 0
-        (compiledPoly (cook_levin_compilation M n hn2))) :
+        (cook_levin_compilation M n hn2 htb hns).partition (Nat.log 2 n) 0
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns))) :
     np_side_rank_bound n
-      (godMoveCoupledRank M n hn2 packSize (Nat.log 2 n) 0) := by
+      (godMoveCoupledRank M n hn2 htb hns packSize (Nat.log 2 n) 0) := by
   unfold godMoveCoupledRank
   -- min(choose, compiledRank) = choose when choose ≤ compiledRank
   rw [Nat.min_eq_left hCompiled]

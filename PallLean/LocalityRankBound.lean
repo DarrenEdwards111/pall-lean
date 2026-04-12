@@ -289,11 +289,12 @@ PaperFaithfulSeparation.lean. -/
     For the product polynomial P = ∏(1-Cᵢ), this requires profile compression
     (paper §9, Theorem 92). The bound is obtained from the axiom
     `p_side_rank_bound_for_cook_levin` in PaperFaithfulSeparation.lean. -/
-theorem p_side_bound_for_cook_levin (M : DTM) (n : ℕ) (hn : n ≥ 2) :
-    mlBlockedSpdpRank (PaperFaithfulSeparation.cook_levin_compilation M n hn).partition
+theorem p_side_bound_for_cook_levin (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    mlBlockedSpdpRank (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition
       (Nat.log 2 n) (Nat.log 2 n)
       (PaperFaithfulSeparation.compiledPoly
-        (PaperFaithfulSeparation.cook_levin_compilation M n hn)) ≤ n ^ 200 :=
-  PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin M n hn
+        (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 :=
+  PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin M n hn htb hns
 
 end LocalityRankBound
