@@ -552,6 +552,18 @@ theorem copyCon_complement_prod_constant_term (M : DTM) (n : ℕ)
   change MvPolynomial.coeff 0 (copyConGadget M n i) = 1
   exact copyConGadget_constant_term M n i
 
+/-- Constant term of an arbitrary copyCon gadget product. -/
+theorem copyCon_prod_constant_term (M : DTM) (n : ℕ)
+    (S : Finset (Fin (latentBaseVars M n))) :
+    MvPolynomial.coeff 0 (∏ i ∈ S, copyConGadget M n i) = 1 := by
+  show MvPolynomial.constantCoeff (∏ i ∈ S, copyConGadget M n i) = 1
+  rw [map_prod]
+  apply Finset.prod_eq_one
+  intro i _
+  show MvPolynomial.constantCoeff (copyConGadget M n i) = 1
+  change MvPolynomial.coeff 0 (copyConGadget M n i) = 1
+  exact copyConGadget_constant_term M n i
+
 /-- Diagonal coefficient law for the copyCon copy-slot closed form. -/
 theorem copyCon_diag_complement_support (M : DTM) (n : ℕ)
     (ks : List (Fin (latentBaseVars M n)))
@@ -835,16 +847,21 @@ term `1`, so the exact-shape gadget contribution survives as `-1`.
 
 The remaining missing lemma is exactly the copyCon analogue of `coeff_zero_cvFactor_prod` from
 IdentityMinor: `coeff 0 (∏ i ∈ S, copyConGadget M n i) = 1`. -/
-def copyCon_insert_exact_shape_zero_residual_summand_candidate
+theorem copyCon_insert_exact_shape_zero_residual_summand_candidate
     (M : DTM) (n : ℕ)
     (j : Fin (latentBaseVars M n))
     (S : Finset (Fin (latentBaseVars M n)))
-    (m a b : (Fin (latentNumVars M n)) →₀ ℕ) : Prop :=
+    (m a b : (Fin (latentNumVars M n)) →₀ ℕ) :
   a + b = m →
   a = Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1 →
   b = 0 →
     MvPolynomial.coeff a (copyConGadget M n j) *
-      MvPolynomial.coeff b (∏ i ∈ S, copyConGadget M n i) = -1
+      MvPolynomial.coeff b (∏ i ∈ S, copyConGadget M n i) = -1 := by
+  intro _ ha hb
+  subst ha
+  subst hb
+  rw [copyCon_exact_shape_coeff_nonzero, copyCon_prod_constant_term]
+  norm_num
 
 /-- Candidate exact-shape inserted-slot split for the stronger `any_copy` induction.
 
