@@ -207,6 +207,19 @@ structure GodMoveProjectionData (restrictedVars : ℕ) where
   selects_clause_sheet_coordinates : Prop
   discards_non_clause_sheet_coordinates : Prop
 
+/-- Explicit data for the relabeling / normalization stage of the God-Move.
+
+After projection to the clause-sheet coordinates, the paper applies a fixed
+block-local relabeling / basis normalization before comparing with the coupled
+sheet polynomial. This record exposes that third stage as data rather than
+leaving it only as an opaque map. -/
+structure GodMoveRelabelData (projectedVars coupledVars : ℕ) where
+  sourceBlocks : ℕ
+  targetBlocks : ℕ
+  respects_block_locality : Prop
+  is_basis_normalization : Prop
+  is_instance_uniform_relabeling : Prop
+
 /-- A typed map from compiled tableau space to coupled clause-sheet space.
 
 The paper's `ΠΦ` is described as a composite of three operations:
@@ -224,6 +237,7 @@ structure GodMoveTypedMap (compiledVars coupledVars : ℕ) where
   restrictFun : MvPolynomial (Fin compiledVars) ℚ → MvPolynomial (Fin restrictedVars) ℚ
   projectFun : MvPolynomial (Fin restrictedVars) ℚ →
     MvPolynomial (Fin projectionData.projectedVars) ℚ
+  relabelData : GodMoveRelabelData projectionData.projectedVars coupledVars
   relabelFun : MvPolynomial (Fin projectionData.projectedVars) ℚ →
     MvPolynomial (Fin coupledVars) ℚ
   toFun : MvPolynomial (Fin compiledVars) ℚ → MvPolynomial (Fin coupledVars) ℚ
