@@ -466,6 +466,21 @@ theorem copyCon_copySlot_support_moves_to_residual_of_left_zero
   simp only [Finsupp.add_apply] at hsum
   omega
 
+/-- Specialization of the pointwise residual-support transport to the inserted witness slot itself.
+In the constant-term branch `a = 0`, any support of `m` at `copySlot j` must already come from the
+residual monomial `b`. -/
+theorem copyCon_insert_j_witness_moves_to_residual
+    (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n))
+    {a b m : (Fin (latentNumVars M n)) →₀ ℕ}
+    (hp : a + b = m)
+    (ha : a = 0)
+    (hmj : copySlot M n j ∈ m.support) :
+    copySlot M n j ∈ b.support := by
+  apply copyCon_copySlot_support_moves_to_residual_of_left_zero M n (i := j) hp
+  · simpa [ha]
+  · exact hmj
+
 /-- In the exact-shape branch, any residual witness copy-slot `copySlot i` with `i ≠ j` is absent
 from the left monomial `single(copy j)+single(con j)`, so the pointwise residual-support transport
 applies directly. -/
@@ -566,17 +581,53 @@ theorem copyCon_diag_complement_support (M : DTM) (n : ℕ)
   · intro h
     simp [Finset.mem_antidiagonal] at h
 
-/-- Positive-witness gadget-product vanishing frontier.
+/-- Stronger induction target for gadget-product vanishing.
+If any copy-slot appears in the support of `m`, then the coefficient of the copyCon gadget product
+must vanish. This is the formulation that matches the constant-term insert branch, because after
+removing the inserted index from the smaller product one can still transport a residual witness on
+that same copy-slot. The indexed positive-witness statement below should be recovered as a simple
+corollary once this stronger form is proved. -/
+def coeff_copyConProd_eq_zero_of_any_copy
+    (M : DTM) (n : ℕ)
+    (T : Finset (Fin (latentBaseVars M n)))
+    (m : (Fin (latentNumVars M n)) →₀ ℕ) : Prop :=
+  m ≠ 0 →
+  (∃ i : Fin (latentBaseVars M n), copySlot M n i ∈ m.support) →
+    MvPolynomial.coeff m (∏ i ∈ T, copyConGadget M n i) = 0
 
-A single forbidden copy-slot support inside the gadget-product index set should already force the
-coefficient to vanish, which is exactly the positive-witness form needed by the off-diagonal
-copyCon argument.
+/-- A nonzero monomial has zero coefficient in the constant polynomial `1`. -/
+theorem coeff_one_eq_zero_of_ne_zero
+    {σ : Type} [DecidableEq σ]
+    (m : σ →₀ ℕ)
+    (hm : m ≠ 0) :
+    MvPolynomial.coeff m (1 : MvPolynomial σ ℚ) = 0 := by
+  rw [MvPolynomial.coeff_one]
+  simp [show (0 : σ →₀ ℕ) ≠ m from by simpa [eq_comm] using hm]
 
-After proving the insert-step transport lemmas
-`copyCon_copySlot_support_moves_to_residual_of_left_zero` and
-`copyCon_exact_shape_other_copySlot_zero`, plus the exact-shape residual summand packaging theorem
-`copyCon_insert_exact_shape_residual_summand_zero`, the remaining work is now the final induction
-assembly over `MvPolynomial.coeff_mul`. So this is still the main theorem frontier. -/
+/-- Temporary wrapper for the stronger `any_copy` target while it remains recorded as
+`def ... : Prop`. The theorem-order blocker is now understood, but the latest honest retry exposed a
+new structural issue: the insert-step proof cannot be organized by picking an arbitrary witness on
+`m` first and then trying to push it through every branch. In the exact-shape inserted-slot case,
+that witness is already explained by the left monomial.
+
+So the next full retry must be organized in the opposite order: classify the left gadget monomial
+first (zero / constant / exact-shape), then choose the witness strategy adapted to that branch.
+
+This theorem now records that rewrite plan explicitly, without pretending the branch assembly is
+done. The real next move is to reintroduce the stronger theorem with the insert step organized by
+left-factor classification first, then witness usage branchwise. -/
+theorem coeff_copyConProd_eq_zero_of_any_copy_apply
+    (M : DTM) (n : ℕ)
+    (T : Finset (Fin (latentBaseVars M n)))
+    (m : (Fin (latentNumVars M n)) →₀ ℕ)
+    (hzero : coeff_copyConProd_eq_zero_of_any_copy M n T m)
+    (hm : m ≠ 0)
+    (hcopy : ∃ i : Fin (latentBaseVars M n), copySlot M n i ∈ m.support) :
+    MvPolynomial.coeff m (∏ i ∈ T, copyConGadget M n i) = 0 :=
+  hzero hm hcopy
+
+/-- Indexed positive-witness version, intended as a corollary of
+`coeff_copyConProd_eq_zero_of_any_copy`. -/
 def coeff_copyConProd_eq_zero_of_exists_copy
     (M : DTM) (n : ℕ)
     (T : Finset (Fin (latentBaseVars M n)))
@@ -598,15 +649,85 @@ theorem copyCon_insert_exact_shape_residual_summand_zero
     (m a b : (Fin (latentNumVars M n)) →₀ ℕ)
     (hp : a + b = m)
     (hshape : a = Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1)
-    (hcopyS : ∃ i ∈ S, copySlot M n i ∈ b.support)
+    (hcopy : ∃ i : Fin (latentBaseVars M n), copySlot M n i ∈ b.support)
     (hb : b ≠ 0)
-    (hzero : coeff_copyConProd_eq_zero_of_exists_copy M n S b) :
+    (hzero : ∀ m' : (Fin (latentNumVars M n)) →₀ ℕ,
+      m' ≠ 0 →
+      (∃ i : Fin (latentBaseVars M n), copySlot M n i ∈ m'.support) →
+      MvPolynomial.coeff m' (∏ i ∈ S, copyConGadget M n i) = 0) :
     MvPolynomial.coeff a (copyConGadget M n j) *
       MvPolynomial.coeff b (∏ i ∈ S, copyConGadget M n i) = 0 := by
   have hbcoeff : MvPolynomial.coeff b (∏ i ∈ S, copyConGadget M n i) = 0 :=
-    hzero hb hcopyS
+    hzero b hb hcopy
   rw [hbcoeff]
   ring
+
+/-- Constant-term branch of the insert-step antidiagonal analysis, phrased against the stronger
+arbitrary-copy witness target. The honest split is now direct: any copy witness on `m.support`
+either is the inserted `j` witness, handled by `hmove` and `hjzero`, or is some other copy slot,
+which moves to `b.support` because the left factor is constant. -/
+theorem copyCon_insert_constant_residual_summand_zero
+    (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n))
+    (S : Finset (Fin (latentBaseVars M n)))
+    (m a b : (Fin (latentNumVars M n)) →₀ ℕ)
+    (hjS : j ∉ S)
+    (hp : a + b = m)
+    (ha0 : a = 0)
+    (ha_supp : a ∈ (copyConGadget M n j).support)
+    (hm : m ≠ 0)
+    (hcopy : ∃ i : Fin (latentBaseVars M n), copySlot M n i ∈ m.support)
+    (hzero : ∀ m' : (Fin (latentNumVars M n)) →₀ ℕ,
+      m' ≠ 0 →
+      (∃ i : Fin (latentBaseVars M n), copySlot M n i ∈ m'.support) →
+      MvPolynomial.coeff m' (∏ i ∈ S, copyConGadget M n i) = 0)
+    (hmove : (copySlot M n j ∈ m.support) → copySlot M n j ∈ b.support)
+    (hjzero : (copySlot M n j ∈ b.support) →
+      MvPolynomial.coeff b (∏ i ∈ S, copyConGadget M n i) = 0) :
+    MvPolynomial.coeff a (copyConGadget M n j) *
+      MvPolynomial.coeff b (∏ i ∈ S, copyConGadget M n i) = 0 := by
+  rcases hcopy with ⟨i, him⟩
+  by_cases hij : i = j
+  · subst hij
+    have hbcoeff : MvPolynomial.coeff b (∏ i ∈ S, copyConGadget M n i) = 0 :=
+      hjzero (hmove him)
+    rw [hbcoeff]
+    ring
+  · have hbcoeff : MvPolynomial.coeff b (∏ i ∈ S, copyConGadget M n i) = 0 :=
+      hzero b
+        (by
+          intro hb0
+          apply hm
+          rw [ha0, hb0, zero_add] at hp
+          exact hp.symm)
+        (by
+          refine ⟨i, ?_⟩
+          exact copyCon_copySlot_support_moves_to_residual_of_left_zero M n hp (by simpa [ha0]) him)
+    rw [hbcoeff]
+    ring
+
+/-- Honest blocker note for the stronger `any_copy` induction.
+
+The tempting exact-shape inserted-witness frontier is false if stated as:
+from `a = Xcopy(j) * Xcon(j)` and `copySlot j ∈ m.support`, conclude the corresponding antidiagonal
+summand vanishes. That data alone says nothing about the residual coefficient on `b`, because the
+witness on `m` may be explained entirely by the left exact-shape monomial `a`.
+
+This means the remaining problem is no longer a missing transport lemma. The induction skeleton
+itself must be rearranged: in the exact-shape branch one cannot first choose an arbitrary witness on
+`m` and then try to push it uniformly to `b`. Instead, the proof has to classify the left monomial
+first and only then choose the witness strategy adapted to that branch.
+
+Do not retry the full theorem in the old shape until that proof reorganization is made explicit. -/
+def copyCon_insert_exact_shape_inserted_witness_blocker
+    (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n))
+    (S : Finset (Fin (latentBaseVars M n)))
+    (m a b : (Fin (latentNumVars M n)) →₀ ℕ) : Prop :=
+  a + b = m →
+  a = Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1 →
+  copySlot M n j ∈ m.support →
+  True
 
 /-- Local residual-support frontier for the copyCon off-diagonal argument. Once one has a witness
 `i0 ∈ ksi.toFinset` with `i0 ∉ ksj.toFinset`, the remaining missing step is to show that any
@@ -638,12 +759,12 @@ theorem copyCon_residual_support_from_offdiag_witness
   exact hright hsum.symm
 
 /-- Honest off-diagonal frontier for the copyCon pure-con closed form. The combinatorial witness
-and the local residual-support theorem are now both proved, and the exact remaining gap is now
-very specific: one must prove the positive-witness gadget-product vanishing statement
-`coeff_copyConProd_eq_zero_of_exists_copy`, then compose it with
-`copyCon_residual_support_from_offdiag_witness` to finish the off-diagonal coefficient argument.
-So the remaining blocker is no longer witness extraction or local slot evaluation, but precisely
-that final positive-support coefficient lemma for the complement gadget product. -/
+and the local residual-support theorem are now both proved, and the local insert-step antidiagonal
+packaging has been upgraded to theorem level in both branches under the strengthened induction
+statement `coeff_copyConProd_eq_zero_of_any_copy`. So the remaining blocker is now exactly the
+full induction assembly for that stronger gadget-product vanishing statement, followed by its use
+with `copyCon_residual_support_from_offdiag_witness` to finish the off-diagonal coefficient
+argument. -/
 def copyCon_offdiag_complement_support
     (M : DTM) (n : ℕ)
     (ksi ksj : List (Fin (latentBaseVars M n)))
