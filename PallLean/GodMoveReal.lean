@@ -195,6 +195,18 @@ structure GodMoveRestrictionData (compiledVars : ℕ) where
   fixes_administrative_vars : Prop
   preserves_clause_sheet_vars : Prop
 
+/-- Explicit data for the projection stage of the God-Move.
+
+After the restriction step removes the administrative/tableau coordinates, the
+paper projects onto the clause-sheet coordinates `u`. This record makes that
+coordinate-selection step explicit without yet claiming the real semantic proof
+that the chosen coordinates are the correct ones for the hard instance. -/
+structure GodMoveProjectionData (restrictedVars : ℕ) where
+  keptVars : Finset (Fin restrictedVars)
+  projectedVars : ℕ
+  selects_clause_sheet_coordinates : Prop
+  discards_non_clause_sheet_coordinates : Prop
+
 /-- A typed map from compiled tableau space to coupled clause-sheet space.
 
 The paper's `ΠΦ` is described as a composite of three operations:
@@ -208,10 +220,12 @@ semantic theorem, not a claim that the construction has already been proved. -/
 structure GodMoveTypedMap (compiledVars coupledVars : ℕ) where
   restrictionData : GodMoveRestrictionData compiledVars
   restrictedVars : ℕ
-  projectedVars : ℕ
+  projectionData : GodMoveProjectionData restrictedVars
   restrictFun : MvPolynomial (Fin compiledVars) ℚ → MvPolynomial (Fin restrictedVars) ℚ
-  projectFun : MvPolynomial (Fin restrictedVars) ℚ → MvPolynomial (Fin projectedVars) ℚ
-  relabelFun : MvPolynomial (Fin projectedVars) ℚ → MvPolynomial (Fin coupledVars) ℚ
+  projectFun : MvPolynomial (Fin restrictedVars) ℚ →
+    MvPolynomial (Fin projectionData.projectedVars) ℚ
+  relabelFun : MvPolynomial (Fin projectionData.projectedVars) ℚ →
+    MvPolynomial (Fin coupledVars) ℚ
   toFun : MvPolynomial (Fin compiledVars) ℚ → MvPolynomial (Fin coupledVars) ℚ
   factors_through : ∀ p, toFun p = relabelFun (projectFun (restrictFun p))
   restriction_is_constant_specialization : Prop
