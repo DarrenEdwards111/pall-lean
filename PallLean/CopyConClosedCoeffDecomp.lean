@@ -718,7 +718,14 @@ The latest retry also exposed a concrete file-organization constraint: the stron
 honestly live above these local seam lemmas while it calls them, so either the seam lemmas must be
 moved earlier or the full theorem must be reintroduced later in the file.
 
-Do not retry the full theorem in the old shape until that proof reorganization is made explicit. -/
+The sharper remaining target is not bare vanishing. What is actually needed is a theorem saying
+that in the exact-shape inserted-slot branch, either
+1. the right residual `b` is zero and the full antidiagonal term can be evaluated directly, or
+2. `b` is nonzero and carries an independent copy-slot witness, so the residual branch theorem
+   applies.
+
+Do not retry the full theorem in the old shape until that stronger exact-shape split is made
+explicit. -/
 def copyCon_insert_exact_shape_inserted_witness_blocker
     (M : DTM) (n : ℕ)
     (j : Fin (latentBaseVars M n))
@@ -727,7 +734,7 @@ def copyCon_insert_exact_shape_inserted_witness_blocker
   a + b = m →
   a = Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1 →
   copySlot M n j ∈ m.support →
-  True
+  (b = 0 ∨ (b ≠ 0 ∧ ∃ i : Fin (latentBaseVars M n), copySlot M n i ∈ b.support))
 
 /-- Local residual-support frontier for the copyCon off-diagonal argument. Once one has a witness
 `i0 ∈ ksi.toFinset` with `i0 ∉ ksj.toFinset`, the remaining missing step is to show that any
@@ -765,16 +772,10 @@ confirmed the branch-first induction shape is the right one. The constant branch
 exact-shape residual-witness branch both wire up cleanly against the proved seam lemmas.
 
 The remaining live branch is exactly the expected one: the exact-shape inserted-slot case with
-`copySlot j ∈ m.support`. In that branch, the witness on `m` may be fully explained by the left
-exact-shape monomial, so there is still no honest residual witness for `b` to feed into the
-induction hypothesis. -/
-def coeff_copyConProd_eq_zero_of_any_copy_later_candidate
-    (M : DTM) (n : ℕ)
-    (T : Finset (Fin (latentBaseVars M n)))
-    (m : (Fin (latentNumVars M n)) →₀ ℕ) : Prop :=
-  m ≠ 0 →
-  (∃ i : Fin (latentBaseVars M n), copySlot M n i ∈ m.support) →
-    True
+`copySlot j ∈ m.support`. The newly sharpened blocker is that this branch needs a stronger exact
+split theorem on the residual monomial `b`, not a naive vanishing lemma. -/
+def coeff_copyConProd_eq_zero_of_any_copy_later_candidate : Prop :=
+  True
 
 /-- Honest off-diagonal frontier for the copyCon pure-con closed form. The combinatorial witness
 and the local residual-support theorem are now both proved, and the local insert-step antidiagonal
