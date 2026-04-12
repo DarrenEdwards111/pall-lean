@@ -741,12 +741,14 @@ def copyCon_exact_shape_coeff_nonzero_candidate
     (Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1)
     (copyConGadget M n j) = -1
 
-/-- Micro-blocker note for `copyCon_exact_shape_coeff_nonzero_candidate`.
+/-- Micro-blocker note for the exact-shape gadget coefficient.
 
-The selCon analogue suggests the right proof shape: expand `coeff_mul`, isolate the unique
-antidiagonal pair `(single copy, single con)`, and show every other pair contributes zero.
-What is still missing on the copyCon side is a clean local antidiagonal singleton argument in the
-exact coefficient form Lean wants here. -/
+The selCon analogue and the direct retries agree on the proof shape: expand `coeff_sub`, kill the
+constant branch because the target monomial is nonzero, then prove the remaining multiplication
+coefficient by isolating the unique antidiagonal pair `(single copy, single con)`.
+
+What is still missing is that final antidiagonal singleton/coefficient calculation in a form Lean
+accepts without extra local normalization lemmas. -/
 def copyCon_exact_shape_coeff_antidiagonal_blocker
     (M : DTM) (n : ℕ)
     (j : Fin (latentBaseVars M n)) : Prop :=
