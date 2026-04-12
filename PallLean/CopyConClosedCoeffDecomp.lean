@@ -759,6 +759,27 @@ theorem copyCon_exact_shape_coeff_single_con
 /-- Exact-shape coefficient in a single copyCon gadget.
 
 This is the one-gadget antidiagonal micro-goal currently blocking the zero-residual branch. -/
+theorem copyCon_exact_shape_antidiagonal_pair_zero
+    (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n))
+    {a b : (Fin (latentNumVars M n)) →₀ ℕ}
+    (hab : a + b = Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1)
+    (hne : (a, b) ≠ (Finsupp.single (copySlot M n j) 1, Finsupp.single (conSlot M n j) 1)) :
+    MvPolynomial.coeff a (MvPolynomial.X (copySlot M n j) : MvPolynomial (Fin (latentNumVars M n)) ℚ) *
+      MvPolynomial.coeff b (MvPolynomial.X (conSlot M n j) : MvPolynomial (Fin (latentNumVars M n)) ℚ) = 0 := by
+  by_cases ha : a = Finsupp.single (copySlot M n j) 1
+  · have hb : b ≠ Finsupp.single (conSlot M n j) 1 := by
+      intro hbeq
+      apply hne
+      simp [ha, hbeq]
+    rw [ha, copyCon_exact_shape_coeff_single_con M n j hb]
+    ring
+  · rw [copyCon_exact_shape_coeff_single_copy M n j ha]
+    ring
+
+/-- Exact-shape coefficient in a single copyCon gadget.
+
+This is the one-gadget antidiagonal micro-goal currently blocking the zero-residual branch. -/
 def copyCon_exact_shape_coeff_nonzero_candidate
     (M : DTM) (n : ℕ)
     (j : Fin (latentBaseVars M n)) : Prop :=
@@ -775,7 +796,8 @@ coefficient by isolating the unique antidiagonal pair `(single copy, single con)
 What is still missing is the last antidiagonal singleton/coefficient calculation in a form Lean
 accepts without extra local normalization lemmas. Two tiny ingredients are now isolated as the
 helpers `copyCon_exact_shape_coeff_single_copy` and `copyCon_exact_shape_coeff_single_con`; the
-remaining gap is the antidiagonal uniqueness step for the exact pair `(single copy, single con)`. -/
+remaining gap is promoting the antidiagonal uniqueness step for the exact pair `(single copy,
+single con)` into the full exact-shape coefficient theorem. -/
 
 theorem copyCon_exact_shape_coeff_normalization
     (M : DTM) (n : ℕ)
