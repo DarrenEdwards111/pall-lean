@@ -190,13 +190,24 @@ structure OrderedAssignment (κ : ℕ) where
 def OrderedAssignment.profile {κ : ℕ} (a : OrderedAssignment κ) : ProfileHistogram :=
   fun τ => Fintype.card { i : Fin κ // a.hitType i = τ }
 
-/-- The profile of an ordered assignment has total mass κ.
-
-This is the counting identity one would eventually prove by partitioning the
-derivative positions by their assigned type. We keep it as a local axiom because
-it is bookkeeping, not the core Step B difficulty. -/
-axiom OrderedAssignment.profile_mass {κ : ℕ} (a : OrderedAssignment κ) :
-    profileMass a.profile = κ
+/-- The profile of an ordered assignment has total mass κ. -/
+theorem OrderedAssignment.profile_mass {κ : ℕ} (a : OrderedAssignment κ) :
+    profileMass a.profile = κ := by
+  unfold profileMass OrderedAssignment.profile
+  classical
+  let e : Fin κ ≃ Σ τ : ConstraintType, { i : Fin κ // a.hitType i = τ } :=
+    { toFun := fun i => ⟨a.hitType i, ⟨i, rfl⟩⟩
+      invFun := fun x => x.2.1
+      left_inv := by
+        intro i
+        rfl
+      right_inv := by
+        intro x
+        rcases x with ⟨τ, ⟨i, hi⟩⟩
+        cases hi
+        rfl }
+  symm
+  simpa [Fintype.card_sigma] using Fintype.card_congr e
 
 /-- The local interface space W_τ attached to a constraint type τ.
 
