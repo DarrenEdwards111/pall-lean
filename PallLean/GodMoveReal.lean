@@ -195,12 +195,14 @@ structure GodMoveRestrictionData (compiledVars : ℕ) where
   freeVarsAfterRestriction : ℕ
   freeVarEmbedding : Fin freeVarsAfterRestriction → Fin compiledVars
   assignment : Fin compiledVars → ℚ
+  clauseSheetPreservedVars : Finset (Fin compiledVars)
   fixes_administrative_vars : Prop
   fixes_tableau_vars_to_constants : Prop
   preserves_clause_sheet_vars : Prop
   specializedVars : Finset (Fin compiledVars)
   fixedVars_cover_specialized_coordinates : Prop
   free_embedding_avoids_fixed : Prop
+  clauseSheetPreservedVars_avoid_fixed : Prop
 
 /-- Explicit data for the projection stage of the God-Move.
 
@@ -214,10 +216,14 @@ structure GodMoveProjectionData (restrictedVars : ℕ) where
   projectedVars : ℕ
   coordinateMap : Fin projectedVars → Fin restrictedVars
   keptVarEmbedding : Fin projectedVars → Fin restrictedVars
+  projectedCoordinates : Finset (Fin restrictedVars)
+  droppedCoordinates : Finset (Fin restrictedVars)
   selects_clause_sheet_coordinates : Prop
   discards_non_clause_sheet_coordinates : Prop
   keptVars_match_clauseSheetVars : Prop
   coordinateMap_hits_keptVars : Prop
+  projectedCoordinates_match_embedding : Prop
+  droppedCoordinates_complement_projection : Prop
 
 /-- Explicit data for the relabeling / normalization stage of the God-Move.
 
@@ -232,11 +238,14 @@ structure GodMoveRelabelData (projectedVars coupledVars : ℕ) where
   targetBlockMap : Fin coupledVars → Fin targetBlocks
   variableRelabel : Fin projectedVars → Fin coupledVars
   normalizedVarEmbedding : Fin projectedVars → Fin coupledVars
+  normalizedCoordinates : Finset (Fin coupledVars)
+  normalizationScalars : Fin coupledVars → ℚ
   respects_block_locality : Prop
   is_basis_normalization : Prop
   is_instance_uniform_relabeling : Prop
   variableRelabel_respects_blocks : Prop
   source_target_blocks_cohere : Prop
+  normalizedCoordinates_match_relabel : Prop
 
 /-- A typed map from compiled tableau space to coupled clause-sheet space.
 
