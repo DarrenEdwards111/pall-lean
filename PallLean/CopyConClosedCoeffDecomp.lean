@@ -725,13 +725,32 @@ that in the exact-shape inserted-slot branch, either
 
 The latest direct proof attempt showed the naive witness choice `i = j` does not work: the left
 exact-shape monomial already uses `copySlot j`, so the pointwise residual-support transport lemma
-cannot move that slot into `b`. So the split remains a genuine candidate, not a theorem yet. -/
+cannot move that slot into `b`. So the split remains a genuine candidate, not a theorem yet.
+-/
+
+lemma copyCon_exact_shape_coeff_doc_separator : True := by
+  trivial
+
+/-- Exact-shape coefficient in a single copyCon gadget.
+
+This is the one-gadget antidiagonal micro-goal currently blocking the zero-residual branch. -/
 def copyCon_exact_shape_coeff_nonzero_candidate
     (M : DTM) (n : ℕ)
     (j : Fin (latentBaseVars M n)) : Prop :=
   MvPolynomial.coeff
     (Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1)
     (copyConGadget M n j) = -1
+
+/-- Micro-blocker note for `copyCon_exact_shape_coeff_nonzero_candidate`.
+
+The selCon analogue suggests the right proof shape: expand `coeff_mul`, isolate the unique
+antidiagonal pair `(single copy, single con)`, and show every other pair contributes zero.
+What is still missing on the copyCon side is a clean local antidiagonal singleton argument in the
+exact coefficient form Lean wants here. -/
+def copyCon_exact_shape_coeff_antidiagonal_blocker
+    (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n)) : Prop :=
+  copyCon_exact_shape_coeff_nonzero_candidate M n j
 
 /-- Zero-residual exact-shape branch, reduced to the explicit local coefficient calculation. -/
 def copyCon_insert_exact_shape_zero_residual_summand_candidate
