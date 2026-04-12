@@ -289,6 +289,20 @@ structure GodMoveTypedTarget (coupledVars : ℕ) where
 This is still only a surface/interface: it does not assert that the map has been
 constructed from the real Cook-Levin compilation. It packages the typed objects
 that a future paper-faithful semantic theorem should produce. -/
+/-- Concrete semantic obligations still missing from the typed God-Move route.
+
+This record isolates the nontrivial content needed to turn the staged typed map
+surface into an actual paper-faithful extraction theorem. Keeping these seams
+explicit helps prevent the typed interface from looking more complete than it is. -/
+structure GodMoveSemanticObligations (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (g : GodMoveTypedExtraction M n hn2 htb hns) where
+  restriction_matches_cook_levin_layout : Prop
+  projection_recovers_clause_sheet_coordinates : Prop
+  relabel_matches_coupled_sheet_normal_form : Prop
+  compiled_poly_maps_to_coupled_poly_by_semantics : Prop
+  rank_transfer_justified_by_staged_monotonicity : Prop
+
 structure GodMoveTypedExtraction (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
   coupledVars : ℕ

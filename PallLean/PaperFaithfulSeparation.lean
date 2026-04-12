@@ -297,10 +297,10 @@ instance of size `n` there exists an instance-uniform, witness-free, block-local
 extraction interface from the compiled polynomial space to the coupled verifier
 sheet space.
 
-This interface is proved from the typed staged God-Move frontier in
-`GodMoveReal.lean`. It is axiomatized here to avoid a circular import
-(GodMoveReal imports PaperFaithfulSeparation for DecidesSAT and
-GodMoveExtractionInterface definitions). -/
+This interface is the current abstract separation-facing frontier.
+The typed staged God-Move work in `GodMoveReal.lean` is intended to justify it,
+but that derivation is not yet wired through here because the import cycle has
+not been removed completely. -/
 axiom god_move_extraction_interface (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : DecidesSAT M)
