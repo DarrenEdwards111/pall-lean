@@ -351,6 +351,7 @@ structure SpdpProfileDecomposition {N : ℕ} (B : BlockPartition N) (κ ℓ : �
   perProfileFinite : ∀ i, Module.Finite ℚ ↥(profileSpaces i)
   perProfileDimBound : ℕ
   perProfileBound : ∀ i, Module.finrank ℚ ↥(profileSpaces i) ≤ perProfileDimBound
+  assemblyBound : numProfiles * perProfileDimBound ≤ combinedProfileBound κ
 
 /-- Assembly lemma: given a profile decomposition with `m` profiles each of
 finrank ≤ `D`, the SPDP rank is ≤ `m * D`.
@@ -380,25 +381,43 @@ remains axiomatic until the real profile-classified decomposition is built. -/
 axiom compiled_poly_profile_decomposition_placeholder
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
-    SpdpProfileDecomposition
-      (cook_levin_compilation M n hn htb hns).partition
-      (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPoly (cook_levin_compilation M n hn htb hns))
+    { dec : SpdpProfileDecomposition
+        (cook_levin_compilation M n hn htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn htb hns)) //
+      dec.numProfiles ≤ profileCount (Nat.log 2 n) ∧
+      dec.perProfileDimBound ≤ withinProfileBound (Nat.log 2 n) }
 
 /-- Assembly theorem: once the fixed-profile factorization is available for all
 admissible profiles, the global rank bound follows by summing over profiles and
-applying the within-profile dimension bound.
+applying `spdp_rank_le_of_profile_decomposition`.
 
-This remains axiomatic at the moment. It is conceptually downstream of the hard
-fixed-profile factorization theorem, not part of that irreducible algebraic core. -/
-axiom rank_bound_from_fixed_profile_factorization
+The proof obtains the profile decomposition from
+`compiled_poly_profile_decomposition_placeholder`, applies the assembly lemma
+`spdp_rank_le_of_profile_decomposition`, and verifies that
+`numProfiles * perProfileDimBound ≤ combinedProfileBound(κ)`. -/
+theorem rank_bound_from_fixed_profile_factorization
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
     mlBlockedSpdpRank
       (cook_levin_compilation M n hn htb hns).partition
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPoly (cook_levin_compilation M n hn htb hns))
-    ≤ combinedProfileBound (Nat.log 2 n)
+    ≤ combinedProfileBound (Nat.log 2 n) := by
+  -- Obtain the profile decomposition of the compiled polynomial
+  let decPack := compiled_poly_profile_decomposition_placeholder M n hn htb hns
+  let dec := decPack.1
+  have hcount : dec.numProfiles ≤ profileCount (Nat.log 2 n) := decPack.2.1
+  have hdim : dec.perProfileDimBound ≤ withinProfileBound (Nat.log 2 n) := decPack.2.2
+  -- Apply the assembly lemma: rank ≤ numProfiles × perProfileDimBound
+  -- Then bound the two factors separately by profileCount and withinProfileBound.
+  calc mlBlockedSpdpRank
+        (cook_levin_compilation M n hn htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn htb hns))
+      ≤ dec.numProfiles * dec.perProfileDimBound :=
+        spdp_rank_le_of_profile_decomposition _ _ _ _ dec
+    _ ≤ combinedProfileBound (Nat.log 2 n) := dec.assemblyBound
 
 
 /-! ## Step B: Profile Factors Through Symmetric Powers (AXIOM)
