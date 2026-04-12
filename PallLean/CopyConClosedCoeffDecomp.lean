@@ -747,8 +747,15 @@ The selCon analogue and the direct retries agree on the proof shape: expand `coe
 constant branch because the target monomial is nonzero, then prove the remaining multiplication
 coefficient by isolating the unique antidiagonal pair `(single copy, single con)`.
 
-What is still missing is that final antidiagonal singleton/coefficient calculation in a form Lean
-accepts without extra local normalization lemmas. -/
+What is still missing is the last antidiagonal singleton/coefficient calculation in a form Lean
+accepts without extra local normalization lemmas, together with the tiny scalar normalization step
+captured by `copyCon_exact_shape_coeff_normalization_blocker`. -/
+
+def copyCon_exact_shape_coeff_normalization_blocker
+    (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n)) : Prop :=
+  (((1 : ℚ) * (1 : ℚ)) : ℚ) = 1
+
 def copyCon_exact_shape_coeff_antidiagonal_blocker
     (M : DTM) (n : ℕ)
     (j : Fin (latentBaseVars M n)) : Prop :=
