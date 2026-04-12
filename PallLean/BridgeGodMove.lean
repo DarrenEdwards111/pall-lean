@@ -101,26 +101,10 @@ theorem godMove_compiledRank_eq (M : DTM) (n : ℕ) (hn : n ≥ 2) (κ ℓ : ℕ
     mlBlockedSpdpRank (cook_levin_compilation M n hn).partition κ ℓ
       (compiledPoly (cook_levin_compilation M n hn)) := rfl
 
-/-- Construct a complete GodMoveExtraction from the God-Move + identity minor. -/
-noncomputable def buildGodMoveExtraction (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (packSize : ℕ) : GodMoveExtraction M n where
-  N := (cook_levin_compilation M n hn).numVars
-  partition := (cook_levin_compilation M n hn).partition
-  poly := compiledPoly (cook_levin_compilation M n hn)
-  formula := { numVars := 0, clauses := [] }
-  coupled := {
-    numVerifierVars := 0
-    numSelectorVars := 0
-    totalVars := 0
-    totalVars_eq := rfl
-    poly := 0
-    disjoint_blocks := True
-    has_tag_monomials := True
-  }
-  coupledRank := godMoveCoupledRank M n hn packSize
-  compiledRank := godMoveCompiledRank M n hn
-  rank_monotone := fun κ ℓ => godMove_rank_monotone M n hn packSize κ ℓ
-  compiledRank_eq := fun κ ℓ => godMove_compiledRank_eq M n hn κ ℓ
+/-  buildGodMoveExtraction removed: the GodMoveExtraction type was part of
+    the unsound fullCompiledPoly chain.  The separation now uses
+    god_move_identity_minor_axiom + p_side_rank_bound_for_cook_levin
+    directly in PaperFaithfulSeparation.lean.  -/
 
 /-! ## NP-side bound for the God-Move extraction
 
@@ -182,20 +166,10 @@ This shows that PeqNP_Paper is a faithful representation of the paper's
 argument: the hypothesis bundle is satisfiable whenever a 3-SAT decider exists.
 -/
 
-/-- The P-side bound holds for the God-Move extraction's compiled polynomial. -/
-theorem p_bound_for_extraction (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (packSize : ℕ) :
-    p_side_rank_bound M n (buildGodMoveExtraction M n hn packSize) := by
-  unfold p_side_rank_bound buildGodMoveExtraction
-  dsimp only
-  exact LocalityRankBound.p_side_bound_for_cook_levin M n hn
-
-/-- The compiled rank monotonicity in ℓ for the God-Move extraction. -/
-theorem extraction_compiled_rank_mono (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (packSize : ℕ) (κ ℓ₁ ℓ₂ : ℕ) (hℓ : ℓ₁ ≤ ℓ₂) :
-    (buildGodMoveExtraction M n hn packSize).compiledRank κ ℓ₁ ≤
-    (buildGodMoveExtraction M n hn packSize).compiledRank κ ℓ₂ :=
-  compiled_rank_mono_ell (buildGodMoveExtraction M n hn packSize) κ ℓ₁ ℓ₂ hℓ
+/-  p_bound_for_extraction and extraction_compiled_rank_mono removed:
+    these referenced the now-removed GodMoveExtraction and compiled_rank_mono_ell.
+    The P-side bound is now stated directly as p_side_rank_bound_for_cook_levin
+    in PaperFaithfulSeparation.lean (proved in LocalityRankBound.lean).  -/
 
 /-! ## The Full Separation Bridge
 
@@ -219,9 +193,8 @@ be satisfiable, contradicting P_ne_NP_unconditional. -/
 Bridge 1 (NP-side): BridgeNPSide.np_side_from_identity_minor shows
   n^(log₂ n / 4) ≤ Nat.choose packSize (log₂ n) for packSize ≥ n/30.
 
-Bridge 2 (God-Move): buildGodMoveExtraction constructs a GodMoveExtraction
-  with rank_monotone (by min) and compiledRank_eq (by rfl), and the P-side
-  bound is discharged by locality_rank_bound.
+Bridge 2 (God-Move): god_move_identity_minor_axiom provides the NP-side bound
+  for the Cook-Levin compiled polynomial when the DTM decides 3-SAT.
 
 The np_bound for PeqNP_Paper follows from Bridge 1 + God-Move:
   - Identity minor gives C(m, log n) ≥ n^(log n / 4) (Bridge 1)

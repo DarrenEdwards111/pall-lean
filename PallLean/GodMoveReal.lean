@@ -162,41 +162,7 @@ structure GodMoveData (M : DTM) (n : ℕ) where
   compiledRank_eq : ∀ κ ℓ : ℕ,
     compiledRank κ ℓ = mlBlockedSpdpRank partition κ ℓ poly
 
-/-- Converting GodMoveData to GodMoveExtraction. -/
-noncomputable def GodMoveData.toExtraction {M : DTM} {n : ℕ}
-    (gm : GodMoveData M n) :
-    PaperFaithfulSeparation.GodMoveExtraction M n where
-  N := gm.N
-  partition := gm.partition
-  poly := gm.poly
-  formula := { numVars := 0, clauses := [] }
-  coupled := gm.coupled
-  coupledRank := gm.coupledRank
-  compiledRank := gm.compiledRank
-  rank_monotone := gm.rank_monotone
-  compiledRank_eq := gm.compiledRank_eq
-
 /-! ## Rank Monotonicity Chain for the Separation -/
-
-/-- The rank monotonicity chain:
-    coupledRank(κ, 0) ≤ compiledRank(κ, 0) ≤ compiledRank(κ, κ). -/
-theorem god_move_rank_chain {M : DTM} {n : ℕ}
-    (ext : PaperFaithfulSeparation.GodMoveExtraction M n) (κ : ℕ) :
-    ext.coupledRank κ 0 ≤ ext.compiledRank κ κ :=
-  le_trans (ext.rank_monotone κ 0)
-    (PaperFaithfulSeparation.compiled_rank_mono_ell ext κ 0 κ (Nat.zero_le κ))
-
-/-- The full God-Move bridge: coupledRank ≤ n^200 when P-side bound holds. -/
-theorem god_move_bridge {M : DTM} {n : ℕ}
-    (ext : PaperFaithfulSeparation.GodMoveExtraction M n)
-    (h_pside : PaperFaithfulSeparation.p_side_rank_bound M n ext) :
-    ext.coupledRank (Nat.log 2 n) 0 ≤ n ^ 200 :=
-  calc ext.coupledRank (Nat.log 2 n) 0
-      ≤ ext.compiledRank (Nat.log 2 n) (Nat.log 2 n) :=
-        god_move_rank_chain ext (Nat.log 2 n)
-    _ = mlBlockedSpdpRank ext.partition (Nat.log 2 n) (Nat.log 2 n) ext.poly :=
-        ext.compiledRank_eq (Nat.log 2 n) (Nat.log 2 n)
-    _ ≤ n ^ 200 := h_pside
 
 /-- Abstract restriction monotonicity: subspace containment gives rank bound. -/
 theorem restriction_rank_mono {N : ℕ}
