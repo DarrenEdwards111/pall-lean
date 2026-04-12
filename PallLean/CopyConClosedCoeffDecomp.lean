@@ -758,6 +758,24 @@ theorem copyCon_residual_support_from_offdiag_witness
   rw [hleft, hb0, zero_add] at hsum
   exact hright hsum.symm
 
+/-- Honest later-placement frontier for the stronger `any_copy` theorem.
+
+Reinserting the stronger theorem after the local seam block removed the theorem-order problem and
+confirmed the branch-first induction shape is the right one. The constant branch and the
+exact-shape residual-witness branch both wire up cleanly against the proved seam lemmas.
+
+The remaining live branch is exactly the expected one: the exact-shape inserted-slot case with
+`copySlot j ∈ m.support`. In that branch, the witness on `m` may be fully explained by the left
+exact-shape monomial, so there is still no honest residual witness for `b` to feed into the
+induction hypothesis. -/
+def coeff_copyConProd_eq_zero_of_any_copy_later_candidate
+    (M : DTM) (n : ℕ)
+    (T : Finset (Fin (latentBaseVars M n)))
+    (m : (Fin (latentNumVars M n)) →₀ ℕ) : Prop :=
+  m ≠ 0 →
+  (∃ i : Fin (latentBaseVars M n), copySlot M n i ∈ m.support) →
+    True
+
 /-- Honest off-diagonal frontier for the copyCon pure-con closed form. The combinatorial witness
 and the local residual-support theorem are now both proved, and the local insert-step antidiagonal
 packaging has been upgraded to theorem level in both branches under the strengthened induction
