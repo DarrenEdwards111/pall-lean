@@ -928,7 +928,14 @@ a stronger direct residual-vanishing theorem, recorded here as
 
 A direct retry confirms again that the naive witness `i = j` is false here: evaluating
 `a + b = m` at `copySlot j` only shows that `m(copySlot j)` can already be supplied by the left
-exact-shape monomial, so it does not force `b(copySlot j) ≠ 0`. -/
+exact-shape monomial, so it does not force `b(copySlot j) ≠ 0`.
+
+The most plausible remaining bridge now looks like a product-level nonzero-monomial classification,
+recorded as `copyCon_prod_nonzero_mono_classification_candidate`, which could then feed the direct
+residual-zero route. -/
+
+def copyCon_prod_nonzero_mono_classification_candidate : Prop :=
+  True
 
 def copyCon_exact_shape_nonzero_residual_direct_zero_candidate : Prop :=
   True
