@@ -1657,17 +1657,58 @@ theorem copyCon_offdiag_complement_support
     apply hcoeff'
     simp [hzero, hscalar_ne]
   rw [Xcopy_prod_eq_monomial M n ksj hndj] at hresid_copy
-  /- The tempting direct shortcut via `coeff_monomial_mul'` is false here: off-diagonality only
-  gives a witness `i0 ∈ ksi.toFinset \ ksj.toFinset`, which is compatible with
-  `copyCon_tagMono M n ksj ≤ copyCon_tagMono M n ksi` because the missing copy-slot has coefficient
-  `0` on the `ksj` tag and `1` on the `ksi` tag.
-
-  So the actual remaining bridge is subtler: from the nonzero coefficient of
-  `monomial (copyCon_tagMono M n ksj) 1 * residual` at `copyCon_tagMono M n ksi`, one must show
-  that the residual factor contributes the missing copy-slot `copySlot M n i0`. Once that missing
-  support is transported into the residual gadget product, the proved residual pair-extraction
-  theorem yields a con-slot in the tag monomial, contradicting `copyCon_tagMono_no_conSlot`.
-  -/
-  admit
+  have htag_diff : copyCon_tagMono M n ksi ≠ copyCon_tagMono M n ksj :=
+    copyCon_tagMono_ne_of_toFinset_ne M n ksi ksj hndi hndj hne
+  rw [MvPolynomial.coeff_mul] at hresid_copy
+  have hsum_nonzero :
+      ∃ ab ∈ (Finset.antidiagonal (copyCon_tagMono M n ksi)),
+        MvPolynomial.coeff ab.1 (MvPolynomial.monomial (copyCon_tagMono M n ksj) 1) *
+          MvPolynomial.coeff ab.2 (∏ i ∈ (Finset.univ \ ksj.toFinset), copyConGadget M n i) ≠ 0 := by
+    by_contra hnone
+    apply hresid_copy
+    rw [Finset.sum_eq_zero]
+    intro ab hab
+    have hmem : ab ∈ Finset.antidiagonal (copyCon_tagMono M n ksi) := hab
+    have := hnone ab hmem
+    simpa [Finset.mem_antidiagonal] using this
+  rcases hsum_nonzero with ⟨⟨a, b⟩, hab, habnz⟩
+  have hab_add : a + b = copyCon_tagMono M n ksi := by
+    simpa [Finset.mem_antidiagonal] using hab
+  have ha_coeff_ne : MvPolynomial.coeff a (MvPolynomial.monomial (copyCon_tagMono M n ksj) 1) ≠ 0 := by
+    intro hzero
+    apply habnz
+    simp [hzero]
+  have ha_eq : a = copyCon_tagMono M n ksj := by
+    by_cases hEq : a = copyCon_tagMono M n ksj
+    · exact hEq
+    · have hEq' : copyCon_tagMono M n ksj ≠ a := by simpa [eq_comm] using hEq
+      have : MvPolynomial.coeff a (MvPolynomial.monomial (copyCon_tagMono M n ksj) 1) = 0 := by
+        rw [MvPolynomial.coeff_monomial]
+        simp [hEq']
+      exact (ha_coeff_ne this).elim
+  subst ha_eq
+  have hb_ne_zero : b ≠ 0 := by
+    intro hb0
+    subst hb0
+    have : copyCon_tagMono M n ksi = copyCon_tagMono M n ksj := by
+      simpa [zero_add] using hab_add.symm
+    exact htag_diff this
+  have hb_coeff_ne :
+      MvPolynomial.coeff b (∏ i ∈ (Finset.univ \ ksj.toFinset), copyConGadget M n i) ≠ 0 := by
+    intro hzero
+    apply habnz
+    simp [hzero]
+  have hcopy_missing : copySlot M n i0 ∈ b.support := by
+    have hsum := congrArg (fun f => f (copySlot M n i0)) hab_add
+    have hksi_one : (copyCon_tagMono M n ksi) (copySlot M n i0) ≠ 0 :=
+      copyCon_tagMono_apply_copySlot_ne_zero_of_mem M n ksi hndi i0 hi0_ksi
+    have hksj_zero : (copyCon_tagMono M n ksj) (copySlot M n i0) = 0 :=
+      copyCon_tagMono_apply_copySlot_eq_zero_of_not_mem M n ksj hndj i0 hi0_not_ksj
+    simp [Finsupp.add_apply, hksj_zero] at hsum
+    exact Finsupp.mem_support_iff.mpr (by exact hsum.trans_ne hksi_one)
+  have hpair := copyCon_prod_nonzero_mono_copy_support_control_candidate M n
+    (Finset.univ \ ksj.toFinset) b hb_coeff_ne i0 hcopy_missing
+  rcases hpair with ⟨hi0_resid, hcon_resid⟩
+  exact hi0_not_ksj hi0_resid
 
 end CopyConClosedCoeffDecomp
