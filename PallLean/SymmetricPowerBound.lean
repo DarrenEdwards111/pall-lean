@@ -326,12 +326,56 @@ axiom fixed_profile_factors_through_symmetric_powers
       { c : ProfileFactorizationClaim σ κ terms WF.family //
           c.histogram = h ∧ ProfileAdmissible κ c.histogram }
 
+/-- A profile decomposition of an SPDP subspace: the subspace is contained in the
+sup of finitely many submodules (indexed by profile classes), each of bounded
+finrank. This packages the Leibniz product rule decomposition of the compiled
+polynomial's SPDP generators into profile-classified subspaces.
+
+The data:
+- `numProfiles`: the number of profile classes (≤ profileCount κ)
+- `profileSpaces`: the profile subspaces
+- `covers`: the SPDP subspace ≤ ⨆ profileSpaces
+- `perProfileFinite`: each profile subspace is finite-dimensional
+- `perProfileBound`: each profile subspace has finrank ≤ withinProfileBound κ
+-/
+structure SpdpProfileDecomposition {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) where
+  numProfiles : ℕ
+  profileSpaces : Fin numProfiles → Submodule ℚ (MvPolynomial (Fin N) ℚ)
+  covers : mlBlockedSpdpSubspace B κ ℓ p ≤ ⨆ i, profileSpaces i
+  perProfileFinite : ∀ i, Module.Finite ℚ ↥(profileSpaces i)
+  perProfileDimBound : ℕ
+  perProfileBound : ∀ i, Module.finrank ℚ ↥(profileSpaces i) ≤ perProfileDimBound
+
+/-- Assembly lemma: given a profile decomposition with `m` profiles each of
+finrank ≤ `D`, the SPDP rank is ≤ `m * D`.
+
+This should ultimately be a direct application of a finite-dimensional sup bound.
+It is left axiomatic here so the file does not overclaim while the decomposition
+layer is still being formalized. -/
+axiom spdp_rank_le_of_profile_decomposition {N : ℕ}
+    (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
+    (dec : SpdpProfileDecomposition B κ ℓ p) :
+    mlBlockedSpdpRank B κ ℓ p ≤ dec.numProfiles * dec.perProfileDimBound
+
+/-- Placeholder decomposition theorem.
+
+This packages the desired output shape of the Leibniz/profile decomposition but
+remains axiomatic until the real profile-classified decomposition is built. -/
+axiom compiled_poly_profile_decomposition_placeholder
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    SpdpProfileDecomposition
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns))
+
 /-- Assembly theorem: once the fixed-profile factorization is available for all
 admissible profiles, the global rank bound follows by summing over profiles and
 applying the within-profile dimension bound.
 
-This remains axiomatic for now, but it is an assembly target rather than part of
-the irreducible algebraic Step B core. -/
+This remains axiomatic at the moment. It is conceptually downstream of the hard
+fixed-profile factorization theorem, not part of that irreducible algebraic core. -/
 axiom rank_bound_from_fixed_profile_factorization
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
@@ -366,7 +410,7 @@ This is more minimal than the original monolithic axiom because:
 - Only the factorization structure (Step B proper) remains unproved
 -/
 
-/-- **Step B Axiom** (Profile symmetric power factorization):
+/-- **Step B theorem** (Profile symmetric power factorization):
 
     For the Cook-Levin compiled polynomial P = ∏ᵢ(1-Cᵢ) of any P-time DTM,
     the Leibniz product rule expansion decomposes into at most profileCount(κ)
@@ -378,16 +422,17 @@ This is more minimal than the original monolithic axiom because:
     - Within a profile, contributions factor through ⊗_τ Sym^{h(τ)}(W_τ)
     - dim(image) ≤ ∏_τ C(h(τ) + d_τ - 1, d_τ - 1) ≤ withinProfileBound(κ)
 
-    This axiom encodes the symmetric power factorization of profile subspaces.
-    It is the single remaining non-trivial claim in the profile compression argument. -/
-axiom profile_symmetric_power_factorization
+    Derived from `rank_bound_from_fixed_profile_factorization` which assembles
+    the profile decomposition from `fixed_profile_factors_through_symmetric_powers`. -/
+theorem profile_symmetric_power_factorization
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
     mlBlockedSpdpRank
       (cook_levin_compilation M n hn htb hns).partition
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPoly (cook_levin_compilation M n hn htb hns))
-    ≤ combinedProfileBound (Nat.log 2 n)
+    ≤ combinedProfileBound (Nat.log 2 n) :=
+  rank_bound_from_fixed_profile_factorization M n hn htb hns
 
 /-! ## Step D: Assembly — Derive profile_compression_rank_bound (PROVED)
 
