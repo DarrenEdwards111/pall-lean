@@ -137,6 +137,196 @@ theorem combinedProfileBound_eq (κ : ℕ) :
   unfold combinedProfileBound profileCount withinProfileBound
   ring
 
+
+/-! ## Step B Infrastructure: Profiles, Local Interfaces, and Symmetric Data
+
+This section does **not** prove the hard factorization theorem. Instead it makes
+its objects explicit, so the remaining axiom can be stated as the endpoint of a
+concrete pipeline rather than as a bare rank inequality.
+
+The intended paper-faithful picture is:
+- a Leibniz derivative assignment chooses which local factor each derivative hit lands on,
+- each factor has a bounded constraint type τ,
+- assignments are grouped by the histogram/profile h : τ ↦ ℕ,
+- for fixed h, the resulting profile space factors through symmetric powers of
+  local interface spaces W_τ,
+- the image of that factorization spans the fixed-profile contribution.
+
+What remains axiomatic is exactly the claim that the fixed-profile span is indeed
+contained in the image of the symmetrized factorization map.
+-/
+
+/-- The finite set of effective local constraint types relevant to the profile
+compression argument. This is intentionally coarse: it records the O(1) local
+shapes that the Cook-Levin factors can have for the rank argument. -/
+inductive ConstraintType where
+  | booleanity
+  | adjacency
+  | transitionLeft
+  | transitionRight
+  | transitionStay
+  deriving DecidableEq, Fintype
+
+/-- A profile histogram, recording how many Leibniz hits land on each local
+constraint type. -/
+abbrev ProfileHistogram := ConstraintType → ℕ
+
+/-- The total mass of a profile histogram. This is the total number of
+local-type contributions appearing in that profile class. -/
+def profileMass (h : ProfileHistogram) : ℕ :=
+  ∑ τ : ConstraintType, h τ
+
+/-- A profile is admissible at radius κ if its total mass is at most κ. -/
+def ProfileAdmissible (κ : ℕ) (h : ProfileHistogram) : Prop :=
+  profileMass h ≤ κ
+
+/-- An ordered Leibniz assignment records, for each derivative position, which
+constraint type absorbed that derivative in the Leibniz expansion. This keeps
+only the type data, not the exact factor index. -/
+structure OrderedAssignment (κ : ℕ) where
+  hitType : Fin κ → ConstraintType
+
+/-- The histogram/profile associated to an ordered assignment. -/
+def OrderedAssignment.profile {κ : ℕ} (a : OrderedAssignment κ) : ProfileHistogram :=
+  fun τ => Fintype.card { i : Fin κ // a.hitType i = τ }
+
+/-- The profile of an ordered assignment has total mass κ.
+
+This is the counting identity one would eventually prove by partitioning the
+derivative positions by their assigned type. We keep it as a local axiom because
+it is bookkeeping, not the core Step B difficulty. -/
+axiom OrderedAssignment.profile_mass {κ : ℕ} (a : OrderedAssignment κ) :
+    profileMass a.profile = κ
+
+/-- The local interface space W_τ attached to a constraint type τ.
+
+In the paper, W_τ is the bounded-dimensional span of all local differentiated
+factor contributions of type τ. Here we expose it as an explicit submodule in the
+ambient compiled polynomial space. -/
+structure LocalInterfaceSpace (σ : Type) [DecidableEq σ] where
+  carrier : Submodule ℚ (MvPolynomial σ ℚ)
+  dimBound : ℕ
+  finite : Module.Finite ℚ carrier
+  finrank_le : Module.finrank ℚ carrier ≤ dimBound
+
+attribute [instance] LocalInterfaceSpace.finite
+
+/-- A symmetric-power carrier placeholder for the h-th symmetric power of a local
+interface space. This records the relevant dimension formula/bound surface, even
+before the quotient construction is fully formalized. -/
+structure SymmetricPowerCarrier (σ : Type) [DecidableEq σ]
+    (W : LocalInterfaceSpace σ) (h : ℕ) where
+  dimBound : ℕ
+  choose_formula : dimBound = Nat.choose (h + W.dimBound - 1) (W.dimBound - 1)
+
+/-- The standard stars-and-bars bound on the symmetric carrier attached to a
+local interface space. -/
+def localSymmetricCarrier (σ : Type) [DecidableEq σ]
+    (W : LocalInterfaceSpace σ) (h : ℕ) : SymmetricPowerCarrier σ W h where
+  dimBound := Nat.choose (h + W.dimBound - 1) (W.dimBound - 1)
+  choose_formula := rfl
+
+/-- A profile family of local interface spaces, one for each constraint type. -/
+abbrev InterfaceFamily (σ : Type) [DecidableEq σ] := ConstraintType → LocalInterfaceSpace σ
+
+/-- The product of dimension bounds contributed by the symmetric powers attached
+to a fixed profile h. This is the abstract within-profile dimension expression
+coming from ∏_τ dim(Sym^{h(τ)}(W_τ)). -/
+def profileSymmetricDimBound {σ : Type} [DecidableEq σ]
+    (W : InterfaceFamily σ) (h : ProfileHistogram) : ℕ :=
+  ∏ τ : ConstraintType, (localSymmetricCarrier σ (W τ) (h τ)).dimBound
+
+/-- An abstract fixed-profile subspace V_h inside the ambient compiled polynomial
+space. This is the target subspace that the symmetric-power map should span. -/
+structure ProfileSubspace (σ : Type) [DecidableEq σ] where
+  histogram : ProfileHistogram
+  space : Submodule ℚ (MvPolynomial σ ℚ)
+
+/-- A Leibniz term tagged by its ordered assignment and its resulting polynomial
+contribution. This lets us talk about profile classes before quotienting by the
+permutation action. -/
+structure LeibnizTerm (σ : Type) [DecidableEq σ] (κ : ℕ) where
+  assignment : OrderedAssignment κ
+  poly : MvPolynomial σ ℚ
+
+/-- The fixed-profile Leibniz family: terms whose ordered assignment induces a
+prescribed profile histogram h. -/
+def HasProfile {σ : Type} [DecidableEq σ] {κ : ℕ}
+    (h : ProfileHistogram) (t : LeibnizTerm σ κ) : Prop :=
+  t.assignment.profile = h
+
+/-- The span of all Leibniz terms with a fixed profile h. This is the concrete
+version of the paper's V_h. -/
+def fixedProfileSpan {σ : Type} [DecidableEq σ] {κ : ℕ}
+    (terms : Finset (LeibnizTerm σ κ)) (h : ProfileHistogram) :
+    Submodule ℚ (MvPolynomial σ ℚ) :=
+  Submodule.span ℚ { p | ∃ t ∈ terms, HasProfile h t ∧ t.poly = p }
+
+/-- A permutation-invariance placeholder for fixed-profile terms.
+
+The hard content is that reordering same-type derivative hits does not change the
+profile span, so the ordered tensor description descends to symmetric powers.
+We make that seam explicit here. -/
+def ProfilePermutationInvariant {σ : Type} [DecidableEq σ] {κ : ℕ}
+    (terms : Finset (LeibnizTerm σ κ)) (h : ProfileHistogram) : Prop :=
+  ∀ t₁ ∈ terms, ∀ t₂ ∈ terms,
+    HasProfile h t₁ → HasProfile h t₂ →
+    t₁.assignment.profile = t₂.assignment.profile
+
+/-- A profile factorization datum records the paper-shaped map from the symmetric
+local-interface side into the ambient polynomial space for a fixed histogram h. -/
+structure ProfileFactorizationData (σ : Type) [DecidableEq σ]
+    (W : InterfaceFamily σ) (h : ProfileHistogram) where
+  sourceDimBound : ℕ
+  sourceDimBound_eq : sourceDimBound = profileSymmetricDimBound W h
+  imageSpace : Submodule ℚ (MvPolynomial σ ℚ)
+  mapToAmbient : MvPolynomial σ ℚ → MvPolynomial σ ℚ
+  map_linear : Prop
+
+/-- Step B, fixed-profile form: the Leibniz span for profile h is contained in
+an image whose dimension is bounded by the symmetric-power product expression. -/
+structure ProfileFactorizationClaim (σ : Type) [DecidableEq σ]
+    (κ : ℕ) (terms : Finset (LeibnizTerm σ κ))
+    (W : InterfaceFamily σ) where
+  histogram : ProfileHistogram
+  admissible : ProfileAdmissible κ histogram
+  factorization : ProfileFactorizationData σ W histogram
+  permutationInvariant : ProfilePermutationInvariant terms histogram
+  image_contains_profile_span :
+    fixedProfileSpan terms histogram ≤ factorization.imageSpace
+  image_dim_le : factorization.sourceDimBound ≤ withinProfileBound κ
+
+/-- A uniformly bounded family of local interface spaces, matching the Step A
+output needed for the symmetric-power factorization step. -/
+structure BoundedInterfaceFamily (σ : Type) [DecidableEq σ] where
+  family : InterfaceFamily σ
+  bound_uniform : ∀ τ, (family τ).dimBound ≤ localInterfaceDimBound
+
+/-- The paper's intended Step B theorem shape, still unproved:
+for each admissible profile h, the fixed-profile Leibniz space factors through a
+symmetric-power image with the expected dimension bound. -/
+axiom fixed_profile_factors_through_symmetric_powers
+    (σ : Type) [DecidableEq σ]
+    (κ : ℕ) (terms : Finset (LeibnizTerm σ κ))
+    (h : ProfileHistogram) (hh : ProfileAdmissible κ h) :
+    ∃ W : InterfaceFamily σ,
+      ∃ F : ProfileFactorizationData σ W h,
+        fixedProfileSpan terms h ≤ F.imageSpace ∧
+        F.sourceDimBound ≤ withinProfileBound κ
+
+/-- Step B reformulated as a profile-count times within-profile-dimension bound.
+This is still abstract, but it names the exact bridge from the fixed-profile
+factorization theorem to the final rank bound. -/
+axiom profile_factorization_implies_rank_bound
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns))
+    ≤ combinedProfileBound (Nat.log 2 n)
+
+
 /-! ## Step B: Profile Factors Through Symmetric Powers (AXIOM)
 
 This is the one genuinely hard step. It requires showing that Leibniz product rule
