@@ -721,12 +721,12 @@ moved earlier or the full theorem must be reintroduced later in the file.
 The sharper remaining target is not bare vanishing. What is actually needed is a theorem saying
 that in the exact-shape inserted-slot branch, either
 1. the right residual `b` is zero and the full antidiagonal term can be evaluated directly, or
-2. `b` is nonzero and carries an independent copy-slot witness, so the residual branch theorem
-   applies.
+2. `b` is nonzero and carries a copy-slot witness, so the residual branch theorem applies.
 
-Do not retry the full theorem in the old shape until that stronger exact-shape split is made
-explicit. -/
-def copyCon_insert_exact_shape_inserted_witness_blocker
+The latest direct proof attempt showed the naive witness choice `i = j` does not work: the left
+exact-shape monomial already uses `copySlot j`, so the pointwise residual-support transport lemma
+cannot move that slot into `b`. So the split remains a genuine candidate, not a theorem yet. -/
+def copyCon_insert_exact_shape_inserted_witness_split_candidate
     (M : DTM) (n : ℕ)
     (j : Fin (latentBaseVars M n))
     (S : Finset (Fin (latentBaseVars M n)))
@@ -772,8 +772,9 @@ confirmed the branch-first induction shape is the right one. The constant branch
 exact-shape residual-witness branch both wire up cleanly against the proved seam lemmas.
 
 The remaining live branch is exactly the expected one: the exact-shape inserted-slot case with
-`copySlot j ∈ m.support`. The newly sharpened blocker is that this branch needs a stronger exact
-split theorem on the residual monomial `b`, not a naive vanishing lemma. -/
+`copySlot j ∈ m.support`. The newly sharpened blocker is whether the direct split candidate
+`copyCon_insert_exact_shape_inserted_witness_split_candidate` is actually provable in the needed
+form, and if so whether the `b = 0` subcase can be closed by direct coefficient evaluation. -/
 def coeff_copyConProd_eq_zero_of_any_copy_later_candidate : Prop :=
   True
 
