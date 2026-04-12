@@ -3,6 +3,7 @@ import PallLean.LatentWitnessMinorDecomp
 import PallLean.IterDerivHelpers
 import PallLean.ProfileSpaceBound
 import PallLean.LatentSelectorSignatureCore
+import PallLean.CopyConClosedCoeffDecomp
 import Mathlib.Tactic
 
 /-!
@@ -3227,19 +3228,42 @@ both allegedly compute the same `(σ, q)`. That would be the copyCon-side analog
 coefficient route already used for `selCon` closed forms. -/
 def latent_copyCon_tagged_coefficient_separation_candidate
     (M : DTM) (n : ℕ) : Prop :=
-  True
+  ∀ (ksi ksj : List (Fin (latentBaseVars M n)))
+    (hndi : ksi.Nodup)
+    (hndj : ksj.Nodup)
+    (_hlen : ksi.length = ksj.length),
+    ksi.toFinset ≠ ksj.toFinset →
+      MvPolynomial.coeff (CopyConClosedCoeffDecomp.copyCon_tagMono M n ksi)
+        (CopyConClosedCoeffDecomp.copyCon_con_closedForm M n ksj) = 0
+
+/-- The local copyCon closed-coefficient file already isolates the honest remaining off-diagonal
+shape: once the tag-support sets differ and the two copy witnesses have the same size, the tagged
+coefficient on the `ksj` closed form should vanish. At present this is still only a blocked lower-
+level candidate surface, not a proved theorem, so we expose that lower obstruction here as a
+separate status alias instead of pretending the vanishing result is already available. -/
+def latent_copyCon_tagged_coefficient_separation_candidate_current
+    (M : DTM) (n : ℕ) : Prop :=
+  ∀ (ksi ksj : List (Fin (latentBaseVars M n)))
+    (hndi : ksi.Nodup)
+    (hndj : ksj.Nodup)
+    (hlen : ksi.length = ksj.length),
+    CopyConClosedCoeffDecomp.copyCon_offdiag_complement_support M n ksi ksj hndi hndj hlen
 
 /-- Current direct comparison frontier: if a raw pure-`conSlot` presentation and an explicit clean
 copy-slot presentation compute the same `(σ, q)`, then they should contradict on the live
 `copyConSheet` branch. The missing theorem is now explicitly about witness data on both sides,
 not about coarse menu membership.
 
-Status update: the equal-size side of the off-diagonal copyCon coefficient argument is no longer
-mysterious. In this comparison context, the pure-con witness carries `_hLenCon : Scon.length =
-Nat.log 2 n`, while the clean copy witness carries `hlen : ks.length = Nat.log 2 n`, so the two
-presentations automatically have the same size. The remaining gap is therefore narrower: transport
-that equal-length fact into the copyCon tagged-coefficient comparison, then finish the residual
-support contradiction on the live `copyConSheet`. -/
+Status update: the equal-size side is no longer the blocker. In this comparison context, the
+pure-con witness carries `_hLenCon : Scon.length = Nat.log 2 n`, while the clean copy witness
+carries `hlen : ks.length = Nat.log 2 n`, so both sides automatically have the same size.
+
+The pure-con versus clean-copy comparison still needs the live copyCon tagged-coefficient
+contradiction. More precisely, the lower copyCon file now proves the residual-support witness step,
+but the final gadget-product coefficient vanishing step is still missing. So
+`latent_copyCon_tagged_coefficient_separation_candidate_current` records that lower obstruction
+honestly at the latent layer instead of pretending the off-diagonal vanishing theorem is already
+proved. -/
 def latent_pure_conSlot_vs_clean_copy_same_q_candidate
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)

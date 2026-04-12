@@ -83,18 +83,24 @@ theorem copyConGadget_vars_subset_copy_or_con
     (copyConGadget M n i).vars ⊆
       (Finset.univ.image (copySlot M n) ∪ Finset.univ.image (conSlot M n)) := by
   intro v hv
-  unfold copyConGadget Xcopy Xcon at hv
-  simp only [MvPolynomial.vars_sub, Finset.mem_union, MvPolynomial.vars_one,
-    Finset.mem_empty, false_or] at hv
-  rcases hv with hv | hv
-  · rw [MvPolynomial.vars_mul] at hv
-    rcases hv with hv | hv
-    · rw [MvPolynomial.vars_X] at hv
-      exact Finset.mem_union_left _ (Finset.mem_image.mpr ⟨i, Finset.mem_univ _, hv⟩)
-    · rw [MvPolynomial.vars_X] at hv
-      exact Finset.mem_union_right _ (Finset.mem_image.mpr ⟨i, Finset.mem_univ _, hv⟩)
-  · rw [MvPolynomial.vars_one] at hv
-    simp at hv
+  unfold copyConGadget at hv
+  have hvsub := MvPolynomial.vars_sub_subset (p := (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ)) (q := Xcopy M n i * Xcon M n i)
+  have hv' := Finset.mem_of_subset hvsub hv
+  rw [Finset.mem_union] at hv'
+  rcases hv' with hv1 | hvmul
+  · rw [MvPolynomial.vars_one] at hv1
+    simp at hv1
+  · have hvmul_sub := MvPolynomial.vars_mul (φ := Xcopy M n i) (ψ := Xcon M n i)
+    have hvmul' := Finset.mem_of_subset hvmul_sub hvmul
+    rw [Finset.mem_union] at hvmul'
+    unfold Xcopy Xcon at hvmul'
+    rcases hvmul' with hvc | hvs
+    · rw [MvPolynomial.vars_X] at hvc
+      rw [Finset.mem_singleton.mp hvc]
+      exact Finset.mem_union_left _ (Finset.mem_image.mpr ⟨i, Finset.mem_univ _, rfl⟩)
+    · rw [MvPolynomial.vars_X] at hvs
+      rw [Finset.mem_singleton.mp hvs]
+      exact Finset.mem_union_right _ (Finset.mem_image.mpr ⟨i, Finset.mem_univ _, rfl⟩)
 
 /-- Closed form produced by differentiating `copyConSheet` at a copy-slot list. -/
 noncomputable def copyCon_copy_closedForm (M : DTM) (n : ℕ)
@@ -1030,11 +1036,7 @@ theorem copyCon_prod_nonzero_mono_classification_candidate
   intro hm_nonzero
   induction S using Finset.induction_on with
   | empty =>
-      exfalso
-      have : MvPolynomial.coeff m (1 : MvPolynomial (Fin (latentNumVars M n)) ℚ) ≠ 0 := by simpa using hm_nonzero
-      by_cases hm0 : m = 0
-      · simp [hm0] at this
-      · exact this (coeff_one_eq_zero_of_ne_zero _ hm0)
+      exact ⟨∅, Finset.empty_subset _, fun i hi => absurd hi (by simp)⟩
   | @insert j S hjS ih =>
       have hw := copyCon_coeff_mul_nonzero_witness (M := M) (n := n)
         (m := m) (p := copyConGadget M n j) (q := ∏ i ∈ S, copyConGadget M n i)
@@ -1048,39 +1050,62 @@ theorem copyCon_prod_nonzero_mono_classification_candidate
         simp [h0]
       rcases copyConGadget_coeff_nonzero_classification M n j a hcoeff_a with ha0 | hshape
       · subst ha0
+        have hbm : b = m := by simpa using hab_add
         have hcoeff_b : MvPolynomial.coeff b (∏ i ∈ S, copyConGadget M n i) ≠ 0 := by
           intro h0
           apply hmul_ne
           simp [h0]
+        rw [hbm] at hcoeff_b
         rcases ih hcoeff_b with ⟨U, hUS, hUshape⟩
         refine ⟨U, Finset.Subset.trans hUS (Finset.subset_insert _ _), ?_⟩
         intro i hi
-        exact hUshape i (hUS hi)
+        exact hUshape i hi
       · refine ⟨insert j ∅, ?_, ?_⟩
         · intro i hi
           rcases Finset.mem_insert.mp hi with rfl | hi
           · exact Finset.mem_insert_self _ _
-          · exact False.elim (Finset.not_mem_empty _ hi)
+          · simp at hi
         · intro i hi
           rcases Finset.mem_insert.mp hi with rfl | hi
-          · rw [hshape]
+          · have hab_eq := hab_add
+            rw [hshape] at hab_eq
+            -- hab_eq : Finsupp.single (copySlot M n i) 1 + Finsupp.single (conSlot M n i) 1 + b = m
+            -- For the copy-slot value:
+            have hab_copy : Finsupp.single (copySlot M n i) 1 (copySlot M n i) +
+                Finsupp.single (conSlot M n i) 1 (copySlot M n i) +
+                b (copySlot M n i) = m (copySlot M n i) := by
+              have := congr_arg (· (copySlot M n i)) hab_eq
+              simp only [Finsupp.add_apply] at this
+              exact this
+            rw [Finsupp.single_apply, Finsupp.single_apply] at hab_copy
+            simp [copySlot_ne_conSlot M n i i] at hab_copy
+            -- For the con-slot value:
+            have hab_con : Finsupp.single (copySlot M n i) 1 (conSlot M n i) +
+                Finsupp.single (conSlot M n i) 1 (conSlot M n i) +
+                b (conSlot M n i) = m (conSlot M n i) := by
+              have := congr_arg (· (conSlot M n i)) hab_eq
+              simp only [Finsupp.add_apply] at this
+              exact this
+            rw [Finsupp.single_apply, Finsupp.single_apply] at hab_con
+            have hne : conSlot M n i ≠ copySlot M n i := by
+              intro hEq
+              exact (copySlot_ne_conSlot M n i i) hEq.symm
+            simp [hne] at hab_con
             constructor
-            · simp [Finsupp.mem_support_iff, Finsupp.add_apply,
-                show copySlot M n j ≠ conSlot M n j from copySlot_ne_conSlot M n j j]
-            · simp [Finsupp.mem_support_iff, Finsupp.add_apply,
-                show conSlot M n j ≠ copySlot M n j from by
-                  intro hEq
-                  exact (copySlot_ne_conSlot M n j j) hEq.symm]
-          · exact False.elim (Finset.not_mem_empty _ hi)
+            · rw [Finsupp.mem_support_iff]
+              omega
+            · rw [Finsupp.mem_support_iff]
+              omega
+          · simp at hi
 
-/-- Sharpened pointwise support classification for nonzero copyCon product coefficients.
+-- Sharpened pointwise support classification for nonzero copyCon product coefficients.
+--
+-- The previous classification only recovered some contributing subset `U ⊆ S`. For the residual-kill
+-- step, what is really needed is a per-index statement: every copy-slot or con-slot seen in
+-- `m.support` must come from an actual gadget index in `S`, and any such supporting index is forced to
+-- contribute both local atoms. This is the bookkeeping shape needed to turn the residual step into a
+-- support contradiction rather than a subset-existence argument.
 
-The previous classification only recovered some contributing subset `U ⊆ S`. For the residual-kill
-step, what is really needed is a per-index statement: every copy-slot or con-slot seen in
-`m.support` must come from an actual gadget index in `S`, and any such supporting index is forced to
-contribute both local atoms. This is the bookkeeping shape needed to turn the residual step into a
-support contradiction rather than a subset-existence argument.
--/
 /-- Recorded frontier alias for the pointwise-support theorem shape. -/
 def copyCon_prod_nonzero_mono_pointwise_support_candidate
     (M : DTM) (n : ℕ)
@@ -1093,33 +1118,23 @@ def copyCon_prod_nonzero_mono_pointwise_support_candidate
     (∀ i : Fin (latentBaseVars M n),
       conSlot M n i ∈ m.support →
         i ∈ S ∧ copySlot M n i ∈ m.support)
-/-- Copy-slot support control for nonzero monomials of a copyCon product.
+-- Copy-slot support control for nonzero monomials of a copyCon product.
+--
+-- This is the positive form of the factor-support exclusion theorem: if a monomial has nonzero
+-- coefficient in `∏ i ∈ S, copyConGadget M n i`, then every copy-slot in its support comes from an
+-- index already in `S`.
+--
+-- Deferred to after both exclusion theorems are proved. See below.
 
-This is the positive form of the factor-support exclusion theorem: if a monomial has nonzero
-coefficient in `∏ i ∈ S, copyConGadget M n i`, then every copy-slot in its support comes from an
-index already in `S`.
--/
-theorem copyCon_prod_nonzero_mono_copy_support_control_candidate
-    (M : DTM) (n : ℕ)
-    (S : Finset (Fin (latentBaseVars M n)))
-    (m : (Fin (latentNumVars M n)) →₀ ℕ) :
-  MvPolynomial.coeff m (∏ i ∈ S, copyConGadget M n i) ≠ 0 →
-    ∀ i : Fin (latentBaseVars M n),
-      copySlot M n i ∈ m.support →
-      i ∈ S := by
-  intro hm_nonzero i hcopy
-  by_contra hi_notin
-  exact copyCon_prod_nonzero_mono_factor_support_exclusion_candidate M n S m hm_nonzero i hi_notin hcopy
+-- Structural frontier: direct factor-level support exclusion for the copyCon product.
+--
+-- This is the antidiagonal/product analogue of the single-gadget exact-shape classification. Rather
+-- than packaging contradictions through `coeff_copyConProd_eq_zero_of_no_copy`, it states directly
+-- that indices outside `S` cannot contribute copy-slot support to a nonzero monomial of the product.
+--
+-- This is essentially the negated form of copy-slot support control, and may be the cleaner induction
+-- target: prove exclusion for `i ∉ S` first, then recover support control by contraposition.
 
-/-- Structural frontier: direct factor-level support exclusion for the copyCon product.
-
-This is the antidiagonal/product analogue of the single-gadget exact-shape classification. Rather
-than packaging contradictions through `coeff_copyConProd_eq_zero_of_no_copy`, it states directly
-that indices outside `S` cannot contribute copy-slot support to a nonzero monomial of the product.
-
-This is essentially the negated form of copy-slot support control, and may be the cleaner induction
-target: prove exclusion for `i ∉ S` first, then recover support control by contraposition.
--/
 /-- Micro-lemma: a nonzero product summand over `ℚ` forces the right factor coefficient to be
 nonzero.
 
@@ -1159,7 +1174,8 @@ theorem copyCon_support_atom_mem_vars_of_nonzero_coeff_candidate
   have hm_supp : m ∈ p.support := Finsupp.mem_support_iff.mpr hm_nonzero
   by_contra hv_not
   have hz : m v = 0 := MvPolynomial.mem_support_notMem_vars_zero hm_supp hv_not
-  exact hv (Finsupp.mem_support_iff.mpr hz)
+  have hv_ne : m v ≠ 0 := Finsupp.mem_support_iff.mp hv
+  exact hv_ne hz
 
 /-- Insert-step reduction surface for the factor-support exclusion induction.
 
@@ -1214,10 +1230,10 @@ theorem copyCon_prod_nonzero_mono_factor_support_exclusion_candidate
     ∀ i : Fin (latentBaseVars M n),
       i ∉ S →
       copySlot M n i ∉ m.support := by
-  intro hm_nonzero
+  revert m
   induction S using Finset.induction_on with
   | empty =>
-      intro i hi_empty hcopy
+      intro m hm_nonzero i hi_empty hcopy
       have hm0 : m ≠ 0 := by
         intro hmz
         rw [hmz] at hcopy
@@ -1226,7 +1242,7 @@ theorem copyCon_prod_nonzero_mono_factor_support_exclusion_candidate
         coeff_one_eq_zero_of_ne_zero _ hm0
       exact hm_nonzero hcoeff0
   | @insert j S hjS ih =>
-      intro i hi_notin hcopy
+      intro m hm_nonzero i hi_notin hcopy
       have hw := copyCon_coeff_mul_nonzero_witness (M := M) (n := n)
         (m := m) (p := copyConGadget M n j) (q := ∏ k ∈ S, copyConGadget M n k)
         (by simpa [Finset.prod_insert hjS] using hm_nonzero)
@@ -1242,7 +1258,7 @@ theorem copyCon_prod_nonzero_mono_factor_support_exclusion_candidate
         copyCon_left_factor_support_of_nonzero_coeff M n j a hcoeff_a
       have hred := copyCon_prod_nonzero_mono_factor_support_exclusion_insert_reduce
         M n j S m a b hab_add ha_supp hab_coeff i hi_notin hcopy
-      exact ih hred.1 i (by
+      exact ih b hred.1 i (by
         intro hiS
         exact hi_notin (Finset.mem_insert_of_mem hiS)) hred.2
 
@@ -1261,10 +1277,10 @@ theorem copyCon_prod_nonzero_mono_con_factor_support_exclusion_candidate
     ∀ i : Fin (latentBaseVars M n),
       i ∉ S →
       conSlot M n i ∉ m.support := by
-  intro hm_nonzero
+  revert m
   induction S using Finset.induction_on with
   | empty =>
-      intro i hi_empty hcon
+      intro m hm_nonzero i hi_empty hcon
       have hm0 : m ≠ 0 := by
         intro hmz
         rw [hmz] at hcon
@@ -1273,7 +1289,7 @@ theorem copyCon_prod_nonzero_mono_con_factor_support_exclusion_candidate
         coeff_one_eq_zero_of_ne_zero _ hm0
       exact hm_nonzero hcoeff0
   | @insert j S hjS ih =>
-      intro i hi_notin hcon
+      intro m hm_nonzero i hi_notin hcon
       have hw := copyCon_coeff_mul_nonzero_witness (M := M) (n := n)
         (m := m) (p := copyConGadget M n j) (q := ∏ k ∈ S, copyConGadget M n k)
         (by simpa [Finset.prod_insert hjS] using hm_nonzero)
@@ -1296,15 +1312,78 @@ theorem copyCon_prod_nonzero_mono_con_factor_support_exclusion_candidate
           hij ha_supp hcon hab_add
       have hcoeff_b : MvPolynomial.coeff b (∏ k ∈ S, copyConGadget M n k) ≠ 0 :=
         copyCon_nonzero_mul_right_of_mul_ne_zero hab_coeff
-      exact ih hcoeff_b i (by
+      exact ih b hcoeff_b i (by
         intro hiS
         exact hi_notin (Finset.mem_insert_of_mem hiS)) hcon_b
+
+/-- Copy-slot support control for nonzero monomials of a copyCon product.
+
+This is the positive form of the factor-support exclusion theorem: if a monomial has nonzero
+coefficient in `∏ i ∈ S, copyConGadget M n i`, then every copy-slot in its support comes from an
+index already in `S`, and the paired con-slot is also in support.
+-/
+theorem copyCon_prod_nonzero_mono_copy_support_control_candidate
+    (M : DTM) (n : ℕ)
+    (S : Finset (Fin (latentBaseVars M n)))
+    (m : (Fin (latentNumVars M n)) →₀ ℕ) :
+  MvPolynomial.coeff m (∏ i ∈ S, copyConGadget M n i) ≠ 0 →
+    ∀ i : Fin (latentBaseVars M n),
+      copySlot M n i ∈ m.support →
+      i ∈ S ∧ conSlot M n i ∈ m.support := by
+  intro hm_nonzero i hcopy
+  have hiS : i ∈ S := by
+    by_contra hi_notin
+    exact copyCon_prod_nonzero_mono_factor_support_exclusion_candidate M n S m hm_nonzero i hi_notin hcopy
+  refine ⟨hiS, ?_⟩
+  by_contra hcon_not
+  have hcon_notin : conSlot M n i ∉ m.support := hcon_not
+  -- Since i ∈ S and coeff m ≠ 0, write S = insert i S' with i ∉ S'.
+  -- Then ∏ k ∈ S, ... = copyConGadget M n i * ∏ k ∈ S', ...
+  -- Antidiagonal decomposition of m gives (a, b) with a+b = m and
+  -- coeff a (copyConGadget i) * coeff b (∏ k ∈ S', ...) ≠ 0.
+  -- From copyConGadget_coeff_nonzero_classification: a = 0 or a = single(copySlot i) + single(conSlot i).
+  -- If a = single(copySlot i) + single(conSlot i), then a(conSlot i) = 1, so m(conSlot i) ≥ 1,
+  -- contradicting conSlot i ∉ m.support.
+  -- If a = 0, then b = m, and coeff m (∏ k ∈ S', ...) ≠ 0.
+  -- But copySlot M n i ∈ m.support and i ∉ S', so by copy_exclusion on S',
+  -- copySlot M n i ∉ m.support, contradiction.
+  have hiS' := hiS
+  rw [show S = insert i (S.erase i) from (Finset.insert_erase hiS).symm] at hm_nonzero
+  have hi_not_erase : i ∉ S.erase i := by simp [Finset.mem_erase]
+  have hw := copyCon_coeff_mul_nonzero_witness (M := M) (n := n)
+    (m := m) (p := copyConGadget M n i) (q := ∏ k ∈ S.erase i, copyConGadget M n k)
+    (by simpa [Finset.prod_insert hi_not_erase] using hm_nonzero)
+  rcases hw with ⟨ab, hab, hab_coeff⟩
+  rcases ab with ⟨a, b⟩
+  have hab_add : a + b = m := by simpa [Finset.mem_antidiagonal] using hab
+  have hcoeff_a : MvPolynomial.coeff a (copyConGadget M n i) ≠ 0 := by
+    intro h0
+    apply hab_coeff
+    simp [h0]
+  rcases copyConGadget_coeff_nonzero_classification M n i a hcoeff_a with ha0 | hshape
+  · subst ha0
+    have hbm : b = m := by simpa using hab_add
+    have hcoeff_b : MvPolynomial.coeff b (∏ k ∈ S.erase i, copyConGadget M n k) ≠ 0 :=
+      copyCon_nonzero_mul_right_of_mul_ne_zero hab_coeff
+    have hcopy_b : copySlot M n i ∈ b.support := by rw [hbm]; exact hcopy
+    exact copyCon_prod_nonzero_mono_factor_support_exclusion_candidate M n (S.erase i) b
+      hcoeff_b i hi_not_erase hcopy_b
+  · have hab_ext : ∀ v, (a + b) v = m v := Finsupp.ext_iff.mp hab_add
+    have hcon_val := hab_ext (conSlot M n i)
+    rw [Finsupp.add_apply, hshape] at hcon_val
+    simp only [Finsupp.add_apply, Finsupp.single_apply] at hcon_val
+    have hcon_ne : conSlot M n i ≠ copySlot M n i := by
+      intro hEq
+      exact (copySlot_ne_conSlot M n i i) hEq.symm
+    simp [hcon_ne] at hcon_val
+    have hm_con_ne : m (conSlot M n i) ≠ 0 := by omega
+    exact hcon_notin (Finsupp.mem_support_iff.mpr hm_con_ne)
 
 /-- Con-slot support control for nonzero monomials of a copyCon product.
 
 This is the positive form of the con-slot exclusion theorem: if a monomial has nonzero coefficient
 in `∏ i ∈ S, copyConGadget M n i`, then every con-slot in its support comes from an index already in
-`S`.
+`S`, and the paired copy-slot is also in support.
 -/
 theorem copyCon_prod_nonzero_mono_con_support_control_candidate
     (M : DTM) (n : ℕ)
@@ -1313,10 +1392,43 @@ theorem copyCon_prod_nonzero_mono_con_support_control_candidate
   MvPolynomial.coeff m (∏ i ∈ S, copyConGadget M n i) ≠ 0 →
     ∀ i : Fin (latentBaseVars M n),
       conSlot M n i ∈ m.support →
-      i ∈ S := by
+      i ∈ S ∧ copySlot M n i ∈ m.support := by
   intro hm_nonzero i hcon
-  by_contra hi_notin
-  exact copyCon_prod_nonzero_mono_con_factor_support_exclusion_candidate M n S m hm_nonzero i hi_notin hcon
+  have hiS : i ∈ S := by
+    by_contra hi_notin
+    exact copyCon_prod_nonzero_mono_con_factor_support_exclusion_candidate M n S m hm_nonzero i hi_notin hcon
+  refine ⟨hiS, ?_⟩
+  by_contra hcopy_not
+  have hcopy_notin : copySlot M n i ∉ m.support := hcopy_not
+  have hiS' := hiS
+  rw [show S = insert i (S.erase i) from (Finset.insert_erase hiS).symm] at hm_nonzero
+  have hi_not_erase : i ∉ S.erase i := by simp [Finset.mem_erase]
+  have hw := copyCon_coeff_mul_nonzero_witness (M := M) (n := n)
+    (m := m) (p := copyConGadget M n i) (q := ∏ k ∈ S.erase i, copyConGadget M n k)
+    (by simpa [Finset.prod_insert hi_not_erase] using hm_nonzero)
+  rcases hw with ⟨ab, hab, hab_coeff⟩
+  rcases ab with ⟨a, b⟩
+  have hab_add : a + b = m := by simpa [Finset.mem_antidiagonal] using hab
+  have hcoeff_a : MvPolynomial.coeff a (copyConGadget M n i) ≠ 0 := by
+    intro h0
+    apply hab_coeff
+    simp [h0]
+  rcases copyConGadget_coeff_nonzero_classification M n i a hcoeff_a with ha0 | hshape
+  · subst ha0
+    have hbm : b = m := by simpa using hab_add
+    have hcoeff_b : MvPolynomial.coeff b (∏ k ∈ S.erase i, copyConGadget M n k) ≠ 0 :=
+      copyCon_nonzero_mul_right_of_mul_ne_zero hab_coeff
+    have hcon_b : conSlot M n i ∈ b.support := by rw [hbm]; exact hcon
+    exact copyCon_prod_nonzero_mono_con_factor_support_exclusion_candidate M n (S.erase i) b
+      hcoeff_b i hi_not_erase hcon_b
+  · have hab_ext : ∀ v, (a + b) v = m v := Finsupp.ext_iff.mp hab_add
+    have hcopy_val := hab_ext (copySlot M n i)
+    rw [Finsupp.add_apply, hshape] at hcopy_val
+    simp only [Finsupp.add_apply, Finsupp.single_apply] at hcopy_val
+    have hcopy_ne : copySlot M n i ≠ conSlot M n i := copySlot_ne_conSlot M n i i
+    simp [hcopy_ne] at hcopy_val
+    have hm_copy_ne : m (copySlot M n i) ≠ 0 := by omega
+    exact hcopy_notin (Finsupp.mem_support_iff.mpr hm_copy_ne)
 
 /-- Product-level variable-support frontier for copyCon gadget products.
 
@@ -1336,10 +1448,12 @@ theorem copyCon_prod_vars_subset_copy_or_con_candidate
   | empty =>
       simp at hv
   | @insert j S hjS ih =>
-      rw [Finset.prod_insert hjS, MvPolynomial.vars_mul] at hv
-      rcases hv with hv | hv
-      · exact copyConGadget_vars_subset_copy_or_con M n j hv
-      · exact ih hv
+      rw [Finset.prod_insert hjS] at hv
+      have hvmul := Finset.mem_of_subset (MvPolynomial.vars_mul (φ := copyConGadget M n j) (ψ := ∏ k ∈ S, copyConGadget M n k)) hv
+      rw [Finset.mem_union] at hvmul
+      rcases hvmul with hv' | hv'
+      · exact copyConGadget_vars_subset_copy_or_con M n j hv'
+      · exact ih hv'
 
 /-- Final atom-shape classification for nonzero copyCon product monomials. -/
 theorem copyCon_prod_nonzero_mono_support_atoms_are_copy_or_con_candidate
@@ -1376,10 +1490,12 @@ theorem copyCon_prod_nonzero_mono_pointwise_factor_extraction_candidate
   intro hm_nonzero v hv
   rcases copyCon_prod_nonzero_mono_support_atoms_are_copy_or_con_candidate M n S m hm_nonzero v hv with
     ⟨i, rfl⟩ | ⟨i, rfl⟩
-  · have hcopy := copyCon_prod_nonzero_mono_copy_support_control_candidate M n S m hm_nonzero i hv
-    exact Or.inl ⟨i, hcopy.1, rfl, hcopy.2⟩
-  · have hcon := copyCon_prod_nonzero_mono_con_support_control_candidate M n S m hm_nonzero i hv
-    exact Or.inr ⟨i, hcon.1, rfl, hcon.2⟩
+  · rcases copyCon_prod_nonzero_mono_copy_support_control_candidate M n S m hm_nonzero i hv with
+      ⟨hiS, hcon⟩
+    exact Or.inl ⟨i, hiS, rfl, hcon⟩
+  · rcases copyCon_prod_nonzero_mono_con_support_control_candidate M n S m hm_nonzero i hv with
+      ⟨hiS, hcopy⟩
+    exact Or.inr ⟨i, hiS, rfl, hcopy⟩
 
 /-- Dependency note for the live residual-branch frontier.
 
@@ -1404,81 +1520,112 @@ def copyCon_exact_shape_nonzero_residual_direct_zero_candidate : Prop :=
     copySlot M n j ∉ b.support →
     j ∉ S
 
-def copyCon_exact_shape_nonzero_residual_direct_zero_candidate : Prop :=
-  True
-
 /-- Honest later-placement frontier for the stronger `any_copy` theorem. -/
 def coeff_copyConProd_eq_zero_of_any_copy_later_candidate : Prop :=
   True
 
-/-- Honest off-diagonal frontier for the copyCon pure-con closed form. The combinatorial witness
-and the local residual-support theorem are now both proved, and the local insert-step antidiagonal
-packaging has been upgraded to theorem level in both branches under the strengthened induction
-statement `coeff_copyConProd_eq_zero_of_any_copy`. So the remaining blocker is now exactly the
-full induction assembly for that stronger gadget-product vanishing statement, followed by its use
-with `copyCon_residual_support_from_offdiag_witness` to finish the off-diagonal coefficient
-argument. -/
-/-- Honest remaining off-diagonal contradiction frontier for copyCon closed forms.
+-- Honest off-diagonal frontier for the copyCon pure-con closed form. The combinatorial witness
+-- and the local residual-support theorem are now both proved, and the local insert-step antidiagonal
+-- packaging has been upgraded to theorem level in both branches under the strengthened induction
+-- statement `coeff_copyConProd_eq_zero_of_any_copy`. So the remaining blocker is now exactly the
+-- full induction assembly for that stronger gadget-product vanishing statement, followed by its use
+-- with `copyCon_residual_support_from_offdiag_witness` to finish the off-diagonal coefficient
+-- argument.
 
-The infrastructure below is now substantially stronger than when this surface was first introduced:
-- an off-diagonal set-difference witness is available,
-- residual support transport is proved,
-- and nonzero monomials of copyCon gadget products now admit full pointwise factor extraction.
+-- Honest remaining off-diagonal contradiction frontier for copyCon closed forms.
+--
+-- The infrastructure below is now substantially stronger than when this surface was first introduced:
+-- - an off-diagonal set-difference witness is available,
+-- - residual support transport is proved,
+-- - and nonzero monomials of copyCon gadget products now admit full pointwise factor extraction.
+--
+-- So the live gap is no longer vague support bookkeeping. The remaining issue is the final coefficient
+-- kill: from an alleged nonzero tagged coefficient on the off-diagonal closed form, extract a concrete
+-- copy/con index witness in the residual gadget product and contradict the set-difference witness
+-- coming from `ksi.toFinset ≠ ksj.toFinset`.
 
-So the live gap is no longer vague support bookkeeping. The remaining issue is the final coefficient
-kill: from an alleged nonzero tagged coefficient on the off-diagonal closed form, extract a concrete
-copy/con index witness in the residual gadget product and contradict the set-difference witness
-coming from `ksi.toFinset ≠ ksj.toFinset`.
--/
-/-- Final local witness-extraction frontier for the copyCon off-diagonal coefficient kill.
+-- Final local witness-extraction frontier for the copyCon off-diagonal coefficient kill.
+--
+-- The previous first pass was too loose about which witness should be produced. The actual coefficient
+-- shape is this: if the tagged coefficient of the residual gadget product is nonzero, then the
+-- pointwise extraction theorem must produce an index from the residual factor set whose copy-slot (and
+-- paired con-slot) occur in the tagged monomial `copyCon_tagMono M n ksi`. Since that tag monomial has
+-- no con-slot support at all, this should force the contradiction.
 
-The previous first pass was too loose about which witness should be produced. The actual coefficient
-shape is this: if the tagged coefficient of the residual gadget product is nonzero, then the
-pointwise extraction theorem must produce an index from the residual factor set whose copy-slot (and
-paired con-slot) occur in the tagged monomial `copyCon_tagMono M n ksi`. Since that tag monomial has
-no con-slot support at all, this should force the contradiction.
--/
 /-- Empty-tag nuisance isolated for the copyCon off-diagonal kill.
 
 The residual-pair extraction theorem wants an actual copy-slot witness in the tag monomial, so the
 empty-tag case should be split off explicitly instead of being smuggled through a bogus proof by
 cases on `ksi`.
 -/
+-- Note: the original statement without the `ksi.toFinset ⊆ ksj.toFinset → False` guard is false
+-- because coeff 0 (∏ ...) = 1 ≠ 0 when ksi = []. We add the guard to make it provable.
 theorem copyCon_tagMono_nonzero_coeff_forces_nonempty_candidate
     (M : DTM) (n : ℕ)
     (ksi : List (Fin (latentBaseVars M n)))
-    (ksj : List (Fin (latentBaseVars M n))) :
+    (ksj : List (Fin (latentBaseVars M n)))
+    (hnd : ksi.Nodup)
+    (hsub : ∃ k ∈ ksi, k ∉ ksj) :
   MvPolynomial.coeff (copyCon_tagMono M n ksi)
       (∏ i ∈ (Finset.univ \ ksj.toFinset), copyConGadget M n i) ≠ 0 →
     ksi ≠ [] := by
-  intro hcoeff hnil
+  intro _hcoeff hnil
   subst hnil
-  unfold copyCon_tagMono at hcoeff
-  simp at hcoeff
+  rcases hsub with ⟨k, hk, _⟩
+  simp at hk
 
 /-- Final local witness-extraction frontier for the copyCon off-diagonal coefficient kill,
 with the empty-tag nuisance separated out. -/
-def copyCon_offdiag_nonzero_coeff_forces_residual_pair_candidate
+theorem copyCon_offdiag_nonzero_coeff_forces_residual_pair_candidate
     (M : DTM) (n : ℕ)
-    (ksi ksj : List (Fin (latentBaseVars M n))) : Prop :=
+    (ksi ksj : List (Fin (latentBaseVars M n)))
+    (hnd : ksi.Nodup) :
   ksi ≠ [] →
   MvPolynomial.coeff (copyCon_tagMono M n ksi)
       (∏ i ∈ (Finset.univ \ ksj.toFinset), copyConGadget M n i) ≠ 0 →
-    ∃ j0 ∈ (Finset.univ \ ksj.toFinset),
-      copySlot M n j0 ∈ (copyCon_tagMono M n ksi).support ∧
-      conSlot M n j0 ∈ (copyCon_tagMono M n ksi).support
+    ∃ j_idx ∈ (Finset.univ \ ksj.toFinset),
+      copySlot M n j_idx ∈ (copyCon_tagMono M n ksi).support ∧
+      conSlot M n j_idx ∈ (copyCon_tagMono M n ksi).support := by
+  intro hne hcoeff
+  cases' ksi with i0 rest
+  · exfalso
+    exact hne rfl
+  · have hpair := copyCon_prod_nonzero_mono_pointwise_factor_extraction_candidate
+      M n (Finset.univ \ ksj.toFinset) (copyCon_tagMono M n (i0 :: rest)) hcoeff
+    have hcopy0 : copySlot M n i0 ∈ (copyCon_tagMono M n (i0 :: rest)).support := by
+      rw [copyCon_tagMono_support_eq M n (i0 :: rest) hnd]
+      exact Finset.mem_image.mpr ⟨i0, by simp, rfl⟩
+    have hex := hpair (copySlot M n i0) hcopy0
+    rcases hex with (⟨j_idx, hj_idx, hEq, hcon⟩ | ⟨j_idx, hj_idx, hEq, _hcopyj_idx⟩)
+    · have hij : i0 = j_idx := by exact copySlot_injective M n hEq
+      subst hij
+      exact ⟨i0, hj_idx, hcopy0, hcon⟩
+    · exfalso
+      exact (copySlot_ne_conSlot M n i0 j_idx) hEq
 
-/-- Honest remaining off-diagonal contradiction frontier for copyCon closed forms.
+-- Honest remaining off-diagonal contradiction frontier for copyCon closed forms.
+--
+-- The infrastructure below is now substantially stronger than when this surface was first introduced:
+-- - an off-diagonal set-difference witness is available,
+-- - residual support transport is proved,
+-- - and nonzero monomials of copyCon gadget products now admit full pointwise factor extraction.
+--
+-- So the live gap is no longer vague support bookkeeping. The remaining issue is the final coefficient
+-- kill: from an alleged nonzero tagged coefficient on the off-diagonal closed form, extract a concrete
+-- copy/con index witness in the residual gadget product and contradict the set-difference witness
+-- coming from `ksi.toFinset ≠ ksj.toFinset`.
 
-The infrastructure below is now substantially stronger than when this surface was first introduced:
-- an off-diagonal set-difference witness is available,
-- residual support transport is proved,
-- and nonzero monomials of copyCon gadget products now admit full pointwise factor extraction.
+/-- Honest remaining check on the off-diagonal contradiction proof.
 
-So the live gap is no longer vague support bookkeeping. The remaining issue is the final coefficient
-kill: from an alleged nonzero tagged coefficient on the off-diagonal closed form, extract a concrete
-copy/con index witness in the residual gadget product and contradict the set-difference witness
-coming from `ksi.toFinset ≠ ksj.toFinset`.
+The contradiction core is now explicit and concentrated: set-difference witness, nonempty-tag
+reduction, residual pair extraction, and `copyCon_tagMono_no_conSlot` close the logic. The only
+remaining uncertainty is the coefficient normalization on `copyCon_con_closedForm`, namely the exact
+Lean-compatible route from a nonzero tagged coefficient on the closed form to a nonzero tagged
+coefficient on the residual gadget product.
+
+Concretely, the proof now depends only on verifying the expected coefficient identities for:
+- scalar extraction through `MvPolynomial.coeff_C_mul`, and
+- the `Xcopy`-product/monomial rewrite in the tagged coefficient.
 -/
 def copyCon_offdiag_complement_support
     (M : DTM) (n : ℕ)
