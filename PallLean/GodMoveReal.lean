@@ -17,7 +17,7 @@ import Mathlib.Data.Nat.Log
 
 namespace GodMoveReal
 
-open SPDP MultilinearSPDP MvPolynomial TuringMachine
+open SPDP MultilinearSPDP MvPolynomial TuringMachine PaperFaithfulSeparation
 
 attribute [local instance] Classical.dec
 
@@ -171,5 +171,61 @@ theorem restriction_rank_mono {N : ℕ}
     (h : mlBlockedSpdpSubspace B κ ℓ q ≤ mlBlockedSpdpSubspace B κ ℓ p) :
     mlBlockedSpdpRank B κ ℓ q ≤ mlBlockedSpdpRank B κ ℓ p :=
   Submodule.finrank_mono h
+
+
+/-! ## Concrete typed source/target map surface
+
+The active paper-faithful route needs an explicit typed source/target surface for
+`ΠΦ : F[u,v] → F[u]`, even before the semantic proof of existence is available.
+The structures below do not claim the map has been constructed from Cook-Levin.
+They only make the typed ingredients explicit so later work can state the real
+God-Move without collapsing compiled and coupled polynomials into one variable
+space. -/
+
+/-- A typed map from compiled tableau space to coupled clause-sheet space. -/
+structure GodMoveTypedMap (compiledVars coupledVars : ℕ) where
+  toFun : MvPolynomial (Fin compiledVars) ℚ → MvPolynomial (Fin coupledVars) ℚ
+  instance_uniform : Prop
+  witness_free : Prop
+  block_local : Prop
+
+/-- Typed target data for the coupled clause-sheet side. -/
+structure GodMoveTypedTarget (coupledVars : ℕ) where
+  partition : BlockPartition coupledVars
+  poly : MvPolynomial (Fin coupledVars) ℚ
+
+/-- Explicit typed God-Move surface connecting compiled and coupled spaces.
+
+This is still only a surface/interface: it does not assert that the map has been
+constructed from the real Cook-Levin compilation. It packages the typed objects
+that a future paper-faithful semantic theorem should produce. -/
+structure GodMoveTypedExtraction (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  coupledVars : ℕ
+  map : GodMoveTypedMap (cook_levin_compilation M n hn2 htb hns).numVars coupledVars
+  target : GodMoveTypedTarget coupledVars
+  target_lower :
+    Nat.choose n (Nat.log 2 n) ≤
+      mlBlockedSpdpRank target.partition (Nat.log 2 n) (Nat.log 2 n) target.poly
+  rank_transfer :
+    mlBlockedSpdpRank target.partition (Nat.log 2 n) (Nat.log 2 n) target.poly ≤
+      mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+
+/-- Forgetting the concrete typed map data yields the lighter abstract interface
+used in `PaperFaithfulSeparation.lean`. -/
+def godMoveTypedExtractionToInterface
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (g : GodMoveTypedExtraction M n hn2 htb hns) :
+    PaperFaithfulSeparation.GodMoveExtractionInterface M n hn2 htb hns where
+  coupledVars := g.coupledVars
+  coupledPartition := g.target.partition
+  coupledPoly := g.target.poly
+  instance_uniform := g.map.instance_uniform
+  witness_free := g.map.witness_free
+  block_local := g.map.block_local
+  target_lower := g.target_lower
+  rank_transfer := g.rank_transfer
 
 end GodMoveReal

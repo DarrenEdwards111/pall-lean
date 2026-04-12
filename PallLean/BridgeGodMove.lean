@@ -1,28 +1,17 @@
 /-
-  BridgeGodMove.lean — Bridge 2: God-Move extraction as syntactic restriction
+  BridgeGodMove.lean — Bridge 2 bookkeeping for the God-Move route
 
-  Connects the God-Move rank monotonicity (GodMoveReal.lean) with the concrete
-  Tseitin identity minor (IdentityMinorReal.lean, BridgeNPSide.lean) to construct
-  a complete GodMoveExtraction for any hypothetical 3-SAT decider.
+  This file is now auxiliary commentary/bookkeeping around the God-Move side.
+  The real active paper-faithful surface lives in `PaperFaithfulSeparation.lean`:
 
-  The God-Move extraction (Paper Lemma 123) says: if a P-time DTM M' decides 3-SAT,
-  then the compiled polynomial P_{M',n} contains the coupled verifier sheet Q×_Φ
-  as a syntactic restriction. Concretely, there exists a projection π (setting
-  auxiliary variables to 0/1) such that π(P_{M',n}) = Q×_Φ + constant.
+  - the remaining semantic object is an abstract typed extraction interface
+    between compiled tableau space and coupled clause-sheet space
+  - the quantitative compiled-space lower bound is derived there from that
+    interface, rather than by pretending both sides already share one ambient
+    variable type
 
-  By rank monotonicity of projections:
-    Γ(Q×_Φ) ≤ Γ(P_{M',n})
-
-  This file:
-  1. Defines the restriction rank monotonicity principle abstractly
-  2. Constructs a concrete GodMoveExtraction that combines the compiled polynomial
-     with the Tseitin identity minor bound
-  3. Shows the rank_monotone and np_bound fields are satisfiable
-  4. Provides the complete PeqNP_Paper → False bridge
-
-  The restriction/projection rank monotonicity (Paper Lemma 122) is formalized in
-  GodMoveReal.lean as restriction_rank_mono (for subspace containment) and
-  rank_summand_le_of_zero_remainder (for the decomposition P = Q + R with Γ(R)=0).
+  So this file should be read as legacy bridge notes plus small helper lemmas,
+  not as the canonical theorem surface for §29.
 -/
 import PallLean.PaperFaithfulSeparation
 import PallLean.GodMoveReal
@@ -47,23 +36,13 @@ GodMoveReal.lean as:
 
 These are the key tools for the rank_monotone field of GodMoveExtraction. -/
 
-/-! ## Concrete GodMoveExtraction Construction
+/-! ## Legacy coupled-rank bookkeeping
 
-For a hypothetical 3-SAT decider DTM M at input size n, we construct a
-GodMoveExtraction by:
-1. Using cook_levin_compilation M n for the compiled tableau
-2. Setting coupledRank := tseitinCoupledRank (a function of κ and ℓ
-   that returns the binomial coefficient lower bound)
-3. Setting compiledRank := the actual mlBlockedSpdpRank of the compiled polynomial
-4. rank_monotone: the coupled rank is defined to be ≤ compiled rank
-   (this is the content of the God-Move theorem)
-
-The God-Move theorem (Paper Lemma 123) states that for any 3-SAT decider,
-the compiled polynomial syntactically contains the coupled verifier sheet.
-This means rank(coupled) ≤ rank(compiled). We capture this by defining
-coupledRank to be the minimum of the identity minor bound and the compiled rank,
-which ensures rank_monotone holds by construction while maintaining the
-exponential lower bound from the identity minor. -/
+The definitions below are retained as lightweight bookkeeping helpers for the
+older bridge discussion. They are no longer the canonical statement of the
+paper's God-Move, because the active route now keeps compiled-space and coupled-
+space separate via an abstract typed extraction interface in
+`PaperFaithfulSeparation.lean`. -/
 
 /-- The God-Move coupled rank: for each (κ, ℓ), the rank of the coupled
     verifier sheet is bounded below by the identity minor size and above
@@ -158,59 +137,28 @@ theorem np_bound_from_extraction (n : ℕ) (hn : n ≥ 2 ^ 960)
   rw [Nat.min_eq_left hCompiled]
   exact BridgeNPSide.np_side_from_identity_minor n hn packSize hpack
 
-/-! ## Complete Bridge: PeqNP_Paper → Concrete Extraction
+/-! ## Status note
 
-We show that the fields of PeqNP_Paper can be populated using the concrete
-constructions above, given the God-Move theorem as the key content.
-
-The extraction, p_bound, and np_bound fields are constructed from:
-- buildGodMoveExtraction: the concrete extraction structure
-- p_side_locality_bound_cook_levin: the P-side rank bound
-- np_bound_from_extraction: the NP-side rank bound (given God-Move)
-
-This shows that PeqNP_Paper is a faithful representation of the paper's
-argument: the hypothesis bundle is satisfiable whenever a 3-SAT decider exists.
--/
+This file no longer constructs a canonical extraction object for `PeqNP_Paper`.
+That older packaging belonged to the pre-refactor bundled surface. The active
+paper-faithful route instead isolates the §29 semantic burden in the abstract
+God-Move extraction interface introduced in `PaperFaithfulSeparation.lean`. -/
 
 /-  p_bound_for_extraction and extraction_compiled_rank_mono removed:
     these referenced the now-removed GodMoveExtraction and compiled_rank_mono_ell.
     The P-side bound is now stated directly as p_side_rank_bound_for_cook_levin
     in PaperFaithfulSeparation.lean (proved in LocalityRankBound.lean).  -/
 
-/-! ## The Full Separation Bridge
+/-! ## Separation status
 
-Given a PeqNP_Paper hypothesis (bundling a 3-SAT decider with its derived properties),
-the separation follows from separation_3sat. This is already proved in
-PaperFaithfulSeparation.lean as P_ne_NP_unconditional.
+The actual contradiction theorem already lives in
+`PaperFaithfulSeparation.P_ne_NP_unconditional`. What remains mathematically hard
+is still the semantic realization of the typed God-Move extraction interface,
+not the lightweight bookkeeping lemmas in this file. -/
 
-What we add here is the concrete demonstration that the extraction, p_bound,
-and np_bound fields can arise from the paper's constructions. Specifically:
-
-1. The extraction uses buildGodMoveExtraction with the cook_levin_compilation
-2. The p_bound uses the locality rank bound (compiled poly = 1, rank = 0)
-3. The np_bound uses the identity minor (BridgeNPSide.np_side_from_identity_minor)
-   combined with the God-Move restriction (rank_monotone)
-
-These three together show that if a 3-SAT decider existed, PeqNP_Paper would
-be satisfiable, contradicting P_ne_NP_unconditional. -/
-
-/-- Summary: the two bridges are complete.
-
-Bridge 1 (NP-side): BridgeNPSide.np_side_from_identity_minor shows
-  n^(log₂ n / 4) ≤ Nat.choose packSize (log₂ n) for packSize ≥ n/30.
-
-Bridge 2 (God-Move): god_move_identity_minor_axiom provides the NP-side bound
-  for the Cook-Levin compiled polynomial when the DTM decides 3-SAT.
-
-The np_bound for PeqNP_Paper follows from Bridge 1 + God-Move:
-  - Identity minor gives C(m, log n) ≥ n^(log n / 4) (Bridge 1)
-  - God-Move gives C(m, log n) ≤ rank(compiled) (Paper Lemma 123)
-  - So coupledRank = min(C(m,log n), rank(compiled)) = C(m,log n)
-  - And np_side_rank_bound n (C(m,log n)) holds (Bridge 1)
-
-The contradiction: rank(compiled) ≤ n^200 (P-side), but rank(compiled) ≥
-  C(m, log n) ≥ n^(log n / 4) > n^200 for n ≥ 2^804.
--/
+/-- Summary status: Bridge 1 is substantive arithmetic/identity-minor bookkeeping,
+while Bridge 2's real remaining content is the abstract typed extraction
+interface isolated in `PaperFaithfulSeparation.lean`. -/
 theorem bridge_summary : True := trivial
 
 end BridgeGodMove

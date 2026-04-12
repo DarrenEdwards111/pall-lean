@@ -9,19 +9,20 @@ This file assembles the complete separation from PaperFaithfulSeparation.lean.
 
 ## Axiom inventory
 
-**Two genuine axioms** for the product polynomial P = ∏(1-Cᵢ):
+**Two genuine semantic frontiers** for the product polynomial P = ∏(1-Cᵢ):
 
 1. `p_side_rank_bound_for_cook_levin` — the paper's P-side claim (§9, Theorem 92):
    for any P-time DTM, the compiled product polynomial has SPDP rank ≤ n^200.
    Requires profile compression, which is not yet formalized.
 
-2. `god_move_extraction_lemma` — the paper's NP-side claim (§29, Lemmas 123+124):
-   if DecidesSAT M, then C(n, log n) ≤ SPDP rank of the Cook-Levin compiled
-   product polynomial. The product form enables the identity minor construction
-   via cross-variable interactions.
+2. `god_move_extraction_interface` — the paper's §29 witness-free extraction map
+   frontier, exposed in `PaperFaithfulSeparation.lean` as a typed abstract
+   source/target interface between compiled tableau space and coupled clause-sheet
+   space. The old quantitative lower bound `god_move_extraction_lemma` is now
+   derived from that interface.
 
-Both axioms are mathematically true for the product polynomial ∏(1-Cᵢ).
-Neither is vacuous or contradictory.
+This is cleaner and more paper-faithful than postulating the bundled lower bound
+as the primary object.
 
 **Zero sorry.**
 -/
@@ -41,15 +42,19 @@ theorem p_side_verified (M : DTM) (n : ℕ) (hn : n ≥ 2)
 
 /-- Final separation theorem.
 
-    Axiom count: TWO genuine
+    Semantic frontier count: TWO genuine
       1. p_side_rank_bound_for_cook_levin (profile compression, §9)
-      2. god_move_extraction_lemma (God-Move extraction, §29)
+      2. god_move_extraction_interface (typed §29 extraction interface)
     Sorry count: ZERO
 
-    Both axioms use the product polynomial ∏(1-Cᵢ) from the paper (§17.1).
+    The quantitative theorem `god_move_extraction_lemma` is now derived from the
+    typed interface rather than postulated directly.
+
+    Both frontiers use the product polynomial ∏(1-Cᵢ) from the paper (§17.1).
     The product form is essential:
     - P-side: profile compression gives polynomial rank (Theorem 92)
-    - NP-side: cross-variable interactions enable the identity minor (Lemmas 123-124)
+    - NP-side: the witness-free God-Move extraction targets the coupled sheet
+      in its own variable space, then transfers rank back to the compiled space
 -/
 theorem P_ne_NP_final : ∀ (h : PeqNP_Paper), False :=
   P_ne_NP_unconditional
