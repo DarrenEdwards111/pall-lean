@@ -934,8 +934,12 @@ The most plausible remaining bridge now looks like a product-level nonzero-monom
 recorded as `copyCon_prod_nonzero_mono_classification_candidate`, which could then feed the direct
 residual-zero route. -/
 
-def copyCon_prod_nonzero_mono_classification_candidate : Prop :=
-  True
+def copyCon_prod_nonzero_mono_classification_candidate
+    (M : DTM) (n : ℕ)
+    (S : Finset (Fin (latentBaseVars M n)))
+    (m : (Fin (latentNumVars M n)) →₀ ℕ) : Prop :=
+  MvPolynomial.coeff m (∏ i ∈ S, copyConGadget M n i) ≠ 0 →
+  ∃ U : Finset (Fin (latentBaseVars M n)), U ⊆ S
 
 def copyCon_exact_shape_nonzero_residual_direct_zero_candidate : Prop :=
   True
