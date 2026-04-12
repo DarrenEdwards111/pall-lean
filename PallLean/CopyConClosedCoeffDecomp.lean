@@ -726,6 +726,24 @@ that in the exact-shape inserted-slot branch, either
 The latest direct proof attempt showed the naive witness choice `i = j` does not work: the left
 exact-shape monomial already uses `copySlot j`, so the pointwise residual-support transport lemma
 cannot move that slot into `b`. So the split remains a genuine candidate, not a theorem yet. -/
+def copyCon_insert_exact_shape_zero_residual_summand_candidate
+    (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n))
+    (S : Finset (Fin (latentBaseVars M n)))
+    (m a b : (Fin (latentNumVars M n)) →₀ ℕ) : Prop :=
+  a + b = m →
+  a = Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1 →
+  b = 0 →
+    MvPolynomial.coeff a (copyConGadget M n j) *
+      MvPolynomial.coeff b (∏ i ∈ S, copyConGadget M n i) = 0
+
+/-- Candidate exact-shape inserted-slot split for the stronger `any_copy` induction.
+
+The current honest state is asymmetric:
+- the `b = 0` subcase is now isolated as a direct coefficient-evaluation candidate;
+- the `b ≠ 0` branch still needs either an independent witness in `b` or some stronger structural
+  argument.
+-/
 def copyCon_insert_exact_shape_inserted_witness_split_candidate
     (M : DTM) (n : ℕ)
     (j : Fin (latentBaseVars M n))
@@ -772,9 +790,15 @@ confirmed the branch-first induction shape is the right one. The constant branch
 exact-shape residual-witness branch both wire up cleanly against the proved seam lemmas.
 
 The remaining live branch is exactly the expected one: the exact-shape inserted-slot case with
-`copySlot j ∈ m.support`. The newly sharpened blocker is whether the direct split candidate
-`copyCon_insert_exact_shape_inserted_witness_split_candidate` is actually provable in the needed
-form, and if so whether the `b = 0` subcase can be closed by direct coefficient evaluation. -/
+`copySlot j ∈ m.support`. The `b = 0` subcase is now isolated as the separate candidate
+`copyCon_insert_exact_shape_zero_residual_summand_candidate`, but it still needs an explicit local
+coefficient calculation.
+
+So the true remaining blockers are now split cleanly:
+1. prove the zero-residual coefficient calculation, and
+2. for the nonzero-residual half of
+   `copyCon_insert_exact_shape_inserted_witness_split_candidate`, find a copy-slot witness in `b`
+   or replace that need with a stronger direct argument. -/
 def coeff_copyConProd_eq_zero_of_any_copy_later_candidate : Prop :=
   True
 
