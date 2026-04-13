@@ -1462,6 +1462,23 @@ def godMoveNonidentityConstructionTarget
     cmp.target_same_space.poly ≠
       compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)
 
+/-- The current identity construction is canonical, but it is not non-identity:
+after transporting to the compiled ambient space, its target polynomial is still
+literally the compiled Cook-Levin polynomial. -/
+theorem godMoveConstruction_exists_not_nonidentity
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ godMoveNonidentityConstructionTarget M n hn htb hns
+        (godMoveConstruction_exists M n hn hdec htb hns) := by
+  intro hnon
+  rcases hnon with ⟨_, cmp, hne⟩
+  have hpoly := congrArg GodMoveTypedTarget.poly cmp.target_eq
+  simp [godMoveConstruction_exists] at hpoly
+  exact hne hpoly.symm
+
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. What remains open is exactly the
 zero-remainder/transport existential half. -/
