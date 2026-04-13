@@ -2137,6 +2137,42 @@ theorem godMoveTypedMap_firstRestrictionPerturbation_not_coherent
     simp [godMoveTypedMap_firstRestrictionPerturbation]
   exact hneq hone
 
+/-- Smallest behavior-level target for a genuinely perturbed restriction map.
+
+After proving metadata-only perturbation is incoherent, the next construction
+must change the actual restriction function. This target isolates the minimal
+behavioral requirement: on the compiled polynomial `1`, the restriction function
+must genuinely differ from the identity behavior. -/
+def godMoveRestrictionFunctionPerturbationTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (compiledVars coupledVars : ℕ)
+    (map : GodMoveTypedMap compiledVars coupledVars) : Prop :=
+  map.restrictFun 1 ≠ (1 : MvPolynomial (Fin map.restrictedVars) ℚ)
+
+/-- The current metadata-only perturbed typed map fails to witness the new
+behavior-level target too, for the same reason: its restriction function is
+still literally the identity. -/
+theorem godMoveTypedMap_firstRestrictionPerturbation_not_function_perturbed
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ godMoveRestrictionFunctionPerturbationTarget M n hn hdec htb hns
+        (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars
+        (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars
+        (godMoveTypedMap_firstRestrictionPerturbation M n hn hdec htb hns) := by
+  intro hpert
+  have hone :
+      (godMoveTypedMap_firstRestrictionPerturbation M n hn hdec htb hns).restrictFun 1 =
+        (1 : MvPolynomial (Fin (godMoveTypedMap_firstRestrictionPerturbation M n hn hdec htb hns).restrictedVars) ℚ) := by
+    simp [godMoveTypedMap_firstRestrictionPerturbation]
+  exact hpert hone
+
 /- First explicit full `GodMoveConstruction` attempt from the perturbed typed map.
 
 The raw data all lines up: we can build the perturbed restriction-data witness
