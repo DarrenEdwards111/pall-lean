@@ -632,6 +632,29 @@ def godMoveTargetRankCongrTarget
       z.target_same_space.poly =
     mlBlockedSpdpRank c.target.partition (Nat.log 2 n) (Nat.log 2 n) c.target.poly
 
+/-- The exact cast-elimination micro-seam exposed by the failed direct
+congruence proof. If the rank expression with transported `partition`/`poly`
+collapses to the original target, then the remaining congruence target follows. -/
+def godMoveTargetRankCastElimTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∀ z : GodMoveZeroRemainderData M n hn2 htb hns c,
+    mlBlockedSpdpRank (Eq.mp (by rw [z.same_space]) c.target.partition) (Nat.log 2 n) (Nat.log 2 n)
+      (Eq.mp (by rw [z.same_space]) c.target.poly) =
+    mlBlockedSpdpRank c.target.partition (Nat.log 2 n) (Nat.log 2 n) c.target.poly
+
+/-- If the transported `partition`/`poly` arguments can be collapsed back to
+`c.target`, the full congruence seam follows by rewriting with the given field
+transport equalities. -/
+theorem godMoveTargetRankCongrTarget_of_castElim
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hcast : godMoveTargetRankCastElimTarget c) :
+    godMoveTargetRankCongrTarget c := by
+  intro z hpart hpoly
+  rw [hpart, hpoly]
+  exact hcast z
+
 /-- The even smaller helper target exposed by the failed proof attempt.
 
 This now sits one level above the partition/poly transport subtargets. -/
