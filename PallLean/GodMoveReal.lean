@@ -750,6 +750,16 @@ def godMoveTargetRankSpanPolyTarget
     mlProj (m * iterDerivList S (Eq.mp (by rw [z.same_space]) c.target.poly)) =
       mlProj (m * iterDerivList S c.target.poly)
 
+/-- The remaining polynomial-side seam already collapses: the transported target
+polynomial is definitionally the same polynomial after `same_space`, so the
+entire generator expression rewrites by simp. -/
+theorem godMoveTargetRankSpanPolyTarget_holds
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) :
+    godMoveTargetRankSpanPolyTarget c := by
+  intro z S m
+  simp
+
 /-- Candidate partition-side transport theorem: because the transported
 partition is definitionally the same partition after `same_space`, block
 admissibility should rewrite directly. -/
