@@ -731,6 +731,25 @@ def godMoveTargetRankSpanExprTarget
           m.vars ⊆ S.toFinset ∧ isBlockAdmissible c.target.partition S ∧
           q = mlProj (m * iterDerivList S c.target.poly) }
 
+/-- Local partition-side seam inside the span expression: admissibility with the
+transported partition should coincide with admissibility for `c.target.partition`.-/
+def godMoveTargetRankSpanPartitionTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∀ (z : GodMoveZeroRemainderData M n hn2 htb hns c) (S : List (Fin c.coupledVars)),
+    isBlockAdmissible (Eq.mp (by rw [z.same_space]) c.target.partition) S ↔
+      isBlockAdmissible c.target.partition S
+
+/-- Local polynomial-side seam inside the span expression: the generator built
+from the transported polynomial should coincide with the original one. -/
+def godMoveTargetRankSpanPolyTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∀ (z : GodMoveZeroRemainderData M n hn2 htb hns c)
+      (S : List (Fin c.coupledVars)) (m : MvPolynomial (Fin c.coupledVars) ℚ),
+    mlProj (m * iterDerivList S (Eq.mp (by rw [z.same_space]) c.target.poly)) =
+      mlProj (m * iterDerivList S c.target.poly)
+
 /-- The subspace expression target is just the defining expansion of
 `mlBlockedSpdpSubspace`, so any proof at the `Submodule.span` level immediately
 repackages into the subspace-level target. -/
