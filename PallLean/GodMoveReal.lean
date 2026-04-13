@@ -803,6 +803,15 @@ theorem godMoveTargetRankCastElimTarget_holds
     godMoveTargetRankCastElimTarget c := by
   exact godMoveTargetRankCastElimTarget_of_expr c hexpr
 
+/-- Once the cast-elimination seam is discharged, the last remaining congruence
+step follows immediately by rewriting with the field equalities. -/
+theorem godMoveTargetRankCongrTarget_holds
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hcast : godMoveTargetRankCastElimTarget c) :
+    godMoveTargetRankCongrTarget c := by
+  exact godMoveTargetRankCongrTarget_of_castElim c hcast
+
 /-- Since the remaining finrank target compares the finranks of two SPDP
 subspaces, the next exact seam is equality of those subspaces after transport. -/
 def godMoveTargetRankSubspaceExprTarget
