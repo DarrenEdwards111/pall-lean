@@ -341,6 +341,27 @@ def godMoveSemanticTarget (M : DTM) (n : ℕ)
     (g : GodMoveTypedExtraction M n hn2 htb hns) : Prop :=
   godMoveStagedExtractionTarget M n hn2 htb hns g.coupledVars g.map g.target
 
+/-- Target proposition for staged rank transfer along the God-Move map.
+
+This is the exact quantitative claim one wants to derive from the three
+component monotonicity steps attached to restriction, projection, and relabel. -/
+def godMoveRankTransferTarget (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (g : GodMoveTypedExtraction M n hn2 htb hns) : Prop :=
+  mlBlockedSpdpRank g.target.partition (Nat.log 2 n) (Nat.log 2 n) g.target.poly ≤
+    mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+
+/-- Target proposition for the NP-side lower bound on the extracted coupled
+sheet. This is the semantic endpoint needed before rank transfer is applied back
+up to the compiled polynomial. -/
+def godMoveTargetLowerBoundTarget (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (g : GodMoveTypedExtraction M n hn2 htb hns) : Prop :=
+  Nat.choose n (Nat.log 2 n) ≤
+    mlBlockedSpdpRank g.target.partition (Nat.log 2 n) (Nat.log 2 n) g.target.poly
+
 structure GodMoveTypedExtraction (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
   coupledVars : ℕ
@@ -359,16 +380,35 @@ structure GodMoveTypedExtraction (M : DTM) (n : ℕ)
     map.factors_through (compiledPoly (cook_levin_compilation M n hn2 htb hns)) =
       extraction_correct_coherent
   target_lower :
-    Nat.choose n (Nat.log 2 n) ≤
-      mlBlockedSpdpRank target.partition (Nat.log 2 n) (Nat.log 2 n) target.poly
+    godMoveTargetLowerBoundTarget M n hn2 htb hns {
+      coupledVars := coupledVars
+      map := map
+      target := target
+      extraction_correct := extraction_correct
+      extraction_correct_staged := extraction_correct_staged
+      extraction_correct_coherent := extraction_correct_coherent
+      extraction_coherent_via_factors_through := extraction_coherent_via_factors_through
+      target_lower := by
+        simpa [godMoveTargetLowerBoundTarget]
+      rank_transfer := by
+        simpa [godMoveRankTransferTarget]
+    }
   /-- Current quantitative endpoint of the staged extraction.
   This is still primitive at the typed level, but the intended route is to
   derive it from the staged restriction/projection/relabel monotonicity chain. -/
   rank_transfer :
-    mlBlockedSpdpRank target.partition (Nat.log 2 n) (Nat.log 2 n) target.poly ≤
-      mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
-        (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+    godMoveRankTransferTarget M n hn2 htb hns {
+      coupledVars := coupledVars
+      map := map
+      target := target
+      extraction_correct := extraction_correct
+      extraction_correct_staged := extraction_correct_staged
+      extraction_correct_coherent := extraction_correct_coherent
+      extraction_coherent_via_factors_through := extraction_coherent_via_factors_through
+      target_lower := target_lower
+      rank_transfer := by
+        simpa [godMoveRankTransferTarget]
+    }
 
 /-- **Typed God-Move extraction frontier**.
 
