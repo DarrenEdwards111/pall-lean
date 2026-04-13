@@ -100,16 +100,29 @@ noncomputable def boolFactor (N : ℕ) (v : Fin N) : MvPolynomial (Fin N) ℚ :=
 noncomputable def adjFactor (N : ℕ) (i j : Fin N) : MvPolynomial (Fin N) ℚ :=
   1 - (MvPolynomial.X i * MvPolynomial.X j)
 
-/-
-  NOTE: The next honest frontier is to classify the possible multilinear projections of
-  iterated derivatives of these local factors into a finite family of local outcome types,
-  then assemble distributed Leibniz products into profile-indexed product spans.
+/-! ### Local outcome classification for booleanity factors
 
-  We deliberately avoid adding unverified local membership lemmas here until they are
-  compile-checked. The proved infrastructure below starts from the Leibniz span reduction,
-  and the remaining axiom `spdp_profile_generators` still packages the profile-compression
-  cardinality bound.
--/
+For boolFactor on variable v, the possible nonzero iterated derivatives are:
+- 0 hits: boolFactor N v = 1 - z_v + z_v^2
+- 1 hit by v: pderiv v (boolFactor N v) = -1 + 2z_v
+- 2 hits by v: pderiv v (pderiv v (boolFactor N v)) = C 2
+- ≥3 hits: 0 (proved in iterDerivList_boolFactor_eq_zero_of_length_ge_three)
+
+After mlProj (multilinear projection), all outcomes lie in span{C 1, X v}
+(the 2-dimensional local interface space for booleanity).
+
+### Local outcome classification for adjacency factors
+
+For adjFactor on variables (i,j) with i ≠ j, the possible nonzero derivatives are:
+- 0 hits: adjFactor N i j = 1 - X i * X j
+- 1 hit by i: pderiv i (adjFactor N i j) = -(X j)
+- 1 hit by j: pderiv j (adjFactor N i j) = -(X i)
+- 2 cross-hits (i then j or j then i): C (-1)
+- 2 same-variable hits: 0
+- ≥3 hits: 0 (proved in iterDerivList_adjFactor_eq_zero_of_length_ge_three)
+
+After mlProj, all outcomes lie in span{C 1, X i, X j}
+(the 3-dimensional local interface space for adjacency). -/
 
 /-! ## Part 2: Symmetric Power Structure for Local Interface Spaces
 
@@ -228,6 +241,138 @@ theorem iterDerivList_boolFactor_eq_zero_of_length_ge_three
               have h3 : a3 = v := hsupp a3 (by simp)
               rw [h1, h2, h3]
               simpa using iterDerivList_boolFactor_triple_self_zero N v rest
+
+/-! ### Concrete derivative computations for boolFactor -/
+
+/-- Single derivative of boolFactor: pderiv v (1 - z(1-z)) = -1 + 2z. -/
+theorem pderiv_boolFactor_self (N : ℕ) (v : Fin N) :
+    MvPolynomial.pderiv v (boolFactor N v) = -1 + 2 * MvPolynomial.X v := by
+  unfold boolFactor
+  simp only [map_sub, pderiv_one, pderiv_mul, MvPolynomial.pderiv_X_self,
+    one_mul, zero_mul, zero_add, add_zero, map_one, sub_eq_add_neg, map_add,
+    map_neg, map_sub]
+  ring
+
+/-- After two same-variable derivatives, boolFactor becomes a constant (C 2). -/
+private theorem two_deriv_boolFactor_is_const (N : ℕ) (v : Fin N) :
+    ∃ (c : ℚ), MvPolynomial.pderiv v (MvPolynomial.pderiv v (boolFactor N v)) =
+      MvPolynomial.C c := by
+  refine ⟨2, ?_⟩
+  unfold boolFactor
+  simp only [map_sub, pderiv_one, pderiv_mul, MvPolynomial.pderiv_X_self,
+    one_mul, zero_mul, zero_add, add_zero, map_one, sub_eq_add_neg, map_add,
+    map_neg]
+  ring_nf
+  simp [map_ofNat]
+
+/-! ### Concrete derivative computations for adjFactor -/
+
+/-- Single derivative of adjFactor by the first variable: pderiv i (1 - z_i z_j) = -(z_j). -/
+theorem pderiv_adjFactor_fst (N : ℕ) (i j : Fin N) (hij : i ≠ j) :
+    MvPolynomial.pderiv i (adjFactor N i j) = -(MvPolynomial.X j) := by
+  unfold adjFactor
+  simp only [map_sub, pderiv_one, pderiv_mul, MvPolynomial.pderiv_X_self]
+  rw [MvPolynomial.pderiv_X_of_ne hij.symm]
+  ring
+
+/-- Single derivative of adjFactor by the second variable: pderiv j (1 - z_i z_j) = -(z_i). -/
+theorem pderiv_adjFactor_snd (N : ℕ) (i j : Fin N) (hij : i ≠ j) :
+    MvPolynomial.pderiv j (adjFactor N i j) = -(MvPolynomial.X i) := by
+  unfold adjFactor
+  simp only [map_sub, pderiv_one, pderiv_mul, MvPolynomial.pderiv_X_self]
+  rw [MvPolynomial.pderiv_X_of_ne hij]
+  ring
+
+/-- Cross-derivative of adjFactor: pderiv j (pderiv i (1 - z_i z_j)) = -1. -/
+theorem pderiv_cross_adjFactor (N : ℕ) (i j : Fin N) (hij : i ≠ j) :
+    MvPolynomial.pderiv j (MvPolynomial.pderiv i (adjFactor N i j)) =
+    -(1 : MvPolynomial (Fin N) ℚ) := by
+  unfold adjFactor
+  simp only [map_sub, pderiv_one, pderiv_mul, MvPolynomial.pderiv_X_self,
+    MvPolynomial.pderiv_X_of_ne hij.symm, mul_zero, add_zero, zero_sub,
+    map_neg, one_mul]
+
+/-- After any two in-support derivatives, adjFactor becomes a constant. -/
+private theorem two_deriv_adjFactor_is_const (N : ℕ) (i j a b : Fin N) (hij : i ≠ j)
+    (ha : a = i ∨ a = j) (hb : b = i ∨ b = j) :
+    ∃ (c : ℚ), MvPolynomial.pderiv b (MvPolynomial.pderiv a (adjFactor N i j)) =
+      MvPolynomial.C c := by
+  unfold adjFactor
+  cases ha with
+  | inl ha =>
+    cases hb with
+    | inl hb =>
+      exact ⟨0, by subst ha; subst hb; simp only [map_sub, pderiv_one, pderiv_mul,
+        MvPolynomial.pderiv_X_self, MvPolynomial.pderiv_X_of_ne hij.symm,
+        mul_zero, add_zero, zero_sub, map_neg, zero_mul, neg_zero, map_zero]⟩
+    | inr hb =>
+      exact ⟨-1, by subst ha; subst hb; simp only [map_sub, pderiv_one, pderiv_mul,
+        MvPolynomial.pderiv_X_self, MvPolynomial.pderiv_X_of_ne hij.symm,
+        mul_zero, add_zero, zero_sub, map_neg, one_mul]; simp [map_ofNat]⟩
+  | inr ha =>
+    cases hb with
+    | inl hb =>
+      exact ⟨-1, by subst ha; subst hb; simp only [map_sub, pderiv_one, pderiv_mul,
+        MvPolynomial.pderiv_X_self, MvPolynomial.pderiv_X_of_ne hij,
+        mul_one, zero_mul, zero_add, zero_sub, map_neg,
+        MvPolynomial.pderiv_X_of_ne hij.symm, neg_zero, sub_zero]; simp [map_ofNat]⟩
+    | inr hb =>
+      exact ⟨0, by subst ha; subst hb; simp only [map_sub, pderiv_one, pderiv_mul,
+        MvPolynomial.pderiv_X_self, MvPolynomial.pderiv_X_of_ne hij,
+        mul_one, zero_mul, zero_add, zero_sub, map_neg, mul_zero, neg_zero, map_zero]⟩
+
+/-- Any iterated derivative of adjFactor with ≥3 in-support hits vanishes. -/
+theorem iterDerivList_adjFactor_eq_zero_of_length_ge_three
+    (N : ℕ) (i j : Fin N) (hij : i ≠ j) (S : List (Fin N))
+    (hS : 3 ≤ S.length)
+    (hsupp : ∀ x ∈ S, x = i ∨ x = j) :
+    iterDerivList S (adjFactor N i j) = 0 := by
+  cases S with
+  | nil => simp at hS
+  | cons a t1 =>
+    cases t1 with
+    | nil => simp at hS
+    | cons b t2 =>
+      have ha := hsupp a (by simp)
+      have hb := hsupp b (by simp)
+      obtain ⟨c, hc⟩ := two_deriv_adjFactor_is_const N i j a b hij ha hb
+      simp only [IterDerivHelpers.iterDerivList_cons] at *
+      rw [hc]
+      cases t2 with
+      | nil => simp at hS
+      | cons d rest =>
+        simp only [IterDerivHelpers.iterDerivList_cons]
+        rw [MvPolynomial.pderiv_C]
+        exact SPDP.foldl_pderiv_zero _
+
+/-! ### Profile compression: proved infrastructure and remaining gap
+
+The proved lemmas above establish:
+
+**Leibniz decomposition** (spdp_generator_in_leibniz_span):
+  Every SPDP generator mlProj(m * iterDerivList S p) lies in the span of
+  distributed derivative products.
+
+**Locality** (iterDerivList_{bool,adj}Factor_eq_zero_of_exists_offsupport):
+  A derivative on a variable outside a factor's support kills that factor.
+
+**Saturation** (iterDerivList_{bool,adj}Factor_eq_zero_of_length_ge_three):
+  ≥3 in-support derivatives kill any local factor (degree ≤ 2).
+
+**Local outcome classification** (pderiv_{boolFactor_self,adjFactor_fst,adjFactor_snd,cross_adjFactor}):
+  The concrete derivative outcomes are explicit polynomials in ≤ 3 variables.
+
+Together these show that each distributed derivative product is a product of ≤ 4
+local outcomes per touched constraint (original, 1st, 2nd derivative, or 0),
+with each outcome lying in a local interface space of dimension ≤ 3.
+
+**Remaining gap for spdp_profile_generators**: The profile compression bound
+  (κ+1)^4 profiles × (κ+1)^8 generators/profile requires the symmetric power
+  argument: within a fixed derivative profile (histogram of hit counts across
+  constraint types), the products of local outcomes span a space whose dimension
+  equals the symmetric power dim = ∏_τ C(h(τ)+2, 2) ≤ (κ+1)^8. This is the
+  irreducible mathematical content of the paper's §9 Theorem 92 (profile
+  compression via symmetric powers of local interface spaces). -/
 
 /-- The local interface dimension for Cook-Levin constraints. -/
 def localDim : ℕ := 3
