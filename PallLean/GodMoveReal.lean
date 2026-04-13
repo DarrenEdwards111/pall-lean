@@ -1573,6 +1573,21 @@ theorem godMoveConstruction_exists_not_genuine_candidate
   intro hg
   exact godMoveConstruction_exists_not_nontrivial_staged_map M n hn hdec htb hns hg.2.2
 
+/-- Tiny helper packaging for projection-stage output before relabeling.
+
+This lets us compare a candidate to the identity placeholder at the projection
+stage without pretending the full dependent `projectionData` records are already
+in a comfortably comparable form. -/
+structure GodMoveProjectionOutputComparison
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n hn2 htb hns) where
+  restricted_output : MvPolynomial (Fin c.map.restrictedVars) ℚ
+  restricted_output_eq :
+    c.map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns)) =
+      restricted_output
+  projection_output : MvPolynomial (Fin c.map.projectionData.projectedVars) ℚ
+  projection_output_eq : c.map.projectFun restricted_output = projection_output
+
 /-- First construction-level frontier for moving beyond the identity placeholder.
 
 Rather than pretending to have the full paper `ΠΦ`, the next honest step is to
