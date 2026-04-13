@@ -770,6 +770,25 @@ theorem godMoveTargetRankSpanPartitionTarget_holds
   intro z S
   simp [godMoveTargetRankSpanPartitionTarget]
 
+/-- Once both literal ingredients of the generator set are transported, the full
+span expression target follows by extensionality of the defining set. -/
+theorem godMoveTargetRankSpanExprTarget_holds
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) :
+    godMoveTargetRankSpanExprTarget c := by
+  intro z
+  have hpart := godMoveTargetRankSpanPartitionTarget_holds c z
+  have hpoly := godMoveTargetRankSpanPolyTarget_holds c z
+  apply congrArg (Submodule.span ℚ)
+  ext q
+  constructor
+  · intro hq
+    rcases hq with ⟨S, m, hlen, hdeg, hvars, hadm, hqeq⟩
+    exact ⟨S, m, hlen, hdeg, hvars, (hpart S).mp hadm, hqeq.trans (hpoly S m)⟩
+  · intro hq
+    rcases hq with ⟨S, m, hlen, hdeg, hvars, hadm, hqeq⟩
+    exact ⟨S, m, hlen, hdeg, hvars, (hpart S).mpr hadm, hqeq.trans (hpoly S m).symm⟩
+
 /-- The subspace expression target is just the defining expansion of
 `mlBlockedSpdpSubspace`, so any proof at the `Submodule.span` level immediately
 repackages into the subspace-level target. -/
