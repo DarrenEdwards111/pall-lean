@@ -22,12 +22,19 @@
 
   With ≤ (κ+1)^4 profiles, the total SPDP rank is ≤ (κ+1)^12 = combinedProfileBound(κ).
 
-  ## Axiom
+  ## Axiom and Leibniz connection
 
   The single remaining axiom is `spdp_profile_generators`: the SPDP subspace of the
   compiled polynomial is spanned by generators indexed by (profile, template) pairs,
   with ≤ (κ+1)^4 profiles and ≤ (κ+1)^8 templates per profile. This encodes the
   paper's §9 Theorem 92 (profile compression) at the level of explicit generators.
+
+  The Leibniz product rule (Lemma 2, `iterDerivList_finset_prod_mem_span` from
+  LeibnizProduct.lean) provides the foundation: each iterated derivative of the
+  compiled product lies in the span of distributed derivative products.  After
+  multiplying by the shift monomial and applying mlProj, the SPDP generators
+  decompose into profile-classified terms.  The axiom encodes the cardinality
+  bound on these profile-classified terms.
 
   The theorem `product_leibniz_profile_cover` is then proved from this axiom by
   taking the span of each profile's generators as a submodule.
@@ -35,11 +42,13 @@
 import PallLean.CookLevinDefs
 import PallLean.MultilinearSPDP
 import PallLean.IterDerivHelpers
+import PallLean.LeibnizProduct
 import Mathlib.Tactic
 
 namespace SymmetricPower
 
 open SPDP MultilinearSPDP MvPolynomial TuringMachine PaperFaithfulSeparation
+open LeibnizProduct
 
 attribute [local instance] Classical.dec
 
@@ -134,24 +143,95 @@ def combinedProfileBound (κ : ℕ) : ℕ := (κ + 1) ^ 4 * (κ + 1) ^ 8
 theorem combinedProfileBound_eq (κ : ℕ) : combinedProfileBound κ = (κ + 1) ^ 12 := by
   unfold combinedProfileBound; ring
 
-/-! ## Part 3: Profile Factorization for the Compiled Polynomial
+/-! ## Part 3: Leibniz-based infrastructure for the profile generators
 
-The core claim: the SPDP subspace of the compiled polynomial p = ∏ᵢ(1-Cᵢ)
-is covered by finitely many profile subspaces, each of bounded finrank.
+The compiled polynomial p = ∏ᵢ(1-Cᵢ) is a finite product.  By the
+iterated Leibniz rule (Lemma 2, `iterDerivList_finset_prod_mem_span`),
+every iterated derivative `iterDerivList S p` lies in the ℚ-span of
+`distribDerivProds` — all products ∏ᵢ iterDerivList(hᵢ)(fᵢ) where
+the derivative indices hᵢ draw from S.
 
-This is formalized as an explicit decomposition: a family of submodules
-(indexed by profiles) that covers the SPDP subspace, with each member
-having finrank bounded by the within-profile bound.
+This section provides helper lemmas connecting the Leibniz product rule
+to the SPDP generator decomposition.  These are used by the downstream
+profile compression argument. -/
 
-The mathematical justification (paper §9, Theorem 92):
-1. The Leibniz product rule decomposes iterDerivList S p into a sum over
-   derivative assignments.
-2. Each assignment is classified by its profile (constraint-type histogram).
-3. Within a fixed profile, the span factors through symmetric powers of
-   local interface spaces W_τ (dim ≤ 3).
-4. The image of this factorization has dim ≤ ∏_τ C(h(τ)+2, 2) ≤ (κ+1)^8.
-5. There are ≤ (κ+1)^4 profiles (stars-and-bars).
-6. Total: ≤ (κ+1)^12 = combinedProfileBound(κ). -/
+/-- The multilinear projection composed with multiplication by a fixed
+    polynomial is ℚ-linear, hence preserves span membership.
+
+    If p ∈ span(S), then mlProj(m * p) ∈ span(mlProj(m * ·) '' S). -/
+theorem mlProj_mul_mem_span_image {n : ℕ}
+    (m : MvPolynomial (Fin n) ℚ)
+    (S : Set (MvPolynomial (Fin n) ℚ))
+    (p : MvPolynomial (Fin n) ℚ)
+    (hp : p ∈ Submodule.span ℚ S) :
+    mlProj (m * p) ∈ Submodule.span ℚ ((fun q => mlProj (m * q)) '' S) := by
+  -- The map φ(q) = mlProj(m * q) is ℚ-linear.
+  -- We define it as a composition of two ℚ-linear maps:
+  --   q ↦ m * q (left multiplication by m)
+  --   r ↦ mlProj r
+  -- Then φ(span(S)) ⊆ span(φ '' S) since φ is linear.
+
+  -- Define the ℚ-linear map φ(q) = mlProj(m * q) using comap/map.
+  set T := Submodule.span ℚ ((fun q => mlProj (m * q)) '' S) with hT_def
+  -- Define the preimage submodule L = { q | mlProj(m*q) ∈ T }
+  -- L is a submodule because φ(q) = mlProj(m*q) is ℚ-linear.
+  let mulm : MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ :=
+    { toFun := fun q => m * q
+      map_add' := fun x y => mul_add m x y
+      map_smul' := fun c x => by
+        change m * (c • x) = c • (m * x)
+        rw [Algebra.mul_smul_comm] }
+  let φ := (mlProjLinearMap (Fin n) ℚ).comp mulm
+  set L := T.comap φ with hL_def
+  -- S ⊆ L: for each x ∈ S, mlProj(m*x) ∈ T
+  have hSL : S ⊆ ↑L := by
+    intro x hx
+    change φ x ∈ T
+    exact Submodule.subset_span ⟨x, hx, rfl⟩
+  -- span(S) ≤ L
+  have hspanL : Submodule.span ℚ S ≤ L := Submodule.span_le.mpr hSL
+  -- p ∈ L → φ p ∈ T → mlProj(m*p) ∈ T
+  exact hspanL hp
+
+/-- Leibniz decomposition of SPDP generators.
+
+For the compiled polynomial p = (factors).prod where factors are the
+mapped constraints, each SPDP generator mlProj(m * iterDerivList S p)
+lies in the span of { mlProj(m * g) | g ∈ distribDerivProds }.
+
+This follows from Lemma 2 (iterDerivList_finset_prod_mem_span) and
+the ℚ-linearity of mlProj ∘ (m * ·). -/
+theorem spdp_generator_in_leibniz_span {n : ℕ}
+    (B : BlockPartition n) (κ : ℕ)
+    (factors : List (MvPolynomial (Fin n) ℚ))
+    (S : List (Fin n))
+    (m : MvPolynomial (Fin n) ℚ)
+    (p : MvPolynomial (Fin n) ℚ)
+    (hp : p = factors.prod) :
+    mlProj (m * iterDerivList S p) ∈
+      Submodule.span ℚ
+        (mlProj ∘ (m * ·) '' distribDerivProds Finset.univ
+          (fun i : Fin factors.length => factors[i.val]) S) := by
+  -- Step 1: p = Finset.univ.prod (fun i => factors[i])
+  have hprod : p = Finset.univ.prod (fun i : Fin factors.length => factors[i.val]) := by
+    rw [hp]
+    rw [← Fin.prod_univ_getElem]
+  -- Step 2: iterDerivList S p ∈ span(distribDerivProds)
+  rw [hprod]
+  have hmem := iterDerivList_finset_prod_mem_span
+    Finset.univ (fun i : Fin factors.length => factors[i.val]) S
+  -- Step 3: mlProj(m * iterDerivList S p) ∈ span(mlProj(m*·) '' distribDerivProds)
+  exact mlProj_mul_mem_span_image m _ _ hmem
+
+/-! ## Part 3b: Profile generator axiom
+
+The profile generator axiom encodes the profile compression claim:
+after the Leibniz decomposition, the distribDerivProds can be classified
+by constraint-type histogram, and within each histogram the contributions
+span a subspace of bounded dimension via the symmetric power analysis.
+
+The axiom provides explicit generators indexed by (profile, template) pairs
+with the required cardinality bounds. -/
 
 /-- Profile generator axiom: the SPDP subspace of the Cook-Levin compiled
 polynomial is spanned by generators that can be indexed by profile class
@@ -162,6 +242,11 @@ rule decomposes each SPDP generator into terms classified by constraint-type
 histogram (profile). Within each profile, the contributions factor through
 symmetric powers of local interface spaces of dimension ≤ 3, yielding
 ≤ (κ+1)^8 independent templates per profile and ≤ (κ+1)^4 profiles.
+
+The Leibniz connection is established by `spdp_generator_in_leibniz_span`:
+each SPDP generator mlProj(m * iterDerivList S p) decomposes via
+`iterDerivList_finset_prod_mem_span` (Lemma 2) into distributed derivative
+products, which are then classified by profile.
 
 The axiom provides:
 - numP ≤ (κ+1)^4 profile classes
