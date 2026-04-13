@@ -349,8 +349,8 @@ structure GodMoveConstruction (M : DTM) (n : ℕ)
 /-- Upgrade a construction-only God-Move object with the quantitative endpoints
 needed by the current separation-facing interface. -/
 structure GodMoveConstructionWithProofs (M : DTM) (n : ℕ)
-    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
-  construction : GodMoveConstruction M n hn2 htb hns
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (construction : GodMoveConstruction M n hn2 htb hns) where
   target_lower_bound :
     Nat.choose n (Nat.log 2 n) ≤
       mlBlockedSpdpRank construction.target.partition (Nat.log 2 n) (Nat.log 2 n)
@@ -378,8 +378,7 @@ quantitative endpoints required by the separation route. -/
 def godMoveTypedExtractionToConstructionWithProofs
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     (g : GodMoveTypedExtraction M n hn2 htb hns) :
-    GodMoveConstructionWithProofs M n hn2 htb hns where
-  construction := godMoveTypedExtractionToConstruction g
+    GodMoveConstructionWithProofs M n hn2 htb hns (godMoveTypedExtractionToConstruction g) where
   target_lower_bound := by
     simpa [godMoveTypedExtractionToConstruction] using g.target_lower
   rank_transfer_target := by
@@ -401,7 +400,7 @@ and compiled-side rank transfer to obtain the proof-bearing package used by the
 current separation-facing interface. -/
 def godMoveConstructionWithProofsTarget (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
-  ∃ cp : GodMoveConstructionWithProofs M n hn2 htb hns, True
+  ∃ c : GodMoveConstruction M n hn2 htb hns, GodMoveConstructionWithProofs M n hn2 htb hns c
 
 /-- A concrete next theorem target for the God-Move route: produce a staged
 construction from SAT-correct Cook-Levin semantics. This isolates the first real
@@ -424,7 +423,7 @@ axiom godMoveConstruction_upgrade (M : DTM) (n : ℕ)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n)
     (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) :
-    GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns
+    GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns c
 
 /-- Rebuild the older typed extraction package from the new two-phase route. -/
 noncomputable def godMoveTypedExtraction_of_two_phase
@@ -435,15 +434,16 @@ noncomputable def godMoveTypedExtraction_of_two_phase
     (hns : M.numStates ≤ n) :
     GodMoveTypedExtraction M n (by omega : n ≥ 2) htb hns := by
   let c := godMoveConstruction_exists M n hn hdec htb hns
-  let cp := godMoveConstruction_upgrade M n hn htb hns c
+  let cp : GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns c :=
+    godMoveConstruction_upgrade M n hn htb hns c
   refine {
-    coupledVars := cp.construction.coupledVars
-    map := cp.construction.map
-    target := cp.construction.target
+    coupledVars := c.coupledVars
+    map := c.map
+    target := c.target
     extraction_correct := by
       rw [cp.construction.map.factors_through]
-      exact cp.construction.staged_semantic_target
-    extraction_correct_staged := cp.construction.staged_semantic_target
+      exact c.staged_semantic_target
+    extraction_correct_staged := c.staged_semantic_target
     extraction_correct_coherent := by
       exact cp.construction.map.factors_through _
     extraction_coherent_via_factors_through := by
