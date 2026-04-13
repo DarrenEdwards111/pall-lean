@@ -1107,10 +1107,14 @@ axiom identity_construction_np_lower_bound (M : DTM) (n : ℕ)
         (Nat.log 2 n) (Nat.log 2 n)
         (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns))
 
-/-- Derive the full quantitative upgrade for the identity construction from
-the NP-side lower bound axiom. The rank_transfer_target field is trivially
-le_refl because the identity construction's target polynomial IS the compiled
-polynomial. -/
+/-- Derive the quantitative upgrade currently available for the identity
+construction.
+
+This is intentionally weaker than the paper's intended God-Move upgrade: the
+rank-transfer field is discharged by reflexivity only because the present
+construction is the identity construction, whose target polynomial is literally
+the compiled polynomial. So this closes the current typed interface, but it does
+not yet realize the paper's nontrivial witness-free extraction/projection map. -/
 noncomputable def godMoveConstruction_upgrade (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : PaperFaithfulSeparation.DecidesSAT M)
@@ -1122,7 +1126,11 @@ noncomputable def godMoveConstruction_upgrade (M : DTM) (n : ℕ)
     identity_construction_np_lower_bound M n hn hdec htb hns
   rank_transfer_target := le_refl _
 
-/-- Rebuild the older typed extraction package from the new two-phase route. -/
+/-- Rebuild the older typed extraction package from the new two-phase route.
+
+At present this inherits the identity-based quantitative upgrade above, so it is
+best read as the currently available typed package, not yet as the final
+paper-faithful God-Move theorem. -/
 noncomputable def godMoveTypedExtraction_of_two_phase
     (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
