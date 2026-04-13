@@ -700,6 +700,30 @@ theorem godMoveTargetRankCastExprTarget_of_finrank
   intro z
   simpa [mlBlockedSpdpRank, godMoveTargetRankFinrankExprTarget] using hfin z
 
+/-- Exact remaining seam beneath the failed subspace→finrank bridge: after the
+subspace target is known, the only missing step is to normalize the literal
+casted finrank expression to the same expression written via the named
+transported arguments `ppart` and `ppoly`. -/
+def godMoveTargetRankFinrankCastNormalizeTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∀ z : GodMoveZeroRemainderData M n hn2 htb hns c,
+    Module.finrank ℚ
+      (mlBlockedSpdpSubspace (Eq.mp (by rw [z.same_space]) c.target.partition)
+        (Nat.log 2 n) (Nat.log 2 n) (Eq.mp (by rw [z.same_space]) c.target.poly)) =
+    Module.finrank ℚ
+      (mlBlockedSpdpSubspace c.target.partition (Nat.log 2 n) (Nat.log 2 n) c.target.poly)
+
+/-- The remaining finrank target is just the cast-normalized version of the same
+literal transported finrank expression. -/
+theorem godMoveTargetRankFinrankExprTarget_of_castNormalize
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hnorm : godMoveTargetRankFinrankCastNormalizeTarget c) :
+    godMoveTargetRankFinrankExprTarget c := by
+  intro z
+  simpa [godMoveTargetRankFinrankExprTarget] using hnorm z
+
 /-- Since the remaining finrank target compares the finranks of two SPDP
 subspaces, the next exact seam is equality of those subspaces after transport. -/
 def godMoveTargetRankSubspaceExprTarget
