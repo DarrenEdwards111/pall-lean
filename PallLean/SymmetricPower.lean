@@ -24,10 +24,13 @@
 
   ## Axiom
 
-  The single remaining axiom is `product_leibniz_profile_cover`: for the specific
-  compiled polynomial, the SPDP subspace is covered by profile subspaces of bounded
-  finrank. This encodes the paper's §9 Theorem 92 (profile compression) at the
-  level of explicit submodule containment and finrank bounds.
+  The single remaining axiom is `spdp_profile_generators`: the SPDP subspace of the
+  compiled polynomial is spanned by generators indexed by (profile, template) pairs,
+  with ≤ (κ+1)^4 profiles and ≤ (κ+1)^8 templates per profile. This encodes the
+  paper's §9 Theorem 92 (profile compression) at the level of explicit generators.
+
+  The theorem `product_leibniz_profile_cover` is then proved from this axiom by
+  taking the span of each profile's generators as a submodule.
 -/
 import PallLean.CookLevinDefs
 import PallLean.MultilinearSPDP
@@ -150,7 +153,38 @@ The mathematical justification (paper §9, Theorem 92):
 5. There are ≤ (κ+1)^4 profiles (stars-and-bars).
 6. Total: ≤ (κ+1)^12 = combinedProfileBound(κ). -/
 
-/-- The product Leibniz profile cover axiom: for the cook_levin_compilation,
+/-- Profile generator axiom: the SPDP subspace of the Cook-Levin compiled
+polynomial is spanned by generators that can be indexed by profile class
+and within-profile template index.
+
+This is the paper's §9 Theorem 92 at the generator level: the Leibniz product
+rule decomposes each SPDP generator into terms classified by constraint-type
+histogram (profile). Within each profile, the contributions factor through
+symmetric powers of local interface spaces of dimension ≤ 3, yielding
+≤ (κ+1)^8 independent templates per profile and ≤ (κ+1)^4 profiles.
+
+The axiom provides:
+- numP ≤ (κ+1)^4 profile classes
+- bound ≤ (κ+1)^8 generators per profile
+- generators : Fin numP → Fin bound → polynomial
+- The SPDP subspace is contained in span{generators i j | i, j}
+-/
+axiom spdp_profile_generators
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    ∃ (numP bound : ℕ)
+      (generators : Fin numP → Fin bound →
+        MvPolynomial (Fin (cook_levin_compilation M n hn htb hns).numVars) ℚ),
+      numP ≤ (Nat.log 2 n + 1) ^ 4 ∧
+      bound ≤ (Nat.log 2 n + 1) ^ 8 ∧
+      mlBlockedSpdpSubspace
+        (cook_levin_compilation M n hn htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤
+      Submodule.span ℚ (Set.range (fun (ij : Fin numP × Fin bound) =>
+        generators ij.1 ij.2))
+
+/-- The product Leibniz profile cover: for the cook_levin_compilation,
 the SPDP subspace decomposes into profile subspaces of bounded finrank.
 
 This is the paper's §9 Theorem 92 specialized to the specific compiled
@@ -160,11 +194,11 @@ polynomial. It encodes:
 - The within-profile factorization through symmetric powers
 - The resulting finrank bound per profile
 
-Unlike the bare `leibniz_symmetric_power_descent_bound` axiom (which just
-claims the final inequality), this axiom exposes the intermediate structure:
-a family of ≤ (κ+1)^4 submodules covering the SPDP subspace, each with
-finrank ≤ (κ+1)^8. -/
-axiom product_leibniz_profile_cover
+Proved from `spdp_profile_generators` by taking the span of each profile's
+generators as a submodule. Each profile submodule has finrank ≤ (κ+1)^8
+(since it is spanned by ≤ (κ+1)^8 elements), and the union of all profile
+submodules covers the SPDP subspace. -/
+theorem product_leibniz_profile_cover
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
     ∃ (numP : ℕ) (spaces : Fin numP → Submodule ℚ
@@ -175,7 +209,45 @@ axiom product_leibniz_profile_cover
       mlBlockedSpdpSubspace
         (cook_levin_compilation M n hn htb hns).partition
         (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ ⨆ i, spaces i
+        (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ ⨆ i, spaces i := by
+  obtain ⟨numP, bound, generators, hnumP, hbound, hcover⟩ :=
+    spdp_profile_generators M n hn htb hns
+  -- Define the profile subspaces as spans of each profile's generators
+  let spaces : Fin numP → Submodule ℚ
+      (MvPolynomial (Fin (cook_levin_compilation M n hn htb hns).numVars) ℚ) :=
+    fun i => Submodule.span ℚ (Set.range (fun j : Fin bound => generators i j))
+  refine ⟨numP, spaces, hnumP, ?_, ?_, ?_⟩
+  -- (1) Each profile subspace is finite-dimensional
+  · intro i
+    apply Module.Finite.span_of_finite
+    exact Set.finite_range _
+  -- (2) Each profile subspace has finrank ≤ (κ+1)^8
+  · intro i
+    calc Module.finrank ℚ ↥(spaces i)
+        = Module.finrank ℚ ↥(Submodule.span ℚ (Set.range (fun j : Fin bound => generators i j))) := rfl
+      _ ≤ (Set.range (fun j : Fin bound => generators i j)).toFinset.card :=
+          finrank_span_le_card _
+      _ ≤ Fintype.card (Fin bound) := by
+          rw [Set.toFinset_range]
+          exact Finset.card_image_le
+      _ = bound := Fintype.card_fin bound
+      _ ≤ (Nat.log 2 n + 1) ^ 8 := hbound
+  -- (3) The profile subspaces cover the SPDP subspace
+  · calc mlBlockedSpdpSubspace
+          (cook_levin_compilation M n hn htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (compiledPoly (cook_levin_compilation M n hn htb hns))
+        ≤ Submodule.span ℚ (Set.range (fun ij : Fin numP × Fin bound =>
+            generators ij.1 ij.2)) := hcover
+      _ = Submodule.span ℚ (⋃ i : Fin numP,
+            Set.range (fun j : Fin bound => generators i j)) := by
+          congr 1
+          ext x
+          simp only [Set.mem_range, Set.mem_iUnion, Prod.exists]
+      _ = ⨆ i : Fin numP, Submodule.span ℚ
+            (Set.range (fun j : Fin bound => generators i j)) :=
+          Submodule.span_iUnion _
+      _ = ⨆ i, spaces i := rfl
 
 /-! ## Part 4: Proving leibniz_symmetric_power_descent_bound
 
