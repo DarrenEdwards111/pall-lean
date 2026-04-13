@@ -619,6 +619,19 @@ def godMoveTargetRankTransportOfFieldSeamsTarget
       z.target_same_space.poly =
     mlBlockedSpdpRank c.target.partition (Nat.log 2 n) (Nat.log 2 n) c.target.poly
 
+/-- The exact remaining micro-seam if the direct recombination proof fails:
+`mlBlockedSpdpRank` should respect replacement of its `partition` and `poly`
+arguments by equal transported values. -/
+def godMoveTargetRankCongrTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∀ z : GodMoveZeroRemainderData M n hn2 htb hns c,
+    z.target_same_space.partition = Eq.mp (by rw [z.same_space]) c.target.partition →
+    z.target_same_space.poly = Eq.mp (by rw [z.same_space]) c.target.poly →
+    mlBlockedSpdpRank z.target_same_space.partition (Nat.log 2 n) (Nat.log 2 n)
+      z.target_same_space.poly =
+    mlBlockedSpdpRank c.target.partition (Nat.log 2 n) (Nat.log 2 n) c.target.poly
+
 /-- The even smaller helper target exposed by the failed proof attempt.
 
 This now sits one level above the partition/poly transport subtargets. -/
@@ -629,6 +642,16 @@ def godMoveTargetRankTransportTarget
     mlBlockedSpdpRank z.target_same_space.partition (Nat.log 2 n) (Nat.log 2 n)
       z.target_same_space.poly =
     mlBlockedSpdpRank c.target.partition (Nat.log 2 n) (Nat.log 2 n) c.target.poly
+
+/-- If `mlBlockedSpdpRank` is congruent under the transported field equalities,
+then the full recombination target follows from the two field-level seams. -/
+theorem godMoveTargetRankTransportOfFieldSeamsTarget_of_congr
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hcongr : godMoveTargetRankCongrTarget c) :
+    godMoveTargetRankTransportOfFieldSeamsTarget c := by
+  intro z hpart hpoly
+  exact hcongr z (godMoveTargetPartitionTransport hpart z) (godMoveTargetPolyTransport hpoly z)
 
 /-- If the field-level transport seams are discharged, the remaining rank target
 reduces to a direct rewrite problem. -/
