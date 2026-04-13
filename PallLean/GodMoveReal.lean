@@ -535,17 +535,28 @@ def godMoveTargetPolyProjectionTransportTarget
     GodMoveTypedTarget.poly (Eq.mp (by rw [z.same_space]) c.target) =
       Eq.mp (by rw [z.same_space]) c.target.poly
 
+/-- The even smaller helper target exposed by the failed proof attempt.
+
+This is the exact projection-cast seam for the `poly` field, stated locally at
+`c.target` rather than as a fully generic cast lemma. -/
+def godMoveTargetPolyProjectionCastLocalTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∀ z : GodMoveZeroRemainderData M n hn2 htb hns c,
+    GodMoveTypedTarget.poly (Eq.mp (by rw [z.same_space]) c.target) =
+      Eq.mp (by rw [z.same_space]) c.target.poly
+
 /-- Transport theorem, polynomial layer. -/
 theorem godMoveTargetPolyTransport
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {c : GodMoveConstruction M n hn2 htb hns}
-    (hproj : godMoveTargetPolyProjectionTransportTarget c)
+    (hproj : godMoveTargetPolyProjectionCastLocalTarget c)
     (z : GodMoveZeroRemainderData M n hn2 htb hns c) :
     z.target_same_space.poly =
       Eq.mp (by rw [z.same_space]) c.target.poly := by
   have h := congrArg GodMoveTypedTarget.poly z.target_eq
-  rw [hproj z] at h
-  exact h.symm
+  have hproj' := hproj z
+  exact h.symm.trans hproj'
 
 /-- Transport subtarget, polynomial layer. -/
 def godMoveTargetPolyTransportTarget
@@ -559,7 +570,7 @@ def godMoveTargetPolyTransportTarget
 theorem godMoveTargetPolyTransportTarget_of_projection
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     (c : GodMoveConstruction M n hn2 htb hns)
-    (hproj : godMoveTargetPolyProjectionTransportTarget c) :
+    (hproj : godMoveTargetPolyProjectionCastLocalTarget c) :
     godMoveTargetPolyTransportTarget c := by
   intro z
   exact godMoveTargetPolyTransport hproj z
