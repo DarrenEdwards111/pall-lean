@@ -1210,7 +1210,8 @@ def godMoveConstruction_upgrade_target
 
 This placeholder still packages the identity-based upgrade, so it is not yet the
 paper-faithful zero-remainder theorem. The real missing content is precisely the
-`GodMoveZeroRemainderUpgradeTarget` stated below. -/
+canonical zero-remainder package stated by `GodMoveZeroRemainderUpgradeTarget`
+below. -/
 def godMoveConstruction_upgrade_of_zero_remainder
     (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
@@ -1231,7 +1232,9 @@ to `godMoveRemainder_rank_harmless_of_zero`.
 A more faithful way to state that bottleneck is to ask directly for zero-remainder
 upgrade data, not just an arbitrary remainder witness, while keeping the
 paper-facing semantic side visible via `godMoveConstructionCanonicalTarget`.
-This packages exactly the semantic object needed to move from construction to
+So the zero-remainder frontier now explicitly asks both for a canonical-style
+construction and for the transport witness arising from zero remainder. This
+packages exactly the semantic object needed to move from construction to
 quantitative upgrade without pretending the upgrade already exists. -/
 def godMoveZeroRemainderUpgradeTarget
     (M : DTM) (n : ℕ)
@@ -1239,6 +1242,7 @@ def godMoveZeroRemainderUpgradeTarget
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n)
     (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) : Prop :=
+  godMoveConstructionCanonicalTarget c ∧
   ∃ z : GodMoveZeroRemainderData M n (by omega : n ≥ 2) htb hns c,
     godMoveTargetTransportTarget c
 
