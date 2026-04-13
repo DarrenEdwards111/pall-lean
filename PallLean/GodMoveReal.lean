@@ -491,15 +491,38 @@ theorem godMove_rank_transfer_of_zeroRemainder_samePartition
     z.compiled_decomposition
     z.zero_rank_remainder
 
+/-- Transport target for pushing the same-space/same-partition result back to
+`c.target`.
+
+This is the final formal seam currently exposed on the zero-remainder route:
+show that the recast target and the original target give the same SPDP rank
+statement once `target_eq` is unpacked. -/
+def godMoveTargetTransportTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∀ z : GodMoveZeroRemainderData M n hn2 htb hns c,
+    (mlBlockedSpdpRank z.target_same_space.partition (Nat.log 2 n) (Nat.log 2 n)
+      z.target_same_space.poly ≤
+      mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns))) →
+    (mlBlockedSpdpRank c.target.partition (Nat.log 2 n) (Nat.log 2 n) c.target.poly ≤
+      mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
+
 /-- Zero-rank remainder data isolates the exact remaining bridge needed for a
 full quantitative God-Move upgrade.
 
-After adding `same_partition`, the live gap is now very narrow: transport from
-this same-space, same-partition target back to the original `c.target`. -/
+After adding `same_partition`, the live gap is now fully explicit:
+1. same-space/same-partition rank transfer is proved, and
+2. the only remaining step is the transport packaged by
+   `godMoveTargetTransportTarget`. -/
 def godMoveConstructionWithProofs_of_zeroRemainderData_target
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
-  ∃ z : GodMoveZeroRemainderData M n hn2 htb hns c, True
+  ∃ z : GodMoveZeroRemainderData M n hn2 htb hns c,
+    godMoveTargetTransportTarget c
 
 /-- A concrete next theorem target for the God-Move route: produce a staged
 construction from SAT-correct Cook-Levin semantics. This isolates the first real
