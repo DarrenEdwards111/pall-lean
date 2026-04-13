@@ -854,6 +854,16 @@ structure SpdpGeneratorData {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
   shift_vars_subset : shift.vars ⊆ derivList.toFinset
   admissible : isBlockAdmissible B derivList
 
+/-- A concrete SPDP generator together with an explicit chosen product decomposition
+of the ambient polynomial `p`. This is the right substrate for the next extraction
+step: once a generator carries a factor list, one can aim to produce a derivative
+assignment witness into those factor slots. -/
+structure ProductSpdpGeneratorData {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) where
+  generator : SpdpGeneratorData B κ ℓ p
+  factors : List (MvPolynomial (Fin N) ℚ)
+  factors_prod : factors.prod = p
+
 /-- The polynomial represented by concrete SPDP generator data. -/
 noncomputable def SpdpGeneratorData.toPolynomial {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ}
     {p : MvPolynomial (Fin N) ℚ}
@@ -941,6 +951,115 @@ theorem extractedProfileCandidate_admissible
     (_hextract : IsExtractedProfileCandidate g cand) :
     ProfileAdmissible κ cand.histogram := by
   exact cand.admissible
+
+/-- If a concrete SPDP generator is equipped with an abstract derivative-assignment
+witness into `L` factor slots together with a constraint-type classifier on those
+slots, then the induced assignment profile gives a bona fide generator profile
+candidate. This is the first real bridge from the existing assignment-profile
+machinery toward pointwise generator classification. -/
+def generatorProfileCandidateOfAssignment
+    {N : ℕ} {B : BlockPartition N} {κ ℓ L : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (g : SpdpGeneratorData B κ ℓ p)
+    (constraintType : Fin L → ConstraintType)
+    (a : DerivAssignment κ L) : GeneratorProfileCandidate g where
+  histogram := assignmentProfile constraintType a
+  mass_eq := assignmentProfile_mass constraintType a
+
+/-- The assignment-induced generator profile candidate is extracted in the required
+sense. -/
+theorem generatorProfileCandidateOfAssignment_isExtracted
+    {N : ℕ} {B : BlockPartition N} {κ ℓ L : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (g : SpdpGeneratorData B κ ℓ p)
+    (constraintType : Fin L → ConstraintType)
+    (a : DerivAssignment κ L) :
+    IsExtractedProfileCandidate g (generatorProfileCandidateOfAssignment g constraintType a) := by
+  exact assignmentProfile_mass constraintType a
+
+/-- Hence any assignment-induced profile candidate is admissible. -/
+theorem generatorProfileCandidateOfAssignment_admissible
+    {N : ℕ} {B : BlockPartition N} {κ ℓ L : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (g : SpdpGeneratorData B κ ℓ p)
+    (constraintType : Fin L → ConstraintType)
+    (a : DerivAssignment κ L) :
+    ProfileAdmissible κ (generatorProfileCandidateOfAssignment g constraintType a).histogram := by
+  exact extractedProfileCandidate_admissible
+    (g := g) (cand := generatorProfileCandidateOfAssignment g constraintType a)
+    (generatorProfileCandidateOfAssignment_isExtracted g constraintType a)
+
+/-- Given a product-structured SPDP generator and an assignment of the `κ` derivative
+positions into the chosen factor slots, we obtain a generator profile candidate. This
+is the weakest honest extraction bridge on the product-decomposition substrate,
+and the missing theorem is now squarely the existence of such an assignment witness. -/
+def ProductSpdpGeneratorData.profileCandidateOfAssignment
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p)
+    (constraintType : Fin pg.factors.length → ConstraintType)
+    (a : DerivAssignment κ pg.factors.length) :
+    GeneratorProfileCandidate pg.generator :=
+  generatorProfileCandidateOfAssignment pg.generator constraintType a
+
+/-- The assignment-induced profile candidate on a product-structured SPDP generator is
+always extracted. -/
+theorem ProductSpdpGeneratorData.profileCandidateOfAssignment_isExtracted
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p)
+    (constraintType : Fin pg.factors.length → ConstraintType)
+    (a : DerivAssignment κ pg.factors.length) :
+    IsExtractedProfileCandidate pg.generator (pg.profileCandidateOfAssignment constraintType a) := by
+  exact generatorProfileCandidateOfAssignment_isExtracted pg.generator constraintType a
+
+/-- Exact product-level extraction witness: classify factor slots by constraint type
+and assign each of the `κ` derivative positions to one factor slot. Constructing
+this record for the compiled product is now the next genuine theorem obligation. -/
+structure ProductDerivAssignmentWitness
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p) where
+  constraintType : Fin pg.factors.length → ConstraintType
+  assignment : DerivAssignment κ pg.factors.length
+
+/-- Trivial base case for product-level extraction: when there are no derivative hits
+(`κ = 0`), the assignment witness is the unique map out of `Fin 0`. This is a real,
+compile-checked foothold for the witness-construction side of the bridge. -/
+def zeroProductDerivAssignmentWitness
+    {N : ℕ} {B : BlockPartition N} {ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B 0 ℓ p) :
+    ProductDerivAssignmentWitness pg where
+  constraintType := fun _ => ConstraintType.booleanity
+  assignment := fun i => Fin.elim0 i
+
+/-- Base-case extracted profile candidate at radius `κ = 0`, obtained from the
+trivial derivative-assignment witness. -/
+def zeroProductProfileCandidate
+    {N : ℕ} {B : BlockPartition N} {ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B 0 ℓ p) : GeneratorProfileCandidate pg.generator :=
+  pg.profileCandidateOfAssignment
+    (zeroProductDerivAssignmentWitness pg).constraintType
+    (zeroProductDerivAssignmentWitness pg).assignment
+
+/-- The zero-radius product profile candidate is extracted. -/
+theorem zeroProductProfileCandidate_isExtracted
+    {N : ℕ} {B : BlockPartition N} {ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B 0 ℓ p) :
+    IsExtractedProfileCandidate pg.generator (zeroProductProfileCandidate pg) := by
+  exact pg.profileCandidateOfAssignment_isExtracted
+    (zeroProductDerivAssignmentWitness pg).constraintType
+    (zeroProductDerivAssignmentWitness pg).assignment
+
+/-- Any product-level derivative-assignment witness yields an extracted generator
+profile candidate. -/
+def ProductDerivAssignmentWitness.toProfileCandidate
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {pg : ProductSpdpGeneratorData B κ ℓ p}
+    (w : ProductDerivAssignmentWitness pg) : GeneratorProfileCandidate pg.generator :=
+  pg.profileCandidateOfAssignment w.constraintType w.assignment
+
+/-- And the induced candidate is automatically extracted. -/
+theorem ProductDerivAssignmentWitness.isExtracted
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {pg : ProductSpdpGeneratorData B κ ℓ p}
+    (w : ProductDerivAssignmentWitness pg) :
+    IsExtractedProfileCandidate pg.generator w.toProfileCandidate := by
+  exact pg.profileCandidateOfAssignment_isExtracted w.constraintType w.assignment
 
 /-- Current assembly theorem.
 
