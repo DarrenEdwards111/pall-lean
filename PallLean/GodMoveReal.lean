@@ -459,6 +459,8 @@ structure GodMoveZeroRemainderData (M : DTM) (n : ℕ)
     GodMoveTypedTarget (cook_levin_compilation M n hn2 htb hns).numVars
   same_space : c.coupledVars = (cook_levin_compilation M n hn2 htb hns).numVars
   target_eq : Eq.mp (by rw [same_space]) c.target = target_same_space
+  same_partition :
+    target_same_space.partition = (cook_levin_compilation M n hn2 htb hns).partition
   target_lower_bound :
     Nat.choose n (Nat.log 2 n) ≤
       mlBlockedSpdpRank target_same_space.partition (Nat.log 2 n) (Nat.log 2 n) target_same_space.poly
@@ -469,13 +471,31 @@ structure GodMoveZeroRemainderData (M : DTM) (n : ℕ)
     mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
       (Nat.log 2 n) (Nat.log 2 n) witness.remainderPoly = 0
 
+/-- Zero-rank remainder data yields a same-partition rank transfer theorem. -/
+theorem godMove_rank_transfer_of_zeroRemainder_samePartition
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {c : GodMoveConstruction M n hn2 htb hns}
+    (z : GodMoveZeroRemainderData M n hn2 htb hns c) :
+    mlBlockedSpdpRank z.target_same_space.partition (Nat.log 2 n) (Nat.log 2 n)
+      z.target_same_space.poly ≤
+      mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns)) := by
+  rw [z.same_partition]
+  exact godMoveRemainder_rank_harmless_of_zero
+    (cook_levin_compilation M n hn2 htb hns).partition
+    (Nat.log 2 n) (Nat.log 2 n)
+    (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+    z.target_same_space.poly
+    z.witness.remainderPoly
+    z.compiled_decomposition
+    z.zero_rank_remainder
+
 /-- Zero-rank remainder data isolates the exact remaining bridge needed for a
 full quantitative God-Move upgrade.
 
-The next theorem should show that, after recasting the target into the compiled
-variable space and aligning partitions, `godMoveRemainder_rank_harmless_of_zero`
-applies. Keeping this as a target avoids pretending the dependent transport
-problem is solved when it is still the live formal seam. -/
+After adding `same_partition`, the live gap is now very narrow: transport from
+this same-space, same-partition target back to the original `c.target`. -/
 def godMoveConstructionWithProofs_of_zeroRemainderData_target
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
