@@ -883,6 +883,64 @@ def GeneratorHasChosenFixedProfileCover
       ∃ cover : FixedProfileGeneratorCover (Fin N) κ terms W h,
         g.toPolynomial ∈ cover.coverSpace
 
+/-- Any profile candidate whose total mass is bounded by the generator radius `κ`
+is admissible for that generator. This is the first tiny reusable fact for future
+pointwise classification lemmas on `SpdpGeneratorData`. -/
+theorem SpdpGeneratorData.profileCandidate_admissible_of_mass_le
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (_g : SpdpGeneratorData B κ ℓ p)
+    (h : ProfileHistogram)
+    (hmass : profileMass h ≤ κ) :
+    ProfileAdmissible κ h := by
+  exact hmass
+
+/-- If a proposed profile candidate has total mass equal to the generator radius,
+then it is admissible. This is the shape that will apply once a real profile is
+extracted from the `κ` derivative hits of a concrete SPDP generator. -/
+theorem SpdpGeneratorData.profileCandidate_admissible_of_mass_eq
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (_g : SpdpGeneratorData B κ ℓ p)
+    (h : ProfileHistogram)
+    (hmass : profileMass h = κ) :
+    ProfileAdmissible κ h := by
+  exact hmass.le
+
+/-- A candidate profile assignment for a concrete SPDP generator packages a proposed
+histogram together with the key numerical fact needed for admissibility: its mass
+matches the generator radius `κ`. This stays agnostic about how the histogram is
+actually extracted from the Leibniz/product structure. -/
+structure GeneratorProfileCandidate {N : ℕ}
+    {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (g : SpdpGeneratorData B κ ℓ p) where
+  histogram : ProfileHistogram
+  mass_eq : profileMass histogram = κ
+
+/-- Every generator profile candidate is admissible. -/
+theorem GeneratorProfileCandidate.admissible
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {g : SpdpGeneratorData B κ ℓ p}
+    (cand : GeneratorProfileCandidate g) :
+    ProfileAdmissible κ cand.histogram := by
+  exact cand.mass_eq.le
+
+/-- An abstract profile extractor for concrete SPDP generators. Any future genuine
+extraction theorem should produce a value of this type by constructing a histogram
+whose mass is exactly the generator radius `κ`. This keeps the target explicit
+without pretending the extraction has been implemented. -/
+def IsExtractedProfileCandidate
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (g : SpdpGeneratorData B κ ℓ p)
+    (cand : GeneratorProfileCandidate g) : Prop :=
+  profileMass cand.histogram = κ
+
+/-- Any extracted profile candidate is, in particular, admissible. -/
+theorem extractedProfileCandidate_admissible
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {g : SpdpGeneratorData B κ ℓ p}
+    {cand : GeneratorProfileCandidate g}
+    (_hextract : IsExtractedProfileCandidate g cand) :
+    ProfileAdmissible κ cand.histogram := by
+  exact cand.admissible
 
 /-- Current assembly theorem.
 
