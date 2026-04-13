@@ -511,11 +511,30 @@ def godMoveTargetTransportTarget
         (Nat.log 2 n) (Nat.log 2 n)
         (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
 
+/-- Transport subtarget, partition layer.
+
+The first likely seam is that the partition component of `target_eq` may need to
+be transported separately before the full SPDP-rank expression can move. -/
+def godMoveTargetPartitionTransportTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∀ z : GodMoveZeroRemainderData M n hn2 htb hns c,
+    z.target_same_space.partition =
+      Eq.mp (by rw [z.same_space]) c.target.partition
+
+/-- Transport subtarget, polynomial layer.
+
+The second likely seam is the polynomial component of `target_eq`. -/
+def godMoveTargetPolyTransportTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∀ z : GodMoveZeroRemainderData M n hn2 htb hns c,
+    z.target_same_space.poly =
+      Eq.mp (by rw [z.same_space]) c.target.poly
+
 /-- The even smaller helper target exposed by the failed proof attempt.
 
-This isolates the exact missing ingredient: transporting the left-hand SPDP-rank
-expression itself along `target_eq`, before trying to transport the full
-inequality. -/
+This now sits one level above the partition/poly transport subtargets. -/
 def godMoveTargetRankTransportTarget
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
