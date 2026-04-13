@@ -399,50 +399,8 @@ structure FixedProfileGeneratorCover (σ : Type) [DecidableEq σ]
 
 attribute [instance] FixedProfileGeneratorCover.coverFinite
 
-/-- Step B surface, fixed-profile form: for each admissible profile `h`, the
-Leibniz span with histogram `h` is contained in a bounded cover space whose
-dimension is controlled by the symmetric-power profile bound.
-
-This is now stated as an explicit cover theorem instead of being faked by a
-trivial `⊤`-valued construction. -/
-axiom fixed_profile_generator_cover
-    (σ : Type) [DecidableEq σ]
-    (κ : ℕ) (terms : Finset (LeibnizTerm σ κ))
-    (h : ProfileHistogram) (hh : ProfileAdmissible κ h) :
-    Σ' WF : BoundedInterfaceFamily σ,
-      FixedProfileGeneratorCover σ κ terms WF.family h
-
-/-- The paper's Step B theorem, reformulated as the existence of a bounded
-fixed-profile cover through symmetric-power data.
-
-This theorem is just the surface-level handoff from the explicit
-`fixed_profile_generator_cover` frontier to the previously defined
-`ProfileFactorizationClaim` packaging. -/
-noncomputable def fixed_profile_factors_through_symmetric_powers
-    (σ : Type) [DecidableEq σ]
-    (κ : ℕ) (terms : Finset (LeibnizTerm σ κ))
-    (h : ProfileHistogram) (hh : ProfileAdmissible κ h) :
-    Σ' WF : BoundedInterfaceFamily σ,
-      { c : ProfileFactorizationClaim σ κ terms WF.family //
-          c.histogram = h ∧ ProfileAdmissible κ c.histogram } := by
-  rcases fixed_profile_generator_cover σ κ terms h hh with ⟨WF, cover⟩
-  refine ⟨WF, ⟨{
-    histogram := h
-    admissible := cover.admissible
-    factorization := {
-      sourceDimBound := profileSymmetricDimBound WF.family h
-      sourceDimBound_eq := rfl
-      imageSpace := cover.coverSpace
-      mapToAmbient := id
-      map_linear := True
-    }
-    permutationInvariant := fun _ _ _ _ hp1 hp2 => by
-      simp only [HasProfile] at hp1 hp2
-      rw [hp1, hp2]
-    image_contains_profile_span := cover.profileSpan_le_cover
-    sourceDim_matches_profileSymmetricDimBound := rfl
-    image_dim_le := cover.profileSymmetricDimBound_le_within
-  }, rfl, cover.admissible⟩⟩
+-- [REMOVED: Step B surface (fixed_profile_generator_cover + fixed_profile_factors_through_symmetric_powers)
+-- was dead code. P-side flows through spdp_profile_generators → product_leibniz_profile_cover.]
 
 /-- A profile decomposition of an SPDP subspace: the subspace is contained in the
 sup of finitely many submodules (indexed by profile classes), each of bounded
