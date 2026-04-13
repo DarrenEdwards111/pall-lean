@@ -2093,6 +2093,50 @@ theorem godMoveFirstRestrictionPerturbationStagedTarget_holds
   unfold godMoveStagedExtractionTarget
   simp [godMoveTypedMap_firstRestrictionPerturbation]
 
+/-- First metadata/function coherence target for the restriction stage.
+
+The staged extraction identity alone is too weak, because a metadata-only
+perturbation can still satisfy it when `restrictFun := id`. The next semantic
+frontier is to require that the restriction function genuinely reflects the
+restriction metadata, at least enough to distinguish the identity map from a map
+that claims some variable is fixed/specialized. -/
+def godMoveRestrictionCoherenceTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (compiledVars coupledVars : ℕ)
+    (map : GodMoveTypedMap compiledVars coupledVars) : Prop :=
+  map.restrictionData.fixedVars ≠ ∅ →
+    map.restrictFun 1 ≠ (1 : MvPolynomial (Fin map.restrictedVars) ℚ)
+
+/-- The first perturbed typed map fails the restriction coherence target.
+
+Its metadata says some variable is fixed, but the actual restriction function is
+still the identity map, so constants like `1` are left unchanged. This is the
+first clean proof that metadata-only perturbation is semantically fake. -/
+theorem godMoveTypedMap_firstRestrictionPerturbation_not_coherent
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ godMoveRestrictionCoherenceTarget M n hn hdec htb hns
+        (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars
+        (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars
+        (godMoveTypedMap_firstRestrictionPerturbation M n hn hdec htb hns) := by
+  intro hcoh
+  have hfixed :
+      (godMoveTypedMap_firstRestrictionPerturbation M n hn hdec htb hns).restrictionData.fixedVars ≠ ∅ := by
+    simp [godMoveTypedMap_firstRestrictionPerturbation, godMoveRestrictionData_firstPerturbation]
+  have hneq := hcoh hfixed
+  have hone :
+      (godMoveTypedMap_firstRestrictionPerturbation M n hn hdec htb hns).restrictFun 1 =
+        (1 : MvPolynomial (Fin (godMoveTypedMap_firstRestrictionPerturbation M n hn hdec htb hns).restrictedVars) ℚ) := by
+    simp [godMoveTypedMap_firstRestrictionPerturbation]
+  exact hneq hone
+
 /- First explicit full `GodMoveConstruction` attempt from the perturbed typed map.
 
 The raw data all lines up: we can build the perturbed restriction-data witness
