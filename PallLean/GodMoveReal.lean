@@ -949,6 +949,26 @@ theorem godMoveTargetRankTransportTarget_of_fieldSeams
   intro z
   exact hrank z hpart hpoly
 
+/-- Once the congruence seam is discharged, the rank transport target parameterized
+by the two field-level seams follows immediately. -/
+theorem godMoveTargetRankTransportOfFieldSeamsTarget_holds
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hcongr : godMoveTargetRankCongrTarget c) :
+    godMoveTargetRankTransportOfFieldSeamsTarget c := by
+  exact godMoveTargetRankTransportOfFieldSeamsTarget_of_congr c hcongr
+
+/-- Once the field-seam rank transport target is discharged, the original rank
+transport target follows from the two local field cast seams. -/
+theorem godMoveTargetRankTransportTarget_holds
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hrank : godMoveTargetRankTransportOfFieldSeamsTarget c)
+    (hpart : godMoveTargetPartitionProjectionCastLocalTarget c)
+    (hpoly : godMoveTargetPolyProjectionCastLocalTarget c) :
+    godMoveTargetRankTransportTarget c := by
+  exact godMoveTargetRankTransportTarget_of_fieldSeams c hrank hpart hpoly
+
 /-- Zero-rank remainder data isolates the exact remaining bridge needed for a
 full quantitative God-Move upgrade.
 
