@@ -494,9 +494,9 @@ theorem godMove_rank_transfer_of_zeroRemainder_samePartition
 /-- Transport target for pushing the same-space/same-partition result back to
 `c.target`.
 
-This is the final formal seam currently exposed on the zero-remainder route:
-show that the recast target and the original target give the same SPDP rank
-statement once `target_eq` is unpacked. -/
+The failed direct proof attempt showed this is a genuine dependent-transport
+seam: rewriting by `target_eq` is not definitionally enough to move the full
+SPDP-rank inequality back to `c.target`. -/
 def godMoveTargetTransportTarget
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
@@ -510,6 +510,19 @@ def godMoveTargetTransportTarget
       mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
         (Nat.log 2 n) (Nat.log 2 n)
         (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
+
+/-- The even smaller helper target exposed by the failed proof attempt.
+
+This isolates the exact missing ingredient: transporting the left-hand SPDP-rank
+expression itself along `target_eq`, before trying to transport the full
+inequality. -/
+def godMoveTargetRankTransportTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∀ z : GodMoveZeroRemainderData M n hn2 htb hns c,
+    mlBlockedSpdpRank z.target_same_space.partition (Nat.log 2 n) (Nat.log 2 n)
+      z.target_same_space.poly =
+    mlBlockedSpdpRank c.target.partition (Nat.log 2 n) (Nat.log 2 n) c.target.poly
 
 /-- Zero-rank remainder data isolates the exact remaining bridge needed for a
 full quantitative God-Move upgrade.
