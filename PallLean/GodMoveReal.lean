@@ -724,6 +724,39 @@ theorem godMoveTargetRankFinrankExprTarget_of_castNormalize
   intro z
   simpa [godMoveTargetRankFinrankExprTarget] using hnorm z
 
+/-- An even more literal view of the remaining finrank seam: the only surviving
+transport is the equality between the finrank expression written with the raw
+`Eq.mp` casts and the same finrank expression written through the named local
+bindings `ppart` and `ppoly`. -/
+def godMoveTargetRankFinrankLetNormalizeTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∀ z : GodMoveZeroRemainderData M n hn2 htb hns c,
+    (let ppart := Eq.mp (by rw [z.same_space]) c.target.partition
+     let ppoly := Eq.mp (by rw [z.same_space]) c.target.poly
+     Module.finrank ℚ (mlBlockedSpdpSubspace ppart (Nat.log 2 n) (Nat.log 2 n) ppoly)) =
+    Module.finrank ℚ
+      (mlBlockedSpdpSubspace (Eq.mp (by rw [z.same_space]) c.target.partition)
+        (Nat.log 2 n) (Nat.log 2 n) (Eq.mp (by rw [z.same_space]) c.target.poly))
+
+/-- The cast-normalization target factors through the even smaller let-vs-literal
+normalization seam. -/
+theorem godMoveTargetRankFinrankCastNormalizeTarget_of_letNormalize
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hlet : godMoveTargetRankFinrankLetNormalizeTarget c)
+    (hfin : godMoveTargetRankFinrankExprTarget c) :
+    godMoveTargetRankFinrankCastNormalizeTarget c := by
+  intro z
+  have hleft : Module.finrank ℚ
+      (mlBlockedSpdpSubspace (Eq.mp (by rw [z.same_space]) c.target.partition)
+        (Nat.log 2 n) (Nat.log 2 n) (Eq.mp (by rw [z.same_space]) c.target.poly)) =
+      (let ppart := Eq.mp (by rw [z.same_space]) c.target.partition
+       let ppoly := Eq.mp (by rw [z.same_space]) c.target.poly
+       Module.finrank ℚ (mlBlockedSpdpSubspace ppart (Nat.log 2 n) (Nat.log 2 n) ppoly)) := by
+    simpa using (hlet z).symm
+  exact hleft.trans (hfin z)
+
 /-- Since the remaining finrank target compares the finranks of two SPDP
 subspaces, the next exact seam is equality of those subspaces after transport. -/
 def godMoveTargetRankSubspaceExprTarget
