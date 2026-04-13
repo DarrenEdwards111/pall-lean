@@ -1134,6 +1134,19 @@ rank-transfer field is discharged by reflexivity only because the present
 construction is the identity construction, whose target polynomial is literally
 the compiled polynomial. So this closes the current typed interface, but it does
 not yet realize the paper's nontrivial witness-free extraction/projection map. -/
+theorem godMoveConstruction_exists_is_canonical_target
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveConstructionCanonicalTarget (godMoveConstruction_exists M n hn hdec htb hns) := by
+  change
+    (godMoveConstruction_exists M n hn hdec htb hns).map.instance_uniform ∧
+    (godMoveConstruction_exists M n hn hdec htb hns).map.witness_free ∧
+    (godMoveConstruction_exists M n hn hdec htb hns).map.block_local
+  simp [godMoveConstruction_exists, godMoveConstructionCanonicalTarget]
+
 noncomputable def godMoveConstruction_upgrade (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : PaperFaithfulSeparation.DecidesSAT M)
@@ -1205,6 +1218,7 @@ def godMoveConstruction_upgrade_target
   godMoveConstructionCanonicalTarget c ∧
   ∃ r : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns c,
     GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns c
+
 
 /-- A zero-remainder version of the phase-two God-Move upgrade.
 
