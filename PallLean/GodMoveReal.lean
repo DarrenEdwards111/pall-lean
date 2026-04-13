@@ -1221,8 +1221,9 @@ def godMoveConstruction_upgrade_target
 
 /-- Missing bridge for the current identity placeholder route.
 
-The stronger wrapper theorem for `godMoveConstruction_exists` would need an
-actual compiled-side remainder witness for the identity construction. This is
+The stronger wrapper theorem for `godMoveConstruction_exists` would need not
+just an arbitrary compiled-side remainder witness, but the sharper zero-
+remainder package that feeds the already-exposed transport machinery. This is
 separate from the already proved canonical-target fact, and keeping it explicit
 prevents us from silently pretending that the sharpened upgrade target is
 already inhabited. -/
@@ -1232,9 +1233,9 @@ def godMoveConstruction_exists_remainder_target
     (hdec : PaperFaithfulSeparation.DecidesSAT M)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n) : Prop :=
-  ∃ r : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns
+  ∃ z : GodMoveZeroRemainderData M n (by omega : n ≥ 2) htb hns
       (godMoveConstruction_exists M n hn hdec htb hns),
-    True
+    godMoveTargetTransportTarget (godMoveConstruction_exists M n hn hdec htb hns)
 
 
 /-- A zero-remainder version of the phase-two God-Move upgrade.
