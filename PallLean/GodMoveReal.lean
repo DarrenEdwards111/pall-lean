@@ -1781,6 +1781,38 @@ theorem godMoveConstruction_exists_not_nonidentity_candidate_witness
   intro h
   exact godMoveConstruction_exists_not_genuine_candidate M n hn hdec htb hns h.1
 
+/-- Smallest constructive subtarget of the post-identity frontier.
+
+Before constructing a full non-identity God-Move candidate, the first concrete
+success could simply be a construction whose restriction stage is genuinely
+non-identity while the rest of the staged comparison framework remains in place.
+This isolates that minimal witness shape. -/
+def godMoveRestrictionPerturbationWitnessTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) : Prop :=
+  ∃ c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns,
+    godMoveConstructionCanonicalTarget c ∧
+    c.map.restrictionData ≠
+      (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData
+
+/-- The identity placeholder does not witness even the weakest constructive
+restriction-perturbation target. -/
+theorem godMoveConstruction_exists_not_restriction_perturbation_witness
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ (godMoveConstructionCanonicalTarget
+          (godMoveConstruction_exists M n hn hdec htb hns) ∧
+        (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData ≠
+          (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData) := by
+  intro h
+  exact h.2 rfl
+
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. What remains open is exactly the
 zero-remainder/transport existential half. -/
