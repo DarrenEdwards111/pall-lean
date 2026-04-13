@@ -1355,6 +1355,21 @@ theorem godMoveConstruction_exists_remainder_target_holds
       simp)
   exact godMoveTargetTransportTarget_of_rankTransport c hrank
 
+/-- The stronger identity wrapper theorem now really holds: the identity
+construction meets the sharpened phase-two upgrade target, not just the older
+placeholder packaging. -/
+theorem godMoveConstruction_exists_meets_upgrade_target
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveConstruction_upgrade_target M n hn htb hns
+      (godMoveConstruction_exists M n hn hdec htb hns) := by
+  refine ⟨godMoveConstruction_exists_is_canonical_target M n hn hdec htb hns, ?_⟩
+  refine ⟨godMoveConstruction_exists_zero_remainder_witness M n hn hdec htb hns, ?_⟩
+  exact godMoveConstruction_upgrade M n hn hdec htb hns
+
 /-- A zero-remainder version of the phase-two God-Move upgrade.
 
 This placeholder still packages the identity-based upgrade, so it is not yet the
