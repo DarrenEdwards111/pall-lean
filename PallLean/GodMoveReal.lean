@@ -2272,19 +2272,15 @@ noncomputable def godMoveTypedMap_firstBehaviorPerturbation
     block_local_coheres_with_projection_relabel := True
   }
 
-/- The first behavior-perturbed typed map should now witness the corrected
-function-perturbation target. The remaining proof obligation is small and
-explicit: bridge from the proven nontriviality
+/- The first behavior-perturbed typed map should witness the corrected
+function-perturbation target. The remaining bridge is still tiny but should be
+proved cleanly: combine the established nontriviality
 
   restrictFun (X v0) ≠ X v0
 
-to the target's current witness shape
-
-  restrictFun (X v0) ≠ restrictFun 0.
-
-This should follow once we package the equally local fact `X v0 ≠ 0` in the
-right form and combine it with `restrictFun 0 = 0`. Do not count the typed-map
-witness theorem as done until that last bridge is proved cleanly. -/
+with the equally local fact `restrictFun 0 = 0` and the nonvanishing of `X v0`.
+Do not count the typed-map witness theorem as done until that last three-line
+bridge is written without proof gymnastics. -/
 
 /- First explicit full `GodMoveConstruction` attempt from the perturbed typed map.
 
