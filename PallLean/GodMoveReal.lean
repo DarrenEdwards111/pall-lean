@@ -1176,20 +1176,42 @@ noncomputable def godMoveConstruction_exists_zero_remainder_witness
   remainder_is_compiled_side_only := True
   remainder_annihilated_by_extraction_story := True
 
-/- Direct construction attempt note for the identity zero-remainder data.
+/-- Direct zero-remainder data for the identity construction.
 
-Trying to build `GodMoveZeroRemainderData` directly from
-`godMoveConstruction_exists_zero_remainder_witness` got surprisingly far. Lean
-accepted the overall shape but exposed two concrete blockers:
-1. a local record-field reference issue around reusing `same_space` inside the
-   later `target_eq` field, and
-2. the first genuinely mathematical blocker, namely discharging the zero-rank
-   remainder field for the zero polynomial, i.e. showing
-   `mlBlockedSpdpRank ... 0 = 0`.
-
-So the raw remainder witness is now known to be easy, and the next honest work
-is either a tiny local record-construction refactor or a direct lemma that the
-zero polynomial has SPDP rank zero. -/
+With the explicit zero remainder witness in hand and the existing lemma
+`mlBlockedSpdpRank_zero`, the identity construction now supports an honest
+zero-remainder package. -/
+noncomputable def godMoveConstruction_exists_zero_remainder_data
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveZeroRemainderData M n (by omega : n ≥ 2) htb hns
+      (godMoveConstruction_exists M n hn hdec htb hns) := by
+  let hs : (godMoveConstruction_exists M n hn hdec htb hns).coupledVars =
+      (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars := by
+    simp [godMoveConstruction_exists]
+  refine {
+    witness := godMoveConstruction_exists_zero_remainder_witness M n hn hdec htb hns
+    target_same_space := Eq.mp (by rw [hs]) (godMoveConstruction_exists M n hn hdec htb hns).target
+    same_space := hs
+    target_eq := by
+      subst hs
+      rfl
+    same_partition := by
+      simp [godMoveConstruction_exists]
+    target_lower_bound := by
+      simpa [godMoveConstruction_exists] using
+        identity_construction_np_lower_bound M n hn hdec htb hns
+    compiled_decomposition := by
+      simp [godMoveConstruction_exists, godMoveConstruction_exists_zero_remainder_witness]
+    zero_rank_remainder := by
+      simpa [godMoveConstruction_exists_zero_remainder_witness] using
+        mlBlockedSpdpRank_zero
+          (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+  }
 
 noncomputable def godMoveConstruction_upgrade (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
