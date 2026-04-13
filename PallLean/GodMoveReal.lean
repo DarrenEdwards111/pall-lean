@@ -1292,6 +1292,19 @@ def godMoveConstruction_exists_placeholder_frontier
   godMoveZeroRemainderUpgradeTarget M n hn htb hns
     (godMoveConstruction_exists M n hn hdec htb hns)
 
+/-- The already-proved canonical theorem supplies the canonical half of the
+bundled identity placeholder frontier. What remains open is exactly the
+zero-remainder/transport existential half. -/
+theorem godMoveConstruction_exists_placeholder_frontier_canonical
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveConstructionCanonicalTarget
+      (godMoveConstruction_exists M n hn hdec htb hns) :=
+  godMoveConstruction_exists_is_canonical_target M n hn hdec htb hns
+
 /-- **Typed God-Move extraction frontier**.
 
 This is the paper-faithful semantic frontier for §29 in its explicit typed form:
