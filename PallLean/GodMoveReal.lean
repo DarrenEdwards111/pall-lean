@@ -522,6 +522,35 @@ def godMoveTargetPartitionTransportTarget
     z.target_same_space.partition =
       Eq.mp (by rw [z.same_space]) c.target.partition
 
+/-- The exact projection-cast seam for the `partition` field. -/
+def godMoveTargetPartitionProjectionCastLocalTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∀ z : GodMoveZeroRemainderData M n hn2 htb hns c,
+    GodMoveTypedTarget.partition (Eq.mp (by rw [z.same_space]) c.target) =
+      Eq.mp (by rw [z.same_space]) c.target.partition
+
+/-- Partition transport follows from `target_eq` once the local cast seam is available. -/
+theorem godMoveTargetPartitionTransport
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {c : GodMoveConstruction M n hn2 htb hns}
+    (hproj : godMoveTargetPartitionProjectionCastLocalTarget c)
+    (z : GodMoveZeroRemainderData M n hn2 htb hns c) :
+    z.target_same_space.partition =
+      Eq.mp (by rw [z.same_space]) c.target.partition := by
+  have h := congrArg GodMoveTypedTarget.partition z.target_eq
+  have hproj' := hproj z
+  exact h.symm.trans hproj'
+
+/-- Once the local partition cast seam is discharged, the partition transport target follows. -/
+theorem godMoveTargetPartitionTransportTarget_of_projection
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hproj : godMoveTargetPartitionProjectionCastLocalTarget c) :
+    godMoveTargetPartitionTransportTarget c := by
+  intro z
+  exact godMoveTargetPartitionTransport hproj z
+
 /-- Subtarget exposing the exact remaining `poly` transport seam.
 
 The obstruction is not `target_eq` itself, but commuting the cast through the
