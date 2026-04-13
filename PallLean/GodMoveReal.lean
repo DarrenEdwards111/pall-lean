@@ -1978,6 +1978,86 @@ theorem godMoveConstruction_exists_map_not_restriction_perturbed
   intro h
   exact godMoveRestrictionData_firstPerturbation_ne_identity M n hn hdec htb hns h.symm
 
+/-- First explicit typed-map candidate with a perturbed restriction stage.
+
+This is the minimal typed lift of the concrete restriction-data witness: keep
+projection, relabeling, and all function-level maps equal to the current
+identity placeholder, and replace only `restrictionData`. -/
+noncomputable def godMoveTypedMap_firstRestrictionPerturbation
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveTypedMap
+      (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars
+      (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars :=
+  let T := cook_levin_compilation M n (by omega : n ≥ 2) htb hns
+  let projectionData : GodMoveProjectionData T.numVars := {
+    clauseSheetVars := Finset.univ
+    keptVars := Finset.univ
+    projectedVars := T.numVars
+    coordinateMap := id
+    keptVarEmbedding := id
+    projectedCoordinates := Finset.univ
+    droppedCoordinates := ∅
+    selects_clause_sheet_coordinates := True
+    discards_non_clause_sheet_coordinates := True
+    keptVars_match_clauseSheetVars := True
+    coordinateMap_hits_keptVars := True
+    projectedCoordinates_match_embedding := True
+    droppedCoordinates_complement_projection := True
+  }
+  let relabelData : GodMoveRelabelData T.numVars T.numVars := {
+    sourceBlocks := T.partition.numBlocks
+    targetBlocks := T.partition.numBlocks
+    sourceBlockMap := T.partition.assign
+    targetBlockMap := T.partition.assign
+    variableRelabel := id
+    normalizedVarEmbedding := id
+    normalizedCoordinates := Finset.univ
+    normalizationScalars := fun _ => 1
+    respects_block_locality := True
+    is_basis_normalization := True
+    is_instance_uniform_relabeling := True
+    variableRelabel_respects_blocks := True
+    source_target_blocks_cohere := True
+    normalizedCoordinates_match_relabel := True
+  }
+  {
+    restrictionData := godMoveRestrictionData_firstPerturbation M n hn hdec htb hns
+    restrictedVars := T.numVars
+    projectionData := projectionData
+    restrictFun := id
+    projectFun := id
+    relabelData := relabelData
+    relabelFun := id
+    toFun := id
+    factors_through := fun _ => rfl
+    restriction_is_constant_specialization := True
+    projection_is_clause_sheet := True
+    relabel_is_block_local_normalization := True
+    instance_uniform := True
+    witness_free := True
+    block_local := True
+    instance_uniform_coheres_with_relabel := True
+    witness_free_coheres_with_restriction := True
+    block_local_coheres_with_projection_relabel := True
+  }
+
+/-- The first explicit typed-map candidate really satisfies the restriction
+perturbation typed-map target. -/
+theorem godMoveTypedMap_firstRestrictionPerturbation_is_target
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveRestrictionPerturbedTypedMapTarget M n hn hdec htb hns
+      (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars
+      (godMoveTypedMap_firstRestrictionPerturbation M n hn hdec htb hns) := by
+  rfl
+
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. What remains open is exactly the
 zero-remainder/transport existential half. -/
