@@ -1588,6 +1588,47 @@ structure GodMoveProjectionOutputComparison
   projection_output : MvPolynomial (Fin c.map.projectionData.projectedVars) ℚ
   projection_output_eq : c.map.projectFun restricted_output = projection_output
 
+/-- The identity placeholder admits the projection-output comparison package
+trivially, since both restriction and projection are literally the identity. -/
+noncomputable def godMoveConstruction_exists_projection_output_comparison
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveProjectionOutputComparison M n (by omega : n ≥ 2) htb hns
+      (godMoveConstruction_exists M n hn hdec htb hns) where
+  restricted_output :=
+    (godMoveConstruction_exists M n hn hdec htb hns).map.restrictFun
+      (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns))
+  restricted_output_eq := rfl
+  projection_output :=
+    (godMoveConstruction_exists M n hn hdec htb hns).map.projectFun
+      ((godMoveConstruction_exists M n hn hdec htb hns).map.restrictFun
+        (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)))
+  projection_output_eq := rfl
+
+/-- Shared ambient comparison package for projection-stage output.
+
+This is the projection analogue of `GodMoveTargetCompiledComparison`: it gives a
+candidate projection output together with an explicit same-space witness to the
+identity placeholder's projection ambient space, so the two outputs can be
+compared without raw dependent-type mismatches. -/
+structure GodMoveProjectionSharedComparison
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) where
+  candidate_output : GodMoveProjectionOutputComparison M n (by omega : n ≥ 2) htb hns c
+  same_projected_vars :
+    c.map.projectionData.projectedVars =
+      (godMoveConstruction_exists M n hn hdec htb hns).map.projectionData.projectedVars
+  candidate_output_same_space :
+    MvPolynomial (Fin ((godMoveConstruction_exists M n hn hdec htb hns).map.projectionData.projectedVars)) ℚ
+  candidate_output_eq :
+    Eq.mp (by rw [same_projected_vars]) candidate_output.projection_output =
+      candidate_output_same_space
+
 /-- First construction-level frontier for moving beyond the identity placeholder.
 
 Rather than pretending to have the full paper `ΠΦ`, the next honest step is to
