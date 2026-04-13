@@ -757,6 +757,15 @@ theorem godMoveTargetRankFinrankCastNormalizeTarget_of_letNormalize
     simpa using (hlet z).symm
   exact hleft.trans (hfin z)
 
+/-- The new smallest seam appears to collapse directly: the let-bound finrank
+expression is definitionally the same as the literal one with the same casts. -/
+theorem godMoveTargetRankFinrankLetNormalizeTarget_holds
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) :
+    godMoveTargetRankFinrankLetNormalizeTarget c := by
+  intro z
+  simp [godMoveTargetRankFinrankLetNormalizeTarget]
+
 /-- Since the remaining finrank target compares the finranks of two SPDP
 subspaces, the next exact seam is equality of those subspaces after transport. -/
 def godMoveTargetRankSubspaceExprTarget
