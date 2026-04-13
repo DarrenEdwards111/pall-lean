@@ -1693,12 +1693,15 @@ def godMoveOneStagePerturbationTarget
     (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) : Prop :=
   ∃ cmp : GodMoveTargetCompiledComparison M n (by omega : n ≥ 2) htb hns c,
     ∃ proj : GodMoveProjectionSharedComparison M n hn hdec htb hns c,
-      c.map.restrictionData ≠
-          (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData ∨
-        proj.candidate_output_same_space ≠
-          (godMoveConstruction_exists_projection_output_comparison M n hn hdec htb hns).projection_output ∨
-        cmp.target_same_space.poly ≠
-          compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)
+      ∃ rel : GodMoveRelabelSharedComparison M n hn hdec htb hns c,
+        c.map.restrictionData ≠
+            (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData ∨
+          proj.candidate_output_same_space ≠
+            (godMoveConstruction_exists_projection_output_comparison M n hn hdec htb hns).projection_output ∨
+          rel.candidate_output_same_space ≠
+            (godMoveConstruction_exists_relabel_output_comparison M n hn hdec htb hns).relabel_output ∨
+          cmp.target_same_space.poly ≠
+            compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)
 
 /-- The identity placeholder fails the one-stage perturbation target too:
 its restriction data is unchanged, and its transported target polynomial is
@@ -1712,7 +1715,7 @@ theorem godMoveConstruction_exists_not_one_stage_perturbation
     ¬ godMoveOneStagePerturbationTarget M n hn hdec htb hns
         (godMoveConstruction_exists M n hn hdec htb hns) := by
   intro hp
-  rcases hp with ⟨cmp, proj, hpert⟩
+  rcases hp with ⟨cmp, proj, rel, hpert⟩
   have hpoly := congrArg GodMoveTypedTarget.poly cmp.target_eq
   simp [godMoveConstruction_exists] at hpoly
   have hproj_id :
@@ -1726,9 +1729,24 @@ theorem godMoveConstruction_exists_not_one_stage_perturbation
     rw [← proj.candidate_output_eq]
     rw [← proj.candidate_output.projection_output_eq, ← proj.candidate_output.restricted_output_eq]
     simp [godMoveConstruction_exists]
-  rcases hpert with hrest | hproj_ne | htarget
+  have hrel_id :
+      (godMoveConstruction_exists_relabel_output_comparison M n hn hdec htb hns).relabel_output =
+        compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns) := by
+    simp [godMoveConstruction_exists_relabel_output_comparison,
+      godMoveConstruction_exists_projection_output_comparison, godMoveConstruction_exists]
+  have hrel :
+      rel.candidate_output_same_space =
+        (godMoveConstruction_exists_relabel_output_comparison M n hn hdec htb hns).relabel_output := by
+    rw [hrel_id]
+    rw [← rel.candidate_output_eq]
+    rw [← rel.candidate_output.relabel_output_eq]
+    rw [← rel.candidate_output.projection_output.projection_output_eq,
+      ← rel.candidate_output.projection_output.restricted_output_eq]
+    simp [godMoveConstruction_exists]
+  rcases hpert with hrest | hproj_ne | hrel_ne | htarget
   · simp [godMoveConstruction_exists] at hrest
   · exact hproj_ne hproj
+  · exact hrel_ne hrel
   · exact htarget hpoly.symm
 
 /-- The already-proved canonical theorem supplies the canonical half of the
