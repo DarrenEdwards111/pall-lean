@@ -1019,6 +1019,16 @@ structure ProductLeibnizExpansionWitness
   assignment : DerivAssignment κ pg.factors.length
   respectsProduct : True
 
+/-- Precise remaining semantic constructor frontier for the fixed-profile bridge.
+This is the first substantive theorem still missing on the product side: given the
+actual product decomposition carried by `pg`, construct a Leibniz/product witness
+for that same factor list. Once this is proved for a concrete compiled-product class,
+the downstream profile-choice packaging is already compile-checked. -/
+def ProductLeibnizExpansionWitnessFrontier
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p) : Prop :=
+  Nonempty (ProductLeibnizExpansionWitness pg)
+
 /-- Exact product-level extraction witness: classify factor slots by constraint type
 and assign each of the `κ` derivative positions to one factor slot. Constructing
 this record for the compiled product is now the next genuine theorem obligation. -/
