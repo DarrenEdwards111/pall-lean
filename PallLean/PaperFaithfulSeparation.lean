@@ -44,12 +44,7 @@ open SPDP MultilinearSPDP MvPolynomial TuringMachine
 
 /-! ## §25: NP-side Exponential Lower Bound -/
 
-/-- A 3-CNF formula on n variables with m clauses. -/
-structure ThreeCNF where
-  numVars : ℕ
-  clauses : List (Fin numVars × Fin numVars × Fin numVars)
-  -- Each clause is a triple of variable indices
-  -- Signs (positive/negative literals) are tracked separately
+-- ThreeCNF is defined in GodMoveCore.lean (imported above)
 
 /-- The characteristic polynomial of a 3-CNF:
 χ_φ(x) = Σ_{a: φ(a)=1} ∏_{i:aᵢ=1} xᵢ · ∏_{i:aᵢ=0} (1-xᵢ) -/

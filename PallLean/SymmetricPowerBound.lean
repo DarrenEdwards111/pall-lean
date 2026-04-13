@@ -29,6 +29,7 @@
 import PallLean.CookLevinDefs
 import PallLean.MultilinearSPDP
 import PallLean.IterDerivHelpers
+import PallLean.SymmetricPower
 import Mathlib.Tactic
 
 namespace SymmetricPowerBound
@@ -440,9 +441,7 @@ noncomputable def fixed_profile_factors_through_symmetric_powers
       rw [hp1, hp2]
     image_contains_profile_span := cover.profileSpan_le_cover
     sourceDim_matches_profileSymmetricDimBound := rfl
-    image_dim_le := by
-      exact le_trans cover.coverDim_le_profileSymmetricDimBound
-        cover.profileSymmetricDimBound_le_within
+    image_dim_le := cover.profileSymmetricDimBound_le_within
   }, rfl, cover.admissible⟩⟩
 
 /-- A profile decomposition of an SPDP subspace: the subspace is contained in the
@@ -649,27 +648,19 @@ Leibniz terms with the same type histogram span a subspace factoring through
 `⊗_τ Sym^{h(τ)}(Wτ)`. The arithmetic infrastructure for the resulting dimension
 bound is fully proved; only the descent map construction is axiomatized below. -/
 
-/-- The core finrank bound: the SPDP subspace of the compiled polynomial has
-finrank ≤ combinedProfileBound(κ) = (κ+1)^12.
-
-This encodes the symmetric-power descent in the paper's profile compression
-theorem (§9, Theorem 92): grouping Leibniz expansion terms by constraint-type
-histogram yields ≤ (κ+1)^4 profile classes, each of finrank ≤ (κ+1)^10 via
-factorization through `⊗_τ Sym^{h(τ)}(Wτ)` with local interface dim ≤ 3.
-
-Supporting infrastructure (all proved):
-- 2-factor Leibniz containment (`iterDerivList_mul_mem_leibniz_span`)
-- Profile counting via stars-and-bars (`dim_sym_le`)
-- Within-profile dimension bound (`profileDimBound_le_withinProfileBound`)
-- Finrank of iSup ≤ sum of finranks (`finrank_iSup_fin_le`) -/
-axiom leibniz_symmetric_power_descent_bound
+/-- The symmetric power descent bound: proved from the profile cover axiom
+in SymmetricPower.lean via the decomposition
+  finrank(SPDP) ≤ finrank(⨆ profiles) ≤ Σ finrank(profile_i)
+                ≤ (κ+1)^4 × (κ+1)^8 = (κ+1)^12. -/
+theorem leibniz_symmetric_power_descent_bound
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
     Module.finrank ℚ ↥(mlBlockedSpdpSubspace
       (cook_levin_compilation M n hn htb hns).partition
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPoly (cook_levin_compilation M n hn htb hns)))
-    ≤ combinedProfileBound (Nat.log 2 n)
+    ≤ combinedProfileBound (Nat.log 2 n) :=
+  SymmetricPower.leibniz_symmetric_power_descent_bound M n hn htb hns
 
 /-! ### Constructing the labeled profile decomposition
 

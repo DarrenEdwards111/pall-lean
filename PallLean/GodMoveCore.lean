@@ -5,6 +5,11 @@ namespace PaperFaithfulSeparation
 
 open SPDP MultilinearSPDP MvPolynomial TuringMachine
 
+/-- A 3-CNF formula: a list of clauses, each a triple of variable indices. -/
+structure ThreeCNF where
+  numVars : ℕ
+  clauses : List (Fin numVars × Fin numVars × Fin numVars)
+
 /-- The coupled verifier sheet polynomial Q×_Φ from Definition 39.
 For each clause C with verifier gadget V_C and selector variable z_C:
   Q×_Φ(u,z) = ∏_{C∈Cl(Φ)} (1 - z_C · V_C(u_{B_C})²)

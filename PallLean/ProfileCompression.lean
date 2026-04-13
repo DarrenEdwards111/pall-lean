@@ -127,8 +127,8 @@ theorem finrank_le_of_le_iSup_bounded {F V : Type*} [Field F] [AddCommGroup V] [
     - R (CEW bound) = 3 * kappa (max derivatives hitting any constraint group)
     - m (number of types) = 4 (booleanity-only, adj-only, bool+adj-left, bool+adj-right)
     - Profile count: C(R + m, m) <= (R+1)^m = (3*kappa + 1)^4
-    - Within-profile dimension: <= (R+1)^10 (10 = 2 variables * 5 factor types)
-    - Total: (3*kappa + 1)^4 * (R+1)^10 <= (3*log n + 1)^14 <= n^200 for n >= 2
+    - Within-profile dimension: <= (R+1)^8
+    - Total: (3*kappa + 1)^4 * (R+1)^8 = (3*log n + 1)^12 <= n^200 for n >= 2
 
     The specific bounds below are calibrated for the cook_levin_compilation. -/
 
@@ -136,22 +136,21 @@ theorem finrank_le_of_le_iSup_bounded {F V : Type*} [Field F] [AddCommGroup V] [
     Comes from: 4 constraint types, CEW = 3*kappa, stars-and-bars. -/
 def profileCountBound (n : ℕ) : ℕ := (3 * Nat.log 2 n + 1) ^ 4
 
-/-- Within-profile dimension bound: at most (3 * log n + 1)^10.
-    Comes from: each profile subspace spans multilinear polys on
-    at most 2*kappa + kappa = 3*kappa variables, with symmetric power
-    contributions from each differentiated constraint. -/
-def withinProfileDimBound (n : ℕ) : ℕ := (3 * Nat.log 2 n + 1) ^ 10
+/-- Within-profile dimension bound: at most (3 * log n + 1)^8.
+    This matches the corrected 4-bin symmetric-power model used in
+    `SymmetricPowerBound.lean`. -/
+def withinProfileDimBound (n : ℕ) : ℕ := (3 * Nat.log 2 n + 1) ^ 8
 
 /-- Total bound: profileCount * withinProfileDim. -/
 def totalProfileBound (n : ℕ) : ℕ := profileCountBound n * withinProfileDimBound n
 
-/-- The total profile bound equals (3 * log n + 1)^14. -/
+/-- The total profile bound equals (3 * log n + 1)^12. -/
 theorem totalProfileBound_eq (n : ℕ) :
-    totalProfileBound n = (3 * Nat.log 2 n + 1) ^ 14 := by
+    totalProfileBound n = (3 * Nat.log 2 n + 1) ^ 12 := by
   unfold totalProfileBound profileCountBound withinProfileDimBound
   ring
 
-/-- For n >= 2, (3 * log_2 n + 1)^14 <= n^200.
+/-- For n >= 2, (3 * log_2 n + 1)^12 <= n^200.
 
     Proof: log_2 n <= n, so 3*log_2 n + 1 <= 3n + 1 <= 4n (for n >= 1),
     hence (3*log_2 n + 1)^14 <= (4n)^14 = 4^14 * n^14 <= n^14 * n^14 = n^28 <= n^200
@@ -163,19 +162,19 @@ theorem totalProfileBound_eq (n : ℕ) :
 theorem totalProfileBound_le_pow (n : ℕ) (hn : n ≥ 2) :
     totalProfileBound n ≤ n ^ 200 := by
   rw [totalProfileBound_eq]
-  have hlog : Nat.log 2 n ≤ n := Nat.log_le_self 2 n
-  have h3log : 3 * Nat.log 2 n + 1 ≤ 4 * n := by omega
-  calc (3 * Nat.log 2 n + 1) ^ 14
-      ≤ (4 * n) ^ 14 := Nat.pow_le_pow_left h3log 14
-    _ = 4 ^ 14 * n ^ 14 := by ring
-    _ ≤ n ^ 186 * n ^ 14 := by
+  have h3log : 3 * Nat.log 2 n + 1 ≤ 4 * n := by
+    have hlog : Nat.log 2 n ≤ n := Nat.log_le_self 2 n
+    omega
+  calc (3 * Nat.log 2 n + 1) ^ 12
+      ≤ (4 * n) ^ 12 := Nat.pow_le_pow_left h3log 12
+    _ = 4 ^ 12 * n ^ 12 := by ring
+    _ ≤ n ^ 188 * n ^ 12 := by
         apply Nat.mul_le_mul_right
-        -- 4^14 = 268435456 <= 2^186 <= n^186
-        show 4 ^ 14 ≤ n ^ 186
-        calc (4 : ℕ) ^ 14 = 268435456 := by norm_num
-          _ ≤ 2 ^ 28 := by norm_num
-          _ ≤ 2 ^ 186 := Nat.pow_le_pow_right (by omega) (by omega)
-          _ ≤ n ^ 186 := Nat.pow_le_pow_left hn 186
+        show 4 ^ 12 ≤ n ^ 188
+        calc (4 : ℕ) ^ 12 = 16777216 := by norm_num
+          _ ≤ 2 ^ 24 := by norm_num
+          _ ≤ 2 ^ 188 := Nat.pow_le_pow_right (by omega) (by omega)
+          _ ≤ n ^ 188 := Nat.pow_le_pow_left hn 188
     _ = n ^ 200 := by ring
 
 /-! ## Profile Compression Axiom (Paper §9, Theorem 23/92)
@@ -192,9 +191,9 @@ theorem totalProfileBound_le_pow (n : ℕ) (hn : n ≥ 2) :
     - Each constraint touches at most 2 adjacent blocks (locality radius 1)
     - Grouping by profile (histogram of which constraint TYPES are hit)
       yields at most (3*kappa + 1)^4 distinct profiles (stars-and-bars)
-    - Within each profile, the span has dimension <= (3*kappa + 1)^10
+    - Within each profile, the span has dimension <= (3*kappa + 1)^8
       (symmetric power analysis on the local constraint structure)
-    - Total SPDP rank <= (3*kappa + 1)^4 * (3*kappa + 1)^10 = (3*log n + 1)^14
+    - Total SPDP rank <= (3*kappa + 1)^4 * (3*kappa + 1)^8 = (3*log n + 1)^12
 
     KEY: The locality-respecting partition is essential. With the identity
     partition (each variable its own block), block-admissibility is trivial
@@ -220,7 +219,7 @@ theorem totalProfileBound_le_pow (n : ℕ) (hn : n ≥ 2) :
 
 /-- **Theorem** (Profile Compression, Paper §9, Theorem 23/92):
     The compiled polynomial of any P-time DTM has SPDP rank bounded by
-    the total profile bound (3 * log_2 n + 1)^14.
+    the total profile bound (3 * log_2 n + 1)^12.
 
     Previously an axiom; now derived from the HAL 9000 decomposition in
     SymmetricPowerBound.lean. The single remaining axiom is
@@ -233,15 +232,14 @@ theorem profile_compression_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ 2)
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ totalProfileBound n := by
   have h := SymmetricPowerBound.profile_compression_rank_bound M n hn htb hns
-  have heq : totalProfileBound n = (3 * Nat.log 2 n + 1) ^ 14 := totalProfileBound_eq n
+  have heq : totalProfileBound n = (3 * Nat.log 2 n + 1) ^ 12 := totalProfileBound_eq n
   rw [heq]
   calc mlBlockedSpdpRank
         (cook_levin_compilation M n hn htb hns).partition
         (Nat.log 2 n) (Nat.log 2 n)
         (compiledPoly (cook_levin_compilation M n hn htb hns))
       ≤ (3 * Nat.log 2 n + 1) ^ 12 := h
-    _ ≤ (3 * Nat.log 2 n + 1) ^ 14 :=
-        Nat.pow_le_pow_right (by omega) (by omega)
+    _ = (3 * Nat.log 2 n + 1) ^ 12 := rfl
 
 /-! ## Assembly: P-side Rank Bound
 
