@@ -2058,6 +2058,21 @@ theorem godMoveTypedMap_firstRestrictionPerturbation_is_target
       (godMoveTypedMap_firstRestrictionPerturbation M n hn hdec htb hns) := by
   rfl
 
+/- First explicit full `GodMoveConstruction` attempt from the perturbed typed map.
+
+The raw data all lines up: we can build the perturbed restriction-data witness
+and the corresponding typed map while keeping projection/relabel/target
+identity-like. The next real blocker is exactly the staged semantic target for
+that map:
+
+  map.relabelFun (map.projectFun (map.restrictFun compiledPoly)) = target.poly
+
+This no longer closes by definitional simplification once the restriction stage
+is perturbed, even though the function-level maps are still identity. So the
+next honest lift is not more record assembly, but a small theorem explaining why
+the staged extraction identity still holds (or fails) for the first perturbed
+typed map. -/
+
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. What remains open is exactly the
 zero-remainder/transport existential half. -/
