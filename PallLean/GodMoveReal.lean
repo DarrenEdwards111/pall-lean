@@ -465,6 +465,32 @@ noncomputable def godMoveTypedExtraction_of_two_phase
     rank_transfer := cp.rank_transfer_target
   }
 
+/-- Quantitative upgrade via an explicit remainder witness.
+
+This is a sharper phase-two target than the bare upgrade axiom: once a staged
+construction is accompanied by a compiled-side remainder witness, the remaining
+quantitative job is to show that witness is harmless for rank transfer and that
+the extracted target carries the required lower bound. -/
+axiom godMoveConstruction_upgrade_with_remainder
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns)
+    (r : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns c) :
+    GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns c
+
+/-- The current phase-two upgrade is allowed to remain abstract, but the more
+honest long-term route is to pass through an explicit remainder witness first. -/
+def godMoveConstruction_upgrade_target
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) : Prop :=
+  ∃ r : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns c,
+    GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns c
+
 /-- **Typed God-Move extraction frontier**.
 
 This is the paper-faithful semantic frontier for §29 in its explicit typed form:
