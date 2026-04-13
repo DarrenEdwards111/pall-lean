@@ -1323,6 +1323,24 @@ theorem godMoveConstruction_exists_placeholder_frontier_iff
             (godMoveConstruction_exists M n hn hdec htb hns)) := by
   rfl
 
+/-- Since the canonical half is already known, any proof of the bundled
+identity placeholder frontier yields exactly the still-missing
+zero-remainder/transport existential package. -/
+theorem godMoveConstruction_exists_placeholder_frontier_missing
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (hfront : godMoveConstruction_exists_placeholder_frontier M n hn hdec htb hns) :
+    ∃ z : GodMoveZeroRemainderData M n (by omega : n ≥ 2) htb hns
+        (godMoveConstruction_exists M n hn hdec htb hns),
+      godMoveTargetTransportTarget
+        (godMoveConstruction_exists M n hn hdec htb hns) := by
+  rcases (godMoveConstruction_exists_placeholder_frontier_iff M n hn hdec htb hns).mp hfront with
+    ⟨hcanon, hz⟩
+  exact hz
+
 /-- **Typed God-Move extraction frontier**.
 
 This is the paper-faithful semantic frontier for §29 in its explicit typed form:
