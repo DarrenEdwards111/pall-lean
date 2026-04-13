@@ -92,6 +92,25 @@ theorem sym_power_dim3_le (m : ℕ) : Nat.choose (m + 2) 2 ≤ (m + 1) ^ 2 :=
 theorem profile_count_le (κ : ℕ) : Nat.choose (κ + 4) 4 ≤ (κ + 1) ^ 4 :=
   sym_power_dim_le κ 4
 
+/-- Booleanity local factor after compilation: 1 - z(1-z) = 1 - z + z^2. -/
+noncomputable def boolFactor (N : ℕ) (v : Fin N) : MvPolynomial (Fin N) ℚ :=
+  1 - (MvPolynomial.X v * (1 - MvPolynomial.X v))
+
+/-- Adjacency local factor after compilation: 1 - z_i z_{i+1}. -/
+noncomputable def adjFactor (N : ℕ) (i j : Fin N) : MvPolynomial (Fin N) ℚ :=
+  1 - (MvPolynomial.X i * MvPolynomial.X j)
+
+/-
+  NOTE: The next honest frontier is to classify the possible multilinear projections of
+  iterated derivatives of these local factors into a finite family of local outcome types,
+  then assemble distributed Leibniz products into profile-indexed product spans.
+
+  We deliberately avoid adding unverified local membership lemmas here until they are
+  compile-checked. The proved infrastructure below starts from the Leibniz span reduction,
+  and the remaining axiom `spdp_profile_generators` still packages the profile-compression
+  cardinality bound.
+-/
+
 /-! ## Part 2: Symmetric Power Structure for Local Interface Spaces
 
 Each Cook-Levin constraint type τ has a local interface space W_τ of dimension ≤ 3.
@@ -101,6 +120,114 @@ Each Cook-Levin constraint type τ has a local interface space W_τ of dimension
 
 The m-th symmetric power Sym^m(W_τ) represents the space of "symmetric"
 multilinear products of m elements from W_τ. Its dimension is C(m+2, 2). -/
+
+/-- Booleanity local factor depends only on its single variable. -/
+theorem boolFactor_vars_subset (N : ℕ) (v : Fin N) :
+    (boolFactor N v).vars ⊆ ({v} : Finset (Fin N)) := by
+  unfold boolFactor
+  intro x hx
+  have hsub := MvPolynomial.vars_sub_subset
+    (p := (1 : MvPolynomial (Fin N) ℚ))
+    (q := (MvPolynomial.X v * (1 - MvPolynomial.X v)))
+  have hx' := hsub hx
+  simp only [Finset.mem_union, MvPolynomial.vars_one] at hx'
+  rcases hx' with hx' | hx'
+  · cases hx'
+  have hmul := MvPolynomial.vars_mul
+    (MvPolynomial.X v : MvPolynomial (Fin N) ℚ)
+    (1 - MvPolynomial.X v)
+  have hx'' := hmul hx'
+  simp only [Finset.mem_union] at hx''
+  cases hx'' with
+  | inl hX =>
+      simpa [MvPolynomial.vars_X] using hX
+  | inr hrest =>
+      have hsub2 := MvPolynomial.vars_sub_subset
+        (p := (1 : MvPolynomial (Fin N) ℚ))
+        (q := (MvPolynomial.X v : MvPolynomial (Fin N) ℚ))
+      have hx''' := hsub2 hrest
+      simp only [Finset.mem_union, MvPolynomial.vars_one,
+        MvPolynomial.vars_X] at hx'''
+      simpa using hx'''
+
+/-- Adjacency local factor depends only on its endpoint variables. -/
+theorem adjFactor_vars_subset (N : ℕ) (i j : Fin N) :
+    (adjFactor N i j).vars ⊆ ({i, j} : Finset (Fin N)) := by
+  unfold adjFactor
+  intro x hx
+  have hsub := MvPolynomial.vars_sub_subset
+    (p := (1 : MvPolynomial (Fin N) ℚ))
+    (q := (MvPolynomial.X i * MvPolynomial.X j))
+  have hx' := hsub hx
+  simp only [Finset.mem_union, MvPolynomial.vars_one] at hx'
+  rcases hx' with hx' | hx'
+  · cases hx'
+  have hmul := MvPolynomial.vars_mul
+    (MvPolynomial.X i : MvPolynomial (Fin N) ℚ)
+    (MvPolynomial.X j : MvPolynomial (Fin N) ℚ)
+  have hx'' := hmul hx'
+  simp only [Finset.mem_union, MvPolynomial.vars_X, Finset.mem_singleton,
+    Finset.mem_insert] at hx'' ⊢
+  exact hx''
+
+/-- If a derivative list hits a variable outside the booleanity support, the iterated derivative vanishes. -/
+theorem iterDerivList_boolFactor_eq_zero_of_exists_offsupport
+    (N : ℕ) (v : Fin N) (S : List (Fin N))
+    (hbad : ∃ x ∈ S, x ≠ v) :
+    iterDerivList S (boolFactor N v) = 0 := by
+  rcases hbad with ⟨x, hxS, hxv⟩
+  apply IterDerivHelpers.iterDerivList_eq_zero_of_mem_notMem_vars S x (boolFactor N v) hxS
+  intro hxmem
+  have hsub := boolFactor_vars_subset N v hxmem
+  have hxeq : x = v := by simpa using hsub
+  exact hxv hxeq
+
+/-- If a derivative list hits a variable outside the adjacency support, the iterated derivative vanishes. -/
+theorem iterDerivList_adjFactor_eq_zero_of_exists_offsupport
+    (N : ℕ) (i j : Fin N) (S : List (Fin N))
+    (hbad : ∃ x ∈ S, x ≠ i ∧ x ≠ j) :
+    iterDerivList S (adjFactor N i j) = 0 := by
+  rcases hbad with ⟨x, hxS, hxi, hxj⟩
+  apply IterDerivHelpers.iterDerivList_eq_zero_of_mem_notMem_vars S x (adjFactor N i j) hxS
+  intro hxmem
+  have hsub := adjFactor_vars_subset N i j hxmem
+  simp only [Finset.mem_insert, Finset.mem_singleton] at hsub
+  cases hsub with
+  | inl hi => exact hxi hi
+  | inr hj => exact hxj hj
+
+/-- A third hit on the booleanity variable kills the local factor. -/
+theorem iterDerivList_boolFactor_triple_self_zero
+    (N : ℕ) (v : Fin N) (S : List (Fin N)) :
+    iterDerivList (v :: v :: v :: S) (boolFactor N v) = 0 := by
+  unfold boolFactor
+  simp only [IterDerivHelpers.iterDerivList_cons, map_sub, pderiv_one,
+    pderiv_mul, MvPolynomial.pderiv_X_self, one_mul, zero_mul, zero_add, add_zero,
+    map_one, sub_eq_add_neg, map_add, map_neg]
+  ring_nf
+  simp only [map_zero, mul_zero]
+  exact SPDP.foldl_pderiv_zero S
+
+/-- Any booleanity iterated derivative with at least three hits on its support vanishes. -/
+theorem iterDerivList_boolFactor_eq_zero_of_length_ge_three
+    (N : ℕ) (v : Fin N) (S : List (Fin N))
+    (hS : 3 ≤ S.length)
+    (hsupp : ∀ x ∈ S, x = v) :
+    iterDerivList S (boolFactor N v) = 0 := by
+  cases S with
+  | nil => simp at hS
+  | cons a1 t1 =>
+      cases t1 with
+      | nil => simp at hS
+      | cons a2 t2 =>
+          cases t2 with
+          | nil => simp at hS
+          | cons a3 rest =>
+              have h1 : a1 = v := hsupp a1 (by simp)
+              have h2 : a2 = v := hsupp a2 (by simp)
+              have h3 : a3 = v := hsupp a3 (by simp)
+              rw [h1, h2, h3]
+              simpa using iterDerivList_boolFactor_triple_self_zero N v rest
 
 /-- The local interface dimension for Cook-Levin constraints. -/
 def localDim : ℕ := 3
