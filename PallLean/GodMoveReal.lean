@@ -1950,6 +1950,34 @@ theorem godMoveRestrictionData_firstPerturbation_ne_identity
   have hadmin := congrArg GodMoveRestrictionData.administrativeVars h
   simp [godMoveRestrictionData_firstPerturbation, godMoveConstruction_exists] at hadmin
 
+/-- Smallest typed-map level target above the explicit restriction-data witness.
+
+This is the next honest lift: not yet a full `GodMoveConstruction`, but a typed
+map whose restriction stage is the concrete perturbed record we just built. -/
+def godMoveRestrictionPerturbedTypedMapTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (coupledVars : ℕ)
+    (map : GodMoveTypedMap (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars coupledVars) : Prop :=
+  map.restrictionData = godMoveRestrictionData_firstPerturbation M n hn hdec htb hns
+
+/-- The current identity placeholder typed map does not satisfy the new
+restriction-perturbed typed-map target. -/
+theorem godMoveConstruction_exists_map_not_restriction_perturbed
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ godMoveRestrictionPerturbedTypedMapTarget M n hn hdec htb hns
+        (godMoveConstruction_exists M n hn hdec htb hns).coupledVars
+        (godMoveConstruction_exists M n hn hdec htb hns).map := by
+  intro h
+  exact godMoveRestrictionData_firstPerturbation_ne_identity M n hn hdec htb hns h.symm
+
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. What remains open is exactly the
 zero-remainder/transport existential half. -/
