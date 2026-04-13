@@ -1126,27 +1126,17 @@ axiom identity_construction_np_lower_bound (M : DTM) (n : ℕ)
         (Nat.log 2 n) (Nat.log 2 n)
         (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns))
 
-/-- Exact local seam for constructing zero-remainder data for the current
-identity placeholder route.
+/- Construction note for the current identity placeholder route.
 
-For `godMoveConstruction_exists`, the ambient space, transported target, same-
-partition witness, and NP-side lower bound all collapse to the compiled object
-by definition. So the first genuinely nontrivial fields are the compiled-side
-remainder witness, the decomposition against that remainder, and the zero-rank
-proof for the remainder. This target isolates exactly that remaining
-construction-level content. -/
-def godMoveConstruction_exists_zeroRemainderConstructorTarget
-    (M : DTM) (n : ℕ)
-    (hn : n ≥ 2 ^ 804)
-    (hdec : PaperFaithfulSeparation.DecidesSAT M)
-    (htb : M.timeBound ≤ 4)
-    (hns : M.numStates ≤ n) : Prop :=
-  ∃ w : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns
-      (godMoveConstruction_exists M n hn hdec htb hns),
-    compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns) =
-      (godMoveConstruction_exists M n hn hdec htb hns).target.poly + w.remainderPoly ∧
-    mlBlockedSpdpRank (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).partition
-      (Nat.log 2 n) (Nat.log 2 n) w.remainderPoly = 0
+For `godMoveConstruction_exists`, the ambient-space identification and the
+compiled-target lower-bound side should collapse definitionally. So the first
+likely genuinely nontrivial content in building `GodMoveZeroRemainderData` is a
+compiled-side remainder witness together with a decomposition against that
+remainder and a zero-rank proof for it.
+
+This is intentionally left as commentary rather than a brittle proposition until
+those field types are re-expressed in a way Lean accepts cleanly without fresh
+dependent-transport clutter. -/
 
 /-- Derive the quantitative upgrade currently available for the identity
 construction.
