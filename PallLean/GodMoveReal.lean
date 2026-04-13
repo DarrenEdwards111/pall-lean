@@ -2077,6 +2077,22 @@ def godMoveFirstRestrictionPerturbationStagedTarget
     { partition := (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).partition
       poly := compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns) }
 
+/-- The first perturbed typed map still satisfies the raw staged extraction
+identity definitionally, because its function-level maps remain identity. This
+shows the real semantic gap is not the bare staged equality itself, but the lack
+of coherence between perturbed restriction metadata and the still-identity
+`restrictFun`. -/
+theorem godMoveFirstRestrictionPerturbationStagedTarget_holds
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveFirstRestrictionPerturbationStagedTarget M n hn hdec htb hns := by
+  unfold godMoveFirstRestrictionPerturbationStagedTarget
+  unfold godMoveStagedExtractionTarget
+  simp [godMoveTypedMap_firstRestrictionPerturbation]
+
 /- First explicit full `GodMoveConstruction` attempt from the perturbed typed map.
 
 The raw data all lines up: we can build the perturbed restriction-data witness
