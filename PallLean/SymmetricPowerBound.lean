@@ -334,23 +334,96 @@ private theorem profile_component_le_mass (h : ProfileHistogram) (τ : Constrain
 private theorem choose_add2_le_sq (n : ℕ) : Nat.choose (n + 2) 2 ≤ (n + 1) ^ 2 :=
   dim_sym_le n 2
 
-/-- Trivial local interface space: the zero submodule with dimBound = 3. -/
-private noncomputable def trivialLocalInterface (σ : Type) [DecidableEq σ] :
-    LocalInterfaceSpace σ where
-  carrier := ⊥
-  dimBound := 3
-  finite := inferInstance
-  finrank_le := by
-    have : Module.finrank ℚ (⊥ : Submodule ℚ (MvPolynomial σ ℚ)) = 0 :=
-      finrank_bot ℚ _
+private theorem pair_card_le_two {α : Type*} [DecidableEq α] (a b : α) :
+    ({a, b} : Finset α).card ≤ 2 := by
+  by_cases h : a = b
+  · simp [h]
+  · have hcard : ({a, b} : Finset α).card = 2 := Finset.card_pair h
     omega
 
-/-- The trivial bounded interface family: dimBound = 3 ≤ 100 for all types. -/
-private noncomputable def trivialBoundedFamily (σ : Type) [DecidableEq σ] :
-    BoundedInterfaceFamily σ where
-  family := fun _ => trivialLocalInterface σ
-  bound_uniform := fun _ => by
-    simp [trivialLocalInterface, localInterfaceDimBound, maxConstraintArity]
+private theorem triple_card_le_three {α : Type*} [DecidableEq α] (a b c : α) :
+    ({a, b, c} : Finset α).card ≤ 3 := by
+  by_cases hab : a = b
+  · subst b
+    have hrewrite : ({a, a, c} : Finset α) = ({a, c} : Finset α) := by
+      ext x
+      simp [or_left_comm, or_assoc]
+    rw [hrewrite]
+    exact le_trans (pair_card_le_two a c) (by omega)
+  · by_cases hac : a = c
+    · subst c
+      have hrewrite : ({a, b, a} : Finset α) = ({b, a} : Finset α) := by
+        ext x
+        simp [or_left_comm, or_assoc]
+      rw [hrewrite]
+      exact le_trans (pair_card_le_two b a) (by omega)
+    · by_cases hbc : b = c
+      · subst c
+        have hrewrite : ({a, b, b} : Finset α) = ({a, b} : Finset α) := by
+          ext x
+          simp [or_left_comm, or_assoc]
+        rw [hrewrite]
+        exact le_trans (pair_card_le_two a b) (by omega)
+      · have hcard : ({a, b, c} : Finset α).card = 3 := by
+          simp [hab, hac, hbc]
+        omega
+
+/-- Trivial local interface space: the zero submodule with dimBound = 3. -/
+private noncomputable def boolLocalInterface (N : ℕ) (v : Fin N) :
+    LocalInterfaceSpace (Fin N) where
+  carrier := SymmetricPower.boolInterfaceSpan N v
+  dimBound := 3
+  finite := by
+    unfold SymmetricPower.boolInterfaceSpan
+    infer_instance
+  finrank_le := by
+    have hspan : SymmetricPower.boolInterfaceSpan N v =
+        Submodule.span ℚ ({1, MvPolynomial.X v} : Set (MvPolynomial (Fin N) ℚ)) := by
+      unfold SymmetricPower.boolInterfaceSpan
+      simp
+    rw [hspan]
+    calc
+      Module.finrank ℚ
+          (Submodule.span ℚ ({1, MvPolynomial.X v} : Set (MvPolynomial (Fin N) ℚ)))
+          ≤ ({1, MvPolynomial.X v} : Finset (MvPolynomial (Fin N) ℚ)).card := by
+        simpa using finrank_span_le_card (R := ℚ)
+          (s := ({1, MvPolynomial.X v} : Set (MvPolynomial (Fin N) ℚ)))
+      _ ≤ 3 := by
+        exact le_trans (pair_card_le_two 1 (MvPolynomial.X v)) (by omega)
+
+private noncomputable def adjLocalInterface (N : ℕ) (i j : Fin N) :
+    LocalInterfaceSpace (Fin N) where
+  carrier := SymmetricPower.adjInterfaceSpan N i j
+  dimBound := 3
+  finite := by
+    unfold SymmetricPower.adjInterfaceSpan
+    infer_instance
+  finrank_le := by
+    have hspan : SymmetricPower.adjInterfaceSpan N i j =
+        Submodule.span ℚ ({1, MvPolynomial.X i, MvPolynomial.X j} : Set (MvPolynomial (Fin N) ℚ)) := by
+      unfold SymmetricPower.adjInterfaceSpan
+      simp
+    rw [hspan]
+    calc
+      Module.finrank ℚ
+          (Submodule.span ℚ ({1, MvPolynomial.X i, MvPolynomial.X j} : Set (MvPolynomial (Fin N) ℚ)))
+          ≤ ({1, MvPolynomial.X i, MvPolynomial.X j} : Finset (MvPolynomial (Fin N) ℚ)).card := by
+        simpa using finrank_span_le_card (R := ℚ)
+          (s := ({1, MvPolynomial.X i, MvPolynomial.X j} : Set (MvPolynomial (Fin N) ℚ)))
+      _ ≤ 3 := by
+        exact triple_card_le_three 1 (MvPolynomial.X i) (MvPolynomial.X j)
+
+/-- A concrete bounded interface family for the currently formalized Cook-Levin local shapes. -/
+private noncomputable def concreteBoundedFamily (N : ℕ) (root : Fin N) :
+    BoundedInterfaceFamily (Fin N) where
+  family := fun
+    | ConstraintType.booleanity => boolLocalInterface N root
+    | ConstraintType.adjacency => adjLocalInterface N root root
+    | ConstraintType.transitionLeft => boolLocalInterface N root
+    | ConstraintType.transitionRight => boolLocalInterface N root
+  bound_uniform := by
+    intro τ
+    cases τ <;> simp [boolLocalInterface, adjLocalInterface, localInterfaceDimBound, maxConstraintArity]
 
 /-- Key arithmetic: the profile symmetric dim bound with dimBound=3 is ≤ withinProfileBound κ
     when h is admissible at radius κ.
@@ -567,6 +640,24 @@ theorem assignmentProfile_admissible {κ L : ℕ}
   unfold ProfileAdmissible
   rw [assignmentProfile_mass]
 
+/-- Minimal classification data for a single SPDP generator: a chosen profile label
+for the generator together with admissibility of that label. This does not yet prove
+membership in a fixed-profile cover, but it isolates the first honest ingredient
+needed for any future cover theorem. -/
+structure GeneratorProfileChoice {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) where
+  generator : MvPolynomial (Fin N) ℚ
+  generator_mem : generator ∈ mlBlockedSpdpSubspace B κ ℓ p
+  histogram : ProfileHistogram
+  admissible : ProfileAdmissible κ histogram
+
+/-- Forget the specific generator and retain only its chosen admissible profile. -/
+def GeneratorProfileChoice.profileSubspaceLabel {N : ℕ}
+    {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (g : GeneratorProfileChoice B κ ℓ p) : ProfileSubspace (Fin N) where
+  histogram := g.histogram
+  space := ⊤
+
 /-! ### Leibniz-expansion containment for List.prod
 
 The iterated derivative of a list product lies in the span of "assignment products":
@@ -622,60 +713,183 @@ theorem leibniz_symmetric_power_descent_bound
 
 /-! ### Constructing the labeled profile decomposition
 
-With the finrank bound from the Leibniz expansion, we construct the
-`LabeledSpdpProfileDecomposition` using a single profile space equal to the
-full SPDP subspace. The assembly bound `1 * combinedProfileBound κ ≤
-combinedProfileBound κ` is trivially satisfied. -/
+The old one-profile placeholder is gone. The honest remaining seam is now explicit:
+we need a real profile-indexed decomposition whose spaces come from fixed-profile
+covers, not a fake single bucket equal to the whole SPDP subspace. Until that bridge
+is built, the final assembly continues to route through the proved descent theorem
+from `SymmetricPower.lean`. -/
 
-/-- The compiled polynomial's profile decomposition.
+/-- Honest target for the fixed-profile bridge.
 
-Constructs a `LabeledSpdpProfileDecomposition` for the compiled polynomial
-P = ∏ᵢ(1-Cᵢ) of any P-time DTM.
+Given a profile-indexed family of subspaces that genuinely covers the compiled
+SPDP subspace, with one admissible histogram label per index and the expected
+within-profile dimension bound, the global rank bound follows by the standard
+assembly lemma. This packages the exact output that the future fixed-profile
+construction must deliver. -/
+theorem rank_bound_from_profile_indexed_cover
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ)
+    (dec : LabeledSpdpProfileDecomposition B κ ℓ p) :
+    mlBlockedSpdpRank B κ ℓ p ≤ combinedProfileBound κ := by
+  calc mlBlockedSpdpRank B κ ℓ p
+      ≤ dec.numProfiles * dec.perProfileDimBound :=
+        spdp_rank_le_of_profile_decomposition _ _ _ _ dec.toSpdpProfileDecomposition
+    _ ≤ combinedProfileBound κ := dec.assemblyBound
 
-Uses `numProfiles = 1` with the full SPDP subspace as the single profile space,
-and `perProfileDimBound = combinedProfileBound κ`. The profile label is the zero
-histogram (admissible since mass = 0 ≤ κ).
+/-- A single fixed-profile cover produces one finite-dimensional profile space with
+its expected within-profile dimension bound. This is the first honest bridge from
+`FixedProfileGeneratorCover` data into the profile-indexed decomposition surface. -/
+def profileSpaceOfCover {σ : Type} [DecidableEq σ] {κ : ℕ}
+    {terms : Finset (LeibnizTerm σ κ)} {W : InterfaceFamily σ} {h : ProfileHistogram}
+    (cover : FixedProfileGeneratorCover σ κ terms W h) : ProfileSubspace σ where
+  histogram := h
+  space := cover.coverSpace
 
-The `perProfileBound` uses `leibniz_symmetric_power_descent_bound`, which encodes
-the profile compression theorem: the Leibniz product rule decomposes each SPDP
-generator into terms classified by constraint-type histogram. With ≤ (κ+1)^4
-profiles, each of dim ≤ (κ+1)^10 via symmetric power factorization, the total
-finrank is ≤ (κ+1)^12 = combinedProfileBound(κ).
+theorem finrank_profileSpaceOfCover_le_within {σ : Type} [DecidableEq σ] {κ : ℕ}
+    {terms : Finset (LeibnizTerm σ κ)} {W : InterfaceFamily σ} {h : ProfileHistogram}
+    (cover : FixedProfileGeneratorCover σ κ terms W h) :
+    Module.finrank ℚ ↥(profileSpaceOfCover cover).space ≤ withinProfileBound κ := by
+  change Module.finrank ℚ ↥(cover.coverSpace) ≤ withinProfileBound κ
+  calc
+    Module.finrank ℚ ↥(cover.coverSpace) ≤ profileSymmetricDimBound W h :=
+      cover.coverDim_le_profileSymmetricDimBound
+    _ ≤ withinProfileBound κ := cover.profileSymmetricDimBound_le_within
 
-The supporting infrastructure -- 2-factor Leibniz containment, profile counting,
-and within-profile arithmetic -- is fully proved above. -/
-noncomputable def compiled_poly_profile_decomposition_placeholder
-    (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
-    LabeledSpdpProfileDecomposition
-      (cook_levin_compilation M n hn htb hns).partition
-      (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPoly (cook_levin_compilation M n hn htb hns)) :=
-  { numProfiles := 1
-    profileSpaces := fun _ =>
-      mlBlockedSpdpSubspace
-        (cook_levin_compilation M n hn htb hns).partition
-        (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPoly (cook_levin_compilation M n hn htb hns))
-    covers := le_iSup_of_le ⟨0, Nat.lt_of_lt_of_le Nat.zero_lt_one le_rfl⟩ le_rfl
-    perProfileFinite := fun _ => inferInstance
-    perProfileDimBound := combinedProfileBound (Nat.log 2 n)
-    perProfileBound := fun _ =>
-      leibniz_symmetric_power_descent_bound M n hn htb hns
-    profileLabel := fun _ => fun _ => 0
-    profileLabel_admissible := fun _ => by
-      unfold ProfileAdmissible profileMass
-      simp
-    assemblyBound := by simp }
+/-- Packaging lemma: an indexed family of honest fixed-profile covers yields a
+labeled profile decomposition, provided it genuinely covers the target SPDP space
+and the number of indices is bounded by `profileCount κ`. -/
+def labeledDecompositionOfCoverFamily
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ)
+    (m : ℕ)
+    (terms : Fin m → Finset (LeibnizTerm (Fin N) κ))
+    (W : InterfaceFamily (Fin N))
+    (hist : Fin m → ProfileHistogram)
+    (covers : ∀ i, FixedProfileGeneratorCover (Fin N) κ (terms i) W (hist i))
+    (hcover : mlBlockedSpdpSubspace B κ ℓ p ≤ ⨆ i : Fin m, (covers i).coverSpace)
+    (hm : m ≤ profileCount κ) :
+    LabeledSpdpProfileDecomposition B κ ℓ p where
+  numProfiles := m
+  profileSpaces := fun i => (covers i).coverSpace
+  covers := hcover
+  perProfileFinite := fun i => (covers i).coverFinite
+  perProfileDimBound := withinProfileBound κ
+  perProfileBound := fun i => finrank_profileSpaceOfCover_le_within (covers i)
+  profileLabel := hist
+  profileLabel_admissible := fun i => (covers i).admissible
+  assemblyBound := by
+    calc
+      m * withinProfileBound κ ≤ profileCount κ * withinProfileBound κ := by
+        exact Nat.mul_le_mul_right _ hm
+      _ = combinedProfileBound κ := by
+        rfl
 
-/-- Assembly theorem: once the fixed-profile factorization is available for all
-admissible profiles, the global rank bound follows by summing over profiles and
-applying `spdp_rank_le_of_profile_decomposition`.
+/-- A finite family of honest fixed-profile covers, prior to proving that it covers
+some ambient SPDP subspace. This isolates the real remaining construction task:
+produce finitely many profile-labeled cover spaces with the right per-profile
+bounds, before separately showing they jointly cover the target SPDP space. -/
+structure FixedProfileCoverFamily (σ : Type) [DecidableEq σ] (κ : ℕ) where
+  numProfiles : ℕ
+  terms : Fin numProfiles → Finset (LeibnizTerm σ κ)
+  interfaceFamily : InterfaceFamily σ
+  histogram : Fin numProfiles → ProfileHistogram
+  covers : ∀ i, FixedProfileGeneratorCover σ κ (terms i) interfaceFamily (histogram i)
+  countBound : numProfiles ≤ profileCount κ
 
-The proof obtains the profile decomposition from
-`compiled_poly_profile_decomposition_placeholder`, applies the assembly lemma
-`spdp_rank_le_of_profile_decomposition`, and verifies that
-`numProfiles * perProfileDimBound ≤ combinedProfileBound(κ)`. -/
+/-- Forget a fixed-profile cover family to its profile spaces. -/
+def FixedProfileCoverFamily.profileSpaces {σ : Type} [DecidableEq σ] {κ : ℕ}
+    (fam : FixedProfileCoverFamily σ κ) : Fin fam.numProfiles → Submodule ℚ (MvPolynomial σ ℚ) :=
+  fun i => (fam.covers i).coverSpace
+
+/-- Each space in a fixed-profile cover family satisfies the uniform within-profile bound. -/
+theorem FixedProfileCoverFamily.perProfileBound {σ : Type} [DecidableEq σ] {κ : ℕ}
+    (fam : FixedProfileCoverFamily σ κ) :
+    ∀ i, Module.finrank ℚ ↥(fam.profileSpaces i) ≤ withinProfileBound κ := by
+  intro i
+  exact finrank_profileSpaceOfCover_le_within (fam.covers i)
+
+/-- Packaging a finite family of honest fixed-profile covers into a labeled profile
+ decomposition is purely formal once a covering containment of the target SPDP
+ subspace is supplied. -/
+def FixedProfileCoverFamily.toLabeledDecomposition
+    {N : ℕ} (fam : FixedProfileCoverFamily (Fin N) κ)
+    (B : BlockPartition N) (ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ)
+    (hcover : mlBlockedSpdpSubspace B κ ℓ p ≤ ⨆ i : Fin fam.numProfiles, fam.profileSpaces i) :
+    LabeledSpdpProfileDecomposition B κ ℓ p :=
+  labeledDecompositionOfCoverFamily B κ ℓ p fam.numProfiles fam.terms
+    fam.interfaceFamily fam.histogram fam.covers hcover fam.countBound
+
+/-- The exact remaining fixed-profile bridge obligation for a target SPDP space:
+construct a finite family of fixed-profile covers whose profile spaces jointly cover
+all multilinear blocked-SPDP generators. Keeping this as a named proposition makes
+it harder to blur the real missing theorem behind downstream assembly wrappers. -/
+def HasFixedProfileCoverFamily
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) : Prop :=
+  ∃ fam : FixedProfileCoverFamily (Fin N) κ,
+    mlBlockedSpdpSubspace B κ ℓ p ≤ ⨆ i : Fin fam.numProfiles, fam.profileSpaces i
+
+/-- Once the real fixed-profile cover family exists, the global rank bound follows
+formally from the decomposition and assembly machinery already proved in this file. -/
+theorem rank_bound_of_hasFixedProfileCoverFamily
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ)
+    (hfam : HasFixedProfileCoverFamily B κ ℓ p) :
+    mlBlockedSpdpRank B κ ℓ p ≤ combinedProfileBound κ := by
+  rcases hfam with ⟨fam, hcover⟩
+  exact rank_bound_from_profile_indexed_cover B κ ℓ p
+    (fam.toLabeledDecomposition B ℓ p hcover)
+
+/-- A concrete SPDP span generator together with its standard witness data. This is
+just the generator shape already used inside `mlBlockedSpdpSubspace`, repackaged so
+future classification lemmas can target a named structure instead of repeatedly
+unpacking the same sigma witness. -/
+structure SpdpGeneratorData {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) where
+  derivList : List (Fin N)
+  shift : MvPolynomial (Fin N) ℚ
+  length_eq : derivList.length = κ
+  shift_degree_le : shift.totalDegree ≤ ℓ
+  shift_vars_subset : shift.vars ⊆ derivList.toFinset
+  admissible : isBlockAdmissible B derivList
+
+/-- The polynomial represented by concrete SPDP generator data. -/
+noncomputable def SpdpGeneratorData.toPolynomial {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ}
+    {p : MvPolynomial (Fin N) ℚ}
+    (g : SpdpGeneratorData B κ ℓ p) : MvPolynomial (Fin N) ℚ :=
+  mlProj (g.shift * iterDerivList g.derivList p)
+
+/-- Every concrete SPDP generator datum yields an element of the blocked SPDP subspace. -/
+theorem SpdpGeneratorData.mem_mlBlockedSpdpSubspace {N : ℕ}
+    {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (g : SpdpGeneratorData B κ ℓ p) :
+    g.toPolynomial ∈ mlBlockedSpdpSubspace B κ ℓ p := by
+  apply Submodule.subset_span
+  exact ⟨g.derivList, g.shift, g.length_eq, g.shift_degree_le,
+    g.shift_vars_subset, g.admissible, rfl⟩
+
+/-- The next genuine bridge theorem should classify a concrete SPDP generator into
+one chosen fixed-profile cover space. This proposition names that obligation in the
+actual variables that arise from `mlBlockedSpdpSubspace`, without pretending the
+classification is already available. -/
+def GeneratorHasChosenFixedProfileCover
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ)
+    (g : SpdpGeneratorData B κ ℓ p) : Prop :=
+  ∃ (terms : Finset (LeibnizTerm (Fin N) κ))
+    (W : InterfaceFamily (Fin N))
+    (h : ProfileHistogram),
+      ∃ cover : FixedProfileGeneratorCover (Fin N) κ terms W h,
+        g.toPolynomial ∈ cover.coverSpace
+
+/-- Current assembly theorem.
+
+At present the actual fixed-profile bridge is still open, so the compiled-polynomial
+bound is obtained from the proved descent theorem in `SymmetricPower.lean`.
+Once a genuine `LabeledSpdpProfileDecomposition` is constructed from
+`FixedProfileGeneratorCover` data, this theorem should be rerouted through
+`rank_bound_from_profile_indexed_cover`. -/
 theorem rank_bound_from_fixed_profile_factorization
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
@@ -684,16 +898,7 @@ theorem rank_bound_from_fixed_profile_factorization
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPoly (cook_levin_compilation M n hn htb hns))
     ≤ combinedProfileBound (Nat.log 2 n) := by
-  -- Obtain the profile decomposition of the compiled polynomial
-  let dec := compiled_poly_profile_decomposition_placeholder M n hn htb hns
-  -- Apply the assembly lemma, then use the decomposition's packaged assembly bound.
-  calc mlBlockedSpdpRank
-        (cook_levin_compilation M n hn htb hns).partition
-        (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPoly (cook_levin_compilation M n hn htb hns))
-      ≤ dec.numProfiles * dec.perProfileDimBound :=
-        spdp_rank_le_of_profile_decomposition _ _ _ _ dec.toSpdpProfileDecomposition
-    _ ≤ combinedProfileBound (Nat.log 2 n) := dec.assemblyBound
+  exact leibniz_symmetric_power_descent_bound M n hn htb hns
 
 
 /-! ## Step B: Profile Factors Through Symmetric Powers (AXIOM)
