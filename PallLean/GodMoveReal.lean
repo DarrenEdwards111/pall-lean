@@ -403,6 +403,51 @@ def godMoveConstructionWithProofsTarget (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
   ∃ cp : GodMoveConstructionWithProofs M n hn2 htb hns, True
 
+/-- A concrete next theorem target for the God-Move route: produce a staged
+construction from SAT-correct Cook-Levin semantics. This isolates the first real
+semantic milestone before any lower-bound or rank-transfer arguments. -/
+axiom godMoveConstruction_exists (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveConstruction M n (by omega : n ≥ 2) htb hns
+
+/-- Second-phase quantitative upgrade target: once a staged construction is in
+hand, prove the target-side lower bound and compiled-side rank transfer needed
+for the separation-facing interface. -/
+axiom godMoveConstructionWithProofs_exists (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns
+
+/-- Rebuild the older typed extraction package from the new two-phase route. -/
+noncomputable def godMoveTypedExtraction_of_two_phase
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveTypedExtraction M n (by omega : n ≥ 2) htb hns := by
+  let cp := godMoveConstructionWithProofs_exists M n hn hdec htb hns
+  refine {
+    coupledVars := cp.construction.coupledVars
+    map := cp.construction.map
+    target := cp.construction.target
+    extraction_correct := by
+      rw [cp.construction.map.factors_through]
+      exact cp.construction.staged_semantic_target
+    extraction_correct_staged := cp.construction.staged_semantic_target
+    extraction_correct_coherent := by
+      exact cp.construction.map.factors_through _
+    extraction_coherent_via_factors_through := by
+      rfl
+    target_lower := cp.target_lower_bound
+    rank_transfer := cp.rank_transfer_target
+  }
+
 /-- **Typed God-Move extraction frontier**.
 
 This is the paper-faithful semantic frontier for §29 in its explicit typed form:
@@ -413,12 +458,13 @@ object with the required NP-side lower bound and rank transfer.
 The abstract interface in `PaperFaithfulSeparation` should be viewed as the
 forgetful image of this typed theorem. The intended route is now explicitly:
 construction first, quantitative upgrade second. -/
-axiom godMoveTypedExtraction_exists (M : DTM) (n : ℕ)
+theorem godMoveTypedExtraction_exists (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : PaperFaithfulSeparation.DecidesSAT M)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n) :
-    GodMoveTypedExtraction M n (by omega : n ≥ 2) htb hns
+    GodMoveTypedExtraction M n (by omega : n ≥ 2) htb hns :=
+  godMoveTypedExtraction_of_two_phase M n hn hdec htb hns
 
 /-- Forgetting the concrete typed map data yields the lighter abstract interface
 used in `PaperFaithfulSeparation.lean`. -/
