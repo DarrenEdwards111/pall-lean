@@ -2173,6 +2173,16 @@ theorem godMoveTypedMap_firstRestrictionPerturbation_not_function_perturbed
     simp [godMoveTypedMap_firstRestrictionPerturbation]
   exact hpert hone
 
+/- First genuinely non-identity restriction-function attempt.
+
+The natural behavior-level perturbation is to substitute `0` for the singled-out
+fixed variable while leaving other variables untouched. The failed first attempt
+showed a precise Lean/API fact: plain `rename` is the wrong primitive here,
+because it expects a variable-to-variable map, whereas this perturbation needs a
+variable-to-polynomial substitution. So the next honest step is to define the
+first perturbed `restrictFun` using the appropriate substitution/evaluation
+machinery, not `rename`. -/
+
 /- First explicit full `GodMoveConstruction` attempt from the perturbed typed map.
 
 The raw data all lines up: we can build the perturbed restriction-data witness
