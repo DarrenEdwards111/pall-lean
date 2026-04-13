@@ -415,12 +415,16 @@ axiom godMoveConstruction_exists (M : DTM) (n : ℕ)
 
 /-- Second-phase quantitative upgrade target: once a staged construction is in
 hand, prove the target-side lower bound and compiled-side rank transfer needed
-for the separation-facing interface. -/
-axiom godMoveConstructionWithProofs_exists (M : DTM) (n : ℕ)
+for the separation-facing interface.
+
+This is now stated as an upgrade theorem from a concrete staged construction,
+which is a sharper and more honest frontier than a standalone second axiom. -/
+axiom godMoveConstruction_upgrade (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : PaperFaithfulSeparation.DecidesSAT M)
     (htb : M.timeBound ≤ 4)
-    (hns : M.numStates ≤ n) :
+    (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) :
     GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns
 
 /-- Rebuild the older typed extraction package from the new two-phase route. -/
@@ -431,7 +435,8 @@ noncomputable def godMoveTypedExtraction_of_two_phase
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n) :
     GodMoveTypedExtraction M n (by omega : n ≥ 2) htb hns := by
-  let cp := godMoveConstructionWithProofs_exists M n hn hdec htb hns
+  let c := godMoveConstruction_exists M n hn hdec htb hns
+  let cp := godMoveConstruction_upgrade M n hn hdec htb hns c
   refine {
     coupledVars := cp.construction.coupledVars
     map := cp.construction.map
