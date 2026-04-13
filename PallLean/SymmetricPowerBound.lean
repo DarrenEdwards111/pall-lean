@@ -1233,6 +1233,27 @@ theorem ProductDerivAssignmentWitness.exists_generatorProfileChoice
   · exact w.toGeneratorProfileChoice_generator
   · exact w.toGeneratorProfileChoice_histogram
 
+/-- The semantic Leibniz witness packages to the same concrete generator-profile
+choice as its extracted derivative-assignment witness. -/
+@[simp] theorem ProductLeibnizExpansionWitness.toDerivAssignmentWitness_toGeneratorProfileChoice_histogram
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {pg : ProductSpdpGeneratorData B κ ℓ p}
+    (w : ProductLeibnizExpansionWitness pg) :
+    w.toDerivAssignmentWitness.toGeneratorProfileChoice.histogram =
+      assignmentProfile w.constraintType w.assignment := by
+  simpa using w.toDerivAssignmentWitness.toGeneratorProfileChoice_histogram
+
+/-- Therefore any semantic Leibniz-expansion witness already yields the existing
+pointwise generator-profile packaging, with no additional local proof burden. -/
+theorem ProductLeibnizExpansionWitness.exists_generatorProfileChoice
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {pg : ProductSpdpGeneratorData B κ ℓ p}
+    (w : ProductLeibnizExpansionWitness pg) :
+    ∃ gpc : GeneratorProfileChoice B κ ℓ p,
+      gpc.generator = pg.generator.toPolynomial ∧
+      gpc.histogram = assignmentProfile w.constraintType w.assignment := by
+  simpa using w.toDerivAssignmentWitness.exists_generatorProfileChoice
+
 /-- A product-level derivative-assignment witness is enough to pin down a chosen
 admissible profile on the underlying concrete SPDP generator. This keeps separate
 what is already achieved (profile choice) from what is still missing
