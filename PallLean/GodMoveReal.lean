@@ -1883,15 +1883,22 @@ theorem godMoveConstruction_exists_not_restriction_data_perturbation_self
   intro h
   exact h rfl
 
-/- First explicit object attempt for a non-identity restriction-data witness.
+/-- Tiny positivity lemma for the compiled Cook-Levin variable count.
 
-The conceptual blocker shrank: `cook_levin_compilation ...` really has
-`numVars := n`, so an explicit `Fin` witness should in principle come from a
-proof that `0 < n`. But reusing the large hypothesis `hn : n ≥ 2 ^ 804`
-directly in this local object definition triggered normalization/recursion
-trouble. So the honest next micro-step is even more specific now: isolate a
-small lemma giving `0 < (cook_levin_compilation ...).numVars` without dragging
-full exponent normalization into the object term. -/
+This isolates the object-level blocker for the first explicit restriction-data
+perturbation witness: we only need a small positive `Fin` index in the compiled
+ambient space, and `cook_levin_compilation` literally sets `numVars := n`. -/
+theorem cookLevin_numVars_pos
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    0 < (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars := by
+  have hn2 : 2 ≤ n := by
+    omega
+  have hn0 : 0 < n := by
+    omega
+  simpa [cook_levin_compilation] using hn0
 
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. What remains open is exactly the
