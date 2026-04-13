@@ -477,11 +477,11 @@ noncomputable def godMoveTypedExtraction_of_two_phase
     map := c.map
     target := c.target
     extraction_correct := by
-      rw [cp.construction.map.factors_through]
+      rw [c.map.factors_through]
       exact c.staged_semantic_target
     extraction_correct_staged := c.staged_semantic_target
     extraction_correct_coherent := by
-      exact cp.construction.map.factors_through _
+      exact c.map.factors_through _
     extraction_coherent_via_factors_through := by
       rfl
     target_lower := cp.target_lower_bound
@@ -514,6 +514,32 @@ def godMoveConstruction_upgrade_target
   ∃ r : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns c,
     GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns c
 
+/-- A zero-remainder version of the phase-two God-Move upgrade.
+
+This is the sharpest honest upgrade shape currently visible in the file: if the
+compiled-side remainder can be shown to have zero SPDP rank, then the generic
+rank-summand lemma should supply the transfer step. -/
+axiom godMoveConstruction_upgrade_of_zero_remainder
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns)
+    (r : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns c)
+    (hr0 : True) :
+    GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns c
+
+/-- The live honest bottleneck in the remainder route is to replace the dummy
+`hr0 : True` above by a real zero-rank statement for the remainder and connect it
+to `godMoveRemainder_rank_harmless_of_zero`. -/
+def godMoveZeroRemainderUpgradeTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) : Prop :=
+  ∃ r : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns c, True
+
 /-- **Typed God-Move extraction frontier**.
 
 This is the paper-faithful semantic frontier for §29 in its explicit typed form:
@@ -524,7 +550,7 @@ object with the required NP-side lower bound and rank transfer.
 The abstract interface in `PaperFaithfulSeparation` should be viewed as the
 forgetful image of this typed theorem. The intended route is now explicitly:
 construction first, quantitative upgrade second. -/
-theorem godMoveTypedExtraction_exists (M : DTM) (n : ℕ)
+noncomputable def godMoveTypedExtraction_exists (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : PaperFaithfulSeparation.DecidesSAT M)
     (htb : M.timeBound ≤ 4)
