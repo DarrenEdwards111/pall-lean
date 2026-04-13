@@ -1658,6 +1658,25 @@ noncomputable def godMoveConstruction_exists_relabel_output_comparison
       ((godMoveConstruction_exists_projection_output_comparison M n hn hdec htb hns).projection_output)
   relabel_output_eq := rfl
 
+/-- Shared ambient comparison package for relabel-stage output.
+
+This is the relabel analogue of `GodMoveProjectionSharedComparison`: it packages
+candidate relabel output in the identity placeholder's coupled ambient space so
+that relabel-stage perturbation can be stated without another raw dependent-type
+mismatch. -/
+structure GodMoveRelabelSharedComparison
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) where
+  candidate_output : GodMoveRelabelOutputComparison M n (by omega : n ≥ 2) htb hns c
+  same_coupled_vars : c.coupledVars = (godMoveConstruction_exists M n hn hdec htb hns).coupledVars
+  candidate_output_same_space :
+    MvPolynomial (Fin ((godMoveConstruction_exists M n hn hdec htb hns).coupledVars)) ℚ
+  candidate_output_eq :
+    Eq.mp (by rw [same_coupled_vars]) candidate_output.relabel_output =
+      candidate_output_same_space
+
 /-- First construction-level frontier for moving beyond the identity placeholder.
 
 Rather than pretending to have the full paper `ΠΦ`, the next honest step is to
