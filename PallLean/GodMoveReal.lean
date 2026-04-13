@@ -284,40 +284,6 @@ structure GodMoveTypedTarget (coupledVars : ℕ) where
   partition : BlockPartition coupledVars
   poly : MvPolynomial (Fin coupledVars) ℚ
 
-/-- Explicit typed God-Move surface connecting compiled and coupled spaces.
-
-This is still only a surface/interface: it does not assert that the map has been
-constructed from the real Cook-Levin compilation. It packages the typed objects
-that a future paper-faithful semantic theorem should produce.
-
-Concrete semantic obligations still missing from the typed God-Move route.
-
-This record isolates the nontrivial content needed to turn the staged typed map
-surface into an actual paper-faithful extraction theorem. Keeping these seams
-explicit helps prevent the typed interface from looking more complete than it is. -/
-structure GodMoveSemanticObligations (M : DTM) (n : ℕ)
-    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (g : GodMoveTypedExtraction M n hn2 htb hns) where
-  restriction_matches_cook_levin_layout : Prop
-  projection_recovers_clause_sheet_coordinates : Prop
-  relabel_matches_coupled_sheet_normal_form : Prop
-  compiled_poly_maps_to_coupled_poly_by_semantics : Prop
-  rank_transfer_justified_by_staged_monotonicity : Prop
-
-/-- Abstract rank-monotonicity obligations for the staged God-Move map.
-
-These isolate the algebraic part of the God-Move from the Cook-Levin-specific
-semantic identification of the stages. Once these are proved for the concrete
-restriction/projection/relabel maps, the `rank_transfer` field of a typed
-extraction should be derivable rather than primitive. -/
-structure GodMoveRankTransferObligations (M : DTM) (n : ℕ)
-    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (g : GodMoveTypedExtraction M n hn2 htb hns) where
-  restriction_rank_nonincreasing : Prop
-  projection_rank_nonincreasing : Prop
-  relabel_rank_nonincreasing : Prop
-  staged_rank_transfer_recovers_field : Prop
-
 /-- Desired staged extraction identity for the compiled polynomial.
 
 This packages the exact theorem shape we eventually want from the semantic God-
@@ -333,78 +299,12 @@ def godMoveStagedExtractionTarget (M : DTM) (n : ℕ)
         (map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) =
     target.poly
 
-/-- Semantic theorem target: the typed staged map realizes the paper's God-Move
-extraction on the compiled polynomial.
+/-- The typed God-Move extraction packages all components of the paper's §29
+extraction into a single record: the coupled space data, the staged map,
+the extraction correctness proofs, and the quantitative bounds.
 
-At present this is only recorded as a target proposition, not proved. -/
-def godMoveSemanticTarget (M : DTM) (n : ℕ)
-    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (g : GodMoveTypedExtraction M n hn2 htb hns) : Prop :=
-  godMoveStagedExtractionTarget M n hn2 htb hns g.coupledVars g.map g.target
-
-/-- Target proposition for staged rank transfer along the God-Move map.
-
-This is the exact quantitative claim one wants to derive from the three
-component monotonicity steps attached to restriction, projection, and relabel. -/
-def godMoveRankTransferTarget (M : DTM) (n : ℕ)
-    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (g : GodMoveTypedExtraction M n hn2 htb hns) : Prop :=
-  mlBlockedSpdpRank g.target.partition (Nat.log 2 n) (Nat.log 2 n) g.target.poly ≤
-    mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
-      (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPoly (cook_levin_compilation M n hn2 htb hns))
-
-/-- Target proposition for the NP-side lower bound on the extracted coupled
-sheet. This is the semantic endpoint needed before rank transfer is applied back
-up to the compiled polynomial. -/
-def godMoveTargetLowerBoundTarget (M : DTM) (n : ℕ)
-    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (g : GodMoveTypedExtraction M n hn2 htb hns) : Prop :=
-  Nat.choose n (Nat.log 2 n) ≤
-    mlBlockedSpdpRank g.target.partition (Nat.log 2 n) (Nat.log 2 n) g.target.poly
-
-/-- Bundled theorem targets for a future concrete God-Move construction.
-
-This packages the main proof obligations of the typed route into one place:
-(1) semantic identification of the staged extraction with the coupled target,
-(2) target-side lower bound, and (3) transfer back to compiled rank. -/
-structure GodMoveProofTargets (M : DTM) (n : ℕ)
-    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (g : GodMoveTypedExtraction M n hn2 htb hns) where
-  semantic_target : godMoveSemanticTarget M n hn2 htb hns g
-  target_lower_bound : godMoveTargetLowerBoundTarget M n hn2 htb hns g
-  rank_transfer_target : godMoveRankTransferTarget M n hn2 htb hns g
-
-/-- Construction-only data for a candidate concrete God-Move map.
-
-This is the non-quantitative part of the typed route: it records only the staged
-map and target object, plus the staged semantic identification target. The lower
-bound and rank-transfer obligations are intentionally separated so future work
-can build the map first and discharge the quantitative proof obligations after. -/
-structure GodMoveConstruction (M : DTM) (n : ℕ)
-    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
-  coupledVars : ℕ
-  map : GodMoveTypedMap (cook_levin_compilation M n hn2 htb hns).numVars coupledVars
-  target : GodMoveTypedTarget coupledVars
-  staged_semantic_target :
-    godMoveStagedExtractionTarget M n hn2 htb hns coupledVars map target
-
-/-- Upgrade a construction-only God-Move object with the quantitative proof
-endpoints required by the current separation route. -/
-structure GodMoveConstructionWithProofs (M : DTM) (n : ℕ)
-    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
-  construction : GodMoveConstruction M n hn2 htb hns
-  target_lower_bound :
-    Nat.choose n (Nat.log 2 n) ≤
-      mlBlockedSpdpRank construction.target.partition (Nat.log 2 n) (Nat.log 2 n)
-        construction.target.poly
-  rank_transfer_target :
-    mlBlockedSpdpRank construction.target.partition (Nat.log 2 n) (Nat.log 2 n)
-      construction.target.poly ≤
-      mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
-        (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPoly (cook_levin_compilation M n hn2 htb hns))
-
+The target_lower and rank_transfer fields are stated with inline propositions
+to avoid circular dependencies. -/
 structure GodMoveTypedExtraction (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
   coupledVars : ℕ
@@ -422,36 +322,68 @@ structure GodMoveTypedExtraction (M : DTM) (n : ℕ)
   extraction_coherent_via_factors_through :
     map.factors_through (compiledPoly (cook_levin_compilation M n hn2 htb hns)) =
       extraction_correct_coherent
+  /-- NP-side lower bound on the extracted coupled sheet. -/
   target_lower :
-    godMoveTargetLowerBoundTarget M n hn2 htb hns {
-      coupledVars := coupledVars
-      map := map
-      target := target
-      extraction_correct := extraction_correct
-      extraction_correct_staged := extraction_correct_staged
-      extraction_correct_coherent := extraction_correct_coherent
-      extraction_coherent_via_factors_through := extraction_coherent_via_factors_through
-      target_lower := by
-        simpa [godMoveTargetLowerBoundTarget]
-      rank_transfer := by
-        simpa [godMoveRankTransferTarget]
-    }
-  /-- Current quantitative endpoint of the staged extraction.
-  This is still primitive at the typed level, but the intended route is to
-  derive it from the staged restriction/projection/relabel monotonicity chain. -/
+    Nat.choose n (Nat.log 2 n) ≤
+      mlBlockedSpdpRank target.partition (Nat.log 2 n) (Nat.log 2 n) target.poly
+  /-- Rank transfer from coupled sheet back to compiled polynomial. -/
   rank_transfer :
-    godMoveRankTransferTarget M n hn2 htb hns {
-      coupledVars := coupledVars
-      map := map
-      target := target
-      extraction_correct := extraction_correct
-      extraction_correct_staged := extraction_correct_staged
-      extraction_correct_coherent := extraction_correct_coherent
-      extraction_coherent_via_factors_through := extraction_coherent_via_factors_through
-      target_lower := target_lower
-      rank_transfer := by
-        simpa [godMoveRankTransferTarget]
-    }
+    mlBlockedSpdpRank target.partition (Nat.log 2 n) (Nat.log 2 n) target.poly ≤
+      mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+
+/-- Construction-only data for a candidate concrete God-Move map.
+
+This isolates the staged map and target polynomial from the quantitative proof
+obligations. The eventual concrete `ΠΦ` route should naturally produce this
+object first, then separately prove the lower-bound and rank-transfer claims. -/
+structure GodMoveConstruction (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  coupledVars : ℕ
+  map : GodMoveTypedMap (cook_levin_compilation M n hn2 htb hns).numVars coupledVars
+  target : GodMoveTypedTarget coupledVars
+  staged_semantic_target :
+    godMoveStagedExtractionTarget M n hn2 htb hns coupledVars map target
+
+/-- Upgrade a construction-only God-Move object with the quantitative endpoints
+needed by the current separation-facing interface. -/
+structure GodMoveConstructionWithProofs (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  construction : GodMoveConstruction M n hn2 htb hns
+  target_lower_bound :
+    Nat.choose n (Nat.log 2 n) ≤
+      mlBlockedSpdpRank construction.target.partition (Nat.log 2 n) (Nat.log 2 n)
+        construction.target.poly
+  rank_transfer_target :
+    mlBlockedSpdpRank construction.target.partition (Nat.log 2 n) (Nat.log 2 n)
+      construction.target.poly ≤
+      mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+
+/-- Forget the quantitative fields of a typed extraction, retaining only the
+candidate staged map/target construction and its staged semantic equality. -/
+def godMoveTypedExtractionToConstruction
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (g : GodMoveTypedExtraction M n hn2 htb hns) :
+    GodMoveConstruction M n hn2 htb hns where
+  coupledVars := g.coupledVars
+  map := g.map
+  target := g.target
+  staged_semantic_target := g.extraction_correct_staged
+
+/-- Package a typed extraction as a construction together with the two current
+quantitative endpoints required by the separation route. -/
+def godMoveTypedExtractionToConstructionWithProofs
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (g : GodMoveTypedExtraction M n hn2 htb hns) :
+    GodMoveConstructionWithProofs M n hn2 htb hns where
+  construction := godMoveTypedExtractionToConstruction g
+  target_lower_bound := by
+    simpa [godMoveTypedExtractionToConstruction] using g.target_lower
+  rank_transfer_target := by
+    simpa [godMoveTypedExtractionToConstruction] using g.rank_transfer
 
 /-- **Typed God-Move extraction frontier**.
 
@@ -486,43 +418,6 @@ noncomputable def godMoveTypedExtractionToInterface
 
 /-- Forgetful bridge: the typed God-Move extraction frontier implies the lighter
 abstract interface used by the separation file. -/
-/-- Any concrete typed extraction already packages the three theorem endpoints
-needed by the current God-Move route. This is just a repackaging theorem, but it
-keeps the live proof targets explicit. -/
-/-- Forget the quantitative fields of a typed extraction, retaining only the
-candidate staged map/target construction and its semantic staged equality. -/
-def godMoveTypedExtractionToConstruction
-    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
-    (g : GodMoveTypedExtraction M n hn2 htb hns) :
-    GodMoveConstruction M n hn2 htb hns where
-  coupledVars := g.coupledVars
-  map := g.map
-  target := g.target
-  staged_semantic_target := g.extraction_correct_staged
-
-/-- Package a typed extraction as a construction together with the two current
-quantitative endpoints required by the separation-facing interface. -/
-def godMoveTypedExtractionToConstructionWithProofs
-    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
-    (g : GodMoveTypedExtraction M n hn2 htb hns) :
-    GodMoveConstructionWithProofs M n hn2 htb hns where
-  construction := godMoveTypedExtractionToConstruction g
-  target_lower_bound := by
-    simpa [godMoveTypedExtractionToConstruction] using g.target_lower
-  rank_transfer_target := by
-    simpa [godMoveTypedExtractionToConstruction] using g.rank_transfer
-
-def godMoveTypedExtractionProofTargets
-    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
-    (g : GodMoveTypedExtraction M n hn2 htb hns) :
-    GodMoveProofTargets M n hn2 htb hns g where
-  semantic_target := by
-    exact g.extraction_correct_staged
-  target_lower_bound := by
-    exact g.target_lower
-  rank_transfer_target := by
-    exact g.rank_transfer
-
 noncomputable def god_move_extraction_interface_of_typed
     (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
