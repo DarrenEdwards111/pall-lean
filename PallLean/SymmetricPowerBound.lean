@@ -1193,6 +1193,57 @@ theorem ProductDerivAssignmentWitness.exists_generatorProfileChoice
   · exact w.toGeneratorProfileChoice_generator
   · exact w.toGeneratorProfileChoice_histogram
 
+/-- A product-level derivative-assignment witness is enough to pin down a chosen
+admissible profile on the underlying concrete SPDP generator. This keeps separate
+what is already achieved (profile choice) from what is still missing
+(fixed-profile cover membership). -/
+noncomputable def ProductDerivAssignmentWitness.chosenProfile
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {pg : ProductSpdpGeneratorData B κ ℓ p}
+    (w : ProductDerivAssignmentWitness pg) : ProfileHistogram :=
+  w.toGeneratorProfileChoice.histogram
+
+/-- The chosen profile extracted from a derivative-assignment witness carries
+exactly the assignment-profile histogram. -/
+@[simp] theorem ProductDerivAssignmentWitness.chosenProfile_eq
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {pg : ProductSpdpGeneratorData B κ ℓ p}
+    (w : ProductDerivAssignmentWitness pg) :
+    w.chosenProfile = assignmentProfile w.constraintType w.assignment := by
+  rfl
+
+/-- The chosen profile from a derivative-assignment witness is admissible. -/
+theorem ProductDerivAssignmentWitness.chosenProfile_admissible
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {pg : ProductSpdpGeneratorData B κ ℓ p}
+    (w : ProductDerivAssignmentWitness pg) :
+    ProfileAdmissible κ w.chosenProfile := by
+  exact w.toGeneratorProfileChoice.admissible
+
+/-- Therefore the remaining gap in `GeneratorHasChosenFixedProfileCover` for a
+product-structured generator with derivative-assignment witness is exactly cover
+construction at the chosen profile, not profile extraction or admissibility bookkeeping. -/
+def ProductDerivAssignmentWitness.coverFrontier
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p)
+    (w : ProductDerivAssignmentWitness pg) : Prop :=
+  ∃ (terms : Finset (LeibnizTerm (Fin N) κ))
+    (W : InterfaceFamily (Fin N)),
+      ∃ cover : FixedProfileGeneratorCover (Fin N) κ terms W w.chosenProfile,
+        pg.generator.toPolynomial ∈ cover.coverSpace
+
+/-- Rewriting `GeneratorHasChosenFixedProfileCover` along a derivative-assignment
+witness: once the remaining cover-frontier proposition is solved at the chosen
+profile, the full named pointwise classification target follows immediately. -/
+theorem ProductDerivAssignmentWitness.generatorHasChosenFixedProfileCover_of_coverFrontier
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p)
+    (w : ProductDerivAssignmentWitness pg)
+    (hcover : w.coverFrontier pg) :
+    GeneratorHasChosenFixedProfileCover B κ ℓ p pg.generator := by
+  rcases hcover with ⟨terms, W, cover, hmem⟩
+  refine ⟨terms, W, w.chosenProfile, cover, hmem⟩
+
 /-- Current assembly theorem.
 
 At present the actual fixed-profile bridge is still open, so the compiled-polynomial
