@@ -1161,6 +1161,15 @@ witness carries exactly the witness-induced histogram. -/
     w.toGeneratorProfileChoice.histogram = assignmentProfile w.constraintType w.assignment := by
   rfl
 
+/-- The packaged generator-profile choice produced from a derivative-assignment
+witness points at the concrete polynomial of the underlying SPDP generator. -/
+@[simp] theorem ProductDerivAssignmentWitness.toGeneratorProfileChoice_generator
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {pg : ProductSpdpGeneratorData B κ ℓ p}
+    (w : ProductDerivAssignmentWitness pg) :
+    w.toGeneratorProfileChoice.generator = pg.generator.toPolynomial := by
+  rfl
+
 /-- And its admissibility field is precisely the admissibility obtained from the
 witness-induced extracted profile candidate. -/
 @[simp] theorem ProductDerivAssignmentWitness.toGeneratorProfileChoice_admissible
@@ -1169,6 +1178,20 @@ witness-induced extracted profile candidate. -/
     (w : ProductDerivAssignmentWitness pg) :
     ProfileAdmissible κ w.toGeneratorProfileChoice.histogram := by
   exact w.toGeneratorProfileChoice.admissible
+
+/-- Therefore a product-level derivative-assignment witness already yields the
+minimal pointwise generator classification datum: a concrete blocked-SPDP generator
+paired with one admissible profile label. -/
+theorem ProductDerivAssignmentWitness.exists_generatorProfileChoice
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {pg : ProductSpdpGeneratorData B κ ℓ p}
+    (w : ProductDerivAssignmentWitness pg) :
+    ∃ gpc : GeneratorProfileChoice B κ ℓ p,
+      gpc.generator = pg.generator.toPolynomial ∧
+      gpc.histogram = assignmentProfile w.constraintType w.assignment := by
+  refine ⟨w.toGeneratorProfileChoice, ?_, ?_⟩
+  · exact w.toGeneratorProfileChoice_generator
+  · exact w.toGeneratorProfileChoice_histogram
 
 /-- Current assembly theorem.
 
