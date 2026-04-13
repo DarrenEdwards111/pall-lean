@@ -676,6 +676,30 @@ theorem godMoveTargetRankCastElimTarget_of_expr
   intro z
   simpa [godMoveTargetRankCastExprTarget] using hexpr z
 
+/-- Because `mlBlockedSpdpRank` is defined by applying `Module.finrank` to
+`mlBlockedSpdpSubspace`, the remaining cast-expression seam can be reduced one
+step further to definitional normalization of that rank expression. -/
+def godMoveTargetRankFinrankExprTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∀ z : GodMoveZeroRemainderData M n hn2 htb hns c,
+    let ppart := Eq.mp (by rw [z.same_space]) c.target.partition
+    let ppoly := Eq.mp (by rw [z.same_space]) c.target.poly
+    Module.finrank ℚ (mlBlockedSpdpSubspace ppart (Nat.log 2 n) (Nat.log 2 n) ppoly) =
+      Module.finrank ℚ
+        (mlBlockedSpdpSubspace c.target.partition (Nat.log 2 n) (Nat.log 2 n) c.target.poly)
+
+/-- The cast-expression target is just the `mlBlockedSpdpRank` definition written
+with explicit transported arguments, so any proof at the `Module.finrank` form
+immediately discharges it. -/
+theorem godMoveTargetRankCastExprTarget_of_finrank
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hfin : godMoveTargetRankFinrankExprTarget c) :
+    godMoveTargetRankCastExprTarget c := by
+  intro z
+  simpa [mlBlockedSpdpRank, godMoveTargetRankFinrankExprTarget] using hfin z
+
 /-- The even smaller helper target exposed by the failed proof attempt.
 
 This now sits one level above the partition/poly transport subtargets. -/
