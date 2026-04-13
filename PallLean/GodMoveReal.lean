@@ -1425,6 +1425,19 @@ def godMoveConstruction_exists_placeholder_frontier
   godMoveZeroRemainderUpgradeTarget M n hn htb hns
     (godMoveConstruction_exists M n hn hdec htb hns)
 
+/- First explicit non-identity semantic seam for the paper's actual `ΠΦ`.
+
+The identity construction is now fully wrapped up through the sharpened upgrade
+interface, so the remaining paper-faithful work must distinguish a genuine
+canonical God-Move from the identity placeholder. The smallest explicit seam is
+that, after transporting to the compiled ambient space, the target polynomial
+should no longer be literally the compiled polynomial.
+
+An attempted direct proposition for this immediately ran into the same dependent
+same-space packaging issue as earlier God-Move transport work. So the honest
+next step is to introduce a tiny helper packaging that compares `c.target.poly`
+with `compiledPoly` only after an explicit same-space witness has been supplied. -/
+
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. What remains open is exactly the
 zero-remainder/transport existential half. -/
@@ -1454,7 +1467,11 @@ theorem godMoveConstruction_exists_placeholder_frontier_iff
             (godMoveConstruction_exists M n hn hdec htb hns),
           godMoveTargetTransportTarget
             (godMoveConstruction_exists M n hn hdec htb hns)) := by
-  rfl
+  constructor
+  · intro h
+    exact h
+  · intro h
+    exact h
 
 /-- Since the canonical half is already known, any proof of the bundled
 identity placeholder frontier yields exactly the still-missing
