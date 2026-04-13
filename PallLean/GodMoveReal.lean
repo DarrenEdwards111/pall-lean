@@ -1644,10 +1644,13 @@ def godMoveOneStagePerturbationTarget
     (hns : M.numStates ≤ n)
     (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) : Prop :=
   ∃ cmp : GodMoveTargetCompiledComparison M n (by omega : n ≥ 2) htb hns c,
-    c.map.restrictionData ≠
-        (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData ∨
-      cmp.target_same_space.poly ≠
-        compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)
+    ∃ proj : GodMoveProjectionSharedComparison M n hn hdec htb hns c,
+      c.map.restrictionData ≠
+          (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData ∨
+        proj.candidate_output_same_space ≠
+          (godMoveConstruction_exists_projection_output_comparison M n hn hdec htb hns).projection_output ∨
+        cmp.target_same_space.poly ≠
+          compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)
 
 /-- The identity placeholder fails the one-stage perturbation target too:
 its restriction data is unchanged, and its transported target polynomial is
@@ -1661,11 +1664,23 @@ theorem godMoveConstruction_exists_not_one_stage_perturbation
     ¬ godMoveOneStagePerturbationTarget M n hn hdec htb hns
         (godMoveConstruction_exists M n hn hdec htb hns) := by
   intro hp
-  rcases hp with ⟨cmp, hpert⟩
+  rcases hp with ⟨cmp, proj, hpert⟩
   have hpoly := congrArg GodMoveTypedTarget.poly cmp.target_eq
   simp [godMoveConstruction_exists] at hpoly
-  rcases hpert with hrest | htarget
+  have hproj_id :
+      (godMoveConstruction_exists_projection_output_comparison M n hn hdec htb hns).projection_output =
+        compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns) := by
+    simp [godMoveConstruction_exists_projection_output_comparison, godMoveConstruction_exists]
+  have hproj :
+      proj.candidate_output_same_space =
+        (godMoveConstruction_exists_projection_output_comparison M n hn hdec htb hns).projection_output := by
+    rw [hproj_id]
+    rw [← proj.candidate_output_eq]
+    rw [← proj.candidate_output.projection_output_eq, ← proj.candidate_output.restricted_output_eq]
+    simp [godMoveConstruction_exists]
+  rcases hpert with hrest | hproj_ne | htarget
   · simp [godMoveConstruction_exists] at hrest
+  · exact hproj_ne hproj
   · exact htarget hpoly.symm
 
 /-- The already-proved canonical theorem supplies the canonical half of the
