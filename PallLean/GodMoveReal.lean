@@ -1303,6 +1303,20 @@ def godMoveConstruction_exists_remainder_target
       (godMoveConstruction_exists M n hn hdec htb hns),
     godMoveTargetTransportTarget (godMoveConstruction_exists M n hn hdec htb hns)
 
+/- Direct bridge attempt note.
+
+After constructing `godMoveConstruction_exists_zero_remainder_data`, the next
+attempt was to discharge `godMoveConstruction_exists_remainder_target`
+immediately. Lean showed the exact remaining gap: the existing recombined theorem
+`godMoveTargetRankTransportTarget_holds` produces the rank-level target, but the
+bridge target isolated earlier asks for the stronger transport package
+`godMoveTargetTransportTarget`.
+
+So the zero-remainder data is now genuinely in hand for the identity
+construction, and the remaining identity-side blocker has narrowed further to
+bridging from the proved rank-transport layer to the still-missing full
+`godMoveTargetTransportTarget` packaging. -/
+
 /-- A zero-remainder version of the phase-two God-Move upgrade.
 
 This placeholder still packages the identity-based upgrade, so it is not yet the
