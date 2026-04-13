@@ -439,6 +439,48 @@ structure GodMoveRemainderWitness (M : DTM) (n : ℕ)
   remainder_is_compiled_side_only : Prop
   remainder_annihilated_by_extraction_story : Prop
 
+/-- Honest zero-rank upgrade data for a staged God-Move construction.
+
+This packages the first truly mathematical sub-goal beneath the old NP-side
+axiom: once a concrete remainder is identified, the quantitative upgrade should
+factor into
+1. a lower bound on the extracted target, and
+2. a proof that the compiled polynomial differs from the extracted target by a
+   remainder of SPDP rank zero.
+
+The second field is exactly the seam needed to invoke
+`godMoveRemainder_rank_harmless_of_zero` rather than leaving rank transfer as a
+black-box axiom. -/
+structure GodMoveZeroRemainderData (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n hn2 htb hns) where
+  witness : GodMoveRemainderWitness M n hn2 htb hns c
+  target_same_space :
+    GodMoveTypedTarget (cook_levin_compilation M n hn2 htb hns).numVars
+  same_space : c.coupledVars = (cook_levin_compilation M n hn2 htb hns).numVars
+  target_eq : Eq.mp (by rw [same_space]) c.target = target_same_space
+  target_lower_bound :
+    Nat.choose n (Nat.log 2 n) ≤
+      mlBlockedSpdpRank target_same_space.partition (Nat.log 2 n) (Nat.log 2 n) target_same_space.poly
+  compiled_decomposition :
+    compiledPoly (cook_levin_compilation M n hn2 htb hns) =
+      target_same_space.poly + witness.remainderPoly
+  zero_rank_remainder :
+    mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n) witness.remainderPoly = 0
+
+/-- Zero-rank remainder data isolates the exact remaining bridge needed for a
+full quantitative God-Move upgrade.
+
+The next theorem should show that, after recasting the target into the compiled
+variable space and aligning partitions, `godMoveRemainder_rank_harmless_of_zero`
+applies. Keeping this as a target avoids pretending the dependent transport
+problem is solved when it is still the live formal seam. -/
+def godMoveConstructionWithProofs_of_zeroRemainderData_target
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∃ z : GodMoveZeroRemainderData M n hn2 htb hns c, True
+
 /-- A concrete next theorem target for the God-Move route: produce a staged
 construction from SAT-correct Cook-Levin semantics. This isolates the first real
 semantic milestone before any lower-bound or rank-transfer arguments.
