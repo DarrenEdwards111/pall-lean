@@ -1425,7 +1425,22 @@ def godMoveConstruction_exists_placeholder_frontier
   godMoveZeroRemainderUpgradeTarget M n hn htb hns
     (godMoveConstruction_exists M n hn hdec htb hns)
 
-/- First explicit non-identity semantic seam for the paper's actual `ΠΦ`.
+/-- Tiny helper packaging for comparing a God-Move target with the compiled
+Cook-Levin polynomial in the same ambient variable space.
+
+The first honest non-identity semantic seam is not yet a full theorem about the
+paper's canonical `ΠΦ`. It is only the typed comparison package needed to even
+state that the transported target polynomial differs from the compiled
+polynomial without running into ambient-space mismatches. -/
+structure GodMoveTargetCompiledComparison
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n hn2 htb hns) where
+  same_space : c.coupledVars = (cook_levin_compilation M n hn2 htb hns).numVars
+  target_same_space :
+    GodMoveTypedTarget ((cook_levin_compilation M n hn2 htb hns).numVars)
+  target_eq : Eq.mp (by rw [same_space]) c.target = target_same_space
+
+/-- First explicit non-identity semantic seam for the paper's actual `ΠΦ`.
 
 The identity construction is now fully wrapped up through the sharpened upgrade
 interface, so the remaining paper-faithful work must distinguish a genuine
@@ -1433,10 +1448,19 @@ canonical God-Move from the identity placeholder. The smallest explicit seam is
 that, after transporting to the compiled ambient space, the target polynomial
 should no longer be literally the compiled polynomial.
 
-An attempted direct proposition for this immediately ran into the same dependent
-same-space packaging issue as earlier God-Move transport work. So the honest
-next step is to introduce a tiny helper packaging that compares `c.target.poly`
-with `compiledPoly` only after an explicit same-space witness has been supplied. -/
+This target still does not claim to construct the real `ΠΦ`; it only packages
+the first typed property that any genuine non-identity canonical extraction must
+satisfy. -/
+def godMoveNonidentityConstructionTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) : Prop :=
+  godMoveConstructionCanonicalTarget c ∧
+  ∃ cmp : GodMoveTargetCompiledComparison M n (by omega : n ≥ 2) htb hns c,
+    cmp.target_same_space.poly ≠
+      compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)
 
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. What remains open is exactly the
