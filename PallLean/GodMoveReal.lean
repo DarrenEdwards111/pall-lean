@@ -1159,6 +1159,23 @@ theorem godMoveConstruction_exists_is_canonical_target
     (godMoveConstruction_exists M n hn hdec htb hns).map.block_local
   simp [godMoveConstruction_exists, godMoveConstructionCanonicalTarget]
 
+/-- The identity construction admits the obvious zero remainder witness.
+
+This does not yet build `GodMoveZeroRemainderData`; it only confirms that the
+raw witness object itself is not the hard part. The remaining work is in the
+same-space target packaging, decomposition, and zero-rank transport layer. -/
+noncomputable def godMoveConstruction_exists_zero_remainder_witness
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns
+      (godMoveConstruction_exists M n hn hdec htb hns) where
+  remainderPoly := 0
+  remainder_is_compiled_side_only := True
+  remainder_annihilated_by_extraction_story := True
+
 noncomputable def godMoveConstruction_upgrade (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : PaperFaithfulSeparation.DecidesSAT M)
