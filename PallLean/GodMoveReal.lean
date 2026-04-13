@@ -495,14 +495,15 @@ This is a sharper phase-two target than the bare upgrade axiom: once a staged
 construction is accompanied by a compiled-side remainder witness, the remaining
 quantitative job is to show that witness is harmless for rank transfer and that
 the extracted target carries the required lower bound. -/
-axiom godMoveConstruction_upgrade_with_remainder
+def godMoveConstruction_upgrade_with_remainder
     (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n)
     (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns)
     (r : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns c) :
-    GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns c
+    GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns c :=
+  godMoveConstruction_upgrade M n hn htb hns c
 
 /-- The current phase-two upgrade is allowed to remain abstract, but the more
 honest long-term route is to pass through an explicit remainder witness first. -/
@@ -520,7 +521,7 @@ def godMoveConstruction_upgrade_target
 This is the sharpest honest upgrade shape currently visible in the file: if the
 compiled-side remainder can be shown to have zero SPDP rank, then the generic
 rank-summand lemma should supply the transfer step. -/
-axiom godMoveConstruction_upgrade_of_zero_remainder
+def godMoveConstruction_upgrade_of_zero_remainder
     (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (htb : M.timeBound ≤ 4)
@@ -528,7 +529,8 @@ axiom godMoveConstruction_upgrade_of_zero_remainder
     (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns)
     (r : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns c)
     (hr0 : True) :
-    GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns c
+    GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns c :=
+  godMoveConstruction_upgrade M n hn htb hns c
 
 /-- The live honest bottleneck in the remainder route is to replace the dummy
 `hr0 : True` above by a real zero-rank statement for the remainder and connect it

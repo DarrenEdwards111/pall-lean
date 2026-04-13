@@ -1,5 +1,6 @@
 import PallLean.CookLevinDefs
 import PallLean.GodMoveCore
+import PallLean.GodMoveReal
 import PallLean.ProfileCompression
 import PallLean.IdentityMinorReal
 import PallLean.BinomialBound2
@@ -296,12 +297,13 @@ This interface is the current abstract separation-facing frontier.
 The typed staged God-Move work in `GodMoveReal.lean` is intended to justify it,
 but that derivation is not yet wired through here because the import cycle has
 not been removed completely. -/
-axiom god_move_extraction_interface (M : DTM) (n : ℕ)
+noncomputable def god_move_extraction_interface (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : DecidesSAT M)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n) :
-    GodMoveExtractionInterface M n (by omega : n ≥ 2) htb hns
+    GodMoveExtractionInterface M n (by omega : n ≥ 2) htb hns :=
+  GodMoveReal.god_move_extraction_interface_of_typed M n hn hdec htb hns
 
 /-- Derived compiled-space lower bound obtained from the paper-faithful abstract
 God-Move interface. -/
