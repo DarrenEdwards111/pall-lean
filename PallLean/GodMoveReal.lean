@@ -1813,6 +1813,49 @@ theorem godMoveConstruction_exists_not_restriction_perturbation_witness
   intro h
   exact h.2 rfl
 
+/-- Smallest explicit candidate shape for a restriction-stage perturbation.
+
+This still does not claim to realize the paper's true `ΠΦ`. It only packages
+what a first constructive attempt should minimally provide: a God-Move
+construction together with a proof that its restriction data differs from the
+identity placeholder's restriction stage. -/
+def godMoveRestrictionPerturbationCandidateTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) : Prop :=
+  godMoveConstructionCanonicalTarget c ∧
+  c.map.restrictionData ≠
+    (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData
+
+/-- The weakest constructive restriction witness target is exactly the
+existential packaging of a restriction-perturbation candidate. -/
+theorem godMoveRestrictionPerturbationWitnessTarget_iff
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveRestrictionPerturbationWitnessTarget M n hn hdec htb hns ↔
+      ∃ c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns,
+        godMoveRestrictionPerturbationCandidateTarget M n hn hdec htb hns c := by
+  rfl
+
+/-- The identity placeholder still fails the candidate-level restriction
+perturbation target. -/
+theorem godMoveConstruction_exists_not_restriction_perturbation_candidate
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ godMoveRestrictionPerturbationCandidateTarget M n hn hdec htb hns
+        (godMoveConstruction_exists M n hn hdec htb hns) := by
+  intro h
+  exact h.2 rfl
+
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. What remains open is exactly the
 zero-remainder/transport existential half. -/
