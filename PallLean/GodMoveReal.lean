@@ -766,6 +766,16 @@ theorem godMoveTargetRankFinrankLetNormalizeTarget_holds
   intro z
   simp [godMoveTargetRankFinrankLetNormalizeTarget]
 
+/-- With the let-normalization seam discharged, the cast-normalization target
+now follows from the already-isolated finrank-expression seam. -/
+theorem godMoveTargetRankFinrankCastNormalizeTarget_holds
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hfin : godMoveTargetRankFinrankExprTarget c) :
+    godMoveTargetRankFinrankCastNormalizeTarget c := by
+  exact godMoveTargetRankFinrankCastNormalizeTarget_of_letNormalize c
+    (godMoveTargetRankFinrankLetNormalizeTarget_holds c) hfin
+
 /-- Since the remaining finrank target compares the finranks of two SPDP
 subspaces, the next exact seam is equality of those subspaces after transport. -/
 def godMoveTargetRankSubspaceExprTarget
