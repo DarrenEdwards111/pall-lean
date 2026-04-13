@@ -522,15 +522,47 @@ def godMoveTargetPartitionTransportTarget
     z.target_same_space.partition =
       Eq.mp (by rw [z.same_space]) c.target.partition
 
-/-- Transport subtarget, polynomial layer.
+/-- Subtarget exposing the exact remaining `poly` transport seam.
 
-The second likely seam is the polynomial component of `target_eq`. -/
+The obstruction is not `target_eq` itself, but commuting the cast through the
+`poly` projection:
+`(Eq.mp _ c.target).poly = Eq.mp _ c.target.poly`.
+This proposition records that exact micro-seam. -/
+def godMoveTargetPolyProjectionTransportTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∀ z : GodMoveZeroRemainderData M n hn2 htb hns c,
+    GodMoveTypedTarget.poly (Eq.mp (by rw [z.same_space]) c.target) =
+      Eq.mp (by rw [z.same_space]) c.target.poly
+
+/-- Transport theorem, polynomial layer. -/
+theorem godMoveTargetPolyTransport
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {c : GodMoveConstruction M n hn2 htb hns}
+    (hproj : godMoveTargetPolyProjectionTransportTarget c)
+    (z : GodMoveZeroRemainderData M n hn2 htb hns c) :
+    z.target_same_space.poly =
+      Eq.mp (by rw [z.same_space]) c.target.poly := by
+  have h := congrArg GodMoveTypedTarget.poly z.target_eq
+  rw [hproj z] at h
+  exact h.symm
+
+/-- Transport subtarget, polynomial layer. -/
 def godMoveTargetPolyTransportTarget
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
   ∀ z : GodMoveZeroRemainderData M n hn2 htb hns c,
     z.target_same_space.poly =
       Eq.mp (by rw [z.same_space]) c.target.poly
+
+/-- Once the projection-cast seam is discharged, the polynomial transport target follows. -/
+theorem godMoveTargetPolyTransportTarget_of_projection
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hproj : godMoveTargetPolyProjectionTransportTarget c) :
+    godMoveTargetPolyTransportTarget c := by
+  intro z
+  exact godMoveTargetPolyTransport hproj z
 
 /-- The even smaller helper target exposed by the failed proof attempt.
 
