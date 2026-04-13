@@ -385,6 +385,24 @@ def godMoveTypedExtractionToConstructionWithProofs
   rank_transfer_target := by
     simpa [godMoveTypedExtractionToConstruction] using g.rank_transfer
 
+/-- The direct construction theorem target for the concrete God-Move route.
+
+A future semantic proof should first produce a `GodMoveConstruction`, that is,
+a staged map together with the exact semantic identification of its output with
+the coupled target polynomial. -/
+def godMoveConstructionTarget (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∃ c : GodMoveConstruction M n hn2 htb hns, True
+
+/-- The quantitative upgrade theorem target for the concrete God-Move route.
+
+After building the staged construction, one must prove the NP-side lower bound
+and compiled-side rank transfer to obtain the proof-bearing package used by the
+current separation-facing interface. -/
+def godMoveConstructionWithProofsTarget (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∃ cp : GodMoveConstructionWithProofs M n hn2 htb hns, True
+
 /-- **Typed God-Move extraction frontier**.
 
 This is the paper-faithful semantic frontier for §29 in its explicit typed form:
@@ -393,7 +411,8 @@ free, instance-uniform, block-local staged extraction to a coupled clause-sheet
 object with the required NP-side lower bound and rank transfer.
 
 The abstract interface in `PaperFaithfulSeparation` should be viewed as the
-forgetful image of this typed theorem. -/
+forgetful image of this typed theorem. The intended route is now explicitly:
+construction first, quantitative upgrade second. -/
 axiom godMoveTypedExtraction_exists (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : PaperFaithfulSeparation.DecidesSAT M)
