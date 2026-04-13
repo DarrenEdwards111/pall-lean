@@ -1008,22 +1008,40 @@ theorem ProductSpdpGeneratorData.profileCandidateOfAssignment_isExtracted
     IsExtractedProfileCandidate pg.generator (pg.profileCandidateOfAssignment constraintType a) := by
   exact generatorProfileCandidateOfAssignment_isExtracted pg.generator constraintType a
 
+/-- Semantic frontier proposition for a product-structured SPDP generator: the raw
+iterated derivative of the chosen product decomposition lies in the Leibniz span
+coming from distribution of derivative hits across factor slots. This is the weakest
+local statement directly supported by the existing Leibniz-product theorem, and it is
+therefore the right semantic content to require before later re-introducing the SPDP
+`shift` and `mlProj` layers. -/
+def ProductLeibnizSpanFrontier
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p) : Prop :=
+  iterDerivList pg.generator.derivList p ∈
+    Submodule.span ℚ
+      (LeibnizProduct.distribDerivProds
+        Finset.univ
+        (fun i : Fin pg.factors.length => pg.factors[i.1])
+        pg.generator.derivList)
+
 /-- Missing structural bridge: a Leibniz-expansion witness for a product-structured
 SPDP generator. This records that the differentiated product can be organized by
-factor-slot assignments over the chosen factor list. Once constructed, it supplies
-exactly the data needed for profile extraction. -/
+factor-slot assignments over the chosen factor list, together with the local semantic
+fact that the concrete generator polynomial lies in the corresponding Leibniz span.
+Once constructed, it supplies exactly the data needed for profile extraction. -/
 structure ProductLeibnizExpansionWitness
     {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
     (pg : ProductSpdpGeneratorData B κ ℓ p) where
   constraintType : Fin pg.factors.length → ConstraintType
   assignment : DerivAssignment κ pg.factors.length
-  respectsProduct : True
+  respectsProduct : ProductLeibnizSpanFrontier pg
 
 /-- Precise remaining semantic constructor frontier for the fixed-profile bridge.
 This is the first substantive theorem still missing on the product side: given the
-actual product decomposition carried by `pg`, construct a Leibniz/product witness
-for that same factor list. Once this is proved for a concrete compiled-product class,
-the downstream profile-choice packaging is already compile-checked. -/
+actual product decomposition carried by `pg`, simultaneously construct the assignment
+packaging and prove the local Leibniz-span statement for that same factor list. Once
+this is proved for a concrete compiled-product class, the downstream profile-choice
+packaging is already compile-checked. -/
 def ProductLeibnizExpansionWitnessFrontier
     {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
     (pg : ProductSpdpGeneratorData B κ ℓ p) : Prop :=
@@ -1060,13 +1078,29 @@ def zeroProductDerivAssignmentWitness
 /-- The Leibniz-witness frontier is genuinely inhabited in the zero-radius case:
 with no derivative hits, the product semantics require no slot choices beyond the
 empty assignment. This gives the first honest semantic inhabitant of the frontier. -/
+private theorem zeroProductLeibnizExpansionWitness_respectsProduct
+    {N : ℕ} {B : BlockPartition N} {ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B 0 ℓ p) :
+    ProductLeibnizSpanFrontier pg := by
+  have hnil : pg.generator.derivList = [] := by
+    cases h : pg.generator.derivList with
+    | nil => rfl
+    | cons a t =>
+        have : List.length (a :: t) = 0 := by simpa [h] using pg.generator.length_eq
+        cases this
+  simpa [ProductLeibnizSpanFrontier, hnil, pg.factors_prod] using
+    (LeibnizProduct.iterDerivList_finset_prod_mem_span
+      (Finset.univ : Finset (Fin pg.factors.length))
+      (fun i : Fin pg.factors.length => pg.factors[i.1])
+      ([] : List (Fin N)))
+
 def zeroProductLeibnizExpansionWitness
     {N : ℕ} {B : BlockPartition N} {ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
     (pg : ProductSpdpGeneratorData B 0 ℓ p) :
     ProductLeibnizExpansionWitness pg where
   constraintType := fun _ => ConstraintType.booleanity
   assignment := fun i => Fin.elim0 i
-  respectsProduct := trivial
+  respectsProduct := zeroProductLeibnizExpansionWitness_respectsProduct pg
 
  theorem zeroProductLeibnizExpansionWitness_frontier
     {N : ℕ} {B : BlockPartition N} {ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
@@ -1148,6 +1182,24 @@ def singletonProductDerivAssignmentWitness
 choosing one factor slot gives the entire derivative-assignment data, with no further
 semantic burden encoded in the current witness record. This is the smallest positive
 instance of the semantic frontier. -/
+theorem singletonProductLeibnizSpanFrontier
+    {N : ℕ} {B : BlockPartition N} {ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B 1 ℓ p) :
+    ProductLeibnizSpanFrontier pg := by
+  change iterDerivList pg.generator.derivList p ∈
+    Submodule.span ℚ
+      (LeibnizProduct.distribDerivProds
+        Finset.univ
+        (fun i : Fin pg.factors.length => pg.factors[i.1])
+        pg.generator.derivList)
+  simpa [pg.factors_prod] using LeibnizProduct.iterDerivList_finset_prod_mem_span
+    (Finset.univ : Finset (Fin pg.factors.length))
+    (fun i : Fin pg.factors.length => pg.factors[i.1])
+    pg.generator.derivList
+
+/-- The Leibniz-witness frontier is also inhabited in the singleton-radius case:
+choosing one factor slot gives the entire derivative-assignment data, and the semantic
+content is supplied by the actual Leibniz-span theorem for the concrete product. -/
 def singletonProductLeibnizExpansionWitness
     {N : ℕ} {B : BlockPartition N} {ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
     (pg : ProductSpdpGeneratorData B 1 ℓ p)
@@ -1156,7 +1208,7 @@ def singletonProductLeibnizExpansionWitness
     ProductLeibnizExpansionWitness pg where
   constraintType := constraintType
   assignment := fun _ => slot
-  respectsProduct := trivial
+  respectsProduct := singletonProductLeibnizSpanFrontier pg
 
  theorem singletonProductLeibnizExpansionWitness_frontier
     {N : ℕ} {B : BlockPartition N} {ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
