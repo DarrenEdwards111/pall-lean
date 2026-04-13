@@ -785,6 +785,24 @@ theorem godMoveTargetRankFinrankExprTarget_holds
     godMoveTargetRankFinrankExprTarget c := by
   exact godMoveTargetRankFinrankExprTarget_of_castNormalize c hnorm
 
+/-- The cast-expression target now follows from the discharged finrank
+expression target. -/
+theorem godMoveTargetRankCastExprTarget_holds
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hfin : godMoveTargetRankFinrankExprTarget c) :
+    godMoveTargetRankCastExprTarget c := by
+  exact godMoveTargetRankCastExprTarget_of_finrank c hfin
+
+/-- The cast-elimination target now follows from the discharged cast-expression
+form. -/
+theorem godMoveTargetRankCastElimTarget_holds
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hexpr : godMoveTargetRankCastExprTarget c) :
+    godMoveTargetRankCastElimTarget c := by
+  exact godMoveTargetRankCastElimTarget_of_expr c hexpr
+
 /-- Since the remaining finrank target compares the finranks of two SPDP
 subspaces, the next exact seam is equality of those subspaces after transport. -/
 def godMoveTargetRankSubspaceExprTarget
