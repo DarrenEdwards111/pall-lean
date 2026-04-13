@@ -1357,6 +1357,25 @@ theorem godMoveConstruction_exists_placeholder_frontier_of_missing
     godMoveConstruction_exists_placeholder_frontier M n hn hdec htb hns := by
   exact ⟨godMoveConstruction_exists_placeholder_frontier_canonical M n hn hdec htb hns, hz⟩
 
+/-- Because the canonical half is already settled, the bundled identity
+placeholder frontier is equivalent to the explicit zero-remainder/transport
+existential bridge. This is the final honest packaging statement before trying
+to construct that bridge. -/
+theorem godMoveConstruction_exists_placeholder_frontier_iff_missing
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveConstruction_exists_placeholder_frontier M n hn hdec htb hns ↔
+      (∃ z : GodMoveZeroRemainderData M n (by omega : n ≥ 2) htb hns
+          (godMoveConstruction_exists M n hn hdec htb hns),
+        godMoveTargetTransportTarget
+          (godMoveConstruction_exists M n hn hdec htb hns)) := by
+  constructor
+  · exact godMoveConstruction_exists_placeholder_frontier_missing M n hn hdec htb hns
+  · exact godMoveConstruction_exists_placeholder_frontier_of_missing M n hn hdec htb hns
+
 /-- **Typed God-Move extraction frontier**.
 
 This is the paper-faithful semantic frontier for §29 in its explicit typed form:
