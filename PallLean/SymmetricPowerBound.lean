@@ -1099,6 +1099,26 @@ def ProductDerivAssignmentWitness.toProfileCandidate
     (w : ProductDerivAssignmentWitness pg) : GeneratorProfileCandidate pg.generator :=
   pg.profileCandidateOfAssignment w.constraintType w.assignment
 
+/-- The candidate produced from a derivative-assignment witness has exactly the
+assignment-profile histogram. This is the clean local typed equality bridge from
+witness data to the histogram carried by the extracted profile candidate. -/
+@[simp] theorem ProductDerivAssignmentWitness.toProfileCandidate_histogram
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {pg : ProductSpdpGeneratorData B κ ℓ p}
+    (w : ProductDerivAssignmentWitness pg) :
+    w.toProfileCandidate.histogram = assignmentProfile w.constraintType w.assignment := by
+  rfl
+
+/-- The candidate produced from a derivative-assignment witness has the expected
+mass equality inherited from the assignment profile. -/
+@[simp] theorem ProductDerivAssignmentWitness.toProfileCandidate_mass_eq
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {pg : ProductSpdpGeneratorData B κ ℓ p}
+    (w : ProductDerivAssignmentWitness pg) :
+    profileMass w.toProfileCandidate.histogram = κ := by
+  simpa [ProductDerivAssignmentWitness.toProfileCandidate_histogram] using
+    assignmentProfile_mass w.constraintType w.assignment
+
 /-- And the induced candidate is automatically extracted. -/
 theorem ProductDerivAssignmentWitness.isExtracted
     {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
@@ -1106,6 +1126,17 @@ theorem ProductDerivAssignmentWitness.isExtracted
     (w : ProductDerivAssignmentWitness pg) :
     IsExtractedProfileCandidate pg.generator w.toProfileCandidate := by
   exact pg.profileCandidateOfAssignment_isExtracted w.constraintType w.assignment
+
+/-- Hence the candidate coming from a derivative-assignment witness is admissible.
+This is the pointwise bridge from product-level witness data to an admissible
+profile label on the underlying concrete SPDP generator. -/
+theorem ProductDerivAssignmentWitness.toProfileCandidate_admissible
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {pg : ProductSpdpGeneratorData B κ ℓ p}
+    (w : ProductDerivAssignmentWitness pg) :
+    ProfileAdmissible κ w.toProfileCandidate.histogram := by
+  exact extractedProfileCandidate_admissible
+    (g := pg.generator) (cand := w.toProfileCandidate) w.isExtracted
 
 /-- Current assembly theorem.
 
