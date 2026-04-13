@@ -1749,6 +1749,38 @@ theorem godMoveConstruction_exists_not_one_stage_perturbation
   · exact hrel_ne hrel
   · exact htarget hpoly.symm
 
+/-- The next honest existence frontier after closing the identity route.
+
+This does not pretend to construct the paper's non-identity `ΠΦ`. It only says
+what the next real success would look like: some God-Move construction that is a
+genuine candidate and also perturbs at least one explicit stage of the identity
+placeholder chain. -/
+def godMoveNonidentityCandidateExistsTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) : Prop :=
+  ∃ c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns,
+    godMoveGenuineCandidateTarget M n hn htb hns c ∧
+    godMoveOneStagePerturbationTarget M n hn hdec htb hns c
+
+/-- The current identity placeholder does not inhabit the new non-identity
+existence target. This theorem does not rule out other constructions; it only
+records that the old identity route is definitively not the answer. -/
+theorem godMoveConstruction_exists_not_nonidentity_candidate_witness
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ (godMoveGenuineCandidateTarget M n hn htb hns
+          (godMoveConstruction_exists M n hn hdec htb hns) ∧
+        godMoveOneStagePerturbationTarget M n hn hdec htb hns
+          (godMoveConstruction_exists M n hn hdec htb hns)) := by
+  intro h
+  exact godMoveConstruction_exists_not_genuine_candidate M n hn hdec htb hns h.1
+
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. What remains open is exactly the
 zero-remainder/transport existential half. -/
