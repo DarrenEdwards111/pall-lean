@@ -1057,6 +1057,23 @@ def zeroProductDerivAssignmentWitness
   constraintType := fun _ => ConstraintType.booleanity
   assignment := fun i => Fin.elim0 i
 
+/-- The Leibniz-witness frontier is genuinely inhabited in the zero-radius case:
+with no derivative hits, the product semantics require no slot choices beyond the
+empty assignment. This gives the first honest semantic inhabitant of the frontier. -/
+def zeroProductLeibnizExpansionWitness
+    {N : ℕ} {B : BlockPartition N} {ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B 0 ℓ p) :
+    ProductLeibnizExpansionWitness pg where
+  constraintType := fun _ => ConstraintType.booleanity
+  assignment := fun i => Fin.elim0 i
+  respectsProduct := trivial
+
+ theorem zeroProductLeibnizExpansionWitness_frontier
+    {N : ℕ} {B : BlockPartition N} {ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B 0 ℓ p) :
+    ProductLeibnizExpansionWitnessFrontier pg := by
+  exact ⟨zeroProductLeibnizExpansionWitness pg⟩
+
 /-- Base-case extracted profile candidate at radius `κ = 0`, obtained from the
 trivial derivative-assignment witness. -/
 def zeroProductProfileCandidate
@@ -1126,6 +1143,28 @@ def singletonProductDerivAssignmentWitness
     (constraintType : Fin pg.factors.length → ConstraintType) :
     ProductDerivAssignmentWitness pg :=
   explicitProductDerivAssignmentWitness pg constraintType (fun _ => slot)
+
+/-- The Leibniz-witness frontier is also inhabited in the singleton-radius case:
+choosing one factor slot gives the entire derivative-assignment data, with no further
+semantic burden encoded in the current witness record. This is the smallest positive
+instance of the semantic frontier. -/
+def singletonProductLeibnizExpansionWitness
+    {N : ℕ} {B : BlockPartition N} {ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B 1 ℓ p)
+    (slot : Fin pg.factors.length)
+    (constraintType : Fin pg.factors.length → ConstraintType) :
+    ProductLeibnizExpansionWitness pg where
+  constraintType := constraintType
+  assignment := fun _ => slot
+  respectsProduct := trivial
+
+ theorem singletonProductLeibnizExpansionWitness_frontier
+    {N : ℕ} {B : BlockPartition N} {ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B 1 ℓ p)
+    (slot : Fin pg.factors.length)
+    (constraintType : Fin pg.factors.length → ConstraintType) :
+    ProductLeibnizExpansionWitnessFrontier pg := by
+  exact ⟨singletonProductLeibnizExpansionWitness pg slot constraintType⟩
 
 /-- The resulting singleton-radius profile candidate is extracted. -/
 theorem singletonProductProfileCandidate_isExtracted
