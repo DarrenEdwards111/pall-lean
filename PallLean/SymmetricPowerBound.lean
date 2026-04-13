@@ -1008,6 +1008,17 @@ theorem ProductSpdpGeneratorData.profileCandidateOfAssignment_isExtracted
     IsExtractedProfileCandidate pg.generator (pg.profileCandidateOfAssignment constraintType a) := by
   exact generatorProfileCandidateOfAssignment_isExtracted pg.generator constraintType a
 
+/-- Missing structural bridge: a Leibniz-expansion witness for a product-structured
+SPDP generator. This records that the differentiated product can be organized by
+factor-slot assignments over the chosen factor list. Once constructed, it supplies
+exactly the data needed for profile extraction. -/
+structure ProductLeibnizExpansionWitness
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p) where
+  constraintType : Fin pg.factors.length → ConstraintType
+  assignment : DerivAssignment κ pg.factors.length
+  respectsProduct : True
+
 /-- Exact product-level extraction witness: classify factor slots by constraint type
 and assign each of the `κ` derivative positions to one factor slot. Constructing
 this record for the compiled product is now the next genuine theorem obligation. -/
@@ -1016,6 +1027,15 @@ structure ProductDerivAssignmentWitness
     (pg : ProductSpdpGeneratorData B κ ℓ p) where
   constraintType : Fin pg.factors.length → ConstraintType
   assignment : DerivAssignment κ pg.factors.length
+
+/-- Any Leibniz-expansion witness immediately gives the derivative-assignment witness
+needed for extracted-profile construction. -/
+def ProductLeibnizExpansionWitness.toDerivAssignmentWitness
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {pg : ProductSpdpGeneratorData B κ ℓ p}
+    (w : ProductLeibnizExpansionWitness pg) : ProductDerivAssignmentWitness pg where
+  constraintType := w.constraintType
+  assignment := w.assignment
 
 /-- Trivial base case for product-level extraction: when there are no derivative hits
 (`κ = 0`), the assignment witness is the unique map out of `Fin 0`. This is a real,
@@ -1044,6 +1064,32 @@ theorem zeroProductProfileCandidate_isExtracted
   exact pg.profileCandidateOfAssignment_isExtracted
     (zeroProductDerivAssignmentWitness pg).constraintType
     (zeroProductDerivAssignmentWitness pg).assignment
+
+/-- First nontrivial assignment constructor: when `κ = 1`, choosing a single factor slot
+already determines a derivative-assignment witness. This is the smallest positive-radius
+instance of the product-level extraction mechanism. -/
+def singletonProductDerivAssignmentWitness
+    {N : ℕ} {B : BlockPartition N} {ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B 1 ℓ p)
+    (slot : Fin pg.factors.length)
+    (constraintType : Fin pg.factors.length → ConstraintType) :
+    ProductDerivAssignmentWitness pg where
+  constraintType := constraintType
+  assignment := fun _ => slot
+
+/-- The resulting singleton-radius profile candidate is extracted. -/
+theorem singletonProductProfileCandidate_isExtracted
+    {N : ℕ} {B : BlockPartition N} {ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B 1 ℓ p)
+    (slot : Fin pg.factors.length)
+    (constraintType : Fin pg.factors.length → ConstraintType) :
+    IsExtractedProfileCandidate pg.generator
+      (pg.profileCandidateOfAssignment
+        (singletonProductDerivAssignmentWitness pg slot constraintType).constraintType
+        (singletonProductDerivAssignmentWitness pg slot constraintType).assignment) := by
+  exact pg.profileCandidateOfAssignment_isExtracted
+    (singletonProductDerivAssignmentWitness pg slot constraintType).constraintType
+    (singletonProductDerivAssignmentWitness pg slot constraintType).assignment
 
 /-- Any product-level derivative-assignment witness yields an extracted generator
 profile candidate. -/
