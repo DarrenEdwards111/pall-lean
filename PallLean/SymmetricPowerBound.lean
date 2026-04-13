@@ -1244,6 +1244,29 @@ theorem ProductDerivAssignmentWitness.generatorHasChosenFixedProfileCover_of_cov
   rcases hcover with ⟨terms, W, cover, hmem⟩
   refine ⟨terms, W, w.chosenProfile, cover, hmem⟩
 
+/-- Base case `κ = 0`: once the fixed-profile cover frontier is discharged for the
+trivial zero-radius witness, the named pointwise classification target follows. -/
+theorem zeroProductGeneratorHasChosenFixedProfileCover_of_coverFrontier
+    {N : ℕ} {B : BlockPartition N} {ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B 0 ℓ p)
+    (hcover : (zeroProductDerivAssignmentWitness pg).coverFrontier pg) :
+    GeneratorHasChosenFixedProfileCover B 0 ℓ p pg.generator := by
+  exact ProductDerivAssignmentWitness.generatorHasChosenFixedProfileCover_of_coverFrontier
+    pg (zeroProductDerivAssignmentWitness pg) hcover
+
+/-- Base case `κ = 1`: once the fixed-profile cover frontier is discharged for the
+singleton witness determined by a chosen factor slot, the named pointwise
+classification target follows. -/
+theorem singletonProductGeneratorHasChosenFixedProfileCover_of_coverFrontier
+    {N : ℕ} {B : BlockPartition N} {ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B 1 ℓ p)
+    (slot : Fin pg.factors.length)
+    (constraintType : Fin pg.factors.length → ConstraintType)
+    (hcover : (singletonProductDerivAssignmentWitness pg slot constraintType).coverFrontier pg) :
+    GeneratorHasChosenFixedProfileCover B 1 ℓ p pg.generator := by
+  exact ProductDerivAssignmentWitness.generatorHasChosenFixedProfileCover_of_coverFrontier
+    pg (singletonProductDerivAssignmentWitness pg slot constraintType) hcover
+
 /-- Current assembly theorem.
 
 At present the actual fixed-profile bridge is still open, so the compiled-polynomial
