@@ -1138,6 +1138,38 @@ theorem ProductDerivAssignmentWitness.toProfileCandidate_admissible
   exact extractedProfileCandidate_admissible
     (g := pg.generator) (cand := w.toProfileCandidate) w.isExtracted
 
+/-- Packaging the witness-induced profile candidate as the minimal concrete
+classification data for the underlying SPDP generator. This does not yet place
+the generator in a fixed-profile cover space, but it cleanly upgrades product-level
+assignment data into the existing generator-profile surface. -/
+noncomputable def ProductDerivAssignmentWitness.toGeneratorProfileChoice
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {pg : ProductSpdpGeneratorData B κ ℓ p}
+    (w : ProductDerivAssignmentWitness pg) :
+    GeneratorProfileChoice B κ ℓ p where
+  generator := pg.generator.toPolynomial
+  generator_mem := pg.generator.mem_mlBlockedSpdpSubspace
+  histogram := w.toProfileCandidate.histogram
+  admissible := w.toProfileCandidate_admissible
+
+/-- The packaged generator-profile choice produced from a derivative-assignment
+witness carries exactly the witness-induced histogram. -/
+@[simp] theorem ProductDerivAssignmentWitness.toGeneratorProfileChoice_histogram
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {pg : ProductSpdpGeneratorData B κ ℓ p}
+    (w : ProductDerivAssignmentWitness pg) :
+    w.toGeneratorProfileChoice.histogram = assignmentProfile w.constraintType w.assignment := by
+  rfl
+
+/-- And its admissibility field is precisely the admissibility obtained from the
+witness-induced extracted profile candidate. -/
+@[simp] theorem ProductDerivAssignmentWitness.toGeneratorProfileChoice_admissible
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {pg : ProductSpdpGeneratorData B κ ℓ p}
+    (w : ProductDerivAssignmentWitness pg) :
+    ProfileAdmissible κ w.toGeneratorProfileChoice.histogram := by
+  exact w.toGeneratorProfileChoice.admissible
+
 /-- Current assembly theorem.
 
 At present the actual fixed-profile bridge is still open, so the compiled-polynomial
