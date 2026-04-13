@@ -1198,14 +1198,20 @@ def godMoveConstruction_upgrade_of_zero_remainder
 
 /-- The live honest bottleneck in the remainder route is to replace the dummy
 `hr0 : True` above by a real zero-rank statement for the remainder and connect it
-to `godMoveRemainder_rank_harmless_of_zero`. -/
+to `godMoveRemainder_rank_harmless_of_zero`.
+
+A more faithful way to state that bottleneck is to ask directly for zero-remainder
+upgrade data, not just an arbitrary remainder witness. This packages exactly the
+semantic object needed to move from construction to quantitative upgrade without
+pretending the upgrade already exists. -/
 def godMoveZeroRemainderUpgradeTarget
     (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n)
     (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) : Prop :=
-  ∃ r : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns c, True
+  ∃ z : GodMoveZeroRemainderData M n (by omega : n ≥ 2) htb hns c,
+    godMoveTargetTransportTarget c
 
 /-- **Typed God-Move extraction frontier**.
 
