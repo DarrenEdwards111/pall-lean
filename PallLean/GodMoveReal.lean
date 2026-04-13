@@ -148,6 +148,29 @@ theorem rank_summand_le_of_zero_remainder {N : ℕ}
         rank_summand_bound B κ ℓ p q r hpqr
     _ = mlBlockedSpdpRank B κ ℓ p := by omega
 
+/-- Abstract theorem target for the harmlessness of a compiled-side remainder.
+
+This is the point where the existing rank lemmas in this file should eventually
+connect to the new decomposition story: if the remainder witness is sufficiently
+harmless, then the extracted target controls the compiled rank. -/
+axiom godMoveRemainder_rank_harmless
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
+    (p q r : MvPolynomial (Fin N) ℚ)
+    (hpqr : p = q + r) :
+    mlBlockedSpdpRank B κ ℓ r = 0 →
+    mlBlockedSpdpRank B κ ℓ q ≤ mlBlockedSpdpRank B κ ℓ p
+
+/-- Sanity bridge: the generic summand lemma already proves the desired
+remainder-harmlessness shape. This pins the new decomposition story to the
+actual rank infrastructure rather than leaving it purely aspirational. -/
+theorem godMoveRemainder_rank_harmless_of_zero
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
+    (p q r : MvPolynomial (Fin N) ℚ)
+    (hpqr : p = q + r)
+    (hr : mlBlockedSpdpRank B κ ℓ r = 0) :
+    mlBlockedSpdpRank B κ ℓ q ≤ mlBlockedSpdpRank B κ ℓ p := by
+  exact rank_summand_le_of_zero_remainder B κ ℓ p q r hpqr hr
+
 /-! ## God-Move Extraction Structure -/
 
 /-- The God-Move extraction data. -/
