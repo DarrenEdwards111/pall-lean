@@ -643,6 +643,17 @@ def godMoveTargetRankCastElimTarget
       (Eq.mp (by rw [z.same_space]) c.target.poly) =
     mlBlockedSpdpRank c.target.partition (Nat.log 2 n) (Nat.log 2 n) c.target.poly
 
+/-- The remaining cast-elimination seam can be packaged one level lower as a
+single equality between the transported rank expression and the original one. -/
+def godMoveTargetRankCastExprTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∀ z : GodMoveZeroRemainderData M n hn2 htb hns c,
+    let ppart := Eq.mp (by rw [z.same_space]) c.target.partition
+    let ppoly := Eq.mp (by rw [z.same_space]) c.target.poly
+    mlBlockedSpdpRank ppart (Nat.log 2 n) (Nat.log 2 n) ppoly =
+      mlBlockedSpdpRank c.target.partition (Nat.log 2 n) (Nat.log 2 n) c.target.poly
+
 /-- If the transported `partition`/`poly` arguments can be collapsed back to
 `c.target`, the full congruence seam follows by rewriting with the given field
 transport equalities. -/
@@ -654,6 +665,16 @@ theorem godMoveTargetRankCongrTarget_of_castElim
   intro z hpart hpoly
   rw [hpart, hpoly]
   exact hcast z
+
+/-- The cast-elimination target is definitionally the same remaining rank
+expression, just with the transported arguments named explicitly. -/
+theorem godMoveTargetRankCastElimTarget_of_expr
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hexpr : godMoveTargetRankCastExprTarget c) :
+    godMoveTargetRankCastElimTarget c := by
+  intro z
+  simpa [godMoveTargetRankCastExprTarget] using hexpr z
 
 /-- The even smaller helper target exposed by the failed proof attempt.
 
