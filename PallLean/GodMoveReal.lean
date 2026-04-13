@@ -2189,11 +2189,21 @@ noncomputable def godMoveRestrictFun_firstPerturbation
       MvPolynomial (Fin ((cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars)) ℚ :=
   fun p => MvPolynomial.aeval (godMoveRestrictionFirstPerturbationSubst M n hn hdec htb hns) p
 
-/- The first behavior-level witness now exists as a substitution map built via
-`MvPolynomial.aeval`, but the exact nontriviality proof should use the correct
-monomial/coefficient API for `MvPolynomial.X`, not a guessed finitely-supported
-singleton term. Keep the function, and treat the remaining proof as a small API
-lemma hunt rather than as missing semantics. -/
+/-- The first perturbed restriction function is genuinely non-identity on a very
+simple test polynomial, namely the singled-out variable itself. -/
+theorem godMoveRestrictFun_firstPerturbation_nontrivial
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    let T := cook_levin_compilation M n (by omega : n ≥ 2) htb hns
+    let v0 : Fin T.numVars := ⟨0, cookLevin_numVars_pos M n hn htb hns⟩
+    godMoveRestrictFun_firstPerturbation M n hn hdec htb hns (X v0) ≠ X v0 := by
+  intro T v0 h
+  have hcoeff := congrArg (fun p => MvPolynomial.coeff (Finsupp.single v0 1) p) h
+  simp [godMoveRestrictFun_firstPerturbation, godMoveRestrictionFirstPerturbationSubst, v0,
+    MvPolynomial.coeff_X] at hcoeff
 
 /-- First typed map with genuinely perturbed restriction behavior.
 
@@ -2262,12 +2272,19 @@ noncomputable def godMoveTypedMap_firstBehaviorPerturbation
     block_local_coheres_with_projection_relabel := True
   }
 
-/- The first behavior-perturbed typed map should witness the function-level
-perturbation target, but after broadening that target to avoid ambient-space
-mismatches, the right witness theorem should be proved from a clean nontriviality
-fact for `godMoveRestrictFun_firstPerturbation`. Do not count that theorem as
-done until the substitution map's nontriviality is established with the correct
-`MvPolynomial` coefficient API. -/
+/- The first behavior-perturbed typed map should now witness the corrected
+function-perturbation target. The remaining proof obligation is small and
+explicit: bridge from the proven nontriviality
+
+  restrictFun (X v0) ≠ X v0
+
+to the target's current witness shape
+
+  restrictFun (X v0) ≠ restrictFun 0.
+
+This should follow once we package the equally local fact `X v0 ≠ 0` in the
+right form and combine it with `restrictFun 0 = 0`. Do not count the typed-map
+witness theorem as done until that last bridge is proved cleanly. -/
 
 /- First explicit full `GodMoveConstruction` attempt from the perturbed typed map.
 
