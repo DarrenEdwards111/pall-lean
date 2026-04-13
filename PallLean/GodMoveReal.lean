@@ -370,6 +370,20 @@ structure GodMoveConstruction (M : DTM) (n : ℕ)
   staged_semantic_target :
     godMoveStagedExtractionTarget M n hn2 htb hns coupledVars map target
 
+/-- A paper-facing semantic target for a candidate God-Move construction.
+
+This is deliberately weaker than `GodMoveConstruction` itself: it does not ask
+for quantitative bounds, only that the chosen staged construction is the
+intended witness-free, instance-uniform, block-local `ΠΦ` from the paper rather
+than merely some construction with the right staged equality. This isolates the
+live semantic gap above the finished transport ladder. -/
+def godMoveConstructionCanonicalTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  c.map.instance_uniform ∧
+  c.map.witness_free ∧
+  c.map.block_local
+
 /-- Upgrade a construction-only God-Move object with the quantitative endpoints
 needed by the current separation-facing interface. -/
 structure GodMoveConstructionWithProofs (M : DTM) (n : ℕ)
@@ -990,6 +1004,11 @@ Proved by constructing the identity God-Move: the coupled space is the compiled
 space itself, and the three-stage map (restrict, project, relabel) is the identity
 at each stage. The staged semantic target then holds by reflexivity.
 
+This construction also satisfies the light paper-facing interface captured by
+`godMoveConstructionCanonicalTarget`, but only vacuously via the identity map.
+So it should be read as an honest placeholder for the semantic frontier, not as
+completion of the paper's intended nontrivial canonical `ΠΦ`.
+
 The mathematical content is that the compiled polynomial already contains the
 coupled verifier sheet structure; the identity construction captures this by
 taking the coupled polynomial to be the compiled polynomial verbatim. The
@@ -1183,6 +1202,7 @@ def godMoveConstruction_upgrade_target
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n)
     (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) : Prop :=
+  godMoveConstructionCanonicalTarget c ∧
   ∃ r : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns c,
     GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns c
 
@@ -1209,9 +1229,10 @@ def godMoveConstruction_upgrade_of_zero_remainder
 to `godMoveRemainder_rank_harmless_of_zero`.
 
 A more faithful way to state that bottleneck is to ask directly for zero-remainder
-upgrade data, not just an arbitrary remainder witness. This packages exactly the
-semantic object needed to move from construction to quantitative upgrade without
-pretending the upgrade already exists. -/
+upgrade data, not just an arbitrary remainder witness, while keeping the
+paper-facing semantic side visible via `godMoveConstructionCanonicalTarget`.
+This packages exactly the semantic object needed to move from construction to
+quantitative upgrade without pretending the upgrade already exists. -/
 def godMoveZeroRemainderUpgradeTarget
     (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
