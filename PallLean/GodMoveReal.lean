@@ -1188,9 +1188,9 @@ def godMoveConstruction_upgrade_target
 
 /-- A zero-remainder version of the phase-two God-Move upgrade.
 
-This is the sharpest honest upgrade shape currently visible in the file: if the
-compiled-side remainder can be shown to have zero SPDP rank, then the generic
-rank-summand lemma should supply the transfer step. -/
+This placeholder still packages the identity-based upgrade, so it is not yet the
+paper-faithful zero-remainder theorem. The real missing content is precisely the
+`GodMoveZeroRemainderUpgradeTarget` stated below. -/
 def godMoveConstruction_upgrade_of_zero_remainder
     (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
