@@ -604,6 +604,21 @@ theorem godMoveTargetPolyTransportTarget_of_projection
   intro z
   exact godMoveTargetPolyTransport hproj z
 
+/-- A sharpened recombination target for full rank transport.
+
+Now that both field-level seams have been isolated, the remaining job is exactly
+that `mlBlockedSpdpRank` respects those transported `partition` and `poly`
+components. -/
+def godMoveTargetRankTransportOfFieldSeamsTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∀ z : GodMoveZeroRemainderData M n hn2 htb hns c,
+    godMoveTargetPartitionProjectionCastLocalTarget c →
+    godMoveTargetPolyProjectionCastLocalTarget c →
+    mlBlockedSpdpRank z.target_same_space.partition (Nat.log 2 n) (Nat.log 2 n)
+      z.target_same_space.poly =
+    mlBlockedSpdpRank c.target.partition (Nat.log 2 n) (Nat.log 2 n) c.target.poly
+
 /-- The even smaller helper target exposed by the failed proof attempt.
 
 This now sits one level above the partition/poly transport subtargets. -/
@@ -614,6 +629,18 @@ def godMoveTargetRankTransportTarget
     mlBlockedSpdpRank z.target_same_space.partition (Nat.log 2 n) (Nat.log 2 n)
       z.target_same_space.poly =
     mlBlockedSpdpRank c.target.partition (Nat.log 2 n) (Nat.log 2 n) c.target.poly
+
+/-- If the field-level transport seams are discharged, the remaining rank target
+reduces to a direct rewrite problem. -/
+theorem godMoveTargetRankTransportTarget_of_fieldSeams
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hrank : godMoveTargetRankTransportOfFieldSeamsTarget c)
+    (hpart : godMoveTargetPartitionProjectionCastLocalTarget c)
+    (hpoly : godMoveTargetPolyProjectionCastLocalTarget c) :
+    godMoveTargetRankTransportTarget c := by
+  intro z
+  exact hrank z hpart hpoly
 
 /-- Zero-rank remainder data isolates the exact remaining bridge needed for a
 full quantitative God-Move upgrade.
