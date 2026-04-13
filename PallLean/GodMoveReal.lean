@@ -1237,21 +1237,6 @@ def godMoveConstruction_exists_remainder_target
       (godMoveConstruction_exists M n hn hdec htb hns),
     godMoveTargetTransportTarget (godMoveConstruction_exists M n hn hdec htb hns)
 
-/-- Bundled honest frontier for the current identity placeholder route.
-
-This packages exactly what is and is not known for the identity construction:
-we already have the canonical-side construction theorem, and what remains is the
-sharpened zero-remainder-plus-transport bridge for that same construction. -/
-def godMoveConstruction_exists_placeholder_frontier
-    (M : DTM) (n : ℕ)
-    (hn : n ≥ 2 ^ 804)
-    (hdec : PaperFaithfulSeparation.DecidesSAT M)
-    (htb : M.timeBound ≤ 4)
-    (hns : M.numStates ≤ n) : Prop :=
-  godMoveConstructionCanonicalTarget (godMoveConstruction_exists M n hn hdec htb hns) ∧
-  godMoveConstruction_exists_remainder_target M n hn hdec htb hns
-
-
 /-- A zero-remainder version of the phase-two God-Move upgrade.
 
 This placeholder still packages the identity-based upgrade, so it is not yet the
@@ -1291,6 +1276,21 @@ def godMoveZeroRemainderUpgradeTarget
   godMoveConstructionCanonicalTarget c ∧
   ∃ z : GodMoveZeroRemainderData M n (by omega : n ≥ 2) htb hns c,
     godMoveTargetTransportTarget c
+
+/-- Bundled honest frontier for the current identity placeholder route.
+
+This packages exactly what is and is not known for the identity construction in
+the same language as the main semantic bottleneck: we already have the
+canonical-side construction theorem, and what remains is precisely the sharpened
+zero-remainder upgrade target for that same construction. -/
+def godMoveConstruction_exists_placeholder_frontier
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) : Prop :=
+  godMoveZeroRemainderUpgradeTarget M n hn htb hns
+    (godMoveConstruction_exists M n hn hdec htb hns)
 
 /-- **Typed God-Move extraction frontier**.
 
