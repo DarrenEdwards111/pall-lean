@@ -1341,6 +1341,22 @@ theorem godMoveConstruction_exists_placeholder_frontier_missing
     ⟨hcanon, hz⟩
   exact hz
 
+/-- Conversely, once the missing zero-remainder/transport package is available,
+the bundled identity placeholder frontier follows immediately because the
+canonical half is already proved. -/
+theorem godMoveConstruction_exists_placeholder_frontier_of_missing
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (hz : ∃ z : GodMoveZeroRemainderData M n (by omega : n ≥ 2) htb hns
+        (godMoveConstruction_exists M n hn hdec htb hns),
+      godMoveTargetTransportTarget
+        (godMoveConstruction_exists M n hn hdec htb hns)) :
+    godMoveConstruction_exists_placeholder_frontier M n hn hdec htb hns := by
+  exact ⟨godMoveConstruction_exists_placeholder_frontier_canonical M n hn hdec htb hns, hz⟩
+
 /-- **Typed God-Move extraction frontier**.
 
 This is the paper-faithful semantic frontier for §29 in its explicit typed form:
