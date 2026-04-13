@@ -1629,6 +1629,35 @@ structure GodMoveProjectionSharedComparison
     Eq.mp (by rw [same_projected_vars]) candidate_output.projection_output =
       candidate_output_same_space
 
+/-- Tiny helper packaging for relabel-stage output.
+
+This extends the staged comparison ladder one level higher: after restriction
+and projection, we package the actual relabel output before comparing it to the
+identity placeholder or to the final transported target. -/
+structure GodMoveRelabelOutputComparison
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n hn2 htb hns) where
+  projection_output : GodMoveProjectionOutputComparison M n hn2 htb hns c
+  relabel_output : MvPolynomial (Fin c.coupledVars) ℚ
+  relabel_output_eq : c.map.relabelFun projection_output.projection_output = relabel_output
+
+/-- The identity placeholder admits the relabel-output comparison package
+trivially, since restriction, projection, and relabeling are all identity maps. -/
+noncomputable def godMoveConstruction_exists_relabel_output_comparison
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveRelabelOutputComparison M n (by omega : n ≥ 2) htb hns
+      (godMoveConstruction_exists M n hn hdec htb hns) where
+  projection_output :=
+    godMoveConstruction_exists_projection_output_comparison M n hn hdec htb hns
+  relabel_output :=
+    (godMoveConstruction_exists M n hn hdec htb hns).map.relabelFun
+      ((godMoveConstruction_exists_projection_output_comparison M n hn hdec htb hns).projection_output)
+  relabel_output_eq := rfl
+
 /-- First construction-level frontier for moving beyond the identity placeholder.
 
 Rather than pretending to have the full paper `ΠΦ`, the next honest step is to
