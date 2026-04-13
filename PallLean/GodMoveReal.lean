@@ -1540,6 +1540,39 @@ theorem godMoveConstruction_exists_not_nontrivial_staged_map
     exact hpoly
   exact hne hEq
 
+/-- Bundled target for a genuine paper-facing `ΠΦ` candidate.
+
+This is the first compact target that really looks like the intended semantic
+frontier after the identity route is closed. A genuine candidate should be:
+1. canonical in the paper-facing sense,
+2. satisfy the staged extraction identity, and
+3. be nontrivial at the staged-map level, so it is not just the identity
+   placeholder in disguise. -/
+def godMoveGenuineCandidateTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) : Prop :=
+  godMoveConstructionCanonicalTarget c ∧
+  godMoveStagedExtractionTarget M n (by omega : n ≥ 2) htb hns
+    c.coupledVars c.map c.target ∧
+  godMoveNontrivialStagedMapTarget M n hn htb hns c
+
+/-- The identity placeholder construction is not yet a genuine `ΠΦ` candidate:
+it is canonical and satisfies the trivial staged extraction identity, but it
+fails the required staged-map nontriviality. -/
+theorem godMoveConstruction_exists_not_genuine_candidate
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ godMoveGenuineCandidateTarget M n hn htb hns
+        (godMoveConstruction_exists M n hn hdec htb hns) := by
+  intro hg
+  exact godMoveConstruction_exists_not_nontrivial_staged_map M n hn hdec htb hns hg.2.2
+
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. What remains open is exactly the
 zero-remainder/transport existential half. -/
