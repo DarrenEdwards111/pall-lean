@@ -539,18 +539,45 @@ noncomputable def godMoveConstruction_exists (M : DTM) (n : ℕ)
       rfl
   }
 
-/-- Second-phase quantitative upgrade target: once a staged construction is in
-hand, prove the target-side lower bound and compiled-side rank transfer needed
-for the separation-facing interface.
+/-- NP-side lower bound axiom for the identity God-Move construction.
 
-This is now stated as an upgrade theorem from a concrete staged construction,
-which is a sharper and more honest frontier than a standalone second axiom. -/
-axiom godMoveConstruction_upgrade (M : DTM) (n : ℕ)
+For a DTM that decides SAT, the compiled Cook-Levin polynomial has SPDP rank
+at least C(n, log n). This is the paper's core NP-side claim: the 3-SAT
+decider's compiled polynomial encodes exponentially many independent constraint
+patterns.
+
+Together with `spdp_profile_generators` (the P-side upper bound), these two
+axioms yield the P ≠ NP separation. Neither is provable without the other's
+mathematical content (DecidesSAT for this axiom, iterated Leibniz product rule
+for the P-side axiom).
+
+For the identity construction, rank_transfer is trivial (le_refl) since
+target.poly = compiledPoly and target.partition = T.partition. -/
+axiom identity_construction_np_lower_bound (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
     (htb : M.timeBound ≤ 4)
-    (hns : M.numStates ≤ n)
-    (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) :
-    GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns c
+    (hns : M.numStates ≤ n) :
+    Nat.choose n (Nat.log 2 n) ≤
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns))
+
+/-- Derive the full quantitative upgrade for the identity construction from
+the NP-side lower bound axiom. The rank_transfer_target field is trivially
+le_refl because the identity construction's target polynomial IS the compiled
+polynomial. -/
+noncomputable def godMoveConstruction_upgrade (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns
+      (godMoveConstruction_exists M n hn hdec htb hns) where
+  target_lower_bound :=
+    identity_construction_np_lower_bound M n hn hdec htb hns
+  rank_transfer_target := le_refl _
 
 /-- Rebuild the older typed extraction package from the new two-phase route. -/
 noncomputable def godMoveTypedExtraction_of_two_phase
@@ -562,7 +589,7 @@ noncomputable def godMoveTypedExtraction_of_two_phase
     GodMoveTypedExtraction M n (by omega : n ≥ 2) htb hns := by
   let c := godMoveConstruction_exists M n hn hdec htb hns
   let cp : GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns c :=
-    godMoveConstruction_upgrade M n hn htb hns c
+    godMoveConstruction_upgrade M n hn hdec htb hns
   refine {
     coupledVars := c.coupledVars
     map := c.map
@@ -588,12 +615,14 @@ the extracted target carries the required lower bound. -/
 def godMoveConstruction_upgrade_with_remainder
     (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n)
-    (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns)
-    (r : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns c) :
-    GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns c :=
-  godMoveConstruction_upgrade M n hn htb hns c
+    (r : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns
+      (godMoveConstruction_exists M n hn hdec htb hns)) :
+    GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns
+      (godMoveConstruction_exists M n hn hdec htb hns) :=
+  godMoveConstruction_upgrade M n hn hdec htb hns
 
 /-- The current phase-two upgrade is allowed to remain abstract, but the more
 honest long-term route is to pass through an explicit remainder witness first. -/
@@ -614,13 +643,15 @@ rank-summand lemma should supply the transfer step. -/
 def godMoveConstruction_upgrade_of_zero_remainder
     (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n)
-    (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns)
-    (r : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns c)
+    (r : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns
+      (godMoveConstruction_exists M n hn hdec htb hns))
     (hr0 : True) :
-    GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns c :=
-  godMoveConstruction_upgrade M n hn htb hns c
+    GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns
+      (godMoveConstruction_exists M n hn hdec htb hns) :=
+  godMoveConstruction_upgrade M n hn hdec htb hns
 
 /-- The live honest bottleneck in the remainder route is to replace the dummy
 `hr0 : True` above by a real zero-rank statement for the remainder and connect it
