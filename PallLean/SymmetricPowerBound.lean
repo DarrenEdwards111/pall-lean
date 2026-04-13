@@ -1093,6 +1093,19 @@ def explicitProductDerivAssignmentWitness
     (explicitProductDerivAssignmentWitness pg constraintType assignment).assignment = assignment := by
   rfl
 
+/-- A Leibniz-expansion witness produces exactly the explicit combinatorial witness
+obtained from its slot-classification and slot-assignment data. This identifies the
+semantic witness wrapper with the general explicit constructor, so future progress can
+focus on building `ProductLeibnizExpansionWitness` rather than reproving profile
+packaging facts. -/
+@[simp] theorem ProductLeibnizExpansionWitness.toDerivAssignmentWitness_eq_explicit
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {pg : ProductSpdpGeneratorData B κ ℓ p}
+    (w : ProductLeibnizExpansionWitness pg) :
+    w.toDerivAssignmentWitness =
+      explicitProductDerivAssignmentWitness pg w.constraintType w.assignment := by
+  rfl
+
 /-- First nontrivial assignment constructor: when `κ = 1`, choosing a single factor slot
 already determines a derivative-assignment witness. This is the smallest positive-radius
 instance of the product-level extraction mechanism. -/
