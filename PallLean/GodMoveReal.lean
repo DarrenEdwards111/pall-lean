@@ -421,7 +421,6 @@ This is now stated as an upgrade theorem from a concrete staged construction,
 which is a sharper and more honest frontier than a standalone second axiom. -/
 axiom godMoveConstruction_upgrade (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
-    (hdec : PaperFaithfulSeparation.DecidesSAT M)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n)
     (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) :
@@ -436,7 +435,7 @@ noncomputable def godMoveTypedExtraction_of_two_phase
     (hns : M.numStates ≤ n) :
     GodMoveTypedExtraction M n (by omega : n ≥ 2) htb hns := by
   let c := godMoveConstruction_exists M n hn hdec htb hns
-  let cp := godMoveConstruction_upgrade M n hn hdec htb hns c
+  let cp := godMoveConstruction_upgrade M n hn htb hns c
   refine {
     coupledVars := cp.construction.coupledVars
     map := cp.construction.map
