@@ -711,6 +711,37 @@ def godMoveTargetRankSubspaceExprTarget
     mlBlockedSpdpSubspace ppart (Nat.log 2 n) (Nat.log 2 n) ppoly =
       mlBlockedSpdpSubspace c.target.partition (Nat.log 2 n) (Nat.log 2 n) c.target.poly
 
+/-- Unfold the remaining subspace seam one final step: the only content left is
+that the defining `Submodule.span` expression for `mlBlockedSpdpSubspace` is
+unchanged by the transported `partition` and `poly` arguments. -/
+def godMoveTargetRankSpanExprTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∀ z : GodMoveZeroRemainderData M n hn2 htb hns c,
+    let ppart := Eq.mp (by rw [z.same_space]) c.target.partition
+    let ppoly := Eq.mp (by rw [z.same_space]) c.target.poly
+    Submodule.span ℚ
+      { q | ∃ (S : List (Fin c.coupledVars)) (m : MvPolynomial (Fin c.coupledVars) ℚ),
+          S.length = Nat.log 2 n ∧ m.totalDegree ≤ Nat.log 2 n ∧
+          m.vars ⊆ S.toFinset ∧ isBlockAdmissible ppart S ∧
+          q = mlProj (m * iterDerivList S ppoly) } =
+    Submodule.span ℚ
+      { q | ∃ (S : List (Fin c.coupledVars)) (m : MvPolynomial (Fin c.coupledVars) ℚ),
+          S.length = Nat.log 2 n ∧ m.totalDegree ≤ Nat.log 2 n ∧
+          m.vars ⊆ S.toFinset ∧ isBlockAdmissible c.target.partition S ∧
+          q = mlProj (m * iterDerivList S c.target.poly) }
+
+/-- The subspace expression target is just the defining expansion of
+`mlBlockedSpdpSubspace`, so any proof at the `Submodule.span` level immediately
+repackages into the subspace-level target. -/
+theorem godMoveTargetRankSubspaceExprTarget_of_span
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hspan : godMoveTargetRankSpanExprTarget c) :
+    godMoveTargetRankSubspaceExprTarget c := by
+  intro z
+  simpa [mlBlockedSpdpSubspace, godMoveTargetRankSpanExprTarget] using hspan z
+
 /-- The subspace-level target is the next honest seam below the finrank target.
 The intended bridge to finrank equality still needs a careful proof wrapper, so
 for now we record only the subspace target itself.
