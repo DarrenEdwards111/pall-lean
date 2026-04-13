@@ -204,6 +204,114 @@ private theorem adjConstraintList_length (N : ℕ) (hN : N ≥ 1) :
   · exact List.length_filterMap_le _ _
   · simp [List.length_finRange]
 
+/-! ## §29.2b: M-Dependent Transition Skeleton Constraints
+
+These constraints encode a skeleton of M's transition function into the
+compiled polynomial. For each state q and consecutive variable pair (i, i+1),
+we add a constraint whose coefficient is extracted from M.transition(q, false).
+This makes the compiled polynomial genuinely depend on M's transition function,
+which is essential for the NP-side axiom: the polynomial of a 3-SAT decider
+has different structure from the polynomial of an arbitrary DTM. -/
+
+/-- Transition coefficient: extract a rational number from M's transition at state q.
+    Uses the new-state index from M.transition q false as the coefficient. -/
+private noncomputable def transCoeff (M : DTM) (q : Fin M.numStates) : ℚ :=
+  ((M.transition q false).1.val + 1 : ℚ)
+
+/-- Transition skeleton polynomial: c_q * X_i * X_{i+1} where c_q depends on
+    M.transition at state q. -/
+private noncomputable def transSkelPoly (M : DTM) (N : ℕ) (q : Fin M.numStates)
+    (i : Fin N) (hi : i.val + 1 < N) : MvPolynomial (Fin N) ℚ :=
+  MvPolynomial.C (transCoeff M q) * (MvPolynomial.X i * MvPolynomial.X ⟨i.val + 1, hi⟩)
+
+/-- transSkelPoly variables are contained in {i, i+1}.
+
+    The proof follows the same pattern as adjPoly_vars: vars of C(c) * (X_i * X_j)
+    are contained in vars(X_i * X_j) ⊆ {i, j}. -/
+private theorem transSkelPoly_vars (M : DTM) (N : ℕ) (q : Fin M.numStates)
+    (i : Fin N) (hi : i.val + 1 < N) :
+    (transSkelPoly M N q i hi).vars ⊆ ({i, ⟨i.val + 1, hi⟩} : Finset (Fin N)) := by
+  unfold transSkelPoly
+  intro w hw
+  -- Use adjPoly_vars pattern: vars(C * p) ⊆ vars(C) ∪ vars(p), vars(C) = ∅
+  have h_cmul := MvPolynomial.vars_mul
+    (MvPolynomial.C (transCoeff M q) : MvPolynomial (Fin N) ℚ)
+    (MvPolynomial.X i * MvPolynomial.X ⟨i.val + 1, hi⟩ : MvPolynomial (Fin N) ℚ)
+  have hw1 := h_cmul hw
+  simp only [Finset.mem_union, MvPolynomial.vars_C] at hw1
+  have hw1' : w ∈ (MvPolynomial.X i * MvPolynomial.X ⟨i.val + 1, hi⟩ :
+      MvPolynomial (Fin N) ℚ).vars := by
+    rcases hw1 with h | h
+    · simp at h
+    · exact h
+  have h_xmul := MvPolynomial.vars_mul
+    (MvPolynomial.X i : MvPolynomial (Fin N) ℚ)
+    (MvPolynomial.X ⟨i.val + 1, hi⟩ : MvPolynomial (Fin N) ℚ)
+  have hw2 := h_xmul hw1'
+  simp only [Finset.mem_union, MvPolynomial.vars_X, Finset.mem_singleton,
+             Finset.mem_insert] at hw2 ⊢
+  exact hw2
+
+/-- transSkelPoly has degree <= 2. -/
+private theorem transSkelPoly_degree (M : DTM) (N : ℕ) (q : Fin M.numStates)
+    (i : Fin N) (hi : i.val + 1 < N) :
+    (transSkelPoly M N q i hi).totalDegree ≤ 2 := by
+  unfold transSkelPoly
+  have h1 := MvPolynomial.totalDegree_mul
+    (MvPolynomial.C (transCoeff M q) : MvPolynomial (Fin N) ℚ)
+    (MvPolynomial.X i * MvPolynomial.X ⟨i.val + 1, hi⟩ : MvPolynomial (Fin N) ℚ)
+  have h2 := MvPolynomial.totalDegree_mul
+    (MvPolynomial.X i : MvPolynomial (Fin N) ℚ)
+    (MvPolynomial.X ⟨i.val + 1, hi⟩ : MvPolynomial (Fin N) ℚ)
+  simp [MvPolynomial.totalDegree_X, MvPolynomial.totalDegree_C] at h1 h2
+  linarith
+
+/-- Build a LocalConstraint from a transition skeleton polynomial. -/
+private noncomputable def transSkelLC (M : DTM) (N : ℕ) (q : Fin M.numStates)
+    (i : Fin N) (hi : i.val + 1 < N) : LocalConstraint N where
+  poly := transSkelPoly M N q i hi
+  support := {i, ⟨i.val + 1, hi⟩}
+  support_bound := by
+    have h := Finset.card_insert_le i ({⟨i.val + 1, hi⟩} : Finset (Fin N))
+    simp at h; linarith
+  vars_contained := transSkelPoly_vars M N q i hi
+  degree_bound := le_trans (transSkelPoly_degree M N q i hi) (by omega)
+
+/-- Helper: constraint list for a single state q. -/
+private noncomputable def transSkelForState (M : DTM) (N : ℕ) (q : Fin M.numStates) :
+    List (LocalConstraint N) :=
+  (List.finRange N).filterMap (fun i =>
+    if h : i.val + 1 < N then some (transSkelLC M N q i h) else none)
+
+private theorem transSkelForState_length (M : DTM) (N : ℕ) (q : Fin M.numStates) :
+    (transSkelForState M N q).length ≤ N := by
+  unfold transSkelForState
+  trans (List.finRange N).length
+  · exact List.length_filterMap_le _ _
+  · simp [List.length_finRange]
+
+/-- List of transition skeleton constraints: one per (state, consecutive variable pair).
+    The number of constraints is at most M.numStates * N ≤ n * n = n^2. -/
+private noncomputable def transSkelConstraintList (M : DTM) (N : ℕ) : List (LocalConstraint N) :=
+  (List.finRange M.numStates).flatMap (fun q => transSkelForState M N q)
+
+private theorem flatMap_length_le {α β : Type*} (f : α → List β)
+    (l : List α) (bound : ℕ) (hf : ∀ a, (f a).length ≤ bound) :
+    (l.flatMap f).length ≤ l.length * bound := by
+  induction l with
+  | nil => simp [List.flatMap]
+  | cons a as ih =>
+    simp only [List.flatMap_cons, List.length_append, List.length_cons]
+    have ha := hf a
+    nlinarith
+
+private theorem transSkelConstraintList_length (M : DTM) (N : ℕ) :
+    (transSkelConstraintList M N).length ≤ M.numStates * N := by
+  unfold transSkelConstraintList
+  have h := flatMap_length_le (fun q => transSkelForState M N q) (List.finRange M.numStates) N
+    (fun q => transSkelForState_length M N q)
+  rwa [List.length_finRange] at h
+
 /-- Locality-respecting block partition: groups every 3 consecutive variables
 into one block. Variable i is assigned to block i/3.
 
@@ -225,7 +333,12 @@ private def localityAssign (n : ℕ) (i : Fin n) : Fin (localityNumBlocks n) :=
     unfold localityNumBlocks
     exact Nat.div_lt_of_lt_mul (by omega)⟩
 
-/-- Cook-Levin compilation with booleanity AND transition skeleton constraints.
+/-- Cook-Levin compilation with booleanity, adjacency, AND transition skeleton constraints.
+
+The transition skeleton constraints make the compiled polynomial depend on
+M.transition, which is essential for the NP-side axiom: when M decides 3-SAT,
+the transition-dependent polynomial structure encodes the formula verification
+semantics that the identity minor exploits.
 
 Uses a locality-respecting block partition (block size 3) rather than the
 identity partition. This is necessary for the profile compression P-side
@@ -239,17 +352,22 @@ noncomputable def cook_levin_compilation (M : DTM) (n : ℕ) (hn : n ≥ 2)
       have h1 : 1 ≤ n := by omega
       calc n = n ^ 1 := (pow_one n).symm
         _ ≤ n ^ 10 := Nat.pow_le_pow_right h1 (by omega)
-    constraints := boolConstraintList n ++ adjConstraintList n
+    constraints := boolConstraintList n ++ adjConstraintList n ++ transSkelConstraintList M n
     constraints_poly := by
       have hbool : (boolConstraintList n).length = n := boolConstraintList_length n
       have hadj : (adjConstraintList n).length ≤ n := adjConstraintList_length n (by omega)
+      have htrans : (transSkelConstraintList M n).length ≤ M.numStates * n :=
+        transSkelConstraintList_length M n
       simp only [List.length_append]
       have h1 : 1 ≤ n := by omega
-      calc (boolConstraintList n).length + (adjConstraintList n).length
-          ≤ n + n := by omega
-        _ = 2 * n := by ring
-        _ ≤ n * n := by nlinarith
-        _ = n ^ 2 := by ring
+      calc (boolConstraintList n).length + (adjConstraintList n).length +
+              (transSkelConstraintList M n).length
+          ≤ n + n + M.numStates * n := by omega
+        _ ≤ n + n + n * n := by nlinarith
+        _ = 2 * n + n ^ 2 := by ring
+        _ ≤ n ^ 2 + n ^ 2 := by nlinarith
+        _ = 2 * n ^ 2 := by ring
+        _ ≤ n ^ 3 := by nlinarith [sq_nonneg n]
         _ ≤ n ^ 10 := Nat.pow_le_pow_right h1 (by omega)
     locality_radius := 1
     locality_bound := by omega

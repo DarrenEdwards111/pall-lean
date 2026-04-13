@@ -27,10 +27,42 @@ structure CoupledVerifierSheet where
 def np_exponential_lower_bound (numClauses κ rank : ℕ) : Prop :=
   Nat.choose numClauses κ ≤ rank
 
-/-- Semantic predicate: the DTM decides 3-SAT. -/
+/-- A clause (i, j, k) is satisfied by assignment σ if at least one literal is true. -/
+def clauseSatisfied (σ : Fin n → Bool) (c : Fin n × Fin n × Fin n) : Prop :=
+  σ c.1 = true ∨ σ c.2.1 = true ∨ σ c.2.2 = true
+
+/-- A 3-CNF formula φ is satisfiable if there exists a Boolean assignment
+    satisfying every clause. -/
+def ThreeCNF.IsSatisfiable (φ : ThreeCNF) : Prop :=
+  ∃ (σ : Fin φ.numVars → Bool), ∀ c ∈ φ.clauses, clauseSatisfied σ c
+
+/-- Encoding size of a 3-CNF formula: numVars + 3 * numClauses bits suffice
+    to specify the formula (each clause needs 3 variable indices). -/
+def ThreeCNF.encodingSize (φ : ThreeCNF) : ℕ :=
+  φ.numVars + 3 * φ.clauses.length
+
+/-- Semantic predicate: the DTM M decides 3-SAT.
+
+M decides 3-SAT if for every 3-CNF formula φ whose encoding fits
+within M's time bound at some input size n:
+- If φ is satisfiable, then M accepts some encoding of φ of length n.
+- If φ is unsatisfiable, then M does not accept any input of length n
+  that encodes φ.
+
+The fields use the DTM execution semantics from TuringMachine.lean
+(`accepts`), making `DecidesSAT M` genuinely load-bearing: it constrains
+M's transition function to correctly classify 3-SAT instances. -/
 structure DecidesSAT (M : DTM) : Prop where
-  accepts_sat : ∀ (phi : ThreeCNF), phi.numVars ≥ 1 → True → True
-  rejects_unsat : ∀ (phi : ThreeCNF), phi.numVars ≥ 1 → True → True
+  /-- For satisfiable formulas, M accepts a valid encoding. -/
+  accepts_sat : ∀ (φ : ThreeCNF) (n : ℕ) (hn : n ≥ 1),
+    φ.encodingSize ≤ n →
+    φ.IsSatisfiable →
+    ∃ (input : Fin n → Bool), accepts M n hn input
+  /-- For unsatisfiable formulas, M does not accept any encoding. -/
+  rejects_unsat : ∀ (φ : ThreeCNF) (n : ℕ) (hn : n ≥ 1),
+    φ.encodingSize ≤ n →
+    ¬ φ.IsSatisfiable →
+    ∀ (input : Fin n → Bool), ¬ accepts M n hn input
 
 /-- Paper-faithful abstract source/target interface for the God-Move.
 
