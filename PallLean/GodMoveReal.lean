@@ -1900,6 +1900,56 @@ theorem cookLevin_numVars_pos
     omega
   simpa [cook_levin_compilation] using hn0
 
+/-- A first explicit non-identity restriction-data candidate.
+
+This is intentionally tiny and local: single out one compiled variable as fixed,
+mark it administrative/tableau, remove it from the preserved clause-sheet set,
+and keep the rest of the record as close as possible to the identity
+placeholder. The point is not that this is the right paper construction, only
+that it is an actual concrete perturbation of the identity restriction record. -/
+noncomputable def godMoveRestrictionData_firstPerturbation
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveRestrictionData ((cook_levin_compilation M n (by
+      have hn2 : n ≥ 2 := by omega
+      exact hn2) htb hns).numVars) :=
+  let hn2 : n ≥ 2 := by omega
+  let T := cook_levin_compilation M n hn2 htb hns
+  let v0 : Fin T.numVars := ⟨0, cookLevin_numVars_pos M n hn htb hns⟩
+  {
+    administrativeVars := {v0}
+    tableauVars := {v0}
+    fixedVars := {v0}
+    freeVarsAfterRestriction := T.numVars
+    freeVarEmbedding := id
+    assignment := fun _ => 0
+    clauseSheetPreservedVars := Finset.univ.erase v0
+    fixes_administrative_vars := True
+    fixes_tableau_vars_to_constants := True
+    preserves_clause_sheet_vars := True
+    specializedVars := {v0}
+    fixedVars_cover_specialized_coordinates := True
+    free_embedding_avoids_fixed := True
+    clauseSheetPreservedVars_avoid_fixed := True
+  }
+
+/-- The first explicit restriction-data candidate is genuinely different from
+the identity placeholder's restriction stage. -/
+theorem godMoveRestrictionData_firstPerturbation_ne_identity
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveRestrictionData_firstPerturbation M n hn hdec htb hns ≠
+      (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData := by
+  intro h
+  have hadmin := congrArg GodMoveRestrictionData.administrativeVars h
+  simp [godMoveRestrictionData_firstPerturbation, godMoveConstruction_exists] at hadmin
+
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. What remains open is exactly the
 zero-remainder/transport existential half. -/
