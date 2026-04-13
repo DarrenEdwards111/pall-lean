@@ -1065,6 +1065,34 @@ theorem zeroProductProfileCandidate_isExtracted
     (zeroProductDerivAssignmentWitness pg).constraintType
     (zeroProductDerivAssignmentWitness pg).assignment
 
+/-- Core combinatorial constructor: any explicit assignment of the `κ` derivative-hit
+positions to factor slots yields a product derivative-assignment witness. This is the
+honest general constructor available before proving anything about Leibniz semantics. -/
+def explicitProductDerivAssignmentWitness
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p)
+    (constraintType : Fin pg.factors.length → ConstraintType)
+    (assignment : Fin κ → Fin pg.factors.length) :
+    ProductDerivAssignmentWitness pg where
+  constraintType := constraintType
+  assignment := assignment
+
+@[simp] theorem explicitProductDerivAssignmentWitness_constraintType
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p)
+    (constraintType : Fin pg.factors.length → ConstraintType)
+    (assignment : Fin κ → Fin pg.factors.length) :
+    (explicitProductDerivAssignmentWitness pg constraintType assignment).constraintType = constraintType := by
+  rfl
+
+@[simp] theorem explicitProductDerivAssignmentWitness_assignment
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p)
+    (constraintType : Fin pg.factors.length → ConstraintType)
+    (assignment : Fin κ → Fin pg.factors.length) :
+    (explicitProductDerivAssignmentWitness pg constraintType assignment).assignment = assignment := by
+  rfl
+
 /-- First nontrivial assignment constructor: when `κ = 1`, choosing a single factor slot
 already determines a derivative-assignment witness. This is the smallest positive-radius
 instance of the product-level extraction mechanism. -/
@@ -1073,9 +1101,8 @@ def singletonProductDerivAssignmentWitness
     (pg : ProductSpdpGeneratorData B 1 ℓ p)
     (slot : Fin pg.factors.length)
     (constraintType : Fin pg.factors.length → ConstraintType) :
-    ProductDerivAssignmentWitness pg where
-  constraintType := constraintType
-  assignment := fun _ => slot
+    ProductDerivAssignmentWitness pg :=
+  explicitProductDerivAssignmentWitness pg constraintType (fun _ => slot)
 
 /-- The resulting singleton-radius profile candidate is extracted. -/
 theorem singletonProductProfileCandidate_isExtracted
