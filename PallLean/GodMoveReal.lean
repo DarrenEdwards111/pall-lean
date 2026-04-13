@@ -1573,6 +1573,45 @@ theorem godMoveConstruction_exists_not_genuine_candidate
   intro hg
   exact godMoveConstruction_exists_not_nontrivial_staged_map M n hn hdec htb hns hg.2.2
 
+/-- First construction-level frontier for moving beyond the identity placeholder.
+
+Rather than pretending to have the full paper `ΠΦ`, the next honest step is to
+modify at least one semantic stage of the identity construction while keeping
+the comparison well-typed. At this level, the two cleanly comparable pieces are:
+1. the restriction data, and
+2. the transported target polynomial in the compiled ambient space. -/
+def godMoveOneStagePerturbationTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) : Prop :=
+  ∃ cmp : GodMoveTargetCompiledComparison M n (by omega : n ≥ 2) htb hns c,
+    c.map.restrictionData ≠
+        (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData ∨
+      cmp.target_same_space.poly ≠
+        compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)
+
+/-- The identity placeholder fails the one-stage perturbation target too:
+its restriction data is unchanged, and its transported target polynomial is
+still just the compiled Cook-Levin polynomial. -/
+theorem godMoveConstruction_exists_not_one_stage_perturbation
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ godMoveOneStagePerturbationTarget M n hn hdec htb hns
+        (godMoveConstruction_exists M n hn hdec htb hns) := by
+  intro hp
+  rcases hp with ⟨cmp, hpert⟩
+  have hpoly := congrArg GodMoveTypedTarget.poly cmp.target_eq
+  simp [godMoveConstruction_exists] at hpoly
+  rcases hpert with hrest | htarget
+  · simp [godMoveConstruction_exists] at hrest
+  · exact htarget hpoly.symm
+
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. What remains open is exactly the
 zero-remainder/transport existential half. -/
