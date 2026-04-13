@@ -983,6 +983,17 @@ theorem godMoveTargetRankTransportTarget_holds
     godMoveTargetRankTransportTarget c := by
   exact godMoveTargetRankTransportTarget_of_fieldSeams c hrank hpart hpoly
 
+/-- Equality-level rank transport immediately yields the implication-style
+transport package needed by the zero-remainder bridge. -/
+theorem godMoveTargetTransportTarget_of_rankTransport
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hrank : godMoveTargetRankTransportTarget c) :
+    godMoveTargetTransportTarget c := by
+  intro z hz
+  rw [← hrank z]
+  exact hz
+
 /-- Zero-rank remainder data isolates the exact remaining bridge needed for a
 full quantitative God-Move upgrade.
 
@@ -1316,6 +1327,33 @@ So the zero-remainder data is now genuinely in hand for the identity
 construction, and the remaining identity-side blocker has narrowed further to
 bridging from the proved rank-transport layer to the still-missing full
 `godMoveTargetTransportTarget` packaging. -/
+
+theorem godMoveConstruction_exists_remainder_target_holds
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveConstruction_exists_remainder_target M n hn hdec htb hns := by
+  refine ⟨godMoveConstruction_exists_zero_remainder_data M n hn hdec htb hns, ?_⟩
+  let c := godMoveConstruction_exists M n hn hdec htb hns
+  let hlet := godMoveTargetRankFinrankLetNormalizeTarget_holds c
+  let hnorm := godMoveTargetRankFinrankCastNormalizeTarget_holds c hlet
+  let hfin := godMoveTargetRankFinrankExprTarget_holds c hnorm
+  let hexpr := godMoveTargetRankCastExprTarget_holds c hfin
+  let hcast := godMoveTargetRankCastElimTarget_holds c hexpr
+  let hcongr := godMoveTargetRankCongrTarget_holds c hcast
+  let hrank0 := godMoveTargetRankTransportOfFieldSeamsTarget_holds c hcongr
+  let hrank := godMoveTargetRankTransportTarget_holds
+    c
+    hrank0
+    (by
+      intro z
+      simp)
+    (by
+      intro z
+      simp)
+  exact godMoveTargetTransportTarget_of_rankTransport c hrank
 
 /-- A zero-remainder version of the phase-two God-Move upgrade.
 
