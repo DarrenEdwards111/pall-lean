@@ -2173,15 +2173,49 @@ theorem godMoveTypedMap_firstRestrictionPerturbation_not_function_perturbed
     simp [godMoveTypedMap_firstRestrictionPerturbation]
   exact hpert hone
 
-/- First genuinely non-identity restriction-function attempt.
+/-- Variable assignment for the first genuinely perturbed restriction function.
 
-The natural behavior-level perturbation is to substitute `0` for the singled-out
-fixed variable while leaving other variables untouched. The failed first attempt
-showed a precise Lean/API fact: plain `rename` is the wrong primitive here,
-because it expects a variable-to-variable map, whereas this perturbation needs a
-variable-to-polynomial substitution. So the next honest step is to define the
-first perturbed `restrictFun` using the appropriate substitution/evaluation
-machinery, not `rename`. -/
+This is the minimal substitution pattern suggested by the restriction metadata:
+send the singled-out fixed variable to `0`, and leave all other variables as
+formal variables. The resulting map is intended for `MvPolynomial.aeval`. -/
+noncomputable def godMoveRestrictionFirstPerturbationSubst
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    Fin ((cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars) →
+      MvPolynomial (Fin ((cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars)) ℚ :=
+  let T := cook_levin_compilation M n (by omega : n ≥ 2) htb hns
+  let v0 : Fin T.numVars := ⟨0, cookLevin_numVars_pos M n hn htb hns⟩
+  fun i => if i = v0 then 0 else X i
+
+/-- First genuinely non-identity restriction function candidate, now using the
+correct substitution primitive (`MvPolynomial.aeval`) rather than `rename`. -/
+noncomputable def godMoveRestrictFun_firstPerturbation
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    MvPolynomial (Fin ((cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars)) ℚ →
+      MvPolynomial (Fin ((cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars)) ℚ :=
+  fun p => MvPolynomial.aeval (godMoveRestrictionFirstPerturbationSubst M n hn hdec htb hns) p
+
+/-- The first perturbed restriction function is genuinely non-identity on a very
+simple test polynomial, namely the singled-out variable itself. -/
+theorem godMoveRestrictFun_firstPerturbation_nontrivial
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    let T := cook_levin_compilation M n (by omega : n ≥ 2) htb hns
+    let v0 : Fin T.numVars := ⟨0, cookLevin_numVars_pos M n hn htb hns⟩
+    godMoveRestrictFun_firstPerturbation M n hn hdec htb hns (X v0) ≠ X v0 := by
+  intro T v0
+  simp [godMoveRestrictFun_firstPerturbation, godMoveRestrictionFirstPerturbationSubst, v0,
+    MvPolynomial.X_ne_zero]
 
 /- First explicit full `GodMoveConstruction` attempt from the perturbed typed map.
 
