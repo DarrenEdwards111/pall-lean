@@ -883,6 +883,7 @@ def GeneratorHasChosenFixedProfileCover
       ∃ cover : FixedProfileGeneratorCover (Fin N) κ terms W h,
         g.toPolynomial ∈ cover.coverSpace
 
+
 /-- Current assembly theorem.
 
 At present the actual fixed-profile bridge is still open, so the compiled-polynomial
