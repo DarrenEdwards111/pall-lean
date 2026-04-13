@@ -2058,6 +2058,25 @@ theorem godMoveTypedMap_firstRestrictionPerturbation_is_target
       (godMoveTypedMap_firstRestrictionPerturbation M n hn hdec htb hns) := by
   rfl
 
+/-- Local semantic honesty target for the first perturbed typed map.
+
+Once `restrictionData` is changed, keeping `restrictFun := id` may no longer be
+an honest realization of the staged map semantics. This target isolates the next
+real theorem question: does the first perturbed typed map still satisfy the
+staged extraction identity, or does the metadata/function mismatch force
+failure? -/
+def godMoveFirstRestrictionPerturbationStagedTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) : Prop :=
+  godMoveStagedExtractionTarget M n (by omega : n ≥ 2) htb hns
+    (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars
+    (godMoveTypedMap_firstRestrictionPerturbation M n hn hdec htb hns)
+    { partition := (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).partition
+      poly := compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns) }
+
 /- First explicit full `GodMoveConstruction` attempt from the perturbed typed map.
 
 The raw data all lines up: we can build the perturbed restriction-data witness
