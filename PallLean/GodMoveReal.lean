@@ -1479,6 +1479,33 @@ theorem godMoveConstruction_exists_not_nonidentity
   simp [godMoveConstruction_exists] at hpoly
   exact hne hpoly.symm
 
+/-- First staged-map nontriviality seam for a genuine non-identity `ΠΦ`.
+
+The polynomial-level non-identity target above cleanly separates the current
+identity placeholder from any real God-Move candidate. The next stronger seam is
+that the staged extraction map itself should not collapse to the identity map on
+the compiled polynomial. This is still local and typed: it does not yet claim to
+construct the paper's final `ΠΦ`, only to isolate the next semantic property a
+real non-identity candidate must satisfy. -/
+def godMoveNontrivialStagedMapTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) : Prop :=
+  godMoveConstructionCanonicalTarget c ∧
+  ∃ cmp : GodMoveTargetCompiledComparison M n (by omega : n ≥ 2) htb hns c,
+    Eq.mp (by rw [cmp.same_space])
+      (c.map.toFun (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns))) ≠
+      cmp.target_same_space.poly
+
+/- The stronger staged-map target above is the next honest semantic seam for a
+real non-identity `ΠΦ`, but the corresponding failure theorem for the current
+identity construction still runs into the same transported-map-output cast issue:
+one must compare `Eq.mp (by rw [cmp.same_space]) (c.map.toFun compiledPoly)` to
+`cmp.target_same_space.poly` in the compiled ambient space. Keep the target, but
+do not count the negation theorem as done until that cast is handled cleanly. -/
+
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. What remains open is exactly the
 zero-remainder/transport existential half. -/
