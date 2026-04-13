@@ -1856,6 +1856,33 @@ theorem godMoveConstruction_exists_not_restriction_perturbation_candidate
   intro h
   exact h.2 rfl
 
+/-- Smallest object-level target for a non-identity restriction stage.
+
+This is one level below a full `GodMoveConstruction`: before building a whole
+candidate, we can ask just for a restriction-data record over the compiled
+variable space that differs from the identity placeholder's restriction stage. -/
+def godMoveRestrictionDataPerturbationTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) : Prop :=
+  ∃ r : GodMoveRestrictionData ((cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars),
+    r ≠ (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData
+
+/-- Even at raw restriction-data level, the identity placeholder's own record is
+not a perturbation witness. -/
+theorem godMoveConstruction_exists_not_restriction_data_perturbation_self
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ ((godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData ≠
+      (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData) := by
+  intro h
+  exact h rfl
+
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. What remains open is exactly the
 zero-remainder/transport existential half. -/
