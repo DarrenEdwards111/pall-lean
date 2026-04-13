@@ -1176,6 +1176,21 @@ noncomputable def godMoveConstruction_exists_zero_remainder_witness
   remainder_is_compiled_side_only := True
   remainder_annihilated_by_extraction_story := True
 
+/- Direct construction attempt note for the identity zero-remainder data.
+
+Trying to build `GodMoveZeroRemainderData` directly from
+`godMoveConstruction_exists_zero_remainder_witness` got surprisingly far. Lean
+accepted the overall shape but exposed two concrete blockers:
+1. a local record-field reference issue around reusing `same_space` inside the
+   later `target_eq` field, and
+2. the first genuinely mathematical blocker, namely discharging the zero-rank
+   remainder field for the zero polynomial, i.e. showing
+   `mlBlockedSpdpRank ... 0 = 0`.
+
+So the raw remainder witness is now known to be easy, and the next honest work
+is either a tiny local record-construction refactor or a direct lemma that the
+zero polynomial has SPDP rank zero. -/
+
 noncomputable def godMoveConstruction_upgrade (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : PaperFaithfulSeparation.DecidesSAT M)
