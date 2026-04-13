@@ -1883,6 +1883,15 @@ theorem godMoveConstruction_exists_not_restriction_data_perturbation_self
   intro h
   exact h rfl
 
+/- First explicit object attempt for a non-identity restriction-data witness.
+
+A natural first perturbation is to single out one compiled variable as fixed and
+remove it from the preserved clause-sheet set. The immediate Lean obstruction is
+concrete rather than conceptual: to build such a record, we need an explicit
+`Fin T.numVars` witness (for example `⟨0, _⟩`), which in turn requires a clean
+positivity fact for `T.numVars`. Until that positivity is packaged honestly, do
+not count a concrete perturbed `GodMoveRestrictionData` record as finished. -/
+
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. What remains open is exactly the
 zero-remainder/transport existential half. -/
