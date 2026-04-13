@@ -288,8 +288,9 @@ structure GodMoveTypedTarget (coupledVars : ℕ) where
 
 This is still only a surface/interface: it does not assert that the map has been
 constructed from the real Cook-Levin compilation. It packages the typed objects
-that a future paper-faithful semantic theorem should produce. -/
-/-- Concrete semantic obligations still missing from the typed God-Move route.
+that a future paper-faithful semantic theorem should produce.
+
+Concrete semantic obligations still missing from the typed God-Move route.
 
 This record isolates the nontrivial content needed to turn the staged typed map
 surface into an actual paper-faithful extraction theorem. Keeping these seams
@@ -361,6 +362,18 @@ def godMoveTargetLowerBoundTarget (M : DTM) (n : ℕ)
     (g : GodMoveTypedExtraction M n hn2 htb hns) : Prop :=
   Nat.choose n (Nat.log 2 n) ≤
     mlBlockedSpdpRank g.target.partition (Nat.log 2 n) (Nat.log 2 n) g.target.poly
+
+/-- Bundled theorem targets for a future concrete God-Move construction.
+
+This packages the main proof obligations of the typed route into one place:
+(1) semantic identification of the staged extraction with the coupled target,
+(2) target-side lower bound, and (3) transfer back to compiled rank. -/
+structure GodMoveProofTargets (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (g : GodMoveTypedExtraction M n hn2 htb hns) where
+  semantic_target : godMoveSemanticTarget M n hn2 htb hns g
+  target_lower_bound : godMoveTargetLowerBoundTarget M n hn2 htb hns g
+  rank_transfer_target : godMoveRankTransferTarget M n hn2 htb hns g
 
 structure GodMoveTypedExtraction (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
@@ -443,6 +456,20 @@ noncomputable def godMoveTypedExtractionToInterface
 
 /-- Forgetful bridge: the typed God-Move extraction frontier implies the lighter
 abstract interface used by the separation file. -/
+/-- Any concrete typed extraction already packages the three theorem endpoints
+needed by the current God-Move route. This is just a repackaging theorem, but it
+keeps the live proof targets explicit. -/
+def godMoveTypedExtractionProofTargets
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (g : GodMoveTypedExtraction M n hn2 htb hns) :
+    GodMoveProofTargets M n hn2 htb hns g where
+  semantic_target := by
+    exact g.extraction_correct_staged
+  target_lower_bound := by
+    exact g.target_lower
+  rank_transfer_target := by
+    exact g.rank_transfer
+
 noncomputable def god_move_extraction_interface_of_typed
     (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
