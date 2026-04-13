@@ -1885,12 +1885,13 @@ theorem godMoveConstruction_exists_not_restriction_data_perturbation_self
 
 /- First explicit object attempt for a non-identity restriction-data witness.
 
-A natural first perturbation is to single out one compiled variable as fixed and
-remove it from the preserved clause-sheet set. The immediate Lean obstruction is
-concrete rather than conceptual: to build such a record, we need an explicit
-`Fin T.numVars` witness (for example `⟨0, _⟩`), which in turn requires a clean
-positivity fact for `T.numVars`. Until that positivity is packaged honestly, do
-not count a concrete perturbed `GodMoveRestrictionData` record as finished. -/
+The conceptual blocker shrank: `cook_levin_compilation ...` really has
+`numVars := n`, so an explicit `Fin` witness should in principle come from a
+proof that `0 < n`. But reusing the large hypothesis `hn : n ≥ 2 ^ 804`
+directly in this local object definition triggered normalization/recursion
+trouble. So the honest next micro-step is even more specific now: isolate a
+small lemma giving `0 < (cook_levin_compilation ...).numVars` without dragging
+full exponent normalization into the object term. -/
 
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. What remains open is exactly the
