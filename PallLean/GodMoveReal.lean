@@ -402,6 +402,19 @@ def godMoveConstructionWithProofsTarget (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
   ∃ c : GodMoveConstruction M n hn2 htb hns, GodMoveConstructionWithProofs M n hn2 htb hns c
 
+/-- A concrete compiled-side remainder witness attached to a staged God-Move
+construction.
+
+This is the next semantic seam after `GodMoveConstruction`: identify an explicit
+compiled-side remainder polynomial whose interaction with the staged map explains
+why the extracted target should control compiled rank. -/
+structure GodMoveRemainderWitness (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n hn2 htb hns) where
+  remainderPoly : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ
+  remainder_is_compiled_side_only : Prop
+  remainder_annihilated_by_extraction_story : Prop
+
 /-- A concrete next theorem target for the God-Move route: produce a staged
 construction from SAT-correct Cook-Levin semantics. This isolates the first real
 semantic milestone before any lower-bound or rank-transfer arguments. -/
