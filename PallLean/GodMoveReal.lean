@@ -700,9 +700,24 @@ theorem godMoveTargetRankCastExprTarget_of_finrank
   intro z
   simpa [mlBlockedSpdpRank, godMoveTargetRankFinrankExprTarget] using hfin z
 
-/-- The even smaller helper target exposed by the failed proof attempt.
+/-- Since the remaining finrank target compares the finranks of two SPDP
+subspaces, the next exact seam is equality of those subspaces after transport. -/
+def godMoveTargetRankSubspaceExprTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∀ z : GodMoveZeroRemainderData M n hn2 htb hns c,
+    let ppart := Eq.mp (by rw [z.same_space]) c.target.partition
+    let ppoly := Eq.mp (by rw [z.same_space]) c.target.poly
+    mlBlockedSpdpSubspace ppart (Nat.log 2 n) (Nat.log 2 n) ppoly =
+      mlBlockedSpdpSubspace c.target.partition (Nat.log 2 n) (Nat.log 2 n) c.target.poly
 
-This now sits one level above the partition/poly transport subtargets. -/
+/-- The subspace-level target is the next honest seam below the finrank target.
+The intended bridge to finrank equality still needs a careful proof wrapper, so
+for now we record only the subspace target itself.
+
+The even smaller helper target below still states the original rank-transport
+goal; the new subspace target simply isolates a lower-level obstruction beneath
+it. -/
 def godMoveTargetRankTransportTarget
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
