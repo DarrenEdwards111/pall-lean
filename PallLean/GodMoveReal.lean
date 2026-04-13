@@ -750,6 +750,16 @@ def godMoveTargetRankSpanPolyTarget
     mlProj (m * iterDerivList S (Eq.mp (by rw [z.same_space]) c.target.poly)) =
       mlProj (m * iterDerivList S c.target.poly)
 
+/-- Candidate partition-side transport theorem: because the transported
+partition is definitionally the same partition after `same_space`, block
+admissibility should rewrite directly. -/
+theorem godMoveTargetRankSpanPartitionTarget_holds
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns) :
+    godMoveTargetRankSpanPartitionTarget c := by
+  intro z S
+  simp [godMoveTargetRankSpanPartitionTarget]
+
 /-- The subspace expression target is just the defining expansion of
 `mlBlockedSpdpSubspace`, so any proof at the `Submodule.span` level immediately
 repackages into the subspace-level target. -/
