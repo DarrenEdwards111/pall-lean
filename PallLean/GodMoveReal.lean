@@ -317,6 +317,30 @@ structure GodMoveRankTransferObligations (M : DTM) (n : ℕ)
   relabel_rank_nonincreasing : Prop
   staged_rank_transfer_recovers_field : Prop
 
+/-- Desired staged extraction identity for the compiled polynomial.
+
+This packages the exact theorem shape we eventually want from the semantic God-
+Move construction: after restriction, projection, and relabeling, the compiled
+Cook-Levin polynomial becomes the coupled target polynomial. -/
+def godMoveStagedExtractionTarget (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (coupledVars : ℕ)
+    (map : GodMoveTypedMap (cook_levin_compilation M n hn2 htb hns).numVars coupledVars)
+    (target : GodMoveTypedTarget coupledVars) : Prop :=
+  map.relabelFun
+      (map.projectFun
+        (map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) =
+    target.poly
+
+/-- Semantic theorem target: the typed staged map realizes the paper's God-Move
+extraction on the compiled polynomial.
+
+At present this is only recorded as a target proposition, not proved. -/
+def godMoveSemanticTarget (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (g : GodMoveTypedExtraction M n hn2 htb hns) : Prop :=
+  godMoveStagedExtractionTarget M n hn2 htb hns g.coupledVars g.map g.target
+
 structure GodMoveTypedExtraction (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
   coupledVars : ℕ
@@ -325,10 +349,7 @@ structure GodMoveTypedExtraction (M : DTM) (n : ℕ)
   extraction_correct :
     map.toFun (compiledPoly (cook_levin_compilation M n hn2 htb hns)) = target.poly
   extraction_correct_staged :
-    map.relabelFun
-        (map.projectFun
-          (map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) =
-      target.poly
+    godMoveStagedExtractionTarget M n hn2 htb hns coupledVars map target
   extraction_correct_coherent :
     map.toFun (compiledPoly (cook_levin_compilation M n hn2 htb hns)) =
       map.relabelFun
