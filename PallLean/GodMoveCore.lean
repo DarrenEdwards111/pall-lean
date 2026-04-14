@@ -78,7 +78,7 @@ structure GodMoveExtractionInterface (M : DTM) (n : ℕ)
   witness_free : Prop
   block_local : Prop
   target_lower :
-    Nat.choose n (Nat.log 2 n) ≤
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
       mlBlockedSpdpRank coupledPartition (Nat.log 2 n) (Nat.log 2 n) coupledPoly
   rank_transfer :
       mlBlockedSpdpRank coupledPartition (Nat.log 2 n) (Nat.log 2 n) coupledPoly ≤

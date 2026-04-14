@@ -312,7 +312,7 @@ theorem god_move_extraction_lemma (M : DTM) (n : ℕ)
     (hdec : DecidesSAT M)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n) :
-    Nat.choose n (Nat.log 2 n) ≤
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
       mlBlockedSpdpRank (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).partition
         (Nat.log 2 n) (Nat.log 2 n)
         (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)) := by
@@ -341,17 +341,17 @@ theorem god_move_identity_minor_axiom (M : DTM) (n : ℕ)
       mlBlockedSpdpRank (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).partition
         (Nat.log 2 n) (Nat.log 2 n)
         (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)) := by
-  -- Step 1: God-Move extraction gives C(n, log₂ n) ≤ rank(compiled)
+  -- Step 1: God-Move extraction gives C(n/3, log₂ n) ≤ rank(compiled)
   have h_extraction := god_move_extraction_lemma M n hn hdec htb hns
   -- Step 2: n^(log₂ n / 4) ≤ C(n/30, log₂ n) via BinomialBound2
   have hn40 : n ≥ 2 ^ 40 :=
     le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 40 ≤ 804)) hn
   have h_binom : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
     BinomialBound.binomial_lower_bound_concrete n hn40
-  -- Step 3: C(n/30, log₂ n) ≤ C(n, log₂ n) by monotonicity (n/30 ≤ n)
-  have h_mono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose n (Nat.log 2 n) :=
-    Nat.choose_le_choose (Nat.log 2 n) (Nat.div_le_self n 30)
-  -- Combine: n^(log₂ n/4) ≤ C(n/30, log₂ n) ≤ C(n, log₂ n) ≤ rank(compiled)
+  -- Step 3: C(n/30, log₂ n) ≤ C(n/3, log₂ n) by monotonicity (n/30 ≤ n/3)
+  have h_mono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose (n / 3) (Nat.log 2 n) :=
+    Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
+  -- Combine: n^(log₂ n/4) ≤ C(n/30, log₂ n) ≤ C(n/3, log₂ n) ≤ rank(compiled)
   exact le_trans (le_trans h_binom h_mono) h_extraction
 
 /-! ## §29.6: The Separation -/

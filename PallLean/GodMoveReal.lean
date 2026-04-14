@@ -348,7 +348,7 @@ structure GodMoveTypedExtraction (M : DTM) (n : ℕ)
       extraction_correct_coherent
   /-- NP-side lower bound on the extracted coupled sheet. -/
   target_lower :
-    Nat.choose n (Nat.log 2 n) ≤
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
       mlBlockedSpdpRank target.partition (Nat.log 2 n) (Nat.log 2 n) target.poly
   /-- Rank transfer from coupled sheet back to compiled polynomial. -/
   rank_transfer :
@@ -390,7 +390,7 @@ structure GodMoveConstructionWithProofs (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (construction : GodMoveConstruction M n hn2 htb hns) where
   target_lower_bound :
-    Nat.choose n (Nat.log 2 n) ≤
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
       mlBlockedSpdpRank construction.target.partition (Nat.log 2 n) (Nat.log 2 n)
         construction.target.poly
   rank_transfer_target :
@@ -476,7 +476,7 @@ structure GodMoveZeroRemainderData (M : DTM) (n : ℕ)
   same_partition :
     target_same_space.partition = (cook_levin_compilation M n hn2 htb hns).partition
   target_lower_bound :
-    Nat.choose n (Nat.log 2 n) ≤
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
       mlBlockedSpdpRank target_same_space.partition (Nat.log 2 n) (Nat.log 2 n) target_same_space.poly
   compiled_decomposition :
     compiledPoly (cook_levin_compilation M n hn2 htb hns) =
@@ -1193,7 +1193,7 @@ axiom identity_construction_np_lower_bound (M : DTM) (n : ℕ)
     (hdec : PaperFaithfulSeparation.DecidesSAT M)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n) :
-    Nat.choose n (Nat.log 2 n) ≤
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
       mlBlockedSpdpRank
         (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).partition
         (Nat.log 2 n) (Nat.log 2 n)
