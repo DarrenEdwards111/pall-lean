@@ -412,4 +412,15 @@ theorem transSkelLC_mem_cook_levin_constraints
   refine ⟨transSkelLC M n q i hi0, ?_⟩
   exact transSkelLC_mem_cook_levin_constraints M n hn htb hns q i hi0
 
+/-- The honest Cook-Levin compilation contains at least one genuinely
+machine-dependent local constraint as soon as the machine has a state.
+This is the smallest structural bridge from the compiled object to the
+transition layer that the God-Move side can consume. -/
+theorem cook_levin_compilation_has_machine_dependent_constraint
+    (M : DTM) (n : ℕ) (hn : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hstate : 0 < M.numStates) :
+    ∃ c : LocalConstraint (cook_levin_compilation M n hn htb hns).numVars,
+      c ∈ (cook_levin_compilation M n hn htb hns).constraints := by
+  simpa using exists_transSkelConstraint_mem_cook_levin_constraints M n hn htb hns hstate
+
 end PaperFaithfulSeparation
