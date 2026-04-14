@@ -562,4 +562,189 @@ where
           exact ⟨by simp [MvPolynomial.coeff_zero], (goodAllDepthsR_zero m V).1 d⟩
     · intro s _; rw [MvPolynomial.pderiv_C]; simp [MvPolynomial.coeff_zero]
 
+/-- GoodAllDepthsR for the zero polynomial. -/
+theorem goodAllDepthsR_zero {n : ℕ} (m : Fin n →₀ ℕ) (V : Finset (Fin n)) :
+    GoodAllDepthsR (0 : MvPolynomial (Fin n) ℚ) m V := by
+  constructor
+  · intro d
+    induction d with
+    | zero => intro b _ _; simp [MvPolynomial.coeff_zero]
+    | succ d ih =>
+      constructor
+      · intro b _ _; simp [MvPolynomial.coeff_zero]
+      · intro s _; simp only [map_zero]
+        exact ⟨by simp [MvPolynomial.coeff_zero], ih⟩
+  · intro s _; simp [map_zero, MvPolynomial.coeff_zero]
+
+/-! ## Step 9: GoodAllDepthsR for individual rest factors
+
+Each rest factor has the form 1 - c * X_i * X_{i+1}. For the first-of-block
+variable set V = {v | 3 ∣ v.val} and tag T ⊆ V:
+- NoSubmonomials holds (already proved)
+- For s ∈ V: pderiv s gives either 0 or -c * X_w where w ∉ V (the "partner"
+  variable w is i+1 or i, never a multiple of 3)
+- Second restricted derivative is always 0 (since w ∉ V) -/
+
+/-- GoodAllDepthsR for C(c') * X_w when w ∉ T and w ∉ V. -/
+private theorem goodAllDepthsR_C_mul_X_not_in_V {n : ℕ} (c' : ℚ) (w : Fin n)
+    (T : Finset (Fin n)) (V : Finset (Fin n)) (hw_T : w ∉ T) (hw_V : w ∉ V) :
+    GoodAllDepthsR (MvPolynomial.C c' * MvPolynomial.X w : MvPolynomial (Fin n) ℚ)
+      (tagMonomial T) V := by
+  have hnosubmono : NoSubmonomials (MvPolynomial.C c' * MvPolynomial.X w : MvPolynomial (Fin n) ℚ)
+      (tagMonomial T) := by
+    intro b hb hle
+    rw [MvPolynomial.coeff_C_mul, MvPolynomial.coeff_X']
+    split_ifs with heq
+    · subst heq
+      have := hle w
+      rw [Finsupp.single_apply, if_pos rfl, tagMonomial_apply, if_neg hw_T] at this
+      omega
+    · ring
+  have hderiv_zero : ∀ s ∈ V,
+      MvPolynomial.pderiv s (MvPolynomial.C c' * MvPolynomial.X w : MvPolynomial (Fin n) ℚ) = 0 := by
+    intro s hs
+    have hsw : s ≠ w := fun h => hw_V (h ▸ hs)
+    rw [MvPolynomial.pderiv_mul, MvPolynomial.pderiv_C, zero_mul, zero_add]
+    simp only [MvPolynomial.pderiv_X, Pi.single_apply, if_neg (Ne.symm hsw), mul_zero]
+  constructor
+  · intro d
+    induction d with
+    | zero => exact hnosubmono
+    | succ d _ =>
+      constructor
+      · exact hnosubmono
+      · intro s hs
+        rw [hderiv_zero s hs]
+        exact ⟨by simp [MvPolynomial.coeff_zero], (goodAllDepthsR_zero (tagMonomial T) V).1 d⟩
+  · intro s hs
+    rw [hderiv_zero s hs, MvPolynomial.coeff_zero]
+
+/-- The adjacency/transition factor 1 - c * X_i * X_{i+1} has GoodAllDepthsR
+    w.r.t. any first-of-block tag T and variable set V, where V consists of
+    multiples of 3 and T ⊆ V. -/
+-- Helper: pderiv s of C c * (X i * X j) using Leibniz
+private theorem pderiv_C_mul_XX {n : ℕ} (c : ℚ) (i j s : Fin n) :
+    MvPolynomial.pderiv s (MvPolynomial.C c * (MvPolynomial.X i * MvPolynomial.X j) :
+      MvPolynomial (Fin n) ℚ) =
+    MvPolynomial.C c * ((if s = i then (1 : MvPolynomial (Fin n) ℚ) else 0) * MvPolynomial.X j +
+      MvPolynomial.X i * (if s = j then 1 else 0)) := by
+  rw [MvPolynomial.pderiv_mul, MvPolynomial.pderiv_C, zero_mul, zero_add,
+    MvPolynomial.pderiv_mul]
+  simp only [MvPolynomial.pderiv_X, Pi.single_apply, @eq_comm _ s]
+
+theorem goodAllDepthsR_cadj_factor {n : ℕ} (c : ℚ) (i : Fin n) (hi : i.val + 1 < n)
+    (T : Finset (Fin n)) (V : Finset (Fin n))
+    (hT : ∀ v ∈ T, 3 ∣ v.val)
+    (hV : ∀ v ∈ V, 3 ∣ v.val) :
+    GoodAllDepthsR
+      ((1 : MvPolynomial (Fin n) ℚ) - MvPolynomial.C c * (MvPolynomial.X i * MvPolynomial.X ⟨i.val + 1, hi⟩))
+      (tagMonomial T) V := by
+  set j : Fin n := ⟨i.val + 1, hi⟩ with hj_def
+  have hij : i ≠ j := by intro h; simp [hj_def, Fin.ext_iff] at h
+  have hji : j ≠ i := Ne.symm hij
+  -- For any s ∈ V (3 | s.val), the derivative is:
+  --   s = i (3|i): -(c * X_j), and 3∤(i+1) so j∉V,j∉T
+  --   s = j (3|(i+1)): -(c * X_i), and i≡2 mod 3 so i∉V,i∉T
+  --   s ∉ {i,j}: 0
+  -- In all cases, the derivative has GoodAllDepthsR
+  -- (because the partner variable is not in V, so second restricted derivative = 0)
+  -- The factor is 1 - Q where Q = C c * (X i * X j)
+  -- pderiv s (1 - Q) = pderiv s 1 - pderiv s Q = -pderiv s Q
+  -- We compute pderiv s Q and then handle the subtraction.
+  -- Rewrite factor as 1 + C(-c) * (X i * X j) for derivative computation
+  have hfactor_eq : (1 : MvPolynomial (Fin n) ℚ) - MvPolynomial.C c *
+      (MvPolynomial.X i * MvPolynomial.X j) =
+      1 + MvPolynomial.C (-c) * (MvPolynomial.X i * MvPolynomial.X j) := by
+    simp [neg_mul, sub_eq_add_neg]
+  -- For s = i: pderiv gives C(-c) * X j
+  have hderiv_i : MvPolynomial.pderiv i ((1 : MvPolynomial (Fin n) ℚ) - MvPolynomial.C c *
+      (MvPolynomial.X i * MvPolynomial.X j)) = MvPolynomial.C (-c) * MvPolynomial.X j := by
+    rw [hfactor_eq, map_add (MvPolynomial.pderiv i), MvPolynomial.pderiv_one, zero_add,
+      pderiv_C_mul_XX]
+    rw [if_pos rfl, if_neg hij, one_mul, mul_zero, add_zero]
+  -- For s = j: pderiv gives C(-c) * X i
+  have hderiv_j : MvPolynomial.pderiv j ((1 : MvPolynomial (Fin n) ℚ) - MvPolynomial.C c *
+      (MvPolynomial.X i * MvPolynomial.X j)) = MvPolynomial.C (-c) * MvPolynomial.X i := by
+    rw [hfactor_eq, map_add (MvPolynomial.pderiv j), MvPolynomial.pderiv_one, zero_add,
+      pderiv_C_mul_XX]
+    rw [if_neg hji, if_pos rfl, zero_mul, mul_one, zero_add]
+  -- For s ∉ {i,j}: pderiv is 0
+  have hderiv_other : ∀ s : Fin n, s ≠ i → s ≠ j →
+      MvPolynomial.pderiv s ((1 : MvPolynomial (Fin n) ℚ) - MvPolynomial.C c *
+        (MvPolynomial.X i * MvPolynomial.X j)) = 0 := by
+    intro s hsi hsj
+    rw [hfactor_eq, map_add (MvPolynomial.pderiv s), MvPolynomial.pderiv_one, zero_add]
+    rw [pderiv_C_mul_XX]; simp [if_neg hsi, if_neg hsj]
+  -- Key non-membership facts
+  have hj_not_V_of_i_in_V : i ∈ V → j ∉ V := by
+    intro hi_in hj_in
+    have h3i := hV i hi_in; have h3j := hV j hj_in
+    simp [hj_def] at h3j; omega
+  have hi_not_V_of_j_in_V : j ∈ V → i ∉ V := by
+    intro hj_in hi_in
+    have h3i := hV i hi_in; have h3j := hV j hj_in
+    simp [hj_def] at h3j; omega
+  have hj_not_T_of_i_in_V : i ∈ V → j ∉ T := by
+    intro hi_in hj_in
+    have h3i := hV i hi_in; have h3j := hT j hj_in
+    simp [hj_def] at h3j; omega
+  have hi_not_T_of_j_in_V : j ∈ V → i ∉ T := by
+    intro hj_in hi_in
+    have h3i := hT i hi_in; have h3j := hV j hj_in
+    simp [hj_def] at h3j; omega
+  -- Derivative has GoodAllDepthsR for any s ∈ V
+  have hderiv_good : ∀ s ∈ V,
+      GoodAllDepthsR (MvPolynomial.pderiv s ((1 : MvPolynomial (Fin n) ℚ) - MvPolynomial.C c *
+        (MvPolynomial.X i * MvPolynomial.X j))) (tagMonomial T) V := by
+    intro s hs
+    by_cases hsi : s = i
+    · subst hsi
+      rw [hderiv_i]
+      exact goodAllDepthsR_C_mul_X_not_in_V (-c) j T V (hj_not_T_of_i_in_V hs) (hj_not_V_of_i_in_V hs)
+    · by_cases hsj : s = j
+      · subst hsj
+        rw [hderiv_j]
+        exact goodAllDepthsR_C_mul_X_not_in_V (-c) i T V (hi_not_T_of_j_in_V hs) (hi_not_V_of_j_in_V hs)
+      · rw [hderiv_other s hsi hsj]
+        exact goodAllDepthsR_zero (tagMonomial T) V
+  -- Derivative has constant term 0 for s ∈ V
+  have hderiv_const : ∀ s ∈ V,
+      MvPolynomial.coeff 0 (MvPolynomial.pderiv s ((1 : MvPolynomial (Fin n) ℚ) - MvPolynomial.C c *
+        (MvPolynomial.X i * MvPolynomial.X j))) = 0 := by
+    intro s hs
+    by_cases hsi : s = i
+    · subst hsi; rw [hderiv_i, coeff_zero_mul,
+        MvPolynomial.coeff_X', if_neg (Finsupp.single_ne_zero.mpr (by omega : (1 : ℕ) ≠ 0)),
+        mul_zero]
+    · by_cases hsj : s = j
+      · subst hsj; rw [hderiv_j, coeff_zero_mul,
+          MvPolynomial.coeff_X', if_neg (Finsupp.single_ne_zero.mpr (by omega : (1 : ℕ) ≠ 0)),
+          mul_zero]
+      · rw [hderiv_other s hsi hsj, MvPolynomial.coeff_zero]
+  -- Build GoodAllDepthsR
+  constructor
+  · intro d
+    induction d with
+    | zero => exact noSubmono_cadj_factor c i hi T hT
+    | succ d _ =>
+      constructor
+      · exact noSubmono_cadj_factor c i hi T hT
+      · intro s hs
+        exact ⟨hderiv_const s hs, (hderiv_good s hs).1 d⟩
+  · exact hderiv_const
+
+/-- The adjacency factor 1 - X_i * X_{i+1} (c = 1) has GoodAllDepthsR. -/
+theorem goodAllDepthsR_adj_factor {n : ℕ} (i : Fin n) (hi : i.val + 1 < n)
+    (T : Finset (Fin n)) (V : Finset (Fin n))
+    (hT : ∀ v ∈ T, 3 ∣ v.val)
+    (hV : ∀ v ∈ V, 3 ∣ v.val) :
+    GoodAllDepthsR
+      ((1 : MvPolynomial (Fin n) ℚ) - MvPolynomial.X i * MvPolynomial.X ⟨i.val + 1, hi⟩)
+      (tagMonomial T) V := by
+  have h1c : (1 : MvPolynomial (Fin n) ℚ) - MvPolynomial.X i * MvPolynomial.X ⟨i.val + 1, hi⟩ =
+      (1 : MvPolynomial (Fin n) ℚ) - MvPolynomial.C 1 * (MvPolynomial.X i * MvPolynomial.X ⟨i.val + 1, hi⟩) := by
+    simp
+  rw [h1c]
+  exact goodAllDepthsR_cadj_factor 1 i hi T V hT hV
+
 end CrossTermVanishing
