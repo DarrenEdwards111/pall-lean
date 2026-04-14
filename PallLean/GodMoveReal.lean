@@ -12,6 +12,8 @@
   3. The rank monotonicity chain for the separation
 -/
 import PallLean.GodMoveCore
+import PallLean.CrossTermVanishing
+import PallLean.CompiledBoolFactorBridge
 import Mathlib.Tactic
 import Mathlib.Data.Nat.Log
 
@@ -1188,7 +1190,159 @@ theorem godMove_compilation_has_machine_dependent_constraint
   exact PaperFaithfulSeparation.cook_levin_compilation_has_machine_dependent_constraint
     M n (by omega : n ≥ 2) htb hns hstate
 
-axiom identity_construction_np_lower_bound (M : DTM) (n : ℕ)
+/-! ### First-of-block family construction
+
+For each κ-element subset T ⊆ Fin (n/3), define S_T = { ⟨3*b.val, _⟩ | b ∈ T } ⊆ Fin n.
+This gives C(n/3, κ) first-of-block block-admissible κ-subsets. Combined with
+linearIndependent_mlProj_compiled_fob, this proves C(n/3, κ) ≤ mlBlockedSpdpRank. -/
+
+/-- Map a subset of block indices to first-of-block variable indices. -/
+noncomputable def firstOfBlockSubset (n : ℕ) (T : Finset (Fin (n / 3))) : Finset (Fin n) :=
+  T.map ⟨fun b => ⟨3 * b.val, by omega⟩, fun a b h => by
+    simp only [Fin.mk.injEq] at h; exact Fin.ext (by omega)⟩
+
+theorem firstOfBlockSubset_card (n : ℕ) (T : Finset (Fin (n / 3))) :
+    (firstOfBlockSubset n T).card = T.card := by
+  simp [firstOfBlockSubset, Finset.card_map]
+
+theorem firstOfBlockSubset_mem_div3 (n : ℕ) (T : Finset (Fin (n / 3)))
+    (v : Fin n) (hv : v ∈ firstOfBlockSubset n T) : 3 ∣ v.val := by
+  simp only [firstOfBlockSubset, Finset.mem_map, Function.Embedding.coeFn_mk] at hv
+  obtain ⟨b, _, rfl⟩ := hv
+  exact dvd_mul_right 3 b.val
+
+theorem firstOfBlockSubset_injective (n : ℕ) :
+    Function.Injective (firstOfBlockSubset n) := by
+  intro T₁ T₂ h
+  ext b
+  constructor
+  · intro hb
+    have : (⟨3 * b.val, by omega⟩ : Fin n) ∈ firstOfBlockSubset n T₁ := by
+      simp only [firstOfBlockSubset, Finset.mem_map, Function.Embedding.coeFn_mk]
+      exact ⟨b, hb, rfl⟩
+    rw [h] at this
+    simp only [firstOfBlockSubset, Finset.mem_map, Function.Embedding.coeFn_mk] at this
+    obtain ⟨b', hb', hbb'⟩ := this
+    have : b = b' := Fin.ext (by simp only [Fin.mk.injEq] at hbb'; omega)
+    subst this; exact hb'
+  · intro hb
+    have : (⟨3 * b.val, by omega⟩ : Fin n) ∈ firstOfBlockSubset n T₂ := by
+      simp only [firstOfBlockSubset, Finset.mem_map, Function.Embedding.coeFn_mk]
+      exact ⟨b, hb, rfl⟩
+    rw [← h] at this
+    simp only [firstOfBlockSubset, Finset.mem_map, Function.Embedding.coeFn_mk] at this
+    obtain ⟨b', hb', hbb'⟩ := this
+    have : b = b' := Fin.ext (by simp only [Fin.mk.injEq] at hbb'; omega)
+    subst this; exact hb'
+
+/-- Any two elements of a first-of-block subset in the same block are equal. -/
+theorem firstOfBlockSubset_same_block_eq (n : ℕ) (hn : n ≥ 2)
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (T : Finset (Fin (n / 3)))
+    (x y : Fin n)
+    (hx : x ∈ firstOfBlockSubset n T)
+    (hy : y ∈ firstOfBlockSubset n T)
+    (hblock : (cook_levin_compilation M n hn htb hns).partition.assign x =
+              (cook_levin_compilation M n hn htb hns).partition.assign y) :
+    x = y := by
+  simp only [firstOfBlockSubset, Finset.mem_map, Function.Embedding.coeFn_mk] at hx hy
+  obtain ⟨bx, _, rfl⟩ := hx
+  obtain ⟨by_, _, rfl⟩ := hy
+  rw [cook_levin_same_block] at hblock
+  -- hblock : (3 * bx.val) / 3 = (3 * by_.val) / 3
+  -- Since 3 * k / 3 = k for natural numbers, bx.val = by_.val
+  have hbx_eq : bx.val = by_.val := by
+    have h1 : 3 * bx.val / 3 = bx.val := by omega
+    have h2 : 3 * by_.val / 3 = by_.val := by omega
+    linarith
+  exact Fin.ext (show (⟨3 * bx.val, _⟩ : Fin n).val = (⟨3 * by_.val, _⟩ : Fin n).val by
+    simp; omega)
+
+/-- First-of-block subsets are block-admissible under the locality partition (block size 3).
+Variable i goes to block i/3, and our subset picks variable 3*b from block b,
+so at most 1 variable per block. -/
+theorem firstOfBlockSubset_blockAdmissible (n : ℕ) (hn : n ≥ 2)
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (T : Finset (Fin (n / 3))) :
+    isBlockAdmissible (cook_levin_compilation M n hn htb hns).partition
+      (firstOfBlockSubset n T).toList := by
+  refine ⟨Finset.nodup_toList _, fun b => ?_⟩
+  -- Show: the filtered list has length ≤ 1
+  -- Strategy: show any two elements in the filtered list are equal,
+  -- then use Nodup to conclude length ≤ 1.
+  have hnd := Finset.nodup_toList (firstOfBlockSubset n T)
+  have hfilt_nd : ((firstOfBlockSubset n T).toList.filter
+      (fun i => (cook_levin_compilation M n hn htb hns).partition.assign i = b)).Nodup :=
+    List.Nodup.filter _ hnd
+  -- If two elements of the filtered list exist, they must be equal (by same_block_eq)
+  -- A nodup list with ≥ 2 elements has two distinct elements, contradiction.
+  by_contra hbad; push_neg at hbad
+  -- Get two distinct elements from the nodup filtered list of length ≥ 2
+  have hlen := hbad
+  have : ∃ x y, x ∈ ((firstOfBlockSubset n T).toList.filter
+      (fun i => (cook_levin_compilation M n hn htb hns).partition.assign i = b)) ∧
+      y ∈ ((firstOfBlockSubset n T).toList.filter
+      (fun i => (cook_levin_compilation M n hn htb hns).partition.assign i = b)) ∧
+      x ≠ y := by
+    have h0 : 0 < ((firstOfBlockSubset n T).toList.filter
+        (fun i => (cook_levin_compilation M n hn htb hns).partition.assign i = b)).length := by omega
+    have h1 : 1 < ((firstOfBlockSubset n T).toList.filter
+        (fun i => (cook_levin_compilation M n hn htb hns).partition.assign i = b)).length := by omega
+    refine ⟨((firstOfBlockSubset n T).toList.filter
+        (fun i => (cook_levin_compilation M n hn htb hns).partition.assign i = b))[0],
+      ((firstOfBlockSubset n T).toList.filter
+        (fun i => (cook_levin_compilation M n hn htb hns).partition.assign i = b))[1],
+      List.getElem_mem h0, List.getElem_mem h1, ?_⟩
+    intro heq
+    -- The list is nodup, but positions 0 and 1 have the same value
+    have h_nd2 := hfilt_nd
+    rw [List.nodup_iff_injective_getElem] at h_nd2
+    have h_inj := @h_nd2 ⟨0, h0⟩ ⟨1, h1⟩ heq
+    simp at h_inj
+  obtain ⟨x, y, hx, hy, hne⟩ := this
+  simp only [List.mem_filter, decide_eq_true_eq] at hx hy
+  have hx_set : x ∈ firstOfBlockSubset n T := Finset.mem_toList.mp hx.1
+  have hy_set : y ∈ firstOfBlockSubset n T := Finset.mem_toList.mp hy.1
+  exact hne (firstOfBlockSubset_same_block_eq n hn M htb hns T x y hx_set hy_set
+    (hx.2.trans hy.2.symm))
+
+/-- The family of all C(n/3, κ) first-of-block κ-subsets. -/
+noncomputable def fobFamily (n κ : ℕ) : Finset (Finset (Fin n)) :=
+  ((Finset.univ : Finset (Fin (n / 3))).powersetCard κ).map
+    ⟨firstOfBlockSubset n, firstOfBlockSubset_injective n⟩
+
+theorem fobFamily_card (n κ : ℕ) :
+    (fobFamily n κ).card = Nat.choose (n / 3) κ := by
+  simp [fobFamily, Finset.card_map, Finset.card_powersetCard, Finset.card_fin]
+
+theorem fobFamily_mem_card (n κ : ℕ) (S : Finset (Fin n)) (hS : S ∈ fobFamily n κ) :
+    S.card = κ := by
+  simp only [fobFamily, Finset.mem_map, Function.Embedding.coeFn_mk] at hS
+  obtain ⟨T, hT, rfl⟩ := hS
+  rw [firstOfBlockSubset_card]
+  rw [Finset.mem_powersetCard] at hT
+  exact hT.2
+
+theorem fobFamily_mem_fob (n κ : ℕ) (S : Finset (Fin n)) (hS : S ∈ fobFamily n κ)
+    (v : Fin n) (hv : v ∈ S) : 3 ∣ v.val := by
+  simp only [fobFamily, Finset.mem_map, Function.Embedding.coeFn_mk] at hS
+  obtain ⟨T, _, rfl⟩ := hS
+  exact firstOfBlockSubset_mem_div3 n T v hv
+
+theorem fobFamily_mem_blockAdmissible (n : ℕ) (hn : n ≥ 2) (κ : ℕ)
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : Finset (Fin n)) (hS : S ∈ fobFamily n κ) :
+    isBlockAdmissible (cook_levin_compilation M n hn htb hns).partition S.toList := by
+  simp only [fobFamily, Finset.mem_map, Function.Embedding.coeFn_mk] at hS
+  obtain ⟨T, _, rfl⟩ := hS
+  exact firstOfBlockSubset_blockAdmissible n hn M htb hns T
+
+/-- The NP-side lower bound: C(n/3, log n) ≤ rank(compiledPoly).
+
+Constructed from the family of C(n/3, κ) first-of-block block-admissible κ-subsets,
+whose compiled SPDP generators are linearly independent by
+CrossTermVanishing.linearIndependent_mlProj_compiled_fob. -/
+theorem identity_construction_np_lower_bound (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : PaperFaithfulSeparation.DecidesSAT M)
     (htb : M.timeBound ≤ 4)
@@ -1197,7 +1351,27 @@ axiom identity_construction_np_lower_bound (M : DTM) (n : ℕ)
       mlBlockedSpdpRank
         (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).partition
         (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns))
+        (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)) := by
+  set κ := Nat.log 2 n with hκ_def
+  have hκ1 : κ ≥ 1 := by
+    simp only [κ, hκ_def]
+    have h804 : 2 ^ 804 ≤ n := hn
+    have : Nat.log 2 (2 ^ 804) ≤ Nat.log 2 n := Nat.log_mono_right h804
+    rw [Nat.log_pow (by norm_num : 1 < 2)] at this
+    omega
+  set F := fobFamily n κ
+  have hFcard : F.card = Nat.choose (n / 3) κ := fobFamily_card n κ
+  have hcard : ∀ S ∈ F, S.card = κ := fun S hS => fobFamily_mem_card n κ S hS
+  have hfob : ∀ S ∈ F, ∀ v ∈ S, 3 ∣ v.val := fun S hS => fobFamily_mem_fob n κ S hS
+  have hadm : ∀ S ∈ F, isBlockAdmissible
+      (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).partition S.toList :=
+    fun S hS => fobFamily_mem_blockAdmissible n (by omega) κ M htb hns S hS
+  have hli : LinearIndependent ℚ (fun S : F =>
+      mlProj (iterDerivList (S : Finset (Fin n)).toList
+        (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)))) :=
+    CrossTermVanishing.linearIndependent_mlProj_compiled_fob M n (by omega) htb hns κ hκ1 hcard hfob
+  exact CompiledBoolFactorBridge.weakened_bound_from_compiled_independence
+    M n (by omega) htb hns κ hκ1 rfl F hFcard hcard hadm hli
 
 /- Construction note for the current identity placeholder route.
 
