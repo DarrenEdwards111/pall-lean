@@ -1318,4 +1318,29 @@ theorem coeff_tag_iterDeriv_boolFactor_prod_general {N : ℕ}
   rw [hprod4, mul_one]
   ring
 
+-- For same-size subsets: the coefficient simplifies to 2^|S cap S'|.
+set_option maxHeartbeats 800000 in
+theorem coeff_tag_iterDeriv_boolFactor_prod_samesize {N : ℕ}
+    (S S' : Finset (Fin N)) (hcard : S.card = S'.card) :
+    MvPolynomial.coeff (∑ v ∈ S, Finsupp.single v 1)
+      ((S'.prod (fun v => MvPolynomial.pderiv v (boolFactor N v))) *
+       (Finset.univ \ S').prod (boolFactor N) : MvPolynomial (Fin N) ℚ) =
+    (2 : ℚ) ^ (S ∩ S').card := by
+  rw [coeff_tag_iterDeriv_boolFactor_prod_general]
+  -- Need: (-1)^|S\S'| * (-1)^|S'\S| = 1
+  -- Since |S\S'| = |S| - |S∩S'| and |S'\S| = |S'| - |S∩S'|
+  -- so |S\S'| + |S'\S| = |S| + |S'| - 2|S∩S'| = 2(|S| - |S∩S'|) when |S| = |S'|
+  -- |S\S'| = |S| - |S'∩S| and |S'\S| = |S'| - |S∩S'|
+  -- With Finset.card_sdiff: #(t\s) = #t - #(s∩t)
+  have h_sdiff1 : (S \ S').card = S.card - (S' ∩ S).card := Finset.card_sdiff
+  have h_sdiff2 : (S' \ S).card = S'.card - (S ∩ S').card := Finset.card_sdiff
+  have h_inter_comm : (S' ∩ S).card = (S ∩ S').card := by rw [Finset.inter_comm]
+  rw [h_sdiff1, h_inter_comm, h_sdiff2, hcard]
+  -- Now: 2^k * (-1)^(|S'| - |S∩S'|) * (-1)^(|S'| - |S∩S'|) = 2^k
+  -- 2^k * (-1)^n * (-1)^n = 2^k * ((-1)^n * (-1)^n) = 2^k * (-1)^(2n) = 2^k
+  rw [mul_assoc, ← pow_add, ← two_mul]
+  have heven : ((-1 : ℚ) ^ (2 * (S'.card - (S ∩ S').card))) = 1 :=
+    Even.neg_one_pow (even_two_mul _)
+  rw [heven, mul_one]
+
 end SymmetricPower
