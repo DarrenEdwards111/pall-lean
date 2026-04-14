@@ -1,6 +1,7 @@
 import PallLean.SPDPDefs
 import PallLean.Tseitin
 import PallLean.BinomialBound2
+import PallLean.IterDerivHelpers
 import Mathlib.Tactic
 /-!
 # NP-Side Lower Bound — Pall §7–10
@@ -601,6 +602,25 @@ noncomputable def npNumVars (n : ℕ) : ℕ := tseitinNumVars (tseitinAt n)
 noncomputable def tseitinPoly (F : Type*) [CommRing F] [Nontrivial F] (n : ℕ) :
     MvPolynomial (Fin (npNumVars n)) F :=
   coupledVerifier F (tseitinAt n)
+
+/-- Paper-faithful characteristic polynomial χ_{Φ_n}, kept separate from the
+current coupled-verifier route. -/
+noncomputable def tseitinCharPoly (F : Type*) [CommRing F] [Nontrivial F] (n : ℕ) :
+    MvPolynomial (Fin (npNumVars n)) F :=
+  Tseitin.characteristicPoly F (tseitinAt n)
+
+theorem pderiv_tseitinCharPoly_selector_zero (F : Type*) [CommRing F] [Nontrivial F]
+    (n : ℕ) (c : Fin (tseitinAt n).clauses.length) :
+    pderiv (selectorIdx (tseitinAt n) c) (tseitinCharPoly F n) = 0 := by
+  simpa [tseitinCharPoly] using
+    Tseitin.pderiv_characteristicPoly_selector_zero F (tseitinAt n) c
+
+theorem iterDerivList_tseitinCharPoly_selector_head_zero
+    (F : Type*) [CommRing F] [Nontrivial F]
+    (n : ℕ) (c : Fin (tseitinAt n).clauses.length) (S : List (Fin (npNumVars n))) :
+    SPDP.iterDerivList (selectorIdx (tseitinAt n) c :: S) (tseitinCharPoly F n) = 0 := by
+  exact IterDerivHelpers.iterDerivList_of_head_zero _ _ _
+    (pderiv_tseitinCharPoly_selector_zero F n c)
 
 /-- Tseitin block partition: selector z_c is placed in block c.
     Non-selector variables go in the overflow block (numClauses).
