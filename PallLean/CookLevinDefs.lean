@@ -491,6 +491,31 @@ private theorem rest_constraint_coeff_zero (M : DTM) (n : ℕ) (lc : LocalConstr
       simp [MvPolynomial.coeff_C_mul, MvPolynomial.coeff_mul, Finsupp.antidiagonal_single]
     · exact absurd hd (by simp [hi])
 
+/-- Each rest constraint has the cadj form: 1 - lc.poly = 1 - c * X_i * X_{i+1}
+    for some coefficient c, index i with i+1 < n. -/
+theorem rest_constraint_cadj_form (M : DTM) (n : ℕ) (lc : LocalConstraint n)
+    (hlc : lc ∈ adjConstraintList n ++ transSkelConstraintList M n) :
+    ∃ (c : ℚ) (i : Fin n) (hi : i.val + 1 < n),
+      lc.poly = MvPolynomial.C c * (MvPolynomial.X i * MvPolynomial.X ⟨i.val + 1, hi⟩) := by
+  rw [List.mem_append] at hlc
+  rcases hlc with hlc | hlc
+  · unfold adjConstraintList at hlc
+    simp only [List.mem_filterMap, List.mem_finRange, true_and] at hlc
+    obtain ⟨i, hd⟩ := hlc
+    by_cases hi : i.val + 1 < n
+    · simp only [hi, dite_true, Option.mem_def, Option.some.injEq] at hd
+      subst hd; unfold adjLC adjPoly
+      exact ⟨1, i, hi, by simp⟩
+    · exact absurd hd (by simp [hi])
+  · unfold transSkelConstraintList transSkelForState at hlc
+    simp only [List.mem_flatMap, List.mem_finRange, true_and, List.mem_filterMap] at hlc
+    obtain ⟨q, i, hd⟩ := hlc
+    by_cases hi : i.val + 1 < n
+    · simp only [hi, dite_true, Option.mem_def, Option.some.injEq] at hd
+      subst hd; unfold transSkelLC transSkelPoly
+      exact ⟨transCoeff M q, i, hi, rfl⟩
+    · exact absurd hd (by simp [hi])
+
 /-- The constant term of restFactorProd' is 1. -/
 theorem restFactorProd'_const_one (M : DTM) (n : ℕ) :
     MvPolynomial.coeff 0 (restFactorProd' M n) = 1 := by

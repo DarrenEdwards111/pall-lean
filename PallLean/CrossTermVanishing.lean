@@ -14,7 +14,7 @@ import Mathlib.Tactic
 
 namespace CrossTermVanishing
 
-open MvPolynomial SPDP MultilinearSPDP SymmetricPower PaperFaithfulSeparation
+open MvPolynomial SPDP MultilinearSPDP SymmetricPower PaperFaithfulSeparation TuringMachine
 
 /-! ## Step 1: Coefficient preservation for products -/
 
@@ -746,5 +746,62 @@ theorem goodAllDepthsR_adj_factor {n : ℕ} (i : Fin n) (hi : i.val + 1 < n)
     simp
   rw [h1c]
   exact goodAllDepthsR_cadj_factor 1 i hi T V hT hV
+
+/-! ## Step 10: restFactorProd' has GoodAllDepthsR, and the coefficient identity
+
+Chain through the list product to show restFactorProd' satisfies GoodAllDepthsR,
+then apply coeff_iterDeriv_mul_inertR to get:
+  coeff(tagMonomial S, iterDerivList T (boolFactorFullProd * restFactorProd'))
+  = coeff(tagMonomial S, iterDerivList T boolFactorFullProd) -/
+
+/-- Each rest factor (1 - lc.poly) for an adjacency or transition constraint
+    has GoodAllDepthsR for first-of-block V and T. -/
+theorem goodAllDepthsR_rest_factor {n : ℕ}
+    (M : TuringMachine.DTM)
+    (T : Finset (Fin n)) (V : Finset (Fin n))
+    (hT : ∀ v ∈ T, 3 ∣ v.val) (hV : ∀ v ∈ V, 3 ∣ v.val)
+    (lc : PaperFaithfulSeparation.LocalConstraint n)
+    (hlc : lc ∈ adjConstraintList n ++ transSkelConstraintList M n) :
+    GoodAllDepthsR
+      ((1 : MvPolynomial (Fin n) ℚ) - lc.poly) (tagMonomial T) V := by
+  obtain ⟨c, i, hi, hpoly⟩ := rest_constraint_cadj_form M n lc hlc
+  rw [hpoly]
+  exact goodAllDepthsR_cadj_factor c i hi T V hT hV
+
+/-- restFactorProd' has GoodAllDepthsR for first-of-block V and T. -/
+theorem goodAllDepthsR_restFactorProd' {n : ℕ}
+    (M : TuringMachine.DTM)
+    (T : Finset (Fin n)) (V : Finset (Fin n))
+    (hT : ∀ v ∈ T, 3 ∣ v.val) (hV : ∀ v ∈ V, 3 ∣ v.val) :
+    GoodAllDepthsR (restFactorProd' M n) (tagMonomial T) V := by
+  unfold restFactorProd'
+  apply goodAllDepthsR_list_prod
+  intro p hp
+  rw [List.mem_map] at hp
+  obtain ⟨lc, hlc, rfl⟩ := hp
+  exact goodAllDepthsR_rest_factor M T V hT hV lc hlc
+
+/-- The coefficient identity: for first-of-block tag T and derivative list S
+    with elements in V (all multiples of 3),
+    coeff(tagMonomial T', iterDerivList S compiledPoly)
+    = coeff(tagMonomial T', iterDerivList S boolFactorFullProd)
+    where compiledPoly = boolFactorFullProd * restFactorProd'. -/
+theorem coeff_iterDeriv_compiledPoly_eq_boolFactor {n : ℕ}
+    (M : TuringMachine.DTM) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin n)) (T' : Finset (Fin n))
+    (V : Finset (Fin n))
+    (hSV : ∀ s ∈ S, s ∈ V)
+    (hT' : ∀ v ∈ T', 3 ∣ v.val)
+    (hV : ∀ v ∈ V, 3 ∣ v.val) :
+    MvPolynomial.coeff (tagMonomial T')
+      (iterDerivList S (compiledPoly (cook_levin_compilation M n hn htb hns))) =
+    MvPolynomial.coeff (tagMonomial T')
+      (iterDerivList S (boolFactorFullProd n)) := by
+  rw [CompiledBoolFactorBridge.compiledPoly_eq_boolFactorFullProd_mul_rest M n hn htb hns]
+  apply coeff_iterDeriv_mul_inertR
+  · exact hSV
+  · exact restFactorProd'_const_one M n
+  · exact (goodAllDepthsR_restFactorProd' M T' V hT' hV).1 S.length
 
 end CrossTermVanishing
