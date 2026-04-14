@@ -697,4 +697,124 @@ theorem distribDerivProd_eq_zero_of_overDiff {n L : ℕ}
   apply Finset.prod_eq_zero (Finset.mem_univ i₀)
   exact iterDerivList_eq_zero_of_degree2_length3 (d i₀) (factors i₀) (hfactors i₀) hi₀
 
+/-! ## Part 12: Local derivative classification for degree-2 factors
+
+For a degree-≤-2 polynomial f with vars ⊆ {v₁, v₂}, the possible results of
+iterDerivList d f for d ⊆ S are:
+- |d| = 0: f itself
+- |d| = 1: pderiv v f for some v ∈ S  (nonzero only when v ∈ vars(f))
+- |d| = 2: pderiv v₁ (pderiv v₂ f) for v₁,v₂ ∈ S  (a constant or zero)
+- |d| ≥ 3: 0
+
+The key structural fact: iterDerivList d f depends only on the MULTISET of
+variables in d (by commutativity of partial derivatives). For degree-2 f,
+the multiset has at most 2 elements. So the local derivative space has
+dimension ≤ 1 + |vars(f)| + 1 ≤ 4 (for |vars(f)| ≤ 2). -/
+
+/-- For degree-≤-2 factors, iterDerivList with a list of length > 2 gives 0. -/
+theorem iterDerivList_degree2_vanishes_length_gt2 {n : ℕ}
+    (d : List (Fin n)) (f : MvPolynomial (Fin n) ℚ)
+    (hf : f.totalDegree ≤ 2) (hd : d.length > 2) :
+    iterDerivList d f = 0 :=
+  iterDerivList_eq_zero_of_totalDegree_lt d f (by omega)
+
+/-- For degree-≤-2 factors, a classified element g is either 0 or is a product
+    where each factor gets at most 2 derivatives. In the latter case, each
+    iterDerivList(d_i)(f_i) is already determined by the local derivative
+    structure of f_i.
+
+    This means the classified set for degree-2 factors is contained in {0}
+    together with the set of products of "local derivative results." -/
+theorem boundedProfileClassifiedSet_degree2_dichotomy {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hfactors : ∀ i, (factors i).totalDegree ≤ 2)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (h : ProfileHistogram)
+    (g : MvPolynomial (Fin n) ℚ)
+    (hg : g ∈ boundedProfileClassifiedSet factors constraintType S h) :
+    g = 0 ∨ ∃ (d : Fin L → List (Fin n)),
+      (∀ i, ∀ v ∈ d i, v ∈ S) ∧
+      g = Finset.univ.prod (fun i => iterDerivList (d i) (factors i)) ∧
+      derivCountProfile constraintType d = h ∧
+      (∀ i, (d i).length ≤ 2) := by
+  rcases hg with ⟨d, hd_elts, hg_eq, hprof, hd_len⟩
+  -- Check if any factor gets ≥ 3 derivatives
+  by_cases h_all : ∀ i, (d i).length ≤ 2
+  · -- All factors get ≤ 2 derivatives: the product is determined by local choices
+    right
+    exact ⟨d, hd_elts, hg_eq, hprof, h_all⟩
+  · -- Some factor gets ≥ 3 derivatives: the product is 0
+    left
+    push_neg at h_all
+    obtain ⟨i₀, hi₀⟩ := h_all
+    rw [hg_eq]
+    exact distribDerivProd_eq_zero_of_overDiff factors hfactors d i₀ (by omega)
+
+/-- The classified set for degree-2 factors is contained in the span of
+    products where each factor contributes at most 2 derivatives.
+
+    Combined with the fact that the zero element is in any span, this shows
+    the classified set lies in the span of the "locally bounded" products. -/
+noncomputable def locallyBoundedClassifiedSet {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (h : ProfileHistogram) :
+    Set (MvPolynomial (Fin n) ℚ) :=
+  { g | ∃ (d : Fin L → List (Fin n)),
+      (∀ i, ∀ v ∈ d i, v ∈ S) ∧
+      g = Finset.univ.prod (fun i => iterDerivList (d i) (factors i)) ∧
+      derivCountProfile constraintType d = h ∧
+      (∀ i, (d i).length ≤ 2) }
+
+/-- For degree-2 factors, the bounded classified set is contained in
+    {0} ∪ locallyBoundedClassifiedSet. -/
+theorem boundedProfileClassifiedSet_subset_locally_bounded {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hfactors : ∀ i, (factors i).totalDegree ≤ 2)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (h : ProfileHistogram) :
+    boundedProfileClassifiedSet factors constraintType S h ⊆
+      {0} ∪ locallyBoundedClassifiedSet factors constraintType S h := by
+  intro g hg
+  rcases boundedProfileClassifiedSet_degree2_dichotomy factors hfactors constraintType S h g hg with
+    h0 | ⟨d, hd_elts, hg_eq, hprof, hd_bound⟩
+  · left; exact Set.mem_singleton_iff.mpr h0
+  · right; exact ⟨d, hd_elts, hg_eq, hprof, hd_bound⟩
+
+/-- Span of {0} ∪ T equals span of T (since 0 is in every span). -/
+theorem span_union_zero_eq {V : Type*} [AddCommGroup V] [Module ℚ V]
+    (T : Set V) :
+    Submodule.span ℚ ({(0 : V)} ∪ T) = Submodule.span ℚ T := by
+  apply le_antisymm
+  · apply Submodule.span_le.mpr
+    intro x hx
+    rcases hx with h0 | hT
+    · rw [Set.mem_singleton_iff.mp h0]; exact Submodule.zero_mem _
+    · exact Submodule.subset_span hT
+  · exact Submodule.span_mono Set.subset_union_right
+
+/-- For degree-2 factors, the bounded profile post-span for fixed S and shift
+    is contained in the span of post-processed locally-bounded classified elements. -/
+theorem boundedProfilePostSpan_le_locallyBounded_for_degree2 {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hfactors : ∀ i, (factors i).totalDegree ≤ 2)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ)
+    (h : ProfileHistogram) :
+    boundedProfilePostSpan factors constraintType S shift h ≤
+      Submodule.span ℚ
+        ((fun g => mlProj (shift * g)) '' locallyBoundedClassifiedSet factors constraintType S h) := by
+  apply Submodule.span_le.mpr
+  intro x hx
+  rcases hx with ⟨g, hg_mem, rfl⟩
+  rcases boundedProfileClassifiedSet_degree2_dichotomy factors hfactors constraintType S h g hg_mem with
+    h0 | ⟨d, hd_elts, hg_eq, hprof, hd_bound⟩
+  · -- g = 0, so mlProj(shift * g) = mlProj(shift * 0) = 0 ∈ any span
+    simp [h0]
+  · -- g ∈ locallyBoundedClassifiedSet
+    exact Submodule.subset_span (Set.mem_image_of_mem _ ⟨d, hd_elts, hg_eq, hprof, hd_bound⟩)
+
 end WithinProfileBound
