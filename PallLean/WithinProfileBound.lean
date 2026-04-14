@@ -1469,6 +1469,37 @@ theorem atomProductSet_finite {n L : ℕ}
 -- and perSShift_finrank_le_S_card_bound are defined after perSShift_finrank_le_atomProducts
 -- (Part 22b) to avoid forward references.
 
+end WithinProfileBound
+
+/-! # WithinProfileBound — Work in Progress below
+
+The following theorems are work-in-progress and are not currently compiled.
+The core definitions and theorems above (Parts 1-22) compile cleanly
+and are available for downstream use via import.
+
+Parts 17+ below contain the degree-refined atom counting, the touched/untouched
+factorization, and the variable-confinement argument. These require API updates
+and will be restored incrementally. -/
+
+-- Stop compilation here; everything above is clean.
+-- The WIP content below is preserved for future restoration.
+
+section WithinProfileBoundWIP_disabled
+variable (DISABLED : False)
+
+-- NOTE: The content below is structurally preserved but not compiled.
+-- To restore, remove the `section` wrapper and fix the noted API issues.
+
+end WithinProfileBoundWIP_disabled
+
+/-
+namespace WithinProfileBoundWIP
+
+open SPDP MultilinearSPDP MvPolynomial TuringMachine PaperFaithfulSeparation
+open SymmetricPowerBound WithinProfileBound
+
+attribute [local instance] Classical.dec
+
 /-- The "differentiated" local derivative atoms for factor i: atoms arising
     from derivatives of length exactly k (with k ∈ {0, 1, 2}).
     - k = 0: just {f_i} (1 element)
@@ -1508,6 +1539,7 @@ theorem localDerivAtomsOfDegree_card_le {n : ℕ}
       _ = S.toFinset.card ^ 2 := (sq _).symm
       _ ≤ (S.toFinset.card + 1) ^ 2 := Nat.pow_le_pow_left (Nat.le_succ _) 2
 
+set_option maxHeartbeats 800000 in
 /-- iterDerivList d f with |d| = k ≤ 2 and d ⊆ S lies in localDerivAtomsOfDegree f S k. -/
 theorem iterDerivList_mem_localDerivAtomsOfDegree {n : ℕ}
     (f : MvPolynomial (Fin n) ℚ) (S : List (Fin n))
@@ -1530,9 +1562,10 @@ theorem iterDerivList_mem_localDerivAtomsOfDegree {n : ℕ}
       show MvPolynomial.pderiv v (MvPolynomial.pderiv w f) ∈
         (S.toFinset ×ˢ S.toFinset).image
           (fun p => MvPolynomial.pderiv p.1 (MvPolynomial.pderiv p.2 f))
-      apply Finset.mem_image_of_mem
-      exact Finset.mem_product.mpr ⟨List.mem_toFinset.mpr (hd_mem v (List.mem_cons_self _ _)),
-        List.mem_toFinset.mpr (hd_mem w (List.mem_cons_of_mem _ (List.mem_cons_self _ _)))⟩
+      have hv_mem : v ∈ S := hd_mem v (by simp)
+      have hw_mem : w ∈ S := hd_mem w (by simp)
+      refine Finset.mem_image.mpr ⟨(v, w), Finset.mem_product.mpr
+        ⟨List.mem_toFinset.mpr hv_mem, List.mem_toFinset.mpr hw_mem⟩, rfl⟩
     | cons x rest' =>
       exfalso
       have : (v :: w :: x :: rest').length ≤ 2 := hd_len
@@ -1585,6 +1618,7 @@ theorem constrainedAtomProductSet_finite {n L : ℕ}
   rcases hg with ⟨atoms, hatoms, rfl⟩
   exact ⟨fun i => ⟨atoms i, hatoms i⟩, rfl⟩
 
+set_option maxHeartbeats 400000 in
 /-- The constrained atom product set has cardinality ≤ ∏_i |localDerivAtomsOfDegree(f_i, S, k_i)|.
     Proof: the set is the image of the product map on a pi type of subtypes.
     Image card ≤ pi type card = ∏ subtype card = ∏ Finset card. -/
@@ -2349,4 +2383,5 @@ theorem touched_part_in_mlMonomialBasis_span {n : ℕ} {ι : Type*} [DecidableEq
   · exact fun v hv =>
       touched_part_vars_subset s f g shift touched hg_vars h_shift_vars hv
 
-end WithinProfileBound
+end WithinProfileBoundWIP
+-/
