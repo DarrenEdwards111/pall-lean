@@ -11,12 +11,15 @@
   5. Formal derivation: claim → HasFiniteProfileCover → rank bound.
 -/
 import PallLean.SymmetricPowerBound
+import PallLean.MlProjFar
 import Mathlib.Tactic
 
 namespace WithinProfileBound
 
 open SPDP MultilinearSPDP MvPolynomial TuringMachine PaperFaithfulSeparation
 open SymmetricPowerBound
+
+attribute [local instance] Classical.dec
 
 /-! ## Part 1: Finite enumeration of bounded profiles -/
 
@@ -344,15 +347,23 @@ noncomputable def boundedProfilePostSpan {n L : ℕ}
   Submodule.span ℚ
     ((fun g => mlProj (shift * g)) '' boundedProfileClassifiedSet factors constraintType S h)
 
-/-- Collecting across all S and shifts. -/
+/-- Collecting across all S (of length ≤ κ) and shifts (vars ⊆ S.toFinset).
+
+    Note: the shift is restricted to have vars ⊆ S.toFinset, matching the SPDP
+    generator constraint. This ensures the resulting post-span is finite-dimensional
+    (since mlProj produces multilinear polynomials on a bounded variable set).
+
+    Without this restriction, the post-span would be infinite-dimensional
+    (arbitrary shifts introduce unbounded new variables). -/
 noncomputable def allBoundedProfilePostSpan {n L : ℕ}
-    (_B : BlockPartition n) (_κ _ℓ : ℕ)
+    (_B : BlockPartition n) (κ _ℓ : ℕ)
     (factors : Fin L → MvPolynomial (Fin n) ℚ)
     (constraintType : Fin L → ConstraintType)
     (h : ProfileHistogram) :
     Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
   Submodule.span ℚ
-    (⋃ (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ),
+    (⋃ (S : List (Fin n)) (_ : S.length ≤ κ)
+       (shift : MvPolynomial (Fin n) ℚ) (_ : shift.vars ⊆ S.toFinset),
       (fun g => mlProj (shift * g)) '' boundedProfileClassifiedSet factors constraintType S h)
 
 /-- The bounded profile post-span is contained in the original profile post-span
@@ -365,13 +376,10 @@ theorem allBoundedProfilePostSpan_le_allDerivCountProfilePostSpan {n L : ℕ}
     allBoundedProfilePostSpan B κ ℓ factors constraintType h ≤
       allDerivCountProfilePostSpan B κ ℓ factors constraintType h := by
   apply Submodule.span_mono
-  apply Set.iUnion_mono
-  intro S
-  apply Set.iUnion_mono
-  intro shift
-  apply Set.image_mono
-  intro g ⟨d, hd_elts, hg_eq, hprof, _hlen⟩
-  exact ⟨d, hd_elts, hg_eq, hprof⟩
+  intro x hx
+  simp only [Set.mem_iUnion, Set.mem_image] at hx ⊢
+  obtain ⟨S, _hSlen, shift, _hshiftvars, g, ⟨d, hd_elts, hg_eq, hprof, _hlen⟩, rfl⟩ := hx
+  exact ⟨S, shift, g, ⟨d, hd_elts, hg_eq, hprof⟩, rfl⟩
 
 /-- Each SPDP generator lies in the sup of bounded-profile post-spans. -/
 theorem spdp_generator_in_bounded_profile_iSup {n L : ℕ}
@@ -421,14 +429,15 @@ theorem mlBlockedSpdpSubspace_le_allBoundedProfilePostSpan_iSup {n L : ℕ}
       ⨆ (h : ProfileHistogram), allBoundedProfilePostSpan B κ ℓ factors constraintType h := by
   apply Submodule.span_le.mpr
   intro q hq
-  rcases hq with ⟨S, shift, _hlen, _hdeg, _hvars, _hadm, rfl⟩
+  rcases hq with ⟨S, shift, hlen, _hdeg, hvars, _hadm, rfl⟩
   have hmem := spdp_generator_in_bounded_profile_iSup factors constraintType S shift B κ ℓ p hp
   apply (iSup_mono (fun h => ?_) :
     ⨆ h, boundedProfilePostSpan _ _ S shift h ≤ _) hmem
   apply Submodule.span_mono
   intro x hx
-  rw [Set.mem_iUnion]
-  exact ⟨S, Set.mem_iUnion.mpr ⟨shift, hx⟩⟩
+  simp only [Set.mem_iUnion, Set.mem_image] at hx ⊢
+  obtain ⟨g, hg_mem, rfl⟩ := hx
+  exact ⟨S, le_of_eq hlen, shift, hvars, g, hg_mem, rfl⟩
 
 /-- For bounded distributions, the profile has mass ≤ |S|. When |S| = κ,
     this means each component ≤ κ, so the profile is bounded. Therefore
@@ -503,7 +512,7 @@ theorem hasFiniteProfileCover_of_boundedWithinProfileFinrank {n L : ℕ}
     -- Directly show each SPDP generator lies in some spaces_i.
     apply Submodule.span_le.mpr
     intro q hq
-    rcases hq with ⟨S, shift, hlen, _hdeg, _hvars, _hadm, rfl⟩
+    rcases hq with ⟨S, shift, hlen, _hdeg, hvars, _hadm, rfl⟩
     -- The generator mlProj(shift * iterDerivList S p) lies in the bounded profile sup
     rw [hp]
     have hLeibniz := iterDerivList_finset_prod_mem_bounded_span S factors
@@ -553,10 +562,9 @@ theorem hasFiniteProfileCover_of_boundedWithinProfileFinrank {n L : ℕ}
     apply Submodule.mem_iSup_of_mem bp
     -- mlProj(shift * g) ∈ allBoundedProfilePostSpan B κ ℓ factors constraintType bp.toHistogram
     apply Submodule.subset_span
-    rw [Set.mem_iUnion]
-    refine ⟨S, Set.mem_iUnion.mpr ⟨shift, ⟨g, ?_, rfl⟩⟩⟩
-    -- g ∈ boundedProfileClassifiedSet with profile = bp.toHistogram
-    exact ⟨d, hd_elts, hg_eq, rfl, by simpa using hd_len⟩
+    simp only [Set.mem_iUnion, Set.mem_image]
+    exact ⟨S, le_of_eq hlen, shift, hvars, g,
+      ⟨d, hd_elts, hg_eq, rfl, by simpa using hd_len⟩, rfl⟩
 
 /-- BoundedWithinProfileFinrankClaim implies the SPDP rank bound.
 
@@ -594,5 +602,99 @@ theorem combinedBound_factorization (κ : ℕ) :
 theorem profileCount_eq_pow4 (κ : ℕ) :
     profileCount κ = (κ + 1) ^ 4 := by
   unfold profileCount; rfl
+
+/-! ## Part 10: Module.Finite for allBoundedProfilePostSpan
+
+The generators of allBoundedProfilePostSpan are of the form mlProj(shift * g),
+which are multilinear polynomials. Since multilinear polynomials on Fin n
+form a finite-dimensional space (dimension 2^n, spanned by mlMonomialBasis),
+allBoundedProfilePostSpan is contained in this finite-dimensional space
+and hence is itself finite-dimensional.
+
+This establishes the Module.Finite part of BoundedWithinProfileFinrankClaim.
+The finrank bound ≤ (κ+1)^8 requires the symmetric power analysis. -/
+
+/-- Every element of mlProj's image is multilinear. -/
+theorem mlProj_support_isMultilinear {n : ℕ}
+    (p : MvPolynomial (Fin n) ℚ)
+    (α : Fin n →₀ ℕ) (hα : α ∈ (mlProj p).support) :
+    Finsupp.IsMultilinear α := by
+  by_contra h_neg
+  have : MvPolynomial.coeff α (mlProj p) = 0 := by
+    show (Finsupp.filter (fun β => Finsupp.IsMultilinear β) p) α = 0
+    rw [Finsupp.filter_apply]
+    exact if_neg h_neg
+  exact absurd this (Finsupp.mem_support_iff.mp hα)
+
+/-- mlProj p lies in span(mlMonomialBasis Finset.univ). -/
+theorem mlProj_mem_span_mlMonomialBasis {n : ℕ}
+    (p : MvPolynomial (Fin n) ℚ) :
+    mlProj p ∈ Submodule.span ℚ
+      (↑(MlProjFar.mlMonomialBasis (Finset.univ : Finset (Fin n))) :
+        Set (MvPolynomial (Fin n) ℚ)) := by
+  apply MlProjFar.mlProj_in_span_of_vars_subset
+  · exact fun α hα => mlProj_support_isMultilinear p α hα
+  · exact fun _ _ => Finset.mem_univ _
+
+/-- allBoundedProfilePostSpan is contained in a finite-dimensional ambient space. -/
+theorem allBoundedProfilePostSpan_le_mlMonomialBasis_span {n L : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (h : ProfileHistogram) :
+    allBoundedProfilePostSpan B κ ℓ factors constraintType h ≤
+      Submodule.span ℚ
+        (↑(MlProjFar.mlMonomialBasis (Finset.univ : Finset (Fin n))) :
+          Set (MvPolynomial (Fin n) ℚ)) := by
+  apply Submodule.span_le.mpr
+  intro q hq
+  simp only [Set.mem_iUnion, Set.mem_image] at hq
+  obtain ⟨_S, _hSlen, _shift, _hshiftvars, _g, _hg_mem, rfl⟩ := hq
+  exact mlProj_mem_span_mlMonomialBasis _
+
+/-- allBoundedProfilePostSpan is finite-dimensional. -/
+instance allBoundedProfilePostSpan_finite {n L : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (h : ProfileHistogram) :
+    Module.Finite ℚ ↥(allBoundedProfilePostSpan B κ ℓ factors constraintType h) := by
+  have hle := allBoundedProfilePostSpan_le_mlMonomialBasis_span B κ ℓ factors constraintType h
+  have hfin : Module.Finite ℚ
+      (Submodule.span ℚ
+        (↑(MlProjFar.mlMonomialBasis (Finset.univ : Finset (Fin n))) :
+          Set (MvPolynomial (Fin n) ℚ))) :=
+    Module.Finite.span_of_finite ℚ (Finset.finite_toSet _)
+  exact Module.Finite.of_injective
+    (Submodule.inclusion hle)
+    (Submodule.inclusion_injective hle)
+
+/-! ## Part 11: Towards the finrank bound
+
+With Module.Finite established, the remaining challenge is proving
+finrank ≤ withinProfileBound κ = (κ+1)^8.
+
+The mathematical argument: for degree-≤-2 factors with bounded profile h,
+the classified set has a finite spanning structure controlled by the
+symmetric power dimension formula. -/
+
+/-- Degree-2 killing: iterDerivList of a list of length ≥ 3 applied to a
+    degree-≤-2 polynomial gives 0. This is key for bounding the classified set. -/
+theorem iterDerivList_eq_zero_of_degree2_length3 {n : ℕ}
+    (S : List (Fin n)) (f : MvPolynomial (Fin n) ℚ)
+    (hf : f.totalDegree ≤ 2) (hS : S.length ≥ 3) :
+    iterDerivList S f = 0 :=
+  iterDerivList_eq_zero_of_totalDegree_lt S f (by omega)
+
+/-- For degree-≤-2 factors, a distribution where any single factor receives
+    ≥ 3 derivatives produces 0 in the product. -/
+theorem distribDerivProd_eq_zero_of_overDiff {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hfactors : ∀ i, (factors i).totalDegree ≤ 2)
+    (d : Fin L → List (Fin n))
+    (i₀ : Fin L) (hi₀ : (d i₀).length ≥ 3) :
+    Finset.univ.prod (fun i => iterDerivList (d i) (factors i)) = 0 := by
+  apply Finset.prod_eq_zero (Finset.mem_univ i₀)
+  exact iterDerivList_eq_zero_of_degree2_length3 (d i₀) (factors i₀) (hfactors i₀) hi₀
 
 end WithinProfileBound
