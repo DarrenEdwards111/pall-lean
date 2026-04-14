@@ -245,4 +245,83 @@ theorem listFinsuppSum_zero_at {ms : List (σ →₀ ℕ)} {x : σ}
     have ⟨hhd, hrest⟩ := List.forall_mem_cons.mp h
     rw [listFinsuppSum_cons, Finsupp.add_apply, hhd, ih hrest, add_zero]
 
+/-! ## Coefficient of Finset product with pairwise disjoint variables
+
+Generalization of coeff_mul_disjoint to finite products. -/
+
+/-- Finset sum of finsupps applied pointwise -/
+theorem finset_sum_apply {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (f : ι → σ →₀ ℕ) (x : σ) :
+    (∑ i ∈ s, f i) x = ∑ i ∈ s, (f i) x := by
+  induction s using Finset.induction_on with
+  | empty => simp
+  | insert a t hat ih =>
+    rw [Finset.sum_insert hat, Finsupp.add_apply, ih, Finset.sum_insert hat]
+
+/-- usesOnly for a Finset product over a common set. -/
+theorem usesOnly_finset_prod {ι : Type*} [DecidableEq ι]
+    {s : Finset ι} {f : ι → MvPolynomial σ F} {S : Set σ}
+    (hf : ∀ i ∈ s, usesOnly (f i) S) :
+    usesOnly (s.prod f) S := by
+  induction s using Finset.induction_on with
+  | empty =>
+    intro m hm x hx
+    simp only [Finset.prod_empty] at hm
+    have hxv := (MvPolynomial.mem_vars x).mpr ⟨m, hm, hx⟩
+    simp [MvPolynomial.vars_one] at hxv
+  | insert a t hat ih =>
+    rw [Finset.prod_insert hat]
+    have hprod := usesOnly_mul
+      (hf a (Finset.mem_insert_self a t))
+      (ih (fun i hi => hf i (Finset.mem_insert_of_mem hi)))
+    exact fun m hm x hx => by
+      rcases hprod m hm x hx with h | h <;> exact h
+
+/-- Coefficient of a Finset product with pairwise disjoint variable sets.
+
+    If each f i uses only variables in S i, the S i are pairwise disjoint,
+    and each m i is supported in S i, then:
+    coeff (∑ i in s, m i) (∏ i in s, f i) = ∏ i in s, coeff (m i) (f i) -/
+theorem coeff_finset_prod_disjoint {ι : Type*} [DecidableEq ι]
+    {s : Finset ι} {f : ι → MvPolynomial σ F} {S : ι → Set σ}
+    {m : ι → σ →₀ ℕ}
+    (hf : ∀ i ∈ s, usesOnly (f i) (S i))
+    (hdisj : (s : Set ι).PairwiseDisjoint S)
+    (hm : ∀ i ∈ s, monomSupportedIn (m i) (S i)) :
+    coeff (∑ i ∈ s, m i) (∏ i ∈ s, f i) = ∏ i ∈ s, coeff (m i) (f i) := by
+  induction s using Finset.induction_on with
+  | empty => simp [MvPolynomial.coeff_one]
+  | insert a t hat ih =>
+    rw [Finset.prod_insert hat, Finset.sum_insert hat, Finset.prod_insert hat]
+    -- Apply coeff_mul_disjoint with A = S a, B = ⋃ i ∈ t, S i
+    have ha_uses := hf a (Finset.mem_insert_self a t)
+    have ht_uses : usesOnly (t.prod f) (⋃ i ∈ t, S i) :=
+      usesOnly_finset_prod (fun i hi =>
+        usesOnly_mono (hf i (Finset.mem_insert_of_mem hi))
+          (fun x hx => Set.mem_iUnion₂.mpr ⟨i, hi, hx⟩))
+    have ha_disj : Disjoint (S a) (⋃ i ∈ t, S i) := by
+      rw [Set.disjoint_iUnion₂_right]
+      intro i hi
+      exact hdisj (Finset.mem_insert_self a t) (Finset.mem_insert_of_mem hi)
+        (by intro h; exact hat (h ▸ hi))
+    have ha_mono := hm a (Finset.mem_insert_self a t)
+    have ht_mono : monomSupportedIn (∑ i ∈ t, m i) (⋃ i ∈ t, S i) := by
+      intro x hx
+      rw [Finsupp.mem_support_iff] at hx
+      rw [finset_sum_apply] at hx
+      by_contra hall
+      apply hx
+      apply Finset.sum_eq_zero
+      intro i hi
+      by_contra hne
+      exact hall (Set.mem_iUnion₂.mpr ⟨i, hi, hm i (Finset.mem_insert_of_mem hi) x
+        (Finsupp.mem_support_iff.mpr hne)⟩)
+    rw [coeff_mul_disjoint ha_uses ht_uses ha_disj ha_mono ht_mono]
+    congr 1
+    have hdisj' : (t : Set ι).PairwiseDisjoint S :=
+      fun i hi j hj hij =>
+        hdisj (Finset.mem_insert_of_mem hi) (Finset.mem_insert_of_mem hj) hij
+    exact ih (fun i hi => hf i (Finset.mem_insert_of_mem hi)) hdisj'
+      (fun i hi => hm i (Finset.mem_insert_of_mem hi))
+
 end CoeffDisjoint
