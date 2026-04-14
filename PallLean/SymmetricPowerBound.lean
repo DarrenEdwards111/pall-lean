@@ -323,7 +323,7 @@ structure BoundedInterfaceFamily (σ : Type) [DecidableEq σ] where
   bound_uniform : ∀ τ, (family τ).dimBound ≤ localInterfaceDimBound
 
 /-- Cardinality of constraint types is 5. -/
-private theorem constraintType_card : Fintype.card ConstraintType = 4 := by decide
+theorem constraintType_card : Fintype.card ConstraintType = 4 := by decide
 
 /-- Each component of a profile histogram is bounded by its total mass. -/
 private theorem profile_component_le_mass (h : ProfileHistogram) (τ : ConstraintType) :
@@ -430,7 +430,7 @@ private noncomputable def concreteBoundedFamily (N : ℕ) (root : Fin N) :
 
     Proof chain:
     ∏_τ C(h(τ)+2, 2) ≤ ∏_τ (h(τ)+1)^2 ≤ ∏_τ (κ+1)^2 = (κ+1)^8. -/
-private theorem profileDimBound_le_withinProfileBound
+theorem profileDimBound_le_withinProfileBound
     (κ : ℕ) (h : ProfileHistogram) (hh : ProfileAdmissible κ h) :
     (∏ τ : ConstraintType, Nat.choose (h τ + 2) 2) ≤ withinProfileBound κ := by
   -- Step 1: bound each factor by (κ+1)^2
