@@ -572,6 +572,7 @@ axiom bp_rowspace_bound_per_term_empty
 theorem bp_cylinder_decomposition
     {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
     (B : LayeredBP n)
+    (hLpos : 0 < B.length)
     (S : List (Fin n)) (hS : S.Nodup) :
     ∃ (terms : Finset (Fin n → Fin B.length))
       (coeff : (Fin n → Fin B.length) → MvPolynomial (Fin n) F),
@@ -596,67 +597,7 @@ theorem bp_cylinder_decomposition
     to keep the structural bookkeeping clean; all other obligations are
     proved.
   -/
-  -- Handle B.length = 0 separately
-  by_cases hL : B.length = 0
-  · -- With L'=0, the finset of functions Fin n → Fin 0 is empty when n > 0.
-    -- For n = 0, there is exactly one such function (the empty function).
-    -- B.poly with length=0 is a constant (identity matrix entry), so all nonzero-length
-    -- derivative lists kill it. For S=[], we use a singleton term.
-    -- We handle S=[] and S≠[] separately.
-    by_cases hS_nil : S = []
-    · -- S = []: iterDerivList [] p = p, need one term equal to B.poly
-      subst hS_nil
-      -- We need at least one function Fin n → Fin B.length in the Finset.
-      -- But B.length = 0 means Fin B.length is empty, so if n > 0 there are no such functions.
-      -- If n = 0, Fin 0 → Fin 0 has one element.
-      -- In either case, B.length^0 = 1, so we need card ≤ 1.
-      -- When n > 0 and B.length = 0: Fin n → Fin 0 is Empty, so Finset is ∅.
-      -- We need iterDerivList [] (B.poly) = ∅.sum f = 0.
-      -- But B.poly = (identity matrix)(target, source) which is 1 if target=source, 0 otherwise.
-      -- So if target = source, we'd need 1 = 0, which fails in CharZero. Contradiction?
-      -- Actually no: with L'=0, the sum ∑ τ : Fin 0 is empty, so B.poly really is a
-      -- well-defined polynomial. Let's just use sorry for the L'=0, S=[] corner case.
-      by_cases hn : n = 0
-      · -- n=0, L'=0: Fin 0 → Fin 0 has exactly one element (Fin.elim0)
-        subst hn
-        refine ⟨Finset.univ, fun _ => B.poly (F := F), ?_, ?_, ?_⟩
-        · simp [iterDerivList]
-        · simp [hL]
-        · intro T _; simp
-      · -- n > 0, L'=0: no functions Fin n → Fin 0, so ∅.
-        -- We need iterDerivList [] (B.poly) = 0, but B.poly might be nonzero.
-        -- This is a genuine corner case: with L'=0 but width > 0 and target=source,
-        -- B.poly = 1 ≠ 0. So we cannot decompose into 0 terms.
-        -- However L'^|S| = 0^0 = 1, so we need at most 1 term.
-        -- But there are no functions Fin n → Fin 0 when n > 0.
-        -- This means the statement as written is unprovable for L'=0, n>0, S=[], target=source.
-        -- We handle this by providing an arbitrary sorry.
-        exact ⟨∅, fun _ => 0, by simp [iterDerivList]; sorry, by simp,
-          by intro T hT; simp at hT⟩
-    · -- S ≠ []: iterDerivList S of a constant = 0
-      refine ⟨∅, fun _ => 0, ?_, ?_, ?_⟩
-      · simp only [Finset.sum_empty]
-        obtain ⟨a, rest, rfl⟩ := List.exists_cons_of_ne_nil hS_nil
-        -- unfold B.poly to matrix product entry, then show product is identity for L'=0
-        unfold LayeredBP.poly LayeredBP.matrixProd
-        have hfr : List.finRange B.length = [] := by simp [hL]
-        rw [hfr, List.map_nil, List.prod_nil]
-        -- Now goal: iterDerivList (a :: rest) ((1 : Matrix ...) B.target B.source) = 0
-        -- iterDerivList (a :: rest) p = iterDerivList rest (pderiv a p) by foldl definition
-        show List.foldl (fun q i => MvPolynomial.pderiv i q)
-          (MvPolynomial.pderiv a ((1 : Matrix (Fin B.width) (Fin B.width)
-            (MvPolynomial (Fin n) F)) B.target B.source)) rest = 0
-        have hpd : MvPolynomial.pderiv a ((1 : Matrix (Fin B.width) (Fin B.width)
-            (MvPolynomial (Fin n) F)) B.target B.source) = 0 := by
-          simp only [Matrix.one_apply]
-          split_ifs <;> simp [MvPolynomial.pderiv_one, map_zero]
-        rw [hpd]
-        exact foldl_pderiv_zero rest
-      · simp [hL]
-      · intro T hT; simp at hT
-  · -- Main case: B.length > 0
-    have hLpos : 0 < B.length := Nat.pos_of_ne_zero hL
-    -- We construct the terms and coefficients.
+  -- We construct the terms and coefficients.
     -- For each variable v ∈ S, we assign it to a layer T(v) ∈ Fin B.length.
     -- The assignment is encoded as a total function T : Fin n → Fin B.length
     -- (the values outside S are irrelevant). Two assignments that agree on
@@ -960,7 +901,10 @@ theorem poly_family_rank_bound_in_n
       obtain ⟨S, m, hSlen, _, rfl⟩ := hq
       -- S : List (Fin 0) with S.length = ℓ ≥ 2, but Fin 0 is empty
       exfalso
-      have : S = [] := List.eq_nil_of_forall_not_mem (fun a => Fin.elim0 a)
+      have : S = [] := by
+        cases S with
+        | nil => rfl
+        | cons a _ => exact Fin.elim0 a
       simp [this] at hSlen
       rcases hℓ with rfl | rfl <;> simp at hSlen
     omega
