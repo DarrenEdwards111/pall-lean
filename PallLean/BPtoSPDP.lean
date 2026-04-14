@@ -358,6 +358,128 @@ theorem bp_leibniz_localisation
       congr 1
     rw [hpre, hsuf, hderiv]
 
+/-! ### Supporting lemmas for the row-space bound (Step 4) -/
+
+/-- Helper: Finsupp.sum of (s - single i 1) + 1 = Finsupp.sum s, when s i ≥ 1.
+
+    Uses the additive structure: (s - single i 1) + (single i 1) = s (by exact arithmetic),
+    then applies Finsupp.sum_add_index. -/
+private lemma finsupp_sum_id_tsub_single {n : ℕ} (s : Fin n →₀ ℕ) (i : Fin n)
+    (hsi : 1 ≤ s i) :
+    Finsupp.sum (s - Finsupp.single i 1) (fun _ => id) + 1 =
+    Finsupp.sum s (fun _ => id) := by
+  have hadd : s - Finsupp.single i 1 + Finsupp.single i 1 = s := by
+    ext j
+    simp only [Finsupp.tsub_apply, Finsupp.single_apply, Finsupp.add_apply]
+    split_ifs with heq
+    · subst heq; omega
+    · simp
+  have hsum_add : Finsupp.sum (s - Finsupp.single i 1 + Finsupp.single i 1) (fun _ => id) =
+      Finsupp.sum (s - Finsupp.single i 1) (fun _ => id) +
+      Finsupp.sum (Finsupp.single i 1) (fun _ => id) :=
+    Finsupp.sum_add_index (fun _ _ => rfl) (fun _ _ _ _ => by simp [id])
+  rw [hadd] at hsum_add
+  simp only [Finsupp.sum_single_index, id] at hsum_add
+  omega
+
+/-- pderiv of a degree-≤-1 polynomial has degree ≤ 0.
+
+    Each monomial has degree ≤ 1. Applying pderiv i maps (s, a) to (s - single i 1, a·s_i):
+    if s_i = 0, the coefficient is 0 so degree 0; if s_i ≥ 1, degree drops by 1 to ≤ 0. -/
+private lemma totalDegree_pderiv_le_zero_of_le_one {n : ℕ} {F : Type*} [CommRing F]
+    (p : MvPolynomial (Fin n) F) (hp : p.totalDegree ≤ 1) (i : Fin n) :
+    (MvPolynomial.pderiv i p).totalDegree ≤ 0 := by
+  classical
+  conv_lhs => rw [p.as_sum]
+  rw [map_sum]
+  apply le_trans (MvPolynomial.totalDegree_finset_sum _ _)
+  apply Finset.sup_le
+  intro s hs
+  rw [MvPolynomial.pderiv_monomial]
+  have hs_deg : Finsupp.sum s (fun _ => id) ≤ 1 := le_trans (MvPolynomial.le_totalDegree hs) hp
+  by_cases hsi : s i = 0
+  · -- coefficient is a * (s i : F) = 0, monomial is 0
+    simp only [hsi, Nat.cast_zero, mul_zero, map_zero, MvPolynomial.totalDegree_zero, le_refl]
+  · -- s i ≥ 1, so sum(s - single i 1) = sum(s) - 1 ≤ 0
+    apply le_trans (MvPolynomial.totalDegree_monomial_le _ _)
+    have := finsupp_sum_id_tsub_single s i (Nat.one_le_iff_ne_zero.mpr hsi)
+    omega
+
+/-- Iterated pderiv of a degree-≤-1 polynomial has degree ≤ 0, for nonempty index list.
+
+    The first derivative reduces degree from ≤ 1 to ≤ 0 (by totalDegree_pderiv_le_zero_of_le_one);
+    further derivatives preserve degree ≤ 0 (by totalDegree_iterDerivList_le). -/
+private lemma totalDegree_iterDerivList_nonempty_of_le_one {n : ℕ} {F : Type*} [CommRing F]
+    (S : List (Fin n)) (hS : S ≠ [])
+    (p : MvPolynomial (Fin n) F) (hp : p.totalDegree ≤ 1) :
+    (iterDerivList S p).totalDegree ≤ 0 := by
+  match S, hS with
+  | i :: rest, _ =>
+    simp only [iterDerivList, List.foldl_cons]
+    exact le_trans (totalDegree_iterDerivList_le rest _)
+      (totalDegree_pderiv_le_zero_of_le_one p hp i)
+
+/-- Row-space bound for nonempty S_τ: all generators are constants (degree ≤ 0),
+    so the span lies in F·1 and has finrank ≤ 1 ≤ W. -/
+theorem bp_rowspace_bound_per_term_nonempty
+    {n : ℕ} {F : Type*} [Field F] [Nontrivial F]
+    (B : LayeredBP n)
+    (τ : Fin B.length)
+    (S_τ : Finset (Fin n))
+    (hS_τ : S_τ.Nonempty)
+    (hW : 1 ≤ B.width) :
+    Module.finrank F
+      (Submodule.span F
+        { q | ∃ (u v : Fin B.width),
+              q = iterDerivList S_τ.toList (B.layerMatrix (F := F) τ v u) }) ≤
+      B.width := by
+  -- All generators are degree ≤ 0 (constants)
+  have hgens_deg : ∀ q ∈ { q | ∃ (u v : Fin B.width),
+        q = iterDerivList S_τ.toList (B.layerMatrix (F := F) τ v u) },
+      q.totalDegree ≤ 0 := by
+    intro q ⟨u, v, hq⟩
+    rw [hq]
+    apply totalDegree_iterDerivList_nonempty_of_le_one
+    · exact Finset.Nonempty.toList_ne_nil hS_τ
+    · exact Literal.toPoly_totalDegree_le (B.edgeLabel τ u v)
+  -- Span of degree-0 polys ≤ F·1, which has finrank ≤ 1
+  have hle_span : Submodule.span F
+      { q | ∃ (u v : Fin B.width),
+            q = iterDerivList S_τ.toList (B.layerMatrix (F := F) τ v u) } ≤
+      (F ∙ (1 : MvPolynomial (Fin n) F)) := by
+    apply Submodule.span_le.mpr
+    intro p hp
+    simp only [SetLike.mem_coe, Submodule.mem_span_singleton]
+    have h0 : p.totalDegree = 0 := Nat.eq_zero_of_le_zero (hgens_deg p hp)
+    rw [MvPolynomial.totalDegree_eq_zero_iff_eq_C] at h0
+    exact ⟨p.coeff 0,
+      by rw [h0, MvPolynomial.coeff_zero_C, MvPolynomial.C_eq_smul_one]⟩
+  have hone_le : Module.finrank F (F ∙ (1 : MvPolynomial (Fin n) F)) ≤ 1 := by
+    haveI : Fintype ({(1 : MvPolynomial (Fin n) F)} : Set _) :=
+      Set.finite_singleton _ |>.fintype
+    calc Module.finrank F (F ∙ (1 : MvPolynomial (Fin n) F))
+        = Module.finrank F (Submodule.span F ({(1 : MvPolynomial (Fin n) F)} : Set _)) := rfl
+      _ ≤ ({(1 : MvPolynomial (Fin n) F)} : Set _).toFinset.card := finrank_span_le_card _
+      _ = 1 := by simp
+  exact le_trans (le_trans (Submodule.finrank_mono hle_span) hone_le) hW
+
+/-- Row-space bound for empty S_τ (the literal matrix entries, no derivatives).
+
+    When S_τ = ∅, the generators are the raw literal matrix entries.
+    Bounding their span dimension by W requires a matrix rank argument
+    (the literal matrix has W rows), which is left as an axiom.
+    In the cylinder decomposition, undifferentiated layers enter as full
+    matrix products whose row rank is bounded by W via matrix algebra. -/
+axiom bp_rowspace_bound_per_term_empty
+    {n : ℕ} {F : Type*} [Field F] [Nontrivial F]
+    (B : LayeredBP n)
+    (τ : Fin B.length) :
+    Module.finrank F
+      (Submodule.span F
+        { q | ∃ (u v : Fin B.width),
+              q = B.layerMatrix (F := F) τ v u }) ≤
+      B.width
+
 /-- (Step 3) Cylinder decomposition.
 
     For an iterated derivative ∂_S f_B with |S| = κ, the Leibniz rule
@@ -380,10 +502,10 @@ axiom bp_cylinder_decomposition
     Each term in the cylinder decomposition contributes a polynomial
     lying in a subspace of dimension ≤ W (the width of B).
 
-    This follows from the fact that each such term is an entry of a
-    matrix product where one factor is the (partially differentiated)
-    layer matrix, which has at most W columns, giving rank ≤ W. -/
-axiom bp_rowspace_bound_per_term
+    For nonempty S_τ: proved by the degree argument (bp_rowspace_bound_per_term_nonempty).
+    For empty S_τ: uses the matrix rank axiom (bp_rowspace_bound_per_term_empty).
+    The width=0 case is trivial (empty Fin 0 gives empty generator set). -/
+theorem bp_rowspace_bound_per_term
     {n : ℕ} {F : Type*} [Field F] [Nontrivial F]
     (B : LayeredBP n)
     (τ : Fin B.length)
@@ -392,7 +514,40 @@ axiom bp_rowspace_bound_per_term
       (Submodule.span F
         { q | ∃ (u v : Fin B.width),
               q = iterDerivList S_τ.toList (B.layerMatrix (F := F) τ v u) }) ≤
-      B.width
+      B.width := by
+  by_cases hS : S_τ.Nonempty
+  · -- Nonempty case: degree argument
+    by_cases hW : 1 ≤ B.width
+    · exact bp_rowspace_bound_per_term_nonempty B τ S_τ hS hW
+    · -- width = 0: B.width = 0 so the goal is finrank ≤ 0; trivially true
+      have hW0 : B.width = 0 := by omega
+      -- After rewriting hW0, the existentials are over Fin 0, which is empty
+      have hempty : { q : MvPolynomial (Fin n) F |
+          ∃ (u v : Fin B.width),
+            q = iterDerivList S_τ.toList (B.layerMatrix (F := F) τ v u) } = ∅ := by
+        ext q
+        simp only [Set.mem_setOf_eq, Set.mem_empty_iff_false, iff_false, not_exists]
+        intro u
+        -- u : Fin B.width = Fin 0, which is empty
+        exact absurd u.isLt (by omega)
+      rw [hempty, Submodule.span_empty]
+      simp [hW0]
+  · -- Empty case: S_τ = ∅, iterDerivList [] p = p
+    rw [Finset.not_nonempty_iff_eq_empty] at hS
+    have hlist : S_τ.toList = [] := by simp [hS]
+    -- iterDerivList [] = id (no derivatives applied)
+    have heq : ∀ p : MvPolynomial (Fin n) F, iterDerivList S_τ.toList p = p := by
+      intro p; rw [hlist]; simp [iterDerivList]
+    -- Rewrite the set using heq
+    have hset : { q : MvPolynomial (Fin n) F |
+        ∃ (u v : Fin B.width),
+          q = iterDerivList S_τ.toList (B.layerMatrix (F := F) τ v u) } =
+      { q | ∃ (u v : Fin B.width), q = B.layerMatrix (F := F) τ v u } := by
+      ext q; simp only [Set.mem_setOf_eq]; constructor
+      · rintro ⟨u, v, hq⟩; exact ⟨u, v, by rw [← heq (B.layerMatrix (F := F) τ v u), hq]⟩
+      · rintro ⟨u, v, hq⟩; exact ⟨u, v, by rw [heq, hq]⟩
+    rw [hset]
+    exact bp_rowspace_bound_per_term_empty B τ
 
 /-! ## §3: Compilation Lemma (Lemma 44) -/
 
