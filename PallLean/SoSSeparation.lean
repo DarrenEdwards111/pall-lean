@@ -293,6 +293,52 @@ theorem pderiv_prod_erase (n : ℕ) (s : Finset (Fin n))
   · intro h
     exact absurd (Finset.mem_erase.mpr ⟨hjj'.symm, hj'⟩) h
 
+/-! ### Iterated derivative of Z_n
+
+For a product ∏_{k ∈ s} g_k over a Finset s, differentiating by x_{3j} for j ∈ s
+erases j from the product. Iterating gives the complement product. -/
+
+/-- Iterated pderiv of a finset product of clauseGadgets by first-variables of a sublist.
+    For a nodup list js ⊆ s, differentiating ∏_{k ∈ s} g_k by [x_{3j} : j ∈ js]
+    gives ∏_{k ∈ s \ js.toFinset} g_k. -/
+theorem iterDeriv_clauseGadget_prod (n : ℕ) (s : Finset (Fin n))
+    (js : List (Fin n)) (hnd : js.Nodup) (hsub : ∀ j ∈ js, j ∈ s) :
+    SPDP.iterDerivList (js.map (fun j => (⟨3 * j.val, by omega⟩ : Fin (3 * n))))
+      (s.prod (fun k => clauseGadget n k)) =
+      (s \ js.toFinset).prod (fun k => clauseGadget n k) := by
+  induction js generalizing s with
+  | nil =>
+    simp [SPDP.iterDerivList, IterDerivHelpers.iterDerivList_nil]
+  | cons j rest ih =>
+    simp only [List.map_cons]
+    rw [IterDerivHelpers.iterDerivList_cons]
+    -- pderiv x_{3j} (s.prod g_k) = (s.erase j).prod g_k
+    have hj_mem : j ∈ s := hsub j (List.mem_cons.mpr (Or.inl rfl))
+    rw [LeibnizProduct.pderiv_finset_prod]
+    rw [Finset.sum_eq_single j]
+    · rw [pderiv_clauseGadget_first, one_mul]
+      -- Apply IH to s.erase j with rest
+      have hnd_rest : rest.Nodup := (List.nodup_cons.mp hnd).2
+      have hj_notin_rest : j ∉ rest := (List.nodup_cons.mp hnd).1
+      have hsub_rest : ∀ k ∈ rest, k ∈ s.erase j := by
+        intro k hk
+        exact Finset.mem_erase.mpr ⟨fun h => hj_notin_rest (h ▸ hk), hsub k (List.mem_cons.mpr (Or.inr hk))⟩
+      rw [ih (s.erase j) hnd_rest hsub_rest]
+      congr 1
+      ext x; simp [Finset.mem_sdiff, Finset.mem_erase, List.mem_toFinset, List.mem_cons]; tauto
+    · intro k _ hkj
+      rw [pderiv_clauseGadget_other n j k (Ne.symm hkj), zero_mul]
+    · intro h; exact absurd hj_mem h
+
+/-- Iterated derivative of Z_n by first-variables of a nodup clause list:
+    iterDerivList [x_{3j₁},...,x_{3jκ}] Z_n = ∏_{k ∉ {j₁,...,jκ}} g_k. -/
+theorem iterDeriv_zeroTestPoly (n : ℕ) (js : List (Fin n)) (hnd : js.Nodup) :
+    SPDP.iterDerivList (js.map (fun j => (⟨3 * j.val, by omega⟩ : Fin (3 * n))))
+      (zeroTestPoly n) =
+      (Finset.univ \ js.toFinset).prod (fun k => clauseGadget n k) := by
+  unfold zeroTestPoly
+  exact iterDeriv_clauseGadget_prod n Finset.univ js hnd (fun j _ => Finset.mem_univ j)
+
 /-! ### SPDP rank lower bound for Z_n
 
 The complement products {∏_{k ∉ S} g_k : |S| = κ} are linearly independent
