@@ -46,6 +46,7 @@
 -/
 import PallLean.GodMoveCore
 import PallLean.BinomialBound2
+import PallLean.PartialDerivMatrix
 import Mathlib.Tactic
 import Mathlib.Data.Nat.Log
 
@@ -90,6 +91,12 @@ bounds to SPDP rank (cf. §2.3-§2.6).
 We state this in the quantitative form needed for the separation:
   n^(log₂ n / 4) ≤ charPolyRank n
 which is weaker than 2^{εn} but suffices for the exponent contradiction.
+
+**Decomposition** (PartialDerivMatrix.lean):
+  This axiom decomposes into two sub-claims:
+  1. Lemma 69: rank(PD_{S,T}(f)) ≤ rk_{SPDP,ℓ}(f) [submatrix embedding]
+  2. Theorem 72: rank(PD_{S_n,T_n}(χ_{φ_n})) ≥ 2^{Ω(n)} [Ramanujan-Tseitin]
+  See PartialDerivMatrix.theorem_140_from_pdMatrix for the reduction.
 -/
 axiom theorem_140_np_side (n : ℕ) (hn : n ≥ 2) :
     n ^ (Nat.log 2 n / 4) ≤ charPolyRank n
