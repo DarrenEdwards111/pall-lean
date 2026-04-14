@@ -1,0 +1,677 @@
+⚠ [3110/3463] Replayed PallLean.TseitinDefs
+warning: PallLean/TseitinDefs.lean:87:63: This simp argument is unused:
+  or_assoc
+
+Hint: Omit it from the simp argument list.
+  simp [clauseVarSet, Finset.mem_insert, Finset.mem_singleton,̵ ̵o̵r̵_̵a̵s̵s̵o̵c̵]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/TseitinDefs.lean:130:29: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: PallLean/TseitinDefs.lean:233:13: unused variable `hk`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/TseitinDefs.lean:300:64: unused variable `hn`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+⚠ [3111/3463] Replayed PallLean.TagMonomial
+warning: PallLean/TagMonomial.lean:20:0: automatically included section variable(s) unused in theorem `TagMonomial.v3_mem_tag`:
+  [DecidableEq σ]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [DecidableEq σ] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: PallLean/TagMonomial.lean:25:0: automatically included section variable(s) unused in theorem `TagMonomial.v2_mem_sum12`:
+  [DecidableEq σ]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [DecidableEq σ] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: PallLean/TagMonomial.lean:32:33: unused variable `h13`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/TagMonomial.lean:32:49: unused variable `h23`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/TagMonomial.lean:37:32: unused variable `h12`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/TagMonomial.lean:43:0: automatically included section variable(s) unused in theorem `TagMonomial.coeff_X_single`:
+  [Nontrivial F]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [Nontrivial F] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: PallLean/TagMonomial.lean:47:0: automatically included section variable(s) unused in theorem `TagMonomial.coeff_one_sub_X_single`:
+  [Nontrivial F]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [Nontrivial F] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: PallLean/TagMonomial.lean:85:37: unused variable `h12`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/TagMonomial.lean:85:53: unused variable `h13`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/TagMonomial.lean:85:69: unused variable `h23`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/TagMonomial.lean:94:36: unused variable `h12`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/TagMonomial.lean:204:0: automatically included section variable(s) unused in theorem `TagMonomial.one_sub_literalPoly_eq`:
+  [Nontrivial F]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [Nontrivial F] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: PallLean/TagMonomial.lean:210:66: unused variable `c`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+⚠ [3112/3463] Replayed PallLean.ProductDeriv
+warning: PallLean/ProductDeriv.lean:38:0: automatically included section variable(s) unused in theorem `ProductDeriv.pderiv_one_sub_mul_ne`:
+  [DecidableEq σ]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [DecidableEq σ] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: PallLean/ProductDeriv.lean:46:0: automatically included section variable(s) unused in theorem `ProductDeriv.pderiv_mul_right_const`:
+  [DecidableEq σ]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [DecidableEq σ] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: PallLean/ProductDeriv.lean:53:0: automatically included section variable(s) unused in theorem `ProductDeriv.pderiv_mul_left_const`:
+  [DecidableEq σ]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [DecidableEq σ] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: PallLean/ProductDeriv.lean:63:0: automatically included section variable(s) unused in theorem `ProductDeriv.pderiv_prod_single`:
+  [DecidableEq σ]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [DecidableEq σ] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+⚠ [3113/3463] Replayed PallLean.CoeffDisjoint
+warning: PallLean/CoeffDisjoint.lean:36:0: automatically included section variable(s) unused in theorem `CoeffDisjoint.coeff_eq_zero_of_not_supported`:
+  [DecidableEq σ]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [DecidableEq σ] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: PallLean/CoeffDisjoint.lean:117:0: automatically included section variable(s) unused in theorem `CoeffDisjoint.usesOnly_mono`:
+  [DecidableEq σ]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [DecidableEq σ] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: PallLean/CoeffDisjoint.lean:146:0: automatically included section variable(s) unused in theorem `CoeffDisjoint.monomSupportedIn_mono`:
+  [DecidableEq σ]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [DecidableEq σ] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: PallLean/CoeffDisjoint.lean:151:0: automatically included section variable(s) unused in theorem `CoeffDisjoint.monomSupportedIn_add`:
+  [DecidableEq σ]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [DecidableEq σ] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: PallLean/CoeffDisjoint.lean:167:0: automatically included section variable(s) unused in theorem `CoeffDisjoint.listFinsuppSum_nil`:
+  [DecidableEq σ]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [DecidableEq σ] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: PallLean/CoeffDisjoint.lean:169:0: automatically included section variable(s) unused in theorem `CoeffDisjoint.listFinsuppSum_cons`:
+  [DecidableEq σ]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [DecidableEq σ] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: PallLean/CoeffDisjoint.lean:191:0: automatically included section variable(s) unused in theorem `CoeffDisjoint.foldl_add_acc`:
+  [DecidableEq σ]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [DecidableEq σ] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+⚠ [3114/3463] Replayed PallLean.IdentityMinor
+warning: PallLean/IdentityMinor.lean:372:0: automatically included section variable(s) unused in theorem `IdentityMinor.clauseVarSetFin_disjoint`:
+  [Field F]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [Field F] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: PallLean/IdentityMinor.lean:486:0: automatically included section variable(s) unused in theorem `IdentityMinor.rowPoly_mem_subspace`:
+  [Field F]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [Field F] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: PallLean/IdentityMinor.lean:577:75: This simp argument is unused:
+  neg_mul
+
+Hint: Omit it from the simp argument list.
+  simp [mul_neg,̵ ̵n̵e̵g̵_̵m̵u̵l̵]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/IdentityMinor.lean:577:88: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: PallLean/IdentityMinor.lean:577:88: 'ring' tactic does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: PallLean/IdentityMinor.lean:673:27: This simp argument is unused:
+  Set.mem_setOf_eq
+
+Hint: Omit it from the simp argument list.
+  simp only [List.mem_map,̵ ̵S̵e̵t̵.̵m̵e̵m̵_̵s̵e̵t̵O̵f̵_̵e̵q̵] at hp
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/IdentityMinor.lean:1093:0: automatically included section variable(s) unused in theorem `IdentityMinor.kronecker_delta`:
+  [Field F]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [Field F] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: PallLean/IdentityMinor.lean:1151:44: This simp argument is unused:
+  Fin.val_mk
+
+Hint: Omit it from the simp argument list.
+  simp only [tseitinPartition, selectorIdx,̵ ̵F̵i̵n̵.̵v̵a̵l̵_̵m̵k̵]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/IdentityMinor.lean:1231:5: unused variable `hκ`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/IdentityMinor.lean:1255:5: unused variable `hκ`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+⚠ [3115/3463] Replayed PallLean.Tseitin
+warning: PallLean/Tseitin.lean:22:31: unused variable `Φ`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/Tseitin.lean:52:26: unused variable `c`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/Tseitin.lean:56:26: unused variable `c`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/Tseitin.lean:60:56: unused variable `h`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/Tseitin.lean:70:13: unused variable `B`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/Tseitin.lean:71:5: unused variable `κ`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/Tseitin.lean:71:7: unused variable `ℓ`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/Tseitin.lean:71:9: unused variable `k`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+⚠ [8032/8043] Replayed PallLean.TuringMachine
+warning: PallLean/TuringMachine.lean:229:37: unused variable `hn`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+⚠ [8034/8043] Replayed PallLean.LowDegAnnihilation
+warning: PallLean/LowDegAnnihilation.lean:38:0: automatically included section variable(s) unused in theorem `LowDeg.foldl_pderiv_zero`:
+  [DecidableEq σ]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [DecidableEq σ] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: PallLean/LowDegAnnihilation.lean:44:0: automatically included section variable(s) unused in theorem `LowDeg.foldl_pderiv_add`:
+  [DecidableEq σ]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [DecidableEq σ] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+⚠ [8036/8043] Replayed PallLean.LeibnizProduct
+warning: PallLean/LeibnizProduct.lean:24:0: automatically included section variable(s) unused in theorem `LeibnizProduct.pderiv_finset_prod`:
+  [DecidableEq σ]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [DecidableEq σ] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+warning: PallLean/LeibnizProduct.lean:29:19: This simp argument is unused:
+  pderiv_one
+
+Hint: Omit it from the simp argument list.
+  simp ̵[̵p̵d̵e̵r̵i̵v̵_̵o̵n̵e̵]̵
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+⚠ [8038/8043] Replayed PallLean.BinomialBound
+warning: PallLean/BinomialBound.lean:16:32: unused variable `hm`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/BinomialBound.lean:28:43: unused variable `hm`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+⚠ [8040/8043] Replayed PallLean.NPWitness
+warning: PallLean/NPWitness.lean:182:29: This simp argument is unused:
+  dif_pos hv
+
+Hint: Omit it from the simp argument list.
+  simp [d̵i̵f̵_̵p̵o̵s̵ ̵h̵v̵,̵ ̵e_fwd]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/NPWitness.lean:148:29: 'omega' tactic does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: PallLean/NPWitness.lean:148:29: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: PallLean/NPWitness.lean:408:12: This simp argument is unused:
+  List.filter_cons
+
+Hint: Omit it from the simp argument list.
+  simp [̵L̵i̵s̵t̵.̵f̵i̵l̵t̵e̵r̵_̵c̵o̵n̵s̵,̵ ̵h̵h̵d̵,̵[̲h̲h̲d̲,̲ show ¬̵ ̵(̵0̵¬̲(̲0̲ > 0) from by omega, Nat.zero_add]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/NPWitness.lean:408:35: This simp argument is unused:
+  show ¬(0 > 0) from by omega
+
+Hint: Omit it from the simp argument list.
+  simp [List.filter_cons, hhd, s̵h̵o̵w̵ ̵¬̵ ̵(̵0̵ ̵>̵ ̵0̵)̵ ̵f̵r̵o̵m̵ ̵b̵y̵ ̵o̵m̵e̵g̵a̵,̵ ̵Nat.zero_add]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/NPWitness.lean:408:65: This simp argument is unused:
+  Nat.zero_add
+
+Hint: Omit it from the simp argument list.
+  simp [List.filter_cons, hhd, show ¬̵ ̵(̵0̵¬̲(̲0̲ > 0) from by o̵m̵e̵g̵a̵,̵ ̵N̵a̵t̵.̵z̵e̵r̵o̵_̵a̵d̵d̵]̵o̲m̲e̲g̲a̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/NPWitness.lean:416:27: This simp argument is unused:
+  List.filter_cons
+
+Hint: Omit it from the simp argument list.
+  simp [̵L̵i̵s̵t̵.̵f̵i̵l̵t̵e̵r̵_̵c̵o̵n̵s̵,̵ ̵s̵h̵o̵w̵[̲s̲h̲o̲w̲ 0 < hd from by omega]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/NPWitness.lean:559:27: This simp argument is unused:
+  decide_eq_false_iff_not
+
+Hint: Omit it from the simp argument list.
+  simp only [not_or, d̵e̵c̵i̵d̵e̵_̵e̵q̵_̵f̵a̵l̵s̵e̵_̵i̵f̵f̵_̵n̵o̵t̵,̵ ̵not_true_eq_false, Bool.not_eq_true, decide_eq_true_eq]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/NPWitness.lean:559:52: This simp argument is unused:
+  not_true_eq_false
+
+Hint: Omit it from the simp argument list.
+  simp only [not_or, decide_eq_false_iff_not, n̵o̵t̵_̵t̵r̵u̵e̵_̵e̵q̵_̵f̵a̵l̵s̵e̵,̵ ̵Bool.not_eq_true, decide_eq_true_eq]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/NPWitness.lean:559:71: This simp argument is unused:
+  Bool.not_eq_true
+
+Hint: Omit it from the simp argument list.
+  simp only [not_or, decide_eq_false_iff_not, not_true_eq_false, B̵o̵o̵l̵.̵n̵o̵t̵_̵e̵q̵_̵t̵r̵u̵e̵,̵
+  ̵ ̵ ̵ ̵ ̵ ̵ ̵ ̵ ̵ ̵ ̵decide_eq_true_eq]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+⚠ [8041/8043] Replayed PallLean.MultilinearSPDP
+warning: PallLean/MultilinearSPDP.lean:288:36: unused variable `hℓ`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/MultilinearSPDP.lean:510:6: exponent 804 exceeds the threshold 256, exponentiation operation was not evaluated, use `set_option exponentiation.threshold <num>` to set a new threshold
+warning: PallLean/MultilinearSPDP.lean:572:25: unused variable `hf`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/MultilinearSPDP.lean:591:29: This simp argument is unused:
+  MvPolynomial.aeval_X
+
+Hint: Omit it from the simp argument list.
+  simp ̵[̵M̵v̵P̵o̵l̵y̵n̵o̵m̵i̵a̵l̵.̵a̵e̵v̵a̵l̵_̵X̵]̵
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/MultilinearSPDP.lean:595:25: unused variable `hf`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/MultilinearSPDP.lean:611:31: This simp argument is unused:
+  MvPolynomial.pderiv_C
+
+Hint: Omit it from the simp argument list.
+  simp [restrictPoly, M̵v̵P̵o̵l̵y̵n̵o̵m̵i̵a̵l̵.̵p̵d̵e̵r̵i̵v̵_̵C̵,̵ ̵map_zero]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/MultilinearSPDP.lean:632:17: This simp argument is unused:
+  if_pos rfl
+
+Hint: Omit it from the simp argument list.
+  simp only [i̵f̵_̵p̵o̵s̵ ̵r̵f̵l̵,̵ ̵map_one]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/MultilinearSPDP.lean:632:29: This simp argument is unused:
+  map_one
+
+Hint: Omit it from the simp argument list.
+  simp only [if_pos rfl,̵ ̵m̵a̵p̵_̵o̵n̵e̵]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/MultilinearSPDP.lean:710:29: This simp argument is unused:
+  map_zero
+
+Hint: Omit it from the simp argument list.
+  simp only [if_neg hml_s, m̵a̵p̵_̵z̵e̵r̵o̵,̵ ̵MvPolynomial.coeff_zero]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/MultilinearSPDP.lean:770:62: unused variable `hf`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/MultilinearSPDP.lean:910:8: This simp argument is unused:
+  MvPolynomial.pderiv_C
+
+Hint: Omit it from the simp argument list.
+  simp ̵[̵M̵v̵P̵o̵l̵y̵n̵o̵m̵i̵a̵l̵.̵p̵d̵e̵r̵i̵v̵_̵C̵]̵
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/MultilinearSPDP.lean:1074:13: This simp argument is unused:
+  Fin.val_mk
+
+Hint: Omit it from the simp argument list.
+  s̵i̵m̵p̵ ̵o̵n̵l̵y̵ ̵[̵F̵i̵n̵.̵v̵a̵l̵_̵m̵k̵]̵ ̵a̵t̵ ̵h̵_̵e̵q̵ ̵⊢̵s̲i̲m̲p̲ ̲o̲n̲l̲y̲ ̲a̲t̲ ̲h̲_̲e̲q̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲⊢̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲-̲-̲ ̲S̲p̲l̲i̲t̲ ̲o̲n̲ ̲t̲h̲e̲ ̲f̲o̲u̲r̲ ̲c̲a̲s̲e̲s̲ ̲o̲f̲ ̲(̲i̲ ̲s̲e̲l̲e̲c̲t̲o̲r̲?̲)̲ ̲×̲ ̲(̲j̲ ̲s̲e̲l̲e̲c̲t̲o̲r̲?̲)̲
+  ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/MultilinearSPDP.lean:1082:28: This simp argument is unused:
+  Fin.val_mk
+
+Hint: Omit it from the simp argument list.
+  simp only [dif_pos hi3,̵ ̵F̵i̵n̵.̵v̵a̵l̵_̵m̵k̵] at h_eq
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/MultilinearSPDP.lean:1100:28: This simp argument is unused:
+  Fin.val_mk
+
+Hint: Omit it from the simp argument list.
+  simp only [dif_neg hi3,̵ ̵F̵i̵n̵.̵v̵a̵l̵_̵m̵k̵] at h_eq
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/MultilinearSPDP.lean:1118:6: unused variable `a`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/MultilinearSPDP.lean:1118:8: unused variable `b`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/MultilinearSPDP.lean:1154:10: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: PallLean/MultilinearSPDP.lean:1403:25: unused variable `hf`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/MultilinearSPDP.lean:1408:17: This simp argument is unused:
+  MvPolynomial.pderiv_C
+
+Hint: Omit it from the simp argument list.
+  simp ̵[̵M̵v̵P̵o̵l̵y̵n̵o̵m̵i̵a̵l̵.̵p̵d̵e̵r̵i̵v̵_̵C̵]̵
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/MultilinearSPDP.lean:1519:25: unused variable `hf`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/MultilinearSPDP.lean:1766:40: This simp argument is unused:
+  Fin.mk.injEq
+
+Hint: Omit it from the simp argument list.
+  simp only [dif_pos hi3, dif_pos hi,̵ ̵F̵i̵n̵.̵m̵k̵.̵i̵n̵j̵E̵q̵] at h_eq ⊢
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/MultilinearSPDP.lean:1777:40: This simp argument is unused:
+  Fin.mk.injEq
+
+Hint: Omit it from the simp argument list.
+  simp only [dif_neg hi3, dif_neg hi,̵ ̵F̵i̵n̵.̵m̵k̵.̵i̵n̵j̵E̵q̵] at h_eq ⊢
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/MultilinearSPDP.lean:1863:5: unused variable `hadm`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/MultilinearSPDP.lean:1893:23: unused variable `hsolves`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/MultilinearSPDP.lean:1893:40: unused variable `hn`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+⚠ [8042/8043] Replayed PallLean.CookLevinDefs
+warning: PallLean/CookLevinDefs.lean:73:5: unused variable `C₁`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/CookLevinDefs.lean:121:15: This simp argument is unused:
+  Finset.mem_union
+
+Hint: Omit it from the simp argument list.
+  simp only [̵F̵i̵n̵s̵e̵t̵.̵m̵e̵m̵_̵u̵n̵i̵o̵n̵,̵ ̵M̵v̵P̵o̵l̵y̵n̵o̵m̵i̵a̵l̵.̵v̵a̵r̵s̵_̵o̵n̵e̵,̵[̲M̲v̲P̲o̲l̲y̲n̲o̲m̲i̲a̲l̲.̲v̲a̲r̲s̲_̲o̲n̲e̲,̲ Finset.empty_union, MvPolynomial.vars_X,
+  ̲  ̲ ̲ ̲ ̲ ̲Finset.mem_singleton] at h3
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/CookLevinDefs.lean:200:50: unused variable `hN`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/CookLevinDefs.lean:235:5: unused variable `htb`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/CookLevinDefs.lean:235:29: unused variable `hns`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+✖ [8043/8043] Building PallLean.SymmetricPower (5.4s)
+trace: .> LEAN_PATH=/tmp/pall-lean/.lake/packages/Cli/.lake/build/lib/lean:/tmp/pall-lean/.lake/packages/batteries/.lake/build/lib/lean:/tmp/pall-lean/.lake/packages/Qq/.lake/build/lib/lean:/tmp/pall-lean/.lake/packages/aesop/.lake/build/lib/lean:/tmp/pall-lean/.lake/packages/proofwidgets/.lake/build/lib/lean:/tmp/pall-lean/.lake/packages/importGraph/.lake/build/lib/lean:/tmp/pall-lean/.lake/packages/LeanSearchClient/.lake/build/lib/lean:/tmp/pall-lean/.lake/packages/plausible/.lake/build/lib/lean:/tmp/pall-lean/.lake/packages/mathlib/.lake/build/lib/lean:/tmp/pall-lean/.lake/build/lib/lean /home/darre/.elan/toolchains/leanprover--lean4---v4.28.0/bin/lean /tmp/pall-lean/PallLean/SymmetricPower.lean -o /tmp/pall-lean/.lake/build/lib/lean/PallLean/SymmetricPower.olean -i /tmp/pall-lean/.lake/build/lib/lean/PallLean/SymmetricPower.ilean -c /tmp/pall-lean/.lake/build/ir/PallLean/SymmetricPower.c --setup /tmp/pall-lean/.lake/build/ir/PallLean/SymmetricPower.setup.json --json
+error: PallLean/SymmetricPower.lean:159:6: Unknown identifier `pderiv_boolFactor_self`
+error: PallLean/SymmetricPower.lean:158:70: unsolved goals
+N : ℕ
+v : Fin N
+⊢ (pderiv v) (boolFactor N v) ∈ boolInterfaceSpan N v
+error: PallLean/SymmetricPower.lean:167:9: Unknown identifier `two_deriv_boolFactor_is_const`
+error: PallLean/SymmetricPower.lean:167:48: Tactic `rcases` failed: `x✝ : ?m.13` is not an inductive datatype
+warning: PallLean/SymmetricPower.lean:268:50: This simp argument is unused:
+  map_sub
+
+Hint: Omit it from the simp argument list.
+  simp only [IterDerivHelpers.iterDerivList_cons, m̵a̵p̵_̵s̵u̵b̵,̵ ̵pderiv_one, pderiv_mul,
+  ̲  ̲ ̲ ̲MvPolynomial.pderiv_X_self, one_mul, zero_mul, zero_add, add_zero, map_one, sub_eq_add_neg,
+  ̲  ̲ ̲ ̲map_add, map_neg]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:269:53: This simp argument is unused:
+  zero_mul
+
+Hint: Omit it from the simp argument list.
+  simp only [IterDerivHelpers.iterDerivList_cons, map_sub, pderiv_one,
+  ̵  ̵ ̵ ̵pderiv_mul,
+  ̲  ̲ ̲ ̲MvPolynomial.pderiv_X_self, one_mul, zero_m̵u̵l̵,̵ ̵z̵e̵r̵o̵_̵add, add_zero,
+  ̵  ̵ ̵ ̵map_one, sub_eq_add_neg, map_add,
+  ̲  ̲ ̲ ̲map_neg]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:269:73: This simp argument is unused:
+  add_zero
+
+Hint: Omit it from the simp argument list.
+  simp only [IterDerivHelpers.iterDerivList_cons, map_sub, pderiv_one,
+  ̵  ̵ ̵ ̵pderiv_mul,
+  ̲  ̲ ̲ ̲MvPolynomial.pderiv_X_self, one_mul, zero_mul, zero_add, a̵d̵d̵_̵z̵e̵r̵o̵,̵
+  ̵ ̵ ̵ ̵ ̵map_one, sub_eq_add_neg, map_add,
+  ̲  ̲ ̲ ̲map_neg]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:270:4: This simp argument is unused:
+  map_one
+
+Hint: Omit it from the simp argument list.
+  simp only [IterDerivHelpers.iterDerivList_cons, map_sub, pderiv_one,
+  ̵  ̵ ̵ ̵pderiv_mul,
+  ̲  ̲ ̲ ̲MvPolynomial.pderiv_X_self, one_mul, zero_mul, zero_add, add_zero,
+  ̵  ̵ ̵ ̵m̵a̵p̵_̵o̵n̵e̵,̵ ̵sub_eq_add_neg, map_add,
+  ̲  ̲ ̲ ̲map_neg]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:302:13: This simp argument is unused:
+  map_sub
+
+Hint: Omit it from the simp argument list.
+  simp only [m̵a̵p_̵s̵u̵b̵,̵ ̵p̵deriv_one, pderiv_mul, MvPolynomial.pderiv_X_self,
+  ̵  ̵ ̵ ̵one_mul, zero_mul, zero_add,
+  ̲  ̲ ̲ ̲add_zero, map_one, sub_eq_add_neg, map_add,
+  ̵  ̵ ̵ ̵map_neg, map_sub]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:303:13: This simp argument is unused:
+  zero_mul
+
+Hint: Omit it from the simp argument list.
+  simp only [map_sub, pderiv_one, pderiv_mul, MvPolynomial.pderiv_X_self,
+  ̵  ̵ ̵ ̵one_mul, zero_m̵u̵l̵,̵ ̵z̵e̵r̵o̵_̵add,
+  ̲  ̲ ̲ ̲add_zero, map_one, sub_eq_add_neg, map_add,
+  ̵  ̵ ̵ ̵map_neg, map_sub]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:303:33: This simp argument is unused:
+  add_zero
+
+Hint: Omit it from the simp argument list.
+  simp only [map_sub, pderiv_one, pderiv_mul, MvPolynomial.pderiv_X_self, one_mul, zero_mul,
+  ̲  ̲ ̲ ̲zero_add, a̵d̵d̵_̵z̵e̵r̵o̵,̵ ̵map_one, sub_eq_add_neg, map_add, map_neg, map_sub]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:303:43: This simp argument is unused:
+  map_one
+
+Hint: Omit it from the simp argument list.
+  simp only [map_sub, pderiv_one, pderiv_mul, MvPolynomial.pderiv_X_self, one_mul, zero_mul,
+  ̲  ̲ ̲ ̲zero_add, add_zero, m̵a̵p̵_̵o̵n̵e̵,̵ ̵sub_eq_add_neg, map_add, map_neg, map_sub]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:304:13: This simp argument is unused:
+  map_sub
+
+Hint: Omit it from the simp argument list.
+  simp only [map_sub, pderiv_one, pderiv_mul, MvPolynomial.pderiv_X_self,
+  ̵  ̵ ̵ ̵one_mul, zero_mul,
+  ̲  ̲ ̲ ̲zero_add, add_zero, map_one, sub_eq_add_neg, map_add,
+  ̵  ̵ ̵ ̵map_neg,̵ ̵m̵a̵p̵_̵s̵u̵b̵]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:313:13: This simp argument is unused:
+  map_sub
+
+Hint: Omit it from the simp argument list.
+  simp only [m̵a̵p_̵s̵u̵b̵,̵ ̵p̵deriv_one, pderiv_mul, MvPolynomial.pderiv_X_self,
+  ̵  ̵ ̵ ̵one_mul, zero_mul, zero_add,
+  ̲  ̲ ̲ ̲add_zero, map_one, sub_eq_add_neg, map_add,
+  ̵  ̵ ̵ ̵map_neg]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:314:13: This simp argument is unused:
+  zero_mul
+
+Hint: Omit it from the simp argument list.
+  simp only [map_sub, pderiv_one, pderiv_mul, MvPolynomial.pderiv_X_self,
+  ̵  ̵ ̵ ̵one_mul, zero_m̵u̵l̵,̵ ̵z̵e̵r̵o̵_̵add,
+  ̲  ̲ ̲ ̲add_zero, map_one, sub_eq_add_neg, map_add,
+  ̵  ̵ ̵ ̵map_neg]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:314:33: This simp argument is unused:
+  add_zero
+
+Hint: Omit it from the simp argument list.
+  simp only [map_sub, pderiv_one, pderiv_mul, MvPolynomial.pderiv_X_self, one_mul, zero_mul,
+  ̲  ̲ ̲ ̲zero_add, a̵d̵d̵_̵z̵e̵r̵o̵,̵ ̵map_one, sub_eq_add_neg, map_add, map_neg]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:314:43: This simp argument is unused:
+  map_one
+
+Hint: Omit it from the simp argument list.
+  simp only [map_sub, pderiv_one, pderiv_mul, MvPolynomial.pderiv_X_self, one_mul, zero_mul,
+  ̲  ̲ ̲ ̲zero_add, add_zero, m̵a̵p̵_̵o̵n̵e̵,̵ ̵sub_eq_add_neg, map_add, map_neg]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:379:63: This simp argument is unused:
+  map_ofNat
+
+Hint: Omit it from the simp argument list.
+  simp ̵[̵m̵a̵p̵_̵o̵f̵N̵a̵t̵]̵
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:386:8: This simp argument is unused:
+  MvPolynomial.pderiv_X_of_ne hij.symm
+
+Hint: Omit it from the simp argument list.
+  simp only [map_sub, pderiv_one, pderiv_mul,
+          MvPolynomial.pderiv_X_self, MvPolynomial.pderiv_X_of_ne hij, mul_one, zero_mul, zero_add,
+  ̲  ̲ ̲ ̲ ̲ ̲ ̲ ̲zero_sub, map_neg, M̵v̵P̵o̵l̵y̵n̵o̵m̵i̵a̵l̵.̵p̵d̵e̵r̵i̵v̵_̵X̵_̵o̵f̵_̵n̵e̵ ̵h̵i̵j̵.̵s̵y̵m̵m̵,̵ ̵neg_zero, sub_zero]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:386:46: This simp argument is unused:
+  neg_zero
+
+Hint: Omit it from the simp argument list.
+  simp only [map_sub, pderiv_one, pderiv_mul,
+          MvPolynomial.pderiv_X_self, MvPolynomial.pderiv_X_of_ne hij,
+  ̵  ̵ ̵ ̵ ̵ ̵ ̵ ̵mul_one, zero_mul, zero_add,
+  ̲  ̲ ̲ ̲ ̲ ̲ ̲ ̲zero_sub, map_neg,
+  ̵  ̵ ̵ ̵ ̵ ̵ ̵ ̵MvPolynomial.pderiv_X_of_ne hij.symm, n̵e̵g̵_̵z̵e̵r̵o̵,̵ ̵sub_zero]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:386:56: This simp argument is unused:
+  sub_zero
+
+Hint: Omit it from the simp argument list.
+  simp only [map_sub, pderiv_one, pderiv_mul,
+          MvPolynomial.pderiv_X_self, MvPolynomial.pderiv_X_of_ne hij,
+  ̵  ̵ ̵ ̵ ̵ ̵ ̵ ̵mul_one, zero_mul, zero_add,
+  ̲  ̲ ̲ ̲ ̲ ̲ ̲ ̲zero_sub, map_neg,
+  ̵  ̵ ̵ ̵ ̵ ̵ ̵ ̵MvPolynomial.pderiv_X_of_ne hij.symm, neg_zero,̵ ̵s̵u̵b̵_̵z̵e̵r̵o̵]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:386:73: This simp argument is unused:
+  map_ofNat
+
+Hint: Omit it from the simp argument list.
+  simp ̵[̵m̵a̵p̵_̵o̵f̵N̵a̵t̵]̵
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:390:56: This simp argument is unused:
+  mul_zero
+
+Hint: Omit it from the simp argument list.
+  simp only [map_sub, pderiv_one, pderiv_mul,
+          MvPolynomial.pderiv_X_self, MvPolynomial.pderiv_X_of_ne hij,
+  ̵  ̵ ̵ ̵ ̵ ̵ ̵ ̵mul_one, zero_mul, zero_add,
+  ̲  ̲ ̲ ̲ ̲ ̲ ̲ ̲zero_sub, map_neg, m̵u̵l̵_̵z̵e̵r̵o̵,̵ ̵neg_zero, map_zero]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:473:33: This simp argument is unused:
+  Finset.card_fin
+
+Hint: Omit it from the simp argument list.
+  simp [Finset.prod_const,̵ ̵F̵i̵n̵s̵e̵t̵.̵c̵a̵r̵d̵_̵f̵i̵n̵]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: PallLean/SymmetricPower.lean:545:5: unused variable `B`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/SymmetricPower.lean:545:28: unused variable `κ`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: PallLean/SymmetricPower.lean:734:59: This simp argument is unused:
+  Finset.card_fin
+
+Hint: Omit it from the simp argument list.
+  simp [Finset.sum_const,̵ ̵F̵i̵n̵s̵e̵t̵.̵c̵a̵r̵d̵_̵f̵i̵n̵]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+error: Lean exited with code 1
+Some required targets logged failures:
+- PallLean.SymmetricPower
+error: build failed

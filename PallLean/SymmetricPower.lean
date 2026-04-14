@@ -951,4 +951,71 @@ theorem leibniz_symmetric_power_descent_bound
   -- Combine
   linarith
 
+/-! ## Part 5: Kronecker coefficient computations for the identity minor
+
+For the identity construction lower bound, we need to compute the coefficient
+of "tag monomials" in SPDP generators built from boolFactor products.
+
+Key single-variable building blocks:
+- coeff (single v 1) in (-1 + 2*X v) = 2  [differentiated factor]
+- coeff 0 in boolFactor v = 1              [undifferentiated factor, constant term]
+- coeff (single v 1) in boolFactor v = -1  [undifferentiated factor, linear term]
+- coeff 0 in (-1 + 2*X v) = -1             [differentiated factor, constant term]
+
+These combine via coeff_finset_prod_disjoint to give the multi-variable
+Kronecker matrix entries. -/
+
+/-- Coefficient of (single v 1) in pderiv v (boolFactor N v) is 2. -/
+theorem coeff_single_pderiv_boolFactor {N : ℕ} (v : Fin N) :
+    MvPolynomial.coeff (Finsupp.single v 1)
+      (MvPolynomial.pderiv v (boolFactor N v) : MvPolynomial (Fin N) ℚ) = 2 := by
+  rw [pderiv_boolFactor_self N v]
+  -- -1 + 2 * X v = C(-1) + C(2) * X v
+  have h1 : (-1 + 2 * MvPolynomial.X v : MvPolynomial (Fin N) ℚ) =
+      MvPolynomial.C (-1) + MvPolynomial.C 2 * MvPolynomial.X v := by
+    simp [map_ofNat]
+  rw [h1]
+  simp only [MvPolynomial.coeff_add, MvPolynomial.coeff_C_mul, MvPolynomial.coeff_C,
+    MvPolynomial.coeff_X', ite_true]
+  -- single v 1 ≠ 0, so C(-1) contributes 0
+  have hne : (0 : Fin N →₀ ℕ) ≠ Finsupp.single v 1 := by
+    intro h; have := DFunLike.congr_fun h v; simp at this
+  simp [hne]
+
+/-- Coefficient of 0 in boolFactor v is 1 (constant term). -/
+theorem coeff_zero_boolFactor {N : ℕ} (v : Fin N) :
+    MvPolynomial.coeff 0 (boolFactor N v : MvPolynomial (Fin N) ℚ) = 1 := by
+  unfold boolFactor
+  simp only [MvPolynomial.coeff_sub, MvPolynomial.coeff_one, MvPolynomial.coeff_mul,
+    MvPolynomial.coeff_X']
+  -- 1 - X v * (1 - X v) at monomial 0 = 1 - 0 = 1
+  -- coeff 0 (X v * (1 - X v)): use coeff_mul, pairs (a,b) with a+b=0, so a=b=0
+  -- coeff 0 (X v) = 0, so the product is 0
+  simp [Finsupp.antidiagonal_zero]
+
+/-- Coefficient of (single v 1) in boolFactor v is -1. -/
+theorem coeff_single_boolFactor {N : ℕ} (v : Fin N) :
+    MvPolynomial.coeff (Finsupp.single v 1)
+      (boolFactor N v : MvPolynomial (Fin N) ℚ) = -1 := by
+  -- single v 1 is multilinear, so coeff at boolFactor = coeff at mlProj(boolFactor)
+  rw [← coeff_mlProj_of_isMultilinear_mono _ _
+    (fun i => by simp [Finsupp.single_apply]; split_ifs <;> omega)]
+  rw [mlProj_boolFactor v]
+  simp only [MvPolynomial.coeff_sub, MvPolynomial.coeff_one, MvPolynomial.coeff_X', ite_true]
+  have hne : (0 : Fin N →₀ ℕ) ≠ Finsupp.single v 1 := by
+    intro h; have := DFunLike.congr_fun h v; simp at this
+  simp [hne]
+
+/-- Coefficient of 0 in pderiv v (boolFactor v) is -1. -/
+theorem coeff_zero_pderiv_boolFactor {N : ℕ} (v : Fin N) :
+    MvPolynomial.coeff 0
+      (MvPolynomial.pderiv v (boolFactor N v) : MvPolynomial (Fin N) ℚ) = -1 := by
+  rw [pderiv_boolFactor_self N v]
+  have h1 : (-1 + 2 * MvPolynomial.X v : MvPolynomial (Fin N) ℚ) =
+      MvPolynomial.C (-1) + MvPolynomial.C 2 * MvPolynomial.X v := by
+    simp [map_ofNat]
+  rw [h1]
+  simp [MvPolynomial.coeff_add, MvPolynomial.coeff_C_mul,
+    MvPolynomial.coeff_X']
+
 end SymmetricPower
