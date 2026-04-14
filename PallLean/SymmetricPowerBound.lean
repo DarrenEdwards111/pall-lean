@@ -1535,6 +1535,131 @@ theorem singletonProductGeneratorHasChosenFixedProfileCover_of_coverFrontier
   exact ProductDerivAssignmentWitness.generatorHasChosenFixedProfileCover_of_coverFrontier
     pg (singletonProductDerivAssignmentWitness pg slot constraintType) hcover
 
+/-! ### Structural Profile Decomposition of the SPDP Subspace
+
+This section proves the structural containment:
+  mlBlockedSpdpSubspace B κ ℓ p ≤ ⨆ (h : admissible profile), V_h
+
+where V_h is the span of post-processed Leibniz terms with profile h.
+This is the paper's §9 Step 1+3: partition by profile histogram and
+show the profile-indexed union covers the SPDP subspace.
+
+The proof uses only:
+- The Leibniz product rule (iterDerivList_finset_prod_mem_span)
+- The linearity of mlProj(m * ·)
+- The fact that every derivative assignment induces a profile
+- Set-theoretic containment: S = ⋃_h S_h implies span(S) ≤ ⨆_h span(S_h)
+
+No within-profile dimension bound is used here.
+-/
+
+/-- For a product polynomial p = factors.prod with a constraint-type classifier,
+    define the set of Leibniz distributed-derivative products whose derivative
+    assignment induces a given profile histogram h.
+
+    A Leibniz term g ∈ distribDerivProds comes from a derivative distribution
+    `d : ι → List (Fin n)`. We classify g by the profile histogram induced by
+    mapping each factor's derivative-hit count through the constraint type. -/
+def profileClassifiedLeibnizSet {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (h : ProfileHistogram) :
+    Set (MvPolynomial (Fin n) ℚ) :=
+  { g | ∃ (d : Fin L → List (Fin n)),
+      (∀ i, ∀ v ∈ d i, v ∈ S) ∧
+      g = Finset.univ.prod (fun i => iterDerivList (d i) (factors i)) ∧
+      (∀ τ, h τ = Fintype.card { i : Fin L // constraintType i = τ ∧ (d i).length > 0 }) }
+
+/-- The profile-classified sets cover all of distribDerivProds.
+
+    Every element of distribDerivProds(Finset.univ, factors, S) belongs to at least
+    one profile-classified set, because the derivative distribution d induces a
+    definite profile histogram. -/
+theorem distribDerivProds_subset_iUnion_profileClassified {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n)) :
+    LeibnizProduct.distribDerivProds Finset.univ factors S ⊆
+      ⋃ (h : ProfileHistogram), profileClassifiedLeibnizSet factors constraintType S h := by
+  intro g ⟨d, hd_mem, hg⟩
+  -- d assigns derivative sublists to factors. Define the profile from d.
+  let h : ProfileHistogram :=
+    fun τ => Fintype.card { i : Fin L // constraintType i = τ ∧ (d i).length > 0 }
+  rw [Set.mem_iUnion]
+  exact ⟨h, d, hd_mem, hg, fun _ => rfl⟩
+
+/-- Post-processed profile-indexed subspace: for each profile h, the span of
+    mlProj(shift * g) for all Leibniz terms g with profile h. -/
+noncomputable def profilePostSpan {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (shift : MvPolynomial (Fin n) ℚ)
+    (h : ProfileHistogram) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+  Submodule.span ℚ
+    ((fun g => mlProj (shift * g)) '' profileClassifiedLeibnizSet factors constraintType S h)
+
+/-- The span of the full post-processed Leibniz image is contained in the sup of
+    profile-indexed subspaces. This is pure set-theoretic:
+    S ⊆ ⋃_h S_h implies span(f '' S) ≤ ⨆_h span(f '' S_h). -/
+theorem postProcessedLeibnizSpan_le_iSup_profilePostSpan {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (shift : MvPolynomial (Fin n) ℚ) :
+    Submodule.span ℚ
+      ((fun g => mlProj (shift * g)) '' LeibnizProduct.distribDerivProds Finset.univ factors S) ≤
+    ⨆ (h : ProfileHistogram), profilePostSpan factors constraintType S shift h := by
+  apply Submodule.span_le.mpr
+  intro q hq
+  rcases hq with ⟨g, hg_mem, rfl⟩
+  -- g ∈ distribDerivProds, so g ∈ some profile-classified set
+  have hg_union := distribDerivProds_subset_iUnion_profileClassified factors constraintType S hg_mem
+  rw [Set.mem_iUnion] at hg_union
+  obtain ⟨h, hg_prof⟩ := hg_union
+  -- mlProj(shift * g) is in profilePostSpan for profile h
+  apply Submodule.mem_iSup_of_mem h
+  apply Submodule.subset_span
+  exact ⟨g, hg_prof, rfl⟩
+
+/-- The SPDP generator polynomial mlProj(shift * iterDerivList S (factors.prod)) lies in
+    the sup of profile-indexed post-processed Leibniz subspaces, for any constraint-type
+    classifier on the factors.
+
+    This is the structural content of §9 Steps 1+3: every SPDP generator decomposes
+    via the Leibniz product rule into profile-classified terms, and the profile-indexed
+    subspaces cover the entire SPDP subspace.
+
+    The key steps:
+    1. iterDerivList S p ∈ span(distribDerivProds) by the Leibniz product rule
+    2. mlProj(shift * ·) is linear, so mlProj(shift * iterDerivList S p)
+       ∈ span(mlProj(shift * ·) '' distribDerivProds)
+    3. distribDerivProds ⊆ ⋃_h profileClassified_h (every assignment has a profile)
+    4. span(f '' S) ≤ ⨆_h span(f '' S_h) by set-theoretic containment -/
+theorem spdp_generator_in_profile_iSup {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (shift : MvPolynomial (Fin n) ℚ)
+    (p : MvPolynomial (Fin n) ℚ)
+    (hp : p = Finset.univ.prod factors) :
+    mlProj (shift * iterDerivList S p) ∈
+      ⨆ (h : ProfileHistogram), profilePostSpan factors constraintType S shift h := by
+  rw [hp]
+  have hLeibniz := LeibnizProduct.iterDerivList_finset_prod_mem_span
+    Finset.univ factors S
+  -- Step 2: mlProj(shift * ·) is linear, so apply it to the span membership
+  have hpost := SymmetricPower.mlProj_mul_mem_span_image shift
+    (LeibnizProduct.distribDerivProds Finset.univ factors S)
+    (iterDerivList S (Finset.univ.prod factors))
+    hLeibniz
+  -- Step 3: The post-processed Leibniz span ≤ ⨆ profile post-spans
+  have hcontain := postProcessedLeibnizSpan_le_iSup_profilePostSpan
+    factors constraintType S shift
+  exact hcontain hpost
+
 /-- Current assembly theorem.
 
 At present the actual fixed-profile bridge is still open, so the compiled-polynomial
