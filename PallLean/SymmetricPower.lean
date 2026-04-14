@@ -1206,4 +1206,116 @@ theorem coeff_tag_iterDeriv_boolFactor_prod_diag {N : ℕ} (S : Finset (Fin N)) 
     (monomSupportedIn_zero _)]
   rw [coeff_tag_pderiv_boolFactor_prod S, coeff_zero_boolFactor_prod _, mul_one]
 
+-- General Kronecker coefficient for the boolFactor product.
+set_option maxHeartbeats 1600000 in
+theorem coeff_tag_iterDeriv_boolFactor_prod_general {N : ℕ}
+    (S S' : Finset (Fin N)) :
+    MvPolynomial.coeff (∑ v ∈ S, Finsupp.single v 1)
+      ((S'.prod (fun v => MvPolynomial.pderiv v (boolFactor N v))) *
+       (Finset.univ \ S').prod (boolFactor N) : MvPolynomial (Fin N) ℚ) =
+    (2 : ℚ) ^ (S ∩ S').card * (-1) ^ (S \ S').card *
+    (-1) ^ (S' \ S).card := by
+  -- Step 1: Rewrite product as Finset.prod over univ
+  have hprod_eq : (S'.prod (fun v => MvPolynomial.pderiv v (boolFactor N v))) *
+      (Finset.univ \ S').prod (boolFactor N) =
+      Finset.univ.prod (fun v => if v ∈ S' then MvPolynomial.pderiv v (boolFactor N v)
+                                  else boolFactor N v) := by
+    have h1 : S'.prod (fun v => MvPolynomial.pderiv v (boolFactor N v)) =
+        S'.prod (fun v => if v ∈ S' then MvPolynomial.pderiv v (boolFactor N v)
+                           else boolFactor N v) :=
+      Finset.prod_congr rfl (fun v hv => by simp [hv])
+    have h2 : (Finset.univ \ S').prod (boolFactor N) =
+        (Finset.univ \ S').prod (fun v => if v ∈ S' then MvPolynomial.pderiv v (boolFactor N v)
+                                           else boolFactor N v) :=
+      Finset.prod_congr rfl (fun v hv => by simp [Finset.mem_sdiff.mp hv |>.2])
+    rw [h1, h2, ← Finset.prod_union]
+    · congr 1; exact Finset.union_sdiff_of_subset (Finset.subset_univ S')
+    · exact Finset.disjoint_sdiff
+  rw [hprod_eq]
+  -- Step 2: Rewrite monomial sum as sum over univ
+  have hmon_eq : (∑ v ∈ S, Finsupp.single v 1 : Fin N →₀ ℕ) =
+      ∑ v ∈ Finset.univ, (if v ∈ S then Finsupp.single v 1 else 0) := by
+    rw [Finset.sum_ite, Finset.filter_mem_eq_inter, Finset.univ_inter]; simp
+  rw [hmon_eq]
+  -- Step 3: Apply coeff_finset_prod_disjoint
+  rw [CoeffDisjoint.coeff_finset_prod_disjoint
+    (hf := fun v _ => by split_ifs <;> [exact usesOnly_pderiv_boolFactor v;
+                                         exact usesOnly_boolFactor v])
+    (hdisj := singleton_pairwiseDisjoint Finset.univ)
+    (hm := fun v _ => by split_ifs <;> [exact monomSupportedIn_single v;
+                                          exact monomSupportedIn_zero _])]
+  -- Step 4: Evaluate each factor
+  have hfactor : ∀ v : Fin N,
+      MvPolynomial.coeff (if v ∈ S then Finsupp.single v 1 else 0)
+        (if v ∈ S' then MvPolynomial.pderiv v (boolFactor N v) else boolFactor N v) =
+      if v ∈ S ∩ S' then (2 : ℚ)
+      else if v ∈ S \ S' then (-1 : ℚ)
+      else if v ∈ S' \ S then (-1 : ℚ)
+      else (1 : ℚ) := by
+    intro v
+    simp only [Finset.mem_inter, Finset.mem_sdiff]
+    by_cases hvS : v ∈ S <;> by_cases hvS' : v ∈ S' <;> simp [hvS, hvS']
+    · exact coeff_single_pderiv_boolFactor v
+    · exact coeff_single_boolFactor v
+    · exact coeff_zero_pderiv_boolFactor v
+    · exact coeff_zero_boolFactor v
+  rw [Finset.prod_congr rfl (fun v _ => hfactor v)]
+  -- Step 5: Split the product over univ into 4 disjoint parts
+  -- univ = (S∩S') ∪ (S\S') ∪ (S'\S) ∪ (univ\(S∪S'))
+  -- Use: for each v, exactly one branch is taken
+  -- Strategy: repeatedly use Finset.prod_ite to peel off parts
+  -- First peel off S∩S'
+  have huniv_split : Finset.univ = (S ∩ S') ∪ ((S \ S') ∪ ((S' \ S) ∪ (Finset.univ \ (S ∪ S')))) := by
+    ext v; simp [Finset.mem_union, Finset.mem_inter, Finset.mem_sdiff]; tauto
+  have hdisj1 : Disjoint (S ∩ S') ((S \ S') ∪ ((S' \ S) ∪ (Finset.univ \ (S ∪ S')))) := by
+    simp [Finset.disjoint_left]; intro v hv1 hv2; simp [Finset.mem_union, Finset.mem_sdiff, Finset.mem_inter] at *; tauto
+  rw [huniv_split, Finset.prod_union hdisj1]
+  -- In S∩S': each factor is 2
+  have hprod1 : ∏ v ∈ S ∩ S', (if v ∈ S ∩ S' then (2 : ℚ)
+      else if v ∈ S \ S' then -1 else if v ∈ S' \ S then -1 else 1) =
+      (2 : ℚ) ^ (S ∩ S').card := by
+    apply Finset.prod_eq_pow_card
+    intro v hv; simp [hv]
+  rw [hprod1]
+  -- Peel off S\S'
+  have hdisj2 : Disjoint (S \ S') ((S' \ S) ∪ (Finset.univ \ (S ∪ S'))) := by
+    simp [Finset.disjoint_left]; intro v hv1 hv2; simp [Finset.mem_union, Finset.mem_sdiff] at *; tauto
+  rw [Finset.prod_union hdisj2]
+  -- In S\S': v ∉ S∩S', v ∈ S\S', so factor = -1
+  have hprod2 : ∏ v ∈ S \ S', (if v ∈ S ∩ S' then (2 : ℚ)
+      else if v ∈ S \ S' then -1 else if v ∈ S' \ S then -1 else 1) =
+      (-1 : ℚ) ^ (S \ S').card := by
+    apply Finset.prod_eq_pow_card
+    intro v hv
+    simp only [Finset.mem_sdiff, Finset.mem_inter] at hv
+    simp [show ¬(v ∈ S ∧ v ∈ S') from fun ⟨_, h⟩ => hv.2 h, hv]
+  rw [hprod2]
+  -- Peel off S'\S
+  have hdisj3 : Disjoint (S' \ S) (Finset.univ \ (S ∪ S')) := by
+    simp [Finset.disjoint_left]; intro v hv1 hv2; simp [Finset.mem_sdiff, Finset.mem_union] at *; tauto
+  rw [Finset.prod_union hdisj3]
+  -- In S'\S: v ∉ S∩S', v ∉ S\S', v ∈ S'\S, so factor = -1
+  have hprod3 : ∏ v ∈ S' \ S, (if v ∈ S ∩ S' then (2 : ℚ)
+      else if v ∈ S \ S' then -1 else if v ∈ S' \ S then -1 else 1) =
+      (-1 : ℚ) ^ (S' \ S).card := by
+    apply Finset.prod_eq_pow_card
+    intro v hv
+    simp only [Finset.mem_sdiff, Finset.mem_inter] at hv
+    simp [show ¬(v ∈ S ∧ v ∈ S') from fun ⟨h, _⟩ => hv.2 h,
+          show ¬(v ∈ S ∧ v ∉ S') from fun ⟨h, _⟩ => hv.2 h, hv]
+  rw [hprod3]
+  -- In rest: all factors are 1
+  have hprod4 : ∏ v ∈ Finset.univ \ (S ∪ S'), (if v ∈ S ∩ S' then (2 : ℚ)
+      else if v ∈ S \ S' then -1 else if v ∈ S' \ S then -1 else 1) = 1 := by
+    apply Finset.prod_eq_one
+    intro v hv
+    simp only [Finset.mem_sdiff, Finset.mem_union, Finset.mem_univ, true_and] at hv
+    push_neg at hv
+    simp [Finset.mem_inter, Finset.mem_sdiff, hv.1, hv.2,
+      show ¬(v ∈ S ∧ v ∈ S') from fun ⟨h, _⟩ => hv.1 h,
+      show ¬(v ∈ S ∧ v ∉ S') from fun ⟨h, _⟩ => hv.1 h,
+      show ¬(v ∈ S' ∧ v ∉ S) from fun ⟨h, _⟩ => hv.2 h]
+  rw [hprod4, mul_one]
+  ring
+
 end SymmetricPower
