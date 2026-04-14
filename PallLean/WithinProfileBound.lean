@@ -1533,6 +1533,152 @@ theorem perSShift_finrank_le_S_card_bound {n L : ℕ}
         simp [Finset.prod_const, Finset.card_fin]
     _ = (S.toFinset.card + 1) ^ (2 * L) := by ring
 
+/-- The "differentiated" local derivative atoms for factor i: atoms arising
+    from derivatives of length exactly k (with k ∈ {0, 1, 2}).
+    - k = 0: just {f_i} (1 element)
+    - k = 1: {pderiv v f_i | v ∈ S} (≤ |S| elements)
+    - k = 2: {pderiv v (pderiv w f_i) | v, w ∈ S} (≤ |S|² elements) -/
+noncomputable def localDerivAtomsOfDegree {n : ℕ}
+    (f : MvPolynomial (Fin n) ℚ) (S : List (Fin n)) (k : ℕ) :
+    Finset (MvPolynomial (Fin n) ℚ) :=
+  match k with
+  | 0 => {f}
+  | 1 => S.toFinset.image (fun v => MvPolynomial.pderiv v f)
+  | 2 => (S.toFinset ×ˢ S.toFinset).image
+      (fun p => MvPolynomial.pderiv p.1 (MvPolynomial.pderiv p.2 f))
+  | _ + 3 => ∅
+
+/-- localDerivAtomsOfDegree 0 has exactly 1 element. -/
+theorem localDerivAtomsOfDegree_zero_card {n : ℕ}
+    (f : MvPolynomial (Fin n) ℚ) (S : List (Fin n)) :
+    (localDerivAtomsOfDegree f S 0).card = 1 := by
+  simp [localDerivAtomsOfDegree, Finset.card_singleton]
+
+/-- localDerivAtomsOfDegree k has card ≤ (|S|+1)^k for k ≤ 2. -/
+theorem localDerivAtomsOfDegree_card_le {n : ℕ}
+    (f : MvPolynomial (Fin n) ℚ) (S : List (Fin n)) (k : ℕ) (hk : k ≤ 2) :
+    (localDerivAtomsOfDegree f S k).card ≤ (S.toFinset.card + 1) ^ k := by
+  interval_cases k
+  · simp [localDerivAtomsOfDegree, Finset.card_singleton]
+  · simp only [localDerivAtomsOfDegree, pow_one]
+    calc (S.toFinset.image (fun v => MvPolynomial.pderiv v f)).card
+        ≤ S.toFinset.card := Finset.card_image_le
+      _ ≤ S.toFinset.card + 1 := Nat.le_succ _
+  · simp only [localDerivAtomsOfDegree]
+    calc ((S.toFinset ×ˢ S.toFinset).image
+          (fun p => MvPolynomial.pderiv p.1 (MvPolynomial.pderiv p.2 f))).card
+        ≤ (S.toFinset ×ˢ S.toFinset).card := Finset.card_image_le
+      _ = S.toFinset.card * S.toFinset.card := Finset.card_product _ _
+      _ = S.toFinset.card ^ 2 := (sq _).symm
+      _ ≤ (S.toFinset.card + 1) ^ 2 := Nat.pow_le_pow_left (Nat.le_succ _) 2
+
+/-- iterDerivList d f with |d| = k ≤ 2 and d ⊆ S lies in localDerivAtomsOfDegree f S k. -/
+theorem iterDerivList_mem_localDerivAtomsOfDegree {n : ℕ}
+    (f : MvPolynomial (Fin n) ℚ) (S : List (Fin n))
+    (d : List (Fin n)) (hd_len : d.length ≤ 2) (hd_mem : ∀ v ∈ d, v ∈ S) :
+    iterDerivList d f ∈ localDerivAtomsOfDegree f S d.length := by
+  rcases d with _ | ⟨v, _ | ⟨w, rest⟩⟩
+  · -- d = []: iterDerivList [] f = f ∈ {f}
+    simp [localDerivAtomsOfDegree, IterDerivHelpers.iterDerivList_nil]
+  · -- d = [v]: iterDerivList [v] f = pderiv v f
+    simp only [localDerivAtomsOfDegree, List.length_cons, List.length_nil,
+      Finset.mem_image]
+    exact ⟨v, List.mem_toFinset.mpr (hd_mem v (by simp)), rfl⟩
+  · -- d = v :: w :: rest, must have rest = []
+    cases rest with
+    | nil =>
+      simp only [localDerivAtomsOfDegree, List.length_cons, List.length_nil,
+        Finset.mem_image, Finset.mem_product]
+      refine ⟨(v, w), ⟨List.mem_toFinset.mpr (hd_mem v (by simp)),
+        List.mem_toFinset.mpr (hd_mem w (by simp))⟩, ?_⟩
+      exact iterDerivList_pair_eq_pderiv2 v w f
+    | cons _ _ =>
+      simp [List.length] at hd_len; omega
+
+/-- Profile-constrained atom product set: products ∏_i a_i where
+    a_i ∈ localDerivAtomsOfDegree(f_i, S, k_i) and k_i ≤ 2.
+
+    This is tighter than atomProductSet because undifferentiated factors
+    (k_i = 0) contribute exactly 1 atom, not (|S|+1)² atoms. -/
+def constrainedAtomProductSet {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) (S : List (Fin n))
+    (derivLengths : Fin L → ℕ) :
+    Set (MvPolynomial (Fin n) ℚ) :=
+  { g | ∃ (atoms : Fin L → MvPolynomial (Fin n) ℚ),
+      (∀ i, atoms i ∈ localDerivAtomsOfDegree (factors i) S (derivLengths i)) ∧
+      g = Finset.univ.prod atoms }
+
+/-- The locally bounded classified set for profile h is contained in
+    a union of constrained atom product sets over matching derivative
+    length assignments. -/
+theorem locallyBoundedClassifiedSet_subset_constrained {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (h : ProfileHistogram)
+    (g : MvPolynomial (Fin n) ℚ)
+    (hg : g ∈ locallyBoundedClassifiedSet factors constraintType S h) :
+    ∃ (derivLengths : Fin L → ℕ),
+      (∀ i, derivLengths i ≤ 2) ∧
+      g ∈ constrainedAtomProductSet factors S derivLengths := by
+  rcases hg with ⟨d, hd_elts, hg_eq, _hprof, hd_bound⟩
+  refine ⟨fun i => (d i).length, hd_bound, ?_⟩
+  refine ⟨fun i => iterDerivList (d i) (factors i), ?_, hg_eq⟩
+  intro i
+  exact iterDerivList_mem_localDerivAtomsOfDegree (factors i) S (d i) (hd_bound i) (hd_elts i)
+
+/-- The constrained atom product set is finite. -/
+theorem constrainedAtomProductSet_finite {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) (S : List (Fin n))
+    (derivLengths : Fin L → ℕ) :
+    Set.Finite (constrainedAtomProductSet factors S derivLengths) := by
+  let atomChoices := (i : Fin L) → { a : MvPolynomial (Fin n) ℚ //
+    a ∈ localDerivAtomsOfDegree (factors i) S (derivLengths i) }
+  haveI : Fintype atomChoices := inferInstance
+  apply Set.Finite.subset (Set.toFinite (Set.range
+    (fun (c : atomChoices) => Finset.univ.prod (fun i => (c i).val))))
+  intro g hg
+  rcases hg with ⟨atoms, hatoms, rfl⟩
+  exact ⟨fun i => ⟨atoms i, hatoms i⟩, rfl⟩
+
+/-- The constrained atom product set has cardinality ≤ ∏_i |localDerivAtomsOfDegree(f_i, S, k_i)|. -/
+theorem constrainedAtomProductSet_card_le {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) (S : List (Fin n))
+    (derivLengths : Fin L → ℕ) :
+    (constrainedAtomProductSet_finite factors S derivLengths).toFinset.card ≤
+      ∏ i : Fin L, (localDerivAtomsOfDegree (factors i) S (derivLengths i)).card := by
+  let atomChoices := (i : Fin L) → { a : MvPolynomial (Fin n) ℚ //
+    a ∈ localDerivAtomsOfDegree (factors i) S (derivLengths i) }
+  let prodMap : atomChoices → MvPolynomial (Fin n) ℚ :=
+    fun c => Finset.univ.prod (fun i => (c i).val)
+  have hrange : constrainedAtomProductSet factors S derivLengths ⊆ Set.range prodMap := by
+    intro g hg
+    rcases hg with ⟨atoms, hatoms, rfl⟩
+    exact ⟨fun i => ⟨atoms i, hatoms i⟩, rfl⟩
+  have hfin_range : Set.Finite (Set.range prodMap) := Set.finite_range prodMap
+  calc (constrainedAtomProductSet_finite factors S derivLengths).toFinset.card
+      ≤ hfin_range.toFinset.card := Set.Finite.toFinset_mono hrange
+    _ ≤ Fintype.card atomChoices := by
+        calc _ ≤ Finset.univ.card := Finset.card_le_card (fun x _ => Finset.mem_univ _)
+          _ = Fintype.card atomChoices := Finset.card_univ.symm
+    _ = ∏ i : Fin L, (localDerivAtomsOfDegree (factors i) S (derivLengths i)).card := by
+        simp [Fintype.card_pi, Fintype.card_coe]
+
+/-- Key product bound: when k_i = 0 the factor contributes 1, otherwise ≤ (|S|+1)^k_i.
+    So ∏ |atoms of degree k_i| ≤ ∏_{k_i > 0} (|S|+1)^k_i = (|S|+1)^(∑_{k_i > 0} k_i).
+
+    For profile h with mass κ (total derivatives = κ), and each k_i ≤ 2,
+    ∑ k_i = κ. So the product ≤ (|S|+1)^κ ≤ (κ+1)^κ (when |S| ≤ κ). -/
+theorem constrained_prod_le_pow_sum {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) (S : List (Fin n))
+    (derivLengths : Fin L → ℕ) (hk : ∀ i, derivLengths i ≤ 2) :
+    ∏ i : Fin L, (localDerivAtomsOfDegree (factors i) S (derivLengths i)).card ≤
+      (S.toFinset.card + 1) ^ (∑ i : Fin L, derivLengths i) := by
+  rw [← Finset.prod_pow_eq_pow_sum]
+  apply Finset.prod_le_prod
+  · intro i _; exact Nat.zero_le _
+  · intro i _; exact localDerivAtomsOfDegree_card_le (factors i) S (derivLengths i) (hk i)
+
 /-- The per-S-shift post-span finrank is bounded by the size of the
     atom-product set (which is ≤ ∏_i |localDerivAtoms(f_i, S)|).
 
