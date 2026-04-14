@@ -138,12 +138,15 @@ theorem p_side_poly_spdp_rank (M : DTM) (htb : M.timeBound ≤ 4) :
   use 8 * (c_w + c_l)
   intro n hn
   have h1 : n ≥ 1 := by omega
-  calc bpSpdpRank ((tm_to_bp_compilation M htb).bp n) 3 3
-      ≤ ((tm_to_bp_compilation M htb).bp n).width *
-        ((tm_to_bp_compilation M htb).bp n).length ^ 8 := by
-        sorry -- from bp_spdp_rank_bound
-    _ ≤ n ^ (8 * (c_w + c_l)) := by
-        sorry -- from hw, hl, and arithmetic
+  set B := (tm_to_bp_compilation M htb).bp n
+  calc bpSpdpRank B 3 3
+      ≤ (B.width * B.length) ^ 8 :=
+        bp_spdp_rank_bound B 3 (Set.mem_insert_iff.mpr (Or.inr (Set.mem_singleton_iff.mpr rfl)))
+    _ ≤ (n ^ c_w * n ^ c_l) ^ 8 := by
+        apply Nat.pow_le_pow_left
+        exact Nat.mul_le_mul (hw n h1) (hl n h1)
+    _ = n ^ (8 * (c_w + c_l)) := by
+        rw [← pow_add, ← pow_mul]; ring_nf
 
 /-! ## Connection to the Separation
 
