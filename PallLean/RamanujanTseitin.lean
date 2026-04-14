@@ -278,27 +278,26 @@ theorem CharacteristicPdMinorWitness.rows_mem
     (fam.partition n hn).part (fam.encoding n hn).charPoly
     (w.rowDerivs i) (w.rowDerivs_length i) (w.rowDerivs_in_S i)
 
-/-- Explicit derivative realization data for the rows of the characteristic
-Kronecker system. -/
-structure CharacteristicPdRowDerivWitness
+/-- A characteristic-pocket clause system is the smaller algebraic object from
+which the Kronecker system is built automatically by the generic identity-minor
+machinery. -/
+noncomputable def characteristic_pd_kronecker_of_rawClauseSystem
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
     (n : ℕ) (hn : n ≥ 6)
     (pockets : ExpanderPocketWitness (fam.encoding n hn))
-    (system : IdentityMinorReal.KroneckerDeltaSystem F
-      (fam.encoding n hn).numVars (Nat.choose pockets.pocketCount (Nat.log 2 n))) where
-  rowDerivs : Fin (Nat.choose pockets.pocketCount (Nat.log 2 n)) →
-    List (Fin (fam.encoding n hn).numVars)
-  rowDerivs_length : ∀ i,
-    (rowDerivs i).length = (fam.partition n hn).part.S.card
-  rowDerivs_in_S : ∀ i v, v ∈ rowDerivs i → v ∈ (fam.partition n hn).part.S
-  rows_eq_iterDeriv : ∀ i,
-    system.rows i =
-      SPDP.iterDerivList (rowDerivs i) (fam.encoding n hn).charPoly
+    (sys : IdentityMinorReal.DisjointClauseSystem F)
+    (numVars_eq : sys.numVars = (fam.encoding n hn).numVars)
+    (numClauses_eq : sys.numClauses = pockets.pocketCount) :
+    IdentityMinorReal.KroneckerDeltaSystem F
+      (fam.encoding n hn).numVars (Nat.choose pockets.pocketCount (Nat.log 2 n)) := by
+  classical
+  simpa [numVars_eq, numClauses_eq] using
+    (IdentityMinorReal.buildKroneckerSystem sys (Nat.log 2 n))
 
-/-- A characteristic-pocket clause system is the smaller algebraic object from
-which the Kronecker system is built automatically by the generic identity-minor
-machinery. -/
+/-- Combined large-instance algebraic witness:
+- a disjoint clause system matching the pockets
+- an explicit derivative realization of the derived Kronecker rows. -/
 structure CharacteristicPocketClauseSystemWitness
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
@@ -307,6 +306,15 @@ structure CharacteristicPocketClauseSystemWitness
   sys : IdentityMinorReal.DisjointClauseSystem F
   numVars_eq : sys.numVars = (fam.encoding n hn).numVars
   numClauses_eq : sys.numClauses = pockets.pocketCount
+  rowDerivs : Fin (Nat.choose pockets.pocketCount (Nat.log 2 n)) →
+    List (Fin (fam.encoding n hn).numVars)
+  rowDerivs_length : ∀ i,
+    (rowDerivs i).length = (fam.partition n hn).part.S.card
+  rowDerivs_in_S : ∀ i v, v ∈ rowDerivs i → v ∈ (fam.partition n hn).part.S
+  rows_eq_iterDeriv : ∀ i,
+    (characteristic_pd_kronecker_of_rawClauseSystem F fam n hn pockets
+      sys numVars_eq numClauses_eq).rows i =
+        SPDP.iterDerivList (rowDerivs i) (fam.encoding n hn).charPoly
 
 /-- Build the characteristic Kronecker system from a characteristic-pocket
 clause system witness using the generic identity-minor construction. -/
@@ -317,10 +325,9 @@ noncomputable def characteristic_pd_kronecker_of_clauseSystem
     (pockets : ExpanderPocketWitness (fam.encoding n hn))
     (w : CharacteristicPocketClauseSystemWitness F fam n hn pockets) :
     IdentityMinorReal.KroneckerDeltaSystem F
-      (fam.encoding n hn).numVars (Nat.choose pockets.pocketCount (Nat.log 2 n)) := by
-  classical
-  simpa [w.numVars_eq, w.numClauses_eq] using
-    (IdentityMinorReal.buildKroneckerSystem w.sys (Nat.log 2 n))
+      (fam.encoding n hn).numVars (Nat.choose pockets.pocketCount (Nat.log 2 n)) :=
+  characteristic_pd_kronecker_of_rawClauseSystem F fam n hn pockets
+    w.sys w.numVars_eq w.numClauses_eq
 
 /-- Characteristic-polynomial signed-minor witness built from expander pockets.
 
@@ -424,27 +431,15 @@ theorem CharacteristicPdPocketWitness.rank_bound
 
 /-- **Axiom (remaining coefficient frontier)**: once the disjoint expander
 pockets are available, the characteristic polynomial admits the required
-disjoint clause-system witness. The actual Kronecker system is then derived
-from the generic identity-minor construction. -/
+algebraic witness. The actual Kronecker system and row membership are then
+derived from the generic identity-minor construction plus the explicit
+derivative realization contained in the witness. -/
 axiom characteristic_pd_clauseSystem_from_pockets
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
     (n : ℕ) (hn : n ≥ 6)
     (pockets : ExpanderPocketWitness (fam.encoding n hn)) :
     CharacteristicPocketClauseSystemWitness F fam n hn pockets
-
-/-- **Axiom (remaining derivative-realization frontier)**: the rows of the
-characteristic Kronecker system are explicit iterated derivatives along
-`S_n`-variables, so their membership in `pdColumnSpace` is derivable rather
-than separately postulated. -/
-axiom characteristic_pd_row_derivs_from_pockets
-    (F : Type*) [Field F] [CharZero F]
-    (fam : RamanujanTseitinFamily F)
-    (n : ℕ) (hn : n ≥ 6)
-    (pockets : ExpanderPocketWitness (fam.encoding n hn)) :
-    CharacteristicPdRowDerivWitness F fam n hn pockets
-      (characteristic_pd_kronecker_of_clauseSystem F fam n hn pockets
-        (characteristic_pd_clauseSystem_from_pockets F fam n hn pockets))
 
 /-- Reassemble the two remaining algebraic frontiers into the minor witness
 record used by the final lower-bound step. -/
@@ -456,13 +451,12 @@ noncomputable def characteristicPdMinorWitness_from_axioms
     CharacteristicPdMinorWitness F fam n hn pockets := by
   let csw := characteristic_pd_clauseSystem_from_pockets F fam n hn pockets
   let system := characteristic_pd_kronecker_of_clauseSystem F fam n hn pockets csw
-  let hrows := characteristic_pd_row_derivs_from_pockets F fam n hn pockets
   refine {
     system := system
-    rowDerivs := hrows.rowDerivs
-    rowDerivs_length := hrows.rowDerivs_length
-    rowDerivs_in_S := hrows.rowDerivs_in_S
-    rows_eq_iterDeriv := hrows.rows_eq_iterDeriv
+    rowDerivs := csw.rowDerivs
+    rowDerivs_length := csw.rowDerivs_length
+    rowDerivs_in_S := csw.rowDerivs_in_S
+    rows_eq_iterDeriv := csw.rows_eq_iterDeriv
   }
 
 /-- **Axiom (finite exceptional range)**: the characteristic-polynomial PD
