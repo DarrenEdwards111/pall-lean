@@ -1141,4 +1141,69 @@ theorem coeff_tag_pderiv_boolFactor_prod {N : ℕ} (S : Finset (Fin N)) :
     rw [coeff_single_pderiv_boolFactor v]
   simp [Finset.prod_const]
 
+/-- The differentiated factor product uses only variables in S. -/
+theorem usesOnly_pderiv_boolFactor_prod {N : ℕ} (S : Finset (Fin N)) :
+    CoeffDisjoint.usesOnly
+      (S.prod (fun v => MvPolynomial.pderiv v (boolFactor N v)) : MvPolynomial (Fin N) ℚ)
+      (↑S : Set (Fin N)) := by
+  apply CoeffDisjoint.usesOnly_finset_prod
+  intro v hv
+  exact CoeffDisjoint.usesOnly_mono (usesOnly_pderiv_boolFactor v)
+    (fun x hx => by rwa [Set.mem_singleton_iff.mp hx])
+
+/-- The undifferentiated factor product uses only variables in its index set. -/
+theorem usesOnly_boolFactor_prod {N : ℕ} (T : Finset (Fin N)) :
+    CoeffDisjoint.usesOnly
+      (T.prod (boolFactor N) : MvPolynomial (Fin N) ℚ)
+      (↑T : Set (Fin N)) := by
+  apply CoeffDisjoint.usesOnly_finset_prod
+  intro v hv
+  exact CoeffDisjoint.usesOnly_mono (usesOnly_boolFactor v)
+    (fun x hx => by rwa [Set.mem_singleton_iff.mp hx])
+
+/-- The tag monomial ∑_{v∈S} single v 1 is supported in S. -/
+theorem monomSupportedIn_tag {N : ℕ} (S : Finset (Fin N)) :
+    CoeffDisjoint.monomSupportedIn (∑ v ∈ S, Finsupp.single v 1) (↑S : Set (Fin N)) := by
+  intro x hx
+  rw [Finsupp.mem_support_iff] at hx
+  -- x must be in S; otherwise the sum at x is 0
+  by_contra hxS
+  apply hx
+  rw [CoeffDisjoint.finset_sum_apply]
+  apply Finset.sum_eq_zero
+  intro v hv
+  simp only [Finsupp.single_apply]
+  split_ifs with h
+  · subst h; exact absurd (Finset.mem_coe.mpr hv) hxS
+  · rfl
+
+/-- The full diagonal Kronecker coefficient: for the S-derivative of ∏ boolFactor,
+    the coefficient of the tag monomial τ_S equals 2^|S|.
+
+    coeff τ_S (iterDerivList S.toList (∏_{j∈univ} boolFactor j))
+    = coeff τ_S ((∏_{v∈S} pderiv_v(boolFactor v)) * (∏_{j∈univ\S} boolFactor j))
+    = 2^|S| * 1 = 2^|S|  -/
+theorem coeff_tag_iterDeriv_boolFactor_prod_diag {N : ℕ} (S : Finset (Fin N)) :
+    MvPolynomial.coeff (∑ v ∈ S, Finsupp.single v 1)
+      ((S.prod (fun v => MvPolynomial.pderiv v (boolFactor N v))) *
+       (Finset.univ \ S).prod (boolFactor N) : MvPolynomial (Fin N) ℚ) =
+    (2 : ℚ) ^ S.card := by
+  -- Use coeff_mul_disjoint with A = S, B = univ \ S
+  have hdisj : Disjoint (↑S : Set (Fin N)) (↑(Finset.univ \ S) : Set (Fin N)) := by
+    rw [Set.disjoint_iff]
+    intro x ⟨hxS, hxT⟩
+    rw [Finset.mem_coe, Finset.mem_sdiff] at hxT
+    exact hxT.2 (Finset.mem_coe.mp hxS)
+  -- τ_S + 0 = τ_S
+  have htag : (∑ v ∈ S, Finsupp.single v 1) + (0 : Fin N →₀ ℕ) =
+      ∑ v ∈ S, Finsupp.single v 1 := add_zero _
+  rw [← htag]
+  rw [CoeffDisjoint.coeff_mul_disjoint
+    (usesOnly_pderiv_boolFactor_prod S)
+    (usesOnly_boolFactor_prod (Finset.univ \ S))
+    hdisj
+    (monomSupportedIn_tag S)
+    (monomSupportedIn_zero _)]
+  rw [coeff_tag_pderiv_boolFactor_prod S, coeff_zero_boolFactor_prod _, mul_one]
+
 end SymmetricPower
