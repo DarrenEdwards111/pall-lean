@@ -478,6 +478,73 @@ theorem iterDerivList_boolFactor_prod (N : ℕ) (s : Finset (Fin N))
     · rintro ⟨hxs, hxvr⟩
       exact ⟨⟨fun h => hxvr (Or.inl h), hxs⟩, fun h => hxvr (Or.inr h)⟩
 
+/-! ### mlProj computations for boolFactor derivatives
+
+For the Kronecker coefficient computation in the identity minor argument,
+we need to compute mlProj of products involving boolFactor derivatives.
+Key facts:
+- mlProj(X v) = X v  (X v is multilinear)
+- mlProj(X v * X v) = 0  (X v^2 is not multilinear)
+- mlProj(X v * (-1 + 2 * X v)) = -X v  (follows from linearity + above) -/
+
+/-- X v is multilinear -/
+theorem isMultilinear_X {N : ℕ} (v : Fin N) :
+    IsMultilinear (MvPolynomial.X v : MvPolynomial (Fin N) ℚ) := by
+  intro α hα i
+  rw [MvPolynomial.mem_support_iff] at hα
+  rw [MvPolynomial.coeff_X'] at hα
+  split_ifs at hα with h
+  · rw [Finsupp.ext_iff] at h
+    have := h i
+    simp only [Finsupp.single_apply] at this
+    split_ifs at this with hiv
+    · subst hiv; omega
+    · omega
+  · exact absurd rfl hα
+
+/-- mlProj fixes X v (since X v is already multilinear) -/
+theorem mlProj_X {N : ℕ} (v : Fin N) :
+    mlProj (MvPolynomial.X v : MvPolynomial (Fin N) ℚ) = MvPolynomial.X v :=
+  mlProj_of_isMultilinear _ (isMultilinear_X v)
+
+/-- X v * X v = monomial (Finsupp.single v 2) 1 is not multilinear, so mlProj kills it -/
+theorem mlProj_X_sq_zero {N : ℕ} (v : Fin N) :
+    mlProj (MvPolynomial.X v * MvPolynomial.X v : MvPolynomial (Fin N) ℚ) = 0 := by
+  -- X v * X v = monomial (single v 1 + single v 1) 1 = monomial (single v 2) 1
+  have hXX : (MvPolynomial.X v : MvPolynomial (Fin N) ℚ) * MvPolynomial.X v =
+      MvPolynomial.monomial (Finsupp.single v 1 + Finsupp.single v 1) (1 * 1) := by
+    rw [MvPolynomial.X, MvPolynomial.monomial_mul]
+  rw [hXX, mul_one]
+  have hadd : Finsupp.single v 1 + Finsupp.single v 1 = Finsupp.single v 2 := by
+    ext i; simp [Finsupp.single_apply]; split_ifs <;> omega
+  rw [hadd, mlProj_monomial]
+  simp only [ite_eq_right_iff]
+  intro hml
+  exfalso
+  have := hml v
+  simp [Finsupp.single_apply] at this
+
+/-- mlProj(X v * pderiv v (boolFactor N v)) = -(X v).
+    Key computation for the Kronecker delta property of SPDP generators. -/
+theorem mlProj_X_mul_pderiv_boolFactor {N : ℕ} (v : Fin N) :
+    mlProj (MvPolynomial.X v * MvPolynomial.pderiv v (boolFactor N v) :
+      MvPolynomial (Fin N) ℚ) = -(MvPolynomial.X v) := by
+  rw [pderiv_boolFactor_self N v]
+  -- X v * (-1 + 2 * X v) = -X v + 2 * (X v * X v)
+  have hexpand : (MvPolynomial.X v : MvPolynomial (Fin N) ℚ) * (-1 + 2 * MvPolynomial.X v) =
+      -(MvPolynomial.X v) + 2 * (MvPolynomial.X v * MvPolynomial.X v) := by ring
+  rw [hexpand, mlProj_add]
+  -- mlProj(-X v) = -(mlProj(X v)) = -(X v)
+  have hml_neg : mlProj (-(MvPolynomial.X v : MvPolynomial (Fin N) ℚ)) =
+      -mlProj (MvPolynomial.X v) := by
+    have : -(MvPolynomial.X v : MvPolynomial (Fin N) ℚ) = (-1 : ℚ) • MvPolynomial.X v := by simp
+    rw [this, mlProj_smul]; simp
+  rw [hml_neg, mlProj_X v]
+  -- mlProj(2 * (X v * X v)) = 2 • mlProj(X v * X v) = 2 • 0 = 0
+  -- Use: 2 * p = MvPolynomial.C 2 * p = (2 : ℚ) • p for ℚ-algebra
+  conv_lhs => rw [show (2 : MvPolynomial (Fin N) ℚ) = MvPolynomial.C 2 from by simp [map_ofNat]]
+  rw [MvPolynomial.C_mul', mlProj_smul, mlProj_X_sq_zero v, smul_zero, add_zero]
+
 /-! ### Profile compression: proved infrastructure and remaining gap
 
 The proved lemmas above establish:
