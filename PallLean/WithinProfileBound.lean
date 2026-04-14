@@ -1774,6 +1774,94 @@ theorem fullyBounded_card_le {n L : ℕ}
   intro g ⟨d, hd_elts, hg_eq, hprof, hd_bound, _hd_total⟩
   exact ⟨d, hd_elts, hg_eq, hprof, hd_bound⟩
 
+/-- The fullyBoundedClassifiedSet elements are all products ∏_i a_i
+    where a_i ∈ localDerivAtomsOfDegree(f_i, S, k_i) with ∑ k_i ≤ S.length.
+    Two elements that choose the same atoms produce the same polynomial.
+    So |fullyBoundedClassifiedSet| ≤ the number of atom-choice functions
+    subject to ∑ k_i ≤ S.length.
+
+    A cruder but clean bound: the fully bounded set is contained in
+    atomProductSet, so |fullyBoundedClassifiedSet| ≤ |atomProductSet|.
+    But we can do better: since the total derivative mass ≤ S.length = κ,
+    and undifferentiated factors contribute 1 fixed atom, the effective
+    count is much smaller.
+
+    For now, we use a clean intermediate bound:
+    finrank(per-S-shift) ≤ (S.toFinset.card + 1) ^ S.length
+
+    This follows from:
+    1. The post-span ≤ map of span of fully bounded set
+    2. The fully bounded set ⊆ ⋃_k constrainedAtomProductSet(k)
+    3. Each constrainedAtomProductSet(k) has card ≤ (|S|+1)^(∑ k_i)
+    4. The span of the union ≤ span of the union of constrained sets
+    5. Total spanning set size ≤ ∑_k (|S|+1)^(∑ k_i)
+    But bounding this sum is complex.
+
+    Simpler: fullyBounded ⊆ atomProductSet, so we use that bound.
+    The key improvement comes from the ALL-S union, where the
+    variable-confinement argument applies. -/
+
+/-- The per-S-shift finrank with the total-mass constraint.
+
+    For the per-S case: finrank ≤ |atomProductSet| ≤ ∏ |localDerivAtoms|.
+    This is the same bound as before. The improvement from the total-mass
+    constraint will be used for the ALL-S union bound.
+
+    Key per-S bound via constrained atoms:
+    Each constrainedAtomProductSet(k) has ≤ ∏_i (|S|+1)^{k_i} = (|S|+1)^{∑ k_i}
+    elements. For a single valid k with ∑ k_i = m ≤ S.length,
+    this is (|S|+1)^m. -/
+theorem perSShift_finrank_le_constrained {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hfactors : ∀ i, (factors i).totalDegree ≤ 2)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ)
+    (h : ProfileHistogram)
+    (derivLengths : Fin L → ℕ)
+    (hk : ∀ i, derivLengths i ≤ 2)
+    (hfb : fullyBoundedClassifiedSet factors constraintType S h ⊆
+      constrainedAtomProductSet factors S derivLengths) :
+    Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h) ≤
+      (S.toFinset.card + 1) ^ (∑ i : Fin L, derivLengths i) := by
+  have hle := boundedProfilePostSpan_le_fullyBounded_for_degree2
+    factors hfactors constraintType S shift h
+  -- post-span ≤ span of image of fully bounded set
+  -- ≤ span of image of constrainedAtomProductSet
+  -- ≤ map of span of constrainedAtomProductSet
+  -- finrank ≤ finrank of span of constrainedAtomProductSet
+  -- ≤ card of constrainedAtomProductSet
+  -- ≤ (|S|+1)^(∑ k_i)
+  have hle2 : Submodule.span ℚ
+      ((fun g => mlProj (shift * g)) '' fullyBoundedClassifiedSet factors constraintType S h) ≤
+      Submodule.map (postProcessLinearMap shift)
+        (Submodule.span ℚ (constrainedAtomProductSet factors S derivLengths)) := by
+    apply Submodule.span_le.mpr
+    intro x hx
+    rcases hx with ⟨g, hg, rfl⟩
+    exact ⟨g, Submodule.subset_span (hfb hg), rfl⟩
+  have hfin : Module.Finite ℚ
+      ↥(Submodule.span ℚ (constrainedAtomProductSet factors S derivLengths)) :=
+    Module.Finite.span_of_finite ℚ (constrainedAtomProductSet_finite factors S derivLengths)
+  calc Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h)
+      ≤ Module.finrank ℚ ↥(Submodule.span ℚ
+          ((fun g => mlProj (shift * g)) '' fullyBoundedClassifiedSet factors constraintType S h)) :=
+        Submodule.finrank_mono hle
+    _ ≤ Module.finrank ℚ ↥(Submodule.map (postProcessLinearMap shift)
+          (Submodule.span ℚ (constrainedAtomProductSet factors S derivLengths))) :=
+        Submodule.finrank_mono hle2
+    _ ≤ Module.finrank ℚ
+          ↥(Submodule.span ℚ (constrainedAtomProductSet factors S derivLengths)) :=
+        Submodule.finrank_map_le _ _
+    _ ≤ (constrainedAtomProductSet_finite factors S derivLengths).toFinset.card := by
+        have : Submodule.span ℚ (constrainedAtomProductSet factors S derivLengths) =
+            Submodule.span ℚ ↑(constrainedAtomProductSet_finite factors S derivLengths).toFinset := by
+          congr 1; exact (Set.Finite.coe_toFinset _).symm
+        rw [this]; exact finrank_span_finset_le_card _
+    _ ≤ ∏ i : Fin L, (localDerivAtomsOfDegree (factors i) S (derivLengths i)).card :=
+        constrainedAtomProductSet_card_le factors S derivLengths
+    _ ≤ (S.toFinset.card + 1) ^ (∑ i : Fin L, derivLengths i) :=
+        constrained_prod_le_pow_sum factors S derivLengths hk
+
 /-- The per-S-shift post-span finrank is bounded by the size of the
 
     For the Cook-Levin case with degree-2 factors and disjoint variables,
