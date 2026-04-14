@@ -2083,4 +2083,69 @@ theorem mlProj_mul_of_vars_disjoint {n : ℕ}
       · simp [hγ_ml]
     · simp [hβ_ml]
 
+/-- vars(mlProj p) ⊆ vars(p): multilinear projection doesn't introduce new variables. -/
+theorem vars_mlProj_subset {n : ℕ}
+    (p : MvPolynomial (Fin n) ℚ) :
+    (mlProj p).vars ⊆ p.vars := by
+  intro v hv
+  rw [MvPolynomial.mem_vars] at hv ⊢
+  obtain ⟨α, hα_supp, hα_v⟩ := hv
+  have hα_p : α ∈ p.support := by
+    have hcoeff := Finsupp.mem_support_iff.mp hα_supp
+    rw [coeff_mlProj] at hcoeff
+    split_ifs at hcoeff with h
+    · exact Finsupp.mem_support_iff.mpr hcoeff
+    · exact absurd rfl hcoeff
+  exact ⟨α, hα_p, hα_v⟩
+
+/-- mlProj(1) = 1. -/
+theorem mlProj_one {n : ℕ} :
+    mlProj (1 : MvPolynomial (Fin n) ℚ) = 1 := by
+  ext α
+  rw [coeff_mlProj]
+  split_ifs with h
+  · rfl
+  · simp only [MvPolynomial.coeff_one]
+    rw [if_neg]
+    intro hα0; subst hα0
+    exact h (fun i => by simp)
+
+/-- mlProj distributes over Finset.prod when all factors have pairwise
+    disjoint variable sets.
+
+    Proof by induction on the Finset, using mlProj_mul_of_vars_disjoint
+    at each step. The accumulated product has vars ⊆ ⋃ of previous vars,
+    which is disjoint from the next factor's vars by pairwise disjointness. -/
+theorem mlProj_finset_prod_of_pairwise_disjoint_vars {n : ℕ} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (f : ι → MvPolynomial (Fin n) ℚ)
+    (h_disj : ∀ i ∈ s, ∀ j ∈ s, i ≠ j →
+      Disjoint (MvPolynomial.vars (f i)) (MvPolynomial.vars (f j))) :
+    mlProj (s.prod f) = s.prod (fun i => mlProj (f i)) := by
+  induction s using Finset.induction_on with
+  | empty => simp [Finset.prod_empty, mlProj_one]
+  | insert ha ih =>
+    rw [Finset.prod_insert ha, Finset.prod_insert ha]
+    have h_disj_rest : ∀ i ∈ s, ∀ j ∈ s, i ≠ j →
+        Disjoint (MvPolynomial.vars (f i)) (MvPolynomial.vars (f j)) :=
+      fun i hi j hj hij =>
+        h_disj i (Finset.mem_insert_of_mem hi) j (Finset.mem_insert_of_mem hj) hij
+    rw [ih h_disj_rest]
+    -- Apply mlProj_mul_of_vars_disjoint
+    apply mlProj_mul_of_vars_disjoint
+    -- Need: vars(f a) disjoint from vars(∏_{s} mlProj(f i))
+    -- vars(∏ mlProj(f_i)) ⊆ ⋃_{i∈s} vars(mlProj(f_i)) ⊆ ⋃_{i∈s} vars(f_i)
+    apply Finset.disjoint_iff_ne.mpr
+    intro x hx y hy hxy
+    -- x ∈ vars(f a), y ∈ vars(∏_{s} mlProj(f i))
+    have hy_union : y ∈ s.biUnion (fun i => (mlProj (f i)).vars) :=
+      MvPolynomial.vars_prod _ hy
+    rw [Finset.mem_biUnion] at hy_union
+    obtain ⟨j, hj_mem, hy_j⟩ := hy_union
+    have hy_fj : y ∈ (f j).vars := vars_mlProj_subset (f j) hy_j
+    subst hxy
+    exact Finset.disjoint_iff_ne.mp
+      (h_disj _ (Finset.mem_insert_self _ _) j (Finset.mem_insert_of_mem hj_mem)
+        (fun h => ha (h ▸ hj_mem)))
+      x hx x hy_fj rfl
+
 end WithinProfileBound
