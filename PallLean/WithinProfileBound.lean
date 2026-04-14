@@ -697,6 +697,57 @@ theorem distribDerivProd_eq_zero_of_overDiff {n L : ℕ}
   apply Finset.prod_eq_zero (Finset.mem_univ i₀)
   exact iterDerivList_eq_zero_of_degree2_length3 (d i₀) (factors i₀) (hfactors i₀) hi₀
 
+/-! ## Part 11a: Factored axiom target for the within-profile finrank bound
+
+With Module.Finite established, the full BoundedWithinProfileFinrankClaim
+reduces to the pure finrank inequality. This is a cleaner axiom target
+because it separates the "finiteness" (proved) from the "bound" (requires
+symmetric power argument). -/
+
+/-- The pure finrank bound: each bounded-distribution profile subspace has
+    finrank ≤ withinProfileBound κ = (κ+1)^8.
+
+    This is the REMAINING UNPROVED CONTENT of BoundedWithinProfileFinrankClaim.
+    Module.Finite is already established (Part 10).
+
+    The mathematical content: for degree-2 factors with bounded profile h,
+    the symmetric power factorization gives
+      finrank(allBoundedProfilePostSpan h) ≤ ∏_τ C(h(τ)+2, 2) ≤ (κ+1)^8.
+
+    This requires showing that the span of post-processed locally-bounded
+    products factors through ⊗_τ Sym^{h(τ)}(W_τ) where dim(W_τ) ≤ 3. -/
+def WithinProfileFinrankBound {n L : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType) : Prop :=
+  ∀ (h : ProfileHistogram),
+    Module.finrank ℚ ↥(allBoundedProfilePostSpan B κ ℓ factors constraintType h)
+      ≤ withinProfileBound κ
+
+/-- WithinProfileFinrankBound implies BoundedWithinProfileFinrankClaim
+    (by combining with the already-proved Module.Finite). -/
+theorem boundedWithinProfileFinrankClaim_of_finrankBound {n L : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (hbound : WithinProfileFinrankBound B κ ℓ factors constraintType) :
+    BoundedWithinProfileFinrankClaim B κ ℓ factors constraintType :=
+  fun h => ⟨allBoundedProfilePostSpan_finite B κ ℓ factors constraintType h, hbound h⟩
+
+/-- Direct chain: WithinProfileFinrankBound → SPDP rank ≤ combinedProfileBound.
+    This bypasses the axiom spdp_profile_generators entirely once
+    WithinProfileFinrankBound is proved for the Cook-Levin compilation. -/
+theorem rank_bound_of_withinProfileFinrankBound {n L : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (p : MvPolynomial (Fin n) ℚ)
+    (hp : p = Finset.univ.prod factors)
+    (hbound : WithinProfileFinrankBound B κ ℓ factors constraintType) :
+    mlBlockedSpdpRank B κ ℓ p ≤ combinedProfileBound κ :=
+  rank_bound_of_boundedWithinProfileFinrank B κ ℓ factors constraintType p hp
+    (boundedWithinProfileFinrankClaim_of_finrankBound B κ ℓ factors constraintType hbound)
+
 /-! ## Part 12: Local derivative classification for degree-2 factors
 
 For a degree-≤-2 polynomial f with vars ⊆ {v₁, v₂}, the possible results of
