@@ -468,6 +468,46 @@ noncomputable def restFactorProd' (M : DTM) (n : ℕ) :
   ((adjConstraintList n ++ transSkelConstraintList M n).map
     (fun c => (1 : MvPolynomial (Fin n) ℚ) - c.poly)).prod
 
+/-- The constant term of each rest constraint's polynomial is 0. -/
+private theorem rest_constraint_coeff_zero (M : DTM) (n : ℕ) (lc : LocalConstraint n)
+    (hlc : lc ∈ adjConstraintList n ++ transSkelConstraintList M n) :
+    MvPolynomial.coeff 0 lc.poly = 0 := by
+  rw [List.mem_append] at hlc
+  rcases hlc with hlc | hlc
+  · unfold adjConstraintList at hlc
+    simp only [List.mem_filterMap, List.mem_finRange, true_and] at hlc
+    obtain ⟨i, hd⟩ := hlc
+    by_cases hi : i.val + 1 < n
+    · simp only [hi, dite_true, Option.mem_def, Option.some.injEq] at hd
+      subst hd; unfold adjLC adjPoly
+      simp [MvPolynomial.coeff_mul, Finsupp.antidiagonal_single]
+    · exact absurd hd (by simp [hi])
+  · unfold transSkelConstraintList transSkelForState at hlc
+    simp only [List.mem_flatMap, List.mem_finRange, true_and, List.mem_filterMap] at hlc
+    obtain ⟨q, i, hd⟩ := hlc
+    by_cases hi : i.val + 1 < n
+    · simp only [hi, dite_true, Option.mem_def, Option.some.injEq] at hd
+      subst hd; unfold transSkelLC transSkelPoly
+      simp [MvPolynomial.coeff_C_mul, MvPolynomial.coeff_mul, Finsupp.antidiagonal_single]
+    · exact absurd hd (by simp [hi])
+
+/-- The constant term of restFactorProd' is 1. -/
+theorem restFactorProd'_const_one (M : DTM) (n : ℕ) :
+    MvPolynomial.coeff 0 (restFactorProd' M n) = 1 := by
+  unfold restFactorProd'
+  rw [← MvPolynomial.constantCoeff_eq, map_list_prod]
+  -- Goal: (List.map constantCoeff (List.map (fun c => 1 - c.poly) L)).prod = 1
+  rw [List.map_map]
+  apply List.prod_eq_one
+  intro x hx
+  rw [List.mem_map] at hx
+  obtain ⟨lc, hlc, rfl⟩ := hx
+  -- Now lc is a LocalConstraint
+  -- x = constantCoeff (1 - lc.poly)
+  show MvPolynomial.constantCoeff ((1 : MvPolynomial (Fin n) ℚ) - lc.poly) = 1
+  rw [map_sub, map_one, MvPolynomial.constantCoeff_eq,
+    rest_constraint_coeff_zero M n lc hlc, sub_zero]
+
 /-- Factorization: compiledPoly = boolFactorListProd * restFactorProd'.
 
 The compiled polynomial from cook_levin_compilation splits as
