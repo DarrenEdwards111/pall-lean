@@ -1072,4 +1072,73 @@ theorem usesOnly_pderiv_boolFactor {N : ℕ} (v : Fin N) :
       rw [this] at h2a; simp at h2a
     · simpa [MvPolynomial.vars_X] using h2b
 
+/-! ## Part 7: Multi-variable coefficient via disjoint factorization
+
+The diagonal Kronecker coefficient: for a set S of variables,
+the coefficient of the tag monomial τ_S = ∑_{v∈S} single v 1 in
+the S-derivative of ∏ boolFactor equals 2^|S|. -/
+
+/-- The Finsupp.single monomial is supported in the corresponding singleton set. -/
+theorem monomSupportedIn_single {N : ℕ} (v : Fin N) :
+    CoeffDisjoint.monomSupportedIn (Finsupp.single v 1) ({v} : Set (Fin N)) := by
+  intro x hx
+  rw [Finsupp.mem_support_iff] at hx
+  simp only [Finsupp.single_apply] at hx
+  split_ifs at hx with h
+  · exact Set.mem_singleton_iff.mpr h.symm
+  · exact absurd rfl hx
+
+/-- The zero monomial is supported in any set. -/
+theorem monomSupportedIn_zero {N : ℕ} (S : Set (Fin N)) :
+    CoeffDisjoint.monomSupportedIn (0 : Fin N →₀ ℕ) S := by
+  intro x hx
+  rw [Finsupp.mem_support_iff] at hx
+  simp at hx
+
+/-- Singleton sets for distinct elements are disjoint. -/
+theorem singleton_pairwiseDisjoint {N : ℕ} (s : Finset (Fin N)) :
+    (s : Set (Fin N)).PairwiseDisjoint (fun v => ({v} : Set (Fin N))) := by
+  intro i _ j _ hij
+  simp only [Function.onFun, Set.disjoint_iff]
+  intro x ⟨hi, hj⟩
+  rw [Set.mem_singleton_iff] at hi hj
+  exact hij (hi.symm.trans hj)
+
+/-- Coefficient of 0 in a Finset product of boolFactors is 1. -/
+theorem coeff_zero_boolFactor_prod {N : ℕ} (s : Finset (Fin N)) :
+    MvPolynomial.coeff 0 (s.prod (boolFactor N) : MvPolynomial (Fin N) ℚ) = 1 := by
+  have key := CoeffDisjoint.coeff_finset_prod_disjoint
+    (s := s)
+    (f := fun i => boolFactor N i)
+    (S := fun i => ({i} : Set (Fin N)))
+    (m := fun _ => (0 : Fin N →₀ ℕ))
+    (hf := fun i _ => usesOnly_boolFactor i)
+    (hdisj := singleton_pairwiseDisjoint s)
+    (hm := fun _ _ => monomSupportedIn_zero _)
+  simp only [Finset.sum_const_zero] at key
+  rw [key]
+  apply Finset.prod_eq_one
+  intro i _
+  exact coeff_zero_boolFactor i
+
+/-- Coefficient of (∑_{v∈S} single v 1) in (∏_{v∈S} pderiv v (boolFactor N v)) equals 2^|S|. -/
+theorem coeff_tag_pderiv_boolFactor_prod {N : ℕ} (S : Finset (Fin N)) :
+    MvPolynomial.coeff (∑ v ∈ S, Finsupp.single v 1)
+      (S.prod (fun v => MvPolynomial.pderiv v (boolFactor N v)) : MvPolynomial (Fin N) ℚ) =
+    (2 : ℚ) ^ S.card := by
+  have key := CoeffDisjoint.coeff_finset_prod_disjoint
+    (s := S)
+    (f := fun v => MvPolynomial.pderiv v (boolFactor N v))
+    (S := fun v => ({v} : Set (Fin N)))
+    (m := fun v => Finsupp.single v 1)
+    (hf := fun v _ => usesOnly_pderiv_boolFactor v)
+    (hdisj := singleton_pairwiseDisjoint S)
+    (hm := fun v _ => monomSupportedIn_single v)
+  rw [key]
+  -- Now ∏ v in S, coeff (single v 1) (pderiv v (boolFactor N v)) = ∏ v in S, 2 = 2^|S|
+  conv_lhs =>
+    arg 2; ext v
+    rw [coeff_single_pderiv_boolFactor v]
+  simp [Finset.prod_const]
+
 end SymmetricPower
