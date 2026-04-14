@@ -1024,6 +1024,68 @@ def ProductLeibnizSpanFrontier
         (fun i : Fin pg.factors.length => pg.factors[i.1])
         pg.generator.derivList)
 
+/-- The raw Leibniz span attached to a product-structured generator, viewed as a
+submodule. This makes the post-processing target explicit instead of repeatedly
+spelling out the same span expression in downstream lemmas. -/
+def ProductLeibnizSpan
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p) : Submodule ℚ (MvPolynomial (Fin N) ℚ) :=
+  Submodule.span ℚ
+    (LeibnizProduct.distribDerivProds
+      Finset.univ
+      (fun i : Fin pg.factors.length => pg.factors[i.1])
+      pg.generator.derivList)
+
+/-- The semantic frontier proposition is exactly membership of the raw iterated
+ derivative in the raw Leibniz span. -/
+theorem productLeibnizSpanFrontier_iff_mem_ProductLeibnizSpan
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p) :
+    ProductLeibnizSpanFrontier pg ↔
+      iterDerivList pg.generator.derivList p ∈ ProductLeibnizSpan pg := by
+  rfl
+
+/-- Post-processing the raw Leibniz span by multiplying with the SPDP shift and then
+applying `mlProj`. This is the honest intermediate submodule controlling the actual
+generator polynomial `mlProj (shift * iterDerivList ...)`. -/
+def ProductLeibnizPostSpan
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p) : Submodule ℚ (MvPolynomial (Fin N) ℚ) :=
+  Submodule.span ℚ
+    ((fun q : MvPolynomial (Fin N) ℚ => mlProj (pg.generator.shift * q)) ''
+      (LeibnizProduct.distribDerivProds
+        Finset.univ
+        (fun i : Fin pg.factors.length => pg.factors[i.1])
+        pg.generator.derivList))
+
+/-- General linear bridge: if the raw iterated derivative lies in the raw Leibniz span,
+then the actual post-processed SPDP generator polynomial lies in the corresponding
+post-processed Leibniz span. This cleanly separates the raw Leibniz semantics from the
+later `shift` and `mlProj` layers. -/
+theorem ProductSpdpGeneratorData.toPolynomial_mem_postSpan_of_frontier
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p)
+    (hfrontier : ProductLeibnizSpanFrontier pg) :
+    pg.generator.toPolynomial ∈ ProductLeibnizPostSpan pg := by
+  change mlProj (pg.generator.shift * iterDerivList pg.generator.derivList p) ∈
+    ProductLeibnizPostSpan pg
+  unfold ProductLeibnizPostSpan at ⊢
+  exact SymmetricPower.mlProj_mul_mem_span_image pg.generator.shift
+    (LeibnizProduct.distribDerivProds
+      Finset.univ
+      (fun i : Fin pg.factors.length => pg.factors[i.1])
+      pg.generator.derivList)
+    (iterDerivList pg.generator.derivList p)
+    hfrontier
+
+/-- Same bridge, stated using the named raw-span submodule. -/
+theorem ProductSpdpGeneratorData.toPolynomial_mem_postSpan_of_mem_rawSpan
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p)
+    (hraw : iterDerivList pg.generator.derivList p ∈ ProductLeibnizSpan pg) :
+    pg.generator.toPolynomial ∈ ProductLeibnizPostSpan pg := by
+  exact ProductSpdpGeneratorData.toPolynomial_mem_postSpan_of_frontier pg hraw
+
 /-- Missing structural bridge: a Leibniz-expansion witness for a product-structured
 SPDP generator. This records that the differentiated product can be organized by
 factor-slot assignments over the chosen factor list, together with the local semantic
