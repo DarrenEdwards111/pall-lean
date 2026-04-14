@@ -1142,4 +1142,64 @@ theorem boundedProfilePostSpan_finrank_le_card_locallyBounded {n L : ℕ}
     _ ≤ (locallyBoundedClassifiedSet_finite factors constraintType S h).toFinset.card :=
         Finset.card_image_le
 
+/-! ## Part 18: Roadmap for completing WithinProfileFinrankBound
+
+### What is proved (Parts 10-17):
+
+1. `allBoundedProfilePostSpan_finite` — the all-S-shift post-span is
+   finite-dimensional (submodule of the 2^n-dimensional multilinear space).
+
+2. `boundedProfilePostSpan_le_locallyBounded_for_degree2` — for degree-2
+   factors, the per-S-shift post-span ≤ span of post-processed locally
+   bounded set.
+
+3. `boundedProfilePostSpan_finrank_le_of_locallyBounded_finrank` —
+   the per-S-shift post-span finrank ≤ finrank(span of classified set),
+   using the fact that the post-processing is a linear map.
+
+4. `locallyBoundedClassifiedSet_finite` — the classified set is finite.
+
+5. `boundedProfilePostSpan_finrank_le_card_locallyBounded` —
+   the per-S-shift finrank ≤ |classified set| (combining 2-4).
+
+### What remains for WithinProfileFinrankBound:
+
+**Per-S-shift bound**: To show finrank(per-S-shift post-span) ≤ (κ+1)^8
+for admissible h, one needs:
+  |locallyBoundedClassifiedSet| ≤ ∏_τ C(h(τ)+2, 2) ≤ (κ+1)^8
+
+This is the TEMPLATE COUNTING step: the locally bounded classified
+set has ≤ ∏_τ C(h(τ)+2, 2) distinct elements. The mathematical
+argument is that two assignments d₁, d₂ that produce the same
+"local derivative atom" choices for each factor give the same product.
+The number of distinct atom-choice tuples is ∏_τ dim(Sym^{h(τ)}(W_τ))
+where W_τ is the local derivative space (dim ≤ 3 for degree-2 factors).
+
+**All-S-shift bound**: Even with the per-S-shift bound proved, the
+allBoundedProfilePostSpan unions over ALL S and shifts. Bounding
+finrank(allBoundedProfilePostSpan) ≤ (κ+1)^8 requires showing that
+the results for different (S, shift) pairs are linearly dependent.
+In the Cook-Levin setting, the symmetric power factorization
+achieves this — the products factor as OUTER PRODUCTS of local atoms,
+and the local atoms depend only on the factor structure (not on S).
+
+This is the content of the axiom `spdp_profile_generators`. -/
+
+/-- Symmetric power gap: if the classified set for fixed S has at most
+    N elements, then the per-S-shift post-span has finrank ≤ N.
+    Combined with the template count N = ∏_τ C(h(τ)+2,2) ≤ (κ+1)^8,
+    this gives the per-S-shift version of WithinProfileFinrankBound.
+
+    This theorem packages Parts 14-17 into a clean statement. -/
+theorem perSShift_finrank_of_classified_card_bound {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hfactors : ∀ i, (factors i).totalDegree ≤ 2)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ)
+    (h : ProfileHistogram) (N : ℕ)
+    (hcard : (locallyBoundedClassifiedSet_finite factors constraintType S h).toFinset.card ≤ N) :
+    Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h) ≤ N :=
+  le_trans (boundedProfilePostSpan_finrank_le_card_locallyBounded
+    factors hfactors constraintType S shift h) hcard
+
 end WithinProfileBound
