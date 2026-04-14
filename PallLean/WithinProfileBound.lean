@@ -1464,6 +1464,75 @@ theorem atomProductSet_finite {n L : ℕ}
   rcases hg with ⟨atoms, hatoms, rfl⟩
   exact ⟨fun i => ⟨atoms i, hatoms i⟩, rfl⟩
 
+/-- The atom-product set has cardinality ≤ ∏_i |localDerivAtoms(f_i, S)|.
+
+    This follows because atomProductSet is the image of the product map
+    on choices from localDerivAtoms, and the image cardinality ≤ domain
+    cardinality = ∏_i |localDerivAtoms(f_i, S)|. -/
+theorem atomProductSet_card_le {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) (S : List (Fin n)) :
+    (atomProductSet_finite factors S).toFinset.card ≤
+      ∏ i : Fin L, (localDerivAtoms (factors i) S).card := by
+  -- Express atomProductSet as an image of the product map on atom choices
+  let atomChoices := (i : Fin L) → { a : MvPolynomial (Fin n) ℚ //
+    a ∈ localDerivAtoms (factors i) S }
+  let prodMap : atomChoices → MvPolynomial (Fin n) ℚ :=
+    fun c => Finset.univ.prod (fun i => (c i).val)
+  -- The atomProductSet is contained in the range of prodMap
+  have hrange : atomProductSet factors S ⊆ Set.range prodMap := by
+    intro g hg
+    rcases hg with ⟨atoms, hatoms, rfl⟩
+    exact ⟨fun i => ⟨atoms i, hatoms i⟩, rfl⟩
+  -- toFinset.card ≤ card of the range ≤ card of the domain
+  have hfin_range : Set.Finite (Set.range prodMap) := Set.finite_range prodMap
+  calc (atomProductSet_finite factors S).toFinset.card
+      ≤ hfin_range.toFinset.card := by
+        apply Set.Finite.toFinset_mono
+        exact hrange
+    _ ≤ Fintype.card atomChoices := by
+        calc _ ≤ Finset.univ.card := by
+              apply le_trans (Finset.card_le_card _)
+              · exact le_refl _
+              · intro x hx
+                exact Finset.mem_univ _
+          _ = Fintype.card atomChoices := (Finset.card_univ).symm
+    _ = ∏ i : Fin L, (localDerivAtoms (factors i) S).card := by
+        simp [Fintype.card_pi, Fintype.card_coe]
+
+/-- The per-S-shift post-span finrank is bounded by the product of
+    local derivative atom counts: ∏_i |localDerivAtoms(f_i, S)|. -/
+theorem perSShift_finrank_le_prod_localDerivAtoms {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hfactors : ∀ i, (factors i).totalDegree ≤ 2)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ)
+    (h : ProfileHistogram) :
+    Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h) ≤
+      ∏ i : Fin L, (localDerivAtoms (factors i) S).card :=
+  le_trans (perSShift_finrank_le_atomProducts factors hfactors constraintType S shift h)
+    (atomProductSet_card_le factors S)
+
+/-- Combining with localDerivAtoms_card_le: the per-S-shift post-span finrank
+    is bounded by ∏_i (|S.toFinset| + 1)² = ((|S.toFinset| + 1)²)^L. -/
+theorem perSShift_finrank_le_S_card_bound {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hfactors : ∀ i, (factors i).totalDegree ≤ 2)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ)
+    (h : ProfileHistogram) :
+    Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h) ≤
+      (S.toFinset.card + 1) ^ (2 * L) := by
+  calc Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h)
+      ≤ ∏ i : Fin L, (localDerivAtoms (factors i) S).card :=
+        perSShift_finrank_le_prod_localDerivAtoms factors hfactors constraintType S shift h
+    _ ≤ ∏ _i : Fin L, (S.toFinset.card + 1) ^ 2 := by
+        apply Finset.prod_le_prod
+        · intro i _; exact Nat.zero_le _
+        · intro i _; exact localDerivAtoms_card_le (factors i) S
+    _ = ((S.toFinset.card + 1) ^ 2) ^ L := by
+        simp [Finset.prod_const, Finset.card_fin]
+    _ = (S.toFinset.card + 1) ^ (2 * L) := by ring
+
 /-- The per-S-shift post-span finrank is bounded by the size of the
     atom-product set (which is ≤ ∏_i |localDerivAtoms(f_i, S)|).
 
