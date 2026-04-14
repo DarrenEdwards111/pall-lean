@@ -200,4 +200,57 @@ theorem compiled_rank_ge_family_of_product_mono
     (BlockedBoolRank.mlBlockedSpdpRank_ge_of_general_family_any_ell hκ _ hcard hadm)
     hmono
 
+/-! ## Part 4: Direct SPDP membership for compiledPoly
+
+The vectors mlProj(iterDerivList S compiledPoly) for block-admissible S
+lie in the SPDP subspace of compiledPoly by definition. This is the
+starting point for showing linear independence directly. -/
+
+/-- mlProj(iterDerivList S compiledPoly) is in the blocked SPDP subspace
+of compiledPoly, for any block-admissible S with |S| = κ. -/
+theorem compiled_deriv_mem_spdp_subspace
+    (M : DTM) (n : ℕ) (hn : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (κ ℓ : ℕ) (S : List (Fin n))
+    (hlen : S.length = κ)
+    (hadm : isBlockAdmissible (cook_levin_compilation M n hn htb hns).partition S) :
+    mlProj (iterDerivList S (compiledPoly (cook_levin_compilation M n hn htb hns))) ∈
+    mlBlockedSpdpSubspace (cook_levin_compilation M n hn htb hns).partition κ ℓ
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) := by
+  have h1 : mlProj (1 * iterDerivList S
+      (compiledPoly (cook_levin_compilation M n hn htb hns))) ∈
+      mlBlockedSpdpSubspace (cook_levin_compilation M n hn htb hns).partition κ ℓ
+        (compiledPoly (cook_levin_compilation M n hn htb hns)) :=
+    mlProj_deriv_mem _ κ ℓ _ S hlen hadm
+  rwa [one_mul] at h1
+
+/-! ## Part 5: The tag monomial gap analysis
+
+Under first-of-block selection (picking variable 3*b from each chosen block b),
+the tag monomials of S have support that is 3-separated: consecutive elements
+of S differ by at least 3. This means no adjacency pair {i, i+1} is a subset
+of S, which is crucial for the coefficient preservation argument.
+
+The adjacency/transition factors Q only have monomials of the form X_i * X_{i+1}.
+When S picks first-of-block variables (3*b), the set S cannot contain two
+consecutive indices. This means the Q-correction terms in the product
+boolFactorDerivProd(S) * Q do not affect the tag monomial coefficient. -/
+
+/-- Two first-of-block variables are never consecutive. -/
+theorem first_of_block_not_consecutive (b₁ b₂ : ℕ)
+    (hne : b₁ ≠ b₂) :
+    3 * b₁ + 1 ≠ 3 * b₂ := by omega
+
+/-- A first-of-block selection S (variables 3*b for chosen blocks b)
+has no pair of consecutive indices. -/
+theorem first_of_block_no_adjacent_pair (blocks : Finset ℕ)
+    (S : Finset ℕ)
+    (hS : S = blocks.image (fun b => 3 * b)) :
+    ∀ i ∈ S, i + 1 ∉ S := by
+  intro i hi hi1
+  rw [hS] at hi hi1
+  rw [Finset.mem_image] at hi hi1
+  obtain ⟨b₁, _, rfl⟩ := hi
+  obtain ⟨b₂, _, hb₂⟩ := hi1
+  omega
+
 end CompiledBoolFactorBridge
