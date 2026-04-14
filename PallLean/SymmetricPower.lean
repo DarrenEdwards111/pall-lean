@@ -1396,4 +1396,20 @@ theorem coeff_tagMonomial_self_ne_zero {N : ℕ} (S : Finset (Fin N)) :
   rw [coeff_tagMonomial_boolFactorDerivProd_diag]
   exact two_pow_ne_zero_rat S.card
 
+-- Helper: evaluate tagMonomial at a variable.
+theorem tagMonomial_apply {N : ℕ} (S : Finset (Fin N)) (v : Fin N) :
+    (tagMonomial S) v = if v ∈ S then 1 else 0 := by
+  unfold tagMonomial
+  rw [CoeffDisjoint.finset_sum_apply]
+  simp [Finsupp.single_apply, Finset.sum_ite_eq']
+
+-- The tag monomial map is injective: distinct subsets give distinct monomials.
+theorem tagMonomial_injective {N : ℕ} :
+    Function.Injective (tagMonomial : Finset (Fin N) → Fin N →₀ ℕ) := by
+  intro S T hST
+  ext v
+  have heq : (tagMonomial S) v = (tagMonomial T) v := by rw [hST]
+  rw [tagMonomial_apply, tagMonomial_apply] at heq
+  by_cases hvS : v ∈ S <;> by_cases hvT : v ∈ T <;> simp_all
+
 end SymmetricPower
