@@ -312,6 +312,21 @@ private theorem transSkelConstraintList_length (M : DTM) (N : ℕ) :
     (fun q => transSkelForState_length M N q)
   rwa [List.length_finRange] at h
 
+/-- For any state and any nonterminal consecutive pair, the corresponding
+transition-skeleton constraint actually appears in the compiled constraint list. -/
+private theorem transSkelLC_mem_transSkelConstraintList
+    (M : DTM) (N : ℕ) (q : Fin M.numStates) (i : Fin N) (hi : i.val + 1 < N) :
+    transSkelLC M N q i hi ∈ transSkelConstraintList M N := by
+  unfold transSkelConstraintList
+  apply List.mem_flatMap.mpr
+  refine ⟨q, ?_, ?_⟩
+  · simp [List.mem_finRange]
+  · unfold transSkelForState
+    apply List.mem_filterMap.mpr
+    refine ⟨i, ?_, ?_⟩
+    · simp [List.mem_finRange]
+    · simp [hi]
+
 /-- Locality-respecting block partition: groups every 3 consecutive variables
 into one block. Variable i is assigned to block i/3.
 
@@ -372,5 +387,29 @@ noncomputable def cook_levin_compilation (M : DTM) (n : ℕ) (hn : n ≥ 2)
     locality_radius := 1
     locality_bound := by omega
     partition := { numBlocks := localityNumBlocks n, assign := localityAssign n } }
+
+/-- Therefore every transition-skeleton constraint is also present in the full
+Cook-Levin compiled constraint list. This is the first honest structural place
+where the compiled polynomial depends on `M.transition`: the constraint set
+literally contains machine-dependent local polynomials. -/
+theorem transSkelLC_mem_cook_levin_constraints
+    (M : DTM) (n : ℕ) (hn : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (q : Fin M.numStates) (i : Fin n) (hi : i.val + 1 < n) :
+    transSkelLC M n q i hi ∈ (cook_levin_compilation M n hn htb hns).constraints := by
+  unfold cook_levin_compilation
+  rw [List.mem_append]
+  right
+  exact transSkelLC_mem_transSkelConstraintList M n q i hi
+
+ theorem exists_transSkelConstraint_mem_cook_levin_constraints
+    (M : DTM) (n : ℕ) (hn : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hstate : 0 < M.numStates) :
+    ∃ c, c ∈ (cook_levin_compilation M n hn htb hns).constraints := by
+  have hn_pos : 0 < n := lt_of_lt_of_le (by decide : 0 < 2) hn
+  have hi0 : 0 + 1 < n := by omega
+  let q : Fin M.numStates := ⟨0, hstate⟩
+  let i : Fin n := ⟨0, hn_pos⟩
+  refine ⟨transSkelLC M n q i hi0, ?_⟩
+  exact transSkelLC_mem_cook_levin_constraints M n hn htb hns q i hi0
 
 end PaperFaithfulSeparation
