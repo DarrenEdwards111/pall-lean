@@ -274,4 +274,54 @@ theorem finrank_span_productFinset_le {n : ℕ}
       atoms.card ^ m :=
   le_trans (finrank_span_finset_le_card _) (productFinset_card_le atoms m)
 
+/-! ## Part 5: Symmetric power spanning set for ring products
+
+    When m elements are chosen from a d-dimensional subspace W of a
+    commutative ring R, their product lies in the span of C(m+d-1, d-1)
+    "multiset-basis products."
+
+    More precisely: if {e_1,...,e_d} is a spanning set for W, and
+    f_1,...,f_m ∈ W, then ∏_{j=1}^m f_j lies in the span of
+      { ∏_{j=1}^m e_{σ(j)} | σ : Fin m → Fin d, σ nondecreasing }
+
+    The number of nondecreasing functions Fin m → Fin d is C(m+d-1, d-1).
+
+    For our purposes, we don't need the exact C(m+d-1,d-1) count; we
+    use the existing bound dim_sym_le from SymmetricPowerBound.lean:
+      C(m+d-1, d-1) ≤ (m+1)^(d-1).
+
+    Key lemma: a product of m elements from span(B) lies in span of
+    products-of-m-elements-from-B. This follows from the distributivity
+    of ring multiplication over addition and scalar multiplication. -/
+
+/-- A product of two elements from a span lies in the span of
+    pairwise products of spanning elements (for MvPolynomial over Q).
+
+    If p ∈ span(B) and q ∈ span(B'), then p * q ∈ span({b * b' | b ∈ B, b' ∈ B'}).
+    This follows from bilinearity of multiplication. -/
+theorem mul_mem_span_mul {n : ℕ}
+    (B B' : Set (MvPolynomial (Fin n) ℚ))
+    (p q : MvPolynomial (Fin n) ℚ)
+    (hp : p ∈ Submodule.span ℚ B)
+    (hq : q ∈ Submodule.span ℚ B') :
+    p * q ∈ Submodule.span ℚ ((fun xy : MvPolynomial (Fin n) ℚ × MvPolynomial (Fin n) ℚ =>
+      xy.1 * xy.2) '' (B ×ˢ B')) := by
+  induction hp using Submodule.span_induction with
+  | mem x hx =>
+    induction hq using Submodule.span_induction with
+    | mem y hy =>
+      apply Submodule.subset_span
+      exact ⟨(x, y), ⟨hx, hy⟩, rfl⟩
+    | zero => simp
+    | add y z _ _ ihy ihz =>
+      rw [mul_add]; exact Submodule.add_mem _ ihy ihz
+    | smul r y _ ihy =>
+      rw [mul_comm x (r • y), smul_mul_assoc, mul_comm]
+      exact Submodule.smul_mem _ r ihy
+  | zero => simp
+  | add x y _ _ ihx ihy =>
+    rw [add_mul]; exact Submodule.add_mem _ ihx ihy
+  | smul r x _ ihx =>
+    rw [smul_mul_assoc]; exact Submodule.smul_mem _ r ihx
+
 end AbstractLocalDerivSpace
