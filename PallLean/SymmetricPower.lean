@@ -1459,4 +1459,189 @@ theorem coeff_tagMonomial_boolFactorDerivProd_disjoint {N : ℕ}
   have hinter : S ∩ T = ∅ := Finset.disjoint_iff_inter_eq_empty.mp hdisj
   rw [hinter, Finset.card_empty, pow_zero]
 
+/-! ## Part 11: Coefficient extraction from linear combinations
+
+For linear combinations of boolFactorDerivProd, extracting coefficients
+at tag monomials gives the matrix equation. -/
+
+/-- Extracting MvPolynomial coefficient from a finset sum of scalar multiples. -/
+theorem coeff_finset_sum_smul {N : ℕ} {ι : Type*} [DecidableEq ι]
+    (F : Finset ι) (c : ι → ℚ) (p : ι → MvPolynomial (Fin N) ℚ)
+    (m : Fin N →₀ ℕ) :
+    MvPolynomial.coeff m (∑ S ∈ F, c S • p S) =
+    ∑ S ∈ F, c S * MvPolynomial.coeff m (p S) := by
+  simp [MvPolynomial.coeff_sum, MvPolynomial.coeff_smul, smul_eq_mul]
+
+/-! ## Part 12: Linear independence of disjoint-family generators
+
+For a pairwise disjoint family of κ-subsets (κ ≥ 1), the SPDP generators
+{boolFactorDerivProd S | S ∈ F} are linearly independent over ℚ.
+
+The Kronecker matrix M_{S,T} = 2^|S∩T| for pairwise disjoint S,T equals:
+- 2^κ on the diagonal (S = T)
+- 1 off-diagonal (|S∩T| = 0)
+
+This is aI + bJ with a = 2^κ - 1, b = 1. The matrix is invertible
+because a > 0 and a + |F|b > 0 (using κ ≥ 1). -/
+
+/-- For a pairwise disjoint family, extracting the coefficient at tagMonomial T
+    from the linear combination ∑ c_S * g_S gives: c_T * 2^κ + ∑_{S≠T} c_S. -/
+theorem coeff_extraction_disjoint_family {N : ℕ} {κ : ℕ}
+    {F : Finset (Finset (Fin N))}
+    (hcard : ∀ S ∈ F, S.card = κ)
+    (hdisj : (F : Set (Finset (Fin N))).PairwiseDisjoint id)
+    (c : Finset (Fin N) → ℚ)
+    (hzero : ∑ S ∈ F, c S • boolFactorDerivProd S = 0)
+    (T : Finset (Fin N)) (hT : T ∈ F) :
+    c T * (2 : ℚ) ^ κ + ∑ S ∈ F.erase T, c S = 0 := by
+  -- Extract coefficient at tagMonomial T from the zero polynomial
+  have hcoeff : MvPolynomial.coeff (tagMonomial T) (∑ S ∈ F, c S • boolFactorDerivProd S) = 0 := by
+    rw [hzero]; simp [MvPolynomial.coeff_zero]
+  rw [coeff_finset_sum_smul] at hcoeff
+  -- Split the sum into T and F \ {T}
+  rw [← Finset.add_sum_erase F _ hT] at hcoeff
+  -- The T-term gives c_T * 2^κ
+  have hdiag : c T * MvPolynomial.coeff (tagMonomial T) (boolFactorDerivProd T) =
+      c T * (2 : ℚ) ^ κ := by
+    rw [coeff_tagMonomial_boolFactorDerivProd_diag]
+    rw [hcard T hT]
+  rw [hdiag] at hcoeff
+  -- Each off-diagonal S-term gives c_S * 1 = c_S
+  have hoffdiag : ∑ S ∈ F.erase T, c S * MvPolynomial.coeff (tagMonomial T) (boolFactorDerivProd S) =
+      ∑ S ∈ F.erase T, c S := by
+    apply Finset.sum_congr rfl
+    intro S hS
+    have hSF : S ∈ F := Finset.mem_of_mem_erase hS
+    have hne : S ≠ T := Finset.ne_of_mem_erase hS
+    have hSdisj : Disjoint T S := by
+      exact hdisj hT hSF (Ne.symm hne)
+    rw [coeff_tagMonomial_boolFactorDerivProd_disjoint T S (by rw [hcard T hT, hcard S hSF]) hSdisj]
+    ring
+  rw [hoffdiag] at hcoeff
+  linarith
+
+/-- Key algebraic step: in the (2^κ - 1)I + J matrix equation,
+    all coefficients are equal, and the common value is zero. -/
+theorem all_coeffs_zero_of_disjoint_family {N κ : ℕ} (hκ : κ ≥ 1)
+    {F : Finset (Finset (Fin N))}
+    (hcard : ∀ S ∈ F, S.card = κ)
+    (hdisj : (F : Set (Finset (Fin N))).PairwiseDisjoint id)
+    (c : Finset (Fin N) → ℚ)
+    (hzero : ∑ S ∈ F, c S • boolFactorDerivProd S = 0)
+    (T : Finset (Fin N)) (hT : T ∈ F) :
+    c T = 0 := by
+  -- From coeff_extraction_disjoint_family:
+  -- For each T ∈ F: c_T * 2^κ + ∑_{S ∈ F\{T}} c_S = 0
+  -- Rewrite as: c_T * (2^κ - 1) + ∑_{S ∈ F} c_S = 0
+  -- (since ∑_{S ∈ F\{T}} c_S = (∑ F) - c_T)
+  set ctotal := ∑ S ∈ F, c S with hctotal_def
+  have hextract : ∀ S ∈ F, c S * (2 : ℚ) ^ κ + ∑ U ∈ F.erase S, c U = 0 :=
+    fun S hS => coeff_extraction_disjoint_family hcard hdisj c hzero S hS
+  -- Rewrite: c_T * 2^κ + (ctotal - c_T) = 0
+  have hrewrite : ∀ S ∈ F, c S * ((2 : ℚ) ^ κ - 1) + ctotal = 0 := by
+    intro S hS
+    have h1 := hextract S hS
+    have h2 : ∑ U ∈ F.erase S, c U = ctotal - c S := by
+      rw [hctotal_def]
+      rw [← Finset.add_sum_erase F _ hS]
+      ring
+    rw [h2] at h1
+    linarith
+  -- So c_T = -ctotal / (2^κ - 1) for all T
+  -- Since 2^κ ≥ 2 for κ ≥ 1:
+  have h2k_pos : (2 : ℚ) ^ κ - 1 > 0 := by
+    suffices h : (2 : ℚ) ^ κ ≥ 2 by linarith
+    have hnat : 2 ≤ 2 ^ κ := by
+      have h1 : 1 ≤ 2 ^ κ := Nat.one_le_pow κ 2 (by norm_num)
+      have h2 : 2 ^ 1 ≤ 2 ^ κ := Nat.pow_le_pow_right (by norm_num) hκ
+      simpa using h2
+    exact_mod_cast hnat
+  have h2k_ne : (2 : ℚ) ^ κ - 1 ≠ 0 := ne_of_gt h2k_pos
+  -- From hrewrite T: c_T * (2^κ - 1) + ctotal = 0
+  -- So c_T * (2^κ - 1) = -ctotal
+  have hcT_eq : c T * ((2 : ℚ) ^ κ - 1) = -ctotal := by linarith [hrewrite T hT]
+  -- Every coefficient satisfies: c_S * (2^κ - 1) = -ctotal
+  have hall_eq : ∀ S ∈ F, c S * ((2 : ℚ) ^ κ - 1) = -ctotal := by
+    intro S hS; linarith [hrewrite S hS]
+  -- All coefficients are equal (they all equal -ctotal / (2^κ - 1)):
+  have hall_same : ∀ S ∈ F, c S = c T := by
+    intro S hS
+    have h1 := hall_eq S hS
+    -- c_S * (2^κ - 1) = -ctotal = c_T * (2^κ - 1)
+    have h2 : c S * ((2 : ℚ) ^ κ - 1) = c T * ((2 : ℚ) ^ κ - 1) := by linarith
+    exact mul_right_cancel₀ h2k_ne h2
+  -- Sum: ctotal = |F| * c_T
+  have hsum_eq : ctotal = ↑F.card * c T := by
+    rw [hctotal_def]
+    rw [show ∑ S ∈ F, c S = ∑ S ∈ F, c T from
+      Finset.sum_congr rfl (fun S hS => hall_same S hS)]
+    simp [Finset.sum_const, nsmul_eq_mul]
+  -- Substitute into c_T * (2^κ - 1) = -ctotal:
+  -- c_T * (2^κ - 1) = -(|F| * c_T)
+  -- c_T * (2^κ - 1 + |F|) = 0
+  have hcombine : c T * ((2 : ℚ) ^ κ - 1 + ↑F.card) = 0 := by
+    linarith
+  have hpos : (2 : ℚ) ^ κ - 1 + ↑F.card > 0 := by
+    have : (0 : ℚ) ≤ ↑F.card := Nat.cast_nonneg F.card
+    linarith
+  exact (mul_eq_zero.mp hcombine).resolve_right (ne_of_gt hpos)
+
+/-- Linear independence of boolFactorDerivProd for pairwise disjoint κ-subsets (κ ≥ 1).
+    This is the key step connecting Kronecker coefficients to SPDP rank. -/
+theorem linearIndependent_boolFactorDerivProd_disjoint {N κ : ℕ} (hκ : κ ≥ 1)
+    {F : Finset (Finset (Fin N))}
+    (hcard : ∀ S ∈ F, S.card = κ)
+    (hdisj : (F : Set (Finset (Fin N))).PairwiseDisjoint id) :
+    LinearIndependent ℚ (fun S : F => boolFactorDerivProd (S : Finset (Fin N))) := by
+  rw [linearIndependent_iff']
+  intro s w hw i hi
+  -- The linear combination ∑ w_j * g_{S_j} = 0 in MvPolynomial
+  -- We need to reindex: s is a Finset of F-subtypes, w : F → ℚ
+  -- Build c : Finset (Fin N) → ℚ from w
+  set c : Finset (Fin N) → ℚ := fun S =>
+    if h : S ∈ F then
+      if ⟨S, h⟩ ∈ s then w ⟨S, h⟩ else 0
+    else 0 with hc_def
+  -- The linear combination over F equals ∑ over s
+  have hzero_F : ∑ S ∈ F, c S • boolFactorDerivProd S = 0 := by
+    -- Split F into "in s" and "not in s" parts
+    have : ∑ S ∈ F, c S • boolFactorDerivProd S =
+        ∑ S ∈ s, w S • boolFactorDerivProd (S : Finset (Fin N)) := by
+      rw [show (∑ S ∈ F, c S • boolFactorDerivProd S) =
+          (∑ S ∈ F.attach, c (S : Finset (Fin N)) • boolFactorDerivProd (S : Finset (Fin N))) from by
+        rw [Finset.sum_attach F (fun S => c S • boolFactorDerivProd S)]]
+      -- Terms not in s contribute 0
+      have hsplit : ∑ S ∈ F.attach, c (S : Finset (Fin N)) • boolFactorDerivProd (S : Finset (Fin N)) =
+          ∑ S ∈ F.attach.filter (fun S => S ∈ s), c (S : Finset (Fin N)) • boolFactorDerivProd (S : Finset (Fin N)) +
+          ∑ S ∈ F.attach.filter (fun S => S ∉ s), c (S : Finset (Fin N)) • boolFactorDerivProd (S : Finset (Fin N)) := by
+        rw [← Finset.sum_filter_add_sum_filter_not F.attach (fun S => S ∈ s)]
+      rw [hsplit]
+      have hzero_part : ∑ S ∈ F.attach.filter (fun S => S ∉ s),
+          c (S : Finset (Fin N)) • boolFactorDerivProd (S : Finset (Fin N)) = 0 := by
+        apply Finset.sum_eq_zero
+        intro ⟨S, hSF⟩ hmem
+        simp only [Finset.mem_filter, Finset.mem_attach, true_and] at hmem
+        have : c S = 0 := by
+          simp only [hc_def, dif_pos hSF, if_neg hmem]
+        rw [this, zero_smul]
+      rw [hzero_part, add_zero]
+      -- Now reindex: the filter gives exactly s
+      apply Finset.sum_nbij (fun S => S)
+      · intro ⟨S, hSF⟩ hmem
+        simp only [Finset.mem_filter, Finset.mem_attach, true_and] at hmem
+        exact hmem
+      · intro ⟨S₁, h₁⟩ _ ⟨S₂, h₂⟩ _ heq
+        exact heq
+      · intro ⟨S, hSF⟩ hmem
+        exact ⟨⟨S, hSF⟩, by simp [hmem], rfl⟩
+      · intro ⟨S, hSF⟩ hmem
+        simp only [Finset.mem_filter, Finset.mem_attach, true_and] at hmem
+        simp only [hc_def, dif_pos hSF, if_pos hmem]
+    rw [this, hw]
+  -- Now apply all_coeffs_zero_of_disjoint_family
+  have hci := all_coeffs_zero_of_disjoint_family hκ hcard hdisj c hzero_F
+    (i : Finset (Fin N)) i.2
+  simp only [hc_def, dif_pos i.2, if_pos hi] at hci
+  exact hci
+
 end SymmetricPower
