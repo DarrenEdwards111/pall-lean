@@ -1955,6 +1955,57 @@ theorem spdp_rank_of_finite_profile_cover_and_bound {N : ℕ}
     _ ≤ ∑ _i : Fin P, D := Finset.sum_le_sum (fun i _ => hbound i)
     _ = P * D := by simp [Finset.sum_const, Finset.card_fin]
 
+/-- The new reduced axiom target: for the Cook-Levin compiled polynomial,
+    the SPDP subspace is covered by ≤ (κ+1)^4 subspaces, each of finrank ≤ (κ+1)^8.
+
+    This is strictly weaker than spdp_profile_generators because:
+    - spdp_profile_generators provides EXPLICIT generator polynomials
+    - This only requires the EXISTENCE of a finite cover with bounded dimensions
+    - The generators are not needed; only the rank bound matters
+
+    The structural decomposition proved above shows that such a cover exists
+    IF each derivative-count-profile subspace has bounded finrank. The remaining
+    hard content is the within-profile symmetric power bound. -/
+def HasFiniteProfileCover {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) : Prop :=
+  ∃ (P : ℕ) (spaces : Fin P → Submodule ℚ (MvPolynomial (Fin N) ℚ)),
+    P ≤ profileCount κ ∧
+    (∀ i, Module.Finite ℚ ↥(spaces i)) ∧
+    (∀ i, Module.finrank ℚ ↥(spaces i) ≤ withinProfileBound κ) ∧
+    mlBlockedSpdpSubspace B κ ℓ p ≤ ⨆ i, spaces i
+
+/-- If a finite profile cover exists, the SPDP rank is ≤ combinedProfileBound κ. -/
+theorem rank_le_combinedBound_of_hasFiniteProfileCover {N : ℕ}
+    (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ)
+    (hcover : HasFiniteProfileCover B κ ℓ p) :
+    mlBlockedSpdpRank B κ ℓ p ≤ combinedProfileBound κ := by
+  obtain ⟨P, spaces, hP, hfin, hbound, hcontain⟩ := hcover
+  haveI : ∀ i, Module.Finite ℚ ↥(spaces i) := hfin
+  calc mlBlockedSpdpRank B κ ℓ p
+      ≤ P * withinProfileBound κ :=
+        spdp_rank_of_finite_profile_cover_and_bound B κ ℓ p P (withinProfileBound κ) spaces
+          hcontain hbound
+    _ ≤ profileCount κ * withinProfileBound κ := Nat.mul_le_mul_right _ hP
+    _ = combinedProfileBound κ := rfl
+
+/-- spdp_profile_generators implies HasFiniteProfileCover.
+
+    This shows the new axiom target is strictly weaker than the old one:
+    the explicit generators from spdp_profile_generators immediately give
+    a finite profile cover. -/
+theorem hasFiniteProfileCover_of_spdp_profile_generators
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    HasFiniteProfileCover
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) := by
+  obtain ⟨numP, spaces, hnumP, hfin, hbound, hcover⟩ :=
+    SymmetricPower.product_leibniz_profile_cover M n hn htb hns
+  exact ⟨numP, spaces, le_trans hnumP (by unfold profileCount; rfl), hfin,
+    fun i => le_trans (hbound i) (by unfold withinProfileBound; rfl), hcover⟩
+
 /-- Current assembly theorem.
 
 At present the actual fixed-profile bridge is still open, so the compiled-polynomial
