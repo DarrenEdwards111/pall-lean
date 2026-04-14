@@ -1734,6 +1734,170 @@ theorem mlBlockedSpdpSubspace_le_allProfilePostSpan_iSup {n L : ℕ}
       ⨆ (h : ProfileHistogram), allProfilePostSpan B κ ℓ factors constraintType h :=
   mlBlockedSpdpSubspace_le_profile_iSup B κ ℓ factors constraintType p hp
 
+/-! ### Derivative-count profile: paper-faithful profile definition
+
+The paper's §9 Definition 21 defines the profile as the histogram of how many
+derivative hits land on each constraint type, NOT the number of factors hit.
+For a derivative distribution d : Fin L → List (Fin n), the derivative-count
+profile is:
+  h(τ) = ∑_{i : constraintType(i) = τ} |d(i)|
+
+When the d(i) form a partition of the derivative list S (as in the actual
+Leibniz expansion), the total mass ∑_τ h(τ) = |S| = κ.
+
+This derivative-count profile has at most (κ+1)^4 distinct values (since
+each h(τ) ≤ κ and there are 4 types), matching the paper's profile count. -/
+
+/-- Derivative-count profile: for a derivative distribution d and constraint-type
+    classifier, count total derivative hits per type.
+
+    This is the paper's §9 Definition 21 profile histogram. -/
+def derivCountProfile {L : ℕ} {n : ℕ}
+    (constraintType : Fin L → ConstraintType)
+    (d : Fin L → List (Fin n)) : ProfileHistogram :=
+  fun τ => ∑ i : { i : Fin L // constraintType i = τ }, (d i.val).length
+
+/-- The derivative-count profile is admissible when the total derivative
+    distribution length is ≤ κ: mass(h) = ∑_τ h(τ) = ∑_i |d(i)| ≤ κ. -/
+theorem derivCountProfile_mass {L n : ℕ}
+    (constraintType : Fin L → ConstraintType)
+    (d : Fin L → List (Fin n)) :
+    profileMass (derivCountProfile constraintType d) =
+      ∑ i : Fin L, (d i).length := by
+  unfold profileMass derivCountProfile
+  classical
+  -- ∑_τ (∑_{i : ctype(i)=τ} |d(i)|) = ∑_i |d(i)| by Fintype.sum_fiberwise
+  -- The goal is: ∑_τ ∈ univ, (∑_{i:ctype(i)=τ} |d(i)|) = ∑_i |d(i)|
+  -- Both sides use Finset.univ.sum.
+  -- Fintype.sum_fiberwise: ∑_j, ∑_{i:g(i)=j} f(i) = ∑_{i ∈ univ} f(i)
+  exact (Fintype.sum_fiberwise constraintType (fun i => (d i).length))
+
+/-- When d partitions the derivative list S (∑ |d(i)| = |S|), the derivative-count
+    profile has mass = |S|. For SPDP generators with |S| = κ, this gives admissibility. -/
+theorem derivCountProfile_admissible_of_total_le {L n κ : ℕ}
+    (constraintType : Fin L → ConstraintType)
+    (d : Fin L → List (Fin n))
+    (htotal : ∑ i : Fin L, (d i).length ≤ κ) :
+    ProfileAdmissible κ (derivCountProfile constraintType d) := by
+  unfold ProfileAdmissible
+  rw [derivCountProfile_mass]
+  exact htotal
+
+/-- Leibniz terms classified by derivative-count profile.
+
+    For a product polynomial with L factors and constraint-type classifier,
+    a Leibniz distributed-derivative product has derivative-count profile h
+    if the histogram of derivative list lengths by type matches h. -/
+def derivCountProfileClassifiedSet {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (h : ProfileHistogram) :
+    Set (MvPolynomial (Fin n) ℚ) :=
+  { g | ∃ (d : Fin L → List (Fin n)),
+      (∀ i, ∀ v ∈ d i, v ∈ S) ∧
+      g = Finset.univ.prod (fun i => iterDerivList (d i) (factors i)) ∧
+      derivCountProfile constraintType d = h }
+
+/-- Every element of distribDerivProds has a derivative-count profile,
+    so the profile-indexed union covers distribDerivProds. -/
+theorem distribDerivProds_subset_iUnion_derivCountProfileClassified {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n)) :
+    LeibnizProduct.distribDerivProds Finset.univ factors S ⊆
+      ⋃ (h : ProfileHistogram), derivCountProfileClassifiedSet factors constraintType S h := by
+  intro g ⟨d, hd_mem, hg⟩
+  rw [Set.mem_iUnion]
+  exact ⟨derivCountProfile constraintType d, d, hd_mem, hg, rfl⟩
+
+/-- Post-processed derivative-count-profile-indexed subspace. -/
+noncomputable def derivCountProfilePostSpan {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (shift : MvPolynomial (Fin n) ℚ)
+    (h : ProfileHistogram) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+  Submodule.span ℚ
+    ((fun g => mlProj (shift * g)) '' derivCountProfileClassifiedSet factors constraintType S h)
+
+/-- The span of the post-processed Leibniz image is contained in the sup of
+    derivative-count-profile-indexed subspaces. -/
+theorem postProcessedLeibnizSpan_le_iSup_derivCountProfilePostSpan {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (shift : MvPolynomial (Fin n) ℚ) :
+    Submodule.span ℚ
+      ((fun g => mlProj (shift * g)) '' LeibnizProduct.distribDerivProds Finset.univ factors S) ≤
+    ⨆ (h : ProfileHistogram), derivCountProfilePostSpan factors constraintType S shift h := by
+  apply Submodule.span_le.mpr
+  intro q hq
+  rcases hq with ⟨g, hg_mem, rfl⟩
+  have hg_union := distribDerivProds_subset_iUnion_derivCountProfileClassified
+    factors constraintType S hg_mem
+  rw [Set.mem_iUnion] at hg_union
+  obtain ⟨h, hg_prof⟩ := hg_union
+  apply Submodule.mem_iSup_of_mem h
+  apply Submodule.subset_span
+  exact ⟨g, hg_prof, rfl⟩
+
+/-- Every SPDP generator of a product polynomial lies in the sup of derivative-count-
+    profile-indexed post-processed Leibniz subspaces. -/
+theorem spdp_generator_in_derivCountProfile_iSup {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (shift : MvPolynomial (Fin n) ℚ)
+    (p : MvPolynomial (Fin n) ℚ)
+    (hp : p = Finset.univ.prod factors) :
+    mlProj (shift * iterDerivList S p) ∈
+      ⨆ (h : ProfileHistogram), derivCountProfilePostSpan factors constraintType S shift h := by
+  rw [hp]
+  have hLeibniz := LeibnizProduct.iterDerivList_finset_prod_mem_span
+    Finset.univ factors S
+  have hpost := SymmetricPower.mlProj_mul_mem_span_image shift
+    (LeibnizProduct.distribDerivProds Finset.univ factors S)
+    (iterDerivList S (Finset.univ.prod factors))
+    hLeibniz
+  exact postProcessedLeibnizSpan_le_iSup_derivCountProfilePostSpan
+    factors constraintType S shift hpost
+
+/-- The full SPDP subspace of a product polynomial is contained in the sup of
+    derivative-count-profile-indexed subspaces (collecting across all S and shifts).
+
+    This uses the paper-faithful derivative-count profile definition. -/
+noncomputable def allDerivCountProfilePostSpan {n L : ℕ}
+    (_B : BlockPartition n) (_κ _ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (h : ProfileHistogram) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+  Submodule.span ℚ
+    (⋃ (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ),
+      (fun g => mlProj (shift * g)) '' derivCountProfileClassifiedSet factors constraintType S h)
+
+/-- The SPDP subspace is contained in the sup of derivative-count-profile subspaces. -/
+theorem mlBlockedSpdpSubspace_le_allDerivCountProfilePostSpan_iSup {n L : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (p : MvPolynomial (Fin n) ℚ)
+    (hp : p = Finset.univ.prod factors) :
+    mlBlockedSpdpSubspace B κ ℓ p ≤
+      ⨆ (h : ProfileHistogram), allDerivCountProfilePostSpan B κ ℓ factors constraintType h := by
+  apply Submodule.span_le.mpr
+  intro q hq
+  rcases hq with ⟨S, shift, _hlen, _hdeg, _hvars, _hadm, rfl⟩
+  have hmem := spdp_generator_in_derivCountProfile_iSup
+    factors constraintType S shift p hp
+  apply (iSup_mono (fun h => ?_) : ⨆ h, derivCountProfilePostSpan _ _ S shift h ≤ _) hmem
+  apply Submodule.span_mono
+  intro x hx
+  rw [Set.mem_iUnion]
+  exact ⟨S, Set.mem_iUnion.mpr ⟨shift, hx⟩⟩
+
 /-- Current assembly theorem.
 
 At present the actual fixed-profile bridge is still open, so the compiled-polynomial
