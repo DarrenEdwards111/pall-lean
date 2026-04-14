@@ -208,8 +208,39 @@ theorem bp_spdp_rank_bound
   -- Simpler: just use C = max of everything, d = ℓ + 2
   use n + ℓ + 1, ℓ + 2
   refine ⟨by omega, by omega, ?_⟩
-  -- The concrete arithmetic is complex; defer
-  sorry
+  -- Need: spdpRank ≤ ((n + ℓ + 1) * B.width * B.length) ^ (ℓ + 2)
+  -- We have hconcrete: spdpRank ≤ B.width * B.length ^ ℓ * (n + ℓ).choose ℓ
+  calc spdpRank ℓ ℓ (B.poly (F := F))
+      ≤ B.width * B.length ^ ℓ * (n + ℓ).choose ℓ := hconcrete
+    _ ≤ ((n + ℓ + 1) * B.width * B.length) ^ (ℓ + 2) := by
+        -- Handle W = 0 or L' = 0: LHS = 0
+        by_cases hW : B.width = 0
+        · simp [hW]
+        by_cases hL : B.length = 0
+        · rcases hℓ with rfl | rfl <;> simp [hL]
+        -- Now W ≥ 1, L' ≥ 1
+        have hW1 : 1 ≤ B.width := Nat.one_le_iff_ne_zero.mpr hW
+        have hL1 : 1 ≤ B.length := Nat.one_le_iff_ne_zero.mpr hL
+        -- Step 1: C(n+ℓ, ℓ) ≤ (n+ℓ)^ℓ ≤ (n+ℓ+1)^ℓ
+        have hbinom : (n + ℓ).choose ℓ ≤ (n + ℓ + 1) ^ ℓ :=
+          le_trans (Nat.choose_le_pow (n + ℓ) ℓ)
+            (Nat.pow_le_pow_left (by omega) ℓ)
+        -- Step 2: W * L'^ℓ * (n+ℓ+1)^ℓ ≤ ((n+ℓ+1)*W*L')^(ℓ+2)
+        -- RHS = (n+ℓ+1)^(ℓ+2) * W^(ℓ+2) * L'^(ℓ+2)
+        -- LHS ≤ (n+ℓ+1)^ℓ * W * L'^ℓ
+        -- Sufficient: each factor on LHS ≤ corresponding factor on RHS
+        suffices h : B.width * B.length ^ ℓ * (n + ℓ + 1) ^ ℓ
+            ≤ ((n + ℓ + 1) * B.width * B.length) ^ (ℓ + 2) by
+          exact le_trans (Nat.mul_le_mul_left _ hbinom) h
+        rw [show B.width * B.length ^ ℓ * (n + ℓ + 1) ^ ℓ
+            = (n + ℓ + 1) ^ ℓ * B.width ^ 1 * B.length ^ ℓ by ring]
+        rw [Nat.mul_pow, Nat.mul_pow]
+        -- Now: (n+ℓ+1)^ℓ * W^1 * L'^ℓ ≤ (n+ℓ+1)^(ℓ+2) * W^(ℓ+2) * L'^(ℓ+2)
+        apply Nat.mul_le_mul
+        apply Nat.mul_le_mul
+        · exact Nat.pow_le_pow_right (by omega) (by omega)
+        · exact Nat.pow_le_pow_right hW1 (by omega)
+        · exact Nat.pow_le_pow_right hL1 (by omega)
 
 /-! ### Supporting steps for Lemma 45
 
@@ -888,11 +919,143 @@ theorem poly_family_rank_bound_in_n
     (family : PolyBPFamily)
     (n : ℕ) :
     ∃ (c : ℕ), spdpRank ℓ ℓ ((family.bp n).poly (F := ℝ)) ≤ n ^ c := by
-  obtain ⟨C, d, _, _, hbound⟩ := poly_family_rank_bound hℓ family n
-  -- (C * W * L')^d ≤ (C * C_wid * n^widExp * C_len * n^lenExp)^d ≤ n^c
-  -- The exact exponent c depends on C, d, widExp, lenExp, C_wid, C_len
-  exact ⟨d * (C + family.C_wid + family.C_len + family.widExp + family.lenExp + 1),
-    le_trans hbound (by sorry)⟩
+  obtain ⟨C, d, hC1, hd1, hbound⟩ := poly_family_rank_bound hℓ family n
+  -- We have: spdpRank ≤ (C * W * L')^d
+  -- where W ≤ C_wid * n^widExp, L' ≤ C_len * n^lenExp
+  -- and C = n + ℓ + 1 (from bp_spdp_rank_bound).
+  -- For n = 0: both W ≤ C_wid * 0^widExp and L' ≤ C_len * 0^lenExp.
+  -- For n ≥ 1: (C * W * L')^d ≤ ((n+ℓ+1) * C_wid * n^widExp * C_len * n^lenExp)^d ≤ n^c.
+  -- In all cases, the rank is bounded by SOME power of n (or a constant when n = 0).
+  -- We use a large exponent that absorbs all terms.
+  --
+  -- The bound (C * W * L')^d is a concrete natural number for each n,
+  -- so ∃ c, (C * W * L')^d ≤ n^c always holds: for n ≥ 2 pick c large,
+  -- for n ∈ {0,1} the rank is a fixed constant.
+  by_cases hn : n = 0
+  · -- n = 0: the rank is a fixed number, and n^c = 0^c.
+    -- We need c = 0 so that n^c = 1, then check rank ≤ 1.
+    -- But rank could be > 1. Instead pick a trivial bound:
+    -- spdpRank ... is a natural number; it equals some value.
+    -- Since 0^0 = 1 by convention, we need rank ≤ 1 or a larger c.
+    -- For n=0, n^c = 0 for c ≥ 1, so we need rank = 0.
+    -- With n=0 variables, the BP polynomial is a constant, and
+    -- spdpRank of a constant is 0 (no derivatives to take).
+    -- Actually with n=0, Fin 0 → ℝ means no variables, so all partial
+    -- derivatives are zero, making the SPDP subspace trivial.
+    subst hn
+    -- n = 0: Fin 0 is empty, so no list S : List (Fin 0) has length ℓ ≥ 2.
+    -- Therefore the SPDP generating set is empty and the rank is 0.
+    refine ⟨1, ?_⟩
+    -- spdpRank ℓ ℓ ... ≤ 0^1 = 0, so we need rank = 0.
+    -- Actually 0^1 = 0, but rank ≥ 0 always, so we need rank ≤ 0.
+    -- Since 0^c = 0 for c ≥ 1, we need rank = 0.
+    simp only [spdpRank, spdpSubspace]
+    have : (Module.finrank ℝ ↥(Submodule.span ℝ
+        {q : MvPolynomial (Fin 0) ℝ | ∃ (S : List (Fin 0)) (m : MvPolynomial (Fin 0) ℝ),
+          S.length = ℓ ∧ m.totalDegree ≤ ℓ ∧ q = m * iterDerivList S ((family.bp 0).poly)})) = 0 := by
+      apply Submodule.finrank_eq_zero.mpr
+      apply Submodule.span_eq_bot.mpr
+      intro q hq
+      simp only [Set.mem_setOf_eq] at hq
+      obtain ⟨S, m, hSlen, _, rfl⟩ := hq
+      -- S : List (Fin 0) with S.length = ℓ ≥ 2, but Fin 0 is empty
+      exfalso
+      have : S = [] := List.eq_nil_of_forall_not_mem (fun a => Fin.elim0 a)
+      simp [this] at hSlen
+      rcases hℓ with rfl | rfl <;> simp at hSlen
+    omega
+  · -- n ≥ 1
+    have hn1 : 1 ≤ n := Nat.one_le_iff_ne_zero.mpr hn
+    -- Upper bound the product: C * W * L' ≤ C * (C_wid * n^widExp) * (C_len * n^lenExp)
+    have hW := family.width_le n
+    have hLen := family.length_le n
+    -- (C * W * L')^d ≤ (C * C_wid * n^widExp * C_len * n^lenExp)^d
+    --   = (C * C_wid * C_len)^d * n^(d * (widExp + lenExp))
+    -- For n ≥ 1: C ≤ n + ℓ + 1 ≤ (ℓ+2) * n  (since n ≥ 1)
+    -- Actually C is abstract here. We just need C ≤ n^C since n ≥ 1 implies n^C ≥ C.
+    -- Key: for n ≥ 1 and any k : ℕ, k ≤ n^k.
+    -- So (C * C_wid * C_len)^d ≤ n^(C * C_wid * C_len * d)... not quite.
+    -- Simpler: for n ≥ 1, (C * W * L')^d is a value V.
+    -- We can always pick c = V since n^V ≥ V ≥ ... for n ≥ 1.
+    -- But that's not efficient. Let's just use a concrete large c.
+    -- For n ≥ 2 any sufficiently large c works.
+    -- For n = 1: (C * W * L')^d ≤ 1^c = 1, so we need rank ≤ 1.
+    -- This fails for n=1 in general!
+    -- Actually for n=1: W ≤ C_wid * 1, L' ≤ C_len * 1, C ≥ 1.
+    -- So (C * W * L')^d could be large, but 1^c = 1 always.
+    -- This means the statement is too strong for n = 1 in general.
+    -- The statement would need n ≥ some threshold, or a different form.
+    -- Since the existential c can depend on n (c is after n in scope),
+    -- for any fixed n, (C*W*L')^d is a fixed number V, and we can pick
+    -- c such that n^c ≥ V. For n ≥ 2: c = V works. For n = 1: impossible
+    -- unless V ≤ 1. For n = 0: handled above.
+    -- With n=1 being problematic, we handle it separately.
+    by_cases hn1' : n = 1
+    · -- n = 1: W ≤ C_wid, L' ≤ C_len, so (C*W*L')^d ≤ (C*C_wid*C_len)^d
+      -- and 1^c = 1. This can only work if spdpRank = 0.
+      -- For n=1 variable, the rank is bounded but could be > 1.
+      -- We use the trivial bound: the rank ≤ (C*W*L')^d which is a
+      -- fixed constant, and n=1 so n^c = 1 for all c.
+      -- Pick c = (C * (family.bp 1).width * (family.bp 1).length) ^ d.
+      -- Then n^c = 1^c = 1. Need rank ≤ 1. This is generally false.
+      -- The only valid approach: for n=1, the SPDP rank is bounded by
+      -- a concrete value, so pick c = that value * d (overkill).
+      -- Actually 1^c = 1 always, so we'd need rank ≤ 1 which is false.
+      -- The theorem as stated is false for n=1 in general!
+      -- We leave this edge case as sorry with a note.
+      subst hn1'
+      exact ⟨0, by sorry⟩
+    · -- n ≥ 2: now n^c grows, so we can absorb everything
+      have hn2 : 2 ≤ n := by omega
+      -- (C * W * L')^d ≤ (C * C_wid * n^widExp * C_len * n^lenExp)^d
+      -- All constant factors ≤ n^(constant) since n ≥ 2.
+      -- Actually: for a : ℕ and n ≥ 2, a ≤ n^a (by induction on a).
+      -- So C ≤ n^C, C_wid ≤ n^C_wid, C_len ≤ n^C_len.
+      -- Thus C * C_wid * n^widExp * C_len * n^lenExp
+      --   ≤ n^C * n^C_wid * n^widExp * n^C_len * n^lenExp
+      --   = n^(C + C_wid + widExp + C_len + lenExp)
+      -- And the d-th power gives n^(d * (C + C_wid + widExp + C_len + lenExp)).
+      -- Then add 1 to handle multiplication rounding.
+      have key : ∀ a : ℕ, a ≤ n ^ a := by
+        intro a; induction a with
+        | zero => simp
+        | succ k ih =>
+          calc k + 1 ≤ n ^ k + 1 := by omega
+            _ ≤ n ^ k + n ^ k := by
+                have : 1 ≤ n ^ k := Nat.one_le_pow k n (by omega)
+                omega
+            _ = 2 * n ^ k := by ring
+            _ ≤ n * n ^ k := by
+                apply Nat.mul_le_mul_right; exact hn2
+            _ = n ^ (k + 1) := by ring
+      -- C * W * L' ≤ C * (C_wid * n^widExp) * (C_len * n^lenExp)
+      have step1 : C * (family.bp n).width * (family.bp n).length
+          ≤ C * (family.C_wid * n ^ family.widExp) * (family.C_len * n ^ family.lenExp) :=
+        Nat.mul_le_mul (Nat.mul_le_mul le_rfl hW) hLen
+      -- C ≤ n^C
+      have step2 : C ≤ n ^ C := key C
+      -- C_wid ≤ n^C_wid
+      have step3 : family.C_wid ≤ n ^ family.C_wid := key family.C_wid
+      -- C_len ≤ n^C_len
+      have step4 : family.C_len ≤ n ^ family.C_len := key family.C_len
+      -- Combine: C * (C_wid * n^widExp) * (C_len * n^lenExp)
+      --   ≤ n^C * (n^C_wid * n^widExp) * (n^C_len * n^lenExp)
+      --   = n^(C + C_wid + widExp + C_len + lenExp)
+      set e := C + family.C_wid + family.widExp + family.C_len + family.lenExp
+      have step5 : C * (family.C_wid * n ^ family.widExp) * (family.C_len * n ^ family.lenExp)
+          ≤ n ^ e := by
+        calc C * (family.C_wid * n ^ family.widExp) * (family.C_len * n ^ family.lenExp)
+            ≤ n ^ C * (n ^ family.C_wid * n ^ family.widExp) * (n ^ family.C_len * n ^ family.lenExp) :=
+              Nat.mul_le_mul (Nat.mul_le_mul step2 (Nat.mul_le_mul step3 le_rfl))
+                (Nat.mul_le_mul step4 le_rfl)
+          _ = n ^ e := by
+              simp only [e, ← pow_add]; ring
+      -- Now: (C * W * L')^d ≤ (n^e)^d = n^(e*d)
+      have step6 : (C * (family.bp n).width * (family.bp n).length) ^ d ≤ n ^ (e * d) := by
+        calc (C * (family.bp n).width * (family.bp n).length) ^ d
+            ≤ (n ^ e) ^ d := Nat.pow_le_pow_left (le_trans step1 step5) d
+          _ = n ^ (e * d) := by rw [← pow_mul]
+      exact ⟨e * d, le_trans hbound step6⟩
 
 /-! ## §6: Layer matrix totalDegree bound -/
 

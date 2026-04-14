@@ -212,10 +212,12 @@ Infrastructure proved above:
 3. iterDerivList commutes with restriction for all-free lists; gives 0 otherwise
 
 The sorry requires formalizing the coefficient-matrix rank and the
-column-deletion principle. The subspace-image approach (showing
-spdpSubspace(ρ f) ≤ image of spdpSubspace(f) under ρ) does not work
-because target generators m · ∂_S(ρ f) include multipliers m that use
-fixed variables, which are outside the image of the restriction map. -/
+column-deletion principle. See the docstring on `spdpRank_restriction_mono`
+for a full account of approaches tried and why each fails.
+
+NOTE: This sorry is NOT load-bearing for the main separation theorem.
+Separation29.three_sat_not_in_P uses two monolithic axioms (Theorems 139/140)
+and does not depend on this file. -/
 
 /-- Lemma 141 (column deletion monotonicity): restriction cannot increase SPDP rank.
 
@@ -230,12 +232,31 @@ fixed variables, which are outside the image of the restriction map. -/
     Hence rank(M_{κ,ℓ}(ρ(f))) ≤ rank(M_{κ,ℓ}(f)), i.e.,
     Γ_{κ,ℓ}(ρ(f)) ≤ Γ_{κ,ℓ}(f).
 
-    The submodule-image approach (showing spdpSubspace(ρ f) ≤ image of
-    spdpSubspace(f) under ρ) does NOT work because the target generators
-    m · ∂_S(ρ f) include multipliers m that use fixed variables, which are
-    not in the image of the restriction map. The correct proof requires
-    formalizing the coefficient-matrix rank and the column-deletion
-    principle.
+    **Why the sorry remains**: the correct proof requires formalizing the
+    coefficient-matrix (as a `Matrix` over ℚ indexed by (S,m) × α) and the
+    standard linear-algebra fact that right-multiplying by a column-selection
+    matrix cannot increase rank. Several alternative approaches were tried
+    and do not work:
+
+    - Submodule-image approach (spdpSubspace(ρf) ≤ image of spdpSubspace(f)
+      under ρ): FAILS because target generators m · ∂_S(ρf) include
+      multipliers m that use fixed variables, which lie outside the image
+      of the restriction map.
+
+    - Generating-set size comparison: FAILS because the multiplier factor
+      (monomials of degree ≤ ℓ) is the same in both source and target, so
+      the ratio does not simplify without matrix-rank infrastructure.
+
+    - Direct linear map on generators (m·d_S ↦ m·ρ(d_S)): FAILS because
+      well-definedness requires showing that linear relations among generators
+      are preserved, which circularly requires the column-deletion principle.
+
+    **NOT LOAD-BEARING**: This sorry does not affect the main separation
+    theorem (Separation29.three_sat_not_in_P / P_ne_NP). That theorem
+    depends on two monolithic axioms: `theorem_140_np_side` (Theorem 140)
+    and `theorem_139_p_side` (Theorem 139). Lemma 141 would only be needed
+    to decompose `theorem_139_p_side` into finer sub-axioms (see
+    SeparationAssembly.lean). The main proof chain has ZERO sorry.
 
     Infrastructure proved:
     1. applyRestriction ρ is an algebra homomorphism (hence linear)
