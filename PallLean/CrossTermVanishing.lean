@@ -233,4 +233,118 @@ theorem coeff_iterDeriv_mul_inert {n : ℕ}
   rw [this, hR_const, mul_one]
 
 
+/-! ## Step 6: GoodToDepth closure properties -/
+
+/-- GoodToDepth is closed under addition. -/
+theorem goodToDepth_add {n : ℕ} (R₁ R₂ : MvPolynomial (Fin n) ℚ) (m : Fin n →₀ ℕ) (d : ℕ)
+    (h₁ : GoodToDepth R₁ m d) (h₂ : GoodToDepth R₂ m d) :
+    GoodToDepth (R₁ + R₂) m d := by
+  induction d generalizing R₁ R₂ with
+  | zero =>
+    intro b hb hle
+    rw [MvPolynomial.coeff_add, h₁ b hb hle, h₂ b hb hle, add_zero]
+  | succ d ih =>
+    constructor
+    · intro b hb hle
+      rw [MvPolynomial.coeff_add, h₁.1 b hb hle, h₂.1 b hb hle, add_zero]
+    · intro s
+      constructor
+      · rw [map_add (MvPolynomial.pderiv s), MvPolynomial.coeff_add, (h₁.2 s).1, (h₂.2 s).1, add_zero]
+      · rw [map_add (MvPolynomial.pderiv s)]
+        exact ih _ _ (h₁.2 s).2 (h₂.2 s).2
+
+/-- GoodToDepth is closed under scalar multiplication. -/
+theorem goodToDepth_smul {n : ℕ} (c : ℚ) (R : MvPolynomial (Fin n) ℚ) (m : Fin n →₀ ℕ) (d : ℕ)
+    (h : GoodToDepth R m d) :
+    GoodToDepth (MvPolynomial.C c * R) m d := by
+  induction d generalizing R with
+  | zero =>
+    intro b hb hle
+    rw [MvPolynomial.coeff_C_mul, h b hb hle, mul_zero]
+  | succ d ih =>
+    constructor
+    · intro b hb hle
+      rw [MvPolynomial.coeff_C_mul, h.1 b hb hle, mul_zero]
+    · intro s
+      constructor
+      · simp only [MvPolynomial.pderiv_mul, MvPolynomial.pderiv_C]
+        rw [zero_mul, zero_add, MvPolynomial.coeff_C_mul, (h.2 s).1, mul_zero]
+      · simp only [MvPolynomial.pderiv_mul, MvPolynomial.pderiv_C]
+        rw [zero_mul, zero_add]
+        exact ih _ (h.2 s).2
+
+/-- Constant term of a product equals product of constant terms (at monomial 0). -/
+theorem coeff_zero_mul {n : ℕ} (p q : MvPolynomial (Fin n) ℚ) :
+    MvPolynomial.coeff 0 (p * q) = MvPolynomial.coeff 0 p * MvPolynomial.coeff 0 q := by
+  have h1 : MvPolynomial.coeff 0 (p * q) = MvPolynomial.constantCoeff (p * q) := rfl
+  have h2 : MvPolynomial.constantCoeff (p * q) =
+      MvPolynomial.constantCoeff p * MvPolynomial.constantCoeff q := map_mul _ p q
+  rw [h1, h2]; rfl
+
+/-- A polynomial has "GoodAllDepths" if it satisfies GoodToDepth at every depth,
+    and all its partial derivatives have constant term 0. -/
+def GoodAllDepths {n : ℕ} (R : MvPolynomial (Fin n) ℚ) (m : Fin n →₀ ℕ) : Prop :=
+  (∀ d : ℕ, GoodToDepth R m d) ∧
+  (∀ s : Fin n, MvPolynomial.coeff 0 (MvPolynomial.pderiv s R) = 0)
+
+/-- GoodAllDepths implies GoodToDepth at any depth. -/
+theorem goodAllDepths_to_depth {n : ℕ} (R : MvPolynomial (Fin n) ℚ) (m : Fin n →₀ ℕ)
+    (h : GoodAllDepths R m) (d : ℕ) : GoodToDepth R m d := h.1 d
+
+/-- GoodAllDepths is preserved by pderiv. -/
+theorem goodAllDepths_pderiv {n : ℕ} (R : MvPolynomial (Fin n) ℚ) (m : Fin n →₀ ℕ) (s : Fin n)
+    (h : GoodAllDepths R m) : GoodAllDepths (MvPolynomial.pderiv s R) m := by
+  constructor
+  · intro d
+    exact goodToDepth_pderiv R m d s (h.1 (d + 1))
+  · intro s'
+    exact ((h.1 2).2 s).2.2 s' |>.1
+
+/-- GoodAllDepths is closed under addition. -/
+theorem goodAllDepths_add {n : ℕ} (R₁ R₂ : MvPolynomial (Fin n) ℚ) (m : Fin n →₀ ℕ)
+    (h₁ : GoodAllDepths R₁ m) (h₂ : GoodAllDepths R₂ m) :
+    GoodAllDepths (R₁ + R₂) m := by
+  constructor
+  · intro d
+    exact goodToDepth_add R₁ R₂ m d (h₁.1 d) (h₂.1 d)
+  · intro s
+    rw [map_add (MvPolynomial.pderiv s), MvPolynomial.coeff_add, h₁.2 s, h₂.2 s, add_zero]
+
+/-- Core lemma: for polynomials with GoodAllDepths, the product has GoodToDepth at any depth.
+    Proved by strong induction on d, universally quantified over all pairs.
+    The key insight: pderiv of a GoodAllDepths poly is also GoodAllDepths, so the induction
+    hypothesis applies to the derivative terms in the Leibniz expansion. -/
+private theorem goodToDepth_mul_aux {n : ℕ} (d : ℕ) :
+    ∀ (R₁ R₂ : MvPolynomial (Fin n) ℚ) (m : Fin n →₀ ℕ),
+    GoodAllDepths R₁ m → GoodAllDepths R₂ m →
+    GoodToDepth (R₁ * R₂) m d := by
+  induction d with
+  | zero =>
+    intro R₁ R₂ m h₁ h₂
+    exact noSubmono_mul R₁ R₂ m (h₁.1 0) (h₂.1 0)
+  | succ d ih =>
+    intro R₁ R₂ m h₁ h₂
+    constructor
+    · exact noSubmono_mul R₁ R₂ m (h₁.1 0) (h₂.1 0)
+    · intro s
+      constructor
+      · rw [MvPolynomial.pderiv_mul, MvPolynomial.coeff_add,
+          coeff_zero_mul, coeff_zero_mul, h₁.2 s, h₂.2 s, zero_mul, mul_zero, add_zero]
+      · rw [MvPolynomial.pderiv_mul]
+        apply goodToDepth_add
+        · exact ih _ _ m (goodAllDepths_pderiv R₁ m s h₁) h₂
+        · exact ih _ _ m h₁ (goodAllDepths_pderiv R₂ m s h₂)
+
+/-- GoodAllDepths is closed under polynomial multiplication. -/
+theorem goodAllDepths_mul {n : ℕ}
+    (R₁ R₂ : MvPolynomial (Fin n) ℚ) (m : Fin n →₀ ℕ)
+    (h₁ : GoodAllDepths R₁ m) (h₂ : GoodAllDepths R₂ m) :
+    GoodAllDepths (R₁ * R₂) m := by
+  constructor
+  · intro d
+    exact goodToDepth_mul_aux d R₁ R₂ m h₁ h₂
+  · intro s
+    rw [MvPolynomial.pderiv_mul, MvPolynomial.coeff_add,
+      coeff_zero_mul, coeff_zero_mul, h₁.2 s, h₂.2 s, zero_mul, mul_zero, add_zero]
+
 end CrossTermVanishing
