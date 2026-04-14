@@ -209,26 +209,43 @@ theorem hard_family_superpolynomial (n : ℕ) (hn : n ≥ 2 ^ 40) :
     Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n)
   exact le_trans h1 h2
 
-/-! ## P-side axiom: Paper Theorem 139
+/-! ## The Zero-Test Polynomial Z_n
 
-This is the paper's core P-side claim: every P-decidable language has
-characteristic polynomials with polynomial SPDP rank.
+Z_n = ∏_{j=0}^{n-1} g_j where g_j = X_{3j} + X_{3j+1} + X_{3j+2}.
 
-**Theorem 139** (recalled, P-side upper bound):
-  If L ∈ P, then for each input length n the length-n slice L_n has
-  a multilinear representative f_{L,n} with
-    rk_{SPDP,ℓ}(f_{L,n}) ≤ n^c    for some constant c = c(L,ℓ).
+This is the polynomial whose SPDP rank is lower-bounded by the identity minor.
+-/
 
-The proof uses branching-program compilation (§2.1):
-  M decides L in time n^k → layered BP of length n^{O(k)}, width poly(n)
-  → BP-compiled polynomial has SPDP rank ≤ n^{O(k)}.
+/-- The zero-test polynomial for the hard family:
+    Z_n(x) = ∏_{j=0}^{n-1} (x_{3j} + x_{3j+1} + x_{3j+2}).
+    Paper §30, Definition 42. -/
+noncomputable def zeroTestPoly (n : ℕ) : MvPolynomial (Fin (3 * n)) ℚ :=
+  (Finset.univ : Finset (Fin n)).prod (fun j => clauseGadget n j)
 
-We specialize this to 3-SAT and the hard family:
-if M decides 3-SAT, then the SPDP rank of the zero-test polynomial
-of any instance φ with encoding size ≤ n is bounded polynomially.
+/-! ### Derivative lemmas for Z_n -/
 
-This axiom replaces BOTH previous axioms (profile compression + God-Move).
-The NP-side is now a THEOREM (identity minor, above). -/
+/-- Derivative of a clause gadget w.r.t. its first variable is 1. -/
+theorem pderiv_clauseGadget_first (n : ℕ) (j : Fin n) :
+    MvPolynomial.pderiv ⟨3 * j.val, by omega⟩ (clauseGadget n j) = 1 := by
+  unfold clauseGadget
+  simp only [map_add, MvPolynomial.pderiv_X]
+  simp [Fin.ext_iff, show ¬(3 * j.val = 3 * j.val + 1) by omega,
+        show ¬(3 * j.val = 3 * j.val + 2) by omega]
+
+/-- Derivative of a clause gadget w.r.t. another clause's first variable is 0. -/
+theorem pderiv_clauseGadget_other (n : ℕ) (j k : Fin n) (hjk : j ≠ k) :
+    MvPolynomial.pderiv ⟨3 * j.val, by omega⟩ (clauseGadget n k) = 0 := by
+  unfold clauseGadget
+  simp only [map_add, MvPolynomial.pderiv_X]
+  have hne : j.val ≠ k.val := Fin.val_ne_of_ne hjk
+  simp [Fin.ext_iff, show ¬(3 * j.val = 3 * k.val) by omega,
+        show ¬(3 * j.val = 3 * k.val + 1) by omega,
+        show ¬(3 * j.val = 3 * k.val + 2) by omega]
+
+/-! ## Axioms
+
+Axiom 1: P-side (Theorem 139) — BP compilation gives poly SPDP rank.
+Axiom 2: Restriction (Lemma 141) — hard instance rank transfers. -/
 
 /-- The SPDP rank of the characteristic polynomial of a language L at input
     length n, when L is decided by machine M. This is the rank of the
