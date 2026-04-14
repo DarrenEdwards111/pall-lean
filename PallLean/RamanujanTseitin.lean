@@ -210,6 +210,32 @@ axiom tseitin_pdMatrix_lower_bound
     n ^ (Nat.log 2 n / 4) ≤
       pdMatrixRank F tpart.part enc.charPoly
 
+/-- Concrete witness format for the characteristic-polynomial PD lower bound.
+To prove the hard theorem, it is enough to exhibit `k` linearly independent
+elements in the PD column space of the paper's partition, with
+`k ≥ n^(log₂ n / 4)`. -/
+structure PdMatrixLowerBoundWitness
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6) where
+  k : ℕ
+  rows : Fin k → ↥(PartialDerivMatrix.pdColumnSpace
+    (fam.partition n hn).part (fam.encoding n hn).charPoly)
+  linearIndependent : LinearIndependent F (Subtype.val ∘ rows)
+  quantitative : n ^ (Nat.log 2 n / 4) ≤ k
+
+/-- A witness immediately yields the paper-faithful PD-matrix rank lower bound. -/
+theorem PdMatrixLowerBoundWitness.rank_bound
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    (w : PdMatrixLowerBoundWitness F fam n hn) :
+    n ^ (Nat.log 2 n / 4) ≤
+      pdMatrixRank F (fam.partition n hn).part (fam.encoding n hn).charPoly := by
+  exact le_trans w.quantitative
+    (PartialDerivMatrix.pdMatrixRank_ge_of_linearIndependent
+      (fam.partition n hn).part (fam.encoding n hn).charPoly w.k w.rows w.linearIndependent)
+
 /-! ## 7. Spectral Ramanujan Property (Proved from Structure)
 
   The second-largest eigenvalue of the adjacency matrix of G_n satisfies
@@ -260,6 +286,26 @@ theorem ramanujan_tseitin_structure_exists (n : ℕ) (hn : n ≥ 6) :
     rw [hverts] at hS
     exact hS
   · exact tseitin_pdMatrix_lower_bound ℚ fam n hn
+
+/-- Witness-style reduction of the hard characteristic-polynomial PD lower
+bound. Once one exhibits enough linearly independent PD-column-space elements
+for the paper's partition, the desired rank lower bound is immediate by linear
+algebra. The remaining hard content is therefore the combinatorial construction
+of the independent family, not the rank bookkeeping. -/
+theorem tseitin_pdMatrix_lower_bound_of_witness
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (k : ℕ)
+    (rows : Fin k → ↥(PartialDerivMatrix.pdColumnSpace
+      (fam.partition n hn).part (fam.encoding n hn).charPoly))
+    (hli : LinearIndependent F (Subtype.val ∘ rows))
+    (hk : n ^ (Nat.log 2 n / 4) ≤ k) :
+    n ^ (Nat.log 2 n / 4) ≤
+      PartialDerivMatrix.pdMatrixRank F (fam.partition n hn).part (fam.encoding n hn).charPoly := by
+  exact le_trans hk
+    (PartialDerivMatrix.pdMatrixRank_ge_of_linearIndependent
+      (fam.partition n hn).part (fam.encoding n hn).charPoly k rows hli)
 
 /-! ## 9. Condensed Restatement
 

@@ -191,6 +191,91 @@ noncomputable def pdMatrixRank {n : ℕ} (F : Type*) [Field F]
     (part : VarPartition n) (f : MvPolynomial (Fin n) F) : ℕ :=
   Module.finrank F (pdColumnSpace part f)
 
+/-- Finite over-approximation of the PD generators: all iterated derivatives
+of length `m` over all functions `Fin m → Fin n`. -/
+noncomputable def allDerivGeneratorFinset {n : ℕ} {F : Type*} [CommRing F]
+    (m : ℕ) (f : MvPolynomial (Fin n) F) :
+    Finset (MvPolynomial (Fin n) F) := by
+  classical
+  exact
+    (Fintype.piFinset (fun _ : Fin m => (Finset.univ : Finset (Fin n)))).image
+      (fun g => SPDP.iterDerivList (List.ofFn g) f)
+
+/-- Any legal derivative list for the PD column space gives an element of that
+subspace directly. -/
+theorem iterDerivList_mem_pdColumnSpace {n : ℕ} {F : Type*} [CommRing F]
+    (part : VarPartition n) (f : MvPolynomial (Fin n) F)
+    (S_list : List (Fin n))
+    (hlen : S_list.length = part.S.card)
+    (hsub : ∀ v ∈ S_list, v ∈ part.S) :
+    SPDP.iterDerivList S_list f ∈ pdColumnSpace part f := by
+  apply Submodule.subset_span
+  exact ⟨S_list, hlen, hsub, rfl⟩
+
+/-- The PD column space is contained in the span of a finite family of ambient
+iterated derivatives of the same length. -/
+theorem pdColumnSpace_le_span_allDerivGeneratorFinset {n : ℕ} {F : Type*} [CommRing F]
+    (part : VarPartition n) (f : MvPolynomial (Fin n) F) :
+    pdColumnSpace part f ≤ Submodule.span F (↑(allDerivGeneratorFinset part.S.card f) : Set _) := by
+  classical
+  apply Submodule.span_le.mpr
+  intro q hq
+  rcases hq with ⟨S_list, hlen, _, hq⟩
+  rcases (List.exists_iff_exists_tuple).mp ⟨S_list, rfl⟩ with ⟨m, g, rfl⟩
+  simp at hlen
+  cases hlen
+  have hg_mem : g ∈ Fintype.piFinset (fun _ : Fin part.S.card => (Finset.univ : Finset (Fin n))) := by
+    exact Fintype.mem_piFinset.mpr (fun _ => Finset.mem_univ _)
+  have himage :
+      SPDP.iterDerivList (List.ofFn g) f ∈ allDerivGeneratorFinset part.S.card f := by
+    exact Finset.mem_image.mpr ⟨g, hg_mem, rfl⟩
+  rw [hq]
+  exact Submodule.subset_span himage
+
+/-- The PD column space is finite-dimensional because it embeds into the span of
+a finite family of iterated derivatives of the appropriate length. -/
+theorem pdColumnSpace_finiteDimensional {n : ℕ} {F : Type*} [Field F]
+    (part : VarPartition n) (f : MvPolynomial (Fin n) F) :
+    FiniteDimensional F ↥(pdColumnSpace part f) := by
+  classical
+  let G := allDerivGeneratorFinset part.S.card f
+  let V : Submodule F (MvPolynomial (Fin n) F) := Submodule.span F (↑G : Set (MvPolynomial (Fin n) F))
+  have hle : pdColumnSpace part f ≤ V := by
+    simpa [V] using pdColumnSpace_le_span_allDerivGeneratorFinset part f
+  let incl : ↥(pdColumnSpace part f) →ₗ[F] ↥V :=
+    { toFun := fun x => ⟨x.1, hle x.2⟩
+      map_add' := by intro x y; rfl
+      map_smul' := by intro a x; rfl }
+  have hinj : Function.Injective incl := by
+    intro x y hxy
+    have hval : x.1 = y.1 := by
+      exact congrArg (fun z => z.1) hxy
+    exact Subtype.ext hval
+  letI : FiniteDimensional F ↥V := FiniteDimensional.span_finset F G
+  exact FiniteDimensional.of_injective incl hinj
+
+/-- If the PD column space contains `k` linearly independent elements, then
+the partial-derivative matrix rank is at least `k`. This is the linear-algebra
+half of the paper's hard lower bound: the remaining task is to build such a
+family from the Ramanujan/Tseitin combinatorics. -/
+theorem pdMatrixRank_ge_of_linearIndependent {n : ℕ} {F : Type*} [Field F]
+    (part : VarPartition n) (f : MvPolynomial (Fin n) F)
+    (k : ℕ)
+    (rows : Fin k → ↥(pdColumnSpace part f))
+    (hli : LinearIndependent F (Subtype.val ∘ rows)) :
+    k ≤ pdMatrixRank F part f := by
+  letI := pdColumnSpace_finiteDimensional part f
+  have hrange : ∀ i, (Subtype.val ∘ rows) i ∈ pdColumnSpace part f := fun i => (rows i).2
+  have hspan : Submodule.span F (Set.range (Subtype.val ∘ rows)) ≤ pdColumnSpace part f :=
+    Submodule.span_le.mpr (Set.range_subset_iff.mpr hrange)
+  have hcard : Module.finrank F (Submodule.span F (Set.range (Subtype.val ∘ rows))) = k := by
+    simpa [Fintype.card_fin] using finrank_span_eq_card hli
+  haveI : Module.Finite F (Submodule.span F (Set.range (Subtype.val ∘ rows))) :=
+    Module.Finite.span_of_finite F (Set.finite_range _)
+  have hmono := Submodule.finrank_mono hspan
+  rw [← hcard]
+  simpa [pdMatrixRank] using hmono
+
 /-! ## Lemma 49 / Lemma 69: Submatrix Embedding — Proved
 
 **Theorem (Lemma 49/69)**: rank(PD_{S,T}(f)) ≤ rk_{SPDP,|S|,ℓ}(f)
