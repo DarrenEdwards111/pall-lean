@@ -1112,7 +1112,7 @@ noncomputable def godMoveConstruction_exists (M : DTM) (n : ℕ)
       rfl
   }
 
-/-- NP-side lower bound for the identity God-Move construction.
+/- NP-side lower bound for the identity God-Move construction.
 
 For a DTM that decides SAT, the compiled Cook-Levin polynomial has SPDP rank
 at least C(n, log n). This is the paper's core NP-side claim: the 3-SAT
@@ -1181,12 +1181,12 @@ theorem godMove_compilation_has_machine_dependent_constraint
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n)
     (hstate : 0 < M.numStates) :
+    let hn2 : n ≥ 2 := by omega
     ∃ c : PaperFaithfulSeparation.LocalConstraint
-        (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars,
-      c ∈ (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).constraints := by
-  simpa using
-    PaperFaithfulSeparation.cook_levin_compilation_has_machine_dependent_constraint
-      M n (by omega : n ≥ 2) htb hns hstate
+        (cook_levin_compilation M n hn2 htb hns).numVars,
+      c ∈ (cook_levin_compilation M n hn2 htb hns).constraints := by
+  exact PaperFaithfulSeparation.cook_levin_compilation_has_machine_dependent_constraint
+    M n (by omega : n ≥ 2) htb hns hstate
 
 axiom identity_construction_np_lower_bound (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)

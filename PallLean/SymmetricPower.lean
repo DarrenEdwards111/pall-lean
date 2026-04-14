@@ -398,6 +398,86 @@ theorem iterDerivList_adjFactor_eq_zero_of_length_ge_three
         rw [MvPolynomial.pderiv_C]
         exact SPDP.foldl_pderiv_zero _
 
+/-! ### Derivative of boolFactor by a different variable is zero -/
+
+/-- pderiv v (boolFactor N w) = 0 when v ≠ w.
+    Since boolFactor N w only involves variable w, any other derivative kills it. -/
+theorem pderiv_boolFactor_of_ne (N : ℕ) (v w : Fin N) (hvw : v ≠ w) :
+    MvPolynomial.pderiv v (boolFactor N w) = 0 := by
+  apply MvPolynomial.pderiv_eq_zero_of_notMem_vars
+  intro hmem
+  have hsub := boolFactor_vars_subset N w hmem
+  simp only [Finset.mem_singleton] at hsub
+  exact hvw hsub
+
+/-! ### Iterated derivative of boolFactor product over disjoint variables
+
+For a product ∏_{j ∈ s} boolFactor N j of booleanity factors (each involving
+a single distinct variable), and a nodup list S whose elements are all in s,
+the iterated derivative iterDerivList S (∏_{j ∈ s} boolFactor N j) equals
+(∏_{v ∈ S.toFinset} pderiv v (boolFactor N v)) * (∏_{j ∈ s \ S.toFinset} boolFactor N j).
+
+This is Target 3 from the identity construction roadmap. -/
+
+/-- Single pderiv step for boolFactor product: differentiating by v ∈ s gives
+    pderiv v (boolFactor N v) * ∏_{j ∈ s.erase v} boolFactor N j. -/
+theorem pderiv_boolFactor_prod (N : ℕ) (s : Finset (Fin N)) (v : Fin N) (hv : v ∈ s) :
+    MvPolynomial.pderiv v (s.prod (boolFactor N)) =
+      MvPolynomial.pderiv v (boolFactor N v) * (s.erase v).prod (boolFactor N) := by
+  apply ProductDeriv.pderiv_prod_single hv
+  intro j hj hjv
+  exact pderiv_boolFactor_of_ne N v j hjv.symm
+
+/-- Iterated derivative of boolFactor product: for a nodup list S with all elements in s,
+    iterDerivList S (∏_{j ∈ s} boolFactor N j) =
+      (∏_{v ∈ S} pderiv v (boolFactor N v)) * (∏_{j ∈ s \ S.toFinset} boolFactor N j).
+
+    Each derivative in S hits exactly one factor (the one with the matching variable),
+    because boolFactor N j only involves variable j (disjoint supports). -/
+theorem iterDerivList_boolFactor_prod (N : ℕ) (s : Finset (Fin N))
+    (S : List (Fin N)) (hS : S.Nodup) (hSs : ∀ v ∈ S, v ∈ s) :
+    iterDerivList S (s.prod (boolFactor N)) =
+      (S.map (fun v => MvPolynomial.pderiv v (boolFactor N v))).prod *
+      (s \ S.toFinset).prod (boolFactor N) := by
+  induction S generalizing s with
+  | nil =>
+    simp [iterDerivList, List.toFinset_nil, Finset.sdiff_empty]
+  | cons v rest ih =>
+    have hv_s : v ∈ s := hSs v (by simp)
+    have hnd : rest.Nodup := (List.nodup_cons.mp hS).2
+    have hv_notin : v ∉ rest := (List.nodup_cons.mp hS).1
+    simp only [IterDerivHelpers.iterDerivList_cons]
+    rw [pderiv_boolFactor_prod N s v hv_s]
+    -- Now we need: iterDerivList rest (pderiv v (boolFactor N v) * (s.erase v).prod (boolFactor N))
+    -- pderiv v (boolFactor N v) = -1 + 2 * X v, which is killed by pderiv w for w ∈ rest (w ≠ v)
+    -- So we can factor it out using iterDerivList_mul_left_const
+    have hconst : ∀ w ∈ rest, MvPolynomial.pderiv w (MvPolynomial.pderiv v (boolFactor N v)) = 0 := by
+      intro w hw
+      have hwv : w ≠ v := fun h => hv_notin (h ▸ hw)
+      -- pderiv v (boolFactor N v) has vars ⊆ {v}, so pderiv w kills it for w ≠ v
+      apply IterDerivHelpers.pderiv_eq_zero_of_pderiv_eq_zero w v
+      exact pderiv_boolFactor_of_ne N w v hwv
+    rw [IterDerivHelpers.iterDerivList_mul_left_const rest _ _ hconst]
+    -- Now apply IH to the remaining product over s.erase v
+    have hrest_s : ∀ w ∈ rest, w ∈ s.erase v := by
+      intro w hw
+      have hwv : w ≠ v := fun h => hv_notin (h ▸ hw)
+      exact Finset.mem_erase.mpr ⟨hwv, hSs w (by simp [hw])⟩
+    rw [ih (s.erase v) hnd hrest_s]
+    -- Now simplify both sides
+    simp only [List.map_cons, List.prod_cons]
+    ring_nf
+    congr 1
+    -- Need: s.erase v \ rest.toFinset = s \ (v :: rest).toFinset
+    congr 1
+    ext x
+    simp only [List.toFinset_cons, Finset.mem_sdiff, Finset.mem_erase, Finset.mem_insert]
+    constructor
+    · rintro ⟨⟨hxv, hxs⟩, hxr⟩
+      exact ⟨hxs, fun h => h.elim (fun h => hxv h) (fun h => hxr h)⟩
+    · rintro ⟨hxs, hxvr⟩
+      exact ⟨⟨fun h => hxvr (Or.inl h), hxs⟩, fun h => hxvr (Or.inr h)⟩
+
 /-! ### Profile compression: proved infrastructure and remaining gap
 
 The proved lemmas above establish:
