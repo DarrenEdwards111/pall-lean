@@ -11,17 +11,18 @@
   - Vertex parity constraints → 3-CNF clauses
   - n clauses, O(n) variables
 
-  §14 / Theorem 72:
-  - Natural partition [vars] = S_n ⊔ T_n with |S_n| = O(1)
-  - rank(PD_{S_n,T_n}(χ_{φ_n})) = 2^{Ω(n)}, equivalently ≥ n^{(log n)/4}
+  Paper-faithful characteristic-polynomial route (pvsnp1, §6 / §14 / Theorem 115):
+  - Natural partition [vars] = S_n ⊔ T_n with |S_n| = Θ(n)
+  - rank(PD_{S_n,T_n}(χ_{φ_n})) = 2^{Ω(n)}
+  - hence in particular rank(PD_{S_n,T_n}(χ_{φ_n})) ≥ n^{(log n)/4}
 
   This file:
   1. Defines RamanujanExpander (extending RegularGraph with girth/expansion)
   2. Defines TseitinEncoding bundled with characteristic polynomial
   3. Defines RamanujanTseitinFamily (indexed sequence of the above)
-  4. States the key rank lower bound (Theorem 72) as an axiom
+  4. States the key characteristic-polynomial ∂-matrix lower bound as an axiom
   5. States existence of the explicit LPS-type family (§6) as an axiom
-  6. Derives the ∂-matrix lower bound corollary used in PartialDerivMatrix
+  6. Packages the paper-facing witness in a Lean-friendly quantitative form
 -/
 import PallLean.PartialDerivMatrix
 import PallLean.TseitinDefs
@@ -107,21 +108,23 @@ def TseitinEncoding.numClauses {F : Type*} [Field F] (enc : TseitinEncoding F) :
 
 /-! ## 3. The Natural Partition (S_n, T_n)
 
-  The key partition of [numVars] = S_n ⊔ T_n used in Theorem 72.
+  The key partition of `[numVars] = S_n ⊔ T_n` used in the
+  characteristic-polynomial ∂-matrix route.
 
-  In the paper (§14.3): S_n is a small set of O(1) variables (specifically
-  a constant-size separator of the expander graph's variable-incidence graph),
-  and T_n = [numVars] \ S_n.  The bound |S_n| = O(1) (in fact |S_n| ≤ 3) is
-  what makes the ∂-matrix lower bound meaningful for SPDP rank at level ℓ = 3. -/
+  In the current `pvsnp1` PDF (Theorem 115), the characteristic-polynomial
+  ∂-matrix route uses a partition with `|S_n| = Θ(n)`, obtained from disjoint
+  expander pockets / neighbourhoods. The small-`S` placeholder that appeared in
+  older bridge files is not the paper-faithful statement for `χ_{φ_n}`. -/
 
 /-- The partition (S_n, T_n) for a Tseitin encoding.
-  We package it as a VarPartition for the encoded variable count. -/
+  We package it as a `VarPartition` together with the lower-bound witness on
+  the `S`-side size used by the characteristic-polynomial route. -/
 structure TseitinPartition {F : Type*} [Field F] (enc : TseitinEncoding F) where
   part : VarPartition enc.numVars
-  /-- S is small: |S_n| ≤ 3 (constant, independent of n). -/
-  S_small : part.S.card ≤ 3
-  /-- T is the complement: |T_n| ≥ numVars - 3. -/
-  T_large : part.T.card ≥ enc.numVars - 3
+  /-- Paper-faithful lower bound: `|S_n|` is linear in `n` (here recorded with
+      the explicit `n / 30` threshold coming from the packing count used in the
+      quantitative corollary `n^(log₂ n / 4)`). -/
+  S_linear_lower : enc.graph.numVertices / 30 ≤ part.S.card
 
 /-! ## 4. The Ramanujan–Tseitin Family -/
 
@@ -179,25 +182,25 @@ axiom lps_family_exists (F : Type*) [Field F] [CharZero F] :
     -- The family itself witnesses the construction; properties follow from
     -- the struct fields above.
 
-/-! ## 6. Axiom: Characteristic Polynomial Rank Lower Bound (Theorem 72 / §14.3)
+/-! ## 6. Axiom: Characteristic Polynomial Rank Lower Bound (paper-faithful
+Theorem 115/§6/§14 consequence)
 
   This is the deep combinatorial-algebraic core of the paper's hard family.
 
-  Theorem 72 (paper §14.3):
-    For the explicit family {φ_n} from the LPS construction,
-      rank(PD_{S_n,T_n}(χ_{φ_n})) ≥ n^{(log₂ n) / 4}
-    and in particular rank ≥ 2^{Ω(n)} (up to polynomial factors in n).
+  Paper-faithful statement from the current PDF:
+  - there is an explicit Ramanujan/Tseitin characteristic-polynomial family,
+  - with a partition `S_n ⊔ T_n` where `|S_n| = Θ(n)`,
+  - and the classical partial-derivative matrix has exponential rank.
 
-  Proof method (paper):
-  - Uses the high girth of G_n to find a large disjoint clause packing
-    of size ≥ n/30 (Lemma 8.3 / DisjointPacking).
-  - Applies the identity-minor construction (§9.3 / identity_minor_construction)
-    to obtain linearly independent rows in the ∂-matrix.
-  - The expansion of G_n ensures the disjoint packing has size Ω(n).
-  - Binomial-coefficient counting gives rank ≥ C(n/30, κ) ≥ n^{(log n)/4}.
+  The Lean-facing axiom below records only the weaker quantitative corollary
+  needed by the current algebraic route:
 
-  This requires expander graph theory beyond what is formalised in Lean/Mathlib
-  at present, so we axiomatise it. -/
+    `n ^ (log₂ n / 4) ≤ rank(PD_{S_n,T_n}(χ_{φ_n}))`.
+
+  This is still paper-faithful as a consequence, but it deliberately does not
+  claim the older non-paper-faithful `|S_n| ≤ 3` interface. The combinatorial
+  content is exactly the expander-pocket / signed-identity-minor argument
+  summarized in the PDF around Theorem 115. -/
 axiom tseitin_pdMatrix_lower_bound
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
@@ -234,49 +237,44 @@ theorem ramanujan_expansion
     G.expansionBound = G.degree - 2 :=
   (fam.expander n hn).expansion_eq
 
-/-! ## 8. Key Derived Corollary: ∂-matrix bound for PartialDerivMatrix
+/-! ## 8. Lean-facing witness package
 
-  This makes the connection back to the `ramanujan_tseitin_pdMatrix_lower_bound`
-  axiom in PartialDerivMatrix.lean, showing the present construction refines it. -/
+  This packages the paper-facing Ramanujan/Tseitin lower bound as an explicit
+  existential witness over a concrete polynomial/partition pair. Unlike the old
+  placeholder bridge in `PartialDerivMatrix.lean`, this keeps the linear-size
+  `S_n` information from the paper instead of forcing `|S_n| ≤ 3`. -/
 
-/-- The LPS family at parameter 3n witnesses the ∂-matrix lower bound
-  required by PartialDerivMatrix.ramanujan_tseitin_pdMatrix_lower_bound.
-
-  That axiom requires:
-    ∃ part : VarPartition (3*n), part.S.card ≤ 3 ∧
-      n^(log₂ n / 4) ≤ pdMatrixRank ℚ part 0
-
-  We cannot yet close this with a real polynomial (charPoly ≠ 0 in general),
-  so we provide an existence statement that follows from the axioms above and
-  confirm the structural shape. -/
+/-- The LPS family at index `n` yields an explicit characteristic polynomial /
+partition witness whose ∂-matrix rank is at least `n^(log₂ n / 4)`. -/
 theorem ramanujan_tseitin_structure_exists (n : ℕ) (hn : n ≥ 6) :
     ∃ (fam : RamanujanTseitinFamily ℚ)
       (enc : TseitinEncoding ℚ)
       (tpart : TseitinPartition enc),
-      tpart.part.S.card ≤ 3 ∧
+      n / 30 ≤ tpart.part.S.card ∧
       n ^ (Nat.log 2 n / 4) ≤ pdMatrixRank ℚ tpart.part enc.charPoly := by
   obtain ⟨fam, _⟩ := lps_family_exists ℚ
   refine ⟨fam, fam.encoding n hn, fam.partition n hn, ?_, ?_⟩
-  · exact (fam.partition n hn).S_small
+  · have hS := (fam.partition n hn).S_linear_lower
+    have hverts : (fam.encoding n hn).graph.numVertices = n := by
+      rw [fam.encoding_graph n hn, fam.vertices_count n hn]
+    rw [hverts] at hS
+    exact hS
   · exact tseitin_pdMatrix_lower_bound ℚ fam n hn
 
-/-! ## 9. Condensed Restatement of Theorem 72
+/-! ## 9. Condensed Restatement
 
-  We also provide a self-contained statement matching PartialDerivMatrix.lean's
-  interface, to serve as a bridge for the separation proof. -/
+  We also provide a self-contained existential restatement in terms of a raw
+  polynomial / partition pair. This is the paper-faithful characteristic-
+  polynomial witness; it intentionally does not force a small `S`-set. -/
 
-/-- **Theorem 72 (condensed)**: For all sufficiently large n, the
-  Ramanujan–Tseitin hard family has ∂-matrix rank at least n^{(log n)/4}.
+/-- Condensed Ramanujan/Tseitin characteristic-polynomial witness.
 
-  In particular there exists a partition (S_n, T_n) of the variable set with
-  |S_n| ≤ 3 such that rank(PD_{S_n,T_n}(χ_{φ_n})) ≥ n^{(log n)/4}.
-
-  This strictly refines PartialDerivMatrix.ramanujan_tseitin_pdMatrix_lower_bound
-  which used a placeholder zero polynomial.  The full structure of the
-  characteristic polynomial lives in enc.charPoly above. -/
+  In particular there exists a partition `(S_n, T_n)` of the variable set with
+  `|S_n| ≥ n / 30` such that
+  `rank(PD_{S_n,T_n}(χ_{φ_n})) ≥ n^{(log n)/4}`. -/
 theorem theorem72_condensed (n : ℕ) (hn : n ≥ 6) :
     ∃ (numVars : ℕ) (part : VarPartition numVars) (f : MvPolynomial (Fin numVars) ℚ),
-      part.S.card ≤ 3 ∧
+      n / 30 ≤ part.S.card ∧
       n ^ (Nat.log 2 n / 4) ≤ pdMatrixRank ℚ part f := by
   obtain ⟨fam, enc, tpart, hS, hrank⟩ := ramanujan_tseitin_structure_exists n hn
   exact ⟨enc.numVars, tpart.part, enc.charPoly, hS, hrank⟩
@@ -292,11 +290,11 @@ theorem theorem72_condensed (n : ℕ) (hn : n ≥ 6) :
     Ramanujan expanders G_n
          ↓  Tseitin encoding (TseitinEncoding)
     Formulas φ_n with char. poly χ_{φ_n}
-         ↓  Theorem 72 / tseitin_pdMatrix_lower_bound
+         ↓  paper-faithful characteristic-polynomial ∂-matrix lower bound
     rank(PD_{S_n,T_n}(χ_{φ_n})) ≥ n^{(log n)/4}
-         ↓  Lemma 69 / pdMatrix_le_spdpRank
-    rk_{SPDP,3}(χ_{φ_n}) ≥ n^{(log n)/4}
-         ↓  Theorem 140 / theorem_140_from_pdMatrix
-    SPDP cannot compute χ_{φ_n} with small rank → separation. -/
+         ↓  (Any SPDP transfer must use the same derivative order `|S_n|`;
+             the older small-`S` bridge in `PartialDerivMatrix.lean` is not
+             paper-faithful for this characteristic-polynomial statement.)
+-/
 
 end RamanujanTseitin
