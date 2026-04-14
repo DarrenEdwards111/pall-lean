@@ -424,4 +424,41 @@ theorem mlBlockedSpdpRank_ge_of_disjoint_family {N κ : ℕ} (hκ : κ ≥ 1)
   rw [show F.card = Fintype.card F from (Fintype.card_coe F).symm]
   exact hli_sub.fintype_card_le_finrank
 
+/-! ## Main result: mlBlockedSpdpRank lower bound for general (non-disjoint) families -/
+
+/-- For m distinct block-admissible κ-subsets (κ ≥ 1) of Fin N (not necessarily disjoint),
+    mlBlockedSpdpRank B κ 0 (boolFactorFullProd N) ≥ m.
+
+    This strengthens mlBlockedSpdpRank_ge_of_disjoint_family by removing the
+    disjointness hypothesis, using the non-disjoint linear independence result. -/
+theorem mlBlockedSpdpRank_ge_of_general_family {N κ : ℕ} (hκ : κ ≥ 1)
+    (B : BlockPartition N)
+    {F : Finset (Finset (Fin N))}
+    (hcard : ∀ S ∈ F, S.card = κ)
+    (hadm : ∀ S ∈ F, isBlockAdmissible B S.toList) :
+    F.card ≤ mlBlockedSpdpRank B κ 0 (boolFactorFullProd N) := by
+  -- Linear independence of mlProj(boolFactorDerivProd S) for S ∈ F (no disjointness needed)
+  have hli := linearIndependent_mlProj_boolFactorDerivProd_general hκ hcard
+  -- Each mlProj(boolFactorDerivProd S) lies in mlBlockedSpdpSubspace
+  have hmem : ∀ (S : F), mlProj (boolFactorDerivProd (S : Finset (Fin N))) ∈
+      mlBlockedSpdpSubspace B κ 0 (boolFactorFullProd N) := by
+    intro ⟨S, hS⟩
+    exact mlProj_boolFactorDerivProd_mem_mlBlockedSpdpSubspace B κ 0 S (hcard S hS) (hadm S hS)
+  -- Embed into the subspace
+  unfold mlBlockedSpdpRank
+  set f : F → mlBlockedSpdpSubspace B κ 0 (boolFactorFullProd N) :=
+    fun S => ⟨mlProj (boolFactorDerivProd (S : Finset (Fin N))), hmem S⟩ with hf_def
+  have hli_sub : LinearIndependent ℚ f := by
+    rw [linearIndependent_iff'] at hli ⊢
+    intro s w hw i' hi'
+    apply hli s w _ i' hi'
+    have hval : (∑ j ∈ s, w j • f j).val =
+        (0 : mlBlockedSpdpSubspace B κ 0 (boolFactorFullProd N)).val :=
+      congr_arg Subtype.val hw
+    simp only [hf_def, Submodule.coe_sum, Submodule.coe_smul, Submodule.coe_mk,
+      Submodule.coe_zero, ZeroMemClass.coe_zero] at hval
+    exact hval
+  rw [show F.card = Fintype.card F from (Fintype.card_coe F).symm]
+  exact hli_sub.fintype_card_le_finrank
+
 end BlockedBoolRank
