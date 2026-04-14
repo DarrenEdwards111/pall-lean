@@ -211,12 +211,11 @@ Infrastructure proved above:
 2. pderiv commutes with restriction for free variables; gives 0 for fixed vars
 3. iterDerivList commutes with restriction for all-free lists; gives 0 otherwise
 
-The remaining sorry is for the final dimension inequality. The subspace
-containment approach (image ≤ target or target ≤ image) does not work
-for the unblocked SPDP rank because multipliers m can involve fixed
-variables, creating generators in the target that are outside the image
-of the restriction map. The correct argument requires formalizing the
-coefficient-matrix rank and column-deletion principle. -/
+The sorry requires formalizing the coefficient-matrix rank and the
+column-deletion principle. The subspace-image approach (showing
+spdpSubspace(ρ f) ≤ image of spdpSubspace(f) under ρ) does not work
+because target generators m · ∂_S(ρ f) include multipliers m that use
+fixed variables, which are outside the image of the restriction map. -/
 
 /-- Lemma 141 (column deletion monotonicity): restriction cannot increase SPDP rank.
 
