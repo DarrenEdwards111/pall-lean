@@ -461,4 +461,18 @@ theorem mlBlockedSpdpRank_ge_of_general_family {N κ : ℕ} (hκ : κ ≥ 1)
   rw [show F.card = Fintype.card F from (Fintype.card_coe F).symm]
   exact hli_sub.fintype_card_le_finrank
 
+/-- Combined rank bound: for distinct block-admissible κ-subsets (κ ≥ 1),
+    the rank at ANY ℓ ≥ 0 is at least |F|.
+
+    This combines mlBlockedSpdpRank_ge_of_general_family (rank at ℓ=0 ≥ |F|)
+    with mlBlockedSpdpRank_mono_ell (rank monotone in ℓ). -/
+theorem mlBlockedSpdpRank_ge_of_general_family_any_ell {N κ ℓ : ℕ} (hκ : κ ≥ 1)
+    (B : BlockPartition N)
+    {F : Finset (Finset (Fin N))}
+    (hcard : ∀ S ∈ F, S.card = κ)
+    (hadm : ∀ S ∈ F, isBlockAdmissible B S.toList) :
+    F.card ≤ mlBlockedSpdpRank B κ ℓ (boolFactorFullProd N) :=
+  le_trans (mlBlockedSpdpRank_ge_of_general_family hκ B hcard hadm)
+    (mlBlockedSpdpRank_mono_ell B κ (Nat.zero_le ℓ) (boolFactorFullProd N))
+
 end BlockedBoolRank
