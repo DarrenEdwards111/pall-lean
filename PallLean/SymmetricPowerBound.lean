@@ -1898,6 +1898,63 @@ theorem mlBlockedSpdpSubspace_le_allDerivCountProfilePostSpan_iSup {n L : ℕ}
   rw [Set.mem_iUnion]
   exact ⟨S, Set.mem_iUnion.mpr ⟨shift, hx⟩⟩
 
+/-! ### Axiom reduction: from spdp_profile_generators to within-profile finrank
+
+The structural decomposition proved above shows:
+  mlBlockedSpdpSubspace B κ ℓ p ≤ ⨆_h allDerivCountProfilePostSpan(h)
+
+To derive the full SPDP rank bound from this, we need two quantitative claims:
+1. Only finitely many profiles contribute (≤ profileCount κ = (κ+1)^4)
+2. Each profile space has finrank ≤ withinProfileBound κ = (κ+1)^8
+
+Claim 1 follows from the fact that admissible profiles have mass ≤ κ
+and there are 4 constraint types, giving ≤ C(κ+4, 4) ≤ (κ+1)^4 profiles.
+
+Claim 2 is the hard algebraic step (symmetric power argument).
+
+We formulate the within-profile finrank bound as the new, smaller axiom that
+replaces spdp_profile_generators. This is strictly weaker because it only
+requires a dimension bound on each profile space, not explicit generators. -/
+
+/-- The set of admissible profile histograms at radius κ: those with mass ≤ κ.
+    This is a finite set with cardinality ≤ (κ+1)^4. -/
+def admissibleProfiles (κ : ℕ) : Set ProfileHistogram :=
+  { h | ProfileAdmissible κ h }
+
+/-- An admissible profile histogram has each component ≤ κ. -/
+theorem admissibleProfile_component_le {κ : ℕ} {h : ProfileHistogram}
+    (hadm : ProfileAdmissible κ h) (τ : ConstraintType) :
+    h τ ≤ κ := by
+  exact le_trans (profile_component_le_mass h τ) hadm
+
+/-- The SPDP rank bound follows from the structural decomposition
+    and the within-profile finrank bound, provided we can enumerate
+    admissible profiles finitely.
+
+    Given:
+    - Structural containment: SPDP ≤ ⨆_h V_h (proved above)
+    - Finite profile cover: there exist ≤ P profiles covering the SPDP subspace
+    - Per-profile bound: each V_h has finrank ≤ D
+
+    Conclude: SPDP rank ≤ P × D.
+
+    This is the abstract version; the concrete Cook-Levin version specializes
+    P = (κ+1)^4 and D = (κ+1)^8. -/
+theorem spdp_rank_of_finite_profile_cover_and_bound {N : ℕ}
+    (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
+    (P : ℕ) (D : ℕ)
+    (spaces : Fin P → Submodule ℚ (MvPolynomial (Fin N) ℚ))
+    [∀ i, Module.Finite ℚ ↥(spaces i)]
+    (hcover : mlBlockedSpdpSubspace B κ ℓ p ≤ ⨆ i, spaces i)
+    (hbound : ∀ i, Module.finrank ℚ ↥(spaces i) ≤ D) :
+    mlBlockedSpdpRank B κ ℓ p ≤ P * D := by
+  unfold mlBlockedSpdpRank
+  calc Module.finrank ℚ ↥(mlBlockedSpdpSubspace B κ ℓ p)
+      ≤ Module.finrank ℚ ↥(⨆ i : Fin P, spaces i) := Submodule.finrank_mono hcover
+    _ ≤ ∑ i : Fin P, Module.finrank ℚ ↥(spaces i) := finrank_iSup_fin_le P spaces
+    _ ≤ ∑ _i : Fin P, D := Finset.sum_le_sum (fun i _ => hbound i)
+    _ = P * D := by simp [Finset.sum_const, Finset.card_fin]
+
 /-- Current assembly theorem.
 
 At present the actual fixed-profile bridge is still open, so the compiled-polynomial
