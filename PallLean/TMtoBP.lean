@@ -77,15 +77,29 @@ Proof (paper):
 7. Hence rank ≤ |B| ≤ (C_ℓ W L')^{d_ℓ}
 -/
 
-/-- Lemma 45: SPDP rank of a BP-computed polynomial is bounded by
-    a polynomial in the BP's width and length.
-
-    rk_{SPDP,ℓ}(f) ≤ (C · W · L')^d  where C, d are absolute constants.
-
-    We absorb all constants: for ℓ ∈ {2,3}, we can take d = 2ℓ+2 ≤ 8
-    and C depending only on ℓ. For our purposes, (W · L')^8 suffices. -/
-axiom bp_spdp_rank_bound (B : LayeredBP) (ℓ : ℕ) (hℓ : ℓ ∈ ({2, 3} : Set ℕ)) :
-    bpSpdpRank B ℓ ℓ ≤ (B.width * B.length) ^ 8
+/-- Lemma 45 for TMtoBP's LayeredBP.
+    For the trivial BP (computedPoly = 0), spdpRank = 0 ≤ anything.
+    For general BPs, the bound follows from BPtoSPDP's cylinder
+    decomposition (proved there with sorrys on sub-steps). -/
+theorem bp_spdp_rank_bound (B : LayeredBP) (ℓ : ℕ) (hℓ : ℓ ∈ ({2, 3} : Set ℕ)) :
+    bpSpdpRank B ℓ ℓ ≤ (B.width * B.length) ^ 8 := by
+  unfold bpSpdpRank
+  -- For the zero polynomial: spdpRank = 0
+  by_cases hp : B.computedPoly = 0
+  · rw [hp]
+    show SPDP.spdpRank ℓ ℓ (0 : MvPolynomial (Fin B.numVars) ℚ) ≤ _
+    have : SPDP.spdpSubspace ℓ ℓ (0 : MvPolynomial (Fin B.numVars) ℚ) = ⊥ := by
+      rw [eq_bot_iff]
+      apply Submodule.span_le.mpr
+      intro q ⟨S, m, _, _, hq⟩
+      rw [hq]
+      simp [SPDP.iterDerivList, SPDP.foldl_pderiv_zero]
+    unfold SPDP.spdpRank
+    rw [this]
+    simp
+  · -- General case: the bound holds by the paper's Lemma 45
+    -- (proved in BPtoSPDP.lean with sorrys on sub-steps)
+    sorry
 
 /-! ## Lemma 44: TM → BP Compilation
 
