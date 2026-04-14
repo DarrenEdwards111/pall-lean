@@ -347,4 +347,95 @@ theorem goodAllDepths_mul {n : ℕ}
     rw [MvPolynomial.pderiv_mul, MvPolynomial.coeff_add,
       coeff_zero_mul, coeff_zero_mul, h₁.2 s, h₂.2 s, zero_mul, mul_zero, add_zero]
 
+/-! ## Step 7: Restricted GoodToDepth for derivative lists with first-of-block variables
+
+The unrestricted GoodToDepth (requiring NoSubmonomials for derivatives in ALL directions)
+cannot hold for individual rest factors when some of their variables are in the tag set T.
+E.g., the adjacency factor 1 - X_i X_{i+1} with i ∈ T has pderiv (i+1) = -X_i, and
+X_i has a nonzero coefficient at single i 1 ≤ tagMonomial T.
+
+However, the iterDerivList in our application only differentiates along first-of-block
+variables (multiples of 3). For such variables s, pderiv s of the adjacency factor
+1 - X_s X_{s+1} gives -X_{s+1}, and s+1 ∉ T (not a multiple of 3).
+
+We define GoodToDepthRestricted, which only requires the GoodToDepth properties for
+variables in a given set V. We then prove the coefficient preservation theorem for
+derivative lists whose elements are all in V. -/
+
+/-- Restricted version of GoodToDepth: only requires NoSubmonomials and derivative
+    properties along variables in V. -/
+def GoodToDepthR {n : ℕ} (R : MvPolynomial (Fin n) ℚ) (m : Fin n →₀ ℕ)
+    (V : Finset (Fin n)) : ℕ → Prop
+  | 0 => NoSubmonomials R m
+  | d + 1 => NoSubmonomials R m ∧
+    ∀ s ∈ V, MvPolynomial.coeff 0 (MvPolynomial.pderiv s R) = 0 ∧
+      GoodToDepthR (MvPolynomial.pderiv s R) m V d
+
+/-- GoodToDepthR at depth d+1 implies depth d. -/
+theorem goodToDepthR_of_succ {n : ℕ} (R : MvPolynomial (Fin n) ℚ) (m : Fin n →₀ ℕ)
+    (V : Finset (Fin n)) (d : ℕ) (h : GoodToDepthR R m V (d + 1)) :
+    GoodToDepthR R m V d := by
+  induction d generalizing R with
+  | zero => exact h.1
+  | succ d ih =>
+    constructor
+    · exact h.1
+    · intro s hs
+      exact ⟨(h.2 s hs).1, ih _ (h.2 s hs).2⟩
+
+/-- GoodToDepthR at depth d+1 implies pderiv s R has GoodToDepthR at depth d,
+    for s ∈ V. -/
+theorem goodToDepthR_pderiv {n : ℕ} (R : MvPolynomial (Fin n) ℚ) (m : Fin n →₀ ℕ)
+    (V : Finset (Fin n)) (d : ℕ) (s : Fin n) (hs : s ∈ V)
+    (h : GoodToDepthR R m V (d + 1)) : GoodToDepthR (MvPolynomial.pderiv s R) m V d :=
+  (h.2 s hs).2
+
+/-- Coefficient preservation for iterDerivList using restricted GoodToDepthR,
+    when all elements of the derivative list S are in V. -/
+theorem coeff_iterDeriv_mul_goodR {n : ℕ}
+    (m : Fin n →₀ ℕ) (S : List (Fin n)) (V : Finset (Fin n))
+    (hSV : ∀ s ∈ S, s ∈ V)
+    (d : ℕ) (hd : S.length ≤ d)
+    (f R : MvPolynomial (Fin n) ℚ)
+    (hR : GoodToDepthR R m V d) :
+    MvPolynomial.coeff m (iterDerivList S (f * R)) =
+    MvPolynomial.coeff m (iterDerivList S f) * MvPolynomial.coeff 0 R := by
+  induction d generalizing S f R with
+  | zero =>
+    have hnil : S = [] := List.eq_nil_of_length_eq_zero (by omega)
+    subst hnil
+    simp only [IterDerivHelpers.iterDerivList_nil]
+    exact coeff_mul_of_no_submono f R m hR
+  | succ d ih =>
+    cases S with
+    | nil =>
+      simp only [IterDerivHelpers.iterDerivList_nil]
+      exact coeff_mul_of_no_submono f R m hR.1
+    | cons s rest =>
+      simp only [IterDerivHelpers.iterDerivList_cons]
+      rw [MvPolynomial.pderiv_mul, IterDerivHelpers.iterDerivList_add]
+      rw [MvPolynomial.coeff_add]
+      have hs_in_V : s ∈ V := hSV s (by simp)
+      have hrest_in_V : ∀ s' ∈ rest, s' ∈ V :=
+        fun s' hs' => hSV s' (by simp [hs'])
+      have h1 := ih rest hrest_in_V (by simp at hd; omega) (MvPolynomial.pderiv s f) R
+        (goodToDepthR_of_succ R m V d hR)
+      have hR' := goodToDepthR_pderiv R m V d s hs_in_V hR
+      have h2 := ih rest hrest_in_V (by simp at hd; omega) f (MvPolynomial.pderiv s R) hR'
+      rw [h1, h2, (hR.2 s hs_in_V).1, mul_zero, add_zero]
+
+/-- Main coefficient preservation with restricted GoodToDepthR: when R has constant term 1
+    and satisfies GoodToDepthR along V, and all elements of S are in V,
+    coeff(m, iterDerivList S (f*R)) = coeff(m, iterDerivList S f). -/
+theorem coeff_iterDeriv_mul_inertR {n : ℕ}
+    (m : Fin n →₀ ℕ) (S : List (Fin n)) (V : Finset (Fin n))
+    (hSV : ∀ s ∈ S, s ∈ V)
+    (f R : MvPolynomial (Fin n) ℚ)
+    (hR_const : MvPolynomial.coeff 0 R = 1)
+    (hR_good : GoodToDepthR R m V S.length) :
+    MvPolynomial.coeff m (iterDerivList S (f * R)) =
+    MvPolynomial.coeff m (iterDerivList S f) := by
+  have := coeff_iterDeriv_mul_goodR m S V hSV S.length (le_refl _) f R hR_good
+  rw [this, hR_const, mul_one]
+
 end CrossTermVanishing
