@@ -1644,4 +1644,73 @@ theorem linearIndependent_boolFactorDerivProd_disjoint {N κ : ℕ} (hκ : κ �
   simp only [hc_def, dif_pos i.2, if_pos hi] at hci
   exact hci
 
+/-! ## Part 13: Connection to iterDerivList and SPDP subspace
+
+We show boolFactorDerivProd S = iterDerivList S.toList (∏ boolFactor),
+which places it in the SPDP subspace. Combined with linear independence,
+this gives the SPDP rank lower bound. -/
+
+/-- The full boolFactor product ∏_{v ∈ Finset.univ} boolFactor N v. -/
+noncomputable def boolFactorFullProd (N : ℕ) : MvPolynomial (Fin N) ℚ :=
+  Finset.univ.prod (boolFactor N)
+
+/-- boolFactorDerivProd S equals iterDerivList applied to the full product. -/
+theorem boolFactorDerivProd_eq_iterDerivList {N : ℕ} (S : Finset (Fin N)) :
+    boolFactorDerivProd S =
+    iterDerivList S.toList (boolFactorFullProd N) := by
+  unfold boolFactorDerivProd boolFactorFullProd
+  rw [iterDerivList_boolFactor_prod N Finset.univ S.toList S.nodup_toList
+    (fun v _ => Finset.mem_univ v)]
+  congr 1
+  · -- (S.toList.map f).prod = S.prod f
+    rw [Finset.prod_map_toList]
+  · -- univ \ S.toList.toFinset = univ \ S
+    rw [S.toList_toFinset]
+
+/-- boolFactorDerivProd S lies in the (unblocked) SPDP subspace of the full product.
+    Specifically, it is 1 * iterDerivList S.toList (boolFactorFullProd N). -/
+theorem boolFactorDerivProd_mem_spdpSubspace {N κ : ℕ} (S : Finset (Fin N))
+    (hcard : S.card = κ) :
+    boolFactorDerivProd S ∈
+    SPDP.spdpSubspace κ 0 (boolFactorFullProd N) := by
+  apply Submodule.subset_span
+  refine ⟨S.toList, 1, ?_, ?_, ?_⟩
+  · rw [Finset.length_toList]; exact hcard
+  · simp [MvPolynomial.totalDegree_one]
+  · rw [one_mul]
+    exact boolFactorDerivProd_eq_iterDerivList S
+
+/-- SPDP rank lower bound from pairwise disjoint family.
+    If F is a family of m pairwise disjoint κ-subsets (κ ≥ 1) of Fin N,
+    then the SPDP rank of the full boolFactor product is at least m. -/
+theorem spdpRank_ge_of_disjoint_family {N κ : ℕ} (hκ : κ ≥ 1)
+    {F : Finset (Finset (Fin N))}
+    (hcard : ∀ S ∈ F, S.card = κ)
+    (hdisj : (F : Set (Finset (Fin N))).PairwiseDisjoint id) :
+    F.card ≤ SPDP.spdpRank κ 0 (boolFactorFullProd N) := by
+  -- The generators are linearly independent
+  have hli := linearIndependent_boolFactorDerivProd_disjoint hκ hcard hdisj
+  -- Each generator lies in the SPDP subspace
+  have hmem : ∀ (S : F), boolFactorDerivProd (S : Finset (Fin N)) ∈
+      SPDP.spdpSubspace κ 0 (boolFactorFullProd N) := by
+    intro ⟨S, hS⟩
+    exact boolFactorDerivProd_mem_spdpSubspace S (hcard S hS)
+  -- Linear independence inside the subspace gives finrank ≥ |F|
+  unfold SPDP.spdpRank
+  -- Embed the linearly independent family into the subspace
+  set f : F → SPDP.spdpSubspace κ 0 (boolFactorFullProd N) :=
+    fun S => ⟨boolFactorDerivProd (S : Finset (Fin N)), hmem S⟩ with hf_def
+  have hli_sub : LinearIndependent ℚ f := by
+    rw [linearIndependent_iff'] at hli ⊢
+    intro s w hw i hi
+    apply hli s w _ i hi
+    -- Lift the zero equation from the submodule to the ambient space
+    have hval : (∑ j ∈ s, w j • f j).val = (0 : SPDP.spdpSubspace κ 0 (boolFactorFullProd N)).val :=
+      congr_arg Subtype.val hw
+    simp only [hf_def, Submodule.coe_sum, Submodule.coe_smul, Submodule.coe_mk,
+      Submodule.coe_zero, ZeroMemClass.coe_zero] at hval
+    exact hval
+  rw [show F.card = Fintype.card F from (Fintype.card_coe F).symm]
+  exact hli_sub.fintype_card_le_finrank
+
 end SymmetricPower

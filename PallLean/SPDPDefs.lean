@@ -197,6 +197,27 @@ theorem totalDegree_iterDerivList_le {F : Type*} [CommRing F] {n : ℕ}
     -- foldl rest (pderiv i p) has degree ≤ (pderiv i p).totalDegree ≤ p.totalDegree
     exact le_trans (ih (pderiv i p)) (totalDegree_pderiv_le i p)
 
+/-- Every generator of spdpSubspace has bounded total degree. -/
+theorem spdpSubspace_le_restrictTotalDegree {F : Type*} [CommRing F] {n : ℕ}
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    spdpSubspace κ ℓ p ≤
+      MvPolynomial.restrictTotalDegree (Fin n) F (ℓ + p.totalDegree) := by
+  apply Submodule.span_le.mpr
+  intro q ⟨S, m, _, hdeg, hq⟩
+  show q ∈ MvPolynomial.restrictTotalDegree (Fin n) F (ℓ + p.totalDegree)
+  rw [MvPolynomial.mem_restrictTotalDegree, hq]
+  exact le_trans (totalDegree_mul m (iterDerivList S p))
+    (Nat.add_le_add hdeg (totalDegree_iterDerivList_le S p))
+
+/-- The SPDP subspace is finite-dimensional (sits inside restrictTotalDegree). -/
+instance spdpSubspace_finite {F : Type*} [Field F] {n : ℕ}
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    Module.Finite F (spdpSubspace κ ℓ p) := by
+  have hle := spdpSubspace_le_restrictTotalDegree κ ℓ p
+  have : Module.Finite F (MvPolynomial.restrictTotalDegree (Fin n) F (ℓ + p.totalDegree)) :=
+    MvPolynomial.instFiniteSubtypeMemSubmoduleRestrictTotalDegreeOfFinite _ _ _
+  exact Module.Finite.of_injective (Submodule.inclusion hle) (Submodule.inclusion_injective hle)
+
 /-- Every generator of blockedSpdpSubspace has bounded total degree. -/
 theorem blockedSpdpSubspace_le_restrictTotalDegree {F : Type*} [CommRing F] {n : ℕ}
     (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
