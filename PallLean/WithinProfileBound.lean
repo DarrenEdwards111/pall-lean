@@ -868,4 +868,147 @@ theorem boundedProfilePostSpan_le_locallyBounded_for_degree2 {n L : ℕ}
   · -- g ∈ locallyBoundedClassifiedSet
     exact Submodule.subset_span (Set.mem_image_of_mem _ ⟨d, hd_elts, hg_eq, hprof, hd_bound⟩)
 
+/-! ## Part 13: Post-processing as a linear map
+
+The map mlProj(shift * ·) is a linear map from polynomials to polynomials.
+This lets us express the per-S-shift post-span as a linear image,
+which is key for finrank arguments. -/
+
+/-- mlProj ∘ (shift * ·) as a linear map. -/
+noncomputable def postProcessLinearMap {n : ℕ}
+    (shift : MvPolynomial (Fin n) ℚ) :
+    MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ :=
+  (mlProjLinearMap (Fin n) ℚ).comp (LinearMap.mulLeft ℚ shift)
+
+/-- postProcessLinearMap computes mlProj(shift * ·). -/
+theorem postProcessLinearMap_apply {n : ℕ}
+    (shift g : MvPolynomial (Fin n) ℚ) :
+    postProcessLinearMap shift g = mlProj (shift * g) := by
+  simp [postProcessLinearMap, mlProjLinearMap]
+
+/-! ## Part 14: Finite-dimensional per-S-shift post-span
+
+The per-S-shift post-span is finite-dimensional because its generators
+are multilinear polynomials (in the image of mlProj). -/
+
+/-- The per-S-shift post-span is contained in the multilinear monomial
+    space and hence is finite-dimensional. -/
+instance boundedProfilePostSpan_perSShift_finite {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (shift : MvPolynomial (Fin n) ℚ)
+    (h : ProfileHistogram) :
+    Module.Finite ℚ ↥(boundedProfilePostSpan factors constraintType S shift h) := by
+  have hle : boundedProfilePostSpan factors constraintType S shift h ≤
+      Submodule.span ℚ
+        (↑(MlProjFar.mlMonomialBasis (Finset.univ : Finset (Fin n))) :
+          Set (MvPolynomial (Fin n) ℚ)) := by
+    apply Submodule.span_le.mpr
+    intro q hq
+    rcases hq with ⟨g, _, rfl⟩
+    exact mlProj_mem_span_mlMonomialBasis _
+  have hfin : Module.Finite ℚ
+      (Submodule.span ℚ
+        (↑(MlProjFar.mlMonomialBasis (Finset.univ : Finset (Fin n))) :
+          Set (MvPolynomial (Fin n) ℚ))) :=
+    Module.Finite.span_of_finite ℚ (Finset.finite_toSet _)
+  exact Module.Finite.of_injective
+    (Submodule.inclusion hle)
+    (Submodule.inclusion_injective hle)
+
+/-! ## Part 15: Reduction of WithinProfileFinrankBound to per-S-shift bounds
+
+We show that if every per-S-shift post-span has bounded finrank, then
+WithinProfileFinrankBound holds (provided the shifts are constrained to
+lie in a bounded-dimensional space).
+
+The key structural insight: the allBoundedProfilePostSpan is a span of
+a union over (S, shift) pairs. When the post-processing is a linear map,
+the finrank of the total span can be bounded by the sum of per-S-shift
+finranks only if the number of (S, shift) pairs is bounded. In the
+Cook-Levin setting, block-admissibility and degree constraints achieve
+this; in the abstract setting, the bound requires additional hypotheses.
+
+For the Cook-Levin case, the axiom `spdp_profile_generators` provides
+the explicit generators. The structural lemmas in Parts 7-12 reduce the
+problem to: within each profile, the symmetric power factorization
+collapses the generators to ≤ (κ+1)^8 independent directions. This
+symmetric power argument is the content of the axiom. -/
+
+/-- The per-S-shift post-span for degree-2 factors is ≤ the post-span
+    of the locally bounded classified set. Combined with a finite
+    spanning set for the locally bounded classified set, this gives
+    a finrank bound for the per-S-shift case. -/
+theorem boundedProfilePostSpan_le_map_locallyBounded {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hfactors : ∀ i, (factors i).totalDegree ≤ 2)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ)
+    (h : ProfileHistogram) :
+    boundedProfilePostSpan factors constraintType S shift h ≤
+      Submodule.map (postProcessLinearMap shift)
+        (Submodule.span ℚ (locallyBoundedClassifiedSet factors constraintType S h)) := by
+  -- The post-span for degree-2 factors is ≤ span of post-processed locally bounded set
+  calc boundedProfilePostSpan factors constraintType S shift h
+      ≤ Submodule.span ℚ
+          ((fun g => mlProj (shift * g)) '' locallyBoundedClassifiedSet factors constraintType S h) :=
+        boundedProfilePostSpan_le_locallyBounded_for_degree2
+          factors hfactors constraintType S shift h
+    _ ≤ Submodule.map (postProcessLinearMap shift)
+          (Submodule.span ℚ (locallyBoundedClassifiedSet factors constraintType S h)) := by
+        apply Submodule.span_le.mpr
+        intro q hq
+        rcases hq with ⟨g, hg, rfl⟩
+        exact ⟨g, Submodule.subset_span hg, rfl⟩
+
+/-- For degree-2 factors, if the span of the locally bounded classified set
+    (for fixed S and profile h) has finrank ≤ N, then the per-S-shift
+    post-span has finrank ≤ N (for any shift).
+
+    This reduces the post-span finrank bound to a pure combinatorial
+    counting problem on the classified set, independent of the shift. -/
+theorem boundedProfilePostSpan_finrank_le_of_locallyBounded_finrank {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hfactors : ∀ i, (factors i).totalDegree ≤ 2)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ)
+    (h : ProfileHistogram) (N : ℕ)
+    (hN : Module.finrank ℚ ↥(Submodule.span ℚ
+        (locallyBoundedClassifiedSet factors constraintType S h)) ≤ N) :
+    Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h) ≤ N := by
+  have hle := boundedProfilePostSpan_le_map_locallyBounded
+    factors hfactors constraintType S shift h
+  have hfin_src : Module.Finite ℚ ↥(Submodule.span ℚ
+      (locallyBoundedClassifiedSet factors constraintType S h)) := by
+    -- The locally bounded classified set elements are products of degree-≤-2
+    -- polynomials (each factor has degree ≤ 2 after ≤ 2 derivatives), so each
+    -- product has totalDegree ≤ 2*L. The span lies in restrictTotalDegree,
+    -- which is finite-dimensional.
+    have hle_deg : Submodule.span ℚ (locallyBoundedClassifiedSet factors constraintType S h) ≤
+        MvPolynomial.restrictTotalDegree (Fin n) ℚ (2 * L) := by
+      apply Submodule.span_le.mpr
+      intro q hq
+      rcases hq with ⟨d, _, hg_eq, _, hd_bound⟩
+      show q ∈ MvPolynomial.restrictTotalDegree (Fin n) ℚ (2 * L)
+      rw [MvPolynomial.mem_restrictTotalDegree, hg_eq]
+      calc (Finset.univ.prod (fun i => iterDerivList (d i) (factors i))).totalDegree
+          ≤ ∑ i ∈ Finset.univ, (iterDerivList (d i) (factors i)).totalDegree :=
+            MvPolynomial.totalDegree_finset_prod _ _
+        _ ≤ ∑ _i ∈ Finset.univ, 2 := by
+            apply Finset.sum_le_sum
+            intro i _
+            exact le_trans (totalDegree_iterDerivList_le _ _) (hfactors i)
+        _ = 2 * L := by simp [Finset.sum_const, mul_comm]
+    exact Module.Finite.of_injective (Submodule.inclusion hle_deg)
+      (Submodule.inclusion_injective hle_deg)
+  calc Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h)
+      ≤ Module.finrank ℚ ↥(Submodule.map (postProcessLinearMap shift)
+          (Submodule.span ℚ (locallyBoundedClassifiedSet factors constraintType S h))) :=
+        Submodule.finrank_mono hle
+    _ ≤ Module.finrank ℚ ↥(Submodule.span ℚ
+          (locallyBoundedClassifiedSet factors constraintType S h)) :=
+        Submodule.finrank_map_le _ _
+    _ ≤ N := hN
+
 end WithinProfileBound
