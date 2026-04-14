@@ -545,6 +545,33 @@ theorem mlProj_X_mul_pderiv_boolFactor {N : ℕ} (v : Fin N) :
   conv_lhs => rw [show (2 : MvPolynomial (Fin N) ℚ) = MvPolynomial.C 2 from by simp [map_ofNat]]
   rw [MvPolynomial.C_mul', mlProj_smul, mlProj_X_sq_zero v, smul_zero, add_zero]
 
+/-- mlProj of boolFactor: mlProj(1 - z(1-z)) = 1 - z.
+    Since boolFactor N v = 1 - X v + X v^2, and mlProj drops X v^2. -/
+theorem mlProj_boolFactor {N : ℕ} (v : Fin N) :
+    mlProj (boolFactor N v : MvPolynomial (Fin N) ℚ) = 1 - MvPolynomial.X v := by
+  unfold boolFactor
+  -- 1 - X v * (1 - X v) = 1 - X v + X v * X v
+  have hexpand : (1 : MvPolynomial (Fin N) ℚ) - MvPolynomial.X v * (1 - MvPolynomial.X v) =
+      (1 - MvPolynomial.X v) + MvPolynomial.X v * MvPolynomial.X v := by ring
+  rw [hexpand, mlProj_add, mlProj_X_sq_zero v, add_zero]
+  -- 1 - X v is multilinear: show every monomial in support has degree ≤ 1 in each variable
+  apply mlProj_of_isMultilinear
+  intro α hα i
+  -- coeff α (1 - X v) ≠ 0 implies α = 0 or α = single v 1
+  by_contra h_gt
+  push_neg at h_gt
+  have hi : 2 ≤ α i := h_gt
+  -- α = 0 is impossible since α i ≥ 2
+  have h0 : α ≠ 0 := by intro he; subst he; simp at hi
+  -- α = single v 1 is impossible since (single v 1) i ≤ 1
+  have hv : α ≠ Finsupp.single v 1 := by
+    intro he; subst he; simp [Finsupp.single_apply] at hi; split_ifs at hi <;> omega
+  -- coeff α (1 - X v) = 0 for all other α, contradiction
+  have hcoeff : MvPolynomial.coeff α ((1 : MvPolynomial (Fin N) ℚ) - MvPolynomial.X v) = 0 := by
+    simp only [MvPolynomial.coeff_sub, MvPolynomial.coeff_one, MvPolynomial.coeff_X']
+    rw [if_neg (Ne.symm h0), if_neg (Ne.symm hv), sub_self]
+  exact (MvPolynomial.mem_support_iff.mp hα) hcoeff
+
 /-! ### Profile compression: proved infrastructure and remaining gap
 
 The proved lemmas above establish:
