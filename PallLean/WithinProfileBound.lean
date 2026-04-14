@@ -1011,4 +1011,82 @@ theorem boundedProfilePostSpan_finrank_le_of_locallyBounded_finrank {n L : ℕ}
         Submodule.finrank_map_le _ _
     _ ≤ N := hN
 
+/-! ## Part 16: Finiteness of bounded classified sets
+
+We show the boundedProfileClassifiedSet for fixed S is finite, by
+exhibiting an injection from derivative assignments to a finite type.
+
+Each derivative assignment d : Fin L → List (Fin n) with |d_i| ≤ 2 and
+d_i ⊆ S is determined by choosing, for each factor i, a list of at most
+2 elements from S. The set of such choices is finite.
+
+We use this to bound the finrank of the per-S-shift post-span. -/
+
+/-- The bounded profile classified set is finite for any fixed S.
+
+    Each element is determined by a derivative assignment d, and the
+    set of valid assignments is finite (each d_i is a list of at most
+    |S| elements from Fin n, and Fin n is finite). -/
+theorem boundedProfileClassifiedSet_finite {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (h : ProfileHistogram) :
+    Set.Finite (boundedProfileClassifiedSet factors constraintType S h) := by
+  -- The classified set is the image of the product map on valid assignments.
+  -- We show it's contained in a finite image.
+  suffices hfin : Set.Finite { d : Fin L → List (Fin n) |
+      (∀ i, ∀ v ∈ d i, v ∈ S) ∧
+      derivCountProfile constraintType d = h ∧
+      ∑ i : Fin L, (d i).length ≤ S.length } by
+    apply Set.Finite.subset (hfin.image
+      (fun d => Finset.univ.prod (fun i => iterDerivList (d i) (factors i))))
+    intro g hg
+    rcases hg with ⟨d, hd1, rfl, hd2, hd3⟩
+    exact ⟨d, ⟨hd1, hd2, hd3⟩, rfl⟩
+  -- The set of valid d is contained in the set of functions
+  -- Fin L → {sublists of S}, which is finite by Finite.pi'.
+  -- Each d_i is a list of Fin n of length ≤ |S| (from the total length constraint).
+  -- Lists of bounded length over a finite type form a finite set.
+  -- The product (Fin L → bounded lists) is then finite.
+  have hfin_lists : Set.Finite {l : List (Fin n) | l.length ≤ S.length} :=
+    List.finite_length_le (Fin n) S.length
+  haveI : Finite {l : List (Fin n) // l.length ≤ S.length} := hfin_lists.to_subtype
+  apply Set.Finite.subset
+    ((Set.toFinite (Set.univ : Set (Fin L → { l : List (Fin n) // l.length ≤ S.length }))).image
+      (fun f i => (f i).val))
+  intro d hd
+  rcases hd with ⟨hd_elts, _, hd_len⟩
+  refine ⟨fun i => ⟨d i, ?_⟩, Set.mem_univ _, funext (fun _ => rfl)⟩
+  exact le_trans (Finset.single_le_sum (f := fun i => (d i).length)
+    (fun j _ => Nat.zero_le _) (Finset.mem_univ i)) hd_len
+
+/-- The locally bounded classified set is also finite.
+    Each d_i has length ≤ 2, and lists of bounded length over Fin n are finite. -/
+theorem locallyBoundedClassifiedSet_finite {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (h : ProfileHistogram) :
+    Set.Finite (locallyBoundedClassifiedSet factors constraintType S h) := by
+  suffices hfin : Set.Finite { d : Fin L → List (Fin n) |
+      (∀ i, ∀ v ∈ d i, v ∈ S) ∧
+      derivCountProfile constraintType d = h ∧
+      (∀ i, (d i).length ≤ 2) } by
+    apply Set.Finite.subset (hfin.image
+      (fun d => Finset.univ.prod (fun i => iterDerivList (d i) (factors i))))
+    intro g hg
+    rcases hg with ⟨d, hd1, rfl, hd2, hd3⟩
+    exact ⟨d, ⟨hd1, hd2, hd3⟩, rfl⟩
+  -- Each d_i is a list of Fin n of length ≤ 2.
+  have hfin_lists : Set.Finite {l : List (Fin n) | l.length ≤ 2} :=
+    List.finite_length_le (Fin n) 2
+  haveI : Finite {l : List (Fin n) // l.length ≤ 2} := hfin_lists.to_subtype
+  apply Set.Finite.subset
+    ((Set.toFinite (Set.univ : Set (Fin L → { l : List (Fin n) // l.length ≤ 2 }))).image
+      (fun f i => (f i).val))
+  intro d hd
+  rcases hd with ⟨_, _, hd_bound⟩
+  exact ⟨fun i => ⟨d i, hd_bound i⟩, Set.mem_univ _, funext (fun _ => rfl)⟩
+
 end WithinProfileBound
