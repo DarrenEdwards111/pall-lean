@@ -2254,4 +2254,68 @@ theorem generator_in_untouched_times_touched_span {n : ℕ} {ι : Type*} [Decida
       untouchedFactor s f touched :=
   mlProj_shift_mul_prod_factored s f shift touched h_disj h_shift_vars h_touch_untouch_disj
 
+/-! ## Part 25: Dimension bound from factorization
+
+If every generator in a span factors as `q * c` for a fixed `c`, then
+the finrank of the span ≤ the finrank of the space containing the `q`'s.
+
+This is because multiplication by `c` is a linear map whose image has
+dimension ≤ the source dimension. -/
+
+/-- The span of {q * c | q ∈ S} is contained in the image of
+    multiplication by c applied to span(S). -/
+theorem span_mul_right_le {n : ℕ}
+    (S : Set (MvPolynomial (Fin n) ℚ))
+    (c : MvPolynomial (Fin n) ℚ) :
+    Submodule.span ℚ ((· * c) '' S) ≤
+      Submodule.map (LinearMap.mulRight ℚ c) (Submodule.span ℚ S) := by
+  apply Submodule.span_le.mpr
+  intro x hx
+  rcases hx with ⟨q, hq, rfl⟩
+  exact ⟨q, Submodule.subset_span hq, rfl⟩
+
+/-- Finrank of span({q * c | q ∈ S}) ≤ finrank of span(S). -/
+theorem finrank_span_mul_right_le {n : ℕ}
+    (S : Set (MvPolynomial (Fin n) ℚ))
+    (c : MvPolynomial (Fin n) ℚ)
+    (hfin : Module.Finite ℚ ↥(Submodule.span ℚ S)) :
+    Module.finrank ℚ ↥(Submodule.span ℚ ((· * c) '' S)) ≤
+      Module.finrank ℚ ↥(Submodule.span ℚ S) :=
+  le_trans (Submodule.finrank_mono (span_mul_right_le S c))
+    (Submodule.finrank_map_le _ _)
+
+/-- The key application: if every generator of a submodule V factors as
+    q_i * c where q_i lies in a submodule W, then finrank(V) ≤ finrank(W).
+
+    Applied to the factorization:
+    - V = allBoundedProfilePostSpan(h) (the within-profile span)
+    - c = untouchedFactor (fixed for the profile)
+    - W = span of multilinear polynomials on touched-block variables
+    - finrank(W) ≤ 2^(touched-block variable count)
+
+    This gives finrank(V) ≤ 2^(touched vars) which is ≤ 2^(3κ) = 8^κ. -/
+theorem finrank_le_of_generators_factor {n : ℕ}
+    (V W : Submodule ℚ (MvPolynomial (Fin n) ℚ))
+    (c : MvPolynomial (Fin n) ℚ)
+    (hfin_W : Module.Finite ℚ ↥W)
+    (hV_le : V ≤ Submodule.map (LinearMap.mulRight ℚ c) W) :
+    Module.finrank ℚ ↥V ≤ Module.finrank ℚ ↥W :=
+  le_trans (Submodule.finrank_mono hV_le) (Submodule.finrank_map_le _ _)
+
+/-- Multilinear monomials on a subset of variables: the basis for
+    bounding the touched-part dimension. -/
+theorem finrank_mlMonomialBasis_subset {n : ℕ}
+    (touchedVars : Finset (Fin n)) :
+    Module.finrank ℚ ↥(Submodule.span ℚ
+      (↑(MlProjFar.mlMonomialBasis touchedVars) :
+        Set (MvPolynomial (Fin n) ℚ))) ≤
+      2 ^ touchedVars.card := by
+  calc Module.finrank ℚ ↥(Submodule.span ℚ
+        (↑(MlProjFar.mlMonomialBasis touchedVars) :
+          Set (MvPolynomial (Fin n) ℚ)))
+      ≤ (MlProjFar.mlMonomialBasis touchedVars).card :=
+        finrank_span_finset_le_card _
+    _ ≤ 2 ^ touchedVars.card :=
+        MlProjFar.mlMonomialBasis_card touchedVars
+
 end WithinProfileBound
