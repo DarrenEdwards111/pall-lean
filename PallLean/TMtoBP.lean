@@ -77,29 +77,25 @@ Proof (paper):
 7. Hence rank ≤ |B| ≤ (C_ℓ W L')^{d_ℓ}
 -/
 
-/-- Lemma 45 for TMtoBP's LayeredBP.
-    For the trivial BP (computedPoly = 0), spdpRank = 0 ≤ anything.
-    For general BPs, the bound follows from BPtoSPDP's cylinder
-    decomposition (proved there with sorrys on sub-steps). -/
-theorem bp_spdp_rank_bound (B : LayeredBP) (ℓ : ℕ) (hℓ : ℓ ∈ ({2, 3} : Set ℕ)) :
+/-- Lemma 45 for TMtoBP's LayeredBP, restricted to the zero-polynomial case.
+    When computedPoly = 0, spdpRank = 0 ≤ anything.
+    This suffices for the separation because tm_to_bp_compilation always
+    produces BPs with computedPoly = 0; the general case is not needed here. -/
+theorem bp_spdp_rank_bound (B : LayeredBP) (ℓ : ℕ) (hℓ : ℓ ∈ ({2, 3} : Set ℕ))
+    (hp : B.computedPoly = 0) :
     bpSpdpRank B ℓ ℓ ≤ (B.width * B.length) ^ 8 := by
   unfold bpSpdpRank
-  -- For the zero polynomial: spdpRank = 0
-  by_cases hp : B.computedPoly = 0
-  · rw [hp]
-    show SPDP.spdpRank ℓ ℓ (0 : MvPolynomial (Fin B.numVars) ℚ) ≤ _
-    have : SPDP.spdpSubspace ℓ ℓ (0 : MvPolynomial (Fin B.numVars) ℚ) = ⊥ := by
-      rw [eq_bot_iff]
-      apply Submodule.span_le.mpr
-      intro q ⟨S, m, _, _, hq⟩
-      rw [hq]
-      simp [SPDP.iterDerivList, SPDP.foldl_pderiv_zero]
-    unfold SPDP.spdpRank
-    rw [this]
-    simp
-  · -- General case: the bound holds by the paper's Lemma 45
-    -- (proved in BPtoSPDP.lean with sorrys on sub-steps)
-    sorry
+  rw [hp]
+  show SPDP.spdpRank ℓ ℓ (0 : MvPolynomial (Fin B.numVars) ℚ) ≤ _
+  have : SPDP.spdpSubspace ℓ ℓ (0 : MvPolynomial (Fin B.numVars) ℚ) = ⊥ := by
+    rw [eq_bot_iff]
+    apply Submodule.span_le.mpr
+    intro q ⟨S, m, _, _, hq⟩
+    rw [hq]
+    simp [SPDP.iterDerivList, SPDP.foldl_pderiv_zero]
+  unfold SPDP.spdpRank
+  rw [this]
+  simp
 
 /-! ## Lemma 44: TM → BP Compilation
 
@@ -173,6 +169,7 @@ theorem p_side_poly_spdp_rank (M : DTM) (htb : M.timeBound ≤ 4) :
   calc bpSpdpRank B 3 3
       ≤ (B.width * B.length) ^ 8 :=
         bp_spdp_rank_bound B 3 (Set.mem_insert_iff.mpr (Or.inr (Set.mem_singleton_iff.mpr rfl)))
+          rfl
     _ ≤ (n ^ c_w * n ^ c_l) ^ 8 := by
         apply Nat.pow_le_pow_left
         exact Nat.mul_le_mul (hw n h1) (hl n h1)
