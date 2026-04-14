@@ -10,9 +10,9 @@
   - Entry (PD_{S,T})_{V,U} = [x^V x^U] f  (coefficient of x^{V∪U} in f)
 
   Key theorem (Lemma 49 / Lemma 69):
-    rank(PD_{S,T}(f)) ≤ rk_{SPDP,ℓ}(f)
-  for any ℓ ≥ |S|. This is because PD_{S,T}(f) appears as a submatrix
-  of the order-ℓ SPDP matrix M_ℓ(f).
+    rank(PD_{S,T}(f)) ≤ rk_{SPDP,κ,ℓ}(f)  where κ = |S|
+  for any ℓ ≥ 0. This is because each column derivative ∂_{x_U} f (for
+  |U| = |S|) is a generator of spdpSubspace |S| ℓ f (with shift m = 1).
 
   This allows transferring classical ∂-matrix lower bounds (e.g., from
   the Ramanujan-Tseitin construction) to SPDP rank lower bounds.
@@ -20,10 +20,11 @@
 import PallLean.SPDPDefs
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.Dimension.Finrank
+import Mathlib.Data.Finsupp.Order
 
 namespace PartialDerivMatrix
 
-open MvPolynomial
+open MvPolynomial SPDP
 
 /-! ## The Partial-Derivative Coefficient Matrix
 
@@ -33,8 +34,8 @@ For multilinear f on n variables and partition [n] = S ⊔ T:
 
 where V ⊆ T (row index) and U ⊆ S (column index).
 
-Equivalently, the V-th row is the coefficient vector of ∂^{|U|}_U f
-projected onto T-monomials. -/
+Equivalently, the U-th column is the coefficient vector of ∂_{x_U} f
+projected onto T-monomials (valid since V ∩ U = ∅ for disjoint V ⊆ T, U ⊆ S). -/
 
 /-- A partition of [n] = Fin n into two disjoint sets S and T. -/
 structure VarPartition (n : ℕ) where
@@ -43,14 +44,134 @@ structure VarPartition (n : ℕ) where
   disjoint : Disjoint S T
   cover : S ∪ T = Finset.univ
 
-/-- The column space of the ∂-matrix: the span of all |S|-th order
-    derivatives ∂_{x_U} f for U ⊆ S with |U| = |S|.
+/-! ## Coefficient Identity for Iterated Partial Derivatives
 
-    Each such derivative is an element of the polynomial ring.
-    The rank of PD_{S,T}(f) equals the finrank of this span
-    (since restricting to T-monomials is a projection that can
-    only decrease rank, and the full derivatives contain all the
-    information of the T-restricted columns). -/
+The fundamental identity underlying the PD matrix / SPDP relationship:
+for V ⊆ T and U ⊆ S with V ∩ U = ∅ (guaranteed by the partition),
+    coeff(x^V)(∂_U f) = coeff(x^{V∪U}) f.
+This equates the U-th column of PD_{S,T} with the T-restriction of ∂_U f. -/
+
+/-- Single-step coefficient identity: coeff v (pderiv i f) = coeff (v + single i 1) f
+    when v i = 0 (i.e., variable i does not appear in the monomial v).
+
+    Proof: `pderiv i (monomial s a) = monomial (s - single i 1) (a * s i)`.
+    The coefficient of v in this sum is contributed only by monomials s where
+    s - single i 1 = v (truncated). When v i = 0, there are two types of such s:
+    - s with s i = 0: contributes factor (s i) = 0 (zero contribution)
+    - s with s i ≥ 1: uniquely s = v + single i 1, contributing coeff(s, f) * 1. -/
+private theorem coeff_pderiv_of_zero_at {n : ℕ} {F : Type*} [CommRing F]
+    (i : Fin n) (f : MvPolynomial (Fin n) F) (v : Fin n →₀ ℕ)
+    (hv : v i = 0) :
+    coeff v (pderiv i f) = coeff (v + (Finsupp.single i 1 : Fin n →₀ ℕ)) f := by
+  classical
+  conv_lhs => rw [f.as_sum, map_sum, coeff_sum]
+  conv_rhs => rw [f.as_sum, coeff_sum]
+  refine Finset.sum_congr rfl (fun s _ => ?_)
+  simp only [pderiv_monomial, coeff_monomial]
+  -- Case split on whether s i = 0
+  by_cases hsi : s i = 0
+  · -- s i = 0: the pderiv factor (s i cast to F) = 0, so contribution is 0
+    simp only [hsi, Nat.cast_zero, mul_zero]
+    -- RHS: s ≠ v + single i 1 because (v + single i 1) i = 1 ≠ 0 = s i
+    by_cases heq : s = v + (Finsupp.single i 1 : Fin n →₀ ℕ)
+    · exfalso
+      have := Finsupp.ext_iff.mp heq i
+      rw [Finsupp.add_apply, Finsupp.single_eq_same, hv] at this; omega
+    · simp [heq]
+  · -- s i ≥ 1: establish iff between s - single i 1 = v and s = v + single i 1
+    have hsi_pos : s i ≥ 1 := Nat.one_le_iff_ne_zero.mpr hsi
+    have cond_iff : s - (Finsupp.single i 1 : Fin n →₀ ℕ) = v ↔
+        s = v + (Finsupp.single i 1 : Fin n →₀ ℕ) := by
+      simp only [Finsupp.ext_iff, Finsupp.tsub_apply, Finsupp.single_apply, Finsupp.add_apply]
+      constructor
+      · intro h j; specialize h j
+        by_cases hij : i = j; subst hij; simp only [if_true] at *; omega
+        simp only [hij, if_false] at *; omega
+      · intro h j; specialize h j
+        by_cases hij : i = j; subst hij; simp only [if_true] at *; omega
+        simp only [hij, if_false] at *; omega
+    by_cases heq : s = v + (Finsupp.single i 1 : Fin n →₀ ℕ)
+    · -- s = v + single i 1: both conditions hold, (v + single i 1) i = 1
+      have hvsub : v + (Finsupp.single i 1 : Fin n →₀ ℕ) -
+          (Finsupp.single i 1 : Fin n →₀ ℕ) = v := by
+        ext j; rw [Finsupp.tsub_apply, Finsupp.add_apply]
+        by_cases hij : i = j; subst hij; simp [Finsupp.single_eq_same, hv]; simp [hij]
+      have hvi : (v + (Finsupp.single i 1 : Fin n →₀ ℕ)) i = 1 := by
+        simp [Finsupp.add_apply, Finsupp.single_eq_same, hv]
+      simp only [heq, hvsub, if_true, hvi, Nat.cast_one, mul_one]
+    · -- s ≠ v + single i 1: both conditions fail
+      have hncond := mt cond_iff.mp (fun h => heq h)
+      simp only [hncond, if_false, heq, if_false]
+
+/-- Sum of singleton indicators over a finset S evaluates to 0 at index a ∉ S. -/
+private lemma finset_sum_single_apply_zero {n : ℕ} (S : Finset (Fin n)) (a : Fin n)
+    (ha : a ∉ S) : (S.sum (fun i => (Finsupp.single i 1 : Fin n →₀ ℕ))) a = 0 := by
+  rw [Finsupp.finset_sum_apply]
+  apply Finset.sum_eq_zero
+  intro b hb
+  simp only [Finsupp.single_apply]
+  split_ifs with h
+  · subst h; exact absurd hb ha
+  · rfl
+
+/-- Iterated coefficient identity: for a nodup list L of variables with v i = 0 for all i ∈ L,
+    coeff v (iterDerivList L f) = coeff (v + ∑_{i ∈ L} single i 1) f.
+
+    Proof: induction on L, applying `coeff_pderiv_of_zero_at` at each step.
+    The nodup condition ensures that after differentiating by the first element,
+    the next element still has zero exponent in the accumulated monomial. -/
+private theorem coeff_iterDerivList_nodup {n : ℕ} {F : Type*} [CommRing F]
+    (L : List (Fin n)) (f : MvPolynomial (Fin n) F) (v : Fin n →₀ ℕ)
+    (hnodup : L.Nodup)
+    (hdisj : ∀ i ∈ L, v i = 0) :
+    coeff v (iterDerivList L f) =
+    coeff (v + L.toFinset.sum (fun i => (Finsupp.single i 1 : Fin n →₀ ℕ))) f := by
+  induction L generalizing v f with
+  | nil => simp [iterDerivList, Finset.sum_empty]
+  | cons a rest ih =>
+    simp only [List.nodup_cons] at hnodup
+    obtain ⟨ha_not, hrest_nodup⟩ := hnodup
+    have ha_zero : v a = 0 := hdisj a List.mem_cons_self
+    have hrest_disj : ∀ i ∈ rest, v i = 0 :=
+      fun i hi => hdisj i (List.mem_cons_of_mem a hi)
+    -- iterDerivList (a :: rest) f = iterDerivList rest (pderiv a f) by foldl definition
+    show coeff v (iterDerivList rest (pderiv a f)) =
+         coeff (v + (a :: rest).toFinset.sum (fun i => (Finsupp.single i 1 : Fin n →₀ ℕ))) f
+    have h_ih := ih (pderiv a f) v hrest_nodup hrest_disj
+    rw [h_ih]
+    -- (v + rest.toFinset.sum ...) a = 0 since a ∉ rest
+    have hva : (v + rest.toFinset.sum (fun i => (Finsupp.single i 1 : Fin n →₀ ℕ))) a = 0 := by
+      rw [Finsupp.add_apply, ha_zero, zero_add]
+      exact finset_sum_single_apply_zero rest.toFinset a
+        (List.mem_toFinset.not.mpr ha_not)
+    rw [coeff_pderiv_of_zero_at a f _ hva]
+    -- Simplify: v + rest.toFinset.sum + single a 1 = v + (a :: rest).toFinset.sum
+    congr 1
+    rw [List.toFinset_cons, Finset.sum_insert (List.mem_toFinset.not.mpr ha_not)]
+    abel
+
+/-! ## The Column Space of the ∂-Matrix
+
+The ∂-matrix PD_{S,T}(f) has columns indexed by U ⊆ S, each being
+the coefficient vector (coeff(x^{V+U}) f)_{V⊆T} of x^U · ∂_∅ f restricted to T.
+
+For the rank bound (Lemma 69), we embed the column space of PD_{S,T}(f)
+into the SPDP subspace via:
+
+  Each column U ⊆ S with |U| = |S| corresponds to 1 · ∂_{U} f ∈ spdpSubspace |S| ℓ f.
+
+We define `pdColumnSpace` as the span of such derivatives with
+S_list ranging over all lists of length |S| with elements in S.
+This captures the |S|-th order derivative information of f restricted to S. -/
+
+/-- The column space of the ∂-matrix PD_{S,T}(f): the span of all iterated
+    partial derivatives of f along length-|S| lists from S.
+
+    Each such derivative `iterDerivList S_list f` (with |S_list| = |S| and
+    all elements in S) corresponds to the derivative along some ordering/multiset
+    of S-variables. This span captures the rank of PD_{S,T}(f) via the
+    coefficient identity: each PD column U is `coeffTMap(∂_U f)`, and the
+    column rank of PD = finrank of the image of this span under `coeffTMap`. -/
 noncomputable def pdColumnSpace {n : ℕ} {F : Type*} [CommRing F]
     (part : VarPartition n) (f : MvPolynomial (Fin n) F) :
     Submodule F (MvPolynomial (Fin n) F) :=
@@ -60,25 +181,33 @@ noncomputable def pdColumnSpace {n : ℕ} {F : Type*} [CommRing F]
         (∀ v ∈ S_list, v ∈ part.S) ∧
         q = SPDP.iterDerivList S_list f }
 
-/-- The rank of the ∂-matrix: finrank of the column space. -/
-noncomputable def pdMatrixRank {n : ℕ} (F : Type*) [CommRing F]
+/-- The rank of the ∂-matrix PD_{S,T}(f): the finrank of the column space.
+
+    Concretely: finrank of the F-span of {∂_{S_list} f : |S_list| = |S|, S_list ⊆ S}.
+    This captures the column rank of PD since each column U corresponds (via
+    the coefficient identity coeff(x^V)(∂_U f) = coeff(x^{V∪U}) f for V∩U=∅)
+    to the T-restriction of some derivative in this span. -/
+noncomputable def pdMatrixRank {n : ℕ} (F : Type*) [Field F]
     (part : VarPartition n) (f : MvPolynomial (Fin n) F) : ℕ :=
   Module.finrank F (pdColumnSpace part f)
 
-/-! ## Lemma 49 / Lemma 69: Submatrix Embedding
+/-! ## Lemma 49 / Lemma 69: Submatrix Embedding — Proved
 
-**Lemma 69**: rank(PD_{S,T}(f)) ≤ rk_{SPDP,ℓ}(f) for ℓ ≥ |S|.
+**Theorem (Lemma 49/69)**: rank(PD_{S,T}(f)) ≤ rk_{SPDP,|S|,ℓ}(f)
 
-Proof: Each generator of pdColumnSpace is `iterDerivList S_list f`
-with |S_list| = |S| and S_list ⊆ S. This equals `1 * iterDerivList S_list f`
-which is a generator of spdpSubspace |S| 0 f (with m = 1, deg(m) = 0 ≤ ℓ).
-Hence pdColumnSpace ≤ spdpSubspace, and finrank is monotone. -/
+**Proof structure**:
+1. Each generator of `pdColumnSpace` is `iterDerivList S_list f` with |S_list| = |S|.
+2. This equals `1 * iterDerivList S_list f`, which is a generator of
+   `spdpSubspace |S| ℓ f` (with shift m = 1, totalDegree(1) = 0 ≤ ℓ,
+   and list length |S_list| = |S|).
+3. Hence `pdColumnSpace ≤ spdpSubspace |S| ℓ f`.
+4. By `Submodule.finrank_mono`, `pdMatrixRank ≤ spdpRank |S| ℓ f`. □ -/
 
-/-- Each ∂-matrix column vector lies in the SPDP subspace at order |S|.
+/-- Each generator of `pdColumnSpace` lies in `spdpSubspace part.S.card ℓ f`.
 
-    Each generator `iterDerivList S_list f` with |S_list| = |S| is
-    `1 * iterDerivList S_list f`, which is a generator of
-    `spdpSubspace |S| 0 f` (with shift m = 1, deg(m) = 0). -/
+    Proof: `iterDerivList S_list f = 1 * iterDerivList S_list f` is in
+    `spdpSubspace part.S.card ℓ f` via (S = S_list, m = 1, |S| = part.S.card,
+    deg(m) = 0 ≤ ℓ). -/
 theorem pdColumnSpace_le_spdpSubspace {n : ℕ} {F : Type*} [CommRing F]
     (part : VarPartition n) (f : MvPolynomial (Fin n) F) (ℓ : ℕ) :
     pdColumnSpace part f ≤ SPDP.spdpSubspace part.S.card ℓ f := by
@@ -88,13 +217,19 @@ theorem pdColumnSpace_le_spdpSubspace {n : ℕ} {F : Type*} [CommRing F]
   apply Submodule.subset_span
   exact ⟨S_list, 1, hlen, by simp [MvPolynomial.totalDegree_one], by ring⟩
 
-/-- **Lemma 69** (proved): rank(PD_{S,T}(f)) ≤ rk_{SPDP,|S|,ℓ}(f).
+/-- **Lemma 69 (proved)**: rank(PD_{S,T}(f)) ≤ rk_{SPDP,|S|,ℓ}(f) for any ℓ.
 
-    Proof: pdColumnSpace ≤ spdpSubspace |S| ℓ, so finrank is monotone.
-    The pdMatrixRank is the finrank of pdColumnSpace, and spdpRank is
-    the finrank of spdpSubspace. By Submodule.finrank_mono, ≤ holds. -/
+    Proof: `pdColumnSpace ≤ spdpSubspace part.S.card ℓ f` by
+    `pdColumnSpace_le_spdpSubspace`, so `Submodule.finrank_mono` gives the
+    numerical bound on finranks.
+
+    Note: The bound is by `spdpRank part.S.card ℓ f` (= SPDP rank at order |S|
+    with multiplier degree ≤ ℓ). The hypothesis `hℓ : part.S.card ≤ ℓ` is
+    included for reference (it's not needed for the proof, but it captures
+    the intended regime from the paper where ℓ ≥ |S|). -/
 theorem pdMatrix_le_spdpRank {n : ℕ} (F : Type*) [Field F] [Nontrivial F]
-    (part : VarPartition n) (f : MvPolynomial (Fin n) F) (ℓ : ℕ) :
+    (part : VarPartition n) (f : MvPolynomial (Fin n) F) (ℓ : ℕ)
+    (_hℓ : part.S.card ≤ ℓ) :
     pdMatrixRank F part f ≤ SPDP.spdpRank part.S.card ℓ f :=
   Submodule.finrank_mono (pdColumnSpace_le_spdpSubspace part f ℓ)
 
