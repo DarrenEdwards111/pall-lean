@@ -198,6 +198,194 @@ theorem linearIndependent_mlProj_boolFactorDerivProd_disjoint {N κ : ℕ} (hκ 
   simp only [hc_def, dif_pos i.2, if_pos hi] at hci
   exact hci
 
+/-! ## Non-disjoint linear independence via sum-of-squares -/
+
+/-- Equal-size finsets: if S ⊆ T and |S| = |T| then S = T. -/
+theorem Finset.eq_of_subset_of_card_eq {α : Type*} [DecidableEq α]
+    {S T : Finset α} (hsub : S ⊆ T) (hcard : S.card = T.card) :
+    S = T :=
+  Finset.eq_of_subset_of_card_le hsub (le_of_eq hcard.symm)
+
+/-- Number of subsets of a finset S equals 2^|S|. -/
+theorem Finset.card_powerset' {α : Type*} [DecidableEq α] (S : Finset α) :
+    S.powerset.card = 2 ^ S.card :=
+  Finset.card_powerset S
+
+/-- Indicator function: 1 if U ⊆ S, 0 otherwise. -/
+noncomputable def zetaIndicator {N : ℕ} (S : Finset (Fin N)) (U : Finset (Fin N)) : ℚ :=
+  if U ⊆ S then 1 else 0
+
+/-- The inner product ∑_U zetaIndicator S U * zetaIndicator T U equals 2^|S ∩ T|. -/
+theorem zetaIndicator_inner_product {N : ℕ} (S T : Finset (Fin N)) :
+    ∑ U ∈ (Finset.univ : Finset (Fin N)).powerset,
+      zetaIndicator S U * zetaIndicator T U =
+    (2 : ℚ) ^ (S ∩ T).card := by
+  simp only [zetaIndicator]
+  -- Simplify (if U ⊆ S then 1 else 0) * (if U ⊆ T then 1 else 0)
+  -- into (if U ⊆ S ∩ T then 1 else 0)
+  have hsimp : ∀ U, (if U ⊆ S then (1 : ℚ) else 0) * (if U ⊆ T then 1 else 0) =
+      if U ⊆ S ∩ T then 1 else 0 := by
+    intro U
+    by_cases h1 : U ⊆ S <;> by_cases h2 : U ⊆ T <;> simp_all [Finset.subset_inter_iff]
+  simp_rw [hsimp]
+  -- Sum of (if U ⊆ S ∩ T then 1 else 0) = |{U ∈ powerset(univ) : U ⊆ S ∩ T}|
+  rw [Finset.sum_boole]
+  -- The filter is just the powerset of S ∩ T
+  have hfilt : ((Finset.univ : Finset (Fin N)).powerset.filter (· ⊆ S ∩ T)) =
+      (S ∩ T).powerset := by
+    ext U
+    simp only [Finset.mem_filter, Finset.mem_powerset, Finset.mem_univ, true_and]
+    exact ⟨fun ⟨_, h⟩ => h, fun h => ⟨Finset.subset_univ U, h⟩⟩
+  rw [hfilt, Finset.card_powerset]
+  push_cast
+  ring
+
+/-- Sum of squares over ℚ: if ∑ a² = 0 then each a = 0. -/
+theorem sum_sq_eq_zero_imp {ι : Type*} [DecidableEq ι] {s : Finset ι} {a : ι → ℚ}
+    (h : ∑ i ∈ s, a i ^ 2 = 0) : ∀ i ∈ s, a i = 0 := by
+  intro i hi
+  have hnn : ∀ j ∈ s, (0 : ℚ) ≤ a j ^ 2 := fun j _ => sq_nonneg (a j)
+  have := Finset.sum_eq_zero_iff_of_nonneg hnn |>.mp h i hi
+  exact pow_eq_zero_iff (by norm_num : 2 ≠ 0) |>.mp this
+
+/-- For distinct equal-size κ-subsets (κ ≥ 1), the mlProj(boolFactorDerivProd S) are
+    linearly independent.
+
+    This generalises linearIndependent_mlProj_boolFactorDerivProd_disjoint by
+    removing the disjointness hypothesis.  The proof uses the sum-of-squares
+    / Gram-matrix argument: the matrix M_{S,T} = 2^|S∩T| is the Gram matrix
+    of indicator vectors ζ_S, hence positive semi-definite, and its kernel
+    is trivial because evaluating ∑ c_i ζ_{S_i} at U = S_j gives c_j
+    (using the equal-size distinctness). -/
+theorem linearIndependent_mlProj_boolFactorDerivProd_general {N κ : ℕ} (hκ : κ ≥ 1)
+    {F : Finset (Finset (Fin N))}
+    (hcard : ∀ S ∈ F, S.card = κ) :
+    LinearIndependent ℚ (fun S : F => mlProj (boolFactorDerivProd (S : Finset (Fin N)))) := by
+  rw [linearIndependent_iff']
+  intro s w hw i hi
+  -- Build c : Finset (Fin N) → ℚ from w
+  set c : Finset (Fin N) → ℚ := fun S =>
+    if h : S ∈ F then
+      if ⟨S, h⟩ ∈ s then w ⟨S, h⟩ else 0
+    else 0 with hc_def
+  -- The linear combination over F equals ∑ over s
+  have hzero_F : ∑ S ∈ F, c S • mlProj (boolFactorDerivProd S) = 0 := by
+    have : ∑ S ∈ F, c S • mlProj (boolFactorDerivProd S) =
+        ∑ S ∈ s, w S • mlProj (boolFactorDerivProd (S : Finset (Fin N))) := by
+      rw [show (∑ S ∈ F, c S • mlProj (boolFactorDerivProd S)) =
+          (∑ S ∈ F.attach, c (S : Finset (Fin N)) • mlProj (boolFactorDerivProd (S : Finset (Fin N)))) from by
+        rw [Finset.sum_attach F (fun S => c S • mlProj (boolFactorDerivProd S))]]
+      have hsplit : ∑ S ∈ F.attach, c (S : Finset (Fin N)) • mlProj (boolFactorDerivProd (S : Finset (Fin N))) =
+          ∑ S ∈ F.attach.filter (fun S => S ∈ s), c (S : Finset (Fin N)) • mlProj (boolFactorDerivProd (S : Finset (Fin N))) +
+          ∑ S ∈ F.attach.filter (fun S => S ∉ s), c (S : Finset (Fin N)) • mlProj (boolFactorDerivProd (S : Finset (Fin N))) := by
+        rw [← Finset.sum_filter_add_sum_filter_not F.attach (fun S => S ∈ s)]
+      rw [hsplit]
+      have hzero_part : ∑ S ∈ F.attach.filter (fun S => S ∉ s),
+          c (S : Finset (Fin N)) • mlProj (boolFactorDerivProd (S : Finset (Fin N))) = 0 := by
+        apply Finset.sum_eq_zero
+        intro ⟨S, hSF⟩ hmem
+        simp only [Finset.mem_filter, Finset.mem_attach, true_and] at hmem
+        have : c S = 0 := by
+          simp only [hc_def, dif_pos hSF, if_neg hmem]
+        rw [this, zero_smul]
+      rw [hzero_part, add_zero]
+      apply Finset.sum_nbij (fun S => S)
+      · intro ⟨S, hSF⟩ hmem
+        simp only [Finset.mem_filter, Finset.mem_attach, true_and] at hmem
+        exact hmem
+      · intro ⟨S₁, h₁⟩ _ ⟨S₂, h₂⟩ _ heq
+        exact heq
+      · intro ⟨S, hSF⟩ hmem
+        exact ⟨⟨S, hSF⟩, by simp [hmem], rfl⟩
+      · intro ⟨S, hSF⟩ hmem
+        simp only [Finset.mem_filter, Finset.mem_attach, true_and] at hmem
+        simp only [hc_def, dif_pos hSF, if_pos hmem]
+    rw [this, hw]
+  -- Extract coefficient at tagMonomial T for each T ∈ F
+  have hextract : ∀ T ∈ F, ∑ S ∈ F, c S * (2 : ℚ) ^ (T ∩ S).card = 0 := by
+    intro T hTF
+    have hcoeff_T : MvPolynomial.coeff (tagMonomial T)
+        (∑ S ∈ F, c S • mlProj (boolFactorDerivProd S)) = 0 := by
+      rw [hzero_F]; simp [MvPolynomial.coeff_zero]
+    simp only [coeff_sum, coeff_smul, smul_eq_mul] at hcoeff_T
+    convert hcoeff_T using 1
+    apply Finset.sum_congr rfl
+    intro S hS
+    rw [coeff_mlProj_boolFactorDerivProd_samesize T S (by rw [hcard T hTF, hcard S hS])]
+  -- Sum-of-squares argument:
+  -- ∑_{S,T ∈ F} c_S * c_T * 2^|S∩T|
+  --   = ∑_T c_T * (∑_S c_S * 2^|S∩T|)  [by the extracted equations]
+  --   = ∑_T c_T * 0 = 0
+  have hquad_zero : ∑ T ∈ F, ∑ S ∈ F, c T * c S * (2 : ℚ) ^ (T ∩ S).card = 0 := by
+    apply Finset.sum_eq_zero
+    intro T hT
+    rw [show ∑ S ∈ F, c T * c S * (2 : ℚ) ^ (T ∩ S).card =
+        c T * ∑ S ∈ F, c S * (2 : ℚ) ^ (T ∩ S).card from by
+      rw [Finset.mul_sum]; congr 1; ext S; ring]
+    rw [hextract T hT, mul_zero]
+  -- Now define g(U) = ∑_{S ∈ F} c_S * zetaIndicator S U
+  set g : Finset (Fin N) → ℚ := fun U => ∑ S ∈ F, c S * zetaIndicator S U with hg_def
+  -- Show ∑_U g(U)^2 = ∑_{S,T} c_S c_T * 2^|S∩T| = 0
+  set allSubsets := (Finset.univ : Finset (Fin N)).powerset with hall_def
+  have hg_sq_eq : ∑ U ∈ allSubsets, g U ^ 2 =
+      ∑ T ∈ F, ∑ S ∈ F, c T * c S * (2 : ℚ) ^ (T ∩ S).card := by
+    -- g(U)^2 = (∑_S c_S * ζ_S(U))^2 = ∑_{S,T} c_S c_T * ζ_S(U) * ζ_T(U)
+    simp only [hg_def, sq]
+    -- Step 1: expand product of sums
+    simp_rw [Finset.sum_mul_sum]
+    -- Step 2: swap order of summation ∑_U ∑_T ∑_S → ∑_T ∑_S ∑_U
+    rw [Finset.sum_comm (s := allSubsets) (t := F)]
+    congr 1
+    funext T
+    rw [Finset.sum_comm (s := allSubsets) (t := F)]
+    congr 1
+    funext S
+    -- Step 3: factor out c_T * c_S
+    rw [show ∑ U ∈ allSubsets,
+        (c T * zetaIndicator T U) * (c S * zetaIndicator S U) =
+        c T * c S * ∑ U ∈ allSubsets, zetaIndicator T U * zetaIndicator S U from by
+      rw [Finset.mul_sum]; congr 1; funext U; ring]
+    rw [zetaIndicator_inner_product]
+  -- Combined: ∑_U g(U)^2 = 0
+  have hg_sq_zero : ∑ U ∈ allSubsets, g U ^ 2 = 0 := by
+    rw [hg_sq_eq, hquad_zero]
+  -- Since sum of squares = 0 over ℚ, each g(U) = 0
+  have hg_zero : ∀ U ∈ allSubsets, g U = 0 := by
+    exact sum_sq_eq_zero_imp hg_sq_zero
+  -- Evaluate g at U = S_j: g(S_j) = c_{S_j}
+  -- because ζ_{S_i}(S_j) = 1_{S_j ⊆ S_i} = 1_{S_j = S_i} for same-size distinct subsets
+  have hg_eval : ∀ T ∈ F, g T = c T := by
+    intro T hTF
+    show ∑ S ∈ F, c S * zetaIndicator S T = c T
+    rw [show ∑ S ∈ F, c S * zetaIndicator S T =
+        c T * zetaIndicator T T + ∑ S ∈ F.erase T, c S * zetaIndicator S T from by
+      rw [← Finset.add_sum_erase F _ hTF]]
+    have h_diag : zetaIndicator T T = 1 := by
+      simp [zetaIndicator]
+    rw [h_diag, mul_one]
+    suffices h : ∑ S ∈ F.erase T, c S * zetaIndicator S T = 0 by linarith
+    apply Finset.sum_eq_zero
+    intro S hS
+    have hSF := Finset.mem_of_mem_erase hS
+    have hne := Finset.ne_of_mem_erase hS
+    have h_off : zetaIndicator S T = 0 := by
+      simp only [zetaIndicator]
+      rw [if_neg]
+      intro hsub
+      have := Finset.eq_of_subset_of_card_eq hsub (by rw [hcard T hTF, hcard S hSF])
+      exact hne (this.symm)
+    rw [h_off, mul_zero]
+  -- Conclude c_i = 0
+  have hci : c (i : Finset (Fin N)) = 0 := by
+    have hT_mem : (i : Finset (Fin N)) ∈ allSubsets := by
+      simp only [hall_def, Finset.mem_powerset]
+      exact Finset.subset_univ _
+    have := hg_zero _ hT_mem
+    rw [hg_eval (i : Finset (Fin N)) i.2] at this
+    exact this
+  simp only [hc_def, dif_pos i.2, if_pos hi] at hci
+  exact hci
+
 /-! ## Main result: mlBlockedSpdpRank lower bound for disjoint families -/
 
 /-- For m pairwise disjoint, block-admissible κ-subsets (κ ≥ 1) of Fin N,
