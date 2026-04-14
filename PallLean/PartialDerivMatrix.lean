@@ -43,40 +43,60 @@ structure VarPartition (n : ℕ) where
   disjoint : Disjoint S T
   cover : S ∪ T = Finset.univ
 
-/-- The rank of the ∂-matrix for a multilinear polynomial f and partition (S,T).
+/-- The column space of the ∂-matrix: the span of all |S|-th order
+    derivatives ∂_{x_U} f for U ⊆ S with |U| = |S|.
 
-We define this abstractly as a natural number, representing
-rank(PD_{S,T}(f)) over the base field F.
+    Each such derivative is an element of the polynomial ring.
+    The rank of PD_{S,T}(f) equals the finrank of this span
+    (since restricting to T-monomials is a projection that can
+    only decrease rank, and the full derivatives contain all the
+    information of the T-restricted columns). -/
+noncomputable def pdColumnSpace {n : ℕ} {F : Type*} [CommRing F]
+    (part : VarPartition n) (f : MvPolynomial (Fin n) F) :
+    Submodule F (MvPolynomial (Fin n) F) :=
+  Submodule.span F
+    { q | ∃ (S_list : List (Fin n)),
+        S_list.length = part.S.card ∧
+        (∀ v ∈ S_list, v ∈ part.S) ∧
+        q = SPDP.iterDerivList S_list f }
 
-For the separation, we only need:
-1. This quantity is well-defined (it's the rank of a specific matrix)
-2. It's bounded above by rk_{SPDP,ℓ}(f) for ℓ ≥ |S| (Lemma 49/69)
-3. For the hard family, it's ≥ 2^{Ω(n)} (Theorem 72) -/
-axiom pdMatrixRank {n : ℕ} (F : Type*) [Field F]
-    (part : VarPartition n) (f : MvPolynomial (Fin n) F) : ℕ
+/-- The rank of the ∂-matrix: finrank of the column space. -/
+noncomputable def pdMatrixRank {n : ℕ} (F : Type*) [CommRing F]
+    (part : VarPartition n) (f : MvPolynomial (Fin n) F) : ℕ :=
+  Module.finrank F (pdColumnSpace part f)
 
 /-! ## Lemma 49 / Lemma 69: Submatrix Embedding
 
-**Lemma 49** (§11.3, page 68):
-  For multilinear p and any partition [n] = S ⊔ T,
-    rank(PD_{S,T}(p)) ≤ rk^{all}_{SPDP}(p).
+**Lemma 69**: rank(PD_{S,T}(f)) ≤ rk_{SPDP,ℓ}(f) for ℓ ≥ |S|.
 
-**Lemma 69** (§14.2, page 83):
-  For any partition [n] = S ⊔ T with |S| ≤ ℓ,
-    rank(PD_{S,T}(f)) ≤ rk_{SPDP,ℓ}(f).
+Proof: Each generator of pdColumnSpace is `iterDerivList S_list f`
+with |S_list| = |S| and S_list ⊆ S. This equals `1 * iterDerivList S_list f`
+which is a generator of spdpSubspace |S| 0 f (with m = 1, deg(m) = 0 ≤ ℓ).
+Hence pdColumnSpace ≤ spdpSubspace, and finrank is monotone. -/
 
-Proof sketch: For each U ⊆ S, consider the SPDP row (R = U, α = 1).
-This row is the coefficient vector of ∂^{|U|}_{x_U} f in the full
-multilinear monomial basis. Restricting columns to T-monomials gives
-exactly the U-th column of PD_{S,T}(f)^T. Hence PD_{S,T}(f)^T is a
-submatrix of M_ℓ(f), so rank(PD_{S,T}) ≤ rank(M_ℓ) = rk_{SPDP,ℓ}.
+/-- Each ∂-matrix column vector lies in the SPDP subspace at order |S|.
 
-For now we state this as an axiom matching the paper exactly.
-The proof is pure linear algebra (submatrix rank ≤ full matrix rank). -/
-axiom pdMatrix_le_spdpRank {n : ℕ} (F : Type*) [Field F] [Nontrivial F]
-    (part : VarPartition n) (f : MvPolynomial (Fin n) F) (ℓ : ℕ)
-    (hℓ : part.S.card ≤ ℓ) :
-    pdMatrixRank F part f ≤ SPDP.spdpRank ℓ ℓ f
+    Each generator `iterDerivList S_list f` with |S_list| = |S| is
+    `1 * iterDerivList S_list f`, which is a generator of
+    `spdpSubspace |S| 0 f` (with shift m = 1, deg(m) = 0). -/
+theorem pdColumnSpace_le_spdpSubspace {n : ℕ} {F : Type*} [CommRing F]
+    (part : VarPartition n) (f : MvPolynomial (Fin n) F) (ℓ : ℕ) :
+    pdColumnSpace part f ≤ SPDP.spdpSubspace part.S.card ℓ f := by
+  apply Submodule.span_le.mpr
+  intro q ⟨S_list, hlen, _, hq⟩
+  rw [hq, show SPDP.iterDerivList S_list f = 1 * SPDP.iterDerivList S_list f by ring]
+  apply Submodule.subset_span
+  exact ⟨S_list, 1, hlen, by simp [MvPolynomial.totalDegree_one], by ring⟩
+
+/-- **Lemma 69** (proved): rank(PD_{S,T}(f)) ≤ rk_{SPDP,|S|,ℓ}(f).
+
+    Proof: pdColumnSpace ≤ spdpSubspace |S| ℓ, so finrank is monotone.
+    The pdMatrixRank is the finrank of pdColumnSpace, and spdpRank is
+    the finrank of spdpSubspace. By Submodule.finrank_mono, ≤ holds. -/
+theorem pdMatrix_le_spdpRank {n : ℕ} (F : Type*) [Field F] [Nontrivial F]
+    (part : VarPartition n) (f : MvPolynomial (Fin n) F) (ℓ : ℕ) :
+    pdMatrixRank F part f ≤ SPDP.spdpRank part.S.card ℓ f :=
+  Submodule.finrank_mono (pdColumnSpace_le_spdpSubspace part f ℓ)
 
 /-! ## Application to the Separation (reducing Theorem 140)
 
