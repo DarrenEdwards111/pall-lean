@@ -1089,4 +1089,57 @@ theorem locallyBoundedClassifiedSet_finite {n L : ℕ}
   rcases hd with ⟨_, _, hd_bound⟩
   exact ⟨fun i => ⟨d i, hd_bound i⟩, Set.mem_univ _, funext (fun _ => rfl)⟩
 
+/-! ## Part 17: Using finiteness for finrank bounds
+
+With the classified sets proved finite, we can bound the finrank of the
+per-S-shift post-span by the cardinality of the classified set's image. -/
+
+/-- For degree-2 factors, the per-S-shift post-span has finrank bounded by
+    the number of locally bounded classified elements.
+
+    Proof: The post-span is contained in the span of the post-processed
+    image of the locally bounded classified set (Part 12). The image is
+    finite (Part 16). The finrank of the span of a finite set ≤ its
+    cardinality (finrank_span_le_card). -/
+theorem boundedProfilePostSpan_finrank_le_card_locallyBounded {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hfactors : ∀ i, (factors i).totalDegree ≤ 2)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ)
+    (h : ProfileHistogram) :
+    Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h) ≤
+      (locallyBoundedClassifiedSet_finite factors constraintType S h).toFinset.card := by
+  -- Post-span ≤ span of post-processed locally bounded set (Part 12)
+  have hle := boundedProfilePostSpan_le_locallyBounded_for_degree2
+    factors hfactors constraintType S shift h
+  -- The post-processed image is finite
+  have hfin_img := (locallyBoundedClassifiedSet_finite factors constraintType S h).image
+    (fun g => mlProj (shift * g))
+  haveI : Fintype ↥((fun g => mlProj (shift * g)) ''
+      locallyBoundedClassifiedSet factors constraintType S h) := hfin_img.fintype
+  -- Give Fintype instances for the finite sets
+  haveI : Fintype ↥(locallyBoundedClassifiedSet factors constraintType S h) :=
+    (locallyBoundedClassifiedSet_finite factors constraintType S h).fintype
+  -- The post-processed image set is finite
+  let imgSet := (fun g => mlProj (shift * g)) '' locallyBoundedClassifiedSet factors constraintType S h
+  -- Build a Finset that spans the post-span
+  let G : Finset (MvPolynomial (Fin n) ℚ) :=
+    Finset.image (fun g => mlProj (shift * g))
+      (locallyBoundedClassifiedSet_finite factors constraintType S h).toFinset
+  have hG_span : boundedProfilePostSpan factors constraintType S shift h ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ)) := by
+    apply le_trans hle
+    apply Submodule.span_mono
+    intro q hq
+    rcases hq with ⟨g, hg, rfl⟩
+    simp only [G, Finset.coe_image, Set.mem_image]
+    exact ⟨g, (Set.Finite.mem_toFinset _).mpr hg, rfl⟩
+  -- finrank(post-span) ≤ finrank(span G) ≤ card G ≤ card of locally bounded set
+  calc Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h)
+      ≤ Module.finrank ℚ ↥(Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))) :=
+        Submodule.finrank_mono hG_span
+    _ ≤ G.card := finrank_span_finset_le_card G
+    _ ≤ (locallyBoundedClassifiedSet_finite factors constraintType S h).toFinset.card :=
+        Finset.card_image_le
+
 end WithinProfileBound
