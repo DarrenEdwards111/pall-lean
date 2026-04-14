@@ -1906,4 +1906,181 @@ theorem perSShift_finrank_le_atomProducts {n L : ℕ}
         rw [this]
         exact finrank_span_finset_le_card _
 
+/-! ## Part 23: mlProj multiplicativity for disjoint-vars products
+
+Key lemma: mlProj(p * q) = mlProj(p) * mlProj(q) when vars(p) ∩ vars(q) = ∅.
+
+This is the foundation of the variable-confinement argument for the
+all-S union bound. When factors have disjoint block structure, the
+mlProj of a product factors into a product of mlProj's. This means
+generators in allBoundedProfilePostSpan factor as
+  mlProj(touched-block terms) × mlProj(untouched-block product)
+where the untouched part is fixed across generators. -/
+
+/-- Helper: for α in the support of mlProj(p), we have IsMultilinear α. -/
+theorem isMultilinear_of_mem_mlProj_support {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p : MvPolynomial σ F) (α : σ →₀ ℕ) (hα : α ∈ (mlProj p).support) :
+    Finsupp.IsMultilinear α := by
+  by_contra h_neg
+  have : MvPolynomial.coeff α (mlProj p) = 0 := by
+    show (Finsupp.filter (fun β => Finsupp.IsMultilinear β) p) α = 0
+    rw [Finsupp.filter_apply]
+    exact if_neg h_neg
+  exact absurd this (Finsupp.mem_support_iff.mp hα)
+
+/-- The support of mlProj(p) is contained in the support of p restricted
+    to multilinear monomials. -/
+theorem mlProj_support_subset {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p : MvPolynomial σ F) :
+    (mlProj p).support ⊆ p.support.filter (fun α => Finsupp.IsMultilinear α) := by
+  intro α hα
+  simp only [Finsupp.mem_support_iff] at hα ⊢
+  simp only [Finset.mem_filter, Finsupp.mem_support_iff]
+  constructor
+  · intro hc
+    have : (mlProj p) α = 0 := by
+      show (Finsupp.filter _ p) α = 0
+      rw [Finsupp.filter_apply, if_pos (isMultilinear_of_mem_mlProj_support p α
+        (Finsupp.mem_support_iff.mpr hα))]
+      exact hc
+    exact absurd this hα
+  · exact isMultilinear_of_mem_mlProj_support p α (Finsupp.mem_support_iff.mpr hα)
+
+/-- The coefficient of mlProj: it's the original coefficient for multilinear
+    monomials and 0 otherwise. -/
+theorem coeff_mlProj {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p : MvPolynomial σ F) (α : σ →₀ ℕ) :
+    MvPolynomial.coeff α (mlProj p) =
+      if Finsupp.IsMultilinear α then MvPolynomial.coeff α p else 0 := by
+  show (Finsupp.filter (fun β => Finsupp.IsMultilinear β) p) α = _
+  rw [Finsupp.filter_apply]
+
+/-- For Finsupp with disjoint supports, the sum is multilinear iff both are. -/
+theorem isMultilinear_add_of_disjoint_support {σ : Type*} [DecidableEq σ]
+    (β γ : σ →₀ ℕ) (hdisj : Disjoint β.support γ.support) :
+    Finsupp.IsMultilinear (β + γ) ↔
+      Finsupp.IsMultilinear β ∧ Finsupp.IsMultilinear γ := by
+  constructor
+  · intro h_ml
+    constructor
+    · intro i
+      have := h_ml i
+      simp only [Finsupp.coe_add, Pi.add_apply] at this
+      omega
+    · intro i
+      have := h_ml i
+      simp only [Finsupp.coe_add, Pi.add_apply] at this
+      omega
+  · intro ⟨hβ, hγ⟩ i
+    simp only [Finsupp.coe_add, Pi.add_apply]
+    have := Finset.disjoint_iff_ne.mp hdisj
+    by_cases hi_β : i ∈ β.support
+    · have hi_γ : i ∉ γ.support := by
+        intro hi_γ
+        exact absurd rfl (this i hi_β i hi_γ)
+      rw [Finsupp.not_mem_support_iff.mp hi_γ, add_zero]
+      exact hβ i
+    · rw [Finsupp.not_mem_support_iff.mp hi_β, zero_add]
+      exact hγ i
+
+/-- Key disjointness: if α ∈ supp(p) and β ∈ supp(q) and vars(p) ∩ vars(q) = ∅,
+    then supp(α) and supp(β) are disjoint as Finset. -/
+theorem support_disjoint_of_vars_disjoint {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p q : MvPolynomial σ F)
+    (hvars : Disjoint (MvPolynomial.vars p) (MvPolynomial.vars q))
+    (α β : σ →₀ ℕ)
+    (hα : α ∈ p.support) (hβ : β ∈ q.support) :
+    Disjoint α.support β.support := by
+  rw [Finset.disjoint_iff_ne]
+  intro i hi j hj hij
+  subst hij
+  have hi_vars_p : i ∈ MvPolynomial.vars p :=
+    MvPolynomial.mem_vars.mpr ⟨α, hα, Finsupp.mem_support_iff.mp hi⟩
+  have hi_vars_q : i ∈ MvPolynomial.vars q :=
+    MvPolynomial.mem_vars.mpr ⟨β, hβ, Finsupp.mem_support_iff.mp hj⟩
+  exact Finset.disjoint_iff_ne.mp hvars i hi_vars_p i hi_vars_q rfl
+
+/-- mlProj is multiplicative for polynomials with disjoint variable sets.
+
+    Proof sketch: at each multilinear monomial α, the contributing terms
+    in p*q come from pairs (β, γ) with β ∈ supp(p), γ ∈ supp(q),
+    β+γ = α. Since vars are disjoint, supp(β) and supp(γ) are disjoint,
+    so α is multilinear iff both β and γ are. Hence the multilinear
+    filtering distributes. -/
+theorem mlProj_mul_of_vars_disjoint {n : ℕ}
+    (p q : MvPolynomial (Fin n) ℚ)
+    (hvars : Disjoint (MvPolynomial.vars p) (MvPolynomial.vars q)) :
+    mlProj (p * q) = mlProj p * mlProj q := by
+  ext α
+  rw [coeff_mlProj]
+  rw [MvPolynomial.coeff_mul, MvPolynomial.coeff_mul]
+  split_ifs with hα_ml
+  · -- α is multilinear: show the sums agree
+    -- LHS: ∑_{β+γ=α} coeff β p · coeff γ q
+    -- RHS: ∑_{β+γ=α} coeff β (mlProj p) · coeff γ (mlProj q)
+    apply Finset.sum_congr rfl
+    intro ⟨β, γ⟩ hbg
+    simp only [Finset.mem_antidiagonal] at hbg
+    rw [coeff_mlProj, coeff_mlProj]
+    -- Need: if coeff β p ≠ 0 and coeff γ q ≠ 0, then β and γ are both multilinear
+    -- And if β+γ=α is multilinear but β or γ is not multilinear, then coeff is 0 on that side
+    by_cases hβ_ml : Finsupp.IsMultilinear β
+    · by_cases hγ_ml : Finsupp.IsMultilinear γ
+      · simp [hβ_ml, hγ_ml]
+      · simp [hγ_ml]
+        -- Need to show coeff β p * coeff γ q = 0
+        -- If coeff γ q ≠ 0, then γ ∈ supp(q), and with β+γ=α multilinear
+        -- and vars disjoint, γ must be multilinear. Contradiction.
+        by_cases hγq : MvPolynomial.coeff γ q = 0
+        · simp [hγq]
+        · exfalso
+          apply hγ_ml
+          have hγ_supp : γ ∈ q.support := Finsupp.mem_support_iff.mpr hγq
+          -- If β ∈ supp(p), disjoint supports give the result
+          -- But β might not be in supp(p). However α = β+γ is multilinear.
+          -- Since γ is in supp(q), supp(γ) ⊆ vars(q).
+          -- For i ∈ supp(γ): γ(i) ≤ α(i) ≤ 1 (since α is multilinear)
+          intro i
+          have := hα_ml i
+          rw [hbg] at this
+          simp only [Finsupp.coe_add, Pi.add_apply] at this
+          omega
+    · simp [hβ_ml]
+      by_cases hβp : MvPolynomial.coeff β p = 0
+      · simp [hβp]
+      · exfalso
+        apply hβ_ml
+        intro i
+        have := hα_ml i
+        rw [hbg] at this
+        simp only [Finsupp.coe_add, Pi.add_apply] at this
+        omega
+  · -- α is not multilinear: show the sum is 0
+    apply Finset.sum_eq_zero
+    intro ⟨β, γ⟩ hbg
+    simp only [Finset.mem_antidiagonal] at hbg
+    rw [coeff_mlProj, coeff_mlProj]
+    -- Show: either β is not multilinear or γ is not multilinear
+    -- (given β+γ=α is not multilinear)
+    -- OR if both are multilinear, the product of coefficients is 0
+    by_cases hβ_ml : Finsupp.IsMultilinear β
+    · by_cases hγ_ml : Finsupp.IsMultilinear γ
+      · simp [hβ_ml, hγ_ml]
+        -- Both β and γ multilinear but α = β+γ not multilinear
+        -- Need: if coeff β p ≠ 0 and coeff γ q ≠ 0, contradiction
+        -- because then supp(β) ⊆ vars(p), supp(γ) ⊆ vars(q), disjoint,
+        -- so β+γ is multilinear, contradiction.
+        by_cases hβp : MvPolynomial.coeff β p = 0
+        · simp [hβp]
+        · right
+          intro hγq
+          apply hα_ml
+          have hβ_supp : β ∈ p.support := Finsupp.mem_support_iff.mpr hβp
+          have hγ_supp : γ ∈ q.support := Finsupp.mem_support_iff.mpr hγq
+          have := support_disjoint_of_vars_disjoint p q hvars β γ hβ_supp hγ_supp
+          rw [← hbg]
+          exact (isMultilinear_add_of_disjoint_support β γ this).mpr ⟨hβ_ml, hγ_ml⟩
+      · simp [hγ_ml]
+    · simp [hβ_ml]
+
 end WithinProfileBound
