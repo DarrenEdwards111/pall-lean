@@ -438,4 +438,128 @@ theorem coeff_iterDeriv_mul_inertR {n : ℕ}
   have := coeff_iterDeriv_mul_goodR m S V hSV S.length (le_refl _) f R hR_good
   rw [this, hR_const, mul_one]
 
+/-! ## Step 8: GoodAllDepthsR and closure under multiplication -/
+
+/-- A polynomial satisfies GoodToDepthR at all depths, restricted to V. -/
+def GoodAllDepthsR {n : ℕ} (R : MvPolynomial (Fin n) ℚ) (m : Fin n →₀ ℕ)
+    (V : Finset (Fin n)) : Prop :=
+  (∀ d : ℕ, GoodToDepthR R m V d) ∧
+  (∀ s ∈ V, MvPolynomial.coeff 0 (MvPolynomial.pderiv s R) = 0)
+
+/-- GoodAllDepthsR is preserved by pderiv for s ∈ V. -/
+theorem goodAllDepthsR_pderiv {n : ℕ} (R : MvPolynomial (Fin n) ℚ) (m : Fin n →₀ ℕ)
+    (V : Finset (Fin n)) (s : Fin n) (hs : s ∈ V)
+    (h : GoodAllDepthsR R m V) : GoodAllDepthsR (MvPolynomial.pderiv s R) m V := by
+  constructor
+  · intro d
+    exact goodToDepthR_pderiv R m V d s hs (h.1 (d + 1))
+  · intro s' hs'
+    exact ((h.1 2).2 s hs).2.2 s' hs' |>.1
+
+/-- GoodToDepthR is closed under addition. -/
+theorem goodToDepthR_add {n : ℕ} (R₁ R₂ : MvPolynomial (Fin n) ℚ) (m : Fin n →₀ ℕ)
+    (V : Finset (Fin n)) (d : ℕ)
+    (h₁ : GoodToDepthR R₁ m V d) (h₂ : GoodToDepthR R₂ m V d) :
+    GoodToDepthR (R₁ + R₂) m V d := by
+  induction d generalizing R₁ R₂ with
+  | zero =>
+    intro b hb hle
+    rw [MvPolynomial.coeff_add, h₁ b hb hle, h₂ b hb hle, add_zero]
+  | succ d ih =>
+    constructor
+    · intro b hb hle
+      rw [MvPolynomial.coeff_add, h₁.1 b hb hle, h₂.1 b hb hle, add_zero]
+    · intro s hs
+      constructor
+      · rw [map_add (MvPolynomial.pderiv s), MvPolynomial.coeff_add,
+          (h₁.2 s hs).1, (h₂.2 s hs).1, add_zero]
+      · rw [map_add (MvPolynomial.pderiv s)]
+        exact ih _ _ (h₁.2 s hs).2 (h₂.2 s hs).2
+
+/-- Core lemma: products of GoodAllDepthsR polynomials have GoodToDepthR at any depth. -/
+private theorem goodToDepthR_mul_aux {n : ℕ} (d : ℕ) :
+    ∀ (R₁ R₂ : MvPolynomial (Fin n) ℚ) (m : Fin n →₀ ℕ) (V : Finset (Fin n)),
+    GoodAllDepthsR R₁ m V → GoodAllDepthsR R₂ m V →
+    GoodToDepthR (R₁ * R₂) m V d := by
+  induction d with
+  | zero =>
+    intro R₁ R₂ m V h₁ h₂
+    exact noSubmono_mul R₁ R₂ m (h₁.1 0) (h₂.1 0)
+  | succ d ih =>
+    intro R₁ R₂ m V h₁ h₂
+    constructor
+    · exact noSubmono_mul R₁ R₂ m (h₁.1 0) (h₂.1 0)
+    · intro s hs
+      constructor
+      · rw [MvPolynomial.pderiv_mul, MvPolynomial.coeff_add,
+          coeff_zero_mul, coeff_zero_mul, h₁.2 s hs, h₂.2 s hs, zero_mul, mul_zero, add_zero]
+      · rw [MvPolynomial.pderiv_mul]
+        apply goodToDepthR_add
+        · exact ih _ _ m V (goodAllDepthsR_pderiv R₁ m V s hs h₁) h₂
+        · exact ih _ _ m V h₁ (goodAllDepthsR_pderiv R₂ m V s hs h₂)
+
+/-- GoodAllDepthsR is closed under polynomial multiplication. -/
+theorem goodAllDepthsR_mul {n : ℕ}
+    (R₁ R₂ : MvPolynomial (Fin n) ℚ) (m : Fin n →₀ ℕ) (V : Finset (Fin n))
+    (h₁ : GoodAllDepthsR R₁ m V) (h₂ : GoodAllDepthsR R₂ m V) :
+    GoodAllDepthsR (R₁ * R₂) m V := by
+  constructor
+  · intro d
+    exact goodToDepthR_mul_aux d R₁ R₂ m V h₁ h₂
+  · intro s hs
+    rw [MvPolynomial.pderiv_mul, MvPolynomial.coeff_add,
+      coeff_zero_mul, coeff_zero_mul, h₁.2 s hs, h₂.2 s hs, zero_mul, mul_zero, add_zero]
+
+/-- GoodAllDepthsR for a list product. -/
+theorem goodAllDepthsR_list_prod {n : ℕ}
+    (L : List (MvPolynomial (Fin n) ℚ)) (m : Fin n →₀ ℕ) (V : Finset (Fin n))
+    (hL : ∀ p ∈ L, GoodAllDepthsR p m V) :
+    GoodAllDepthsR L.prod m V := by
+  induction L with
+  | nil =>
+    simp only [List.prod_nil]
+    constructor
+    · intro d
+      induction d with
+      | zero => exact noSubmono_one m
+      | succ d ih =>
+        constructor
+        · exact noSubmono_one m
+        · intro s _
+          simp only [MvPolynomial.pderiv_one]
+          exact ⟨by simp [MvPolynomial.coeff_zero], (goodAllDepthsR_zero m V).1 d⟩
+    · intro s _
+      simp [MvPolynomial.pderiv_one, MvPolynomial.coeff_zero]
+  | cons p rest ih =>
+    simp only [List.prod_cons]
+    exact goodAllDepthsR_mul p rest.prod m V
+      (hL p (by simp))
+      (ih (fun q hq => hL q (by simp [hq])))
+where
+  goodAllDepthsR_zero (m : Fin n →₀ ℕ) (V : Finset (Fin n)) :
+      GoodAllDepthsR (0 : MvPolynomial (Fin n) ℚ) m V := by
+    constructor
+    · intro d
+      induction d with
+      | zero => intro b _ _; simp [MvPolynomial.coeff_zero]
+      | succ d ih =>
+        constructor
+        · intro b _ _; simp [MvPolynomial.coeff_zero]
+        · intro s _; simp only [map_zero]
+          exact ⟨by simp [MvPolynomial.coeff_zero], ih⟩
+    · intro s _; simp [map_zero, MvPolynomial.coeff_zero]
+  goodAllDepthsR_C (c : ℚ) (m : Fin n →₀ ℕ) (V : Finset (Fin n)) :
+      GoodAllDepthsR (MvPolynomial.C c : MvPolynomial (Fin n) ℚ) m V := by
+    constructor
+    · intro d
+      induction d with
+      | zero => intro b hb _; rw [MvPolynomial.coeff_C, if_neg (Ne.symm hb)]
+      | succ d ih =>
+        constructor
+        · intro b hb _; rw [MvPolynomial.coeff_C, if_neg (Ne.symm hb)]
+        · intro s _
+          rw [MvPolynomial.pderiv_C]
+          exact ⟨by simp [MvPolynomial.coeff_zero], (goodAllDepthsR_zero m V).1 d⟩
+    · intro s _; rw [MvPolynomial.pderiv_C]; simp [MvPolynomial.coeff_zero]
+
 end CrossTermVanishing
