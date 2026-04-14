@@ -558,6 +558,25 @@ theorem hasFiniteProfileCover_of_boundedWithinProfileFinrank {n L : ℕ}
     -- g ∈ boundedProfileClassifiedSet with profile = bp.toHistogram
     exact ⟨d, hd_elts, hg_eq, rfl, by simpa using hd_len⟩
 
+/-- BoundedWithinProfileFinrankClaim implies the SPDP rank bound.
+
+    This is the clean reduction: if each bounded-distribution profile subspace
+    has finrank ≤ (κ+1)^8, then the total SPDP rank is ≤ (κ+1)^12.
+
+    Once BoundedWithinProfileFinrankClaim is proved for the Cook-Levin
+    compiled polynomial, this gives the rank bound without the axiom
+    spdp_profile_generators. -/
+theorem rank_bound_of_boundedWithinProfileFinrank {n L : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (p : MvPolynomial (Fin n) ℚ)
+    (hp : p = Finset.univ.prod factors)
+    (hwithin : BoundedWithinProfileFinrankClaim B κ ℓ factors constraintType) :
+    mlBlockedSpdpRank B κ ℓ p ≤ combinedProfileBound κ :=
+  rank_le_combinedBound_of_hasFiniteProfileCover B κ ℓ p
+    (hasFiniteProfileCover_of_boundedWithinProfileFinrank B κ ℓ factors constraintType p hp hwithin)
+
 /-! ## Part 9: Arithmetic identities for the profile bounds -/
 
 /-- The within-profile bound ∏_τ C(h(τ)+2,2) ≤ (κ+1)^8 matches the
