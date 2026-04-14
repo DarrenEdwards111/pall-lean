@@ -339,6 +339,106 @@ theorem iterDeriv_zeroTestPoly (n : ℕ) (js : List (Fin n)) (hnd : js.Nodup) :
   unfold zeroTestPoly
   exact iterDeriv_clauseGadget_prod n Finset.univ js hnd (fun j _ => Finset.mem_univ j)
 
+/-! ### SPDP subspace connection and rank lower bound
+
+Each (n-κ)-gadget product ∏_{k ∈ cs} g_k is a κ-fold iterated derivative of Z_n
+(differentiated by the first-variables of the κ complement clauses), so it lies
+in the SPDP subspace spdpSubspace κ 0 (zeroTestPoly n).
+
+Combined with linear independence (identity minor), this gives
+  spdpRank κ 0 (zeroTestPoly n) ≥ C(n, κ).
+-/
+
+/-- Helper: list product of clauseGadgets equals finset product for a nodup list. -/
+private theorem clauseGadget_list_prod_eq_finset_prod (n : ℕ) (cs : List (Fin n))
+    (hnd : cs.Nodup) :
+    (cs.map (clauseGadget n)).prod = cs.toFinset.prod (clauseGadget n) := by
+  induction cs with
+  | nil => simp
+  | cons j rest ih =>
+    have hnd_rest := (List.nodup_cons.mp hnd).2
+    have hj_notin := (List.nodup_cons.mp hnd).1
+    simp only [List.map_cons, List.prod_cons]
+    rw [ih hnd_rest, List.toFinset_cons,
+        Finset.prod_insert (by simpa using hj_notin)]
+
+/-- Each (n-κ)-gadget product (indexed by `getClauseSubset sys (n-κ) i`) lies
+    in the SPDP subspace of Z_n at derivative order κ. -/
+theorem complement_prod_mem_spdpSubspace (n : ℕ) (hn : n ≥ 1) (κ : ℕ) (hκ : κ ≤ n)
+    (i : Fin (Nat.choose n (n - κ))) :
+    IdentityMinorReal.gadgetProd (hard_family_clause_system n hn)
+      (IdentityMinorReal.getClauseSubset (hard_family_clause_system n hn) (n - κ) i) ∈
+    SPDP.spdpSubspace κ 0 (zeroTestPoly n) := by
+  -- The clause system has numClauses = n
+  have hnum : (hard_family_clause_system n hn).numClauses = n := rfl
+  have hnum3 : (hard_family_clause_system n hn).numVars = 3 * n := rfl
+  -- Work with the clause list cs : List (Fin n)
+  have hnd_cs : (IdentityMinorReal.getClauseSubset (hard_family_clause_system n hn) (n - κ) i).Nodup :=
+    IdentityMinorReal.getClauseSubset_nodup (hard_family_clause_system n hn) (n - κ) i
+  have hcs_len : (IdentityMinorReal.getClauseSubset (hard_family_clause_system n hn) (n - κ) i).length = n - κ :=
+    IdentityMinorReal.getClauseSubset_length (hard_family_clause_system n hn) (n - κ) i
+  -- js = complement clause indices; its toList elements have type Fin n
+  let cs := IdentityMinorReal.getClauseSubset (hard_family_clause_system n hn) (n - κ) i
+  -- js is a list of elements of Finset.univ : Finset (Fin n)
+  let js := (Finset.univ \ cs.toFinset).toList
+  have hnd_js : js.Nodup := Finset.nodup_toList _
+  have hjs_card : js.length = κ := by
+    have hlen : js.length = (Finset.univ \ cs.toFinset : Finset (Fin n)).card := by
+      simp [js, Finset.length_toList]
+    rw [hlen, Finset.card_sdiff]
+    have hcard_cs : cs.toFinset.card = n - κ := by
+      rw [List.toFinset_card_of_nodup hnd_cs, hcs_len]
+    simp [hcard_cs]
+    omega
+  -- The first-variable embedding Fin n → Fin (3*n): j ↦ ⟨3j, ...⟩
+  let firstVar : Fin n → Fin (3 * n) := fun j => ⟨3 * j.val, by omega⟩
+  -- Iterated derivative of Z_n by firstVar(js) gives cs.toFinset.prod g
+  have hderiv : SPDP.iterDerivList (js.map firstVar) (zeroTestPoly n) =
+      cs.toFinset.prod (clauseGadget n) := by
+    have hiter := @iterDeriv_zeroTestPoly n js hnd_js
+    simp only [firstVar] at hiter ⊢
+    rw [hiter]
+    -- (Finset.univ \ js.toFinset).prod g = cs.toFinset.prod g
+    congr 1
+    simp only [js, Finset.toList_toFinset]
+    ext x; simp [Finset.mem_sdiff]
+  -- gadgetProd sys cs = cs.toFinset.prod (clauseGadget n)
+  have hprod : IdentityMinorReal.gadgetProd (hard_family_clause_system n hn) cs =
+      cs.toFinset.prod (clauseGadget n) :=
+    clauseGadget_list_prod_eq_finset_prod n cs hnd_cs
+  -- The spdpSubspace generator witness: 1 * iterDerivList (firstVar <$> js) (zeroTestPoly n)
+  rw [hprod, ← hderiv]
+  apply Submodule.subset_span
+  refine ⟨js.map firstVar, 1, ?_, ?_, ?_⟩
+  · simp [hjs_card]
+  · simp [MvPolynomial.totalDegree_one]
+  · simp
+
+/-- The SPDP rank of Z_n is at least C(n, κ) for any κ ≤ n.
+    Uses C(n, n-κ) = C(n, κ) linearly independent complement products (from the
+    identity minor) that each lie in the SPDP subspace at derivative order κ. -/
+theorem zeroTestPoly_spdpRank_lower_bound_concrete (n : ℕ) (hn : n ≥ 1) (κ : ℕ) (hκ : κ ≤ n) :
+    Nat.choose n κ ≤ SPDP.spdpRank κ 0 (zeroTestPoly n) := by
+  rw [← Nat.choose_symm hκ]   -- C(n,κ) = C(n,n-κ)
+  have hli := IdentityMinorReal.identity_minor_rank_bound
+    (hard_family_clause_system n hn) (n - κ)
+  have hmem := complement_prod_mem_spdpSubspace n hn κ hκ
+  unfold SPDP.spdpRank
+  -- Embed the linearly independent family into the submodule
+  set f : Fin (Nat.choose n (n - κ)) → SPDP.spdpSubspace κ 0 (zeroTestPoly n) :=
+    fun i => ⟨IdentityMinorReal.gadgetProd (hard_family_clause_system n hn)
+        (IdentityMinorReal.getClauseSubset (hard_family_clause_system n hn) (n - κ) i),
+      hmem i⟩
+  have hli_sub : LinearIndependent ℚ f := by
+    rw [linearIndependent_iff'] at hli ⊢
+    intro s w hw j hj
+    apply hli s w _ j hj
+    have := congr_arg Subtype.val hw
+    simp only [Submodule.coe_sum, Submodule.coe_smul, Submodule.coe_mk,
+      Submodule.coe_zero, ZeroMemClass.coe_zero] at this
+    exact this
+  simpa using hli_sub.fintype_card_le_finrank
+
 /-! ### SPDP rank lower bound for Z_n
 
 The complement products {∏_{k ∉ S} g_k : |S| = κ} are linearly independent
