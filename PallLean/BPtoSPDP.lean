@@ -175,16 +175,116 @@ theorem bp_matrix_product_form
     (B : LayeredBP n) :
     B.poly (F := F) = B.matrixProd B.target B.source := rfl
 
-/-- (Step 2) Leibniz localisation.
+/-!
+### (Step 2) Leibniz localisation
 
-    For a product of matrices M_0 · M_1 · ... · M_{L'-1}, the partial
-    derivative ∂_{x_i} distributes via the Leibniz rule to give a sum
-    over layers τ of the product with ∂_{x_i} M_τ in slot τ and the
-    original M_σ for σ ≠ τ.
+For a product of matrices M_0 · M_1 · ... · M_{L'-1}, the partial
+derivative ∂_{x_i} distributes via the Leibniz rule to give a sum
+over layers τ of the product with ∂_{x_i} M_τ in slot τ and the
+original M_σ for σ ≠ τ.
 
-    The full proof involves induction on L' and distributivity of pderiv
-    over multiplication; it is axiomatized here. -/
-axiom bp_leibniz_localisation
+We prove this via:
+(a) `pderiv_matrix_mul`: pderiv distributes over matrix multiplication,
+(b) `pderiv_list_prod_matrix_eq`: Leibniz for list products of matrices,
+(c) `finRange_filter_lt/gt`: filter on finRange equals take/drop.
+-/
+
+/-- The pointwise partial derivative of a polynomial matrix. -/
+private noncomputable def matPderiv {n W : ℕ} {F : Type*} [CommRing F]
+    (i : Fin n) (M : Matrix (Fin W) (Fin W) (MvPolynomial (Fin n) F)) :
+    Matrix (Fin W) (Fin W) (MvPolynomial (Fin n) F) :=
+  Matrix.of (fun v u => MvPolynomial.pderiv i (M v u))
+
+/-- Partial derivative distributes over matrix multiplication:
+    ∂_i (A * B) = (∂_i A) * B + A * (∂_i B). -/
+private theorem pderiv_matrix_mul {n W : ℕ} {F : Type*} [CommRing F]
+    (i : Fin n)
+    (A B : Matrix (Fin W) (Fin W) (MvPolynomial (Fin n) F)) :
+    matPderiv i (A * B) = matPderiv i A * B + A * matPderiv i B := by
+  ext v u
+  simp only [matPderiv, Matrix.of_apply, Matrix.add_apply, Matrix.mul_apply]
+  simp only [map_sum, MvPolynomial.pderiv_mul]
+  rw [← Finset.sum_add_distrib]
+
+/-- Leibniz rule for list products of polynomial matrices:
+    ∂_i (∏ Ms) = ∑ k, (take k Ms).prod * (∂_i Ms[k]) * (drop (k+1) Ms).prod. -/
+private theorem pderiv_list_prod_matrix_eq {n W : ℕ} {F : Type*} [CommRing F]
+    (i : Fin n)
+    (Ms : List (Matrix (Fin W) (Fin W) (MvPolynomial (Fin n) F))) :
+    matPderiv i Ms.prod =
+      ∑ k : Fin Ms.length,
+        (Ms.take k.val).prod * matPderiv i (Ms.get k) * (Ms.drop (k.val + 1)).prod := by
+  induction Ms with
+  | nil =>
+    simp only [List.length_nil, Fin.sum_univ_zero]
+    ext v u
+    simp [matPderiv, Matrix.one_apply, map_zero]
+    split_ifs with h
+    · subst h; simp [MvPolynomial.pderiv_one]
+    · simp [map_zero]
+  | cons M rest ih =>
+    simp only [List.length_cons, List.prod_cons]
+    rw [pderiv_matrix_mul, ih]
+    rw [Fin.sum_univ_succ]
+    simp only [Fin.val_zero, List.take_zero, List.prod_nil, one_mul, List.get_cons_zero,
+               List.drop_succ_cons]
+    congr 1
+    rw [Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro k _
+    simp only [Fin.val_succ, List.take_succ_cons, List.prod_cons,
+               show (M :: rest).get k.succ = rest.get k from by simp]
+    rw [← Matrix.mul_assoc, ← Matrix.mul_assoc]
+
+/-- filter (· < τ) on finRange L equals take τ.val (finRange L). -/
+private lemma finRange_filter_lt (L : ℕ) (τ : Fin L) :
+    (List.finRange L).filter (· < τ) = (List.finRange L).take τ.val := by
+  induction L with
+  | zero => exact τ.elim0
+  | succ L ih =>
+    rw [List.finRange_succ]
+    rcases Fin.eq_zero_or_eq_succ τ with rfl | ⟨τ', rfl⟩
+    · simp [Fin.not_lt_zero]
+    · simp only [Fin.val_succ, List.take_succ_cons, List.filter_cons]
+      split_ifs with h
+      · congr 1
+        rw [List.filter_map]
+        rw [show ((fun x : Fin (L+1) => decide (x < Fin.succ τ')) ∘ (Fin.succ : Fin L → Fin (L+1))) =
+               (fun x : Fin L => decide (x < τ')) from by ext σ; simp [Fin.succ_lt_succ_iff]]
+        rw [ih τ', List.map_take]
+      · exfalso; apply h; simp [Fin.lt_def]
+
+/-- filter (τ < ·) on finRange L equals drop (τ.val + 1) (finRange L). -/
+private lemma finRange_filter_gt (L : ℕ) (τ : Fin L) :
+    (List.finRange L).filter (fun σ => τ < σ) = (List.finRange L).drop (τ.val + 1) := by
+  induction L with
+  | zero => exact τ.elim0
+  | succ L ih =>
+    rw [List.finRange_succ]
+    rcases Fin.eq_zero_or_eq_succ τ with rfl | ⟨τ', rfl⟩
+    · simp only [Fin.val_zero, Nat.zero_add, List.drop_one, List.tail_cons, List.filter_cons]
+      split_ifs with h
+      · exfalso; simp at h
+      · rw [List.filter_map]
+        have hall : (List.filter ((fun σ : Fin (L+1) => decide ((0 : Fin (L+1)) < σ)) ∘ (Fin.succ : Fin L → Fin (L+1)))
+            (List.finRange L)) = List.finRange L := by
+          apply List.filter_eq_self.mpr
+          intro σ _
+          show decide ((0 : Fin (L+1)) < Fin.succ σ) = true
+          simp [Fin.lt_def]
+        rw [hall]
+    · simp only [Fin.val_succ, List.drop_succ_cons, List.filter_cons]
+      split_ifs with h
+      · exfalso; simp at h
+      · rw [List.filter_map]
+        have : ((fun σ : Fin (L+1) => decide (Fin.succ τ' < σ)) ∘ (Fin.succ : Fin L → Fin (L+1))) =
+               (fun σ : Fin L => decide (τ' < σ)) := by ext σ; simp [Fin.succ_lt_succ_iff]
+        rw [this, ih τ', List.map_drop]
+
+/-- (Step 2) Leibniz localisation for the BP polynomial.
+
+    The partial derivative ∂_{x_i}(f_B) distributes over the matrix product via the Leibniz rule. -/
+theorem bp_leibniz_localisation
     {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
     (B : LayeredBP n)
     (i : Fin n) :
@@ -195,7 +295,68 @@ axiom bp_leibniz_localisation
          (Matrix.of (fun v u => MvPolynomial.pderiv i (B.layerMatrix (F := F) τ v u))) *
          (List.map (fun σ : Fin B.length => B.layerMatrix (F := F) σ)
             (List.finRange B.length |>.filter (fun σ => τ < σ))).prod)
-          B.target B.source
+          B.target B.source := by
+  -- Step 1: unfold poly = matrixList.prod[target][source]
+  simp only [LayeredBP.poly, LayeredBP.matrixProd]
+  set matrixList := List.map (fun τ : Fin B.length => B.layerMatrix (F := F) τ)
+      (List.finRange B.length)
+  have hlen : matrixList.length = B.length := by
+    simp [matrixList, List.length_map, List.length_finRange]
+  -- Step 2: apply the matrix Leibniz rule to get the take/drop form
+  have hleib := pderiv_list_prod_matrix_eq i matrixList
+  -- The (target, source) entry of the derivative equals the derivative of the entry
+  have hentry : MvPolynomial.pderiv i (matrixList.prod B.target B.source) =
+      (matPderiv i matrixList.prod) B.target B.source := by
+    simp [matPderiv, Matrix.of_apply]
+  rw [hentry, hleib]
+  simp only [Matrix.sum_apply]
+  -- Reindex from Fin matrixList.length to Fin B.length via Fin.cast hlen
+  apply Finset.sum_nbij (fun k => Fin.cast hlen k)
+  · intro k _; simp
+  · intro k₁ _ k₂ _ h
+    apply Fin.ext
+    have := congrArg Fin.val h
+    simp at this
+    exact this
+  · intro τ _
+    exact ⟨Fin.cast hlen.symm τ, Finset.mem_coe.mpr (Finset.mem_univ _), by ext; simp⟩
+  · intro k _
+    -- Let τ = Fin.cast hlen k (same .val as k)
+    set τ : Fin B.length := Fin.cast hlen k
+    have hkval : k.val = τ.val := by simp [τ]
+    simp only [Matrix.mul_apply]
+    -- Prefix match: (matrixList.take k.val).prod = (map f (filter (· < τ) (finRange L))).prod
+    have hpre : (matrixList.take k.val).prod =
+        (List.map (fun σ : Fin B.length => B.layerMatrix (F := F) σ)
+            (List.finRange B.length |>.filter (· < τ))).prod := by
+      rw [hkval]
+      simp only [matrixList]
+      congr 1
+      rw [finRange_filter_lt]
+      rw [List.map_take]
+    -- Suffix match: (matrixList.drop (k.val + 1)).prod = (map f (filter (τ < ·) (finRange L))).prod
+    have hsuf : (matrixList.drop (k.val + 1)).prod =
+        (List.map (fun σ : Fin B.length => B.layerMatrix (F := F) σ)
+            (List.finRange B.length |>.filter (fun σ => τ < σ))).prod := by
+      rw [hkval]
+      simp only [matrixList]
+      congr 1
+      rw [finRange_filter_gt]
+      rw [List.map_drop]
+    -- Derivative match: matPderiv i (matrixList.get k) = Matrix.of (fun v u => pderiv i (layerMatrix τ v u))
+    have hderiv : matPderiv i (matrixList.get k) =
+        Matrix.of (fun v u => MvPolynomial.pderiv i (B.layerMatrix (F := F) τ v u)) := by
+      simp only [matPderiv, Matrix.of_apply]
+      ext v u
+      congr 1
+      -- matrixList.get k v u = B.layerMatrix τ v u
+      have hklt : k.val < B.length := by
+        have := k.isLt; simp [matrixList, List.length_map, List.length_finRange] at this; exact this
+      have hmget : matrixList.get k = B.layerMatrix ((List.finRange B.length).get ⟨k.val, by simp; exact hklt⟩) := by
+        simp only [matrixList, List.get_eq_getElem, List.getElem_map]
+      rw [hmget, List.get_finRange]
+      congr 1
+    rw [hpre, hsuf, hderiv]
 
 /-- (Step 3) Cylinder decomposition.
 
@@ -386,15 +547,60 @@ theorem layerMatrix_entry_totalDegree_le
     (B.layerMatrix (F := F) τ v u).totalDegree ≤ 1 :=
   Literal.toPoly_totalDegree_le (B.edgeLabel τ u v)
 
+/-- Helper: every entry of a list-product of matrices has totalDegree ≤ list.length * d,
+    provided every entry of every matrix in the list has totalDegree ≤ d. -/
+private lemma list_prod_matrix_entry_totalDegree_le
+    {n W : ℕ} {F : Type*} [CommRing F]
+    (Ms : List (Matrix (Fin W) (Fin W) (MvPolynomial (Fin n) F)))
+    (d : ℕ)
+    (h : ∀ M ∈ Ms, ∀ (v u : Fin W), (M v u).totalDegree ≤ d)
+    (v u : Fin W) :
+    (Ms.prod v u).totalDegree ≤ Ms.length * d := by
+  induction Ms generalizing v u with
+  | nil =>
+    simp only [List.prod_nil, List.length_nil, Nat.zero_mul]
+    simp only [Matrix.one_apply]
+    split_ifs
+    · exact le_of_eq MvPolynomial.totalDegree_one
+    · exact Nat.zero_le _
+  | cons M rest ih =>
+    simp only [List.prod_cons, List.length_cons, Nat.succ_mul]
+    rw [Matrix.mul_apply]
+    have h_M : ∀ (a b : Fin W), (M a b).totalDegree ≤ d :=
+      fun a b => h M List.mem_cons_self a b
+    have h_rest : ∀ M' ∈ rest, ∀ (a b : Fin W), (M' a b).totalDegree ≤ d :=
+      fun M' hM' => h M' (List.mem_cons_of_mem M hM')
+    apply MvPolynomial.totalDegree_finsetSum_le
+    intro k _
+    calc (M v k * rest.prod k u).totalDegree
+        ≤ (M v k).totalDegree + (rest.prod k u).totalDegree :=
+            MvPolynomial.totalDegree_mul _ _
+      _ ≤ d + rest.length * d :=
+            Nat.add_le_add (h_M v k) (ih h_rest k u)
+      _ = rest.length * d + d := by ring
+
 /-- The polynomial computed by B has totalDegree ≤ L' (the length).
 
     This bounds the degree of f_B: since f_B is an entry of a product of
     L' matrices each with entries of degree ≤ 1, every monomial in f_B
     arises as a product of at most L' such entries, giving degree ≤ L'. -/
-axiom bp_poly_totalDegree_le
+theorem bp_poly_totalDegree_le
     {n : ℕ} {F : Type*} [CommRing F]
     (B : LayeredBP n) :
-    (B.poly (F := F)).totalDegree ≤ B.length
+    (B.poly (F := F)).totalDegree ≤ B.length := by
+  simp only [LayeredBP.poly, LayeredBP.matrixProd]
+  set matrixList := List.map (fun τ : Fin B.length => B.layerMatrix (F := F) τ)
+      (List.finRange B.length)
+  have hlen : matrixList.length = B.length := by
+    simp [matrixList, List.length_map, List.length_finRange]
+  have hbound := list_prod_matrix_entry_totalDegree_le matrixList 1
+    (fun M hM v u => by
+      simp only [matrixList, List.mem_map] at hM
+      obtain ⟨τ, _, rfl⟩ := hM
+      exact layerMatrix_entry_totalDegree_le B τ v u)
+    B.target B.source
+  simp only [Nat.mul_one] at hbound
+  rwa [hlen] at hbound
 
 /-! ## §7: Summary of the pipeline -/
 
@@ -413,6 +619,10 @@ axiom bp_poly_totalDegree_le
   - `Literal.toPoly_totalDegree_le`: degree(lit) ≤ 1
   - `bp_matrix_product_form`: f_B = matrixProd_{target,source}  (by rfl)
   - `layerMatrix_entry_totalDegree_le`: degree(M_τ(v,u)) ≤ 1
+  - `bp_leibniz_localisation` (Step 2): pderiv distributes over matrix products
+    * Proved via pderiv_matrix_mul + pderiv_list_prod_matrix_eq + finRange_filter_lt/gt
+  - `bp_poly_totalDegree_le`: degree(f_B) ≤ L'
+    * Proved via list_prod_matrix_entry_totalDegree_le (induction on matrix list)
   - `poly_family_rank_bound`: rank bound from bp_spdp_rank_bound
   - `poly_family_rank_bound_in_n`: rank ≤ poly(n) for a PolyBPFamily
   - `P_subset_polySPDP`: the zero-polynomial witness (full proof requires compilation)
@@ -420,16 +630,12 @@ axiom bp_poly_totalDegree_le
   Axioms (corresponding to genuinely unproved steps):
   - `bp_spdp_rank_bound` (Lemma 45): the main rank bound
     * Requires: cylinder decomposition + row-space counting
-  - `bp_leibniz_localisation` (Step 2): pderiv distributes over matrix products
-    * Requires: induction on L' using map_add for pderiv
   - `bp_cylinder_decomposition` (Step 3): structure of ∂_S(f_B)
     * Requires: iterated Leibniz applied to matrix entries
   - `bp_rowspace_bound_per_term` (Step 4): row-space of one layer ≤ W
     * Requires: column rank of M_τ ≤ W
   - `compilation_lemma` (Lemma 44): BP family simulating polytime DTMs
     * Standard complexity theory; requires formal DTM simulation theory
-  - `bp_poly_totalDegree_le`: degree(f_B) ≤ L'
-    * Requires: induction on matrix products over polynomial rings
 -/
 
 end BPtoSPDP
