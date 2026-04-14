@@ -1086,6 +1086,50 @@ theorem ProductSpdpGeneratorData.toPolynomial_mem_postSpan_of_mem_rawSpan
     pg.generator.toPolynomial ∈ ProductLeibnizPostSpan pg := by
   exact ProductSpdpGeneratorData.toPolynomial_mem_postSpan_of_frontier pg hraw
 
+/-- The concrete post-processed image of a raw Leibniz term for a fixed product
+SPDP generator. Naming this map keeps later generator-wise containment lemmas small
+and avoids repeating the `mlProj (shift * ·)` wrapper everywhere. -/
+noncomputable def ProductSpdpGeneratorData.processLeibnizTerm
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p)
+    (q : MvPolynomial (Fin N) ℚ) : MvPolynomial (Fin N) ℚ :=
+  mlProj (pg.generator.shift * q)
+
+/-- The named post-processing map agrees definitionally with the span definition used
+in `ProductLeibnizPostSpan`. -/
+theorem ProductLeibnizPostSpan_eq_span_processLeibnizTerm_image
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p) :
+    ProductLeibnizPostSpan pg =
+      Submodule.span ℚ
+        (ProductSpdpGeneratorData.processLeibnizTerm pg ''
+          (LeibnizProduct.distribDerivProds
+            Finset.univ
+            (fun i : Fin pg.factors.length => pg.factors[i.1])
+            pg.generator.derivList)) := by
+  rfl
+
+/-- Generator-image reduction lemma: to place the whole post-processed Leibniz span in a
+ target submodule `U`, it is enough to show that every processed Leibniz generator lies
+ in `U`. This is the clean handoff point from raw Leibniz combinatorics to later
+ fixed-profile cover arguments. -/
+theorem ProductLeibnizPostSpan_le_of_generator_mem
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p)
+    (U : Submodule ℚ (MvPolynomial (Fin N) ℚ))
+    (hgen :
+      ∀ q ∈ LeibnizProduct.distribDerivProds
+        Finset.univ
+        (fun i : Fin pg.factors.length => pg.factors[i.1])
+        pg.generator.derivList,
+          ProductSpdpGeneratorData.processLeibnizTerm pg q ∈ U) :
+    ProductLeibnizPostSpan pg ≤ U := by
+  rw [ProductLeibnizPostSpan_eq_span_processLeibnizTerm_image]
+  refine Submodule.span_le.mpr ?_
+  intro r hr
+  rcases hr with ⟨q, hq, rfl⟩
+  exact hgen q hq
+
 /-- Missing structural bridge: a Leibniz-expansion witness for a product-structured
 SPDP generator. This records that the differentiated product can be organized by
 factor-slot assignments over the chosen factor list, together with the local semantic
