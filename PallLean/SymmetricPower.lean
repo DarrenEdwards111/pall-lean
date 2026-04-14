@@ -1412,4 +1412,51 @@ theorem tagMonomial_injective {N : ℕ} :
   rw [tagMonomial_apply, tagMonomial_apply] at heq
   by_cases hvS : v ∈ S <;> by_cases hvT : v ∈ T <;> simp_all
 
+-- boolFactorDerivProd S is a nonzero polynomial for any S.
+theorem boolFactorDerivProd_ne_zero {N : ℕ} (S : Finset (Fin N)) :
+    boolFactorDerivProd S ≠ 0 := by
+  intro h
+  have := coeff_tagMonomial_self_ne_zero S
+  rw [h, MvPolynomial.coeff_zero] at this
+  exact this rfl
+
+-- The tag monomial of S is multilinear.
+theorem tagMonomial_isMultilinear {N : ℕ} (S : Finset (Fin N)) :
+    Finsupp.IsMultilinear (tagMonomial S) := by
+  intro v
+  rw [tagMonomial_apply]
+  split_ifs <;> omega
+
+/-! ## Part 10: Linear independence for disjoint families
+
+For a family F of pairwise disjoint κ-subsets of Fin N,
+the generators {boolFactorDerivProd S | S ∈ F} are linearly independent.
+
+Proof outline:
+1. coeff(tagMonomial T)(boolFactorDerivProd S) = 2^|T∩S| = 2^κ δ_{T=S} + (2^0)(1-δ_{T=S})
+   For pairwise disjoint S,T: |T∩S| = κ if T=S, 0 if T≠S
+   Wait, |T∩S| = 0 for T≠S when T,S are disjoint.
+   So coeff = 2^κ if T=S and 1 if T≠S (since 2^0 = 1).
+
+Actually for the samesize version with |S|=|S'|=κ, the coeff = 2^|S∩S'|.
+For pairwise disjoint |S∩S'|=0, so coeff = 1.
+The matrix is (2^κ - 1)I + J. This is invertible as shown above.
+
+For the Lean proof, we'll use: if ∑ c_S * g_S = 0 then each c_S = 0.
+We prove this by the algebraic argument:
+sum all coefficient equations → c_total * (2^κ - 1 + |F|) = 0 → c_total = 0
+then each equation gives c_T * (2^κ - 1) = 0 → c_T = 0.
+
+This requires |F| ≥ 1 and 2^κ > 1. -/
+
+-- For now, let's just establish that the tag monomial coefficient of boolFactorDerivProd
+-- for disjoint subsets equals 1.
+theorem coeff_tagMonomial_boolFactorDerivProd_disjoint {N : ℕ}
+    (S T : Finset (Fin N)) (hcard_S : S.card = T.card)
+    (hdisj : Disjoint S T) :
+    MvPolynomial.coeff (tagMonomial S) (boolFactorDerivProd T) = 1 := by
+  rw [coeff_tagMonomial_boolFactorDerivProd_samesize S T hcard_S]
+  have hinter : S ∩ T = ∅ := Finset.disjoint_iff_inter_eq_empty.mp hdisj
+  rw [hinter, Finset.card_empty, pow_zero]
+
 end SymmetricPower
