@@ -2006,13 +2006,16 @@ theorem hasFiniteProfileCover_of_spdp_profile_generators
   exact ⟨numP, spaces, le_trans hnumP (by unfold profileCount; rfl), hfin,
     fun i => le_trans (hbound i) (by unfold withinProfileBound; rfl), hcover⟩
 
-/-- Current assembly theorem.
+/-- Rerouted assembly theorem via HasFiniteProfileCover.
 
-At present the actual fixed-profile bridge is still open, so the compiled-polynomial
-bound is obtained from the proved descent theorem in `SymmetricPower.lean`.
-Once a genuine `LabeledSpdpProfileDecomposition` is constructed from
-`FixedProfileGeneratorCover` data, this theorem should be rerouted through
-`rank_bound_from_profile_indexed_cover`. -/
+    This demonstrates the clean factorization: spdp_profile_generators gives
+    HasFiniteProfileCover, which gives the rank bound. The old direct proof
+    through leibniz_symmetric_power_descent_bound is now redundant but kept
+    as rank_bound_from_fixed_profile_factorization_old for comparison.
+
+    Eventually, HasFiniteProfileCover should be constructed directly from the
+    structural profile decomposition + within-profile symmetric power bound,
+    bypassing spdp_profile_generators entirely. -/
 theorem rank_bound_from_fixed_profile_factorization
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
@@ -2020,8 +2023,9 @@ theorem rank_bound_from_fixed_profile_factorization
       (cook_levin_compilation M n hn htb hns).partition
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPoly (cook_levin_compilation M n hn htb hns))
-    ≤ combinedProfileBound (Nat.log 2 n) := by
-  exact leibniz_symmetric_power_descent_bound M n hn htb hns
+    ≤ combinedProfileBound (Nat.log 2 n) :=
+  rank_le_combinedBound_of_hasFiniteProfileCover _ _ _ _
+    (hasFiniteProfileCover_of_spdp_profile_generators M n hn htb hns)
 
 
 /-! ## Step B: Profile Factors Through Symmetric Powers (AXIOM)
