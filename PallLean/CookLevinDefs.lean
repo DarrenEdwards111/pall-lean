@@ -100,7 +100,7 @@ theorem locality_implies_poly_rank {N : ℕ} (B : BlockPartition N)
 /-! ## §29.2: Cook-Levin Compilation (Honest Construction) -/
 
 /-- Booleanity polynomial z * (1 - z) for variable v. -/
-private noncomputable def boolPoly' (N : ℕ) (v : Fin N) : MvPolynomial (Fin N) ℚ :=
+noncomputable def boolPoly' (N : ℕ) (v : Fin N) : MvPolynomial (Fin N) ℚ :=
   MvPolynomial.X v * (1 - MvPolynomial.X v)
 
 /-- boolPoly' variables are contained in {v}. -/
@@ -138,7 +138,7 @@ private theorem boolPoly'_degree (N : ℕ) (v : Fin N) :
   linarith
 
 /-- Build a LocalConstraint from a booleanity polynomial. -/
-private noncomputable def boolLC (N : ℕ) (v : Fin N) : LocalConstraint N where
+noncomputable def boolLC (N : ℕ) (v : Fin N) : LocalConstraint N where
   poly := boolPoly' N v
   support := {v}
   support_bound := by simp
@@ -146,10 +146,10 @@ private noncomputable def boolLC (N : ℕ) (v : Fin N) : LocalConstraint N where
   degree_bound := le_trans (boolPoly'_degree N v) (by omega)
 
 /-- List of n booleanity constraints. -/
-private noncomputable def boolConstraintList (N : ℕ) : List (LocalConstraint N) :=
+noncomputable def boolConstraintList (N : ℕ) : List (LocalConstraint N) :=
   (List.finRange N).map (fun v => boolLC N v)
 
-private theorem boolConstraintList_length (N : ℕ) :
+theorem boolConstraintList_length (N : ℕ) :
     (boolConstraintList N).length = N := by
   simp [boolConstraintList]
 
@@ -193,7 +193,7 @@ private noncomputable def adjLC (N : ℕ) (i : Fin N) (hi : i.val + 1 < N) :
   degree_bound := le_trans (adjPoly_degree N i hi) (by omega)
 
 /-- List of (N-1) adjacency constraints for consecutive variable pairs. -/
-private noncomputable def adjConstraintList (N : ℕ) : List (LocalConstraint N) :=
+noncomputable def adjConstraintList (N : ℕ) : List (LocalConstraint N) :=
   (List.finRange N).filterMap (fun i =>
     if h : i.val + 1 < N then some (adjLC N i h) else none)
 
@@ -292,7 +292,7 @@ private theorem transSkelForState_length (M : DTM) (N : ℕ) (q : Fin M.numState
 
 /-- List of transition skeleton constraints: one per (state, consecutive variable pair).
     The number of constraints is at most M.numStates * N ≤ n * n = n^2. -/
-private noncomputable def transSkelConstraintList (M : DTM) (N : ℕ) : List (LocalConstraint N) :=
+noncomputable def transSkelConstraintList (M : DTM) (N : ℕ) : List (LocalConstraint N) :=
   (List.finRange M.numStates).flatMap (fun q => transSkelForState M N q)
 
 private theorem flatMap_length_le {α β : Type*} (f : α → List β)
@@ -422,5 +422,95 @@ theorem cook_levin_compilation_has_machine_dependent_constraint
     ∃ c : LocalConstraint (cook_levin_compilation M n hn htb hns).numVars,
       c ∈ (cook_levin_compilation M n hn htb hns).constraints := by
   simpa using exists_transSkelConstraint_mem_cook_levin_constraints M n hn htb hns hstate
+
+/-! ## Factorization of compiledPoly for the NP-side bridge
+
+The compiled polynomial is a product of three groups of factors:
+  booleanity × adjacency × transition.
+The booleanity factors are 1 - X_v(1-X_v) for each variable v. -/
+
+/-- The compiled polynomial equals the product over its constraint list's factors. -/
+theorem compiledPoly_eq_constraints_prod (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    compiledPoly (cook_levin_compilation M n hn htb hns) =
+    ((cook_levin_compilation M n hn htb hns).constraints.map
+      (fun c => (1 : MvPolynomial (Fin n) ℚ) - c.poly)).prod := by
+  rfl
+
+/-- The constraints of cook_levin_compilation split as three appended lists. -/
+theorem cook_levin_constraints_split (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (cook_levin_compilation M n hn htb hns).constraints =
+    boolConstraintList n ++ adjConstraintList n ++ transSkelConstraintList M n := by
+  rfl
+
+/-- Each booleanity constraint yields factor 1 - X_v(1-X_v).
+
+For variable v: (boolLC n v).poly = X_v * (1 - X_v). -/
+theorem boolLC_factor_eq (n : ℕ) (v : Fin n) :
+    (1 : MvPolynomial (Fin n) ℚ) - (boolLC n v).poly =
+    1 - (MvPolynomial.X v * (1 - MvPolynomial.X v)) := by
+  unfold boolLC boolPoly'
+  ring
+
+/-- The mapped booleanity constraint list. -/
+theorem boolConstraintFactors_eq (n : ℕ) :
+    (boolConstraintList n).map (fun c => (1 : MvPolynomial (Fin n) ℚ) - c.poly) =
+    (List.finRange n).map (fun v =>
+      (1 : MvPolynomial (Fin n) ℚ) - (MvPolynomial.X v * (1 - MvPolynomial.X v))) := by
+  unfold boolConstraintList
+  rw [List.map_map]
+  congr 1
+
+/-- The rest factor product (adjacency + transition). -/
+noncomputable def restFactorProd' (M : DTM) (n : ℕ) :
+    MvPolynomial (Fin n) ℚ :=
+  ((adjConstraintList n ++ transSkelConstraintList M n).map
+    (fun c => (1 : MvPolynomial (Fin n) ℚ) - c.poly)).prod
+
+/-- Factorization: compiledPoly = boolFactorListProd * restFactorProd'.
+
+The compiled polynomial from cook_levin_compilation splits as
+the product of booleanity factors times the remaining (adjacency + transition) factors. -/
+theorem compiledPoly_factored (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    compiledPoly (cook_levin_compilation M n hn htb hns) =
+    ((boolConstraintList n).map
+      (fun c => (1 : MvPolynomial (Fin n) ℚ) - c.poly)).prod *
+    restFactorProd' M n := by
+  unfold compiledPoly cook_levin_compilation restFactorProd'
+  simp only [List.map_append, List.prod_append]
+  ring
+
+/-! ## Partition structure -/
+
+/-- The number of blocks in the locality partition. -/
+theorem cook_levin_numBlocks (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (cook_levin_compilation M n hn htb hns).partition.numBlocks = (n + 2) / 3 := by
+  rfl
+
+/-- The block assignment: variable i goes to block i/3. -/
+theorem cook_levin_assign (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (i : Fin n) :
+    ((cook_levin_compilation M n hn htb hns).partition.assign i).val = i.val / 3 := by
+  rfl
+
+/-- Two variables are in the same block iff i/3 = j/3. -/
+theorem cook_levin_same_block (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (i j : Fin n) :
+    (cook_levin_compilation M n hn htb hns).partition.assign i =
+    (cook_levin_compilation M n hn htb hns).partition.assign j ↔
+    i.val / 3 = j.val / 3 := by
+  constructor
+  · intro h; exact Fin.val_eq_of_eq h
+  · intro h; exact Fin.ext h
+
+/-- The numVars of cook_levin_compilation is n. -/
+theorem cook_levin_numVars (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (cook_levin_compilation M n hn htb hns).numVars = n := by
+  rfl
 
 end PaperFaithfulSeparation
