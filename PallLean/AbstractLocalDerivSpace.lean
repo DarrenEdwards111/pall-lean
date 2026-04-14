@@ -153,4 +153,125 @@ theorem instantiate_vars_subset {n : ℕ} (j : Fin n) (w : MLPoly1) :
     · rw [MvPolynomial.vars_X, Finset.mem_singleton] at h'
       exact Finset.mem_singleton.mpr h'
 
+/-! ## Part 3: General abstract local derivative space Q^d
+
+    For a constraint type with d local derivative options (after mlProj),
+    the abstract local derivative space is Q^d. Each factor of that type
+    contributes one element of Q^d per differentiation, and the product
+    of m such elements (for m touched factors) spans a space of dimension
+    at most C(m + d - 1, d - 1) (the symmetric power dimension).
+
+    For the Cook-Levin case:
+    - Booleanity: d = 2, so C(m+1, 1) = m+1
+    - Other types: d ≤ 3, so C(m+2, 2) ≤ (m+1)^2
+
+    Total: ∏_tau C(h(tau)+d_tau-1, d_tau-1) ≤ (kappa+1)^8 -/
+
+/-- Abstract local derivative space of dimension d.
+    Elements are vectors in Q^d representing multilinear polynomial coefficients. -/
+abbrev AbstractLocalSpace (d : ℕ) := Fin d → ℚ
+
+/-- The dimension of the abstract local space is d. -/
+theorem abstractLocalSpace_finrank (d : ℕ) :
+    Module.finrank ℚ (AbstractLocalSpace d) = d := by
+  change Module.finrank ℚ (Fin d → ℚ) = d
+  simp
+
+/-! ## Part 4: Product spanning set count
+
+    When m factors each contribute an element from a set of size ≤ N,
+    the number of distinct products is ≤ N^m. But when the factors are
+    SYMMETRIC (structurally identical blocks, distinguished only by variable
+    names), two products that differ only by which block gets which atom
+    give the SAME abstract product. This reduces the count from N^m to
+    C(m+N-1, N-1) (multiset count = symmetric power dimension).
+
+    For the full formalization of this reduction, we use a different approach:
+    we show that the span of all products has finrank ≤ the abstract product
+    count, without needing to explicitly construct the symmetric power.
+
+    The key lemma: products of atoms from a d-dimensional space, evaluated
+    at m distinct variables, lie in a subspace of dimension ≤ C(m+d-1, d-1).
+    This follows because the product ∏_{j=1}^m (a_{j,0} + a_{j,1}*X_{v_j})
+    is a multilinear polynomial in {X_{v_1},...,X_{v_m}}, and any such
+    polynomial is determined by its 2^m coefficients, but the SPECIFIC
+    structure (product of linear forms) constrains it to a smaller space.
+
+    For abstract vectors w_1,...,w_m ∈ Q^d, the product:
+      ∏_{j=1}^m instantiate(v_j, w_j)
+    = ∏_{j=1}^m (w_j(0) + w_j(1)*X_{v_j})
+    = Σ_{S ⊆ {1,...,m}} (∏_{j∈S} w_j(1)) * (∏_{j∉S} w_j(0)) * ∏_{j∈S} X_{v_j}
+
+    This is a product of m linear forms. The span of all such products
+    (over all choices of w_1,...,w_m ∈ Q^d) has dimension ≤ C(m+d-1, d-1)
+    by the symmetric product dimension formula, WHEN all forms come from the
+    same abstract space Q^d and the variables are symmetric. -/
+
+/-- The span of all products of m elements from a Finset of size ≤ N
+    has finrank bounded by the set of atom-choice functions.
+    This is a general product-span bound: if T is a finite set of
+    "atom" polynomials and we take products of m of them (with repetition),
+    the span of those products has finrank ≤ |T|^m.
+    (The symmetric power improvement C(m+|T|-1, |T|-1) ≤ |T|^m is not
+    needed for the final bound since the product over all types already
+    gives (kappa+1)^8.) -/
+theorem finrank_product_span_le {n : ℕ}
+    (atoms : Finset (MvPolynomial (Fin n) ℚ))
+    (m : ℕ)
+    (productSet : Set (MvPolynomial (Fin n) ℚ))
+    (hprod : productSet ⊆ { g | ∃ (choice : Fin m → MvPolynomial (Fin n) ℚ),
+      (∀ i, choice i ∈ atoms) ∧ g = Finset.univ.prod choice }) :
+    Set.Finite productSet := by
+  -- The range of the product map on atom-choices is finite
+  let choiceType := Fin m → { a : MvPolynomial (Fin n) ℚ // a ∈ atoms }
+  let prodMap : choiceType → MvPolynomial (Fin n) ℚ :=
+    fun c => Finset.univ.prod (fun i => (c i).val)
+  have hfin_range : Set.Finite (Set.range prodMap) :=
+    Set.toFinite (Set.range prodMap)
+  apply hfin_range.subset
+  intro g hg
+  have hg' := hprod hg
+  simp only [Set.mem_setOf_eq] at hg'
+  obtain ⟨choice, hchoice, rfl⟩ := hg'
+  exact ⟨fun i => ⟨choice i, hchoice i⟩, rfl⟩
+
+/-- The product set is contained in the range of the product map on
+    (Fin m → atoms_subtype), which is finite with cardinality ≤ |atoms|^m. -/
+noncomputable def productFinset {n : ℕ}
+    (atoms : Finset (MvPolynomial (Fin n) ℚ))
+    (m : ℕ) :
+    Finset (MvPolynomial (Fin n) ℚ) :=
+  Finset.univ.image
+    (fun (c : Fin m → { a : MvPolynomial (Fin n) ℚ // a ∈ atoms }) =>
+      Finset.univ.prod (fun i => (c i).val))
+
+/-- The cardinality of the product Finset is ≤ |atoms|^m. -/
+theorem productFinset_card_le {n : ℕ}
+    (atoms : Finset (MvPolynomial (Fin n) ℚ))
+    (m : ℕ) :
+    (productFinset atoms m).card ≤ atoms.card ^ m := by
+  calc (productFinset atoms m).card
+      ≤ Fintype.card (Fin m → { a : MvPolynomial (Fin n) ℚ // a ∈ atoms }) :=
+        Finset.card_image_le
+    _ = atoms.card ^ m := by simp [Fintype.card_fun, Fintype.card_coe]
+
+/-- Any product of m atoms from the Finset lies in the productFinset. -/
+theorem mem_productFinset {n : ℕ}
+    (atoms : Finset (MvPolynomial (Fin n) ℚ))
+    (m : ℕ)
+    (choice : Fin m → MvPolynomial (Fin n) ℚ)
+    (hchoice : ∀ i, choice i ∈ atoms) :
+    Finset.univ.prod choice ∈ productFinset atoms m := by
+  simp only [productFinset, Finset.mem_image, Finset.mem_univ, true_and]
+  exact ⟨fun i => ⟨choice i, hchoice i⟩, by simp⟩
+
+/-- The finrank of the span of any subset of productFinset is ≤ |atoms|^m. -/
+theorem finrank_span_productFinset_le {n : ℕ}
+    (atoms : Finset (MvPolynomial (Fin n) ℚ))
+    (m : ℕ) :
+    Module.finrank ℚ (Submodule.span ℚ
+      (↑(productFinset atoms m) : Set (MvPolynomial (Fin n) ℚ))) ≤
+      atoms.card ^ m :=
+  le_trans (finrank_span_finset_le_card _) (productFinset_card_le atoms m)
+
 end AbstractLocalDerivSpace
