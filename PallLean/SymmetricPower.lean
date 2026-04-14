@@ -1018,4 +1018,58 @@ theorem coeff_zero_pderiv_boolFactor {N : ℕ} (v : Fin N) :
   simp [MvPolynomial.coeff_add, MvPolynomial.coeff_C_mul,
     MvPolynomial.coeff_X']
 
+/-! ## Part 6: usesOnly lemmas for boolFactor and its derivatives
+
+These connect the boolFactor variable support to CoeffDisjoint.usesOnly,
+which is needed to apply coeff_finset_prod_disjoint. -/
+
+/-- boolFactor N v uses only variables in {v}. -/
+theorem usesOnly_boolFactor {N : ℕ} (v : Fin N) :
+    CoeffDisjoint.usesOnly (boolFactor N v : MvPolynomial (Fin N) ℚ) ({v} : Set (Fin N)) := by
+  intro m hm x hx
+  have hvar : x ∈ (boolFactor N v).vars := (MvPolynomial.mem_vars x).mpr ⟨m, hm, hx⟩
+  have hsub := boolFactor_vars_subset N v hvar
+  exact Finset.mem_singleton.mp hsub
+
+/-- pderiv v (boolFactor N v) uses only variables in {v}. -/
+theorem usesOnly_pderiv_boolFactor {N : ℕ} (v : Fin N) :
+    CoeffDisjoint.usesOnly (MvPolynomial.pderiv v (boolFactor N v) : MvPolynomial (Fin N) ℚ)
+      ({v} : Set (Fin N)) := by
+  rw [pderiv_boolFactor_self N v]
+  intro m hm x hx
+  -- m ∈ support(-1 + 2 * X v) and x ∈ m.support
+  -- We show: vars(-1 + 2*X v) ⊆ {v}
+  -- Then x ∈ vars → x = v → x ∈ {v}
+  have hvar : x ∈ (-1 + 2 * MvPolynomial.X v : MvPolynomial (Fin N) ℚ).vars :=
+    (MvPolynomial.mem_vars x).mpr ⟨m, hm, hx⟩
+  -- vars of (-1 + 2*X v) ⊆ vars of the sub-polynomial pderiv v (boolFactor N v)
+  -- But we already know boolFactor N v has vars ⊆ {v}, and pderiv preserves this
+  -- Actually just use: the polynomial -1 + 2*X v has vars ⊆ {v}
+  -- because its support = {0, single v 1} and vars = ⋃_{m ∈ support} m.support = {v}
+  suffices h : (-1 + 2 * MvPolynomial.X v : MvPolynomial (Fin N) ℚ).vars ⊆ {v} from
+    Finset.mem_singleton.mp (h hvar)
+  -- Use vars_sub/vars_add estimates
+  intro y hy
+  -- pderiv v (boolFactor v) has vars ⊆ (boolFactor v).vars ⊆ {v}
+  -- But we expanded already. Let's use MvPolynomial.vars_add_subset
+  have hsub := MvPolynomial.vars_add_subset (-1 : MvPolynomial (Fin N) ℚ) (2 * MvPolynomial.X v) hy
+  rw [Finset.mem_union] at hsub
+  rcases hsub with h1 | h2
+  · -- vars(-1) = vars(C(-1)) = ∅
+    exfalso
+    have : (-1 : MvPolynomial (Fin N) ℚ).vars = ∅ := by
+      have : (-1 : MvPolynomial (Fin N) ℚ) = MvPolynomial.C (-1) := by simp
+      rw [this]; exact MvPolynomial.vars_C
+    rw [this] at h1; simp at h1
+  · -- vars(2 * X v) ⊆ vars(X v) ⊆ {v}
+    have hmul := MvPolynomial.vars_mul (2 : MvPolynomial (Fin N) ℚ) (MvPolynomial.X v) h2
+    rw [Finset.mem_union] at hmul
+    rcases hmul with h2a | h2b
+    · exfalso
+      have : (2 : MvPolynomial (Fin N) ℚ).vars = ∅ := by
+        have : (2 : MvPolynomial (Fin N) ℚ) = MvPolynomial.C 2 := by simp [map_ofNat]
+        rw [this]; exact MvPolynomial.vars_C
+      rw [this] at h2a; simp at h2a
+    · simpa [MvPolynomial.vars_X] using h2b
+
 end SymmetricPower
