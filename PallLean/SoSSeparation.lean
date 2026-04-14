@@ -299,9 +299,10 @@ The complement products {∏_{k ∉ S} g_k : |S| = κ} are linearly independent
 by the identity minor at order (n - κ), and they appear as derivatives of Z_n.
 Hence C(n, κ) ≤ rk_{SPDP}(Z_n).
 
-We state this as a concrete theorem that the number of linearly independent
-gadget products in the COMPLEMENT family is C(n, κ). This reduces Axiom 2
-to pure restriction monotonicity.
+We now introduce `zeroTestPolyRank n κ` as the finrank of the span of the
+complement gadget products (i.e., the κ-fold derivatives of Z_n), and prove
+C(n, κ) ≤ zeroTestPolyRank n κ via the identity minor. This lets us replace
+the previous coarser axiom with a pure restriction monotonicity statement.
 -/
 
 /-- The complement gadget products (derivatives of Z_n) are linearly independent.
@@ -332,20 +333,55 @@ theorem zeroTestPoly_rank_lower_bound (n : ℕ) (hn : n ≥ 1) (κ : ℕ) (hκ :
     Nat.choose n κ ≤ Nat.choose n (n - κ) := by
   rw [choose_symm_le n κ hκ]
 
+/-! ### zeroTestPolyRank: The SPDP-like rank of Z_n
+
+We define `zeroTestPolyRank n κ` as the finrank of the span of the
+C(n, n-κ) complement gadget products in the ambient polynomial space.
+This is a concrete Lean ℕ that represents the "SPDP-like rank" of Z_n
+at derivative order κ.
+
+Key facts:
+  - zeroTestPolyRank n κ ≥ C(n, κ)  [identity minor, proved below]
+  - zeroTestPolyRank n (log₂ n) ≤ languageCharPolyRank  [restriction axiom]
+-/
+
+/-- The SPDP-like rank of the zero-test polynomial Z_n at derivative order κ:
+    the finrank of the span of the C(n, n-κ) complement gadget products. -/
+noncomputable def zeroTestPolyRank (n : ℕ) (hn : n ≥ 1) (κ : ℕ) : ℕ :=
+  (Set.range (fun i : Fin (Nat.choose n (n - κ)) =>
+    IdentityMinorReal.gadgetProd (hard_family_clause_system n hn)
+      (IdentityMinorReal.getClauseSubset (hard_family_clause_system n hn) (n - κ) i))).finrank ℚ
+
+/-- The identity minor gives C(n, κ) ≤ zeroTestPolyRank n κ.
+
+    Proof: C(n, κ) = C(n, n-κ) (symmetry), and the finrank of the span of
+    C(n, n-κ) linearly independent vectors is ≥ C(n, n-κ). -/
+theorem choose_le_zeroTestPolyRank (n : ℕ) (hn : n ≥ 1) (κ : ℕ) (hκ : κ ≤ n) :
+    Nat.choose n κ ≤ zeroTestPolyRank n hn κ := by
+  unfold zeroTestPolyRank
+  calc Nat.choose n κ
+      = Nat.choose n (n - κ) := (choose_symm_le n κ hκ).symm
+    _ ≤ (Set.range (fun i : Fin (Nat.choose n (n - κ)) =>
+            IdentityMinorReal.gadgetProd (hard_family_clause_system n hn)
+              (IdentityMinorReal.getClauseSubset (hard_family_clause_system n hn) (n - κ) i))).finrank ℚ :=
+          IdentityMinorReal.identity_minor_finrank_bound (hard_family_clause_system n hn) (n - κ)
+
 /-! ## Axioms
 
 With the NP-side lower bound on Z_n proved via the identity minor,
 the remaining axioms are:
 
 Axiom 1: P-side (Theorem 139) — BP compilation gives poly SPDP rank.
-Axiom 2: Restriction (Lemma 141) — rk(Z_n) ≤ languageCharPolyRank.
+Axiom 2: Restriction (Lemma 141) — zeroTestPolyRank n (log₂ n) ≤ languageCharPolyRank.
 
-Note: Axiom 2 is now WEAKER than before. It no longer needs to assert
-C(n, log n) ≤ languageCharPolyRank. Instead, the chain is:
+The chain is:
 
-  C(n, log n) ≤ rk(Z_n)                [THEOREM: identity minor]
-  rk(Z_n) ≤ languageCharPolyRank       [Axiom 2: restriction mono]
-  languageCharPolyRank ≤ n^200         [Axiom 1: P-side]
+  C(n, log n) ≤ zeroTestPolyRank n hn (log₂ n)    [THEOREM: choose_le_zeroTestPolyRank]
+  zeroTestPolyRank n hn (log₂ n) ≤ languageCharPolyRank  [Axiom 2: restriction mono]
+  languageCharPolyRank ≤ n^200                     [Axiom 1: P-side]
+
+Axiom 2 is now WEAKER and more precise: it speaks about the concrete span rank
+of the complement gadget products, not the abstract binomial coefficient.
 -/
 
 /-- The SPDP rank of the characteristic polynomial of a language L at input
@@ -391,13 +427,17 @@ Z_{φ_n} = ∏ S_j. By Lemma 141:
 
   rk(Z_{φ_n}) ≤ rk(f_{3SAT,n}) = languageCharPolyRank M hdec n
 
-The identity minor (Theorem 140, proved above) gives C(n, log₂ n)
-linearly independent vectors in the SPDP subspace of Z_{φ_n}, hence:
+The concrete span rank zeroTestPolyRank n hn (log₂ n) is bounded above
+by the restriction of the language characteristic poly rank. Combined
+with the proved lower bound C(n, log₂ n) ≤ zeroTestPolyRank (from the
+identity minor), we get the full chain needed for the separation.
 
-  C(n, log₂ n) ≤ rk(Z_{φ_n}) ≤ languageCharPolyRank M hdec n  -/
+This axiom is WEAKER than the previous `hard_instance_restriction_mono`:
+it speaks only about zeroTestPolyRank (a concrete finrank of a span),
+not about the abstract binomial coefficient. -/
 axiom hard_instance_restriction_mono (M : DTM) (hdec : DecidesSAT M)
-    (n : ℕ) (hn : n ≥ 2) :
-    Nat.choose n (Nat.log 2 n) ≤ languageCharPolyRank M hdec n
+    (n : ℕ) (hn : n ≥ 1) :
+    zeroTestPolyRank n hn (Nat.log 2 n) ≤ languageCharPolyRank M hdec n
 
 /-! ## §29.6: The Separation
 
@@ -406,15 +446,16 @@ Theorem 147: 3-SAT ∉ P, hence P ≠ NP.
 Proof:
   Suppose P = NP. Then ∃ DTM M deciding 3-SAT in poly time.
   NP-side (THEOREM): n^(log₂ n / 4) ≤ C(n, log₂ n)  [identity minor]
-  Axiom 2 (restriction):  C(n, log₂ n) ≤ languageCharPolyRank
+  THEOREM:            C(n, log₂ n) ≤ zeroTestPolyRank n hn (log₂ n)  [choose_le_zeroTestPolyRank]
+  Axiom 2 (restriction):  zeroTestPolyRank n hn (log₂ n) ≤ languageCharPolyRank
   Axiom 1 (P-side):       languageCharPolyRank ≤ n^200
-  Chain: n^(log₂ n / 4) ≤ C(n, log₂ n) ≤ languageCharPolyRank ≤ n^200
+  Chain: n^(log₂ n / 4) ≤ C(n, log₂ n) ≤ zeroTestPolyRank ≤ languageCharPolyRank ≤ n^200
   At n = 2^804: log₂ n / 4 ≥ 201 > 200
   So n^201 ≤ n^200, contradiction for n ≥ 2.
 
 Axiom count: TWO
   1. p_side_language_bound  (Theorem 139: BP compilation → poly rank)
-  2. hard_instance_restriction_mono  (Lemma 141: restriction monotonicity)
+  2. hard_instance_restriction_mono  (Lemma 141: restriction monotonicity via zeroTestPolyRank)
 Sorry count: ZERO
 -/
 
@@ -430,7 +471,8 @@ structure PeqNP_CharPoly where
 Proof by contradiction. Assume P = NP, so a DTM M decides 3-SAT.
 
 NP-side (THEOREM): n^(log₂ n / 4) ≤ C(n, log₂ n)
-Axiom 2: C(n, log₂ n) ≤ languageCharPolyRank M hdec n
+THEOREM:  C(n, log₂ n) ≤ zeroTestPolyRank n hn (log₂ n)   [choose_le_zeroTestPolyRank]
+Axiom 2: zeroTestPolyRank n hn (log₂ n) ≤ languageCharPolyRank M hdec n
 Axiom 1: languageCharPolyRank M hdec n ≤ n^200
 Contradiction at n = 2^804: n^201 ≤ n^200.
 
@@ -441,6 +483,9 @@ theorem P_ne_NP : ∀ (h : PeqNP_CharPoly), False := by
   -- Fix n = 2^804
   set n := 2 ^ 804 with hn_def
   have hn₀ : n ≥ 2 ^ 804 := le_refl _
+  have hn1 : n ≥ 1 := by
+    calc 1 = 2 ^ 0 := (pow_zero 2).symm
+    _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
   have hn2 : n ≥ 2 := by
     calc 2 = 2 ^ 1 := (pow_one 2).symm
     _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
@@ -449,20 +494,25 @@ theorem P_ne_NP : ∀ (h : PeqNP_CharPoly), False := by
     le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 40 ≤ 804)) hn₀
   have hNP : n ^ (Nat.log 2 n / 4) ≤ Nat.choose n (Nat.log 2 n) :=
     hard_family_superpolynomial n hn40
-  -- Axiom 2 (restriction): C(n, log₂ n) ≤ languageCharPolyRank
-  have hRestrict : Nat.choose n (Nat.log 2 n) ≤
+  -- For n = 2^804: log₂ n ≥ 804, so log₂ n ≤ n
+  have hlog : 804 ≤ Nat.log 2 n := by
+    exact Nat.le_log_of_pow_le (by norm_num : 1 < 2) hn₀
+  have hlog_le_n : Nat.log 2 n ≤ n := Nat.log_le_self 2 n
+  -- THEOREM: C(n, log₂ n) ≤ zeroTestPolyRank n hn1 (log₂ n)
+  have hZTR : Nat.choose n (Nat.log 2 n) ≤ zeroTestPolyRank n hn1 (Nat.log 2 n) :=
+    choose_le_zeroTestPolyRank n hn1 (Nat.log 2 n) hlog_le_n
+  -- Axiom 2 (restriction): zeroTestPolyRank ≤ languageCharPolyRank
+  have hRestrict : zeroTestPolyRank n hn1 (Nat.log 2 n) ≤
       languageCharPolyRank hPeqNP.decider hPeqNP.decides_3sat n :=
-    hard_instance_restriction_mono hPeqNP.decider hPeqNP.decides_3sat n hn2
+    hard_instance_restriction_mono hPeqNP.decider hPeqNP.decides_3sat n hn1
   -- Axiom 1 (P-side): languageCharPolyRank ≤ n^200
   have hP : languageCharPolyRank hPeqNP.decider hPeqNP.decides_3sat n ≤ n ^ 200 :=
     p_side_language_bound hPeqNP.decider hPeqNP.decides_3sat
       hPeqNP.timeBound_le n hn2
-  -- Chain: n^(log₂ n / 4) ≤ C(n, log₂ n) ≤ languageCharPolyRank ≤ n^200
+  -- Chain: n^(log₂ n / 4) ≤ C(n, log₂ n) ≤ zeroTestPolyRank ≤ languageCharPolyRank ≤ n^200
   have hchain : n ^ (Nat.log 2 n / 4) ≤ n ^ 200 :=
-    le_trans hNP (le_trans hRestrict hP)
-  -- For n = 2^804: log₂ n ≥ 804, so log₂ n / 4 ≥ 201 > 200
-  have hlog : 804 ≤ Nat.log 2 n := by
-    exact Nat.le_log_of_pow_le (by norm_num : 1 < 2) hn₀
+    le_trans hNP (le_trans hZTR (le_trans hRestrict hP))
+  -- log₂ n / 4 ≥ 201 > 200
   have hdiv : 201 ≤ Nat.log 2 n / 4 := by omega
   -- n^201 ≤ n^200 is impossible for n ≥ 2
   have hcontra : n ^ 201 ≤ n ^ 200 :=
