@@ -453,7 +453,112 @@ theorem allBoundedProfilePostSpan_zero_of_unbounded {n L : ℕ}
   rw [hprof] at hτ_le
   omega
 
-/-! ## Part 8: Arithmetic identities for the profile bounds -/
+/-! ## Part 8: Constructing HasFiniteProfileCover
+
+Given the covering by bounded profile subspaces and a within-profile
+finrank bound, we assemble HasFiniteProfileCover. -/
+
+/-- The refined within-profile finrank claim for bounded-distribution
+    profile subspaces. This is strictly weaker than the original
+    WithinProfileFinrankClaim because it uses the bounded classified sets. -/
+def BoundedWithinProfileFinrankClaim {n L : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType) : Prop :=
+  ∀ (h : ProfileHistogram),
+    Module.Finite ℚ ↥(allBoundedProfilePostSpan B κ ℓ factors constraintType h) ∧
+    Module.finrank ℚ ↥(allBoundedProfilePostSpan B κ ℓ factors constraintType h)
+      ≤ withinProfileBound κ
+
+/-- Given the bounded within-profile finrank claim, construct HasFiniteProfileCover.
+
+    The proof assembles:
+    1. Covering: SPDP ≤ ⨆_h allBoundedProfilePostSpan(h) (proved)
+    2. Finite enumeration: ≤ (κ+1)^4 bounded profiles (proved)
+    3. Per-profile finrank: ≤ (κ+1)^8 (hypothesis)
+    4. The sup over all profiles ≤ sup over bounded profiles
+       (because each element is in SOME allBoundedProfilePostSpan) -/
+theorem hasFiniteProfileCover_of_boundedWithinProfileFinrank {n L : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (p : MvPolynomial (Fin n) ℚ)
+    (hp : p = Finset.univ.prod factors)
+    (hwithin : BoundedWithinProfileFinrankClaim B κ ℓ factors constraintType) :
+    HasFiniteProfileCover B κ ℓ p := by
+  -- Enumerate bounded profiles via Fin P
+  set P := Fintype.card (BoundedProfile κ)
+  let enum := (Fintype.equivFin (BoundedProfile κ)).symm
+  -- Define the profile subspaces indexed by Fin P
+  let spaces : Fin P → Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+    fun i => allBoundedProfilePostSpan B κ ℓ factors constraintType (enum i).toHistogram
+  refine ⟨P, spaces, ?_, ?_, ?_, ?_⟩
+  · -- P ≤ profileCount κ
+    exact boundedProfile_card_le_profileCount κ
+  · -- Each space is finite-dimensional
+    intro i; exact (hwithin (enum i).toHistogram).1
+  · -- Each space has finrank ≤ withinProfileBound κ
+    intro i; exact (hwithin (enum i).toHistogram).2
+  · -- SPDP ≤ ⨆ i, spaces i
+    -- Directly show each SPDP generator lies in some spaces_i.
+    apply Submodule.span_le.mpr
+    intro q hq
+    rcases hq with ⟨S, shift, hlen, _hdeg, _hvars, _hadm, rfl⟩
+    -- The generator mlProj(shift * iterDerivList S p) lies in the bounded profile sup
+    rw [hp]
+    have hLeibniz := iterDerivList_finset_prod_mem_bounded_span S factors
+    have hpost := SymmetricPower.mlProj_mul_mem_span_image shift
+      (boundedDistribDerivProds Finset.univ factors S S.length)
+      (iterDerivList S (Finset.univ.prod factors))
+      hLeibniz
+    -- Each element of the bounded span has a bounded profile (mass ≤ |S| = κ)
+    -- So it lies in allBoundedProfilePostSpan for some bounded profile
+    -- which is some spaces_i.
+    suffices hsuff : mlProj (shift * iterDerivList S (Finset.univ.prod factors)) ∈
+        ⨆ (bp : BoundedProfile κ),
+          allBoundedProfilePostSpan B κ ℓ factors constraintType bp.toHistogram by
+      -- Convert from ⨆_{bp} to ⨆_{Fin P}
+      have hle : ⨆ (bp : BoundedProfile κ),
+          allBoundedProfilePostSpan B κ ℓ factors constraintType bp.toHistogram ≤
+          ⨆ (i : Fin P), spaces i := by
+        apply iSup_le
+        intro bp
+        let i := (Fintype.equivFin (BoundedProfile κ)) bp
+        apply le_trans _ (le_iSup spaces i)
+        show allBoundedProfilePostSpan B κ ℓ factors constraintType bp.toHistogram ≤ spaces i
+        have : (enum i).toHistogram = bp.toHistogram := by
+          show ((Fintype.equivFin (BoundedProfile κ)).symm
+            ((Fintype.equivFin (BoundedProfile κ)) bp)).toHistogram = bp.toHistogram
+          simp [Equiv.symm_apply_apply]
+        rw [← this]
+      exact hle hsuff
+    -- Now show the generator lies in ⨆_{bp} allBoundedProfilePostSpan
+    -- Each distribDerivProd with bounded total length has a bounded profile
+    -- (mass ≤ |S| = κ, hence each component ≤ κ)
+    -- The post-processed generator is in the span of these, hence in the sup.
+    -- Use the intermediate: generator ∈ span of post-processed bounded terms,
+    -- and each such term lies in some allBoundedProfilePostSpan(bp).
+    apply Submodule.span_le.mpr _ hpost
+    intro q' hq'
+    rcases hq' with ⟨g, hg_mem, rfl⟩
+    -- g ∈ boundedDistribDerivProds, so it has a bounded profile
+    rcases hg_mem with ⟨d, hd_elts, hg_eq, hd_len⟩
+    -- The profile of d is admissible (mass ≤ |S| = κ)
+    have hadm : ProfileAdmissible κ (derivCountProfile constraintType d) := by
+      apply derivCountProfile_admissible_of_total_le
+      rw [hlen] at hd_len
+      simpa using hd_len
+    -- Hence each component ≤ κ
+    set bp := admissibleToBounded hadm
+    apply Submodule.mem_iSup_of_mem bp
+    -- mlProj(shift * g) ∈ allBoundedProfilePostSpan B κ ℓ factors constraintType bp.toHistogram
+    apply Submodule.subset_span
+    rw [Set.mem_iUnion]
+    refine ⟨S, Set.mem_iUnion.mpr ⟨shift, ⟨g, ?_, rfl⟩⟩⟩
+    -- g ∈ boundedProfileClassifiedSet with profile = bp.toHistogram
+    exact ⟨d, hd_elts, hg_eq, rfl, by simpa using hd_len⟩
+
+/-! ## Part 9: Arithmetic identities for the profile bounds -/
 
 /-- The within-profile bound ∏_τ C(h(τ)+2,2) ≤ (κ+1)^8 matches the
     withinProfileBound constant. -/
