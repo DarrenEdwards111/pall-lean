@@ -324,4 +324,127 @@ theorem mul_mem_span_mul {n : ℕ}
   | smul r x _ ihx =>
     rw [smul_mul_assoc]; exact Submodule.smul_mem _ r ihx
 
+/-! ## Part 6: Finset.prod membership in span of atom products
+
+    Generalization: if for each i ∈ s, f(i) ∈ span(A(i)), then
+    ∏_{i∈s} f(i) ∈ span({∏_{i∈s} a(i) | a(i) ∈ A(i)}).
+
+    This is proved by induction on the Finset s, using mul_mem_span_mul
+    at each step. The product-set at each step is the image of the
+    product map on the pi type of atom-subtypes.
+
+    For the symmetric power argument, this shows that the SPAN of all
+    Finset products of atoms has finrank ≤ ∏_i |A(i)|. -/
+
+/-- The set of all products choosing one element from each A(i). -/
+def piProdSet {n : ℕ} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι)
+    (A : ι → Set (MvPolynomial (Fin n) ℚ)) :
+    Set (MvPolynomial (Fin n) ℚ) :=
+  { g | ∃ (choice : ι → MvPolynomial (Fin n) ℚ),
+    (∀ i ∈ s, choice i ∈ A i) ∧ g = s.prod choice }
+
+/-- A Finset product of elements from spans lies in the span of piProdSet.
+
+    Key inductive theorem: if each factor f(i) is in span(A(i)),
+    then ∏_{i ∈ s} f(i) ∈ span(piProdSet s A). -/
+theorem finset_prod_mem_span_piProdSet {n : ℕ} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι)
+    (A : ι → Set (MvPolynomial (Fin n) ℚ))
+    (f : ι → MvPolynomial (Fin n) ℚ)
+    (hf : ∀ i ∈ s, f i ∈ Submodule.span ℚ (A i)) :
+    s.prod f ∈ Submodule.span ℚ (piProdSet s A) := by
+  induction s using Finset.induction_on with
+  | empty =>
+    -- ∏_{∅} f = 1, and 1 ∈ piProdSet ∅ A (via the trivial choice)
+    rw [Finset.prod_empty]
+    apply Submodule.subset_span
+    exact ⟨fun _ => 1, fun _ h => absurd h (by simp),
+      by simp [Finset.prod_empty]⟩
+  | @insert a s ha ih =>
+    rw [Finset.prod_insert ha]
+    -- f(a) ∈ span(A(a)) and ∏_{s} f ∈ span(piProdSet s A)
+    have hfa : f a ∈ Submodule.span ℚ (A a) :=
+      hf a (Finset.mem_insert_self a s)
+    have hrest : s.prod f ∈ Submodule.span ℚ (piProdSet s A) :=
+      ih (fun i hi => hf i (Finset.mem_insert_of_mem hi))
+    -- By mul_mem_span_mul: f(a) * ∏_s f ∈ span(A(a) × piProdSet s A → product)
+    have hmul := mul_mem_span_mul (A a) (piProdSet s A) (f a) (s.prod f) hfa hrest
+    -- Show the pairwise product set ⊆ piProdSet (insert a s) A
+    apply Submodule.span_mono _ hmul
+    intro g hg
+    simp only [Set.mem_image, Set.mem_prod] at hg
+    obtain ⟨⟨b, c⟩, ⟨hb, hc⟩, rfl⟩ := hg
+    -- b ∈ A(a), c ∈ piProdSet s A
+    obtain ⟨choice, hchoice, hc_eq⟩ := hc
+    -- Define new choice: a ↦ b, rest ↦ choice
+    refine ⟨Function.update choice a b, ?_, ?_⟩
+    · intro i hi
+      rw [Finset.mem_insert] at hi
+      rcases hi with rfl | hi
+      · rw [Function.update_self]; exact hb
+      · have hne : i ≠ a := fun h => ha (h ▸ hi)
+        rw [Function.update_of_ne hne]
+        exact hchoice i hi
+    · rw [hc_eq, Finset.prod_insert ha, Function.update_self]
+      congr 1
+      apply Finset.prod_congr rfl
+      intro i hi
+      have hne : i ≠ a := fun h => ha (h ▸ hi)
+      exact (Function.update_of_ne hne b choice).symm
+
+/-- piProdSet is finite when each A(i) is finite. -/
+theorem piProdSet_finite {n : ℕ} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι)
+    (A : ι → Set (MvPolynomial (Fin n) ℚ))
+    (hA : ∀ i ∈ s, Set.Finite (A i)) :
+    Set.Finite (piProdSet s A) := by
+  -- piProdSet is the image of the product map on a finite pi type
+  let choices := (i : s) → { a : MvPolynomial (Fin n) ℚ // a ∈ A i }
+  haveI : ∀ i : s, Finite { a : MvPolynomial (Fin n) ℚ // a ∈ A i } :=
+    fun i => (hA i i.prop).to_subtype
+  haveI : Finite choices := Pi.finite
+  apply Set.Finite.subset (Set.toFinite (Set.range
+    (fun (c : choices) => s.prod (fun i =>
+      if h : i ∈ s then (c ⟨i, h⟩).val else 1))))
+  intro g hg
+  obtain ⟨choice, hchoice, rfl⟩ := hg
+  refine ⟨fun i => ⟨choice i, hchoice i i.prop⟩, ?_⟩
+  apply Finset.prod_congr rfl
+  intro i hi
+  simp [hi]
+
+/-- The span of piProdSet has finrank ≤ ∏_{i ∈ s} |A(i)|
+    when each A(i) is a Finset.
+
+    Proof: piProdSet is contained in the image of the product map
+    on the pi type of atom subtypes. This image has cardinality
+    ≤ ∏ |A(i)| by the cardinality of the pi type. -/
+theorem finrank_span_piProdSet_le {n : ℕ} {L : ℕ}
+    (A : Fin L → Finset (MvPolynomial (Fin n) ℚ)) :
+    let Aset : Fin L → Set (MvPolynomial (Fin n) ℚ) := fun i => ↑(A i)
+    Module.finrank ℚ (Submodule.span ℚ (piProdSet Finset.univ Aset)) ≤
+      ∏ i : Fin L, (A i).card := by
+  intro Aset
+  -- Build a spanning Finset
+  let piFinset := Finset.univ.pi (fun i => A i)
+  let prodFn : (∀ i ∈ (Finset.univ : Finset (Fin L)),
+      MvPolynomial (Fin n) ℚ) → MvPolynomial (Fin n) ℚ :=
+    fun c => (Finset.univ : Finset (Fin L)).prod (fun i => c i (Finset.mem_univ i))
+  let G := piFinset.image prodFn
+  -- Show piProdSet ⊆ ↑G
+  have hcover : piProdSet Finset.univ Aset ⊆ ↑G := by
+    intro g hg
+    obtain ⟨choice, hchoice, rfl⟩ := hg
+    simp only [G, Finset.coe_image]
+    exact ⟨fun i _ => choice i,
+      Finset.mem_pi.mpr (fun i _ => hchoice i (Finset.mem_univ i)),
+      by apply Finset.prod_congr rfl; intros; rfl⟩
+  calc Module.finrank ℚ (Submodule.span ℚ (piProdSet Finset.univ Aset))
+      ≤ Module.finrank ℚ (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))) :=
+        Submodule.finrank_mono (Submodule.span_mono hcover)
+    _ ≤ G.card := finrank_span_finset_le_card G
+    _ ≤ piFinset.card := Finset.card_image_le
+    _ = ∏ i ∈ Finset.univ, (A i).card := Finset.card_pi _ _
+
 end AbstractLocalDerivSpace
