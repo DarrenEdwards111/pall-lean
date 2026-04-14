@@ -1464,74 +1464,10 @@ theorem atomProductSet_finite {n L : ℕ}
   rcases hg with ⟨atoms, hatoms, rfl⟩
   exact ⟨fun i => ⟨atoms i, hatoms i⟩, rfl⟩
 
-/-- The atom-product set has cardinality ≤ ∏_i |localDerivAtoms(f_i, S)|.
-
-    This follows because atomProductSet is the image of the product map
-    on choices from localDerivAtoms, and the image cardinality ≤ domain
-    cardinality = ∏_i |localDerivAtoms(f_i, S)|. -/
-theorem atomProductSet_card_le {n L : ℕ}
-    (factors : Fin L → MvPolynomial (Fin n) ℚ) (S : List (Fin n)) :
-    (atomProductSet_finite factors S).toFinset.card ≤
-      ∏ i : Fin L, (localDerivAtoms (factors i) S).card := by
-  -- Express atomProductSet as an image of the product map on atom choices
-  let atomChoices := (i : Fin L) → { a : MvPolynomial (Fin n) ℚ //
-    a ∈ localDerivAtoms (factors i) S }
-  let prodMap : atomChoices → MvPolynomial (Fin n) ℚ :=
-    fun c => Finset.univ.prod (fun i => (c i).val)
-  -- The atomProductSet is contained in the range of prodMap
-  have hrange : atomProductSet factors S ⊆ Set.range prodMap := by
-    intro g hg
-    rcases hg with ⟨atoms, hatoms, rfl⟩
-    exact ⟨fun i => ⟨atoms i, hatoms i⟩, rfl⟩
-  -- toFinset.card ≤ card of the range ≤ card of the domain
-  have hfin_range : Set.Finite (Set.range prodMap) := Set.finite_range prodMap
-  calc (atomProductSet_finite factors S).toFinset.card
-      ≤ hfin_range.toFinset.card := by
-        apply Set.Finite.toFinset_mono
-        exact hrange
-    _ ≤ Fintype.card atomChoices := by
-        calc _ ≤ Finset.univ.card := by
-              apply le_trans (Finset.card_le_card _)
-              · exact le_refl _
-              · intro x hx
-                exact Finset.mem_univ _
-          _ = Fintype.card atomChoices := (Finset.card_univ).symm
-    _ = ∏ i : Fin L, (localDerivAtoms (factors i) S).card := by
-        simp [Fintype.card_pi, Fintype.card_coe]
-
-/-- The per-S-shift post-span finrank is bounded by the product of
-    local derivative atom counts: ∏_i |localDerivAtoms(f_i, S)|. -/
-theorem perSShift_finrank_le_prod_localDerivAtoms {n L : ℕ}
-    (factors : Fin L → MvPolynomial (Fin n) ℚ)
-    (hfactors : ∀ i, (factors i).totalDegree ≤ 2)
-    (constraintType : Fin L → ConstraintType)
-    (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ)
-    (h : ProfileHistogram) :
-    Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h) ≤
-      ∏ i : Fin L, (localDerivAtoms (factors i) S).card :=
-  le_trans (perSShift_finrank_le_atomProducts factors hfactors constraintType S shift h)
-    (atomProductSet_card_le factors S)
-
-/-- Combining with localDerivAtoms_card_le: the per-S-shift post-span finrank
-    is bounded by ∏_i (|S.toFinset| + 1)² = ((|S.toFinset| + 1)²)^L. -/
-theorem perSShift_finrank_le_S_card_bound {n L : ℕ}
-    (factors : Fin L → MvPolynomial (Fin n) ℚ)
-    (hfactors : ∀ i, (factors i).totalDegree ≤ 2)
-    (constraintType : Fin L → ConstraintType)
-    (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ)
-    (h : ProfileHistogram) :
-    Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h) ≤
-      (S.toFinset.card + 1) ^ (2 * L) := by
-  calc Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h)
-      ≤ ∏ i : Fin L, (localDerivAtoms (factors i) S).card :=
-        perSShift_finrank_le_prod_localDerivAtoms factors hfactors constraintType S shift h
-    _ ≤ ∏ _i : Fin L, (S.toFinset.card + 1) ^ 2 := by
-        apply Finset.prod_le_prod
-        · intro i _; exact Nat.zero_le _
-        · intro i _; exact localDerivAtoms_card_le (factors i) S
-    _ = ((S.toFinset.card + 1) ^ 2) ^ L := by
-        simp [Finset.prod_const, Finset.card_fin]
-    _ = (S.toFinset.card + 1) ^ (2 * L) := by ring
+-- The atom-product set has cardinality ≤ ∏_i |localDerivAtoms(f_i, S)|.
+-- atomProductSet_card_le, perSShift_finrank_le_prod_localDerivAtoms,
+-- and perSShift_finrank_le_S_card_bound are defined after perSShift_finrank_le_atomProducts
+-- (Part 22b) to avoid forward references.
 
 /-- The "differentiated" local derivative atoms for factor i: atoms arising
     from derivatives of length exactly k (with k ∈ {0, 1, 2}).
@@ -1587,13 +1523,21 @@ theorem iterDerivList_mem_localDerivAtomsOfDegree {n : ℕ}
   · -- d = v :: w :: rest, must have rest = []
     cases rest with
     | nil =>
-      simp only [localDerivAtomsOfDegree, List.length_cons, List.length_nil,
-        Finset.mem_image, Finset.mem_product]
-      refine ⟨(v, w), ⟨List.mem_toFinset.mpr (hd_mem v (by simp)),
-        List.mem_toFinset.mpr (hd_mem w (by simp))⟩, ?_⟩
-      exact iterDerivList_pair_eq_pderiv2 v w f
-    | cons _ _ =>
-      simp [List.length] at hd_len; omega
+      show iterDerivList [v, w] f ∈ localDerivAtomsOfDegree f S ([v, w].length)
+      simp only [List.length_cons, List.length_nil]
+      show iterDerivList [v, w] f ∈ localDerivAtomsOfDegree f S 2
+      rw [iterDerivList_pair_eq_pderiv2 v w f]
+      show MvPolynomial.pderiv v (MvPolynomial.pderiv w f) ∈
+        (S.toFinset ×ˢ S.toFinset).image
+          (fun p => MvPolynomial.pderiv p.1 (MvPolynomial.pderiv p.2 f))
+      apply Finset.mem_image_of_mem
+      exact Finset.mem_product.mpr ⟨List.mem_toFinset.mpr (hd_mem v (List.mem_cons_self _ _)),
+        List.mem_toFinset.mpr (hd_mem w (List.mem_cons_of_mem _ (List.mem_cons_self _ _)))⟩
+    | cons x rest' =>
+      exfalso
+      have : (v :: w :: x :: rest').length ≤ 2 := hd_len
+      simp only [List.length_cons] at this
+      omega
 
 /-- Profile-constrained atom product set: products ∏_i a_i where
     a_i ∈ localDerivAtomsOfDegree(f_i, S, k_i) and k_i ≤ 2.
@@ -1641,28 +1585,33 @@ theorem constrainedAtomProductSet_finite {n L : ℕ}
   rcases hg with ⟨atoms, hatoms, rfl⟩
   exact ⟨fun i => ⟨atoms i, hatoms i⟩, rfl⟩
 
-/-- The constrained atom product set has cardinality ≤ ∏_i |localDerivAtomsOfDegree(f_i, S, k_i)|. -/
+/-- The constrained atom product set has cardinality ≤ ∏_i |localDerivAtomsOfDegree(f_i, S, k_i)|.
+    Proof: the set is the image of the product map on a pi type of subtypes.
+    Image card ≤ pi type card = ∏ subtype card = ∏ Finset card. -/
 theorem constrainedAtomProductSet_card_le {n L : ℕ}
     (factors : Fin L → MvPolynomial (Fin n) ℚ) (S : List (Fin n))
     (derivLengths : Fin L → ℕ) :
     (constrainedAtomProductSet_finite factors S derivLengths).toFinset.card ≤
       ∏ i : Fin L, (localDerivAtomsOfDegree (factors i) S (derivLengths i)).card := by
-  let atomChoices := (i : Fin L) → { a : MvPolynomial (Fin n) ℚ //
-    a ∈ localDerivAtomsOfDegree (factors i) S (derivLengths i) }
-  let prodMap : atomChoices → MvPolynomial (Fin n) ℚ :=
-    fun c => Finset.univ.prod (fun i => (c i).val)
-  have hrange : constrainedAtomProductSet factors S derivLengths ⊆ Set.range prodMap := by
+  -- The constrainedAtomProductSet ⊆ image of ∏ applied to the pi type
+  -- of subtypes. |image| ≤ |domain| = ∏ |Finset| by Fintype.card_pi.
+  -- Technical: the Set.Finite.toFinset API makes this awkward.
+  -- Use a finite covering Finset via Finset.pi.
+  let piFinset := Finset.univ.pi (fun i => localDerivAtomsOfDegree (factors i) S (derivLengths i))
+  let prodFn : (∀ i ∈ Finset.univ, MvPolynomial (Fin n) ℚ) → MvPolynomial (Fin n) ℚ :=
+    fun c => Finset.univ.prod (fun i => c i (Finset.mem_univ i))
+  have hcover : ∀ g ∈ (constrainedAtomProductSet_finite factors S derivLengths).toFinset,
+      g ∈ (piFinset.image prodFn) := by
     intro g hg
+    rw [Set.Finite.mem_toFinset] at hg
     rcases hg with ⟨atoms, hatoms, rfl⟩
-    exact ⟨fun i => ⟨atoms i, hatoms i⟩, rfl⟩
-  have hfin_range : Set.Finite (Set.range prodMap) := Set.finite_range prodMap
+    exact Finset.mem_image_of_mem _ (Finset.mem_pi.mpr (fun i _ => hatoms i))
   calc (constrainedAtomProductSet_finite factors S derivLengths).toFinset.card
-      ≤ hfin_range.toFinset.card := Set.Finite.toFinset_mono hrange
-    _ ≤ Fintype.card atomChoices := by
-        calc _ ≤ Finset.univ.card := Finset.card_le_card (fun x _ => Finset.mem_univ _)
-          _ = Fintype.card atomChoices := Finset.card_univ.symm
-    _ = ∏ i : Fin L, (localDerivAtomsOfDegree (factors i) S (derivLengths i)).card := by
-        simp [Fintype.card_pi, Fintype.card_coe]
+      ≤ (piFinset.image prodFn).card := Finset.card_le_card hcover
+    _ ≤ piFinset.card := Finset.card_image_le
+    _ = ∏ i ∈ Finset.univ,
+        (localDerivAtomsOfDegree (factors i) S (derivLengths i)).card :=
+        Finset.card_pi _ _
 
 /-- Key product bound: when k_i = 0 the factor contributes 1, otherwise ≤ (|S|+1)^k_i.
     So ∏ |atoms of degree k_i| ≤ ∏_{k_i > 0} (|S|+1)^k_i = (|S|+1)^(∑_{k_i > 0} k_i).
@@ -1799,9 +1748,9 @@ theorem fullyBounded_card_le {n L : ℕ}
 
     Simpler: fullyBounded ⊆ atomProductSet, so we use that bound.
     The key improvement comes from the ALL-S union, where the
-    variable-confinement argument applies. -/
+    variable-confinement argument applies.
 
-/-- The per-S-shift finrank with the total-mass constraint.
+The per-S-shift finrank with the total-mass constraint.
 
     For the per-S case: finrank ≤ |atomProductSet| ≤ ∏ |localDerivAtoms|.
     This is the same bound as before. The improvement from the total-mass
@@ -1928,32 +1877,29 @@ theorem isMultilinear_of_mem_mlProj_support {σ : Type*} [DecidableEq σ] {F : T
     exact if_neg h_neg
   exact absurd this (Finsupp.mem_support_iff.mp hα)
 
-/-- The support of mlProj(p) is contained in the support of p restricted
-    to multilinear monomials. -/
-theorem mlProj_support_subset {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
-    (p : MvPolynomial σ F) :
-    (mlProj p).support ⊆ p.support.filter (fun α => Finsupp.IsMultilinear α) := by
-  intro α hα
-  simp only [Finsupp.mem_support_iff] at hα ⊢
-  simp only [Finset.mem_filter, Finsupp.mem_support_iff]
-  constructor
-  · intro hc
-    have : (mlProj p) α = 0 := by
-      show (Finsupp.filter _ p) α = 0
-      rw [Finsupp.filter_apply, if_pos (isMultilinear_of_mem_mlProj_support p α
-        (Finsupp.mem_support_iff.mpr hα))]
-      exact hc
-    exact absurd this hα
-  · exact isMultilinear_of_mem_mlProj_support p α (Finsupp.mem_support_iff.mpr hα)
-
 /-- The coefficient of mlProj: it's the original coefficient for multilinear
     monomials and 0 otherwise. -/
 theorem coeff_mlProj {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
     (p : MvPolynomial σ F) (α : σ →₀ ℕ) :
     MvPolynomial.coeff α (mlProj p) =
       if Finsupp.IsMultilinear α then MvPolynomial.coeff α p else 0 := by
-  show (Finsupp.filter (fun β => Finsupp.IsMultilinear β) p) α = _
-  rw [Finsupp.filter_apply]
+  change (Finsupp.filter (fun β => Finsupp.IsMultilinear β) p) α = _
+  simp only [Finsupp.filter_apply]
+
+/-- The support of mlProj(p) is contained in the support of p restricted
+    to multilinear monomials. -/
+theorem mlProj_support_subset' {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p : MvPolynomial σ F) :
+    (mlProj p).support ⊆ p.support.filter (fun α => Finsupp.IsMultilinear α) := by
+  intro α hα
+  rw [Finset.mem_filter]
+  have hα_ne : (mlProj p) α ≠ 0 := Finsupp.mem_support_iff.mp hα
+  have hα_ml := isMultilinear_of_mem_mlProj_support p α hα
+  constructor
+  · rw [Finsupp.mem_support_iff]
+    rw [coeff_mlProj, if_pos hα_ml] at hα_ne
+    exact hα_ne
+  · exact hα_ml
 
 /-- For Finsupp with disjoint supports, the sum is multilinear iff both are. -/
 theorem isMultilinear_add_of_disjoint_support {σ : Type*} [DecidableEq σ]
@@ -1978,10 +1924,10 @@ theorem isMultilinear_add_of_disjoint_support {σ : Type*} [DecidableEq σ]
     · have hi_γ : i ∉ γ.support := by
         intro hi_γ
         exact absurd rfl (this i hi_β i hi_γ)
-      rw [Finsupp.not_mem_support_iff.mp hi_γ, add_zero]
-      exact hβ i
-    · rw [Finsupp.not_mem_support_iff.mp hi_β, zero_add]
-      exact hγ i
+      have : γ i = 0 := by rwa [Finsupp.mem_support_iff, not_not] at hi_γ
+      rw [this, add_zero]; exact hβ i
+    · have : β i = 0 := by rwa [Finsupp.mem_support_iff, not_not] at hi_β
+      rw [this, zero_add]; exact hγ i
 
 /-- Key disjointness: if α ∈ supp(p) and β ∈ supp(q) and vars(p) ∩ vars(q) = ∅,
     then supp(α) and supp(β) are disjoint as Finset. -/
@@ -1995,9 +1941,9 @@ theorem support_disjoint_of_vars_disjoint {σ : Type*} [DecidableEq σ] {F : Typ
   intro i hi j hj hij
   subst hij
   have hi_vars_p : i ∈ MvPolynomial.vars p :=
-    MvPolynomial.mem_vars.mpr ⟨α, hα, Finsupp.mem_support_iff.mp hi⟩
+    Finset.mem_biUnion.mpr ⟨α, hα, hi⟩
   have hi_vars_q : i ∈ MvPolynomial.vars q :=
-    MvPolynomial.mem_vars.mpr ⟨β, hβ, Finsupp.mem_support_iff.mp hj⟩
+    Finset.mem_biUnion.mpr ⟨β, hβ, hj⟩
   exact Finset.disjoint_iff_ne.mp hvars i hi_vars_p i hi_vars_q rfl
 
 /-- mlProj is multiplicative for polynomials with disjoint variable sets.
