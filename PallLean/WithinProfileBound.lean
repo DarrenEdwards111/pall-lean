@@ -1202,4 +1202,311 @@ theorem perSShift_finrank_of_classified_card_bound {n L : ℕ}
   le_trans (boundedProfilePostSpan_finrank_le_card_locallyBounded
     factors hfactors constraintType S shift h) hcard
 
+/-! ## Part 19: Multiset-assignment reduction
+
+Two list-assignments that differ only by permuting elements within each
+factor produce the same product polynomial. This follows from
+`iterDerivList_perm`: iterDerivList is invariant under permutation.
+
+This reduces the cardinality of locallyBoundedClassifiedSet from the
+number of list-assignments to the number of multiset-assignments. -/
+
+/-- Two list-assignments that agree on multisets produce the same product. -/
+theorem distribDerivProd_eq_of_multiset_eq {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (d₁ d₂ : Fin L → List (Fin n))
+    (h_multi : ∀ i, (d₁ i).Perm (d₂ i)) :
+    Finset.univ.prod (fun i => iterDerivList (d₁ i) (factors i)) =
+    Finset.univ.prod (fun i => iterDerivList (d₂ i) (factors i)) := by
+  apply Finset.prod_congr rfl
+  intro i _
+  exact IterDerivHelpers.iterDerivList_perm (h_multi i) (factors i)
+
+/-- Two elements of locallyBoundedClassifiedSet that come from
+    list-assignments d₁, d₂ with d₁ i ~ d₂ i for all i produce
+    the same polynomial. This collapses list-ordering redundancy. -/
+theorem locallyBoundedClassifiedSet_perm_collapse {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (h : ProfileHistogram)
+    (d₁ d₂ : Fin L → List (Fin n))
+    (h₁ : ∀ i, ∀ v ∈ d₁ i, v ∈ S)
+    (h₂ : ∀ i, ∀ v ∈ d₂ i, v ∈ S)
+    (hprof₁ : derivCountProfile constraintType d₁ = h)
+    (hprof₂ : derivCountProfile constraintType d₂ = h)
+    (hb₁ : ∀ i, (d₁ i).length ≤ 2)
+    (hb₂ : ∀ i, (d₂ i).length ≤ 2)
+    (hperm : ∀ i, (d₁ i).Perm (d₂ i)) :
+    Finset.univ.prod (fun i => iterDerivList (d₁ i) (factors i)) =
+    Finset.univ.prod (fun i => iterDerivList (d₂ i) (factors i)) :=
+  distribDerivProd_eq_of_multiset_eq factors d₁ d₂ hperm
+
+/-! ## Part 21: Local derivative space containment
+
+For degree-2 factors, `iterDerivList d f` with `|d| ≤ 2` lies in the span of
+at most 4 elements: {f, ∂_{v₁} f, ∂_{v₂} f, ∂_{v₁}∂_{v₂} f} for the (at most 2)
+variables v₁, v₂ in vars(f) ∩ S.
+
+This means the products in locallyBoundedClassifiedSet factor through local
+derivative spaces of bounded dimension, which is the basis for the symmetric
+power finrank argument. -/
+
+/-- For degree-2 factors with |d| = 1, the result is a single partial derivative. -/
+theorem iterDerivList_singleton_eq_pderiv {n : ℕ} {F : Type*} [CommRing F]
+    (v : Fin n) (f : MvPolynomial (Fin n) F) :
+    iterDerivList [v] f = MvPolynomial.pderiv v f := by
+  simp [IterDerivHelpers.iterDerivList_single]
+
+/-- For |d| = 2, the result is a double partial derivative (order doesn't matter
+    by pderiv_comm). -/
+theorem iterDerivList_pair_eq_pderiv2 {n : ℕ} {F : Type*} [CommRing F]
+    (v w : Fin n) (f : MvPolynomial (Fin n) F) :
+    iterDerivList [v, w] f = MvPolynomial.pderiv v (MvPolynomial.pderiv w f) := by
+  simp only [IterDerivHelpers.iterDerivList_cons, IterDerivHelpers.iterDerivList_nil]
+  exact IterDerivHelpers.pderiv_comm w v f
+
+/-- For degree-2 factors, the local derivative space (the set of all possible
+    iterDerivList d f for |d| ≤ 2 with d ⊆ S) is contained in the span of
+    {f} ∪ {pderiv v f | v ∈ S} ∪ {pderiv v (pderiv w f) | v, w ∈ S}.
+
+    Since |S| ≤ κ, this span has dimension ≤ 1 + κ + κ² ≤ (κ+1)².
+
+    For the Cook-Levin case where each factor has vars of size ≤ 2,
+    only derivatives in vars(f) give nonzero results, so the effective
+    dimension is ≤ 1 + 2 + 3 = 6 (but often ≤ 4). -/
+theorem iterDerivList_in_local_span {n : ℕ}
+    (f : MvPolynomial (Fin n) ℚ)
+    (S : List (Fin n))
+    (d : List (Fin n)) (hd : d.length ≤ 2) (hd_mem : ∀ v ∈ d, v ∈ S) :
+    iterDerivList d f ∈ Submodule.span ℚ
+      ({f} ∪
+       (MvPolynomial.pderiv · f) '' S.toFinset ∪
+       (⋃ v ∈ S, ⋃ w ∈ S, {MvPolynomial.pderiv v (MvPolynomial.pderiv w f)}) :
+        Set (MvPolynomial (Fin n) ℚ)) := by
+  rcases d with _ | ⟨v, _ | ⟨w, rest⟩⟩
+  · -- d = []: result is f itself
+    apply Submodule.subset_span
+    left; left; exact Set.mem_singleton f
+  · -- d = [v]: result is pderiv v f
+    apply Submodule.subset_span
+    left; right
+    exact ⟨v, List.mem_toFinset.mpr (hd_mem v (by simp)), rfl⟩
+  · -- d = v :: w :: rest, with |d| ≤ 2 means rest = []
+    cases rest with
+    | nil =>
+      -- d = [v, w]: result is pderiv v (pderiv w f)
+      apply Submodule.subset_span
+      right
+      rw [Set.mem_iUnion₂]
+      have hv_mem : v ∈ S := hd_mem v (by simp)
+      have hw_mem : w ∈ S := hd_mem w (by simp)
+      refine ⟨v, hv_mem, ?_⟩
+      rw [Set.mem_iUnion₂]
+      refine ⟨w, hw_mem, ?_⟩
+      rw [Set.mem_singleton_iff]
+      exact iterDerivList_pair_eq_pderiv2 v w f
+    | cons _ _ =>
+      simp [List.length] at hd; omega
+
+/-! ## Part 22: Local derivative space and the span of classified products
+
+Each element of locallyBoundedClassifiedSet is a product ∏_i g_i where
+g_i = iterDerivList(d_i)(f_i). By `iterDerivList_in_local_span`, each
+g_i lies in a local derivative space W_i (spanned by f_i and its first-
+and second-order partial derivatives w.r.t. variables in S).
+
+This means locallyBoundedClassifiedSet ⊆ span of products-of-local-atoms,
+and the finrank of that span is bounded by the product of local atom counts.
+
+For degree-2 Cook-Levin factors:
+  - Each factor touches ≤ 2 variables
+  - Only derivatives in vars(f_i) give nonzero results
+  - So the local derivative space for factor i has dimension ≤ 4
+    (the factor itself + ≤ 2 first derivs + ≤ 1 mixed second deriv)
+  - For undifferentiated factors (d_i = []), the contribution is fixed (f_i)
+
+The symmetric power argument then bounds the finrank of the product span
+to ∏_τ C(h(τ)+2, 2) ≤ (κ+1)^8. -/
+
+/-- The local derivative atom set for factor i and derivative list S:
+    all possible values of iterDerivList(d)(f_i) for d of length ≤ 2
+    with elements from S. This set has ≤ 1 + |S| + |S|² elements. -/
+noncomputable def localDerivAtoms {n : ℕ}
+    (f : MvPolynomial (Fin n) ℚ) (S : List (Fin n)) :
+    Finset (MvPolynomial (Fin n) ℚ) :=
+  {f} ∪
+  (S.toFinset.image (fun v => MvPolynomial.pderiv v f)) ∪
+  ((S.toFinset ×ˢ S.toFinset).image (fun p => MvPolynomial.pderiv p.1 (MvPolynomial.pderiv p.2 f)))
+
+/-- iterDerivList d f with |d| ≤ 2 and d ⊆ S lies in localDerivAtoms. -/
+theorem iterDerivList_mem_localDerivAtoms {n : ℕ}
+    (f : MvPolynomial (Fin n) ℚ) (S : List (Fin n))
+    (d : List (Fin n)) (hd : d.length ≤ 2) (hd_mem : ∀ v ∈ d, v ∈ S) :
+    iterDerivList d f ∈ (localDerivAtoms f S : Finset (MvPolynomial (Fin n) ℚ)) := by
+  rcases d with _ | ⟨v, _ | ⟨w, rest⟩⟩
+  · -- d = []: iterDerivList [] f = f ∈ {f}
+    simp [localDerivAtoms, IterDerivHelpers.iterDerivList_nil]
+  · -- d = [v]: iterDerivList [v] f = pderiv v f
+    simp only [localDerivAtoms, Finset.mem_union, Finset.mem_singleton, Finset.mem_image,
+      Finset.mem_product]
+    left; right
+    exact ⟨v, List.mem_toFinset.mpr (hd_mem v (by simp)), rfl⟩
+  · -- d = v :: w :: rest, must have rest = []
+    cases rest with
+    | nil =>
+      -- iterDerivList [v, w] f = pderiv v (pderiv w f)
+      have hvw : iterDerivList [v, w] f =
+          MvPolynomial.pderiv v (MvPolynomial.pderiv w f) :=
+        iterDerivList_pair_eq_pderiv2 v w f
+      rw [hvw]
+      simp only [localDerivAtoms, Finset.mem_union, Finset.mem_singleton, Finset.mem_image,
+        Finset.mem_product]
+      right
+      exact ⟨(v, w), ⟨List.mem_toFinset.mpr (hd_mem v (by simp)),
+        List.mem_toFinset.mpr (hd_mem w (by simp))⟩, rfl⟩
+    | cons _ _ =>
+      simp [List.length] at hd; omega
+
+/-- The cardinality of localDerivAtoms is bounded by (|S|+1)². -/
+theorem localDerivAtoms_card_le {n : ℕ}
+    (f : MvPolynomial (Fin n) ℚ) (S : List (Fin n)) :
+    (localDerivAtoms f S).card ≤ (S.toFinset.card + 1) ^ 2 := by
+  unfold localDerivAtoms
+  calc (({f} ∪
+      S.toFinset.image (fun v => MvPolynomial.pderiv v f) ∪
+      (S.toFinset ×ˢ S.toFinset).image
+        (fun p => MvPolynomial.pderiv p.1 (MvPolynomial.pderiv p.2 f))) : Finset _).card
+      ≤ 1 + S.toFinset.card + S.toFinset.card ^ 2 := by
+        calc _ ≤ ({f} ∪
+            S.toFinset.image (fun v => MvPolynomial.pderiv v f)).card +
+            ((S.toFinset ×ˢ S.toFinset).image
+              (fun p => MvPolynomial.pderiv p.1 (MvPolynomial.pderiv p.2 f))).card :=
+              Finset.card_union_le _ _
+          _ ≤ (({f} : Finset _).card + (S.toFinset.image (fun v => MvPolynomial.pderiv v f)).card) +
+              ((S.toFinset ×ˢ S.toFinset).image
+                (fun p => MvPolynomial.pderiv p.1 (MvPolynomial.pderiv p.2 f))).card := by
+            gcongr; exact Finset.card_union_le _ _
+          _ ≤ (1 + S.toFinset.card) + S.toFinset.card ^ 2 := by
+            gcongr
+            · simp [Finset.card_singleton]
+            · exact Finset.card_image_le
+            · calc _ ≤ (S.toFinset ×ˢ S.toFinset).card := Finset.card_image_le
+                _ = S.toFinset.card * S.toFinset.card := Finset.card_product _ _
+                _ = S.toFinset.card ^ 2 := (sq _).symm
+    _ ≤ (S.toFinset.card + 1) ^ 2 := by nlinarith
+
+/-- Each element of locallyBoundedClassifiedSet is a product of local
+    derivative atoms: ∏_i a_i where a_i ∈ localDerivAtoms(f_i, S).
+
+    This is a direct consequence of iterDerivList_mem_localDerivAtoms. -/
+theorem locallyBoundedClassifiedSet_subset_atom_products {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (h : ProfileHistogram)
+    (g : MvPolynomial (Fin n) ℚ)
+    (hg : g ∈ locallyBoundedClassifiedSet factors constraintType S h) :
+    ∃ (atoms : Fin L → MvPolynomial (Fin n) ℚ),
+      (∀ i, atoms i ∈ localDerivAtoms (factors i) S) ∧
+      g = Finset.univ.prod atoms := by
+  rcases hg with ⟨d, hd_elts, hg_eq, _hprof, hd_bound⟩
+  refine ⟨fun i => iterDerivList (d i) (factors i), ?_, ?_⟩
+  · intro i
+    exact iterDerivList_mem_localDerivAtoms (factors i) S (d i) (hd_bound i) (hd_elts i)
+  · exact hg_eq
+
+/-- The atom-product spanning set: all products ∏_i a_i where
+    a_i ∈ localDerivAtoms(f_i, S). -/
+def atomProductSet {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) (S : List (Fin n)) :
+    Set (MvPolynomial (Fin n) ℚ) :=
+  { g | ∃ (atoms : Fin L → MvPolynomial (Fin n) ℚ),
+      (∀ i, atoms i ∈ localDerivAtoms (factors i) S) ∧
+      g = Finset.univ.prod atoms }
+
+/-- The locally bounded classified set is contained in the atom-product set. -/
+theorem locallyBoundedClassifiedSet_subset_atomProductSet {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (h : ProfileHistogram) :
+    locallyBoundedClassifiedSet factors constraintType S h ⊆
+      atomProductSet factors S := by
+  intro g hg
+  exact locallyBoundedClassifiedSet_subset_atom_products factors constraintType S h g hg
+
+/-- The span of locallyBoundedClassifiedSet is contained in the span of
+    the atom-product set. -/
+theorem span_locallyBounded_le_span_atomProducts {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (h : ProfileHistogram) :
+    Submodule.span ℚ (locallyBoundedClassifiedSet factors constraintType S h) ≤
+      Submodule.span ℚ (atomProductSet factors S) :=
+  Submodule.span_mono (locallyBoundedClassifiedSet_subset_atomProductSet
+    factors constraintType S h)
+
+/-- The atom-product set is finite (since each localDerivAtoms is finite). -/
+theorem atomProductSet_finite {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) (S : List (Fin n)) :
+    Set.Finite (atomProductSet factors S) := by
+  -- The atom-product set is the image of the product map on
+  -- functions that choose atoms from finite sets.
+  -- We show it's finite by expressing it as a subset of a finite image.
+  let atomChoices := (i : Fin L) → { a : MvPolynomial (Fin n) ℚ //
+    a ∈ localDerivAtoms (factors i) S }
+  haveI : Fintype atomChoices := inferInstance
+  apply Set.Finite.subset (Set.toFinite (Set.range
+    (fun (c : atomChoices) => Finset.univ.prod (fun i => (c i).val))))
+  intro g hg
+  rcases hg with ⟨atoms, hatoms, rfl⟩
+  exact ⟨fun i => ⟨atoms i, hatoms i⟩, rfl⟩
+
+/-- The per-S-shift post-span finrank is bounded by the size of the
+    atom-product set (which is ≤ ∏_i |localDerivAtoms(f_i, S)|).
+
+    For the Cook-Levin case with degree-2 factors and disjoint variables,
+    the atom-product span has finrank equal to the tensor product
+    dimension, which by the symmetric power reduction gives ≤ (κ+1)^8.
+
+    The full symmetric power argument is the remaining content of the
+    axiom spdp_profile_generators. -/
+theorem perSShift_finrank_le_atomProducts {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hfactors : ∀ i, (factors i).totalDegree ≤ 2)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ)
+    (h : ProfileHistogram) :
+    Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h) ≤
+      (atomProductSet_finite factors S).toFinset.card := by
+  have hle : boundedProfilePostSpan factors constraintType S shift h ≤
+      Submodule.map (postProcessLinearMap shift)
+        (Submodule.span ℚ (atomProductSet factors S)) := by
+    calc boundedProfilePostSpan factors constraintType S shift h
+        ≤ Submodule.map (postProcessLinearMap shift)
+            (Submodule.span ℚ (locallyBoundedClassifiedSet factors constraintType S h)) := by
+          exact boundedProfilePostSpan_le_map_locallyBounded
+            factors hfactors constraintType S shift h
+      _ ≤ Submodule.map (postProcessLinearMap shift)
+            (Submodule.span ℚ (atomProductSet factors S)) := by
+          apply Submodule.map_mono
+          exact span_locallyBounded_le_span_atomProducts factors constraintType S h
+  have hfin_atoms : Module.Finite ℚ ↥(Submodule.span ℚ (atomProductSet factors S)) :=
+    Module.Finite.span_of_finite ℚ (atomProductSet_finite factors S)
+  calc Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h)
+      ≤ Module.finrank ℚ ↥(Submodule.map (postProcessLinearMap shift)
+          (Submodule.span ℚ (atomProductSet factors S))) :=
+        Submodule.finrank_mono hle
+    _ ≤ Module.finrank ℚ ↥(Submodule.span ℚ (atomProductSet factors S)) :=
+        Submodule.finrank_map_le _ _
+    _ ≤ (atomProductSet_finite factors S).toFinset.card := by
+        have : Submodule.span ℚ (atomProductSet factors S) =
+            Submodule.span ℚ ↑(atomProductSet_finite factors S).toFinset := by
+          congr 1
+          exact (Set.Finite.coe_toFinset _).symm
+        rw [this]
+        exact finrank_span_finset_le_card _
+
 end WithinProfileBound

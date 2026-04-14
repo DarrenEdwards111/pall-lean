@@ -199,4 +199,27 @@ theorem iterDerivList_eq_zero_of_mem_notMem_vars
   iterDerivList_eq_zero_of_mem_and_pderiv_zero S v p hv
     (MvPolynomial.pderiv_eq_zero_of_notMem_vars hvp)
 
+/-- Swapping two adjacent elements in the derivative list does not change the result.
+    This follows directly from `pderiv_comm`. -/
+theorem iterDerivList_swap (i j : Fin n) (S : List (Fin n))
+    (p : MvPolynomial (Fin n) F) :
+    iterDerivList (i :: j :: S) p = iterDerivList (j :: i :: S) p := by
+  simp only [iterDerivList_cons]
+  congr 1
+  exact pderiv_comm j i p
+
+/-- `iterDerivList` is invariant under permutation of the derivative list.
+    This is a consequence of the commutativity of partial derivatives. -/
+theorem iterDerivList_perm {S T : List (Fin n)}
+    (h : S.Perm T) (p : MvPolynomial (Fin n) F) :
+    iterDerivList S p = iterDerivList T p := by
+  induction h generalizing p with
+  | nil => rfl
+  | cons x _ ih => simp only [iterDerivList_cons]; exact ih (pderiv x p)
+  | swap x y rest =>
+    simp only [iterDerivList_cons]
+    congr 1
+    exact pderiv_comm x y p
+  | trans _ _ ih1 ih2 => exact (ih1 p).trans (ih2 p)
+
 end IterDerivHelpers
