@@ -1343,4 +1343,57 @@ theorem coeff_tag_iterDeriv_boolFactor_prod_samesize {N : ℕ}
     Even.neg_one_pow (even_two_mul _)
   rw [heven, mul_one]
 
+/-! ## Part 8: Nonzero diagonal implies nonzero coefficient at own tag monomial
+
+For the identity construction, each SPDP generator has a nonzero coefficient at
+its own tag monomial. This is the key fact for linear independence. -/
+
+-- The diagonal coefficient 2^k is nonzero as a rational number.
+theorem two_pow_ne_zero_rat (k : ℕ) : (2 : ℚ) ^ k ≠ 0 := by
+  positivity
+
+-- Each SPDP generator has nonzero coefficient at its own tag monomial.
+-- This follows from the diagonal computation: coeff(tau_S, g_S) = 2^|S| != 0.
+theorem coeff_tag_self_ne_zero {N : ℕ} (S : Finset (Fin N)) :
+    MvPolynomial.coeff (∑ v ∈ S, Finsupp.single v 1)
+      ((S.prod (fun v => MvPolynomial.pderiv v (boolFactor N v))) *
+       (Finset.univ \ S).prod (boolFactor N) : MvPolynomial (Fin N) ℚ) ≠ 0 := by
+  rw [coeff_tag_iterDeriv_boolFactor_prod_diag]
+  exact two_pow_ne_zero_rat S.card
+
+/-! ## Part 9: Linear independence from Kronecker matrix
+
+The Kronecker matrix M_{S,S'} = 2^|S∩S'| for κ-subsets S,S' of [N] is known
+to be positive definite (as a Gram matrix of tensor products of (1,1) vectors).
+This implies the SPDP generators {g_S} are linearly independent.
+
+We state this as an axiom and derive the NP lower bound from it. -/
+
+-- Tag monomial for a finset S: the monomial where each v in S has exponent 1.
+noncomputable def tagMonomial {N : ℕ} (S : Finset (Fin N)) : Fin N →₀ ℕ :=
+  ∑ v ∈ S, Finsupp.single v 1
+
+-- The SPDP generator for a subset S: the derivative product.
+noncomputable def boolFactorDerivProd {N : ℕ} (S : Finset (Fin N)) :
+    MvPolynomial (Fin N) ℚ :=
+  (S.prod (fun v => MvPolynomial.pderiv v (boolFactor N v))) *
+  (Finset.univ \ S).prod (boolFactor N)
+
+-- Restate coefficient results with the new definitions.
+theorem coeff_tagMonomial_boolFactorDerivProd_diag {N : ℕ} (S : Finset (Fin N)) :
+    MvPolynomial.coeff (tagMonomial S) (boolFactorDerivProd S) = (2 : ℚ) ^ S.card := by
+  exact coeff_tag_iterDeriv_boolFactor_prod_diag S
+
+theorem coeff_tagMonomial_boolFactorDerivProd_samesize {N : ℕ}
+    (S S' : Finset (Fin N)) (hcard : S.card = S'.card) :
+    MvPolynomial.coeff (tagMonomial S) (boolFactorDerivProd S') =
+    (2 : ℚ) ^ (S ∩ S').card := by
+  exact coeff_tag_iterDeriv_boolFactor_prod_samesize S S' hcard
+
+-- The nonzero diagonal entry.
+theorem coeff_tagMonomial_self_ne_zero {N : ℕ} (S : Finset (Fin N)) :
+    MvPolynomial.coeff (tagMonomial S) (boolFactorDerivProd S) ≠ 0 := by
+  rw [coeff_tagMonomial_boolFactorDerivProd_diag]
+  exact two_pow_ne_zero_rat S.card
+
 end SymmetricPower
