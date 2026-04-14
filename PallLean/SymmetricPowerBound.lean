@@ -1660,6 +1660,80 @@ theorem spdp_generator_in_profile_iSup {n L : ℕ}
     factors constraintType S shift
   exact hcontain hpost
 
+/-- The SPDP subspace of a product polynomial is contained in the sup of all
+    profile-indexed post-processed Leibniz subspaces.
+
+    This lifts `spdp_generator_in_profile_iSup` from individual generators to the
+    entire SPDP subspace. Since the SPDP subspace is the span of all generators
+    mlProj(m * iterDerivList S p), and each such generator lies in the profile sup,
+    the span is contained in the profile sup (which is a submodule, hence closed
+    under span). -/
+theorem mlBlockedSpdpSubspace_le_profile_iSup {n L : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (p : MvPolynomial (Fin n) ℚ)
+    (hp : p = Finset.univ.prod factors) :
+    mlBlockedSpdpSubspace B κ ℓ p ≤
+      ⨆ (h : ProfileHistogram),
+        Submodule.span ℚ
+          (⋃ (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ),
+            (fun g => mlProj (shift * g)) '' profileClassifiedLeibnizSet factors constraintType S h) := by
+  -- The SPDP subspace is span of { mlProj(m * iterDerivList S p) | ... }.
+  -- Each such generator lies in ⨆_h profilePostSpan(factors, constraintType, S, m, h).
+  -- But profilePostSpan depends on S and m, so we need a bigger target that unions
+  -- over all S and m.
+  apply Submodule.span_le.mpr
+  intro q hq
+  rcases hq with ⟨S, shift, _hlen, _hdeg, _hvars, _hadm, rfl⟩
+  -- q = mlProj(shift * iterDerivList S p)
+  -- By spdp_generator_in_profile_iSup, this lies in ⨆_h profilePostSpan(S, shift, h)
+  have hmem := spdp_generator_in_profile_iSup factors constraintType S shift p hp
+  -- We need to embed this into the bigger iSup that unions over S and shift.
+  -- hmem says q ∈ ⨆_h profilePostSpan(factors, ctype, S, shift, h)
+  -- We need q ∈ ⨆_h span(⋃_{S', shift'} f '' profileClassified(S', h))
+  -- Since profilePostSpan(S, shift, h) ≤ the bigger span, the containment follows.
+  apply (iSup_mono (fun h => ?_) : ⨆ h, profilePostSpan _ _ S shift h ≤ _) hmem
+  -- For each h, profilePostSpan(S, shift, h) ≤ span(⋃_{S', shift'} ...)
+  apply Submodule.span_mono
+  intro x hx
+  rw [Set.mem_iUnion]
+  exact ⟨S, Set.mem_iUnion.mpr ⟨shift, hx⟩⟩
+
+/-- Simplified version: the SPDP subspace of a product polynomial is contained in
+    the sup of profile-indexed subspaces, where each profile subspace collects all
+    post-processed Leibniz terms with that profile across ALL derivative lists S
+    and shifts m.
+
+    This is the clean §9 structural containment that reduces the profile compression
+    theorem to a within-profile dimension bound. -/
+noncomputable def allProfilePostSpan {n L : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (h : ProfileHistogram) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+  Submodule.span ℚ
+    (⋃ (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ),
+      (fun g => mlProj (shift * g)) '' profileClassifiedLeibnizSet factors constraintType S h)
+
+/-- The SPDP subspace of a product polynomial p = ∏ factors is contained in the sup
+    of allProfilePostSpan over all profile histograms.
+
+    This is the paper's §9 Step 3: the profile-indexed decomposition covers the
+    entire SPDP subspace. The number of non-trivial profiles is finite (≤ profileCount κ),
+    and each has bounded dimension (≤ withinProfileBound κ), but those quantitative
+    facts are not used here — this is purely the structural containment. -/
+theorem mlBlockedSpdpSubspace_le_allProfilePostSpan_iSup {n L : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (p : MvPolynomial (Fin n) ℚ)
+    (hp : p = Finset.univ.prod factors) :
+    mlBlockedSpdpSubspace B κ ℓ p ≤
+      ⨆ (h : ProfileHistogram), allProfilePostSpan B κ ℓ factors constraintType h :=
+  mlBlockedSpdpSubspace_le_profile_iSup B κ ℓ factors constraintType p hp
+
 /-- Current assembly theorem.
 
 At present the actual fixed-profile bridge is still open, so the compiled-polynomial
