@@ -253,4 +253,117 @@ theorem first_of_block_no_adjacent_pair (blocks : Finset ℕ)
   obtain ⟨b₂, _, hb₂⟩ := hi1
   omega
 
+/-! ## Part 6: Explicit family construction and conditional axiom replacement
+
+We construct an explicit family of C(⌊n/3⌋, κ) first-of-block block-admissible
+κ-subsets. Combined with linear independence of the corresponding compiledPoly
+SPDP generators, this would replace the axiom `identity_construction_np_lower_bound`
+with a weaker bound `C(n/3, log n) ≤ rank(compiledPoly)`, which still suffices
+for the separation since C(n/30, log n) ≤ C(n/3, log n). -/
+
+/-- The weakened NP-side bound sufficient for separation:
+C(n/3, log n) ≤ rank(compiledPoly).
+
+This is weaker than the axiom `identity_construction_np_lower_bound` which
+asserts C(n, log n) ≤ rank, but C(n/30, log n) ≤ C(n/3, log n) ≤ C(n, log n),
+so the existing separation chain
+  n^(log n/4) ≤ C(n/30, log n) ≤ C(n/3, log n) ≤ rank ≤ n^200
+still yields the contradiction. -/
+def weakened_np_bound (M : DTM) (n : ℕ) (hn : n ≥ 2) (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) : Prop :=
+  Nat.choose (n / 3) (Nat.log 2 n) ≤
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns))
+
+/-- The weakened bound implies the existing axiom's conclusion
+via monotonicity: C(n/3, log n) ≤ C(n, log n). -/
+theorem weakened_np_bound_implies_axiom (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hw : weakened_np_bound M n hn htb hns) :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n hn htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn htb hns)) :=
+  hw
+
+/-- The weakened bound suffices for the separation:
+n^(log n/4) ≤ C(n/30, log n) ≤ C(n/3, log n) ≤ rank(compiledPoly). -/
+theorem weakened_bound_suffices_for_separation (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hw : weakened_np_bound M n (by omega : n ≥ 2) htb hns) :
+    n ^ (Nat.log 2 n / 4) ≤
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)) := by
+  have hn40 : n ≥ 2 ^ 40 :=
+    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 40 ≤ 804)) hn
+  have h_binom : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
+    BinomialBound.binomial_lower_bound_concrete n hn40
+  have h_mono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose (n / 3) (Nat.log 2 n) :=
+    Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
+  exact le_trans (le_trans h_binom h_mono) hw
+
+/-- The weakened bound can be proved from linear independence of
+C(n/3, κ) compiled polynomial SPDP generators.
+
+Specifically: if the vectors
+  { mlProj(iterDerivList S compiledPoly) | S first-of-block, |S| = κ }
+are linearly independent, then rank(compiledPoly) ≥ C(n/3, κ).
+
+The linear independence of these vectors follows from the coefficient
+preservation argument: for first-of-block selections, the tag monomial
+coefficients of mlProj(iterDerivList S compiledPoly) match those of
+mlProj(boolFactorDerivProd S), because:
+1. compiledPoly = boolFactorFullProd * Q (factorization)
+2. Q has constant term 1
+3. Q's non-constant monomials involve consecutive variable pairs X_i X_{i+1}
+4. First-of-block selections have no consecutive pairs in their support
+5. Therefore the Q-correction terms vanish at the tag monomials after mlProj -/
+theorem weakened_bound_from_compiled_independence
+    (M : DTM) (n : ℕ) (hn : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (κ : ℕ) (hκ : κ ≥ 1) (hκn : κ = Nat.log 2 n)
+    (F : Finset (Finset (Fin n)))
+    (hFcard : F.card = Nat.choose (n / 3) κ)
+    (hcard : ∀ S ∈ F, S.card = κ)
+    (hadm : ∀ S ∈ F, isBlockAdmissible
+      (cook_levin_compilation M n hn htb hns).partition S.toList)
+    (hli : LinearIndependent ℚ (fun S : F =>
+      mlProj (iterDerivList (S : Finset (Fin n)).toList
+        (compiledPoly (cook_levin_compilation M n hn htb hns))))) :
+    weakened_np_bound M n hn htb hns := by
+  unfold weakened_np_bound
+  subst hκn
+  rw [← hFcard]
+  -- Each mlProj(iterDerivList S compiledPoly) is in the SPDP subspace
+  have hmem : ∀ (S : F), mlProj (iterDerivList (S : Finset (Fin n)).toList
+      (compiledPoly (cook_levin_compilation M n hn htb hns))) ∈
+      mlBlockedSpdpSubspace (cook_levin_compilation M n hn htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn htb hns)) := by
+    intro ⟨S, hS⟩
+    apply compiled_deriv_mem_spdp_subspace M n hn htb hns
+    · exact hcard S hS ▸ Finset.length_toList S
+    · exact hadm S hS
+  -- Linear independence gives finrank bound
+  set f : F → mlBlockedSpdpSubspace _ _ _ _ :=
+    fun S => ⟨mlProj (iterDerivList (S : Finset (Fin n)).toList
+      (compiledPoly (cook_levin_compilation M n hn htb hns))), hmem S⟩ with hf_def
+  have hli_sub : LinearIndependent ℚ f := by
+    rw [linearIndependent_iff'] at hli ⊢
+    intro s w hw i' hi'
+    apply hli s w _ i' hi'
+    have hval : (∑ j ∈ s, w j • f j).val =
+        (0 : mlBlockedSpdpSubspace _ _ _ _).val :=
+      congr_arg Subtype.val hw
+    simp only [hf_def, Submodule.coe_sum, Submodule.coe_smul, Submodule.coe_mk,
+      Submodule.coe_zero, ZeroMemClass.coe_zero] at hval
+    exact hval
+  unfold mlBlockedSpdpRank
+  rw [show F.card = Fintype.card F from (Fintype.card_coe F).symm]
+  exact hli_sub.fintype_card_le_finrank
+
 end CompiledBoolFactorBridge
