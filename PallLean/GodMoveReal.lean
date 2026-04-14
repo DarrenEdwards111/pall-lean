@@ -1152,7 +1152,42 @@ the transition skeleton constraints are structurally compatible.
 
 The proof uses the booleanity-product Kronecker construction with the locality
 partition (block size 3) and shift-augmented counting, following the paper's
-Lemma 124 identity minor argument for product polynomials. -/
+Lemma 124 identity minor argument for product polynomials.
+
+Honest current status: this proof sketch is NOT yet sufficient. The locality
+partition reduces the family of block-admissible subsets below the full
+`Nat.choose n κ` count, so the naive Kronecker family from booleanity factors
+alone cannot directly deliver the claimed lower bound. The intended extra source
+of independent structure is the machine-dependent transition layer, and thus the
+`DecidesSAT` hypothesis must become genuinely active in the construction, not
+just an ambient assumption. A first honest bridge now exists on the compiled
+side: `cook_levin_compilation_has_machine_dependent_constraint` proves that,
+whenever `0 < M.numStates`, the compiled constraint list contains a genuinely
+machine-dependent local constraint. So the real next theorem is not the full
+lower bound but a smaller bridge showing how the existence of such a
+transition-dependent compiled constraint yields additional admissible generator
+families or a stronger coefficient law beyond the pure booleanity/adjacency
+product argument. -/
+
+/-- Small God-Move-facing bridge: the compiled object used in the NP-side target
+contains a genuinely machine-dependent local constraint whenever the machine has
+at least one state. This does not yet prove a lower bound, but it rules out the
+fully machine-independent reading of the current Cook-Levin object and gives a
+named theorem that later coefficient/generator arguments can cite directly. -/
+theorem godMove_compilation_has_machine_dependent_constraint
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (hstate : 0 < M.numStates) :
+    ∃ c : PaperFaithfulSeparation.LocalConstraint
+        (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars,
+      c ∈ (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).constraints := by
+  simpa using
+    PaperFaithfulSeparation.cook_levin_compilation_has_machine_dependent_constraint
+      M n (by omega : n ≥ 2) htb hns hstate
+
 axiom identity_construction_np_lower_bound (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : PaperFaithfulSeparation.DecidesSAT M)
