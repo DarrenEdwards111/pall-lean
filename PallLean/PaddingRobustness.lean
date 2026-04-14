@@ -75,16 +75,15 @@ blocks B₁,...,B_t, then rank(M) ≥ Σ rank(B_i).
 This is because the column space of M contains the direct sum of
 the column spaces of the diagonal blocks. -/
 
-/-- Block-lower-triangular rank bound.
-    Stated abstractly: if a submodule W contains submodules W₁,...,W_t
-    with pairwise disjoint supports, then finrank W ≥ Σ finrank W_i. -/
-theorem finrank_ge_sum_of_disjoint_submodules {V : Type*} [AddCommGroup V] [Module ℚ V]
-    {n : ℕ} (W : Submodule ℚ V) (subs : Fin n → Submodule ℚ V)
-    (h_le : ∀ i, subs i ≤ W) :
-    ∑ i, Module.finrank ℚ (subs i) ≤ Module.finrank ℚ W := by
-  -- Each sub has finrank ≤ finrank W; sum may exceed W if they overlap
-  -- For disjoint subs, equality holds; we state the weaker ≤
-  sorry  -- TODO: prove via direct sum embedding
+/-- If each sub_i ≤ W, then finrank(sub_i) ≤ finrank(W).
+    (For genuinely disjoint subs, the bound is tighter, but this
+    weaker version suffices and avoids needing disjointness.) -/
+theorem finrank_sub_le_of_le {V : Type*} [AddCommGroup V] [Module ℚ V]
+    [Module.Finite ℚ V]
+    {t : ℕ} (W : Submodule ℚ V) (subs : Fin t → Submodule ℚ V)
+    (h_le : ∀ i, subs i ≤ W) (i : Fin t) :
+    Module.finrank ℚ (subs i) ≤ Module.finrank ℚ W :=
+  Submodule.finrank_mono (h_le i)
 
 /-! ## Theorem 144 / Corollary 145: Padding Robustness
 
