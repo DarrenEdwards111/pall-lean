@@ -54,18 +54,16 @@ structure DummyPadding (n_x n_d : ℕ) where
       or D = 1, or D is a nonzero constant) -/
   dummy_nonzero_at_zero : dummyFactor ≠ 0
 
-/-- The SPDP rank of f·D restricted to x-columns is at least rk(f).
-
-Paper Lemma 142: differentiating f·D by x-variables gives (∂_S f)·D,
-and restricting columns to x-monomials gives M_ℓ(f) times a scalar.
-Since D(0) ≠ 0, the scalar is nonzero, preserving rank.
-
-For the separation, this means padding with dummy unit clauses
-cannot reduce the SPDP rank below the original formula's rank. -/
-axiom spdpRank_dummy_padding_mono (n_x n_d : ℕ)
+/-- Placeholder version: rk(f) ≤ rk(f) is trivially true.
+    The real Lemma 142 would compare rk(f) with rk(f·D) in a larger
+    variable space. That requires embedding polynomials across variable
+    spaces, which needs infrastructure not yet built.
+    This placeholder is not load-bearing (Separation29 doesn't use it). -/
+theorem spdpRank_dummy_padding_mono (n_x n_d : ℕ)
     (pad : DummyPadding n_x n_d) (κ ℓ : ℕ) :
     spdpRank κ ℓ pad.original ≤
-      spdpRank κ ℓ pad.original  -- placeholder: should be spdpRank of padded version
+      spdpRank κ ℓ pad.original :=
+  le_refl _
 
 /-! ## Lemma 143: Block-Lower-Triangular Rank
 
@@ -98,16 +96,13 @@ The paper handles this by using d = 1 (unit clauses force d_j = 1),
 so the relevant scalar is ∏ 1 = 1, which is nonzero. The SPDP matrix
 over the FULL variable set (x,d) has the padded structure. -/
 
-/-- Padding does not reduce SPDP rank (Theorem 144).
-
-For unit-dummy paddings pad as in Definition 41:
-  rk_{SPDP,ℓ}(χ_{pad(φ)}) ≥ rk_{SPDP,ℓ}(χ_φ).
-
-This is the key robustness property ensuring the separation
-applies to padded instances. -/
-axiom padding_preserves_rank (n : ℕ) (original_rank padded_rank : ℕ)
+/-- Placeholder: padding preserves rank is just monotonicity of ≤.
+    The real Theorem 144 would state rk(χ_{pad(φ)}) ≥ rk(χ_φ) for
+    concrete padding operations. Not load-bearing. -/
+theorem padding_preserves_rank (n : ℕ) (original_rank padded_rank : ℕ)
     (h_original : original_rank ≤ padded_rank) :
-    original_rank ≤ padded_rank  -- tautology placeholder; real version needs concrete polys
+    original_rank ≤ padded_rank :=
+  h_original
 
 /-! ## Theorem 146: Round-Trip NC⁰ Padding
 
@@ -116,18 +111,12 @@ and SPDP rank up to polynomial factors. This is used in Theorem 147
 to ensure the hard instances can be padded to the right input length
 without destroying the exponential lower bound. -/
 
-/-- NC⁰ padding exists with rank preservation (Theorem 146).
-
-pad : 3CNF(n) → 3CNF(n + O(n log n))
-unpad : 3CNF(n + O(n log n)) → 3CNF(n)
-
-Such that:
-1. φ satisfiable iff pad(φ) satisfiable
-2. Any satisfying assignment of pad(φ) maps (in NC⁰) to one of φ
-3. rk_{SPDP,ℓ}(χ_{pad(φ)}) ≥ rk_{SPDP,ℓ}(χ_φ) / poly(|φ|)
-4. Dummy variables don't mix with originals beyond unit clauses -/
-axiom nc0_padding_exists :
-    ∀ n : ℕ, n ≥ 1 → True  -- placeholder for the NC⁰ padding existence
+/-- Placeholder: NC⁰ padding existence is trivially True.
+    The real Theorem 146 would construct explicit pad/unpad maps.
+    Not load-bearing. -/
+theorem nc0_padding_exists :
+    ∀ n : ℕ, n ≥ 1 → True :=
+  fun _ _ => trivial
 
 /-! ## Connection to the Separation
 
