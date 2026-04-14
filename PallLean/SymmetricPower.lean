@@ -572,6 +572,57 @@ theorem mlProj_boolFactor {N : ℕ} (v : Fin N) :
     rw [if_neg (Ne.symm h0), if_neg (Ne.symm hv), sub_self]
   exact (MvPolynomial.mem_support_iff.mp hα) hcoeff
 
+/-! ### Coefficient of tag monomial in boolFactor SPDP generator
+
+For the Kronecker delta property, we need the coefficient of the "tag monomial"
+τ_S = ∏_{s∈S} z_s in the SPDP generator mlProj(∏_{s∈S} z_s * iterDerivList S p_bool).
+
+Key computation: for the single-variable case,
+  coeff (single v 1) (X v * pderiv v (boolFactor N v)) = -1
+since X v * (-1 + 2 * X v) = -X v + 2*X v^2, and coeff (single v 1) (-X v) = -1,
+while X v^2 contributes coefficient 0 at the multilinear monomial single v 1.
+-/
+
+/-- Coefficient of (single v 1) in X v * pderiv v (boolFactor N v) is -1. -/
+theorem coeff_X_mul_pderiv_boolFactor {N : ℕ} (v : Fin N) :
+    MvPolynomial.coeff (Finsupp.single v 1)
+      (MvPolynomial.X v * MvPolynomial.pderiv v (boolFactor N v) :
+        MvPolynomial (Fin N) ℚ) = -1 := by
+  rw [pderiv_boolFactor_self N v]
+  -- X v * (-1 + 2 * X v) = -X v + 2 * (X v * X v)
+  have hexpand : (MvPolynomial.X v : MvPolynomial (Fin N) ℚ) * (-1 + 2 * MvPolynomial.X v) =
+      -(MvPolynomial.X v) + 2 * (MvPolynomial.X v * MvPolynomial.X v) := by ring
+  rw [hexpand]
+  simp only [MvPolynomial.coeff_add, MvPolynomial.coeff_neg, MvPolynomial.coeff_X']
+  simp only [ite_true]
+  -- coeff (single v 1) (2 * X v * X v) = 2 * coeff (single v 1) (X v * X v)
+  -- X v * X v = monomial (single v 2) 1, and single v 1 ≠ single v 2
+  -- 2 * (X v * X v) has no multilinear monomial at single v 1
+  -- because X v * X v only has the monomial single v 2
+  -- Strategy: use mlProj_X_sq_zero to note mlProj(X v * X v) = 0
+  -- then coeff (single v 1) (2 * 0) = 0
+  conv_lhs =>
+    rw [show (2 : MvPolynomial (Fin N) ℚ) = MvPolynomial.C 2 from by simp [map_ofNat]]
+  rw [MvPolynomial.C_mul']
+  -- coeff (single v 1) of smul = 2 * coeff (single v 1)
+  simp only [MvPolynomial.smul_eq_C_mul, MvPolynomial.coeff_C_mul]
+  -- coeff (single v 1) (X v * X v) = 0 since single v 1 is multilinear
+  -- and mlProj(X v * X v) = 0 means all multilinear coefficients are 0
+  have h0 : MvPolynomial.coeff (Finsupp.single v 1) (MvPolynomial.X v * MvPolynomial.X v : MvPolynomial (Fin N) ℚ) = 0 := by
+    rw [← coeff_mlProj_of_isMultilinear_mono _ _
+      (fun i => by simp [Finsupp.single_apply]; split_ifs <;> omega),
+      mlProj_X_sq_zero v, MvPolynomial.coeff_zero]
+  rw [h0, mul_zero, add_zero]
+
+/-- Coefficient of (single v 1) in mlProj of the boolFactor single-variable SPDP generator is -1. -/
+theorem coeff_mlProj_X_mul_pderiv_boolFactor {N : ℕ} (v : Fin N) :
+    MvPolynomial.coeff (Finsupp.single v 1)
+      (mlProj (MvPolynomial.X v * MvPolynomial.pderiv v (boolFactor N v) :
+        MvPolynomial (Fin N) ℚ)) = -1 := by
+  -- single v 1 is multilinear, so coeff at mlProj = coeff at original
+  rw [coeff_mlProj_of_isMultilinear_mono _ _ (fun i => by simp [Finsupp.single_apply]; split_ifs <;> omega)]
+  exact coeff_X_mul_pderiv_boolFactor v
+
 /-! ### Profile compression: proved infrastructure and remaining gap
 
 The proved lemmas above establish:
