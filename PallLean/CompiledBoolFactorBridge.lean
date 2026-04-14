@@ -366,4 +366,52 @@ theorem weakened_bound_from_compiled_independence
   rw [show F.card = Fintype.card F from (Fintype.card_coe F).symm]
   exact hli_sub.fintype_card_le_finrank
 
+/-! ## Part 7: Coefficient preservation for products with constant term 1
+
+Core lemma: for a multilinear monomial m and polynomial q with q(0) = 1,
+if every non-constant monomial of q has support NOT contained in supp(m),
+then coeff(m, p * q) = coeff(m, p).
+
+This is the key ingredient for showing that multiplying by Q = restFactorProd'
+doesn't change the tag monomial coefficients, which underlies the linear
+independence preservation argument. -/
+
+/-- Coefficient of a multilinear monomial in a product p * q via antidiagonal sum:
+coeff(m, p * q) = Σ_{a+b=m} coeff(a,p) * coeff(b,q).
+
+For a multilinear monomial m (each exponent is 0 or 1), the decompositions
+a + b = m are indexed by subsets T ⊆ supp(m): b is the indicator of T,
+a is the indicator of supp(m) \ T. -/
+theorem coeff_mul_eq_antidiag (p q : MvPolynomial (Fin n) ℚ) (m : Fin n →₀ ℕ) :
+    MvPolynomial.coeff m (p * q) =
+    ∑ x ∈ Finset.antidiagonal m, MvPolynomial.coeff x.1 p * MvPolynomial.coeff x.2 q :=
+  MvPolynomial.coeff_mul p q m
+
+/-- If q has a unique decomposition at the zero exponent (q(0) = c), then
+the b=0 term in the antidiagonal sum contributes coeff(m, p) * c.
+
+This is the constant-term extraction: in coeff(m, p*q), the b=0 term
+gives coeff(m, p) * coeff(0, q). -/
+theorem coeff_mul_constant_term (p q : MvPolynomial (Fin n) ℚ) (m : Fin n →₀ ℕ) :
+    MvPolynomial.coeff m (p * q) =
+    MvPolynomial.coeff m p * MvPolynomial.coeff 0 q +
+    ∑ x ∈ (Finset.antidiagonal m).filter (fun x => x.2 ≠ 0),
+      MvPolynomial.coeff x.1 p * MvPolynomial.coeff x.2 q := by
+  rw [coeff_mul_eq_antidiag]
+  rw [← Finset.sum_filter_add_sum_filter_not (Finset.antidiagonal m) (fun x => x.2 = 0)]
+  congr 1
+  -- The x.2 = 0 part: only term is (m, 0)
+  have : (Finset.antidiagonal m).filter (fun x => x.2 = 0) = {(m, 0)} := by
+    ext ⟨a, b⟩
+    simp only [Finset.mem_filter, Finset.mem_antidiagonal, Finset.mem_singleton, Prod.mk.injEq]
+    constructor
+    · intro ⟨hab, hb⟩
+      subst hb
+      simp at hab
+      exact ⟨hab, rfl⟩
+    · intro ⟨ha, hb⟩
+      subst ha; subst hb
+      simp
+  rw [this, Finset.sum_singleton]
+
 end CompiledBoolFactorBridge
