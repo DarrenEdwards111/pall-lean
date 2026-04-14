@@ -98,6 +98,17 @@ theorem mlBlockedSpdpSubspace_mono_partition {n : ℕ} {F : Type*} [CommRing F]
   apply Submodule.subset_span
   exact ⟨S, m, hlen, hdeg, hvars, isBlockAdmissible_coarsen B₁ B₂ S hrefine hadm, hq⟩
 
+/-- Monotonicity in the degree parameter ℓ: larger ℓ means more generators,
+    hence a larger subspace. -/
+theorem mlBlockedSpdpSubspace_mono_ell {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ : ℕ) {ℓ₁ ℓ₂ : ℕ} (hℓ : ℓ₁ ≤ ℓ₂)
+    (p : MvPolynomial (Fin n) F) :
+    mlBlockedSpdpSubspace B κ ℓ₁ p ≤ mlBlockedSpdpSubspace B κ ℓ₂ p := by
+  apply Submodule.span_le.mpr
+  intro q ⟨S, m, hlen, hdeg, hvars, hadm, hq⟩
+  apply Submodule.subset_span
+  exact ⟨S, m, hlen, le_trans hdeg hℓ, hvars, hadm, hq⟩
+
 theorem mlBlockedSpdpSubspace_le_map {n : ℕ} {F : Type*} [CommRing F]
     (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
     mlBlockedSpdpSubspace B κ ℓ p ≤
@@ -164,6 +175,14 @@ theorem mlBlockedSpdpRank_le {n : ℕ} {F : Type*} [Field F]
           · rintro ⟨y, hy, rfl⟩; exact ⟨⟨y, hy⟩, rfl⟩
         rw [← h]
         exact ((mlProjLinearMap (Fin n) F).domRestrict _).finrank_range_le
+
+/-- Monotonicity in the degree parameter ℓ for rank. -/
+theorem mlBlockedSpdpRank_mono_ell {n : ℕ} {F : Type*} [Field F]
+    (B : BlockPartition n) (κ : ℕ) {ℓ₁ ℓ₂ : ℕ} (hℓ : ℓ₁ ≤ ℓ₂)
+    (p : MvPolynomial (Fin n) F) :
+    mlBlockedSpdpRank B κ ℓ₁ p ≤ mlBlockedSpdpRank B κ ℓ₂ p := by
+  unfold mlBlockedSpdpRank
+  exact Submodule.finrank_mono (mlBlockedSpdpSubspace_mono_ell B κ hℓ p)
 
 /-! ## Subadditivity -/
 
