@@ -359,6 +359,22 @@ noncomputable def characteristic_pd_system_from_pack
       (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
       (Nat.log 2 n))
 
+/-- The rows of the canonical characteristic-PD system are definitionally the
+gadget-product rows from the concrete Tseitin clause system. -/
+theorem characteristic_pd_system_from_pack_rows
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula)
+    (i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))) :
+    (characteristic_pd_system_from_pack F fam n hn pack).rows i =
+      IdentityMinorReal.gadgetProd
+        (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+        (IdentityMinorReal.getClauseSubset
+          (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+          (Nat.log 2 n) i) := by
+  rfl
+
 /-- Explicit derivative-realization data for a row of the characteristic PD
 system. This is the concrete remaining algebraic target: exhibit a legal
 derivative list whose iterated derivative equals the target row. -/
@@ -372,7 +388,11 @@ structure CharacteristicPdRowDerivWitness
   length_eq : derivs.length = (fam.partition n hn).part.S.card
   subset_S : ∀ v ∈ derivs, v ∈ (fam.partition n hn).part.S
   row_eq :
-    (characteristic_pd_system_from_pack F fam n hn pack).rows i =
+    IdentityMinorReal.gadgetProd
+      (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+      (IdentityMinorReal.getClauseSubset
+        (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+        (Nat.log 2 n) i) =
       SPDP.iterDerivList derivs (fam.encoding n hn).charPoly
 
 /-- **Axiom (remaining hard algebraic frontier)**: for the concrete greedy
@@ -401,7 +421,7 @@ theorem characteristic_pd_rows_mem_from_pack
   intro i
   rcases characteristic_pd_row_derivs_from_pack F fam n hn pack i with
     ⟨derivs, hlen, hsub, hrow⟩
-  rw [hrow]
+  rw [characteristic_pd_system_from_pack_rows F fam n hn pack i, hrow]
   exact PartialDerivMatrix.iterDerivList_mem_pdColumnSpace
     (fam.partition n hn).part (fam.encoding n hn).charPoly derivs hlen hsub
 
