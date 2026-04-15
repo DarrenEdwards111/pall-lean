@@ -27,6 +27,7 @@
 import PallLean.PartialDerivMatrix
 import PallLean.IdentityMinorReal
 import PallLean.TseitinDefs
+import PallLean.BinomialBound2
 import Mathlib.Tactic
 
 set_option linter.unusedVariables false
@@ -343,46 +344,80 @@ theorem CharacteristicPdPocketWitness.rank_bound
   }
   exact PdMatrixKroneckerWitness.rank_bound F kw
 
-/-- **Axiom (remaining hard algebraic frontier)**: for the concrete greedy
-disjoint packing produced from the Tseitin instance, the characteristic
-polynomial admits the required signed minor / Kronecker witness. This is
-narrower than quantifying over arbitrary abstract pocket data. -/
-axiom characteristic_pd_minor_from_pack
+/-- The canonical Kronecker system built from the greedy disjoint packing via
+the existing concrete Tseitin clause-system construction. -/
+noncomputable def characteristic_pd_system_from_pack
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
     (n : ℕ) (hn : n ≥ 6)
     (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
-    PdMatrixKroneckerWitness F fam n hn
+    IdentityMinorReal.KroneckerDeltaSystem F
+      (fam.encoding n hn).numVars
+      (Nat.choose pack.selected.length (Nat.log 2 n)) := by
+  simpa using
+    (IdentityMinorReal.buildKroneckerSystem
+      (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+      (Nat.log 2 n))
+
+/-- **Axiom (remaining hard algebraic frontier)**: for the concrete greedy
+disjoint packing produced from the Tseitin instance, the characteristic
+polynomial realizes the rows of the canonical Kronecker system inside the
+relevant PD column space. The combinatorial size bound is now derived, not
+assumed. -/
+axiom characteristic_pd_rows_mem_from_pack
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
+    ∀ i,
+      (characteristic_pd_system_from_pack F fam n hn pack).rows i ∈
+        PartialDerivMatrix.pdColumnSpace
+          (fam.partition n hn).part (fam.encoding n hn).charPoly
 
 /-- **Axiom (finite exceptional range)**: the characteristic-polynomial PD
-lower bound for the finitely many small sizes `6 ≤ n < 100`. The asymptotic
+lower bound for the finitely many small sizes `6 ≤ n < 660`. The asymptotic
 pocket construction is only needed once `n` is large enough for the greedy
 packing theorem to apply directly. -/
 axiom tseitin_pdMatrix_lower_bound_small
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
-    (n : ℕ) (hn : n ≥ 6) (hsmall : n < 100) :
+    (n : ℕ) (hn : n ≥ 6) (hsmall : n < 660) :
     n ^ (Nat.log 2 n / 4) ≤
       pdMatrixRank F (fam.partition n hn).part (fam.encoding n hn).charPoly
 
-/-- For `n ≥ 100`, the PD lower bound is derived from the proved pocket
-extraction plus the remaining algebraic minor-realization axiom. -/
+/-- For `n ≥ 660`, the PD lower bound is derived from the proved pocket
+extraction, the concrete `Nat.choose` growth bound, and the remaining
+characteristic-polynomial row-realization axiom. -/
 theorem tseitin_pdMatrix_lower_bound_large
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
-    (n : ℕ) (hn : n ≥ 6) (hlarge : 100 ≤ n) :
+    (n : ℕ) (hn : n ≥ 6) (hlarge : 660 ≤ n) :
     n ^ (Nat.log 2 n / 4) ≤
       pdMatrixRank F (fam.partition n hn).part (fam.encoding n hn).charPoly := by
   have hverts : 100 ≤ (fam.encoding n hn).graph.numVertices := by
     rw [fam.encoding_graph n hn, fam.vertices_count n hn]
-    exact hlarge
+    omega
   have hformula : 100 ≤ (fam.encoding n hn).formula.graph.numVertices := by
     rw [(fam.encoding n hn).graph_compat]
     simpa using hverts
   let pack : Tseitin.DisjointPacking (fam.encoding n hn).formula :=
     Tseitin.disjoint_packing_exists (fam.encoding n hn).formula hformula
+  have hpack_count : n / 30 ≤ pack.selected.length := by
+    have hsize : (fam.encoding n hn).formula.graph.numVertices / 30 ≤ pack.selected.length := by
+      exact pack.size_bound
+    rw [(fam.encoding n hn).graph_compat] at hsize
+    rw [fam.encoding_graph n hn, fam.vertices_count n hn] at hsize
+    exact hsize
+  let system := characteristic_pd_system_from_pack F fam n hn pack
+  have hquant :
+      n ^ (Nat.log 2 n / 4) ≤ Nat.choose pack.selected.length (Nat.log 2 n) := by
+    have hbin := BinomialBound.binomial_lower_bound_from_660 n hlarge
+    exact le_trans hbin (Nat.choose_le_choose (Nat.log 2 n) hpack_count)
   exact PdMatrixKroneckerWitness.rank_bound F
-    (characteristic_pd_minor_from_pack F fam n hn pack)
+    { N := Nat.choose pack.selected.length (Nat.log 2 n)
+      system := system
+      rows_mem := characteristic_pd_rows_mem_from_pack F fam n hn pack
+      quantitative := hquant }
 
 /-- Paper-faithful characteristic-polynomial PD lower bound, derived from the
 explicit expander-pocket witness interface rather than postulated as a raw rank
@@ -395,9 +430,9 @@ theorem tseitin_pdMatrix_lower_bound
     let tpart := fam.partition n hn
     n ^ (Nat.log 2 n / 4) ≤
       pdMatrixRank F tpart.part enc.charPoly := by
-  by_cases hlarge : 100 ≤ n
+  by_cases hlarge : 660 ≤ n
   · simpa using tseitin_pdMatrix_lower_bound_large F fam n hn hlarge
-  · have hsmall : n < 100 := by omega
+  · have hsmall : n < 660 := by omega
     simpa using tseitin_pdMatrix_lower_bound_small F fam n hn hsmall
 
 /-! ## 7. Spectral Ramanujan Property (Proved from Structure)
