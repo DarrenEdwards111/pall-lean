@@ -565,6 +565,23 @@ theorem pderiv_formulaClauseGadgetProd_selector_zero
   exact MvPolynomial.pderiv_eq_zero_of_notMem_vars
     (selector_not_mem_vars_formulaClauseGadgetProd F fam n hn clauses c)
 
+/-- If a selector appears at the head of the derivative list, the iterated
+derivative of a formula-clause gadget product vanishes. -/
+theorem iterDerivList_formulaClauseGadgetProd_selector_head_zero
+    (F : Type*) [Field F] [CharZero F] [Nontrivial F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (clauses : List (Fin (fam.encoding n hn).formula.clauses.length))
+    (c : Fin (fam.encoding n hn).formula.clauses.length)
+    (S : List (Fin (Tseitin.tseitinNumVars (fam.encoding n hn).formula))) :
+    SPDP.iterDerivList
+      (Tseitin.selectorIdx (fam.encoding n hn).formula c :: S)
+      (formulaClauseGadgetProd F fam n hn clauses) = 0 := by
+  exact IterDerivHelpers.iterDerivList_of_head_zero
+    (Tseitin.selectorIdx (fam.encoding n hn).formula c) S
+    (formulaClauseGadgetProd F fam n hn clauses)
+    (pderiv_formulaClauseGadgetProd_selector_zero F fam n hn clauses c)
+
 /-- Smaller clause-level witness: realize the actual formula-clause gadget
 product directly as an iterated derivative of the characteristic polynomial. -/
 structure FormulaClauseCharacteristicPdDerivWitness
@@ -628,6 +645,63 @@ def FormulaClauseCharacteristicPdDerivWitness.toExpandedWitness
       F (fam.encoding n hn).formula a
       (w.baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))]
 }
+
+/-- The smaller direct derivative witness also yields the explicit
+satisfying-assignment expansion of its target formula-clause product. -/
+theorem FormulaClauseCharacteristicPdDerivWitness.row_eq_expanded
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {clauses : List (Fin (fam.encoding n hn).formula.clauses.length)}
+    (w : FormulaClauseCharacteristicPdDerivWitness F fam n hn clauses) :
+    formulaClauseGadgetProd F fam n hn clauses =
+      ∑ a ∈ Fintype.piFinset (fun _ : Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula) =>
+          ({false, true} : Finset Bool)),
+        (by
+          classical
+          exact if Tseitin.formulaSatisfied (fam.encoding n hn).formula a then
+            SPDP.iterDerivList
+              (w.baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
+              (Tseitin.assignmentMonomial F (fam.encoding n hn).formula a)
+          else 0) := by
+  exact (w.toExpandedWitness F).row_eq_expanded
+
+/-- If the base-derivative list for a direct derivative witness starts with a
+concrete base variable, the explicit satisfying-assignment expansion admits the
+corresponding one-step normalization on assignment monomials. -/
+theorem FormulaClauseCharacteristicPdDerivWitness.row_eq_expanded_head
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {clauses : List (Fin (fam.encoding n hn).formula.clauses.length)}
+    (w : FormulaClauseCharacteristicPdDerivWitness F fam n hn clauses)
+    (v : Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula))
+    (rest : List (Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula)))
+    (hhead : w.baseDerivs = v :: rest) :
+    formulaClauseGadgetProd F fam n hn clauses =
+      ∑ a ∈ Fintype.piFinset (fun _ : Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula) =>
+          ({false, true} : Finset Bool)),
+        (by
+          classical
+          exact if Tseitin.formulaSatisfied (fam.encoding n hn).formula a then
+            if a v then
+              SPDP.iterDerivList
+                (rest.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
+                (Tseitin.assignmentMonomialErase F (fam.encoding n hn).formula a v)
+            else
+              -SPDP.iterDerivList
+                (rest.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
+                (Tseitin.assignmentMonomialErase F (fam.encoding n hn).formula a v)
+          else 0) := by
+  classical
+  rw [w.row_eq_expanded F]
+  rw [hhead]
+  refine Finset.sum_congr rfl ?_
+  intro a ha
+  by_cases hsat : Tseitin.formulaSatisfied (fam.encoding n hn).formula a
+  · simp [hsat, Tseitin.iterDerivList_assignmentMonomial_base_head
+      F (fam.encoding n hn).formula a v rest]
+  · simp [hsat]
 
 /-- The canonical packed formula-clause list has the expected `log₂ n` size. -/
 theorem canonicalPackedFormulaClauses_length
