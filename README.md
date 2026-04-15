@@ -77,8 +77,8 @@ active final contradiction theorem is:
 This route is axiom-free in Lean syntax but still conditional on an explicit
 paper-facing assumptions bundle:
 
-- NP-side obligation: identity-minor / Kronecker data
-- P-side obligation: profile-assembly Width⇒Rank bound
+- NP-side data: now built canonically inside the active route
+- P-side obligation: `latent_profile_assembly_logscale` (profile-assembly Width⇒Rank bound)
 
 For the current honest status summary, see:
 

@@ -24,7 +24,7 @@ The active final contradiction theorem is:
 This theorem is **axiom-free in Lean syntax**, but it is still **conditional on
 an explicit assumptions bundle**:
 
-- P-side obligation: `theorem216_p_obligation`
+- P-side obligation: `latent_profile_assembly_logscale`
 
 So the honest status is:
 

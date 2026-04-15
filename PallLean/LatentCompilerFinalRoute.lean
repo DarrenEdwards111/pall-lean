@@ -60,13 +60,22 @@ private theorem theorem216_profile_data_logscale_from_compiled_tableau_proved
 /-- Bundled paper-facing obligations at contradiction scale.
 
 At this point the NP side is canonical and constructed internally from the
-selector closed-form package, so the only remaining external paper-facing data
-is the P-side profile assembly package. -/
+selector closed-form package, so the only remaining external live obligation
+is the P-side core profile-assembly theorem. -/
 structure LogscaleObligations (M : DTM) (n : ℕ)
     (hnM : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804) where
   -- P-side: profile assembly upper bound
-  pAsm : theorem216_p_obligation M n hnM hn804
+  pCore : latent_profile_assembly_logscale M n hnM hn804
+
+/-- Compatibility wrapper: the paper-facing theorem216 package still builds the
+live core obligation used by the final contradiction theorem. -/
+private theorem logscaleObligations_of_p_obligation
+    (M : DTM) (n : ℕ)
+    (hnM : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (pAsm : theorem216_p_obligation M n hnM hn804) :
+    LogscaleObligations M n hnM hn804 := by
+  exact ⟨obligation2_p_logscale_from_data M n hnM hn804 pAsm⟩
 
 /-- Derived machine-size bound from the contradiction-scale threshold assumption. -/
 lemma hnM_of_hn (h : PeqNP) (n : ℕ)
@@ -81,7 +90,8 @@ lemma hn804_of_hn (h : PeqNP) (n : ℕ)
   le_trans (le_max_right _ _) hn
 
 /-- P ≠ NP via latent compiler, fully decomposed route usage.
-Requires explicit proofs of the two paper-facing assembled obligations. -/
+NP-side Kronecker data is canonical/internal; the only external live obligation
+is the P-side core profile-assembly theorem. -/
 theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
     (hObl : LogscaleObligations h.sat_decider n (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
@@ -102,8 +112,7 @@ theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
   have hNP := latent_extracts_hard_witness_decomp M n hn804 hNPdirect κ rfl
 
   -- P side (assembled from profile-data package)
-  have hPobl : obligation2_p_logscale M n hnM hn804 :=
-    obligation2_p_logscale_from_data M n hnM hn804 hObl.pAsm
+  have hPobl : obligation2_p_logscale M n hnM hn804 := hObl.pCore
   have hP : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 200 :=
     latent_width_rank_from_decomp M n hnM hn804 hPobl
@@ -138,12 +147,13 @@ theorem P_neq_NP_latent_from_finer_decomp (h : PeqNP) (n : ℕ)
   let _ := hnd
   let _ := hlen
   let _ := hfinj
-  exact P_neq_NP_latent_decomp h n hn ⟨pAsm⟩
+  exact P_neq_NP_latent_decomp h n hn
+    (logscaleObligations_of_p_obligation _ _ _ _ pAsm)
 
-/-- Canonical-NP contradiction route from the paper-facing P package alone.
+/-- Canonical-NP contradiction route from the paper-facing Theorem 216 package.
 At this point the NP-side Kronecker data is built internally from the canonical
-choose-indexed selector family, so the only external paper-facing assumption is
-the P-side `theorem216_p_obligation`. -/
+choose-indexed selector family, and the P-side package is immediately reduced to
+the live core profile-assembly obligation. -/
 theorem P_neq_NP_latent_from_p_obligation (h : PeqNP) (n : ℕ)
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
     (pAsm : theorem216_p_obligation h.sat_decider n
@@ -151,7 +161,8 @@ theorem P_neq_NP_latent_from_p_obligation (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  exact P_neq_NP_latent_decomp h n hn ⟨pAsm⟩
+  exact P_neq_NP_latent_decomp h n hn
+    (logscaleObligations_of_p_obligation M n hnM hn804 pAsm)
 
 /-- Item 2 narrowing via the direct compiled-tableau frontier obligation. -/
 theorem P_neq_NP_latent_from_finer_decomp_and_compiled_tableau_bound
@@ -172,7 +183,7 @@ theorem P_neq_NP_latent_from_finer_decomp_and_compiled_tableau_bound
   let _ := hlen
   let _ := hfinj
   exact P_neq_NP_latent_decomp h n hn ⟨
-    (theorem216_profile_data_logscale_from_compiled_tableau_proved M n hnM hn804 hCompiled)
+    (latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hnM hn804).2 hCompiled
   ⟩
 
 /-- Item 2 narrowing: same final contradiction route, but caller only supplies
@@ -198,7 +209,7 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_core (h : PeqNP) (n : ℕ)
   let _ := hlen
   let _ := hfinj
   exact P_neq_NP_latent_decomp h n hn ⟨
-    theorem216_profile_data_logscale_from_core_proved M n hnM hn804 pCore
+    pCore
   ⟩
 
 /-- Narrowest current entry point: NP data from finer decomposition plus
@@ -220,7 +231,7 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_span_card (h : PeqNP) (n : ℕ)
   let _ := hlen
   let _ := hfinj
   exact P_neq_NP_latent_decomp h n hn ⟨
-    theorem216_profile_data_logscale_from_span_card_bound_proved M n hnM hn804 pSpan
+    latent_profile_assembly_logscale_from_span_card_bound M n hnM hn804 pSpan
   ⟩
 
 /-- Narrowest decomposition entry (current): NP finer decomposition +
@@ -242,7 +253,7 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_block_cover (h : PeqNP) (n : ℕ
   let _ := hlen
   let _ := hfinj
   exact P_neq_NP_latent_decomp h n hn ⟨
-    theorem216_profile_data_logscale_from_block_cover_proved M n hnM hn804 pCover
+    latent_profile_assembly_logscale_from_block_cover M n hnM hn804 pCover
   ⟩
 
 /-- Same as above, but accepts only the shared-witness Item-2+3 P package.

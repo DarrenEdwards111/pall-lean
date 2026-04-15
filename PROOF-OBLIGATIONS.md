@@ -18,13 +18,13 @@ This theorem is now **axiom-free** in Lean syntax and depends on an explicit ass
 
 - `LatentCompilerFinalRoute.LogscaleObligations`
   - P part:
-    - `pAsm : theorem216_p_obligation ...` (paper-faithful profile-data package)
+    - `pCore : latent_profile_assembly_logscale ...` (live core Width⇒Rank assembly theorem)
 
 The route lemmas reassemble NP/P parts into the final contradiction chain using:
 - `selCon_kronecker_data_logscale_from_canonical_idxList`
 - `latent_hard_witness_logscale_from_kronecker`
 - `latent_hard_witness_logscale` (NP lower bound)
-- `theorem216_p_obligation` (alias of `obligation2_p_logscale`)
+- `latent_profile_assembly_logscale` (alias of `obligation2_p_logscale`)
 
 ---
 
@@ -121,7 +121,7 @@ The final contradiction theorem now uses:
 2. P upper bound at log-scale,
 3. numeric separation (`n^200 < n^(log₂ n / 4)` for `n ≥ 2^804`).
 
-No hidden global axioms are required in the active files. The only remaining explicit assumption on the active final route is the P-side package.
+No hidden global axioms are required in the active files. The only remaining explicit assumption on the active final route is the P-side core assembly theorem.
 
 ---
 
