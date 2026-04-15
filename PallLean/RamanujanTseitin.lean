@@ -521,6 +521,50 @@ noncomputable def formulaClauseGadgetProd
     MvPolynomial (Fin (Tseitin.tseitinNumVars (fam.encoding n hn).formula)) F :=
   (clauses.map (Tseitin.clauseGadget F (fam.encoding n hn).formula)).prod
 
+/-- A product of actual formula-clause gadgets still avoids every selector
+coordinate. -/
+theorem selector_not_mem_vars_formulaClauseGadgetProd
+    (F : Type*) [Field F] [CharZero F] [Nontrivial F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (clauses : List (Fin (fam.encoding n hn).formula.clauses.length))
+    (c : Fin (fam.encoding n hn).formula.clauses.length) :
+    Tseitin.selectorIdx (fam.encoding n hn).formula c ∉
+      (formulaClauseGadgetProd F fam n hn clauses).vars := by
+  induction clauses with
+  | nil =>
+      simp [formulaClauseGadgetProd]
+  | cons d rest ih =>
+      intro hmem
+      have hmem' :
+          Tseitin.selectorIdx (fam.encoding n hn).formula c ∈
+            (Tseitin.clauseGadget F (fam.encoding n hn).formula d *
+              formulaClauseGadgetProd F fam n hn rest).vars := by
+        simpa [formulaClauseGadgetProd] using hmem
+      have hunion :
+          Tseitin.selectorIdx (fam.encoding n hn).formula c ∈
+            (Tseitin.clauseGadget F (fam.encoding n hn).formula d).vars ∪
+              (formulaClauseGadgetProd F fam n hn rest).vars := by
+        exact MvPolynomial.vars_mul
+          (Tseitin.clauseGadget F (fam.encoding n hn).formula d)
+          (formulaClauseGadgetProd F fam n hn rest) hmem'
+      rw [Finset.mem_union] at hunion
+      rcases hunion with hg | hr
+      · exact Tseitin.selector_not_in_gadget F (fam.encoding n hn).formula c d hg
+      · exact ih hr
+
+/-- Hence every selector derivative of a formula-clause gadget product is zero. -/
+theorem pderiv_formulaClauseGadgetProd_selector_zero
+    (F : Type*) [Field F] [CharZero F] [Nontrivial F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (clauses : List (Fin (fam.encoding n hn).formula.clauses.length))
+    (c : Fin (fam.encoding n hn).formula.clauses.length) :
+    MvPolynomial.pderiv (Tseitin.selectorIdx (fam.encoding n hn).formula c)
+      (formulaClauseGadgetProd F fam n hn clauses) = 0 := by
+  exact MvPolynomial.pderiv_eq_zero_of_notMem_vars
+    (selector_not_mem_vars_formulaClauseGadgetProd F fam n hn clauses c)
+
 /-- Smaller clause-level witness: realize the actual formula-clause gadget
 product directly as an iterated derivative of the characteristic polynomial. -/
 structure FormulaClauseCharacteristicPdDerivWitness
