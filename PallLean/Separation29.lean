@@ -202,4 +202,52 @@ theorem P_ne_NP : ∀ (h : PeqNP), False := three_sat_not_in_P
     plus standard Lean axioms (propext, Quot.sound, Classical.choice). -/
 #print axioms three_sat_not_in_P
 
+/-! ## Theorem 140 Decomposition via Sound Encoding
+
+The monolithic axiom `theorem_140_np_side` decomposes into a chain of sub-claims
+that are individually more focused and paper-faithful. With the sound encoding
+(§11 of RamanujanTseitin.lean), all sub-claims are consistent.
+
+The decomposition chain is:
+
+  sound_theorem72_condensed (RamanujanTseitin.lean)
+    : ∃ (numVars part f), n/30 ≤ |S| ∧ n^(log n/4) ≤ pdMatrixRank part f
+    ↓ [Lemma 69: pdMatrixRank ≤ spdpRank]
+  pdMatrix_le_spdpRank (PartialDerivMatrix.lean, PROVED)
+    : pdMatrixRank part f ≤ spdpRank |S| ℓ f
+    ↓ [definition: charPolyRank = spdpRank]
+  theorem_140_np_side
+    : n^(log n/4) ≤ charPolyRank n
+
+The connection between `spdpRank` and the abstract `charPolyRank` is the bridge
+that would discharge the axiom. This bridge requires:
+1. The sound encoding provides a concrete polynomial and partition.
+2. Lemma 69 transfers PD-matrix rank to SPDP rank.
+3. An identification linking `spdpRank |S| ℓ charPoly` to `charPolyRank n`.
+
+Step 3 is a definition-level identification: `charPolyRank n` should be defined as
+(or axiomatically bounded by) `spdpRank |S| ℓ` of the even-parity characteristic
+polynomial at the appropriate parameters.
+
+The theorem below packages the sound decomposition of Theorem 140 into a form
+that shows exactly which sub-claims would discharge it. -/
+
+/-- **Theorem 140 decomposition via sound encoding.**
+
+This shows the exact form of how `theorem_140_np_side` would follow from the
+sound characteristic-polynomial PD lower bound together with the proved
+Lemma 69 (PD → SPDP transfer).
+
+The remaining gap is the identification of the abstract `charPolyRank n` with
+a specific `spdpRank` of the sound encoding's characteristic polynomial. -/
+theorem theorem_140_sound_decomposition (n : ℕ) (_hn : n ≥ 6)
+    (numVars : ℕ) (part : PartialDerivMatrix.VarPartition numVars)
+    (f : MvPolynomial (Fin numVars) ℚ)
+    (h_pdRank : n ^ (Nat.log 2 n / 4) ≤ PartialDerivMatrix.pdMatrixRank ℚ part f)
+    (h_spdp_bound : ∀ (ℓ : ℕ), part.S.card ≤ ℓ →
+      SPDP.spdpRank part.S.card ℓ f ≤ charPolyRank n) :
+    n ^ (Nat.log 2 n / 4) ≤ charPolyRank n := by
+  have h_transfer := PartialDerivMatrix.pdMatrix_le_spdpRank ℚ part f part.S.card (le_refl _)
+  exact le_trans h_pdRank (le_trans h_transfer (h_spdp_bound part.S.card (le_refl _)))
+
 end Separation29
