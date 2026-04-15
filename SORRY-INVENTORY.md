@@ -168,6 +168,56 @@ axiom `theorem_140_np_side` follows from:
 The remaining gap (step 3) is a definition-level identification, not a deep
 theorem.
 
+## Route B paper-faithful semantic front (2026-04-15, updated)
+
+### New structures and theorems
+
+**GodMoveCore.lean** additions:
+- `ExtractionRestrictionStage`: typed restriction with rank monotonicity
+- `ExtractionProjectionStage`: typed projection with rank monotonicity
+- `ExtractionMapDecomposition`: three-stage extraction map composite
+- `extraction_from_decomposition`: compositionality lemma (0 custom axioms)
+- `GodMoveSemanticGap`: narrowest semantic frontier for Route B
+- `GodMoveRouteB_WeakenedObligations`: uses n^(log n/4) instead of C(n/3, log n)
+- `separation_from_weakened_routeB`: separation from weakened Route B (0 custom axioms)
+- `RouteBNPFromPdMatrix`: PD-matrix NP data with explicit bridge gap
+- `routeB_weakened_np_from_pdMatrix`: derives NP bound from PD data (0 custom axioms)
+
+**Separation29.lean** additions:
+- `ConcreteNPSideData`: packages sound encoding output for separation
+- `ConcretePSideData`: packages DecidesSAT-dependent P-side data
+- `separation_from_concrete_data`: axiom-free separation theorem (0 custom axioms)
+- `concreteNPSideData_spdp_lower`: PD→SPDP transfer for concrete data
+- `theorem_140_from_concrete`: discharge Thm 140 via concrete NP data
+- `theorem_139_from_concrete`: discharge Thm 139 via concrete P data
+
+**RamanujanTseitin.lean** additions:
+- `SingleClauseDerivWitness`: clause-local derivative realization
+- `sound_single_clause_deriv_realization`: Sub-axiom A (§14 Lemma 95)
+- `DisjointClauseCompositionWitness`: disjoint clause composition
+- `sound_disjoint_clause_composition`: Sub-axiom B (§14 Lemma 97)
+- `sound_row_derivs_from_decomposition`: reconstruction (sorry'd)
+- `sound_tseitin_pdMatrix_lower_bound_trivial`: n < 16 sub-range (exponent = 0)
+- `sound_tseitin_pdMatrix_lower_bound_mid`: axiom for n ∈ [16, 256)
+- `sound_tseitin_pdMatrix_lower_bound_hard`: axiom for n ∈ [256, 660)
+
+### Updated NP-side axiom decomposition
+
+The monolithic `sound_characteristic_pd_row_derivs` decomposes into:
+1. `sound_single_clause_deriv_realization` — clause-local derivative (genuine algebraic core)
+2. `sound_disjoint_clause_composition` — Leibniz composition (should be provable from 1)
+
+The finite range `sound_tseitin_pdMatrix_lower_bound_small` decomposes into:
+1. Trivial sub-range [6, 16): exponent = 0, bound is 1 ≤ rank (sorry'd)
+2. Mid sub-range [16, 256): axiom, exponent = 1
+3. Hard sub-range [256, 660): axiom, exponent = 2
+
+### Exact remaining gaps for Route B
+
+1. **PD→blocked SPDP bridge** (`pd_to_blocked_transfer`): linear algebra
+2. **Extraction map** (`GodMoveSemanticGap`): genuine semantic frontier (DecidesSAT)
+3. **P-side compilation** (`compiled_rank_bound`): BP compilation
+
 ## Historical files
 
 The repo still contains older route/status files, including:
