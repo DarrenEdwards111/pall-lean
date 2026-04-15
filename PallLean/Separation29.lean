@@ -75,7 +75,15 @@ above and below by the two axioms.
     This is rk_{SPDP,ℓ}(χ_{φ_n}) at fixed derivative order ℓ ∈ {2,3}
     (any fixed ℓ ≥ 2 works; cf. §29 first paragraph).
 
-    Declared as an opaque constant — the two axioms below bound it. -/
+    Declared as an opaque constant — the two axioms below bound it.
+
+    **Note**: This abstraction symbol is not connected to the concrete
+    `Tseitin.characteristicPoly` (which is 0 for the current `TseitinFormula`
+    with `parity_odd`). The paper's hard family uses even-parity (satisfiable)
+    Tseitin instances, for which the characteristic polynomial is nonzero.
+    This `Separation29` route is NOT the active Route B path — it is an
+    auxiliary abstraction layer. The active Route B goes through
+    `PaperFaithfulSeparation.P_ne_NP_unconditional`. -/
 axiom charPolyRank (n : ℕ) : ℕ
 
 /-! ## Axiom 1 of 2: Theorem 140 (NP-side exponential lower bound)

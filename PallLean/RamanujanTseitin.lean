@@ -192,6 +192,43 @@ theorem lps_family_exists (F : Type*) [Field F] [CharZero F] :
     -- the struct fields above.
   := ⟨sorry, trivial⟩
 
+/-! ### Characteristic Polynomial Soundness Note
+
+**Known issue**: `TseitinFormula` (in `TseitinDefs.lean`) carries the field
+`parity_odd : (Finset.univ.filter (fun v => parityBit v = true)).card % 2 = 1`.
+This forces ALL Tseitin formulas in the codebase to be unsatisfiable (odd total
+parity makes the linear system over GF(2) inconsistent).
+
+For unsatisfiable formulas, `formulaSatisfied Φ a` is false for every assignment
+`a`, making the sum in `characteristicPoly F Φ` empty. Therefore:
+
+  `Tseitin.characteristicPoly F Φ = 0`  for every `TseitinFormula Φ`
+
+**Consequence for axioms in this file**: The axioms
+`characteristic_pd_formula_clause_derivs_from_pack` and
+`tseitin_pdMatrix_lower_bound_small` both assert positive properties of
+`characteristicPoly F (fam.encoding n hn).formula`. Since this polynomial is 0,
+these axioms are asserting positive PD-matrix rank for the zero polynomial,
+which is false. These axioms are therefore INCONSISTENT as stated.
+
+**Paper-faithful resolution**: The paper's hard family uses even-parity Tseitin
+formulas (where the total parity is 0 mod 2), which ARE satisfiable. The
+characteristic polynomial of a satisfiable Tseitin formula on a Ramanujan
+expander is nonzero and has the structure needed for the PD lower bound.
+
+**Fix path**: Replace `parity_odd` with `parity_even` (or remove the constraint
+and add it as a separate predicate). The combinatorial infrastructure (clause
+gadgets, disjoint packing, etc.) does not depend on the parity constraint.
+`parity_odd` is only used in `TseitinDefs.lean` (the definition) and
+`NPWitness.lean` (one concrete construction).
+
+**Impact on Route B**: The main Route B theorem chain in
+`PaperFaithfulSeparation.lean` does NOT use these axioms — it goes through
+`GodMoveReal.identity_construction_np_lower_bound` which works directly with the
+compiled polynomial (not the characteristic polynomial). So the characteristic
+polynomial soundness issue is confined to the `Separation29` / `RamanujanTseitin`
+auxiliary chain, not the primary Route B path. -/
+
 /-! ## 6. Paper-Shaped Witness Interfaces for the Characteristic-Polynomial
 PD Lower Bound
 
@@ -993,7 +1030,15 @@ disjoint packing produced from the Tseitin instance, every canonical clause
 subset in the Kronecker system is explicitly realized by an iterated derivative
 of the characteristic polynomial along a legal list of base variables. This is
 the formula-level bridge from satisfying-assignment derivatives to the gadget-
-product target rows. -/
+product target rows.
+
+**SOUNDNESS WARNING**: This axiom is INCONSISTENT as stated. Because
+`TseitinFormula` carries `parity_odd`, the characteristic polynomial
+`characteristicPoly F (fam.encoding n hn).formula` is identically 0
+(no satisfying assignments exist). The `row_eq` field of
+`FormulaClauseCharacteristicPdDerivWitness` then claims the gadget product
+equals an iterated derivative of 0, which is 0 — but the gadget product is
+nonzero. See the soundness note in §5 above. -/
 axiom characteristic_pd_formula_clause_derivs_from_pack
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
@@ -1415,7 +1460,11 @@ theorem characteristic_pd_rows_mem_from_pack
 /-- **Axiom (finite exceptional range)**: the characteristic-polynomial PD
 lower bound for the finitely many small sizes `6 ≤ n < 660`. The asymptotic
 pocket construction is only needed once `n` is large enough for the greedy
-packing theorem to apply directly. -/
+packing theorem to apply directly.
+
+**SOUNDNESS WARNING**: Like `characteristic_pd_formula_clause_derivs_from_pack`,
+this axiom is INCONSISTENT as stated because `characteristicPoly = 0` due to
+`parity_odd`. See the soundness note in §5. -/
 axiom tseitin_pdMatrix_lower_bound_small
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
