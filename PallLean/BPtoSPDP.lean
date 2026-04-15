@@ -578,9 +578,23 @@ theorem bp_rowspace_bound_per_term_empty
     _ = B.width * B.width := by simp [Fintype.card_prod, Fintype.card_fin]
     _ = B.width ^ 2 := by ring
 
+/-! ### Cylinder decomposition (archived)
+
+The iterated Leibniz rule (bp_iterated_leibniz_eq) and cylinder decomposition
+(bp_cylinder_decomposition) gave a tighter bound W · L'^ℓ · C(n+ℓ,ℓ) but
+required substantial reindexing bookkeeping in the inductive step.
+
+bp_spdp_rank_bound now uses the degree-based bound (spdpSubspace ≤
+restrictTotalDegree) which bypasses the cylinder decomposition entirely.
+The Leibniz/cylinder code has been archived since bp_spdp_rank_bound
+no longer depends on it. The supporting Step 4 (bp_rowspace_bound_per_term)
+is retained as proved infrastructure for potential future use. -/
+
 /-- Iterated Leibniz rule for matrix product entry: differentiating B.poly by S
-    yields a sum over assignments T : S.toFinset → Fin B.length. Base case proved;
-    inductive step (reindexing) is left as sorry. -/
+    yields a sum over assignments T : S.toFinset → Fin B.length.
+
+    ARCHIVED: Not on any active proof path. The base case is proved;
+    the inductive step requires reindexing bookkeeping. -/
 private theorem bp_iterated_leibniz_eq
     {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
     (B : LayeredBP n)

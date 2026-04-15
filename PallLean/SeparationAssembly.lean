@@ -105,12 +105,11 @@ theorem axiom2_pipeline_sketch
 **TMtoBP.lean**: 0 axioms, 0 sorry — CLEAN
 **PaddingRobustness.lean**: 0 axioms, 0 sorry — CLEAN
 
-**BPtoSPDP.lean**: 0 axioms, 2 sorry (not load-bearing)
-- Sorry 1: spdp_subspace_finrank_le_cylinder_bound nonzero case
-    (needs finite spanning set infrastructure for spdpSubspace)
-- Sorry 2: bp_iterated_leibniz_eq inductive step
-    (reindexing bookkeeping for iterated Leibniz on matrix products)
+**BPtoSPDP.lean**: 0 axioms, 1 sorry (not load-bearing, archived)
+- PROVED: bp_spdp_rank_bound (degree-based bound via restrictTotalDegree)
 - PROVED: bp_rowspace_bound_per_term_empty (W² bound via Set.fintypeRange)
+- REMOVED: spdp_subspace_finrank_le_cylinder_bound (orphaned by degree approach)
+- ARCHIVED: bp_iterated_leibniz_eq inductive step (sorry, not on active path)
 
 **RamanujanTseitin.lean**: 2 axioms, 1 sorry (not load-bearing)
 - characteristic_pd_formula_clause_derivs_from_pack — AXIOM
@@ -124,9 +123,9 @@ theorem axiom2_pipeline_sketch
 - spdpRank_restriction_mono: column-deletion monotonicity
     (needs coefficient-matrix rank infrastructure)
 
-### Totals: 6 axioms, 4 sorry
+### Totals: 6 axioms, 3 sorry
   Load-bearing: 3 axioms (Separation29), 0 sorry
-  Supporting:   3 axioms, 4 sorry (all non-load-bearing)
+  Supporting:   3 axioms, 3 sorry (all non-load-bearing)
 -/
 
 end SeparationAssembly
