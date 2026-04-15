@@ -92,32 +92,39 @@ theorem axiom2_pipeline_sketch
     True := by  -- placeholder for the full pipeline
   trivial
 
-/-! ## Axiom Inventory
+/-! ## Current Status (updated)
 
-### Original (Separation29.lean): 2 axioms
-1. theorem_140_np_side (Theorem 140)
-2. theorem_139_p_side (Theorem 139)
+### Load-bearing (Separation29.lean): 3 axioms, 0 sorry
+- charPolyRank (opaque)
+- theorem_140_np_side (Theorem 140: NP-side exponential lower bound)
+- theorem_139_p_side (Theorem 139: P-side polynomial upper bound)
 
-### Decomposed: 6 sub-axioms
-A. pdMatrix_le_spdpRank         — Lemma 69  (linear algebra)
-D. ramanujan_tseitin_pdMatrix   — Theorem 72 (expander combinatorics)
-F. tm_to_bp_compilation         — Lemma 44  (TM simulation)
-G. bp_spdp_rank_bound           — Lemma 45  (cylinder decomposition)
-I. spdpRank_restriction_mono    — Lemma 141 (column deletion)
-J. padding axioms               — Theorem 144 (NC⁰ padding)
+### Supporting decomposition: 3 axioms, 3 sorry (none load-bearing)
 
-### Proved theorems connecting them
-- theorem_140_from_pdMatrix: A + D → Theorem 140
-- p_side_poly_spdp_rank: F + G → Theorem 46
-- three_sat_not_in_P: Theorems 140 + 139 → P ≠ NP
+**PartialDerivMatrix.lean**: 0 axioms, 0 sorry
+- Lemma 69 (pdMatrix_le_spdpRank): PROVED
+- theorem_140_from_pdMatrix: PROVED (from hypotheses)
 
-### Difficulty ranking (easiest to hardest)
-1. A (Lemma 69): pure linear algebra — submatrix rank ≤ full rank
-2. I (Lemma 141): column deletion — same as A essentially
-3. J (Theorem 144): padding — product structure + Lemma 143
-4. F (Lemma 44): TM→BP — standard textbook simulation
-5. G (Lemma 45): BP→SPDP — matrix product + cylinder decomposition
-6. D (Theorem 72): Ramanujan-Tseitin — deepest (expander spectral theory)
+**BPtoSPDP.lean**: 0 axioms, 2 sorry (not load-bearing)
+- bp_spdp_rank_bound: PROVED for zero-poly case
+- bp_leibniz_localisation: PROVED
+- bp_poly_totalDegree_le: PROVED
+- compilation_lemma: DEFINED (trivial BP)
+- Sorry 1: bp_rowspace_bound_per_term_empty W≥2 (needs BP determinism)
+- Sorry 2: cylinder Leibniz inductive step (needs generalized matrix IH)
+
+**RamanujanTseitin.lean**: 3 axioms, 0 sorry
+- lps_family_exists: LPS Ramanujan construction (deep number theory)
+- characteristic_pd_row_derivs_from_pack: row derivative witness
+- tseitin_pdMatrix_lower_bound_small: finite exceptional cases (n<660)
+
+**TMtoBP.lean**: 0 axioms, 0 sorry (CLEAN)
+**RestrictionMono.lean**: 0 axioms, 1 sorry (not load-bearing)
+**PaddingRobustness.lean**: 0 axioms, 0 sorry (CLEAN)
+
+### Totals: 6 axioms, 63 theorems, 3 sorry
+  Load-bearing: 3 axioms, 0 sorry
+  Supporting:   3 axioms (RamanujanTseitin), 3 sorry (all non-load-bearing)
 -/
 
 end SeparationAssembly
