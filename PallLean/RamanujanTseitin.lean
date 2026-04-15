@@ -521,6 +521,30 @@ noncomputable def formulaClauseGadgetProd
     MvPolynomial (Fin (fam.encoding n hn).numVars) F :=
   (clauses.map (Tseitin.clauseGadget F (fam.encoding n hn).formula)).prod
 
+/-- The remaining semantic frontier, but stated entirely on an actual list of
+formula clauses rather than positional indices in the packed clause system. -/
+structure FormulaClauseCharacteristicPdWitness
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (clauses : List (Fin (fam.encoding n hn).formula.clauses.length)) where
+  baseDerivs : List (Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula))
+  length_eq : baseDerivs.length = (fam.partition n hn).part.S.card
+  subset_S :
+    ∀ v ∈ baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula),
+      v ∈ (fam.partition n hn).part.S
+  row_eq_expanded :
+    formulaClauseGadgetProd F fam n hn clauses =
+      ∑ a ∈ Fintype.piFinset (fun _ : Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula) =>
+          ({false, true} : Finset Bool)),
+        (by
+          classical
+          exact if Tseitin.formulaSatisfied (fam.encoding n hn).formula a then
+            SPDP.iterDerivList
+              (baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
+              (Tseitin.assignmentMonomial F (fam.encoding n hn).formula a)
+          else 0)
+
 /-- The canonical packed formula-clause list has the expected `log₂ n` size. -/
 theorem canonicalPackedFormulaClauses_length
     (F : Type*) [Field F] [CharZero F]
@@ -553,6 +577,25 @@ theorem canonicalPackedFormulaClauses_gadgetProd
   congr 1
   ext j
   simp [IdentityMinorReal.tseitinClauseSystem]
+
+/-- A formula-clause witness for the canonical packed clause list induces the
+corresponding positional clause witness. -/
+def FormulaClauseCharacteristicPdWitness.toPackedClauseWitness
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
+    (w : FormulaClauseCharacteristicPdWitness F fam n hn
+      (canonicalPackedFormulaClauses F fam n hn pack i)) :
+    BaseIndexCharacteristicPdClauseWitness F fam n hn pack
+      (canonicalPackedClauseSubset F fam n hn pack i) := {
+  baseDerivs := w.baseDerivs
+  length_eq := w.length_eq
+  subset_S := w.subset_S
+  row_eq_expanded := by
+    exact (canonicalPackedFormulaClauses_gadgetProd F fam n hn pack i).trans w.row_eq_expanded
+}
 
 /-- A canonical clause witness already yields the corresponding derivative of
 the characteristic polynomial, since the explicit satisfying-assignment
@@ -604,16 +647,27 @@ subset in the Kronecker system is explicitly realized by an iterated derivative
 of the characteristic polynomial along a legal list of base variables. This is
 the formula-level bridge from satisfying-assignment derivatives to the gadget-
 product target rows. -/
-axiom characteristic_pd_clause_derivs_from_pack
+axiom characteristic_pd_formula_clause_derivs_from_pack
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
+    ∀ i,
+      FormulaClauseCharacteristicPdWitness F fam n hn
+        (canonicalPackedFormulaClauses F fam n hn pack i)
+
+/-- Repackage the formula-clause version of the remaining frontier into the
+packed positional witness used downstream. -/
+noncomputable def characteristic_pd_clause_derivs_from_pack
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
     (n : ℕ) (hn : n ≥ 6)
     (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
     ∀ i,
       BaseIndexCharacteristicPdClauseWitness F fam n hn pack
-        (IdentityMinorReal.getClauseSubset
-          (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
-          (Nat.log 2 n) i)
+        (canonicalPackedClauseSubset F fam n hn pack i) := by
+  intro i
+  exact (characteristic_pd_formula_clause_derivs_from_pack F fam n hn pack i).toPackedClauseWitness F
 
 /-- Base-index witnesses induce base-variable ambient witnesses. -/
 def BaseIndexCharacteristicPdRowDerivWitness.toBaseVariable
