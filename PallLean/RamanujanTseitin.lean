@@ -574,7 +574,7 @@ theorem vars_subset_formulaClauseVarSetFin_formulaClauseGadgetProd
   intro x hx
   induction clauses with
   | nil =>
-      simp [formulaClauseGadgetProd, formulaClauseVarSetFin] at hx
+      simp [formulaClauseGadgetProd] at hx
   | cons c rest ih =>
       have hx' :
           x ∈ (Tseitin.clauseGadget F (fam.encoding n hn).formula c *
@@ -600,6 +600,26 @@ theorem vars_subset_formulaClauseVarSetFin_formulaClauseGadgetProd
       · have hxrest : x ∈ formulaClauseVarSetFin F fam n hn rest := ih hrest
         simp [formulaClauseVarSetFin]
         exact Or.inr hxrest
+
+/-- Any derivative list touching a variable outside the concrete clause-variable
+union annihilates the corresponding clause-product target row. -/
+theorem iterDerivList_formulaClauseGadgetProd_zero_of_mem_outside_clauseVars
+    (F : Type*) [Field F] [CharZero F] [Nontrivial F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (clauses : List (Fin (fam.encoding n hn).formula.clauses.length))
+    (v : Fin (Tseitin.tseitinNumVars (fam.encoding n hn).formula))
+    (S : List (Fin (Tseitin.tseitinNumVars (fam.encoding n hn).formula)))
+    (hvS : v ∈ S)
+    (hvout : v ∉ formulaClauseVarSetFin F fam n hn clauses) :
+    SPDP.iterDerivList S
+      (formulaClauseGadgetProd F fam n hn clauses) = 0 := by
+  have hv_not_vars : v ∉ (formulaClauseGadgetProd F fam n hn clauses).vars := by
+    intro hmem
+    exact hvout
+      (vars_subset_formulaClauseVarSetFin_formulaClauseGadgetProd F fam n hn clauses hmem)
+  exact IterDerivHelpers.iterDerivList_eq_zero_of_mem_notMem_vars
+    S v (formulaClauseGadgetProd F fam n hn clauses) hvS hv_not_vars
 
 /-- A product of actual formula-clause gadgets still avoids every selector
 coordinate. -/
