@@ -473,6 +473,42 @@ theorem pderiv_assignmentMonomial_baseVar
   · intro j _ hj
     exact pderiv_assignmentFactor_ne F Φ a hj.symm
 
+/-- Head-step normalization for iterated derivatives of an assignment monomial
+along a list of embedded base variables. -/
+theorem iterDerivList_assignmentMonomial_base_head
+    (F : Type*) [CommRing F]
+    (Φ : TseitinFormula) (a : Fin (tseitinBaseNumVars Φ) → Bool)
+    (v : Fin (tseitinBaseNumVars Φ))
+    (rest : List (Fin (tseitinBaseNumVars Φ))) :
+    SPDP.iterDerivList (baseVarEmbedding Φ v :: rest.map (baseVarEmbedding Φ))
+      (assignmentMonomial F Φ a) =
+      if a v then
+        SPDP.iterDerivList (rest.map (baseVarEmbedding Φ))
+          (assignmentMonomialErase F Φ a v)
+      else
+        -SPDP.iterDerivList (rest.map (baseVarEmbedding Φ))
+          (assignmentMonomialErase F Φ a v) := by
+  unfold SPDP.iterDerivList
+  simp only [List.foldl_cons]
+  rw [pderiv_assignmentMonomial_baseVar F Φ a v]
+  by_cases hav : a v
+  · simp [hav]
+  · simp [hav]
+    have hneg :
+        ∀ (S : List (Fin (tseitinNumVars Φ)))
+          (p : MvPolynomial (Fin (tseitinNumVars Φ)) F),
+          List.foldl (fun q i => MvPolynomial.pderiv i q) (-p) S =
+            -List.foldl (fun q i => MvPolynomial.pderiv i q) p S := by
+      intro S
+      induction S with
+      | nil =>
+          intro p
+          simp
+      | cons i rest ih =>
+          intro p
+          simp [ih, map_neg]
+    simpa using hneg (rest.map (baseVarEmbedding Φ)) (assignmentMonomialErase F Φ a v)
+
 /-- One summand in the explicit satisfying-assignment expansion of the
 characteristic polynomial. This is factored out so later derivative-expansion
 lemmas can refer to it without carrying a local classical `Decidable` burden in
@@ -678,6 +714,31 @@ theorem iterDerivList_characteristicPolySummand
   unfold characteristicPolySummand
   by_cases hsat : formulaSatisfied Φ a
   · simp [hsat]
+  · simp [hsat, SPDP.iterDerivList, SPDP.foldl_pderiv_zero]
+
+/-- Head-step normalization for iterated derivatives of a satisfying-assignment
+summand along a list of embedded base variables. -/
+theorem iterDerivList_characteristicPolySummand_base_head
+    (F : Type*) [CommRing F]
+    (Φ : TseitinFormula) (a : Fin (tseitinBaseNumVars Φ) → Bool)
+    (v : Fin (tseitinBaseNumVars Φ))
+    (rest : List (Fin (tseitinBaseNumVars Φ))) :
+    SPDP.iterDerivList (baseVarEmbedding Φ v :: rest.map (baseVarEmbedding Φ))
+      (characteristicPolySummand F Φ a) =
+      (by
+        classical
+        exact if formulaSatisfied Φ a then
+          if a v then
+            SPDP.iterDerivList (rest.map (baseVarEmbedding Φ))
+              (assignmentMonomialErase F Φ a v)
+          else
+            -SPDP.iterDerivList (rest.map (baseVarEmbedding Φ))
+              (assignmentMonomialErase F Φ a v)
+        else 0) := by
+  classical
+  unfold characteristicPolySummand
+  by_cases hsat : formulaSatisfied Φ a
+  · simp [hsat, iterDerivList_assignmentMonomial_base_head]
   · simp [hsat, SPDP.iterDerivList, SPDP.foldl_pderiv_zero]
 
 theorem pderiv_characteristicPoly_selector_zero (F : Type*) [CommRing F] [Nontrivial F]
