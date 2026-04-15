@@ -47,6 +47,16 @@ def theorem216_p_obligation (M : DTM) (n : ℕ)
     (hnM : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804) : Prop :=
   theorem216_profile_data_logscale M n hnM hn804
 
+/-- Local wrapper from the compiled-tableau frontier object to the canonical
+Theorem 216 package used by the final contradiction route. -/
+private theorem theorem216_profile_data_logscale_from_compiled_tableau_proved
+    (M : DTM) (n : ℕ)
+    (hnM : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804) :
+    theorem216_p_obligation M n hnM hn804 := by
+  exact theorem216_profile_data_logscale_from_core_proved M n hnM hn804
+    ((latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hnM hn804).2 hCompiled)
+
 /-- Bundled paper-facing obligations at contradiction scale.
 
 At this point the NP side is canonical and constructed internally from the
@@ -182,11 +192,8 @@ theorem P_neq_NP_latent_from_finer_decomp_and_compiled_tableau_bound
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have pCore : latent_profile_assembly_logscale M n hnM hn804 :=
-    (latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hnM hn804).2 hCompiled
-  have pAsm : theorem216_p_obligation M n hnM hn804 :=
-    theorem216_profile_data_logscale_from_core_proved M n hnM hn804 pCore
-  exact P_neq_NP_latent_from_finer_decomp h n hn idxList hnd hlen hfinj pAsm
+  exact P_neq_NP_latent_from_finer_decomp h n hn idxList hnd hlen hfinj
+    (theorem216_profile_data_logscale_from_compiled_tableau_proved M n hnM hn804 hCompiled)
 
 /-- Item 2 narrowing: same final contradiction route, but caller only supplies
 P-side core assembly bound (`latent_profile_assembly_logscale`) instead of the
@@ -366,12 +373,8 @@ theorem P_neq_NP_latent_from_compiled_tableau_bound (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-
-  have pCore : latent_profile_assembly_logscale M n hnM hn804 :=
-    (latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hnM hn804).2 hCompiled
-  have pAsm : theorem216_p_obligation M n hnM hn804 :=
-    theorem216_profile_data_logscale_from_core_proved M n hnM hn804 pCore
-  exact P_neq_NP_latent_from_p_obligation h n hn pAsm
+  exact P_neq_NP_latent_from_p_obligation h n hn
+    (theorem216_profile_data_logscale_from_compiled_tableau_proved M n hnM hn804 hCompiled)
 
 /-- Canonical-NP route from the core P-side profile assembly bound directly.
 
@@ -661,9 +664,8 @@ private theorem theorem216_profile_data_logscale_from_any_source_proved
       latent_profile_block_cover_construction_data_logscale M n hn hn804 ∨
       latent_profile_span_card_bound_logscale M n hn hn804) :
     theorem216_p_obligation M n hn hn804 := by
-  exact theorem216_profile_data_logscale_from_core_proved M n hn hn804
-    ((latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hn hn804).2
-      (latent_compiled_tableau_bound_proved_from_any_source M n hn hn804 hAny))
+  exact theorem216_profile_data_logscale_from_compiled_tableau_proved M n hn hn804
+    (latent_compiled_tableau_bound_proved_from_any_source M n hn hn804 hAny)
 
 /-- Global closure theorem:
 if any approved compiler witness source is available uniformly at contradiction
