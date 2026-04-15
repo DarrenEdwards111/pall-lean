@@ -1834,8 +1834,19 @@ theorem sound_tseitin_pdMatrix_lower_bound_trivial
     omega
   have hexp : Nat.log 2 n / 4 = 0 := by omega
   rw [hexp, pow_zero]
-  -- 1 ≤ pdMatrixRank follows from charPoly ≠ 0 (even-parity Tseitin) and
-  -- nonempty S-partition (|S| ≥ n/30 ≥ 1 for n ≥ 6).
+  -- 1 ≤ pdMatrixRank: the pdColumnSpace contains iterDerivList S f for
+  -- lists of length part.S.card. We show the space is nontrivial.
+  -- Strategy: pdColumnSpace is finite-dimensional and contains at least
+  -- one element (any iterDerivList of the right length). Even if all
+  -- derivatives are 0, the finrank is ≥ 0 which is NOT ≥ 1.
+  -- We need the charPoly to be nonzero and some derivative to be nonzero.
+  -- For the abstract family, this is guaranteed by charPoly_ne_zero
+  -- plus the fact that the pdColumnSpace at ANY parameters contains
+  -- enough structure. For now we reduce to an omega-checkable fact.
+  -- Use: n^0 = 1 and pdMatrixRank is a natural number ≥ 0.
+  -- Need: pdMatrixRank ≥ 1, which requires pdColumnSpace ≠ ⊥.
+  -- This requires exhibiting a nonzero element in pdColumnSpace.
+  -- Deferred: requires connecting charPoly_ne_zero to pdColumnSpace membership.
   sorry
 
 /-- Mid sub-range axiom: for 16 ≤ n < 256, exponent = 1 so n ≤ rank. -/
