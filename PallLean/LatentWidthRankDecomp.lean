@@ -4177,6 +4177,14 @@ theorem theorem216_profile_data_logscale_from_core_proved (M : DTM) (n : ℕ)
     (theorem9_within_profile_dim_obligation_proved M n hn804)
     hCore
 
+/-- Canonical P-data package from the compiled-tableau frontier object. -/
+theorem theorem216_profile_data_logscale_from_compiled_tableau_proved (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hCompiled : latent_compiled_tableau_bound_logscale M n hn hn804) :
+    theorem216_profile_data_logscale M n hn hn804 := by
+  exact theorem216_profile_data_logscale_from_core_proved M n hn hn804
+    ((latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hn hn804).2 hCompiled)
+
 /-- Build P-data package from the finer finite span-card witness. -/
 theorem theorem216_profile_data_logscale_from_span_card_bound (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
@@ -4283,27 +4291,24 @@ theorem theorem216_profile_data_logscale_from_item3_uniform120_proved (M : DTM) 
     (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
     (h3120 : latent_profile_block_cover_item3_uniform120_logscale M n hn hn804) :
     theorem216_profile_data_logscale M n hn hn804 := by
-  exact theorem216_profile_data_logscale_from_core_proved M n hn hn804
-    ((latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hn hn804).2
-      (latent_compiled_tableau_bound_logscale_from_item3_uniform120 M n hn hn804 h3120))
+  exact theorem216_profile_data_logscale_from_compiled_tableau_proved M n hn hn804
+    (latent_compiled_tableau_bound_logscale_from_item3_uniform120 M n hn hn804 h3120)
 
 /-- Canonical P-data package from the span160 witness. -/
 theorem theorem216_profile_data_logscale_from_span160_proved (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
     (h160 : latent_p_witness_span160_logscale M n hn hn804) :
     theorem216_profile_data_logscale M n hn hn804 := by
-  exact theorem216_profile_data_logscale_from_core_proved M n hn hn804
-    ((latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hn hn804).2
-      (latent_compiled_tableau_bound_logscale_from_span160_witness M n hn hn804 h160))
+  exact theorem216_profile_data_logscale_from_compiled_tableau_proved M n hn hn804
+    (latent_compiled_tableau_bound_logscale_from_span160_witness M n hn hn804 h160)
 
 /-- Canonical P-data package from the frozen Move-1 target witness. -/
 theorem theorem216_profile_data_logscale_from_p_witness_target_proved (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
     (hTarget : latent_p_witness_target_logscale M n hn hn804) :
     theorem216_profile_data_logscale M n hn hn804 := by
-  exact theorem216_profile_data_logscale_from_core_proved M n hn hn804
-    ((latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hn hn804).2
-      (latent_compiled_tableau_bound_logscale_from_p_witness_target M n hn hn804 hTarget))
+  exact theorem216_profile_data_logscale_from_compiled_tableau_proved M n hn hn804
+    (latent_compiled_tableau_bound_logscale_from_p_witness_target M n hn hn804 hTarget)
 
 /-- Canonical P-data package from an explicit `n^160` rank bound. -/
 theorem theorem216_profile_data_logscale_from_rank160_proved (M : DTM) (n : ℕ)
@@ -4311,18 +4316,16 @@ theorem theorem216_profile_data_logscale_from_rank160_proved (M : DTM) (n : ℕ)
     (hRank : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 160) :
     theorem216_profile_data_logscale M n hn hn804 := by
-  exact theorem216_profile_data_logscale_from_core_proved M n hn hn804
-    ((latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hn hn804).2
-      (latent_compiled_tableau_bound_logscale_from_rank160 M n hn hn804 hRank))
+  exact theorem216_profile_data_logscale_from_compiled_tableau_proved M n hn hn804
+    (latent_compiled_tableau_bound_logscale_from_rank160 M n hn hn804 hRank)
 
 /-- Canonical P-data package from the `(40,120)` parts witness. -/
 theorem theorem216_profile_data_logscale_from_parts_40_120_proved (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
     (hParts : latent_profile_span_card_parts_40_120_logscale M n hn hn804) :
     theorem216_profile_data_logscale M n hn hn804 := by
-  exact theorem216_profile_data_logscale_from_core_proved M n hn hn804
-    ((latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hn hn804).2
-      (latent_compiled_tableau_bound_logscale_from_parts_40_120 M n hn hn804 hParts))
+  exact theorem216_profile_data_logscale_from_compiled_tableau_proved M n hn hn804
+    (latent_compiled_tableau_bound_logscale_from_parts_40_120 M n hn hn804 hParts)
 
 /-- P-side assembly from explicit logscale parts (paper-faithful split).
 Combines Section 9 profile-count + within-profile dimension into assembled upper bound. -/
