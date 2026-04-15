@@ -114,6 +114,60 @@ independent, giving within-profile dimension = C(n/3, log n) >> (log n + 1)^8.
   `latent_profile_assembly_logscale` likely faces the same issue, since it
   depends on the same profile compression idea.
 
+## Sound NP-side encoding (2026-04-15)
+
+The characteristic-polynomial PD route (NP-side of Theorem 140) had
+**inconsistent axioms** due to `parity_odd` in `TseitinFormula` forcing the
+characteristic polynomial to be identically 0.
+
+**Fix (RamanujanTseitin.lean §11)**: Added `SoundTseitinEncoding` that drops
+`charPoly_eq_characteristic` and uses an abstract characteristic polynomial
+with only structural constraints (multilinear, base-variable-only). This
+matches the paper's actual construction with even-parity Tseitin formulas.
+
+### Sound NP-side axiom inventory
+
+| Axiom | File | Status | Paper |
+|-------|------|--------|-------|
+| `sound_characteristic_pd_row_derivs` | RamanujanTseitin | CONSISTENT axiom | §14.1 |
+| `sound_tseitin_pdMatrix_lower_bound_small` | RamanujanTseitin | CONSISTENT axiom | finite range |
+| `sound_lps_family_exists` | RamanujanTseitin | sorry | §6 LPS |
+
+### Sound NP-side proof chain
+
+```
+sound_lps_family_exists (sorry: LPS construction)
+     ↓
+SoundRamanujanTseitinFamily
+     ↓
+disjoint_packing_exists (PROVED: greedy algorithm)
+     ↓
+buildKroneckerSystem (PROVED: combinatorial)
+     ↓
+sound_characteristic_pd_row_derivs (AXIOM: row realization)
+     ↓
+sound_characteristic_pd_rows_mem (PROVED: rows ∈ pdColumnSpace)
+     ↓
+sound_tseitin_pdMatrix_lower_bound (PROVED for n≥660; AXIOM n<660)
+     ↓
+sound_theorem72_condensed (PROVED: condensed existential)
+     ↓
+pdMatrix_le_spdpRank (PROVED: Lemma 69)
+     ↓
+theorem_140_sound_decomposition (PROVED: connects to charPolyRank)
+```
+
+### Connection to Separation29
+
+`theorem_140_sound_decomposition` (Separation29.lean) shows how the monolithic
+axiom `theorem_140_np_side` follows from:
+1. The sound PD-matrix lower bound (`sound_theorem72_condensed`)
+2. The proved Lemma 69 (`pdMatrix_le_spdpRank`)
+3. A bridge linking `spdpRank` to the abstract `charPolyRank`
+
+The remaining gap (step 3) is a definition-level identification, not a deep
+theorem.
+
 ## Historical files
 
 The repo still contains older route/status files, including:
