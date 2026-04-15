@@ -1840,12 +1840,9 @@ theorem no_PeqNP_of_uniform_profile_decomposition
       (hn : n ≥ max 4 M.numStates) → (hn804 : n ≥ 2 ^ 804) →
       latent_profile_span_card_parts_40_120_logscale M n hn hn804) :
     PeqNP → False := by
-  intro h
-  let M := h.sat_decider
-  let n := max (max 32 (max 4 M.numStates)) (2 ^ 804)
-  have hn : n ≥ max (max 32 (max 4 M.numStates)) (2 ^ 804) := le_refl _
-  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
-  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  exact P_neq_NP_from_profile_decomposition h n hn (hParts M n hnM hn804)
+  exact no_PeqNP_of_uniform_rank160_bound (fun h n hn =>
+    latentCompiledPoly_spdp_rank_poly_bound h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)
+      (hParts h.sat_decider n (hnM_of_hn h n hn) (hn804_of_hn h n hn)))
 
 end LatentCompilerFinalRoute
