@@ -92,10 +92,30 @@ theorem axiom2_pipeline_sketch
     True := by  -- placeholder for the full pipeline
   trivial
 
-/-! ## Current Status (updated)
+/-! ## Current Status (updated 2026-04-15)
 
-### Load-bearing (Separation29.lean): 3 axioms, 0 sorry
-- charPolyRank (opaque)
+### Route B (PaperFaithfulSeparation.lean): 1 axiom, 0 sorry
+- spdp_profile_generators (SymmetricPower.lean) — P-side profile compression
+- NP-side fully proved via CrossTermVanishing linear independence
+- God-Move uses identity construction (placeholder, not paper-faithful)
+
+**Semantic gap (Route B)**: The NP-side lower bound
+(`identity_construction_np_lower_bound`) does NOT use `DecidesSAT M`.
+It proves `C(n/3, log n) ≤ rank(compiledPoly)` for ALL DTMs. Combined
+with the P-side axiom `spdp_profile_generators` (which also applies to
+all DTMs), this yields `C(n/3, log n) ≤ n^200` — a false arithmetic
+inequality for large n. At most one of the two sides can be correct
+for the same notion of blocked SPDP rank and partition.
+See `GodMoveReal.compiled_np_lower_bound_any_dtm` and the semantic gap
+analysis in `GodMoveReal.lean` for details.
+
+**Paper-faithful resolution**: The paper makes `DecidesSAT` load-bearing
+in the God-Move extraction (Step A), not in the NP lower bound.
+`GodMoveSemanticInterface` in `GodMoveCore.lean` is the exact theorem
+seam for the paper-faithful Route B path (NOT YET INHABITED).
+
+### Separation29 route: 3 axioms, 0 sorry (auxiliary, NOT primary)
+- charPolyRank (opaque abstraction symbol)
 - theorem_140_np_side (Theorem 140: NP-side exponential lower bound)
 - theorem_139_p_side (Theorem 139: P-side polynomial upper bound)
 
@@ -106,26 +126,24 @@ theorem axiom2_pipeline_sketch
 **PaddingRobustness.lean**: 0 axioms, 0 sorry — CLEAN
 
 **BPtoSPDP.lean**: 0 axioms, 1 sorry (not load-bearing, archived)
-- PROVED: bp_spdp_rank_bound (degree-based bound via restrictTotalDegree)
-- PROVED: bp_rowspace_bound_per_term_empty (W² bound via Set.fintypeRange)
-- REMOVED: spdp_subspace_finrank_le_cylinder_bound (orphaned by degree approach)
 - ARCHIVED: bp_iterated_leibniz_eq inductive step (sorry, not on active path)
 
 **RamanujanTseitin.lean**: 2 axioms, 1 sorry (not load-bearing)
-- characteristic_pd_formula_clause_derivs_from_pack — AXIOM
-- tseitin_pdMatrix_lower_bound_small — AXIOM
+- characteristic_pd_formula_clause_derivs_from_pack — AXIOM ⚠ INCONSISTENT
+  (characteristicPoly = 0 due to parity_odd; see soundness note in file)
+- tseitin_pdMatrix_lower_bound_small — AXIOM ⚠ INCONSISTENT (same reason)
 - lps_family_exists: LPS Ramanujan construction (deep number theory) — sorry
 
-**SymmetricPower.lean**: 1 axiom (not load-bearing)
+**SymmetricPower.lean**: 1 axiom (load-bearing for Route B P-side)
 - spdp_profile_generators: profile compression for Cook-Levin compiled poly
 
 **RestrictionMono.lean**: 0 axioms, 1 sorry (not load-bearing)
 - spdpRank_restriction_mono: column-deletion monotonicity
-    (needs coefficient-matrix rank infrastructure)
 
-### Totals: 6 axioms, 3 sorry
-  Load-bearing: 3 axioms (Separation29), 0 sorry
-  Supporting:   3 axioms, 3 sorry (all non-load-bearing)
+### Totals
+  Route B:      1 axiom (spdp_profile_generators), 0 sorry
+  Separation29: 3 axioms, 0 sorry (auxiliary)
+  Supporting:   3 axioms (2 inconsistent), 3 sorry (all non-load-bearing)
 -/
 
 end SeparationAssembly
