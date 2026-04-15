@@ -470,6 +470,19 @@ structure BaseIndexCharacteristicPdClauseWitness
         (baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
         (Tseitin.characteristicPoly F (fam.encoding n hn).formula)
 
+/-- The canonical positional clause subset used by the `i`-th row of the
+packed Tseitin Kronecker system. -/
+noncomputable def canonicalPackedClauseSubset
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula)
+    (i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))) :
+    List (Fin pack.selected.length) :=
+  IdentityMinorReal.getClauseSubset
+    (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+    (Nat.log 2 n) i
+
 /-- The actual formula-clause list corresponding to a canonical packed clause
 subset is definitionally recovered from `pack.selected.get`. -/
 def BaseIndexCharacteristicPdClauseWitness.clauses
@@ -481,6 +494,31 @@ def BaseIndexCharacteristicPdClauseWitness.clauses
     (_w : BaseIndexCharacteristicPdClauseWitness F fam n hn pack cs) :
     List (Fin (fam.encoding n hn).formula.clauses.length) :=
   cs.map pack.selected.get
+
+/-- The actual formula-clause list used by the `i`-th row of the packed
+Kronecker system. -/
+noncomputable def canonicalPackedFormulaClauses
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula)
+    (i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))) :
+    List (Fin (fam.encoding n hn).formula.clauses.length) :=
+  (canonicalPackedClauseSubset F fam n hn pack i).map pack.selected.get
+
+/-- The canonical packed formula-clause list has the expected `log₂ n` size. -/
+theorem canonicalPackedFormulaClauses_length
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula)
+    (i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))) :
+    (canonicalPackedFormulaClauses F fam n hn pack i).length = Nat.log 2 n := by
+  unfold canonicalPackedFormulaClauses
+  rw [List.length_map, canonicalPackedClauseSubset]
+  exact IdentityMinorReal.getClauseSubset_length
+    (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+    (Nat.log 2 n) i
 
 /-- A canonical clause witness specializes directly to the corresponding row
 witness. -/
@@ -629,6 +667,30 @@ theorem CharacteristicPdRowDerivWitness.row_eq_assignmentExpanded
   intro a ha
   rw [Tseitin.iterDerivList_characteristicPolySummand
     F (fam.encoding n hn).formula a w.derivs]
+
+/-- A canonical clause witness already gives the explicit satisfying-assignment
+expansion of its target gadget-product row. -/
+theorem BaseIndexCharacteristicPdClauseWitness.row_eq_assignmentExpanded
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
+    (w : BaseIndexCharacteristicPdClauseWitness F fam n hn pack
+      (canonicalPackedClauseSubset F fam n hn pack i)) :
+    IdentityMinorReal.gadgetProd
+      (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+      (canonicalPackedClauseSubset F fam n hn pack i) =
+      ∑ a ∈ Fintype.piFinset (fun _ : Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula) =>
+          ({false, true} : Finset Bool)),
+        (by
+          classical
+          exact if Tseitin.formulaSatisfied (fam.encoding n hn).formula a then
+            SPDP.iterDerivList
+              (w.baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
+              (Tseitin.assignmentMonomial F (fam.encoding n hn).formula a)
+          else 0) := by
+  exact ((w.toRow F).toBaseVariable F).toCharacteristic F |>.row_eq_assignmentExpanded F
 
 /-- Any candidate row-realization witness whose derivative list starts with a
 selector variable forces the target gadget-product row to vanish, because every
