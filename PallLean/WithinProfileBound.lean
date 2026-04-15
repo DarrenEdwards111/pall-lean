@@ -1910,6 +1910,62 @@ theorem perSShift_finrank_le_constrained {n L : ℕ}
     _ ≤ (S.toFinset.card + 1) ^ (∑ i : Fin L, derivLengths i) :=
         constrained_prod_le_pow_sum factors S derivLengths hk
 
+/-! ## Part 23: mlProj multiplicativity helpers (restored from WIP)
+
+Foundational lemmas for the variable-confinement argument:
+mlProj(p * q) = mlProj(p) * mlProj(q) when vars(p) ∩ vars(q) = ∅. -/
+
+/-- For α in the support of mlProj(p), α is multilinear. -/
+theorem isMultilinear_of_mem_mlProj_support {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p : MvPolynomial σ F) (α : σ →₀ ℕ) (hα : α ∈ (mlProj p).support) :
+    Finsupp.IsMultilinear α := by
+  by_contra h_neg
+  have : MvPolynomial.coeff α (mlProj p) = 0 := by
+    show (Finsupp.filter (fun β => Finsupp.IsMultilinear β) p) α = 0
+    rw [Finsupp.filter_apply, if_neg h_neg]
+  exact absurd this (Finsupp.mem_support_iff.mp hα)
+
+/-- The coefficient of mlProj: original for multilinear monomials, 0 otherwise. -/
+theorem coeff_mlProj {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p : MvPolynomial σ F) (α : σ →₀ ℕ) :
+    MvPolynomial.coeff α (mlProj p) =
+      if Finsupp.IsMultilinear α then MvPolynomial.coeff α p else 0 := by
+  show (Finsupp.filter (fun β => Finsupp.IsMultilinear β) p) α = _
+  rw [Finsupp.filter_apply]
+  split_ifs <;> rfl
+
+/-- Support of mlProj(p) ⊆ multilinear monomials in support of p. -/
+theorem mlProj_support_subset' {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p : MvPolynomial σ F) :
+    (mlProj p).support ⊆ p.support.filter (fun α => Finsupp.IsMultilinear α) := by
+  intro α hα
+  rw [Finset.mem_filter]
+  have hα_ne : MvPolynomial.coeff α (mlProj p) ≠ 0 :=
+    Finsupp.mem_support_iff.mp hα
+  have hα_ml := isMultilinear_of_mem_mlProj_support p α hα
+  exact ⟨Finsupp.mem_support_iff.mpr (by rwa [coeff_mlProj, if_pos hα_ml] at hα_ne), hα_ml⟩
+
+/-- For Finsupp with disjoint supports, the sum is multilinear iff both are. -/
+theorem isMultilinear_add_of_disjoint_support {σ : Type*} [DecidableEq σ]
+    (β γ : σ →₀ ℕ) (hdisj : Disjoint β.support γ.support) :
+    Finsupp.IsMultilinear (β + γ) ↔
+      Finsupp.IsMultilinear β ∧ Finsupp.IsMultilinear γ := by
+  constructor
+  · intro h_ml
+    constructor
+    · intro i; have := h_ml i; simp only [Finsupp.coe_add, Pi.add_apply] at this; omega
+    · intro i; have := h_ml i; simp only [Finsupp.coe_add, Pi.add_apply] at this; omega
+  · intro ⟨hβ, hγ⟩ i
+    simp only [Finsupp.coe_add, Pi.add_apply]
+    have := Finset.disjoint_iff_ne.mp hdisj
+    by_cases hi_β : i ∈ β.support
+    · have hi_γ : i ∉ γ.support := by
+        intro hi_γ; exact absurd rfl (this i hi_β i hi_γ)
+      have : γ i = 0 := by rwa [Finsupp.mem_support_iff, not_not] at hi_γ
+      rw [this, add_zero]; exact hβ i
+    · have : β i = 0 := by rwa [Finsupp.mem_support_iff, not_not] at hi_β
+      rw [this, zero_add]; exact hγ i
+
 end WithinProfileBound
 
 /-! # WithinProfileBound — Work in Progress below
