@@ -460,22 +460,22 @@ noncomputable def characteristicPdMinorWitness_from_axioms
   }
 
 /-- **Axiom (finite exceptional range)**: the characteristic-polynomial PD
-lower bound for the finitely many small sizes `6 ≤ n < 2^40`. The asymptotic
+lower bound for the finitely many small sizes `6 ≤ n < 2^20`. The asymptotic
 pocket construction is only needed once `n` is large enough for the greedy
 packing theorem to apply directly. -/
 axiom tseitin_pdMatrix_lower_bound_small
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
-    (n : ℕ) (hn : n ≥ 6) (hsmall : n < 2 ^ 40) :
+    (n : ℕ) (hn : n ≥ 6) (hsmall : n < 2 ^ 20) :
     n ^ (Nat.log 2 n / 4) ≤
       pdMatrixRank F (fam.partition n hn).part (fam.encoding n hn).charPoly
 
-/-- For `n ≥ 2^40`, the quantitative lower bound follows from the proved pocket
+/-- For `n ≥ 2^20`, the quantitative lower bound follows from the proved pocket
 count together with the concrete binomial estimate. -/
 theorem pocket_count_quantitative
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
-    (n : ℕ) (hn : n ≥ 6) (hlarge : n ≥ 2 ^ 40)
+    (n : ℕ) (hn : n ≥ 6) (hlarge : n ≥ 2 ^ 20)
     (pockets : ExpanderPocketWitness (fam.encoding n hn)) :
     n ^ (Nat.log 2 n / 4) ≤ Nat.choose pockets.pocketCount (Nat.log 2 n) := by
   have hbin : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
@@ -489,17 +489,17 @@ theorem pocket_count_quantitative
     Nat.choose_le_choose (Nat.log 2 n) hpockets
   exact le_trans hbin hmono
 
-/-- For `n ≥ 2^40`, the PD lower bound is derived from the proved pocket
+/-- For `n ≥ 2^20`, the PD lower bound is derived from the proved pocket
 extraction, the remaining algebraic minor-realization axiom, and the concrete
 binomial lower bound. -/
 theorem tseitin_pdMatrix_lower_bound_large
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
-    (n : ℕ) (hn : n ≥ 6) (hlarge : 2 ^ 40 ≤ n) :
+    (n : ℕ) (hn : n ≥ 6) (hlarge : 2 ^ 20 ≤ n) :
     n ^ (Nat.log 2 n / 4) ≤
       pdMatrixRank F (fam.partition n hn).part (fam.encoding n hn).charPoly := by
   have h100 : 100 ≤ n := by
-    have : 100 ≤ 2 ^ 40 := by norm_num
+    have : 100 ≤ 2 ^ 20 := by norm_num
     omega
   have hverts : 100 ≤ (fam.encoding n hn).graph.numVertices := by
     rw [fam.encoding_graph n hn, fam.vertices_count n hn]
@@ -527,13 +527,13 @@ theorem tseitin_pdMatrix_lower_bound
     n ^ (Nat.log 2 n / 4) ≤
       pdMatrixRank F tpart.part enc.charPoly := by
   by_cases hlarge : 100 ≤ n
-  · by_cases hbig : 2 ^ 40 ≤ n
+  · by_cases hbig : 2 ^ 20 ≤ n
     · simpa using tseitin_pdMatrix_lower_bound_large F fam n hn hbig
-    · have hsmall : n < 2 ^ 40 := by omega
+    · have hsmall : n < 2 ^ 20 := by omega
       simpa using tseitin_pdMatrix_lower_bound_small F fam n hn hsmall
   · have hsmall : n < 100 := by omega
-    have hsmall' : n < 2 ^ 40 := by
-      have : 100 < 2 ^ 40 := by norm_num
+    have hsmall' : n < 2 ^ 20 := by
+      have : 100 < 2 ^ 20 := by norm_num
       omega
     simpa using tseitin_pdMatrix_lower_bound_small F fam n hn hsmall'
 

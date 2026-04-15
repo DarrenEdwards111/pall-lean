@@ -47,14 +47,14 @@ theorem thirty_k_le_pow_half (k : ℕ) (hk : 20 ≤ k) : 30 * k ≤ 2 ^ (k / 2) 
 
 /-! ## Step 3: Sandwich and quotient bound -/
 
-theorem quotient_pow4_ge (n : ℕ) (hn : 2 ^ 40 ≤ n) :
+theorem quotient_pow4_ge (n : ℕ) (hn : 2 ^ 20 ≤ n) :
     (n / (30 * Nat.log 2 n)) ^ 4 ≥ n := by
   set k := Nat.log 2 n with hk_def
   have hn1 : 1 ≤ n := by omega
-  have hk40 : 40 ≤ k := by
+  have hk20 : 20 ≤ k := by
     rw [hk_def]
-    have h1 : Nat.log 2 (2^40) = 40 := Nat.log_pow (by norm_num) 40
-    have h2 : Nat.log 2 (2^40) ≤ Nat.log 2 n := Nat.log_mono (by norm_num) le_rfl hn
+    have h1 : Nat.log 2 (2^20) = 20 := Nat.log_pow (by norm_num) 20
+    have h2 : Nat.log 2 (2^20) ≤ Nat.log 2 n := Nat.log_mono (by norm_num) le_rfl hn
     omega
   have hn_ne : n ≠ 0 := by omega
   have h2k_le_n : 2 ^ k ≤ n := hk_def ▸ Nat.pow_log_le_self 2 hn_ne
@@ -84,16 +84,16 @@ theorem quotient_pow4_ge (n : ℕ) (hn : 2 ^ 40 ≤ n) :
 theorem poly_beats_log :
     ∃ n₀, ∀ n, n ≥ n₀ →
       (n / 30 / Nat.log 2 n) ^ Nat.log 2 n ≥ n ^ (Nat.log 2 n / 4) := by
-  use 2 ^ 40
+  use 2 ^ 20
   intro n hn
   rw [Nat.div_div_eq_div_mul]
   set k := Nat.log 2 n
   by_cases hk0 : k = 0
   · simp [hk0]
   · have hq4 := quotient_pow4_ge n hn
-    have hk40 : 40 ≤ k := by
-      have h1 : Nat.log 2 (2^40) = 40 := Nat.log_pow (by norm_num) 40
-      have h2 : Nat.log 2 (2^40) ≤ k := Nat.log_mono (by norm_num) le_rfl hn
+    have hk20 : 20 ≤ k := by
+      have h1 : Nat.log 2 (2^20) = 20 := Nat.log_pow (by norm_num) 20
+      have h2 : Nat.log 2 (2^20) ≤ k := Nat.log_mono (by norm_num) le_rfl hn
       omega
     have hq1 : 1 ≤ n / (30 * k) := by
       apply Nat.div_pos
@@ -119,7 +119,7 @@ theorem binomial_lower_bound' :
 /-- Concrete-threshold binomial lower bound: for n ≥ 2^40,
     C(n/30, log₂ n) ≥ n^(log₂ n / 4).
     Eliminates the existential quantifier from binomial_lower_bound'. -/
-theorem binomial_lower_bound_concrete (n : ℕ) (hn : n ≥ 2 ^ 40) :
+theorem binomial_lower_bound_concrete (n : ℕ) (hn : n ≥ 2 ^ 20) :
     Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4) := by
   by_cases hk0 : Nat.log 2 n = 0
   · simp [hk0]
@@ -129,9 +129,9 @@ theorem binomial_lower_bound_concrete (n : ℕ) (hn : n ≥ 2 ^ 40) :
     have hpbl : (n / 30 / k) ^ k ≥ n ^ (k / 4) := by
       rw [Nat.div_div_eq_div_mul]
       have hq4 := quotient_pow4_ge n hn
-      have hk40 : 40 ≤ k := by
-        have h1 : Nat.log 2 (2^40) = 40 := Nat.log_pow (by norm_num) 40
-        have h2 : Nat.log 2 (2^40) ≤ k := Nat.log_mono (by norm_num) le_rfl hn
+      have hk20 : 20 ≤ k := by
+        have h1 : Nat.log 2 (2^20) = 20 := Nat.log_pow (by norm_num) 20
+        have h2 : Nat.log 2 (2^20) ≤ k := Nat.log_mono (by norm_num) le_rfl hn
         omega
       have hq1 : 1 ≤ n / (30 * k) := by
         apply Nat.div_pos
