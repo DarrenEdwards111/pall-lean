@@ -539,4 +539,18 @@ theorem selCon_kronecker_coeff_law_logscale_from_canonical_idxList
     (selCon_idxList_length M n)
     (selCon_idxList_toFinset_injective M n)
 
+/-- Canonical choose-indexed family immediately yields the bundled Kronecker data. -/
+theorem selCon_kronecker_data_logscale_from_canonical_idxList
+    (M : DTM) (n : ℕ) (hn804 : n ≥ 2 ^ 804) :
+    selCon_kronecker_data_logscale M n hn804 := by
+  exact selCon_kronecker_coeff_law_logscale_from_canonical_idxList M n hn804
+
+/-- The NP-side Kronecker linear-independence package is now canonical:
+no external selector-list indexing data is required. -/
+theorem selCon_kronecker_linear_independence_logscale_from_canonical_idxList
+    (M : DTM) (n : ℕ) (hn804 : n ≥ 2 ^ 804) :
+    selCon_kronecker_linear_independence_logscale M n hn804 := by
+  exact selCon_kronecker_linear_independence_logscale_from_data
+    M n hn804 (selCon_kronecker_data_logscale_from_canonical_idxList M n hn804)
+
 end SelConClosedCoeffDecomp

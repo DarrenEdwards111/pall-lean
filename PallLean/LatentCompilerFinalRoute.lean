@@ -321,9 +321,8 @@ theorem P_neq_NP_latent_from_p_construction_data_via_core (h : PeqNP) (n : ℕ)
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
 
-  have hCoeff : selCon_kronecker_coeff_law_logscale M n hn804 :=
-    selCon_kronecker_coeff_law_logscale_from_canonical_idxList M n hn804
-  have npData : selCon_kronecker_data_logscale M n hn804 := hCoeff
+  have npData : selCon_kronecker_data_logscale M n hn804 :=
+    selCon_kronecker_data_logscale_from_canonical_idxList M n hn804
 
   have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
     latent_compiled_tableau_bound_logscale_from_construction_data M n hnM hn804 pData
@@ -359,9 +358,8 @@ theorem P_neq_NP_latent_from_compiled_tableau_bound (h : PeqNP) (n : ℕ)
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
 
   -- Canonical NP data
-  have hCoeff : selCon_kronecker_coeff_law_logscale M n hn804 :=
-    selCon_kronecker_coeff_law_logscale_from_canonical_idxList M n hn804
-  have npData : selCon_kronecker_data_logscale M n hn804 := hCoeff
+  have npData : selCon_kronecker_data_logscale M n hn804 :=
+    selCon_kronecker_data_logscale_from_canonical_idxList M n hn804
 
   -- P-data package from the direct compiled-polynomial bound + explicit Section-9 sides
   have pCore : latent_profile_assembly_logscale M n hnM hn804 :=
