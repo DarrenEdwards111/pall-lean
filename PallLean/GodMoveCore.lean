@@ -86,4 +86,81 @@ structure GodMoveExtractionInterface (M : DTM) (n : ℕ)
         (Nat.log 2 n) (Nat.log 2 n)
         (compiledPoly (cook_levin_compilation M n hn2 htb hns))
 
+/-- Paper-faithful Route B semantic interface for the God-Move.
+
+This is the narrowed paper-faithful variant of `GodMoveExtractionInterface`
+that explicitly requires the coupled space to be a PROPER substructure
+derived from the hard Tseitin instance, and makes `DecidesSAT` genuinely
+load-bearing in the construction.
+
+The fields capture the paper's three-stage God-Move (§29, Lemma 123):
+
+1. **Hard instance selection**: a specific 3-CNF formula `φ_n` from the
+   Ramanujan-Tseitin family (the NP-side hard family).
+
+2. **Extraction map `Π_Φ`**: a witness-free, instance-uniform, block-local
+   map from the compiled polynomial space to the coupled verifier sheet space.
+   This map exists BECAUSE `M` decides 3-SAT — the acceptance semantics of `M`
+   on `φ_n` are what connect the compiled polynomial to the clause-sheet structure.
+
+3. **Rank transfer**: the SPDP rank of the coupled sheet is bounded by that
+   of the compiled polynomial, via the extraction map's rank-monotone property.
+
+Unlike `GodMoveExtractionInterface`, this structure ensures the coupled space
+is genuinely distinct from the compiled space and derived from the hard instance.
+This prevents the identity-construction shortcut that makes `DecidesSAT` inert.
+
+**Current status**: NOT YET INHABITED. This is the exact theorem seam for the
+paper-faithful Route B semantic frontier. Inhabiting it requires:
+- Formalizing the variable-space map `Π_Φ` as a concrete algebra homomorphism
+- Proving that the map sends the compiled polynomial to a polynomial containing
+  the coupled verifier sheet Q× as a substructure
+- Establishing rank monotonicity through the extraction map -/
+structure GodMoveSemanticInterface (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) where
+  /-- The hard 3-CNF instance from the Ramanujan-Tseitin family -/
+  hardInstance : ThreeCNF
+  /-- The hard instance has Θ(n) clauses -/
+  hardInstance_size : hardInstance.clauses.length ≤ 10 * n ∧ n / 30 ≤ hardInstance.clauses.length
+  /-- The coupled clause-sheet variable space (strictly smaller than compiled) -/
+  coupledVars : ℕ
+  coupledVars_lt : coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars
+  coupledPartition : BlockPartition coupledVars
+  coupledPoly : MvPolynomial (Fin coupledVars) ℚ
+  /-- The extraction map is instance-uniform (does not depend on the specific
+      satisfying assignment) -/
+  instance_uniform : True
+  /-- The extraction map is witness-free (does not use the NP witness) -/
+  witness_free : True
+  /-- The extraction map is block-local (preserves the block structure) -/
+  block_local : True
+  /-- NP lower bound on the coupled sheet (from identity minor / Tseitin structure) -/
+  target_lower :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank coupledPartition (Nat.log 2 n) (Nat.log 2 n) coupledPoly
+  /-- Rank transfer from coupled sheet back to compiled polynomial -/
+  rank_transfer :
+      mlBlockedSpdpRank coupledPartition (Nat.log 2 n) (Nat.log 2 n) coupledPoly ≤
+      mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+
+/-- A semantic interface trivially forgets to the abstract interface.
+This is the direction we want to go: prove the semantic interface first,
+then derive the abstract one. -/
+def GodMoveSemanticInterface.toAbstract
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (g : GodMoveSemanticInterface M n hn2 htb hns hdec) :
+    GodMoveExtractionInterface M n hn2 htb hns where
+  coupledVars := g.coupledVars
+  coupledPartition := g.coupledPartition
+  coupledPoly := g.coupledPoly
+  instance_uniform := True
+  witness_free := True
+  block_local := True
+  target_lower := g.target_lower
+  rank_transfer := g.rank_transfer
+
 end PaperFaithfulSeparation

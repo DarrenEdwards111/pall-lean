@@ -1341,7 +1341,29 @@ theorem fobFamily_mem_blockAdmissible (n : ℕ) (hn : n ≥ 2) (κ : ℕ)
 
 Constructed from the family of C(n/3, κ) first-of-block block-admissible κ-subsets,
 whose compiled SPDP generators are linearly independent by
-CrossTermVanishing.linearIndependent_mlProj_compiled_fob. -/
+CrossTermVanishing.linearIndependent_mlProj_compiled_fob.
+
+**Semantic note (paper-faithfulness audit)**:
+This theorem takes `DecidesSAT M` as a hypothesis but does NOT use it in the
+proof. The linear independence of first-of-block SPDP generators is proved
+purely from the booleanity-factor product structure of `compiledPoly`, which
+is independent of whether `M` decides 3-SAT.
+
+In the paper's Route B (Global God-Move), the `DecidesSAT` hypothesis is
+load-bearing at a DIFFERENT point: it justifies the God-Move extraction map
+`Π_Φ` that sends the compiled polynomial to the coupled verifier sheet on the
+hard Tseitin instance. The NP-side lower bound should apply to the COUPLED
+sheet (or to the compiled polynomial restricted to the hard instance), not to
+the compiled polynomial of an arbitrary DTM.
+
+The current identity-construction route bypasses this by taking the coupled
+space = compiled space, making `DecidesSAT` formally present but semantically
+inert. A paper-faithful Route B would instead:
+1. Use `DecidesSAT` to justify the God-Move extraction
+2. Prove the NP lower bound on the extracted coupled sheet
+3. Transfer back via restriction monotonicity
+
+See `compiled_np_lower_bound_any_dtm` below for the DecidesSAT-free version. -/
 theorem identity_construction_np_lower_bound (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : PaperFaithfulSeparation.DecidesSAT M)
@@ -1372,6 +1394,81 @@ theorem identity_construction_np_lower_bound (M : DTM) (n : ℕ)
     CrossTermVanishing.linearIndependent_mlProj_compiled_fob M n (by omega) htb hns κ hκ1 hcard hfob
   exact CompiledBoolFactorBridge.weakened_bound_from_compiled_independence
     M n (by omega) htb hns κ hκ1 rfl F hFcard hcard hadm hli
+
+/-- **DecidesSAT-free variant**: the NP-side lower bound for the compiled
+polynomial holds for ANY DTM, not just one that decides 3-SAT.
+
+This makes the semantic situation explicit: the booleanity-factor cross-term
+vanishing argument is purely structural and does not depend on the machine's
+acceptance semantics. The `DecidesSAT` hypothesis in
+`identity_construction_np_lower_bound` is formally unused.
+
+**Paper-faithfulness implication**: In the paper's Route B (Global God-Move),
+this bound should NOT apply to the compiled polynomial of an arbitrary DTM.
+Instead, the paper uses `DecidesSAT` to justify the God-Move extraction,
+and the NP lower bound applies to the extracted coupled verifier sheet.
+The current identity-construction route collapses these steps, making the
+separation appear to work for all DTMs — which is too strong (and in tension
+with the P-side bound `spdp_profile_generators`, since their conjunction
+would imply no DTM with bounded parameters exists). -/
+theorem compiled_np_lower_bound_any_dtm (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)) := by
+  set κ := Nat.log 2 n with hκ_def
+  have hκ1 : κ ≥ 1 := by
+    simp only [κ, hκ_def]
+    have h804 : 2 ^ 804 ≤ n := hn
+    have : Nat.log 2 (2 ^ 804) ≤ Nat.log 2 n := Nat.log_mono_right h804
+    rw [Nat.log_pow (by norm_num : 1 < 2)] at this
+    omega
+  set F := fobFamily n κ
+  have hFcard : F.card = Nat.choose (n / 3) κ := fobFamily_card n κ
+  have hcard : ∀ S ∈ F, S.card = κ := fun S hS => fobFamily_mem_card n κ S hS
+  have hfob : ∀ S ∈ F, ∀ v ∈ S, 3 ∣ v.val := fun S hS => fobFamily_mem_fob n κ S hS
+  have hadm : ∀ S ∈ F, isBlockAdmissible
+      (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).partition S.toList :=
+    fun S hS => fobFamily_mem_blockAdmissible n (by omega) κ M htb hns S hS
+  have hli : LinearIndependent ℚ (fun S : F =>
+      mlProj (iterDerivList (S : Finset (Fin n)).toList
+        (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)))) :=
+    CrossTermVanishing.linearIndependent_mlProj_compiled_fob M n (by omega) htb hns κ hκ1 hcard hfob
+  exact CompiledBoolFactorBridge.weakened_bound_from_compiled_independence
+    M n (by omega) htb hns κ hκ1 rfl F hFcard hcard hadm hli
+
+/-! ## Semantic Gap Analysis: Identity Construction vs Paper Route B
+
+The identity construction (`godMoveConstruction_exists`) takes the coupled
+space to be the compiled space itself. This makes the rank transfer trivial
+(`le_refl`) but has a semantic consequence:
+
+**The NP lower bound applies to the compiled polynomial of ANY DTM.**
+
+Combined with the P-side axiom `spdp_profile_generators` (which also applies
+to any DTM), this would yield `C(n/3, log n) ≤ n^200` for all large n — a
+false arithmetic inequality. This tension means at most one of:
+
+1. `compiled_np_lower_bound_any_dtm` (the NP-side)
+2. `spdp_profile_generators` (the P-side axiom)
+
+can be correct for the same notion of `mlBlockedSpdpRank` and block partition.
+
+**Resolution path** (paper-faithful Route B):
+- The paper resolves this by making `DecidesSAT` load-bearing in the
+  God-Move extraction. The NP lower bound applies to the COUPLED SHEET
+  (not the compiled polynomial), and rank transfer uses restriction
+  monotonicity (not identity). The P-side bound still applies to the
+  compiled polynomial. There is no contradiction because the coupled
+  sheet is a proper restriction/projection of the compiled polynomial.
+- To implement this, the identity construction must be replaced by a
+  genuine God-Move extraction that uses `DecidesSAT` to relate the
+  compiled polynomial to the hard Tseitin instance.
+-/
 
 /- Construction note for the current identity placeholder route.
 

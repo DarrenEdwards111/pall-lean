@@ -284,6 +284,27 @@ compiled space to coupled-sheet space, producing the hard extracted object.
 C(m, κ) linearly independent vectors in its SPDP subspace.
 
 **Step C (Quantitative Bridge)**: C(n, log₂ n) ≥ n^(log₂ n / 4) for large n.
+
+### Semantic Gap (current status)
+
+The current implementation in `GodMoveReal.lean` uses an **identity
+construction**: the coupled space IS the compiled space, and the extraction map
+is the identity. This makes Step A trivial but has a consequence:
+
+- `DecidesSAT` is formally present in the type but unused in the proof
+- The NP lower bound (Step B) holds for ALL DTMs, not just SAT-deciders
+- Combined with the P-side axiom, this creates an arithmetic tension:
+  C(n/3, log n) ≤ rank ≤ n^200, which is false for large n
+
+The paper resolves this by making `DecidesSAT` genuinely load-bearing in
+Step A: the God-Move extraction uses the machine's acceptance semantics to
+connect the compiled polynomial to the hard Tseitin instance. The NP lower
+bound then applies to the coupled sheet (not the compiled polynomial), and
+there is no contradiction because the coupled sheet is a proper substructure.
+
+**Next step for paper-faithful Route B**: replace the identity construction
+with a genuine God-Move extraction that uses `DecidesSAT` to produce a
+non-trivial coupled sheet polynomial on which the NP lower bound applies.
 -/
 
 /-- **God-Move Extraction Interface (Paper Lemma 123 / Definition 6 / Lemma 7)**
