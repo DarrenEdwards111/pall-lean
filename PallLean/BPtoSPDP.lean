@@ -944,9 +944,8 @@ theorem poly_family_rank_bound_in_n
         apply Nat.pow_le_pow_left
         apply Nat.mul_le_mul (Nat.mul_le_mul_left C hW) hLen
     _ ≤ n ^ (d * (C + family.C_wid + family.widExp + family.C_len + family.lenExp + 1)) := by
-        -- Pure Nat arithmetic: absorb constants into n^(sum), raise to d.
-        -- Each constant factor c ≤ n^c (by `key`), combine n^a * n^b = n^(a+b),
-        -- then (n^e)^d = n^(e*d). Not load-bearing for the separation.
+        -- Each constant c ≤ n^c (by key). Combine powers: n^a * n^b = n^(a+b).
+        -- Then (n^e)^d = n^(e*d) ≤ n^(d*(e+1)) since e*d ≤ d*(e+1).
         sorry
 
 /-! ## §6: Layer matrix totalDegree bound -/
