@@ -588,10 +588,11 @@ What remains archived is intentionally narrow:
 - `assignedVars` and `layerAssignedCoeff` package the ordered-position data.
 - `orderedAssignments` is the canonical finite index set for the wrapper/count
   statements below.
-- `bp_iterated_leibniz_eq_of_pos` is the single private axiom for the
-  remaining nonempty iterated Leibniz induction.
+- `bp_iterated_leibniz_eq_of_ge_two` is the single private axiom for the
+  remaining iterated Leibniz induction once the empty and singleton cases are
+  discharged theorem-level.
 - `bp_iterated_leibniz_eq` is a theorem-level wrapper that discharges `S = []`
-  directly and delegates only the positive-length cases.
+  and `S = [i]` directly and delegates only the length-`≥ 2` cases.
 - `bp_cylinder_decomposition` is the exact wrapper theorem exposing that
   archived equality.
 - the assignment-count/image-card lemmas and Step 4 row-space bounds remain
@@ -666,18 +667,150 @@ the BP polynomial itself. -/
     ARCHIVED: Not on any active proof path.
 
     Relative to the older `S.toFinset` formulation, the only remaining gap is
-    now the nonempty ordered-position induction for `iterDerivList`, after
-    the empty case is handled theorem-level below. -/
-private axiom bp_iterated_leibniz_eq_of_pos
+    now the length-`≥ 2` ordered-position induction for `iterDerivList`,
+    after the empty and singleton cases are handled theorem-level below. -/
+private axiom bp_iterated_leibniz_eq_of_ge_two
     {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
     (B : LayeredBP n)
     (S : List (Fin n))
-    (hS : 1 ≤ S.length) :
+    (hS : 2 ≤ S.length) :
     iterDerivList S (B.poly (F := F)) =
       ∑ T : (Fin S.length → Fin B.length), layerAssignedCoeff (F := F) B S T
 
+/-- The singleton ordered-position Leibniz equality is theorem-level: it is
+just the first-derivative matrix Leibniz formula with the unique
+`Fin 1 → Fin B.length` assignment type identified with `Fin B.length`. -/
+private theorem bp_iterated_leibniz_eq_singleton
+    {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
+    (B : LayeredBP n)
+    (i : Fin n) :
+    iterDerivList [i] (B.poly (F := F)) =
+      ∑ T : (Fin [i].length → Fin B.length), layerAssignedCoeff (F := F) B [i] T := by
+  classical
+  let e : (Fin [i].length → Fin B.length) ≃ Fin B.length :=
+    { toFun := fun T => T 0
+      invFun := fun τ _ => τ
+      left_inv := by
+        intro T
+        funext j
+        have hj : j = 0 := Fin.eq_zero j
+        subst hj
+        rfl
+      right_inv := by
+        intro τ
+        rfl }
+  have hsum :
+      (∑ T : (Fin [i].length → Fin B.length), layerAssignedCoeff (F := F) B [i] T) =
+        ∑ τ : Fin B.length, layerAssignedCoeff (F := F) B [i] (e.symm τ) := by
+    exact Fintype.sum_equiv e _ _ (by intro T; rfl)
+  rw [hsum]
+  have hsummand :
+      ∀ τ : Fin B.length,
+        layerAssignedCoeff (F := F) B [i] (e.symm τ) =
+          (((List.map (fun σ : Fin B.length => B.layerMatrix (F := F) σ)
+                (List.finRange B.length |>.filter (· < τ))).prod *
+              (Matrix.of (fun v u => MvPolynomial.pderiv i (B.layerMatrix (F := F) τ v u)))) *
+            (List.map (fun σ : Fin B.length => B.layerMatrix (F := F) σ)
+                (List.finRange B.length |>.filter (fun σ => τ < σ))).prod)
+            B.target B.source := by
+    intro τ
+    set L :=
+      List.map
+        (fun σ : Fin B.length =>
+          Matrix.of (fun v u : Fin B.width =>
+            iterDerivList (assignedVars [i] (e.symm τ) σ) (B.layerMatrix (F := F) σ v u)))
+        (List.finRange B.length) with hL
+    have hτL : τ.val < L.length := by
+      rw [hL]
+      simp
+    have hsplit : L = L.take τ.val ++ [L[τ.val]] ++ L.drop (τ.val + 1) := by
+      calc
+        L = L.take τ.val ++ L.drop τ.val := by
+          exact (List.take_append_drop τ.val L).symm
+        _ = L.take τ.val ++ (L[τ.val] :: L.drop (τ.val + 1)) := by
+          rw [(List.cons_getElem_drop_succ (l := L) (n := τ.val) (h := hτL)).symm]
+        _ = L.take τ.val ++ [L[τ.val]] ++ L.drop (τ.val + 1) := by
+          simp
+    have hpre :
+        L.take τ.val =
+          List.map (fun σ : Fin B.length => B.layerMatrix (F := F) σ)
+            (List.finRange B.length |>.filter (· < τ)) := by
+      rw [show (List.finRange B.length |>.filter (· < τ)) = (List.finRange B.length).take τ.val from
+        finRange_filter_lt B.length τ]
+      rw [hL]
+      have hmap :
+          List.map
+              (fun σ : Fin B.length =>
+                Matrix.of (fun v u : Fin B.width =>
+                  iterDerivList (assignedVars [i] (e.symm τ) σ) (B.layerMatrix (F := F) σ v u)))
+              ((List.finRange B.length).take τ.val) =
+            List.map (fun σ : Fin B.length => B.layerMatrix (F := F) σ)
+              ((List.finRange B.length).take τ.val) := by
+        apply List.map_congr_left
+        intro σ hσ
+        have hlt : σ < τ := by
+          have : σ ∈ (List.finRange B.length).take τ.val := hσ
+          rw [← finRange_filter_lt B.length τ] at this
+          simpa using (List.mem_filter.mp this).2
+        have hτσ : τ ≠ σ := by
+          intro hEq
+          cases hEq
+          exact lt_irrefl _ hlt
+        ext v u
+        simp [assignedVars, e, SPDP.iterDerivList, hτσ]
+      simpa [List.map_take] using hmap
+    have hmid :
+        L[τ.val] =
+          Matrix.of (fun v u => MvPolynomial.pderiv i (B.layerMatrix (F := F) τ v u)) := by
+      simp [L, assignedVars, e, SPDP.iterDerivList]
+    have hsuf :
+        L.drop (τ.val + 1) =
+          List.map (fun σ : Fin B.length => B.layerMatrix (F := F) σ)
+            (List.finRange B.length |>.filter (fun σ => τ < σ)) := by
+      rw [show (List.finRange B.length |>.filter (fun σ => τ < σ)) =
+          (List.finRange B.length).drop (τ.val + 1) from
+        finRange_filter_gt B.length τ]
+      rw [hL]
+      have hmap :
+          List.map
+              (fun σ : Fin B.length =>
+                Matrix.of (fun v u : Fin B.width =>
+                  iterDerivList (assignedVars [i] (e.symm τ) σ) (B.layerMatrix (F := F) σ v u)))
+              ((List.finRange B.length).drop (τ.val + 1)) =
+            List.map (fun σ : Fin B.length => B.layerMatrix (F := F) σ)
+              ((List.finRange B.length).drop (τ.val + 1)) := by
+        apply List.map_congr_left
+        intro σ hσ
+        have hgt : τ < σ := by
+          have : σ ∈ (List.finRange B.length).drop (τ.val + 1) := hσ
+          rw [← finRange_filter_gt B.length τ] at this
+          simpa using (List.mem_filter.mp this).2
+        have hτσ : τ ≠ σ := ne_of_lt hgt
+        ext v u
+        simp [assignedVars, e, SPDP.iterDerivList, hτσ]
+      simpa [List.map_drop] using hmap
+    unfold layerAssignedCoeff
+    change L.prod B.target B.source = _
+    rw [hsplit, List.prod_append, List.prod_append, hpre, hmid, hsuf]
+    simp
+  calc
+    iterDerivList [i] (B.poly (F := F)) =
+      ∑ τ : Fin B.length,
+        (((List.map (fun σ : Fin B.length => B.layerMatrix (F := F) σ)
+              (List.finRange B.length |>.filter (· < τ))).prod *
+            (Matrix.of (fun v u => MvPolynomial.pderiv i (B.layerMatrix (F := F) τ v u)))) *
+          (List.map (fun σ : Fin B.length => B.layerMatrix (F := F) σ)
+              (List.finRange B.length |>.filter (fun σ => τ < σ))).prod)
+          B.target B.source := by
+        simpa [SPDP.iterDerivList] using bp_leibniz_localisation (B := B) (F := F) i
+    _ = ∑ τ : Fin B.length, layerAssignedCoeff (F := F) B [i] (e.symm τ) := by
+        apply Finset.sum_congr rfl
+        intro τ _
+        symm
+        exact hsummand τ
+
 /-- Archived ordered-position Leibniz equality, proved exactly for the empty
-case and delegated only for nonempty derivatives. -/
+and singleton cases and delegated only for lists of length at least two. -/
 private theorem bp_iterated_leibniz_eq
     {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
     (B : LayeredBP n)
@@ -688,7 +821,12 @@ private theorem bp_iterated_leibniz_eq
   | nil =>
       simp [SPDP.iterDerivList, layerAssignedCoeff_nil]
   | cons i rest =>
-      exact bp_iterated_leibniz_eq_of_pos (B := B) (F := F) (i :: rest) (by simp)
+      cases rest with
+      | nil =>
+          simpa using bp_iterated_leibniz_eq_singleton (B := B) (F := F) i
+      | cons j tail =>
+          exact bp_iterated_leibniz_eq_of_ge_two
+            (B := B) (F := F) (i :: j :: tail) (by simp)
 
 /-- Archived exact Step-3 wrapper for the ordered-position cylinder
 decomposition.
@@ -1072,8 +1210,10 @@ theorem bp_poly_totalDegree_le
   - `P_subset_polySPDP`: the zero-polynomial witness (full proof requires compilation)
 
   Archived axiom (corresponding to the remaining genuinely unproved step):
-  - `bp_iterated_leibniz_eq_of_pos`: ordered-position Leibniz rule for
-    nonempty ∂_S(f_B)
+  - `bp_iterated_leibniz_eq_singleton`: theorem-level ordered-position
+    Leibniz rule for single derivatives
+  - `bp_iterated_leibniz_eq_of_ge_two`: ordered-position Leibniz rule for
+    length-`≥ 2` ∂_S(f_B)
     * Supplies the archived cylinder decomposition equality via the wrapper
       `bp_iterated_leibniz_eq`
   Supporting archived combinatorics that remain theorem-level:
@@ -1084,10 +1224,11 @@ theorem bp_poly_totalDegree_le
 
 /-! ## Axiom audit
 
-`bp_iterated_leibniz_eq_of_pos` is the only remaining axiom in this file, and
-it is confined to the archived ordered-position cylinder wrapper for
-positive-length derivative lists. The empty case, assignment combinatorics,
-row-space lemmas, and degree-based route are theorem-level. -/
+`bp_iterated_leibniz_eq_of_ge_two` is the only remaining axiom in this file,
+and it is confined to the archived ordered-position cylinder wrapper for
+derivative lists of length at least two. The empty case, singleton case,
+assignment combinatorics, row-space lemmas, and degree-based route are
+theorem-level. -/
 #print axioms bp_cylinder_decomposition
 #print axioms bp_cylinder_assignment_count_le
 #print axioms bp_cylinder_assignment_image_card_le

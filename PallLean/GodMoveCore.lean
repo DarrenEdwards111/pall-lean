@@ -334,15 +334,16 @@ structure ExtractionRestrictionStage (M : DTM) (n : ℕ)
   restrictedVars_lt : restrictedVars < (cook_levin_compilation M n hn2 htb hns).numVars
   /-- The restricted polynomial lives in a smaller variable space. -/
   restrictedPoly : MvPolynomial (Fin restrictedVars) ℚ
+  /-- The restricted-space partition used by the extraction proof. -/
+  restrictedPartition : BlockPartition restrictedVars
   /-- The restriction is a coordinate specialization (not an arbitrary map).
       Formally: there exists an assignment σ to the fixed variables such that
       restrictedPoly = P_{M,n}[v := σ(v)]. -/
   is_specialization : Prop
   /-- Rank monotonicity: specializing variables does not increase SPDP rank.
       This is a consequence of the restriction monotonicity lemma (Lemma 141). -/
-  restriction_rank_mono :
-    ∀ (B' : BlockPartition restrictedVars) (κ ℓ : ℕ),
-      mlBlockedSpdpRank B' κ ℓ restrictedPoly ≤
+  restriction_rank_mono : ∀ (κ ℓ : ℕ),
+      mlBlockedSpdpRank restrictedPartition κ ℓ restrictedPoly ≤
         mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition κ ℓ
           (compiledPoly (cook_levin_compilation M n hn2 htb hns))
 
@@ -352,6 +353,8 @@ After restriction, projects to the clause-sheet coordinates, dropping
 the remaining non-clause-sheet variables. This step does NOT use `DecidesSAT`;
 it is a purely structural coordinate-selection operation. -/
 structure ExtractionProjectionStage (restrictedVars coupledVars : ℕ) where
+  /-- The specific restricted polynomial fed into the projection stage. -/
+  inputPoly : MvPolynomial (Fin restrictedVars) ℚ
   /-- The projected polynomial lives in the coupled variable space. -/
   projectedPoly : MvPolynomial (Fin coupledVars) ℚ
   /-- The projection selects clause-sheet coordinates. -/
@@ -360,10 +363,9 @@ structure ExtractionProjectionStage (restrictedVars coupledVars : ℕ) where
       increase SPDP rank. -/
   projection_rank_mono :
     ∀ (B_restricted : BlockPartition restrictedVars)
-      (B_coupled : BlockPartition coupledVars) (κ ℓ : ℕ)
-      (restricted : MvPolynomial (Fin restrictedVars) ℚ),
+      (B_coupled : BlockPartition coupledVars) (κ ℓ : ℕ),
       mlBlockedSpdpRank B_coupled κ ℓ projectedPoly ≤
-        mlBlockedSpdpRank B_restricted κ ℓ restricted
+        mlBlockedSpdpRank B_restricted κ ℓ inputPoly
 
 /-- The full three-stage extraction map decomposition.
 
@@ -378,6 +380,8 @@ structure ExtractionMapDecomposition (M : DTM) (n : ℕ)
   restriction : ExtractionRestrictionStage M n hn2 htb hns hdec
   /-- Stage 2: Projection to coupled space. -/
   projection : ExtractionProjectionStage restriction.restrictedVars obs.coupledVars
+  /-- The projection stage is fed the restricted polynomial from stage 1. -/
+  projection_input_matches : projection.inputPoly = restriction.restrictedPoly
   /-- The projected polynomial matches the coupled polynomial.
       This is the structural identification: after restriction and projection,
       we get exactly the coupled verifier sheet polynomial. -/
@@ -393,20 +397,27 @@ theorem extraction_from_decomposition
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {hdec : DecidesSAT M}
     {obs : GodMoveRouteB_Obligations M n hn2 htb hns}
-    (decomp : ExtractionMapDecomposition M n hn2 htb hns hdec obs)
-    (restrictedPartition : BlockPartition decomp.restriction.restrictedVars) :
+    (decomp : ExtractionMapDecomposition M n hn2 htb hns hdec obs) :
     GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec obs := by
   unfold GodMoveRouteB_ExtractionObligation
   -- The coupled poly = projected poly (by output identification)
   rw [← decomp.output_identification]
   -- Chain: rank(projected) ≤ rank(restricted) ≤ rank(compiled)
-  exact le_trans
-    (decomp.projection.projection_rank_mono
-      restrictedPartition obs.coupledPartition
-      (Nat.log 2 n) (Nat.log 2 n)
-      decomp.restriction.restrictedPoly)
-    (decomp.restriction.restriction_rank_mono
-      restrictedPartition (Nat.log 2 n) (Nat.log 2 n))
+  calc
+    mlBlockedSpdpRank obs.coupledPartition (Nat.log 2 n) (Nat.log 2 n)
+        decomp.projection.projectedPoly
+      ≤ mlBlockedSpdpRank decomp.restriction.restrictedPartition
+          (Nat.log 2 n) (Nat.log 2 n) decomp.projection.inputPoly :=
+        decomp.projection.projection_rank_mono
+          decomp.restriction.restrictedPartition obs.coupledPartition
+          (Nat.log 2 n) (Nat.log 2 n)
+    _ = mlBlockedSpdpRank decomp.restriction.restrictedPartition
+          (Nat.log 2 n) (Nat.log 2 n) decomp.restriction.restrictedPoly := by
+        rw [decomp.projection_input_matches]
+    _ ≤ mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)) :=
+        decomp.restriction.restriction_rank_mono (Nat.log 2 n) (Nat.log 2 n)
 
 /-! ## Narrowed Extraction Frontier
 
@@ -447,13 +458,11 @@ structure GodMoveSemanticGap (M : DTM) (n : ℕ)
   hardInstance : ThreeCNF
   /-- The hard instance is satisfiable (load-bearing: DecidesSAT guarantees M accepts it). -/
   hardInstance_satisfiable : hardInstance.IsSatisfiable
+  /-- The hard instance fits into the input budget `n`, so `DecidesSAT` applies. -/
+  hardInstance_fits_input : hardInstance.encodingSize ≤ n
   /-- The hard instance has Θ(n) clauses. -/
   hardInstance_size : hardInstance.clauses.length ≤ 10 * n ∧
     n / 30 ≤ hardInstance.clauses.length
-  /-- The accepting input for M on the hard instance (exists by DecidesSAT + satisfiability). -/
-  acceptingInput : Fin n → Bool
-  /-- M accepts this input. -/
-  accepts : accepts M n (by omega : n ≥ 1) acceptingInput
   /-- The restriction assignment to administrative/tableau variables,
       derived from M's accepting computation on this input. -/
   restrictionAssignment : Fin (cook_levin_compilation M n hn2 htb hns).numVars → ℚ
@@ -467,6 +476,29 @@ structure GodMoveSemanticGap (M : DTM) (n : ℕ)
   coupledPartition : BlockPartition coupledVars
   /-- The coupled polynomial (the verifier sheet Q×_Φ). -/
   coupledPoly : MvPolynomial (Fin coupledVars) ℚ
+
+/-- The SAT-correctness hypothesis already supplies the accepting input; the
+semantic gap only needs to prove the hard instance fits the input budget. -/
+theorem GodMoveSemanticGap.accepting_input
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
+    ∃ input : Fin n → Bool, accepts M n (by omega : n ≥ 1) input := by
+  exact DecidesSAT.accepting_input_of_satisfiable hdec
+    gap.hardInstance n (by omega : n ≥ 1)
+    gap.hardInstance_fits_input gap.hardInstance_satisfiable
+
+/-- Once the hard instance fits the input budget, the accepting tableau is also
+available without enlarging the semantic obligation record. -/
+theorem GodMoveSemanticGap.accepting_tableau
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
+    ∃ input : Fin n → Bool, ∃ t : ℕ, t ≤ timeSteps M n ∧
+      (run M n t (initialConfig M n (by omega : n ≥ 1) input)).state = acceptState M := by
+  rcases gap.accepting_input with ⟨input, hacc⟩
+  rcases accepting_input_gives_tableau M n (by omega : n ≥ 1) input hacc with ⟨t, ht, hstate⟩
+  exact ⟨input, t, ht, hstate⟩
 
 /-- The semantic gap inhabits the full three obligations (given the NP lower
 bound on the coupled polynomial as a separate input).
@@ -526,6 +558,25 @@ structure GodMoveRouteB_WeakenedObligations (M : DTM) (n : ℕ)
   target_lower_weakened :
     n ^ (Nat.log 2 n / 4) ≤
       mlBlockedSpdpRank coupledPartition (Nat.log 2 n) (Nat.log 2 n) coupledPoly
+
+/-- The same semantic gap also feeds the weakened Route B surface used by the
+sound characteristic-polynomial path. This keeps the DecidesSAT-dependent
+extraction obligation identical while matching the weaker NP lower bound that
+the current sound encoding actually proves. -/
+def routeB_weakened_from_semantic_gap
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (gap : GodMoveSemanticGap M n hn2 htb hns hdec)
+    (np_lower : n ^ (Nat.log 2 n / 4) ≤
+      mlBlockedSpdpRank gap.coupledPartition (Nat.log 2 n) (Nat.log 2 n) gap.coupledPoly) :
+    GodMoveRouteB_WeakenedObligations M n hn2 htb hns where
+  hardInstance := gap.hardInstance
+  hardInstance_size := gap.hardInstance_size
+  coupledVars := gap.coupledVars
+  coupledVars_lt := gap.coupledVars_lt
+  coupledPartition := gap.coupledPartition
+  coupledPoly := gap.coupledPoly
+  target_lower_weakened := np_lower
 
 /-- Weakened extraction obligation. -/
 def GodMoveRouteB_WeakenedExtractionObligation (M : DTM) (n : ℕ)

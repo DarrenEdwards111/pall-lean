@@ -395,10 +395,21 @@ structure ConcretePSideData (M : DTM) (n : ℕ) (hn : n ≥ 2)
       THIS is where DecidesSAT is load-bearing. -/
   rank_through_extraction :
     ∀ (d : ConcreteNPSideData n),
-      SPDP.spdpRank d.partition.S.card d.partition.S.card d.poly ≤
+      concreteCharPolyRank d ≤
         mlBlockedSpdpRank (cook_levin_compilation M n hn htb hns).partition
           (Nat.log 2 n) (Nat.log 2 n)
           (compiledPoly (cook_levin_compilation M n hn htb hns))
+
+/-- The paper-faithful P-side data bounds the concrete characteristic rank by
+    `n^200` after passing through the compiled polynomial. -/
+theorem ConcretePSideData.concrete_rank_bound
+    {M : DTM} {n : ℕ} {hn : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (pData : ConcretePSideData M n hn htb hns hdec)
+    (d : ConcreteNPSideData n) :
+    concreteCharPolyRank d ≤ n ^ 200 :=
+  le_trans (pData.rank_through_extraction d) pData.compiled_rank_bound
 
 /-- **Theorem 139 concrete discharge theorem.**
 
@@ -421,8 +432,7 @@ theorem theorem_139_from_concrete (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (d : ConcreteNPSideData n)
     (bridge : ConcreteCharPolyRankBridge n d) :
     charPolyRank n ≤ n ^ 200 :=
-  le_trans bridge.shell_le_concrete
-    (le_trans (pData.rank_through_extraction d) pData.compiled_rank_bound)
+  le_trans bridge.shell_le_concrete (pData.concrete_rank_bound d)
 
 /-- **Paper-faithful separation via concrete definitions.**
 
@@ -449,7 +459,7 @@ theorem separation_from_concrete_data
   -- NP-side: n^(log n/4) ≤ spdpRank(charPoly)
   have hNP := concreteNPSideData_spdp_lower n d
   -- P-side: spdpRank(charPoly) ≤ rank(compiled) ≤ n^200
-  have hP := le_trans (pData.rank_through_extraction d) pData.compiled_rank_bound
+  have hP := pData.concrete_rank_bound d
   -- Chain: n^(log n/4) ≤ n^200
   have hchain : n ^ (Nat.log 2 n / 4) ≤ n ^ 200 := le_trans hNP hP
   -- Standard exponent contradiction at n = 2^804
@@ -472,7 +482,7 @@ theorem separation_from_concrete_data
 1. `compiled_rank_bound`: the compiled polynomial of any P-time DTM has
    polynomial SPDP rank. This is the BP compilation theorem (paper §2.1).
 
-2. `rank_through_extraction`: the SPDP rank of the characteristic polynomial
+2. `rank_through_extraction`: the concrete characteristic rank
    is bounded by the compiled polynomial's rank, via the God-Move extraction.
    THIS is the paper-faithful semantic frontier. It requires:
    - Formalizing the God-Move extraction map Π_Φ

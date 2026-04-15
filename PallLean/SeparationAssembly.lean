@@ -72,6 +72,8 @@
     theorem-level finrank bound for the free-variable-only target subspace
   - Separation29.theorem_140_from_concrete: theorem wrapper reducing the shell
     NP-side bound to the concrete sound-encoding package
+  - Separation29.ConcretePSideData.concrete_rank_bound: theorem wrapper
+    reducing the paper-faithful P-side package to a concrete `n^200` bound
   - axiom1_from_components: theorem wrapper reducing the shell NP-side bound
     to the concrete data package exposed in `Separation29.lean`
   - axiom2_from_components: theorem wrapper reducing the shell P-side bound
@@ -128,7 +130,9 @@ theorem axiom1_from_components (n : ℕ) (_hn : n ≥ 2)
     5. Combined: charPolyRank n ≤ rk(χ_{φ_n}) ≤ n^c ≤ n^200
 
     The shell/concrete identification is carried by
-    `ConcreteCharPolyRankBridge`, rather than a raw inequality argument. -/
+    `ConcreteCharPolyRankBridge`, together with the concrete upper-bound
+    wrapper `ConcretePSideData.concrete_rank_bound`, rather than a repeated
+    raw inequality chain. -/
 theorem axiom2_from_components
     (M : TuringMachine.DTM)
     (n : ℕ) (hn : n ≥ 2)
@@ -228,9 +232,9 @@ this branch; for the live obligation tracker, see `PROOF-OBLIGATIONS.md` and
 - `god_move_identity_minor_axiom` itself is theorem-level, but the current
   identity-style NP lower bound still applies to all DTMs
 - New weakened Route B theorem seams
-  (`GodMoveCore.extraction_from_decomposition`,
-  `GodMoveCore.routeB_weakened_np_from_pdMatrix`,
-  `GodMoveCore.separation_from_weakened_routeB`) are axiom-free and package
+  (`PaperFaithfulSeparation.extraction_from_decomposition`,
+  `PaperFaithfulSeparation.routeB_weakened_np_from_pdMatrix`,
+  `PaperFaithfulSeparation.separation_from_weakened_routeB`) are axiom-free and package
   the remaining paper-faithful obligations as hypotheses instead
 
 **Semantic gap (current unconditional Route B shell)**:

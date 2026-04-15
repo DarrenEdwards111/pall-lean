@@ -801,6 +801,17 @@ noncomputable def freeRestrictedSpdpGenerator {n : ℕ}
     freeRestrictedSpdpGeneratorIdx ρ κ ℓ → MvPolynomial (Fin n) ℚ :=
   fun i => spdpMonomialGenerator (F := ℚ) κ ℓ (applyRestriction ρ p) i.1
 
+/-- On free-variable generator indices, the honest target generator is exactly
+the restriction of the corresponding source generator. -/
+theorem freeRestrictedSpdpGenerator_eq_applyRestriction_sourceGenerator {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    (i : freeRestrictedSpdpGeneratorIdx ρ κ ℓ) :
+    freeRestrictedSpdpGenerator ρ κ ℓ p i =
+      applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i.1) := by
+  rcases i with ⟨i, hSfree, hdfree⟩
+  simpa [freeRestrictedSpdpGenerator] using
+    (applyRestriction_spdpMonomialGenerator_of_free ρ p κ ℓ i hSfree hdfree).symm
+
 /-- The existential definition of `freeRestrictedSpdpSubspace` is exactly the
 span of its typed free-variable-only generator family. -/
 theorem freeRestrictedSpdpSubspace_eq_span_generators {n : ℕ}
@@ -851,6 +862,44 @@ theorem freeRestrictedSpdpSubspace_finrank_eq_coeffMatrix_rank {n : ℕ}
       simpa [monomials] using
         freeRestrictedSpdpGenerator_support_subset_freeMonomialsLE ρ κ ℓ p i)
 
+/-- Over the ambient bounded monomial universe, keeping only the free-generator
+rows in the restricted-source matrix is exactly a row submatrix. -/
+theorem coeffMatrix_restrictedSource_freeRows_eq_submatrix_rows {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    let monomials := monomialsLE n (ℓ + p.totalDegree)
+    CoeffMatrixHelpers.coeffMatrix monomials
+      (fun i : freeRestrictedSpdpGeneratorIdx ρ κ ℓ =>
+        applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i.1)) =
+      (CoeffMatrixHelpers.coeffMatrix monomials
+        (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))).submatrix
+          (fun i : freeRestrictedSpdpGeneratorIdx ρ κ ℓ => i.1)
+          (Equiv.refl _) := by
+  classical
+  let monomials := monomialsLE n (ℓ + p.totalDegree)
+  simpa [monomials] using
+    (CoeffMatrixHelpers.coeffMatrix_submatrix_rows (σ := Fin n) (F := ℚ) monomials
+      (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))
+      (fun i : freeRestrictedSpdpGeneratorIdx ρ κ ℓ => i.1))
+
+/-- After restricting to the free-generator rows, keeping only the
+free-support columns gives the honest free-target coefficient matrix. -/
+theorem coeffMatrix_freeRestrictedSpdpGenerator_eq_submatrix_cols_restrictedSource_freeRows {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    let monomials := monomialsLE n (ℓ + p.totalDegree)
+    let freeMonomials := freeMonomialsLE ρ (ℓ + p.totalDegree)
+    CoeffMatrixHelpers.coeffMatrix freeMonomials (freeRestrictedSpdpGenerator ρ κ ℓ p) =
+      (CoeffMatrixHelpers.coeffMatrix monomials
+        (fun i : freeRestrictedSpdpGeneratorIdx ρ κ ℓ =>
+          applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i.1))).submatrix
+            (Equiv.refl _)
+            (fun m : freeMonomials => ⟨m.1, (Finset.mem_filter.mp m.2).1⟩) := by
+  classical
+  ext i m
+  simp [CoeffMatrixHelpers.coeffMatrix,
+    freeRestrictedSpdpGenerator_eq_applyRestriction_sourceGenerator]
+
 /-- Over the free-variable-only bounded monomial universe, the honest target SPDP
 generator matrix is the row/column submatrix of the restricted-source generator
 matrix obtained by keeping only free generator rows and free-support columns. -/
@@ -865,10 +914,151 @@ theorem coeffMatrix_freeRestrictedSpdpGenerator_eq_submatrix_restrictedSource {n
           (fun i : freeRestrictedSpdpGeneratorIdx ρ κ ℓ => i.1)
           (fun m : freeMonomials => ⟨m.1, (Finset.mem_filter.mp m.2).1⟩) := by
   classical
+  let monomials := monomialsLE n (ℓ + p.totalDegree)
+  let freeMonomials := freeMonomialsLE ρ (ℓ + p.totalDegree)
+  let rowMap : freeRestrictedSpdpGeneratorIdx ρ κ ℓ →
+      ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ }) :=
+    fun i => i.1
+  let colMap : freeMonomials → monomials :=
+    fun m => ⟨m.1, (Finset.mem_filter.mp m.2).1⟩
+  calc
+    CoeffMatrixHelpers.coeffMatrix freeMonomials (freeRestrictedSpdpGenerator ρ κ ℓ p)
+      = (CoeffMatrixHelpers.coeffMatrix monomials
+          (fun i : freeRestrictedSpdpGeneratorIdx ρ κ ℓ =>
+            applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i.1))).submatrix
+              (Equiv.refl _) colMap := by
+                simpa [monomials, freeMonomials, colMap] using
+                  coeffMatrix_freeRestrictedSpdpGenerator_eq_submatrix_cols_restrictedSource_freeRows
+                    ρ κ ℓ p
+    _ = ((CoeffMatrixHelpers.coeffMatrix monomials
+            (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))).submatrix
+              rowMap (Equiv.refl _)).submatrix (Equiv.refl _) colMap := by
+                ext i m
+                simp [CoeffMatrixHelpers.coeffMatrix, rowMap]
+    _ = (CoeffMatrixHelpers.coeffMatrix monomials
+          (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))).submatrix
+            rowMap colMap := by
+              simp [Matrix.submatrix_submatrix, rowMap, colMap]
+
+/-- Over the free-variable-only bounded monomial universe, the paper-faithful
+target generator matrix is the row/column submatrix of the honest restricted
+target SPDP matrix obtained by keeping only free generator rows and
+free-support columns. -/
+theorem coeffMatrix_freeRestrictedSpdpGenerator_eq_submatrix_restrictedTarget {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    let monomials := monomialsLE n (ℓ + p.totalDegree)
+    let freeMonomials := freeMonomialsLE ρ (ℓ + p.totalDegree)
+    CoeffMatrixHelpers.coeffMatrix freeMonomials (freeRestrictedSpdpGenerator ρ κ ℓ p) =
+      (spdpMonomialCoeffMatrix (F := ℚ) κ ℓ (applyRestriction ρ p) monomials).submatrix
+        (fun i : freeRestrictedSpdpGeneratorIdx ρ κ ℓ => i.1)
+        (fun m : freeMonomials => ⟨m.1, (Finset.mem_filter.mp m.2).1⟩) := by
+  classical
   ext i m
   rcases i with ⟨i, hSfree, hdfree⟩
-  simp [freeRestrictedSpdpGenerator, CoeffMatrixHelpers.coeffMatrix,
-    applyRestriction_spdpMonomialGenerator_of_free ρ p κ ℓ i hSfree hdfree]
+  simp [freeRestrictedSpdpGenerator, spdpMonomialCoeffMatrix, CoeffMatrixHelpers.coeffMatrix]
+
+/-- The paper-faithful target coefficient matrix is rank-bounded by the honest
+restricted-target SPDP rank after deleting non-free rows and columns. -/
+theorem freeRestrictedSpdpCoeffMatrix_rank_le_restrictedSpdpRank {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    let freeMonomials := freeMonomialsLE ρ (ℓ + p.totalDegree)
+    (CoeffMatrixHelpers.coeffMatrix freeMonomials
+      (freeRestrictedSpdpGenerator ρ κ ℓ p)).rank ≤
+        spdpRank κ ℓ (applyRestriction ρ p) := by
+  classical
+  let monomials := monomialsLE n (ℓ + p.totalDegree)
+  let freeMonomials := freeMonomialsLE ρ (ℓ + p.totalDegree)
+  let rowMap : freeRestrictedSpdpGeneratorIdx ρ κ ℓ →
+      ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ }) :=
+    fun i => i.1
+  let colMap : freeMonomials → monomials :=
+    fun m => ⟨m.1, (Finset.mem_filter.mp m.2).1⟩
+  change (CoeffMatrixHelpers.coeffMatrix freeMonomials
+    (freeRestrictedSpdpGenerator ρ κ ℓ p)).rank ≤ spdpRank κ ℓ (applyRestriction ρ p)
+  have hmatrix :
+      CoeffMatrixHelpers.coeffMatrix freeMonomials (freeRestrictedSpdpGenerator ρ κ ℓ p) =
+        (spdpMonomialCoeffMatrix (F := ℚ) κ ℓ (applyRestriction ρ p) monomials).submatrix
+          rowMap colMap := by
+    have h :=
+      coeffMatrix_freeRestrictedSpdpGenerator_eq_submatrix_restrictedTarget ρ κ ℓ p
+    simpa [monomials, freeMonomials, rowMap, colMap] using h
+  calc
+    (CoeffMatrixHelpers.coeffMatrix freeMonomials
+      (freeRestrictedSpdpGenerator ρ κ ℓ p)).rank
+      = ((spdpMonomialCoeffMatrix (F := ℚ) κ ℓ (applyRestriction ρ p) monomials).submatrix
+          rowMap colMap).rank := by
+            exact congrArg Matrix.rank hmatrix
+    _ ≤ (spdpMonomialCoeffMatrix (F := ℚ) κ ℓ (applyRestriction ρ p) monomials).rank := by
+          simpa [spdpMonomialCoeffMatrix] using
+            CoeffMatrixHelpers.rank_coeffMatrix_submatrix_le
+              (σ := Fin n) (F := ℚ) monomials
+              (spdpMonomialGenerator (F := ℚ) κ ℓ (applyRestriction ρ p))
+              rowMap colMap
+    _ = spdpRank κ ℓ (applyRestriction ρ p) := by
+          symm
+          exact restrictedSpdpRank_eq_matrix_rank_monomialsLE ρ κ ℓ p
+
+/-- Keeping only the free-generator rows in the restricted-source coefficient
+matrix cannot increase rank. -/
+theorem restrictedSourceFreeRowsCoeffMatrix_rank_le_restrictedSource {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    let monomials := monomialsLE n (ℓ + p.totalDegree)
+    (CoeffMatrixHelpers.coeffMatrix monomials
+      (fun i : freeRestrictedSpdpGeneratorIdx ρ κ ℓ =>
+        applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i.1))).rank ≤
+      (CoeffMatrixHelpers.coeffMatrix monomials
+        (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))).rank := by
+  let monomials := monomialsLE n (ℓ + p.totalDegree)
+  simpa [monomials] using
+    (CoeffMatrixHelpers.rank_coeffMatrix_subfamily_le (σ := Fin n) (F := ℚ) monomials
+      (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))
+      (fun i : freeRestrictedSpdpGeneratorIdx ρ κ ℓ => i.1))
+
+/-- After restricting to free-generator rows, keeping only the free-support
+columns still cannot increase rank. -/
+theorem freeRestrictedSpdpCoeffMatrix_rank_le_restrictedSourceFreeRows {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    let monomials := monomialsLE n (ℓ + p.totalDegree)
+    let freeMonomials := freeMonomialsLE ρ (ℓ + p.totalDegree)
+    (CoeffMatrixHelpers.coeffMatrix freeMonomials
+      (freeRestrictedSpdpGenerator ρ κ ℓ p)).rank ≤
+      (CoeffMatrixHelpers.coeffMatrix monomials
+        (fun i : freeRestrictedSpdpGeneratorIdx ρ κ ℓ =>
+          applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i.1))).rank := by
+  classical
+  let monomials := monomialsLE n (ℓ + p.totalDegree)
+  let freeMonomials := freeMonomialsLE ρ (ℓ + p.totalDegree)
+  let colMap : freeMonomials → monomials :=
+    fun m => ⟨m.1, (Finset.mem_filter.mp m.2).1⟩
+  have hmatrix :
+      CoeffMatrixHelpers.coeffMatrix freeMonomials (freeRestrictedSpdpGenerator ρ κ ℓ p) =
+        (CoeffMatrixHelpers.coeffMatrix monomials
+          (fun i : freeRestrictedSpdpGeneratorIdx ρ κ ℓ =>
+            applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i.1))).submatrix
+              (Equiv.refl _) colMap := by
+    simpa [monomials, freeMonomials, colMap] using
+      coeffMatrix_freeRestrictedSpdpGenerator_eq_submatrix_cols_restrictedSource_freeRows
+        ρ κ ℓ p
+  calc
+    (CoeffMatrixHelpers.coeffMatrix freeMonomials
+      (freeRestrictedSpdpGenerator ρ κ ℓ p)).rank
+      = ((CoeffMatrixHelpers.coeffMatrix monomials
+          (fun i : freeRestrictedSpdpGeneratorIdx ρ κ ℓ =>
+            applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i.1))).submatrix
+              (Equiv.refl _) colMap).rank := by
+                exact congrArg Matrix.rank hmatrix
+    _ ≤ (CoeffMatrixHelpers.coeffMatrix monomials
+          (fun i : freeRestrictedSpdpGeneratorIdx ρ κ ℓ =>
+            applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i.1))).rank := by
+              exact CoeffMatrixHelpers.rank_coeffMatrix_submatrix_cols_le
+                (σ := Fin n) (F := ℚ) monomials
+                (fun i : freeRestrictedSpdpGeneratorIdx ρ κ ℓ =>
+                  applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i.1))
+                colMap
 
 /-- The honest target coefficient matrix over free rows/columns is rank-bounded by the
 restricted-source coefficient matrix on the ambient bounded monomial universe. -/
@@ -884,36 +1074,22 @@ theorem freeRestrictedSpdpCoeffMatrix_rank_le_restrictedSource {n : ℕ}
   classical
   let monomials := monomialsLE n (ℓ + p.totalDegree)
   let freeMonomials := freeMonomialsLE ρ (ℓ + p.totalDegree)
-  let rowMap : freeRestrictedSpdpGeneratorIdx ρ κ ℓ →
-      ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ }) :=
-    fun i => i.1
-  let colMap : freeMonomials → monomials :=
-    fun m => ⟨m.1, (Finset.mem_filter.mp m.2).1⟩
   change (CoeffMatrixHelpers.coeffMatrix freeMonomials
     (freeRestrictedSpdpGenerator ρ κ ℓ p)).rank ≤
       (CoeffMatrixHelpers.coeffMatrix monomials
         (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))).rank
-  have hmatrix :
-      CoeffMatrixHelpers.coeffMatrix freeMonomials (freeRestrictedSpdpGenerator ρ κ ℓ p) =
-        (CoeffMatrixHelpers.coeffMatrix monomials
-          (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))).submatrix
-            rowMap colMap := by
-    have h :=
-      coeffMatrix_freeRestrictedSpdpGenerator_eq_submatrix_restrictedSource ρ κ ℓ p
-    simpa [monomials, freeMonomials, rowMap, colMap] using h
   calc
     (CoeffMatrixHelpers.coeffMatrix freeMonomials
       (freeRestrictedSpdpGenerator ρ κ ℓ p)).rank
-      = ((CoeffMatrixHelpers.coeffMatrix monomials
-          (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))).submatrix
-            rowMap colMap).rank := by
-              exact congrArg Matrix.rank hmatrix
+      ≤ (CoeffMatrixHelpers.coeffMatrix monomials
+          (fun i : freeRestrictedSpdpGeneratorIdx ρ κ ℓ =>
+            applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i.1))).rank := by
+              simpa [monomials, freeMonomials] using
+                freeRestrictedSpdpCoeffMatrix_rank_le_restrictedSourceFreeRows ρ κ ℓ p
     _ ≤ (CoeffMatrixHelpers.coeffMatrix monomials
           (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))).rank := by
-            exact CoeffMatrixHelpers.rank_coeffMatrix_submatrix_le
-              (σ := Fin n) (F := ℚ) monomials
-              (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))
-              rowMap colMap
+            simpa [monomials] using
+              restrictedSourceFreeRowsCoeffMatrix_rank_le_restrictedSource ρ κ ℓ p
 
 /-- Every free-variable-only target generator of `applyRestriction ρ p` comes
 from restricting a source SPDP generator of `p`. -/
