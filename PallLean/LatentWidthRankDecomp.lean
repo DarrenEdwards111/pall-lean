@@ -4143,6 +4143,19 @@ theorem theorem216_profile_data_logscale_from_core (M : DTM) (n : ℕ)
     theorem216_profile_data_logscale M n hn hn804 := by
   exact ⟨hCount, hWithin, hCore⟩
 
+/-- Canonical P-data package from the core assembly bound.
+The Section 9 profile-count and within-profile obligations are already proved
+internally, so callers on the active route need only supply the core assembly
+theorem. -/
+theorem theorem216_profile_data_logscale_from_core_proved (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hCore : latent_profile_assembly_logscale M n hn hn804) :
+    theorem216_profile_data_logscale M n hn hn804 := by
+  exact theorem216_profile_data_logscale_from_core M n hn hn804
+    (theorem9_profile_count_obligation_proved M n hn804)
+    (theorem9_within_profile_dim_obligation_proved M n hn804)
+    hCore
+
 /-- Build P-data package from the finer finite span-card witness. -/
 theorem theorem216_profile_data_logscale_from_span_card_bound (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)

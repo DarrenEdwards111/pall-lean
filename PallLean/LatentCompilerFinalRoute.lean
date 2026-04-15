@@ -147,10 +147,7 @@ theorem P_neq_NP_latent_from_finer_decomp_and_compiled_tableau_bound
   have pCore : latent_profile_assembly_logscale M n hnM hn804 :=
     (latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hnM hn804).2 hCompiled
   have pAsm : theorem216_p_obligation M n hnM hn804 :=
-    theorem216_profile_data_logscale_from_core M n hnM hn804
-      (theorem9_profile_count_obligation_proved M n hn804)
-      (theorem9_within_profile_dim_obligation_proved M n hn804)
-      pCore
+    theorem216_profile_data_logscale_from_core_proved M n hnM hn804 pCore
   exact P_neq_NP_latent_from_finer_decomp h n hn idxList hnd hlen hfinj pAsm
 
 /-- Item 2 narrowing: same final contradiction route, but caller only supplies
@@ -329,10 +326,7 @@ theorem P_neq_NP_latent_from_p_construction_data_via_core (h : PeqNP) (n : ℕ)
   have pCore : latent_profile_assembly_logscale M n hnM hn804 :=
     (latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hnM hn804).2 hCompiled
   have pAsm : theorem216_p_obligation M n hnM hn804 :=
-    theorem216_profile_data_logscale_from_core M n hnM hn804
-      (theorem9_profile_count_obligation_proved M n hn804)
-      (theorem9_within_profile_dim_obligation_proved M n hn804)
-      pCore
+    theorem216_profile_data_logscale_from_core_proved M n hnM hn804 pCore
 
   exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
 
@@ -365,10 +359,7 @@ theorem P_neq_NP_latent_from_compiled_tableau_bound (h : PeqNP) (n : ℕ)
   have pCore : latent_profile_assembly_logscale M n hnM hn804 :=
     (latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hnM hn804).2 hCompiled
   have pAsm : theorem216_p_obligation M n hnM hn804 :=
-    theorem216_profile_data_logscale_from_core M n hnM hn804
-      (theorem9_profile_count_obligation_proved M n hn804)
-      (theorem9_within_profile_dim_obligation_proved M n hn804)
-      pCore
+    theorem216_profile_data_logscale_from_core_proved M n hnM hn804 pCore
 
   exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
 
