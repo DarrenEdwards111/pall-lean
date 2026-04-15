@@ -798,6 +798,51 @@ theorem CharacteristicPdRowDerivWitness.row_eq_assignmentExpanded_base_head
     · simp [hav, IterDerivHelpers.iterDerivList_neg]
   · simp [hsat]
 
+/-- If the base-derivative list for a canonical clause witness starts with a
+concrete base variable, the explicit satisfying-assignment expansion admits the
+corresponding one-step normalization on assignment monomials. This is the
+clause-level recursive form of the remaining semantic frontier. -/
+theorem BaseIndexCharacteristicPdClauseWitness.row_eq_assignmentExpanded_head
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
+    (w : BaseIndexCharacteristicPdClauseWitness F fam n hn pack
+      (canonicalPackedClauseSubset F fam n hn pack i))
+    (v : Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula))
+    (rest : List (Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula)))
+    (hhead : w.baseDerivs = v :: rest) :
+    IdentityMinorReal.gadgetProd
+      (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+      (canonicalPackedClauseSubset F fam n hn pack i) =
+      ∑ a ∈ Fintype.piFinset (fun _ : Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula) =>
+          ({false, true} : Finset Bool)),
+        (by
+          classical
+          exact if Tseitin.formulaSatisfied (fam.encoding n hn).formula a then
+            if a v then
+              SPDP.iterDerivList
+                (rest.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
+                (Tseitin.assignmentMonomialErase F (fam.encoding n hn).formula a v)
+            else
+              -SPDP.iterDerivList
+                (rest.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
+                (Tseitin.assignmentMonomialErase F (fam.encoding n hn).formula a v)
+          else 0) := by
+  have hrow :=
+    let w' := (((w.toRow F).toBaseVariable F).toCharacteristic F)
+    have hhead' :
+        w'.derivs =
+          Tseitin.baseVarEmbedding (fam.encoding n hn).formula v ::
+            rest.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula) := by
+      simp [w', BaseVariableCharacteristicPdRowDerivWitness.toCharacteristic,
+        BaseIndexCharacteristicPdRowDerivWitness.toBaseVariable,
+        BaseIndexCharacteristicPdClauseWitness.toRow, hhead]
+    CharacteristicPdRowDerivWitness.row_eq_assignmentExpanded_base_head F
+      w' v (rest.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula)) hhead'
+  simpa [hhead] using hrow
+
 /-- Repackage the clause-subset form of the frontier as the row-index form used
 downstream. -/
 noncomputable def characteristic_pd_baseIndex_row_derivs_from_pack
