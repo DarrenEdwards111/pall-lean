@@ -17,11 +17,13 @@ This file assembles the complete separation from PaperFaithfulSeparation.lean.
    `profile_symmetric_power_factorization`.
 
 2. `GodMoveSemanticExtractionTheorem` — the narrowed §29 semantic frontier in
-   `GodMoveCore.lean`, stating that some exact
-   `GodMoveExtractionTarget` carries the staged semantic witness
+   `GodMoveCore.lean`, exporting existence of a chosen extraction target
+   carrying the staged semantic witness
    `GodMoveExtractionSemanticObligation`. The extracted rank inequality is not
    the frontier itself; it is derived afterward from that staged witness plus
    separate generic rank-wrapper packaging. The
+   exact-target names `GodMoveSemanticTargetData` /
+   `GodMoveSemanticTargetTheorem` are only packaging around that same witness.
    exported compatibility wrapper `god_move_extraction_interface` in
    `PaperFaithfulSeparation.lean` is only a forgetful view of this seam, and the
    old quantitative lower bound `god_move_extraction_lemma` is derived from that
@@ -52,7 +54,8 @@ theorem p_side_verified (M : DTM) (n : ℕ) (hn : n ≥ 2)
     Semantic frontier count: TWO genuine
       1. p_side_rank_bound_for_cook_levin (profile compression, §9)
       2. GodMoveSemanticExtractionTheorem
-         (exported via the compatibility wrapper `god_move_extraction_interface`)
+         (with exact-target packaging exported via
+         `god_move_extraction_interface`)
     Sorry count: ZERO
 
     The quantitative theorem `god_move_extraction_lemma` is now derived from the
@@ -62,8 +65,8 @@ theorem p_side_verified (M : DTM) (n : ℕ) (hn : n ≥ 2)
     Both frontiers use the product polynomial ∏(1-Cᵢ) from the paper (§17.1).
     The product form is essential:
     - P-side: profile compression gives polynomial rank (Theorem 92)
-    - NP-side: the witness-free God-Move extraction targets the coupled sheet
-      in its own variable space, then transfers rank back to the compiled space
+    - NP-side: the witness-free God-Move extraction first fixes exact target
+      data and staged semantics, then transfers rank back to the compiled space
 -/
 theorem P_ne_NP_final : ∀ (h : PeqNP_Paper), False :=
   P_ne_NP_unconditional

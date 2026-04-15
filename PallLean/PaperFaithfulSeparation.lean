@@ -315,11 +315,15 @@ theorem movement from `GodMoveCore.lean`:
 
 This older interface is retained only as a separation-facing wrapper while the
 typed construction in `GodMoveReal.lean` is still exported through the legacy
-source/target package. In the core API, the same compatibility move is now
-available directly from the narrowed semantic seam via
-`GodMoveSemanticGap.toSemanticInterface` and
-`GodMoveSemanticGap.toAbstractInterface`. Callers should therefore regard this
-wrapper as a convenience export, not as the primary frontier itself. -/
+source/target package. In the core API, `GodMoveSemanticTargetTheorem` and the
+`GodMoveSemanticGap.*` packaging lemmas are only compatibility views around
+that same staged semantic witness on the chosen target. They help recover the
+older interfaces, but they do not add a new semantic theorem frontier beyond
+`GodMoveSemanticExtractionTheorem`, `ExtractionMapRankBridge`, and
+`extraction_from_semantics`.
+
+Callers should therefore regard this wrapper as a convenience export, not as
+the primary frontier itself. -/
 noncomputable def god_move_extraction_interface (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : DecidesSAT M)
@@ -518,14 +522,14 @@ combination of assumptions, not from a genuine paper-faithful contradiction.
    God-Move extraction to the coupled sheet, where the NP bound applies
    to the extracted polynomial, not the compiled polynomial directly).
 
-See `GodMoveSemanticExtractionTheorem`, `ExtractionMapRankBridge`,
-`extraction_from_semantics`, `GodMoveSemanticGap.extraction`,
-`GodMoveSemanticGap.toSemanticInterface`, and
-`GodMoveSemanticGap.toAbstractInterface` in `GodMoveCore.lean` for the
-narrowed paper-faithful Route B seam: `DecidesSAT` is meant to be load-bearing
-only in the staged restriction/projection witness on the chosen extraction
-target, while the older separation-facing interface is recovered afterwards as
-a compatibility view through separate rank-wrapper lemmas. -/
+See `GodMoveSemanticExtractionTheorem`, `GodMoveExtractionSemanticObligation`,
+`ExtractionMapRankBridge`, `extraction_from_semantics`, and the
+`GodMoveSemanticGap.*` compatibility packaging in `GodMoveCore.lean` for the
+narrowed paper-faithful Route B seam. The only real semantic-core theorem
+movement there is the staged restriction/projection witness on the chosen
+extraction target. The NP lower bound, rank-wrapper transport, and recovered
+separation-facing interfaces are downstream packaging, not additional semantic
+milestones. -/
 theorem P_ne_NP_unconditional : ∀ (_ : PeqNP_Paper), False := by
   intro hPeqNP
   -- Fix n = 2^804 (contradiction scale)

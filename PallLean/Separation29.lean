@@ -91,9 +91,11 @@ above and below by the two axioms.
     It is an auxiliary abstraction layer. The exact Route B theorem split now
     lives in `GodMoveCore.lean`: the NP package is fed by
     `RouteBNPFromPdMatrix.pd_to_blocked_transfer`, the genuinely semantic core
-    is the existence of an exact `GodMoveExtractionTarget` carrying
-    `GodMoveExtractionSemanticObligation`, packaged as
-    `GodMoveSemanticExtractionTheorem`
+    is the chosen-target staged witness
+    `GodMoveExtractionSemanticObligation`, exported existentially as
+    `GodMoveSemanticExtractionTheorem`. The names
+    `GodMoveSemanticTargetData` / `GodMoveSemanticTargetTheorem` are only the
+    exact target-indexed packaging layer around that same witness
     (`GodMoveSemanticTheorem` is only the older hard-instance-indexed alias).
     The bare transfer inequality on a chosen coupled-sheet target is only
     `GodMoveRouteB_ExtractionTransfer`
@@ -501,11 +503,13 @@ theorem separation_from_concrete_data
    is bounded by the compiled polynomial's rank, via the God-Move extraction.
    In this file that is the local shell-facing wrapper, but the exact
    paper-faithful semantic frontier is the target-only staged semantic witness
-   recorded in `GodMoveCore.lean`: an exact `GodMoveExtractionTarget`
-   together with `GodMoveExtractionSemanticObligation`, exported
-   existentially as `GodMoveSemanticExtractionTheorem`
+   recorded in `GodMoveCore.lean`: a chosen extraction target carrying
+   `GodMoveExtractionSemanticObligation`, exported existentially as
+   `GodMoveSemanticExtractionTheorem`
    (equivalently the compatibility alias `GodMoveSemanticTheorem` once
-   hard-instance data is fixed). The bare transfer proposition
+   hard-instance data is fixed). The exact-target names
+   `GodMoveSemanticTargetData` / `GodMoveSemanticTargetTheorem` are only the
+   packaging layer for that same witness. The bare transfer proposition
    `GodMoveRouteB_ExtractionTransfer`
    (`GodMoveRouteB_ExtractionObligation`) on the chosen target comes only
    after supplying the separate generic rank-wrapper packaging over that

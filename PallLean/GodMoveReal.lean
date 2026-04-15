@@ -461,27 +461,49 @@ theorem GodMoveConstruction.staged_semantic_exact_target
 /-- Exact semantic-gap target for a staged construction.
 
 This is the faithful handoff from the local construction layer to the core
-Route B semantic gap: the remaining obligation is to provide the paper's
-`ExtractionMapDecomposition` on the exact induced extraction target. -/
+Route B semantic gap: after semantic-target packaging in `GodMoveCore.lean`,
+the remaining obligation is only the staged semantic witness on the exact
+induced extraction target. The generic rank-monotonicity layer sits separately
+as mathematical packaging over that witness. -/
 def godMoveConstructionSemanticGapTarget
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     (hdec : PaperFaithfulSeparation.DecidesSAT M)
     (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
   ∃ hvars_lt : c.coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars,
-    GodMoveExtractionDecompositionObligation M n hn2 htb hns hdec
+    GodMoveExtractionSemanticObligation M n hn2 htb hns hdec
       (c.toExtractionTarget hvars_lt)
 
+/-- A stronger decomposition witness automatically fills the smaller semantic
+gap target for the same staged construction. -/
+theorem godMoveConstructionSemanticGapTarget_of_decomposition
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : PaperFaithfulSeparation.DecidesSAT M}
+    {c : GodMoveConstruction M n hn2 htb hns}
+    (hgap :
+      ∃ hvars_lt : c.coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars,
+        GodMoveExtractionDecompositionObligation M n hn2 htb hns hdec
+          (c.toExtractionTarget hvars_lt)) :
+    godMoveConstructionSemanticGapTarget hdec c := by
+  rcases hgap with ⟨hvars_lt, hdecomp⟩
+  exact ⟨hvars_lt, semantics_from_decomposition_obligation hdecomp⟩
+
 /-- Any witness of the exact semantic-gap target gives the extracted rank
-transfer on the same exact target. -/
+transfer on the same exact target once the separate rank wrappers are supplied
+for that staged semantic witness. -/
 theorem godMoveConstructionSemanticGapTarget_extraction
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {hdec : PaperFaithfulSeparation.DecidesSAT M}
     {c : GodMoveConstruction M n hn2 htb hns}
-    (hgap : godMoveConstructionSemanticGapTarget hdec c) :
+    (hgap : godMoveConstructionSemanticGapTarget hdec c)
+    (bridge :
+      ∀ (hvars_lt : c.coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars)
+        (sem : ExtractionMapSemantics M n hn2 htb hns hdec (c.toExtractionTarget hvars_lt)),
+          ExtractionMapRankBridge sem) :
     ∃ hvars_lt : c.coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars,
       GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec (c.toExtractionTarget hvars_lt) := by
-  rcases hgap with ⟨hvars_lt, hdecomp⟩
-  exact ⟨hvars_lt, extraction_from_decomposition_obligation hdecomp⟩
+  rcases hgap with ⟨hvars_lt, hsem⟩
+  rcases hsem with ⟨sem⟩
+  exact ⟨hvars_lt, extraction_from_semantics sem (bridge hvars_lt sem)⟩
 
 /-- A paper-facing semantic target for a candidate God-Move construction.
 

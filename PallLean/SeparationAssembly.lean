@@ -257,11 +257,12 @@ this branch; for the live obligation tracker, see `PROOF-OBLIGATIONS.md` and
 - The paper-faithful Route B surfaces live in `GodMoveCore.lean`, but the
   exact semantic frontier there is narrower than the full packaging layer:
   `GodMoveHardInstanceData` records the hard-instance applicability data,
-  while the actual theorem seam is now just
-  `GodMoveSemanticExtractionTheorem`: existence of an exact
-  `GodMoveExtractionTarget` carrying the staged semantic witness
-  `GodMoveExtractionSemanticObligation`. `GodMoveSemanticTheorem` is only a
-  compatibility alias re-indexing that same seam by hard-instance data.
+  while the actual theorem seam is still the chosen-target staged witness
+  exported existentially as `GodMoveSemanticExtractionTheorem`.
+  `GodMoveSemanticTargetData` / `GodMoveSemanticTargetTheorem` are only the
+  exact target-indexed packaging layer around that same witness, and
+  `GodMoveSemanticTheorem` is only a compatibility alias re-indexing the seam
+  by hard-instance data.
   `GodMoveRouteB_ExtractionTransfer`
   (`GodMoveRouteB_ExtractionObligation`, likewise its weakened alias) is only
   the bare extraction transfer inequality for a chosen coupled-sheet target,
@@ -291,10 +292,10 @@ records that contradiction explicitly.
 
 **Paper-faithful resolution seam**: The paper makes `DecidesSAT` load-bearing
 in the God-Move extraction (Step A), not in the NP lower bound. On this branch
-the exact theorem-only semantic seam in `GodMoveCore.lean` is
-`GodMoveSemanticExtractionTheorem`: existence of an exact
-`GodMoveExtractionTarget` carrying the staged witness
-`GodMoveExtractionSemanticObligation`.
+the exact theorem-only semantic seam in `GodMoveCore.lean` is the chosen-target
+staged witness exported existentially as `GodMoveSemanticExtractionTheorem`.
+`GodMoveSemanticTargetData` + `GodMoveSemanticTargetTheorem` are only the exact
+target-indexed packaging layer for that same seam.
 `GodMoveRouteB_ExtractionTransfer`
 (`GodMoveRouteB_ExtractionObligation`, or the weakened alias now literally
 re-indexing that same proposition on the same target via
@@ -312,9 +313,10 @@ supplies the NP-side bound, while `separation_from_weakened_routeB` still
 takes the extraction transfer as a separate DecidesSAT-dependent hypothesis.
 The exact remaining paper-faithful gaps there are:
 - `RouteBNPFromPdMatrix.pd_to_blocked_transfer`
-- `GodMoveSemanticExtractionTheorem`, equivalently existence of an exact
-  `GodMoveExtractionTarget` carrying
-  `GodMoveExtractionSemanticObligation`
+- `GodMoveSemanticExtractionTheorem`, equivalently existence of a chosen
+  extraction target carrying `GodMoveExtractionSemanticObligation`
+  (`GodMoveSemanticTargetData` / `GodMoveSemanticTargetTheorem` are the exact
+  target-indexed packaging layer for that same witness)
   (`GodMoveSemanticTheorem` is only the hard-instance-indexed compatibility
   alias; the stronger decomposition package
   `GodMoveExtractionDecompositionObligation` is a sufficient refinement)
@@ -398,14 +400,17 @@ auxiliary shell symbol `charPolyRank`, and both now use the shared
 `ConcreteCharPolyRankBridge` seam exported by `Separation29.lean`.
 
 The live paper-faithful Route B frontier remains the theorem-only extraction
-seam in `GodMoveCore.lean`: an exact `GodMoveExtractionTarget` together with
-the staged witness `GodMoveExtractionSemanticObligation`, exported
-existentially as `GodMoveSemanticExtractionTheorem`
+seam in `GodMoveCore.lean`: a chosen extraction target together with the staged
+semantic witness `GodMoveExtractionSemanticObligation`, exported existentially
+as `GodMoveSemanticExtractionTheorem`
 (or via the compatibility alias `GodMoveSemanticTheorem` once hard-instance
-data is fixed). `GodMoveRouteB_ExtractionTransfer`
-(`GodMoveRouteB_ExtractionObligation`, with the weakened alias sharing the same
-target) is only the bare inequality on that chosen extraction target, obtained
-after adding the separate generic rank-wrapper layer.
+data is fixed). `GodMoveSemanticTargetData` / `GodMoveSemanticTargetTheorem`
+are only the exact target-indexed packaging layer around that same witness.
+`GodMoveRouteB_ExtractionTransfer`
+(`GodMoveRouteB_ExtractionObligation`, with the weakened alias now explicitly
+re-indexing back to that same strong extraction obligation on the preserved
+target) is only the bare inequality on that chosen extraction target,
+obtained after adding the separate generic rank-wrapper layer.
 `GodMoveSemanticGap` is only the convenience bundle around hard-instance data
 plus that witness, and the weakened separation shell still tracks the compiled
 side separately via `separation_from_weakened_routeB_via_decomposition` and the

@@ -175,38 +175,45 @@ theorem.
 The semantic delta under direct audit here is the live
 `PallLean/GodMoveCore.lean` edit. The shared tree also has concurrent tracked
 changes in nearby Route B files, but this note is only classifying the current
-`GodMoveCore` movement. That movement is a **semantic interface refactor**, not
-a shell-cleanup pass.
+`GodMoveCore` movement. The newest visible movement is mainly
+**semantic-target packaging around an already-isolated core**, not a fresh
+theorem discharge.
 
 What the live edit now makes explicit:
 
 - `GodMoveSemanticExtractionTheorem`: the exact remaining paper-faithful
-  extraction theorem, returning the chosen
-  `GodMoveExtractionTarget` together with the staged semantic witness for it
+  extraction theorem, returning target data together with the staged semantic
+  witness for that target
 - `GodMoveExtractionSemanticObligation`: the target-local staged
   restriction/projection/output witness; once a target has been chosen, this is
   the smallest semantic-core theorem boundary
+- `GodMoveSemanticTargetData` and `GodMoveSemanticTargetTheorem`: the new
+  target-indexed packaging layer around that same extraction witness
 - `GodMoveExtractionDecompositionObligation`: a stronger wrapper around that
   same target-local semantic witness which also carries the decomposition
   packaging used to recover extraction transfer
 - `GodMoveSemanticTheorem`: only the hard-instance-indexed compatibility alias,
   not the real progress unit
 
-Real semantic-core progress to count:
+Semantic-core unit that should still count:
 
 - the actual DecidesSAT-dependent seam is now stated on the extraction witness
   itself, not blurred together with hard-instance applicability bookkeeping,
   decomposition packaging, or downstream contradiction wrappers
-- the factoring batch split the theorem surface one step further:
-  `GodMoveExtractionSemanticObligation` now carries the semantic core, while
-  rank monotonicity and extraction-transfer recovery sit outside that theorem
-- the tracker can now distinguish the real missing semantic object
-  from the compatibility shell that reindexes or consumes it
-- this is genuine semantic-core inventory progress because the smallest missing
-  theorem boundary is sharper and more paper-faithful than before
+- the live semantic core remains
+  `GodMoveSemanticExtractionTheorem` together with the chosen-target local
+  proposition `GodMoveExtractionSemanticObligation`
+- after that seam was isolated, wrapping it in semantic-target data records or
+  convenience bundles does **not** create a newer semantic-core milestone
+- the tracker should therefore preserve the narrower core boundary already won,
+  but assign zero additional theorem-frontier credit to the later packaging
 
 Wrapper churn that should receive zero milestone credit:
 
+- `GodMoveHardInstanceData`, `GodMoveSemanticTargetData`,
+  `GodMoveSemanticTargetTheorem`, `GodMoveSemanticGap`, and
+  `GodMoveSemanticTheorem` are interface / indexing layers around the same
+  extraction theorem, not new semantic witnesses
 - `ExtractionMapRankBridge` and
   `GodMoveExtractionDecompositionObligation` are useful mathematical /
   theorem-packaging layers, but they sit downstream of the staged semantic
@@ -221,9 +228,9 @@ Wrapper churn that should receive zero milestone credit:
 
 Honest current state:
 
-- the semantic-core improvement is landed at the theorem/interface level
-- the validated gain is inventory honesty about the exact extraction theorem
-  seam, not a new witness construction
+- the semantic core is already isolated at the theorem/interface level
+- the validated gain from this tracker refresh is only inventory honesty about
+  which later edits are packaging around that core
 - no new staged semantic witness, decomposition package, or extraction-transfer
   proof has been supplied by this tracker-only pass
 - so the correct status claim is:
@@ -238,12 +245,16 @@ Honest current state:
   frontier
 - `GodMoveExtractionSemanticObligation`: target-local staged semantic witness
   for a chosen extraction target
-- `GodMoveSemanticTheorem`: compatibility alias only
-- `GodMoveSemanticGap`: convenience bundle carrying hard-instance applicability
-  data plus the extraction witness
 
 #### Wrapper / packaging layer (not separate milestone credit)
 
+- `GodMoveHardInstanceData`: hard-instance applicability bookkeeping
+- `GodMoveSemanticTargetData`: hard-instance data plus chosen extraction target
+- `GodMoveSemanticTargetTheorem`: target-indexed packaging name for the same
+  extraction-side semantic obligation
+- `GodMoveSemanticTheorem`: hard-instance-indexed compatibility alias only
+- `GodMoveSemanticGap`: convenience bundle carrying target data plus the staged
+  target theorem
 - `GodMoveExtractionDecompositionObligation`: stronger target-local wrapper that
   packages the same semantic witness in decomposition form
 - `ExtractionMapRankBridge`: separate monotonicity wrapper over a staged
@@ -254,6 +265,10 @@ Honest current state:
   rank-transfer claim on a chosen target
 - `GodMoveRouteB_WeakenedExtractionObligation`: weakened-route alias now
   literally re-indexing `GodMoveRouteB_ExtractionObligation` on the same target
+- `routeB_from_semantic_gap_extractionObligation` /
+  `routeB_weakened_from_semantic_gap_extractionObligation`: packaging lemmas
+  recording that both strong and weakened Route B wrappers preserve that same
+  shared extraction obligation on the preserved semantic target
 - `GodMoveRouteB_WeakenedObligations`: weakened NP-side lower-bound wrapper
 - `separation_from_weakened_routeB`: contradiction wrapper consuming separate
   NP-side and extraction-side inputs
