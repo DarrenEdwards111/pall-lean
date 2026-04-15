@@ -847,7 +847,8 @@ def toRouteB_Obligations
       mlBlockedSpdpRank gap.extractionTarget.coupledPartition
         (Nat.log 2 n) (Nat.log 2 n) gap.extractionTarget.coupledPoly) :
     GodMoveRouteB_Obligations M n hn2 htb hns :=
-  gap.toExtractionTargetData.toRouteB_Obligations np_lower
+  gap.toTargetData.toRouteB_Obligations (by
+    simpa [GodMoveSemanticGap.toTargetData] using np_lower)
 
 /-- The exact semantic gap, together with the separate NP lower bound and the
 generic rank wrappers, recovers the older semantic interface. This is the
@@ -864,8 +865,10 @@ def toSemanticInterface
       ∀ sem : ExtractionMapSemantics M n hn2 htb hns hdec gap.extractionTarget,
         ExtractionMapRankBridge sem) :
     GodMoveSemanticInterface M n hn2 htb hns hdec :=
-  gap.toExtractionTargetData.toSemanticInterface
-    gap.toExtractionTargetTheorem np_lower bridge
+  gap.toTargetData.toSemanticInterface
+    gap.targetTheorem
+    (by simpa [GodMoveSemanticGap.toTargetData] using np_lower)
+    bridge
 
 /-- Forgetful compatibility bridge from the exact semantic gap package to the
 older abstract source/target interface. This keeps the narrowed semantic seam
@@ -881,8 +884,10 @@ def toAbstractInterface
       ∀ sem : ExtractionMapSemantics M n hn2 htb hns hdec gap.extractionTarget,
         ExtractionMapRankBridge sem) :
     GodMoveExtractionInterface M n hn2 htb hns :=
-  gap.toExtractionTargetData.toAbstractInterface
-    gap.toExtractionTargetTheorem np_lower bridge
+  gap.toTargetData.toAbstractInterface
+    gap.targetTheorem
+    (by simpa [GodMoveSemanticGap.toTargetData] using np_lower)
+    bridge
 
 end GodMoveSemanticGap
 
@@ -936,7 +941,7 @@ def GodMoveSemanticGap.targetData
     {hdec : DecidesSAT M}
     (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
     GodMoveRouteB_TargetData M n hn2 htb hns :=
-  gap.toExtractionTargetData.toRouteB_TargetData
+  gap.toTargetData.toRouteB_TargetData
 
 /-- Package full Route B obligations from the semantic gap plus a separate
 NP-side lower bound.
@@ -1045,7 +1050,8 @@ def routeB_weakened_from_semantic_gap
       mlBlockedSpdpRank gap.extractionTarget.coupledPartition
         (Nat.log 2 n) (Nat.log 2 n) gap.extractionTarget.coupledPoly) :
     GodMoveRouteB_WeakenedObligations M n hn2 htb hns :=
-  gap.toExtractionTargetData.toRouteB_WeakenedObligations np_lower
+  gap.toTargetData.toRouteB_WeakenedObligations (by
+    simpa [GodMoveSemanticGap.toTargetData] using np_lower)
 
 /-- Packaging the semantic gap into the weakened Route B surface preserves the
 same exact extraction-facing target. -/
