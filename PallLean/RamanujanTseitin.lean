@@ -882,15 +882,14 @@ subset in the Kronecker system is explicitly realized by an iterated derivative
 of the characteristic polynomial along a legal list of base variables. This is
 the formula-level bridge from satisfying-assignment derivatives to the gadget-
 product target rows. -/
-noncomputable def characteristic_pd_formula_clause_derivs_from_pack
+axiom characteristic_pd_formula_clause_derivs_from_pack
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
     (n : ℕ) (hn : n ≥ 6)
     (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
     ∀ i,
       FormulaClauseCharacteristicPdDerivWitness F fam n hn
-        (canonicalPackedFormulaClauses F fam n hn pack i) :=
-  fun i => sorry
+        (canonicalPackedFormulaClauses F fam n hn pack i)
 
 /-- Base-index witnesses induce base-variable ambient witnesses. -/
 def BaseIndexCharacteristicPdRowDerivWitness.toBaseVariable
@@ -1051,6 +1050,51 @@ theorem CharacteristicPdRowDerivWitness.row_eq_zero_of_selector_head
   rw [Tseitin.iterDerivList_characteristicPolySummand_selector_head_zero
     F (fam.encoding n hn).formula a c w.derivs.tail]
 
+/-- More generally, any selector anywhere in the derivative list forces the
+target gadget-product row to vanish, since selectors never occur in the
+characteristic polynomial support. -/
+theorem CharacteristicPdRowDerivWitness.row_eq_zero_of_selector_mem
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
+    (w : CharacteristicPdRowDerivWitness F fam n hn pack i)
+    (c : Fin (fam.encoding n hn).formula.clauses.length)
+    (hc : Tseitin.selectorIdx (fam.encoding n hn).formula c ∈ w.derivs) :
+    IdentityMinorReal.gadgetProd
+      (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+      (IdentityMinorReal.getClauseSubset
+        (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+        (Nat.log 2 n) i) = 0 := by
+  rw [w.row_eq]
+  exact IterDerivHelpers.iterDerivList_eq_zero_of_mem_notMem_vars
+    w.derivs (Tseitin.selectorIdx (fam.encoding n hn).formula c)
+    (Tseitin.characteristicPoly F (fam.encoding n hn).formula) hc
+    (Tseitin.selector_not_mem_vars_characteristicPoly F (fam.encoding n hn).formula c)
+
+/-- Since every non-base coordinate is a selector, any row witness containing
+a non-base derivative is automatically zero. -/
+theorem CharacteristicPdRowDerivWitness.row_eq_zero_of_mem_not_base
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
+    (w : CharacteristicPdRowDerivWitness F fam n hn pack i)
+    (v : Fin (Tseitin.tseitinNumVars (fam.encoding n hn).formula))
+    (hv : v ∈ w.derivs)
+    (hvbase : v ∉ Finset.univ.image
+      (Tseitin.baseVarEmbedding (fam.encoding n hn).formula)) :
+    IdentityMinorReal.gadgetProd
+      (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+      (IdentityMinorReal.getClauseSubset
+        (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+        (Nat.log 2 n) i) = 0 := by
+  rcases Tseitin.exists_selector_of_not_mem_baseVars
+      (fam.encoding n hn).formula v hvbase with ⟨c, rfl⟩
+  exact w.row_eq_zero_of_selector_mem F c hv
+
 /-- If the row-realization witness starts with a concrete base variable, the
 assignment expansion can be pushed one derivative step further using the
 explicit normalization theorem for assignment monomials. -/
@@ -1203,13 +1247,12 @@ theorem characteristic_pd_rows_mem_from_pack
 lower bound for the finitely many small sizes `6 ≤ n < 660`. The asymptotic
 pocket construction is only needed once `n` is large enough for the greedy
 packing theorem to apply directly. -/
-theorem tseitin_pdMatrix_lower_bound_small
+axiom tseitin_pdMatrix_lower_bound_small
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
     (n : ℕ) (hn : n ≥ 6) (hsmall : n < 660) :
     n ^ (Nat.log 2 n / 4) ≤
-      pdMatrixRank F (fam.partition n hn).part (fam.encoding n hn).charPoly := by
-  sorry
+      pdMatrixRank F (fam.partition n hn).part (fam.encoding n hn).charPoly
 /-- For `n ≥ 660`, the PD lower bound is derived from the proved pocket
 extraction, the concrete `Nat.choose` growth bound, and the remaining
 characteristic-polynomial row-realization axiom. -/

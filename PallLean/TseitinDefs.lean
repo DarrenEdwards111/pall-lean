@@ -630,6 +630,29 @@ theorem selectorIdx_not_mem_baseVars (Φ : TseitinFormula) (c : Fin Φ.clauses.l
   unfold tseitinBaseNumVars at hi_lt
   omega
 
+theorem exists_selector_of_not_mem_baseVars
+    (Φ : TseitinFormula)
+    (v : Fin (tseitinNumVars Φ))
+    (hv : v ∉ (Finset.univ.image (baseVarEmbedding Φ))) :
+    ∃ c : Fin Φ.clauses.length, selectorIdx Φ c = v := by
+  have hbase_le : tseitinBaseNumVars Φ ≤ v.val := by
+    by_contra hlt
+    have hlt' : v.val < tseitinBaseNumVars Φ := Nat.lt_of_not_ge hlt
+    have hvmem : v ∈ (Finset.univ.image (baseVarEmbedding Φ)) := by
+      refine Finset.mem_image.mpr ?_
+      refine ⟨⟨v.val, ?_⟩, Finset.mem_univ _, ?_⟩
+      · exact hlt'
+      · exact Fin.ext rfl
+    exact hv hvmem
+  have hclause : v.val - tseitinBaseNumVars Φ < Φ.clauses.length := by
+    have hvlt : v.val < tseitinNumVars Φ := v.isLt
+    simp [tseitinNumVars, tseitinBaseNumVars] at hvlt hbase_le ⊢
+    omega
+  refine ⟨⟨v.val - tseitinBaseNumVars Φ, hclause⟩, ?_⟩
+  apply Fin.ext
+  simp [selectorIdx, tseitinBaseNumVars] at hbase_le ⊢
+  omega
+
 theorem baseVarEmbedding_ne_selectorIdx
     (Φ : TseitinFormula)
     (i : Fin (tseitinBaseNumVars Φ))
