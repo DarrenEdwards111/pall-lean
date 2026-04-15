@@ -66,6 +66,35 @@ structure DecidesSAT (M : DTM) : Prop where
     ¬ φ.IsSatisfiable →
     ∀ (input : Fin n → Bool), ¬ accepts M n hn input
 
+/-- **Key semantic lemma**: DecidesSAT produces an accepting computation.
+
+If M decides 3-SAT and φ is a satisfiable formula with encoding size ≤ n,
+then M has an accepting input of length n. This is the load-bearing content
+of DecidesSAT for the Route B extraction.
+
+Combined with Cook-Levin (the compiled polynomial evaluates to 1 on the
+accepting tableau), this accepting input determines the restriction
+assignment in the God-Move extraction. -/
+theorem DecidesSAT.accepting_input_of_satisfiable
+    {M : DTM} (hdec : DecidesSAT M)
+    (φ : ThreeCNF) (n : ℕ) (hn : n ≥ 1)
+    (hsize : φ.encodingSize ≤ n)
+    (hsat : φ.IsSatisfiable) :
+    ∃ (input : Fin n → Bool), accepts M n hn input :=
+  hdec.accepts_sat φ n hn hsize hsat
+
+/-- From an accepting input, extract the accepting computation tableau.
+
+The DTM's run produces a sequence of configurations, and the accepting
+condition guarantees one of them is in the accept state. This gives
+the full tableau data needed for the Cook-Levin restriction. -/
+theorem accepting_input_gives_tableau
+    (M : DTM) (n : ℕ) (hn : n ≥ 1) (input : Fin n → Bool)
+    (hacc : accepts M n hn input) :
+    ∃ (t : ℕ), t ≤ timeSteps M n ∧
+      (run M n t (initialConfig M n hn input)).state = acceptState M :=
+  hacc
+
 /-- Paper-faithful abstract source/target interface for the God-Move.
 
 This avoids the false typing shortcut of placing the compiled polynomial and the
