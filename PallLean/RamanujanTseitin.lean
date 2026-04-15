@@ -523,6 +523,36 @@ noncomputable def formulaClauseGadgetProd
 
 /-- A product of actual formula-clause gadgets still avoids every selector
 coordinate. -/
+theorem vars_subset_base_formulaClauseGadgetProd
+    (F : Type*) [Field F] [CharZero F] [Nontrivial F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (clauses : List (Fin (fam.encoding n hn).formula.clauses.length)) :
+    (formulaClauseGadgetProd F fam n hn clauses).vars ⊆
+      Finset.univ.image (Tseitin.baseVarEmbedding (fam.encoding n hn).formula) := by
+  intro x hx
+  induction clauses with
+  | nil =>
+      simp [formulaClauseGadgetProd] at hx
+  | cons c rest ih =>
+      have hx' :
+          x ∈ (Tseitin.clauseGadget F (fam.encoding n hn).formula c *
+            formulaClauseGadgetProd F fam n hn rest).vars := by
+        simpa [formulaClauseGadgetProd] using hx
+      have hunion :
+          x ∈ (Tseitin.clauseGadget F (fam.encoding n hn).formula c).vars ∪
+            (formulaClauseGadgetProd F fam n hn rest).vars := by
+        exact MvPolynomial.vars_mul
+          (Tseitin.clauseGadget F (fam.encoding n hn).formula c)
+          (formulaClauseGadgetProd F fam n hn rest) hx'
+      rw [Finset.mem_union] at hunion
+      rcases hunion with hcg | hrest
+      · have hlt := Tseitin.clauseGadget_vars_bound F (fam.encoding n hn).formula c x hcg
+        exact Finset.mem_image.mpr ⟨⟨x.val, hlt⟩, Finset.mem_univ _, Fin.ext rfl⟩
+      · exact ih hrest
+
+/-- A product of actual formula-clause gadgets still avoids every selector
+coordinate. -/
 theorem selector_not_mem_vars_formulaClauseGadgetProd
     (F : Type*) [Field F] [CharZero F] [Nontrivial F]
     (fam : RamanujanTseitinFamily F)
@@ -531,27 +561,9 @@ theorem selector_not_mem_vars_formulaClauseGadgetProd
     (c : Fin (fam.encoding n hn).formula.clauses.length) :
     Tseitin.selectorIdx (fam.encoding n hn).formula c ∉
       (formulaClauseGadgetProd F fam n hn clauses).vars := by
-  induction clauses with
-  | nil =>
-      simp [formulaClauseGadgetProd]
-  | cons d rest ih =>
-      intro hmem
-      have hmem' :
-          Tseitin.selectorIdx (fam.encoding n hn).formula c ∈
-            (Tseitin.clauseGadget F (fam.encoding n hn).formula d *
-              formulaClauseGadgetProd F fam n hn rest).vars := by
-        simpa [formulaClauseGadgetProd] using hmem
-      have hunion :
-          Tseitin.selectorIdx (fam.encoding n hn).formula c ∈
-            (Tseitin.clauseGadget F (fam.encoding n hn).formula d).vars ∪
-              (formulaClauseGadgetProd F fam n hn rest).vars := by
-        exact MvPolynomial.vars_mul
-          (Tseitin.clauseGadget F (fam.encoding n hn).formula d)
-          (formulaClauseGadgetProd F fam n hn rest) hmem'
-      rw [Finset.mem_union] at hunion
-      rcases hunion with hg | hr
-      · exact Tseitin.selector_not_in_gadget F (fam.encoding n hn).formula c d hg
-      · exact ih hr
+  intro hmem
+  have hsub := vars_subset_base_formulaClauseGadgetProd F fam n hn clauses hmem
+  exact Tseitin.selectorIdx_not_mem_baseVars (fam.encoding n hn).formula c hsub
 
 /-- Hence every selector derivative of a formula-clause gadget product is zero. -/
 theorem pderiv_formulaClauseGadgetProd_selector_zero
