@@ -1986,6 +1986,39 @@ def godMoveNontrivialStagedMapTarget
   ∃ out : GodMoveTransportedMapOutput M n (by omega : n ≥ 2) htb hns c,
     out.map_output_same_space ≠ out.comparison.target_same_space.poly
 
+/-- The staged-map nontriviality shell is structurally uninhabited for the
+current `GodMoveConstruction` type: every construction already packages the
+staged semantic equality between map output and target. -/
+theorem godMoveConstruction_not_nontrivial_staged_map
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n hn2 htb hns) :
+    ¬ godMoveNontrivialStagedMapTarget M n hn htb hns c := by
+  intro hnon
+  rcases hnon with ⟨_, out, hne⟩
+  cases c with
+  | mk coupledVars map target staged_semantic_target =>
+      cases out with
+      | mk comparison map_output_same_space map_output_eq =>
+              cases comparison with
+              | mk same_space target_same_space target_eq =>
+                  cases same_space
+                  simp at map_output_eq target_eq
+                  change map_output_same_space ≠ target_same_space.poly at hne
+                  have hstage :
+                      map.toFun (compiledPoly (cook_levin_compilation M n hn2 htb hns)) =
+                        target.poly := by
+                    rw [map.factors_through]
+                    exact staged_semantic_target
+                  have htarget : target.poly = target_same_space.poly := by
+                    simpa using congrArg GodMoveTypedTarget.poly target_eq
+                  have heq : map_output_same_space = target_same_space.poly :=
+                    map_output_eq.symm.trans (hstage.trans htarget)
+                  exact hne heq
+
 /-- The current identity construction also fails the stronger staged-map
 nontriviality seam: after transporting to the compiled ambient space, the staged
 map output is still literally the compiled Cook-Levin polynomial, matching the
@@ -1998,19 +2031,8 @@ theorem godMoveConstruction_exists_not_nontrivial_staged_map
     (hns : M.numStates ≤ n) :
     ¬ godMoveNontrivialStagedMapTarget M n hn htb hns
         (godMoveConstruction_exists M n hn hdec htb hns) := by
-  intro hnon
-  rcases hnon with ⟨_, out, hne⟩
-  have hmap :
-      out.map_output_same_space =
-        compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns) := by
-    rw [← out.map_output_eq]
-    simp [godMoveConstruction_exists]
-  have hpoly := congrArg GodMoveTypedTarget.poly out.comparison.target_eq
-  simp [godMoveConstruction_exists] at hpoly
-  have hEq : out.map_output_same_space = out.comparison.target_same_space.poly := by
-    rw [hmap]
-    exact hpoly
-  exact hne hEq
+  exact godMoveConstruction_not_nontrivial_staged_map M n hn (by omega) htb hns
+    (godMoveConstruction_exists M n hn hdec htb hns)
 
 /-- Bundled target for a genuine paper-facing `ΠΦ` candidate.
 
@@ -2044,6 +2066,20 @@ theorem godMoveConstruction_exists_not_genuine_candidate
         (godMoveConstruction_exists M n hn hdec htb hns) := by
   intro hg
   exact godMoveConstruction_exists_not_nontrivial_staged_map M n hn hdec htb hns hg.2.2
+
+/-- The stronger bundled genuine-candidate shell is likewise structurally
+uninhabited on the current construction type, because its staged-map
+nontriviality component is impossible. -/
+theorem godMoveConstruction_not_genuine_candidate
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n hn2 htb hns) :
+    ¬ godMoveGenuineCandidateTarget M n hn htb hns c := by
+  intro hg
+  exact godMoveConstruction_not_nontrivial_staged_map M n hn hn2 htb hns c hg.2.2
 
 /-- Tiny helper packaging for projection-stage output before relabeling.
 
@@ -3156,13 +3192,8 @@ theorem godMoveConstruction_firstBehaviorPerturbation_not_nontrivial_staged_map
     (hns : M.numStates ≤ n) :
     ¬ godMoveNontrivialStagedMapTarget M n hn htb hns
         (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns) := by
-  intro hnon
-  rcases hnon with ⟨_, out, hne⟩
-  have hEq : out.map_output_same_space = out.comparison.target_same_space.poly := by
-    rw [← out.map_output_eq]
-    have hpoly := congrArg GodMoveTypedTarget.poly out.comparison.target_eq
-    simpa [godMoveConstruction_firstBehaviorPerturbation] using hpoly
-  exact hne hEq
+  exact godMoveConstruction_not_nontrivial_staged_map M n hn (by omega) htb hns
+    (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns)
 
 /-- The first behavior perturbation is a real post-identity witness, but it is
 not yet a full paper-facing genuine candidate for exactly the staged-map
@@ -3175,9 +3206,8 @@ theorem godMoveConstruction_firstBehaviorPerturbation_not_genuine_candidate
     (hns : M.numStates ≤ n) :
     ¬ godMoveGenuineCandidateTarget M n hn htb hns
         (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns) := by
-  intro hg
-  exact godMoveConstruction_firstBehaviorPerturbation_not_nontrivial_staged_map
-    M n hn hdec htb hns hg.2.2
+  exact godMoveConstruction_not_genuine_candidate M n hn (by omega) htb hns
+    (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns)
 
 /-- Exact remaining upgrade target on the first explicit post-identity Route B
 construction.
@@ -3215,6 +3245,33 @@ theorem godMoveFirstBehaviorPerturbation_genuine_candidate_iff_upgrade
       godMoveConstruction_firstBehaviorPerturbation_is_canonical_target M n hn hdec htb hns,
       (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns).staged_semantic_target,
       hup⟩
+
+/-- Since the staged-map nontriviality shell is structurally impossible for any
+current `GodMoveConstruction`, the old existential "genuine candidate + one-stage
+perturbation" target is impossible too. -/
+theorem godMoveNonidentityCandidateExistsTarget_impossible
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ godMoveNonidentityCandidateExistsTarget M n hn hdec htb hns := by
+  intro hex
+  rcases hex with ⟨c, hg, _⟩
+  exact godMoveConstruction_not_genuine_candidate M n hn (by omega) htb hns c hg
+
+/-- The first explicit post-identity construction does not just currently lack
+the staged-map upgrade; on the present construction type that upgrade target is
+itself impossible. -/
+theorem godMoveFirstBehaviorPerturbationUpgradeTarget_impossible
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ godMoveFirstBehaviorPerturbationUpgradeTarget M n hn hdec htb hns := by
+  exact godMoveConstruction_firstBehaviorPerturbation_not_nontrivial_staged_map
+    M n hn hdec htb hns
 
 /-- The first behavior-perturbed construction gives an explicit existential
 one-stage witness, so the post-identity Route B shell now has a real inhabitant
