@@ -183,17 +183,23 @@ What the live edit now makes explicit:
 - `GodMoveSemanticExtractionTheorem`: the exact remaining paper-faithful
   extraction theorem, returning the chosen
   `GodMoveExtractionTarget` together with the staged semantic witness for it
-- `GodMoveExtractionDecompositionObligation`: the target-local staged
-  decomposition obligation that is equivalent to the extraction-side transfer
-  once a target has been chosen
+- `GodMoveExtractionSemanticObligation`: the target-local staged
+  restriction/projection/output witness; once a target has been chosen, this is
+  the smallest semantic-core theorem boundary
+- `GodMoveExtractionDecompositionObligation`: a stronger wrapper around that
+  same target-local semantic witness which also carries the decomposition
+  packaging used to recover extraction transfer
 - `GodMoveSemanticTheorem`: only the hard-instance-indexed compatibility alias,
   not the real progress unit
 
 Real semantic-core progress to count:
 
 - the actual DecidesSAT-dependent seam is now stated on the extraction witness
-  itself, not blurred together with hard-instance applicability bookkeeping or
-  downstream contradiction wrappers
+  itself, not blurred together with hard-instance applicability bookkeeping,
+  decomposition packaging, or downstream contradiction wrappers
+- the factoring batch split the theorem surface one step further:
+  `GodMoveExtractionSemanticObligation` now carries the semantic core, while
+  rank monotonicity and extraction-transfer recovery sit outside that theorem
 - the tracker can now distinguish the real missing semantic object
   from the compatibility shell that reindexes or consumes it
 - this is genuine semantic-core inventory progress because the smallest missing
@@ -201,6 +207,10 @@ Real semantic-core progress to count:
 
 Wrapper churn that should receive zero milestone credit:
 
+- `ExtractionMapRankBridge` and
+  `GodMoveExtractionDecompositionObligation` are useful mathematical /
+  theorem-packaging layers, but they sit downstream of the staged semantic
+  witness rather than defining a new semantic frontier
 - `GodMoveRouteB_TargetData`, `GodMoveRouteB_Obligations`,
   `GodMoveRouteB_WeakenedObligations`, and the separation wrappers are still
   useful packaging, but they are downstream consumers of the semantic seam
@@ -214,6 +224,8 @@ Honest current state:
 - the semantic-core improvement is landed at the theorem/interface level
 - the validated gain is inventory honesty about the exact extraction theorem
   seam, not a new witness construction
+- no new staged semantic witness, decomposition package, or extraction-transfer
+  proof has been supplied by this tracker-only pass
 - so the correct status claim is:
   the Route B tracker is now more faithful about where the semantic core lives,
   but no new paper-facing semantic theorem has been proved
@@ -224,18 +236,24 @@ Honest current state:
 
 - `GodMoveSemanticExtractionTheorem`: exact remaining extraction-side theorem
   frontier
-- `GodMoveExtractionDecompositionObligation`: equivalent target-local staged
-  obligation for a chosen extraction target
+- `GodMoveExtractionSemanticObligation`: target-local staged semantic witness
+  for a chosen extraction target
 - `GodMoveSemanticTheorem`: compatibility alias only
 - `GodMoveSemanticGap`: convenience bundle carrying hard-instance applicability
   data plus the extraction witness
 
 #### Wrapper / packaging layer (not separate milestone credit)
 
+- `GodMoveExtractionDecompositionObligation`: stronger target-local wrapper that
+  packages the same semantic witness in decomposition form
+- `ExtractionMapRankBridge`: separate monotonicity wrapper over a staged
+  semantic witness
 - `GodMoveRouteB_TargetData`: shared Route B hard-instance plus
   extraction-target package
 - `GodMoveRouteB_ExtractionTransfer`: factored name for the extraction-side
   rank-transfer claim on a chosen target
+- `GodMoveRouteB_WeakenedExtractionObligation`: weakened-route alias now
+  literally re-indexing `GodMoveRouteB_ExtractionObligation` on the same target
 - `GodMoveRouteB_WeakenedObligations`: weakened NP-side lower-bound wrapper
 - `separation_from_weakened_routeB`: contradiction wrapper consuming separate
   NP-side and extraction-side inputs

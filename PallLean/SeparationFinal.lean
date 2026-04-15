@@ -17,9 +17,12 @@ This file assembles the complete separation from PaperFaithfulSeparation.lean.
    `profile_symmetric_power_factorization`.
 
 2. `GodMoveSemanticExtractionTheorem` — the narrowed §29 semantic frontier in
-   `GodMoveCore.lean`, stating the existence of an extraction witness target
-   together with its staged restriction/projection decomposition. The exported
-   compatibility wrapper `god_move_extraction_interface` in
+   `GodMoveCore.lean`, stating that some exact
+   `GodMoveExtractionTarget` carries the staged semantic witness
+   `GodMoveExtractionSemanticObligation`. The extracted rank inequality is not
+   the frontier itself; it is derived afterward from that staged witness plus
+   separate generic rank-wrapper packaging. The
+   exported compatibility wrapper `god_move_extraction_interface` in
    `PaperFaithfulSeparation.lean` is only a forgetful view of this seam, and the
    old quantitative lower bound `god_move_extraction_lemma` is derived from that
    wrapper.
@@ -53,8 +56,8 @@ theorem p_side_verified (M : DTM) (n : ℕ) (hn : n ≥ 2)
     Sorry count: ZERO
 
     The quantitative theorem `god_move_extraction_lemma` is now derived from the
-    compatibility wrapper around the narrower semantic extraction seam rather
-    than postulated directly.
+    compatibility wrapper around that narrower staged semantic seam, rather
+    than postulated directly as the primary object.
 
     Both frontiers use the product polynomial ∏(1-Cᵢ) from the paper (§17.1).
     The product form is essential:

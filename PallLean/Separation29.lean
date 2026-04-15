@@ -90,17 +90,19 @@ above and below by the two axioms.
     This `Separation29` route is NOT the live paper-faithful Route B frontier.
     It is an auxiliary abstraction layer. The exact Route B theorem split now
     lives in `GodMoveCore.lean`: the NP package is fed by
-    `RouteBNPFromPdMatrix.pd_to_blocked_transfer`, the genuinely semantic
-    frontier is the extraction-only theorem
-    `GodMoveSemanticExtractionTheorem` (with
-    `GodMoveSemanticTheorem` as the older hard-instance-indexed alias), the
-    bare transfer inequality on a chosen coupled-sheet target is
+    `RouteBNPFromPdMatrix.pd_to_blocked_transfer`, the genuinely semantic core
+    is the existence of an exact `GodMoveExtractionTarget` carrying
+    `GodMoveExtractionSemanticObligation`, packaged as
+    `GodMoveSemanticExtractionTheorem`
+    (`GodMoveSemanticTheorem` is only the older hard-instance-indexed alias).
+    The bare transfer inequality on a chosen coupled-sheet target is only
     `GodMoveRouteB_ExtractionTransfer`
-    (`GodMoveRouteB_ExtractionObligation`), and `GodMoveSemanticGap` is only
-    the convenience bundle around hard-instance data plus a witness of that
-    extraction theorem. The weakened separation wrapper still tracks the
-    compiled-side transfer packaging and the P-side compiled bound separately
-    through `separation_from_weakened_routeB_via_decomposition` and
+    (`GodMoveRouteB_ExtractionObligation`), obtained from that staged witness
+    after adding the separate generic rank-wrapper packaging. `GodMoveSemanticGap`
+    is only the convenience bundle around hard-instance data plus such a
+    target-specific semantic witness. The weakened separation wrapper still
+    tracks the compiled-side transfer packaging and the P-side compiled bound
+    separately through `separation_from_weakened_routeB_via_decomposition` and
     `compiled_rank_bound`. The older unconditional contradiction shell remains
     in `PaperFaithfulSeparation.P_ne_NP_unconditional`. -/
 axiom charPolyRank (n : ℕ) : ℕ
@@ -498,17 +500,20 @@ theorem separation_from_concrete_data
 2. `rank_through_extraction`: the concrete characteristic rank
    is bounded by the compiled polynomial's rank, via the God-Move extraction.
    In this file that is the local shell-facing wrapper, but the exact
-   paper-faithful semantic frontier is the extraction-only theorem seam
-   recorded in `GodMoveCore.lean`:
-   `GodMoveSemanticExtractionTheorem` (equivalently the compatibility alias
-   `GodMoveSemanticTheorem` once hard-instance data is fixed), together with
-   the derived bare transfer proposition
+   paper-faithful semantic frontier is the target-only staged semantic witness
+   recorded in `GodMoveCore.lean`: an exact `GodMoveExtractionTarget`
+   together with `GodMoveExtractionSemanticObligation`, exported
+   existentially as `GodMoveSemanticExtractionTheorem`
+   (equivalently the compatibility alias `GodMoveSemanticTheorem` once
+   hard-instance data is fixed). The bare transfer proposition
    `GodMoveRouteB_ExtractionTransfer`
-   (`GodMoveRouteB_ExtractionObligation`) on the chosen target.
-   `GodMoveSemanticGap` is only the convenience bundle carrying hard-instance
-   data plus that witness; the weakened separation shell keeps the compiled
-   side explicit through `separation_from_weakened_routeB_via_decomposition`
-   and the remaining `compiled_rank_bound` hypothesis.
+   (`GodMoveRouteB_ExtractionObligation`) on the chosen target comes only
+   after supplying the separate generic rank-wrapper packaging over that
+   staged witness. `GodMoveSemanticGap` is only the convenience bundle
+   carrying hard-instance data plus that witness; the weakened separation shell
+   keeps the compiled side explicit through
+   `separation_from_weakened_routeB_via_decomposition` and the remaining
+   `compiled_rank_bound` hypothesis.
    That seam requires:
    - Formalizing the God-Move extraction map Π_Φ
    - Proving the restriction / projection output identification

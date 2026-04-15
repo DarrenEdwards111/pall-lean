@@ -304,15 +304,22 @@ which the separate NP lower bound applies.
 
 /-- Compatibility wrapper around the narrowed Route B semantic seam.
 
-The exact paper-faithful semantic frontier on this branch is now
-`GodMoveSemanticExtractionTheorem` from `GodMoveCore.lean`: a witness of the
-staged restriction/projection decomposition on a chosen extraction target.
+The exact paper-faithful Route B frontier on this branch is now the split
+theorem movement from `GodMoveCore.lean`:
+
+- `GodMoveSemanticExtractionTheorem` provides existence of a chosen extraction
+  target with its staged restriction/projection witness
+- `ExtractionMapRankBridge` is the separate monotonicity wrapper layer
+- `extraction_from_semantics` is the composition theorem that turns those two
+  ingredients into `GodMoveRouteB_ExtractionObligation`
 
 This older interface is retained only as a separation-facing wrapper while the
 typed construction in `GodMoveReal.lean` is still exported through the legacy
-source/target package. Semantically, callers should regard it as a forgetful
-view of the narrower extraction-witness theorem rather than as the primary
-frontier itself. -/
+source/target package. In the core API, the same compatibility move is now
+available directly from the narrowed semantic seam via
+`GodMoveSemanticGap.toSemanticInterface` and
+`GodMoveSemanticGap.toAbstractInterface`. Callers should therefore regard this
+wrapper as a convenience export, not as the primary frontier itself. -/
 noncomputable def god_move_extraction_interface (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : DecidesSAT M)
@@ -511,12 +518,14 @@ combination of assumptions, not from a genuine paper-faithful contradiction.
    God-Move extraction to the coupled sheet, where the NP bound applies
    to the extracted polynomial, not the compiled polynomial directly).
 
-See `GodMoveSemanticExtractionTheorem`,
-`GodMoveExtractionDecompositionObligation`, and `GodMoveSemanticGap` in
-`GodMoveCore.lean` for the narrowed paper-faithful Route B seam: the semantic
-frontier is now the actual restriction/projection decomposition producing the
-extraction target, which is where `DecidesSAT` is meant to become
-load-bearing. -/
+See `GodMoveSemanticExtractionTheorem`, `ExtractionMapRankBridge`,
+`extraction_from_semantics`, `GodMoveSemanticGap.extraction`,
+`GodMoveSemanticGap.toSemanticInterface`, and
+`GodMoveSemanticGap.toAbstractInterface` in `GodMoveCore.lean` for the
+narrowed paper-faithful Route B seam: `DecidesSAT` is meant to be load-bearing
+only in the staged restriction/projection witness on the chosen extraction
+target, while the older separation-facing interface is recovered afterwards as
+a compatibility view through separate rank-wrapper lemmas. -/
 theorem P_ne_NP_unconditional : ∀ (_ : PeqNP_Paper), False := by
   intro hPeqNP
   -- Fix n = 2^804 (contradiction scale)
