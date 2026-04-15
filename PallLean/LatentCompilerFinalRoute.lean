@@ -48,13 +48,13 @@ def theorem216_p_obligation (M : DTM) (n : ℕ)
   theorem216_profile_data_logscale M n hnM hn804
 
 /-- Bundled paper-facing obligations at contradiction scale.
-NP side is now a single direct obligation (no bridge needed).
-P side is the profile assembly obligation. -/
+
+At this point the NP side is canonical and constructed internally from the
+selector closed-form package, so the only remaining external paper-facing data
+is the P-side profile assembly package. -/
 structure LogscaleObligations (M : DTM) (n : ℕ)
     (hnM : n ≥ max 4 M.numStates)
     (hn804 : n ≥ 2 ^ 804) where
-  -- NP-side: explicit Kronecker coefficient data (paper identity-minor form)
-  npData : selCon_kronecker_data_logscale M n hn804
   -- P-side: profile assembly upper bound
   pAsm : theorem216_p_obligation M n hnM hn804
 
@@ -82,9 +82,11 @@ theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
   let κ := Nat.log 2 n
 
-  -- NP side (from explicit Kronecker data; numeric closure is proved internally)
+  -- NP side (canonical; numeric closure is proved internally)
+  have hNPData : selCon_kronecker_data_logscale M n hn804 :=
+    selCon_kronecker_data_logscale_from_canonical_idxList M n hn804
   have hNPkron : selCon_kronecker_linear_independence_logscale M n hn804 :=
-    selCon_kronecker_linear_independence_logscale_from_data M n hn804 hObl.npData
+    selCon_kronecker_linear_independence_logscale_from_data M n hn804 hNPData
   have hNPdirect : obligation1_np_logscale M n hn804 :=
     latent_hard_witness_logscale_from_kronecker M n hn804 hNPkron
   have hNP := latent_extracts_hard_witness_decomp M n hn804 hNPdirect κ rfl
@@ -127,8 +129,31 @@ theorem P_neq_NP_latent_from_finer_decomp (h : PeqNP) (n : ℕ)
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
   have hCoeff : selCon_kronecker_coeff_law_logscale M n hn804 :=
     selCon_kronecker_coeff_law_logscale_from_finer_decomp M n hn804 idxList hnd hlen hfinj
-  have hNPData : selCon_kronecker_data_logscale M n hn804 := hCoeff
-  exact P_neq_NP_latent_decomp h n hn ⟨hNPData, pAsm⟩
+  let hNPData : selCon_kronecker_data_logscale M n hn804 := hCoeff
+  have hNPkron : selCon_kronecker_linear_independence_logscale M n hn804 :=
+    selCon_kronecker_linear_independence_logscale_from_data M n hn804 hNPData
+  have hNPdirect : obligation1_np_logscale M n hn804 :=
+    latent_hard_witness_logscale_from_kronecker M n hn804 hNPkron
+  let κ := Nat.log 2 n
+  have hNP : n ^ (κ / 4) ≤ mlBlockedSpdpRank (latentPartition M n) κ κ (latentCompiledPoly M n) :=
+    latent_extracts_hard_witness_decomp M n hn804 hNPdirect κ rfl
+  have hPobl : obligation2_p_logscale M n hnM hn804 :=
+    obligation2_p_logscale_from_data M n hnM hn804 pAsm
+  have hP : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n) ≤ n ^ 200 :=
+    latent_width_rank_from_decomp M n hnM hn804 hPobl
+  have hchain : n ^ (κ / 4) ≤ n ^ 200 := le_trans hNP hP
+  have hexp : n ^ 200 < n ^ (κ / 4) := by
+    apply Nat.pow_lt_pow_right
+    · have : (2 : ℕ) ^ 1 ≤ 2 ^ 804 := by
+        apply Nat.pow_le_pow_right (by norm_num)
+        omega
+      omega
+    · have h_log : Nat.log 2 n ≥ 804 := by
+        calc 804 = Nat.log 2 (2 ^ 804) := by rw [Nat.log_pow (by norm_num : 1 < 2)]
+          _ ≤ Nat.log 2 n := Nat.log_mono_right hn804
+      omega
+  exact (not_lt_of_ge hchain) hexp
 
 /-- Canonical-NP contradiction route from the paper-facing P package alone.
 At this point the NP-side Kronecker data is built internally from the canonical
@@ -141,9 +166,7 @@ theorem P_neq_NP_latent_from_p_obligation (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have npData : selCon_kronecker_data_logscale M n hn804 :=
-    selCon_kronecker_data_logscale_from_canonical_idxList M n hn804
-  exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
+  exact P_neq_NP_latent_decomp h n hn ⟨pAsm⟩
 
 /-- Item 2 narrowing via the direct compiled-tableau frontier obligation. -/
 theorem P_neq_NP_latent_from_finer_decomp_and_compiled_tableau_bound
