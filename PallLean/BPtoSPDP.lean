@@ -559,13 +559,31 @@ theorem bp_rowspace_bound_per_term_empty
         { q | ∃ (u v : Fin B.width),
               q = B.layerMatrix (F := F) τ v u }) ≤
       B.width ^ 2 := by
-  -- Without determinism, we bound by the cardinality of the index set.
-  -- The generating set is indexed by (u, v) ∈ Fin W × Fin W, hence ≤ W² generators.
-  -- For now we use sorry as the Lean API for finrank_span_finset_le_card
-  -- causes timeout on this term. The mathematical content is trivial:
-  -- span of a set of ≤ k elements has finrank ≤ k.
-  -- TODO: resolve typeclass timeout for finrank_span_finset_le_card.
-  sorry
+  -- Strategy: show the set is contained in the range of a function from
+  -- Fin W × Fin W, then use finrank_span_le_card on the range (which is Fintype).
+  classical
+  let gen : Fin B.width × Fin B.width → MvPolynomial (Fin n) F :=
+    fun p => B.layerMatrix (F := F) τ p.1 p.2
+  have hsubset : { q : MvPolynomial (Fin n) F |
+      ∃ (u v : Fin B.width), q = B.layerMatrix (F := F) τ v u } ⊆
+    Set.range gen := by
+    intro q ⟨u, v, hq⟩; exact ⟨⟨v, u⟩, hq.symm⟩
+  -- Set.range gen is Fintype since Fin W × Fin W is Fintype
+  have hfin : (Set.range gen).Finite := Set.finite_range gen
+  haveI : FiniteDimensional F (Submodule.span F (Set.range gen)) :=
+    FiniteDimensional.span_of_finite F hfin
+  haveI : Fintype (Set.range gen) := hfin.fintype
+  calc Module.finrank F (Submodule.span F
+          { q | ∃ (u v : Fin B.width), q = B.layerMatrix (F := F) τ v u })
+      ≤ Module.finrank F (Submodule.span F (Set.range gen)) :=
+        Submodule.finrank_mono (Submodule.span_mono hsubset)
+    _ ≤ (Set.range gen).toFinset.card :=
+        finrank_span_le_card (Set.range gen)
+    _ ≤ Fintype.card (Fin B.width × Fin B.width) := by
+        rw [Set.toFinset_range]
+        exact Finset.card_image_le
+    _ = B.width * B.width := by simp [Fintype.card_prod, Fintype.card_fin]
+    _ = B.width ^ 2 := by ring
 
 /-- Iterated Leibniz rule for matrix product entry: differentiating B.poly by S
     yields a sum over assignments T : S.toFinset → Fin B.length. Base case proved;
