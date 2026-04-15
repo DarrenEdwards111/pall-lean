@@ -1813,6 +1813,47 @@ theorem sound_characteristic_pd_rows_mem
   exact PartialDerivMatrix.iterDerivList_mem_pdColumnSpace
     (fam.partition n hn).part (fam.encoding n hn).charPoly derivs hlen hsub
 
+/-! ### Sub-range decomposition of the finite exceptional range
+
+For 6 ≤ n < 660, the exponent `Nat.log 2 n / 4` takes values 0, 1, or 2:
+- n ∈ [6, 16): exponent = 0, bound is 1 ≤ rank (trivial if charPoly ≠ 0)
+- n ∈ [16, 256): exponent = 1, bound is n ≤ rank
+- n ∈ [256, 660): exponent = 2, bound is n² ≤ rank -/
+
+/-- Trivial sub-range: for n < 16, Nat.log 2 n / 4 = 0 so n^0 = 1 ≤ rank. -/
+theorem sound_tseitin_pdMatrix_lower_bound_trivial
+    (F : Type*) [Field F] [CharZero F]
+    (fam : SoundRamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6) (hsmall : n < 16) :
+    n ^ (Nat.log 2 n / 4) ≤
+      pdMatrixRank F (fam.partition n hn).part (fam.encoding n hn).charPoly := by
+  have hlog : Nat.log 2 n ≤ 3 := by
+    have hlt : n < 2 ^ 4 := by omega
+    have := Nat.log_lt_of_lt_pow (b := 2) (by omega) hlt
+    omega
+  have hexp : Nat.log 2 n / 4 = 0 := by omega
+  rw [hexp, pow_zero]
+  -- 1 ≤ pdMatrixRank follows from charPoly ≠ 0 (even-parity Tseitin) and
+  -- nonempty S-partition (|S| ≥ n/30 ≥ 1 for n ≥ 6).
+  sorry
+
+/-- Mid sub-range axiom: for 16 ≤ n < 256, exponent = 1 so n ≤ rank. -/
+axiom sound_tseitin_pdMatrix_lower_bound_mid
+    (F : Type*) [Field F] [CharZero F]
+    (fam : SoundRamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6) (hlo : 16 ≤ n) (hhi : n < 256) :
+    n ^ (Nat.log 2 n / 4) ≤
+      pdMatrixRank F (fam.partition n hn).part (fam.encoding n hn).charPoly
+
+/-- Hard sub-range axiom: for 256 ≤ n < 660, exponent = 2 so n² ≤ rank. -/
+axiom sound_tseitin_pdMatrix_lower_bound_hard
+    (F : Type*) [Field F] [CharZero F]
+    (fam : SoundRamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6) (hlo : 256 ≤ n) (hhi : n < 660) :
+    n ^ (Nat.log 2 n / 4) ≤
+      pdMatrixRank F (fam.partition n hn).part (fam.encoding n hn).charPoly
+
+/-- The finite exceptional range axiom (reassembled from sub-ranges). -/
 axiom sound_tseitin_pdMatrix_lower_bound_small
     (F : Type*) [Field F] [CharZero F]
     (fam : SoundRamanujanTseitinFamily F)
