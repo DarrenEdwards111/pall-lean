@@ -1664,6 +1664,34 @@ theorem constrained_prod_le_pow_sum {n L : ℕ}
   · intro i _; exact Nat.zero_le _
   · intro i _; exact localDerivAtomsOfDegree_card_le (factors i) S (derivLengths i) (hk i)
 
+set_option maxHeartbeats 800000 in
+/-- iterDerivList d f with |d| = k ≤ 2 and d ⊆ S lies in localDerivAtomsOfDegree f S k.
+    Restored from WIP: connects iterDerivList to the degree-refined atom set. -/
+theorem iterDerivList_mem_localDerivAtomsOfDegree {n : ℕ}
+    (f : MvPolynomial (Fin n) ℚ) (S : List (Fin n))
+    (d : List (Fin n)) (hd_len : d.length ≤ 2) (hd_mem : ∀ v ∈ d, v ∈ S) :
+    iterDerivList d f ∈ localDerivAtomsOfDegree f S d.length := by
+  rcases d with _ | ⟨v, _ | ⟨w, rest⟩⟩
+  · simp [localDerivAtomsOfDegree, IterDerivHelpers.iterDerivList_nil]
+  · simp only [localDerivAtomsOfDegree, List.length_cons, List.length_nil,
+      Finset.mem_image]
+    exact ⟨v, List.mem_toFinset.mpr (hd_mem v (by simp)), rfl⟩
+  · cases rest with
+    | nil =>
+      show iterDerivList [v, w] f ∈ localDerivAtomsOfDegree f S ([v, w].length)
+      simp only [List.length_cons, List.length_nil]
+      show iterDerivList [v, w] f ∈ localDerivAtomsOfDegree f S 2
+      rw [iterDerivList_pair_eq_pderiv2 v w f]
+      show MvPolynomial.pderiv v (MvPolynomial.pderiv w f) ∈
+        (S.toFinset ×ˢ S.toFinset).image
+          (fun p => MvPolynomial.pderiv p.1 (MvPolynomial.pderiv p.2 f))
+      have hv_mem : v ∈ S := hd_mem v (by simp)
+      have hw_mem : w ∈ S := hd_mem w (by simp)
+      refine Finset.mem_image.mpr ⟨(v, w), Finset.mem_product.mpr
+        ⟨List.mem_toFinset.mpr hv_mem, List.mem_toFinset.mpr hw_mem⟩, rfl⟩
+    | cons x rest' =>
+      exfalso; simp only [List.length_cons] at hd_len; omega
+
 end WithinProfileBound
 
 /-! # WithinProfileBound — Work in Progress below
