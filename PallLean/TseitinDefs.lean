@@ -534,6 +534,34 @@ theorem selector_not_mem_vars_characteristicPoly (F : Type*) [CommRing F] [Nontr
   have hsub := characteristicPoly_vars_subset F Φ hmem
   exact selectorIdx_not_mem_baseVars Φ c hsub
 
+theorem selector_not_mem_vars_assignmentMonomial
+    (F : Type*) [CommRing F] [Nontrivial F]
+    (Φ : TseitinFormula) (a : Fin (tseitinBaseNumVars Φ) → Bool)
+    (c : Fin Φ.clauses.length) :
+    selectorIdx Φ c ∉ (assignmentMonomial F Φ a).vars := by
+  intro hmem
+  have hsub := assignmentMonomial_vars_subset F Φ a hmem
+  exact selectorIdx_not_mem_baseVars Φ c hsub
+
+theorem pderiv_assignmentMonomial_selector_zero
+    (F : Type*) [CommRing F] [Nontrivial F]
+    (Φ : TseitinFormula) (a : Fin (tseitinBaseNumVars Φ) → Bool)
+    (c : Fin Φ.clauses.length) :
+    pderiv (selectorIdx Φ c) (assignmentMonomial F Φ a) = 0 := by
+  exact pderiv_eq_zero_of_notMem_vars
+    (selector_not_mem_vars_assignmentMonomial F Φ a c)
+
+theorem pderiv_characteristicPolySummand_selector_zero
+    (F : Type*) [CommRing F] [Nontrivial F]
+    (Φ : TseitinFormula) (a : Fin (tseitinBaseNumVars Φ) → Bool)
+    (c : Fin Φ.clauses.length) :
+    pderiv (selectorIdx Φ c) (characteristicPolySummand F Φ a) = 0 := by
+  classical
+  unfold characteristicPolySummand
+  by_cases hsat : formulaSatisfied Φ a
+  · simp [hsat, pderiv_assignmentMonomial_selector_zero]
+  · simp [hsat]
+
 theorem pderiv_characteristicPoly_selector_zero (F : Type*) [CommRing F] [Nontrivial F]
     (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
     pderiv (selectorIdx Φ c) (characteristicPoly F Φ) = 0 := by
@@ -555,6 +583,16 @@ theorem iterDerivList_characteristicPoly
     (Fintype.piFinset (fun _ : Fin (tseitinBaseNumVars Φ) =>
       ({false, true} : Finset Bool)))
     (fun a => characteristicPolySummand F Φ a)
+
+theorem iterDerivList_characteristicPolySummand_selector_head_zero
+    (F : Type*) [CommRing F] [Nontrivial F]
+    (Φ : TseitinFormula) (a : Fin (tseitinBaseNumVars Φ) → Bool)
+    (c : Fin Φ.clauses.length) (S : List (Fin (tseitinNumVars Φ))) :
+    SPDP.iterDerivList (selectorIdx Φ c :: S) (characteristicPolySummand F Φ a) = 0 := by
+  unfold SPDP.iterDerivList
+  simp only [List.foldl_cons]
+  rw [pderiv_characteristicPolySummand_selector_zero]
+  exact SPDP.foldl_pderiv_zero S
 
 noncomputable def coupledVerifier (F : Type*) [CommRing F]
     (Φ : TseitinFormula) :
