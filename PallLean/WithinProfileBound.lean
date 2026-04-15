@@ -1966,6 +1966,73 @@ theorem isMultilinear_add_of_disjoint_support {σ : Type*} [DecidableEq σ]
     · have : β i = 0 := by rwa [Finsupp.mem_support_iff, not_not] at hi_β
       rw [this, zero_add]; exact hγ i
 
+/-- Disjoint vars implies disjoint monomial supports. -/
+theorem support_disjoint_of_vars_disjoint {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p q : MvPolynomial σ F)
+    (hvars : Disjoint (MvPolynomial.vars p) (MvPolynomial.vars q))
+    (α β : σ →₀ ℕ)
+    (hα : α ∈ p.support) (hβ : β ∈ q.support) :
+    Disjoint α.support β.support := by
+  rw [Finset.disjoint_iff_ne]
+  intro i hi j hj hij
+  subst hij
+  have hi_vars_p : i ∈ MvPolynomial.vars p :=
+    (MvPolynomial.mem_vars i).mpr ⟨α, hα, hi⟩
+  have hi_vars_q : i ∈ MvPolynomial.vars q :=
+    (MvPolynomial.mem_vars i).mpr ⟨β, hβ, hj⟩
+  exact Finset.disjoint_iff_ne.mp hvars i hi_vars_p i hi_vars_q rfl
+
+-- mlProj is multiplicative for polynomials with disjoint variable sets.
+-- Foundation of the variable-confinement argument.
+set_option maxHeartbeats 1600000 in
+/-- mlProj distributes over multiplication when variable sets are disjoint. -/
+theorem mlProj_mul_of_vars_disjoint
+    {n : ℕ}
+    (p q : MvPolynomial (Fin n) ℚ)
+    (hvars : Disjoint (MvPolynomial.vars p) (MvPolynomial.vars q)) :
+    mlProj (p * q) = mlProj p * mlProj q := by
+  classical
+  ext α
+  simp only [coeff_mlProj]
+  rw [MvPolynomial.coeff_mul, MvPolynomial.coeff_mul]
+  split_ifs with hα_ml
+  · -- α is multilinear: sums agree because non-multilinear components give 0 coeff
+    apply Finset.sum_congr rfl
+    intro x hx
+    simp only [Finset.mem_antidiagonal] at hx
+    rw [coeff_mlProj, coeff_mlProj]
+    -- If α = β+γ is multilinear, then both β and γ must be multilinear
+    -- (since each component ≤ the corresponding component of α ≤ 1)
+    have hβ_ml : Finsupp.IsMultilinear x.1 := by
+      intro i; have h := hα_ml i; rw [show α = x.1 + x.2 from hx.symm] at h
+      simp only [Finsupp.coe_add, Pi.add_apply] at h; omega
+    have hγ_ml : Finsupp.IsMultilinear x.2 := by
+      intro i; have h := hα_ml i; rw [show α = x.1 + x.2 from hx.symm] at h
+      simp only [Finsupp.coe_add, Pi.add_apply] at h; omega
+    simp [hβ_ml, hγ_ml]
+  · -- α is not multilinear: every term in the sum is 0
+    symm; apply Finset.sum_eq_zero
+    intro x hx
+    simp only [Finset.mem_antidiagonal] at hx
+    rw [coeff_mlProj, coeff_mlProj]
+    -- Case analysis: if both β and γ are multilinear AND both have nonzero coeff,
+    -- then α = β+γ would be multilinear (by disjoint support), contradiction.
+    by_cases hβ_ml : Finsupp.IsMultilinear x.1
+    · by_cases hγ_ml : Finsupp.IsMultilinear x.2
+      · simp only [hβ_ml, hγ_ml, ↓reduceIte]
+        by_cases hβp : MvPolynomial.coeff x.1 p = 0
+        · simp [hβp]
+        · suffices MvPolynomial.coeff x.2 q = 0 by simp [this]
+          by_contra hγq
+          apply hα_ml
+          have hβ_supp : x.1 ∈ p.support := Finsupp.mem_support_iff.mpr hβp
+          have hγ_supp : x.2 ∈ q.support := Finsupp.mem_support_iff.mpr hγq
+          have hdisj := support_disjoint_of_vars_disjoint p q hvars x.1 x.2 hβ_supp hγ_supp
+          rw [show α = x.1 + x.2 from hx.symm]
+          exact (isMultilinear_add_of_disjoint_support x.1 x.2 hdisj).mpr ⟨hβ_ml, hγ_ml⟩
+      · simp [hγ_ml]
+    · simp [hβ_ml]
+
 end WithinProfileBound
 
 /-! # WithinProfileBound — Work in Progress below
