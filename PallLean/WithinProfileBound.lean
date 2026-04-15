@@ -2090,6 +2090,73 @@ theorem mlProj_finset_prod_of_pairwise_disjoint_vars {n : ℕ} {ι : Type*} [Dec
         x hx x hy_j rfl
     rw [mlProj_mul_of_vars_disjoint _ _ h_vars_disj, ih h_disj_rest]
 
+/-! ## Part 24: Generator factorization for block-disjoint products (restored from WIP)
+
+When factors have pairwise disjoint variable sets, mlProj of a product factors
+into the mlProj of the "touched" factors times the product of mlProj of the
+"untouched" factors. The untouched factor is fixed across all generators with
+the same profile, so the dimension of the span is bounded by the dimension
+of the "touched" multilinear space. -/
+
+/-- Splitting a Finset product into touched and untouched parts. -/
+theorem finset_prod_split {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (touched : Finset ι) (f : ι → MvPolynomial (Fin n) ℚ) :
+    s.prod f = (s.filter (· ∈ touched)).prod f * (s.filter (· ∉ touched)).prod f := by
+  rw [← Finset.prod_union]
+  congr 1
+  ext x; simp [Finset.mem_filter, Finset.mem_union]; tauto
+  · exact Finset.disjoint_filter_filter_neg s s (· ∈ touched)
+
+/-- vars of a Finset product ⊆ biUnion of vars. -/
+theorem vars_finset_prod_subset {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (f : ι → MvPolynomial (Fin n) ℚ) :
+    (s.prod f).vars ⊆ s.biUnion (fun i => (f i).vars) :=
+  MvPolynomial.vars_prod f
+
+-- mlProj factors into touched × untouched when shift vars ⊆ touched vars.
+set_option maxHeartbeats 1600000 in
+/-- mlProj(shift * ∏ f_i) = mlProj(shift * ∏_{touched} f_i) * ∏_{untouched} mlProj(f_i) -/
+theorem mlProj_shift_mul_prod_factored {n : ℕ} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (f : ι → MvPolynomial (Fin n) ℚ)
+    (shift : MvPolynomial (Fin n) ℚ)
+    (touched : Finset ι)
+    (h_disj : ∀ i ∈ s, ∀ j ∈ s, i ≠ j →
+      Disjoint (MvPolynomial.vars (f i)) (MvPolynomial.vars (f j)))
+    (h_shift_vars : shift.vars ⊆ (s.filter (· ∈ touched)).biUnion (fun i => (f i).vars))
+    (h_touch_untouch_disj :
+      Disjoint
+        ((s.filter (· ∈ touched)).biUnion (fun i => (f i).vars))
+        ((s.filter (· ∉ touched)).biUnion (fun i => (f i).vars))) :
+    mlProj (shift * s.prod f) =
+      mlProj (shift * (s.filter (· ∈ touched)).prod f) *
+      (s.filter (· ∉ touched)).prod (fun i => mlProj (f i)) := by
+  rw [finset_prod_split s touched f]
+  rw [show shift * ((s.filter (· ∈ touched)).prod f * (s.filter (· ∉ touched)).prod f) =
+      (shift * (s.filter (· ∈ touched)).prod f) * (s.filter (· ∉ touched)).prod f from by ring]
+  rw [mlProj_mul_of_vars_disjoint]
+  · congr 1
+    apply mlProj_finset_prod_of_pairwise_disjoint_vars
+    intro i hi j hj hij
+    exact h_disj i (Finset.mem_of_mem_filter i hi) j (Finset.mem_of_mem_filter j hj) hij
+  · apply Finset.disjoint_iff_ne.mpr
+    intro x hx y hy hxy; subst hxy
+    have hx_touched : x ∈ (s.filter (· ∈ touched)).biUnion (fun i => (f i).vars) := by
+      have hx_mul := MvPolynomial.vars_mul shift ((s.filter (· ∈ touched)).prod f) hx
+      rw [Finset.mem_union] at hx_mul
+      cases hx_mul with
+      | inl hx_shift => exact h_shift_vars hx_shift
+      | inr hx_prod => exact MvPolynomial.vars_prod _ hx_prod
+    have hy_untouched : x ∈ (s.filter (· ∉ touched)).biUnion (fun i => (f i).vars) :=
+      MvPolynomial.vars_prod _ hy
+    exact Finset.disjoint_iff_ne.mp h_touch_untouch_disj x hx_touched x hy_untouched rfl
+
+/-- The untouched factor: ∏_{i ∉ touched} mlProj(f_i). -/
+noncomputable def untouchedFactor {n : ℕ} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (f : ι → MvPolynomial (Fin n) ℚ)
+    (touched : Finset ι) :
+    MvPolynomial (Fin n) ℚ :=
+  (s.filter (· ∉ touched)).prod (fun i => mlProj (f i))
+
 end WithinProfileBound
 
 /-! # WithinProfileBound — Work in Progress below
