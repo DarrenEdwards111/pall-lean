@@ -99,32 +99,26 @@ theorem axiom2_pipeline_sketch
 - theorem_140_np_side (Theorem 140: NP-side exponential lower bound)
 - theorem_139_p_side (Theorem 139: P-side polynomial upper bound)
 
-### Supporting decomposition: 3 axioms, 3 sorry (none load-bearing)
+### Supporting decomposition: 1 axiom, 4 sorry (none load-bearing)
 
-**PartialDerivMatrix.lean**: 0 axioms, 0 sorry
-- Lemma 69 (pdMatrix_le_spdpRank): PROVED
-- theorem_140_from_pdMatrix: PROVED (from hypotheses)
+**PartialDerivMatrix.lean**: 0 axioms, 0 sorry — CLEAN
+**TMtoBP.lean**: 0 axioms, 0 sorry — CLEAN
+**PaddingRobustness.lean**: 0 axioms, 0 sorry — CLEAN
 
 **BPtoSPDP.lean**: 0 axioms, 2 sorry (not load-bearing)
-- bp_spdp_rank_bound: PROVED for zero-poly case
-- bp_leibniz_localisation: PROVED
-- bp_poly_totalDegree_le: PROVED
-- compilation_lemma: DEFINED (trivial BP)
 - Sorry 1: bp_rowspace_bound_per_term_empty W≥2 (needs BP determinism)
 - Sorry 2: cylinder Leibniz inductive step (needs generalized matrix IH)
 
-**RamanujanTseitin.lean**: 3 axioms, 0 sorry
-- lps_family_exists: LPS Ramanujan construction (deep number theory)
-- characteristic_pd_row_derivs_from_pack: row derivative witness
-- tseitin_pdMatrix_lower_bound_small: finite exceptional cases (n<660)
+**RamanujanTseitin.lean**: 1 axiom, 1 sorry (not load-bearing)
+- lps_family_exists: LPS Ramanujan construction (deep number theory) — AXIOM
+- characteristic_pd_formula_clause_derivs_from_pack: converted to def+sorry
+- tseitin_pdMatrix_lower_bound_small: converted to theorem+sorry
 
-**TMtoBP.lean**: 0 axioms, 0 sorry (CLEAN)
 **RestrictionMono.lean**: 0 axioms, 1 sorry (not load-bearing)
-**PaddingRobustness.lean**: 0 axioms, 0 sorry (CLEAN)
 
-### Totals: 6 axioms, 63 theorems, 3 sorry
+### Totals: 4 axioms, 81 theorems, 4 sorry
   Load-bearing: 3 axioms, 0 sorry
-  Supporting:   3 axioms (RamanujanTseitin), 3 sorry (all non-load-bearing)
+  Supporting:   1 axiom (LPS existence), 4 sorry (all non-load-bearing)
 -/
 
 end SeparationAssembly
