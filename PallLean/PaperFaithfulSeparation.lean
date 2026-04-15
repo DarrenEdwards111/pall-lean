@@ -302,17 +302,17 @@ staged restriction/projection witness for a non-trivial coupled-sheet target on
 which the separate NP lower bound applies.
 -/
 
-/-- **God-Move Extraction Interface (Paper Lemma 123 / Definition 6 / Lemma 7)**
+/-- Compatibility wrapper around the narrowed Route B semantic seam.
 
-Paper-faithful semantic core: if `M` decides 3-SAT, then on the hard Tseitin
-instance of size `n` there exists an instance-uniform, witness-free, block-local
-extraction interface from the compiled polynomial space to the coupled verifier
-sheet space.
+The exact paper-faithful semantic frontier on this branch is now
+`GodMoveSemanticExtractionTheorem` from `GodMoveCore.lean`: a witness of the
+staged restriction/projection decomposition on a chosen extraction target.
 
-This interface is the current abstract separation-facing frontier.
-The typed staged God-Move work in `GodMoveReal.lean` is intended to justify it,
-but that derivation is not yet wired through here because the import cycle has
-not been removed completely. -/
+This older interface is retained only as a separation-facing wrapper while the
+typed construction in `GodMoveReal.lean` is still exported through the legacy
+source/target package. Semantically, callers should regard it as a forgetful
+view of the narrower extraction-witness theorem rather than as the primary
+frontier itself. -/
 noncomputable def god_move_extraction_interface (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : DecidesSAT M)
@@ -321,13 +321,13 @@ noncomputable def god_move_extraction_interface (M : DTM) (n : ℕ)
     GodMoveExtractionInterface M n (by omega : n ≥ 2) htb hns :=
   GodMoveReal.god_move_extraction_interface_of_typed M n hn hdec htb hns
 
-/-- Derived compiled-space lower bound obtained from the older compatibility
-wrapper around the narrowed Route B seam.
+/-- Derived compiled-space lower bound obtained from the compatibility wrapper
+around the narrowed Route B extraction seam.
 
 Semantically, `DecidesSAT` contributes only the extraction-side provenance of
-the coupled target and decomposition hidden inside the wrapper. The lower bound
-on that target remains separate NP-side data; no extra algebraic content is
-coming from `DecidesSAT` inside the final inequality itself. -/
+the coupled target and staged decomposition hidden inside the wrapper. The
+lower bound on that target remains separate NP-side data; no extra algebraic
+content is coming from `DecidesSAT` inside the final inequality itself. -/
 theorem god_move_extraction_lemma (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : DecidesSAT M)
@@ -495,11 +495,15 @@ axiom `spdp_profile_generators` must be false. The earlier profile-compression
 package did not hold for the product polynomial `∏(1-Cᵢ)` with the locality
 partition at derivative order `κ = log₂ n`.
 
-The `DecidesSAT` hypothesis in `god_move_identity_minor_axiom` appears in the
-type but is NOT used in the proof (it passes through to
-`identity_construction_np_lower_bound` which doesn't use it either). So the
-"unconditional" theorem below derives False from a false axiom, not from a
-genuine mathematical contradiction.
+The `DecidesSAT` hypothesis in `god_move_identity_minor_axiom` is now routed
+through the compatibility wrapper `god_move_extraction_interface`, so it is no
+longer literally unused in the theorem body. However, this does NOT resolve the
+underlying mathematical problem: the currently exported wrapper is still backed
+by the identity-style construction in `GodMoveReal.lean`, so the NP-side lower
+bound continues to land on the compiled polynomial for all DTMs.
+
+Accordingly, the "unconditional" theorem below still derives False from a false
+combination of assumptions, not from a genuine paper-faithful contradiction.
 
 **Resolution path**: Either
 1. Fix the P-side axiom to use a different partition or SPDP regime, or
@@ -507,10 +511,12 @@ genuine mathematical contradiction.
    God-Move extraction to the coupled sheet, where the NP bound applies
    to the extracted polynomial, not the compiled polynomial directly).
 
-See `GodMoveSemanticGap` and `GodMoveRouteB_ExtractionObligation` in
+See `GodMoveSemanticExtractionTheorem`,
+`GodMoveExtractionDecompositionObligation`, and `GodMoveSemanticGap` in
 `GodMoveCore.lean` for the narrowed paper-faithful Route B seam: the semantic
 frontier is now the actual restriction/projection decomposition producing the
-extraction target, which makes `DecidesSAT` load-bearing. -/
+extraction target, which is where `DecidesSAT` is meant to become
+load-bearing. -/
 theorem P_ne_NP_unconditional : ∀ (_ : PeqNP_Paper), False := by
   intro hPeqNP
   -- Fix n = 2^804 (contradiction scale)

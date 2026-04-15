@@ -286,6 +286,13 @@ abbrev GodMoveRouteB_ExtractionObligation (M : DTM) (n : ℕ)
     (target : GodMoveExtractionTarget M n hn2 htb hns) : Prop :=
   GodMoveRouteB_ExtractionTransfer M n hn2 htb hns hdec target
 
+@[simp] theorem GodMoveRouteB_ExtractionObligation_iff_transfer
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    {target : GodMoveExtractionTarget M n hn2 htb hns} :
+    GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec target ↔
+      GodMoveRouteB_ExtractionTransfer M n hn2 htb hns hdec target := Iff.rfl
+
 /-- From the three obligations, the full semantic interface follows. -/
 def GodMoveSemanticInterface.fromObligations
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
@@ -387,6 +394,26 @@ structure ExtractionProjectionStage (restrictedVars coupledVars : ℕ) where
       mlBlockedSpdpRank B_coupled κ ℓ projectedPoly ≤
         mlBlockedSpdpRank B_restricted κ ℓ inputPoly
 
+/-- The load-bearing semantic core of the three-stage extraction map.
+
+This keeps only the staged restriction/projection/output-identification data.
+The rank-monotonicity lemmas needed to derive the extracted inequality are
+packaged separately, because they are mathematical wrappers around the staged
+semantic witness rather than additional `DecidesSAT`-dependent content. -/
+structure ExtractionMapSemantics (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M)
+    (target : GodMoveExtractionTarget M n hn2 htb hns) where
+  /-- Stage 1: Restriction data (uses DecidesSAT). -/
+  restriction : ExtractionRestrictionStage M n hn2 htb hns hdec
+  /-- Stage 2: Projection to coupled space. -/
+  projection : ExtractionProjectionStage restriction.restrictedVars target.coupledVars
+  /-- The projection stage is fed the restricted polynomial from stage 1. -/
+  projection_input_matches : projection.inputPoly = restriction.restrictedPoly
+  /-- The projected polynomial matches the coupled polynomial. -/
+  output_identification :
+    projection.projectedPoly = target.coupledPoly
+
 /-- The full three-stage extraction map decomposition.
 
 This makes the paper's three-stage God-Move extraction explicit. The key
@@ -395,18 +422,23 @@ the compiled polynomial to the coupled verifier sheet polynomial. -/
 structure ExtractionMapDecomposition (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M)
-    (target : GodMoveExtractionTarget M n hn2 htb hns) where
-  /-- Stage 1: Restriction (uses DecidesSAT). -/
-  restriction : ExtractionRestrictionStage M n hn2 htb hns hdec
-  /-- Stage 2: Projection to coupled space. -/
-  projection : ExtractionProjectionStage restriction.restrictedVars target.coupledVars
-  /-- The projection stage is fed the restricted polynomial from stage 1. -/
-  projection_input_matches : projection.inputPoly = restriction.restrictedPoly
-  /-- The projected polynomial matches the coupled polynomial.
-      This is the structural identification: after restriction and projection,
-      we get exactly the coupled verifier sheet polynomial. -/
-  output_identification :
-    projection.projectedPoly = target.coupledPoly
+    (target : GodMoveExtractionTarget M n hn2 htb hns)
+    extends ExtractionMapSemantics M n hn2 htb hns hdec target
+
+namespace ExtractionMapDecomposition
+
+/-- Forget the decomposition wrapper and keep only the staged semantic core. -/
+def toSemantics
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M} {target : GodMoveExtractionTarget M n hn2 htb hns}
+    (decomp : ExtractionMapDecomposition M n hn2 htb hns hdec target) :
+    ExtractionMapSemantics M n hn2 htb hns hdec target :=
+  { restriction := decomp.restriction
+    projection := decomp.projection
+    projection_input_matches := decomp.projection_input_matches
+    output_identification := decomp.output_identification }
+
+end ExtractionMapDecomposition
 
 /-- The exact staged semantic obligation on the extraction-facing target.
 
@@ -419,6 +451,77 @@ def GodMoveExtractionDecompositionObligation (M : DTM) (n : ℕ)
     (target : GodMoveExtractionTarget M n hn2 htb hns) : Prop :=
   Nonempty (ExtractionMapDecomposition M n hn2 htb hns hdec target)
 
+/-- The exact semantic theorem seam on a chosen extraction target.
+
+This is smaller than `GodMoveExtractionDecompositionObligation`: it records
+only the staged semantic witness, leaving the generic rank-monotonicity layer
+as separate mathematical packaging. -/
+def GodMoveExtractionSemanticObligation (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M)
+    (target : GodMoveExtractionTarget M n hn2 htb hns) : Prop :=
+  Nonempty (ExtractionMapSemantics M n hn2 htb hns hdec target)
+
+/-- Separate rank-wrapper data over a fixed staged semantic witness. -/
+structure ExtractionMapRankBridge
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M} {target : GodMoveExtractionTarget M n hn2 htb hns}
+    (sem : ExtractionMapSemantics M n hn2 htb hns hdec target) where
+  restriction_rank_mono : ∀ (κ ℓ : ℕ),
+      mlBlockedSpdpRank sem.restriction.restrictedPartition κ ℓ sem.restriction.restrictedPoly ≤
+        mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition κ ℓ
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+  projection_rank_mono :
+    ∀ (B_restricted : BlockPartition sem.restriction.restrictedVars)
+      (B_coupled : BlockPartition target.coupledVars) (κ ℓ : ℕ),
+      mlBlockedSpdpRank B_coupled κ ℓ sem.projection.projectedPoly ≤
+        mlBlockedSpdpRank B_restricted κ ℓ sem.projection.inputPoly
+
+namespace ExtractionMapRankBridge
+
+/-- A full decomposition automatically yields the separate rank wrapper. -/
+def ofDecomposition
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M} {target : GodMoveExtractionTarget M n hn2 htb hns}
+    (decomp : ExtractionMapDecomposition M n hn2 htb hns hdec target) :
+    ExtractionMapRankBridge decomp.toSemantics :=
+  { restriction_rank_mono := decomp.restriction.restriction_rank_mono
+    projection_rank_mono := decomp.projection.projection_rank_mono }
+
+end ExtractionMapRankBridge
+
+/-- The staged semantic witness plus separate rank wrappers imply the bare
+extraction transfer inequality. -/
+theorem extraction_from_semantics
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    {target : GodMoveExtractionTarget M n hn2 htb hns}
+    (sem : ExtractionMapSemantics M n hn2 htb hns hdec target)
+    (bridge : ExtractionMapRankBridge sem) :
+    GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec target := by
+  unfold GodMoveRouteB_ExtractionObligation
+  change
+    mlBlockedSpdpRank target.coupledPartition (Nat.log 2 n) (Nat.log 2 n) target.coupledPoly ≤
+      mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+  rw [← sem.output_identification]
+  calc
+    mlBlockedSpdpRank target.coupledPartition (Nat.log 2 n) (Nat.log 2 n)
+        sem.projection.projectedPoly
+      ≤ mlBlockedSpdpRank sem.restriction.restrictedPartition
+          (Nat.log 2 n) (Nat.log 2 n) sem.projection.inputPoly :=
+        bridge.projection_rank_mono
+          sem.restriction.restrictedPartition target.coupledPartition
+          (Nat.log 2 n) (Nat.log 2 n)
+    _ = mlBlockedSpdpRank sem.restriction.restrictedPartition
+          (Nat.log 2 n) (Nat.log 2 n) sem.restriction.restrictedPoly := by
+        rw [sem.projection_input_matches]
+    _ ≤ mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)) :=
+        bridge.restriction_rank_mono (Nat.log 2 n) (Nat.log 2 n)
+
 /-- The extraction map decomposition implies the extraction obligation.
 
 This is the key compositionality lemma: if we have an explicit three-stage
@@ -429,31 +532,9 @@ theorem extraction_from_decomposition
     {hdec : DecidesSAT M}
     {target : GodMoveExtractionTarget M n hn2 htb hns}
     (decomp : ExtractionMapDecomposition M n hn2 htb hns hdec target) :
-    GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec target := by
-  unfold GodMoveRouteB_ExtractionObligation
-  -- The coupled poly = projected poly (by output identification)
-  change
-    mlBlockedSpdpRank target.coupledPartition (Nat.log 2 n) (Nat.log 2 n) target.coupledPoly ≤
-      mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
-        (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPoly (cook_levin_compilation M n hn2 htb hns))
-  rw [← decomp.output_identification]
-  -- Chain: rank(projected) ≤ rank(restricted) ≤ rank(compiled)
-  calc
-    mlBlockedSpdpRank target.coupledPartition (Nat.log 2 n) (Nat.log 2 n)
-        decomp.projection.projectedPoly
-      ≤ mlBlockedSpdpRank decomp.restriction.restrictedPartition
-          (Nat.log 2 n) (Nat.log 2 n) decomp.projection.inputPoly :=
-        decomp.projection.projection_rank_mono
-          decomp.restriction.restrictedPartition target.coupledPartition
-          (Nat.log 2 n) (Nat.log 2 n)
-    _ = mlBlockedSpdpRank decomp.restriction.restrictedPartition
-          (Nat.log 2 n) (Nat.log 2 n) decomp.restriction.restrictedPoly := by
-        rw [decomp.projection_input_matches]
-    _ ≤ mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
-          (Nat.log 2 n) (Nat.log 2 n)
-          (compiledPoly (cook_levin_compilation M n hn2 htb hns)) :=
-        decomp.restriction.restriction_rank_mono (Nat.log 2 n) (Nat.log 2 n)
+    GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec target :=
+  extraction_from_semantics decomp.toSemantics
+    (ExtractionMapRankBridge.ofDecomposition decomp)
 
 /-- The decomposition obligation is already enough to discharge the extracted
 rank-transfer inequality. -/
@@ -466,6 +547,17 @@ theorem extraction_from_decomposition_obligation
     GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec target := by
   rcases hdecomp with ⟨decomp⟩
   exact extraction_from_decomposition decomp
+
+/-- A full decomposition also proves the smaller semantic obligation. -/
+theorem semantics_from_decomposition_obligation
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    {target : GodMoveExtractionTarget M n hn2 htb hns}
+    (hdecomp :
+      GodMoveExtractionDecompositionObligation M n hn2 htb hns hdec target) :
+    GodMoveExtractionSemanticObligation M n hn2 htb hns hdec target := by
+  rcases hdecomp with ⟨decomp⟩
+  exact ⟨decomp.toSemantics⟩
 
 /-! ## Narrowed Extraction Frontier
 
@@ -512,61 +604,86 @@ structure GodMoveHardInstanceData (M : DTM) (n : ℕ)
   hardInstance_size : hardInstance.clauses.length ≤ 10 * n ∧
     n / 30 ≤ hardInstance.clauses.length
 
-/-- Core extraction-side semantic witness for the God-Move.
+/-- Exact extraction-facing semantic data for the God-Move theorem seam.
 
-This is the exact DecidesSAT-dependent Route B data: choose the extraction-side
-target and provide a proof that the staged God-Move decomposition obligation
-holds for it. -/
-structure GodMoveSemanticWitness (M : DTM) (n : ℕ)
+This is the smallest data package still needed by downstream Route B
+packaging: the hard-instance applicability facts together with the chosen
+extraction-side coupled target. -/
+structure GodMoveSemanticTargetData (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) where
+    (hdec : DecidesSAT M)
+    extends GodMoveHardInstanceData M n hn2 htb hns hdec where
   extractionTarget : GodMoveExtractionTarget M n hn2 htb hns
-  extractionDecomposition :
-    GodMoveExtractionDecompositionObligation M n hn2 htb hns hdec extractionTarget
 
-namespace GodMoveSemanticWitness
+/-- Exact remaining staged semantic theorem on a chosen extraction target. -/
+abbrev GodMoveSemanticTargetTheorem (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M)
+    (targetData : GodMoveSemanticTargetData M n hn2 htb hns hdec) : Prop :=
+  GodMoveExtractionSemanticObligation M n hn2 htb hns hdec
+    targetData.extractionTarget
 
-/-- The witness immediately yields the extraction-side transfer inequality. -/
+namespace GodMoveSemanticTargetData
+
+/-- The staged target theorem yields the extraction-side transfer inequality on
+that same exact target once the generic rank wrappers are provided. -/
 theorem extraction
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {hdec : DecidesSAT M}
-    (w : GodMoveSemanticWitness M n hn2 htb hns hdec) :
-    GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec w.extractionTarget :=
-  extraction_from_decomposition_obligation w.extractionDecomposition
+    (targetData : GodMoveSemanticTargetData M n hn2 htb hns hdec)
+    (hsem : GodMoveSemanticTargetTheorem M n hn2 htb hns hdec targetData)
+    (bridge :
+      ∀ sem : ExtractionMapSemantics M n hn2 htb hns hdec targetData.extractionTarget,
+        ExtractionMapRankBridge sem) :
+    GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec targetData.extractionTarget :=
+by
+  rcases hsem with ⟨sem⟩
+  exact extraction_from_semantics sem (bridge sem)
 
-end GodMoveSemanticWitness
+end GodMoveSemanticTargetData
 
 /-- Exact remaining paper-faithful extraction theorem.
 
 Once the hard instance is fixed and shown satisfiable within the input budget,
-the only missing semantic claim is the existence of this extraction-side
-witness. The theorem remains data-valued because downstream Route B packaging
-still needs to recover the chosen target. -/
+the only remaining load-bearing claim is that there exists exact
+extraction-target data for which the staged semantic identification holds.
+The monotonicity layer sits separately as mathematical packaging over that
+semantic witness. -/
 abbrev GodMoveSemanticExtractionTheorem (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hdec : DecidesSAT M) : Type :=
-  GodMoveSemanticWitness M n hn2 htb hns hdec
+    (hdec : DecidesSAT M) : Prop :=
+  ∃ targetData : GodMoveSemanticTargetData M n hn2 htb hns hdec,
+    GodMoveSemanticTargetTheorem M n hn2 htb hns hdec targetData
 
 /-- Backwards-compatible alias re-indexing the extraction theorem by
 hard-instance applicability data. -/
 abbrev GodMoveSemanticTheorem (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M)
-    (_hard : GodMoveHardInstanceData M n hn2 htb hns hdec) : Type :=
+    (_hard : GodMoveHardInstanceData M n hn2 htb hns hdec) : Prop :=
   GodMoveSemanticExtractionTheorem M n hn2 htb hns hdec
 
-/-- Convenience bundle: hard-instance applicability data plus a witness of the
-exact semantic extraction theorem. This is kept because it is ergonomic for
+/-- Convenience bundle: hard-instance applicability data plus a proof of the
+exact semantic extraction theorem on explicit target data. This is kept because it is ergonomic for
 downstream packaging, but the actual missing theorem is now
 `GodMoveSemanticExtractionTheorem`; `GodMoveSemanticTheorem` remains only as a
 compatibility alias indexed by the hard-instance data. -/
 structure GodMoveSemanticGap (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M) where
-  toHardInstanceData : GodMoveHardInstanceData M n hn2 htb hns hdec
-  toSemanticWitness : GodMoveSemanticWitness M n hn2 htb hns hdec
+  toTargetData : GodMoveSemanticTargetData M n hn2 htb hns hdec
+  toSemanticTargetTheorem :
+    GodMoveSemanticTargetTheorem M n hn2 htb hns hdec toTargetData
 
 namespace GodMoveSemanticGap
+
+/-- Hard-instance applicability data carried by the semantic gap. -/
+abbrev toHardInstanceData
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
+    GodMoveHardInstanceData M n hn2 htb hns hdec :=
+  gap.toTargetData.toGodMoveHardInstanceData
 
 /-- The extraction-facing coupled sheet target carried by the gap. -/
 abbrev extractionTarget
@@ -574,26 +691,26 @@ abbrev extractionTarget
     {hdec : DecidesSAT M}
     (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
     GodMoveExtractionTarget M n hn2 htb hns :=
-  gap.toSemanticWitness.extractionTarget
+  gap.toTargetData.extractionTarget
 
-/-- The staged extraction witness carried by the gap. -/
-abbrev extractionDecomposition
+/-- The staged semantic theorem carried by the gap's exact target data. -/
+abbrev extractionSemantics
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {hdec : DecidesSAT M}
     (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
-    GodMoveExtractionDecompositionObligation M n hn2 htb hns hdec gap.extractionTarget :=
-  gap.toSemanticWitness.extractionDecomposition
+    GodMoveExtractionSemanticObligation M n hn2 htb hns hdec gap.extractionTarget :=
+  gap.toSemanticTargetTheorem
 
 /-- The bundled gap inhabits the exact extraction-only theorem package. -/
-def semantic_extraction_theorem
+theorem semantic_extraction_theorem
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {hdec : DecidesSAT M}
     (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
     GodMoveSemanticExtractionTheorem M n hn2 htb hns hdec :=
-  gap.toSemanticWitness
+  ⟨gap.toTargetData, gap.toSemanticTargetTheorem⟩
 
 /-- Compatibility projection to the older hard-instance-indexed theorem name. -/
-def semantic_theorem
+theorem semantic_theorem
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {hdec : DecidesSAT M}
     (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
@@ -604,11 +721,12 @@ def semantic_theorem
 noncomputable def ofSemanticExtractionTheorem
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {hdec : DecidesSAT M}
-    (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
     (hsem : GodMoveSemanticExtractionTheorem M n hn2 htb hns hdec) :
     GodMoveSemanticGap M n hn2 htb hns hdec :=
-  { toHardInstanceData := hard
-    toSemanticWitness := hsem }
+  let targetData := Classical.choose hsem
+  let htarget := Classical.choose_spec hsem
+  { toTargetData := targetData
+    toSemanticTargetTheorem := htarget }
 
 /-- Compatibility constructor from the older hard-instance-indexed theorem name. -/
 noncomputable def ofSemanticTheorem
@@ -617,7 +735,7 @@ noncomputable def ofSemanticTheorem
     (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
     (hsem : GodMoveSemanticTheorem M n hn2 htb hns hdec hard) :
     GodMoveSemanticGap M n hn2 htb hns hdec :=
-  ofSemanticExtractionTheorem hard hsem
+  ofSemanticExtractionTheorem hsem
 
 end GodMoveSemanticGap
 
@@ -645,20 +763,24 @@ theorem GodMoveSemanticGap.accepting_tableau
   rcases accepting_input_gives_tableau M n (by omega : n ≥ 1) input hacc with ⟨t, ht, hstate⟩
   exact ⟨input, t, ht, hstate⟩
 
-/-- The semantic gap directly yields the extraction-side rank transfer because
-it already packages the three-stage God-Move decomposition.
+/-- The semantic gap yields the extraction-side rank transfer once the generic
+rank wrappers are supplied for the carried staged semantic witness.
 
 This is the precise semantic role of `DecidesSAT` in the paper-faithful seam:
-`DecidesSAT` is used to justify the decomposition data, and that data then
-discharges the otherwise bare rank-transfer inequality. -/
+`DecidesSAT` is used to justify the staged semantic data, and the separate
+mathematical monotonicity wrappers then discharge the otherwise bare
+rank-transfer inequality. -/
 theorem GodMoveSemanticGap.extraction
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {hdec : DecidesSAT M}
-    (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
+    (gap : GodMoveSemanticGap M n hn2 htb hns hdec)
+    (bridge :
+      ∀ sem : ExtractionMapSemantics M n hn2 htb hns hdec gap.extractionTarget,
+        ExtractionMapRankBridge sem) :
     GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec gap.extractionTarget :=
-  gap.toSemanticWitness.extraction
+  gap.toTargetData.extraction gap.toSemanticTargetTheorem bridge
 
-/-- Forget the semantic witness and keep only the shared Route B target-side
+/-- Forget the semantic target theorem and keep only the shared Route B target-side
 data consumed by the strong and weakened NP packages. -/
 def GodMoveSemanticGap.targetData
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
@@ -770,6 +892,36 @@ abbrev GodMoveRouteB_WeakenedExtractionObligation (M : DTM) (n : ℕ)
     (target : GodMoveExtractionTarget M n hn2 htb hns) : Prop :=
   GodMoveRouteB_ExtractionTransfer M n hn2 htb hns hdec target
 
+@[simp] theorem GodMoveRouteB_WeakenedExtractionObligation_iff_transfer
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    {target : GodMoveExtractionTarget M n hn2 htb hns} :
+    GodMoveRouteB_WeakenedExtractionObligation M n hn2 htb hns hdec target ↔
+      GodMoveRouteB_ExtractionTransfer M n hn2 htb hns hdec target := Iff.rfl
+
+/-- The weakened Route B surface uses the same DecidesSAT-dependent extraction
+transfer on the same chosen target; only the separate NP lower bound changes. -/
+theorem GodMoveSemanticGap.weakened_extraction
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (gap : GodMoveSemanticGap M n hn2 htb hns hdec)
+    (bridge :
+      ∀ sem : ExtractionMapSemantics M n hn2 htb hns hdec gap.extractionTarget,
+        ExtractionMapRankBridge sem) :
+    GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec gap.extractionTarget :=
+  gap.extraction bridge
+
+@[simp] theorem routeB_weakened_from_semantic_gap_extractionObligation
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (gap : GodMoveSemanticGap M n hn2 htb hns hdec)
+    (np_lower : n ^ (Nat.log 2 n / 4) ≤
+      mlBlockedSpdpRank gap.extractionTarget.coupledPartition
+        (Nat.log 2 n) (Nat.log 2 n) gap.extractionTarget.coupledPoly) :
+    GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec
+        (routeB_weakened_from_semantic_gap gap np_lower).extractionTarget ↔
+      GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec gap.extractionTarget := Iff.rfl
+
 /-- Separation from weakened Route B NP-side data + extraction + P-side bound.
 
 Uses `n^(log n/4)` directly as the NP lower bound. The theorem does not hide
@@ -780,7 +932,7 @@ theorem separation_from_weakened_routeB
     (hdec : DecidesSAT M) (hn804 : n ≥ 2 ^ 804)
     (obs : GodMoveRouteB_WeakenedObligations M n hn2 htb hns)
     (extraction :
-      GodMoveRouteB_WeakenedExtractionObligation M n hn2 htb hns hdec obs.extractionTarget)
+      GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec obs.extractionTarget)
     (hP : mlBlockedSpdpRank
       (cook_levin_compilation M n hn2 htb hns).partition
       (Nat.log 2 n) (Nat.log 2 n)
@@ -865,8 +1017,9 @@ theorem routeB_weakened_np_from_pdMatrix
 ### Remaining gaps (narrowest form):
 1. **PD→blocked SPDP** (`pd_to_blocked_transfer`): linear algebra lemma
 2. **Semantic extraction theorem** (`GodMoveSemanticExtractionTheorem`)
-   equivalently, for a chosen target,
-   `GodMoveExtractionDecompositionObligation`
+   equivalently, exact extraction-target data
+   `GodMoveSemanticTargetData` plus its staged semantic obligation
+   `GodMoveSemanticTargetTheorem`
    (`GodMoveSemanticTheorem` remains as a compatibility alias indexed by
    `GodMoveHardInstanceData`)
 3. **Compiled-side transfer packaging**

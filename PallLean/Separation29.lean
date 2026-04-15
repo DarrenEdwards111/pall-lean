@@ -98,9 +98,11 @@ above and below by the two axioms.
     `GodMoveRouteB_ExtractionTransfer`
     (`GodMoveRouteB_ExtractionObligation`), and `GodMoveSemanticGap` is only
     the convenience bundle around hard-instance data plus a witness of that
-    extraction theorem. The P-side compiled bound is tracked separately from
-    that semantic seam. The older unconditional contradiction shell remains in
-    `PaperFaithfulSeparation.P_ne_NP_unconditional`. -/
+    extraction theorem. The weakened separation wrapper still tracks the
+    compiled-side transfer packaging and the P-side compiled bound separately
+    through `separation_from_weakened_routeB_via_decomposition` and
+    `compiled_rank_bound`. The older unconditional contradiction shell remains
+    in `PaperFaithfulSeparation.P_ne_NP_unconditional`. -/
 axiom charPolyRank (n : ℕ) : ℕ
 
 /-! ## Axiom 1 of 2: Theorem 140 (NP-side exponential lower bound)
@@ -503,7 +505,10 @@ theorem separation_from_concrete_data
    the derived bare transfer proposition
    `GodMoveRouteB_ExtractionTransfer`
    (`GodMoveRouteB_ExtractionObligation`) on the chosen target.
-   `GodMoveSemanticGap` is only the convenience bundle carrying that witness.
+   `GodMoveSemanticGap` is only the convenience bundle carrying hard-instance
+   data plus that witness; the weakened separation shell keeps the compiled
+   side explicit through `separation_from_weakened_routeB_via_decomposition`
+   and the remaining `compiled_rank_bound` hypothesis.
    That seam requires:
    - Formalizing the God-Move extraction map Π_Φ
    - Proving the restriction / projection output identification

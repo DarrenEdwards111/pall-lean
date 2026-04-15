@@ -273,7 +273,9 @@ this branch; for the live obligation tracker, see `PROOF-OBLIGATIONS.md` and
   that are standard-axiom only are
   `extraction_from_decomposition`,
   `routeB_weakened_np_from_pdMatrix`, and
-  `separation_from_weakened_routeB`
+  `separation_from_weakened_routeB`; this does NOT mean the Route B seam is
+  complete, only that these wrappers add no further custom axioms beyond their
+  hypotheses
 
 **Semantic gap (current unconditional Route B shell)**:
 `GodMoveReal.compiled_np_lower_bound_any_dtm` does NOT use `DecidesSAT M`.
@@ -290,7 +292,9 @@ the exact theorem-only semantic seam in `GodMoveCore.lean` is
 `GodMoveSemanticExtractionTheorem`, with
 `GodMoveRouteB_ExtractionTransfer`
 (`GodMoveRouteB_ExtractionObligation`, or the weakened alias using the same
-target) as the derived bare rank inequality on the chosen target.
+target and the same proposition via
+`routeB_weakened_from_semantic_gap_extractionObligation`) as the derived bare
+rank inequality on the chosen target.
 `GodMoveSemanticTheorem` remains only as the hard-instance-indexed
 compatibility alias. The
 obligation packages
@@ -303,7 +307,11 @@ supplies the NP-side bound, while `separation_from_weakened_routeB` still
 takes the extraction transfer as a separate DecidesSAT-dependent hypothesis.
 The exact remaining paper-faithful gaps there are:
 - `RouteBNPFromPdMatrix.pd_to_blocked_transfer`
-- `GodMoveSemanticTheorem`
+- `GodMoveSemanticExtractionTheorem` (equivalently the target-specific
+  `GodMoveExtractionDecompositionObligation`; `GodMoveSemanticTheorem` is only
+  the hard-instance-indexed compatibility alias)
+- the compiled-side transfer packaging tracked by
+  `separation_from_weakened_routeB_via_decomposition`
 - the P-side compiled-polynomial bound carried as `compiled_rank_bound`
 
 ### Separation29 route: 2 axioms + 1 opaque symbol, 0 sorry (auxiliary, NOT primary)
@@ -367,7 +375,8 @@ inside the same file-level sound-family / finite-range scaffold above.
 
 ### Totals (honest frontier, by route)
   Route B unconditional contradiction shell: 1 false axiom, 0 sorry
-  Route B paper-faithful theorem seams: 0 axioms, 0 sorry
+  Route B paper-faithful theorem declarations: 0 custom axioms, 0 sorry on the
+  wrappers themselves; semantic / transfer / P-side obligations still remain
   Separation29 shell: 2 axioms + 1 opaque symbol, 0 sorry
   Sound NP-side active assembled route: 4 axioms, 2 sorry
   Sound NP-side decomposed replacement block: 2 axioms, 1 local sorry
@@ -387,7 +396,10 @@ seam in `GodMoveCore.lean`:
 is fixed), with `GodMoveRouteB_ExtractionTransfer`
 (`GodMoveRouteB_ExtractionObligation`, with the weakened alias sharing the same
 target) as the bare inequality on the chosen extraction target.
-`GodMoveSemanticGap` is only the convenience bundle around that witness.
+`GodMoveSemanticGap` is only the convenience bundle around hard-instance data
+plus that witness, and the weakened separation shell still tracks the compiled
+side separately via `separation_from_weakened_routeB_via_decomposition` and the
+remaining `compiled_rank_bound` hypothesis.
 These assembly wrappers are shell-facing orientation lemmas, not that main
 Route B frontier. -/
 #print axioms axiom1_from_components

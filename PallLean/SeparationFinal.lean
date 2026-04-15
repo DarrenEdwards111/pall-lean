@@ -16,11 +16,13 @@ This file assembles the complete separation from PaperFaithfulSeparation.lean.
    On this branch it is theorem-level, reduced to the remaining Step B frontier
    `profile_symmetric_power_factorization`.
 
-2. `god_move_extraction_interface` — the paper's §29 witness-free extraction map
-   frontier, exposed in `PaperFaithfulSeparation.lean` as a typed abstract
-   source/target interface between compiled tableau space and coupled clause-sheet
-   space. The old quantitative lower bound `god_move_extraction_lemma` is now
-   derived from that interface.
+2. `GodMoveSemanticExtractionTheorem` — the narrowed §29 semantic frontier in
+   `GodMoveCore.lean`, stating the existence of an extraction witness target
+   together with its staged restriction/projection decomposition. The exported
+   compatibility wrapper `god_move_extraction_interface` in
+   `PaperFaithfulSeparation.lean` is only a forgetful view of this seam, and the
+   old quantitative lower bound `god_move_extraction_lemma` is derived from that
+   wrapper.
 
 This is cleaner and more paper-faithful than postulating the bundled lower bound
 as the primary object.
@@ -46,11 +48,13 @@ theorem p_side_verified (M : DTM) (n : ℕ) (hn : n ≥ 2)
 
     Semantic frontier count: TWO genuine
       1. p_side_rank_bound_for_cook_levin (profile compression, §9)
-      2. god_move_extraction_interface (typed §29 extraction interface)
+      2. GodMoveSemanticExtractionTheorem
+         (exported via the compatibility wrapper `god_move_extraction_interface`)
     Sorry count: ZERO
 
     The quantitative theorem `god_move_extraction_lemma` is now derived from the
-    typed interface rather than postulated directly.
+    compatibility wrapper around the narrower semantic extraction seam rather
+    than postulated directly.
 
     Both frontiers use the product polynomial ∏(1-Cᵢ) from the paper (§17.1).
     The product form is essential:

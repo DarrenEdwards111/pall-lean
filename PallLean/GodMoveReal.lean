@@ -376,9 +376,14 @@ def godMoveStagedExtractionExactTarget (M : DTM) (n : ℕ)
     godMoveStagedExtractionTarget M n hn2 htb hns coupledVars map target := by
   rfl
 
-/-- The typed God-Move extraction packages all components of the paper's §29
-extraction into a single record: the coupled space data, the staged map,
+/-- The typed God-Move extraction packages all components of the current §29
+surface into a single record: the coupled space data, the staged map,
 the extraction correctness proofs, and the quantitative bounds.
+
+In the current split, the semantic role of `DecidesSAT` is only upstream in the
+construction of the staged extraction data. The quantitative fields here are
+packaged alongside that construction, but they are logically separate from the
+`DecidesSAT`-driven semantic seam.
 
 The target_lower and rank_transfer fields are stated with inline propositions
 to avoid circular dependencies. -/
@@ -3138,13 +3143,16 @@ theorem godMoveConstruction_exists_placeholder_frontier_iff_missing
 
 /-- **Typed God-Move extraction frontier**.
 
-This is the paper-faithful semantic frontier for §29 in its explicit typed form:
-for a machine deciding SAT, the compiled Cook-Levin polynomial admits a witness-
-free, instance-uniform, block-local staged extraction to a coupled clause-sheet
-object with the required NP-side lower bound and rank transfer.
+This is the current explicit typed package for §29: a staged extraction object
+plus separately attached quantitative fields.
+
+The load-bearing role of `DecidesSAT` on this route is only the staged
+extraction side, namely producing the accepting-computation-driven target/map
+data. The NP-side lower bound and final rank transfer are packaged here as the
+current quantitative upgrade, not as extra consequences of `DecidesSAT` itself.
 
 The abstract interface in `PaperFaithfulSeparation` should be viewed as the
-forgetful image of this typed theorem. The intended route is now explicitly:
+forgetful image of this typed package. The intended route remains:
 construction first, quantitative upgrade second. -/
 noncomputable def godMoveTypedExtraction_exists (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)

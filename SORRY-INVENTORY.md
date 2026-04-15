@@ -178,60 +178,76 @@ changes in nearby Route B files, but this note is only classifying the current
 `GodMoveCore` movement. That movement is a **semantic interface refactor**, not
 a shell-cleanup pass.
 
-What the in-flight edit is trying to make explicit:
+What the live edit now makes explicit:
 
-- `GodMoveRouteB_TargetData`: packages the hard-instance bookkeeping together
-  with the extraction-facing coupled-sheet target
-- `GodMoveRouteB_ExtractionTransfer`: names the DecidesSAT-dependent rank
-  transfer separately from the NP-side lower-bound package
-- `GodMoveRouteB_ExtractionObligation`: is now just the factored transfer seam
-  on `GodMoveExtractionTarget`
+- `GodMoveSemanticExtractionTheorem`: the exact remaining paper-faithful
+  extraction theorem, returning the chosen
+  `GodMoveExtractionTarget` together with the staged semantic witness for it
+- `GodMoveExtractionDecompositionObligation`: the target-local staged
+  decomposition obligation that is equivalent to the extraction-side transfer
+  once a target has been chosen
+- `GodMoveSemanticTheorem`: only the hard-instance-indexed compatibility alias,
+  not the real progress unit
 
-Why this matters semantically:
+Real semantic-core progress to count:
 
-- the old Route B records bundled hard-instance data, target polynomial data,
-  and NP lower bounds in a way that made it easy for status text to slide into
-  talking as if the entire weakened separation shell had advanced
-- the live refactor makes the real theorem boundary sharper:
-  NP-side progress and extraction-side progress are different kinds of work
-- this is a genuine semantic-tracker improvement because it separates:
-  1. target-side / NP-side data packaging
-  2. the still-load-bearing DecidesSAT extraction seam
-  3. the downstream wrapper theorems consuming those pieces
+- the actual DecidesSAT-dependent seam is now stated on the extraction witness
+  itself, not blurred together with hard-instance applicability bookkeeping or
+  downstream contradiction wrappers
+- the tracker can now distinguish the real missing semantic object
+  from the compatibility shell that reindexes or consumes it
+- this is genuine semantic-core inventory progress because the smallest missing
+  theorem boundary is sharper and more paper-faithful than before
 
-Honest current state of that refactor:
+Wrapper churn that should receive zero milestone credit:
 
-- it is landed as a documentation/interface clarification pass
-- `~/.elan/bin/lake env lean PallLean/GodMoveCore.lean` now elaborates
-- the current validated milestone is wording/package honesty, not a new
-  theorem discharge:
-  - the weakened Route B surface is described as
-    shared target-side data plus a separate weakened NP lower bound
-  - the DecidesSAT-dependent seam is described separately as the extraction
-    obligation on that target
-  - downstream contradiction theorems are described as consuming those pieces
-    explicitly rather than silently bundling them
-- so the honest inventory claim is:
-  this delta sharpens the Route B theorem/interface inventory and removes
-  stale overstatements, but it does **not** close any of the remaining
-  paper-faithful semantic or bridge gaps
+- `GodMoveRouteB_TargetData`, `GodMoveRouteB_Obligations`,
+  `GodMoveRouteB_WeakenedObligations`, and the separation wrappers are still
+  useful packaging, but they are downstream consumers of the semantic seam
+- repackaging the contradiction shell or rethreading NP-side data does **not**
+  by itself move the paper-faithful semantic frontier
+- compatibility aliases and convenience bundles should be tracked as interface
+  ergonomics only, not as separate theorem discharge progress
 
-### New structures and theorems
+Honest current state:
 
-**GodMoveCore.lean** additions:
+- the semantic-core improvement is landed at the theorem/interface level
+- the validated gain is inventory honesty about the exact extraction theorem
+  seam, not a new witness construction
+- so the correct status claim is:
+  the Route B tracker is now more faithful about where the semantic core lives,
+  but no new paper-facing semantic theorem has been proved
+
+### Live Route B theorem inventory
+
+#### Semantic core
+
+- `GodMoveSemanticExtractionTheorem`: exact remaining extraction-side theorem
+  frontier
+- `GodMoveExtractionDecompositionObligation`: equivalent target-local staged
+  obligation for a chosen extraction target
+- `GodMoveSemanticTheorem`: compatibility alias only
+- `GodMoveSemanticGap`: convenience bundle carrying hard-instance applicability
+  data plus the extraction witness
+
+#### Wrapper / packaging layer (not separate milestone credit)
+
+- `GodMoveRouteB_TargetData`: shared Route B hard-instance plus
+  extraction-target package
+- `GodMoveRouteB_ExtractionTransfer`: factored name for the extraction-side
+  rank-transfer claim on a chosen target
+- `GodMoveRouteB_WeakenedObligations`: weakened NP-side lower-bound wrapper
+- `separation_from_weakened_routeB`: contradiction wrapper consuming separate
+  NP-side and extraction-side inputs
+- `separation_from_weakened_routeB_via_decomposition`: same contradiction shell
+  with the semantic seam stated directly as a decomposition obligation
+
+#### Other additions still present in `GodMoveCore.lean`
+
 - `ExtractionRestrictionStage`: typed restriction with rank monotonicity
 - `ExtractionProjectionStage`: typed projection with rank monotonicity
 - `ExtractionMapDecomposition`: three-stage extraction map composite
 - `extraction_from_decomposition`: compositionality lemma (0 custom axioms)
-- `GodMoveSemanticGap`: narrowest semantic frontier for Route B
-- `GodMoveRouteB_TargetData`: shared Route B hard-instance plus
-  extraction-target package
-- `GodMoveRouteB_ExtractionTransfer`: factored name for the extraction-side
-  rank-transfer claim
-- `GodMoveRouteB_WeakenedObligations`: uses n^(log n/4) instead of C(n/3, log n)
-- `separation_from_weakened_routeB`: separation from weakened Route B (0 custom axioms)
-- `separation_from_weakened_routeB_via_decomposition`: same contradiction with
-  the semantic seam stated directly as a decomposition obligation (0 custom axioms)
 - `RouteBNPFromPdMatrix`: PD-matrix NP data with explicit bridge gap
 - `routeB_weakened_np_from_pdMatrix`: derives NP bound from PD data (0 custom axioms)
 
