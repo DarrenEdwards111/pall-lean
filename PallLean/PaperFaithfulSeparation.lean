@@ -507,4 +507,13 @@ theorem P_ne_NP_unconditional : ∀ (h : PeqNP_Paper), False := by
   exact absurd hcontra
     (not_le_of_gt (Nat.pow_lt_pow_right (by omega : 1 < n) (by omega : 200 < 201)))
 
+/-! ## Axiom audit
+
+The NP-side (God-Move + identity minor) is axiom-free beyond standard Lean.
+Only the P-side profile compression introduces a custom axiom. -/
+#print axioms god_move_identity_minor_axiom
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+#print axioms P_ne_NP_unconditional
+-- Expected: the above + spdp_profile_generators (1 custom axiom)
+
 end PaperFaithfulSeparation
