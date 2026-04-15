@@ -24,44 +24,18 @@ The active route compiles without global axioms and without active-route
 `sorry`, but the final theorem is still conditional on an explicit assumptions
 bundle:
 
-- NP-side obligation:
-  `selCon_kronecker_data_logscale`
 - P-side obligation:
   `theorem216_p_obligation`
 
-So the live frontier is an **explicit two-obligation boundary**, not a claim
+The NP side is now built canonically inside the active final route from
+`selCon_kronecker_data_logscale_from_canonical_idxList`.
+
+So the live frontier is an **explicit one-obligation boundary**, not a claim
 that the whole route is completely discharged.
 
 ## Remaining obligations
 
-### 1. NP-side obligation
-
-Name:
-
-- `latent_hard_witness_logscale`
-
-Meaning:
-
-- direct identity-minor / Kronecker-data lower bound on
-  `latentCompiledPoly` at contradiction scale
-
-Primary file:
-
-- [PallLean/LatentWitnessMinorDecomp.lean](/tmp/pall-lean/PallLean/LatentWitnessMinorDecomp.lean)
-
-What is already in place:
-
-- selector derivative hit/miss infrastructure
-- iterated derivative closed forms on finite selCon products
-- row scaffolding for Kronecker assembly
-- choose-rank closure and numeric closure infrastructure
-
-What remains:
-
-- complete the coefficient-law / Kronecker-data assembly so the direct NP lower
-  bound is fully proved rather than passed in as data
-
-### 2. P-side obligation
+### 1. P-side obligation
 
 Name:
 
@@ -111,10 +85,7 @@ Stay on the latent route.
 
 Best next moves:
 
-1. NP side:
-   finish the Kronecker coefficient-law assembly in
-   `LatentWitnessMinorDecomp.lean`
-2. P side:
+1. P side:
    finish the final profile-assembly theorem in
    `LatentWidthRankDecomp.lean`
 

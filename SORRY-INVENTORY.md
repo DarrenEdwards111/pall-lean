@@ -24,29 +24,27 @@ The active final contradiction theorem is:
 This theorem is **axiom-free in Lean syntax**, but it is still **conditional on
 an explicit assumptions bundle**:
 
-- NP-side obligation: `selCon_kronecker_data_logscale`
 - P-side obligation: `theorem216_p_obligation`
 
 So the honest status is:
 
 - global axioms on the active route: `0`
 - active-route `sorry`: `0`
-- explicit paper-facing obligations still required to close the route: `2`
+- explicit paper-facing obligations still required to close the route: `1`
 
 ## Active paper-facing frontier
 
 The remaining mathematical frontier is packaged in
 [PROOF-OBLIGATIONS.md](/tmp/pall-lean/PROOF-OBLIGATIONS.md).
 
-At the top level there are **two** remaining obligations:
+At the top level there is **one** remaining external obligation:
 
-1. `latent_hard_witness_logscale`
-   - NP-side identity-minor / Kronecker-data lower bound on
-     `latentCompiledPoly`
-2. `latent_profile_assembly_logscale`
+1. `latent_profile_assembly_logscale`
    - P-side Width⇒Rank profile-assembly bound at log scale
 
-These are the real unresolved items on the active branch.
+The NP side is now built canonically inside the route from the selector
+closed-form package, so it is no longer an external assumption on the active
+final theorem.
 
 ## How this relates to the paper
 

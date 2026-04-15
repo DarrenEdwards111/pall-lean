@@ -17,19 +17,18 @@ This file tracks the **only remaining paper-facing obligations** on the active p
 This theorem is now **axiom-free** in Lean syntax and depends on an explicit assumptions bundle:
 
 - `LatentCompilerFinalRoute.LogscaleObligations`
-  - NP part:
-    - `npData : selCon_kronecker_data_logscale ...`
   - P part:
     - `pAsm : theorem216_p_obligation ...` (paper-faithful profile-data package)
 
 The route lemmas reassemble NP/P parts into the final contradiction chain using:
+- `selCon_kronecker_data_logscale_from_canonical_idxList`
 - `latent_hard_witness_logscale_from_kronecker`
 - `latent_hard_witness_logscale` (NP lower bound)
 - `theorem216_p_obligation` (alias of `obligation2_p_logscale`)
 
 ---
 
-## Obligation 1 (NP side)
+## NP Side
 
 ### Name
 `obligation1_np_logscale` (=`latent_hard_witness_logscale`)
@@ -58,26 +57,17 @@ New κ-level assembly theorems proved:
 This gives the closed-form iterated derivative formula over finite selCon products
 and full `selConSheet`, matching the paper's product-derivative backbone.
 
-Remaining NP step (now decomposed):
-- construct `selCon_kronecker_coeff_law_logscale`
-- row scaffolding has explicit constructor path:
-  `selCon_kronecker_rows_data_logscale` ->
-  `selCon_kronecker_rows_logscale_from_index_lists`
-- sign/tag scaffolding now explicit:
-  `selCon_signOfList`, `selCon_tagMono`,
-  `selCon_kronecker_signs_logscale_from_index_lists`
-- coefficient-law assembly skeleton added:
-  `selCon_kronecker_coeff_law_logscale_from_index_lists`
-- then assemble via `selCon_kronecker_data_logscale_from_parts`
-
 New closure theorems proved:
 - `selCon_choose_rank_logscale_from_matrix`
 - `selCon_choose_rank_logscale_from_data`
 - `selCon_kronecker_linear_independence_logscale_from_data_numeric`
+- `selCon_kronecker_coeff_law_logscale_from_canonical_idxList`
+- `selCon_kronecker_data_logscale_from_canonical_idxList`
+- `selCon_kronecker_linear_independence_logscale_from_canonical_idxList`
 
 Numeric choose closure is now proved internally (`selCon_choose_numeric_logscale_proved`).
-So once Kronecker coefficient data is constructed, full NP package closure follows
-immediately and plugs into `latent_hard_witness_logscale_from_kronecker`.
+The Kronecker coefficient data is now built canonically inside the active route,
+so the NP side is no longer an external paper-facing obligation.
 
 ### Location
 `PallLean/LatentWitnessMinorDecomp.lean`
@@ -92,7 +82,7 @@ This is the NP hardness side (identity-minor / extracted witness lower bound) sp
 
 ---
 
-## Obligation 2 (P side)
+## Remaining Obligation (P side)
 
 ### Name
 `obligation2_p_logscale` (=`latent_profile_assembly_logscale`)
@@ -131,7 +121,7 @@ The final contradiction theorem now uses:
 2. P upper bound at log-scale,
 3. numeric separation (`n^200 < n^(log₂ n / 4)` for `n ≥ 2^804`).
 
-No hidden global axioms are required in the active files. The two obligations are explicit assumptions in theorem arguments.
+No hidden global axioms are required in the active files. The only remaining explicit assumption on the active final route is the P-side package.
 
 ---
 
@@ -139,7 +129,6 @@ No hidden global axioms are required in the active files. The two obligations ar
 
 To close the route completely, provide proofs of:
 
-- [ ] `latent_hard_witness_logscale`
 - [ ] `latent_profile_assembly_logscale`
 
-Once both are proved, `P_neq_NP_latent_decomp` is fully discharged without extra assumptions.
+Once that is proved, `P_neq_NP_latent_decomp` is fully discharged without extra assumptions.
