@@ -1,4 +1,6 @@
 import PallLean.CookLevinDefs
+import PallLean.PartialDerivMatrix
+import PallLean.BinomialBound2
 import Mathlib.Tactic
 
 namespace PaperFaithfulSeparation
@@ -459,5 +461,110 @@ def routeB_from_semantic_gap
   coupledPartition := gap.coupledPartition
   coupledPoly := gap.coupledPoly
   target_lower := np_lower
+
+/-! ## Characteristic-Polynomial to Route B NP Bridge
+
+The sound Ramanujan-Tseitin encoding provides pdMatrixRank ≥ n^(log n/4).
+Route B needs mlBlockedSpdpRank ≥ n^(log n/4) on the coupled polynomial.
+
+The bridge requires:
+1. A BlockPartition compatible with the VarPartition from the sound encoding
+2. That the PD-rank lower bound transfers to blocked SPDP rank
+
+In the paper, compatibility follows from the Ramanujan graph's girth Ω(log n):
+distinct clause neighborhoods produce block-admissible derivative lists.
+
+### Weakened Route B (sufficient for separation)
+
+The original Route B target_lower uses C(n/3, log n), which is stronger than
+what the sound encoding provides (C(n/30, log n) ≥ n^(log n/4)). Since
+n^(log n/4) suffices for the exponent contradiction at n = 2^804, we provide
+a weakened formulation that is directly connected to the sound encoding. -/
+
+/-- Route B obligations with weakened NP lower bound.
+
+Uses `n^(log n/4) ≤ rank` instead of `C(n/3, log n) ≤ rank`.
+Sufficient for separation since the contradiction uses n^201 ≤ n^200. -/
+structure GodMoveRouteB_WeakenedObligations (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  hardInstance : ThreeCNF
+  hardInstance_size : hardInstance.clauses.length ≤ 10 * n ∧
+    n / 30 ≤ hardInstance.clauses.length
+  coupledVars : ℕ
+  coupledVars_lt : coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars
+  coupledPartition : BlockPartition coupledVars
+  coupledPoly : MvPolynomial (Fin coupledVars) ℚ
+  target_lower_weakened :
+    n ^ (Nat.log 2 n / 4) ≤
+      mlBlockedSpdpRank coupledPartition (Nat.log 2 n) (Nat.log 2 n) coupledPoly
+
+/-- Weakened extraction obligation. -/
+def GodMoveRouteB_WeakenedExtractionObligation (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (_hdec : DecidesSAT M)
+    (obs : GodMoveRouteB_WeakenedObligations M n hn2 htb hns) : Prop :=
+  mlBlockedSpdpRank obs.coupledPartition (Nat.log 2 n) (Nat.log 2 n) obs.coupledPoly ≤
+    mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+
+/-- Separation from weakened Route B obligations + extraction + P-side bound.
+
+Uses n^(log n/4) directly as the NP lower bound. -/
+theorem separation_from_weakened_routeB
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) (hn804 : n ≥ 2 ^ 804)
+    (obs : GodMoveRouteB_WeakenedObligations M n hn2 htb hns)
+    (extraction : GodMoveRouteB_WeakenedExtractionObligation M n hn2 htb hns hdec obs)
+    (hP : mlBlockedSpdpRank
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn2 htb hns)) ≤ n ^ 200) :
+    False := by
+  have hchain : n ^ (Nat.log 2 n / 4) ≤ n ^ 200 :=
+    le_trans obs.target_lower_weakened (le_trans extraction hP)
+  have hlog : 804 ≤ Nat.log 2 n :=
+    Nat.le_log_of_pow_le (by norm_num : 1 < 2) hn804
+  have hdiv : 201 ≤ Nat.log 2 n / 4 := by omega
+  have hcontra : n ^ 201 ≤ n ^ 200 :=
+    le_trans (Nat.pow_le_pow_right (by omega : 1 ≤ n) hdiv) hchain
+  exact absurd hcontra
+    (not_le_of_gt (Nat.pow_lt_pow_right (by omega : 1 < n) (by omega : 200 < 201)))
+
+/-- NP-side data package for weakened Route B, stated in terms of PD-matrix rank
+(what the sound encoding provides).
+
+The single bridge gap is `pd_to_blocked_transfer`: PD rank → blocked SPDP rank
+under the Ramanujan graph's natural block structure. -/
+structure RouteBNPFromPdMatrix (n numVars : ℕ) where
+  varPart : PartialDerivMatrix.VarPartition numVars
+  poly : MvPolynomial (Fin numVars) ℚ
+  S_linear : n / 30 ≤ varPart.S.card
+  pd_lower : n ^ (Nat.log 2 n / 4) ≤ PartialDerivMatrix.pdMatrixRank ℚ varPart poly
+  blockPart : BlockPartition numVars
+  /-- Bridge gap: PD rank transfers to blocked SPDP rank.
+      Follows from Ramanujan girth Ω(log n) ensuring block-admissibility. -/
+  pd_to_blocked_transfer :
+    PartialDerivMatrix.pdMatrixRank ℚ varPart poly ≤
+      mlBlockedSpdpRank blockPart (Nat.log 2 n) (Nat.log 2 n) poly
+
+/-- From PD-matrix NP data, derive the weakened Route B NP bound. -/
+theorem routeB_weakened_np_from_pdMatrix
+    {n numVars : ℕ}
+    (d : RouteBNPFromPdMatrix n numVars) :
+    n ^ (Nat.log 2 n / 4) ≤
+      mlBlockedSpdpRank d.blockPart (Nat.log 2 n) (Nat.log 2 n) d.poly :=
+  le_trans d.pd_lower d.pd_to_blocked_transfer
+
+/-! ## Summary: Exact theorem seams for Route B
+
+### Discharged (modulo sound encoding axioms):
+- **NP PD lower bound**: n^(log n/4) ≤ pdMatrixRank (sound_theorem72_condensed)
+
+### Remaining gaps (narrowest form):
+1. **PD→blocked SPDP** (`pd_to_blocked_transfer`): linear algebra lemma
+2. **Extraction map** (`GodMoveSemanticGap`): genuine semantic frontier (DecidesSAT)
+3. **P-side** (`compiled_rank_bound`): BP compilation axiom
+-/
 
 end PaperFaithfulSeparation
