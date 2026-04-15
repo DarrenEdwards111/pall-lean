@@ -328,30 +328,6 @@ theorem characteristic_pd_clauseSystem_of_pack_numClauses
       pack.selected.length := by
   rfl
 
-/-- Remaining large-instance algebraic frontier: for the concrete Tseitin
-clause system of a disjoint packing, realize the rows of the derived Kronecker
-system as iterated derivatives of the characteristic polynomial. -/
-structure CharacteristicPackingRowWitness
-    (F : Type*) [Field F] [CharZero F]
-    (fam : RamanujanTseitinFamily F)
-    (n : ℕ) (hn : n ≥ 6)
-    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) where
-  rowDerivs : Fin (Nat.choose pack.selected.length (Nat.log 2 n)) →
-    List (Fin (fam.encoding n hn).numVars)
-  rowDerivs_length : ∀ i,
-    (rowDerivs i).length = (fam.partition n hn).part.S.card
-  rowDerivs_in_S : ∀ i v, v ∈ rowDerivs i → v ∈ (fam.partition n hn).part.S
-  rows_eq_iterDeriv : ∀ i,
-    (characteristic_pd_kronecker_of_rawClauseSystem F fam n hn
-      (expanderPocketWitness_of_disjointPacking (fam.encoding n hn) pack)
-      (characteristic_pd_clauseSystem_of_pack F fam n hn pack)
-      (characteristic_pd_clauseSystem_of_pack_numVars F fam n hn pack)
-      (by
-        change pack.selected.length =
-          (expanderPocketWitness_of_disjointPacking (fam.encoding n hn) pack).pocketCount
-        rfl)).rows i =
-        SPDP.iterDerivList (rowDerivs i) (fam.encoding n hn).charPoly
-
 /-- Characteristic-polynomial signed-minor witness built from expander pockets.
 
 This is the paper-faithful proof target for the hard theorem:
@@ -454,39 +430,25 @@ theorem CharacteristicPdPocketWitness.rank_bound
 
 /-- **Axiom (remaining characteristic-polynomial frontier)**: for the concrete
 Tseitin clause system attached to the greedy disjoint packing, the rows of the
-derived identity-minor Kronecker system are realized by iterated derivatives
-of the characteristic polynomial. -/
-axiom characteristic_pd_rows_from_pack
+derived identity-minor Kronecker system lie in the PD column space of the
+characteristic polynomial. This is the exact residual bridge needed by the
+current lower-bound proof. -/
+axiom characteristic_pd_rows_mem_from_pack
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
     (n : ℕ) (hn : n ≥ 6)
     (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
-    CharacteristicPackingRowWitness F fam n hn pack
-
-/-- Reassemble the two remaining algebraic frontiers into the minor witness
-record used by the final lower-bound step. -/
-noncomputable def characteristicPdMinorWitness_from_pack_axiom
-    (F : Type*) [Field F] [CharZero F]
-    (fam : RamanujanTseitinFamily F)
-    (n : ℕ) (hn : n ≥ 6)
-    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
-    CharacteristicPdMinorWitness F fam n hn
-      (expanderPocketWitness_of_disjointPacking (fam.encoding n hn) pack) := by
-  let pockets := expanderPocketWitness_of_disjointPacking (fam.encoding n hn) pack
-  let rwit := characteristic_pd_rows_from_pack F fam n hn pack
-  let system := characteristic_pd_kronecker_of_rawClauseSystem F fam n hn pockets
-    (characteristic_pd_clauseSystem_of_pack F fam n hn pack)
-    (characteristic_pd_clauseSystem_of_pack_numVars F fam n hn pack)
-    (by
-      change pack.selected.length = pockets.pocketCount
-      rfl)
-  refine {
-    system := system
-    rowDerivs := rwit.rowDerivs
-    rowDerivs_length := rwit.rowDerivs_length
-    rowDerivs_in_S := rwit.rowDerivs_in_S
-    rows_eq_iterDeriv := rwit.rows_eq_iterDeriv
-  }
+    ∀ i,
+      (characteristic_pd_kronecker_of_rawClauseSystem F fam n hn
+        (expanderPocketWitness_of_disjointPacking (fam.encoding n hn) pack)
+        (characteristic_pd_clauseSystem_of_pack F fam n hn pack)
+        (characteristic_pd_clauseSystem_of_pack_numVars F fam n hn pack)
+        (by
+          change pack.selected.length =
+            (expanderPocketWitness_of_disjointPacking (fam.encoding n hn) pack).pocketCount
+          rfl)).rows i ∈
+        PartialDerivMatrix.pdColumnSpace
+          (fam.partition n hn).part (fam.encoding n hn).charPoly
 
 /-- **Axiom (finite exceptional range)**: the characteristic-polynomial PD
 lower bound for the finitely many small sizes `6 ≤ n < 2^20`. The asymptotic
@@ -540,11 +502,16 @@ theorem tseitin_pdMatrix_lower_bound_large
     Tseitin.disjoint_packing_exists (fam.encoding n hn).formula hformula
   let pockets : ExpanderPocketWitness (fam.encoding n hn) :=
     expanderPocketWitness_of_disjointPacking (fam.encoding n hn) pack
-  let minor := characteristicPdMinorWitness_from_pack_axiom F fam n hn pack
+  let system := characteristic_pd_kronecker_of_rawClauseSystem F fam n hn pockets
+    (characteristic_pd_clauseSystem_of_pack F fam n hn pack)
+    (characteristic_pd_clauseSystem_of_pack_numVars F fam n hn pack)
+    (by
+      change pack.selected.length = pockets.pocketCount
+      rfl)
   let kw : PdMatrixKroneckerWitness F fam n hn := {
     N := Nat.choose pockets.pocketCount (Nat.log 2 n)
-    system := minor.system
-    rows_mem := minor.rows_mem
+    system := system
+    rows_mem := characteristic_pd_rows_mem_from_pack F fam n hn pack
     quantitative := pocket_count_quantitative F fam n hn hlarge pockets
   }
   exact PdMatrixKroneckerWitness.rank_bound F kw
