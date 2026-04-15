@@ -310,6 +310,32 @@ structure GodMoveTypedTarget (coupledVars : ℕ) where
   partition : BlockPartition coupledVars
   poly : MvPolynomial (Fin coupledVars) ℚ
 
+/-- Repackage a local typed target as the exact extraction target shape used in
+`GodMoveCore.lean`. -/
+def GodMoveTypedTarget.toExtractionTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {coupledVars : ℕ} (target : GodMoveTypedTarget coupledVars)
+    (hvars_lt : coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars) :
+    GodMoveExtractionTarget M n hn2 htb hns where
+  coupledVars := coupledVars
+  coupledVars_lt := hvars_lt
+  coupledPartition := target.partition
+  coupledPoly := target.poly
+
+@[simp] theorem GodMoveTypedTarget.toExtractionTarget_coupledPartition
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {coupledVars : ℕ} (target : GodMoveTypedTarget coupledVars)
+    (hvars_lt : coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars) :
+    (target.toExtractionTarget (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      hvars_lt).coupledPartition = target.partition := rfl
+
+@[simp] theorem GodMoveTypedTarget.toExtractionTarget_coupledPoly
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {coupledVars : ℕ} (target : GodMoveTypedTarget coupledVars)
+    (hvars_lt : coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars) :
+    (target.toExtractionTarget (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      hvars_lt).coupledPoly = target.poly := rfl
+
 /-- Desired staged extraction identity for the compiled polynomial.
 
 This packages the exact theorem shape we eventually want from the semantic God-
@@ -324,6 +350,31 @@ def godMoveStagedExtractionTarget (M : DTM) (n : ℕ)
       (map.projectFun
         (map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) =
     target.poly
+
+/-- The same staged theorem shape, stated directly on the exact core extraction
+target. -/
+def godMoveStagedExtractionExactTarget (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (target : GodMoveExtractionTarget M n hn2 htb hns)
+    (map : GodMoveTypedMap
+      (cook_levin_compilation M n hn2 htb hns).numVars target.coupledVars) : Prop :=
+  map.relabelFun
+      (map.projectFun
+        (map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) =
+    target.coupledPoly
+
+@[simp] theorem godMoveStagedExtractionExactTarget_toExtractionTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {coupledVars : ℕ}
+    (map : GodMoveTypedMap (cook_levin_compilation M n hn2 htb hns).numVars coupledVars)
+    (target : GodMoveTypedTarget coupledVars)
+    (hvars_lt : coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars) :
+    godMoveStagedExtractionExactTarget M n hn2 htb hns
+      (target.toExtractionTarget (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+        hvars_lt)
+      map ↔
+    godMoveStagedExtractionTarget M n hn2 htb hns coupledVars map target := by
+  rfl
 
 /-- The typed God-Move extraction packages all components of the paper's §29
 extraction into a single record: the coupled space data, the staged map,
@@ -371,6 +422,61 @@ structure GodMoveConstruction (M : DTM) (n : ℕ)
   target : GodMoveTypedTarget coupledVars
   staged_semantic_target :
     godMoveStagedExtractionTarget M n hn2 htb hns coupledVars map target
+
+/-- Repackage a staged construction target as the exact extraction target used
+by the core semantic-gap interface. -/
+def GodMoveConstruction.toExtractionTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hvars_lt : c.coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars) :
+    GodMoveExtractionTarget M n hn2 htb hns :=
+  c.target.toExtractionTarget (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns) hvars_lt
+
+@[simp] theorem GodMoveConstruction.toExtractionTarget_coupledPartition
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hvars_lt : c.coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars) :
+    (c.toExtractionTarget hvars_lt).coupledPartition = c.target.partition := rfl
+
+@[simp] theorem GodMoveConstruction.toExtractionTarget_coupledPoly
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hvars_lt : c.coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars) :
+    (c.toExtractionTarget hvars_lt).coupledPoly = c.target.poly := rfl
+
+/-- The local staged semantic equality can be read directly on the exact core
+extraction target induced by the construction. -/
+theorem GodMoveConstruction.staged_semantic_exact_target
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hvars_lt : c.coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars) :
+    godMoveStagedExtractionExactTarget M n hn2 htb hns (c.toExtractionTarget hvars_lt) c.map := by
+  simpa [GodMoveConstruction.toExtractionTarget] using c.staged_semantic_target
+
+/-- Exact semantic-gap target for a staged construction.
+
+This is the faithful handoff from the local construction layer to the core
+Route B semantic gap: the remaining obligation is to provide the paper's
+`ExtractionMapDecomposition` on the exact induced extraction target. -/
+def godMoveConstructionSemanticGapTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∃ hvars_lt : c.coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars,
+    GodMoveExtractionDecompositionObligation M n hn2 htb hns hdec
+      (c.toExtractionTarget hvars_lt)
+
+/-- Any witness of the exact semantic-gap target gives the extracted rank
+transfer on the same exact target. -/
+theorem godMoveConstructionSemanticGapTarget_extraction
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : PaperFaithfulSeparation.DecidesSAT M}
+    {c : GodMoveConstruction M n hn2 htb hns}
+    (hgap : godMoveConstructionSemanticGapTarget hdec c) :
+    ∃ hvars_lt : c.coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars,
+      GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec (c.toExtractionTarget hvars_lt) := by
+  rcases hgap with ⟨hvars_lt, hdecomp⟩
+  exact ⟨hvars_lt, extraction_from_decomposition_obligation hdecomp⟩
 
 /-- A paper-facing semantic target for a candidate God-Move construction.
 
@@ -1149,8 +1255,7 @@ equals (-1)^κ when S = T and 0 when S ≠ T, because:
 The number of block-admissible κ-subsets combined with shift-degree parameter
 ℓ=κ provides at least C(n,κ) independent generators (via the positive-definite
 intersection kernel matrix 2^|S∩T| and shift-augmented counting for block size
-3 partitions), establishing the rank bound. The DecidesSAT hypothesis ensures
-the transition skeleton constraints are structurally compatible.
+3 partitions), establishing the rank bound.
 
 The proof uses the booleanity-product Kronecker construction with the locality
 partition (block size 3) and shift-augmented counting, following the paper's
@@ -1161,15 +1266,18 @@ partition reduces the family of block-admissible subsets below the full
 `Nat.choose n κ` count, so the naive Kronecker family from booleanity factors
 alone cannot directly deliver the claimed lower bound. The intended extra source
 of independent structure is the machine-dependent transition layer, and thus the
-`DecidesSAT` hypothesis must become genuinely active in the construction, not
-just an ambient assumption. A first honest bridge now exists on the compiled
-side: `cook_levin_compilation_has_machine_dependent_constraint` proves that,
+`DecidesSAT` hypothesis must become genuinely active upstream in the paper-
+faithful seam, not just as an ambient assumption inside this combinatorial
+counting story. In `GodMoveCore.lean`, its precise role is to justify the
+acceptance-driven restriction/projection decomposition onto the coupled-sheet
+target; the lower bound is then attached separately to that extracted target.
+A first honest bridge now exists on the compiled side:
+`cook_levin_compilation_has_machine_dependent_constraint` proves that,
 whenever `0 < M.numStates`, the compiled constraint list contains a genuinely
 machine-dependent local constraint. So the real next theorem is not the full
-lower bound but a smaller bridge showing how the existence of such a
-transition-dependent compiled constraint yields additional admissible generator
-families or a stronger coefficient law beyond the pure booleanity/adjacency
-product argument. -/
+lower bound but a smaller bridge showing how such structure participates in the
+semantic extraction story or yields additional admissible generator families
+beyond the pure booleanity/adjacency product argument. -/
 
 /-- Small God-Move-facing bridge: the compiled object used in the NP-side target
 contains a genuinely machine-dependent local constraint whenever the machine has
@@ -2713,31 +2821,191 @@ theorem godMoveRestrictionFunctionNonidentityWitnessTarget_holds
     godMoveTypedMap_firstBehaviorPerturbation M n hn hdec htb hns, ?_⟩
   exact godMoveTypedMap_firstBehaviorPerturbation_is_nonidentity M n hn hdec htb hns
 
-/- The first behavior-perturbed typed map should now witness the corrected
-function-perturbation target. The remaining bridge is still genuinely tiny, but
-it should be finished with cleanly typed polynomial equalities rather than a
-rushed contradiction proof. The needed ingredients are already in hand:
+/-- First explicit full `GodMoveConstruction` built from the behavior-perturbed
+typed map.
 
-  1. `godMoveRestrictFun_firstPerturbation_nontrivial`
-  2. `godMoveRestrictFun_firstPerturbation ... 0 = 0`
-  3. `MvPolynomial.X_ne_zero v0`
+Unlike the identity placeholder, this construction keeps the target polynomial
+honestly synchronized with the staged map output, so the staged semantic target
+still closes definitionally even though the restriction stage is no longer the
+identity function. -/
+noncomputable def godMoveConstruction_firstBehaviorPerturbation
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveConstruction M n (by omega : n ≥ 2) htb hns := by
+  let T := cook_levin_compilation M n (by omega : n ≥ 2) htb hns
+  let map := godMoveTypedMap_firstBehaviorPerturbation M n hn hdec htb hns
+  let target : GodMoveTypedTarget T.numVars := {
+    partition := T.partition
+    poly := map.toFun (compiledPoly T)
+  }
+  refine {
+    coupledVars := T.numVars
+    map := map
+    target := target
+    staged_semantic_target := ?_
+  }
+  unfold godMoveStagedExtractionTarget
+  rfl
 
-The next turn can close this by writing that bridge carefully. -/
+/-- The first behavior-perturbed construction is still canonical in the file's
+paper-facing sense: it remains instance-uniform, witness-free, and block-local. -/
+theorem godMoveConstruction_firstBehaviorPerturbation_is_canonical_target
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveConstructionCanonicalTarget
+      (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns) := by
+  change
+    (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns).map.instance_uniform ∧
+    (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns).map.witness_free ∧
+    (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns).map.block_local
+  simp [godMoveConstruction_firstBehaviorPerturbation, godMoveTypedMap_firstBehaviorPerturbation]
 
-/- First explicit full `GodMoveConstruction` attempt from the perturbed typed map.
+/-- Typed comparison package for the first behavior-perturbed construction in
+the compiled ambient space. -/
+noncomputable def godMoveConstruction_firstBehaviorPerturbation_target_comparison
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveTargetCompiledComparison M n (by omega : n ≥ 2) htb hns
+      (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns) where
+  same_space := rfl
+  target_same_space := (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns).target
+  target_eq := rfl
 
-The raw data all lines up: we can build the perturbed restriction-data witness
-and the corresponding typed map while keeping projection/relabel/target
-identity-like. The next real blocker is exactly the staged semantic target for
-that map:
+/-- Projection-output comparison package for the first behavior-perturbed
+construction. -/
+noncomputable def godMoveConstruction_firstBehaviorPerturbation_projection_output_comparison
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveProjectionOutputComparison M n (by omega : n ≥ 2) htb hns
+      (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns) where
+  restricted_output :=
+    (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns).map.restrictFun
+      (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns))
+  restricted_output_eq := rfl
+  projection_output :=
+    (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns).map.projectFun
+      ((godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns).map.restrictFun
+        (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)))
+  projection_output_eq := rfl
 
-  map.relabelFun (map.projectFun (map.restrictFun compiledPoly)) = target.poly
+/-- Shared projection-stage comparison for the first behavior-perturbed
+construction against the identity placeholder ambient space. -/
+noncomputable def godMoveConstruction_firstBehaviorPerturbation_projection_shared_comparison
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveProjectionSharedComparison M n hn hdec htb hns
+      (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns) where
+  candidate_output :=
+    godMoveConstruction_firstBehaviorPerturbation_projection_output_comparison M n hn hdec htb hns
+  same_projected_vars := rfl
+  candidate_output_same_space :=
+    (godMoveConstruction_firstBehaviorPerturbation_projection_output_comparison
+      M n hn hdec htb hns).projection_output
+  candidate_output_eq := rfl
 
-This no longer closes by definitional simplification once the restriction stage
-is perturbed, even though the function-level maps are still identity. So the
-next honest lift is not more record assembly, but a small theorem explaining why
-the staged extraction identity still holds (or fails) for the first perturbed
-typed map. -/
+/-- Relabel-output comparison package for the first behavior-perturbed
+construction. -/
+noncomputable def godMoveConstruction_firstBehaviorPerturbation_relabel_output_comparison
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveRelabelOutputComparison M n (by omega : n ≥ 2) htb hns
+      (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns) where
+  projection_output :=
+    godMoveConstruction_firstBehaviorPerturbation_projection_output_comparison M n hn hdec htb hns
+  relabel_output :=
+    (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns).map.relabelFun
+      ((godMoveConstruction_firstBehaviorPerturbation_projection_output_comparison
+        M n hn hdec htb hns).projection_output)
+  relabel_output_eq := rfl
+
+/-- Shared relabel-stage comparison for the first behavior-perturbed
+construction against the identity placeholder ambient space. -/
+noncomputable def godMoveConstruction_firstBehaviorPerturbation_relabel_shared_comparison
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveRelabelSharedComparison M n hn hdec htb hns
+      (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns) where
+  candidate_output :=
+    godMoveConstruction_firstBehaviorPerturbation_relabel_output_comparison M n hn hdec htb hns
+  same_coupled_vars := rfl
+  candidate_output_same_space :=
+    (godMoveConstruction_firstBehaviorPerturbation_relabel_output_comparison
+      M n hn hdec htb hns).relabel_output
+  candidate_output_eq := rfl
+
+/-- The first behavior-perturbed construction witnesses the existing
+construction-level one-stage perturbation target.
+
+This is the first honest full-construction milestone beyond the identity
+placeholder: the staged map/target pair is well-typed and semantically
+coherent, and the restriction stage is genuinely changed. -/
+theorem godMoveConstruction_firstBehaviorPerturbation_is_one_stage_perturbation
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveOneStagePerturbationTarget M n hn hdec htb hns
+      (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns) := by
+  refine ⟨
+    godMoveConstruction_firstBehaviorPerturbation_target_comparison M n hn hdec htb hns,
+    godMoveConstruction_firstBehaviorPerturbation_projection_shared_comparison M n hn hdec htb hns,
+    godMoveConstruction_firstBehaviorPerturbation_relabel_shared_comparison M n hn hdec htb hns,
+    Or.inl ?_⟩
+  change (godMoveTypedMap_firstBehaviorPerturbation M n hn hdec htb hns).restrictionData ≠
+    (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData
+  exact godMoveRestrictionData_firstPerturbation_ne_identity M n hn hdec htb hns
+
+/-- The first behavior-perturbed construction already inhabits the weaker
+restriction-perturbation candidate shell. -/
+theorem godMoveConstruction_firstBehaviorPerturbation_is_restriction_perturbation_candidate
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveRestrictionPerturbationCandidateTarget M n hn hdec htb hns
+      (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns) := by
+  refine ⟨
+    godMoveConstruction_firstBehaviorPerturbation_is_canonical_target M n hn hdec htb hns,
+    ?_⟩
+  change (godMoveTypedMap_firstBehaviorPerturbation M n hn hdec htb hns).restrictionData ≠
+    (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData
+  exact godMoveRestrictionData_firstPerturbation_ne_identity M n hn hdec htb hns
+
+/-- The first behavior-perturbed construction upgrades the earlier raw
+restriction-function witness target to a genuine construction-level witness. -/
+theorem godMoveRestrictionPerturbationWitnessTarget_holds
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveRestrictionPerturbationWitnessTarget M n hn hdec htb hns := by
+  refine ⟨godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns, ?_⟩
+  exact godMoveConstruction_firstBehaviorPerturbation_is_restriction_perturbation_candidate
+    M n hn hdec htb hns
 
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. Together with

@@ -512,58 +512,112 @@ structure GodMoveHardInstanceData (M : DTM) (n : ℕ)
   hardInstance_size : hardInstance.clauses.length ≤ 10 * n ∧
     n / 30 ≤ hardInstance.clauses.length
 
-/-- Exact remaining paper-faithful semantic interface.
+/-- Core extraction-side semantic witness for the God-Move.
+
+This is the exact DecidesSAT-dependent Route B data: choose the extraction-side
+target and provide a proof that the staged God-Move decomposition obligation
+holds for it. -/
+structure GodMoveSemanticWitness (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) where
+  extractionTarget : GodMoveExtractionTarget M n hn2 htb hns
+  extractionDecomposition :
+    GodMoveExtractionDecompositionObligation M n hn2 htb hns hdec extractionTarget
+
+namespace GodMoveSemanticWitness
+
+/-- The witness immediately yields the extraction-side transfer inequality. -/
+theorem extraction
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (w : GodMoveSemanticWitness M n hn2 htb hns hdec) :
+    GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec w.extractionTarget :=
+  extraction_from_decomposition_obligation w.extractionDecomposition
+
+end GodMoveSemanticWitness
+
+/-- Exact remaining paper-faithful extraction theorem.
 
 Once the hard instance is fixed and shown satisfiable within the input budget,
-the only missing semantic claim is that there EXISTS a coupled-sheet target and
-an explicit three-stage God-Move extraction decomposition landing on it. This
-data package is strictly smaller than bundling the same witness data into a
-full Route B package. It remains data-valued rather than propositional because
-downstream code needs to recover the chosen target and decomposition. -/
+the only missing semantic claim is the existence of this extraction-side
+witness. The theorem remains data-valued because downstream Route B packaging
+still needs to recover the chosen target. -/
+abbrev GodMoveSemanticExtractionTheorem (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) : Type :=
+  GodMoveSemanticWitness M n hn2 htb hns hdec
+
+/-- Backwards-compatible alias re-indexing the extraction theorem by
+hard-instance applicability data. -/
 abbrev GodMoveSemanticTheorem (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M)
     (_hard : GodMoveHardInstanceData M n hn2 htb hns hdec) : Type :=
-  Σ target : GodMoveExtractionTarget M n hn2 htb hns,
-    ExtractionMapDecomposition M n hn2 htb hns hdec target
+  GodMoveSemanticExtractionTheorem M n hn2 htb hns hdec
 
 /-- Convenience bundle: hard-instance applicability data plus a witness of the
-exact semantic theorem. This is kept because it is ergonomic for downstream
-packaging, but the actual missing theorem is `GodMoveSemanticTheorem`. -/
+exact semantic extraction theorem. This is kept because it is ergonomic for
+downstream packaging, but the actual missing theorem is now
+`GodMoveSemanticExtractionTheorem`; `GodMoveSemanticTheorem` remains only as a
+compatibility alias indexed by the hard-instance data. -/
 structure GodMoveSemanticGap (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M) where
   toHardInstanceData : GodMoveHardInstanceData M n hn2 htb hns hdec
-  /-- The extraction-facing coupled sheet target. -/
-  extractionTarget : GodMoveExtractionTarget M n hn2 htb hns
-  /-- The actual restriction/projection decomposition of the God-Move map.
-      This is the load-bearing semantic witness tying the compiled polynomial
-      to the coupled verifier sheet extracted from the hard instance. -/
-  extractionDecomposition :
-    ExtractionMapDecomposition M n hn2 htb hns hdec extractionTarget
+  toSemanticWitness : GodMoveSemanticWitness M n hn2 htb hns hdec
 
 namespace GodMoveSemanticGap
 
-/-- The bundled gap inhabits the exact semantic witness package. -/
+/-- The extraction-facing coupled sheet target carried by the gap. -/
+abbrev extractionTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
+    GodMoveExtractionTarget M n hn2 htb hns :=
+  gap.toSemanticWitness.extractionTarget
+
+/-- The staged extraction witness carried by the gap. -/
+abbrev extractionDecomposition
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
+    GodMoveExtractionDecompositionObligation M n hn2 htb hns hdec gap.extractionTarget :=
+  gap.toSemanticWitness.extractionDecomposition
+
+/-- The bundled gap inhabits the exact extraction-only theorem package. -/
+def semantic_extraction_theorem
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
+    GodMoveSemanticExtractionTheorem M n hn2 htb hns hdec :=
+  gap.toSemanticWitness
+
+/-- Compatibility projection to the older hard-instance-indexed theorem name. -/
 def semantic_theorem
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {hdec : DecidesSAT M}
     (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
     GodMoveSemanticTheorem M n hn2 htb hns hdec gap.toHardInstanceData :=
-  ⟨gap.extractionTarget, gap.extractionDecomposition⟩
+  gap.semantic_extraction_theorem
 
-/-- Rebuild the convenience bundle from the smaller theorem-level interface. -/
-  noncomputable def ofSemanticTheorem
+/-- Rebuild the convenience bundle from the extraction-only theorem interface. -/
+noncomputable def ofSemanticExtractionTheorem
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
+    (hsem : GodMoveSemanticExtractionTheorem M n hn2 htb hns hdec) :
+    GodMoveSemanticGap M n hn2 htb hns hdec :=
+  { toHardInstanceData := hard
+    toSemanticWitness := hsem }
+
+/-- Compatibility constructor from the older hard-instance-indexed theorem name. -/
+noncomputable def ofSemanticTheorem
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {hdec : DecidesSAT M}
     (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
     (hsem : GodMoveSemanticTheorem M n hn2 htb hns hdec hard) :
-    GodMoveSemanticGap M n hn2 htb hns hdec := by
-  rcases hsem with ⟨target, decomp⟩
-  exact
-    { toHardInstanceData := hard
-      extractionTarget := target
-      extractionDecomposition := decomp }
+    GodMoveSemanticGap M n hn2 htb hns hdec :=
+  ofSemanticExtractionTheorem hard hsem
 
 end GodMoveSemanticGap
 
@@ -602,7 +656,7 @@ theorem GodMoveSemanticGap.extraction
     {hdec : DecidesSAT M}
     (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
     GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec gap.extractionTarget :=
-  extraction_from_decomposition gap.extractionDecomposition
+  gap.toSemanticWitness.extraction
 
 /-- Forget the semantic witness and keep only the shared Route B target-side
 data consumed by the strong and weakened NP packages. -/
@@ -810,9 +864,11 @@ theorem routeB_weakened_np_from_pdMatrix
 
 ### Remaining gaps (narrowest form):
 1. **PD→blocked SPDP** (`pd_to_blocked_transfer`): linear algebra lemma
-2. **Semantic extraction theorem** (`GodMoveSemanticTheorem`)
+2. **Semantic extraction theorem** (`GodMoveSemanticExtractionTheorem`)
    equivalently, for a chosen target,
    `GodMoveExtractionDecompositionObligation`
+   (`GodMoveSemanticTheorem` remains as a compatibility alias indexed by
+   `GodMoveHardInstanceData`)
 3. **Compiled-side transfer packaging**
    (`separation_from_weakened_routeB_via_decomposition` removes the extra
    rank-transfer hypothesis once 2 is supplied)
