@@ -463,12 +463,18 @@ structure BaseIndexCharacteristicPdClauseWitness
   subset_S :
     ∀ v ∈ baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula),
       v ∈ (fam.partition n hn).part.S
-  row_eq :
+  row_eq_expanded :
     IdentityMinorReal.gadgetProd
       (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack) cs =
-      SPDP.iterDerivList
-        (baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
-        (Tseitin.characteristicPoly F (fam.encoding n hn).formula)
+      ∑ a ∈ Fintype.piFinset (fun _ : Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula) =>
+          ({false, true} : Finset Bool)),
+        (by
+          classical
+          exact if Tseitin.formulaSatisfied (fam.encoding n hn).formula a then
+            SPDP.iterDerivList
+              (baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
+              (Tseitin.assignmentMonomial F (fam.encoding n hn).formula a)
+          else 0)
 
 /-- The canonical positional clause subset used by the `i`-th row of the
 packed Tseitin Kronecker system. -/
@@ -520,6 +526,30 @@ theorem canonicalPackedFormulaClauses_length
     (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
     (Nat.log 2 n) i
 
+/-- A canonical clause witness already yields the corresponding derivative of
+the characteristic polynomial, since the explicit satisfying-assignment
+expansion of `χ_Φ` is proved separately. -/
+theorem BaseIndexCharacteristicPdClauseWitness.row_eq
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {cs : List (Fin pack.selected.length)}
+    (w : BaseIndexCharacteristicPdClauseWitness F fam n hn pack cs) :
+    IdentityMinorReal.gadgetProd
+      (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack) cs =
+      SPDP.iterDerivList
+        (w.baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
+        (Tseitin.characteristicPoly F (fam.encoding n hn).formula) := by
+  classical
+  rw [Tseitin.iterDerivList_characteristicPoly]
+  rw [w.row_eq_expanded]
+  refine Finset.sum_congr rfl ?_
+  intro a ha
+  rw [Tseitin.iterDerivList_characteristicPolySummand
+    F (fam.encoding n hn).formula a
+    (w.baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))]
+
 /-- A canonical clause witness specializes directly to the corresponding row
 witness. -/
 def BaseIndexCharacteristicPdClauseWitness.toRow
@@ -537,7 +567,7 @@ def BaseIndexCharacteristicPdClauseWitness.toRow
   length_eq := w.length_eq
   subset_S := w.subset_S
   row_eq := by
-    simpa [characteristic_pd_system_from_pack_rows] using w.row_eq
+    simpa [characteristic_pd_system_from_pack_rows] using w.row_eq F fam
 }
 
 /-- **Axiom (remaining hard algebraic frontier)**: for the concrete greedy
@@ -690,7 +720,7 @@ theorem BaseIndexCharacteristicPdClauseWitness.row_eq_assignmentExpanded
               (w.baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
               (Tseitin.assignmentMonomial F (fam.encoding n hn).formula a)
           else 0) := by
-  exact ((w.toRow F).toBaseVariable F).toCharacteristic F |>.row_eq_assignmentExpanded F
+  exact w.row_eq_expanded
 
 /-- Any candidate row-realization witness whose derivative list starts with a
 selector variable forces the target gadget-product row to vanish, because every
