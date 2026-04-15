@@ -1430,6 +1430,21 @@ theorem copyCon_prod_nonzero_mono_con_support_control_candidate
     have hm_copy_ne : m (copySlot M n i) ≠ 0 := by omega
     exact hcopy_notin (Finsupp.mem_support_iff.mpr hm_copy_ne)
 
+/-- The pointwise support candidate is now fully proved: any copy-slot or con-slot atom
+in the support of a nonzero monomial of a copyCon gadget product comes from an actual
+index of the product, and the paired local atom is also present. -/
+theorem copyCon_prod_nonzero_mono_pointwise_support
+    (M : DTM) (n : ℕ)
+    (S : Finset (Fin (latentBaseVars M n)))
+    (m : (Fin (latentNumVars M n)) →₀ ℕ) :
+    copyCon_prod_nonzero_mono_pointwise_support_candidate M n S m := by
+  intro hm_nonzero
+  refine ⟨?_, ?_⟩
+  · intro i hcopy
+    exact copyCon_prod_nonzero_mono_copy_support_control_candidate M n S m hm_nonzero i hcopy
+  · intro i hcon
+    exact copyCon_prod_nonzero_mono_con_support_control_candidate M n S m hm_nonzero i hcon
+
 /-- Product-level variable-support frontier for copyCon gadget products.
 
 This is the cleanest route to the final atom-shape classification theorem. Rather than reason first
