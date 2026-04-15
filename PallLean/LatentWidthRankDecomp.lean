@@ -4147,12 +4147,19 @@ def theorem216_profile_data_logscale (M : DTM) (n : ℕ)
   latent_profile_assembly_logscale M n hn hn804
 
 /-- Obligation 2 from paper-faithful P-data package. -/
+theorem latent_profile_assembly_logscale_from_data (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hData : theorem216_profile_data_logscale M n hn hn804) :
+    latent_profile_assembly_logscale M n hn hn804 := by
+  rcases hData with ⟨_hCount, _hWithin, hAsm⟩
+  exact hAsm
+
+/-- Obligation 2 from paper-faithful P-data package. -/
 theorem obligation2_p_logscale_from_data (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
     (hData : theorem216_profile_data_logscale M n hn hn804) :
     obligation2_p_logscale M n hn hn804 := by
-  rcases hData with ⟨_hCount, _hWithin, hAsm⟩
-  exact hAsm
+  exact latent_profile_assembly_logscale_from_data M n hn hn804 hData
 
 /-- Build P-data package from core Theorem 216 assembly assumption.
 Section 9 sides are discharged in-route. -/

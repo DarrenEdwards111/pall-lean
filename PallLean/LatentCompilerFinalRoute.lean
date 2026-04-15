@@ -75,7 +75,7 @@ private theorem logscaleObligations_of_p_obligation
     (hnM : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
     (pAsm : theorem216_p_obligation M n hnM hn804) :
     LogscaleObligations M n hnM hn804 := by
-  exact ⟨obligation2_p_logscale_from_data M n hnM hn804 pAsm⟩
+  exact ⟨latent_profile_assembly_logscale_from_data M n hnM hn804 pAsm⟩
 
 /-- Derived machine-size bound from the contradiction-scale threshold assumption. -/
 lemma hnM_of_hn (h : PeqNP) (n : ℕ)
