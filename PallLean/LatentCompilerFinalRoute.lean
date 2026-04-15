@@ -1751,6 +1751,23 @@ theorem uniform_span160_of_uniform_concrete_locality_profile_structure120
     (hnM_of_hn h n hn) (hn804_of_hn h n hn) (hLoc120 h n hn)
 
 /-- Global closure theorem:
+if the Item-3 + uniform-120 profile package is available uniformly at
+contradiction scale, then `PeqNP` is impossible via the span160 route. -/
+theorem no_PeqNP_of_uniform_item3_uniform120
+    (hItem3120 : ∀ (h : PeqNP) (n : ℕ),
+      (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)) →
+      latent_profile_block_cover_item3_uniform120_logscale h.sat_decider n
+        (hnM_of_hn h n hn) (hn804_of_hn h n hn)) :
+    PeqNP → False := by
+  intro h
+  let n : ℕ := max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)
+  have hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804) := by
+    exact le_rfl
+  exact P_neq_NP_latent_from_p_span160 h n hn
+    (latent_p_witness_span160_logscale_from_item3_uniform120 h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn) (hItem3120 h n hn))
+
+/-- Global closure theorem:
 if the stronger concrete locality/profile structure (Move-3 scale, `n^120` per
 profile block) is available uniformly, then `PeqNP` is impossible via the span160
 route. -/
@@ -1760,12 +1777,7 @@ theorem no_PeqNP_of_uniform_concrete_locality_profile_structure120_via_span160
       concrete_locality_profile_structure120_logscale h.sat_decider n
         (hnM_of_hn h n hn) (hn804_of_hn h n hn)) :
     PeqNP → False := by
-  intro h
-  let n : ℕ := max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804)
-  have hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804) := by
-    exact le_rfl
-  exact P_neq_NP_latent_from_p_span160 h n hn
-    ((uniform_span160_of_uniform_concrete_locality_profile_structure120 hLoc120) h n hn)
+  exact no_PeqNP_of_uniform_item3_uniform120 hLoc120
 
 /-- Global closure theorem:
 if a uniform span160 witness is available at contradiction scale,
