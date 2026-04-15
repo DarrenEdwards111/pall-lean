@@ -512,6 +512,15 @@ noncomputable def canonicalPackedFormulaClauses
     List (Fin (fam.encoding n hn).formula.clauses.length) :=
   (canonicalPackedClauseSubset F fam n hn pack i).map pack.selected.get
 
+/-- The direct gadget-product polynomial over an actual list of formula clauses. -/
+noncomputable def formulaClauseGadgetProd
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (clauses : List (Fin (fam.encoding n hn).formula.clauses.length)) :
+    MvPolynomial (Fin (fam.encoding n hn).numVars) F :=
+  (clauses.map (Tseitin.clauseGadget F (fam.encoding n hn).formula)).prod
+
 /-- The canonical packed formula-clause list has the expected `log₂ n` size. -/
 theorem canonicalPackedFormulaClauses_length
     (F : Type*) [Field F] [CharZero F]
@@ -525,6 +534,25 @@ theorem canonicalPackedFormulaClauses_length
   exact IdentityMinorReal.getClauseSubset_length
     (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
     (Nat.log 2 n) i
+
+/-- The positional gadget-product row equals the direct gadget-product over the
+corresponding list of actual packed formula clauses. -/
+theorem canonicalPackedFormulaClauses_gadgetProd
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula)
+    (i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))) :
+    IdentityMinorReal.gadgetProd
+      (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+      (canonicalPackedClauseSubset F fam n hn pack i) =
+    formulaClauseGadgetProd F fam n hn
+      (canonicalPackedFormulaClauses F fam n hn pack i) := by
+  unfold formulaClauseGadgetProd canonicalPackedFormulaClauses canonicalPackedClauseSubset
+  unfold IdentityMinorReal.gadgetProd
+  congr 1
+  ext j
+  simp [IdentityMinorReal.tseitinClauseSystem]
 
 /-- A canonical clause witness already yields the corresponding derivative of
 the characteristic polynomial, since the explicit satisfying-assignment
@@ -708,9 +736,8 @@ theorem BaseIndexCharacteristicPdClauseWitness.row_eq_assignmentExpanded
     {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
     (w : BaseIndexCharacteristicPdClauseWitness F fam n hn pack
       (canonicalPackedClauseSubset F fam n hn pack i)) :
-    IdentityMinorReal.gadgetProd
-      (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
-      (canonicalPackedClauseSubset F fam n hn pack i) =
+    formulaClauseGadgetProd F fam n hn
+      (canonicalPackedFormulaClauses F fam n hn pack i) =
       ∑ a ∈ Fintype.piFinset (fun _ : Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula) =>
           ({false, true} : Finset Bool)),
         (by
@@ -720,6 +747,7 @@ theorem BaseIndexCharacteristicPdClauseWitness.row_eq_assignmentExpanded
               (w.baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
               (Tseitin.assignmentMonomial F (fam.encoding n hn).formula a)
           else 0) := by
+  rw [← canonicalPackedFormulaClauses_gadgetProd F fam n hn pack i]
   exact w.row_eq_expanded
 
 /-- Any candidate row-realization witness whose derivative list starts with a
@@ -813,9 +841,8 @@ theorem BaseIndexCharacteristicPdClauseWitness.row_eq_assignmentExpanded_head
     (v : Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula))
     (rest : List (Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula)))
     (hhead : w.baseDerivs = v :: rest) :
-    IdentityMinorReal.gadgetProd
-      (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
-      (canonicalPackedClauseSubset F fam n hn pack i) =
+    formulaClauseGadgetProd F fam n hn
+      (canonicalPackedFormulaClauses F fam n hn pack i) =
       ∑ a ∈ Fintype.piFinset (fun _ : Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula) =>
           ({false, true} : Finset Bool)),
         (by
@@ -841,6 +868,7 @@ theorem BaseIndexCharacteristicPdClauseWitness.row_eq_assignmentExpanded_head
         BaseIndexCharacteristicPdClauseWitness.toRow, hhead]
     CharacteristicPdRowDerivWitness.row_eq_assignmentExpanded_base_head F
       w' v (rest.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula)) hhead'
+  rw [← canonicalPackedFormulaClauses_gadgetProd F fam n hn pack i]
   simpa [hhead] using hrow
 
 /-- Repackage the clause-subset form of the frontier as the row-index form used
