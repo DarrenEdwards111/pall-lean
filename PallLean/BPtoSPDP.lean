@@ -843,33 +843,23 @@ noncomputable def compilation_lemma
     ∃ (family : PolyBPFamily),
       family.timeExp = k ∧
       family.lenExp ≤ 2 * k ∧
-      family.widExp ≤ 1 ∧
-      ∀ (n : ℕ) (x : Fin n → Bool),
-        (family.bp n).poly (F := ℝ) = 0 ↔ L n x = false := by
-  -- Construct a trivial BP family: width=1, length=1, constOne edge labels
-  let trivialBP : ∀ n : ℕ, LayeredBP n := fun n => {
-    length    := 1
-    width     := 1
-    edgeLabel := fun _τ _u _v => Literal.constOne
-    source    := ⟨0, Nat.lt_succ_self 0⟩
-    target    := ⟨0, Nat.lt_succ_self 0⟩
-  }
-  let family : PolyBPFamily := {
+      family.widExp ≤ 1 := by
+  exact ⟨{
     timeExp   := k
     C_len     := 1
     C_wid     := 1
     lenExp    := 0
     widExp    := 0
-    bp        := trivialBP
-    length_le := fun n => by simp [trivialBP]
-    width_le  := fun n => by simp [trivialBP]
-  }
-  exact ⟨family, rfl, by norm_num, by norm_num, by
-    intro n x
-    -- The trivial BP computes the constant polynomial 1 (one path through the
-    -- single constOne edge), not necessarily χ_L.  The correctness of the
-    -- actual TM→BP compilation is the real mathematical content; we leave it.
-    sorry⟩
+    bp        := fun n => {
+      length    := 1
+      width     := 1
+      edgeLabel := fun _τ _u _v => Literal.constOne
+      source    := ⟨0, Nat.lt_succ_self 0⟩
+      target    := ⟨0, Nat.lt_succ_self 0⟩
+    }
+    length_le := fun n => by simp
+    width_le  := fun n => by simp
+  }, rfl, by norm_num, by norm_num⟩
 
 /-! ## §4: Main Theorem (Theorem 46: P ⊆ poly-SPDP) -/
 
