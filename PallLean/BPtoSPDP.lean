@@ -565,7 +565,39 @@ theorem bp_rowspace_bound_per_term_empty
         { q | ∃ (u v : Fin B.width),
               q = B.layerMatrix (F := F) τ v u }) ≤
       B.width := by
-  sorry
+  -- For W = 0: Fin 0 is empty, so the set is empty, span = ⊥, finrank = 0 ≤ 0
+  by_cases hW0 : B.width = 0
+  · have : ∀ q : MvPolynomial (Fin n) F,
+        (∃ (u v : Fin B.width), q = B.layerMatrix (F := F) τ v u) → False := by
+      intro q ⟨u, _, _⟩; exact absurd u.isLt (by omega)
+    have hempty : { q : MvPolynomial (Fin n) F |
+        ∃ (u v : Fin B.width), q = B.layerMatrix (F := F) τ v u } = ∅ := by
+      ext q; simp only [Set.mem_setOf_eq, Set.mem_empty_iff_false]; exact ⟨this q, False.elim⟩
+    rw [hempty, Submodule.span_empty]; simp [hW0]
+  -- For W = 1: exactly one entry, span has dim ≤ 1 = W
+  · by_cases hW1 : B.width = 1
+    · -- With W = 1, the set has exactly one element: B.layerMatrix τ ⟨0,_⟩ ⟨0,_⟩
+      have hu : (⟨0, by omega⟩ : Fin B.width) = Fin.mk 0 (by omega) := rfl
+      have hset : { q : MvPolynomial (Fin n) F |
+          ∃ (u v : Fin B.width), q = B.layerMatrix (F := F) τ v u } =
+        {B.layerMatrix (F := F) τ ⟨0, by omega⟩ ⟨0, by omega⟩} := by
+        ext q; simp only [Set.mem_setOf_eq, Set.mem_singleton_iff]
+        constructor
+        · rintro ⟨u, v, rfl⟩
+          have : u = ⟨0, by omega⟩ := by ext; omega
+          have : v = ⟨0, by omega⟩ := by ext; omega
+          simp [*]
+        · intro h; exact ⟨⟨0, by omega⟩, ⟨0, by omega⟩, by rw [h]⟩
+      rw [hset]
+      calc Module.finrank F (Submodule.span F
+              ({B.layerMatrix (F := F) τ ⟨0, by omega⟩ ⟨0, by omega⟩} : Set _))
+          ≤ 1 := by
+            haveI : Fintype ({B.layerMatrix (F := F) τ ⟨0, by omega⟩ ⟨0, by omega⟩} : Set _) :=
+              Set.finite_singleton _ |>.fintype
+            exact le_trans (finrank_span_le_card _) (by simp)
+        _ ≤ B.width := by omega
+    · -- W ≥ 2: needs determinism (not in structure). Sorry.
+      sorry
 
 /-- Iterated Leibniz rule for matrix product entry: differentiating B.poly by S
     yields a sum over assignments T : S.toFinset → Fin B.length. Base case proved;
