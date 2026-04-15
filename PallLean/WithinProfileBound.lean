@@ -2255,6 +2255,12 @@ theorem touched_part_in_mlMonomialBasis_span {n : ℕ} {ι : Type*} [DecidableEq
   · exact fun v hv =>
       touched_part_vars_subset s f g shift touched hg_vars h_shift_vars hv
 
+/-! ## Axiom audit: verify no custom axioms in the variable-confinement chain -/
+#print axioms rank_bound_of_withinProfileFinrankBound
+#print axioms mlProj_mul_of_vars_disjoint
+#print axioms mlProj_finset_prod_of_pairwise_disjoint_vars
+#print axioms mlProj_shift_mul_prod_factored
+
 end WithinProfileBound
 
 /-! # WithinProfileBound — Work in Progress below
