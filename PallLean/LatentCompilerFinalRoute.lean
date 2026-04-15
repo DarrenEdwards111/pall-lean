@@ -413,9 +413,8 @@ theorem P_neq_NP_latent_from_p_bucket_function_via_compiled (h : PeqNP) (n : ℕ
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
-    latent_compiled_tableau_bound_logscale_from_bucket_function M n hnM hn804 pFun
-  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn hCompiled
+  exact P_neq_NP_latent_from_p_obligation h n hn
+    (theorem216_profile_data_logscale_from_bucket_function_proved M n hnM hn804 pFun)
 
 /-- Canonical-NP route with functional bucket-schema P witness normalized
 through the core P-side assembly theorem `latent_profile_assembly_logscale`. -/
@@ -434,9 +433,8 @@ theorem P_neq_NP_latent_from_p_span_card_via_compiled (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
-    latent_compiled_tableau_bound_logscale_from_span_card_bound M n hnM hn804 pSpan
-  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn hCompiled
+  exact P_neq_NP_latent_from_p_obligation h n hn
+    (theorem216_profile_data_logscale_from_span_card_bound_proved M n hnM hn804 pSpan)
 
 /-- Canonical-NP route with span-card P witness normalized through the
 core P-side assembly theorem `latent_profile_assembly_logscale`. -/
@@ -462,9 +460,8 @@ theorem P_neq_NP_latent_from_p_block_cover_via_compiled (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
-    latent_compiled_tableau_bound_logscale_from_block_cover M n hnM hn804 pCover
-  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn hCompiled
+  exact P_neq_NP_latent_from_p_obligation h n hn
+    (theorem216_profile_data_logscale_from_block_cover_proved M n hnM hn804 pCover)
 
 /-- Canonical-NP route with block-cover P witness normalized through the
 core P-side assembly theorem `latent_profile_assembly_logscale`. -/
@@ -491,9 +488,8 @@ theorem P_neq_NP_latent_from_p_global_span_bucket (h : PeqNP) (n : ℕ)
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
   have pData : latent_profile_block_cover_construction_data_logscale M n hnM hn804 :=
     latent_profile_block_cover_construction_data_from_global_span_and_bucket M n hnM hn804 pGB
-  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
-    latent_compiled_tableau_bound_logscale_from_construction_data M n hnM hn804 pData
-  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn hCompiled
+  exact P_neq_NP_latent_from_p_obligation h n hn
+    (theorem216_profile_data_logscale_from_construction_data_proved M n hnM hn804 pData)
 
 /-- Move-4 canonical route: Item-3 with uniform `n^120` bound. -/
 theorem P_neq_NP_latent_from_p_item3_uniform120 (h : PeqNP) (n : ℕ)
