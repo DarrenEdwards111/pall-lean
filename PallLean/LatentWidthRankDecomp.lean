@@ -3984,7 +3984,9 @@ stack on the aligned copyCon shell:
 2. their residual factors are identified,
 3. no common residual can carry two within-profile factors to the same image.
 
-This is the current clean decomposition of the live copyCon comparison frontier. -/
+This is now a compatibility wrapper: the live active shell has been reduced further to the
+two-bridge target below, so the residual-identification hypothesis is no longer needed on the
+critical path. -/
 theorem latent_pure_conSlot_vs_clean_copy_same_q_candidate_of_copyCon_bridge_stack
     (M : DTM) (n : ℕ)
     (hsheet : latent_aligned_copyCon_sheet_equality_candidate M n)
@@ -4083,6 +4085,15 @@ theorem latent_pure_conSlot_vs_clean_copy_same_q_candidate_of_two_bridge_target
   rcases htwo with ⟨hsheet, hcommon⟩
   exact latent_pure_conSlot_vs_clean_copy_same_q_candidate_of_common_residual_bridge
     M n hsheet hcommon
+
+/-- Compatibility shell: the old three-bridge package implies the new live two-bridge target. -/
+theorem latent_copyCon_two_bridge_target_of_bridge_stack
+    (M : DTM) (n : ℕ)
+    (hsheet : latent_aligned_copyCon_sheet_equality_candidate M n)
+    (_hid : latent_aligned_copyCon_residual_identification_candidate M n)
+    (hcommon : latent_aligned_copyCon_common_residual_conflict_candidate M n) :
+    latent_copyCon_two_bridge_target M n := by
+  exact ⟨hsheet, hcommon⟩
 
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
