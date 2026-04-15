@@ -867,8 +867,14 @@ noncomputable def FormulaClauseCharacteristicPdDerivWitness.toRow
     {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
     (w : FormulaClauseCharacteristicPdDerivWitness F fam n hn
       (canonicalPackedFormulaClauses F fam n hn pack i)) :
-    BaseIndexCharacteristicPdRowDerivWitness F fam n hn pack i :=
-  ((w.toExpandedWitness F).toPackedClauseWitness F).toRow F
+    BaseIndexCharacteristicPdRowDerivWitness F fam n hn pack i := {
+  baseDerivs := w.baseDerivs
+  length_eq := w.length_eq
+  subset_S := w.subset_S
+  row_eq := by
+    simpa [characteristic_pd_system_from_pack_rows]
+      using (canonicalPackedFormulaClauses_gadgetProd F fam n hn pack i).trans w.row_eq
+}
 
 /-- **Axiom (remaining hard algebraic frontier)**: for the concrete greedy
 disjoint packing produced from the Tseitin instance, every canonical clause
