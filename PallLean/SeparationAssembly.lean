@@ -66,11 +66,15 @@ are sufficient to derive the two main axioms. -/
 /-- Axiom 1 (Theorem 140) follows from the ∂-matrix sub-axioms.
     This is PartialDerivMatrix.theorem_140_from_pdMatrix instantiated. -/
 theorem axiom1_from_components (n : ℕ) (hn : n ≥ 2)
+    (h_pdMatrix : ∃ (part : PartialDerivMatrix.VarPartition (3 * n)),
+      part.S.card ≤ 3 ∧
+      n ^ (Nat.log 2 n / 4) ≤ pdMatrixRank ℚ part (0 : MvPolynomial (Fin (3 * n)) ℚ))
     (h_transfer : ∀ (part : PartialDerivMatrix.VarPartition (3 * n))
       (f : MvPolynomial (Fin (3 * n)) ℚ) (ℓ : ℕ),
       part.S.card ≤ ℓ → pdMatrixRank ℚ part f ≤ charPolyRank n) :
     n ^ (Nat.log 2 n / 4) ≤ charPolyRank n := by
-  exact PartialDerivMatrix.theorem_140_from_pdMatrix n hn (charPolyRank n) h_transfer
+  exact PartialDerivMatrix.theorem_140_from_pdMatrix n hn (charPolyRank n)
+    h_pdMatrix h_transfer
 
 /-- The full P-side chain: TM → BP → SPDP → restriction → instance bound.
 
