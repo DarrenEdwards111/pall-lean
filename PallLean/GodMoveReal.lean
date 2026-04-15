@@ -2386,6 +2386,22 @@ def godMoveRestrictionPerturbationWitnessTarget
     c.map.restrictionData ≠
       (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData
 
+/-- Honest live post-identity Route B witness shell.
+
+The previous "genuine candidate exists" target is now known to be impossible for
+the current `GodMoveConstruction` type. The actual live frontier on this branch
+is the conjunction of the two stronger constructive witnesses we do have:
+1. a canonical one-stage perturbation witness, and
+2. a restriction-perturbation witness. -/
+def godMoveLivePostIdentityWitnessTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) : Prop :=
+  godMoveCanonicalOneStageWitnessTarget M n hn hdec htb hns ∧
+  godMoveRestrictionPerturbationWitnessTarget M n hn hdec htb hns
+
 /-- The identity placeholder does not witness even the weakest constructive
 restriction-perturbation target. -/
 theorem godMoveConstruction_exists_not_restriction_perturbation_witness
@@ -3334,6 +3350,20 @@ theorem godMoveRestrictionPerturbationWitnessTarget_holds
   change (godMoveTypedMap_firstBehaviorPerturbation M n hn hdec htb hns).restrictionData ≠
     (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData
   exact godMoveRestrictionData_firstPerturbation_ne_identity M n hn hdec htb hns
+
+/-- The active branch now has an honest named post-identity Route B witness
+surface: the canonical one-stage witness together with the restriction
+perturbation witness. -/
+theorem godMoveLivePostIdentityWitnessTarget_holds
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveLivePostIdentityWitnessTarget M n hn hdec htb hns := by
+  exact ⟨
+    godMoveCanonicalOneStageWitnessTarget_holds M n hn hdec htb hns,
+    godMoveRestrictionPerturbationWitnessTarget_holds M n hn hdec htb hns⟩
 
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. Together with
