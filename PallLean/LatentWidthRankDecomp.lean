@@ -3500,6 +3500,77 @@ theorem latent_raw_sel_bucket_member_resolves
     ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hq⟩
   exact latent_clean_sel_bucket_member_resolves M n σ hn2 q hmenu hsel
 
+/-- The explicit pure-`conSlot` varying factor on `copyConSheet` is still supported on the same
+hit blocks: multiplier variables lie on the con-slots of those blocks, and the derivative closed
+form contributes only the paired copy-slots. This gives the pure-con side of the live same-sheet
+comparison frontier in the same profile-varying ambient space used by the clean copy lane. -/
+theorem latent_conSlot_copyCon_varying_factor_mem_varying_space
+    (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hVars : m.vars ⊆ (ks.map (conSlot M n)).toFinset)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hlen : ks.length = Nat.log 2 n) :
+    (m * (ks.map (Xcopy M n)).prod) ∈ latent_profile_varying_space M n
+      (latent_profile_signature_of_generator_data M n (ks.map (conSlot M n)) m
+        (by simp [List.length_map, hlen]) hDeg) := by
+  rw [latent_profile_varying_space_def]
+  apply Submodule.subset_span
+  intro v hv
+  unfold latent_profile_varying_window
+  change v ∈
+    (latent_hitBlocks_of_list M n (ks.map (conSlot M n))).biUnion
+      (fun j => ({machSlot M n j, copySlot M n j, selSlot M n j, conSlot M n j} : Finset _))
+  have hvmul := MvPolynomial.vars_mul m ((ks.map (Xcopy M n)).prod) hv
+  rcases Finset.mem_union.mp hvmul with hm | hx
+  · have hmS : v ∈ (ks.map (conSlot M n)).toFinset := hVars hm
+    rcases List.mem_map.mp (List.mem_toFinset.mp hmS) with ⟨i, _, rfl⟩
+    apply Finset.mem_biUnion.mpr
+    refine ⟨i, ?_, ?_⟩
+    · unfold latent_hitBlocks_of_list
+      apply List.mem_toFinset.mpr
+      exact List.mem_map.mpr ⟨conSlot M n i, List.mem_map.mpr ⟨i, ‹_›, rfl⟩, by simp [latentPartition_assign_conSlot]⟩
+    · simp
+  · rcases vars_list_prod_subset (ks.map (Xcopy M n)) v hx with ⟨p, hp, hvp⟩
+    rcases List.mem_map.mp hp with ⟨i, hmem, rfl⟩
+    have : v = copySlot M n i := by simpa [Xcopy, MvPolynomial.vars_X] using hvp
+    subst this
+    apply Finset.mem_biUnion.mpr
+    refine ⟨i, ?_, ?_⟩
+    · unfold latent_hitBlocks_of_list
+      apply List.mem_toFinset.mpr
+      exact List.mem_map.mpr ⟨conSlot M n i, List.mem_map.mpr ⟨i, hmem, rfl⟩, by simp [latentPartition_assign_conSlot]⟩
+    · simp
+
+/-- Direct raw pure-`conSlot` resolver on the live `copyConSheet`: this is the missing
+normal-form theorem parallel to the existing raw copy-slot resolver. It puts the pure-con side
+of the remaining same-`q` comparison frontier into the same residual-times-varying format as the
+clean copy-slot lane. -/
+theorem latent_raw_con_bucket_member_copyCon_resolves
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (ks : List (Fin (latentBaseVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hnd : ks.Nodup)
+    (hlen : ks.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ (ks.map (conSlot M n)).toFinset)
+    (hSig : latent_profile_signature_of_generator_data M n (ks.map (conSlot M n)) m
+      (by simp [List.length_map, hlen]) hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList (ks.map (conSlot M n)) (latentCompiledPoly M n))) :
+    ∃ residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+      mlProj (m * iterDerivList (ks.map (conSlot M n)) (copyConSheet M n)) =
+        mlProj (residual * varying) ∧
+      varying ∈ latent_profile_varying_space M n σ := by
+  refine ⟨C ((-1 : ℚ)^ks.length) *
+      (∏ i ∈ (Finset.univ \ ks.toFinset), copyConGadget M n i),
+    m * (ks.map (Xcopy M n)).prod, ?_, ?_⟩
+  · rw [LatentWitnessMinorDecomp.iterDeriv_conSlot_copyConSheet_eq M n ks hnd]
+    ring_nf
+  · rw [← hSig]
+    exact latent_conSlot_copyCon_varying_factor_mem_varying_space M n ks m hVars hDeg hlen
+
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
 latentCompiledPoly = sum of 3 product sheets → subadditivity reduces to per-sheet bounds.
