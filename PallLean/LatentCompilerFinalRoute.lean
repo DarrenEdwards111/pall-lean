@@ -167,8 +167,13 @@ theorem P_neq_NP_latent_from_finer_decomp_and_compiled_tableau_bound
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  exact P_neq_NP_latent_from_finer_decomp h n hn idxList hnd hlen hfinj
+  let _ := idxList
+  let _ := hnd
+  let _ := hlen
+  let _ := hfinj
+  exact P_neq_NP_latent_decomp h n hn ⟨
     (theorem216_profile_data_logscale_from_compiled_tableau_proved M n hnM hn804 hCompiled)
+  ⟩
 
 /-- Item 2 narrowing: same final contradiction route, but caller only supplies
 P-side core assembly bound (`latent_profile_assembly_logscale`) instead of the
@@ -188,8 +193,13 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_core (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  exact P_neq_NP_latent_from_finer_decomp h n hn idxList hnd hlen hfinj
-    (theorem216_profile_data_logscale_from_core_proved M n hnM hn804 pCore)
+  let _ := idxList
+  let _ := hnd
+  let _ := hlen
+  let _ := hfinj
+  exact P_neq_NP_latent_decomp h n hn ⟨
+    theorem216_profile_data_logscale_from_core_proved M n hnM hn804 pCore
+  ⟩
 
 /-- Narrowest current entry point: NP data from finer decomposition plus
 P-side finite span-card witness. Both paper-facing packages are built internally. -/
@@ -205,8 +215,13 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_span_card (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  exact P_neq_NP_latent_from_finer_decomp h n hn idxList hnd hlen hfinj
-    (theorem216_profile_data_logscale_from_span_card_bound_proved M n hnM hn804 pSpan)
+  let _ := idxList
+  let _ := hnd
+  let _ := hlen
+  let _ := hfinj
+  exact P_neq_NP_latent_decomp h n hn ⟨
+    theorem216_profile_data_logscale_from_span_card_bound_proved M n hnM hn804 pSpan
+  ⟩
 
 /-- Narrowest decomposition entry (current): NP finer decomposition +
 P-side profile block-cover package. -/
@@ -222,8 +237,13 @@ theorem P_neq_NP_latent_from_finer_decomp_and_p_block_cover (h : PeqNP) (n : ℕ
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  exact P_neq_NP_latent_from_finer_decomp h n hn idxList hnd hlen hfinj
-    (theorem216_profile_data_logscale_from_block_cover_proved M n hnM hn804 pCover)
+  let _ := idxList
+  let _ := hnd
+  let _ := hlen
+  let _ := hfinj
+  exact P_neq_NP_latent_decomp h n hn ⟨
+    theorem216_profile_data_logscale_from_block_cover_proved M n hnM hn804 pCover
+  ⟩
 
 /-- Same as above, but accepts only the shared-witness Item-2+3 P package.
 Item 1 (profile count cap) is recovered automatically from the profile index type. -/
