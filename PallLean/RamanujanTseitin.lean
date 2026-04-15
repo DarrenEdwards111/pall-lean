@@ -426,6 +426,49 @@ structure BaseVariableCharacteristicPdRowDerivWitness
       SPDP.iterDerivList derivs
         (Tseitin.characteristicPoly F (fam.encoding n hn).formula)
 
+/-- Sharpest current row-realization target: the derivative data is given as an
+actual list of base-variable indices, with the ambient derivative list obtained
+by applying `baseVarEmbedding`. -/
+structure BaseIndexCharacteristicPdRowDerivWitness
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula)
+    (i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))) where
+  baseDerivs : List (Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula))
+  length_eq : baseDerivs.length = (fam.partition n hn).part.S.card
+  subset_S :
+    ∀ v ∈ baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula),
+      v ∈ (fam.partition n hn).part.S
+  row_eq :
+    IdentityMinorReal.gadgetProd
+      (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+      (IdentityMinorReal.getClauseSubset
+        (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+        (Nat.log 2 n) i) =
+      SPDP.iterDerivList
+        (baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
+        (Tseitin.characteristicPoly F (fam.encoding n hn).formula)
+
+/-- Base-index witnesses induce base-variable ambient witnesses. -/
+def BaseIndexCharacteristicPdRowDerivWitness.toBaseVariable
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
+    (w : BaseIndexCharacteristicPdRowDerivWitness F fam n hn pack i) :
+    BaseVariableCharacteristicPdRowDerivWitness F fam n hn pack i := {
+  derivs := w.baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula)
+  length_eq := by simpa using w.length_eq
+  subset_S := w.subset_S
+  subset_base := by
+    intro v hv
+    rcases List.mem_map.mp hv with ⟨u, hu, rfl⟩
+    exact Finset.mem_image.mpr ⟨u, Finset.mem_univ _, rfl⟩
+  row_eq := w.row_eq
+}
+
 /-- A base-variable witness is, in particular, a row-derivative witness. -/
 def BaseVariableCharacteristicPdRowDerivWitness.toCharacteristic
     (F : Type*) [Field F] [CharZero F]
@@ -599,12 +642,22 @@ disjoint packing produced from the Tseitin instance, every row of the canonical
 Kronecker system is explicitly realized by an iterated derivative of the
 characteristic polynomial along a legal `S`-list. The combinatorial size bound
 is now derived, not assumed. -/
-axiom characteristic_pd_base_row_derivs_from_pack
+axiom characteristic_pd_baseIndex_row_derivs_from_pack
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
     (n : ℕ) (hn : n ≥ 6)
     (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
-    ∀ i, BaseVariableCharacteristicPdRowDerivWitness F fam n hn pack i
+    ∀ i, BaseIndexCharacteristicPdRowDerivWitness F fam n hn pack i
+
+/-- Forget base-index structure to recover the base-variable witness format. -/
+noncomputable def characteristic_pd_base_row_derivs_from_pack
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
+    ∀ i, BaseVariableCharacteristicPdRowDerivWitness F fam n hn pack i := by
+  intro i
+  exact (characteristic_pd_baseIndex_row_derivs_from_pack F fam n hn pack i).toBaseVariable F
 
 /-- Forgetting the stronger base-variable support data yields the generic row
 derivative witness interface used by the PD-column-space reduction. -/
