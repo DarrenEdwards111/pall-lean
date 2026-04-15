@@ -303,6 +303,23 @@ structure ConcreteNPSideData (n : ℕ) where
   /-- PD-matrix lower bound (sound_theorem72_condensed) -/
   pd_lower : n ^ (Nat.log 2 n / 4) ≤ PartialDerivMatrix.pdMatrixRank ℚ partition poly
 
+/-- The concrete SPDP rank carried by the sound-encoding NP-side package. -/
+noncomputable abbrev concreteCharPolyRank {n : ℕ} (d : ConcreteNPSideData n) : ℕ :=
+  SPDP.spdpRank d.partition.S.card d.partition.S.card d.poly
+
+/-- Definition-level seam between the shell symbol `charPolyRank` and the
+    concrete sound-encoding SPDP rank.
+
+    The two directions correspond exactly to the two shell theorems:
+    - `concrete_le_shell` discharges Theorem 140 from concrete NP-side data
+    - `shell_le_concrete` discharges Theorem 139 from concrete P-side data
+
+    If `charPolyRank` is later defined concretely, both fields should become
+    definitional equalities. -/
+structure ConcreteCharPolyRankBridge (n : ℕ) (d : ConcreteNPSideData n) where
+  shell_le_concrete : charPolyRank n ≤ concreteCharPolyRank d
+  concrete_le_shell : concreteCharPolyRank d ≤ charPolyRank n
+
 /-- The sound encoding provides concrete NP-side data for all `n ≥ 6`.
 
 This is a direct repackaging of `sound_theorem72_condensed` from
@@ -319,23 +336,22 @@ theorem concreteNPSideData_exists (n : ℕ) (hn : n ≥ 6) :
 /-- The SPDP rank of the concrete NP-side data, derived from the PD lower bound
 via the proved Lemma 69 transfer. -/
 theorem concreteNPSideData_spdp_lower (n : ℕ) (d : ConcreteNPSideData n) :
-    n ^ (Nat.log 2 n / 4) ≤ SPDP.spdpRank d.partition.S.card d.partition.S.card d.poly := by
+    n ^ (Nat.log 2 n / 4) ≤ concreteCharPolyRank d := by
   exact le_trans d.pd_lower
     (PartialDerivMatrix.pdMatrix_le_spdpRank ℚ d.partition d.poly d.partition.S.card (le_refl _))
 
 /-- **Theorem 140 concrete discharge theorem.**
 
-Given concrete NP-side data and a bridge showing that the concrete SPDP rank
-is bounded by `charPolyRank n`, `theorem_140_np_side` follows.
+Given concrete NP-side data and the shared shell/concrete bridge,
+`theorem_140_np_side` follows.
 
-The bridge hypothesis `h_identification` is the exact remaining gap: it says
-the abstract `charPolyRank n` dominates the SPDP rank of the concrete
-sound-encoding polynomial. This would be immediate if `charPolyRank` were
-defined concretely. -/
+The only load-bearing field here is `bridge.concrete_le_shell`: the abstract
+shell rank dominates the concrete sound-encoding SPDP rank. This would be
+immediate if `charPolyRank` were defined concretely. -/
 theorem theorem_140_from_concrete (n : ℕ) (d : ConcreteNPSideData n)
-    (h_identification : SPDP.spdpRank d.partition.S.card d.partition.S.card d.poly ≤ charPolyRank n) :
+    (bridge : ConcreteCharPolyRankBridge n d) :
     n ^ (Nat.log 2 n / 4) ≤ charPolyRank n :=
-  le_trans (concreteNPSideData_spdp_lower n d) h_identification
+  le_trans (concreteNPSideData_spdp_lower n d) bridge.concrete_le_shell
 
 /-! ## Concrete P-side Definition Bridge
 
@@ -386,13 +402,13 @@ structure ConcretePSideData (M : DTM) (n : ℕ) (hn : n ≥ 2)
 
 /-- **Theorem 139 concrete discharge theorem.**
 
-Given concrete P-side data (which requires `DecidesSAT`) and a bridge
-from the abstract `charPolyRank n` into the concrete SPDP rank,
+Given concrete P-side data (which requires `DecidesSAT`) and the shared
+shell/concrete bridge,
 `theorem_139_p_side` follows.
 
-The bridge hypothesis `h_identification` says: the abstract `charPolyRank n`
-is bounded by the SPDP rank of the concrete polynomial. Together with the
-P-side's `rank_through_extraction`, we get:
+The load-bearing field here is `bridge.shell_le_concrete`: the abstract shell
+rank is bounded by the concrete SPDP rank. Together with the P-side's
+`rank_through_extraction`, we get:
 
   charPolyRank n ≤ spdpRank(charPoly) ≤ mlBlockedSpdpRank(compiledPoly) ≤ n^200
 
@@ -403,9 +419,10 @@ theorem theorem_139_from_concrete (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (hdec : DecidesSAT M)
     (pData : ConcretePSideData M n hn htb hns hdec)
     (d : ConcreteNPSideData n)
-    (h_identification : charPolyRank n ≤ SPDP.spdpRank d.partition.S.card d.partition.S.card d.poly) :
+    (bridge : ConcreteCharPolyRankBridge n d) :
     charPolyRank n ≤ n ^ 200 :=
-  le_trans h_identification (le_trans (pData.rank_through_extraction d) pData.compiled_rank_bound)
+  le_trans bridge.shell_le_concrete
+    (le_trans (pData.rank_through_extraction d) pData.compiled_rank_bound)
 
 /-- **Paper-faithful separation via concrete definitions.**
 

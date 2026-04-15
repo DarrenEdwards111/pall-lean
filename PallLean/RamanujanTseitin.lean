@@ -1928,8 +1928,11 @@ The sound encoding path has:
      even-parity characteristic polynomial (algebraic core of Theorem 140)
   2. `sound_tseitin_pdMatrix_lower_bound_small` — finite exceptional range
      (6 ≤ n < 660; dischargeable by explicit computation)
-- **1 sorry**: `sound_lps_family_exists` — LPS Ramanujan graph existence
-  (deep algebraic number theory)
+- **2 live sorries in this file**:
+  1. `sound_lps_family_exists` — LPS Ramanujan graph existence
+     (deep algebraic number theory)
+  2. `sound_tseitin_pdMatrix_lower_bound_trivial` — trivial finite-range
+     sub-case (`6 ≤ n < 16`)
 - **0 inconsistent axioms** (unlike the original encoding path)
 
 Proof chain:
@@ -2127,7 +2130,12 @@ After decomposition, the sound encoding path has:
   3. `sound_tseitin_pdMatrix_lower_bound_small` — finite exceptional range
      (6 ≤ n < 660; dischargeable by explicit computation)
 
-- **1 sorry**: `sound_lps_family_exists` — LPS Ramanujan graph existence
+- **3 live sorries in this file**:
+  1. `sound_lps_family_exists` — LPS Ramanujan graph existence
+  2. `sound_tseitin_pdMatrix_lower_bound_trivial` — trivial finite-range
+     sub-case (`6 ≤ n < 16`)
+  3. `sound_row_derivs_from_decomposition` — reconstruction back to the
+     monolithic row-realization statement
 
 - **0 inconsistent axioms**
 

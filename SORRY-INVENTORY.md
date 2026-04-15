@@ -226,16 +226,19 @@ New theorem-level infrastructure:
 - `RestrictionMono.restrictedSourceSpdpCoeffMatrix_rank_le`
 
 Current narrowed gap:
-- `RestrictionMono.restrictedSpdpCoeffMatrix_rank_le_restrictedSource`
-  This is now the single honest remaining bridge for Lemma 141:
-  compare the actual SPDP coefficient matrix of `applyRestriction ρ f`
-  against the coefficient matrix obtained by restricting the source
-  canonical SPDP generators inside the same finite monomial universe.
+- no local `sorry` remains in `RestrictionMono.lean`
+- the honest remaining issue for Lemma 141 is semantic rather than a proof
+  placeholder: the ambient target of `applyRestriction ρ f` still allows
+  multiplier monomials using fixed variables, so the paper's column-deletion
+  argument does not directly match the current definitions
 
 So the local status is:
-- `RestrictionMono.spdpRank_restriction_mono`: theorem statement present
+- `RestrictionMono.restrictedSourceSpdpCoeffMatrix_rank_le_spdpRank`:
+  theorem proved
+- `RestrictionMono.spdpRank_restriction_mono`: not currently the honest local
+  theorem statement under the ambient definitions
 - custom axioms in `RestrictionMono`: `0`
-- remaining `sorry` in `RestrictionMono`: `1`
+- remaining `sorry` in `RestrictionMono`: `0`
 - semantic role: non-load-bearing for the current active contradiction, but
   still the right linear-algebra seam for decomposing the Route B / shell P-side
 

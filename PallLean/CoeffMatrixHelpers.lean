@@ -152,6 +152,45 @@ theorem rank_coeffMatrix_subfamily_le {ι κ : Type*} [Fintype ι] [Fintype κ]
     Matrix.rank_submatrix_le (f := rowMap) (e := Equiv.refl monomials)
       (A := coeffMatrix monomials generators)
 
+omit [DecidableEq σ] in
+theorem rank_coeffMatrix_submatrix_cols_le {ι κ : Type*} [Fintype ι] [Fintype κ]
+    (monomials : Finset (σ →₀ ℕ))
+    (generators : ι → MvPolynomial σ F)
+    (colMap : κ → monomials) :
+    ((coeffMatrix monomials generators).submatrix (Equiv.refl _) colMap).rank ≤
+      (coeffMatrix monomials generators).rank := by
+  let A := coeffMatrix monomials generators
+  have h :
+      ((A.submatrix (Equiv.refl _) colMap)ᵀ).rank ≤ (Aᵀ).rank := by
+    simpa [Matrix.transpose_submatrix] using
+      Matrix.rank_submatrix_le (f := colMap) (e := Equiv.refl ι) (A := Aᵀ)
+  calc
+    (A.submatrix (Equiv.refl _) colMap).rank
+      = ((A.submatrix (Equiv.refl _) colMap)ᵀ).rank := by
+          symm
+          exact Matrix.rank_transpose _
+    _ ≤ (Aᵀ).rank := h
+    _ = A.rank := Matrix.rank_transpose _
+
+theorem rank_coeffMatrix_submatrix_le {ι κ ν : Type*} [Fintype ι] [Fintype κ] [Fintype ν]
+    (monomials : Finset (σ →₀ ℕ))
+    (generators : ι → MvPolynomial σ F)
+    (rowMap : κ → ι)
+    (colMap : ν → monomials) :
+    ((coeffMatrix monomials generators).submatrix rowMap colMap).rank ≤
+      (coeffMatrix monomials generators).rank := by
+  let A := coeffMatrix monomials generators
+  have hcols :
+      ((A.submatrix rowMap (Equiv.refl _)).submatrix (Equiv.refl _) colMap).rank ≤
+        (A.submatrix rowMap (Equiv.refl _)).rank := by
+    simpa [A, Matrix.submatrix_submatrix] using
+      rank_coeffMatrix_submatrix_cols_le monomials
+        (fun i : κ => generators (rowMap i)) colMap
+  have hrows : (A.submatrix rowMap (Equiv.refl _)).rank ≤ A.rank := by
+    simpa [A] using
+      Matrix.rank_submatrix_le (f := rowMap) (e := Equiv.refl monomials) (A := A)
+  exact le_trans hcols hrows
+
 def supportedSub (monomials : Finset (σ →₀ ℕ)) :
     Submodule F (MvPolynomial σ F) where
   carrier := { p | p.support ⊆ monomials }

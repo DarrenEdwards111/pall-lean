@@ -83,7 +83,7 @@ structure RamanujanTseitinFamily where
 private theorem three_i_lt (n : ℕ) (i : Fin n) : 3 * i.val < 3 * n := by omega
 
 /-- The clause-local variable set for clause i: {3i, 3i+1, 3i+2}. -/
-private def clauseVarSet (n : ℕ) (hn : n ≥ 1) (i : Fin n) : Finset (Fin (3 * n)) :=
+private def clauseVarSet (n : ℕ) (_hn : n ≥ 1) (i : Fin n) : Finset (Fin (3 * n)) :=
   {⟨3 * i.val, by omega⟩, ⟨3 * i.val + 1, by omega⟩, ⟨3 * i.val + 2, by omega⟩}
 
 /-- Clause variable sets are pairwise disjoint. -/
@@ -122,17 +122,7 @@ private theorem clauseTag_coeff (n : ℕ) (i : Fin n) :
     MvPolynomial.coeff (clauseTagMonomial n i) (clauseGadget n i) = 1 := by
   unfold clauseGadget clauseTagMonomial
   simp only [MvPolynomial.coeff_add, MvPolynomial.coeff_X]
-  have h_ne1 : Finsupp.single (⟨3 * i.val, by omega⟩ : Fin (3 * n)) 1 ≠
-    Finsupp.single (⟨3 * i.val + 1, by omega⟩ : Fin (3 * n)) 1 := by
-    intro h
-    have := Finsupp.single_left_injective (by omega : (1 : ℕ) ≠ 0) h
-    simp [Fin.ext_iff] at this
-  have h_ne2 : Finsupp.single (⟨3 * i.val, by omega⟩ : Fin (3 * n)) 1 ≠
-    Finsupp.single (⟨3 * i.val + 2, by omega⟩ : Fin (3 * n)) 1 := by
-    intro h
-    have := Finsupp.single_left_injective (by omega : (1 : ℕ) ≠ 0) h
-    simp [Fin.ext_iff] at this
-  simp [h_ne1, h_ne2]
+  norm_num
 
 /-- Build the DisjointClauseSystem for the hard family at parameter n >= 1. -/
 noncomputable def hard_family_clause_system (n : ℕ) (hn : n ≥ 1) :
@@ -204,7 +194,7 @@ theorem hard_family_rank_bound (n : ℕ) (hn : n ≥ 1) (κ : ℕ) :
   IdentityMinorReal.identity_minor_rank_bound (hard_family_clause_system n hn) κ
 
 /-- The quantitative lower bound: C(n, kappa) >= (n/kappa)^kappa. -/
-theorem hard_family_finrank_bound (n : ℕ) (hn : n ≥ 1) (κ : ℕ) (hκ : 0 < κ) :
+theorem hard_family_finrank_bound (n : ℕ) (_hn : n ≥ 1) (κ : ℕ) (hκ : 0 < κ) :
     (n / κ) ^ κ ≤ Nat.choose n κ :=
   IdentityMinorReal.choose_ge_div_pow n κ hκ
 
@@ -503,7 +493,7 @@ genuine mathematical contradiction.
 
 See `GodMoveSemanticInterface` in `GodMoveCore.lean` for the paper-faithful
 Route B interface that resolves this by making `DecidesSAT` load-bearing. -/
-theorem P_ne_NP_unconditional : ∀ (h : PeqNP_Paper), False := by
+theorem P_ne_NP_unconditional : ∀ (_ : PeqNP_Paper), False := by
   intro hPeqNP
   -- Fix n = 2^804 (contradiction scale)
   set n := 2 ^ 804 with hn_def
@@ -551,7 +541,6 @@ theorem P_ne_NP_unconditional : ∀ (h : PeqNP_Paper), False := by
 
 /-! ## Axiom audit
 
-The NP-side (God-Move + identity minor) is axiom-free beyond standard Lean.
 The NP-side (God-Move + identity minor) is axiom-free beyond standard Lean.
 The P-side theorem is theorem-level, but it still inherits the reduced
 frontier `profile_symmetric_power_factorization` through the profile

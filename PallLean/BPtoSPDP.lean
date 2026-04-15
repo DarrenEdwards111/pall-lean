@@ -109,7 +109,7 @@ structure LayeredBP (n : ℕ) where
   /-- Maximum number of nodes per layer -/
   width    : ℕ
   /-- Edge label from node u at layer τ to node v at layer τ+1 -/
-  edgeLabel : ∀ (τ : Fin length) (u v : Fin width), Literal n
+  edgeLabel : ∀ (_ : Fin length) (_ _ : Fin width), Literal n
   /-- Source node at layer 0 -/
   source   : Fin width
   /-- Target (accept) node at layer length -/
@@ -291,10 +291,10 @@ private theorem pderiv_list_prod_matrix_eq {n W : ℕ} {F : Type*} [CommRing F]
   | nil =>
     simp only [List.length_nil, Fin.sum_univ_zero]
     ext v u
-    simp [matPderiv, Matrix.one_apply, map_zero]
+    simp [matPderiv, Matrix.one_apply]
     split_ifs with h
-    · subst h; simp [MvPolynomial.pderiv_one]
-    · simp [map_zero]
+    · subst h; simp
+    · simp
   | cons M rest ih =>
     simp only [List.length_cons, List.prod_cons]
     rw [pderiv_matrix_mul, ih]
@@ -419,7 +419,7 @@ theorem bp_leibniz_localisation
     -- Derivative match: matPderiv i (matrixList.get k) = Matrix.of (fun v u => pderiv i (layerMatrix τ v u))
     have hderiv : matPderiv i (matrixList.get k) =
         Matrix.of (fun v u => MvPolynomial.pderiv i (B.layerMatrix (F := F) τ v u)) := by
-      simp only [matPderiv, Matrix.of_apply]
+      simp only [matPderiv]
       ext v u
       congr 1
       -- matrixList.get k v u = B.layerMatrix τ v u
@@ -494,7 +494,7 @@ private lemma totalDegree_iterDerivList_nonempty_of_le_one {n : ℕ} {F : Type*}
 
 /-- Row-space bound for nonempty S_τ: all generators are constants (degree ≤ 0),
     so the span lies in F·1 and has finrank ≤ 1 ≤ W. -/
-theorem bp_rowspace_bound_per_term_nonempty
+private theorem bp_rowspace_bound_per_term_nonempty
     {n : ℕ} {F : Type*} [Field F] [Nontrivial F]
     (B : LayeredBP n)
     (τ : Fin B.length)
@@ -543,7 +543,7 @@ theorem bp_rowspace_bound_per_term_nonempty
     This suffices: bp_spdp_rank_bound only needs existential polynomial
     constants, and W² is polynomial in W.
     NOT load-bearing: the main P_ne_NP proof doesn't use this file. -/
-theorem bp_rowspace_bound_per_term_empty
+private theorem bp_rowspace_bound_per_term_empty
     {n : ℕ} {F : Type*} [Field F] [Nontrivial F]
     (B : LayeredBP n)
     (τ : Fin B.length) :
@@ -586,6 +586,8 @@ degree-based bound `spdpSubspace ≤ restrictTotalDegree` instead.
 
 What remains archived is intentionally narrow:
 - `assignedVars` and `layerAssignedCoeff` package the ordered-position data.
+- `orderedAssignments` is the canonical finite index set for the wrapper/count
+  statements below.
 - `bp_iterated_leibniz_eq` is the single private axiom for the missing
   iterated Leibniz induction.
 - `bp_cylinder_decomposition` is the exact wrapper theorem exposing that
@@ -629,10 +631,17 @@ private noncomputable def layerAssignedCoeff
     (B : LayeredBP n)
     (S : List (Fin n))
     (T : Fin S.length → Fin B.length) : MvPolynomial (Fin n) F :=
-  (List.map (fun τ : Fin B.length =>
+    (List.map (fun τ : Fin B.length =>
       Matrix.of (fun v u : Fin B.width =>
         iterDerivList (assignedVars S T τ) (B.layerMatrix (F := F) τ v u)))
     (List.finRange B.length)).prod B.target B.source
+
+/-- The archived cylinder wrapper is indexed by all ordered assignments of the
+derivative positions in `S` to BP layers. -/
+private abbrev orderedAssignments
+    {n : ℕ} (B : LayeredBP n) (S : List (Fin n)) :
+    Finset (Fin S.length → Fin B.length) :=
+  Finset.univ
 
 /-- Iterated Leibniz rule for matrix product entry: differentiating B.poly by S
     yields a sum over assignments `T : Fin S.length → Fin B.length`.
@@ -664,7 +673,7 @@ theorem bp_cylinder_decomposition
     (B : LayeredBP n)
     (S : List (Fin n)) :
     iterDerivList S (B.poly (F := F)) =
-      (Finset.univ : Finset (Fin S.length → Fin B.length)).sum
+      (orderedAssignments B S).sum
         (layerAssignedCoeff (F := F) B S) := by
   simpa using bp_iterated_leibniz_eq (B := B) (F := F) S
 
@@ -674,7 +683,7 @@ theorem bp_cylinder_assignment_count_le
     {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
     (B : LayeredBP n)
     (S : List (Fin n)) :
-    (Finset.univ : Finset (Fin S.length → Fin B.length)).card ≤
+    (orderedAssignments B S).card ≤
       B.length ^ S.length := by
   simp [Fintype.card_fin]
 
@@ -785,9 +794,9 @@ structure PolyBPFamily where
     for this placeholder family; the real content lives in the separation
     axioms rather than this stub compilation theorem. -/
 noncomputable def compilation_lemma
-    (k : ℕ) (hk : k ≥ 1)
-    (L : ∀ n, (Fin n → Bool) → Bool)
-    (hL : True) -- placeholder for: L decidable in time n^k
+    (k : ℕ) (_hk : k ≥ 1)
+    (_L : ∀ n, (Fin n → Bool) → Bool)
+    (_hL : True) -- placeholder for: L decidable in time n^k
     :
     ∃ (family : PolyBPFamily),
       family.timeExp = k ∧
@@ -820,10 +829,10 @@ noncomputable def compilation_lemma
     - Compilation (Lemma 44): BP family of length n^{O(k)}, width n^{O(1)}
     - BP→SPDP rank bound (Lemma 45): rank ≤ (C · W · L')^d ≤ n^{O(k)} -/
 theorem P_subset_polySPDP
-    (k : ℕ) (hk : k ≥ 1)
+    (k : ℕ) (_hk : k ≥ 1)
     (ℓ : ℕ) (hℓ : ℓ = 2 ∨ ℓ = 3)
-    (L : ∀ n, (Fin n → Bool) → Bool)
-    (hL : True) -- placeholder for: L ∈ P with time n^k
+    (_L : ∀ n, (Fin n → Bool) → Bool)
+    (_hL : True) -- placeholder for: L ∈ P with time n^k
     :
     ∃ (e : ℕ) (N : ℕ), ∀ n ≥ N,
       ∃ (f : MvPolynomial (Fin n) ℝ),

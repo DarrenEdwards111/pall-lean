@@ -30,7 +30,8 @@
   - The small-range frontier is further split in-file into
     `sound_tseitin_pdMatrix_lower_bound_mid`,
     `sound_tseitin_pdMatrix_lower_bound_hard`, and the local theorem
-    `sound_tseitin_pdMatrix_lower_bound_trivial` whose proof still has a `sorry`
+    `sound_tseitin_pdMatrix_lower_bound_trivial`, whose proof still has a
+    `sorry`
   - A narrower replacement route is present but not yet wired through the main
     theorem: `sound_single_clause_deriv_realization`,
     `sound_disjoint_clause_composition`, and reconstruction theorem
@@ -45,10 +46,15 @@
   - `TMtoBP.p_side_poly_spdp_rank`: theorem
   - `PaddingRobustness.*`: theorem-level placeholder infrastructure, no
     remaining `axiom`/`sorry`
-  - `RestrictionMono.spdpRank_restriction_mono`: theorem proved from one
-    non-load-bearing helper `sorry` (`spdpSubspace_restriction_le_image`)
-  - `axiom2_from_components` in this file packages the concrete P-side seam
-    back into the shell-level `charPolyRank n ≤ n^200` conclusion
+  - `RestrictionMono.restrictedSourceSpdpCoeffMatrix_rank_le_spdpRank`:
+    theorem-level coefficient-matrix inequality establishing the honest local
+    restriction frontier with `0` axioms / `0` sorry
+  - full `spdpRank κ ℓ (applyRestriction ρ f) ≤ spdpRank κ ℓ f` is still not
+    formalized in the current ambient variable space; the remaining issue is a
+    target-space semantics mismatch, not a local proof hole
+  - `ConcreteCharPolyRankBridge` packages the shell/concrete identification
+    once, and `axiom2_from_components` uses it to recover the shell-level
+    `charPolyRank n ≤ n^200` conclusion
 
   ## Status Summary
 
@@ -59,8 +65,8 @@
   - TMtoBP.p_side_poly_spdp_rank: P-side polynomial SPDP bound for the current
     zero-polynomial BP compilation
   - PaddingRobustness.padding_preserves_rank / nc0_padding_exists
-  - RestrictionMono.spdpRank_restriction_mono: theorem statement available,
-    but it still rests on one helper `sorry`
+  - RestrictionMono.restrictedSourceSpdpCoeffMatrix_rank_le_spdpRank:
+    theorem-level matrix-rank bound for restricted source generators
   - axiom2_from_components: theorem wrapper reducing the shell P-side bound
     to the concrete data package exposed in `Separation29.lean`
 
@@ -68,7 +74,6 @@
   - `RamanujanTseitin.sound_lps_family_exists`: one `sorry`
   - `RamanujanTseitin.sound_characteristic_pd_row_derivs`: axiom
   - `RamanujanTseitin.sound_tseitin_pdMatrix_lower_bound_small`: axiom
-  - `RestrictionMono.spdpSubspace_restriction_le_image`: helper `sorry`
 
   DECOMPOSED but not yet assembled through the main theorem:
   - `RamanujanTseitin.sound_single_clause_deriv_realization`: axiom
@@ -114,7 +119,10 @@ theorem axiom1_from_components (n : ℕ) (hn : n ≥ 2)
     2. rk_{SPDP}(B_n) ≤ (W·L')^8 ≤ n^c (Lemma 45)
     3. Restricting to φ_n: rk(χ_{φ_n}) ≤ rk(f_{3SAT}) (Lemma 141)
     4. Padding: rk(χ_{pad(φ_n)}) ≥ rk(χ_{φ_n}) (Theorem 144)
-    5. Combined: charPolyRank n ≤ n^c ≤ n^200 -/
+    5. Combined: charPolyRank n ≤ rk(χ_{φ_n}) ≤ n^c ≤ n^200
+
+    The shell/concrete identification is carried by
+    `ConcreteCharPolyRankBridge`, rather than a raw inequality argument. -/
 theorem axiom2_from_components
     (M : TuringMachine.DTM)
     (n : ℕ) (hn : n ≥ 2)
@@ -123,9 +131,9 @@ theorem axiom2_from_components
     (hdec : PaperFaithfulSeparation.DecidesSAT M)
     (d : ConcreteNPSideData n)
     (pData : ConcretePSideData M n hn htb hns hdec)
-    (h_bridge : charPolyRank n ≤ SPDP.spdpRank d.partition.S.card d.partition.S.card d.poly) :
+    (bridge : _root_.Separation29.ConcreteCharPolyRankBridge n d) :
     charPolyRank n ≤ n ^ 200 := by
-  exact theorem_139_from_concrete M n hn htb hns hdec pData d h_bridge
+  exact theorem_139_from_concrete M n hn htb hns hdec pData d bridge
 
 /-! ## Theorem 140 Decomposition via Sound Encoding
 
@@ -231,7 +239,7 @@ seam for the paper-faithful Route B path (NOT YET INHABITED).
 - theorem_140_np_side (Theorem 140: NP-side exponential lower bound)
 - theorem_139_p_side (Theorem 139: P-side polynomial upper bound)
 
-### Sound NP-side, active assembled route: 2 main axioms, 1 main sorry
+### Sound NP-side, active assembled route: 2 main axioms, 2 live sorries
 
 This is the route that currently feeds `sound_theorem72_condensed`.
 
@@ -239,19 +247,21 @@ This is the route that currently feeds `sound_theorem72_condensed`.
 - sound_characteristic_pd_row_derivs — AXIOM (algebraic core of Theorem 140)
 - sound_tseitin_pdMatrix_lower_bound_small — AXIOM (assembled finite exceptional range)
 - sound_lps_family_exists — sorry (LPS Ramanujan construction)
+- sound_tseitin_pdMatrix_lower_bound_trivial — theorem with a local sorry
+  (6 ≤ n < 16)
 
 Auxiliary small-range refinement currently present in the same file:
 - sound_tseitin_pdMatrix_lower_bound_mid — AXIOM (16 ≤ n < 256)
 - sound_tseitin_pdMatrix_lower_bound_hard — AXIOM (256 ≤ n < 660)
-- sound_tseitin_pdMatrix_lower_bound_trivial — theorem with a local sorry (6 ≤ n < 16)
 
 **PartialDerivMatrix.lean**: 0 axioms, 0 sorry — CLEAN
   pdMatrix_le_spdpRank (Lemma 69): PROVED
 
-### Sound NP-side, decomposed replacement route: 2 narrower axioms, 1 sorry
+### Sound NP-side, decomposed replacement route: 2 narrower axioms, 1 local sorry
 
 This route is more faithful about the remaining algebraic content, but it is
-not yet wired into `sound_tseitin_pdMatrix_lower_bound`.
+not yet wired into `sound_tseitin_pdMatrix_lower_bound`. It also still lives
+inside the same file-level sound-family / finite-range scaffold above.
 
 **RamanujanTseitin.lean (sound decomposed path)**:
 - sound_single_clause_deriv_realization — AXIOM (single-clause derivative realization)
@@ -271,22 +281,24 @@ not yet wired into `sound_tseitin_pdMatrix_lower_bound`.
 **BPtoSPDP.lean**: 1 private archived axiom (`bp_iterated_leibniz_eq`), 0 sorry
   Ordered-position cylinder wrapper is stated exactly; not on the active route.
 **SymmetricPower.lean**: 1 axiom (KNOWN FALSE for Route B P-side)
-**RestrictionMono.lean**: 0 axioms, 1 sorry (not load-bearing)
-  Remaining gap narrowed to a finite-support matrix-rank bridge.
+**RestrictionMono.lean**: 0 axioms, 0 sorry
+  Honest local frontier is the finite-support matrix-rank comparison
+  `restrictedSourceSpdpCoeffMatrix_rank_le_spdpRank`; the stronger ambient
+  restriction-monotonicity statement remains blocked by target-space semantics.
 
 ### Totals (honest frontier, by route)
   Route B current placeholder shell: 1 false axiom, 0 sorry
   Separation29 shell: 2 axioms + 1 opaque symbol, 0 sorry
   Sound NP-side active assembled route: 4 axioms, 2 sorry
-  Sound NP-side decomposed replacement route: 2 axioms, 1 sorry
-  P-side nearby decomposition: 0 axioms, 1 sorry
+  Sound NP-side decomposed replacement block: 2 axioms, 1 local sorry
+  P-side nearby decomposition: 0 axioms, 0 sorry
 -/
 
 /-! ## Axiom audit
 
 `axiom1_from_components` still depends on the shell symbol `charPolyRank`.
-`axiom2_from_components` uses `charPolyRank` together with the concrete bridge
-hypothesis supplied to `theorem_139_from_concrete`. -/
+`axiom2_from_components` uses `charPolyRank` together with the shared
+`ConcreteCharPolyRankBridge` seam supplied to `theorem_139_from_concrete`. -/
 #print axioms axiom1_from_components
 #print axioms axiom2_from_components
 

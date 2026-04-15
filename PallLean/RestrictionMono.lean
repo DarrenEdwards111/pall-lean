@@ -77,6 +77,38 @@ theorem applyRestriction_zero {n : ℕ} (ρ : VarRestriction n) :
     applyRestriction ρ 0 = 0 := by
   simp only [applyRestriction_eq_algHom, map_zero]
 
+theorem applyRestriction_vars_subset_freeVars {n : ℕ} (ρ : VarRestriction n)
+    (f : MvPolynomial (Fin n) ℚ) :
+    (applyRestriction ρ f).vars ⊆ ρ.freeVars := by
+  intro x hx
+  rw [applyRestriction_eq_algHom, applyRestrictionAlgHom] at hx
+  rcases MvPolynomial.mem_vars_bind₁ (restrictionFun ρ) f hx with ⟨i, -, hxi⟩
+  by_cases hi : i ∈ ρ.fixedVars
+  · simp [restrictionFun, hi] at hxi
+  · have hi_free : i ∈ ρ.freeVars := by
+      have hi_union : i ∈ ρ.fixedVars ∪ ρ.freeVars := by
+        simp [ρ.partition]
+      rcases Finset.mem_union.mp hi_union with hi_fixed | hi_free
+      · exact (hi.elim hi_fixed)
+      · exact hi_free
+    rcases (by simpa [restrictionFun, hi] using hxi : x = i) with rfl
+    exact hi_free
+
+theorem mem_freeVars_of_mem_vars_applyRestriction {n : ℕ} (ρ : VarRestriction n)
+    (f : MvPolynomial (Fin n) ℚ) {x : Fin n}
+    (hx : x ∈ (applyRestriction ρ f).vars) :
+    x ∈ ρ.freeVars :=
+  applyRestriction_vars_subset_freeVars ρ f hx
+
+theorem support_subset_freeVars_of_mem_applyRestriction_support {n : ℕ}
+    (ρ : VarRestriction n) (f : MvPolynomial (Fin n) ℚ)
+    {m : Fin n →₀ ℕ}
+    (hm : m ∈ (applyRestriction ρ f).support) :
+    m.support ⊆ ρ.freeVars := by
+  intro x hx
+  exact mem_freeVars_of_mem_vars_applyRestriction ρ f
+    ((MvPolynomial.mem_vars x).mpr ⟨m, hm, hx⟩)
+
 /-! ## Commutation of pderiv with applyRestriction -/
 
 theorem free_not_fixed {n : ℕ} (ρ : VarRestriction n) (i : Fin n) (hi : i ∈ ρ.freeVars) :
@@ -247,55 +279,6 @@ These local definitions are the reusable linear-algebra core needed for the
 honest coefficient-matrix proof of Lemma 141. They are copied into the active
 file so the remaining gap is closer to a concrete matrix-rank argument. -/
 
-namespace CoeffBridge
-
-open MvPolynomial
-
-variable {σ : Type*} [DecidableEq σ] {F : Type*} [Field F]
-
-noncomputable abbrev coeffVector (monomials : Finset (σ →₀ ℕ))
-    (p : MvPolynomial σ F) : monomials → F :=
-  CoeffMatrixHelpers.coeffVector monomials p
-
-noncomputable abbrev coeffVectorLin (monomials : Finset (σ →₀ ℕ)) :
-    MvPolynomial σ F →ₗ[F] (monomials → F) :=
-  CoeffMatrixHelpers.coeffVectorLin monomials
-
-noncomputable abbrev coeffMatrix {ι : Type*} (monomials : Finset (σ →₀ ℕ))
-    (generators : ι → MvPolynomial σ F) : Matrix ι monomials F :=
-  CoeffMatrixHelpers.coeffMatrix monomials generators
-
-abbrev supportedSub (monomials : Finset (σ →₀ ℕ)) :
-    Submodule F (MvPolynomial σ F) :=
-  CoeffMatrixHelpers.supportedSub monomials
-
-theorem coeffVector_injective (monomials : Finset (σ →₀ ℕ))
-    (p q : MvPolynomial σ F)
-    (hp : p.support ⊆ monomials) (hq : q.support ⊆ monomials)
-    (h : coeffVector monomials p = coeffVector monomials q) : p = q :=
-  CoeffMatrixHelpers.coeffVector_injective monomials p q hp hq h
-
-theorem span_in_supported (monomials : Finset (σ →₀ ℕ))
-    (S : Set (MvPolynomial σ F))
-    (h : ∀ g ∈ S, (g : MvPolynomial σ F).support ⊆ monomials) :
-    Submodule.span F S ≤ supportedSub monomials :=
-  CoeffMatrixHelpers.span_in_supported monomials S h
-
-theorem coeffVectorLin_injOn (monomials : Finset (σ →₀ ℕ)) :
-    Function.Injective
-      ((coeffVectorLin (F := F) monomials).domRestrict (supportedSub monomials)) :=
-  CoeffMatrixHelpers.coeffVectorLin_injOn (F := F) monomials
-
-theorem finrank_span_eq_matrix_rank {ι : Type*} [Fintype ι] [DecidableEq ι]
-    (monomials : Finset (σ →₀ ℕ))
-    (generators : ι → MvPolynomial σ F)
-    (hsupport : ∀ i, (generators i).support ⊆ monomials) :
-    Module.finrank F (Submodule.span F (Set.range generators)) =
-    (coeffMatrix monomials generators).rank :=
-  CoeffMatrixHelpers.finrank_span_eq_matrix_rank (F := F) monomials generators hsupport
-
-end CoeffBridge
-
 /-! ## Degree-bounded columns and restriction action on coefficient vectors -/
 
 noncomputable def monomialsLE (n D : ℕ) : Finset ((Fin n) →₀ ℕ) :=
@@ -343,13 +326,13 @@ theorem coeffVector_applyRestriction_eq_sum_restrictionColumns {n : ℕ}
     (p : MvPolynomial (Fin n) ℚ)
     (hsource : p.support ⊆ source)
     (_htarget : (applyRestriction ρ p).support ⊆ target) :
-    CoeffBridge.coeffVector target (applyRestriction ρ p) =
+    CoeffMatrixHelpers.coeffVector target (applyRestriction ρ p) =
       fun t =>
         ∑ s : source,
-          CoeffBridge.coeffVector source p s *
+          CoeffMatrixHelpers.coeffVector source p s *
             restrictionColumnMatrix ρ source target s t := by
   ext t
-  simpa [restrictionColumnMatrix, CoeffBridge.coeffVector, applyRestriction_eq_algHom] using
+  simpa [restrictionColumnMatrix, CoeffMatrixHelpers.coeffVector, applyRestriction_eq_algHom] using
     CoeffMatrixHelpers.coeff_apply_eq_sum_monomialActionMatrix
       (σ := Fin n) (F := ℚ) source
       (applyRestrictionAlgHom ρ).toLinearMap p hsource t.1
@@ -406,12 +389,12 @@ theorem coeffMatrix_applyRestriction_eq_mul_restrictionColumns
     (generators : Fin ι → MvPolynomial (Fin n) ℚ)
     (hsource : ∀ i, (generators i).support ⊆ source)
     (htarget : ∀ i, (applyRestriction ρ (generators i)).support ⊆ target) :
-    CoeffBridge.coeffMatrix target (fun i => applyRestriction ρ (generators i)) =
-      CoeffBridge.coeffMatrix source generators *
+    CoeffMatrixHelpers.coeffMatrix target (fun i => applyRestriction ρ (generators i)) =
+      CoeffMatrixHelpers.coeffMatrix source generators *
         restrictionColumnMatrix ρ source target := by
   ext i t
   rw [Matrix.mul_apply]
-  simpa [CoeffBridge.coeffMatrix, CoeffBridge.coeffVector] using
+  simpa [CoeffMatrixHelpers.coeffMatrix, CoeffMatrixHelpers.coeffVector] using
     congrFun
       (coeffVector_applyRestriction_eq_sum_restrictionColumns ρ source target
         (generators i) (hsource i) (htarget i)) t
@@ -541,6 +524,15 @@ private theorem restrictedSpdpMonomialGenerator_support_subset_monomialsLE {n : 
   exact le_trans (spdpMonomialGenerator_totalDegree_le κ ℓ (applyRestriction ρ p) i)
     (Nat.add_le_add_left (applyRestriction_totalDegree_le ρ p) ℓ)
 
+private theorem restrictedSourceSpdpMonomialGenerator_support_subset_monomialsLE {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    (i : (Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ }) :
+    (applyRestriction ρ (spdpMonomialGenerator κ ℓ p i) : MvPolynomial (Fin n) ℚ).support ⊆
+      monomialsLE n (ℓ + p.totalDegree) := by
+  apply support_subset_monomialsLE_of_totalDegree_le
+  exact le_trans (applyRestriction_totalDegree_le ρ (spdpMonomialGenerator κ ℓ p i))
+    (spdpMonomialGenerator_totalDegree_le κ ℓ p i)
+
 private theorem applyRestriction_spdpMonomialGenerator {n : ℕ}
     (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
     (i : (Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ }) :
@@ -593,7 +585,7 @@ noncomputable def spdpMonomialCoeffMatrix {n : ℕ} {F : Type*} [Field F]
     [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
     Matrix ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })
       monomials F :=
-  CoeffBridge.coeffMatrix monomials (spdpMonomialGenerator (F := F) κ ℓ p)
+  CoeffMatrixHelpers.coeffMatrix monomials (spdpMonomialGenerator (F := F) κ ℓ p)
 
 theorem spdpRank_eq_matrix_rank_of_supported {n : ℕ} {F : Type*} [Field F] [Nontrivial F]
     (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F)
@@ -604,7 +596,7 @@ theorem spdpRank_eq_matrix_rank_of_supported {n : ℕ} {F : Type*} [Field F] [No
     spdpRank κ ℓ p = (spdpMonomialCoeffMatrix (F := F) κ ℓ p monomials).rank := by
   unfold spdpRank spdpMonomialCoeffMatrix
   rw [spdpSubspace_eq_span_monomialGenerators]
-  exact CoeffBridge.finrank_span_eq_matrix_rank (F := F) (σ := Fin n) monomials
+  exact CoeffMatrixHelpers.finrank_span_eq_matrix_rank (F := F) (σ := Fin n) monomials
     (spdpMonomialGenerator (F := F) κ ℓ p) hsupport
 
 private theorem spdpRank_eq_matrix_rank_monomialsLE {n : ℕ}
@@ -623,15 +615,15 @@ private theorem restrictedSpdpRank_eq_matrix_rank_monomialsLE {n : ℕ}
     spdpRank κ ℓ (applyRestriction ρ p) =
       (spdpMonomialCoeffMatrix (F := ℚ) κ ℓ (applyRestriction ρ p)
         (monomialsLE n (ℓ + p.totalDegree))).rank := by
-  apply spdpRank_eq_matrix_rank_of_supported
-  intro i
-  exact restrictedSpdpMonomialGenerator_support_subset_monomialsLE ρ κ ℓ p i
+  exact spdpRank_eq_matrix_rank_of_supported (F := ℚ) κ ℓ (applyRestriction ρ p)
+    (monomialsLE n (ℓ + p.totalDegree))
+    (fun i => restrictedSpdpMonomialGenerator_support_subset_monomialsLE ρ κ ℓ p i)
 
 private theorem restrictedSourceSpdpCoeffMatrix_rank_le {n : ℕ}
     (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
     [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
     let monomials := monomialsLE n (ℓ + p.totalDegree)
-    (CoeffBridge.coeffMatrix monomials
+    (CoeffMatrixHelpers.coeffMatrix monomials
       (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))).rank ≤
         spdpRank κ ℓ p := by
   let monomials := monomialsLE n (ℓ + p.totalDegree)
@@ -641,11 +633,11 @@ private theorem restrictedSourceSpdpCoeffMatrix_rank_le {n : ℕ}
     intro i
     simpa [monomials] using spdpMonomialGenerator_support_subset_monomialsLE κ ℓ p i
   calc
-    (CoeffBridge.coeffMatrix monomials
+    (CoeffMatrixHelpers.coeffMatrix monomials
       (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))).rank
-        ≤ (CoeffBridge.coeffMatrix monomials
+        ≤ (CoeffMatrixHelpers.coeffMatrix monomials
             (spdpMonomialGenerator (F := ℚ) κ ℓ p)).rank := by
-          simpa [CoeffBridge.coeffMatrix, monomials, applyRestriction_eq_algHom] using
+          simpa [CoeffMatrixHelpers.coeffMatrix, monomials, applyRestriction_eq_algHom] using
             CoeffMatrixHelpers.rank_coeffMatrix_map_le
               (σ := Fin n) (F := ℚ) monomials monomials
               (applyRestrictionAlgHom ρ).toLinearMap
@@ -653,6 +645,53 @@ private theorem restrictedSourceSpdpCoeffMatrix_rank_le {n : ℕ}
     _ = spdpRank κ ℓ p := by
       symm
       exact spdpRank_eq_matrix_rank_monomialsLE κ ℓ p
+
+/-- The restriction image of the SPDP subspace is exactly the span of the
+restricted canonical SPDP generators. -/
+theorem restriction_image_spdpSubspace_eq_span_restrictedGenerators {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    Submodule.map (applyRestrictionAlgHom ρ).toLinearMap (spdpSubspace κ ℓ p) =
+      Submodule.span ℚ
+        (Set.range (fun i =>
+          applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))) := by
+  rw [spdpSubspace_eq_span_monomialGenerators, Submodule.map_span]
+  congr 1
+  ext q
+  constructor
+  · rintro ⟨x, ⟨i, rfl⟩, rfl⟩
+    exact ⟨i, rfl⟩
+  · rintro ⟨i, rfl⟩
+    exact ⟨spdpMonomialGenerator (F := ℚ) κ ℓ p i, ⟨i, rfl⟩, rfl⟩
+
+/-- Finite-support bridge for the restriction image: its dimension is exactly
+the rank of the coefficient matrix of the restricted canonical generators over
+the bounded monomial universe. -/
+theorem restriction_image_spdpSubspace_finrank_eq_restrictedSourceCoeffMatrix_rank {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    let monomials := monomialsLE n (ℓ + p.totalDegree)
+    Module.finrank ℚ
+        (Submodule.map (applyRestrictionAlgHom ρ).toLinearMap (spdpSubspace κ ℓ p)) =
+      (CoeffMatrixHelpers.coeffMatrix monomials
+        (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))).rank := by
+  let monomials := monomialsLE n (ℓ + p.totalDegree)
+  rw [restriction_image_spdpSubspace_eq_span_restrictedGenerators]
+  exact CoeffMatrixHelpers.finrank_span_eq_matrix_rank (F := ℚ) (σ := Fin n) monomials
+    (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))
+    (fun i => by
+      simpa [monomials] using
+        restrictedSourceSpdpMonomialGenerator_support_subset_monomialsLE ρ κ ℓ p i)
+
+/-- Restriction sends the SPDP subspace into a finite-dimensional image whose
+dimension is bounded by the original SPDP rank. -/
+theorem restriction_image_spdpSubspace_finrank_le_spdpRank {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ) :
+    Module.finrank ℚ
+        (Submodule.map (applyRestrictionAlgHom ρ).toLinearMap (spdpSubspace κ ℓ p)) ≤
+      spdpRank κ ℓ p := by
+  simpa [SPDP.spdpRank] using
+    (Submodule.finrank_map_le (applyRestrictionAlgHom ρ).toLinearMap (spdpSubspace κ ℓ p))
 
 /-! ## Restriction-Matrix Frontier
 
@@ -696,7 +735,7 @@ theorem restrictedSourceSpdpCoeffMatrix_rank_le_spdpRank {n : ℕ}
     (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
     [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
     let monomials := monomialsLE n (ℓ + p.totalDegree)
-    (CoeffBridge.coeffMatrix monomials
+    (CoeffMatrixHelpers.coeffMatrix monomials
       (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))).rank ≤
         spdpRank κ ℓ p := by
   simpa using restrictedSourceSpdpCoeffMatrix_rank_le ρ κ ℓ p
