@@ -11,7 +11,7 @@
   - Vertex parity constraints → 3-CNF clauses
   - n clauses, O(n) variables
 
-  Paper-faithful characteristic-polynomial route (pvsnp1, §6 / §14 / Theorem 115):
+  Paper-faithful characteristic-polynomial / PD route (pvsnp1, §23 / §14 / Theorem 115):
   - Natural partition [vars] = S_n ⊔ T_n with |S_n| = Θ(n)
   - rank(PD_{S_n,T_n}(χ_{φ_n})) = 2^{Ω(n)}
   - hence in particular rank(PD_{S_n,T_n}(χ_{φ_n})) ≥ n^{(log n)/4}
@@ -117,10 +117,13 @@ def TseitinEncoding.numClauses {F : Type*} [Field F] (enc : TseitinEncoding F) :
   The key partition of `[numVars] = S_n ⊔ T_n` used in the
   characteristic-polynomial ∂-matrix route.
 
-  In the current `pvsnp1` PDF (Theorem 115), the characteristic-polynomial
-  ∂-matrix route uses a partition with `|S_n| = Θ(n)`, obtained from disjoint
-  expander pockets / neighbourhoods. The small-`S` placeholder that appeared in
-  older bridge files is not the paper-faithful statement for `χ_{φ_n}`. -/
+  In the current `pvsnp1` PDF, Theorem 115 is the characteristic-polynomial
+  partial-derivative lower bound for explicit `#3SAT` / Tseitin-style encodings,
+  and Theorem 117 is the Ramanujan-Tseitin SPDP consequence on expanders.
+  The characteristic-polynomial ∂-matrix route uses a partition with
+  `|S_n| = Θ(n)`, obtained from disjoint expander pockets / neighbourhoods.
+  The small-`S` placeholder that appeared in older bridge files is not the
+  paper-faithful statement for `χ_{φ_n}`. -/
 
 /-- The partition (S_n, T_n) for a Tseitin encoding.
   We package it as a `VarPartition` together with the lower-bound witness on
