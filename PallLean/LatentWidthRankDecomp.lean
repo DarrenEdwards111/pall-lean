@@ -3571,6 +3571,169 @@ theorem latent_raw_con_bucket_member_copyCon_resolves
   · rw [← hSig]
     exact latent_conSlot_copyCon_varying_factor_mem_varying_space M n ks m hVars hDeg hlen
 
+/-- The latent hit-block set of a copy-slot witness list is exactly the underlying base-index
+set. This is the signature-level bridge from cleaned copy witnesses back to the actual base
+blocks they touch. -/
+theorem latent_hitBlocks_of_copySlot_map
+    (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n))) :
+    latent_hitBlocks_of_list M n (ks.map (copySlot M n)) = ks.toFinset := by
+  unfold latent_hitBlocks_of_list
+  have hmap : ks.map (fun i => (latentPartition M n).assign (copySlot M n i)) = ks := by
+    apply List.ext_getElem <;> simp [latentPartition_assign_copySlot]
+  simpa [List.map_map] using congrArg List.toFinset hmap
+
+/-- The latent hit-block set of a pure-`conSlot` witness list is exactly the underlying
+base-index set. -/
+theorem latent_hitBlocks_of_conSlot_map
+    (M : DTM) (n : ℕ)
+    (ks : List (Fin (latentBaseVars M n))) :
+    latent_hitBlocks_of_list M n (ks.map (conSlot M n)) = ks.toFinset := by
+  unfold latent_hitBlocks_of_list
+  have hmap : ks.map (fun i => (latentPartition M n).assign (conSlot M n i)) = ks := by
+    apply List.ext_getElem <;> simp [latentPartition_assign_conSlot]
+  simpa [List.map_map] using congrArg List.toFinset hmap
+
+/-- Shared coarse signature forces a pure-`conSlot` witness list and a cleaned copy-slot witness
+list to touch exactly the same base blocks. This is the structural alignment needed before any
+coefficient-level comparison on `copyConSheet`. -/
+theorem latent_same_signature_con_vs_copy_toFinset
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (kscon kscopy : List (Fin (latentBaseVars M n)))
+    (mcon mcopy : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLenCon : kscon.length = Nat.log 2 n)
+    (hDegCon : mcon.totalDegree ≤ Nat.log 2 n)
+    (hLenCopy : kscopy.length = Nat.log 2 n)
+    (hDegCopy : mcopy.totalDegree ≤ Nat.log 2 n)
+    (hSigCon : latent_profile_signature_of_generator_data M n (kscon.map (conSlot M n)) mcon
+      (by simpa [List.length_map] using hLenCon) hDegCon = σ)
+    (hSigCopy : latent_profile_signature_of_generator_data M n (kscopy.map (copySlot M n)) mcopy
+      (by simpa [List.length_map] using hLenCopy) hDegCopy = σ) :
+    kscon.toFinset = kscopy.toFinset := by
+  have hconBlocks :
+      (latent_profile_signature_of_generator_data M n (kscon.map (conSlot M n)) mcon
+        (by simpa [List.length_map] using hLenCon) hDegCon).hitBlocks = kscon.toFinset := by
+    calc
+      (latent_profile_signature_of_generator_data M n (kscon.map (conSlot M n)) mcon
+        (by simpa [List.length_map] using hLenCon) hDegCon).hitBlocks =
+          latent_hitBlocks_of_list M n (kscon.map (conSlot M n)) := by
+            exact latent_profile_signature_of_generator_data_hitBlocks M n
+              (kscon.map (conSlot M n)) mcon
+              (by simpa [List.length_map] using hLenCon) hDegCon
+      _ = kscon.toFinset := latent_hitBlocks_of_conSlot_map M n kscon
+  have hcopyBlocks :
+      (latent_profile_signature_of_generator_data M n (kscopy.map (copySlot M n)) mcopy
+        (by simpa [List.length_map] using hLenCopy) hDegCopy).hitBlocks = kscopy.toFinset := by
+    calc
+      (latent_profile_signature_of_generator_data M n (kscopy.map (copySlot M n)) mcopy
+        (by simpa [List.length_map] using hLenCopy) hDegCopy).hitBlocks =
+          latent_hitBlocks_of_list M n (kscopy.map (copySlot M n)) := by
+            exact latent_profile_signature_of_generator_data_hitBlocks M n
+              (kscopy.map (copySlot M n)) mcopy
+              (by simpa [List.length_map] using hLenCopy) hDegCopy
+      _ = kscopy.toFinset := latent_hitBlocks_of_copySlot_map M n kscopy
+  calc
+    kscon.toFinset =
+        (latent_profile_signature_of_generator_data M n (kscon.map (conSlot M n)) mcon
+          (by simpa [List.length_map] using hLenCon) hDegCon).hitBlocks := hconBlocks.symm
+    _ = σ.hitBlocks := by simpa [hSigCon]
+    _ =
+        (latent_profile_signature_of_generator_data M n (kscopy.map (copySlot M n)) mcopy
+          (by simpa [List.length_map] using hLenCopy) hDegCopy).hitBlocks := by
+        simpa [hSigCopy]
+    _ = kscopy.toFinset := hcopyBlocks
+
+/-- Concrete comparison data package for the remaining pure-`conSlot` versus cleaned-copy
+same-`q` frontier. Starting from a raw pure-`conSlot` presentation and an explicit clean
+copy-slot presentation computing the same coarse signature, this theorem normalizes the pure
+side to a base-index list, aligns the hit-block sets, and exposes both `copyConSheet` closed
+forms in the same residual-times-varying format. -/
+theorem latent_pure_conSlot_vs_clean_copy_same_q_aligned_copyCon_forms
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (Scon : List (Fin (latentNumVars M n)))
+    (mcon : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLenCon : Scon.length = Nat.log 2 n)
+    (hDegCon : mcon.totalDegree ≤ Nat.log 2 n)
+    (hVarsCon : mcon.vars ⊆ Scon.toFinset)
+    (hAdmCon : isBlockAdmissible (latentPartition M n) Scon)
+    (hSigCon : latent_profile_signature_of_generator_data M n Scon mcon hLenCon hDegCon = σ)
+    (hqCon : q = mlProj (mcon * iterDerivList Scon (latentCompiledPoly M n)))
+    (_hScon : Scon ≠ [])
+    (hcon : ∀ v ∈ Scon, ∃ i : Fin (latentBaseVars M n), v = conSlot M n i)
+    (kscopy : List (Fin (latentBaseVars M n)))
+    (mcopy : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hndCopy : kscopy.Nodup)
+    (hLenCopy : kscopy.length = Nat.log 2 n)
+    (hDegCopy : mcopy.totalDegree ≤ Nat.log 2 n)
+    (hVarsCopy : mcopy.vars ⊆ (kscopy.map (copySlot M n)).toFinset)
+    (hSigCopy : latent_profile_signature_of_generator_data M n (kscopy.map (copySlot M n)) mcopy
+      (by simp [List.length_map, hLenCopy]) hDegCopy = σ)
+    (hqCopy : q = mlProj (mcopy * iterDerivList (kscopy.map (copySlot M n)) (latentCompiledPoly M n))) :
+    ∃ (kscon : List (Fin (latentBaseVars M n)))
+      (residualCon varyingCon residualCopy varyingCopy :
+        MvPolynomial (Fin (latentNumVars M n)) ℚ),
+      kscon.Nodup ∧
+      Scon = kscon.map (conSlot M n) ∧
+      kscon.length = Nat.log 2 n ∧
+      kscon.toFinset = kscopy.toFinset ∧
+      q = mlProj (mcon * iterDerivList (kscon.map (conSlot M n)) (latentCompiledPoly M n)) ∧
+      q = mlProj (mcopy * iterDerivList (kscopy.map (copySlot M n)) (latentCompiledPoly M n)) ∧
+      mlProj (mcon * iterDerivList (kscon.map (conSlot M n)) (copyConSheet M n)) =
+        mlProj (residualCon * varyingCon) ∧
+      varyingCon ∈ latent_profile_varying_space M n σ ∧
+      mlProj (mcopy * iterDerivList (kscopy.map (copySlot M n)) (copyConSheet M n)) =
+        mlProj (residualCopy * varyingCopy) ∧
+      varyingCopy ∈ latent_profile_varying_space M n σ := by
+  let kscon : List (Fin (latentBaseVars M n)) := Scon.map (fun v => (latentPartition M n).assign v)
+  have hSconMap : Scon = kscon.map (conSlot M n) := by
+    unfold kscon
+    apply List.ext_getElem <;> simp [List.length_map]
+    intro i hi1 hi2
+    rcases hcon (Scon[i]) (List.getElem_mem hi1) with ⟨b, hb⟩
+    have hassign : (latentPartition M n).assign (Scon[i]) = b := by
+      simpa [hb] using latentPartition_assign_conSlot M n b
+    calc
+      Scon[i] = conSlot M n b := hb
+      _ = conSlot M n ((latentPartition M n).assign (Scon[i])) := by rw [hassign.symm]
+  have hmapNodup : (kscon.map (conSlot M n)).Nodup := by
+    simpa [hSconMap] using hAdmCon.1
+  have hndCon : kscon.Nodup := by
+    apply (List.nodup_map_iff ?_).mp hmapNodup
+    intro a b hab
+    simp [conSlot, slot] at hab
+    exact Fin.ext (by omega)
+  have hLenCon' : kscon.length = Nat.log 2 n := by
+    simpa [kscon, List.length_map] using hLenCon
+  have hVarsCon' : mcon.vars ⊆ (kscon.map (conSlot M n)).toFinset := by
+    simpa [hSconMap] using hVarsCon
+  have hSigCon' : latent_profile_signature_of_generator_data M n (kscon.map (conSlot M n)) mcon
+      (by simpa [List.length_map] using hLenCon') hDegCon = σ := by
+    simpa [hSconMap] using hSigCon
+  have hqCon' : q = mlProj (mcon * iterDerivList (kscon.map (conSlot M n)) (latentCompiledPoly M n)) := by
+    simpa [hSconMap] using hqCon
+  have hSetEq : kscon.toFinset = kscopy.toFinset := by
+    exact latent_same_signature_con_vs_copy_toFinset M n σ kscon kscopy mcon mcopy
+      hLenCon' hDegCon hLenCopy hDegCopy hSigCon' hSigCopy
+  refine ⟨kscon,
+    C ((-1 : ℚ)^kscon.length) * (∏ i ∈ (Finset.univ \ kscon.toFinset), copyConGadget M n i),
+    mcon * (kscon.map (Xcopy M n)).prod,
+    C ((-1 : ℚ)^kscopy.length) * (∏ i ∈ (Finset.univ \ kscopy.toFinset), copyConGadget M n i),
+    mcopy * (kscopy.map (Xcon M n)).prod,
+    hndCon, hSconMap, hLenCon', hSetEq, hqCon', hqCopy, ?_, ?_, ?_, ?_⟩
+  · rw [LatentWitnessMinorDecomp.iterDeriv_conSlot_copyConSheet_eq M n kscon hndCon]
+    ring_nf
+  · rw [← hSigCon']
+    exact latent_conSlot_copyCon_varying_factor_mem_varying_space M n kscon mcon
+      hVarsCon' hDegCon hLenCon'
+  · rw [LatentWitnessMinorDecomp.iterDeriv_copyConSheet_eq M n kscopy hndCopy]
+    ring_nf
+  · rw [← hSigCopy]
+    exact latent_copyCon_varying_factor_mem_varying_space M n kscopy mcopy
+      hVarsCopy hDegCopy hLenCopy
+
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
 latentCompiledPoly = sum of 3 product sheets → subadditivity reduces to per-sheet bounds.
