@@ -3734,6 +3734,95 @@ theorem latent_pure_conSlot_vs_clean_copy_same_q_aligned_copyCon_forms
     exact latent_copyCon_varying_factor_mem_varying_space M n kscopy mcopy
       hVarsCopy hDegCopy hLenCopy
 
+/-- Stronger aligned normalization for the live copyCon comparison frontier.
+This packages both the pure-con and clean-copy `copyConSheet` realizations against one common
+residual factor on the aligned base-index set, rather than two separately named residuals. -/
+theorem latent_pure_conSlot_vs_clean_copy_same_q_common_residual_copyCon_forms
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (Scon : List (Fin (latentNumVars M n)))
+    (mcon : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLenCon : Scon.length = Nat.log 2 n)
+    (hDegCon : mcon.totalDegree ≤ Nat.log 2 n)
+    (hVarsCon : mcon.vars ⊆ Scon.toFinset)
+    (hAdmCon : isBlockAdmissible (latentPartition M n) Scon)
+    (hSigCon : latent_profile_signature_of_generator_data M n Scon mcon hLenCon hDegCon = σ)
+    (hqCon : q = mlProj (mcon * iterDerivList Scon (latentCompiledPoly M n)))
+    (_hScon : Scon ≠ [])
+    (hcon : ∀ v ∈ Scon, ∃ i : Fin (latentBaseVars M n), v = conSlot M n i)
+    (kscopy : List (Fin (latentBaseVars M n)))
+    (mcopy : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hndCopy : kscopy.Nodup)
+    (hLenCopy : kscopy.length = Nat.log 2 n)
+    (hDegCopy : mcopy.totalDegree ≤ Nat.log 2 n)
+    (hVarsCopy : mcopy.vars ⊆ (kscopy.map (copySlot M n)).toFinset)
+    (hSigCopy : latent_profile_signature_of_generator_data M n (kscopy.map (copySlot M n)) mcopy
+      (by simp [List.length_map, hLenCopy]) hDegCopy = σ)
+    (hqCopy : q = mlProj (mcopy * iterDerivList (kscopy.map (copySlot M n)) (latentCompiledPoly M n))) :
+    ∃ (kscon : List (Fin (latentBaseVars M n)))
+      (residual varyingCon varyingCopy :
+        MvPolynomial (Fin (latentNumVars M n)) ℚ),
+      kscon.Nodup ∧
+      Scon = kscon.map (conSlot M n) ∧
+      kscon.length = Nat.log 2 n ∧
+      kscon.toFinset = kscopy.toFinset ∧
+      q = mlProj (mcon * iterDerivList (kscon.map (conSlot M n)) (latentCompiledPoly M n)) ∧
+      q = mlProj (mcopy * iterDerivList (kscopy.map (copySlot M n)) (latentCompiledPoly M n)) ∧
+      mlProj (mcon * iterDerivList (kscon.map (conSlot M n)) (copyConSheet M n)) =
+        mlProj (residual * varyingCon) ∧
+      varyingCon ∈ latent_profile_varying_space M n σ ∧
+      mlProj (mcopy * iterDerivList (kscopy.map (copySlot M n)) (copyConSheet M n)) =
+        mlProj (residual * varyingCopy) ∧
+      varyingCopy ∈ latent_profile_varying_space M n σ := by
+  let kscon : List (Fin (latentBaseVars M n)) := Scon.map (fun v => (latentPartition M n).assign v)
+  have hSconMap : Scon = kscon.map (conSlot M n) := by
+    unfold kscon
+    apply List.ext_getElem <;> simp [List.length_map]
+    intro i hi1 hi2
+    rcases hcon (Scon[i]) (List.getElem_mem hi1) with ⟨b, hb⟩
+    have hassign : (latentPartition M n).assign (Scon[i]) = b := by
+      simpa [hb] using latentPartition_assign_conSlot M n b
+    calc
+      Scon[i] = conSlot M n b := hb
+      _ = conSlot M n ((latentPartition M n).assign (Scon[i])) := by rw [hassign.symm]
+  have hmapNodup : (kscon.map (conSlot M n)).Nodup := by
+    simpa [hSconMap] using hAdmCon.1
+  have hndCon : kscon.Nodup := by
+    apply (List.nodup_map_iff ?_).mp hmapNodup
+    intro a b hab
+    simp [conSlot, slot] at hab
+    exact Fin.ext (by omega)
+  have hLenCon' : kscon.length = Nat.log 2 n := by
+    simpa [kscon, List.length_map] using hLenCon
+  have hVarsCon' : mcon.vars ⊆ (kscon.map (conSlot M n)).toFinset := by
+    simpa [hSconMap] using hVarsCon
+  have hSigCon' : latent_profile_signature_of_generator_data M n (kscon.map (conSlot M n)) mcon
+      (by simpa [List.length_map] using hLenCon') hDegCon = σ := by
+    simpa [hSconMap] using hSigCon
+  have hqCon' : q = mlProj (mcon * iterDerivList (kscon.map (conSlot M n)) (latentCompiledPoly M n)) := by
+    simpa [hSconMap] using hqCon
+  have hSetEq : kscon.toFinset = kscopy.toFinset := by
+    exact latent_same_signature_con_vs_copy_toFinset M n σ kscon kscopy mcon mcopy
+      hLenCon' hDegCon hLenCopy hDegCopy hSigCon' hSigCopy
+  have hLenEq : kscon.length = kscopy.length := by rw [hLenCon', hLenCopy]
+  refine ⟨kscon,
+    C ((-1 : ℚ)^kscon.length) * (∏ i ∈ (Finset.univ \ kscon.toFinset), copyConGadget M n i),
+    mcon * (kscon.map (Xcopy M n)).prod,
+    mcopy * (kscopy.map (Xcon M n)).prod,
+    hndCon, hSconMap, hLenCon', hSetEq, hqCon', hqCopy, ?_, ?_, ?_, ?_⟩
+  · rw [LatentWitnessMinorDecomp.iterDeriv_conSlot_copyConSheet_eq M n kscon hndCon]
+    ring_nf
+  · rw [← hSigCon']
+    exact latent_conSlot_copyCon_varying_factor_mem_varying_space M n kscon mcon
+      hVarsCon' hDegCon hLenCon'
+  · rw [LatentWitnessMinorDecomp.iterDeriv_copyConSheet_eq M n kscopy hndCopy]
+    ring_nf
+    simpa [hLenEq, hSetEq, mul_assoc, mul_left_comm, mul_comm]
+  · rw [← hSigCopy]
+    exact latent_copyCon_varying_factor_mem_varying_space M n kscopy mcopy
+      hVarsCopy hDegCopy hLenCopy
+
 /-- Reduced algebraic contradiction surface for the remaining pure-`conSlot` versus clean-copy
 same-`q` frontier. After the new normalization/alignment work, the only missing ingredient is a
 contradiction theorem on already-aligned `copyConSheet` forms over the same base-block set. -/
@@ -3917,6 +4006,52 @@ theorem latent_pure_conSlot_vs_clean_copy_same_q_candidate_of_copyCon_bridge_sta
         M n σ q Scon mcon hLenCon hDegCon hVarsCon hAdmCon hSigCon hqCon hScon hcon := by
   exact latent_pure_conSlot_vs_clean_copy_same_q_candidate_of_aligned_copyCon_form_conflict M n
     (latent_aligned_copyCon_form_conflict_of_residual_identification M n hsheet hid hcommon)
+
+/-- Shorter active reduction on the live copyCon frontier.
+The aligned normalization theorem already internalizes residual identification for the witnesses it
+constructs, so the raw same-`q` contradiction route now needs only:
+1. equality of the two aligned `copyConSheet` projections, and
+2. a contradiction theorem for a shared residual acting on two within-profile factors. -/
+theorem latent_pure_conSlot_vs_clean_copy_same_q_candidate_of_common_residual_bridge
+    (M : DTM) (n : ℕ)
+    (hsheet : latent_aligned_copyCon_sheet_equality_candidate M n)
+    (hcommon : latent_aligned_copyCon_common_residual_conflict_candidate M n) :
+    ∀ (σ : latentProfileSignature M n)
+      (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+      (Scon : List (Fin (latentNumVars M n)))
+      (mcon : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+      (hLenCon : Scon.length = Nat.log 2 n)
+      (hDegCon : mcon.totalDegree ≤ Nat.log 2 n)
+      (hVarsCon : mcon.vars ⊆ Scon.toFinset)
+      (hAdmCon : isBlockAdmissible (latentPartition M n) Scon)
+      (hSigCon : latent_profile_signature_of_generator_data M n Scon mcon hLenCon hDegCon = σ)
+      (hqCon : q = mlProj (mcon * iterDerivList Scon (latentCompiledPoly M n)))
+      (hScon : Scon ≠ [])
+      (hcon : ∀ v ∈ Scon, ∃ i : Fin (latentBaseVars M n), v = conSlot M n i),
+      latent_pure_conSlot_vs_clean_copy_same_q_candidate
+        M n σ q Scon mcon hLenCon hDegCon hVarsCon hAdmCon hSigCon hqCon hScon hcon := by
+  intro σ q Scon mcon hLenCon hDegCon hVarsCon hAdmCon hSigCon hqCon hScon hcon
+  intro kscopy mcopy hndCopy hLenCopy hDegCopy hVarsCopy hSigCopy hqCopy
+  rcases latent_pure_conSlot_vs_clean_copy_same_q_common_residual_copyCon_forms
+      M n σ q Scon mcon hLenCon hDegCon hVarsCon hAdmCon hSigCon hqCon
+      hScon hcon kscopy mcopy hndCopy hLenCopy hDegCopy hVarsCopy hSigCopy hqCopy with
+    ⟨kscon, residual, varyingCon, varyingCopy,
+      hndCon, _hSconMap, hLenCon', hSetEq, hqCon', hqCopy', hformCon, hvarCon, hformCopy, hvarCopy⟩
+  have hsheetEq :
+      mlProj (mcon * iterDerivList (kscon.map (conSlot M n)) (copyConSheet M n)) =
+        mlProj (mcopy * iterDerivList (kscopy.map (copySlot M n)) (copyConSheet M n)) :=
+    hsheet σ q kscon kscopy mcon mcopy residual varyingCon residual varyingCopy
+      hndCon hndCopy hLenCon' hLenCopy hSetEq hqCon' hqCopy' hformCon hvarCon hformCopy hvarCopy
+  have hsame : mlProj (residual * varyingCon) = mlProj (residual * varyingCopy) := by
+    calc
+      mlProj (residual * varyingCon) =
+          mlProj (mcon * iterDerivList (kscon.map (conSlot M n)) (copyConSheet M n)) := by
+            rw [← hformCon]
+      _ =
+          mlProj (mcopy * iterDerivList (kscopy.map (copySlot M n)) (copyConSheet M n)) := by
+            exact hsheetEq
+      _ = mlProj (residual * varyingCopy) := by rw [hformCopy]
+  exact hcommon σ kscon residual varyingCon varyingCopy hndCon hLenCon' hvarCon hvarCopy hsame
 
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
