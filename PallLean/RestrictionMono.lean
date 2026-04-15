@@ -264,10 +264,25 @@ and does not depend on this file. -/
     3. iterDerivList commutes with restriction for all-free lists; gives 0
        when any fixed variable appears in the derivative list
 -/
+-- Helper: the SPDP subspace of ρ(f) is contained in the image of a linear map
+-- applied to the SPDP subspace of f. This is the coefficient-matrix column-operation
+-- argument from the paper's Lemma 141.
+private theorem spdpSubspace_restriction_le_image {n : ℕ}
+    (ρ : VarRestriction n) (f : MvPolynomial (Fin n) ℚ) (κ ℓ : ℕ) :
+    ∃ (φ : MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ),
+    spdpSubspace κ ℓ (applyRestriction ρ f) ≤ Submodule.map φ (spdpSubspace κ ℓ f) := by
+  -- The construction of φ and the containment proof require coefficient-matrix
+  -- infrastructure (formalizing the SPDP matrix and showing restriction acts
+  -- as a column operation). This is the core technical obligation.
+  sorry
+
 theorem spdpRank_restriction_mono {n : ℕ}
     (ρ : VarRestriction n) (f : MvPolynomial (Fin n) ℚ) (κ ℓ : ℕ) :
     spdpRank κ ℓ (applyRestriction ρ f) ≤ spdpRank κ ℓ f := by
-  sorry
+  -- Follows from the submodule containment + finrank monotonicity.
+  obtain ⟨φ, hle⟩ := spdpSubspace_restriction_le_image ρ f κ ℓ
+  unfold spdpRank
+  exact le_trans (Submodule.finrank_mono hle) (Submodule.finrank_map_le φ _)
 
 /-! ## Application: Language Polynomial → Instance Polynomial -/
 
