@@ -2108,15 +2108,17 @@ theorem sound_row_derivs_from_decomposition
             (IdentityMinorReal.getClauseSubset
               (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
               (Nat.log 2 n) i) := by
-  -- The proof applies sub-axiom B (disjoint composition) to the clause subset
-  -- for index i. The combined derivative list from B provides the derivs, and
-  -- B's composition field provides the gadget product identification.
-  -- The type identification tseitinClauseSystem.numClauses = pack.selected.length
-  -- ensures the getClauseSubset output is compatible with the DisjointClauseComposition
-  -- input. Full proof requires unwinding these definitional equalities.
-  let _ := hA  -- sub-axiom A available (used implicitly by B)
-  let _ := hB  -- sub-axiom B provides the composition
-  sorry
+  -- Apply sub-axiom B to the clause subset for index i.
+  let sys := IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack
+  let cs := IdentityMinorReal.getClauseSubset sys (Nat.log 2 n) i
+  have cs_nd : cs.Nodup := IdentityMinorReal.getClauseSubset_nodup sys (Nat.log 2 n) i
+  -- Apply hB to cs (types match: sys.numClauses = pack.selected.length by rfl)
+  let w := hB cs cs_nd
+  -- Extract the derivation witness
+  use w.combinedDerivVars, w.combinedVars_subset_S, w.combinedVars_nodup
+  -- The composition field gives the gadget product identification
+  obtain ⟨scalar, hne, hcomp⟩ := w.composition
+  exact ⟨scalar, hne, hcomp⟩
 
 /-! ### Updated Axiom Inventory (Sound Encoding, Decomposed)
 
