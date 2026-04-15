@@ -144,4 +144,76 @@ theorem binomial_lower_bound_concrete (n : ℕ) (hn : n ≥ 2 ^ 20) :
         ≥ (n / 30 / k) ^ k := choose_ge_div_pow _ _ hk_pos
       _ ≥ n ^ (k / 4) := hpbl
 
+private theorem binomial_lower_bound_660_1024 :
+    ∀ n, 660 ≤ n → n < 2 ^ 10 →
+      Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4) := by
+  native_decide
+
+private theorem bucket_const_10 :
+    Nat.choose (2 ^ 10 / 30) 10 ≥ (2 ^ (10 + 1) - 1) ^ (10 / 4) := by native_decide
+private theorem bucket_const_11 :
+    Nat.choose (2 ^ 11 / 30) 11 ≥ (2 ^ (11 + 1) - 1) ^ (11 / 4) := by native_decide
+private theorem bucket_const_12 :
+    Nat.choose (2 ^ 12 / 30) 12 ≥ (2 ^ (12 + 1) - 1) ^ (12 / 4) := by native_decide
+private theorem bucket_const_13 :
+    Nat.choose (2 ^ 13 / 30) 13 ≥ (2 ^ (13 + 1) - 1) ^ (13 / 4) := by native_decide
+private theorem bucket_const_14 :
+    Nat.choose (2 ^ 14 / 30) 14 ≥ (2 ^ (14 + 1) - 1) ^ (14 / 4) := by native_decide
+private theorem bucket_const_15 :
+    Nat.choose (2 ^ 15 / 30) 15 ≥ (2 ^ (15 + 1) - 1) ^ (15 / 4) := by native_decide
+private theorem bucket_const_16 :
+    Nat.choose (2 ^ 16 / 30) 16 ≥ (2 ^ (16 + 1) - 1) ^ (16 / 4) := by native_decide
+private theorem bucket_const_17 :
+    Nat.choose (2 ^ 17 / 30) 17 ≥ (2 ^ (17 + 1) - 1) ^ (17 / 4) := by native_decide
+private theorem bucket_const_18 :
+    Nat.choose (2 ^ 18 / 30) 18 ≥ (2 ^ (18 + 1) - 1) ^ (18 / 4) := by native_decide
+private theorem bucket_const_19 :
+    Nat.choose (2 ^ 19 / 30) 19 ≥ (2 ^ (19 + 1) - 1) ^ (19 / 4) := by native_decide
+
+/-- Strengthened concrete binomial lower bound: the inequality already holds
+from `n = 660`, with only the range `660 ≤ n < 1024` checked by computation
+and the rest handled by log-bucket monotonicity plus the asymptotic proof. -/
+theorem binomial_lower_bound_from_660 (n : ℕ) (hn : n ≥ 660) :
+    Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4) := by
+  by_cases hlarge : 2 ^ 20 ≤ n
+  · exact binomial_lower_bound_concrete n hlarge
+  · have hlt20 : n < 2 ^ 20 := by omega
+    by_cases hlt10 : n < 2 ^ 10
+    · exact binomial_lower_bound_660_1024 n hn hlt10
+    · have hk_lo : 10 ≤ Nat.log 2 n := by
+        exact Nat.le_log_of_pow_le (by norm_num) (by omega)
+      have hk_hi : Nat.log 2 n ≤ 19 := by
+        exact Nat.lt_succ_iff.mp (Nat.log_lt_of_lt_pow' (by norm_num) hlt20)
+      interval_cases hlog : Nat.log 2 n
+      all_goals
+        have hpow_low : 2 ^ Nat.log 2 n ≤ n := Nat.pow_log_le_self 2 (by omega)
+        have hpow_high : n ≤ 2 ^ (Nat.log 2 n + 1) - 1 := by
+          have hlt : n < 2 ^ (Nat.log 2 n + 1) :=
+            Nat.lt_pow_succ_log_self (by norm_num) n
+          omega
+        have hdiv : 2 ^ (Nat.log 2 n) / 30 ≤ n / 30 := Nat.div_le_div_right hpow_low
+        have hbucket :
+            Nat.choose (2 ^ (Nat.log 2 n) / 30) (Nat.log 2 n) ≥
+              (2 ^ (Nat.log 2 n + 1) - 1) ^ (Nat.log 2 n / 4) := by
+          first
+          | simpa [hlog] using bucket_const_10
+          | simpa [hlog] using bucket_const_11
+          | simpa [hlog] using bucket_const_12
+          | simpa [hlog] using bucket_const_13
+          | simpa [hlog] using bucket_const_14
+          | simpa [hlog] using bucket_const_15
+          | simpa [hlog] using bucket_const_16
+          | simpa [hlog] using bucket_const_17
+          | simpa [hlog] using bucket_const_18
+          | simpa [hlog] using bucket_const_19
+        have hmain :
+            Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4) := by
+          calc
+            Nat.choose (n / 30) (Nat.log 2 n)
+                ≥ Nat.choose (2 ^ (Nat.log 2 n) / 30) (Nat.log 2 n) :=
+                  Nat.choose_le_choose (Nat.log 2 n) hdiv
+            _ ≥ (2 ^ (Nat.log 2 n + 1) - 1) ^ (Nat.log 2 n / 4) := hbucket
+            _ ≥ n ^ (Nat.log 2 n / 4) := Nat.pow_le_pow_left hpow_high _
+        simpa [hlog] using hmain
+
 end BinomialBound
