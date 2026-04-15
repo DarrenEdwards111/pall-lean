@@ -26,6 +26,7 @@
 -/
 import PallLean.PartialDerivMatrix
 import PallLean.IdentityMinorReal
+import PallLean.IterDerivHelpers
 import PallLean.TseitinDefs
 import PallLean.BinomialBound2
 import Mathlib.Tactic
@@ -399,6 +400,57 @@ structure CharacteristicPdRowDerivWitness
       SPDP.iterDerivList derivs
         (Tseitin.characteristicPoly F (fam.encoding n hn).formula)
 
+/-- Stronger paper-faithful row-realization target: the derivative list uses
+only base (non-selector) variables of the Tseitin formula. This matches the
+current semantic frontier more closely than an arbitrary legal `S`-list. -/
+structure BaseVariableCharacteristicPdRowDerivWitness
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula)
+    (i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))) where
+  derivs : List (Fin (fam.encoding n hn).numVars)
+  length_eq : derivs.length = (fam.partition n hn).part.S.card
+  subset_S : ∀ v ∈ derivs, v ∈ (fam.partition n hn).part.S
+  subset_base :
+    ∀ v ∈ derivs, v ∈ Finset.univ.image (Tseitin.baseVarEmbedding (fam.encoding n hn).formula)
+  row_eq :
+    IdentityMinorReal.gadgetProd
+      (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+      (IdentityMinorReal.getClauseSubset
+        (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+        (Nat.log 2 n) i) =
+      SPDP.iterDerivList derivs
+        (Tseitin.characteristicPoly F (fam.encoding n hn).formula)
+
+/-- A base-variable witness is, in particular, a row-derivative witness. -/
+def BaseVariableCharacteristicPdRowDerivWitness.toCharacteristic
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
+    (w : BaseVariableCharacteristicPdRowDerivWitness F fam n hn pack i) :
+    CharacteristicPdRowDerivWitness F fam n hn pack i := {
+  derivs := w.derivs
+  length_eq := w.length_eq
+  subset_S := w.subset_S
+  row_eq := w.row_eq
+}
+
+/-- Base-variable witnesses are automatically selector-free. -/
+theorem BaseVariableCharacteristicPdRowDerivWitness.no_selector
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
+    (w : BaseVariableCharacteristicPdRowDerivWitness F fam n hn pack i)
+    (c : Fin (fam.encoding n hn).formula.clauses.length) :
+    Tseitin.selectorIdx (fam.encoding n hn).formula c ∉ w.derivs :=
+  Tseitin.list_of_baseVars_ne_selectorIdx (fam.encoding n hn).formula
+    w.derivs w.subset_base c
+
 /-- The remaining row-realization frontier can now be read directly as an
 equality between the gadget-product target row and the explicit satisfying-
 assignment derivative expansion of `χ_Φ`. -/
@@ -419,6 +471,36 @@ theorem CharacteristicPdRowDerivWitness.row_eq_expanded
         SPDP.iterDerivList w.derivs
           (Tseitin.characteristicPolySummand F (fam.encoding n hn).formula a) := by
   rw [w.row_eq, Tseitin.iterDerivList_characteristicPoly]
+
+/-- The same row equation, but with the `characteristicPolySummand` wrapper
+eliminated in favor of explicit satisfying-assignment derivatives of the raw
+assignment monomials. -/
+theorem CharacteristicPdRowDerivWitness.row_eq_assignmentExpanded
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
+    (w : CharacteristicPdRowDerivWitness F fam n hn pack i) :
+    IdentityMinorReal.gadgetProd
+      (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+      (IdentityMinorReal.getClauseSubset
+        (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+        (Nat.log 2 n) i) =
+      ∑ a ∈ Fintype.piFinset (fun _ : Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula) =>
+          ({false, true} : Finset Bool)),
+        (by
+          classical
+          exact if Tseitin.formulaSatisfied (fam.encoding n hn).formula a then
+            SPDP.iterDerivList w.derivs
+              (Tseitin.assignmentMonomial F (fam.encoding n hn).formula a)
+          else 0) := by
+  classical
+  rw [w.row_eq_expanded F]
+  refine Finset.sum_congr rfl ?_
+  intro a ha
+  rw [Tseitin.iterDerivList_characteristicPolySummand
+    F (fam.encoding n hn).formula a w.derivs]
 
 /-- Any candidate row-realization witness whose derivative list starts with a
 selector variable forces the target gadget-product row to vanish, because every
@@ -444,17 +526,80 @@ theorem CharacteristicPdRowDerivWitness.row_eq_zero_of_selector_head
   rw [Tseitin.iterDerivList_characteristicPolySummand_selector_head_zero
     F (fam.encoding n hn).formula a c w.derivs.tail]
 
+/-- If the row-realization witness starts with a concrete base variable, the
+assignment expansion can be pushed one derivative step further using the
+explicit normalization theorem for assignment monomials. -/
+theorem CharacteristicPdRowDerivWitness.row_eq_assignmentExpanded_base_head
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
+    (w : CharacteristicPdRowDerivWitness F fam n hn pack i)
+    (v : Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula))
+    (S : List (Fin (fam.encoding n hn).numVars))
+    (hhead : w.derivs = Tseitin.baseVarEmbedding (fam.encoding n hn).formula v :: S) :
+    IdentityMinorReal.gadgetProd
+      (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+      (IdentityMinorReal.getClauseSubset
+        (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+        (Nat.log 2 n) i) =
+      ∑ a ∈ Fintype.piFinset (fun _ : Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula) =>
+          ({false, true} : Finset Bool)),
+        (by
+          classical
+          exact if Tseitin.formulaSatisfied (fam.encoding n hn).formula a then
+            if a v then
+              SPDP.iterDerivList S
+                (Tseitin.assignmentMonomialErase F (fam.encoding n hn).formula a v)
+            else
+              -SPDP.iterDerivList S
+                (Tseitin.assignmentMonomialErase F (fam.encoding n hn).formula a v)
+          else 0) := by
+  classical
+  rw [w.row_eq_assignmentExpanded F]
+  rw [hhead]
+  refine Finset.sum_congr rfl ?_
+  intro a ha
+  by_cases hsat : Tseitin.formulaSatisfied (fam.encoding n hn).formula a
+  · simp [hsat, SPDP.iterDerivList, List.foldl_cons]
+    change SPDP.iterDerivList S
+        ((MvPolynomial.pderiv (Tseitin.baseVarEmbedding (fam.encoding n hn).formula v))
+          (Tseitin.assignmentMonomial F (fam.encoding n hn).formula a)) =
+      if a v then
+        SPDP.iterDerivList S
+          (Tseitin.assignmentMonomialErase F (fam.encoding n hn).formula a v)
+      else
+        -SPDP.iterDerivList S
+          (Tseitin.assignmentMonomialErase F (fam.encoding n hn).formula a v)
+    rw [Tseitin.pderiv_assignmentMonomial_baseVar F (fam.encoding n hn).formula a v]
+    by_cases hav : a v
+    · simp [hav]
+    · simp [hav, IterDerivHelpers.iterDerivList_neg]
+  · simp [hsat]
+
 /-- **Axiom (remaining hard algebraic frontier)**: for the concrete greedy
 disjoint packing produced from the Tseitin instance, every row of the canonical
 Kronecker system is explicitly realized by an iterated derivative of the
 characteristic polynomial along a legal `S`-list. The combinatorial size bound
 is now derived, not assumed. -/
-axiom characteristic_pd_row_derivs_from_pack
+axiom characteristic_pd_base_row_derivs_from_pack
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
     (n : ℕ) (hn : n ≥ 6)
     (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
-    ∀ i, CharacteristicPdRowDerivWitness F fam n hn pack i
+    ∀ i, BaseVariableCharacteristicPdRowDerivWitness F fam n hn pack i
+
+/-- Forgetting the stronger base-variable support data yields the generic row
+derivative witness interface used by the PD-column-space reduction. -/
+noncomputable def characteristic_pd_row_derivs_from_pack
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
+    ∀ i, CharacteristicPdRowDerivWitness F fam n hn pack i := by
+  intro i
+  exact (characteristic_pd_base_row_derivs_from_pack F fam n hn pack i).toCharacteristic F
 
 /-- Row membership in `pdColumnSpace` now follows from the explicit derivative
 realization witness and the general `pdColumnSpace` API. -/

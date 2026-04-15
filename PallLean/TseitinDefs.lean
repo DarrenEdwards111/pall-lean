@@ -4,6 +4,7 @@ import Mathlib.Data.Fintype.Pi
 import Mathlib.Algebra.BigOperators.Group.Finset.Pi
 import Mathlib.Combinatorics.SimpleGraph.Basic
 import Mathlib.Tactic
+import PallLean.ProductDeriv
 import PallLean.SPDPDefs
 /-!
 # Tseitin Encoding — Definitions (Pall §8)
@@ -399,12 +400,78 @@ def formulaSatisfied (Φ : TseitinFormula) (a : Fin (tseitinBaseNumVars Φ) → 
 /-- The multilinear assignment monomial, embedded into the larger ambient ring
 that also contains selector variables. The selector coordinates do not appear in
 this monomial. -/
+noncomputable def assignmentFactor (F : Type*) [CommRing F]
+    (Φ : TseitinFormula) (a : Fin (tseitinBaseNumVars Φ) → Bool)
+    (i : Fin (tseitinBaseNumVars Φ)) :
+    MvPolynomial (Fin (tseitinNumVars Φ)) F :=
+  if a i then X (baseVarEmbedding Φ i)
+  else (1 - X (baseVarEmbedding Φ i))
+
+/-- The residual assignment product obtained by removing one base-variable
+factor from the full assignment monomial. -/
+noncomputable def assignmentMonomialErase (F : Type*) [CommRing F]
+    (Φ : TseitinFormula) (a : Fin (tseitinBaseNumVars Φ) → Bool)
+    (i : Fin (tseitinBaseNumVars Φ)) :
+    MvPolynomial (Fin (tseitinNumVars Φ)) F :=
+  (Finset.univ.erase i).prod (assignmentFactor F Φ a)
+
+/-- The full assignment monomial is the product of its per-variable factors. -/
 noncomputable def assignmentMonomial (F : Type*) [CommRing F]
     (Φ : TseitinFormula) (a : Fin (tseitinBaseNumVars Φ) → Bool) :
     MvPolynomial (Fin (tseitinNumVars Φ)) F :=
-  ∏ i : Fin (tseitinBaseNumVars Φ),
-    if a i then X (baseVarEmbedding Φ i)
-    else (1 - X (baseVarEmbedding Φ i))
+  ∏ i : Fin (tseitinBaseNumVars Φ), assignmentFactor F Φ a i
+
+theorem baseVarEmbedding_injective (Φ : TseitinFormula) :
+    Function.Injective (baseVarEmbedding Φ) := by
+  intro i j h
+  exact Fin.ext (by simpa [baseVarEmbedding] using congrArg Fin.val h)
+
+theorem assignmentMonomial_eq_factor_mul_erase
+    (F : Type*) [CommRing F]
+    (Φ : TseitinFormula) (a : Fin (tseitinBaseNumVars Φ) → Bool)
+    (i : Fin (tseitinBaseNumVars Φ)) :
+    assignmentMonomial F Φ a =
+      assignmentFactor F Φ a i * assignmentMonomialErase F Φ a i := by
+  unfold assignmentMonomial assignmentMonomialErase
+  rw [← Finset.mul_prod_erase _ _ (Finset.mem_univ i)]
+
+theorem pderiv_assignmentFactor_self
+    (F : Type*) [CommRing F]
+    (Φ : TseitinFormula) (a : Fin (tseitinBaseNumVars Φ) → Bool)
+    (i : Fin (tseitinBaseNumVars Φ)) :
+    pderiv (baseVarEmbedding Φ i) (assignmentFactor F Φ a i) =
+      if a i then 1 else -1 := by
+  unfold assignmentFactor
+  by_cases hi : a i
+  · simp [hi, pderiv_X]
+  · simp [hi, map_sub, pderiv_X]
+
+theorem pderiv_assignmentFactor_ne
+    (F : Type*) [CommRing F]
+    (Φ : TseitinFormula) (a : Fin (tseitinBaseNumVars Φ) → Bool)
+    {i j : Fin (tseitinBaseNumVars Φ)} (hij : i ≠ j) :
+    pderiv (baseVarEmbedding Φ i) (assignmentFactor F Φ a j) = 0 := by
+  unfold assignmentFactor
+  have hne : baseVarEmbedding Φ i ≠ baseVarEmbedding Φ j := by
+    exact fun h => hij (baseVarEmbedding_injective Φ h)
+  by_cases hj : a j
+  · simp [assignmentFactor, hj, pderiv_X, hne]
+  · simp [assignmentFactor, hj, pderiv_X, hne]
+
+theorem pderiv_assignmentMonomial_baseVar
+    (F : Type*) [CommRing F]
+    (Φ : TseitinFormula) (a : Fin (tseitinBaseNumVars Φ) → Bool)
+    (i : Fin (tseitinBaseNumVars Φ)) :
+    pderiv (baseVarEmbedding Φ i) (assignmentMonomial F Φ a) =
+      if a i then assignmentMonomialErase F Φ a i
+      else -assignmentMonomialErase F Φ a i := by
+  unfold assignmentMonomial assignmentMonomialErase
+  rw [ProductDeriv.pderiv_prod_single (s := Finset.univ)
+    (f := assignmentFactor F Φ a) (i := baseVarEmbedding Φ i) (k := i) (hk := Finset.mem_univ i)]
+  · rw [pderiv_assignmentFactor_self]
+    by_cases hi : a i <;> simp [hi]
+  · intro j _ hj
+    exact pderiv_assignmentFactor_ne F Φ a hj.symm
 
 /-- One summand in the explicit satisfying-assignment expansion of the
 characteristic polynomial. This is factored out so later derivative-expansion
@@ -527,6 +594,25 @@ theorem selectorIdx_not_mem_baseVars (Φ : TseitinFormula) (c : Fin Φ.clauses.l
   unfold tseitinBaseNumVars at hi_lt
   omega
 
+theorem baseVarEmbedding_ne_selectorIdx
+    (Φ : TseitinFormula)
+    (i : Fin (tseitinBaseNumVars Φ))
+    (c : Fin Φ.clauses.length) :
+    baseVarEmbedding Φ i ≠ selectorIdx Φ c := by
+  intro h
+  exact selectorIdx_not_mem_baseVars Φ c
+    (Finset.mem_image.mpr ⟨i, Finset.mem_univ _, h⟩)
+
+theorem list_of_baseVars_ne_selectorIdx
+    (Φ : TseitinFormula)
+    (derivs : List (Fin (tseitinNumVars Φ)))
+    (hbase : ∀ v ∈ derivs, v ∈ Finset.univ.image (baseVarEmbedding Φ))
+    (c : Fin Φ.clauses.length) :
+    selectorIdx Φ c ∉ derivs := by
+  intro hmem
+  rcases Finset.mem_image.mp (hbase _ hmem) with ⟨i, -, hi⟩
+  exact baseVarEmbedding_ne_selectorIdx Φ i c hi
+
 theorem selector_not_mem_vars_characteristicPoly (F : Type*) [CommRing F] [Nontrivial F]
     (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
     selectorIdx Φ c ∉ (characteristicPoly F Φ).vars := by
@@ -561,6 +647,20 @@ theorem pderiv_characteristicPolySummand_selector_zero
   by_cases hsat : formulaSatisfied Φ a
   · simp [hsat, pderiv_assignmentMonomial_selector_zero]
   · simp [hsat]
+
+theorem iterDerivList_characteristicPolySummand
+    (F : Type*) [CommRing F]
+    (Φ : TseitinFormula) (a : Fin (tseitinBaseNumVars Φ) → Bool)
+    (S : List (Fin (tseitinNumVars Φ))) :
+    SPDP.iterDerivList S (characteristicPolySummand F Φ a) =
+      (by
+        classical
+        exact if formulaSatisfied Φ a then SPDP.iterDerivList S (assignmentMonomial F Φ a) else 0) := by
+  classical
+  unfold characteristicPolySummand
+  by_cases hsat : formulaSatisfied Φ a
+  · simp [hsat]
+  · simp [hsat, SPDP.iterDerivList, SPDP.foldl_pderiv_zero]
 
 theorem pderiv_characteristicPoly_selector_zero (F : Type*) [CommRing F] [Nontrivial F]
     (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
