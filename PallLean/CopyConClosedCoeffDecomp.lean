@@ -1497,6 +1497,35 @@ theorem copyCon_prod_nonzero_mono_pointwise_factor_extraction_candidate
       ⟨hiS, hcopy⟩
     exact Or.inr ⟨i, hiS, rfl, hcopy⟩
 
+/-- A nonzero monomial with nonzero coefficient in a copyCon gadget product must carry
+some copy-slot support. This is the minimal witness needed for the exact-shape residual
+branch and the later pure-con versus clean-copy comparison. -/
+theorem copyCon_prod_nonzero_mono_nonzero_coeff_forces_exists_copy
+    (M : DTM) (n : ℕ)
+    (S : Finset (Fin (latentBaseVars M n)))
+    (m : (Fin (latentNumVars M n)) →₀ ℕ)
+    (hm_coeff : MvPolynomial.coeff m (∏ i ∈ S, copyConGadget M n i) ≠ 0)
+    (hm : m ≠ 0) :
+    ∃ i : Fin (latentBaseVars M n), copySlot M n i ∈ m.support := by
+  have hsupp_nonempty : m.support.Nonempty := by
+    by_contra hsupp
+    have hsupp_empty : m.support = ∅ := by
+      simpa [Finset.not_nonempty_iff_eq_empty] using hsupp
+    apply hm
+    ext v
+    have hv_not : v ∉ m.support := by
+      simpa [hsupp_empty]
+    simpa [Finsupp.mem_support_iff] using hv_not
+  rcases hsupp_nonempty with ⟨v, hv⟩
+  rcases copyCon_prod_nonzero_mono_support_atoms_are_copy_or_con_candidate M n S m hm_coeff v hv with
+    hcopy | hcon
+  · rcases hcopy with ⟨i, rfl⟩
+    exact ⟨i, hv⟩
+  · rcases hcon with ⟨i, rfl⟩
+    rcases copyCon_prod_nonzero_mono_con_support_control_candidate M n S m hm_coeff i hv with
+      ⟨_hiS, hcopy⟩
+    exact ⟨i, hcopy⟩
+
 /-- Dependency note for the live residual-branch frontier.
 
 The exact-shape nonzero-residual branch below should not be attacked first anymore. Its former
@@ -1602,6 +1631,21 @@ theorem copyCon_offdiag_nonzero_coeff_forces_residual_pair_candidate
       exact ⟨i0, hj_idx, hcopy0, hcon⟩
     · exfalso
       exact (copySlot_ne_conSlot M n i0 j_idx) hEq
+
+/-- Exact-shape nonzero-residual branch now has the correct witness theorem:
+if the residual coefficient is nonzero and the residual monomial is nonzero, then some
+copy-slot already occurs in the residual support. -/
+theorem copyCon_insert_exact_shape_nonzero_residual_witness
+    (M : DTM) (n : ℕ)
+    (j : Fin (latentBaseVars M n))
+    (S : Finset (Fin (latentBaseVars M n)))
+    (m a b : (Fin (latentNumVars M n)) →₀ ℕ)
+    (_hp : a + b = m)
+    (_ha : a = Finsupp.single (copySlot M n j) 1 + Finsupp.single (conSlot M n j) 1)
+    (hb_coeff : MvPolynomial.coeff b (∏ i ∈ S, copyConGadget M n i) ≠ 0)
+    (hb : b ≠ 0) :
+    ∃ i : Fin (latentBaseVars M n), copySlot M n i ∈ b.support := by
+  exact copyCon_prod_nonzero_mono_nonzero_coeff_forces_exists_copy M n S b hb_coeff hb
 
 -- Honest remaining off-diagonal contradiction frontier for copyCon closed forms.
 --

@@ -3258,6 +3258,20 @@ theorem latent_copyCon_tagged_coefficient_separation
   intro ksi ksj hndi hndj hlen hne
   exact latent_copyCon_tagged_coefficient_separation_current M n ksi ksj hndi hndj hlen hne
 
+/-- Lower-layer residual witness, re-exposed at the latent layer:
+if a residual monomial on the clean copyCon branch is nonzero and has nonzero coefficient in the
+residual gadget product, then some copy-slot already occurs in its support. This is the exact
+local ingredient needed in the remaining pure-con versus clean-copy same-`q` comparison. -/
+theorem latent_copyCon_residual_nonzero_coeff_forces_exists_copy
+    (M : DTM) (n : ℕ)
+    (S : Finset (Fin (latentBaseVars M n)))
+    (b : (Fin (latentNumVars M n)) →₀ ℕ)
+    (hb_coeff : MvPolynomial.coeff b (∏ i ∈ S, copyConGadget M n i) ≠ 0)
+    (hb : b ≠ 0) :
+    ∃ i : Fin (latentBaseVars M n), copySlot M n i ∈ b.support := by
+  exact CopyConClosedCoeffDecomp.copyCon_prod_nonzero_mono_nonzero_coeff_forces_exists_copy
+    M n S b hb_coeff hb
+
 /-- Current direct comparison frontier: if a raw pure-`conSlot` presentation and an explicit clean
 copy-slot presentation compute the same `(σ, q)`, then they should contradict on the live
 `copyConSheet` branch. The missing theorem is now explicitly about witness data on both sides,
