@@ -343,14 +343,15 @@ theorem CharacteristicPdPocketWitness.rank_bound
   }
   exact PdMatrixKroneckerWitness.rank_bound F kw
 
-/-- **Axiom (remaining hard algebraic frontier)**: once the disjoint expander
-pockets are available, the characteristic polynomial admits the signed minor /
-Kronecker system whose rows lie in the relevant PD column space. -/
-axiom characteristic_pd_minor_from_pockets
+/-- **Axiom (remaining hard algebraic frontier)**: for the concrete greedy
+disjoint packing produced from the Tseitin instance, the characteristic
+polynomial admits the required signed minor / Kronecker witness. This is
+narrower than quantifying over arbitrary abstract pocket data. -/
+axiom characteristic_pd_minor_from_pack
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
     (n : ℕ) (hn : n ≥ 6)
-    (pockets : ExpanderPocketWitness (fam.encoding n hn)) :
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
     PdMatrixKroneckerWitness F fam n hn
 
 /-- **Axiom (finite exceptional range)**: the characteristic-polynomial PD
@@ -375,10 +376,13 @@ theorem tseitin_pdMatrix_lower_bound_large
   have hverts : 100 ≤ (fam.encoding n hn).graph.numVertices := by
     rw [fam.encoding_graph n hn, fam.vertices_count n hn]
     exact hlarge
-  let pockets : ExpanderPocketWitness (fam.encoding n hn) :=
-    expanderPocketWitness (fam.encoding n hn) hverts
+  have hformula : 100 ≤ (fam.encoding n hn).formula.graph.numVertices := by
+    rw [(fam.encoding n hn).graph_compat]
+    simpa using hverts
+  let pack : Tseitin.DisjointPacking (fam.encoding n hn).formula :=
+    Tseitin.disjoint_packing_exists (fam.encoding n hn).formula hformula
   exact PdMatrixKroneckerWitness.rank_bound F
-    (characteristic_pd_minor_from_pockets F fam n hn pockets)
+    (characteristic_pd_minor_from_pack F fam n hn pack)
 
 /-- Paper-faithful characteristic-polynomial PD lower bound, derived from the
 explicit expander-pocket witness interface rather than postulated as a raw rank
