@@ -1746,6 +1746,25 @@ theorem constrainedAtomProductSet_card_le {n L : ℕ}
           from Fintype.card_pi]
         congr 1; ext i; exact Fintype.card_coe _
 
+/-- The locally bounded classified set for profile h is contained in
+    a union of constrained atom product sets over matching derivative
+    length assignments. Restored from WIP. -/
+theorem locallyBoundedClassifiedSet_subset_constrained {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (h : ProfileHistogram)
+    (g : MvPolynomial (Fin n) ℚ)
+    (hg : g ∈ locallyBoundedClassifiedSet factors constraintType S h) :
+    ∃ (derivLengths : Fin L → ℕ),
+      (∀ i, derivLengths i ≤ 2) ∧
+      g ∈ constrainedAtomProductSet factors S derivLengths := by
+  rcases hg with ⟨d, hd_elts, hg_eq, _hprof, hd_bound⟩
+  refine ⟨fun i => (d i).length, hd_bound, ?_⟩
+  refine ⟨fun i => iterDerivList (d i) (factors i), ?_, hg_eq⟩
+  intro i
+  exact iterDerivList_mem_localDerivAtomsOfDegree (factors i) S (d i) (hd_bound i) (hd_elts i)
+
 end WithinProfileBound
 
 /-! # WithinProfileBound — Work in Progress below
