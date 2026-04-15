@@ -3260,6 +3260,31 @@ theorem latent_nonempty_pure_conSlot_exits_clean_menu_of_preservation_candidate
   · exact (latent_pure_conSlot_incompatible_with_existing_clean_lanes M n S m hS hcon).1 hmach
   · exact (latent_pure_conSlot_incompatible_with_existing_clean_lanes M n S m hS hcon).2.1 hcopy
   · exact (latent_pure_conSlot_incompatible_with_existing_clean_lanes M n S m hS hcon).2.2 hsel
+
+/-- Packaged version of the previous theorem in the exact shape of the explicit pure-`conSlot`
+menu-exclusion frontier. This upgrades that frontier from a status-only candidate to a theorem
+once the witness-preservation candidate is supplied. -/
+theorem latent_nonempty_pure_conSlot_menu_exclusion_candidate_of_preservation_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n)))
+    (hS : S ≠ [])
+    (hcon : ∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = conSlot M n i)
+    (hpres :
+      latent_clean_menu_membership_preserves_originating_raw_witness_candidate
+        M n σ q S m hLen hDeg hVars hAdm hSig hq) :
+    latent_nonempty_pure_conSlot_menu_exclusion_candidate
+      M n σ q S m hLen hDeg hVars hAdm hSig hq hS hcon := by
+  exact latent_nonempty_pure_conSlot_exits_clean_menu_of_preservation_candidate
+    M n σ q S m hLen hDeg hVars hAdm hSig hq hS hcon hpres
 theorem latent_nonempty_pure_conSlot_raw_bucket_exits_clean_menu_of_candidate
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
