@@ -3145,6 +3145,40 @@ theorem godMoveConstruction_firstBehaviorPerturbation_is_canonical_one_stage_can
     godMoveConstruction_firstBehaviorPerturbation_is_one_stage_perturbation M n hn hdec htb hns⟩
   exact (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns).staged_semantic_target
 
+/-- The first behavior perturbation still fails the harder staged-map
+nontriviality upgrade: by construction its transported target polynomial is
+definitionally the staged-map output itself. -/
+theorem godMoveConstruction_firstBehaviorPerturbation_not_nontrivial_staged_map
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ godMoveNontrivialStagedMapTarget M n hn htb hns
+        (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns) := by
+  intro hnon
+  rcases hnon with ⟨_, out, hne⟩
+  have hEq : out.map_output_same_space = out.comparison.target_same_space.poly := by
+    rw [← out.map_output_eq]
+    have hpoly := congrArg GodMoveTypedTarget.poly out.comparison.target_eq
+    simpa [godMoveConstruction_firstBehaviorPerturbation] using hpoly
+  exact hne hEq
+
+/-- The first behavior perturbation is a real post-identity witness, but it is
+not yet a full paper-facing genuine candidate for exactly the staged-map
+nontriviality reason isolated above. -/
+theorem godMoveConstruction_firstBehaviorPerturbation_not_genuine_candidate
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ godMoveGenuineCandidateTarget M n hn htb hns
+        (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns) := by
+  intro hg
+  exact godMoveConstruction_firstBehaviorPerturbation_not_nontrivial_staged_map
+    M n hn hdec htb hns hg.2.2
+
 /-- The first behavior-perturbed construction gives an explicit existential
 one-stage witness, so the post-identity Route B shell now has a real inhabitant
 rather than only a local construction theorem. -/
