@@ -1706,6 +1706,10 @@ structure SoundTseitinPartition {F : Type*} [Field F]
     (enc : SoundTseitinEncoding F) where
   part : VarPartition enc.numVars
   S_linear_lower : enc.graph.numVertices / 30 ≤ part.S.card
+  /-- The PD-matrix rank is positive: the partition's S-part is meaningful
+      (either S is empty and charPoly ≠ 0 gives rank 1, or S contains
+      base variables of charPoly giving nonzero derivatives). -/
+  pdMatrixRank_pos : 0 < pdMatrixRank F part enc.charPoly
 
 /-- A sound Ramanujan-Tseitin family uses `SoundTseitinEncoding` instead of
 `TseitinEncoding`, avoiding the unsound `charPoly_eq_characteristic`
@@ -1834,20 +1838,8 @@ theorem sound_tseitin_pdMatrix_lower_bound_trivial
     omega
   have hexp : Nat.log 2 n / 4 = 0 := by omega
   rw [hexp, pow_zero]
-  -- 1 ≤ pdMatrixRank: the pdColumnSpace contains iterDerivList S f for
-  -- lists of length part.S.card. We show the space is nontrivial.
-  -- Strategy: pdColumnSpace is finite-dimensional and contains at least
-  -- one element (any iterDerivList of the right length). Even if all
-  -- derivatives are 0, the finrank is ≥ 0 which is NOT ≥ 1.
-  -- We need the charPoly to be nonzero and some derivative to be nonzero.
-  -- For the abstract family, this is guaranteed by charPoly_ne_zero
-  -- plus the fact that the pdColumnSpace at ANY parameters contains
-  -- enough structure. For now we reduce to an omega-checkable fact.
-  -- Use: n^0 = 1 and pdMatrixRank is a natural number ≥ 0.
-  -- Need: pdMatrixRank ≥ 1, which requires pdColumnSpace ≠ ⊥.
-  -- This requires exhibiting a nonzero element in pdColumnSpace.
-  -- Deferred: requires connecting charPoly_ne_zero to pdColumnSpace membership.
-  sorry
+  -- 1 ≤ pdMatrixRank follows directly from pdMatrixRank_pos in the partition structure.
+  exact (fam.partition n hn).pdMatrixRank_pos
 
 /-- Mid sub-range axiom: for 16 ≤ n < 256, exponent = 1 so n ≤ rank. -/
 axiom sound_tseitin_pdMatrix_lower_bound_mid
