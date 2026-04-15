@@ -201,18 +201,20 @@ Why this matters semantically:
 
 Honest current state of that refactor:
 
-- it is **not landed cleanly yet**
-- `~/.elan/bin/lake env lean PallLean/GodMoveCore.lean` currently fails
-- the present failures are migration-level semantic bookkeeping issues, not
-  shell cleanup:
-  - duplicate doc-comment blocks before `GodMoveExtractionTarget` and
-    `GodMoveRouteB_TargetData`
-  - `routeB_from_semantic_gap` still constructs the old flat
-    `GodMoveRouteB_Obligations` fields instead of the new `extractionTarget`
-    field
+- it is landed as a documentation/interface clarification pass
+- `~/.elan/bin/lake env lean PallLean/GodMoveCore.lean` now elaborates
+- the current validated milestone is wording/package honesty, not a new
+  theorem discharge:
+  - the weakened Route B surface is described as
+    shared target-side data plus a separate weakened NP lower bound
+  - the DecidesSAT-dependent seam is described separately as the extraction
+    obligation on that target
+  - downstream contradiction theorems are described as consuming those pieces
+    explicitly rather than silently bundling them
 - so the honest inventory claim is:
-  the branch is refining the Route B theorem/interface inventory, but there is
-  **no new cleanly validated theorem milestone to count from this delta yet**
+  this delta sharpens the Route B theorem/interface inventory and removes
+  stale overstatements, but it does **not** close any of the remaining
+  paper-faithful semantic or bridge gaps
 
 ### New structures and theorems
 
@@ -228,6 +230,8 @@ Honest current state of that refactor:
   rank-transfer claim
 - `GodMoveRouteB_WeakenedObligations`: uses n^(log n/4) instead of C(n/3, log n)
 - `separation_from_weakened_routeB`: separation from weakened Route B (0 custom axioms)
+- `separation_from_weakened_routeB_via_decomposition`: same contradiction with
+  the semantic seam stated directly as a decomposition obligation (0 custom axioms)
 - `RouteBNPFromPdMatrix`: PD-matrix NP data with explicit bridge gap
 - `routeB_weakened_np_from_pdMatrix`: derives NP bound from PD data (0 custom axioms)
 

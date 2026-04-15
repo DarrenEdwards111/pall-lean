@@ -268,8 +268,10 @@ This keeps the semantic burden honest:
 
 The decomposition remains:
 
-**Step A (God-Move Extraction Interface)**: a witness-free block-local map from
-compiled space to coupled-sheet space, producing the hard extracted object.
+**Step A (God-Move semantic seam)**: `DecidesSAT` justifies the staged
+restriction/projection decomposition onto a chosen coupled-sheet target. The
+load-bearing object is not an extra NP lower bound; it is the semantic witness
+that the compiled polynomial restricts/projects to the paper-faithful target.
 
 **Step B (Identity Minor)**: the coupled verifier sheet Q×_{φ_n} has
 C(m, κ) linearly independent vectors in its SPDP subspace.
@@ -289,13 +291,15 @@ is the identity. This makes Step A trivial but has a consequence:
 
 The paper resolves this by making `DecidesSAT` genuinely load-bearing in
 Step A: the God-Move extraction uses the machine's acceptance semantics to
-connect the compiled polynomial to the hard Tseitin instance. The NP lower
-bound then applies to the coupled sheet (not the compiled polynomial), and
-there is no contradiction because the coupled sheet is a proper substructure.
+justify the staged restriction/projection decomposition onto the hard Tseitin
+coupled sheet. The NP lower bound is then attached separately to that coupled
+sheet target, not to the compiled polynomial directly, and there is no
+contradiction because the coupled sheet is a proper substructure.
 
 **Next step for paper-faithful Route B**: replace the identity construction
-with a genuine God-Move extraction that uses `DecidesSAT` to produce a
-non-trivial coupled sheet polynomial on which the NP lower bound applies.
+with a genuine God-Move extraction that uses `DecidesSAT` to produce the
+staged restriction/projection witness for a non-trivial coupled-sheet target on
+which the separate NP lower bound applies.
 -/
 
 /-- **God-Move Extraction Interface (Paper Lemma 123 / Definition 6 / Lemma 7)**
@@ -317,8 +321,13 @@ noncomputable def god_move_extraction_interface (M : DTM) (n : ℕ)
     GodMoveExtractionInterface M n (by omega : n ≥ 2) htb hns :=
   GodMoveReal.god_move_extraction_interface_of_typed M n hn hdec htb hns
 
-/-- Derived compiled-space lower bound obtained from the paper-faithful abstract
-God-Move interface. -/
+/-- Derived compiled-space lower bound obtained from the older compatibility
+wrapper around the narrowed Route B seam.
+
+Semantically, `DecidesSAT` contributes only the extraction-side provenance of
+the coupled target and decomposition hidden inside the wrapper. The lower bound
+on that target remains separate NP-side data; no extra algebraic content is
+coming from `DecidesSAT` inside the final inequality itself. -/
 theorem god_move_extraction_lemma (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : DecidesSAT M)
@@ -342,8 +351,11 @@ Proved by combining:
 3. Monotonicity: C(n, log₂ n) ≥ C(n/30, log₂ n)            [Nat.choose_le_choose]
 
 Steps 2-3 are purely combinatorial/arithmetic. Step 1 is the semantic core
-that requires DecidesSAT. The product form ∏(1-Cᵢ) is essential for step 1:
-its cross-variable interactions enable the identity minor. -/
+that requires DecidesSAT, but only through the God-Move extraction seam:
+`DecidesSAT` justifies the acceptance-driven restriction/projection witness,
+while the coupled-sheet lower bound is separate NP-side data. The product form
+∏(1-Cᵢ) is essential for that coupled-sheet lower bound after extraction, not
+because `DecidesSAT` injects extra algebraic content into the final inequality. -/
 theorem god_move_identity_minor_axiom (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : DecidesSAT M)
@@ -422,12 +434,15 @@ The structure bundles the hypothetical decider together with:
    Cook-Levin compilation.
 
 2. **DecidesSAT** (`decides_3sat`): the DTM decides 3-SAT. This is genuinely
-   load-bearing -- it is required by `god_move_identity_minor_axiom` to justify
-   the NP-side bound.
+   load-bearing only on the God-Move semantic seam: it justifies the
+   acceptance-computation-based extraction witness that transfers the
+   coupled-sheet lower bound back to the compiled polynomial.
 
 The separation logic chains:
 - P-side (Theorem 92): Gamma(P_{M,n}) <= n^O(1) (for any P-time DTM)
-- NP-side via God-Move: Gamma(P_{M,n}) >= n^{Omega(log n)} (because M decides 3-SAT)
+- NP-side via God-Move: a separate lower bound is proved on the coupled-sheet
+  target, and `DecidesSAT` is used only to extract/transfer that target back to
+  the compiled polynomial
 - Contradiction at large n: n^O(1) >= n^{Omega(log n)} is impossible. -/
 structure PeqNP_Paper where
   decider : DTM
@@ -439,14 +454,15 @@ structure PeqNP_Paper where
       constant of the machine, this bound is satisfiable for any DTM
       (just set the bound to numStates). -/
   numStates_bound : decider.numStates ≤ 2 ^ 804
-  /-- The DTM decides 3-SAT. This is used in the God-Move extraction:
-      because M accepts exactly the satisfiable formulas, the compiled
-      polynomial on hard Tseitin instances decomposes as Q-x + remainder,
-      enabling the rank-monotone restriction.
+  /-- The DTM decides 3-SAT. This is used only on the God-Move semantic seam:
+      because M accepts exactly the satisfiable hard instances, the compiled
+      polynomial admits the paper-faithful staged restriction/projection
+      decomposition onto the coupled-sheet target.
 
-      This field is genuinely load-bearing: it is passed to
-      `god_move_identity_minor_axiom` below, which produces the NP-side
-      bound that drives the contradiction. -/
+      This field is genuinely load-bearing, but not because it changes the
+      coupled-sheet lower bound itself. Its role is to justify the extraction
+      witness carried abstractly by the Route B seam and then repackaged by
+      `god_move_identity_minor_axiom`. -/
   decides_3sat : DecidesSAT decider
 
 /-! ## The Unconditional Separation Theorem

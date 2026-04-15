@@ -91,10 +91,15 @@ above and below by the two axioms.
     It is an auxiliary abstraction layer. The exact Route B theorem split now
     lives in `GodMoveCore.lean`: the NP package is fed by
     `RouteBNPFromPdMatrix.pd_to_blocked_transfer`, the genuinely semantic
-    extraction seam is the `GodMoveSemanticGap` /
-    `GodMoveRouteB_ExtractionTransfer` (`GodMoveRouteB_ExtractionObligation`)
-    interface, and the P-side compiled bound is tracked separately from that
-    extraction seam. The older unconditional contradiction shell remains in
+    frontier is the extraction-only theorem
+    `GodMoveSemanticExtractionTheorem` (with
+    `GodMoveSemanticTheorem` as the older hard-instance-indexed alias), the
+    bare transfer inequality on a chosen coupled-sheet target is
+    `GodMoveRouteB_ExtractionTransfer`
+    (`GodMoveRouteB_ExtractionObligation`), and `GodMoveSemanticGap` is only
+    the convenience bundle around hard-instance data plus a witness of that
+    extraction theorem. The P-side compiled bound is tracked separately from
+    that semantic seam. The older unconditional contradiction shell remains in
     `PaperFaithfulSeparation.P_ne_NP_unconditional`. -/
 axiom charPolyRank (n : ℕ) : ℕ
 
@@ -491,11 +496,15 @@ theorem separation_from_concrete_data
 2. `rank_through_extraction`: the concrete characteristic rank
    is bounded by the compiled polynomial's rank, via the God-Move extraction.
    In this file that is the local shell-facing wrapper, but the exact
-   paper-faithful semantic frontier is the theorem-only seam recorded in
-   `GodMoveCore.lean`: `GodMoveSemanticGap` supplying the semantic data and
+   paper-faithful semantic frontier is the extraction-only theorem seam
+   recorded in `GodMoveCore.lean`:
+   `GodMoveSemanticExtractionTheorem` (equivalently the compatibility alias
+   `GodMoveSemanticTheorem` once hard-instance data is fixed), together with
+   the derived bare transfer proposition
    `GodMoveRouteB_ExtractionTransfer`
-   (`GodMoveRouteB_ExtractionObligation`) as the transfer proposition. That
-   seam requires:
+   (`GodMoveRouteB_ExtractionObligation`) on the chosen target.
+   `GodMoveSemanticGap` is only the convenience bundle carrying that witness.
+   That seam requires:
    - Formalizing the God-Move extraction map Π_Φ
    - Proving the restriction / projection output identification
    - Using `DecidesSAT` to connect the compiled polynomial to the hard instance

@@ -257,12 +257,15 @@ this branch; for the live obligation tracker, see `PROOF-OBLIGATIONS.md` and
 - The paper-faithful Route B surfaces live in `GodMoveCore.lean`, but the
   exact semantic frontier there is narrower than the full packaging layer:
   `GodMoveHardInstanceData` records the hard-instance applicability data,
-  `GodMoveSemanticTheorem` states the DecidesSAT-dependent existence of a
-  staged extraction witness, and `GodMoveRouteB_ExtractionTransfer`
-  (`GodMoveRouteB_ExtractionObligation`, likewise its weakened alias)
-  is the extraction transfer proposition derived from that witness.
-  `GodMoveSemanticGap` is now just the convenience bundle around this smaller
-  theorem-level seam. The larger Route B
+  `GodMoveSemanticExtractionTheorem` states the DecidesSAT-dependent existence
+  of an extraction witness target, while `GodMoveSemanticTheorem` is now only a
+  compatibility alias re-indexing the same theorem by that hard-instance data.
+  `GodMoveRouteB_ExtractionTransfer`
+  (`GodMoveRouteB_ExtractionObligation`, likewise its weakened alias) is only
+  the bare extraction transfer inequality for a chosen coupled-sheet target.
+  `GodMoveSemanticGap` is now just the convenience bundle around
+  hard-instance data plus a witness of this smaller theorem-level seam. The
+  larger Route B
   structures such as `GodMoveRouteB_Obligations`,
   `GodMoveRouteB_WeakenedObligations`, `routeB_from_semantic_gap`, and
   `routeB_weakened_from_semantic_gap` are packaging wrappers around that seam
@@ -284,10 +287,13 @@ records that contradiction explicitly.
 **Paper-faithful resolution seam**: The paper makes `DecidesSAT` load-bearing
 in the God-Move extraction (Step A), not in the NP lower bound. On this branch
 the exact theorem-only semantic seam in `GodMoveCore.lean` is
-`GodMoveSemanticTheorem`, with
+`GodMoveSemanticExtractionTheorem`, with
 `GodMoveRouteB_ExtractionTransfer`
 (`GodMoveRouteB_ExtractionObligation`, or the weakened alias using the same
-target) as the derived rank inequality. The obligation packages
+target) as the derived bare rank inequality on the chosen target.
+`GodMoveSemanticTheorem` remains only as the hard-instance-indexed
+compatibility alias. The
+obligation packages
 `GodMoveRouteB_Obligations` / `GodMoveRouteB_WeakenedObligations` and the
 assemblers `routeB_from_semantic_gap` /
 `routeB_weakened_from_semantic_gap` sit one layer above that seam, adding the
@@ -376,10 +382,14 @@ auxiliary shell symbol `charPolyRank`, and both now use the shared
 
 The live paper-faithful Route B frontier remains the theorem-only extraction
 seam in `GodMoveCore.lean`:
-`GodMoveSemanticGap` plus `GodMoveRouteB_ExtractionTransfer`
+`GodMoveSemanticExtractionTheorem`
+(or the compatibility alias `GodMoveSemanticTheorem` once hard-instance data
+is fixed), with `GodMoveRouteB_ExtractionTransfer`
 (`GodMoveRouteB_ExtractionObligation`, with the weakened alias sharing the same
-target). These assembly wrappers are shell-facing orientation lemmas, not that
-main Route B frontier. -/
+target) as the bare inequality on the chosen extraction target.
+`GodMoveSemanticGap` is only the convenience bundle around that witness.
+These assembly wrappers are shell-facing orientation lemmas, not that main
+Route B frontier. -/
 #print axioms axiom1_from_components
 #print axioms axiom2_from_components
 
