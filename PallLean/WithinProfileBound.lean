@@ -2263,18 +2263,31 @@ theorem touched_part_in_mlMonomialBasis_span {n : ℕ} {ι : Type*} [DecidableEq
 
 end WithinProfileBound
 
-/-! # WithinProfileBound — Work in Progress below
+/-! # WithinProfileBound — Archived WIP below
 
-The following theorems are work-in-progress and are not currently compiled.
-The core definitions and theorems above (Parts 1-22) compile cleanly
-and are available for downstream use via import.
+ALL Parts 22c-26 have been restored to the compiled section above.
+The comment block below contains DUPLICATE copies of the restored theorems,
+preserved as historical reference. No new content remains in the WIP section.
 
-Parts 17+ below contain the degree-refined atom counting, the touched/untouched
-factorization, and the variable-confinement argument. These require API updates
-and will be restored incrementally. -/
+## Compiled frontier summary (Parts 1-26):
+- Parts 1-22: profile enumeration, atom counting, per-S finrank bounds
+- Part 22c: degree-refined atom counting (localDerivAtomsOfDegree)
+- Part 22d: fully bounded classified set with total-mass constraint
+- Part 23: mlProj multiplicativity (disjoint vars) — KEY THEOREM
+- Part 24: touched/untouched generator factorization
+- Part 25: dimension bound from factorization (finrank_le_of_generators_factor)
+- Part 26: touched-vars containment
 
--- Stop compilation here; everything above is clean.
--- The WIP content below is preserved for future restoration.
+## Remaining gap to eliminate spdp_profile_generators:
+The variable-confinement argument (Parts 23-26) shows that per-S-shift generators
+factor as touched_part × untouched_factor, with touched_part ∈ span(mlMonomialBasis).
+What's missing: the SYMMETRIC POWER COLLAPSE showing that different block assignments
+with the same profile give the SAME touched-part span. This requires:
+1. Cook-Levin constraint type classification at the polynomial level
+2. Showing mlProj of products depends only on profile (not block assignment)
+3. Template count per profile bounded by (κ+1)^8 -/
+
+-- The WIP comment block below contains duplicates of restored content.
 
 section WithinProfileBoundWIP_disabled
 variable (DISABLED : False)
