@@ -84,6 +84,36 @@ Also:
 - LPS / Ramanujan existence is deep imported math and remains a reasonable
   axiom boundary when using the paper-numbered shell
 
+## Critical finding: spdp_profile_generators is provably false (2026-04-15)
+
+The axiom `spdp_profile_generators` (SymmetricPower.lean) is provably
+inconsistent with the axiom-free NP-side theorem
+`GodMoveReal.compiled_np_lower_bound_any_dtm`. The formal inconsistency
+witness is `PaperFaithfulSeparation.spdp_profile_generators_inconsistent_with_np_side`.
+
+**What was found**:
+
+- The NP-side lower bound `C(n/3, log n) ≤ mlBlockedSpdpRank B κ ℓ (compiledPoly T)`
+  is proved WITHOUT axioms and WITHOUT using DecidesSAT. It holds for ALL DTMs.
+- The P-side axiom claims `mlBlockedSpdpRank B κ ℓ (compiledPoly T) ≤ n^200`
+  for ALL DTMs (same partition, same κ = ℓ = log₂ n, same polynomial).
+- Together: C(n/3, log n) ≤ n^200 — false for large n (C ≈ 2^{638000} vs n^200 = 2^{160800}).
+
+**Root cause**: The profile compression axiom (paper §9, Theorem 92) classifies
+derivatives by constraint-TYPE histogram. All booleanity derivatives at
+first-of-block positions have the SAME profile. The axiom bounds within-profile
+dimension by (log n + 1)^8, but the NP-side proves these generators are linearly
+independent, giving within-profile dimension = C(n/3, log n) >> (log n + 1)^8.
+
+**Impact on active routes**:
+
+- Route B (PaperFaithfulSeparation): derives False from the false axiom.
+  The semantic gap (DecidesSAT unused) means the proof doesn't follow the
+  paper's actual argument. See GodMoveSemanticInterface for the correct seam.
+- Latent route (LatentCompilerFinalRoute): the P-side obligation
+  `latent_profile_assembly_logscale` likely faces the same issue, since it
+  depends on the same profile compression idea.
+
 ## Historical files
 
 The repo still contains older route/status files, including:

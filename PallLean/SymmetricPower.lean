@@ -783,6 +783,23 @@ span a subspace of bounded dimension via the symmetric power analysis.
 The axiom provides explicit generators indexed by (profile, template) pairs
 with the required cardinality bounds. -/
 
+/-
+**KNOWN FALSE** (2026-04-15): This axiom is provably inconsistent with the
+axiom-free NP-side theorem `GodMoveReal.compiled_np_lower_bound_any_dtm`.
+
+The inconsistency proof is in `PaperFaithfulSeparation.spdp_profile_generators_inconsistent_with_np_side`:
+for ANY DTM M, the NP-side proves C(n/3, log n) linearly independent elements
+in `mlBlockedSpdpSubspace` (via boolFactor cross-term vanishing), while this
+axiom claims the subspace has dimension ≤ (log n + 1)^12. At n = 2^804:
+  C(n/3, 804) ≈ 2^{638000}  vs  805^12 ≈ 2^{116}
+
+Root cause: all first-of-block booleanity derivatives (at positions 0, 3, 6, ...)
+have the SAME constraint-type profile (all-booleanity). The axiom bounds the
+within-profile dimension by (κ+1)^8, but the NP-side proves these generators
+are linearly independent (via the Kronecker coefficient 2^|S∩T|), giving
+within-profile dimension = C(n/3, κ) >> (κ+1)^8.
+-/
+
 /-- Profile generator axiom: the SPDP subspace of the Cook-Levin compiled
 polynomial is spanned by generators that can be indexed by profile class
 and within-profile template index.
