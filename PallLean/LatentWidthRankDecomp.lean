@@ -3759,6 +3759,22 @@ def latent_aligned_copyCon_form_conflict_candidate
     varyingCopy ∈ latent_profile_varying_space M n σ →
     False
 
+/-- Sharper next target on the copyCon lane.
+Once the two aligned `copyConSheet` realizations are pushed onto a single residual factor,
+the remaining obstruction is purely within-profile: two varying factors in the same bucket
+should not survive the same residual in the same way. -/
+def latent_aligned_copyCon_common_residual_conflict_candidate
+    (M : DTM) (n : ℕ) : Prop :=
+  ∀ (σ : latentProfileSignature M n)
+    (ks : List (Fin (latentBaseVars M n)))
+    (residual varyingCon varyingCopy : MvPolynomial (Fin (latentNumVars M n)) ℚ),
+    ks.Nodup →
+    ks.length = Nat.log 2 n →
+    varyingCon ∈ latent_profile_varying_space M n σ →
+    varyingCopy ∈ latent_profile_varying_space M n σ →
+    mlProj (residual * varyingCon) = mlProj (residual * varyingCopy) →
+    False
+
 /-- The original raw pure-`conSlot` versus clean-copy same-`q` candidate now reduces to the
 aligned-form conflict candidate above. This packages the progress made in this session:
 future work can operate entirely on aligned base-index lists and their two `copyConSheet`
