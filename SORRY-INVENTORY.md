@@ -187,8 +187,10 @@ What the live edit now makes explicit:
 - `GodMoveExtractionSemanticObligation`: the target-local staged
   restriction/projection/output witness; once a target has been chosen, this is
   the smallest semantic-core theorem boundary
+- `GodMoveExtractionTargetData` and `GodMoveExtractionTargetTheorem`: the
+  exact-target names for the same chosen-target semantic package
 - `GodMoveSemanticTargetData` and `GodMoveSemanticTargetTheorem`: the new
-  target-indexed packaging layer around that same extraction witness
+  backwards-compatible aliases for that same chosen-target semantic package
 - `GodMoveExtractionDecompositionObligation`: a stronger wrapper around that
   same target-local semantic witness which also carries the decomposition
   packaging used to recover extraction transfer
@@ -210,7 +212,8 @@ Semantic-core unit that should still count:
 
 Wrapper churn that should receive zero milestone credit:
 
-- `GodMoveHardInstanceData`, `GodMoveSemanticTargetData`,
+- `GodMoveHardInstanceData`, `GodMoveExtractionTargetData`,
+  `GodMoveExtractionTargetTheorem`, `GodMoveSemanticTargetData`,
   `GodMoveSemanticTargetTheorem`, `GodMoveSemanticGap`, and
   `GodMoveSemanticTheorem` are interface / indexing layers around the same
   extraction theorem, not new semantic witnesses
@@ -218,6 +221,12 @@ Wrapper churn that should receive zero milestone credit:
   `GodMoveExtractionDecompositionObligation` are useful mathematical /
   theorem-packaging layers, but they sit downstream of the staged semantic
   witness rather than defining a new semantic frontier
+- `routeB_from_semantic_targetData`,
+  `routeB_weakened_from_semantic_targetData`,
+  `routeB_from_semantic_gap`, and
+  `routeB_weakened_from_semantic_gap` only reattach separate NP-side data to a
+  fixed extraction target; they preserve the same extraction obligation
+  definitionally and should receive zero semantic-core milestone credit
 - `GodMoveRouteB_TargetData`, `GodMoveRouteB_Obligations`,
   `GodMoveRouteB_WeakenedObligations`, and the separation wrappers are still
   useful packaging, but they are downstream consumers of the semantic seam
@@ -249,9 +258,13 @@ Honest current state:
 #### Wrapper / packaging layer (not separate milestone credit)
 
 - `GodMoveHardInstanceData`: hard-instance applicability bookkeeping
+- `GodMoveExtractionTargetData`: exact extraction-target data package carrying
+  hard-instance facts plus the chosen target
+- `GodMoveExtractionTargetTheorem`: exact-target theorem name for the same
+  chosen-target staged semantic obligation
 - `GodMoveSemanticTargetData`: hard-instance data plus chosen extraction target
-- `GodMoveSemanticTargetTheorem`: target-indexed packaging name for the same
-  extraction-side semantic obligation
+- `GodMoveSemanticTargetTheorem`: backwards-compatible alias for the same
+  exact-target staged semantic obligation
 - `GodMoveSemanticTheorem`: hard-instance-indexed compatibility alias only
 - `GodMoveSemanticGap`: convenience bundle carrying target data plus the staged
   target theorem
@@ -263,6 +276,14 @@ Honest current state:
   extraction-target package
 - `GodMoveRouteB_ExtractionTransfer`: factored name for the extraction-side
   rank-transfer claim on a chosen target
+- `routeB_from_semantic_targetData`: strong Route B assembler on exact target
+  data only
+- `routeB_weakened_from_semantic_targetData`: weakened Route B assembler on the
+  same exact target data
+- `routeB_from_semantic_gap`: convenience wrapper from `GodMoveSemanticGap` to
+  the strong Route B shell
+- `routeB_weakened_from_semantic_gap`: convenience wrapper from
+  `GodMoveSemanticGap` to the weakened Route B shell
 - `GodMoveRouteB_WeakenedExtractionObligation`: weakened-route alias now
   literally re-indexing `GodMoveRouteB_ExtractionObligation` on the same target
 - `routeB_from_semantic_gap_extractionObligation` /
@@ -365,7 +386,8 @@ So the local status is:
 ### Exact remaining gaps for Route B
 
 1. **PD→blocked SPDP bridge** (`pd_to_blocked_transfer`): linear algebra
-2. **Semantic extraction seam** (`GodMoveSemanticGap` plus the extraction obligation it feeds): genuine DecidesSAT-dependent frontier
+2. **Semantic extraction seam** (`GodMoveSemanticExtractionTheorem`, equivalently a chosen target carrying `GodMoveExtractionSemanticObligation`): genuine DecidesSAT-dependent frontier
+   `GodMoveSemanticGap` and the weakened Route B wrappers are compatibility / packaging layers around that same core, not a second semantic seam
 3. **P-side compilation** (`compiled_rank_bound`): BP compilation
 
 ## Historical files

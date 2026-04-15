@@ -1688,6 +1688,7 @@ structure SoundTseitinEncoding (F : Type*) [Field F] where
   formula : TseitinFormula
   graph_compat : formula.graph = graph.toRegularGraph
   charPoly : MvPolynomial (Fin (tseitinNumVars formula)) F
+  charPoly_ne_zero : charPoly ≠ 0
   charPoly_base_vars : charPoly.vars ⊆ Finset.univ.image (baseVarEmbedding formula)
   edgeVarCount : graph.numEdges = formula.graph.numEdges
   charPoly_multilinear : ∀ i : Fin (tseitinNumVars formula),
