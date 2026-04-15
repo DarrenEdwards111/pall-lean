@@ -597,6 +597,64 @@ def FormulaClauseCharacteristicPdWitness.toPackedClauseWitness
     exact (canonicalPackedFormulaClauses_gadgetProd F fam n hn pack i).trans w.row_eq_expanded
 }
 
+/-- A formula-clause witness directly yields the corresponding iterated
+derivative of the characteristic polynomial. -/
+theorem FormulaClauseCharacteristicPdWitness.row_eq
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {clauses : List (Fin (fam.encoding n hn).formula.clauses.length)}
+    (w : FormulaClauseCharacteristicPdWitness F fam n hn clauses) :
+    formulaClauseGadgetProd F fam n hn clauses =
+      SPDP.iterDerivList
+        (w.baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
+        (Tseitin.characteristicPoly F (fam.encoding n hn).formula) := by
+  classical
+  rw [Tseitin.iterDerivList_characteristicPoly]
+  rw [w.row_eq_expanded]
+  refine Finset.sum_congr rfl ?_
+  intro a ha
+  rw [Tseitin.iterDerivList_characteristicPolySummand
+    F (fam.encoding n hn).formula a
+    (w.baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))]
+
+/-- If the base-derivative list for a formula-clause witness starts with a
+concrete base variable, its assignment expansion admits the corresponding
+one-step normalization on assignment monomials. -/
+theorem FormulaClauseCharacteristicPdWitness.row_eq_expanded_head
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {clauses : List (Fin (fam.encoding n hn).formula.clauses.length)}
+    (w : FormulaClauseCharacteristicPdWitness F fam n hn clauses)
+    (v : Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula))
+    (rest : List (Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula)))
+    (hhead : w.baseDerivs = v :: rest) :
+    formulaClauseGadgetProd F fam n hn clauses =
+      ∑ a ∈ Fintype.piFinset (fun _ : Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula) =>
+          ({false, true} : Finset Bool)),
+        (by
+          classical
+          exact if Tseitin.formulaSatisfied (fam.encoding n hn).formula a then
+            if a v then
+              SPDP.iterDerivList
+                (rest.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
+                (Tseitin.assignmentMonomialErase F (fam.encoding n hn).formula a v)
+            else
+              -SPDP.iterDerivList
+                (rest.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
+                (Tseitin.assignmentMonomialErase F (fam.encoding n hn).formula a v)
+          else 0) := by
+  classical
+  rw [w.row_eq_expanded]
+  rw [hhead]
+  refine Finset.sum_congr rfl ?_
+  intro a ha
+  by_cases hsat : Tseitin.formulaSatisfied (fam.encoding n hn).formula a
+  · simp [hsat, Tseitin.iterDerivList_assignmentMonomial_base_head
+      F (fam.encoding n hn).formula a v rest]
+  · simp [hsat]
+
 /-- A canonical clause witness already yields the corresponding derivative of
 the characteristic polynomial, since the explicit satisfying-assignment
 expansion of `χ_Φ` is proved separately. -/
