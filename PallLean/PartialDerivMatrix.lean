@@ -334,34 +334,26 @@ Combined: rk_{SPDP}(χ_{φ_n}) ≥ rank(PD) ≥ 2^{εn}.
 The sub-axiom is the Ramanujan-Tseitin construction from §6/§14,
 which requires expander graph theory. -/
 
-/-- The Ramanujan-Tseitin ∂-matrix lower bound (Theorem 72).
+/-- Derived: Theorem 140 follows from a ∂-matrix lower bound + Lemma 69.
 
-For the explicit hard family {f_n} from the Lagrangian/Tseitin
-construction (§6/§14), there exists a partition (S_n, T_n) with
-|S_n| ≤ ℓ such that rank(PD_{S_n,T_n}(f_n)) = 2^{Ω(n)}.
+This shows the STRUCTURE of how Theorem 140 would be proved:
+given any ∂-matrix lower bound for χ_{φ_n}, Lemma 69 transfers it
+to SPDP rank. The actual ∂-matrix lower bound is the content of
+the Ramanujan-Tseitin construction (§6/§14), formalized in
+RamanujanTseitin.lean with its own axioms.
 
-We state this in the quantitative form needed for the separation. -/
-axiom ramanujan_tseitin_pdMatrix_lower_bound (n : ℕ) (hn : n ≥ 2) :
-    ∃ (part : VarPartition (3 * n)),
-      part.S.card ≤ 3 ∧  -- |S| ≤ ℓ for ℓ ∈ {2,3}
-      n ^ (Nat.log 2 n / 4) ≤ pdMatrixRank ℚ part (0 : MvPolynomial (Fin (3 * n)) ℚ)
-      -- The `0` is a placeholder for χ_{φ_n}; the actual polynomial
-      -- is not formalized. The axiom asserts the rank bound exists.
-
-/-- Derived: Theorem 140 follows from the ∂-matrix bound + Lemma 69.
-
-This reduces our original Axiom 1 (theorem_140_np_side) to:
-- ramanujan_tseitin_pdMatrix_lower_bound (sub-axiom: ∂-matrix ≥ 2^{Ω(n)})
-- pdMatrix_le_spdpRank (sub-axiom: Lemma 69, pure linear algebra)
-
-Both are more fundamental than the combined Theorem 140. -/
+Note: this theorem is NOT used by Separation29.lean's P_ne_NP proof,
+which uses theorem_140_np_side directly as a top-level axiom. -/
 theorem theorem_140_from_pdMatrix (n : ℕ) (hn : n ≥ 2)
     (charPolyRank : ℕ)
+    (h_pdMatrix : ∃ (part : VarPartition (3 * n)),
+      part.S.card ≤ 3 ∧
+      n ^ (Nat.log 2 n / 4) ≤ pdMatrixRank ℚ part (0 : MvPolynomial (Fin (3 * n)) ℚ))
     (h_spdp_bound : ∀ (part : VarPartition (3 * n))
       (f : MvPolynomial (Fin (3 * n)) ℚ) (ℓ : ℕ),
       part.S.card ≤ ℓ → pdMatrixRank ℚ part f ≤ charPolyRank) :
     n ^ (Nat.log 2 n / 4) ≤ charPolyRank := by
-  obtain ⟨part, hcard, hbound⟩ := ramanujan_tseitin_pdMatrix_lower_bound n hn
+  obtain ⟨part, hcard, hbound⟩ := h_pdMatrix
   exact le_trans hbound (h_spdp_bound part 0 3 hcard)
 
 end PartialDerivMatrix
