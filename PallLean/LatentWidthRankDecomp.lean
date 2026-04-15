@@ -3734,6 +3734,62 @@ theorem latent_pure_conSlot_vs_clean_copy_same_q_aligned_copyCon_forms
     exact latent_copyCon_varying_factor_mem_varying_space M n kscopy mcopy
       hVarsCopy hDegCopy hLenCopy
 
+/-- Reduced algebraic contradiction surface for the remaining pure-`conSlot` versus clean-copy
+same-`q` frontier. After the new normalization/alignment work, the only missing ingredient is a
+contradiction theorem on already-aligned `copyConSheet` forms over the same base-block set. -/
+def latent_aligned_copyCon_form_conflict_candidate
+    (M : DTM) (n : ℕ) : Prop :=
+  ∀ (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (kscon kscopy : List (Fin (latentBaseVars M n)))
+    (mcon mcopy residualCon varyingCon residualCopy varyingCopy :
+      MvPolynomial (Fin (latentNumVars M n)) ℚ),
+    kscon.Nodup →
+    kscopy.Nodup →
+    kscon.length = Nat.log 2 n →
+    kscopy.length = Nat.log 2 n →
+    kscon.toFinset = kscopy.toFinset →
+    q = mlProj (mcon * iterDerivList (kscon.map (conSlot M n)) (latentCompiledPoly M n)) →
+    q = mlProj (mcopy * iterDerivList (kscopy.map (copySlot M n)) (latentCompiledPoly M n)) →
+    mlProj (mcon * iterDerivList (kscon.map (conSlot M n)) (copyConSheet M n)) =
+      mlProj (residualCon * varyingCon) →
+    varyingCon ∈ latent_profile_varying_space M n σ →
+    mlProj (mcopy * iterDerivList (kscopy.map (copySlot M n)) (copyConSheet M n)) =
+      mlProj (residualCopy * varyingCopy) →
+    varyingCopy ∈ latent_profile_varying_space M n σ →
+    False
+
+/-- The original raw pure-`conSlot` versus clean-copy same-`q` candidate now reduces to the
+aligned-form conflict candidate above. This packages the progress made in this session:
+future work can operate entirely on aligned base-index lists and their two `copyConSheet`
+closed forms, rather than reopening raw witness normalization each time. -/
+theorem latent_pure_conSlot_vs_clean_copy_same_q_candidate_of_aligned_copyCon_form_conflict
+    (M : DTM) (n : ℕ)
+    (hconflict : latent_aligned_copyCon_form_conflict_candidate M n) :
+    ∀ (σ : latentProfileSignature M n)
+      (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+      (Scon : List (Fin (latentNumVars M n)))
+      (mcon : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+      (hLenCon : Scon.length = Nat.log 2 n)
+      (hDegCon : mcon.totalDegree ≤ Nat.log 2 n)
+      (hVarsCon : mcon.vars ⊆ Scon.toFinset)
+      (hAdmCon : isBlockAdmissible (latentPartition M n) Scon)
+      (hSigCon : latent_profile_signature_of_generator_data M n Scon mcon hLenCon hDegCon = σ)
+      (hqCon : q = mlProj (mcon * iterDerivList Scon (latentCompiledPoly M n)))
+      (hScon : Scon ≠ [])
+      (hcon : ∀ v ∈ Scon, ∃ i : Fin (latentBaseVars M n), v = conSlot M n i),
+      latent_pure_conSlot_vs_clean_copy_same_q_candidate
+        M n σ q Scon mcon hLenCon hDegCon hVarsCon hAdmCon hSigCon hqCon hScon hcon := by
+  intro σ q Scon mcon hLenCon hDegCon hVarsCon hAdmCon hSigCon hqCon hScon hcon
+  intro kscopy mcopy hndCopy hLenCopy hDegCopy hVarsCopy hSigCopy hqCopy
+  rcases latent_pure_conSlot_vs_clean_copy_same_q_aligned_copyCon_forms
+      M n σ q Scon mcon hLenCon hDegCon hVarsCon hAdmCon hSigCon hqCon hScon hcon
+      kscopy mcopy hndCopy hLenCopy hDegCopy hVarsCopy hSigCopy hqCopy with
+    ⟨kscon, residualCon, varyingCon, residualCopy, varyingCopy,
+      hndCon, _hSconMap, hLenCon', hSetEq, hqCon', hqCopy', hformCon, hvarCon, hformCopy, hvarCopy⟩
+  exact hconflict σ q kscon kscopy mcon mcopy residualCon varyingCon residualCopy varyingCopy
+    hndCon hndCopy hLenCon' hLenCopy hSetEq hqCon' hqCopy' hformCon hvarCon hformCopy hvarCopy
+
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
 latentCompiledPoly = sum of 3 product sheets → subadditivity reduces to per-sheet bounds.
