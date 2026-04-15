@@ -49,12 +49,13 @@
   - `RestrictionMono.restrictedSourceSpdpCoeffMatrix_rank_le_spdpRank`:
     theorem-level coefficient-matrix inequality establishing the honest local
     restriction frontier with `0` axioms / `0` sorry
+  - `RestrictionMono.freeRestrictedSpdpSubspace_finrank_le_spdpRank`:
+    theorem-level bound for the paper-faithful free-variable target subspace
   - full `spdpRank κ ℓ (applyRestriction ρ f) ≤ spdpRank κ ℓ f` is still not
     formalized in the current ambient variable space; the remaining issue is a
     target-space semantics mismatch, not a local proof hole
-  - `ConcreteCharPolyRankBridge` packages the shell/concrete identification
-    once, and `axiom2_from_components` uses it to recover the shell-level
-    `charPolyRank n ≤ n^200` conclusion
+  - `ConcreteCharPolyRankBridge` packages the shell/concrete identification on
+    both sides, and both assembly wrappers now consume that shared seam
 
   ## Status Summary
 
@@ -67,6 +68,12 @@
   - PaddingRobustness.padding_preserves_rank / nc0_padding_exists
   - RestrictionMono.restrictedSourceSpdpCoeffMatrix_rank_le_spdpRank:
     theorem-level matrix-rank bound for restricted source generators
+  - RestrictionMono.freeRestrictedSpdpSubspace_finrank_le_spdpRank:
+    theorem-level finrank bound for the free-variable-only target subspace
+  - Separation29.theorem_140_from_concrete: theorem wrapper reducing the shell
+    NP-side bound to the concrete sound-encoding package
+  - axiom1_from_components: theorem wrapper reducing the shell NP-side bound
+    to the concrete data package exposed in `Separation29.lean`
   - axiom2_from_components: theorem wrapper reducing the shell P-side bound
     to the concrete data package exposed in `Separation29.lean`
 
@@ -99,18 +106,17 @@ open Separation29 PartialDerivMatrix TMtoBP RestrictionMono PaddingRobustness
 We verify that the decomposition is consistent: the sub-axioms
 are sufficient to derive the two main axioms. -/
 
-/-- Axiom 1 (Theorem 140) follows from the ∂-matrix sub-axioms.
-    This is PartialDerivMatrix.theorem_140_from_pdMatrix instantiated. -/
-theorem axiom1_from_components (n : ℕ) (hn : n ≥ 2)
-    (h_pdMatrix : ∃ (part : PartialDerivMatrix.VarPartition (3 * n)),
-      part.S.card ≤ 3 ∧
-      n ^ (Nat.log 2 n / 4) ≤ pdMatrixRank ℚ part (0 : MvPolynomial (Fin (3 * n)) ℚ))
-    (h_transfer : ∀ (part : PartialDerivMatrix.VarPartition (3 * n))
-      (f : MvPolynomial (Fin (3 * n)) ℚ) (ℓ : ℕ),
-      part.S.card ≤ ℓ → pdMatrixRank ℚ part f ≤ charPolyRank n) :
+/-- Axiom 1 (Theorem 140) follows from the concrete sound-encoding seam.
+
+    This now uses the same shell/concrete bridge packaging as the P-side:
+    the sound encoding provides `ConcreteNPSideData`, and
+    `ConcreteCharPolyRankBridge` identifies its SPDP rank with the shell
+    symbol `charPolyRank`. -/
+theorem axiom1_from_components (n : ℕ) (_hn : n ≥ 2)
+    (d : ConcreteNPSideData n)
+    (bridge : _root_.Separation29.ConcreteCharPolyRankBridge n d) :
     n ^ (Nat.log 2 n / 4) ≤ charPolyRank n := by
-  exact PartialDerivMatrix.theorem_140_from_pdMatrix n hn (charPolyRank n)
-    h_pdMatrix h_transfer
+  exact theorem_140_from_concrete n d bridge
 
 /-- The full P-side shell conclusion from the concrete assembly seam.
 
@@ -214,32 +220,41 @@ paper-numbered routes. It is not the active imported contradiction route on
 this branch; for the live obligation tracker, see `PROOF-OBLIGATIONS.md` and
 `SORRY-INVENTORY.md`.
 
-### Route B (PaperFaithfulSeparation.lean): 1 axiom (KNOWN FALSE), 0 sorry
-- spdp_profile_generators (SymmetricPower.lean) — P-side profile compression
-- NP-side fully proved via CrossTermVanishing linear independence
-- God-Move uses identity construction (placeholder, not paper-faithful)
+### Route B (PaperFaithfulSeparation.lean): split status
+- Current unconditional contradiction shell: 1 custom axiom (KNOWN FALSE),
+  0 sorry
+- The surviving custom frontier is `SymmetricPower.spdp_profile_generators`,
+  reached through `p_side_rank_bound_for_cook_levin`
+- `god_move_identity_minor_axiom` itself is theorem-level, but the current
+  identity-style NP lower bound still applies to all DTMs
+- New weakened Route B theorem seams
+  (`GodMoveCore.extraction_from_decomposition`,
+  `GodMoveCore.routeB_weakened_np_from_pdMatrix`,
+  `GodMoveCore.separation_from_weakened_routeB`) are axiom-free and package
+  the remaining paper-faithful obligations as hypotheses instead
 
-**Semantic gap (Route B)**: The NP-side lower bound
-(`identity_construction_np_lower_bound`) does NOT use `DecidesSAT M`.
-It proves `C(n/3, log n) ≤ rank(compiledPoly)` for ALL DTMs. Combined
-with the P-side axiom `spdp_profile_generators` (which also applies to
-all DTMs), this yields `C(n/3, log n) ≤ n^200` — a false arithmetic
-inequality for large n. At most one of the two sides can be correct
-for the same notion of blocked SPDP rank and partition.
-See `GodMoveReal.compiled_np_lower_bound_any_dtm` and the semantic gap
-analysis in `GodMoveReal.lean` for details.
+**Semantic gap (current unconditional Route B shell)**:
+`GodMoveReal.compiled_np_lower_bound_any_dtm` does NOT use `DecidesSAT M`.
+It proves `C(n/3, log n) ≤ rank(compiledPoly)` for ALL DTMs. Combined with the
+old P-side axiom `spdp_profile_generators` (which also applies to all DTMs),
+this yields `C(n/3, log n) ≤ n^200` — a false arithmetic inequality for large
+n. At most one of the two sides can be correct for the same notion of blocked
+SPDP rank and partition; `PaperFaithfulSeparation.spdp_profile_generators_inconsistent_with_np_side`
+records that contradiction explicitly.
 
-**Paper-faithful resolution**: The paper makes `DecidesSAT` load-bearing
-in the God-Move extraction (Step A), not in the NP lower bound.
-`GodMoveSemanticInterface` in `GodMoveCore.lean` is the exact theorem
-seam for the paper-faithful Route B path (NOT YET INHABITED).
+**Paper-faithful resolution seam**: The paper makes `DecidesSAT` load-bearing
+in the God-Move extraction (Step A), not in the NP lower bound. On this branch
+that interface is represented by `GodMoveSemanticGap`,
+`GodMoveRouteB_WeakenedExtractionObligation`, and the staged extraction data in
+`GodMoveCore.lean`; those theorem seams are present but not yet inhabited by a
+full semantic construction.
 
 ### Separation29 route: 2 axioms + 1 opaque symbol, 0 sorry (auxiliary, NOT primary)
 - charPolyRank (opaque abstraction symbol)
 - theorem_140_np_side (Theorem 140: NP-side exponential lower bound)
 - theorem_139_p_side (Theorem 139: P-side polynomial upper bound)
 
-### Sound NP-side, active assembled route: 2 main axioms, 2 live sorries
+### Sound NP-side, active assembled route: 2 core axioms, 2 auxiliary axioms, 2 live sorries
 
 This is the route that currently feeds `sound_theorem72_condensed`.
 
@@ -253,6 +268,9 @@ This is the route that currently feeds `sound_theorem72_condensed`.
 Auxiliary small-range refinement currently present in the same file:
 - sound_tseitin_pdMatrix_lower_bound_mid — AXIOM (16 ≤ n < 256)
 - sound_tseitin_pdMatrix_lower_bound_hard — AXIOM (256 ≤ n < 660)
+
+So the assembled sound block currently exposes 4 axioms total and 2 live
+sorries, even though only two axioms are on the main theorem seam.
 
 **PartialDerivMatrix.lean**: 0 axioms, 0 sorry — CLEAN
   pdMatrix_le_spdpRank (Lemma 69): PROVED
@@ -283,11 +301,14 @@ inside the same file-level sound-family / finite-range scaffold above.
 **SymmetricPower.lean**: 1 axiom (KNOWN FALSE for Route B P-side)
 **RestrictionMono.lean**: 0 axioms, 0 sorry
   Honest local frontier is the finite-support matrix-rank comparison
-  `restrictedSourceSpdpCoeffMatrix_rank_le_spdpRank`; the stronger ambient
+  `restrictedSourceSpdpCoeffMatrix_rank_le_spdpRank` together with the
+  free-variable target-space bound
+  `freeRestrictedSpdpSubspace_finrank_le_spdpRank`; the stronger ambient
   restriction-monotonicity statement remains blocked by target-space semantics.
 
 ### Totals (honest frontier, by route)
-  Route B current placeholder shell: 1 false axiom, 0 sorry
+  Route B unconditional contradiction shell: 1 false axiom, 0 sorry
+  Route B weakened theorem seams: 0 axioms, 0 sorry
   Separation29 shell: 2 axioms + 1 opaque symbol, 0 sorry
   Sound NP-side active assembled route: 4 axioms, 2 sorry
   Sound NP-side decomposed replacement block: 2 axioms, 1 local sorry
@@ -296,9 +317,9 @@ inside the same file-level sound-family / finite-range scaffold above.
 
 /-! ## Axiom audit
 
-`axiom1_from_components` still depends on the shell symbol `charPolyRank`.
-`axiom2_from_components` uses `charPolyRank` together with the shared
-`ConcreteCharPolyRankBridge` seam supplied to `theorem_139_from_concrete`. -/
+Both `axiom1_from_components` and `axiom2_from_components` still depend on the
+shell symbol `charPolyRank`, and both now use the shared
+`ConcreteCharPolyRankBridge` seam exported by `Separation29.lean`. -/
 #print axioms axiom1_from_components
 #print axioms axiom2_from_components
 

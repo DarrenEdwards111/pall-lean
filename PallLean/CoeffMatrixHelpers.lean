@@ -27,6 +27,16 @@ noncomputable def coeffMatrix {ι : Type*}
     Matrix ι monomials F :=
   fun i m => MvPolynomial.coeff m.1 (generators i)
 
+/-- Coefficient matrix indexed by an arbitrary family of chosen monomials from
+an ambient finite monomial set. This packages column selections and repeated
+columns without leaving the coefficient-matrix API. -/
+noncomputable def coeffFamilyMatrix {ι μ : Type*}
+    (monomials : Finset (σ →₀ ℕ))
+    (chosenMonomials : μ → monomials)
+    (generators : ι → MvPolynomial σ F) :
+    Matrix ι μ F :=
+  fun i j => MvPolynomial.coeff (chosenMonomials j).1 (generators i)
+
 /-- Column-action matrix induced by a linear map on monomial basis vectors. -/
 noncomputable def monomialActionMatrix
     (src tgt : Finset (σ →₀ ℕ)) (φ : MvPolynomial σ F →ₗ[F] MvPolynomial σ F) :
@@ -141,6 +151,16 @@ theorem coeffMatrix_submatrix_rows {ι κ : Type*}
   rfl
 
 omit [DecidableEq σ] in
+theorem coeffFamilyMatrix_eq_submatrix_cols {ι μ : Type*}
+    (monomials : Finset (σ →₀ ℕ))
+    (chosenMonomials : μ → monomials)
+    (generators : ι → MvPolynomial σ F) :
+    coeffFamilyMatrix monomials chosenMonomials generators =
+      (coeffMatrix monomials generators).submatrix (Equiv.refl _) chosenMonomials := by
+  ext i j
+  rfl
+
+omit [DecidableEq σ] in
 theorem rank_coeffMatrix_subfamily_le {ι κ : Type*} [Fintype ι] [Fintype κ]
     (monomials : Finset (σ →₀ ℕ))
     (generators : ι → MvPolynomial σ F)
@@ -172,6 +192,17 @@ theorem rank_coeffMatrix_submatrix_cols_le {ι κ : Type*} [Fintype ι] [Fintype
     _ ≤ (Aᵀ).rank := h
     _ = A.rank := Matrix.rank_transpose _
 
+omit [DecidableEq σ] in
+theorem rank_coeffFamilyMatrix_le {ι μ : Type*} [Fintype ι] [Fintype μ]
+    (monomials : Finset (σ →₀ ℕ))
+    (chosenMonomials : μ → monomials)
+    (generators : ι → MvPolynomial σ F) :
+    (coeffFamilyMatrix monomials chosenMonomials generators).rank ≤
+      (coeffMatrix monomials generators).rank := by
+  rw [coeffFamilyMatrix_eq_submatrix_cols]
+  exact rank_coeffMatrix_submatrix_cols_le monomials generators chosenMonomials
+
+omit [DecidableEq σ] in
 theorem rank_coeffMatrix_submatrix_le {ι κ ν : Type*} [Fintype ι] [Fintype κ] [Fintype ν]
     (monomials : Finset (σ →₀ ℕ))
     (generators : ι → MvPolynomial σ F)
@@ -258,5 +289,41 @@ theorem finrank_span_eq_matrix_rank {ι : Type*} [Fintype ι] [DecidableEq ι]
         ext i m
         simp [Matrix.transpose, Matrix.col]]
   rw [← Matrix.rank_eq_finrank_span_cols, Matrix.rank_transpose]
+
+omit [DecidableEq σ] in
+theorem map_span_range_eq_span_range {ι : Type*}
+    (φ : MvPolynomial σ F →ₗ[F] MvPolynomial σ F)
+    (generators : ι → MvPolynomial σ F) :
+    Submodule.map φ (Submodule.span F (Set.range generators)) =
+      Submodule.span F (Set.range (fun i => φ (generators i))) := by
+  rw [Submodule.map_span]
+  congr 1
+  ext v
+  simp [Set.mem_image, Set.mem_range]
+
+theorem finrank_map_span_eq_matrix_rank {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (monomials : Finset (σ →₀ ℕ))
+    (φ : MvPolynomial σ F →ₗ[F] MvPolynomial σ F)
+    (generators : ι → MvPolynomial σ F)
+    (hsupport : ∀ i, (φ (generators i)).support ⊆ monomials) :
+    Module.finrank F (Submodule.map φ (Submodule.span F (Set.range generators))) =
+      (coeffMatrix monomials (fun i => φ (generators i))).rank := by
+  rw [map_span_range_eq_span_range]
+  exact finrank_span_eq_matrix_rank monomials (fun i => φ (generators i)) hsupport
+
+theorem finrank_map_span_le_coeffMatrix_rank {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (src tgt : Finset (σ →₀ ℕ))
+    (φ : MvPolynomial σ F →ₗ[F] MvPolynomial σ F)
+    (generators : ι → MvPolynomial σ F)
+    (hsrc : ∀ i, (generators i).support ⊆ src)
+    (htgt : ∀ i, (φ (generators i)).support ⊆ tgt) :
+    Module.finrank F (Submodule.map φ (Submodule.span F (Set.range generators))) ≤
+      (coeffMatrix src generators).rank := by
+  calc
+    Module.finrank F (Submodule.map φ (Submodule.span F (Set.range generators)))
+      = (coeffMatrix tgt (fun i => φ (generators i))).rank :=
+          finrank_map_span_eq_matrix_rank tgt φ generators htgt
+    _ ≤ (coeffMatrix src generators).rank :=
+        rank_coeffMatrix_map_le src tgt φ generators hsrc
 
 end CoeffMatrixHelpers

@@ -91,7 +91,9 @@ theorem applyRestriction_vars_subset_freeVars {n : ℕ} (ρ : VarRestriction n)
       rcases Finset.mem_union.mp hi_union with hi_fixed | hi_free
       · exact (hi.elim hi_fixed)
       · exact hi_free
-    rcases (by simpa [restrictionFun, hi] using hxi : x = i) with rfl
+    have hxi_eq : x = i := by
+      simpa [restrictionFun, hi] using hxi
+    subst x
     exact hi_free
 
 theorem mem_freeVars_of_mem_vars_applyRestriction {n : ℕ} (ρ : VarRestriction n)
@@ -252,6 +254,31 @@ theorem applyRestriction_monomial_of_support_subset_free {n : ℕ}
   have hi_not_fixed : i ∉ ρ.fixedVars := free_not_fixed ρ i hi_free
   simp [restrictionFun, hi_not_fixed]
 
+theorem applyRestriction_monomial_of_support_subset_free_coeff {n : ℕ}
+    (ρ : VarRestriction n) (d : Fin n →₀ ℕ) (c : ℚ)
+    (hd : d.support ⊆ ρ.freeVars) :
+    applyRestriction ρ (MvPolynomial.monomial d c) =
+      MvPolynomial.monomial d c := by
+  rw [show MvPolynomial.monomial d c =
+      MvPolynomial.C c * MvPolynomial.monomial d (1 : ℚ) by
+        simp [MvPolynomial.C_mul_monomial]]
+  rw [applyRestriction_mul, applyRestriction_monomial_of_support_subset_free ρ d hd]
+  simp [applyRestriction_eq_algHom]
+
+theorem applyRestriction_eq_self_of_vars_subset_free {n : ℕ}
+    (ρ : VarRestriction n) (m : MvPolynomial (Fin n) ℚ)
+    (hm : m.vars ⊆ ρ.freeVars) :
+    applyRestriction ρ m = m := by
+  conv_lhs => rw [m.as_sum]
+  conv_rhs => rw [m.as_sum]
+  rw [applyRestriction_eq_algHom, applyRestrictionAlgHom, map_sum]
+  apply Finset.sum_congr rfl
+  intro d hd
+  have hdfree : d.support ⊆ ρ.freeVars := by
+    intro x hx
+    exact hm ((MvPolynomial.mem_vars x).mpr ⟨d, hd, hx⟩)
+  exact applyRestriction_monomial_of_support_subset_free_coeff ρ d (MvPolynomial.coeff d m) hdfree
+
 private theorem free_monomial_generator_mem_restriction_map {n : ℕ}
     (ρ : VarRestriction n) (f : MvPolynomial (Fin n) ℚ)
     (κ ℓ : ℕ) (S : List (Fin n)) (d : Fin n →₀ ℕ)
@@ -285,6 +312,17 @@ noncomputable def monomialsLE (n D : ℕ) : Finset ((Fin n) →₀ ℕ) :=
   (Finset.range (D + 1)).biUnion fun k =>
     (Finset.univ : Finset (Fin n)).finsuppAntidiag k
 
+/-- Degree-bounded monomials whose support stays inside the free variables of `ρ`. -/
+noncomputable def freeMonomialsLE {n : ℕ}
+    (ρ : VarRestriction n) (D : ℕ) : Finset ((Fin n) →₀ ℕ) :=
+  (monomialsLE n D).filter fun d => d.support ⊆ ρ.freeVars
+
+/-- SPDP generator indices whose derivative list and multiplier monomial both stay
+inside the free variables of `ρ`. -/
+def FreeSpdpGeneratorIdx {n : ℕ} (ρ : VarRestriction n) (κ ℓ : ℕ) :=
+  { i : ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ }) //
+      (∀ j, i.1 j ∈ ρ.freeVars) ∧ i.2.1.support ⊆ ρ.freeVars }
+
 theorem mem_monomialsLE {n D : ℕ} {d : (Fin n) →₀ ℕ} :
     d ∈ monomialsLE n D ↔ d.sum (fun _ e => e) ≤ D := by
   unfold monomialsLE
@@ -297,6 +335,10 @@ theorem mem_monomialsLE {n D : ℕ} {d : (Fin n) →₀ ℕ} :
     refine Finset.mem_biUnion.mpr ?_
     refine ⟨d.sum (fun _ e => e), Finset.mem_range.mpr (Nat.lt_succ_of_le hd), ?_⟩
     exact Finset.mem_finsuppAntidiag'.mpr ⟨rfl, Finset.subset_univ _⟩
+
+theorem mem_freeMonomialsLE {n D : ℕ} (ρ : VarRestriction n) {d : (Fin n) →₀ ℕ} :
+    d ∈ freeMonomialsLE ρ D ↔ d.sum (fun _ e => e) ≤ D ∧ d.support ⊆ ρ.freeVars := by
+  simp [freeMonomialsLE, mem_monomialsLE]
 
 private noncomputable def boundedDegreeMonomialEquiv {n D : ℕ} :
     { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ D } ≃ monomialsLE n D where
@@ -533,6 +575,23 @@ private theorem restrictedSourceSpdpMonomialGenerator_support_subset_monomialsLE
   exact le_trans (applyRestriction_totalDegree_le ρ (spdpMonomialGenerator κ ℓ p i))
     (spdpMonomialGenerator_totalDegree_le κ ℓ p i)
 
+theorem restrictedSpdpMonomialGenerator_support_subset_freeMonomialsLE {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    (i : FreeSpdpGeneratorIdx ρ κ ℓ) :
+    (spdpMonomialGenerator κ ℓ (applyRestriction ρ p) i.1 : MvPolynomial (Fin n) ℚ).support ⊆
+      freeMonomialsLE ρ (ℓ + p.totalDegree) := by
+  rcases i with ⟨i, hSfree, hdfree⟩
+  intro m hm
+  refine (mem_freeMonomialsLE ρ).2 ?_
+  constructor
+  · simpa [mem_monomialsLE] using
+      restrictedSpdpMonomialGenerator_support_subset_monomialsLE ρ κ ℓ p i hm
+  · have hm' : m ∈
+        (applyRestriction ρ (spdpMonomialGenerator κ ℓ p i) : MvPolynomial (Fin n) ℚ).support := by
+      simpa [applyRestriction_spdpMonomialGenerator_of_free ρ p κ ℓ i hSfree hdfree] using hm
+    exact support_subset_freeVars_of_mem_applyRestriction_support ρ
+      (spdpMonomialGenerator κ ℓ p i) hm'
+
 private theorem applyRestriction_spdpMonomialGenerator {n : ℕ}
     (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
     (i : (Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ }) :
@@ -690,8 +749,241 @@ theorem restriction_image_spdpSubspace_finrank_le_spdpRank {n : ℕ}
     Module.finrank ℚ
         (Submodule.map (applyRestrictionAlgHom ρ).toLinearMap (spdpSubspace κ ℓ p)) ≤
       spdpRank κ ℓ p := by
-  simpa [SPDP.spdpRank] using
-    (Submodule.finrank_map_le (applyRestrictionAlgHom ρ).toLinearMap (spdpSubspace κ ℓ p))
+  calc
+    Module.finrank ℚ
+        (Submodule.map (applyRestrictionAlgHom ρ).toLinearMap (spdpSubspace κ ℓ p))
+      = let monomials := monomialsLE n (ℓ + p.totalDegree)
+        (CoeffMatrixHelpers.coeffMatrix monomials
+          (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))).rank := by
+            exact restriction_image_spdpSubspace_finrank_eq_restrictedSourceCoeffMatrix_rank
+              ρ κ ℓ p
+    _ ≤ spdpRank κ ℓ p := by
+      exact restrictedSourceSpdpCoeffMatrix_rank_le ρ κ ℓ p
+
+/-- The paper-faithful target SPDP subspace generated by derivative lists and
+multiplier monomials supported only on the free variables of `ρ`. -/
+noncomputable def freeRestrictedSpdpSubspace {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+  Submodule.span ℚ
+    { q | ∃ i : ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ }),
+        (∀ j, i.1 j ∈ ρ.freeVars) ∧
+        i.2.1.support ⊆ ρ.freeVars ∧
+        q = spdpMonomialGenerator (F := ℚ) κ ℓ (applyRestriction ρ p) i }
+
+/-- Typed index family for the free-variable-only target SPDP generators. -/
+abbrev freeRestrictedSpdpGeneratorIdx {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) :=
+  FreeSpdpGeneratorIdx ρ κ ℓ
+
+noncomputable instance instDecidableEqFreeRestrictedSpdpGeneratorIdx {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) :
+    DecidableEq (freeRestrictedSpdpGeneratorIdx ρ κ ℓ) :=
+  by
+    classical
+    exact Classical.decEq _
+
+noncomputable instance freeRestrictedSpdpGeneratorIdxFintype {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    Fintype (freeRestrictedSpdpGeneratorIdx ρ κ ℓ) :=
+  by
+    classical
+    exact Fintype.ofInjective
+      (fun i : freeRestrictedSpdpGeneratorIdx ρ κ ℓ => i.1)
+      (by
+        intro a b h
+        exact Subtype.ext h)
+
+/-- Canonical generator family spanning `freeRestrictedSpdpSubspace`. -/
+noncomputable def freeRestrictedSpdpGenerator {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ) :
+    freeRestrictedSpdpGeneratorIdx ρ κ ℓ → MvPolynomial (Fin n) ℚ :=
+  fun i => spdpMonomialGenerator (F := ℚ) κ ℓ (applyRestriction ρ p) i.1
+
+/-- The existential definition of `freeRestrictedSpdpSubspace` is exactly the
+span of its typed free-variable-only generator family. -/
+theorem freeRestrictedSpdpSubspace_eq_span_generators {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    freeRestrictedSpdpSubspace ρ κ ℓ p =
+      Submodule.span ℚ
+        (Set.range (freeRestrictedSpdpGenerator ρ κ ℓ p)) := by
+  unfold freeRestrictedSpdpSubspace freeRestrictedSpdpGenerator
+  congr 1
+  ext q
+  constructor
+  · rintro ⟨i, hSfree, hdfree, rfl⟩
+    exact ⟨⟨i, hSfree, hdfree⟩, rfl⟩
+  · rintro ⟨i, rfl⟩
+    exact ⟨i.1, i.2.1, i.2.2, rfl⟩
+
+noncomputable instance freeRestrictedSpdpSubspaceModuleFinite {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    Module.Finite ℚ (freeRestrictedSpdpSubspace ρ κ ℓ p) := by
+  rw [Module.Finite.iff_fg, freeRestrictedSpdpSubspace_eq_span_generators]
+  exact Submodule.fg_span (Set.finite_range _)
+
+private theorem freeRestrictedSpdpGenerator_support_subset_freeMonomialsLE {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    (i : freeRestrictedSpdpGeneratorIdx ρ κ ℓ) :
+    (freeRestrictedSpdpGenerator ρ κ ℓ p i).support ⊆
+      freeMonomialsLE ρ (ℓ + p.totalDegree) := by
+  exact restrictedSpdpMonomialGenerator_support_subset_freeMonomialsLE ρ κ ℓ p i
+
+/-- Finite-support bridge for the paper-faithful target subspace: over the
+bounded monomial universe, its dimension is exactly the coefficient-matrix rank
+of the free-variable-only target generators. -/
+theorem freeRestrictedSpdpSubspace_finrank_eq_coeffMatrix_rank {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    let monomials := freeMonomialsLE ρ (ℓ + p.totalDegree)
+    Module.finrank ℚ (freeRestrictedSpdpSubspace ρ κ ℓ p) =
+      (CoeffMatrixHelpers.coeffMatrix monomials
+        (freeRestrictedSpdpGenerator ρ κ ℓ p)).rank := by
+  classical
+  let monomials := freeMonomialsLE ρ (ℓ + p.totalDegree)
+  rw [freeRestrictedSpdpSubspace_eq_span_generators]
+  exact CoeffMatrixHelpers.finrank_span_eq_matrix_rank (F := ℚ) (σ := Fin n) monomials
+    (freeRestrictedSpdpGenerator ρ κ ℓ p)
+    (fun i => by
+      simpa [monomials] using
+        freeRestrictedSpdpGenerator_support_subset_freeMonomialsLE ρ κ ℓ p i)
+
+/-- Over the free-variable-only bounded monomial universe, the honest target SPDP
+generator matrix is the row/column submatrix of the restricted-source generator
+matrix obtained by keeping only free generator rows and free-support columns. -/
+theorem coeffMatrix_freeRestrictedSpdpGenerator_eq_submatrix_restrictedSource {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    let monomials := monomialsLE n (ℓ + p.totalDegree)
+    let freeMonomials := freeMonomialsLE ρ (ℓ + p.totalDegree)
+    CoeffMatrixHelpers.coeffMatrix freeMonomials (freeRestrictedSpdpGenerator ρ κ ℓ p) =
+      (CoeffMatrixHelpers.coeffMatrix monomials
+        (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))).submatrix
+          (fun i : freeRestrictedSpdpGeneratorIdx ρ κ ℓ => i.1)
+          (fun m : freeMonomials => ⟨m.1, (Finset.mem_filter.mp m.2).1⟩) := by
+  classical
+  ext i m
+  rcases i with ⟨i, hSfree, hdfree⟩
+  simp [freeRestrictedSpdpGenerator, CoeffMatrixHelpers.coeffMatrix,
+    applyRestriction_spdpMonomialGenerator_of_free ρ p κ ℓ i hSfree hdfree]
+
+/-- The honest target coefficient matrix over free rows/columns is rank-bounded by the
+restricted-source coefficient matrix on the ambient bounded monomial universe. -/
+theorem freeRestrictedSpdpCoeffMatrix_rank_le_restrictedSource {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    let monomials := monomialsLE n (ℓ + p.totalDegree)
+    let freeMonomials := freeMonomialsLE ρ (ℓ + p.totalDegree)
+    (CoeffMatrixHelpers.coeffMatrix freeMonomials
+      (freeRestrictedSpdpGenerator ρ κ ℓ p)).rank ≤
+      (CoeffMatrixHelpers.coeffMatrix monomials
+        (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))).rank := by
+  classical
+  let monomials := monomialsLE n (ℓ + p.totalDegree)
+  let freeMonomials := freeMonomialsLE ρ (ℓ + p.totalDegree)
+  let rowMap : freeRestrictedSpdpGeneratorIdx ρ κ ℓ →
+      ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ }) :=
+    fun i => i.1
+  let colMap : freeMonomials → monomials :=
+    fun m => ⟨m.1, (Finset.mem_filter.mp m.2).1⟩
+  change (CoeffMatrixHelpers.coeffMatrix freeMonomials
+    (freeRestrictedSpdpGenerator ρ κ ℓ p)).rank ≤
+      (CoeffMatrixHelpers.coeffMatrix monomials
+        (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))).rank
+  have hmatrix :
+      CoeffMatrixHelpers.coeffMatrix freeMonomials (freeRestrictedSpdpGenerator ρ κ ℓ p) =
+        (CoeffMatrixHelpers.coeffMatrix monomials
+          (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))).submatrix
+            rowMap colMap := by
+    have h :=
+      coeffMatrix_freeRestrictedSpdpGenerator_eq_submatrix_restrictedSource ρ κ ℓ p
+    simpa [monomials, freeMonomials, rowMap, colMap] using h
+  calc
+    (CoeffMatrixHelpers.coeffMatrix freeMonomials
+      (freeRestrictedSpdpGenerator ρ κ ℓ p)).rank
+      = ((CoeffMatrixHelpers.coeffMatrix monomials
+          (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))).submatrix
+            rowMap colMap).rank := by
+              exact congrArg Matrix.rank hmatrix
+    _ ≤ (CoeffMatrixHelpers.coeffMatrix monomials
+          (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))).rank := by
+            exact CoeffMatrixHelpers.rank_coeffMatrix_submatrix_le
+              (σ := Fin n) (F := ℚ) monomials
+              (fun i => applyRestriction ρ (spdpMonomialGenerator (F := ℚ) κ ℓ p i))
+              rowMap colMap
+
+/-- Every free-variable-only target generator of `applyRestriction ρ p` comes
+from restricting a source SPDP generator of `p`. -/
+theorem freeRestrictedSpdpSubspace_le_restriction_image {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    freeRestrictedSpdpSubspace ρ κ ℓ p ≤
+      Submodule.map (applyRestrictionAlgHom ρ).toLinearMap (spdpSubspace κ ℓ p) := by
+  apply Submodule.span_le.mpr
+  intro q hq
+  rcases hq with ⟨i, hSfree, hdfree, rfl⟩
+  exact free_spdpMonomialGenerator_mem_restriction_map ρ p κ ℓ i hSfree hdfree
+
+private noncomputable instance freeRestrictedSpdpSubspace_finite {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    Module.Finite ℚ (freeRestrictedSpdpSubspace ρ κ ℓ p) := by
+  have hle :
+      freeRestrictedSpdpSubspace ρ κ ℓ p ≤
+        MvPolynomial.restrictTotalDegree (Fin n) ℚ (ℓ + p.totalDegree) := by
+    rw [freeRestrictedSpdpSubspace_eq_span_generators]
+    apply Submodule.span_le.mpr
+    intro q hq
+    rcases hq with ⟨i, rfl⟩
+    exact (MvPolynomial.mem_restrictTotalDegree _ _ _).2
+      (le_trans (spdpMonomialGenerator_totalDegree_le κ ℓ (applyRestriction ρ p) i.1)
+        (Nat.add_le_add_left (applyRestriction_totalDegree_le ρ p) ℓ))
+  have :
+      Module.Finite ℚ
+        (MvPolynomial.restrictTotalDegree (Fin n) ℚ (ℓ + p.totalDegree)) :=
+    MvPolynomial.instFiniteSubtypeMemSubmoduleRestrictTotalDegreeOfFinite _ _ _
+  exact Module.Finite.of_injective (Submodule.inclusion hle)
+    (Submodule.inclusion_injective hle)
+
+/-- The free-variable-only target SPDP subspace has dimension at most the
+original SPDP rank. This is the theorem-level form of the paper-faithful
+restriction target currently available in the shared tree. -/
+theorem freeRestrictedSpdpSubspace_finrank_le_spdpRank {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    Module.finrank ℚ (freeRestrictedSpdpSubspace ρ κ ℓ p) ≤ spdpRank κ ℓ p := by
+  calc
+    Module.finrank ℚ (freeRestrictedSpdpSubspace ρ κ ℓ p)
+      ≤ Module.finrank ℚ
+          (Submodule.map (applyRestrictionAlgHom ρ).toLinearMap (spdpSubspace κ ℓ p)) :=
+        Submodule.finrank_mono
+          (freeRestrictedSpdpSubspace_le_restriction_image ρ κ ℓ p)
+    _ ≤ spdpRank κ ℓ p :=
+        restriction_image_spdpSubspace_finrank_le_spdpRank ρ κ ℓ p
+
+/-- Coefficient-matrix form of the free-variable-only target bridge over the
+bounded monomial universe. -/
+theorem freeRestrictedSpdpCoeffMatrix_rank_le_spdpRank {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    let monomials := freeMonomialsLE ρ (ℓ + p.totalDegree)
+    (CoeffMatrixHelpers.coeffMatrix monomials
+      (freeRestrictedSpdpGenerator ρ κ ℓ p)).rank ≤
+        spdpRank κ ℓ p := by
+  let monomials := freeMonomialsLE ρ (ℓ + p.totalDegree)
+  change (CoeffMatrixHelpers.coeffMatrix monomials
+    (freeRestrictedSpdpGenerator ρ κ ℓ p)).rank ≤ spdpRank κ ℓ p
+  calc
+    (CoeffMatrixHelpers.coeffMatrix monomials
+      (freeRestrictedSpdpGenerator ρ κ ℓ p)).rank
+        = Module.finrank ℚ (freeRestrictedSpdpSubspace ρ κ ℓ p) := by
+            simpa [monomials] using
+              (freeRestrictedSpdpSubspace_finrank_eq_coeffMatrix_rank ρ κ ℓ p).symm
+    _ ≤ spdpRank κ ℓ p :=
+      freeRestrictedSpdpSubspace_finrank_le_spdpRank ρ κ ℓ p
 
 /-! ## Restriction-Matrix Frontier
 

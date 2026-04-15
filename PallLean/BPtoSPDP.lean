@@ -588,8 +588,10 @@ What remains archived is intentionally narrow:
 - `assignedVars` and `layerAssignedCoeff` package the ordered-position data.
 - `orderedAssignments` is the canonical finite index set for the wrapper/count
   statements below.
-- `bp_iterated_leibniz_eq` is the single private axiom for the missing
-  iterated Leibniz induction.
+- `bp_iterated_leibniz_eq_of_pos` is the single private axiom for the
+  remaining nonempty iterated Leibniz induction.
+- `bp_iterated_leibniz_eq` is a theorem-level wrapper that discharges `S = []`
+  directly and delegates only the positive-length cases.
 - `bp_cylinder_decomposition` is the exact wrapper theorem exposing that
   archived equality.
 - the assignment-count/image-card lemmas and Step 4 row-space bounds remain
@@ -643,20 +645,50 @@ private abbrev orderedAssignments
     Finset (Fin S.length → Fin B.length) :=
   Finset.univ
 
+/-- Canonical cardinality of the archived ordered-assignment index set. -/
+private theorem orderedAssignments_card
+    {n : ℕ} (B : LayeredBP n) (S : List (Fin n)) :
+    (orderedAssignments B S).card = B.length ^ S.length := by
+  simp [orderedAssignments]
+
+/-- The archived cylinder coefficient for the empty derivative list is just
+the BP polynomial itself. -/
+@[simp] private theorem layerAssignedCoeff_nil
+    {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
+    (B : LayeredBP n) (T : Fin ([] : List (Fin n)).length → Fin B.length) :
+    layerAssignedCoeff (F := F) B [] T = B.poly (F := F) := by
+  unfold layerAssignedCoeff LayeredBP.poly LayeredBP.matrixProd
+  congr 1
+
 /-- Iterated Leibniz rule for matrix product entry: differentiating B.poly by S
     yields a sum over assignments `T : Fin S.length → Fin B.length`.
 
     ARCHIVED: Not on any active proof path.
 
     Relative to the older `S.toFinset` formulation, the only remaining gap is
-    now an ordered-position induction for `iterDerivList`, with all duplicate-
-    variable bookkeeping removed from the statement. -/
-private axiom bp_iterated_leibniz_eq
+    now the nonempty ordered-position induction for `iterDerivList`, after
+    the empty case is handled theorem-level below. -/
+private axiom bp_iterated_leibniz_eq_of_pos
+    {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
+    (B : LayeredBP n)
+    (S : List (Fin n))
+    (hS : 1 ≤ S.length) :
+    iterDerivList S (B.poly (F := F)) =
+      ∑ T : (Fin S.length → Fin B.length), layerAssignedCoeff (F := F) B S T
+
+/-- Archived ordered-position Leibniz equality, proved exactly for the empty
+case and delegated only for nonempty derivatives. -/
+private theorem bp_iterated_leibniz_eq
     {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
     (B : LayeredBP n)
     (S : List (Fin n)) :
     iterDerivList S (B.poly (F := F)) =
-      ∑ T : (Fin S.length → Fin B.length), layerAssignedCoeff (F := F) B S T
+      ∑ T : (Fin S.length → Fin B.length), layerAssignedCoeff (F := F) B S T := by
+  cases S with
+  | nil =>
+      simp [SPDP.iterDerivList, layerAssignedCoeff_nil]
+  | cons i rest =>
+      exact bp_iterated_leibniz_eq_of_pos (B := B) (F := F) (i :: rest) (by simp)
 
 /-- Archived exact Step-3 wrapper for the ordered-position cylinder
 decomposition.
@@ -680,23 +712,24 @@ theorem bp_cylinder_decomposition
 /-- The archived cylinder decomposition ranges over at most `B.length ^ S.length`
     ordered assignments. -/
 theorem bp_cylinder_assignment_count_le
-    {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
+    {n : ℕ}
     (B : LayeredBP n)
     (S : List (Fin n)) :
     (orderedAssignments B S).card ≤
       B.length ^ S.length := by
-  simp [Fintype.card_fin]
+  rw [orderedAssignments_card]
 
 /-- Any ordered assignment `T` touches at most `S.length` distinct layers. -/
 theorem bp_cylinder_assignment_image_card_le
-    {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
+    {n : ℕ}
     (B : LayeredBP n)
     (S : List (Fin n))
     (T : Fin S.length → Fin B.length) :
     (Finset.univ.image T).card ≤ S.length := by
+  let domain : Finset (Fin S.length) := Finset.univ
   calc (Finset.univ.image T).card
-      ≤ Finset.univ.card := Finset.card_image_le
-    _ = S.length := by simp
+      ≤ domain.card := Finset.card_image_le
+    _ = S.length := by simp [domain, Fintype.card_fin]
 
 /-- (Step 4) Row-space bound per term.
 
@@ -1038,11 +1071,11 @@ theorem bp_poly_totalDegree_le
   - `poly_family_rank_bound_in_n`: rank ≤ poly(n) for a PolyBPFamily
   - `P_subset_polySPDP`: the zero-polynomial witness (full proof requires compilation)
 
-  Archived axioms (corresponding to genuinely unproved steps):
-  - `bp_spdp_rank_bound` (Lemma 45): the main rank bound
-    * Requires: cylinder decomposition + row-space counting
-  - `bp_iterated_leibniz_eq`: ordered-position Leibniz rule for ∂_S(f_B)
-    * Supplies the archived cylinder decomposition equality
+  Archived axiom (corresponding to the remaining genuinely unproved step):
+  - `bp_iterated_leibniz_eq_of_pos`: ordered-position Leibniz rule for
+    nonempty ∂_S(f_B)
+    * Supplies the archived cylinder decomposition equality via the wrapper
+      `bp_iterated_leibniz_eq`
   Supporting archived combinatorics that remain theorem-level:
   - `bp_cylinder_assignment_count_le`
   - `bp_cylinder_assignment_image_card_le`
@@ -1051,9 +1084,10 @@ theorem bp_poly_totalDegree_le
 
 /-! ## Axiom audit
 
-`bp_iterated_leibniz_eq` is the only remaining axiom in this file, and it is
-confined to the archived ordered-position cylinder wrapper. The assignment
-combinatorics, row-space lemmas, and degree-based route are theorem-level. -/
+`bp_iterated_leibniz_eq_of_pos` is the only remaining axiom in this file, and
+it is confined to the archived ordered-position cylinder wrapper for
+positive-length derivative lists. The empty case, assignment combinatorics,
+row-space lemmas, and degree-based route are theorem-level. -/
 #print axioms bp_cylinder_decomposition
 #print axioms bp_cylinder_assignment_count_le
 #print axioms bp_cylinder_assignment_image_card_le

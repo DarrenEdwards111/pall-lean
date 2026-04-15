@@ -224,6 +224,8 @@ New theorem-level infrastructure:
 - `CoeffMatrixHelpers.finrank_span_eq_matrix_rank`
 - `RestrictionMono.coeffVector_applyRestriction_eq_sum_restrictionColumns`
 - `RestrictionMono.restrictedSourceSpdpCoeffMatrix_rank_le`
+- `RestrictionMono.freeRestrictedSpdpSubspace_le_restriction_image`
+- `RestrictionMono.freeRestrictedSpdpSubspace_finrank_le_spdpRank`
 
 Current narrowed gap:
 - no local `sorry` remains in `RestrictionMono.lean`
@@ -231,9 +233,15 @@ Current narrowed gap:
   placeholder: the ambient target of `applyRestriction ρ f` still allows
   multiplier monomials using fixed variables, so the paper's column-deletion
   argument does not directly match the current definitions
+- the free-variable-only target subspace is now formalized and bounded by the
+  restriction image/original `spdpRank`; what remains is the comparison from
+  that paper-faithful target to the current ambient `spdpRank κ ℓ
+  (applyRestriction ρ f)`
 
 So the local status is:
 - `RestrictionMono.restrictedSourceSpdpCoeffMatrix_rank_le_spdpRank`:
+  theorem proved
+- `RestrictionMono.freeRestrictedSpdpSubspace_finrank_le_spdpRank`:
   theorem proved
 - `RestrictionMono.spdpRank_restriction_mono`: not currently the honest local
   theorem statement under the ambient definitions

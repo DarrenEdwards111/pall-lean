@@ -431,7 +431,7 @@ a staged map together with the exact semantic identification of its output with
 the coupled target polynomial. -/
 def godMoveConstructionTarget (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
-  ∃ c : GodMoveConstruction M n hn2 htb hns, True
+  ∃ _ : GodMoveConstruction M n hn2 htb hns, True
 
 /-- The quantitative upgrade theorem target for the concrete God-Move route.
 
@@ -770,7 +770,7 @@ theorem godMoveTargetRankFinrankCastNormalizeTarget_of_letNormalize
       (let ppart := Eq.mp (by rw [z.same_space]) c.target.partition
        let ppoly := Eq.mp (by rw [z.same_space]) c.target.poly
        Module.finrank ℚ (mlBlockedSpdpSubspace ppart (Nat.log 2 n) (Nat.log 2 n) ppoly)) := by
-    simpa using (hlet z).symm
+    exact (hlet z).symm
   exact hleft.trans (hfin z)
 
 /-- The new smallest seam appears to collapse directly: the let-bound finrank
@@ -780,7 +780,7 @@ theorem godMoveTargetRankFinrankLetNormalizeTarget_holds
     (c : GodMoveConstruction M n hn2 htb hns) :
     godMoveTargetRankFinrankLetNormalizeTarget c := by
   intro z
-  simp [godMoveTargetRankFinrankLetNormalizeTarget]
+  simp
 
 /-- With the let-normalization seam discharged, the cast-normalization target
 now follows from the already-isolated finrank-expression seam. -/
@@ -896,7 +896,7 @@ theorem godMoveTargetRankSpanPartitionTarget_holds
     (c : GodMoveConstruction M n hn2 htb hns) :
     godMoveTargetRankSpanPartitionTarget c := by
   intro z S
-  simp [godMoveTargetRankSpanPartitionTarget]
+  simp
 
 /-- Once both literal ingredients of the generator set are transported, the full
 span expression target follows by extensionality of the defining set. -/
@@ -923,10 +923,10 @@ repackages into the subspace-level target. -/
 theorem godMoveTargetRankSubspaceExprTarget_of_span
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     (c : GodMoveConstruction M n hn2 htb hns)
-    (hspan : godMoveTargetRankSpanExprTarget c) :
+    (_hspan : godMoveTargetRankSpanExprTarget c) :
     godMoveTargetRankSubspaceExprTarget c := by
   intro z
-  simpa [mlBlockedSpdpSubspace, godMoveTargetRankSpanExprTarget] using hspan z
+  simp [mlBlockedSpdpSubspace]
 
 /-- The subspace-level target is the next honest seam below the finrank target.
 The intended bridge to finrank equality still needs a careful proof wrapper, so
@@ -1006,7 +1006,7 @@ After adding `same_partition`, the live gap is now fully explicit:
 def godMoveConstructionWithProofs_of_zeroRemainderData_target
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
-  ∃ z : GodMoveZeroRemainderData M n hn2 htb hns c,
+  ∃ _ : GodMoveZeroRemainderData M n hn2 htb hns c,
     godMoveTargetTransportTarget c
 
 /-- A concrete next theorem target for the God-Move route: produce a staged
@@ -1029,7 +1029,7 @@ non-trivial content (the NP lower bound and rank transfer) is deferred to
 `godMoveConstruction_upgrade`. -/
 noncomputable def godMoveConstruction_exists (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
-    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (_hdec : PaperFaithfulSeparation.DecidesSAT M)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n) :
     GodMoveConstruction M n (by omega : n ≥ 2) htb hns :=
@@ -1179,7 +1179,7 @@ named theorem that later coefficient/generator arguments can cite directly. -/
 theorem godMove_compilation_has_machine_dependent_constraint
     (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
-    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (_hdec : PaperFaithfulSeparation.DecidesSAT M)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n)
     (hstate : 0 < M.numStates) :
@@ -1313,7 +1313,7 @@ noncomputable def fobFamily (n κ : ℕ) : Finset (Finset (Fin n)) :=
 
 theorem fobFamily_card (n κ : ℕ) :
     (fobFamily n κ).card = Nat.choose (n / 3) κ := by
-  simp [fobFamily, Finset.card_map, Finset.card_powersetCard, Finset.card_fin]
+  simp [fobFamily, Finset.card_map, Finset.card_powersetCard]
 
 theorem fobFamily_mem_card (n κ : ℕ) (S : Finset (Fin n)) (hS : S ∈ fobFamily n κ) :
     S.card = κ := by
@@ -1366,7 +1366,7 @@ inert. A paper-faithful Route B would instead:
 See `compiled_np_lower_bound_any_dtm` below for the DecidesSAT-free version. -/
 theorem identity_construction_np_lower_bound (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
-    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (_hdec : PaperFaithfulSeparation.DecidesSAT M)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n) :
     Nat.choose (n / 3) (Nat.log 2 n) ≤
@@ -1376,10 +1376,12 @@ theorem identity_construction_np_lower_bound (M : DTM) (n : ℕ)
         (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)) := by
   set κ := Nat.log 2 n with hκ_def
   have hκ1 : κ ≥ 1 := by
-    simp only [κ, hκ_def]
+    simp only [κ]
     have h804 : 2 ^ 804 ≤ n := hn
     have : Nat.log 2 (2 ^ 804) ≤ Nat.log 2 n := Nat.log_mono_right h804
-    rw [Nat.log_pow (by norm_num : 1 < 2)] at this
+    set_option exponentiation.threshold 1000 in
+    have hlog804 : Nat.log 2 (2 ^ 804) = 804 := Nat.log_pow (by norm_num : 1 < 2) 804
+    rw [hlog804] at this
     omega
   set F := fobFamily n κ
   have hFcard : F.card = Nat.choose (n / 3) κ := fobFamily_card n κ
@@ -1422,10 +1424,12 @@ theorem compiled_np_lower_bound_any_dtm (M : DTM) (n : ℕ)
         (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)) := by
   set κ := Nat.log 2 n with hκ_def
   have hκ1 : κ ≥ 1 := by
-    simp only [κ, hκ_def]
+    simp only [κ]
     have h804 : 2 ^ 804 ≤ n := hn
     have : Nat.log 2 (2 ^ 804) ≤ Nat.log 2 n := Nat.log_mono_right h804
-    rw [Nat.log_pow (by norm_num : 1 < 2)] at this
+    set_option exponentiation.threshold 1000 in
+    have hlog804 : Nat.log 2 (2 ^ 804) = 804 := Nat.log_pow (by norm_num : 1 < 2) 804
+    rw [hlog804] at this
     omega
   set F := fobFamily n κ
   have hFcard : F.card = Nat.choose (n / 3) κ := fobFamily_card n κ
@@ -1501,7 +1505,7 @@ theorem godMoveConstruction_exists_is_canonical_target
     (godMoveConstruction_exists M n hn hdec htb hns).map.instance_uniform ∧
     (godMoveConstruction_exists M n hn hdec htb hns).map.witness_free ∧
     (godMoveConstruction_exists M n hn hdec htb hns).map.block_local
-  simp [godMoveConstruction_exists, godMoveConstructionCanonicalTarget]
+  simp [godMoveConstruction_exists]
 
 /-- The identity construction admits the obvious zero remainder witness.
 
@@ -1611,7 +1615,7 @@ def godMoveConstruction_upgrade_with_remainder
     (hdec : PaperFaithfulSeparation.DecidesSAT M)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n)
-    (r : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns
+    (_r : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns
       (godMoveConstruction_exists M n hn hdec htb hns)) :
     GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns
       (godMoveConstruction_exists M n hn hdec htb hns) :=
@@ -1657,9 +1661,9 @@ bridge target isolated earlier asks for the stronger transport package
 `godMoveTargetTransportTarget`.
 
 So the zero-remainder data is now genuinely in hand for the identity
-construction, and the remaining identity-side blocker has narrowed further to
-bridging from the proved rank-transport layer to the still-missing full
-`godMoveTargetTransportTarget` packaging. -/
+construction, and the remaining identity-side blocker has narrowed all the way
+down to the full `godMoveTargetTransportTarget` package. The theorem below
+closes that last packaging seam for the identity placeholder route. -/
 
 theorem godMoveConstruction_exists_remainder_target_holds
     (M : DTM) (n : ℕ)
@@ -1715,9 +1719,9 @@ def godMoveConstruction_upgrade_of_zero_remainder
     (hdec : PaperFaithfulSeparation.DecidesSAT M)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n)
-    (r : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns
+    (_r : GodMoveRemainderWitness M n (by omega : n ≥ 2) htb hns
       (godMoveConstruction_exists M n hn hdec htb hns))
-    (hr0 : True) :
+    (_hr0 : True) :
     GodMoveConstructionWithProofs M n (by omega : n ≥ 2) htb hns
       (godMoveConstruction_exists M n hn hdec htb hns) :=
   godMoveConstruction_upgrade M n hn hdec htb hns
@@ -2243,7 +2247,7 @@ that it is an actual concrete perturbation of the identity restriction record. -
 noncomputable def godMoveRestrictionData_firstPerturbation
     (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
-    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (_hdec : PaperFaithfulSeparation.DecidesSAT M)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n) :
     GodMoveRestrictionData ((cook_levin_compilation M n (by
@@ -2435,10 +2439,10 @@ restriction metadata, at least enough to distinguish the identity map from a map
 that claims some variable is fixed/specialized. -/
 def godMoveRestrictionCoherenceTarget
     (M : DTM) (n : ℕ)
-    (hn : n ≥ 2 ^ 804)
-    (hdec : PaperFaithfulSeparation.DecidesSAT M)
-    (htb : M.timeBound ≤ 4)
-    (hns : M.numStates ≤ n)
+    (_hn : n ≥ 2 ^ 804)
+    (_hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (_htb : M.timeBound ≤ 4)
+    (_hns : M.numStates ≤ n)
     (compiledVars coupledVars : ℕ)
     (map : GodMoveTypedMap compiledVars coupledVars) : Prop :=
   map.restrictionData.fixedVars ≠ ∅ →
@@ -2478,10 +2482,10 @@ behavioral requirement: on the compiled polynomial `1`, the restriction function
 must genuinely differ from the identity behavior. -/
 def godMoveRestrictionFunctionPerturbationTarget
     (M : DTM) (n : ℕ)
-    (hn : n ≥ 2 ^ 804)
-    (hdec : PaperFaithfulSeparation.DecidesSAT M)
-    (htb : M.timeBound ≤ 4)
-    (hns : M.numStates ≤ n)
+    (_hn : n ≥ 2 ^ 804)
+    (_hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (_htb : M.timeBound ≤ 4)
+    (_hns : M.numStates ≤ n)
     (compiledVars coupledVars : ℕ)
     (map : GodMoveTypedMap compiledVars coupledVars) : Prop :=
   ∃ p : MvPolynomial (Fin compiledVars) ℚ,
@@ -2502,10 +2506,10 @@ Unlike `godMoveRestrictionFunctionPerturbationTarget`, it actually separates a
 genuine restriction-stage perturbation from the identity placeholder. -/
 def godMoveRestrictionFunctionNonidentityTarget
     (M : DTM) (n : ℕ)
-    (hn : n ≥ 2 ^ 804)
-    (hdec : PaperFaithfulSeparation.DecidesSAT M)
-    (htb : M.timeBound ≤ 4)
-    (hns : M.numStates ≤ n)
+    (_hn : n ≥ 2 ^ 804)
+    (_hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (_htb : M.timeBound ≤ 4)
+    (_hns : M.numStates ≤ n)
     (compiledVars coupledVars : ℕ)
     (map : GodMoveTypedMap compiledVars coupledVars) : Prop :=
   ∃ hsame : map.restrictedVars = compiledVars,
@@ -2520,7 +2524,7 @@ formal variables. The resulting map is intended for `MvPolynomial.aeval`. -/
 noncomputable def godMoveRestrictionFirstPerturbationSubst
     (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
-    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (_hdec : PaperFaithfulSeparation.DecidesSAT M)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n) :
     Fin ((cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars) →
@@ -2554,8 +2558,7 @@ theorem godMoveRestrictFun_firstPerturbation_nontrivial
     godMoveRestrictFun_firstPerturbation M n hn hdec htb hns (X v0) ≠ X v0 := by
   intro T v0 h
   have hcoeff := congrArg (fun p => MvPolynomial.coeff (Finsupp.single v0 1) p) h
-  simp [godMoveRestrictFun_firstPerturbation, godMoveRestrictionFirstPerturbationSubst, v0,
-    MvPolynomial.coeff_X] at hcoeff
+  simp [godMoveRestrictFun_firstPerturbation, godMoveRestrictionFirstPerturbationSubst, v0] at hcoeff
 
 /-- The identity placeholder restriction stage is not a genuine behavior-level
 perturbation: its restriction function is literally the identity. -/
@@ -2737,8 +2740,9 @@ the staged extraction identity still holds (or fails) for the first perturbed
 typed map. -/
 
 /-- The already-proved canonical theorem supplies the canonical half of the
-bundled identity placeholder frontier. What remains open is exactly the
-zero-remainder/transport existential half. -/
+bundled identity placeholder frontier. Together with
+`godMoveConstruction_exists_remainder_target_holds`, this completely packages
+the current identity placeholder route. -/
 theorem godMoveConstruction_exists_placeholder_frontier_canonical
     (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
@@ -2750,8 +2754,8 @@ theorem godMoveConstruction_exists_placeholder_frontier_canonical
   godMoveConstruction_exists_is_canonical_target M n hn hdec htb hns
 
 /-- The bundled identity placeholder frontier is definitionally exactly the
-canonical half together with the still-open zero-remainder/transport
-existential half. -/
+canonical half together with the zero-remainder/transport existential package
+already proved above. -/
 theorem godMoveConstruction_exists_placeholder_frontier_iff
     (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
@@ -2761,7 +2765,7 @@ theorem godMoveConstruction_exists_placeholder_frontier_iff
     godMoveConstruction_exists_placeholder_frontier M n hn hdec htb hns ↔
       (godMoveConstructionCanonicalTarget
           (godMoveConstruction_exists M n hn hdec htb hns) ∧
-        ∃ z : GodMoveZeroRemainderData M n (by omega : n ≥ 2) htb hns
+        ∃ _z : GodMoveZeroRemainderData M n (by omega : n ≥ 2) htb hns
             (godMoveConstruction_exists M n hn hdec htb hns),
           godMoveTargetTransportTarget
             (godMoveConstruction_exists M n hn hdec htb hns)) := by
@@ -2772,8 +2776,8 @@ theorem godMoveConstruction_exists_placeholder_frontier_iff
     exact h
 
 /-- Since the canonical half is already known, any proof of the bundled
-identity placeholder frontier yields exactly the still-missing
-zero-remainder/transport existential package. -/
+identity placeholder frontier yields exactly the zero-remainder/transport
+existential package. -/
 theorem godMoveConstruction_exists_placeholder_frontier_missing
     (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
@@ -2781,24 +2785,37 @@ theorem godMoveConstruction_exists_placeholder_frontier_missing
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n)
     (hfront : godMoveConstruction_exists_placeholder_frontier M n hn hdec htb hns) :
-    ∃ z : GodMoveZeroRemainderData M n (by omega : n ≥ 2) htb hns
+    ∃ _z : GodMoveZeroRemainderData M n (by omega : n ≥ 2) htb hns
         (godMoveConstruction_exists M n hn hdec htb hns),
       godMoveTargetTransportTarget
         (godMoveConstruction_exists M n hn hdec htb hns) := by
   rcases (godMoveConstruction_exists_placeholder_frontier_iff M n hn hdec htb hns).mp hfront with
-    ⟨hcanon, hz⟩
+    ⟨_, hz⟩
   exact hz
 
-/-- Conversely, once the missing zero-remainder/transport package is available,
-the bundled identity placeholder frontier follows immediately because the
-canonical half is already proved. -/
+/-- The identity placeholder frontier now holds outright. This is the direct
+packaged version of the canonical theorem plus
+`godMoveConstruction_exists_remainder_target_holds`. -/
+theorem godMoveConstruction_exists_placeholder_frontier_holds
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveConstruction_exists_placeholder_frontier M n hn hdec htb hns := by
+  exact ⟨godMoveConstruction_exists_placeholder_frontier_canonical M n hn hdec htb hns,
+    godMoveConstruction_exists_remainder_target_holds M n hn hdec htb hns⟩
+
+/-- Conversely, once the zero-remainder/transport package is available, the
+bundled identity placeholder frontier follows immediately because the canonical
+half is already proved. -/
 theorem godMoveConstruction_exists_placeholder_frontier_of_missing
     (M : DTM) (n : ℕ)
     (hn : n ≥ 2 ^ 804)
     (hdec : PaperFaithfulSeparation.DecidesSAT M)
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n)
-    (hz : ∃ z : GodMoveZeroRemainderData M n (by omega : n ≥ 2) htb hns
+    (hz : ∃ _z : GodMoveZeroRemainderData M n (by omega : n ≥ 2) htb hns
         (godMoveConstruction_exists M n hn hdec htb hns),
       godMoveTargetTransportTarget
         (godMoveConstruction_exists M n hn hdec htb hns)) :
@@ -2816,7 +2833,7 @@ theorem godMoveConstruction_exists_placeholder_frontier_iff_missing
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n) :
     godMoveConstruction_exists_placeholder_frontier M n hn hdec htb hns ↔
-      (∃ z : GodMoveZeroRemainderData M n (by omega : n ≥ 2) htb hns
+      (∃ _z : GodMoveZeroRemainderData M n (by omega : n ≥ 2) htb hns
           (godMoveConstruction_exists M n hn hdec htb hns),
         godMoveTargetTransportTarget
           (godMoveConstruction_exists M n hn hdec htb hns)) := by
