@@ -3775,6 +3775,89 @@ def latent_aligned_copyCon_common_residual_conflict_candidate
     mlProj (residual * varyingCon) = mlProj (residual * varyingCopy) →
     False
 
+/-- Exact bridge still missing between the current aligned shell and the sharper common-residual
+surface: once both aligned `copyConSheet` realizations are shown to share the same residual
+factor, the remaining contradiction is purely the common-residual theorem above. -/
+def latent_aligned_copyCon_residual_identification_candidate
+    (M : DTM) (n : ℕ) : Prop :=
+  ∀ (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (kscon kscopy : List (Fin (latentBaseVars M n)))
+    (mcon mcopy residualCon varyingCon residualCopy varyingCopy :
+      MvPolynomial (Fin (latentNumVars M n)) ℚ),
+    kscon.Nodup →
+    kscopy.Nodup →
+    kscon.length = Nat.log 2 n →
+    kscopy.length = Nat.log 2 n →
+    kscon.toFinset = kscopy.toFinset →
+    q = mlProj (mcon * iterDerivList (kscon.map (conSlot M n)) (latentCompiledPoly M n)) →
+    q = mlProj (mcopy * iterDerivList (kscopy.map (copySlot M n)) (latentCompiledPoly M n)) →
+    mlProj (mcon * iterDerivList (kscon.map (conSlot M n)) (copyConSheet M n)) =
+      mlProj (residualCon * varyingCon) →
+    varyingCon ∈ latent_profile_varying_space M n σ →
+    mlProj (mcopy * iterDerivList (kscopy.map (copySlot M n)) (copyConSheet M n)) =
+      mlProj (residualCopy * varyingCopy) →
+    varyingCopy ∈ latent_profile_varying_space M n σ →
+    residualCon = residualCopy
+
+/-- The other exact bridge still missing at the aligned shell: the pure-con and clean-copy
+presentations, once aligned by signature and bucket target, should realize the same `copyConSheet`
+projection before any residual identification is applied. -/
+def latent_aligned_copyCon_sheet_equality_candidate
+    (M : DTM) (n : ℕ) : Prop :=
+  ∀ (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (kscon kscopy : List (Fin (latentBaseVars M n)))
+    (mcon mcopy residualCon varyingCon residualCopy varyingCopy :
+      MvPolynomial (Fin (latentNumVars M n)) ℚ),
+    kscon.Nodup →
+    kscopy.Nodup →
+    kscon.length = Nat.log 2 n →
+    kscopy.length = Nat.log 2 n →
+    kscon.toFinset = kscopy.toFinset →
+    q = mlProj (mcon * iterDerivList (kscon.map (conSlot M n)) (latentCompiledPoly M n)) →
+    q = mlProj (mcopy * iterDerivList (kscopy.map (copySlot M n)) (latentCompiledPoly M n)) →
+    mlProj (mcon * iterDerivList (kscon.map (conSlot M n)) (copyConSheet M n)) =
+      mlProj (residualCon * varyingCon) →
+    varyingCon ∈ latent_profile_varying_space M n σ →
+    mlProj (mcopy * iterDerivList (kscopy.map (copySlot M n)) (copyConSheet M n)) =
+      mlProj (residualCopy * varyingCopy) →
+    varyingCopy ∈ latent_profile_varying_space M n σ →
+    mlProj (mcon * iterDerivList (kscon.map (conSlot M n)) (copyConSheet M n)) =
+      mlProj (mcopy * iterDerivList (kscopy.map (copySlot M n)) (copyConSheet M n))
+
+/-- If aligned copyCon realizations can be identified onto one residual factor, the active
+aligned-form contradiction frontier collapses to the common-residual frontier. This packages the
+remaining work into two clean obligations: residual identification, then within-profile conflict
+over a shared residual. -/
+theorem latent_aligned_copyCon_form_conflict_of_residual_identification
+    (M : DTM) (n : ℕ)
+    (hsheet : latent_aligned_copyCon_sheet_equality_candidate M n)
+    (hid : latent_aligned_copyCon_residual_identification_candidate M n)
+    (hcommon : latent_aligned_copyCon_common_residual_conflict_candidate M n) :
+    latent_aligned_copyCon_form_conflict_candidate M n := by
+  intro σ q kscon kscopy mcon mcopy residualCon varyingCon residualCopy varyingCopy
+    hndCon hndCopy hLenCon hLenCopy hSetEq hqCon hqCopy hformCon hvarCon hformCopy hvarCopy
+  have hresid : residualCon = residualCopy :=
+    hid σ q kscon kscopy mcon mcopy residualCon varyingCon residualCopy varyingCopy
+      hndCon hndCopy hLenCon hLenCopy hSetEq hqCon hqCopy hformCon hvarCon hformCopy hvarCopy
+  have hsheetEq :
+      mlProj (mcon * iterDerivList (kscon.map (conSlot M n)) (copyConSheet M n)) =
+        mlProj (mcopy * iterDerivList (kscopy.map (copySlot M n)) (copyConSheet M n)) :=
+    hsheet σ q kscon kscopy mcon mcopy residualCon varyingCon residualCopy varyingCopy
+      hndCon hndCopy hLenCon hLenCopy hSetEq hqCon hqCopy hformCon hvarCon hformCopy hvarCopy
+  have hsame : mlProj (residualCon * varyingCon) = mlProj (residualCon * varyingCopy) := by
+    calc
+      mlProj (residualCon * varyingCon) =
+          mlProj (mcon * iterDerivList (kscon.map (conSlot M n)) (copyConSheet M n)) := by
+            rw [← hformCon]
+      _ =
+          mlProj (mcopy * iterDerivList (kscopy.map (copySlot M n)) (copyConSheet M n)) := by
+            exact hsheetEq
+      _ = mlProj (residualCopy * varyingCopy) := by rw [hformCopy]
+      _ = mlProj (residualCon * varyingCopy) := by rw [hresid]
+  exact hcommon σ kscon residualCon varyingCon varyingCopy hndCon hLenCon hvarCon hvarCopy hsame
+
 /-- The original raw pure-`conSlot` versus clean-copy same-`q` candidate now reduces to the
 aligned-form conflict candidate above. This packages the progress made in this session:
 future work can operate entirely on aligned base-index lists and their two `copyConSheet`
