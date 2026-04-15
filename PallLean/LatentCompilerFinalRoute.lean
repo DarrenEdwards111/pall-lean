@@ -546,9 +546,8 @@ theorem P_neq_NP_from_generator_bound (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
-    latent_compiled_tableau_bound_logscale_from_rank160 M n hnM hn804 hRank
-  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn hCompiled
+  exact P_neq_NP_latent_from_p_obligation h n hn
+    (theorem216_profile_data_logscale_from_rank160_proved M n hnM hn804 hRank)
 
 /-- Move-3 route: profile parts with `(40,120)` bounds imply span160,
 then the Move-2 strong route closes the contradiction. -/
@@ -559,9 +558,8 @@ theorem P_neq_NP_latent_from_p_parts_40_120 (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
-    latent_compiled_tableau_bound_logscale_from_parts_40_120 M n hnM hn804 pParts
-  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn hCompiled
+  exact P_neq_NP_latent_from_p_obligation h n hn
+    (theorem216_profile_data_logscale_from_parts_40_120_proved M n hnM hn804 pParts)
 
 /-- Canonical-NP route from functional profile-id bucket schema (P-side).
 This is often the most natural constructive form to prove from paper definitions. -/
