@@ -399,6 +399,27 @@ structure CharacteristicPdRowDerivWitness
       SPDP.iterDerivList derivs
         (Tseitin.characteristicPoly F (fam.encoding n hn).formula)
 
+/-- The remaining row-realization frontier can now be read directly as an
+equality between the gadget-product target row and the explicit satisfying-
+assignment derivative expansion of `χ_Φ`. -/
+theorem CharacteristicPdRowDerivWitness.row_eq_expanded
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
+    (w : CharacteristicPdRowDerivWitness F fam n hn pack i) :
+    IdentityMinorReal.gadgetProd
+      (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+      (IdentityMinorReal.getClauseSubset
+        (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+        (Nat.log 2 n) i) =
+      ∑ a ∈ Fintype.piFinset (fun _ : Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula) =>
+          ({false, true} : Finset Bool)),
+        SPDP.iterDerivList w.derivs
+          (Tseitin.characteristicPolySummand F (fam.encoding n hn).formula a) := by
+  rw [w.row_eq, Tseitin.iterDerivList_characteristicPoly]
+
 /-- **Axiom (remaining hard algebraic frontier)**: for the concrete greedy
 disjoint packing produced from the Tseitin instance, every row of the canonical
 Kronecker system is explicitly realized by an iterated derivative of the

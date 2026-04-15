@@ -406,6 +406,16 @@ noncomputable def assignmentMonomial (F : Type*) [CommRing F]
     if a i then X (baseVarEmbedding Φ i)
     else (1 - X (baseVarEmbedding Φ i))
 
+/-- One summand in the explicit satisfying-assignment expansion of the
+characteristic polynomial. This is factored out so later derivative-expansion
+lemmas can refer to it without carrying a local classical `Decidable` burden in
+their statement. -/
+noncomputable def characteristicPolySummand (F : Type*) [CommRing F]
+    (Φ : TseitinFormula) (a : Fin (tseitinBaseNumVars Φ) → Bool) :
+    MvPolynomial (Fin (tseitinNumVars Φ)) F := by
+  classical
+  exact if formulaSatisfied Φ a then assignmentMonomial F Φ a else 0
+
 /-- Concrete characteristic polynomial of a Tseitin formula: the sum of the
 assignment monomials over all satisfying assignments on the base formula
 variables. -/
@@ -416,7 +426,7 @@ noncomputable def characteristicPoly (F : Type*) [CommRing F]
   exact
     ∑ a ∈ Fintype.piFinset (fun _ : Fin (tseitinBaseNumVars Φ) =>
         ({false, true} : Finset Bool)),
-      if formulaSatisfied Φ a then assignmentMonomial F Φ a else 0
+      characteristicPolySummand F Φ a
 
 /-- Each assignment factor only uses its own embedded base variable. -/
 private theorem assignmentFactor_vars_subset (F : Type*) [CommRing F] [Nontrivial F]
@@ -528,6 +538,23 @@ theorem pderiv_characteristicPoly_selector_zero (F : Type*) [CommRing F] [Nontri
     (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
     pderiv (selectorIdx Φ c) (characteristicPoly F Φ) = 0 := by
   exact pderiv_eq_zero_of_notMem_vars (selector_not_mem_vars_characteristicPoly F Φ c)
+
+/-- Iterated derivatives distribute through the explicit satisfying-assignment
+sum defining `characteristicPoly`. This is the first concrete expansion step
+needed for the remaining PD-row realization frontier. -/
+theorem iterDerivList_characteristicPoly
+    (F : Type*) [CommRing F]
+    (Φ : TseitinFormula)
+    (S : List (Fin (tseitinNumVars Φ))) :
+    SPDP.iterDerivList S (characteristicPoly F Φ) =
+      ∑ a ∈ Fintype.piFinset (fun _ : Fin (tseitinBaseNumVars Φ) =>
+          ({false, true} : Finset Bool)),
+        SPDP.iterDerivList S (characteristicPolySummand F Φ a) := by
+  unfold characteristicPoly
+  simpa using SPDP.iterDerivList_sum S
+    (Fintype.piFinset (fun _ : Fin (tseitinBaseNumVars Φ) =>
+      ({false, true} : Finset Bool)))
+    (fun a => characteristicPolySummand F Φ a)
 
 noncomputable def coupledVerifier (F : Type*) [CommRing F]
     (Φ : TseitinFormula) :

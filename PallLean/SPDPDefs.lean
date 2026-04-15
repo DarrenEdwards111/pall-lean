@@ -367,6 +367,18 @@ theorem iterDerivList_add {n : ℕ} {F : Type*} [CommRing F]
     rw [map_add]
     exact ih _ _
 
+/-- iterDerivList distributes over finite sums. -/
+theorem iterDerivList_sum {ι : Type*} {n : ℕ} {F : Type*} [CommRing F]
+    (S : List (Fin n)) (t : Finset ι) (f : ι → MvPolynomial (Fin n) F) :
+    iterDerivList S (∑ i ∈ t, f i) = ∑ i ∈ t, iterDerivList S (f i) := by
+  classical
+  induction t using Finset.induction_on with
+  | empty =>
+      simp
+      exact foldl_pderiv_zero S
+  | @insert a t ha ih =>
+      simp [ha, iterDerivList_add, ih]
+
 /-- Subadditivity: blockedSpdpSubspace(p + q) ≤ blockedSpdpSubspace(p) ⊔ blockedSpdpSubspace(q). -/
 theorem blockedSpdpSubspace_add_le {n : ℕ} {F : Type*} [CommRing F]
     (B : BlockPartition n) (κ ℓ : ℕ)
