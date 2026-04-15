@@ -4340,6 +4340,16 @@ theorem latent_profile_assembly_logscale_from_parts (M : DTM) (n : ℕ)
 
 end ProfileCompression
 
+/-- Direct Width⇒Rank route at contradiction scale from the live core
+profile-assembly theorem. -/
+theorem latent_width_rank_from_core (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hCore : latent_profile_assembly_logscale M n hn hn804) :
+    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+      (latentCompiledPoly M n) ≤ n ^ 200 :=
+  hCore
+
 /-- Decomposed Width⇒Rank route at contradiction scale. -/
 theorem latent_width_rank_from_decomp (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
@@ -4347,7 +4357,7 @@ theorem latent_width_rank_from_decomp (M : DTM) (n : ℕ)
     (hProfile : obligation2_p_logscale M n hn hn804) :
     mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 200 :=
-  hProfile
+  latent_width_rank_from_core M n hn hn804 hProfile
 
 /-- P-side SPDP rank polynomial bound for latentCompiledPoly, proved from the
 profile decomposition hypothesis (paper §9/§17 locality/support counting).

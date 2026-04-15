@@ -112,10 +112,9 @@ theorem P_neq_NP_latent_decomp (h : PeqNP) (n : ℕ)
   have hNP := latent_extracts_hard_witness_decomp M n hn804 hNPdirect κ rfl
 
   -- P side (assembled from profile-data package)
-  have hPobl : obligation2_p_logscale M n hnM hn804 := hObl.pCore
   have hP : mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
       (latentCompiledPoly M n) ≤ n ^ 200 :=
-    latent_width_rank_from_decomp M n hnM hn804 hPobl
+    latent_width_rank_from_core M n hnM hn804 hObl.pCore
 
   have hchain : n ^ (κ / 4) ≤ n ^ 200 := le_trans hNP hP
   have hexp : n ^ 200 < n ^ (κ / 4) := by
