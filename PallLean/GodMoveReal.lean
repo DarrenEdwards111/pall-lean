@@ -2237,6 +2237,22 @@ def godMoveNonidentityCandidateExistsTarget
     godMoveGenuineCandidateTarget M n hn htb hns c ∧
     godMoveOneStagePerturbationTarget M n hn hdec htb hns c
 
+/-- Constructive existential witness for the first honest post-identity
+frontier.
+
+This is weaker than `godMoveNonidentityCandidateExistsTarget`: it does not ask
+for a full genuine paper candidate, only for some staged God-Move construction
+that really perturbs one semantic stage of the identity placeholder chain. This
+is the exact witness shape already realized by the first behavior perturbation. -/
+def godMoveOneStagePerturbationWitnessTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) : Prop :=
+  ∃ c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns,
+    godMoveOneStagePerturbationTarget M n hn hdec htb hns c
+
 /-- The current identity placeholder does not inhabit the new non-identity
 existence target. This theorem does not rule out other constructions; it only
 records that the old identity route is definitively not the answer. -/
@@ -2252,6 +2268,19 @@ theorem godMoveConstruction_exists_not_nonidentity_candidate_witness
           (godMoveConstruction_exists M n hn hdec htb hns)) := by
   intro h
   exact godMoveConstruction_exists_not_genuine_candidate M n hn hdec htb hns h.1
+
+/-- The identity placeholder still fails the weaker one-stage existential shell:
+it cannot serve as the promised witness because it does not perturb any stage of
+the identity chain at all. -/
+theorem godMoveConstruction_exists_not_one_stage_perturbation_witness
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ godMoveOneStagePerturbationTarget M n hn hdec htb hns
+        (godMoveConstruction_exists M n hn hdec htb hns) := by
+  exact godMoveConstruction_exists_not_one_stage_perturbation M n hn hdec htb hns
 
 /-- Smallest constructive subtarget of the post-identity frontier.
 
@@ -2314,6 +2343,23 @@ theorem godMoveRestrictionPerturbationWitnessTarget_iff
       ∃ c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns,
         godMoveRestrictionPerturbationCandidateTarget M n hn hdec htb hns c := by
   rfl
+
+/-- Any one-stage perturbation witness immediately supplies the lower
+restriction-perturbation witness shell, provided its perturbation is realized at
+the restriction stage. This packages the exact lifting pattern used by the
+first behavior perturbation construction. -/
+theorem godMoveOneStagePerturbationTarget_restriction_case_implies_witness
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    {c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns}
+    (hcanon : godMoveConstructionCanonicalTarget c)
+    (hrest : c.map.restrictionData ≠
+      (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData) :
+    godMoveRestrictionPerturbationWitnessTarget M n hn hdec htb hns := by
+  exact ⟨c, hcanon, hrest⟩
 
 /-- The identity placeholder still fails the candidate-level restriction
 perturbation target. -/
@@ -3031,6 +3077,20 @@ theorem godMoveConstruction_firstBehaviorPerturbation_is_one_stage_perturbation
     (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData
   exact godMoveRestrictionData_firstPerturbation_ne_identity M n hn hdec htb hns
 
+/-- The first behavior-perturbed construction gives an explicit existential
+one-stage witness, so the post-identity Route B shell now has a real inhabitant
+rather than only a local construction theorem. -/
+theorem godMoveOneStagePerturbationWitnessTarget_holds
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveOneStagePerturbationWitnessTarget M n hn hdec htb hns := by
+  refine ⟨godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns, ?_⟩
+  exact godMoveConstruction_firstBehaviorPerturbation_is_one_stage_perturbation
+    M n hn hdec htb hns
+
 /-- The first behavior-perturbed construction already inhabits the weaker
 restriction-perturbation candidate shell. -/
 theorem godMoveConstruction_firstBehaviorPerturbation_is_restriction_perturbation_candidate
@@ -3057,9 +3117,13 @@ theorem godMoveRestrictionPerturbationWitnessTarget_holds
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n) :
     godMoveRestrictionPerturbationWitnessTarget M n hn hdec htb hns := by
-  refine ⟨godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns, ?_⟩
-  exact godMoveConstruction_firstBehaviorPerturbation_is_restriction_perturbation_candidate
+  refine godMoveOneStagePerturbationTarget_restriction_case_implies_witness
     M n hn hdec htb hns
+    (godMoveConstruction_firstBehaviorPerturbation_is_canonical_target M n hn hdec htb hns)
+    ?_
+  change (godMoveTypedMap_firstBehaviorPerturbation M n hn hdec htb hns).restrictionData ≠
+    (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData
+  exact godMoveRestrictionData_firstPerturbation_ne_identity M n hn hdec htb hns
 
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. Together with
