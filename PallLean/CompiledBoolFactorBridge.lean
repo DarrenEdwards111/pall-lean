@@ -299,10 +299,10 @@ theorem weakened_bound_suffices_for_separation (M : DTM) (n : ℕ) (hn : n ≥ 2
         (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).partition
         (Nat.log 2 n) (Nat.log 2 n)
         (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)) := by
-  have hn40 : n ≥ 2 ^ 40 :=
-    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 40 ≤ 804)) hn
+  have hn20 : n ≥ 2 ^ 20 :=
+    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn
   have h_binom : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
-    BinomialBound.binomial_lower_bound_concrete n hn40
+    BinomialBound.binomial_lower_bound_concrete n hn20
   have h_mono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose (n / 3) (Nat.log 2 n) :=
     Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
   exact le_trans (le_trans h_binom h_mono) hw

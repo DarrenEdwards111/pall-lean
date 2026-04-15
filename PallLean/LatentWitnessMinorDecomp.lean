@@ -1246,9 +1246,9 @@ theorem selCon_choose_rank_logscale_from_data (M : DTM) (n : ℕ)
   exact selCon_choose_rank_logscale_from_matrix M n hn804
     (selCon_kronecker_matrix_logscale_from_data M n hn804 hData)
 
-/-- Base numeric lower bound at logscale for choose(n, log₂ n), uniform from n ≥ 2^40.
+/-- Base numeric lower bound at logscale for choose(n, log₂ n), uniform from n ≥ 2^20.
 Paper-faithful combinatorial step (same arithmetic backbone as BinomialBound2). -/
-theorem choose_numeric_logscale_base (n : ℕ) (hn40 : 2 ^ 40 ≤ n) :
+theorem choose_numeric_logscale_base (n : ℕ) (hn40 : 2 ^ 20 ≤ n) :
     n ^ (Nat.log 2 n / 4) ≤ Nat.choose n (Nat.log 2 n) := by
   set k := Nat.log 2 n
   by_cases hk0 : k = 0
@@ -1262,9 +1262,9 @@ theorem choose_numeric_logscale_base (n : ℕ) (hn40 : 2 ^ 40 ≤ n) :
       apply Nat.div_pos
       · calc
           30 * k ≤ 2 ^ (k / 2) := BinomialBound.thirty_k_le_pow_half k (by
-            have h40 : 40 ≤ k := by
-              have h1 : Nat.log 2 (2 ^ 40) = 40 := Nat.log_pow (by norm_num) 40
-              have h2 : Nat.log 2 (2 ^ 40) ≤ k := by
+            have h20 : 20 ≤ k := by
+              have h1 : Nat.log 2 (2 ^ 20) = 20 := Nat.log_pow (by norm_num) 20
+              have h2 : Nat.log 2 (2 ^ 20) ≤ k := by
                 simpa [k] using Nat.log_mono (by norm_num) le_rfl hn40
               omega
             omega)
@@ -1296,9 +1296,9 @@ theorem selCon_choose_numeric_logscale_proved (M : DTM) (n : ℕ)
     (hn804 : n ≥ 2 ^ 804) :
     selCon_choose_numeric_logscale M n hn804 := by
   unfold selCon_choose_numeric_logscale
-  have hpow : (2 : ℕ) ^ 40 ≤ 2 ^ 804 := by
-    exact Nat.pow_le_pow_right (by norm_num) (by decide : 40 ≤ 804)
-  have hn40 : 2 ^ 40 ≤ n := le_trans hpow hn804
+  have hpow : (2 : ℕ) ^ 20 ≤ 2 ^ 804 := by
+    exact Nat.pow_le_pow_right (by norm_num) (by decide : 20 ≤ 804)
+  have hn40 : 2 ^ 20 ≤ n := le_trans hpow hn804
   have hbase : n ^ (Nat.log 2 n / 4) ≤ Nat.choose n (Nat.log 2 n) :=
     choose_numeric_logscale_base n hn40
   have hmon : Nat.choose n (Nat.log 2 n) ≤

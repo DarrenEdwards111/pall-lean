@@ -570,11 +570,11 @@ theorem np_ml_lower_bound_concrete (F : Type*) [Field F] [Nontrivial F] (ℓ : �
     rw [Finset.sum_congr rfl hsub, Finset.sum_ite_eq' S a, if_pos ha] at h0
     rcases hsigns a with hs | hs <;> rw [hs] at h0 <;> simp at h0 <;> exact h0
   have hfr := finrank_ge_of_linearIndependent mlV _ R' hli
-  -- Binomial bound: n ≥ 2^804 ≥ 2^40
-  have hn40 : n ≥ 2 ^ 40 := le_trans (by
-    calc (2 : ℕ) ^ 40 ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)) hn
+  -- Binomial bound: n ≥ 2^804 ≥ 2^20
+  have hn20 : n ≥ 2 ^ 20 := le_trans (by
+    calc (2 : ℕ) ^ 20 ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)) hn
   have hbin : Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4) :=
-    BinomialBound.binomial_lower_bound_concrete n hn40
+    BinomialBound.binomial_lower_bound_concrete n hn20
   calc mlBlockedSpdpRank (tseitinPartition n) κ ℓ (tseitinPoly F n) ≥
         Nat.choose pack.selected.length κ := hfr
     _ ≥ Nat.choose (n / 30) κ := by

@@ -344,10 +344,10 @@ theorem god_move_identity_minor_axiom (M : DTM) (n : ℕ)
   -- Step 1: God-Move extraction gives C(n/3, log₂ n) ≤ rank(compiled)
   have h_extraction := god_move_extraction_lemma M n hn hdec htb hns
   -- Step 2: n^(log₂ n / 4) ≤ C(n/30, log₂ n) via BinomialBound2
-  have hn40 : n ≥ 2 ^ 40 :=
-    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 40 ≤ 804)) hn
+  have hn20 : n ≥ 2 ^ 20 :=
+    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn
   have h_binom : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
-    BinomialBound.binomial_lower_bound_concrete n hn40
+    BinomialBound.binomial_lower_bound_concrete n hn20
   -- Step 3: C(n/30, log₂ n) ≤ C(n/3, log₂ n) by monotonicity (n/30 ≤ n/3)
   have h_mono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose (n / 3) (Nat.log 2 n) :=
     Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
