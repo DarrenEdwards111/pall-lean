@@ -1795,10 +1795,9 @@ theorem no_PeqNP_of_uniform_rank160_bound
       mlBlockedSpdpRank (latentPartition h.sat_decider n) (Nat.log 2 n) (Nat.log 2 n)
         (latentCompiledPoly h.sat_decider n) ≤ n ^ 160) :
     PeqNP → False := by
-  exact no_PeqNP_of_uniform_any_compiler_source (fun h n hn =>
-    Or.inr (Or.inl
-      (latentCompiledPoly_spdp_subspace_span_poly_bound h.sat_decider n
-        (hnM_of_hn h n hn) (hn804_of_hn h n hn) (hRank h n hn))))
+  exact no_PeqNP_of_uniform_span160 (fun h n hn =>
+    latentCompiledPoly_spdp_subspace_span_poly_bound h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn) (hRank h n hn))
 
 /-- Global closure theorem:
 if the compiled-tableau upper bound is available uniformly at contradiction scale,
