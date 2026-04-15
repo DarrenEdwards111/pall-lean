@@ -9,6 +9,11 @@ This handoff describes the **current active imported route** only.
 It does **not** describe the older `Separation29` / `SeparationAssembly` shell,
 and it does **not** treat older God-Move wrappers as the active final route.
 
+That means this handoff is **not** a statement that the branch is fully
+paper-faithful to the desktop paper's overall presentation. In `p-vs-np1.pdf`,
+the primary route is Route B, the Global God-Move route. The active imported
+Lean route below is instead a narrower direct/latent route.
+
 The active entrypoint is:
 
 - [PallLean.lean](/tmp/pall-lean/PallLean.lean)
@@ -32,6 +37,9 @@ The NP side is now built canonically inside the active final route from
 
 So the live frontier is an **explicit one-obligation boundary**, not a claim
 that the whole route is completely discharged.
+
+It is also not a claim that the branch has already realized the paper's primary
+God-Move shell.
 
 ## Remaining obligations
 
@@ -72,6 +80,14 @@ For paper-faithful orientation, the conceptual shell is still:
 But on this branch those are best viewed as the **paper-level interpretation**
 of the active latent obligations, not as the live implementation boundary.
 
+More importantly, the desktop paper's broader presentation distinguishes:
+
+- Route A: direct separation shell
+- Route B: Global God-Move shell, treated as primary
+
+The active imported Lean route documented here is closer to Route A than to the
+paper's primary Route B.
+
 Also:
 
 - `charPolyRank` is an abstraction symbol, not substantive theorem content
@@ -81,13 +97,22 @@ Also:
 
 ## Recommendation for the next agent
 
-Stay on the latent route.
+If the goal is local progress on the current imported theorem, stay on the
+latent route.
 
 Best next moves:
 
 1. P side:
    finish the final profile-assembly theorem in
    `LatentWidthRankDecomp.lean`
+
+If the goal is stricter paper-faithfulness to the desktop paper rather than
+just progress on the live imported theorem, the next work should instead
+re-center around the God-Move files:
+
+1. `PallLean/PaperFaithfulSeparation.lean`
+2. `PallLean/GodMoveCore.lean`
+3. `PallLean/GodMoveReal.lean`
 
 Do not spend a session “cleaning up status” by reviving older shell files as if
 they were the active route. That is how the documentation drift happened.

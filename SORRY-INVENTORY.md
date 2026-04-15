@@ -6,7 +6,7 @@
 ## Current truth
 
 The active route on this branch is the **latent compiler route**, not the older
-paper-numbered `Separation29` shell.
+paper-numbered `Separation29` shell and not the paper's primary God-Move shell.
 
 The actual imported entrypoint is [PallLean.lean](/tmp/pall-lean/PallLean.lean),
 which imports:
@@ -31,6 +31,12 @@ So the honest status is:
 - global axioms on the active route: `0`
 - active-route `sorry`: `0`
 - explicit paper-facing obligations still required to close the route: `1`
+
+But the honest **paper-faithfulness** status is slightly different:
+
+- faithful to a genuine paper route: yes
+- closest to the direct separation route / Route A: yes
+- fully faithful to the full paper emphasis, where Route B / Global God-Move is primary: no, not yet
 
 ## Active paper-facing frontier
 
@@ -58,6 +64,16 @@ But on this branch those statements are **not** the active implementation
 boundary. They are represented indirectly through the latent-route obligations
 above.
 
+Also, the desktop paper presents two routes:
+
+- Route A: direct separation on an explicit NP witness family
+- Route B: Global God-Move route
+
+The paper treats Route B as primary. The active imported Lean route on this
+branch is therefore only **partially** paper-faithful to the paper as a whole:
+it tracks a genuine route in the paper, but not the paper's current primary
+top shell.
+
 Also:
 
 - `charPolyRank` should be read as an interface symbol / abstraction barrier
@@ -74,6 +90,9 @@ The repo still contains older route/status files, including:
 
 - `PallLean/Separation29.lean`
 - `PallLean/SeparationAssembly.lean`
+- `PallLean/PaperFaithfulSeparation.lean`
+- `PallLean/GodMoveCore.lean`
+- `PallLean/GodMoveReal.lean`
 - `HANDOFF-fixed-profile-gap.md`
 
 Those are useful for orientation, but they do **not** describe the current

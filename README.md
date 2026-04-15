@@ -61,8 +61,17 @@ The real proof value now lives in:
 ## Paper-faithful God-Move branch note
 
 On branch `godmove-paper-faithful`, there are multiple paper-facing routes and
-historical shells in the tree. The **active imported route** is the latent
-compiler route:
+historical shells in the tree.
+
+The important paper-faithfulness correction is:
+
+- the desktop paper `p-vs-np1.pdf` presents two genuine routes
+- Route A: direct separation on an explicit NP witness family
+- Route B: the Global God-Move route
+- the paper treats **Route B / God-Move as primary**
+
+The **active imported Lean route today is not that primary Route B shell**.
+The active imported route is the latent compiler route:
 
 - `PallLean/LatentCompiler.lean`
 - `PallLean/LatentWidthRankDecomp.lean`
@@ -73,6 +82,12 @@ The active entrypoint is [PallLean.lean](/tmp/pall-lean/PallLean.lean), and the
 active final contradiction theorem is:
 
 - `LatentCompilerFinalRoute.P_neq_NP_latent_decomp`
+
+So the honest route classification on this branch is:
+
+- faithful to a real paper route: yes
+- specifically closest to the paper's direct-separation shell / Route A: yes
+- fully faithful to the paper's overall emphasis, where Route B is primary: no, not yet
 
 This route is axiom-free in Lean syntax but still conditional on an explicit
 paper-facing assumptions bundle:
@@ -88,6 +103,16 @@ For the current honest status summary, see:
 Older paper-numbered files such as `Separation29.lean`,
 `SeparationAssembly.lean`, and the God-Move wrappers remain useful for
 orientation, but they are not the current imported route.
+
+Files carrying the paper's primary Route B / God-Move intent are still in the
+tree:
+
+- `PallLean/PaperFaithfulSeparation.lean`
+- `PallLean/GodMoveCore.lean`
+- `PallLean/GodMoveReal.lean`
+
+Those should be read as the paper-faithful Route B frontier, not as the branch's
+current active final shell.
 
 ## Route 1 files (archived/exploratory)
 
