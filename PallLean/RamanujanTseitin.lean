@@ -491,6 +491,19 @@ theorem tseitin_pdMatrix_lower_bound
   · have hsmall : n < 660 := by omega
     simpa using tseitin_pdMatrix_lower_bound_small F fam n hn hsmall
 
+/-- Formula-level restatement of the main lower bound: the theorem is really
+about the concrete Tseitin characteristic polynomial of the `n`-th formula, not
+just an abstract field of the encoding record. -/
+theorem tseitin_pdMatrix_lower_bound_formula
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6) :
+    n ^ (Nat.log 2 n / 4) ≤
+      pdMatrixRank F (fam.partition n hn).part
+        (Tseitin.characteristicPoly F (fam.encoding n hn).formula) := by
+  simpa [← (fam.encoding n hn).charPoly_eq_characteristic] using
+    tseitin_pdMatrix_lower_bound F fam n hn
+
 /-! ## 7. Spectral Ramanujan Property (Proved from Structure)
 
   The second-largest eigenvalue of the adjacency matrix of G_n satisfies
@@ -578,7 +591,8 @@ theorem theorem72_condensed (n : ℕ) (hn : n ≥ 6) :
       n / 30 ≤ part.S.card ∧
       n ^ (Nat.log 2 n / 4) ≤ pdMatrixRank ℚ part f := by
   obtain ⟨fam, enc, tpart, hS, hrank⟩ := ramanujan_tseitin_structure_exists n hn
-  exact ⟨enc.numVars, tpart.part, enc.charPoly, hS, hrank⟩
+  refine ⟨enc.numVars, tpart.part, Tseitin.characteristicPoly ℚ enc.formula, hS, ?_⟩
+  simpa [← enc.charPoly_eq_characteristic] using hrank
 
 /-! ## 10. Summary Diagram
 
