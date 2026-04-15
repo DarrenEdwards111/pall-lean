@@ -479,8 +479,6 @@ structure BaseIndexCharacteristicPdClauseWitness
     (n : ℕ) (hn : n ≥ 6)
     (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula)
     (cs : List (Fin pack.selected.length)) where
-  clauses : List (Fin (fam.encoding n hn).formula.clauses.length)
-  clauses_eq : clauses = cs.map pack.selected.get
   baseDerivs : List (Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula))
   length_eq : baseDerivs.length = (fam.partition n hn).part.S.card
   subset_S :
@@ -492,6 +490,18 @@ structure BaseIndexCharacteristicPdClauseWitness
       SPDP.iterDerivList
         (baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
         (Tseitin.characteristicPoly F (fam.encoding n hn).formula)
+
+/-- The actual formula-clause list corresponding to a canonical packed clause
+subset is definitionally recovered from `pack.selected.get`. -/
+def BaseIndexCharacteristicPdClauseWitness.clauses
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {cs : List (Fin pack.selected.length)}
+    (_w : BaseIndexCharacteristicPdClauseWitness F fam n hn pack cs) :
+    List (Fin (fam.encoding n hn).formula.clauses.length) :=
+  cs.map pack.selected.get
 
 /-- A clause-subset witness specializes to the row witness for the corresponding
 canonical index. -/
