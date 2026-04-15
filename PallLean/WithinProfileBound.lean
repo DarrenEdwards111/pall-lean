@@ -2033,6 +2033,63 @@ theorem mlProj_mul_of_vars_disjoint
       · simp [hγ_ml]
     · simp [hβ_ml]
 
+/-- vars(mlProj p) ⊆ vars(p). -/
+theorem vars_mlProj_subset {n : ℕ}
+    (p : MvPolynomial (Fin n) ℚ) :
+    (mlProj p).vars ⊆ p.vars := by
+  intro v hv
+  rw [MvPolynomial.mem_vars] at hv ⊢
+  obtain ⟨α, hα_supp, hα_v⟩ := hv
+  have hα_p : α ∈ p.support := by
+    have hcoeff : MvPolynomial.coeff α (mlProj p) ≠ 0 :=
+      Finsupp.mem_support_iff.mp hα_supp
+    rw [coeff_mlProj] at hcoeff
+    split_ifs at hcoeff with h
+    · exact Finsupp.mem_support_iff.mpr hcoeff
+    · exact absurd rfl hcoeff
+  exact ⟨α, hα_p, hα_v⟩
+
+/-- mlProj(1) = 1: the constant 1 is already multilinear. -/
+theorem mlProj_one {n : ℕ} :
+    mlProj (1 : MvPolynomial (Fin n) ℚ) = 1 := by
+  ext α
+  rw [coeff_mlProj]
+  split_ifs with h
+  · rfl
+  · simp only [MvPolynomial.coeff_one]
+    rw [if_neg]; intro hα0; subst hα0; exact h (fun i => by simp)
+
+set_option maxHeartbeats 1600000 in
+/-- mlProj distributes over Finset.prod when all factors have pairwise
+    disjoint variable sets. -/
+theorem mlProj_finset_prod_of_pairwise_disjoint_vars {n : ℕ} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (f : ι → MvPolynomial (Fin n) ℚ)
+    (h_disj : ∀ i ∈ s, ∀ j ∈ s, i ≠ j →
+      Disjoint (MvPolynomial.vars (f i)) (MvPolynomial.vars (f j))) :
+    mlProj (s.prod f) = s.prod (fun i => mlProj (f i)) := by
+  induction s using Finset.induction_on with
+  | empty => simp [Finset.prod_empty, mlProj_one]
+  | @insert a s ha ih =>
+    rw [Finset.prod_insert ha, Finset.prod_insert ha]
+    have h_disj_rest : ∀ i ∈ s, ∀ j ∈ s, i ≠ j →
+        Disjoint (MvPolynomial.vars (f i)) (MvPolynomial.vars (f j)) :=
+      fun i hi j hj hij =>
+        h_disj i (Finset.mem_insert_of_mem hi) j (Finset.mem_insert_of_mem hj) hij
+    -- First apply multiplicativity for disjoint vars
+    have h_vars_disj : Disjoint (MvPolynomial.vars (f a))
+        (MvPolynomial.vars (s.prod f)) := by
+      apply Finset.disjoint_iff_ne.mpr
+      intro x hx y hy hxy
+      have hy_union := MvPolynomial.vars_prod f hy
+      rw [Finset.mem_biUnion] at hy_union
+      obtain ⟨j, hj_mem, hy_j⟩ := hy_union
+      subst hxy
+      exact Finset.disjoint_iff_ne.mp
+        (h_disj _ (Finset.mem_insert_self _ _) j (Finset.mem_insert_of_mem hj_mem)
+          (fun h => ha (h ▸ hj_mem)))
+        x hx x hy_j rfl
+    rw [mlProj_mul_of_vars_disjoint _ _ h_vars_disj, ih h_disj_rest]
+
 end WithinProfileBound
 
 /-! # WithinProfileBound — Work in Progress below
