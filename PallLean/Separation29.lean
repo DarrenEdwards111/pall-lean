@@ -190,4 +190,8 @@ theorem three_sat_not_in_P : ∀ (h : PeqNP), False := by
 /-- Corollary: P ≠ NP. -/
 theorem P_ne_NP : ∀ (h : PeqNP), False := three_sat_not_in_P
 
+/-! ## Axiom audit: the separation depends on exactly 3 custom axioms
+    plus standard Lean axioms (propext, Quot.sound, Classical.choice). -/
+#print axioms three_sat_not_in_P
+
 end Separation29
