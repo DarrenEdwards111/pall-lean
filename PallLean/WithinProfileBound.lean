@@ -1488,21 +1488,66 @@ theorem atomProductSet_card_le {n L : ℕ}
       ∏ i : Fin L, (localDerivAtoms (factors i) S).card := by
   -- The atomProductSet is the image of the product map on the pi type
   -- of subtypes. |image| ≤ |domain| = ∏ |Finset|.
-  let piFinset := Finset.univ.pi (fun i => localDerivAtoms (factors i) S)
-  let prodFn : (∀ i ∈ Finset.univ, MvPolynomial (Fin n) ℚ) → MvPolynomial (Fin n) ℚ :=
-    fun c => Finset.univ.prod (fun i => c i (Finset.mem_univ i))
-  have hcover : ∀ g ∈ (atomProductSet_finite factors S).toFinset,
-      g ∈ (piFinset.image prodFn) := by
+  -- Build: the atom product set is the image of the choice function under
+  -- the product map. |image| ≤ |domain| = ∏ |local atom sets|.
+  classical
+  -- Use the finite pi type: (i : Fin L) → {a // a ∈ localDerivAtoms (factors i) S}
+  let atomChoices := (i : Fin L) → { a : MvPolynomial (Fin n) ℚ //
+    a ∈ localDerivAtoms (factors i) S }
+  let prodMap : atomChoices → MvPolynomial (Fin n) ℚ :=
+    fun c => Finset.univ.prod (fun i => (c i).val)
+  have hcover : (atomProductSet_finite factors S).toFinset ⊆
+      (Finset.univ : Finset atomChoices).image prodMap := by
     intro g hg
     rw [Set.Finite.mem_toFinset] at hg
     rcases hg with ⟨atoms, hatoms, rfl⟩
-    exact Finset.mem_image_of_mem _ (Finset.mem_pi.mpr (fun i _ => hatoms i))
+    exact Finset.mem_image.mpr ⟨fun i => ⟨atoms i, hatoms i⟩, Finset.mem_univ _, rfl⟩
   calc (atomProductSet_finite factors S).toFinset.card
-      ≤ (piFinset.image prodFn).card := Finset.card_le_card hcover
-    _ ≤ piFinset.card := Finset.card_image_le
-    _ = ∏ i ∈ Finset.univ,
-        (localDerivAtoms (factors i) S).card :=
-        Finset.card_pi _ _
+      ≤ ((Finset.univ : Finset atomChoices).image prodMap).card :=
+        Finset.card_le_card hcover
+    _ ≤ (Finset.univ : Finset atomChoices).card := Finset.card_image_le
+    _ = Fintype.card atomChoices := Finset.card_univ
+    _ = ∏ i : Fin L, (localDerivAtoms (factors i) S).card := by
+        rw [show Fintype.card atomChoices =
+            ∏ i : Fin L, Fintype.card { a // a ∈ localDerivAtoms (factors i) S }
+          from Fintype.card_pi]
+        congr 1; ext i; exact Fintype.card_coe _
+
+/-- The per-S-shift post-span finrank is bounded by the atom product set size.
+    Restored from WIP: the post-span ≤ map(span(atomProductSet)) ≤ finrank. -/
+theorem perSShift_finrank_le_atomProducts {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hfactors : ∀ i, (factors i).totalDegree ≤ 2)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ)
+    (h : ProfileHistogram) :
+    Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h) ≤
+      (atomProductSet_finite factors S).toFinset.card := by
+  have hle : boundedProfilePostSpan factors constraintType S shift h ≤
+      Submodule.map (postProcessLinearMap shift)
+        (Submodule.span ℚ (atomProductSet factors S)) := by
+    calc boundedProfilePostSpan factors constraintType S shift h
+        ≤ Submodule.map (postProcessLinearMap shift)
+            (Submodule.span ℚ (locallyBoundedClassifiedSet factors constraintType S h)) := by
+          exact boundedProfilePostSpan_le_map_locallyBounded
+            factors hfactors constraintType S shift h
+      _ ≤ Submodule.map (postProcessLinearMap shift)
+            (Submodule.span ℚ (atomProductSet factors S)) := by
+          apply Submodule.map_mono
+          exact span_locallyBounded_le_span_atomProducts factors constraintType S h
+  have hfin_atoms : Module.Finite ℚ ↥(Submodule.span ℚ (atomProductSet factors S)) :=
+    Module.Finite.span_of_finite ℚ (atomProductSet_finite factors S)
+  calc Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h)
+      ≤ Module.finrank ℚ ↥(Submodule.map (postProcessLinearMap shift)
+          (Submodule.span ℚ (atomProductSet factors S))) :=
+        Submodule.finrank_mono hle
+    _ ≤ Module.finrank ℚ ↥(Submodule.span ℚ (atomProductSet factors S)) :=
+        Submodule.finrank_map_le _ _
+    _ ≤ (atomProductSet_finite factors S).toFinset.card := by
+        have : Submodule.span ℚ (atomProductSet factors S) =
+            Submodule.span ℚ ↑(atomProductSet_finite factors S).toFinset := by
+          congr 1; exact (Set.Finite.coe_toFinset _).symm
+        rw [this]; exact finrank_span_finset_le_card _
 
 /-- The per-S finrank is bounded by the product of local atom counts.
     This reduces the 9^L bound to a product that accounts for
@@ -1567,6 +1612,57 @@ theorem perSShift_finrank_le_kappa_bound {n L : ℕ}
     Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h) ≤
       ((S.toFinset.card + 1) ^ 2) ^ L :=
   perSShift_finrank_le_S_card_bound factors hfactors constraintType S shift h
+
+/-! ## Part 22c: Degree-refined atom counting (restored from WIP)
+
+For degree-2 factors with profile constraint, the atom count is refined
+by tracking the derivative degree per factor. Factors receiving 0
+derivatives contribute 1 atom (the factor itself). Factors receiving k ∈ {1,2}
+derivatives contribute ≤ (|S|+1)^k atoms. The constrained product is
+therefore ≤ (|S|+1)^(∑ k_i) = (|S|+1)^κ (since ∑ k_i = κ). -/
+
+/-- Atoms from derivatives of a given degree k applied to factor f. -/
+noncomputable def localDerivAtomsOfDegree {n : ℕ}
+    (f : MvPolynomial (Fin n) ℚ) (S : List (Fin n)) (k : ℕ) :
+    Finset (MvPolynomial (Fin n) ℚ) :=
+  match k with
+  | 0 => {f}
+  | 1 => S.toFinset.image (fun v => MvPolynomial.pderiv v f)
+  | 2 => (S.toFinset ×ˢ S.toFinset).image
+      (fun p => MvPolynomial.pderiv p.1 (MvPolynomial.pderiv p.2 f))
+  | _ + 3 => ∅
+
+/-- localDerivAtomsOfDegree k has card ≤ (|S|+1)^k for k ≤ 2. -/
+theorem localDerivAtomsOfDegree_card_le {n : ℕ}
+    (f : MvPolynomial (Fin n) ℚ) (S : List (Fin n)) (k : ℕ) (hk : k ≤ 2) :
+    (localDerivAtomsOfDegree f S k).card ≤ (S.toFinset.card + 1) ^ k := by
+  interval_cases k
+  · simp [localDerivAtomsOfDegree, Finset.card_singleton]
+  · simp only [localDerivAtomsOfDegree, pow_one]
+    calc (S.toFinset.image (fun v => MvPolynomial.pderiv v f)).card
+        ≤ S.toFinset.card := Finset.card_image_le
+      _ ≤ S.toFinset.card + 1 := Nat.le_succ _
+  · simp only [localDerivAtomsOfDegree]
+    calc ((S.toFinset ×ˢ S.toFinset).image
+          (fun p => MvPolynomial.pderiv p.1 (MvPolynomial.pderiv p.2 f))).card
+        ≤ (S.toFinset ×ˢ S.toFinset).card := Finset.card_image_le
+      _ = S.toFinset.card * S.toFinset.card := Finset.card_product _ _
+      _ = S.toFinset.card ^ 2 := (sq _).symm
+      _ ≤ (S.toFinset.card + 1) ^ 2 := Nat.pow_le_pow_left (Nat.le_succ _) 2
+
+/-- Constrained product of degree-refined atom counts: with ∑ k_i derivatives
+    distributed across factors (each k_i ≤ 2), the product of atom counts is
+    ≤ (|S|+1)^(∑ k_i). This collapses the L-exponential naive bound to a
+    κ-exponential bound (since ∑ k_i = κ ≪ L). -/
+theorem constrained_prod_le_pow_sum {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) (S : List (Fin n))
+    (derivLengths : Fin L → ℕ) (hk : ∀ i, derivLengths i ≤ 2) :
+    ∏ i : Fin L, (localDerivAtomsOfDegree (factors i) S (derivLengths i)).card ≤
+      (S.toFinset.card + 1) ^ (∑ i : Fin L, derivLengths i) := by
+  rw [← Finset.prod_pow_eq_pow_sum]
+  apply Finset.prod_le_prod
+  · intro i _; exact Nat.zero_le _
+  · intro i _; exact localDerivAtomsOfDegree_card_le (factors i) S (derivLengths i) (hk i)
 
 end WithinProfileBound
 
