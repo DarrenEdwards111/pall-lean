@@ -4053,6 +4053,37 @@ theorem latent_pure_conSlot_vs_clean_copy_same_q_candidate_of_common_residual_br
       _ = mlProj (residual * varyingCopy) := by rw [hformCopy]
   exact hcommon σ kscon residual varyingCon varyingCopy hndCon hLenCon' hvarCon hvarCopy hsame
 
+/-- Current minimal named shell for the live copyCon comparison frontier.
+At this point the active route needs exactly two bridge obligations on the aligned copyCon lane:
+sheet equality and common-residual conflict. -/
+def latent_copyCon_two_bridge_target
+    (M : DTM) (n : ℕ) : Prop :=
+  latent_aligned_copyCon_sheet_equality_candidate M n ∧
+  latent_aligned_copyCon_common_residual_conflict_candidate M n
+
+/-- The raw pure-con versus clean-copy same-`q` frontier now reduces to the minimal two-bridge
+copyCon target above. This is the cleanest current statement of what remains on that lane. -/
+theorem latent_pure_conSlot_vs_clean_copy_same_q_candidate_of_two_bridge_target
+    (M : DTM) (n : ℕ)
+    (htwo : latent_copyCon_two_bridge_target M n) :
+    ∀ (σ : latentProfileSignature M n)
+      (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+      (Scon : List (Fin (latentNumVars M n)))
+      (mcon : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+      (hLenCon : Scon.length = Nat.log 2 n)
+      (hDegCon : mcon.totalDegree ≤ Nat.log 2 n)
+      (hVarsCon : mcon.vars ⊆ Scon.toFinset)
+      (hAdmCon : isBlockAdmissible (latentPartition M n) Scon)
+      (hSigCon : latent_profile_signature_of_generator_data M n Scon mcon hLenCon hDegCon = σ)
+      (hqCon : q = mlProj (mcon * iterDerivList Scon (latentCompiledPoly M n)))
+      (hScon : Scon ≠ [])
+      (hcon : ∀ v ∈ Scon, ∃ i : Fin (latentBaseVars M n), v = conSlot M n i),
+      latent_pure_conSlot_vs_clean_copy_same_q_candidate
+        M n σ q Scon mcon hLenCon hDegCon hVarsCon hAdmCon hSigCon hqCon hScon hcon := by
+  rcases htwo with ⟨hsheet, hcommon⟩
+  exact latent_pure_conSlot_vs_clean_copy_same_q_candidate_of_common_residual_bridge
+    M n hsheet hcommon
+
 /-
 The SPDP rank of `latentCompiledPoly` is polynomial (paper Theorem 216/264).
 latentCompiledPoly = sum of 3 product sheets → subadditivity reduces to per-sheet bounds.
