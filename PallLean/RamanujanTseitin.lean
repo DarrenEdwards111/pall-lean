@@ -359,12 +359,37 @@ noncomputable def characteristic_pd_system_from_pack
       (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
       (Nat.log 2 n))
 
+/-- Explicit derivative-realization data for a row of the characteristic PD
+system. This is the concrete remaining algebraic target: exhibit a legal
+derivative list whose iterated derivative equals the target row. -/
+structure CharacteristicPdRowDerivWitness
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula)
+    (i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))) where
+  derivs : List (Fin (fam.encoding n hn).numVars)
+  length_eq : derivs.length = (fam.partition n hn).part.S.card
+  subset_S : ∀ v ∈ derivs, v ∈ (fam.partition n hn).part.S
+  row_eq :
+    (characteristic_pd_system_from_pack F fam n hn pack).rows i =
+      SPDP.iterDerivList derivs (fam.encoding n hn).charPoly
+
 /-- **Axiom (remaining hard algebraic frontier)**: for the concrete greedy
-disjoint packing produced from the Tseitin instance, the characteristic
-polynomial realizes the rows of the canonical Kronecker system inside the
-relevant PD column space. The combinatorial size bound is now derived, not
-assumed. -/
-axiom characteristic_pd_rows_mem_from_pack
+disjoint packing produced from the Tseitin instance, every row of the canonical
+Kronecker system is explicitly realized by an iterated derivative of the
+characteristic polynomial along a legal `S`-list. The combinatorial size bound
+is now derived, not assumed. -/
+axiom characteristic_pd_row_derivs_from_pack
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
+    ∀ i, CharacteristicPdRowDerivWitness F fam n hn pack i
+
+/-- Row membership in `pdColumnSpace` now follows from the explicit derivative
+realization witness and the general `pdColumnSpace` API. -/
+theorem characteristic_pd_rows_mem_from_pack
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
     (n : ℕ) (hn : n ≥ 6)
@@ -372,7 +397,13 @@ axiom characteristic_pd_rows_mem_from_pack
     ∀ i,
       (characteristic_pd_system_from_pack F fam n hn pack).rows i ∈
         PartialDerivMatrix.pdColumnSpace
-          (fam.partition n hn).part (fam.encoding n hn).charPoly
+          (fam.partition n hn).part (fam.encoding n hn).charPoly := by
+  intro i
+  rcases characteristic_pd_row_derivs_from_pack F fam n hn pack i with
+    ⟨derivs, hlen, hsub, hrow⟩
+  rw [hrow]
+  exact PartialDerivMatrix.iterDerivList_mem_pdColumnSpace
+    (fam.partition n hn).part (fam.encoding n hn).charPoly derivs hlen hsub
 
 /-- **Axiom (finite exceptional range)**: the characteristic-polynomial PD
 lower bound for the finitely many small sizes `6 ≤ n < 660`. The asymptotic
