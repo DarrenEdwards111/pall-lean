@@ -2157,6 +2157,104 @@ noncomputable def untouchedFactor {n : ℕ} {ι : Type*} [DecidableEq ι]
     MvPolynomial (Fin n) ℚ :=
   (s.filter (· ∉ touched)).prod (fun i => mlProj (f i))
 
+/-! ## Part 25: Dimension bound from factorization (restored from WIP) -/
+
+/-- span({q * c | q ∈ S}) ≤ image of mulRight(c) on span(S). -/
+theorem span_mul_right_le {n : ℕ}
+    (S : Set (MvPolynomial (Fin n) ℚ))
+    (c : MvPolynomial (Fin n) ℚ) :
+    Submodule.span ℚ ((· * c) '' S) ≤
+      Submodule.map (LinearMap.mulRight ℚ c) (Submodule.span ℚ S) := by
+  apply Submodule.span_le.mpr
+  intro x hx
+  rcases hx with ⟨q, hq, rfl⟩
+  exact ⟨q, Submodule.subset_span hq, rfl⟩
+
+/-- finrank(span({q * c | q ∈ S})) ≤ finrank(span(S)). -/
+theorem finrank_span_mul_right_le {n : ℕ}
+    (S : Set (MvPolynomial (Fin n) ℚ))
+    (c : MvPolynomial (Fin n) ℚ)
+    (hfin : Module.Finite ℚ ↥(Submodule.span ℚ S)) :
+    Module.finrank ℚ ↥(Submodule.span ℚ ((· * c) '' S)) ≤
+      Module.finrank ℚ ↥(Submodule.span ℚ S) :=
+  le_trans (Submodule.finrank_mono (span_mul_right_le S c))
+    (Submodule.finrank_map_le _ _)
+
+/-- If V ≤ mulRight(c)(W), then finrank(V) ≤ finrank(W). -/
+theorem finrank_le_of_generators_factor {n : ℕ}
+    (V W : Submodule ℚ (MvPolynomial (Fin n) ℚ))
+    (c : MvPolynomial (Fin n) ℚ)
+    (hfin_W : Module.Finite ℚ ↥W)
+    (hV_le : V ≤ Submodule.map (LinearMap.mulRight ℚ c) W) :
+    Module.finrank ℚ ↥V ≤ Module.finrank ℚ ↥W :=
+  le_trans (Submodule.finrank_mono hV_le) (Submodule.finrank_map_le _ _)
+
+/-- Multilinear monomials on a subset: finrank ≤ 2^|subset|. -/
+theorem finrank_mlMonomialBasis_subset {n : ℕ}
+    (touchedVars : Finset (Fin n)) :
+    Module.finrank ℚ ↥(Submodule.span ℚ
+      (↑(MlProjFar.mlMonomialBasis touchedVars) :
+        Set (MvPolynomial (Fin n) ℚ))) ≤
+      2 ^ touchedVars.card := by
+  calc Module.finrank ℚ ↥(Submodule.span ℚ
+        (↑(MlProjFar.mlMonomialBasis touchedVars) :
+          Set (MvPolynomial (Fin n) ℚ)))
+      ≤ (MlProjFar.mlMonomialBasis touchedVars).card :=
+        finrank_span_finset_le_card _
+    _ ≤ 2 ^ touchedVars.card :=
+        MlProjFar.mlMonomialBasis_card touchedVars
+
+/-! ## Part 26: Touched-vars containment (restored from WIP) -/
+
+/-- The touched part has vars contained in the touched-block vars. -/
+theorem touched_part_vars_subset {n : ℕ} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι)
+    (f : ι → MvPolynomial (Fin n) ℚ)
+    (g : ι → MvPolynomial (Fin n) ℚ)
+    (shift : MvPolynomial (Fin n) ℚ)
+    (touched : Finset ι)
+    (hg_vars : ∀ i ∈ s.filter (· ∈ touched), (g i).vars ⊆ (f i).vars)
+    (h_shift_vars : shift.vars ⊆ (s.filter (· ∈ touched)).biUnion (fun i => (f i).vars)) :
+    (mlProj (shift * (s.filter (· ∈ touched)).prod g)).vars ⊆
+      (s.filter (· ∈ touched)).biUnion (fun i => (f i).vars) := by
+  calc (mlProj (shift * (s.filter (· ∈ touched)).prod g)).vars
+      ⊆ (shift * (s.filter (· ∈ touched)).prod g).vars :=
+        vars_mlProj_subset _
+    _ ⊆ shift.vars ∪ ((s.filter (· ∈ touched)).prod g).vars :=
+        MvPolynomial.vars_mul shift _
+    _ ⊆ (s.filter (· ∈ touched)).biUnion (fun i => (f i).vars) ∪
+        ((s.filter (· ∈ touched)).prod g).vars :=
+        Finset.union_subset_union h_shift_vars (Finset.Subset.refl _)
+    _ ⊆ (s.filter (· ∈ touched)).biUnion (fun i => (f i).vars) ∪
+        (s.filter (· ∈ touched)).biUnion (fun i => (g i).vars) := by
+        apply Finset.union_subset_union (Finset.Subset.refl _)
+        exact vars_finset_prod_subset _ _
+    _ ⊆ (s.filter (· ∈ touched)).biUnion (fun i => (f i).vars) ∪
+        (s.filter (· ∈ touched)).biUnion (fun i => (f i).vars) := by
+        apply Finset.union_subset_union (Finset.Subset.refl _)
+        apply Finset.biUnion_mono
+        intro i hi; exact hg_vars i hi
+    _ = (s.filter (· ∈ touched)).biUnion (fun i => (f i).vars) :=
+        Finset.union_idempotent _
+
+/-- The touched part lies in the span of mlMonomialBasis on touched-block vars. -/
+theorem touched_part_in_mlMonomialBasis_span {n : ℕ} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι)
+    (f g : ι → MvPolynomial (Fin n) ℚ)
+    (shift : MvPolynomial (Fin n) ℚ)
+    (touched : Finset ι)
+    (hg_vars : ∀ i ∈ s.filter (· ∈ touched), (g i).vars ⊆ (f i).vars)
+    (h_shift_vars : shift.vars ⊆ (s.filter (· ∈ touched)).biUnion (fun i => (f i).vars)) :
+    mlProj (shift * (s.filter (· ∈ touched)).prod g) ∈
+      Submodule.span ℚ
+        (↑(MlProjFar.mlMonomialBasis
+          ((s.filter (· ∈ touched)).biUnion (fun i => (f i).vars))) :
+          Set (MvPolynomial (Fin n) ℚ)) := by
+  apply MlProjFar.mlProj_in_span_of_vars_subset
+  · exact fun α hα => isMultilinear_of_mem_mlProj_support _ α hα
+  · exact fun v hv =>
+      touched_part_vars_subset s f g shift touched hg_vars h_shift_vars hv
+
 end WithinProfileBound
 
 /-! # WithinProfileBound — Work in Progress below
