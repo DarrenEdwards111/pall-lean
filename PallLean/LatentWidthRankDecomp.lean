@@ -4278,6 +4278,33 @@ theorem theorem216_profile_data_logscale_from_bucket_function_proved (M : DTM) (
     (theorem9_within_profile_dim_obligation_proved M n hn804)
     hFun
 
+/-- Canonical P-data package from the Item-3 + uniform-120 witness. -/
+theorem theorem216_profile_data_logscale_from_item3_uniform120_proved (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (h3120 : latent_profile_block_cover_item3_uniform120_logscale M n hn hn804) :
+    theorem216_profile_data_logscale M n hn hn804 := by
+  exact theorem216_profile_data_logscale_from_core_proved M n hn hn804
+    ((latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hn hn804).2
+      (latent_compiled_tableau_bound_logscale_from_item3_uniform120 M n hn hn804 h3120))
+
+/-- Canonical P-data package from the span160 witness. -/
+theorem theorem216_profile_data_logscale_from_span160_proved (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (h160 : latent_p_witness_span160_logscale M n hn hn804) :
+    theorem216_profile_data_logscale M n hn hn804 := by
+  exact theorem216_profile_data_logscale_from_core_proved M n hn hn804
+    ((latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hn hn804).2
+      (latent_compiled_tableau_bound_logscale_from_span160_witness M n hn hn804 h160))
+
+/-- Canonical P-data package from the frozen Move-1 target witness. -/
+theorem theorem216_profile_data_logscale_from_p_witness_target_proved (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hTarget : latent_p_witness_target_logscale M n hn hn804) :
+    theorem216_profile_data_logscale M n hn hn804 := by
+  exact theorem216_profile_data_logscale_from_core_proved M n hn hn804
+    ((latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hn hn804).2
+      (latent_compiled_tableau_bound_logscale_from_p_witness_target M n hn hn804 hTarget))
+
 /-- P-side assembly from explicit logscale parts (paper-faithful split).
 Combines Section 9 profile-count + within-profile dimension into assembled upper bound. -/
 theorem latent_profile_assembly_logscale_from_parts (M : DTM) (n : ℕ)
