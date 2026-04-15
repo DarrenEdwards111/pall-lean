@@ -491,8 +491,10 @@ genuine mathematical contradiction.
    God-Move extraction to the coupled sheet, where the NP bound applies
    to the extracted polynomial, not the compiled polynomial directly).
 
-See `GodMoveSemanticInterface` in `GodMoveCore.lean` for the paper-faithful
-Route B interface that resolves this by making `DecidesSAT` load-bearing. -/
+See `GodMoveSemanticGap` and `GodMoveRouteB_ExtractionObligation` in
+`GodMoveCore.lean` for the narrowed paper-faithful Route B seam: the semantic
+frontier is now the actual restriction/projection decomposition producing the
+extraction target, which makes `DecidesSAT` load-bearing. -/
 theorem P_ne_NP_unconditional : ∀ (_ : PeqNP_Paper), False := by
   intro hPeqNP
   -- Fix n = 2^804 (contradiction scale)

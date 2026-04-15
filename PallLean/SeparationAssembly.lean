@@ -254,13 +254,19 @@ this branch; for the live obligation tracker, see `PROOF-OBLIGATIONS.md` and
 - `god_move_identity_minor_axiom` is a theorem declaration with only standard
   Lean axioms in its audit, but the current identity-style NP lower bound
   still applies to all DTMs
-- The paper-faithful Route B surfaces live in `GodMoveCore.lean`; that file
-  now contains obligation/packaging structures and definitions such as
-  `GodMoveRouteB_Obligations`, `GodMoveRouteB_ExtractionObligation`,
-  `GodMoveSemanticGap`, `routeB_from_semantic_gap`,
-  `GodMoveRouteB_WeakenedObligations`,
-  `GodMoveRouteB_WeakenedExtractionObligation`, and
-  `routeB_weakened_from_semantic_gap`. The audited theorem declarations there
+- The paper-faithful Route B surfaces live in `GodMoveCore.lean`, but the
+  exact semantic frontier there is narrower than the full packaging layer:
+  `GodMoveHardInstanceData` records the hard-instance applicability data,
+  `GodMoveSemanticTheorem` states the DecidesSAT-dependent existence of a
+  staged extraction witness, and `GodMoveRouteB_ExtractionTransfer`
+  (`GodMoveRouteB_ExtractionObligation`, likewise its weakened alias)
+  is the extraction transfer proposition derived from that witness.
+  `GodMoveSemanticGap` is now just the convenience bundle around this smaller
+  theorem-level seam. The larger Route B
+  structures such as `GodMoveRouteB_Obligations`,
+  `GodMoveRouteB_WeakenedObligations`, `routeB_from_semantic_gap`, and
+  `routeB_weakened_from_semantic_gap` are packaging wrappers around that seam
+  plus separate NP-lower-bound data. The audited theorem declarations there
   that are standard-axiom only are
   `extraction_from_decomposition`,
   `routeB_weakened_np_from_pdMatrix`, and
@@ -277,15 +283,21 @@ records that contradiction explicitly.
 
 **Paper-faithful resolution seam**: The paper makes `DecidesSAT` load-bearing
 in the God-Move extraction (Step A), not in the NP lower bound. On this branch
-that interface is represented by the theorem-only obligation split in
-`GodMoveCore.lean`: NP-side obligation data
-(`GodMoveRouteB_Obligations` / `GodMoveRouteB_WeakenedObligations`), the
-extraction transfer obligation
-(`GodMoveRouteB_ExtractionObligation` /
-`GodMoveRouteB_WeakenedExtractionObligation`), and the narrowed semantic record
-`GodMoveSemanticGap`. The exact remaining paper-faithful gaps there are:
+the exact theorem-only semantic seam in `GodMoveCore.lean` is
+`GodMoveSemanticTheorem`, with
+`GodMoveRouteB_ExtractionTransfer`
+(`GodMoveRouteB_ExtractionObligation`, or the weakened alias using the same
+target) as the derived rank inequality. The obligation packages
+`GodMoveRouteB_Obligations` / `GodMoveRouteB_WeakenedObligations` and the
+assemblers `routeB_from_semantic_gap` /
+`routeB_weakened_from_semantic_gap` sit one layer above that seam, adding the
+separate NP-lower-bound data. The weakened Route B separation theorem is
+packaged honestly against this split: `routeB_weakened_np_from_pdMatrix` only
+supplies the NP-side bound, while `separation_from_weakened_routeB` still
+takes the extraction transfer as a separate DecidesSAT-dependent hypothesis.
+The exact remaining paper-faithful gaps there are:
 - `RouteBNPFromPdMatrix.pd_to_blocked_transfer`
-- `GodMoveSemanticGap`
+- `GodMoveSemanticTheorem`
 - the P-side compiled-polynomial bound carried as `compiled_rank_bound`
 
 ### Separation29 route: 2 axioms + 1 opaque symbol, 0 sorry (auxiliary, NOT primary)
@@ -362,9 +374,12 @@ Both `axiom1_from_components` and `axiom2_from_components` still depend on the
 auxiliary shell symbol `charPolyRank`, and both now use the shared
 `ConcreteCharPolyRankBridge` seam exported by `Separation29.lean`.
 
-The live paper-faithful Route B surfaces remain the theorem-only obligation
-records in `GodMoveCore.lean`; these assembly wrappers are shell-facing
-orientation lemmas rather than the main Route B frontier. -/
+The live paper-faithful Route B frontier remains the theorem-only extraction
+seam in `GodMoveCore.lean`:
+`GodMoveSemanticGap` plus `GodMoveRouteB_ExtractionTransfer`
+(`GodMoveRouteB_ExtractionObligation`, with the weakened alias sharing the same
+target). These assembly wrappers are shell-facing orientation lemmas, not that
+main Route B frontier. -/
 #print axioms axiom1_from_components
 #print axioms axiom2_from_components
 

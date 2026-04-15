@@ -170,6 +170,50 @@ theorem.
 
 ## Route B paper-faithful semantic front (2026-04-15, updated)
 
+### Current live Route B packaging status (2026-04-15, honest tracker update)
+
+The semantic delta under direct audit here is the live
+`PallLean/GodMoveCore.lean` edit. The shared tree also has concurrent tracked
+changes in nearby Route B files, but this note is only classifying the current
+`GodMoveCore` movement. That movement is a **semantic interface refactor**, not
+a shell-cleanup pass.
+
+What the in-flight edit is trying to make explicit:
+
+- `GodMoveRouteB_TargetData`: packages the hard-instance bookkeeping together
+  with the extraction-facing coupled-sheet target
+- `GodMoveRouteB_ExtractionTransfer`: names the DecidesSAT-dependent rank
+  transfer separately from the NP-side lower-bound package
+- `GodMoveRouteB_ExtractionObligation`: is now just the factored transfer seam
+  on `GodMoveExtractionTarget`
+
+Why this matters semantically:
+
+- the old Route B records bundled hard-instance data, target polynomial data,
+  and NP lower bounds in a way that made it easy for status text to slide into
+  talking as if the entire weakened separation shell had advanced
+- the live refactor makes the real theorem boundary sharper:
+  NP-side progress and extraction-side progress are different kinds of work
+- this is a genuine semantic-tracker improvement because it separates:
+  1. target-side / NP-side data packaging
+  2. the still-load-bearing DecidesSAT extraction seam
+  3. the downstream wrapper theorems consuming those pieces
+
+Honest current state of that refactor:
+
+- it is **not landed cleanly yet**
+- `~/.elan/bin/lake env lean PallLean/GodMoveCore.lean` currently fails
+- the present failures are migration-level semantic bookkeeping issues, not
+  shell cleanup:
+  - duplicate doc-comment blocks before `GodMoveExtractionTarget` and
+    `GodMoveRouteB_TargetData`
+  - `routeB_from_semantic_gap` still constructs the old flat
+    `GodMoveRouteB_Obligations` fields instead of the new `extractionTarget`
+    field
+- so the honest inventory claim is:
+  the branch is refining the Route B theorem/interface inventory, but there is
+  **no new cleanly validated theorem milestone to count from this delta yet**
+
 ### New structures and theorems
 
 **GodMoveCore.lean** additions:
@@ -178,6 +222,10 @@ theorem.
 - `ExtractionMapDecomposition`: three-stage extraction map composite
 - `extraction_from_decomposition`: compositionality lemma (0 custom axioms)
 - `GodMoveSemanticGap`: narrowest semantic frontier for Route B
+- `GodMoveRouteB_TargetData`: shared Route B hard-instance plus
+  extraction-target package
+- `GodMoveRouteB_ExtractionTransfer`: factored name for the extraction-side
+  rank-transfer claim
 - `GodMoveRouteB_WeakenedObligations`: uses n^(log n/4) instead of C(n/3, log n)
 - `separation_from_weakened_routeB`: separation from weakened Route B (0 custom axioms)
 - `RouteBNPFromPdMatrix`: PD-matrix NP data with explicit bridge gap
@@ -264,7 +312,7 @@ So the local status is:
 ### Exact remaining gaps for Route B
 
 1. **PD→blocked SPDP bridge** (`pd_to_blocked_transfer`): linear algebra
-2. **Extraction map** (`GodMoveSemanticGap`): genuine semantic frontier (DecidesSAT)
+2. **Semantic extraction seam** (`GodMoveSemanticGap` plus the extraction obligation it feeds): genuine DecidesSAT-dependent frontier
 3. **P-side compilation** (`compiled_rank_bound`): BP compilation
 
 ## Historical files

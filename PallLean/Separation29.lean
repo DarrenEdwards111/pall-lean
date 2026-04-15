@@ -88,9 +88,13 @@ above and below by the two axioms.
     with `parity_odd`). The paper's hard family uses even-parity (satisfiable)
     Tseitin instances, for which the characteristic polynomial is nonzero.
     This `Separation29` route is NOT the live paper-faithful Route B frontier.
-    It is an auxiliary abstraction layer. The active theorem seams for the
-    paper-faithful Route B obligations live in `GodMoveCore.lean`, while the
-    older unconditional contradiction shell remains in
+    It is an auxiliary abstraction layer. The exact Route B theorem split now
+    lives in `GodMoveCore.lean`: the NP package is fed by
+    `RouteBNPFromPdMatrix.pd_to_blocked_transfer`, the genuinely semantic
+    extraction seam is the `GodMoveSemanticGap` /
+    `GodMoveRouteB_ExtractionTransfer` (`GodMoveRouteB_ExtractionObligation`)
+    interface, and the P-side compiled bound is tracked separately from that
+    extraction seam. The older unconditional contradiction shell remains in
     `PaperFaithfulSeparation.P_ne_NP_unconditional`. -/
 axiom charPolyRank (n : ℕ) : ℕ
 
@@ -486,10 +490,15 @@ theorem separation_from_concrete_data
 
 2. `rank_through_extraction`: the concrete characteristic rank
    is bounded by the compiled polynomial's rank, via the God-Move extraction.
-   THIS is the paper-faithful semantic frontier. It requires:
+   In this file that is the local shell-facing wrapper, but the exact
+   paper-faithful semantic frontier is the theorem-only seam recorded in
+   `GodMoveCore.lean`: `GodMoveSemanticGap` supplying the semantic data and
+   `GodMoveRouteB_ExtractionTransfer`
+   (`GodMoveRouteB_ExtractionObligation`) as the transfer proposition. That
+   seam requires:
    - Formalizing the God-Move extraction map Π_Φ
-   - Proving rank monotonicity through the extraction
-   - Using DecidesSAT to connect the compiled polynomial to the hard instance
+   - Proving the restriction / projection output identification
+   - Using `DecidesSAT` to connect the compiled polynomial to the hard instance
 
 ### Definition-level seam:
 If `charPolyRank` were DEFINED as the SPDP rank of the sound encoding's
