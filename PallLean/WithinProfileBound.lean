@@ -1765,6 +1765,151 @@ theorem locallyBoundedClassifiedSet_subset_constrained {n L : ℕ}
   intro i
   exact iterDerivList_mem_localDerivAtomsOfDegree (factors i) S (d i) (hd_bound i) (hd_elts i)
 
+/-! ## Part 22d: Fully bounded classified set (restored from WIP)
+
+The fullyBoundedClassifiedSet refines locallyBoundedClassifiedSet by adding
+the total-mass constraint ∑ |d_i| ≤ |S|. For degree-2 factors, the bounded
+profile classified set decomposes into {0} ∪ fullyBoundedClassifiedSet
+(by the degree-2 vanishing dichotomy). -/
+
+/-- Locally-and-globally bounded classified set: elements with each factor
+    receiving ≤ 2 derivatives AND total derivative mass ≤ |S|. -/
+noncomputable def fullyBoundedClassifiedSet {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (h : ProfileHistogram) :
+    Set (MvPolynomial (Fin n) ℚ) :=
+  { g | ∃ (d : Fin L → List (Fin n)),
+      (∀ i, ∀ v ∈ d i, v ∈ S) ∧
+      g = Finset.univ.prod (fun i => iterDerivList (d i) (factors i)) ∧
+      derivCountProfile constraintType d = h ∧
+      (∀ i, (d i).length ≤ 2) ∧
+      ∑ i : Fin L, (d i).length ≤ S.length }
+
+/-- For degree-2 factors, boundedProfileClassifiedSet ⊆ {0} ∪ fullyBoundedClassifiedSet.
+    Any element where some factor gets ≥ 3 derivatives vanishes (degree-2 killing). -/
+theorem boundedProfileClassifiedSet_subset_fully_bounded {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hfactors : ∀ i, (factors i).totalDegree ≤ 2)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (h : ProfileHistogram) :
+    boundedProfileClassifiedSet factors constraintType S h ⊆
+      {0} ∪ fullyBoundedClassifiedSet factors constraintType S h := by
+  intro g hg
+  rcases hg with ⟨d, hd_elts, hg_eq, hprof, hd_len⟩
+  by_cases h_all : ∀ i, (d i).length ≤ 2
+  · right
+    exact ⟨d, hd_elts, hg_eq, hprof, h_all, by simpa using hd_len⟩
+  · left
+    push_neg at h_all
+    obtain ⟨i₀, hi₀⟩ := h_all
+    rw [Set.mem_singleton_iff, hg_eq]
+    exact distribDerivProd_eq_zero_of_overDiff factors hfactors d i₀ (by omega)
+
+/-- fullyBoundedClassifiedSet elements factor through constrainedAtomProductSet
+    with total derivative mass ≤ |S|. -/
+theorem fullyBoundedClassifiedSet_subset_constrained_union {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (h : ProfileHistogram)
+    (g : MvPolynomial (Fin n) ℚ)
+    (hg : g ∈ fullyBoundedClassifiedSet factors constraintType S h) :
+    ∃ (derivLengths : Fin L → ℕ),
+      (∀ i, derivLengths i ≤ 2) ∧
+      (∑ i : Fin L, derivLengths i ≤ S.length) ∧
+      g ∈ constrainedAtomProductSet factors S derivLengths := by
+  rcases hg with ⟨d, hd_elts, hg_eq, _hprof, hd_bound, hd_total⟩
+  exact ⟨fun i => (d i).length, hd_bound, hd_total,
+    fun i => iterDerivList (d i) (factors i),
+    fun i => iterDerivList_mem_localDerivAtomsOfDegree (factors i) S (d i) (hd_bound i) (hd_elts i),
+    hg_eq⟩
+
+/-- For degree-2 factors, the per-S-shift post-span is ≤ the span of
+    the fully bounded classified set (carrying both local and total bounds). -/
+theorem boundedProfilePostSpan_le_fullyBounded_for_degree2 {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hfactors : ∀ i, (factors i).totalDegree ≤ 2)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ)
+    (h : ProfileHistogram) :
+    boundedProfilePostSpan factors constraintType S shift h ≤
+      Submodule.span ℚ
+        ((fun g => mlProj (shift * g)) '' fullyBoundedClassifiedSet factors constraintType S h) := by
+  apply Submodule.span_le.mpr
+  intro x hx
+  rcases hx with ⟨g, hg_mem, rfl⟩
+  rcases boundedProfileClassifiedSet_subset_fully_bounded factors hfactors constraintType S h hg_mem with
+    h0 | hfb
+  · simp [Set.mem_singleton_iff.mp h0]
+  · exact Submodule.subset_span (Set.mem_image_of_mem _ hfb)
+
+/-- The fullyBoundedClassifiedSet is finite (subset of locallyBoundedClassifiedSet). -/
+theorem fullyBoundedClassifiedSet_finite {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (h : ProfileHistogram) :
+    Set.Finite (fullyBoundedClassifiedSet factors constraintType S h) := by
+  apply Set.Finite.subset (locallyBoundedClassifiedSet_finite factors constraintType S h)
+  intro g ⟨d, hd_elts, hg_eq, hprof, hd_bound, _hd_total⟩
+  exact ⟨d, hd_elts, hg_eq, hprof, hd_bound⟩
+
+/-- Per-S-shift finrank with constrained derivative lengths: if all generators
+    factor through a single constrainedAtomProductSet, the finrank is bounded
+    by (|S|+1)^(∑ k_i) via the degree-refined product bound. -/
+theorem perSShift_finrank_le_constrained {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hfactors : ∀ i, (factors i).totalDegree ≤ 2)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ)
+    (h : ProfileHistogram)
+    (derivLengths : Fin L → ℕ)
+    (hk : ∀ i, derivLengths i ≤ 2)
+    (hfb : fullyBoundedClassifiedSet factors constraintType S h ⊆
+      constrainedAtomProductSet factors S derivLengths) :
+    Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h) ≤
+      (S.toFinset.card + 1) ^ (∑ i : Fin L, derivLengths i) := by
+  have hle := boundedProfilePostSpan_le_fullyBounded_for_degree2
+    factors hfactors constraintType S shift h
+  -- Finite-dimensionality of the image span
+  haveI : Module.Finite ℚ ↥(Submodule.span ℚ
+      ((fun g => mlProj (shift * g)) '' fullyBoundedClassifiedSet factors constraintType S h)) :=
+    Module.Finite.span_of_finite ℚ
+      ((fullyBoundedClassifiedSet_finite factors constraintType S h).image _)
+  have hle2 : Submodule.span ℚ
+      ((fun g => mlProj (shift * g)) '' fullyBoundedClassifiedSet factors constraintType S h) ≤
+      Submodule.map (postProcessLinearMap shift)
+        (Submodule.span ℚ (constrainedAtomProductSet factors S derivLengths)) := by
+    apply Submodule.span_le.mpr
+    intro x hx
+    rcases hx with ⟨g, hg, rfl⟩
+    exact ⟨g, Submodule.subset_span (hfb hg), rfl⟩
+  have hfin : Module.Finite ℚ
+      ↥(Submodule.span ℚ (constrainedAtomProductSet factors S derivLengths)) :=
+    Module.Finite.span_of_finite ℚ (constrainedAtomProductSet_finite factors S derivLengths)
+  calc Module.finrank ℚ ↥(boundedProfilePostSpan factors constraintType S shift h)
+      ≤ Module.finrank ℚ ↥(Submodule.span ℚ
+          ((fun g => mlProj (shift * g)) '' fullyBoundedClassifiedSet factors constraintType S h)) :=
+        Submodule.finrank_mono hle
+    _ ≤ Module.finrank ℚ ↥(Submodule.map (postProcessLinearMap shift)
+          (Submodule.span ℚ (constrainedAtomProductSet factors S derivLengths))) :=
+        Submodule.finrank_mono hle2
+    _ ≤ Module.finrank ℚ
+          ↥(Submodule.span ℚ (constrainedAtomProductSet factors S derivLengths)) :=
+        Submodule.finrank_map_le _ _
+    _ ≤ (constrainedAtomProductSet_finite factors S derivLengths).toFinset.card := by
+        have : Submodule.span ℚ (constrainedAtomProductSet factors S derivLengths) =
+            Submodule.span ℚ ↑(constrainedAtomProductSet_finite factors S derivLengths).toFinset := by
+          congr 1; exact (Set.Finite.coe_toFinset _).symm
+        rw [this]; exact finrank_span_finset_le_card _
+    _ ≤ ∏ i : Fin L, (localDerivAtomsOfDegree (factors i) S (derivLengths i)).card :=
+        constrainedAtomProductSet_card_le factors S derivLengths
+    _ ≤ (S.toFinset.card + 1) ^ (∑ i : Fin L, derivLengths i) :=
+        constrained_prod_le_pow_sum factors S derivLengths hk
+
 end WithinProfileBound
 
 /-! # WithinProfileBound — Work in Progress below
