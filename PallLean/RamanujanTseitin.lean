@@ -94,6 +94,9 @@ structure TseitinEncoding (F : Type*) [Field F] where
   graph_compat : formula.graph = graph.toRegularGraph
   /-- The characteristic polynomial χ_φ ∈ F[x_1,…,x_{numVars}]. -/
   charPoly : MvPolynomial (Fin (tseitinNumVars formula)) F
+  /-- Paper-faithful identification: the bundled characteristic polynomial is
+      the concrete Tseitin characteristic polynomial of the underlying formula. -/
+  charPoly_eq_characteristic : charPoly = Tseitin.characteristicPoly F formula
   /-- The number of edge variables equals graph.numEdges. -/
   edgeVarCount : graph.numEdges = formula.graph.numEdges
   /-- charPoly is multilinear (every variable appears with degree ≤ 1). -/
@@ -393,7 +396,8 @@ structure CharacteristicPdRowDerivWitness
       (IdentityMinorReal.getClauseSubset
         (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
         (Nat.log 2 n) i) =
-      SPDP.iterDerivList derivs (fam.encoding n hn).charPoly
+      SPDP.iterDerivList derivs
+        (Tseitin.characteristicPoly F (fam.encoding n hn).formula)
 
 /-- **Axiom (remaining hard algebraic frontier)**: for the concrete greedy
 disjoint packing produced from the Tseitin instance, every row of the canonical
@@ -421,7 +425,8 @@ theorem characteristic_pd_rows_mem_from_pack
   intro i
   rcases characteristic_pd_row_derivs_from_pack F fam n hn pack i with
     ⟨derivs, hlen, hsub, hrow⟩
-  rw [characteristic_pd_system_from_pack_rows F fam n hn pack i, hrow]
+  rw [characteristic_pd_system_from_pack_rows F fam n hn pack i, hrow,
+    ← (fam.encoding n hn).charPoly_eq_characteristic]
   exact PartialDerivMatrix.iterDerivList_mem_pdColumnSpace
     (fam.partition n hn).part (fam.encoding n hn).charPoly derivs hlen hsub
 
