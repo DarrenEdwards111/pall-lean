@@ -59,4 +59,7 @@ theorem p_side_verified (M : DTM) (n : ℕ) (hn : n ≥ 2)
 theorem P_ne_NP_final : ∀ (h : PeqNP_Paper), False :=
   P_ne_NP_unconditional
 
+/-! ## Axiom audit -/
+#print axioms P_ne_NP_final
+
 end SeparationFinal
