@@ -2315,6 +2315,21 @@ def godMoveRestrictionDataPerturbationTarget
   ∃ r : GodMoveRestrictionData ((cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars),
     r ≠ (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData
 
+/-- Any construction-level restriction perturbation witness already supplies the
+lower raw restriction-data perturbation target by forgetting the surrounding
+staged map. -/
+theorem godMoveRestrictionPerturbationWitnessTarget_implies_data_target
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveRestrictionPerturbationWitnessTarget M n hn hdec htb hns →
+      godMoveRestrictionDataPerturbationTarget M n hn hdec htb hns := by
+  intro hwit
+  rcases hwit with ⟨c, hc⟩
+  exact ⟨c.map.restrictionData, hc.2⟩
+
 /-- Even at raw restriction-data level, the identity placeholder's own record is
 not a perturbation witness. -/
 theorem godMoveConstruction_exists_not_restriction_data_perturbation_self
@@ -2394,6 +2409,18 @@ theorem godMoveRestrictionData_firstPerturbation_ne_identity
   intro h
   have hadmin := congrArg GodMoveRestrictionData.administrativeVars h
   simp [godMoveRestrictionData_firstPerturbation, godMoveConstruction_exists] at hadmin
+
+/-- The explicit first perturbation already solves the raw restriction-data
+frontier. -/
+theorem godMoveRestrictionDataPerturbationTarget_holds
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveRestrictionDataPerturbationTarget M n hn hdec htb hns := by
+  refine ⟨godMoveRestrictionData_firstPerturbation M n hn hdec htb hns, ?_⟩
+  exact godMoveRestrictionData_firstPerturbation_ne_identity M n hn hdec htb hns
 
 /-- Smallest typed-map level target above the explicit restriction-data witness.
 
