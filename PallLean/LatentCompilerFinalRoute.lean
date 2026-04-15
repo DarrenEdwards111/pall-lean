@@ -130,6 +130,21 @@ theorem P_neq_NP_latent_from_finer_decomp (h : PeqNP) (n : ℕ)
   have hNPData : selCon_kronecker_data_logscale M n hn804 := hCoeff
   exact P_neq_NP_latent_decomp h n hn ⟨hNPData, pAsm⟩
 
+/-- Canonical-NP contradiction route from the paper-facing P package alone.
+At this point the NP-side Kronecker data is built internally from the canonical
+choose-indexed selector family, so the only external paper-facing assumption is
+the P-side `theorem216_p_obligation`. -/
+theorem P_neq_NP_latent_from_p_obligation (h : PeqNP) (n : ℕ)
+    (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
+    (pAsm : theorem216_p_obligation h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
+  let M := h.sat_decider
+  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
+  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
+  have npData : selCon_kronecker_data_logscale M n hn804 :=
+    selCon_kronecker_data_logscale_from_canonical_idxList M n hn804
+  exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
+
 /-- Item 2 narrowing via the direct compiled-tableau frontier obligation. -/
 theorem P_neq_NP_latent_from_finer_decomp_and_compiled_tableau_bound
     (h : PeqNP) (n : ℕ)
@@ -318,17 +333,13 @@ theorem P_neq_NP_latent_from_p_construction_data_via_core (h : PeqNP) (n : ℕ)
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
 
-  have npData : selCon_kronecker_data_logscale M n hn804 :=
-    selCon_kronecker_data_logscale_from_canonical_idxList M n hn804
-
   have hCompiled : latent_compiled_tableau_bound_logscale M n hnM hn804 :=
     latent_compiled_tableau_bound_logscale_from_construction_data M n hnM hn804 pData
   have pCore : latent_profile_assembly_logscale M n hnM hn804 :=
     (latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hnM hn804).2 hCompiled
   have pAsm : theorem216_p_obligation M n hnM hn804 :=
     theorem216_profile_data_logscale_from_core_proved M n hnM hn804 pCore
-
-  exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
+  exact P_neq_NP_latent_from_p_obligation h n hn pAsm
 
 /-- Fully normalized contradiction route:
 NP-side is instantiated canonically (no external idxList inputs), and only the
@@ -351,17 +362,12 @@ theorem P_neq_NP_latent_from_compiled_tableau_bound (h : PeqNP) (n : ℕ)
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
 
-  -- Canonical NP data
-  have npData : selCon_kronecker_data_logscale M n hn804 :=
-    selCon_kronecker_data_logscale_from_canonical_idxList M n hn804
-
   -- P-data package from the direct compiled-polynomial bound + explicit Section-9 sides
   have pCore : latent_profile_assembly_logscale M n hnM hn804 :=
     (latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hnM hn804).2 hCompiled
   have pAsm : theorem216_p_obligation M n hnM hn804 :=
     theorem216_profile_data_logscale_from_core_proved M n hnM hn804 pCore
-
-  exact P_neq_NP_latent_decomp h n hn ⟨npData, pAsm⟩
+  exact P_neq_NP_latent_from_p_obligation h n hn pAsm
 
 /-- Canonical-NP route from the core P-side profile assembly bound directly.
 

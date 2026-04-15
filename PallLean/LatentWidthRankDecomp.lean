@@ -3250,6 +3250,14 @@ theorem latent_copyCon_tagged_coefficient_separation_current
       (CopyConClosedCoeffDecomp.copyCon_con_closedForm M n ksj) = 0 := by
   exact CopyConClosedCoeffDecomp.copyCon_offdiag_complement_support M n ksi ksj hndi hndj hlen hne
 
+/-- The copyCon tagged-coefficient separation candidate is now fully proved from the
+lower closed-coefficient decomposition file. -/
+theorem latent_copyCon_tagged_coefficient_separation
+    (M : DTM) (n : ℕ) :
+    latent_copyCon_tagged_coefficient_separation_candidate M n := by
+  intro ksi ksj hndi hndj hlen hne
+  exact latent_copyCon_tagged_coefficient_separation_current M n ksi ksj hndi hndj hlen hne
+
 /-- Current direct comparison frontier: if a raw pure-`conSlot` presentation and an explicit clean
 copy-slot presentation compute the same `(σ, q)`, then they should contradict on the live
 `copyConSheet` branch. The missing theorem is now explicitly about witness data on both sides,
@@ -3259,12 +3267,11 @@ Status update: the equal-size side is no longer the blocker. In this comparison 
 pure-con witness carries `_hLenCon : Scon.length = Nat.log 2 n`, while the clean copy witness
 carries `hlen : ks.length = Nat.log 2 n`, so both sides automatically have the same size.
 
-The pure-con versus clean-copy comparison still needs the live copyCon tagged-coefficient
-contradiction. More precisely, the lower copyCon file now proves the residual-support witness step,
-but the final gadget-product coefficient vanishing step is still missing. So
-`latent_copyCon_tagged_coefficient_separation_candidate_current` records that lower obstruction
-honestly at the latent layer instead of pretending the off-diagonal vanishing theorem is already
-proved. -/
+The pure-con versus clean-copy comparison still needs a same-`q` contradiction theorem tying the
+raw pure-con presentation to the cleaned copy-slot presentation. The off-diagonal copyCon tagged-
+coefficient vanishing statement itself is now proved as
+`latent_copyCon_tagged_coefficient_separation`; what remains is to plug that coefficient witness
+into the higher-level comparison argument on the live `copyConSheet` branch. -/
 def latent_pure_conSlot_vs_clean_copy_same_q_candidate
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
