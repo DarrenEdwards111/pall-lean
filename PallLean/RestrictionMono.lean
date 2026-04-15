@@ -198,6 +198,119 @@ theorem iterDerivList_applyRestriction {n : ℕ} (ρ : VarRestriction n)
       (fixed_or_free ρ v).elim id (fun h => absurd h hv_not_free)
     exact iterDerivList_applyRestriction_has_fixed ρ S f v hv_fixed hv_in_S
 
+/-! ## Coefficient-space bridge
+
+These local definitions are the reusable linear-algebra core needed for the
+honest coefficient-matrix proof of Lemma 141. They are copied into the active
+file so the remaining gap is closer to a concrete matrix-rank argument. -/
+
+namespace CoeffBridge
+
+open MvPolynomial
+
+variable {σ : Type*} [DecidableEq σ] {F : Type*} [Field F]
+
+noncomputable def coeffVector (monomials : Finset (σ →₀ ℕ))
+    (p : MvPolynomial σ F) : monomials → F :=
+  fun m => MvPolynomial.coeff m.val p
+
+noncomputable def coeffVectorLin (monomials : Finset (σ →₀ ℕ)) :
+    MvPolynomial σ F →ₗ[F] (monomials → F) where
+  toFun := coeffVector monomials
+  map_add' p q := by ext m; simp [coeffVector, MvPolynomial.coeff_add]
+  map_smul' c p := by ext m; simp [coeffVector, MvPolynomial.coeff_smul]
+
+theorem coeffVector_injective (monomials : Finset (σ →₀ ℕ))
+    (p q : MvPolynomial σ F)
+    (hp : p.support ⊆ monomials) (hq : q.support ⊆ monomials)
+    (h : coeffVector monomials p = coeffVector monomials q) : p = q := by
+  ext m
+  by_cases hm : m ∈ monomials
+  · exact congr_fun h ⟨m, hm⟩
+  · have hp0 : MvPolynomial.coeff m p = 0 := by
+      by_contra hne
+      exact hm (hp (Finsupp.mem_support_iff.mpr hne))
+    have hq0 : MvPolynomial.coeff m q = 0 := by
+      by_contra hne
+      exact hm (hq (Finsupp.mem_support_iff.mpr hne))
+    simp [hp0, hq0]
+
+noncomputable def coeffMatrix {ι : Type*} [Fintype ι]
+    (monomials : Finset (σ →₀ ℕ))
+    (generators : ι → MvPolynomial σ F) :
+    Matrix ι monomials F :=
+  fun i m => MvPolynomial.coeff m.val (generators i)
+
+def supportedSub (monomials : Finset (σ →₀ ℕ)) :
+    Submodule F (MvPolynomial σ F) where
+  carrier := { p | p.support ⊆ monomials }
+  add_mem' ha hb := Finset.Subset.trans Finsupp.support_add (Finset.union_subset ha hb)
+  zero_mem' := by simp
+  smul_mem' c _ hp := Finset.Subset.trans Finsupp.support_smul hp
+
+theorem span_in_supported (monomials : Finset (σ →₀ ℕ))
+    (S : Set (MvPolynomial σ F))
+    (h : ∀ g ∈ S, (g : MvPolynomial σ F).support ⊆ monomials) :
+    Submodule.span F S ≤ supportedSub monomials :=
+  Submodule.span_le.mpr h
+
+theorem coeffVectorLin_injOn (monomials : Finset (σ →₀ ℕ)) :
+    Function.Injective
+      ((coeffVectorLin (F := F) monomials).domRestrict (supportedSub monomials)) := by
+  intro ⟨p, hp⟩ ⟨q, hq⟩ heq
+  simp only [LinearMap.domRestrict_apply, Subtype.mk.injEq] at heq ⊢
+  exact coeffVector_injective monomials p q hp hq heq
+
+theorem finrank_span_eq_matrix_rank {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (monomials : Finset (σ →₀ ℕ))
+    (generators : ι → MvPolynomial σ F)
+    (hsupport : ∀ i, (generators i).support ⊆ monomials) :
+    Module.finrank F (Submodule.span F (Set.range generators)) =
+    (coeffMatrix monomials generators).rank := by
+  let f := coeffVectorLin (σ := σ) (F := F) monomials
+  have h_le := span_in_supported monomials _ (by
+    intro g hg
+    rw [Set.mem_range] at hg
+    obtain ⟨i, rfl⟩ := hg
+    exact hsupport i)
+  have step1 : Module.finrank F (Submodule.span F (Set.range generators)) =
+      Module.finrank F (Submodule.map f (Submodule.span F (Set.range generators))) := by
+    let fV := f.domRestrict (Submodule.span F (Set.range generators))
+    have fV_inj : Function.Injective fV := by
+      intro ⟨p, hp⟩ ⟨q, hq⟩ heq
+      simp only [Subtype.mk.injEq] at heq ⊢
+      exact coeffVector_injective monomials p q (h_le hp) (h_le hq) heq
+    let e := LinearEquiv.ofInjective fV fV_inj
+    have h_range : LinearMap.range fV = (Submodule.span F (Set.range generators)).map f := by
+      ext x
+      simp only [LinearMap.mem_range, Submodule.mem_map]
+      constructor
+      · rintro ⟨⟨a, ha⟩, rfl⟩
+        exact ⟨a, ha, rfl⟩
+      · rintro ⟨a, ha, rfl⟩
+        exact ⟨⟨a, ha⟩, rfl⟩
+    rw [← h_range]
+    exact (LinearEquiv.finrank_eq e)
+  have step2 : Submodule.map f (Submodule.span F (Set.range generators)) =
+      Submodule.span F (Set.range (fun i : ι => f (generators i))) := by
+    rw [Submodule.map_span]
+    congr 1
+    ext v
+    simp [Set.mem_image, Set.mem_range]
+  have step3 : (fun i : ι => f (generators i)) =
+      (fun i : ι => (fun m : monomials => (coeffMatrix monomials generators) i m)) := by
+    ext i m
+    rfl
+  rw [step1, step2, step3]
+  let A := coeffMatrix monomials generators
+  rw [show (fun i : ι => (fun m : monomials => A i m)) =
+      (fun i : ι => (Matrix.transpose A).col i) from by
+        ext i m
+        simp [Matrix.transpose, Matrix.col]]
+  rw [← Matrix.rank_eq_finrank_span_cols, Matrix.rank_transpose]
+
+end CoeffBridge
+
 /-! ## Lemma 141: Restriction Monotonicity
 
 The mathematical argument (paper Lemma 141): the SPDP matrix M_{κ,ℓ}(f)
