@@ -168,7 +168,7 @@ Contradiction for n ≥ 2.
 
 Axiom count: TWO (Theorems 139 + 140)
 Sorry count: ZERO -/
-theorem three_sat_not_in_P : ∀ (h : PeqNP), False := by
+theorem three_sat_not_in_P : ∀ (_ : PeqNP), False := by
   intro hPeqNP
   -- Fix n = 2^804 (the contradiction scale)
   set n := 2 ^ 804 with hn_def
@@ -197,10 +197,11 @@ theorem three_sat_not_in_P : ∀ (h : PeqNP), False := by
     (not_le_of_gt (Nat.pow_lt_pow_right (by omega : 1 < n) (by omega : 200 < 201)))
 
 /-- Corollary: P ≠ NP. -/
-theorem P_ne_NP : ∀ (h : PeqNP), False := three_sat_not_in_P
+theorem P_ne_NP : ∀ (_ : PeqNP), False := three_sat_not_in_P
 
-/-! ## Axiom audit: the separation depends on exactly 3 custom axioms
-    plus standard Lean axioms (propext, Quot.sound, Classical.choice). -/
+/-! ## Axiom audit: the abstract shell depends on exactly 3 custom constants
+    beyond standard Lean axioms:
+    `charPolyRank`, `theorem_139_p_side`, and `theorem_140_np_side`. -/
 #print axioms three_sat_not_in_P
 
 /-! ## Theorem 140 Decomposition via Sound Encoding

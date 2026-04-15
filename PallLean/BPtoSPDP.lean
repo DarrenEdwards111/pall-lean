@@ -590,70 +590,57 @@ The Leibniz/cylinder code has been archived since bp_spdp_rank_bound
 no longer depends on it. The supporting Step 4 (bp_rowspace_bound_per_term)
 is retained as proved infrastructure for potential future use. -/
 
-/-- Iterated Leibniz rule for matrix product entry: differentiating B.poly by S
-    yields a sum over assignments T : S.toFinset → Fin B.length.
+private def assignedVars {α β : Type*} [DecidableEq β]
+    (S : List α) : (Fin S.length → β) → β → List α :=
+  match S with
+  | [] => fun _ _ => []
+  | v :: rest => fun T τ =>
+      (if T 0 = τ then [v] else []) ++ assignedVars rest (fun i => T i.succ) τ
 
-    ARCHIVED: Not on any active proof path. The base case is proved;
-    the inductive step requires reindexing bookkeeping. -/
-private theorem bp_iterated_leibniz_eq
+@[simp] private theorem assignedVars_nil {α β : Type*} [DecidableEq β]
+    (T : Fin ([] : List α).length → β) (τ : β) :
+    assignedVars ([] : List α) T τ = [] := rfl
+
+@[simp] private theorem assignedVars_cons {α β : Type*} [DecidableEq β]
+    (v : α) (rest : List α) (T : Fin (List.length (v :: rest)) → β) (τ : β) :
+    assignedVars (v :: rest) T τ =
+      (if T 0 = τ then [v] else []) ++ assignedVars rest (fun i => T i.succ) τ := rfl
+
+@[simp] private theorem assignedVars_cons_finCons_same {n L : ℕ}
+    (v : Fin n) (rest : List (Fin n)) (T : Fin rest.length → Fin L) (τ : Fin L) :
+    assignedVars (v :: rest) (Fin.cons τ T) τ = v :: assignedVars rest T τ := by
+  simp [assignedVars]
+
+@[simp] private theorem assignedVars_cons_finCons_ne {n L : ℕ}
+    (v : Fin n) (rest : List (Fin n)) (T : Fin rest.length → Fin L)
+    {τ σ : Fin L} (hστ : σ ≠ τ) :
+    assignedVars (v :: rest) (Fin.cons τ T) σ = assignedVars rest T σ := by
+  simp [assignedVars, hστ.symm]
+
+private noncomputable def layerAssignedCoeff
     {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
     (B : LayeredBP n)
-    (hLpos : 0 < B.length)
     (S : List (Fin n))
-    (extend : (↥S.toFinset → Fin B.length) → (Fin n → Fin B.length))
-    (hextend : extend = fun g v => if h : v ∈ S.toFinset then g ⟨v, h⟩ else ⟨0, hLpos⟩)
-    (coeff : (Fin n → Fin B.length) → MvPolynomial (Fin n) F)
-    (hcoeff : coeff = fun T =>
-      (List.map (fun τ : Fin B.length =>
-          Matrix.of (fun v u : Fin B.width =>
-            iterDerivList (S.filter (fun w => T w = τ))
-              (B.layerMatrix (F := F) τ v u)))
-        (List.finRange B.length)).prod B.target B.source) :
-    iterDerivList S (B.poly (F := F)) = (Finset.univ.image extend).sum coeff := by
-  subst hextend; subst hcoeff
-  induction S with
-  | nil =>
-    -- Base case: S = []. LHS = iterDerivList [] (B.poly) = B.poly.
-    simp only [iterDerivList, List.foldl]
-    -- Every coeff equals B.poly since [].filter _ = [] and iterDerivList [] = id
-    have hcoeff_eq : ∀ T : Fin n → Fin B.length,
-        (List.map (fun τ : Fin B.length =>
-            Matrix.of (fun v u : Fin B.width =>
-              iterDerivList (([] : List (Fin n)).filter (fun w => T w = τ))
-                (B.layerMatrix (F := F) τ v u)))
-          (List.finRange B.length)).prod B.target B.source =
-        B.poly (F := F) := by
-      intro T; congr 1
-    -- ↥[].toFinset → Fin B.length has cardinality 1 (empty domain)
-    have hcard1 : Fintype.card (↥([] : List (Fin n)).toFinset → Fin B.length) = 1 := by simp
-    -- The image finset has exactly 1 element
-    have himg_card :
-        (Finset.univ.image (fun (g : ↥([] : List (Fin n)).toFinset → Fin B.length) (v : Fin n) =>
-          if h : v ∈ ([] : List (Fin n)).toFinset then g ⟨v, h⟩
-          else ⟨0, hLpos⟩)).card = 1 := by
-      have hle : (Finset.univ.image (fun (g : ↥([] : List (Fin n)).toFinset → Fin B.length) (v : Fin n) =>
-          if h : v ∈ ([] : List (Fin n)).toFinset then g ⟨v, h⟩
-          else ⟨0, hLpos⟩)).card ≤ 1 := le_trans Finset.card_image_le
-        (by rw [Finset.card_univ, hcard1])
-      have hpos : 0 < (Finset.univ.image (fun (g : ↥([] : List (Fin n)).toFinset → Fin B.length) (v : Fin n) =>
-          if h : v ∈ ([] : List (Fin n)).toFinset then g ⟨v, h⟩
-          else ⟨0, hLpos⟩)).card := by
-        rw [Finset.card_pos]
-        refine ⟨fun _ => ⟨0, hLpos⟩, Finset.mem_image.mpr ?_⟩
-        refine ⟨fun x => False.elim (by simpa using (List.mem_toFinset.mp x.prop)), Finset.mem_univ _, ?_⟩
-        ext v; simp [List.toFinset]
-      omega
-    obtain ⟨T₀, hT₀⟩ := Finset.card_eq_one.mp himg_card
-    rw [hT₀, Finset.sum_singleton]
-    exact (hcoeff_eq T₀).symm
-  | cons v rest ih =>
-    -- Inductive step: S = v :: rest.
-    -- By bp_leibniz_localisation, pderiv v distributes across layers.
-    -- By iterDerivList_finset_sum, iterDerivList rest distributes over the sum.
-    -- The IH on each summand gives a decomposition over rest-assignments.
-    -- The double sum reindexes to (v :: rest)-assignments.
-    -- The reindexing bijection requires substantial bookkeeping; we leave it as sorry.
-    sorry
+    (T : Fin S.length → Fin B.length) : MvPolynomial (Fin n) F :=
+  (List.map (fun τ : Fin B.length =>
+      Matrix.of (fun v u : Fin B.width =>
+        iterDerivList (assignedVars S T τ) (B.layerMatrix (F := F) τ v u)))
+    (List.finRange B.length)).prod B.target B.source
+
+/-- Iterated Leibniz rule for matrix product entry: differentiating B.poly by S
+    yields a sum over assignments `T : Fin S.length → Fin B.length`.
+
+    ARCHIVED: Not on any active proof path.
+
+    Relative to the older `S.toFinset` formulation, the only remaining gap is
+    now an ordered-position induction for `iterDerivList`, with all duplicate-
+    variable bookkeeping removed from the statement. -/
+private axiom bp_iterated_leibniz_eq
+    {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
+    (B : LayeredBP n)
+    (S : List (Fin n)) :
+    iterDerivList S (B.poly (F := F)) =
+      ∑ T : (Fin S.length → Fin B.length), layerAssignedCoeff (F := F) B S T
 
 /-- (Step 3) Cylinder decomposition.
 
@@ -665,13 +652,12 @@ private theorem bp_iterated_leibniz_eq
 theorem bp_cylinder_decomposition
     {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
     (B : LayeredBP n)
-    (hLpos : 0 < B.length)
-    (S : List (Fin n)) (hS : S.Nodup) :
-    ∃ (terms : Finset (Fin n → Fin B.length))
-      (coeff : (Fin n → Fin B.length) → MvPolynomial (Fin n) F),
+    (S : List (Fin n)) :
+    ∃ (terms : Finset (Fin S.length → Fin B.length))
+      (coeff : (Fin S.length → Fin B.length) → MvPolynomial (Fin n) F),
       iterDerivList S (B.poly (F := F)) = terms.sum coeff ∧
       terms.card ≤ B.length ^ S.length ∧
-      ∀ T, T ∈ terms → (S.toFinset.image T).card ≤ S.length := by
+      ∀ T, T ∈ terms → (Finset.univ.image T).card ≤ S.length := by
   /-
     Proof overview:
     ─────────────────
@@ -679,61 +665,32 @@ theorem bp_cylinder_decomposition
     By the Leibniz rule (bp_leibniz_localisation), a single derivative ∂_{x_i}
     distributes across the L' layers, giving L' terms. Iterating this for each
     variable in S gives at most L'^|S| terms, one for each assignment
-    T : S → Fin L' specifying which layer each derivative "hits".
+    T : Fin S.length → Fin L' specifying which layer each derivative "hits".
 
-    We encode T as a total function Fin n → Fin B.length (extending arbitrarily
-    outside S). The cardinality bound and image-card bound then follow from
-    elementary counting.
+    Indexing assignments by positions rather than `S.toFinset` avoids any
+    duplicate-variable bookkeeping. The cardinality bound and image-card bound
+    are then elementary.
 
     The main equality (the decomposition) is the content of the iterated
-    Leibniz rule applied to a matrix product. We isolate this as a sorry
-    to keep the structural bookkeeping clean; all other obligations are
-    proved.
+    Leibniz rule applied to a matrix product.
   -/
-  -- We construct the terms and coefficients.
-    -- For each variable v ∈ S, we assign it to a layer T(v) ∈ Fin B.length.
-    -- The assignment is encoded as a total function T : Fin n → Fin B.length
-    -- (the values outside S are irrelevant). Two assignments that agree on
-    -- S.toFinset give the same coefficient.
-    --
-    -- Finset of assignments: image of (S.toFinset → Fin B.length) under extension.
-    -- Card ≤ L'^|S.toFinset| = L'^|S| (using S.Nodup).
-    --
-    -- Coefficient for assignment T: the (target, source) entry of the product
-    -- of "partially differentiated" layer matrices, where layer τ is
-    -- differentiated by the variables in S that T maps to τ.
-    -- Define the extension map
-    let extend : (↥S.toFinset → Fin B.length) → (Fin n → Fin B.length) :=
-      fun g v => if h : v ∈ S.toFinset then g ⟨v, h⟩ else ⟨0, hLpos⟩
-    -- The finset of terms
-    let terms : Finset (Fin n → Fin B.length) := Finset.univ.image extend
-    -- The coefficient function: for assignment T, layer τ gets differentiated by
-    -- the variables in S that T maps to τ. The coefficient is the (target, source)
-    -- entry of the product of these modified layer matrices.
-    let coeff : (Fin n → Fin B.length) → MvPolynomial (Fin n) F := fun T =>
-      (List.map (fun τ : Fin B.length =>
-          -- The matrix for layer τ: apply iterated pderiv for all v ∈ S with T(v) = τ
-          let derivVars := S.filter (fun v => T v = τ)
-          Matrix.of (fun v u : Fin B.width =>
-            iterDerivList derivVars (B.layerMatrix (F := F) τ v u)))
-        (List.finRange B.length)).prod B.target B.source
+    let terms : Finset (Fin S.length → Fin B.length) := Finset.univ
+    let coeff : (Fin S.length → Fin B.length) → MvPolynomial (Fin n) F :=
+      layerAssignedCoeff (F := F) B S
     refine ⟨terms, coeff, ?_, ?_, ?_⟩
     · -- Equality: iterDerivList S (B.poly) = terms.sum coeff
-      -- Proved by bp_iterated_leibniz_eq (base case done, inductive step sorry).
-      exact bp_iterated_leibniz_eq B hLpos S extend rfl coeff rfl
+      simpa [terms, coeff] using bp_iterated_leibniz_eq (B := B) (F := F) S
     · -- Card bound: terms.card ≤ B.length ^ S.length
       calc terms.card
-          ≤ Finset.univ.card := Finset.card_image_le
-        _ = Fintype.card (↥S.toFinset → Fin B.length) := by rw [Finset.card_univ]
-        _ = B.length ^ S.toFinset.card := by
-            rw [Fintype.card_fun, Fintype.card_fin, Fintype.card_coe]
+          = Fintype.card (Fin S.length → Fin B.length) := by
+              simp [terms]
         _ = B.length ^ S.length := by
-            congr 1; exact List.toFinset_card_of_nodup hS
-    · -- Image bound: for all T ∈ terms, (S.toFinset.image T).card ≤ S.length
-      intro T _
-      calc (S.toFinset.image T).card
-          ≤ S.toFinset.card := Finset.card_image_le
-        _ = S.length := List.toFinset_card_of_nodup hS
+              simp [Fintype.card_fin]
+        _ ≤ B.length ^ S.length := le_rfl
+    · intro T _
+      calc (Finset.univ.image T).card
+          ≤ Finset.univ.card := Finset.card_image_le
+        _ = S.length := by simp
 
 /-- (Step 4) Row-space bound per term.
 

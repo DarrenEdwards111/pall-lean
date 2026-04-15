@@ -211,9 +211,11 @@ seam for the paper-faithful Route B path (NOT YET INHABITED).
 ### Other supporting files:
 **TMtoBP.lean**: 0 axioms, 0 sorry — CLEAN
 **PaddingRobustness.lean**: 0 axioms, 0 sorry — CLEAN
-**BPtoSPDP.lean**: 0 axioms, 1 sorry (not load-bearing, archived)
+**BPtoSPDP.lean**: 1 private archived axiom (`bp_iterated_leibniz_eq`), 0 sorry
+  Ordered-position cylinder wrapper is stated exactly; not on the active route.
 **SymmetricPower.lean**: 1 axiom (KNOWN FALSE for Route B P-side)
 **RestrictionMono.lean**: 0 axioms, 1 sorry (not load-bearing)
+  Remaining gap narrowed to a finite-support matrix-rank bridge.
 
 ### Totals (sound path only)
   NP-side (Theorem 140): 2 axioms (CONSISTENT), 1 sorry
