@@ -3042,6 +3042,7 @@ structure latent_raw_admissible_has_canonical_profile_control_candidate
     (_hSig : latent_profile_signature_of_generator_data M n S m _hLen _hDeg = σ) where
   witness : List (Fin (latentNumVars M n))
   witness_len : witness.length = Nat.log 2 n
+  witness_vars : m.vars ⊆ witness.toFinset
   witness_adm : isBlockAdmissible (latentPartition M n) witness
   witness_class4 : latent_raw_slot_family_classifier_candidate M n witness
   witness_sig : latent_profile_signature_of_generator_data M n witness m witness_len _hDeg = σ
@@ -3062,10 +3063,34 @@ structure latent_canonical_profile_control_witness_is_noncon_candidate
     (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ) where
   witness : List (Fin (latentNumVars M n))
   witness_len : witness.length = Nat.log 2 n
+  witness_vars : m.vars ⊆ witness.toFinset
   witness_adm : isBlockAdmissible (latentPartition M n) witness
   witness_sig : latent_profile_signature_of_generator_data M n witness m witness_len hDeg = σ
   witness_class4 : latent_raw_slot_family_classifier_candidate M n witness
   witness_noncon : latent_raw_noncon_slot_family_classifier_candidate M n witness
+
+/-- Once the canonical/profile-controlled witness has been sharpened to a non-`conSlot`
+3-lane witness and still carries the multiplier-support condition, it feeds directly
+into the existing cleaned menu API. This is the first honest downstream consumer of the
+revised canonical-profile-control structure. -/
+theorem latent_canonical_profile_control_witness_is_noncon_enters_clean_menu
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hcan : latent_canonical_profile_control_witness_is_noncon_candidate
+      M n σ S m hLen hDeg hVars hAdm hSig)
+    (hq : q = mlProj (m * iterDerivList hcan.witness (latentCompiledPoly M n))) :
+    latent_clean_compatible_bucket_member_menu M n σ q := by
+  exact latent_raw_bucket_member_enters_clean_lane M n σ q hcan.witness m
+    hcan.witness_len hDeg hcan.witness_vars hcan.witness_adm hcan.witness_sig hq
+    hcan.witness_noncon
 
 /-- Pure con-slot lists are automatically disjoint from all three existing clean compatibility
 lanes. This does not yet solve the con-slot case, but it sharpens the frontier: a genuine
