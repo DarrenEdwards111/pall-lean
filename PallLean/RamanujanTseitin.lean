@@ -420,6 +420,30 @@ theorem CharacteristicPdRowDerivWitness.row_eq_expanded
           (Tseitin.characteristicPolySummand F (fam.encoding n hn).formula a) := by
   rw [w.row_eq, Tseitin.iterDerivList_characteristicPoly]
 
+/-- Any candidate row-realization witness whose derivative list starts with a
+selector variable forces the target gadget-product row to vanish, because every
+satisfying-assignment summand is annihilated termwise by such a derivative. -/
+theorem CharacteristicPdRowDerivWitness.row_eq_zero_of_selector_head
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
+    (w : CharacteristicPdRowDerivWitness F fam n hn pack i)
+    (c : Fin (fam.encoding n hn).formula.clauses.length)
+    (hhead : w.derivs = Tseitin.selectorIdx (fam.encoding n hn).formula c :: w.derivs.tail) :
+    IdentityMinorReal.gadgetProd
+      (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+      (IdentityMinorReal.getClauseSubset
+        (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+        (Nat.log 2 n) i) = 0 := by
+  rw [w.row_eq_expanded F]
+  rw [hhead]
+  apply Finset.sum_eq_zero
+  intro a ha
+  rw [Tseitin.iterDerivList_characteristicPolySummand_selector_head_zero
+    F (fam.encoding n hn).formula a c w.derivs.tail]
+
 /-- **Axiom (remaining hard algebraic frontier)**: for the concrete greedy
 disjoint packing produced from the Tseitin instance, every row of the canonical
 Kronecker system is explicitly realized by an iterated derivative of the
