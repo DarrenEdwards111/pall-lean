@@ -442,6 +442,8 @@ theorem separation_from_concrete_data
   exact absurd hcontra
     (not_le_of_gt (Nat.pow_lt_pow_right (by omega : 1 < n) (by omega : 200 < 201)))
 
+#print axioms separation_from_concrete_data
+
 /-! ## Remaining Theorem Seams
 
 ### NP-side seam (fully discharged modulo sound encoding axioms):
