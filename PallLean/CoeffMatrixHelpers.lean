@@ -172,6 +172,18 @@ theorem coeffFamilyMatrix_eq_submatrix_cols {ι μ : Type*}
   rfl
 
 omit [DecidableEq σ] in
+theorem coeffBimatrix_eq_coeffFamilyMatrix {ι κ μ : Type*}
+    (monomials : Finset (σ →₀ ℕ))
+    (rowMap : κ → ι)
+    (chosenMonomials : μ → monomials)
+    (generators : ι → MvPolynomial σ F) :
+    coeffBimatrix monomials rowMap chosenMonomials generators =
+      coeffFamilyMatrix monomials chosenMonomials
+        (fun i : κ => generators (rowMap i)) := by
+  ext i j
+  rfl
+
+omit [DecidableEq σ] in
 theorem coeffBimatrix_eq_submatrix {ι κ μ : Type*}
     (monomials : Finset (σ →₀ ℕ))
     (rowMap : κ → ι)
@@ -181,6 +193,38 @@ theorem coeffBimatrix_eq_submatrix {ι κ μ : Type*}
       (coeffMatrix monomials generators).submatrix rowMap chosenMonomials := by
   ext i j
   rfl
+
+omit [DecidableEq σ] in
+theorem coeffFamilyMatrix_map_eq_mul_submatrix_cols
+    {ι μ : Type*} [Fintype ι]
+    (src tgt : Finset (σ →₀ ℕ))
+    (chosenMonomials : μ → tgt)
+    (φ : MvPolynomial σ F →ₗ[F] MvPolynomial σ F)
+    (generators : ι → MvPolynomial σ F)
+    (hsupport : ∀ i, (generators i).support ⊆ src) :
+    coeffFamilyMatrix tgt chosenMonomials (fun i => φ (generators i)) =
+      coeffMatrix src generators *
+        (monomialActionMatrix src tgt φ).submatrix (Equiv.refl _) chosenMonomials := by
+  ext i j
+  simp [coeffFamilyMatrix, coeffMatrix, monomialActionMatrix, Matrix.mul_apply]
+  exact coeff_apply_eq_sum_monomialActionMatrix src φ (generators i) (hsupport i)
+    (chosenMonomials j).1
+
+omit [DecidableEq σ] in
+theorem coeffBimatrix_map_eq_mul_submatrix_cols
+    {ι κ μ : Type*} [Fintype κ]
+    (src tgt : Finset (σ →₀ ℕ))
+    (rowMap : κ → ι)
+    (chosenMonomials : μ → tgt)
+    (φ : MvPolynomial σ F →ₗ[F] MvPolynomial σ F)
+    (generators : ι → MvPolynomial σ F)
+    (hsupport : ∀ i, (generators i).support ⊆ src) :
+    coeffBimatrix tgt rowMap chosenMonomials (fun i => φ (generators i)) =
+      coeffMatrix src (fun i : κ => generators (rowMap i)) *
+        (monomialActionMatrix src tgt φ).submatrix (Equiv.refl _) chosenMonomials := by
+  rw [coeffBimatrix_eq_coeffFamilyMatrix]
+  exact coeffFamilyMatrix_map_eq_mul_submatrix_cols src tgt chosenMonomials φ
+    (fun i : κ => generators (rowMap i)) (fun i => hsupport (rowMap i))
 
 omit [DecidableEq σ] in
 theorem rank_coeffMatrix_subfamily_le {ι κ : Type*} [Fintype ι] [Fintype κ]
@@ -225,6 +269,18 @@ theorem rank_coeffFamilyMatrix_le {ι μ : Type*} [Fintype ι] [Fintype μ]
   exact rank_coeffMatrix_submatrix_cols_le monomials generators chosenMonomials
 
 omit [DecidableEq σ] in
+theorem rank_coeffFamilyMatrix_map_le {ι μ : Type*} [Fintype ι] [Fintype μ]
+    (src tgt : Finset (σ →₀ ℕ))
+    (chosenMonomials : μ → tgt)
+    (φ : MvPolynomial σ F →ₗ[F] MvPolynomial σ F)
+    (generators : ι → MvPolynomial σ F)
+    (hsupport : ∀ i, (generators i).support ⊆ src) :
+    (coeffFamilyMatrix tgt chosenMonomials (fun i => φ (generators i))).rank ≤
+      (coeffMatrix src generators).rank := by
+  rw [coeffFamilyMatrix_map_eq_mul_submatrix_cols src tgt chosenMonomials φ generators hsupport]
+  exact Matrix.rank_mul_le_left _ _
+
+omit [DecidableEq σ] in
 theorem rank_coeffBimatrix_le {ι κ μ : Type*} [Fintype ι] [Fintype κ] [Fintype μ]
     (monomials : Finset (σ →₀ ℕ))
     (rowMap : κ → ι)
@@ -243,6 +299,24 @@ theorem rank_coeffBimatrix_le {ι κ μ : Type*} [Fintype ι] [Fintype κ] [Fint
         (coeffMatrix monomials generators).rank :=
     rank_coeffMatrix_subfamily_le monomials generators rowMap
   exact le_trans hcols hrows
+
+omit [DecidableEq σ] in
+theorem rank_coeffBimatrix_map_le {ι κ μ : Type*} [Fintype ι] [Fintype κ] [Fintype μ]
+    (src tgt : Finset (σ →₀ ℕ))
+    (rowMap : κ → ι)
+    (chosenMonomials : μ → tgt)
+    (φ : MvPolynomial σ F →ₗ[F] MvPolynomial σ F)
+    (generators : ι → MvPolynomial σ F)
+    (hsupport : ∀ i, (generators i).support ⊆ src) :
+    (coeffBimatrix tgt rowMap chosenMonomials (fun i => φ (generators i))).rank ≤
+      (coeffMatrix src generators).rank := by
+  have hmap :
+      (coeffBimatrix tgt rowMap chosenMonomials (fun i => φ (generators i))).rank ≤
+        (coeffMatrix src (fun i : κ => generators (rowMap i))).rank := by
+    rw [coeffBimatrix_map_eq_mul_submatrix_cols src tgt rowMap chosenMonomials φ
+      generators hsupport]
+    exact Matrix.rank_mul_le_left _ _
+  exact le_trans hmap (rank_coeffMatrix_subfamily_le src generators rowMap)
 
 omit [DecidableEq σ] in
 theorem rank_coeffMatrix_submatrix_le {ι κ ν : Type*} [Fintype ι] [Fintype κ] [Fintype ν]

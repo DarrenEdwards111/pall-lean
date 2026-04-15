@@ -258,11 +258,30 @@ The extraction map exists BECAUSE `M` decides 3-SAT: if `M` accepts
 the hard instance φ_n, then the compiled polynomial P_{M,n} contains the
 clause-sheet structure of φ_n, and the extraction map simply picks out
 those coordinates. -/
+structure GodMoveExtractionTarget (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  coupledVars : ℕ
+  coupledVars_lt : coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars
+  coupledPartition : BlockPartition coupledVars
+  coupledPoly : MvPolynomial (Fin coupledVars) ℚ
+
+/-- Forget the hard-instance bookkeeping and keep only the extraction-facing
+coupled-sheet target. This is the exact data used by the rank-transfer seam. -/
+def GodMoveRouteB_Obligations.extractionTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (obs : GodMoveRouteB_Obligations M n hn2 htb hns) :
+    GodMoveExtractionTarget M n hn2 htb hns where
+  coupledVars := obs.coupledVars
+  coupledVars_lt := obs.coupledVars_lt
+  coupledPartition := obs.coupledPartition
+  coupledPoly := obs.coupledPoly
+
+/-- Rank transfer on the narrowed extraction-facing target. -/
 def GodMoveRouteB_ExtractionObligation (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (_hdec : DecidesSAT M)
-    (obs : GodMoveRouteB_Obligations M n hn2 htb hns) : Prop :=
-  mlBlockedSpdpRank obs.coupledPartition (Nat.log 2 n) (Nat.log 2 n) obs.coupledPoly ≤
+    (target : GodMoveExtractionTarget M n hn2 htb hns) : Prop :=
+  mlBlockedSpdpRank target.coupledPartition (Nat.log 2 n) (Nat.log 2 n) target.coupledPoly ≤
     mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPoly (cook_levin_compilation M n hn2 htb hns))
@@ -272,7 +291,8 @@ def GodMoveSemanticInterface.fromObligations
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {hdec : DecidesSAT M}
     (obs : GodMoveRouteB_Obligations M n hn2 htb hns)
-    (extraction : GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec obs) :
+    (extraction :
+      GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec obs.extractionTarget) :
     GodMoveSemanticInterface M n hn2 htb hns hdec where
   hardInstance := obs.hardInstance
   hardInstance_size := obs.hardInstance_size
@@ -398,9 +418,14 @@ theorem extraction_from_decomposition
     {hdec : DecidesSAT M}
     {obs : GodMoveRouteB_Obligations M n hn2 htb hns}
     (decomp : ExtractionMapDecomposition M n hn2 htb hns hdec obs) :
-    GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec obs := by
-  unfold GodMoveRouteB_ExtractionObligation
+    GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec obs.extractionTarget := by
+  unfold GodMoveRouteB_ExtractionObligation GodMoveRouteB_Obligations.extractionTarget
   -- The coupled poly = projected poly (by output identification)
+  change
+    mlBlockedSpdpRank obs.coupledPartition (Nat.log 2 n) (Nat.log 2 n) obs.coupledPoly ≤
+      mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns))
   rw [← decomp.output_identification]
   -- Chain: rank(projected) ≤ rank(restricted) ≤ rank(compiled)
   calc
@@ -559,6 +584,18 @@ structure GodMoveRouteB_WeakenedObligations (M : DTM) (n : ℕ)
     n ^ (Nat.log 2 n / 4) ≤
       mlBlockedSpdpRank coupledPartition (Nat.log 2 n) (Nat.log 2 n) coupledPoly
 
+/-- The weakened Route B package forgets to the same extraction-facing target:
+the extraction seam should not depend on which NP lower bound package produced
+the coupled sheet. -/
+def GodMoveRouteB_WeakenedObligations.extractionTarget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (obs : GodMoveRouteB_WeakenedObligations M n hn2 htb hns) :
+    GodMoveExtractionTarget M n hn2 htb hns where
+  coupledVars := obs.coupledVars
+  coupledVars_lt := obs.coupledVars_lt
+  coupledPartition := obs.coupledPartition
+  coupledPoly := obs.coupledPoly
+
 /-- The same semantic gap also feeds the weakened Route B surface used by the
 sound characteristic-polynomial path. This keeps the DecidesSAT-dependent
 extraction obligation identical while matching the weaker NP lower bound that
@@ -581,12 +618,9 @@ def routeB_weakened_from_semantic_gap
 /-- Weakened extraction obligation. -/
 def GodMoveRouteB_WeakenedExtractionObligation (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (_hdec : DecidesSAT M)
-    (obs : GodMoveRouteB_WeakenedObligations M n hn2 htb hns) : Prop :=
-  mlBlockedSpdpRank obs.coupledPartition (Nat.log 2 n) (Nat.log 2 n) obs.coupledPoly ≤
-    mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
-      (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+    (hdec : DecidesSAT M)
+    (target : GodMoveExtractionTarget M n hn2 htb hns) : Prop :=
+  GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec target
 
 /-- Separation from weakened Route B obligations + extraction + P-side bound.
 
@@ -595,7 +629,8 @@ theorem separation_from_weakened_routeB
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M) (hn804 : n ≥ 2 ^ 804)
     (obs : GodMoveRouteB_WeakenedObligations M n hn2 htb hns)
-    (extraction : GodMoveRouteB_WeakenedExtractionObligation M n hn2 htb hns hdec obs)
+    (extraction :
+      GodMoveRouteB_WeakenedExtractionObligation M n hn2 htb hns hdec obs.extractionTarget)
     (hP : mlBlockedSpdpRank
       (cook_levin_compilation M n hn2 htb hns).partition
       (Nat.log 2 n) (Nat.log 2 n)

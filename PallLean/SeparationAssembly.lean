@@ -44,32 +44,54 @@
   - `TMtoBP.tm_to_bp_compilation`: definition
   - `TMtoBP.bp_spdp_rank_bound`: theorem
   - `TMtoBP.p_side_poly_spdp_rank`: theorem
-  - `PaddingRobustness.*`: theorem-level placeholder infrastructure, no
+  - `PaddingRobustness.*`: theorem declarations, no
     remaining `axiom`/`sorry`
+  - `RestrictionMono.restriction_image_spdpSubspace_finrank_le_spdpRank`:
+    theorem declaration giving the finite-support bridge for the ambient
+    restriction image
   - `RestrictionMono.restrictedSourceSpdpCoeffMatrix_rank_le_spdpRank`:
-    theorem-level coefficient-matrix inequality establishing the honest local
-    restriction frontier with `0` axioms / `0` sorry
+    theorem declaration giving the coefficient-matrix inequality that is the
+    honest local restriction frontier, with `0` axioms / `0` sorry in
+    `RestrictionMono.lean`
+  - `RestrictionMono.freeRestrictedSpdpSubspace_finrank_le_restrictedSpdpRank`:
+    theorem declaration showing the paper-faithful free-variable target is a
+    genuine subspace of the current ambient restricted-target SPDP space
   - `RestrictionMono.freeRestrictedSpdpSubspace_finrank_le_spdpRank`:
-    theorem-level bound for the paper-faithful free-variable target subspace
+    theorem declaration giving the paper-faithful free-variable target-space
+    finrank bound
+  - `RestrictionMono.freeRestrictedSpdpCoeffMatrix_rank_le_spdpRank`:
+    theorem declaration giving the coefficient-matrix form of that
+    free-variable target bridge
   - full `spdpRank κ ℓ (applyRestriction ρ f) ≤ spdpRank κ ℓ f` is still not
     formalized in the current ambient variable space; the remaining issue is a
-    target-space semantics mismatch, not a local proof hole
+    target-space semantics mismatch, now narrowed to the missing reverse
+    inclusion from the ambient restricted target back to the paper-faithful
+    free-variable-only target
   - `ConcreteCharPolyRankBridge` packages the shell/concrete identification on
     both sides, and both assembly wrappers now consume that shared seam
 
   ## Status Summary
 
-  THEOREM-level nearby items:
+  Nearby theorem declarations
+  (status-only: some are theorem wrappers or obligation-packaging interfaces,
+  not discharged end-to-end paper proofs):
   - Separation29.three_sat_not_in_P: Theorem 147 from the two shell axioms
   - PartialDerivMatrix.theorem_140_from_pdMatrix: transfer theorem packaging
     PD-rank lower bounds into a shell-level Theorem 140 conclusion
   - TMtoBP.p_side_poly_spdp_rank: P-side polynomial SPDP bound for the current
     zero-polynomial BP compilation
   - PaddingRobustness.padding_preserves_rank / nc0_padding_exists
+  - RestrictionMono.restriction_image_spdpSubspace_finrank_le_spdpRank:
+    theorem declaration for the finite-support ambient-image bound
   - RestrictionMono.restrictedSourceSpdpCoeffMatrix_rank_le_spdpRank:
-    theorem-level matrix-rank bound for restricted source generators
+    theorem declaration for the restricted-source matrix-rank bound
+  - RestrictionMono.freeRestrictedSpdpSubspace_finrank_le_restrictedSpdpRank:
+    theorem declaration for the ambient restricted-target comparison
   - RestrictionMono.freeRestrictedSpdpSubspace_finrank_le_spdpRank:
-    theorem-level finrank bound for the free-variable-only target subspace
+    theorem declaration for the free-variable-only target-space finrank bound
+  - RestrictionMono.freeRestrictedSpdpCoeffMatrix_rank_le_spdpRank:
+    theorem declaration for the coefficient-matrix form of the free-variable
+    target-space bridge
   - Separation29.theorem_140_from_concrete: theorem wrapper reducing the shell
     NP-side bound to the concrete sound-encoding package
   - Separation29.ConcretePSideData.concrete_rank_bound: theorem wrapper
@@ -224,18 +246,25 @@ paper-numbered routes. It is not the active imported contradiction route on
 this branch; for the live obligation tracker, see `PROOF-OBLIGATIONS.md` and
 `SORRY-INVENTORY.md`.
 
-### Route B (PaperFaithfulSeparation.lean): split status
+### Route B (paper-faithful frontier + older contradiction shell): split status
 - Current unconditional contradiction shell: 1 custom axiom (KNOWN FALSE),
   0 sorry
 - The surviving custom frontier is `SymmetricPower.spdp_profile_generators`,
   reached through `p_side_rank_bound_for_cook_levin`
-- `god_move_identity_minor_axiom` itself is theorem-level, but the current
-  identity-style NP lower bound still applies to all DTMs
-- New weakened Route B theorem seams
-  (`PaperFaithfulSeparation.extraction_from_decomposition`,
-  `PaperFaithfulSeparation.routeB_weakened_np_from_pdMatrix`,
-  `PaperFaithfulSeparation.separation_from_weakened_routeB`) are axiom-free and package
-  the remaining paper-faithful obligations as hypotheses instead
+- `god_move_identity_minor_axiom` is a theorem declaration with only standard
+  Lean axioms in its audit, but the current identity-style NP lower bound
+  still applies to all DTMs
+- The paper-faithful Route B surfaces live in `GodMoveCore.lean`; that file
+  now contains obligation/packaging structures and definitions such as
+  `GodMoveRouteB_Obligations`, `GodMoveRouteB_ExtractionObligation`,
+  `GodMoveSemanticGap`, `routeB_from_semantic_gap`,
+  `GodMoveRouteB_WeakenedObligations`,
+  `GodMoveRouteB_WeakenedExtractionObligation`, and
+  `routeB_weakened_from_semantic_gap`. The audited theorem declarations there
+  that are standard-axiom only are
+  `extraction_from_decomposition`,
+  `routeB_weakened_np_from_pdMatrix`, and
+  `separation_from_weakened_routeB`
 
 **Semantic gap (current unconditional Route B shell)**:
 `GodMoveReal.compiled_np_lower_bound_any_dtm` does NOT use `DecidesSAT M`.
@@ -248,10 +277,16 @@ records that contradiction explicitly.
 
 **Paper-faithful resolution seam**: The paper makes `DecidesSAT` load-bearing
 in the God-Move extraction (Step A), not in the NP lower bound. On this branch
-that interface is represented by `GodMoveSemanticGap`,
-`GodMoveRouteB_WeakenedExtractionObligation`, and the staged extraction data in
-`GodMoveCore.lean`; those theorem seams are present but not yet inhabited by a
-full semantic construction.
+that interface is represented by the theorem-only obligation split in
+`GodMoveCore.lean`: NP-side obligation data
+(`GodMoveRouteB_Obligations` / `GodMoveRouteB_WeakenedObligations`), the
+extraction transfer obligation
+(`GodMoveRouteB_ExtractionObligation` /
+`GodMoveRouteB_WeakenedExtractionObligation`), and the narrowed semantic record
+`GodMoveSemanticGap`. The exact remaining paper-faithful gaps there are:
+- `RouteBNPFromPdMatrix.pd_to_blocked_transfer`
+- `GodMoveSemanticGap`
+- the P-side compiled-polynomial bound carried as `compiled_rank_bound`
 
 ### Separation29 route: 2 axioms + 1 opaque symbol, 0 sorry (auxiliary, NOT primary)
 - charPolyRank (opaque abstraction symbol)
@@ -304,15 +339,17 @@ inside the same file-level sound-family / finite-range scaffold above.
   Ordered-position cylinder wrapper is stated exactly; not on the active route.
 **SymmetricPower.lean**: 1 axiom (KNOWN FALSE for Route B P-side)
 **RestrictionMono.lean**: 0 axioms, 0 sorry
-  Honest local frontier is the finite-support matrix-rank comparison
-  `restrictedSourceSpdpCoeffMatrix_rank_le_spdpRank` together with the
-  free-variable target-space bound
-  `freeRestrictedSpdpSubspace_finrank_le_spdpRank`; the stronger ambient
+  Honest theorem declarations now include the ambient finite-support bridge
+  `restriction_image_spdpSubspace_finrank_le_spdpRank`, the restricted-source
+  matrix inequality `restrictedSourceSpdpCoeffMatrix_rank_le_spdpRank`, and
+  the paper-faithful free-variable target bounds
+  `freeRestrictedSpdpSubspace_finrank_le_spdpRank` /
+  `freeRestrictedSpdpCoeffMatrix_rank_le_spdpRank`. The stronger ambient
   restriction-monotonicity statement remains blocked by target-space semantics.
 
 ### Totals (honest frontier, by route)
   Route B unconditional contradiction shell: 1 false axiom, 0 sorry
-  Route B weakened theorem seams: 0 axioms, 0 sorry
+  Route B paper-faithful theorem seams: 0 axioms, 0 sorry
   Separation29 shell: 2 axioms + 1 opaque symbol, 0 sorry
   Sound NP-side active assembled route: 4 axioms, 2 sorry
   Sound NP-side decomposed replacement block: 2 axioms, 1 local sorry
@@ -322,8 +359,12 @@ inside the same file-level sound-family / finite-range scaffold above.
 /-! ## Axiom audit
 
 Both `axiom1_from_components` and `axiom2_from_components` still depend on the
-shell symbol `charPolyRank`, and both now use the shared
-`ConcreteCharPolyRankBridge` seam exported by `Separation29.lean`. -/
+auxiliary shell symbol `charPolyRank`, and both now use the shared
+`ConcreteCharPolyRankBridge` seam exported by `Separation29.lean`.
+
+The live paper-faithful Route B surfaces remain the theorem-only obligation
+records in `GodMoveCore.lean`; these assembly wrappers are shell-facing
+orientation lemmas rather than the main Route B frontier. -/
 #print axioms axiom1_from_components
 #print axioms axiom2_from_components
 

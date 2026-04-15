@@ -291,7 +291,8 @@ theorem weakened_np_bound_implies_axiom (M : DTM) (n : ℕ) (hn : n ≥ 2)
 
 /-- The weakened bound suffices for the separation:
 n^(log n/4) ≤ C(n/30, log n) ≤ C(n/3, log n) ≤ rank(compiledPoly). -/
-theorem weakened_bound_suffices_for_separation (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+theorem weakened_bound_suffices_for_separation (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ (4 * 201))
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hw : weakened_np_bound M n (by omega : n ≥ 2) htb hns) :
     n ^ (Nat.log 2 n / 4) ≤
@@ -300,7 +301,7 @@ theorem weakened_bound_suffices_for_separation (M : DTM) (n : ℕ) (hn : n ≥ 2
         (Nat.log 2 n) (Nat.log 2 n)
         (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)) := by
   have hn20 : n ≥ 2 ^ 20 :=
-    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn
+    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 4 * 201)) hn
   have h_binom : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
     BinomialBound.binomial_lower_bound_concrete n hn20
   have h_mono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose (n / 3) (Nat.log 2 n) :=

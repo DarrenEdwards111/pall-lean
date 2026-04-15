@@ -1103,6 +1103,23 @@ theorem freeRestrictedSpdpSubspace_le_restriction_image {n : ℕ}
   rcases hq with ⟨i, hSfree, hdfree, rfl⟩
   exact free_spdpMonomialGenerator_mem_restriction_map ρ p κ ℓ i hSfree hdfree
 
+/-- The free-variable-only target SPDP space sits inside the honest ambient
+restricted-target SPDP space. This is the forward inclusion that remains valid
+without changing the current ambient variable-space definitions. -/
+theorem freeRestrictedSpdpSubspace_le_restrictedSpdpSubspace {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    freeRestrictedSpdpSubspace ρ κ ℓ p ≤ spdpSubspace κ ℓ (applyRestriction ρ p) := by
+  rw [freeRestrictedSpdpSubspace_eq_span_generators]
+  apply Submodule.span_le.mpr
+  intro q hq
+  rcases hq with ⟨i, rfl⟩
+  rcases i with ⟨i, hSfree, hdfree⟩
+  rcases i with ⟨S, d⟩
+  apply Submodule.subset_span
+  refine ⟨List.ofFn S, MvPolynomial.monomial d.1 (1 : ℚ), by simp, ?_, rfl⟩
+  exact le_trans (MvPolynomial.totalDegree_monomial_le d.1 (1 : ℚ)) d.2
+
 private noncomputable instance freeRestrictedSpdpSubspace_finite {n : ℕ}
     (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
     [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
@@ -1140,6 +1157,18 @@ theorem freeRestrictedSpdpSubspace_finrank_le_spdpRank {n : ℕ}
     _ ≤ spdpRank κ ℓ p :=
         restriction_image_spdpSubspace_finrank_le_spdpRank ρ κ ℓ p
 
+/-- The free-variable-only target SPDP subspace has dimension at most the
+ambient SPDP rank of the restricted polynomial. This isolates the exact missing
+piece for the full restriction-monotonicity claim: only the reverse inclusion
+into `freeRestrictedSpdpSubspace` is still absent. -/
+theorem freeRestrictedSpdpSubspace_finrank_le_restrictedSpdpRank {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    Module.finrank ℚ (freeRestrictedSpdpSubspace ρ κ ℓ p) ≤
+      spdpRank κ ℓ (applyRestriction ρ p) := by
+  exact Submodule.finrank_mono
+    (freeRestrictedSpdpSubspace_le_restrictedSpdpSubspace ρ κ ℓ p)
+
 /-- Coefficient-matrix form of the free-variable-only target bridge over the
 bounded monomial universe. -/
 theorem freeRestrictedSpdpCoeffMatrix_rank_le_spdpRank {n : ℕ}
@@ -1161,6 +1190,106 @@ theorem freeRestrictedSpdpCoeffMatrix_rank_le_spdpRank {n : ℕ}
     _ ≤ spdpRank κ ℓ p :=
       freeRestrictedSpdpSubspace_finrank_le_spdpRank ρ κ ℓ p
 
+private theorem support_subset_freeVars_of_mem_support {n : ℕ}
+    (ρ : VarRestriction n) {m : MvPolynomial (Fin n) ℚ} {d : Fin n →₀ ℕ}
+    (hmfree : ∀ v ∈ m.vars, v ∈ ρ.freeVars)
+    (hd : d ∈ m.support) :
+    d.support ⊆ ρ.freeVars := by
+  intro x hx
+  exact hmfree x ((MvPolynomial.mem_vars x).mpr ⟨d, hd, hx⟩)
+
+private theorem blockedGenerator_mem_freeRestrictedSpdpSubspace {n : ℕ}
+    (ρ : VarRestriction n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    (S : List (Fin n)) (m : MvPolynomial (Fin n) ℚ)
+    (hSlen : S.length = κ)
+    (hdeg : m.totalDegree ≤ ℓ)
+    (hSfree : ∀ i ∈ S, i ∈ ρ.freeVars)
+    (hmfree : ∀ v ∈ m.vars, v ∈ ρ.freeVars) :
+    m * iterDerivList S (applyRestriction ρ p) ∈ freeRestrictedSpdpSubspace ρ κ ℓ p := by
+  have hdecomp :
+      m * iterDerivList S (applyRestriction ρ p) =
+        ∑ d ∈ m.support,
+          MvPolynomial.coeff d m •
+            (MvPolynomial.monomial d (1 : ℚ) *
+              iterDerivList S (applyRestriction ρ p)) := by
+    calc
+      m * iterDerivList S (applyRestriction ρ p)
+          = (∑ d ∈ m.support, MvPolynomial.monomial d (MvPolynomial.coeff d m)) *
+              iterDerivList S (applyRestriction ρ p) := by
+                conv_lhs => rw [m.as_sum]
+      _ = ∑ d ∈ m.support,
+            MvPolynomial.monomial d (MvPolynomial.coeff d m) *
+              iterDerivList S (applyRestriction ρ p) := by
+              rw [Finset.sum_mul]
+      _ = ∑ d ∈ m.support,
+            MvPolynomial.coeff d m •
+              (MvPolynomial.monomial d (1 : ℚ) *
+                iterDerivList S (applyRestriction ρ p)) := by
+              apply Finset.sum_congr rfl
+              intro d hd
+              calc
+                MvPolynomial.monomial d (MvPolynomial.coeff d m) *
+                    iterDerivList S (applyRestriction ρ p)
+                  = ((MvPolynomial.coeff d m) • MvPolynomial.monomial d (1 : ℚ)) *
+                      iterDerivList S (applyRestriction ρ p) := by
+                        rw [MvPolynomial.smul_monomial, smul_eq_mul, mul_one]
+                _ = (MvPolynomial.C (MvPolynomial.coeff d m) *
+                      MvPolynomial.monomial d (1 : ℚ)) *
+                      iterDerivList S (applyRestriction ρ p) := by
+                        rw [MvPolynomial.smul_eq_C_mul]
+                _ = MvPolynomial.coeff d m •
+                      (MvPolynomial.monomial d (1 : ℚ) *
+                        iterDerivList S (applyRestriction ρ p)) := by
+                        rw [MvPolynomial.smul_eq_C_mul, mul_assoc]
+  rw [hdecomp]
+  apply Submodule.sum_mem
+  intro d hd
+  apply Submodule.smul_mem
+  rcases (List.exists_iff_exists_tuple).mp ⟨S, rfl⟩ with ⟨k, g, rfl⟩
+  simp at hSlen
+  cases hSlen
+  apply Submodule.subset_span
+  refine ⟨(g, ⟨d, le_trans (MvPolynomial.le_totalDegree hd) hdeg⟩), ?_, ?_, ?_⟩
+  · intro j
+    have hjmem : g j ∈ List.ofFn g := by
+      rw [List.mem_ofFn']
+      exact ⟨j, rfl⟩
+    exact hSfree _ hjmem
+  · exact support_subset_freeVars_of_mem_support ρ hmfree hd
+  · simp [spdpMonomialGenerator]
+
+/-- Blocked target generators of the restricted polynomial, when forced to stay
+on `ρ.freeVars`, already lie in the paper-faithful free-variable target
+subspace. -/
+theorem blockedSpdpSubspace_applyRestriction_free_le_freeRestricted {n : ℕ}
+    (ρ : VarRestriction n) (B : BlockPartition n) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin n) ℚ) :
+    blockedSpdpSubspace B κ ℓ (applyRestriction ρ p) ρ.freeVars ≤
+      freeRestrictedSpdpSubspace ρ κ ℓ p := by
+  apply Submodule.span_le.mpr
+  intro q hq
+  rcases hq with ⟨S, m, hSlen, hdeg, _hadm, hSfree, hmfree, rfl⟩
+  exact blockedGenerator_mem_freeRestrictedSpdpSubspace
+    ρ κ ℓ p S m hSlen hdeg hSfree hmfree
+
+/-- Route B wrapper: after restriction, the blocked SPDP rank on the explicitly
+free active-variable set is bounded by the original ambient SPDP rank. -/
+theorem blockedSpdpRank_applyRestriction_free_le_spdpRank {n : ℕ}
+    (ρ : VarRestriction n) (B : BlockPartition n) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin n) ℚ)
+    [Fintype ((Fin κ → Fin n) × { d : (Fin n →₀ ℕ) // d.sum (fun _ e => e) ≤ ℓ })] :
+    blockedSpdpRank B κ ℓ (applyRestriction ρ p) ρ.freeVars ≤ spdpRank κ ℓ p := by
+  calc
+    blockedSpdpRank B κ ℓ (applyRestriction ρ p) ρ.freeVars
+      = Module.finrank ℚ
+          (blockedSpdpSubspace B κ ℓ (applyRestriction ρ p) ρ.freeVars) := by
+            rfl
+    _ ≤ Module.finrank ℚ (freeRestrictedSpdpSubspace ρ κ ℓ p) :=
+      Submodule.finrank_mono
+        (blockedSpdpSubspace_applyRestriction_free_le_freeRestricted ρ B κ ℓ p)
+    _ ≤ spdpRank κ ℓ p :=
+      freeRestrictedSpdpSubspace_finrank_le_spdpRank ρ κ ℓ p
+
 /-! ## Restriction-Matrix Frontier
 
 The file proves the linear-algebra half of the intended Lemma 141 argument:
@@ -1175,6 +1304,12 @@ still lives in `MvPolynomial (Fin n) ℚ`, so the target-side SPDP multipliers
 may continue to use variables that were fixed by `ρ`. The paper's
 column-deletion argument needs a target space where those multiplier variables
 have also been removed or forbidden.
+
+What *is* now proved on the target side is the forward inclusion
+`freeRestrictedSpdpSubspace ρ κ ℓ f ≤ spdpSubspace κ ℓ (applyRestriction ρ f)`.
+So the remaining local gap is exactly the missing reverse inclusion showing
+that every ambient restricted-target SPDP generator is already represented by
+the free-variable-only paper-faithful target.
 
 The local lemmas `applyRestriction_spdpMonomialGenerator` and
 `restrictedSpdpMonomialGenerator_eq_if_free` make the mismatch explicit:

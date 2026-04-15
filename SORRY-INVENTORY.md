@@ -223,9 +223,13 @@ New theorem-level infrastructure:
 - `CoeffMatrixHelpers.rank_coeffMatrix_map_le`
 - `CoeffMatrixHelpers.finrank_span_eq_matrix_rank`
 - `RestrictionMono.coeffVector_applyRestriction_eq_sum_restrictionColumns`
+- `RestrictionMono.restriction_image_spdpSubspace_finrank_le_spdpRank`
 - `RestrictionMono.restrictedSourceSpdpCoeffMatrix_rank_le`
 - `RestrictionMono.freeRestrictedSpdpSubspace_le_restriction_image`
+- `RestrictionMono.freeRestrictedSpdpSubspace_le_restrictedSpdpSubspace`
+- `RestrictionMono.freeRestrictedSpdpSubspace_finrank_le_restrictedSpdpRank`
 - `RestrictionMono.freeRestrictedSpdpSubspace_finrank_le_spdpRank`
+- `RestrictionMono.freeRestrictedSpdpCoeffMatrix_rank_le_spdpRank`
 
 Current narrowed gap:
 - no local `sorry` remains in `RestrictionMono.lean`
@@ -233,15 +237,22 @@ Current narrowed gap:
   placeholder: the ambient target of `applyRestriction ρ f` still allows
   multiplier monomials using fixed variables, so the paper's column-deletion
   argument does not directly match the current definitions
-- the free-variable-only target subspace is now formalized and bounded by the
-  restriction image/original `spdpRank`; what remains is the comparison from
-  that paper-faithful target to the current ambient `spdpRank κ ℓ
-  (applyRestriction ρ f)`
+- the free-variable-only target subspace is now formalized, sits inside the
+  honest ambient `spdpSubspace κ ℓ (applyRestriction ρ f)`, and is bounded by
+  both the restricted-target rank and the original `spdpRank`
+- what remains is the reverse inclusion/equality identifying that ambient
+  restricted target with the paper-faithful free-variable-only target
 
 So the local status is:
+- `RestrictionMono.restriction_image_spdpSubspace_finrank_le_spdpRank`:
+  theorem proved
 - `RestrictionMono.restrictedSourceSpdpCoeffMatrix_rank_le_spdpRank`:
   theorem proved
+- `RestrictionMono.freeRestrictedSpdpSubspace_finrank_le_restrictedSpdpRank`:
+  theorem proved
 - `RestrictionMono.freeRestrictedSpdpSubspace_finrank_le_spdpRank`:
+  theorem proved
+- `RestrictionMono.freeRestrictedSpdpCoeffMatrix_rank_le_spdpRank`:
   theorem proved
 - `RestrictionMono.spdpRank_restriction_mono`: not currently the honest local
   theorem statement under the ambient definitions

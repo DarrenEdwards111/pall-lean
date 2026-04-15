@@ -87,8 +87,10 @@ above and below by the two axioms.
     `Tseitin.characteristicPoly` (which is 0 for the current `TseitinFormula`
     with `parity_odd`). The paper's hard family uses even-parity (satisfiable)
     Tseitin instances, for which the characteristic polynomial is nonzero.
-    This `Separation29` route is NOT the active Route B path. It is an
-    auxiliary abstraction layer; the active Route B goes through
+    This `Separation29` route is NOT the live paper-faithful Route B frontier.
+    It is an auxiliary abstraction layer. The active theorem seams for the
+    paper-faithful Route B obligations live in `GodMoveCore.lean`, while the
+    older unconditional contradiction shell remains in
     `PaperFaithfulSeparation.P_ne_NP_unconditional`. -/
 axiom charPolyRank (n : ℕ) : ℕ
 

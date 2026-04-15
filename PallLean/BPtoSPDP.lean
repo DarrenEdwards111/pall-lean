@@ -1209,10 +1209,11 @@ theorem bp_poly_totalDegree_le
   - `poly_family_rank_bound_in_n`: rank ≤ poly(n) for a PolyBPFamily
   - `P_subset_polySPDP`: the zero-polynomial witness (full proof requires compilation)
 
-  Archived axiom (corresponding to the remaining genuinely unproved step):
+  Archived seam (corresponding to the remaining genuinely unproved step):
   - `bp_iterated_leibniz_eq_singleton`: theorem-level ordered-position
     Leibniz rule for single derivatives
-  - `bp_iterated_leibniz_eq_of_ge_two`: ordered-position Leibniz rule for
+  - `bp_iterated_leibniz_eq_of_ge_two`: the only archived axiom, giving the
+    ordered-position Leibniz rule for
     length-`≥ 2` ∂_S(f_B)
     * Supplies the archived cylinder decomposition equality via the wrapper
       `bp_iterated_leibniz_eq`
