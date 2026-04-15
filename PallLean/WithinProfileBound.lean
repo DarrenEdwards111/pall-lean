@@ -1692,6 +1692,60 @@ theorem iterDerivList_mem_localDerivAtomsOfDegree {n : ℕ}
     | cons x rest' =>
       exfalso; simp only [List.length_cons] at hd_len; omega
 
+/-- Profile-constrained atom product set: products ∏_i a_i where
+    a_i ∈ localDerivAtomsOfDegree(f_i, S, k_i) and k_i ≤ 2.
+    Tighter than atomProductSet: undifferentiated factors contribute 1 atom.
+    Restored from WIP. -/
+def constrainedAtomProductSet {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) (S : List (Fin n))
+    (derivLengths : Fin L → ℕ) :
+    Set (MvPolynomial (Fin n) ℚ) :=
+  { g | ∃ (atoms : Fin L → MvPolynomial (Fin n) ℚ),
+      (∀ i, atoms i ∈ localDerivAtomsOfDegree (factors i) S (derivLengths i)) ∧
+      g = Finset.univ.prod atoms }
+
+/-- The constrained atom product set is finite. -/
+theorem constrainedAtomProductSet_finite {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) (S : List (Fin n))
+    (derivLengths : Fin L → ℕ) :
+    Set.Finite (constrainedAtomProductSet factors S derivLengths) := by
+  let atomChoices := (i : Fin L) → { a : MvPolynomial (Fin n) ℚ //
+    a ∈ localDerivAtomsOfDegree (factors i) S (derivLengths i) }
+  haveI : Fintype atomChoices := inferInstance
+  apply Set.Finite.subset (Set.toFinite (Set.range
+    (fun (c : atomChoices) => Finset.univ.prod (fun i => (c i).val))))
+  intro g hg
+  rcases hg with ⟨atoms, hatoms, rfl⟩
+  exact ⟨fun i => ⟨atoms i, hatoms i⟩, rfl⟩
+
+/-- The constrained atom product set has cardinality ≤ ∏ |localDerivAtomsOfDegree|. -/
+theorem constrainedAtomProductSet_card_le {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) (S : List (Fin n))
+    (derivLengths : Fin L → ℕ) :
+    (constrainedAtomProductSet_finite factors S derivLengths).toFinset.card ≤
+      ∏ i : Fin L, (localDerivAtomsOfDegree (factors i) S (derivLengths i)).card := by
+  classical
+  let atomChoices := (i : Fin L) → { a : MvPolynomial (Fin n) ℚ //
+    a ∈ localDerivAtomsOfDegree (factors i) S (derivLengths i) }
+  let prodMap : atomChoices → MvPolynomial (Fin n) ℚ :=
+    fun c => Finset.univ.prod (fun i => (c i).val)
+  have hcover : (constrainedAtomProductSet_finite factors S derivLengths).toFinset ⊆
+      (Finset.univ : Finset atomChoices).image prodMap := by
+    intro g hg
+    rw [Set.Finite.mem_toFinset] at hg
+    rcases hg with ⟨atoms, hatoms, rfl⟩
+    exact Finset.mem_image.mpr ⟨fun i => ⟨atoms i, hatoms i⟩, Finset.mem_univ _, rfl⟩
+  calc (constrainedAtomProductSet_finite factors S derivLengths).toFinset.card
+      ≤ ((Finset.univ : Finset atomChoices).image prodMap).card :=
+        Finset.card_le_card hcover
+    _ ≤ (Finset.univ : Finset atomChoices).card := Finset.card_image_le
+    _ = Fintype.card atomChoices := Finset.card_univ
+    _ = ∏ i : Fin L, (localDerivAtomsOfDegree (factors i) S (derivLengths i)).card := by
+        rw [show Fintype.card atomChoices =
+            ∏ i : Fin L, Fintype.card { a // a ∈ localDerivAtomsOfDegree (factors i) S (derivLengths i) }
+          from Fintype.card_pi]
+        congr 1; ext i; exact Fintype.card_coe _
+
 end WithinProfileBound
 
 /-! # WithinProfileBound — Work in Progress below
