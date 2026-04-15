@@ -3069,6 +3069,30 @@ structure latent_canonical_profile_control_witness_is_noncon_candidate
   witness_class4 : latent_raw_slot_family_classifier_candidate M n witness
   witness_noncon : latent_raw_noncon_slot_family_classifier_candidate M n witness
 
+/-- Forget the extra non-`conSlot` conclusion from the sharpened canonical witness package.
+This keeps the stronger structure interoperable with APIs that only need the earlier
+canonical/profile-control witness surface. -/
+def latent_canonical_profile_control_witness_is_noncon_candidate.toRawCandidate
+    {M : DTM} {n : ℕ}
+    {σ : latentProfileSignature M n}
+    {S : List (Fin (latentNumVars M n))}
+    {m : MvPolynomial (Fin (latentNumVars M n)) ℚ}
+    {hLen : S.length = Nat.log 2 n}
+    {hDeg : m.totalDegree ≤ Nat.log 2 n}
+    {hVars : m.vars ⊆ S.toFinset}
+    {hAdm : isBlockAdmissible (latentPartition M n) S}
+    {hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ}
+    (hcan : latent_canonical_profile_control_witness_is_noncon_candidate
+      M n σ S m hLen hDeg hVars hAdm hSig) :
+    latent_raw_admissible_has_canonical_profile_control_candidate
+      M n σ S m hLen hDeg hVars hAdm hSig where
+  witness := hcan.witness
+  witness_len := hcan.witness_len
+  witness_vars := hcan.witness_vars
+  witness_adm := hcan.witness_adm
+  witness_class4 := hcan.witness_class4
+  witness_sig := hcan.witness_sig
+
 /-- Once the canonical/profile-controlled witness has been sharpened to a non-`conSlot`
 3-lane witness and still carries the multiplier-support condition, it feeds directly
 into the existing cleaned menu API. This is the first honest downstream consumer of the
@@ -3209,6 +3233,33 @@ def latent_clean_menu_membership_preserves_originating_raw_witness_candidate
     (latent_machCopy_single_sheet_compatible M n S m ∨
       latent_copyCon_single_sheet_compatible M n S m ∨
       latent_selCon_single_sheet_compatible M n S m)
+
+/-- If cleaned-menu membership really preserved the originating raw witness, then a nonempty
+pure-`conSlot` raw presentation would be impossible in the cleaned menu. This theorem turns
+the abstract preservation candidate into the exact contradiction it is meant to supply. -/
+theorem latent_nonempty_pure_conSlot_exits_clean_menu_of_preservation_candidate
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n)))
+    (hS : S ≠ [])
+    (hcon : ∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = conSlot M n i)
+    (hpres :
+      latent_clean_menu_membership_preserves_originating_raw_witness_candidate
+        M n σ q S m hLen hDeg hVars hAdm hSig hq) :
+    ¬ latent_clean_compatible_bucket_member_menu M n σ q := by
+  intro hmenu
+  rcases hpres hmenu with hmach | hcopy | hsel
+  · exact (latent_pure_conSlot_incompatible_with_existing_clean_lanes M n S m hS hcon).1 hmach
+  · exact (latent_pure_conSlot_incompatible_with_existing_clean_lanes M n S m hS hcon).2.1 hcopy
+  · exact (latent_pure_conSlot_incompatible_with_existing_clean_lanes M n S m hS hcon).2.2 hsel
 theorem latent_nonempty_pure_conSlot_raw_bucket_exits_clean_menu_of_candidate
     (M : DTM) (n : ℕ)
     (σ : latentProfileSignature M n)
