@@ -4227,6 +4227,57 @@ theorem theorem216_profile_data_logscale_from_bucket_function (M : DTM) (n : ℕ
   exact theorem216_profile_data_logscale_from_core M n hn hn804 hCount hWithin
     (latent_profile_assembly_logscale_from_bucket_function M n hn hn804 hFun)
 
+/-- Canonical P-data package from an explicit span-card witness.
+Section 9 count/within-profile sides are already proved internally. -/
+theorem theorem216_profile_data_logscale_from_span_card_bound_proved (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hSpan : latent_profile_span_card_bound_logscale M n hn hn804) :
+    theorem216_profile_data_logscale M n hn hn804 := by
+  exact theorem216_profile_data_logscale_from_span_card_bound M n hn hn804
+    (theorem9_profile_count_obligation_proved M n hn804)
+    (theorem9_within_profile_dim_obligation_proved M n hn804)
+    hSpan
+
+/-- Canonical P-data package from the Item-3 + uniform-Item-2 witness. -/
+theorem theorem216_profile_data_logscale_from_item3_uniform2_proved (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (h3u2 : latent_profile_block_cover_item3_uniform2_logscale M n hn hn804) :
+    theorem216_profile_data_logscale M n hn hn804 := by
+  exact theorem216_profile_data_logscale_from_item3_uniform2 M n hn hn804
+    (theorem9_profile_count_obligation_proved M n hn804)
+    (theorem9_within_profile_dim_obligation_proved M n hn804)
+    h3u2
+
+/-- Canonical P-data package from the block-cover witness. -/
+theorem theorem216_profile_data_logscale_from_block_cover_proved (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hCover : latent_profile_block_cover_logscale M n hn hn804) :
+    theorem216_profile_data_logscale M n hn hn804 := by
+  exact theorem216_profile_data_logscale_from_block_cover M n hn hn804
+    (theorem9_profile_count_obligation_proved M n hn804)
+    (theorem9_within_profile_dim_obligation_proved M n hn804)
+    hCover
+
+/-- Canonical P-data package from explicit construction-data witness. -/
+theorem theorem216_profile_data_logscale_from_construction_data_proved (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hData : latent_profile_block_cover_construction_data_logscale M n hn hn804) :
+    theorem216_profile_data_logscale M n hn hn804 := by
+  exact theorem216_profile_data_logscale_from_construction_data M n hn hn804
+    (theorem9_profile_count_obligation_proved M n hn804)
+    (theorem9_within_profile_dim_obligation_proved M n hn804)
+    hData
+
+/-- Canonical P-data package from the functional bucket-schema witness. -/
+theorem theorem216_profile_data_logscale_from_bucket_function_proved (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
+    (hFun : latent_profile_bucket_function_bound_logscale M n hn hn804) :
+    theorem216_profile_data_logscale M n hn hn804 := by
+  exact theorem216_profile_data_logscale_from_bucket_function M n hn hn804
+    (theorem9_profile_count_obligation_proved M n hn804)
+    (theorem9_within_profile_dim_obligation_proved M n hn804)
+    hFun
+
 /-- P-side assembly from explicit logscale parts (paper-faithful split).
 Combines Section 9 profile-count + within-profile dimension into assembled upper bound. -/
 theorem latent_profile_assembly_logscale_from_parts (M : DTM) (n : ℕ)
