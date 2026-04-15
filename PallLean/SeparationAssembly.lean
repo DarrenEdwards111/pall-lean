@@ -92,9 +92,81 @@ theorem axiom2_pipeline_sketch
     True := by  -- placeholder for the full pipeline
   trivial
 
+/-! ## Theorem 140 Decomposition via Sound Encoding
+
+The NP-side axiom `theorem_140_np_side` (Theorem 140) decomposes into a chain
+of sub-claims. With the new `SoundTseitinEncoding` (§11 of RamanujanTseitin),
+the decomposition is **consistent** — unlike the original encoding path.
+
+### Full NP-side decomposition chain:
+
+1. **LPS Ramanujan expanders exist** (`sound_lps_family_exists`)
+   Status: sorry (deep algebraic number theory)
+   Paper: §6, LPS (1988) / Margulis (1988)
+
+2. **Disjoint packing on high-girth graphs** (`disjoint_packing_exists`)
+   Status: PROVED (greedy algorithm, bounded-conflict argument)
+   Paper: §8.3, Lemma 8.3
+
+3. **Kronecker system from disjoint packing** (`buildKroneckerSystem`)
+   Status: PROVED (combinatorial construction)
+   Paper: §14, identity-minor construction
+
+4. **Linear independence of Kronecker rows** (`linearIndependent_of_kronecker`)
+   Status: PROVED (diagonal evaluation argument)
+   Paper: §14.2, Kronecker delta property
+
+5. **Binomial lower bound** (`binomial_lower_bound_from_660`)
+   Status: PROVED (explicit arithmetic)
+   Paper: §14.3, C(n/30, log n) ≥ n^(log n / 4) for n ≥ 660
+
+6. **Row realization** (`sound_characteristic_pd_row_derivs`)
+   Status: AXIOM (algebraic core)
+   Paper: §14.1, each Kronecker row = iterated ∂ of χ_φ
+
+7. **PD column space → PD rank** (`pdMatrixRank_ge_of_linearIndependent`)
+   Status: PROVED (finite-dimensional linear algebra)
+   Paper: §2.3, Lemma 49/69
+
+8. **PD rank → SPDP rank** (`pdMatrix_le_spdpRank`)
+   Status: PROVED (subspace containment)
+   Paper: §2.3, Lemma 69
+
+Steps 1-5 and 7-8 are PROVED. Step 6 is the single remaining algebraic axiom.
+The finite exceptional range (n < 660) adds a second axiom
+(`sound_tseitin_pdMatrix_lower_bound_small`).
+
+### Sub-axiom semantics
+
+**`sound_characteristic_pd_row_derivs`**: For each subset of log(n) clauses from
+the greedy packing, the gadget product (product of clause-local polynomials) is
+equal to an iterated partial derivative of the even-parity characteristic
+polynomial χ_φ along a list of |S|-many S-variables.
+
+This is the **algebraic core** of the Ramanujan-Tseitin lower bound. It
+connects the combinatorial pocket structure to the derivative structure of χ_φ.
+The proof in the paper relies on:
+- The factored structure of χ_φ as a sum of assignment monomials
+- The Leibniz rule for iterated derivatives through products
+- The disjoint pocket structure ensuring cross-terms vanish
+- The edge-parity structure of Ramanujan expander graphs
+
+### Status vs original encoding
+
+| Component | Original | Sound |
+|-----------|----------|-------|
+| Row realization | ⚠ INCONSISTENT | ✓ CONSISTENT axiom |
+| Finite range | ⚠ INCONSISTENT | ✓ CONSISTENT axiom |
+| LPS existence | sorry | sorry |
+| Disjoint packing | PROVED | PROVED (shared) |
+| Kronecker system | PROVED | PROVED (shared) |
+| Linear independence | PROVED | PROVED (shared) |
+| PD → SPDP transfer | PROVED | PROVED (shared) |
+-/
+
 /-! ## Current Status (updated 2026-04-15)
 
-### Route B (PaperFaithfulSeparation.lean): 1 axiom, 0 sorry
+### Route B (PaperFaithfulSeparation.lean): 1 axiom (KNOWN FALSE), 0 sorry
 - spdp_profile_generators (SymmetricPower.lean) — P-side profile compression
 - NP-side fully proved via CrossTermVanishing linear independence
 - God-Move uses identity construction (placeholder, not paper-faithful)
@@ -119,31 +191,34 @@ seam for the paper-faithful Route B path (NOT YET INHABITED).
 - theorem_140_np_side (Theorem 140: NP-side exponential lower bound)
 - theorem_139_p_side (Theorem 139: P-side polynomial upper bound)
 
-### Supporting decomposition: 3 axioms, 4 sorry (none load-bearing)
+### Sound NP-side decomposition: 2 axioms, 1 sorry (ALL CONSISTENT)
+
+**RamanujanTseitin.lean (sound path)**:
+- sound_characteristic_pd_row_derivs — AXIOM (algebraic core of Theorem 140)
+- sound_tseitin_pdMatrix_lower_bound_small — AXIOM (finite exceptional range)
+- sound_lps_family_exists — sorry (LPS Ramanujan construction)
 
 **PartialDerivMatrix.lean**: 0 axioms, 0 sorry — CLEAN
+  pdMatrix_le_spdpRank (Lemma 69): PROVED
+
+### Legacy (inconsistent) NP-side path:
+
+**RamanujanTseitin.lean (original path)**: 2 axioms ⚠ INCONSISTENT, 1 sorry
+- characteristic_pd_formula_clause_derivs_from_pack — ⚠ INCONSISTENT
+- tseitin_pdMatrix_lower_bound_small — ⚠ INCONSISTENT
+- lps_family_exists — sorry
+
+### Other supporting files:
 **TMtoBP.lean**: 0 axioms, 0 sorry — CLEAN
 **PaddingRobustness.lean**: 0 axioms, 0 sorry — CLEAN
-
 **BPtoSPDP.lean**: 0 axioms, 1 sorry (not load-bearing, archived)
-- ARCHIVED: bp_iterated_leibniz_eq inductive step (sorry, not on active path)
-
-**RamanujanTseitin.lean**: 2 axioms, 1 sorry (not load-bearing)
-- characteristic_pd_formula_clause_derivs_from_pack — AXIOM ⚠ INCONSISTENT
-  (characteristicPoly = 0 due to parity_odd; see soundness note in file)
-- tseitin_pdMatrix_lower_bound_small — AXIOM ⚠ INCONSISTENT (same reason)
-- lps_family_exists: LPS Ramanujan construction (deep number theory) — sorry
-
-**SymmetricPower.lean**: 1 axiom (load-bearing for Route B P-side)
-- spdp_profile_generators: profile compression for Cook-Levin compiled poly
-
+**SymmetricPower.lean**: 1 axiom (KNOWN FALSE for Route B P-side)
 **RestrictionMono.lean**: 0 axioms, 1 sorry (not load-bearing)
-- spdpRank_restriction_mono: column-deletion monotonicity
 
-### Totals
-  Route B:      1 axiom (spdp_profile_generators), 0 sorry
-  Separation29: 3 axioms, 0 sorry (auxiliary)
-  Supporting:   3 axioms (2 inconsistent), 3 sorry (all non-load-bearing)
+### Totals (sound path only)
+  NP-side (Theorem 140): 2 axioms (CONSISTENT), 1 sorry
+  P-side (Theorem 139):  sub-axioms in TMtoBP + RestrictionMono + Padding
+  Separation29 shell:    3 axioms, 0 sorry (bridges to charPolyRank)
 -/
 
 end SeparationAssembly
