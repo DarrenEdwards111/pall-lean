@@ -1,109 +1,122 @@
-# Handoff: Remaining theorem-sized gaps after fixed-profile bridge work
+# Handoff: Active paper-facing gaps on `godmove-paper-faithful`
 
 Current branch: `godmove-paper-faithful`
-Current state: `lake build PallLean.SeparationFinal` passes, 0 live sorry in the active route.
 
-## Remaining axioms
+## Scope correction
 
-1. `PallLean/SymmetricPower.lean:582`
-   - `axiom spdp_profile_generators`
-   - This is the P-side profile-compression theorem.
+This handoff describes the **current active imported route** only.
 
-2. `PallLean/GodMoveReal.lean:556`
-   - `axiom identity_construction_np_lower_bound`
-   - This is the NP-side lower-bound / identity-minor theorem.
+It does **not** describe the older `Separation29` / `SeparationAssembly` shell,
+and it does **not** treat older God-Move wrappers as the active final route.
 
-## What was completed around the P-side seam
+The active entrypoint is:
 
-Substantial infrastructure was built in `PallLean/SymmetricPowerBound.lean` and compile-checked, including:
+- [PallLean.lean](/tmp/pall-lean/PallLean.lean)
 
-- fixed-profile cover assembly pipeline:
-  - `FixedProfileGeneratorCover`
-  - `FixedProfileCoverFamily`
-  - `HasFixedProfileCoverFamily`
-  - `rank_bound_of_hasFixedProfileCoverFamily`
-- pointwise generator seam:
-  - `SpdpGeneratorData`
-  - `GeneratorProfileCandidate`
-  - `GeneratorHasChosenFixedProfileCover`
-  - `IsExtractedProfileCandidate`
-- product-side extraction substrate:
-  - `ProductSpdpGeneratorData`
-  - `ProductDerivAssignmentWitness`
-  - `ProductLeibnizExpansionWitness`
-- compile-checked base cases:
-  - zero-radius extraction chain
-  - singleton-radius witness / extracted candidate
+The active final contradiction theorem is:
 
-These make the missing P-side theorem much more explicit, but do **not** prove it.
+- [PallLean/LatentCompilerFinalRoute.lean](/tmp/pall-lean/PallLean/LatentCompilerFinalRoute.lean):
+  `LatentCompilerFinalRoute.P_neq_NP_latent_decomp`
 
-## Key insight
+## Honest current state
 
-The old route is:
+The active route compiles without global axioms and without active-route
+`sorry`, but the final theorem is still conditional on an explicit assumptions
+bundle:
 
-`spdp_profile_generators`
-→ `product_leibniz_profile_cover`
-→ `leibniz_symmetric_power_descent_bound`
-→ `rank_bound_from_fixed_profile_factorization`
+- NP-side obligation:
+  `selCon_kronecker_data_logscale`
+- P-side obligation:
+  `theorem216_p_obligation`
 
-The new infrastructure shows an alternate route is conceivable:
+So the live frontier is an **explicit two-obligation boundary**, not a claim
+that the whole route is completely discharged.
 
-`HasFixedProfileCoverFamily`
-→ `rank_bound_of_hasFixedProfileCoverFamily`
-→ reroute `rank_bound_from_fixed_profile_factorization`
+## Remaining obligations
 
-However, this does **not** remove the core mathematical difficulty. It just isolates it.
+### 1. NP-side obligation
 
-## Exact remaining P-side gap
+Name:
 
-To replace `spdp_profile_generators`, one must construct fixed-profile cover spaces with proved finrank bounds:
+- `latent_hard_witness_logscale`
 
-- for each admissible profile histogram `h`, produce a cover space
-- prove `fixedProfileSpan terms h ≤ coverSpace`
-- prove
-  `Module.finrank ℚ coverSpace ≤ profileSymmetricDimBound W h`
-- then assemble into `HasFixedProfileCoverFamily`
+Meaning:
 
-This is exactly the symmetric-power compression theorem.
+- direct identity-minor / Kronecker-data lower bound on
+  `latentCompiledPoly` at contradiction scale
 
-### Why previous attempts stalled
+Primary file:
 
-Because the real missing fact is:
+- [PallLean/LatentWitnessMinorDecomp.lean](/tmp/pall-lean/PallLean/LatentWitnessMinorDecomp.lean)
 
-> the span of all `m`-fold products of vectors from a `d`-dimensional local space
-> has dimension `C(m+d-1, d-1)`, not `d^m`
+What is already in place:
 
-Formalizing that honestly in Lean seems to require several hundred lines of new symmetric/tensor-style algebra or an equivalent bespoke finite-dimensional span argument.
+- selector derivative hit/miss infrastructure
+- iterated derivative closed forms on finite selCon products
+- row scaffolding for Kronecker assembly
+- choose-rank closure and numeric closure infrastructure
 
-## Exact remaining NP-side gap
+What remains:
 
-`identity_construction_np_lower_bound` still needs a formal lower-bound argument showing the compiled Cook-Levin polynomial contains / transfers the identity-minor style independent family needed for rank at least `C(n, log n)`.
+- complete the coefficient-law / Kronecker-data assembly so the direct NP lower
+  bound is fully proved rather than passed in as data
 
-This is a separate theorem-sized task and was not materially advanced here.
+### 2. P-side obligation
+
+Name:
+
+- `latent_profile_assembly_logscale`
+  (packaged to callers as `theorem216_p_obligation`)
+
+Meaning:
+
+- log-scale Width⇒Rank profile assembly bound for `latentCompiledPoly`
+
+Primary file:
+
+- [PallLean/LatentWidthRankDecomp.lean](/tmp/pall-lean/PallLean/LatentWidthRankDecomp.lean)
+
+What is already in place:
+
+- Section 9 profile-count side is discharged in-route
+- within-profile dimension side is discharged in-route
+- the profile-data package is explicit
+
+What remains:
+
+- the final profile assembly step turning those ingredients into the full
+  `≤ n^200` log-scale rank bound
+
+## How this relates to the paper shell
+
+For paper-faithful orientation, the conceptual shell is still:
+
+- Theorem 140: NP-side exponential lower bound
+- Theorem 139: P-side polynomial upper bound
+- Lemma 141: restriction / submatrix monotonicity support
+
+But on this branch those are best viewed as the **paper-level interpretation**
+of the active latent obligations, not as the live implementation boundary.
+
+Also:
+
+- `charPolyRank` is an abstraction symbol, not substantive theorem content
+- `RestrictionMono` is not mere bookkeeping, even when non-load-bearing
+- LPS / Ramanujan existence remains deep imported mathematics on the older
+  paper-numbered shell
 
 ## Recommendation for the next agent
 
-Do **not** add more wrapper structures unless they directly discharge one of these theorem obligations.
+Stay on the latent route.
 
-Best next move on the P-side:
-1. stay in `PallLean/SymmetricPowerBound.lean`
-2. formalize a genuine per-profile finite-dimensional span theorem for products from bounded local interface spaces
-3. use that to build `FixedProfileGeneratorCover`
-4. prove `HasFixedProfileCoverFamily`
-5. only then reroute `rank_bound_from_fixed_profile_factorization`
+Best next moves:
 
-Best next move on the NP-side:
-- separate session, separate theorem campaign in `GodMoveReal.lean`
+1. NP side:
+   finish the Kronecker coefficient-law assembly in
+   `LatentWitnessMinorDecomp.lean`
+2. P side:
+   finish the final profile-assembly theorem in
+   `LatentWidthRankDecomp.lean`
 
-## Commits of note
-
-- `c82f469` Add honest fixed-profile cover bridge scaffolding
-- `056032b` Keep fixed-profile bridge seam explicit
-- `38a3967` Refine pointwise fixed-profile bridge seams
-- `30ea5c2` Add zero-radius product extraction base case
-- `47c8ff0` Add product-level extraction witnesses
-- `bc154f1` Revert sorry-based reroute attempt
-
-## Warning
-
-A previous attempt moved the gap from axiom to `sorry`. That was reverted. Do not repeat that. Axioms are currently the honest boundary.
+Do not spend a session “cleaning up status” by reviving older shell files as if
+they were the active route. That is how the documentation drift happened.

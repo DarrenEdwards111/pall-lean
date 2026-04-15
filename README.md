@@ -60,19 +60,34 @@ The real proof value now lives in:
 
 ## Paper-faithful God-Move branch note
 
-On branch `godmove-paper-faithful`, the repo now also exposes a paper-faithful
-God-Move / extraction route for the multilinear SPDP compiler path:
+On branch `godmove-paper-faithful`, there are multiple paper-facing routes and
+historical shells in the tree. The **active imported route** is the latent
+compiler route:
 
-- `PallLean/GodMoveMonotonicityML.lean`
-- `PallLean/GodMoveExtractionML.lean`
-- `PallLean/GodMoveCompilerRoute.lean`
+- `PallLean/LatentCompiler.lean`
+- `PallLean/LatentWidthRankDecomp.lean`
+- `PallLean/LatentWitnessMinorDecomp.lean`
+- `PallLean/LatentCompilerFinalRoute.lean`
 
-The concrete entry point there is:
-- `GodMoveCompilerRoute.godMove_extraction_rank_monotone`
+The active entrypoint is [PallLean.lean](/tmp/pall-lean/PallLean.lean), and the
+active final contradiction theorem is:
 
-This packages the existing theorem-level multilinear extraction machinery from
-`MultilinearSPDP.lean` under a dedicated God-Move API, without introducing new
-axioms on that route.
+- `LatentCompilerFinalRoute.P_neq_NP_latent_decomp`
+
+This route is axiom-free in Lean syntax but still conditional on an explicit
+paper-facing assumptions bundle:
+
+- NP-side obligation: identity-minor / Kronecker data
+- P-side obligation: profile-assembly Width⇒Rank bound
+
+For the current honest status summary, see:
+
+- [PROOF-OBLIGATIONS.md](/tmp/pall-lean/PROOF-OBLIGATIONS.md)
+- [SORRY-INVENTORY.md](/tmp/pall-lean/SORRY-INVENTORY.md)
+
+Older paper-numbered files such as `Separation29.lean`,
+`SeparationAssembly.lean`, and the God-Move wrappers remain useful for
+orientation, but they are not the current imported route.
 
 ## Route 1 files (archived/exploratory)
 

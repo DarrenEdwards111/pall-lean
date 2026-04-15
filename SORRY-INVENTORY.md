@@ -1,70 +1,82 @@
-# Formalization Status — P ≠ NP Lean
+# Formalization Status — `godmove-paper-faithful`
 
 **Branch:** `godmove-paper-faithful`  
-**Date:** 2026-04-03  
-**Build:** 8047 jobs, 0 errors  
-**Sorries:** 0  
-**Axioms:** 1
+**Date:** 2026-04-15
 
-## What This Is
+## Current truth
 
-A conditional formalization of the paper's P ≠ NP contradiction route.
-The full separation chain is wired and proved, conditional on one axiom
-that encapsulates the paper's compiler analysis (§9.1–9.3, Theorem 264).
+The active route on this branch is the **latent compiler route**, not the older
+paper-numbered `Separation29` shell.
 
-**Honest wording:**
-- We formalize the contradiction route conditional on the compiler theorem.
-- The remaining unformalized content is the CEW-based Width⇒Rank theorem
-  for the compiled tableau polynomial.
-- This axiom encapsulates the paper's compiler analysis rather than
-  reproducing it internally.
+The actual imported entrypoint is [PallLean.lean](/tmp/pall-lean/PallLean.lean),
+which imports:
 
-## The 1 Axiom
+- `PallLean.LatentCompiler`
+- `PallLean.LatentWidthRankDecomp`
+- `PallLean.LatentWitnessMinorDecomp`
+- `PallLean.LatentCompilerFinalRoute`
 
-```lean
-axiom compiled_width_rank_bound (M : DTM) (n : ℕ)
-    (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804) :
-    mlBlockedSpdpRank (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
-      (latentCompiledPoly M n) ≤ n ^ 160
-```
+The active final contradiction theorem is:
 
-**Paper reference:** Theorem 264 (Compiled Width ⇒ Rank via profile compression)
+- [PallLean/LatentCompilerFinalRoute.lean](/tmp/pall-lean/PallLean/LatentCompilerFinalRoute.lean):
+  `LatentCompilerFinalRoute.P_neq_NP_latent_decomp`
 
-**What the paper proves (§9.1–9.3):**
-1. CEW bound: compiler ensures ≤ C(log n)^c live interfaces (Lemma 19)
-2. Profile count: |H(R)| ≤ C(R+m, m) = R^O(1) via stars-and-bars (Lemma 20)
-3. Per-profile dim: dim(V_h) ≤ R^O(1) via symmetric tensor powers (Lemma 22)
-4. Assembly: rank ≤ |H(R)| × max dim(V_h) = R^O(1) = (log n)^O(1) (Theorem 23)
+This theorem is **axiom-free in Lean syntax**, but it is still **conditional on
+an explicit assumptions bundle**:
 
-**To eliminate this axiom:** Replace `latentCompiledPoly` with the paper's
-Cook-Levin tableau polynomial (which has bounded CEW by construction),
-then formalize profile compression.
+- NP-side obligation: `selCon_kronecker_data_logscale`
+- P-side obligation: `theorem216_p_obligation`
 
-## What Is Fully Proved
+So the honest status is:
 
-### NP Side (0 sorries, 0 axioms)
-- `cubicGraph` construction and regularity proof
-- `buildTseitin`: all 4 fields (upper/lower clause bounds, var bounds, occurrence)
-- `highGirthFamily` construction
-- Identity minor / disjoint packing chain
-- Tseitin polynomial and coupled verifier
+- global axioms on the active route: `0`
+- active-route `sorry`: `0`
+- explicit paper-facing obligations still required to close the route: `2`
 
-### P Side (conditional on 1 axiom)
-- Basis extraction from finrank bound (Submodule.exists_finset_span_eq_linearIndepOn)
-- Assembly: rank bound → span bound → frozen target
-- Full routing chain to P ≠ NP
+## Active paper-facing frontier
 
-### Separation Route
-- `P_neq_NP_from_generator_axiom`: the final contradiction
-- All routing bridges between P-side and NP-side
-- Canonical route packaging
+The remaining mathematical frontier is packaged in
+[PROOF-OBLIGATIONS.md](/tmp/pall-lean/PROOF-OBLIGATIONS.md).
 
-## Critical Discovery (2026-04-03)
+At the top level there are **two** remaining obligations:
 
-The per-sheet rank bound `product_sheet_spdp_rank_bound` was **FALSE**.
-Product sheets `∏(1 - X_a X_b)` have SPDP rank ≥ C(B, κ), which is
-superpolynomial. The paper's polynomial bound applies to the Cook-Levin
-tableau polynomial (bounded CEW), not to raw product-of-gadgets sheets.
+1. `latent_hard_witness_logscale`
+   - NP-side identity-minor / Kronecker-data lower bound on
+     `latentCompiledPoly`
+2. `latent_profile_assembly_logscale`
+   - P-side Width⇒Rank profile-assembly bound at log scale
 
-This was discovered via concrete counterexample (B=3, κ=2) and led to
-the restructure from per-sheet bounds to the honest axiom approach.
+These are the real unresolved items on the active branch.
+
+## How this relates to the paper
+
+The paper-level separation shell is still the right conceptual map:
+
+- Theorem 139: P-side polynomial upper bound
+- Theorem 140: NP-side exponential lower bound
+- Lemma 141: restriction / submatrix monotonicity support
+
+But on this branch those statements are **not** the active implementation
+boundary. They are represented indirectly through the latent-route obligations
+above.
+
+Also:
+
+- `charPolyRank` should be read as an interface symbol / abstraction barrier
+- the substantive paper-level frontier is the proof of the upper/lower-bound
+  theorems, not the opaque symbol itself
+- `RestrictionMono` is structurally non-load-bearing on the current route, but
+  still conceptually real mathematics rather than mere syntax cleanup
+- LPS / Ramanujan existence is deep imported math and remains a reasonable
+  axiom boundary when using the paper-numbered shell
+
+## Historical files
+
+The repo still contains older route/status files, including:
+
+- `PallLean/Separation29.lean`
+- `PallLean/SeparationAssembly.lean`
+- `HANDOFF-fixed-profile-gap.md`
+
+Those are useful for orientation, but they do **not** describe the current
+active imported route.
