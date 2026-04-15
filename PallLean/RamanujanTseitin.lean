@@ -521,6 +521,17 @@ noncomputable def formulaClauseGadgetProd
     MvPolynomial (Fin (Tseitin.tseitinNumVars (fam.encoding n hn).formula)) F :=
   (clauses.map (Tseitin.clauseGadget F (fam.encoding n hn).formula)).prod
 
+/-- The ambient variable set touched by a concrete list of formula clauses. -/
+noncomputable def formulaClauseVarSetFin
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (clauses : List (Fin (fam.encoding n hn).formula.clauses.length)) :
+    Finset (Fin (Tseitin.tseitinNumVars (fam.encoding n hn).formula)) :=
+  clauses.foldr
+    (fun c acc => IdentityMinor.clauseVarSetFin (fam.encoding n hn).formula c ∪ acc)
+    ∅
+
 /-- A product of actual formula-clause gadgets still avoids every selector
 coordinate. -/
 theorem vars_subset_base_formulaClauseGadgetProd
@@ -550,6 +561,45 @@ theorem vars_subset_base_formulaClauseGadgetProd
       · have hlt := Tseitin.clauseGadget_vars_bound F (fam.encoding n hn).formula c x hcg
         exact Finset.mem_image.mpr ⟨⟨x.val, hlt⟩, Finset.mem_univ _, Fin.ext rfl⟩
       · exact ih hrest
+
+/-- More sharply, a concrete clause-product row uses only the variables coming
+from the clauses that define it. -/
+theorem vars_subset_formulaClauseVarSetFin_formulaClauseGadgetProd
+    (F : Type*) [Field F] [CharZero F] [Nontrivial F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (clauses : List (Fin (fam.encoding n hn).formula.clauses.length)) :
+    (formulaClauseGadgetProd F fam n hn clauses).vars ⊆
+      formulaClauseVarSetFin F fam n hn clauses := by
+  intro x hx
+  induction clauses with
+  | nil =>
+      simp [formulaClauseGadgetProd, formulaClauseVarSetFin] at hx
+  | cons c rest ih =>
+      have hx' :
+          x ∈ (Tseitin.clauseGadget F (fam.encoding n hn).formula c *
+            formulaClauseGadgetProd F fam n hn rest).vars := by
+        simpa [formulaClauseGadgetProd] using hx
+      have hunion :
+          x ∈ (Tseitin.clauseGadget F (fam.encoding n hn).formula c).vars ∪
+            (formulaClauseGadgetProd F fam n hn rest).vars := by
+        exact MvPolynomial.vars_mul
+          (Tseitin.clauseGadget F (fam.encoding n hn).formula c)
+          (formulaClauseGadgetProd F fam n hn rest) hx'
+      rw [Finset.mem_union] at hunion
+      rcases hunion with hcg | hrest
+      · have hxset :
+            x ∈ (↑(IdentityMinor.clauseVarSetFin (fam.encoding n hn).formula c) :
+              Set (Fin (Tseitin.tseitinNumVars (fam.encoding n hn).formula))) := by
+          rcases (MvPolynomial.mem_vars x).mp hcg with ⟨m, hm, hxmem⟩
+          have huses := IdentityMinor.clauseGadget_usesOnly_clause
+            (F := F) (Φ := (fam.encoding n hn).formula) c
+          exact huses m hm x hxmem
+        simp [formulaClauseVarSetFin]
+        exact Or.inl hxset
+      · have hxrest : x ∈ formulaClauseVarSetFin F fam n hn rest := ih hrest
+        simp [formulaClauseVarSetFin]
+        exact Or.inr hxrest
 
 /-- A product of actual formula-clause gadgets still avoids every selector
 coordinate. -/
