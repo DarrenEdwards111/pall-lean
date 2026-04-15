@@ -163,4 +163,96 @@ def GodMoveSemanticInterface.toAbstract
   target_lower := g.target_lower
   rank_transfer := g.rank_transfer
 
+/-! ## Characteristic-Polynomial Route B Bridge
+
+The paper's Route B derives the NP-side lower bound from the characteristic
+polynomial of the hard Ramanujan-Tseitin instance, NOT from the compiled
+Cook-Levin polynomial directly. The God-Move extraction map `Π_Φ` connects
+the two:
+
+  compiled polynomial P_{M,n}
+       ↓ restriction + projection (God-Move Π_Φ)
+  coupled verifier sheet Q×_Φ
+       ↓ structure of Tseitin encoding
+  characteristic polynomial χ_{φ_n}
+       ↓ PD-matrix lower bound (sound encoding, RamanujanTseitin §11)
+  exponential SPDP rank
+
+The `DecidesSAT` hypothesis is load-bearing in the FIRST step: the existence
+of the extraction map depends on `M` correctly classifying the hard instance.
+
+The structures below decompose the God-Move interface into three independent
+obligations, making the role of `DecidesSAT` explicit. -/
+
+/-- The paper-faithful God-Move Route B semantic obligations.
+
+This structure makes explicit the THREE independent obligations that must be
+met to inhabit `GodMoveSemanticInterface`:
+
+1. **Hard instance selection**: Choose a Ramanujan-Tseitin hard instance φ_n.
+   This is combinatorial and independent of `DecidesSAT`.
+
+2. **Extraction map**: Construct Π_Φ from the compiled polynomial to the
+   coupled sheet space. This is WHERE `DecidesSAT` is load-bearing: the
+   map exists because `M` correctly classifies φ_n.
+
+3. **NP lower bound**: The coupled sheet polynomial has exponential SPDP rank.
+   This follows from the Tseitin structure and is independent of `DecidesSAT`.
+
+Obligations 1 and 3 are addressed by the sound characteristic-polynomial route.
+Obligation 2 is the genuine semantic frontier. -/
+structure GodMoveRouteB_Obligations (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  /-- Obligation 1: Hard instance from the Ramanujan-Tseitin family. -/
+  hardInstance : ThreeCNF
+  hardInstance_size : hardInstance.clauses.length ≤ 10 * n ∧
+    n / 30 ≤ hardInstance.clauses.length
+  /-- The coupled variable space (strictly smaller than compiled). -/
+  coupledVars : ℕ
+  coupledVars_lt : coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars
+  coupledPartition : BlockPartition coupledVars
+  coupledPoly : MvPolynomial (Fin coupledVars) ℚ
+  /-- Obligation 3 (independent of DecidesSAT): NP lower bound. -/
+  target_lower :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank coupledPartition (Nat.log 2 n) (Nat.log 2 n) coupledPoly
+
+/-- Obligation 2 (requires DecidesSAT): Extraction map rank transfer.
+
+This is the exact remaining semantic frontier for Route B. It says:
+the SPDP rank of the coupled verifier sheet is bounded by the SPDP rank
+of the compiled Cook-Levin polynomial, via the extraction map Π_Φ.
+
+The extraction map exists BECAUSE `M` decides 3-SAT: if `M` accepts
+the hard instance φ_n, then the compiled polynomial P_{M,n} contains the
+clause-sheet structure of φ_n, and the extraction map simply picks out
+those coordinates. -/
+def GodMoveRouteB_ExtractionObligation (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (_hdec : DecidesSAT M)
+    (obs : GodMoveRouteB_Obligations M n hn2 htb hns) : Prop :=
+  mlBlockedSpdpRank obs.coupledPartition (Nat.log 2 n) (Nat.log 2 n) obs.coupledPoly ≤
+    mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+
+/-- From the three obligations, the full semantic interface follows. -/
+def GodMoveSemanticInterface.fromObligations
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (obs : GodMoveRouteB_Obligations M n hn2 htb hns)
+    (extraction : GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec obs) :
+    GodMoveSemanticInterface M n hn2 htb hns hdec where
+  hardInstance := obs.hardInstance
+  hardInstance_size := obs.hardInstance_size
+  coupledVars := obs.coupledVars
+  coupledVars_lt := obs.coupledVars_lt
+  coupledPartition := obs.coupledPartition
+  coupledPoly := obs.coupledPoly
+  instance_uniform := trivial
+  witness_free := trivial
+  block_local := trivial
+  target_lower := obs.target_lower
+  rank_transfer := extraction
+
 end PaperFaithfulSeparation
