@@ -181,8 +181,30 @@ private theorem spdp_subspace_finrank_le_cylinder_bound
      The hardest sub-step is formally connecting the cylinder decomposition
      output (which gives a sum of polynomials) to the per-term row-space
      submodules in a way that Lean's submodule API can handle.
-     We leave this connection as sorry. -/
-  sorry
+     We handle the trivial case B.poly = 0 directly and leave the nonzero
+     case as sorry. -/
+  by_cases hpoly : B.poly (F := F) = 0
+  · -- Trivial case: B.poly = 0, so all SPDP generators are 0,
+    -- the subspace is {0}, finrank = 0 ≤ anything.
+    simp only [spdpRank, spdpSubspace]
+    -- Rewrite B.poly to 0 in the goal
+    rw [hpoly]
+    -- Now show the span of {m * ∂_S 0 : ...} has finrank 0
+    have hspan_bot : Submodule.span F
+        { q : MvPolynomial (Fin n) F | ∃ (S : List (Fin n)) (m : MvPolynomial (Fin n) F),
+            S.length = ℓ ∧ m.totalDegree ≤ ℓ ∧ q = m * iterDerivList S 0 } = ⊥ := by
+      apply le_antisymm
+      · apply Submodule.span_le.mpr
+        intro q ⟨S, m, _, _, hq⟩
+        simp only [iterDerivList, foldl_pderiv_zero, mul_zero] at hq
+        rw [hq]; exact Submodule.zero_mem _
+      · exact bot_le
+    rw [hspan_bot]
+    simp [Submodule.finrank_eq_zero]
+  · -- Nonzero case: the full cylinder decomposition argument is needed.
+    -- The proof requires connecting bp_cylinder_decomposition output
+    -- to per-term row-space bounds. Left as sorry pending that step.
+    sorry
 
 /-- Lemma 45 with EXISTENTIAL constants: there EXIST C_ℓ, d_ℓ such that
     rk_{SPDP,ℓ}(f_B) ≤ (C_ℓ · W · L')^{d_ℓ}.
@@ -579,6 +601,74 @@ theorem bp_rowspace_bound_per_term_empty
     -- Without determinism in the structure, we use sorry
     sorry
 
+/-- Iterated Leibniz rule for a matrix product entry: differentiating B.poly by a list S
+    of variables gives a sum over all assignments T : S.toFinset → Fin B.length of
+    the product of layer matrices where each layer τ is differentiated by the variables
+    in S that T maps to τ. The sum is taken over extended assignments
+    Fin n → Fin B.length (extending arbitrarily outside S).
+
+    This is the core equality used in bp_cylinder_decomposition. -/
+private theorem bp_iterated_leibniz_eq
+    {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
+    (B : LayeredBP n)
+    (hLpos : 0 < B.length)
+    (S : List (Fin n)) :
+    let extend : (↥S.toFinset → Fin B.length) → (Fin n → Fin B.length) :=
+      fun g v => if h : v ∈ S.toFinset then g ⟨v, h⟩ else ⟨0, hLpos⟩
+    let terms : Finset (Fin n → Fin B.length) := Finset.univ.image extend
+    let coeff : (Fin n → Fin B.length) → MvPolynomial (Fin n) F := fun T =>
+      (List.map (fun τ : Fin B.length =>
+          let derivVars := S.filter (fun v => T v = τ)
+          Matrix.of (fun v u : Fin B.width =>
+            iterDerivList derivVars (B.layerMatrix (F := F) τ v u)))
+        (List.finRange B.length)).prod B.target B.source
+    iterDerivList S (B.poly (F := F)) = terms.sum coeff := by
+  intro extend terms coeff
+  induction S with
+  | nil =>
+    -- Base case: S = []. LHS = B.poly.
+    simp only [iterDerivList, List.foldl]
+    -- RHS: terms is a singleton (one element in ↥∅ → Fin B.length)
+    -- and coeff of that element = B.poly (no derivatives applied).
+    -- First show that coeff T = B.poly for all T when S = []
+    suffices hcoeff : ∀ T, coeff T = B.poly (F := F) by
+      have huniv_card : Finset.card (Finset.univ : Finset (↥([] : List (Fin n)).toFinset → Fin B.length)) = 1 := by
+        rw [Finset.card_univ]; simp
+      have hterms_card : terms.card = 1 := by
+        have hle : terms.card ≤ 1 :=
+          le_trans Finset.card_image_le (le_of_eq huniv_card)
+        have hne : terms.Nonempty := Finset.Nonempty.image _ Finset.univ_nonempty
+        omega
+      obtain ⟨T₀, hT₀⟩ := Finset.card_eq_one.mp hterms_card
+      rw [hT₀, Finset.sum_singleton, hcoeff]
+    -- Show coeff T = B.poly for all T when S = []
+    intro T
+    -- coeff T is the product of (Matrix.of (fun v u => iterDerivList (filter ...) (layerMatrix ...)))
+    -- When S = [], filter always gives [], so iterDerivList [] = id, and Matrix.of = layerMatrix
+    show (List.map (fun τ : Fin B.length =>
+        let derivVars := ([] : List (Fin n)).filter (fun v => T v = τ)
+        Matrix.of (fun v u : Fin B.width =>
+          iterDerivList derivVars (B.layerMatrix (F := F) τ v u)))
+      (List.finRange B.length)).prod B.target B.source = B.poly (F := F)
+    -- Simplify: [].filter _ = [] and iterDerivList [] = id
+    have hmap_eq : List.map (fun τ : Fin B.length =>
+        let derivVars := ([] : List (Fin n)).filter (fun v => T v = τ)
+        Matrix.of (fun v u : Fin B.width =>
+          iterDerivList derivVars (B.layerMatrix (F := F) τ v u)))
+      (List.finRange B.length) =
+      List.map (fun τ : Fin B.length => B.layerMatrix (F := F) τ)
+        (List.finRange B.length) := by
+      congr 1; ext τ
+      simp only [List.filter_nil, iterDerivList, List.foldl]
+      ext v u; simp [Matrix.of_apply]
+    rw [hmap_eq]; rfl
+  | cons v rest ih =>
+    -- Inductive step: S = v :: rest.
+    -- The proof uses bp_leibniz_localisation, iterDerivList_finset_sum, and reindexing.
+    -- The reindexing bijection between (v :: rest)-assignments and
+    -- pairs (τ, rest-assignment) is the technically hardest part.
+    sorry
+
 /-- (Step 3) Cylinder decomposition.
 
     For an iterated derivative ∂_S f_B with |S| = κ, the Leibniz rule
@@ -643,20 +733,10 @@ theorem bp_cylinder_decomposition
         (List.finRange B.length)).prod B.target B.source
     refine ⟨terms, coeff, ?_, ?_, ?_⟩
     · -- Equality: iterDerivList S (B.poly) = terms.sum coeff
-      -- This is the content of the iterated Leibniz rule for matrix products.
+      -- This is the iterated Leibniz rule for matrix products.
       -- Each variable in S, when differentiated via the Leibniz rule, is assigned
       -- to one of the L' layers. The resulting sum over all assignments T gives
       -- exactly the iterated Leibniz expansion of the matrix product entry.
-      --
-      -- The formal proof would proceed by induction on S:
-      -- • Base (S=[]): the single term T₀ gives the undifferentiated product = B.poly.
-      -- • Step (S = v :: rest): apply pderiv v via bp_leibniz_localisation to get L' terms,
-      --   then distribute iterDerivList rest over the sum (by iterDerivList_finset_sum
-      --   from LeibnizProduct.lean), and reindex the double sum (over τ and IH terms)
-      --   as a sum over extended assignments.
-      --
-      -- The bookkeeping for reindexing the double sum and matching the matrix product
-      -- entries is the technically hardest part. We leave it as sorry.
       sorry
     · -- Card bound: terms.card ≤ B.length ^ S.length
       calc terms.card
