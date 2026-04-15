@@ -2253,6 +2253,43 @@ def godMoveOneStagePerturbationWitnessTarget
   ∃ c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns,
     godMoveOneStagePerturbationTarget M n hn hdec htb hns c
 
+/-- Intermediate Route B shell between the bare one-stage perturbation witness
+and the stronger paper-facing genuine-candidate package.
+
+This keeps the semantically meaningful parts already realized by the first
+behavior perturbation:
+1. canonical construction shape,
+2. staged extraction identity, and
+3. a genuine one-stage perturbation of the identity chain.
+
+What it deliberately does not yet require is the stronger staged-map
+nontriviality package used by `godMoveGenuineCandidateTarget`. -/
+def godMoveCanonicalOneStageCandidateTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) : Prop :=
+  godMoveConstructionCanonicalTarget c ∧
+  godMoveStagedExtractionTarget M n (by omega : n ≥ 2) htb hns
+    c.coupledVars c.map c.target ∧
+  godMoveOneStagePerturbationTarget M n hn hdec htb hns c
+
+/-- Existential packaging of the intermediate Route B shell.
+
+This is the strongest current post-identity witness layer that the explicit
+first perturbation construction already inhabits without adding new axioms or
+placeholder bridges. -/
+def godMoveCanonicalOneStageWitnessTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) : Prop :=
+  ∃ c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns,
+    godMoveCanonicalOneStageCandidateTarget M n hn hdec htb hns c
+
 /-- The current identity placeholder does not inhabit the new non-identity
 existence target. This theorem does not rule out other constructions; it only
 records that the old identity route is definitively not the answer. -/
@@ -2281,6 +2318,20 @@ theorem godMoveConstruction_exists_not_one_stage_perturbation_witness
     ¬ godMoveOneStagePerturbationTarget M n hn hdec htb hns
         (godMoveConstruction_exists M n hn hdec htb hns) := by
   exact godMoveConstruction_exists_not_one_stage_perturbation M n hn hdec htb hns
+
+/-- The identity placeholder also fails the stronger canonical one-stage shell:
+its staged extraction identity is trivial, but it still does not perturb any
+semantic stage of the identity chain. -/
+theorem godMoveConstruction_exists_not_canonical_one_stage_candidate
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ godMoveCanonicalOneStageCandidateTarget M n hn hdec htb hns
+        (godMoveConstruction_exists M n hn hdec htb hns) := by
+  intro h
+  exact godMoveConstruction_exists_not_one_stage_perturbation M n hn hdec htb hns h.2.2
 
 /-- Smallest constructive subtarget of the post-identity frontier.
 
@@ -3077,6 +3128,23 @@ theorem godMoveConstruction_firstBehaviorPerturbation_is_one_stage_perturbation
     (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData
   exact godMoveRestrictionData_firstPerturbation_ne_identity M n hn hdec htb hns
 
+/-- The first behavior perturbation already inhabits the strongest current
+post-identity Route B shell that does not require the harder staged-map
+nontriviality upgrade. -/
+theorem godMoveConstruction_firstBehaviorPerturbation_is_canonical_one_stage_candidate
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveCanonicalOneStageCandidateTarget M n hn hdec htb hns
+      (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns) := by
+  refine ⟨
+    godMoveConstruction_firstBehaviorPerturbation_is_canonical_target M n hn hdec htb hns,
+    ?_,
+    godMoveConstruction_firstBehaviorPerturbation_is_one_stage_perturbation M n hn hdec htb hns⟩
+  exact (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns).staged_semantic_target
+
 /-- The first behavior-perturbed construction gives an explicit existential
 one-stage witness, so the post-identity Route B shell now has a real inhabitant
 rather than only a local construction theorem. -/
@@ -3089,6 +3157,20 @@ theorem godMoveOneStagePerturbationWitnessTarget_holds
     godMoveOneStagePerturbationWitnessTarget M n hn hdec htb hns := by
   refine ⟨godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns, ?_⟩
   exact godMoveConstruction_firstBehaviorPerturbation_is_one_stage_perturbation
+    M n hn hdec htb hns
+
+/-- The first behavior perturbation also gives an explicit witness for the
+stronger canonical one-stage shell, narrowing the remaining Route B gap to the
+single staged-map nontriviality upgrade. -/
+theorem godMoveCanonicalOneStageWitnessTarget_holds
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveCanonicalOneStageWitnessTarget M n hn hdec htb hns := by
+  refine ⟨godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns, ?_⟩
+  exact godMoveConstruction_firstBehaviorPerturbation_is_canonical_one_stage_candidate
     M n hn hdec htb hns
 
 /-- The first behavior-perturbed construction already inhabits the weaker
