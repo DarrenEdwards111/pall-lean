@@ -295,39 +295,62 @@ noncomputable def characteristic_pd_kronecker_of_rawClauseSystem
   simpa [numVars_eq, numClauses_eq] using
     (IdentityMinorReal.buildKroneckerSystem sys (Nat.log 2 n))
 
-/-- Combined large-instance algebraic witness:
-- a disjoint clause system matching the pockets
-- an explicit derivative realization of the derived Kronecker rows. -/
-structure CharacteristicPocketClauseSystemWitness
+/-- Concrete Tseitin clause system attached to a disjoint packing. This is the
+canonical identity-minor object already present in the repo, not an abstract
+black-box replacement. -/
+noncomputable def characteristic_pd_clauseSystem_of_pack
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
     (n : ℕ) (hn : n ≥ 6)
-    (pockets : ExpanderPocketWitness (fam.encoding n hn)) where
-  sys : IdentityMinorReal.DisjointClauseSystem F
-  numVars_eq : sys.numVars = (fam.encoding n hn).numVars
-  numClauses_eq : sys.numClauses = pockets.pocketCount
-  rowDerivs : Fin (Nat.choose pockets.pocketCount (Nat.log 2 n)) →
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
+    IdentityMinorReal.DisjointClauseSystem F :=
+  IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack
+
+/-- The concrete clause system from a disjoint packing has exactly the expected
+ambient variable count. -/
+theorem characteristic_pd_clauseSystem_of_pack_numVars
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
+    (characteristic_pd_clauseSystem_of_pack F fam n hn pack).numVars =
+      (fam.encoding n hn).numVars := by
+  rfl
+
+/-- The concrete clause system from a disjoint packing has exactly as many
+clauses as the selected pockets. -/
+theorem characteristic_pd_clauseSystem_of_pack_numClauses
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
+    (characteristic_pd_clauseSystem_of_pack F fam n hn pack).numClauses =
+      pack.selected.length := by
+  rfl
+
+/-- Remaining large-instance algebraic frontier: for the concrete Tseitin
+clause system of a disjoint packing, realize the rows of the derived Kronecker
+system as iterated derivatives of the characteristic polynomial. -/
+structure CharacteristicPackingRowWitness
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) where
+  rowDerivs : Fin (Nat.choose pack.selected.length (Nat.log 2 n)) →
     List (Fin (fam.encoding n hn).numVars)
   rowDerivs_length : ∀ i,
     (rowDerivs i).length = (fam.partition n hn).part.S.card
   rowDerivs_in_S : ∀ i v, v ∈ rowDerivs i → v ∈ (fam.partition n hn).part.S
   rows_eq_iterDeriv : ∀ i,
-    (characteristic_pd_kronecker_of_rawClauseSystem F fam n hn pockets
-      sys numVars_eq numClauses_eq).rows i =
+    (characteristic_pd_kronecker_of_rawClauseSystem F fam n hn
+      (expanderPocketWitness_of_disjointPacking (fam.encoding n hn) pack)
+      (characteristic_pd_clauseSystem_of_pack F fam n hn pack)
+      (characteristic_pd_clauseSystem_of_pack_numVars F fam n hn pack)
+      (by
+        change pack.selected.length =
+          (expanderPocketWitness_of_disjointPacking (fam.encoding n hn) pack).pocketCount
+        rfl)).rows i =
         SPDP.iterDerivList (rowDerivs i) (fam.encoding n hn).charPoly
-
-/-- Build the characteristic Kronecker system from a characteristic-pocket
-clause system witness using the generic identity-minor construction. -/
-noncomputable def characteristic_pd_kronecker_of_clauseSystem
-    (F : Type*) [Field F] [CharZero F]
-    (fam : RamanujanTseitinFamily F)
-    (n : ℕ) (hn : n ≥ 6)
-    (pockets : ExpanderPocketWitness (fam.encoding n hn))
-    (w : CharacteristicPocketClauseSystemWitness F fam n hn pockets) :
-    IdentityMinorReal.KroneckerDeltaSystem F
-      (fam.encoding n hn).numVars (Nat.choose pockets.pocketCount (Nat.log 2 n)) :=
-  characteristic_pd_kronecker_of_rawClauseSystem F fam n hn pockets
-    w.sys w.numVars_eq w.numClauses_eq
 
 /-- Characteristic-polynomial signed-minor witness built from expander pockets.
 
@@ -429,34 +452,40 @@ theorem CharacteristicPdPocketWitness.rank_bound
   }
   exact PdMatrixKroneckerWitness.rank_bound F kw
 
-/-- **Axiom (remaining coefficient frontier)**: once the disjoint expander
-pockets are available, the characteristic polynomial admits the required
-algebraic witness. The actual Kronecker system and row membership are then
-derived from the generic identity-minor construction plus the explicit
-derivative realization contained in the witness. -/
-axiom characteristic_pd_clauseSystem_from_pockets
+/-- **Axiom (remaining characteristic-polynomial frontier)**: for the concrete
+Tseitin clause system attached to the greedy disjoint packing, the rows of the
+derived identity-minor Kronecker system are realized by iterated derivatives
+of the characteristic polynomial. -/
+axiom characteristic_pd_rows_from_pack
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
     (n : ℕ) (hn : n ≥ 6)
-    (pockets : ExpanderPocketWitness (fam.encoding n hn)) :
-    CharacteristicPocketClauseSystemWitness F fam n hn pockets
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
+    CharacteristicPackingRowWitness F fam n hn pack
 
 /-- Reassemble the two remaining algebraic frontiers into the minor witness
 record used by the final lower-bound step. -/
-noncomputable def characteristicPdMinorWitness_from_axioms
+noncomputable def characteristicPdMinorWitness_from_pack_axiom
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
     (n : ℕ) (hn : n ≥ 6)
-    (pockets : ExpanderPocketWitness (fam.encoding n hn)) :
-    CharacteristicPdMinorWitness F fam n hn pockets := by
-  let csw := characteristic_pd_clauseSystem_from_pockets F fam n hn pockets
-  let system := characteristic_pd_kronecker_of_clauseSystem F fam n hn pockets csw
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
+    CharacteristicPdMinorWitness F fam n hn
+      (expanderPocketWitness_of_disjointPacking (fam.encoding n hn) pack) := by
+  let pockets := expanderPocketWitness_of_disjointPacking (fam.encoding n hn) pack
+  let rwit := characteristic_pd_rows_from_pack F fam n hn pack
+  let system := characteristic_pd_kronecker_of_rawClauseSystem F fam n hn pockets
+    (characteristic_pd_clauseSystem_of_pack F fam n hn pack)
+    (characteristic_pd_clauseSystem_of_pack_numVars F fam n hn pack)
+    (by
+      change pack.selected.length = pockets.pocketCount
+      rfl)
   refine {
     system := system
-    rowDerivs := csw.rowDerivs
-    rowDerivs_length := csw.rowDerivs_length
-    rowDerivs_in_S := csw.rowDerivs_in_S
-    rows_eq_iterDeriv := csw.rows_eq_iterDeriv
+    rowDerivs := rwit.rowDerivs
+    rowDerivs_length := rwit.rowDerivs_length
+    rowDerivs_in_S := rwit.rowDerivs_in_S
+    rows_eq_iterDeriv := rwit.rows_eq_iterDeriv
   }
 
 /-- **Axiom (finite exceptional range)**: the characteristic-polynomial PD
@@ -504,9 +533,14 @@ theorem tseitin_pdMatrix_lower_bound_large
   have hverts : 100 ≤ (fam.encoding n hn).graph.numVertices := by
     rw [fam.encoding_graph n hn, fam.vertices_count n hn]
     exact h100
+  have hformula : 100 ≤ (fam.encoding n hn).formula.graph.numVertices := by
+    rw [(fam.encoding n hn).graph_compat]
+    simpa using hverts
+  let pack : Tseitin.DisjointPacking (fam.encoding n hn).formula :=
+    Tseitin.disjoint_packing_exists (fam.encoding n hn).formula hformula
   let pockets : ExpanderPocketWitness (fam.encoding n hn) :=
-    expanderPocketWitness (fam.encoding n hn) hverts
-  let minor := characteristicPdMinorWitness_from_axioms F fam n hn pockets
+    expanderPocketWitness_of_disjointPacking (fam.encoding n hn) pack
+  let minor := characteristicPdMinorWitness_from_pack_axiom F fam n hn pack
   let kw : PdMatrixKroneckerWitness F fam n hn := {
     N := Nat.choose pockets.pocketCount (Nat.log 2 n)
     system := minor.system
