@@ -99,26 +99,34 @@ theorem axiom2_pipeline_sketch
 - theorem_140_np_side (Theorem 140: NP-side exponential lower bound)
 - theorem_139_p_side (Theorem 139: P-side polynomial upper bound)
 
-### Supporting decomposition: 1 axiom, 4 sorry (none load-bearing)
+### Supporting decomposition: 3 axioms, 4 sorry (none load-bearing)
 
 **PartialDerivMatrix.lean**: 0 axioms, 0 sorry — CLEAN
 **TMtoBP.lean**: 0 axioms, 0 sorry — CLEAN
 **PaddingRobustness.lean**: 0 axioms, 0 sorry — CLEAN
 
 **BPtoSPDP.lean**: 0 axioms, 2 sorry (not load-bearing)
-- Sorry 1: bp_rowspace_bound_per_term_empty W≥2 (needs BP determinism)
-- Sorry 2: cylinder Leibniz inductive step (needs generalized matrix IH)
+- Sorry 1: spdp_subspace_finrank_le_cylinder_bound nonzero case
+    (needs finite spanning set infrastructure for spdpSubspace)
+- Sorry 2: bp_iterated_leibniz_eq inductive step
+    (reindexing bookkeeping for iterated Leibniz on matrix products)
+- PROVED: bp_rowspace_bound_per_term_empty (W² bound via Set.fintypeRange)
 
-**RamanujanTseitin.lean**: 1 axiom, 1 sorry (not load-bearing)
-- lps_family_exists: LPS Ramanujan construction (deep number theory) — AXIOM
-- characteristic_pd_formula_clause_derivs_from_pack: converted to def+sorry
-- tseitin_pdMatrix_lower_bound_small: converted to theorem+sorry
+**RamanujanTseitin.lean**: 2 axioms, 1 sorry (not load-bearing)
+- characteristic_pd_formula_clause_derivs_from_pack — AXIOM
+- tseitin_pdMatrix_lower_bound_small — AXIOM
+- lps_family_exists: LPS Ramanujan construction (deep number theory) — sorry
+
+**SymmetricPower.lean**: 1 axiom (not load-bearing)
+- spdp_profile_generators: profile compression for Cook-Levin compiled poly
 
 **RestrictionMono.lean**: 0 axioms, 1 sorry (not load-bearing)
+- spdpRank_restriction_mono: column-deletion monotonicity
+    (needs coefficient-matrix rank infrastructure)
 
-### Totals: 4 axioms, 81 theorems, 4 sorry
-  Load-bearing: 3 axioms, 0 sorry
-  Supporting:   1 axiom (LPS existence), 4 sorry (all non-load-bearing)
+### Totals: 6 axioms, 4 sorry
+  Load-bearing: 3 axioms (Separation29), 0 sorry
+  Supporting:   3 axioms, 4 sorry (all non-load-bearing)
 -/
 
 end SeparationAssembly
