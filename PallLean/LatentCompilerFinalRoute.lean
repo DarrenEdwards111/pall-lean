@@ -652,10 +652,10 @@ theorem no_PeqNP_of_uniform_bucket_function
     latent_profile_block_cover_construction_data_from_bucket_function h'.sat_decider n'
       (hnM_of_hn h' n' hn') (hn804_of_hn h' n' hn') (hFun h' n' hn')) h
 
-/-- Local theorem216 wrapper for the consolidated "any approved compiler source"
+/-- Local core wrapper for the consolidated "any approved compiler source"
 shell from `CompilerProperties`. This sits here rather than in
 `LatentWidthRankDecomp` to avoid a cyclic import. -/
-private theorem theorem216_profile_data_logscale_from_any_source_proved
+private theorem latent_profile_assembly_logscale_from_any_source_proved
     (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates) (hn804 : n ≥ 2 ^ 804)
     (hAny :
@@ -664,8 +664,8 @@ private theorem theorem216_profile_data_logscale_from_any_source_proved
       latent_p_witness_target_logscale M n hn hn804 ∨
       latent_profile_block_cover_construction_data_logscale M n hn hn804 ∨
       latent_profile_span_card_bound_logscale M n hn hn804) :
-    theorem216_p_obligation M n hn hn804 := by
-  exact theorem216_profile_data_logscale_from_compiled_tableau_proved M n hn hn804
+    latent_profile_assembly_logscale M n hn hn804 := by
+  exact (latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hn hn804).2
     (latent_compiled_tableau_bound_proved_from_any_source M n hn hn804 hAny)
 
 /-- Global closure theorem:
@@ -693,8 +693,8 @@ theorem no_PeqNP_of_uniform_any_compiler_source
     exact le_rfl
   have hnM : n ≥ max 4 h.sat_decider.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  exact P_neq_NP_latent_from_p_obligation h n hn
-    (theorem216_profile_data_logscale_from_any_source_proved
+  exact P_neq_NP_latent_from_p_core h n hn
+    (latent_profile_assembly_logscale_from_any_source_proved
       h.sat_decider n hnM hn804 (hAny h n hn))
 
 /-- Global closure theorem:
