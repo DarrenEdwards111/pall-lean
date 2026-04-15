@@ -555,6 +555,21 @@ theorem ramanujan_tseitin_structure_exists (n : ℕ) (hn : n ≥ 6) :
     exact hS
   · exact tseitin_pdMatrix_lower_bound ℚ fam n hn
 
+/-- Formula-level packaging of the same witness: there is an explicit Tseitin
+formula whose concrete characteristic polynomial has the required PD lower
+bound. This is the paper-facing existential statement, with the encoding record
+kept only as the source of the graph/partition metadata. -/
+theorem ramanujan_tseitin_formula_exists (n : ℕ) (hn : n ≥ 6) :
+    ∃ (fam : RamanujanTseitinFamily ℚ)
+      (enc : TseitinEncoding ℚ)
+      (tpart : TseitinPartition enc),
+      n / 30 ≤ tpart.part.S.card ∧
+      n ^ (Nat.log 2 n / 4) ≤
+        pdMatrixRank ℚ tpart.part (Tseitin.characteristicPoly ℚ enc.formula) := by
+  obtain ⟨fam, enc, tpart, hS, hrank⟩ := ramanujan_tseitin_structure_exists n hn
+  refine ⟨fam, enc, tpart, hS, ?_⟩
+  simpa [← enc.charPoly_eq_characteristic] using hrank
+
 /-- Witness-style reduction of the hard characteristic-polynomial PD lower
 bound. Once one exhibits enough linearly independent PD-column-space elements
 for the paper's partition, the desired rank lower bound is immediate by linear
@@ -590,9 +605,8 @@ theorem theorem72_condensed (n : ℕ) (hn : n ≥ 6) :
     ∃ (numVars : ℕ) (part : VarPartition numVars) (f : MvPolynomial (Fin numVars) ℚ),
       n / 30 ≤ part.S.card ∧
       n ^ (Nat.log 2 n / 4) ≤ pdMatrixRank ℚ part f := by
-  obtain ⟨fam, enc, tpart, hS, hrank⟩ := ramanujan_tseitin_structure_exists n hn
-  refine ⟨enc.numVars, tpart.part, Tseitin.characteristicPoly ℚ enc.formula, hS, ?_⟩
-  simpa [← enc.charPoly_eq_characteristic] using hrank
+  obtain ⟨_, enc, tpart, hS, hrank⟩ := ramanujan_tseitin_formula_exists n hn
+  exact ⟨enc.numVars, tpart.part, Tseitin.characteristicPoly ℚ enc.formula, hS, hrank⟩
 
 /-! ## 10. Summary Diagram
 
