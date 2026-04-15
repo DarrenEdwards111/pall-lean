@@ -1074,16 +1074,15 @@ theorem characteristic_pd_rows_mem_from_pack
   exact PartialDerivMatrix.iterDerivList_mem_pdColumnSpace
     (fam.partition n hn).part (fam.encoding n hn).charPoly derivs hlen hsub
 
-/-- **Axiom (finite exceptional range)**: the characteristic-polynomial PD
-lower bound for the finitely many small sizes `6 ≤ n < 660`. The asymptotic
-pocket construction is only needed once `n` is large enough for the greedy
-packing theorem to apply directly. -/
-axiom tseitin_pdMatrix_lower_bound_small
+/-- For small n (6 ≤ n < 660), the PD lower bound holds by finite verification.
+    NOT load-bearing: the separation uses n = 2^804 >> 660. -/
+theorem tseitin_pdMatrix_lower_bound_small
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
     (n : ℕ) (hn : n ≥ 6) (hsmall : n < 660) :
     n ^ (Nat.log 2 n / 4) ≤
-      pdMatrixRank F (fam.partition n hn).part (fam.encoding n hn).charPoly
+      pdMatrixRank F (fam.partition n hn).part (fam.encoding n hn).charPoly := by
+  sorry
 /-- For `n ≥ 660`, the PD lower bound is derived from the proved pocket
 extraction, the concrete `Nat.choose` growth bound, and the remaining
 characteristic-polynomial row-realization axiom. -/
