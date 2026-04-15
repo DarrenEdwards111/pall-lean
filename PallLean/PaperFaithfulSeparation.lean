@@ -460,28 +460,47 @@ structure PeqNP_Paper where
 
 /-! ## The Unconditional Separation Theorem
 
-The proof uses `decides_3sat` from `PeqNP_Paper` in a genuinely load-bearing
-way: it is passed to `god_move_identity_minor_axiom` to obtain the NP-side
-bound on the compiled polynomial. Without `decides_3sat`, the God-Move
-extraction has no reason to produce a coupled verifier sheet -- the
-decomposition P = Q-x + R is specific to a DTM whose acceptance semantics
-match the formula's satisfiability.
+**CRITICAL SOUNDNESS NOTE** (2026-04-15):
 
-Proof chain:
-1. From `p_side_rank_bound_for_cook_levin`: P-side bound
-   Gamma(compiledPoly) <= n^200 (holds for ANY DTM)
-2. From `god_move_identity_minor_axiom` with `h.decides_3sat`: NP-side bound
-   Gamma(compiledPoly) >= n^{log n / 4} (uses decides_3sat via God-Move)
-3. Contradiction at n = 2^804: n^201 <= n^200 is impossible.
+The P-side axiom `spdp_profile_generators` is **provably inconsistent** with
+the axiom-free NP-side theorem `compiled_np_lower_bound_any_dtm` (in
+`GodMoveReal.lean`). Specifically:
 
-Axiom inventory (TWO genuine axioms for the product polynomial ∏(1-Cᵢ)):
-- `p_side_rank_bound_for_cook_levin`: profile compression (paper §9, Theorem 92)
-  — polynomial SPDP rank for any P-time DTM
-- `god_move_extraction_lemma`: God-Move extraction (paper §29, Lemmas 123-124)
-  — exponential SPDP rank when DTM decides 3-SAT
+- **NP-side (proved, 0 axioms)**: For ANY DTM M with timeBound ≤ 4 and
+  numStates ≤ n, at n ≥ 2^804:
+  C(n/3, log₂ n) ≤ mlBlockedSpdpRank B (log₂ n) (log₂ n) (compiledPoly T)
+  where T = cook_levin_compilation M n ... and B = T.partition.
 
-Both axioms are mathematically true for the product polynomial. Neither is
-vacuous or contradictory. -/
+- **P-side (1 axiom: spdp_profile_generators)**: For ANY DTM M:
+  mlBlockedSpdpRank B (log₂ n) (log₂ n) (compiledPoly T) ≤ n^200
+
+These are bounds on the SAME quantity (same partition B, same κ = ℓ = log₂ n,
+same polynomial compiledPoly T). Their conjunction gives:
+
+  C(n/3, log₂ n) ≤ n^200
+
+At n = 2^804: C(2^804/3, 804) ≥ (2^{792.8})^{804} ≈ 2^{638000} while
+n^200 = 2^{160800}. So the conjunction is FALSE.
+
+Since the NP-side has 0 axioms (formally verified by Lean), the P-side axiom
+`spdp_profile_generators` MUST be false. The profile compression argument as
+axiomatized does not hold for the product polynomial ∏(1-Cᵢ) with the
+locality partition at the derivative order κ = log₂ n.
+
+The `DecidesSAT` hypothesis in `god_move_identity_minor_axiom` appears in the
+type but is NOT used in the proof (it passes through to
+`identity_construction_np_lower_bound` which doesn't use it either). So the
+"unconditional" theorem below derives False from a false axiom, not from a
+genuine mathematical contradiction.
+
+**Resolution path**: Either
+1. Fix the P-side axiom to use a different partition or SPDP regime, or
+2. Make `DecidesSAT` genuinely load-bearing in the NP-side (via a real
+   God-Move extraction to the coupled sheet, where the NP bound applies
+   to the extracted polynomial, not the compiled polynomial directly).
+
+See `GodMoveSemanticInterface` in `GodMoveCore.lean` for the paper-faithful
+Route B interface that resolves this by making `DecidesSAT` load-bearing. -/
 theorem P_ne_NP_unconditional : ∀ (h : PeqNP_Paper), False := by
   intro hPeqNP
   -- Fix n = 2^804 (contradiction scale)
@@ -536,5 +555,63 @@ Only the P-side profile compression introduces a custom axiom. -/
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
 #print axioms P_ne_NP_unconditional
 -- Expected: the above + spdp_profile_generators (1 custom axiom)
+
+/-! ## Inconsistency witness
+
+The following theorem demonstrates that for ANY DTM (not just one deciding
+3-SAT), the axiom-free NP-side lower bound contradicts the P-side axiom.
+This shows `spdp_profile_generators` is false.
+
+Proof: take any DTM M with timeBound ≤ 4 and numStates ≤ 2^804.
+- NP-side (GodMoveReal.compiled_np_lower_bound_any_dtm, 0 axioms):
+  C(n/3, log n) ≤ mlBlockedSpdpRank B κ ℓ (compiledPoly T)
+- P-side (spdp_profile_generators axiom):
+  mlBlockedSpdpRank B κ ℓ (compiledPoly T) ≤ n^200
+- Together: n^201 ≤ n^200 at n = 2^804. Contradiction.
+
+Note: this uses `compiled_np_lower_bound_any_dtm` which does NOT require
+DecidesSAT. The NP-side lower bound applies to the compiled polynomial
+of ANY DTM, which is the root cause of the inconsistency. -/
+theorem spdp_profile_generators_inconsistent_with_np_side
+    (M : DTM) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ 2 ^ 804) :
+    False := by
+  set n := 2 ^ 804 with hn_def
+  have hn₀ : n ≥ 2 ^ 804 := le_refl _
+  have hn2 : n ≥ 2 := by
+    calc 2 = 2 ^ 1 := (pow_one 2).symm
+    _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+  have hns_n : M.numStates ≤ n := le_trans hns (le_refl _)
+  -- P-side (1 axiom: spdp_profile_generators): rank ≤ n^200
+  have hP : mlBlockedSpdpRank
+      (cook_levin_compilation M n hn2 htb hns_n).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn2 htb hns_n)) ≤ n ^ 200 :=
+    p_side_rank_bound_for_cook_levin M n hn2 htb hns_n
+  -- NP-side (0 axioms, NO DecidesSAT): C(n/3, log n) ≤ rank
+  have hNP : Nat.choose (n / 3) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n hn2 htb hns_n).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns_n)) :=
+    GodMoveReal.compiled_np_lower_bound_any_dtm M n hn₀ htb hns_n
+  -- Quantitative bridge: n^(log n / 4) ≤ C(n/3, log n) via BinomialBound2
+  have hn20 : n ≥ 2 ^ 20 :=
+    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn₀
+  have hbin : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
+    BinomialBound.binomial_lower_bound_concrete n hn20
+  have hmono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose (n / 3) (Nat.log 2 n) :=
+    Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
+  -- Chain: n^(log n / 4) ≤ C(n/30, log n) ≤ C(n/3, log n) ≤ rank ≤ n^200
+  have hchain : n ^ (Nat.log 2 n / 4) ≤ n ^ 200 :=
+    le_trans (le_trans (le_trans hbin hmono) hNP) hP
+  -- For n = 2^804, log₂ n ≥ 804, so log₂ n / 4 ≥ 201 > 200
+  have hlog : 804 ≤ Nat.log 2 n := Nat.le_log_of_pow_le (by norm_num : 1 < 2) hn₀
+  have hdiv : 201 ≤ Nat.log 2 n / 4 := by omega
+  have hcontra : n ^ 201 ≤ n ^ 200 :=
+    le_trans (Nat.pow_le_pow_right (by omega : 1 ≤ n) hdiv) hchain
+  exact absurd hcontra
+    (not_le_of_gt (Nat.pow_lt_pow_right (by omega : 1 < n) (by omega : 200 < 201)))
+
+#print axioms spdp_profile_generators_inconsistent_with_np_side
 
 end PaperFaithfulSeparation
