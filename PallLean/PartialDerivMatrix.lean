@@ -356,4 +356,28 @@ theorem theorem_140_from_pdMatrix (n : ℕ) (hn : n ≥ 2)
   obtain ⟨part, hcard, hbound⟩ := h_pdMatrix
   exact le_trans hbound (h_spdp_bound part 0 3 hcard)
 
+/-! ## PD → SPDP Transfer for the Sound Encoding Path
+
+The sound characteristic-polynomial route (RamanujanTseitin §11) produces
+a PD-matrix rank lower bound. Lemma 69 transfers this to SPDP rank. The
+theorem below packages the complete transfer from PD-matrix rank to
+(unblocked) SPDP rank, using only proved results. -/
+
+/-- Complete PD → SPDP rank transfer.
+
+Given:
+- A PD-matrix rank lower bound: `B ≤ pdMatrixRank F part f`
+- Lemma 69: `pdMatrixRank F part f ≤ spdpRank |S| ℓ f` for `|S| ≤ ℓ`
+
+Conclusion: `B ≤ spdpRank |S| ℓ f`.
+
+This is the paper's Lemma 69 applied as a bridge from the sound encoding's
+concrete PD lower bound to the abstract SPDP rank. -/
+theorem pdMatrix_to_spdpRank_transfer {n : ℕ} (F : Type*) [Field F] [Nontrivial F]
+    (part : VarPartition n) (f : MvPolynomial (Fin n) F)
+    (ℓ : ℕ) (hℓ : part.S.card ≤ ℓ)
+    (B : ℕ) (hB : B ≤ pdMatrixRank F part f) :
+    B ≤ SPDP.spdpRank part.S.card ℓ f :=
+  le_trans hB (pdMatrix_le_spdpRank F part f ℓ hℓ)
+
 end PartialDerivMatrix
