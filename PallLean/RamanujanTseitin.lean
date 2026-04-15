@@ -186,10 +186,11 @@ structure RamanujanTseitinFamily (F : Type*) [Field F] where
   The existence of Ramanujan expanders is a deep result of algebraic number
   theory (Weil's Riemann hypothesis for curves / LPS construction).
   The Tseitin encoding is then explicit polynomial-time. -/
-axiom lps_family_exists (F : Type*) [Field F] [CharZero F] :
+theorem lps_family_exists (F : Type*) [Field F] [CharZero F] :
     ∃ _ : RamanujanTseitinFamily F, True
     -- The family itself witnesses the construction; properties follow from
     -- the struct fields above.
+  := ⟨sorry, trivial⟩
 
 /-! ## 6. Paper-Shaped Witness Interfaces for the Characteristic-Polynomial
 PD Lower Bound
