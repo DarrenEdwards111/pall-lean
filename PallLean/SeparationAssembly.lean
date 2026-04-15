@@ -1,51 +1,82 @@
 /-
   SeparationAssembly.lean — Full proof pipeline assembly
 
-  This file shows how the two axioms in Separation29.lean decompose
-  into smaller, more fundamental claims, and tracks which are proved
-  vs which remain as sub-axioms.
+  This file tracks the current honest frontier behind the two shell axioms in
+  `Separation29.lean`, separating what is now theorem-level infrastructure from
+  what still survives as `axiom`/`sorry` obligations in nearby files.
 
   ## Full Proof Pipeline (Paper §2 + §14 + §17 + §29)
 
-  ### Axiom 1 (Theorem 140): NP-side exponential lower bound
+  ### Shell route (`Separation29.lean`)
+  The exported separation theorem still factors through two shell axioms plus
+  one opaque shell symbol:
+  - `charPolyRank` (opaque symbol)
+  - `theorem_140_np_side` (axiom)
+  - `theorem_139_p_side` (axiom)
+
+  The purpose of this file is to record how far those shell axioms have been
+  decomposed honestly.
+
+  ### NP-side decomposition target (Theorem 140)
   charPolyRank n ≥ n^{log n / 4}
 
-  Decomposes into:
-  A. ∂-matrix ≤ SPDP (Lemma 69)           [PartialDerivMatrix.pdMatrix_le_spdpRank]
-  B. Ramanujan expanders exist              [RamanujanTseitin — axiom]
-  C. Tseitin encoding → ∂-matrix structure [RamanujanTseitin — axiom]
-  D. ∂-matrix has exponential rank          [RamanujanTseitin — axiom]
-  E. Transfer: D + A → Theorem 140         [PartialDerivMatrix.theorem_140_from_pdMatrix]
+  Current nearby status:
+  - `PartialDerivMatrix.pdMatrix_le_spdpRank`: theorem
+  - `PartialDerivMatrix.theorem_140_from_pdMatrix`: theorem
+  - `RamanujanTseitin.sound_lps_family_exists`: theorem with one `sorry`
+  - Active assembled sound route still uses
+    `sound_characteristic_pd_row_derivs` and
+    `sound_tseitin_pdMatrix_lower_bound_small`
+  - The small-range frontier is further split in-file into
+    `sound_tseitin_pdMatrix_lower_bound_mid`,
+    `sound_tseitin_pdMatrix_lower_bound_hard`, and the local theorem
+    `sound_tseitin_pdMatrix_lower_bound_trivial` whose proof still has a `sorry`
+  - A narrower replacement route is present but not yet wired through the main
+    theorem: `sound_single_clause_deriv_realization`,
+    `sound_disjoint_clause_composition`, and reconstruction theorem
+    `sound_row_derivs_from_decomposition`
 
-  ### Axiom 2 (Theorem 139): P-side polynomial upper bound
+  ### P-side decomposition target (Theorem 139)
   charPolyRank n ≤ n^200  (when 3-SAT ∈ P)
 
-  Decomposes into:
-  F. TM → BP compilation (Lemma 44)        [TMtoBP.tm_to_bp_compilation — axiom]
-  G. BP → poly SPDP rank (Lemma 45)        [TMtoBP.bp_spdp_rank_bound — axiom]
-  H. P ⊆ poly-SPDP (Theorem 46)            [TMtoBP.p_side_poly_spdp_rank — partial]
-  I. Restriction monotonicity (Lemma 141)   [RestrictionMono.spdpRank_restriction_mono — axiom]
-  J. Padding robustness (Theorem 144)       [PaddingRobustness — axiom]
-  K. Assembly: F+G+H+I+J → Theorem 139     [this file]
+  Current nearby status:
+  - `TMtoBP.tm_to_bp_compilation`: definition
+  - `TMtoBP.bp_spdp_rank_bound`: theorem
+  - `TMtoBP.p_side_poly_spdp_rank`: theorem
+  - `PaddingRobustness.*`: theorem-level placeholder infrastructure, no
+    remaining `axiom`/`sorry`
+  - `RestrictionMono.spdpRank_restriction_mono`: theorem proved from one
+    non-load-bearing helper `sorry` (`spdpSubspace_restriction_le_image`)
+  - `axiom2_from_components` in this file packages the concrete P-side seam
+    back into the shell-level `charPolyRank n ≤ n^200` conclusion
 
   ## Status Summary
 
-  PROVED (theorems, no axioms):
-  - Separation29.three_sat_not_in_P: Theorem 147 from Axioms 1+2
-  - PartialDerivMatrix.theorem_140_from_pdMatrix: Theorem 140 from A+D
-  - TMtoBP.p_side_poly_spdp_rank: Theorem 46 from F+G (partial)
-  - RestrictionMono.hard_instance_p_side_bound: trivial chain
+  THEOREM-level nearby items:
+  - Separation29.three_sat_not_in_P: Theorem 147 from the two shell axioms
+  - PartialDerivMatrix.theorem_140_from_pdMatrix: transfer theorem packaging
+    PD-rank lower bounds into a shell-level Theorem 140 conclusion
+  - TMtoBP.p_side_poly_spdp_rank: P-side polynomial SPDP bound for the current
+    zero-polynomial BP compilation
+  - PaddingRobustness.padding_preserves_rank / nc0_padding_exists
+  - RestrictionMono.spdpRank_restriction_mono: theorem statement available,
+    but it still rests on one helper `sorry`
+  - axiom2_from_components: theorem wrapper reducing the shell P-side bound
+    to the concrete data package exposed in `Separation29.lean`
 
-  SUB-AXIOMS (remaining unproved claims):
-  - pdMatrix_le_spdpRank (A): pure linear algebra, submatrix rank
-  - ramanujan_tseitin_pdMatrix_lower_bound (B+C+D): Ramanujan-Tseitin
-  - tm_to_bp_compilation (F): TM→BP simulation
-  - bp_spdp_rank_bound (G): BP→SPDP cylinder decomposition
-  - spdpRank_restriction_mono (I): column deletion monotonicity
-  - padding axioms (J): NC⁰ padding robustness
+  ACTIVE frontier items in nearby files:
+  - `RamanujanTseitin.sound_lps_family_exists`: one `sorry`
+  - `RamanujanTseitin.sound_characteristic_pd_row_derivs`: axiom
+  - `RamanujanTseitin.sound_tseitin_pdMatrix_lower_bound_small`: axiom
+  - `RestrictionMono.spdpSubspace_restriction_le_image`: helper `sorry`
+
+  DECOMPOSED but not yet assembled through the main theorem:
+  - `RamanujanTseitin.sound_single_clause_deriv_realization`: axiom
+  - `RamanujanTseitin.sound_disjoint_clause_composition`: axiom
+  - `RamanujanTseitin.sound_row_derivs_from_decomposition`: `sorry`
 
   Each sub-axiom is a specific, well-defined mathematical claim from
-  the paper, much more focused than the original two monolithic axioms.
+  the paper, much more focused than the original two monolithic shell axioms.
 -/
 import PallLean.Separation29
 import PallLean.PartialDerivMatrix
@@ -76,7 +107,7 @@ theorem axiom1_from_components (n : ℕ) (hn : n ≥ 2)
   exact PartialDerivMatrix.theorem_140_from_pdMatrix n hn (charPolyRank n)
     h_pdMatrix h_transfer
 
-/-- The full P-side chain: TM → BP → SPDP → restriction → instance bound.
+/-- The full P-side shell conclusion from the concrete assembly seam.
 
     If M decides 3-SAT in time n^4, then:
     1. M compiles to BP B_n (Lemma 44)
@@ -84,13 +115,17 @@ theorem axiom1_from_components (n : ℕ) (hn : n ≥ 2)
     3. Restricting to φ_n: rk(χ_{φ_n}) ≤ rk(f_{3SAT}) (Lemma 141)
     4. Padding: rk(χ_{pad(φ_n)}) ≥ rk(χ_{φ_n}) (Theorem 144)
     5. Combined: charPolyRank n ≤ n^c ≤ n^200 -/
-theorem axiom2_pipeline_sketch
+theorem axiom2_from_components
     (M : TuringMachine.DTM)
-    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4)
-    (n : ℕ) (hn : n ≥ 2) :
-    True := by  -- placeholder for the full pipeline
-  trivial
+    (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (d : ConcreteNPSideData n)
+    (pData : ConcretePSideData M n hn htb hns hdec)
+    (h_bridge : charPolyRank n ≤ SPDP.spdpRank d.partition.S.card d.partition.S.card d.poly) :
+    charPolyRank n ≤ n ^ 200 := by
+  exact theorem_139_from_concrete M n hn htb hns hdec pData d h_bridge
 
 /-! ## Theorem 140 Decomposition via Sound Encoding
 
@@ -164,7 +199,12 @@ The proof in the paper relies on:
 | PD → SPDP transfer | PROVED | PROVED (shared) |
 -/
 
-/-! ## Current Status (updated 2026-04-15)
+/-! ## Historical Status Snapshot (updated 2026-04-15)
+
+This file is an orientation record for the `Separation29` shell and nearby
+paper-numbered routes. It is not the active imported contradiction route on
+this branch; for the live obligation tracker, see `PROOF-OBLIGATIONS.md` and
+`SORRY-INVENTORY.md`.
 
 ### Route B (PaperFaithfulSeparation.lean): 1 axiom (KNOWN FALSE), 0 sorry
 - spdp_profile_generators (SymmetricPower.lean) — P-side profile compression
@@ -186,20 +226,37 @@ in the God-Move extraction (Step A), not in the NP lower bound.
 `GodMoveSemanticInterface` in `GodMoveCore.lean` is the exact theorem
 seam for the paper-faithful Route B path (NOT YET INHABITED).
 
-### Separation29 route: 3 axioms, 0 sorry (auxiliary, NOT primary)
+### Separation29 route: 2 axioms + 1 opaque symbol, 0 sorry (auxiliary, NOT primary)
 - charPolyRank (opaque abstraction symbol)
 - theorem_140_np_side (Theorem 140: NP-side exponential lower bound)
 - theorem_139_p_side (Theorem 139: P-side polynomial upper bound)
 
-### Sound NP-side decomposition: 2 axioms, 1 sorry (ALL CONSISTENT)
+### Sound NP-side, active assembled route: 2 main axioms, 1 main sorry
 
-**RamanujanTseitin.lean (sound path)**:
+This is the route that currently feeds `sound_theorem72_condensed`.
+
+**RamanujanTseitin.lean (sound assembled path)**:
 - sound_characteristic_pd_row_derivs — AXIOM (algebraic core of Theorem 140)
-- sound_tseitin_pdMatrix_lower_bound_small — AXIOM (finite exceptional range)
+- sound_tseitin_pdMatrix_lower_bound_small — AXIOM (assembled finite exceptional range)
 - sound_lps_family_exists — sorry (LPS Ramanujan construction)
+
+Auxiliary small-range refinement currently present in the same file:
+- sound_tseitin_pdMatrix_lower_bound_mid — AXIOM (16 ≤ n < 256)
+- sound_tseitin_pdMatrix_lower_bound_hard — AXIOM (256 ≤ n < 660)
+- sound_tseitin_pdMatrix_lower_bound_trivial — theorem with a local sorry (6 ≤ n < 16)
 
 **PartialDerivMatrix.lean**: 0 axioms, 0 sorry — CLEAN
   pdMatrix_le_spdpRank (Lemma 69): PROVED
+
+### Sound NP-side, decomposed replacement route: 2 narrower axioms, 1 sorry
+
+This route is more faithful about the remaining algebraic content, but it is
+not yet wired into `sound_tseitin_pdMatrix_lower_bound`.
+
+**RamanujanTseitin.lean (sound decomposed path)**:
+- sound_single_clause_deriv_realization — AXIOM (single-clause derivative realization)
+- sound_disjoint_clause_composition — AXIOM (disjoint Leibniz composition)
+- sound_row_derivs_from_decomposition — sorry (reconstruction back to row realization)
 
 ### Legacy (inconsistent) NP-side path:
 
@@ -217,10 +274,20 @@ seam for the paper-faithful Route B path (NOT YET INHABITED).
 **RestrictionMono.lean**: 0 axioms, 1 sorry (not load-bearing)
   Remaining gap narrowed to a finite-support matrix-rank bridge.
 
-### Totals (sound path only)
-  NP-side (Theorem 140): 2 axioms (CONSISTENT), 1 sorry
-  P-side (Theorem 139):  sub-axioms in TMtoBP + RestrictionMono + Padding
-  Separation29 shell:    3 axioms, 0 sorry (bridges to charPolyRank)
+### Totals (honest frontier, by route)
+  Route B current placeholder shell: 1 false axiom, 0 sorry
+  Separation29 shell: 2 axioms + 1 opaque symbol, 0 sorry
+  Sound NP-side active assembled route: 4 axioms, 2 sorry
+  Sound NP-side decomposed replacement route: 2 axioms, 1 sorry
+  P-side nearby decomposition: 0 axioms, 1 sorry
 -/
+
+/-! ## Axiom audit
+
+`axiom1_from_components` still depends on the shell symbol `charPolyRank`.
+`axiom2_from_components` uses `charPolyRank` together with the concrete bridge
+hypothesis supplied to `theorem_139_from_concrete`. -/
+#print axioms axiom1_from_components
+#print axioms axiom2_from_components
 
 end SeparationAssembly

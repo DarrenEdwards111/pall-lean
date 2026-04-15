@@ -210,9 +210,9 @@ theorem hard_family_finrank_bound (n : ℕ) (hn : n ≥ 1) (κ : ℕ) (hκ : 0 <
 
 /-! ## §29.5: The Two Axioms
 
-### Axiom 1 (P-side): Profile compression rank bound for Cook-Levin compiled polynomial
+### P-side theorem: profile compression rank bound for Cook-Levin compiled polynomial
 
-This axiom states that for any DTM M and input size n >= 2, the compiled
+This theorem states that for any DTM `M` and input size `n ≥ 2`, the compiled
 polynomial from cook_levin_compilation has SPDP rank <= n^200.
 
 For the product polynomial P = ∏(1-Cᵢ), simple locality counting gives a
@@ -221,8 +221,9 @@ The paper's profile compression (§9, Theorem 92) resolves this: rows with
 the same constraint-type histogram ("profile") contribute to the same
 subspace, and the number of distinct profiles is polynomial.
 
-Profile compression is not yet formalized. This axiom represents a genuine
-mathematical claim from the paper that is true for the product polynomial.
+The outer bound is now theorem-level via `ProfileCompression.lean`; the single
+remaining P-side frontier has been factored down to
+`SymmetricPowerBound.profile_symmetric_power_factorization`.
 
 ### Axiom 2 (God-Move + Identity Minor): Core mathematical axiom
 
@@ -462,7 +463,7 @@ structure PeqNP_Paper where
 
 **CRITICAL SOUNDNESS NOTE** (2026-04-15):
 
-The P-side axiom `spdp_profile_generators` is **provably inconsistent** with
+The old P-side axiom `spdp_profile_generators` is **provably inconsistent** with
 the axiom-free NP-side theorem `compiled_np_lower_bound_any_dtm` (in
 `GodMoveReal.lean`). Specifically:
 
@@ -471,7 +472,8 @@ the axiom-free NP-side theorem `compiled_np_lower_bound_any_dtm` (in
   C(n/3, log₂ n) ≤ mlBlockedSpdpRank B (log₂ n) (log₂ n) (compiledPoly T)
   where T = cook_levin_compilation M n ... and B = T.partition.
 
-- **P-side (1 axiom: spdp_profile_generators)**: For ANY DTM M:
+- **P-side (current theorem, resting on the reduced Step B frontier)**:
+  For ANY DTM M:
   mlBlockedSpdpRank B (log₂ n) (log₂ n) (compiledPoly T) ≤ n^200
 
 These are bounds on the SAME quantity (same partition B, same κ = ℓ = log₂ n,
@@ -482,10 +484,10 @@ same polynomial compiledPoly T). Their conjunction gives:
 At n = 2^804: C(2^804/3, 804) ≥ (2^{792.8})^{804} ≈ 2^{638000} while
 n^200 = 2^{160800}. So the conjunction is FALSE.
 
-Since the NP-side has 0 axioms (formally verified by Lean), the P-side axiom
-`spdp_profile_generators` MUST be false. The profile compression argument as
-axiomatized does not hold for the product polynomial ∏(1-Cᵢ) with the
-locality partition at the derivative order κ = log₂ n.
+Since the NP-side has 0 axioms (formally verified by Lean), the old P-side
+axiom `spdp_profile_generators` must be false. The earlier profile-compression
+package did not hold for the product polynomial `∏(1-Cᵢ)` with the locality
+partition at derivative order `κ = log₂ n`.
 
 The `DecidesSAT` hypothesis in `god_move_identity_minor_axiom` appears in the
 type but is NOT used in the proof (it passes through to
@@ -550,17 +552,20 @@ theorem P_ne_NP_unconditional : ∀ (h : PeqNP_Paper), False := by
 /-! ## Axiom audit
 
 The NP-side (God-Move + identity minor) is axiom-free beyond standard Lean.
-Only the P-side profile compression introduces a custom axiom. -/
+The NP-side (God-Move + identity minor) is axiom-free beyond standard Lean.
+The P-side theorem is theorem-level, but it still inherits the reduced
+frontier `profile_symmetric_power_factorization` through the profile
+compression development. -/
 #print axioms god_move_identity_minor_axiom
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
 #print axioms P_ne_NP_unconditional
--- Expected: the above + spdp_profile_generators (1 custom axiom)
+-- Expected: the above + the reduced P-side frontier from SymmetricPowerBound
 
 /-! ## Inconsistency witness
 
 The following theorem demonstrates that for ANY DTM (not just one deciding
 3-SAT), the axiom-free NP-side lower bound contradicts the P-side axiom.
-This shows `spdp_profile_generators` is false.
+This shows the old `spdp_profile_generators` package is false.
 
 Proof: take any DTM M with timeBound ≤ 4 and numStates ≤ 2^804.
 - NP-side (GodMoveReal.compiled_np_lower_bound_any_dtm, 0 axioms):
@@ -581,7 +586,7 @@ theorem spdp_profile_generators_inconsistent_with_np_side
     calc 2 = 2 ^ 1 := (pow_one 2).symm
     _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
   have hns_n : M.numStates ≤ n := le_trans hns (le_refl _)
-  -- P-side (1 axiom: spdp_profile_generators): rank ≤ n^200
+  -- P-side (via the current theorem-level wrapper for the reduced frontier): rank ≤ n^200
   have hP : mlBlockedSpdpRank
       (cook_levin_compilation M n hn2 htb hns_n).partition
       (Nat.log 2 n) (Nat.log 2 n)

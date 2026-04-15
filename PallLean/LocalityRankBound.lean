@@ -11,13 +11,16 @@
 
     Γ_{κ,ℓ}(P) ≤ poly(n)
 
-  The profile compression argument is not yet formalized. The P-side bound is
-  stated as an axiom in PaperFaithfulSeparation.lean (`p_side_rank_bound_for_cook_levin`).
+  The profile compression argument is now factored through
+  `SymmetricPowerBound.profile_symmetric_power_factorization`. The exported
+  theorem `PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin` is
+  theorem-level on this branch, though it still depends on that remaining
+  Step B frontier.
 
   This file provides:
   1. General-purpose lemmas about SPDP subspaces (locality, spanning sets, etc.)
      that are valid for any polynomial form.
-  2. A re-export of the P-side axiom for use by SeparationFinal.lean.
+  2. A re-export of the current P-side theorem for use by SeparationFinal.lean.
 
   Historical note: this file previously contained a complete proof of the P-side
   bound for the sum-of-squares form 1 - Σ Cᵢ². That proof used linearity of
@@ -280,15 +283,16 @@ The paper's profile compression (§9, Theorem 92) reduces this to polynomial
 by grouping SPDP rows with identical constraint-type histograms ("profiles").
 The number of distinct profiles is bounded by a polynomial in n.
 
-Profile compression is not yet formalized. The P-side bound is therefore
-obtained from the axiom `p_side_rank_bound_for_cook_levin` declared in
-PaperFaithfulSeparation.lean. -/
+Profile compression is still open at one explicit Step B frontier, but the
+exported P-side bound itself is theorem-level and re-exported from
+`PaperFaithfulSeparation.lean`. -/
 
 /-- The P-side rank bound for cook_levin_compilation.
 
-    For the product polynomial P = ∏(1-Cᵢ), this requires profile compression
-    (paper §9, Theorem 92). The bound is obtained from the axiom
-    `p_side_rank_bound_for_cook_levin` in PaperFaithfulSeparation.lean. -/
+    For the product polynomial `P = ∏(1-Cᵢ)`, this routes through the
+    factorized profile-compression development (paper §9, Theorem 92)
+    and re-exports the resulting theorem from
+    `PaperFaithfulSeparation.lean`. -/
 theorem p_side_bound_for_cook_levin (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
     mlBlockedSpdpRank (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition

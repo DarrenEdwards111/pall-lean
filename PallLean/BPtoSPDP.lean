@@ -580,16 +580,21 @@ theorem bp_rowspace_bound_per_term_empty
 
 /-! ### Cylinder decomposition (archived)
 
-The iterated Leibniz rule (bp_iterated_leibniz_eq) and cylinder decomposition
-(bp_cylinder_decomposition) gave a tighter bound W · L'^ℓ · C(n+ℓ,ℓ) but
-required substantial reindexing bookkeeping in the inductive step.
+This block keeps the older ordered-position cylinder route available for audit
+purposes only. The active proof of `bp_spdp_rank_bound` now uses the
+degree-based bound `spdpSubspace ≤ restrictTotalDegree` instead.
 
-bp_spdp_rank_bound now uses the degree-based bound (spdpSubspace ≤
-restrictTotalDegree) which bypasses the cylinder decomposition entirely.
-The Leibniz/cylinder code has been archived since bp_spdp_rank_bound
-no longer depends on it. The supporting Step 4 (bp_rowspace_bound_per_term)
-is retained as proved infrastructure for potential future use. -/
+What remains archived is intentionally narrow:
+- `assignedVars` and `layerAssignedCoeff` package the ordered-position data.
+- `bp_iterated_leibniz_eq` is the single private axiom for the missing
+  iterated Leibniz induction.
+- `bp_cylinder_decomposition` is the exact wrapper theorem exposing that
+  archived equality.
+- the assignment-count/image-card lemmas and Step 4 row-space bounds remain
+  theorem-level support if this route is revived later. -/
 
+/-- Extract the subsequence of derivative positions assigned by `T` to a
+single layer `τ`, preserving multiplicity and original order. -/
 private def assignedVars {α β : Type*} [DecidableEq β]
     (S : List α) : (Fin S.length → β) → β → List α :=
   match S with
@@ -617,6 +622,8 @@ private def assignedVars {α β : Type*} [DecidableEq β]
     assignedVars (v :: rest) (Fin.cons τ T) σ = assignedVars rest T σ := by
   simp [assignedVars, hστ.symm]
 
+/-- The coefficient contributed by a single ordered assignment
+`T : Fin S.length → Fin B.length` in the archived cylinder expansion. -/
 private noncomputable def layerAssignedCoeff
     {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
     (B : LayeredBP n)
@@ -642,55 +649,45 @@ private axiom bp_iterated_leibniz_eq
     iterDerivList S (B.poly (F := F)) =
       ∑ T : (Fin S.length → Fin B.length), layerAssignedCoeff (F := F) B S T
 
-/-- (Step 3) Cylinder decomposition.
+/-- Archived exact Step-3 wrapper for the ordered-position cylinder
+decomposition.
 
     For an iterated derivative ∂_S f_B with |S| = κ, the Leibniz rule
-    shows that the result is a sum indexed by maps T : S → Fin L'
-    (which layer each derivative variable "hits"), giving rise to at most
-    L'^κ terms. Each term is a product of layers, at most |S| of which
-    are differentiated. -/
+    shows that the result is a sum indexed by assignments
+    `T : Fin S.length → Fin B.length` recording which layer each derivative
+    position hits. This ordered-position indexing keeps duplicates in `S`
+    explicit and avoids any quotienting by support.
+
+    ARCHIVED: not on the active rank-bound route. -/
 theorem bp_cylinder_decomposition
     {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
     (B : LayeredBP n)
     (S : List (Fin n)) :
-    ∃ (terms : Finset (Fin S.length → Fin B.length))
-      (coeff : (Fin S.length → Fin B.length) → MvPolynomial (Fin n) F),
-      iterDerivList S (B.poly (F := F)) = terms.sum coeff ∧
-      terms.card ≤ B.length ^ S.length ∧
-      ∀ T, T ∈ terms → (Finset.univ.image T).card ≤ S.length := by
-  /-
-    Proof overview:
-    ─────────────────
-    B.poly is the (target,source) entry of a product of L' layer matrices.
-    By the Leibniz rule (bp_leibniz_localisation), a single derivative ∂_{x_i}
-    distributes across the L' layers, giving L' terms. Iterating this for each
-    variable in S gives at most L'^|S| terms, one for each assignment
-    T : Fin S.length → Fin L' specifying which layer each derivative "hits".
+    iterDerivList S (B.poly (F := F)) =
+      (Finset.univ : Finset (Fin S.length → Fin B.length)).sum
+        (layerAssignedCoeff (F := F) B S) := by
+  simpa using bp_iterated_leibniz_eq (B := B) (F := F) S
 
-    Indexing assignments by positions rather than `S.toFinset` avoids any
-    duplicate-variable bookkeeping. The cardinality bound and image-card bound
-    are then elementary.
+/-- The archived cylinder decomposition ranges over at most `B.length ^ S.length`
+    ordered assignments. -/
+theorem bp_cylinder_assignment_count_le
+    {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
+    (B : LayeredBP n)
+    (S : List (Fin n)) :
+    (Finset.univ : Finset (Fin S.length → Fin B.length)).card ≤
+      B.length ^ S.length := by
+  simp [Fintype.card_fin]
 
-    The main equality (the decomposition) is the content of the iterated
-    Leibniz rule applied to a matrix product.
-  -/
-    let terms : Finset (Fin S.length → Fin B.length) := Finset.univ
-    let coeff : (Fin S.length → Fin B.length) → MvPolynomial (Fin n) F :=
-      layerAssignedCoeff (F := F) B S
-    refine ⟨terms, coeff, ?_, ?_, ?_⟩
-    · -- Equality: iterDerivList S (B.poly) = terms.sum coeff
-      simpa [terms, coeff] using bp_iterated_leibniz_eq (B := B) (F := F) S
-    · -- Card bound: terms.card ≤ B.length ^ S.length
-      calc terms.card
-          = Fintype.card (Fin S.length → Fin B.length) := by
-              simp [terms]
-        _ = B.length ^ S.length := by
-              simp [Fintype.card_fin]
-        _ ≤ B.length ^ S.length := le_rfl
-    · intro T _
-      calc (Finset.univ.image T).card
-          ≤ Finset.univ.card := Finset.card_image_le
-        _ = S.length := by simp
+/-- Any ordered assignment `T` touches at most `S.length` distinct layers. -/
+theorem bp_cylinder_assignment_image_card_le
+    {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
+    (B : LayeredBP n)
+    (S : List (Fin n))
+    (T : Fin S.length → Fin B.length) :
+    (Finset.univ.image T).card ≤ S.length := by
+  calc (Finset.univ.image T).card
+      ≤ Finset.univ.card := Finset.card_image_le
+    _ = S.length := by simp
 
 /-- (Step 4) Row-space bound per term.
 
@@ -784,9 +781,9 @@ structure PolyBPFamily where
     with trivial edge labels (constOne), source=0, target=0. This makes
     the structure well-typed with the required polynomial bounds
     (timeExp=k, lenExp=0 ≤ 2*k, widExp=0 ≤ 1, C_len=1, C_wid=1).
-    The correctness condition (poly = 0 ↔ L n x = false) is left as sorry
-    since the trivial zero-graph BP does not actually compute χ_L; the
-    real content lives in the separation axioms. -/
+    The correctness condition (poly = 0 ↔ L n x = false) is not formalized
+    for this placeholder family; the real content lives in the separation
+    axioms rather than this stub compilation theorem. -/
 noncomputable def compilation_lemma
     (k : ℕ) (hk : k ≥ 1)
     (L : ∀ n, (Fin n → Bool) → Bool)
@@ -1032,15 +1029,26 @@ theorem bp_poly_totalDegree_le
   - `poly_family_rank_bound_in_n`: rank ≤ poly(n) for a PolyBPFamily
   - `P_subset_polySPDP`: the zero-polynomial witness (full proof requires compilation)
 
-  Axioms (corresponding to genuinely unproved steps):
+  Archived axioms (corresponding to genuinely unproved steps):
   - `bp_spdp_rank_bound` (Lemma 45): the main rank bound
     * Requires: cylinder decomposition + row-space counting
-  - `bp_cylinder_decomposition` (Step 3): structure of ∂_S(f_B)
-    * Requires: iterated Leibniz applied to matrix entries
-  - `bp_rowspace_bound_per_term` (Step 4): row-space of one layer ≤ W
-    * Requires: column rank of M_τ ≤ W
-  - `compilation_lemma` (Lemma 44): BP family simulating polytime DTMs
-    * Standard complexity theory; requires formal DTM simulation theory
+  - `bp_iterated_leibniz_eq`: ordered-position Leibniz rule for ∂_S(f_B)
+    * Supplies the archived cylinder decomposition equality
+  Supporting archived combinatorics that remain theorem-level:
+  - `bp_cylinder_assignment_count_le`
+  - `bp_cylinder_assignment_image_card_le`
+  - `bp_rowspace_bound_per_term`
 -/
+
+/-! ## Axiom audit
+
+`bp_iterated_leibniz_eq` is the only remaining axiom in this file, and it is
+confined to the archived ordered-position cylinder wrapper. The assignment
+combinatorics, row-space lemmas, and degree-based route are theorem-level. -/
+#print axioms bp_cylinder_decomposition
+#print axioms bp_cylinder_assignment_count_le
+#print axioms bp_cylinder_assignment_image_card_le
+#print axioms bp_rowspace_bound_per_term
+#print axioms bp_poly_totalDegree_le
 
 end BPtoSPDP

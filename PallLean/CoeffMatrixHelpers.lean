@@ -1,4 +1,5 @@
 import Mathlib.Algebra.MvPolynomial.PDeriv
+import Mathlib.LinearAlgebra.Dimension.Finrank
 import Mathlib.LinearAlgebra.Matrix.Rank
 
 namespace CoeffMatrixHelpers
@@ -7,6 +8,18 @@ open MvPolynomial Matrix
 
 variable {σ : Type*} [DecidableEq σ]
 variable {F : Type*} [Field F]
+
+/-- Coefficient vector of a polynomial restricted to a finite monomial set. -/
+noncomputable def coeffVector (monomials : Finset (σ →₀ ℕ))
+    (p : MvPolynomial σ F) : monomials → F :=
+  fun m => MvPolynomial.coeff m.1 p
+
+/-- The coefficient-vector map into the finitely supported monomial coordinates. -/
+noncomputable def coeffVectorLin (monomials : Finset (σ →₀ ℕ)) :
+    MvPolynomial σ F →ₗ[F] (monomials → F) where
+  toFun := coeffVector monomials
+  map_add' p q := by ext m; simp [coeffVector, MvPolynomial.coeff_add]
+  map_smul' c p := by ext m; simp [coeffVector, MvPolynomial.coeff_smul]
 
 /-- Coefficient matrix of a finite family of polynomials restricted to a finite monomial set. -/
 noncomputable def coeffMatrix {ι : Type*}
@@ -20,6 +33,22 @@ noncomputable def monomialActionMatrix
     Matrix src tgt F :=
   fun s t => MvPolynomial.coeff t.1 (φ (MvPolynomial.monomial s.1 (1 : F)))
 
+theorem coeffVector_injective (monomials : Finset (σ →₀ ℕ))
+    (p q : MvPolynomial σ F)
+    (hp : p.support ⊆ monomials) (hq : q.support ⊆ monomials)
+    (h : coeffVector monomials p = coeffVector monomials q) : p = q := by
+  ext m
+  by_cases hm : m ∈ monomials
+  · exact congr_fun h ⟨m, hm⟩
+  · have hp0 : MvPolynomial.coeff m p = 0 := by
+      by_contra hne
+      exact hm (hp (Finsupp.mem_support_iff.mpr hne))
+    have hq0 : MvPolynomial.coeff m q = 0 := by
+      by_contra hne
+      exact hm (hq (Finsupp.mem_support_iff.mpr hne))
+    simp [hp0, hq0]
+
+omit [DecidableEq σ] in
 theorem coeff_apply_eq_sum_monomialActionMatrix
     (src : Finset (σ →₀ ℕ))
     (φ : MvPolynomial σ F →ₗ[F] MvPolynomial σ F)
@@ -65,6 +94,20 @@ theorem coeff_apply_eq_sum_monomialActionMatrix
                 MvPolynomial.coeff m (φ (MvPolynomial.monomial d (1 : F))))]
             rw [Finset.attach_eq_univ]
 
+omit [DecidableEq σ] in
+theorem coeffVector_apply_eq_sum_monomialActionMatrix
+    (src tgt : Finset (σ →₀ ℕ))
+    (φ : MvPolynomial σ F →ₗ[F] MvPolynomial σ F)
+    (p : MvPolynomial σ F)
+    (hp : p.support ⊆ src) :
+    coeffVector tgt (φ p) =
+      fun t =>
+        ∑ d : src, coeffVector src p d * monomialActionMatrix src tgt φ d t := by
+  ext t
+  simpa [coeffVector, monomialActionMatrix] using
+    coeff_apply_eq_sum_monomialActionMatrix src φ p hp t.1
+
+omit [DecidableEq σ] in
 theorem coeffMatrix_map_eq_mul_monomialActionMatrix {ι : Type*} [Fintype ι]
     (src tgt : Finset (σ →₀ ℕ))
     (φ : MvPolynomial σ F →ₗ[F] MvPolynomial σ F)
@@ -76,6 +119,7 @@ theorem coeffMatrix_map_eq_mul_monomialActionMatrix {ι : Type*} [Fintype ι]
   simpa [coeffMatrix, monomialActionMatrix, Matrix.mul_apply] using
     coeff_apply_eq_sum_monomialActionMatrix src φ (generators i) (hsupport i) t.1
 
+omit [DecidableEq σ] in
 theorem rank_coeffMatrix_map_le {ι : Type*} [Fintype ι]
     (src tgt : Finset (σ →₀ ℕ))
     (φ : MvPolynomial σ F →ₗ[F] MvPolynomial σ F)
@@ -85,5 +129,95 @@ theorem rank_coeffMatrix_map_le {ι : Type*} [Fintype ι]
       (coeffMatrix src generators).rank := by
   rw [coeffMatrix_map_eq_mul_monomialActionMatrix src tgt φ generators hsupport]
   exact Matrix.rank_mul_le_left _ _
+
+omit [DecidableEq σ] in
+theorem coeffMatrix_submatrix_rows {ι κ : Type*}
+    (monomials : Finset (σ →₀ ℕ))
+    (generators : ι → MvPolynomial σ F)
+    (rowMap : κ → ι) :
+    coeffMatrix monomials (fun i : κ => generators (rowMap i)) =
+      (coeffMatrix monomials generators).submatrix rowMap (Equiv.refl _) := by
+  ext i m
+  rfl
+
+omit [DecidableEq σ] in
+theorem rank_coeffMatrix_subfamily_le {ι κ : Type*} [Fintype ι] [Fintype κ]
+    (monomials : Finset (σ →₀ ℕ))
+    (generators : ι → MvPolynomial σ F)
+    (rowMap : κ → ι) :
+    (coeffMatrix monomials (fun i : κ => generators (rowMap i))).rank ≤
+      (coeffMatrix monomials generators).rank := by
+  rw [coeffMatrix_submatrix_rows]
+  simpa using
+    Matrix.rank_submatrix_le (f := rowMap) (e := Equiv.refl monomials)
+      (A := coeffMatrix monomials generators)
+
+def supportedSub (monomials : Finset (σ →₀ ℕ)) :
+    Submodule F (MvPolynomial σ F) where
+  carrier := { p | p.support ⊆ monomials }
+  add_mem' ha hb := Finset.Subset.trans Finsupp.support_add (Finset.union_subset ha hb)
+  zero_mem' := by simp
+  smul_mem' c _ hp := Finset.Subset.trans Finsupp.support_smul hp
+
+theorem span_in_supported (monomials : Finset (σ →₀ ℕ))
+    (S : Set (MvPolynomial σ F))
+    (h : ∀ g ∈ S, (g : MvPolynomial σ F).support ⊆ monomials) :
+    Submodule.span F S ≤ supportedSub monomials :=
+  Submodule.span_le.mpr h
+
+theorem coeffVectorLin_injOn (monomials : Finset (σ →₀ ℕ)) :
+    Function.Injective
+      ((coeffVectorLin (F := F) monomials).domRestrict (supportedSub monomials)) := by
+  intro ⟨p, hp⟩ ⟨q, hq⟩ heq
+  simp only [LinearMap.domRestrict_apply, Subtype.mk.injEq] at heq ⊢
+  exact coeffVector_injective monomials p q hp hq heq
+
+theorem finrank_span_eq_matrix_rank {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (monomials : Finset (σ →₀ ℕ))
+    (generators : ι → MvPolynomial σ F)
+    (hsupport : ∀ i, (generators i).support ⊆ monomials) :
+    Module.finrank F (Submodule.span F (Set.range generators)) =
+    (coeffMatrix monomials generators).rank := by
+  let f := coeffVectorLin (σ := σ) (F := F) monomials
+  have h_le := span_in_supported monomials _ (by
+    intro g hg
+    rw [Set.mem_range] at hg
+    obtain ⟨i, rfl⟩ := hg
+    exact hsupport i)
+  have step1 : Module.finrank F (Submodule.span F (Set.range generators)) =
+      Module.finrank F (Submodule.map f (Submodule.span F (Set.range generators))) := by
+    let fV := f.domRestrict (Submodule.span F (Set.range generators))
+    have fV_inj : Function.Injective fV := by
+      intro ⟨p, hp⟩ ⟨q, hq⟩ heq
+      simp only [Subtype.mk.injEq] at heq ⊢
+      exact coeffVector_injective monomials p q (h_le hp) (h_le hq) heq
+    let e := LinearEquiv.ofInjective fV fV_inj
+    have h_range : LinearMap.range fV = (Submodule.span F (Set.range generators)).map f := by
+      ext x
+      simp only [LinearMap.mem_range, Submodule.mem_map]
+      constructor
+      · rintro ⟨⟨a, ha⟩, rfl⟩
+        exact ⟨a, ha, rfl⟩
+      · rintro ⟨a, ha, rfl⟩
+        exact ⟨⟨a, ha⟩, rfl⟩
+    rw [← h_range]
+    exact (LinearEquiv.finrank_eq e)
+  have step2 : Submodule.map f (Submodule.span F (Set.range generators)) =
+      Submodule.span F (Set.range (fun i : ι => f (generators i))) := by
+    rw [Submodule.map_span]
+    congr 1
+    ext v
+    simp [Set.mem_image, Set.mem_range]
+  have step3 : (fun i : ι => f (generators i)) =
+      (fun i : ι => (fun m : monomials => (coeffMatrix monomials generators) i m)) := by
+    ext i m
+    rfl
+  rw [step1, step2, step3]
+  let A := coeffMatrix monomials generators
+  rw [show (fun i : ι => (fun m : monomials => A i m)) =
+      (fun i : ι => (Matrix.transpose A).col i) from by
+        ext i m
+        simp [Matrix.transpose, Matrix.col]]
+  rw [← Matrix.rank_eq_finrank_span_cols, Matrix.rank_transpose]
 
 end CoeffMatrixHelpers

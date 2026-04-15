@@ -1,7 +1,7 @@
 /-
-  Separation29.lean — Paper-identical §29 separation (Theorem 147)
+  Separation29.lean — Paper-faithful §29 separation shell (Theorem 147)
 
-  This file matches the paper's §29.6 EXACTLY:
+  This file keeps the §29 separation at the same theorem interface as the paper:
 
   ## Paper §29 Architecture
 
@@ -24,7 +24,8 @@
 
   ## Axiom Inventory
 
-  **TWO axioms** matching the paper's two theorem frontiers:
+  **TWO axioms** matching the paper's two theorem frontiers,
+  plus one opaque rank symbol:
 
   1. `theorem_140_np_side` — Paper Theorem 140:
      rk_{SPDP,ℓ}(χ_{φ_n}) ≥ 2^{εn} for the Ramanujan-Tseitin hard family.
@@ -34,6 +35,9 @@
      If 3-SAT ∈ P (decided by M in time n^c), then for the hard instances,
      rk_{SPDP,ℓ}(χ_{φ_n}) ≤ n^200.
      Proved in the paper via §2.1 (BP compilation) + §29.4 (padding robustness).
+
+  Opaque symbol:
+  - `charPolyRank` — the abstract stand-in for rk_{SPDP,ℓ}(χ_{φ_n}).
 
   **ZERO sorry.**
 
@@ -76,14 +80,15 @@ above and below by the two axioms.
     This is rk_{SPDP,ℓ}(χ_{φ_n}) at fixed derivative order ℓ ∈ {2,3}
     (any fixed ℓ ≥ 2 works; cf. §29 first paragraph).
 
-    Declared as an opaque constant — the two axioms below bound it.
+    Declared as an opaque constant. The two axioms below bound it from
+    below and above.
 
     **Note**: This abstraction symbol is not connected to the concrete
     `Tseitin.characteristicPoly` (which is 0 for the current `TseitinFormula`
     with `parity_odd`). The paper's hard family uses even-parity (satisfiable)
     Tseitin instances, for which the characteristic polynomial is nonzero.
-    This `Separation29` route is NOT the active Route B path — it is an
-    auxiliary abstraction layer. The active Route B goes through
+    This `Separation29` route is NOT the active Route B path. It is an
+    auxiliary abstraction layer; the active Route B goes through
     `PaperFaithfulSeparation.P_ne_NP_unconditional`. -/
 axiom charPolyRank (n : ℕ) : ℕ
 
@@ -196,12 +201,12 @@ theorem three_sat_not_in_P : ∀ (_ : PeqNP), False := by
   exact absurd hcontra
     (not_le_of_gt (Nat.pow_lt_pow_right (by omega : 1 < n) (by omega : 200 < 201)))
 
-/-- Corollary: P ≠ NP. -/
+/-- Corollary: the same contradiction package yields `P ≠ NP` in this shell. -/
 theorem P_ne_NP : ∀ (_ : PeqNP), False := three_sat_not_in_P
 
-/-! ## Axiom audit: the abstract shell depends on exactly 3 custom constants
-    beyond standard Lean axioms:
-    `charPolyRank`, `theorem_139_p_side`, and `theorem_140_np_side`. -/
+/-! ## Axiom audit: this shell uses exactly two custom axioms
+    (`theorem_139_p_side`, `theorem_140_np_side`) and one opaque
+    abstraction symbol (`charPolyRank`) beyond standard Lean axioms. -/
 #print axioms three_sat_not_in_P
 
 /-! ## Theorem 140 Decomposition via Sound Encoding
@@ -284,8 +289,8 @@ has the large SPDP rank from the NP-side. -/
 
 This structure captures what the sound Ramanujan-Tseitin encoding
 provides: a concrete polynomial, partition, and PD lower bound.
-It is the paper-faithful replacement for the abstract `charPolyRank` axiom
-on the NP-side. -/
+It is the paper-faithful NP-side data package that would replace the
+abstract `charPolyRank` shell once the bridge is defined. -/
 structure ConcreteNPSideData (n : ℕ) where
   /-- Number of variables in the encoding -/
   numVars : ℕ
@@ -298,18 +303,18 @@ structure ConcreteNPSideData (n : ℕ) where
   /-- PD-matrix lower bound (sound_theorem72_condensed) -/
   pd_lower : n ^ (Nat.log 2 n / 4) ≤ PartialDerivMatrix.pdMatrixRank ℚ partition poly
 
-/-- The sound encoding provides `ConcreteNPSideData` for all n ≥ 6.
+/-- The sound encoding provides concrete NP-side data for all `n ≥ 6`.
 
 This is a direct repackaging of `sound_theorem72_condensed` from
-RamanujanTseitin.lean. The only axioms used are:
-- `sound_characteristic_pd_row_derivs` (algebraic core)
-- `sound_tseitin_pdMatrix_lower_bound_small` (finite range n < 660)
-- `sound_lps_family_exists` (sorry: LPS construction) -/
+RamanujanTseitin.lean. It inherits exactly the assumptions of that theorem:
+- `sound_characteristic_pd_row_derivs` (axiom; algebraic core)
+- `sound_tseitin_pdMatrix_lower_bound_small` (axiom; finite range `n < 660`)
+- `sound_lps_family_exists` (sorry; LPS construction) -/
 theorem concreteNPSideData_exists (n : ℕ) (hn : n ≥ 6) :
-    ∃ d : ConcreteNPSideData n, True := by
+    Nonempty (ConcreteNPSideData n) := by
   obtain ⟨numVars, part, f, hS, hpd⟩ :=
     RamanujanTseitin.sound_theorem72_condensed n hn
-  exact ⟨⟨numVars, part, f, hS, hpd⟩, trivial⟩
+  exact ⟨⟨numVars, part, f, hS, hpd⟩⟩
 
 /-- The SPDP rank of the concrete NP-side data, derived from the PD lower bound
 via the proved Lemma 69 transfer. -/
@@ -320,13 +325,13 @@ theorem concreteNPSideData_spdp_lower (n : ℕ) (d : ConcreteNPSideData n) :
 
 /-- **Theorem 140 concrete discharge theorem.**
 
-Given concrete NP-side data and a bridge identifying the abstract `charPolyRank n`
-with the SPDP rank of the concrete polynomial, `theorem_140_np_side` follows.
+Given concrete NP-side data and a bridge showing that the concrete SPDP rank
+is bounded by `charPolyRank n`, `theorem_140_np_side` follows.
 
-The bridge hypothesis `h_identification` is the EXACT remaining gap: it says
-the abstract `charPolyRank n` is at least the SPDP rank of the concrete
-sound-encoding polynomial. This is a definition-level identification that
-would be trivially true if `charPolyRank` were defined concretely. -/
+The bridge hypothesis `h_identification` is the exact remaining gap: it says
+the abstract `charPolyRank n` dominates the SPDP rank of the concrete
+sound-encoding polynomial. This would be immediate if `charPolyRank` were
+defined concretely. -/
 theorem theorem_140_from_concrete (n : ℕ) (d : ConcreteNPSideData n)
     (h_identification : SPDP.spdpRank d.partition.S.card d.partition.S.card d.poly ≤ charPolyRank n) :
     n ^ (Nat.log 2 n / 4) ≤ charPolyRank n :=
@@ -381,22 +386,18 @@ structure ConcretePSideData (M : DTM) (n : ℕ) (hn : n ≥ 2)
 
 /-- **Theorem 139 concrete discharge theorem.**
 
-Given concrete P-side data (which requires DecidesSAT) and a bridge
-identifying the abstract `charPolyRank n` with the SPDP rank of the
-concrete polynomial, `theorem_139_p_side` follows.
+Given concrete P-side data (which requires `DecidesSAT`) and a bridge
+from the abstract `charPolyRank n` into the concrete SPDP rank,
+`theorem_139_p_side` follows.
 
 The bridge hypothesis `h_identification` says: the abstract `charPolyRank n`
-is at least the SPDP rank of the concrete polynomial. Together with the
+is bounded by the SPDP rank of the concrete polynomial. Together with the
 P-side's `rank_through_extraction`, we get:
 
   charPolyRank n ≤ spdpRank(charPoly) ≤ mlBlockedSpdpRank(compiledPoly) ≤ n^200
 
-Wait — that's the wrong direction. The P-side needs charPolyRank n ≤ n^200.
-So we need charPolyRank n ≤ spdpRank(charPoly) ≤ rank(compiled) ≤ n^200.
-But `h_identification` says spdpRank ≤ charPolyRank. For the P-side bridge,
-we need the REVERSE: charPolyRank ≤ spdpRank.
-
-If charPolyRank IS defined as spdpRank, then both directions hold. -/
+If `charPolyRank` is eventually defined as this concrete SPDP rank, this
+bridge becomes a definitional equality. -/
 theorem theorem_139_from_concrete (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M)
@@ -415,11 +416,11 @@ The theorem shows that the concrete data is SUFFICIENT for the separation:
 if both the NP-side PD lower bound and the P-side compilation+extraction
 bound hold, then P ≠ NP follows.
 
-**Axiom surface**: This theorem uses NO custom axioms beyond what the
-concrete data structures require. The axioms are:
-- Sound encoding axioms (for ConcreteNPSideData, via sound_theorem72_condensed)
-- The P-side compilation axiom (for compiled_rank_bound)
-- The God-Move extraction (for rank_through_extraction, requires DecidesSAT) -/
+**Axiom surface**: this theorem introduces no new axioms of its own. It uses
+only whatever assumptions were used to build the supplied concrete data:
+- sound-encoding assumptions behind `ConcreteNPSideData`
+- the P-side compilation bound inside `compiled_rank_bound`
+- the God-Move extraction bound inside `rank_through_extraction` -/
 theorem separation_from_concrete_data
     (hPeqNP : PeqNP)
     (n : ℕ) (hn804 : n ≥ 2 ^ 804)
@@ -448,7 +449,7 @@ theorem separation_from_concrete_data
 /-! ## Remaining Theorem Seams
 
 ### NP-side seam (fully discharged modulo sound encoding axioms):
-`concreteNPSideData_from_sound_encoding` provides ConcreteNPSideData for n ≥ 6.
+`concreteNPSideData_exists` provides `ConcreteNPSideData n` for all `n ≥ 6`.
 
 ### P-side seam (two sub-obligations):
 1. `compiled_rank_bound`: the compiled polynomial of any P-time DTM has

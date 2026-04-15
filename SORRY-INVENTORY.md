@@ -212,6 +212,33 @@ The finite range `sound_tseitin_pdMatrix_lower_bound_small` decomposes into:
 2. Mid sub-range [16, 256): axiom, exponent = 1
 3. Hard sub-range [256, 660): axiom, exponent = 2
 
+### Restriction monotonicity front (Lemma 141 support)
+
+The nearby P-side support file `RestrictionMono.lean` now has an explicit
+coefficient-matrix route instead of the older opaque submodule-image sketch.
+
+New theorem-level infrastructure:
+- `CoeffMatrixHelpers.coeffVector`, `coeffVectorLin`, `coeffMatrix`
+- `CoeffMatrixHelpers.monomialActionMatrix`
+- `CoeffMatrixHelpers.rank_coeffMatrix_map_le`
+- `CoeffMatrixHelpers.finrank_span_eq_matrix_rank`
+- `RestrictionMono.coeffVector_applyRestriction_eq_sum_restrictionColumns`
+- `RestrictionMono.restrictedSourceSpdpCoeffMatrix_rank_le`
+
+Current narrowed gap:
+- `RestrictionMono.restrictedSpdpCoeffMatrix_rank_le_restrictedSource`
+  This is now the single honest remaining bridge for Lemma 141:
+  compare the actual SPDP coefficient matrix of `applyRestriction ρ f`
+  against the coefficient matrix obtained by restricting the source
+  canonical SPDP generators inside the same finite monomial universe.
+
+So the local status is:
+- `RestrictionMono.spdpRank_restriction_mono`: theorem statement present
+- custom axioms in `RestrictionMono`: `0`
+- remaining `sorry` in `RestrictionMono`: `1`
+- semantic role: non-load-bearing for the current active contradiction, but
+  still the right linear-algebra seam for decomposing the Route B / shell P-side
+
 ### Exact remaining gaps for Route B
 
 1. **PD→blocked SPDP bridge** (`pd_to_blocked_transfer`): linear algebra

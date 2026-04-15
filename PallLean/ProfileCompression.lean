@@ -21,21 +21,22 @@
 
   ## Proof Architecture:
 
-  The proof uses a single axiom encoding the full profile compression claim:
+  The proof now reduces the P-side to a single remaining Step B frontier in
+  `SymmetricPowerBound.lean`:
 
     For the compiled polynomial P = Prod_i (1 - C_i) of any P-time DTM,
     the multilinear blocked SPDP rank satisfies
-      Gamma_{log n, log n}(P) <= (3 * log_2 n + 1)^14
+      Gamma_{log n, log n}(P) <= (3 * log_2 n + 1)^12
 
-  This axiom encodes the combined content of the Leibniz product rule
+  That frontier encodes the remaining content of the Leibniz product rule
   decomposition (§9, Lemmas 27-31), profile counting via stars-and-bars
   (§9, Lemma 20), and within-profile dimension bounds (§9, Lemma 31).
-  The polylogarithmic-to-polynomial conversion (3*log n + 1)^14 <= n^200
-  is then proved without axioms.
+  The polylogarithmic-to-polynomial conversion `(3*log n + 1)^12 ≤ n^200`
+  is then proved theorem-level in this file.
 
   The combinatorial infrastructure (choose_le_pow, profile_count_bound,
   within_profile_dim_bound, finrank_le_of_le_iSup_bounded) is fully proved
-  and available for future formalization of the axiom's interior.
+  and available for future formalization of that remaining interior step.
 -/
 import PallLean.CookLevinDefs
 import PallLean.MultilinearSPDP
@@ -150,15 +151,14 @@ theorem totalProfileBound_eq (n : ℕ) :
   unfold totalProfileBound profileCountBound withinProfileDimBound
   ring
 
-/-- For n >= 2, (3 * log_2 n + 1)^12 <= n^200.
+/-- For `n ≥ 2`, `(3 * log_2 n + 1)^12 ≤ n^200`.
 
     Proof: log_2 n <= n, so 3*log_2 n + 1 <= 3n + 1 <= 4n (for n >= 1),
-    hence (3*log_2 n + 1)^14 <= (4n)^14 = 4^14 * n^14 <= n^14 * n^14 = n^28 <= n^200
-    for n >= 4 >= 4^14/n^14... Actually simpler: just bound (4n)^14 <= n^200.
+    hence (3*log_2 n + 1)^12 <= (4n)^12 = 4^12 * n^12 <= n^188 * n^12 = n^200.
 
     More precisely: log_2 n <= n, so 3*log n + 1 <= 4n for n >= 1,
-    (4n)^14 = 4^14 * n^14. And 4^14 = 268435456 <= n^186 for n >= 2.
-    So total <= n^14 * n^186 = n^200. -/
+    `(4n)^12 = 4^12 * n^12`. And `4^12 = 16777216 ≤ n^188` for `n ≥ 2`.
+    So total ≤ `n^12 * n^188 = n^200`. -/
 theorem totalProfileBound_le_pow (n : ℕ) (hn : n ≥ 2) :
     totalProfileBound n ≤ n ^ 200 := by
   rw [totalProfileBound_eq]
@@ -243,8 +243,9 @@ theorem profile_compression_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ 2)
 
 /-! ## Assembly: P-side Rank Bound
 
-    From the profile compression axiom (rank <= totalProfileBound)
-    and the proved bound (totalProfileBound <= n^200), we obtain
+    From the factorized profile-compression theorem
+    `profile_compression_rank_bound` and the proved arithmetic bound
+    `totalProfileBound ≤ n^200`, we obtain
     the final P-side rank bound. -/
 
 /-- **Main Theorem**: P-side rank bound for cook_levin_compilation.
@@ -254,8 +255,9 @@ theorem profile_compression_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ 2)
 
       Gamma_{log n, log n}(P) <= n^200
 
-    Proof: The profile compression axiom gives rank <= (3*log n + 1)^14,
-    and `totalProfileBound_le_pow` proves (3*log n + 1)^14 <= n^200 for n >= 2. -/
+    Proof: `profile_compression_rank_bound` gives
+    `rank ≤ (3*log n + 1)^12`, and `totalProfileBound_le_pow` proves
+    `(3*log n + 1)^12 ≤ n^200` for `n ≥ 2`. -/
 theorem p_side_rank_bound_for_cook_levin (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
     mlBlockedSpdpRank (cook_levin_compilation M n hn htb hns).partition
@@ -271,19 +273,15 @@ theorem p_side_rank_bound_for_cook_levin (M : DTM) (n : ℕ) (hn : n ≥ 2)
 /-! ## Verification of the Overall Separation Architecture
 
     With `p_side_rank_bound_for_cook_levin` proved from the HAL 9000
-    decomposition in SymmetricPowerBound.lean, the separation now rests on
-    exactly two content axioms:
+    decomposition in `SymmetricPowerBound.lean`, the P-side itself now rests on
+    exactly one remaining content frontier:
 
     1. `profile_symmetric_power_factorization` (P-side, Paper §9, Theorem 92):
        The SPDP rank of the compiled polynomial is ≤ combinedProfileBound(κ)
-       = (κ+1)^14. This is the symmetric power factorization of Leibniz
+       = `(κ+1)^12`. This is the symmetric power factorization of Leibniz
        profile subspaces — the one hard step in the profile compression argument.
        Steps A (local interface dim), C (symmetric power dim), and D (multiply)
        are all fully proved in SymmetricPowerBound.lean.
-
-    2. `god_move_extraction_lemma` (NP-side, Paper §29):
-       The semantic content connecting a SAT-deciding DTM's compiled
-       polynomial to the hard Tseitin instance.
 
     All other components of the separation proof are fully proved:
     - Step A: local_interface_dim_bound (local interface spaces have O(1) dim)

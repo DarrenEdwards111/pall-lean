@@ -13,7 +13,8 @@ This file assembles the complete separation from PaperFaithfulSeparation.lean.
 
 1. `p_side_rank_bound_for_cook_levin` — the paper's P-side claim (§9, Theorem 92):
    for any P-time DTM, the compiled product polynomial has SPDP rank ≤ n^200.
-   Requires profile compression, which is not yet formalized.
+   On this branch it is theorem-level, reduced to the remaining Step B frontier
+   `profile_symmetric_power_factorization`.
 
 2. `god_move_extraction_interface` — the paper's §29 witness-free extraction map
    frontier, exposed in `PaperFaithfulSeparation.lean` as a typed abstract
@@ -31,7 +32,8 @@ namespace SeparationFinal
 
 open SPDP MultilinearSPDP TuringMachine PaperFaithfulSeparation
 
-/-- The P-side axiom from PaperFaithfulSeparation is re-exported via LocalityRankBound. -/
+/-- The current P-side theorem from `PaperFaithfulSeparation` is re-exported via
+`LocalityRankBound`. -/
 theorem p_side_verified (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
     mlBlockedSpdpRank

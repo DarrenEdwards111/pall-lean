@@ -20,7 +20,7 @@
 
   D. Multiply the bounds (PROVED)
      Total profile compression bound ≤ (κ+1)^C₀ for a constant C₀,
-     yielding totalProfileBound n = (3*log₂ n + 1)^14.
+     yielding the final P-side profile bound `(3*log₂ n + 1)^12`.
 
   The remaining frontier is now split explicitly: one hard fixed-profile
   factorization axiom, plus decomposition/assembly seams that are tracked
@@ -2078,12 +2078,13 @@ theorem profile_symmetric_power_factorization
 
 /-! ## Step D: Assembly — Derive profile_compression_rank_bound (PROVED)
 
-From the axiom (rank ≤ combinedProfileBound(κ) = (κ+1)^12) and the arithmetic
-fact (κ+1)^12 ≤ (3κ+1)^12, we derive the original bound. -/
+From the remaining Step B frontier
+`rank ≤ combinedProfileBound(κ) = (κ+1)^12` and the arithmetic
+fact `(κ+1)^12 ≤ (3κ+1)^12`, we derive the final profile-compression bound. -/
 
-/-- (κ+1)^12 ≤ (3κ+1)^14 for all κ. -/
+/-- `(κ+1)^12 ≤ (3κ+1)^12` for all `κ`. -/
 theorem combinedBound_le_totalProfileBound (κ : ℕ) :
-    (κ + 1) ^ 14 ≤ (3 * κ + 1) ^ 14 := by
+    (κ + 1) ^ 12 ≤ (3 * κ + 1) ^ 12 := by
   apply Nat.pow_le_pow_left
   omega
 
