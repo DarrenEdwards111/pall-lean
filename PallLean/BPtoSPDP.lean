@@ -165,22 +165,6 @@ private theorem spdp_subspace_finrank_le_cylinder_bound
     (B : LayeredBP n)
     (ℓ : ℕ) (hℓ : ℓ = 2 ∨ ℓ = 3) :
     spdpRank ℓ ℓ (B.poly (F := F)) ≤ B.width ^ 2 * B.length ^ ℓ * (Nat.choose (n + ℓ) ℓ) := by
-  /- The proof connects the SPDP subspace generators to the cylinder
-     decomposition and per-term row-space bounds.
-
-     Step 1: Each generator is m · ∂_S(f_B) with |S| = ℓ, deg(m) ≤ ℓ.
-     Step 2: By bp_cylinder_decomposition, ∂_S(f_B) = Σ_{T} coeff_T,
-             with at most L'^ℓ terms.
-     Step 3: So m · ∂_S(f_B) = Σ_T m · coeff_T.
-     Step 4: Each coeff_T lies in a W-dimensional subspace
-             (by bp_rowspace_bound_per_term).
-     Step 5: Multiplying by m (finitely many choices of degree ≤ ℓ
-             monomials) scales the dimension by at most C(n+ℓ,ℓ).
-     Step 6: Total dimension ≤ L'^ℓ · W · C(n+ℓ,ℓ).
-
-     For the zero polynomial, spdpRank = 0 so the bound holds trivially.
-     For nonzero polynomials, the full cylinder decomposition argument
-     is needed (connecting bp_cylinder_decomposition to finrank). -/
   by_cases hp : B.poly (F := F) = 0
   · -- Zero polynomial: spdpRank = 0
     have : spdpSubspace ℓ ℓ (0 : MvPolynomial (Fin n) F) = ⊥ := by
@@ -188,7 +172,15 @@ private theorem spdp_subspace_finrank_le_cylinder_bound
       intro q ⟨S, m, _, _, hq⟩; rw [hq]
       simp [iterDerivList, foldl_pderiv_zero]
     rw [hp] at *; unfold spdpRank; rw [this]; simp
-  · sorry
+  · -- Nonzero polynomial.
+    -- The cylinder decomposition (bp_iterated_leibniz_eq) gives the tight
+    -- bound but its inductive step is not yet formalized. We use a
+    -- coarser bound that bypasses it: spdpSubspace is contained in the
+    -- span of the generating set image, which is finite.
+    -- This sorry represents the missing finite spanning set construction.
+    -- The mathematical content: span of a set indexed by ≤ W² · L'^ℓ · C(n+ℓ,ℓ)
+    -- elements has finrank ≤ W² · L'^ℓ · C(n+ℓ,ℓ).
+    sorry
 
 /-- Lemma 45 with EXISTENTIAL constants: there EXIST C_ℓ, d_ℓ such that
     rk_{SPDP,ℓ}(f_B) ≤ (C_ℓ · W · L')^{d_ℓ}.
