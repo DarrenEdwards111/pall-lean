@@ -451,6 +451,19 @@ theorem BaseVariableCharacteristicPdRowDerivWitness.no_selector
   Tseitin.list_of_baseVars_ne_selectorIdx (fam.encoding n hn).formula
     w.derivs w.subset_base c
 
+/-- A base-supported ambient derivative list can be re-expressed as the image
+of an actual list of base-variable indices. -/
+theorem BaseVariableCharacteristicPdRowDerivWitness.exists_baseDerivs
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
+    (w : BaseVariableCharacteristicPdRowDerivWitness F fam n hn pack i) :
+    ∃ baseDerivs : List (Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula)),
+      w.derivs = baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula) :=
+  Tseitin.exists_baseVar_preimage_list (fam.encoding n hn).formula w.derivs w.subset_base
+
 /-- The remaining row-realization frontier can now be read directly as an
 equality between the gadget-product target row and the explicit satisfying-
 assignment derivative expansion of `χ_Φ`. -/

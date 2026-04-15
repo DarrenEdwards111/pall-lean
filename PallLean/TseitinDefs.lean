@@ -613,6 +613,24 @@ theorem list_of_baseVars_ne_selectorIdx
   rcases Finset.mem_image.mp (hbase _ hmem) with ⟨i, -, hi⟩
   exact baseVarEmbedding_ne_selectorIdx Φ i c hi
 
+theorem exists_baseVar_preimage_list
+    (Φ : TseitinFormula)
+    (derivs : List (Fin (tseitinNumVars Φ)))
+    (hbase : ∀ v ∈ derivs, v ∈ Finset.univ.image (baseVarEmbedding Φ)) :
+    ∃ baseDerivs : List (Fin (tseitinBaseNumVars Φ)),
+      derivs = baseDerivs.map (baseVarEmbedding Φ) := by
+  induction derivs with
+  | nil =>
+      refine ⟨[], rfl⟩
+  | cons v rest ih =>
+      rcases Finset.mem_image.mp (hbase v (by simp)) with ⟨i, -, hi⟩
+      have hrest : ∀ w ∈ rest, w ∈ Finset.univ.image (baseVarEmbedding Φ) := by
+        intro w hw
+        exact hbase w (List.mem_cons_of_mem _ hw)
+      rcases ih hrest with ⟨baseRest, hEqRest⟩
+      refine ⟨i :: baseRest, ?_⟩
+      simp [hi, hEqRest]
+
 theorem selector_not_mem_vars_characteristicPoly (F : Type*) [CommRing F] [Nontrivial F]
     (Φ : TseitinFormula) (c : Fin Φ.clauses.length) :
     selectorIdx Φ c ∉ (characteristicPoly F Φ).vars := by
