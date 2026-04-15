@@ -518,8 +518,26 @@ noncomputable def formulaClauseGadgetProd
     (fam : RamanujanTseitinFamily F)
     (n : ℕ) (hn : n ≥ 6)
     (clauses : List (Fin (fam.encoding n hn).formula.clauses.length)) :
-    MvPolynomial (Fin (fam.encoding n hn).numVars) F :=
+    MvPolynomial (Fin (Tseitin.tseitinNumVars (fam.encoding n hn).formula)) F :=
   (clauses.map (Tseitin.clauseGadget F (fam.encoding n hn).formula)).prod
+
+/-- Smaller clause-level witness: realize the actual formula-clause gadget
+product directly as an iterated derivative of the characteristic polynomial. -/
+structure FormulaClauseCharacteristicPdDerivWitness
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (clauses : List (Fin (fam.encoding n hn).formula.clauses.length)) where
+  baseDerivs : List (Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula))
+  length_eq : baseDerivs.length = (fam.partition n hn).part.S.card
+  subset_S :
+    ∀ v ∈ baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula),
+      v ∈ (fam.partition n hn).part.S
+  row_eq :
+    formulaClauseGadgetProd F fam n hn clauses =
+      SPDP.iterDerivList
+        (baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
+        (Tseitin.characteristicPoly F (fam.encoding n hn).formula)
 
 /-- The remaining semantic frontier, but stated entirely on an actual list of
 formula clauses rather than positional indices in the packed clause system. -/
@@ -544,6 +562,28 @@ structure FormulaClauseCharacteristicPdWitness
               (baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
               (Tseitin.assignmentMonomial F (fam.encoding n hn).formula a)
           else 0)
+
+/-- The explicit satisfying-assignment expansion is derived from the smaller
+direct derivative witness. -/
+def FormulaClauseCharacteristicPdDerivWitness.toExpandedWitness
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {clauses : List (Fin (fam.encoding n hn).formula.clauses.length)}
+    (w : FormulaClauseCharacteristicPdDerivWitness F fam n hn clauses) :
+    FormulaClauseCharacteristicPdWitness F fam n hn clauses := {
+  baseDerivs := w.baseDerivs
+  length_eq := w.length_eq
+  subset_S := w.subset_S
+  row_eq_expanded := by
+    rw [w.row_eq]
+    rw [Tseitin.iterDerivList_characteristicPoly]
+    refine Finset.sum_congr rfl ?_
+    intro a ha
+    rw [Tseitin.iterDerivList_characteristicPolySummand
+      F (fam.encoding n hn).formula a
+      (w.baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))]
+}
 
 /-- The canonical packed formula-clause list has the expected `log₂ n` size. -/
 theorem canonicalPackedFormulaClauses_length
@@ -699,7 +739,7 @@ def BaseIndexCharacteristicPdClauseWitness.toRow
     simpa [characteristic_pd_system_from_pack_rows] using w.row_eq F fam
 }
 
-/-- A formula-clause witness for the canonical packed clause list induces the
+/-- An expanded formula-clause witness for the canonical packed clause list induces the
 corresponding row witness directly. -/
 def FormulaClauseCharacteristicPdWitness.toRow
     (F : Type*) [Field F] [CharZero F]
@@ -724,7 +764,7 @@ axiom characteristic_pd_formula_clause_derivs_from_pack
     (n : ℕ) (hn : n ≥ 6)
     (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
     ∀ i,
-      FormulaClauseCharacteristicPdWitness F fam n hn
+      FormulaClauseCharacteristicPdDerivWitness F fam n hn
         (canonicalPackedFormulaClauses F fam n hn pack i)
 
 /-- Base-index witnesses induce base-variable ambient witnesses. -/
@@ -992,7 +1032,7 @@ noncomputable def characteristic_pd_baseIndex_row_derivs_from_pack
     (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
     ∀ i, BaseIndexCharacteristicPdRowDerivWitness F fam n hn pack i := by
   intro i
-  exact (characteristic_pd_formula_clause_derivs_from_pack F fam n hn pack i).toRow F
+  exact ((characteristic_pd_formula_clause_derivs_from_pack F fam n hn pack i).toExpandedWitness F).toRow F
 
 /-- Forget base-index structure to recover the base-variable witness format. -/
 noncomputable def characteristic_pd_base_row_derivs_from_pack
