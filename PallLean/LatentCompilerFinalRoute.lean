@@ -356,8 +356,9 @@ theorem P_neq_NP_latent_from_p_construction_data_via_core (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  exact P_neq_NP_latent_from_p_obligation h n hn
-    (theorem216_profile_data_logscale_from_construction_data_proved M n hnM hn804 pData)
+  exact P_neq_NP_latent_decomp h n hn ⟨
+    latent_profile_assembly_logscale_from_construction_data M n hnM hn804 pData
+  ⟩
 
 /-- Fully normalized contradiction route:
 NP-side is instantiated canonically (no external idxList inputs), and only the
@@ -379,8 +380,9 @@ theorem P_neq_NP_latent_from_compiled_tableau_bound (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  exact P_neq_NP_latent_from_p_obligation h n hn
-    (theorem216_profile_data_logscale_from_compiled_tableau_proved M n hnM hn804 hCompiled)
+  exact P_neq_NP_latent_decomp h n hn ⟨
+    (latent_profile_assembly_logscale_iff_compiled_tableau_bound M n hnM hn804).2 hCompiled
+  ⟩
 
 /-- Canonical-NP route from the core P-side profile assembly bound directly.
 
@@ -391,11 +393,7 @@ theorem P_neq_NP_latent_from_p_core (h : PeqNP) (n : ℕ)
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
     (pCore : latent_profile_assembly_logscale h.sat_decider n
       (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
-  let M := h.sat_decider
-  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
-  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  exact P_neq_NP_latent_from_p_obligation h n hn
-    (theorem216_profile_data_logscale_from_core_proved M n hnM hn804 pCore)
+  exact P_neq_NP_latent_decomp h n hn ⟨pCore⟩
 
 /-- Canonical-NP route from bucket-schema witness via the direct compiled-tableau
 frontier obligation. -/
@@ -406,8 +404,8 @@ theorem P_neq_NP_latent_from_p_bucket_function_via_compiled (h : PeqNP) (n : ℕ
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  exact P_neq_NP_latent_from_p_obligation h n hn
-    (theorem216_profile_data_logscale_from_bucket_function_proved M n hnM hn804 pFun)
+  exact P_neq_NP_latent_from_p_core h n hn
+    (latent_profile_assembly_logscale_from_bucket_function M n hnM hn804 pFun)
 
 /-- Canonical-NP route with functional bucket-schema P witness normalized
 through the core P-side assembly theorem `latent_profile_assembly_logscale`. -/
@@ -426,8 +424,8 @@ theorem P_neq_NP_latent_from_p_span_card_via_compiled (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  exact P_neq_NP_latent_from_p_obligation h n hn
-    (theorem216_profile_data_logscale_from_span_card_bound_proved M n hnM hn804 pSpan)
+  exact P_neq_NP_latent_from_p_core h n hn
+    (latent_profile_assembly_logscale_from_span_card_bound M n hnM hn804 pSpan)
 
 /-- Canonical-NP route with span-card P witness normalized through the
 core P-side assembly theorem `latent_profile_assembly_logscale`. -/
@@ -453,8 +451,8 @@ theorem P_neq_NP_latent_from_p_block_cover_via_compiled (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  exact P_neq_NP_latent_from_p_obligation h n hn
-    (theorem216_profile_data_logscale_from_block_cover_proved M n hnM hn804 pCover)
+  exact P_neq_NP_latent_from_p_core h n hn
+    (latent_profile_assembly_logscale_from_block_cover M n hnM hn804 pCover)
 
 /-- Canonical-NP route with block-cover P witness normalized through the
 core P-side assembly theorem `latent_profile_assembly_logscale`. -/
@@ -481,8 +479,8 @@ theorem P_neq_NP_latent_from_p_global_span_bucket (h : PeqNP) (n : ℕ)
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
   have pData : latent_profile_block_cover_construction_data_logscale M n hnM hn804 :=
     latent_profile_block_cover_construction_data_from_global_span_and_bucket M n hnM hn804 pGB
-  exact P_neq_NP_latent_from_p_obligation h n hn
-    (theorem216_profile_data_logscale_from_construction_data_proved M n hnM hn804 pData)
+  exact P_neq_NP_latent_from_p_core h n hn
+    (latent_profile_assembly_logscale_from_construction_data M n hnM hn804 pData)
 
 /-- Move-4 canonical route: Item-3 with uniform `n^120` bound. -/
 theorem P_neq_NP_latent_from_p_item3_uniform120 (h : PeqNP) (n : ℕ)
@@ -492,19 +490,17 @@ theorem P_neq_NP_latent_from_p_item3_uniform120 (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  exact P_neq_NP_latent_from_p_obligation h n hn
-    (theorem216_profile_data_logscale_from_item3_uniform120_proved M n hnM hn804 p3120)
+  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn
+    (latent_compiled_tableau_bound_logscale_from_item3_uniform120 M n hnM hn804 p3120)
 
 /-- Canonical-NP route with Item-3+uniform-Item-2 P witness only. -/
 theorem P_neq_NP_latent_from_p_item3_uniform2 (h : PeqNP) (n : ℕ)
     (hn : n ≥ max (max 32 (max 4 h.sat_decider.numStates)) (2 ^ 804))
     (p3u2 : latent_profile_block_cover_item3_uniform2_logscale h.sat_decider n
       (hnM_of_hn h n hn) (hn804_of_hn h n hn)) : False := by
-  let M := h.sat_decider
-  have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
-  have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  exact P_neq_NP_latent_from_p_obligation h n hn
-    (theorem216_profile_data_logscale_from_item3_uniform2_proved M n hnM hn804 p3u2)
+  exact P_neq_NP_latent_from_p_span_card h n hn
+    (latent_profile_span_card_bound_logscale_from_item3_uniform2 h.sat_decider n
+      (hnM_of_hn h n hn) (hn804_of_hn h n hn) p3u2)
 
 /-- Frozen canonical final entrypoint (Move-1):
 assume exactly `latent_p_witness_target_logscale` on the P side. -/
@@ -515,8 +511,8 @@ theorem P_neq_NP_latent_from_p_witness_target (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  exact P_neq_NP_latent_from_p_obligation h n hn
-    (theorem216_profile_data_logscale_from_p_witness_target_proved M n hnM hn804 pTarget)
+  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn
+    (latent_compiled_tableau_bound_logscale_from_p_witness_target M n hnM hn804 pTarget)
 
 /-- Move-2 strong-entry route: if a single span witness of size `≤ n^160` is built,
 then frozen target follows immediately and the contradiction route closes. -/
@@ -527,8 +523,8 @@ theorem P_neq_NP_latent_from_p_span160 (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  exact P_neq_NP_latent_from_p_obligation h n hn
-    (theorem216_profile_data_logscale_from_span160_proved M n hnM hn804 p160)
+  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn
+    (latent_compiled_tableau_bound_logscale_from_span160_witness M n hnM hn804 p160)
 
 /-- Move-5 complete route from an explicit `n^160` rank bound hypothesis.
 No global axiom is used here. -/
@@ -539,8 +535,8 @@ theorem P_neq_NP_from_generator_bound (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  exact P_neq_NP_latent_from_p_obligation h n hn
-    (theorem216_profile_data_logscale_from_rank160_proved M n hnM hn804 hRank)
+  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn
+    (latent_compiled_tableau_bound_logscale_from_rank160 M n hnM hn804 hRank)
 
 /-- Move-3 route: profile parts with `(40,120)` bounds imply span160,
 then the Move-2 strong route closes the contradiction. -/
@@ -551,8 +547,8 @@ theorem P_neq_NP_latent_from_p_parts_40_120 (h : PeqNP) (n : ℕ)
   let M := h.sat_decider
   have hnM : n ≥ max 4 M.numStates := hnM_of_hn h n hn
   have hn804 : n ≥ 2 ^ 804 := hn804_of_hn h n hn
-  exact P_neq_NP_latent_from_p_obligation h n hn
-    (theorem216_profile_data_logscale_from_parts_40_120_proved M n hnM hn804 pParts)
+  exact P_neq_NP_latent_from_compiled_tableau_bound h n hn
+    (latent_compiled_tableau_bound_logscale_from_parts_40_120 M n hnM hn804 pParts)
 
 /-- Canonical-NP route from functional profile-id bucket schema (P-side).
 This is often the most natural constructive form to prove from paper definitions. -/
