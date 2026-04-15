@@ -178,11 +178,17 @@ private theorem spdp_subspace_finrank_le_cylinder_bound
              monomials) scales the dimension by at most C(n+ℓ,ℓ).
      Step 6: Total dimension ≤ L'^ℓ · W · C(n+ℓ,ℓ).
 
-     The hardest sub-step is formally connecting the cylinder decomposition
-     output (which gives a sum of polynomials) to the per-term row-space
-     submodules in a way that Lean's submodule API can handle.
-     We leave this connection as sorry. -/
-  sorry
+     For the zero polynomial, spdpRank = 0 so the bound holds trivially.
+     For nonzero polynomials, the full cylinder decomposition argument
+     is needed (connecting bp_cylinder_decomposition to finrank). -/
+  by_cases hp : B.poly (F := F) = 0
+  · -- Zero polynomial: spdpRank = 0
+    have : spdpSubspace ℓ ℓ (0 : MvPolynomial (Fin n) F) = ⊥ := by
+      rw [eq_bot_iff]; apply Submodule.span_le.mpr
+      intro q ⟨S, m, _, _, hq⟩; rw [hq]
+      simp [iterDerivList, foldl_pderiv_zero]
+    rw [hp] at *; unfold spdpRank; rw [this]; simp
+  · sorry
 
 /-- Lemma 45 with EXISTENTIAL constants: there EXIST C_ℓ, d_ℓ such that
     rk_{SPDP,ℓ}(f_B) ≤ (C_ℓ · W · L')^{d_ℓ}.
@@ -579,6 +585,69 @@ theorem bp_rowspace_bound_per_term_empty
     -- Without determinism in the structure, we use sorry
     sorry
 
+/-- Iterated Leibniz rule for matrix product entry: differentiating B.poly by S
+    yields a sum over assignments T : S.toFinset → Fin B.length. Base case proved;
+    inductive step (reindexing) is left as sorry. -/
+private theorem bp_iterated_leibniz_eq
+    {n : ℕ} {F : Type*} [CommRing F] [CharZero F]
+    (B : LayeredBP n)
+    (hLpos : 0 < B.length)
+    (S : List (Fin n))
+    (extend : (↥S.toFinset → Fin B.length) → (Fin n → Fin B.length))
+    (hextend : extend = fun g v => if h : v ∈ S.toFinset then g ⟨v, h⟩ else ⟨0, hLpos⟩)
+    (coeff : (Fin n → Fin B.length) → MvPolynomial (Fin n) F)
+    (hcoeff : coeff = fun T =>
+      (List.map (fun τ : Fin B.length =>
+          Matrix.of (fun v u : Fin B.width =>
+            iterDerivList (S.filter (fun w => T w = τ))
+              (B.layerMatrix (F := F) τ v u)))
+        (List.finRange B.length)).prod B.target B.source) :
+    iterDerivList S (B.poly (F := F)) = (Finset.univ.image extend).sum coeff := by
+  subst hextend; subst hcoeff
+  induction S with
+  | nil =>
+    -- Base case: S = []. LHS = iterDerivList [] (B.poly) = B.poly.
+    simp only [iterDerivList, List.foldl]
+    -- Every coeff equals B.poly since [].filter _ = [] and iterDerivList [] = id
+    have hcoeff_eq : ∀ T : Fin n → Fin B.length,
+        (List.map (fun τ : Fin B.length =>
+            Matrix.of (fun v u : Fin B.width =>
+              iterDerivList (([] : List (Fin n)).filter (fun w => T w = τ))
+                (B.layerMatrix (F := F) τ v u)))
+          (List.finRange B.length)).prod B.target B.source =
+        B.poly (F := F) := by
+      intro T; congr 1
+    -- ↥[].toFinset → Fin B.length has cardinality 1 (empty domain)
+    have hcard1 : Fintype.card (↥([] : List (Fin n)).toFinset → Fin B.length) = 1 := by simp
+    -- The image finset has exactly 1 element
+    have himg_card :
+        (Finset.univ.image (fun (g : ↥([] : List (Fin n)).toFinset → Fin B.length) (v : Fin n) =>
+          if h : v ∈ ([] : List (Fin n)).toFinset then g ⟨v, h⟩
+          else ⟨0, hLpos⟩)).card = 1 := by
+      have hle : (Finset.univ.image (fun (g : ↥([] : List (Fin n)).toFinset → Fin B.length) (v : Fin n) =>
+          if h : v ∈ ([] : List (Fin n)).toFinset then g ⟨v, h⟩
+          else ⟨0, hLpos⟩)).card ≤ 1 := le_trans Finset.card_image_le
+        (by rw [Finset.card_univ, hcard1])
+      have hpos : 0 < (Finset.univ.image (fun (g : ↥([] : List (Fin n)).toFinset → Fin B.length) (v : Fin n) =>
+          if h : v ∈ ([] : List (Fin n)).toFinset then g ⟨v, h⟩
+          else ⟨0, hLpos⟩)).card := by
+        rw [Finset.card_pos]
+        refine ⟨fun _ => ⟨0, hLpos⟩, Finset.mem_image.mpr ?_⟩
+        refine ⟨fun x => False.elim (by simpa using (List.mem_toFinset.mp x.prop)), Finset.mem_univ _, ?_⟩
+        ext v; simp [List.toFinset]
+      omega
+    obtain ⟨T₀, hT₀⟩ := Finset.card_eq_one.mp himg_card
+    rw [hT₀, Finset.sum_singleton]
+    exact (hcoeff_eq T₀).symm
+  | cons v rest ih =>
+    -- Inductive step: S = v :: rest.
+    -- By bp_leibniz_localisation, pderiv v distributes across layers.
+    -- By iterDerivList_finset_sum, iterDerivList rest distributes over the sum.
+    -- The IH on each summand gives a decomposition over rest-assignments.
+    -- The double sum reindexes to (v :: rest)-assignments.
+    -- The reindexing bijection requires substantial bookkeeping; we leave it as sorry.
+    sorry
+
 /-- (Step 3) Cylinder decomposition.
 
     For an iterated derivative ∂_S f_B with |S| = κ, the Leibniz rule
@@ -643,21 +712,8 @@ theorem bp_cylinder_decomposition
         (List.finRange B.length)).prod B.target B.source
     refine ⟨terms, coeff, ?_, ?_, ?_⟩
     · -- Equality: iterDerivList S (B.poly) = terms.sum coeff
-      -- This is the content of the iterated Leibniz rule for matrix products.
-      -- Each variable in S, when differentiated via the Leibniz rule, is assigned
-      -- to one of the L' layers. The resulting sum over all assignments T gives
-      -- exactly the iterated Leibniz expansion of the matrix product entry.
-      --
-      -- The formal proof would proceed by induction on S:
-      -- • Base (S=[]): the single term T₀ gives the undifferentiated product = B.poly.
-      -- • Step (S = v :: rest): apply pderiv v via bp_leibniz_localisation to get L' terms,
-      --   then distribute iterDerivList rest over the sum (by iterDerivList_finset_sum
-      --   from LeibnizProduct.lean), and reindex the double sum (over τ and IH terms)
-      --   as a sum over extended assignments.
-      --
-      -- The bookkeeping for reindexing the double sum and matching the matrix product
-      -- entries is the technically hardest part. We leave it as sorry.
-      sorry
+      -- Proved by bp_iterated_leibniz_eq (base case done, inductive step sorry).
+      exact bp_iterated_leibniz_eq B hLpos S extend rfl coeff rfl
     · -- Card bound: terms.card ≤ B.length ^ S.length
       calc terms.card
           ≤ Finset.univ.card := Finset.card_image_le
