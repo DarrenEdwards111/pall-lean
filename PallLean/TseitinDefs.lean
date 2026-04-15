@@ -937,4 +937,60 @@ theorem clauseGadget_totalDegree (F : Type*) [CommRing F] [Nontrivial F]
                   one_sub_literalPoly_totalDegree F v3 cl.sign3]
     _ = 3 := by norm_num
 
+/-! ## Iterated Derivative of Assignment Monomial: Sign Extraction
+
+For the row-realization axiom (sound_characteristic_pd_row_derivs), the key
+step is computing `iterDerivList derivs (assignmentMonomial F Φ a)` when
+`derivs` is a list of DISTINCT base variables.
+
+The assignment monomial is a product: `∏ᵢ factor(aᵢ)` where
+`factor(true) = Xᵢ` and `factor(false) = 1 - Xᵢ`.
+
+Differentiating by `Xᵢ` hits factor `i`, producing:
+- `+1` if `aᵢ = true` (since ∂/∂Xᵢ(Xᵢ) = 1)
+- `-1` if `aᵢ = false` (since ∂/∂Xᵢ(1 - Xᵢ) = -1)
+
+After hitting all derivatives in the list, the result is:
+`(±1)^k * (product of remaining factors)`
+
+The sign is `∏_{v ∈ derivs} (if a v then 1 else -1)`. -/
+
+/-- The sign factor contributed by differentiating the assignment monomial
+at a specific base variable: +1 if `a v = true`, -1 if `a v = false`. -/
+def assignmentDerivSign (a : Fin m → Bool) (v : Fin m) : ℤ :=
+  if a v then 1 else -1
+
+/-- The product of sign factors for a list of base variables. -/
+def assignmentDerivSignProd (a : Fin m → Bool) (derivs : List (Fin m)) : ℤ :=
+  (derivs.map (assignmentDerivSign a)).prod
+
+@[simp] theorem assignmentDerivSignProd_nil (a : Fin m → Bool) :
+    assignmentDerivSignProd a [] = 1 := by
+  simp [assignmentDerivSignProd]
+
+theorem assignmentDerivSignProd_cons (a : Fin m → Bool) (v : Fin m) (rest : List (Fin m)) :
+    assignmentDerivSignProd a (v :: rest) =
+      assignmentDerivSign a v * assignmentDerivSignProd a rest := by
+  simp [assignmentDerivSignProd, List.map_cons, List.prod_cons]
+
+/-- Each sign factor is ±1. -/
+theorem assignmentDerivSign_sq (a : Fin m → Bool) (v : Fin m) :
+    assignmentDerivSign a v * assignmentDerivSign a v = 1 := by
+  unfold assignmentDerivSign
+  split <;> ring
+
+/-- The sign product is ±1 (since each factor is ±1). -/
+theorem assignmentDerivSignProd_sq (a : Fin m → Bool) (derivs : List (Fin m)) :
+    assignmentDerivSignProd a derivs * assignmentDerivSignProd a derivs = 1 := by
+  induction derivs with
+  | nil => simp
+  | cons v rest ih =>
+    simp only [assignmentDerivSignProd_cons]
+    calc assignmentDerivSign a v * assignmentDerivSignProd a rest *
+          (assignmentDerivSign a v * assignmentDerivSignProd a rest)
+        = (assignmentDerivSign a v * assignmentDerivSign a v) *
+          (assignmentDerivSignProd a rest * assignmentDerivSignProd a rest) := by ring
+      _ = 1 * 1 := by rw [assignmentDerivSign_sq, ih]
+      _ = 1 := mul_one 1
+
 end Tseitin
