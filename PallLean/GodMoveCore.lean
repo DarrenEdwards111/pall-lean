@@ -556,6 +556,20 @@ theorem routeB_weakened_np_from_pdMatrix
       mlBlockedSpdpRank d.blockPart (Nat.log 2 n) (Nat.log 2 n) d.poly :=
   le_trans d.pd_lower d.pd_to_blocked_transfer
 
+/-! ## Axiom audits for Route B theorems -/
+
+#print axioms extraction_from_decomposition
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+-- The extraction follows from the decomposition data, no external axioms.
+
+#print axioms separation_from_weakened_routeB
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+-- All mathematical content is in the hypotheses.
+
+#print axioms routeB_weakened_np_from_pdMatrix
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+-- Pure arithmetic chain from RouteBNPFromPdMatrix data.
+
 /-! ## Summary: Exact theorem seams for Route B
 
 ### Discharged (modulo sound encoding axioms):
