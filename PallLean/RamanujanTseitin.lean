@@ -450,6 +450,47 @@ structure BaseIndexCharacteristicPdRowDerivWitness
         (baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
         (Tseitin.characteristicPoly F (fam.encoding n hn).formula)
 
+/-- Equivalent but more explicit formulation of the remaining row-realization
+frontier: instead of indexing rows by `i`, state the witness against the actual
+canonical clause subset `cs` appearing in the Kronecker system. -/
+structure BaseIndexCharacteristicPdSubsetWitness
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula)
+    (cs : List (Fin pack.selected.length)) where
+  baseDerivs : List (Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula))
+  length_eq : baseDerivs.length = (fam.partition n hn).part.S.card
+  subset_S :
+    ∀ v ∈ baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula),
+      v ∈ (fam.partition n hn).part.S
+  row_eq :
+    IdentityMinorReal.gadgetProd
+      (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack) cs =
+      SPDP.iterDerivList
+        (baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
+        (Tseitin.characteristicPoly F (fam.encoding n hn).formula)
+
+/-- A clause-subset witness specializes to the row witness for the corresponding
+canonical index. -/
+def BaseIndexCharacteristicPdSubsetWitness.toRow
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
+    (w : BaseIndexCharacteristicPdSubsetWitness F fam n hn pack
+      (IdentityMinorReal.getClauseSubset
+        (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+        (Nat.log 2 n) i)) :
+    BaseIndexCharacteristicPdRowDerivWitness F fam n hn pack i := {
+  baseDerivs := w.baseDerivs
+  length_eq := w.length_eq
+  subset_S := w.subset_S
+  row_eq := by
+    simpa [characteristic_pd_system_from_pack_rows] using w.row_eq
+}
+
 /-- Base-index witnesses induce base-variable ambient witnesses. -/
 def BaseIndexCharacteristicPdRowDerivWitness.toBaseVariable
     (F : Type*) [Field F] [CharZero F]
@@ -642,12 +683,32 @@ disjoint packing produced from the Tseitin instance, every row of the canonical
 Kronecker system is explicitly realized by an iterated derivative of the
 characteristic polynomial along a legal `S`-list. The combinatorial size bound
 is now derived, not assumed. -/
-axiom characteristic_pd_baseIndex_row_derivs_from_pack
+axiom characteristic_pd_baseIndex_subset_derivs_from_pack
     (F : Type*) [Field F] [CharZero F]
     (fam : RamanujanTseitinFamily F)
     (n : ℕ) (hn : n ≥ 6)
     (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
-    ∀ i, BaseIndexCharacteristicPdRowDerivWitness F fam n hn pack i
+    ∀ i,
+      BaseIndexCharacteristicPdSubsetWitness F fam n hn pack
+        (IdentityMinorReal.getClauseSubset
+          (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+          (Nat.log 2 n) i)
+
+/-- Repackage the clause-subset form of the frontier as the row-index form used
+downstream. -/
+noncomputable def characteristic_pd_baseIndex_row_derivs_from_pack
+    (F : Type*) [Field F] [CharZero F]
+    (fam : RamanujanTseitinFamily F)
+    (n : ℕ) (hn : n ≥ 6)
+    (pack : Tseitin.DisjointPacking (fam.encoding n hn).formula) :
+    ∀ i, BaseIndexCharacteristicPdRowDerivWitness F fam n hn pack i := by
+  intro i
+  let cs :=
+    IdentityMinorReal.getClauseSubset
+      (IdentityMinorReal.tseitinClauseSystem F (fam.encoding n hn).formula pack)
+      (Nat.log 2 n) i
+  simpa [cs] using
+    (characteristic_pd_baseIndex_subset_derivs_from_pack F fam n hn pack i).toRow F
 
 /-- Forget base-index structure to recover the base-variable witness format. -/
 noncomputable def characteristic_pd_base_row_derivs_from_pack
