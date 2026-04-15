@@ -3179,6 +3179,43 @@ theorem godMoveConstruction_firstBehaviorPerturbation_not_genuine_candidate
   exact godMoveConstruction_firstBehaviorPerturbation_not_nontrivial_staged_map
     M n hn hdec htb hns hg.2.2
 
+/-- Exact remaining upgrade target on the first explicit post-identity Route B
+construction.
+
+All weaker shells are already proved for
+`godMoveConstruction_firstBehaviorPerturbation`; the only missing ingredient for
+that concrete construction to become a full paper-facing genuine candidate is
+the staged-map nontriviality upgrade. -/
+def godMoveFirstBehaviorPerturbationUpgradeTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) : Prop :=
+  godMoveNontrivialStagedMapTarget M n hn htb hns
+    (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns)
+
+/-- On the first explicit post-identity construction, becoming a genuine
+paper-facing candidate is equivalent to closing exactly the staged-map
+nontriviality upgrade target above. -/
+theorem godMoveFirstBehaviorPerturbation_genuine_candidate_iff_upgrade
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveGenuineCandidateTarget M n hn htb hns
+      (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns) ↔
+    godMoveFirstBehaviorPerturbationUpgradeTarget M n hn hdec htb hns := by
+  constructor
+  · intro hg
+    exact hg.2.2
+  · intro hup
+    refine ⟨
+      godMoveConstruction_firstBehaviorPerturbation_is_canonical_target M n hn hdec htb hns,
+      (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns).staged_semantic_target,
+      hup⟩
+
 /-- The first behavior-perturbed construction gives an explicit existential
 one-stage witness, so the post-identity Route B shell now has a real inhabitant
 rather than only a local construction theorem. -/
