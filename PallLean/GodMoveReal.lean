@@ -2493,6 +2493,25 @@ map is no longer the right statement. An identity map certainly can separate
 some polynomial from `0`; the real semantic issue is coherence with the claimed
 restriction metadata, already captured by `godMoveRestrictionCoherenceTarget`. -/
 
+/-- Stronger behavior-level seam: the restriction function itself must differ
+from the identity on some compiled polynomial, after identifying the restricted
+ambient space with the compiled one.
+
+This is the honest successor to the metadata-only perturbation target above.
+Unlike `godMoveRestrictionFunctionPerturbationTarget`, it actually separates a
+genuine restriction-stage perturbation from the identity placeholder. -/
+def godMoveRestrictionFunctionNonidentityTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (compiledVars coupledVars : ℕ)
+    (map : GodMoveTypedMap compiledVars coupledVars) : Prop :=
+  ∃ hsame : map.restrictedVars = compiledVars,
+    ∃ p : MvPolynomial (Fin compiledVars) ℚ,
+      map.restrictFun p ≠ Eq.mp (by rw [hsame]) p
+
 /-- Variable assignment for the first genuinely perturbed restriction function.
 
 This is the minimal substitution pattern suggested by the restriction metadata:
@@ -2537,6 +2556,23 @@ theorem godMoveRestrictFun_firstPerturbation_nontrivial
   have hcoeff := congrArg (fun p => MvPolynomial.coeff (Finsupp.single v0 1) p) h
   simp [godMoveRestrictFun_firstPerturbation, godMoveRestrictionFirstPerturbationSubst, v0,
     MvPolynomial.coeff_X] at hcoeff
+
+/-- The identity placeholder restriction stage is not a genuine behavior-level
+perturbation: its restriction function is literally the identity. -/
+theorem godMoveConstruction_exists_map_not_restriction_function_nonidentity
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ godMoveRestrictionFunctionNonidentityTarget M n hn hdec htb hns
+        (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars
+        (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars
+        (godMoveConstruction_exists M n hn hdec htb hns).map := by
+  intro h
+  rcases h with ⟨hsame, p, hp⟩
+  cases hsame
+  exact hp (by simp [godMoveConstruction_exists])
 
 /-- First typed map with genuinely perturbed restriction behavior.
 
@@ -2604,6 +2640,75 @@ noncomputable def godMoveTypedMap_firstBehaviorPerturbation
     witness_free_coheres_with_restriction := True
     block_local_coheres_with_projection_relabel := True
   }
+
+/-- The first behavior-perturbed typed map satisfies the broad function
+perturbation target. -/
+theorem godMoveTypedMap_firstBehaviorPerturbation_is_function_perturbed
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveRestrictionFunctionPerturbationTarget M n hn hdec htb hns
+      (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars
+      (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars
+      (godMoveTypedMap_firstBehaviorPerturbation M n hn hdec htb hns) := by
+  refine ⟨1, ?_⟩
+  simp [godMoveTypedMap_firstBehaviorPerturbation, godMoveRestrictFun_firstPerturbation]
+
+/-- The first behavior-perturbed typed map also satisfies the stronger
+nonidentity target: its restriction function no longer agrees with the identity
+map on the distinguished fixed variable. -/
+theorem godMoveTypedMap_firstBehaviorPerturbation_is_nonidentity
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveRestrictionFunctionNonidentityTarget M n hn hdec htb hns
+      (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars
+      (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars
+      (godMoveTypedMap_firstBehaviorPerturbation M n hn hdec htb hns) := by
+  let T := cook_levin_compilation M n (by omega : n ≥ 2) htb hns
+  let v0 : Fin T.numVars := ⟨0, cookLevin_numVars_pos M n hn htb hns⟩
+  refine ⟨rfl, X v0, ?_⟩
+  simpa [godMoveTypedMap_firstBehaviorPerturbation] using
+    godMoveRestrictFun_firstPerturbation_nontrivial M n hn hdec htb hns
+
+/-- Existential packaging of the first honest behavior-level success beyond the
+metadata-only perturbation story.
+
+This does not yet construct a full paper-faithful `GodMoveConstruction`, but it
+does exhibit an explicit typed map whose restriction stage is genuinely
+non-identity as a function, not just in its metadata. -/
+def godMoveRestrictionFunctionNonidentityWitnessTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) : Prop :=
+  ∃ coupledVars :
+      ℕ,
+    ∃ map : GodMoveTypedMap
+      (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars
+      coupledVars,
+      godMoveRestrictionFunctionNonidentityTarget M n hn hdec htb hns
+        (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars
+        coupledVars map
+
+/-- The first behavior-perturbed typed map witnesses the new behavior-level
+nonidentity target. This is the cleanest current constructive milestone on the
+post-identity Route B thread. -/
+theorem godMoveRestrictionFunctionNonidentityWitnessTarget_holds
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveRestrictionFunctionNonidentityWitnessTarget M n hn hdec htb hns := by
+  refine ⟨(cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars,
+    godMoveTypedMap_firstBehaviorPerturbation M n hn hdec htb hns, ?_⟩
+  exact godMoveTypedMap_firstBehaviorPerturbation_is_nonidentity M n hn hdec htb hns
 
 /- The first behavior-perturbed typed map should now witness the corrected
 function-perturbation target. The remaining bridge is still genuinely tiny, but
