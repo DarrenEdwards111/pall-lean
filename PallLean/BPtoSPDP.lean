@@ -943,10 +943,29 @@ theorem poly_family_rank_bound_in_n
     _ ≤ (C * (family.C_wid * n ^ family.widExp) * (family.C_len * n ^ family.lenExp)) ^ d := by
         apply Nat.pow_le_pow_left
         apply Nat.mul_le_mul (Nat.mul_le_mul_left C hW) hLen
+    _ ≤ (n ^ C * (n ^ family.C_wid * n ^ family.widExp) *
+         (n ^ family.C_len * n ^ family.lenExp)) ^ d := by
+        apply Nat.pow_le_pow_left
+        exact Nat.mul_le_mul
+          (Nat.mul_le_mul (key C) (Nat.mul_le_mul (key family.C_wid) le_rfl))
+          (Nat.mul_le_mul (key family.C_len) le_rfl)
+    _ = (n ^ (C + family.C_wid + family.widExp + family.C_len + family.lenExp)) ^ d := by
+        congr 1
+        rw [show n ^ family.C_wid * n ^ family.widExp = n ^ (family.C_wid + family.widExp)
+            from (pow_add n family.C_wid family.widExp).symm,
+            show n ^ family.C_len * n ^ family.lenExp = n ^ (family.C_len + family.lenExp)
+            from (pow_add n family.C_len family.lenExp).symm,
+            show n ^ C * n ^ (family.C_wid + family.widExp) = n ^ (C + (family.C_wid + family.widExp))
+            from (pow_add n C (family.C_wid + family.widExp)).symm,
+            show n ^ (C + (family.C_wid + family.widExp)) * n ^ (family.C_len + family.lenExp) =
+                 n ^ (C + (family.C_wid + family.widExp) + (family.C_len + family.lenExp))
+            from (pow_add n _ _).symm]
+        congr 1; omega
+    _ ≤ n ^ ((C + family.C_wid + family.widExp + family.C_len + family.lenExp) * d) := by
+        rw [← pow_mul]
     _ ≤ n ^ (d * (C + family.C_wid + family.widExp + family.C_len + family.lenExp + 1)) := by
-        -- Each constant c ≤ n^c (by key). Combine powers: n^a * n^b = n^(a+b).
-        -- Then (n^e)^d = n^(e*d) ≤ n^(d*(e+1)) since e*d ≤ d*(e+1).
-        sorry
+        apply Nat.pow_le_pow_right (by omega : 1 ≤ n)
+        nlinarith
 
 /-! ## §6: Layer matrix totalDegree bound -/
 
