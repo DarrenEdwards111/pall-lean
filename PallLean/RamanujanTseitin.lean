@@ -451,6 +451,7 @@ structure BaseIndexCharacteristicPdRowDerivWitness
         (baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula))
         (Tseitin.characteristicPoly F (fam.encoding n hn).formula)
 
+
 /-- Same witness, but phrased against the actual formula-clause list selected by
 the packing rather than positions inside `pack.selected`. -/
 structure BaseIndexCharacteristicPdClauseWitness
@@ -1205,6 +1206,63 @@ theorem CharacteristicPdRowDerivWitness.row_eq_zero_of_mem_not_base
   rcases Tseitin.exists_selector_of_not_mem_baseVars
       (fam.encoding n hn).formula v hvbase with ⟨c, rfl⟩
   exact w.row_eq_zero_of_selector_mem F c hv
+
+/-- The target row is nonzero, so a generic row witness cannot use any
+non-base derivative. -/
+theorem CharacteristicPdRowDerivWitness.subset_base
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
+    (w : CharacteristicPdRowDerivWitness F fam n hn pack i) :
+    ∀ v ∈ w.derivs, v ∈ Finset.univ.image (Tseitin.baseVarEmbedding (fam.encoding n hn).formula) := by
+  intro v hv
+  by_contra hvbase
+  have hz := w.row_eq_zero_of_mem_not_base F v hv hvbase
+  exact characteristic_pd_system_from_pack_row_ne_zero F fam n hn pack i hz
+
+/-- Hence a generic row witness is automatically selector-free. -/
+theorem CharacteristicPdRowDerivWitness.no_selector
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
+    (w : CharacteristicPdRowDerivWitness F fam n hn pack i)
+    (c : Fin (fam.encoding n hn).formula.clauses.length) :
+    Tseitin.selectorIdx (fam.encoding n hn).formula c ∉ w.derivs :=
+  Tseitin.list_of_baseVars_ne_selectorIdx (fam.encoding n hn).formula
+    w.derivs (w.subset_base F) c
+
+/-- A generic row witness can therefore be re-expressed by actual base-variable
+indices. -/
+theorem CharacteristicPdRowDerivWitness.exists_baseDerivs
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
+    (w : CharacteristicPdRowDerivWitness F fam n hn pack i) :
+    ∃ baseDerivs : List (Fin (Tseitin.tseitinBaseNumVars (fam.encoding n hn).formula)),
+      w.derivs = baseDerivs.map (Tseitin.baseVarEmbedding (fam.encoding n hn).formula) :=
+  Tseitin.exists_baseVar_preimage_list (fam.encoding n hn).formula w.derivs (w.subset_base F)
+
+/-- So every generic row witness canonically upgrades to a base-supported one. -/
+def CharacteristicPdRowDerivWitness.toBaseVariable
+    (F : Type*) [Field F] [CharZero F]
+    {fam : RamanujanTseitinFamily F}
+    {n : ℕ} {hn : n ≥ 6}
+    {pack : Tseitin.DisjointPacking (fam.encoding n hn).formula}
+    {i : Fin (Nat.choose pack.selected.length (Nat.log 2 n))}
+    (w : CharacteristicPdRowDerivWitness F fam n hn pack i) :
+    BaseVariableCharacteristicPdRowDerivWitness F fam n hn pack i := {
+  derivs := w.derivs
+  length_eq := w.length_eq
+  subset_S := w.subset_S
+  subset_base := w.subset_base F
+  row_eq := w.row_eq
+}
 
 /-- If the row-realization witness starts with a concrete base variable, the
 assignment expansion can be pushed one derivative step further using the
