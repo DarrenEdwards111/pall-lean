@@ -610,21 +610,68 @@ theorem pderiv2_boolFactor_mem_interface {N : ℕ} (v : Fin N) :
     from by simp [Algebra.smul_def]]
   exact Submodule.smul_mem _ c (one_mem_boolInterfaceSpan N v)
 
-/-! ### Product of affine polynomials with disjoint single-variable supports
+/-! ### Product expansion over subsets (distributive law)
 
-The key algebraic identity for the symmetric power argument:
-for a product ∏_i (a_i + b_i X_{v_i}) with distinct v_i, the result is
-∑_T (∏_{i∈T} b_i · ∏_{i∉T} a_i) · ∏_{i∈T} X_{v_i}.
+∏_{i ∈ s} (f i + g i) = ∑_{T ∈ s.powerset} (∏_{i ∈ T} g i) * (∏_{i ∈ s\T} f i).
+This is the algebraic foundation for the symmetric power argument.
 
-The coefficients depend only on the profile (the (a_i, b_i) pairs), NOT on
-which specific variables v_i were chosen. This is the foundation of the
-symmetric power collapse: products from different variable assignments but
-the same profile are "variable-renamed copies" with identical coefficient
-structure. The dimension of their span equals the number of distinct
-coefficient patterns. -/
+For the Cook-Levin application: f i = C(a_{k_i}), g i = C(b_{k_i}) * X_{v_i}.
+The expansion gives ∑_T (coeff determined by profile) * (monomial on T-variables).
+The coefficient depends only on which k_i values are in T, NOT on the variables.
+This makes the span over varying variable assignments bounded by the number
+of distinct coefficient patterns. -/
 
--- TODO: formalize the affine product identity and the symmetric power
--- dimension formula. This is the key remaining step for profile compression.
+/-- Product of sums expands as sum over subsets of the Finset.powerset. -/
+theorem finset_prod_add_eq_sum_powerset {α : Type*} [DecidableEq α] {R : Type*} [CommSemiring R]
+    (s : Finset α) (f g : α → R) :
+    s.prod (fun i => f i + g i) =
+      s.powerset.sum (fun T => T.prod g * (s \ T).prod f) := by
+  induction s using Finset.induction_on with
+  | empty => simp
+  | @insert a s ha ih =>
+    rw [Finset.prod_insert ha, ih, add_mul, Finset.mul_sum, Finset.mul_sum]
+    -- Split (insert a s).powerset into T's not containing a (= s.powerset)
+    -- and T's containing a (= s.powerset.image (insert a))
+    rw [Finset.powerset_insert]
+    rw [Finset.sum_union (by
+      rw [Finset.disjoint_left]
+      intro T hT hT'
+      rw [Finset.mem_image] at hT'
+      obtain ⟨U, _, rfl⟩ := hT'
+      rw [Finset.mem_powerset] at hT
+      exact ha (hT (Finset.mem_insert_self a U)))]
+    congr 1
+    · -- T ⊆ s (a ∉ T): f(a) · T.prod(g) · (s\T).prod(f) = T.prod(g) · ((insert a s)\T).prod(f)
+      apply Finset.sum_congr rfl
+      intro T hT
+      rw [Finset.mem_powerset] at hT
+      have haT : a ∉ T := fun h => ha (hT h)
+      rw [show (insert a s) \ T = insert a (s \ T) from by
+        ext x; simp [Finset.mem_sdiff, Finset.mem_insert]
+        constructor
+        · rintro ⟨rfl | hxs, hxT⟩ <;> [exact Or.inl rfl; exact Or.inr ⟨hxs, hxT⟩]
+        · rintro (rfl | ⟨hxs, hxT⟩) <;> [exact ⟨Or.inl rfl, haT⟩; exact ⟨Or.inr hxs, hxT⟩]]
+      rw [Finset.prod_insert (by intro h; exact ha (Finset.mem_sdiff.mp h).1)]
+      ring
+    · -- T = insert a U for U ⊆ s: g(a) · U.prod(g) · (s\U).prod(f)
+      rw [Finset.sum_image (by
+        intro U₁ hU₁ U₂ hU₂ heq
+        have haU₁ : a ∉ U₁ := fun h => ha (Finset.mem_powerset.mp hU₁ h)
+        have haU₂ : a ∉ U₂ := fun h => ha (Finset.mem_powerset.mp hU₂ h)
+        have h1 : (insert a U₁).erase a = U₁ := Finset.erase_insert haU₁
+        have h2 : (insert a U₂).erase a = U₂ := Finset.erase_insert haU₂
+        rw [← h1, heq, h2])]
+      apply Finset.sum_congr rfl
+      intro U hU
+      rw [Finset.mem_powerset] at hU
+      have haU : a ∉ U := fun h => ha (hU h)
+      rw [Finset.prod_insert haU]
+      rw [show (insert a s) \ (insert a U) = s \ U from by
+        ext x; simp only [Finset.mem_sdiff, Finset.mem_insert]
+        exact ⟨fun ⟨hxas, hxaU⟩ => ⟨(hxas.resolve_left (fun h => hxaU (Or.inl h))),
+          fun hxU => hxaU (Or.inr hxU)⟩,
+          fun ⟨hxs, hxU⟩ => ⟨Or.inr hxs, fun h => h.elim (fun h => ha (h ▸ hxs)) hxU⟩⟩]
+      ring
 
 /-! ### Coefficient of tag monomial in boolFactor SPDP generator
 
