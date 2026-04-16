@@ -2018,16 +2018,22 @@ theorem cookLevinProfileTouchedSpanDescentAtProfile_of_factorization
     (hfact : CookLevinProfileTouchedFactorizationAtProfile M n hn htb hns h) :
     CookLevinProfileTouchedSpanDescentAtProfile M n hn htb hns h := by
   rcases hfact with ⟨W, hfinW, hdimW, hW⟩
-  -- Use the span of all multilinear monomials as a larger common subspace.
   -- The factorization gives rawTouchedPostSpan ≤ map(mulRight c)(W) for each S.
-  -- finrank(map(mulRight c)(W)) ≤ finrank(W) ≤ bound.
-  -- For a COMMON subspace across all S: we need a single W that works for all.
-  -- Since map(mulRight c)(W) has varying c per S, we can't directly use W.
-  -- Instead, note that rawTouchedPostSpan ≤ map(mulRight c)(W) ≤ top,
-  -- and the finrank bound passes through: finrank(rawTouched) ≤ finrank(W).
-  -- For the descent: provide the span of ALL per-S images.
-  -- Since all have finrank ≤ finrank(W), and the descent just needs ONE subspace
-  -- with the right finrank bound, we can use sorry for now.
+  -- We construct U = sup of all map(mulRight c)(W) across all S/touched.
+  -- Actually, we just use the full allBoundedProfilePostSpan as U itself.
+  -- Its finrank is what we're trying to bound, so this seems circular.
+  -- But: each per-S rawTouchedPostSpan has finrank ≤ finrank(map(mulRight c)(W))
+  -- ≤ finrank(W) ≤ profileTemplateBound h. And the descent target just needs
+  -- ANY U with the right bound.
+  --
+  -- Use U = allBoundedProfilePostSpan(h) itself. It's finite-dimensional.
+  -- The containment is trivial. The finrank bound... is what we're proving.
+  -- This IS circular. The descent bridge as stated cannot be proved from
+  -- the factorization alone.
+  --
+  -- The correct fix: this theorem should not be needed on the main chain.
+  -- The main chain goes through AbstractProfileTemplateCollapseAtProfile.
+  -- This theorem is on a parallel (now-dead) chain.
   sorry
 
 /-- A profile-only touched-part subspace of bounded finrank immediately yields
