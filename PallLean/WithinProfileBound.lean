@@ -1828,67 +1828,11 @@ def CookLevinProfileSymmetricPowerDescentAtProfile
     (∀ (i : Fin (cookLevinFactorList M n hn htb hns).length)
       (d : List (Fin n)),
         d.length ≤ 2 →
-        iterDerivList d ((cookLevinFactorList M n hn htb hns).get i) ∈
+        mlProj (iterDerivList d ((cookLevinFactorList M n hn htb hns).get i)) ∈
           placedCookLevinInterfaceSpan (place i)
             (cookLevinCanonicalInterfaceFamily
               (cookLevinConstraintType M n hn htb hns i))) ∧
-    (∃ G : Finset (MvPolynomial (Fin n) ℚ),
-      G.card ≤ profileTemplateBound h ∧
-      ∀ (S : List (Fin n)) (_ : S.length ≤ Nat.log 2 n)
-        (shift : MvPolynomial (Fin n) ℚ) (_ : shift.vars ⊆ S.toFinset)
-        (touched : Finset (Fin (cookLevinFactorList M n hn htb hns).length)),
-          RawTouchedCompatibleWithDerivProfile
-              (n := n)
-              (cookLevinConstraintType M n hn htb hns) h touched →
-            rawTouchedPostSpan
-              (fun i => (cookLevinFactorList M n hn htb hns).get i)
-              S shift touched ≤
-            Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))) ∧
     h ConstraintType.transitionRight = 0
-
-/-- The local-interface/symmetric-power descent precursor is already strong
-enough to supply the fixed-profile raw-touched template-span target: it carries
-the template-bounded family `G` together with the required raw touched-support
-containment. -/
-theorem cookLevinRawTouchedDerivTemplateSpanAtProfile_of_profileSymmetricPowerDescentAtProfile
-    (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (h : ProfileHistogram)
-    (hdesc : CookLevinProfileSymmetricPowerDescentAtProfile M n hn htb hns h) :
-    CookLevinRawTouchedDerivTemplateSpanAtProfile M n hn htb hns h := by
-  rcases hdesc with ⟨_place, _hlocal, hG, _htr⟩
-  rcases hG with ⟨G, hG_card, hG_span⟩
-  exact ⟨G, hG_card, hG_span⟩
-
-/-- Admissible fixed-profile bridge from the sharper raw-touched template-span
-target to the bounded raw-touched common-span target. The only additional work
-is converting `profileTemplateBound h` to the global `withinProfileBound`. -/
-theorem cookLevinRawTouchedDerivCommonSpanAtProfile_of_rawTouchedDerivTemplateSpanAtProfile
-    (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (h : ProfileHistogram)
-    (hadm : ProfileAdmissible (Nat.log 2 n) h)
-    (hraw : CookLevinRawTouchedDerivTemplateSpanAtProfile M n hn htb hns h) :
-    CookLevinRawTouchedDerivCommonSpanAtProfile M n hn htb hns h := by
-  rcases hraw with ⟨G, hG_card, hG_span⟩
-  exact ⟨G,
-    le_trans hG_card
-      (profileTemplateBound_le_withinProfileBound (Nat.log 2 n) h hadm),
-    hG_span⟩
-
-/-- On admissible profiles, the local-interface/symmetric-power descent
-precursor directly gives the fixed-profile raw-touched common-span theorem. -/
-theorem cookLevinRawTouchedDerivCommonSpanAtProfile_of_profileSymmetricPowerDescentAtProfile
-    (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (h : ProfileHistogram)
-    (hadm : ProfileAdmissible (Nat.log 2 n) h)
-    (hdesc : CookLevinProfileSymmetricPowerDescentAtProfile M n hn htb hns h) :
-    CookLevinRawTouchedDerivCommonSpanAtProfile M n hn htb hns h :=
-  cookLevinRawTouchedDerivCommonSpanAtProfile_of_rawTouchedDerivTemplateSpanAtProfile
-    M n hn htb hns h hadm
-    (cookLevinRawTouchedDerivTemplateSpanAtProfile_of_profileSymmetricPowerDescentAtProfile
-      M n hn htb hns h hdesc)
 
 /-- Active-profile version of the profile-only symmetric-power descent frontier.
 
