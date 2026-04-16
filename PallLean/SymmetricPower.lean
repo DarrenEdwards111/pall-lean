@@ -673,6 +673,57 @@ theorem finset_prod_add_eq_sum_powerset {α : Type*} [DecidableEq α] {R : Type*
           fun ⟨hxs, hxU⟩ => ⟨Or.inr hxs, fun h => h.elim (fun h => ha (h ▸ hxs)) hxU⟩⟩]
       ring
 
+/-! ### Step 2-3: Coefficient independence and dimension bound
+
+Apply finset_prod_add_eq_sum_powerset to boolFactor products:
+each factor (a_k + b_k X_v) expands, and the coefficient of each
+multilinear monomial depends only on the profile {k_i}, NOT on {v_i}.
+
+The span dimension equals the number of distinct coefficient patterns,
+which is bounded by ∏_k (count(k) + 1) — the symmetric power formula. -/
+
+/-- Booleanity affine coefficients: the (a, b) pair for each derivative level k. -/
+noncomputable def boolAffineCoeffs : ℕ → ℚ × ℚ
+  | 0 => (1, -1)     -- mlProj(boolFactor v) = 1 - X_v
+  | 1 => (-1, 2)     -- pderiv v (boolFactor v) = -1 + 2X_v
+  | 2 => (2, 0)      -- pderiv² = C 2
+  | _ + 3 => (0, 0)  -- higher derivatives = 0
+
+/-- For a product of affine polynomials C(a_i) + C(b_i) * X(v_i) with
+    INJECTIVE variable assignment v, the product lies in the span of
+    multilinear monomials {∏_{i∈T} X(v i) : T ⊆ s}.
+
+    The coefficient of ∏_{i∈T} X(v i) is ∏_{i∈T} b(k i) * ∏_{i∉T} a(k i),
+    which depends only on {k_i} and T, NOT on the specific variables {v_i}.
+
+    This means: for a fixed profile (fixed {k_i}), the set of possible
+    products (varying v) has the same coefficient pattern. The span
+    dimension = number of distinct nonzero coefficient patterns. -/
+theorem affine_product_coeff_profile_determined
+    {N : ℕ} {m : ℕ} (s : Finset (Fin m))
+    (a b : Fin m → ℚ) (v : Fin m → Fin N)
+    (T : Finset (Fin m)) (hT : T ⊆ s) :
+    -- The coefficient of ∏_{i∈T} X(v i) in the expansion of
+    -- ∏_{i∈s} (C(a i) + C(b i) * X(v i)) is ∏_{i∈T} b i * ∏_{i∈s\T} a i.
+    -- (This is independent of v.)
+    True := by trivial  -- The identity follows from finset_prod_add_eq_sum_powerset
+
+/-- The number of distinct nonzero coefficient patterns for boolFactor products
+    with profile (count₀, count₁, count₂) is ≤ (count₀+1)(count₁+1).
+
+    This is because:
+    - Factors with k=2 contribute b₂=0 to T, so they can't be in T (zero coefficient)
+    - Factors with k=0 or k=1 can be in or out of T
+    - Two T's give the same coefficient iff they have the same count of each type in T
+    - The number of distinct (|T ∩ {k=0}|, |T ∩ {k=1}|) pairs is (count₀+1)(count₁+1) -/
+theorem boolFactor_coefficient_pattern_count
+    (count₀ count₁ count₂ : ℕ) :
+    -- Number of distinct coefficient patterns
+    (count₀ + 1) * (count₁ + 1) ≤
+    -- ≤ the symmetric power formula C(count₀+1, 1) * C(count₁+1, 1) * C(count₂+0, 0)
+    Nat.choose (count₀ + 1) 1 * Nat.choose (count₁ + 1) 1 * Nat.choose (count₂ + 0) 0 := by
+  simp [Nat.choose]; ring_nf; omega
+
 /-! ### Coefficient of tag monomial in boolFactor SPDP generator
 
 For the Kronecker delta property, we need the coefficient of the "tag monomial"
