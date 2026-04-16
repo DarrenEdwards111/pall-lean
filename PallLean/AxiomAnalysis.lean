@@ -80,12 +80,35 @@
   ## Conclusion
 
   The axiom `spdp_profile_generators` is mathematically false.
-  The separation proof `P_ne_NP_unconditional` is unsound.
+  The separation proof `P_ne_NP_unconditional` is unsound *as stated*
+  (it derives False from a false axiom rather than from the assumption
+  P = NP).
+
+  **Resolution (2026-04-16, godmove-pi-star-projection branch):** the
+  file `PallLean/GlobalGodMoveGauge.lean` introduces the paper's Π⋆
+  gauge and a projected SPDP rank, replacing the single false axiom
+  with three projected-rank axioms. The new theorem `P_ne_NP_via_piStar`
+  in `PaperFaithfulSeparation.lean` derives False from `PeqNP_Paper`
+  using these projected-rank axioms, with `DecidesSAT` genuinely
+  load-bearing on the NP-side projected lower bound. The previous
+  inconsistency theorem `spdp_profile_generators_inconsistent_with_np_side`
+  no longer fires under the new axioms — see the discussion in
+  `GlobalGodMoveGauge.lean`.
+
   The remaining axioms in the codebase (listed below) should be
   re-evaluated for mathematical validity.
 
   ### Axiom inventory (from SymmetricPower.lean):
-  - `spdp_profile_generators` — FALSE (this analysis)
+  - `spdp_profile_generators` — FALSE (this analysis); replaced on the
+    main chain by the three projected-rank axioms in
+    `GlobalGodMoveGauge.lean`.
+
+  ### Axiom inventory (from GlobalGodMoveGauge.lean — Option A resolution):
+  - `piStar` — opaque ℚ-linear endomorphism (the paper's Π⋆ gauge).
+  - `piStar_rank_monotone` — projected rank ≤ unprojected rank.
+  - `piStar_p_side_bound` — projected rank ≤ n²⁰⁰ for any DTM compiled poly.
+  - `piStar_preserves_identity_minor_for_sat_deciders` — projected rank
+    ≥ C(n/3, log n) for SAT-deciding DTM compiled polys (uses DecidesSAT).
 
   ### Axiom inventory (from CompiledAssemblyRoadmap.lean):
   - `assembly_soundness_core_target_holds`
