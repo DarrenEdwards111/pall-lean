@@ -1750,7 +1750,8 @@ def CookLevinProfileSymmetricPowerDescentAtProfile
         iterDerivList d ((cookLevinFactorList M n hn htb hns).get i) ∈
           Submodule.span ℚ (↑(A (cookLevinConstraintType M n hn htb hns i)) : Set (MvPolynomial (Fin n) ℚ))) ∧
     (∃ G : Finset (MvPolynomial (Fin n) ℚ),
-      G.card ≤ profileTemplateBound h)
+      G.card ≤ profileTemplateBound h) ∧
+    h ConstraintType.transitionRight = 0
 
 /-- All-profile version of the profile-only symmetric-power descent frontier. -/
 def CookLevinProfileSymmetricPowerDescentLemma
