@@ -3548,10 +3548,10 @@ lengths by endpoint interface spans / placed interface obligations. -/
 def CookLevinConcreteLocalInterfaceFrontier
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
-  (∀ (i : Fin (cookLevinFactorList M n hn htb hns).length),
-      i.1 < n →
+  (∀ (i : Fin (cookLevinFactorList M n hn htb hns).length)
+      (hi : i.1 < n),
       ∃ place : Fin maxConstraintArity → Fin n,
-        place cookLevinLocalCoord0 = ⟨i.1, by sorry⟩ ∧
+        place cookLevinLocalCoord0 = ⟨i.1, hi⟩ ∧
         ∀ d : List (Fin n), d.length ≤ 2 →
           mlProj (iterDerivList d ((cookLevinFactorList M n hn htb hns).get i)) ∈
             placedCookLevinInterfaceSpan place
