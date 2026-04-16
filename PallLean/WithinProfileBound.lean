@@ -3533,6 +3533,29 @@ def CookLevinTransitionLeftPlacedInterfaceObligation
             placedCookLevinInterfaceSpan place
               (cookLevinCanonicalInterfaceFamily ConstraintType.transitionLeft)
 
+/-- Honest combined local-interface frontier for the concrete Cook-Levin factor list.
+This packages exactly the local data currently available without touching the
+hard profile-only descent step: booleanity factors are controlled after `mlProj`,
+and the adjacency/transition segments are controlled for positive derivative
+lengths by endpoint interface spans / placed interface obligations. -/
+def CookLevinConcreteLocalInterfaceFrontier
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  (∀ (i : Fin (cookLevinFactorList M n hn htb hns).length),
+      i.1 < n →
+      ∃ place : Fin maxConstraintArity → Fin n,
+        place cookLevinLocalCoord0 = ⟨i.1, by assumption⟩ ∧
+        ∀ d : List (Fin n), d.length ≤ 2 →
+          mlProj (iterDerivList d ((cookLevinFactorList M n hn htb hns).get i)) ∈
+            placedCookLevinInterfaceSpan place
+              (cookLevinCanonicalInterfaceFamily ConstraintType.booleanity)) ∧
+  (∀ (i : Fin (cookLevinFactorList M n hn htb hns).length),
+      n ≤ i.1 →
+      i.1 < n + (PaperFaithfulSeparation.adjConstraintList n).length →
+      ∃ lc : LocalConstraint n,
+        lc ∈ PaperFaithfulSeparation.adjConstraintList n) ∧
+  CookLevinTransitionLeftPlacedInterfaceObligation M n hn htb hns
+
 /-- For degree-2 factors, the local derivative space (the set of all possible
     iterDerivList d f for |d| ≤ 2 with d ⊆ S) is contained in the span of
     {f} ∪ {pderiv v f | v ∈ S} ∪ {pderiv v (pderiv w f) | v, w ∈ S}.
