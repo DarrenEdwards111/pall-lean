@@ -1,6 +1,9 @@
 import Mathlib.Algebra.MvPolynomial.PDeriv
+import Mathlib.LinearAlgebra.Dimension.Constructions
 import Mathlib.LinearAlgebra.Dimension.Finrank
 import Mathlib.LinearAlgebra.Matrix.Rank
+import Mathlib.LinearAlgebra.TensorProduct.Matrix
+import Mathlib.RingTheory.TensorProduct.Finite
 
 namespace CoeffMatrixHelpers
 
@@ -569,31 +572,47 @@ So the per-profile rank ≤ ∏_τ C(h(τ)+d_τ-1, d_τ-1) ≤ (κ+1)^8. -/
 
 /-- Upper bound on rank of Kronecker product: rank(A ⊗ B) ≤ rank(A) × rank(B).
 
-    Proof strategy: the rows of A.kronecker B at index (i,j) are obtained by
-    entry-wise multiplication of row i of A (repeated) with row j of B (tiled).
-    The row space is contained in a space of dimension ≤ rank(A) × rank(B). -/
-theorem rank_kronecker_le {R : Type*} [CommRing R] [IsDomain R]
+    The matrix linear map of `A.kronecker B` is exactly `TensorProduct.map`
+    of the matrix linear maps for `A` and `B`. Its range is contained in the
+    image of `range f ⊗ range g`, whose finrank is the product of the two
+    column-space finranks. -/
+theorem rank_kronecker_le {R : Type*} [Field R]
     {l m n p : Type*} [Fintype l] [Fintype m] [Fintype n] [Fintype p]
     [DecidableEq l] [DecidableEq m] [DecidableEq n] [DecidableEq p]
     (A : Matrix l m R) (B : Matrix n p R) :
     (A.kronecker B).rank ≤ A.rank * B.rank := by
-  -- Each column of A⊗B at (k,q) is fun (i,j) => A i k * B j q.
-  -- This equals the "outer product" of column k of A and column q of B.
-  -- The column space is contained in span{outer(u,v) : u ∈ colSpace A, v ∈ colSpace B}.
-  -- dim(this span) ≤ dim(colSpace A) × dim(colSpace B) = rank(A) × rank(B).
-  --
-  -- Formally: transpose to work with row space, use rank_transpose.
-  -- rank(A⊗B) = rank((A⊗B)ᵀ) and (A⊗B)ᵀ = Aᵀ ⊗ Bᵀ.
-  -- Row i of Aᵀ⊗Bᵀ at (k,q) = ... still the same structure.
-  --
-  -- Direct approach using mul_kronecker_mul:
-  -- Factor A = A * (1 : Matrix m m R) as (A₁)(A₂) where A₁ has rank(A) cols.
-  -- But this requires extracting a rank factorization.
-  --
-  -- Simplest valid argument: use rank_mul_le on A⊗B = (A⊗1)*(1⊗B).
-  -- rank((A⊗1)*(1⊗B)) ≤ rank(1⊗B) ... but rank(1⊗B) = rank(B)*|m| which is too large.
-  --
-  -- Correct approach via explicit spanning set construction (sorry for now):
-  sorry
+  classical
+  let bl : Module.Basis l R (l → R) := Pi.basisFun R l
+  let bm : Module.Basis m R (m → R) := Pi.basisFun R m
+  let bn : Module.Basis n R (n → R) := Pi.basisFun R n
+  let bp : Module.Basis p R (p → R) := Pi.basisFun R p
+  let f : (m → R) →ₗ[R] (l → R) := Matrix.toLin bm bl A
+  let g : (p → R) →ₗ[R] (n → R) := Matrix.toLin bp bn B
+  have hA : A.rank = Module.finrank R (LinearMap.range f) := by
+    simpa [f, bl, bm] using Matrix.rank_eq_finrank_range_toLin A bl bm
+  have hB : B.rank = Module.finrank R (LinearMap.range g) := by
+    simpa [g, bn, bp] using Matrix.rank_eq_finrank_range_toLin B bn bp
+  have hAB :
+      Matrix.toLin (bm.tensorProduct bp) (bl.tensorProduct bn) (A.kronecker B) =
+        TensorProduct.map f g := by
+    exact Matrix.toLin_kronecker (bM := bm) (bN := bp) (bM' := bl) (bN' := bn) A B
+  rw [Matrix.rank_eq_finrank_range_toLin (A.kronecker B) (bl.tensorProduct bn)
+    (bm.tensorProduct bp), hAB]
+  have hRange :
+      LinearMap.range (TensorProduct.map f g) =
+        LinearMap.range (TensorProduct.mapIncl (LinearMap.range f) (LinearMap.range g)) := by
+    exact (TensorProduct.range_map f g).trans
+      (TensorProduct.range_mapIncl (LinearMap.range f) (LinearMap.range g)).symm
+  calc
+    Module.finrank R (LinearMap.range (TensorProduct.map f g))
+        = Module.finrank R
+            (LinearMap.range (TensorProduct.mapIncl (LinearMap.range f) (LinearMap.range g))) := by
+          rw [hRange]
+    _ ≤ Module.finrank R (TensorProduct R (LinearMap.range f) (LinearMap.range g)) := by
+          exact LinearMap.finrank_range_le _
+    _ = Module.finrank R (TensorProduct R (LinearMap.range f) (LinearMap.range g)) := rfl
+    _ = Module.finrank R (LinearMap.range f) * Module.finrank R (LinearMap.range g) := by
+          rw [Module.finrank_tensorProduct]
+    _ = A.rank * B.rank := by rw [← hA, ← hB]
 
 end CoeffMatrixHelpers
