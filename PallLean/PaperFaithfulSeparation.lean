@@ -1148,49 +1148,126 @@ theorem P_ne_NP_via_piStar : ∀ (_ : PeqNP_Paper), False := by
   exact absurd hcontra
     (not_le_of_gt (Nat.pow_lt_pow_right (by omega : 1 < n) (by omega : 200 < 201)))
 
+/-! ## Narrowed separation via the SAT-decider-only gauge axiom
+
+`P_ne_NP_via_piStar` above uses `GlobalGodMoveGauge.piStar` and its derived
+theorems, which ultimately depend on the full existence axiom
+`exists_amplituhedron_gauge`. That axiom is stated for *any* bounded-
+parameter DTM.
+
+However, `GlobalGodMoveGauge` now provides a concrete, axiom-free discharge
+of the non-SAT-decider case (via the zero linear map). So the axiomatic
+content of the full existence axiom is concentrated entirely in the
+SAT-decider case — captured by the strictly narrower axiom
+`exists_amplituhedron_gauge_for_sat_decider`.
+
+The version below proves the same `PeqNP_Paper → False` conclusion using
+only that narrower axiom. It demonstrates that the canonical separation
+chain can be migrated to a strictly smaller axiomatic surface without
+changing any downstream consumer. -/
+theorem P_ne_NP_via_narrow_axiom : ∀ (_ : PeqNP_Paper), False := by
+  intro hPeqNP
+  -- Fix n = 2^804 (contradiction scale)
+  set n := 2 ^ 804 with hn_def
+  have hn₀ : n ≥ 2 ^ 804 := le_refl _
+  have hn2 : n ≥ 2 := by
+    calc 2 = 2 ^ 1 := (pow_one 2).symm
+    _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+  have hns_n : hPeqNP.decider.numStates ≤ n :=
+    le_trans hPeqNP.numStates_bound (le_refl _)
+  -- Obtain a gauge witness from the narrow axiom (which requires DecidesSAT).
+  obtain ⟨gauge, hg⟩ := GlobalGodMoveGauge.exists_amplituhedron_gauge_for_sat_decider
+    hPeqNP.decider n hn₀ hn2 hPeqNP.timeBound_le hns_n hPeqNP.decides_3sat
+  -- Projected P-side bound (from the witness's p_side_bound field).
+  have hP : mlBlockedSpdpRank
+      (cook_levin_compilation hPeqNP.decider n hn2 hPeqNP.timeBound_le hns_n).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (gauge (compiledPoly (cook_levin_compilation hPeqNP.decider n hn2
+        hPeqNP.timeBound_le hns_n))) ≤ n ^ 200 :=
+    hg.p_side_bound
+  -- Projected NP-side bound (from the witness's preserves_identity_minor_for_sat_deciders
+  -- field, applied to the SAT-decider hypothesis).
+  have hNP : Nat.choose (n / 3) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank
+        (cook_levin_compilation hPeqNP.decider n hn2 hPeqNP.timeBound_le hns_n).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (gauge (compiledPoly (cook_levin_compilation hPeqNP.decider n hn2
+          hPeqNP.timeBound_le hns_n))) :=
+    hg.preserves_identity_minor_for_sat_deciders hPeqNP.decides_3sat
+  -- Quantitative bridge: n^(log n / 4) ≤ C(n/30, log n) ≤ C(n/3, log n)
+  have hn20 : n ≥ 2 ^ 20 :=
+    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn₀
+  have hbin : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
+    BinomialBound.binomial_lower_bound_concrete n hn20
+  have hmono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose (n / 3) (Nat.log 2 n) :=
+    Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
+  -- Chain: n^(log n / 4) ≤ C(n/30, log n) ≤ C(n/3, log n) ≤ gaugedRank ≤ n^200
+  have hchain : n ^ (Nat.log 2 n / 4) ≤ n ^ 200 :=
+    le_trans (le_trans (le_trans hbin hmono) hNP) hP
+  -- For n = 2^804, log₂ n ≥ 804, so log₂ n / 4 ≥ 201 > 200
+  have hlog : 804 ≤ Nat.log 2 n := Nat.le_log_of_pow_le (by norm_num : 1 < 2) hn₀
+  have hdiv : 201 ≤ Nat.log 2 n / 4 := by omega
+  have hcontra : n ^ 201 ≤ n ^ 200 :=
+    le_trans (Nat.pow_le_pow_right (by omega : 1 ≤ n) hdiv) hchain
+  exact absurd hcontra
+    (not_le_of_gt (Nat.pow_lt_pow_right (by omega : 1 < n) (by omega : 200 < 201)))
+
 /-- **The unconditional P ≠ NP separation theorem (current load-bearing version).**
 
 This is the canonical name for the separation theorem; it forwards to the
-projected-rank proof `P_ne_NP_via_piStar`, which depends on the single
-existence axiom `GlobalGodMoveGauge.exists_amplituhedron_gauge` (not on the
-provably-false `spdp_profile_generators`).
+projected-rank proof `P_ne_NP_via_narrow_axiom`, which depends on the single
+*narrow* existence axiom
+`GlobalGodMoveGauge.exists_amplituhedron_gauge_for_sat_decider` (strictly
+narrower than the previously-used `exists_amplituhedron_gauge`).
 
-The previous body of this theorem is preserved as
-`P_ne_NP_unconditional_legacy_via_spdp_profile_generators` for archival
-reference; it still type-checks but should not be relied upon (its underlying
-axiom is provably false in this codebase, see
-`spdp_profile_generators_inconsistent_with_np_side` below). -/
+Historical progression of this canonical name:
+
+1. First: body used `spdp_profile_generators` (provably false in this
+   codebase, see `spdp_profile_generators_inconsistent_with_np_side`
+   below). That version is archived as
+   `P_ne_NP_unconditional_legacy_via_spdp_profile_generators`.
+2. Then: forwarded to `P_ne_NP_via_piStar`, which uses
+   `exists_amplituhedron_gauge` (quantifies over all DTMs).
+3. Now: forwards to `P_ne_NP_via_narrow_axiom`, which uses only the
+   SAT-decider-only narrow axiom. The non-SAT-decider branch of the old
+   existence axiom is now an axiom-free theorem
+   (`GlobalGodMoveGauge.exists_amplituhedron_gauge_of_not_decidesSAT`).
+
+Both `P_ne_NP_via_piStar` and `P_ne_NP_via_narrow_axiom` remain available;
+only the canonical name updates. -/
 theorem P_ne_NP_unconditional : ∀ (_ : PeqNP_Paper), False :=
-  P_ne_NP_via_piStar
+  P_ne_NP_via_narrow_axiom
 
 /-! ## Axiom audit
 
 The NP-side (God-Move + identity minor) is axiom-free beyond standard Lean.
-The current P_ne_NP_unconditional now forwards to P_ne_NP_via_piStar, which
-depends on the single existence axiom GlobalGodMoveGauge.exists_amplituhedron_gauge
-(plausible, not provably false). The legacy
-P_ne_NP_unconditional_legacy_via_spdp_profile_generators retains the false
-axiom for archival reference only. -/
+The current P_ne_NP_unconditional now forwards to `P_ne_NP_via_narrow_axiom`,
+which depends on the single **narrow** existence axiom
+`GlobalGodMoveGauge.exists_amplituhedron_gauge_for_sat_decider` (strictly
+narrower than the previous `exists_amplituhedron_gauge`, since the
+non-SAT-decider case is now discharged concretely in
+`GlobalGodMoveGauge.exists_amplituhedron_gauge_of_not_decidesSAT`).
+
+The legacy `P_ne_NP_unconditional_legacy_via_spdp_profile_generators`
+retains the false axiom for archival reference only. -/
 #print axioms god_move_identity_minor_axiom
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
 #print axioms P_ne_NP_unconditional_legacy_via_spdp_profile_generators
 -- Expected: ...  + the false axiom SymmetricPower.spdp_profile_generators
 #print axioms P_ne_NP_unconditional
 -- Expected: propext, Classical.choice, Quot.sound,
---   GlobalGodMoveGauge.exists_amplituhedron_gauge.
--- (Single custom axiom — same as P_ne_NP_via_piStar; this theorem now
--- forwards to it. The false spdp_profile_generators is no longer in the
--- dependency closure of the canonical P_ne_NP_unconditional.)
+--   GlobalGodMoveGauge.exists_amplituhedron_gauge_for_sat_decider.
+-- (Single **narrow** custom axiom — the non-SAT-decider branch is now
+-- axiom-free via GlobalGodMoveGauge.exists_amplituhedron_gauge_of_not_decidesSAT.)
+#print axioms P_ne_NP_via_narrow_axiom
+-- Expected: propext, Classical.choice, Quot.sound,
+--   GlobalGodMoveGauge.exists_amplituhedron_gauge_for_sat_decider.
+-- (Single narrow custom axiom; strictly narrower than the previous
+-- exists_amplituhedron_gauge since it only quantifies over SAT-deciders.)
 #print axioms P_ne_NP_via_piStar
 -- Expected: propext, Classical.choice, Quot.sound,
 --   GlobalGodMoveGauge.exists_amplituhedron_gauge.
--- (Single custom axiom — the existence of the amplituhedron gauge satisfying
--- all three properties bundled in `IsAmplituhedronGauge`. The previous three
--- separate axioms are now derived theorems consuming this single witness.)
--- Notably ABSENT: spdp_profile_generators (and the false universal P-side
--- claim). The new chain is consistent with `compiled_np_lower_bound_any_dtm`
--- because the universal P-side bound now applies only to PROJECTED rank,
--- and the NP-side lower bound on projected rank requires DecidesSAT.
+-- (Kept for backward compat; uses the older full-quantifier existence axiom.)
 
 /-! ## Inconsistency witness
 

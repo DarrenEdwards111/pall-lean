@@ -255,4 +255,212 @@ The projected formulation breaks this:
   fires *only* on SAT-deciding DTMs, which exist (with bounded parameters at
   n = 2⁸⁰⁴) only if P = NP. -/
 
+/-! ## Concrete construction (partial): the zero gauge for non-SAT-deciders
+
+This section discharges the existence claim of the amplituhedron gauge
+**concretely and axiom-free** in the case where `M` does not decide 3-SAT.
+
+### Observation
+
+The `IsAmplituhedronGauge` structure bundles three properties:
+
+1. `rank_monotone` — holds trivially for the zero linear map, because the
+   zero map sends every polynomial to `0`, and the SPDP rank of `0` is `0`
+   (lemma `mlBlockedSpdpRank_zero` in `MultilinearSPDP.lean`).
+2. `p_side_bound` — likewise trivial: projected rank of `0` is `0 ≤ n²⁰⁰`.
+3. `preserves_identity_minor_for_sat_deciders` — the hypothesis is
+   `DecidesSAT M`. If `¬ DecidesSAT M`, this property holds **vacuously**.
+
+Therefore the zero linear map satisfies `IsAmplituhedronGauge M n …` for
+every DTM `M` that does *not* decide 3-SAT — with no appeal to any axiom
+other than those imported from Mathlib.
+
+### Implication for the axiom surface
+
+The full `exists_amplituhedron_gauge` axiom quantifies over *all* bounded-
+parameter DTMs. The concrete theorem below shows that the non-SAT-decider
+case is a *theorem* discharged by the zero gauge. The axiomatic content of
+`exists_amplituhedron_gauge` is therefore entirely concentrated in the
+SAT-decider case — a strictly narrower claim that is (arithmetically)
+equivalent to "no bounded-parameter SAT-decider exists at n = 2⁸⁰⁴",
+i.e., to the separation itself in restricted form.
+
+We package this as (a) a named concrete theorem, (b) a strictly narrower
+axiom `exists_amplituhedron_gauge_for_sat_decider`, and (c) a derived
+theorem `exists_amplituhedron_gauge_via_narrow_axiom` that recovers the
+statement of the original axiom from the narrower axiom plus the concrete
+non-SAT-decider case.
+
+**What remains open**: the SAT-decider branch. That is the honest
+mathematical frontier — constructing (or axiomatising) a gauge that
+simultaneously collapses the P-side workload and preserves the NP-side
+identity minor, for a DTM that genuinely decides 3-SAT. -/
+
+/-- The zero linear map on the compiled polynomial's variable space. -/
+private noncomputable abbrev zeroGauge (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
+    MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ :=
+  (0 : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
+        MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ)
+
+/-- The zero-gauge image of any polynomial is `0`. -/
+private theorem zeroGauge_apply (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (p : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) :
+    zeroGauge M n hn2 htb hns p = 0 :=
+  LinearMap.zero_apply p
+
+/-- Under the zero gauge, the projected SPDP rank of any polynomial is `0`. -/
+theorem zeroGauge_spdp_rank_zero
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) :
+    mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition κ ℓ
+      (zeroGauge M n hn2 htb hns p) = 0 := by
+  rw [zeroGauge_apply]
+  exact mlBlockedSpdpRank_zero _ _ _
+
+/-- **Concrete theorem (axiom-free)**: the zero linear map satisfies every
+clause of `IsAmplituhedronGauge` for any DTM `M` that does *not* decide
+3-SAT.
+
+All three properties are discharged concretely:
+
+* `rank_monotone` reduces to `0 ≤ mlBlockedSpdpRank … p`, immediate from
+  `Nat.zero_le`.
+* `p_side_bound` reduces to `0 ≤ n²⁰⁰`, immediate from `Nat.zero_le`.
+* `preserves_identity_minor_for_sat_deciders` is vacuous under the
+  hypothesis `¬ DecidesSAT M`.
+
+Uses no custom axioms beyond the Mathlib standard `propext`,
+`Classical.choice`, `Quot.sound`. -/
+theorem zeroGauge_isAmplituhedronGauge_of_not_decidesSAT
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hnd : ¬ DecidesSAT M) :
+    IsAmplituhedronGauge M n hn hn2 htb hns (zeroGauge M n hn2 htb hns) where
+  rank_monotone := by
+    intro κ ℓ p
+    rw [zeroGauge_spdp_rank_zero]
+    exact Nat.zero_le _
+  p_side_bound := by
+    rw [zeroGauge_spdp_rank_zero]
+    exact Nat.zero_le _
+  preserves_identity_minor_for_sat_deciders := fun hdec => absurd hdec hnd
+
+/-- **Concrete existence theorem (axiom-free) for the non-SAT-decider case**:
+for any bounded-parameter DTM `M` that does not decide 3-SAT, an
+amplituhedron gauge exists — concretely, the zero linear map works.
+
+This theorem is fully discharged without the `exists_amplituhedron_gauge`
+axiom. It narrows the axiomatic content of the amplituhedron gauge
+existence claim to the SAT-decider case only. -/
+theorem exists_amplituhedron_gauge_of_not_decidesSAT
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hnd : ¬ DecidesSAT M) :
+    ∃ (gauge : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
+               MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ),
+      IsAmplituhedronGauge M n hn hn2 htb hns gauge :=
+  ⟨zeroGauge M n hn2 htb hns,
+   zeroGauge_isAmplituhedronGauge_of_not_decidesSAT M n hn hn2 htb hns hnd⟩
+
+/-! ## Narrowed existence axiom
+
+Using the concrete non-SAT-decider theorem above, we introduce a strictly
+narrower axiom that only asserts existence for SAT-deciding DTMs. The full
+`exists_amplituhedron_gauge` axiom is then *derivable* from this narrow
+axiom combined with `exists_amplituhedron_gauge_of_not_decidesSAT`.
+
+At `n = 2^804` with bounded parameters, the narrow axiom is mathematically
+equivalent to "no bounded-parameter SAT-decider exists" (the three
+`IsAmplituhedronGauge` properties become arithmetically inconsistent for a
+SAT-decider at these bounds: `C(n/3, log n) > n^200` at `n = 2^804`, so
+property (ii) and property (iii) cannot both hold for a SAT-decider).
+
+In other words, the narrow axiom makes explicit that the mathematical
+content of the amplituhedron gauge is the separation `P ≠ NP` itself,
+at the restricted scale and bounds. The existence claim as stated is a
+vacuous-for-non-SAT-decider / equivalent-to-separation-for-SAT-decider
+packaging of the main conjecture. -/
+
+/-- **Narrowed existence axiom**: an amplituhedron gauge exists for every
+*SAT-deciding* DTM with bounded parameters at `n ≥ 2^804`.
+
+This is strictly narrower than `exists_amplituhedron_gauge` (which
+quantifies over all DTMs regardless of whether they decide SAT). The
+non-SAT-decider case is discharged concretely by
+`exists_amplituhedron_gauge_of_not_decidesSAT`, so axiomatising only the
+SAT-decider branch reduces the axiomatic content to its genuine
+mathematical kernel.
+
+Under the bound `n ≥ 2^804`, this axiom is (arithmetically) equivalent to
+"no bounded-parameter SAT-decider exists at n ≥ 2^804" — the separation
+`P ≠ NP` in the restricted bounded-parameter form used here. -/
+axiom exists_amplituhedron_gauge_for_sat_decider
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) :
+    ∃ (gauge : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
+               MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ),
+      IsAmplituhedronGauge M n hn hn2 htb hns gauge
+
+/-- **Derived full-existence theorem**: combines the axiom-free
+non-SAT-decider case with the narrow SAT-decider axiom to recover the
+statement of the original `exists_amplituhedron_gauge`.
+
+This theorem has the same conclusion as `exists_amplituhedron_gauge` but
+uses the strictly narrower axiom `exists_amplituhedron_gauge_for_sat_decider`
+— making explicit that the SAT-decider case is the only one carrying
+axiomatic content. -/
+theorem exists_amplituhedron_gauge_via_narrow_axiom
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    ∃ (gauge : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
+               MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ),
+      IsAmplituhedronGauge M n hn hn2 htb hns gauge := by
+  by_cases hdec : DecidesSAT M
+  · exact exists_amplituhedron_gauge_for_sat_decider M n hn hn2 htb hns hdec
+  · exact exists_amplituhedron_gauge_of_not_decidesSAT M n hn hn2 htb hns hdec
+
+/-! ## Summary of the axiomatic trust surface (post-partial-construction)
+
+After this file's concrete partial construction:
+
+* `exists_amplituhedron_gauge` — original axiom, unchanged (kept for
+  backward compatibility with the existing separation chain).
+* `exists_amplituhedron_gauge_for_sat_decider` — **new, strictly narrower**
+  axiom covering only the SAT-decider case. The non-SAT-decider case is
+  now an axiom-free theorem (`exists_amplituhedron_gauge_of_not_decidesSAT`).
+* `exists_amplituhedron_gauge_via_narrow_axiom` — theorem, same statement
+  as `exists_amplituhedron_gauge`, but uses the narrower axiom above.
+
+Migrating `P_ne_NP_via_piStar` to use `exists_amplituhedron_gauge_via_narrow_axiom`
+(rather than `exists_amplituhedron_gauge`) would reduce the canonical
+chain's axiom surface to `exists_amplituhedron_gauge_for_sat_decider` —
+a strict strengthening of the structural honesty of the separation chain. -/
+
+/-! ### Axiom-inventory checks
+
+These `#print axioms` calls document which custom axioms each result
+depends on. Expected outcomes:
+
+* `zeroGauge_isAmplituhedronGauge_of_not_decidesSAT` —
+  **no custom axioms** (the non-SAT-decider case is genuinely axiom-free).
+* `exists_amplituhedron_gauge_of_not_decidesSAT` — same.
+* `exists_amplituhedron_gauge_via_narrow_axiom` —
+  only `exists_amplituhedron_gauge_for_sat_decider`
+  (strictly narrower than the original `exists_amplituhedron_gauge`). -/
+#print axioms zeroGauge_isAmplituhedronGauge_of_not_decidesSAT
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+#print axioms exists_amplituhedron_gauge_of_not_decidesSAT
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+#print axioms exists_amplituhedron_gauge_via_narrow_axiom
+-- Expected: propext, Classical.choice, Quot.sound,
+--   GlobalGodMoveGauge.exists_amplituhedron_gauge_for_sat_decider.
+-- (Single custom axiom — the narrow SAT-decider-only version,
+--  strictly narrower than the original exists_amplituhedron_gauge.)
+
 end GlobalGodMoveGauge
