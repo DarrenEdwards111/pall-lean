@@ -315,4 +315,19 @@ theorem p_side_bound_for_cook_levin_of_allBoundedProfileCommonSpan
   PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin_of_allBoundedProfileCommonSpan
     M n hn htb hns hspan
 
+/-- Conditional P-side bound from the fixed-profile raw-touched common-span
+target, supplied for every derivative-count profile. -/
+theorem p_side_bound_for_cook_levin_of_rawTouchedDerivCommonSpanAtProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hraw : ∀ h : SymmetricPowerBound.ProfileHistogram,
+      WithinProfileBound.CookLevinRawTouchedDerivCommonSpanAtProfile
+        M n hn htb hns h) :
+    mlBlockedSpdpRank (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (PaperFaithfulSeparation.compiledPoly
+        (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 :=
+  PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin_of_rawTouchedDerivCommonSpanAtProfile
+    M n hn htb hns hraw
+
 end LocalityRankBound

@@ -354,6 +354,22 @@ theorem p_side_rank_bound_for_cook_levin_of_allBoundedProfileCommonSpan
   ProfileCompression.p_side_rank_bound_for_cook_levin_of_allBoundedProfileCommonSpan
     M n hn htb hns hspan
 
+/-- Fixed-profile raw-touched common-span frontier version of the P-side rank
+bound. Supplying the smallest raw-touched fixed-profile theorem below
+`CookLevinAllBoundedProfileCommonSpanAtProfile` for every derivative-count
+profile formally closes the `n^200` P-side estimate. -/
+theorem p_side_rank_bound_for_cook_levin_of_rawTouchedDerivCommonSpanAtProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hraw : ∀ h : SymmetricPowerBound.ProfileHistogram,
+      WithinProfileBound.CookLevinRawTouchedDerivCommonSpanAtProfile
+        M n hn htb hns h) :
+    mlBlockedSpdpRank (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 :=
+  ProfileCompression.p_side_rank_bound_for_cook_levin_of_rawTouchedDerivCommonSpanAtProfile
+    M n hn htb hns hraw
+
 /-! ### God-Move Extraction: Decomposition into Intermediate Lemmas
 
 The paper-faithful semantic object is an instance-uniform, witness-free,

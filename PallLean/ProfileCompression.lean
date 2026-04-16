@@ -445,6 +445,26 @@ theorem profile_compression_rank_bound_of_allBoundedProfileCommonSpan
     (WithinProfileBound.cookLevinExactWithinProfileLemma_of_allBoundedProfileCommonSpan
       M n hn htb hns hspan)
 
+/-- Fixed-profile raw-touched common-span version of the profile-compression
+    bound: once the smallest fixed-profile raw-touched theorem below
+    `CookLevinAllBoundedProfileCommonSpanAtProfile` is supplied for each
+    derivative-count profile, the profile-compression estimate follows
+    formally through the all-span common-span target. -/
+theorem profile_compression_rank_bound_of_rawTouchedDerivCommonSpanAtProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hraw : ∀ h : SymmetricPowerBound.ProfileHistogram,
+      WithinProfileBound.CookLevinRawTouchedDerivCommonSpanAtProfile
+        M n hn htb hns h) :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ totalProfileBound n := by
+  exact profile_compression_rank_bound_of_allBoundedProfileCommonSpan
+    M n hn htb hns
+    (WithinProfileBound.cookLevinAllBoundedProfileCommonSpan_of_rawTouchedDerivCommonSpanAtProfiles
+      M n hn htb hns hraw)
+
 /-- **Theorem** (Profile Compression, Paper §9, Theorem 23/92):
     The compiled polynomial of any P-time DTM has SPDP rank bounded by
     the total profile bound (3 * log_2 n + 1)^12.
@@ -707,6 +727,25 @@ theorem p_side_rank_bound_for_cook_levin_of_allBoundedProfileCommonSpan
         profile_compression_rank_bound_of_allBoundedProfileCommonSpan
           M n hn htb hns hspan
     _ ≤ n ^ 200 := totalProfileBound_le_pow n hn
+
+/-- Fixed-profile raw-touched common-span version of the final P-side theorem.
+Supplying the smallest fixed-profile raw-touched theorem below
+`CookLevinAllBoundedProfileCommonSpanAtProfile` for every derivative-count
+profile formally yields the `n^200` estimate. -/
+theorem p_side_rank_bound_for_cook_levin_of_rawTouchedDerivCommonSpanAtProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hraw : ∀ h : SymmetricPowerBound.ProfileHistogram,
+      WithinProfileBound.CookLevinRawTouchedDerivCommonSpanAtProfile
+        M n hn htb hns h) :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 := by
+  exact p_side_rank_bound_for_cook_levin_of_allBoundedProfileCommonSpan
+    M n hn htb hns
+    (WithinProfileBound.cookLevinAllBoundedProfileCommonSpan_of_rawTouchedDerivCommonSpanAtProfiles
+      M n hn htb hns hraw)
 
 /-! ## Verification of the Overall Separation Architecture
 
