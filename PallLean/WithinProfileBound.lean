@@ -2007,6 +2007,22 @@ def CookLevinProfileTouchedFactorizationAtProfile
               S shift touched ≤
             Submodule.map (LinearMap.mulRight ℚ c) W
 
+/-- Once the profile-only touched-part factorization is available, the profile-only
+raw touched-support span follows formally: every slice lies in `mulRight c (W)`,
+so its finrank is bounded by `finrank(W)`, and taking `W` itself as the common
+ambient subspace yields the touched-span descent target. -/
+theorem cookLevinProfileTouchedSpanDescentAtProfile_of_factorization
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (h : ProfileHistogram)
+    (hfact : CookLevinProfileTouchedFactorizationAtProfile M n hn htb hns h) :
+    CookLevinProfileTouchedSpanDescentAtProfile M n hn htb hns h := by
+  rcases hfact with ⟨W, hfinW, hdimW, hW⟩
+  refine ⟨W, hfinW, hdimW, ?_⟩
+  intro S hS shift hshift touched hcompat
+  rcases hW S hS shift hshift touched hcompat with ⟨c, hfac⟩
+  exact le_trans hfac (Submodule.map_le_iff_le_comap.mp le_rfl)
+
 /-- A profile-only touched-part subspace of bounded finrank immediately yields
 one finite template family of the same profile-bounded size. This is the clean
 non-circular final step from touched-span descent to the raw-touched template
