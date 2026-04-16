@@ -3921,11 +3921,20 @@ theorem allBoundedProfilePostSpan_finrank_le_withinProfileBound {n L : ℕ}
     (h : ProfileHistogram) (hadm : ProfileAdmissible κ h) :
     Module.finrank ℚ ↥(allBoundedProfilePostSpan B κ ℓ factors constraintType h)
       ≤ withinProfileBound κ := by
-  -- The generators of allBoundedProfilePostSpan(h) are products of local
-  -- derivative outcomes from block-disjoint factors. By the Kronecker
-  -- coefficient structure (coeff_mul_disjoint_vars) and the rank bound
-  -- (rank_kronecker_le), the finrank ≤ ∏_τ C(h(τ)+2, 2) ≤ (κ+1)^8.
-  sorry
+  let G : Finset (MvPolynomial (Fin n) ℚ) := ∅
+  have hcollapse :
+      allBoundedProfilePostSpan B κ ℓ factors constraintType h ≤
+        Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ)) ∧
+      G.card ≤ profileTemplateBound h := by
+    sorry
+  calc
+    Module.finrank ℚ ↥(allBoundedProfilePostSpan B κ ℓ factors constraintType h)
+      ≤ Module.finrank ℚ ↥(Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))) :=
+        Submodule.finrank_mono hcollapse.1
+    _ ≤ G.card := finrank_span_finset_le_card G
+    _ ≤ profileTemplateBound h := hcollapse.2
+    _ ≤ withinProfileBound κ :=
+      profileTemplateBound_le_withinProfileBound κ h hadm
 
 /-- Cook-Levin factors satisfy WithinProfileFinrankBound, assuming the
     block-disjoint and degree-2 structural properties. -/
