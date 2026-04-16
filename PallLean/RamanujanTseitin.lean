@@ -188,9 +188,33 @@ structure RamanujanTseitinFamily (F : Type*) [Field F] where
   The Tseitin encoding is then explicit polynomial-time. -/
 theorem lps_family_exists (F : Type*) [Field F] [CharZero F] :
     ∃ _ : RamanujanTseitinFamily F, True
-    -- The family itself witnesses the construction; properties follow from
-    -- the struct fields above.
-  := ⟨sorry, trivial⟩ -- ARCHIVED: deprecated chain (uses unsound charPoly_eq_characteristic)
+    -- ARCHIVED: deprecated chain (uses unsound charPoly_eq_characteristic).
+    -- PROOF SKETCH (open Lean exercise):
+    --
+    -- The structure RamanujanTseitinFamily F has the same shape as
+    -- SoundRamanujanTseitinFamily F, EXCEPT it uses TseitinEncoding (with the
+    -- unsound `charPoly_eq_characteristic` constraint) instead of
+    -- SoundTseitinEncoding (without that constraint).
+    --
+    -- Because TseitinFormula carries `parity_odd`, every TseitinFormula is
+    -- unsatisfiable, hence Tseitin.characteristicPoly F Φ = 0. So the
+    -- charPoly_eq_characteristic field of TseitinEncoding can ONLY be
+    -- satisfied by `charPoly = 0`, which kills the rank arguments.
+    --
+    -- A faithful witness would require constructing a TseitinEncoding from
+    -- LPSFamily.soundFamily and converting SoundTseitinEncoding → TseitinEncoding,
+    -- but the conversion is not faithful (charPoly = 0 does not match the
+    -- sound encoding's nonzero charPoly).
+    --
+    -- Closing this sorry honestly therefore requires *replacing* the
+    -- TseitinEncoding structure (and removing the unsound field), at which
+    -- point the deprecated chain merges with the sound chain. Until that
+    -- refactor, this theorem cannot be discharged without using the unsound
+    -- field as a load-bearing assumption.
+    --
+    -- Recommendation: this theorem should be removed or marked deprecated
+    -- (downstream consumers should use sound_lps_family_exists instead).
+  := ⟨sorry, trivial⟩
 
 /-! ### Characteristic Polynomial Soundness Note
 
@@ -2119,7 +2143,27 @@ private noncomputable def lpsPartition (F : Type*) [Field F]
         Fin.lt_iff_val_lt_val]
     rw [hfilt, Fin.card_Iio]
   pdMatrixRank_pos := by
-    sorry -- ARCHIVED: Route A only; not on Route B main chain
+    -- ARCHIVED: Route A only; not on Route B main chain.
+    -- PROOF SKETCH (open Lean exercise):
+    --
+    -- charPoly = ∏_{j ∈ Finset.range (n/30)} X_{baseVarEmbedding j}, a product
+    -- of n/30 distinct first-order variables. The S-block of `part` is exactly
+    -- {i : Fin (9n) | i.val < n/30}, so part.S ⊇ {baseVarEmbedding j : j < n/30}.
+    --
+    -- Take S_list = part.S.toList (length n/30).  Then:
+    --   ∂_{S_list} (∏_{j} X_j) = constant 1 (or ±1)
+    -- because each factor X_{baseVarEmbedding j} gets differentiated by exactly
+    -- one variable in S_list (multilinear product rule).
+    --
+    -- The constant `1 : MvPolynomial _ F` is nonzero, hence
+    --   1 ∈ pdColumnSpace part charPoly  (via iterDerivList_mem_pdColumnSpace),
+    -- and the column space contains a nonzero element, so finrank ≥ 1, i.e.
+    --   0 < pdMatrixRank F part charPoly.
+    --
+    -- Lean implementation: instantiate iterDerivList_mem_pdColumnSpace, then
+    -- use Submodule.finrank_pos_iff_exists_ne_zero (or finrank_lt_iff to
+    -- contradict 0 = finrank).
+    sorry
 
 /-- The concrete sound Ramanujan–Tseitin family.
     Degree 10, girth ≥ log₂ n, n clauses, 9n variables. -/

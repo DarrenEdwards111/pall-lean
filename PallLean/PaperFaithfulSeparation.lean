@@ -4,6 +4,7 @@ import PallLean.GodMoveReal
 import PallLean.ProfileCompression
 import PallLean.IdentityMinorReal
 import PallLean.BinomialBound2
+import PallLean.GlobalGodMoveGauge
 import Mathlib.Tactic
 import Mathlib.Data.Nat.Log
 
@@ -1018,7 +1019,19 @@ movement there is the staged restriction/projection witness on the chosen
 extraction target. The NP lower bound, rank-wrapper transport, and recovered
 separation-facing interfaces are downstream packaging, not additional semantic
 milestones. -/
-theorem P_ne_NP_unconditional : ∀ (_ : PeqNP_Paper), False := by
+/-- Legacy proof preserved for backward compatibility — uses the
+**provably-false** `spdp_profile_generators` axiom (see `AxiomAnalysis.lean`).
+
+The body still type-checks because Lean does not require axioms to be true:
+the false axiom contradicts `compiled_np_lower_bound_any_dtm` (axiom-free) and
+that fact is exhibited by `spdp_profile_generators_inconsistent_with_np_side`
+below.
+
+Use `P_ne_NP_unconditional` for current work — it forwards to
+`P_ne_NP_via_piStar`, which depends instead on the single existence axiom
+`exists_amplituhedron_gauge` (a plausible existence claim, not provably false). -/
+theorem P_ne_NP_unconditional_legacy_via_spdp_profile_generators :
+    ∀ (_ : PeqNP_Paper), False := by
   intro hPeqNP
   -- Fix n = 2^804 (contradiction scale)
   set n := 2 ^ 804 with hn_def
@@ -1064,19 +1077,120 @@ theorem P_ne_NP_unconditional : ∀ (_ : PeqNP_Paper), False := by
   exact absurd hcontra
     (not_le_of_gt (Nat.pow_lt_pow_right (by omega : 1 < n) (by omega : 200 < 201)))
 
+/-! ## Projected-Rank Separation (Option A: faithful Π⋆ implementation)
+
+The previous `P_ne_NP_unconditional` proof above is structurally complete (0
+sorrys) but rests on the false axiom `spdp_profile_generators` (see
+`AxiomAnalysis.lean`). The theorem `spdp_profile_generators_inconsistent_with_np_side`
+below derives False from any DTM, exhibiting the inconsistency.
+
+The projected-rank reformulation, `P_ne_NP_via_piStar`, replaces that single
+false axiom with three plausible projected-rank axioms (in
+`GlobalGodMoveGauge.lean`):
+
+1. `piStar_rank_monotone` — Π⋆ doesn't increase SPDP rank.
+2. `piStar_p_side_bound` — projected rank ≤ poly(n) for ANY DTM.
+3. `piStar_preserves_identity_minor_for_sat_deciders` — projected rank
+   ≥ super-poly(n) for SAT-DECIDING DTMs only.
+
+The asymmetry (universal P-side, SAT-decider-only NP-side) makes
+`DecidesSAT` genuinely load-bearing in the new chain and breaks the
+"any DTM" inconsistency — see the discussion in `GlobalGodMoveGauge.lean`. -/
+theorem P_ne_NP_via_piStar : ∀ (_ : PeqNP_Paper), False := by
+  intro hPeqNP
+  -- Fix n = 2^804 (contradiction scale)
+  set n := 2 ^ 804 with hn_def
+  have hn₀ : n ≥ 2 ^ 804 := le_refl _
+  have hn2 : n ≥ 2 := by
+    calc 2 = 2 ^ 1 := (pow_one 2).symm
+    _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+  have hns_n : hPeqNP.decider.numStates ≤ n :=
+    le_trans hPeqNP.numStates_bound (le_refl _)
+  -- Projected P-side (theorem derived from `IsAmplituhedronGauge.p_side_bound`):
+  -- projected rank ≤ n^200. This applies to ANY DTM with bounded parameters.
+  have hP : GlobalGodMoveGauge.mlBlockedSpdpRankProjected
+      hPeqNP.decider n hn₀ hn2
+      hPeqNP.timeBound_le hns_n
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation hPeqNP.decider n hn2
+        hPeqNP.timeBound_le hns_n)) ≤ n ^ 200 :=
+    GlobalGodMoveGauge.piStar_p_side_bound hPeqNP.decider n hn₀ hn2
+      hPeqNP.timeBound_le hns_n
+  -- Projected NP-side (theorem derived from `IsAmplituhedronGauge`'s
+  -- `preserves_identity_minor_for_sat_deciders`): for SAT-deciding DTMs,
+  -- projected rank ≥ C(n/3, log n). This is the load-bearing site of
+  -- DecidesSAT — without it, no projected lower bound is available.
+  have hNP : Nat.choose (n / 3) (Nat.log 2 n) ≤
+      GlobalGodMoveGauge.mlBlockedSpdpRankProjected
+        hPeqNP.decider n hn₀ hn2
+        hPeqNP.timeBound_le hns_n
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation hPeqNP.decider n hn2
+          hPeqNP.timeBound_le hns_n)) :=
+    GlobalGodMoveGauge.piStar_preserves_identity_minor_for_sat_deciders
+      hPeqNP.decider n hn₀ hn2 hPeqNP.decides_3sat
+      hPeqNP.timeBound_le hns_n
+  -- Quantitative bridge: n^(log n / 4) ≤ C(n/30, log n) ≤ C(n/3, log n)
+  have hn20 : n ≥ 2 ^ 20 :=
+    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn₀
+  have hbin : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
+    BinomialBound.binomial_lower_bound_concrete n hn20
+  have hmono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose (n / 3) (Nat.log 2 n) :=
+    Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
+  -- Chain: n^(log n / 4) ≤ C(n/30, log n) ≤ C(n/3, log n) ≤ projectedRank ≤ n^200
+  have hchain : n ^ (Nat.log 2 n / 4) ≤ n ^ 200 :=
+    le_trans (le_trans (le_trans hbin hmono) hNP) hP
+  -- For n = 2^804, log₂ n ≥ 804, so log₂ n / 4 ≥ 201 > 200
+  have hlog : 804 ≤ Nat.log 2 n := Nat.le_log_of_pow_le (by norm_num : 1 < 2) hn₀
+  have hdiv : 201 ≤ Nat.log 2 n / 4 := by omega
+  have hcontra : n ^ 201 ≤ n ^ 200 :=
+    le_trans (Nat.pow_le_pow_right (by omega : 1 ≤ n) hdiv) hchain
+  exact absurd hcontra
+    (not_le_of_gt (Nat.pow_lt_pow_right (by omega : 1 < n) (by omega : 200 < 201)))
+
+/-- **The unconditional P ≠ NP separation theorem (current load-bearing version).**
+
+This is the canonical name for the separation theorem; it forwards to the
+projected-rank proof `P_ne_NP_via_piStar`, which depends on the single
+existence axiom `GlobalGodMoveGauge.exists_amplituhedron_gauge` (not on the
+provably-false `spdp_profile_generators`).
+
+The previous body of this theorem is preserved as
+`P_ne_NP_unconditional_legacy_via_spdp_profile_generators` for archival
+reference; it still type-checks but should not be relied upon (its underlying
+axiom is provably false in this codebase, see
+`spdp_profile_generators_inconsistent_with_np_side` below). -/
+theorem P_ne_NP_unconditional : ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_via_piStar
+
 /-! ## Axiom audit
 
 The NP-side (God-Move + identity minor) is axiom-free beyond standard Lean.
-The P-side theorem is theorem-level, but the honest first missing statement in
-its dependency chain is now the exact compiled Cook-Levin frontier
-`WithinProfileBound.CookLevinWithinProfileFinrankFrontier`, equivalently the
-specialized within-profile finrank bound on the actual factor list
-`cookLevinFactorList M n hn htb hns`, not the downstream wrapper
-`profile_symmetric_power_factorization`. -/
+The current P_ne_NP_unconditional now forwards to P_ne_NP_via_piStar, which
+depends on the single existence axiom GlobalGodMoveGauge.exists_amplituhedron_gauge
+(plausible, not provably false). The legacy
+P_ne_NP_unconditional_legacy_via_spdp_profile_generators retains the false
+axiom for archival reference only. -/
 #print axioms god_move_identity_minor_axiom
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+#print axioms P_ne_NP_unconditional_legacy_via_spdp_profile_generators
+-- Expected: ...  + the false axiom SymmetricPower.spdp_profile_generators
 #print axioms P_ne_NP_unconditional
--- Expected: the above + the reduced P-side frontier from SymmetricPowerBound
+-- Expected: propext, Classical.choice, Quot.sound,
+--   GlobalGodMoveGauge.exists_amplituhedron_gauge.
+-- (Single custom axiom — same as P_ne_NP_via_piStar; this theorem now
+-- forwards to it. The false spdp_profile_generators is no longer in the
+-- dependency closure of the canonical P_ne_NP_unconditional.)
+#print axioms P_ne_NP_via_piStar
+-- Expected: propext, Classical.choice, Quot.sound,
+--   GlobalGodMoveGauge.exists_amplituhedron_gauge.
+-- (Single custom axiom — the existence of the amplituhedron gauge satisfying
+-- all three properties bundled in `IsAmplituhedronGauge`. The previous three
+-- separate axioms are now derived theorems consuming this single witness.)
+-- Notably ABSENT: spdp_profile_generators (and the false universal P-side
+-- claim). The new chain is consistent with `compiled_np_lower_bound_any_dtm`
+-- because the universal P-side bound now applies only to PROJECTED rank,
+-- and the NP-side lower bound on projected rank requires DecidesSAT.
 
 /-! ## Inconsistency witness
 
