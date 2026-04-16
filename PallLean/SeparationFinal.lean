@@ -24,15 +24,10 @@ This file assembles the complete separation from PaperFaithfulSeparation.lean.
    separate generic rank-wrapper packaging. The
    exact-target names `GodMoveSemanticTargetData` /
    `GodMoveSemanticTargetTheorem` are only packaging around that same witness.
-   The exported compatibility wrapper `god_move_extraction_interface` in
-   `PaperFaithfulSeparation.lean` is still the older separation-facing export:
-   after `88971cd`, the typed `GodMoveReal` construction can bridge into the
-   exact staged semantic core only when a strict target-space shrink
-   `coupledVars < compiled.numVars` is available, and the currently exported
-   same-space identity construction does not satisfy that hypothesis. The old
-   quantitative lower bound `god_move_extraction_lemma` is therefore still
-   derived from the legacy wrapper, not yet re-routed through the exact core
-   target package.
+   On the current branch, the typed `GodMoveReal` strict-shrink witness now
+   does bridge into this exact staged semantic core via
+   `semantic_extraction_theorem_of_liveStrictShrinkBridgeTarget_holds` in
+   `PaperFaithfulSeparation.lean`.
 
 This is cleaner and more paper-faithful than postulating the bundled lower bound
 as the primary object.
@@ -59,15 +54,13 @@ theorem p_side_verified (M : DTM) (n : ℕ) (hn : n ≥ 2)
     Semantic frontier count: TWO genuine
       1. p_side_rank_bound_for_cook_levin (profile compression, §9)
       2. GodMoveSemanticExtractionTheorem
-         (the exact core seam; the legacy export
-         `god_move_extraction_interface` has not yet been rebuilt from it
-         because the current typed construction is still same-space)
+         (the exact core seam, now reached by the live strict-shrink
+         construction in `GodMoveReal.lean`)
     Sorry count: ZERO
 
-    The quantitative theorem `god_move_extraction_lemma` remains derived from
-    the compatibility wrapper around that narrower staged semantic seam, rather
-    than postulated directly as the primary object, but that wrapper is still
-    backed by the identity-style same-space construction in `GodMoveReal.lean`.
+    The quantitative theorem `god_move_extraction_lemma` remains a generic
+    rank-wrapper consequence of the narrowed semantic seam, rather than the
+    seam itself.
 
     Both frontiers use the product polynomial ∏(1-Cᵢ) from the paper (§17.1).
     The product form is essential:
