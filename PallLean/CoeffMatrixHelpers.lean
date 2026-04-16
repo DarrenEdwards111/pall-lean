@@ -442,4 +442,26 @@ theorem finrank_map_span_le_coeffMatrix_rank {ι : Type*} [Fintype ι] [Decidabl
     _ ≤ (coeffMatrix src generators).rank :=
         rank_coeffMatrix_map_le src tgt φ generators hsrc
 
+/-! ### Coefficient vectors of products with disjoint support
+
+For polynomials with disjoint variable supports, the coefficient vector of
+the product factors as a product of per-factor coefficient vectors (in the
+appropriate coordinate decomposition). This is the algebraic identity
+underlying the Kronecker/tensor product structure of the SPDP matrix.
+
+Concretely: if p_i have pairwise disjoint vars, then for any multilinear
+monomial β = β_1 + ... + β_m (with supp(β_i) ⊆ vars(p_i)):
+  coeff(β, ∏ p_i) = ∏ coeff(β_i, p_i)
+
+This means the coefficient vector of the product is determined by the
+per-factor coefficient vectors, and the rank of the product's coefficient
+matrix is bounded by the product of per-factor ranks. Combined with
+finrank_span_products_le, this gives the symmetric power collapse. -/
+
+-- The formal statement and proof of the coefficient product identity
+-- requires careful Finsupp decomposition infrastructure. The mathematical
+-- content: for polynomials with disjoint support, coeff distributes over
+-- products via the Antidiagonal convolution restricted to the support
+-- decomposition.
+
 end CoeffMatrixHelpers
