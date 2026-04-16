@@ -37,28 +37,34 @@
 
   * `zeroOp`, `identityOp` — trivial and exact-preserve cases (axiom-free),
   * `restrictOp` — variable restriction (axiom-free, using existing infra),
-  * `basisChangeOp` — Lemma 40(a), bundled with the per-case axiom
-    `basis_change_rank_preserving` (named after the paper's Lemma 40(a)),
   * `gadgetMultOp` — Lemma 40(c), bundled with the per-case axiom
     `gadget_multiplication_rank_bound` (named after paper's Lemma 40(c)).
+
+  Lemma 40(a) (invertible linear basis change) is deliberately **not**
+  exposed in v1.1 — an earlier draft axiomatised rank preservation for
+  arbitrary invertible ℚ-linear endomorphisms of `MvPolynomial`, which is
+  false (a generic ℚ-linear bijection of the underlying vector space can
+  destroy SPDP structure). The paper's Lemma 40(a) is specifically about
+  *algebra-homomorphism substitutions* (`p ↦ aeval A p`), a narrower
+  class; a paper-faithful `basisChangeOp` on that narrower class is left
+  as a targeted future addition.
 
   A PAC `Pipeline` is then a `List Op` applied by `applyPipeline`, with
   total rank monotonicity derived by composing the per-op certificates.
 
   ## What this file is, and isn't
 
-  This is **PAC v1** — the scaffolding and rank-monotonicity calculus,
-  paper-faithful in structure. Two axioms remain, each mapping 1-1 to a
+  This is **PAC v1.1** — the scaffolding and rank-monotonicity calculus,
+  paper-faithful in structure. **One** axiom remains, mapping 1-1 to a
   specific Lemma 40 clause:
 
-  * `basis_change_rank_preserving` — Lemma 40(a).
   * `gadget_multiplication_rank_bound` — Lemma 40(c).
 
-  The paper proves both of these by explicit chain-rule + invertible-matrix
-  arguments on SPDP matrices; a Lean-level proof requires analogous matrix
-  infrastructure (which exists piecewise in the codebase but not yet in the
-  form Lemma 40 uses). Each axiom is named after its paper lemma so future
-  work can discharge them individually.
+  The paper proves this by Leibniz expansion of ∂^α(g·p) + bounded-
+  support / bounded-degree gadget span counting; a Lean-level proof
+  requires matrix-level SPDP infrastructure not yet formalised in the
+  codebase. The axiom is named after its paper lemma so future work can
+  discharge it directly.
 -/
 import PallLean.MultilinearSPDP
 import PallLean.CookLevinDefs
@@ -129,46 +135,29 @@ noncomputable def identityOp (N : ℕ) : Op N where
 /-! ## Lemma 40(a): basis change preserves SPDP rank exactly
 
 Paper statement (Lemma 40(a)): for a block-local invertible linear change
-of variables `y = Ax`, the SPDP matrices `M^B_{κ,ℓ}(p)` and
-`M^B'_{κ,ℓ}(p ∘ A⁻¹)` are related by left/right multiplication by
+of variables `y = Ax` (A ∈ GL_N(ℚ)), the SPDP matrices `M^B_{κ,ℓ}(p)`
+and `M^B'_{κ,ℓ}(p ∘ A⁻¹)` are related by left/right multiplication by
 invertible matrices, so `Γ_{κ,ℓ}(p) = Γ_{κ,ℓ}(p ∘ A⁻¹)`.
 
-Formally, we axiomatise this as a statement about any `invertible` linear
-endomorphism — a pair `(change, inverse)` with `change ∘ inverse = id`
-and `inverse ∘ change = id`. The certificate is rank equality, strictly
-sharper than the `N^0 · rank(p)` bound. -/
+### Correctness note (PAC v1 → v1.1)
 
-/-- **Axiom (Lemma 40(a)): block-local invertible linear change of
-variables preserves SPDP rank exactly.**
+An earlier draft axiomatised rank preservation for *arbitrary* invertible
+ℚ-linear endomorphisms of `MvPolynomial (Fin N) ℚ`. That statement is
+**false**: a generic invertible ℚ-linear bijection of the underlying
+vector space can wildly mix monomial coefficients in ways that destroy
+the SPDP structure. The paper's Lemma 40(a) is specifically about
+invertible **algebra-homomorphism substitutions** (`p ↦ aeval A p` for
+A : Fin N → MvPolynomial (Fin N) ℚ linear), not arbitrary linear maps.
 
-This is the paper's explicit rank-preservation content for the
-Π_+ transform. The proof in the paper uses the chain rule for
-multivariate differentiation + invertible-matrix factoring of
-`M^B_{κ,ℓ}`; we expose it here as a named axiom so the PAC calculus
-can consume it without dependency on matrix-level SPDP infrastructure
-that is not yet formalised. -/
-axiom basis_change_rank_preserving
-    {N : ℕ} (change inverse : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ)
-    (hleft : change.comp inverse = LinearMap.id)
-    (hright : inverse.comp change = LinearMap.id)
-    (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
-    mlBlockedSpdpRank B κ ℓ (change p) = mlBlockedSpdpRank B κ ℓ p
-
-/-- **PAC operation from a block-local invertible linear change of
-variables (Lemma 40(a), Π_+ transform).** Requires both directions of
-invertibility as a paper-faithful witness. Rank is preserved exactly
-(via the `basis_change_rank_preserving` axiom). -/
-noncomputable def basisChangeOp {N : ℕ}
-    (change inverse : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ)
-    (hleft : change.comp inverse = LinearMap.id)
-    (hright : inverse.comp change = LinearMap.id) : Op N where
-  toFun := change
-  κ_shift := 0
-  ℓ_shift := 0
-  rank_factor := 0
-  rank_monotone B κ ℓ p := by
-    rw [basis_change_rank_preserving change inverse hleft hright B κ ℓ p]
-    simp [mlBlockedSpdpRank]
+Rather than expose a too-general axiom, we leave `basisChangeOp` out of
+this v1.1 module. A paper-faithful formulation would define a
+`BlockLocalInvertibleSub` structure carrying:
+* `A, invA : Fin N → MvPolynomial (Fin N) ℚ` (linear, block-local),
+* `hleft/hright`: mutual inversion as substitutions via `aeval`,
+and axiomatise rank preservation for `aeval A` specifically. This is
+straightforward to add once needed; for now the PAC calculus operates
+with the axiom-free `zeroOp`, `identityOp`, and the `gadgetMultOp` (whose
+axiom is a narrower, correctly-stated Lemma 40(c)). -/
 
 /-! ## Lemma 40(c): gadget multiplication + PAC projection
 
@@ -340,21 +329,20 @@ theorem applyPipeline_rank_monotone {N : ℕ} (π : Pipeline N)
 
 /-! ## Axiom inventory
 
-The remaining custom axioms in this file are:
-* `basis_change_rank_preserving` — Lemma 40(a): exact rank preservation
-  under block-local invertible linear change of variables.
+The remaining custom axiom in this file is:
 * `gadget_multiplication_rank_bound` — Lemma 40(c): `N^C · rank(p)` bound
   for gadget multiplication.
 
 All derived results (`zeroOp`, `identityOp`, `applyPipeline_rank_monotone`,
-etc.) depend only on these two plus the Mathlib standard axioms
-`propext`, `Classical.choice`, `Quot.sound`. -/
+etc.) depend only on this plus the Mathlib standard axioms
+`propext`, `Classical.choice`, `Quot.sound`.
+
+Lemma 40(a) was removed in v1.1 — see the correctness note at its
+section for the reason and what the right formulation would be. -/
 #print axioms applyPipeline_rank_monotone
--- Expected: propext, Classical.choice, Quot.sound,
---   PAC.basis_change_rank_preserving, PAC.gadget_multiplication_rank_bound
--- (only the Lemma 40(a,c) axioms used at this point — the two easy
--- constructors `zeroOp` and `identityOp` are fully axiom-free, so if a
--- pipeline uses only those, `applyPipeline_rank_monotone` would reduce
--- to propext/Classical/Quot.sound alone.)
+-- Expected: propext, Classical.choice, Quot.sound.
+-- (The abstract composition theorem depends only on the Op.rank_monotone
+-- certificates, not on any specific smart constructor's axioms. When
+-- `gadgetMultOp` is instantiated, its axiom enters the dependency closure.)
 
 end PAC
