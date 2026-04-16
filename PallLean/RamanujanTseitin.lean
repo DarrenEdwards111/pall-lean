@@ -1757,7 +1757,162 @@ private noncomputable def lpsGraph (n : ℕ) (hn : n ≥ 6) : RegularGraph where
   degree_bound := by omega
   edgeSrc := fun e => ⟨e.val % n, Nat.mod_lt _ (by omega)⟩
   edgeTgt := fun e => ⟨(e.val % n + e.val / n + 1) % n, Nat.mod_lt _ (by omega)⟩
-  regular := by sorry -- ARCHIVED: Route A only; not on Route B main chain
+  regular := by
+    intro v
+    have hn_pos : 0 < n := by omega
+    have hv_lt : v.val < n := v.isLt
+    -- Rewrite filter to pure arithmetic
+    suffices h : (Finset.univ.filter (fun e : Fin (5 * n) =>
+        e.val % n = v.val ∨ (e.val % n + e.val / n + 1) % n = v.val)).card = 10 by
+      convert h using 2; ext e
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and, Fin.ext_iff, Fin.val_mk]
+    -- Split into source-edges S and target-edges T
+    let S := Finset.univ.filter (fun e : Fin (5 * n) => e.val % n = v.val)
+    let T := Finset.univ.filter (fun e : Fin (5 * n) =>
+      (e.val % n + e.val / n + 1) % n = v.val)
+    have hST : Finset.univ.filter (fun e : Fin (5 * n) =>
+        e.val % n = v.val ∨ (e.val % n + e.val / n + 1) % n = v.val) = S ∪ T := by
+      ext e; simp only [S, T, Finset.mem_filter, Finset.mem_union, Finset.mem_univ, true_and]
+    rw [hST]
+    -- Disjointness
+    have hdisj : Disjoint S T := by
+      rw [Finset.disjoint_filter]
+      intro e _ hsrc htgt
+      have hem : e.val % n < n := Nat.mod_lt _ hn_pos
+      have hk : e.val / n < 5 := Nat.div_lt_of_lt_mul (show e.val < n * 5 by nlinarith [e.isLt])
+      -- Derive contradiction from hsrc and htgt
+      -- hsrc: e%n = v, htgt: (e%n + e/n + 1) % n = v
+      -- So (e%n + e/n + 1) % n = e%n
+      have hkey : (e.val % n + e.val / n + 1) % n = e.val % n := by
+        rw [hsrc] at htgt ⊢; exact htgt
+      -- Since e/n + 1 ∈ {1,...,5} and n ≥ 6:
+      -- e%n + e/n + 1 = e%n + (e/n + 1), and (e%n + (e/n+1)) % n = e%n
+      -- means n | (e/n + 1). But 1 ≤ e/n + 1 ≤ 5 < n.
+      have hd : n ∣ (e.val / n + 1) := by
+        rw [Nat.dvd_iff_mod_eq_zero]
+        -- From hkey: (e%n + e/n + 1) % n = e%n
+        -- Use Nat.add_mod to get: (e%n + (e/n+1)%n) % n = e%n
+        have h1 : (e.val % n + (e.val / n + 1) % n) % n = e.val % n := by
+          have := Nat.add_mod (e.val % n) (e.val / n + 1) n
+          rw [Nat.mod_eq_of_lt hem] at this
+          -- this: (e%n + (e/n+1)) % n = (e%n + (e/n+1)%n) % n
+          -- hkey: (e%n + e/n + 1) % n = e%n
+          -- Note: e%n + (e/n+1) = e%n + e/n + 1 by associativity
+          rw [show e.val % n + (e.val / n + 1) = e.val % n + e.val / n + 1 from by ring] at this
+          rw [hkey] at this
+          -- this: e%n = (e%n + (e/n+1)%n) % n
+          exact this.symm
+        have hq : (e.val / n + 1) % n < n := Nat.mod_lt _ hn_pos
+        -- Case split on (e/n+1)%n
+        by_contra hne
+        push_neg at hne
+        have hpos : 0 < (e.val / n + 1) % n := Nat.pos_of_ne_zero hne
+        by_cases hlt : e.val % n + (e.val / n + 1) % n < n
+        · rw [Nat.mod_eq_of_lt hlt] at h1; omega
+        · push_neg at hlt
+          rw [Nat.mod_eq_sub_mod hlt,
+              Nat.mod_eq_of_lt (show e.val % n + (e.val / n + 1) % n - n < n by omega)] at h1
+          omega
+      have h_le : n ≤ e.val / n + 1 := Nat.le_of_dvd (Nat.succ_pos _) hd
+      omega
+    rw [Finset.card_union_of_disjoint hdisj]
+    -- S.card = 5
+    have hS_card : S.card = 5 := by
+      let f : Fin 5 → Fin (5 * n) := fun k => ⟨v.val + k.val * n, by nlinarith [k.isLt]⟩
+      suffices S = Finset.image f Finset.univ by
+        rw [this, Finset.card_image_of_injective _ (fun a b hab => by
+          simp only [f, Fin.mk.injEq] at hab; exact Fin.ext (by nlinarith [a.isLt, b.isLt])),
+          Finset.card_univ, Fintype.card_fin]
+      ext e; simp only [S, Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_image, f]
+      constructor
+      · intro he
+        have hek : e.val / n < 5 := Nat.div_lt_of_lt_mul (show e.val < n * 5 by nlinarith [e.isLt])
+        exact ⟨⟨e.val / n, hek⟩, Fin.ext (by
+          simp only [f, Fin.val_mk]
+          have h := Nat.div_add_mod e.val n
+          -- h: n * (e/n) + e%n = e, he: e%n = v
+          -- Goal: v + (e/n) * n = e
+          rw [he] at h; linarith)⟩
+      · rintro ⟨k, _, rfl⟩
+        simp [Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hv_lt]
+    -- T.card = 5
+    have hT_card : T.card = 5 := by
+      let g : Fin 5 → Fin (5 * n) := fun k =>
+        ⟨(v.val + n - (k.val + 1)) % n + k.val * n, by
+          nlinarith [Nat.mod_lt (v.val + n - (k.val + 1)) hn_pos, k.isLt]⟩
+      suffices T = Finset.image g Finset.univ by
+        rw [this, Finset.card_image_of_injective _ (fun a b hab => by
+          simp only [g, Fin.mk.injEq] at hab
+          have hma : (v.val + n - (a.val + 1)) % n < n := Nat.mod_lt _ hn_pos
+          have hmb : (v.val + n - (b.val + 1)) % n < n := Nat.mod_lt _ hn_pos
+          -- Take mod n of both sides of hab
+          have hmod_l : ((v.val + n - (a.val + 1)) % n + a.val * n) % n =
+              (v.val + n - (a.val + 1)) % n := by
+            rw [Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hma]
+          have hmod_r : ((v.val + n - (b.val + 1)) % n + b.val * n) % n =
+              (v.val + n - (b.val + 1)) % n := by
+            rw [Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hmb]
+          have hmod_eq : (v.val + n - (a.val + 1)) % n = (v.val + n - (b.val + 1)) % n := by
+            have := congr_arg (· % n) hab
+            simp only [hmod_l, hmod_r] at this
+            exact this
+          -- From hab and hmod_eq: a*n = b*n
+          have hmul_eq : a.val * n = b.val * n := by linarith
+          exact Fin.ext (Nat.eq_of_mul_eq_mul_right hn_pos hmul_eq)),
+          Finset.card_univ, Fintype.card_fin]
+      ext e; simp only [T, Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_image, g]
+      constructor
+      · -- Backward: e in T implies e in image g
+        intro he
+        have hek : e.val / n < 5 := Nat.div_lt_of_lt_mul (show e.val < n * 5 by nlinarith [e.isLt])
+        have hem : e.val % n < n := Nat.mod_lt _ hn_pos
+        refine ⟨⟨e.val / n, hek⟩, Fin.ext ?_⟩
+        simp only [g, Fin.val_mk]
+        -- Need: (v + n - (e/n + 1)) % n + (e/n) * n = e
+        suffices e.val % n = (v.val + n - (e.val / n + 1)) % n by
+          have h := Nat.div_add_mod e.val n
+          -- h: n * (e/n) + e%n = e, this: e%n = (v+n-(e/n+1))%n
+          -- Goal: (v+n-(e/n+1))%n + (e/n)*n = e
+          rw [this] at h; linarith
+        -- Goal: e%n = (v + n - (e/n + 1)) % n
+        by_cases hlt : e.val % n + e.val / n + 1 < n
+        · have he' : e.val % n + e.val / n + 1 = v.val :=
+            (Nat.mod_eq_of_lt hlt).symm.trans he
+          rw [show v.val + n - (e.val / n + 1) = e.val % n + n from by omega,
+              Nat.add_mod, Nat.mod_self, Nat.add_zero, Nat.mod_mod,
+              Nat.mod_eq_of_lt hem]
+        · have hge : n ≤ e.val % n + e.val / n + 1 := Nat.not_lt.mp hlt
+          have hlt2 : e.val % n + e.val / n + 1 - n < n := by omega
+          have he' : e.val % n + e.val / n + 1 - n = v.val := by
+            have : (e.val % n + e.val / n + 1) % n = e.val % n + e.val / n + 1 - n := by
+              rw [Nat.mod_eq_sub_mod hge, Nat.mod_eq_of_lt hlt2]
+            linarith [he]
+          rw [show v.val + n - (e.val / n + 1) = e.val % n from by omega,
+              Nat.mod_eq_of_lt hem]
+      · -- Forward: e in image g implies e in T
+        rintro ⟨k, rfl⟩
+        simp only [g, Fin.val_mk]
+        have hmod_lt : (v.val + n - (k.val + 1)) % n < n := Nat.mod_lt _ hn_pos
+        -- Simplify mod and div of (a%n + k*n)
+        have hmod_simp : ((v.val + n - (k.val + 1)) % n + k.val * n) % n =
+            (v.val + n - (k.val + 1)) % n := by
+          rw [Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hmod_lt]
+        have hdiv_simp : ((v.val + n - (k.val + 1)) % n + k.val * n) / n = k.val := by
+          rw [show (v.val + n - (k.val + 1)) % n + k.val * n =
+              (v.val + n - (k.val + 1)) % n + n * k.val from by ring]
+          rw [Nat.add_mul_div_left _ _ hn_pos, Nat.div_eq_of_lt hmod_lt, Nat.zero_add]
+        rw [hmod_simp, hdiv_simp]
+        -- Goal: ((v+n-(k+1))%n + k + 1) % n = v
+        -- Goal: ((v+n-(k+1))%n + k + 1) % n = v
+        -- = (v + n - (k+1) + (k+1)) % n = (v + n) % n = v
+        have hle : k.val + 1 ≤ v.val + n := by have := k.isLt; omega
+        calc ((v.val + n - (k.val + 1)) % n + k.val + 1) % n
+            = ((v.val + n - (k.val + 1)) % n + (k.val + 1)) % n := by ring_nf
+          _ = (v.val + n - (k.val + 1) + (k.val + 1)) % n := by
+              rw [Nat.add_mod, Nat.mod_mod, ← Nat.add_mod]
+          _ = (v.val + n) % n := by rw [Nat.sub_add_cancel hle]
+          _ = v.val := by rw [Nat.add_mod, Nat.mod_self, Nat.add_zero, Nat.mod_mod]; exact Nat.mod_eq_of_lt hv_lt
+    omega
 
 /-- Ramanujan expander wrapping the circulant graph. Girth bound = n ≥ log₂ n. -/
 private noncomputable def lpsExpander (n : ℕ) (hn : n ≥ 6) : RamanujanExpander where
