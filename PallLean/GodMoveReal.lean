@@ -4260,6 +4260,36 @@ theorem godMoveConstructionSemanticGapTarget_of_liveStrictShrinkBridgeTarget
     (godMoveStrictShrinkCanonicalConstructionTarget_of_liveStrictShrinkBridgeTarget
       M n hn hdec htb hns htarget)
 
+/-- The proved canonical strict-shrink witness already yields a concrete
+construction-level semantic-gap witness. -/
+theorem godMoveConstructionSemanticGapTarget_of_strictShrinkCanonicalConstructionTarget_holds
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ∃ c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns,
+      godMoveConstructionCanonicalTarget c ∧
+      godMoveConstructionSemanticGapTarget hdec c := by
+  exact godMoveConstructionSemanticGapTarget_of_strictShrinkCanonicalConstructionTarget
+    M n hn hdec htb hns
+    (godMoveStrictShrinkCanonicalConstructionTarget_holds M n hn hdec htb hns)
+
+/-- The active live strict-shrink Route B witness already reaches a concrete
+semantic-gap construction witness. -/
+theorem godMoveConstructionSemanticGapTarget_of_liveStrictShrinkBridgeTarget_holds
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ∃ c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns,
+      godMoveConstructionCanonicalTarget c ∧
+      godMoveConstructionSemanticGapTarget hdec c := by
+  exact godMoveConstructionSemanticGapTarget_of_liveStrictShrinkBridgeTarget
+    M n hn hdec htb hns
+    (godMoveLiveStrictShrinkBridgeTarget_holds M n hn hdec htb hns)
+
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. Together with
 `godMoveConstruction_exists_remainder_target_holds`, this completely packages
