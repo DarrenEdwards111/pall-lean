@@ -12,6 +12,7 @@
 -/
 import PallLean.SymmetricPowerBound
 import PallLean.MlProjFar
+import PallLean.SymmetricPower
 import Mathlib.Tactic
 
 namespace WithinProfileBound
@@ -1767,6 +1768,41 @@ def CookLevinProfileSymmetricPowerDescentLemma
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
   ∀ h : ProfileHistogram,
     CookLevinProfileSymmetricPowerDescentAtProfile M n hn htb hns h
+
+/-- Booleanity factors already satisfy the local-interface containment part of the
+profile-only symmetric-power descent frontier, uniformly in `S`. -/
+theorem cookLevin_booleanity_local_interface_step
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (i : Fin (cookLevinFactorList M n hn htb hns).length)
+    (hi : i.1 < n)
+    (S : List (Fin n))
+    (d : List (Fin n))
+    (hd : d.length ≤ 2)
+    (hdS : ∀ v ∈ d, v ∈ S) :
+    iterDerivList d ((cookLevinFactorList M n hn htb hns).get i) ∈
+      Submodule.span ℚ ({1, MvPolynomial.X ⟨i.1, hi⟩} : Set (MvPolynomial (Fin n) ℚ)) := by
+  have htype : cookLevinConstraintType M n hn htb hns i = ConstraintType.booleanity :=
+    cookLevinConstraintType_eq_booleanity M n hn htb hns i hi
+  have hfactor : (cookLevinFactorList M n hn htb hns).get i = SymmetricPower.boolFactor n ⟨i.1, hi⟩ := by
+    unfold cookLevinFactorList
+    simp [PaperFaithfulSeparation.cook_levin_compilation, PaperFaithfulSeparation.boolConstraintList,
+      List.get_map, hi, PaperFaithfulSeparation.boolLC, PaperFaithfulSeparation.boolPoly']
+  rw [htype]
+  rw [hfactor]
+  rcases d with _ | ⟨v, _ | ⟨w, rest⟩⟩
+  · simp [SymmetricPower.boolInterfaceSpan]
+  · rw [iterDerivList_singleton_eq_pderiv]
+    have hmem := SymmetricPower.pderiv_boolFactor_mem_interface n ⟨i.1, hi⟩
+    simpa [SymmetricPower.boolInterfaceSpan] using hmem
+  · cases rest with
+    | nil =>
+        rw [iterDerivList_pair_eq_pderiv2]
+        have hmem := SymmetricPower.pderiv2_boolFactor_mem_interface n ⟨i.1, hi⟩
+        simpa [SymmetricPower.boolInterfaceSpan] using hmem
+    | cons x xs =>
+        exfalso
+        simp at hd
 
 /-- All-profile version of the raw-touched template-span frontier. -/
 def CookLevinRawTouchedDerivTemplateSpanLemma
