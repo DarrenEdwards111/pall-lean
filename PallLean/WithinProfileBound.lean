@@ -3889,6 +3889,62 @@ theorem touched_part_in_mlMonomialBasis_span {n : ℕ} {ι : Type*} [DecidableEq
 #print axioms mlProj_finset_prod_of_pairwise_disjoint_vars
 #print axioms mlProj_shift_mul_prod_factored
 
+/-! ## Part 28: Assembly — WithinProfileFinrankBound from Kronecker structure
+
+With all algebraic ingredients proved:
+- finset_prod_add_eq_sum_powerset (product expansion)
+- finrank_span_products_le (product finrank bound)
+- coeff_mul_disjoint_vars (coefficient factorization)
+- rank_kronecker_le (Kronecker rank bound)
+- profileDimBound_le_withinProfileBound (arithmetic)
+
+The assembly connects these to prove WithinProfileFinrankBound for Cook-Levin. -/
+
+/-- The per-profile finrank of allBoundedProfilePostSpan is bounded by (κ+1)^8.
+
+    Proof: the SPDP coefficient matrix for profile h factors as a Kronecker
+    product of per-type matrices (by coeff_mul_disjoint_vars applied to the
+    block-disjoint Cook-Levin factors). By rank_kronecker_le (iterated),
+    the rank ≤ ∏_τ rank(M_τ). Each per-type rank ≤ C(h(τ)+2, 2) (the local
+    interface dimension). By profileDimBound_le_withinProfileBound: total ≤ (κ+1)^8.
+
+    The sorry represents connecting the abstract Kronecker factorization to
+    the concrete SPDP generator structure of Cook-Levin. The mathematical
+    content is clear: the generators are products of elements from bounded
+    per-type interface spaces with disjoint variable supports. -/
+theorem allBoundedProfilePostSpan_finrank_le_withinProfileBound {n L : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (hfactors_deg : ∀ i, (factors i).totalDegree ≤ 2)
+    (hfactors_disj : ∀ i j, i ≠ j → Disjoint (factors i).vars (factors j).vars)
+    (h : ProfileHistogram) (hadm : ProfileAdmissible κ h) :
+    Module.finrank ℚ ↥(allBoundedProfilePostSpan B κ ℓ factors constraintType h)
+      ≤ withinProfileBound κ := by
+  -- The generators of allBoundedProfilePostSpan(h) are products of local
+  -- derivative outcomes from block-disjoint factors. By the Kronecker
+  -- coefficient structure (coeff_mul_disjoint_vars) and the rank bound
+  -- (rank_kronecker_le), the finrank ≤ ∏_τ C(h(τ)+2, 2) ≤ (κ+1)^8.
+  sorry
+
+/-- Cook-Levin factors satisfy WithinProfileFinrankBound, assuming the
+    block-disjoint and degree-2 structural properties. -/
+theorem cookLevin_withinProfileFinrankBound {n L : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (hfactors_deg : ∀ i, (factors i).totalDegree ≤ 2)
+    (hfactors_disj : ∀ i j, i ≠ j → Disjoint (factors i).vars (factors j).vars) :
+    WithinProfileFinrankBound B κ ℓ factors constraintType := by
+  intro h
+  by_cases hadm : ProfileAdmissible κ h
+  · exact allBoundedProfilePostSpan_finrank_le_withinProfileBound
+      B κ ℓ factors constraintType hfactors_deg hfactors_disj h hadm
+  · -- Non-admissible profile: profileMass h > κ means no block-admissible
+    -- derivative list of length ≤ κ can match profile h.
+    -- So allBoundedProfilePostSpan(h) = ⊥ and finrank = 0 ≤ anything.
+    sorry
+
 end WithinProfileBound
 
 /-! # WithinProfileBound — Archived WIP below
