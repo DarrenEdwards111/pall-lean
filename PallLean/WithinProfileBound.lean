@@ -1691,6 +1691,70 @@ def CookLevinRawTouchedDerivCommonSpanAtProfile
               S shift touched ≤
             Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))
 
+/-- Fixed-profile raw-touched template-span frontier.
+
+This is the same raw touched-support construction target as
+`CookLevinRawTouchedDerivCommonSpanAtProfile`, but with the sharper
+per-profile template cardinality `profileTemplateBound h`. Proving this is the
+exact missing construction needed to recover the paper-style finite template
+collapse for `allBoundedProfilePostSpan h` directly from raw generators. -/
+def CookLevinRawTouchedDerivTemplateSpanAtProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (h : ProfileHistogram) : Prop :=
+    ∃ G : Finset (MvPolynomial (Fin n) ℚ),
+      G.card ≤ profileTemplateBound h ∧
+      ∀ (S : List (Fin n)) (_ : S.length ≤ Nat.log 2 n)
+        (shift : MvPolynomial (Fin n) ℚ) (_ : shift.vars ⊆ S.toFinset)
+        (touched : Finset (Fin (cookLevinFactorList M n hn htb hns).length)),
+          RawTouchedCompatibleWithDerivProfile
+              (n := n)
+              (cookLevinConstraintType M n hn htb hns) h touched →
+            rawTouchedPostSpan
+              (fun i => (cookLevinFactorList M n hn htb hns).get i)
+              S shift touched ≤
+            Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))
+
+/-- All-profile version of the raw-touched template-span frontier. -/
+def CookLevinRawTouchedDerivTemplateSpanLemma
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ h : ProfileHistogram,
+    CookLevinRawTouchedDerivTemplateSpanAtProfile M n hn htb hns h
+
+/-- The raw-touched template-span frontier formally gives the fixed-profile
+template collapse for the full all-`S`/shift bounded derivative-count span. -/
+theorem cookLevinProfileTemplateCollapseAtProfile_of_rawTouchedDerivTemplateSpanAtProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (h : ProfileHistogram)
+    (hraw : CookLevinRawTouchedDerivTemplateSpanAtProfile M n hn htb hns h) :
+    CookLevinProfileTemplateCollapseAtProfile M n hn htb hns h := by
+  rcases hraw with ⟨G, hG_card, hG⟩
+  refine ⟨G, ?_, hG_card⟩
+  apply Submodule.span_le.mpr
+  intro q hq
+  simp only [Set.mem_iUnion, Set.mem_image] at hq
+  obtain ⟨S, hS, shift, hshift, g, hg, rfl⟩ := hq
+  rcases hg with ⟨d, hd_elts, hg_eq, hprof, _htotal⟩
+  have hcompat :
+      RawTouchedCompatibleWithDerivProfile
+        (cookLevinConstraintType M n hn htb hns) h (rawTouchedFactorSet d) :=
+    ⟨d, hprof, rfl⟩
+  exact hG S hS shift hshift (rawTouchedFactorSet d) hcompat
+    (Submodule.subset_span ⟨g, ⟨d, hd_elts, hg_eq, rfl⟩, rfl⟩)
+
+/-- The all-profile raw-touched template-span frontier is exactly strong enough
+to close `CookLevinProfileTemplateCollapseLemma`. -/
+theorem cookLevinProfileTemplateCollapse_of_rawTouchedDerivTemplateSpan
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hraw : CookLevinRawTouchedDerivTemplateSpanLemma M n hn htb hns) :
+    CookLevinProfileTemplateCollapseLemma M n hn htb hns := by
+  intro h
+  exact cookLevinProfileTemplateCollapseAtProfile_of_rawTouchedDerivTemplateSpanAtProfile
+    M n hn htb hns h (hraw h)
+
 /-- The all-profile raw-touched common-span lemma is exactly the universal
 closure of the fixed-profile raw-touched common-span unit. -/
 theorem cookLevinRawTouchedDerivCommonSpanLemma_iff_atProfile
@@ -3900,55 +3964,65 @@ With all algebraic ingredients proved:
 
 The assembly connects these to prove WithinProfileFinrankBound for Cook-Levin. -/
 
-/-- The per-profile finrank of allBoundedProfilePostSpan is bounded by (κ+1)^8.
+/-- Fixed-profile template-collapse hypothesis for the abstract bounded-profile
+post-span. This is the exact missing bridge needed to pass from a concrete
+finite spanning family to the within-profile finrank bound. -/
+def AbstractProfileTemplateCollapseAtProfile {n L : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (h : ProfileHistogram) : Prop :=
+  ∃ G : Finset (MvPolynomial (Fin n) ℚ),
+    allBoundedProfilePostSpan B κ ℓ factors constraintType h ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ)) ∧
+    G.card ≤ profileTemplateBound h
 
-    Proof: the SPDP coefficient matrix for profile h factors as a Kronecker
-    product of per-type matrices (by coeff_mul_disjoint_vars applied to the
-    block-disjoint Cook-Levin factors). By rank_kronecker_le (iterated),
-    the rank ≤ ∏_τ rank(M_τ). Each per-type rank ≤ C(h(τ)+2, 2) (the local
-    interface dimension). By profileDimBound_le_withinProfileBound: total ≤ (κ+1)^8.
+/-- Once the fixed-profile template-collapse bridge is supplied, the desired
+within-profile finrank bound is formal. -/
+theorem allBoundedProfilePostSpan_finrank_le_withinProfileBound_of_templateCollapse
+    {n L : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (_hfactors_deg : ∀ i, (factors i).totalDegree ≤ 2)
+    (_hfactors_disj : ∀ i j, i ≠ j → Disjoint (factors i).vars (factors j).vars)
+    (h : ProfileHistogram) (hadm : ProfileAdmissible κ h)
+    (hcollapse : AbstractProfileTemplateCollapseAtProfile B κ ℓ factors constraintType h) :
+    Module.finrank ℚ ↥(allBoundedProfilePostSpan B κ ℓ factors constraintType h)
+      ≤ withinProfileBound κ := by
+  rcases hcollapse with ⟨G, hGspan, hGcard⟩
+  calc
+    Module.finrank ℚ ↥(allBoundedProfilePostSpan B κ ℓ factors constraintType h)
+      ≤ Module.finrank ℚ ↥(Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))) :=
+        Submodule.finrank_mono hGspan
+    _ ≤ G.card := finrank_span_finset_le_card G
+    _ ≤ profileTemplateBound h := hGcard
+    _ ≤ withinProfileBound κ :=
+      profileTemplateBound_le_withinProfileBound κ h hadm
 
-    The sorry represents connecting the abstract Kronecker factorization to
-    the concrete SPDP generator structure of Cook-Levin. The mathematical
-    content is clear: the generators are products of elements from bounded
-    per-type interface spaces with disjoint variable supports. -/
-theorem allBoundedProfilePostSpan_finrank_le_withinProfileBound {n L : ℕ}
+/-- Honest abstract frontier: degree-2 and disjoint-variable structure reduce
+WithinProfileFinrankBound to the fixed-profile template-collapse hypothesis. -/
+def AbstractWithinProfileTemplateCollapse {n L : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType) : Prop :=
+  ∀ h : ProfileHistogram,
+    AbstractProfileTemplateCollapseAtProfile B κ ℓ factors constraintType h
+
+/-- Under the abstract template-collapse hypothesis, the full within-profile
+finrank bound follows. -/
+theorem withinProfileFinrankBound_of_templateCollapse {n L : ℕ}
     (B : BlockPartition n) (κ ℓ : ℕ)
     (factors : Fin L → MvPolynomial (Fin n) ℚ)
     (constraintType : Fin L → ConstraintType)
     (hfactors_deg : ∀ i, (factors i).totalDegree ≤ 2)
     (hfactors_disj : ∀ i j, i ≠ j → Disjoint (factors i).vars (factors j).vars)
-    (h : ProfileHistogram) (hadm : ProfileAdmissible κ h) :
-    Module.finrank ℚ ↥(allBoundedProfilePostSpan B κ ℓ factors constraintType h)
-      ≤ withinProfileBound κ := by
-  let G : Finset (MvPolynomial (Fin n) ℚ) := ∅
-  have hcollapse :
-      allBoundedProfilePostSpan B κ ℓ factors constraintType h ≤
-        Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ)) ∧
-      G.card ≤ profileTemplateBound h := by
-    sorry
-  calc
-    Module.finrank ℚ ↥(allBoundedProfilePostSpan B κ ℓ factors constraintType h)
-      ≤ Module.finrank ℚ ↥(Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))) :=
-        Submodule.finrank_mono hcollapse.1
-    _ ≤ G.card := finrank_span_finset_le_card G
-    _ ≤ profileTemplateBound h := hcollapse.2
-    _ ≤ withinProfileBound κ :=
-      profileTemplateBound_le_withinProfileBound κ h hadm
-
-/-- Cook-Levin factors satisfy WithinProfileFinrankBound, assuming the
-    block-disjoint and degree-2 structural properties. -/
-theorem cookLevin_withinProfileFinrankBound {n L : ℕ}
-    (B : BlockPartition n) (κ ℓ : ℕ)
-    (factors : Fin L → MvPolynomial (Fin n) ℚ)
-    (constraintType : Fin L → ConstraintType)
-    (hfactors_deg : ∀ i, (factors i).totalDegree ≤ 2)
-    (hfactors_disj : ∀ i j, i ≠ j → Disjoint (factors i).vars (factors j).vars) :
+    (hcollapse : AbstractWithinProfileTemplateCollapse B κ ℓ factors constraintType) :
     WithinProfileFinrankBound B κ ℓ factors constraintType := by
   intro h
   by_cases hadm : ProfileAdmissible κ h
-  · exact allBoundedProfilePostSpan_finrank_le_withinProfileBound
-      B κ ℓ factors constraintType hfactors_deg hfactors_disj h hadm
+  · exact allBoundedProfilePostSpan_finrank_le_withinProfileBound_of_templateCollapse
+      B κ ℓ factors constraintType hfactors_deg hfactors_disj h hadm (hcollapse h)
   · -- Non-admissible profile: profileMass h > κ.
     -- boundedProfileClassifiedSet S h = ∅ for all S with |S| ≤ κ,
     -- because any derivative assignment d with derivCountProfile d = h
