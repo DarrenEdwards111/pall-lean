@@ -3940,10 +3940,28 @@ theorem cookLevin_withinProfileFinrankBound {n L : ℕ}
   by_cases hadm : ProfileAdmissible κ h
   · exact allBoundedProfilePostSpan_finrank_le_withinProfileBound
       B κ ℓ factors constraintType hfactors_deg hfactors_disj h hadm
-  · -- Non-admissible profile: profileMass h > κ means no block-admissible
-    -- derivative list of length ≤ κ can match profile h.
-    -- So allBoundedProfilePostSpan(h) = ⊥ and finrank = 0 ≤ anything.
-    sorry
+  · -- Non-admissible profile: profileMass h > κ.
+    -- boundedProfileClassifiedSet S h = ∅ for all S with |S| ≤ κ,
+    -- because any derivative assignment d with derivCountProfile d = h
+    -- has Σ |d_i| = profileMass h > κ ≥ |S|, contradicting Σ |d_i| ≤ |S|.
+    -- Hence allBoundedProfilePostSpan h = ⊥ and finrank = 0.
+    unfold ProfileAdmissible at hadm
+    push_neg at hadm
+    have hempty : ∀ S : List (Fin n), S.length ≤ κ →
+        boundedProfileClassifiedSet factors constraintType S h = ∅ := by
+      intro S hS
+      ext g; simp only [Set.mem_empty_iff_false, iff_false]
+      intro ⟨d, _, _, hprof, hlen⟩
+      have hmass : profileMass (derivCountProfile constraintType d) =
+          ∑ i : Fin L, (d i).length :=
+        SymmetricPowerBound.derivCountProfile_mass constraintType d
+      rw [hprof] at hmass; omega
+    have hbot : allBoundedProfilePostSpan B κ ℓ factors constraintType h = ⊥ := by
+      rw [eq_bot_iff]; apply Submodule.span_le.mpr
+      intro q hq; simp only [Set.mem_iUnion, Set.mem_image] at hq
+      obtain ⟨S, hS, shift, _, g, hg, rfl⟩ := hq
+      exfalso; rw [hempty S hS] at hg; exact hg
+    rw [hbot]; simp [withinProfileBound]
 
 end WithinProfileBound
 
