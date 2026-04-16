@@ -12,8 +12,9 @@
     Γ_{κ,ℓ}(P) ≤ poly(n)
 
   The profile compression argument is assembled theorem-level in the current
-  branch, but the honest first missing P-side statement is now the smaller
-  `WithinProfileBound.BoundedWithinProfileFinrankClaim`, not the downstream
+  branch, but the honest remaining P-side theorem is now the direct
+  compiled-family statement
+  `WithinProfileBound.CookLevinExactWithinProfileFinrankLemma`, not the older
   wrapper `SymmetricPowerBound.profile_symmetric_power_factorization`.
 
   This file provides:

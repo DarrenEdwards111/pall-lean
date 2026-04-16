@@ -266,6 +266,20 @@ theorem p_side_rank_bound_for_cook_levin_of_withinProfileFrontier
   ProfileCompression.p_side_rank_bound_for_cook_levin_of_withinProfileFrontier
     M n hn htb hns hfrontier
 
+/-- Common-collapse frontier version of the P-side rank bound: if the actual
+Cook-Levin compiled factor family has one template-bounded common generating
+family per profile, then the final `n^200` estimate follows formally. -/
+theorem p_side_rank_bound_for_cook_levin_of_templateCollapse
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcollapse : WithinProfileBound.CookLevinProfileTemplateCollapseLemma
+      M n hn htb hns) :
+    mlBlockedSpdpRank (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 :=
+  ProfileCompression.p_side_rank_bound_for_cook_levin_of_templateCollapse
+    M n hn htb hns hcollapse
+
 /-! ### God-Move Extraction: Decomposition into Intermediate Lemmas
 
 The paper-faithful semantic object is an instance-uniform, witness-free,

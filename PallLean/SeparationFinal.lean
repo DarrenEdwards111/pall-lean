@@ -13,8 +13,11 @@ This file assembles the complete separation from PaperFaithfulSeparation.lean.
 
 1. `p_side_rank_bound_for_cook_levin` — the paper's P-side claim (§9, Theorem 92):
    for any P-time DTM, the compiled product polynomial has SPDP rank ≤ n^200.
-   On this branch it is theorem-level, reduced to the remaining Step B frontier
-   `profile_symmetric_power_factorization`.
+   On this branch the live missing mathematical content below it has been
+   isolated more sharply as the direct compiled-family theorem
+   `WithinProfileBound.CookLevinExactWithinProfileFinrankLemma`; the current
+   exported proof still reaches this bound through the old
+   `SymmetricPower.spdp_profile_generators` axiom chain.
 
 2. `GodMoveSemanticExtractionTheorem` — the narrowed §29 semantic frontier in
    `GodMoveCore.lean`, exporting existence of a chosen extraction target

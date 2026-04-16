@@ -21,19 +21,14 @@
 
   ## Proof Architecture:
 
-  The proof now reduces the P-side to a single remaining Step B frontier in
-  `SymmetricPowerBound.lean`:
+  The proof now reduces the P-side to one exact compiled-family theorem in
+  `WithinProfileBound.lean`:
 
-    For the compiled polynomial P = Prod_i (1 - C_i) of any P-time DTM,
-    the multilinear blocked SPDP rank satisfies
-      Gamma_{log n, log n}(P) <= (3 * log_2 n + 1)^12
+    `WithinProfileBound.CookLevinExactWithinProfileFinrankLemma`
 
-  The honest remaining seam is exposed there as
-  `HasFixedProfileCoverFamily` together with
-  `profile_symmetric_power_factorization_of_honest_cover`: once the
-  same-profile collapse / symmetric-power factorization produces a real
-  fixed-profile cover family for the compiled polynomial, the global
-  `(log n + 1)^12` bound is derived theorem-level.
+  This is the direct remaining theorem for the actual compiled Cook-Levin
+  factor family with its canonical type map. Once it is supplied, the global
+  `(3 * log_2 n + 1)^12` rank bound is formal downstream assembly.
 
 This file also exposes the smaller post-collapse surface
   `profile_compression_rank_bound_of_withinProfileFinrankBound`, which routes
@@ -41,11 +36,11 @@ This file also exposes the smaller post-collapse surface
   concrete compiled factor family and its within-profile finrank bound are
   available directly.
 
-It also now exposes the exact Cook-Levin-facing theorem surface
-`profile_compression_rank_bound_of_withinProfileFrontier`: the remaining
-post-collapse P-side obligation can be stated just as
-`WithinProfileBound.CookLevinWithinProfileFinrankFrontier`, with no extra
-factor-family or product-equality packaging in the theorem assumptions.
+It also exposes the exact Cook-Levin-facing theorem surfaces
+`profile_compression_rank_bound_of_exactWithinProfileLemma` and
+`profile_compression_rank_bound_of_withinProfileFrontier`. The former is the
+preferred close-out statement because it keeps the remaining obligation as the
+direct compiled-family theorem rather than the older existential wrapper.
 
   The legacy compatibility theorem `profile_symmetric_power_factorization`
   still exists, but it currently reaches that bound through the older
@@ -337,15 +332,34 @@ theorem profile_compression_rank_bound_of_exactWithinProfileLemma
     _ ≤ (3 * Nat.log 2 n + 1) ^ 12 := by
         exact SymmetricPowerBound.combinedBound_le_totalProfileBound (Nat.log 2 n)
 
+/-- Common-collapse version of the profile-compression bound: once the actual
+    Cook-Levin family admits one finite generating family per profile for the
+    full all-`S`/shift bounded slice, the exact within-profile theorem and then
+    the `(3 * log_2 n + 1)^12` estimate follow formally. -/
+theorem profile_compression_rank_bound_of_templateCollapse
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcollapse : WithinProfileBound.CookLevinProfileTemplateCollapseLemma
+      M n hn htb hns) :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ totalProfileBound n := by
+  exact profile_compression_rank_bound_of_exactWithinProfileLemma
+    M n hn htb hns
+    (WithinProfileBound.cookLevinExactWithinProfileLemma_of_templateCollapse
+      M n hn htb hns hcollapse)
+
 /-- **Theorem** (Profile Compression, Paper §9, Theorem 23/92):
     The compiled polynomial of any P-time DTM has SPDP rank bounded by
     the total profile bound (3 * log_2 n + 1)^12.
 
     Previously an axiom; now derived from the HAL 9000 decomposition in
     `SymmetricPowerBound.lean`. The honest remaining P-side frontier is smaller
-    than this theorem: `WithinProfileBound.BoundedWithinProfileFinrankClaim`,
-    which isolates the bounded within-profile rank estimate used to build the
-    finite profile cover. This theorem is only the downstream assembly wrapper. -/
+    than this theorem: `WithinProfileBound.CookLevinExactWithinProfileFinrankLemma`,
+    the direct compiled-family within-profile finrank statement for the actual
+    Cook-Levin factor family. This theorem is only the downstream assembly
+    wrapper. -/
 theorem profile_compression_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
     mlBlockedSpdpRank
@@ -466,21 +480,47 @@ theorem p_side_rank_bound_for_cook_levin_of_exactWithinProfileLemma
           M n hn htb hns hexact
     _ ≤ n ^ 200 := totalProfileBound_le_pow n hn
 
+/-- Common-collapse version of the final P-side theorem: the last exact
+    compiled-family obligation can be stated directly as
+    `WithinProfileBound.CookLevinProfileTemplateCollapseLemma`, with the
+    downstream exact finrank route already formalized. -/
+theorem p_side_rank_bound_for_cook_levin_of_templateCollapse
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcollapse : WithinProfileBound.CookLevinProfileTemplateCollapseLemma
+      M n hn htb hns) :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 := by
+  calc
+    mlBlockedSpdpRank
+        (cook_levin_compilation M n hn htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn htb hns))
+      ≤ totalProfileBound n :=
+        profile_compression_rank_bound_of_templateCollapse
+          M n hn htb hns hcollapse
+    _ ≤ n ^ 200 := totalProfileBound_le_pow n hn
+
 /-! ## Verification of the Overall Separation Architecture
 
     With `p_side_rank_bound_for_cook_levin` assembled from the HAL 9000
     decomposition, the exact remaining P-side content frontier is now the
-    compiled Cook-Levin within-profile theorem:
+    compiled Cook-Levin common-collapse theorem:
 
     1. Honest Step B frontier:
        prove
-       `WithinProfileBound.CookLevinExactWithinProfileFinrankLemma` for the
+       `WithinProfileBound.CookLevinProfileTemplateCollapseLemma` for the
        actual compiled factor list `cookLevinFactorList M n hn htb hns` with
        its canonical type map `cookLevinConstraintType`.
+       `WithinProfileBound.CookLevinExactWithinProfileFinrankLemma` is now
+       formally downstream from this common-collapse theorem by
+       `WithinProfileBound.cookLevinExactWithinProfileLemma_of_templateCollapse`.
        The older existential wrapper
        `WithinProfileBound.CookLevinWithinProfileFinrankFrontier` is now just
-       a repackaging of this exact compiled-family theorem. Once the exact
-       lemma is proved, the combined profile bound and the final `n^200` rank
+       a repackaging above this exact compiled-family theorem. Once the common
+       collapse theorem is proved, the combined profile bound and the final `n^200` rank
        estimate follow formally from already-checked assembly lemmas.
 
     All other components of the separation proof are fully proved:
