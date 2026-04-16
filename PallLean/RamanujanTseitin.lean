@@ -190,7 +190,7 @@ theorem lps_family_exists (F : Type*) [Field F] [CharZero F] :
     ∃ _ : RamanujanTseitinFamily F, True
     -- The family itself witnesses the construction; properties follow from
     -- the struct fields above.
-  := ⟨sorry, trivial⟩
+  := ⟨sorry, trivial⟩ -- ARCHIVED: deprecated chain (uses unsound charPoly_eq_characteristic)
 
 /-! ### Characteristic Polynomial Soundness Note
 
@@ -1757,7 +1757,7 @@ private noncomputable def lpsGraph (n : ℕ) (hn : n ≥ 6) : RegularGraph where
   degree_bound := by omega
   edgeSrc := fun e => ⟨e.val % n, Nat.mod_lt _ (by omega)⟩
   edgeTgt := fun e => ⟨(e.val % n + e.val / n + 1) % n, Nat.mod_lt _ (by omega)⟩
-  regular := by sorry -- lps_regular: circulant vertex-degree counting
+  regular := by sorry -- ARCHIVED: Route A only; not on Route B main chain
 
 /-- Ramanujan expander wrapping the circulant graph. Girth bound = n ≥ log₂ n. -/
 private noncomputable def lpsExpander (n : ℕ) (hn : n ≥ 6) : RamanujanExpander where
@@ -1964,7 +1964,7 @@ private noncomputable def lpsPartition (F : Type*) [Field F]
         Fin.lt_iff_val_lt_val]
     rw [hfilt, Fin.card_Iio]
   pdMatrixRank_pos := by
-    sorry -- lps_pdMatrixRank_pos: product charPoly gives positive PD rank
+    sorry -- ARCHIVED: Route A only; not on Route B main chain
 
 /-- The concrete sound Ramanujan–Tseitin family.
     Degree 10, girth ≥ log₂ n, n clauses, 9n variables. -/
