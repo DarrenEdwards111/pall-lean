@@ -760,10 +760,77 @@ theorem symmetric_power_dim_formula (h d : ℕ) (hd : 0 < d) :
     rw [show h + d - h = d from Nat.add_sub_cancel_left h d] at hsym
     exact hsym
 
--- For the Cook-Levin compilation with 4 constraint types of local dim ≤ 3,
--- the per-profile spanning set has size ≤ ∏_τ C(h(τ)+2, 2).
--- Combined with profileDimBound_le_withinProfileBound (already proved in
--- SymmetricPowerBound.lean), this is ≤ (κ+1)^8 for admissible profiles.
+/-! ### Product-of-subspaces finrank bound
+
+The KEY algebraic lemma for the symmetric power collapse:
+if elements are drawn from bounded-dimensional subspaces with pairwise
+disjoint variable supports, the span of all their products has finrank
+bounded by the PRODUCT of the individual finranks.
+
+This replaces the Kronecker rank formula with a direct spanning-set argument.
+The proof: expand each v_i in a basis of V_i, then the product ∏ v_i is a
+sum of products of basis elements. The set of basis-element products has
+cardinality ∏ finrank(V_i), hence finrank(span of products) ≤ this product. -/
+
+/-- Products from finite-dimensional subspaces span at most ∏ dim(V_i) dimensions.
+
+    Concretely: if we have a finite family of elements, each in a subspace V_i,
+    and V_i has a finite spanning set of size d_i, then the product of elements
+    lies in a span of size ∏ d_i (formed by products of spanning set elements).
+
+    This is the core of the symmetric power argument: the product of h(τ) elements
+    from W_τ (dim ≤ 3) lies in a span of size C(h(τ)+2, 2) per type. -/
+
+-- The span of products from finite sets has finrank ≤ product of set sizes.
+theorem finrank_span_products_le {N m : ℕ}
+    (G : Fin m → Finset (MvPolynomial (Fin N) ℚ)) :
+    Module.finrank ℚ (Submodule.span ℚ
+      { p | ∃ (choice : ∀ i, MvPolynomial (Fin N) ℚ),
+            (∀ i, choice i ∈ G i) ∧
+            p = Finset.univ.prod choice }) ≤
+      Finset.univ.prod (fun i => (G i).card) := by
+  classical
+  -- The product set is the image of a function on a finite pi type
+  let piType := (i : Fin m) → { x // x ∈ G i }
+  let prodFn : piType → MvPolynomial (Fin N) ℚ :=
+    fun c => Finset.univ.prod (fun i => (c i).val)
+  -- The generating set ⊆ range of prodFn
+  have hsubset : { p | ∃ (choice : ∀ i, MvPolynomial (Fin N) ℚ),
+        (∀ i, choice i ∈ G i) ∧ p = Finset.univ.prod choice } ⊆
+      Set.range prodFn := by
+    intro p hp
+    obtain ⟨choice, hchoice, hpeq⟩ := hp
+    exact ⟨fun i => ⟨choice i, hchoice i⟩, hpeq.symm⟩
+  -- range of prodFn is finite
+  have hfin : (Set.range prodFn).Finite := Set.finite_range prodFn
+  haveI : FiniteDimensional ℚ (Submodule.span ℚ (Set.range prodFn)) :=
+    FiniteDimensional.span_of_finite ℚ hfin
+  haveI : Fintype (Set.range prodFn) := hfin.fintype
+  calc Module.finrank ℚ (Submodule.span ℚ _)
+      ≤ Module.finrank ℚ (Submodule.span ℚ (Set.range prodFn)) :=
+        Submodule.finrank_mono (Submodule.span_mono hsubset)
+    _ ≤ hfin.toFinset.card := by
+        have : Submodule.span ℚ (Set.range prodFn) =
+            Submodule.span ℚ ↑hfin.toFinset := by
+          congr 1; exact (Set.Finite.coe_toFinset hfin).symm
+        rw [this]; exact finrank_span_finset_le_card _
+    _ ≤ Fintype.card piType := by
+        rw [Set.Finite.toFinset_range]; exact Finset.card_image_le
+    _ = Finset.univ.prod (fun i => (G i).card) := by
+        rw [show Fintype.card piType =
+            ∏ i : Fin m, Fintype.card { x // x ∈ G i } from Fintype.card_pi]
+        congr 1; ext i; exact Fintype.card_coe (G i)
+
+-- The spanning set construction: for each i, choose a basis B_i of W_i.
+-- Then ∏_i factors_i = ∏_i (Σ_j c_{i,j} b_{i,j}) = Σ_{j_1,...,j_m} (∏ c_{i,j_i}) · ∏ b_{i,j_i}
+-- The set {∏ b_{i,j_i}} has cardinality ∏ |B_i| = ∏ finrank(W_i).
+-- So span of all products ⊆ span of this finite set.
+-- Hence finrank(span of products) ≤ ∏ finrank(W_i).
+
+-- For the Cook-Levin application:
+-- W_bool = boolInterfaceSpan (dim ≤ 2), W_adj = adjInterfaceSpan (dim ≤ 3)
+-- Per-profile bound: ∏_τ finrank(W_τ)^{h(τ)} = ∏_τ C(h(τ)+d_τ-1, d_τ-1)
+-- ≤ (κ+1)^8 by profileDimBound_le_withinProfileBound.
 
 /-! ### Coefficient of tag monomial in boolFactor SPDP generator
 
