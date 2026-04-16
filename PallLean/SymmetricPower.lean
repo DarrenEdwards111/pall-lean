@@ -572,6 +572,44 @@ theorem mlProj_boolFactor {N : ℕ} (v : Fin N) :
     rw [if_neg (Ne.symm h0), if_neg (Ne.symm hv), sub_self]
   exact (MvPolynomial.mem_support_iff.mp hα) hcoeff
 
+/-! ### Local derivative outcomes lie in boolInterfaceSpan
+
+Every possible derivative outcome of boolFactor, after mlProj, lies in the
+2-dimensional space span{1, X_v}. This is the per-factor interface property
+needed for the symmetric power argument (paper §9, Definition 19). -/
+
+/-- mlProj(boolFactor v) = 1 - X_v ∈ boolInterfaceSpan v. -/
+theorem mlProj_boolFactor_mem_interface {N : ℕ} (v : Fin N) :
+    mlProj (boolFactor N v : MvPolynomial (Fin N) ℚ) ∈ boolInterfaceSpan N v := by
+  rw [mlProj_boolFactor v]
+  exact Submodule.sub_mem _
+    (one_mem_boolInterfaceSpan N v) (X_mem_boolInterfaceSpan N v)
+
+/-- pderiv v (boolFactor v) = -1 + 2X_v ∈ boolInterfaceSpan v. -/
+theorem pderiv_boolFactor_mem_interface {N : ℕ} (v : Fin N) :
+    MvPolynomial.pderiv v (boolFactor N v) ∈ boolInterfaceSpan N v := by
+  rw [pderiv_boolFactor_self N v]
+  -- -1 + 2 * X_v = (-1) • 1 + 2 • X_v in the span
+  have h1 : (-1 : MvPolynomial (Fin N) ℚ) ∈ boolInterfaceSpan N v :=
+    Submodule.neg_mem _ (one_mem_boolInterfaceSpan N v)
+  have h2 : (2 * MvPolynomial.X v : MvPolynomial (Fin N) ℚ) ∈ boolInterfaceSpan N v := by
+    rw [show (2 : MvPolynomial (Fin N) ℚ) * MvPolynomial.X v =
+        (2 : ℚ) • MvPolynomial.X v from by
+          simp only [Algebra.smul_def, MvPolynomial.algebraMap_eq, map_ofNat]]
+    exact Submodule.smul_mem _ 2 (X_mem_boolInterfaceSpan N v)
+  exact Submodule.add_mem _ h1 h2
+
+/-- The second derivative pderiv v (pderiv v (boolFactor v)) ∈ boolInterfaceSpan v. -/
+theorem pderiv2_boolFactor_mem_interface {N : ℕ} (v : Fin N) :
+    MvPolynomial.pderiv v (MvPolynomial.pderiv v (boolFactor N v)) ∈
+      boolInterfaceSpan N v := by
+  obtain ⟨c, hc⟩ := two_deriv_boolFactor_is_const N v
+  rw [hc]
+  -- C c = c • 1 ∈ span{1, X_v}
+  rw [show MvPolynomial.C c = (c : ℚ) • (1 : MvPolynomial (Fin N) ℚ)
+    from by simp [Algebra.smul_def]]
+  exact Submodule.smul_mem _ c (one_mem_boolInterfaceSpan N v)
+
 /-! ### Coefficient of tag monomial in boolFactor SPDP generator
 
 For the Kronecker delta property, we need the coefficient of the "tag monomial"
