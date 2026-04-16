@@ -1769,6 +1769,19 @@ def CookLevinProfileSymmetricPowerDescentLemma
   ∀ h : ProfileHistogram,
     CookLevinProfileSymmetricPowerDescentAtProfile M n hn htb hns h
 
+/-- Canonical typewise interface families for the actual Cook-Levin factor list.
+These are the fixed local template families suggested by the symmetric-power
+analysis: booleanity gets `{1, X_v}`, while adjacency and transition-left both
+use a small endpoint-variable family. -/
+noncomputable def cookLevinCanonicalInterfaceFamily
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    ConstraintType → Finset (MvPolynomial (Fin n) ℚ)
+  | ConstraintType.booleanity => {1, MvPolynomial.X 0}
+  | ConstraintType.adjacency => {1, MvPolynomial.X 0, MvPolynomial.X 1}
+  | ConstraintType.transitionLeft => {1, MvPolynomial.X 0, MvPolynomial.X 1}
+  | ConstraintType.transitionRight => {1}
+
 /-- Booleanity factors already satisfy the local-interface containment part of the
 profile-only symmetric-power descent frontier, uniformly in `S`. -/
 theorem cookLevin_booleanity_local_interface_step
@@ -1780,18 +1793,17 @@ theorem cookLevin_booleanity_local_interface_step
     (d : List (Fin n))
     (hd : d.length ≤ 2)
     (hdS : ∀ v ∈ d, v ∈ S) :
-    iterDerivList d ((cookLevinFactorList M n hn htb hns).get i) ∈
-      Submodule.span ℚ ({1, MvPolynomial.X ⟨i.1, hi⟩} : Set (MvPolynomial (Fin n) ℚ)) := by
-  have htype : cookLevinConstraintType M n hn htb hns i = ConstraintType.booleanity :=
-    cookLevinConstraintType_eq_booleanity M n hn htb hns i hi
+    ∃ v : Fin n,
+      iterDerivList d ((cookLevinFactorList M n hn htb hns).get i) ∈
+        Submodule.span ℚ ({1, MvPolynomial.X v} : Set (MvPolynomial (Fin n) ℚ)) := by
+  refine ⟨⟨i.1, hi⟩, ?_⟩
   have hfactor : (cookLevinFactorList M n hn htb hns).get i = SymmetricPower.boolFactor n ⟨i.1, hi⟩ := by
+    have hsplit := PaperFaithfulSeparation.boolConstraintFactors_eq n
     unfold cookLevinFactorList
-    simp [PaperFaithfulSeparation.cook_levin_compilation, PaperFaithfulSeparation.boolConstraintList,
-      List.get_map, hi, PaperFaithfulSeparation.boolLC, PaperFaithfulSeparation.boolPoly']
-  rw [htype]
+    simp [List.get_map, hi, PaperFaithfulSeparation.boolLC_factor_eq]
   rw [hfactor]
   rcases d with _ | ⟨v, _ | ⟨w, rest⟩⟩
-  · simp [SymmetricPower.boolInterfaceSpan]
+  · simpa [SymmetricPower.boolInterfaceSpan] using SymmetricPower.mlProj_boolFactor_mem_interface ⟨i.1, hi⟩
   · rw [iterDerivList_singleton_eq_pderiv]
     have hmem := SymmetricPower.pderiv_boolFactor_mem_interface n ⟨i.1, hi⟩
     simpa [SymmetricPower.boolInterfaceSpan] using hmem
