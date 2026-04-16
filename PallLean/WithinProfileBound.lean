@@ -1742,13 +1742,15 @@ def CookLevinProfileSymmetricPowerDescentAtProfile
     (h : ProfileHistogram) : Prop :=
   ∃ A : ConstraintType → Finset (MvPolynomial (Fin n) ℚ),
     (∀ τ, Module.finrank ℚ ↥(Submodule.span ℚ ((A τ : Finset (MvPolynomial (Fin n) ℚ)) : Set (MvPolynomial (Fin n) ℚ))) ≤ 3) ∧
-    ∀ (S : List (Fin n)) (_ : S.length ≤ Nat.log 2 n)
+    (∀ (S : List (Fin n)) (_ : S.length ≤ Nat.log 2 n)
       (i : Fin (cookLevinFactorList M n hn htb hns).length)
       (d : List (Fin n)),
         d.length ≤ 2 →
         (∀ v ∈ d, v ∈ S) →
         iterDerivList d ((cookLevinFactorList M n hn htb hns).get i) ∈
-          Submodule.span ℚ (↑(A (cookLevinConstraintType M n hn htb hns i)) : Set (MvPolynomial (Fin n) ℚ))
+          Submodule.span ℚ (↑(A (cookLevinConstraintType M n hn htb hns i)) : Set (MvPolynomial (Fin n) ℚ))) ∧
+    (∃ G : Finset (MvPolynomial (Fin n) ℚ),
+      G.card ≤ profileTemplateBound h)
 
 /-- All-profile version of the profile-only symmetric-power descent frontier. -/
 def CookLevinProfileSymmetricPowerDescentLemma
