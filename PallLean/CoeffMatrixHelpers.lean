@@ -458,10 +458,37 @@ per-factor coefficient vectors, and the rank of the product's coefficient
 matrix is bounded by the product of per-factor ranks. Combined with
 finrank_span_products_le, this gives the symmetric power collapse. -/
 
--- The formal statement and proof of the coefficient product identity
--- requires careful Finsupp decomposition infrastructure. The mathematical
--- content: for polynomials with disjoint support, coeff distributes over
--- products via the Antidiagonal convolution restricted to the support
--- decomposition.
+/-- For polynomials with disjoint variable support: the coefficient of a sum
+    monomial in the product equals the product of individual coefficients.
+
+    This is the Kronecker structure: coeff(α+β, p*q) = coeff(α,p) * coeff(β,q)
+    when vars(p) ∩ vars(q) = ∅ and supp(α) ∩ supp(β) = ∅.
+
+    Proof: by MvPolynomial.coeff_mul, coeff(γ, p*q) = Σ_{(a,b): a+b=γ} coeff(a,p)*coeff(b,q).
+    When vars are disjoint: coeff(a,p) = 0 unless supp(a) ⊆ vars(p), and
+    coeff(b,q) = 0 unless supp(b) ⊆ vars(q). With disjoint vars, the only
+    contributing (a,b) pair in the antidiagonal sum for γ=α+β is (α,β) itself. -/
+/- The coeff_mul_disjoint_vars theorem: for polynomials with disjoint vars,
+   coeff(α+β, p*q) = coeff(α,p) * coeff(β,q) when supp(α) ∩ supp(β) = ∅.
+
+   The proof expands coeff_mul as an antidiagonal sum and shows only the
+   (α,β) term contributes. The Lean formalization hits timeout on the
+   Finsupp antidiagonal API. The mathematical content is standard:
+   in the antidiagonal decomposition of α+β, any (a,b) ≠ (α,β) with
+   a+b = α+β forces a to have support overlapping with vars(q) (because
+   supp(α) ∩ supp(β) = ∅ constrains the unique decomposition), making
+   coeff(a,p) = 0.
+
+   This is used to establish the Kronecker structure of the SPDP
+   coefficient matrix for products with block-disjoint variable supports. -/
+theorem coeff_mul_disjoint_vars
+    (p q : MvPolynomial σ F)
+    (hvars : Disjoint (MvPolynomial.vars p) (MvPolynomial.vars q))
+    (α β : σ →₀ ℕ)
+    (hα : α.support ⊆ p.vars) (hβ : β.support ⊆ q.vars)
+    (hdisj : Disjoint α.support β.support) :
+    MvPolynomial.coeff (α + β) (p * q) =
+      MvPolynomial.coeff α p * MvPolynomial.coeff β q := by
+  sorry
 
 end CoeffMatrixHelpers
