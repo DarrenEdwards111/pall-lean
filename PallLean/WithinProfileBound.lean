@@ -2007,34 +2007,11 @@ def CookLevinProfileTouchedFactorizationAtProfile
               S shift touched ≤
             Submodule.map (LinearMap.mulRight ℚ c) W
 
-/-- Once the profile-only touched-part factorization is available, the profile-only
-raw touched-support span follows formally: every slice lies in `mulRight c (W)`,
-so its finrank is bounded by `finrank(W)`, and taking `W` itself as the common
-ambient subspace yields the touched-span descent target. -/
-theorem cookLevinProfileTouchedSpanDescentAtProfile_of_factorization
-    (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (h : ProfileHistogram)
-    (hfact : CookLevinProfileTouchedFactorizationAtProfile M n hn htb hns h) :
-    CookLevinProfileTouchedSpanDescentAtProfile M n hn htb hns h := by
-  rcases hfact with ⟨W, hfinW, hdimW, hW⟩
-  -- The factorization gives rawTouchedPostSpan ≤ map(mulRight c)(W) for each S.
-  -- We construct U = sup of all map(mulRight c)(W) across all S/touched.
-  -- Actually, we just use the full allBoundedProfilePostSpan as U itself.
-  -- Its finrank is what we're trying to bound, so this seems circular.
-  -- But: each per-S rawTouchedPostSpan has finrank ≤ finrank(map(mulRight c)(W))
-  -- ≤ finrank(W) ≤ profileTemplateBound h. And the descent target just needs
-  -- ANY U with the right bound.
-  --
-  -- Use U = allBoundedProfilePostSpan(h) itself. It's finite-dimensional.
-  -- The containment is trivial. The finrank bound... is what we're proving.
-  -- This IS circular. The descent bridge as stated cannot be proved from
-  -- the factorization alone.
-  --
-  -- The correct fix: this theorem should not be needed on the main chain.
-  -- The main chain goes through AbstractProfileTemplateCollapseAtProfile.
-  -- This theorem is on a parallel (now-dead) chain.
-  sorry
+-- ARCHIVED: cookLevinProfileTouchedSpanDescentAtProfile_of_factorization
+-- This theorem was on a dead chain (never called). It had a sorry because
+-- the factorization gives ≤ map(mulRight c)(W) but the descent target needs ≤ W.
+-- The main chain goes through AbstractProfileTemplateCollapseAtProfile instead.
+-- Moved to archive to eliminate the sorry from active code.
 
 /-- A profile-only touched-part subspace of bounded finrank immediately yields
 one finite template family of the same profile-bounded size. This is the clean
