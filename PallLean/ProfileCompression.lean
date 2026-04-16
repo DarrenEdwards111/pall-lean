@@ -440,9 +440,9 @@ theorem profile_compression_rank_bound_of_allBoundedProfileCommonSpan
       (cook_levin_compilation M n hn htb hns).partition
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ totalProfileBound n := by
-  exact profile_compression_rank_bound_of_boundedProfileCommonSpan
+  exact profile_compression_rank_bound_of_exactWithinProfileLemma
     M n hn htb hns
-    (WithinProfileBound.cookLevinBoundedProfileCommonSpan_of_allBoundedProfileCommonSpan
+    (WithinProfileBound.cookLevinExactWithinProfileLemma_of_allBoundedProfileCommonSpan
       M n hn htb hns hspan)
 
 /-- **Theorem** (Profile Compression, Paper §9, Theorem 23/92):
