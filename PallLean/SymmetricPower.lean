@@ -724,6 +724,47 @@ theorem boolFactor_coefficient_pattern_count
     Nat.choose (count₀ + 1) 1 * Nat.choose (count₁ + 1) 1 * Nat.choose (count₂ + 0) 0 := by
   simp [Nat.choose]; ring_nf; omega
 
+/-! ### Spanning set argument for symmetric power dimension
+
+The polynomial-size spanning set argument (paper Remark 19):
+each generator ∏_i w_i (where w_i ∈ W_{type(i)}) is a linear combination
+of products of BASIS ELEMENTS. The number of distinct basis-element
+products (modulo variable assignment) is ∏_σ C(h(σ)+d_σ-1, d_σ-1).
+
+This gives the dimension bound WITHOUT tensor product infrastructure.
+
+For booleanity factors: W_bool = span{1, X_v} (dim 2).
+A product of h(bool) elements from W_bool, each at a different variable,
+is a sum of 2^{h(bool)} monomials. But the number of "symmetric" products
+(choosing which basis element for each factor) is C(h(bool)+1, 1) = h(bool)+1.
+
+The general formula: for each type σ with local interface dim d_σ and h(σ)
+interfaces, the symmetric product count is C(h(σ)+d_σ-1, d_σ-1).
+Product over types: ∏_σ C(h(σ)+d_σ-1, d_σ-1) ≤ (κ+1)^8.
+
+This argument constructs a SPANNING SET of size ≤ (κ+1)^8 for V_h,
+then uses finrank ≤ |spanning set| to bound the dimension. -/
+
+/-- The number of ways to choose (with repetition, order irrelevant)
+    h elements from a d-element basis is C(h+d-1, d-1).
+    This is the dimension of the h-th symmetric power of a d-dimensional space. -/
+theorem symmetric_power_dim_formula (h d : ℕ) (hd : 0 < d) :
+    Nat.choose (h + d - 1) (d - 1) = Nat.choose (h + d - 1) h := by
+  cases d with
+  | zero => omega
+  | succ d =>
+    simp only [Nat.succ_sub_one]
+    rw [show h + (d + 1) - 1 = h + d from by omega]
+    have hle : h ≤ h + d := Nat.le_add_right h d
+    have hsym := Nat.choose_symm hle  -- C(h+d, h+d-h) = C(h+d, h)
+    rw [show h + d - h = d from Nat.add_sub_cancel_left h d] at hsym
+    exact hsym
+
+-- For the Cook-Levin compilation with 4 constraint types of local dim ≤ 3,
+-- the per-profile spanning set has size ≤ ∏_τ C(h(τ)+2, 2).
+-- Combined with profileDimBound_le_withinProfileBound (already proved in
+-- SymmetricPowerBound.lean), this is ≤ (κ+1)^8 for admissible profiles.
+
 /-! ### Coefficient of tag monomial in boolFactor SPDP generator
 
 For the Kronecker delta property, we need the coefficient of the "tag monomial"
