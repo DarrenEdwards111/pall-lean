@@ -22,9 +22,12 @@
      Total profile compression bound ≤ (κ+1)^C₀ for a constant C₀,
      yielding the final P-side profile bound `(3*log₂ n + 1)^12`.
 
-  The remaining frontier is now split explicitly: one hard fixed-profile
-  factorization axiom, plus decomposition/assembly seams that are tracked
-  separately instead of being hidden in one bundled rank statement.
+  The remaining frontier is now split explicitly: structural decomposition
+  and assembly are proved here, while the still-missing quantitative content
+  is the bounded within-profile finrank statement isolated downstream in
+  `WithinProfileBound.BoundedWithinProfileFinrankClaim`. The theorem-level
+  rank wrappers at the end of this file are only legacy assembly aliases and
+  are not the honest first missing P-side statement.
 -/
 import PallLean.CookLevinDefs
 import PallLean.MultilinearSPDP
@@ -1045,6 +1048,25 @@ theorem productLeibnizSpanFrontier_iff_mem_ProductLeibnizSpan
       iterDerivList pg.generator.derivList p ∈ ProductLeibnizSpan pg := by
   rfl
 
+/-- The raw Leibniz-span frontier already holds for any explicit product
+decomposition: this is exactly the iterated Leibniz theorem for finite products,
+rewritten along `pg.factors_prod`. -/
+theorem productLeibnizSpanFrontier
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p) :
+    ProductLeibnizSpanFrontier pg := by
+  change iterDerivList pg.generator.derivList p ∈
+    Submodule.span ℚ
+      (LeibnizProduct.distribDerivProds
+        Finset.univ
+        (fun i : Fin pg.factors.length => pg.factors[i.1])
+        pg.generator.derivList)
+  simpa [pg.factors_prod] using
+    (LeibnizProduct.iterDerivList_finset_prod_mem_span
+      (Finset.univ : Finset (Fin pg.factors.length))
+      (fun i : Fin pg.factors.length => pg.factors[i.1])
+      pg.generator.derivList)
+
 /-- Post-processing the raw Leibniz span by multiplying with the SPDP shift and then
 applying `mlProj`. This is the honest intermediate submodule controlling the actual
 generator polynomial `mlProj (shift * iterDerivList ...)`. -/
@@ -1152,6 +1174,29 @@ def ProductLeibnizExpansionWitnessFrontier
     {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
     (pg : ProductSpdpGeneratorData B κ ℓ p) : Prop :=
   Nonempty (ProductLeibnizExpansionWitness pg)
+
+/-- Once a factor slot is chosen, the current witness record has no further
+combinatorial obstruction: the semantic content is exactly the already-proved
+raw Leibniz-span membership. This discharges the product-level witness frontier
+for every nonempty factor list. -/
+def explicitProductLeibnizExpansionWitness
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p)
+    (slot : Fin pg.factors.length)
+    (constraintType : Fin pg.factors.length → ConstraintType) :
+    ProductLeibnizExpansionWitness pg where
+  constraintType := constraintType
+  assignment := fun _ => slot
+  respectsProduct := productLeibnizSpanFrontier pg
+
+/-- Any explicit choice of factor slot yields a Leibniz-expansion witness. -/
+theorem explicitProductLeibnizExpansionWitness_frontier
+    {N : ℕ} {B : BlockPartition N} {κ ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    (pg : ProductSpdpGeneratorData B κ ℓ p)
+    (slot : Fin pg.factors.length)
+    (constraintType : Fin pg.factors.length → ConstraintType) :
+    ProductLeibnizExpansionWitnessFrontier pg := by
+  exact ⟨explicitProductLeibnizExpansionWitness pg slot constraintType⟩
 
 /-- Exact product-level extraction witness: classify factor slots by constraint type
 and assign each of the `κ` derivative positions to one factor slot. Constructing
@@ -1291,17 +1336,8 @@ instance of the semantic frontier. -/
 theorem singletonProductLeibnizSpanFrontier
     {N : ℕ} {B : BlockPartition N} {ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
     (pg : ProductSpdpGeneratorData B 1 ℓ p) :
-    ProductLeibnizSpanFrontier pg := by
-  change iterDerivList pg.generator.derivList p ∈
-    Submodule.span ℚ
-      (LeibnizProduct.distribDerivProds
-        Finset.univ
-        (fun i : Fin pg.factors.length => pg.factors[i.1])
-        pg.generator.derivList)
-  simpa [pg.factors_prod] using LeibnizProduct.iterDerivList_finset_prod_mem_span
-    (Finset.univ : Finset (Fin pg.factors.length))
-    (fun i : Fin pg.factors.length => pg.factors[i.1])
-    pg.generator.derivList
+    ProductLeibnizSpanFrontier pg :=
+  productLeibnizSpanFrontier pg
 
 /-- The Leibniz-witness frontier is also inhabited in the singleton-radius case:
 choosing one factor slot gives the entire derivative-assignment data, and the semantic
@@ -1311,10 +1347,8 @@ def singletonProductLeibnizExpansionWitness
     (pg : ProductSpdpGeneratorData B 1 ℓ p)
     (slot : Fin pg.factors.length)
     (constraintType : Fin pg.factors.length → ConstraintType) :
-    ProductLeibnizExpansionWitness pg where
-  constraintType := constraintType
-  assignment := fun _ => slot
-  respectsProduct := singletonProductLeibnizSpanFrontier pg
+    ProductLeibnizExpansionWitness pg :=
+  explicitProductLeibnizExpansionWitness pg slot constraintType
 
  theorem singletonProductLeibnizExpansionWitness_frontier
     {N : ℕ} {B : BlockPartition N} {ℓ : ℕ} {p : MvPolynomial (Fin N) ℚ}
@@ -1322,7 +1356,7 @@ def singletonProductLeibnizExpansionWitness
     (slot : Fin pg.factors.length)
     (constraintType : Fin pg.factors.length → ConstraintType) :
     ProductLeibnizExpansionWitnessFrontier pg := by
-  exact ⟨singletonProductLeibnizExpansionWitness pg slot constraintType⟩
+  exact explicitProductLeibnizExpansionWitness_frontier pg slot constraintType
 
 /-- The resulting singleton-radius profile candidate is extracted. -/
 theorem singletonProductProfileCandidate_isExtracted
@@ -1571,6 +1605,76 @@ def profileClassifiedLeibnizSet {n L : ℕ}
       g = Finset.univ.prod (fun i => iterDerivList (d i) (factors i)) ∧
       (∀ τ, h τ = Fintype.card { i : Fin L // constraintType i = τ ∧ (d i).length > 0 }) }
 
+/-- The raw touched-factor set of a Leibniz derivative distribution: the factor slots
+whose assigned derivative sublist is nonempty. This keeps the exact touched support,
+before collapsing multiple touched supports with the same type histogram. -/
+def rawTouchedFactorSet {n L : ℕ} (d : Fin L → List (Fin n)) : Finset (Fin L) :=
+  Finset.univ.filter (fun i => 0 < (d i).length)
+
+/-- The touched-support profile attached to a concrete touched-factor set. This is the
+honest "same touched support" classifier underlying the later same-profile collapse:
+it records how many touched factor slots of each constraint type occur in the support. -/
+def rawTouchedProfile {L : ℕ}
+    (constraintType : Fin L → ConstraintType)
+    (touched : Finset (Fin L)) : ProfileHistogram :=
+  fun τ => Fintype.card { i : Fin L // i ∈ touched ∧ constraintType i = τ }
+
+/-- A Leibniz term belongs to the raw touched-support class `touched` if it is generated
+by some derivative distribution whose nonempty factor slots are exactly `touched`. -/
+def rawTouchedClassifiedLeibnizSet {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (S : List (Fin n))
+    (touched : Finset (Fin L)) :
+    Set (MvPolynomial (Fin n) ℚ) :=
+  { g | ∃ (d : Fin L → List (Fin n)),
+      (∀ i, ∀ v ∈ d i, v ∈ S) ∧
+      g = Finset.univ.prod (fun i => iterDerivList (d i) (factors i)) ∧
+      rawTouchedFactorSet d = touched }
+
+/-- Post-processed span of Leibniz terms with a fixed raw touched support. This is the
+honest raw-span object that precedes any same-profile collapse. -/
+noncomputable def rawTouchedPostSpan {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (S : List (Fin n))
+    (shift : MvPolynomial (Fin n) ℚ)
+    (touched : Finset (Fin L)) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+  Submodule.span ℚ
+    ((fun g => mlProj (shift * g)) '' rawTouchedClassifiedLeibnizSet factors S touched)
+
+/-- The touched-support profile of the raw touched-factor set extracted from a Leibniz
+distribution agrees with the usual "hit/non-hit" profile used by `profileClassifiedLeibnizSet`. -/
+theorem rawTouchedProfile_rawTouchedFactorSet_eq_of_profileClassified
+    {n L : ℕ}
+    (constraintType : Fin L → ConstraintType)
+    (d : Fin L → List (Fin n))
+    (h : ProfileHistogram)
+    (hprofile :
+      ∀ τ, h τ = Fintype.card { i : Fin L // constraintType i = τ ∧ (d i).length > 0 }) :
+    rawTouchedProfile constraintType (rawTouchedFactorSet d) = h := by
+  classical
+  ext τ
+  rw [hprofile τ]
+  unfold rawTouchedProfile rawTouchedFactorSet
+  refine Fintype.card_congr ?_
+  refine
+    { toFun := fun i => by
+        have hi : 0 < (d i.1).length := by
+          simpa [Finset.mem_filter] using i.2.1
+        exact ⟨i.1, i.2.2, hi⟩
+      invFun := fun i => by
+        have hi : i.1 ∈ Finset.univ.filter (fun j => 0 < (d j).length) := by
+          simp [Finset.mem_filter, i.2.2]
+        exact ⟨i.1, hi, i.2.1⟩
+      left_inv := by
+        intro i
+        cases i
+        rfl
+      right_inv := by
+        intro i
+        cases i
+        rfl }
+
 /-- The profile-classified sets cover all of distribDerivProds.
 
     Every element of distribDerivProds(Finset.univ, factors, S) belongs to at least
@@ -1588,6 +1692,29 @@ theorem distribDerivProds_subset_iUnion_profileClassified {n L : ℕ}
     fun τ => Fintype.card { i : Fin L // constraintType i = τ ∧ (d i).length > 0 }
   rw [Set.mem_iUnion]
   exact ⟨h, d, hd_mem, hg, fun _ => rfl⟩
+
+/-- Inside a fixed profile class, every Leibniz term belongs to one raw touched-support
+class whose touched-support profile is that same fixed profile. This is the honest raw
+classification statement prior to any same-profile collapse. -/
+theorem profileClassifiedLeibnizSet_subset_iUnion_rawTouchedClassified {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (h : ProfileHistogram) :
+    profileClassifiedLeibnizSet factors constraintType S h ⊆
+      ⋃ touched : Finset (Fin L),
+        if rawTouchedProfile constraintType touched = h then
+          rawTouchedClassifiedLeibnizSet factors S touched
+        else ∅ := by
+  intro g hg
+  rcases hg with ⟨d, hd_mem, rfl, hprofile⟩
+  let touched := rawTouchedFactorSet d
+  have htouched : rawTouchedProfile constraintType touched = h :=
+    rawTouchedProfile_rawTouchedFactorSet_eq_of_profileClassified constraintType d h hprofile
+  rw [Set.mem_iUnion]
+  refine ⟨touched, ?_⟩
+  simp [htouched, rawTouchedClassifiedLeibnizSet, touched]
+  exact ⟨d, hd_mem, rfl, rfl⟩
 
 /-- Post-processed profile-indexed subspace: for each profile h, the span of
     mlProj(shift * g) for all Leibniz terms g with profile h. -/
@@ -1623,6 +1750,54 @@ theorem postProcessedLeibnizSpan_le_iSup_profilePostSpan {n L : ℕ}
   apply Submodule.mem_iSup_of_mem h
   apply Submodule.subset_span
   exact ⟨g, hg_prof, rfl⟩
+
+/-- Honest raw-span refinement: before collapsing same-profile generators, a fixed
+profile post-span is contained in the supremum of raw touched-support post-spans whose
+touched-support profile is that profile. -/
+theorem profilePostSpan_le_iSup_rawTouchedPostSpan {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (shift : MvPolynomial (Fin n) ℚ)
+    (h : ProfileHistogram) :
+    profilePostSpan factors constraintType S shift h ≤
+      ⨆ touched : Finset (Fin L),
+        if rawTouchedProfile constraintType touched = h then
+          rawTouchedPostSpan factors S shift touched
+        else ⊥ := by
+  apply Submodule.span_le.mpr
+  intro q hq
+  rcases hq with ⟨g, hg_mem, rfl⟩
+  rcases hg_mem with ⟨d, hd_mem, rfl, hprofile⟩
+  let touched := rawTouchedFactorSet d
+  have htouched : rawTouchedProfile constraintType touched = h :=
+    rawTouchedProfile_rawTouchedFactorSet_eq_of_profileClassified constraintType d h hprofile
+  apply Submodule.mem_iSup_of_mem touched
+  simp [htouched, rawTouchedPostSpan, rawTouchedClassifiedLeibnizSet, touched]
+  exact Submodule.subset_span ⟨_, ⟨d, hd_mem, rfl, rfl⟩, rfl⟩
+
+/-- Consequence of a same-profile raw-span collapse hypothesis: if every raw
+touched-support span compatible with profile `h` is contained in one common target
+submodule `U`, then the whole profile post-span is contained in `U`. This is the
+exact downstream interface needed after proving the honest raw-span statement. -/
+theorem profilePostSpan_le_of_rawTouchedCollapse {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (S : List (Fin n))
+    (shift : MvPolynomial (Fin n) ℚ)
+    (h : ProfileHistogram)
+    (U : Submodule ℚ (MvPolynomial (Fin n) ℚ))
+    (hcollapse :
+      ∀ touched : Finset (Fin L),
+        rawTouchedProfile constraintType touched = h →
+          rawTouchedPostSpan factors S shift touched ≤ U) :
+    profilePostSpan factors constraintType S shift h ≤ U := by
+  refine le_trans (profilePostSpan_le_iSup_rawTouchedPostSpan factors constraintType S shift h) ?_
+  refine iSup_le ?_
+  intro touched
+  by_cases htouched : rawTouchedProfile constraintType touched = h
+  · simpa [htouched] using hcollapse touched htouched
+  · simp [htouched]
 
 /-- The SPDP generator polynomial mlProj(shift * iterDerivList S (factors.prod)) lies in
     the sup of profile-indexed post-processed Leibniz subspaces, for any constraint-type
@@ -1974,6 +2149,20 @@ def HasFiniteProfileCover {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
     (∀ i, Module.finrank ℚ ↥(spaces i) ≤ withinProfileBound κ) ∧
     mlBlockedSpdpSubspace B κ ℓ p ≤ ⨆ i, spaces i
 
+/-- Honest fixed-profile cover families are enough to build the weaker finite-profile
+cover used by the assembly lemmas below. This is the direct bridge from the
+same-profile / symmetric-power frontier to the final rank bound surface. -/
+theorem hasFiniteProfileCover_of_hasFixedProfileCoverFamily
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ)
+    (hfam : HasFixedProfileCoverFamily B κ ℓ p) :
+    HasFiniteProfileCover B κ ℓ p := by
+  rcases hfam with ⟨fam, hcover⟩
+  refine ⟨fam.numProfiles, fam.profileSpaces, fam.countBound, ?_, ?_, hcover⟩
+  · intro i
+    exact (fam.covers i).coverFinite
+  · exact fam.perProfileBound
+
 /-- If a finite profile cover exists, the SPDP rank is ≤ combinedProfileBound κ. -/
 theorem rank_le_combinedBound_of_hasFiniteProfileCover {N : ℕ}
     (B : BlockPartition N) (κ ℓ : ℕ)
@@ -1988,6 +2177,19 @@ theorem rank_le_combinedBound_of_hasFiniteProfileCover {N : ℕ}
           hcontain hbound
     _ ≤ profileCount κ * withinProfileBound κ := Nat.mul_le_mul_right _ hP
     _ = combinedProfileBound κ := rfl
+
+/-- Direct assembly from an honest fixed-profile cover family.
+
+    This is the intended Step B endpoint: once the same-profile collapse is packaged
+    as finitely many genuine fixed-profile cover spaces with the symmetric-power
+    within-profile bound, the global SPDP rank bound is immediate. -/
+theorem rank_le_combinedBound_of_hasFixedProfileCoverFamily {N : ℕ}
+    (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ)
+    (hfam : HasFixedProfileCoverFamily B κ ℓ p) :
+    mlBlockedSpdpRank B κ ℓ p ≤ combinedProfileBound κ :=
+  rank_le_combinedBound_of_hasFiniteProfileCover B κ ℓ p
+    (hasFiniteProfileCover_of_hasFixedProfileCoverFamily B κ ℓ p hfam)
 
 /-- spdp_profile_generators implies HasFiniteProfileCover.
 
@@ -2027,29 +2229,39 @@ theorem rank_bound_from_fixed_profile_factorization
   rank_le_combinedBound_of_hasFiniteProfileCover _ _ _ _
     (hasFiniteProfileCover_of_spdp_profile_generators M n hn htb hns)
 
+/-- Cook-Levin specialization of the honest Step B route.
 
-/-! ## Step B: Profile Factors Through Symmetric Powers (AXIOM)
+    This is the theorem the remaining same-profile frontier should feed: a real
+    fixed-profile cover family for the compiled polynomial yields the expected
+    `(κ+1)^12` bound without using `spdp_profile_generators`. -/
+theorem rank_bound_from_honest_fixed_profile_factorization
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hfam : HasFixedProfileCoverFamily
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns))) :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns))
+    ≤ combinedProfileBound (Nat.log 2 n) :=
+  rank_le_combinedBound_of_hasFixedProfileCoverFamily _ _ _ _ hfam
 
-This is the one genuinely hard step. It requires showing that Leibniz product rule
-terms with the same type histogram ("profile") factor through symmetric powers
-of the local interface spaces.
 
-The mathematical content:
-1. The Leibniz rule for ∂_S (∏ᵢ(1-Cᵢ)) assigns each derivative in S to exactly
-   one constraint factor, yielding a sum over "derivative assignments."
-2. Grouping assignments by the histogram of which constraint TYPES are hit gives
-   the "profiles." The number of profiles is ≤ C(κ + numTypes, numTypes) ≤ (κ+1)^4.
-3. Within each profile, the contribution factors as a tensor product of
-   differentiated local constraint pieces from Sym^{h(τ)}(W_τ). The image of
-   this map has dimension ≤ ∏_τ dim(Sym^{h(τ)}(W_τ)) ≤ (κ+1)^10.
+/-! ## Legacy Step-B Assembly Wrappers
 
-We state the axiom as the combined conclusion: the SPDP rank is bounded by
-the product profileCount(κ) × withinProfileBound(κ) = (κ+1)^12.
+The genuinely hard remaining content is no longer the bundled rank statement below.
+The exact missing theorem has already been isolated more honestly in
+`WithinProfileBound.BoundedWithinProfileFinrankClaim`: each bounded profile
+subspace has finite rank at most `withinProfileBound κ`, after restricting the
+structural decomposition to bounded derivative-count profiles.
 
-This is more minimal than the original monolithic axiom because:
-- The specific exponent 14 = 4 + 10 is EXPLAINED by the decomposition
-- Steps A and C (proved above) justify the sub-exponents
-- Only the factorization structure (Step B proper) remains unproved
+The theorems in this section persist only so older downstream files continue to
+typecheck while the frontier is being shrunk. They reassemble the old P-side
+bound through `SymmetricPower.product_leibniz_profile_cover`, which ultimately
+depends on the known-false `spdp_profile_generators` package, so they should be
+treated as compatibility wrappers rather than as the live frontier.
 -/
 
 /-- **Step B theorem** (Profile symmetric power factorization):
@@ -2075,6 +2287,23 @@ theorem profile_symmetric_power_factorization
       (compiledPoly (cook_levin_compilation M n hn htb hns))
     ≤ combinedProfileBound (Nat.log 2 n) :=
   rank_bound_from_fixed_profile_factorization M n hn htb hns
+
+/-- Honest Step B wrapper: the remaining same-profile factorization frontier should
+produce `HasFixedProfileCoverFamily`, and then this theorem gives the Cook-Levin
+profile-compression bound directly. -/
+theorem profile_symmetric_power_factorization_of_honest_cover
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hfam : HasFixedProfileCoverFamily
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns))) :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns))
+    ≤ combinedProfileBound (Nat.log 2 n) :=
+  rank_bound_from_honest_fixed_profile_factorization M n hn htb hns hfam
 
 /-! ## Step D: Assembly — Derive profile_compression_rank_bound (PROVED)
 

@@ -748,6 +748,69 @@ theorem rank_bound_of_withinProfileFinrankBound {n L : ℕ}
   rank_bound_of_boundedWithinProfileFinrank B κ ℓ factors constraintType p hp
     (boundedWithinProfileFinrankClaim_of_finrankBound B κ ℓ factors constraintType hbound)
 
+/-! ## Part 11b: Exact Cook-Levin frontier after the finrank reduction
+
+The abstract Step B frontier can now be packaged as one exact theorem-level
+obligation for the actual Cook-Levin factor list. This isolates the remaining
+content to the specialized within-profile finrank bound, rather than the older
+generator-level package `spdp_profile_generators`.
+-/
+
+/-- The explicit list of Cook-Levin product factors `1 - Cᵢ` used by the P-side
+profile-compression argument. -/
+noncomputable def cookLevinFactorList
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    List (MvPolynomial (Fin n) ℚ) :=
+  (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).constraints.map
+    (fun c => (1 : MvPolynomial (Fin n) ℚ) - c.poly)
+
+/-- Exact remaining Cook-Levin Step B frontier after reducing to bounded-profile
+finrank: there exists a constraint-type classification on the actual compiled
+factor list for which the specialized within-profile finrank bound holds. -/
+def CookLevinWithinProfileFinrankFrontier
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∃ constraintType : Fin (cookLevinFactorList M n hn htb hns).length → ConstraintType,
+    WithinProfileFinrankBound
+      (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      constraintType
+
+/-- The exact Cook-Levin within-profile frontier implies the Step B combined
+profile bound. This is the clean theorem-level reduction from the remaining
+specialized finrank statement to the exported profile-compression rank bound. -/
+theorem cookLevin_combinedBound_of_withinProfileFrontier
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hfrontier : CookLevinWithinProfileFinrankFrontier M n hn htb hns) :
+    mlBlockedSpdpRank
+      (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (PaperFaithfulSeparation.compiledPoly
+        (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns))
+    ≤ combinedProfileBound (Nat.log 2 n) := by
+  classical
+  obtain ⟨constraintType, hbound⟩ := hfrontier
+  let T := PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns
+  let factors : List (MvPolynomial (Fin n) ℚ) := cookLevinFactorList M n hn htb hns
+  have hcompiled : PaperFaithfulSeparation.compiledPoly T = factors.prod := by
+    simpa [T, factors, cookLevinFactorList] using
+      PaperFaithfulSeparation.compiledPoly_eq_constraints_prod M n hn htb hns
+  have hp :
+      PaperFaithfulSeparation.compiledPoly T =
+        Finset.univ.prod (fun i : Fin factors.length => factors.get i) := by
+    rw [hcompiled, ← Fin.prod_univ_getElem]
+    simp [List.get_eq_getElem]
+  exact rank_bound_of_withinProfileFinrankBound
+    T.partition (Nat.log 2 n) (Nat.log 2 n)
+    (fun i : Fin factors.length => factors.get i)
+    constraintType
+    (PaperFaithfulSeparation.compiledPoly T)
+    hp
+    hbound
+
 /-! ## Part 12: Local derivative classification for degree-2 factors
 
 For a degree-≤-2 polynomial f with vars ⊆ {v₁, v₂}, the possible results of

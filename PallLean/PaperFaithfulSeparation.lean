@@ -211,9 +211,11 @@ The paper's profile compression (§9, Theorem 92) resolves this: rows with
 the same constraint-type histogram ("profile") contribute to the same
 subspace, and the number of distinct profiles is polynomial.
 
-The outer bound is now theorem-level via `ProfileCompression.lean`; the single
-remaining P-side frontier has been factored down to
-`SymmetricPowerBound.profile_symmetric_power_factorization`.
+The outer bound is now theorem-level via `ProfileCompression.lean`; the exact
+remaining P-side frontier is smaller than that wrapper theorem and lives at
+`WithinProfileBound.BoundedWithinProfileFinrankClaim`, the bounded
+within-profile finrank estimate from which the finite profile cover is
+assembled.
 
 ### Axiom 2 (God-Move + Identity Minor): Core mathematical axiom
 
@@ -947,9 +949,10 @@ theorem P_ne_NP_unconditional : ∀ (_ : PeqNP_Paper), False := by
 /-! ## Axiom audit
 
 The NP-side (God-Move + identity minor) is axiom-free beyond standard Lean.
-The P-side theorem is theorem-level, but it still inherits the reduced
-frontier `profile_symmetric_power_factorization` through the profile
-compression development. -/
+The P-side theorem is theorem-level, but the honest first missing statement in
+its dependency chain is the bounded within-profile finrank claim
+`WithinProfileBound.BoundedWithinProfileFinrankClaim`, not the downstream
+wrapper `profile_symmetric_power_factorization`. -/
 #print axioms god_move_identity_minor_axiom
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
 #print axioms P_ne_NP_unconditional

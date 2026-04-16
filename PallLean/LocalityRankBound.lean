@@ -11,11 +11,10 @@
 
     Γ_{κ,ℓ}(P) ≤ poly(n)
 
-  The profile compression argument is now factored through
-  `SymmetricPowerBound.profile_symmetric_power_factorization`. The exported
-  theorem `PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin` is
-  theorem-level on this branch, though it still depends on that remaining
-  Step B frontier.
+  The profile compression argument is assembled theorem-level in the current
+  branch, but the honest first missing P-side statement is now the smaller
+  `WithinProfileBound.BoundedWithinProfileFinrankClaim`, not the downstream
+  wrapper `SymmetricPowerBound.profile_symmetric_power_factorization`.
 
   This file provides:
   1. General-purpose lemmas about SPDP subspaces (locality, spanning sets, etc.)

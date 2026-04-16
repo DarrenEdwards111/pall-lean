@@ -28,8 +28,25 @@
     the multilinear blocked SPDP rank satisfies
       Gamma_{log n, log n}(P) <= (3 * log_2 n + 1)^12
 
-  That frontier encodes the remaining content of the Leibniz product rule
-  decomposition (§9, Lemmas 27-31), profile counting via stars-and-bars
+  The honest remaining seam is exposed there as
+  `HasFixedProfileCoverFamily` together with
+  `profile_symmetric_power_factorization_of_honest_cover`: once the
+  same-profile collapse / symmetric-power factorization produces a real
+  fixed-profile cover family for the compiled polynomial, the global
+  `(log n + 1)^12` bound is derived theorem-level.
+
+  This file also exposes the smaller post-collapse surface
+  `profile_compression_rank_bound_of_withinProfileFinrankBound`, which routes
+  through `WithinProfileBound.rank_bound_of_withinProfileFinrankBound` when a
+  concrete compiled factor family and its within-profile finrank bound are
+  available directly.
+
+  The legacy compatibility theorem `profile_symmetric_power_factorization`
+  still exists, but it currently reaches that bound through the older
+  `spdp_profile_generators` route.
+
+  The frontier therefore encodes the remaining content of the Leibniz product
+  rule decomposition (§9, Lemmas 27-31), profile counting via stars-and-bars
   (§9, Lemma 20), and within-profile dimension bounds (§9, Lemma 31).
   The polylogarithmic-to-polynomial conversion `(3*log n + 1)^12 ≤ n^200`
   is then proved theorem-level in this file.
@@ -41,6 +58,7 @@
 import PallLean.CookLevinDefs
 import PallLean.MultilinearSPDP
 import PallLean.SymmetricPowerBound
+import PallLean.WithinProfileBound
 import Mathlib.Tactic
 
 namespace ProfileCompression
@@ -109,7 +127,7 @@ theorem finrank_le_of_le_iSup_bounded {F V : Type*} [Field F] [AddCommGroup V] [
       ≤ Module.finrank F ↥(⨆ i : Fin m, U i) := Submodule.finrank_mono hle
     _ ≤ ∑ i : Fin m, Module.finrank F ↥(U i) := finrank_iSup_fin_le m U
     _ ≤ ∑ _i : Fin m, D := Finset.sum_le_sum (fun i _ => hD i)
-    _ = m * D := by simp [Finset.sum_const, Finset.card_fin]
+    _ = m * D := by simp [Finset.sum_const]
 
 /-! ## Profile Parameters for cook_levin_compilation
 
@@ -218,13 +236,58 @@ theorem totalProfileBound_le_pow (n : ℕ) (hn : n ≥ 2) :
     formalization of the axiom's interior. -/
 
 /-- **Theorem** (Profile Compression, Paper §9, Theorem 23/92):
+    Smaller frontier version: if one supplies a concrete compiled factor family
+    together with the bounded within-profile finrank bound after profile
+    collapse, then the final `(3 * log_2 n + 1)^12` estimate is purely formal.
+
+    This packages the honest post-collapse endpoint from
+    `WithinProfileBound.rank_bound_of_withinProfileFinrankBound` at the
+    Cook-Levin theorem surface. -/
+theorem profile_compression_rank_bound_of_withinProfileFinrankBound
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {L : ℕ}
+    (factors : Fin L →
+      MvPolynomial (Fin (cook_levin_compilation M n hn htb hns).numVars) ℚ)
+    (constraintType : Fin L → SymmetricPowerBound.ConstraintType)
+    (hprod :
+      compiledPoly (cook_levin_compilation M n hn htb hns) = Finset.univ.prod factors)
+    (hbound : WithinProfileBound.WithinProfileFinrankBound
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n) factors constraintType) :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ totalProfileBound n := by
+  have h :=
+    WithinProfileBound.rank_bound_of_withinProfileFinrankBound
+      (B := (cook_levin_compilation M n hn htb hns).partition)
+      (κ := Nat.log 2 n)
+      (ℓ := Nat.log 2 n)
+      (factors := factors)
+      (constraintType := constraintType)
+      (p := compiledPoly (cook_levin_compilation M n hn htb hns))
+      hprod hbound
+  rw [totalProfileBound_eq]
+  calc
+    mlBlockedSpdpRank
+        (cook_levin_compilation M n hn htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn htb hns))
+      ≤ (Nat.log 2 n + 1) ^ 12 := by
+        simpa [SymmetricPowerBound.combinedProfileBound_eq] using h
+    _ ≤ (3 * Nat.log 2 n + 1) ^ 12 := by
+        exact SymmetricPowerBound.combinedBound_le_totalProfileBound (Nat.log 2 n)
+
+/-- **Theorem** (Profile Compression, Paper §9, Theorem 23/92):
     The compiled polynomial of any P-time DTM has SPDP rank bounded by
     the total profile bound (3 * log_2 n + 1)^12.
 
     Previously an axiom; now derived from the HAL 9000 decomposition in
-    SymmetricPowerBound.lean. The single remaining axiom is
-    `profile_symmetric_power_factorization` (Step B), which encodes the
-    symmetric power factorization of Leibniz profile subspaces. -/
+    `SymmetricPowerBound.lean`. The honest remaining P-side frontier is smaller
+    than this theorem: `WithinProfileBound.BoundedWithinProfileFinrankClaim`,
+    which isolates the bounded within-profile rank estimate used to build the
+    finite profile cover. This theorem is only the downstream assembly wrapper. -/
 theorem profile_compression_rank_bound (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
     mlBlockedSpdpRank
@@ -270,18 +333,51 @@ theorem p_side_rank_bound_for_cook_levin (M : DTM) (n : ℕ) (hn : n ≥ 2)
       ≤ totalProfileBound n := profile_compression_rank_bound M n hn htb hns
     _ ≤ n ^ 200 := totalProfileBound_le_pow n hn
 
+/-- Smaller frontier version of the final P-side theorem: once the bounded
+    within-profile finrank bound is established for a concrete compiled factor
+    family, the polynomial `n^200` estimate follows with no further Step B work. -/
+theorem p_side_rank_bound_for_cook_levin_of_withinProfileFinrankBound
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {L : ℕ}
+    (factors : Fin L →
+      MvPolynomial (Fin (cook_levin_compilation M n hn htb hns).numVars) ℚ)
+    (constraintType : Fin L → SymmetricPowerBound.ConstraintType)
+    (hprod :
+      compiledPoly (cook_levin_compilation M n hn htb hns) = Finset.univ.prod factors)
+    (hbound : WithinProfileBound.WithinProfileFinrankBound
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n) factors constraintType) :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 := by
+  calc
+    mlBlockedSpdpRank
+        (cook_levin_compilation M n hn htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn htb hns))
+      ≤ totalProfileBound n :=
+        profile_compression_rank_bound_of_withinProfileFinrankBound
+          M n hn htb hns factors constraintType hprod hbound
+    _ ≤ n ^ 200 := totalProfileBound_le_pow n hn
+
 /-! ## Verification of the Overall Separation Architecture
 
-    With `p_side_rank_bound_for_cook_levin` proved from the HAL 9000
-    decomposition in `SymmetricPowerBound.lean`, the P-side itself now rests on
-    exactly one remaining content frontier:
+    With `p_side_rank_bound_for_cook_levin` assembled from the HAL 9000
+    decomposition, the exact remaining P-side content frontier is now the
+    bounded within-profile estimate:
 
-    1. `profile_symmetric_power_factorization` (P-side, Paper §9, Theorem 92):
-       The SPDP rank of the compiled polynomial is ≤ combinedProfileBound(κ)
-       = `(κ+1)^12`. This is the symmetric power factorization of Leibniz
-       profile subspaces — the one hard step in the profile compression argument.
-       Steps A (local interface dim), C (symmetric power dim), and D (multiply)
-       are all fully proved in SymmetricPowerBound.lean.
+    1. Honest Step B frontier:
+       either produce `SymmetricPowerBound.HasFixedProfileCoverFamily` for the
+       compiled polynomial, or equivalently prove
+       `WithinProfileBound.BoundedWithinProfileFinrankClaim` /
+       `WithinProfileBound.WithinProfileFinrankBound` for a concrete compiled
+       factor family. For each bounded derivative-count profile `h`, this asks
+       that `allBoundedProfilePostSpan ... h` have finrank at most
+       `withinProfileBound κ = (κ+1)^8`. Once this is proved, the finite
+       profile cover and the global `(κ+1)^12` rank bound follow formally from
+       already-checked assembly lemmas.
 
     All other components of the separation proof are fully proved:
     - Step A: local_interface_dim_bound (local interface spaces have O(1) dim)
