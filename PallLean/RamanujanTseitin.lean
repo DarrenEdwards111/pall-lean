@@ -1805,7 +1805,33 @@ private noncomputable def lpsFormula (n : ℕ) (hn : n ≥ 6) : TseitinFormula w
   bounded_occurrence := by
     -- Each variable v appears in at most 1 clause (clause ⌊v/3⌋ if v < 3n).
     -- Disjoint triples {3i, 3i+1, 3i+2} ensure bounded occurrence ≤ 1 ≤ 10.
-    sorry -- lps_bounded_occurrence: disjoint-triple counting
+    intro v
+    -- Each clause i uses disjoint triples {3i, 3i+1, 3i+2}.
+    -- Variable v matches clause i iff i = v/3. So ≤ 1 clause, ≤ 10.
+    -- Use List.filter_map to pull filter through map
+    rw [List.filter_map, List.length_map]
+    -- The composed predicate selects i where 3i=v or 3i+1=v or 3i+2=v.
+    -- Each such i must equal v/3. The filtered list is Nodup, so length ≤ 1 ≤ 10.
+    set q := ((fun c : Clause3 => decide (c.var1 = v ∨ c.var2 = v ∨ c.var3 = v)) ∘
+      fun i => (⟨3 * i, 3 * i + 1, 3 * i + 2, true, true, true,
+        by omega, by omega, by omega⟩ : Clause3))
+    have hnodup : ((List.range n).filter q).Nodup :=
+      (List.nodup_range (n := n)).filter q
+    have hall : ∀ a ∈ (List.range n).filter q, a = v / 3 := by
+      intro a ha
+      simp only [q, Function.comp, List.mem_filter, List.mem_range, decide_eq_true_eq] at ha
+      omega
+    suffices h : ((List.range n).filter q).length ≤ 1 by linarith
+    match hL : (List.range n).filter q with
+    | [] => simp
+    | [_] => simp
+    | x :: y :: rest =>
+      exfalso
+      have hxeq := hall x (hL ▸ List.mem_cons_self)
+      have hyeq := hall y (hL ▸ (List.mem_cons_of_mem x List.mem_cons_self))
+      have hxy : x = y := by omega
+      rw [hL] at hnodup
+      exact absurd (hxy ▸ List.mem_cons_self) (List.nodup_cons.mp hnodup).1
 
 /-- Number of variables in the LPS Tseitin formula. -/
 private lemma lpsFormula_numVars (n : ℕ) (hn : n ≥ 6) :
@@ -1925,7 +1951,18 @@ private noncomputable def lpsPartition (F : Type*) [Field F]
     -- numVertices = n, so need n/30 ≤ n/30
     simp only [lpsEncoding, lpsExpander, lpsGraph]
     -- S.card = number of i : Fin(9n) with i.val < n/30 = n/30
-    sorry -- lps_S_card: Finset.filter cardinality = n/30
+    -- S.card = |{i : Fin(9n) | i.val < n/30}| ≥ n/30.
+    have hN : tseitinNumVars (lpsFormula n hn) = 9 * n := lpsFormula_numVars n hn
+    suffices h : (Finset.univ.filter (fun i : Fin (tseitinNumVars (lpsFormula n hn)) =>
+        i.val < n / 30)).card = n / 30 by linarith
+    -- This filter = Finset.Iio ⟨n/30, _⟩
+    have hfilt : (Finset.univ.filter (fun i : Fin (tseitinNumVars (lpsFormula n hn)) =>
+        i.val < n / 30)) =
+      Finset.Iio (⟨n / 30, by omega⟩ : Fin (tseitinNumVars (lpsFormula n hn))) := by
+      ext x
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_Iio,
+        Fin.lt_iff_val_lt_val]
+    rw [hfilt, Fin.card_Iio]
   pdMatrixRank_pos := by
     sorry -- lps_pdMatrixRank_pos: product charPoly gives positive PD rank
 
