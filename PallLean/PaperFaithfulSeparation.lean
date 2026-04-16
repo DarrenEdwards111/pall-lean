@@ -1094,23 +1094,24 @@ theorem P_ne_NP_via_piStar : ∀ (_ : PeqNP_Paper), False := by
     _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
   have hns_n : hPeqNP.decider.numStates ≤ n :=
     le_trans hPeqNP.numStates_bound (le_refl _)
-  -- Projected P-side (Axiom 2 in GlobalGodMoveGauge): projected rank ≤ n^200
-  -- This applies to ANY DTM with bounded parameters.
+  -- Projected P-side (theorem derived from `IsAmplituhedronGauge.p_side_bound`):
+  -- projected rank ≤ n^200. This applies to ANY DTM with bounded parameters.
   have hP : GlobalGodMoveGauge.mlBlockedSpdpRankProjected
-      (cook_levin_compilation hPeqNP.decider n hn2
-        hPeqNP.timeBound_le hns_n).partition
+      hPeqNP.decider n hn₀ hn2
+      hPeqNP.timeBound_le hns_n
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPoly (cook_levin_compilation hPeqNP.decider n hn2
         hPeqNP.timeBound_le hns_n)) ≤ n ^ 200 :=
-    GlobalGodMoveGauge.piStar_p_side_bound hPeqNP.decider n hn2
+    GlobalGodMoveGauge.piStar_p_side_bound hPeqNP.decider n hn₀ hn2
       hPeqNP.timeBound_le hns_n
-  -- Projected NP-side (Axiom 3 in GlobalGodMoveGauge): for SAT-deciding DTMs,
+  -- Projected NP-side (theorem derived from `IsAmplituhedronGauge`'s
+  -- `preserves_identity_minor_for_sat_deciders`): for SAT-deciding DTMs,
   -- projected rank ≥ C(n/3, log n). This is the load-bearing site of
   -- DecidesSAT — without it, no projected lower bound is available.
   have hNP : Nat.choose (n / 3) (Nat.log 2 n) ≤
       GlobalGodMoveGauge.mlBlockedSpdpRankProjected
-        (cook_levin_compilation hPeqNP.decider n hn2
-          hPeqNP.timeBound_le hns_n).partition
+        hPeqNP.decider n hn₀ hn2
+        hPeqNP.timeBound_le hns_n
         (Nat.log 2 n) (Nat.log 2 n)
         (compiledPoly (cook_levin_compilation hPeqNP.decider n hn2
           hPeqNP.timeBound_le hns_n)) :=
@@ -1150,10 +1151,10 @@ specialized within-profile finrank bound on the actual factor list
 -- Expected: the above + the reduced P-side frontier from SymmetricPowerBound
 #print axioms P_ne_NP_via_piStar
 -- Expected: propext, Classical.choice, Quot.sound,
---   GlobalGodMoveGauge.piStar,
---   GlobalGodMoveGauge.piStar_rank_monotone (transitively),
---   GlobalGodMoveGauge.piStar_p_side_bound,
---   GlobalGodMoveGauge.piStar_preserves_identity_minor_for_sat_deciders.
+--   GlobalGodMoveGauge.exists_amplituhedron_gauge.
+-- (Single custom axiom — the existence of the amplituhedron gauge satisfying
+-- all three properties bundled in `IsAmplituhedronGauge`. The previous three
+-- separate axioms are now derived theorems consuming this single witness.)
 -- Notably ABSENT: spdp_profile_generators (and the false universal P-side
 -- claim). The new chain is consistent with `compiled_np_lower_bound_any_dtm`
 -- because the universal P-side bound now applies only to PROJECTED rank,

@@ -3,8 +3,29 @@
   -------------------------------------------------------------
 
   This file implements the paper's **Global God-Move Gauge** Π⋆ (Definition 7
-  / Theorem 207) as a ℚ-linear projection on `MvPolynomial (Fin n) ℚ`, and the
-  associated **projected SPDP rank** functional `mlBlockedSpdpRankProjected`.
+  / Theorem 207) as a per-compilation ℚ-linear projection on
+  `MvPolynomial (Fin n) ℚ`, and the associated **projected SPDP rank**
+  functional `mlBlockedSpdpRankProjected`.
+
+  ## Architecture (post-consolidation)
+
+  Earlier drafts of this file used three independent axioms (rank monotonicity,
+  projected P-side bound, projected NP-side preservation for SAT-deciders).
+  This file consolidates those three claims into a single existence axiom for a
+  structure `IsAmplituhedronGauge` that bundles all three properties for a given
+  Cook-Levin compilation. The three previous axioms are then *derived* as
+  theorems via `Classical.choose` of the existence witness.
+
+  Net effect on the trust surface:
+  * Old: 3 custom axioms (`piStar` + 3 properties).
+  * New: 1 custom axiom (`exists_amplituhedron_gauge`) plus standard `Classical.choice`.
+
+  Mathematically the trust is the same — the existence axiom asserts the
+  conjunction of the three previous properties. But the axiom *surface* is
+  strictly smaller and structurally cleaner: there is exactly one mathematical
+  claim to discharge (existence of the amplituhedron gauge), and that claim
+  exactly matches what the paper's Theorem 207 / §6 invokes via "uniform
+  projection Π_⋆ derived from amplituhedron geometry".
 
   ## Why this file exists
 
@@ -18,14 +39,15 @@
   `spdp_profile_generators_inconsistent_with_np_side` at n = 2⁸⁰⁴.
 
   Per the paper (Definition 6 / Theorem 207), the resolution is a
-  *position-quotienting projection* Π⋆ that:
+  position-quotienting projection Π⋆ that:
 
   1. Collapses block-position multiplicity for compiled polynomials of
      **generic** DTMs (so the P-side bound on the projected rank becomes
-     polynomial — Axiom 2 below).
+     polynomial — property `p_side_bound` of `IsAmplituhedronGauge`).
   2. **Preserves** the clause-sheet identity-minor structure for compiled
      polynomials of **SAT-deciding** DTMs, where `DecidesSAT` constrains the
-     tableau to encode the formula's clause data (Axiom 3 below).
+     tableau to encode the formula's clause data
+     (property `preserves_identity_minor_for_sat_deciders`).
 
   The asymmetry between (1) and (2) is exactly what makes `DecidesSAT`
   genuinely load-bearing in the new chain: the projected NP-side lower bound
@@ -34,16 +56,14 @@
 
   ## Open mathematical content
 
-  The three axioms below (rank monotonicity, projected P-side upper bound,
-  projected NP-side lower bound for SAT-deciders) replace the single,
-  provably-false `spdp_profile_generators`. Each is mathematically plausible
-  and consistent with `compiled_np_lower_bound_any_dtm`. Concrete proofs
-  require:
+  The single existence axiom `exists_amplituhedron_gauge` replaces the
+  provably-false `spdp_profile_generators`. It is mathematically plausible and
+  consistent with `compiled_np_lower_bound_any_dtm`. A concrete proof requires:
 
-  * Constructing Π⋆ explicitly (the paper's amplituhedron projection /
-    derandomized switching lemma instantiation),
-  * Proving Π⋆ collapses position multiplicity uniformly,
-  * Proving Π⋆ is faithful on the SAT-decider clause-sheet substructure.
+  * Constructing the amplituhedron gauge Π⋆ explicitly (the paper's positive
+    geometry construction / derandomized switching lemma instantiation),
+  * Proving that the constructed Π⋆ satisfies the three properties bundled
+    into `IsAmplituhedronGauge`.
 
   This is open research — we axiomatise the *spec* here so the rest of the
   separation chain becomes structurally honest.
@@ -57,105 +77,155 @@ namespace GlobalGodMoveGauge
 
 open MvPolynomial SPDP MultilinearSPDP TuringMachine PaperFaithfulSeparation
 
-/-! ## The Global God-Move Gauge Π⋆
+/-! ## The amplituhedron gauge: structure of required properties
 
-Π⋆ is a ℚ-linear endomorphism on `MvPolynomial (Fin n) ℚ`, parameterised by a
-block partition. The partition argument is required because the projection
-acts blockwise (compressing position multiplicity within blocks).
+`IsAmplituhedronGauge` packages together the three mathematical properties the
+paper requires of the Global God-Move Gauge, evaluated at a specific
+Cook-Levin compilation.  -/
 
-The construction is left abstract; concretely instantiating it is the content
-of Theorem 207's "uniform projection Π_⋆ derived from amplituhedron geometry"
-in §6 of the paper. -/
-axiom piStar : ∀ {n : ℕ} (_B : BlockPartition n),
-    MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ
+/-- The mathematical content of the Global God-Move Gauge for a specific
+Cook-Levin compilation: a ℚ-linear endomorphism Π on the compiled
+polynomial's variable space, satisfying
 
-/-- The **projected SPDP rank**: the multilinear blocked SPDP rank of the
-polynomial *after* applying the Global God-Move Gauge Π⋆. -/
-noncomputable def mlBlockedSpdpRankProjected {n : ℕ}
-    (B : BlockPartition n) (κ ℓ : ℕ)
-    (p : MvPolynomial (Fin n) ℚ) : ℕ :=
-  mlBlockedSpdpRank B κ ℓ (piStar B p)
+* (i) **rank monotonicity** — Π does not increase the multilinear blocked
+  SPDP rank of any polynomial,
+* (ii) **projected P-side bound** — applied to *this* DTM's compiled
+  polynomial, the projected rank is at most n²⁰⁰,
+* (iii) **projected NP-side preservation for SAT-deciders** — *if* M decides
+  3-SAT, then applied to the compiled polynomial Π preserves the identity
+  minor lower bound C(n/3, log n) on the projected rank.
 
-/-! ## Axioms governing Π⋆
-
-These three axioms encode the *spec* the gauge must satisfy. They are
-mathematically plausible (none is provably false in this codebase) and
-collectively make `DecidesSAT` load-bearing in the separation chain. -/
-
-/-- **Axiom 1 (rank monotonicity).** Π⋆ does not increase SPDP rank.
-
-For any genuine projection / quotient map this would be automatic; we state it
-explicitly here because `piStar` is left abstract. -/
-axiom piStar_rank_monotone {n : ℕ} (B : BlockPartition n) (κ ℓ : ℕ)
-    (p : MvPolynomial (Fin n) ℚ) :
-    mlBlockedSpdpRankProjected B κ ℓ p ≤ mlBlockedSpdpRank B κ ℓ p
-
-/-- **Axiom 2 (projected P-side upper bound).** For *any* DTM M with the
-bounded compilation parameters, the projected SPDP rank of M's Cook-Levin
-compiled polynomial is polynomial in n.
-
-This is the projected-rank replacement for `spdp_profile_generators`. The
-crucial difference is that it applies to the *projected* quantity, after the
-position-multiplicity-collapsing Π⋆ has been applied. The within-profile
-dimension after Π⋆ is genuinely (κ+1)^{O(1)} (since the C(n/3, κ) disjoint-block
-generators get identified), so the profile-compression count
-`(κ+1)⁴ · (κ+1)⁸ = (κ+1)¹²` becomes a true upper bound on the projected rank.
-
-This axiom does **not** contradict the axiom-free
-`GodMoveReal.compiled_np_lower_bound_any_dtm` — that theorem is about the
-*un-projected* rank, while this axiom is about the *projected* rank. By
-Axiom 1, projected ≤ un-projected, so the axiom-free lower bound on
-un-projected does not lift to a lower bound on projected.
-
-Concrete proof would require: (i) constructing Π⋆ as the amplituhedron
-projection of Definition 7, (ii) showing that for the compiled polynomial of
-*any* DTM, the projected SPDP generators factor through symmetric powers of
-local interface spaces of dimension ≤ 3, and (iii) verifying numerical
-bounds. -/
-axiom piStar_p_side_bound (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
-    mlBlockedSpdpRankProjected
-      (cook_levin_compilation M n hn htb hns).partition
+Property (i) is the standard rank-decreasing property of any honest
+projection. Property (ii) is the position-multiplicity-collapsing content of
+the paper's amplituhedron geometry. Property (iii) is the load-bearing site
+of `DecidesSAT`: without it, only (ii) applies and no contradiction arises. -/
+structure IsAmplituhedronGauge
+    (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (gauge : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
+         MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) :
+    Prop where
+  /-- (i) Rank monotonicity — `gauge` does not increase SPDP rank for ANY polynomial. -/
+  rank_monotone : ∀ (κ ℓ : ℕ)
+      (p : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ),
+    mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition κ ℓ (gauge p) ≤
+      mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition κ ℓ p
+  /-- (ii) Projected P-side bound on the COMPILED polynomial. -/
+  p_side_bound :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn2 htb hns).partition
       (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200
-
-/-- **Axiom 3 (projected NP-side lower bound for SAT-deciders).** For DTMs
-that *decide 3-SAT* in the bounded-parameter regime, Π⋆ preserves the
-identity-minor structure of the compiled polynomial, so the projected SPDP
-rank retains its super-polynomial lower bound.
-
-This axiom is the load-bearing site of `DecidesSAT` in the new chain. The
-mechanism the paper describes:
-
-* For a generic DTM (no clause-sheet semantics), the C(n/3, κ) disjoint-block
-  identity-minor generators are *position-equivalent* under Π⋆ — they all
-  sit in the same projected equivalence class, so Π⋆ collapses them. This is
-  what licenses Axiom 2's polynomial upper bound for any DTM.
-* For a SAT-deciding DTM, the `DecidesSAT M` hypothesis forces the compiled
-  tableau to encode the formula's clause-sheet structure (via the
-  transition-skeleton constraints in `cook_levin_compilation`). Π⋆ is
-  calibrated against this clause-sheet basis and is *faithful* on the
-  identity-minor sub-system that the clause-sheet exposes; the C(n/3, κ)
-  generators remain linearly independent after projection.
-
-The asymmetry is what licenses the contradiction: combining Axiom 2 (any
-DTM) with Axiom 3 (SAT-deciders only) at n = 2⁸⁰⁴ rules out the existence of
-a polytime SAT-decider, i.e. forces P ≠ NP.
-
-Concrete proof would require: (i) extracting from `DecidesSAT M` the
-clause-sheet substructure encoded in M's accepting tableau (cf.
-`DecidesSAT.accepting_input_of_satisfiable` in `GodMoveCore.lean`), (ii)
-defining the clause-sheet identity-minor restriction, and (iii) showing Π⋆
-is faithful on this restriction. -/
-axiom piStar_preserves_identity_minor_for_sat_deciders
-    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
-    (_hdec : DecidesSAT M)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+      (gauge (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ≤ n ^ 200
+  /-- (iii) Projected NP-side preservation for SAT-deciders.  -/
+  preserves_identity_minor_for_sat_deciders : DecidesSAT M →
     Nat.choose (n / 3) (Nat.log 2 n) ≤
-      mlBlockedSpdpRankProjected
+      mlBlockedSpdpRank
         (cook_levin_compilation M n hn2 htb hns).partition
         (Nat.log 2 n) (Nat.log 2 n)
-        (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+        (gauge (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
+
+/-! ## The existence axiom
+
+This is the single load-bearing custom axiom of the file.  It replaces the
+provably-false `spdp_profile_generators` with the existence claim that the
+paper's amplituhedron gauge actually exists for any Cook-Levin compilation. -/
+
+/-- **Existence of the amplituhedron gauge.**  For every Cook-Levin
+compilation in the bounded-parameter regime, there exists a ℚ-linear
+endomorphism Π on the compiled polynomial's variable space satisfying the
+three properties of `IsAmplituhedronGauge`.
+
+This is the only custom axiom of this file. It encodes the paper's
+existence claim from Theorem 207 / §6: "there is a uniform projection
+Π_⋆ derived from amplituhedron geometry that ...". The axiom is
+*consistent* with the axiom-free `compiled_np_lower_bound_any_dtm` (the
+projected rank ≤ unprojected rank, so a small upper bound on projected
+does not contradict a large lower bound on unprojected). -/
+axiom exists_amplituhedron_gauge
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    ∃ (gauge : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
+               MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ),
+      IsAmplituhedronGauge M n hn hn2 htb hns gauge
+
+/-! ## The chosen amplituhedron gauge
+
+We pick a concrete witness via `Classical.choose`, then derive the three
+properties as theorems from the chosen witness's specification. -/
+
+/-- The chosen amplituhedron gauge for the Cook-Levin compilation
+`(M, n, hn, hn2, htb, hns)`. -/
+noncomputable def piStar
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ →ₗ[ℚ]
+    MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ :=
+  Classical.choose (exists_amplituhedron_gauge M n hn hn2 htb hns)
+
+/-- The chosen `piStar` satisfies the three amplituhedron gauge properties. -/
+theorem piStar_isAmplituhedronGauge
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    IsAmplituhedronGauge M n hn hn2 htb hns (piStar M n hn hn2 htb hns) :=
+  Classical.choose_spec (exists_amplituhedron_gauge M n hn hn2 htb hns)
+
+/-! ## The projected SPDP rank functional -/
+
+/-- **Projected SPDP rank** for a Cook-Levin compilation: the multilinear
+blocked SPDP rank of the polynomial *after* applying the chosen
+amplituhedron gauge. -/
+noncomputable def mlBlockedSpdpRankProjected
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) : ℕ :=
+  mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition κ ℓ
+    (piStar M n hn hn2 htb hns p)
+
+/-! ## Derived theorems (formerly axioms)
+
+The three properties of `IsAmplituhedronGauge` give the three theorems below.
+Each was a separate axiom in the previous draft; they are now consequences of
+the single existence axiom `exists_amplituhedron_gauge`. -/
+
+/-- **Theorem (formerly Axiom 1): rank monotonicity.** -/
+theorem piStar_rank_monotone
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ) :
+    mlBlockedSpdpRankProjected M n hn hn2 htb hns κ ℓ p ≤
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n hn2 htb hns).partition κ ℓ p := by
+  unfold mlBlockedSpdpRankProjected
+  exact (piStar_isAmplituhedronGauge M n hn hn2 htb hns).rank_monotone κ ℓ p
+
+/-- **Theorem (formerly Axiom 2): projected P-side upper bound.** -/
+theorem piStar_p_side_bound
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    mlBlockedSpdpRankProjected M n hn hn2 htb hns
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn2 htb hns)) ≤ n ^ 200 := by
+  unfold mlBlockedSpdpRankProjected
+  exact (piStar_isAmplituhedronGauge M n hn hn2 htb hns).p_side_bound
+
+/-- **Theorem (formerly Axiom 3): projected NP-side lower bound for SAT-deciders.**
+
+`DecidesSAT M` is required as a hypothesis — without it, no projected
+lower bound is asserted. This is what makes `DecidesSAT` load-bearing
+in the separation chain. -/
+theorem piStar_preserves_identity_minor_for_sat_deciders
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (hdec : DecidesSAT M)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
+      mlBlockedSpdpRankProjected M n hn hn2 htb hns
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns)) := by
+  unfold mlBlockedSpdpRankProjected
+  exact (piStar_isAmplituhedronGauge M n hn hn2 htb hns).preserves_identity_minor_for_sat_deciders
+    hdec
 
 /-! ## Why this resolves the previous inconsistency
 
@@ -173,15 +243,16 @@ falsifying the P-side axiom.
 
 The projected formulation breaks this:
 
-* Axiom 2 above is about `mlBlockedSpdpRankProjected = mlBlockedSpdpRank ∘ Π⋆`,
-  not about un-projected rank. It does **not** combine with the un-projected
-  `compiled_np_lower_bound_any_dtm` to give a contradiction (Axiom 1 only goes
-  the wrong way: projected ≤ un-projected).
-* Axiom 3 lower-bounds the projected rank, but **only** for SAT-deciding DTMs.
-  For non-SAT-deciders Axiom 3 gives nothing, so Axiom 2's universal bound is
-  consistent with the existence of generic-DTM compiled polynomials having
-  small projected rank.
-* The contradiction Axiom 2 + Axiom 3 fires *only* on SAT-deciding DTMs,
-  which exist (with bounded parameters at n = 2⁸⁰⁴) only if P = NP. -/
+* `piStar_p_side_bound` is about the *projected* rank, not un-projected. By
+  `piStar_rank_monotone`, projected ≤ un-projected, so the axiom-free
+  `compiled_np_lower_bound_any_dtm` does not lift to a lower bound on the
+  projected rank.
+* `piStar_preserves_identity_minor_for_sat_deciders` lower-bounds the
+  projected rank, but **only** for SAT-deciding DTMs. For non-SAT-deciders no
+  projected lower bound is asserted, so the projected upper bound's
+  universality is consistent.
+* The contradiction `piStar_p_side_bound` + `piStar_preserves_identity_minor_for_sat_deciders`
+  fires *only* on SAT-deciding DTMs, which exist (with bounded parameters at
+  n = 2⁸⁰⁴) only if P = NP. -/
 
 end GlobalGodMoveGauge
