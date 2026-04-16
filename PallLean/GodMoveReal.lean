@@ -553,6 +553,31 @@ theorem godMoveConstructionSemanticGapTarget_of_bridge
   rcases hbridge with ⟨hvars_lt, bridge, _⟩
   exact ⟨hvars_lt, ⟨bridge.toSemantics⟩⟩
 
+/-- A staged construction cannot fill the exact semantic-gap target unless its
+coupled target really lives in a strictly smaller variable space than the
+compiled polynomial. -/
+theorem godMoveConstruction_not_semanticGapTarget_of_same_space
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : PaperFaithfulSeparation.DecidesSAT M}
+    {c : GodMoveConstruction M n hn2 htb hns}
+    (heq : c.coupledVars = (cook_levin_compilation M n hn2 htb hns).numVars) :
+    ¬ godMoveConstructionSemanticGapTarget hdec c := by
+  intro hgap
+  rcases hgap with ⟨hvars_lt, _⟩
+  omega
+
+/-- Likewise, the bridge theorem itself already forces a strict shrink in the
+coupled variable count. -/
+theorem godMoveConstruction_not_semanticBridge_of_same_space
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : PaperFaithfulSeparation.DecidesSAT M}
+    {c : GodMoveConstruction M n hn2 htb hns}
+    (heq : c.coupledVars = (cook_levin_compilation M n hn2 htb hns).numVars) :
+    ¬ GodMoveConstructionSemanticBridgeTheorem hdec c := by
+  intro hbridge
+  rcases hbridge with ⟨hvars_lt, _, _⟩
+  omega
+
 /-- Restriction-stage witness for the direct `GodMoveReal` to `GodMoveCore`
 semantic bridge. -/
 noncomputable def GodMoveConstruction.toExtractionRestrictionStage
@@ -2286,6 +2311,25 @@ theorem godMoveConstruction_not_genuine_candidate
   intro hg
   exact godMoveConstruction_not_nontrivial_staged_map M n hn hn2 htb hns c hg.2.2
 
+/-- For the current construction type, the staged extraction identity is
+already built in. So the exact remaining obstruction to a genuine paper-facing
+candidate is staged-map nontriviality. -/
+theorem godMoveConstruction_genuine_candidate_iff_nontrivial_staged_map
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n hn2 htb hns) :
+    godMoveGenuineCandidateTarget M n hn htb hns c ↔
+      godMoveNontrivialStagedMapTarget M n hn htb hns c := by
+  constructor
+  · intro hg
+    exact hg.2.2
+  · intro hnon
+    refine ⟨hnon.1, ?_, hnon⟩
+    exact c.staged_semantic_target
+
 /-- Tiny helper packaging for projection-stage output before relabeling.
 
 This lets us compare a candidate to the identity placeholder at the projection
@@ -3258,6 +3302,18 @@ noncomputable def godMoveConstruction_firstBehaviorPerturbation
   unfold godMoveStagedExtractionTarget
   rfl
 
+/-- The first behavior-perturbed construction still uses the full compiled
+ambient space as its coupled target. -/
+@[simp] theorem godMoveConstruction_firstBehaviorPerturbation_same_space
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns).coupledVars =
+      (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars := by
+  simp [godMoveConstruction_firstBehaviorPerturbation]
+
 /-- The first behavior-perturbed construction is still canonical in the file's
 paper-facing sense: it remains instance-uniform, witness-free, and block-local. -/
 theorem godMoveConstruction_firstBehaviorPerturbation_is_canonical_target
@@ -3430,6 +3486,22 @@ theorem godMoveConstruction_firstBehaviorPerturbation_not_genuine_candidate
   exact godMoveConstruction_not_genuine_candidate M n hn (by omega) htb hns
     (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns)
 
+/-- The first explicit post-identity construction cannot fill the exact core
+semantic-gap target on this branch, because it never shrinks below the compiled
+ambient variable space. -/
+theorem godMoveConstruction_firstBehaviorPerturbation_semanticGapTarget_false
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ godMoveConstructionSemanticGapTarget hdec
+        (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns) := by
+  exact godMoveConstruction_not_semanticGapTarget_of_same_space
+    (M := M) (n := n) (hn2 := by omega) (htb := htb) (hns := hns) (hdec := hdec)
+    (c := godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns)
+    (godMoveConstruction_firstBehaviorPerturbation_same_space M n hn hdec htb hns)
+
 /-- Exact remaining upgrade target on the first explicit post-identity Route B
 construction.
 
@@ -3466,6 +3538,33 @@ theorem godMoveFirstBehaviorPerturbation_genuine_candidate_iff_upgrade
       godMoveConstruction_firstBehaviorPerturbation_is_canonical_target M n hn hdec htb hns,
       (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns).staged_semantic_target,
       hup⟩
+
+/-- Exact semantic-core bridge target for the live post-identity construction.
+
+This is the smallest theorem on the concrete first behavior perturbation that
+would feed the new staged-construction-to-semantic-core bridge and hence the
+core theorem `GodMoveSemanticExtractionTheorem`. -/
+abbrev godMoveFirstBehaviorPerturbationSemanticGapTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) : Prop :=
+  godMoveConstructionSemanticGapTarget hdec
+    (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns)
+
+/-- The new semantic-core bridge cannot start from the current live
+construction: it does not produce a strictly smaller extraction target. -/
+theorem godMoveFirstBehaviorPerturbationSemanticGapTarget_impossible
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ godMoveFirstBehaviorPerturbationSemanticGapTarget M n hn hdec htb hns := by
+  simpa [godMoveFirstBehaviorPerturbationSemanticGapTarget] using
+    godMoveConstruction_firstBehaviorPerturbation_semanticGapTarget_false
+      M n hn hdec htb hns
 
 /-- Since the staged-map nontriviality shell is structurally impossible for any
 current `GodMoveConstruction`, the old existential "genuine candidate + one-stage
@@ -3539,6 +3638,34 @@ theorem godMoveConstruction_firstBehaviorPerturbation_is_restriction_perturbatio
     (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData
   exact godMoveRestrictionData_firstPerturbation_ne_identity M n hn hdec htb hns
 
+/-- The first behavior-perturbed typed map still does not strictly shrink the
+restriction stage: its restricted ambient space is definitionally the full
+compiled variable space. -/
+theorem godMoveTypedMap_firstBehaviorPerturbation_no_restriction_stage_lt
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ ((godMoveTypedMap_firstBehaviorPerturbation M n hn hdec htb hns).restrictedVars <
+      (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars) := by
+  simp [godMoveTypedMap_firstBehaviorPerturbation]
+
+/-- The bridge theorem also cannot start from the current first
+behavior-perturbation construction: its coupled space is still the full
+compiled ambient space, so the strict-shrink bridge hypothesis is impossible. -/
+theorem godMoveConstruction_firstBehaviorPerturbation_not_semanticBridge
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ GodMoveConstructionSemanticBridgeTheorem hdec
+        (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns) := by
+  intro hbridge
+  rcases hbridge with ⟨hvars_lt, _, _⟩
+  simp [godMoveConstruction_firstBehaviorPerturbation] at hvars_lt
+
 /-- The first behavior-perturbed construction upgrades the earlier raw
 restriction-function witness target to a genuine construction-level witness. -/
 theorem godMoveRestrictionPerturbationWitnessTarget_holds
@@ -3569,6 +3696,41 @@ theorem godMoveLivePostIdentityWitnessTarget_holds
   exact ⟨
     godMoveCanonicalOneStageWitnessTarget_holds M n hn hdec htb hns,
     godMoveRestrictionPerturbationWitnessTarget_holds M n hn hdec htb hns⟩
+
+/-- Exact next construction-level existence theorem after the identity and
+first behavior-perturbation routes.
+
+The already-built post-identity construction is canonical, but it still cannot
+feed the semantic core because it never leaves the compiled ambient space. The
+single remaining bridge lemma is therefore to construct some canonical
+post-identity `GodMoveConstruction` together with the strict-shrink bridge data
+packaged by `GodMoveConstructionSemanticBridgeTheorem`. -/
+def godMoveStrictShrinkCanonicalConstructionTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) : Prop :=
+  ∃ c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns,
+    godMoveConstructionCanonicalTarget c ∧
+    GodMoveConstructionSemanticBridgeTheorem hdec c
+
+/-- A strict-shrink canonical construction with bridge data is exactly enough
+to recover a concrete construction-level semantic-gap witness. This is the last
+local step before the paper-facing wrapper turns that witness into
+`GodMoveSemanticExtractionTheorem`. -/
+theorem godMoveConstructionSemanticGapTarget_of_strictShrinkCanonicalConstructionTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (htarget : godMoveStrictShrinkCanonicalConstructionTarget M n hn hdec htb hns) :
+    ∃ c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns,
+      godMoveConstructionCanonicalTarget c ∧
+      godMoveConstructionSemanticGapTarget hdec c := by
+  rcases htarget with ⟨c, hcanon, hbridge⟩
+  exact ⟨c, hcanon, godMoveConstructionSemanticGapTarget_of_bridge hbridge⟩
 
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. Together with

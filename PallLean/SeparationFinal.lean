@@ -24,10 +24,15 @@ This file assembles the complete separation from PaperFaithfulSeparation.lean.
    separate generic rank-wrapper packaging. The
    exact-target names `GodMoveSemanticTargetData` /
    `GodMoveSemanticTargetTheorem` are only packaging around that same witness.
-   exported compatibility wrapper `god_move_extraction_interface` in
-   `PaperFaithfulSeparation.lean` is only a forgetful view of this seam, and the
-   old quantitative lower bound `god_move_extraction_lemma` is derived from that
-   wrapper.
+   The exported compatibility wrapper `god_move_extraction_interface` in
+   `PaperFaithfulSeparation.lean` is still the older separation-facing export:
+   after `88971cd`, the typed `GodMoveReal` construction can bridge into the
+   exact staged semantic core only when a strict target-space shrink
+   `coupledVars < compiled.numVars` is available, and the currently exported
+   same-space identity construction does not satisfy that hypothesis. The old
+   quantitative lower bound `god_move_extraction_lemma` is therefore still
+   derived from the legacy wrapper, not yet re-routed through the exact core
+   target package.
 
 This is cleaner and more paper-faithful than postulating the bundled lower bound
 as the primary object.
@@ -54,13 +59,15 @@ theorem p_side_verified (M : DTM) (n : ℕ) (hn : n ≥ 2)
     Semantic frontier count: TWO genuine
       1. p_side_rank_bound_for_cook_levin (profile compression, §9)
       2. GodMoveSemanticExtractionTheorem
-         (with exact-target packaging exported via
-         `god_move_extraction_interface`)
+         (the exact core seam; the legacy export
+         `god_move_extraction_interface` has not yet been rebuilt from it
+         because the current typed construction is still same-space)
     Sorry count: ZERO
 
-    The quantitative theorem `god_move_extraction_lemma` is now derived from the
-    compatibility wrapper around that narrower staged semantic seam, rather
-    than postulated directly as the primary object.
+    The quantitative theorem `god_move_extraction_lemma` remains derived from
+    the compatibility wrapper around that narrower staged semantic seam, rather
+    than postulated directly as the primary object, but that wrapper is still
+    backed by the identity-style same-space construction in `GodMoveReal.lean`.
 
     Both frontiers use the product polynomial ∏(1-Cᵢ) from the paper (§17.1).
     The product form is essential:
@@ -68,7 +75,7 @@ theorem p_side_verified (M : DTM) (n : ℕ) (hn : n ≥ 2)
     - NP-side: the witness-free God-Move extraction first fixes exact target
       data and staged semantics, then transfers rank back to the compiled space
 -/
-theorem P_ne_NP_final : ∀ (h : PeqNP_Paper), False :=
+theorem P_ne_NP_final : ∀ (_ : PeqNP_Paper), False :=
   P_ne_NP_unconditional
 
 /-! ## Axiom audit -/

@@ -342,14 +342,50 @@ theorem semantic_extraction_theorem_of_godMoveConstructionSemanticGapTarget
     (hgap : GodMoveReal.godMoveConstructionSemanticGapTarget hdec c) :
     GodMoveSemanticExtractionTheorem M n hn2 htb hns hdec := by
   rcases hgap with ⟨hvars_lt, hsem⟩
-  refine ⟨{
-    hardInstance := disjoint_3cnf_family.formulas (n / 6)
-    hardInstance_satisfiable := disjoint_3cnf_family_formula_satisfiable (n / 6)
-    hardInstance_fits_input := disjoint_3cnf_family_formula_budget n
-    hardInstance_size := disjoint_3cnf_family_formula_size n
-    extractionTarget := c.toExtractionTarget hvars_lt
-  }, ?_⟩
+  refine ⟨c.toExtractionTarget hvars_lt, ?_⟩
   simpa using hsem
+
+/-- Live construction bridge for Route B: any existing concrete
+`GodMoveConstruction` witness of the semantic-gap target theorem immediately
+packages into the actual existential semantic extraction theorem.
+
+This is the paper-facing handoff theorem for the current construction layer:
+callers no longer need to stop at an intermediate semantic-gap target witness
+once they can exhibit a concrete construction. -/
+theorem semantic_extraction_theorem_of_godMoveConstructionExists
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (hdec : DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (hex :
+      ∃ c : GodMoveReal.GodMoveConstruction M n hn2 htb hns,
+        GodMoveReal.godMoveConstructionSemanticGapTarget hdec c) :
+    GodMoveSemanticExtractionTheorem M n hn2 htb hns hdec := by
+  rcases hex with ⟨c, hgap⟩
+  exact semantic_extraction_theorem_of_godMoveConstructionSemanticGapTarget
+    M n hn2 hdec htb hns c hgap
+
+/-- Concrete bridge from the live post-identity construction to the exact core
+semantic theorem seam.
+
+Any proof of the current live construction's semantic-gap target would now
+immediately produce `GodMoveSemanticExtractionTheorem`. This isolates the exact
+remaining theorem on the live Route B construction after the 88971cd bridge
+split. -/
+theorem semantic_extraction_theorem_of_firstBehaviorPerturbationSemanticGapTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (hgap :
+      GodMoveReal.godMoveFirstBehaviorPerturbationSemanticGapTarget
+        M n hn hdec htb hns) :
+    GodMoveSemanticExtractionTheorem M n (by omega : n ≥ 2) htb hns hdec := by
+  exact semantic_extraction_theorem_of_godMoveConstructionSemanticGapTarget
+    M n (by omega : n ≥ 2) hdec htb hns
+    (GodMoveReal.godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns)
+    hgap
 
 /-- Exact compiled-space lower bound from the paper-faithful staged target
 theorem.
@@ -369,7 +405,7 @@ theorem compiled_lower_bound_from_semantic_target_theorem
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n)
     (targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec)
-    (hsem : GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData)
+    (hsem : GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData.extractionTarget)
     (np_lower :
       Nat.choose (n / 3) (Nat.log 2 n) ≤
         mlBlockedSpdpRank targetData.extractionTarget.coupledPartition
@@ -395,7 +431,7 @@ theorem compiled_lower_bound_weakened_from_semantic_target_theorem
     (htb : M.timeBound ≤ 4)
     (hns : M.numStates ≤ n)
     (targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec)
-    (hsem : GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData)
+    (hsem : GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData.extractionTarget)
     (np_lower :
       n ^ (Nat.log 2 n / 4) ≤
         mlBlockedSpdpRank targetData.extractionTarget.coupledPartition

@@ -619,11 +619,21 @@ structure GodMoveExtractionTargetData (M : DTM) (n : ℕ)
 abbrev GodMoveExtractionTargetTheorem (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M)
-    (targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec) : Prop :=
-  GodMoveExtractionSemanticObligation M n hn2 htb hns hdec
-    targetData.extractionTarget
+    (target : GodMoveExtractionTarget M n hn2 htb hns) : Prop :=
+  GodMoveExtractionSemanticObligation M n hn2 htb hns hdec target
 
 namespace GodMoveExtractionTargetData
+
+/-- Rebuild the exact extraction-target package from separate hard-instance
+data and an extraction-facing target. -/
+def ofHardInstanceData
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
+    (target : GodMoveExtractionTarget M n hn2 htb hns) :
+    GodMoveExtractionTargetData M n hn2 htb hns hdec where
+  toGodMoveHardInstanceData := hard
+  extractionTarget := target
 
 /-- Preferred name for the shared Route B target-side data carried by the exact
 extraction-target package. -/
@@ -666,7 +676,7 @@ theorem extraction
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {hdec : DecidesSAT M}
     (targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec)
-    (hsem : GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData)
+    (hsem : GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData.extractionTarget)
     (bridge :
       ∀ sem : ExtractionMapSemantics M n hn2 htb hns hdec targetData.extractionTarget,
         ExtractionMapRankBridge sem) :
@@ -682,7 +692,7 @@ def toSemanticInterface
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {hdec : DecidesSAT M}
     (targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec)
-    (hsem : GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData)
+    (hsem : GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData.extractionTarget)
     (np_lower : Nat.choose (n / 3) (Nat.log 2 n) ≤
       mlBlockedSpdpRank targetData.extractionTarget.coupledPartition
         (Nat.log 2 n) (Nat.log 2 n) targetData.extractionTarget.coupledPoly)
@@ -700,7 +710,7 @@ def toAbstractInterface
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {hdec : DecidesSAT M}
     (targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec)
-    (hsem : GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData)
+    (hsem : GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData.extractionTarget)
     (np_lower : Nat.choose (n / 3) (Nat.log 2 n) ≤
       mlBlockedSpdpRank targetData.extractionTarget.coupledPartition
         (Nat.log 2 n) (Nat.log 2 n) targetData.extractionTarget.coupledPoly)
@@ -723,20 +733,21 @@ abbrev GodMoveSemanticTargetTheorem (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M)
     (targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec) : Prop :=
-  GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData
+  GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData.extractionTarget
 
 /-- Exact remaining paper-faithful extraction theorem.
 
-Once the hard instance is fixed and shown satisfiable within the input budget,
-the only remaining load-bearing claim is that there exists exact
-extraction-target data for which the staged semantic identification holds.
-The monotonicity layer sits separately as mathematical packaging over that
+The final semantic theorem should mention only the exact extraction-facing
+target and the staged restriction/projection witness on that target. Hard-
+instance applicability bookkeeping sits outside this theorem in compatibility
+packages such as `GodMoveSemanticGap` and `GodMoveSemanticTheorem`.
+The monotonicity layer remains separate mathematical packaging over that
 semantic witness. -/
 abbrev GodMoveSemanticExtractionTheorem (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M) : Prop :=
-  ∃ targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec,
-    GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData
+  ∃ target : GodMoveExtractionTarget M n hn2 htb hns,
+    GodMoveExtractionSemanticObligation M n hn2 htb hns hdec target
 
 /-- Backwards-compatible alias re-indexing the extraction theorem by
 hard-instance applicability data. -/
@@ -747,16 +758,17 @@ abbrev GodMoveSemanticTheorem (M : DTM) (n : ℕ)
   GodMoveSemanticExtractionTheorem M n hn2 htb hns hdec
 
 /-- Convenience bundle: hard-instance applicability data plus a proof of the
-exact semantic extraction theorem on explicit target data. This is kept because it is ergonomic for
-downstream packaging, but the actual missing theorem is now
-`GodMoveSemanticExtractionTheorem`; `GodMoveSemanticTheorem` remains only as a
-compatibility alias indexed by the hard-instance data. -/
+exact semantic extraction theorem on an explicit target. This is kept because
+it is ergonomic for downstream packaging, but the actual missing theorem is
+now `GodMoveSemanticExtractionTheorem`; `GodMoveSemanticTheorem` remains only
+as a compatibility alias indexed by the hard-instance data. -/
 structure GodMoveSemanticGap (M : DTM) (n : ℕ)
     (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M) where
-  toExtractionTargetData : GodMoveExtractionTargetData M n hn2 htb hns hdec
-  toExtractionTargetTheorem :
-    GodMoveExtractionTargetTheorem M n hn2 htb hns hdec toExtractionTargetData
+  toHardInstanceData : GodMoveHardInstanceData M n hn2 htb hns hdec
+  extractionTarget : GodMoveExtractionTarget M n hn2 htb hns
+  extractionSemantics :
+    GodMoveExtractionSemanticObligation M n hn2 htb hns hdec extractionTarget
 
 namespace GodMoveSemanticGap
 
@@ -766,40 +778,16 @@ abbrev toTargetData
     {hdec : DecidesSAT M}
     (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
     GodMoveExtractionTargetData M n hn2 htb hns hdec :=
-  gap.toExtractionTargetData
-
-/-- Hard-instance applicability data carried by the semantic gap. -/
-abbrev toHardInstanceData
-    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
-    {hdec : DecidesSAT M}
-    (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
-    GodMoveHardInstanceData M n hn2 htb hns hdec :=
-  gap.toExtractionTargetData.toGodMoveHardInstanceData
-
-/-- The extraction-facing coupled sheet target carried by the gap. -/
-abbrev extractionTarget
-    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
-    {hdec : DecidesSAT M}
-    (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
-    GodMoveExtractionTarget M n hn2 htb hns :=
-  gap.toExtractionTargetData.extractionTarget
+  GodMoveExtractionTargetData.ofHardInstanceData
+    gap.toHardInstanceData gap.extractionTarget
 
 /-- The staged semantic theorem carried by the gap's exact target data. -/
 abbrev targetTheorem
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {hdec : DecidesSAT M}
     (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
-    GodMoveExtractionTargetTheorem M n hn2 htb hns hdec gap.toExtractionTargetData :=
-  gap.toExtractionTargetTheorem
-
-/-- Compatibility view of the staged target theorem as the bare extraction-side
-semantic obligation on the carried target. -/
-abbrev extractionSemantics
-    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
-    {hdec : DecidesSAT M}
-    (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
-    GodMoveExtractionSemanticObligation M n hn2 htb hns hdec gap.extractionTarget :=
-  gap.targetTheorem
+    GodMoveExtractionTargetTheorem M n hn2 htb hns hdec gap.extractionTarget :=
+  gap.extractionSemantics
 
 /-- The bundled gap inhabits the exact extraction-only theorem package. -/
 theorem semantic_extraction_theorem
@@ -807,7 +795,7 @@ theorem semantic_extraction_theorem
     {hdec : DecidesSAT M}
     (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
     GodMoveSemanticExtractionTheorem M n hn2 htb hns hdec :=
-  ⟨gap.toExtractionTargetData, gap.toExtractionTargetTheorem⟩
+  ⟨gap.extractionTarget, gap.extractionSemantics⟩
 
 /-- Compatibility projection to the older hard-instance-indexed theorem name. -/
 theorem semantic_theorem
@@ -821,12 +809,14 @@ theorem semantic_theorem
 noncomputable def ofSemanticExtractionTheorem
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {hdec : DecidesSAT M}
+    (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
     (hsem : GodMoveSemanticExtractionTheorem M n hn2 htb hns hdec) :
     GodMoveSemanticGap M n hn2 htb hns hdec :=
-  let targetData := Classical.choose hsem
+  let target := Classical.choose hsem
   let htarget := Classical.choose_spec hsem
-  { toExtractionTargetData := targetData
-    toExtractionTargetTheorem := htarget }
+  { toHardInstanceData := hard
+    extractionTarget := target
+    extractionSemantics := htarget }
 
 /-- Compatibility constructor from the older hard-instance-indexed theorem name. -/
 noncomputable def ofSemanticTheorem
@@ -835,7 +825,7 @@ noncomputable def ofSemanticTheorem
     (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
     (hsem : GodMoveSemanticTheorem M n hn2 htb hns hdec hard) :
     GodMoveSemanticGap M n hn2 htb hns hdec :=
-  ofSemanticExtractionTheorem hsem
+  ofSemanticExtractionTheorem hard hsem
 
 /-- Add an NP-side lower bound on the carried target and package the strong
 Route B obligations on that exact extraction-facing target. -/
@@ -941,7 +931,8 @@ def GodMoveSemanticGap.targetData
     {hdec : DecidesSAT M}
     (gap : GodMoveSemanticGap M n hn2 htb hns hdec) :
     GodMoveRouteB_TargetData M n hn2 htb hns :=
-  gap.toTargetData.toRouteB_TargetData
+  GodMoveExtractionTargetData.toRouteB_TargetData
+    (GodMoveSemanticGap.toTargetData gap)
 
 /-- Package full Route B obligations from the semantic gap plus a separate
 NP-side lower bound.
@@ -1253,7 +1244,7 @@ theorem separation_from_semantic_target_theorem
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M) (hn804 : n ≥ 2 ^ 804)
     (targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec)
-    (hsem : GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData)
+    (hsem : GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData.extractionTarget)
     (np_lower : n ^ (Nat.log 2 n / 4) ≤
       mlBlockedSpdpRank targetData.extractionTarget.coupledPartition
         (Nat.log 2 n) (Nat.log 2 n) targetData.extractionTarget.coupledPoly)
@@ -1277,22 +1268,22 @@ theorem separation_from_semantic_extraction_theorem
     (hdec : DecidesSAT M) (hn804 : n ≥ 2 ^ 804)
     (hsem : GodMoveSemanticExtractionTheorem M n hn2 htb hns hdec)
     (np_lower :
-      ∀ targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec,
+      ∀ target : GodMoveExtractionTarget M n hn2 htb hns,
         n ^ (Nat.log 2 n / 4) ≤
-          mlBlockedSpdpRank targetData.extractionTarget.coupledPartition
-            (Nat.log 2 n) (Nat.log 2 n) targetData.extractionTarget.coupledPoly)
+          mlBlockedSpdpRank target.coupledPartition
+            (Nat.log 2 n) (Nat.log 2 n) target.coupledPoly)
     (bridge :
-      ∀ targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec,
-        ∀ sem : ExtractionMapSemantics M n hn2 htb hns hdec targetData.extractionTarget,
+      ∀ target : GodMoveExtractionTarget M n hn2 htb hns,
+        ∀ sem : ExtractionMapSemantics M n hn2 htb hns hdec target,
           ExtractionMapRankBridge sem)
     (hP : mlBlockedSpdpRank
       (cook_levin_compilation M n hn2 htb hns).partition
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPoly (cook_levin_compilation M n hn2 htb hns)) ≤ n ^ 200) :
     False := by
-  rcases hsem with ⟨targetData, htarget⟩
+  rcases hsem with ⟨target, htarget⟩
   exact separation_from_semantic_target M n hn2 htb hns hdec hn804
-    targetData.extractionTarget htarget (np_lower targetData) (bridge targetData) hP
+    target htarget (np_lower target) (bridge target) hP
 
 /-! ## Axiom audits for Route B theorems -/
 
