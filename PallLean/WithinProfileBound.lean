@@ -1695,9 +1695,17 @@ def CookLevinRawTouchedDerivCommonSpanAtProfile
 
 This is the same raw touched-support construction target as
 `CookLevinRawTouchedDerivCommonSpanAtProfile`, but with the sharper
-per-profile template cardinality `profileTemplateBound h`. Proving this is the
-exact missing construction needed to recover the paper-style finite template
-collapse for `allBoundedProfilePostSpan h` directly from raw generators. -/
+per-profile template cardinality `profileTemplateBound h`. Proving this would
+recover the paper-style finite template collapse for `allBoundedProfilePostSpan h`
+directly from raw generators.
+
+Honest status: the current constrained-atom and raw-touched machinery below this
+point does **not** yet construct such a single family `G_h` uniformly across all
+`S`, `shift`, and compatible touched supports. The live mathematical gap is the
+profile-only symmetric-power descent: one must first show that same-profile
+touched contributions factor through fixed typewise local interface/template
+families independent of `S`, so that block assignments with the same profile
+descend to one canonical profile family. -/
 def CookLevinRawTouchedDerivTemplateSpanAtProfile
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
@@ -1714,6 +1722,34 @@ def CookLevinRawTouchedDerivTemplateSpanAtProfile
               (fun i => (cookLevinFactorList M n hn htb hns).get i)
               S shift touched ≤
             Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))
+
+/-- Profile-only symmetric-power descent frontier below the fixed-profile
+raw-touched template-span theorem.
+
+For each constraint type `τ`, there should be one fixed finite local interface /
+template family `A_τ`, depending only on the compiled factor family, such that:
+- every admissible local differentiated contribution of type `τ` lies in the span
+  of `A_τ`, uniformly in `S`, and
+- same-profile touched products descend through the corresponding symmetric-power
+  quotient, so the resulting touched-part span depends only on `h`.
+
+This is the honest precursor to `CookLevinRawTouchedDerivTemplateSpanAtProfile`:
+without such profile-only local canonicalization, the current per-`S` constrained
+atom bounds do not upgrade to one uniform family `G_h`. -/
+def CookLevinProfileSymmetricPowerDescentAtProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (h : ProfileHistogram) : Prop :=
+  ∃ A : ConstraintType → Finset (MvPolynomial (Fin n) ℚ),
+    (∀ τ, Module.finrank ℚ ↥(Submodule.span ℚ ((A τ : Finset (MvPolynomial (Fin n) ℚ)) : Set (MvPolynomial (Fin n) ℚ))) ≤ 3) ∧
+    True
+
+/-- All-profile version of the profile-only symmetric-power descent frontier. -/
+def CookLevinProfileSymmetricPowerDescentLemma
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ h : ProfileHistogram,
+    CookLevinProfileSymmetricPowerDescentAtProfile M n hn htb hns h
 
 /-- All-profile version of the raw-touched template-span frontier. -/
 def CookLevinRawTouchedDerivTemplateSpanLemma
