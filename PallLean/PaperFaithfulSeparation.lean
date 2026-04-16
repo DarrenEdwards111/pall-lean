@@ -280,6 +280,52 @@ theorem p_side_rank_bound_for_cook_levin_of_templateCollapse
   ProfileCompression.p_side_rank_bound_for_cook_levin_of_templateCollapse
     M n hn htb hns hcollapse
 
+/-- Derivative-profile-compatible raw-touched frontier version of the P-side
+rank bound: if each derivative-count profile has one bounded common subspace
+covering all compatible raw touched-support spans, then the final `n^200`
+estimate follows formally. -/
+theorem p_side_rank_bound_for_cook_levin_of_rawTouchedDerivProfileCollapse
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcollapse : WithinProfileBound.CookLevinRawTouchedDerivProfileCollapseLemma
+      M n hn htb hns) :
+    mlBlockedSpdpRank (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 :=
+  ProfileCompression.p_side_rank_bound_for_cook_levin_of_rawTouchedDerivProfileCollapse
+    M n hn htb hns hcollapse
+
+/-- Finite-generator raw-touched frontier version of the P-side rank bound:
+if each derivative-count profile has one bounded finite family spanning every
+compatible raw touched-support slice, then the final `n^200` estimate follows
+formally. -/
+theorem p_side_rank_bound_for_cook_levin_of_rawTouchedDerivCommonSpan
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hrawSpan : WithinProfileBound.CookLevinRawTouchedDerivCommonSpanLemma
+      M n hn htb hns) :
+    mlBlockedSpdpRank (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 :=
+  ProfileCompression.p_side_rank_bound_for_cook_levin_of_rawTouchedDerivCommonSpan
+    M n hn htb hns hrawSpan
+
+/-- Finite common-span frontier version of the P-side rank bound: if the actual
+Cook-Levin compiled factor family has one bounded common spanning family per
+derivative-count profile, then the final `n^200` estimate follows formally.
+The fixed-profile unit of this assumption is
+`WithinProfileBound.CookLevinBoundedProfileCommonSpanAtProfile`. -/
+theorem p_side_rank_bound_for_cook_levin_of_boundedProfileCommonSpan
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hspan : WithinProfileBound.CookLevinBoundedProfileCommonSpanLemma
+      M n hn htb hns) :
+    mlBlockedSpdpRank (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 :=
+  ProfileCompression.p_side_rank_bound_for_cook_levin_of_boundedProfileCommonSpan
+    M n hn htb hns hspan
+
 /-! ### God-Move Extraction: Decomposition into Intermediate Lemmas
 
 The paper-faithful semantic object is an instance-uniform, witness-free,

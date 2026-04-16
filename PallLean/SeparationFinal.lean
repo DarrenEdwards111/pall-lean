@@ -14,8 +14,8 @@ This file assembles the complete separation from PaperFaithfulSeparation.lean.
 1. `p_side_rank_bound_for_cook_levin` — the paper's P-side claim (§9, Theorem 92):
    for any P-time DTM, the compiled product polynomial has SPDP rank ≤ n^200.
    On this branch the live missing mathematical content below it has been
-   isolated more sharply as the direct compiled-family theorem
-   `WithinProfileBound.CookLevinExactWithinProfileFinrankLemma`; the current
+   isolated more sharply as the direct compiled-family common-span theorem
+   `WithinProfileBound.CookLevinBoundedProfileCommonSpanLemma`; the current
    exported proof still reaches this bound through the old
    `SymmetricPower.spdp_profile_generators` axiom chain.
 

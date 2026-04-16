@@ -366,6 +366,24 @@ noncomputable def allBoundedProfilePostSpan {n L : ℕ}
        (shift : MvPolynomial (Fin n) ℚ) (_ : shift.vars ⊆ S.toFinset),
       (fun g => mlProj (shift * g)) '' boundedProfileClassifiedSet factors constraintType S h)
 
+/-- A fixed bounded per-`S`/shift derivative-count profile slice is contained
+in the corresponding all-`S`/shift derivative-count profile span. -/
+theorem boundedProfilePostSpan_le_allBoundedProfilePostSpan {n L : ℕ}
+    (B : BlockPartition n) (κ ℓ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (h : ProfileHistogram)
+    (S : List (Fin n)) (hS : S.length ≤ κ)
+    (shift : MvPolynomial (Fin n) ℚ) (hshift : shift.vars ⊆ S.toFinset) :
+    boundedProfilePostSpan factors constraintType S shift h ≤
+      allBoundedProfilePostSpan B κ ℓ factors constraintType h := by
+  apply Submodule.span_le.mpr
+  intro q hq
+  rcases hq with ⟨g, hg, rfl⟩
+  apply Submodule.subset_span
+  simp only [Set.mem_iUnion, Set.mem_image]
+  exact ⟨S, hS, shift, hshift, g, hg, rfl⟩
+
 /-- The bounded profile post-span is contained in the original profile post-span
     (since bounded classified sets are subsets of unrestricted classified sets). -/
 theorem allBoundedProfilePostSpan_le_allDerivCountProfilePostSpan {n L : ℕ}
@@ -937,6 +955,29 @@ def CookLevinRawTouchedDerivProfileCollapseLemma
               (fun i => (cookLevinFactorList M n hn htb hns).get i)
               S shift touched ≤ U
 
+/-- Finite-generator version of the derivative-profile raw-touched collapse.
+
+This is the exact raw-span statement immediately below
+`CookLevinBoundedProfileCommonSpanLemma`: for each derivative-count profile,
+one bounded finite family spans every compatible raw touched-support slice,
+uniformly over bounded derivative lists and admissible shifts. -/
+def CookLevinRawTouchedDerivCommonSpanLemma
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ h : ProfileHistogram,
+    ∃ G : Finset (MvPolynomial (Fin n) ℚ),
+      G.card ≤ withinProfileBound (Nat.log 2 n) ∧
+      ∀ (S : List (Fin n)) (_ : S.length ≤ Nat.log 2 n)
+        (shift : MvPolynomial (Fin n) ℚ) (_ : shift.vars ⊆ S.toFinset)
+        (touched : Finset (Fin (cookLevinFactorList M n hn htb hns).length)),
+          RawTouchedCompatibleWithDerivProfile
+              (n := n)
+              (cookLevinConstraintType M n hn htb hns) h touched →
+            rawTouchedPostSpan
+              (fun i => (cookLevinFactorList M n hn htb hns).get i)
+              S shift touched ≤
+            Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))
+
 /-- Single exact Cook-Levin Step B lemma: the bounded within-profile finrank
 bound for the actual compiled factor family with the concrete type map
 `cookLevinConstraintType`.
@@ -1322,6 +1363,41 @@ theorem cookLevinExactWithinProfileLemma_of_templateCollapse
     (cookLevinConstraintType M n hn htb hns)
     (cookLevinUniformCover_of_templateCollapse M n hn htb hns hcollapse)
 
+/-- Exact per-profile finrank statement obtained from the compiled-family
+template-collapse theorem.
+
+This exposes the literal theorem needed by `CookLevinExactWithinProfileFinrankLemma`:
+for the actual Cook-Levin factor list and canonical type map, every
+`allBoundedProfilePostSpan` has finrank bounded by the paper's
+`withinProfileBound`. The proof goes through the already formalized
+template-collapse-to-uniform-cover route and introduces no custom axiom. -/
+theorem cookLevin_allBoundedProfilePostSpan_finrank_le_of_templateCollapse
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcollapse : CookLevinProfileTemplateCollapseLemma M n hn htb hns)
+    (h : ProfileHistogram) :
+    Module.finrank ℚ
+        ↥(allBoundedProfilePostSpan
+          (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn htb hns).get i)
+          (cookLevinConstraintType M n hn htb hns)
+          h)
+      ≤ withinProfileBound (Nat.log 2 n) :=
+  cookLevinExactWithinProfileLemma_of_templateCollapse M n hn htb hns hcollapse h
+
+/-- Same route, packaged under the exact theorem name. The hypothesis is a
+local theorem obligation, not an axiom, and the conclusion is the exact finrank
+frontier. -/
+theorem cookLevinExactWithinProfileFinrankLemma_from_templateCollapse
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcollapse : CookLevinProfileTemplateCollapseLemma M n hn htb hns) :
+    CookLevinExactWithinProfileFinrankLemma M n hn htb hns := by
+  intro h
+  exact cookLevin_allBoundedProfilePostSpan_finrank_le_of_templateCollapse
+    M n hn htb hns hcollapse h
+
 /-- The bucket common-span route formally closes the exact compiled-family
     within-profile finrank theorem. -/
 theorem cookLevinExactWithinProfileFinrankLemma_of_bucketCommonSpan
@@ -1433,17 +1509,54 @@ theorem cookLevinExactWithinProfileFinrankLemma_of_rawTouchedProfileCollapse
     (cookLevinUniformCover_of_rawTouchedProfileCollapse
       M n hn htb hns hcollapse hcontrols)
 
-/-- Active finite spanning-family/common-span frontier for the exact
-Cook-Levin within-profile blocker.
+/-- A finite-dimensional submodule admits a finite spanning family in the
+ambient module with cardinality bounded by its finrank. -/
+theorem finite_submodule_le_span_finset_card_le_finrank
+    {V : Type*} [DecidableEq V] [AddCommGroup V] [Module ℚ V]
+    (U : Submodule ℚ V) [Module.Finite ℚ ↥U] :
+    ∃ G : Finset V,
+      U ≤ Submodule.span ℚ (↑G : Set V) ∧
+      G.card ≤ Module.finrank ℚ ↥U := by
+  let b := Module.finBasis ℚ ↥U
+  let G : Finset V :=
+    Finset.univ.image (fun i : Fin (Module.finrank ℚ ↥U) => (b i : V))
+  refine ⟨G, ?_, ?_⟩
+  · intro x hx
+    let xu : U := ⟨x, hx⟩
+    have hmemU : xu ∈ Submodule.span ℚ (Set.range b) :=
+      Module.Basis.mem_span b xu
+    have hmemMap :
+        U.subtype xu ∈ Submodule.map U.subtype (Submodule.span ℚ (Set.range b)) :=
+      ⟨xu, hmemU, rfl⟩
+    have hmap :
+        Submodule.map U.subtype (Submodule.span ℚ (Set.range b)) =
+          Submodule.span ℚ ((fun y : U => (y : V)) '' Set.range b) := by
+      rw [Submodule.map_span]
+      rfl
+    rw [hmap] at hmemMap
+    refine Submodule.span_mono ?_ hmemMap
+    intro y hy
+    rcases hy with ⟨z, hz, rfl⟩
+    rcases hz with ⟨i, rfl⟩
+    simp [G]
+  · calc
+      G.card ≤ (Finset.univ : Finset (Fin (Module.finrank ℚ ↥U))).card :=
+        Finset.card_image_le
+      _ = Module.finrank ℚ ↥U := by simp
 
-For each derivative-count profile `h`, one finite family `G_h` must span every
-bounded per-`S`/shift profile slice for the actual compiled factor family.  The
-cardinality bound is already the final within-profile target, so this statement
-is directly below `CookLevinUniformBoundedProfileSubspaceCover`. -/
-def CookLevinBoundedProfileCommonSpanLemma
+/-- LAST BLOCKER ONLY: fixed-profile finite spanning-family/common-span frontier
+for the exact Cook-Levin within-profile blocker.
+
+For this single derivative-count profile `h`, one finite family `G_h` must span
+every bounded per-`S`/shift profile slice for the actual compiled factor
+family.  The cardinality bound is already the final within-profile target.  If
+the paper-faithful P-side close-out still fails, this is the exact retained
+one-profile theorem to prove; the all-profile theorem below is only universal
+quantification over this target. -/
+def CookLevinBoundedProfileCommonSpanAtProfile
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
-  ∀ h : ProfileHistogram,
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (h : ProfileHistogram) : Prop :=
     ∃ G : Finset (MvPolynomial (Fin n) ℚ),
       G.card ≤ withinProfileBound (Nat.log 2 n) ∧
       ∀ (S : List (Fin n)) (_ : S.length ≤ Nat.log 2 n)
@@ -1453,6 +1566,127 @@ def CookLevinBoundedProfileCommonSpanLemma
             (cookLevinConstraintType M n hn htb hns)
             S shift h ≤
           Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))
+
+/-- LAST BLOCKER ONLY: active finite spanning-family/common-span frontier for
+the exact Cook-Levin within-profile blocker.
+
+This is precisely the fixed-profile obligation
+`CookLevinBoundedProfileCommonSpanAtProfile` for every derivative-count
+profile.  If the paper-faithful P-side close-out still fails, this is the
+exact retained theorem to prove; the template, raw-touched, uniform-cover,
+exact-within-profile, and `n^200` wrappers below are downstream routes or
+sufficient strengthenings, not separate retained blockers. -/
+def CookLevinBoundedProfileCommonSpanLemma
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ h : ProfileHistogram,
+    CookLevinBoundedProfileCommonSpanAtProfile M n hn htb hns h
+
+/-- Direct finite-basis construction of the fixed-profile common-span family
+from the exact derivative-count within-profile finrank statement.
+
+For this profile `h`, take the actual all-`S`/shift derivative-count span as
+`U_h`, extract a finite ambient spanning family from a basis of `U_h`, and use
+the defining all-`S`/shift containment for every bounded slice. -/
+theorem cookLevinBoundedProfileCommonSpanAtProfile_of_exactWithinProfileFinrankLemma
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hexact : CookLevinExactWithinProfileFinrankLemma M n hn htb hns)
+    (h : ProfileHistogram) :
+    CookLevinBoundedProfileCommonSpanAtProfile M n hn htb hns h := by
+  let U : Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+    allBoundedProfilePostSpan
+      (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      (cookLevinConstraintType M n hn htb hns)
+      h
+  have hfin : Module.Finite ℚ ↥U := by
+    dsimp [U]
+    infer_instance
+  have hdim : Module.finrank ℚ ↥U ≤ withinProfileBound (Nat.log 2 n) := by
+    dsimp [U]
+    exact hexact h
+  letI : Module.Finite ℚ ↥U := hfin
+  rcases finite_submodule_le_span_finset_card_le_finrank U with
+    ⟨G, hU_span, hG_card⟩
+  refine ⟨G, le_trans hG_card hdim, ?_⟩
+  intro S hS shift hshift
+  refine le_trans ?_ hU_span
+  dsimp [U]
+  exact boundedProfilePostSpan_le_allBoundedProfilePostSpan
+    (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition
+    (Nat.log 2 n) (Nat.log 2 n)
+    (fun i => (cookLevinFactorList M n hn htb hns).get i)
+    (cookLevinConstraintType M n hn htb hns)
+    h S hS shift hshift
+
+/-- Direct finite-basis construction of one common spanning family `G_h` for
+each derivative-count profile, extracted from the exact all-profile finrank
+statement. -/
+theorem cookLevinBoundedProfileCommonSpan_of_exactWithinProfileFinrankLemma
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hexact : CookLevinExactWithinProfileFinrankLemma M n hn htb hns) :
+    CookLevinBoundedProfileCommonSpanLemma M n hn htb hns := by
+  intro h
+  exact cookLevinBoundedProfileCommonSpanAtProfile_of_exactWithinProfileFinrankLemma
+    M n hn htb hns hexact h
+
+/-- The derivative-profile raw-touched collapse frontier yields the active
+finite common-span theorem: take a finite basis of the common target subspace
+`U_h` supplied by the raw collapse. -/
+theorem cookLevinBoundedProfileCommonSpan_of_rawTouchedDerivProfileCollapse
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcollapse : CookLevinRawTouchedDerivProfileCollapseLemma M n hn htb hns) :
+    CookLevinBoundedProfileCommonSpanLemma M n hn htb hns := by
+  intro h
+  rcases hcollapse h with ⟨U, hfinU, hdimU, hrawU⟩
+  letI : Module.Finite ℚ ↥U := hfinU
+  rcases finite_submodule_le_span_finset_card_le_finrank U with
+    ⟨G, hU_span, hG_card⟩
+  refine ⟨G, le_trans hG_card hdimU, ?_⟩
+  intro S hS shift hshift
+  have hU :
+      boundedProfilePostSpan
+          (fun i => (cookLevinFactorList M n hn htb hns).get i)
+          (cookLevinConstraintType M n hn htb hns)
+          S shift h ≤ U := by
+    apply Submodule.span_le.mpr
+    intro q hq
+    rcases hq with ⟨g, hg, rfl⟩
+    rcases hg with ⟨d, hd_elts, hg_eq, hprof, _htotal⟩
+    have hcompat :
+        RawTouchedCompatibleWithDerivProfile
+          (cookLevinConstraintType M n hn htb hns) h (rawTouchedFactorSet d) :=
+      ⟨d, hprof, rfl⟩
+    exact hrawU S hS shift hshift (rawTouchedFactorSet d) hcompat
+      (Submodule.subset_span ⟨g, ⟨d, hd_elts, hg_eq, rfl⟩, rfl⟩)
+  exact le_trans hU hU_span
+
+/-- The exact finite raw-touched common-span statement closes the active
+bounded-profile common-span blocker without passing through an intermediate
+abstract submodule. -/
+theorem cookLevinBoundedProfileCommonSpan_of_rawTouchedDerivCommonSpan
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hrawSpan : CookLevinRawTouchedDerivCommonSpanLemma M n hn htb hns) :
+    CookLevinBoundedProfileCommonSpanLemma M n hn htb hns := by
+  intro h
+  rcases hrawSpan h with ⟨G, hG_card, hrawG⟩
+  refine ⟨G, hG_card, ?_⟩
+  intro S hS shift hshift
+  apply Submodule.span_le.mpr
+  intro q hq
+  rcases hq with ⟨g, hg, rfl⟩
+  rcases hg with ⟨d, hd_elts, hg_eq, hprof, _htotal⟩
+  have hcompat :
+      RawTouchedCompatibleWithDerivProfile
+        (cookLevinConstraintType M n hn htb hns) h (rawTouchedFactorSet d) :=
+    ⟨d, hprof, rfl⟩
+  exact hrawG S hS shift hshift (rawTouchedFactorSet d) hcompat
+    (Submodule.subset_span ⟨g, ⟨d, hd_elts, hg_eq, rfl⟩, rfl⟩)
 
 /-- A profile-level finite common spanning family gives the uniform subspace
 cover by taking `U_h = span(G_h)`. -/
@@ -3118,6 +3352,8 @@ theorem touched_part_in_mlMonomialBasis_span {n : ℕ} {ι : Type*} [DecidableEq
 
 /-! ## Axiom audit: verify no custom axioms in the variable-confinement chain -/
 #print axioms rank_bound_of_withinProfileFinrankBound
+#print axioms WithinProfileBound.cookLevin_allBoundedProfilePostSpan_finrank_le_of_templateCollapse
+#print axioms WithinProfileBound.cookLevinExactWithinProfileFinrankLemma_from_templateCollapse
 #print axioms mlProj_mul_of_vars_disjoint
 #print axioms mlProj_finset_prod_of_pairwise_disjoint_vars
 #print axioms mlProj_shift_mul_prod_factored
