@@ -98,31 +98,52 @@
   The remaining axioms in the codebase (listed below) should be
   re-evaluated for mathematical validity.
 
-  ### Axiom inventory (from SymmetricPower.lean):
-  - `spdp_profile_generators` — FALSE (this analysis); replaced on the
-    main chain by the three projected-rank axioms in
-    `GlobalGodMoveGauge.lean`.
+  ### Axiom inventory (live `PallLean/` files, post-Π⋆ refactor)
 
-  ### Axiom inventory (from GlobalGodMoveGauge.lean — Option A resolution):
-  - `piStar` — opaque ℚ-linear endomorphism (the paper's Π⋆ gauge).
-  - `piStar_rank_monotone` — projected rank ≤ unprojected rank.
-  - `piStar_p_side_bound` — projected rank ≤ n²⁰⁰ for any DTM compiled poly.
-  - `piStar_preserves_identity_minor_for_sat_deciders` — projected rank
-    ≥ C(n/3, log n) for SAT-deciding DTM compiled polys (uses DecidesSAT).
+  **On the canonical separation chain (`P_ne_NP_unconditional`):**
+  - `GlobalGodMoveGauge.exists_amplituhedron_gauge` — single existence
+    axiom for the paper's Global God-Move Gauge satisfying
+    `IsAmplituhedronGauge` (rank monotonicity + projected P-side bound +
+    projected NP-side preservation for SAT-deciders). Plausible; not
+    contradicted by any other theorem in the repo.
 
-  ### Axiom inventory (from CompiledAssemblyRoadmap.lean):
-  - `assembly_soundness_core_target_holds`
-  - `compiled_generator_in_latent_subspace_transport_target`
-  - `compiled_generator_transport_target`
-  - `compiled_subspace_element_transport_restricted_target`
-  - `compiled_subspace_element_transport_target`
-  - `compiled_rank_le_profile_aggregation_target_holds`
+  **On the legacy / archival chain (`P_ne_NP_unconditional_legacy_via_spdp_profile_generators`):**
+  - `SymmetricPower.spdp_profile_generators` — FALSE (this analysis).
+    Retained for archival reference only; the canonical theorem no longer
+    depends on it after the Π⋆ migration.
 
-  ### Axiom inventory (from CompiledGeneratorPipeline.lean):
-  - Various transport and bridge axioms (22 total)
+  **On the inconsistency witness (`spdp_profile_generators_inconsistent_with_np_side`):**
+  - `SymmetricPower.spdp_profile_generators` — same as above. The
+    inconsistency theorem demonstrates the legacy axiom is false; it does
+    not fire against the canonical chain because Π⋆-projected rank breaks
+    the universality of the inconsistency.
 
-  All downstream consumers of `spdp_profile_generators` inherit its
-  falsity and should not be trusted.
+  **Off the main chain (auxiliary Route A in `Separation29.lean`):**
+  - `Separation29.charPolyRank` — abstract characteristic-polynomial rank
+  - `Separation29.theorem_140_np_side`
+  - `Separation29.theorem_139_p_side`
+
+  **Off the main chain (auxiliary Route A in `RamanujanTseitin.lean`):**
+  - `characteristic_pd_formula_clause_derivs_from_pack`
+  - `tseitin_pdMatrix_lower_bound_small`
+  - `sound_characteristic_pd_row_derivs`
+  - `sound_tseitin_pdMatrix_lower_bound_mid`
+  - `sound_tseitin_pdMatrix_lower_bound_hard`
+  - `sound_tseitin_pdMatrix_lower_bound_small`
+  - `sound_single_clause_deriv_realization`
+  - `sound_disjoint_clause_composition`
+
+  **Live axiom totals**
+  - Custom axioms on canonical separation chain: **1** (`exists_amplituhedron_gauge`)
+  - Custom axioms on legacy / inconsistency-witness chain: **1** (`spdp_profile_generators`, false)
+  - Custom axioms in auxiliary Route A: **11** (3 in Separation29 + 8 in RamanujanTseitin)
+  - **Live grand total: 13** custom axioms across the active codebase.
+
+  **Archived (dead code) — formerly under `CompiledAssemblyRoadmap.lean`
+  and `CompiledGeneratorPipeline.lean`:**
+  These files were archived in commit 999cf13 ("Archive 11 compiled
+  pipeline files (not on active proof path)"). They contain ~28 axioms
+  that are no longer on any chain. Located under `archive/`. -/
 -/
 
 import PallLean.CookLevinDefs
