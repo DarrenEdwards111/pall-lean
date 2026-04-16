@@ -4119,6 +4119,22 @@ def godMoveLiveStrictShrinkBridgeTarget
     godMoveRestrictionPerturbationCandidateTarget M n hn hdec htb hns c ∧
     GodMoveConstructionSemanticBridgeTheorem hdec c
 
+/-- The live strict-shrink bridge target is already inhabited by the explicit
+zero-coupled strict-shrink construction: it keeps the genuine non-identity
+restriction perturbation while also carrying the exact bridge data. -/
+theorem godMoveLiveStrictShrinkBridgeTarget_holds
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveLiveStrictShrinkBridgeTarget M n hn hdec htb hns := by
+  refine ⟨godMoveConstruction_firstBehaviorStrictShrink M n hn hdec htb hns, ?_⟩
+  exact ⟨
+    godMoveConstruction_firstBehaviorStrictShrink_is_restriction_perturbation_candidate
+      M n hn hdec htb hns,
+    godMoveConstruction_firstBehaviorStrictShrink_semanticBridge M n hn hdec htb hns⟩
+
 /-- The identity placeholder cannot witness the exact live strict-shrink bridge
 target. It fails already at the post-identity restriction-perturbation stage,
 and also separately at strict shrink. -/

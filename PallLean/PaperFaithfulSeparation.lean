@@ -413,6 +413,202 @@ theorem semantic_extraction_theorem_of_strictShrinkCanonicalConstructionTarget
     ⟨c, _, hgap⟩
   exact ⟨c, hgap⟩
 
+/-- Direct paper-facing wrapper for the active post-identity strict-shrink
+Route B target. -/
+theorem semantic_extraction_theorem_of_liveStrictShrinkBridgeTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (htarget :
+      GodMoveReal.godMoveLiveStrictShrinkBridgeTarget
+        M n hn hdec htb hns) :
+    GodMoveSemanticExtractionTheorem M n (by omega : n ≥ 2) htb hns hdec := by
+  exact semantic_extraction_theorem_of_strictShrinkCanonicalConstructionTarget
+    M n hn hdec htb hns
+    (GodMoveReal.godMoveStrictShrinkCanonicalConstructionTarget_of_liveStrictShrinkBridgeTarget
+      M n hn hdec htb hns htarget)
+
+/-- The currently proved live strict-shrink Route B witness already yields the
+paper-facing semantic extraction theorem. -/
+theorem semantic_extraction_theorem_of_liveStrictShrinkBridgeTarget_holds
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveSemanticExtractionTheorem M n (by omega : n ≥ 2) htb hns hdec := by
+  exact semantic_extraction_theorem_of_liveStrictShrinkBridgeTarget
+    M n hn hdec htb hns
+    (GodMoveReal.godMoveLiveStrictShrinkBridgeTarget_holds M n hn hdec htb hns)
+
+/-- Direct paper-facing contradiction shell from the active live strict-shrink
+Route B target.
+
+This keeps the narrowed exact semantic theorem primary: the live Route B target
+first yields `GodMoveSemanticExtractionTheorem`, and the remaining contradiction
+surface is precisely the target-uniform NP lower bound, the generic rank bridge
+packaging, and the P-side upper bound. -/
+theorem separation_from_liveStrictShrinkBridgeTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (htarget :
+      GodMoveReal.godMoveLiveStrictShrinkBridgeTarget
+        M n hn hdec htb hns)
+    (np_lower :
+      ∀ target : GodMoveExtractionTarget M n (by omega : n ≥ 2) htb hns,
+        n ^ (Nat.log 2 n / 4) ≤
+          mlBlockedSpdpRank target.coupledPartition
+            (Nat.log 2 n) (Nat.log 2 n) target.coupledPoly)
+    (bridge :
+      ∀ target : GodMoveExtractionTarget M n (by omega : n ≥ 2) htb hns,
+        ∀ sem : ExtractionMapSemantics M n (by omega : n ≥ 2) htb hns hdec target,
+          ExtractionMapRankBridge sem)
+    (hP :
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)) ≤
+      n ^ 200) :
+    False := by
+  exact separation_from_semantic_extraction_theorem
+    M n (by omega : n ≥ 2) htb hns hdec hn
+    (semantic_extraction_theorem_of_liveStrictShrinkBridgeTarget
+      M n hn hdec htb hns htarget)
+    np_lower bridge hP
+
+/-- The currently proved live strict-shrink Route B witness reaches the same
+paper-facing contradiction shell once the remaining target-uniform NP/bridge
+and P-side hypotheses are supplied. -/
+theorem separation_from_liveStrictShrinkBridgeTarget_holds
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (np_lower :
+      ∀ target : GodMoveExtractionTarget M n (by omega : n ≥ 2) htb hns,
+        n ^ (Nat.log 2 n / 4) ≤
+          mlBlockedSpdpRank target.coupledPartition
+            (Nat.log 2 n) (Nat.log 2 n) target.coupledPoly)
+    (bridge :
+      ∀ target : GodMoveExtractionTarget M n (by omega : n ≥ 2) htb hns,
+        ∀ sem : ExtractionMapSemantics M n (by omega : n ≥ 2) htb hns hdec target,
+          ExtractionMapRankBridge sem)
+    (hP :
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)) ≤
+      n ^ 200) :
+    False := by
+  exact separation_from_liveStrictShrinkBridgeTarget
+    M n hn hdec htb hns
+    (GodMoveReal.godMoveLiveStrictShrinkBridgeTarget_holds M n hn hdec htb hns)
+    np_lower bridge hP
+
+/-- Direct compiled-space lower bound from the exact semantic extraction
+theorem itself.
+
+This is the inequality-level analogue of
+`separation_from_semantic_extraction_theorem`: once the exact Route B semantic
+theorem chooses a target, the remaining ingredients are the target-specific NP
+lower bound and the generic rank bridge packaging. -/
+theorem compiled_lower_bound_from_semantic_extraction_theorem
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (hdec : DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (hsem : GodMoveSemanticExtractionTheorem M n hn2 htb hns hdec)
+    (np_lower :
+      ∀ target : GodMoveExtractionTarget M n hn2 htb hns,
+        Nat.choose (n / 3) (Nat.log 2 n) ≤
+          mlBlockedSpdpRank target.coupledPartition
+            (Nat.log 2 n) (Nat.log 2 n) target.coupledPoly)
+    (bridge :
+      ∀ target : GodMoveExtractionTarget M n hn2 htb hns,
+        ∀ sem : ExtractionMapSemantics M n hn2 htb hns hdec target,
+          ExtractionMapRankBridge sem) :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns)) := by
+  rcases hsem with ⟨target, htarget⟩
+  have hextraction :
+      mlBlockedSpdpRank target.coupledPartition
+        (Nat.log 2 n) (Nat.log 2 n) target.coupledPoly ≤
+        mlBlockedSpdpRank
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)) := by
+    rcases htarget with ⟨sem⟩
+    exact extraction_from_semantics sem (bridge target sem)
+  exact le_trans (np_lower target) hextraction
+
+/-- Direct compiled-space lower bound from the active live strict-shrink
+Route B target. -/
+theorem compiled_lower_bound_from_liveStrictShrinkBridgeTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (htarget :
+      GodMoveReal.godMoveLiveStrictShrinkBridgeTarget
+        M n hn hdec htb hns)
+    (np_lower :
+      ∀ target : GodMoveExtractionTarget M n (by omega : n ≥ 2) htb hns,
+        Nat.choose (n / 3) (Nat.log 2 n) ≤
+          mlBlockedSpdpRank target.coupledPartition
+            (Nat.log 2 n) (Nat.log 2 n) target.coupledPoly)
+    (bridge :
+      ∀ target : GodMoveExtractionTarget M n (by omega : n ≥ 2) htb hns,
+        ∀ sem : ExtractionMapSemantics M n (by omega : n ≥ 2) htb hns hdec target,
+          ExtractionMapRankBridge sem) :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)) := by
+  exact compiled_lower_bound_from_semantic_extraction_theorem
+    M n (by omega : n ≥ 2) hdec htb hns
+    (semantic_extraction_theorem_of_liveStrictShrinkBridgeTarget
+      M n hn hdec htb hns htarget)
+    np_lower bridge
+
+/-- The currently proved live strict-shrink Route B witness already yields the
+same compiled-space lower bound once the remaining target-uniform NP/bridge
+hypotheses are supplied. -/
+theorem compiled_lower_bound_from_liveStrictShrinkBridgeTarget_holds
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (np_lower :
+      ∀ target : GodMoveExtractionTarget M n (by omega : n ≥ 2) htb hns,
+        Nat.choose (n / 3) (Nat.log 2 n) ≤
+          mlBlockedSpdpRank target.coupledPartition
+            (Nat.log 2 n) (Nat.log 2 n) target.coupledPoly)
+    (bridge :
+      ∀ target : GodMoveExtractionTarget M n (by omega : n ≥ 2) htb hns,
+        ∀ sem : ExtractionMapSemantics M n (by omega : n ≥ 2) htb hns hdec target,
+          ExtractionMapRankBridge sem) :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n (by omega : n ≥ 2) htb hns)) := by
+  exact compiled_lower_bound_from_liveStrictShrinkBridgeTarget
+    M n hn hdec htb hns
+    (GodMoveReal.godMoveLiveStrictShrinkBridgeTarget_holds M n hn hdec htb hns)
+    np_lower bridge
+
 /-- Exact compiled-space lower bound from the paper-faithful staged target
 theorem.
 
