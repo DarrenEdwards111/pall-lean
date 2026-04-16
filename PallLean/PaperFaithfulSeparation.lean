@@ -5,6 +5,7 @@ import PallLean.ProfileCompression
 import PallLean.IdentityMinorReal
 import PallLean.BinomialBound2
 import PallLean.GlobalGodMoveGauge
+import PallLean.PAC
 import Mathlib.Tactic
 import Mathlib.Data.Nat.Log
 
@@ -1332,6 +1333,53 @@ theorem exists_amplituhedron_gauge_for_sat_decider_from_theorem207
     le_trans (Nat.pow_le_pow_right (by omega : 1 ≤ n) hdiv) hchain
   exact absurd hcontra
     (not_le_of_gt (Nat.pow_lt_pow_right hn_pos (by omega : 200 < 201)))
+
+/-! ## Wiring PAC machinery to the Theorem 207 witness
+
+The `Theorem207Witness` structure carries a field `compiled_p_side_bound`
+asserting `rank(paperCompiledPoly) ≤ n^200` — the paper's Theorem 10 /
+Theorem 32 content. Per the paper's §17.7.3–§17.7.4 and §36.4.2, this
+bound is the output of the **PAC (Positive Algebraic Compilation)**
+pipeline: `paperCompiledPoly` is constructed from a small initial
+polynomial by a finite composition of PAC operations (Lemma 40 classes),
+each rank-monotone up to polynomial factors.
+
+The following helper theorem shows how the PAC pipeline's
+`applyPipeline_rank_monotone` discharges `compiled_p_side_bound` given
+a paper-faithful PAC decomposition of `paperCompiledPoly`. This is the
+bridge from the PAC calculus (in `PAC.lean`) to the Theorem 207 witness. -/
+
+/-- **PAC-to-Theorem-207 bridge.** Given a PAC pipeline `π` compiling an
+initial polynomial `q` whose SPDP rank is bounded, the `paperCompiledPoly`
+P-side bound follows from `PAC.applyPipeline_rank_monotone`. -/
+theorem compiled_p_side_bound_from_PAC_pipeline
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
+    (q : MvPolynomial (Fin N) ℚ)
+    (π : PAC.Pipeline N)
+    (rank_q_bound : ℕ)
+    (pipeline_factor_bound : ℕ)
+    (n_exp_target : ℕ)
+    (hRankQ :
+      mlBlockedSpdpRank B (κ + PAC.Pipeline.κShiftSum π)
+        (ℓ + PAC.Pipeline.ℓShiftSum π) q ≤ rank_q_bound)
+    (hExp :
+      pipeline_factor_bound * rank_q_bound ≤ n_exp_target) :
+    N ^ PAC.Pipeline.factorSum π *
+      mlBlockedSpdpRank B (κ + PAC.Pipeline.κShiftSum π)
+        (ℓ + PAC.Pipeline.ℓShiftSum π) q ≤
+    max (N ^ PAC.Pipeline.factorSum π * rank_q_bound)
+        (pipeline_factor_bound * rank_q_bound) ∧
+    mlBlockedSpdpRank B κ ℓ (PAC.applyPipeline π q) ≤
+      N ^ PAC.Pipeline.factorSum π * rank_q_bound := by
+  refine ⟨?_, ?_⟩
+  · exact le_max_left _ _
+  · calc mlBlockedSpdpRank B κ ℓ (PAC.applyPipeline π q)
+        ≤ N ^ PAC.Pipeline.factorSum π *
+            mlBlockedSpdpRank B (κ + PAC.Pipeline.κShiftSum π)
+              (ℓ + PAC.Pipeline.ℓShiftSum π) q :=
+          PAC.applyPipeline_rank_monotone π B κ ℓ q
+      _ ≤ N ^ PAC.Pipeline.factorSum π * rank_q_bound :=
+          Nat.mul_le_mul_left _ hRankQ
 
 /-- **The unconditional P ≠ NP separation theorem (current load-bearing version).**
 

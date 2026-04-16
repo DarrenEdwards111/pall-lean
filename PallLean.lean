@@ -6,3 +6,4 @@ import PallLean.LatentWitnessMinorDecomp
 import PallLean.LatentCompilerFinalRoute
 import PallLean.SelConCoeffReduction
 import PallLean.SelConClosedCoeffDecomp
+import PallLean.PAC
