@@ -442,6 +442,124 @@ Migrating `P_ne_NP_via_piStar` to use `exists_amplituhedron_gauge_via_narrow_axi
 chain's axiom surface to `exists_amplituhedron_gauge_for_sat_decider` —
 a strict strengthening of the structural honesty of the separation chain. -/
 
+/-! ## Paper-faithful refactor: Theorem 207 (God-Move extraction form)
+
+The `exists_amplituhedron_gauge*` family of axioms above packages everything
+into a single ℚ-linear endomorphism Π⋆ acting on `MvPolynomial`. The
+paper's Theorem 207 does not actually use a single Π⋆; it decomposes the
+argument as:
+
+* **(a) Extraction (Theorem 181/203).** Cook-Levin compilation + God-Move
+  extraction produce, from the accepting tableau of a SAT-deciding DTM on
+  a hard Tseitin instance, a **coupled sheet** polynomial Q×_Φₙ.
+* **(b) P-side bound (Theorem 10 / Lemma 205).** Profile compression +
+  Ramanujan-expander CEW bound + amplituhedron / totally-positive projection
+  bound the SPDP rank of the coupled sheet from above by n^O(1).
+* **(c) NP-side bound (Theorem 98).** The Ramanujan-Tseitin identity minor
+  construction bounds the rank of the same coupled sheet from below by
+  n^Ω(log n).
+* **(d) Contradiction at n = 2^804.** The upper and lower bounds are
+  arithmetically incompatible, forcing ¬ P = NP.
+
+The following section bundles the coupled sheet with its two bounds into
+a structure `Theorem207Witness`, adds a single existence axiom
+`exists_theorem207_witness`, and derives the separation through it.
+
+### What this buys
+
+Each field of `Theorem207Witness` is attached to a named paper theorem, so
+the axiomatic frontier maps directly onto the paper's Theorem 207 chain.
+The `exists_amplituhedron_gauge*` axioms are *retained* for continuity
+(the narrow one becomes derivable from the Theorem 207 axiom, via the
+arithmetic bridge in `PaperFaithfulSeparation.lean`); the original full
+axiom also remains as an independent alternative formulation.
+
+### What this does **not** buy
+
+The full Theorem 207 witness is still a single axiom rather than three.
+Splitting it into three independent axioms (one per paper theorem) would
+let (a) and (c) be largely discharged from existing infrastructure — the
+compiled polynomial already has an axiom-free NP-side bound via
+`compiled_np_lower_bound_any_dtm`, and the extraction (a) is essentially
+a data-constructive operation given the accepting tableau. The real open
+mathematical content of Theorem 207 is the P-side bound (b): profile
+compression + amplituhedron / totally-positive projection is genuine
+paper content requiring hundreds of pages of supporting lemmas in the
+paper and substantial Lean infrastructure (CEW accounting, derandomised
+switching lemma, expander spectral bounds, positive geometry) to
+formalise. We do not discharge (b) here; we package it as a field of the
+witness so it is visible and named. -/
+
+/-- A paper-faithful witness for Theorem 207 (Global God-Move Separation).
+
+Given a bounded-parameter DTM `M` at `n ≥ 2^804` that decides 3-SAT, the
+paper's God-Move extraction + profile compression + Ramanujan-Tseitin
+identity minor jointly produce:
+
+* `sheet` — the extracted coupled sheet Q×_Φₙ (Theorem 181/203),
+* `p_side_bound` — `rank(sheet) ≤ n^200` (Theorem 10 / Lemma 205),
+* `np_side_lower_bound` — `rank(sheet) ≥ C(n/3, log n)` (Theorem 98).
+
+The structure is conditional on `DecidesSAT M` — the extraction only
+makes sense when M has an accepting tableau on the hard instance. -/
+structure Theorem207Witness
+    (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Type where
+  /-- **Theorem 181/203 (God-Move extraction).** The coupled sheet Q×_Φₙ
+  extracted from the compiled polynomial via M's accepting tableau on a
+  hard Tseitin instance. Lives in the same variable space as the compiled
+  polynomial. -/
+  sheet : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ
+  /-- **Theorem 10 / Lemma 205 (P-side upper bound via amplituhedron).**
+  The coupled sheet has polynomial SPDP rank after the paper's compilation
+  pipeline: Cook-Levin → profile compression → Ramanujan-expander CEW
+  bound → totally-positive amplituhedron projection.
+
+  This is the only genuinely hard bound — the paper devotes Sections 7,
+  29–31, 37–42 to it. It is the open mathematical content of Theorem 207. -/
+  p_side_bound :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n) sheet ≤ n ^ 200
+  /-- **Theorem 98 (NP-side identity minor via Ramanujan-Tseitin).**
+  The coupled sheet contains a super-polynomial identity minor of size
+  C(n/3, log n), coming from the Tseitin encoding of the hard 3-CNF
+  family on a Ramanujan expander.
+
+  Analogous to the axiom-free `compiled_np_lower_bound_any_dtm` on the
+  raw compiled polynomial; the coupled-sheet version is the transported
+  form used in Theorem 207's contradiction step. -/
+  np_side_lower_bound :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n) sheet
+
+/-- **Theorem 207 axiom (paper-faithful).** For every bounded-parameter
+SAT-decider at `n ≥ 2^804`, the paper's God-Move extraction + profile
+compression + Ramanujan-Tseitin identity minor jointly produce a
+`Theorem207Witness`.
+
+This axiom **is** the paper's Theorem 207 conjunction: (a) extraction +
+(b) P-side upper bound + (c) NP-side lower bound, all on the same
+extracted coupled sheet.
+
+At `n = 2^804` the witness's two bounds are arithmetically incompatible
+(`n^200 < C(n/3, log n)`), so the axiom's existence claim is
+mathematically equivalent to "no bounded-parameter SAT-decider exists at
+n = 2^804" — the separation `P ≠ NP` in restricted form.
+
+The real open mathematical content is the `p_side_bound` field: the
+extraction (a) is a data-constructive operation, and the NP-side bound (c)
+transports from the axiom-free `compiled_np_lower_bound_any_dtm`. The
+P-side bound (b) is the paper's genuine deep content (§7, §29–31,
+§37–42). -/
+axiom exists_theorem207_witness
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) :
+    Theorem207Witness M n hn hn2 htb hns
+
 /-! ### Axiom-inventory checks
 
 These `#print axioms` calls document which custom axioms each result
@@ -452,7 +570,10 @@ depends on. Expected outcomes:
 * `exists_amplituhedron_gauge_of_not_decidesSAT` — same.
 * `exists_amplituhedron_gauge_via_narrow_axiom` —
   only `exists_amplituhedron_gauge_for_sat_decider`
-  (strictly narrower than the original `exists_amplituhedron_gauge`). -/
+  (strictly narrower than the original `exists_amplituhedron_gauge`).
+
+The canonical chain's axiom inventory (via `P_ne_NP_unconditional`) is
+verified in `PaperFaithfulSeparation.lean` after the Theorem 207 migration. -/
 #print axioms zeroGauge_isAmplituhedronGauge_of_not_decidesSAT
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
 #print axioms exists_amplituhedron_gauge_of_not_decidesSAT

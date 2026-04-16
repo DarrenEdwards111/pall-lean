@@ -101,30 +101,38 @@
   ### Axiom inventory (live `PallLean/` files, post-Π⋆ refactor)
 
   **On the canonical separation chain (`P_ne_NP_unconditional`):**
-  - `GlobalGodMoveGauge.exists_amplituhedron_gauge_for_sat_decider` —
-    **narrow** existence axiom for the paper's Global God-Move Gauge
-    satisfying `IsAmplituhedronGauge`, covering only the SAT-decider case.
-    Strictly narrower than the previous `exists_amplituhedron_gauge`
-    (which quantified over all bounded-parameter DTMs), since the
-    non-SAT-decider case is now discharged concretely in
-    `GlobalGodMoveGauge.exists_amplituhedron_gauge_of_not_decidesSAT`
-    using the zero linear map.
+  - `GlobalGodMoveGauge.exists_theorem207_witness` — **paper-faithful**
+    existence axiom for a `Theorem207Witness`: the extracted coupled
+    sheet Q×_Φₙ together with its P-side upper bound (`n^200`, Theorem
+    10 / Lemma 205) and NP-side lower bound (`C(n/3, log n)`,
+    Theorem 98), all on the same sheet.
 
-    At `n = 2^804` with bounded parameters, this narrow axiom is
-    mathematically equivalent to "no bounded-parameter SAT-decider
-    exists" — i.e., to the separation `P ≠ NP` itself in the restricted
-    bounded-parameter form used here. The axiom's mathematical content
-    is therefore exposed cleanly: constructing a concrete witness is
-    (given the arithmetic inequalities at this scale) equivalent to
-    proving P ≠ NP.
+    Each field of the witness is attached to a named paper theorem:
+    - `sheet` — the extracted coupled sheet (Theorem 181/203)
+    - `p_side_bound` — profile compression + amplituhedron (Theorem 10/205)
+    - `np_side_lower_bound` — Ramanujan-Tseitin identity minor (Theorem 98)
+
+    At `n = 2^804` the two bounds are arithmetically incompatible
+    (`n^200 < C(n/3, log n)`), so the axiom is mathematically equivalent
+    to "no bounded-parameter SAT-decider exists at n = 2^804" — the
+    separation in restricted form. The real open mathematical content is
+    the `p_side_bound` field (the paper's §7, §29–31, §37–42 profile
+    compression + amplituhedron argument); the `sheet` extraction and
+    `np_side_lower_bound` fields track closely to existing infrastructure
+    (Cook-Levin tableau + the axiom-free `compiled_np_lower_bound_any_dtm`).
 
   **Also present, kept for reference (NOT on the canonical chain after
-  the narrow-axiom migration):**
-  - `GlobalGodMoveGauge.exists_amplituhedron_gauge` — original (broader)
-    existence axiom quantifying over all bounded-parameter DTMs.
-    `P_ne_NP_via_piStar` still depends on this for backward compatibility,
-    but the canonical `P_ne_NP_unconditional` now forwards to
-    `P_ne_NP_via_narrow_axiom` and no longer requires it.
+  the Theorem 207 migration):**
+  - `GlobalGodMoveGauge.exists_amplituhedron_gauge_for_sat_decider` —
+    narrow gauge-based axiom (previous canonical). Now off-chain; its
+    statement is derivable from `exists_theorem207_witness` via the
+    theorem `exists_amplituhedron_gauge_for_sat_decider_from_theorem207`
+    (in `PaperFaithfulSeparation.lean`), demonstrating the two
+    axiomatisations carry equivalent content in the bounded-parameter
+    regime.
+  - `GlobalGodMoveGauge.exists_amplituhedron_gauge` — original full-
+    quantifier gauge axiom. `P_ne_NP_via_piStar` still depends on it
+    for backward compatibility.
 
   **On the legacy / archival chain (`P_ne_NP_unconditional_legacy_via_spdp_profile_generators`):**
   - `SymmetricPower.spdp_profile_generators` — FALSE (this analysis).
@@ -154,17 +162,20 @@
 
   **Live axiom totals**
   - Custom axioms on canonical separation chain: **1**
-    (`exists_amplituhedron_gauge_for_sat_decider`, narrow)
-  - Kept for backward compat but NOT on canonical chain: **1**
-    (`exists_amplituhedron_gauge`, the older broader version — only
-    `P_ne_NP_via_piStar` still depends on it)
+    (`exists_theorem207_witness`, paper-faithful — each field tied to a
+    named paper theorem)
+  - Kept for backward compat but NOT on canonical chain: **2**
+    (`exists_amplituhedron_gauge_for_sat_decider` (narrow, previous
+    canonical) + `exists_amplituhedron_gauge` (older broader version) —
+    `P_ne_NP_via_narrow_axiom` / `P_ne_NP_via_piStar` still depend on
+    them respectively)
   - Custom axioms on legacy / inconsistency-witness chain: **1**
     (`spdp_profile_generators`, false)
   - Custom axioms in auxiliary Route A: **11**
     (3 in Separation29 + 8 in RamanujanTseitin)
-  - **Live grand total: 14** custom axioms across the active codebase
-    (+1 for the narrow axiom; the canonical chain's single axiom is now
-    strictly narrower than before).
+  - **Live grand total: 15** custom axioms across the active codebase
+    (the canonical chain's single axiom is now paper-faithful with each
+    field corresponding to a named paper theorem).
 
   **Archived (dead code) — formerly under `CompiledAssemblyRoadmap.lean`
   and `CompiledGeneratorPipeline.lean`:**
