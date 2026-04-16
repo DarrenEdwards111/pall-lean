@@ -553,4 +553,35 @@ theorem coeff_mul_disjoint_vars
     exact key a b (Finset.mem_antidiagonal.mp hx.2) hx.1
   rw [hrest, add_zero]
 
+/-! ### Kronecker product rank upper bound
+
+rank(A ⊗ B) ≤ rank(A) × rank(B) for the Kronecker product.
+
+The proof: the row space of A ⊗ B is spanned by products of rows of A
+and rows of B. The span of such products has dimension ≤ rank(A) × rank(B)
+because any product a ⊗ b lies in the image of the bilinear map
+rowSpace(A) × rowSpace(B) → F^{columns}, and the image of a bilinear map
+on spaces of dimensions r₁, r₂ has dimension ≤ r₁ × r₂.
+
+For the SPDP application: the per-profile coefficient matrix factors as a
+Kronecker product of per-type matrices, each with rank ≤ C(h(τ)+d_τ-1,d_τ-1).
+So the per-profile rank ≤ ∏_τ C(h(τ)+d_τ-1, d_τ-1) ≤ (κ+1)^8. -/
+
+/-- Upper bound on rank of Kronecker product: rank(A ⊗ B) ≤ rank(A) × rank(B).
+
+    Proof strategy: the rows of A.kronecker B at index (i,j) are obtained by
+    entry-wise multiplication of row i of A (repeated) with row j of B (tiled).
+    The row space is contained in a space of dimension ≤ rank(A) × rank(B). -/
+theorem rank_kronecker_le {R : Type*} [CommRing R] [IsDomain R]
+    {l m n p : Type*} [Fintype l] [Fintype m] [Fintype n] [Fintype p]
+    [DecidableEq l] [DecidableEq m] [DecidableEq n] [DecidableEq p]
+    (A : Matrix l m R) (B : Matrix n p R) :
+    (A.kronecker B).rank ≤ A.rank * B.rank := by
+  sorry
+  -- Proof sketch: the column space of A ⊗ B is contained in the span of
+  -- {col_k(A) ⊗ col_q(B) : k ∈ m, q ∈ p}. This span has dimension
+  -- ≤ rank(A) × rank(B) because col_k(A) ranges over colSpace(A) (dim = rank A)
+  -- and col_q(B) ranges over colSpace(B) (dim = rank B), and the span of
+  -- tensor products of elements from two spaces has dim ≤ product of dims.
+
 end CoeffMatrixHelpers
