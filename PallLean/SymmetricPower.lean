@@ -610,6 +610,22 @@ theorem pderiv2_boolFactor_mem_interface {N : ℕ} (v : Fin N) :
     from by simp [Algebra.smul_def]]
   exact Submodule.smul_mem _ c (one_mem_boolInterfaceSpan N v)
 
+/-! ### Product of affine polynomials with disjoint single-variable supports
+
+The key algebraic identity for the symmetric power argument:
+for a product ∏_i (a_i + b_i X_{v_i}) with distinct v_i, the result is
+∑_T (∏_{i∈T} b_i · ∏_{i∉T} a_i) · ∏_{i∈T} X_{v_i}.
+
+The coefficients depend only on the profile (the (a_i, b_i) pairs), NOT on
+which specific variables v_i were chosen. This is the foundation of the
+symmetric power collapse: products from different variable assignments but
+the same profile are "variable-renamed copies" with identical coefficient
+structure. The dimension of their span equals the number of distinct
+coefficient patterns. -/
+
+-- TODO: formalize the affine product identity and the symmetric power
+-- dimension formula. This is the key remaining step for profile compression.
+
 /-! ### Coefficient of tag monomial in boolFactor SPDP generator
 
 For the Kronecker delta property, we need the coefficient of the "tag monomial"
