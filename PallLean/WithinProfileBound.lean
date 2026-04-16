@@ -778,6 +778,105 @@ def CookLevinWithinProfileFinrankFrontier
       (fun i => (cookLevinFactorList M n hn htb hns).get i)
       constraintType
 
+/-- Concrete constraint-type classification on the actual Cook-Levin factor
+list.
+
+The initial `n` slots are the booleanity factors. The remaining slots come from
+the adjacency list and the transition-skeleton list, both of which are
+two-variable local factors; we keep those two post-boolean segments explicit so
+the remaining P-side frontier is one concrete lemma, not an existential choice
+of classification. -/
+noncomputable def cookLevinConstraintType
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Fin (cookLevinFactorList M n hn htb hns).length → ConstraintType :=
+  fun i =>
+    if i.1 < n then
+      ConstraintType.booleanity
+    else if i.1 < n + (PaperFaithfulSeparation.adjConstraintList n).length then
+      ConstraintType.adjacency
+    else
+      ConstraintType.transitionLeft
+
+/-- Single exact Cook-Levin Step B lemma: the bounded within-profile finrank
+bound for the actual compiled factor family with the concrete type map
+`cookLevinConstraintType`.
+
+This is the post-`40f812d` P-side frontier reduced to one exact theorem on the
+compiled factor family. -/
+def CookLevinExactWithinProfileFinrankLemma
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  WithinProfileFinrankBound
+    (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition
+    (Nat.log 2 n) (Nat.log 2 n)
+    (fun i => (cookLevinFactorList M n hn htb hns).get i)
+    (cookLevinConstraintType M n hn htb hns)
+
+/-- The single exact Cook-Levin lemma implies the existential frontier. -/
+theorem cookLevinWithinProfileFrontier_of_exactLemma
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hexact : CookLevinExactWithinProfileFinrankLemma M n hn htb hns) :
+    CookLevinWithinProfileFinrankFrontier M n hn htb hns :=
+  ⟨cookLevinConstraintType M n hn htb hns, hexact⟩
+
+/-- Exact Cook-Levin finite-profile-cover theorem, assuming the specialized
+within-profile finrank bound on the actual compiled factor list. This is the
+smallest honest theorem-level endpoint immediately above the remaining
+within-profile frontier. -/
+theorem cookLevin_hasFiniteProfileCover_of_withinProfileFinrankBound
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (constraintType : Fin (cookLevinFactorList M n hn htb hns).length → ConstraintType)
+    (hbound : WithinProfileFinrankBound
+      (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      constraintType) :
+    HasFiniteProfileCover
+      (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (PaperFaithfulSeparation.compiledPoly
+        (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns)) := by
+  classical
+  let T := PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns
+  let factors : List (MvPolynomial (Fin n) ℚ) := cookLevinFactorList M n hn htb hns
+  have hcompiled : PaperFaithfulSeparation.compiledPoly T = factors.prod := by
+    simpa [T, factors, cookLevinFactorList] using
+      PaperFaithfulSeparation.compiledPoly_eq_constraints_prod M n hn htb hns
+  have hp :
+      PaperFaithfulSeparation.compiledPoly T =
+        Finset.univ.prod (fun i : Fin factors.length => factors.get i) := by
+    rw [hcompiled, ← Fin.prod_univ_getElem]
+    simp [List.get_eq_getElem]
+  exact hasFiniteProfileCover_of_boundedWithinProfileFinrank
+    T.partition (Nat.log 2 n) (Nat.log 2 n)
+    (fun i : Fin factors.length => factors.get i)
+    constraintType
+    (PaperFaithfulSeparation.compiledPoly T)
+    hp
+    (boundedWithinProfileFinrankClaim_of_finrankBound
+      T.partition (Nat.log 2 n) (Nat.log 2 n)
+      (fun i : Fin factors.length => factors.get i)
+      constraintType
+      hbound)
+
+/-- Existential exact Cook-Levin frontier repackaged as a genuine finite profile
+cover theorem for the compiled polynomial. -/
+theorem cookLevin_hasFiniteProfileCover_of_withinProfileFrontier
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hfrontier : CookLevinWithinProfileFinrankFrontier M n hn htb hns) :
+    HasFiniteProfileCover
+      (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (PaperFaithfulSeparation.compiledPoly
+        (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns)) := by
+  obtain ⟨constraintType, hbound⟩ := hfrontier
+  exact cookLevin_hasFiniteProfileCover_of_withinProfileFinrankBound
+    M n hn htb hns constraintType hbound
+
 /-- The exact Cook-Levin within-profile frontier implies the Step B combined
 profile bound. This is the clean theorem-level reduction from the remaining
 specialized finrank statement to the exported profile-compression rank bound. -/
@@ -791,25 +890,31 @@ theorem cookLevin_combinedBound_of_withinProfileFrontier
       (PaperFaithfulSeparation.compiledPoly
         (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns))
     ≤ combinedProfileBound (Nat.log 2 n) := by
-  classical
-  obtain ⟨constraintType, hbound⟩ := hfrontier
-  let T := PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns
-  let factors : List (MvPolynomial (Fin n) ℚ) := cookLevinFactorList M n hn htb hns
-  have hcompiled : PaperFaithfulSeparation.compiledPoly T = factors.prod := by
-    simpa [T, factors, cookLevinFactorList] using
-      PaperFaithfulSeparation.compiledPoly_eq_constraints_prod M n hn htb hns
-  have hp :
-      PaperFaithfulSeparation.compiledPoly T =
-        Finset.univ.prod (fun i : Fin factors.length => factors.get i) := by
-    rw [hcompiled, ← Fin.prod_univ_getElem]
-    simp [List.get_eq_getElem]
-  exact rank_bound_of_withinProfileFinrankBound
-    T.partition (Nat.log 2 n) (Nat.log 2 n)
-    (fun i : Fin factors.length => factors.get i)
-    constraintType
-    (PaperFaithfulSeparation.compiledPoly T)
-    hp
-    hbound
+  exact rank_le_combinedBound_of_hasFiniteProfileCover
+    (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition
+    (Nat.log 2 n) (Nat.log 2 n)
+    (PaperFaithfulSeparation.compiledPoly
+      (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns))
+    (cookLevin_hasFiniteProfileCover_of_withinProfileFrontier
+      M n hn htb hns hfrontier)
+
+/-- Direct exact-lemma route to the Step B combined profile bound.
+
+Once the concrete Cook-Levin lemma `CookLevinExactWithinProfileFinrankLemma` is
+proved, the remaining P-side profile-compression assembly is immediate. -/
+theorem cookLevin_combinedBound_of_exactWithinProfileLemma
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hexact : CookLevinExactWithinProfileFinrankLemma M n hn htb hns) :
+    mlBlockedSpdpRank
+      (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (PaperFaithfulSeparation.compiledPoly
+        (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns))
+    ≤ combinedProfileBound (Nat.log 2 n) := by
+  exact cookLevin_combinedBound_of_withinProfileFrontier
+    M n hn htb hns
+    (cookLevinWithinProfileFrontier_of_exactLemma M n hn htb hns hexact)
 
 /-! ## Part 12: Local derivative classification for degree-2 factors
 

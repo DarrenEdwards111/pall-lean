@@ -212,10 +212,10 @@ the same constraint-type histogram ("profile") contribute to the same
 subspace, and the number of distinct profiles is polynomial.
 
 The outer bound is now theorem-level via `ProfileCompression.lean`; the exact
-remaining P-side frontier is smaller than that wrapper theorem and lives at
-`WithinProfileBound.BoundedWithinProfileFinrankClaim`, the bounded
-within-profile finrank estimate from which the finite profile cover is
-assembled.
+remaining P-side frontier is smaller than that wrapper theorem and is exposed
+as `WithinProfileBound.CookLevinWithinProfileFinrankFrontier`, equivalently the
+specialized bounded within-profile finrank estimate on the actual compiled
+factor list.
 
 ### Axiom 2 (God-Move + Identity Minor): Core mathematical axiom
 
@@ -251,6 +251,20 @@ theorem p_side_rank_bound_for_cook_levin (M : DTM) (n : ℕ) (hn : n ≥ 2)
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 :=
   ProfileCompression.p_side_rank_bound_for_cook_levin M n hn htb hns
+
+/-- Exact frontier version of the P-side rank bound: if the actual Cook-Levin
+compiled factor list satisfies the reduced within-profile frontier, then the
+final `n^200` estimate follows formally. -/
+theorem p_side_rank_bound_for_cook_levin_of_withinProfileFrontier
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hfrontier : WithinProfileBound.CookLevinWithinProfileFinrankFrontier
+      M n hn htb hns) :
+    mlBlockedSpdpRank (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 :=
+  ProfileCompression.p_side_rank_bound_for_cook_levin_of_withinProfileFrontier
+    M n hn htb hns hfrontier
 
 /-! ### God-Move Extraction: Decomposition into Intermediate Lemmas
 
@@ -950,9 +964,11 @@ theorem P_ne_NP_unconditional : ∀ (_ : PeqNP_Paper), False := by
 
 The NP-side (God-Move + identity minor) is axiom-free beyond standard Lean.
 The P-side theorem is theorem-level, but the honest first missing statement in
-its dependency chain is the bounded within-profile finrank claim
-`WithinProfileBound.BoundedWithinProfileFinrankClaim`, not the downstream
-wrapper `profile_symmetric_power_factorization`. -/
+its dependency chain is now the exact compiled Cook-Levin frontier
+`WithinProfileBound.CookLevinWithinProfileFinrankFrontier`, equivalently the
+specialized within-profile finrank bound on the actual factor list
+`cookLevinFactorList M n hn htb hns`, not the downstream wrapper
+`profile_symmetric_power_factorization`. -/
 #print axioms god_move_identity_minor_axiom
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
 #print axioms P_ne_NP_unconditional

@@ -934,13 +934,6 @@ theorem coarse_profile_space_bound_le_log120
     _ = (Nat.log 2 n + 1) ^ (2 * 60) := by rw [← Nat.pow_mul]
     _ = (Nat.log 2 n + 1) ^ 120 := by norm_num
 
--- Next honest step after `latent_profile_bucket_finrank120_logscale`:
--- package a finite active family of realized coarse profile signatures together
--- with per-bucket finrank `≤ n^120` into the existing finset-valued endpoint
--- `latent_profile_block_cover_item3_uniform120_logscale`. This bridge is the
--- remaining local theorem needed to convert the new set/finrank scaffold into
--- the established Move-4 formulation.
-
 /-- Uniform-120 implies uniform-160 (monotone weakening of the per-profile cap). -/
 theorem latent_profile_block_cover_item3_uniform2_from_item3_uniform120 (M : DTM) (n : ℕ)
     (hn : n ≥ max 4 M.numStates)
@@ -1044,6 +1037,148 @@ structure latent_profile_block_cover_witness_construction_data_logscale (M : DTM
         (hVars : m.vars ⊆ S.toFinset)
         (hAdm : isBlockAdmissible (latentPartition M n) S),
         g = mlProj (m * iterDerivList S (latentCompiledPoly M n))
+
+/-- Exact compiled finite-profile-cover target now exposed by the σ-dependent route:
+choose a finite active family of realized coarse signatures and a finite basis inside
+each realized bucket slice, with uniform `n^120` cardinality, whose union still spans
+the logscale blocked-SPDP subspace of the compiled Cook-Levin polynomial. -/
+def latent_compiled_realized_signature_cover_uniform120_logscale (M : DTM) (n : ℕ)
+    (_hn : n ≥ max 4 M.numStates)
+    (_hn804 : n ≥ 2 ^ 804) : Prop :=
+  ∃ (Iσ : Finset (latentProfileSignature M n))
+    (Gσ : latentProfileSignature M n → Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ)),
+      mlBlockedSpdpSubspace (latentPartition M n) (Nat.log 2 n) (Nat.log 2 n)
+        (latentCompiledPoly M n)
+        ≤ Submodule.span ℚ (↑(Iσ.biUnion Gσ)
+            : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ∧
+      ∀ σ ∈ Iσ, (Gσ σ).card ≤ n ^ 120
+
+/-- A finite compiled generator witness together with the per-signature within-profile
+finrank theorem yields the exact realized-signature finite-profile cover:
+extract the coarse signature realized by each chosen generator, take a basis of the
+finite span of that realized bucket, and union those bounded bases. -/
+theorem latent_compiled_realized_signature_cover_uniform120_from_witness_construction_data
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ max 4 M.numStates)
+    (hn804 : n ≥ 2 ^ 804)
+    (hData : latent_profile_block_cover_witness_construction_data_logscale M n hn hn804)
+    (hBucketFinite : ∀ σ : latentProfileSignature M n,
+      Module.Finite ℚ (latent_fixedProfileSlice M n σ))
+    (hBucket : latent_profile_bucket_finrank120_logscale M n hn hn804) :
+    latent_compiled_realized_signature_cover_uniform120_logscale M n hn hn804 := by
+  classical
+  let defaultSig : latentProfileSignature M n :=
+    { hitBlocks := ∅
+      hitCardBound := by simp
+      multDeg := 0
+      multDegBound := by simp }
+  have hexSig :
+      ∀ g, g ∈ hData.G → ∃ σ : latentProfileSignature M n,
+        g ∈ latent_profile_bucket_generators M n σ := by
+    intro g hg
+    rcases hData.witness_realizes g hg with ⟨hLen, hDeg, hVars, hAdm, hgEq⟩
+    exact ⟨latent_profile_signature_of_generator_data M n (hData.witnessS g) (hData.witnessM g)
+        hLen hDeg,
+      ⟨hData.witnessS g, hData.witnessM g, hLen, hDeg, hVars, hAdm, rfl, hgEq⟩⟩
+  let realizedSig :
+      MvPolynomial (Fin (latentNumVars M n)) ℚ → latentProfileSignature M n :=
+    fun g =>
+      if hg : g ∈ hData.G then
+        Classical.choose (hexSig g hg)
+      else
+        defaultSig
+  have hrealized_mem_bucket :
+      ∀ g, g ∈ hData.G → g ∈ latent_profile_bucket_generators M n (realizedSig g) := by
+    intro g hg
+    simp [realizedSig, hg]
+    exact Classical.choose_spec (hexSig g hg)
+  let Iσ : Finset (latentProfileSignature M n) := hData.G.image realizedSig
+  let bucketOf : latentProfileSignature M n →
+      Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
+    fun σ => hData.G.filter (fun g => realizedSig g = σ)
+  let basisOf : latentProfileSignature M n →
+      Finset (MvPolynomial (Fin (latentNumVars M n)) ℚ) := fun σ =>
+    let S : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ) := ↑(bucketOf σ)
+    letI : Module.Finite ℚ (Submodule.span ℚ S) :=
+      Module.Finite.span_of_finite ℚ (Finset.finite_toSet (bucketOf σ))
+    Classical.choose (Submodule.exists_finset_span_eq_linearIndepOn ℚ S)
+  have hbasis_span :
+      ∀ σ,
+        Submodule.span ℚ
+            (↑(basisOf σ) : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) =
+          Submodule.span ℚ
+            (↑(bucketOf σ) : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) := by
+    intro σ
+    dsimp [basisOf]
+    let S : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ) := ↑(bucketOf σ)
+    letI : Module.Finite ℚ (Submodule.span ℚ S) :=
+      Module.Finite.span_of_finite ℚ (Finset.finite_toSet (bucketOf σ))
+    rcases (Classical.choose_spec (Submodule.exists_finset_span_eq_linearIndepOn ℚ S)) with
+      ⟨_hsub, _hcard, hspan, _hlin⟩
+    exact hspan
+  have hbasis_card :
+      ∀ σ,
+        (basisOf σ).card =
+          Module.finrank ℚ
+            (Submodule.span ℚ
+              (↑(bucketOf σ) : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))) := by
+    intro σ
+    dsimp [basisOf]
+    let S : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ) := ↑(bucketOf σ)
+    letI : Module.Finite ℚ (Submodule.span ℚ S) :=
+      Module.Finite.span_of_finite ℚ (Finset.finite_toSet (bucketOf σ))
+    rcases (Classical.choose_spec (Submodule.exists_finset_span_eq_linearIndepOn ℚ S)) with
+      ⟨_hsub, hcard, _hspan, _hlin⟩
+    exact hcard
+  have hbucket_span_le_slice :
+      ∀ σ,
+        Submodule.span ℚ
+            (↑(bucketOf σ) : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ≤
+          latent_fixedProfileSlice M n σ := by
+    intro σ
+    apply Submodule.span_mono
+    intro g hg
+    have hgG : g ∈ hData.G := (Finset.mem_filter.mp hg).1
+    have hEq : realizedSig g = σ := (Finset.mem_filter.mp hg).2
+    have hmem : g ∈ latent_profile_bucket_generators M n (realizedSig g) :=
+      hrealized_mem_bucket g hgG
+    simpa [hEq] using hmem
+  have hbasis_card_bound : ∀ σ ∈ Iσ, (basisOf σ).card ≤ n ^ 120 := by
+    intro σ hσ
+    letI : Module.Finite ℚ (latent_fixedProfileSlice M n σ) := hBucketFinite σ
+    calc
+      (basisOf σ).card =
+          Module.finrank ℚ
+            (Submodule.span ℚ
+              (↑(bucketOf σ) : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ))) :=
+        hbasis_card σ
+      _ ≤ Module.finrank ℚ (latent_fixedProfileSlice M n σ) :=
+        Submodule.finrank_mono (hbucket_span_le_slice σ)
+      _ ≤ n ^ 120 := hBucket σ
+  have hG_span_le_union :
+      Submodule.span ℚ (↑hData.G : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ≤
+        Submodule.span ℚ
+          (↑(Iσ.biUnion basisOf) : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) := by
+    apply Submodule.span_le.mpr
+    intro g hg
+    have hg_bucket : g ∈ bucketOf (realizedSig g) := Finset.mem_filter.mpr ⟨hg, rfl⟩
+    have hg_span_bucket :
+        g ∈ Submodule.span ℚ
+          (↑(bucketOf (realizedSig g)) : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) :=
+      Submodule.subset_span hg_bucket
+    have hg_span_basis :
+        g ∈ Submodule.span ℚ
+          (↑(basisOf (realizedSig g)) : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) := by
+      simpa [hbasis_span (realizedSig g)] using hg_span_bucket
+    have hbasis_subset_union :
+        (↑(basisOf (realizedSig g)) : Set (MvPolynomial (Fin (latentNumVars M n)) ℚ)) ⊆
+          ↑(Iσ.biUnion basisOf) := by
+      intro q hq
+      exact Finset.mem_biUnion.mpr ⟨realizedSig g, Finset.mem_image.mpr ⟨g, hg, rfl⟩, hq⟩
+    exact (Submodule.span_mono hbasis_subset_union) hg_span_basis
+  refine ⟨Iσ, basisOf, ?_, ?_⟩
+  · exact le_trans hData.span_le hG_span_le_union
+  · exact hbasis_card_bound
 
 /-- Functional bucket schema: assign each generator in `G` a profile id,
 then each profile bucket is the corresponding filter of `G`.

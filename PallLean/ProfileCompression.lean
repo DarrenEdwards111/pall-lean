@@ -35,11 +35,17 @@
   fixed-profile cover family for the compiled polynomial, the global
   `(log n + 1)^12` bound is derived theorem-level.
 
-  This file also exposes the smaller post-collapse surface
+This file also exposes the smaller post-collapse surface
   `profile_compression_rank_bound_of_withinProfileFinrankBound`, which routes
   through `WithinProfileBound.rank_bound_of_withinProfileFinrankBound` when a
   concrete compiled factor family and its within-profile finrank bound are
   available directly.
+
+It also now exposes the exact Cook-Levin-facing theorem surface
+`profile_compression_rank_bound_of_withinProfileFrontier`: the remaining
+post-collapse P-side obligation can be stated just as
+`WithinProfileBound.CookLevinWithinProfileFinrankFrontier`, with no extra
+factor-family or product-equality packaging in the theorem assumptions.
 
   The legacy compatibility theorem `profile_symmetric_power_factorization`
   still exists, but it currently reaches that bound through the older
@@ -279,6 +285,58 @@ theorem profile_compression_rank_bound_of_withinProfileFinrankBound
     _ ≤ (3 * Nat.log 2 n + 1) ^ 12 := by
         exact SymmetricPowerBound.combinedBound_le_totalProfileBound (Nat.log 2 n)
 
+/-- Exact Cook-Levin-facing frontier version of the profile-compression bound:
+    if the actual compiled factor list satisfies the reduced within-profile
+    frontier, then the `(3 * log_2 n + 1)^12` estimate follows formally. -/
+theorem profile_compression_rank_bound_of_withinProfileFrontier
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hfrontier : WithinProfileBound.CookLevinWithinProfileFinrankFrontier
+      M n hn htb hns) :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ totalProfileBound n := by
+  rw [totalProfileBound_eq]
+  calc
+    mlBlockedSpdpRank
+        (cook_levin_compilation M n hn htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn htb hns))
+      ≤ (Nat.log 2 n + 1) ^ 12 := by
+        simpa [SymmetricPowerBound.combinedProfileBound_eq] using
+          WithinProfileBound.cookLevin_combinedBound_of_withinProfileFrontier
+            M n hn htb hns hfrontier
+    _ ≤ (3 * Nat.log 2 n + 1) ^ 12 := by
+        exact SymmetricPowerBound.combinedBound_le_totalProfileBound (Nat.log 2 n)
+
+/-- Exact compiled-family version of the profile-compression bound: once the
+    single remaining theorem
+    `WithinProfileBound.CookLevinExactWithinProfileFinrankLemma` is supplied
+    for the actual Cook-Levin factor list with its canonical type labeling, the
+    `(3 * log_2 n + 1)^12` estimate is immediate. -/
+theorem profile_compression_rank_bound_of_exactWithinProfileLemma
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hexact : WithinProfileBound.CookLevinExactWithinProfileFinrankLemma
+      M n hn htb hns) :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ totalProfileBound n := by
+  rw [totalProfileBound_eq]
+  calc
+    mlBlockedSpdpRank
+        (cook_levin_compilation M n hn htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn htb hns))
+      ≤ (Nat.log 2 n + 1) ^ 12 := by
+        simpa [SymmetricPowerBound.combinedProfileBound_eq] using
+          WithinProfileBound.cookLevin_combinedBound_of_exactWithinProfileLemma
+            M n hn htb hns hexact
+    _ ≤ (3 * Nat.log 2 n + 1) ^ 12 := by
+        exact SymmetricPowerBound.combinedBound_le_totalProfileBound (Nat.log 2 n)
+
 /-- **Theorem** (Profile Compression, Paper §9, Theorem 23/92):
     The compiled polynomial of any P-time DTM has SPDP rank bounded by
     the total profile bound (3 * log_2 n + 1)^12.
@@ -362,22 +420,68 @@ theorem p_side_rank_bound_for_cook_levin_of_withinProfileFinrankBound
           M n hn htb hns factors constraintType hprod hbound
     _ ≤ n ^ 200 := totalProfileBound_le_pow n hn
 
+/-- Exact Cook-Levin-facing frontier version of the final P-side theorem:
+    once the actual compiled factor list satisfies
+    `CookLevinWithinProfileFinrankFrontier`, the `n^200` estimate follows with
+    no remaining wrapper assumptions. -/
+theorem p_side_rank_bound_for_cook_levin_of_withinProfileFrontier
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hfrontier : WithinProfileBound.CookLevinWithinProfileFinrankFrontier
+      M n hn htb hns) :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 := by
+  calc
+    mlBlockedSpdpRank
+        (cook_levin_compilation M n hn htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn htb hns))
+      ≤ totalProfileBound n :=
+        profile_compression_rank_bound_of_withinProfileFrontier
+          M n hn htb hns hfrontier
+    _ ≤ n ^ 200 := totalProfileBound_le_pow n hn
+
+/-- Exact compiled-family version of the final P-side theorem: once the single
+    missing theorem
+    `WithinProfileBound.CookLevinExactWithinProfileFinrankLemma` is proved, the
+    final `n^200` estimate for the compiled polynomial is purely formal. -/
+theorem p_side_rank_bound_for_cook_levin_of_exactWithinProfileLemma
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hexact : WithinProfileBound.CookLevinExactWithinProfileFinrankLemma
+      M n hn htb hns) :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 := by
+  calc
+    mlBlockedSpdpRank
+        (cook_levin_compilation M n hn htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn htb hns))
+      ≤ totalProfileBound n :=
+        profile_compression_rank_bound_of_exactWithinProfileLemma
+          M n hn htb hns hexact
+    _ ≤ n ^ 200 := totalProfileBound_le_pow n hn
+
 /-! ## Verification of the Overall Separation Architecture
 
     With `p_side_rank_bound_for_cook_levin` assembled from the HAL 9000
     decomposition, the exact remaining P-side content frontier is now the
-    bounded within-profile estimate:
+    compiled Cook-Levin within-profile theorem:
 
     1. Honest Step B frontier:
-       either produce `SymmetricPowerBound.HasFixedProfileCoverFamily` for the
-       compiled polynomial, or equivalently prove
-       `WithinProfileBound.BoundedWithinProfileFinrankClaim` /
-       `WithinProfileBound.WithinProfileFinrankBound` for a concrete compiled
-       factor family. For each bounded derivative-count profile `h`, this asks
-       that `allBoundedProfilePostSpan ... h` have finrank at most
-       `withinProfileBound κ = (κ+1)^8`. Once this is proved, the finite
-       profile cover and the global `(κ+1)^12` rank bound follow formally from
-       already-checked assembly lemmas.
+       prove
+       `WithinProfileBound.CookLevinExactWithinProfileFinrankLemma` for the
+       actual compiled factor list `cookLevinFactorList M n hn htb hns` with
+       its canonical type map `cookLevinConstraintType`.
+       The older existential wrapper
+       `WithinProfileBound.CookLevinWithinProfileFinrankFrontier` is now just
+       a repackaging of this exact compiled-family theorem. Once the exact
+       lemma is proved, the combined profile bound and the final `n^200` rank
+       estimate follow formally from already-checked assembly lemmas.
 
     All other components of the separation proof are fully proved:
     - Step A: local_interface_dim_bound (local interface spaces have O(1) dim)

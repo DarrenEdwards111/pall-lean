@@ -249,8 +249,9 @@ this branch; for the live obligation tracker, see `PROOF-OBLIGATIONS.md` and
 ### Route B (paper-faithful frontier + older contradiction shell): split status
 - Current unconditional contradiction shell: 1 custom axiom (KNOWN FALSE),
   0 sorry
-- The surviving custom frontier is `SymmetricPower.spdp_profile_generators`,
-  reached through `p_side_rank_bound_for_cook_levin`
+- The exact remaining compiled P-side frontier is now
+  `WithinProfileBound.CookLevinWithinProfileFinrankFrontier`, exposed through
+  `p_side_rank_bound_for_cook_levin_of_withinProfileFrontier`
 - `god_move_identity_minor_axiom` is a theorem declaration with only standard
   Lean axioms in its audit, but the current identity-style NP lower bound
   still applies to all DTMs
@@ -414,7 +415,9 @@ obtained after adding the separate generic rank-wrapper layer.
 `GodMoveSemanticGap` is only the convenience bundle around hard-instance data
 plus that witness, and the weakened separation shell still tracks the compiled
 side separately via `separation_from_weakened_routeB_via_decomposition` and the
-remaining `compiled_rank_bound` hypothesis.
+remaining compiled P-side hypothesis, which is best read at the exact theorem
+surface as `WithinProfileBound.CookLevinWithinProfileFinrankFrontier` rather
+than only as the downstream wrapper `compiled_rank_bound`.
 These assembly wrappers are shell-facing orientation lemmas, not that main
 Route B frontier. -/
 #print axioms axiom1_from_components
