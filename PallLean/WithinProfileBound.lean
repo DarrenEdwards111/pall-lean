@@ -1982,6 +1982,23 @@ def CookLevinProfileTouchedSpanDescentAtProfile
             (fun i => (cookLevinFactorList M n hn htb hns).get i)
             S shift touched ≤ W
 
+/-- A profile-only touched-part subspace of bounded finrank immediately yields
+one finite template family of the same profile-bounded size. This is the clean
+non-circular final step from touched-span descent to the raw-touched template
+family `G_h`. -/
+theorem cookLevinRawTouchedDerivTemplateSpanAtProfile_of_profileTouchedSpanDescentAtProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (h : ProfileHistogram)
+    (hdesc : CookLevinProfileTouchedSpanDescentAtProfile M n hn htb hns h) :
+    CookLevinRawTouchedDerivTemplateSpanAtProfile M n hn htb hns h := by
+  rcases hdesc with ⟨W, hfinW, hdimW, hW⟩
+  letI : Module.Finite ℚ ↥W := hfinW
+  rcases finite_submodule_le_span_finset_card_le_finrank W with ⟨G, hW_span, hG_card⟩
+  refine ⟨G, le_trans hG_card hdimW, ?_⟩
+  intro S hS shift hshift touched hcompat
+  exact le_trans (hW S hS shift hshift touched hcompat) hW_span
+
 /-- All-profile version of the raw-touched template-span frontier. -/
 def CookLevinRawTouchedDerivTemplateSpanLemma
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
