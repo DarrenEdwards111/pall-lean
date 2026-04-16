@@ -487,6 +487,211 @@ theorem godMoveConstructionSemanticGapTarget_of_decomposition
   rcases hgap with ⟨hvars_lt, hdecomp⟩
   exact ⟨hvars_lt, semantics_from_decomposition_obligation hdecomp⟩
 
+/-- Exact stage-packaging data needed to bridge an existing typed staged
+construction into the core semantic witness.
+
+This isolates the remaining work to the four extraction-facing items used by
+`ExtractionMapSemantics`: a concrete restriction stage, a projection stage over
+that restriction, the equality identifying the projection input with the
+restriction output, and the equality identifying the final projected polynomial
+with the staged output already packaged by `GodMoveConstruction`. -/
+structure GodMoveConstructionSemanticBridgeData
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hvars_lt : c.coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars) where
+  restriction : ExtractionRestrictionStage M n hn2 htb hns hdec
+  projection : ExtractionProjectionStage restriction.restrictedVars c.coupledVars
+  projection_input_matches : projection.inputPoly = restriction.restrictedPoly
+  output_is_staged_map :
+    projection.projectedPoly =
+      c.map.relabelFun
+        (c.map.projectFun
+          (c.map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+
+/-- A bridge-data witness instantiates the exact core semantic witness on the
+extraction target induced by the staged construction. -/
+noncomputable def GodMoveConstructionSemanticBridgeData.toSemantics
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : PaperFaithfulSeparation.DecidesSAT M}
+    {c : GodMoveConstruction M n hn2 htb hns}
+    {hvars_lt : c.coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars}
+    (bridge : GodMoveConstructionSemanticBridgeData hdec c hvars_lt) :
+    ExtractionMapSemantics M n hn2 htb hns hdec (c.toExtractionTarget hvars_lt) where
+  restriction := bridge.restriction
+  projection := bridge.projection
+  projection_input_matches := bridge.projection_input_matches
+  output_identification := by
+    calc
+      bridge.projection.projectedPoly
+          = c.map.relabelFun
+              (c.map.projectFun
+                (c.map.restrictFun
+                  (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) :=
+            bridge.output_is_staged_map
+      _ = (c.toExtractionTarget hvars_lt).coupledPoly :=
+            c.staged_semantic_exact_target hvars_lt
+
+/-- The exact remaining bridge theorem shape for a staged construction: produce
+the core stage witness on some strictly smaller extraction target induced by
+that construction. -/
+abbrev GodMoveConstructionSemanticBridgeTheorem
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (c : GodMoveConstruction M n hn2 htb hns) : Prop :=
+  ∃ hvars_lt : c.coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars,
+    ∃ _bridge : GodMoveConstructionSemanticBridgeData hdec c hvars_lt, True
+
+/-- The exact stage-packaging bridge theorem is enough to discharge the core
+semantic-gap target for the same staged construction. -/
+theorem godMoveConstructionSemanticGapTarget_of_bridge
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : PaperFaithfulSeparation.DecidesSAT M}
+    {c : GodMoveConstruction M n hn2 htb hns}
+    (hbridge : GodMoveConstructionSemanticBridgeTheorem hdec c) :
+    godMoveConstructionSemanticGapTarget hdec c := by
+  rcases hbridge with ⟨hvars_lt, bridge, _⟩
+  exact ⟨hvars_lt, ⟨bridge.toSemantics⟩⟩
+
+/-- Restriction-stage witness for the direct `GodMoveReal` to `GodMoveCore`
+semantic bridge. -/
+noncomputable def GodMoveConstruction.toExtractionRestrictionStage
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : PaperFaithfulSeparation.DecidesSAT M}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hrest_lt : c.map.restrictedVars < (cook_levin_compilation M n hn2 htb hns).numVars)
+    (restrictedPartition : BlockPartition c.map.restrictedVars)
+    (restriction_rank_mono : ∀ (κ ℓ : ℕ),
+      mlBlockedSpdpRank restrictedPartition κ ℓ
+          (c.map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ≤
+        mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition κ ℓ
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns))) :
+    ExtractionRestrictionStage M n hn2 htb hns hdec where
+  restrictedVars := c.map.restrictedVars
+  restrictedVars_lt := hrest_lt
+  restrictedPoly := c.map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+  restrictedPartition := restrictedPartition
+  is_specialization := c.map.restriction_is_constant_specialization
+  restriction_rank_mono := restriction_rank_mono
+
+/-- Projection-stage witness for the direct `GodMoveReal` to `GodMoveCore`
+semantic bridge. This packages the stage-2 data already implicit in the typed
+construction as the coupled-space projection record expected by
+`ExtractionMapSemantics`. -/
+noncomputable def GodMoveConstruction.toExtractionProjectionStage
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (projection_rank_mono :
+      ∀ (B_restricted : BlockPartition c.map.restrictedVars)
+        (B_coupled : BlockPartition c.coupledVars) (κ ℓ : ℕ),
+        mlBlockedSpdpRank B_coupled κ ℓ
+            (c.map.relabelFun
+              (c.map.projectFun
+                (c.map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns))))) ≤
+          mlBlockedSpdpRank B_restricted κ ℓ
+            (c.map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) :
+    ExtractionProjectionStage c.map.restrictedVars c.coupledVars where
+  inputPoly := c.map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+  projectedPoly := c.map.relabelFun
+    (c.map.projectFun
+      (c.map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+  is_coordinate_selection := c.map.projection_is_clause_sheet
+  projection_rank_mono := projection_rank_mono
+
+/-- Bridge-data packaging for the direct `GodMoveReal` semantic witness.
+
+This is the narrow stage-packaging step: once the restriction witness and the
+two monotonicity inputs are supplied, the bridge data needs only the explicit
+projection witness and the equality `projection.inputPoly = restriction.output`.
+-/
+noncomputable def godMoveConstructionSemanticBridgeDataOfSemantics
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : PaperFaithfulSeparation.DecidesSAT M}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hvars_lt : c.coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars)
+    (hrest_lt : c.map.restrictedVars < (cook_levin_compilation M n hn2 htb hns).numVars)
+    (restrictedPartition : BlockPartition c.map.restrictedVars)
+    (restriction_rank_mono : ∀ (κ ℓ : ℕ),
+      mlBlockedSpdpRank restrictedPartition κ ℓ
+          (c.map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ≤
+        mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition κ ℓ
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
+    (projection_rank_mono :
+      ∀ (B_restricted : BlockPartition c.map.restrictedVars)
+        (B_coupled : BlockPartition c.coupledVars) (κ ℓ : ℕ),
+        mlBlockedSpdpRank B_coupled κ ℓ
+            (c.map.relabelFun
+              (c.map.projectFun
+                (c.map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns))))) ≤
+          mlBlockedSpdpRank B_restricted κ ℓ
+            (c.map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) :
+    GodMoveConstructionSemanticBridgeData hdec c hvars_lt where
+  restriction :=
+    c.toExtractionRestrictionStage hrest_lt restrictedPartition restriction_rank_mono
+  projection := c.toExtractionProjectionStage projection_rank_mono
+  projection_input_matches := rfl
+  output_is_staged_map := rfl
+
+/-- Package a typed staged construction directly as the narrowed semantic-core
+witness on its exact extraction target.
+
+This bypasses `ExtractionMapDecomposition`: once the restriction-stage data,
+the projection/relabel rank wrapper, and the staged output identification are
+available on the typed construction, the core route only needs the resulting
+`ExtractionMapSemantics`. -/
+noncomputable def GodMoveConstruction.toExtractionMapSemantics
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : PaperFaithfulSeparation.DecidesSAT M}
+    (c : GodMoveConstruction M n hn2 htb hns)
+    (hvars_lt : c.coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars)
+    (hrest_lt : c.map.restrictedVars < (cook_levin_compilation M n hn2 htb hns).numVars)
+    (restrictedPartition : BlockPartition c.map.restrictedVars)
+    (restriction_rank_mono : ∀ (κ ℓ : ℕ),
+      mlBlockedSpdpRank restrictedPartition κ ℓ
+          (c.map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ≤
+        mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition κ ℓ
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
+    (projection_rank_mono :
+      ∀ (B_restricted : BlockPartition c.map.restrictedVars)
+        (B_coupled : BlockPartition c.coupledVars) (κ ℓ : ℕ),
+        mlBlockedSpdpRank B_coupled κ ℓ
+            (c.map.relabelFun
+              (c.map.projectFun
+                (c.map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns))))) ≤
+          mlBlockedSpdpRank B_restricted κ ℓ
+            (c.map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) :
+    ExtractionMapSemantics M n hn2 htb hns hdec (c.toExtractionTarget hvars_lt) :=
+  (godMoveConstructionSemanticBridgeDataOfSemantics c hvars_lt hrest_lt
+    restrictedPartition restriction_rank_mono projection_rank_mono).toSemantics
+
+/-- A direct semantic-core witness on the typed staged construction fills the
+exact semantic-gap target without routing through a decomposition wrapper. -/
+theorem godMoveConstructionSemanticGapTarget_of_semantics
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : PaperFaithfulSeparation.DecidesSAT M}
+    {c : GodMoveConstruction M n hn2 htb hns}
+    (hvars_lt : c.coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars)
+    (hrest_lt : c.map.restrictedVars < (cook_levin_compilation M n hn2 htb hns).numVars)
+    (restrictedPartition : BlockPartition c.map.restrictedVars)
+    (restriction_rank_mono : ∀ (κ ℓ : ℕ),
+      mlBlockedSpdpRank restrictedPartition κ ℓ
+          (c.map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ≤
+        mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition κ ℓ
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
+    (projection_rank_mono :
+      ∀ (B_restricted : BlockPartition c.map.restrictedVars)
+        (B_coupled : BlockPartition c.coupledVars) (κ ℓ : ℕ),
+        mlBlockedSpdpRank B_coupled κ ℓ
+            (c.map.relabelFun
+              (c.map.projectFun
+                (c.map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns))))) ≤
+          mlBlockedSpdpRank B_restricted κ ℓ
+            (c.map.restrictFun (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) :
+    godMoveConstructionSemanticGapTarget hdec c := by
+  refine ⟨hvars_lt, ?_⟩
+  exact ⟨c.toExtractionMapSemantics hvars_lt hrest_lt restrictedPartition
+    restriction_rank_mono projection_rank_mono⟩
+
 /-- Any witness of the exact semantic-gap target gives the extracted rank
 transfer on the same exact target once the separate rank wrappers are supplied
 for that staged semantic witness. -/

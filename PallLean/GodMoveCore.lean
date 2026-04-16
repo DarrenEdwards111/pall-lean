@@ -1188,11 +1188,67 @@ theorem routeB_weakened_np_from_pdMatrix
       mlBlockedSpdpRank d.blockPart (Nat.log 2 n) (Nat.log 2 n) d.poly :=
   le_trans d.pd_lower d.pd_to_blocked_transfer
 
-/-- The weakened Route B contradiction can be stated directly on exact semantic
-target data, without rebuilding the convenience bundle
-`GodMoveSemanticGap`. This is the post-packaging paper-faithful endpoint:
-exact target data, the staged semantic theorem on that target, the separate
-NP-side lower bound on the same target, and the generic rank wrappers. -/
+/-- The weakened Route B contradiction can be stated directly on a chosen exact
+extraction target.
+
+This is the smallest paper-faithful contradiction shell above the semantic
+core: a chosen target, the staged semantic witness on that target, the
+separate NP-side lower bound on that same target, and the generic rank
+wrappers. No `GodMoveSemanticGap` packaging is required. -/
+theorem separation_from_semantic_target
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) (hn804 : n ≥ 2 ^ 804)
+    (target : GodMoveExtractionTarget M n hn2 htb hns)
+    (hsem : GodMoveExtractionSemanticObligation M n hn2 htb hns hdec target)
+    (np_lower : n ^ (Nat.log 2 n / 4) ≤
+      mlBlockedSpdpRank target.coupledPartition
+        (Nat.log 2 n) (Nat.log 2 n) target.coupledPoly)
+    (bridge :
+      ∀ sem : ExtractionMapSemantics M n hn2 htb hns hdec target,
+        ExtractionMapRankBridge sem)
+    (hP : mlBlockedSpdpRank
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn2 htb hns)) ≤ n ^ 200) :
+    False := by
+  have extraction :
+      GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec target := by
+    rcases hsem with ⟨sem⟩
+    exact extraction_from_semantics sem (bridge sem)
+  have hchain : n ^ (Nat.log 2 n / 4) ≤ n ^ 200 :=
+    le_trans np_lower (le_trans extraction hP)
+  have hlog : 804 ≤ Nat.log 2 n :=
+    Nat.le_log_of_pow_le (by norm_num : 1 < 2) hn804
+  have hdiv : 201 ≤ Nat.log 2 n / 4 := by omega
+  have hcontra : n ^ 201 ≤ n ^ 200 :=
+    le_trans (Nat.pow_le_pow_right (by omega : 1 ≤ n) hdiv) hchain
+  exact absurd hcontra
+    (not_le_of_gt (Nat.pow_lt_pow_right (by omega : 1 < n) (by omega : 200 < 201)))
+
+/-- The semantic gap convenience bundle feeds the same direct weakened
+contradiction shell once the separate NP-side lower bound is supplied on its
+chosen target. -/
+theorem separation_from_semantic_gap
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) (hn804 : n ≥ 2 ^ 804)
+    (gap : GodMoveSemanticGap M n hn2 htb hns hdec)
+    (np_lower : n ^ (Nat.log 2 n / 4) ≤
+      mlBlockedSpdpRank gap.extractionTarget.coupledPartition
+        (Nat.log 2 n) (Nat.log 2 n) gap.extractionTarget.coupledPoly)
+    (bridge :
+      ∀ sem : ExtractionMapSemantics M n hn2 htb hns hdec gap.extractionTarget,
+        ExtractionMapRankBridge sem)
+    (hP : mlBlockedSpdpRank
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn2 htb hns)) ≤ n ^ 200) :
+    False := by
+  exact separation_from_semantic_target M n hn2 htb hns hdec hn804
+    gap.extractionTarget gap.extractionSemantics np_lower bridge hP
+
+/-- Compatibility wrapper around `separation_from_semantic_target` that keeps
+the exact target-data package explicit while the surrounding API still talks in
+terms of `GodMoveExtractionTargetData`. -/
 theorem separation_from_semantic_target_theorem
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M) (hn804 : n ≥ 2 ^ 804)
@@ -1209,14 +1265,13 @@ theorem separation_from_semantic_target_theorem
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPoly (cook_levin_compilation M n hn2 htb hns)) ≤ n ^ 200) :
     False := by
-  exact separation_from_weakened_routeB M n hn2 htb hns hdec hn804
-    (targetData.toRouteB_WeakenedObligations np_lower)
-    (targetData.extraction hsem bridge) hP
+  exact separation_from_semantic_target M n hn2 htb hns hdec hn804
+    targetData.extractionTarget hsem np_lower bridge hP
 
 /-- The final weakened contradiction can be phrased directly against the exact
 semantic extraction theorem itself. This is smaller than going through
-`GodMoveSemanticGap`: the theorem just unpacks the existentially chosen
-target data and applies `separation_from_semantic_target_theorem`. -/
+`GodMoveSemanticGap`: the theorem just unpacks the existentially chosen target
+and applies `separation_from_semantic_target`. -/
 theorem separation_from_semantic_extraction_theorem
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M) (hn804 : n ≥ 2 ^ 804)
@@ -1236,8 +1291,8 @@ theorem separation_from_semantic_extraction_theorem
       (compiledPoly (cook_levin_compilation M n hn2 htb hns)) ≤ n ^ 200) :
     False := by
   rcases hsem with ⟨targetData, htarget⟩
-  exact separation_from_semantic_target_theorem M n hn2 htb hns hdec hn804
-    targetData htarget (np_lower targetData) (bridge targetData) hP
+  exact separation_from_semantic_target M n hn2 htb hns hdec hn804
+    targetData.extractionTarget htarget (np_lower targetData) (bridge targetData) hP
 
 /-! ## Axiom audits for Route B theorems -/
 
@@ -1252,6 +1307,10 @@ theorem separation_from_semantic_extraction_theorem
 #print axioms routeB_weakened_np_from_pdMatrix
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
 -- Pure arithmetic chain from RouteBNPFromPdMatrix data.
+
+#print axioms separation_from_semantic_target
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+-- Direct exact-target contradiction shell above the semantic witness.
 
 #print axioms separation_from_semantic_extraction_theorem
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
@@ -1270,8 +1329,10 @@ theorem separation_from_semantic_extraction_theorem
    (`GodMoveSemanticTheorem` remains as a compatibility alias indexed by
    `GodMoveHardInstanceData`)
 3. **Compiled-side transfer packaging**
-   (`separation_from_weakened_routeB_via_decomposition` removes the extra
-   rank-transfer hypothesis once 2 is supplied)
+   (`separation_from_semantic_target`,
+   `separation_from_semantic_gap`,
+   and `separation_from_weakened_routeB_via_decomposition` are now the direct
+   contradiction wrappers above the semantic core)
 4. **P-side** (`compiled_rank_bound`): BP compilation axiom
 -/
 

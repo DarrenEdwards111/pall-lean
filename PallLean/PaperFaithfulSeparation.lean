@@ -302,6 +302,113 @@ staged restriction/projection witness for a non-trivial coupled-sheet target on
 which the separate NP lower bound applies.
 -/
 
+private theorem disjoint_3cnf_family_formula_satisfiable (m : ℕ) :
+    (disjoint_3cnf_family.formulas m).IsSatisfiable := by
+  refine ⟨fun _ => true, ?_⟩
+  intro c hc
+  exact Or.inl rfl
+
+private theorem disjoint_3cnf_family_formula_encodingSize (m : ℕ) :
+    (disjoint_3cnf_family.formulas m).encodingSize = 6 * m := by
+  simp [disjoint_3cnf_family, ThreeCNF.encodingSize]
+  ring
+
+private theorem disjoint_3cnf_family_formula_budget (n : ℕ) :
+    (disjoint_3cnf_family.formulas (n / 6)).encodingSize ≤ n := by
+  rw [disjoint_3cnf_family_formula_encodingSize]
+  omega
+
+private theorem disjoint_3cnf_family_formula_size (n : ℕ) :
+    let φ := disjoint_3cnf_family.formulas (n / 6)
+    φ.clauses.length ≤ 10 * n ∧ n / 30 ≤ φ.clauses.length := by
+  dsimp
+  simp [disjoint_3cnf_family]
+  omega
+
+/-- Bridge from a `GodMoveReal` exact semantic-gap witness to the core
+existential extraction theorem.
+
+This theorem is the minimal honest handoff from the concrete `GodMoveReal`
+construction layer to the exact theorem seam in `GodMoveCore.lean`: once a
+chosen staged construction supplies the exact semantic witness on some strict
+extraction target, the remaining hard-instance bookkeeping can be attached
+canonically using the disjoint 3-CNF family already available in this file. -/
+theorem semantic_extraction_theorem_of_godMoveConstructionSemanticGapTarget
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (hdec : DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (c : GodMoveReal.GodMoveConstruction M n hn2 htb hns)
+    (hgap : GodMoveReal.godMoveConstructionSemanticGapTarget hdec c) :
+    GodMoveSemanticExtractionTheorem M n hn2 htb hns hdec := by
+  rcases hgap with ⟨hvars_lt, hsem⟩
+  refine ⟨{
+    hardInstance := disjoint_3cnf_family.formulas (n / 6)
+    hardInstance_satisfiable := disjoint_3cnf_family_formula_satisfiable (n / 6)
+    hardInstance_fits_input := disjoint_3cnf_family_formula_budget n
+    hardInstance_size := disjoint_3cnf_family_formula_size n
+    extractionTarget := c.toExtractionTarget hvars_lt
+  }, ?_⟩
+  simpa using hsem
+
+/-- Exact compiled-space lower bound from the paper-faithful staged target
+theorem.
+
+This is the cleaned-up Route B theorem movement after the exact-target
+interface split in `GodMoveCore.lean`:
+
+- `DecidesSAT` is load-bearing only through
+  `GodMoveExtractionTargetTheorem`, which supplies the staged
+  restriction/projection witness on a chosen extraction target.
+- The NP-side lower bound on that same target is separate data.
+- `ExtractionMapRankBridge` is separate monotonicity packaging over the staged
+  witness; it is not extra semantic content coming from `DecidesSAT`. -/
+theorem compiled_lower_bound_from_semantic_target_theorem
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (hdec : DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec)
+    (hsem : GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData)
+    (np_lower :
+      Nat.choose (n / 3) (Nat.log 2 n) ≤
+        mlBlockedSpdpRank targetData.extractionTarget.coupledPartition
+          (Nat.log 2 n) (Nat.log 2 n) targetData.extractionTarget.coupledPoly)
+    (bridge :
+      ∀ sem : ExtractionMapSemantics M n hn2 htb hns hdec targetData.extractionTarget,
+          ExtractionMapRankBridge sem) :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns)) := by
+  exact le_trans np_lower (targetData.extraction hsem bridge)
+
+/-- Weakened compiled-space lower bound from the exact staged target theorem.
+
+This is the theorem-shaped form of the current load-bearing role of
+`DecidesSAT`: once the staged semantic witness exists on a chosen extraction
+target, any separate weakened NP-side lower bound on that target transfers back
+to the compiled polynomial via the generic rank wrappers. -/
+theorem compiled_lower_bound_weakened_from_semantic_target_theorem
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (hdec : DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec)
+    (hsem : GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData)
+    (np_lower :
+      n ^ (Nat.log 2 n / 4) ≤
+        mlBlockedSpdpRank targetData.extractionTarget.coupledPartition
+          (Nat.log 2 n) (Nat.log 2 n) targetData.extractionTarget.coupledPoly)
+    (bridge :
+      ∀ sem : ExtractionMapSemantics M n hn2 htb hns hdec targetData.extractionTarget,
+          ExtractionMapRankBridge sem) :
+    n ^ (Nat.log 2 n / 4) ≤
+      mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns)) := by
+  exact le_trans np_lower (targetData.extraction hsem bridge)
+
 /-- Compatibility wrapper around the narrowed Route B semantic seam.
 
 The exact paper-faithful Route B frontier on this branch is now the split
@@ -312,6 +419,9 @@ theorem movement from `GodMoveCore.lean`:
 - `ExtractionMapRankBridge` is the separate monotonicity wrapper layer
 - `extraction_from_semantics` is the composition theorem that turns those two
   ingredients into `GodMoveRouteB_ExtractionObligation`
+
+The theorem `compiled_lower_bound_from_semantic_target_theorem` above is the
+exact compiled-side consequence of that split seam on chosen target data.
 
 This older interface is retained only as a separation-facing wrapper while the
 typed construction in `GodMoveReal.lean` is still exported through the legacy
