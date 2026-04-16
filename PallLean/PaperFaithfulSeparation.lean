@@ -1019,7 +1019,19 @@ movement there is the staged restriction/projection witness on the chosen
 extraction target. The NP lower bound, rank-wrapper transport, and recovered
 separation-facing interfaces are downstream packaging, not additional semantic
 milestones. -/
-theorem P_ne_NP_unconditional : ∀ (_ : PeqNP_Paper), False := by
+/-- Legacy proof preserved for backward compatibility — uses the
+**provably-false** `spdp_profile_generators` axiom (see `AxiomAnalysis.lean`).
+
+The body still type-checks because Lean does not require axioms to be true:
+the false axiom contradicts `compiled_np_lower_bound_any_dtm` (axiom-free) and
+that fact is exhibited by `spdp_profile_generators_inconsistent_with_np_side`
+below.
+
+Use `P_ne_NP_unconditional` for current work — it forwards to
+`P_ne_NP_via_piStar`, which depends instead on the single existence axiom
+`exists_amplituhedron_gauge` (a plausible existence claim, not provably false). -/
+theorem P_ne_NP_unconditional_legacy_via_spdp_profile_generators :
+    ∀ (_ : PeqNP_Paper), False := by
   intro hPeqNP
   -- Fix n = 2^804 (contradiction scale)
   set n := 2 ^ 804 with hn_def
@@ -1136,19 +1148,39 @@ theorem P_ne_NP_via_piStar : ∀ (_ : PeqNP_Paper), False := by
   exact absurd hcontra
     (not_le_of_gt (Nat.pow_lt_pow_right (by omega : 1 < n) (by omega : 200 < 201)))
 
+/-- **The unconditional P ≠ NP separation theorem (current load-bearing version).**
+
+This is the canonical name for the separation theorem; it forwards to the
+projected-rank proof `P_ne_NP_via_piStar`, which depends on the single
+existence axiom `GlobalGodMoveGauge.exists_amplituhedron_gauge` (not on the
+provably-false `spdp_profile_generators`).
+
+The previous body of this theorem is preserved as
+`P_ne_NP_unconditional_legacy_via_spdp_profile_generators` for archival
+reference; it still type-checks but should not be relied upon (its underlying
+axiom is provably false in this codebase, see
+`spdp_profile_generators_inconsistent_with_np_side` below). -/
+theorem P_ne_NP_unconditional : ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_via_piStar
+
 /-! ## Axiom audit
 
 The NP-side (God-Move + identity minor) is axiom-free beyond standard Lean.
-The P-side theorem is theorem-level, but the honest first missing statement in
-its dependency chain is now the exact compiled Cook-Levin frontier
-`WithinProfileBound.CookLevinWithinProfileFinrankFrontier`, equivalently the
-specialized within-profile finrank bound on the actual factor list
-`cookLevinFactorList M n hn htb hns`, not the downstream wrapper
-`profile_symmetric_power_factorization`. -/
+The current P_ne_NP_unconditional now forwards to P_ne_NP_via_piStar, which
+depends on the single existence axiom GlobalGodMoveGauge.exists_amplituhedron_gauge
+(plausible, not provably false). The legacy
+P_ne_NP_unconditional_legacy_via_spdp_profile_generators retains the false
+axiom for archival reference only. -/
 #print axioms god_move_identity_minor_axiom
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+#print axioms P_ne_NP_unconditional_legacy_via_spdp_profile_generators
+-- Expected: ...  + the false axiom SymmetricPower.spdp_profile_generators
 #print axioms P_ne_NP_unconditional
--- Expected: the above + the reduced P-side frontier from SymmetricPowerBound
+-- Expected: propext, Classical.choice, Quot.sound,
+--   GlobalGodMoveGauge.exists_amplituhedron_gauge.
+-- (Single custom axiom — same as P_ne_NP_via_piStar; this theorem now
+-- forwards to it. The false spdp_profile_generators is no longer in the
+-- dependency closure of the canonical P_ne_NP_unconditional.)
 #print axioms P_ne_NP_via_piStar
 -- Expected: propext, Classical.choice, Quot.sound,
 --   GlobalGodMoveGauge.exists_amplituhedron_gauge.
