@@ -1872,6 +1872,33 @@ theorem godMoveConstruction_exists_is_canonical_target
     (godMoveConstruction_exists M n hn hdec htb hns).map.block_local
   simp [godMoveConstruction_exists]
 
+/-- The identity placeholder construction uses the full compiled ambient space
+as its coupled target. -/
+@[simp] theorem godMoveConstruction_exists_same_space
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    (godMoveConstruction_exists M n hn hdec htb hns).coupledVars =
+      (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars := by
+  simp [godMoveConstruction_exists]
+
+/-- The identity placeholder cannot supply strict-shrink bridge data, because
+it never leaves the compiled ambient space. -/
+theorem godMoveConstruction_exists_not_semanticBridge
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ GodMoveConstructionSemanticBridgeTheorem hdec
+        (godMoveConstruction_exists M n hn hdec htb hns) := by
+  exact godMoveConstruction_not_semanticBridge_of_same_space
+    (M := M) (n := n) (hn2 := by omega) (htb := htb) (hns := hns) (hdec := hdec)
+    (c := godMoveConstruction_exists M n hn hdec htb hns)
+    (godMoveConstruction_exists_same_space M n hn hdec htb hns)
+
 /-- The identity construction admits the obvious zero remainder witness.
 
 This does not yet build `GodMoveZeroRemainderData`; it only confirms that the
@@ -3502,6 +3529,343 @@ theorem godMoveConstruction_firstBehaviorPerturbation_semanticGapTarget_false
     (c := godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns)
     (godMoveConstruction_firstBehaviorPerturbation_same_space M n hn hdec htb hns)
 
+/-- First strict-shrink typed map obtained by keeping the genuine restriction
+perturbation but collapsing the later stages to the zero polynomial on the
+empty coupled space. -/
+noncomputable def godMoveTypedMap_firstBehaviorStrictShrink
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveTypedMap
+      (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars
+      0 :=
+  let T := cook_levin_compilation M n (by omega : n ≥ 2) htb hns
+  let projectionData : GodMoveProjectionData T.numVars := {
+    clauseSheetVars := ∅
+    keptVars := ∅
+    projectedVars := 0
+    coordinateMap := Fin.elim0
+    keptVarEmbedding := Fin.elim0
+    projectedCoordinates := ∅
+    droppedCoordinates := Finset.univ
+    selects_clause_sheet_coordinates := True
+    discards_non_clause_sheet_coordinates := True
+    keptVars_match_clauseSheetVars := True
+    coordinateMap_hits_keptVars := True
+    projectedCoordinates_match_embedding := True
+    droppedCoordinates_complement_projection := True
+  }
+  let relabelData : GodMoveRelabelData 0 0 := {
+    sourceBlocks := 0
+    targetBlocks := 0
+    sourceBlockMap := Fin.elim0
+    targetBlockMap := Fin.elim0
+    variableRelabel := Fin.elim0
+    normalizedVarEmbedding := Fin.elim0
+    normalizedCoordinates := Finset.univ
+    normalizationScalars := Fin.elim0
+    respects_block_locality := True
+    is_basis_normalization := True
+    is_instance_uniform_relabeling := True
+    variableRelabel_respects_blocks := True
+    source_target_blocks_cohere := True
+    normalizedCoordinates_match_relabel := True
+  }
+  {
+    restrictionData := godMoveRestrictionData_firstPerturbation M n hn hdec htb hns
+    restrictedVars := T.numVars
+    projectionData := projectionData
+    restrictFun := godMoveRestrictFun_firstPerturbation M n hn hdec htb hns
+    projectFun := fun _ => 0
+    relabelData := relabelData
+    relabelFun := id
+    toFun := fun _ => 0
+    factors_through := fun _ => rfl
+    restriction_is_constant_specialization := True
+    projection_is_clause_sheet := True
+    relabel_is_block_local_normalization := True
+    instance_uniform := True
+    witness_free := True
+    block_local := True
+    instance_uniform_coheres_with_relabel := True
+    witness_free_coheres_with_restriction := True
+    block_local_coheres_with_projection_relabel := True
+  }
+
+/-- The strict-shrink typed map still has a genuinely non-identity restriction
+stage, so it remains honestly post-identity even though its coupled output is
+collapsed to the empty variable space. -/
+theorem godMoveTypedMap_firstBehaviorStrictShrink_is_nonidentity
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveRestrictionFunctionNonidentityTarget M n hn hdec htb hns
+      (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars
+      0
+      (godMoveTypedMap_firstBehaviorStrictShrink M n hn hdec htb hns) := by
+  let T := cook_levin_compilation M n (by omega : n ≥ 2) htb hns
+  let v0 : Fin T.numVars := ⟨0, cookLevin_numVars_pos M n hn htb hns⟩
+  refine ⟨rfl, X v0, ?_⟩
+  simpa [godMoveTypedMap_firstBehaviorStrictShrink] using
+    godMoveRestrictFun_firstPerturbation_nontrivial M n hn hdec htb hns
+
+/-- Canonical strict-shrink post-identity construction. The restriction stage
+is the live behavior perturbation, while the coupled target is the zero
+polynomial on the empty variable space. -/
+noncomputable def godMoveConstruction_firstBehaviorStrictShrink
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveConstruction M n (by omega : n ≥ 2) htb hns := by
+  let map := godMoveTypedMap_firstBehaviorStrictShrink M n hn hdec htb hns
+  let target : GodMoveTypedTarget 0 := {
+    partition := { numBlocks := 0, assign := Fin.elim0 }
+    poly := 0
+  }
+  refine {
+    coupledVars := 0
+    map := map
+    target := target
+    staged_semantic_target := ?_
+  }
+  unfold godMoveStagedExtractionTarget
+  rfl
+
+@[simp] theorem godMoveConstruction_firstBehaviorStrictShrink_coupledVars
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    (godMoveConstruction_firstBehaviorStrictShrink M n hn hdec htb hns).coupledVars = 0 := by
+  simp [godMoveConstruction_firstBehaviorStrictShrink]
+
+/-- The strict-shrink construction is canonical in the same paper-facing sense
+as the other route-B witnesses. -/
+theorem godMoveConstruction_firstBehaviorStrictShrink_is_canonical_target
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveConstructionCanonicalTarget
+      (godMoveConstruction_firstBehaviorStrictShrink M n hn hdec htb hns) := by
+  change
+    (godMoveConstruction_firstBehaviorStrictShrink M n hn hdec htb hns).map.instance_uniform ∧
+    (godMoveConstruction_firstBehaviorStrictShrink M n hn hdec htb hns).map.witness_free ∧
+    (godMoveConstruction_firstBehaviorStrictShrink M n hn hdec htb hns).map.block_local
+  simp [godMoveConstruction_firstBehaviorStrictShrink, godMoveTypedMap_firstBehaviorStrictShrink]
+
+/-- The strict-shrink construction is genuinely post-identity at the
+restriction stage. -/
+theorem godMoveConstruction_firstBehaviorStrictShrink_is_restriction_perturbation_candidate
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveRestrictionPerturbationCandidateTarget M n hn hdec htb hns
+      (godMoveConstruction_firstBehaviorStrictShrink M n hn hdec htb hns) := by
+  refine ⟨
+    godMoveConstruction_firstBehaviorStrictShrink_is_canonical_target M n hn hdec htb hns,
+    ?_⟩
+  change (godMoveTypedMap_firstBehaviorStrictShrink M n hn hdec htb hns).restrictionData ≠
+    (godMoveConstruction_exists M n hn hdec htb hns).map.restrictionData
+  exact godMoveRestrictionData_firstPerturbation_ne_identity M n hn hdec htb hns
+
+/-- The strict-shrink construction has the coupled-space inequality required by
+the exact extraction target. -/
+theorem godMoveConstruction_firstBehaviorStrictShrink_coupledVars_lt
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    (godMoveConstruction_firstBehaviorStrictShrink M n hn hdec htb hns).coupledVars <
+      (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars := by
+  simp [godMoveConstruction_firstBehaviorStrictShrink, cookLevin_numVars_pos M n hn htb hns]
+
+/-- Bridge data for the canonical strict-shrink construction. The bridge uses a
+zero restriction/projection witness on the empty variable space, which is
+enough because the staged map of the construction already lands at `0`. -/
+noncomputable def godMoveConstruction_firstBehaviorStrictShrink_semanticBridgeData
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveConstructionSemanticBridgeData hdec
+      (godMoveConstruction_firstBehaviorStrictShrink M n hn hdec htb hns)
+      (godMoveConstruction_firstBehaviorStrictShrink_coupledVars_lt M n hn hdec htb hns) where
+  restriction := {
+    restrictedVars := 0
+    restrictedVars_lt := by
+      simpa using cookLevin_numVars_pos M n hn htb hns
+    restrictedPoly := 0
+    restrictedPartition := { numBlocks := 0, assign := Fin.elim0 }
+    is_specialization := True
+    restriction_rank_mono := by
+      intro κ ℓ
+      rw [mlBlockedSpdpRank_zero]
+      exact Nat.zero_le _
+  }
+  projection := {
+    inputPoly := 0
+    projectedPoly := 0
+    is_coordinate_selection := True
+    projection_rank_mono := by
+      intro B_restricted B_coupled κ ℓ
+      rw [mlBlockedSpdpRank_zero, mlBlockedSpdpRank_zero]
+  }
+  projection_input_matches := rfl
+  output_is_staged_map := by
+    rfl
+
+/-- The canonical strict-shrink construction carries the bridge package needed
+by the exact semantic-gap target. -/
+theorem godMoveConstruction_firstBehaviorStrictShrink_semanticBridge
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    GodMoveConstructionSemanticBridgeTheorem hdec
+      (godMoveConstruction_firstBehaviorStrictShrink M n hn hdec htb hns) := by
+  refine ⟨
+    godMoveConstruction_firstBehaviorStrictShrink_coupledVars_lt M n hn hdec htb hns,
+    godMoveConstruction_firstBehaviorStrictShrink_semanticBridgeData M n hn hdec htb hns,
+    trivial⟩
+
+/-- The canonical strict-shrink construction already fills the exact semantic
+gap target. -/
+theorem godMoveConstruction_firstBehaviorStrictShrink_semanticGapTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveConstructionSemanticGapTarget hdec
+      (godMoveConstruction_firstBehaviorStrictShrink M n hn hdec htb hns) := by
+  exact godMoveConstructionSemanticGapTarget_of_bridge
+    (godMoveConstruction_firstBehaviorStrictShrink_semanticBridge M n hn hdec htb hns)
+
+/-- Restriction-first strict-shrink target on a concrete construction.
+
+This isolates the genuinely smaller restriction-stage milestone before asking
+for any coupled-target shrink or semantic bridge data. -/
+def godMoveRestrictionStrictShrinkCandidateTarget
+    (M : DTM) (n : ℕ)
+    (_hn : n ≥ 2 ^ 804)
+    (_hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) : Prop :=
+  godMoveConstructionCanonicalTarget c ∧
+  c.map.restrictedVars < (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars
+
+/-- Existential packaging of the restriction-first strict-shrink milestone. -/
+def godMoveRestrictionStrictShrinkWitnessTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) : Prop :=
+  ∃ c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns,
+    godMoveRestrictionStrictShrinkCandidateTarget M n hn hdec htb hns c
+
+/-- Restriction-first to coupled-target strict-shrink target.
+
+Once the restriction stage is genuinely smaller, the next theorem movement is
+to realize a construction whose coupled target is also strictly smaller, before
+adding the exact semantic bridge fields. -/
+def godMoveRestrictionStrictShrinkThenCoupledShrinkCandidateTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns) : Prop :=
+  godMoveRestrictionStrictShrinkCandidateTarget M n hn hdec htb hns c ∧
+  c.coupledVars < (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars
+
+/-- Existential packaging of the restriction-first coupled-shrink milestone. -/
+def godMoveRestrictionStrictShrinkThenCoupledShrinkWitnessTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) : Prop :=
+  ∃ c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns,
+    godMoveRestrictionStrictShrinkThenCoupledShrinkCandidateTarget
+      M n hn hdec htb hns c
+
+/-- Any restriction-first candidate whose coupled target is also strictly
+smaller is, in particular, a restriction strict-shrink candidate. -/
+theorem godMoveRestrictionStrictShrinkThenCoupledShrinkCandidateTarget_implies_restriction
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    {c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns}
+    (h :
+      godMoveRestrictionStrictShrinkThenCoupledShrinkCandidateTarget
+        M n hn hdec htb hns c) :
+    godMoveRestrictionStrictShrinkCandidateTarget M n hn hdec htb hns c :=
+  h.1
+
+/-- The existential restriction-first coupled-shrink target refines the
+restriction-only strict-shrink target. -/
+theorem godMoveRestrictionStrictShrinkThenCoupledShrinkWitnessTarget_implies_restriction
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (h :
+      godMoveRestrictionStrictShrinkThenCoupledShrinkWitnessTarget
+        M n hn hdec htb hns) :
+    godMoveRestrictionStrictShrinkWitnessTarget M n hn hdec htb hns := by
+  rcases h with ⟨c, hc⟩
+  exact ⟨c, hc.1⟩
+
+/-- Even the new zero-coupled strict-shrink construction does not solve the
+restriction-first problem: its restriction ambient space is still definitionally
+the full compiled space. -/
+theorem godMoveConstruction_firstBehaviorStrictShrink_not_restrictionStrictShrinkCandidate
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ godMoveRestrictionStrictShrinkCandidateTarget M n hn hdec htb hns
+        (godMoveConstruction_firstBehaviorStrictShrink M n hn hdec htb hns) := by
+  intro h
+  have hlt := h.2
+  simp [godMoveConstruction_firstBehaviorStrictShrink, godMoveTypedMap_firstBehaviorStrictShrink] at hlt
+
+/-- Consequently, the current zero-coupled construction also misses the
+restriction-first-to-coupled-shrink target: it shrinks the coupled side, but
+not by first shrinking the restriction stage itself. -/
+theorem godMoveConstruction_firstBehaviorStrictShrink_not_restrictionStrictShrinkThenCoupledShrinkCandidate
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ godMoveRestrictionStrictShrinkThenCoupledShrinkCandidateTarget
+        M n hn hdec htb hns
+        (godMoveConstruction_firstBehaviorStrictShrink M n hn hdec htb hns) := by
+  intro h
+  exact godMoveConstruction_firstBehaviorStrictShrink_not_restrictionStrictShrinkCandidate
+    M n hn hdec htb hns h.1
+
 /-- Exact remaining upgrade target on the first explicit post-identity Route B
 construction.
 
@@ -3697,6 +4061,96 @@ theorem godMoveLivePostIdentityWitnessTarget_holds
     godMoveCanonicalOneStageWitnessTarget_holds M n hn hdec htb hns,
     godMoveRestrictionPerturbationWitnessTarget_holds M n hn hdec htb hns⟩
 
+/-- Exact stronger strict-shrink construction schema needed by the semantic
+bridge.
+
+This is stronger than bare `GodMoveConstruction`, but it does not change the
+construction type itself: it packages a canonical construction together with an
+explicit strict-shrink witness and the resulting bridge data. -/
+structure GodMoveStrictShrinkCanonicalConstruction
+    (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) where
+  construction : GodMoveConstruction M n hn2 htb hns
+  canonical : godMoveConstructionCanonicalTarget construction
+  hvars_lt :
+    construction.coupledVars < (cook_levin_compilation M n hn2 htb hns).numVars
+  bridge : GodMoveConstructionSemanticBridgeData hdec construction hvars_lt
+
+/-- The current first behavior-perturbation witness cannot realize the stronger
+strict-shrink construction schema, because its coupled space is definitionally
+the full compiled ambient space. -/
+theorem godMoveConstruction_firstBehaviorPerturbation_not_strictShrinkCanonicalConstruction
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (s : GodMoveStrictShrinkCanonicalConstruction M n (by omega : n ≥ 2) hdec htb hns) :
+    s.construction ≠
+      godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns := by
+  intro hs
+  have hlt :
+      (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns).coupledVars <
+        (cook_levin_compilation M n (by omega : n ≥ 2) htb hns).numVars := by
+    simpa [hs] using s.hvars_lt
+  have hsame := godMoveConstruction_firstBehaviorPerturbation_same_space
+    M n hn hdec htb hns
+  omega
+
+/-- Exact next canonical post-identity construction target beyond
+`godMoveConstruction_firstBehaviorPerturbation`.
+
+The current explicit witness already proves canonicality together with a real
+restriction-stage perturbation, so the only strict-shrink-only upgrade worth
+asking for next is to keep that post-identity content while adding the semantic
+bridge data. This packages the smallest honest existential that could witness
+`godMoveConstructionSemanticGapTarget` without regressing to an identity-style
+same-space construction. -/
+def godMoveLiveStrictShrinkBridgeTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) : Prop :=
+  ∃ c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns,
+    godMoveRestrictionPerturbationCandidateTarget M n hn hdec htb hns c ∧
+    GodMoveConstructionSemanticBridgeTheorem hdec c
+
+/-- The identity placeholder cannot witness the exact live strict-shrink bridge
+target. It fails already at the post-identity restriction-perturbation stage,
+and also separately at strict shrink. -/
+theorem godMoveConstruction_exists_not_liveStrictShrinkBridgeTarget_witness
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ (godMoveRestrictionPerturbationCandidateTarget M n hn hdec htb hns
+          (godMoveConstruction_exists M n hn hdec htb hns) ∧
+        GodMoveConstructionSemanticBridgeTheorem hdec
+          (godMoveConstruction_exists M n hn hdec htb hns)) := by
+  intro h
+  exact godMoveConstruction_exists_not_restriction_perturbation_candidate M n hn hdec htb hns h.1
+
+/-- The first explicit post-identity construction still cannot witness the live
+strict-shrink bridge target. It satisfies the restriction-perturbation half,
+but its coupled space remains same-size with the compiled ambient space. -/
+theorem godMoveConstruction_firstBehaviorPerturbation_not_liveStrictShrinkBridgeTarget_witness
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    ¬ (godMoveRestrictionPerturbationCandidateTarget M n hn hdec htb hns
+          (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns) ∧
+        GodMoveConstructionSemanticBridgeTheorem hdec
+          (godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns)) := by
+  intro h
+  exact godMoveConstruction_firstBehaviorPerturbation_not_semanticBridge M n hn hdec htb hns h.2
+
 /-- Exact next construction-level existence theorem after the identity and
 first behavior-perturbation routes.
 
@@ -3715,6 +4169,46 @@ def godMoveStrictShrinkCanonicalConstructionTarget
     godMoveConstructionCanonicalTarget c ∧
     GodMoveConstructionSemanticBridgeTheorem hdec c
 
+/-- The strict-shrink canonical-construction target is now inhabited by the
+explicit zero-coupled post-identity construction above. -/
+theorem godMoveStrictShrinkCanonicalConstructionTarget_holds
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    godMoveStrictShrinkCanonicalConstructionTarget M n hn hdec htb hns := by
+  refine ⟨
+    godMoveConstruction_firstBehaviorStrictShrink M n hn hdec htb hns,
+    godMoveConstruction_firstBehaviorStrictShrink_is_canonical_target M n hn hdec htb hns,
+    godMoveConstruction_firstBehaviorStrictShrink_semanticBridge M n hn hdec htb hns⟩
+
+/-- The stronger strict-shrink construction schema is exactly enough to fill
+the existing canonical strict-shrink existential target. -/
+theorem godMoveStrictShrinkCanonicalConstructionTarget_of_schema
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (s : GodMoveStrictShrinkCanonicalConstruction M n (by omega : n ≥ 2) hdec htb hns) :
+    godMoveStrictShrinkCanonicalConstructionTarget M n hn hdec htb hns := by
+  exact ⟨s.construction, s.canonical, ⟨s.hvars_lt, s.bridge, trivial⟩⟩
+
+/-- The live strict-shrink bridge target is the post-identity strengthening of
+the generic canonical strict-shrink existential: it remembers that the witness
+must already differ from the identity route at the restriction stage. -/
+theorem godMoveStrictShrinkCanonicalConstructionTarget_of_liveStrictShrinkBridgeTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (htarget : godMoveLiveStrictShrinkBridgeTarget M n hn hdec htb hns) :
+    godMoveStrictShrinkCanonicalConstructionTarget M n hn hdec htb hns := by
+  rcases htarget with ⟨c, hpost, hbridge⟩
+  exact ⟨c, hpost.1, hbridge⟩
+
 /-- A strict-shrink canonical construction with bridge data is exactly enough
 to recover a concrete construction-level semantic-gap witness. This is the last
 local step before the paper-facing wrapper turns that witness into
@@ -3731,6 +4225,24 @@ theorem godMoveConstructionSemanticGapTarget_of_strictShrinkCanonicalConstructio
       godMoveConstructionSemanticGapTarget hdec c := by
   rcases htarget with ⟨c, hcanon, hbridge⟩
   exact ⟨c, hcanon, godMoveConstructionSemanticGapTarget_of_bridge hbridge⟩
+
+/-- The next canonical post-identity strict-shrink theorem would already be
+enough for the exact semantic-gap existential, because it refines to the
+generic canonical strict-shrink target proved sufficient above. -/
+theorem godMoveConstructionSemanticGapTarget_of_liveStrictShrinkBridgeTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (htarget : godMoveLiveStrictShrinkBridgeTarget M n hn hdec htb hns) :
+    ∃ c : GodMoveConstruction M n (by omega : n ≥ 2) htb hns,
+      godMoveConstructionCanonicalTarget c ∧
+      godMoveConstructionSemanticGapTarget hdec c := by
+  exact godMoveConstructionSemanticGapTarget_of_strictShrinkCanonicalConstructionTarget
+    M n hn hdec htb hns
+    (godMoveStrictShrinkCanonicalConstructionTarget_of_liveStrictShrinkBridgeTarget
+      M n hn hdec htb hns htarget)
 
 /-- The already-proved canonical theorem supplies the canonical half of the
 bundled identity placeholder frontier. Together with

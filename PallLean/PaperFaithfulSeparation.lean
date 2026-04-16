@@ -387,6 +387,32 @@ theorem semantic_extraction_theorem_of_firstBehaviorPerturbationSemanticGapTarge
     (GodMoveReal.godMoveConstruction_firstBehaviorPerturbation M n hn hdec htb hns)
     hgap
 
+/-- Exact construction-level handoff from the live strict-shrink target to the
+core semantic theorem.
+
+This is the single construction theorem still blocking the post-identity Route
+B path on the current branch: once some canonical `GodMoveConstruction`
+supplies real strict shrink together with the staged bridge data packaged by
+`godMoveStrictShrinkCanonicalConstructionTarget`, the core existential theorem
+`GodMoveSemanticExtractionTheorem` follows immediately. -/
+theorem semantic_extraction_theorem_of_strictShrinkCanonicalConstructionTarget
+    (M : DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804)
+    (hdec : DecidesSAT M)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n)
+    (htarget :
+      GodMoveReal.godMoveStrictShrinkCanonicalConstructionTarget
+        M n hn hdec htb hns) :
+    GodMoveSemanticExtractionTheorem M n (by omega : n ≥ 2) htb hns hdec := by
+  apply semantic_extraction_theorem_of_godMoveConstructionExists
+    M n (by omega : n ≥ 2) hdec htb hns
+  rcases
+      GodMoveReal.godMoveConstructionSemanticGapTarget_of_strictShrinkCanonicalConstructionTarget
+        M n hn hdec htb hns htarget with
+    ⟨c, _, hgap⟩
+  exact ⟨c, hgap⟩
+
 /-- Exact compiled-space lower bound from the paper-faithful staged target
 theorem.
 
