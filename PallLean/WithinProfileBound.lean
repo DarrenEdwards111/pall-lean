@@ -1961,6 +1961,27 @@ theorem cookLevin_booleanity_local_interface_step
                 have hlen : 3 ≤ (bv :: bv :: z :: zs).length := by simp
                 omega
 
+/-- Honest next bridge target after local typewise containment: once every factor
+admits a placed local interface of the canonical type, the remaining work is to
+show that same-profile touched products descend to one profile-only touched-part
+subspace. This packages the non-circular gap exposed by the current development. -/
+def CookLevinProfileTouchedSpanDescentAtProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (h : ProfileHistogram) : Prop :=
+  ∃ W : Submodule ℚ (MvPolynomial (Fin n) ℚ),
+    Module.Finite ℚ ↥W ∧
+    Module.finrank ℚ ↥W ≤ profileTemplateBound h ∧
+    ∀ (S : List (Fin n)) (_ : S.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin n) ℚ) (_ : shift.vars ⊆ S.toFinset)
+      (touched : Finset (Fin (cookLevinFactorList M n hn htb hns).length)),
+        RawTouchedCompatibleWithDerivProfile
+            (n := n)
+            (cookLevinConstraintType M n hn htb hns) h touched →
+          rawTouchedPostSpan
+            (fun i => (cookLevinFactorList M n hn htb hns).get i)
+            S shift touched ≤ W
+
 /-- All-profile version of the raw-touched template-span frontier. -/
 def CookLevinRawTouchedDerivTemplateSpanLemma
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
