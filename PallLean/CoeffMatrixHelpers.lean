@@ -577,11 +577,23 @@ theorem rank_kronecker_le {R : Type*} [CommRing R] [IsDomain R]
     [DecidableEq l] [DecidableEq m] [DecidableEq n] [DecidableEq p]
     (A : Matrix l m R) (B : Matrix n p R) :
     (A.kronecker B).rank ≤ A.rank * B.rank := by
+  -- Each column of A⊗B at (k,q) is fun (i,j) => A i k * B j q.
+  -- This equals the "outer product" of column k of A and column q of B.
+  -- The column space is contained in span{outer(u,v) : u ∈ colSpace A, v ∈ colSpace B}.
+  -- dim(this span) ≤ dim(colSpace A) × dim(colSpace B) = rank(A) × rank(B).
+  --
+  -- Formally: transpose to work with row space, use rank_transpose.
+  -- rank(A⊗B) = rank((A⊗B)ᵀ) and (A⊗B)ᵀ = Aᵀ ⊗ Bᵀ.
+  -- Row i of Aᵀ⊗Bᵀ at (k,q) = ... still the same structure.
+  --
+  -- Direct approach using mul_kronecker_mul:
+  -- Factor A = A * (1 : Matrix m m R) as (A₁)(A₂) where A₁ has rank(A) cols.
+  -- But this requires extracting a rank factorization.
+  --
+  -- Simplest valid argument: use rank_mul_le on A⊗B = (A⊗1)*(1⊗B).
+  -- rank((A⊗1)*(1⊗B)) ≤ rank(1⊗B) ... but rank(1⊗B) = rank(B)*|m| which is too large.
+  --
+  -- Correct approach via explicit spanning set construction (sorry for now):
   sorry
-  -- Proof sketch: the column space of A ⊗ B is contained in the span of
-  -- {col_k(A) ⊗ col_q(B) : k ∈ m, q ∈ p}. This span has dimension
-  -- ≤ rank(A) × rank(B) because col_k(A) ranges over colSpace(A) (dim = rank A)
-  -- and col_q(B) ranges over colSpace(B) (dim = rank B), and the span of
-  -- tensor products of elements from two spaces has dim ≤ product of dims.
 
 end CoeffMatrixHelpers
