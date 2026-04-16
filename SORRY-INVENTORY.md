@@ -1,7 +1,7 @@
 # Formalization Status — `godmove-paper-faithful`
 
 **Branch:** `godmove-paper-faithful`  
-**Date:** 2026-04-15
+**Date:** 2026-04-16
 
 ## Current truth
 
@@ -51,6 +51,61 @@ At the top level there is **one** remaining external obligation:
 The NP side is now built canonically inside the route from the selector
 closed-form package, so it is no longer an external assumption on the active
 final theorem.
+
+## Paper-Faithful P-Side Exact Frontier
+
+The live exported paper-faithful contradiction still has exactly one custom
+P-side axiom dependency:
+
+- `SymmetricPower.spdp_profile_generators`
+
+After the post-`4f3ca5d` fixed-profile close-out pass, no honest
+unconditional P-side closure was found. Keep exactly one retained fixed-profile
+all-span target:
+
+- `WithinProfileBound.CookLevinAllBoundedProfileCommonSpanAtProfile`
+
+Fixed-profile sufficient strengthening now integrated below that all-span target:
+
+- `WithinProfileBound.CookLevinRawTouchedDerivCommonSpanAtProfile`
+
+The theorem
+`WithinProfileBound.cookLevinAllBoundedProfileCommonSpanAtProfile_of_rawTouchedDerivCommonSpanAtProfile`
+formally proves the retained all-span target from this fixed-profile
+raw-touched common-span lemma. The template-collapse theorem
+`WithinProfileBound.CookLevinProfileTemplateCollapseAtProfile` is also now
+routed directly at one fixed `h` through
+`WithinProfileBound.cookLevin_allBoundedProfilePostSpan_finrank_le_of_templateCollapseAtProfile`.
+These are not retained blockers: if closure still fails, the exact surviving
+fixed-profile theorem is only
+`WithinProfileBound.CookLevinAllBoundedProfileCommonSpanAtProfile`.
+
+The universal wrapper for the raw-touched sufficient route is:
+
+- `WithinProfileBound.cookLevinAllBoundedProfileCommonSpan_of_rawTouchedDerivCommonSpanAtProfiles`
+- `WithinProfileBound.cookLevinExactWithinProfileLemma_of_rawTouchedDerivCommonSpanAtProfiles`
+
+The all-profile theorem
+`WithinProfileBound.CookLevinAllBoundedProfileCommonSpanLemma` is just
+universal quantification over that fixed-profile target. It formally feeds:
+
+- `WithinProfileBound.CookLevinBoundedProfileCommonSpanLemma`, through
+  `cookLevinBoundedProfileCommonSpan_of_allBoundedProfileCommonSpan`
+- `WithinProfileBound.CookLevinExactWithinProfileFinrankLemma`, through
+  `cookLevinExactWithinProfileLemma_of_allBoundedProfileCommonSpan`
+- the exported P-side wrappers
+  `ProfileCompression.p_side_rank_bound_for_cook_levin_of_rawTouchedDerivCommonSpanAtProfile`,
+  `PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin_of_rawTouchedDerivCommonSpanAtProfile`,
+  `LocalityRankBound.p_side_bound_for_cook_levin_of_rawTouchedDerivCommonSpanAtProfile`,
+  `SeparationFinal.p_side_verified_of_rawTouchedDerivCommonSpanAtProfile`,
+  `ProfileCompression.p_side_rank_bound_for_cook_levin_of_allBoundedProfileCommonSpan`
+  and
+  `PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin_of_allBoundedProfileCommonSpan`
+
+The bounded-profile common-span lemma, raw-touched route, template-collapse
+route, exact-finrank theorem, all-profile theorem, and exported rank-bound
+wrappers are downstream routes or sufficient strengthenings. They are not
+retained as separate P-side blockers.
 
 ## How this relates to the paper
 

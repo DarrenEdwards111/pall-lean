@@ -1732,89 +1732,290 @@ def CookLevinRawTouchedDerivTemplateSpanAtProfile
               S shift touched ≤
             Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))
 
-/-- Profile-only symmetric-power descent frontier below the fixed-profile
+/- Profile-only symmetric-power descent frontier below the fixed-profile
 raw-touched template-span theorem.
 
 For each constraint type `τ`, there should be one fixed finite local interface /
-template family `A_τ`, depending only on the compiled factor family, such that:
-- every admissible local differentiated contribution of type `τ` lies in the span
-  of `A_τ`, uniformly in `S`, and
+template family `A_τ` in local coordinates, depending only on the compiled
+factor family, such that:
+- every compiled factor of type `τ` has a placement of the local coordinates into
+  the ambient variables, and every local differentiated contribution lies in the
+  span of the placed copy of `A_τ`, uniformly in `S`, and
 - same-profile touched products descend through the corresponding symmetric-power
-  quotient, so the resulting touched-part span depends only on `h`.
+  quotient, producing one touched-part spanning family depending only on `h`.
 
 This is the honest precursor to `CookLevinRawTouchedDerivTemplateSpanAtProfile`:
 without such profile-only local canonicalization, the current per-`S` constrained
 atom bounds do not upgrade to one uniform family `G_h`. -/
+
+/-- A typewise Cook-Levin local interface family is written in fixed local
+coordinates, not in the ambient `Fin n` variables.  A compiled factor supplies a
+placement `Fin maxConstraintArity → Fin n` that instantiates these local
+templates in the ambient polynomial ring. -/
+abbrev CookLevinLocalInterfaceFamily :=
+  ConstraintType → Finset (MvPolynomial (Fin maxConstraintArity) ℚ)
+
+/-- Instantiate one typewise local interface family by a concrete placement of
+local coordinates into the ambient variables. -/
+noncomputable def placedCookLevinInterface
+    {n : ℕ} (place : Fin maxConstraintArity → Fin n)
+    (Aτ : Finset (MvPolynomial (Fin maxConstraintArity) ℚ)) :
+    Finset (MvPolynomial (Fin n) ℚ) :=
+  Aτ.image (MvPolynomial.rename place)
+
+/-- The ambient span of a placed local interface family. -/
+noncomputable def placedCookLevinInterfaceSpan
+    {n : ℕ} (place : Fin maxConstraintArity → Fin n)
+    (Aτ : Finset (MvPolynomial (Fin maxConstraintArity) ℚ)) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+  Submodule.span ℚ
+    (↑(placedCookLevinInterface place Aτ) : Set (MvPolynomial (Fin n) ℚ))
+
+/-- First local coordinate in the fixed Cook-Levin interface arity. -/
+def cookLevinLocalCoord0 : Fin maxConstraintArity :=
+  ⟨0, by simp [maxConstraintArity]⟩
+
+/-- Second local coordinate in the fixed Cook-Levin interface arity. -/
+def cookLevinLocalCoord1 : Fin maxConstraintArity :=
+  ⟨1, by simp [maxConstraintArity]⟩
+
+/-- Canonical typewise interface families for the actual Cook-Levin factor list.
+
+These are local-coordinate templates. Booleanity gets `{1, X_0}`; adjacency and
+transition-left use a small endpoint-variable family. They are instantiated for
+an actual factor only through `placedCookLevinInterface`, so the family is fixed
+by constraint type rather than accidentally tied to ambient variables `0` and
+`1`. -/
+noncomputable def cookLevinCanonicalInterfaceFamily :
+    CookLevinLocalInterfaceFamily
+  | ConstraintType.booleanity => {1, MvPolynomial.X cookLevinLocalCoord0}
+  | ConstraintType.adjacency =>
+      {1, MvPolynomial.X cookLevinLocalCoord0,
+        MvPolynomial.X cookLevinLocalCoord1}
+  | ConstraintType.transitionLeft =>
+      {1, MvPolynomial.X cookLevinLocalCoord0,
+        MvPolynomial.X cookLevinLocalCoord1}
+  | ConstraintType.transitionRight => {1}
+
+/-- Every canonical typewise interface has the advertised constant-size local
+template bound. -/
+theorem cookLevinCanonicalInterfaceFamily_card_le
+    (τ : ConstraintType) :
+    (cookLevinCanonicalInterfaceFamily τ).card ≤ localInterfaceDimBound := by
+  cases τ
+  · change ({1, MvPolynomial.X cookLevinLocalCoord0} :
+        Finset (MvPolynomial (Fin maxConstraintArity) ℚ)).card ≤ localInterfaceDimBound
+    exact le_trans Finset.card_le_two (by change 2 ≤ 10 ^ 2; norm_num)
+  · change ({1, MvPolynomial.X cookLevinLocalCoord0,
+        MvPolynomial.X cookLevinLocalCoord1} :
+        Finset (MvPolynomial (Fin maxConstraintArity) ℚ)).card ≤ localInterfaceDimBound
+    exact le_trans Finset.card_le_three (by change 3 ≤ 10 ^ 2; norm_num)
+  · change ({1, MvPolynomial.X cookLevinLocalCoord0,
+        MvPolynomial.X cookLevinLocalCoord1} :
+        Finset (MvPolynomial (Fin maxConstraintArity) ℚ)).card ≤ localInterfaceDimBound
+    exact le_trans Finset.card_le_three (by change 3 ≤ 10 ^ 2; norm_num)
+  · simp [cookLevinCanonicalInterfaceFamily, localInterfaceDimBound, maxConstraintArity]
+
+/-- Profile-only symmetric-power descent frontier below the fixed-profile
+raw-touched template-span theorem. -/
 def CookLevinProfileSymmetricPowerDescentAtProfile
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (h : ProfileHistogram) : Prop :=
-  ∃ A : ConstraintType → Finset (MvPolynomial (Fin n) ℚ),
-    (∀ τ, Module.finrank ℚ ↥(Submodule.span ℚ ((A τ : Finset (MvPolynomial (Fin n) ℚ)) : Set (MvPolynomial (Fin n) ℚ))) ≤ 3) ∧
-    (∀ (S : List (Fin n)) (_ : S.length ≤ Nat.log 2 n)
-      (i : Fin (cookLevinFactorList M n hn htb hns).length)
+  ∃ place :
+      (i : Fin (cookLevinFactorList M n hn htb hns).length) →
+        Fin maxConstraintArity → Fin n,
+    (∀ (i : Fin (cookLevinFactorList M n hn htb hns).length)
       (d : List (Fin n)),
         d.length ≤ 2 →
-        (∀ v ∈ d, v ∈ S) →
         iterDerivList d ((cookLevinFactorList M n hn htb hns).get i) ∈
-          Submodule.span ℚ (↑(A (cookLevinConstraintType M n hn htb hns i)) : Set (MvPolynomial (Fin n) ℚ))) ∧
+          placedCookLevinInterfaceSpan (place i)
+            (cookLevinCanonicalInterfaceFamily
+              (cookLevinConstraintType M n hn htb hns i))) ∧
     (∃ G : Finset (MvPolynomial (Fin n) ℚ),
-      G.card ≤ profileTemplateBound h) ∧
+      G.card ≤ profileTemplateBound h ∧
+      ∀ (S : List (Fin n)) (_ : S.length ≤ Nat.log 2 n)
+        (shift : MvPolynomial (Fin n) ℚ) (_ : shift.vars ⊆ S.toFinset)
+        (touched : Finset (Fin (cookLevinFactorList M n hn htb hns).length)),
+          RawTouchedCompatibleWithDerivProfile
+              (n := n)
+              (cookLevinConstraintType M n hn htb hns) h touched →
+            rawTouchedPostSpan
+              (fun i => (cookLevinFactorList M n hn htb hns).get i)
+              S shift touched ≤
+            Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))) ∧
     h ConstraintType.transitionRight = 0
 
-/-- All-profile version of the profile-only symmetric-power descent frontier. -/
+/-- The local-interface/symmetric-power descent precursor is already strong
+enough to supply the fixed-profile raw-touched template-span target: it carries
+the template-bounded family `G` together with the required raw touched-support
+containment. -/
+theorem cookLevinRawTouchedDerivTemplateSpanAtProfile_of_profileSymmetricPowerDescentAtProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (h : ProfileHistogram)
+    (hdesc : CookLevinProfileSymmetricPowerDescentAtProfile M n hn htb hns h) :
+    CookLevinRawTouchedDerivTemplateSpanAtProfile M n hn htb hns h := by
+  rcases hdesc with ⟨_place, _hlocal, hG, _htr⟩
+  rcases hG with ⟨G, hG_card, hG_span⟩
+  exact ⟨G, hG_card, hG_span⟩
+
+/-- Admissible fixed-profile bridge from the sharper raw-touched template-span
+target to the bounded raw-touched common-span target. The only additional work
+is converting `profileTemplateBound h` to the global `withinProfileBound`. -/
+theorem cookLevinRawTouchedDerivCommonSpanAtProfile_of_rawTouchedDerivTemplateSpanAtProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (h : ProfileHistogram)
+    (hadm : ProfileAdmissible (Nat.log 2 n) h)
+    (hraw : CookLevinRawTouchedDerivTemplateSpanAtProfile M n hn htb hns h) :
+    CookLevinRawTouchedDerivCommonSpanAtProfile M n hn htb hns h := by
+  rcases hraw with ⟨G, hG_card, hG_span⟩
+  exact ⟨G,
+    le_trans hG_card
+      (profileTemplateBound_le_withinProfileBound (Nat.log 2 n) h hadm),
+    hG_span⟩
+
+/-- On admissible profiles, the local-interface/symmetric-power descent
+precursor directly gives the fixed-profile raw-touched common-span theorem. -/
+theorem cookLevinRawTouchedDerivCommonSpanAtProfile_of_profileSymmetricPowerDescentAtProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (h : ProfileHistogram)
+    (hadm : ProfileAdmissible (Nat.log 2 n) h)
+    (hdesc : CookLevinProfileSymmetricPowerDescentAtProfile M n hn htb hns h) :
+    CookLevinRawTouchedDerivCommonSpanAtProfile M n hn htb hns h :=
+  cookLevinRawTouchedDerivCommonSpanAtProfile_of_rawTouchedDerivTemplateSpanAtProfile
+    M n hn htb hns h hadm
+    (cookLevinRawTouchedDerivTemplateSpanAtProfile_of_profileSymmetricPowerDescentAtProfile
+      M n hn htb hns h hdesc)
+
+/-- Active-profile version of the profile-only symmetric-power descent frontier.
+
+The unrestricted all-profile statement would be false as written: the ambient
+`ProfileHistogram` still has the dormant `transitionRight` coordinate, so one
+can choose `h` with `h transitionRight > 0`, while
+`CookLevinProfileSymmetricPowerDescentAtProfile` deliberately records the
+concrete Cook-Levin obstruction `h transitionRight = 0`.  The canonical factor
+classification never produces `transitionRight`; profiles with positive dormant
+mass are zero-contribution cases handled elsewhere, not profile-symmetric-power
+descent obligations. -/
 def CookLevinProfileSymmetricPowerDescentLemma
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
   ∀ h : ProfileHistogram,
+    h ConstraintType.transitionRight = 0 →
     CookLevinProfileSymmetricPowerDescentAtProfile M n hn htb hns h
 
-/-- Canonical typewise interface families for the actual Cook-Levin factor list.
-These are the fixed local template families suggested by the symmetric-power
-analysis: booleanity gets `{1, X_v}`, while adjacency and transition-left both
-use a small endpoint-variable family. -/
-noncomputable def cookLevinCanonicalInterfaceFamily
-    (M : DTM) (n : ℕ) (hn : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
-    ConstraintType → Finset (MvPolynomial (Fin n) ℚ)
-  | ConstraintType.booleanity => {1, MvPolynomial.X 0}
-  | ConstraintType.adjacency => {1, MvPolynomial.X 0, MvPolynomial.X 1}
-  | ConstraintType.transitionLeft => {1, MvPolynomial.X 0, MvPolynomial.X 1}
-  | ConstraintType.transitionRight => {1}
+/-- `mlProj` preserves the boolean local interface span. -/
+private theorem mlProj_mem_boolInterfaceSpan_of_mem {n : ℕ} (v : Fin n)
+    {p : MvPolynomial (Fin n) ℚ}
+    (hp : p ∈ SymmetricPower.boolInterfaceSpan n v) :
+    mlProj p ∈ SymmetricPower.boolInterfaceSpan n v := by
+  unfold SymmetricPower.boolInterfaceSpan at hp ⊢
+  refine Submodule.span_induction
+    (s := ((↑({1} ∪ {MvPolynomial.X v} : Finset (MvPolynomial (Fin n) ℚ))) :
+      Set (MvPolynomial (Fin n) ℚ)))
+    (p := fun q _ =>
+      mlProj q ∈ Submodule.span ℚ
+        ((↑({1} ∪ {MvPolynomial.X v} : Finset (MvPolynomial (Fin n) ℚ))) :
+          Set (MvPolynomial (Fin n) ℚ)))
+    ?_ ?_ ?_ ?_ hp
+  · intro x hx
+    simp only [Finset.coe_union, Finset.coe_singleton, Set.mem_union,
+      Set.mem_singleton_iff] at hx
+    rcases hx with rfl | rfl
+    · rw [show mlProj (1 : MvPolynomial (Fin n) ℚ) = 1 by
+        apply mlProj_of_isMultilinear
+        intro α hα i
+        rw [MvPolynomial.mem_support_iff] at hα
+        by_cases h0 : 0 = α
+        · subst α
+          simp
+        · have hz : MvPolynomial.coeff α (1 : MvPolynomial (Fin n) ℚ) = 0 := by
+            simp [MvPolynomial.coeff_one, h0]
+          exact False.elim (hα hz)]
+      exact Submodule.subset_span (by simp)
+    · rw [SymmetricPower.mlProj_X v]
+      exact Submodule.subset_span (by simp)
+  · simp
+  · intro p q _ _ hp hq
+    simpa [mlProj_add] using Submodule.add_mem _ hp hq
+  · intro a p _ hp
+    simpa [mlProj_smul] using Submodule.smul_mem _ a hp
 
-/-- Booleanity factors already satisfy the local-interface containment part of the
-profile-only symmetric-power descent frontier, uniformly in `S`. -/
+/-- Booleanity factors satisfy the projected local-interface containment for
+the placed typewise interface.  The unprojected statement is false at `d = []`,
+because `boolFactor` contains the quadratic term `X_v^2`; after `mlProj`, the
+factor and all length-≤2 local derivatives lie in the span of `1` and the
+placed booleanity coordinate. -/
 theorem cookLevin_booleanity_local_interface_step
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (i : Fin (cookLevinFactorList M n hn htb hns).length)
-    (hi : i.1 < n)
-    (S : List (Fin n))
-    (d : List (Fin n))
-    (hd : d.length ≤ 2)
-    (hdS : ∀ v ∈ d, v ∈ S) :
-    ∃ v : Fin n,
-      iterDerivList d ((cookLevinFactorList M n hn htb hns).get i) ∈
-        Submodule.span ℚ ({1, MvPolynomial.X v} : Set (MvPolynomial (Fin n) ℚ)) := by
-  refine ⟨⟨i.1, hi⟩, ?_⟩
-  have hfactor : (cookLevinFactorList M n hn htb hns).get i = SymmetricPower.boolFactor n ⟨i.1, hi⟩ := by
-    have hsplit := PaperFaithfulSeparation.boolConstraintFactors_eq n
+    (hi : i.1 < n) :
+  ∃ place : Fin maxConstraintArity → Fin n,
+    place cookLevinLocalCoord0 = ⟨i.1, hi⟩ ∧
+    ∀ d : List (Fin n), d.length ≤ 2 →
+      mlProj (iterDerivList d ((cookLevinFactorList M n hn htb hns).get i)) ∈
+        placedCookLevinInterfaceSpan place
+          (cookLevinCanonicalInterfaceFamily ConstraintType.booleanity) := by
+  let bv : Fin n := ⟨i.1, hi⟩
+  let place : Fin maxConstraintArity → Fin n := fun _ => bv
+  refine ⟨place, rfl, ?_⟩
+  intro d hd
+  have hfactor :
+      (cookLevinFactorList M n hn htb hns).get i = SymmetricPower.boolFactor n bv := by
     unfold cookLevinFactorList
-    simp [List.get_map, hi, PaperFaithfulSeparation.boolLC_factor_eq]
+    simp [SymmetricPower.boolFactor, PaperFaithfulSeparation.cook_levin_compilation,
+      PaperFaithfulSeparation.boolConstraintList, PaperFaithfulSeparation.boolLC,
+      PaperFaithfulSeparation.boolPoly', hi, bv]
+  have hplaced_of_bool :
+      ∀ {p : MvPolynomial (Fin n) ℚ},
+        p ∈ SymmetricPower.boolInterfaceSpan n bv →
+          p ∈ placedCookLevinInterfaceSpan place
+            (cookLevinCanonicalInterfaceFamily ConstraintType.booleanity) := by
+    intro p hp
+    unfold SymmetricPower.boolInterfaceSpan at hp
+    unfold placedCookLevinInterfaceSpan
+    exact Submodule.span_mono (by
+      intro x hx
+      simp [placedCookLevinInterface, cookLevinCanonicalInterfaceFamily, place] at hx ⊢
+      exact hx) hp
   rw [hfactor]
-  rcases d with _ | ⟨v, _ | ⟨w, rest⟩⟩
-  · simpa [SymmetricPower.boolInterfaceSpan] using SymmetricPower.mlProj_boolFactor_mem_interface ⟨i.1, hi⟩
-  · rw [iterDerivList_singleton_eq_pderiv]
-    have hmem := SymmetricPower.pderiv_boolFactor_mem_interface n ⟨i.1, hi⟩
-    simpa [SymmetricPower.boolInterfaceSpan] using hmem
-  · cases rest with
+  by_cases hoff : ∃ x ∈ d, x ≠ bv
+  · have hz :=
+      SymmetricPower.iterDerivList_boolFactor_eq_zero_of_exists_offsupport
+        (N := n) (S := d) (v := bv) hoff
+    rw [hz, mlProj_zero]
+    exact Submodule.zero_mem _
+  · have hall : ∀ x ∈ d, x = bv := by
+      intro x hx
+      by_contra hxv
+      exact hoff ⟨x, hx, hxv⟩
+    cases d with
     | nil =>
-        rw [iterDerivList_pair_eq_pderiv2]
-        have hmem := SymmetricPower.pderiv2_boolFactor_mem_interface n ⟨i.1, hi⟩
-        simpa [SymmetricPower.boolInterfaceSpan] using hmem
-    | cons x xs =>
-        exfalso
-        simp at hd
+        exact hplaced_of_bool (SymmetricPower.mlProj_boolFactor_mem_interface (N := n) bv)
+    | cons x rest =>
+        have hx : x = bv := hall x (by simp)
+        subst x
+        cases rest with
+        | nil =>
+            have hmem := SymmetricPower.pderiv_boolFactor_mem_interface bv
+            simpa [IterDerivHelpers.iterDerivList_single] using
+              hplaced_of_bool (mlProj_mem_boolInterfaceSpan_of_mem bv hmem)
+        | cons y rest =>
+            have hy : y = bv := hall y (by simp)
+            subst y
+            cases rest with
+            | nil =>
+                have hmem := SymmetricPower.pderiv2_boolFactor_mem_interface bv
+                simpa [IterDerivHelpers.iterDerivList_cons, IterDerivHelpers.iterDerivList_nil] using
+                  hplaced_of_bool (mlProj_mem_boolInterfaceSpan_of_mem bv hmem)
+            | cons z zs =>
+                exfalso
+                have hlen : 3 ≤ (bv :: bv :: z :: zs).length := by simp
+                omega
 
 /-- All-profile version of the raw-touched template-span frontier. -/
 def CookLevinRawTouchedDerivTemplateSpanLemma
@@ -3056,6 +3257,258 @@ theorem iterDerivList_pair_eq_pderiv2 {n : ℕ} {F : Type*} [CommRing F]
     iterDerivList [v, w] f = MvPolynomial.pderiv v (MvPolynomial.pderiv w f) := by
   simp only [IterDerivHelpers.iterDerivList_cons, IterDerivHelpers.iterDerivList_nil]
   exact IterDerivHelpers.pderiv_comm w v f
+
+private theorem one_mem_adjEndpointSpan (n : ℕ) (i j : Fin n) :
+    (1 : MvPolynomial (Fin n) ℚ) ∈ SymmetricPower.adjInterfaceSpan n i j := by
+  unfold SymmetricPower.adjInterfaceSpan
+  exact Submodule.subset_span (by simp)
+
+private theorem Xi_mem_adjEndpointSpan (n : ℕ) (i j : Fin n) :
+    MvPolynomial.X i ∈ SymmetricPower.adjInterfaceSpan n i j := by
+  unfold SymmetricPower.adjInterfaceSpan
+  exact Submodule.subset_span (by simp)
+
+private theorem Xj_mem_adjEndpointSpan (n : ℕ) (i j : Fin n) :
+    MvPolynomial.X j ∈ SymmetricPower.adjInterfaceSpan n i j := by
+  unfold SymmetricPower.adjInterfaceSpan
+  exact Submodule.subset_span (by simp)
+
+private theorem C_mem_adjEndpointSpan (n : ℕ) (i j : Fin n) (c : ℚ) :
+    MvPolynomial.C c ∈ SymmetricPower.adjInterfaceSpan n i j := by
+  rw [show MvPolynomial.C c = (c : ℚ) • (1 : MvPolynomial (Fin n) ℚ) by
+    simp [Algebra.smul_def]]
+  exact Submodule.smul_mem _ c (one_mem_adjEndpointSpan n i j)
+
+private theorem C_mul_X_mem_adjEndpointSpan (n : ℕ) (i j x : Fin n) (c : ℚ)
+    (hx : x = i ∨ x = j) :
+    MvPolynomial.C c * MvPolynomial.X x ∈ SymmetricPower.adjInterfaceSpan n i j := by
+  rw [show MvPolynomial.C c * MvPolynomial.X x =
+      (c : ℚ) • (MvPolynomial.X x : MvPolynomial (Fin n) ℚ) by
+    simp [Algebra.smul_def]]
+  rcases hx with hx | hx
+  · rw [hx]
+    exact Submodule.smul_mem _ c (Xi_mem_adjEndpointSpan n i j)
+  · rw [hx]
+    exact Submodule.smul_mem _ c (Xj_mem_adjEndpointSpan n i j)
+
+private theorem pderiv_C_mul_X_mem_adjEndpointSpan (n : ℕ) (i j x v : Fin n) (c : ℚ) :
+    MvPolynomial.pderiv v (MvPolynomial.C c * MvPolynomial.X x :
+        MvPolynomial (Fin n) ℚ) ∈
+      SymmetricPower.adjInterfaceSpan n i j := by
+  by_cases hvx : v = x
+  · subst hvx
+    rw [MvPolynomial.pderiv_mul, MvPolynomial.pderiv_C, zero_mul, zero_add,
+      MvPolynomial.pderiv_X_self, mul_one]
+    exact C_mem_adjEndpointSpan n i j c
+  · rw [MvPolynomial.pderiv_mul, MvPolynomial.pderiv_C, zero_mul, zero_add]
+    have hx0 :
+        MvPolynomial.pderiv v (MvPolynomial.X x : MvPolynomial (Fin n) ℚ) = 0 :=
+      MvPolynomial.pderiv_X_of_ne (by
+        intro hxv
+        exact hvx hxv.symm)
+    rw [hx0, mul_zero]
+    exact Submodule.zero_mem _
+
+private theorem pderiv_cadjFactor_fst
+    (n : ℕ) (c : ℚ) (i j : Fin n) (hij : i ≠ j) :
+    MvPolynomial.pderiv i
+        ((1 : MvPolynomial (Fin n) ℚ) - MvPolynomial.C c *
+          (MvPolynomial.X i * MvPolynomial.X j)) =
+      MvPolynomial.C (-c) * MvPolynomial.X j := by
+  rw [show ((1 : MvPolynomial (Fin n) ℚ) - MvPolynomial.C c *
+        (MvPolynomial.X i * MvPolynomial.X j)) =
+      1 + MvPolynomial.C (-c) * (MvPolynomial.X i * MvPolynomial.X j) by
+    simp [sub_eq_add_neg, neg_mul]]
+  rw [map_add (MvPolynomial.pderiv i), MvPolynomial.pderiv_one, zero_add,
+    MvPolynomial.pderiv_mul, MvPolynomial.pderiv_C, zero_mul, zero_add,
+    MvPolynomial.pderiv_mul, MvPolynomial.pderiv_X_self,
+    MvPolynomial.pderiv_X_of_ne hij.symm, mul_zero, add_zero, one_mul]
+
+private theorem pderiv_cadjFactor_snd
+    (n : ℕ) (c : ℚ) (i j : Fin n) (hij : i ≠ j) :
+    MvPolynomial.pderiv j
+        ((1 : MvPolynomial (Fin n) ℚ) - MvPolynomial.C c *
+          (MvPolynomial.X i * MvPolynomial.X j)) =
+      MvPolynomial.C (-c) * MvPolynomial.X i := by
+  rw [show ((1 : MvPolynomial (Fin n) ℚ) - MvPolynomial.C c *
+        (MvPolynomial.X i * MvPolynomial.X j)) =
+      1 + MvPolynomial.C (-c) * (MvPolynomial.X i * MvPolynomial.X j) by
+    simp [sub_eq_add_neg, neg_mul]]
+  rw [map_add (MvPolynomial.pderiv j), MvPolynomial.pderiv_one, zero_add,
+    MvPolynomial.pderiv_mul, MvPolynomial.pderiv_C, zero_mul, zero_add,
+    MvPolynomial.pderiv_mul, MvPolynomial.pderiv_X_of_ne hij,
+    MvPolynomial.pderiv_X_self]
+  simp
+
+private theorem pderiv_cadjFactor_other
+    (n : ℕ) (c : ℚ) (i j v : Fin n) (hvi : v ≠ i) (hvj : v ≠ j) :
+    MvPolynomial.pderiv v
+        ((1 : MvPolynomial (Fin n) ℚ) - MvPolynomial.C c *
+          (MvPolynomial.X i * MvPolynomial.X j)) = 0 := by
+  rw [show ((1 : MvPolynomial (Fin n) ℚ) - MvPolynomial.C c *
+        (MvPolynomial.X i * MvPolynomial.X j)) =
+      1 + MvPolynomial.C (-c) * (MvPolynomial.X i * MvPolynomial.X j) by
+    simp [sub_eq_add_neg, neg_mul]]
+  rw [map_add (MvPolynomial.pderiv v), MvPolynomial.pderiv_one, zero_add,
+    MvPolynomial.pderiv_mul, MvPolynomial.pderiv_C, zero_mul, zero_add,
+    MvPolynomial.pderiv_mul]
+  have hi0 :
+      MvPolynomial.pderiv v (MvPolynomial.X i : MvPolynomial (Fin n) ℚ) = 0 :=
+    MvPolynomial.pderiv_X_of_ne (by
+      intro hiv
+      exact hvi hiv.symm)
+  have hj0 :
+      MvPolynomial.pderiv v (MvPolynomial.X j : MvPolynomial (Fin n) ℚ) = 0 :=
+    MvPolynomial.pderiv_X_of_ne (by
+      intro hjv
+      exact hvj hjv.symm)
+  rw [hi0, hj0, zero_mul, mul_zero, add_zero, mul_zero]
+
+private theorem pderiv_cadjFactor_mem_adjEndpointSpan
+    (n : ℕ) (c : ℚ) (i j v : Fin n) (hij : i ≠ j) :
+    MvPolynomial.pderiv v
+        ((1 : MvPolynomial (Fin n) ℚ) - MvPolynomial.C c *
+          (MvPolynomial.X i * MvPolynomial.X j)) ∈
+      SymmetricPower.adjInterfaceSpan n i j := by
+  by_cases hvi : v = i
+  · rw [hvi]
+    rw [pderiv_cadjFactor_fst n c i j hij]
+    exact C_mul_X_mem_adjEndpointSpan n i j j (-c) (Or.inr rfl)
+  · by_cases hvj : v = j
+    · rw [hvj]
+      rw [pderiv_cadjFactor_snd n c i j hij]
+      exact C_mul_X_mem_adjEndpointSpan n i j i (-c) (Or.inl rfl)
+    · rw [pderiv_cadjFactor_other n c i j v hvi hvj]
+      exact Submodule.zero_mem _
+
+private theorem pderiv2_cadjFactor_mem_adjEndpointSpan
+    (n : ℕ) (c : ℚ) (i j v w : Fin n) (hij : i ≠ j) :
+    MvPolynomial.pderiv v
+        (MvPolynomial.pderiv w
+          ((1 : MvPolynomial (Fin n) ℚ) - MvPolynomial.C c *
+            (MvPolynomial.X i * MvPolynomial.X j))) ∈
+      SymmetricPower.adjInterfaceSpan n i j := by
+  by_cases hwi : w = i
+  · rw [hwi]
+    rw [pderiv_cadjFactor_fst n c i j hij]
+    exact pderiv_C_mul_X_mem_adjEndpointSpan n i j j v (-c)
+  · by_cases hwj : w = j
+    · rw [hwj]
+      rw [pderiv_cadjFactor_snd n c i j hij]
+      exact pderiv_C_mul_X_mem_adjEndpointSpan n i j i v (-c)
+    · rw [pderiv_cadjFactor_other n c i j w hwi hwj]
+      simp
+
+/-- The canonical Cook-Levin adjacency constraints have positive degree-≤2
+local derivatives in the endpoint interface `span {1, X_i, X_{i+1}}`.
+
+The undifferentiated adjacency factor is excluded: it contains the quadratic
+endpoint product, while this is the three-generator local interface used by the
+profile descent. -/
+theorem cookLevin_adjacency_local_interface_step
+    (M : DTM) (n : ℕ) (lc : LocalConstraint n)
+    (hlc : lc ∈ PaperFaithfulSeparation.adjConstraintList n) :
+    ∃ (i : Fin n) (hi : i.val + 1 < n),
+      ∀ d : List (Fin n),
+        1 ≤ d.length →
+        d.length ≤ 2 →
+        iterDerivList d ((1 : MvPolynomial (Fin n) ℚ) - lc.poly) ∈
+          SymmetricPower.adjInterfaceSpan n i ⟨i.val + 1, hi⟩ := by
+  obtain ⟨c, i, hi, hpoly⟩ :=
+    PaperFaithfulSeparation.rest_constraint_cadj_form M n lc (by
+      rw [List.mem_append]
+      exact Or.inl hlc)
+  refine ⟨i, hi, ?_⟩
+  intro d hpos hle
+  set j : Fin n := ⟨i.val + 1, hi⟩
+  have hij : i ≠ j := by
+    intro h
+    simp [j, Fin.ext_iff] at h
+  rw [hpoly]
+  cases d with
+  | nil =>
+      simp at hpos
+  | cons v rest =>
+      cases rest with
+      | nil =>
+          rw [iterDerivList_singleton_eq_pderiv]
+          exact pderiv_cadjFactor_mem_adjEndpointSpan n c i j v hij
+      | cons w rest' =>
+          cases rest' with
+          | nil =>
+              rw [iterDerivList_pair_eq_pderiv2]
+              exact pderiv2_cadjFactor_mem_adjEndpointSpan n c i j v w hij
+          | cons x xs =>
+              exfalso
+              simp at hle
+              omega
+
+/-- The transition-skeleton factors from `CookLevinDefs` reduce to the same
+endpoint-variable local interface as adjacency factors after one or two local
+hits. The undifferentiated raw factor is still quadratic; using it in a fixed
+three-generator template requires the `mlProj`/local-coordinate transport
+recorded below. -/
+theorem cookLevin_transSkel_local_interface_step
+    (M : DTM) (n : ℕ) (lc : LocalConstraint n)
+    (hlc : lc ∈ PaperFaithfulSeparation.transSkelConstraintList M n) :
+    ∃ (i : Fin n) (hi : i.val + 1 < n),
+      ∀ d : List (Fin n),
+        1 ≤ d.length →
+        d.length ≤ 2 →
+        iterDerivList d ((1 : MvPolynomial (Fin n) ℚ) - lc.poly) ∈
+          SymmetricPower.adjInterfaceSpan n i ⟨i.val + 1, hi⟩ := by
+  obtain ⟨c, i, hi, hpoly⟩ :=
+    PaperFaithfulSeparation.rest_constraint_cadj_form M n lc (by
+      rw [List.mem_append]
+      exact Or.inr hlc)
+  refine ⟨i, hi, ?_⟩
+  intro d hpos hle
+  set j : Fin n := ⟨i.val + 1, hi⟩
+  have hij : i ≠ j := by
+    intro h
+    simp [j, Fin.ext_iff] at h
+  rw [hpoly]
+  cases d with
+  | nil =>
+      simp at hpos
+  | cons v rest =>
+      cases rest with
+      | nil =>
+          rw [iterDerivList_singleton_eq_pderiv]
+          exact pderiv_cadjFactor_mem_adjEndpointSpan n c i j v hij
+      | cons w rest' =>
+          cases rest' with
+          | nil =>
+              rw [iterDerivList_pair_eq_pderiv2]
+              exact pderiv2_cadjFactor_mem_adjEndpointSpan n c i j v w hij
+          | cons x xs =>
+              exfalso
+              simp at hle
+              omega
+
+/-- Exact stronger transition-left theorem still needed at the factor-list
+frontier.
+
+The theorem above proves the polynomial-local part for any
+`lc ∈ transSkelConstraintList M n`: after one or two hits, the factor lands in
+the endpoint span `span {1, X_i, X_{i+1}}`.  To plug this into
+`CookLevinProfileSymmetricPowerDescentAtProfile`, one still needs the list
+indexing/placement bridge below: every final `transitionLeft` slot of
+`cookLevinFactorList` must be identified with such an `lc`, and its endpoint
+span must be instantiated as the placed canonical local-coordinate template
+for `ConstraintType.transitionLeft`. -/
+def CookLevinTransitionLeftPlacedInterfaceObligation
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ (i : Fin (cookLevinFactorList M n hn htb hns).length),
+    n + (PaperFaithfulSeparation.adjConstraintList n).length ≤ i.1 →
+      ∃ place : Fin maxConstraintArity → Fin n,
+        ∀ d : List (Fin n),
+          1 ≤ d.length →
+          d.length ≤ 2 →
+          iterDerivList d ((cookLevinFactorList M n hn htb hns).get i) ∈
+            placedCookLevinInterfaceSpan place
+              (cookLevinCanonicalInterfaceFamily ConstraintType.transitionLeft)
 
 /-- For degree-2 factors, the local derivative space (the set of all possible
     iterDerivList d f for |d| ≤ 2 with d ⊆ S) is contained in the span of
