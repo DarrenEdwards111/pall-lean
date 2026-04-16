@@ -489,6 +489,68 @@ theorem coeff_mul_disjoint_vars
     (hdisj : Disjoint α.support β.support) :
     MvPolynomial.coeff (α + β) (p * q) =
       MvPolynomial.coeff α p * MvPolynomial.coeff β q := by
-  sorry
+  -- Key helper: for (a,b) ≠ (α,β) in antidiagonal(α+β),
+  -- coeff(a,p) * coeff(b,q) = 0.
+  have key : ∀ (a b : σ →₀ ℕ), a + b = α + β → (a, b) ≠ (α, β) →
+      MvPolynomial.coeff a p * MvPolynomial.coeff b q = 0 := by
+    intro a b hab hne
+    -- Since (a,b) ≠ (α,β) and a+b = α+β: either a ≠ α or b ≠ β.
+    -- Case a ≠ α: ∃ i with a(i) ≠ α(i), i ∈ supp(α) ⊆ vars(p).
+    -- Then b(i) = (α+β)(i) - a(i). Since i ∈ supp(α), β(i) = 0 (disjoint supports).
+    -- So (α+β)(i) = α(i). If a(i) < α(i): b(i) = α(i) - a(i) > 0.
+    -- But i ∉ vars(q) (disjoint from vars(p)), so b ∉ q.support, coeff(b,q) = 0.
+    -- If a(i) > α(i): impossible since a(i) + b(i) = α(i) and b(i) ≥ 0.
+    -- Case b ≠ β: symmetric argument gives coeff(a,p) = 0.
+    -- If coeff(a,p) * coeff(b,q) ≠ 0, then a ∈ p.support and b ∈ q.support.
+    -- This gives supp(a) ⊆ vars(p) and supp(b) ⊆ vars(q).
+    -- Since vars(p) ∩ vars(q) = ∅: supp(a) ∩ supp(b) = ∅.
+    -- But also supp(α) ∩ supp(β) = ∅ and a+b = α+β.
+    -- Two decompositions of the same Finsupp with disjoint supports must agree.
+    -- Hence (a,b) = (α,β), contradicting hne.
+    by_contra h0; push_neg at h0; apply hne
+    have ha_supp : a.support ⊆ p.vars := fun j hj =>
+      (MvPolynomial.mem_vars j).mpr ⟨a, Finsupp.mem_support_iff.mpr (left_ne_zero_of_mul h0), hj⟩
+    have hb_supp : b.support ⊆ q.vars := fun j hj =>
+      (MvPolynomial.mem_vars j).mpr ⟨b, Finsupp.mem_support_iff.mpr (right_ne_zero_of_mul h0), hj⟩
+    have ha_eq : a = α := by
+      ext i
+      have hsum : a i + b i = α i + β i := by
+        have := congr_fun (congr_arg Finsupp.toFun hab) i
+        simpa [Finsupp.coe_add, Pi.add_apply] using this
+      by_cases hia : i ∈ α.support
+      · have hbi : b i = 0 := by
+          by_contra hb_ne
+          have hib : i ∈ b.support := Finsupp.mem_support_iff.mpr hb_ne
+          exact Finset.disjoint_left.mp hvars (hα hia) (hb_supp hib)
+        have hβi : β i = 0 := by
+          by_contra hβ_ne
+          exact absurd (Finsupp.mem_support_iff.mpr hβ_ne) (Finset.disjoint_left.mp hdisj hia)
+        omega
+      · have hαi : α i = 0 := by rwa [Finsupp.mem_support_iff, not_not] at hia
+        by_cases hib : i ∈ β.support
+        · have hai : a i = 0 := by
+            by_contra ha_ne
+            have hia' : i ∈ a.support := Finsupp.mem_support_iff.mpr ha_ne
+            exact Finset.disjoint_left.mp hvars (ha_supp hia') (hβ hib)
+          omega
+        · have hβi : β i = 0 := by rwa [Finsupp.mem_support_iff, not_not] at hib
+          omega
+    have hb_eq : b = β := by
+      have h : α + b = α + β := ha_eq ▸ hab
+      exact add_left_cancel h
+    exact Prod.ext ha_eq hb_eq
+  classical
+  rw [MvPolynomial.coeff_mul]
+  -- The antidiagonal sum equals coeff(α,p)*coeff(β,q) + Σ_{(a,b)≠(α,β)} 0
+  have hmem : (α, β) ∈ Finset.antidiagonal (α + β) :=
+    Finset.mem_antidiagonal.mpr rfl
+  rw [← Finset.add_sum_erase (Finset.antidiagonal (α + β)) _ hmem]
+  have hrest : ∑ x ∈ (Finset.antidiagonal (α + β)).erase (α, β),
+      MvPolynomial.coeff x.1 p * MvPolynomial.coeff x.2 q = 0 := by
+    apply Finset.sum_eq_zero
+    intro ⟨a, b⟩ hx
+    rw [Finset.mem_erase] at hx
+    exact key a b (Finset.mem_antidiagonal.mp hx.2) hx.1
+  rw [hrest, add_zero]
 
 end CoeffMatrixHelpers
