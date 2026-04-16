@@ -678,6 +678,23 @@ def latent_profile_varying_space
     (σ : latentProfileSignature M n) : Submodule ℚ (MvPolynomial (Fin (latentNumVars M n)) ℚ) :=
   Submodule.span ℚ { q | q.vars ⊆ latent_profile_varying_window M n σ }
 
+/-- `mlProj ∘ (residual * ·)` as a linear map on the latent varying-factor space.
+This is the latent-side analogue of the post-processing map used in
+`WithinProfileBound`: once a bucket member is written as `mlProj (residual * varying)`,
+the only slice-dependent part left is the source vector `varying`. -/
+noncomputable def latent_bucketPostProcessLinearMap
+    {M : DTM} {n : ℕ}
+    (residual : MvPolynomial (Fin (latentNumVars M n)) ℚ) :
+    MvPolynomial (Fin (latentNumVars M n)) ℚ →ₗ[ℚ]
+      MvPolynomial (Fin (latentNumVars M n)) ℚ :=
+  (mlProjLinearMap (Fin (latentNumVars M n)) ℚ).comp (LinearMap.mulLeft ℚ residual)
+
+@[simp] theorem latent_bucketPostProcessLinearMap_apply
+    {M : DTM} {n : ℕ}
+    (residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ) :
+    latent_bucketPostProcessLinearMap residual varying = mlProj (residual * varying) := by
+  simp [latent_bucketPostProcessLinearMap, mlProjLinearMap]
+
 /-- Sharpened σ-dependent ambient candidate: use exactly the span of the coarse bucket for
 `σ`. This is the first genuinely signature-sensitive ambient space in the local bridge.
 It is still only the coarse latent slice, not yet the Section 9 profile space, but it
@@ -693,6 +710,21 @@ def latent_profile_space_candidate
     latent_profile_varying_space M n σ =
       Submodule.span ℚ { q | q.vars ⊆ latent_profile_varying_window M n σ } := by
   rfl
+
+/-- If a bucket element factors as `mlProj (residual * varying)` with `varying`
+already in the `σ`-varying subspace, then it belongs to the image of that same
+common varying subspace under one latent post-processing map. This is the exact
+latent-side `common bucket span` packaging used below. -/
+theorem latent_mem_commonBucketSpan_of_factorization
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (q residual varying : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hq : q = mlProj (residual * varying))
+    (hvary : varying ∈ latent_profile_varying_space M n σ) :
+    q ∈ Submodule.map (latent_bucketPostProcessLinearMap residual)
+      (latent_profile_varying_space M n σ) := by
+  refine ⟨varying, hvary, ?_⟩
+  rw [latent_bucketPostProcessLinearMap_apply, hq]
 
 @[simp] theorem latent_profile_space_candidate_def
     (M : DTM) (n : ℕ)
@@ -2747,6 +2779,28 @@ theorem latent_clean_compatible_bucket_member_menu_unique_branch_factorization
       ring_nf
     · simpa [hSig] using latent_selCon_selector_multiplier_varying_factor_mem_varying_space M n ks m hVars hDeg hlen
 
+/-- Selector-compatible bucket members already satisfy the latent `common bucket
+span` conclusion: the full bucket element `q`, not just one branch, lies in the
+image of the fixed `σ`-varying subspace under a residual-dependent post-process.
+
+This is the strongest currently proved latent-side uniformity statement across
+bounded slices in one slot-family lane. -/
+theorem latent_selCon_compatible_bucket_member_mem_commonBucketSpan
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hn2 : n ≥ 2)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hq : latent_selCon_compatible_bucket_member_clean M n σ q) :
+    ∃ residual : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+      q ∈ Submodule.map (latent_bucketPostProcessLinearMap residual)
+        (latent_profile_varying_space M n σ) := by
+  rcases latent_selCon_compatible_bucket_member_factors_through_sheet_varying_space M n σ hn2 q
+      (by
+        rcases hq with ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩
+        exact ⟨ks, m, hnd, hlen, hDeg, hVars, hSig, hqeq⟩) with
+    ⟨sheet, residual, varying, hsheet, hfac, hvary⟩
+  exact ⟨residual, latent_mem_commonBucketSpan_of_factorization M n σ q residual varying hfac hvary⟩
+
 /-- Nonempty cleaned top-level uniqueness package: if a bucket member is given in one cleaned
 compatibility presentation, then the other two cleaned compatibility presentations are impossible.
 This lifts the earlier single-sheet exclusivity to the cleaned top-level menu language. -/
@@ -3044,6 +3098,54 @@ theorem latent_raw_bucket_member_enters_clean_lane
     have hq' : q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n)) := by
       simpa [hS] using hq
     exact latent_bucket_generator_to_clean_sel_menu M n σ q ks m hnd hLen' hDeg hVars' hSig' hq'
+
+/-- Selector-uniform raw bucket members therefore satisfy the same common-bucket-span
+conclusion: after the existing selector-only closure, the full bucket element lies
+in the image of the fixed `σ`-varying subspace under some residual-dependent
+post-process. -/
+theorem latent_raw_bucket_member_mem_commonBucketSpan_of_sel_uniform
+    (M : DTM) (n : ℕ)
+    (σ : latentProfileSignature M n)
+    (hn2 : n ≥ 2)
+    (q : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (S : List (Fin (latentNumVars M n)))
+    (m : MvPolynomial (Fin (latentNumVars M n)) ℚ)
+    (hLen : S.length = Nat.log 2 n)
+    (hDeg : m.totalDegree ≤ Nat.log 2 n)
+    (hVars : m.vars ⊆ S.toFinset)
+    (hAdm : isBlockAdmissible (latentPartition M n) S)
+    (hSig : latent_profile_signature_of_generator_data M n S m hLen hDeg = σ)
+    (hq : q = mlProj (m * iterDerivList S (latentCompiledPoly M n)))
+    (hUniform : ∀ v ∈ S, ∃ i : Fin (latentBaseVars M n), v = selSlot M n i) :
+    ∃ residual : MvPolynomial (Fin (latentNumVars M n)) ℚ,
+      q ∈ Submodule.map (latent_bucketPostProcessLinearMap residual)
+        (latent_profile_varying_space M n σ) := by
+  rcases hAdm with ⟨hNodup, _⟩
+  let ks : List (Fin (latentBaseVars M n)) := S.map (fun v => (latentPartition M n).assign v)
+  have hS : S = ks.map (selSlot M n) := by
+    unfold ks
+    apply List.ext_getElem <;> simp [List.length_map]
+    intro i hi1 hi2
+    rcases hUniform (S[i]) (List.getElem_mem hi1) with ⟨b, hb⟩
+    have hassign : (latentPartition M n).assign (S[i]) = b := by
+      simpa [hb] using latentPartition_assign_selSlot M n b
+    calc
+      S[i] = selSlot M n b := hb
+      _ = selSlot M n ((latentPartition M n).assign (S[i])) := by rw [hassign.symm]
+  have hmapNodup : (ks.map (selSlot M n)).Nodup := by simpa [hS] using hNodup
+  have hnd : ks.Nodup :=
+    (List.nodup_map_iff (selSlot_injective M n)).mp hmapNodup
+  have hVars' : m.vars ⊆ (ks.map (selSlot M n)).toFinset := by
+    simpa [hS] using hVars
+  have hLen' : ks.length = Nat.log 2 n := by
+    simpa [ks, List.length_map] using hLen
+  have hSig' : latent_profile_signature_of_generator_data M n (ks.map (selSlot M n)) m
+      (by simpa [List.length_map] using hLen') hDeg = σ := by
+    simpa [hS] using hSig
+  have hq' : q = mlProj (m * iterDerivList (ks.map (selSlot M n)) (latentCompiledPoly M n)) := by
+    simpa [hS] using hq
+  exact latent_selCon_compatible_bucket_member_mem_commonBucketSpan M n σ hn2 q
+    ⟨ks, m, hnd, hLen', hDeg, hVars', hSig', hq'⟩
 
 /-- Move 1 sheet-level kill: for any raw S, if S contains a variable v from a "killing" layer
 for a given sheet, then `iterDerivList S` of that sheet is zero. This uses `pderiv_comm`
