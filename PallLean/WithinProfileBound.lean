@@ -1982,6 +1982,31 @@ def CookLevinProfileTouchedSpanDescentAtProfile
             (fun i => (cookLevinFactorList M n hn htb hns).get i)
             S shift touched ≤ W
 
+/-- Honest factorization target beneath profile touched-span descent.
+For a fixed derivative-count profile `h`, every same-profile raw touched-support
+post-span should factor through one profile-only touched-part subspace and a
+fixed untouched factor determined by the touched support/profile. This packages
+exactly the algebraic step still missing between local interface containment and
+`CookLevinProfileTouchedSpanDescentAtProfile`. -/
+def CookLevinProfileTouchedFactorizationAtProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (h : ProfileHistogram) : Prop :=
+  ∃ W : Submodule ℚ (MvPolynomial (Fin n) ℚ),
+    Module.Finite ℚ ↥W ∧
+    Module.finrank ℚ ↥W ≤ profileTemplateBound h ∧
+    ∀ (S : List (Fin n)) (_ : S.length ≤ Nat.log 2 n)
+      (shift : MvPolynomial (Fin n) ℚ) (_ : shift.vars ⊆ S.toFinset)
+      (touched : Finset (Fin (cookLevinFactorList M n hn htb hns).length)),
+        RawTouchedCompatibleWithDerivProfile
+            (n := n)
+            (cookLevinConstraintType M n hn htb hns) h touched →
+          ∃ c : MvPolynomial (Fin n) ℚ,
+            rawTouchedPostSpan
+              (fun i => (cookLevinFactorList M n hn htb hns).get i)
+              S shift touched ≤
+            Submodule.map (LinearMap.mulRight ℚ c) W
+
 /-- A profile-only touched-part subspace of bounded finrank immediately yields
 one finite template family of the same profile-bounded size. This is the clean
 non-circular final step from touched-span descent to the raw-touched template
