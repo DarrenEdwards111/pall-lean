@@ -21,7 +21,15 @@ open SymmetricPowerBound
 
 attribute [local instance] Classical.dec
 
-/-! ## Part 1: Finite enumeration of bounded profiles -/
+/-! ## Part 1: Finite enumeration of bounded profiles
+
+Note: `ConstraintType` is globally 4-valued, but the canonical concrete
+Cook-Levin split used in this file only realizes three effective classes
+(booleanity, adjacency, transitionLeft). The dormant `transitionRight`
+coordinate is kept in the ambient profile universe for compatibility with the
+older abstract symmetric-power layer; concrete frontiers below may therefore
+add the side condition `h transitionRight = 0` when talking about the actual
+compiled factor family. -/
 
 /-- A bounded profile at radius κ: each component is ≤ κ. -/
 def BoundedProfile (κ : ℕ) := { h : ProfileHistogram // ∀ τ, h τ ≤ κ }
