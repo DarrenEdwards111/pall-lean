@@ -490,70 +490,127 @@ switching lemma, expander spectral bounds, positive geometry) to
 formalise. We do not discharge (b) here; we package it as a field of the
 witness so it is visible and named. -/
 
-/-- A paper-faithful witness for Theorem 207 (Global God-Move Separation).
+/-- A paper-faithful two-stage witness for Theorem 207 (Global God-Move
+Separation).
 
-Given a bounded-parameter DTM `M` at `n ≥ 2^804` that decides 3-SAT, the
-paper's God-Move extraction + profile compression + Ramanujan-Tseitin
-identity minor jointly produce:
+The paper's chain is a **two-stage argument**, not a single bound. Stage 1
+is the instance-uniform extraction `T_Φ` that maps the paper's instrumented
+compiled polynomial `P_{M',n}` to the coupled sheet `Q×_Φ,S`. Stage 2 is
+the rank comparison under the Π⋆ gauge (radius-1 diagonal basis),
+producing the polynomial SPDP rank bound on `P_{M',n}` via
+Width⇒Rank (Theorem 32 / Theorem 10).
 
-* `sheet` — the extracted coupled sheet Q×_Φₙ (Theorem 181/203),
-* `p_side_bound` — `rank(sheet) ≤ n^200` (Theorem 10 / Lemma 205),
-* `np_side_lower_bound` — `rank(sheet) ≥ C(n/3, log n)` (Theorem 98).
+Note on Π⋆: the paper's Π⋆ is a **gauge / coordinate system**, not a linear
+map on polynomials (see Remark 10: *"the gauge fixes the basis and
+locality structure, while Π_Φ performs the actual codimension collapse"*).
+In Lean, Π⋆ is realised implicitly by the choice of `BlockPartition` and
+the SPDP rank definition — there is no separate `LinearMap` field for it.
 
-The structure is conditional on `DecidesSAT M` — the extraction only
-makes sense when M has an accepting tableau on the hard instance. -/
+### Fields (each tied to a named paper theorem)
+
+* `paperCompiledPoly` — the paper's instrumented P_{M',n} (Theorem 181 /
+  Lemma 204): `Q×_Φ(u, ζ(u,v)) + R_{M',Φ}(v)`. This is **distinct from**
+  our local `compiledPoly` (which is the product-form Cook-Levin
+  compilation used by `compiled_np_lower_bound_any_dtm`); the paper's
+  instrumented version has a different structure.
+* `sheet` — the extracted coupled sheet Q×_Φ,S (Theorem 181/205).
+* `extraction_rank_monotone` — Lemma 205: T_Φ is rank non-increasing,
+  so `rank(sheet) ≤ rank(paperCompiledPoly)`.
+* `compiled_p_side_bound` — Theorem 10 / Theorem 32 (Width⇒Rank): under
+  the Π⋆ gauge, `rank(paperCompiledPoly) ≤ n^200`.
+* `sheet_np_side_lower_bound` — Theorem 98 (Ramanujan-Tseitin identity
+  minor): `rank(sheet) ≥ C(n/3, log n)`.
+
+### Why `paperCompiledPoly` is a separate field
+
+Our local `compiledPoly` (from `cook_levin_compilation`) is a *product
+form* `∏(1 - cᵢ.poly)` satisfying the axiom-free
+`compiled_np_lower_bound_any_dtm`: it already has super-polynomial SPDP
+rank for any DTM. The paper's P_{M',n} from Theorem 181 is a *sum form*
+`Q×_Φ(u,ζ) + R_{M',Φ}(v)` constructed by a different instrumented compiler.
+These are genuinely different polynomials with (potentially) different
+rank profiles. Collapsing them would be paper-unfaithful — which is why
+we bundle `paperCompiledPoly` inside the witness as its own abstract
+polynomial. -/
 structure Theorem207Witness
     (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Type where
-  /-- **Theorem 181/203 (God-Move extraction).** The coupled sheet Q×_Φₙ
-  extracted from the compiled polynomial via M's accepting tableau on a
-  hard Tseitin instance. Lives in the same variable space as the compiled
-  polynomial. -/
-  sheet : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ
-  /-- **Theorem 10 / Lemma 205 (P-side upper bound via amplituhedron).**
-  The coupled sheet has polynomial SPDP rank after the paper's compilation
-  pipeline: Cook-Levin → profile compression → Ramanujan-expander CEW
-  bound → totally-positive amplituhedron projection.
+  /-- **Theorem 181 / Lemma 204 (Machine-Exact Compiler with Coupled
+  Verifier Sheet).** The paper's instrumented compiled polynomial
+  `P_{M',n}(u,v) = Q×_Φ(u, ζ(u,v)) + R_{M',Φ}(v)` from the instrumented
+  machine M' that prepends clause gadgets and forces a verifier slice.
 
-  This is the only genuinely hard bound — the paper devotes Sections 7,
-  29–31, 37–42 to it. It is the open mathematical content of Theorem 207. -/
-  p_side_bound :
+  This is **distinct from** our local `compiledPoly` — the paper's
+  instrumented polynomial has a sum form with coupling structure, whereas
+  our local `compiledPoly` is the product-form Cook-Levin compilation. -/
+  paperCompiledPoly :
+    MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ
+  /-- **Theorem 181 / §34.2 (Coupled-sheet extraction).** The coupled
+  sheet `Q×_Φ,S` produced by the instance-uniform extraction operator
+  `T_Φ = (basis) ◦ (affine relabel) ◦ (restriction) ◦ (projection)`
+  applied to `paperCompiledPoly`. -/
+  sheet :
+    MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ
+  /-- **Lemma 205 (Extraction rank monotonicity).** Since `T_Φ` is a
+  composition of basis changes, affine relabelings, restrictions, and
+  projections (each rank non-increasing by Lemma 38), its rank-monotone
+  effect on the sheet satisfies `rank(sheet) ≤ rank(paperCompiledPoly)`. -/
+  extraction_rank_monotone :
     mlBlockedSpdpRank
       (cook_levin_compilation M n hn2 htb hns).partition
-      (Nat.log 2 n) (Nat.log 2 n) sheet ≤ n ^ 200
-  /-- **Theorem 98 (NP-side identity minor via Ramanujan-Tseitin).**
-  The coupled sheet contains a super-polynomial identity minor of size
-  C(n/3, log n), coming from the Tseitin encoding of the hard 3-CNF
-  family on a Ramanujan expander.
+      (Nat.log 2 n) (Nat.log 2 n) sheet ≤
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n) paperCompiledPoly
+  /-- **Theorem 10 / Theorem 32 (Width⇒Rank, P-side upper bound under
+  the Π⋆ gauge).** Under the Π⋆ gauge (radius-1 diagonal basis) the
+  paper's instrumented compiled polynomial has polynomial SPDP rank:
+  `rank(paperCompiledPoly) ≤ n^200`.
 
-  Analogous to the axiom-free `compiled_np_lower_bound_any_dtm` on the
-  raw compiled polynomial; the coupled-sheet version is the transported
-  form used in Theorem 207's contradiction step. -/
-  np_side_lower_bound :
+  This is the paper's genuinely deep content — profile compression,
+  Ramanujan-expander CEW bound, derandomised switching lemma, and
+  amplituhedron / totally-positive projection. The paper devotes
+  Sections 7, 29–31, 37–42 to establishing this inequality. -/
+  compiled_p_side_bound :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n) paperCompiledPoly ≤ n ^ 200
+  /-- **Theorem 98 (Ramanujan-Tseitin identity minor, NP-side lower bound
+  on the sheet).** The coupled sheet contains a super-polynomial identity
+  minor of size `C(n/3, log n)`, coming from the Tseitin encoding of the
+  hard 3-CNF family on a Ramanujan expander. -/
+  sheet_np_side_lower_bound :
     Nat.choose (n / 3) (Nat.log 2 n) ≤
       mlBlockedSpdpRank
         (cook_levin_compilation M n hn2 htb hns).partition
         (Nat.log 2 n) (Nat.log 2 n) sheet
 
-/-- **Theorem 207 axiom (paper-faithful).** For every bounded-parameter
-SAT-decider at `n ≥ 2^804`, the paper's God-Move extraction + profile
-compression + Ramanujan-Tseitin identity minor jointly produce a
-`Theorem207Witness`.
+/-- **Theorem 207 axiom (paper-faithful, two-stage).** For every
+bounded-parameter SAT-decider at `n ≥ 2^804`, the paper's instrumented
+compiler (Theorem 181 / Lemma 204) + God-Move extraction T_Φ (Lemma 205) +
+P-side Width⇒Rank (Theorem 10 / §32) + NP-side Ramanujan-Tseitin identity
+minor (Theorem 98) jointly produce a `Theorem207Witness`.
 
-This axiom **is** the paper's Theorem 207 conjunction: (a) extraction +
-(b) P-side upper bound + (c) NP-side lower bound, all on the same
-extracted coupled sheet.
+The witness carries **five named paper-theorem fields** — the paper's full
+two-stage chain made explicit:
 
-At `n = 2^804` the witness's two bounds are arithmetically incompatible
-(`n^200 < C(n/3, log n)`), so the axiom's existence claim is
-mathematically equivalent to "no bounded-parameter SAT-decider exists at
-n = 2^804" — the separation `P ≠ NP` in restricted form.
+1. `paperCompiledPoly` — P_{M',n} from Theorem 181 / Lemma 204.
+2. `sheet` — Q×_Φ,S from Lemma 205 extraction.
+3. `extraction_rank_monotone` — Lemma 205 rank monotonicity.
+4. `compiled_p_side_bound` — Theorem 10 / Theorem 32 Width⇒Rank.
+5. `sheet_np_side_lower_bound` — Theorem 98 Ramanujan-Tseitin.
 
-The real open mathematical content is the `p_side_bound` field: the
-extraction (a) is a data-constructive operation, and the NP-side bound (c)
-transports from the axiom-free `compiled_np_lower_bound_any_dtm`. The
-P-side bound (b) is the paper's genuine deep content (§7, §29–31,
-§37–42). -/
+At `n = 2^804` the chain
+`C(n/3, log n) ≤ rank(sheet) ≤ rank(paperCompiledPoly) ≤ n^200`
+is arithmetically incompatible (`n^200 < C(n/3, log n)`), so the axiom's
+existence claim is mathematically equivalent to "no bounded-parameter
+SAT-decider exists at n = 2^804" — the separation `P ≠ NP` in
+restricted form.
+
+The deepest mathematical content is the `compiled_p_side_bound` field
+(Theorem 10 / Width⇒Rank via profile compression + amplituhedron);
+`extraction_rank_monotone` (Lemma 205) and `sheet_np_side_lower_bound`
+(Theorem 98) are relatively more tractable given existing infrastructure. -/
 axiom exists_theorem207_witness
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)

@@ -1238,13 +1238,30 @@ theorem P_ne_NP_via_theorem207 : ∀ (_ : PeqNP_Paper), False := by
     _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
   have hns_n : hPeqNP.decider.numStates ≤ n :=
     le_trans hPeqNP.numStates_bound (le_refl _)
-  -- Apply the Theorem 207 axiom using the SAT-decider hypothesis.
-  obtain ⟨sheet, hp_side, hnp_side⟩ := GlobalGodMoveGauge.exists_theorem207_witness
-    hPeqNP.decider n hn₀ hn2 hPeqNP.timeBound_le hns_n hPeqNP.decides_3sat
-  -- The two bounds now sit on the SAME extracted coupled sheet:
-  -- * `hp_side` : rank(sheet) ≤ n^200 (Theorem 10 / Lemma 205)
-  -- * `hnp_side` : rank(sheet) ≥ C(n/3, log n) (Theorem 98)
-  -- Chain them with the binomial bridge.
+  -- Apply the Theorem 207 axiom using the SAT-decider hypothesis to obtain
+  -- the five-field witness (paper's two-stage structure):
+  --   * paperCompiledPoly := the paper's instrumented P_{M',n} (Theorem 181/204)
+  --   * sheet := the extracted coupled sheet Q×_Φ,S (Lemma 205)
+  --   * extraction_rank_monotone := rank(sheet) ≤ rank(paperCompiledPoly) (Lemma 205)
+  --   * compiled_p_side_bound := rank(paperCompiledPoly) ≤ n^200 (Theorem 10 / Width⇒Rank)
+  --   * sheet_np_side_lower_bound := C(n/3, log n) ≤ rank(sheet) (Theorem 98)
+  let W : GlobalGodMoveGauge.Theorem207Witness
+            hPeqNP.decider n hn₀ hn2 hPeqNP.timeBound_le hns_n :=
+    GlobalGodMoveGauge.exists_theorem207_witness
+      hPeqNP.decider n hn₀ hn2 hPeqNP.timeBound_le hns_n hPeqNP.decides_3sat
+  -- Paper-faithful two-stage chain:
+  --   rank(sheet) ≤ rank(paperCompiledPoly)    [Lemma 205, stage 1]
+  --   rank(paperCompiledPoly) ≤ n^200          [Theorem 10 / §32 Width⇒Rank, stage 2]
+  -- ⇒ rank(sheet) ≤ n^200
+  have hp_side_sheet :
+      mlBlockedSpdpRank
+        (cook_levin_compilation hPeqNP.decider n hn2
+          hPeqNP.timeBound_le hns_n).partition
+        (Nat.log 2 n) (Nat.log 2 n) W.sheet ≤ n ^ 200 :=
+    le_trans W.extraction_rank_monotone W.compiled_p_side_bound
+  -- NP-side identity minor on the sheet (Theorem 98).
+  have hnp_side_sheet := W.sheet_np_side_lower_bound
+  -- Arithmetic bridge: C(n/30, log n) ≥ n^(log n / 4) ≥ n^201 at n = 2^804.
   have hn20 : n ≥ 2 ^ 20 :=
     le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn₀
   have hbin : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
@@ -1253,8 +1270,8 @@ theorem P_ne_NP_via_theorem207 : ∀ (_ : PeqNP_Paper), False := by
     Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
   -- Chain: n^(log n / 4) ≤ C(n/30, log n) ≤ C(n/3, log n) ≤ rank(sheet) ≤ n^200
   have hchain : n ^ (Nat.log 2 n / 4) ≤ n ^ 200 :=
-    le_trans (le_trans (le_trans hbin hmono) hnp_side) hp_side
-  -- At n = 2^804, log₂ n ≥ 804, so log₂ n / 4 ≥ 201 > 200, contradicting the chain.
+    le_trans (le_trans (le_trans hbin hmono) hnp_side_sheet) hp_side_sheet
+  -- At n = 2^804, log₂ n ≥ 804, so log₂ n / 4 ≥ 201 > 200.
   have hlog : 804 ≤ Nat.log 2 n := Nat.le_log_of_pow_le (by norm_num : 1 < 2) hn₀
   have hdiv : 201 ≤ Nat.log 2 n / 4 := by omega
   have hcontra : n ^ 201 ≤ n ^ 200 :=
@@ -1286,8 +1303,16 @@ theorem exists_amplituhedron_gauge_for_sat_decider_from_theorem207
   -- From the Theorem 207 axiom, derive False at n = 2^804 (arithmetic), then
   -- produce the existential via ex falso.
   exfalso
-  obtain ⟨sheet, hp_side, hnp_side⟩ :=
+  let W : GlobalGodMoveGauge.Theorem207Witness M n hn hn2 htb hns :=
     GlobalGodMoveGauge.exists_theorem207_witness M n hn hn2 htb hns hdec
+  -- Two-stage P-side chain on the sheet:
+  --   rank(sheet) ≤ rank(paperCompiledPoly) ≤ n^200
+  have hp_side_sheet :
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n) W.sheet ≤ n ^ 200 :=
+    le_trans W.extraction_rank_monotone W.compiled_p_side_bound
+  have hnp_side_sheet := W.sheet_np_side_lower_bound
   -- Same arithmetic bridge as in P_ne_NP_via_theorem207, parameterised in n.
   have hn20 : n ≥ 2 ^ 20 :=
     le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn
@@ -1296,7 +1321,7 @@ theorem exists_amplituhedron_gauge_for_sat_decider_from_theorem207
   have hmono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose (n / 3) (Nat.log 2 n) :=
     Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
   have hchain : n ^ (Nat.log 2 n / 4) ≤ n ^ 200 :=
-    le_trans (le_trans (le_trans hbin hmono) hnp_side) hp_side
+    le_trans (le_trans (le_trans hbin hmono) hnp_side_sheet) hp_side_sheet
   have hlog : 804 ≤ Nat.log 2 n := Nat.le_log_of_pow_le (by norm_num : 1 < 2) hn
   have hdiv : 201 ≤ Nat.log 2 n / 4 := by omega
   have hn_pos : 1 < n := by
