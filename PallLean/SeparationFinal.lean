@@ -52,6 +52,20 @@ theorem p_side_verified (M : DTM) (n : ℕ) (hn : n ≥ 2)
       (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 :=
   LocalityRankBound.p_side_bound_for_cook_levin M n hn htb hns
 
+/-- Conditional P-side verification through the smallest isolated all-span
+common-span blocker below the active bounded-profile common-span theorem. -/
+theorem p_side_verified_of_allBoundedProfileCommonSpan
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hspan : WithinProfileBound.CookLevinAllBoundedProfileCommonSpanLemma
+      M n hn htb hns) :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 :=
+  LocalityRankBound.p_side_bound_for_cook_levin_of_allBoundedProfileCommonSpan
+    M n hn htb hns hspan
+
 /-- Final separation theorem.
 
     Semantic frontier count: TWO genuine

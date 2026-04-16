@@ -301,4 +301,18 @@ theorem p_side_bound_for_cook_levin (M : DTM) (n : ℕ) (hn : n ≥ 2)
         (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 :=
   PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin M n hn htb hns
 
+/-- Conditional P-side bound from the smallest all-span common-span blocker
+below the active bounded-profile common-span theorem. -/
+theorem p_side_bound_for_cook_levin_of_allBoundedProfileCommonSpan
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hspan : WithinProfileBound.CookLevinAllBoundedProfileCommonSpanLemma
+      M n hn htb hns) :
+    mlBlockedSpdpRank (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (PaperFaithfulSeparation.compiledPoly
+        (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 :=
+  PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin_of_allBoundedProfileCommonSpan
+    M n hn htb hns hspan
+
 end LocalityRankBound

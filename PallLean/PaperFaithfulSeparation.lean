@@ -280,6 +280,18 @@ theorem p_side_rank_bound_for_cook_levin_of_templateCollapse
   ProfileCompression.p_side_rank_bound_for_cook_levin_of_templateCollapse
     M n hn htb hns hcollapse
 
+/-- Bucket-common-span frontier version of the P-side rank bound. -/
+theorem p_side_rank_bound_for_cook_levin_of_bucketCommonSpan
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hbucket : WithinProfileBound.CookLevinBucketCommonSpanLemma
+      M n hn htb hns) :
+    mlBlockedSpdpRank (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 :=
+  ProfileCompression.p_side_rank_bound_for_cook_levin_of_bucketCommonSpan
+    M n hn htb hns hbucket
+
 /-- Derivative-profile-compatible raw-touched frontier version of the P-side
 rank bound: if each derivative-count profile has one bounded common subspace
 covering all compatible raw touched-support spans, then the final `n^200`
@@ -324,6 +336,22 @@ theorem p_side_rank_bound_for_cook_levin_of_boundedProfileCommonSpan
       (Nat.log 2 n) (Nat.log 2 n)
       (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 :=
   ProfileCompression.p_side_rank_bound_for_cook_levin_of_boundedProfileCommonSpan
+    M n hn htb hns hspan
+
+/-- Smallest all-span common-span frontier version of the P-side rank bound:
+if each derivative-count profile has one bounded finite generating family for
+the full `allBoundedProfilePostSpan h`, then the final `n^200` estimate follows
+formally. The fixed-profile unit is
+`WithinProfileBound.CookLevinAllBoundedProfileCommonSpanAtProfile`. -/
+theorem p_side_rank_bound_for_cook_levin_of_allBoundedProfileCommonSpan
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hspan : WithinProfileBound.CookLevinAllBoundedProfileCommonSpanLemma
+      M n hn htb hns) :
+    mlBlockedSpdpRank (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 :=
+  ProfileCompression.p_side_rank_bound_for_cook_levin_of_allBoundedProfileCommonSpan
     M n hn htb hns hspan
 
 /-! ### God-Move Extraction: Decomposition into Intermediate Lemmas

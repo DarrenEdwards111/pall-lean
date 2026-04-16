@@ -350,6 +350,24 @@ theorem profile_compression_rank_bound_of_templateCollapse
     (WithinProfileBound.cookLevinExactWithinProfileLemma_of_templateCollapse
       M n hn htb hns hcollapse)
 
+/-- Bucket-common-span version of the profile-compression bound. This routes
+through the active bounded-profile common-span frontier. -/
+theorem profile_compression_rank_bound_of_bucketCommonSpan
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hbucket : WithinProfileBound.CookLevinBucketCommonSpanLemma
+      M n hn htb hns) :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ totalProfileBound n := by
+  exact profile_compression_rank_bound_of_exactWithinProfileLemma
+    M n hn htb hns
+    (WithinProfileBound.cookLevinExactWithinProfileLemma_of_boundedProfileCommonSpan
+      M n hn htb hns
+      (WithinProfileBound.cookLevinBoundedProfileCommonSpan_of_bucketCommonSpan
+        M n hn htb hns hbucket))
+
 /-- Derivative-profile-compatible raw-touched version of the profile-compression
     bound: once each derivative-count profile has one bounded common subspace
     containing all compatible raw touched-support spans, the exact
@@ -406,6 +424,25 @@ theorem profile_compression_rank_bound_of_boundedProfileCommonSpan
   exact profile_compression_rank_bound_of_exactWithinProfileLemma
     M n hn htb hns
     (WithinProfileBound.cookLevinExactWithinProfileLemma_of_boundedProfileCommonSpan
+      M n hn htb hns hspan)
+
+/-- All-span finite common-span version of the profile-compression bound. This
+is the smallest exposed common-span blocker below
+`WithinProfileBound.CookLevinBoundedProfileCommonSpanLemma`: for each profile,
+finite generation of the single full `allBoundedProfilePostSpan h` closes the
+profile-compression estimate. -/
+theorem profile_compression_rank_bound_of_allBoundedProfileCommonSpan
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hspan : WithinProfileBound.CookLevinAllBoundedProfileCommonSpanLemma
+      M n hn htb hns) :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ totalProfileBound n := by
+  exact profile_compression_rank_bound_of_boundedProfileCommonSpan
+    M n hn htb hns
+    (WithinProfileBound.cookLevinBoundedProfileCommonSpan_of_allBoundedProfileCommonSpan
       M n hn htb hns hspan)
 
 /-- **Theorem** (Profile Compression, Paper §9, Theorem 23/92):
@@ -561,6 +598,26 @@ theorem p_side_rank_bound_for_cook_levin_of_templateCollapse
           M n hn htb hns hcollapse
     _ ≤ n ^ 200 := totalProfileBound_le_pow n hn
 
+/-- Bucket-common-span version of the final P-side theorem. -/
+theorem p_side_rank_bound_for_cook_levin_of_bucketCommonSpan
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hbucket : WithinProfileBound.CookLevinBucketCommonSpanLemma
+      M n hn htb hns) :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 := by
+  calc
+    mlBlockedSpdpRank
+        (cook_levin_compilation M n hn htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn htb hns))
+      ≤ totalProfileBound n :=
+        profile_compression_rank_bound_of_bucketCommonSpan
+          M n hn htb hns hbucket
+    _ ≤ n ^ 200 := totalProfileBound_le_pow n hn
+
 /-- Derivative-profile-compatible raw-touched version of the final P-side
     theorem. This is a sufficient close-out route with its own downstream exact
     finrank bridge, not a separate retained dependency. -/
@@ -626,6 +683,28 @@ theorem p_side_rank_bound_for_cook_levin_of_boundedProfileCommonSpan
         (compiledPoly (cook_levin_compilation M n hn htb hns))
       ≤ totalProfileBound n :=
         profile_compression_rank_bound_of_boundedProfileCommonSpan
+          M n hn htb hns hspan
+    _ ≤ n ^ 200 := totalProfileBound_le_pow n hn
+
+/-- All-span finite common-span version of the final P-side theorem. This names
+the smallest fixed-profile common-span blocker below
+`WithinProfileBound.CookLevinBoundedProfileCommonSpanLemma`. -/
+theorem p_side_rank_bound_for_cook_levin_of_allBoundedProfileCommonSpan
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hspan : WithinProfileBound.CookLevinAllBoundedProfileCommonSpanLemma
+      M n hn htb hns) :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn htb hns)) ≤ n ^ 200 := by
+  calc
+    mlBlockedSpdpRank
+        (cook_levin_compilation M n hn htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn htb hns))
+      ≤ totalProfileBound n :=
+        profile_compression_rank_bound_of_allBoundedProfileCommonSpan
           M n hn htb hns hspan
     _ ≤ n ^ 200 := totalProfileBound_le_pow n hn
 
