@@ -772,4 +772,13 @@ This file establishes the paper-faithful matrix-level Lemma 40(c) bound
 as a Lean theorem. Integrating it into the canonical chain's
 `Theorem207Witness` production is future work. -/
 
+#print axioms mlBlockedSpdpRank_gadget_mul_le
+-- Expected: propext, Classical.choice, Quot.sound,
+--   multiIndexLeibniz, gadget_matrix_factoring_reindex,
+--   paperSpdpRank_gadget_mul_le, mlBlockedSpdpRank_le_paperSpdpRank,
+--   paperSpdpRank_le_mlBlockedSpdpRank_shifted.
+#print axioms gadget_matrix_factoring_entry
+-- Expected: propext, Classical.choice, Quot.sound,
+--   multiIndexLeibniz, gadget_matrix_factoring_reindex.
+
 end PaperSpdpMatrix
