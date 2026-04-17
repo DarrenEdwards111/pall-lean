@@ -550,6 +550,12 @@ section for the reason and what the right formulation would be. -/
 --   PAC.gadget_spdp_subspace_factoring.
 -- (The derived theorem depends only on the narrower span-factoring axiom.
 -- Previously this was itself a top-level axiom in PAC v1.)
+#print axioms gadget_spdp_subspace_factoring_zero
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms gadget_spdp_subspace_factoring_gadget_zero
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms gadget_spdp_subspace_factoring_const
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms applyPipeline_rank_monotone
 -- Expected: propext, Classical.choice, Quot.sound.
 -- (The abstract composition theorem depends only on the Op.rank_monotone
