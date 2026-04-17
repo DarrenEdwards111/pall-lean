@@ -854,6 +854,25 @@ theorem sum_Iic_sub_shift_bijection {N : ℕ} {M : Type*} [AddCommMonoid M]
     rw [Finsupp.tsub_apply, Finsupp.coe_add, Pi.add_apply]
     omega
 
+/-! ### Inductive assembly scaffolding
+
+Helper theorem: the LHS = RHS equality using Finset.Iic form, proved by
+induction on `α.sum id`. The main `multiIndexLeibniz_theorem` will bridge
+to the filter form via `filter_boundedMulti_eq_Iic`. -/
+
+/-- **Multi-index Leibniz, Finset.Iic form, base case (α = 0), axiom-free.** -/
+theorem multiIndexLeibniz_Iic_zero {N : ℕ} (g p : MvPolynomial (Fin N) ℚ) :
+    SPDP.iterDerivList (GadgetDerivs.multiIndexToList (0 : Fin N →₀ ℕ))
+        (g * p) =
+    ∑ β ∈ Finset.Iic (0 : Fin N →₀ ℕ),
+      (multiBinom 0 β : ℚ) •
+        (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g *
+         SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+           (multiIndexSub 0 β)) p) := by
+  rw [Iic_zero_eq_singleton, Finset.sum_singleton, multiIndexToList_zero,
+      multiBinom_self, multiIndexSub_self, multiIndexToList_zero]
+  simp [SPDP.iterDerivList]
+
 /-- **Multi-index Leibniz, base case (α = 0), axiom-free.** -/
 theorem multiIndexLeibniz_zero {N : ℕ} (g p : MvPolynomial (Fin N) ℚ) :
     SPDP.iterDerivList (GadgetDerivs.multiIndexToList 0) (g * p) =
