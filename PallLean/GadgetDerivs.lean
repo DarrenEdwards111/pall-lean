@@ -191,4 +191,18 @@ theorem list_perm_multiIndexToList_listToMultiIndex {N : ℕ} (A : List (Fin N))
   intro i
   exact listToMultiIndex_count_eq A i
 
+/-! ## Step 2e: iterDerivList under canonical-list substitution
+
+Via `iterDerivList_perm`, applying iterDerivList to a list `A` gives the same
+result as applying it to the canonical `multiIndexToList (listToMultiIndex A)`. -/
+
+/-- `iterDerivList A p = iterDerivList (multiIndexToList (listToMultiIndex A)) p`. -/
+theorem iterDerivList_canonical {N : ℕ} (A : List (Fin N))
+    (p : MvPolynomial (Fin N) ℚ) :
+    SPDP.iterDerivList A p =
+    SPDP.iterDerivList (multiIndexToList (listToMultiIndex A)) p :=
+  IterDerivHelpers.iterDerivList_perm
+    (list_perm_multiIndexToList_listToMultiIndex A) p
+
 end GadgetDerivs
+
