@@ -2375,6 +2375,20 @@ theorem paperSpdpRank_gadget_mul_le_loose {N : ℕ} (g : MatrixSPDP.BoundedGadge
           (paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p).rank := by
         rw [Finset.sum_const, smul_eq_mul]
 
+/-- `matrix_β g κ ℓ p β = 0` when `∂^β g = 0`. -/
+theorem matrix_β_zero_of_deriv_zero {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) (β : Fin N →₀ ℕ)
+    (hβ : SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly = 0) :
+    matrix_β g κ ℓ p β = 0 := by
+  ext α μ
+  simp only [matrix_β]
+  by_cases hβα : multiIndexLE β α.val
+  · rw [if_pos hβα]
+    rw [hβ, zero_mul, MvPolynomial.coeff_zero, mul_zero]
+    rfl
+  · rw [if_neg hβα]
+    rfl
+
 /-! ### Phase 6 assembly — documented path
 
 Full assembly plan for discharging `paperSpdpRank_gadget_mul_le`:
@@ -2512,6 +2526,54 @@ noncomputable def BoundedGadget.toPAC {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
   degreeBound := g.degreeBound
   vars_card_le := g.vars_card_le
   totalDegree_le := g.totalDegree_le
+
+/-- For β ∉ gadgetDerivIndices, `∂^β g = 0`. -/
+theorem iterDerivList_eq_zero_of_not_mem_gadgetDerivIndices {N : ℕ}
+    (g : MatrixSPDP.BoundedGadget N) (β : Fin N →₀ ℕ)
+    (hβ : β ∉ GadgetDerivs.gadgetDerivIndices (BoundedGadget.toPAC g)) :
+    SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly = 0 := by
+  classical
+  by_cases hsum : β.sum (fun _ n => n) > g.degreeBound
+  · have h_len : (GadgetDerivs.multiIndexToList β).length = β.sum (fun _ n => n) :=
+      GadgetDerivs.multiIndexToList_length β
+    have h_td : g.poly.totalDegree < (GadgetDerivs.multiIndexToList β).length := by
+      rw [h_len]
+      have := g.totalDegree_le
+      omega
+    exact iterDerivList_eq_zero_of_totalDegree_lt _ _ h_td
+  · push_neg at hsum
+    -- Helper: listToMultiIndex (multiIndexToList β) = β.
+    have h_roundtrip : GadgetDerivs.listToMultiIndex
+        (GadgetDerivs.multiIndexToList β) = β := by
+      ext j
+      rw [GadgetDerivs.listToMultiIndex_apply, GadgetDerivs.multiIndexToList_count]
+    by_cases hsub : β.support ⊆ g.poly.vars
+    · -- Both conditions hold; β ∈ gadgetDerivIndices.
+      exfalso
+      apply hβ
+      rw [← h_roundtrip]
+      apply GadgetDerivs.listToMultiIndex_mem_gadgetDerivIndices (BoundedGadget.toPAC g)
+        (GadgetDerivs.multiIndexToList β)
+      · intro i hi
+        have hct : (GadgetDerivs.multiIndexToList β).count i > 0 :=
+          List.count_pos_iff.mpr hi
+        rw [GadgetDerivs.multiIndexToList_count] at hct
+        have hi_sup : i ∈ β.support :=
+          Finsupp.mem_support_iff.mpr (Nat.pos_iff_ne_zero.mp hct)
+        show i ∈ (BoundedGadget.toPAC g).poly.vars
+        show i ∈ g.poly.vars
+        exact hsub hi_sup
+      · rw [GadgetDerivs.multiIndexToList_length]
+        show β.sum (fun _ n => n) ≤ (BoundedGadget.toPAC g).degreeBound
+        exact hsum
+    · -- Support not in vars: find v.
+      rw [Finset.not_subset] at hsub
+      obtain ⟨v, hv_mem, hv_notmem⟩ := hsub
+      have hv_inlist : v ∈ GadgetDerivs.multiIndexToList β := by
+        rw [← List.count_pos_iff, GadgetDerivs.multiIndexToList_count]
+        exact Nat.pos_iff_ne_zero.mpr (Finsupp.mem_support_iff.mp hv_mem)
+      exact IterDerivHelpers.iterDerivList_eq_zero_of_mem_notMem_vars _ v _
+        hv_inlist hv_notmem
 
 /-- **Full chain theorem (revised)**: paper's
 `rank(g·p) ≤ N^C · rank(p)_shifted` on Lean's canonical
