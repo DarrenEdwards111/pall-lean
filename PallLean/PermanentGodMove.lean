@@ -509,6 +509,35 @@ theorem witnessMono_eq_monomial {n : ℕ} (T : Finset (Fin n)) :
   intro i _
   rw [MvPolynomial.X]
 
+/-! ### Step 3c: exponent equality characterization
+
+Characterize when `permCofactorExp σ S = witnessMonoExp T`:
+- The LHS has support `{(σ k, k) : k ∈ Sᶜ}`.
+- The RHS has support `{(i, i) : i ∈ Tᶜ}`.
+- Equal iff σ is identity on Sᶜ AND S = T. -/
+
+/-- If `σ` is the identity and `S = T`, then the exponents match. -/
+theorem permCofactorExp_eq_witnessMonoExp_of_id {n : ℕ}
+    (S : Finset (Fin n)) :
+    permCofactorExp (Equiv.refl (Fin n)) S = witnessMonoExp S := by
+  unfold permCofactorExp witnessMonoExp
+  apply Finset.sum_congr rfl
+  intro k _
+  rfl
+
+/-- Identity permutation's cofactor at S equals the witnessMono at S. -/
+theorem permCofactor_id {n : ℕ} (S : Finset (Fin n)) :
+    permCofactor (Equiv.refl (Fin n)) S = witnessMono S := by
+  rw [permCofactor_eq_monomial, witnessMono_eq_monomial,
+      permCofactorExp_eq_witnessMonoExp_of_id]
+
+/-- Coefficient of `witnessMono S` in `permCofactor id S` is 1. -/
+theorem coeff_witnessMono_permCofactor_id {n : ℕ} (S : Finset (Fin n)) :
+    MvPolynomial.coeff (witnessMonoExp S)
+      (permCofactor (Equiv.refl (Fin n)) S) = 1 := by
+  rw [permCofactor_id, witnessMono_eq_monomial, MvPolynomial.coeff_monomial]
+  simp
+
 /-- **Iterated cofactor formula** (Step 2 of Theorem 100):
 `iterDiagPderiv S permPoly = Σ_{σ ∈ Perm : σ fixes S pointwise} permCofactor σ S`.
 
