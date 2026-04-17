@@ -159,6 +159,27 @@ theorem iterDiagPderiv_add {n : ℕ} (S : Finset (Fin n))
     rw [diagPderiv_add]
     exact ih _ _
 
+/-- iterDiagPderiv applied to 0 is 0. -/
+theorem iterDiagPderiv_zero {n : ℕ} (S : Finset (Fin n)) :
+    iterDiagPderiv S (0 : MvPolynomial (Fin n × Fin n) ℚ) = 0 := by
+  unfold iterDiagPderiv
+  induction S.toList with
+  | nil => simp
+  | cons a rest ih =>
+    show rest.foldl (fun q i => diagPderiv i q) (diagPderiv a 0) = 0
+    rw [show diagPderiv a 0 = 0 from (MvPolynomial.pderiv (a, a)).map_zero]
+    exact ih
+
+/-- iterDiagPderiv distributes over sums of polynomials. -/
+theorem iterDiagPderiv_sum {n : ℕ} {ι : Type*} [DecidableEq ι]
+    (S : Finset (Fin n))
+    (s : Finset ι) (f : ι → MvPolynomial (Fin n × Fin n) ℚ) :
+    iterDiagPderiv S (∑ k ∈ s, f k) = ∑ k ∈ s, iterDiagPderiv S (f k) := by
+  induction s using Finset.induction_on with
+  | empty => simp [iterDiagPderiv_zero]
+  | insert a s' ha ih =>
+    rw [Finset.sum_insert ha, iterDiagPderiv_add, ih, Finset.sum_insert ha]
+
 /-- `diagPderiv i (X (i, i)) = 1`. -/
 theorem diagPderiv_X_diag {n : ℕ} (i : Fin n) :
     diagPderiv i (MvPolynomial.X (i, i) :
