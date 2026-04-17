@@ -1,0 +1,84 @@
+/-
+  GadgetDerivs.lean — Step 1 of Lemma 40(c) discharge: enumerate distinct
+  iterDerivList values of a bounded gadget.
+
+  Paper: for bounded g (support t, degree d), the set {iterDerivList A g : A}
+  has at most C(t+d, d) distinct values. This is because iterDerivList is
+  multilinear and symmetric in its list, so depends only on the multiset of
+  indices from g.vars, with total ≤ d. The multi-indices β with β.support ⊆
+  g.vars and Σ βᵢ ≤ d are counted by multinomial C(t+d, d) ≤ (t+d+1)^t.
+
+  This file provides:
+  - `gadgetDerivIndices g` : Finset of valid multi-indices (β).
+  - `gadgetDerivs g` : Finset of derivative polynomials.
+  - Cardinality bound: `(gadgetDerivs g).card ≤ N^(t+d)`.
+-/
+import PallLean.MultilinearSPDP
+import PallLean.PAC
+import Mathlib.Tactic
+
+namespace GadgetDerivs
+
+open MvPolynomial MultilinearSPDP PAC
+
+/-- Multi-indices `β : Fin N →₀ ℕ` with support in `g.poly.vars` and
+total `Σ βᵢ ≤ g.degreeBound`, as a `Finset`.
+
+Implementation: enumerate via functions `g.poly.vars → Fin (d + 1)`, which
+is a finite type with `(d+1)^t` elements where `t = g.poly.vars.card`. Then
+filter by the sum condition. -/
+noncomputable def gadgetDerivIndices {N : ℕ} (g : BoundedGadget N) :
+    Finset (Fin N →₀ ℕ) := by
+  classical
+  exact
+    ((Finset.univ : Finset (g.poly.vars → Fin (g.degreeBound + 1))).image
+      (fun f =>
+        Finsupp.onFinset g.poly.vars
+          (fun i : Fin N =>
+            if h : i ∈ g.poly.vars then (f ⟨i, h⟩).val else 0)
+          (fun i hi => by
+            by_contra hne
+            simp only [Finsupp.mem_support_iff] at hi
+            by_cases hmem : i ∈ g.poly.vars
+            · exact hne hmem
+            · simp [hmem] at hi))).filter
+      (fun β => β.sum (fun _ n => n) ≤ g.degreeBound)
+
+/-- Cardinality bound on `gadgetDerivIndices`: at most
+`(g.degreeBound + 1) ^ g.supportSize` elements (from the function-type
+enumeration), which is in turn ≤ `N^(g.supportSize + g.degreeBound)` at
+scale `N ≥ g.degreeBound + 1`. -/
+theorem gadgetDerivIndices_card_le {N : ℕ} (g : BoundedGadget N) :
+    (gadgetDerivIndices g).card ≤
+      (g.degreeBound + 1) ^ g.poly.vars.card := by
+  classical
+  unfold gadgetDerivIndices
+  calc (gadgetDerivIndices g).card
+      ≤ ((Finset.univ : Finset (g.poly.vars → Fin (g.degreeBound + 1))).image _).card := by
+        exact Finset.card_filter_le _ _
+    _ ≤ (Finset.univ : Finset (g.poly.vars → Fin (g.degreeBound + 1))).card :=
+        Finset.card_image_le
+    _ = (g.degreeBound + 1) ^ g.poly.vars.card := by
+        rw [Finset.card_univ, Fintype.card_fun, Fintype.card_fin,
+          Fintype.card_coe]
+
+/-- At scale `N ≥ g.degreeBound + 1`, the enumeration card is ≤ `N^(t+d)`.
+Combined with `t ≤ g.supportSize` (which holds by `g.vars_card_le`), we
+get the paper's `N^(t+d)` bound. -/
+theorem gadgetDerivIndices_card_le_N_pow {N : ℕ} (g : BoundedGadget N)
+    (hN : g.degreeBound + 1 ≤ N) :
+    (gadgetDerivIndices g).card ≤
+      N ^ (g.supportSize + g.degreeBound) := by
+  calc (gadgetDerivIndices g).card
+      ≤ (g.degreeBound + 1) ^ g.poly.vars.card :=
+        gadgetDerivIndices_card_le g
+    _ ≤ N ^ g.poly.vars.card :=
+        Nat.pow_le_pow_left hN _
+    _ ≤ N ^ g.supportSize :=
+        Nat.pow_le_pow_right (le_trans (by omega : 1 ≤ g.degreeBound + 1) hN)
+          g.vars_card_le
+    _ ≤ N ^ (g.supportSize + g.degreeBound) :=
+        Nat.pow_le_pow_right (le_trans (by omega : 1 ≤ g.degreeBound + 1) hN)
+          (Nat.le_add_right _ _)
+
+end GadgetDerivs
