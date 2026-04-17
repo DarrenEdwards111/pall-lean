@@ -310,4 +310,57 @@ instance mlBlockedSpdpSubspace_Finite {N : ℕ}
     (Submodule.inclusion hLE)
     (Submodule.inclusion_injective hLE)
 
+/-! ## Attempted L construction
+
+With `FiniteDimensional ℚ (mlBlockedSpdpSubspace)` in hand, we can
+in principle extract a basis via `FiniteDimensional.finBasis` and
+construct L explicitly. However, the axiom's rank bound
+`finrank(range L) ≤ N^(t+d)` requires `finrank(SPDP(g·p)) ≤ N^(t+d)` —
+which IS the paper's Lemma 40(c) rank claim itself.
+
+**Obstruction:**
+- Trivial construction: take L with range ⊆ SPDP(g·p). Then
+  `finrank(range L) ≤ finrank(SPDP(g·p))`. The rank bound becomes
+  `finrank(SPDP(g·p)) ≤ N^(t+d)` — the paper's claim directly.
+- Bounding via multilinear subspace: `finrank(range L) ≤ 2^N`. But
+  `2^N` far exceeds `N^C` for small C at our scale (N = 2^804,
+  C = supportSize + degreeBound a small constant).
+
+So bounding `finrank(SPDP(g·p)) ≤ N^(t+d)` cannot be bypassed with
+linear-algebra machinery alone; it requires the paper's explicit
+combinatorial argument:
+- Enumerate distinct `iterDerivList A g` values (≤ C(t+d, d) ≤ N^(t+d))
+- Show each SPDP(g·p) generator is a ℚ-linear combination of
+  `{iterDerivList A g · SPDP_shifted element}` generators (from Leibniz)
+- Count: at most `N^(t+d) · rank(SPDP_shifted)` distinct products
+
+This is the remaining genuine paper-math step that requires:
+- Enumerable Finset of distinct `iterDerivList A g` values
+- Proof that the Finset has size ≤ N^(t+d)
+- Leibniz-expansion combinatorial manipulation matching each SPDP(g·p)
+  generator to a ℚ-linear combination
+
+Each is a 100-300-line Lean proof of its own. The Module.Finite proof
+above (109 lines with helpers) unblocked the structural path, but the
+combinatorial content of Lemma 40(c) still requires formalisation
+work not feasible in the remaining session budget without risking
+soundness.
+
+### What IS axiom-free right now
+
+From the commits above, axiom-free results include:
+- `iterDerivList_smul`, `iterDerivList_mul_mem_leibniz_span` (PACLeibniz)
+- `mlBlockedSpdpRank_C_mul_le` (constant-gadget sub-case)
+- `range_mlSpdpLinearMap_eq_mlBlockedSpdpSubspace` (bridge)
+- `finrank_range_mlSpdpLinearMap` (bridge)
+- `mlBlockedSpdpSubspace_Finite` / `FiniteDimensional ℚ (...)` (this file)
+- `gadget_multiplication_rank_bound_matrix_form` (rank form from the
+  remaining narrower axiom)
+
+### What remains
+
+One axiom: `gadget_factoring_linearmap_form`, paper-literal Lemma 40(c)
+matrix-factoring statement. Full discharge requires the combinatorial
+counting argument above. -/
+
 end MatrixSPDP
