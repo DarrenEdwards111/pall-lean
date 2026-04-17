@@ -409,6 +409,19 @@ identity) is future targeted work.
 - `leibnizCoeff` (scalar Leibniz coefficient)
 - `gadgetLeibnizMatrix` (the paper's L matrix, Phase 4 complete definition)
 
+### Phase 5 via narrower axiom
+
+Rather than defer Phase 5 entirely, we introduce the *multi-index Leibniz
+rule for MvPolynomial* as a narrower axiom (`multiIndexLeibniz`). This is
+a clear, well-defined, standard mathematical fact — not a hand-wavy
+claim — and the matrix identity follows from it via `MvPolynomial.coeff_mul`
+and direct reindexing.
+
+Exposing multi-index Leibniz as a named axiom is strictly better than
+axiomatising the matrix identity itself: it is reducible to single-variable
+Leibniz + commutativity + finite induction (all already in Mathlib), just
+not yet packaged in the multi-index form we need.
+
 ### Phase 5 statement (the theorem to prove in a future session)
 
 The formal target:
@@ -432,5 +445,37 @@ Proof strategy (multi-session):
 
 Once Phase 5 is proved, Phase 6 (rank bound from `Matrix.rank_mul_le`) is
 mechanical. -/
+
+/-! ## Phase 5: matrix identity via multi-index Leibniz axiom -/
+
+/-- **Multi-index Leibniz rule for MvPolynomial** (axiom).
+
+For any multi-index α, any two polynomials g and p:
+
+  `iterDerivList (multiIndexToList α) (g · p) =
+   ∑ β with β ≤ α componentwise,
+     (multiBinom α β) • (iterDerivList (multiIndexToList β) g) *
+     (iterDerivList (multiIndexToList (α - β)) p)`
+
+This is a standard mathematical fact (iterated application of the
+single-variable product rule + commutativity of partial derivatives +
+multi-index binomial identity). It is not yet in Mathlib in this form,
+so we state it as a narrower axiom pending formalisation.
+
+The sum on the RHS is finite since we sum over β ∈ `α.support.powerset`
+(or equivalently, multi-indices β ≤ α — finitely many).
+
+Axiomatising this is strictly better than axiomatising the full matrix
+identity: it reduces the paper-level matrix factoring claim to a single,
+well-defined mathematical fact about MvPolynomial derivatives. -/
+axiom multiIndexLeibniz {N : ℕ} (g p : MvPolynomial (Fin N) ℚ)
+    (α : Fin N →₀ ℕ) :
+    SPDP.iterDerivList (GadgetDerivs.multiIndexToList α) (g * p) =
+    ∑ β ∈ (boundedMultiIndexFinset N (α.sum (fun _ n => n))).filter
+            (fun β => multiIndexLE β α),
+      (multiBinom α β : ℚ) •
+        (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g *
+         SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+           (multiIndexSub α β)) p)
 
 end PaperSpdpMatrix
