@@ -1098,6 +1098,32 @@ theorem linearIndependent_renamed_cofactors {n : ℕ} :
     (MvPolynomial.renameEquiv ℚ (flatEquiv n)).toLinearMap
     (LinearMap.ker_eq_bot.mpr hmap_inj)
 
+/-- The flat span finrank equals `2^n`. -/
+theorem finrank_span_permPolyFlat_cofactors_eq {n : ℕ} :
+    Module.finrank ℚ
+      (Submodule.span ℚ
+        (Set.range (fun S : Finset (Fin n) =>
+          (MvPolynomial.renameEquiv ℚ (flatEquiv n))
+            (iterDiagPderiv S (permPoly n))))) = 2 ^ n := by
+  rw [finrank_span_eq_card linearIndependent_renamed_cofactors]
+  rw [Fintype.card_finset]
+  simp
+
+/-- κ-restricted version of the flat span finrank. -/
+theorem finrank_span_permPolyFlat_cofactors_card_eq {n : ℕ} (κ : ℕ) :
+    Module.finrank ℚ
+      (Submodule.span ℚ
+        (Set.range (fun S : { S : Finset (Fin n) // S.card = κ } =>
+          (MvPolynomial.renameEquiv ℚ (flatEquiv n))
+            (iterDiagPderiv S.val (permPoly n))))) = Nat.choose n κ := by
+  have hli : LinearIndependent ℚ (fun S : { S : Finset (Fin n) // S.card = κ } =>
+      (MvPolynomial.renameEquiv ℚ (flatEquiv n)) (iterDiagPderiv S.val (permPoly n))) := by
+    apply LinearIndependent.comp linearIndependent_renamed_cofactors
+    intro x y hxy
+    exact Subtype.ext hxy
+  rw [finrank_span_eq_card hli]
+  exact card_subtype_size_eq_choose n κ
+
 /-! ### Step 2b: single-variable pderiv of permPoly
 
 Applying `diagPderiv i` to `permPoly n`:
