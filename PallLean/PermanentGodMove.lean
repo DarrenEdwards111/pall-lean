@@ -180,6 +180,89 @@ theorem iterDiagPderiv_sum {n : ℕ} {ι : Type*} [DecidableEq ι]
   | insert a s' ha ih =>
     rw [Finset.sum_insert ha, iterDiagPderiv_add, ih, Finset.sum_insert ha]
 
+/-- Two `pderiv`s on MvPolynomial commute. Direct proof via monomial
+induction (adapted from `IterDerivHelpers.pderiv_comm`). -/
+theorem pderiv_comm_general {σ : Type*} [DecidableEq σ]
+    (a b : σ) (p : MvPolynomial σ ℚ) :
+    MvPolynomial.pderiv a (MvPolynomial.pderiv b p) =
+    MvPolynomial.pderiv b (MvPolynomial.pderiv a p) := by
+  induction p using MvPolynomial.induction_on' with
+  | monomial s c =>
+    simp only [MvPolynomial.pderiv_monomial]
+    change MvPolynomial.monomial _ _ = MvPolynomial.monomial _ _
+    have key : ∀ (x y : σ),
+        (s - Finsupp.single x 1 - Finsupp.single y 1 : σ →₀ ℕ)
+        = (s - Finsupp.single y 1 - Finsupp.single x 1 : σ →₀ ℕ) := by
+      intro x y
+      ext k
+      simp only [Finsupp.tsub_apply, Finsupp.single_apply]
+      split_ifs with h1 h2
+      · subst h1; subst h2; omega
+      · omega
+      · omega
+      · rfl
+    rw [key b a]
+    congr 1
+    simp only [Finsupp.tsub_apply, Finsupp.single_apply]
+    by_cases hba : b = a
+    · subst hba; ring
+    · have hab' : ¬(a = b) := Ne.symm hba
+      simp only [hba, hab', ↓reduceIte, Nat.sub_zero]
+      ring
+  | add p q hp hq =>
+    simp only [map_add, hp, hq]
+
+/-- Two `diagPderiv`s commute. -/
+theorem diagPderiv_commute {n : ℕ} (i j : Fin n)
+    (p : MvPolynomial (Fin n × Fin n) ℚ) :
+    diagPderiv i (diagPderiv j p) = diagPderiv j (diagPderiv i p) := by
+  unfold diagPderiv
+  exact pderiv_comm_general (i, i) (j, j) p
+
+/-- Foldl of commuting operations over a List.Perm gives the same result. -/
+private theorem foldl_diagPderiv_perm {n : ℕ} {l l' : List (Fin n)}
+    (h : l.Perm l') (p : MvPolynomial (Fin n × Fin n) ℚ) :
+    l.foldl (fun q i => diagPderiv i q) p =
+    l'.foldl (fun q i => diagPderiv i q) p := by
+  induction h generalizing p with
+  | nil => rfl
+  | cons a _ ih =>
+    show (_ : List _).foldl _ _ = _
+    dsimp only [List.foldl]
+    exact ih _
+  | swap a b rest =>
+    dsimp only [List.foldl]
+    rw [diagPderiv_commute a b p]
+  | trans _ _ ih1 ih2 => exact (ih1 p).trans (ih2 p)
+
+/-- diagPderiv i commutes with foldl of diagPderivs over a list. -/
+private theorem diagPderiv_foldl_commute {n : ℕ} (i : Fin n)
+    (l : List (Fin n)) (p : MvPolynomial (Fin n × Fin n) ℚ) :
+    diagPderiv i (l.foldl (fun q j => diagPderiv j q) p) =
+    l.foldl (fun q j => diagPderiv j q) (diagPderiv i p) := by
+  induction l generalizing p with
+  | nil => rfl
+  | cons a rest ih =>
+    show diagPderiv i (rest.foldl (fun q j => diagPderiv j q) (diagPderiv a p)) =
+         rest.foldl (fun q j => diagPderiv j q) (diagPderiv a (diagPderiv i p))
+    rw [ih]
+    congr 1
+    exact diagPderiv_commute i a p
+
+/-- Unfolding: `iterDiagPderiv (insert i S) p = diagPderiv i (iterDiagPderiv S p)`
+when `i ∉ S`. Uses `List.Perm` for `(insert i S).toList`. -/
+theorem iterDiagPderiv_insert {n : ℕ} {i : Fin n} {S : Finset (Fin n)}
+    (hi : i ∉ S) (p : MvPolynomial (Fin n × Fin n) ℚ) :
+    iterDiagPderiv (insert i S) p = diagPderiv i (iterDiagPderiv S p) := by
+  unfold iterDiagPderiv
+  have hperm : (insert i S).toList.Perm (i :: S.toList) :=
+    Finset.toList_insert hi
+  rw [foldl_diagPderiv_perm hperm]
+  -- Goal: List.foldl (...) p (i :: S.toList) = diagPderiv i (S.toList.foldl (...) p)
+  show List.foldl (fun q j => diagPderiv j q) (diagPderiv i p) S.toList =
+       diagPderiv i (S.toList.foldl (fun q j => diagPderiv j q) p)
+  exact (diagPderiv_foldl_commute i S.toList p).symm
+
 /-- `diagPderiv i (X (i, i)) = 1`. -/
 theorem diagPderiv_X_diag {n : ℕ} (i : Fin n) :
     diagPderiv i (MvPolynomial.X (i, i) :
