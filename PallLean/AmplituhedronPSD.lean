@@ -287,4 +287,45 @@ theorem determinantalBarrier_one (𝒥 : TotallyNonnegativeMinorFamily n)
     rw [det_submatrix_one (hselect i), Real.log_one]]
   simp
 
+/-- **Barrier as negative log of determinant product**: for `PosDef`
+matrices (where all dets are > 0), the barrier equals `-log(∏ det)`.
+
+This follows from `Real.log_prod` (log of product = sum of logs). -/
+theorem determinantalBarrier_eq_neg_log_prod
+    (𝒥 : TotallyNonnegativeMinorFamily n) [Fintype 𝒥.index]
+    {M : Matrix n n ℝ}
+    (hpos : ∀ i : 𝒥.index,
+      letI := 𝒥.shape_fintype i
+      letI := 𝒥.shape_decEq i
+      (M.submatrix (𝒥.select i) (𝒥.select i)).det ≠ 0) :
+    determinantalBarrier 𝒥 M =
+    - Real.log (∏ i : 𝒥.index,
+      letI := 𝒥.shape_fintype i
+      letI := 𝒥.shape_decEq i
+      (M.submatrix (𝒥.select i) (𝒥.select i)).det) := by
+  unfold determinantalBarrier
+  congr 1
+  have hne : ∀ i ∈ (Finset.univ : Finset 𝒥.index),
+      (letI := 𝒥.shape_fintype i
+       letI := 𝒥.shape_decEq i
+       (M.submatrix (𝒥.select i) (𝒥.select i)).det) ≠ 0 :=
+    fun i _ => hpos i
+  exact (Real.log_prod hne).symm
+
+/-- **Barrier is well-defined (finite) on totally positive matrices**: if
+all principal minors have strictly positive determinant, the barrier is
+a finite real number (each log is well-defined). -/
+theorem determinantalBarrier_well_defined
+    (𝒥 : TotallyNonnegativeMinorFamily n) [Fintype 𝒥.index]
+    (hselect : ∀ i, Function.Injective (𝒥.select i))
+    {M : Matrix n n ℝ} (hM : M.PosDef) :
+    ∀ i : 𝒥.index,
+      letI := 𝒥.shape_fintype i
+      letI := 𝒥.shape_decEq i
+      (M.submatrix (𝒥.select i) (𝒥.select i)).det > 0 := by
+  intro i
+  letI := 𝒥.shape_fintype i
+  letI := 𝒥.shape_decEq i
+  exact det_submatrix_pos_of_posDef hM (hselect i)
+
 end AmplituhedronPSD
