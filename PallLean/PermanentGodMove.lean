@@ -465,6 +465,85 @@ theorem diagPderiv_permCofactor_nonfixing {n : ℕ} (σ : Equiv.Perm (Fin n))
     unfold diagPderiv at h
     rw [h, zero_mul]
 
+/-! ### Step 2d: the iterated cofactor formula
+
+The main theorem of Step 2: applying `iterDiagPderiv S` to `permPoly`
+yields a sum over permutations fixing `S` pointwise, each contributing
+the cofactor product `permCofactor σ S`. -/
+
+/-- **Iterated cofactor formula** (Step 2 of Theorem 100):
+`iterDiagPderiv S permPoly = Σ_{σ ∈ Perm : σ fixes S pointwise} permCofactor σ S`.
+
+This is the paper's `∂_S perm_n = perm(X[T, T])` where `T = [n] \ S`,
+expressed via the permCofactor term. -/
+theorem iterDiagPderiv_permPoly_eq_sum_cofactor {n : ℕ}
+    (S : Finset (Fin n)) :
+    iterDiagPderiv S (permPoly n) =
+    ∑ σ ∈ (Finset.univ : Finset (Equiv.Perm (Fin n))).filter
+        (fun σ => ∀ i ∈ S, σ i = i),
+      permCofactor σ S := by
+  induction S using Finset.induction_on with
+  | empty =>
+    rw [iterDiagPderiv_empty]
+    rw [permPoly_eq_sum]
+    -- RHS: sum over all σ (filter with ∀ i ∈ ∅ is trivially true) of
+    -- permCofactor σ ∅ = ∏_k X_(σk, k)
+    have hfilter : (Finset.univ : Finset (Equiv.Perm (Fin n))).filter
+        (fun σ => ∀ i ∈ (∅ : Finset (Fin n)), σ i = i) =
+        (Finset.univ : Finset (Equiv.Perm (Fin n))) := by
+      apply Finset.filter_true_of_mem
+      intros σ _ i hi
+      exact absurd hi (by simp)
+    rw [hfilter]
+    apply Finset.sum_congr rfl
+    intro σ _
+    exact (permCofactor_empty σ).symm
+  | insert a S' ha_notin ih =>
+    rw [iterDiagPderiv_insert ha_notin]
+    rw [ih]
+    -- diagPderiv a (Σ_{σ fixes S'} permCofactor σ S') = Σ ... using linearity
+    have h_linear : diagPderiv a
+        (∑ σ ∈ (Finset.univ : Finset (Equiv.Perm (Fin n))).filter
+            (fun σ => ∀ i ∈ S', σ i = i),
+          permCofactor σ S') =
+        ∑ σ ∈ (Finset.univ : Finset (Equiv.Perm (Fin n))).filter
+            (fun σ => ∀ i ∈ S', σ i = i),
+          diagPderiv a (permCofactor σ S') := by
+      unfold diagPderiv
+      exact map_sum (MvPolynomial.pderiv (a, a)) _ _
+    rw [h_linear]
+    -- Split sum based on σ a = a; rewrite target as sum-with-if
+    have hfilter : (Finset.univ : Finset (Equiv.Perm (Fin n))).filter
+        (fun σ => ∀ i ∈ insert a S', σ i = i) =
+        ((Finset.univ : Finset (Equiv.Perm (Fin n))).filter
+          (fun σ => ∀ i ∈ S', σ i = i)).filter (fun σ => σ a = a) := by
+      ext σ
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_insert]
+      constructor
+      · intro hfix
+        refine ⟨fun i hi => hfix i (Or.inr hi), hfix a (Or.inl rfl)⟩
+      · rintro ⟨hfixS', ha⟩ i (hi | hi)
+        · rw [hi]; exact ha
+        · exact hfixS' i hi
+    rw [hfilter]
+    -- Goal now: ∑ σ ∈ filter S', diagPderiv a (permCofactor σ S') =
+    --          ∑ σ ∈ (filter S').filter (· a = a), permCofactor σ (insert a S')
+    -- Convert RHS to sum-with-if over filter S':
+    rw [Finset.sum_filter
+      (s := (Finset.univ : Finset (Equiv.Perm (Fin n))).filter
+        (fun σ => ∀ i ∈ S', σ i = i))
+      (p := fun σ => σ a = a)
+      (f := fun σ => permCofactor σ (insert a S'))]
+    -- Now both sides are sums over filter S', term-by-term matching.
+    apply Finset.sum_congr rfl
+    intro σ hσ
+    have hfixS' := (Finset.mem_filter.mp hσ).2
+    by_cases hσa : σ a = a
+    · rw [if_pos hσa]
+      exact diagPderiv_permCofactor_fixes σ S' a ha_notin hσa
+    · rw [if_neg hσa]
+      exact diagPderiv_permCofactor_nonfixing σ S' a ha_notin hσa
+
 /-! ### Step 2b: single-variable pderiv of permPoly
 
 Applying `diagPderiv i` to `permPoly n`:
