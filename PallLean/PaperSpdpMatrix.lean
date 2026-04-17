@@ -150,4 +150,25 @@ noncomputable instance spdpColIndex_fintype (N ℓ : ℕ) :
     Fintype (SpdpColIndex N ℓ) :=
   Fintype.ofInjective (@spdpIndexEncode N ℓ) spdpIndexEncode_injective
 
+/-! ## Phase 2c: Matrix-valued version + paper's rank
+
+With Fintype on both index types, we can view `paperSpdpMatrix` as a
+Mathlib `Matrix` and invoke `Matrix.rank` directly. This gives the
+paper's `Γ_{κ,ℓ}(p) = rank(M^B_{κ,ℓ}(p))` literally. -/
+
+/-- The paper's matrix `M^B_{κ,ℓ}(p)` as a Mathlib `Matrix`. -/
+noncomputable def paperSpdpMatrixVal {N : ℕ} (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) :
+    Matrix (SpdpRowIndex N κ) (SpdpColIndex N ℓ) ℚ :=
+  paperSpdpMatrix κ ℓ p
+
+/-- **Paper's Γ_{κ,ℓ}(p)** — the matrix rank of the paper's SPDP matrix.
+
+This is the DIRECT paper-faithful definition. Bridging to the existing
+`mlBlockedSpdpRank` (which uses a submodule span with different
+constraints) is Phase 3. -/
+noncomputable def paperSpdpRank {N : ℕ} (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) : ℕ :=
+  (paperSpdpMatrixVal κ ℓ p).rank
+
 end PaperSpdpMatrix
