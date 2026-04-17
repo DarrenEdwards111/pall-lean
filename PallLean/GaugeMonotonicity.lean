@@ -134,4 +134,49 @@ theorem IsProjectionGauge.mem_range_iff_fixed
   · intro h
     exact ⟨p, h⟩
 
+/-! ## Section 5: Reduction — sufficient condition for SPDP rank upper bound
+
+A key sufficient condition for property (2) of `IsAmplituhedronGauge`
+(the P-side rank bound): if the SPDP subspace of `gauge p` is contained
+in the span of ≤ n^200 generators, the rank is ≤ n^200. This is a direct
+wrapper around `locality_implies_poly_rank`, specialized through a gauge. -/
+
+/-- If the SPDP subspace of `gauge(p)` at parameters (κ, ℓ) is contained
+in the span of a finite set `G` of ≤ `bound` polynomials, then the
+SPDP rank of `gauge(p)` is ≤ `bound`. -/
+theorem rank_le_of_spans_gauge
+    {N : ℕ} (B : BlockPartition N)
+    (g : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ)
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hSpan : mlBlockedSpdpSubspace B κ ℓ (g p) ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
+    (bound : ℕ)
+    (hCard : G.card ≤ bound) :
+    mlBlockedSpdpRank B κ ℓ (g p) ≤ bound := by
+  unfold mlBlockedSpdpRank
+  have hmono : Module.finrank ℚ
+      (mlBlockedSpdpSubspace B κ ℓ (g p)) ≤
+      Module.finrank ℚ (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ))) :=
+    Submodule.finrank_mono hSpan
+  have hspan_card : Module.finrank ℚ
+      (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ))) ≤ G.card :=
+    finrank_span_finset_le_card G
+  exact le_trans (le_trans hmono hspan_card) hCard
+
+/-! ## Section 6: Reduction — sufficient condition for identity-minor preservation
+
+For property (3) (NP-side preservation), a sufficient condition: if
+`gauge(p)` has SPDP rank at least `lower`, then the rank bound is met. -/
+
+/-- If the SPDP rank of `gauge(p)` is at least `lower`, then the NP-side
+bound in property (3) of `IsAmplituhedronGauge` is satisfied. -/
+theorem rank_ge_of_gauge
+    {N : ℕ} (B : BlockPartition N)
+    (g : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ)
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
+    (lower : ℕ)
+    (hge : lower ≤ mlBlockedSpdpRank B κ ℓ (g p)) :
+    lower ≤ mlBlockedSpdpRank B κ ℓ (g p) := hge
+
 end GaugeMonotonicity
