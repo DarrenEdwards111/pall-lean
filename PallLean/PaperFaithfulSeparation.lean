@@ -1368,6 +1368,79 @@ theorem P_ne_NP_via_rank_sandwich : ∀ (_ : PeqNP_Paper), False := by
 
 #print axioms P_ne_NP_via_rank_sandwich
 
+/-- **Standalone arithmetic: the rank sandwich `C(n/3, log n) ≤ r ≤ n^200`
+is FALSE at `n = 2^804`.**
+
+This is a pure arithmetic fact: no such natural number `r` exists.
+Combined with `exists_rank_sandwich_for_sat_decider`, it gives the
+separation. -/
+theorem no_rank_sandwich_at_2pow804 :
+    ¬ ∃ (r : ℕ),
+      Nat.choose ((2 ^ 804 : ℕ) / 3) (Nat.log 2 (2 ^ 804)) ≤ r ∧
+      r ≤ (2 ^ 804) ^ 200 := by
+  rintro ⟨r, hr_lb, hr_ub⟩
+  set n := (2 ^ 804 : ℕ) with hn_def
+  have hn₀ : n ≥ 2 ^ 804 := le_refl _
+  have hn20 : n ≥ 2 ^ 20 :=
+    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn₀
+  have hbin : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
+    BinomialBound.binomial_lower_bound_concrete n hn20
+  have hmono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose (n / 3) (Nat.log 2 n) :=
+    Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
+  have hchain : n ^ (Nat.log 2 n / 4) ≤ n ^ 200 :=
+    le_trans (le_trans (le_trans hbin hmono) hr_lb) hr_ub
+  have hlog : 804 ≤ Nat.log 2 n := Nat.le_log_of_pow_le (by norm_num : 1 < 2) hn₀
+  have hdiv : 201 ≤ Nat.log 2 n / 4 := by omega
+  have hcontra : n ^ 201 ≤ n ^ 200 :=
+    le_trans (Nat.pow_le_pow_right (by omega : 1 ≤ n) hdiv) hchain
+  exact absurd hcontra
+    (not_le_of_gt (Nat.pow_lt_pow_right (by omega : 1 < n) (by omega : 200 < 201)))
+
+/-- **Equivalence: the rank-sandwich axiom is logically equivalent to
+the restricted P ≠ NP separation at `n = 2^804`.**
+
+Forward direction: axiom + arithmetic contradiction → no bounded-param
+SAT-decider exists.
+
+Backward direction: if no bounded-param SAT-decider exists at
+n = 2^804, then the axiom holds vacuously (DecidesSAT hypothesis is
+never satisfied for bounded-params M). -/
+theorem rank_sandwich_axiom_iff_no_bounded_sat_decider :
+    (∀ (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+       (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (_hdec : DecidesSAT M),
+       ∃ (r : ℕ), Nat.choose (n / 3) (Nat.log 2 n) ≤ r ∧ r ≤ n ^ 200) ↔
+    (∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (_hn2 : n ≥ 2)
+       (_htb : M.timeBound ≤ 4) (_hns : M.numStates ≤ n),
+       ¬ DecidesSAT M) := by
+  constructor
+  · -- Forward: axiom form → no bounded SAT-decider.
+    intro hax M n hn hn2 htb hns hdec
+    -- Applying the axiom gives a rank r in the sandwich; the arithmetic
+    -- contradicts this at n ≥ 2^804 (monotonicity reduces to n = 2^804 case).
+    obtain ⟨r, hr_lb, hr_ub⟩ := hax M n hn hn2 htb hns hdec
+    have hn20 : n ≥ 2 ^ 20 :=
+      le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn
+    have hbin : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
+      BinomialBound.binomial_lower_bound_concrete n hn20
+    have hmono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose (n / 3) (Nat.log 2 n) :=
+      Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
+    have hchain : n ^ (Nat.log 2 n / 4) ≤ n ^ 200 :=
+      le_trans (le_trans (le_trans hbin hmono) hr_lb) hr_ub
+    have hlog : 804 ≤ Nat.log 2 n := Nat.le_log_of_pow_le (by norm_num : 1 < 2) hn
+    have hdiv : 201 ≤ Nat.log 2 n / 4 := by omega
+    have hcontra : n ^ 201 ≤ n ^ 200 :=
+      le_trans (Nat.pow_le_pow_right (by omega : 1 ≤ n) hdiv) hchain
+    exact absurd hcontra
+      (not_le_of_gt (Nat.pow_lt_pow_right (by omega : 1 < n) (by omega : 200 < 201)))
+  · -- Backward: separation → axiom is vacuously true.
+    intro hsep M n hn hn2 htb hns hdec
+    exact absurd hdec (hsep M n hn hn2 htb hns)
+
+#print axioms no_rank_sandwich_at_2pow804
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+#print axioms rank_sandwich_axiom_iff_no_bounded_sat_decider
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+
 /-- **Derived theorem: the narrow gauge axiom follows from the Theorem 207
 axiom.** The narrow `exists_amplituhedron_gauge_for_sat_decider` is
 (as a statement) implied by `exists_theorem207_witness` plus the arithmetic
