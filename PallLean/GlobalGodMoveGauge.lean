@@ -832,6 +832,40 @@ theorem exists_rank_sandwich_from_narrow_gauge
           (cook_levin_compilation M n hn2 htb hns).partition
           (Nat.log 2 n) (Nat.log 2 n) q, h_np, h_p⟩
 
+/-- **Derived form of the rank sandwich axiom as direct separation.**
+
+By the arithmetic impossibility of the rank sandwich at `n ≥ 2^804`,
+the rank-sandwich axiom is LOGICALLY EQUIVALENT to the direct
+assertion that no bounded-parameter SAT-decider exists at such `n`.
+
+This is the axiom in its most essential form — a direct statement of
+the restricted separation, with no polynomial/SPDP machinery. Proved
+here as a theorem (not an axiom) from `exists_rank_sandwich_for_sat_decider`. -/
+theorem no_bounded_sat_decider_at_2pow804_from_rank_sandwich_axiom
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    ¬ DecidesSAT M := by
+  intro hdec
+  obtain ⟨r, hr_lb, hr_ub⟩ :=
+    exists_rank_sandwich_for_sat_decider M n hn hn2 htb hns hdec
+  -- Arithmetic chain n^201 ≤ n^(log n / 4) ≤ C(n/30, log n) ≤ C(n/3, log n) ≤ r ≤ n^200
+  have hn20 : n ≥ 2 ^ 20 :=
+    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn
+  have hbin : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
+    BinomialBound.binomial_lower_bound_concrete n hn20
+  have hmono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose (n / 3) (Nat.log 2 n) :=
+    Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
+  have hchain : n ^ (Nat.log 2 n / 4) ≤ n ^ 200 :=
+    le_trans (le_trans (le_trans hbin hmono) hr_lb) hr_ub
+  have hlog : 804 ≤ Nat.log 2 n := Nat.le_log_of_pow_le (by norm_num : 1 < 2) hn
+  have hdiv : 201 ≤ Nat.log 2 n / 4 := by omega
+  have hn_ge_1 : 1 ≤ n := by omega
+  have hn_gt_1 : 1 < n := by omega
+  have hcontra : n ^ 201 ≤ n ^ 200 :=
+    le_trans (Nat.pow_le_pow_right hn_ge_1 hdiv) hchain
+  exact absurd hcontra
+    (not_le_of_gt (Nat.pow_lt_pow_right hn_gt_1 (by omega : 200 < 201)))
+
 /-! ### Axiom-inventory checks
 
 These `#print axioms` calls document which custom axioms each result
