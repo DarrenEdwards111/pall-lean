@@ -974,4 +974,50 @@ theorem log_det_mul {M N : Matrix n n ℝ} (hM : M.PosDef) (hN : N.PosDef) :
 theorem log_det_one : Real.log (1 : Matrix n n ℝ).det = 0 := by
   simp [Matrix.det_one]
 
+/-! ## Section 21: Positroid nonemptiness (item 2)
+
+Concrete positroid combinatorics: the `positroidSupport` of a matrix
+encodes its rank pattern. Basic characterizations. -/
+
+/-- **Positroid is empty** iff **all k×k minors are zero** (for TNN
+matrices this is equivalent to the matrix being "rank-deficient" in
+the row-space sense). -/
+theorem positroidSupport_eq_empty_iff_all_minors_zero
+    {k n' : ℕ} (A : Matrix (Fin k) (Fin n') ℝ)
+    (hA : IsTotallyNonnegativeMatrix A) :
+    positroidSupport A = ∅ ↔
+      ∀ (e : Fin k → Fin n'), Function.Injective e →
+        (A.submatrix id e).det = 0 := by
+  constructor
+  · intro hempty e he
+    -- If some minor is positive, the support is nonempty. Contrapositive:
+    -- if support is empty, every minor is zero (using TNN: minors are ≥ 0,
+    -- and we have no positive ones, so all are 0 by le_antisymm).
+    have hge : 0 ≤ (A.submatrix id e).det := hA e he
+    by_contra hne
+    have hpos : 0 < (A.submatrix id e).det := lt_of_le_of_ne hge (Ne.symm hne)
+    have : ⟨e, he⟩ ∈ positroidSupport A := by
+      simp [positroidSupport, hpos]
+    rw [hempty] at this
+    exact this.elim
+  · intro hall
+    ext ⟨e, he⟩
+    simp only [positroidSupport, Set.mem_setOf_eq, Set.mem_empty_iff_false, iff_false,
+      not_lt]
+    have := hall e he
+    linarith
+
+/-- **Positroid is nonempty** iff **some k×k minor is positive** (by TNN
+we get ≥ 0 always, so nonempty ↔ some minor > 0 ↔ some minor ≠ 0). -/
+theorem positroidSupport_nonempty_iff_exists_positive_minor
+    {k n' : ℕ} (A : Matrix (Fin k) (Fin n') ℝ) :
+    (positroidSupport A).Nonempty ↔
+      ∃ (e : Fin k → Fin n'), ∃ _ : Function.Injective e,
+        0 < (A.submatrix id e).det := by
+  constructor
+  · rintro ⟨⟨e, he⟩, hpos⟩
+    exact ⟨e, he, hpos⟩
+  · rintro ⟨e, he, hpos⟩
+    exact ⟨⟨e, he⟩, hpos⟩
+
 end AmplituhedronPSD
