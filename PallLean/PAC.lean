@@ -69,6 +69,7 @@
 import PallLean.MultilinearSPDP
 import PallLean.CookLevinDefs
 import PallLean.PACLeibniz
+import PallLean.MatrixSPDP
 import Mathlib.Tactic
 
 set_option maxHeartbeats 1600000
