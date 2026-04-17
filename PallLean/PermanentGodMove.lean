@@ -538,6 +538,140 @@ theorem coeff_witnessMono_permCofactor_id {n : ℕ} (S : Finset (Fin n)) :
   rw [permCofactor_id, witnessMono_eq_monomial, MvPolynomial.coeff_monomial]
   simp
 
+/-! ### Step 3c: single-point evaluation of permCofactorExp
+
+Using `Finsupp.coe_finset_sum` + `Finsupp.single_apply` for direct
+pointwise evaluation. -/
+
+/-- Finsupp-singles applied pointwise: `Finsupp.single a 1 b = if a = b then 1 else 0`. -/
+theorem finsupp_single_one_apply {α : Type*} [DecidableEq α]
+    (a b : α) : (Finsupp.single a 1 : α →₀ ℕ) b = if a = b then 1 else 0 := by
+  rw [Finsupp.single_apply]
+
+/-- Evaluation of `permCofactorExp` at a diagonal point `(v, v)`. -/
+theorem permCofactorExp_apply_diag {n : ℕ} (σ : Equiv.Perm (Fin n))
+    (S : Finset (Fin n)) (v : Fin n) :
+    permCofactorExp σ S (v, v) =
+    if v ∈ Sᶜ ∧ σ v = v then 1 else 0 := by
+  classical
+  unfold permCofactorExp
+  rw [Finsupp.coe_finset_sum, Finset.sum_apply]
+  by_cases hv : v ∈ Sᶜ
+  · by_cases hσ : σ v = v
+    · rw [if_pos ⟨hv, hσ⟩]
+      rw [Finset.sum_eq_single v]
+      · rw [finsupp_single_one_apply]
+        rw [if_pos]
+        simp [hσ]
+      · intro k _ hk_ne_v
+        rw [finsupp_single_one_apply]
+        apply if_neg
+        intro heq
+        exact hk_ne_v (Prod.mk.inj heq).2
+      · intro hnotin; exact absurd hv hnotin
+    · rw [if_neg (fun h => hσ h.2)]
+      apply Finset.sum_eq_zero
+      intro k _
+      rw [finsupp_single_one_apply]
+      apply if_neg
+      intro heq
+      have h1 := (Prod.mk.inj heq).1
+      have h2 := (Prod.mk.inj heq).2
+      rw [h2] at h1
+      exact hσ h1
+  · rw [if_neg (fun h => hv h.1)]
+    apply Finset.sum_eq_zero
+    intro k hk
+    rw [finsupp_single_one_apply]
+    apply if_neg
+    intro heq
+    have h2 := (Prod.mk.inj heq).2
+    rw [← h2] at hv
+    exact hv hk
+
+/-- Evaluation of `witnessMonoExp` at a diagonal point `(v, v)`. -/
+theorem witnessMonoExp_apply_diag {n : ℕ} (T : Finset (Fin n)) (v : Fin n) :
+    witnessMonoExp T (v, v) = if v ∈ Tᶜ then 1 else 0 := by
+  classical
+  unfold witnessMonoExp
+  rw [Finsupp.coe_finset_sum, Finset.sum_apply]
+  by_cases hv : v ∈ Tᶜ
+  · rw [if_pos hv]
+    rw [Finset.sum_eq_single v]
+    · rw [finsupp_single_one_apply, if_pos rfl]
+    · intro i _ hi_ne_v
+      rw [finsupp_single_one_apply]
+      apply if_neg
+      intro heq
+      exact hi_ne_v (Prod.mk.inj heq).1
+    · intro hnotin; exact absurd hv hnotin
+  · rw [if_neg hv]
+    apply Finset.sum_eq_zero
+    intro i hi
+    rw [finsupp_single_one_apply]
+    apply if_neg
+    intro heq
+    have : i = v := (Prod.mk.inj heq).1
+    exact hv (this ▸ hi)
+
+/-- Evaluation of `permCofactorExp` at an off-diagonal point `(v, w)`
+with `v ≠ w`. -/
+theorem permCofactorExp_apply_off_diag {n : ℕ} (σ : Equiv.Perm (Fin n))
+    (S : Finset (Fin n)) (v w : Fin n) (hvw : v ≠ w) :
+    permCofactorExp σ S (v, w) =
+    if w ∈ Sᶜ ∧ σ w = v then 1 else 0 := by
+  classical
+  unfold permCofactorExp
+  rw [Finsupp.coe_finset_sum, Finset.sum_apply]
+  by_cases hw : w ∈ Sᶜ
+  · by_cases hσ : σ w = v
+    · rw [if_pos ⟨hw, hσ⟩]
+      rw [Finset.sum_eq_single w]
+      · rw [finsupp_single_one_apply]
+        rw [if_pos]
+        simp [hσ]
+      · intro k _ hk_ne_w
+        rw [finsupp_single_one_apply]
+        apply if_neg
+        intro heq
+        exact hk_ne_w (Prod.mk.inj heq).2
+      · intro hnotin; exact absurd hw hnotin
+    · rw [if_neg (fun h => hσ h.2)]
+      apply Finset.sum_eq_zero
+      intro k _
+      rw [finsupp_single_one_apply]
+      apply if_neg
+      intro heq
+      have h1 := (Prod.mk.inj heq).1
+      have h2 := (Prod.mk.inj heq).2
+      rw [h2] at h1
+      exact hσ h1
+  · rw [if_neg (fun h => hw h.1)]
+    apply Finset.sum_eq_zero
+    intro k hk
+    rw [finsupp_single_one_apply]
+    apply if_neg
+    intro heq
+    have h2 := (Prod.mk.inj heq).2
+    rw [← h2] at hw
+    exact hw hk
+
+/-- `witnessMonoExp T` is zero on off-diagonal. -/
+theorem witnessMonoExp_apply_off_diag {n : ℕ} (T : Finset (Fin n))
+    (v w : Fin n) (hvw : v ≠ w) :
+    witnessMonoExp T (v, w) = 0 := by
+  classical
+  unfold witnessMonoExp
+  rw [Finsupp.coe_finset_sum, Finset.sum_apply]
+  apply Finset.sum_eq_zero
+  intro i _
+  rw [finsupp_single_one_apply]
+  apply if_neg
+  intro heq
+  have h1 : i = v := (Prod.mk.inj heq).1
+  have h2 : i = w := (Prod.mk.inj heq).2
+  exact hvw (h1 ▸ h2)
+
 /-- **Iterated cofactor formula** (Step 2 of Theorem 100):
 `iterDiagPderiv S permPoly = Σ_{σ ∈ Perm : σ fixes S pointwise} permCofactor σ S`.
 
