@@ -328,4 +328,32 @@ theorem determinantalBarrier_well_defined
   letI := 𝒥.shape_decEq i
   exact det_submatrix_pos_of_posDef hM (hselect i)
 
+/-! ## Section 7: Scalar barrier convexity
+
+The function `-log` is convex on `(0, ∞)`. This is the 1-dimensional
+case of the general log det convexity used in the amplituhedron
+interior point construction.
+
+Uses Mathlib's `Real.strictConcaveOn_log_Ioi`. -/
+
+/-- The scalar barrier function `-log` is strictly convex on `(0, ∞)`. -/
+theorem strictConvexOn_neg_log :
+    StrictConvexOn ℝ (Set.Ioi (0 : ℝ)) (fun x => -Real.log x) :=
+  StrictConcaveOn.neg strictConcaveOn_log_Ioi
+
+/-- The scalar barrier function `-log` is convex on `(0, ∞)`. -/
+theorem convexOn_neg_log :
+    ConvexOn ℝ (Set.Ioi (0 : ℝ)) (fun x => -Real.log x) :=
+  strictConvexOn_neg_log.convexOn
+
+/-- Concretely: for x, y > 0 and t ∈ [0, 1],
+    `-log((1-t)x + ty) ≤ (1-t)(-log x) + t(-log y)`. -/
+theorem neg_log_convex_inequality {x y : ℝ} (hx : 0 < x) (hy : 0 < y)
+    {t : ℝ} (ht0 : 0 ≤ t) (ht1 : t ≤ 1) :
+    -Real.log ((1 - t) * x + t * y) ≤
+    (1 - t) * (-Real.log x) + t * (-Real.log y) := by
+  have h := convexOn_neg_log.2 (Set.mem_Ioi.mpr hx) (Set.mem_Ioi.mpr hy)
+    (by linarith : (0 : ℝ) ≤ 1 - t) ht0 (by ring : (1 - t) + t = 1)
+  simpa using h
+
 end AmplituhedronPSD
