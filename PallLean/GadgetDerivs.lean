@@ -81,4 +81,28 @@ theorem gadgetDerivIndices_card_le_N_pow {N : ℕ} (g : BoundedGadget N)
         Nat.pow_le_pow_right (le_trans (by omega : 1 ≤ g.degreeBound + 1) hN)
           (Nat.le_add_right _ _)
 
+/-! ## Step 2a: multi-index → list conversion
+
+For a multi-index `β : Fin N →₀ ℕ`, we need a list `A` such that
+`iterDerivList A g = ∂^β g` (the β-multi-derivative). Since `pderiv`
+operations commute (standard), any list whose elements (as a multiset)
+match `β`'s support counts works.
+
+We pick the canonical list: for each `i ∈ β.support` in sorted order,
+append `β i` copies of `i`. -/
+
+/-- Convert a multi-index to a canonical list of its indices (each index
+`i` appears `β i` times). -/
+noncomputable def multiIndexToList {N : ℕ} (β : Fin N →₀ ℕ) :
+    List (Fin N) :=
+  β.support.toList.flatMap (fun i => List.replicate (β i) i)
+
+/-- The length of `multiIndexToList β` equals `β`'s total `Σ βᵢ`. -/
+theorem multiIndexToList_length {N : ℕ} (β : Fin N →₀ ℕ) :
+    (multiIndexToList β).length = β.sum (fun _ n => n) := by
+  unfold multiIndexToList
+  rw [List.length_flatMap]
+  simp only [List.length_replicate, Finsupp.sum,
+    ← Finset.sum_map_toList]
+
 end GadgetDerivs
