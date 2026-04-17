@@ -106,4 +106,68 @@ theorem permPoly_totalDegree_le (n : ℕ) :
   intro σ
   exact permPoly_term_totalDegree_le n σ
 
+/-- `permPoly n` is nonzero for `n ≥ 1` (the identity permutation's
+diagonal term contributes a nonzero monomial). -/
+theorem permPoly_ne_zero_of_pos {n : ℕ} (hn : 1 ≤ n) :
+    permPoly n ≠ 0 := by
+  rw [permPoly_eq_sum]
+  -- The sum Σ_σ Π_i X_(σ i, i) is nonzero because it's a sum of
+  -- nonzero monomials; the identity contributes Π_i X_(i,i).
+  -- To avoid the coefficient combinatorics, we argue via nonzero support.
+  intro hzero
+  -- Each term Π_i X_(σ i, i) is a nonzero polynomial.
+  have hterm_ne : ∀ σ : Equiv.Perm (Fin n),
+      (∏ i : Fin n, (MvPolynomial.X (σ i, i) :
+        MvPolynomial (Fin n × Fin n) ℚ)) ≠ 0 := by
+    intro σ
+    apply Finset.prod_ne_zero_iff.mpr
+    intro i _
+    exact MvPolynomial.X_ne_zero _
+  -- Evaluate at a point where identity's term is nonzero: x_{i,j} = 1 if i=j, else 0.
+  let ev : (Fin n × Fin n) → ℚ := fun p => if p.1 = p.2 then 1 else 0
+  have hev : (MvPolynomial.eval ev) (∑ σ : Equiv.Perm (Fin n),
+      ∏ i : Fin n, (MvPolynomial.X (σ i, i) :
+        MvPolynomial (Fin n × Fin n) ℚ)) = 0 := by
+    rw [hzero]; simp
+  -- At ev, only σ = identity gives nonzero product (Π_i 1 = 1).
+  -- For σ ≠ identity, ∃ i with σ i ≠ i, so the term is 0.
+  rw [map_sum] at hev
+  have hid_val : (MvPolynomial.eval ev)
+      (∏ i : Fin n, (MvPolynomial.X ((Equiv.refl (Fin n)) i, i) :
+        MvPolynomial (Fin n × Fin n) ℚ)) = 1 := by
+    simp [ev, Equiv.refl, MvPolynomial.eval_prod, MvPolynomial.eval_X]
+  -- Other permutations evaluate to 0.
+  have hother : ∀ σ : Equiv.Perm (Fin n), σ ≠ Equiv.refl (Fin n) →
+      (MvPolynomial.eval ev)
+        (∏ i : Fin n, (MvPolynomial.X (σ i, i) :
+          MvPolynomial (Fin n × Fin n) ℚ)) = 0 := by
+    intro σ hσ
+    -- σ ≠ id means ∃ i with σ i ≠ i.
+    have ⟨i, hi⟩ : ∃ i : Fin n, σ i ≠ i := by
+      by_contra h
+      push_neg at h
+      apply hσ
+      apply Equiv.ext
+      intro i
+      show σ i = i
+      exact h i
+    -- In the product, the i-th factor evaluates to 0.
+    rw [MvPolynomial.eval_prod]
+    apply Finset.prod_eq_zero (Finset.mem_univ i)
+    simp [ev, MvPolynomial.eval_X, hi]
+  -- Sum decomposes: 1 (from id) + Σ others = 0.
+  have hsplit :
+      ((∑ σ : Equiv.Perm (Fin n),
+          (MvPolynomial.eval ev)
+            (∏ i : Fin n, (MvPolynomial.X (σ i, i) :
+              MvPolynomial (Fin n × Fin n) ℚ))) : ℚ) = 1 := by
+    rw [Finset.sum_eq_single (Equiv.refl (Fin n))]
+    · exact hid_val
+    · intro σ _ hσ
+      exact hother σ hσ
+    · intro h
+      exact absurd (Finset.mem_univ _) h
+  rw [hsplit] at hev
+  exact one_ne_zero hev
+
 end PermanentGodMove
