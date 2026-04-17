@@ -1984,6 +1984,18 @@ theorem Matrix_rank_sum_le {ι m n R : Type*} [DecidableEq n] [Fintype n] [Field
       _ ≤ (f a).rank + ∑ i ∈ s', (f i).rank :=
           Nat.add_le_add_left ih _
 
+/-! ### Phase 6 assembly — in progress
+
+The matrix_β / D_β / E_β definitions + factoring theorem `matrix_β = D_β * M * E_β`
+give `rank(matrix_β) ≤ rank(M)` via `Matrix.rank_mul_le_right` applied twice.
+Combined with `Matrix_rank_sum_le` + `gadgetDerivIndices_card_le_N_pow`, we
+would get `paperSpdpRank κ ℓ (g·p) ≤ N^C · paperSpdpRank shifted p`.
+
+Deferred: the concrete definitions and proofs of matrix equivalence
+(paperSpdpMatrixVal κ ℓ (g·p) = ∑ β, matrix_β) require careful
+MvPolynomial.coeff_mul manipulation (~200 lines) that exceeds
+current session capacity for clean convergence. -/
+
 /-- **Phase 6 narrower axiom**: paper's rank bound on the matrix formulation.
 
 Discharging this requires the Matrix.rank row-span argument: row span of
