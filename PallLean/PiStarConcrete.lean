@@ -124,4 +124,22 @@ theorem piSubst_isProjectionGauge (keep : Fin N → Prop) [DecidablePred keep] (
     GaugeMonotonicity.IsProjectionGauge (piSubst keep val) :=
   ⟨piSubst_idempotent keep val⟩
 
+/-! ## Section 3: Rank monotonicity (all-kept trivial case)
+
+When `keep i` holds for every `i`, `piSubst keep val = id` and rank
+monotonicity is trivial. This is a sanity check and a concrete instance
+of `IsRankMonotoneGauge`. The nontrivial case (some variables not kept)
+requires showing that substitution does not increase the SPDP rank —
+deeper content developed separately. -/
+
+/-- **All-kept case**: `piSubst` with every variable kept is rank-monotone
+(in fact, it's the identity). -/
+theorem piSubst_isRankMonotoneGauge_all_kept
+    {N : ℕ} (B : SPDP.BlockPartition N)
+    (keep : Fin N → Prop) [DecidablePred keep]
+    (hall : ∀ i, keep i) (val : Fin N → ℚ) :
+    GaugeMonotonicity.IsRankMonotoneGauge B (piSubst keep val) := by
+  rw [piSubst_all_kept keep hall val]
+  exact GaugeMonotonicity.IsRankMonotoneGauge.id B
+
 end PiStarConcrete
