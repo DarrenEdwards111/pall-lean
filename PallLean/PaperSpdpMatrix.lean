@@ -297,6 +297,160 @@ theorem multiIndexSub_apply {N : ℕ} (α β : Fin N →₀ ℕ) (i : Fin N) :
   unfold multiIndexSub
   simp [Finsupp.onFinset_apply]
 
+/-! ### Helper lemmas for discharging `multiIndexLeibniz`
+
+These lemmas support the induction-on-`α.sum` proof of the multi-index
+Leibniz rule below. -/
+
+/-- `multiIndexSub` agrees with Finsupp's native tsub. -/
+theorem multiIndexSub_eq_tsub {N : ℕ} (α β : Fin N →₀ ℕ) :
+    multiIndexSub α β = α - β := by
+  ext i
+  rw [multiIndexSub_apply, Finsupp.tsub_apply]
+
+/-- `multiIndexSub α 0 = α`. -/
+@[simp] theorem multiIndexSub_zero {N : ℕ} (α : Fin N →₀ ℕ) :
+    multiIndexSub α 0 = α := by
+  ext i
+  rw [multiIndexSub_apply]; simp
+
+/-- `multiIndexSub α α = 0`. -/
+@[simp] theorem multiIndexSub_self {N : ℕ} (α : Fin N →₀ ℕ) :
+    multiIndexSub α α = 0 := by
+  ext i
+  rw [multiIndexSub_apply]; simp
+
+/-- `multiBinom α 0 = 1`. -/
+@[simp] theorem multiBinom_zero_right {N : ℕ} (α : Fin N →₀ ℕ) :
+    multiBinom α 0 = 1 := by
+  classical
+  unfold multiBinom
+  simp
+
+/-- `multiBinom α α = 1`. -/
+@[simp] theorem multiBinom_self {N : ℕ} (α : Fin N →₀ ℕ) :
+    multiBinom α α = 1 := by
+  classical
+  unfold multiBinom
+  apply Finset.prod_eq_one
+  intro i _
+  exact Nat.choose_self _
+
+/-- `multiIndexToList` of the zero multi-index is empty. -/
+theorem multiIndexToList_zero {N : ℕ} :
+    GadgetDerivs.multiIndexToList (0 : Fin N →₀ ℕ) = [] := by
+  classical
+  unfold GadgetDerivs.multiIndexToList
+  rw [Finsupp.toMultiset_zero]
+  exact Multiset.toList_zero
+
+/-- `multiIndexToList α` is a permutation of `i :: multiIndexToList (α - single i 1)`
+whenever `α i ≥ 1`. This is the single-step "peel off" lemma used in the
+induction on `α.sum`. -/
+theorem multiIndexToList_perm_cons_single {N : ℕ} (α : Fin N →₀ ℕ)
+    (i : Fin N) (hi : α i ≥ 1) :
+    (GadgetDerivs.multiIndexToList α).Perm
+      (i :: GadgetDerivs.multiIndexToList (α - Finsupp.single i 1)) := by
+  classical
+  rw [List.perm_iff_count]
+  intro j
+  rw [GadgetDerivs.multiIndexToList_count, List.count_cons,
+      GadgetDerivs.multiIndexToList_count, Finsupp.tsub_apply]
+  -- Goal: α j = α j - (Finsupp.single i 1) j + (if i == j then 1 else 0)
+  by_cases hij : i = j
+  · -- i = j case: (single i 1) j = 1, and (i == j) = true.
+    have h_single : (Finsupp.single i 1 : Fin N →₀ ℕ) j = 1 := by
+      rw [Finsupp.single_apply]; simp [hij]
+    have h_beq : (i == j) = true := by simp [hij]
+    rw [h_single, h_beq]
+    simp only [if_true]
+    -- α j = α j - 1 + 1. Using hi : α i ≥ 1 and hij : i = j.
+    have hαj : α j ≥ 1 := hij ▸ hi
+    omega
+  · -- i ≠ j case: (single i 1) j = 0, (i == j) = false.
+    have h_single : (Finsupp.single i 1 : Fin N →₀ ℕ) j = 0 := by
+      rw [Finsupp.single_apply]; simp [hij]
+    have h_beq : (i == j) = false := by simp [hij]
+    rw [h_single, h_beq]
+    simp
+
+/-- **Pascal's identity for `multiBinom`** at a specific coordinate.
+
+For any `α, γ : Fin N →₀ ℕ` and `i : Fin N` with `α i ≥ 1` and `γ i ≥ 1`:
+
+`multiBinom α γ = multiBinom (α - single i 1) γ + multiBinom (α - single i 1) (γ - single i 1)`
+
+(where `-` is componentwise truncated subtraction).
+
+Note: the `γ i ≥ 1` precondition is essential — at `γ i = 0`, the
+right-hand side's second term has `(γ - single i 1) i = 0 - 1 = 0`
+(Nat truncation), so both terms contribute the same and the sum
+double-counts. The actual Leibniz induction handles the `γ i = 0` case
+separately via the second sum (where `β ≤ α'` directly). -/
+theorem multiBinom_pascal {N : ℕ} (α γ : Fin N →₀ ℕ) (i : Fin N)
+    (hi : α i ≥ 1) (hγi : γ i ≥ 1) :
+    multiBinom α γ =
+      multiBinom (α - Finsupp.single i 1) γ +
+      multiBinom (α - Finsupp.single i 1) (γ - Finsupp.single i 1) := by
+  classical
+  unfold multiBinom
+  -- Split the product at index i.
+  rw [show (Finset.univ : Finset (Fin N)) = insert i (Finset.univ.erase i) by
+        simp [Finset.insert_erase]]
+  rw [Finset.prod_insert (Finset.notMem_erase i _),
+      Finset.prod_insert (Finset.notMem_erase i _),
+      Finset.prod_insert (Finset.notMem_erase i _)]
+  -- Values at index i:
+  have h_αi : ((α - Finsupp.single i 1) : Fin N →₀ ℕ) i = α i - 1 := by
+    rw [Finsupp.tsub_apply, Finsupp.single_eq_same]
+  have h_γi_1 : ((γ - Finsupp.single i 1) : Fin N →₀ ℕ) i = γ i - 1 := by
+    rw [Finsupp.tsub_apply, Finsupp.single_eq_same]
+  rw [h_αi, h_γi_1]
+  -- Helper: at j ≠ i, (single i 1) j = 0.
+  have h_single_ne : ∀ j : Fin N, j ≠ i → (Finsupp.single i 1 : Fin N →₀ ℕ) j = 0 := by
+    intro j hji
+    rw [Finsupp.single_apply]
+    simp [Ne.symm hji]
+  -- Product over (Finset.univ.erase i): terms don't depend on single i 1 at j ≠ i.
+  have h_prod_α_eq : ∀ (γ' : Fin N →₀ ℕ),
+      ∏ j ∈ Finset.univ.erase i,
+        (((α - Finsupp.single i 1) : Fin N →₀ ℕ) j).choose (γ' j) =
+      ∏ j ∈ Finset.univ.erase i, (α j).choose (γ' j) := by
+    intro γ'
+    apply Finset.prod_congr rfl
+    intro j hj
+    have hji : j ≠ i := Finset.ne_of_mem_erase hj
+    have h0 : ((α - Finsupp.single i 1) : Fin N →₀ ℕ) j = α j := by
+      rw [Finsupp.tsub_apply, h_single_ne j hji]
+      exact Nat.sub_zero _
+    rw [h0]
+  have h_γ_eq : ∀ (j : Fin N), j ∈ Finset.univ.erase i →
+      (α j).choose (((γ - Finsupp.single i 1) : Fin N →₀ ℕ) j) = (α j).choose (γ j) := by
+    intro j hj
+    have hji : j ≠ i := Finset.ne_of_mem_erase hj
+    have h0 : ((γ - Finsupp.single i 1) : Fin N →₀ ℕ) j = γ j := by
+      rw [Finsupp.tsub_apply, h_single_ne j hji]
+      exact Nat.sub_zero _
+    rw [h0]
+  rw [h_prod_α_eq γ, h_prod_α_eq (γ - Finsupp.single i 1)]
+  rw [show (∏ j ∈ Finset.univ.erase i, (α j).choose
+              (((γ - Finsupp.single i 1) : Fin N →₀ ℕ) j)) =
+          ∏ j ∈ Finset.univ.erase i, (α j).choose (γ j) from
+        Finset.prod_congr rfl h_γ_eq]
+  -- Pascal's identity at γ i ≥ 1.
+  have hα : α i = (α i - 1) + 1 := by omega
+  have hγ : γ i = (γ i - 1) + 1 := by omega
+  have hpas : (α i).choose (γ i) =
+              (α i - 1).choose (γ i) + (α i - 1).choose (γ i - 1) := by
+    conv_lhs => rw [hα, hγ]
+    rw [Nat.choose_succ_succ (α i - 1) (γ i - 1)]
+    -- Now: (α i - 1).choose (γ i - 1) + (α i - 1).choose (γ i - 1).succ
+    -- Want: (α i - 1).choose (γ i) + (α i - 1).choose (γ i - 1)
+    rw [Nat.succ_eq_add_one, show γ i - 1 + 1 = γ i from by omega]
+    ring
+  rw [hpas]
+  ring
+
 /-- **Scalar entry of L:** `(α choose β) · coeff_ν(∂^β g)` if β ≤ α
 componentwise, else 0.
 
