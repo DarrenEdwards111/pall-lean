@@ -526,6 +526,46 @@ theorem boundedMultiIndexFinset_zero (N : ℕ) :
     · -- sum of 0 function is 0, and 0 ≤ 0.
       simp
 
+/-! ### Additional structural lemmas for the inductive assembly -/
+
+/-- `α'.sum = α.sum - 1` when `α i ≥ 1` and `α' = α - single i 1`. -/
+theorem finsupp_sum_sub_single_one {N : ℕ} (α : Fin N →₀ ℕ) (i : Fin N)
+    (hi : α i ≥ 1) :
+    (α - Finsupp.single i 1).sum (fun _ n => n) + 1 =
+    α.sum (fun _ n => n) := by
+  classical
+  -- α = α' + single i 1, so sum α = sum α' + 1 (since sum (single i 1) = 1).
+  have h_decomp : α = (α - Finsupp.single i 1) + Finsupp.single i 1 := by
+    ext j
+    rw [Finsupp.coe_add, Pi.add_apply, Finsupp.tsub_apply]
+    by_cases hij : i = j
+    · subst hij
+      rw [Finsupp.single_eq_same]
+      omega
+    · have h0 : (Finsupp.single i 1 : Fin N →₀ ℕ) j = 0 := by
+        rw [Finsupp.single_apply]; simp [hij]
+      rw [h0, Nat.sub_zero, add_zero]
+  conv_rhs => rw [h_decomp]
+  -- Finsupp.sum is additive: (α' + single i 1).sum = α'.sum + (single i 1).sum = α'.sum + 1.
+  rw [Finsupp.sum_add_index (fun _ _ => rfl) (fun _ _ _ _ => rfl)]
+  rw [Finsupp.sum_single_index (by rfl)]
+
+/-- `Finset.Iic (0 : Fin N →₀ ℕ) = {0}`. -/
+theorem Iic_zero_eq_singleton {N : ℕ} :
+    Finset.Iic (0 : Fin N →₀ ℕ) = {0} := by
+  ext β
+  simp only [Finset.mem_Iic, Finset.mem_singleton]
+  constructor
+  · intro h
+    -- β ≤ 0 ⟹ β = 0 (since Finsupp ℕ has zero as bottom).
+    ext i
+    have := Finsupp.le_def.mp h i
+    simp only [Finsupp.coe_zero, Pi.zero_apply] at this
+    simp only [Finsupp.coe_zero, Pi.zero_apply]
+    omega
+  · rintro rfl
+    exact le_refl _
+
 /-! ### Coefficient-matching helpers for the induction step -/
 
 /-- `multiBinom α' γ = 0` when `γ i = α i` and `α i ≥ 1`, where
