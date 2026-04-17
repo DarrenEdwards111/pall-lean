@@ -2255,6 +2255,21 @@ theorem matrix_β_eq_product {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
       simp only [matrix_β, if_neg hβα]
     rw [hlhs, DME_zero_of_not_le g κ ℓ p β α μ hβα]
 
+/-- **Rank bound for matrix_β** via the factoring. -/
+theorem matrix_β_rank_le {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) (β : Fin N →₀ ℕ) :
+    (matrix_β g κ ℓ p β).rank ≤
+    (paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p).rank := by
+  rw [matrix_β_eq_product g κ ℓ p β]
+  calc (D_β g κ β *
+          paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p *
+          E_β g ℓ β).rank
+      ≤ (D_β g κ β *
+          paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p).rank :=
+        Matrix.rank_mul_le_left _ _
+    _ ≤ (paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p).rank :=
+        Matrix.rank_mul_le_right _ _
+
 /-! ### Phase 6 assembly — documented path
 
 Full assembly plan for discharging `paperSpdpRank_gadget_mul_le`:
