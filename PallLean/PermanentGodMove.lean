@@ -955,6 +955,31 @@ theorem linearIndependent_iterDiagPderiv_permPoly {n : ℕ} :
     rw [Finsupp.coe_zero, Pi.zero_apply]
     exact Finsupp.notMem_support_iff.mp hT
 
+/-! ### Step 5: rank bound from linear independence
+
+The linearly independent family of `iterDiagPderiv S permPoly` terms
+gives a lower bound on the dimension of the span subspace. -/
+
+/-- The span of the cofactor family has finrank equal to `2^n`
+(cardinality of `Finset (Fin n)`). -/
+theorem finrank_span_cofactor_family_eq {n : ℕ} :
+    Module.finrank ℚ
+      (Submodule.span ℚ
+        (Set.range (fun S : Finset (Fin n) =>
+          iterDiagPderiv S (permPoly n)))) = 2 ^ n := by
+  have hli := linearIndependent_iterDiagPderiv_permPoly (n := n)
+  rw [finrank_span_eq_card hli]
+  rw [Fintype.card_finset]
+  simp
+
+/-- The span of the cofactor family has finrank at least `2^n`. -/
+theorem finrank_span_cofactor_family_ge {n : ℕ} :
+    2 ^ n ≤ Module.finrank ℚ
+      (Submodule.span ℚ
+        (Set.range (fun S : Finset (Fin n) =>
+          iterDiagPderiv S (permPoly n)))) :=
+  finrank_span_cofactor_family_eq.ge
+
 /-! ### Step 2b: single-variable pderiv of permPoly
 
 Applying `diagPderiv i` to `permPoly n`:
