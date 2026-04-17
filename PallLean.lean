@@ -10,3 +10,4 @@ import PallLean.PACLeibniz
 import PallLean.MatrixSPDP
 import PallLean.PAC
 import PallLean.GadgetDerivs
+import PallLean.PaperSpdpMatrix
