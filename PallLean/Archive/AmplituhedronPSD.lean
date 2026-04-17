@@ -858,4 +858,49 @@ theorem neg_log_det_diagonal_convex {ι : Type*} [Fintype ι] [DecidableEq ι] :
   simpa [Pi.add_apply, Pi.smul_apply, smul_eq_mul, Finset.sum_neg_distrib]
     using hconv
 
+/-! ## Section 18: Spectral formula for PosDef log-det
+
+For any PosDef real matrix `M` with Hermitian witness (automatic over ℝ since
+symmetric ↔ Hermitian), `det M = ∏ eigenvalues` and each eigenvalue is > 0.
+Hence `log det M = ∑ log(eigenvalue i)`.
+
+This is the **spectral formula** step toward full log-det concavity on PosDef.
+The remaining concavity step (that the composition t ↦ log det(A + tB) is
+concave) requires understanding how eigenvalues vary along lines, which is
+deeper (Weyl inequalities etc.) and not attempted here. -/
+
+/-- **Spectral formula**: for PosDef M, `log det M = ∑ log(eigenvalue i)`. -/
+theorem log_det_eq_sum_log_eigenvalues
+    {M : Matrix n n ℝ} (hM : M.PosDef) :
+    Real.log M.det = ∑ i, Real.log (hM.isHermitian.eigenvalues i) := by
+  have hdet : M.det = ∏ i, (hM.isHermitian.eigenvalues i : ℝ) := by
+    simpa using hM.isHermitian.det_eq_prod_eigenvalues
+  rw [hdet]
+  rw [Real.log_prod]
+  intro i _
+  exact (hM.eigenvalues_pos i).ne'
+
+/-- log det is strictly positive when all eigenvalues are > 1 (requires
+`n` nonempty — else the empty product is `1` and log is `0`). -/
+theorem log_det_pos_of_eigenvalues_gt_one
+    [Nonempty n]
+    {M : Matrix n n ℝ} (hM : M.PosDef)
+    (hev : ∀ i, 1 < hM.isHermitian.eigenvalues i) :
+    0 < Real.log M.det := by
+  rw [log_det_eq_sum_log_eigenvalues hM]
+  apply Finset.sum_pos
+  · intros i _
+    exact Real.log_pos (hev i)
+  · exact Finset.univ_nonempty
+
+/-- log det is non-negative when all eigenvalues are ≥ 1. -/
+theorem log_det_nonneg_of_eigenvalues_ge_one
+    {M : Matrix n n ℝ} (hM : M.PosDef)
+    (hev : ∀ i, 1 ≤ hM.isHermitian.eigenvalues i) :
+    0 ≤ Real.log M.det := by
+  rw [log_det_eq_sum_log_eigenvalues hM]
+  apply Finset.sum_nonneg
+  intros i _
+  exact Real.log_nonneg (hev i)
+
 end AmplituhedronPSD
