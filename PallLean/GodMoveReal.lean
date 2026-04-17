@@ -4439,4 +4439,71 @@ noncomputable def god_move_extraction_interface_of_typed
     PaperFaithfulSeparation.GodMoveExtractionInterface M n (by omega : n ≥ 2) htb hns :=
   godMoveTypedExtractionToInterface (godMoveTypedExtraction_exists M n hn hdec htb hns)
 
+/-! ## Why the amplituhedron projection is mathematically necessary
+
+The axiom-free NP-side lower bound `compiled_np_lower_bound_any_dtm`
+combined with the arithmetic impossibility of the rank sandwich at
+`n = 2^804` implies that the Cook-Levin compiled polynomial's SPDP
+rank STRICTLY EXCEEDS `n^200`. Hence the compiled polynomial itself
+CANNOT satisfy the paper's P-side bound — an amplituhedron-style
+projection (or similar rank-reducing transform) is **mathematically
+necessary** for the separation chain. -/
+
+/-- **Axiom-free consequence: at `n ≥ 2^804`, `compiledPoly` rank
+exceeds `n^200`**, for ANY DTM with bounded parameters.
+
+This establishes that the unprojected compiled polynomial cannot
+play the role of `paperCompiledPoly` in `Theorem207Witness` — a
+non-trivial projection is mathematically necessary. -/
+theorem compiledPoly_rank_gt_npow200_at_large_n
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ n) :
+    n ^ 200 <
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n (by
+          have h2_804 : (2 : ℕ) ≤ 2 ^ 804 := by
+            calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+            _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+          omega) htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n (by
+          have h2_804 : (2 : ℕ) ≤ 2 ^ 804 := by
+            calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+            _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+          omega) htb hns)) := by
+  -- Step 1: NP-side lower bound on compiledPoly (axiom-free).
+  have hnp := compiled_np_lower_bound_any_dtm M n hn htb hns
+  -- Step 2: Arithmetic chain n^201 ≤ n^(log n / 4) ≤ C(n/30, log n) ≤ C(n/3, log n) ≤ rank.
+  have hn20 : n ≥ 2 ^ 20 :=
+    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn
+  have hbin : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
+    BinomialBound.binomial_lower_bound_concrete n hn20
+  have hmono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose (n / 3) (Nat.log 2 n) :=
+    Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
+  have hlog : 804 ≤ Nat.log 2 n := Nat.le_log_of_pow_le (by norm_num : 1 < 2) hn
+  have hdiv : 201 ≤ Nat.log 2 n / 4 := by omega
+  have hn_ge_1 : 1 ≤ n := by
+    have h2_804 : (2 : ℕ) ≤ 2 ^ 804 := by
+      calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+      _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    omega
+  have hn_gt_1 : 1 < n := by
+    have h2_804 : (2 : ℕ) ≤ 2 ^ 804 := by
+      calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+      _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    omega
+  have hnpow201 : n ^ 201 ≤ n ^ (Nat.log 2 n / 4) :=
+    Nat.pow_le_pow_right hn_ge_1 hdiv
+  -- Chain: n^201 ≤ n^(log n / 4) ≤ C(n/30, log n) ≤ C(n/3, log n) ≤ rank
+  have hchain : n ^ 201 ≤ mlBlockedSpdpRank
+        (cook_levin_compilation M n (by omega) htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n (by omega) htb hns)) :=
+    le_trans (le_trans (le_trans hnpow201 hbin) hmono) hnp
+  -- Combine: n^200 < n^201 ≤ rank.
+  have h200lt201 : n ^ 200 < n ^ 201 :=
+    Nat.pow_lt_pow_right hn_gt_1 (by omega : 200 < 201)
+  exact lt_of_lt_of_le h200lt201 hchain
+
 end GodMoveReal
