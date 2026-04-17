@@ -238,5 +238,41 @@ theorem listToMultiIndex_sum {N : ℕ} (A : List (Fin N)) :
     _ = Multiset.card (A : Multiset (Fin N)) := by rw [h1]
     _ = A.length := by simp [Multiset.coe_card]
 
+/-- **Key:** if `A` has elements in `g.poly.vars` and length ≤ `g.degreeBound`,
+then `listToMultiIndex A ∈ gadgetDerivIndices g`. -/
+theorem listToMultiIndex_mem_gadgetDerivIndices {N : ℕ} (g : BoundedGadget N)
+    (A : List (Fin N))
+    (hvar : ∀ i ∈ A, i ∈ g.poly.vars)
+    (hlen : A.length ≤ g.degreeBound) :
+    listToMultiIndex A ∈ gadgetDerivIndices g := by
+  classical
+  unfold gadgetDerivIndices
+  rw [Finset.mem_filter]
+  refine ⟨?_, ?_⟩
+  · -- Membership in the image.
+    rw [Finset.mem_image]
+    -- Construct f : g.poly.vars → Fin (g.degreeBound + 1)
+    refine ⟨fun i : g.poly.vars =>
+      ⟨(listToMultiIndex A) i.val, ?_⟩, ?_, ?_⟩
+    · -- bound: (listToMultiIndex A) i.val ≤ g.degreeBound < g.degreeBound + 1
+      rw [listToMultiIndex_apply]
+      have : A.count i.val ≤ A.length := List.count_le_length
+      omega
+    · exact Finset.mem_univ _
+    · -- the constructed onFinset equals listToMultiIndex A
+      apply Finsupp.ext
+      intro i
+      by_cases hi : i ∈ g.poly.vars
+      · -- For i ∈ g.poly.vars: onFinset gives (f ⟨i, hi⟩).val = listToMultiIndex A i.
+        simp [Finsupp.onFinset_apply, hi]
+      · -- For i ∉ g.poly.vars: onFinset gives 0, and listToMultiIndex A i = 0
+        -- (since A ⊆ g.poly.vars means A.count i = 0).
+        simp only [Finsupp.onFinset_apply, hi, dite_false]
+        rw [listToMultiIndex_apply]
+        exact (List.count_eq_zero.mpr (fun hA => hi (hvar i hA))).symm
+  · -- sum ≤ degreeBound
+    rw [listToMultiIndex_sum]
+    exact hlen
+
 end GadgetDerivs
 
