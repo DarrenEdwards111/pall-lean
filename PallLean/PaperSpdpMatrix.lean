@@ -3091,5 +3091,25 @@ which is what the paper states verbatim. Connecting it to
 #print axioms gadget_matrix_factoring_entry
 -- Expected: propext, Classical.choice, Quot.sound,
 --   multiIndexLeibniz, gadget_matrix_factoring_reindex.
+-- Leibniz-chain infrastructure (all axiom-free):
+#print axioms m_iterDerivList_mul_mem_leibniz_span
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms mlProj_m_iterDerivList_mul_mem_leibniz_proj_span
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms mlBlockedSpdpSubspace_mul_le_leibniz_proj_span
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms mlBlockedSpdpSubspace_mul_le_leibniz_proj_span_restricted
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms iterDerivList_list_zero_of_not_mem_gadgetDerivIndices
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+-- Length-bounded Leibniz chain (all axiom-free):
+#print axioms m_iterDerivList_mul_mem_leibniz_span_bounded
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms mlProj_m_iterDerivList_mul_mem_leibniz_proj_span_bounded
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms mlBlockedSpdpSubspace_mul_le_leibniz_proj_span_bounded
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms mlBlockedSpdpSubspace_mul_le_leibniz_proj_span_bounded_restricted
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 
 end PaperSpdpMatrix
