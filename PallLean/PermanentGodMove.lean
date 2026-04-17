@@ -1021,6 +1021,50 @@ theorem finrank_span_cofactor_family_card_ge {n : ℕ} (κ : ℕ) :
           iterDiagPderiv S.val (permPoly n)))) :=
   (finrank_span_cofactor_family_card_eq κ).ge
 
+/-! ### Step 5c: paper-faithful rank bound at κ = n/2
+
+The paper's concrete Theorem 100 statement: at κ = ⌊n/2⌋, the SPDP
+rank of `perm_n` is at least `C(n, ⌊n/2⌋) = 2^Ω(n)`. -/
+
+/-- At κ = n/2, the rank lower bound becomes the central binomial
+coefficient `C(n, n/2)`, which is ≥ `2^n / (n+1)`. -/
+theorem finrank_span_cofactor_family_half {n : ℕ} :
+    Nat.choose n (n / 2) ≤ Module.finrank ℚ
+      (Submodule.span ℚ
+        (Set.range (fun S : { S : Finset (Fin n) // S.card = n / 2 } =>
+          iterDiagPderiv S.val (permPoly n)))) :=
+  finrank_span_cofactor_family_card_ge (n / 2)
+
+/-! ### Summary of Theorem 100 formalization
+
+This file completes paper's Theorem 100 (God-Move identity minor for
+the permanent) AXIOM-FREE:
+
+Steps 1-5 all proved axiom-free:
+- Step 1: partial derivative infrastructure
+- Step 2: cofactor identity ∂_S perm_n = perm(X[T,T])
+  (iterDiagPderiv_permPoly_eq_sum_cofactor)
+- Step 3: coefficient identity coeff(m_T)(∂_S perm_n) = δ_{S,T}
+  (coeff_witnessMono_iterDiagPderiv)
+- Step 4: linear independence of the cofactor family
+  (linearIndependent_iterDiagPderiv_permPoly)
+- Step 5: rank bound
+  (finrank_span_cofactor_family_card_eq = C(n, κ))
+
+All theorems depend only on propext, Classical.choice, Quot.sound.
+
+This provides an AXIOM-FREE formalization of the paper's NP-side
+identity-minor construction for the permanent polynomial — the
+"God Move" of Theorem 98/100.
+
+What this does NOT yet include:
+- Connection to `paperSpdpMatrix` via reindexing `Fin n × Fin n ≃ Fin (n²)`
+- Connection to `mlBlockedSpdpSubspaceInc` generators
+- P-side bound (Theorem 10 via amplituhedron) — genuinely paper-deep
+- Valiant's permanent-hardness connecting to 3-SAT deciders
+
+These remain as future work on the path to full P ≠ NP discharge. -/
+
 /-! ### Step 2b: single-variable pderiv of permPoly
 
 Applying `diagPderiv i` to `permPoly n`:
