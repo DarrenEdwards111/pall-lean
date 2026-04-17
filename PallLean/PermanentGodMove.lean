@@ -279,6 +279,50 @@ theorem diagPderiv_perm_term_nonfixing (n : ℕ) (i : Fin n)
     unfold diagPderiv at h
     rw [h, zero_mul]
 
+/-! ### Step 2b: single-variable pderiv of permPoly
+
+Applying `diagPderiv i` to `permPoly n`:
+Sum over permutations σ, each term vanishes unless σ i = i.
+For σ fixing i, we get `Π_{k ∈ univ.erase i} X_{(σ k, k)}`. -/
+
+theorem diagPderiv_permPoly_eq_sum_fixing (n : ℕ) (i : Fin n) :
+    diagPderiv i (permPoly n) =
+    ∑ σ ∈ (Finset.univ : Finset (Equiv.Perm (Fin n))).filter
+        (fun σ => σ i = i),
+      ∏ k ∈ (Finset.univ : Finset (Fin n)).erase i,
+        (MvPolynomial.X (σ k, k) : MvPolynomial (Fin n × Fin n) ℚ) := by
+  rw [permPoly_eq_sum]
+  -- diagPderiv is a linear map: apply to sum.
+  show diagPderiv i (∑ σ : Equiv.Perm (Fin n),
+      ∏ k : Fin n, (MvPolynomial.X (σ k, k) :
+        MvPolynomial (Fin n × Fin n) ℚ)) = _
+  rw [show diagPderiv i (∑ σ : Equiv.Perm (Fin n),
+      ∏ k : Fin n, (MvPolynomial.X (σ k, k) :
+        MvPolynomial (Fin n × Fin n) ℚ)) =
+      ∑ σ : Equiv.Perm (Fin n),
+        diagPderiv i (∏ k : Fin n, (MvPolynomial.X (σ k, k) :
+          MvPolynomial (Fin n × Fin n) ℚ)) from by
+      unfold diagPderiv
+      exact map_sum (MvPolynomial.pderiv (i, i)) _ _]
+  -- Split based on σ i = i vs σ i ≠ i
+  rw [← Finset.sum_filter_add_sum_filter_not (Finset.univ : Finset (Equiv.Perm (Fin n)))
+      (fun σ => σ i = i)]
+  -- Non-fixing terms are 0
+  have h_nonfix : ∀ σ ∈ (Finset.univ : Finset (Equiv.Perm (Fin n))).filter
+      (fun σ => ¬ σ i = i),
+      diagPderiv i (∏ k : Fin n, (MvPolynomial.X (σ k, k) :
+        MvPolynomial (Fin n × Fin n) ℚ)) = 0 := by
+    intro σ hσ
+    have := (Finset.mem_filter.mp hσ).2
+    exact diagPderiv_perm_term_nonfixing n i σ this
+  rw [Finset.sum_congr rfl (fun σ hσ => h_nonfix σ hσ)]
+  rw [Finset.sum_const_zero, add_zero]
+  -- Apply fixing theorem to each term
+  apply Finset.sum_congr rfl
+  intro σ hσ
+  have hfix := (Finset.mem_filter.mp hσ).2
+  exact diagPderiv_perm_term_fixes n i σ hfix
+
 /-- `permPoly n` is nonzero for `n ≥ 1` (the identity permutation's
 diagonal term contributes a nonzero monomial). -/
 theorem permPoly_ne_zero_of_pos {n : ℕ} (hn : 1 ≤ n) :
