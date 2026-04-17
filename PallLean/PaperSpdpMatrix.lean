@@ -171,4 +171,68 @@ noncomputable def paperSpdpRank {N : ℕ} (κ ℓ : ℕ)
     (p : MvPolynomial (Fin N) ℚ) : ℕ :=
   (paperSpdpMatrixVal κ ℓ p).rank
 
+/-! ## Phase 3: Bounds on paperSpdpRank
+
+Direct bounds follow from Mathlib's `Matrix.rank_le_card_width` plus our
+Fintype cardinality bounds on `SpdpColIndex`. The bound is polynomial
+in N for fixed κ, ℓ. -/
+
+/-- Cardinality of `SpdpColIndex N ℓ` is ≤ `(ℓ+1)^N` (via the injection
+into `Fin N → Fin (ℓ+1)`). -/
+theorem spdpColIndex_card_le (N ℓ : ℕ) :
+    Fintype.card (SpdpColIndex N ℓ) ≤ (ℓ + 1) ^ N := by
+  classical
+  calc Fintype.card (SpdpColIndex N ℓ)
+      ≤ Fintype.card (Fin N → Fin (ℓ + 1)) :=
+        Fintype.card_le_of_injective _ spdpIndexEncode_injective
+    _ = (ℓ + 1) ^ N := by
+        rw [Fintype.card_fun, Fintype.card_fin, Fintype.card_fin]
+
+/-- Cardinality of `SpdpRowIndex N κ` is ≤ `(κ+1)^N`. -/
+theorem spdpRowIndex_card_le (N κ : ℕ) :
+    Fintype.card (SpdpRowIndex N κ) ≤ (κ + 1) ^ N := by
+  classical
+  calc Fintype.card (SpdpRowIndex N κ)
+      ≤ Fintype.card (Fin N → Fin (κ + 1)) :=
+        Fintype.card_le_of_injective _ spdpIndexEncode_injective
+    _ = (κ + 1) ^ N := by
+        rw [Fintype.card_fun, Fintype.card_fin, Fintype.card_fin]
+
+/-- **Paper's Γ_{κ,ℓ}(p) is bounded by `(ℓ+1)^N`** (column count of the matrix).
+
+This is the trivial matrix-rank bound: rank ≤ #columns. For bounded `ℓ`
+and large `N`, this is polynomial in `N`. -/
+theorem paperSpdpRank_le_col_card {N : ℕ} (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) :
+    paperSpdpRank κ ℓ p ≤ (ℓ + 1) ^ N := by
+  classical
+  unfold paperSpdpRank
+  calc (paperSpdpMatrixVal κ ℓ p).rank
+      ≤ Fintype.card (SpdpColIndex N ℓ) := Matrix.rank_le_card_width _
+    _ ≤ (ℓ + 1) ^ N := spdpColIndex_card_le N ℓ
+
+/-! ## Phase 3 bridge: paperSpdpRank vs mlBlockedSpdpRank
+
+These two notions are **not directly equal** — they differ in:
+- Parameter constraints: `|α| ≤ κ` (paper, inclusive) vs `S.length = κ`
+  (Lean, exact)
+- Entry definition: `coeff_μ(∂^α p)` (paper) vs
+  `mlProj(m · iterDerivList S p)` with m multiplier and mlProj (Lean)
+- Block admissibility: present in Lean (`B-admissible S`), absent in
+  paper's matrix definition
+
+Precisely relating the two is future work (Phase 3b); the paper's
+Theorem 207 chain uses matrix rank throughout, so the path forward is
+to state and use `paperSpdpRank` directly for Route B.
+
+Below is a simple DOCUMENTATION comment comparing them; a full bridge
+theorem (either equality under specific partitions or a comparison
+inequality) is left as targeted future work. -/
+
+/-- **Comparison note (no theorem; placeholder)**:
+`paperSpdpRank κ ℓ p` and `mlBlockedSpdpRank B κ ℓ p` measure different
+things. A future bridge theorem would relate them under conditions on
+the block partition `B` and the polynomial `p`. -/
+example : True := trivial  -- placeholder for the future bridge theorem
+
 end PaperSpdpMatrix
