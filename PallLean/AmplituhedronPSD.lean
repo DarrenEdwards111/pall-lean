@@ -607,4 +607,56 @@ theorem sum_neg_log_strictAnti_of_exists_lt {ι : Type*} [Fintype ι]
       Real.log_lt_log (hv i₀) hlt
     linarith
 
+/-! ## Section 14: Algebraic closure properties of TNN/TP matrices
+
+Scaling and basic preservation lemmas for the matrix-level TP/TNN
+predicates. -/
+
+/-- Scaling a totally nonnegative matrix by `c ≥ 0` yields a totally
+nonnegative matrix. -/
+theorem IsTotallyNonnegativeMatrix.smul_nonneg
+    {k n' : ℕ} {A : Matrix (Fin k) (Fin n') ℝ}
+    (hA : IsTotallyNonnegativeMatrix A) {c : ℝ} (hc : 0 ≤ c) :
+    IsTotallyNonnegativeMatrix (c • A) := by
+  intro e he
+  have hsub : ((c • A).submatrix id e) = c • (A.submatrix id e) := by
+    ext i j
+    simp [Matrix.submatrix_apply, Matrix.smul_apply]
+  rw [hsub, Matrix.det_smul, Fintype.card_fin]
+  exact mul_nonneg (pow_nonneg hc k) (hA e he)
+
+/-- The zero matrix is totally nonnegative (every k × k minor has
+determinant 0, unless k = 0 in which case the determinant is 1). -/
+theorem isTotallyNonnegativeMatrix_zero
+    {k n' : ℕ} : IsTotallyNonnegativeMatrix (0 : Matrix (Fin k) (Fin n') ℝ) := by
+  intro e _
+  by_cases hk : k = 0
+  · subst hk
+    simp [Matrix.det_isEmpty]
+  · have hkpos : 0 < k := Nat.pos_of_ne_zero hk
+    have : (0 : Matrix (Fin k) (Fin n') ℝ).submatrix id e = 0 := by
+      ext i j
+      simp [Matrix.submatrix_apply]
+    rw [this]
+    rw [show (0 : Matrix (Fin k) (Fin k) ℝ).det = 0 from ?_]
+    exact Matrix.det_zero ⟨⟨0, hkpos⟩⟩
+
+/-- Rank-1 (single-row) case: a `1 × n'` matrix is totally positive iff
+each entry is strictly positive (since each 1×1 minor is just an entry). -/
+theorem isTotallyPositiveMatrix_one_row_iff {n' : ℕ}
+    (A : Matrix (Fin 1) (Fin n') ℝ) :
+    IsTotallyPositiveMatrix A ↔ ∀ j : Fin n', 0 < A 0 j := by
+  constructor
+  · intro hA j
+    -- Build an injective e : Fin 1 → Fin n' mapping the unique element to j.
+    have he : Function.Injective (fun _ : Fin 1 => j) := by
+      intro a b _
+      exact Subsingleton.elim a b
+    have := hA (fun _ => j) he
+    simp [Matrix.det_fin_one, Matrix.submatrix_apply] at this
+    convert this using 1
+  · intro hpos e _
+    simp [Matrix.det_fin_one, Matrix.submatrix_apply]
+    exact hpos (e 0)
+
 end AmplituhedronPSD
