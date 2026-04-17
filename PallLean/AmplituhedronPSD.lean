@@ -572,4 +572,39 @@ theorem positroidSupport_subset_univ
     positroidSupport A ⊆ Set.univ :=
   fun _ _ => Set.mem_univ _
 
+/-! ## Section 13: Barrier monotonicity in minor coordinates
+
+The sum-of-neg-log barrier is **antitone** (decreasing) in each minor
+coordinate: larger principal minors ⇒ smaller barrier value. This is
+the key qualitative property making it a usable barrier for interior-
+point methods (barrier blows up on the boundary where a minor vanishes). -/
+
+/-- `∑ -log` is antitone on the positivity region: if `v ≤ w` componentwise
+and both are positive, then `∑ -log(w i) ≤ ∑ -log(v i)`. -/
+theorem sum_neg_log_antitone {ι : Type*} [Fintype ι]
+    {v w : ι → ℝ} (hv : ∀ i, 0 < v i) (_hw : ∀ i, 0 < w i)
+    (hvw : ∀ i, v i ≤ w i) :
+    ∑ i, -Real.log (w i) ≤ ∑ i, -Real.log (v i) := by
+  apply Finset.sum_le_sum
+  intro i _
+  have : Real.log (v i) ≤ Real.log (w i) :=
+    Real.log_le_log (hv i) (hvw i)
+  linarith
+
+/-- If for each `i`, `v i ≤ w i` with equality not in every coordinate
+(and all positive), then the inequality above is strict. (Strict version.) -/
+theorem sum_neg_log_strictAnti_of_exists_lt {ι : Type*} [Fintype ι]
+    {v w : ι → ℝ} (hv : ∀ i, 0 < v i) (_hw : ∀ i, 0 < w i)
+    (hvw : ∀ i, v i ≤ w i) (i₀ : ι) (hlt : v i₀ < w i₀) :
+    ∑ i, -Real.log (w i) < ∑ i, -Real.log (v i) := by
+  apply Finset.sum_lt_sum
+  · intro i _
+    have : Real.log (v i) ≤ Real.log (w i) :=
+      Real.log_le_log (hv i) (hvw i)
+    linarith
+  · refine ⟨i₀, Finset.mem_univ _, ?_⟩
+    have : Real.log (v i₀) < Real.log (w i₀) :=
+      Real.log_lt_log (hv i₀) hlt
+    linarith
+
 end AmplituhedronPSD
