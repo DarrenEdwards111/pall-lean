@@ -301,7 +301,7 @@ componentwise, else 0.
 
 Uses the multi-index binomial `multiBinom α β = ∏_i (α i choose β i)`,
 matching the paper's Leibniz coefficient exactly. -/
-noncomputable def leibnizCoeff {N : ℕ} (g : PAC.BoundedGadget N)
+noncomputable def leibnizCoeff {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
     (α β ν : Fin N →₀ ℕ) : ℚ := by
   classical
   exact if multiIndexLE β α then
@@ -338,7 +338,7 @@ Entry at `((α, μ), (δ, σ))`:
 - 0 if `δ > α` componentwise or `σ > μ` componentwise (subtraction invalid)
 - Otherwise `leibnizCoeff g α (α-δ) (μ-σ)` where subtractions use
   truncated finsupp difference. -/
-noncomputable def gadgetLeibnizMatrix {N : ℕ} (g : PAC.BoundedGadget N)
+noncomputable def gadgetLeibnizMatrix {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
     (κ ℓ : ℕ) :
     Matrix (SpdpRowIndex N κ × SpdpColIndex N ℓ)
            (SpdpRowIndex N (κ + g.degreeBound) ×
@@ -428,7 +428,7 @@ The formal target:
 
 ```
 theorem gadget_matrix_factoring
-    (g : PAC.BoundedGadget N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
+    (g : MatrixSPDP.BoundedGadget N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
     (α : SpdpRowIndex N κ) (μ : SpdpColIndex N ℓ) :
     paperSpdpMatrixVal κ ℓ (g.poly * p) α μ =
     ∑ δ : SpdpRowIndex N (κ + g.degreeBound),
@@ -575,7 +575,7 @@ This is a standard finite-sum reindexing: substitute β = α - δ, exchange
 
 Discharging this axiom requires routine Finset.sum_bij manipulation —
 not a mathematical research step. -/
-axiom gadget_matrix_factoring_reindex {N : ℕ} (g : PAC.BoundedGadget N)
+axiom gadget_matrix_factoring_reindex {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
     (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
     (α : SpdpRowIndex N κ) (μ : SpdpColIndex N ℓ) :
     (∑ β ∈ (boundedMultiIndexFinset N (α.val.sum (fun _ n => n))).filter
@@ -594,7 +594,7 @@ axiom gadget_matrix_factoring_reindex {N : ℕ} (g : PAC.BoundedGadget N)
 
 /-- **Phase 5 theorem (from multiIndexLeibniz + reindex axiom).**
 The matrix identity: `M(g·p)[α, μ] = (L · M(p)_shifted)[α, μ]`. -/
-theorem gadget_matrix_factoring_entry {N : ℕ} (g : PAC.BoundedGadget N)
+theorem gadget_matrix_factoring_entry {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
     (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
     (α : SpdpRowIndex N κ) (μ : SpdpColIndex N ℓ) :
     paperSpdpMatrixVal κ ℓ (g.poly * p) α μ =
@@ -622,7 +622,7 @@ Paper's bound: `rank(M(g·p)) ≤ N^(t+d) · rank(M(p)_shifted)` (multiplicative
 
 ```
 theorem paperSpdpRank_gadget_mul_le
-    {N : ℕ} (g : PAC.BoundedGadget N) (κ ℓ : ℕ)
+    {N : ℕ} (g : MatrixSPDP.BoundedGadget N) (κ ℓ : ℕ)
     (p : MvPolynomial (Fin N) ℚ)
     (hN : g.degreeBound + 1 ≤ N) :
     paperSpdpRank κ ℓ (g.poly * p) ≤
@@ -658,7 +658,7 @@ Discharging this requires the Matrix.rank row-span argument: row span of
 
 Uses: `Matrix.rank_le_card_width`, `Matrix.rank_sum_le` (row span
 decomposition), and counting via `gadgetDerivIndices`. -/
-axiom paperSpdpRank_gadget_mul_le {N : ℕ} (g : PAC.BoundedGadget N)
+axiom paperSpdpRank_gadget_mul_le {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
     (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
     (hN : g.degreeBound + 1 ≤ N) :
     paperSpdpRank κ ℓ (g.poly * p) ≤
@@ -711,7 +711,7 @@ axiom paperSpdpRank_le_mlBlockedSpdpRank_shifted {N : ℕ}
 rank bound, we obtain the paper's `rank(g·p) ≤ N^C · rank(p)_shifted`
 DIRECTLY on `mlBlockedSpdpRank`, discharging the paper-level claim
 that Route B's canonical chain needs. -/
-theorem mlBlockedSpdpRank_gadget_mul_le {N : ℕ} (g : PAC.BoundedGadget N)
+theorem mlBlockedSpdpRank_gadget_mul_le {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
     (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
     (hN : g.degreeBound + 1 ≤ N) :
     mlBlockedSpdpRank B κ ℓ (g.poly * p) ≤
