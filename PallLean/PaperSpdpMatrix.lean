@@ -2026,6 +2026,90 @@ noncomputable def E_β {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
         (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly)
     else 0
 
+/-- Helper: `α.val - β` has sum ≤ `κ + d` when `α ∈ SpdpRowIndex N κ`. -/
+theorem alpha_sub_beta_sum_le {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
+    {κ : ℕ} (α : SpdpRowIndex N κ) (β : Fin N →₀ ℕ) :
+    (α.val - β).sum (fun _ n => n) ≤ κ + g.degreeBound := by
+  classical
+  have hα_sum : α.val.sum (fun _ n => n) ≤ κ := α.property
+  have hsub : (α.val - β).sum (fun _ n => n) ≤ α.val.sum (fun _ n => n) := by
+    -- α.val - β ≤ α.val (via tsub_le_self pointwise + sum monotonicity)
+    classical
+    have h_β_sup : (α.val - β).sum (fun _ n => n) =
+        ∑ i ∈ (α.val - β).support ∪ α.val.support, (α.val - β) i := by
+      rw [Finsupp.sum]
+      apply Finset.sum_subset Finset.subset_union_left
+      intro i _ hi_not
+      rw [Finsupp.notMem_support_iff.mp hi_not]
+    have h_α_sup : α.val.sum (fun _ n => n) =
+        ∑ i ∈ (α.val - β).support ∪ α.val.support, α.val i := by
+      rw [Finsupp.sum]
+      apply Finset.sum_subset Finset.subset_union_right
+      intro i _ hi_not
+      rw [Finsupp.notMem_support_iff.mp hi_not]
+    rw [h_β_sup, h_α_sup]
+    apply Finset.sum_le_sum
+    intro i _
+    rw [Finsupp.tsub_apply]
+    omega
+  omega
+
+/-- When `β ≰ α`, the matrix product `(D_β · M · E_β)[α, μ]` is zero. -/
+theorem DME_zero_of_not_le {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) (β : Fin N →₀ ℕ)
+    (α : SpdpRowIndex N κ) (μ : SpdpColIndex N ℓ)
+    (hβα : ¬ multiIndexLE β α.val) :
+    (D_β g κ β *
+      paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p *
+      E_β g ℓ β) α μ = 0 := by
+  classical
+  rw [Matrix.mul_apply]
+  refine Finset.sum_eq_zero (fun σ _ => ?_)
+  have h_inner : (D_β g κ β *
+      paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p) α σ = 0 := by
+    rw [Matrix.mul_apply]
+    refine Finset.sum_eq_zero (fun δ _ => ?_)
+    have : D_β g κ β α δ = 0 := by
+      simp only [D_β]
+      rw [if_neg (fun h => hβα h.1)]
+    rw [this, zero_mul]
+  rw [h_inner, zero_mul]
+
+/-- Inner δ-sum collapse for the positive case. -/
+theorem DM_collapse {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) (β : Fin N →₀ ℕ)
+    (α : SpdpRowIndex N κ) (hβα : multiIndexLE β α.val)
+    (σ : SpdpColIndex N (ℓ + g.degreeBound)) :
+    (∑ δ : SpdpRowIndex N (κ + g.degreeBound),
+      D_β g κ β α δ *
+      paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p δ σ) =
+    (multiBinom α.val β : ℚ) *
+      paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p
+        ⟨α.val - β, alpha_sub_beta_sum_le g α β⟩ σ := by
+  classical
+  set δ_star : SpdpRowIndex N (κ + g.degreeBound) :=
+    ⟨α.val - β, alpha_sub_beta_sum_le g α β⟩ with hδ_star_def
+  rw [Finset.sum_eq_single δ_star]
+  · -- D_β[α, δ_star] = multiBinom α.val β.
+    have h_dstar : D_β g κ β α δ_star = (multiBinom α.val β : ℚ) := by
+      show (if multiIndexLE β α.val ∧ δ_star.val = α.val - β then
+              (multiBinom α.val β : ℚ) else 0) = _
+      rw [if_pos ⟨hβα, rfl⟩]
+    rw [h_dstar]
+  · -- For δ ≠ δ_star: D_β[α, δ] = 0.
+    intro δ _ hδ_ne
+    have h_zero : D_β g κ β α δ = 0 := by
+      simp only [D_β]
+      by_cases hcond : multiIndexLE β α.val ∧ δ.val = α.val - β
+      · exfalso
+        apply hδ_ne
+        apply Subtype.ext
+        exact hcond.2
+      · rw [if_neg hcond]
+    rw [h_zero, zero_mul]
+  · intro h
+    exact absurd (Finset.mem_univ _) h
+
 /-! ### Phase 6 assembly — documented path
 
 Full assembly plan for discharging `paperSpdpRank_gadget_mul_le`:
