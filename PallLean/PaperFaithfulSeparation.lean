@@ -1280,6 +1280,53 @@ theorem P_ne_NP_via_theorem207 : ∀ (_ : PeqNP_Paper), False := by
   exact absurd hcontra
     (not_le_of_gt (Nat.pow_lt_pow_right (by omega : 1 < n) (by omega : 200 < 201)))
 
+/-- **`P_ne_NP` via the narrow gauge axiom** (strictly narrower axiom
+surface than `P_ne_NP_via_theorem207`).
+
+Uses `GlobalGodMoveGauge.theorem207Witness_from_narrow_gauge` which
+constructs the 5-field witness from the narrower 3-property gauge
+axiom `exists_amplituhedron_gauge_for_sat_decider`. The 5-field
+witness unpacking and arithmetic contradiction at n = 2^804 are
+identical to `P_ne_NP_via_theorem207`. -/
+theorem P_ne_NP_via_theorem207_from_narrow_gauge :
+    ∀ (_ : PeqNP_Paper), False := by
+  intro hPeqNP
+  set n := 2 ^ 804 with hn_def
+  have hn₀ : n ≥ 2 ^ 804 := le_refl _
+  have hn2 : n ≥ 2 := by
+    calc 2 = 2 ^ 1 := (pow_one 2).symm
+    _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+  have hns_n : hPeqNP.decider.numStates ≤ n :=
+    le_trans hPeqNP.numStates_bound (le_refl _)
+  -- Use the narrow-gauge witness constructor (narrower axiom).
+  let W : GlobalGodMoveGauge.Theorem207Witness
+            hPeqNP.decider n hn₀ hn2 hPeqNP.timeBound_le hns_n :=
+    GlobalGodMoveGauge.theorem207Witness_from_narrow_gauge
+      hPeqNP.decider n hn₀ hn2 hPeqNP.timeBound_le hns_n hPeqNP.decides_3sat
+  have hp_side_sheet :
+      mlBlockedSpdpRank
+        (cook_levin_compilation hPeqNP.decider n hn2
+          hPeqNP.timeBound_le hns_n).partition
+        (Nat.log 2 n) (Nat.log 2 n) W.sheet ≤ n ^ 200 :=
+    le_trans W.extraction_rank_monotone W.compiled_p_side_bound
+  have hnp_side_sheet := W.sheet_np_side_lower_bound
+  have hn20 : n ≥ 2 ^ 20 :=
+    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn₀
+  have hbin : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
+    BinomialBound.binomial_lower_bound_concrete n hn20
+  have hmono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose (n / 3) (Nat.log 2 n) :=
+    Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
+  have hchain : n ^ (Nat.log 2 n / 4) ≤ n ^ 200 :=
+    le_trans (le_trans (le_trans hbin hmono) hnp_side_sheet) hp_side_sheet
+  have hlog : 804 ≤ Nat.log 2 n := Nat.le_log_of_pow_le (by norm_num : 1 < 2) hn₀
+  have hdiv : 201 ≤ Nat.log 2 n / 4 := by omega
+  have hcontra : n ^ 201 ≤ n ^ 200 :=
+    le_trans (Nat.pow_le_pow_right (by omega : 1 ≤ n) hdiv) hchain
+  exact absurd hcontra
+    (not_le_of_gt (Nat.pow_lt_pow_right (by omega : 1 < n) (by omega : 200 < 201)))
+
+#print axioms P_ne_NP_via_theorem207_from_narrow_gauge
+
 /-- **Derived theorem: the narrow gauge axiom follows from the Theorem 207
 axiom.** The narrow `exists_amplituhedron_gauge_for_sat_decider` is
 (as a statement) implied by `exists_theorem207_witness` plus the arithmetic
@@ -1372,7 +1419,14 @@ theorem compiled_p_side_bound_from_PAC_pipeline
     mlBlockedSpdpRank B κ ℓ (PAC.applyPipeline π q) ≤
       N ^ PAC.Pipeline.factorSum π * rank_q_bound := by
   refine ⟨?_, ?_⟩
-  · exact le_max_left _ _
+  · calc N ^ PAC.Pipeline.factorSum π *
+            mlBlockedSpdpRank B (κ + PAC.Pipeline.κShiftSum π)
+              (ℓ + PAC.Pipeline.ℓShiftSum π) q
+        ≤ N ^ PAC.Pipeline.factorSum π * rank_q_bound :=
+            Nat.mul_le_mul_left _ hRankQ
+      _ ≤ max (N ^ PAC.Pipeline.factorSum π * rank_q_bound)
+            (pipeline_factor_bound * rank_q_bound) :=
+            Nat.le_max_left _ _
   · calc mlBlockedSpdpRank B κ ℓ (PAC.applyPipeline π q)
         ≤ N ^ PAC.Pipeline.factorSum π *
             mlBlockedSpdpRank B (κ + PAC.Pipeline.κShiftSum π)
@@ -1405,7 +1459,7 @@ Historical progression of this canonical name:
 All prior variants remain available for reference/alternative use;
 only the canonical name moves forward. -/
 theorem P_ne_NP_unconditional : ∀ (_ : PeqNP_Paper), False :=
-  P_ne_NP_via_theorem207
+  P_ne_NP_via_theorem207_from_narrow_gauge
 
 /-! ## Axiom audit
 

@@ -698,6 +698,88 @@ noncomputable def exists_theorem207_witness_from_bounds_axiom
   let hq := Classical.choose_spec h
   theorem207Witness_of_bounds M n hn hn2 htb hns q hq.1 hq.2
 
+/-! ### Discharging `exists_theorem207_bounds_on_some_poly` via `exists_amplituhedron_gauge`
+
+The two rank bounds on a single polynomial can be discharged via the
+amplituhedron gauge: set `q := gauge(compiledPoly)`. The P-side bound
+is `IsAmplituhedronGauge.p_side_bound`, and the NP-side bound is
+`IsAmplituhedronGauge.preserves_identity_minor_for_sat_deciders`. -/
+
+/-- **Axiom-free discharge of `exists_theorem207_bounds_on_some_poly`
+from `exists_amplituhedron_gauge`.**
+
+This shows the narrower 2-bound axiom reduces to the amplituhedron
+gauge existence axiom. The construction takes `q := gauge(compiledPoly)`
+where `gauge = Π⋆` is the amplituhedron gauge. Both rank bounds follow
+from the gauge's three bundled properties. -/
+theorem exists_theorem207_bounds_on_some_poly_from_gauge
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) :
+    ∃ (q : MvPolynomial
+        (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ),
+      mlBlockedSpdpRank
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n) q ≤ n ^ 200 ∧
+      Nat.choose (n / 3) (Nat.log 2 n) ≤
+        mlBlockedSpdpRank
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n) q := by
+  obtain ⟨gauge, hgauge⟩ := exists_amplituhedron_gauge M n hn hn2 htb hns
+  refine ⟨gauge (compiledPoly (cook_levin_compilation M n hn2 htb hns)),
+          hgauge.p_side_bound,
+          hgauge.preserves_identity_minor_for_sat_deciders hdec⟩
+
+/-- **End-to-end Theorem207Witness construction axiom-free** (modulo the
+amplituhedron gauge axiom). Combines the bounds discharge with the
+`theorem207Witness_of_bounds` construction, reducing the axiom surface
+of `Theorem207Witness` to just `exists_amplituhedron_gauge`. -/
+noncomputable def theorem207Witness_from_gauge
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) :
+    Theorem207Witness M n hn hn2 htb hns :=
+  let h := exists_theorem207_bounds_on_some_poly_from_gauge
+    M n hn hn2 htb hns hdec
+  let q := Classical.choose h
+  let hq := Classical.choose_spec h
+  theorem207Witness_of_bounds M n hn hn2 htb hns q hq.1 hq.2
+
+/-- **Narrower-axiom variant**: uses `exists_amplituhedron_gauge_for_sat_decider`
+(strictly narrower than `exists_amplituhedron_gauge`). -/
+theorem exists_theorem207_bounds_on_some_poly_from_narrow_gauge
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) :
+    ∃ (q : MvPolynomial
+        (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ),
+      mlBlockedSpdpRank
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n) q ≤ n ^ 200 ∧
+      Nat.choose (n / 3) (Nat.log 2 n) ≤
+        mlBlockedSpdpRank
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n) q := by
+  obtain ⟨gauge, hgauge⟩ :=
+    exists_amplituhedron_gauge_for_sat_decider M n hn hn2 htb hns hdec
+  refine ⟨gauge (compiledPoly (cook_levin_compilation M n hn2 htb hns)),
+          hgauge.p_side_bound,
+          hgauge.preserves_identity_minor_for_sat_deciders hdec⟩
+
+/-- **Theorem207Witness from the narrow gauge axiom** (using
+`exists_amplituhedron_gauge_for_sat_decider`). This is the
+minimum-axiom-surface reduction of `Theorem207Witness`. -/
+noncomputable def theorem207Witness_from_narrow_gauge
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) :
+    Theorem207Witness M n hn hn2 htb hns :=
+  let h := exists_theorem207_bounds_on_some_poly_from_narrow_gauge
+    M n hn hn2 htb hns hdec
+  let q := Classical.choose h
+  let hq := Classical.choose_spec h
+  theorem207Witness_of_bounds M n hn hn2 htb hns q hq.1 hq.2
+
 /-! ### Axiom-inventory checks
 
 These `#print axioms` calls document which custom axioms each result
