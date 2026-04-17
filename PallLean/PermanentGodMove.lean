@@ -383,6 +383,88 @@ theorem diagPderiv_perm_term_nonfixing (n : ℕ) (i : Fin n)
     unfold diagPderiv at h
     rw [h, zero_mul]
 
+/-! ### Step 2c: general cofactor term and its derivative
+
+For a permutation σ and finset S, define `permCofactor σ S` as the
+product `∏_{k ∉ S} X_{(σ k, k)}` — this is the "remaining product"
+after differentiating w.r.t. variables indexed by S. -/
+
+/-- The cofactor product: `∏ k ∈ Sᶜ, X_{(σ k, k)}`. -/
+noncomputable def permCofactor {n : ℕ} (σ : Equiv.Perm (Fin n))
+    (S : Finset (Fin n)) : MvPolynomial (Fin n × Fin n) ℚ :=
+  ∏ k ∈ Sᶜ, MvPolynomial.X (σ k, k)
+
+/-- Base case: `permCofactor σ ∅ = ∏_k X_{(σk, k)}` (full product). -/
+theorem permCofactor_empty {n : ℕ} (σ : Equiv.Perm (Fin n)) :
+    permCofactor σ ∅ =
+    ∏ k : Fin n, (MvPolynomial.X (σ k, k) :
+      MvPolynomial (Fin n × Fin n) ℚ) := by
+  unfold permCofactor
+  rw [Finset.compl_empty]
+
+/-- Inductive step (fixing case): differentiating `permCofactor σ S` at
+`i ∉ S` with `σ i = i` yields `permCofactor σ (insert i S)`. -/
+theorem diagPderiv_permCofactor_fixes {n : ℕ} (σ : Equiv.Perm (Fin n))
+    (S : Finset (Fin n)) (i : Fin n) (hi : i ∉ S) (hσ : σ i = i) :
+    diagPderiv i (permCofactor σ S) = permCofactor σ (insert i S) := by
+  unfold permCofactor diagPderiv
+  rw [pderiv_finset_prod]
+  -- Σ_{k ∈ Sᶜ} pderiv (i,i) (X (σk, k)) * ∏_{j ∈ Sᶜ.erase k} X (σj, j)
+  -- Only k = i contributes (since σi = i, X(σi, i) = X(i,i)).
+  rw [Finset.sum_eq_single i]
+  · -- k = i branch
+    have hsi : (σ i, i) = (i, i) := by rw [hσ]
+    show MvPolynomial.pderiv (i, i) (MvPolynomial.X (σ i, i)) * _ = _
+    have h1 : MvPolynomial.pderiv (i, i) (MvPolynomial.X (σ i, i) :
+        MvPolynomial (Fin n × Fin n) ℚ) = 1 := by
+      rw [hsi]
+      have := diagPderiv_X_diag (n := n) i
+      unfold diagPderiv at this
+      exact this
+    rw [h1, one_mul]
+    -- Sᶜ.erase i = (insert i S)ᶜ
+    congr 1
+    ext j
+    simp only [Finset.mem_erase, Finset.mem_compl, Finset.mem_insert]
+    constructor
+    · rintro ⟨hji, hjS⟩
+      rintro (heq | hjS')
+      · exact hji heq
+      · exact hjS hjS'
+    · intro h
+      refine ⟨fun heq => h (Or.inl heq), fun hjS => h (Or.inr hjS)⟩
+  · intro k hk_mem hk_ne_i
+    have hne : (σ k, k) ≠ (i, i) := by
+      intro heq
+      exact hk_ne_i (Prod.mk.injEq .. |>.mp heq).2
+    have h := diagPderiv_X_off_diag (n := n) i (σ k) k hne
+    unfold diagPderiv at h
+    rw [h, zero_mul]
+  · intro hnotin
+    exact absurd (Finset.mem_compl.mpr hi) hnotin
+
+/-- Inductive step (non-fixing case): differentiating `permCofactor σ S`
+at `i ∉ S` with `σ i ≠ i` yields `0`. -/
+theorem diagPderiv_permCofactor_nonfixing {n : ℕ} (σ : Equiv.Perm (Fin n))
+    (S : Finset (Fin n)) (i : Fin n) (hi : i ∉ S) (hσ : σ i ≠ i) :
+    diagPderiv i (permCofactor σ S) = 0 := by
+  unfold permCofactor diagPderiv
+  rw [pderiv_finset_prod]
+  apply Finset.sum_eq_zero
+  intro k _
+  by_cases hk : k = i
+  · rw [hk]
+    have hne : (σ i, i) ≠ (i, i) := fun heq =>
+      hσ (Prod.mk.injEq .. |>.mp heq).1
+    have h := diagPderiv_X_off_diag (n := n) i (σ i) i hne
+    unfold diagPderiv at h
+    rw [h, zero_mul]
+  · have hne : (σ k, k) ≠ (i, i) :=
+      fun heq => hk (Prod.mk.injEq .. |>.mp heq).2
+    have h := diagPderiv_X_off_diag (n := n) i (σ k) k hne
+    unfold diagPderiv at h
+    rw [h, zero_mul]
+
 /-! ### Step 2b: single-variable pderiv of permPoly
 
 Applying `diagPderiv i` to `permPoly n`:
