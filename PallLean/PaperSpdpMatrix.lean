@@ -2563,6 +2563,17 @@ theorem iterDerivList_eq_zero_of_not_mem_gadgetDerivIndices {N : ℕ}
       exact IterDerivHelpers.iterDerivList_eq_zero_of_mem_notMem_vars _ v _
         hv_inlist hv_notmem
 
+/-- List-level version: `iterDerivList A g.poly = 0` whenever the
+canonical multi-index `listToMultiIndex A` is not a valid gadget
+derivative index. Useful for restricting the Leibniz span. -/
+theorem iterDerivList_list_zero_of_not_mem_gadgetDerivIndices {N : ℕ}
+    (g : MatrixSPDP.BoundedGadget N) (A : List (Fin N))
+    (hA : GadgetDerivs.listToMultiIndex A ∉
+          GadgetDerivs.gadgetDerivIndices (BoundedGadget.toPAC g)) :
+    SPDP.iterDerivList A g.poly = 0 := by
+  rw [GadgetDerivs.iterDerivList_canonical]
+  exact iterDerivList_eq_zero_of_not_mem_gadgetDerivIndices g _ hA
+
 /-- **Phase 6 tight rank bound, proved axiom-free**: paper's
 `rank(g·p) ≤ N^(supportSize + degreeBound) · rank(shifted)`. -/
 theorem paperSpdpRank_gadget_mul_le_tight {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
