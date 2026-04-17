@@ -204,5 +204,39 @@ theorem iterDerivList_canonical {N : ℕ} (A : List (Fin N))
   IterDerivHelpers.iterDerivList_perm
     (list_perm_multiIndexToList_listToMultiIndex A) p
 
+/-! ## Step 2f: listToMultiIndex membership in gadgetDerivIndices
+
+If a list `A` has all its elements in `g.poly.vars` and length
+`|A| ≤ g.degreeBound`, then `listToMultiIndex A` belongs to
+`gadgetDerivIndices g`. -/
+
+/-- For a list `A` with elements in a Finset `s`, every element of
+`listToMultiIndex A`'s support is in `s`. -/
+theorem listToMultiIndex_support_subset {N : ℕ} (A : List (Fin N))
+    (s : Finset (Fin N)) (hA : ∀ i ∈ A, i ∈ s) :
+    (listToMultiIndex A).support ⊆ s := by
+  classical
+  intro i hi
+  rw [Finsupp.mem_support_iff, listToMultiIndex_apply] at hi
+  have : i ∈ A := List.count_pos_iff.mp (Nat.pos_of_ne_zero hi)
+  exact hA i this
+
+/-- The total `Σ (listToMultiIndex A)ᵢ` equals `A.length`. -/
+theorem listToMultiIndex_sum {N : ℕ} (A : List (Fin N)) :
+    (listToMultiIndex A).sum (fun _ n => n) = A.length := by
+  classical
+  -- Strategy: use Finsupp.card_toMultiset + inverse equivalence of toFinsupp/toMultiset
+  -- Finsupp.card_toMultiset β : Multiset.card (toMultiset β) = β.sum (fun _ => id)
+  -- Multiset.toFinsupp_toMultiset m : toMultiset (toFinsupp m) = m
+  have h1 : Finsupp.toMultiset (listToMultiIndex A) = (A : Multiset (Fin N)) := by
+    unfold listToMultiIndex
+    exact Multiset.toFinsupp_toMultiset _
+  calc (listToMultiIndex A).sum (fun _ n => n)
+      = (listToMultiIndex A).sum (fun _ => id) := rfl
+    _ = Multiset.card (Finsupp.toMultiset (listToMultiIndex A)) :=
+        (Finsupp.card_toMultiset _).symm
+    _ = Multiset.card (A : Multiset (Fin N)) := by rw [h1]
+    _ = A.length := by simp [Multiset.coe_card]
+
 end GadgetDerivs
 
