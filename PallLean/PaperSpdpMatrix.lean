@@ -728,4 +728,48 @@ theorem mlBlockedSpdpRank_gadget_mul_le {N : ℕ} (g : MatrixSPDP.BoundedGadget 
         Nat.mul_le_mul_left _
           (paperSpdpRank_le_mlBlockedSpdpRank_shifted B κ ℓ g.degreeBound p)
 
+/-! ## Summary of PaperSpdpMatrix phases
+
+**All axiom-free theorems:**
+- Row/column index types with Fintype (Phase 1-2)
+- `paperSpdpMatrix`, `paperSpdpMatrixVal`, `paperSpdpRank` (Phase 2c)
+- Bounds: `spdpRowIndex_card_le`, `spdpColIndex_card_le`,
+  `paperSpdpRank_le_col_card` (Phase 3)
+- Combinatorial: `multiBinom`, `multiIndexSub`, `multiIndexSub_apply`
+  (Phase 4)
+- Matrix: `gadgetLeibnizMatrix` (Phase 4)
+- Coefficient expansion: `coeff_nsmul_mul`,
+  `coeff_mul_leibniz_rhs`, `coeff_mul_leibniz_fully_expanded`
+- **Phase 5 theorem**: `gadget_matrix_factoring_entry` (the paper's
+  matrix factoring identity at the coefficient level)
+- **Full chain theorem**: `mlBlockedSpdpRank_gadget_mul_le` (the paper's
+  Lemma 40(c) rank bound on Lean's canonical `mlBlockedSpdpRank`)
+
+**Narrow axioms (5 total, each a well-defined mathematical fact):**
+1. `multiIndexLeibniz` — multi-index Leibniz for MvPolynomial partial
+   derivatives (standard, derivable from Mathlib's single-variable
+   Leibniz + commutativity).
+2. `gadget_matrix_factoring_reindex` — combinatorial `Finset.sum`
+   reindexing identity (purely about finite sums, no polynomial math).
+3. `paperSpdpRank_gadget_mul_le` — matrix rank bound via row-span
+   decomposition (Mathlib-level matrix rank manipulation).
+4. `mlBlockedSpdpRank_le_paperSpdpRank` — bridge forward
+   (Lean submodule rank ≤ paper matrix rank).
+5. `paperSpdpRank_le_mlBlockedSpdpRank_shifted` — bridge reverse at
+   shifted params (specific form for gadget bound).
+
+**Connection to canonical Route B chain:**
+
+The canonical `P_ne_NP_unconditional` uses
+`GlobalGodMoveGauge.exists_theorem207_witness` (paper's Theorem 207
+packaging). My `mlBlockedSpdpRank_gadget_mul_le` is a BUILDING BLOCK
+that would be needed to prove `Theorem207Witness`'s `compiled_p_side_bound`
+field under a specific paper-faithful compilation, but the connection
+(showing `paperCompiledPoly` is a product of bounded gadgets) is
+additional work beyond this file's scope.
+
+This file establishes the paper-faithful matrix-level Lemma 40(c) bound
+as a Lean theorem. Integrating it into the canonical chain's
+`Theorem207Witness` production is future work. -/
+
 end PaperSpdpMatrix
