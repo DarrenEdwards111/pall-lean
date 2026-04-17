@@ -136,4 +136,21 @@ theorem gadgetDerivPolyFinset_card_le_N_pow {N : ℕ} (g : BoundedGadget N)
   le_trans (gadgetDerivPolyFinset_card_le g)
     (gadgetDerivIndices_card_le_N_pow g hN)
 
+/-! ## Step 2c: permutation invariance of iterDerivList on g-derivatives
+
+For any list `A` with same multiset as `multiIndexToList β`, we have
+`iterDerivList A g = iterDerivList (multiIndexToList β) g` by the
+commutativity of partial derivatives (via `IterDerivHelpers.iterDerivList_perm`). -/
+
+/-- Convert a list to a count-based multi-index. -/
+noncomputable def listToMultiIndex {N : ℕ} (A : List (Fin N)) :
+    Fin N →₀ ℕ :=
+  Multiset.toFinsupp (A : Multiset (Fin N))
+
+/-- `listToMultiIndex A` at `i` equals `A.count i`. -/
+theorem listToMultiIndex_apply {N : ℕ} (A : List (Fin N)) (i : Fin N) :
+    (listToMultiIndex A) i = A.count i := by
+  unfold listToMultiIndex
+  simp [Multiset.toFinsupp_apply, Multiset.coe_count]
+
 end GadgetDerivs
