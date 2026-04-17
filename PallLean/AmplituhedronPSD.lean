@@ -766,4 +766,32 @@ theorem pluckerCoord_swap {k n' : ℕ} (A : Matrix (Fin k) (Fin n') ℝ)
   rw [Equiv.Perm.sign_swap hij]
   simp
 
+/-- **GL_k equivariance of the Plücker embedding**: for any `k × k`
+matrix `R` acting on the rows, the Plücker coordinate transforms by
+multiplication by `det R`.
+
+Concretely: `pluckerCoord (R * A) e = (det R) * pluckerCoord A e`.
+
+This is the defining property of the Plücker embedding — two
+row-equivalent matrices project to the same Grassmannian point up to a
+global scalar `det R`, giving well-defined projective Plücker
+coordinates. -/
+theorem pluckerCoord_row_action {k n' : ℕ}
+    (R : Matrix (Fin k) (Fin k) ℝ) (A : Matrix (Fin k) (Fin n') ℝ)
+    (e : Fin k → Fin n') :
+    pluckerCoord (R * A) e = R.det * pluckerCoord A e := by
+  unfold pluckerCoord
+  have : (R * A).submatrix id e = R * A.submatrix id e := by
+    ext i j
+    simp [Matrix.submatrix_apply, Matrix.mul_apply]
+  rw [this, Matrix.det_mul]
+
+/-- **Scaling invariance (up to det)**: if `R ∈ SL_k(ℝ)` (det R = 1),
+then row-action by `R` preserves Plücker coordinates exactly. -/
+theorem pluckerCoord_SL_invariant {k n' : ℕ}
+    (R : Matrix (Fin k) (Fin k) ℝ) (A : Matrix (Fin k) (Fin n') ℝ)
+    (e : Fin k → Fin n') (hR : R.det = 1) :
+    pluckerCoord (R * A) e = pluckerCoord A e := by
+  rw [pluckerCoord_row_action, hR, one_mul]
+
 end AmplituhedronPSD
