@@ -944,24 +944,214 @@ theorem multiIndexLeibniz_Iic_zero {N : ℕ} (g p : MvPolynomial (Fin N) ℚ) :
       multiBinom_self, multiIndexSub_self, multiIndexToList_zero]
   simp [SPDP.iterDerivList]
 
-/-! ### Main induction assembly (in progress)
+/-! ### Arithmetic identities needed for the main induction -/
 
-The full induction theorem `multiIndexLeibniz_Iic_aux` by strong
-induction on `α.sum id`:
-- Base case: `multiIndexLeibniz_Iic_zero`.
-- Inductive step:
-  * `multiIndexLeibniz_step_decomposition` + IH twice.
-  * `iterDerivList_pderiv_eq_add_single` and `iterDerivList_pderiv_subshift`
-    rewrites.
-  * `sum_Iic_sub_shift_bijection` to reindex first sum onto
-    `{γ ∈ Iic α : γ i ≥ 1}`.
-  * `multiBinom_decomp` + `Finset.sum_add_distrib` to combine both sums
-    into a single sum over `Iic α` with coefficient `multiBinom α γ`.
+/-- When `β ≤ α - single i 1` and `α i ≥ 1`, we have
+`α - (β + single i 1) = α - single i 1 - β`. -/
+theorem alpha_sub_shift_eq {N : ℕ} (α β : Fin N →₀ ℕ) (i : Fin N)
+    (hi : α i ≥ 1) (hβ : β ≤ α - Finsupp.single i 1) :
+    α - (β + Finsupp.single i 1) = α - Finsupp.single i 1 - β := by
+  ext j
+  rw [Finsupp.tsub_apply, Finsupp.coe_add, Pi.add_apply,
+      Finsupp.tsub_apply, Finsupp.tsub_apply]
+  have hβj := Finsupp.le_def.mp hβ j
+  rw [Finsupp.tsub_apply] at hβj
+  by_cases hij : i = j
+  · subst hij; rw [Finsupp.single_eq_same] at *; omega
+  · have h0 : (Finsupp.single i 1 : Fin N →₀ ℕ) j = 0 := by
+      rw [Finsupp.single_apply]; simp [hij]
+    rw [h0] at *; omega
 
-All helper lemmas are proved axiom-free. An attempted complete assembly
-hit type-elaboration issues in the `set`-binding unfolding and pattern
-matching around the `α - (β + single i 1) = α' - β` algebraic identity.
-Deferred to future work for clean convergence. -/
+/-- `(γ - single i 1) + single i 1 = γ` when `γ i ≥ 1`. -/
+theorem shift_cancel {N : ℕ} (γ : Fin N →₀ ℕ) (i : Fin N) (hγi : γ i ≥ 1) :
+    (γ - Finsupp.single i 1) + Finsupp.single i 1 = γ := by
+  ext j
+  rw [Finsupp.coe_add, Pi.add_apply, Finsupp.tsub_apply]
+  by_cases hij : i = j
+  · subst hij; rw [Finsupp.single_eq_same]; omega
+  · have h0 : (Finsupp.single i 1 : Fin N →₀ ℕ) j = 0 := by
+      rw [Finsupp.single_apply]; simp [hij]
+    rw [h0, Nat.sub_zero, add_zero]
+
+/-- The filtered set `(Iic α).filter (γ ≤ α - single i 1) = Iic (α - single i 1)`. -/
+theorem filter_le_sub_eq_Iic_sub {N : ℕ} (α : Fin N →₀ ℕ) (i : Fin N) :
+    (Finset.Iic α).filter (fun γ => multiIndexLE γ (α - Finsupp.single i 1)) =
+    Finset.Iic (α - Finsupp.single i 1) := by
+  classical
+  ext γ
+  simp only [Finset.mem_filter, Finset.mem_Iic]
+  constructor
+  · rintro ⟨_, h⟩
+    exact Finsupp.le_def.mpr h
+  · intro h
+    refine ⟨le_trans h tsub_le_self, ?_⟩
+    exact Finsupp.le_def.mp h
+
+/-! ### Main induction assembly -/
+
+/-- **Multi-index Leibniz theorem (Finset.Iic form, axiom-free).**
+Proved by strong induction on `α.sum id`. -/
+theorem multiIndexLeibniz_Iic_aux {N : ℕ} :
+    ∀ (k : ℕ), ∀ (α : Fin N →₀ ℕ), α.sum (fun _ n => n) = k →
+    ∀ (g p : MvPolynomial (Fin N) ℚ),
+      SPDP.iterDerivList (GadgetDerivs.multiIndexToList α) (g * p) =
+      ∑ β ∈ Finset.Iic α,
+        (multiBinom α β : ℚ) •
+          (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g *
+           SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+             (α - β)) p) := by
+  classical
+  intro k
+  induction k with
+  | zero =>
+    intro α hα_sum g p
+    have hα : α = 0 := finsupp_sum_zero_iff_zero.mp hα_sum
+    subst hα
+    -- α = 0: Iic 0 = {0}, multiIndexToList 0 = [].
+    rw [Iic_zero_eq_singleton, Finset.sum_singleton, multiIndexToList_zero,
+        multiBinom_self]
+    show g * p = _
+    simp [SPDP.iterDerivList, multiIndexToList_zero]
+  | succ k' IH =>
+    intro α hα_sum g p
+    obtain ⟨i, hi⟩ := exists_support_of_sum_pos α k' hα_sum
+    have hα'_sum : (α - Finsupp.single i 1).sum (fun _ n => n) = k' := by
+      have h1 : (α - Finsupp.single i 1).sum (fun _ n => n) + 1 =
+                α.sum (fun _ n => n) := finsupp_sum_sub_single_one α i hi
+      omega
+    -- Step 1: step_decomposition.
+    rw [multiIndexLeibniz_step_decomposition g p α i hi]
+    -- Step 2: IH x2, converting multiIndexSub to tsub.
+    rw [IH (α - Finsupp.single i 1) hα'_sum ((MvPolynomial.pderiv i) g) p]
+    rw [IH (α - Finsupp.single i 1) hα'_sum g ((MvPolynomial.pderiv i) p)]
+    -- At this point, the sums use `(α - single i 1) - β` (via tsub).
+    -- Step 3a: rewrite first sum's iterDerivList via pderiv bridge.
+    conv_lhs => rw [show
+        ∑ β ∈ Finset.Iic (α - Finsupp.single i 1),
+          (multiBinom (α - Finsupp.single i 1) β : ℚ) •
+            (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β)
+               ((MvPolynomial.pderiv i) g) *
+             SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+               (α - Finsupp.single i 1 - β)) p) =
+        ∑ β ∈ Finset.Iic (α - Finsupp.single i 1),
+          (multiBinom (α - Finsupp.single i 1) β : ℚ) •
+            (SPDP.iterDerivList
+               (GadgetDerivs.multiIndexToList (β + Finsupp.single i 1)) g *
+             SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+               (α - (β + Finsupp.single i 1))) p) from by
+        apply Finset.sum_congr rfl
+        intro β hβ
+        rw [Finset.mem_Iic] at hβ
+        rw [iterDerivList_pderiv_eq_add_single, alpha_sub_shift_eq α β i hi hβ]]
+    -- Step 3b: rewrite second sum's pderiv via subshift.
+    conv_lhs => rw [show
+        ∑ β ∈ Finset.Iic (α - Finsupp.single i 1),
+          (multiBinom (α - Finsupp.single i 1) β : ℚ) •
+            (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g *
+             SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+               (α - Finsupp.single i 1 - β)) ((MvPolynomial.pderiv i) p)) =
+        ∑ β ∈ Finset.Iic (α - Finsupp.single i 1),
+          (multiBinom (α - Finsupp.single i 1) β : ℚ) •
+            (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g *
+             SPDP.iterDerivList (GadgetDerivs.multiIndexToList (α - β)) p) from by
+        apply Finset.sum_congr rfl
+        intro β hβ
+        rw [Finset.mem_Iic] at hβ
+        rw [iterDerivList_pderiv_subshift α β i hi hβ]]
+    -- Step 4: apply shift bijection on first sum.
+    rw [sum_Iic_sub_shift_bijection α i hi
+        (fun γ => (multiBinom (α - Finsupp.single i 1) γ : ℚ) •
+          (SPDP.iterDerivList
+             (GadgetDerivs.multiIndexToList (γ + Finsupp.single i 1)) g *
+           SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+             (α - (γ + Finsupp.single i 1))) p))]
+    -- Step 4b: simplify (γ - single i 1) + single i 1 = γ (when γ i ≥ 1).
+    conv_lhs => rw [show
+        ∑ γ ∈ (Finset.Iic α).filter (fun γ => γ i ≥ 1),
+          (multiBinom (α - Finsupp.single i 1) (γ - Finsupp.single i 1) : ℚ) •
+            (SPDP.iterDerivList
+               (GadgetDerivs.multiIndexToList
+                 ((γ - Finsupp.single i 1) + Finsupp.single i 1)) g *
+             SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+               (α - ((γ - Finsupp.single i 1) + Finsupp.single i 1))) p) =
+        ∑ γ ∈ (Finset.Iic α).filter (fun γ => γ i ≥ 1),
+          (multiBinom (α - Finsupp.single i 1) (γ - Finsupp.single i 1) : ℚ) •
+            (SPDP.iterDerivList (GadgetDerivs.multiIndexToList γ) g *
+             SPDP.iterDerivList (GadgetDerivs.multiIndexToList (α - γ)) p) from by
+        apply Finset.sum_congr rfl
+        intro γ hγ
+        rw [Finset.mem_filter] at hγ
+        rw [shift_cancel γ i hγ.2]]
+    -- Step 5: convert second sum from Iic α' to Iic α with filter.
+    conv_lhs => rw [show
+        ∑ β ∈ Finset.Iic (α - Finsupp.single i 1),
+          (multiBinom (α - Finsupp.single i 1) β : ℚ) •
+            (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g *
+             SPDP.iterDerivList (GadgetDerivs.multiIndexToList (α - β)) p) =
+        ∑ γ ∈ (Finset.Iic α).filter
+            (fun γ => multiIndexLE γ (α - Finsupp.single i 1)),
+          (multiBinom (α - Finsupp.single i 1) γ : ℚ) •
+            (SPDP.iterDerivList (GadgetDerivs.multiIndexToList γ) g *
+             SPDP.iterDerivList (GadgetDerivs.multiIndexToList (α - γ)) p) from by
+        rw [filter_le_sub_eq_Iic_sub]]
+    -- Step 6: use sum_filter to convert both filtered sums to Iic α with if.
+    rw [Finset.sum_filter, Finset.sum_filter]
+    -- Step 7: combine via sum_add_distrib.
+    rw [← Finset.sum_add_distrib]
+    -- Step 8: coefficient match via multiBinom_decomp.
+    apply Finset.sum_congr rfl
+    intro γ hγ
+    rw [Finset.mem_Iic] at hγ
+    -- Combined term is indicator₁ * polyProd γ + indicator₂ * polyProd γ, need = multiBinom α γ • polyProd γ.
+    -- Factor out polyProd γ.
+    have h_decomp := multiBinom_decomp α γ i hi (Finsupp.le_def.mp hγ)
+    -- h_decomp : multiBinom α γ = (if γ i ≥ 1 then ... else 0) + (if ... then ... else 0)
+    -- Goal: (if γ i ≥ 1 then coef₁ • polyProd γ else 0)
+    --     + (if γ ≤ α' then coef₂ • polyProd γ else 0)
+    --     = multiBinom α γ • polyProd γ.
+    by_cases h1 : γ i ≥ 1
+    · by_cases h2 : multiIndexLE γ (α - Finsupp.single i 1)
+      · rw [if_pos h1, if_pos h2]
+        rw [← add_smul]
+        congr 1
+        push_cast
+        rw [h_decomp]
+        rw [if_pos h1, if_pos h2]
+        push_cast; ring
+      · rw [if_pos h1, if_neg h2]
+        rw [add_zero]
+        congr 1
+        push_cast
+        rw [h_decomp]
+        rw [if_pos h1, if_neg h2]
+        push_cast; ring
+    · by_cases h2 : multiIndexLE γ (α - Finsupp.single i 1)
+      · rw [if_neg h1, if_pos h2]
+        rw [zero_add]
+        congr 1
+        push_cast
+        rw [h_decomp]
+        rw [if_neg h1, if_pos h2]
+        push_cast; ring
+      · rw [if_neg h1, if_neg h2]
+        rw [add_zero]
+        -- 0 = multiBinom α γ • polyProd γ
+        -- But if γ i = 0 and γ ≰ α', then γ ∉ Iic α (contradiction).
+        -- At γ i = 0, γ ≤ α' always (γ i = 0 ≤ α i - 1 and γ j ≤ α j for j ≠ i).
+        exfalso
+        apply h2
+        intro j
+        rw [Finsupp.tsub_apply]
+        have hγj := Finsupp.le_def.mp hγ j
+        by_cases hij : i = j
+        · subst hij
+          rw [Finsupp.single_eq_same]
+          push_neg at h1
+          omega
+        · have h0 : (Finsupp.single i 1 : Fin N →₀ ℕ) j = 0 := by
+            rw [Finsupp.single_apply]; simp [hij]
+          rw [h0, Nat.sub_zero]
+          exact hγj
 
 /-- **Multi-index Leibniz, base case (α = 0), axiom-free.** -/
 theorem multiIndexLeibniz_zero {N : ℕ} (g p : MvPolynomial (Fin N) ℚ) :
@@ -1549,6 +1739,8 @@ which is what the paper states verbatim. Connecting it to
 `paperSpdpMatrix` (tracked as future work). -/
 
 -- Verify helpers are axiom-free (used by future multiIndexLeibniz discharge).
+#print axioms multiIndexLeibniz_Iic_aux
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms sum_Iic_sub_shift_bijection
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms multiIndexLeibniz_step_decomposition
