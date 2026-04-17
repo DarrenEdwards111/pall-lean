@@ -1352,10 +1352,12 @@ so we state it as a narrower axiom pending formalisation.
 The sum on the RHS is finite since we sum over β ∈ `α.support.powerset`
 (or equivalently, multi-indices β ≤ α — finitely many).
 
-Axiomatising this is strictly better than axiomatising the full matrix
-identity: it reduces the paper-level matrix factoring claim to a single,
-well-defined mathematical fact about MvPolynomial derivatives. -/
-axiom multiIndexLeibniz {N : ℕ} (g p : MvPolynomial (Fin N) ℚ)
+This was previously axiomatised, but has now been DISCHARGED as a
+theorem by induction on `α.sum id`. See `multiIndexLeibniz_Iic_aux`
+for the Finset.Iic form; the theorem below bridges to the original
+filter-form statement via `filter_boundedMulti_eq_Iic` and
+`multiIndexSub_eq_tsub`. -/
+theorem multiIndexLeibniz {N : ℕ} (g p : MvPolynomial (Fin N) ℚ)
     (α : Fin N →₀ ℕ) :
     SPDP.iterDerivList (GadgetDerivs.multiIndexToList α) (g * p) =
     ∑ β ∈ (boundedMultiIndexFinset N (α.sum (fun _ n => n))).filter
@@ -1363,7 +1365,13 @@ axiom multiIndexLeibniz {N : ℕ} (g p : MvPolynomial (Fin N) ℚ)
       (multiBinom α β : ℚ) •
         (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g *
          SPDP.iterDerivList (GadgetDerivs.multiIndexToList
-           (multiIndexSub α β)) p)
+           (multiIndexSub α β)) p) := by
+  rw [filter_boundedMulti_eq_Iic]
+  have h := multiIndexLeibniz_Iic_aux (α.sum (fun _ n => n)) α rfl g p
+  rw [h]
+  apply Finset.sum_congr rfl
+  intro β _
+  rw [multiIndexSub_eq_tsub]
 
 /-! ## Phase 5 theorem: matrix identity from multi-index Leibniz
 
