@@ -1633,19 +1633,10 @@ theorem gadgetLeibnizMatrix_val_neg {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
   show (if multiIndexLE δ.val α.val ∧ multiIndexLE σ.val μ.val then _ else 0) = 0
   rw [if_neg h]
 
-/-- **Phase 5 reindex axiom**.
-
-Helpers (7 axiom-free) capture all the mathematical content:
-- `antidiagonal_sum_eq_Iic_sum`, `sum_Iic_reindex_complement`,
-- `gadgetLeibnizMatrix_val_pos`, `gadgetLeibnizMatrix_val_neg`,
-- `mem_boundedMultiIndexFinset`, `Iic_subset_boundedMultiIndex`,
-- `filter_boundedMulti_eq_Iic_of_bound`.
-
-Final assembly (LHS/RHS canonical forms + subtype-Finset bridge via
-`Finset.sum_subtype` + filter extraction via `Finset.sum_filter`)
-requires further iteration on tactic-level details (higher-order
-rewriting of `∑ pair, f pair.1 pair.2`-shaped terms, conditional
-simp handling). -/
+/-- **Phase 5 reindex axiom**. 7 axiom-free helpers capture the
+mathematical content; the tactical assembly (LHS/RHS canonical form +
+subtype-Finset conversion via `Finset.sum_subtype` + filter extraction)
+runs into Lean coercion/unification subtleties that didn't converge. -/
 axiom gadget_matrix_factoring_reindex {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
     (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
     (α : SpdpRowIndex N κ) (μ : SpdpColIndex N ℓ) :
