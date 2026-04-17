@@ -1,27 +1,105 @@
 /-
-  AmplituhedronPSD.lean — PSD operator infrastructure toward amplituhedron gauge
+  AmplituhedronPSD.lean — SUPPLEMENTARY (paper §28.3 explanatory material)
+  =========================================================================
 
-  Paper reference (p vs np1.pdf, §28.3 N-Frame Lagrangian, lines 7300-7330):
-  The amplituhedron-style positive geometry uses PSD operators with positive
-  principal minors:
+  ## Status: SUPPLEMENTARY — NOT on the critical path to `P_ne_NP_unconditional`.
 
-    B(A) = -Σ_{J ∈ 𝒥} log det(A[J, J])
+  This file formalizes the amplituhedron-style positive-geometry infrastructure
+  from paper §28.3 ("N-Frame Lagrangian: analytic reformulation of the hard
+  bound"). Per the paper's own Remark 60:
 
-  where A ⪰ 0 is a compiled positive operator and 𝒥 is a fixed family of
-  principal-minor index sets.
+    > "Remark 60 (Editorial note). This subsection is explanatory; all
+    >  quantitative lower bounds we use are already supplied by §§14.1
+    >  and 14.3."
 
-  This file builds preliminary Lean infrastructure:
-  1. Principal submatrix of a PSD ℝ-matrix via arbitrary maps (wrapper for
-     Mathlib's `PosSemidef.submatrix`).
-  2. Non-negativity of principal-minor determinants (Mathlib's spectral thm).
-  3. `TotallyNonnegativeMinorFamily` structure: a family of principal minors
-     whose determinants are all non-negative for any PSD matrix.
+  Thus the content below is **explanatory infrastructure** that provides a
+  geometric/variational reformulation of the hard bound — it does NOT enter
+  the load-bearing proof chain of Theorem 207 (Global God-Move ⇒ P ≠ NP).
+  The load-bearing chain uses §§14.1, 14.3 (resource-bounded separation and
+  observer-classical bridge) and the §40 Formal Proof Architecture (BP→SPDP
+  compilation, bounded profile diversity, Width⇒Rank).
 
-  Specialized to ℝ (the paper's setting); extensible to ℂ via ComplexOrder.
+  ## Paper §28.3 content formalized here
 
-  Contribution: first axiom-free infrastructure toward the amplituhedron
-  gauge. Full gauge construction remains paper-deep (requires totally-
-  positive Grassmannian / determinantal barrier calculus not in Mathlib).
+  The paper defines the N-Frame Lagrangian
+    S_NF[Φ; P] = α · Σ_{{u,v}∈E} (Φ_u − Φ_v)²
+               + β · Σ_v (1 − χ(v) sgn Φ_v)_+
+               + λ · B(A(P))
+  where
+    B(A) = − Σ_{J ∈ 𝒥} log det(A[J, J])
+  is the **determinantal barrier** over a fixed family 𝒥 of principal minors
+  ("amplituhedron-type positivity").
+
+  Euler–Lagrange conditions (paper lines 7314-7326):
+    δ_Φ S_NF = 0  ⇒  α L_Gn Φ = (β/2) χ · ∂ sgn(Φ)
+    δ_A S_NF = 0  ⇒  −λ Σ_J (A[J,J])⁻¹ ∈ ∂(compiler constraints)
+
+  Bridge A (local energy ⇒ local rank): if E_v := α Σ_{u∼v}(Φ_u − Φ_v)² +
+  β(1 − χ(v) sgn Φ_v)_+ ≥ α₀ > 0 then rk_SPDP(Q_v) ≥ κ > 1.
+
+  Bridge B (determinantal barrier ⇒ global rank): for block-diagonal A(P),
+    log det(I + θA(P)) = Σ_{v∈S} log det(I + θA(Q_v)) ≥ δ|S|
+    log det(I + θA) ≤ rk(A) · log(1 + θ ‖A‖)
+  hence rk(A) ≳ |S|.
+
+  ## Why these bounds are explanatory, not load-bearing
+
+  Bridge A and Bridge B **reproduce** the pocket-packing lower bound already
+  proved directly in §14.1 (Theorem 65: resource-bounded separation) via the
+  BP→SPDP pipeline of §2 and §4. The Lagrangian formulation simply packages
+  the same inequalities into a variational/geometric picture, making the
+  role of Ramanujan expander curvature and amplituhedron-type positivity
+  conceptually transparent.
+
+  ## What this file provides (22 sections, all axiom-free)
+
+  **Section 1-5 (PSD foundation).** Principal submatrix of PSD matrices,
+  non-negativity of principal-minor determinants, PosDef.submatrix via
+  injective maps (NEW — not in Mathlib), and wrappers for PosDef/PSD
+  conversions.
+
+  **Section 6-7 (Determinantal barrier, scalar convexity).** Defines
+  `determinantalBarrier 𝒥 M = − Σ log det(M[J,J])` matching paper's B(A).
+  Scalar -log convexity via Mathlib's `Real.strictConcaveOn_log_Ioi`.
+
+  **Section 8-9 (Totally positive Grassmannian).** `IsTotallyPositiveMatrix`,
+  `IsTotallyNonnegativeMatrix` predicates on k×n' matrices. Full-rank
+  consequence of total positivity.
+
+  **Section 10-13 (Barrier convexity/monotonicity).** `sum_neg_log_convexOn`,
+  `minorVector` factorization, barrier antitone in minor coordinates,
+  `determinantalBarrier_convex_in_minor_coords`.
+
+  **Section 14-17 (TNN/TP algebra + Plücker, diagonal log-det).**
+  Scaling/zero-matrix closure, rank-1 characterization, Plücker coordinates
+  with GL_k equivariance, diagonal log-det concavity (`neg_log_det_diagonal_convex`).
+
+  **Section 18 (Spectral formula for PosDef log-det).** Item 1 cap:
+  `log det M = Σ log(eigenvalue i)` via Mathlib's `IsHermitian.det_eq_prod_eigenvalues`.
+
+  **Section 19-22 (Positroid + log-det identities).** Item 2 content:
+  positroid invariance under SL_k, emptiness ↔ all-minors-zero, concrete
+  singleton TP example. Item 1 continued: `log_det_smul`, `log_det_mul`,
+  `log_det_one` (log-det as group hom on PosDef).
+
+  ## What remains paper-deep (per item)
+
+  **Item 1 (full log-det concavity on PosDef).** The Weyl-inequality /
+  operator-monotone-log step. Diagonal case done; general PosDef case
+  requires spectral perturbation theory beyond Mathlib's current reach.
+  *Not needed for Theorem 207.*
+
+  **Item 2 (Postnikov plabic/positroid stratification).** Matroid exchange
+  axiom for positroids, plabic graph combinatorics, boundary-measurement
+  parametrizations. Essentially a Mathlib-external research project.
+  *Not needed for Theorem 207.*
+
+  ## Status tag
+
+  This file is SUPPLEMENTARY: it implements §28.3's amplituhedron positive-
+  geometry reformulation faithfully, but the paper's own Remark 60 marks
+  §28.3 as explanatory. The critical path to P ≠ NP uses the §14 and §40
+  pipeline, tracked separately in the on-chain modules.
 -/
 
 import Mathlib.Analysis.Matrix.PosDef

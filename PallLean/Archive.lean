@@ -7,7 +7,6 @@
 import PallLean.Archive.AbstractLocalDerivSpace
 import PallLean.Archive.AbstractProfileBridge
 import PallLean.Archive.AmplituhedronGaugeScaffold
-import PallLean.Archive.AmplituhedronPSD
 import PallLean.Archive.AxiomAnalysis
 import PallLean.Archive.BPtoSPDP
 import PallLean.Archive.BridgeGodMove
