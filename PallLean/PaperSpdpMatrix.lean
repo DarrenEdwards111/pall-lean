@@ -2190,6 +2190,71 @@ theorem ME_eq_coeff_mul {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
   intro σ _
   ring
 
+/-- **Matrix factoring**: `matrix_β = D_β · M · E_β`. -/
+theorem matrix_β_eq_product {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) (β : Fin N →₀ ℕ) :
+    matrix_β g κ ℓ p β =
+    D_β g κ β * paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p *
+      E_β g ℓ β := by
+  classical
+  ext α μ
+  by_cases hβα : multiIndexLE β α.val
+  · -- Positive case: both sides equal multiBinom α β * coeff μ (∂^β g * ∂^(α-β) p).
+    -- LHS:
+    have hlhs : matrix_β g κ ℓ p β α μ =
+        (multiBinom α.val β : ℚ) *
+          MvPolynomial.coeff μ.val
+            (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly *
+             SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+               (α.val - β)) p) := by
+      simp only [matrix_β, if_pos hβα]
+    rw [hlhs]
+    -- RHS: unfold matrix product, apply DM_collapse, then ME_eq_coeff_mul.
+    rw [Matrix.mul_apply]
+    have hRHS_step : ∀ σ : SpdpColIndex N (ℓ + g.degreeBound),
+        (D_β g κ β *
+          paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p) α σ =
+        (multiBinom α.val β : ℚ) *
+          paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p
+            ⟨α.val - β, alpha_sub_beta_sum_le g α β⟩ σ := by
+      intro σ
+      rw [Matrix.mul_apply]
+      exact DM_collapse g κ ℓ p β α hβα σ
+    rw [Finset.sum_congr rfl (fun σ _ => by rw [hRHS_step σ])]
+    -- ∑ σ, (multiBinom α β * M[δ_star, σ]) * E_β[σ, μ] = multiBinom α β * ∑ σ, M[δ_star, σ] * E_β[σ, μ]
+    have hmul_assoc :
+        ∀ σ : SpdpColIndex N (ℓ + g.degreeBound),
+          (multiBinom α.val β : ℚ) *
+            paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p
+              ⟨α.val - β, alpha_sub_beta_sum_le g α β⟩ σ *
+            E_β g ℓ β σ μ =
+          (multiBinom α.val β : ℚ) *
+            (paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p
+              ⟨α.val - β, alpha_sub_beta_sum_le g α β⟩ σ *
+             E_β g ℓ β σ μ) := by
+      intro σ; ring
+    -- Apply Finset.mul_sum in reverse: ∑ (k * a_σ) = k * ∑ a_σ.
+    rw [show (∑ σ : SpdpColIndex N (ℓ + g.degreeBound),
+          (multiBinom α.val β : ℚ) *
+            paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p
+              ⟨α.val - β, alpha_sub_beta_sum_le g α β⟩ σ *
+            E_β g ℓ β σ μ) =
+        (multiBinom α.val β : ℚ) *
+          (∑ σ : SpdpColIndex N (ℓ + g.degreeBound),
+            paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p
+              ⟨α.val - β, alpha_sub_beta_sum_le g α β⟩ σ *
+            E_β g ℓ β σ μ) from by
+      rw [Finset.mul_sum]
+      apply Finset.sum_congr rfl
+      intro σ _
+      rw [hmul_assoc σ]]
+    congr 1
+    exact (ME_eq_coeff_mul g κ ℓ p β α μ hβα).symm
+  · -- Negative case.
+    have hlhs : matrix_β g κ ℓ p β α μ = 0 := by
+      simp only [matrix_β, if_neg hβα]
+    rw [hlhs, DME_zero_of_not_le g κ ℓ p β α μ hβα]
+
 /-! ### Phase 6 assembly — documented path
 
 Full assembly plan for discharging `paperSpdpRank_gadget_mul_le`:
@@ -2436,6 +2501,8 @@ which is what the paper states verbatim. Connecting it to
 #print axioms gadget_matrix_factoring_LHS_eq
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms gadget_matrix_factoring_RHS_eq
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms matrix_β_eq_product
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms sum_Iic_sub_shift_bijection
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
