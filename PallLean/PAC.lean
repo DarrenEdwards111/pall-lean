@@ -356,6 +356,84 @@ theorem gadget_spdp_subspace_factoring_const
     rw [hG_eq]
     exact hspan
 
+/-- **Axiom-free discharge of `gadget_spdp_subspace_factoring` for
+degree-0 gadgets** (i.e., `g.degreeBound = 0`, but `g.supportSize`
+arbitrary).
+
+Since `g.totalDegree ≤ 0`, `g.poly` is a constant `C c` (by
+`totalDegree_eq_zero_iff_eq_C`), regardless of `supportSize`. The
+C-mul subspace lemma gives `mlBlockedSpdpSubspace (C c · p) ≤
+mlBlockedSpdpSubspace p`, and taking `G` to be a basis of the latter
+of cardinality `k = mlBlockedSpdpRank B κ ℓ p` yields
+`|G| ≤ k ≤ N^supportSize · k = N^(supportSize + 0) · rank(shifted)`.
+The bound uses `1 ≤ N^supportSize` (true iff `1 ≤ N ∨ supportSize = 0`).
+-/
+theorem gadget_spdp_subspace_factoring_degBound_zero
+    {N : ℕ} (g : BoundedGadget N)
+    (hDeg : g.degreeBound = 0)
+    (hN : 1 ≤ N ^ g.supportSize)
+    (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
+    ∃ (G : Finset (MvPolynomial (Fin N) ℚ)),
+      G.card ≤ N ^ (g.supportSize + g.degreeBound) *
+               mlBlockedSpdpRank B (κ + g.degreeBound)
+                 (ℓ + g.degreeBound) p ∧
+      mlBlockedSpdpSubspace B κ ℓ (g.poly * p) ≤
+        Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)) := by
+  classical
+  -- g.poly is a constant C c (from hDeg = 0).
+  have htot : g.poly.totalDegree = 0 := by
+    have := g.totalDegree_le
+    rw [hDeg] at this
+    omega
+  have hg_eq : g.poly = MvPolynomial.C (g.poly.coeff 0) :=
+    (MvPolynomial.totalDegree_eq_zero_iff_eq_C).mp htot
+  set c := g.poly.coeff 0 with hc_def
+  have h_sub_le : mlBlockedSpdpSubspace B κ ℓ (g.poly * p) ≤
+                  mlBlockedSpdpSubspace B κ ℓ p := by
+    rw [hg_eq]
+    exact PACLeibniz.mlBlockedSpdpSubspace_C_mul_le B κ ℓ c p
+  set V := mlBlockedSpdpSubspace B κ ℓ p
+  haveI : FiniteDimensional ℚ ↥V := inferInstance
+  set k := Module.finrank ℚ ↥V
+  let b : Module.Basis (Fin k) ℚ ↥V := Module.finBasis ℚ ↥V
+  let G : Finset (MvPolynomial (Fin N) ℚ) :=
+    (Finset.univ : Finset (Fin k)).image (fun i => (b i : MvPolynomial (Fin N) ℚ))
+  refine ⟨G, ?_, ?_⟩
+  · have hG_card : G.card ≤ k := by
+      calc G.card ≤ (Finset.univ : Finset (Fin k)).card := Finset.card_image_le
+        _ = k := by simp
+    have hk_eq : k = mlBlockedSpdpRank B κ ℓ p := by
+      show Module.finrank ℚ ↥V = mlBlockedSpdpRank B κ ℓ p
+      rfl
+    have hκ0 : κ + g.degreeBound = κ := by rw [hDeg]; omega
+    have hℓ0 : ℓ + g.degreeBound = ℓ := by rw [hDeg]; omega
+    rw [hκ0, hℓ0, hDeg, add_zero]
+    calc G.card ≤ k := hG_card
+      _ = mlBlockedSpdpRank B κ ℓ p := hk_eq
+      _ = 1 * mlBlockedSpdpRank B κ ℓ p := (one_mul _).symm
+      _ ≤ N ^ g.supportSize * mlBlockedSpdpRank B κ ℓ p :=
+          Nat.mul_le_mul_right _ hN
+  · refine le_trans h_sub_le ?_
+    rintro v hv
+    have := b.mem_span ⟨v, hv⟩
+    have hspan : v ∈ (Submodule.span ℚ
+        (Set.range (fun i => (b i : MvPolynomial (Fin N) ℚ)))) := by
+      have h_map : Submodule.map V.subtype (Submodule.span ℚ (Set.range b)) =
+                   Submodule.span ℚ (Set.range
+                     (fun i => (b i : MvPolynomial (Fin N) ℚ))) := by
+        rw [Submodule.map_span]
+        congr 1
+        ext x
+        simp [Set.mem_range, Set.mem_image]
+      rw [← h_map]
+      exact Submodule.mem_map.mpr ⟨⟨v, hv⟩, this, rfl⟩
+    have hG_eq : (↑G : Set (MvPolynomial (Fin N) ℚ)) =
+                 Set.range (fun i => (b i : MvPolynomial (Fin N) ℚ)) := by
+      ext x
+      simp [G, Finset.mem_image, Set.mem_range, Finset.mem_univ]
+    rw [hG_eq]
+    exact hspan
+
 /-- Helper: chain step 1 — finrank is monotone on span containment. -/
 private theorem gadget_mult_rank_step1
     {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
