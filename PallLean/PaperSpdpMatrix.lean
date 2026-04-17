@@ -1462,14 +1462,128 @@ We isolate this reindexing as a narrower axiom: a purely combinatorial
 identity about Finsupp sums and multi-index binomial coefficients, which
 does not involve polynomial derivatives at all. -/
 
+/-! ### Helper lemmas for discharging `gadget_matrix_factoring_reindex` -/
+
+/-- Antidiagonal sum over `μ : Fin N →₀ ℕ` equals sum over `Finset.Iic μ`
+with the bijection `(ν, τ) ↔ σ` where `τ = σ` and `ν = μ - σ`. -/
+theorem antidiagonal_sum_eq_Iic_sum {N : ℕ} {M : Type*} [AddCommMonoid M]
+    (μ : Fin N →₀ ℕ) (f : (Fin N →₀ ℕ) → (Fin N →₀ ℕ) → M) :
+    ∑ pair ∈ Finset.antidiagonal μ, f pair.1 pair.2 =
+    ∑ σ ∈ Finset.Iic μ, f (μ - σ) σ := by
+  classical
+  apply Finset.sum_nbij' (fun pair => pair.2)
+                        (fun σ => (μ - σ, σ))
+  · intro pair hpair
+    rw [Finset.mem_antidiagonal] at hpair
+    rw [Finset.mem_Iic]
+    have : pair.2 ≤ pair.1 + pair.2 := le_add_self
+    rw [hpair] at this
+    exact this
+  · intro σ hσ
+    rw [Finset.mem_Iic] at hσ
+    rw [Finset.mem_antidiagonal]
+    exact tsub_add_cancel_of_le hσ
+  · intro pair hpair
+    rw [Finset.mem_antidiagonal] at hpair
+    -- Show (μ - pair.2, pair.2) = pair.
+    have hpair1 : pair.1 = μ - pair.2 := by
+      rw [← hpair]
+      ext j
+      rw [Finsupp.tsub_apply, Finsupp.coe_add, Pi.add_apply]
+      omega
+    ext <;> simp [hpair1]
+  · intro σ _
+    rfl
+  · intro pair hpair
+    rw [Finset.mem_antidiagonal] at hpair
+    congr 1
+    have : pair.1 = μ - pair.2 := by
+      rw [← hpair]
+      ext j
+      rw [Finsupp.tsub_apply, Finsupp.coe_add, Pi.add_apply]
+      omega
+    exact this
+
+/-- Bijection on `Finset.Iic α` via `β ↔ α - β` (self-inverse involution). -/
+theorem sum_Iic_reindex_complement {N : ℕ} {M : Type*} [AddCommMonoid M]
+    (α : Fin N →₀ ℕ) (f : (Fin N →₀ ℕ) → M) :
+    ∑ β ∈ Finset.Iic α, f β = ∑ δ ∈ Finset.Iic α, f (α - δ) := by
+  classical
+  apply Finset.sum_nbij' (fun β => α - β) (fun δ => α - δ)
+  · intro β _
+    rw [Finset.mem_Iic] at *
+    exact tsub_le_self
+  · intro δ _
+    rw [Finset.mem_Iic] at *
+    exact tsub_le_self
+  · intro β hβ
+    rw [Finset.mem_Iic] at hβ
+    ext j
+    rw [Finsupp.tsub_apply, Finsupp.tsub_apply]
+    have := Finsupp.le_def.mp hβ j
+    omega
+  · intro δ hδ
+    rw [Finset.mem_Iic] at hδ
+    ext j
+    rw [Finsupp.tsub_apply, Finsupp.tsub_apply]
+    have := Finsupp.le_def.mp hδ j
+    omega
+  · intro β hβ
+    rw [Finset.mem_Iic] at hβ
+    congr 1
+    ext j
+    rw [Finsupp.tsub_apply, Finsupp.tsub_apply]
+    have := Finsupp.le_def.mp hβ j
+    omega
+
+/-- `gadgetLeibnizMatrix` value when `δ ≤ α ∧ σ ≤ μ`. -/
+theorem gadgetLeibnizMatrix_val_pos {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
+    (κ ℓ : ℕ) (α : SpdpRowIndex N κ) (μ : SpdpColIndex N ℓ)
+    (δ : SpdpRowIndex N (κ + g.degreeBound))
+    (σ : SpdpColIndex N (ℓ + g.degreeBound))
+    (hδα : multiIndexLE δ.val α.val) (hσμ : multiIndexLE σ.val μ.val) :
+    gadgetLeibnizMatrix g κ ℓ (α, μ) (δ, σ) =
+      (multiBinom α.val (multiIndexSub α.val δ.val) : ℚ) *
+        MvPolynomial.coeff (multiIndexSub μ.val σ.val)
+          (SPDP.iterDerivList
+            (GadgetDerivs.multiIndexToList
+              (multiIndexSub α.val δ.val)) g.poly) := by
+  classical
+  show (if multiIndexLE δ.val α.val ∧ multiIndexLE σ.val μ.val then _ else 0) = _
+  rw [if_pos ⟨hδα, hσμ⟩]
+  unfold leibnizCoeff
+  have hβ_le : multiIndexLE (multiIndexSub α.val δ.val) α.val := by
+    intro j
+    rw [multiIndexSub_apply]
+    omega
+  rw [if_pos hβ_le]
+
+/-- `gadgetLeibnizMatrix` is zero outside the `δ ≤ α ∧ σ ≤ μ` region. -/
+theorem gadgetLeibnizMatrix_val_neg {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
+    (κ ℓ : ℕ) (α : SpdpRowIndex N κ) (μ : SpdpColIndex N ℓ)
+    (δ : SpdpRowIndex N (κ + g.degreeBound))
+    (σ : SpdpColIndex N (ℓ + g.degreeBound))
+    (h : ¬ (multiIndexLE δ.val α.val ∧ multiIndexLE σ.val μ.val)) :
+    gadgetLeibnizMatrix g κ ℓ (α, μ) (δ, σ) = 0 := by
+  classical
+  show (if multiIndexLE δ.val α.val ∧ multiIndexLE σ.val μ.val then _ else 0) = 0
+  rw [if_neg h]
+
 /-- **Phase 5 reindex axiom**: tensorized matrix product equals Leibniz
-expansion, purely as a combinatorial identity.
+expansion.
 
-This is a standard finite-sum reindexing: substitute β = α - δ, exchange
-`∑ ν + τ = μ` form for `∑ σ ≤ μ` via `σ ↔ τ` (yielding `ν = μ - σ`).
+The discharge of this axiom requires:
+(a) Using helpers `antidiagonal_sum_eq_Iic_sum`, `sum_Iic_reindex_complement`,
+    `gadgetLeibnizMatrix_val_pos`, `gadgetLeibnizMatrix_val_neg`
+    (proved below, axiom-free).
+(b) Converting the RHS's `∑ δ : SpdpRowIndex, ∑ σ : SpdpColIndex` Fintype
+    sums (over subtypes) into `∑ δ ∈ Iic α.val, ∑ σ ∈ Iic μ.val` Finset
+    sums, using that non-`(δ ≤ α ∧ σ ≤ μ)` terms vanish.
 
-Discharging this axiom requires routine Finset.sum_bij manipulation —
-not a mathematical research step. -/
+Step (b) is the remaining blocker: it requires careful interplay between
+`Fintype.ofInjective`-based subtype `Finset.univ` and explicit
+`Finset.Iic α.val` filter, which is non-trivial Finset bijection
+manipulation. -/
 axiom gadget_matrix_factoring_reindex {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
     (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
     (α : SpdpRowIndex N κ) (μ : SpdpColIndex N ℓ) :
@@ -1747,6 +1861,14 @@ which is what the paper states verbatim. Connecting it to
 `paperSpdpMatrix` (tracked as future work). -/
 
 -- Verify helpers are axiom-free (used by future multiIndexLeibniz discharge).
+#print axioms antidiagonal_sum_eq_Iic_sum
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms sum_Iic_reindex_complement
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms gadgetLeibnizMatrix_val_pos
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms gadgetLeibnizMatrix_val_neg
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms multiIndexLeibniz_Iic_aux
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms sum_Iic_sub_shift_bijection
