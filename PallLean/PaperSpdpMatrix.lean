@@ -2652,6 +2652,79 @@ theorem iterDerivList_list_zero_of_not_mem_gadgetDerivIndices {N : ℕ}
   rw [GadgetDerivs.iterDerivList_canonical]
   exact iterDerivList_eq_zero_of_not_mem_gadgetDerivIndices g _ hA
 
+/-- Length-bounded m-multiplied Leibniz: `m * iterDerivList S (g·p)`
+is in the ℚ-span of `m * ∂^A g * ∂^B p` with `|A| + |B| = |S|`. -/
+theorem m_iterDerivList_mul_mem_leibniz_span_bounded {N : ℕ}
+    (m g p : MvPolynomial (Fin N) ℚ) (S : List (Fin N)) :
+    m * SPDP.iterDerivList S (g * p) ∈
+    Submodule.span ℚ
+      { r | ∃ A B : List (Fin N),
+          A.length + B.length = S.length ∧
+          r = m * SPDP.iterDerivList A g * SPDP.iterDerivList B p } := by
+  classical
+  have h := PACLeibniz.iterDerivList_mul_mem_leibniz_span_bounded S g p
+  have hmul_linear : (fun x => m * x) ''
+      (PACLeibniz.leibnizGenSetBounded S.length g p) ⊆
+      { r | ∃ A B : List (Fin N),
+          A.length + B.length = S.length ∧
+          r = m * SPDP.iterDerivList A g * SPDP.iterDerivList B p } := by
+    rintro x ⟨y, ⟨A, B, hlen, hy⟩, rfl⟩
+    exact ⟨A, B, hlen, by rw [hy]; ring⟩
+  have : m * SPDP.iterDerivList S (g * p) ∈
+      Submodule.span ℚ
+        ((fun x => m * x) '' PACLeibniz.leibnizGenSetBounded S.length g p) := by
+    refine Submodule.span_induction (p := fun v _ => m * v ∈ _) ?_ ?_ ?_ ?_ h
+    · intro v hv
+      exact Submodule.subset_span ⟨v, hv, rfl⟩
+    · show m * (0 : MvPolynomial (Fin N) ℚ) ∈ _
+      rw [mul_zero]; exact Submodule.zero_mem _
+    · intros u v _ _ hu hv
+      rw [mul_add]
+      exact Submodule.add_mem _ hu hv
+    · intros c u _ hu
+      rw [mul_smul_comm]
+      exact Submodule.smul_mem _ c hu
+  exact Submodule.span_mono hmul_linear this
+
+/-- Length-bounded mlProj-version: `mlProj(m * iterDerivList S (g·p))`
+is in the span of `mlProj(m * ∂^A g * ∂^B p)` with `|A| + |B| = |S|`. -/
+theorem mlProj_m_iterDerivList_mul_mem_leibniz_proj_span_bounded {N : ℕ}
+    (m g p : MvPolynomial (Fin N) ℚ) (S : List (Fin N)) :
+    MultilinearSPDP.mlProj (m * SPDP.iterDerivList S (g * p)) ∈
+    Submodule.span ℚ
+      { r | ∃ A B : List (Fin N),
+          A.length + B.length = S.length ∧
+          r = MultilinearSPDP.mlProj
+            (m * SPDP.iterDerivList A g * SPDP.iterDerivList B p) } := by
+  classical
+  have h := m_iterDerivList_mul_mem_leibniz_span_bounded m g p S
+  have hmap : (fun x => MultilinearSPDP.mlProj x) ''
+      { r | ∃ A B : List (Fin N),
+          A.length + B.length = S.length ∧
+          r = m * SPDP.iterDerivList A g * SPDP.iterDerivList B p } ⊆
+      { r | ∃ A B : List (Fin N),
+          A.length + B.length = S.length ∧
+          r = MultilinearSPDP.mlProj
+            (m * SPDP.iterDerivList A g * SPDP.iterDerivList B p) } := by
+    rintro x ⟨y, ⟨A, B, hlen, hy⟩, rfl⟩
+    exact ⟨A, B, hlen, by rw [hy]⟩
+  refine Submodule.span_mono hmap ?_
+  refine Submodule.span_induction
+    (p := fun v _ => MultilinearSPDP.mlProj v ∈ _) ?_ ?_ ?_ ?_ h
+  · intro v hv
+    exact Submodule.subset_span ⟨v, hv, rfl⟩
+  · show MultilinearSPDP.mlProj 0 ∈ _
+    rw [MultilinearSPDP.mlProj_zero]
+    exact Submodule.zero_mem _
+  · intros u v _ _ hu hv
+    show MultilinearSPDP.mlProj (u + v) ∈ _
+    rw [MultilinearSPDP.mlProj_add]
+    exact Submodule.add_mem _ hu hv
+  · intros c u _ hu
+    show MultilinearSPDP.mlProj (c • u) ∈ _
+    rw [MultilinearSPDP.mlProj_smul]
+    exact Submodule.smul_mem _ c hu
+
 /-- **Subspace-level Leibniz containment, axiom-free.**
 
 Every generator of `mlBlockedSpdpSubspace B κ ℓ (g · p)` lies in the
@@ -2723,6 +2796,87 @@ theorem mlBlockedSpdpSubspace_mul_le_leibniz_proj_span_restricted {N : ℕ}
             hvars, hadm, ?_⟩
     rw [hr, GadgetDerivs.iterDerivList_canonical Al g.poly]
   · -- Case: listToMultiIndex Al ∉ gadgetDerivIndices → iterDerivList Al g.poly = 0.
+    have hg_zero : SPDP.iterDerivList Al g.poly = 0 :=
+      iterDerivList_list_zero_of_not_mem_gadgetDerivIndices g Al hAl
+    have hr_zero : r = 0 := by
+      rw [hr, hg_zero, mul_zero, zero_mul, MultilinearSPDP.mlProj_zero]
+    rw [hr_zero]
+    exact Submodule.zero_mem _
+
+/-- **Subspace-level length-bounded Leibniz, axiom-free.**
+
+The length-bounded refinement of
+`mlBlockedSpdpSubspace_mul_le_leibniz_proj_span`: every generator of
+`mlBlockedSpdpSubspace B κ ℓ (g · p)` lies in the ℚ-span of Leibniz
+products `mlProj(m * ∂^Al g * ∂^Bl p)` with the tight constraint
+`|Al| + |Bl| = |S| = κ`. -/
+theorem mlBlockedSpdpSubspace_mul_le_leibniz_proj_span_bounded {N : ℕ}
+    (g : MvPolynomial (Fin N) ℚ) (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) :
+    MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ (g * p) ≤
+    Submodule.span ℚ
+      { r | ∃ (m : MvPolynomial (Fin N) ℚ) (S Al Bl : List (Fin N)),
+            S.length = κ ∧ Al.length + Bl.length = κ ∧
+            m.totalDegree ≤ ℓ ∧ m.vars ⊆ S.toFinset ∧
+            isBlockAdmissible B S ∧
+            r = MultilinearSPDP.mlProj
+              (m * SPDP.iterDerivList Al g *
+                   SPDP.iterDerivList Bl p) } := by
+  classical
+  unfold MultilinearSPDP.mlBlockedSpdpSubspace
+  rw [Submodule.span_le]
+  rintro q ⟨S, m, hlen, hdeg, hvars, hadm, hq⟩
+  rw [hq]
+  have h := mlProj_m_iterDerivList_mul_mem_leibniz_proj_span_bounded m g p S
+  refine Submodule.span_mono ?_ h
+  rintro r ⟨Al, Bl, hlenAB, hr⟩
+  refine ⟨m, S, Al, Bl, hlen, ?_, hdeg, hvars, hadm, hr⟩
+  rw [hlenAB, hlen]
+
+/-- **Length-bounded + gadget-index restricted containment, axiom-free.**
+
+Combining both restrictions: every SPDP generator is in the span of
+Leibniz products `mlProj(m * ∂^α g.poly * ∂^Bl p)` with
+- `α ∈ gadgetDerivIndices (toPAC g)` (finite index set, size ≤ N^(s+d))
+- `(multiIndexToList α).length + Bl.length = κ` (length constraint)
+
+Since `|multiIndexToList α| = α.sum id ≤ g.degreeBound`, we get
+`Bl.length ≥ κ - g.degreeBound` and `Bl.length ≤ κ`. -/
+theorem mlBlockedSpdpSubspace_mul_le_leibniz_proj_span_bounded_restricted
+    {N : ℕ} (g : MatrixSPDP.BoundedGadget N) (B : BlockPartition N)
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
+    MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ (g.poly * p) ≤
+    Submodule.span ℚ
+      { r | ∃ (m : MvPolynomial (Fin N) ℚ) (S : List (Fin N))
+              (α : Fin N →₀ ℕ) (Bl : List (Fin N)),
+            α ∈ GadgetDerivs.gadgetDerivIndices (BoundedGadget.toPAC g) ∧
+            S.length = κ ∧
+            (GadgetDerivs.multiIndexToList α).length + Bl.length = κ ∧
+            m.totalDegree ≤ ℓ ∧ m.vars ⊆ S.toFinset ∧
+            isBlockAdmissible B S ∧
+            r = MultilinearSPDP.mlProj
+              (m * SPDP.iterDerivList (GadgetDerivs.multiIndexToList α) g.poly *
+                   SPDP.iterDerivList Bl p) } := by
+  classical
+  refine le_trans
+    (mlBlockedSpdpSubspace_mul_le_leibniz_proj_span_bounded g.poly B κ ℓ p) ?_
+  rw [Submodule.span_le]
+  rintro r ⟨m, S, Al, Bl, hlen, hlenAB, hdeg, hvars, hadm, hr⟩
+  by_cases hAl : GadgetDerivs.listToMultiIndex Al ∈
+                 GadgetDerivs.gadgetDerivIndices (BoundedGadget.toPAC g)
+  · -- ∈ case: canonicalize Al via iterDerivList_canonical.
+    -- The multi-index version's list has the same length as Al's canonical.
+    apply Submodule.subset_span
+    refine ⟨m, S, GadgetDerivs.listToMultiIndex Al, Bl, hAl, hlen, ?_,
+            hdeg, hvars, hadm, ?_⟩
+    · -- (multiIndexToList (listToMultiIndex Al)).length + Bl.length = κ
+      -- The multiIndexToList of listToMultiIndex Al has length = Al.length
+      -- (both count exactly the multi-set of Al).
+      rw [GadgetDerivs.multiIndexToList_length,
+          GadgetDerivs.listToMultiIndex_sum]
+      exact hlenAB
+    · rw [hr, GadgetDerivs.iterDerivList_canonical Al g.poly]
+  · -- ∉ case: iterDerivList Al g.poly = 0.
     have hg_zero : SPDP.iterDerivList Al g.poly = 0 :=
       iterDerivList_list_zero_of_not_mem_gadgetDerivIndices g Al hAl
     have hr_zero : r = 0 := by
