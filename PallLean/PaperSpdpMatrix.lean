@@ -350,4 +350,87 @@ noncomputable def gadgetLeibnizMatrix {N : ℕ} (g : PAC.BoundedGadget N)
         (multiIndexSub μ.val σ.val)
     else 0
 
+/-! ## Phase 5: matrix identity target (documentation only)
+
+The paper's Lemma 40(c) proof establishes the matrix identity:
+
+  `M^B_κ,ℓ(g·p) = L · M^B_{κ+d, ℓ+d}(p)`
+
+In our tensorized Lean formulation, this becomes the entry-wise claim:
+
+  `∀ α μ, paperSpdpMatrixVal κ ℓ (g.poly * p) α μ =
+   ∑ (δ : SpdpRowIndex N (κ+d)) (σ : SpdpColIndex N (ℓ+d)),
+     gadgetLeibnizMatrix g κ ℓ (α, μ) (δ, σ) *
+     paperSpdpMatrixVal (κ+g.degreeBound) (ℓ+g.degreeBound) p δ σ`
+
+This is the paper's matrix-level formulation of:
+
+  `coeff_μ(∂^α (g·p)) = Σ_{β ≤ α, ν ≤ μ} (α choose β) · coeff_ν(∂^β g) · coeff_{μ-ν}(∂^{α-β} p)`
+
+which is the general Leibniz rule for multi-index partial derivatives of
+a polynomial product.
+
+### Why Phase 5 is not discharged in this commit
+
+Proving this identity in Lean requires:
+
+1. **Multi-index Leibniz rule for `iterDerivList` on polynomial products.**
+   Our `PACLeibniz.iterDerivList_mul_mem_leibniz_span` gives SPAN-level
+   membership, not the explicit combinatorial coefficient expansion.
+   The explicit Leibniz rule
+   `∂^α (p·q) = Σ_{β ≤ α} (α choose β) · ∂^β p · ∂^{α-β} q` (multi-index
+   version) does not currently exist in Mathlib in the form we need.
+
+2. **Multinomial coefficient matching.** The tensorized form requires
+   relating `(α choose β)` (multi-index product of scalar binomials) to
+   the iterated single-variable Leibniz coefficients that appear when
+   `iterDerivList` is unfolded step-by-step.
+
+3. **Coefficient extraction on products.** `coeff_μ(a·b) =
+   Σ_{ν+τ=μ} coeff_ν(a) · coeff_τ(b)` — this exists in Mathlib as
+   `MvPolynomial.coeff_mul`, but combining with the binomial coefficient
+   manipulation over multi-index range requires careful combinatorial
+   argument.
+
+Each piece is ~200-500 lines of Lean, and the combined proof is genuinely
+multi-session work. The `gadgetLeibnizMatrix` and `leibnizCoeff`
+definitions in this file are PHASE 4 scaffolding — they are
+semantically correct but Phase 5 (proving they satisfy the matrix
+identity) is future targeted work.
+
+### What IS proved in this file (all axiom-free)
+
+- `boundedMultiIndexFinset`, `spdpRowIndex_card_le`, `spdpColIndex_card_le`
+- `SpdpRowIndex`/`SpdpColIndex` with Fintype instances via `ofInjective`
+- `paperSpdpMatrix`, `paperSpdpMatrixVal`, `paperSpdpRank`
+- `paperSpdpRank_le_col_card` (matrix-rank bound via `Matrix.rank_le_card_width`)
+- `multiBinom` (multi-index binomial product)
+- `multiIndexSub`, `multiIndexSub_apply` (finsupp truncated subtraction)
+- `leibnizCoeff` (scalar Leibniz coefficient)
+- `gadgetLeibnizMatrix` (the paper's L matrix, Phase 4 complete definition)
+
+### Phase 5 statement (the theorem to prove in a future session)
+
+The formal target:
+
+```
+theorem gadget_matrix_factoring
+    (g : PAC.BoundedGadget N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
+    (α : SpdpRowIndex N κ) (μ : SpdpColIndex N ℓ) :
+    paperSpdpMatrixVal κ ℓ (g.poly * p) α μ =
+    ∑ δ : SpdpRowIndex N (κ + g.degreeBound),
+    ∑ σ : SpdpColIndex N (ℓ + g.degreeBound),
+      gadgetLeibnizMatrix g κ ℓ (α, μ) (δ, σ) *
+      paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p δ σ
+```
+
+Proof strategy (multi-session):
+1. Prove multi-index Leibniz for `iterDerivList` (explicit, not span).
+2. Unfold `paperSpdpMatrixVal` on both sides to coefficient equations.
+3. Match via the multi-index binomial identity.
+4. Reindex (β, ν) ↔ (δ, σ) via `δ = α-β`, `σ = μ-ν`.
+
+Once Phase 5 is proved, Phase 6 (rank bound from `Matrix.rank_mul_le`) is
+mechanical. -/
+
 end PaperSpdpMatrix
