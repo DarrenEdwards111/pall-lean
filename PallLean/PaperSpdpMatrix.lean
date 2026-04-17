@@ -732,6 +732,16 @@ theorem exists_support_of_sum_pos {N : ℕ} (α : Fin N →₀ ℕ) (k : ℕ)
     (fun h => hne (Finsupp.support_eq_empty.mp h)) with ⟨i, hi⟩
   exact ⟨i, Finsupp.mem_support_iff.mp hi |>.bot_lt⟩
 
+/-! ### Reindex bijections for the sum combination
+
+The remaining step in the `multiIndexLeibniz` induction is to combine two
+IH-applied sums into a single sum over `Iic α`. The first sum (after
+reindexing `γ = β + single i 1`) ranges over `{γ ∈ Iic α : γ i ≥ 1}`;
+the second sum ranges over `Iic (α - single i 1)`. The coefficient
+decomposition identity `multiBinom_decomp` matches the combined
+coefficient to `multiBinom α γ`. The remaining purely-combinatorial work
+is packaging two `Finset.sum_bij`-style reindexings. -/
+
 /-- **Multi-index Leibniz, base case (α = 0), axiom-free.** -/
 theorem multiIndexLeibniz_zero {N : ℕ} (g p : MvPolynomial (Fin N) ℚ) :
     SPDP.iterDerivList (GadgetDerivs.multiIndexToList 0) (g * p) =
