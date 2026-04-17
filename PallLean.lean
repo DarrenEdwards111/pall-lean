@@ -16,3 +16,7 @@ import PallLean.IdentityMinorFarkas
 -- Rank-monotonicity infrastructure for gauge construction (§40 step 1 lemma)
 -- (paper Definition 6 / Lemma 7: Π_Φ rank-monotonicity)
 import PallLean.GaugeMonotonicity
+
+-- Concrete variable-substitution gauge (candidate Π⋆ construction)
+-- (paper Definition 6(i): restrict tableau blocks to fixed constants)
+import PallLean.PiStarConcrete
