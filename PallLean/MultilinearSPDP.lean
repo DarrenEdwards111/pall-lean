@@ -222,6 +222,30 @@ instance mlBlockedSpdpSubspace_finite {n : ℕ} {F : Type*} [Field F]
     (Submodule.inclusion hle)
     (Submodule.inclusion_injective _)
 
+/-- Inclusive-κ subspace contained in `restrictTotalDegree ℓ + p.totalDegree`. -/
+theorem mlBlockedSpdpSubspaceInc_le_restrictTotalDegree {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    mlBlockedSpdpSubspaceInc B κ ℓ p ≤
+      MvPolynomial.restrictTotalDegree (Fin n) F (ℓ + p.totalDegree) := by
+  apply Submodule.span_le.mpr
+  intro q ⟨S, m, _, hdeg, _, _, hq⟩
+  rw [hq]
+  have h1 : (mlProj (m * iterDerivList S p)).totalDegree ≤ ℓ + p.totalDegree :=
+    le_trans (totalDegree_mlProj_le _)
+      (le_trans (MvPolynomial.totalDegree_mul m (iterDerivList S p))
+        (Nat.add_le_add hdeg (totalDegree_iterDerivList_le S p)))
+  exact (MvPolynomial.mem_restrictTotalDegree _ _ _).mpr h1
+
+instance mlBlockedSpdpSubspaceInc_finite {n : ℕ} {F : Type*} [Field F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    Module.Finite F (mlBlockedSpdpSubspaceInc B κ ℓ p) := by
+  have hle := mlBlockedSpdpSubspaceInc_le_restrictTotalDegree B κ ℓ p
+  have : Module.Finite F (MvPolynomial.restrictTotalDegree (Fin n) F (ℓ + p.totalDegree)) :=
+    MvPolynomial.instFiniteSubtypeMemSubmoduleRestrictTotalDegreeOfFinite _ _ _
+  exact Module.Finite.of_injective
+    (Submodule.inclusion hle)
+    (Submodule.inclusion_injective _)
+
 theorem mlBlockedSpdpRank_le {n : ℕ} {F : Type*} [Field F]
     (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
     mlBlockedSpdpRank B κ ℓ p ≤ blockedSpdpRank B κ ℓ p := by
@@ -2008,5 +2032,333 @@ theorem extraction_rank_monotone (F : Type*) [Field F] [Nontrivial F]
       change (compiledPartition M n).assign (f i) = (compiledPartition M n).assign (f j) at h_eq
       exact compiledPartition_refines_tseitin M n h_le i j h_eq)
   linarith
+
+/-! ## Paper-faithful inclusive-κ port of the rank chain
+
+Ports the existing strict-κ chain theorems to the inclusive-κ variant
+`mlBlockedSpdpSubspaceInc`. The strict-κ `mlBlockedSpdpRank_add_lowDeg`
+does **not** survive the port — it is falsifiable under `≤ κ` (see
+`GadgetSubspaceFactoringCounterexample`). We replace it with the
+paper-correct triangle-inequality form
+`mlBlockedSpdpRankInc_add_le` that gives
+`rank_inc(p+q) ≤ rank_inc(p) + rank_inc(q)`.
+
+All theorems below are axiom-free. -/
+
+/-- **Inclusive-κ partition monotonicity.** If B₂ is coarser than B₁,
+then the B₂-subspace ⊆ B₁-subspace. Ports
+`mlBlockedSpdpSubspace_mono_partition`. -/
+theorem mlBlockedSpdpSubspaceInc_mono_partition {n : ℕ} {F : Type*} [CommRing F]
+    (B₁ B₂ : BlockPartition n) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin n) F)
+    (hrefine : ∀ i j : Fin n, B₁.assign i = B₁.assign j → B₂.assign i = B₂.assign j) :
+    mlBlockedSpdpSubspaceInc B₂ κ ℓ p ≤ mlBlockedSpdpSubspaceInc B₁ κ ℓ p := by
+  apply Submodule.span_le.mpr
+  intro q ⟨S, m, hlen, hdeg, hvars, hadm, hq⟩
+  apply Submodule.subset_span
+  exact ⟨S, m, hlen, hdeg, hvars,
+    isBlockAdmissible_coarsen B₁ B₂ S hrefine hadm, hq⟩
+
+/-- **Inclusive-κ coarsen rank bound.** Port of
+`mlBlockedSpdpRank_coarsen`. -/
+theorem mlBlockedSpdpRankInc_coarsen {n : ℕ} (F : Type*) [Field F] [Nontrivial F]
+    (B₁ B₂ : BlockPartition n) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin n) F)
+    (hrefine : ∀ i j : Fin n, B₁.assign i = B₁.assign j → B₂.assign i = B₂.assign j) :
+    mlBlockedSpdpRankInc B₂ κ ℓ p ≤ mlBlockedSpdpRankInc B₁ κ ℓ p := by
+  unfold mlBlockedSpdpRankInc
+  apply Submodule.finrank_mono
+  apply mlBlockedSpdpSubspaceInc_mono_partition
+  exact hrefine
+
+/-- **Inclusive-κ restriction preimage in the big-side subspace.**
+Port of `mlBlockedSpdpSubspace_restrict_le_map`. -/
+theorem mlBlockedSpdpSubspaceInc_restrict_le_map {n m : ℕ} {F : Type*} [CommRing F]
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (B : BlockPartition m) (κ ℓ : ℕ) (p : MvPolynomial (Fin m) F) :
+    mlBlockedSpdpSubspaceInc (pullbackPartition B f) κ ℓ
+      (restrictPoly F f hf p) ≤
+    Submodule.map (restrictPolyLinearMap F f hf)
+      (mlBlockedSpdpSubspaceInc B κ ℓ p) := by
+  apply Submodule.span_le.mpr
+  intro q ⟨S, mul, hlen, hdeg, hvars, hadm, hq⟩
+  simp only [Submodule.mem_map, SetLike.mem_coe]
+  let S' := S.map f
+  let q' := iterDerivList S' p
+  let mul' := MvPolynomial.rename f mul
+  refine ⟨mlProj (mul' * q'), ?_, ?_⟩
+  · apply Submodule.subset_span
+    refine ⟨S', mul', by simp [S', hlen], ?_, ?_, ?_, rfl⟩
+    · exact le_trans (MvPolynomial.totalDegree_rename_le f mul) hdeg
+    · show (MvPolynomial.rename f mul).vars ⊆ (S.map f).toFinset
+      intro v hv
+      have hsub := MvPolynomial.vars_rename f mul
+      have hv' := hsub hv
+      simp only [Finset.mem_image] at hv'
+      obtain ⟨w, hw, rfl⟩ := hv'
+      rw [List.mem_toFinset]
+      have hwS : w ∈ S := List.mem_toFinset.mp (hvars hw)
+      exact List.mem_map.mpr ⟨w, hwS, rfl⟩
+    · constructor
+      · exact List.Nodup.map hf hadm.1
+      · intro b
+        have hfm : ∀ (L : List (Fin n)),
+            (L.map f).filter (fun j => B.assign j = b) =
+            (L.filter (fun i => B.assign (f i) = b)).map f := by
+          intro L; induction L with
+          | nil => simp
+          | cons a rest ih =>
+            simp only [List.map, List.filter]
+            by_cases h : B.assign (f a) = b
+            · simp [h, ih]
+            · simp [h, ih]
+        rw [hfm, List.length_map]
+        exact hadm.2 b
+  · rw [show restrictPolyLinearMap F f hf (mlProj (mul' * q')) =
+      restrictPoly F f hf (mlProj (mul' * q')) from rfl]
+    rw [← mlProj_restrictPoly F f hf]
+    rw [restrictPoly_mul_rename F f hf mul q']
+    rw [← iterDerivList_restrictPoly F f hf S p]
+    rw [hq]
+
+/-- **Inclusive-κ restriction rank monotonicity.** Port of
+`restriction_rank_monotone` for the paper-faithful inclusive
+subspace. -/
+theorem restriction_rank_monotone_inc (F : Type*) [Field F] [Nontrivial F]
+    {n m : ℕ} (f : Fin n → Fin m) (hf : Function.Injective f)
+    (B : BlockPartition m) (κ ℓ : ℕ) (p : MvPolynomial (Fin m) F) :
+    mlBlockedSpdpRankInc (pullbackPartition B f) κ ℓ
+      (restrictPoly F f hf p) ≤
+    mlBlockedSpdpRankInc B κ ℓ p := by
+  unfold mlBlockedSpdpRankInc
+  calc Module.finrank F
+        (mlBlockedSpdpSubspaceInc (pullbackPartition B f) κ ℓ
+          (restrictPoly F f hf p))
+      ≤ Module.finrank F
+          (Submodule.map (restrictPolyLinearMap F f hf)
+            (mlBlockedSpdpSubspaceInc B κ ℓ p)) :=
+        Submodule.finrank_mono
+          (mlBlockedSpdpSubspaceInc_restrict_le_map f hf B κ ℓ p)
+    _ ≤ Module.finrank F (mlBlockedSpdpSubspaceInc B κ ℓ p) :=
+        Submodule.finrank_map_le _ _
+
+/-- **Inclusive-κ add containment (triangle inequality).**
+
+Under `mlBlockedSpdpSubspaceInc`, adding a polynomial `q` to `p` gives
+a subspace contained in the SUM of the two individual subspaces:
+`mlBlockedSpdpSubspaceInc (p+q) ⊆ mlBlockedSpdpSubspaceInc p +
+                                   mlBlockedSpdpSubspaceInc q`.
+
+This is the paper-correct replacement for the (falsifiable under ≤ κ)
+`mlBlockedSpdpRank_add_lowDeg`. The inequality is tight: even if q is
+low-degree, its |S|=0, |S|=1, ..., generators contribute, so we can't
+claim exact preservation. -/
+theorem mlBlockedSpdpSubspaceInc_add_le {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p q : MvPolynomial (Fin n) F) :
+    mlBlockedSpdpSubspaceInc B κ ℓ (p + q) ≤
+    (mlBlockedSpdpSubspaceInc B κ ℓ p + mlBlockedSpdpSubspaceInc B κ ℓ q :
+      Submodule F (MvPolynomial (Fin n) F)) := by
+  apply Submodule.span_le.mpr
+  intro r ⟨S, m, hlen, hdeg, hvars, hadm, hr⟩
+  have h_deriv : iterDerivList S (p + q) =
+                 iterDerivList S p + iterDerivList S q :=
+    iterDerivList_add S p q
+  rw [hr, h_deriv, mul_add, mlProj_add]
+  have hp : mlProj (m * iterDerivList S p) ∈ mlBlockedSpdpSubspaceInc B κ ℓ p :=
+    Submodule.subset_span ⟨S, m, hlen, hdeg, hvars, hadm, rfl⟩
+  have hq : mlProj (m * iterDerivList S q) ∈ mlBlockedSpdpSubspaceInc B κ ℓ q :=
+    Submodule.subset_span ⟨S, m, hlen, hdeg, hvars, hadm, rfl⟩
+  rw [Submodule.add_eq_sup]
+  exact Submodule.add_mem_sup hp hq
+
+/-- **Inclusive-κ add rank bound (triangle inequality).**
+Paper-correct replacement for `mlBlockedSpdpRank_add_lowDeg` (which
+was falsifiable under `≤ κ`). -/
+theorem mlBlockedSpdpRankInc_add_le {n : ℕ} (F : Type*) [Field F] [Nontrivial F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p q : MvPolynomial (Fin n) F) :
+    mlBlockedSpdpRankInc B κ ℓ (p + q) ≤
+    mlBlockedSpdpRankInc B κ ℓ p + mlBlockedSpdpRankInc B κ ℓ q := by
+  unfold mlBlockedSpdpRankInc
+  -- Step 1: the (p + q) subspace ≤ the ⊔-sup of p and q subspaces.
+  have hle_sup : mlBlockedSpdpSubspaceInc B κ ℓ (p + q) ≤
+      ((mlBlockedSpdpSubspaceInc B κ ℓ p ⊔
+        mlBlockedSpdpSubspaceInc B κ ℓ q :
+        Submodule F (MvPolynomial (Fin n) F))) := by
+    have hadd := mlBlockedSpdpSubspaceInc_add_le (F := F) B κ ℓ p q
+    rw [Submodule.add_eq_sup] at hadd
+    exact hadd
+  -- Step 2: finrank is monotone on this containment.
+  have h1 : Module.finrank F (mlBlockedSpdpSubspaceInc B κ ℓ (p + q)) ≤
+            Module.finrank F
+              ((mlBlockedSpdpSubspaceInc B κ ℓ p ⊔
+                mlBlockedSpdpSubspaceInc B κ ℓ q :
+                Submodule F (MvPolynomial (Fin n) F))) :=
+    Submodule.finrank_mono hle_sup
+  -- Step 3: finrank(p ⊔ q) ≤ finrank p + finrank q.
+  have h2 : Module.finrank F
+              ((mlBlockedSpdpSubspaceInc B κ ℓ p ⊔
+                mlBlockedSpdpSubspaceInc B κ ℓ q :
+                Submodule F (MvPolynomial (Fin n) F))) ≤
+            Module.finrank F (mlBlockedSpdpSubspaceInc B κ ℓ p) +
+            Module.finrank F (mlBlockedSpdpSubspaceInc B κ ℓ q) :=
+    Submodule.finrank_add_le_finrank_add_finrank _ _
+  exact le_trans h1 h2
+
+/-- iterDerivList distributes over negation (from iterDerivList_add). -/
+private theorem iterDerivList_neg_helper {n : ℕ} {F : Type*} [CommRing F]
+    (S : List (Fin n)) (p : MvPolynomial (Fin n) F) :
+    iterDerivList S (-p) = -iterDerivList S p := by
+  have h0 : iterDerivList S (p + (-p)) =
+            iterDerivList S p + iterDerivList S (-p) :=
+    iterDerivList_add S p (-p)
+  have hzero : p + (-p) = (0 : MvPolynomial (Fin n) F) := by ring
+  rw [hzero] at h0
+  have hder0 : iterDerivList S (0 : MvPolynomial (Fin n) F) = 0 := by
+    unfold iterDerivList
+    exact foldl_pderiv_zero' S
+  rw [hder0] at h0
+  -- 0 = ∂p + ∂(-p) → ∂(-p) = -∂p
+  linear_combination -h0
+
+/-- mlProj of a negation. Uses additive hom from `mlProjHom`. -/
+private theorem mlProj_neg_helper {σ : Type*} [DecidableEq σ] {F : Type*} [CommRing F]
+    (p : MvPolynomial σ F) : mlProj (-p) = -mlProj p := by
+  change (mlProjHom F) (-p) = -(mlProjHom F) p
+  exact map_neg _ p
+
+/-- Negation preserves the inclusive-κ subspace exactly. -/
+theorem mlBlockedSpdpSubspaceInc_neg {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    mlBlockedSpdpSubspaceInc B κ ℓ (-p) =
+    mlBlockedSpdpSubspaceInc B κ ℓ p := by
+  apply le_antisymm
+  · apply Submodule.span_le.mpr
+    rintro r ⟨S, m, hlen, hdeg, hvars, hadm, hr⟩
+    rw [hr, iterDerivList_neg_helper]
+    have hneg : m * (-iterDerivList S p) = -(m * iterDerivList S p) := by ring
+    rw [hneg, mlProj_neg_helper]
+    have hgen : mlProj (m * iterDerivList S p) ∈
+        mlBlockedSpdpSubspaceInc B κ ℓ p :=
+      Submodule.subset_span ⟨S, m, hlen, hdeg, hvars, hadm, rfl⟩
+    exact (mlBlockedSpdpSubspaceInc B κ ℓ p).neg_mem hgen
+  · apply Submodule.span_le.mpr
+    rintro r ⟨S, m, hlen, hdeg, hvars, hadm, hr⟩
+    rw [hr]
+    have hid : (m * iterDerivList S p) = -(m * iterDerivList S (-p)) := by
+      rw [iterDerivList_neg_helper]; ring
+    rw [hid, mlProj_neg_helper]
+    have hgen : mlProj (m * iterDerivList S (-p)) ∈
+        mlBlockedSpdpSubspaceInc B κ ℓ (-p) :=
+      Submodule.subset_span ⟨S, m, hlen, hdeg, hvars, hadm, rfl⟩
+    exact (mlBlockedSpdpSubspaceInc B κ ℓ (-p)).neg_mem hgen
+
+/-- Negation preserves the inclusive-κ rank. -/
+theorem mlBlockedSpdpRankInc_neg {n : ℕ} (F : Type*) [Field F] [Nontrivial F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    mlBlockedSpdpRankInc B κ ℓ (-p) = mlBlockedSpdpRankInc B κ ℓ p := by
+  unfold mlBlockedSpdpRankInc
+  rw [mlBlockedSpdpSubspaceInc_neg]
+
+/-- Symmetric triangle inequality: `rank(p) ≤ rank(p+q) + rank(q)`. -/
+theorem mlBlockedSpdpRankInc_le_add_le {n : ℕ} (F : Type*) [Field F] [Nontrivial F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p q : MvPolynomial (Fin n) F) :
+    mlBlockedSpdpRankInc B κ ℓ p ≤
+    mlBlockedSpdpRankInc B κ ℓ (p + q) + mlBlockedSpdpRankInc B κ ℓ q := by
+  have heq : p = (p + q) + (-q) := by ring
+  conv_lhs => rw [heq]
+  have := mlBlockedSpdpRankInc_add_le F B κ ℓ (p + q) (-q)
+  rw [mlBlockedSpdpRankInc_neg] at this
+  exact this
+
+/-- **Paper-faithful extraction rank monotonicity.**
+
+Ports `extraction_rank_monotone` to the inclusive-κ variant. Uses
+`mlBlockedSpdpRankInc_add_le` (triangle inequality) instead of the
+falsifiable `_add_lowDeg`, so the final bound has a `+ rank(violation)`
+slack term accounting for the low-degree remainder contribution.
+
+For the paper's final separation, one needs to show the violation
+polynomial's contribution is polynomial in N (which follows from its
+bounded degree), preserving the overall asymptotics. -/
+theorem extraction_rank_monotone_inc (F : Type*) [Field F] [Nontrivial F]
+    (n : ℕ) (M : DTM) (hsolves : True) (hn : n ≥ 32) :
+    ∀ (h_le : npNumVars n ≤ numVars M n (Nat.log 2 n)) (κ ℓ : ℕ),
+      κ ≥ 5 →
+      mlBlockedSpdpRankInc (tseitinPartition n) κ ℓ (tseitinPoly F n) ≤
+      mlBlockedSpdpRankInc (compiledPartition M n) κ ℓ
+        (fullCompiledPoly F M n h_le) +
+      mlBlockedSpdpRankInc (pullbackPartition (compiledPartition M n)
+        (witnessInclusion M n h_le)) κ ℓ
+        (restrictPoly F (witnessInclusion M n h_le)
+          (witnessInclusion_injective M n h_le) (violationPolyOf F M n)) := by
+  intro h_le κ ℓ _
+  let f := witnessInclusion M n h_le
+  have hf_inj := witnessInclusion_injective M n h_le
+  let h_pullback := pullbackPartition (compiledPartition M n) f
+  -- Step 1: restriction_rank_monotone_inc on fullCompiledPoly
+  have h_restrict := restriction_rank_monotone_inc F f hf_inj
+    (compiledPartition M n) κ ℓ (fullCompiledPoly F M n h_le)
+  -- Step 2: restrictPoly(fullCompiled) = tseitin + restrictPoly(violation)
+  have h_add : restrictPoly F f hf_inj (fullCompiledPoly F M n h_le) =
+      tseitinPoly F n +
+      restrictPoly F f hf_inj (violationPolyOf F M n) := by
+    unfold fullCompiledPoly
+    rw [map_add (restrictPoly F f hf_inj)]
+    congr 1
+    unfold verifierSheetOf
+    exact restrictPoly_rename F f hf_inj (tseitinPoly F n)
+  rw [h_add] at h_restrict
+  -- Step 3: coarsen — pullback of compiledPartition refines tseitin
+  have h_coarsen := mlBlockedSpdpRankInc_coarsen F h_pullback
+    (tseitinPartition n) κ ℓ (tseitinPoly F n) (by
+      intro i j h_eq
+      change (compiledPartition M n).assign (f i) =
+             (compiledPartition M n).assign (f j) at h_eq
+      exact compiledPartition_refines_tseitin M n h_le i j h_eq)
+  -- Step 4: symmetric triangle inequality on tseitin = (tseitin + restrictVio) - restrictVio
+  have h_sym_triangle := mlBlockedSpdpRankInc_le_add_le F h_pullback κ ℓ
+    (tseitinPoly F n) (restrictPoly F f hf_inj (violationPolyOf F M n))
+  -- Chain: rank(tseitin) ≤ rank(pullback, tseitin) ≤ rank(pullback, tseitin+restrictVio) + rank(restrictVio)
+  --                     ≤ rank(compiled, fullCompiled) + rank(restrictVio)
+  calc mlBlockedSpdpRankInc (tseitinPartition n) κ ℓ (tseitinPoly F n)
+      ≤ mlBlockedSpdpRankInc h_pullback κ ℓ (tseitinPoly F n) := h_coarsen
+    _ ≤ mlBlockedSpdpRankInc h_pullback κ ℓ
+          (tseitinPoly F n +
+            restrictPoly F f hf_inj (violationPolyOf F M n)) +
+        mlBlockedSpdpRankInc h_pullback κ ℓ
+          (restrictPoly F f hf_inj (violationPolyOf F M n)) :=
+        h_sym_triangle
+    _ ≤ mlBlockedSpdpRankInc (compiledPartition M n) κ ℓ
+          (fullCompiledPoly F M n h_le) +
+        mlBlockedSpdpRankInc h_pullback κ ℓ
+          (restrictPoly F f hf_inj (violationPolyOf F M n)) :=
+        Nat.add_le_add_right h_restrict _
+
+/-! ## Axiom-freeness checks for the paper-faithful inclusive port -/
+
+#print axioms mlBlockedSpdpSubspace_le_inc
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms mlBlockedSpdpSubspaceInc_eq_iSup
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms mlBlockedSpdpSubspaceInc_mono_partition
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms mlBlockedSpdpRankInc_coarsen
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms mlBlockedSpdpSubspaceInc_restrict_le_map
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms restriction_rank_monotone_inc
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms mlBlockedSpdpSubspaceInc_add_le
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms mlBlockedSpdpRankInc_add_le
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms mlBlockedSpdpSubspaceInc_neg
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms mlBlockedSpdpRankInc_neg
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms mlBlockedSpdpRankInc_le_add_le
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms extraction_rank_monotone_inc
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 
 end MultilinearSPDP
