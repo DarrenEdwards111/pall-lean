@@ -106,6 +106,77 @@ theorem permPoly_totalDegree_le (n : ℕ) :
   intro σ
   exact permPoly_term_totalDegree_le n σ
 
+/-! ### Step 1: Partial derivatives along diagonal variables
+
+The paper's `∂_S perm_n` is the iterated partial derivative of
+`permPoly` with respect to the diagonal variables `X_{(i,i)}` for
+`i ∈ S`. We use `MvPolynomial.pderiv` and Mathlib's partial-derivative
+infrastructure. -/
+
+/-- `diagPderiv i` applies the partial derivative w.r.t. the diagonal
+variable `X_{(i, i)}`. -/
+noncomputable def diagPderiv {n : ℕ} (i : Fin n) :
+    MvPolynomial (Fin n × Fin n) ℚ → MvPolynomial (Fin n × Fin n) ℚ :=
+  MvPolynomial.pderiv (i, i)
+
+theorem diagPderiv_add {n : ℕ} (i : Fin n)
+    (p q : MvPolynomial (Fin n × Fin n) ℚ) :
+    diagPderiv i (p + q) = diagPderiv i p + diagPderiv i q :=
+  (MvPolynomial.pderiv (i, i)).map_add p q
+
+/-- Iterated diagonal partial derivative indexed by a finite set `S`.
+Uses `Finset.prod` of the composed linear maps; since pderivs commute,
+the order doesn't matter. -/
+noncomputable def iterDiagPderiv {n : ℕ} (S : Finset (Fin n)) :
+    MvPolynomial (Fin n × Fin n) ℚ → MvPolynomial (Fin n × Fin n) ℚ :=
+  fun p => S.toList.foldl (fun q i => diagPderiv i q) p
+
+/-- Iterated pderiv through an empty set is the identity. -/
+theorem iterDiagPderiv_empty {n : ℕ}
+    (p : MvPolynomial (Fin n × Fin n) ℚ) :
+    iterDiagPderiv (∅ : Finset (Fin n)) p = p := by
+  unfold iterDiagPderiv
+  simp
+
+/-- Iterated pderiv through a singleton equals a single pderiv. -/
+theorem iterDiagPderiv_singleton {n : ℕ} (i : Fin n)
+    (p : MvPolynomial (Fin n × Fin n) ℚ) :
+    iterDiagPderiv ({i} : Finset (Fin n)) p = diagPderiv i p := by
+  unfold iterDiagPderiv
+  simp [Finset.toList_singleton]
+
+/-- iterDiagPderiv is ℚ-linear in the polynomial argument. -/
+theorem iterDiagPderiv_add {n : ℕ} (S : Finset (Fin n))
+    (p q : MvPolynomial (Fin n × Fin n) ℚ) :
+    iterDiagPderiv S (p + q) = iterDiagPderiv S p + iterDiagPderiv S q := by
+  unfold iterDiagPderiv
+  induction S.toList generalizing p q with
+  | nil => simp
+  | cons a rest ih =>
+    show rest.foldl (fun q i => diagPderiv i q) (diagPderiv a (p + q)) =
+         rest.foldl (fun q i => diagPderiv i q) (diagPderiv a p) +
+         rest.foldl (fun q i => diagPderiv i q) (diagPderiv a q)
+    rw [diagPderiv_add]
+    exact ih _ _
+
+/-- `diagPderiv i (X (i, i)) = 1`. -/
+theorem diagPderiv_X_diag {n : ℕ} (i : Fin n) :
+    diagPderiv i (MvPolynomial.X (i, i) :
+      MvPolynomial (Fin n × Fin n) ℚ) = 1 := by
+  unfold diagPderiv
+  rw [MvPolynomial.pderiv_X]
+  simp
+
+/-- `diagPderiv i` annihilates any `X (p, q)` with `(p, q) ≠ (i, i)`. -/
+theorem diagPderiv_X_off_diag {n : ℕ} (i : Fin n) (p q : Fin n)
+    (h : (p, q) ≠ (i, i)) :
+    diagPderiv i (MvPolynomial.X (p, q) :
+      MvPolynomial (Fin n × Fin n) ℚ) = 0 := by
+  unfold diagPderiv
+  rw [MvPolynomial.pderiv_X]
+  have hne : (i, i) ≠ (p, q) := fun heq => h heq.symm
+  simp [Pi.single_apply, hne]
+
 /-- `permPoly n` is nonzero for `n ≥ 1` (the identity permutation's
 diagonal term contributes a nonzero monomial). -/
 theorem permPoly_ne_zero_of_pos {n : ℕ} (hn : 1 ≤ n) :
