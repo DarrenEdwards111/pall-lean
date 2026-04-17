@@ -218,4 +218,88 @@ Instead, we expose below a cleaner reformulation of the axiom used in
 This does not reduce the axiomatic trust but makes what's being assumed
 structurally cleaner. -/
 
+/-! ## Piece 5: Length-bounded Leibniz (axiom-free)
+
+The plain Leibniz membership `iterDerivList_mul_mem_leibniz_span` uses a
+generator set over ALL pairs of lists `(A, B)`. The ACTUAL Leibniz
+expansion only produces pairs with `|A| + |B| = |S|`, so we can refine
+the membership theorem to this tighter set. This is the structural input
+needed to bound the `B`-derivative by the shifted `κ + d` parameter in
+the SPDP rank argument. -/
+
+/-- The **length-bounded Leibniz generator set**: all products
+`iterDerivList A g · iterDerivList B p` with `A.length + B.length = n`.
+-/
+noncomputable def leibnizGenSetBounded {N : ℕ} (n : ℕ)
+    (g p : MvPolynomial (Fin N) ℚ) :
+    Set (MvPolynomial (Fin N) ℚ) :=
+  { r | ∃ A B : List (Fin N),
+      A.length + B.length = n ∧
+      r = iterDerivList A g * iterDerivList B p }
+
+/-- Pushing a derivative `a` to the g-side shifts the length bound
+by 1. -/
+private theorem leibnizGenSetBounded_pderiv_g_subset {N : ℕ} (a : Fin N)
+    (n : ℕ) (g p : MvPolynomial (Fin N) ℚ) :
+    leibnizGenSetBounded n ((pderiv a) g) p ⊆
+    leibnizGenSetBounded (n + 1) g p := by
+  rintro r ⟨A, B, hlen, hr⟩
+  refine ⟨a :: A, B, ?_, ?_⟩
+  · simp only [List.length_cons]; omega
+  · rw [hr]; rfl
+
+/-- Pushing a derivative `a` to the p-side shifts the length bound
+by 1. -/
+private theorem leibnizGenSetBounded_pderiv_p_subset {N : ℕ} (a : Fin N)
+    (n : ℕ) (g p : MvPolynomial (Fin N) ℚ) :
+    leibnizGenSetBounded n g ((pderiv a) p) ⊆
+    leibnizGenSetBounded (n + 1) g p := by
+  rintro r ⟨A, B, hlen, hr⟩
+  refine ⟨A, a :: B, ?_, ?_⟩
+  · simp only [List.length_cons]; omega
+  · rw [hr]; rfl
+
+/-- **Length-bounded Leibniz for `iterDerivList` (membership form).**
+
+For any list `S` and any two polynomials `g, p`,
+`iterDerivList S (g * p)` lies in the ℚ-span of products
+`iterDerivList A g · iterDerivList B p` with `|A| + |B| = |S|`.
+
+Axiom-free. Refines `iterDerivList_mul_mem_leibniz_span` by tracking the
+total derivative count. -/
+theorem iterDerivList_mul_mem_leibniz_span_bounded {N : ℕ}
+    (S : List (Fin N)) (g p : MvPolynomial (Fin N) ℚ) :
+    iterDerivList S (g * p) ∈
+    Submodule.span ℚ (leibnizGenSetBounded S.length g p) := by
+  induction S generalizing g p with
+  | nil =>
+    apply Submodule.subset_span
+    refine ⟨[], [], ?_, ?_⟩
+    · simp
+    · simp [iterDerivList]
+  | cons a rest ih =>
+    have h_pderiv : (pderiv a) (g * p) = (pderiv a) g * p + g * (pderiv a) p := by
+      have hl := (pderiv a).leibniz g p
+      simp only [smul_eq_mul] at hl
+      rw [hl]; ring
+    have h_expand : iterDerivList (a :: rest) (g * p) =
+                    iterDerivList rest ((pderiv a) g * p) +
+                    iterDerivList rest (g * (pderiv a) p) := by
+      unfold iterDerivList
+      show rest.foldl (fun r i => (pderiv i) r) ((pderiv a) (g * p)) =
+           rest.foldl (fun r i => (pderiv i) r) ((pderiv a) g * p) +
+           rest.foldl (fun r i => (pderiv i) r) (g * (pderiv a) p)
+      rw [h_pderiv]
+      exact LowDeg.foldl_pderiv_add rest _ _
+    rw [h_expand]
+    have hlen_succ : (a :: rest).length = rest.length + 1 := List.length_cons
+    rw [hlen_succ]
+    apply Submodule.add_mem
+    · have ih1 := ih ((pderiv a) g) p
+      exact Submodule.span_mono
+        (leibnizGenSetBounded_pderiv_g_subset a rest.length g p) ih1
+    · have ih2 := ih g ((pderiv a) p)
+      exact Submodule.span_mono
+        (leibnizGenSetBounded_pderiv_p_subset a rest.length g p) ih2
+
 end PACLeibniz
