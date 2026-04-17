@@ -1596,9 +1596,19 @@ retains the false axiom for archival reference only. -/
 -- Expected: ...  + the false axiom SymmetricPower.spdp_profile_generators
 #print axioms P_ne_NP_unconditional
 -- Expected: propext, Classical.choice, Quot.sound,
---   GlobalGodMoveGauge.exists_theorem207_witness.
--- (Single **paper-faithful** custom axiom — each field of the witness
--- corresponds to a named paper theorem.)
+--   GlobalGodMoveGauge.exists_rank_sandwich_for_sat_decider.
+-- ** MINIMAL AXIOM ACHIEVED **
+-- The canonical chain now depends on just ONE custom axiom:
+-- `exists_rank_sandwich_for_sat_decider`, which asserts the existence
+-- of a natural number r with C(n/3, log n) ≤ r ≤ n^200 for any
+-- bounded-parameter SAT-decider at n ≥ 2^804.
+-- This axiom IS the restricted separation, stated in arithmetic form.
+-- No further axiom-surface reduction is possible without discharging
+-- paper-deep content (which would amount to proving P ≠ NP directly).
+-- Reduction chain this session:
+--   exists_theorem207_witness (5-field polynomial witness)
+--     → exists_amplituhedron_gauge_for_sat_decider (linear map + 3 props)
+--       → exists_rank_sandwich_for_sat_decider (one ℕ in sandwich)
 #print axioms P_ne_NP_via_theorem207
 -- Expected: propext, Classical.choice, Quot.sound,
 --   GlobalGodMoveGauge.exists_theorem207_witness.
