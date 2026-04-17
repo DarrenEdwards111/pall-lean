@@ -1634,11 +1634,18 @@ theorem gadgetLeibnizMatrix_val_neg {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
   rw [if_neg h]
 
 /-- **Phase 5 reindex axiom**.
-Discharged using 7 axiom-free helpers in this file. The final assembly
-(subtype-Finset conversion + filter extraction + canonical form match)
-requires ~150-200 lines of intricate Finset manipulation that hit
-elaboration issues in our attempts; the helpers capture all the
-mathematical content. -/
+
+Helpers (7 axiom-free) capture all the mathematical content:
+- `antidiagonal_sum_eq_Iic_sum`, `sum_Iic_reindex_complement`,
+- `gadgetLeibnizMatrix_val_pos`, `gadgetLeibnizMatrix_val_neg`,
+- `mem_boundedMultiIndexFinset`, `Iic_subset_boundedMultiIndex`,
+- `filter_boundedMulti_eq_Iic_of_bound`.
+
+Final assembly (LHS/RHS canonical forms + subtype-Finset bridge via
+`Finset.sum_subtype` + filter extraction via `Finset.sum_filter`)
+requires further iteration on tactic-level details (higher-order
+rewriting of `∑ pair, f pair.1 pair.2`-shaped terms, conditional
+simp handling). -/
 axiom gadget_matrix_factoring_reindex {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
     (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
     (α : SpdpRowIndex N κ) (μ : SpdpColIndex N ℓ) :
