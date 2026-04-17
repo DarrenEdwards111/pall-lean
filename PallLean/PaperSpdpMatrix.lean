@@ -109,4 +109,45 @@ noncomputable def paperSpdpMatrix {N : ℕ} (κ ℓ : ℕ)
     SpdpRowIndex N κ → SpdpColIndex N ℓ → ℚ :=
   fun α μ => MvPolynomial.coeff μ.val (multiPderiv α.val p)
 
+/-! ## Phase 2b: Fintype instances on row/column index types
+
+For a multi-index α with `Σ αᵢ ≤ bound`, each component `αᵢ ≤ bound`
+(since each summand is ≤ the nonneg sum). So α can be encoded as a
+function `Fin N → Fin (bound+1)`. This gives an injection from the
+subtype into a Fintype, hence Fintype on the subtype. -/
+
+/-- Encoding of a bounded-sum multi-index as a function into `Fin (bound+1)`. -/
+private noncomputable def spdpIndexEncode {N bound : ℕ}
+    (x : { α : Fin N →₀ ℕ // α.sum (fun _ n => n) ≤ bound }) :
+    Fin N → Fin (bound + 1) :=
+  fun i => ⟨x.val i, by
+    -- x.val i ≤ Σ x.val ≤ bound, so x.val i ≤ bound < bound + 1
+    have hi : x.val i ≤ x.val.sum (fun _ n => n) := by
+      classical
+      by_cases hmem : i ∈ x.val.support
+      · exact Finset.single_le_sum (f := fun j => x.val j)
+          (fun j _ => Nat.zero_le _) hmem
+      · simp [Finsupp.notMem_support_iff.mp hmem]
+    omega⟩
+
+/-- The encoding is injective. -/
+private theorem spdpIndexEncode_injective {N bound : ℕ} :
+    Function.Injective (@spdpIndexEncode N bound) := by
+  intro x y hxy
+  ext1
+  apply Finsupp.ext
+  intro i
+  have : spdpIndexEncode x i = spdpIndexEncode y i := by rw [hxy]
+  simpa [spdpIndexEncode] using this
+
+/-- **Fintype for row index type.** -/
+noncomputable instance spdpRowIndex_fintype (N κ : ℕ) :
+    Fintype (SpdpRowIndex N κ) :=
+  Fintype.ofInjective (@spdpIndexEncode N κ) spdpIndexEncode_injective
+
+/-- **Fintype for column index type.** -/
+noncomputable instance spdpColIndex_fintype (N ℓ : ℕ) :
+    Fintype (SpdpColIndex N ℓ) :=
+  Fintype.ofInjective (@spdpIndexEncode N ℓ) spdpIndexEncode_injective
+
 end PaperSpdpMatrix
