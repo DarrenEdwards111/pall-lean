@@ -666,83 +666,56 @@ axiom paperSpdpRank_gadget_mul_le {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
       N ^ (g.supportSize + g.degreeBound) *
         paperSpdpRank (κ + g.degreeBound) (ℓ + g.degreeBound) p
 
-/-! ## Phase 3b + full chain: bridge paperSpdpRank to mlBlockedSpdpRank
+/-! ## Phase 3b (REMOVED): formerly-axiomatised paperSpdpRank↔mlBlockedSpdpRank bridges
 
-The Route B canonical chain uses `mlBlockedSpdpRank` (from `MultilinearSPDP`),
-which differs from `paperSpdpRank` in parameter constraints and generator
-structure. A bridge is needed to transfer the paper's matrix-level rank
-bound to the canonical chain.
+A previous iteration of this file stated two bridge axioms relating the
+paper's matrix rank (`paperSpdpRank`) to Lean's canonical
+`mlBlockedSpdpRank`:
 
-### Bridge axioms (Phase 3b)
+```
+axiom mlBlockedSpdpRank_le_paperSpdpRank :
+    mlBlockedSpdpRank B κ ℓ p ≤ paperSpdpRank κ ℓ p              -- forward
+axiom paperSpdpRank_le_mlBlockedSpdpRank_shifted :
+    paperSpdpRank (κ+d) (ℓ+d) p ≤ mlBlockedSpdpRank B (κ+d) (ℓ+d) p  -- reverse (at shifted)
+```
 
-Two narrow bridge axioms close the gap:
+Both have concrete FALSIFYING examples:
 
-- `mlBlockedSpdpRank_le_paperSpdpRank`: `mlBlockedSpdpRank B κ ℓ p ≤ paperSpdpRank κ ℓ p`
-  (submodule rank of Lean's exact-length SPDP is bounded by paper's matrix rank
-  at the same κ, ℓ)
-- Reverse bound for shifted parameters (needs care because paper's rank at
-  (κ+d, ℓ+d) might include more than Lean's exact-(κ+d) SPDP)
+**Forward bridge fails at** `N=2, p = X_0 + X_1, (κ, ℓ) = (1, 1)`:
+  `mlBlockedSpdpRank` = 3 (generators 1, X_0, X_1 via polynomial multipliers)
+  `paperSpdpRank` = 2 (only p-row and derivative-row are linearly
+                       independent in a no-multiplier matrix).
 
-These bridges require relating Lean's submodule generators to paper's matrix
-rows — a concrete combinatorial relationship. -/
+**Reverse bridge fails at** `N=2, p = 1, κ=0, d=1, ℓ=0`:
+  `paperSpdpRank(1, 1, 1)` = 1 (the `1`-row is nonzero)
+  `mlBlockedSpdpRank(1, 1, 1)` = 0 (every generator `m · ∂^S (1) = 0`).
 
-/-- **Phase 3b bridge axiom (forward)**: Lean's submodule rank is bounded
-by paper's matrix rank at the same parameters.
+**Why both are false**: Lean's `mlBlockedSpdpSubspace` uses generators
+`mlProj(m · iterDerivList S p)` with polynomial multiplier `m` and
+exact-length `|S| = κ`, while the simplified `paperSpdpMatrix` in this
+file has rows indexed by α alone (no multiplier) and inclusive
+`|α| ≤ κ`. The two objects differ in structure and cannot be compared
+directly without either (i) a multiplier-including version of
+`paperSpdpMatrix` (rows indexed by `(α, m)` pairs), or (ii) shifted
+parameters with a sound `∑`-bound.
 
-**WARNING — THIS AXIOM IS FALSE AT THESE PARAMETERS.**
+### Why they are now removed
 
-Concrete counterexample: N=2, p = X_0 + X_1, (κ, ℓ) = (1, 1):
-- `mlBlockedSpdpRank` = 3 (generators 1, X_0, X_1 via multipliers)
-- `paperSpdpRank` = 2 (only two linearly independent rows: the p row and the derivative row)
+The main chain `mlBlockedSpdpRank_gadget_mul_le` below no longer goes
+through these bridges — it now goes through PAC's subspace-level
+`gadget_multiplication_rank_bound` (which reduces to
+`PAC.gadget_spdp_subspace_factoring`). The two false bridge axioms
+were unused after that retargeting, so keeping them in the file was
+pure axiom bloat (and provably unsound axiom bloat at that). They have
+been deleted in favour of this explanatory section.
 
-The reason: Lean's `mlBlockedSpdpSubspace` includes MULTIPLIERS (`m` in
-the generator), while my current simplified `paperSpdpMatrix` does not.
-So Lean's subspace can exceed paper's matrix rank in dimension.
-
-### The correct fix
-
-The paper's actual SPDP matrix includes multipliers — rows indexed by
-`(α, m)` pairs rather than just `α`. Our simplified `paperSpdpMatrix`
-is a no-multiplier approximation.
-
-To make the bridge hold, we would need:
-1. Redefine `paperSpdpMatrix` to include multipliers (rows = (α, m) pairs).
-2. Or: use shifted parameters on the RHS, e.g.
-   `mlBlockedSpdpRank B κ ℓ p ≤ paperSpdpRank κ (ℓ + κ) p + something`.
-
-Either is substantial refactoring. For now this axiom remains stated but
-**should not be used on the canonical chain** until refined. The
-`mlBlockedSpdpRank_gadget_mul_le` full-chain theorem downstream of this
-axiom therefore has an acknowledged correctness gap. -/
-axiom mlBlockedSpdpRank_le_paperSpdpRank {N : ℕ} (B : BlockPartition N)
-    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
-    mlBlockedSpdpRank B κ ℓ p ≤ paperSpdpRank κ ℓ p
-
-/-- **Phase 3b bridge axiom (reverse, at shifted params)**: for the
-specific parameters used in the gadget bound, the paper's shifted rank
-is bounded by Lean's shifted SPDP rank times a constant.
-
-This reversal direction is more subtle because of the exact-length vs
-≤-length mismatch. For the canonical chain, we only need it at shifted
-parameters in the specific form used for the gadget bound.
-
-**CAVEAT**: this bridge direction may not hold in all cases, because
-`paperSpdpRank` (inclusive rows `|α| ≤ κ+d`) includes more generators
-than `mlBlockedSpdpRank` (exact-length `|S| = κ+d`). Additionally,
-`mlBlockedSpdpRank` uses multipliers `m` which can add dimensionality
-that paper's matrix doesn't have.
-
-The SPECIFIC form this axiom would need is probably:
-`paperSpdpRank (κ+d) (ℓ+d) p ≤ C · max-over-shifted-params mlBlockedSpdpRank B k l p`
-for some constant C and range of shifted params (k, l).
-
-For the contradiction at n=2^804, this looser form suffices if all
-bounds are polynomial in n. Establishing the precise form is future
-refinement work. -/
-axiom paperSpdpRank_le_mlBlockedSpdpRank_shifted {N : ℕ}
-    (B : BlockPartition N) (κ ℓ d : ℕ) (p : MvPolynomial (Fin N) ℚ) :
-    paperSpdpRank (κ + d) (ℓ + d) p ≤
-      mlBlockedSpdpRank B (κ + d) (ℓ + d) p
+The paper-exact matrix infrastructure remains in this file
+(`paperSpdpMatrix`, `paperSpdpRank`, `gadget_matrix_factoring_entry`,
+`paperSpdpRank_gadget_mul_le`) as an independent rendering of Lemma
+40(c) at the matrix level. Future refactors that introduce a
+multiplier-including `paperSpdpMatrix` would make a bridge of the form
+`mlBlockedSpdpRank ≤ paperSpdpRankWithMultipliers` sound; such a
+refactor is tracked in the project TODO list. -/
 
 /-- Convert a `MatrixSPDP.BoundedGadget` to a `PAC.BoundedGadget`.
 They have field-identical structure; the two namespaces exist only
@@ -806,7 +779,7 @@ theorem mlBlockedSpdpRank_gadget_mul_le {N : ℕ} (g : MatrixSPDP.BoundedGadget 
 - **Full chain theorem**: `mlBlockedSpdpRank_gadget_mul_le` (the paper's
   Lemma 40(c) rank bound on Lean's canonical `mlBlockedSpdpRank`)
 
-**Axioms in this file (5 narrow mathematical claims):**
+**Axioms in this file (3 narrow mathematical claims):**
 
 Used by `gadget_matrix_factoring_entry` (the matrix-level identity):
 1. `multiIndexLeibniz` — multi-index Leibniz for MvPolynomial partial
@@ -819,12 +792,12 @@ Used ONLY by the matrix-level rank bound (paper-level):
 3. `paperSpdpRank_gadget_mul_le` — matrix rank bound via row-span
    decomposition (Mathlib-level matrix rank manipulation).
 
-Bridge axioms (document-only; NOT USED in the revised full chain):
-4. `mlBlockedSpdpRank_le_paperSpdpRank` — **known false** at stated
-   parameters (counter-documented above). Kept in-file for reference
-   during the multiplier-including refactor.
-5. `paperSpdpRank_le_mlBlockedSpdpRank_shifted` — bridge reverse at
-   shifted params; unused after the PAC-axiom retargeting.
+Previously this file contained two bridge axioms
+(`mlBlockedSpdpRank_le_paperSpdpRank`,
+`paperSpdpRank_le_mlBlockedSpdpRank_shifted`) which both admit concrete
+falsifying examples. They have been deleted — see the
+"Phase 3b (REMOVED)" section above for the counterexamples and the
+reason. The main chain now bypasses them entirely via PAC retargeting.
 
 **Connection to canonical Route B chain:**
 
