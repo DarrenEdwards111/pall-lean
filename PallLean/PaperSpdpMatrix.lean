@@ -478,4 +478,37 @@ axiom multiIndexLeibniz {N : ℕ} (g p : MvPolynomial (Fin N) ℚ)
          SPDP.iterDerivList (GadgetDerivs.multiIndexToList
            (multiIndexSub α β)) p)
 
+/-! ## Phase 5 theorem: matrix identity from multi-index Leibniz
+
+Target: `paperSpdpMatrixVal κ ℓ (g·p) α μ = (L · M(p)_shifted)[α, μ]`.
+
+This is the Lean realisation of the paper's
+`M^B_{κ,ℓ}(g·p) = L · M^B_{κ+d,ℓ+d}(p)`. -/
+
+/-- Helper: coefficient of μ in a scalar-multiple polynomial. -/
+private theorem coeff_nsmul_mul {N : ℕ} (c : ℕ) (a b : MvPolynomial (Fin N) ℚ)
+    (μ : Fin N →₀ ℕ) :
+    MvPolynomial.coeff μ ((c : ℚ) • (a * b)) =
+    (c : ℚ) * MvPolynomial.coeff μ (a * b) := by
+  rw [MvPolynomial.smul_eq_C_mul, MvPolynomial.coeff_C_mul]
+
+/-- Helper: applying `coeff_μ` to the RHS of `multiIndexLeibniz` expands
+into an explicit sum. -/
+private theorem coeff_mul_leibniz_rhs {N : ℕ}
+    (g p : MvPolynomial (Fin N) ℚ) (α : Fin N →₀ ℕ) (μ : Fin N →₀ ℕ) :
+    MvPolynomial.coeff μ
+      (SPDP.iterDerivList (GadgetDerivs.multiIndexToList α) (g * p)) =
+    ∑ β ∈ (boundedMultiIndexFinset N (α.sum (fun _ n => n))).filter
+            (fun β => multiIndexLE β α),
+      (multiBinom α β : ℚ) *
+        MvPolynomial.coeff μ
+          (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g *
+           SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+             (multiIndexSub α β)) p) := by
+  rw [multiIndexLeibniz]
+  rw [MvPolynomial.coeff_sum]
+  apply Finset.sum_congr rfl
+  intro β _
+  exact coeff_nsmul_mul _ _ _ _
+
 end PaperSpdpMatrix
