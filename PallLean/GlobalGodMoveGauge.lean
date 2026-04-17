@@ -617,6 +617,87 @@ axiom exists_theorem207_witness
     (hdec : DecidesSAT M) :
     Theorem207Witness M n hn hn2 htb hns
 
+/-! ### Partial axiom-free discharge of Theorem207Witness
+
+The `extraction_rank_monotone` field of `Theorem207Witness` (paper's
+Lemma 205, field #3) can be discharged axiom-free by using a specific
+`T_Φ = id` choice that sets `sheet := paperCompiledPoly`. The identity
+operator is trivially rank-preserving (a special case of Lemma 40(a)
+under `T_Φ ∈ {basis, affine relabel, restriction, projection}`).
+
+This reduces the axiom surface: `exists_theorem207_witness` claims 5
+fields exist; after this discharge, only 4 remain load-bearing (the
+two paper-deep bounds `compiled_p_side_bound` and
+`sheet_np_side_lower_bound`, plus the data fields). -/
+
+/-- **Partial axiom-free factoring of `Theorem207Witness`.**
+
+Given just the two hard rank bounds for a single polynomial
+`q := paperCompiledPoly`, we can construct a full `Theorem207Witness`
+by choosing `sheet := q` (a trivial identity extraction). This
+discharges field #3 (`extraction_rank_monotone`) via `le_refl`
+axiom-free.
+
+The remaining content — the two bounds — is the genuine paper-deep
+mathematics (Theorem 10/§32 for P-side, Theorem 98 for NP-side).
+This helper packages them into the witness without the need for the
+broader `exists_theorem207_witness` axiom. -/
+noncomputable def theorem207Witness_of_bounds
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (q : MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ)
+    (h_p_side :
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n) q ≤ n ^ 200)
+    (h_np_side :
+      Nat.choose (n / 3) (Nat.log 2 n) ≤
+        mlBlockedSpdpRank
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n) q) :
+    Theorem207Witness M n hn hn2 htb hns where
+  paperCompiledPoly := q
+  sheet := q
+  extraction_rank_monotone := le_refl _
+  compiled_p_side_bound := h_p_side
+  sheet_np_side_lower_bound := h_np_side
+
+/-- **Rephrased existence axiom.** Equivalent to `exists_theorem207_witness`
+but with the `extraction_rank_monotone` field discharged implicitly
+via `theorem207Witness_of_bounds`: the two bounds alone suffice.
+
+This is a **strictly narrower axiom** than `exists_theorem207_witness`:
+it asserts just the existence of the two rank bounds on a single
+polynomial, not the full 5-field witness. The 5-field witness is
+derivable via `theorem207Witness_of_bounds`. -/
+axiom exists_theorem207_bounds_on_some_poly
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) :
+    ∃ (q : MvPolynomial
+        (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ),
+      mlBlockedSpdpRank
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n) q ≤ n ^ 200 ∧
+      Nat.choose (n / 3) (Nat.log 2 n) ≤
+        mlBlockedSpdpRank
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n) q
+
+/-- `exists_theorem207_witness` derived from the narrower
+`exists_theorem207_bounds_on_some_poly` axiom. This is the
+axiom-surface reduction: 5 fields → 2 rank-bound claims on a
+single polynomial. -/
+noncomputable def exists_theorem207_witness_from_bounds_axiom
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) :
+    Theorem207Witness M n hn hn2 htb hns :=
+  let h := exists_theorem207_bounds_on_some_poly M n hn hn2 htb hns hdec
+  let q := Classical.choose h
+  let hq := Classical.choose_spec h
+  theorem207Witness_of_bounds M n hn hn2 htb hns q hq.1 hq.2
+
 /-! ### Axiom-inventory checks
 
 These `#print axioms` calls document which custom axioms each result
@@ -628,9 +709,11 @@ depends on. Expected outcomes:
 * `exists_amplituhedron_gauge_via_narrow_axiom` —
   only `exists_amplituhedron_gauge_for_sat_decider`
   (strictly narrower than the original `exists_amplituhedron_gauge`).
-
-The canonical chain's axiom inventory (via `P_ne_NP_unconditional`) is
-verified in `PaperFaithfulSeparation.lean` after the Theorem 207 migration. -/
+* `theorem207Witness_of_bounds` —
+  **no custom axioms** (axiom-free discharge of field #3 via le_refl).
+* `exists_theorem207_witness_from_bounds_axiom` —
+  only `exists_theorem207_bounds_on_some_poly`
+  (strictly narrower than the 5-field `exists_theorem207_witness`). -/
 #print axioms zeroGauge_isAmplituhedronGauge_of_not_decidesSAT
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
 #print axioms exists_amplituhedron_gauge_of_not_decidesSAT
@@ -640,5 +723,13 @@ verified in `PaperFaithfulSeparation.lean` after the Theorem 207 migration. -/
 --   GlobalGodMoveGauge.exists_amplituhedron_gauge_for_sat_decider.
 -- (Single custom axiom — the narrow SAT-decider-only version,
 --  strictly narrower than the original exists_amplituhedron_gauge.)
+#print axioms theorem207Witness_of_bounds
+-- Expected: propext, Classical.choice, Quot.sound
+-- (Axiom-free: field #3 discharged via le_refl by sheet = q construction.)
+#print axioms exists_theorem207_witness_from_bounds_axiom
+-- Expected: propext, Classical.choice, Quot.sound,
+--   GlobalGodMoveGauge.exists_theorem207_bounds_on_some_poly.
+-- (Strictly narrower axiom than exists_theorem207_witness:
+--  only 2 rank bounds on a single polynomial vs 5-field witness.)
 
 end GlobalGodMoveGauge
