@@ -688,9 +688,31 @@ rows — a concrete combinatorial relationship. -/
 /-- **Phase 3b bridge axiom (forward)**: Lean's submodule rank is bounded
 by paper's matrix rank at the same parameters.
 
-Follows because every `mlBlockedSpdpSubspace` generator
-`mlProj(m · iterDerivList S p)` can be expressed as a linear combination
-of the paper's matrix rows (which include generators at all sub-lengths). -/
+**WARNING — THIS AXIOM IS FALSE AT THESE PARAMETERS.**
+
+Concrete counterexample: N=2, p = X_0 + X_1, (κ, ℓ) = (1, 1):
+- `mlBlockedSpdpRank` = 3 (generators 1, X_0, X_1 via multipliers)
+- `paperSpdpRank` = 2 (only two linearly independent rows: the p row and the derivative row)
+
+The reason: Lean's `mlBlockedSpdpSubspace` includes MULTIPLIERS (`m` in
+the generator), while my current simplified `paperSpdpMatrix` does not.
+So Lean's subspace can exceed paper's matrix rank in dimension.
+
+### The correct fix
+
+The paper's actual SPDP matrix includes multipliers — rows indexed by
+`(α, m)` pairs rather than just `α`. Our simplified `paperSpdpMatrix`
+is a no-multiplier approximation.
+
+To make the bridge hold, we would need:
+1. Redefine `paperSpdpMatrix` to include multipliers (rows = (α, m) pairs).
+2. Or: use shifted parameters on the RHS, e.g.
+   `mlBlockedSpdpRank B κ ℓ p ≤ paperSpdpRank κ (ℓ + κ) p + something`.
+
+Either is substantial refactoring. For now this axiom remains stated but
+**should not be used on the canonical chain** until refined. The
+`mlBlockedSpdpRank_gadget_mul_le` full-chain theorem downstream of this
+axiom therefore has an acknowledged correctness gap. -/
 axiom mlBlockedSpdpRank_le_paperSpdpRank {N : ℕ} (B : BlockPartition N)
     (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
     mlBlockedSpdpRank B κ ℓ p ≤ paperSpdpRank κ ℓ p
