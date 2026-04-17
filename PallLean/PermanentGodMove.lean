@@ -894,6 +894,67 @@ theorem coeff_witnessMono_iterDiagPderiv {n : ℕ} (S T : Finset (Fin n)) :
     intro ⟨_, hSTeq⟩
     exact hST hSTeq
 
+/-! ### Step 4: identity minor → linear independence → rank bound
+
+Using the identity submatrix from Step 3, show that the family of
+`iterDiagPderiv S permPoly` (indexed by subsets S) is linearly
+independent over ℚ. This gives a rank lower bound: the SPDP subspace
+of permPoly contains C(n, k) linearly independent elements for each k. -/
+
+/-- **Linear independence of the cofactor family**: the function
+`S ↦ iterDiagPderiv S permPoly` from `Finset (Fin n)` to MvPoly is
+linearly independent over ℚ.
+
+Proof: if Σ_S c_S · (iterDiagPderiv S permPoly) = 0, take the
+coefficient at `witnessMonoExp T` to get c_T = 0 (via Step 3). -/
+theorem linearIndependent_iterDiagPderiv_permPoly {n : ℕ} :
+    LinearIndependent ℚ
+      (fun S : Finset (Fin n) => iterDiagPderiv S (permPoly n)) := by
+  rw [linearIndependent_iff]
+  intro l hl
+  -- l : Finset (Fin n) →₀ ℚ (linear combination)
+  -- hl : Finsupp.linearCombination ℚ (...) l = 0
+  -- i.e., Σ_S l S · iterDiagPderiv S permPoly = 0 in MvPoly.
+  ext T
+  -- Show l T = 0 for each T.
+  have htake_coeff : MvPolynomial.coeff (witnessMonoExp T)
+      (Finsupp.linearCombination ℚ
+        (fun S : Finset (Fin n) => iterDiagPderiv S (permPoly n)) l) = 0 := by
+    rw [hl]
+    exact MvPolynomial.coeff_zero _
+  -- Expand the coefficient through the linear combination.
+  rw [Finsupp.linearCombination_apply] at htake_coeff
+  rw [Finsupp.sum] at htake_coeff
+  rw [MvPolynomial.coeff_sum] at htake_coeff
+  -- htake_coeff : Σ_{S ∈ l.support} coeff (witnessMonoExp T) (l S • iterDiagPderiv S permPoly) = 0
+  -- = Σ_{S ∈ l.support} l S * coeff (witnessMonoExp T) (iterDiagPderiv S permPoly)
+  -- = Σ_{S ∈ l.support} l S * (if S = T then 1 else 0)
+  -- = if T ∈ l.support then l T else 0
+  have hsimp : ∀ S ∈ l.support,
+      MvPolynomial.coeff (witnessMonoExp T) (l S • iterDiagPderiv S (permPoly n)) =
+      l S * (if S = T then 1 else 0) := by
+    intro S _
+    rw [MvPolynomial.coeff_smul]
+    rw [coeff_witnessMono_iterDiagPderiv]
+    simp [smul_eq_mul]
+  rw [Finset.sum_congr rfl hsimp] at htake_coeff
+  -- Now: Σ_{S ∈ l.support} l S * (if S = T then 1 else 0) = 0
+  -- The sum simplifies to l T (or 0 if T ∉ support).
+  by_cases hT : T ∈ l.support
+  · rw [Finset.sum_eq_single T] at htake_coeff
+    · rw [if_pos rfl, mul_one] at htake_coeff
+      -- l T = 0 iff (Finsupp.linearCombination ...) = 0
+      show l T = (0 : Finset (Fin n) →₀ ℚ) T
+      rw [Finsupp.coe_zero, Pi.zero_apply]
+      exact htake_coeff
+    · intro S _ hS_ne_T
+      rw [if_neg hS_ne_T, mul_zero]
+    · intro hnotin
+      exact absurd hT hnotin
+  · show l T = (0 : Finset (Fin n) →₀ ℚ) T
+    rw [Finsupp.coe_zero, Pi.zero_apply]
+    exact Finsupp.notMem_support_iff.mp hT
+
 /-! ### Step 2b: single-variable pderiv of permPoly
 
 Applying `diagPderiv i` to `permPoly n`:
