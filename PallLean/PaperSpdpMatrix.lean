@@ -2355,6 +2355,26 @@ theorem paperSpdp_eq_sum_matrix_β {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
         (SPDP.iterDerivList (GadgetDerivs.multiIndexToList (α.val - β)) p))]
   rw [Finset.mul_sum]
 
+/-- **Intermediate rank bound** (axiom-free): the paper's matrix rank is
+bounded by `|boundedMultiIndexFinset N κ| · paperSpdpRank shifted p`. -/
+theorem paperSpdpRank_gadget_mul_le_loose {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
+    paperSpdpRank κ ℓ (g.poly * p) ≤
+    (boundedMultiIndexFinset N κ).card *
+      paperSpdpRank (κ + g.degreeBound) (ℓ + g.degreeBound) p := by
+  classical
+  unfold paperSpdpRank
+  rw [paperSpdp_eq_sum_matrix_β]
+  calc (∑ β ∈ boundedMultiIndexFinset N κ, matrix_β g κ ℓ p β).rank
+      ≤ ∑ β ∈ boundedMultiIndexFinset N κ, (matrix_β g κ ℓ p β).rank :=
+        Matrix_rank_sum_le _ _
+    _ ≤ ∑ β ∈ boundedMultiIndexFinset N κ,
+          (paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p).rank :=
+        Finset.sum_le_sum (fun β _ => matrix_β_rank_le g κ ℓ p β)
+    _ = (boundedMultiIndexFinset N κ).card *
+          (paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p).rank := by
+        rw [Finset.sum_const, smul_eq_mul]
+
 /-! ### Phase 6 assembly — documented path
 
 Full assembly plan for discharging `paperSpdpRank_gadget_mul_le`:
