@@ -794,4 +794,68 @@ theorem pluckerCoord_SL_invariant {k n' : ℕ}
     pluckerCoord (R * A) e = pluckerCoord A e := by
   rw [pluckerCoord_row_action, hR, one_mul]
 
+/-! ## Section 17: Diagonal log-det concavity
+
+For a diagonal matrix with positive diagonal entries, det equals the
+product of diagonal entries. Hence log det = sum of log diagonal entries,
+which is concave in the diagonal (via `Real.strictConcaveOn_log_Ioi`
+applied coordinate-wise).
+
+This provides the **diagonal special case** of log-det concavity on
+PosDef matrices. The general (non-diagonal) case requires spectral
+decomposition and remains paper-deep. -/
+
+/-- `det` of a diagonal matrix with positive diagonal, as a product. -/
+theorem det_diagonal_eq_prod {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (d : ι → ℝ) :
+    (Matrix.diagonal d).det = ∏ i, d i :=
+  Matrix.det_diagonal
+
+/-- For a diagonal matrix with positive diagonal, log det = sum of log
+diagonals. -/
+theorem log_det_diagonal_eq_sum_log {ι : Type*} [Fintype ι] [DecidableEq ι]
+    {d : ι → ℝ} (hd : ∀ i, 0 < d i) :
+    Real.log (Matrix.diagonal d).det = ∑ i, Real.log (d i) := by
+  rw [det_diagonal_eq_prod]
+  rw [Real.log_prod]
+  intro i _
+  exact (hd i).ne'
+
+/-- `f ↦ -∑ log(f i)` is convex on `{f | ∀ i, 0 < f i}` (reproves
+`sum_neg_log_convexOn` in a form convenient for diagonal matrices). -/
+theorem neg_log_det_diagonal_convex {ι : Type*} [Fintype ι] [DecidableEq ι] :
+    ConvexOn ℝ {d : ι → ℝ | ∀ i, 0 < d i}
+      (fun d => -Real.log (Matrix.diagonal d).det) := by
+  -- Rewrite through log_det_diagonal_eq_sum_log.
+  refine ⟨sum_neg_log_convexOn.1, ?_⟩
+  intro x hx y hy a b ha hb hab
+  have hx' : ∀ i, 0 < x i := hx
+  have hy' : ∀ i, 0 < y i := hy
+  -- On the convex combination, diagonal entries remain positive.
+  have hmix : ∀ i, 0 < a * x i + b * y i := by
+    intro i
+    rcases lt_or_eq_of_le ha with ha' | ha'
+    · exact add_pos_of_pos_of_nonneg (mul_pos ha' (hx' i))
+        (mul_nonneg hb (hy' i).le)
+    · have hb' : (0 : ℝ) < b := by
+        have : b = 1 := by linarith
+        simp [this]
+      exact add_pos_of_nonneg_of_pos (mul_nonneg ha (hx' i).le)
+        (mul_pos hb' (hy' i))
+  -- Unfold the lambda and rewrite through the diagonal log-det formula.
+  simp only
+  have hmix' : ∀ i, 0 < (a • x + b • y) i := by
+    intro i
+    have : (a • x + b • y) i = a * x i + b * y i := by
+      simp [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    rw [this]
+    exact hmix i
+  rw [log_det_diagonal_eq_sum_log hx', log_det_diagonal_eq_sum_log hy',
+      log_det_diagonal_eq_sum_log hmix']
+  -- Reduce to sum-of-neg-log convexity.
+  have hconv := sum_neg_log_convexOn.2 (fun i => hx' i) (fun i => hy' i)
+    ha hb hab
+  simpa [Pi.add_apply, Pi.smul_apply, smul_eq_mul, Finset.sum_neg_distrib]
+    using hconv
+
 end AmplituhedronPSD
