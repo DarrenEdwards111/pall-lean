@@ -980,6 +980,47 @@ theorem finrank_span_cofactor_family_ge {n : ℕ} :
           iterDiagPderiv S (permPoly n)))) :=
   finrank_span_cofactor_family_eq.ge
 
+/-! ### Step 5b: κ-restricted rank bound (paper's form)
+
+The paper's Theorem 100 uses Γ_{κ,0}(perm_n) ≥ C(n, κ). Restricting
+to subsets of size κ gives C(n, κ) linearly independent elements. -/
+
+/-- Linear independence of the cofactor family restricted to subsets
+of size exactly κ. -/
+theorem linearIndependent_iterDiagPderiv_permPoly_of_card {n : ℕ} (κ : ℕ) :
+    LinearIndependent ℚ
+      (fun S : { S : Finset (Fin n) // S.card = κ } =>
+        iterDiagPderiv S.val (permPoly n)) := by
+  apply LinearIndependent.comp linearIndependent_iterDiagPderiv_permPoly
+  intro x y hxy
+  exact Subtype.ext hxy
+
+/-- Cardinality of size-κ subsets of `Fin n` is `Nat.choose n κ`. -/
+private theorem card_subtype_size_eq_choose (n κ : ℕ) :
+    Fintype.card { S : Finset (Fin n) // S.card = κ } =
+    Nat.choose n κ := by
+  rw [Fintype.card_finset_len]
+  simp
+
+/-- **Paper's rank bound (Theorem 100)**: `finrank` of the span of
+size-κ cofactors is `Nat.choose n κ`. -/
+theorem finrank_span_cofactor_family_card_eq {n : ℕ} (κ : ℕ) :
+    Module.finrank ℚ
+      (Submodule.span ℚ
+        (Set.range (fun S : { S : Finset (Fin n) // S.card = κ } =>
+          iterDiagPderiv S.val (permPoly n)))) = Nat.choose n κ := by
+  have hli := linearIndependent_iterDiagPderiv_permPoly_of_card (n := n) κ
+  rw [finrank_span_eq_card hli]
+  exact card_subtype_size_eq_choose n κ
+
+/-- **Paper's rank lower bound (Theorem 100 corollary)**. -/
+theorem finrank_span_cofactor_family_card_ge {n : ℕ} (κ : ℕ) :
+    Nat.choose n κ ≤ Module.finrank ℚ
+      (Submodule.span ℚ
+        (Set.range (fun S : { S : Finset (Fin n) // S.card = κ } =>
+          iterDiagPderiv S.val (permPoly n)))) :=
+  (finrank_span_cofactor_family_card_eq κ).ge
+
 /-! ### Step 2b: single-variable pderiv of permPoly
 
 Applying `diagPderiv i` to `permPoly n`:
