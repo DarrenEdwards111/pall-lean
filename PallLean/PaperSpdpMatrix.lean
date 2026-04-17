@@ -2685,6 +2685,51 @@ theorem mlBlockedSpdpSubspace_mul_le_leibniz_proj_span {N : ℕ}
   rintro r ⟨Al, Bl, hr⟩
   exact ⟨m, S, Al, Bl, hlen, hdeg, hvars, hadm, hr⟩
 
+/-- **Restrict Al to `gadgetDerivIndices`, axiom-free.**
+
+The Leibniz product set can be restricted so that the derivative index
+on `g.poly` ranges over the **finite** multi-index set
+`gadgetDerivIndices (BoundedGadget.toPAC g)` (which has cardinality
+≤ `N^(g.supportSize + g.degreeBound)`), without changing its span.
+
+Every generator `mlProj(m * iterDerivList Al g.poly * iterDerivList Bl p)`
+either vanishes (when `listToMultiIndex Al ∉ gadgetDerivIndices g`, by
+`iterDerivList_list_zero_of_not_mem_gadgetDerivIndices`) or is a
+generator of the restricted set (when `listToMultiIndex Al ∈ ...`,
+using `iterDerivList_canonical` to rewrite `Al` by its canonical
+multi-index representative). -/
+theorem mlBlockedSpdpSubspace_mul_le_leibniz_proj_span_restricted {N : ℕ}
+    (g : MatrixSPDP.BoundedGadget N) (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) :
+    MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ (g.poly * p) ≤
+    Submodule.span ℚ
+      { r | ∃ (m : MvPolynomial (Fin N) ℚ) (S : List (Fin N))
+              (α : Fin N →₀ ℕ) (Bl : List (Fin N)),
+            α ∈ GadgetDerivs.gadgetDerivIndices (BoundedGadget.toPAC g) ∧
+            S.length = κ ∧ m.totalDegree ≤ ℓ ∧
+            m.vars ⊆ S.toFinset ∧ isBlockAdmissible B S ∧
+            r = MultilinearSPDP.mlProj
+              (m * SPDP.iterDerivList (GadgetDerivs.multiIndexToList α) g.poly *
+                   SPDP.iterDerivList Bl p) } := by
+  classical
+  refine le_trans (mlBlockedSpdpSubspace_mul_le_leibniz_proj_span g.poly B κ ℓ p) ?_
+  rw [Submodule.span_le]
+  rintro r ⟨m, S, Al, Bl, hlen, hdeg, hvars, hadm, hr⟩
+  by_cases hAl : GadgetDerivs.listToMultiIndex Al ∈
+                 GadgetDerivs.gadgetDerivIndices (BoundedGadget.toPAC g)
+  · -- Case: listToMultiIndex Al ∈ gadgetDerivIndices → rewrite via canonical.
+    apply Submodule.subset_span
+    refine ⟨m, S, GadgetDerivs.listToMultiIndex Al, Bl, hAl, hlen, hdeg,
+            hvars, hadm, ?_⟩
+    rw [hr, GadgetDerivs.iterDerivList_canonical Al g.poly]
+  · -- Case: listToMultiIndex Al ∉ gadgetDerivIndices → iterDerivList Al g.poly = 0.
+    have hg_zero : SPDP.iterDerivList Al g.poly = 0 :=
+      iterDerivList_list_zero_of_not_mem_gadgetDerivIndices g Al hAl
+    have hr_zero : r = 0 := by
+      rw [hr, hg_zero, mul_zero, zero_mul, MultilinearSPDP.mlProj_zero]
+    rw [hr_zero]
+    exact Submodule.zero_mem _
+
 /-- **Phase 6 tight rank bound, proved axiom-free**: paper's
 `rank(g·p) ≤ N^(supportSize + degreeBound) · rank(shifted)`. -/
 theorem paperSpdpRank_gadget_mul_le_tight {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
