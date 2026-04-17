@@ -33,6 +33,7 @@
 
 import PallLean.MultilinearSPDP
 import PallLean.GaugeMonotonicity
+import PallLean.IterDerivHelpers
 import Mathlib.Algebra.MvPolynomial.Eval
 import Mathlib.Tactic
 
@@ -204,5 +205,55 @@ theorem pderiv_piSubst_notKept
     {i : Fin N} (hi : ¬ keep i) (p : MvPolynomial (Fin N) ℚ) :
     MvPolynomial.pderiv i (piSubst keep val p) = 0 :=
   MvPolynomial.pderiv_eq_zero_of_notMem_vars (notMem_vars_piSubst keep val hi p)
+
+/-- **Iterated derivative along a list with a non-kept element vanishes**. -/
+theorem iterDerivList_piSubst_notKept
+    (keep : Fin N → Prop) [DecidablePred keep] (val : Fin N → ℚ)
+    (S : List (Fin N)) (hS : ∃ i ∈ S, ¬ keep i)
+    (p : MvPolynomial (Fin N) ℚ) :
+    SPDP.iterDerivList S (piSubst keep val p) = 0 := by
+  obtain ⟨i, hi_mem, hi_keep⟩ := hS
+  exact IterDerivHelpers.iterDerivList_eq_zero_of_mem_notMem_vars
+    S i (piSubst keep val p) hi_mem
+    (notMem_vars_piSubst keep val hi_keep p)
+
+/-! ## Section 5: SPDP rank bound via all-kept restriction
+
+The SPDP subspace of `piSubst p` is spanned only by generators with
+S all-kept. For S not all-kept, the generator is 0. This gives a
+characterization of the SPDP subspace after substitution. -/
+
+/-- The SPDP subspace of `piSubst p` is contained in the span of
+generators with all-kept S. -/
+theorem mlBlockedSpdpSubspace_piSubst_allKept
+    (keep : Fin N → Prop) [DecidablePred keep] (val : Fin N → ℚ)
+    (B : SPDP.BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
+    MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ (piSubst keep val p) ≤
+      Submodule.span ℚ
+        { q : MvPolynomial (Fin N) ℚ |
+          ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
+            S.length = κ ∧ m.totalDegree ≤ ℓ ∧
+            m.vars ⊆ S.toFinset ∧
+            SPDP.isBlockAdmissible B S ∧
+            (∀ i ∈ S, keep i) ∧
+            q = MultilinearSPDP.mlProj
+                  (m * SPDP.iterDerivList S (piSubst keep val p)) } := by
+  unfold MultilinearSPDP.mlBlockedSpdpSubspace
+  rw [Submodule.span_le]
+  rintro q ⟨S, m, hSlen, hmdeg, hmvar, hadm, hq⟩
+  -- Case analysis: S is all-kept or not.
+  by_cases hallkept : ∀ i ∈ S, keep i
+  · -- All-kept: q is in the restricted span directly.
+    exact Submodule.subset_span ⟨S, m, hSlen, hmdeg, hmvar, hadm, hallkept, hq⟩
+  · -- Some i ∈ S is not kept: iterDerivList S (piSubst p) = 0, so q = 0.
+    push_neg at hallkept
+    obtain ⟨i, hi_mem, hi_keep⟩ := hallkept
+    have h0 : SPDP.iterDerivList S (piSubst keep val p) = 0 :=
+      iterDerivList_piSubst_notKept keep val S ⟨i, hi_mem, hi_keep⟩ p
+    rw [h0, mul_zero] at hq
+    rw [show MultilinearSPDP.mlProj (0 : MvPolynomial (Fin N) ℚ) = 0 from
+        MultilinearSPDP.mlProj_zero] at hq
+    rw [hq]
+    exact Submodule.zero_mem _
 
 end PiStarConcrete
