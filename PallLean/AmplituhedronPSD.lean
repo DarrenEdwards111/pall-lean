@@ -659,4 +659,51 @@ theorem isTotallyPositiveMatrix_one_row_iff {n' : ℕ}
     simp [Matrix.det_fin_one, Matrix.submatrix_apply]
     exact hpos (e 0)
 
+/-! ## Section 15: Barrier on the positive cone — convexity via minorVector
+
+Composition fact: the map `M ↦ minorVector 𝒥 M` into `𝒥.index → ℝ`
+sits in the positivity region when `M` is `PosDef`, and
+`determinantalBarrier 𝒥 M = (∑ -log) ∘ minorVector 𝒥 M`.
+
+This provides the full *minor-coordinate* view of the barrier. -/
+
+/-- The barrier, viewed as a composition of a convex function with the
+minor vector map, on the set of matrices whose minor vector is componentwise
+positive (equivalently: matrices whose principal minors over `𝒥` are all
+positive — a superset of `PosDef`). -/
+theorem determinantalBarrier_convex_in_minor_coords
+    (𝒥 : TotallyNonnegativeMinorFamily n) [Fintype 𝒥.index]
+    {M₁ M₂ : Matrix n n ℝ} {a b : ℝ}
+    (hM₁pos : ∀ i, 0 < minorVector 𝒥 M₁ i)
+    (hM₂pos : ∀ i, 0 < minorVector 𝒥 M₂ i)
+    (ha : 0 ≤ a) (hb : 0 ≤ b) (hab : a + b = 1)
+    (hMmix : ∀ i,
+      minorVector 𝒥 (a • M₁ + b • M₂) i =
+        a * minorVector 𝒥 M₁ i + b * minorVector 𝒥 M₂ i) :
+    determinantalBarrier 𝒥 (a • M₁ + b • M₂) ≤
+      a * determinantalBarrier 𝒥 M₁ + b * determinantalBarrier 𝒥 M₂ := by
+  rw [determinantalBarrier_eq_sum_neg_log_minorVector,
+      determinantalBarrier_eq_sum_neg_log_minorVector,
+      determinantalBarrier_eq_sum_neg_log_minorVector]
+  -- Rewrite under the minorVector linearity hypothesis.
+  have hrewrite :
+      ∑ i, -Real.log (minorVector 𝒥 (a • M₁ + b • M₂) i) =
+        ∑ i, -Real.log
+          (a * minorVector 𝒥 M₁ i + b * minorVector 𝒥 M₂ i) := by
+    apply Finset.sum_congr rfl
+    intro i _
+    rw [hMmix i]
+  rw [hrewrite]
+  -- Apply sum_neg_log_convexOn to v = minorVector M₁, w = minorVector M₂.
+  have hcv := sum_neg_log_convexOn.2
+    (fun i => hM₁pos i) (fun i => hM₂pos i) ha hb hab
+  simpa using hcv
+
+/- Remark: the hypothesis `hMmix` (linearity of the minor vector in the
+matrix) is nontrivial: for principal minors, `det` is a polynomial of
+degree |J| in the entries, so Φ(a M₁ + b M₂) is NOT in general
+`a Φ(M₁) + b Φ(M₂)`. The theorem above is therefore useful mainly for
+special families (e.g., `1 × 1` minors, where det is linear) or for
+linear paths where minor linearity holds by design. -/
+
 end AmplituhedronPSD
