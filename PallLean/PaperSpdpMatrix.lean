@@ -701,7 +701,21 @@ is bounded by Lean's shifted SPDP rank times a constant.
 
 This reversal direction is more subtle because of the exact-length vs
 ≤-length mismatch. For the canonical chain, we only need it at shifted
-parameters in the specific form used for the gadget bound. -/
+parameters in the specific form used for the gadget bound.
+
+**CAVEAT**: this bridge direction may not hold in all cases, because
+`paperSpdpRank` (inclusive rows `|α| ≤ κ+d`) includes more generators
+than `mlBlockedSpdpRank` (exact-length `|S| = κ+d`). Additionally,
+`mlBlockedSpdpRank` uses multipliers `m` which can add dimensionality
+that paper's matrix doesn't have.
+
+The SPECIFIC form this axiom would need is probably:
+`paperSpdpRank (κ+d) (ℓ+d) p ≤ C · max-over-shifted-params mlBlockedSpdpRank B k l p`
+for some constant C and range of shifted params (k, l).
+
+For the contradiction at n=2^804, this looser form suffices if all
+bounds are polynomial in n. Establishing the precise form is future
+refinement work. -/
 axiom paperSpdpRank_le_mlBlockedSpdpRank_shifted {N : ℕ}
     (B : BlockPartition N) (κ ℓ d : ℕ) (p : MvPolynomial (Fin N) ℚ) :
     paperSpdpRank (κ + d) (ℓ + d) p ≤
