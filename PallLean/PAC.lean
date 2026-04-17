@@ -245,6 +245,24 @@ theorem gadget_spdp_subspace_factoring_zero
     rw [mul_zero, mlBlockedSpdpSubspace_zero]
     exact bot_le
 
+/-- **Axiom-free discharge of `gadget_spdp_subspace_factoring` at
+`g.poly = 0`.** When the gadget polynomial is zero, `g · p = 0` and
+the SPDP subspace is ⊥; `G = ∅` satisfies both conditions. -/
+theorem gadget_spdp_subspace_factoring_gadget_zero
+    {N : ℕ} (g : BoundedGadget N) (hg : g.poly = 0)
+    (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
+    ∃ (G : Finset (MvPolynomial (Fin N) ℚ)),
+      G.card ≤ N ^ (g.supportSize + g.degreeBound) *
+               mlBlockedSpdpRank B (κ + g.degreeBound)
+                 (ℓ + g.degreeBound) p ∧
+      mlBlockedSpdpSubspace B κ ℓ (g.poly * p) ≤
+        Submodule.span ℚ (↑(∅ : Finset (MvPolynomial (Fin N) ℚ)) :
+          Set (MvPolynomial (Fin N) ℚ)) := by
+  refine ⟨∅, ?_, ?_⟩
+  · simp
+  · rw [hg, zero_mul, mlBlockedSpdpSubspace_zero]
+    exact bot_le
+
 /-- **Axiom-free discharge of `gadget_spdp_subspace_factoring` for
 constant gadgets** (i.e., `g.supportSize = 0 ∧ g.degreeBound = 0`).
 
