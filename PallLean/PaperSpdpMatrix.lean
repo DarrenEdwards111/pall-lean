@@ -2110,6 +2110,86 @@ theorem DM_collapse {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- The σ-sum evaluates to `coeff μ.val (∂^β g * ∂^(α-β) p)` via
+`MvPolynomial.coeff_mul` + antidiagonal-to-Iic reindex. -/
+theorem ME_eq_coeff_mul {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) (β : Fin N →₀ ℕ)
+    (α : SpdpRowIndex N κ) (μ : SpdpColIndex N ℓ)
+    (_hβα : multiIndexLE β α.val) :
+    (∑ σ : SpdpColIndex N (ℓ + g.degreeBound),
+      paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p
+        ⟨α.val - β, alpha_sub_beta_sum_le g α β⟩ σ *
+      E_β g ℓ β σ μ) =
+    MvPolynomial.coeff μ.val
+      (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly *
+       SPDP.iterDerivList (GadgetDerivs.multiIndexToList (α.val - β)) p) := by
+  classical
+  have hμ_bound : μ.val.sum (fun _ n => n) ≤ ℓ + g.degreeBound := by
+    have := μ.property; omega
+  -- Step 1: rewrite LHS as Finset sum via sum_subtype.
+  have step1 : (∑ σ : SpdpColIndex N (ℓ + g.degreeBound),
+      paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p
+        ⟨α.val - β, alpha_sub_beta_sum_le g α β⟩ σ *
+      E_β g ℓ β σ μ) =
+    (∑ σ' ∈ boundedMultiIndexFinset N (ℓ + g.degreeBound),
+      MvPolynomial.coeff σ'
+        (SPDP.iterDerivList
+          (GadgetDerivs.multiIndexToList (α.val - β)) p) *
+      (if σ' ≤ μ.val then
+        MvPolynomial.coeff (μ.val - σ')
+          (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly)
+       else 0)) :=
+    (Finset.sum_subtype (boundedMultiIndexFinset N (ℓ + g.degreeBound))
+      (fun x => mem_boundedMultiIndexFinset _ x)
+      (fun σ' : Fin N →₀ ℕ =>
+        MvPolynomial.coeff σ'
+          (SPDP.iterDerivList
+            (GadgetDerivs.multiIndexToList (α.val - β)) p) *
+        (if σ' ≤ μ.val then
+          MvPolynomial.coeff (μ.val - σ')
+            (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly)
+         else 0))).symm
+  rw [step1]
+  -- Step 2: extract conditional via Finset.sum_filter.
+  have step2 : (∑ σ' ∈ boundedMultiIndexFinset N (ℓ + g.degreeBound),
+      MvPolynomial.coeff σ'
+        (SPDP.iterDerivList
+          (GadgetDerivs.multiIndexToList (α.val - β)) p) *
+      (if σ' ≤ μ.val then
+        MvPolynomial.coeff (μ.val - σ')
+          (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly)
+       else 0)) =
+    (∑ σ' ∈ (boundedMultiIndexFinset N (ℓ + g.degreeBound)).filter
+              (fun σ => multiIndexLE σ μ.val),
+      MvPolynomial.coeff σ'
+        (SPDP.iterDerivList
+          (GadgetDerivs.multiIndexToList (α.val - β)) p) *
+      MvPolynomial.coeff (μ.val - σ')
+        (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly)) := by
+    rw [Finset.sum_filter]
+    apply Finset.sum_congr rfl
+    intro σ' _
+    by_cases hle : σ' ≤ μ.val
+    · have h_mle : multiIndexLE σ' μ.val := Finsupp.le_def.mp hle
+      rw [if_pos hle, if_pos h_mle]
+    · have h_nmle : ¬ multiIndexLE σ' μ.val := fun h => hle (Finsupp.le_def.mpr h)
+      rw [if_neg hle, if_neg h_nmle, mul_zero]
+  rw [step2]
+  -- Step 3: convert filter to Iic.
+  rw [filter_boundedMulti_eq_Iic_of_bound μ.val (ℓ + g.degreeBound) hμ_bound]
+  -- Step 4: apply MvPolynomial.coeff_mul + antidiagonal_sum_eq_Iic_sum.
+  rw [MvPolynomial.coeff_mul]
+  rw [antidiagonal_sum_eq_Iic_sum μ.val
+    (fun ν τ =>
+      MvPolynomial.coeff ν
+        (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly) *
+      MvPolynomial.coeff τ
+        (SPDP.iterDerivList (GadgetDerivs.multiIndexToList (α.val - β)) p))]
+  -- Step 5: match LHS/RHS via commutativity.
+  apply Finset.sum_congr rfl
+  intro σ _
+  ring
+
 /-! ### Phase 6 assembly — documented path
 
 Full assembly plan for discharging `paperSpdpRank_gadget_mul_le`:
