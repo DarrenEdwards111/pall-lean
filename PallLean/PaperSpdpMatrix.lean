@@ -2270,6 +2270,91 @@ theorem matrix_β_rank_le {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
     _ ≤ (paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p).rank :=
         Matrix.rank_mul_le_right _ _
 
+/-- **Decomposition**: `paperSpdpMatrixVal κ ℓ (g·p) = ∑ β ∈ boundedMultiIndexFinset N κ, matrix_β`. -/
+theorem paperSpdp_eq_sum_matrix_β {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
+    paperSpdpMatrixVal κ ℓ (g.poly * p) =
+    ∑ β ∈ boundedMultiIndexFinset N κ, matrix_β g κ ℓ p β := by
+  classical
+  ext α μ
+  -- Step 1: Convert LHS to canonical form using factoring chain.
+  -- LHS[α, μ] = coeff_μ (∂^α (g·p))
+  --          = (by coeff_mul_leibniz_fully_expanded) filter/antidiag form
+  --          = (by gadget_matrix_factoring_reindex) tensorized matrix form
+  have hfact : paperSpdpMatrixVal κ ℓ (g.poly * p) α μ =
+      ∑ β ∈ Finset.Iic α.val, ∑ σ ∈ Finset.Iic μ.val,
+        (multiBinom α.val β : ℚ) *
+          (MvPolynomial.coeff (μ.val - σ)
+            (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly) *
+           MvPolynomial.coeff σ
+            (SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+              (α.val - β)) p)) := by
+    -- Expand via coeff of product + filter_boundedMulti_eq_Iic + antidiagonal_sum_eq_Iic_sum.
+    -- Proceed directly: LHS coefficient expansion.
+    show MvPolynomial.coeff μ.val (multiPderiv α.val (g.poly * p)) = _
+    unfold multiPderiv
+    rw [coeff_mul_leibniz_fully_expanded, filter_boundedMulti_eq_Iic]
+    apply Finset.sum_congr rfl
+    intro β hβ
+    rw [Finset.mem_Iic] at hβ
+    rw [antidiagonal_sum_eq_Iic_sum μ.val
+      (fun ν τ =>
+        MvPolynomial.coeff ν
+          (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly) *
+        MvPolynomial.coeff τ
+          (SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+            (multiIndexSub α.val β)) p))]
+    rw [multiIndexSub_eq_tsub]
+    rw [Finset.mul_sum]
+  rw [hfact]
+  -- Step 2: Convert RHS (∑ β matrix_β) to the same canonical form.
+  have hRHS_eq :
+      (∑ β ∈ boundedMultiIndexFinset N κ, matrix_β g κ ℓ p β) α μ =
+      ∑ β ∈ Finset.Iic α.val,
+        (multiBinom α.val β : ℚ) *
+        MvPolynomial.coeff μ.val
+          (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly *
+           SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+             (α.val - β)) p) := by
+    rw [Matrix.sum_apply]
+    have hfilter_step :
+        (∑ β ∈ boundedMultiIndexFinset N κ, matrix_β g κ ℓ p β α μ) =
+        (∑ β ∈ (boundedMultiIndexFinset N κ).filter
+                (fun β => multiIndexLE β α.val),
+          matrix_β g κ ℓ p β α μ) := by
+      rw [Finset.sum_filter]
+      apply Finset.sum_congr rfl
+      intro β _
+      -- Show matrix_β β α μ = if multiIndexLE β α.val then matrix_β β α μ else 0.
+      -- Unfold matrix_β on the left, which has an internal if with same condition.
+      show (if multiIndexLE β α.val then _ else (0 : ℚ)) =
+           if multiIndexLE β α.val then (if multiIndexLE β α.val then _ else (0 : ℚ)) else 0
+      split_ifs <;> rfl
+    rw [hfilter_step]
+    have hα_bound : α.val.sum (fun _ n => n) ≤ κ := α.property
+    rw [filter_boundedMulti_eq_Iic_of_bound α.val κ hα_bound]
+    apply Finset.sum_congr rfl
+    intro β hβ
+    rw [Finset.mem_Iic] at hβ
+    have hβle : multiIndexLE β α.val := Finsupp.le_def.mp hβ
+    simp only [matrix_β]
+    rw [if_pos hβle]
+  rw [hRHS_eq]
+  -- Step 3: show the two canonical forms are equal.
+  -- LHS: ∑ β ∈ Iic α.val, ∑ σ ∈ Iic μ.val, multiBinom β * (coeff (μ-σ) (∂^β g) * coeff σ (∂^(α-β) p))
+  -- RHS: ∑ β ∈ Iic α.val, multiBinom β * coeff μ (∂^β g * ∂^(α-β) p)
+  -- Use MvPolynomial.coeff_mul + antidiagonal_sum_eq_Iic_sum to equate inner parts.
+  apply Finset.sum_congr rfl
+  intro β _
+  rw [MvPolynomial.coeff_mul]
+  rw [antidiagonal_sum_eq_Iic_sum μ.val
+    (fun ν τ =>
+      MvPolynomial.coeff ν
+        (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly) *
+      MvPolynomial.coeff τ
+        (SPDP.iterDerivList (GadgetDerivs.multiIndexToList (α.val - β)) p))]
+  rw [Finset.mul_sum]
+
 /-! ### Phase 6 assembly — documented path
 
 Full assembly plan for discharging `paperSpdpRank_gadget_mul_le`:
@@ -2516,6 +2601,10 @@ which is what the paper states verbatim. Connecting it to
 #print axioms gadget_matrix_factoring_LHS_eq
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms gadget_matrix_factoring_RHS_eq
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms paperSpdp_eq_sum_matrix_β
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms matrix_β_rank_le
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms matrix_β_eq_product
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
