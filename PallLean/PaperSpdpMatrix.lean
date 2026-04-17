@@ -30,6 +30,7 @@
 -/
 import PallLean.MultilinearSPDP
 import PallLean.GadgetDerivs
+import PallLean.PAC
 import Mathlib.LinearAlgebra.Matrix.Rank
 import Mathlib.Tactic
 
@@ -743,26 +744,50 @@ axiom paperSpdpRank_le_mlBlockedSpdpRank_shifted {N : ℕ}
     paperSpdpRank (κ + d) (ℓ + d) p ≤
       mlBlockedSpdpRank B (κ + d) (ℓ + d) p
 
-/-- **Full chain theorem**: using Phase 3b bridges + Phase 6 matrix
-rank bound, we obtain the paper's `rank(g·p) ≤ N^C · rank(p)_shifted`
-DIRECTLY on `mlBlockedSpdpRank`, discharging the paper-level claim
-that Route B's canonical chain needs. -/
+/-- Convert a `MatrixSPDP.BoundedGadget` to a `PAC.BoundedGadget`.
+They have field-identical structure; the two namespaces exist only
+because of the import DAG topology (see `MatrixSPDP` comment at the
+original definition). This lets us apply PAC-namespace theorems to
+matrix-side gadgets. -/
+noncomputable def BoundedGadget.toPAC {N : ℕ} (g : MatrixSPDP.BoundedGadget N) :
+    PAC.BoundedGadget N where
+  poly := g.poly
+  supportSize := g.supportSize
+  degreeBound := g.degreeBound
+  vars_card_le := g.vars_card_le
+  totalDegree_le := g.totalDegree_le
+
+/-- **Full chain theorem (revised)**: paper's
+`rank(g·p) ≤ N^C · rank(p)_shifted` on Lean's canonical
+`mlBlockedSpdpRank`.
+
+### Provenance change (axiom cleanup)
+
+An earlier version of this theorem was proved via a calc chain:
+  `mlBlockedSpdpRank ≤ paperSpdpRank ≤ N^C · paperSpdpRank_shifted ≤
+    N^C · mlBlockedSpdpRank_shifted`
+using three matrix-level bridges. The FORWARD bridge
+(`mlBlockedSpdpRank_le_paperSpdpRank`) turned out to be **false** as
+stated, because Lean's subspace includes polynomial multipliers that
+paper's simplified `paperSpdpMatrix` does not (see the caveat on that
+axiom). The calc chain is therefore unsound.
+
+This revised proof bypasses the broken matrix-level bridges entirely
+by delegating to `PAC.gadget_multiplication_rank_bound`, which is
+proved (modulo `PAC.gadget_spdp_subspace_factoring`) directly at the
+subspace level — with multipliers included from the start, as the
+paper intends. The two `BoundedGadget` records are field-identical, so
+the conversion `BoundedGadget.toPAC` is trivial. -/
 theorem mlBlockedSpdpRank_gadget_mul_le {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
-    (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
-    (hN : g.degreeBound + 1 ≤ N) :
+    (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
     mlBlockedSpdpRank B κ ℓ (g.poly * p) ≤
       N ^ (g.supportSize + g.degreeBound) *
         mlBlockedSpdpRank B (κ + g.degreeBound) (ℓ + g.degreeBound) p := by
-  calc mlBlockedSpdpRank B κ ℓ (g.poly * p)
-      ≤ paperSpdpRank κ ℓ (g.poly * p) :=
-        mlBlockedSpdpRank_le_paperSpdpRank B κ ℓ (g.poly * p)
-    _ ≤ N ^ (g.supportSize + g.degreeBound) *
-          paperSpdpRank (κ + g.degreeBound) (ℓ + g.degreeBound) p :=
-        paperSpdpRank_gadget_mul_le g κ ℓ p hN
-    _ ≤ N ^ (g.supportSize + g.degreeBound) *
-          mlBlockedSpdpRank B (κ + g.degreeBound) (ℓ + g.degreeBound) p :=
-        Nat.mul_le_mul_left _
-          (paperSpdpRank_le_mlBlockedSpdpRank_shifted B κ ℓ g.degreeBound p)
+  -- Delegate to PAC's subspace-level Lemma 40(c), converting gadget record.
+  have h := PAC.gadget_multiplication_rank_bound (BoundedGadget.toPAC g) B κ ℓ p
+  -- `BoundedGadget.toPAC g` has the same poly/supportSize/degreeBound as g
+  -- by definition, so the statement translates directly.
+  simpa [BoundedGadget.toPAC] using h
 
 /-! ## Summary of PaperSpdpMatrix phases
 
@@ -781,38 +806,54 @@ theorem mlBlockedSpdpRank_gadget_mul_le {N : ℕ} (g : MatrixSPDP.BoundedGadget 
 - **Full chain theorem**: `mlBlockedSpdpRank_gadget_mul_le` (the paper's
   Lemma 40(c) rank bound on Lean's canonical `mlBlockedSpdpRank`)
 
-**Narrow axioms (5 total, each a well-defined mathematical fact):**
+**Axioms in this file (5 narrow mathematical claims):**
+
+Used by `gadget_matrix_factoring_entry` (the matrix-level identity):
 1. `multiIndexLeibniz` — multi-index Leibniz for MvPolynomial partial
    derivatives (standard, derivable from Mathlib's single-variable
    Leibniz + commutativity).
 2. `gadget_matrix_factoring_reindex` — combinatorial `Finset.sum`
    reindexing identity (purely about finite sums, no polynomial math).
+
+Used ONLY by the matrix-level rank bound (paper-level):
 3. `paperSpdpRank_gadget_mul_le` — matrix rank bound via row-span
    decomposition (Mathlib-level matrix rank manipulation).
-4. `mlBlockedSpdpRank_le_paperSpdpRank` — bridge forward
-   (Lean submodule rank ≤ paper matrix rank).
+
+Bridge axioms (document-only; NOT USED in the revised full chain):
+4. `mlBlockedSpdpRank_le_paperSpdpRank` — **known false** at stated
+   parameters (counter-documented above). Kept in-file for reference
+   during the multiplier-including refactor.
 5. `paperSpdpRank_le_mlBlockedSpdpRank_shifted` — bridge reverse at
-   shifted params (specific form for gadget bound).
+   shifted params; unused after the PAC-axiom retargeting.
 
 **Connection to canonical Route B chain:**
 
+`mlBlockedSpdpRank_gadget_mul_le` now goes through
+`PAC.gadget_multiplication_rank_bound` (which reduces to
+`PAC.gadget_spdp_subspace_factoring`), the canonical Route B
+gadget-multiplication rank bound. So this theorem no longer depends on
+the broken forward-bridge axiom.
+
 The canonical `P_ne_NP_unconditional` uses
 `GlobalGodMoveGauge.exists_theorem207_witness` (paper's Theorem 207
-packaging). My `mlBlockedSpdpRank_gadget_mul_le` is a BUILDING BLOCK
-that would be needed to prove `Theorem207Witness`'s `compiled_p_side_bound`
-field under a specific paper-faithful compilation, but the connection
-(showing `paperCompiledPoly` is a product of bounded gadgets) is
-additional work beyond this file's scope.
+packaging). `mlBlockedSpdpRank_gadget_mul_le` is a BUILDING BLOCK
+that would be needed to prove `Theorem207Witness`'s
+`compiled_p_side_bound` field under a specific paper-faithful
+compilation. Integrating it into the `Theorem207Witness` production is
+future work.
 
-This file establishes the paper-faithful matrix-level Lemma 40(c) bound
-as a Lean theorem. Integrating it into the canonical chain's
-`Theorem207Witness` production is future work. -/
+The paper-literal matrix-level formulation (`paperSpdpRank`,
+`gadget_matrix_factoring_entry`, `paperSpdpRank_gadget_mul_le`) remains
+in this file as an independent paper-exact rendering of Lemma 40(c),
+which is what the paper states verbatim. Connecting it to
+`mlBlockedSpdpRank` requires a multiplier-including refactor of
+`paperSpdpMatrix` (tracked as future work). -/
 
 #print axioms mlBlockedSpdpRank_gadget_mul_le
 -- Expected: propext, Classical.choice, Quot.sound,
---   multiIndexLeibniz, gadget_matrix_factoring_reindex,
---   paperSpdpRank_gadget_mul_le, mlBlockedSpdpRank_le_paperSpdpRank,
---   paperSpdpRank_le_mlBlockedSpdpRank_shifted.
+--   PAC.gadget_spdp_subspace_factoring.
+-- (Goes through PAC's subspace-level Lemma 40(c); matrix-level bridges
+-- are bypassed.)
 #print axioms gadget_matrix_factoring_entry
 -- Expected: propext, Classical.choice, Quot.sound,
 --   multiIndexLeibniz, gadget_matrix_factoring_reindex.
