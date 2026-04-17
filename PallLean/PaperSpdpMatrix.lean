@@ -1462,6 +1462,70 @@ We isolate this reindexing as a narrower axiom: a purely combinatorial
 identity about Finsupp sums and multi-index binomial coefficients, which
 does not involve polynomial derivatives at all. -/
 
+/-! ### Subtype-to-Finset conversion helpers -/
+
+/-- Membership characterization: `x ∈ boundedMultiIndexFinset N bound ↔ x.sum ≤ bound`. -/
+theorem mem_boundedMultiIndexFinset {N : ℕ} (bound : ℕ) (x : Fin N →₀ ℕ) :
+    x ∈ boundedMultiIndexFinset N bound ↔
+    x.sum (fun _ n => n) ≤ bound := by
+  classical
+  unfold boundedMultiIndexFinset
+  rw [Finset.mem_filter]
+  constructor
+  · rintro ⟨_, hsum⟩; exact hsum
+  · intro hsum
+    refine ⟨?_, hsum⟩
+    rw [Finset.mem_image]
+    refine ⟨fun i => ⟨x i, ?_⟩, Finset.mem_univ _, ?_⟩
+    · have hi : x i ≤ x.sum (fun _ n => n) := by
+        by_cases hi_mem : i ∈ x.support
+        · exact Finset.single_le_sum (f := fun j => x j)
+            (fun j _ => Nat.zero_le _) hi_mem
+        · rw [Finsupp.notMem_support_iff.mp hi_mem]; exact Nat.zero_le _
+      omega
+    · ext i
+      simp [Finsupp.onFinset_apply]
+
+/-- `Finset.Iic α ⊆ boundedMultiIndexFinset N bound` when `α.sum ≤ bound`. -/
+theorem Iic_subset_boundedMultiIndex {N : ℕ} (α : Fin N →₀ ℕ) (bound : ℕ)
+    (hbound : α.sum (fun _ n => n) ≤ bound) :
+    Finset.Iic α ⊆ boundedMultiIndexFinset N bound := by
+  classical
+  intro β hβ
+  rw [Finset.mem_Iic] at hβ
+  rw [mem_boundedMultiIndexFinset]
+  -- β ≤ α, so β.sum ≤ α.sum ≤ bound.
+  calc β.sum (fun _ n => n)
+      = ∑ i ∈ β.support ∪ α.support, β i := by
+        rw [Finsupp.sum]
+        apply Finset.sum_subset Finset.subset_union_left
+        intro i _ hi_not
+        rw [Finsupp.notMem_support_iff.mp hi_not]
+    _ ≤ ∑ i ∈ β.support ∪ α.support, α i :=
+        Finset.sum_le_sum (fun i _ => Finsupp.le_def.mp hβ i)
+    _ = α.sum (fun _ n => n) := by
+        rw [Finsupp.sum]
+        symm
+        apply Finset.sum_subset Finset.subset_union_right
+        intro i _ hi_not
+        rw [Finsupp.notMem_support_iff.mp hi_not]
+    _ ≤ bound := hbound
+
+/-- Variant of `filter_boundedMulti_eq_Iic` with a larger bound. -/
+theorem filter_boundedMulti_eq_Iic_of_bound {N : ℕ} (α : Fin N →₀ ℕ) (bound : ℕ)
+    (hbound : α.sum (fun _ n => n) ≤ bound) :
+    (boundedMultiIndexFinset N bound).filter
+        (fun β => multiIndexLE β α) = Finset.Iic α := by
+  classical
+  ext β
+  rw [Finset.mem_filter, Finset.mem_Iic]
+  constructor
+  · rintro ⟨_, hle⟩
+    exact Finsupp.le_def.mpr hle
+  · intro hle
+    refine ⟨?_, Finsupp.le_def.mp hle⟩
+    exact Iic_subset_boundedMultiIndex α bound hbound (Finset.mem_Iic.mpr hle)
+
 /-! ### Helper lemmas for discharging `gadget_matrix_factoring_reindex` -/
 
 /-- Antidiagonal sum over `μ : Fin N →₀ ℕ` equals sum over `Finset.Iic μ`
