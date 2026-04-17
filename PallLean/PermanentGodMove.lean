@@ -672,6 +672,89 @@ theorem witnessMonoExp_apply_off_diag {n : ℕ} (T : Finset (Fin n))
   have h2 : i = w := (Prod.mk.inj heq).2
   exact hvw (h1 ▸ h2)
 
+/-! ### Step 3d: exponent equality → σ = id ∧ S = T
+
+The core combinatorial lemma: given σ fixes S and exponents match,
+derive σ = identity AND S = T via pointwise evaluation. -/
+
+/-- If exponents match, then σ fixes Sᶜ pointwise. Together with
+σ fixing S (hypothesis), σ is the identity. -/
+theorem perm_fixes_compl_of_expEq {n : ℕ} {σ : Equiv.Perm (Fin n)}
+    {S T : Finset (Fin n)}
+    (h : permCofactorExp σ S = witnessMonoExp T) :
+    ∀ w ∈ Sᶜ, σ w = w := by
+  intro w hw
+  by_contra hσ
+  -- σ w ≠ w. Apply exponent equality at (σ w, w).
+  set v := σ w with hv_def
+  have hvw : v ≠ w := hσ
+  have hLHS : permCofactorExp σ S (v, w) = 1 := by
+    rw [permCofactorExp_apply_off_diag σ S v w hvw]
+    rw [if_pos ⟨hw, rfl⟩]
+  have hRHS : witnessMonoExp T (v, w) = 0 :=
+    witnessMonoExp_apply_off_diag T v w hvw
+  have : (1 : ℕ) = 0 := by
+    rw [← hLHS, ← hRHS]
+    exact DFunLike.congr_fun h (v, w)
+  exact absurd this one_ne_zero
+
+/-- If exponents match AND σ fixes S, then σ is the identity. -/
+theorem perm_eq_refl_of_expEq {n : ℕ} {σ : Equiv.Perm (Fin n)}
+    {S T : Finset (Fin n)} (hσS : ∀ i ∈ S, σ i = i)
+    (h : permCofactorExp σ S = witnessMonoExp T) :
+    σ = Equiv.refl (Fin n) := by
+  apply Equiv.ext
+  intro i
+  by_cases hiS : i ∈ S
+  · exact hσS i hiS
+  · exact perm_fixes_compl_of_expEq h i (Finset.mem_compl.mpr hiS)
+
+/-- If exponents match AND σ fixes S, then S = T. -/
+theorem S_eq_T_of_expEq {n : ℕ} {σ : Equiv.Perm (Fin n)}
+    {S T : Finset (Fin n)} (hσS : ∀ i ∈ S, σ i = i)
+    (h : permCofactorExp σ S = witnessMonoExp T) :
+    S = T := by
+  -- σ = id (from above), so permCofactorExp id S = witnessMonoExp T
+  -- ⇒ witnessMonoExp S = witnessMonoExp T (by permCofactorExp_eq_witnessMonoExp_of_id)
+  -- ⇒ supports equal ⇒ Sᶜ = Tᶜ ⇒ S = T.
+  have hσ_id : σ = Equiv.refl (Fin n) := perm_eq_refl_of_expEq hσS h
+  rw [hσ_id] at h
+  rw [permCofactorExp_eq_witnessMonoExp_of_id] at h
+  -- h : witnessMonoExp S = witnessMonoExp T
+  -- Apply at (v, v) for each v: witnessMonoExp S (v, v) = witnessMonoExp T (v, v).
+  -- LHS: if v ∈ Sᶜ then 1 else 0. RHS: if v ∈ Tᶜ then 1 else 0.
+  -- So v ∈ Sᶜ ↔ v ∈ Tᶜ, hence Sᶜ = Tᶜ ⇒ S = T.
+  apply Finset.ext
+  intro v
+  -- Complementary biconditional from exponent equality at (v, v)
+  have hSc_Tc_diff : v ∈ Sᶜ ↔ v ∈ Tᶜ := by
+    constructor
+    · intro hvSc
+      have h1 : witnessMonoExp S (v, v) = 1 := by
+        rw [witnessMonoExp_apply_diag]
+        rw [if_pos hvSc]
+      have h2 := DFunLike.congr_fun h (v, v)
+      rw [h1] at h2
+      rw [witnessMonoExp_apply_diag] at h2
+      by_cases hvTc : v ∈ Tᶜ
+      · exact hvTc
+      · rw [if_neg hvTc] at h2
+        exact absurd h2 one_ne_zero
+    · intro hvTc
+      have h1 : witnessMonoExp T (v, v) = 1 := by
+        rw [witnessMonoExp_apply_diag]
+        rw [if_pos hvTc]
+      have h2 := DFunLike.congr_fun h.symm (v, v)
+      rw [h1] at h2
+      rw [witnessMonoExp_apply_diag] at h2
+      by_cases hvSc : v ∈ Sᶜ
+      · exact hvSc
+      · rw [if_neg hvSc] at h2
+        exact absurd h2 one_ne_zero
+  -- Sᶜ = Tᶜ ↔ S = T on element v
+  simp only [Finset.mem_compl] at hSc_Tc_diff
+  exact not_iff_not.mp hSc_Tc_diff
+
 /-- **Iterated cofactor formula** (Step 2 of Theorem 100):
 `iterDiagPderiv S permPoly = Σ_{σ ∈ Perm : σ fixes S pointwise} permCofactor σ S`.
 
