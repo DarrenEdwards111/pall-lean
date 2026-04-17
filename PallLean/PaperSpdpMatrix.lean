@@ -526,6 +526,37 @@ theorem boundedMultiIndexFinset_zero (N : ℕ) :
     · -- sum of 0 function is 0, and 0 ≤ 0.
       simp
 
+/-- **Multi-index Leibniz, inductive step decomposition (axiom-free).**
+For any `α ≠ 0` with `i ∈ α.support`, we can rewrite
+`iterDerivList (multiIndexToList α) (g * p)` as a sum of two
+iterDerivList expressions at the reduced α' = α - single i 1, each
+with one polynomial factor differentiated by i. This is the
+`pderiv_mul`-expansion step that the full induction relies on. -/
+theorem multiIndexLeibniz_step_decomposition {N : ℕ}
+    (g p : MvPolynomial (Fin N) ℚ) (α : Fin N →₀ ℕ) (i : Fin N) (hi : α i ≥ 1) :
+    SPDP.iterDerivList (GadgetDerivs.multiIndexToList α) (g * p) =
+    SPDP.iterDerivList
+        (GadgetDerivs.multiIndexToList (α - Finsupp.single i 1))
+        (MvPolynomial.pderiv i g * p) +
+    SPDP.iterDerivList
+        (GadgetDerivs.multiIndexToList (α - Finsupp.single i 1))
+        (g * MvPolynomial.pderiv i p) := by
+  classical
+  -- Step 1: rewrite multiIndexToList α via perm as (i :: multiIndexToList α')
+  rw [IterDerivHelpers.iterDerivList_perm
+        (multiIndexToList_perm_cons_single α i hi) (g * p)]
+  -- Step 2: iterDerivList (i :: _) = iterDerivList _ ∘ pderiv i
+  rw [IterDerivHelpers.iterDerivList_cons]
+  -- Step 3: pderiv i (g * p) = pderiv i g * p + g * pderiv i p
+  have h_pderiv_mul : (MvPolynomial.pderiv i) (g * p) =
+      (MvPolynomial.pderiv i) g * p + g * (MvPolynomial.pderiv i) p := by
+    have := (MvPolynomial.pderiv i).leibniz g p
+    simp only [smul_eq_mul] at this
+    rw [this]; ring
+  rw [h_pderiv_mul]
+  -- Step 4: iterDerivList distributes over addition.
+  exact IterDerivHelpers.iterDerivList_add _ _ _
+
 /-- **Multi-index Leibniz, base case (α = 0), axiom-free.** -/
 theorem multiIndexLeibniz_zero {N : ℕ} (g p : MvPolynomial (Fin N) ℚ) :
     SPDP.iterDerivList (GadgetDerivs.multiIndexToList 0) (g * p) =
@@ -1112,6 +1143,8 @@ which is what the paper states verbatim. Connecting it to
 `paperSpdpMatrix` (tracked as future work). -/
 
 -- Verify helpers are axiom-free (used by future multiIndexLeibniz discharge).
+#print axioms multiIndexLeibniz_step_decomposition
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms multiIndexLeibniz_zero
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms boundedMultiIndexFinset_zero
