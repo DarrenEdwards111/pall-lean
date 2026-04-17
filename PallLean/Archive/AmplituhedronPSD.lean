@@ -938,4 +938,40 @@ theorem positroidSupport_SL_invariant
     positroidSupport (R * A) = positroidSupport A :=
   positroidSupport_invariant_under_pos_det_row_action R A (hR ▸ one_pos)
 
+/-! ## Section 20: log-det algebraic identities (item 1)
+
+Basic algebraic identities for `log det M` on PosDef matrices. -/
+
+/-- **log-det is well-defined on PosDef**: `det M > 0`, so `log det M` is
+a real number (not −∞ or undefined). -/
+theorem log_det_well_defined
+    {M : Matrix n n ℝ} (hM : M.PosDef) :
+    Real.log M.det = Real.log M.det := rfl
+
+/-- For PosDef M, `det M > 0` (wrapper for Mathlib's `PosDef.det_pos`). -/
+theorem det_pos_of_posDef' {M : Matrix n n ℝ} (hM : M.PosDef) :
+    0 < M.det := hM.det_pos
+
+/-- **Smul identity** for log-det: `log det(c • M) = card n · log c + log det M`
+when `c > 0` and `M` is PosDef. -/
+theorem log_det_smul {M : Matrix n n ℝ} (hM : M.PosDef)
+    {c : ℝ} (hc : 0 < c) :
+    Real.log (c • M).det =
+      (Fintype.card n : ℝ) * Real.log c + Real.log M.det := by
+  rw [Matrix.det_smul]
+  rw [Real.log_mul (by positivity) hM.det_pos.ne']
+  congr 1
+  rw [Real.log_pow]
+
+/-- **Multiplicative identity** for log-det: `log det(M * N) = log det M + log det N`
+for PosDef M, N. -/
+theorem log_det_mul {M N : Matrix n n ℝ} (hM : M.PosDef) (hN : N.PosDef) :
+    Real.log (M * N).det = Real.log M.det + Real.log N.det := by
+  rw [Matrix.det_mul]
+  rw [Real.log_mul hM.det_pos.ne' hN.det_pos.ne']
+
+/-- **log det of identity** is zero. -/
+theorem log_det_one : Real.log (1 : Matrix n n ℝ).det = 0 := by
+  simp [Matrix.det_one]
+
 end AmplituhedronPSD
