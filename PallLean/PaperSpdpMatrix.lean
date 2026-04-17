@@ -557,6 +557,92 @@ theorem multiIndexLeibniz_step_decomposition {N : ℕ}
   -- Step 4: iterDerivList distributes over addition.
   exact IterDerivHelpers.iterDerivList_add _ _ _
 
+/-- Bridge: the filter form of the β-sum equals `Finset.Iic α` as Finsets. -/
+theorem filter_boundedMulti_eq_Iic {N : ℕ} (α : Fin N →₀ ℕ) :
+    (boundedMultiIndexFinset N (α.sum (fun _ n => n))).filter
+        (fun β => multiIndexLE β α) = Finset.Iic α := by
+  classical
+  ext β
+  simp only [Finset.mem_filter, Finset.mem_Iic]
+  constructor
+  · rintro ⟨_, hle⟩
+    exact Finsupp.le_def.mpr hle
+  · intro hle
+    have hle' : multiIndexLE β α := fun i => Finsupp.le_def.mp hle i
+    refine ⟨?_, hle'⟩
+    -- Show β ∈ boundedMultiIndexFinset N (α.sum ...).
+    -- Since β ≤ α, each β i ≤ α i ≤ α.sum, so β is in the image.
+    -- And β.sum ≤ α.sum so it passes the filter.
+    classical
+    unfold boundedMultiIndexFinset
+    rw [Finset.mem_filter]
+    refine ⟨?_, ?_⟩
+    · -- Membership in the image.
+      rw [Finset.mem_image]
+      refine ⟨fun i : Fin N => ⟨β i, ?_⟩, Finset.mem_univ _, ?_⟩
+      · -- β i < α.sum + 1.
+        have hβi_le : β i ≤ α.sum (fun _ n => n) := by
+          calc β i ≤ α i := hle' i
+            _ ≤ α.sum (fun _ n => n) := by
+                by_cases hαi : i ∈ α.support
+                · exact Finset.single_le_sum (f := fun j => α j)
+                    (fun j _ => Nat.zero_le _) hαi
+                · rw [Finsupp.notMem_support_iff.mp hαi]; exact Nat.zero_le _
+        omega
+      · -- The onFinset Finsupp equals β.
+        ext i
+        simp [Finsupp.onFinset_apply]
+    · -- β.sum ≤ α.sum.
+      classical
+      have h_β_sup : β.sum (fun _ n => n) = ∑ i ∈ β.support ∪ α.support, β i := by
+        rw [Finsupp.sum]
+        apply Finset.sum_subset Finset.subset_union_left
+        intro i _ hi_not
+        rw [Finsupp.notMem_support_iff.mp hi_not]
+      have h_α_sup : α.sum (fun _ n => n) = ∑ i ∈ β.support ∪ α.support, α i := by
+        rw [Finsupp.sum]
+        apply Finset.sum_subset Finset.subset_union_right
+        intro i _ hi_not
+        rw [Finsupp.notMem_support_iff.mp hi_not]
+      rw [h_β_sup, h_α_sup]
+      apply Finset.sum_le_sum
+      intro i _
+      exact hle' i
+
+/-- `α.sum id = 0` implies `α = 0`. -/
+theorem finsupp_sum_zero_iff_zero {N : ℕ} {α : Fin N →₀ ℕ} :
+    α.sum (fun _ n => n) = 0 ↔ α = 0 := by
+  constructor
+  · intro h
+    ext i
+    -- α i ≤ α.sum = 0, so α i = 0.
+    have h_le : α i ≤ α.sum (fun _ n => n) := by
+      classical
+      by_cases hi : i ∈ α.support
+      · exact Finset.single_le_sum (f := fun j => α j)
+          (fun j _ => Nat.zero_le _) hi
+      · rw [Finsupp.notMem_support_iff.mp hi]; exact Nat.zero_le _
+    rw [h] at h_le
+    simp only [Finsupp.coe_zero, Pi.zero_apply]
+    omega
+  · rintro rfl
+    simp
+
+/-- When `α ≠ 0`, some coordinate has positive value. -/
+theorem finsupp_sum_pos_iff_ne_zero {N : ℕ} {α : Fin N →₀ ℕ} :
+    0 < α.sum (fun _ n => n) ↔ α ≠ 0 := by
+  rw [Nat.pos_iff_ne_zero, Ne, finsupp_sum_zero_iff_zero]
+
+/-- If `α.sum = k + 1`, there exists `i` with `α i ≥ 1`. -/
+theorem exists_support_of_sum_pos {N : ℕ} (α : Fin N →₀ ℕ) (k : ℕ)
+    (hα : α.sum (fun _ n => n) = k + 1) : ∃ i : Fin N, α i ≥ 1 := by
+  have hpos : 0 < α.sum (fun _ n => n) := by omega
+  have hne : α ≠ 0 := finsupp_sum_pos_iff_ne_zero.mp hpos
+  -- α ≠ 0 ⟹ α.support ≠ ∅ ⟹ ∃ i ∈ α.support.
+  rcases Finset.nonempty_iff_ne_empty.mpr
+    (fun h => hne (Finsupp.support_eq_empty.mp h)) with ⟨i, hi⟩
+  exact ⟨i, Finsupp.mem_support_iff.mp hi |>.bot_lt⟩
+
 /-- **Multi-index Leibniz, base case (α = 0), axiom-free.** -/
 theorem multiIndexLeibniz_zero {N : ℕ} (g p : MvPolynomial (Fin N) ℚ) :
     SPDP.iterDerivList (GadgetDerivs.multiIndexToList 0) (g * p) =
@@ -1144,6 +1230,12 @@ which is what the paper states verbatim. Connecting it to
 
 -- Verify helpers are axiom-free (used by future multiIndexLeibniz discharge).
 #print axioms multiIndexLeibniz_step_decomposition
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms filter_boundedMulti_eq_Iic
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms finsupp_sum_zero_iff_zero
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms exists_support_of_sum_pos
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms multiIndexLeibniz_zero
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
