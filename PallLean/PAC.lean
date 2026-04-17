@@ -249,6 +249,116 @@ axiom gadget_spdp_subspace_factoring_paperFaithful
       MultilinearSPDP.mlBlockedSpdpSubspaceInc B κ ℓ (g.poly * p) ≤
         Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ))
 
+/-! ### Axiom-free partial discharges for the paper-faithful version -/
+
+/-- **Paper-faithful discharge at `p = 0`.** -/
+theorem gadget_spdp_subspace_factoring_paperFaithful_zero
+    {N : ℕ} (g : BoundedGadget N)
+    (B : BlockPartition N) (κ ℓ : ℕ) :
+    ∃ (G : Finset (MvPolynomial (Fin N) ℚ)),
+      G.card ≤ N ^ (g.supportSize + g.degreeBound) *
+               MultilinearSPDP.mlBlockedSpdpRankInc B
+                 (κ + g.degreeBound) (ℓ + g.degreeBound)
+                 (0 : MvPolynomial (Fin N) ℚ) ∧
+      MultilinearSPDP.mlBlockedSpdpSubspaceInc B κ ℓ
+        (g.poly * (0 : MvPolynomial (Fin N) ℚ)) ≤
+        Submodule.span ℚ
+          ((∅ : Finset (MvPolynomial (Fin N) ℚ)) :
+            Set (MvPolynomial (Fin N) ℚ)) := by
+  refine ⟨∅, ?_, ?_⟩
+  · simp
+  · rw [mul_zero, MultilinearSPDP.mlBlockedSpdpSubspaceInc_zero]
+    exact bot_le
+
+/-- **Paper-faithful discharge at `g.poly = 0`.** -/
+theorem gadget_spdp_subspace_factoring_paperFaithful_gadget_zero
+    {N : ℕ} (g : BoundedGadget N) (hg : g.poly = 0)
+    (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
+    ∃ (G : Finset (MvPolynomial (Fin N) ℚ)),
+      G.card ≤ N ^ (g.supportSize + g.degreeBound) *
+               MultilinearSPDP.mlBlockedSpdpRankInc B
+                 (κ + g.degreeBound) (ℓ + g.degreeBound) p ∧
+      MultilinearSPDP.mlBlockedSpdpSubspaceInc B κ ℓ (g.poly * p) ≤
+        Submodule.span ℚ
+          (↑(∅ : Finset (MvPolynomial (Fin N) ℚ)) :
+            Set (MvPolynomial (Fin N) ℚ)) := by
+  refine ⟨∅, ?_, ?_⟩
+  · simp
+  · rw [hg, zero_mul, MultilinearSPDP.mlBlockedSpdpSubspaceInc_zero]
+    exact bot_le
+
+/-- **Paper-faithful discharge for degBound = 0 (constant gadget).**
+
+Uses `PACLeibniz.mlBlockedSpdpSubspaceInc_C_mul_le` to bound the
+(g·p)-subspace by the p-subspace, then takes a basis of the latter
+as the finite generating set `G`. -/
+theorem gadget_spdp_subspace_factoring_paperFaithful_degBound_zero
+    {N : ℕ} (g : BoundedGadget N)
+    (hDeg : g.degreeBound = 0)
+    (hN : 1 ≤ N ^ g.supportSize)
+    (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
+    ∃ (G : Finset (MvPolynomial (Fin N) ℚ)),
+      G.card ≤ N ^ (g.supportSize + g.degreeBound) *
+               MultilinearSPDP.mlBlockedSpdpRankInc B
+                 (κ + g.degreeBound) (ℓ + g.degreeBound) p ∧
+      MultilinearSPDP.mlBlockedSpdpSubspaceInc B κ ℓ (g.poly * p) ≤
+        Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)) := by
+  classical
+  have htot : g.poly.totalDegree = 0 := by
+    have := g.totalDegree_le
+    rw [hDeg] at this
+    omega
+  have hg_eq : g.poly = MvPolynomial.C (g.poly.coeff 0) :=
+    (MvPolynomial.totalDegree_eq_zero_iff_eq_C).mp htot
+  set c := g.poly.coeff 0 with hc_def
+  have h_sub_le : MultilinearSPDP.mlBlockedSpdpSubspaceInc B κ ℓ (g.poly * p) ≤
+                  MultilinearSPDP.mlBlockedSpdpSubspaceInc B κ ℓ p := by
+    rw [hg_eq]
+    exact PACLeibniz.mlBlockedSpdpSubspaceInc_C_mul_le B κ ℓ c p
+  set V := MultilinearSPDP.mlBlockedSpdpSubspaceInc B κ ℓ p
+  haveI : FiniteDimensional ℚ ↥V := inferInstance
+  set k := Module.finrank ℚ ↥V
+  let b : Module.Basis (Fin k) ℚ ↥V := Module.finBasis ℚ ↥V
+  let G : Finset (MvPolynomial (Fin N) ℚ) :=
+    (Finset.univ : Finset (Fin k)).image
+      (fun i => (b i : MvPolynomial (Fin N) ℚ))
+  refine ⟨G, ?_, ?_⟩
+  · have hG_card : G.card ≤ k := by
+      calc G.card ≤ (Finset.univ : Finset (Fin k)).card := Finset.card_image_le
+        _ = k := by simp
+    have hk_eq : k = MultilinearSPDP.mlBlockedSpdpRankInc B κ ℓ p := by
+      show Module.finrank ℚ ↥V = MultilinearSPDP.mlBlockedSpdpRankInc B κ ℓ p
+      rfl
+    have hκ0 : κ + g.degreeBound = κ := by rw [hDeg]; omega
+    have hℓ0 : ℓ + g.degreeBound = ℓ := by rw [hDeg]; omega
+    rw [hκ0, hℓ0, hDeg, add_zero]
+    calc G.card ≤ k := hG_card
+      _ = MultilinearSPDP.mlBlockedSpdpRankInc B κ ℓ p := hk_eq
+      _ = 1 * MultilinearSPDP.mlBlockedSpdpRankInc B κ ℓ p := (one_mul _).symm
+      _ ≤ N ^ g.supportSize *
+            MultilinearSPDP.mlBlockedSpdpRankInc B κ ℓ p :=
+          Nat.mul_le_mul_right _ hN
+  · refine le_trans h_sub_le ?_
+    rintro v hv
+    have := b.mem_span ⟨v, hv⟩
+    have hspan : v ∈ (Submodule.span ℚ
+        (Set.range (fun i => (b i : MvPolynomial (Fin N) ℚ)))) := by
+      have h_map : Submodule.map V.subtype (Submodule.span ℚ (Set.range b)) =
+                   Submodule.span ℚ (Set.range
+                     (fun i => (b i : MvPolynomial (Fin N) ℚ))) := by
+        rw [Submodule.map_span]
+        congr 1
+        ext x
+        simp [Set.mem_range, Set.mem_image]
+      rw [← h_map]
+      exact Submodule.mem_map.mpr ⟨⟨v, hv⟩, this, rfl⟩
+    have hG_eq : (↑G : Set (MvPolynomial (Fin N) ℚ)) =
+                 Set.range (fun i => (b i : MvPolynomial (Fin N) ℚ)) := by
+      ext x
+      simp [G, Finset.mem_image, Set.mem_range, Finset.mem_univ]
+    rw [hG_eq]
+    exact hspan
+
 /-! ### Axiom-free discharge: zero-polynomial case
 
 When `p = 0`, the subspace `mlBlockedSpdpSubspace B κ ℓ (g · 0)` is
@@ -666,6 +776,12 @@ section for the reason and what the right formulation would be. -/
 #print axioms gadget_spdp_subspace_factoring_gadget_zero
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms gadget_spdp_subspace_factoring_const
+#print axioms gadget_spdp_subspace_factoring_paperFaithful_zero
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms gadget_spdp_subspace_factoring_paperFaithful_gadget_zero
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms gadget_spdp_subspace_factoring_paperFaithful_degBound_zero
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms applyPipeline_rank_monotone
 -- Expected: propext, Classical.choice, Quot.sound.

@@ -87,6 +87,39 @@ theorem mlBlockedSpdpRank_C_mul_le {N : ℕ} (B : BlockPartition N)
   unfold mlBlockedSpdpRank
   exact Submodule.finrank_mono (mlBlockedSpdpSubspace_C_mul_le B κ ℓ c p)
 
+/-- **Inclusive-κ constant-multiplication subspace containment (axiom-free).** -/
+theorem mlBlockedSpdpSubspaceInc_C_mul_le {N : ℕ} (B : BlockPartition N)
+    (κ ℓ : ℕ) (c : ℚ) (p : MvPolynomial (Fin N) ℚ) :
+    MultilinearSPDP.mlBlockedSpdpSubspaceInc B κ ℓ (MvPolynomial.C c * p) ≤
+    MultilinearSPDP.mlBlockedSpdpSubspaceInc B κ ℓ p := by
+  have h_eq : MvPolynomial.C c * p = c • p :=
+    (MvPolynomial.smul_eq_C_mul p c).symm
+  rw [h_eq]
+  unfold MultilinearSPDP.mlBlockedSpdpSubspaceInc
+  rw [Submodule.span_le]
+  rintro q ⟨S, m, hlen, hdeg, hvars, hadm, hq⟩
+  have h1 : iterDerivList S (c • p) = c • iterDerivList S p :=
+    iterDerivList_smul S c p
+  rw [hq, h1]
+  have h2 : m * (c • iterDerivList S p) = c • (m * iterDerivList S p) :=
+    mul_smul_comm c m (iterDerivList S p)
+  rw [h2]
+  have h3 : MultilinearSPDP.mlProj (c • (m * iterDerivList S p)) =
+            c • MultilinearSPDP.mlProj (m * iterDerivList S p) :=
+    MultilinearSPDP.mlProj_smul c (m * iterDerivList S p)
+  rw [h3]
+  apply Submodule.smul_mem
+  apply Submodule.subset_span
+  exact ⟨S, m, hlen, hdeg, hvars, hadm, rfl⟩
+
+/-- **Inclusive-κ constant-multiplication rank bound (axiom-free).** -/
+theorem mlBlockedSpdpRankInc_C_mul_le {N : ℕ} (B : BlockPartition N)
+    (κ ℓ : ℕ) (c : ℚ) (p : MvPolynomial (Fin N) ℚ) :
+    MultilinearSPDP.mlBlockedSpdpRankInc B κ ℓ (MvPolynomial.C c * p) ≤
+    MultilinearSPDP.mlBlockedSpdpRankInc B κ ℓ p := by
+  unfold MultilinearSPDP.mlBlockedSpdpRankInc
+  exact Submodule.finrank_mono (mlBlockedSpdpSubspaceInc_C_mul_le B κ ℓ c p)
+
 /-! ## Piece 3: Leibniz for iterDerivList (membership form, axiom-free)
 
 Paper Lemma 40(c) starts with the observation that

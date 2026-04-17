@@ -311,6 +311,16 @@ theorem mlBlockedSpdpSubspace_zero {n : ℕ} {F : Type*} [CommRing F]
     exact Submodule.zero_mem ⊥
   · exact bot_le
 
+theorem mlBlockedSpdpSubspaceInc_zero {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ) :
+    mlBlockedSpdpSubspaceInc B κ ℓ (0 : MvPolynomial (Fin n) F) = ⊥ := by
+  apply le_antisymm
+  · apply Submodule.span_le.mpr
+    intro q ⟨S, m_poly, _, _, _, _, hq⟩
+    rw [hq]; unfold iterDerivList; rw [foldl_pderiv_zero, mul_zero, mlProj_zero]
+    exact Submodule.zero_mem ⊥
+  · exact bot_le
+
 theorem mlBlockedSpdpRank_zero {n : ℕ} {F : Type*} [Field F]
     (B : BlockPartition n) (κ ℓ : ℕ) :
     mlBlockedSpdpRank B κ ℓ (0 : MvPolynomial (Fin n) F) = 0 := by
@@ -2334,6 +2344,22 @@ theorem extraction_rank_monotone_inc (F : Type*) [Field F] [Nontrivial F]
           (restrictPoly F f hf_inj (violationPolyOf F M n)) :=
         Nat.add_le_add_right h_restrict _
 
+/-- **Strict ⊆ inclusive rank bridge.**
+
+The strict-κ rank is bounded above by the inclusive-κ rank at the
+same parameters. Via `Submodule.finrank_mono` applied to the
+subspace containment `mlBlockedSpdpSubspace_le_inc`.
+
+This is the key bridge that lets paper-faithful (inclusive) theorems
+be used in contexts that still use `mlBlockedSpdpRank` (strict),
+such as `Theorem207Witness` fields. -/
+theorem mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
+    {n : ℕ} {F : Type*} [Field F] [Nontrivial F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    mlBlockedSpdpRank B κ ℓ p ≤ mlBlockedSpdpRankInc B κ ℓ p := by
+  unfold mlBlockedSpdpRank mlBlockedSpdpRankInc
+  exact Submodule.finrank_mono (mlBlockedSpdpSubspace_le_inc B κ ℓ p)
+
 /-! ## Axiom-freeness checks for the paper-faithful inclusive port -/
 
 #print axioms mlBlockedSpdpSubspace_le_inc
@@ -2359,6 +2385,8 @@ theorem extraction_rank_monotone_inc (F : Type*) [Field F] [Nontrivial F]
 #print axioms mlBlockedSpdpRankInc_le_add_le
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms extraction_rank_monotone_inc
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms mlBlockedSpdpRank_le_mlBlockedSpdpRankInc
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 
 end MultilinearSPDP
