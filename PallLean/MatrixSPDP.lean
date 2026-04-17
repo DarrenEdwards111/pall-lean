@@ -164,7 +164,9 @@ axiom gadget_factoring_linearmap_form
         Submodule.map L (mlBlockedSpdpSubspace B (κ + g.degreeBound)
           (ℓ + g.degreeBound) p) ∧
       Module.finrank ℚ (LinearMap.range L) ≤
-        N ^ (g.supportSize + g.degreeBound)
+        N ^ (g.supportSize + g.degreeBound) *
+          Module.finrank ℚ (mlBlockedSpdpSubspace B (κ + g.degreeBound)
+            (ℓ + g.degreeBound) p)
 
 /-- **Derived: the paper's rank bound**, via LinearMap range inequalities.
 
