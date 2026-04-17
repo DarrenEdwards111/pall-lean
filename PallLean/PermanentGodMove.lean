@@ -1065,6 +1065,39 @@ What this does NOT yet include:
 
 These remain as future work on the path to full P ≠ NP discharge. -/
 
+/-! ## Reindexing to `Fin (n * n)` for SPDP-matrix connection
+
+The paper-matrix setup uses `MvPolynomial (Fin N) ℚ` with flat
+variable indexing. For the permanent, this requires the equivalence
+`Fin n × Fin n ≃ Fin (n * n)` to embed `permPoly` into that form. -/
+
+/-- The flat equivalence `Fin n × Fin n ≃ Fin (n * n)` from Mathlib. -/
+noncomputable abbrev flatEquiv (n : ℕ) : Fin n × Fin n ≃ Fin (n * n) :=
+  finProdFinEquiv
+
+/-- The permanent polynomial reindexed to `Fin (n * n)`. -/
+noncomputable def permPolyFlat (n : ℕ) : MvPolynomial (Fin (n * n)) ℚ :=
+  (MvPolynomial.renameEquiv ℚ (flatEquiv n)) (permPoly n)
+
+/-- The renamed permanent polynomial's cofactor family is linearly
+independent (since renameEquiv is an injective linear map). -/
+theorem linearIndependent_renamed_cofactors {n : ℕ} :
+    LinearIndependent ℚ
+      (fun S : Finset (Fin n) =>
+        (MvPolynomial.renameEquiv ℚ (flatEquiv n))
+          (iterDiagPderiv S (permPoly n))) := by
+  have hli := linearIndependent_iterDiagPderiv_permPoly (n := n)
+  have halg_inj : Function.Injective
+      ((MvPolynomial.renameEquiv ℚ (flatEquiv n)) : _ → _) :=
+    (MvPolynomial.renameEquiv ℚ (flatEquiv n)).injective
+  -- Via LinearMap.injOn_of_injective on the ambient linear map.
+  have hmap_inj : Function.Injective
+      (MvPolynomial.renameEquiv ℚ (flatEquiv n)).toLinearMap :=
+    halg_inj
+  exact LinearIndependent.map' hli
+    (MvPolynomial.renameEquiv ℚ (flatEquiv n)).toLinearMap
+    (LinearMap.ker_eq_bot.mpr hmap_inj)
+
 /-! ### Step 2b: single-variable pderiv of permPoly
 
 Applying `diagPderiv i` to `permPoly n`:
