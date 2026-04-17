@@ -169,3 +169,26 @@ theorem multiIndexToList_count {N : ℕ} (β : Fin N →₀ ℕ) (i : Fin N) :
   classical
   rw [← Multiset.coe_count, multiIndexToList_coe_eq_toMultiset,
     Finsupp.count_toMultiset]
+
+/-! ## Step 2d: perm equivalence
+
+For any list `A`, `A` is a permutation of `multiIndexToList (listToMultiIndex A)`.
+This lets us convert any `iterDerivList A g` computation into a computation
+over a canonical multi-index via `iterDerivList_perm`. -/
+
+/-- `A` and `multiIndexToList (listToMultiIndex A)` have the same count at
+every index. -/
+theorem listToMultiIndex_count_eq {N : ℕ} (A : List (Fin N)) (i : Fin N) :
+    A.count i = (multiIndexToList (listToMultiIndex A)).count i := by
+  classical
+  rw [multiIndexToList_count, listToMultiIndex_apply]
+
+/-- `A` is a permutation of `multiIndexToList (listToMultiIndex A)`. -/
+theorem list_perm_multiIndexToList_listToMultiIndex {N : ℕ} (A : List (Fin N)) :
+    A.Perm (multiIndexToList (listToMultiIndex A)) := by
+  classical
+  rw [List.perm_iff_count]
+  intro i
+  exact listToMultiIndex_count_eq A i
+
+end GadgetDerivs
