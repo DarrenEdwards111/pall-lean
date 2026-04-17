@@ -111,4 +111,30 @@ theorem nonneg_principal_minor_of_posSemidef
           (Subtype.val : { i : n // i ∈ S } → n)).det :=
   det_submatrix_nonneg_of_posSemidef hM _
 
+/-! ## Section 4: PosDef principal minors — the positive case
+
+For `PosDef` matrices (strict positive definite), Mathlib has
+`PosDef.det_pos`. Combined with `PosDef → PosSemidef → submatrix PSD`,
+we have non-negativity of submatrix determinants; strict positivity
+of submatrix determinants (PosDef.submatrix for injective e) is
+stated but requires detailed Finsupp/quadratic-form manipulation not
+included here. -/
+
+/-- Every `PosDef` matrix has strictly positive determinant (wrapper for
+`Matrix.PosDef.det_pos`). -/
+theorem det_pos_of_posDef {M : Matrix n n ℝ} (hM : M.PosDef) : 0 < M.det :=
+  hM.det_pos
+
+/-- Every `PosDef` matrix is `PosSemidef` (wrapper for
+`Matrix.PosDef.posSemidef`). -/
+theorem posSemidef_of_posDef {M : Matrix n n ℝ} (hM : M.PosDef) : M.PosSemidef :=
+  hM.posSemidef
+
+/-- Submatrices of `PosDef` matrices are at least `PosSemidef`, hence have
+non-negative determinant. -/
+theorem det_submatrix_nonneg_of_posDef
+    {M : Matrix n n ℝ} (hM : M.PosDef) (e : m → n) :
+    0 ≤ (M.submatrix e e).det :=
+  det_submatrix_nonneg_of_posSemidef (posSemidef_of_posDef hM) e
+
 end AmplituhedronPSD
