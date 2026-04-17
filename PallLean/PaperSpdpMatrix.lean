@@ -666,6 +666,36 @@ axiom paperSpdpRank_gadget_mul_le {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
       N ^ (g.supportSize + g.degreeBound) *
         paperSpdpRank (κ + g.degreeBound) (ℓ + g.degreeBound) p
 
+/-! ### Axiom-free special case: zero polynomial
+
+`paperSpdpMatrixVal κ ℓ 0` is the zero matrix (every entry is
+`coeff μ (∂^α 0) = coeff μ 0 = 0`). Its rank is 0. This gives the
+trivial `paperSpdpRank_gadget_mul_le` degenerate case when `p = 0`. -/
+
+/-- **Paper matrix of the zero polynomial is the zero matrix.** -/
+theorem paperSpdpMatrixVal_zero {N : ℕ} (κ ℓ : ℕ) :
+    paperSpdpMatrixVal (N := N) κ ℓ 0 = 0 := by
+  ext α μ
+  show MvPolynomial.coeff μ.val (multiPderiv α.val (0 : MvPolynomial (Fin N) ℚ)) = 0
+  unfold multiPderiv
+  -- iterDerivList S 0 = 0 and coeff μ 0 = 0.
+  have : SPDP.iterDerivList (GadgetDerivs.multiIndexToList α.val)
+           (0 : MvPolynomial (Fin N) ℚ) = 0 := by
+    -- iterDerivList is ℚ-linear (given via iterDerivList_smul + zero_smul).
+    have := PACLeibniz.iterDerivList_smul
+      (GadgetDerivs.multiIndexToList α.val) (0 : ℚ) (0 : MvPolynomial (Fin N) ℚ)
+    simpa using this
+  rw [this]
+  simp
+
+/-- **`paperSpdpRank` of the zero polynomial is 0.** -/
+theorem paperSpdpRank_zero {N : ℕ} (κ ℓ : ℕ) :
+    paperSpdpRank (N := N) κ ℓ (0 : MvPolynomial (Fin N) ℚ) = 0 := by
+  unfold paperSpdpRank
+  rw [paperSpdpMatrixVal_zero]
+  -- The zero matrix has rank 0.
+  simp [Matrix.rank]
+
 /-! ## Phase 3b (REMOVED): formerly-axiomatised paperSpdpRank↔mlBlockedSpdpRank bridges
 
 A previous iteration of this file stated two bridge axioms relating the
