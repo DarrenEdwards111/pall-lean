@@ -68,6 +68,7 @@
 -/
 import PallLean.MultilinearSPDP
 import PallLean.CookLevinDefs
+import PallLean.PACLeibniz
 import Mathlib.Tactic
 
 namespace PAC
@@ -224,6 +225,34 @@ noncomputable def gadgetMultOp {N : ℕ} (g : BoundedGadget N) : Op N where
   rank_factor := g.supportSize + g.degreeBound
   rank_monotone B κ' ℓ' p :=
     gadget_multiplication_rank_bound g B κ' ℓ' p
+
+/-! ## Axiom-free constant-multiplication PAC operation
+
+For `g = MvPolynomial.C c` (a constant gadget), Lemma 40(c) specialises
+to exact rank-non-increase. This is discharged axiom-free in
+`PACLeibniz.mlBlockedSpdpRank_C_mul_le`, so we can expose it as an
+**axiom-free** smart constructor here. -/
+
+/-- The underlying linear map of constant multiplication. Defined
+separately to avoid timeout in elaboration of the `Op` record. -/
+noncomputable def constMultLinearMap {N : ℕ} (c : ℚ) :
+    MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ where
+  toFun p := MvPolynomial.C c * p
+  map_add' p q := by ring
+  map_smul' d p := by
+    show MvPolynomial.C c * (d • p) = d • (MvPolynomial.C c * p)
+    exact mul_smul_comm d (MvPolynomial.C c) p
+
+/-- **Axiom-free PAC operation: multiplication by a constant.**
+Discharges the `g = C c` case of Lemma 40(c). -/
+noncomputable def constMultOp {N : ℕ} (c : ℚ) : Op N where
+  toFun := constMultLinearMap c
+  κ_shift := 0
+  ℓ_shift := 0
+  rank_factor := 0
+  rank_monotone B κ ℓ p := by
+    simp only [pow_zero, Nat.add_zero, one_mul]
+    exact PACLeibniz.mlBlockedSpdpRank_C_mul_le B κ ℓ c p
 
 /-! ## PAC pipeline -/
 
