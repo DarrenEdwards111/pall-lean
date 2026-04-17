@@ -1633,11 +1633,236 @@ theorem gadgetLeibnizMatrix_val_neg {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
   show (if multiIndexLE δ.val α.val ∧ multiIndexLE σ.val μ.val then _ else 0) = 0
   rw [if_neg h]
 
-/-- **Phase 5 reindex axiom**. 7 axiom-free helpers capture the
-mathematical content; the tactical assembly (LHS/RHS canonical form +
-subtype-Finset conversion via `Finset.sum_subtype` + filter extraction)
-runs into Lean coercion/unification subtleties that didn't converge. -/
-axiom gadget_matrix_factoring_reindex {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
+/-! ### LHS canonical form (axiom-free) -/
+
+/-- LHS reduces to canonical form. -/
+theorem gadget_matrix_factoring_LHS_eq {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
+    (α : SpdpRowIndex N κ) (μ : SpdpColIndex N ℓ) :
+    (∑ β ∈ (boundedMultiIndexFinset N (α.val.sum (fun _ n => n))).filter
+            (fun β => multiIndexLE β α.val),
+      (multiBinom α.val β : ℚ) *
+        ∑ pair ∈ Finset.antidiagonal μ.val,
+          MvPolynomial.coeff pair.1
+            (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly) *
+          MvPolynomial.coeff pair.2
+            (SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+              (multiIndexSub α.val β)) p)) =
+    ∑ δ ∈ Finset.Iic α.val, ∑ σ ∈ Finset.Iic μ.val,
+      (multiBinom α.val (α.val - δ) : ℚ) *
+        MvPolynomial.coeff (μ.val - σ)
+          (SPDP.iterDerivList
+            (GadgetDerivs.multiIndexToList (α.val - δ)) g.poly) *
+        MvPolynomial.coeff σ
+          (SPDP.iterDerivList (GadgetDerivs.multiIndexToList δ) p) := by
+  classical
+  rw [filter_boundedMulti_eq_Iic]
+  -- Define the inner integrand on both sides for Finset.sum_congr matching.
+  have step_inner : ∀ β : Fin N →₀ ℕ,
+      (multiBinom α.val β : ℚ) *
+        (∑ pair ∈ Finset.antidiagonal μ.val,
+          MvPolynomial.coeff pair.1
+            (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly) *
+          MvPolynomial.coeff pair.2
+            (SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+              (multiIndexSub α.val β)) p)) =
+      ∑ σ ∈ Finset.Iic μ.val,
+        (multiBinom α.val β : ℚ) *
+          MvPolynomial.coeff (μ.val - σ)
+            (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly) *
+          MvPolynomial.coeff σ
+            (SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+              (multiIndexSub α.val β)) p) := by
+    intro β
+    rw [antidiagonal_sum_eq_Iic_sum μ.val
+      (fun ν τ =>
+        MvPolynomial.coeff ν
+          (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly) *
+        MvPolynomial.coeff τ
+          (SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+            (multiIndexSub α.val β)) p))]
+    rw [Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro σ _
+    ring
+  rw [show (∑ β ∈ Finset.Iic α.val,
+          (multiBinom α.val β : ℚ) *
+            ∑ pair ∈ Finset.antidiagonal μ.val,
+              MvPolynomial.coeff pair.1
+                (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly) *
+              MvPolynomial.coeff pair.2
+                (SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+                  (multiIndexSub α.val β)) p)) =
+        ∑ β ∈ Finset.Iic α.val,
+          ∑ σ ∈ Finset.Iic μ.val,
+            (multiBinom α.val β : ℚ) *
+              MvPolynomial.coeff (μ.val - σ)
+                (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly) *
+              MvPolynomial.coeff σ
+                (SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+                  (multiIndexSub α.val β)) p) from by
+    apply Finset.sum_congr rfl
+    intro β _
+    exact step_inner β]
+  -- Reindex β ↔ α.val - δ.
+  rw [sum_Iic_reindex_complement α.val
+      (fun β => ∑ σ ∈ Finset.Iic μ.val,
+          (multiBinom α.val β : ℚ) *
+            MvPolynomial.coeff (μ.val - σ)
+              (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly) *
+            MvPolynomial.coeff σ
+              (SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+                (multiIndexSub α.val β)) p))]
+  -- Simplify multiIndexSub α.val (α.val - δ) = δ for δ ≤ α.val.
+  apply Finset.sum_congr rfl
+  intro δ hδ
+  rw [Finset.mem_Iic] at hδ
+  apply Finset.sum_congr rfl
+  intro σ _
+  have hidx : multiIndexSub α.val (α.val - δ) = δ := by
+    ext j
+    rw [multiIndexSub_apply, Finsupp.tsub_apply]
+    have := Finsupp.le_def.mp hδ j
+    omega
+  rw [hidx]
+
+/-! ### RHS canonical form (axiom-free) -/
+
+/-- RHS reduces to the same canonical form. -/
+theorem gadget_matrix_factoring_RHS_eq {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
+    (α : SpdpRowIndex N κ) (μ : SpdpColIndex N ℓ) :
+    (∑ δ : SpdpRowIndex N (κ + g.degreeBound),
+     ∑ σ : SpdpColIndex N (ℓ + g.degreeBound),
+      gadgetLeibnizMatrix g κ ℓ (α, μ) (δ, σ) *
+      paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p δ σ) =
+    ∑ δ ∈ Finset.Iic α.val, ∑ σ ∈ Finset.Iic μ.val,
+      (multiBinom α.val (α.val - δ) : ℚ) *
+        MvPolynomial.coeff (μ.val - σ)
+          (SPDP.iterDerivList
+            (GadgetDerivs.multiIndexToList (α.val - δ)) g.poly) *
+        MvPolynomial.coeff σ
+          (SPDP.iterDerivList (GadgetDerivs.multiIndexToList δ) p) := by
+  classical
+  have hα_bound : α.val.sum (fun _ n => n) ≤ κ + g.degreeBound := by
+    have := α.property; omega
+  have hμ_bound : μ.val.sum (fun _ n => n) ≤ ℓ + g.degreeBound := by
+    have := μ.property; omega
+  -- Define the explicit integrand as a function on (Fin N →₀ ℕ)².
+  -- This is the key to avoiding coercion issues in Finset.sum_subtype.
+  let integrand : (Fin N →₀ ℕ) → (Fin N →₀ ℕ) → ℚ := fun δ' σ' =>
+    if multiIndexLE δ' α.val ∧ multiIndexLE σ' μ.val then
+      (multiBinom α.val (α.val - δ') : ℚ) *
+        MvPolynomial.coeff (μ.val - σ')
+          (SPDP.iterDerivList
+            (GadgetDerivs.multiIndexToList (α.val - δ')) g.poly) *
+        MvPolynomial.coeff σ'
+          (SPDP.iterDerivList (GadgetDerivs.multiIndexToList δ') p)
+    else 0
+  -- Step 1: rewrite RHS integrand as integrand δ.val σ.val.
+  have hRHS_eq_integrand :
+      ∀ (δ : SpdpRowIndex N (κ + g.degreeBound))
+        (σ : SpdpColIndex N (ℓ + g.degreeBound)),
+        gadgetLeibnizMatrix g κ ℓ (α, μ) (δ, σ) *
+          paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p δ σ =
+        integrand δ.val σ.val := by
+    intro δ σ
+    simp only [integrand]
+    by_cases hc : multiIndexLE δ.val α.val ∧ multiIndexLE σ.val μ.val
+    · rw [gadgetLeibnizMatrix_val_pos g κ ℓ α μ δ σ hc.1 hc.2]
+      rw [if_pos hc]
+      show _ = _
+      unfold paperSpdpMatrixVal paperSpdpMatrix multiPderiv
+      rw [multiIndexSub_eq_tsub α.val δ.val, multiIndexSub_eq_tsub μ.val σ.val]
+    · rw [gadgetLeibnizMatrix_val_neg g κ ℓ α μ δ σ hc, zero_mul, if_neg hc]
+  rw [show (∑ δ : SpdpRowIndex N (κ + g.degreeBound),
+            ∑ σ : SpdpColIndex N (ℓ + g.degreeBound),
+              gadgetLeibnizMatrix g κ ℓ (α, μ) (δ, σ) *
+              paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p δ σ) =
+        (∑ δ : SpdpRowIndex N (κ + g.degreeBound),
+          ∑ σ : SpdpColIndex N (ℓ + g.degreeBound),
+            integrand δ.val σ.val) from by
+    refine Finset.sum_congr rfl (fun δ _ => Finset.sum_congr rfl (fun σ _ => ?_))
+    exact hRHS_eq_integrand δ σ]
+  -- Step 2: convert inner subtype sum to Finset sum via Finset.sum_subtype.
+  have hInnerSub : ∀ (δ : SpdpRowIndex N (κ + g.degreeBound)),
+      (∑ σ : SpdpColIndex N (ℓ + g.degreeBound), integrand δ.val σ.val) =
+      (∑ σ' ∈ boundedMultiIndexFinset N (ℓ + g.degreeBound),
+          integrand δ.val σ') := by
+    intro δ
+    exact (Finset.sum_subtype
+      (boundedMultiIndexFinset N (ℓ + g.degreeBound))
+      (fun x => mem_boundedMultiIndexFinset (ℓ + g.degreeBound) x)
+      (fun σ' : Fin N →₀ ℕ => integrand δ.val σ')).symm
+  rw [show (∑ δ : SpdpRowIndex N (κ + g.degreeBound),
+            ∑ σ : SpdpColIndex N (ℓ + g.degreeBound), integrand δ.val σ.val) =
+        (∑ δ : SpdpRowIndex N (κ + g.degreeBound),
+          ∑ σ' ∈ boundedMultiIndexFinset N (ℓ + g.degreeBound),
+            integrand δ.val σ') from
+    Finset.sum_congr rfl (fun δ _ => hInnerSub δ)]
+  -- Step 3: convert outer subtype sum to Finset sum.
+  rw [show (∑ δ : SpdpRowIndex N (κ + g.degreeBound),
+            ∑ σ' ∈ boundedMultiIndexFinset N (ℓ + g.degreeBound),
+              integrand δ.val σ') =
+        (∑ δ' ∈ boundedMultiIndexFinset N (κ + g.degreeBound),
+          ∑ σ' ∈ boundedMultiIndexFinset N (ℓ + g.degreeBound),
+            integrand δ' σ') from
+    (Finset.sum_subtype
+      (boundedMultiIndexFinset N (κ + g.degreeBound))
+      (fun x => mem_boundedMultiIndexFinset (κ + g.degreeBound) x)
+      (fun δ' : Fin N →₀ ℕ =>
+        ∑ σ' ∈ boundedMultiIndexFinset N (ℓ + g.degreeBound),
+          integrand δ' σ')).symm]
+  -- Step 4: extract the conditional and convert to filter/Iic sums.
+  have hFilter : ∀ δ' : Fin N →₀ ℕ,
+      (∑ σ' ∈ boundedMultiIndexFinset N (ℓ + g.degreeBound),
+        integrand δ' σ') =
+      (if multiIndexLE δ' α.val then
+        ∑ σ' ∈ (boundedMultiIndexFinset N (ℓ + g.degreeBound)).filter
+                (fun σ => multiIndexLE σ μ.val),
+          (multiBinom α.val (α.val - δ') : ℚ) *
+            MvPolynomial.coeff (μ.val - σ')
+              (SPDP.iterDerivList
+                (GadgetDerivs.multiIndexToList (α.val - δ')) g.poly) *
+            MvPolynomial.coeff σ'
+              (SPDP.iterDerivList (GadgetDerivs.multiIndexToList δ') p)
+       else 0) := by
+    intro δ'
+    simp only [integrand]
+    by_cases hδα : multiIndexLE δ' α.val
+    · rw [if_pos hδα, Finset.sum_filter]
+      apply Finset.sum_congr rfl
+      intro σ' _
+      by_cases hσμ : multiIndexLE σ' μ.val
+      · rw [if_pos ⟨hδα, hσμ⟩, if_pos hσμ]
+      · rw [if_neg (fun h' => hσμ h'.2), if_neg hσμ]
+    · rw [if_neg hδα]
+      refine Finset.sum_eq_zero (fun σ' _ => ?_)
+      rw [if_neg (fun h' => hδα h'.1)]
+  rw [show (∑ δ' ∈ boundedMultiIndexFinset N (κ + g.degreeBound),
+            ∑ σ' ∈ boundedMultiIndexFinset N (ℓ + g.degreeBound),
+              integrand δ' σ') =
+        (∑ δ' ∈ boundedMultiIndexFinset N (κ + g.degreeBound),
+          (if multiIndexLE δ' α.val then
+            ∑ σ' ∈ (boundedMultiIndexFinset N (ℓ + g.degreeBound)).filter
+                    (fun σ => multiIndexLE σ μ.val),
+              (multiBinom α.val (α.val - δ') : ℚ) *
+                MvPolynomial.coeff (μ.val - σ')
+                  (SPDP.iterDerivList
+                    (GadgetDerivs.multiIndexToList (α.val - δ')) g.poly) *
+                MvPolynomial.coeff σ'
+                  (SPDP.iterDerivList (GadgetDerivs.multiIndexToList δ') p)
+           else 0)) from
+    Finset.sum_congr rfl (fun δ _ => hFilter δ)]
+  rw [← Finset.sum_filter]
+  -- Step 5: convert filter to Iic.
+  rw [filter_boundedMulti_eq_Iic_of_bound α.val (κ + g.degreeBound) hα_bound]
+  apply Finset.sum_congr rfl
+  intro δ _
+  rw [filter_boundedMulti_eq_Iic_of_bound μ.val (ℓ + g.degreeBound) hμ_bound]
+
+/-- **Phase 5 reindex theorem, proved axiom-free**. -/
+theorem gadget_matrix_factoring_reindex {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
     (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
     (α : SpdpRowIndex N κ) (μ : SpdpColIndex N ℓ) :
     (∑ β ∈ (boundedMultiIndexFinset N (α.val.sum (fun _ n => n))).filter
@@ -1652,7 +1877,9 @@ axiom gadget_matrix_factoring_reindex {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
     (∑ δ : SpdpRowIndex N (κ + g.degreeBound),
      ∑ σ : SpdpColIndex N (ℓ + g.degreeBound),
       gadgetLeibnizMatrix g κ ℓ (α, μ) (δ, σ) *
-      paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p δ σ)
+      paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p δ σ) := by
+  rw [gadget_matrix_factoring_LHS_eq g κ ℓ p α μ,
+      ← gadget_matrix_factoring_RHS_eq g κ ℓ p α μ]
 
 /-- **Phase 5 theorem (from multiIndexLeibniz + reindex axiom).**
 The matrix identity: `M(g·p)[α, μ] = (L · M(p)_shifted)[α, μ]`. -/
@@ -1923,6 +2150,12 @@ which is what the paper states verbatim. Connecting it to
 #print axioms gadgetLeibnizMatrix_val_neg
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms multiIndexLeibniz_Iic_aux
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms gadget_matrix_factoring_reindex
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms — DISCHARGED).
+#print axioms gadget_matrix_factoring_LHS_eq
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms gadget_matrix_factoring_RHS_eq
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms sum_Iic_sub_shift_bijection
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
