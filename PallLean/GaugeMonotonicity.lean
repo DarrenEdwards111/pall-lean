@@ -98,4 +98,40 @@ theorem IsRankMonotoneGauge.comp
     _ ≤ mlBlockedSpdpRank B κ ℓ (g₂ p) := h₁ κ ℓ (g₂ p)
     _ ≤ mlBlockedSpdpRank B κ ℓ p := h₂ κ ℓ p
 
+/-! ## Section 4: Projection structure (idempotent gauge)
+
+A **projection gauge** is an idempotent ℚ-linear endomorphism (π ∘ π = π).
+This is the structural shape the paper's Π⋆ should take. -/
+
+/-- An idempotent ℚ-linear endomorphism on polynomials. -/
+structure IsProjectionGauge
+    (g : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ) : Prop where
+  idempotent : g ∘ₗ g = g
+
+/-- For a projection gauge, `g (g p) = g p`. -/
+theorem IsProjectionGauge.apply_apply
+    {g : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ}
+    (hg : IsProjectionGauge g) (p : MvPolynomial (Fin N) ℚ) :
+    g (g p) = g p := by
+  have := congrArg (· p) hg.idempotent
+  simpa using this
+
+/-- **The identity map is a projection gauge.** -/
+theorem IsProjectionGauge.id : IsProjectionGauge (LinearMap.id :
+    MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ) := by
+  refine ⟨?_⟩
+  ext p
+  simp
+
+/-- The range of a projection gauge equals its fixed-point set. -/
+theorem IsProjectionGauge.mem_range_iff_fixed
+    {g : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ}
+    (hg : IsProjectionGauge g) (p : MvPolynomial (Fin N) ℚ) :
+    p ∈ LinearMap.range g ↔ g p = p := by
+  constructor
+  · rintro ⟨q, hq⟩
+    rw [← hq, hg.apply_apply]
+  · intro h
+    exact ⟨p, h⟩
+
 end GaugeMonotonicity
