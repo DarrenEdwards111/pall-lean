@@ -216,6 +216,35 @@ axiom gadget_spdp_subspace_factoring
       mlBlockedSpdpSubspace B κ ℓ (g.poly * p) ≤
         Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ))
 
+/-! ### Axiom-free discharge: zero-polynomial case
+
+When `p = 0`, the subspace `mlBlockedSpdpSubspace B κ ℓ (g · 0)` is
+`⊥` (contains only `0`), so the empty finset `G = ∅` suffices for the
+factoring claim: `|∅| = 0 ≤ N^C · rank(0)` and the zero subspace is
+contained in the span of any set. This gives an axiom-free discharge
+of `gadget_spdp_subspace_factoring` for the degenerate `p = 0` case. -/
+
+/-- **Axiom-free discharge of `gadget_spdp_subspace_factoring` at `p = 0`.**
+When `p = 0`, take `G = ∅`: the subspace of `g · 0 = 0` is the zero
+subspace, contained trivially in the span of any set, and `|∅| = 0`
+obeys the cardinality bound. -/
+theorem gadget_spdp_subspace_factoring_zero
+    {N : ℕ} (g : BoundedGadget N)
+    (B : BlockPartition N) (κ ℓ : ℕ) :
+    ∃ (G : Finset (MvPolynomial (Fin N) ℚ)),
+      G.card ≤ N ^ (g.supportSize + g.degreeBound) *
+               mlBlockedSpdpRank B (κ + g.degreeBound)
+                 (ℓ + g.degreeBound) (0 : MvPolynomial (Fin N) ℚ) ∧
+      mlBlockedSpdpSubspace B κ ℓ (g.poly * (0 : MvPolynomial (Fin N) ℚ)) ≤
+        Submodule.span ℚ ((∅ : Finset (MvPolynomial (Fin N) ℚ)) :
+          Set (MvPolynomial (Fin N) ℚ)) := by
+  refine ⟨∅, ?_, ?_⟩
+  · -- |∅| = 0 ≤ N^C · rank(0) = N^C · 0 = 0.
+    simp
+  · -- g · 0 = 0, so subspace is ⊥, trivially contained in any span.
+    rw [mul_zero, mlBlockedSpdpSubspace_zero]
+    exact bot_le
+
 /-- Helper: chain step 1 — finrank is monotone on span containment. -/
 private theorem gadget_mult_rank_step1
     {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
