@@ -196,4 +196,55 @@ theorem det_submatrix_pos_of_posDef
     0 < (M.submatrix e e).det :=
   (PosDef_submatrix_of_injective hM he).det_pos
 
+/-! ## Section 5: Totally Positive Matrix
+
+A matrix all of whose principal minors (indexed by Finsets of n) have
+strictly positive determinants. For symmetric PSD matrices, this is
+equivalent to being PosDef (via PosDef_submatrix_of_injective). -/
+
+/-- A matrix whose principal minors (indexed by `Finset n`) all have
+strictly positive determinants. -/
+def TotallyPositivePrincipalMinors (M : Matrix n n ℝ) : Prop :=
+  ∀ (S : Finset n),
+    0 < (M.submatrix (Subtype.val : { i : n // i ∈ S } → n)
+          (Subtype.val : { i : n // i ∈ S } → n)).det
+
+/-- Every `PosDef` matrix has all principal minors strictly positive. -/
+theorem totallyPositivePrincipalMinors_of_posDef
+    {M : Matrix n n ℝ} (hM : M.PosDef) :
+    TotallyPositivePrincipalMinors M := by
+  intro S
+  exact det_submatrix_pos_of_posDef hM Subtype.val_injective
+
+/-- From `PosDef`, `TotallyPositivePrincipalMinors` follows directly.
+(Converse — recovering `PosDef` from `TotallyPositivePrincipalMinors` —
+is Sylvester's criterion, requiring more advanced spectral theory.) -/
+theorem posDef_implies_totallyPositive
+    {M : Matrix n n ℝ} (hM : M.PosDef) :
+    TotallyPositivePrincipalMinors M :=
+  totallyPositivePrincipalMinors_of_posDef hM
+
+/-! ## Section 6: Determinantal barrier
+
+The amplituhedron barrier function:
+  B(A) := -Σ_{J ∈ 𝒥} log det(A[J, J])
+
+Well-defined for PosDef matrices (all minor dets > 0). On the cone
+of PSD matrices, this barrier → +∞ as A approaches the boundary
+(singular PSD). -/
+
+/-- The determinantal barrier with respect to a `TotallyNonnegativeMinorFamily`.
+
+For `M : Matrix n n ℝ` and a family `𝒥` of principal-minor selections,
+the barrier is defined as `-Σ_i log(det(M[𝒥_i, 𝒥_i]))`.
+
+For `PosDef` matrices and `𝒥 = universalMinorFamily`, each log det is
+well-defined and strictly positive. -/
+noncomputable def determinantalBarrier (𝒥 : TotallyNonnegativeMinorFamily n)
+    [Fintype 𝒥.index] (M : Matrix n n ℝ) : ℝ :=
+  -∑ i : 𝒥.index,
+    letI := 𝒥.shape_fintype i
+    letI := 𝒥.shape_decEq i
+    Real.log ((M.submatrix (𝒥.select i) (𝒥.select i)).det)
+
 end AmplituhedronPSD
