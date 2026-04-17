@@ -48,7 +48,7 @@ because `C c * p = c • p` and scalar multiplication preserves span
 
 /-- For a constant-multiplication of a polynomial, the SPDP subspace of
 the product is contained in the original subspace (up to ℚ-span). -/
-private theorem mlBlockedSpdpSubspace_C_mul_le {N : ℕ} (B : BlockPartition N)
+theorem mlBlockedSpdpSubspace_C_mul_le {N : ℕ} (B : BlockPartition N)
     (κ ℓ : ℕ) (c : ℚ) (p : MvPolynomial (Fin N) ℚ) :
     mlBlockedSpdpSubspace B κ ℓ (MvPolynomial.C c * p) ≤
     mlBlockedSpdpSubspace B κ ℓ p := by

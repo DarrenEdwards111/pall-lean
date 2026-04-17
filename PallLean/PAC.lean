@@ -245,6 +245,99 @@ theorem gadget_spdp_subspace_factoring_zero
     rw [mul_zero, mlBlockedSpdpSubspace_zero]
     exact bot_le
 
+/-- **Axiom-free discharge of `gadget_spdp_subspace_factoring` for
+constant gadgets** (i.e., `g.supportSize = 0 ∧ g.degreeBound = 0`).
+
+For such gadgets `g.poly = C c` for some constant `c`, and
+`mlBlockedSpdpSubspace B κ ℓ (C c · p) ≤ mlBlockedSpdpSubspace B κ ℓ p`
+by the C-mul subspace lemma. Since `mlBlockedSpdpSubspace B κ ℓ p` is
+finite-dimensional over ℚ (proved in `MultilinearSPDP`), it has a
+basis `b : Basis (Fin k) ℚ _` where `k = finrank = mlBlockedSpdpRank`.
+Taking `G = image(b) ⊂ MvPolynomial`, the cardinality is at most `k`
+and span `G = mlBlockedSpdpSubspace B κ ℓ p` ⊇ subspace of `(C c · p)`.
+
+The factoring bound becomes `|G| ≤ k = mlBlockedSpdpRank B κ ℓ p ≤
+N^0 · mlBlockedSpdpRank B (κ+0) (ℓ+0) p`, which is exactly what the
+axiom claims at `N^(0+0) = 1`. -/
+theorem gadget_spdp_subspace_factoring_const
+    {N : ℕ} (g : BoundedGadget N)
+    (hSz : g.supportSize = 0) (hDeg : g.degreeBound = 0)
+    (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
+    ∃ (G : Finset (MvPolynomial (Fin N) ℚ)),
+      G.card ≤ N ^ (g.supportSize + g.degreeBound) *
+               mlBlockedSpdpRank B (κ + g.degreeBound)
+                 (ℓ + g.degreeBound) p ∧
+      mlBlockedSpdpSubspace B κ ℓ (g.poly * p) ≤
+        Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)) := by
+  classical
+  -- Step 1: extract the constant c such that g.poly = C c.
+  -- From g.vars_card_le ≤ 0 (= g.supportSize) we get g.vars = ∅.
+  -- From g.totalDegree_le ≤ 0 (= g.degreeBound) we get g.totalDegree = 0,
+  -- hence g.poly = C (g.poly.coeff 0) by totalDegree_eq_zero_iff_eq_C.
+  have htot : g.poly.totalDegree = 0 := by
+    have := g.totalDegree_le
+    rw [hDeg] at this
+    omega
+  have hg_eq : g.poly = MvPolynomial.C (g.poly.coeff 0) :=
+    (MvPolynomial.totalDegree_eq_zero_iff_eq_C).mp htot
+  set c := g.poly.coeff 0 with hc_def
+  -- Step 2: Upper-bound the (g·p)-subspace by the p-subspace, via C-mul.
+  have h_sub_le : mlBlockedSpdpSubspace B κ ℓ (g.poly * p) ≤
+                  mlBlockedSpdpSubspace B κ ℓ p := by
+    rw [hg_eq]
+    exact PACLeibniz.mlBlockedSpdpSubspace_C_mul_le B κ ℓ c p
+  -- Step 3: Construct G as the image of a basis of mlBlockedSpdpSubspace B κ ℓ p.
+  set V := mlBlockedSpdpSubspace B κ ℓ p
+  haveI : FiniteDimensional ℚ ↥V := inferInstance
+  -- Use Module.finBasis to get a basis indexed by Fin (finrank V).
+  set k := Module.finrank ℚ ↥V
+  let b : Module.Basis (Fin k) ℚ ↥V := Module.finBasis ℚ ↥V
+  -- G : Finset (MvPolynomial (Fin N) ℚ) given as the image of b
+  -- cast back through the subtype inclusion.
+  let G : Finset (MvPolynomial (Fin N) ℚ) :=
+    (Finset.univ : Finset (Fin k)).image (fun i => (b i : MvPolynomial (Fin N) ℚ))
+  refine ⟨G, ?_, ?_⟩
+  · -- Cardinality bound: |G| ≤ k = finrank V = mlBlockedSpdpRank B κ ℓ p ≤
+    --                    N^(0+0) · mlBlockedSpdpRank B (κ+0) (ℓ+0) p.
+    have hG_card : G.card ≤ k := by
+      calc G.card ≤ (Finset.univ : Finset (Fin k)).card := Finset.card_image_le
+        _ = k := by simp
+    have hk_eq : k = mlBlockedSpdpRank B κ ℓ p := by
+      show Module.finrank ℚ ↥V = mlBlockedSpdpRank B κ ℓ p
+      rfl
+    have hSz0 : g.supportSize + g.degreeBound = 0 := by rw [hSz, hDeg]
+    have hκ0 : κ + g.degreeBound = κ := by rw [hDeg]; omega
+    have hℓ0 : ℓ + g.degreeBound = ℓ := by rw [hDeg]; omega
+    rw [hSz0, hκ0, hℓ0, pow_zero, one_mul]
+    exact hG_card.trans hk_eq.le
+  · -- Containment: mlBlockedSpdpSubspace B κ ℓ (g · p) ⊆ span G.
+    -- We have (g · p) subspace ⊆ V (by h_sub_le), and span G = V (basis).
+    refine le_trans h_sub_le ?_
+    -- Show V ⊆ span G. Every v ∈ V can be written in terms of the basis b.
+    rintro v hv
+    -- We have v ∈ V, so ⟨v, hv⟩ : ↥V. By basis, ⟨v, hv⟩ is a linear combo of b i's.
+    have := b.mem_span ⟨v, hv⟩
+    -- b.mem_span : ⟨v, hv⟩ ∈ Submodule.span ℚ (Set.range b)
+    -- Transfer through subtype inclusion.
+    have hspan : v ∈ (Submodule.span ℚ (Set.range (fun i => (b i : MvPolynomial (Fin N) ℚ)))) := by
+      -- Submodule.span ℚ (Set.range b) maps to
+      -- Submodule.span ℚ (Set.range (Subtype.val ∘ b)) = Submodule.span ℚ (image ...).
+      have h_map : Submodule.map V.subtype (Submodule.span ℚ (Set.range b)) =
+                   Submodule.span ℚ (Set.range (fun i => (b i : MvPolynomial (Fin N) ℚ))) := by
+        rw [Submodule.map_span]
+        congr 1
+        ext x
+        simp [Set.mem_range, Set.mem_image]
+      rw [← h_map]
+      exact Submodule.mem_map.mpr ⟨⟨v, hv⟩, this, rfl⟩
+    -- Now show span(range b) = span G (as subsets of MvPolynomial).
+    have hG_eq : (↑G : Set (MvPolynomial (Fin N) ℚ)) =
+                 Set.range (fun i => (b i : MvPolynomial (Fin N) ℚ)) := by
+      ext x
+      simp [G, Finset.mem_image, Set.mem_range, Finset.mem_univ]
+    rw [hG_eq]
+    exact hspan
+
 /-- Helper: chain step 1 — finrank is monotone on span containment. -/
 private theorem gadget_mult_rank_step1
     {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
