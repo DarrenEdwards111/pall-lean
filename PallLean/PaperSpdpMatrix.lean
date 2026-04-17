@@ -1984,17 +1984,34 @@ theorem Matrix_rank_sum_le {ι m n R : Type*} [DecidableEq n] [Fintype n] [Field
       _ ≤ (f a).rank + ∑ i ∈ s', (f i).rank :=
           Nat.add_le_add_left ih _
 
-/-! ### Phase 6 assembly — in progress
+/-! ### Phase 6 assembly — documented path
 
-The matrix_β / D_β / E_β definitions + factoring theorem `matrix_β = D_β * M * E_β`
-give `rank(matrix_β) ≤ rank(M)` via `Matrix.rank_mul_le_right` applied twice.
-Combined with `Matrix_rank_sum_le` + `gadgetDerivIndices_card_le_N_pow`, we
-would get `paperSpdpRank κ ℓ (g·p) ≤ N^C · paperSpdpRank shifted p`.
+Full assembly plan for discharging `paperSpdpRank_gadget_mul_le`:
 
-Deferred: the concrete definitions and proofs of matrix equivalence
-(paperSpdpMatrixVal κ ℓ (g·p) = ∑ β, matrix_β) require careful
-MvPolynomial.coeff_mul manipulation (~200 lines) that exceeds
-current session capacity for clean convergence. -/
+1. Define `matrix_β g κ ℓ p β : Matrix (SpdpRowIndex N κ) (SpdpColIndex N ℓ) ℚ`
+   as the β-contribution to the Leibniz decomposition:
+   ```
+   matrix_β α μ = (if β ≤ α then multiBinom α β · coeff μ (∂^β g · ∂^(α-β) p) else 0)
+   ```
+2. Define selector/scaling matrix:
+   `D_β α δ = (if β ≤ α ∧ δ = α - β then multiBinom α β else 0)`
+3. Define convolution matrix:
+   `E_β σ μ = (if σ ≤ μ then coeff (μ-σ) (∂^β g) else 0)`
+4. Prove factoring: `matrix_β = D_β · M · E_β` where M = paperSpdpMatrixVal shifted p.
+   This requires `Matrix.mul_apply` + `Finset.sum_eq_single` for the δ-sum
+   (collapses via D_β's single-support) + `MvPolynomial.coeff_mul` bridging
+   the σ-sum with coefficient convolution.
+5. Rank bound: `rank(matrix_β) ≤ rank(M)` via `Matrix.rank_mul_le_left`
+   + `Matrix.rank_mul_le_right` applied to the factoring.
+6. Prove `paperSpdpMatrixVal κ ℓ (g·p) = ∑ β ∈ boundedMultiIndexFinset N κ, matrix_β`
+   using `gadget_matrix_factoring_entry` + the filter→Iic reindexing via
+   `filter_boundedMulti_eq_Iic_of_bound`.
+7. Final bound: `rank(∑ β, matrix_β) ≤ ∑ β, rank(matrix_β) ≤ #gadgetDerivIndices · rank(M)`
+   via `Matrix_rank_sum_le` + matrix_β = 0 outside gadgetDerivIndices
+   (since ∂^β g = 0 there) + `gadgetDerivIndices_card_le_N_pow`.
+
+Each step is mechanically sound; total implementation ~250-400 lines. Left
+for a focused session. -/
 
 /-- **Phase 6 narrower axiom**: paper's rank bound on the matrix formulation.
 
