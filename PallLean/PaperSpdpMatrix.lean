@@ -526,6 +526,95 @@ theorem boundedMultiIndexFinset_zero (N : ℕ) :
     · -- sum of 0 function is 0, and 0 ≤ 0.
       simp
 
+/-! ### Coefficient-matching helpers for the induction step -/
+
+/-- `multiBinom α' γ = 0` when `γ i = α i` and `α i ≥ 1`, where
+`α' = α - single i 1`. (Because `(α i - 1 choose α i) = 0`.) -/
+theorem multiBinom_alpha_sub_eq_zero {N : ℕ} (α γ : Fin N →₀ ℕ) (i : Fin N)
+    (hi : α i ≥ 1) (hγi : γ i = α i) :
+    multiBinom (α - Finsupp.single i 1) γ = 0 := by
+  classical
+  unfold multiBinom
+  rw [show (Finset.univ : Finset (Fin N)) = insert i (Finset.univ.erase i) by
+        simp [Finset.insert_erase]]
+  rw [Finset.prod_insert (Finset.notMem_erase i _)]
+  -- At i: ((α - single i 1) i).choose (γ i) = (α i - 1).choose (α i) = 0.
+  have h_αi : ((α - Finsupp.single i 1) : Fin N →₀ ℕ) i = α i - 1 := by
+    rw [Finsupp.tsub_apply, Finsupp.single_eq_same]
+  rw [h_αi, hγi]
+  have : (α i - 1).choose (α i) = 0 := Nat.choose_eq_zero_of_lt (by omega)
+  rw [this]
+  simp
+
+/-- **Coefficient decomposition identity**: for `γ ≤ α` and `α i ≥ 1`,
+
+`multiBinom α γ = (if γ i ≥ 1 then multiBinom α' (γ - single i 1) else 0)
+              + (if γ ≤ α' then multiBinom α' γ else 0)`
+
+where `α' = α - single i 1`. This is the key identity that combines the
+two halves of the Leibniz induction step. -/
+theorem multiBinom_decomp {N : ℕ} (α γ : Fin N →₀ ℕ) (i : Fin N)
+    (hi : α i ≥ 1) (hγ_le : multiIndexLE γ α) :
+    multiBinom α γ =
+    (if γ i ≥ 1 then
+       multiBinom (α - Finsupp.single i 1) (γ - Finsupp.single i 1)
+     else 0) +
+    (if multiIndexLE γ (α - Finsupp.single i 1) then
+       multiBinom (α - Finsupp.single i 1) γ
+     else 0) := by
+  classical
+  -- Case-split on γ i.
+  by_cases hγi : γ i = 0
+  · -- γ i = 0: first branch 0, second branch active.
+    have h_γ_le_α' : multiIndexLE γ (α - Finsupp.single i 1) := by
+      intro j
+      rw [Finsupp.tsub_apply]
+      by_cases hij : i = j
+      · subst hij
+        rw [Finsupp.single_eq_same, hγi]
+        omega
+      · have h0 : (Finsupp.single i 1 : Fin N →₀ ℕ) j = 0 := by
+          rw [Finsupp.single_apply]; simp [hij]
+        rw [h0, Nat.sub_zero]
+        exact hγ_le j
+    have h_not_pos : ¬ (γ i ≥ 1) := by omega
+    rw [if_neg h_not_pos, if_pos h_γ_le_α', zero_add]
+    exact multiBinom_at_zero_coord α γ i hγi
+  · -- γ i ≥ 1.
+    have hγi_pos : γ i ≥ 1 := Nat.one_le_iff_ne_zero.mpr hγi
+    rw [if_pos hγi_pos]
+    -- Sub-case: γ i ≤ α i - 1 vs γ i = α i.
+    by_cases hγ_le_α' : multiIndexLE γ (α - Finsupp.single i 1)
+    · -- γ ≤ α' and γ i ≥ 1: both branches active. Use Pascal.
+      rw [if_pos hγ_le_α']
+      -- γ i ≤ α' i = α i - 1, so γ i < α i.
+      -- multiBinom_pascal gives: multiBinom α γ = multiBinom α' γ + multiBinom α' (γ - single i 1).
+      -- Goal:                     multiBinom α γ = multiBinom α' (γ - single i 1) + multiBinom α' γ.
+      rw [multiBinom_pascal α γ i hi hγi_pos, add_comm]
+    · -- γ i = α i (since γ ≤ α but not γ ≤ α'): only first branch.
+      rw [if_neg hγ_le_α', add_zero]
+      -- Show: multiBinom α γ = multiBinom (α - single i 1) (γ - single i 1).
+      have hγi_eq : γ i = α i := by
+        by_contra h_ne
+        have hγi_lt : γ i ≤ α i - 1 := by
+          have := hγ_le i
+          omega
+        apply hγ_le_α'
+        intro j
+        rw [Finsupp.tsub_apply]
+        by_cases hij : i = j
+        · subst hij
+          rw [Finsupp.single_eq_same]
+          omega
+        · have h0 : (Finsupp.single i 1 : Fin N →₀ ℕ) j = 0 := by
+            rw [Finsupp.single_apply]; simp [hij]
+          rw [h0, Nat.sub_zero]
+          exact hγ_le j
+      -- By Pascal + multiBinom α' γ = 0 (at γ i = α i).
+      have hpas := multiBinom_pascal α γ i hi hγi_pos
+      have h_zero := multiBinom_alpha_sub_eq_zero α γ i hi hγi_eq
+      rw [hpas, h_zero, zero_add]
+
 /-- **Multi-index Leibniz, inductive step decomposition (axiom-free).**
 For any `α ≠ 0` with `i ∈ α.support`, we can rewrite
 `iterDerivList (multiIndexToList α) (g * p)` as a sum of two
