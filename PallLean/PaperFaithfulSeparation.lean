@@ -1441,6 +1441,41 @@ theorem rank_sandwich_axiom_iff_no_bounded_sat_decider :
 #print axioms rank_sandwich_axiom_iff_no_bounded_sat_decider
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
 
+/-- **Generalized arithmetic: the rank sandwich fails for all `n ≥ 2^804`.**
+
+Generalizes `no_rank_sandwich_at_2pow804` to the full range `n ≥ 2^804`.
+For any such `n`, there is no natural number `r` with
+`C(n/3, log n) ≤ r ∧ r ≤ n^200`.
+
+Proof via the same chain: n^201 ≤ n^(log n / 4) ≤ C(n/30, log n) ≤
+C(n/3, log n); combined with r ≤ n^200 gives n^201 ≤ n^200, contradiction. -/
+theorem no_rank_sandwich_at_large_n (n : ℕ) (hn : n ≥ 2 ^ 804) :
+    ¬ ∃ (r : ℕ),
+      Nat.choose (n / 3) (Nat.log 2 n) ≤ r ∧ r ≤ n ^ 200 := by
+  rintro ⟨r, hr_lb, hr_ub⟩
+  have hn20 : n ≥ 2 ^ 20 :=
+    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn
+  have hbin : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
+    BinomialBound.binomial_lower_bound_concrete n hn20
+  have hmono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose (n / 3) (Nat.log 2 n) :=
+    Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
+  have hchain : n ^ (Nat.log 2 n / 4) ≤ n ^ 200 :=
+    le_trans (le_trans (le_trans hbin hmono) hr_lb) hr_ub
+  have hlog : 804 ≤ Nat.log 2 n := Nat.le_log_of_pow_le (by norm_num : 1 < 2) hn
+  have hdiv : 201 ≤ Nat.log 2 n / 4 := by omega
+  have hn_gt_1 : 1 < n := by
+    have h2_804 : (2 : ℕ) ≤ 2 ^ 804 := by
+      calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+      _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    omega
+  have hcontra : n ^ 201 ≤ n ^ 200 :=
+    le_trans (Nat.pow_le_pow_right (by omega : 1 ≤ n) hdiv) hchain
+  exact absurd hcontra
+    (not_le_of_gt (Nat.pow_lt_pow_right hn_gt_1 (by omega : 200 < 201)))
+
+#print axioms no_rank_sandwich_at_large_n
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+
 /-- **Derived theorem: the narrow gauge axiom follows from the Theorem 207
 axiom.** The narrow `exists_amplituhedron_gauge_for_sat_decider` is
 (as a statement) implied by `exists_theorem207_witness` plus the arithmetic
