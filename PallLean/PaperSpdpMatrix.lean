@@ -2652,6 +2652,39 @@ theorem iterDerivList_list_zero_of_not_mem_gadgetDerivIndices {N : ℕ}
   rw [GadgetDerivs.iterDerivList_canonical]
   exact iterDerivList_eq_zero_of_not_mem_gadgetDerivIndices g _ hA
 
+/-- **Subspace-level Leibniz containment, axiom-free.**
+
+Every generator of `mlBlockedSpdpSubspace B κ ℓ (g · p)` lies in the
+ℚ-span of Leibniz product terms
+`mlProj(m * iterDerivList Al g * iterDerivList Bl p)`, indexed by
+lists `Al, Bl`, for the same `m, S` as the original generator.
+
+This is the direct subspace lift of
+`mlProj_m_iterDerivList_mul_mem_leibniz_proj_span` via
+`Submodule.span_le`. It does not yet bound the set by a finite
+generating family — that requires restricting `Al` via
+`gadgetDerivIndices` (next piece). -/
+theorem mlBlockedSpdpSubspace_mul_le_leibniz_proj_span {N : ℕ}
+    (g : MvPolynomial (Fin N) ℚ) (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) :
+    MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ (g * p) ≤
+    Submodule.span ℚ
+      { r | ∃ (m : MvPolynomial (Fin N) ℚ) (S Al Bl : List (Fin N)),
+            S.length = κ ∧ m.totalDegree ≤ ℓ ∧
+            m.vars ⊆ S.toFinset ∧ isBlockAdmissible B S ∧
+            r = MultilinearSPDP.mlProj
+              (m * SPDP.iterDerivList Al g *
+                   SPDP.iterDerivList Bl p) } := by
+  classical
+  unfold MultilinearSPDP.mlBlockedSpdpSubspace
+  rw [Submodule.span_le]
+  rintro q ⟨S, m, hlen, hdeg, hvars, hadm, hq⟩
+  rw [hq]
+  have h := mlProj_m_iterDerivList_mul_mem_leibniz_proj_span m g p S
+  refine Submodule.span_mono ?_ h
+  rintro r ⟨Al, Bl, hr⟩
+  exact ⟨m, S, Al, Bl, hlen, hdeg, hvars, hadm, hr⟩
+
 /-- **Phase 6 tight rank bound, proved axiom-free**: paper's
 `rank(g·p) ≤ N^(supportSize + degreeBound) · rank(shifted)`. -/
 theorem paperSpdpRank_gadget_mul_le_tight {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
