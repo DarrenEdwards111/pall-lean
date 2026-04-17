@@ -177,6 +177,108 @@ theorem diagPderiv_X_off_diag {n : ℕ} (i : Fin n) (p q : Fin n)
   have hne : (i, i) ≠ (p, q) := fun heq => h heq.symm
   simp [Pi.single_apply, hne]
 
+/-! ### Leibniz rule for finite products
+
+General Leibniz formula for `pderiv` applied to a finite product:
+`pderiv i (∏_{k ∈ s} f k) = ∑_{k ∈ s} pderiv i (f k) · ∏_{j ∈ s \ {k}} f j`.
+
+This isn't in Mathlib for `MvPolynomial.pderiv` / general derivations
+(only the binary form exists), so we prove it here by induction on
+the finset. -/
+
+theorem pderiv_finset_prod {σ : Type*} [DecidableEq σ] {R : Type*} [CommRing R]
+    (i : σ) {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (f : ι → MvPolynomial σ R) :
+    MvPolynomial.pderiv i (∏ k ∈ s, f k) =
+    ∑ k ∈ s, (MvPolynomial.pderiv i (f k)) * ∏ j ∈ s.erase k, f j := by
+  induction s using Finset.induction_on with
+  | empty => simp
+  | insert a s' ha_notin ih =>
+    rw [Finset.prod_insert ha_notin]
+    rw [MvPolynomial.pderiv_mul]
+    rw [ih]
+    rw [Finset.sum_insert ha_notin]
+    -- Split the sum: k = a term, then k ∈ s' terms.
+    congr 1
+    · -- a term: pderiv i (f a) * ∏_{j ∈ (insert a s').erase a} f j
+      congr 1
+      rw [Finset.erase_insert ha_notin]
+    · -- Sum over s': f a * (pderiv i (f k) * ∏_{j ∈ s'.erase k} f j)
+      -- equals ∑_{k ∈ s'} pderiv i (f k) * ∏_{j ∈ (insert a s').erase k} f j
+      rw [Finset.mul_sum]
+      apply Finset.sum_congr rfl
+      intro k hk
+      have hka : k ≠ a := fun heq => ha_notin (heq ▸ hk)
+      rw [Finset.erase_insert_of_ne hka.symm]
+      rw [Finset.prod_insert
+        (fun hmem => ha_notin ((Finset.mem_erase.mp hmem).2))]
+      ring
+
+/-! ### Step 2a: single-derivative of a permutation term
+
+For a permutation `σ : Equiv.Perm (Fin n)` and the product
+`Π_k X_{(σ k, k)}`, applying `diagPderiv i` yields:
+- `Π_{k ≠ i} X_{(σ k, k)}` if `σ i = i` (identity on `i`)
+- `0` otherwise.
+
+This is the key single-variable case underlying Step 2's
+cofactor identity `∂_S permPoly = perm(X[T,T])`. -/
+
+theorem diagPderiv_perm_term_fixes (n : ℕ) (i : Fin n)
+    (σ : Equiv.Perm (Fin n)) (hσ : σ i = i) :
+    diagPderiv i (∏ k : Fin n,
+        (MvPolynomial.X (σ k, k) : MvPolynomial (Fin n × Fin n) ℚ)) =
+    ∏ k ∈ (Finset.univ : Finset (Fin n)).erase i,
+        (MvPolynomial.X (σ k, k) : MvPolynomial (Fin n × Fin n) ℚ) := by
+  unfold diagPderiv
+  rw [pderiv_finset_prod]
+  -- Σ_k pderiv_i (X_(σk,k)) * Π_{j ∈ univ.erase k} X_(σj,j)
+  -- Only k = i contributes (others give pderiv = 0).
+  rw [Finset.sum_eq_single i]
+  · -- k = i: pderiv i (X (σ i, i)) * Π_{j ∈ univ.erase i} X(σj,j)
+    have hsi : (σ i, i) = (i, i) := by rw [hσ]
+    show MvPolynomial.pderiv (i, i) (MvPolynomial.X (σ i, i)) * _ = _
+    have h1 : MvPolynomial.pderiv (i, i) (MvPolynomial.X (σ i, i) :
+        MvPolynomial (Fin n × Fin n) ℚ) = 1 := by
+      rw [hsi]
+      have := diagPderiv_X_diag (n := n) i
+      unfold diagPderiv at this
+      exact this
+    rw [h1, one_mul]
+  · -- k ≠ i: pderiv i (X (σ k, k)) = 0 (since (σ k, k) has second coord k ≠ i).
+    intro k _ hk_ne_i
+    have hne : (σ k, k) ≠ (i, i) := by
+      intro heq
+      exact hk_ne_i (Prod.mk.injEq .. |>.mp heq).2
+    have hzero := diagPderiv_X_off_diag (n := n) i (σ k) k hne
+    unfold diagPderiv at hzero
+    rw [hzero, zero_mul]
+  · intro hnotin
+    exact absurd (Finset.mem_univ i) hnotin
+
+theorem diagPderiv_perm_term_nonfixing (n : ℕ) (i : Fin n)
+    (σ : Equiv.Perm (Fin n)) (hσ : σ i ≠ i) :
+    diagPderiv i (∏ k : Fin n,
+        (MvPolynomial.X (σ k, k) : MvPolynomial (Fin n × Fin n) ℚ)) = 0 := by
+  unfold diagPderiv
+  rw [pderiv_finset_prod]
+  apply Finset.sum_eq_zero
+  intro k _
+  -- Case: if k = i, pderiv i (X(σi, i)) = 0 because σi ≠ i.
+  -- Case: if k ≠ i, pderiv i (X(σk, k)) = 0 because second coord k ≠ i.
+  by_cases hk : k = i
+  · rw [hk]
+    have hne : (σ i, i) ≠ (i, i) := fun heq =>
+      hσ (Prod.mk.injEq .. |>.mp heq).1
+    have h := diagPderiv_X_off_diag (n := n) i (σ i) i hne
+    unfold diagPderiv at h
+    rw [h, zero_mul]
+  · have hne : (σ k, k) ≠ (i, i) :=
+      fun heq => hk (Prod.mk.injEq .. |>.mp heq).2
+    have h := diagPderiv_X_off_diag (n := n) i (σ k) k hne
+    unfold diagPderiv at h
+    rw [h, zero_mul]
+
 /-- `permPoly n` is nonzero for `n ≥ 1` (the identity permutation's
 diagonal term contributes a nonzero monomial). -/
 theorem permPoly_ne_zero_of_pos {n : ℕ} (hn : 1 ≤ n) :
