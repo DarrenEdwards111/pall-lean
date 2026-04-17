@@ -247,4 +247,44 @@ noncomputable def determinantalBarrier (𝒥 : TotallyNonnegativeMinorFamily n)
     letI := 𝒥.shape_decEq i
     Real.log ((M.submatrix (𝒥.select i) (𝒥.select i)).det)
 
+/-- Identity submatrix via injection = identity. -/
+theorem submatrix_one_eq_one
+    {m' : Type*} [Fintype m'] [DecidableEq m']
+    {e : m' → n} (he : Function.Injective e) :
+    ((1 : Matrix n n ℝ).submatrix e e) = 1 := by
+  ext i j
+  simp only [Matrix.submatrix_apply, Matrix.one_apply]
+  by_cases hij : i = j
+  · simp [hij]
+  · have : e i ≠ e j := fun heq => hij (he heq)
+    simp [hij, this]
+
+/-- The determinant of an identity submatrix is 1. -/
+theorem det_submatrix_one
+    {m' : Type*} [Fintype m'] [DecidableEq m']
+    {e : m' → n} (he : Function.Injective e) :
+    ((1 : Matrix n n ℝ).submatrix e e).det = 1 := by
+  rw [submatrix_one_eq_one he]
+  exact Matrix.det_one
+
+/-- `determinantalBarrier 𝒥 1 = 0`: the barrier vanishes at the identity.
+(Each log det(I) = log 1 = 0; sum is 0.)
+
+Requires each selection to be injective. -/
+theorem determinantalBarrier_one (𝒥 : TotallyNonnegativeMinorFamily n)
+    [Fintype 𝒥.index]
+    (hselect : ∀ i, Function.Injective (𝒥.select i)) :
+    determinantalBarrier 𝒥 (1 : Matrix n n ℝ) = 0 := by
+  unfold determinantalBarrier
+  rw [show
+      (∑ i : 𝒥.index, letI := 𝒥.shape_fintype i; letI := 𝒥.shape_decEq i
+        Real.log (((1 : Matrix n n ℝ).submatrix (𝒥.select i) (𝒥.select i)).det))
+      = ∑ _i : 𝒥.index, (0 : ℝ) from by
+    apply Finset.sum_congr rfl
+    intro i _
+    letI := 𝒥.shape_fintype i
+    letI := 𝒥.shape_decEq i
+    rw [det_submatrix_one (hselect i), Real.log_one]]
+  simp
+
 end AmplituhedronPSD
