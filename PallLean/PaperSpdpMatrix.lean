@@ -854,6 +854,77 @@ theorem sum_Iic_sub_shift_bijection {N : ℕ} {M : Type*} [AddCommMonoid M]
     rw [Finsupp.tsub_apply, Finsupp.coe_add, Pi.add_apply]
     omega
 
+/-! ### Polynomial-derivative rewrite lemmas for the inductive assembly -/
+
+/-- `iterDerivList (list β) (pderiv i g) = iterDerivList (list (β + single i 1)) g`. -/
+theorem iterDerivList_pderiv_eq_add_single {N : ℕ} (β : Fin N →₀ ℕ) (i : Fin N)
+    (g : MvPolynomial (Fin N) ℚ) :
+    SPDP.iterDerivList (GadgetDerivs.multiIndexToList β)
+        ((MvPolynomial.pderiv i) g) =
+    SPDP.iterDerivList
+        (GadgetDerivs.multiIndexToList (β + Finsupp.single i 1)) g := by
+  classical
+  -- Left: iterDerivList (list β) (pderiv i g)
+  --     = iterDerivList ([i] ++ list β) g   (iterDerivList_append backward)
+  --     = iterDerivList (i :: list β) g
+  have h_step1 : SPDP.iterDerivList (GadgetDerivs.multiIndexToList β)
+        ((MvPolynomial.pderiv i) g) =
+      SPDP.iterDerivList (i :: GadgetDerivs.multiIndexToList β) g := by
+    rw [IterDerivHelpers.iterDerivList_cons]
+  rw [h_step1]
+  -- Right: i :: list β is perm of list (β + single i 1).
+  -- Use multiIndexToList_perm_cons_single at (β + single i 1).
+  have hi_pos : ((β + Finsupp.single i 1) : Fin N →₀ ℕ) i ≥ 1 := by
+    rw [Finsupp.coe_add, Pi.add_apply, Finsupp.single_eq_same]
+    omega
+  have h_cancel : (β + Finsupp.single i 1) - Finsupp.single i 1 = β := by
+    ext j
+    rw [Finsupp.tsub_apply, Finsupp.coe_add, Pi.add_apply]
+    omega
+  have h_perm : (GadgetDerivs.multiIndexToList (β + Finsupp.single i 1)).Perm
+                (i :: GadgetDerivs.multiIndexToList β) := by
+    have h1 := multiIndexToList_perm_cons_single (β + Finsupp.single i 1) i hi_pos
+    rw [h_cancel] at h1
+    exact h1
+  exact IterDerivHelpers.iterDerivList_perm h_perm.symm g
+
+/-- When `β ≤ α'` (i.e., β i ≤ α i - 1 and β j ≤ α j for j ≠ i, where
+α' = α - single i 1), we have `(α' - β) + single i 1 = α - β`. -/
+theorem finsupp_sub_add_single_when_le {N : ℕ} (α : Fin N →₀ ℕ) (β : Fin N →₀ ℕ)
+    (i : Fin N) (hi : α i ≥ 1)
+    (hβ : β ≤ α - Finsupp.single i 1) :
+    (α - Finsupp.single i 1 - β) + Finsupp.single i 1 = α - β := by
+  ext j
+  rw [Finsupp.coe_add, Pi.add_apply, Finsupp.tsub_apply, Finsupp.tsub_apply,
+      Finsupp.tsub_apply]
+  have hβj := Finsupp.le_def.mp hβ j
+  rw [Finsupp.tsub_apply] at hβj
+  by_cases hij : i = j
+  · subst hij
+    rw [Finsupp.single_eq_same] at *
+    omega
+  · have h0 : (Finsupp.single i 1 : Fin N →₀ ℕ) j = 0 := by
+      rw [Finsupp.single_apply]; simp [hij]
+    rw [h0] at *
+    omega
+
+/-- Second variant: `iterDerivList (list (α' - β)) (pderiv i p)
+   = iterDerivList (list (α - β)) p` when `β ≤ α'`. -/
+theorem iterDerivList_pderiv_subshift {N : ℕ} (α : Fin N →₀ ℕ) (β : Fin N →₀ ℕ)
+    (i : Fin N) (hi : α i ≥ 1)
+    (hβ : β ≤ α - Finsupp.single i 1)
+    (p : MvPolynomial (Fin N) ℚ) :
+    SPDP.iterDerivList
+        (GadgetDerivs.multiIndexToList (α - Finsupp.single i 1 - β))
+        ((MvPolynomial.pderiv i) p) =
+    SPDP.iterDerivList (GadgetDerivs.multiIndexToList (α - β)) p := by
+  rw [iterDerivList_pderiv_eq_add_single]
+  rw [finsupp_sub_add_single_when_le α β i hi hβ]
+
+/-- Similar rewrite: `multiIndexSub α β = α - β` (as Finsupps). -/
+theorem multiIndexSub_eq_tsub' {N : ℕ} (α β : Fin N →₀ ℕ) :
+    multiIndexSub α β = α - β := multiIndexSub_eq_tsub α β
+
 /-! ### Inductive assembly scaffolding
 
 Helper theorem: the LHS = RHS equality using Finset.Iic form, proved by
