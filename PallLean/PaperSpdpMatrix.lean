@@ -931,6 +931,24 @@ Helper theorem: the LHS = RHS equality using Finset.Iic form, proved by
 induction on `α.sum id`. The main `multiIndexLeibniz_theorem` will bridge
 to the filter form via `filter_boundedMulti_eq_Iic`. -/
 
+/-! ### Main induction assembly (work in progress)
+
+The full induction theorem `multiIndexLeibniz_Iic_aux` by strong
+induction on `α.sum id` would combine:
+- Base case: `multiIndexLeibniz_Iic_zero`.
+- Inductive step:
+  * `multiIndexLeibniz_step_decomposition` + IH twice.
+  * `iterDerivList_pderiv_eq_add_single` and `iterDerivList_pderiv_subshift`
+    to rewrite the `pderiv` iterDerivList terms back into multi-index form.
+  * `sum_Iic_sub_shift_bijection` to reindex the first sum onto
+    `{γ ∈ Iic α : γ i ≥ 1}`.
+  * `multiBinom_decomp` + `Finset.sum_add_distrib` to combine both sums
+    into a single sum over `Iic α` with coefficient `multiBinom α γ`.
+
+All the pieces above are proved axiom-free; the assembly itself is
+~80-150 additional lines of Finset manipulation (indicator extensions
+of each sum to `Iic α`, splitting via `Finset.sum_ite`, etc.). -/
+
 /-- **Multi-index Leibniz, Finset.Iic form, base case (α = 0), axiom-free.** -/
 theorem multiIndexLeibniz_Iic_zero {N : ℕ} (g p : MvPolynomial (Fin N) ℚ) :
     SPDP.iterDerivList (GadgetDerivs.multiIndexToList (0 : Fin N →₀ ℕ))
