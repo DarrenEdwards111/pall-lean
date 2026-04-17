@@ -259,40 +259,95 @@ noncomputable instance {N : ℕ} (β α : Fin N →₀ ℕ) :
     Decidable (multiIndexLE β α) :=
   Classical.propDecidable _
 
+/-- **Multi-index binomial coefficient.**
+
+For `α, β : Fin N →₀ ℕ`, `multiBinom α β = ∏ i : Fin N, (α i choose β i)`.
+This matches the multi-index binomial coefficient `α! / (β! · (α-β)!)` when
+`β ≤ α` componentwise (standard identity).
+
+This is the coefficient that appears in the general Leibniz rule:
+`∂^α (f·g) = Σ_{β ≤ α} (α choose β) · ∂^β f · ∂^{α-β} g`. -/
+noncomputable def multiBinom {N : ℕ} (α β : Fin N →₀ ℕ) : ℕ := by
+  classical
+  exact (Finset.univ : Finset (Fin N)).prod (fun i => (α i).choose (β i))
+
+/-- **Componentwise truncated subtraction** for multi-indices.
+
+`(multiIndexSub α β) i = α i - β i` (natural number truncation). When
+`β ≤ α` componentwise, this is the genuine subtraction. -/
+noncomputable def multiIndexSub {N : ℕ} (α β : Fin N →₀ ℕ) : Fin N →₀ ℕ := by
+  classical
+  refine Finsupp.onFinset (α.support ∪ β.support)
+    (fun i => α i - β i) (fun i hi => ?_)
+  -- Need: i ∈ α.support ∪ β.support (given α i - β i ≠ 0).
+  -- Contrapositive: i ∉ α.support ∧ i ∉ β.support ⇒ α i = 0, β i = 0 ⇒ α i - β i = 0.
+  by_contra hmem
+  rw [Finset.mem_union] at hmem
+  push_neg at hmem
+  obtain ⟨hα_nmem, hβ_nmem⟩ := hmem
+  have hα : α i = 0 := Finsupp.notMem_support_iff.mp hα_nmem
+  have hβ : β i = 0 := Finsupp.notMem_support_iff.mp hβ_nmem
+  simp [hα, hβ] at hi
+
+/-- **`multiIndexSub` pointwise value.** -/
+theorem multiIndexSub_apply {N : ℕ} (α β : Fin N →₀ ℕ) (i : Fin N) :
+    (multiIndexSub α β) i = α i - β i := by
+  classical
+  unfold multiIndexSub
+  simp [Finsupp.onFinset_apply]
+
 /-- **Scalar entry of L:** `(α choose β) · coeff_ν(∂^β g)` if β ≤ α
 componentwise, else 0.
 
-For our Phase 4a we only define a simplified version using the binomial
-coefficient at a single component (not multi-index binomial); a more
-faithful formulation uses the multi-index binomial coefficient
-`α! / (β! · (α-β)!)`. -/
+Uses the multi-index binomial `multiBinom α β = ∏_i (α i choose β i)`,
+matching the paper's Leibniz coefficient exactly. -/
 noncomputable def leibnizCoeff {N : ℕ} (g : PAC.BoundedGadget N)
     (α β ν : Fin N →₀ ℕ) : ℚ := by
   classical
   exact if multiIndexLE β α then
-      -- Simplified: use sum of binomials rather than multi-index binomial
-      -- A faithful version would use `α.prod (fun i aᵢ => Nat.choose aᵢ (β i))`.
-      ((α.sum (fun _ n => n)).choose (β.sum (fun _ n => n)) : ℚ) *
+      (multiBinom α β : ℚ) *
         MvPolynomial.coeff ν
           (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly)
     else 0
 
-/-- **Partial L matrix (Phase 4a scaffold).**
-Index type: `(SpdpRowIndex N κ) × (SpdpColIndex N ℓ)` on rows,
-same for columns (but with shifted bounds `κ+d`, `ℓ+d`).
+/-! ## Tensorization convention
 
-Entry at `((α, μ), (δ, σ))`: `leibnizCoeff g α (α-δ) (μ-σ)` (when
-subtractions are nonneg), else 0. -/
+The paper's matrix identity `M(q) = L · M(p)_shifted` operates on matrices
+indexed by (row, column) pairs. For our Lean formulation, we tensorize:
+
+- `M(q)` is viewed as a matrix on `(SpdpRowIndex N κ) × (SpdpColIndex N ℓ)`
+  (the "flattened" index set), with entries in ℚ.
+- `M(p)_shifted` similarly tensorizes over shifted parameters.
+- `L` is a matrix on tensorized index pairs: `((α, μ), (δ, σ)) ↦ scalar`.
+
+This gives scalar matrix multiplication:
+`(L · M(p)_shifted)[(α, μ)] = Σ_{(δ, σ)} L[(α, μ), (δ, σ)] · M(p)_shifted[(δ, σ)]`
+                              = Σ coefficient · entry.
+
+The entry `L[(α, μ), (δ, σ)]` is non-zero only when `δ ≤ α` and `σ ≤ μ`
+componentwise (so `β := α - δ` and `ν := μ - σ` are valid multi-indices).
+Entry value: `(α choose β) · coeff_ν(∂^β g) = leibnizCoeff g α β ν`. -/
+
+/-- **The paper's matrix L, full Phase 4 definition.**
+
+Index types (tensorized pairs on both sides):
+- Rows: `(SpdpRowIndex N κ) × (SpdpColIndex N ℓ)` — matches flattened M(q).
+- Columns: `(SpdpRowIndex N (κ+d)) × (SpdpColIndex N (ℓ+d))` — matches flattened M(p)_shifted.
+
+Entry at `((α, μ), (δ, σ))`:
+- 0 if `δ > α` componentwise or `σ > μ` componentwise (subtraction invalid)
+- Otherwise `leibnizCoeff g α (α-δ) (μ-σ)` where subtractions use
+  truncated finsupp difference. -/
 noncomputable def gadgetLeibnizMatrix {N : ℕ} (g : PAC.BoundedGadget N)
     (κ ℓ : ℕ) :
     Matrix (SpdpRowIndex N κ × SpdpColIndex N ℓ)
            (SpdpRowIndex N (κ + g.degreeBound) ×
             SpdpColIndex N (ℓ + g.degreeBound)) ℚ :=
   fun ⟨α, μ⟩ ⟨δ, σ⟩ =>
-    -- We need α - δ ≥ 0 and μ - σ ≥ 0 componentwise.
-    -- Using Finsupp subtraction (which truncates at 0).
     if multiIndexLE δ.val α.val ∧ multiIndexLE σ.val μ.val then
-      leibnizCoeff g α.val (α.val - δ.val) (μ.val - σ.val)
+      leibnizCoeff g α.val
+        (multiIndexSub α.val δ.val)
+        (multiIndexSub μ.val σ.val)
     else 0
 
 end PaperSpdpMatrix
