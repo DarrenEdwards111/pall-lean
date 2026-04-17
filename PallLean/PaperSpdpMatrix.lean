@@ -2600,6 +2600,47 @@ theorem m_iterDerivList_mul_mem_leibniz_span {N : ℕ}
       exact Submodule.smul_mem _ c hu
   exact Submodule.span_mono hmul_linear this
 
+/-- Applying `mlProj` gives the main subspace-level bound for a single
+generator of `mlBlockedSpdpSubspace B κ ℓ (g·p)`:
+`mlProj(m * iterDerivList S (g·p)) ∈
+  span{mlProj(m * ∂^A g * ∂^B p) : A, B lists}`. -/
+theorem mlProj_m_iterDerivList_mul_mem_leibniz_proj_span {N : ℕ}
+    (m g p : MvPolynomial (Fin N) ℚ) (S : List (Fin N)) :
+    MultilinearSPDP.mlProj (m * SPDP.iterDerivList S (g * p)) ∈
+    Submodule.span ℚ
+      { r | ∃ A B : List (Fin N),
+          r = MultilinearSPDP.mlProj
+            (m * SPDP.iterDerivList A g * SPDP.iterDerivList B p) } := by
+  classical
+  -- Apply mlProj (linear) to m_iterDerivList_mul_mem_leibniz_span.
+  have h := m_iterDerivList_mul_mem_leibniz_span m g p S
+  -- h : m * iterDerivList S (g·p) ∈ span{m * ∂^A g * ∂^B p}
+  -- mlProj is ℚ-linear.
+  have hmap : (fun x => MultilinearSPDP.mlProj x) ''
+      { r | ∃ A B : List (Fin N),
+          r = m * SPDP.iterDerivList A g * SPDP.iterDerivList B p } ⊆
+      { r | ∃ A B : List (Fin N),
+          r = MultilinearSPDP.mlProj
+            (m * SPDP.iterDerivList A g * SPDP.iterDerivList B p) } := by
+    rintro x ⟨y, ⟨A, B, hy⟩, rfl⟩
+    exact ⟨A, B, by rw [hy]⟩
+  refine Submodule.span_mono hmap ?_
+  refine Submodule.span_induction
+    (p := fun v _ => MultilinearSPDP.mlProj v ∈ _) ?_ ?_ ?_ ?_ h
+  · intro v hv
+    exact Submodule.subset_span ⟨v, hv, rfl⟩
+  · show MultilinearSPDP.mlProj 0 ∈ _
+    rw [MultilinearSPDP.mlProj_zero]
+    exact Submodule.zero_mem _
+  · intros u v _ _ hu hv
+    show MultilinearSPDP.mlProj (u + v) ∈ _
+    rw [MultilinearSPDP.mlProj_add]
+    exact Submodule.add_mem _ hu hv
+  · intros c u _ hu
+    show MultilinearSPDP.mlProj (c • u) ∈ _
+    rw [MultilinearSPDP.mlProj_smul]
+    exact Submodule.smul_mem _ c hu
+
 /-- List-level version: `iterDerivList A g.poly = 0` whenever the
 canonical multi-index `listToMultiIndex A` is not a valid gadget
 derivative index. Useful for restricting the Leibniz span. -/
