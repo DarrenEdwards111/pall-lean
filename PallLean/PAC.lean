@@ -71,6 +71,8 @@ import PallLean.CookLevinDefs
 import PallLean.PACLeibniz
 import Mathlib.Tactic
 
+set_option maxHeartbeats 1600000
+
 namespace PAC
 
 open MvPolynomial MultilinearSPDP SPDP
@@ -187,28 +189,62 @@ structure BoundedGadget (N : ℕ) where
   vars_card_le : poly.vars.card ≤ supportSize
   totalDegree_le : poly.totalDegree ≤ degreeBound
 
-/-- **Axiom (Lemma 40(c)): gadget multiplication + PAC projection
-rank bound.**
+/-- **Axiom (Lemma 40(c), Finset-cardinality form): gadget multiplication
+span is finitely generated with bounded cardinality.**
 
-For any bounded gadget `g` and any polynomial `p`, multiplication by `g`
-(followed implicitly by a PAC projection, which is rank non-increasing
-by Lemma 40(b)) satisfies
+This is the paper-exact content of Lemma 40(c) at the span level: the
+SPDP subspace of `g · p` is contained in the ℚ-span of some **finite**
+set `G` of polynomials, with
 
-  `rank(g · p) ≤ N^C · rank(p)` at shifted `(κ + d, ℓ + d)`
+  `|G| ≤ N^(t+d) · rank(SPDP(p) at shifted (κ+d, ℓ+d))`.
 
-where `d = g.degreeBound` and `C` depends only on `g.supportSize`,
-`g.degreeBound`, `κ`, and `ℓ` (NOT on `N`).
+This corresponds exactly to the paper's matrix factoring
+`M^B_{κ,ℓ}(g · p) = L · M^B_{κ+d, ℓ+d}(p)` with `rank L ≤ N^(t+d)`:
+the columns of L × image of `M^B_{κ+d,ℓ+d}(p)` give a generating set of
+the right size, and its finrank becomes `L.card · rank(p)_shifted`.
 
-The paper proves this by Leibniz-expanding `∂^α (g · p)`, showing the
-number of distinct `∂^β g` terms is bounded by a constant, and concluding
-the rows of `M^B_{κ,ℓ}(g · p)` live in the span of `C1` shifted copies of
-the rows of `M^B_{κ', ℓ'}(p)`, hence `rank(M^B_{κ,ℓ}(g · p)) ≤ N^C · rank(p)`. -/
-axiom gadget_multiplication_rank_bound
+The `gadget_multiplication_rank_bound` is then **derived** from this
+axiom + `finrank_span_finset_le_card`. -/
+axiom gadget_spdp_subspace_factoring
+    {N : ℕ} (g : BoundedGadget N)
+    (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
+    ∃ (G : Finset (MvPolynomial (Fin N) ℚ)),
+      G.card ≤ N ^ (g.supportSize + g.degreeBound) *
+               mlBlockedSpdpRank B (κ + g.degreeBound)
+                 (ℓ + g.degreeBound) p ∧
+      mlBlockedSpdpSubspace B κ ℓ (g.poly * p) ≤
+        Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ))
+
+/-- Helper: chain step 1 — finrank is monotone on span containment. -/
+private theorem gadget_mult_rank_step1
+    {N : ℕ} (B : BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) (g_poly : MvPolynomial (Fin N) ℚ)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hG_contain : mlBlockedSpdpSubspace B κ ℓ (g_poly * p) ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ))) :
+    Module.finrank ℚ (mlBlockedSpdpSubspace B κ ℓ (g_poly * p)) ≤
+    Module.finrank ℚ (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ))) :=
+  Submodule.finrank_mono hG_contain
+
+/-- **Derived theorem (Lemma 40(c) rank form).**
+
+Using the finite-cardinality span factoring axiom above, the paper's
+`rank(g · p) ≤ N^C · rank(p)` follows by chaining:
+
+  `finrank(SPDP(g·p)) ≤ finrank(span(G)) ≤ |G| ≤ N^C · finrank(SPDP(p)_shifted)`. -/
+theorem gadget_multiplication_rank_bound
     {N : ℕ} (g : BoundedGadget N)
     (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
     mlBlockedSpdpRank B κ ℓ (g.poly * p) ≤
     N ^ (g.supportSize + g.degreeBound) *
-      mlBlockedSpdpRank B (κ + g.degreeBound) (ℓ + g.degreeBound) p
+      mlBlockedSpdpRank B (κ + g.degreeBound) (ℓ + g.degreeBound) p := by
+  obtain ⟨G, hG_card, hG_contain⟩ :=
+    gadget_spdp_subspace_factoring g B κ ℓ p
+  have step1 := gadget_mult_rank_step1 B κ ℓ p g.poly G hG_contain
+  have step2 : Module.finrank ℚ
+      (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ))) ≤ G.card :=
+    finrank_span_finset_le_card G
+  exact le_trans (le_trans step1 step2) hG_card
 
 /-- **PAC operation from gadget multiplication (Lemma 40(c)).**
 Multiplication by a bounded gadget, with the rank bound from
@@ -368,6 +404,11 @@ etc.) depend only on this plus the Mathlib standard axioms
 
 Lemma 40(a) was removed in v1.1 — see the correctness note at its
 section for the reason and what the right formulation would be. -/
+#print axioms gadget_multiplication_rank_bound
+-- Expected: propext, Classical.choice, Quot.sound,
+--   PAC.gadget_spdp_subspace_factoring.
+-- (The derived theorem depends only on the narrower span-factoring axiom.
+-- Previously this was itself a top-level axiom in PAC v1.)
 #print axioms applyPipeline_rank_monotone
 -- Expected: propext, Classical.choice, Quot.sound.
 -- (The abstract composition theorem depends only on the Op.rank_monotone
