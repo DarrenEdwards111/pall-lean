@@ -903,4 +903,39 @@ theorem log_det_nonneg_of_eigenvalues_ge_one
   intros i _
   exact Real.log_nonneg (hev i)
 
+/-! ## Section 19: Positroid invariance under positive row action (item 2)
+
+Row operations with strictly-positive-determinant matrices preserve the
+positroid support: if `det R > 0`, then `R • A` and `A` have the same
+Plücker sign pattern. This is the "positroid is a row-operation invariant"
+part of Postnikov's theory, and it's the first concrete step toward the
+full positroid stratification. -/
+
+/-- **Positroid invariance**: row action by `R` with `det R > 0` preserves
+the positroid support of a matrix. -/
+theorem positroidSupport_invariant_under_pos_det_row_action
+    {k n' : ℕ} (R : Matrix (Fin k) (Fin k) ℝ) (A : Matrix (Fin k) (Fin n') ℝ)
+    (hR : 0 < R.det) :
+    positroidSupport (R * A) = positroidSupport A := by
+  ext ⟨e, he⟩
+  unfold positroidSupport
+  have := pluckerCoord_row_action R A e
+  unfold pluckerCoord at this
+  simp only [Set.mem_setOf_eq]
+  rw [this]
+  constructor
+  · -- R.det * d > 0 with R.det > 0 implies d > 0
+    intro h
+    exact (mul_pos_iff_of_pos_left hR).mp h
+  · intro h
+    exact mul_pos hR h
+
+/-- If `R` is in `SL_k(ℝ)` (det R = 1), row action preserves the positroid
+exactly (special case, stronger than invariance under positive det). -/
+theorem positroidSupport_SL_invariant
+    {k n' : ℕ} (R : Matrix (Fin k) (Fin k) ℝ) (A : Matrix (Fin k) (Fin n') ℝ)
+    (hR : R.det = 1) :
+    positroidSupport (R * A) = positroidSupport A :=
+  positroidSupport_invariant_under_pos_det_row_action R A (hR ▸ one_pos)
+
 end AmplituhedronPSD
