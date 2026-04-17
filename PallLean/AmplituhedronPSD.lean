@@ -115,10 +115,10 @@ theorem nonneg_principal_minor_of_posSemidef
 
 For `PosDef` matrices (strict positive definite), Mathlib has
 `PosDef.det_pos`. Combined with `PosDef → PosSemidef → submatrix PSD`,
-we have non-negativity of submatrix determinants; strict positivity
-of submatrix determinants (PosDef.submatrix for injective e) is
-stated but requires detailed Finsupp/quadratic-form manipulation not
-included here. -/
+we have non-negativity of submatrix determinants.
+
+For STRICT positivity (PosDef.submatrix for injective e), we need
+Finsupp/quadratic-form manipulation which we do below. -/
 
 /-- Every `PosDef` matrix has strictly positive determinant (wrapper for
 `Matrix.PosDef.det_pos`). -/
@@ -136,5 +136,64 @@ theorem det_submatrix_nonneg_of_posDef
     {M : Matrix n n ℝ} (hM : M.PosDef) (e : m → n) :
     0 ≤ (M.submatrix e e).det :=
   det_submatrix_nonneg_of_posSemidef (posSemidef_of_posDef hM) e
+
+/-- **Principal-submatrix `PosDef` via injective maps**: the submatrix
+of a `PosDef` matrix via an injective function is `PosDef`.
+
+Construction: given nonzero `x : m →₀ ℝ`, extend via `Finsupp.embDomain`
+to `x_ext : n →₀ ℝ`. This extension is nonzero (by `embDomain_injective`)
+and the quadratic forms match (by `Finsupp.sum_embDomain` applied twice).
+Then `PosDef` of `M` applied to `x_ext` gives strict positivity. -/
+theorem PosDef_submatrix_of_injective
+    {M : Matrix n n ℝ} (hM : M.PosDef)
+    {e : m → n} (he : Function.Injective e) :
+    (M.submatrix e e).PosDef := by
+  refine ⟨hM.1.submatrix e, ?_⟩
+  intro x hx
+  classical
+  -- Embed x to n-indexed Finsupp via the injection e.
+  let φ : m ↪ n := ⟨e, he⟩
+  let x_ext : n →₀ ℝ := x.embDomain φ
+  -- x_ext ≠ 0 (embDomain on an embedding is injective).
+  have hx_ext : x_ext ≠ 0 := by
+    intro hzero
+    apply hx
+    have h0 : (0 : m →₀ ℝ).embDomain φ = (0 : n →₀ ℝ) := by simp
+    have : x.embDomain φ = (0 : m →₀ ℝ).embDomain φ := by
+      rw [h0]; exact hzero
+    exact Finsupp.embDomain_injective φ this
+  -- Quadratic form identity.
+  have h_quad : x.sum (fun i xi => x.sum fun j xj =>
+      star xi * (M.submatrix e e) i j * xj) =
+      x_ext.sum (fun i xi => x_ext.sum fun j xj =>
+      star xi * M i j * xj) := by
+    show x.sum (fun i xi => x.sum fun j xj =>
+        star xi * (M.submatrix e e) i j * xj) = _
+    -- x_ext.sum over β = x.sum over α via sum_embDomain.
+    rw [show x_ext = x.embDomain φ from rfl]
+    rw [Finsupp.sum_embDomain (f := φ)
+        (g := fun i xi => (x.embDomain φ).sum fun j xj =>
+          star xi * M i j * xj)]
+    apply Finsupp.sum_congr
+    intro a _
+    -- Goal: (x.sum fun j xj => star (x a) * (M.submatrix e e) a j * xj) =
+    --       (x.embDomain φ).sum fun j xj => star (x a) * M (φ a) j * xj
+    rw [show (Finsupp.embDomain φ x).sum (fun j xj =>
+          star (x a) * M (φ a) j * xj) =
+        x.sum (fun b xb => star (x a) * M (φ a) (φ b) * xb) from
+      Finsupp.sum_embDomain (f := φ)
+        (g := fun j xj => star (x a) * M (φ a) j * xj)]
+    rfl
+  -- Apply PosDef of M to x_ext.
+  rw [h_quad]
+  exact hM.2 hx_ext
+
+/-- `PosDef` principal minors via injective maps have STRICTLY positive
+determinants. -/
+theorem det_submatrix_pos_of_posDef
+    {M : Matrix n n ℝ} (hM : M.PosDef)
+    {e : m → n} (he : Function.Injective e) :
+    0 < (M.submatrix e e).det :=
+  (PosDef_submatrix_of_injective hM he).det_pos
 
 end AmplituhedronPSD
