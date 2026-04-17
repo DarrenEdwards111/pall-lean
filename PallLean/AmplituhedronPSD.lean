@@ -356,4 +356,146 @@ theorem neg_log_convex_inequality {x y : ℝ} (hx : 0 < x) (hy : 0 < y)
     (by linarith : (0 : ℝ) ≤ 1 - t) ht0 (by ring : (1 - t) + t = 1)
   simpa using h
 
+/-! ## Section 8: Totally nonnegative/positive Grassmannian (matrix form)
+
+For a k × n matrix A, a "Plücker coordinate" is a k × k minor indexed
+by a size-k subset S ⊆ [n] (selecting columns of A). The **totally
+nonnegative Grassmannian** `Gr+_{k,n}` is the image of rank-k matrices
+all of whose Plücker coordinates (k × k minors) are ≥ 0.
+
+This is the matrix-level view; the quotient by row operations gives
+the geometric Grassmannian cell. We stay at the matrix level here
+to keep the definition concrete. -/
+
+/-- A k × n matrix is **totally nonnegative** if all k × k minors
+(indexed by injective maps `e : Fin k → Fin n'` selecting k columns)
+have non-negative determinants. -/
+def IsTotallyNonnegativeMatrix {k n' : ℕ}
+    (A : Matrix (Fin k) (Fin n') ℝ) : Prop :=
+  ∀ (e : Fin k → Fin n'), Function.Injective e →
+    0 ≤ (A.submatrix id e).det
+
+/-- A k × n matrix is **totally positive** if all k × k minors have
+STRICTLY positive determinants. -/
+def IsTotallyPositiveMatrix {k n' : ℕ}
+    (A : Matrix (Fin k) (Fin n') ℝ) : Prop :=
+  ∀ (e : Fin k → Fin n'), Function.Injective e →
+    0 < (A.submatrix id e).det
+
+/-- Totally positive implies totally nonnegative. -/
+theorem IsTotallyPositiveMatrix.isTotallyNonnegativeMatrix
+    {k n' : ℕ} {A : Matrix (Fin k) (Fin n') ℝ}
+    (hA : IsTotallyPositiveMatrix A) : IsTotallyNonnegativeMatrix A :=
+  fun e he => (hA e he).le
+
+/-- Scaling by a positive constant preserves total positivity.
+For c > 0, the minor of c • A equals c^k times the minor of A. -/
+theorem IsTotallyPositiveMatrix.smul_pos {k n' : ℕ}
+    {A : Matrix (Fin k) (Fin n') ℝ} (hA : IsTotallyPositiveMatrix A)
+    {c : ℝ} (hc : 0 < c) :
+    IsTotallyPositiveMatrix (c • A) := by
+  intro e he
+  have hsub : ((c • A).submatrix id e) = c • (A.submatrix id e) := by
+    ext i j
+    simp [Matrix.submatrix_apply, Matrix.smul_apply]
+  rw [hsub, Matrix.det_smul, Fintype.card_fin]
+  exact mul_pos (pow_pos hc k) (hA e he)
+
+/-- Totally nonneg matrices form the `Gr+_{k,n}` set (modulo row
+operations, which we don't quotient here). -/
+def TotallyNonnegativeGrassmannian (k n' : ℕ) : Set (Matrix (Fin k) (Fin n') ℝ) :=
+  { A | IsTotallyNonnegativeMatrix A }
+
+/-- Totally positive matrices form the INTERIOR of `Gr+_{k,n}` (positivity
+of all k-minors — the top-dimensional cell). -/
+def TotallyPositiveGrassmannianInterior (k n' : ℕ) :
+    Set (Matrix (Fin k) (Fin n') ℝ) :=
+  { A | IsTotallyPositiveMatrix A }
+
+/-- The interior is contained in the whole. -/
+theorem totallyPositive_subset_totallyNonnegative (k n' : ℕ) :
+    TotallyPositiveGrassmannianInterior k n' ⊆
+    TotallyNonnegativeGrassmannian k n' :=
+  fun _ hA => hA.isTotallyNonnegativeMatrix
+
+/-- Vacuous case: every `0 × n'` matrix is totally nonnegative (determinant
+of the empty submatrix is `1 ≥ 0`). -/
+theorem isTotallyNonnegativeMatrix_zero_rows {n' : ℕ}
+    (A : Matrix (Fin 0) (Fin n') ℝ) : IsTotallyNonnegativeMatrix A := by
+  intro e _
+  simp [Matrix.det_isEmpty]
+
+/-- Vacuous case: every `0 × n'` matrix is totally positive. -/
+theorem isTotallyPositiveMatrix_zero_rows {n' : ℕ}
+    (A : Matrix (Fin 0) (Fin n') ℝ) : IsTotallyPositiveMatrix A := by
+  intro e _
+  simp [Matrix.det_isEmpty]
+
+/-! ## Section 9: Full rank from total positivity
+
+A key structural fact: if `k ≤ n'` and `A : Matrix (Fin k) (Fin n') ℝ` is
+totally positive, then `A` has full row rank.
+
+The identity embedding `Fin k ↪ Fin n'` (via `Fin.castLE h` with `h : k ≤ n'`)
+is injective, so the `k × k` submatrix picking out the first `k` columns has
+strictly positive determinant, hence is invertible. This shows rank ≥ k, and
+since A has only k rows, rank = k. -/
+
+/-- For `k ≤ n'`, a totally positive `k × n'` matrix has a nonzero `k × k`
+submatrix (obtained by selecting the first `k` columns via `Fin.castLE`). -/
+theorem IsTotallyPositiveMatrix.exists_nonzero_minor {k n' : ℕ}
+    (h : k ≤ n') {A : Matrix (Fin k) (Fin n') ℝ}
+    (hA : IsTotallyPositiveMatrix A) :
+    ∃ (e : Fin k → Fin n'), Function.Injective e ∧
+      (A.submatrix id e).det ≠ 0 := by
+  have hinj : Function.Injective (fun i : Fin k => Fin.castLE h i) :=
+    Fin.castLE_injective h
+  exact ⟨fun i => Fin.castLE h i, hinj, ne_of_gt (hA _ hinj)⟩
+
+/-! ## Section 10: Finite sum of scalar `-log` is convex
+
+Barrier convexity in the scalar coordinates: if we parameterize a family of
+positive values `f : ι → ℝ≥0` and take the sum `∑ -log(f i)`, this is convex
+in `f` on the positivity region. This is the "separable" / "coordinate-wise"
+form of convexity that applies whenever the principal minors are independent
+coordinates. -/
+
+/-- The function `f ↦ ∑ i, -log(f i)` is convex on `{f | ∀ i, 0 < f i}`.
+This is the finite-sum version of `convexOn_neg_log`. -/
+theorem sum_neg_log_convexOn {ι : Type*} [Fintype ι] :
+    ConvexOn ℝ {f : ι → ℝ | ∀ i, 0 < f i}
+      (fun f : ι → ℝ => ∑ i, -Real.log (f i)) := by
+  refine ⟨?_, ?_⟩
+  · -- Convexity of the positivity region.
+    intro x hx y hy a b ha hb hab i
+    have hxi : 0 < x i := hx i
+    have hyi : 0 < y i := hy i
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    rcases lt_or_eq_of_le ha with ha' | ha'
+    · exact add_pos_of_pos_of_nonneg (mul_pos ha' hxi) (mul_nonneg hb hyi.le)
+    · -- a = 0, so b = 1 by a + b = 1
+      have hb' : (0 : ℝ) < b := by
+        have : b = 1 := by linarith
+        simp [this]
+      exact add_pos_of_nonneg_of_pos (mul_nonneg ha hxi.le) (mul_pos hb' hyi)
+  · -- Convexity inequality on the sum.
+    intro x hx y hy a b ha hb hab
+    have hxi : ∀ i, 0 < x i := hx
+    have hyi : ∀ i, 0 < y i := hy
+    have key : ∀ i : ι,
+        -Real.log (a * x i + b * y i) ≤
+          a * (-Real.log (x i)) + b * (-Real.log (y i)) := by
+      intro i
+      have h := convexOn_neg_log.2
+        (Set.mem_Ioi.mpr (hxi i)) (Set.mem_Ioi.mpr (hyi i))
+        ha hb hab
+      simpa using h
+    calc ∑ i, -Real.log (a * x i + b * y i)
+        ≤ ∑ i, (a * (-Real.log (x i)) + b * (-Real.log (y i))) :=
+          Finset.sum_le_sum (fun i _ => key i)
+      _ = a * (∑ i, -Real.log (x i)) + b * (∑ i, -Real.log (y i)) := by
+          rw [Finset.sum_add_distrib, ← Finset.mul_sum, ← Finset.mul_sum]
+      _ = a • (∑ i, -Real.log (x i)) + b • (∑ i, -Real.log (y i)) := by
+          simp [smul_eq_mul]
+
 end AmplituhedronPSD
