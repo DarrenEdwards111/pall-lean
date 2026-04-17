@@ -105,4 +105,35 @@ theorem multiIndexToList_length {N : ℕ} (β : Fin N →₀ ℕ) :
   simp only [List.length_replicate, Finsupp.sum,
     ← Finset.sum_map_toList]
 
+/-! ## Step 2b: derivative polynomials and Finset
+
+For each multi-index `β`, `gadgetDerivPoly g β` is the polynomial
+`iterDerivList (multiIndexToList β) g.poly` — the β-th partial
+derivative of `g.poly`. -/
+
+/-- The β-th partial derivative of `g.poly`, via the canonical list. -/
+noncomputable def gadgetDerivPoly {N : ℕ} (g : BoundedGadget N)
+    (β : Fin N →₀ ℕ) : MvPolynomial (Fin N) ℚ :=
+  SPDP.iterDerivList (multiIndexToList β) g.poly
+
+/-- The Finset of gadget derivative polynomials, obtained as the image of
+`gadgetDerivIndices` under `gadgetDerivPoly`. -/
+noncomputable def gadgetDerivPolyFinset {N : ℕ} (g : BoundedGadget N) :
+    Finset (MvPolynomial (Fin N) ℚ) :=
+  (gadgetDerivIndices g).image (gadgetDerivPoly g)
+
+/-- The polynomial Finset has cardinality ≤ the index Finset. -/
+theorem gadgetDerivPolyFinset_card_le {N : ℕ} (g : BoundedGadget N) :
+    (gadgetDerivPolyFinset g).card ≤ (gadgetDerivIndices g).card := by
+  exact Finset.card_image_le
+
+/-- At scale `N ≥ degreeBound + 1`, the polynomial Finset has cardinality
+≤ `N^(t+d)`. -/
+theorem gadgetDerivPolyFinset_card_le_N_pow {N : ℕ} (g : BoundedGadget N)
+    (hN : g.degreeBound + 1 ≤ N) :
+    (gadgetDerivPolyFinset g).card ≤
+      N ^ (g.supportSize + g.degreeBound) :=
+  le_trans (gadgetDerivPolyFinset_card_le g)
+    (gadgetDerivIndices_card_le_N_pow g hN)
+
 end GadgetDerivs
