@@ -734,13 +734,85 @@ theorem exists_support_of_sum_pos {N : ℕ} (α : Fin N →₀ ℕ) (k : ℕ)
 
 /-! ### Reindex bijections for the sum combination
 
-The remaining step in the `multiIndexLeibniz` induction is to combine two
-IH-applied sums into a single sum over `Iic α`. The first sum (after
-reindexing `γ = β + single i 1`) ranges over `{γ ∈ Iic α : γ i ≥ 1}`;
-the second sum ranges over `Iic (α - single i 1)`. The coefficient
-decomposition identity `multiBinom_decomp` matches the combined
-coefficient to `multiBinom α γ`. The remaining purely-combinatorial work
-is packaging two `Finset.sum_bij`-style reindexings. -/
+Combines two IH sums into a single sum over `Iic α`. The first sum
+(after IH + perm rewrites) has `β ∈ Iic α'`; reindex `γ = β + single i 1`
+gives `{γ ∈ Iic α : γ i ≥ 1}`. The second sum has `β ∈ Iic α'`
+directly. Use the coefficient decomposition `multiBinom_decomp` for the
+final combination. -/
+
+/-- Shift reindex: sum over `Iic (α - single i 1)` with shift reindex
+`γ = β + single i 1` equals sum over `{γ ∈ Iic α : γ i ≥ 1}` with the
+function applied to `γ - single i 1`. -/
+theorem sum_Iic_sub_shift_bijection {N : ℕ} {M : Type*} [AddCommMonoid M]
+    (α : Fin N →₀ ℕ) (i : Fin N) (hi : α i ≥ 1)
+    (f : (Fin N →₀ ℕ) → M) :
+    ∑ β ∈ Finset.Iic (α - Finsupp.single i 1), f β =
+    ∑ γ ∈ (Finset.Iic α).filter (fun γ => γ i ≥ 1),
+      f (γ - Finsupp.single i 1) := by
+  classical
+  apply Finset.sum_nbij' (fun β => β + Finsupp.single i 1)
+                        (fun γ => γ - Finsupp.single i 1)
+  · -- hi: β ∈ Iic α' → β + single i 1 ∈ filtered set.
+    intro β hβ
+    rw [Finset.mem_Iic] at hβ
+    rw [Finset.mem_filter, Finset.mem_Iic]
+    refine ⟨?_, ?_⟩
+    · intro j
+      rw [Finsupp.coe_add, Pi.add_apply]
+      by_cases hij : i = j
+      · subst hij
+        rw [Finsupp.single_eq_same]
+        have := Finsupp.le_def.mp hβ i
+        rw [Finsupp.tsub_apply, Finsupp.single_eq_same] at this
+        omega
+      · have h0 : (Finsupp.single i 1 : Fin N →₀ ℕ) j = 0 := by
+          rw [Finsupp.single_apply]; simp [hij]
+        rw [h0, add_zero]
+        have := Finsupp.le_def.mp hβ j
+        rw [Finsupp.tsub_apply, h0, Nat.sub_zero] at this
+        exact this
+    · rw [Finsupp.coe_add, Pi.add_apply, Finsupp.single_eq_same]
+      omega
+  · -- hj: γ ∈ filtered set → γ - single i 1 ∈ Iic α'.
+    intro γ hγ
+    rw [Finset.mem_filter, Finset.mem_Iic] at hγ
+    obtain ⟨hγ_le, hγi⟩ := hγ
+    rw [Finset.mem_Iic]
+    intro j
+    rw [Finsupp.tsub_apply, Finsupp.tsub_apply]
+    have hγj := Finsupp.le_def.mp hγ_le j
+    by_cases hij : i = j
+    · subst hij
+      rw [Finsupp.single_eq_same]
+      omega
+    · have h0 : (Finsupp.single i 1 : Fin N →₀ ℕ) j = 0 := by
+        rw [Finsupp.single_apply]; simp [hij]
+      rw [h0, Nat.sub_zero, Nat.sub_zero]
+      exact hγj
+  · -- left_inv: (β + single i 1) - single i 1 = β.
+    intro β _
+    ext j
+    rw [Finsupp.tsub_apply, Finsupp.coe_add, Pi.add_apply]
+    omega
+  · -- right_inv: (γ - single i 1) + single i 1 = γ (when γ i ≥ 1).
+    intro γ hγ
+    rw [Finset.mem_filter] at hγ
+    obtain ⟨_, hγi⟩ := hγ
+    ext j
+    rw [Finsupp.coe_add, Pi.add_apply, Finsupp.tsub_apply]
+    by_cases hij : i = j
+    · subst hij
+      rw [Finsupp.single_eq_same]
+      omega
+    · have h0 : (Finsupp.single i 1 : Fin N →₀ ℕ) j = 0 := by
+        rw [Finsupp.single_apply]; simp [hij]
+      rw [h0, Nat.sub_zero, add_zero]
+  · -- h: f β = f ((β + single i 1) - single i 1) = f β.
+    intro β _
+    congr 1
+    ext j
+    rw [Finsupp.tsub_apply, Finsupp.coe_add, Pi.add_apply]
+    omega
 
 /-- **Multi-index Leibniz, base case (α = 0), axiom-free.** -/
 theorem multiIndexLeibniz_zero {N : ℕ} (g p : MvPolynomial (Fin N) ℚ) :
@@ -1328,6 +1400,8 @@ which is what the paper states verbatim. Connecting it to
 `paperSpdpMatrix` (tracked as future work). -/
 
 -- Verify helpers are axiom-free (used by future multiIndexLeibniz discharge).
+#print axioms sum_Iic_sub_shift_bijection
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms multiIndexLeibniz_step_decomposition
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms filter_boundedMulti_eq_Iic
