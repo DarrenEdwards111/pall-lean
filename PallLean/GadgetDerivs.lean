@@ -92,18 +92,25 @@ We pick the canonical list: for each `i ∈ β.support` in sorted order,
 append `β i` copies of `i`. -/
 
 /-- Convert a multi-index to a canonical list of its indices (each index
-`i` appears `β i` times). -/
+`i` appears `β i` times). Defined via `Finsupp.toMultiset` to inherit
+the count and bridge properties directly. -/
 noncomputable def multiIndexToList {N : ℕ} (β : Fin N →₀ ℕ) :
     List (Fin N) :=
-  β.support.toList.flatMap (fun i => List.replicate (β i) i)
+  (Finsupp.toMultiset β).toList
+
+/-- Bridge: `multiIndexToList β` as a `Multiset` equals `Finsupp.toMultiset β`. -/
+theorem multiIndexToList_coe_eq_toMultiset {N : ℕ} (β : Fin N →₀ ℕ) :
+    (multiIndexToList β : Multiset (Fin N)) = Finsupp.toMultiset β := by
+  unfold multiIndexToList
+  exact Multiset.coe_toList _
 
 /-- The length of `multiIndexToList β` equals `β`'s total `Σ βᵢ`. -/
 theorem multiIndexToList_length {N : ℕ} (β : Fin N →₀ ℕ) :
     (multiIndexToList β).length = β.sum (fun _ n => n) := by
   unfold multiIndexToList
-  rw [List.length_flatMap]
-  simp only [List.length_replicate, Finsupp.sum,
-    ← Finset.sum_map_toList]
+  rw [Multiset.length_toList]
+  rw [Finsupp.card_toMultiset]
+  rfl
 
 /-! ## Step 2b: derivative polynomials and Finset
 
@@ -153,9 +160,12 @@ theorem listToMultiIndex_apply {N : ℕ} (A : List (Fin N)) (i : Fin N) :
   unfold listToMultiIndex
   simp [Multiset.toFinsupp_apply, Multiset.coe_count]
 
--- Note: multiIndexToList_count (the characterization of counts) is
--- the key technical step to connect gadgetDerivPolyFinset with
--- arbitrary lists via iterDerivList_perm. Proof deferred to future
--- focused session due to repeated Lean elaboration issues with
--- Finset.sum_toList ↔ List.map.sum conversions. The definitions
--- above still support direct construction of β-indexed derivatives.
+-- (multiIndexToList_coe_eq_toMultiset is now immediate from the new definition
+-- above via `Multiset.coe_toList`.)
+
+/-- Count property: `(multiIndexToList β).count i = β i`. -/
+theorem multiIndexToList_count {N : ℕ} (β : Fin N →₀ ℕ) (i : Fin N) :
+    (multiIndexToList β).count i = β i := by
+  classical
+  rw [← Multiset.coe_count, multiIndexToList_coe_eq_toMultiset,
+    Finsupp.count_toMultiset]
