@@ -67,6 +67,34 @@ theorem IsProjection.ker_complement {V : Type*} [AddCommGroup V] [Module ℚ V]
     simpa using this
   simp [map_sub, hidem]
 
+/-- Idempotent: `π (π v) = π v` — this is the defining property of an
+idempotent linear map (a projection). -/
+theorem IsProjection.apply_apply {V : Type*} [AddCommGroup V] [Module ℚ V]
+    {π : V →ₗ[ℚ] V} (hπ : IsProjection π) (v : V) :
+    π (π v) = π v := by
+  have := congrArg (· v) hπ.idempotent
+  simpa using this
+
+/-- The range of a projection equals the fixed-point set. -/
+theorem IsProjection.mem_range_iff_fixed {V : Type*} [AddCommGroup V] [Module ℚ V]
+    {π : V →ₗ[ℚ] V} (hπ : IsProjection π) (v : V) :
+    v ∈ LinearMap.range π ↔ π v = v := by
+  constructor
+  · rintro ⟨w, hw⟩
+    rw [← hw, hπ.apply_apply]
+  · intro h
+    exact ⟨v, h⟩
+
+/-- For a projection, `range π ⊕ ker π = ⊤` (internal direct sum in
+finite-dimensional settings; here we just show the algebraic facts
+that underlie it: every `v` is `π v + (v - π v)`, the first is in the
+range, the second in the kernel). -/
+theorem IsProjection.range_add_ker_decomp {V : Type*} [AddCommGroup V] [Module ℚ V]
+    {π : V →ₗ[ℚ] V} (hπ : IsProjection π) (v : V) :
+    π v ∈ LinearMap.range π ∧ (v - π v) ∈ LinearMap.ker π := by
+  refine ⟨⟨v, rfl⟩, ?_⟩
+  simp [LinearMap.mem_ker, hπ.ker_complement v]
+
 /-! ## Paper-deep content as named claims
 
 The two paper-deep pieces, stated abstractly, are:
