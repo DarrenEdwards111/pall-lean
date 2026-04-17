@@ -1939,6 +1939,51 @@ For the CANONICAL CHAIN (Route B via gadget_factoring_linearmap_form),
 what's needed is a bridge from `paperSpdpRank` back to `mlBlockedSpdpRank`.
 That bridge is Phase 3b, also needed. -/
 
+/-! ### Phase 6: rank bound helpers -/
+
+/-- **Matrix rank is sub-additive**: `(A + B).rank ≤ A.rank + B.rank`. -/
+theorem Matrix_rank_add_le {m n R : Type*} [DecidableEq n] [Fintype n] [Field R]
+    (A B : Matrix m n R) : (A + B).rank ≤ A.rank + B.rank := by
+  classical
+  unfold Matrix.rank
+  rw [Matrix.mulVecLin_add]
+  -- finrank(range(f + g)) ≤ finrank(range f ⊔ range g) ≤ finrank(range f) + finrank(range g).
+  have h_range_le :
+      LinearMap.range (A.mulVecLin + B.mulVecLin) ≤
+      LinearMap.range A.mulVecLin ⊔ LinearMap.range B.mulVecLin := by
+    rintro y ⟨x, hx⟩
+    rw [Submodule.mem_sup]
+    refine ⟨A.mulVecLin x, ⟨x, rfl⟩, B.mulVecLin x, ⟨x, rfl⟩, ?_⟩
+    rw [← hx]; rfl
+  calc Module.finrank R (LinearMap.range (A.mulVecLin + B.mulVecLin))
+      ≤ Module.finrank R
+          (LinearMap.range A.mulVecLin ⊔ LinearMap.range B.mulVecLin : Submodule R _) :=
+        Submodule.finrank_mono h_range_le
+    _ ≤ Module.finrank R (LinearMap.range A.mulVecLin) +
+        Module.finrank R (LinearMap.range B.mulVecLin) :=
+        Submodule.finrank_add_le_finrank_add_finrank _ _
+
+/-- **Matrix rank is sub-additive over Finset sums**: if `f : ι → Matrix m n R`, then
+`(∑ i ∈ s, f i).rank ≤ ∑ i ∈ s, (f i).rank`. -/
+theorem Matrix_rank_sum_le {ι m n R : Type*} [DecidableEq n] [Fintype n] [Field R]
+    (s : Finset ι) (f : ι → Matrix m n R) :
+    (∑ i ∈ s, f i).rank ≤ ∑ i ∈ s, (f i).rank := by
+  classical
+  induction s using Finset.induction_on with
+  | empty =>
+    simp only [Finset.sum_empty]
+    unfold Matrix.rank
+    rw [Matrix.mulVecLin_zero]
+    simp
+  | insert _ _ hinsert ih =>
+    rename_i a s'
+    rw [Finset.sum_insert hinsert, Finset.sum_insert hinsert]
+    calc (f a + ∑ i ∈ s', f i).rank
+        ≤ (f a).rank + (∑ i ∈ s', f i).rank :=
+          Matrix_rank_add_le _ _
+      _ ≤ (f a).rank + ∑ i ∈ s', (f i).rank :=
+          Nat.add_le_add_left ih _
+
 /-- **Phase 6 narrower axiom**: paper's rank bound on the matrix formulation.
 
 Discharging this requires the Matrix.rank row-span argument: row span of
