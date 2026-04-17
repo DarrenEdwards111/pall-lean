@@ -451,6 +451,55 @@ theorem multiBinom_pascal {N : ℕ} (α γ : Fin N →₀ ℕ) (i : Fin N)
   rw [hpas]
   ring
 
+/-! ### `multiBinom` degenerate cases used in induction
+
+For the `γ i = 0` boundary of the inductive step, we need the identity
+`multiBinom α γ = multiBinom (α - single i 1) γ` (i.e., the second term
+of the Pascal-style decomposition vanishes). This is because at γ i = 0,
+`(α i choose 0) = 1 = (α i - 1 choose 0)`, leaving the `j ≠ i` product
+unchanged. -/
+
+/-- When `γ i = 0`, the `α`-subtraction at `i` doesn't affect the binomial
+product. -/
+theorem multiBinom_at_zero_coord {N : ℕ} (α γ : Fin N →₀ ℕ)
+    (i : Fin N) (hγi : γ i = 0) :
+    multiBinom α γ = multiBinom (α - Finsupp.single i 1) γ := by
+  classical
+  unfold multiBinom
+  apply Finset.prod_congr rfl
+  intro j _
+  by_cases hij : i = j
+  · subst hij
+    rw [hγi]
+    -- Both sides are (_ choose 0) = 1.
+    simp [Nat.choose_zero_right]
+  · have h0 : ((α - Finsupp.single i 1) : Fin N →₀ ℕ) j = α j := by
+      rw [Finsupp.tsub_apply]
+      have : (Finsupp.single i 1 : Fin N →₀ ℕ) j = 0 := by
+        rw [Finsupp.single_apply]; simp [hij]
+      rw [this, Nat.sub_zero]
+    rw [h0]
+
+/-! ### Main discharge status
+
+The helper lemmas above (`multiIndexSub_*`, `multiBinom_*`,
+`multiIndexToList_*`, `multiBinom_pascal`, `multiBinom_at_zero_coord`)
+are the building blocks for proving `multiIndexLeibniz` by strong
+induction on `α.sum id`:
+
+* **Base** (`α = 0`): both sides reduce to `g * p`.
+* **Step**: pick `i ∈ α.support`, rewrite via
+  `multiIndexToList_perm_cons_single` as `i :: multiIndexToList α'`
+  with `α' = α - single i 1`, expand via `pderiv_mul`, apply the IH
+  twice (for `pderiv i g` and `pderiv i p`), and match coefficients
+  via `multiBinom_pascal` (for `γ i ≥ 1` case) and
+  `multiBinom_at_zero_coord` (for `γ i = 0` case).
+
+The Finset reindex combining the two IH sums into a single sum over
+`γ ≤ α` is still to be written (~300 lines of `Finset.sum_bij` and
+sum-splitting). The axiom below remains for the overall matrix
+identity statement until that reindex is complete. -/
+
 /-- **Scalar entry of L:** `(α choose β) · coeff_ν(∂^β g)` if β ≤ α
 componentwise, else 0.
 
