@@ -511,4 +511,24 @@ private theorem coeff_mul_leibniz_rhs {N : ℕ}
   intro β _
   exact coeff_nsmul_mul _ _ _ _
 
+/-- Helper: further expand `coeff μ (a·b)` via `MvPolynomial.coeff_mul`. -/
+private theorem coeff_mul_leibniz_fully_expanded {N : ℕ}
+    (g p : MvPolynomial (Fin N) ℚ) (α : Fin N →₀ ℕ) (μ : Fin N →₀ ℕ) :
+    MvPolynomial.coeff μ
+      (SPDP.iterDerivList (GadgetDerivs.multiIndexToList α) (g * p)) =
+    ∑ β ∈ (boundedMultiIndexFinset N (α.sum (fun _ n => n))).filter
+            (fun β => multiIndexLE β α),
+      (multiBinom α β : ℚ) *
+        ∑ pair ∈ Finset.antidiagonal μ,
+          MvPolynomial.coeff pair.1
+            (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g) *
+          MvPolynomial.coeff pair.2
+            (SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+              (multiIndexSub α β)) p) := by
+  rw [coeff_mul_leibniz_rhs]
+  apply Finset.sum_congr rfl
+  intro β _
+  congr 1
+  exact MvPolynomial.coeff_mul _ _ _
+
 end PaperSpdpMatrix
