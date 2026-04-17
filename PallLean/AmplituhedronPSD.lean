@@ -706,4 +706,64 @@ degree |J| in the entries, so Φ(a M₁ + b M₂) is NOT in general
 special families (e.g., `1 × 1` minors, where det is linear) or for
 linear paths where minor linearity holds by design. -/
 
+/-! ## Section 16: Plücker coordinates
+
+For a `k × n'` matrix `A` and an injective column selection
+`e : Fin k → Fin n'`, the **Plücker coordinate** is `det(A[·, e])`.
+Plücker coordinates give the homogeneous coordinates of the Grassmannian
+`Gr_{k,n'}` under the Plücker embedding. -/
+
+/-- Plücker coordinate of a `k × n'` matrix corresponding to an injective
+column selection `e : Fin k → Fin n'`. -/
+def pluckerCoord {k n' : ℕ} (A : Matrix (Fin k) (Fin n') ℝ)
+    (e : Fin k → Fin n') : ℝ :=
+  (A.submatrix id e).det
+
+/-- Totally-nonnegative matrices have nonnegative Plücker coordinates
+on injective column selections. -/
+theorem pluckerCoord_nonneg_of_TNN
+    {k n' : ℕ} {A : Matrix (Fin k) (Fin n') ℝ}
+    (hA : IsTotallyNonnegativeMatrix A)
+    {e : Fin k → Fin n'} (he : Function.Injective e) :
+    0 ≤ pluckerCoord A e :=
+  hA e he
+
+/-- Totally-positive matrices have strictly positive Plücker coordinates
+on injective column selections. -/
+theorem pluckerCoord_pos_of_TP
+    {k n' : ℕ} {A : Matrix (Fin k) (Fin n') ℝ}
+    (hA : IsTotallyPositiveMatrix A)
+    {e : Fin k → Fin n'} (he : Function.Injective e) :
+    0 < pluckerCoord A e :=
+  hA e he
+
+/-- Plücker coordinate under row-scaling: `pluckerCoord (c • A) e = c^k * pluckerCoord A e`. -/
+theorem pluckerCoord_smul {k n' : ℕ} (A : Matrix (Fin k) (Fin n') ℝ)
+    (e : Fin k → Fin n') (c : ℝ) :
+    pluckerCoord (c • A) e = c ^ k * pluckerCoord A e := by
+  unfold pluckerCoord
+  have hsub : ((c • A).submatrix id e) = c • (A.submatrix id e) := by
+    ext i j
+    simp [Matrix.submatrix_apply, Matrix.smul_apply]
+  rw [hsub, Matrix.det_smul, Fintype.card_fin]
+
+/-- Plücker coordinate behavior under column permutation: swapping two
+columns of `e` flips the sign. (This captures the Pl embedding's ±
+ambiguity up to `SL_k` action.) -/
+theorem pluckerCoord_swap {k n' : ℕ} (A : Matrix (Fin k) (Fin n') ℝ)
+    {e : Fin k → Fin n'} {i j : Fin k} (hij : i ≠ j) :
+    pluckerCoord A (e ∘ Equiv.swap i j) = - pluckerCoord A e := by
+  unfold pluckerCoord
+  have : A.submatrix id (e ∘ Equiv.swap i j) =
+      (A.submatrix id e).submatrix id (Equiv.swap i j) := by
+    ext a b
+    simp [Matrix.submatrix_apply]
+  rw [this]
+  -- det of swap-submatrix = -det (swap is a transposition)
+  rw [show (Equiv.swap i j : Fin k → Fin k) =
+        ((Equiv.swap i j : Equiv.Perm (Fin k)) : Fin k → Fin k) from rfl]
+  rw [Matrix.det_permute' (Equiv.swap i j) (A.submatrix id e)]
+  rw [Equiv.Perm.sign_swap hij]
+  simp
+
 end AmplituhedronPSD
