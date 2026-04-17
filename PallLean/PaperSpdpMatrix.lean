@@ -1984,6 +1984,48 @@ theorem Matrix_rank_sum_le {ι m n R : Type*} [DecidableEq n] [Fintype n] [Field
       _ ≤ (f a).rank + ∑ i ∈ s', (f i).rank :=
           Nat.add_le_add_left ih _
 
+/-! ### Phase 6 assembly: matrix_β, D_β, E_β definitions -/
+
+/-- β-contribution matrix to the Leibniz decomposition of `paperSpdpMatrixVal (g·p)`.
+Entry at `(α, μ)` is `multiBinom α β · coeff_μ (∂^β g · ∂^(α-β) p)` when β ≤ α, else 0. -/
+noncomputable def matrix_β {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) (β : Fin N →₀ ℕ) :
+    Matrix (SpdpRowIndex N κ) (SpdpColIndex N ℓ) ℚ :=
+  fun α μ =>
+    if multiIndexLE β α.val then
+      (multiBinom α.val β : ℚ) *
+        MvPolynomial.coeff μ.val
+          (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly *
+           SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+             (α.val - β)) p)
+    else 0
+
+/-- Row-selection + scaling matrix `D_β`: `D_β[α, δ] = multiBinom α β` when
+`β ≤ α ∧ δ.val = α - β`, else 0. Corresponds to picking the `(α - β)`-th row of
+`paperSpdpMatrixVal shifted p` and scaling by `multiBinom α β`. -/
+noncomputable def D_β {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
+    (κ : ℕ) (β : Fin N →₀ ℕ) :
+    Matrix (SpdpRowIndex N κ)
+           (SpdpRowIndex N (κ + g.degreeBound)) ℚ :=
+  fun α δ =>
+    if multiIndexLE β α.val ∧ δ.val = α.val - β then
+      (multiBinom α.val β : ℚ)
+    else 0
+
+/-- Convolution-by-`∂^β g` matrix `E_β`: `E_β[σ, μ] = coeff_(μ-σ) (∂^β g)` when
+`σ ≤ μ`, else 0. Implements `column σ of M ↦ column μ of (M · E_β)` via
+`(M · E_β)[_, μ] = ∑ σ ≤ μ, M[_, σ] · coeff_(μ-σ) (∂^β g)`, which is
+coefficient-of-μ in the polynomial `(polynomial with coefficient vector M[_, _]) · ∂^β g`. -/
+noncomputable def E_β {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
+    (ℓ : ℕ) (β : Fin N →₀ ℕ) :
+    Matrix (SpdpColIndex N (ℓ + g.degreeBound))
+           (SpdpColIndex N ℓ) ℚ :=
+  fun σ μ =>
+    if σ.val ≤ μ.val then
+      MvPolynomial.coeff (μ.val - σ.val)
+        (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly)
+    else 0
+
 /-! ### Phase 6 assembly — documented path
 
 Full assembly plan for discharging `paperSpdpRank_gadget_mul_le`:
