@@ -471,6 +471,44 @@ The main theorem of Step 2: applying `iterDiagPderiv S` to `permPoly`
 yields a sum over permutations fixing `S` pointwise, each contributing
 the cofactor product `permCofactor σ S`. -/
 
+/-! ### Step 3a: permCofactor as a monomial
+
+Each `permCofactor σ S` is a product of distinct variables (since σ
+is a permutation), hence equals a single monomial with coefficient 1. -/
+
+/-- The exponent finsupp of `permCofactor σ S`: maps `(p, q)` to 1
+iff `q ∈ Sᶜ` and `σ q = p`, else 0. -/
+noncomputable def permCofactorExp {n : ℕ} (σ : Equiv.Perm (Fin n))
+    (S : Finset (Fin n)) : (Fin n × Fin n) →₀ ℕ :=
+  ∑ k ∈ Sᶜ, Finsupp.single (σ k, k) 1
+
+/-- `permCofactor σ S = monomial (permCofactorExp σ S) 1`. -/
+theorem permCofactor_eq_monomial {n : ℕ} (σ : Equiv.Perm (Fin n))
+    (S : Finset (Fin n)) :
+    permCofactor σ S = MvPolynomial.monomial (permCofactorExp σ S) 1 := by
+  unfold permCofactor permCofactorExp
+  rw [MvPolynomial.monomial_sum_one]
+  apply Finset.prod_congr rfl
+  intro k _
+  rw [MvPolynomial.X]
+
+/-! ### Step 3b: witnessMono as a monomial -/
+
+/-- The exponent finsupp of `witnessMono T`: maps `(p, q)` to 1 iff
+`p = q` and `p ∈ Tᶜ`, else 0. -/
+noncomputable def witnessMonoExp {n : ℕ} (T : Finset (Fin n)) :
+    (Fin n × Fin n) →₀ ℕ :=
+  ∑ i ∈ Tᶜ, Finsupp.single (i, i) 1
+
+/-- `witnessMono T = monomial (witnessMonoExp T) 1`. -/
+theorem witnessMono_eq_monomial {n : ℕ} (T : Finset (Fin n)) :
+    witnessMono T = MvPolynomial.monomial (witnessMonoExp T) 1 := by
+  unfold witnessMono witnessMonoExp
+  rw [MvPolynomial.monomial_sum_one]
+  apply Finset.prod_congr rfl
+  intro i _
+  rw [MvPolynomial.X]
+
 /-- **Iterated cofactor formula** (Step 2 of Theorem 100):
 `iterDiagPderiv S permPoly = Σ_{σ ∈ Perm : σ fixes S pointwise} permCofactor σ S`.
 
