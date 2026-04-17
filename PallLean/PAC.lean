@@ -216,6 +216,39 @@ axiom gadget_spdp_subspace_factoring
       mlBlockedSpdpSubspace B κ ℓ (g.poly * p) ≤
         Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ))
 
+/-! ### Paper-faithful (inclusive-κ) version
+
+The axiom above is known to be FALSIFIABLE under the strict
+`S.length = κ` convention used in `mlBlockedSpdpSubspace`:
+- Concrete counterexample: N=2, g.poly=X₀, p=X₁, κ=1, ℓ=0.
+- mlBlockedSpdpRank B 2 1 X₁ = 0 (all |S|=2 derivatives of X₁ vanish).
+- mlBlockedSpdpSubspace B 1 0 (X₀·X₁) ⊇ span{X₀, X₁} (rank ≥ 2).
+- Bound would require 2 ≤ N² · 0 = 0. FALSE.
+
+The paper (p vs np1.pdf Definition 12 recap, line 2662; Lemma 40(c)
+proof explicitly uses `|α| ≤ κ` throughout; e.g., "Fix multi-indices
+α with |α| ≤ κ and write the Leibniz rule") uses the **inclusive**
+`|α| ≤ κ` convention.
+
+The **paper-faithful** version of the axiom is stated on
+`mlBlockedSpdpSubspaceInc` (uses `|S| ≤ κ`). Under this convention:
+- mlBlockedSpdpRankInc B 2 1 X₁ ≥ 1 (since |S|=0 generator contributes X₁).
+- mlBlockedSpdpRankInc B 1 0 (X₀·X₁) ≤ some bound.
+- The bound 3 ≤ N² · 2 = 8 now holds.
+
+See `MultilinearSPDP.mlBlockedSpdpSubspaceInc_eq_iSup` for the
+bridge: `mlBlockedSpdpSubspaceInc B κ ℓ p = ⨆ (κ' ≤ κ),
+mlBlockedSpdpSubspace B κ' ℓ p`. -/
+axiom gadget_spdp_subspace_factoring_paperFaithful
+    {N : ℕ} (g : BoundedGadget N)
+    (B : BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
+    ∃ (G : Finset (MvPolynomial (Fin N) ℚ)),
+      G.card ≤ N ^ (g.supportSize + g.degreeBound) *
+               MultilinearSPDP.mlBlockedSpdpRankInc B
+                 (κ + g.degreeBound) (ℓ + g.degreeBound) p ∧
+      MultilinearSPDP.mlBlockedSpdpSubspaceInc B κ ℓ (g.poly * p) ≤
+        Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ))
+
 /-! ### Axiom-free discharge: zero-polynomial case
 
 When `p = 0`, the subspace `mlBlockedSpdpSubspace B κ ℓ (g · 0)` is

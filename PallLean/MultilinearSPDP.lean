@@ -82,6 +82,70 @@ noncomputable def mlBlockedSpdpRank {n : ℕ} {F : Type*} [CommRing F] [Nontrivi
     (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) : ℕ :=
   Module.finrank F (mlBlockedSpdpSubspace B κ ℓ p)
 
+/-! ## Paper-faithful inclusive-κ variant
+
+Paper's Definition 12 (Lemma 40(c) recap, line 2662 of the paper):
+"rows indexed by all partial derivatives ∂^α p of total order **|α| ≤ κ**"
+
+The existing `mlBlockedSpdpSubspace` uses the strict `|S| = κ`
+convention. This is inequivalent to the paper's `|α| ≤ κ` convention
+(we have a concrete counterexample at N=2, g=X₀, p=X₁, κ=1 where the
+`=` version admits rank-2 shifted rank-0 behavior violating Lemma 40).
+
+The inclusive-κ variant below matches the paper exactly and is the
+convention under which `gadget_spdp_subspace_factoring` (Lemma 40(c))
+becomes a true statement. Existing proofs using the `=` version
+(e.g., `mlBlockedSpdpRank_add_lowDeg`) rely on the strict equality and
+are NOT claims about paper-faithful rank — they are claims about a
+Lean-internal rank quantity that happens to have useful algebraic
+properties. -/
+noncomputable def mlBlockedSpdpSubspaceInc {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    Submodule F (MvPolynomial (Fin n) F) :=
+  Submodule.span F
+    { q | ∃ (S : List (Fin n)) (m : MvPolynomial (Fin n) F),
+        S.length ≤ κ ∧ m.totalDegree ≤ ℓ ∧
+        m.vars ⊆ S.toFinset ∧
+        isBlockAdmissible B S ∧
+        q = mlProj (m * iterDerivList S p) }
+
+noncomputable def mlBlockedSpdpRankInc {n : ℕ} {F : Type*} [CommRing F]
+    [Nontrivial F] (B : BlockPartition n) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin n) F) : ℕ :=
+  Module.finrank F (mlBlockedSpdpSubspaceInc B κ ℓ p)
+
+/-- The strict-equality subspace is contained in the inclusive-κ
+variant: a `=κ` generator satisfies `≤κ`. -/
+theorem mlBlockedSpdpSubspace_le_inc
+    {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    mlBlockedSpdpSubspace B κ ℓ p ≤ mlBlockedSpdpSubspaceInc B κ ℓ p := by
+  apply Submodule.span_le.mpr
+  rintro q ⟨S, m, hlen, hdeg, hvars, hadm, hq⟩
+  exact Submodule.subset_span ⟨S, m, hlen.le, hdeg, hvars, hadm, hq⟩
+
+/-- Inclusive-κ subspace decomposes as the join over all strict-κ' ≤ κ
+subspaces. Bridge between the two conventions. -/
+theorem mlBlockedSpdpSubspaceInc_eq_iSup
+    {n : ℕ} {F : Type*} [CommRing F]
+    (B : BlockPartition n) (κ ℓ : ℕ) (p : MvPolynomial (Fin n) F) :
+    mlBlockedSpdpSubspaceInc B κ ℓ p =
+      ⨆ (κ' : ℕ) (_ : κ' ≤ κ), mlBlockedSpdpSubspace B κ' ℓ p := by
+  apply le_antisymm
+  · apply Submodule.span_le.mpr
+    rintro q ⟨S, m, hlen, hdeg, hvars, hadm, hq⟩
+    refine Submodule.mem_iSup_of_mem S.length ?_
+    refine Submodule.mem_iSup_of_mem hlen ?_
+    exact Submodule.subset_span ⟨S, m, rfl, hdeg, hvars, hadm, hq⟩
+  · apply iSup_le
+    intro κ'
+    apply iSup_le
+    intro hκ'
+    apply Submodule.span_le.mpr
+    rintro q ⟨S, m, hlen, hdeg, hvars, hadm, hq⟩
+    exact Submodule.subset_span
+      ⟨S, m, hlen ▸ hκ', hdeg, hvars, hadm, hq⟩
+
 /-! ## Monotonicity -/
 
 /-- Coarser partitions have smaller SPDP subspaces.
