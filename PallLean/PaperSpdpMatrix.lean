@@ -2563,6 +2563,43 @@ theorem iterDerivList_eq_zero_of_not_mem_gadgetDerivIndices {N : ℕ}
       exact IterDerivHelpers.iterDerivList_eq_zero_of_mem_notMem_vars _ v _
         hv_inlist hv_notmem
 
+/-- For any m, S, g, p:
+`m * iterDerivList S (g·p) ∈ span{m * ∂^A g * ∂^B p : A, B lists}`. -/
+theorem m_iterDerivList_mul_mem_leibniz_span {N : ℕ}
+    (m g p : MvPolynomial (Fin N) ℚ) (S : List (Fin N)) :
+    m * SPDP.iterDerivList S (g * p) ∈
+    Submodule.span ℚ
+      { r | ∃ A B : List (Fin N),
+          r = m * SPDP.iterDerivList A g * SPDP.iterDerivList B p } := by
+  classical
+  -- Apply iterDerivList_mul_mem_leibniz_span then multiply by m (linear).
+  have h := PACLeibniz.iterDerivList_mul_mem_leibniz_span S g p
+  -- h : iterDerivList S (g * p) ∈ span (leibnizGenSet g p)
+  -- leibnizGenSet g p = {iterDerivList A g * iterDerivList B p : A, B}.
+  -- Multiply by m (on the left): linear map preserves span membership.
+  have hmul_linear : (fun x => m * x) '' (PACLeibniz.leibnizGenSet g p) ⊆
+      { r | ∃ A B : List (Fin N),
+          r = m * SPDP.iterDerivList A g * SPDP.iterDerivList B p } := by
+    rintro x ⟨y, ⟨A, B, hy⟩, rfl⟩
+    exact ⟨A, B, by rw [hy]; ring⟩
+  -- Lift to span via linear map induction.
+  have : m * SPDP.iterDerivList S (g * p) ∈
+      Submodule.span ℚ ((fun x => m * x) '' PACLeibniz.leibnizGenSet g p) := by
+    -- For any linear map f and v ∈ span S, f(v) ∈ span (f '' S).
+    -- Here f = mul m, and mul m is ℚ-linear.
+    refine Submodule.span_induction (p := fun v _ => m * v ∈ _) ?_ ?_ ?_ ?_ h
+    · intro v hv
+      exact Submodule.subset_span ⟨v, hv, rfl⟩
+    · show m * (0 : MvPolynomial (Fin N) ℚ) ∈ _
+      rw [mul_zero]; exact Submodule.zero_mem _
+    · intros u v _ _ hu hv
+      rw [mul_add]
+      exact Submodule.add_mem _ hu hv
+    · intros c u _ hu
+      rw [mul_smul_comm]
+      exact Submodule.smul_mem _ c hu
+  exact Submodule.span_mono hmul_linear this
+
 /-- List-level version: `iterDerivList A g.poly = 0` whenever the
 canonical multi-index `listToMultiIndex A` is not a valid gadget
 derivative index. Useful for restricting the Leibniz span. -/
