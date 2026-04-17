@@ -755,6 +755,31 @@ theorem S_eq_T_of_expEq {n : ℕ} {σ : Equiv.Perm (Fin n)}
   simp only [Finset.mem_compl] at hSc_Tc_diff
   exact not_iff_not.mp hSc_Tc_diff
 
+/-- Helper: coefficient of `permCofactor σ S` at `witnessMonoExp T`
+is 1 iff σ = id and S = T (when σ fixes S). -/
+theorem coeff_permCofactor_eq {n : ℕ} (σ : Equiv.Perm (Fin n))
+    (S T : Finset (Fin n)) (hσS : ∀ i ∈ S, σ i = i) :
+    MvPolynomial.coeff (witnessMonoExp T) (permCofactor σ S) =
+    if σ = Equiv.refl (Fin n) ∧ S = T then 1 else 0 := by
+  rw [permCofactor_eq_monomial, MvPolynomial.coeff_monomial]
+  by_cases hST : σ = Equiv.refl (Fin n) ∧ S = T
+  · rw [if_pos hST]
+    rw [if_pos]
+    rw [hST.1, hST.2]
+    exact (permCofactorExp_eq_witnessMonoExp_of_id T).symm
+  · rw [if_neg hST]
+    rw [if_neg]
+    intro hexp_eq
+    -- hexp_eq is equality of exponents, possibly in either direction
+    apply hST
+    have hexp_eq' : permCofactorExp σ S = witnessMonoExp T := by
+      first
+      | exact hexp_eq
+      | exact hexp_eq.symm
+    constructor
+    · exact perm_eq_refl_of_expEq hσS hexp_eq'
+    · exact S_eq_T_of_expEq hσS hexp_eq'
+
 /-- **Iterated cofactor formula** (Step 2 of Theorem 100):
 `iterDiagPderiv S permPoly = Σ_{σ ∈ Perm : σ fixes S pointwise} permCofactor σ S`.
 
@@ -827,6 +852,47 @@ theorem iterDiagPderiv_permPoly_eq_sum_cofactor {n : ℕ}
       exact diagPderiv_permCofactor_fixes σ S' a ha_notin hσa
     · rw [if_neg hσa]
       exact diagPderiv_permCofactor_nonfixing σ S' a ha_notin hσa
+
+/-! ### Step 3 main theorem: coefficient identity
+
+`coeff (witnessMonoExp T) (∂_S permPoly) = δ_{S, T}`.
+
+The paper's Theorem 100 core identity-minor claim. -/
+
+/-- **Theorem 100 core identity-minor claim (Step 3 main)**:
+`coeff (witnessMonoExp T) (∂_S permPoly) = δ_{S, T}`.
+
+The SPDP matrix of `permPoly` has an identity submatrix indexed by
+subsets of size κ = |S| (with rows = derivatives, columns = witness
+monomials): on the diagonal the coefficient is 1, off-diagonal it's 0. -/
+theorem coeff_witnessMono_iterDiagPderiv {n : ℕ} (S T : Finset (Fin n)) :
+    MvPolynomial.coeff (witnessMonoExp T) (iterDiagPderiv S (permPoly n)) =
+    if S = T then 1 else 0 := by
+  rw [iterDiagPderiv_permPoly_eq_sum_cofactor]
+  rw [MvPolynomial.coeff_sum]
+  -- Σ_{σ fixes S} coeff (witnessMonoExp T) (permCofactor σ S)
+  -- Each term: 1 if σ = id AND S = T, else 0. So sum = 1 if S = T (only σ=id), else 0.
+  by_cases hST : S = T
+  · rw [if_pos hST]
+    rw [Finset.sum_eq_single (Equiv.refl (Fin n))]
+    · rw [coeff_permCofactor_eq _ S T (fun i _ => rfl)]
+      rw [if_pos ⟨rfl, hST⟩]
+    · intro σ hσ hσ_ne_id
+      have hσS := (Finset.mem_filter.mp hσ).2
+      rw [coeff_permCofactor_eq σ S T hσS]
+      rw [if_neg]
+      intro ⟨hσ_id, _⟩
+      exact hσ_ne_id hσ_id
+    · intro hnotin
+      exact absurd (Finset.mem_filter.mpr ⟨Finset.mem_univ _, fun _ _ => rfl⟩) hnotin
+  · rw [if_neg hST]
+    apply Finset.sum_eq_zero
+    intro σ hσ
+    have hσS := (Finset.mem_filter.mp hσ).2
+    rw [coeff_permCofactor_eq σ S T hσS]
+    rw [if_neg]
+    intro ⟨_, hSTeq⟩
+    exact hST hSTeq
 
 /-! ### Step 2b: single-variable pderiv of permPoly
 
