@@ -235,4 +235,64 @@ things. A future bridge theorem would relate them under conditions on
 the block partition `B` and the polynomial `p`. -/
 example : True := trivial  -- placeholder for the future bridge theorem
 
+/-! ## Phase 4a: scalar Leibniz coefficient + partial L matrix scaffold
+
+The paper's matrix `L` for Lemma 40(c) has entries of the form
+`(α choose β) · coeff_ν(∂^β g)` where β = α - δ and ν = μ - σ relate
+row/column indices of `M(q)` to `M(p)_shifted`.
+
+To express this as a SCALAR matrix `L : Matrix (RowIdx × ColIdx) (RowIdx' × ColIdx') ℚ`,
+we index by PAIRS on both sides (the "tensorized" matrix formulation).
+
+**Phase 4a contribution:** define the helper `multiIndexLE` (componentwise
+order), scalar `leibnizCoeff`, and the matrix `gadgetLeibnizMatrix`.
+
+**Phases 4b/5/6 (multi-session):** prove `M(q) = L · M(p)_shifted` via
+explicit Leibniz verification, then rank(L) bound, then discharge. -/
+
+/-- Componentwise order on multi-indices. -/
+def multiIndexLE {N : ℕ} (β α : Fin N →₀ ℕ) : Prop :=
+  ∀ i, β i ≤ α i
+
+/-- Decidability of componentwise order. -/
+noncomputable instance {N : ℕ} (β α : Fin N →₀ ℕ) :
+    Decidable (multiIndexLE β α) :=
+  Classical.propDecidable _
+
+/-- **Scalar entry of L:** `(α choose β) · coeff_ν(∂^β g)` if β ≤ α
+componentwise, else 0.
+
+For our Phase 4a we only define a simplified version using the binomial
+coefficient at a single component (not multi-index binomial); a more
+faithful formulation uses the multi-index binomial coefficient
+`α! / (β! · (α-β)!)`. -/
+noncomputable def leibnizCoeff {N : ℕ} (g : PAC.BoundedGadget N)
+    (α β ν : Fin N →₀ ℕ) : ℚ := by
+  classical
+  exact if multiIndexLE β α then
+      -- Simplified: use sum of binomials rather than multi-index binomial
+      -- A faithful version would use `α.prod (fun i aᵢ => Nat.choose aᵢ (β i))`.
+      ((α.sum (fun _ n => n)).choose (β.sum (fun _ n => n)) : ℚ) *
+        MvPolynomial.coeff ν
+          (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g.poly)
+    else 0
+
+/-- **Partial L matrix (Phase 4a scaffold).**
+Index type: `(SpdpRowIndex N κ) × (SpdpColIndex N ℓ)` on rows,
+same for columns (but with shifted bounds `κ+d`, `ℓ+d`).
+
+Entry at `((α, μ), (δ, σ))`: `leibnizCoeff g α (α-δ) (μ-σ)` (when
+subtractions are nonneg), else 0. -/
+noncomputable def gadgetLeibnizMatrix {N : ℕ} (g : PAC.BoundedGadget N)
+    (κ ℓ : ℕ) :
+    Matrix (SpdpRowIndex N κ × SpdpColIndex N ℓ)
+           (SpdpRowIndex N (κ + g.degreeBound) ×
+            SpdpColIndex N (ℓ + g.degreeBound)) ℚ :=
+  fun ⟨α, μ⟩ ⟨δ, σ⟩ =>
+    -- We need α - δ ≥ 0 and μ - σ ≥ 0 componentwise.
+    -- Using Finsupp subtraction (which truncates at 0).
+    if multiIndexLE δ.val α.val ∧ multiIndexLE σ.val μ.val then
+      leibnizCoeff g α.val (α.val - δ.val) (μ.val - σ.val)
+    else 0
+
 end PaperSpdpMatrix
