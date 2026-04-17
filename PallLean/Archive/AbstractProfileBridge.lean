@@ -15,9 +15,9 @@
   This reduces the all-S finrank bound to a bound on ∏ |maxLocalDerivAtoms|,
   which is computable from the factor structure alone.
 -/
-import PallLean.AbstractLocalDerivSpace
+import PallLean.Archive.AbstractLocalDerivSpace
 import PallLean.WithinProfileBound
-import PallLean.PDerivVars
+import PallLean.Archive.PDerivVars
 import Mathlib.Tactic
 
 namespace AbstractProfileBridge

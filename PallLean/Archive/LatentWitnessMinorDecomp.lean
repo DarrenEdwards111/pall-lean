@@ -1,4 +1,4 @@
-import PallLean.LatentCompiler
+import PallLean.Archive.LatentCompiler
 import PallLean.IterDerivHelpers
 import PallLean.ProductDeriv
 import Mathlib.Tactic

@@ -20,7 +20,7 @@
     rk(χ_{φ_n}) ≤ rk(f_{3SAT,N}) ≤ N^c = poly(n)
 -/
 import PallLean.SPDPDefs
-import PallLean.CoeffMatrixHelpers
+import PallLean.Archive.CoeffMatrixHelpers
 import Mathlib.Algebra.Order.Antidiag.Finsupp
 import Mathlib.Tactic
 import Mathlib.LinearAlgebra.Dimension.Finrank

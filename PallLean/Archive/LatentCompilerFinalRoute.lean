@@ -1,10 +1,10 @@
-import PallLean.LatentCompiler
-import PallLean.LatentSelectorSignatureCore
-import PallLean.LatentWidthRankDecomp
-import PallLean.LatentWitnessMinorDecomp
-import PallLean.SelConClosedCoeffDecomp
-import PallLean.CompilerProperties
-import PallLean.LatentFullBridge
+import PallLean.Archive.LatentCompiler
+import PallLean.Archive.LatentSelectorSignatureCore
+import PallLean.Archive.LatentWidthRankDecomp
+import PallLean.Archive.LatentWitnessMinorDecomp
+import PallLean.Archive.SelConClosedCoeffDecomp
+import PallLean.Archive.CompilerProperties
+import PallLean.Archive.LatentFullBridge
 import Mathlib.Tactic
 
 /-!

@@ -1,9 +1,9 @@
-import PallLean.LatentCompiler
-import PallLean.LatentWitnessMinorDecomp
+import PallLean.Archive.LatentCompiler
+import PallLean.Archive.LatentWitnessMinorDecomp
 import PallLean.IterDerivHelpers
-import PallLean.ProfileSpaceBound
-import PallLean.LatentSelectorSignatureCore
-import PallLean.CopyConClosedCoeffDecomp
+import PallLean.Archive.ProfileSpaceBound
+import PallLean.Archive.LatentSelectorSignatureCore
+import PallLean.Archive.CopyConClosedCoeffDecomp
 import Mathlib.Tactic
 
 /-!

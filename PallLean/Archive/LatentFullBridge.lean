@@ -1,4 +1,4 @@
-import PallLean.LatentCompiler
+import PallLean.Archive.LatentCompiler
 import PallLean.MultilinearSPDP
 import PallLean.ProfileCompression
 import Mathlib.Tactic

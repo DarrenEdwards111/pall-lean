@@ -1,4 +1,4 @@
-import PallLean.LatentCompilerFinalRoute
+import PallLean.Archive.LatentCompilerFinalRoute
 
 namespace LatentCompilerFinalRoute
 

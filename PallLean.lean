@@ -1,16 +1,10 @@
--- Active entrypoint (latent compiler route)
-import PallLean.CompilerProperties
-import PallLean.LatentCompiler
-import PallLean.LatentWidthRankDecomp
-import PallLean.LatentWitnessMinorDecomp
-import PallLean.LatentCompilerFinalRoute
-import PallLean.SelConCoeffReduction
-import PallLean.SelConClosedCoeffDecomp
+-- Core on-chain entrypoint: imports only what `P_ne_NP_unconditional` depends on.
+-- Off-path / alternative-route / exploratory files have been moved to
+-- `PallLean/Archive/` (see `PallLean.Archive` for the roll-up).
+
+import PallLean.PaperFaithfulSeparation
+
+-- On-chain utility modules also referenced directly by callers:
 import PallLean.PACLeibniz
 import PallLean.MatrixSPDP
 import PallLean.PAC
-import PallLean.GadgetDerivs
-import PallLean.PaperSpdpMatrix
-import PallLean.GadgetSubspaceFactoringCounterexample
-import PallLean.PermanentGodMove
-import PallLean.AmplituhedronPSD

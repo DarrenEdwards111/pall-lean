@@ -1,5 +1,5 @@
 import PallLean.PaperFaithfulSeparation
-import PallLean.LocalityRankBound
+import PallLean.Archive.LocalityRankBound
 import Mathlib.Tactic
 
 /-!

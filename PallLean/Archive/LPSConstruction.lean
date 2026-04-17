@@ -15,7 +15,7 @@
   1. `regular` — combinatorial regularity of circulant graph (10-regular)
   2. `pdMatrixRank_pos` — PD rank ≥ 1 from product charPoly structure
 -/
-import PallLean.RamanujanTseitin
+import PallLean.Archive.RamanujanTseitin
 import Mathlib.Tactic
 
 -- This file is intentionally kept as a documentation reference.

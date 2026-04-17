@@ -51,7 +51,7 @@
 import PallLean.GodMoveCore
 import PallLean.BinomialBound2
 import PallLean.PartialDerivMatrix
-import PallLean.RamanujanTseitin
+import PallLean.Archive.RamanujanTseitin
 import Mathlib.Tactic
 import Mathlib.Data.Nat.Log
 

@@ -29,7 +29,7 @@
   Phases 2-6 are multi-session work — this file lays the foundation.
 -/
 import PallLean.MultilinearSPDP
-import PallLean.GadgetDerivs
+import PallLean.Archive.GadgetDerivs
 import PallLean.PAC
 import Mathlib.LinearAlgebra.Matrix.Rank
 import Mathlib.Tactic

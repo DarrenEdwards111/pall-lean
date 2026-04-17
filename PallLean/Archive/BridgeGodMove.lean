@@ -15,8 +15,8 @@
 -/
 import PallLean.PaperFaithfulSeparation
 import PallLean.GodMoveReal
-import PallLean.BridgeNPSide
-import PallLean.LocalityRankBound
+import PallLean.Archive.BridgeNPSide
+import PallLean.Archive.LocalityRankBound
 import Mathlib.Tactic
 import Mathlib.Data.Nat.Log
 

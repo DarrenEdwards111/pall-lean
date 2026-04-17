@@ -1,5 +1,5 @@
-import PallLean.LatentCompiler
-import PallLean.LatentWidthRankDecomp
+import PallLean.Archive.LatentCompiler
+import PallLean.Archive.LatentWidthRankDecomp
 import Mathlib.Tactic
 
 /-!

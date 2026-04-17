@@ -1,4 +1,4 @@
-import PallLean.LatentWitnessMinorDecomp
+import PallLean.Archive.LatentWitnessMinorDecomp
 import Mathlib.Tactic
 
 /-!

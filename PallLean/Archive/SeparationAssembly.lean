@@ -114,11 +114,11 @@
   Each sub-axiom is a specific, well-defined mathematical claim from
   the paper, much more focused than the original two monolithic shell axioms.
 -/
-import PallLean.Separation29
+import PallLean.Archive.Separation29
 import PallLean.PartialDerivMatrix
-import PallLean.TMtoBP
-import PallLean.RestrictionMono
-import PallLean.PaddingRobustness
+import PallLean.Archive.TMtoBP
+import PallLean.Archive.RestrictionMono
+import PallLean.Archive.PaddingRobustness
 import Mathlib.Tactic
 
 namespace SeparationAssembly

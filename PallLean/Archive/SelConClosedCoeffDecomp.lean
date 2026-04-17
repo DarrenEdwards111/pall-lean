@@ -1,4 +1,4 @@
-import PallLean.SelConCoeffReduction
+import PallLean.Archive.SelConCoeffReduction
 import Mathlib.Tactic
 
 /-!

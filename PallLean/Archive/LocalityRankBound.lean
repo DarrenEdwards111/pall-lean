@@ -32,7 +32,7 @@ import PallLean.PaperFaithfulSeparation
 import PallLean.MlProjFar
 import PallLean.GodMoveReal
 import PallLean.IterDerivHelpers
-import PallLean.PDerivVars
+import PallLean.Archive.PDerivVars
 import Mathlib.Tactic
 import Mathlib.Data.Nat.Log
 
