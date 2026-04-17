@@ -87,4 +87,26 @@ abbrev SpdpRowIndex (N κ : ℕ) : Type :=
 abbrev SpdpColIndex (N ℓ : ℕ) : Type :=
   { μ : Fin N →₀ ℕ // μ.sum (fun _ n => n) ≤ ℓ }
 
+/-! ## Phase 2a: the paper's matrix as a function
+
+The paper's matrix `M^B_{κ,ℓ}(p)[α, μ] = coeff_μ(∂^α p)` where α is a
+row index (|α| ≤ κ) and μ is a column index (|μ| ≤ ℓ).
+
+We define it as a plain `SpdpRowIndex N κ → SpdpColIndex N ℓ → ℚ`
+function for now. Fintype instances and `Matrix.rank` follow in
+Phase 2b/c once the subtype Fintype is established. -/
+
+/-- Apply `∂^α` to a polynomial, returning the β-th partial derivative
+where β is the multi-index representation of α. -/
+noncomputable def multiPderiv {N : ℕ} (α : Fin N →₀ ℕ)
+    (p : MvPolynomial (Fin N) ℚ) : MvPolynomial (Fin N) ℚ :=
+  SPDP.iterDerivList (GadgetDerivs.multiIndexToList α) p
+
+/-- **The paper's M^B_{κ,ℓ}(p) as a function.** Entry (α, μ) is the
+coefficient of monomial `x^μ` in the multi-derivative `∂^α p`. -/
+noncomputable def paperSpdpMatrix {N : ℕ} (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) :
+    SpdpRowIndex N κ → SpdpColIndex N ℓ → ℚ :=
+  fun α μ => MvPolynomial.coeff μ.val (multiPderiv α.val p)
+
 end PaperSpdpMatrix
