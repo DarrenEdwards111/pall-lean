@@ -12,3 +12,7 @@ import PallLean.PAC
 -- Farkas/KKT soundness-certificate layer for the identity minor
 -- (paper §18.1, Remark 43: "Lagrangian / PAC certificate")
 import PallLean.IdentityMinorFarkas
+
+-- Rank-monotonicity infrastructure for gauge construction (§40 step 1 lemma)
+-- (paper Definition 6 / Lemma 7: Π_Φ rank-monotonicity)
+import PallLean.GaugeMonotonicity
