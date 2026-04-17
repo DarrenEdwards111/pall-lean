@@ -498,4 +498,78 @@ theorem sum_neg_log_convexOn {ι : Type*} [Fintype ι] :
       _ = a • (∑ i, -Real.log (x i)) + b • (∑ i, -Real.log (y i)) := by
           simp [smul_eq_mul]
 
+/-! ## Section 11: Barrier expressed via minor-valued map
+
+The determinantal barrier is
+    B(M) = ∑_i -log det(M[J_i, J_i])
+By introducing the "minor vector" Φ(M) : 𝒥.index → ℝ,
+    Φ_i(M) = det(M[J_i, J_i]),
+we factor B = (∑ -log) ∘ Φ. This makes explicit that the barrier depends
+on M only through the principal-minor values, and that its convexity
+properties can be analyzed in the minor-vector coordinate. -/
+
+/-- The principal-minor vector induced by a minor family. -/
+def minorVector (𝒥 : TotallyNonnegativeMinorFamily n) [Fintype 𝒥.index]
+    (M : Matrix n n ℝ) : 𝒥.index → ℝ :=
+  fun i =>
+    letI := 𝒥.shape_fintype i
+    letI := 𝒥.shape_decEq i
+    (M.submatrix (𝒥.select i) (𝒥.select i)).det
+
+/-- Barrier factors through the minor vector:
+    determinantalBarrier 𝒥 M = ∑_i -log (minorVector 𝒥 M i). -/
+theorem determinantalBarrier_eq_sum_neg_log_minorVector
+    (𝒥 : TotallyNonnegativeMinorFamily n) [Fintype 𝒥.index]
+    (M : Matrix n n ℝ) :
+    determinantalBarrier 𝒥 M =
+      ∑ i : 𝒥.index, -Real.log (minorVector 𝒥 M i) := by
+  unfold determinantalBarrier minorVector
+  rw [← Finset.sum_neg_distrib]
+
+/-- If `M` is `PosDef`, its minor vector has strictly positive entries. -/
+theorem minorVector_pos_of_posDef
+    (𝒥 : TotallyNonnegativeMinorFamily n) [Fintype 𝒥.index]
+    (hselect : ∀ i, Function.Injective (𝒥.select i))
+    {M : Matrix n n ℝ} (hM : M.PosDef) :
+    ∀ i, 0 < minorVector 𝒥 M i := by
+  intro i
+  unfold minorVector
+  letI := 𝒥.shape_fintype i
+  letI := 𝒥.shape_decEq i
+  exact det_submatrix_pos_of_posDef hM (hselect i)
+
+/-! ## Section 12: Positroid combinatorics (preliminary)
+
+The **positroid** of a totally nonnegative matrix records which Plücker
+coordinates (k×k minors) vanish. This is the combinatorial invariant
+stratifying the totally-nonnegative Grassmannian (Postnikov).
+
+Full positroid theory is paper-deep and lies outside Mathlib; here we give
+the basic definition and trivial structural facts (e.g., the positroid
+of a totally-positive matrix is the "top cell" — no vanishing minors). -/
+
+/-- The **positroid** of a k × n' matrix A: the set of injective column
+selections `e : Fin k → Fin n'` for which the corresponding k × k minor
+is strictly positive. (For totally-nonnegative A, minors are ≥ 0, so this
+records where they are > 0 versus = 0.) -/
+def positroidSupport {k n' : ℕ} (A : Matrix (Fin k) (Fin n') ℝ) :
+    Set {e : Fin k → Fin n' // Function.Injective e} :=
+  { e | 0 < (A.submatrix id e.val).det }
+
+/-- For totally positive matrices, every injective selection is in the
+positroid support — the "top cell" of the stratification. -/
+theorem positroidSupport_totallyPositive
+    {k n' : ℕ} {A : Matrix (Fin k) (Fin n') ℝ}
+    (hA : IsTotallyPositiveMatrix A) :
+    positroidSupport A = Set.univ := by
+  ext ⟨e, he⟩
+  simp [positroidSupport, hA e he]
+
+/-- For totally nonnegative matrices, the positroid support is a subset
+of the universe. -/
+theorem positroidSupport_subset_univ
+    {k n' : ℕ} (A : Matrix (Fin k) (Fin n') ℝ) :
+    positroidSupport A ⊆ Set.univ :=
+  fun _ _ => Set.mem_univ _
+
 end AmplituhedronPSD
