@@ -153,4 +153,9 @@ theorem listToMultiIndex_apply {N : ℕ} (A : List (Fin N)) (i : Fin N) :
   unfold listToMultiIndex
   simp [Multiset.toFinsupp_apply, Multiset.coe_count]
 
-end GadgetDerivs
+-- Note: multiIndexToList_count (the characterization of counts) is
+-- the key technical step to connect gadgetDerivPolyFinset with
+-- arbitrary lists via iterDerivList_perm. Proof deferred to future
+-- focused session due to repeated Lean elaboration issues with
+-- Finset.sum_toList ↔ List.map.sum conversions. The definitions
+-- above still support direct construction of β-indexed derivatives.
