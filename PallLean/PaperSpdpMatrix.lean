@@ -487,7 +487,8 @@ The helper lemmas above (`multiIndexSub_*`, `multiBinom_*`,
 are the building blocks for proving `multiIndexLeibniz` by strong
 induction on `α.sum id`:
 
-* **Base** (`α = 0`): both sides reduce to `g * p`.
+* **Base** (`α = 0`): both sides reduce to `g * p` — proved below as
+  `multiIndexLeibniz_zero` (axiom-free).
 * **Step**: pick `i ∈ α.support`, rewrite via
   `multiIndexToList_perm_cons_single` as `i :: multiIndexToList α'`
   with `α' = α - single i 1`, expand via `pderiv_mul`, apply the IH
@@ -499,6 +500,61 @@ The Finset reindex combining the two IH sums into a single sum over
 `γ ≤ α` is still to be written (~300 lines of `Finset.sum_bij` and
 sum-splitting). The axiom below remains for the overall matrix
 identity statement until that reindex is complete. -/
+
+/-- Helper: the boundedMultiIndexFinset at k=0 is just {0}. -/
+theorem boundedMultiIndexFinset_zero (N : ℕ) :
+    boundedMultiIndexFinset N 0 = {0} := by
+  classical
+  unfold boundedMultiIndexFinset
+  ext β
+  simp only [Finset.mem_filter, Finset.mem_image, Finset.mem_univ,
+    true_and, Finset.mem_singleton]
+  constructor
+  · rintro ⟨⟨f, hf_eq⟩, _⟩
+    -- β equals the image; each component of f : Fin N → Fin 1 must be 0.
+    rw [← hf_eq]
+    ext i
+    -- (onFinset Finset.univ (fun i => (f i).val) ...) i = (f i).val
+    -- Since f i : Fin 1, its val is 0.
+    have hfi : (f i).val = 0 := Nat.lt_one_iff.mp (f i).isLt
+    simp [Finsupp.onFinset_apply, hfi]
+  · intro hβ
+    subst hβ
+    refine ⟨⟨fun _ => (0 : Fin 1), ?_⟩, ?_⟩
+    · ext i
+      simp [Finsupp.onFinset_apply]
+    · -- sum of 0 function is 0, and 0 ≤ 0.
+      simp
+
+/-- **Multi-index Leibniz, base case (α = 0), axiom-free.** -/
+theorem multiIndexLeibniz_zero {N : ℕ} (g p : MvPolynomial (Fin N) ℚ) :
+    SPDP.iterDerivList (GadgetDerivs.multiIndexToList 0) (g * p) =
+    ∑ β ∈ (boundedMultiIndexFinset N 0).filter (fun β => multiIndexLE β 0),
+      (multiBinom 0 β : ℚ) •
+        (SPDP.iterDerivList (GadgetDerivs.multiIndexToList β) g *
+         SPDP.iterDerivList (GadgetDerivs.multiIndexToList
+           (multiIndexSub 0 β)) p) := by
+  classical
+  rw [multiIndexToList_zero]
+  show g * p = _
+  -- RHS sum: filter over (boundedMultiIndexFinset N 0) with β ≤ 0.
+  -- boundedMultiIndexFinset N 0 = {0}, and multiIndexLE 0 0 is true.
+  rw [boundedMultiIndexFinset_zero]
+  -- Now filter over {0}.
+  have hmem : multiIndexLE (0 : Fin N →₀ ℕ) 0 := by
+    intro i; exact le_refl _
+  rw [Finset.filter_singleton]
+  simp only [hmem, if_true]
+  -- Sum over {0}.
+  rw [Finset.sum_singleton]
+  -- Now: 1 • (iterDerivList [] g * iterDerivList (multiIndexSub 0 0) p) = g * p
+  rw [multiIndexSub_self, multiIndexToList_zero]
+  show g * p = (multiBinom 0 0 : ℚ) • _
+  rw [show (0 : Fin N →₀ ℕ) = (0 : Fin N →₀ ℕ) from rfl, multiBinom_self]
+  show g * p = (1 : ℚ) • _
+  rw [one_smul]
+  show g * p = SPDP.iterDerivList [] g * SPDP.iterDerivList [] p
+  simp [SPDP.iterDerivList]
 
 /-- **Scalar entry of L:** `(α choose β) · coeff_ν(∂^β g)` if β ≤ α
 componentwise, else 0.
@@ -1054,6 +1110,20 @@ in this file as an independent paper-exact rendering of Lemma 40(c),
 which is what the paper states verbatim. Connecting it to
 `mlBlockedSpdpRank` requires a multiplier-including refactor of
 `paperSpdpMatrix` (tracked as future work). -/
+
+-- Verify helpers are axiom-free (used by future multiIndexLeibniz discharge).
+#print axioms multiIndexLeibniz_zero
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms boundedMultiIndexFinset_zero
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms multiBinom_pascal
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms multiBinom_at_zero_coord
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms multiIndexToList_perm_cons_single
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms multiIndexToList_zero
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 
 #print axioms mlBlockedSpdpRank_gadget_mul_le
 -- Expected: propext, Classical.choice, Quot.sound,
