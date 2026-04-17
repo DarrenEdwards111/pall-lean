@@ -2418,20 +2418,8 @@ Full assembly plan for discharging `paperSpdpRank_gadget_mul_le`:
 Each step is mechanically sound; total implementation ~250-400 lines. Left
 for a focused session. -/
 
-/-- **Phase 6 narrower axiom**: paper's rank bound on the matrix formulation.
-
-Discharging this requires the Matrix.rank row-span argument: row span of
-`paperSpdpMatrixVal κ ℓ (g·p)` is contained in a span of size
-`≤ N^(t+d) · paperSpdpRank (κ+d) (ℓ+d) p` (by Phase 5 + distinct-generator count).
-
-Uses: `Matrix.rank_le_card_width`, `Matrix.rank_sum_le` (row span
-decomposition), and counting via `gadgetDerivIndices`. -/
-axiom paperSpdpRank_gadget_mul_le {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
-    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
-    (hN : g.degreeBound + 1 ≤ N) :
-    paperSpdpRank κ ℓ (g.poly * p) ≤
-      N ^ (g.supportSize + g.degreeBound) *
-        paperSpdpRank (κ + g.degreeBound) (ℓ + g.degreeBound) p
+-- Phase 6 rank bound moved to after BoundedGadget.toPAC (below),
+-- as `paperSpdpRank_gadget_mul_le_tight` — fully axiom-free.
 
 /-! ### Axiom-free special case: zero polynomial
 
@@ -2575,6 +2563,63 @@ theorem iterDerivList_eq_zero_of_not_mem_gadgetDerivIndices {N : ℕ}
       exact IterDerivHelpers.iterDerivList_eq_zero_of_mem_notMem_vars _ v _
         hv_inlist hv_notmem
 
+/-- **Phase 6 tight rank bound, proved axiom-free**: paper's
+`rank(g·p) ≤ N^(supportSize + degreeBound) · rank(shifted)`. -/
+theorem paperSpdpRank_gadget_mul_le_tight {N : ℕ} (g : MatrixSPDP.BoundedGadget N)
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
+    (hN : g.degreeBound + 1 ≤ N) :
+    paperSpdpRank κ ℓ (g.poly * p) ≤
+      N ^ (g.supportSize + g.degreeBound) *
+        paperSpdpRank (κ + g.degreeBound) (ℓ + g.degreeBound) p := by
+  classical
+  unfold paperSpdpRank
+  rw [paperSpdp_eq_sum_matrix_β]
+  -- Restrict the sum: β ∉ gadgetDerivIndices g → matrix_β = 0.
+  have h_restrict :
+      (∑ β ∈ boundedMultiIndexFinset N κ, matrix_β g κ ℓ p β) =
+      (∑ β ∈ (boundedMultiIndexFinset N κ) ∩
+              GadgetDerivs.gadgetDerivIndices (BoundedGadget.toPAC g),
+          matrix_β g κ ℓ p β) := by
+    rw [← Finset.sum_filter_ne_zero]
+    symm
+    rw [← Finset.sum_filter_ne_zero]
+    congr 1
+    ext β
+    simp only [Finset.mem_filter, Finset.mem_inter]
+    constructor
+    · rintro ⟨⟨hbnd, _⟩, hne⟩
+      exact ⟨hbnd, hne⟩
+    · rintro ⟨hbnd, hne⟩
+      refine ⟨⟨hbnd, ?_⟩, hne⟩
+      by_contra hβ_not
+      apply hne
+      exact matrix_β_zero_of_deriv_zero g κ ℓ p β
+        (iterDerivList_eq_zero_of_not_mem_gadgetDerivIndices g β hβ_not)
+  rw [h_restrict]
+  calc (∑ β ∈ (boundedMultiIndexFinset N κ) ∩
+              GadgetDerivs.gadgetDerivIndices (BoundedGadget.toPAC g),
+          matrix_β g κ ℓ p β).rank
+      ≤ ∑ β ∈ (boundedMultiIndexFinset N κ) ∩
+              GadgetDerivs.gadgetDerivIndices (BoundedGadget.toPAC g),
+          (matrix_β g κ ℓ p β).rank :=
+        Matrix_rank_sum_le _ _
+    _ ≤ ∑ β ∈ (boundedMultiIndexFinset N κ) ∩
+              GadgetDerivs.gadgetDerivIndices (BoundedGadget.toPAC g),
+          (paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p).rank :=
+        Finset.sum_le_sum (fun β _ => matrix_β_rank_le g κ ℓ p β)
+    _ = ((boundedMultiIndexFinset N κ) ∩
+           GadgetDerivs.gadgetDerivIndices (BoundedGadget.toPAC g)).card *
+          (paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p).rank := by
+        rw [Finset.sum_const, smul_eq_mul]
+    _ ≤ (GadgetDerivs.gadgetDerivIndices (BoundedGadget.toPAC g)).card *
+          (paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p).rank := by
+        apply Nat.mul_le_mul_right
+        exact Finset.card_le_card Finset.inter_subset_right
+    _ ≤ N ^ (g.supportSize + g.degreeBound) *
+          (paperSpdpMatrixVal (κ + g.degreeBound) (ℓ + g.degreeBound) p).rank := by
+        apply Nat.mul_le_mul_right
+        exact GadgetDerivs.gadgetDerivIndices_card_le_N_pow (BoundedGadget.toPAC g) hN
+
 /-- **Full chain theorem (revised)**: paper's
 `rank(g·p) ≤ N^C · rank(p)_shifted` on Lean's canonical
 `mlBlockedSpdpRank`.
@@ -2687,6 +2732,10 @@ which is what the paper states verbatim. Connecting it to
 #print axioms paperSpdp_eq_sum_matrix_β
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms matrix_β_rank_le
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms paperSpdpRank_gadget_mul_le_tight
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms iterDerivList_eq_zero_of_not_mem_gadgetDerivIndices
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms matrix_β_eq_product
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
