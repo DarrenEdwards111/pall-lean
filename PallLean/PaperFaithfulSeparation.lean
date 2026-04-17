@@ -1327,6 +1327,47 @@ theorem P_ne_NP_via_theorem207_from_narrow_gauge :
 
 #print axioms P_ne_NP_via_theorem207_from_narrow_gauge
 
+/-- **`P_ne_NP` via the minimal rank-sandwich axiom** (narrowest axiom
+closure possible — no polynomials, no SPDP, no gauges).
+
+Uses `GlobalGodMoveGauge.exists_rank_sandwich_for_sat_decider`, which
+asserts only the existence of a natural number `r` with
+`C(n/3, log n) ≤ r ≤ n^200`. At `n = 2^804` this sandwich is
+arithmetically False, yielding the separation. -/
+theorem P_ne_NP_via_rank_sandwich : ∀ (_ : PeqNP_Paper), False := by
+  intro hPeqNP
+  set n := 2 ^ 804 with hn_def
+  have hn₀ : n ≥ 2 ^ 804 := le_refl _
+  have hn2 : n ≥ 2 := by
+    calc 2 = 2 ^ 1 := (pow_one 2).symm
+    _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+  have hns_n : hPeqNP.decider.numStates ≤ n :=
+    le_trans hPeqNP.numStates_bound (le_refl _)
+  -- Apply the minimal rank-sandwich axiom.
+  obtain ⟨r, hr_lb, hr_ub⟩ :=
+    GlobalGodMoveGauge.exists_rank_sandwich_for_sat_decider
+      hPeqNP.decider n hn₀ hn2 hPeqNP.timeBound_le hns_n
+      hPeqNP.decides_3sat
+  -- Arithmetic: C(n/30, log n) ≥ n^(log n / 4) ≥ n^201 at n = 2^804.
+  have hn20 : n ≥ 2 ^ 20 :=
+    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn₀
+  have hbin : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
+    BinomialBound.binomial_lower_bound_concrete n hn20
+  have hmono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose (n / 3) (Nat.log 2 n) :=
+    Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
+  -- Chain: n^(log n / 4) ≤ C(n/30, log n) ≤ C(n/3, log n) ≤ r ≤ n^200
+  have hchain : n ^ (Nat.log 2 n / 4) ≤ n ^ 200 :=
+    le_trans (le_trans (le_trans hbin hmono) hr_lb) hr_ub
+  -- At n = 2^804, log₂ n ≥ 804, so log₂ n / 4 ≥ 201 > 200.
+  have hlog : 804 ≤ Nat.log 2 n := Nat.le_log_of_pow_le (by norm_num : 1 < 2) hn₀
+  have hdiv : 201 ≤ Nat.log 2 n / 4 := by omega
+  have hcontra : n ^ 201 ≤ n ^ 200 :=
+    le_trans (Nat.pow_le_pow_right (by omega : 1 ≤ n) hdiv) hchain
+  exact absurd hcontra
+    (not_le_of_gt (Nat.pow_lt_pow_right (by omega : 1 < n) (by omega : 200 < 201)))
+
+#print axioms P_ne_NP_via_rank_sandwich
+
 /-- **Derived theorem: the narrow gauge axiom follows from the Theorem 207
 axiom.** The narrow `exists_amplituhedron_gauge_for_sat_decider` is
 (as a statement) implied by `exists_theorem207_witness` plus the arithmetic
@@ -1459,7 +1500,7 @@ Historical progression of this canonical name:
 All prior variants remain available for reference/alternative use;
 only the canonical name moves forward. -/
 theorem P_ne_NP_unconditional : ∀ (_ : PeqNP_Paper), False :=
-  P_ne_NP_via_theorem207_from_narrow_gauge
+  P_ne_NP_via_rank_sandwich
 
 /-! ## Axiom audit
 

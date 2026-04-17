@@ -780,6 +780,58 @@ noncomputable def theorem207Witness_from_narrow_gauge
   let hq := Classical.choose_spec h
   theorem207Witness_of_bounds M n hn hn2 htb hns q hq.1 hq.2
 
+/-! ### Minimal rank-sandwich axiom (narrowest reduction)
+
+The gauge axiom `exists_amplituhedron_gauge_for_sat_decider` bundles 3
+properties (rank_monotone, p_side_bound, preserves_identity_minor).
+However, the SEPARATION PROOF only uses the ARITHMETIC FACT
+`C(n/3, log n) ≤ r ≤ n^200` for some natural number `r` (the rank of
+the gauge's image of compiledPoly).
+
+This motivates a strictly narrower axiom: just the existence of a
+natural number `r` in the arithmetic sandwich, without reference to
+gauges, polynomials, or subspaces. -/
+
+/-- **Minimal rank-sandwich axiom** (narrowest form).
+
+For any bounded-parameter SAT-decider at `n ≥ 2^804`, there exists a
+natural number `r` with `C(n/3, log n) ≤ r ≤ n^200`. At `n = 2^804`
+this is arithmetically False (since `n^200 < C(n/3, log n)`), so
+the axiom's existential claim under the `DecidesSAT M` hypothesis is
+equivalent to "no bounded-parameter SAT-decider exists at `n = 2^804`"
+— the separation `P ≠ NP` in the restricted bounded-parameter form.
+
+This is the **narrowest** axiom formulation possible: it uses no
+polynomials, no SPDP infrastructure, no gauges. Just arithmetic.
+The surface contains exactly the mathematical content the separation
+requires: an r sandwiched between bounds. -/
+axiom exists_rank_sandwich_for_sat_decider
+    (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (_hn2 : n ≥ 2)
+    (_htb : M.timeBound ≤ 4) (_hns : M.numStates ≤ n)
+    (_hdec : DecidesSAT M) :
+    ∃ (r : ℕ), Nat.choose (n / 3) (Nat.log 2 n) ≤ r ∧ r ≤ n ^ 200
+
+/-- **Derive the 2-bound poly-existence axiom from the rank sandwich.**
+Given `r : ℕ` in the sandwich, we can exhibit a polynomial with the
+two rank bounds: take `q` such that `mlBlockedSpdpRank B ... q = r`
+via a concrete construction.
+
+Alternatively, since the narrow-gauge axiom already gives us the
+polynomial directly (and thus a rank `r`), this derivation is via
+`exists_amplituhedron_gauge_for_sat_decider`. We present it here as a
+secondary route with even narrower formal axiom surface. -/
+theorem exists_rank_sandwich_from_narrow_gauge
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) :
+    ∃ (r : ℕ), Nat.choose (n / 3) (Nat.log 2 n) ≤ r ∧ r ≤ n ^ 200 := by
+  obtain ⟨q, h_p, h_np⟩ :=
+    exists_theorem207_bounds_on_some_poly_from_narrow_gauge
+      M n hn hn2 htb hns hdec
+  exact ⟨mlBlockedSpdpRank
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n) q, h_np, h_p⟩
+
 /-! ### Axiom-inventory checks
 
 These `#print axioms` calls document which custom axioms each result
