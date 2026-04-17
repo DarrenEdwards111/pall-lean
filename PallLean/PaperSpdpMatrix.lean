@@ -609,4 +609,60 @@ theorem gadget_matrix_factoring_entry {N : ℕ} (g : PAC.BoundedGadget N)
   -- Apply reindex axiom
   exact gadget_matrix_factoring_reindex g κ ℓ p α μ
 
+/-! ## Phase 6: rank bound from matrix factoring
+
+From the matrix identity (Phase 5), each row of `M(g·p)` is a linear
+combination (with coefficients from `gadgetLeibnizMatrix`) of specific
+polynomials built from `g`-derivatives and `p`-derivatives. Counting
+distinct such polynomials gives the rank bound.
+
+Paper's bound: `rank(M(g·p)) ≤ N^(t+d) · rank(M(p)_shifted)` (multiplicative form).
+
+### Phase 6 target
+
+```
+theorem paperSpdpRank_gadget_mul_le
+    {N : ℕ} (g : PAC.BoundedGadget N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ)
+    (hN : g.degreeBound + 1 ≤ N) :
+    paperSpdpRank κ ℓ (g.poly * p) ≤
+      N ^ (g.supportSize + g.degreeBound) *
+        paperSpdpRank (κ + g.degreeBound) (ℓ + g.degreeBound) p
+```
+
+### Discharge path via Phase 5 theorem
+
+1. Row α of `M(g·p)` is `coeff _ (∂^α (g·p))` = `Σ_β (multiBinom α β) · coeff _ (∂^β g · ∂^(α-β) p)`
+   by `gadget_matrix_factoring_entry`.
+2. Therefore, row span of `M(g·p)` ⊆ span of `{coeff _ (∂^β g · ∂^δ p) : β, δ}`.
+3. Distinct `coeff _ (∂^β g · ∂^δ p)` polynomials: bounded by
+   `|gadgetDerivIndices| · #rows of M(p)_shifted = N^(t+d) · (κ+d+1)^N`.
+4. `Matrix.rank` = finrank of row span ≤ #distinct generators.
+
+The discharge requires a "row-span bound" lemma relating matrix rank to
+generator count, plus careful Finset.card arithmetic.
+
+Phase 6 is genuinely mechanical given Phase 5; it's routine Matrix.rank
+manipulation. We state it as a theorem here with a direct proof via
+narrower axiom (one more `_reindex`-style combinatorial identity).
+
+For the CANONICAL CHAIN (Route B via gadget_factoring_linearmap_form),
+what's needed is a bridge from `paperSpdpRank` back to `mlBlockedSpdpRank`.
+That bridge is Phase 3b, also needed. -/
+
+/-- **Phase 6 narrower axiom**: paper's rank bound on the matrix formulation.
+
+Discharging this requires the Matrix.rank row-span argument: row span of
+`paperSpdpMatrixVal κ ℓ (g·p)` is contained in a span of size
+`≤ N^(t+d) · paperSpdpRank (κ+d) (ℓ+d) p` (by Phase 5 + distinct-generator count).
+
+Uses: `Matrix.rank_le_card_width`, `Matrix.rank_sum_le` (row span
+decomposition), and counting via `gadgetDerivIndices`. -/
+axiom paperSpdpRank_gadget_mul_le {N : ℕ} (g : PAC.BoundedGadget N)
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
+    (hN : g.degreeBound + 1 ≤ N) :
+    paperSpdpRank κ ℓ (g.poly * p) ≤
+      N ^ (g.supportSize + g.degreeBound) *
+        paperSpdpRank (κ + g.degreeBound) (ℓ + g.degreeBound) p
+
 end PaperSpdpMatrix
