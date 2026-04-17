@@ -8,3 +8,7 @@ import PallLean.PaperFaithfulSeparation
 import PallLean.PACLeibniz
 import PallLean.MatrixSPDP
 import PallLean.PAC
+
+-- Farkas/KKT soundness-certificate layer for the identity minor
+-- (paper §18.1, Remark 43: "Lagrangian / PAC certificate")
+import PallLean.IdentityMinorFarkas
