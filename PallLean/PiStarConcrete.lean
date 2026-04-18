@@ -217,6 +217,110 @@ theorem iterDerivList_piSubst_notKept
     S i (piSubst keep val p) hi_mem
     (notMem_vars_piSubst keep val hi_keep p)
 
+/-! ## Section 4.5: Commutation of pderiv with piSubst for kept variables
+
+For a kept variable `i`, the partial derivative commutes with `piSubst`:
+  `pderiv i (piSubst p) = piSubst (pderiv i p)`.
+
+This is the other side of the rank-preservation coin: on kept variables,
+substitution is "transparent" to differentiation. The proof is by
+induction on `p` with a case split on whether the multiplicand `X j` has
+`keep j` or not. -/
+
+/-- **Commutation for kept variables** (algebra-hom version). -/
+theorem pderiv_substAlgHom_kept
+    (keep : Fin N → Prop) [DecidablePred keep] (val : Fin N → ℚ)
+    {i : Fin N} (hi : keep i) (p : MvPolynomial (Fin N) ℚ) :
+    MvPolynomial.pderiv i (substAlgHom keep val p) =
+      substAlgHom keep val (MvPolynomial.pderiv i p) := by
+  induction p using MvPolynomial.induction_on with
+  | C c =>
+    show MvPolynomial.pderiv i (substAlgHom keep val (C c)) =
+      substAlgHom keep val (MvPolynomial.pderiv i (C c))
+    rw [show substAlgHom keep val (C c) = C c from by
+      unfold substAlgHom; rw [aeval_C]; rfl]
+    simp
+  | add p q hp hq =>
+    show MvPolynomial.pderiv i (substAlgHom keep val (p + q)) =
+      substAlgHom keep val (MvPolynomial.pderiv i (p + q))
+    rw [map_add, map_add, map_add, map_add, hp, hq]
+  | mul_X p j hp =>
+    show MvPolynomial.pderiv i (substAlgHom keep val (p * X j)) =
+      substAlgHom keep val (MvPolynomial.pderiv i (p * X j))
+    -- Use ring-hom for substAlgHom (mul preservation)
+    rw [map_mul (substAlgHom keep val) p (X j)]
+    -- Leibniz on pderiv for LHS: pderiv i (a * b) = pderiv i a * b + a * pderiv i b
+    rw [Derivation.leibniz (MvPolynomial.pderiv i)]
+    rw [hp]
+    -- substAlgHom (X j) = substFn keep val j
+    have hXj : substAlgHom keep val (X j) = substFn keep val j := by
+      unfold substAlgHom; rw [aeval_X]
+    rw [hXj]
+    -- Leibniz on pderiv for RHS argument
+    rw [Derivation.leibniz (MvPolynomial.pderiv i) p (X j)]
+    rw [map_add]
+    simp only [smul_eq_mul, map_mul]
+    rw [hXj]
+    -- Helper: pderiv i (substFn keep val j) = substAlgHom (pderiv i (X j))
+    have hstep : MvPolynomial.pderiv i (substFn keep val j) =
+                 substAlgHom keep val (MvPolynomial.pderiv i (X j)) := by
+      unfold substFn
+      by_cases hj : keep j
+      · -- substFn = X j. Both sides: pderiv i (X j) = substAlgHom (pderiv i (X j)).
+        -- If keep j, then pderiv i (X j) is either 1 or 0 — a constant — and substAlgHom fixes constants.
+        simp only [hj, if_true]
+        by_cases hij : i = j
+        · subst hij
+          rw [MvPolynomial.pderiv_X_self]
+          rw [show (substAlgHom keep val) (1 : MvPolynomial (Fin N) ℚ) = 1 from map_one _]
+        · rw [MvPolynomial.pderiv_X_of_ne (Ne.symm hij)]
+          rw [show (substAlgHom keep val) (0 : MvPolynomial (Fin N) ℚ) = 0 from map_zero _]
+      · -- substFn = C (val j). LHS: pderiv i (C (val j)) = 0.
+        simp only [hj, if_false]
+        have : MvPolynomial.pderiv i (C (val j) : MvPolynomial (Fin N) ℚ) = 0 :=
+          Derivation.map_algebraMap (MvPolynomial.pderiv i) (val j)
+        rw [this]
+        -- RHS: i ≠ j since ¬keep j but keep i
+        have hij : i ≠ j := fun heq => hj (heq ▸ hi)
+        rw [MvPolynomial.pderiv_X_of_ne (Ne.symm hij)]
+        rw [show (substAlgHom keep val) (0 : MvPolynomial (Fin N) ℚ) = 0 from map_zero _]
+    rw [hstep]
+
+/-- **Commutation for kept variables** (linear-map version). -/
+theorem pderiv_piSubst_kept
+    (keep : Fin N → Prop) [DecidablePred keep] (val : Fin N → ℚ)
+    {i : Fin N} (hi : keep i) (p : MvPolynomial (Fin N) ℚ) :
+    MvPolynomial.pderiv i (piSubst keep val p) =
+      piSubst keep val (MvPolynomial.pderiv i p) := by
+  show MvPolynomial.pderiv i ((substAlgHom keep val).toLinearMap p) =
+    (substAlgHom keep val).toLinearMap (MvPolynomial.pderiv i p)
+  simp only [AlgHom.toLinearMap_apply]
+  exact pderiv_substAlgHom_kept keep val hi p
+
+/-- **Iterated-derivative commutation for all-kept S**:
+  `iterDerivList S (piSubst p) = piSubst (iterDerivList S p)` when every
+element of S is kept. -/
+theorem iterDerivList_piSubst_allKept
+    (keep : Fin N → Prop) [DecidablePred keep] (val : Fin N → ℚ)
+    (S : List (Fin N)) (hS : ∀ i ∈ S, keep i) (p : MvPolynomial (Fin N) ℚ) :
+    SPDP.iterDerivList S (piSubst keep val p) =
+      piSubst keep val (SPDP.iterDerivList S p) := by
+  induction S generalizing p with
+  | nil => rfl
+  | cons i rest ih =>
+    have hi : keep i := hS i (by exact List.mem_cons_self)
+    have hrest : ∀ j ∈ rest, keep j :=
+      fun j hj => hS j (List.mem_cons_of_mem i hj)
+    simp only [SPDP.iterDerivList, List.foldl_cons]
+    rw [show List.foldl (fun r j => MvPolynomial.pderiv j r)
+            (MvPolynomial.pderiv i (piSubst keep val p)) rest =
+          SPDP.iterDerivList rest (MvPolynomial.pderiv i (piSubst keep val p)) from rfl]
+    rw [show List.foldl (fun r j => MvPolynomial.pderiv j r)
+            (MvPolynomial.pderiv i p) rest =
+          SPDP.iterDerivList rest (MvPolynomial.pderiv i p) from rfl]
+    rw [pderiv_piSubst_kept keep val hi p]
+    exact ih hrest (MvPolynomial.pderiv i p)
+
 /-! ## Section 5: SPDP rank bound via all-kept restriction
 
 The SPDP subspace of `piSubst p` is spanned only by generators with
