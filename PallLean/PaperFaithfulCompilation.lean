@@ -1215,18 +1215,75 @@ theorem mlBlockedSpdpSubspace_rename_map_le
     rw [map_smul]
     exact Submodule.smul_mem _ c hx
 
-/- **Rank preservation under injective rename** (Step 3 — full theorem):
-`rank(rename f p, B) ≥ rank(p, pullback B f)` for injective f.
+/-- **Finrank preservation under injective linear map on a submodule**:
+for an injective linear map `φ : M →ₗ[ℚ] N` and any submodule `V ≤ M`,
+`finrank(Submodule.map φ V) = finrank V`.
 
-Combines `mlBlockedSpdpSubspace_rename_map_le` (above) with finrank
-preservation via the injective linear map restricted to the pullback
-subspace. The finrank-preservation step is a standard submodule fact
-(`finrank(Submodule.map f V) = finrank V` for injective f) whose direct
-formulation in Mathlib we rely on via `LinearEquiv.ofInjective`.
+Proof: V is isomorphic to its image under φ via the restricted map
+(injective + surjective onto image → LinearEquiv); LinearEquiv.finrank_eq. -/
+theorem finrank_map_of_injective_submodule
+    {M N : Type*} [AddCommGroup M] [Module ℚ M]
+    [AddCommGroup N] [Module ℚ N]
+    (φ : M →ₗ[ℚ] N) (hφ : Function.Injective φ) (V : Submodule ℚ M) :
+    Module.finrank ℚ (Submodule.map φ V) = Module.finrank ℚ V := by
+  -- Construct the LinearEquiv V ≃ₗ[ℚ] Submodule.map φ V
+  let e : V ≃ₗ[ℚ] Submodule.map φ V :=
+    LinearEquiv.ofBijective
+      { toFun := fun v => ⟨φ v.1, Submodule.mem_map_of_mem v.2⟩
+        map_add' := fun x y => by
+          apply Subtype.ext
+          simp [AddSubmonoid.coe_add, map_add]
+        map_smul' := fun c x => by
+          apply Subtype.ext
+          simp [SetLike.val_smul, map_smul] }
+      ⟨by
+        intro x y hxy
+        apply Subtype.ext
+        exact hφ (congrArg Subtype.val hxy),
+       by
+        rintro ⟨w, hw⟩
+        obtain ⟨v, hv, hvw⟩ := hw
+        refine ⟨⟨v, hv⟩, ?_⟩
+        apply Subtype.ext
+        exact hvw⟩
+  exact (LinearEquiv.finrank_eq e).symm
 
-The subspace reverse inclusion `mlBlockedSpdpSubspace_rename_map_le`
-is the non-trivial algebraic content (done). The finrank step is a
-mechanical linear-algebra step deferred to the Lean-level
-`Submodule.finrank_map_of_injective`-style argument. -/
+/-- **Rank preservation under injective rename** (Step 3 full):
+`rank(p, pullback B f) ≤ rank(rename f p, B)` for injective f. -/
+theorem mlBlockedSpdpRank_rename_ge
+    {n m : ℕ} (f : Fin n → Fin m) (hf : Function.Injective f)
+    (B : SPDP.BlockPartition m) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin n) ℚ) :
+    MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B f) κ ℓ p ≤
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (MvPolynomial.rename f p) := by
+  unfold MultilinearSPDP.mlBlockedSpdpRank
+  -- finrank(pullback V) = finrank(map rename pullback V) (injective)
+  -- ≤ finrank(target SPDP) (subspace inclusion)
+  have hinj : Function.Injective
+      ((MvPolynomial.rename f : MvPolynomial (Fin n) ℚ →ₐ[ℚ] _).toLinearMap) :=
+    fun x y hxy => MvPolynomial.rename_injective f hf hxy
+  calc Module.finrank ℚ
+        (MultilinearSPDP.mlBlockedSpdpSubspace
+          (MultilinearSPDP.pullbackPartition B f) κ ℓ p)
+      = Module.finrank ℚ
+          (Submodule.map (MvPolynomial.rename f).toLinearMap
+            (MultilinearSPDP.mlBlockedSpdpSubspace
+              (MultilinearSPDP.pullbackPartition B f) κ ℓ p)) :=
+        (finrank_map_of_injective_submodule _ hinj _).symm
+    _ ≤ Module.finrank ℚ
+          (MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ
+            (MvPolynomial.rename f p)) :=
+        Submodule.finrank_mono (mlBlockedSpdpSubspace_rename_map_le f hf B κ ℓ p)
+
+/-- **Concrete embed rank preservation**: `rank(Q, pullback B inlU) ≤ rank(embed σ Q, B)`. -/
+theorem embed_rank_preservation
+    (σ : UVSplit) (B : SPDP.BlockPartition σ.total) (κ ℓ : ℕ)
+    (Q : CoupledSheetPoly σ) :
+    MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B σ.inlU) κ ℓ Q ≤
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (CoupledSheetPoly.embed σ Q) := by
+  unfold CoupledSheetPoly.embed
+  exact mlBlockedSpdpRank_rename_ge σ.inlU (inlU_injective σ) B κ ℓ Q
 
 end PaperFaithfulCompilation
