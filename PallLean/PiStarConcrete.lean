@@ -465,4 +465,77 @@ theorem piZero_idempotent (keep : Fin N → Prop) [DecidablePred keep] :
     (piZero keep) ∘ₗ (piZero keep) = piZero keep :=
   piSubst_idempotent keep 0
 
+/-! ## Section 8: Conditional rank monotonicity for piZero
+
+Full rank monotonicity for `piZero` requires showing that the SPDP
+subspace of `piZero p` is contained in the image of the SPDP subspace
+of `p` under `piZero`. This in turn requires commutation
+  `mlProj ∘ piZero = piZero ∘ mlProj`
+on suitable polynomials, which holds because both are Finsupp-filter
+operations that commute as set operations on monomial supports.
+
+Below we package the rank-monotonicity theorem as a **conditional**
+result — given the commutation hypothesis as input. This separates
+the linear-algebra argument (which we give here) from the Finsupp-
+level commutation proof (which would be the next step). -/
+
+/-- **Conditional rank monotonicity for piZero**: if `piZero` commutes
+with `mlProj` on the polynomials `m * iterDerivList S p` with
+`m.vars ⊆ S.toFinset` (kept-supported shifts against all-kept
+derivation lists), then `piZero` is rank-monotone.
+
+Specifically: given hypothesis
+  `hcomm : mlProj(m · piZero(iterDerivList S p)) =
+           piZero(mlProj(m · iterDerivList S p))`
+for such (S, m), we conclude
+  `mlBlockedSpdpRank B κ ℓ (piZero p) ≤ mlBlockedSpdpRank B κ ℓ p`. -/
+theorem piZero_rankMonotone_of_mlProj_commute
+    (keep : Fin N → Prop) [DecidablePred keep]
+    (B : SPDP.BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
+    (hcomm : ∀ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
+      S.length = κ → m.totalDegree ≤ ℓ → m.vars ⊆ S.toFinset →
+      SPDP.isBlockAdmissible B S → (∀ i ∈ S, keep i) →
+      MultilinearSPDP.mlProj (m * piZero keep (SPDP.iterDerivList S p)) =
+        piZero keep (MultilinearSPDP.mlProj (m * SPDP.iterDerivList S p))) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (piZero keep p) ≤
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ p := by
+  -- Step 1: show mlBlockedSpdpSubspace B κ ℓ (piZero p)
+  --         ≤ piZero(mlBlockedSpdpSubspace B κ ℓ p).
+  have hincl :
+      MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ (piZero keep p) ≤
+        Submodule.map (piZero keep)
+          (MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ p) := by
+    intro q hq
+    have hq' := mlBlockedSpdpSubspace_piSubst_factored keep (0 : Fin N → ℚ) B κ ℓ p hq
+    refine Submodule.span_le.mpr ?_ hq'
+    rintro r ⟨S, m, hSlen, hmdeg, hmvar, hadm, hallkept, hr⟩
+    -- From the factored form: r = mlProj(m · piSubst keep 0 (iterDerivList S p))
+    --                         = mlProj(m · piZero keep (iterDerivList S p))
+    -- By hypothesis: this equals piZero(mlProj(m · iterDerivList S p))
+    have hcomm' := hcomm S m hSlen hmdeg hmvar hadm hallkept
+    rw [hr]
+    -- hr put r = mlProj(m · piSubst keep 0 (iterDerivList S p))
+    -- which unfolds to mlProj(m · piZero keep (iterDerivList S p)) by defn of piZero.
+    show MultilinearSPDP.mlProj (m * (piSubst keep 0) (SPDP.iterDerivList S p))
+        ∈ Submodule.map (piZero keep)
+          (MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ p)
+    -- Rewrite via commutation hypothesis
+    rw [show (piSubst keep 0 : _ →ₗ[ℚ] _) (SPDP.iterDerivList S p) =
+          piZero keep (SPDP.iterDerivList S p) from rfl]
+    rw [hcomm']
+    -- Goal: piZero(mlProj(m · iterDerivList S p)) ∈ image under piZero of SPDP subspace
+    exact ⟨MultilinearSPDP.mlProj (m * SPDP.iterDerivList S p),
+      Submodule.subset_span ⟨S, m, hSlen, hmdeg, hmvar, hadm, rfl⟩, rfl⟩
+  -- Step 2: finrank of image ≤ finrank of domain.
+  unfold MultilinearSPDP.mlBlockedSpdpRank
+  calc Module.finrank ℚ
+        (MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ (piZero keep p))
+      ≤ Module.finrank ℚ
+          (Submodule.map (piZero keep)
+            (MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ p)) :=
+        Submodule.finrank_mono hincl
+    _ ≤ Module.finrank ℚ
+          (MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ p) :=
+        Submodule.finrank_map_le _ _
+
 end PiStarConcrete
