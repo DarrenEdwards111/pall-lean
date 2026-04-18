@@ -1593,5 +1593,51 @@ theorem identityBP_compiledPoly_vars (n : ℕ) (hn : 1 ≤ n) :
   unfold identityBP_compiledPoly
   exact MvPolynomial.vars_X
 
+/-! ## Section 38: Literal polynomial variable sets -/
+
+/-- `literalPoly_one` has empty variable set. -/
+theorem literalPoly_one_vars (N : ℕ) :
+    (literalPoly_one N).vars = ∅ := by
+  unfold literalPoly_one
+  exact MvPolynomial.vars_one
+
+/-- `literalPoly_pos` has singleton variable set. -/
+theorem literalPoly_pos_vars {N : ℕ} (i : Fin N) :
+    (literalPoly_pos i).vars = {i} := by
+  unfold literalPoly_pos
+  exact MvPolynomial.vars_X
+
+/-! ## Section 39: Zero and one polynomial CEW -/
+
+/-- Zero polynomial has CEW ≤ any target. -/
+theorem HasCEWBound_zero_any {N : ℕ} (t : ℕ) :
+    HasCEWBound (0 : MvPolynomial (Fin N) ℚ) t :=
+  HasCEWBound_mono HasCEWBound_zero (Nat.zero_le t)
+
+/-- Constant 1 has CEW ≤ any target. -/
+theorem HasCEWBound_one_any {N : ℕ} (t : ℕ) :
+    HasCEWBound (1 : MvPolynomial (Fin N) ℚ) t := by
+  unfold HasCEWBound
+  rw [MvPolynomial.totalDegree_one]
+  omega
+
+/-! ## Section 40: CEW for subtraction -/
+
+/-- CEW bound for subtraction via totalDegree_sub. -/
+theorem HasCEWBound_sub {N : ℕ} {p q : MvPolynomial (Fin N) ℚ}
+    {target : ℕ}
+    (hp : HasCEWBound p target) (hq : HasCEWBound q target) :
+    HasCEWBound (p - q) target := by
+  unfold HasCEWBound at *
+  calc (p - q).totalDegree
+      ≤ max p.totalDegree q.totalDegree :=
+        MvPolynomial.totalDegree_sub p q
+    _ ≤ target := max_le hp hq
+
+/-- CEW of (1 - X_i) ≤ 1. -/
+theorem HasCEWBound_one_sub_X {N : ℕ} (i : Fin N) :
+    HasCEWBound (1 - MvPolynomial.X i : MvPolynomial (Fin N) ℚ) 1 :=
+  HasCEWBound_sub (HasCEWBound_one_any 1) (HasCEWBound_X i)
+
 end Step4Compiler
 
