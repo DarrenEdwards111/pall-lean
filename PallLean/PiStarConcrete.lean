@@ -538,4 +538,46 @@ theorem piZero_rankMonotone_of_mlProj_commute
           (MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ p) :=
         Submodule.finrank_map_le _ _
 
+/-! ## Section 9: Concrete `keep` predicates
+
+Common specific keep predicates for use with piZero/piSubst. These
+correspond to the paper's Definition 6(i) "restricting tableau blocks
+to fixed constants": the complement of `keep` is the restricted set. -/
+
+/-- **Keep-first-K predicate**: keep the first K variables (indices < K),
+substitute the rest. This is the simplest concrete `keep` predicate. -/
+def keepFirstK (K : ℕ) : Fin N → Prop := fun i => i.val < K
+
+instance keepFirstK_decidable (K : ℕ) : DecidablePred (keepFirstK (N := N) K) :=
+  fun i => Nat.decLt _ _
+
+/-- `keepFirstK 0` keeps no variables (substitutes everything). -/
+theorem keepFirstK_zero_iff (i : Fin N) : keepFirstK 0 i ↔ False := by
+  unfold keepFirstK; simp
+
+/-- `keepFirstK N` keeps all variables (identity for piSubst). -/
+theorem keepFirstK_N_iff (i : Fin N) : keepFirstK N i ↔ True := by
+  unfold keepFirstK
+  simp [i.isLt]
+
+/-- **Keep-by-block predicate**: keep variables in specified blocks of a
+partition. Given `P : Finset (block index)`, keep i iff `partition.assign i ∈ P`.
+This models the paper's block-based separation. -/
+def keepByBlock {numBlocks : ℕ}
+    (assign : Fin N → Fin numBlocks) (P : Finset (Fin numBlocks)) :
+    Fin N → Prop :=
+  fun i => assign i ∈ P
+
+instance keepByBlock_decidable {numBlocks : ℕ}
+    (assign : Fin N → Fin numBlocks) (P : Finset (Fin numBlocks)) :
+    DecidablePred (keepByBlock assign P) :=
+  fun i => Finset.decidableMem (assign i) P
+
+/-- **Piecewise keep**: union of keep-by-block over multiple block-index sets. -/
+theorem keepByBlock_union_iff {numBlocks : ℕ}
+    (assign : Fin N → Fin numBlocks) (P Q : Finset (Fin numBlocks)) (i : Fin N) :
+    keepByBlock assign (P ∪ Q) i ↔ keepByBlock assign P i ∨ keepByBlock assign Q i := by
+  unfold keepByBlock
+  simp [Finset.mem_union]
+
 end PiStarConcrete
