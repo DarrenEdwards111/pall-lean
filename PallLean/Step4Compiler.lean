@@ -3827,5 +3827,356 @@ theorem piPhi_rename_inlU_eq (σ : PaperFaithfulCompilation.UVSplit)
     fun i => PaperFaithfulCompilation.keepU_inlU σ i
   exact piPhi_rename_eq_of_wiring_keepU σ σ.inlU hζ q
 
+/-! ### §81 Conditional main bound: `rank(PMn) ≤ n^{200}`
+    (paper §40 Theorem 203 main quantitative step)
+
+We now combine the Width⇒Rank composite bounds from §79 with the
+arithmetic-gap envelope helpers from §80 to state the paper's
+§40 Theorem 203 main quantitative step in conditional form:
+
+  **If** `HasCEWBound PMn (c · log₂ n)` **and** `|vars(PMn)| ≤ n^k`,
+  **and** the user provides the corresponding span set and the
+  arithmetic envelope comparison,
+  **then** `mlBlockedSpdpRank PMn ≤ n^{200}`.
+
+This is not an unconditional reduction (the arithmetic envelope
+comparison `(n^k + 1)^{c · log₂ n + 1} ≤ n^{200}` is the numeric step
+proved independently in paper §40 Theorem 203), but it is the exact
+*proof shape* that the paper's §40 reduction uses. The spanning-set
+hypothesis is consistent with the `width_implies_rank_bound_interface`
+contract from §4: it abstracts the Mathlib-level construction of the
+multilinear monomial cover needed for Lemma 42.
+
+All statements below are axiom-free. They compose §79's span-to-rank
+inequalities with §80's arithmetic monotonicity, producing the paper
+Theorem 203 conclusion in a form directly usable by
+`PaperFaithfulCompilerOutput.p_side_bound`. -/
+
+/-- **§81.1 — Conditional main bound from span + arithmetic envelope**
+(paper §40 Theorem 203 main quantitative step).
+
+Given:
+  1. `HasCEWBound PMn w` (where `w = c · log₂ n` in the paper), i.e.
+     the CEW of `PMn` is within the paper's logarithmic envelope;
+  2. `PMn.vars.card ≤ V` (where `V = n^k` in the paper);
+  3. a spanning set `G` for the blocked SPDP subspace of `PMn`;
+  4. the Width⇒Rank-envelope comparison `G.card ≤ n^{200}`.
+
+Then `mlBlockedSpdpRank(PMn) ≤ n^{200}`. This is the paper's §40
+Theorem 203 main inequality in reduced form: the concrete numeric
+comparison `(V+1)^{w+1} ≤ n^{200}` at `n = 2^{804}` is isolated as a
+hypothesis, to be supplied by the downstream numeric step. -/
+theorem rank_PMn_le_n_pow_200_of_cew_vars_span
+    {N : ℕ} (B : SPDP.BlockPartition N) (κ ℓ : ℕ)
+    (PMn : MvPolynomial (Fin N) ℚ) (n w V : ℕ)
+    (_hCEW : HasCEWBound PMn w)
+    (_hVars : PMn.vars.card ≤ V)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hspan : MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ PMn ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
+    (henv : G.card ≤ n ^ 200) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ PMn ≤ n ^ 200 :=
+  width_implies_rank_bound_interface B κ ℓ PMn G hspan (n ^ 200) henv
+
+/-- **§81.2 — Conditional main bound via the `(V+1)^{w+1}` envelope**
+(paper §40 Theorem 203 main quantitative step, envelope form).
+
+The arithmetic content of paper §40 Theorem 203 is the two-step
+chain:
+  `rank(PMn) ≤ G.card ≤ (V+1)^{w+1} ≤ n^{200}`.
+
+We isolate this chain: given the Width⇒Rank `(V+1)^{w+1}` ceiling
+(via §79.3) and the arithmetic envelope `(V+1)^{w+1} ≤ n^{200}` (the
+numeric step proved independently at `n = 2^{804}` with `V = n^k`,
+`w = c · log₂ n`), we derive `rank(PMn) ≤ n^{200}`. This is the
+bookkeeping form of Theorem 203 that plugs directly into
+`PaperFaithfulCompilerOutput.p_side_bound`. -/
+theorem rank_PMn_le_n_pow_200_of_envelope
+    {N : ℕ} (B : SPDP.BlockPartition N) (κ ℓ : ℕ)
+    (PMn : MvPolynomial (Fin N) ℚ) (n w V : ℕ)
+    (hCEW : HasCEWBound PMn w)
+    (hVars : PMn.vars.card ≤ V)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hspan : MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ PMn ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
+    (hcardEnv : G.card ≤ (V + 1) ^ (w + 1))
+    (hNumeric : (V + 1) ^ (w + 1) ≤ n ^ 200) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ PMn ≤ n ^ 200 := by
+  -- Step 1: apply the `(V+1)^{w+1}` Width⇒Rank envelope from §79.3.
+  have h1 : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ PMn ≤ (V + 1) ^ (w + 1) :=
+    rank_le_pow_of_cew_vars_and_span B κ ℓ PMn w V hCEW hVars G hspan hcardEnv
+  -- Step 2: chain with the arithmetic envelope `(V+1)^{w+1} ≤ n^{200}`.
+  exact le_trans h1 hNumeric
+
+/-- **§81.3 — CEW = c·log₂ n + vars card = n^k ⇒ rank ≤ n^{200}**
+(paper §40 Theorem 203 main quantitative statement).
+
+Paper-faithful parametric form: the paper's Theorem 203 assumes
+`CEW(PMn) ≤ c · log₂ n` and `|vars(PMn)| ≤ n^k` for fixed constants
+`c, k`. Given the corresponding spanning set from paper Lemma 42 and
+the numeric envelope comparison at `n = 2^{804}`, we conclude
+`rank(PMn) ≤ n^{200}`.
+
+The three numeric inputs are:
+  (a) `hCEW_log`: `HasCEWBound PMn (c * Nat.log 2 n)`;
+  (b) `hVars_poly`: `PMn.vars.card ≤ n ^ k`;
+  (c) `hspan`, `hcardEnv`: a Width⇒Rank span of size
+      `(n^k + 1)^{c·log₂ n + 1}`;
+  (d) `hNumeric`: the arithmetic envelope
+      `(n^k + 1)^{c·log₂ n + 1} ≤ n^{200}` at the chosen `n`.
+Paper §40 Theorem 203 furnishes (a)–(c) by the §40 compiler
+construction and (d) by the n = 2^{804} numeric calculation. -/
+theorem rank_PMn_le_n_pow_200_of_cew_log_vars_poly
+    {N : ℕ} (B : SPDP.BlockPartition N) (κ ℓ : ℕ)
+    (PMn : MvPolynomial (Fin N) ℚ) (n c k : ℕ)
+    (hCEW_log : HasCEWBound PMn (c * Nat.log 2 n))
+    (hVars_poly : PMn.vars.card ≤ n ^ k)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hspan : MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ PMn ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
+    (hcardEnv : G.card ≤ (n ^ k + 1) ^ (c * Nat.log 2 n + 1))
+    (hNumeric : (n ^ k + 1) ^ (c * Nat.log 2 n + 1) ≤ n ^ 200) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ PMn ≤ n ^ 200 :=
+  rank_PMn_le_n_pow_200_of_envelope B κ ℓ PMn n (c * Nat.log 2 n) (n ^ k)
+    hCEW_log hVars_poly G hspan hcardEnv hNumeric
+
+/-- **§81.4 — Strict form of the main bound** (paper §40 Theorem 203 /
+Theorem 192 / arith_gap_at).
+
+If additionally the arithmetic gap `n^{200} < choose(n/3, log₂ n)` is
+supplied (paper §40 Theorem 192 / n = 2^{804}), then the resulting
+`rank(PMn) ≤ n^{200}` is strictly smaller than the Q-side lower
+bound `choose(n/3, log₂ n)`. This is the final contradiction
+inequality used by paper §40 Theorem 203 to close Path A: the `P`-side
+rank ceiling is beaten by the `Q`-side rank floor. -/
+theorem rank_PMn_lt_choose_of_gap_and_envelope
+    {N : ℕ} (B : SPDP.BlockPartition N) (κ ℓ : ℕ)
+    (PMn : MvPolynomial (Fin N) ℚ) (n w V : ℕ)
+    (hCEW : HasCEWBound PMn w)
+    (hVars : PMn.vars.card ≤ V)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hspan : MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ PMn ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
+    (hcardEnv : G.card ≤ (V + 1) ^ (w + 1))
+    (hNumeric : (V + 1) ^ (w + 1) ≤ n ^ 200)
+    (hGap : n ^ 200 < Nat.choose (n / 3) (Nat.log 2 n)) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ PMn
+      < Nat.choose (n / 3) (Nat.log 2 n) :=
+  lt_of_le_of_lt
+    (rank_PMn_le_n_pow_200_of_envelope B κ ℓ PMn n w V
+      hCEW hVars G hspan hcardEnv hNumeric)
+    hGap
+
+
+/-! ## Section 77: Two-variable wire-identity SoS gadgets
+    (paper §40 Step 3 / §2.1)
+
+Paper §2.1 (radius-1 SoS construction) uses two core two-variable
+"wire" gadgets in the arithmetization of TM transition rules:
+  * the **equality gadget** `(X_i − X_j)²` expresses the constraint
+    "bit `i` equals bit `j`" (it vanishes precisely when `X_i = X_j`
+    on Boolean inputs and is manifestly a single square, hence SoS);
+  * the **copy gadget** `X_i · X_j` expresses the 2-wire identity
+    indicator used by the copy/duplication subroutines in the
+    transition arithmetization (it is a single monomial of degree 2).
+
+Both gadgets have two-variable support so they lie comfortably within
+the radius-1 / ≤ 6-variable envelope; their total degree is at most
+`2 ≤ 6`, and the paper's CEW budget for them is `2`. We package each
+as a full `SoSGadget`, recording the polynomial form, the varSupport
+identity and cardinality bound, and the `HasCEWBound … 2` certificate. -/
+
+/-- **Equality gadget** (paper §40 Step 3 / §2.1): the SoS wire-identity
+gadget `(X_i − X_j)²`, enforcing `X_i = X_j` on Boolean inputs. Packaged
+with varSupport `{i, j}` and total degree ≤ 2. -/
+noncomputable def equalitySoSGadget {N : ℕ} (i j : Fin N) : SoSGadget N where
+  poly := (MvPolynomial.X i - MvPolynomial.X j) ^ 2
+  varSupport := {i, j}
+  support_bound := by
+    have h₁ : ({i, j} : Finset (Fin N)).card ≤ 2 := by
+      classical
+      by_cases hij : i = j
+      · rw [hij]; simp
+      · rw [Finset.card_insert_of_notMem (by simpa using hij)]
+        simp
+    omega
+  vars_contained := by
+    intro k hk
+    have h_pow : k ∈ (MvPolynomial.X i - MvPolynomial.X j).vars :=
+      MvPolynomial.vars_pow _ 2 hk
+    have h_sub :
+        (MvPolynomial.X i - MvPolynomial.X j : MvPolynomial (Fin N) ℚ).vars
+          ⊆ (MvPolynomial.X i : MvPolynomial (Fin N) ℚ).vars ∪
+            (MvPolynomial.X j : MvPolynomial (Fin N) ℚ).vars :=
+      MvPolynomial.vars_sub_subset (MvPolynomial.X i)
+    have hU := h_sub h_pow
+    rcases Finset.mem_union.mp hU with hXi | hXj
+    · rw [MvPolynomial.vars_X] at hXi
+      rw [Finset.mem_singleton] at hXi
+      subst hXi
+      exact Finset.mem_insert_self _ _
+    · rw [MvPolynomial.vars_X] at hXj
+      rw [Finset.mem_singleton] at hXj
+      subst hXj
+      exact Finset.mem_insert_of_mem (Finset.mem_singleton_self _)
+  degree_bound := by
+    have hsub :
+        (MvPolynomial.X i - MvPolynomial.X j : MvPolynomial (Fin N) ℚ).totalDegree
+          ≤ 1 := by
+      calc (MvPolynomial.X i - MvPolynomial.X j : MvPolynomial (Fin N) ℚ).totalDegree
+          ≤ max (MvPolynomial.X i : MvPolynomial (Fin N) ℚ).totalDegree
+                (MvPolynomial.X j : MvPolynomial (Fin N) ℚ).totalDegree :=
+            MvPolynomial.totalDegree_sub _ _
+        _ ≤ 1 := by
+            rw [MvPolynomial.totalDegree_X, MvPolynomial.totalDegree_X]
+    have hpow :
+        ((MvPolynomial.X i - MvPolynomial.X j) ^ 2 :
+            MvPolynomial (Fin N) ℚ).totalDegree ≤ 2 * 1 := by
+      calc ((MvPolynomial.X i - MvPolynomial.X j) ^ 2 :
+              MvPolynomial (Fin N) ℚ).totalDegree
+          ≤ 2 * (MvPolynomial.X i - MvPolynomial.X j).totalDegree :=
+            MvPolynomial.totalDegree_pow _ 2
+        _ ≤ 2 * 1 := Nat.mul_le_mul_left 2 hsub
+    exact le_trans hpow (by omega)
+
+/-- **§77.1 — `equalitySoSGadget`'s polynomial is `(X_i − X_j)²`** (paper
+§40 Step 3 / §2.1: the equality gadget is literally the squared
+difference; hence trivially a sum of squares). -/
+theorem equalitySoSGadget_poly {N : ℕ} (i j : Fin N) :
+    (equalitySoSGadget i j).poly =
+      (MvPolynomial.X i - MvPolynomial.X j) ^ 2 := rfl
+
+/-- **§77.2 — `equalitySoSGadget` has varSupport `{i, j}`** (paper §40
+Step 3 / §2.1: the equality gadget touches exactly the two wires whose
+identity it enforces). -/
+theorem equalitySoSGadget_varSupport {N : ℕ} (i j : Fin N) :
+    (equalitySoSGadget i j).varSupport = {i, j} := rfl
+
+/-- **§77.3 — `equalitySoSGadget` has varSupport.card ≤ 2** (paper §40
+Step 3 / §2.1: a two-variable gadget, well within the radius-1 bound
+of 6). -/
+theorem equalitySoSGadget_varSupport_card_le {N : ℕ} (i j : Fin N) :
+    (equalitySoSGadget i j).varSupport.card ≤ 2 := by
+  rw [equalitySoSGadget_varSupport]
+  classical
+  by_cases hij : i = j
+  · rw [hij]; simp
+  · rw [Finset.card_insert_of_notMem (by simpa using hij)]
+    simp
+
+/-- **§77.4 — `equalitySoSGadget` has total degree ≤ 2** (paper §40 Step
+3 / §2.1: the squared difference of two affine monomials is a degree-2
+polynomial). -/
+theorem equalitySoSGadget_totalDegree_le {N : ℕ} (i j : Fin N) :
+    (equalitySoSGadget i j).poly.totalDegree ≤ 2 := by
+  rw [equalitySoSGadget_poly]
+  have hsub :
+      (MvPolynomial.X i - MvPolynomial.X j : MvPolynomial (Fin N) ℚ).totalDegree
+        ≤ 1 := by
+    calc (MvPolynomial.X i - MvPolynomial.X j : MvPolynomial (Fin N) ℚ).totalDegree
+        ≤ max (MvPolynomial.X i : MvPolynomial (Fin N) ℚ).totalDegree
+              (MvPolynomial.X j : MvPolynomial (Fin N) ℚ).totalDegree :=
+          MvPolynomial.totalDegree_sub _ _
+      _ ≤ 1 := by
+          rw [MvPolynomial.totalDegree_X, MvPolynomial.totalDegree_X]
+  calc ((MvPolynomial.X i - MvPolynomial.X j) ^ 2 :
+          MvPolynomial (Fin N) ℚ).totalDegree
+      ≤ 2 * (MvPolynomial.X i - MvPolynomial.X j).totalDegree :=
+        MvPolynomial.totalDegree_pow _ 2
+    _ ≤ 2 * 1 := Nat.mul_le_mul_left 2 hsub
+
+/-- **§77.5 — CEW bound for `equalitySoSGadget`** (paper §40 Step 3 /
+§2.1: the equality gadget has CEW ≤ 2, matching its total degree). -/
+theorem equalitySoSGadget_hasCEWBound_two {N : ℕ} (i j : Fin N) :
+    HasCEWBound (equalitySoSGadget i j).poly 2 :=
+  equalitySoSGadget_totalDegree_le i j
+
+/-- **Copy gadget** (paper §40 Step 3 / §2.1): the 2-wire identity SoS
+gadget `X_i · X_j`. Represents the canonical 2-wire copy/duplication
+indicator in the arithmetization of TM transitions. -/
+noncomputable def copySoSGadget {N : ℕ} (i j : Fin N) : SoSGadget N where
+  poly := MvPolynomial.X i * MvPolynomial.X j
+  varSupport := {i, j}
+  support_bound := by
+    have h₁ : ({i, j} : Finset (Fin N)).card ≤ 2 := by
+      classical
+      by_cases hij : i = j
+      · rw [hij]; simp
+      · rw [Finset.card_insert_of_notMem (by simpa using hij)]
+        simp
+    omega
+  vars_contained := by
+    intro k hk
+    have hmul :
+        (MvPolynomial.X i * MvPolynomial.X j : MvPolynomial (Fin N) ℚ).vars
+          ⊆ (MvPolynomial.X i : MvPolynomial (Fin N) ℚ).vars ∪
+            (MvPolynomial.X j : MvPolynomial (Fin N) ℚ).vars :=
+      MvPolynomial.vars_mul _ _
+    have hU := hmul hk
+    rcases Finset.mem_union.mp hU with hXi | hXj
+    · rw [MvPolynomial.vars_X] at hXi
+      rw [Finset.mem_singleton] at hXi
+      subst hXi
+      exact Finset.mem_insert_self _ _
+    · rw [MvPolynomial.vars_X] at hXj
+      rw [Finset.mem_singleton] at hXj
+      subst hXj
+      exact Finset.mem_insert_of_mem (Finset.mem_singleton_self _)
+  degree_bound := by
+    have hmul :
+        (MvPolynomial.X i * MvPolynomial.X j : MvPolynomial (Fin N) ℚ).totalDegree
+          ≤ (MvPolynomial.X i : MvPolynomial (Fin N) ℚ).totalDegree +
+            (MvPolynomial.X j : MvPolynomial (Fin N) ℚ).totalDegree :=
+      MvPolynomial.totalDegree_mul _ _
+    have hone :
+        (MvPolynomial.X i : MvPolynomial (Fin N) ℚ).totalDegree +
+          (MvPolynomial.X j : MvPolynomial (Fin N) ℚ).totalDegree ≤ 2 := by
+      rw [MvPolynomial.totalDegree_X, MvPolynomial.totalDegree_X]
+    exact le_trans (le_trans hmul hone) (by omega)
+
+/-- **§77.6 — `copySoSGadget`'s polynomial is `X_i · X_j`** (paper §40
+Step 3 / §2.1: the copy gadget is the canonical 2-wire product). -/
+theorem copySoSGadget_poly {N : ℕ} (i j : Fin N) :
+    (copySoSGadget i j).poly = MvPolynomial.X i * MvPolynomial.X j := rfl
+
+/-- **§77.7 — `copySoSGadget` has varSupport `{i, j}`** (paper §40 Step
+3 / §2.1: the copy gadget touches exactly its two input wires). -/
+theorem copySoSGadget_varSupport {N : ℕ} (i j : Fin N) :
+    (copySoSGadget i j).varSupport = {i, j} := rfl
+
+/-- **§77.8 — `copySoSGadget` has varSupport.card ≤ 2** (paper §40 Step
+3 / §2.1: two-variable gadget within the radius-1 bound). -/
+theorem copySoSGadget_varSupport_card_le {N : ℕ} (i j : Fin N) :
+    (copySoSGadget i j).varSupport.card ≤ 2 := by
+  rw [copySoSGadget_varSupport]
+  classical
+  by_cases hij : i = j
+  · rw [hij]; simp
+  · rw [Finset.card_insert_of_notMem (by simpa using hij)]
+    simp
+
+/-- **§77.9 — `copySoSGadget` has total degree ≤ 2** (paper §40 Step 3 /
+§2.1: a degree-2 monomial `X_i · X_j`). -/
+theorem copySoSGadget_totalDegree_le {N : ℕ} (i j : Fin N) :
+    (copySoSGadget i j).poly.totalDegree ≤ 2 := by
+  rw [copySoSGadget_poly]
+  have hmul :
+      (MvPolynomial.X i * MvPolynomial.X j : MvPolynomial (Fin N) ℚ).totalDegree
+        ≤ (MvPolynomial.X i : MvPolynomial (Fin N) ℚ).totalDegree +
+          (MvPolynomial.X j : MvPolynomial (Fin N) ℚ).totalDegree :=
+    MvPolynomial.totalDegree_mul _ _
+  have hone :
+      (MvPolynomial.X i : MvPolynomial (Fin N) ℚ).totalDegree +
+        (MvPolynomial.X j : MvPolynomial (Fin N) ℚ).totalDegree ≤ 2 := by
+    rw [MvPolynomial.totalDegree_X, MvPolynomial.totalDegree_X]
+  exact le_trans hmul hone
+
+/-- **§77.10 — CEW bound for `copySoSGadget`** (paper §40 Step 3 / §2.1:
+the copy gadget has CEW ≤ 2, matching its total degree). -/
+theorem copySoSGadget_hasCEWBound_two {N : ℕ} (i j : Fin N) :
+    HasCEWBound (copySoSGadget i j).poly 2 :=
+  copySoSGadget_totalDegree_le i j
+
+
 end Step4Compiler
 
