@@ -563,4 +563,62 @@ theorem separation_contradiction
   have := gauge_rank_sandwich B P κ ℓ pBound npBound hPside hNPside
   exact no_rank_sandwich_of_gap pBound npBound hgap this
 
+/-! ## Section 12: Task (B.2) — v-variable infrastructure
+
+The full Task (B.2) rebuilds Cook-Levin compilation with explicit
+tableau-encoded transition constraints over v-variables. As a first
+step, we introduce v-variable accessors and show piPhi kills v-only
+polynomials. -/
+
+/-- **Booleanity constraint for a v-variable**: `v_j · (1 - v_j)`,
+vanishes at v_j ∈ {0, 1}. A single tableau-booleanity constraint. -/
+noncomputable def vBoolConstraint (σ : UVSplit) (j : Fin σ.numV) :
+    PMnPoly σ :=
+  MvPolynomial.X (σ.inlV j) * (1 - MvPolynomial.X (σ.inlV j))
+
+/-- `piPhi` annihilates `vBoolConstraint`: since v-variables substitute to 0,
+`vBoolConstraint(0) = 0 · (1 - 0) = 0`. -/
+theorem piPhi_vBoolConstraint (σ : UVSplit) (j : Fin σ.numV) :
+    piPhi σ (vBoolConstraint σ j) = 0 := by
+  unfold vBoolConstraint
+  -- piPhi is a ring hom, and piPhi(X(inlV j)) = 0.
+  show piPhi σ (MvPolynomial.X (σ.inlV j) * (1 - MvPolynomial.X (σ.inlV j))) = 0
+  -- Use the piZero ring-hom structure.
+  have h : (piPhi σ).toFun = (PiStarConcrete.substAlgHom (keepU σ) 0).toFun := by
+    unfold piPhi PiStarConcrete.piZero PiStarConcrete.piSubst
+    rfl
+  -- Use map_mul of the AlgHom form.
+  show (PiStarConcrete.substAlgHom (keepU σ) 0).toLinearMap
+      (MvPolynomial.X (σ.inlV j) * (1 - MvPolynomial.X (σ.inlV j))) = 0
+  rw [AlgHom.toLinearMap_apply, map_mul]
+  rw [show (PiStarConcrete.substAlgHom (keepU σ) 0) (MvPolynomial.X (σ.inlV j)) = 0 from by
+    unfold PiStarConcrete.substAlgHom
+    rw [MvPolynomial.aeval_X]
+    show PiStarConcrete.substFn (keepU σ) (0 : σ.Idx → ℚ) (σ.inlV j) = 0
+    unfold PiStarConcrete.substFn
+    rw [if_neg (not_keepU_inlV σ j)]
+    simp [Pi.zero_apply]]
+  ring
+
+/-- **Tableau-booleanity polynomial**: product of booleanity constraints
+over all v-variables. This is a simple v-dependent polynomial useful for
+sanity-checking the piPhi machinery (annihilates to 0). -/
+noncomputable def tableauBoolProduct (σ : UVSplit) : PMnPoly σ :=
+  (Finset.univ : Finset (Fin σ.numV)).prod (vBoolConstraint σ)
+
+/-- `piPhi` maps the tableau booleanity product to 0 (if numV ≥ 1). -/
+theorem piPhi_tableauBoolProduct_pos (σ : UVSplit) (hV : 0 < σ.numV) :
+    piPhi σ (tableauBoolProduct σ) = 0 := by
+  unfold tableauBoolProduct
+  let j₀ : Fin σ.numV := ⟨0, hV⟩
+  show (PiStarConcrete.substAlgHom (keepU σ) 0).toLinearMap
+      ((Finset.univ : Finset (Fin σ.numV)).prod (vBoolConstraint σ)) = 0
+  rw [AlgHom.toLinearMap_apply, map_prod]
+  refine Finset.prod_eq_zero (Finset.mem_univ j₀) ?_
+  -- Unfold definitions to apply piPhi_vBoolConstraint
+  have hpp := piPhi_vBoolConstraint σ j₀
+  show (PiStarConcrete.substAlgHom (keepU σ) 0) (vBoolConstraint σ j₀) = 0
+  show (PiStarConcrete.substAlgHom (keepU σ) 0).toLinearMap (vBoolConstraint σ j₀) = 0
+  exact hpp
+
 end PaperFaithfulCompilation
