@@ -24,3 +24,7 @@ import PallLean.PiStarConcrete
 -- Path A: paper-faithful u/v variable split for Cook-Levin compilation
 -- (paper §§6, 29 Definition 7: distinguishing clause-sheet u from tableau v)
 import PallLean.PaperFaithfulCompilation
+
+-- Step 4: paper §40 Theorem 203 compiler pipeline scaffolding
+-- (BranchingProgram, CEW, Width⇒Rank interface)
+import PallLean.Step4Compiler
