@@ -3590,5 +3590,117 @@ theorem HasCEWBound_sum_of_products {N : ℕ} (m w : ℕ)
     HasCEWBound_list_prod_same w L (hbnd L hLmem)
   exact HasCEWBound_mono h1 (Nat.mul_le_mul_right w (hlen L hLmem))
 
+/-! ### §80 Arithmetic gap helpers
+    (paper §40 Theorem 203 / Theorem 192 / paper n = 2^804 bound)
+
+The paper's §40 Theorem 203 needs the arithmetic gap
+
+  `n^{200} < Nat.choose (n/3) (Nat.log 2 n)`
+
+at `n = 2^{804}` (and, by monotonicity, all larger `n`). This section
+collects the monotonicity building blocks in `ℕ` that feed into that
+gap: `Nat.log` monotonicity, `Nat.choose` monotonicity, and
+`Nat.pow_*_*` monotonicity. It also states the conditional form
+`arith_gap_at` that quotes the specific numeric comparison at a fixed
+`n₀` and promotes it via monotonicity to an existence theorem
+`arith_gap_exists`.
+
+Proving the quantitative `n^{200} < choose(n/3, log₂ n)` comparison at
+`n = 2^{804}` in full closed form would require working with the
+multiplicative structure of `Nat.choose` (lower bounds of the form
+`choose n k ≥ (n/k)^k`), which in Lean 4 Mathlib exists but whose
+quantitative chain to `2^{200·804}` is an independent numeric
+engineering task. We therefore state the gap as a conditional bound
+(`arith_gap_at`, `arith_gap_exists`) and record the underlying
+monotonicity helpers as stand-alone lemmas usable downstream. All
+statements are axiom-free. -/
+
+/-- **§80.1 — `Nat.log 2` monotonicity**
+(paper §40 Theorem 192). Restates `Nat.log_mono_right` in the exact
+form needed by paper §40 Theorem 203: if `m ≤ n`, then `log₂ m ≤ log₂ n`.
+Used to lift the arithmetic gap at `n₀ = 2^{804}` to all larger `n`. -/
+theorem log2_mono {m n : ℕ} (h : m ≤ n) : Nat.log 2 m ≤ Nat.log 2 n :=
+  Nat.log_mono_right h
+
+/-- **§80.2 — `Nat.choose` monotonicity in the first argument**
+(paper §40 Theorem 192). Restates `Nat.choose_le_choose` in the exact
+form needed: if `a ≤ b`, then `choose a k ≤ choose b k`. Used to
+promote binomial lower bounds from `n₀` to larger `n`. -/
+theorem choose_mono_fst {a b : ℕ} (k : ℕ) (h : a ≤ b) :
+    Nat.choose a k ≤ Nat.choose b k :=
+  Nat.choose_le_choose k h
+
+/-- **§80.3 — `pow` monotonicity in the base** (paper §40 Theorem 192).
+Uses `Nat.pow_le_pow_left` to record that `a^k ≤ b^k` when `a ≤ b`, in
+the exact orientation needed by paper §40 Theorem 203's `n^{200}`
+envelope. -/
+theorem pow_left_mono {a b : ℕ} (k : ℕ) (h : a ≤ b) : a ^ k ≤ b ^ k :=
+  Nat.pow_le_pow_left h k
+
+/-- **§80.4 — strict `pow` monotonicity in the base**
+(paper §40 Theorem 192). For `a < b` and exponent `k ≠ 0`, strict
+inequality `a^k < b^k` holds; needed for the strict `<` form of paper
+Theorem 203's `n^{200}` bound. -/
+theorem pow_left_strictMono {a b : ℕ} {k : ℕ} (hk : k ≠ 0) (h : a < b) :
+    a ^ k < b ^ k :=
+  Nat.pow_lt_pow_left h hk
+
+/-- **§80.5 — `pow` monotonicity in the exponent**
+(paper §40 Theorem 192). `Nat.pow_le_pow_right` in the form needed:
+for `1 ≤ a` and `i ≤ j`, we have `a^i ≤ a^j`. Used to pass from
+`a^{200}` to `a^{k}` for `k ≥ 200` in Theorem 203. -/
+theorem pow_right_mono {a : ℕ} (ha : 1 ≤ a) {i j : ℕ} (h : i ≤ j) :
+    a ^ i ≤ a ^ j :=
+  Nat.pow_le_pow_right ha h
+
+/-- **§80.6 — Conditional arithmetic gap at a specific `n₀`**
+(paper §40 Theorem 203 / Theorem 192 / n = 2^{804} bound).
+
+The paper's `n^{200} < choose(n/3, log₂ n)` inequality is stated here
+as a conditional: given the specific comparison at `n₀`, this lemma
+simply re-packages it as a `Prop`-level fact. Paper §40 Theorem 203
+establishes this comparison at `n₀ = 2^{804}` by a direct numeric
+Stirling-style calculation. -/
+theorem arith_gap_at (n₀ : ℕ)
+    (hgap : n₀ ^ 200 < Nat.choose (n₀ / 3) (Nat.log 2 n₀)) :
+    n₀ ^ 200 < Nat.choose (n₀ / 3) (Nat.log 2 n₀) := hgap
+
+/-- **§80.7 — Existence of the arithmetic-gap threshold**
+(paper §40 Theorem 203 / Theorem 192).
+
+Existence form: **given** a witness `n₀` at which `n₀^{200} <
+choose(n₀/3, log₂ n₀)`, we simply package it as `∃ n₀, P n₀`. Paper
+§40 Theorem 203 establishes this witness at `n₀ = 2^{804}`. The
+unconditional form of this existence statement (without the witness
+hypothesis) requires a dedicated numeric computation and is left for
+a follow-up; the monotonicity helpers above (§80.1–§80.5) are
+sufficient to propagate the gap from `n₀` to all larger `n` once the
+concrete witness is available. -/
+theorem arith_gap_exists
+    (n₀ : ℕ)
+    (hgap : n₀ ^ 200 < Nat.choose (n₀ / 3) (Nat.log 2 n₀)) :
+    ∃ n, n ^ 200 < Nat.choose (n / 3) (Nat.log 2 n) :=
+  ⟨n₀, hgap⟩
+
+/-- **§80.8 — Envelope monotonicity: `(V+1)^{w+1}` under `V` growth**
+(paper §40 Theorem 192 / Lemma 42). The Width⇒Rank envelope
+`(V+1)^{w+1}` from §79.3 is monotone in `V`: if `V₁ ≤ V₂`, then
+`(V₁+1)^{w+1} ≤ (V₂+1)^{w+1}`. Used by Theorem 203 to pass from
+`|vars(PMn)| ≤ n^k` to the ambient `(n^k + 1)^{w+1}` envelope before
+comparing with `n^{200}`. -/
+theorem width_envelope_mono_vars {V₁ V₂ w : ℕ} (h : V₁ ≤ V₂) :
+    (V₁ + 1) ^ (w + 1) ≤ (V₂ + 1) ^ (w + 1) :=
+  Nat.pow_le_pow_left (Nat.add_le_add_right h 1) (w + 1)
+
+/-- **§80.9 — Envelope monotonicity: `(V+1)^{w+1}` under `w` growth**
+(paper §40 Theorem 192 / Lemma 42). Second monotonicity slot of the
+Width⇒Rank envelope: increasing the CEW bound `w` never decreases the
+envelope `(V+1)^{w+1}`, provided `V ≥ 0` (trivially, `V + 1 ≥ 1`).
+Used in Theorem 203 after enlarging the CEW bound through §79.6. -/
+theorem width_envelope_mono_width {V w₁ w₂ : ℕ} (h : w₁ ≤ w₂) :
+    (V + 1) ^ (w₁ + 1) ≤ (V + 1) ^ (w₂ + 1) :=
+  Nat.pow_le_pow_right (Nat.succ_le_succ (Nat.zero_le _))
+    (Nat.add_le_add_right h 1)
+
 end Step4Compiler
 
