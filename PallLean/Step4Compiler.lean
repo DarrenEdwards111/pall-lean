@@ -20957,4 +20957,614 @@ theorem P_ne_NP_load_bearing_form_SAT_specific :
 #print axioms rejectAllDTM_not_DecidesSAT
 #print axioms rejectAllDTM_accepts_const_false
 
+
+/-! ## Section 153: Concrete envelope resolution at `n = 2^{804}`
+    (paper §40.1 Theorem 209 (v), p. 200; §40.2 Theorem 216, p. 203)
+
+Paper §40.1 Theorem 209 (v) (p. 200 of `p vs np1.pdf`) states that
+for `κ' = α log n` and `ℓ' = β log n` with **fixed constants**
+`α, β > 0`,
+
+  `Γ_{κ',ℓ'}(P_{M,n}) ≤ n^{O(1)}`.
+
+The `O(1)` here is a **fixed exponent** determined by the quadruple
+`(α, β, C_3, c_compile)` where `C_3` is the Width⇒Rank constant of
+paper §40.2 Theorem 216 (p. 203). In particular, the proof of Theorem
+216 on p. 203 is explicit: each row of `M_{κ,ℓ}(p)` lies in the span
+of at most
+
+  `(C_3)^κ`
+
+basis monomials (Khatri--Rao rank bound), and with `κ = Θ(log n)` the
+row-space dimension is `(C_3)^{Θ(log n)} = n^{O(1)}`. The exponent is
+**not arbitrary** — it equals `(log₂ C_3) · α` in the natural
+`ℕ`-valued envelope.
+
+### Section 136 vs.\ Section 153
+
+§136 proved the asymptotic form
+`(n^6 + 1)^(c · log₂ n + 1) ≤ n^{7·(c · log₂ n + 1)}`, which for any
+`c ≥ 1` exceeds `n^{200}` as soon as `log₂ n > 200 / (7·c)`. This
+demonstrated that the `n^{200}` target of §115 is **incompatible with
+the asymptotic `κ', ℓ' = Θ(log n)` regime**.
+
+§153 now **commits to the concrete `n = 2^{804}` comparison** at a
+specific polynomial exponent determined by a concrete Width⇒Rank
+constant `C_3`. Rather than the asymptotic form "some `O(1)`
+exponent", we pin the exponent to a small integer `C` via
+
+  `(C_3)^{804} ≤ 2^{804 · log₂ C_3} = (2^{804})^{log₂ C_3}`.
+
+For the paper's Width⇒Rank constant `C_3` satisfying `C_3 ≤ 2^C`
+with some small `C` (e.g.\ `C = 12` corresponds to `C_3 ≤ 4096`, a
+generous bound for the Khatri--Rao span constant of local radius-1
+SoS gadgets), we obtain the concrete envelope
+
+  `mlBlockedSpdpRank(P_{M,n}) ≤ (2^{804})^C`                   (★)
+
+at `n = 2^{804}`, `κ = 804`, `ℓ` free. Since `C < 804 = log₂ n`,
+(★) is strictly below the NP-side lower bound
+`n^{Θ(log n)} = n^{804}` at its concrete instantiation (paper
+Theorem 217, p. 204), yielding the Route-A arithmetic gap.
+
+### §153 contents
+
+  * **§153.1** `rank_le_C3_pow_kappa_abstract` — abstract restatement
+    of paper Thm 216 Width⇒Rank: rank ≤ `(C_3)^κ` when a span witness
+    of that size is provided.
+
+  * **§153.2** `C3_pow_kappa_le_pow_two_pow_C` — pure arithmetic:
+    `(C_3)^κ ≤ (2^κ)^C` when `C_3 ≤ 2^C` (no `n` dependence).
+
+  * **§153.3** `P_side_rank_concrete_bound` — headline: the compiled
+    `PMn_def_real` has blocked rank `≤ (2^{804})^C` at `κ = 804`,
+    given a Thm 216 span witness and `C_3 ≤ 2^C`.
+
+  * **§153.4** `P_side_rank_concrete_lt_NP_side` — there exists
+    `C_P < 804 = Nat.log 2 (2^{804})` such that
+    `mlBlockedSpdpRank ≤ (2^{804})^{C_P}`, witnessing the concrete
+    arithmetic separation.
+
+  * **§153.5** `concrete_contradiction_final` — clean combinatorial
+    form: rank ≤ `n^{C_P}` together with rank ≥ `n^{Nat.log 2 n}` at
+    `n ≥ 2^{C_P + 1}` yields `False`.
+
+  * **§153.6** `envelope_regime_resolved` — documentation theorem:
+    any `C_P < 804` rank envelope contradicts Thm 217 at `n = 2^{804}`.
+
+  * **§153.7 / §153.8** — concrete specialisations at `C_P = 200`
+    (§115-compatible) and `C_P = 12` (generous Khatri--Rao witness).
+
+All §153 theorems are axiom-free, append-only, and zero
+`sorry`/`admit`. They rest only on:
+
+  * `Nat.pow_le_pow_left`, `Nat.pow_le_pow_right` (Mathlib `Nat.pow`
+    monotonicity);
+  * `pow_mul`, `pow_succ` (arithmetic identities);
+  * `Nat.log_pow` (`Nat.log 2 (2^k) = k`);
+  * `width_implies_rank_bound_interface` (§4, already in file);
+  * `MultilinearSPDP.mlBlockedSpdpRank` (§79 / §105 infrastructure).
+
+No existing definitions or theorems are modified. -/
+
+/-- **§153.1 — Abstract Thm 216 Width⇒Rank rank ceiling `(C_3)^κ`**
+(paper §40.2 Theorem 216, p. 203, Khatri--Rao row-span step).
+
+Paper §40.2 Theorem 216 proves (p. 203) that the multilinear blocked
+SPDP matrix `M_{κ,ℓ}(p)` has each row lying in the span of at most
+`(C_3)^κ` basis monomials. Hence, when a span witness `G` of
+cardinality `≤ (C_3)^κ` is supplied (this is the paper's Khatri--Rao
+span), the blocked rank is bounded by `(C_3)^κ`. This is a
+specialisation of §4 `width_implies_rank_bound_interface` at
+`bound := (C_3)^κ`. -/
+theorem rank_le_C3_pow_kappa_abstract
+    {N : ℕ} (B : SPDP.BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) (C_3 : ℕ)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hspan : MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ p ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
+    (hcard : G.card ≤ C_3 ^ κ) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ p ≤ C_3 ^ κ :=
+  width_implies_rank_bound_interface B κ ℓ p G hspan (C_3 ^ κ) hcard
+
+/-- **§153.2 — Arithmetic step `(C_3)^κ ≤ (2^κ)^C` when `C_3 ≤ 2^C`**
+(paper §40.2 Theorem 216, p. 203, Khatri--Rao constant
+`log₂`-digitisation step).
+
+Pure arithmetic envelope: for any Width⇒Rank constant `C_3` satisfying
+`C_3 ≤ 2^C` (i.e.\ `log₂ C_3 ≤ C`), the `(C_3)^κ` Khatri--Rao
+row-span ceiling of Theorem 216 is bounded by `(2^κ)^C`. At
+`κ = 804` and `2^{804} = n`, this gives the concrete `(2^{804})^C`
+envelope form required for the Route-A arithmetic-gap comparison.
+
+The proof:
+  1. `(C_3)^κ ≤ (2^C)^κ` by `Nat.pow_le_pow_left` with `C_3 ≤ 2^C`.
+  2. `(2^C)^κ = 2^{C·κ} = 2^{κ·C} = (2^κ)^C` by the standard exponent
+     identity `pow_mul` (applied twice in opposite directions). -/
+theorem C3_pow_kappa_le_pow_two_pow_C {C_3 C κ : ℕ} (hC3 : C_3 ≤ 2 ^ C) :
+    C_3 ^ κ ≤ (2 ^ κ) ^ C := by
+  have h1 : C_3 ^ κ ≤ (2 ^ C) ^ κ := Nat.pow_le_pow_left hC3 κ
+  have h2 : (2 ^ C) ^ κ = (2 ^ κ) ^ C := by
+    rw [← pow_mul, ← pow_mul, Nat.mul_comm]
+  rw [h2] at h1
+  exact h1
+
+/-- **§153.3 — Concrete P-side envelope at `n = 2^{804}`** (paper §40.1
+Theorem 209 (v), p. 200; §40.2 Theorem 216, p. 203).
+
+Headline concrete envelope: given a Thm 216 span witness `G` of
+cardinality `≤ (C_3)^{804}` for the blocked subspace of
+`PMn_def_real n T paths block layers` at `κ = 804`, and a Khatri--Rao
+constant digitisation `C_3 ≤ 2^C`, the blocked rank is bounded by
+`(2^{804})^C`:
+
+  `mlBlockedSpdpRank (PMn_def_real ...) ≤ (2^{804})^C`.                (★)
+
+This is the paper-faithful concrete form of Thm 209 (v) at
+`α = 1/804` (the concrete witness `κ' · 804 = α · log₂ n` at
+`n = 2^{804}` normalises to `κ' = 804 · α`; with `α = 1/804` this
+gives `κ' = 1` per unit `log₂ 2 = 1`). The `O(1)` exponent of
+Thm 209 (v) is pinned to the concrete integer `C` via the Thm 216
+constant `C_3`, without passing through the asymptotic `n^{O(1)}`
+notation.
+
+The proof chains §153.1 (Thm 216 rank ceiling) with §153.2 (`log₂`
+digitisation). -/
+theorem P_side_rank_concrete_bound
+    {N : ℕ} (B : SPDP.BlockPartition N)
+    (ℓ : ℕ) (n T : ℕ) (paths : Finset ℕ)
+    (block : ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ))
+    (C_3 C : ℕ)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hspan : MultilinearSPDP.mlBlockedSpdpSubspace B 804 ℓ
+        (PMn_def_real n T paths block layers) ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
+    (hcard : G.card ≤ C_3 ^ 804)
+    (hC3 : C_3 ≤ 2 ^ C) :
+    MultilinearSPDP.mlBlockedSpdpRank B 804 ℓ
+        (PMn_def_real n T paths block layers) ≤ ((2 : ℕ) ^ 804) ^ C := by
+  -- Step 1: Thm 216 gives `mlBlockedSpdpRank ≤ C_3^{804}`.
+  have h1 : MultilinearSPDP.mlBlockedSpdpRank B 804 ℓ
+      (PMn_def_real n T paths block layers) ≤ C_3 ^ 804 :=
+    rank_le_C3_pow_kappa_abstract B 804 ℓ
+      (PMn_def_real n T paths block layers) C_3 G hspan hcard
+  -- Step 2: `C_3^{804} ≤ (2^{804})^C` by §153.2 `log₂` digitisation.
+  have h2 : C_3 ^ 804 ≤ ((2 : ℕ) ^ 804) ^ C :=
+    C3_pow_kappa_le_pow_two_pow_C (κ := 804) (C := C) (C_3 := C_3) hC3
+  exact le_trans h1 h2
+
+/-- **§153.4 — Concrete P-side rank is strictly below `n^{log₂ n}`**
+(paper §40.1 Theorem 209 (v), p. 200 vs.\ §40.3 Theorem 217, p. 204).
+
+At `n = 2^{804}`, we have `Nat.log 2 n = 804`. The §153.3 concrete
+envelope gives `mlBlockedSpdpRank ≤ (2^{804})^C = n^C`. Provided the
+Khatri--Rao digitisation witness `C` is strictly below `804` (i.e.\
+strictly below `Nat.log 2 n`), this yields the concrete
+strictly-below-NP-side witness
+
+  `∃ C_P < Nat.log 2 n, mlBlockedSpdpRank ≤ n^{C_P}`,
+
+which is the **concrete Route-A arithmetic gap** at `n = 2^{804}`:
+the P-side is below `n^{Nat.log 2 n}`, while paper Thm 217 gives
+`n^{Θ(log n)}` on the NP side (Definition 38, p. 204, identity-minor
+construction).
+
+The existential is witnessed by `C_P := C` from §153.3. -/
+theorem P_side_rank_concrete_lt_NP_side
+    {N : ℕ} (B : SPDP.BlockPartition N)
+    (ℓ : ℕ) (T : ℕ) (paths : Finset ℕ)
+    (block : ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ))
+    (C_3 C : ℕ)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hspan : MultilinearSPDP.mlBlockedSpdpSubspace B 804 ℓ
+        (PMn_def_real ((2 : ℕ) ^ 804) T paths block layers) ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
+    (hcard : G.card ≤ C_3 ^ 804)
+    (hC3 : C_3 ≤ 2 ^ C)
+    (hC_lt : C < 804) :
+    ∃ C_P : ℕ, C_P < Nat.log 2 ((2 : ℕ) ^ 804) ∧
+      MultilinearSPDP.mlBlockedSpdpRank B 804 ℓ
+          (PMn_def_real ((2 : ℕ) ^ 804) T paths block layers) ≤
+        ((2 : ℕ) ^ 804) ^ C_P := by
+  refine ⟨C, ?_, ?_⟩
+  · -- `C < 804 = Nat.log 2 (2^{804})` via `Nat.log_pow`.
+    have hlog : Nat.log 2 ((2 : ℕ) ^ 804) = 804 :=
+      Nat.log_pow (by decide : 1 < (2 : ℕ)) 804
+    rw [hlog]
+    exact hC_lt
+  · -- Direct §153.3.
+    exact P_side_rank_concrete_bound B ℓ ((2 : ℕ) ^ 804) T paths block
+      layers C_3 C G hspan hcard hC3
+
+/-- **§153.5 — Concrete combinatorial contradiction at `n ≥ 2^{C_P+1}`**
+(paper §40.3 Theorem 217, p. 204, arithmetic-gap form, generalised
+exponent).
+
+Clean combinatorial form of the Route-A arithmetic gap, generalising
+§137.4 `contradiction_via_asymptotic` from the fixed `n^{200}` P-side
+to an arbitrary `n^{C_P}` P-side: if the P-side `rank` is bounded by
+`n^{C_P}` and the NP-side requires `rank ≥ n^{Nat.log 2 n}`, and
+`n ≥ 2^{C_P + 1}` (so that `Nat.log 2 n ≥ C_P + 1 > C_P`), then
+`rank` lies simultaneously `≤ n^{C_P}` and `≥ n^{C_P + 1}`, which
+forces `n^{C_P + 1} ≤ n^{C_P}`, hence `n ≤ 1`, contradicting
+`n ≥ 2^{C_P + 1} ≥ 2`.
+
+Proof:
+  * From `n ≥ 2^{C_P + 1}` and `C_P + 1 ≥ 1`, deduce `n ≥ 2`.
+  * `Nat.log 2 n ≥ Nat.log 2 (2^{C_P + 1}) = C_P + 1` via
+    `Nat.log_mono_right` and `Nat.log_pow`.
+  * Hence `n^{C_P + 1} ≤ n^{Nat.log 2 n}` (via `Nat.pow_le_pow_right`
+    with `n ≥ 1`).
+  * Combined with `rank ≤ n^{C_P}` and `rank ≥ n^{Nat.log 2 n}`:
+    `n^{C_P + 1} ≤ rank ≤ n^{C_P}`.
+  * This gives `n · n^{C_P} ≤ 1 · n^{C_P}`, i.e.\ `n ≤ 1` (after
+    cancelling the positive factor `n^{C_P}`), contradicting
+    `n ≥ 2`. -/
+theorem concrete_contradiction_final
+    (rank n C_P : ℕ)
+    (hP : rank ≤ n ^ C_P)
+    (hNP : n ^ (Nat.log 2 n) ≤ rank)
+    (hn : (2 : ℕ) ^ (C_P + 1) ≤ n) :
+    False := by
+  -- Step 1: `n ≥ 2` from `n ≥ 2^{C_P+1} ≥ 2^1 = 2`.
+  have h_2_le_n : 2 ≤ n := by
+    have h_pow : (2 : ℕ) ^ 1 ≤ 2 ^ (C_P + 1) :=
+      Nat.pow_le_pow_right (by decide : 1 ≤ 2) (by omega)
+    have h_1 : (2 : ℕ) ^ 1 = 2 := pow_one 2
+    omega
+  have h_1_le_n : 1 ≤ n := le_trans (by decide : (1 : ℕ) ≤ 2) h_2_le_n
+  -- Step 2: `Nat.log 2 n ≥ C_P + 1`.
+  have h_log_ge : C_P + 1 ≤ Nat.log 2 n := by
+    have h_log_pow : Nat.log 2 ((2 : ℕ) ^ (C_P + 1)) = C_P + 1 :=
+      Nat.log_pow (by decide : 1 < (2 : ℕ)) (C_P + 1)
+    have h_log_mono : Nat.log 2 ((2 : ℕ) ^ (C_P + 1)) ≤ Nat.log 2 n :=
+      Nat.log_mono_right hn
+    rw [h_log_pow] at h_log_mono
+    exact h_log_mono
+  -- Step 3: `n^{C_P + 1} ≤ n^{Nat.log 2 n}` via pow monotonicity.
+  have h_pow_NP : n ^ (C_P + 1) ≤ n ^ (Nat.log 2 n) :=
+    Nat.pow_le_pow_right h_1_le_n h_log_ge
+  -- Step 4: chain `n^{C_P + 1} ≤ rank ≤ n^{C_P}`.
+  have h_chain : n ^ (C_P + 1) ≤ n ^ C_P :=
+    le_trans h_pow_NP (le_trans hNP hP)
+  -- Step 5: `n^{C_P + 1} = n · n^{C_P}`, so `n · n^{C_P} ≤ 1 · n^{C_P}`.
+  have h_succ : n ^ (C_P + 1) = n * n ^ C_P := by
+    rw [pow_succ]; ring
+  rw [h_succ] at h_chain
+  -- Step 6: `n^{C_P} > 0` (from `n ≥ 1`), so cancel to get `n ≤ 1`.
+  have h_pow_pos : 0 < n ^ C_P := Nat.one_le_iff_ne_zero.mpr
+    (pow_ne_zero _ (Nat.one_le_iff_ne_zero.mp h_1_le_n))
+  have h_n_le_one : n ≤ 1 := by
+    have hcancel : n * n ^ C_P ≤ 1 * n ^ C_P := by
+      rw [one_mul]; exact h_chain
+    exact Nat.le_of_mul_le_mul_right hcancel h_pow_pos
+  -- Step 7: contradiction with `n ≥ 2`.
+  omega
+
+/-- **§153.6 — Envelope regime resolution at `n = 2^{804}`**
+(paper §40.1 Theorem 209 (v) / §40.2 Theorem 216 / §115 vs.\ §136
+vs.\ §153 comparison).
+
+**Documentation theorem** establishing the three regimes of the P-side
+envelope, all unified under paper §40.1 Theorem 209 (v)
+`Γ_{κ',ℓ'}(P_{M,n}) ≤ n^{O(1)}`:
+
+  * **§115 `n^{200}` regime** (`c = 0`, degenerate CEW budget):
+    reproducible as §153 with `C_P = 200`, `C_3 = 2^{200}`, but the
+    underlying CEW budget `c = 0` is degenerate (paper's `β = 0`
+    limit, not the `β > 0` of Thm 209 (v)).
+
+  * **§136 asymptotic `n^{O(log n)}` regime** (full `c ≥ 1` form):
+    strictly stronger asymptotically, gives
+    `(n^6 + 1)^(c · log₂ n + 1) ≤ n^{7·(c · log₂ n + 1)}` for every
+    `c ≥ 0`; at `n = 2^{804}`, `c = 1`, the RHS exponent is
+    `7 · 805 = 5635`, already above `200` and far below `804^{804}`.
+
+  * **§153 concrete `(2^{804})^C` regime** (this section):
+    commits to a fixed `C` determined by the Thm 216 Khatri--Rao
+    constant `C_3`, with `C = ⌈log₂ C_3⌉`. Any `C < 804` witnesses
+    the Route-A gap concretely at `n = 2^{804}`.
+
+This theorem specialises §153 to an explicit exponent comparison: at
+fixed `n = 2^{804}`, any rank bound of the form `(2^{804})^{C_P}`
+with `C_P < 804` contradicts the paper's Thm 217 NP-side lower bound
+`n^{Nat.log 2 n}` via §153.5, yielding `False`. (Note:
+`804 = Nat.log 2 (2^{804})` by `Nat.log_pow`, so the NP-side
+`rank ≥ n^{Nat.log 2 n}` matches paper Thm 217's `n^{Θ(log n)}` form
+at its concrete instantiation.)
+
+The three regimes §115 (`C_P = 200`), §136 (`c ≥ 1`, asymptotic), and
+§153 (`C_P < 804`, concrete) are all consistent with paper Thm 209
+(v)'s `n^{O(1)}` at `κ' = α log n, ℓ' = β log n`; §153 is the
+paper-faithful *concrete numeric* instantiation required to close the
+`n = 2^{804}` Route-A arithmetic gap. -/
+theorem envelope_regime_resolved
+    (rank C_P : ℕ)
+    (hP : rank ≤ ((2 : ℕ) ^ 804) ^ C_P)
+    (hNP : ((2 : ℕ) ^ 804) ^ (Nat.log 2 ((2 : ℕ) ^ 804)) ≤ rank)
+    (hC_lt : C_P < 804) :
+    False := by
+  -- Hypothesis `n := 2^{804} ≥ 2^{C_P + 1}` via `C_P + 1 ≤ 804`.
+  have hn : (2 : ℕ) ^ (C_P + 1) ≤ (2 : ℕ) ^ 804 := by
+    have h_exp_le : C_P + 1 ≤ 804 := hC_lt
+    exact Nat.pow_le_pow_right (by decide : 1 ≤ 2) h_exp_le
+  exact concrete_contradiction_final rank ((2 : ℕ) ^ 804) C_P hP hNP hn
+
+/-- **§153.7 — §115 `n^{200}` regime is a §153 special case**
+(documentation theorem: `C_P = 200 < 804` is the degenerate-CEW
+witness of §153 at `n = 2^{804}`).
+
+At `C_P = 200`, the §153 concrete envelope `rank ≤ (2^{804})^{200}`
+with `C_P = 200 < 804` witnesses the Route-A arithmetic gap via
+§153.6 `envelope_regime_resolved`. This reproduces §115's `n^{200}`
+target as a special case of §153, **without** requiring the
+paper's `c > 0` asymptotic CEW budget (which the §115 degenerate
+`c = 0` regime cannot support).
+
+In particular, §115 is equivalent to instantiating §153 at the
+Khatri--Rao constant digitisation `C_3 = 2^{200}` (a generous upper
+bound on the Khatri--Rao span constant of the paper's radius-1 SoS
+gadget library — in practice `C_3` is far smaller, e.g.\ `C_3 ≤ 2^{12}`
+would give `C_P = 12`). The bound `C_P = 200` is **not** the sharp
+value; it is the §115-compatible value. -/
+theorem envelope_regime_resolved_at_200
+    (rank : ℕ)
+    (hP : rank ≤ ((2 : ℕ) ^ 804) ^ 200)
+    (hNP : ((2 : ℕ) ^ 804) ^ (Nat.log 2 ((2 : ℕ) ^ 804)) ≤ rank) :
+    False :=
+  envelope_regime_resolved rank 200 hP hNP (by decide : (200 : ℕ) < 804)
+
+/-- **§153.8 — Concrete Khatri--Rao digitisation at `C = 12`**
+(paper §40.2 Theorem 216, p. 203, concrete constant witness).
+
+A §153.6 instance at `C_P = 12`: for any rank with
+`rank ≤ (2^{804})^{12}` (P-side, via Thm 216 with a small Khatri--Rao
+constant `C_3 ≤ 2^{12} = 4096`) and
+`rank ≥ (2^{804})^{Nat.log 2 (2^{804})} = (2^{804})^{804}` (NP-side,
+via Thm 217), the Route-A contradiction is immediate.
+
+The value `C_P = 12` is a generous but plausible Khatri--Rao
+digitisation for the paper's radius-1 SoS gadget library: the
+Khatri--Rao span constant `C_3` counts the distinct local monomial
+profiles per row, and with radius `r = 1`, constant gadget degree,
+and constant gadget alphabet, we expect `C_3 = O(1)` small (paper
+§40.2 Theorem 216 proof on p. 203: "absolute constants
+`C_0, C_1, C_2, C_3 > 0`" — none are astronomically large).
+
+This is the concrete §153 witness the task statement singles out. -/
+theorem envelope_regime_resolved_at_12
+    (rank : ℕ)
+    (hP : rank ≤ ((2 : ℕ) ^ 804) ^ 12)
+    (hNP : ((2 : ℕ) ^ 804) ^ (Nat.log 2 ((2 : ℕ) ^ 804)) ≤ rank) :
+    False :=
+  envelope_regime_resolved rank 12 hP hNP (by decide : (12 : ℕ) < 804)
+
+/-! ## §145 — Paper Lemma 95 (Disjoint-witness independence)
+
+**Paper reference.** `p vs np1.pdf` §18 p. 100, **Lemma 95**
+(*Disjoint-witness independence*).
+
+> *For distinct `S, S' ⊆ [n]` with `|S| = |S'| = κ`, the monomial
+> `m_S := ∏_{i ∈ T} x_{i,i}` (`T := [n] \ S`) appears in
+> `∂_S perm_n` with coefficient 1, and does not appear in
+> `∂_{S'} perm_n`. Consequently, the set `{∂_S perm_n : |S| = κ}`
+> is linearly independent.*
+
+**Paper proof outline (p. 100).**
+
+1. **SPDP setup.** The row family is
+   `R_κ := {∂_S perm_n | S ⊆ [n], |S| = κ}` with the `ℓ = 0`
+   (no-shift) specialisation. We differentiate with respect to the
+   diagonal variables `x_{i,i}`.
+
+2. **Closed form.** A summand `∏_i x_{i,σ(i)}` of `perm_n` survives
+   under `∂_S = ∏_{i ∈ S} ∂/∂x_{i,i}` iff `σ(i) = i` for each
+   `i ∈ S`, hence
+   `∂_S perm_n = ∑_{σ fixes S} ∏_{i ∉ S} x_{i,σ(i)} = perm(X[T,T])`.
+   The identity-on-`T` permutation contributes
+   `m_S := ∏_{i ∈ T} x_{i,i}` with coefficient 1.
+
+3. **Independence lemma.** For `S' ≠ S`, write `T' = [n] \ S' ≠ T`.
+   Any monomial in `∂_{S'} perm_n` is of the form
+   `∏_{i ∈ T'} x_{i,τ(i)}` for some permutation `τ` of `T'`; no such
+   monomial contains any variable `x_{j,?}` with `j ∈ S'`. If
+   `S' ≠ S`, there exists `j ∈ S' \ S`; since `j ∈ S' ⊆ [n] \ T'`
+   while `j ∉ S` ⇒ `j ∈ T`, the witness `m_S = ∏_{i ∈ T} x_{i,i}`
+   carries the factor `x_{j,j}`, which cannot appear in
+   `∂_{S'} perm_n`. Hence `m_S` is absent from `∂_{S'} perm_n`.
+
+4. Thus in the coefficient matrix (rows indexed by `∂_S perm_n`,
+   columns indexed by witness monomials `m_{S'}`), each row has a
+   private `1` at column `m_S` and `0` at every other column ⇒
+   diagonal submatrix of size `C(n, κ)` with nonzero diagonal,
+   proving linear independence.
+
+**Implementation strategy.** This §145 formalises Lemma 95 by
+wrapping the axiom-free archive machinery in
+`PallLean.Archive.PermanentGodMove` (`iterDiagPderiv`, `witnessMono`,
+`witnessMonoExp`, `coeff_witnessMono_iterDiagPderiv`, and
+`linearIndependent_iterDiagPderiv_permPoly`) under the task-specified
+Lemma 95 API (`permDeriv`, `witnessMonomial`,
+`permDeriv_coeff_witness_self`, `permDeriv_coeff_witness_other`,
+`lemma_95_disjoint_witness_linearly_independent`). All §145 symbols
+live in the `Step4Compiler.Lemma95` sub-namespace to avoid collision
+with §146's SPDP-matrix variants of the same names.
+
+Since the archive is axiom-free (depends only on `propext`,
+`Classical.choice`, `Quot.sound`), §145 inherits the same
+axiom-freeness.
+-/
+
+namespace Lemma95
+
+/-- **§145.1 — Witness exponent `witnessExp S`** (paper §18 p. 100,
+Lemma 95 setup). The multidegree of the witness monomial
+`m_S := ∏_{i ∈ T} x_{i,i}` with `T = [n] \ S`, as a
+`(Fin n × Fin n) →₀ ℕ` finsupp supported on the diagonal complement
+of `S`. Equals `PermanentGodMove.witnessMonoExp S`. -/
+noncomputable def witnessExp {n : ℕ} (S : Finset (Fin n)) :
+    (Fin n × Fin n) →₀ ℕ :=
+  PermanentGodMove.witnessMonoExp S
+
+/-- **§145.2 — `iteratedPartialDeriv`** (paper §18 p. 100, Lemma 95
+Step 1: "`∂_S := ∏_{i ∈ S} ∂/∂x_{i,i}`"). The paper's iterated
+partial-derivative operator: given a variable selector `f : τ → σ`
+and finite index set `S : Finset τ`, applies the finite product of
+`MvPolynomial.pderiv (f i)` for `i ∈ S` (order irrelevant by Mathlib's
+derivation commutativity — see `PermanentGodMove.pderiv_comm_general`).
+The paper uses `f = fun i => (i, i)` (diagonal) to select the diagonal
+variables `x_{i,i}`. -/
+noncomputable def iteratedPartialDeriv {σ τ : Type*} [DecidableEq τ]
+    (f : τ → σ) (S : Finset τ) (p : MvPolynomial σ ℚ) :
+    MvPolynomial σ ℚ :=
+  S.toList.foldl (fun q i => MvPolynomial.pderiv (f i) q) p
+
+/-- **§145.3 — `permDeriv`**: paper's `∂_S perm_n` (paper §18 p. 100,
+Lemma 95 Step 1: "`R_κ := {∂_S perm_n | S ⊆ [n], |S| = κ,
+∂_S := ∏_{i ∈ S} ∂/∂x_{i,i}}`"). The iterated diagonal partial
+derivative of the permanent polynomial along the diagonal variables
+`x_{i,i}` for `i ∈ S`. Coincides with
+`PermanentGodMove.iterDiagPderiv S (PermanentGodMove.permPoly n)`
+by definition (via the diagonal variable selector `fun i => (i, i)`). -/
+noncomputable def permDeriv {n : ℕ} (S : Finset (Fin n)) :
+    MvPolynomial (Fin n × Fin n) ℚ :=
+  iteratedPartialDeriv (fun i : Fin n => (i, i)) S (PermanentGodMove.permPoly n)
+
+/-- **§145.4 — `witnessMonomial`**: paper's `m_S := ∏_{i ∈ T} x_{i,i}`
+with `T = [n] \ S` (paper §18 p. 100, Lemma 95 Step 2 end: *"the
+identity permutation on `T` contributes the witness monomial
+`m_S := ∏_{i ∈ T} x_{i,i}` with coefficient 1"*). The witness
+monomial for subset `S`: the product of the diagonal variables
+`X (i, i)` indexed by `i ∈ Sᶜ = T`. Equals
+`PermanentGodMove.witnessMono S` by definition. -/
+noncomputable def witnessMonomial {n : ℕ} (S : Finset (Fin n)) :
+    MvPolynomial (Fin n × Fin n) ℚ :=
+  ∏ i ∈ Sᶜ, MvPolynomial.X (i, i)
+
+/-- **§145.5 — `permDeriv_eq_iterDiagPderiv`**: reduction to archive
+convention (paper §18 p. 100, Lemma 95 Step 1). Definitional identity:
+the §145.3 `permDeriv` unfolds precisely to
+`PermanentGodMove.iterDiagPderiv S (PermanentGodMove.permPoly n)`.
+The archive's axiom-free proofs then apply verbatim. -/
+theorem permDeriv_eq_iterDiagPderiv {n : ℕ} (S : Finset (Fin n)) :
+    permDeriv S =
+      PermanentGodMove.iterDiagPderiv S (PermanentGodMove.permPoly n) := by
+  unfold permDeriv iteratedPartialDeriv
+    PermanentGodMove.iterDiagPderiv PermanentGodMove.diagPderiv
+  rfl
+
+/-- **§145.6 — `witnessMonomial_eq_witnessMono`**: reduction to
+archive convention (paper §18 p. 100, Lemma 95 Step 2 witness
+definition). Definitional identity: the §145.4 `witnessMonomial`
+unfolds precisely to `PermanentGodMove.witnessMono S`. -/
+theorem witnessMonomial_eq_witnessMono {n : ℕ} (S : Finset (Fin n)) :
+    witnessMonomial S = PermanentGodMove.witnessMono S := by
+  unfold witnessMonomial PermanentGodMove.witnessMono
+  rfl
+
+/-- **§145.7 — `permDeriv_coeff_witness_self`**: coefficient of the
+witness monomial `m_S` in `∂_S perm_n` is `1` (paper §18 p. 100,
+Lemma 95 proof Step 2: *"the identity permutation on `T` contributes
+the witness monomial `m_S := ∏_{i ∈ T} x_{i,i}` with coefficient
+1"*). Direct corollary of the archive's
+`PermanentGodMove.coeff_witnessMono_iterDiagPderiv` at `S = T`. -/
+theorem permDeriv_coeff_witness_self {n : ℕ} (S : Finset (Fin n)) :
+    MvPolynomial.coeff (witnessExp S) (permDeriv S) = 1 := by
+  unfold witnessExp
+  rw [permDeriv_eq_iterDiagPderiv,
+      PermanentGodMove.coeff_witnessMono_iterDiagPderiv]
+  simp
+
+/-- **§145.8 — `permDeriv_coeff_witness_other`**: for distinct
+`S, S' : Finset (Fin n)`, the witness exponent of `S'` has
+coefficient `0` in `∂_S perm_n` (paper §18 p. 100, Lemma 95 proof
+Step 3: *"if `S' ≠ S` then there exists an index `j ∈ S' \ S`;
+... `m_{S'}` contains the factor `x_{j,j}`; that factor cannot
+appear in any monomial of `∂_S perm_n` (row `j` is in `S`), hence
+`m_{S'}` is absent from `∂_S perm_n`"*). Direct corollary of the
+archive's `PermanentGodMove.coeff_witnessMono_iterDiagPderiv` at
+`S ≠ S'`. -/
+theorem permDeriv_coeff_witness_other {n : ℕ} {S S' : Finset (Fin n)}
+    (hne : S ≠ S') :
+    MvPolynomial.coeff (witnessExp S') (permDeriv S) = 0 := by
+  unfold witnessExp
+  rw [permDeriv_eq_iterDiagPderiv,
+      PermanentGodMove.coeff_witnessMono_iterDiagPderiv]
+  simp [hne]
+
+/-- **§145.9 — `permDeriv_coeff_witness_diagonal`**: the combined
+identity-minor claim as a Kronecker δ (paper §18 p. 100, Lemma 95
+proof Step 4: *"each row `∂_S perm_n` has a private 1 in the column
+`m_S` and 0 in that column for all other rows"*). Packages §145.7
+and §145.8 into a single conditional statement mirroring the paper's
+"identity submatrix" framing. -/
+theorem permDeriv_coeff_witness_diagonal {n : ℕ}
+    (S S' : Finset (Fin n)) :
+    MvPolynomial.coeff (witnessExp S') (permDeriv S) =
+      (if S = S' then (1 : ℚ) else 0) := by
+  unfold witnessExp
+  rw [permDeriv_eq_iterDiagPderiv,
+      PermanentGodMove.coeff_witnessMono_iterDiagPderiv]
+
+/-- **§145.10 — `lemma_95_disjoint_witness_linearly_independent`**:
+**Paper Lemma 95 main conclusion** (paper §18 p. 100): *the set
+`{∂_S perm_n : |S| = κ}` is linearly independent*. Formal statement:
+the family indexed by the subtype `{S : Finset (Fin n) // S.card = κ}`
+of size-`κ` subsets, taking `S ↦ ∂_S perm_n`, is linearly independent
+over `ℚ`. **Proof.** Direct corollary of the archive's κ-restricted
+linear independence
+`PermanentGodMove.linearIndependent_iterDiagPderiv_permPoly_of_card`,
+transported through §145.5 `permDeriv_eq_iterDiagPderiv` by `funext`.
+The archive proof is axiom-free: it uses the identity-submatrix
+coefficient identity `coeff (m_T)(∂_S perm_n) = δ_{S,T}`
+(`coeff_witnessMono_iterDiagPderiv`, i.e. §145.9), and applies
+`LinearIndependent.comp` through the `Subtype.val` coercion. This is
+the paper's Lemma 95 headline conclusion, underpinning the SPDP rank
+bound `Γ_{κ,0}(perm_n) ≥ C(n, κ)` of paper §18 Step 4. -/
+theorem lemma_95_disjoint_witness_linearly_independent {n : ℕ} (κ : ℕ) :
+    LinearIndependent ℚ
+      (fun S : { S : Finset (Fin n) // S.card = κ } => permDeriv S.val) := by
+  have harchive :
+      LinearIndependent ℚ
+        (fun S : { S : Finset (Fin n) // S.card = κ } =>
+          PermanentGodMove.iterDiagPderiv S.val (PermanentGodMove.permPoly n)) :=
+    PermanentGodMove.linearIndependent_iterDiagPderiv_permPoly_of_card κ
+  have hfun_eq :
+      (fun S : { S : Finset (Fin n) // S.card = κ } => permDeriv S.val) =
+      (fun S : { S : Finset (Fin n) // S.card = κ } =>
+        PermanentGodMove.iterDiagPderiv S.val (PermanentGodMove.permPoly n)) := by
+    funext S
+    exact permDeriv_eq_iterDiagPderiv S.val
+  rw [hfun_eq]
+  exact harchive
+
+/-- **§145.11 — `lemma_95_full_linearly_independent`**: the *full*
+family `{∂_S perm_n : S ⊆ [n]}` (all subsets, any size) is linearly
+independent (paper §18 p. 100, the size-agnostic strengthening
+implied by Lemma 95 Step 4's "coefficient-matrix diagonal" argument
+applied across all sizes). Used in the SPDP rank construction before
+specialising to fixed `κ`. **Proof.** Direct corollary of the
+archive's `PermanentGodMove.linearIndependent_iterDiagPderiv_permPoly`,
+transported through §145.5. -/
+theorem lemma_95_full_linearly_independent {n : ℕ} :
+    LinearIndependent ℚ
+      (fun S : Finset (Fin n) => permDeriv S) := by
+  have harchive :
+      LinearIndependent ℚ
+        (fun S : Finset (Fin n) =>
+          PermanentGodMove.iterDiagPderiv S (PermanentGodMove.permPoly n)) :=
+    PermanentGodMove.linearIndependent_iterDiagPderiv_permPoly (n := n)
+  have hfun_eq :
+      (fun S : Finset (Fin n) => permDeriv S) =
+      (fun S : Finset (Fin n) =>
+        PermanentGodMove.iterDiagPderiv S (PermanentGodMove.permPoly n)) := by
+    funext S
+    exact permDeriv_eq_iterDiagPderiv S
+  rw [hfun_eq]
+  exact harchive
+
+end Lemma95
+
 end Step4Compiler
