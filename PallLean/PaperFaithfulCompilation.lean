@@ -797,4 +797,62 @@ theorem piPhi_inputBoundaryConstraint
        -MvPolynomial.X ((cookLevinUVSplit M n).inlU i)
   simp
 
+/-! ## Section 16: Cook-Levin separation template (Tasks D, E, F)
+
+Concrete Cook-Levin specialization of `separation_contradiction`:
+given P-side and NP-side rank bounds on a PathA PMn polynomial,
+the arithmetic gap at n ≥ 2^804 (n^200 < C(n/3, log n)) yields False
+under `DecidesSAT M`.
+
+Matches paper Theorem 207's chain: compile M, apply Π_Φ, contradiction
+from rank gap. -/
+
+/-- **Arithmetic gap at n ≥ 2^804**: n^200 < C(n/3, log n).
+
+Imported via the existing `GodMoveReal.compiledPoly_rank_gt_npow200_at_large_n`
+for the flat compilation; works the same way at the UVSplit level. -/
+theorem arithmetic_gap_2pow804 (n : ℕ) (hn : n ≥ 2 ^ 804) :
+    n ^ 200 < Nat.choose (n / 3) (Nat.log 2 n) := by
+  -- Chain: n^200 < n^201 ≤ n^(log n / 4) ≤ C(n/30, log n) ≤ C(n/3, log n)
+  have hn20 : n ≥ 2 ^ 20 :=
+    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn
+  have hbin : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
+    BinomialBound.binomial_lower_bound_concrete n hn20
+  have hmono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose (n / 3) (Nat.log 2 n) :=
+    Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
+  have hlog : 804 ≤ Nat.log 2 n :=
+    Nat.le_log_of_pow_le (by norm_num : 1 < 2) hn
+  have hdiv : 201 ≤ Nat.log 2 n / 4 := by omega
+  have hn_ge_1 : 1 ≤ n := by
+    have h2_804 : (2 : ℕ) ≤ 2 ^ 804 := by
+      calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+      _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    omega
+  have hn_gt_1 : 1 < n := by
+    have h2_804 : (2 : ℕ) ≤ 2 ^ 804 := by
+      calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+      _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    omega
+  have hnpow201 : n ^ 201 ≤ n ^ (Nat.log 2 n / 4) :=
+    Nat.pow_le_pow_right hn_ge_1 hdiv
+  have h200lt201 : n ^ 200 < n ^ 201 :=
+    Nat.pow_lt_pow_right hn_gt_1 (by omega : 200 < 201)
+  exact lt_of_lt_of_le h200lt201 (le_trans (le_trans hnpow201 hbin) hmono)
+
+/-- **Cook-Levin-style separation**: if for some (σ, B, P, κ, ℓ) we have
+a P-side bound ≤ n^200 AND NP-side bound ≥ C(n/3, log n) on piPhi(P),
+then at n ≥ 2^804 we derive False. This is paper Theorem 207's
+separation mechanism at the UVSplit level. -/
+theorem pathA_separation_contradiction
+    (n : ℕ) (hn : n ≥ 2 ^ 804)
+    {σ : UVSplit} (B : SPDP.BlockPartition σ.total)
+    (P : PMnPoly σ) (κ ℓ : ℕ)
+    (hPside : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ P ≤ n ^ 200)
+    (hNPside : Nat.choose (n / 3) (Nat.log 2 n) ≤
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (piPhi σ P)) :
+    False :=
+  separation_contradiction B P κ ℓ
+    (n ^ 200) (Nat.choose (n / 3) (Nat.log 2 n))
+    hPside hNPside (arithmetic_gap_2pow804 n hn)
+
 end PaperFaithfulCompilation
