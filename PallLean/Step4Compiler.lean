@@ -2134,5 +2134,88 @@ theorem posLiteralSoSGadget_hasCEWBound_one {N : ℕ} (i : Fin N) :
   unfold HasCEWBound
   rw [posLiteralSoSGadget_poly, MvPolynomial.totalDegree_X]
 
+/-! ## Section 62: Comparator wire-ordering invariants
+(Paper Lemma 19 — comparator well-formedness)
+
+Every `Comparator wires` carries the invariant `i.val < j.val`.
+The lemmas below re-export this invariant in forms that are more
+convenient for downstream proofs (strict natural-number inequality,
+non-equality of wires, positivity of upper wire, and a lower bound
+on the wire count). -/
+
+/-- **Comparator wires are ordered** (strict `ℕ` inequality). -/
+theorem Comparator.i_lt_j_nat {wires : ℕ} (c : Comparator wires) :
+    c.i.val < c.j.val := c.i_lt_j
+
+/-- **Comparator wires are distinct** (as `Fin` elements): the
+ordering invariant implies `i ≠ j`. -/
+theorem Comparator.i_ne_j {wires : ℕ} (c : Comparator wires) :
+    c.i ≠ c.j := by
+  intro h
+  exact absurd (Fin.val_eq_of_eq h) (Nat.ne_of_lt c.i_lt_j)
+
+/-- **Comparator upper wire has positive index** (in `ℕ`): since
+`0 ≤ i.val < j.val`, we get `0 < j.val`. -/
+theorem Comparator.j_pos {wires : ℕ} (c : Comparator wires) :
+    0 < c.j.val :=
+  lt_of_le_of_lt (Nat.zero_le _) c.i_lt_j
+
+/-- **Comparator requires at least 2 wires**: the ordering invariant
+`i.val < j.val < wires` forces `wires ≥ 2`. -/
+theorem Comparator.wires_ge_two {wires : ℕ} (c : Comparator wires) :
+    2 ≤ wires := by
+  have h1 : c.j.val < wires := c.j.isLt
+  have h2 : 0 < c.j.val := c.j_pos
+  omega
+
+/-! ## Section 63: SortingLayer size properties
+(Paper Lemma 19 — per-layer comparator count)
+
+Paper Lemma 19 requires each layer of the Batcher network to consist
+of disjoint comparators. The lemmas below record small useful
+consequences for the trivial and N=2 instances. -/
+
+/-- **Trivial sorting network has no comparator-bearing layers**:
+the empty `layers` list makes the universally-quantified claim vacuous. -/
+theorem trivialSortingNetwork_no_layers (wires : ℕ) :
+    ∀ L ∈ (trivialSortingNetwork wires).layers, L.comparators.length = 0 := by
+  intro L hL
+  simp [trivialSortingNetwork] at hL
+
+/-- **Batcher N=2 layer structure**: the single layer uses exactly one
+comparator on wires (0, 1). -/
+theorem batcherNetwork_2_single_layer_one_comp :
+    ∀ L ∈ batcherNetwork_2.layers, L.comparators.length = 1 := by
+  intro L hL
+  simp [batcherNetwork_2] at hL
+  subst hL
+  rfl
+
+/-! ## Section 64: Batcher recursion consistency lemmas
+(Paper Lemma 19)
+
+These lemmas record equalities between the N=0, N=1 base-case
+instances and `trivialSortingNetwork`, useful for rewrites when
+unfolding the Batcher recursion. -/
+
+/-- **Batcher N=0 is the trivial network on 0 wires**. -/
+theorem batcherNetwork_0_eq_trivial :
+    batcherNetwork_0 = trivialSortingNetwork 0 := rfl
+
+/-- **Batcher N=1 is the trivial network on 1 wire**. -/
+theorem batcherNetwork_1_eq_trivial :
+    batcherNetwork_1 = trivialSortingNetwork 1 := rfl
+
+/-- **Batcher N=1 has no comparators in any layer** (vacuous: no
+layers). -/
+theorem batcherNetwork_1_no_layers :
+    ∀ L ∈ batcherNetwork_1.layers, L.comparators.length = 0 :=
+  trivialSortingNetwork_no_layers 1
+
+/-- **Batcher N=0 has no comparators in any layer** (vacuous). -/
+theorem batcherNetwork_0_no_layers :
+    ∀ L ∈ batcherNetwork_0.layers, L.comparators.length = 0 :=
+  trivialSortingNetwork_no_layers 0
+
 end Step4Compiler
 
