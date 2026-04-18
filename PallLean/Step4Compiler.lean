@@ -2093,5 +2093,46 @@ case of the size bound for the 2-wire instance. -/
 theorem batcherNetwork_2_layers_eq_depth :
     batcherNetwork_2.layers.length = batcherNetwork_2.depth := rfl
 
+/-! ## Section 59: CEW of concrete SoS gadgets (paper §40 Step 3)
+
+Paper §40 Step 3 builds the TM-transition SoS gadgets as concrete
+polynomials over a radius-1 neighborhood. The gadgets introduced in
+§9/§16b/§17j (`trivialSoSGadget`, `constSoSGadget`, `oneSoSGadget`,
+`posLiteralSoSGadget`) are the atomic cases. Here we record their
+CEW bounds as `HasCEWBound` statements so downstream compiler proofs
+can quote them directly without unfolding the gadget definitions.
+These are the "zero_cew"-style gadget-library witnesses the paper's
+compiler assumes when composing radius-1 transition constraints. -/
+
+/-- **CEW = 0 for the zero gadget** (paper §40 Step 3: the trivial
+zero transition constraint carries no Fourier content). This is the
+`zero_cew` witness for the suggested gadget library. -/
+theorem trivialSoSGadget_hasCEWBound_zero (N : ℕ) :
+    HasCEWBound (trivialSoSGadget N).poly 0 := by
+  unfold HasCEWBound
+  rw [trivialSoSGadget_poly]
+  simp
+
+/-- **CEW = 0 for constant gadgets** (paper §40 Step 3: constant SoS
+transition constraints carry no variable content). -/
+theorem constSoSGadget_hasCEWBound_zero (N : ℕ) (c : ℚ) :
+    HasCEWBound (constSoSGadget N c).poly 0 := by
+  unfold HasCEWBound
+  rw [constSoSGadget_poly]
+  exact (MvPolynomial.totalDegree_C c).le
+
+/-- **CEW = 0 for `oneSoSGadget`** (paper §40 Step 3: the constant-1
+identity gadget is a special case of constant gadgets). -/
+theorem oneSoSGadget_hasCEWBound_zero (N : ℕ) :
+    HasCEWBound (oneSoSGadget N).poly 0 :=
+  constSoSGadget_hasCEWBound_zero N 1
+
+/-- **CEW ≤ 1 for the positive literal gadget** (paper §40 Step 3:
+a single-variable SoS factor has total degree 1). -/
+theorem posLiteralSoSGadget_hasCEWBound_one {N : ℕ} (i : Fin N) :
+    HasCEWBound (posLiteralSoSGadget i).poly 1 := by
+  unfold HasCEWBound
+  rw [posLiteralSoSGadget_poly, MvPolynomial.totalDegree_X]
+
 end Step4Compiler
 
