@@ -580,6 +580,40 @@ theorem keepByBlock_union_iff {numBlocks : ℕ}
   unfold keepByBlock
   simp [Finset.mem_union]
 
+/-- **Keep-FOB (first-of-block) predicate**: keep variables whose index is
+divisible by 3, i.e., the first variable of each Cook-Levin 3-block.
+
+This is the paper-faithful `keep` for the SAT side: the FOB variables are
+exactly the ones the `compiled_np_lower_bound_any_dtm` rank argument uses,
+via the `fobFamily` of C(n/3, log n) block-admissible subsets. Using
+`keepFOB` ensures that the FOB-witness SPDP generators are ALL-KEPT,
+so they survive under `piZero` via the commutation framework. -/
+def keepFOB : Fin N → Prop := fun i => 3 ∣ i.val
+
+instance keepFOB_decidable : DecidablePred (keepFOB (N := N)) :=
+  fun i => Nat.decidable_dvd 3 i.val
+
+/-- A variable satisfies `keepFOB` iff its index is divisible by 3. -/
+theorem keepFOB_iff (i : Fin N) : keepFOB i ↔ 3 ∣ i.val := Iff.rfl
+
+/-- **Every FOB variable is kept** under `keepFOB`. Specifically, if S is
+in the FOB family (each v ∈ S has 3 ∣ v.val), then S is all-kept under
+`keepFOB`. -/
+theorem fob_subset_keepFOB {n : ℕ} (S : Finset (Fin n))
+    (hfob : ∀ v ∈ S, 3 ∣ v.val) :
+    ∀ i ∈ S, keepFOB i := by
+  intro i hi
+  unfold keepFOB
+  exact hfob i hi
+
+/-- **All-kept-ness of FOB derivation lists**: if S is in the FOB family,
+then `S.toList` is all-kept under `keepFOB`. This is the concrete
+precondition for invoking `iterDerivList_piSubst_allKept` on FOB generators. -/
+theorem fobList_allKept {n : ℕ} (S : Finset (Fin n))
+    (hfob : ∀ v ∈ S, 3 ∣ v.val) :
+    ∀ i ∈ S.toList, keepFOB i := fun i hi =>
+  fob_subset_keepFOB S hfob i (Finset.mem_toList.mp hi)
+
 /-! ## Section 10: piZero on monomials — explicit formula
 
 The building block for the Finsupp commutation `mlProj ∘ piZero = piZero ∘ mlProj`:
