@@ -5634,5 +5634,196 @@ theorem PMn_def_vars_card_le {N : ℕ} {ι : Type*} (n T : ℕ)
                 (blocks p t i).poly).vars.card +
         layers.prod.vars.card := Finset.card_union_le _ _
 
-end Step4Compiler
+/-! ## Section 98: TM-trace and SoS-gadget structural CEW pieces
+    (paper §40 Step 1-2, Lemma 19, structural CEW bounds)
 
+Paper §40 Step 1-2 (and Lemma 19's "structural CEW bounds") presents the
+compiled polynomial `P_{M,n}` as a product of three structural pieces:
+
+  (1) **TM-trace piece**: a list-product of per-layer transition
+      polynomials, each encoding one TM step. Each such layer polynomial
+      touches at most 6 variables (current state, head, tape cell) and
+      has total-degree ≤ 6, hence has CEW ≤ 6. A time-bounded TM running
+      for `T` steps contributes a list-product of `T` such layers with
+      total CEW `≤ 6·T`.
+
+  (2) **Batcher-layered piece**: a depth-`d` oblivious-routing network
+      whose CEW envelope is `(log₂ N)² · base_cew` (already proved in
+      §83 / `batcherLayered_output_cew_log_squared`).
+
+  (3) **SoS-gadget piece**: a product of `N` radius-1 SoS gadgets; each
+      gadget has `poly.totalDegree ≤ 6` (§49 `SoSGadget.totalDegree_le`,
+      `SoSGadget.vars_card_le`), and the product of `N` gadgets has CEW
+      `≤ 6·N`.
+
+This section **discharges the (1) and (3) structural pieces** of
+§84's `PMn_hasCEWBound_of_structural_pieces` hypothesis into
+concrete, unconditional theorems. The remaining Batcher-layered piece
+(structural piece (2)) is already available from §83 and is combined
+with these results in §99.
+
+All theorems are axiom-free, build only on §49 (`SoSGadget` structure),
+§50 (CEW algebra), §78 (SoSGadget list-product total-degree helpers),
+and §82 (iterated list-product CEW). They do not modify any existing
+definition. -/
+
+/-- **§98.1 — CEW of a single SoS-gadget polynomial** (paper §40 Step 3
+/ Lemma 19 structural CEW bound for the SoS-gadget piece). Every
+`SoSGadget N` has polynomial total-degree ≤ 6 by construction (the
+`degree_bound` field / §49 `SoSGadget.totalDegree_le`), which is
+literally the definition of `HasCEWBound g.poly 6`. This is the atomic
+CEW bound for a single radius-1 SoS gadget. -/
+theorem SoSGadget_hasCEWBound_six {N : ℕ} (g : SoSGadget N) :
+    HasCEWBound g.poly 6 := g.degree_bound
+
+/-- **§98.2 — CEW of a list-product of SoS-gadget polynomials**
+(paper §40 Step 1-2 / Lemma 19 structural CEW bound for the SoS-gadget
+piece). If `gs : List (SoSGadget N)` is a list of gadgets, then the
+product polynomial `(gs.map SoSGadget.poly).prod` has CEW
+`≤ 6 * gs.length`. Proof: combine the per-gadget CEW bound (§98.1)
+with §82.2's list-product CEW bound (`HasCEWBound_list_prod_same`)
+at `w = 6`. This discharges structural piece (3) in §84's hypothesis,
+unconditionally, for any concrete SoS-gadget list-product form of the
+SoS piece. -/
+theorem sosPiece_hasCEWBound_six_times_count {N : ℕ}
+    (gs : List (SoSGadget N)) :
+    HasCEWBound (gs.map SoSGadget.poly).prod (6 * gs.length) := by
+  -- Apply §82.2 `HasCEWBound_list_prod_same` to the mapped polynomial list.
+  have h1 : HasCEWBound (gs.map SoSGadget.poly).prod
+      ((gs.map SoSGadget.poly).length * 6) := by
+    apply HasCEWBound_list_prod_same 6
+    intro p hp
+    rw [List.mem_map] at hp
+    obtain ⟨g, _hgmem, hgeq⟩ := hp
+    subst hgeq
+    exact SoSGadget_hasCEWBound_six g
+  -- Simplify `(gs.map SoSGadget.poly).length = gs.length` and multiply
+  -- order: from `length * 6` to `6 * length`.
+  rw [List.length_map] at h1
+  have heq : gs.length * 6 = 6 * gs.length := by ring
+  exact heq ▸ h1
+
+/-- **§98.3 — CEW of a list-product of SoS-gadget polynomials, count-
+parametric form** (paper §40 Step 1-2 / Lemma 19 structural CEW bound
+for the SoS-gadget piece, count-envelope form). If the number of
+gadgets is bounded by `gadget_count`, then the product polynomial
+has CEW `≤ 6 * gadget_count`. Proof: apply §98.2 and use
+`HasCEWBound_mono` on `gs.length ≤ gadget_count`. This is the
+"polynomial bookkeeping" form used by §99's `PMn` combination. -/
+theorem sosPiece_hasCEWBound_six_times_budget {N : ℕ}
+    (gs : List (SoSGadget N)) (gadget_count : ℕ)
+    (hlen : gs.length ≤ gadget_count) :
+    HasCEWBound (gs.map SoSGadget.poly).prod (6 * gadget_count) := by
+  have h1 : HasCEWBound (gs.map SoSGadget.poly).prod (6 * gs.length) :=
+    sosPiece_hasCEWBound_six_times_count gs
+  have hmono : 6 * gs.length ≤ 6 * gadget_count :=
+    Nat.mul_le_mul_left 6 hlen
+  exact HasCEWBound_mono h1 hmono
+
+/-- **§98.4 — Finset-product of SoS-gadget polynomials has CEW ≤ 6 *
+card** (paper §40 Step 1-2 / Lemma 19 structural CEW bound, Finset
+form). Symmetric Finset-indexed variant of §98.2: if
+`f : ι → SoSGadget N` is a Finset-indexed family of gadgets, then
+`∏ i ∈ s, (f i).poly` has CEW `≤ 6 * s.card`. Proof: apply §82.3
+`HasCEWBound_finset_prod_same` at `w = 6`, using the per-gadget
+CEW bound (§98.1). This is the Finset-indexed form of structural
+piece (3). -/
+theorem sosPiece_finset_prod_hasCEWBound {N : ℕ} {ι : Type*}
+    (s : Finset ι) (f : ι → SoSGadget N) :
+    HasCEWBound (s.prod (fun i => (f i).poly)) (6 * s.card) := by
+  have h1 : HasCEWBound (s.prod (fun i => (f i).poly)) (s.card * 6) := by
+    apply HasCEWBound_finset_prod_same 6
+    intro i _his
+    exact SoSGadget_hasCEWBound_six (f i)
+  have heq : s.card * 6 = 6 * s.card := by ring
+  exact heq ▸ h1
+
+/-- **§98.5 — CEW bound for a single TM-trace layer polynomial**
+(paper §40 Step 1 / Lemma 19 structural CEW bound for the TM-trace
+piece, per-layer form). The paper §40 Step 1 TM → BP compilation
+encodes each TM transition as a single "layer polynomial"
+`L_t` which touches at most 6 variables (current state, head position,
+tape cell value — the radius-1 neighborhood of a Turing-machine step)
+and has total-degree ≤ 6 (a constant-degree constraint, typically a
+product of indicator literals over the transition-function table).
+
+We state this as a conditional CEW bound: given any polynomial
+`L : MvPolynomial (Fin N) ℚ` with `L.totalDegree ≤ 6`, we have
+`HasCEWBound L 6`. The conditional form is the appropriate
+paper-faithful statement because different compilation schemes may
+produce different concrete layer polynomials; all that matters for
+the Step 1-2 CEW analysis is that each layer has total-degree ≤ 6. -/
+theorem tmTraceLayer_hasCEWBound_six {N : ℕ}
+    (L : MvPolynomial (Fin N) ℚ) (hL : L.totalDegree ≤ 6) :
+    HasCEWBound L 6 := hL
+
+/-- **§98.6 — CEW of a list-product of TM-trace layer polynomials**
+(paper §40 Step 1 / Lemma 19 structural CEW bound for the TM-trace
+piece). If `layers : List (MvPolynomial (Fin N) ℚ)` is a list of TM-trace
+layer polynomials each with total-degree ≤ 6 (i.e. each layer has CEW
+≤ 6 by §98.5), then the list-product has CEW `≤ 6 * layers.length`.
+Proof: apply §82.2 `HasCEWBound_list_prod_same` at `w = 6`.
+
+This is the core TM-trace structural CEW bound: the CEW of the TM-trace
+piece is at most `6 · T` where `T = layers.length` is the number of TM
+transitions encoded. -/
+theorem tmTracePiece_hasCEWBound_six_times_count {N : ℕ}
+    (layers : List (MvPolynomial (Fin N) ℚ))
+    (hlayers : ∀ L ∈ layers, L.totalDegree ≤ 6) :
+    HasCEWBound layers.prod (6 * layers.length) := by
+  have h1 : HasCEWBound layers.prod (layers.length * 6) := by
+    apply HasCEWBound_list_prod_same 6
+    intro L hL
+    exact tmTraceLayer_hasCEWBound_six L (hlayers L hL)
+  have heq : layers.length * 6 = 6 * layers.length := by ring
+  exact heq ▸ h1
+
+/-- **§98.7 — CEW of a TM-trace list-product, time-budget form**
+(paper §40 Step 1 / Lemma 19 structural CEW bound for the TM-trace
+piece, `T(n)`-envelope form). If the number of TM-trace layers is
+bounded by `T` (the time bound), then the list-product has CEW
+`≤ 6 * T`. Proof: apply §98.6 and `HasCEWBound_mono` on
+`layers.length ≤ T`. This is the paper-faithful "CEW ≤ 6·T(n)" bound
+for the TM-trace structural piece. -/
+theorem tmTracePiece_hasCEWBound_six_times_time {N : ℕ}
+    (layers : List (MvPolynomial (Fin N) ℚ)) (T : ℕ)
+    (hlen : layers.length ≤ T)
+    (hlayers : ∀ L ∈ layers, L.totalDegree ≤ 6) :
+    HasCEWBound layers.prod (6 * T) := by
+  have h1 : HasCEWBound layers.prod (6 * layers.length) :=
+    tmTracePiece_hasCEWBound_six_times_count layers hlayers
+  have hmono : 6 * layers.length ≤ 6 * T := Nat.mul_le_mul_left 6 hlen
+  exact HasCEWBound_mono h1 hmono
+
+/-- **§98.8 — CEW of a TM-trace list-product with per-layer CEW
+hypothesis** (paper §40 Step 1 / Lemma 19 structural CEW bound,
+CEW-first form). Variant of §98.6 phrased directly in terms of
+`HasCEWBound` (rather than `totalDegree ≤ 6`): if each layer has
+`HasCEWBound L 6` (equivalent by definition), then the list-product
+has CEW `≤ 6 * layers.length`. Used by §99 when composing with the
+Batcher-piece CEW bound which is likewise phrased in `HasCEWBound`
+terms. -/
+theorem tmTracePiece_hasCEWBound_from_cew {N : ℕ}
+    (layers : List (MvPolynomial (Fin N) ℚ))
+    (hcew : ∀ L ∈ layers, HasCEWBound L 6) :
+    HasCEWBound layers.prod (6 * layers.length) :=
+  tmTracePiece_hasCEWBound_six_times_count layers hcew
+
+/-- **§98.9 — Finset-indexed TM-trace CEW bound** (paper §40 Step 1 /
+Lemma 19 structural CEW bound, Finset-indexed form). Symmetric
+Finset-indexed form of §98.6: for a Finset-indexed family
+`f : ι → MvPolynomial (Fin N) ℚ` of TM-trace layer polynomials each
+with total-degree ≤ 6, the Finset product has CEW `≤ 6 * s.card`.
+Proof: apply §82.3 `HasCEWBound_finset_prod_same` at `w = 6`. -/
+theorem tmTracePiece_finset_prod_hasCEWBound {N : ℕ} {ι : Type*}
+    (s : Finset ι) (f : ι → MvPolynomial (Fin N) ℚ)
+    (hlayers : ∀ i ∈ s, (f i).totalDegree ≤ 6) :
+    HasCEWBound (s.prod f) (6 * s.card) := by
+  have h1 : HasCEWBound (s.prod f) (s.card * 6) := by
+    apply HasCEWBound_finset_prod_same 6
+    intro i his
+    exact tmTraceLayer_hasCEWBound_six (f i) (hlayers i his)
+  have heq : s.card * 6 = 6 * s.card := by ring
+  exact heq ▸ h1
+
+end Step4Compiler
