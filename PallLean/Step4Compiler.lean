@@ -6218,4 +6218,180 @@ theorem bpFromTM_lemma23_true_set (M : TuringMachine.DTM) (n : ℕ)
       {input : Fin n → Bool | (fun _ : Fin n → Bool => true) input = true} :=
   bpFromTM_lemma23_set M n hn (fun _ => true) (fun _ => rfl)
 
+/-! ## Section 100: Wiring ζ definition + block-level identity
+    (paper §40 Theorem 203 / §29 Definition 7, per-block extraction)
+
+Paper §40 Theorem 203's main extraction step discharges, block by
+block, the identity that each TM-simulation block of `P_{M,n}` agrees
+(up to the boundary wiring `ζ`) with the corresponding Cook-Levin
+clause polynomial. At the level of the variable index types:
+
+  `ζ : Fin (cookLevin.numU) → σ.Idx`
+
+is the canonical injection `σ.inlU` of the clause-sheet variables
+(`u`-side, one per input bit / clause literal) into the compiled
+polynomial's full `u + v` index space (paper §29 Definition 7
+identity-minor map). Under this wiring,
+`rename ζ : MvPolynomial (Fin σ.numU) ℚ → PMnPoly σ` is the boundary
+substitution used by paper §40's block-by-block extraction identity.
+
+In this section we:
+
+  1. Define `zetaMN σ : Fin σ.numU → σ.Idx := σ.inlU` — the canonical
+     wiring map (§100.1);
+
+  2. Record its `keepU`-image property (§100.2) required by §86.1
+     `piPhi_rename_eq_of_wiring_keepU`;
+
+  3. Prove the **block-level extraction identity**
+     `piPhi σ blockPoly = rename zetaMN c` for any block polynomial
+     that decomposes as `rename zetaMN c + v_residual` where the
+     residual has v-only support (§100.4);
+
+  4. Connect the wiring pullback to the existing `embed` construction
+     (§100.5, §100.6).
+
+The §88 `TMSimBlock` / `tmSimBlock_at` structures and the §89
+`PMn_def` Finset-sum construction live in the generic
+`MvPolynomial (Fin N) ℚ` ambient, whereas the extraction identity is
+phrased over `PMnPoly σ = MvPolynomial σ.Idx ℚ`. The block-level
+identity is therefore stated abstractly: **for any block polynomial**
+`blockPoly : PMnPoly σ` satisfying the paper-faithful structural
+condition (= clause image plus a v-only residual), the extraction
+identity holds. Once the concrete TM-simulation block family at the
+`σ.Idx` level lands, each block's residual v-support property becomes
+a discharge of the hypothesis of §100.4. -/
+
+/-- **§100.1 — Canonical wiring `zetaMN`** (paper §40 Theorem 203 /
+§29 Definition 7, per-block extraction). The wiring map used by paper
+§40's per-block extraction identity is the injection of Cook-Levin
+clause-sheet variable indices (`Fin σ.numU`) into the compiled
+polynomial's full `u + v` variable space (`σ.Idx`), implemented as
+`σ.inlU`. Paper §29 Definition 7's identity-minor map is exactly the
+`MvPolynomial.rename zetaMN` pullback: it sends Cook-Levin clause
+polynomials `q : MvPolynomial (Fin σ.numU) ℚ` to their `u`-supported
+images in `PMnPoly σ`, matching the `CoupledSheetPoly.embed`
+construction already in the codebase. -/
+def zetaMN (σ : PaperFaithfulCompilation.UVSplit) :
+    Fin σ.numU → σ.Idx :=
+  σ.inlU
+
+/-- **§100.2 — `zetaMN` lands in the kept region** (paper §40
+Theorem 203 / §29 Definition 7, per-block extraction). The canonical
+wiring `zetaMN = σ.inlU` maps every Cook-Levin variable index to an
+ambient `σ.Idx` index satisfying `keepU σ` (the u-side predicate).
+This is the hypothesis required by §86.1
+`piPhi_rename_eq_of_wiring_keepU`: the wiring image is entirely in the
+kept (u) region, so `piPhi` acts as identity on any polynomial of the
+form `rename zetaMN q`. Proved via `keepU_inlU`. -/
+theorem zetaMN_keepU (σ : PaperFaithfulCompilation.UVSplit)
+    (i : Fin σ.numU) :
+    PaperFaithfulCompilation.keepU σ (zetaMN σ i) :=
+  PaperFaithfulCompilation.keepU_inlU σ i
+
+/-- **§100.3 — `piPhi` fixes wiring-pullbacks under `zetaMN`** (paper
+§40 Theorem 203 / §29 Definition 7, per-block extraction). For any
+Cook-Levin clause polynomial `q : MvPolynomial (Fin σ.numU) ℚ`, the
+gauge Π_Φ fixes its wiring-pullback:
+`piPhi σ (rename zetaMN q) = rename zetaMN q`. This is the
+specialisation of §86.1 `piPhi_rename_eq_of_wiring_keepU` to the
+canonical wiring `zetaMN = σ.inlU`, using §100.2 to discharge the
+`keepU`-image hypothesis. -/
+theorem piPhi_rename_zetaMN_eq
+    (σ : PaperFaithfulCompilation.UVSplit)
+    (q : MvPolynomial (Fin σ.numU) ℚ) :
+    PaperFaithfulCompilation.piPhi σ
+        (MvPolynomial.rename (zetaMN σ) q) =
+      MvPolynomial.rename (zetaMN σ) q :=
+  piPhi_rename_eq_of_wiring_keepU σ (zetaMN σ) (zetaMN_keepU σ) q
+
+/-- **§100.4 — Per-block extraction identity from block decomposition**
+(paper §40 Theorem 203 / §29 Definition 7, per-block extraction).
+The **core structural identity** for the per-block extraction step:
+if a block polynomial `blockPoly` decomposes as
+`rename zetaMN c + v_residual` where `c : MvPolynomial (Fin σ.numU) ℚ`
+is the corresponding Cook-Levin clause polynomial and
+`v_residual : PMnPoly σ` has v-only support (every support-monomial
+contains a non-kept variable with non-zero exponent), then the gauge
+image of the block equals the wiring-pullback of the Cook-Levin
+clause:
+
+  `piPhi σ blockPoly = MvPolynomial.rename (zetaMN σ) c`.
+
+Proof: by §85.1 `piPhi_respects_add` the gauge splits over the
+decomposition; by §100.3 `piPhi_rename_zetaMN_eq` the first summand is
+fixed; by §87.2 `piPhi_residual_kernel_of_v_support` the second
+summand is killed. This is the paper's Theorem 203 per-block
+extraction identity: each TM-simulation block equals its corresponding
+Cook-Levin clause under the wiring substitution ζ, modulo a v-only
+residual that vanishes under the identity-minor projection. The
+statement is abstract in `blockPoly` and `c`: once the concrete
+TM-simulation block family at the `σ.Idx` level lands, instantiate
+with `blockPoly := tmSimBlock_at t i` (appropriately promoted to
+`PMnPoly σ`) and `c := cookLevinClause_at t i`. -/
+theorem tmSimBlock_at_t_i_eq_cookLevinClause_renamed
+    (σ : PaperFaithfulCompilation.UVSplit)
+    (blockPoly : PaperFaithfulCompilation.PMnPoly σ)
+    (c : MvPolynomial (Fin σ.numU) ℚ)
+    (v_residual : PaperFaithfulCompilation.PMnPoly σ)
+    (hDecomp :
+      blockPoly = MvPolynomial.rename (zetaMN σ) c + v_residual)
+    (hResidualVOnly : ∀ α ∈ v_residual.support,
+      ∃ i, ¬ PaperFaithfulCompilation.keepU σ i ∧ α i ≠ 0) :
+    PaperFaithfulCompilation.piPhi σ blockPoly =
+      MvPolynomial.rename (zetaMN σ) c := by
+  -- Rewrite blockPoly via its decomposition.
+  rw [hDecomp]
+  -- Split piPhi over the addition using §85.1.
+  rw [piPhi_respects_add σ
+        (MvPolynomial.rename (zetaMN σ) c) v_residual]
+  -- piPhi fixes the wiring-pullback summand by §100.3.
+  rw [piPhi_rename_zetaMN_eq σ c]
+  -- piPhi kills the v-only residual by §87.2.
+  rw [piPhi_residual_kernel_of_v_support σ v_residual hResidualVOnly]
+  -- rename-image + 0 = rename-image.
+  exact add_zero _
+
+/-- **§100.5 — `rename zetaMN` coincides with `embed`** (paper §40
+Theorem 203 / §29 Definition 7, per-block extraction, canonical
+wiring = canonical embed). The canonical wiring `rename (zetaMN σ)`
+is definitionally equal to the `CoupledSheetPoly.embed` construction
+already in the codebase (both are `rename σ.inlU`). This records the
+canonical identification between the abstract wiring language of §86
+/ §100 and the concrete `embed` construction used in §87. The proof
+is `rfl`. -/
+theorem rename_zetaMN_eq_embed
+    (σ : PaperFaithfulCompilation.UVSplit)
+    (c : PaperFaithfulCompilation.CoupledSheetPoly σ) :
+    MvPolynomial.rename (zetaMN σ) c =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ c :=
+  rfl
+
+/-- **§100.6 — Block-level identity in `embed` form** (paper §40
+Theorem 203 / §29 Definition 7, per-block extraction, `embed`-side
+specialisation). Repackages §100.4 using the `embed` identification
+from §100.5: if `blockPoly = embed σ c + v_residual` with v-only
+residual, then `piPhi σ blockPoly = embed σ c`. This is the form most
+directly usable by §87.5 `piPhi_extraction_per_block_embed` to
+assemble the finset-wide extraction identity. -/
+theorem tmSimBlock_at_t_i_eq_embed_cookLevinClause
+    (σ : PaperFaithfulCompilation.UVSplit)
+    (blockPoly : PaperFaithfulCompilation.PMnPoly σ)
+    (c : PaperFaithfulCompilation.CoupledSheetPoly σ)
+    (v_residual : PaperFaithfulCompilation.PMnPoly σ)
+    (hDecomp : blockPoly =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ c + v_residual)
+    (hResidualVOnly : ∀ α ∈ v_residual.support,
+      ∃ i, ¬ PaperFaithfulCompilation.keepU σ i ∧ α i ≠ 0) :
+    PaperFaithfulCompilation.piPhi σ blockPoly =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ c := by
+  -- Rewrite the embed as a wiring-pullback and invoke §100.4.
+  have hDecomp' : blockPoly =
+      MvPolynomial.rename (zetaMN σ) c + v_residual := by
+    rw [rename_zetaMN_eq_embed σ c]; exact hDecomp
+  have h := tmSimBlock_at_t_i_eq_cookLevinClause_renamed σ blockPoly c
+    v_residual hDecomp' hResidualVOnly
+  rw [h]
+  exact rename_zetaMN_eq_embed σ c
+
 end Step4Compiler
