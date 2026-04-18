@@ -6962,4 +6962,318 @@ theorem batcherNetwork_depth_poly_log_general (n : ℕ) :
   rw [batcherNetwork_depth_eq_bound]
   exact batcherNetwork_depth_poly_log n
 
+/-! ## Section 97: Variable-span bound theorems for block-structured polynomials
+    (paper §40 Theorem 203, variable-count bound)
+
+Paper §40 Theorem 203 conditions the main rank envelope on the
+variable-count hypothesis `|vars(P_{M,n})| ≤ n^k` for a fixed
+polynomial exponent `k`. The paper proves this bound by exhibiting
+`P_{M,n}` as a `Finset.sum` of `Finset.prod`-shaped blocks, each
+block polynomial having variable support contained in the radius-1
+SoS envelope `varSupport.card ≤ 6`. This section collects the
+structural variable-count theorems that translate:
+
+  (i)   `|vars(∏ b ∈ blocks s, blockPoly s b)| ≤ Σ_b |vars(blockPoly s b)|`;
+  (ii)  `|vars(∑ s ∈ S, qₛ)| ≤ Σ_s |vars(qₛ)|`;
+  (iii) from per-block bounds `|vars(blockPoly s b)| ≤ 6` into the
+        global bound `|vars(P)| ≤ 6 * |S| * sup_s |blocks s|`;
+  (iv)  a specialisation giving `|vars(P)| ≤ 6 * n^6` under the paper's
+        polynomial counts `|S| ≤ n^2` and `|blocks s| ≤ n^4`.
+
+Everything is stated over an arbitrary polynomial `p` satisfying the
+"Finset.sum of Finset.prod of polynomials with `varSupport.card ≤ 6`"
+structural form, so the results apply to whatever concrete `PMn`
+polynomial is eventually chosen by the compiler (§88 supplies the
+per-cell `TMSimBlock`; §89 assembles the global polynomial `PMn_def`).
+The arithmetic reduces to `Finset.card_biUnion_le` and
+`Finset.sum_le_sum` from Mathlib's `BigOperators` library.
+
+All theorems below are axiom-free; no `sorry`/`admit` is used. -/
+
+/-- **§97.1 — `vars` of a `Finset.prod` is contained in the per-index
+`biUnion`** (paper §40 Theorem 203, variable-count bound, product
+step). This is a direct re-export of `MvPolynomial.vars_prod` into the
+`Step4Compiler` namespace: the variable set of a finite product is
+contained in the `biUnion` of the per-factor variable sets. The paper
+§40 compiler builds each block as a product of SoS gadgets, so this
+lemma is the per-block version of the variable-count bound. -/
+theorem vars_finset_prod_subset {N : ℕ} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (f : ι → MvPolynomial (Fin N) ℚ) :
+    (∏ i ∈ s, f i).vars ⊆ s.biUnion (fun i => (f i).vars) := by
+  classical
+  exact MvPolynomial.vars_prod f
+
+/-- **§97.2 — `vars` of a `Finset.sum` is contained in the per-index
+`biUnion`** (paper §40 Theorem 203, variable-count bound, sum step).
+This is a direct re-export of `MvPolynomial.vars_sum_subset` into the
+`Step4Compiler` namespace. The paper §40 compiler assembles `P_{M,n}`
+as a sum of per-block products, so this is the outer-level variable-
+count bound. -/
+theorem vars_finset_sum_subset {N : ℕ} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (f : ι → MvPolynomial (Fin N) ℚ) :
+    (∑ i ∈ s, f i).vars ⊆ s.biUnion (fun i => (f i).vars) := by
+  classical
+  exact MvPolynomial.vars_sum_subset s f
+
+/-- **§97.3 — Cardinality bound on `vars` of a `Finset.prod`** (paper
+§40 Theorem 203, variable-count bound, product cardinality step).
+Combining `vars_finset_prod_subset` with `Finset.card_biUnion_le`
+gives a direct cardinality bound: the number of variables appearing
+in `∏ i ∈ s, f i` is at most the sum of per-factor variable counts.
+This is the arithmetic content of the product step. -/
+theorem vars_card_le_finset_prod {N : ℕ} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (f : ι → MvPolynomial (Fin N) ℚ) :
+    (∏ i ∈ s, f i).vars.card ≤ ∑ i ∈ s, (f i).vars.card := by
+  classical
+  calc (∏ i ∈ s, f i).vars.card
+      ≤ (s.biUnion (fun i => (f i).vars)).card :=
+          Finset.card_le_card (vars_finset_prod_subset s f)
+    _ ≤ ∑ i ∈ s, (f i).vars.card := Finset.card_biUnion_le
+
+/-- **§97.4 — Cardinality bound on `vars` of a `Finset.sum`** (paper
+§40 Theorem 203, variable-count bound, sum cardinality step).
+Combining `vars_finset_sum_subset` with `Finset.card_biUnion_le`
+gives the dual cardinality bound for sums. -/
+theorem vars_card_le_finset_sum {N : ℕ} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (f : ι → MvPolynomial (Fin N) ℚ) :
+    (∑ i ∈ s, f i).vars.card ≤ ∑ i ∈ s, (f i).vars.card := by
+  classical
+  calc (∑ i ∈ s, f i).vars.card
+      ≤ (s.biUnion (fun i => (f i).vars)).card :=
+          Finset.card_le_card (vars_finset_sum_subset s f)
+    _ ≤ ∑ i ∈ s, (f i).vars.card := Finset.card_biUnion_le
+
+/-- **§97.5 — Per-block product cardinality under the 6-variable
+envelope** (paper §40 Theorem 203, variable-count bound, radius-1
+block step). If every block polynomial has `vars.card ≤ 6` (the paper
+§40 Step 3 radius-1 SoS envelope), then the product of blocks over a
+Finset `t` has `vars.card ≤ 6 * t.card`. Proved by bounding
+`∑ b ∈ t, (blockPoly b).vars.card ≤ ∑ b ∈ t, 6 = 6 * t.card`. -/
+theorem vars_card_prod_le_six_mul {N : ℕ} {ι : Type*} [DecidableEq ι]
+    (t : Finset ι) (g : ι → MvPolynomial (Fin N) ℚ)
+    (hg : ∀ b ∈ t, (g b).vars.card ≤ 6) :
+    (∏ b ∈ t, g b).vars.card ≤ 6 * t.card := by
+  classical
+  have h1 : (∏ b ∈ t, g b).vars.card ≤ ∑ b ∈ t, (g b).vars.card :=
+    vars_card_le_finset_prod t g
+  have h2 : ∑ b ∈ t, (g b).vars.card ≤ ∑ _b ∈ t, 6 :=
+    Finset.sum_le_sum (fun b hb => hg b hb)
+  have h3 : (∑ _b ∈ t, (6 : ℕ)) = 6 * t.card := by
+    rw [Finset.sum_const]
+    ring
+  exact h1.trans (h2.trans (le_of_eq h3))
+
+/-- **§97.6 — Block-structure variable-count bound** (paper §40
+Theorem 203, variable-count bound, main structural form). If a
+polynomial `p` decomposes as
+`p = ∑ s ∈ S, ∏ b ∈ blocks s, blockPoly s b`,
+with each block polynomial satisfying `vars.card ≤ 6`, then
+`p.vars.card ≤ 6 * S.card * (S.sup (fun s => (blocks s).card))`.
+This is the structural form of paper §40 Theorem 203's variable-count
+bound: the 6-variable envelope per SoS gadget, the block-count
+envelope per block-family, and the family-count envelope combine
+multiplicatively. -/
+theorem vars_card_le_of_block_structure {N : ℕ}
+    {ιS : Type*} [DecidableEq ιS] {ιB : Type*} [DecidableEq ιB]
+    (S : Finset ιS) (blocks : ιS → Finset ιB)
+    (blockPoly : ιS → ιB → MvPolynomial (Fin N) ℚ)
+    (p : MvPolynomial (Fin N) ℚ)
+    (hDecomp : p = ∑ s ∈ S, ∏ b ∈ blocks s, blockPoly s b)
+    (hBlock : ∀ s b, (blockPoly s b).vars.card ≤ 6) :
+    p.vars.card ≤ 6 * S.card * (S.sup (fun s => (blocks s).card)) := by
+  classical
+  -- Abbreviation for the per-family supremum of block counts.
+  set M : ℕ := S.sup (fun s => (blocks s).card) with hMdef
+  -- Step 1: rewrite `p` using the structural decomposition.
+  rw [hDecomp]
+  -- Step 2: bound the sum's `vars.card` by the sum of per-summand `vars.card`.
+  have hsum_le : (∑ s ∈ S, ∏ b ∈ blocks s, blockPoly s b).vars.card
+      ≤ ∑ s ∈ S, (∏ b ∈ blocks s, blockPoly s b).vars.card :=
+    vars_card_le_finset_sum S (fun s => ∏ b ∈ blocks s, blockPoly s b)
+  -- Step 3: bound each per-family product's `vars.card` by `6 * (blocks s).card`.
+  have hprod_le : ∀ s ∈ S,
+      (∏ b ∈ blocks s, blockPoly s b).vars.card ≤ 6 * (blocks s).card := by
+    intro s _hs
+    exact vars_card_prod_le_six_mul (blocks s) (blockPoly s)
+      (fun b _ => hBlock s b)
+  -- Step 4: bound each `6 * (blocks s).card` by `6 * M` using `Finset.le_sup`.
+  have hBlock_le_M : ∀ s ∈ S, (blocks s).card ≤ M := by
+    intro s hs
+    exact Finset.le_sup (f := fun s => (blocks s).card) hs
+  have hprod_le_M : ∀ s ∈ S,
+      (∏ b ∈ blocks s, blockPoly s b).vars.card ≤ 6 * M := by
+    intro s hs
+    calc (∏ b ∈ blocks s, blockPoly s b).vars.card
+        ≤ 6 * (blocks s).card := hprod_le s hs
+      _ ≤ 6 * M := Nat.mul_le_mul_left 6 (hBlock_le_M s hs)
+  -- Step 5: sum `6 * M` over `S` to produce `6 * M * S.card = 6 * S.card * M`.
+  have hsum_bound : ∑ s ∈ S, (∏ b ∈ blocks s, blockPoly s b).vars.card
+      ≤ ∑ _s ∈ S, 6 * M :=
+    Finset.sum_le_sum hprod_le_M
+  have hconst_sum : (∑ _s ∈ S, 6 * M) = 6 * M * S.card := by
+    rw [Finset.sum_const]
+    ring
+  -- Step 6: combine the inequalities.
+  have hchain : (∑ s ∈ S, ∏ b ∈ blocks s, blockPoly s b).vars.card
+      ≤ 6 * M * S.card := by
+    calc (∑ s ∈ S, ∏ b ∈ blocks s, blockPoly s b).vars.card
+        ≤ ∑ s ∈ S, (∏ b ∈ blocks s, blockPoly s b).vars.card := hsum_le
+      _ ≤ ∑ _s ∈ S, 6 * M := hsum_bound
+      _ = 6 * M * S.card := hconst_sum
+  -- Step 7: rearrange `6 * M * S.card = 6 * S.card * M`.
+  have heq : 6 * M * S.card = 6 * S.card * M := by ring
+  rw [heq] at hchain
+  exact hchain
+
+/-- **§97.7 — `n^6` specialisation of the block-structure bound**
+(paper §40 Theorem 203, variable-count bound, polynomial specialisation).
+Under the paper's §40 polynomial counts — `|S| ≤ n^2` (family count)
+and `sup_s |blocks s| ≤ n^4` (block count) — the block-structure bound
+`6 * |S| * sup ≤ 6 * n^6` follows by elementary arithmetic. Combined
+with §97.6, this yields the paper-faithful `vars.card ≤ 6 * n^6`
+envelope for any polynomial with the block-structure decomposition. -/
+theorem vars_card_le_n_pow_6 {N : ℕ}
+    {ιS : Type*} [DecidableEq ιS] {ιB : Type*} [DecidableEq ιB]
+    (S : Finset ιS) (blocks : ιS → Finset ιB)
+    (blockPoly : ιS → ιB → MvPolynomial (Fin N) ℚ)
+    (p : MvPolynomial (Fin N) ℚ) (n : ℕ)
+    (hDecomp : p = ∑ s ∈ S, ∏ b ∈ blocks s, blockPoly s b)
+    (hBlock : ∀ s b, (blockPoly s b).vars.card ≤ 6)
+    (hS : S.card ≤ n ^ 2)
+    (hBlocks : S.sup (fun s => (blocks s).card) ≤ n ^ 4) :
+    p.vars.card ≤ 6 * n ^ 6 := by
+  classical
+  -- Apply §97.6.
+  have h1 : p.vars.card ≤ 6 * S.card * (S.sup (fun s => (blocks s).card)) :=
+    vars_card_le_of_block_structure S blocks blockPoly p hDecomp hBlock
+  -- Arithmetic: `6 * S.card * sup ≤ 6 * n^2 * n^4 = 6 * n^6`.
+  have hL : 6 * S.card ≤ 6 * n ^ 2 := Nat.mul_le_mul_left 6 hS
+  have h2 : 6 * S.card * (S.sup (fun s => (blocks s).card))
+      ≤ 6 * n ^ 2 * n ^ 4 := Nat.mul_le_mul hL hBlocks
+  have h3 : 6 * n ^ 2 * n ^ 4 = 6 * n ^ 6 := by ring
+  calc p.vars.card
+      ≤ 6 * S.card * (S.sup (fun s => (blocks s).card)) := h1
+    _ ≤ 6 * n ^ 2 * n ^ 4 := h2
+    _ = 6 * n ^ 6 := h3
+
+/-- **§97.8 — Homogeneous `n^(a+b)` specialisation of the
+block-structure bound** (paper §40 Theorem 203, variable-count bound,
+parametric form). The parametric version of §97.7: if `|S| ≤ n^a` and
+`sup_s |blocks s| ≤ n^b`, then `p.vars.card ≤ 6 * n^(a + b)`. The
+paper §40 compiler uses `a = 2, b = 4` (recovered as §97.7), but other
+Cook-Levin variants may yield different exponents; this lemma exposes
+the general polynomial bound. -/
+theorem vars_card_le_n_pow_add {N : ℕ}
+    {ιS : Type*} [DecidableEq ιS] {ιB : Type*} [DecidableEq ιB]
+    (S : Finset ιS) (blocks : ιS → Finset ιB)
+    (blockPoly : ιS → ιB → MvPolynomial (Fin N) ℚ)
+    (p : MvPolynomial (Fin N) ℚ) (n a b : ℕ)
+    (hDecomp : p = ∑ s ∈ S, ∏ b ∈ blocks s, blockPoly s b)
+    (hBlock : ∀ s b, (blockPoly s b).vars.card ≤ 6)
+    (hS : S.card ≤ n ^ a)
+    (hBlocks : S.sup (fun s => (blocks s).card) ≤ n ^ b) :
+    p.vars.card ≤ 6 * n ^ (a + b) := by
+  classical
+  have h1 : p.vars.card ≤ 6 * S.card * (S.sup (fun s => (blocks s).card)) :=
+    vars_card_le_of_block_structure S blocks blockPoly p hDecomp hBlock
+  have hL : 6 * S.card ≤ 6 * n ^ a := Nat.mul_le_mul_left 6 hS
+  have h2 : 6 * S.card * (S.sup (fun s => (blocks s).card))
+      ≤ 6 * n ^ a * n ^ b := Nat.mul_le_mul hL hBlocks
+  have h3 : 6 * n ^ a * n ^ b = 6 * n ^ (a + b) := by
+    rw [mul_assoc, ← pow_add]
+  calc p.vars.card
+      ≤ 6 * S.card * (S.sup (fun s => (blocks s).card)) := h1
+    _ ≤ 6 * n ^ a * n ^ b := h2
+    _ = 6 * n ^ (a + b) := h3
+
+/-- **§97.9 — Variable-count bound from a plain block-envelope**
+(paper §40 Theorem 203, variable-count bound, generic-`n^k` wrapper).
+A convenience wrapper for the downstream Step 4 callers that want to
+feed an arbitrary polynomial exponent `k`: if
+`6 * |S| * sup ≤ n^k`, then `p.vars.card ≤ n^k`. This form directly
+closes the `p.vars.card ≤ n^k` hypothesis used by §81.3
+(`rank_PMn_le_n_pow_200_of_cew_log_vars_poly`) without committing to
+the specific `6 * n^6` shape. -/
+theorem vars_card_le_pow_of_block_bound {N : ℕ}
+    {ιS : Type*} [DecidableEq ιS] {ιB : Type*} [DecidableEq ιB]
+    (S : Finset ιS) (blocks : ιS → Finset ιB)
+    (blockPoly : ιS → ιB → MvPolynomial (Fin N) ℚ)
+    (p : MvPolynomial (Fin N) ℚ) (n k : ℕ)
+    (hDecomp : p = ∑ s ∈ S, ∏ b ∈ blocks s, blockPoly s b)
+    (hBlock : ∀ s b, (blockPoly s b).vars.card ≤ 6)
+    (hEnv : 6 * S.card * (S.sup (fun s => (blocks s).card)) ≤ n ^ k) :
+    p.vars.card ≤ n ^ k :=
+  (vars_card_le_of_block_structure S blocks blockPoly p hDecomp hBlock).trans hEnv
+
+/-- **§97.10 — `n^k` envelope wrapper for §81.3 compatibility** (paper
+§40 Theorem 203, variable-count bound, `k ≥ 6 + log₂ 6` wrapper).
+Absorb the multiplicative constant `6` into the exponent by supplying
+dominance `6 * n^6 ≤ n^k` as a hypothesis. For example, `k = 7` and
+`n ≥ 6` suffices (so `6 * n^6 ≤ n * n^6 = n^7`), but the lemma remains
+`n`-agnostic. This is the paper-faithful form of the `|vars(PMn)| ≤ n^k`
+hypothesis required by §81.3
+(`rank_PMn_le_n_pow_200_of_cew_log_vars_poly`). -/
+theorem vars_card_le_n_pow_k_of_block {N : ℕ}
+    {ιS : Type*} [DecidableEq ιS] {ιB : Type*} [DecidableEq ιB]
+    (S : Finset ιS) (blocks : ιS → Finset ιB)
+    (blockPoly : ιS → ιB → MvPolynomial (Fin N) ℚ)
+    (p : MvPolynomial (Fin N) ℚ) (n k : ℕ)
+    (hDecomp : p = ∑ s ∈ S, ∏ b ∈ blocks s, blockPoly s b)
+    (hBlock : ∀ s b, (blockPoly s b).vars.card ≤ 6)
+    (hS : S.card ≤ n ^ 2)
+    (hBlocks : S.sup (fun s => (blocks s).card) ≤ n ^ 4)
+    (hDom : 6 * n ^ 6 ≤ n ^ k) :
+    p.vars.card ≤ n ^ k :=
+  (vars_card_le_n_pow_6 S blocks blockPoly p n hDecomp hBlock hS hBlocks).trans hDom
+
+/-- **§97.11 — `TMSimBlock`-block specialisation** (paper §40 Theorem
+203, variable-count bound, §88-compatible form). Specialise §97.6 to
+the case where every `blockPoly s b` is the polynomial of a
+`TMSimBlock` (the concrete §88 building block). The per-block
+variable-count hypothesis `(blockPoly s b).vars.card ≤ 6` is
+automatically discharged by §88's invariant `varSupport.card ≤ 6`
+combined with `vars ⊆ varSupport`. This is the direct
+"`TMSimBlock`-indexed `PMn`" form of the paper §40 variable-count
+bound. -/
+theorem vars_card_le_of_tmSimBlock_structure {N : ℕ}
+    {ιS : Type*} [DecidableEq ιS] {ιB : Type*} [DecidableEq ιB]
+    (S : Finset ιS) (blocks : ιS → Finset ιB)
+    (simBlock : ιS → ιB → TMSimBlock N)
+    (p : MvPolynomial (Fin N) ℚ)
+    (hDecomp : p = ∑ s ∈ S, ∏ b ∈ blocks s, (simBlock s b).poly) :
+    p.vars.card ≤ 6 * S.card * (S.sup (fun s => (blocks s).card)) := by
+  classical
+  apply vars_card_le_of_block_structure S blocks
+    (fun s b => (simBlock s b).poly) p hDecomp
+  intro s b
+  calc (simBlock s b).poly.vars.card
+      ≤ (simBlock s b).varSupport.card :=
+        Finset.card_le_card (simBlock s b).vars_contained
+    _ ≤ 6 := (simBlock s b).support_bound
+
+/-- **§97.12 — `TMSimBlock` `n^6` envelope** (paper §40 Theorem 203,
+variable-count bound, §88-compatible `n^6` form). The `TMSimBlock`-
+indexed analogue of §97.7: under polynomial family/block counts
+`|S| ≤ n^2` and `sup |blocks s| ≤ n^4`, any polynomial decomposed as
+a sum of products of `TMSimBlock` polynomials has
+`vars.card ≤ 6 * n^6`. This is the direct §88-compatible form of the
+paper §40 variable-count bound. -/
+theorem vars_card_tmSimBlock_le_n_pow_6 {N : ℕ}
+    {ιS : Type*} [DecidableEq ιS] {ιB : Type*} [DecidableEq ιB]
+    (S : Finset ιS) (blocks : ιS → Finset ιB)
+    (simBlock : ιS → ιB → TMSimBlock N)
+    (p : MvPolynomial (Fin N) ℚ) (n : ℕ)
+    (hDecomp : p = ∑ s ∈ S, ∏ b ∈ blocks s, (simBlock s b).poly)
+    (hS : S.card ≤ n ^ 2)
+    (hBlocks : S.sup (fun s => (blocks s).card) ≤ n ^ 4) :
+    p.vars.card ≤ 6 * n ^ 6 := by
+  classical
+  apply vars_card_le_n_pow_6 S blocks (fun s b => (simBlock s b).poly) p n
+    hDecomp _ hS hBlocks
+  intro s b
+  calc (simBlock s b).poly.vars.card
+      ≤ (simBlock s b).varSupport.card :=
+        Finset.card_le_card (simBlock s b).vars_contained
+    _ ≤ 6 := (simBlock s b).support_bound
+
 end Step4Compiler
