@@ -45,6 +45,7 @@ import PallLean.GaugeMonotonicity
 import PallLean.Tseitin
 import PallLean.TseitinDefs
 import PallLean.IdentityMinor
+import PallLean.GodMoveReal
 import Mathlib.Algebra.MvPolynomial.Basic
 import Mathlib.Tactic
 
@@ -1457,21 +1458,75 @@ theorem pullback_eq_cook_levin_partition_assign
   rw [pullback_extended_cookLevin_assign]
   rfl
 
-/- **Note**: the full partition equality as BlockPartition values requires
-matching `numBlocks` fields. `pullback_extended_cookLevin_assign` +
-`extended_numBlocks_eq` (for n ≥ 2) give the component-wise match on
-`.val` level. A full structure equality would require `heq` manipulation
-handled by Lean's `cast`/`h ▸` machinery.
+/-- **Full BlockPartition equality**: the pullback of
+`extendedCookLevinPartition` via `inlU` is structurally equal to the
+Cook-Levin partition. -/
+theorem pullback_eq_cook_levin_partition
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    MultilinearSPDP.pullbackPartition
+      (extendedCookLevinPartition M n hn) (cookLevinUVSplit M n).inlU =
+    (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition := by
+  -- Both partitions have numBlocks = (n+2)/3 DEFINITIONALLY.
+  -- Their assign functions have the same codomain Fin ((n+2)/3).
+  -- Show assign functions are equal pointwise, conclude via structure equality.
+  show (⟨_, _⟩ : SPDP.BlockPartition n) = ⟨_, _⟩
+  congr 1
+  funext i
+  apply Fin.ext
+  -- LHS: extended.assign (inlU i) = ⟨i.val / 3, _⟩ via the `if h : i.val < n` branch
+  -- RHS: localityAssign n i = ⟨i.val / 3, _⟩
+  show ((extendedCookLevinPartition M n hn).assign ⟨i.val, _⟩).val = i.val / 3
+  unfold extendedCookLevinPartition
+  simp only
+  split_ifs with h
+  · rfl
+  · exact absurd i.isLt h
 
-Given the assign-level match, the key rank equality
-  `mlBlockedSpdpRank (pullback ext ...) κ ℓ Q = mlBlockedSpdpRank cook_levin.partition κ ℓ compiledPoly`
-follows from:
-(a) admissibility coincides (same assign, same numBlocks for n ≥ 2)
-(b) Q = compiledPoly via the type cast (cookLevinQ definition)
+/-- **NP-side rank bound for `cookLevinQ` at pulled-back partition**.
 
-This is a mechanical chain of Lean rewrites. The mathematical content
-(identity-minor proof giving ≥ C(n/3, log n)) is already axiom-free in
-`compiled_np_lower_bound_any_dtm`. -/
+With `pullback_eq_cook_levin_partition` establishing partition equality,
+and `cookLevinQ` defined via type-cast from `compiledPoly`,
+`compiled_np_lower_bound_any_dtm` transports to give:
+
+`C(n/3, log n) ≤ mlBlockedSpdpRank (pullbackPartition ext inlU) κ ℓ cookLevinQ`
+for κ = ℓ = log n, n ≥ 2^804. -/
+theorem cookLevinQ_rank_ge (M : TuringMachine.DTM) (n : ℕ)
+    (hn : n ≥ 2 ^ 804) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition
+          (extendedCookLevinPartition M n (by
+            have : (2 : ℕ) ≤ 2 ^ 804 := by
+              calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+              _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+            omega))
+          (cookLevinUVSplit M n).inlU)
+        (Nat.log 2 n) (Nat.log 2 n)
+        (cookLevinQ M n (by
+          have : (2 : ℕ) ≤ 2 ^ 804 := by
+            calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+            _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+          omega) htb hns) := by
+  -- Transport the partition equality:
+  -- pullback(extended ...) = cook_levin.partition
+  -- And Q = compiledPoly via type-cast
+  -- Then apply compiled_np_lower_bound_any_dtm
+  set hn2 : n ≥ 2 := by
+    have : (2 : ℕ) ≤ 2 ^ 804 := by
+      calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+      _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    omega
+  have hpart := pullback_eq_cook_levin_partition M n hn2 htb hns
+  rw [hpart]
+  -- Now need: rank at cook_levin.partition of cookLevinQ = rank of compiledPoly
+  -- cookLevinQ M n hn2 htb hns : CoupledSheetPoly (cookLevinUVSplit M n) = MvPolynomial (Fin n) ℚ
+  -- Its defining equation involves h ▸ compiledPoly where h : numVars = n
+  -- The type cast preserves rank definitionally, but requires unfolding
+  have hnp := GodMoveReal.compiled_np_lower_bound_any_dtm M n hn htb hns
+  -- hnp: C(n/3, log n) ≤ mlBlockedSpdpRank cook_levin.partition log log compiledPoly
+  -- Goal: same but with cookLevinQ. cookLevinQ is defined as type-cast of compiledPoly.
+  convert hnp using 2
 
 /-! ## Section 28: Summary — Path A status
 
