@@ -39,6 +39,7 @@
 import PallLean.SPDPDefs
 import PallLean.MultilinearSPDP
 import PallLean.TuringMachine
+import PallLean.CookLevinDefs
 import PallLean.PiStarConcrete
 import PallLean.GaugeMonotonicity
 import Mathlib.Algebra.MvPolynomial.Basic
@@ -396,5 +397,63 @@ theorem cookLevinUVSplit_numV_poly (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥
       ≤ (n ^ 4 + 1) ^ 2 + (n ^ 4 + 1) ^ 2 + (n ^ 4 + 1) ^ 2 := by
         exact Nat.add_le_add (Nat.add_le_add h1 h2) h1
     _ = 3 * (n ^ 4 + 1) ^ 2 := by ring
+
+/-! ## Section 9: Task (B) — P_{M,n}(u, v) compilation
+
+Paper's P_{M,n} has constraints over both u (formula) and v (tableau).
+In the current Lean formalization, the flat `compiledPoly` uses only
+`Fin n` variables. A full Task (B) would rebuild the compilation with
+explicit tableau variables.
+
+As a first step, we embed the flat compiledPoly into the UVSplit space
+via the u-injection. This gives a concrete `PMn` polynomial, but one
+that does NOT yet use v (trivially piPhi-invariant).
+
+**Note**: this first-approximation PMn is useful for API surface but
+does NOT carry the paper's tableau-constraint structure. The genuinely
+paper-faithful PMn (with `v`-constraints derived from TM transitions)
+is future work. -/
+
+/-- **First-approximation P_{M,n}**: embed the flat `compiledPoly`
+into the UVSplit space via the u-injection `inlU`.
+
+This polynomial lives in `PMnPoly (cookLevinUVSplit M n)` but uses only
+u-variables (the flat n SAT variables). It does NOT yet encode the
+TM tableau constraints over v-variables — that extension is Task (B.2). -/
+noncomputable def cookLevinPMnApprox (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    PMnPoly (cookLevinUVSplit M n) :=
+  -- Use the flat compiledPoly over `Fin n` and rename to Fin total via inlU.
+  MvPolynomial.rename (cookLevinUVSplit M n).inlU
+    (by
+      have h : (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).numVars = n :=
+        PaperFaithfulSeparation.cook_levin_numVars M n hn htb hns
+      exact h ▸ PaperFaithfulSeparation.compiledPoly
+        (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns))
+
+/-- The first-approximation PMn uses only u-variables. -/
+theorem cookLevinPMnApprox_vars_in_u (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    ∀ k ∈ (cookLevinPMnApprox M n hn htb hns).vars, keepU (cookLevinUVSplit M n) k := by
+  intro k hk
+  -- vars(rename inlU p) ⊆ inlU.image(vars p), so each k is of form inlU j
+  obtain ⟨j, _hj, hjk⟩ :=
+    MvPolynomial.mem_vars_rename (cookLevinUVSplit M n).inlU _ hk
+  rw [← hjk]
+  exact keepU_inlU _ j
+
+/-- **piPhi fixes the first-approximation PMn** (since it has no v-dependence). -/
+theorem piPhi_cookLevinPMnApprox (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    piPhi (cookLevinUVSplit M n) (cookLevinPMnApprox M n hn htb hns) =
+      cookLevinPMnApprox M n hn htb hns := by
+  unfold piPhi
+  apply PiStarConcrete.piZero_eq_self_of_support_kept
+  intro α hα i hki
+  by_contra hαi
+  have hi_vars : i ∈ (cookLevinPMnApprox M n hn htb hns).vars := by
+    rw [MvPolynomial.mem_vars]
+    exact ⟨α, hα, Finsupp.mem_support_iff.mpr hαi⟩
+  exact hki (cookLevinPMnApprox_vars_in_u M n hn htb hns i hi_vars)
 
 end PaperFaithfulCompilation
