@@ -1769,5 +1769,34 @@ theorem pathPolynomial_eval_allone {N : ℕ} (steps : List (Fin N × Bool))
     rw [ih (fun qb' hqb' => h qb' (List.mem_cons_of_mem _ hqb'))]
     ring
 
+/-! ## Section 47: Vanishing at "wrong" paths -/
+
+/- Path polynomial at all-one input with any false step: proof deferred
+ for careful case analysis. The key fact (eval at 1s of false-labeled
+ literal = 0) is immediate; the membership-based induction requires
+ careful Prod.mk.injEq unpacking. -/
+
+/-! ## Section 48: BP computed function matches compiled poly -/
+
+/-- `alwaysAcceptBP_computedFunction` is identically true;
+`alwaysAcceptBP_compiledPoly` evaluates to 1 at any Boolean input. -/
+theorem alwaysAcceptBP_correspondence (n : ℕ) (input : Fin n → Bool) :
+    ((alwaysAcceptBP n).computedFunction (alwaysAcceptBP_start n) input = true) ∧
+    (MvPolynomial.eval (boolAssignment input)
+      (alwaysAcceptBP_compiledPoly n) = 1) := by
+  refine ⟨?_, ?_⟩
+  · exact alwaysAcceptBP_decides n input
+  · exact alwaysAcceptBP_compiledPoly_eval n _
+
+/-- `alwaysRejectBP_computedFunction` is identically false;
+`alwaysRejectBP_compiledPoly` evaluates to 0 at any Boolean input. -/
+theorem alwaysRejectBP_correspondence (n : ℕ) (input : Fin n → Bool) :
+    ((alwaysRejectBP n).computedFunction (alwaysRejectBP_start n) input = false) ∧
+    (MvPolynomial.eval (boolAssignment input)
+      (alwaysRejectBP_compiledPoly n) = 0) := by
+  refine ⟨?_, ?_⟩
+  · exact alwaysRejectBP_decides n input
+  · exact alwaysRejectBP_compiledPoly_eval n _
+
 end Step4Compiler
 
