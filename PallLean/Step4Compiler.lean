@@ -2378,5 +2378,58 @@ theorem SoSGadget.mul_hasCEWBound {N : ℕ} (g₁ g₂ : SoSGadget N)
   rw [SoSGadget.mul_poly]
   exact HasCEWBound_mul h1 h2
 
+/-! ## Section 68: Gadget identity theorems (paper §40 Step 3)
+
+Concrete polynomial identities for the atomic gadgets from §9/§16b/§17j,
+extending the set of `_poly` lemmas for easier term-mode quoting.
+These lemmas all reduce to definitional equalities or to standard
+Mathlib MvPolynomial facts. Paper §40 Step 3 uses these atomic gadgets
+as the base cases of its inductive SoS construction. -/
+
+/-- **`oneSoSGadget.poly` is `C 1`** (paper §40 Step 3: the identity
+gadget is the constant-1 polynomial). Follows from unfolding the
+alias `oneSoSGadget := constSoSGadget _ 1`. -/
+theorem oneSoSGadget_poly (N : ℕ) :
+    (oneSoSGadget N).poly = MvPolynomial.C (1 : ℚ) :=
+  constSoSGadget_poly N 1
+
+/-- **`oneSoSGadget` has total degree 0** (paper §40 Step 3: the
+constant-1 polynomial has trivial degree). -/
+theorem oneSoSGadget_totalDegree (N : ℕ) :
+    (oneSoSGadget N).poly.totalDegree = 0 := by
+  rw [oneSoSGadget_poly, MvPolynomial.totalDegree_C]
+
+/-- **`constSoSGadget` has total degree 0** (paper §40 Step 3). -/
+theorem constSoSGadget_totalDegree (N : ℕ) (c : ℚ) :
+    (constSoSGadget N c).poly.totalDegree = 0 := by
+  rw [constSoSGadget_poly, MvPolynomial.totalDegree_C]
+
+/-- **`trivialSoSGadget` has total degree 0** (paper §40 Step 3: the
+zero polynomial has trivial degree). -/
+theorem trivialSoSGadget_totalDegree (N : ℕ) :
+    (trivialSoSGadget N).poly.totalDegree = 0 := by
+  rw [trivialSoSGadget_poly]
+  simp
+
+/-- **`posLiteralSoSGadget` has total degree 1** (paper §40 Step 3:
+a single-variable literal has degree 1). -/
+theorem posLiteralSoSGadget_totalDegree {N : ℕ} (i : Fin N) :
+    (posLiteralSoSGadget i).poly.totalDegree = 1 := by
+  rw [posLiteralSoSGadget_poly, MvPolynomial.totalDegree_X]
+
+/-- **`trivialSoSGadget` has empty varSupport** (paper §40 Step 3:
+the zero gadget's declared support is `∅`). -/
+theorem trivialSoSGadget_varSupport (N : ℕ) :
+    (trivialSoSGadget N).varSupport = ∅ := rfl
+
+/-- **`constSoSGadget` has empty varSupport** (paper §40 Step 3). -/
+theorem constSoSGadget_varSupport (N : ℕ) (c : ℚ) :
+    (constSoSGadget N c).varSupport = ∅ := rfl
+
+/-- **`posLiteralSoSGadget` has singleton varSupport `{i}`** (paper §40
+Step 3: the literal gadget touches only its target variable). -/
+theorem posLiteralSoSGadget_varSupport {N : ℕ} (i : Fin N) :
+    (posLiteralSoSGadget i).varSupport = {i} := rfl
+
 end Step4Compiler
 
