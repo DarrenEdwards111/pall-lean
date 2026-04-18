@@ -1513,5 +1513,43 @@ theorem HasCEWBound_finset_prod_ones {N : ℕ} {ι : Type*}
       _ ≤ 1 + s'.card := Nat.add_le_add ha hrest
       _ = s'.card + 1 := by ring
 
+/-! ## Section 32: BP layer CEW aliases -/
+
+/-- BP layer polynomial has CEW ≤ 1 (alias for layerPolynomial_cew). -/
+theorem BP_layer_cew_bound {N : ℕ} (q : Fin N) (c₀ c₁ : ℚ) :
+    HasCEWBound (layerPolynomial q c₀ c₁) 1 :=
+  layerPolynomial_cew q c₀ c₁
+
+/-! ## Section 33: Path literal evaluation helpers -/
+
+/-- `pathLiteral q true` evaluates to assignment q. -/
+theorem pathLiteral_eval_true {N : ℕ} (q : Fin N) (assignment : Fin N → ℚ) :
+    MvPolynomial.eval assignment (pathLiteral q true) = assignment q := by
+  unfold pathLiteral
+  simp [literalPoly_pos_eval]
+
+/-- `pathLiteral q false` evaluates to 1 - assignment q. -/
+theorem pathLiteral_eval_false {N : ℕ} (q : Fin N) (assignment : Fin N → ℚ) :
+    MvPolynomial.eval assignment (pathLiteral q false) = 1 - assignment q := by
+  unfold pathLiteral
+  simp [literalPoly_neg_eval]
+
+/-! ## Section 34: Path polynomial eval via product -/
+
+/-- Product of path polynomials = product of evaluations. -/
+theorem pathPolynomial_append_eval {N : ℕ}
+    (steps₁ steps₂ : List (Fin N × Bool)) (input : Fin N → ℚ) :
+    MvPolynomial.eval input (pathPolynomial (steps₁ ++ steps₂)) =
+      MvPolynomial.eval input (pathPolynomial steps₁) *
+      MvPolynomial.eval input (pathPolynomial steps₂) := by
+  rw [pathPolynomial_append, map_mul]
+
+/-- `identityBP_compiledPoly` evaluated at assignment = assignment 0. -/
+theorem identityBP_compiledPoly_eval_at (n : ℕ) (hn : 1 ≤ n)
+    (assignment : Fin n → ℚ) :
+    MvPolynomial.eval assignment (identityBP_compiledPoly n hn) =
+      assignment ⟨0, hn⟩ :=
+  identityBP_compiledPoly_eval n hn assignment
+
 end Step4Compiler
 
