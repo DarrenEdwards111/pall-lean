@@ -4681,5 +4681,183 @@ theorem PMn_hasCEWBound_log_list_prod_unit {N : ℕ}
     HasCEWBound_list_prod_ones pieces h
   exact HasCEWBound_mono h1 hlen
 
+/-! ## Section 87: Conditional extraction identity
+    (paper §40 Theorem 203 main extraction step / §29 Definition 7)
+
+We assemble the §85 and §86 combinators into the conditional
+extraction identity `piPhi(PMn) = embed(cookLevinQ)`. The statement is
+structural: assuming the compiled polynomial admits a decomposition
+`PMn = embed(cookLevinQ) + residual` where the `residual` is supported
+on v-side (tableau) variables only (hence killed by `piPhi`), the
+extraction identity follows from `piPhi_respects_add`, `piPhi_embed_eq`,
+and the kernel property of `piPhi` on tableau-supported polynomials.
+
+This is the canonical combinator on which paper §40 Theorem 203's main
+extraction step is built. In later refinements (once a concrete TM
+simulation is compiled), the per-block equalities can be fed into
+this lemma to produce the full extraction identity. -/
+
+/-- **§87.1 — Conditional extraction identity from residual decomposition**
+(paper §40 Theorem 203 main extraction step). Assume the compiled
+polynomial decomposes as `PMn = embed(Q) + residual`, where `residual`
+is a polynomial whose gauge image is zero (`piPhi σ residual = 0`).
+Then the extraction identity holds: `piPhi(PMn) = embed(Q)`.
+
+The proof is by combining:
+1. `piPhi_respects_add` (§85.1) to split over the decomposition;
+2. `piPhi_embed_eq` to fix the `embed(Q)` summand;
+3. The hypothesis `hResidualKernel` to annihilate the residual.
+
+This is the structural combinator the paper's §40 extraction step
+invokes after decomposing `P_{M,n}` into (clause-sheet image) +
+(TM-simulation / wiring residual). -/
+theorem piPhi_extraction_of_residual_decomp
+    (σ : PaperFaithfulCompilation.UVSplit)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ)
+    (PMn residual : PaperFaithfulCompilation.PMnPoly σ)
+    (hDecomp : PMn =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q + residual)
+    (hResidualKernel :
+      PaperFaithfulCompilation.piPhi σ residual = 0) :
+    PaperFaithfulCompilation.piPhi σ PMn =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q := by
+  -- Split piPhi over the decomposition.
+  rw [hDecomp]
+  rw [piPhi_respects_add σ
+        (PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q) residual]
+  -- piPhi fixes the embed summand.
+  rw [PaperFaithfulCompilation.piPhi_embed_eq σ Q]
+  -- piPhi kills the residual by hypothesis.
+  rw [hResidualKernel]
+  -- embed(Q) + 0 = embed(Q).
+  exact add_zero _
+
+/-- **§87.2 — Residual kernel via v-only support** (paper §40 Theorem
+203 main extraction step, supporting lemma). If a polynomial
+`residual : PMnPoly σ` has the property that every monomial `α` in
+its support contains at least one v-side index `i` with `α i ≠ 0`
+(equivalently: every support-monomial has some non-kept variable with
+non-zero exponent), then `piPhi σ residual = 0`. Proof: expand
+`residual` as a sum of monomials, apply `piZero_monomial` per monomial;
+each monomial is killed because the `if`-condition
+`∀ i, ¬keepU σ i → α i = 0` fails by hypothesis. -/
+theorem piPhi_residual_kernel_of_v_support
+    (σ : PaperFaithfulCompilation.UVSplit)
+    (residual : PaperFaithfulCompilation.PMnPoly σ)
+    (hV : ∀ α ∈ residual.support,
+      ∃ i, ¬ PaperFaithfulCompilation.keepU σ i ∧ α i ≠ 0) :
+    PaperFaithfulCompilation.piPhi σ residual = 0 := by
+  -- Expand residual = ∑_α (monomial α (coeff α residual)) and apply piZero_monomial.
+  unfold PaperFaithfulCompilation.piPhi
+  conv_lhs => rw [← MvPolynomial.support_sum_monomial_coeff residual]
+  rw [map_sum (PiStarConcrete.piZero (PaperFaithfulCompilation.keepU σ))]
+  -- Each summand is piZero applied to a monomial with a non-kept positive
+  -- exponent, hence 0.
+  apply Finset.sum_eq_zero
+  intro α hα
+  rw [PiStarConcrete.piZero_monomial]
+  -- The if-condition is `∀ i, ¬keepU σ i → α i = 0`, which fails by hV.
+  split_ifs with hcond
+  · -- If the condition holds, every non-kept index has α i = 0, contradicting hV.
+    exfalso
+    obtain ⟨i, hki, hαi⟩ := hV α hα
+    exact hαi (hcond i hki)
+  · rfl
+
+/-- **§87.3 — Full conditional extraction identity** (paper §40
+Theorem 203 main extraction step / §29 Definition 7). Combining §87.1
+and §87.2: if the compiled polynomial decomposes as
+`PMn = embed(Q) + residual` where every support-monomial of `residual`
+contains at least one v-side variable with non-zero exponent, then
+the extraction identity `piPhi(PMn) = embed(Q)` holds.
+
+This is the canonical form of the paper's extraction identity,
+phrased as a combinator over the per-monomial structure of the
+TM-simulation / wiring residual. The user supplies two pieces of
+data — the decomposition and the v-only-support property of the
+residual — and receives the extraction identity. The full
+`embed ∘ Q = piPhi ∘ PMn` combinator thus factors through the
+structural decomposition of `P_{M,n}`. -/
+theorem piPhi_extraction_identity_from_decomp
+    (σ : PaperFaithfulCompilation.UVSplit)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ)
+    (PMn residual : PaperFaithfulCompilation.PMnPoly σ)
+    (hDecomp : PMn =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q + residual)
+    (hResidualVOnly : ∀ α ∈ residual.support,
+      ∃ i, ¬ PaperFaithfulCompilation.keepU σ i ∧ α i ≠ 0) :
+    PaperFaithfulCompilation.piPhi σ PMn =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q :=
+  piPhi_extraction_of_residual_decomp σ Q PMn residual hDecomp
+    (piPhi_residual_kernel_of_v_support σ residual hResidualVOnly)
+
+/-- **§87.4 — Per-block conditional extraction** (paper §40 Theorem
+203 main extraction step, block-by-block combinator). A finer-grained
+version: if the compiled polynomial is a sum of blocks
+`PMn = ∑_b block b`, and for each block `b` we have an equality
+`piPhi σ (block b) = piPhi σ (embedTarget b)` between its gauge image
+and an `embed`-side target, then
+`piPhi σ PMn = piPhi σ (∑_b embedTarget b)`.
+
+This is the block-by-block combinator the paper's §40 uses to assemble
+the extraction identity from per-TM-simulation-block equalities,
+without requiring a single global residual decomposition. Proved by
+using that `piPhi` is a linear map (and hence commutes with finite
+sums), combined with pointwise block equalities. -/
+theorem piPhi_extraction_per_block
+    (σ : PaperFaithfulCompilation.UVSplit) {B : ℕ}
+    (block embedTarget : Fin B → PaperFaithfulCompilation.PMnPoly σ)
+    (hBlockwise : ∀ b : Fin B,
+      PaperFaithfulCompilation.piPhi σ (block b) =
+        PaperFaithfulCompilation.piPhi σ (embedTarget b)) :
+    PaperFaithfulCompilation.piPhi σ (∑ b : Fin B, block b) =
+      PaperFaithfulCompilation.piPhi σ (∑ b : Fin B, embedTarget b) := by
+  -- piPhi is a LinearMap, so it commutes with finite sums.
+  rw [map_sum (PaperFaithfulCompilation.piPhi σ) block Finset.univ]
+  rw [map_sum (PaperFaithfulCompilation.piPhi σ) embedTarget Finset.univ]
+  exact Finset.sum_congr rfl (fun b _ => hBlockwise b)
+
+/-- **§87.5 — Per-block extraction with embed targets** (paper §40
+Theorem 203 main extraction step, block-by-block combinator,
+embed-side specialisation). A block-by-block combinator specialised
+to the case where the per-block targets are all of the form
+`embed (embedBlock b)` for some Cook-Levin-side block family
+`embedBlock : Fin B → CoupledSheetPoly σ`: if `PMn = ∑_b block b` and
+for each `b`, `piPhi σ (block b) = embed σ (embedBlock b)`, then
+`piPhi σ PMn = embed σ (∑_b embedBlock b)`.
+
+This uses linearity of both `piPhi` and `embed` (the latter being the
+linear-map incarnation of `MvPolynomial.rename σ.inlU`) to collapse
+the RHS into a single `embed` of the Cook-Levin sum. -/
+theorem piPhi_extraction_per_block_embed
+    (σ : PaperFaithfulCompilation.UVSplit) {B : ℕ}
+    (block : Fin B → PaperFaithfulCompilation.PMnPoly σ)
+    (embedBlock : Fin B → PaperFaithfulCompilation.CoupledSheetPoly σ)
+    (PMn : PaperFaithfulCompilation.PMnPoly σ)
+    (hSum : PMn = ∑ b : Fin B, block b)
+    (hBlockwise : ∀ b : Fin B,
+      PaperFaithfulCompilation.piPhi σ (block b) =
+        PaperFaithfulCompilation.CoupledSheetPoly.embed σ (embedBlock b)) :
+    PaperFaithfulCompilation.piPhi σ PMn =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ
+        (∑ b : Fin B, embedBlock b) := by
+  -- Rewrite PMn as the sum of blocks.
+  rw [hSum]
+  -- piPhi commutes with finite sums.
+  rw [map_sum (PaperFaithfulCompilation.piPhi σ) block Finset.univ]
+  -- Apply the blockwise hypothesis pointwise.
+  have heq : ∑ b : Fin B, PaperFaithfulCompilation.piPhi σ (block b) =
+      ∑ b : Fin B,
+        PaperFaithfulCompilation.CoupledSheetPoly.embed σ (embedBlock b) :=
+    Finset.sum_congr rfl (fun b _ => hBlockwise b)
+  rw [heq]
+  -- embed is a ring hom, so it commutes with finite sums.
+  show ∑ b : Fin B,
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ (embedBlock b) =
+    PaperFaithfulCompilation.CoupledSheetPoly.embed σ
+      (∑ b : Fin B, embedBlock b)
+  unfold PaperFaithfulCompilation.CoupledSheetPoly.embed
+  rw [map_sum (MvPolynomial.rename σ.inlU) embedBlock Finset.univ]
+
 end Step4Compiler
 
