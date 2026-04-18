@@ -410,6 +410,87 @@ theorem identityBP_length (n : ℕ) (hn : 1 ≤ n) :
 theorem identityBP_width (n : ℕ) (hn : 1 ≤ n) :
     (identityBP n hn).width = 2 := rfl
 
+/- Note: Full semantic correctness of identityBP (proving decides = x_0)
+ requires detailed Fin arithmetic on a concrete definition; deferred
+ for future work. Structural lemmas (length, width) suffice here. -/
+
+/-! ## Section 14b: Width-2 BP (constant-width BPs)
+
+Simple width-2 BPs are the base case for Barrington-style constructions.
+They compute certain Boolean functions via 0/1 vertex semantics. -/
+
+/-- **Width-2 BP**: a BP with width = 2 (vertex = 0 or 1). -/
+def BranchingProgram.hasWidth (B : BranchingProgram n) (w : ℕ) : Prop :=
+  B.width = w
+
+/-- `identityBP` has width 2. -/
+theorem identityBP_hasWidth (n : ℕ) (hn : 1 ≤ n) :
+    (identityBP n hn).hasWidth 2 := rfl
+
+/-! ## Section 14c: Constant BP — always accepts/rejects
+
+The simplest BPs: length 1, width 1, accepting or not. These establish
+baseline BP correctness machinery. -/
+
+/-- **Always-accept BP**: length 0, width 1, accepting. -/
+def alwaysAcceptBP (n : ℕ) : BranchingProgram n where
+  length := 0
+  width := 1
+  query := fun i => i.elim0
+  trans := fun i _ _ => i.elim0
+  accepting := fun _ => true
+
+/-- **Always-reject BP**: length 0, width 1, non-accepting. -/
+def alwaysRejectBP (n : ℕ) : BranchingProgram n where
+  length := 0
+  width := 1
+  query := fun i => i.elim0
+  trans := fun i _ _ => i.elim0
+  accepting := fun _ => false
+
+/-- Default starting vertex for an `alwaysAcceptBP` (vertex 0). -/
+def alwaysAcceptBP_start (n : ℕ) : Fin (alwaysAcceptBP n).width :=
+  ⟨0, by show 0 < 1; omega⟩
+
+/-- Default starting vertex for an `alwaysRejectBP` (vertex 0). -/
+def alwaysRejectBP_start (n : ℕ) : Fin (alwaysRejectBP n).width :=
+  ⟨0, by show 0 < 1; omega⟩
+
+/-- `alwaysAcceptBP` always returns `true`. -/
+theorem alwaysAcceptBP_decides (n : ℕ) (input : Fin n → Bool) :
+    (alwaysAcceptBP n).decides input (alwaysAcceptBP_start n) = true := by
+  unfold BranchingProgram.decides alwaysAcceptBP BranchingProgram.runSteps
+  rfl
+
+/-- `alwaysRejectBP` always returns `false`. -/
+theorem alwaysRejectBP_decides (n : ℕ) (input : Fin n → Bool) :
+    (alwaysRejectBP n).decides input (alwaysRejectBP_start n) = false := by
+  unfold BranchingProgram.decides alwaysRejectBP BranchingProgram.runSteps
+  rfl
+
+/-! ## Section 14d: BP → boolean function mapping
+
+A BP computes a Boolean function via its `decides`. -/
+
+/-- **Boolean function computed by a BP** from a fixed start vertex. -/
+def BranchingProgram.computedFunction {n : ℕ} (B : BranchingProgram n)
+    (start : Fin B.width) : (Fin n → Bool) → Bool :=
+  fun input => B.decides input start
+
+/-- `alwaysAcceptBP` computes the constant-true function. -/
+theorem alwaysAcceptBP_computedFunction (n : ℕ) :
+    (alwaysAcceptBP n).computedFunction (alwaysAcceptBP_start n) =
+      fun _ => true := by
+  funext input
+  exact alwaysAcceptBP_decides n input
+
+/-- `alwaysRejectBP` computes the constant-false function. -/
+theorem alwaysRejectBP_computedFunction (n : ℕ) :
+    (alwaysRejectBP n).computedFunction (alwaysRejectBP_start n) =
+      fun _ => false := by
+  funext input
+  exact alwaysRejectBP_decides n input
+
 /-! ## Section 15: Summary of Step 4 progress
 
 Axiom-free contributions:
