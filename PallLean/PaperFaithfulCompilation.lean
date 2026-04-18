@@ -674,4 +674,80 @@ theorem piPhi_extract_via_tableauBool
   piPhi_embed_add_kill σ Q (CoupledSheetPoly.embed σ Q * tableauBoolProduct σ)
     (piPhi_embed_mul_tableauBool σ Q hV)
 
+/-! ## Section 14: Tableau v-variable accessors (Task B.2 cont.)
+
+Within the v-part of `cookLevinUVSplit M n`, variables are organized into:
+- [0, S²): tape bits `b_{t,i}` (t, i ∈ [0, S))
+- [S², S² + S·numStates): state indicators `s_{t,q}`
+- [S² + S·numStates, numV): head positions `h_{t,i}`
+
+where `S = TuringMachine.tapeSize M n`. We provide accessors for each. -/
+
+/-- Tape-bit v-variable index: `b_{t,i}` lives at `t*S + i` within v. -/
+def tapeVIdx (M : TuringMachine.DTM) (n : ℕ)
+    (t i : Fin (TuringMachine.tapeSize M n)) :
+    Fin (cookLevinUVSplit M n).numV :=
+  ⟨t.val * TuringMachine.tapeSize M n + i.val, by
+    show t.val * TuringMachine.tapeSize M n + i.val <
+      TuringMachine.tapeSize M n * TuringMachine.tapeSize M n +
+      TuringMachine.tapeSize M n * M.numStates +
+      TuringMachine.tapeSize M n * TuringMachine.tapeSize M n
+    have ht := t.isLt
+    have hi := i.isLt
+    nlinarith [Nat.mul_lt_mul_of_lt_of_le ht (Nat.le_refl (TuringMachine.tapeSize M n))
+               (by
+                 have : 0 < TuringMachine.tapeSize M n := by
+                   unfold TuringMachine.tapeSize; omega
+                 exact this)]⟩
+
+/-- State-indicator v-variable index: `s_{t,q}` lives at
+`S² + t*numStates + q` within v. -/
+def stateVIdx (M : TuringMachine.DTM) (n : ℕ)
+    (t : Fin (TuringMachine.tapeSize M n)) (q : Fin M.numStates) :
+    Fin (cookLevinUVSplit M n).numV :=
+  ⟨TuringMachine.tapeSize M n * TuringMachine.tapeSize M n +
+   t.val * M.numStates + q.val, by
+    show _ < _ + _ + _
+    have ht := t.isLt
+    have hq := q.isLt
+    have hns_pos : 0 < M.numStates := by
+      have := M.hStates; omega
+    nlinarith [Nat.mul_lt_mul_of_lt_of_le ht (Nat.le_refl M.numStates) hns_pos]⟩
+
+/-- Head-position v-variable index: `h_{t,i}` lives at
+`S² + S·numStates + t*S + i` within v. -/
+def headVIdx (M : TuringMachine.DTM) (n : ℕ)
+    (t i : Fin (TuringMachine.tapeSize M n)) :
+    Fin (cookLevinUVSplit M n).numV :=
+  ⟨TuringMachine.tapeSize M n * TuringMachine.tapeSize M n +
+   TuringMachine.tapeSize M n * M.numStates +
+   t.val * TuringMachine.tapeSize M n + i.val, by
+    show _ < _ + _ + _
+    have ht := t.isLt
+    have hi := i.isLt
+    have hS_pos : 0 < TuringMachine.tapeSize M n := by
+      unfold TuringMachine.tapeSize; omega
+    nlinarith [Nat.mul_lt_mul_of_lt_of_le ht (Nat.le_refl (TuringMachine.tapeSize M n)) hS_pos]⟩
+
+/-- Tape-bit is a v-variable: `keepU` fails at `inlV (tapeVIdx ...)`. -/
+theorem not_keepU_tape (M : TuringMachine.DTM) (n : ℕ)
+    (t i : Fin (TuringMachine.tapeSize M n)) :
+    ¬ keepU (cookLevinUVSplit M n)
+      ((cookLevinUVSplit M n).inlV (tapeVIdx M n t i)) :=
+  not_keepU_inlV _ _
+
+/-- State-indicator is a v-variable. -/
+theorem not_keepU_state (M : TuringMachine.DTM) (n : ℕ)
+    (t : Fin (TuringMachine.tapeSize M n)) (q : Fin M.numStates) :
+    ¬ keepU (cookLevinUVSplit M n)
+      ((cookLevinUVSplit M n).inlV (stateVIdx M n t q)) :=
+  not_keepU_inlV _ _
+
+/-- Head-position is a v-variable. -/
+theorem not_keepU_head (M : TuringMachine.DTM) (n : ℕ)
+    (t i : Fin (TuringMachine.tapeSize M n)) :
+    ¬ keepU (cookLevinUVSplit M n)
+      ((cookLevinUVSplit M n).inlV (headVIdx M n t i)) :=
+  not_keepU_inlV _ _
+
 end PaperFaithfulCompilation
