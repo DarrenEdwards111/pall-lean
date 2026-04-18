@@ -13155,4 +13155,248 @@ theorem lemma_205_npow_chain
       (PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q) ≤ n ^ 200 :=
   le_trans (lemma_205_applied_via_piPhi_extraction B κ ℓ P Q hExtract) hP
 
+/-! ## Section 137: Asymptotic contradiction `n^{O(1)} < n^{Θ(log n)}`
+    (paper §40.1, p. 199, main contradiction steps 5-6)
+
+Paper §40.1, p. 199, states the main Path-A contradiction as a
+two-sided rank bound that is *asymptotically* inconsistent:
+
+  > Step 5: `Γ_{κ',ℓ'}(P_{M,n}) ≤ n^{O(1)}`  (P-side ceiling, Theorem 203)
+  > Step 6: `Γ_{κ',ℓ'}(P_{M,n}) ≥ n^{Θ(log n)}`  (NP-side floor, Theorem 192)
+  >         For `n` sufficiently large, `n^{O(1)} < n^{Θ(log n)}`, a
+  >         contradiction.
+
+Sections §80 and §96 previously discharged this at the *concrete* form
+`n^{200} < Nat.choose (n/3, log₂ n)` via a direct Stirling-style
+numeric calculation at `n = 2^{804}`. The present section supplies the
+paper's own *asymptotic* formulation as a standalone `ℕ`-arithmetic
+statement, independent of the binomial-specific `Nat.choose` form. The
+headline is the comparison `n^k < n^(log₂ n)` (and its scaled form
+`n^k < n^(c · log₂ n)` for `c ≥ 1`), together with the concrete-witness
+instance `(2^{804})^{200} < (2^{804})^{log₂ (2^{804})}` and the main
+`contradiction_via_asymptotic` theorem that closes the two-sided rank
+bound into `False`.
+
+Proof structure for the headline:
+
+  For `n ≥ 2^{k+1}`, we have `log₂ n ≥ log₂ (2^{k+1}) = k + 1 > k`
+  (via `Nat.log_mono_right` and `Nat.log_pow`). Combined with `n > 1`
+  (since `n ≥ 2^{k+1} ≥ 2`), `Nat.pow_lt_pow_right` yields
+  `n^k < n^(log₂ n)`.
+
+The contradiction chain combines:
+
+  * `P_side_rank_bound : rank ≤ n^{200}`           -- paper Theorem 203
+  * `NP_side_rank_bound : rank ≥ n^(log₂ n)`       -- paper Theorem 192
+  * `hn : n ≥ 2^{804}`                             -- paper p. 199
+
+into `rank ≥ n^(log₂ n) > n^{200} ≥ rank`, i.e.\ `rank < rank`, which
+is `False`. This is the Route C ⇒ Route A closure at the asymptotic
+rank-comparison level, paper-faithful to §40.1 steps 5-6.
+
+Paper citations:
+  * Theorem 203 (p. 195-197)  — P-side `n^{O(1)}` rank ceiling;
+  * Theorem 192 (p. 184)      — NP-side `n^{Θ(log n)}` rank floor;
+  * §40.1 steps 5-6 (p. 199)  — asymptotic contradiction statement.
+
+All §137 theorems are axiom-free. -/
+
+/-- **§137.1 — Headline asymptotic gap `n^k < n^(log₂ n)`**
+(paper §40.1 main contradiction step 5-6, p. 199; Theorem 203 P-side
+vs Theorem 192 NP-side).
+
+For every fixed polynomial-exponent constant `k`, there is a threshold
+`n₀` beyond which `n^k` is strictly dominated by `n^(Nat.log 2 n)`.
+This is the paper's Step 5 vs Step 6 asymptotic comparison
+`n^{O(1)} < n^{Θ(log n)}` in its minimal `ℕ`-arithmetic form, and is
+the heart of the main contradiction at sufficiently large `n`.
+
+Witness: `n₀ = 2^{k+1}`. For `n ≥ 2^{k+1}`:
+  (i)  `1 < n`                   (since `n ≥ 2^{k+1} ≥ 2`);
+  (ii) `k < k + 1 ≤ log₂ n`      (via `Nat.log_mono_right` and
+                                  `Nat.log_pow`);
+and hence `n^k < n^(log₂ n)` by `Nat.pow_lt_pow_right`. -/
+theorem n_pow_const_lt_n_pow_log (k : ℕ) :
+    ∃ n₀ : ℕ, ∀ n : ℕ, n₀ ≤ n → n ^ k < n ^ (Nat.log 2 n) := by
+  refine ⟨(2 : ℕ) ^ (k + 1), ?_⟩
+  intro n hn
+  -- Step 1: `n > 1`.  From `n ≥ 2^{k+1} ≥ 2`.
+  have h2_le : (2 : ℕ) ≤ (2 : ℕ) ^ (k + 1) := by
+    have h1 : (2 : ℕ) ^ 1 ≤ (2 : ℕ) ^ (k + 1) :=
+      Nat.pow_le_pow_right (by decide : 1 ≤ (2 : ℕ))
+        (Nat.succ_le_succ (Nat.zero_le k))
+    simpa using h1
+  have h2_le_n : (2 : ℕ) ≤ n := le_trans h2_le hn
+  have hn_pos : 1 < n := h2_le_n
+  -- Step 2: `log₂ n ≥ k + 1`.  Via `Nat.log_mono_right` and `Nat.log_pow`.
+  have hlog_pow : Nat.log 2 ((2 : ℕ) ^ (k + 1)) = k + 1 :=
+    Nat.log_pow (by decide : 1 < (2 : ℕ)) (k + 1)
+  have hlog_mono : Nat.log 2 ((2 : ℕ) ^ (k + 1)) ≤ Nat.log 2 n :=
+    Nat.log_mono_right hn
+  have hk_lt_log : k < Nat.log 2 n := by
+    have hkp1_le : k + 1 ≤ Nat.log 2 n := hlog_pow ▸ hlog_mono
+    exact hkp1_le
+  -- Step 3: apply strict `pow` monotonicity in the exponent.
+  exact Nat.pow_lt_pow_right hn_pos hk_lt_log
+
+/-- **§137.2 — Scaled asymptotic gap `n^k < n^(c · log₂ n)` for `c ≥ 1`**
+(paper §40.1 main contradiction step 5-6, p. 199; Theorem 203 P-side
+vs Theorem 192 NP-side with explicit `c · log₂ n` NP-side floor).
+
+Scaled form of §137.1 allowing an explicit positive integer multiplier
+`c ≥ 1` in front of `log₂ n` on the right. Paper §40 Theorem 192
+(p. 184) states the NP-side floor as `n^{Θ(log n)}`, i.e.\ any
+`c · log₂ n` with `c ≥ 1` suffices; this form is directly consumed by
+downstream callers that track the constant `c`.
+
+Witness: `n₀ = 2^{k+1}`, identical to §137.1. For `n ≥ 2^{k+1}`:
+  (i)   `1 < n`;
+  (ii)  `k + 1 ≤ log₂ n`;
+  (iii) `c ≥ 1` gives `c · log₂ n ≥ log₂ n ≥ k + 1 > k`;
+and `Nat.pow_lt_pow_right` closes `n^k < n^(c · log₂ n)`. -/
+theorem n_pow_const_lt_n_pow_c_log (k c : ℕ) (hc : 1 ≤ c) :
+    ∃ n₀ : ℕ, ∀ n : ℕ, n₀ ≤ n → n ^ k < n ^ (c * Nat.log 2 n) := by
+  refine ⟨(2 : ℕ) ^ (k + 1), ?_⟩
+  intro n hn
+  -- Step 1: `n > 1`.
+  have h2_le : (2 : ℕ) ≤ (2 : ℕ) ^ (k + 1) := by
+    have h1 : (2 : ℕ) ^ 1 ≤ (2 : ℕ) ^ (k + 1) :=
+      Nat.pow_le_pow_right (by decide : 1 ≤ (2 : ℕ))
+        (Nat.succ_le_succ (Nat.zero_le k))
+    simpa using h1
+  have h2_le_n : (2 : ℕ) ≤ n := le_trans h2_le hn
+  have hn_pos : 1 < n := h2_le_n
+  -- Step 2: `log₂ n ≥ k + 1`.
+  have hlog_pow : Nat.log 2 ((2 : ℕ) ^ (k + 1)) = k + 1 :=
+    Nat.log_pow (by decide : 1 < (2 : ℕ)) (k + 1)
+  have hlog_mono : Nat.log 2 ((2 : ℕ) ^ (k + 1)) ≤ Nat.log 2 n :=
+    Nat.log_mono_right hn
+  have hlog_ge : k + 1 ≤ Nat.log 2 n := hlog_pow ▸ hlog_mono
+  -- Step 3: `c · log₂ n ≥ 1 · log₂ n = log₂ n ≥ k + 1 > k`.
+  have hlog_le_c_log : Nat.log 2 n ≤ c * Nat.log 2 n := by
+    calc Nat.log 2 n
+        = 1 * Nat.log 2 n := (one_mul _).symm
+      _ ≤ c * Nat.log 2 n := Nat.mul_le_mul_right _ hc
+  have hk_lt_c_log : k < c * Nat.log 2 n :=
+    lt_of_lt_of_le (Nat.lt_of_succ_le hlog_ge) hlog_le_c_log
+  -- Step 4: apply strict `pow` monotonicity in the exponent.
+  exact Nat.pow_lt_pow_right hn_pos hk_lt_c_log
+
+/-- **§137.3 — Concrete numeric discharge at `n = 2^{804}`**
+(paper §40.1 main contradiction at the concrete witness `n = 2^{804}`,
+p. 199; Theorem 203 P-side `n^{200}` vs Theorem 192 NP-side
+`n^{log₂ n} = n^{804}`).
+
+At the concrete paper witness `n = 2^{804}`:
+  * the P-side ceiling is `(2^{804})^{200}`;
+  * the NP-side floor is `(2^{804})^{log₂ (2^{804})} = (2^{804})^{804}`
+    (via `Nat.log_pow`);
+  * the asymptotic gap collapses to the numeric comparison
+    `200 < 804`, which combined with `1 < 2^{804}` gives
+    `(2^{804})^{200} < (2^{804})^{804}` by `Nat.pow_lt_pow_right`.
+
+This is the closed-form numeric heart of paper §40.1 step 5-6 at
+`n = 2^{804}`: no Stirling calculation, no binomial, just the
+exponent comparison `200 < 804 = log₂(2^{804})`. -/
+theorem n_pow_200_lt_n_pow_log_at_2_pow_804 :
+    ((2 : ℕ) ^ 804) ^ 200 <
+      ((2 : ℕ) ^ 804) ^ (Nat.log 2 ((2 : ℕ) ^ 804)) := by
+  -- Compute `log₂ (2^{804}) = 804` and reduce to `200 < 804`.
+  have hlog : Nat.log 2 ((2 : ℕ) ^ 804) = 804 :=
+    Nat.log_pow (by decide : 1 < (2 : ℕ)) 804
+  rw [hlog]
+  -- Base-side hypothesis: `1 < 2^{804}`.  Use strict `pow` monotonicity
+  -- from `0 < 804`.
+  have h1_lt : (1 : ℕ) < (2 : ℕ) ^ 804 := by
+    have h : (2 : ℕ) ^ 0 < (2 : ℕ) ^ 804 :=
+      Nat.pow_lt_pow_right (by decide : 1 < (2 : ℕ))
+        (by decide : (0 : ℕ) < 804)
+    simpa using h
+  exact Nat.pow_lt_pow_right h1_lt (by decide : (200 : ℕ) < 804)
+
+/-- **§137.4 — Main contradiction via asymptotic rank gap**
+(paper §40.1 main contradiction, p. 199; Theorem 203 vs Theorem 192).
+
+The paper-faithful Route C ⇒ Route A closure at the asymptotic
+rank-comparison level: the two-sided rank bound
+
+  * P-side:  `Γ_{κ',ℓ'}(P_{M,n}) ≤ n^{200}`        (Theorem 203 ceiling)
+  * NP-side: `Γ_{κ',ℓ'}(P_{M,n}) ≥ n^(log₂ n)`     (Theorem 192 floor)
+
+together with `n ≥ 2^{804}`, is *inconsistent*: from the lower bound
+`rank ≥ n^(log₂ n)` and the strict gap `n^{200} < n^(log₂ n)` (at
+`n ≥ 2^{804}`, using `log₂ n ≥ log₂ (2^{804}) = 804 > 200`), we obtain
+`rank > n^{200}`, contradicting `rank ≤ n^{200}`.
+
+The `rank` argument is kept abstract (generic `ℕ`) so that this
+theorem is reusable across every instance of `mlBlockedSpdpRank` in
+the compiler pipeline — `mlBlockedSpdpRank B κ ℓ p` for any block
+partition `B`, SPDP indices `κ, ℓ`, and compiled polynomial `p`.
+
+Paper citations:
+  * Theorem 203 — paper §40, pp. 195-197 (P-side ceiling);
+  * Theorem 192 — paper §40, p. 184 (NP-side floor);
+  * §40.1 steps 5-6 — paper p. 199 (asymptotic contradiction).
+
+Proof chain (all in `ℕ`):
+  (1) From `hn : 2^{804} ≤ n`, `Nat.log_mono_right` and
+      `Nat.log_pow` give `804 ≤ log₂ n`;
+  (2) Hence `200 < log₂ n`;
+  (3) `1 < n` since `n ≥ 2^{804} ≥ 2`;
+  (4) `Nat.pow_lt_pow_right` gives `n^{200} < n^(log₂ n)`;
+  (5) Chain `rank ≤ n^{200} < n^(log₂ n) ≤ rank`: impossible. -/
+theorem contradiction_via_asymptotic
+    {rank : ℕ} {n : ℕ}
+    (P_side_rank_bound : rank ≤ n ^ 200)
+    (NP_side_rank_bound : n ^ (Nat.log 2 n) ≤ rank)
+    (hn : (2 : ℕ) ^ 804 ≤ n) :
+    False := by
+  -- Step 1: `2 ≤ 2^{804}` and hence `2 ≤ n`, giving `1 < n`.
+  have h2_le_2804 : (2 : ℕ) ≤ (2 : ℕ) ^ 804 := by
+    have h : (2 : ℕ) ^ 1 ≤ (2 : ℕ) ^ 804 :=
+      Nat.pow_le_pow_right (by decide : 1 ≤ (2 : ℕ))
+        (by decide : (1 : ℕ) ≤ 804)
+    simpa using h
+  have h2_le_n : (2 : ℕ) ≤ n := le_trans h2_le_2804 hn
+  have hn_pos : 1 < n := h2_le_n
+  -- Step 2: `log₂ n ≥ 804` via `Nat.log_mono_right` + `Nat.log_pow`.
+  have hlog_pow : Nat.log 2 ((2 : ℕ) ^ 804) = 804 :=
+    Nat.log_pow (by decide : 1 < (2 : ℕ)) 804
+  have hlog_mono : Nat.log 2 ((2 : ℕ) ^ 804) ≤ Nat.log 2 n :=
+    Nat.log_mono_right hn
+  have hlog_ge_804 : 804 ≤ Nat.log 2 n := hlog_pow ▸ hlog_mono
+  -- Step 3: `200 < log₂ n` since `200 < 804 ≤ log₂ n`.
+  have h200_lt_log : 200 < Nat.log 2 n :=
+    lt_of_lt_of_le (by decide : (200 : ℕ) < 804) hlog_ge_804
+  -- Step 4: `n^{200} < n^(log₂ n)` by strict `pow` monotonicity.
+  have hpow_strict : n ^ 200 < n ^ (Nat.log 2 n) :=
+    Nat.pow_lt_pow_right hn_pos h200_lt_log
+  -- Step 5: chain `rank ≤ n^{200} < n^(log₂ n) ≤ rank`, a contradiction.
+  have hchain : rank < rank :=
+    lt_of_le_of_lt P_side_rank_bound
+      (lt_of_lt_of_le hpow_strict NP_side_rank_bound)
+  exact lt_irrefl _ hchain
+
+/-- **§137.5 — Specialisation to `mlBlockedSpdpRank`**
+(paper §40.1 main contradiction, p. 199; direct compiler-pipeline form).
+
+Specialises §137.4 to the case `rank := mlBlockedSpdpRank B κ ℓ p` —
+the exact form produced by the Step 4 compilation pipeline (paper §40
+Theorem 203) and consumed by the NP-side floor (paper §40 Theorem 192).
+This is the paper's main contradiction at the operative rank functional,
+with no residual arithmetic hypothesis beyond `n ≥ 2^{804}`. -/
+theorem contradiction_via_asymptotic_mlBlockedSpdpRank
+    {N : ℕ} (B : SPDP.BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) {n : ℕ}
+    (P_side_rank_bound :
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ p ≤ n ^ 200)
+    (NP_side_rank_bound :
+      n ^ (Nat.log 2 n) ≤ MultilinearSPDP.mlBlockedSpdpRank B κ ℓ p)
+    (hn : (2 : ℕ) ^ 804 ≤ n) :
+    False :=
+  contradiction_via_asymptotic
+    (rank := MultilinearSPDP.mlBlockedSpdpRank B κ ℓ p)
+    (n := n)
+    P_side_rank_bound NP_side_rank_bound hn
+
 end Step4Compiler
