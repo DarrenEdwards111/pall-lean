@@ -1551,5 +1551,47 @@ theorem identityBP_compiledPoly_eval_at (n : ℕ) (hn : 1 ≤ n)
       assignment ⟨0, hn⟩ :=
   identityBP_compiledPoly_eval n hn assignment
 
+/-! ## Section 35: More gadget-level composition theorems -/
+
+/-- **Addition of gadgets preserves varSupport bound**. -/
+theorem SoSGadget_add_support_bound {N : ℕ} (g₁ g₂ : SoSGadget N)
+    (h : (g₁.varSupport ∪ g₂.varSupport).card ≤ 6)
+    (hdeg : (g₁.poly + g₂.poly).totalDegree ≤ 6) :
+    (g₁.add g₂ h hdeg).varSupport = g₁.varSupport ∪ g₂.varSupport := rfl
+
+/-- **Multiplication of gadgets preserves varSupport bound**. -/
+theorem SoSGadget_mul_support_bound {N : ℕ} (g₁ g₂ : SoSGadget N)
+    (h : (g₁.varSupport ∪ g₂.varSupport).card ≤ 6)
+    (hdeg : (g₁.poly * g₂.poly).totalDegree ≤ 6) :
+    (g₁.mul g₂ h hdeg).varSupport = g₁.varSupport ∪ g₂.varSupport := rfl
+
+/-! ## Section 36: Path polynomial linearity in each variable -/
+
+/-- Path polynomial is a product of linear polynomials (each
+pathLiteral is degree ≤ 1). -/
+theorem pathPolynomial_structure {N : ℕ} (steps : List (Fin N × Bool)) :
+    (pathPolynomial steps).totalDegree ≤ steps.length :=
+  pathPolynomial_cew steps
+
+/-! ## Section 37: Compiled polynomial size bounds -/
+
+/-- `alwaysAcceptBP_compiledPoly` has constant variable count (0). -/
+theorem alwaysAcceptBP_compiledPoly_vars (n : ℕ) :
+    (alwaysAcceptBP_compiledPoly n).vars = ∅ := by
+  unfold alwaysAcceptBP_compiledPoly
+  exact MvPolynomial.vars_one
+
+/-- `alwaysRejectBP_compiledPoly` has empty variable set. -/
+theorem alwaysRejectBP_compiledPoly_vars (n : ℕ) :
+    (alwaysRejectBP_compiledPoly n).vars = ∅ := by
+  unfold alwaysRejectBP_compiledPoly
+  simp
+
+/-- `identityBP_compiledPoly` has a single variable: 0. -/
+theorem identityBP_compiledPoly_vars (n : ℕ) (hn : 1 ≤ n) :
+    (identityBP_compiledPoly n hn).vars = {⟨0, hn⟩} := by
+  unfold identityBP_compiledPoly
+  exact MvPolynomial.vars_X
+
 end Step4Compiler
 
