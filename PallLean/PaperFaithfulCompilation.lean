@@ -750,4 +750,51 @@ theorem not_keepU_head (M : TuringMachine.DTM) (n : ℕ)
       ((cookLevinUVSplit M n).inlV (headVIdx M n t i)) :=
   not_keepU_inlV _ _
 
+/-! ## Section 15: Input-boundary coupling constraint (u-v link)
+
+A concrete constraint linking u (input variables) to v (initial tape):
+the constraint `tape[0, i] = input[i]` at time t=0 for each input position.
+This is the simplest u-v coupling — a paper-faithful piece of the Cook-Levin
+boundary condition. -/
+
+/-- Tape-size positivity (needed for `⟨0, _⟩`). -/
+theorem tapeSize_pos (M : TuringMachine.DTM) (n : ℕ) :
+    0 < TuringMachine.tapeSize M n := by
+  unfold TuringMachine.tapeSize; omega
+
+/-- **Input-boundary constraint** for position `i ∈ [0, n)`:
+`X(tape[0, i]) - X(input[i])`.
+
+This vanishes exactly when `tape[0, i] = input[i]` — the initial tape
+at position i equals the i-th input bit. A direct u-v coupling. -/
+noncomputable def inputBoundaryConstraint (M : TuringMachine.DTM) (n : ℕ) (hn : 1 ≤ n)
+    (i : Fin n) : PMnPoly (cookLevinUVSplit M n) :=
+  let σ := cookLevinUVSplit M n
+  let u_i : σ.Idx := σ.inlU (by
+    -- i < n = σ.numU
+    show Fin σ.numU
+    show Fin n
+    exact i)
+  let v_tape_0_i : σ.Idx := σ.inlV
+    (tapeVIdx M n ⟨0, tapeSize_pos M n⟩ ⟨i.val, by
+      unfold TuringMachine.tapeSize TuringMachine.timeSteps
+      have hi := i.isLt
+      have htb : 1 ≤ M.timeBound := M.hTimeBound
+      have hpow : n ≤ n ^ M.timeBound := Nat.le_self_pow (by omega) n
+      omega⟩)
+  MvPolynomial.X v_tape_0_i - MvPolynomial.X u_i
+
+/-- `piPhi` maps `inputBoundaryConstraint` to `- X(input[i])`: the v-part
+(tape bit) substitutes to 0, leaving `-X(u_i)`. -/
+theorem piPhi_inputBoundaryConstraint
+    (M : TuringMachine.DTM) (n : ℕ) (hn : 1 ≤ n) (i : Fin n) :
+    piPhi (cookLevinUVSplit M n) (inputBoundaryConstraint M n hn i) =
+      - MvPolynomial.X ((cookLevinUVSplit M n).inlU i) := by
+  unfold inputBoundaryConstraint
+  simp only
+  rw [map_sub, piPhi_X_v, piPhi_X_u]
+  show 0 - MvPolynomial.X ((cookLevinUVSplit M n).inlU (id i)) =
+       -MvPolynomial.X ((cookLevinUVSplit M n).inlU i)
+  simp
+
 end PaperFaithfulCompilation
