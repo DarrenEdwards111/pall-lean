@@ -1007,6 +1007,128 @@ theorem pathPolynomial_eval_bool {N : ℕ} (steps : List (Fin N × Bool))
          (fun qb hqb hneg => h' qb (List.mem_cons_of_mem _ hqb) hneg)]
       ring
 
+/-! ## Section 17m: Compiled polynomial from BP
+
+For a BP B with length L and width W, the compiled polynomial is
+the SUM over accepting paths of the path polynomial. Each accepting
+path corresponds to a specific sequence of branch decisions leading
+to an accepting vertex in the final layer.
+
+For small constant-width BPs, this is explicit; for general BPs, it
+requires enumerating paths. -/
+
+/-- **Compiled polynomial of `alwaysAcceptBP`**: since length=0 and
+always accepts, the empty path is the only path, with polynomial 1. -/
+noncomputable def alwaysAcceptBP_compiledPoly (n : ℕ) :
+    MvPolynomial (Fin n) ℚ := 1
+
+/-- `alwaysAcceptBP_compiledPoly` has CEW 0. -/
+theorem alwaysAcceptBP_compiledPoly_cew (n : ℕ) :
+    HasCEWBound (alwaysAcceptBP_compiledPoly n) 0 := by
+  unfold alwaysAcceptBP_compiledPoly HasCEWBound
+  rw [MvPolynomial.totalDegree_one]
+
+/-- `alwaysAcceptBP_compiledPoly` evaluates to 1 at any input. -/
+theorem alwaysAcceptBP_compiledPoly_eval (n : ℕ) (input : Fin n → ℚ) :
+    MvPolynomial.eval input (alwaysAcceptBP_compiledPoly n) = 1 := by
+  unfold alwaysAcceptBP_compiledPoly
+  simp
+
+/-- **Compiled polynomial of `alwaysRejectBP`**: no accepting paths
+→ sum over empty set → polynomial 0. -/
+noncomputable def alwaysRejectBP_compiledPoly (n : ℕ) :
+    MvPolynomial (Fin n) ℚ := 0
+
+/-- `alwaysRejectBP_compiledPoly` has CEW 0. -/
+theorem alwaysRejectBP_compiledPoly_cew (n : ℕ) :
+    HasCEWBound (alwaysRejectBP_compiledPoly n) 0 := by
+  unfold alwaysRejectBP_compiledPoly HasCEWBound
+  simp
+
+/-- `alwaysRejectBP_compiledPoly` evaluates to 0 at any input. -/
+theorem alwaysRejectBP_compiledPoly_eval (n : ℕ) (input : Fin n → ℚ) :
+    MvPolynomial.eval input (alwaysRejectBP_compiledPoly n) = 0 := by
+  unfold alwaysRejectBP_compiledPoly
+  simp
+
+/-- **Compiled polynomial of `identityBP`**: only one accepting path
+(length 1, reads x_0, accepts iff x_0 = true). So compiled poly = X_0. -/
+noncomputable def identityBP_compiledPoly (n : ℕ) (hn : 1 ≤ n) :
+    MvPolynomial (Fin n) ℚ :=
+  MvPolynomial.X ⟨0, hn⟩
+
+/-- `identityBP_compiledPoly` has CEW ≤ 1. -/
+theorem identityBP_compiledPoly_cew (n : ℕ) (hn : 1 ≤ n) :
+    HasCEWBound (identityBP_compiledPoly n hn) 1 := by
+  unfold identityBP_compiledPoly
+  exact HasCEWBound_X ⟨0, hn⟩
+
+/-- `identityBP_compiledPoly` evaluates to input(0). -/
+theorem identityBP_compiledPoly_eval (n : ℕ) (hn : 1 ≤ n)
+    (input : Fin n → ℚ) :
+    MvPolynomial.eval input (identityBP_compiledPoly n hn) = input ⟨0, hn⟩ := by
+  unfold identityBP_compiledPoly
+  simp
+
+/-! ## Section 17n: CEW-rank bridge for small-CEW polynomials
+
+At CEW 0 (constants), rank is at most 1 (spanned by {1} or empty).
+This is a sanity benchmark. -/
+
+/-- **Zero polynomial has rank 0** in any block partition. -/
+theorem mlBlockedSpdpRank_zero_bounded {N : ℕ} (B : SPDP.BlockPartition N)
+    (κ ℓ : ℕ) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (0 : MvPolynomial (Fin N) ℚ) ≤ 0 :=
+  (mlBlockedSpdpRank_zero B κ ℓ).le
+
+/-- **Always-reject compiled polynomial has rank 0**. -/
+theorem alwaysRejectBP_compiledPoly_rank_zero (n : ℕ)
+    (B : SPDP.BlockPartition n) (κ ℓ : ℕ) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+      (alwaysRejectBP_compiledPoly n) = 0 := by
+  unfold alwaysRejectBP_compiledPoly
+  exact mlBlockedSpdpRank_zero B κ ℓ
+
+/-! ## Section 17o: Sum over finite path sets (for general BPs)
+
+For a BP B with bounded width, accepting paths from a start vertex
+can be enumerated. Their path-polynomials are summed to give the
+compiled polynomial. -/
+
+/-- **Sum of path polynomials** over a finite list of paths. -/
+noncomputable def sumPathPolynomials {N : ℕ}
+    (paths : List (List (Fin N × Bool))) : MvPolynomial (Fin N) ℚ :=
+  (paths.map pathPolynomial).sum
+
+/-- Empty path list → zero polynomial. -/
+theorem sumPathPolynomials_nil {N : ℕ} :
+    sumPathPolynomials ([] : List (List (Fin N × Bool))) = 0 := by
+  unfold sumPathPolynomials
+  simp
+
+/-- Cons path list → path + sum. -/
+theorem sumPathPolynomials_cons {N : ℕ} (p : List (Fin N × Bool))
+    (rest : List (List (Fin N × Bool))) :
+    sumPathPolynomials (p :: rest) =
+      pathPolynomial p + sumPathPolynomials rest := by
+  unfold sumPathPolynomials
+  simp [List.sum_cons]
+
+/-- **CEW of sum of path polynomials**: ≤ max path length. -/
+theorem sumPathPolynomials_cew {N : ℕ} (paths : List (List (Fin N × Bool)))
+    (L : ℕ) (h : ∀ p ∈ paths, p.length ≤ L) :
+    HasCEWBound (sumPathPolynomials paths) L := by
+  induction paths with
+  | nil =>
+    rw [sumPathPolynomials_nil]
+    exact HasCEWBound_mono HasCEWBound_zero (Nat.zero_le L)
+  | cons p rest ih =>
+    rw [sumPathPolynomials_cons]
+    apply HasCEWBound_add
+    · exact HasCEWBound_mono (pathPolynomial_cew p)
+        (h p (List.mem_cons_self))
+    · exact ih (fun q hq => h q (List.mem_cons_of_mem _ hq))
+
 /-! ## Section 18: Width⇒Rank concrete application
 
 Paper's Theorem 93 (Sorting-network compiler: locality and CEW):
