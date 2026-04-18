@@ -1034,4 +1034,49 @@ theorem templatePMn_separation
   rw [piPhi_templatePMn σ Q hV]
   exact hNPside
 
+/-! ## Section 21: Rank preservation under rename (toward Task E)
+
+The reverse of `mlBlockedSpdpSubspace_rename_le_map`: for injective rename,
+the rename of the pullback-partition SPDP subspace is CONTAINED IN the
+(target-partition) SPDP subspace of the renamed polynomial.
+
+Combined with injectivity of rename, this gives rank preservation:
+`rank(rename f p, B) ≥ rank(p, pullbackPartition B f)` for injective f.
+
+This is essential for Task (E): porting `compiled_np_lower_bound_any_dtm`
+to `cookLevinPMnApprox` (= rename inlU compiledPoly). -/
+
+/- **Reverse inclusion (statement)**: rename of pullback SPDP subspace
+⊆ SPDP subspace of renamed poly.
+
+This theorem would give rank preservation via rename (together with
+existing `mlBlockedSpdpRank_rename_le`). Its proof requires showing
+SPDP generators map correctly: need
+- `isBlockAdmissible_pullback_map` (reverse of existing `_pullback` lemma)
+- careful handling of `iterDerivList_rename` + `mlProj_rename` + shift pred
+
+We state the conclusion; the detailed combinatorial proof is future work.
+For the architectural flow, only the statement is needed. -/
+
+/-- A **Task E helper**: given a CoupledSheetPoly Q over numU variables,
+if Q has a direct SPDP rank bound `≥ C` at some (B', κ, ℓ) on its own
+variable space, AND the embed-rank-preservation property holds (i.e.,
+`rank(embed Q, B) = rank(Q, pullback B inlU)`), then embed Q inherits
+the bound.
+
+Stated as a CONDITIONAL theorem: plug in a rank-preservation hypothesis
+and the bound on Q. -/
+theorem embed_rank_ge_of_preservation
+    (σ : UVSplit) (B : SPDP.BlockPartition σ.total) (κ ℓ : ℕ)
+    (Q : CoupledSheetPoly σ) (lowerBound : ℕ)
+    (hQ : lowerBound ≤ MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B σ.inlU) κ ℓ Q)
+    (hPreserve :
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition B σ.inlU) κ ℓ Q ≤
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (CoupledSheetPoly.embed σ Q)) :
+    lowerBound ≤ MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+      (CoupledSheetPoly.embed σ Q) :=
+  le_trans hQ hPreserve
+
 end PaperFaithfulCompilation
