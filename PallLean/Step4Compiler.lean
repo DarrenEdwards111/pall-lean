@@ -828,6 +828,90 @@ theorem layerPolynomial_cew {N : ℕ} (q : Fin N) (c₀ c₁ : ℚ) :
     HasCEWBound (layerPolynomial q c₀ c₁) 1 :=
   layerPolynomial_degree q c₀ c₁
 
+/-! ## Section 17h: Literal polynomials (paper §40 edge labels)
+
+Paper line 3128: "Each edge from layer τ to τ + 1 is labeled by a literal
+λe(x) ∈ {1, xi, 1 − xi}."
+
+We formalize these three literal polynomials explicitly. -/
+
+/-- **Literal constant 1**. -/
+noncomputable def literalPoly_one (N : ℕ) : MvPolynomial (Fin N) ℚ := 1
+
+/-- **Positive literal x_i**. -/
+noncomputable def literalPoly_pos {N : ℕ} (i : Fin N) :
+    MvPolynomial (Fin N) ℚ := MvPolynomial.X i
+
+/-- **Negative literal 1 - x_i**. -/
+noncomputable def literalPoly_neg {N : ℕ} (i : Fin N) :
+    MvPolynomial (Fin N) ℚ := 1 - MvPolynomial.X i
+
+/-- Literal CEW bounds. -/
+theorem literalPoly_one_cew (N : ℕ) : HasCEWBound (literalPoly_one N) 0 := by
+  unfold literalPoly_one HasCEWBound
+  rw [MvPolynomial.totalDegree_one]
+
+theorem literalPoly_pos_cew {N : ℕ} (i : Fin N) :
+    HasCEWBound (literalPoly_pos i) 1 := by
+  unfold literalPoly_pos
+  exact HasCEWBound_X i
+
+theorem literalPoly_neg_cew {N : ℕ} (i : Fin N) :
+    HasCEWBound (literalPoly_neg i) 1 := by
+  unfold literalPoly_neg HasCEWBound
+  calc (1 - MvPolynomial.X i : MvPolynomial (Fin N) ℚ).totalDegree
+      ≤ max (1 : MvPolynomial (Fin N) ℚ).totalDegree
+          (MvPolynomial.X i).totalDegree :=
+        MvPolynomial.totalDegree_sub _ _
+    _ ≤ 1 := by
+        rw [MvPolynomial.totalDegree_one, MvPolynomial.totalDegree_X]
+        omega
+
+/-! ## Section 17i: Literal evaluation at 0/1
+
+Each literal evaluates to 0 or 1 at Boolean points. -/
+
+/-- Literal 1 evaluates to 1. -/
+theorem literalPoly_one_eval (N : ℕ) (assignment : Fin N → ℚ) :
+    MvPolynomial.eval assignment (literalPoly_one N) = 1 := by
+  unfold literalPoly_one
+  simp
+
+/-- Positive literal evaluates to assignment(i). -/
+theorem literalPoly_pos_eval {N : ℕ} (i : Fin N) (assignment : Fin N → ℚ) :
+    MvPolynomial.eval assignment (literalPoly_pos i) = assignment i := by
+  unfold literalPoly_pos
+  simp
+
+/-- Negative literal evaluates to 1 - assignment(i). -/
+theorem literalPoly_neg_eval {N : ℕ} (i : Fin N) (assignment : Fin N → ℚ) :
+    MvPolynomial.eval assignment (literalPoly_neg i) = 1 - assignment i := by
+  unfold literalPoly_neg
+  simp
+
+/-! ## Section 17j: SoS gadgets from literal polynomials -/
+
+/-- **Identity gadget**: the constant-1 polynomial. -/
+noncomputable def oneSoSGadget (N : ℕ) : SoSGadget N := constSoSGadget N 1
+
+/-- **Positive literal gadget**. -/
+noncomputable def posLiteralSoSGadget {N : ℕ} (i : Fin N) : SoSGadget N where
+  poly := MvPolynomial.X i
+  varSupport := {i}
+  support_bound := by simp
+  vars_contained := by
+    intro k hk
+    have : k ∈ (MvPolynomial.X i : MvPolynomial (Fin N) ℚ).vars := hk
+    rw [MvPolynomial.vars_X] at this
+    simpa using this
+  degree_bound := by
+    rw [MvPolynomial.totalDegree_X]
+    omega
+
+/-- `posLiteralSoSGadget`'s polynomial is X_i. -/
+theorem posLiteralSoSGadget_poly {N : ℕ} (i : Fin N) :
+    (posLiteralSoSGadget i).poly = MvPolynomial.X i := rfl
+
 /-! ## Section 18: Width⇒Rank concrete application
 
 Paper's Theorem 93 (Sorting-network compiler: locality and CEW):
