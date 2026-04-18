@@ -2719,5 +2719,129 @@ theorem batcherNetwork_2_depth_poly_log :
   rw [batcherNetwork_2_depth_eq_bound]
   exact batcherNetwork_depth_poly_log 2
 
+/-! ### §71 TM → BP step correspondence scaffolding
+    (paper §40 Step 2 / Lemma 23 / Lemma 44)
+
+Paper §40 Step 2 (equivalently Lemma 23, implemented via Lemma 44) asserts
+that for any deterministic TM `M` and input length `n` there is a layered
+BP `B_{M,n}` whose vertices at layer `t` are in bijection with the
+reachable TM configurations at time `t`, and whose `trans` at layer `t`
+mirrors one step of `M`'s transition function.
+
+Rather than committing to a specific encoding at this level (which is an
+engineering choice of the full Lemma 44 implementation), we state the
+correspondence abstractly:
+
+* `configEnc t` is the paper-chosen encoding of the TM configuration at
+  time `t` as a BP vertex at layer `t`;
+* `stepMatches` is the one-layer correctness hypothesis — at every layer
+  `k < length`, the BP's `stepOne` applied to the encoded config at time
+  `k` yields the encoded config at time `k+1`;
+* initial matching fixes the starting vertex to the encoded initial config.
+
+Under these hypotheses we prove by induction on the layer index that
+`runSteps` at time `k` equals the encoded config at time `k`; this is
+the invariant used in §72 to derive Lemma 23 in its functional form. -/
+
+/-- **§71 — abstract layer-level configuration encoding.**
+A `LayerConfigEnc` bundles a paper-chosen vertex encoding of an abstract
+"config at time `k`" stream (in paper Lemma 44, the TM configurations).
+This is a scaffolding device; the concrete definition is supplied by the
+Lemma 44 implementation and is orthogonal to the structural theorems in
+§70/§71. -/
+structure LayerConfigEnc {n : ℕ} (B : BranchingProgram n) where
+  /-- Encoding of the abstract config at time `k` into a BP vertex at
+  layer `k`. Defined for every `k : ℕ`; values at `k > length` are
+  ignored by the correctness hypotheses below. -/
+  enc : ℕ → Fin B.width
+
+/-- **§71 — step-level correspondence hypothesis.**
+`stepMatches` asserts that, at every layer `k < B.length`, applying
+`stepOne` on the encoded config at time `k` produces the encoded config
+at time `k+1`. This is exactly the per-layer TM-step preservation
+required by paper §40 Step 2 / Lemma 23. -/
+def LayerConfigEnc.stepMatches {n : ℕ} {B : BranchingProgram n}
+    (enc : LayerConfigEnc B) (input : Fin n → Bool) : Prop :=
+  ∀ k : ℕ, (h : k < B.length) →
+    B.stepOne input ⟨k, h⟩ (enc.enc k) = enc.enc (k + 1)
+
+/-- **§71.1 — stepOne moves the encoded config forward one time step**
+(paper §40 Step 2 / Lemma 23). A trivial reformulation of `stepMatches`:
+its statement is exactly that one BP layer, applied to the encoded
+time-`k` config, yields the encoded time-`(k+1)` config. This packages
+the per-layer correctness obligation so it can be supplied directly by
+the concrete Lemma 44 construction and consumed by the induction in
+§71.2. -/
+theorem LayerConfigEnc.stepOne_stepMatches {n : ℕ}
+    {B : BranchingProgram n} (enc : LayerConfigEnc B)
+    (input : Fin n → Bool) (hmatch : enc.stepMatches input)
+    {k : ℕ} (hk : k < B.length) :
+    B.stepOne input ⟨k, hk⟩ (enc.enc k) = enc.enc (k + 1) :=
+  hmatch k hk
+
+/-- **§71.2 — induction invariant: runSteps tracks the encoded config**
+(paper §40 Step 2 / Lemma 23 / Lemma 44). If the starting vertex is the
+encoded time-0 config and every one-layer step matches, then for every
+`k ≤ B.length`, `runSteps` at time `k` equals the encoded time-`k`
+config. This is the paper's Lemma 44 invariant at the induction
+level. -/
+theorem LayerConfigEnc.runSteps_matches_of_stepMatches {n : ℕ}
+    {B : BranchingProgram n} (enc : LayerConfigEnc B)
+    (input : Fin n → Bool) (hmatch : enc.stepMatches input) :
+    ∀ k : ℕ, k ≤ B.length →
+      B.runSteps input (enc.enc 0) k = enc.enc k := by
+  intro k hk
+  induction k with
+  | zero =>
+    -- runSteps at 0 is the starting vertex, which is enc.enc 0
+    exact BranchingProgram.runSteps_zero B input (enc.enc 0)
+  | succ k ih =>
+    have hk' : k < B.length := by omega
+    have hkle : k ≤ B.length := by omega
+    have ih' : B.runSteps input (enc.enc 0) k = enc.enc k := ih hkle
+    -- Unfold one runSteps step, then apply the stepMatches hypothesis
+    rw [BranchingProgram.runSteps_succ_of_lt B input (enc.enc 0) hk']
+    rw [ih']
+    exact hmatch k hk'
+
+/-- **§71.3 — final-layer state is the encoded accepting-time config**
+(paper §40 Step 2 / Lemma 23). Specialising §71.2 to `k = B.length`
+yields: the BP's final-layer state equals the encoded config at time
+`B.length`. This is the object that `B.accepting` will inspect in §72
+to produce Lemma 23's equivalence of acceptance conditions. -/
+theorem LayerConfigEnc.runSteps_length_matches {n : ℕ}
+    {B : BranchingProgram n} (enc : LayerConfigEnc B)
+    (input : Fin n → Bool) (hmatch : enc.stepMatches input) :
+    B.runSteps input (enc.enc 0) B.length = enc.enc B.length :=
+  enc.runSteps_matches_of_stepMatches input hmatch
+    B.length (le_refl _)
+
+/-- **§71.4 — the encoded config stream is uniquely determined by step
+matching from a fixed start** (paper §40 Step 2 / Lemma 23). For any two
+`LayerConfigEnc`s that agree at time 0 and both satisfy `stepMatches`
+on the same input, their encoded configs agree on `0, 1, …, B.length`.
+This is the "determinism" half of Lemma 44: the BP trace uniquely
+witnesses one canonical stream of TM configurations. -/
+theorem LayerConfigEnc.stepMatches_unique {n : ℕ}
+    {B : BranchingProgram n} (enc₁ enc₂ : LayerConfigEnc B)
+    (input : Fin n → Bool)
+    (h1 : enc₁.stepMatches input) (h2 : enc₂.stepMatches input)
+    (h0 : enc₁.enc 0 = enc₂.enc 0) :
+    ∀ k : ℕ, k ≤ B.length → enc₁.enc k = enc₂.enc k := by
+  intro k hk
+  induction k with
+  | zero => exact h0
+  | succ k ih =>
+    have hk' : k < B.length := by omega
+    have hkle : k ≤ B.length := by omega
+    have ih' : enc₁.enc k = enc₂.enc k := ih hkle
+    have e1 : B.stepOne input ⟨k, hk'⟩ (enc₁.enc k) = enc₁.enc (k + 1) :=
+      h1 k hk'
+    have e2 : B.stepOne input ⟨k, hk'⟩ (enc₂.enc k) = enc₂.enc (k + 1) :=
+      h2 k hk'
+    have heq : B.stepOne input ⟨k, hk'⟩ (enc₁.enc k) =
+        B.stepOne input ⟨k, hk'⟩ (enc₂.enc k) := by rw [ih']
+    rw [← e1, heq, e2]
+
 end Step4Compiler
 
