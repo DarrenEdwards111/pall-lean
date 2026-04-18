@@ -372,7 +372,45 @@ noncomputable def trivialCompilerOutput
     rw [mlBlockedSpdpRank_zero]
     exact Nat.zero_le _
 
-/-! ## Section 14: Summary of Step 4 progress
+/-! ## Section 14: Non-trivial BP — identity function
+
+A slightly more interesting BP: given input with n ≥ 1 variables,
+returns the value of x_0. Length 1, width 2.
+
+This demonstrates paper-faithful BP construction (layered, poly width,
+correct semantics) on the simplest nontrivial example. -/
+
+/-- **Identity BP**: reads x_0, accepts iff x_0 = true. -/
+def identityBP (n : ℕ) (hn : 1 ≤ n) : BranchingProgram n where
+  length := 1
+  width := 2
+  query := fun _ => ⟨0, hn⟩  -- query variable x_0
+  trans := fun _ _ b => if b then 1 else 0
+  accepting := fun v => decide (v = 1)
+
+/-- `identityBP` has length 1 ≤ n for any n ≥ 1. -/
+theorem identityBP_length_poly (n : ℕ) (hn : 1 ≤ n) :
+    (identityBP n hn).length ≤ n := by
+  show 1 ≤ n; exact hn
+
+/-- `identityBP` has width 2 ≤ n^2 for n ≥ 2. -/
+theorem identityBP_width_poly (n : ℕ) (hn : 2 ≤ n) :
+    (identityBP n (by omega : 1 ≤ n)).width ≤ n ^ 2 := by
+  show 2 ≤ n ^ 2
+  have : 2 ≤ n := hn
+  calc 2 ≤ n := this
+    _ = n ^ 1 := (pow_one n).symm
+    _ ≤ n ^ 2 := Nat.pow_le_pow_right (by omega) (by omega)
+
+/-- **identityBP length is 1**. -/
+theorem identityBP_length (n : ℕ) (hn : 1 ≤ n) :
+    (identityBP n hn).length = 1 := rfl
+
+/-- **identityBP width is 2**. -/
+theorem identityBP_width (n : ℕ) (hn : 1 ≤ n) :
+    (identityBP n hn).width = 2 := rfl
+
+/-! ## Section 15: Summary of Step 4 progress
 
 Axiom-free contributions:
 - All interfaces (§1-11)
