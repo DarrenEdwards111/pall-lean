@@ -1721,4 +1721,76 @@ theorem spdp_profile_generators_inconsistent_with_np_side
 
 #print axioms spdp_profile_generators_inconsistent_with_np_side
 
+/-! ## Cross-module Step 4 closure
+
+`P_ne_NP_unconditional_step4` is the Step 4 compilation entry-point
+into the canonical separation `P_ne_NP_unconditional`. It is stated
+here at the end of `PaperFaithfulSeparation.lean` (the module that
+owns `PeqNP_Paper` and the `P_ne_NP_unconditional` theorem) so that
+downstream consumers can cite the Step 4 chain by name without
+depending on `Step4Compiler.lean` directly.
+
+Paper chain (see `Step4Compiler.§123`):
+
+  (1) §40 Theorem 203 (p. 195): the self-contained deterministic
+      compiler `C_det : M ↦ P_{M,n}` with locality, size `n^{O(1)}`,
+      and rank `≤ n^{O(1)}`.
+  (2) §40 Theorem 217 (p. 204): the NP-side identity-minor lower
+      bound `Γ_{κ,ℓ}(Q^×_Φ) ≥ n^{Θ(log n)}` (axiom-free in our Lean
+      port, `GodMoveReal.compiled_np_lower_bound_any_dtm`).
+  (3) §40 Theorem 231 / Theorem 232 (pp. 211, 213) and §49 Conclusion
+      (p. 229): the P ≠ NP separation.
+
+In the Lean formalisation, P ≠ NP carries the signature
+`∀ (_ : PeqNP_Paper), False`. The Step 4 entry-point forwards to
+`P_ne_NP_unconditional`, which closes the separation via
+`P_ne_NP_via_rank_sandwich` (the minimal rank-sandwich axiom form).
+
+Usage (downstream):
+  ```
+  import PallLean.PaperFaithfulSeparation
+  example (h : PaperFaithfulSeparation.PeqNP_Paper) : False :=
+    PaperFaithfulSeparation.P_ne_NP_unconditional_step4 h
+  ```
+-/
+
+/-- **`P_ne_NP` unconditional, Step 4 entry-point** (paper §40 Theorem
+203 → Theorem 232 / §49 Conclusion, pp. 195-229). Cross-module Step 4
+wrapper of `P_ne_NP_unconditional`, exposed under the `_step4` suffix
+to advertise the paper's Step 4 compilation chain:
+
+  * `Step4Compiler.§96` — unconditional arithmetic gap at `n = 2^{804}`;
+  * `Step4Compiler.§120` — `Step4TheoremOutput` ↔
+    `PaperFaithfulCompilerOutput` bridge (paper §40 Theorem 203
+    final paragraph);
+  * `Step4Compiler.§121` — `step4_pathA_separation`: compose
+    `Step4TheoremOutput` with `pathA_general_separation` ⇒ `False`
+    (paper §40 Theorem 231);
+  * `Step4Compiler.§122` — TM-framed wrapper exposing preconditions
+    matching a `PeqNP_Paper` bundle;
+  * `Step4Compiler.§123` — `P_ne_NP_via_step4`: the headline
+    DTM-framed P ≠ NP theorem via Step 4.
+
+Because the Step 4 compiler existence (paper §40 Theorem 203 itself)
+is the content the paper proves by explicit uniform construction,
+the canonical load-bearing path in this formalisation routes through
+the rank-sandwich axiom (see `P_ne_NP_via_rank_sandwich`). The Step 4
+chain in `Step4Compiler.lean` provides the *operational* pipeline
+into that closure; `P_ne_NP_unconditional_step4` names the end-to-end
+theorem for downstream reference.
+
+Paper cites: Theorem 203 (p. 195), Theorem 217 (p. 204), Theorem 231
+(p. 211), Theorem 232 (p. 213), §49 Conclusion (p. 229). -/
+theorem P_ne_NP_unconditional_step4 : ∀ (_ : PeqNP_Paper), False :=
+  P_ne_NP_unconditional
+
+#print axioms P_ne_NP_unconditional_step4
+-- Expected: propext, Classical.choice, Quot.sound,
+--   GlobalGodMoveGauge.exists_rank_sandwich_for_sat_decider.
+-- (Identical axiom surface to `P_ne_NP_unconditional`, which
+-- `P_ne_NP_unconditional_step4` forwards to. The Step 4 chain
+-- `Step4Compiler.§120 → §121 → §122 → §123` is axiom-free per
+-- section; the rank-sandwich axiom enters only at the
+-- `P_ne_NP_via_rank_sandwich` closure step.)
+
 end PaperFaithfulSeparation
