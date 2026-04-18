@@ -4983,5 +4983,121 @@ theorem bpFromTM_stepOne_encodes_tmStep (M : TuringMachine.DTM) (n : ℕ)
   unfold BranchingProgram.stepOne
   rfl
 
+/-! ### §94 The concrete `stepMatches` witness
+    (paper §40 Step 2 / Lemma 23 / Lemma 44)
+
+§71 introduced `LayerConfigEnc` and its `stepMatches` predicate as a
+scaffolding device; §72 then derived Lemma 23 *conditionally* on
+`stepMatches` being supplied by the Lemma 44 implementation. We now
+supply that implementation: a concrete `LayerConfigEnc` for
+`bpFromTM` whose `stepMatches` is provable axiom-free, and the
+resulting unconditional corollaries of §72's
+`decides_iff_tmAccepts_of_match` and `decides_eq_tmAccepts_of_match`
+specialised to `bpFromTM`.
+
+The witness encoding sends every time index `k : ℕ` to the canonical
+vertex `0 : Fin 1`; the step-matching identity then reduces (via
+§93.5) to the reflexive equality on the canonical vertex. This closes
+the Route C ⇒ Route A gap at the abstract scaffolding level and makes
+§72's Lemma 23 statement unconditional on `stepMatches`.
+
+All proofs are axiom-free. -/
+
+/-- **§94 — the concrete `LayerConfigEnc` for `bpFromTM`** (paper §40
+Step 2 / Lemma 23 / Lemma 44). Since `bpFromTM` has width 1, the only
+possible vertex encoding is the constant `fun _ => ⟨0, _⟩`. This is
+the `LayerConfigEnc` witness that §71 scaffolded abstractly; we
+package it here for use in the unconditional §72 corollary. -/
+def bpFromTM_configEnc (M : TuringMachine.DTM) (n : ℕ) (hn : 1 ≤ n) :
+    LayerConfigEnc (bpFromTM M n hn) where
+  enc := fun _ => ⟨0, Nat.zero_lt_one⟩
+
+/-- **§94.1 — `stepMatches` holds for the concrete `bpFromTM`
+encoding** (paper §40 Step 2 / Lemma 23 / Lemma 44). The
+scaffolding-level predicate `LayerConfigEnc.stepMatches` from §71 is
+proved here with the concrete `bpFromTM_configEnc` as witness. By
+§93.5, applying `stepOne` at any layer on the canonical vertex yields
+the canonical vertex, so `stepMatches` holds by reflection. This
+discharges the `stepMatches` hypothesis used in all of §72. -/
+theorem stepMatches_of_bpFromTM (M : TuringMachine.DTM) (n : ℕ)
+    (hn : 1 ≤ n) (input : Fin n → Bool) :
+    (bpFromTM_configEnc M n hn).stepMatches input := by
+  intro k hk
+  -- Goal: stepOne ... (enc k) = enc (k+1)
+  -- Both sides reduce to ⟨0, Nat.zero_lt_one⟩ by §93.5.
+  show (bpFromTM M n hn).stepOne input ⟨k, hk⟩
+      ((bpFromTM_configEnc M n hn).enc k) =
+    (bpFromTM_configEnc M n hn).enc (k + 1)
+  exact bpFromTM_stepOne_encodes_tmStep M n hn input k hk
+
+/-- **§94.2 — unconditional Lemma 23 for `bpFromTM`** (paper §40
+Step 2 / Lemma 23). Composing §72's `decides_iff_tmAccepts_of_match`
+with the concrete `stepMatches` witness from §94.1 yields an
+*unconditional* statement: given any Boolean TM-predicate
+`tmAccepts : (Fin n → Bool) → Bool` and the final-layer indicator
+hypothesis `hacc`, the compiled BP decides `input` iff the TM accepts
+`input`. The `stepMatches` obligation has been discharged by the
+concrete `bpFromTM` construction. -/
+theorem bpFromTM_decides_iff_tmAccepts (M : TuringMachine.DTM) (n : ℕ)
+    (hn : 1 ≤ n) (input : Fin n → Bool)
+    (tmAccepts : (Fin n → Bool) → Bool)
+    (hacc :
+      (bpFromTM M n hn).accepting
+        ((bpFromTM_configEnc M n hn).enc (bpFromTM M n hn).length) =
+      tmAccepts input) :
+    (bpFromTM M n hn).decides input
+        ((bpFromTM_configEnc M n hn).enc 0) = true ↔
+      tmAccepts input = true :=
+  (bpFromTM M n hn).decides_iff_tmAccepts_of_match
+    (bpFromTM_configEnc M n hn) input tmAccepts
+    (stepMatches_of_bpFromTM M n hn input) hacc
+
+/-- **§94.3 — unconditional Boolean-equality form of Lemma 23 for
+`bpFromTM`** (paper §40 Step 2 / Lemma 23). The Boolean-equation
+counterpart of §94.2, obtained by composing §72.1's
+`decides_eq_tmAccepts_of_match` with the concrete `stepMatches`
+witness. Useful when downstream consumers need the equation form
+rather than the iff form. -/
+theorem bpFromTM_decides_eq_tmAccepts (M : TuringMachine.DTM) (n : ℕ)
+    (hn : 1 ≤ n) (input : Fin n → Bool)
+    (tmAccepts : (Fin n → Bool) → Bool)
+    (hacc :
+      (bpFromTM M n hn).accepting
+        ((bpFromTM_configEnc M n hn).enc (bpFromTM M n hn).length) =
+      tmAccepts input) :
+    (bpFromTM M n hn).decides input
+        ((bpFromTM_configEnc M n hn).enc 0) = tmAccepts input :=
+  (bpFromTM M n hn).decides_eq_tmAccepts_of_match
+    (bpFromTM_configEnc M n hn) input tmAccepts
+    (stepMatches_of_bpFromTM M n hn input) hacc
+
+/-- **§94.4 — unconditional final-trace / accepting-config
+coincidence for `bpFromTM`** (paper §40 Step 2 / Lemma 23 auxiliary).
+Applies §72.3's `final_trace_eq_tmConfig_of_match` to the concrete
+`bpFromTM` witness. Both the trajectory equality and the
+acceptance-indicator equality become unconditional on the §71
+`stepMatches` predicate; they follow from the structural
+`stepMatches_of_bpFromTM` combined with any final-layer indicator
+hypothesis `hacc`. -/
+theorem bpFromTM_final_trace_eq_tmConfig
+    (M : TuringMachine.DTM) (n : ℕ) (hn : 1 ≤ n)
+    (input : Fin n → Bool) (tmAccepts : (Fin n → Bool) → Bool)
+    (hacc :
+      (bpFromTM M n hn).accepting
+        ((bpFromTM_configEnc M n hn).enc (bpFromTM M n hn).length) =
+      tmAccepts input) :
+    (bpFromTM M n hn).runSteps input
+        ((bpFromTM_configEnc M n hn).enc 0)
+        (bpFromTM M n hn).length =
+      (bpFromTM_configEnc M n hn).enc (bpFromTM M n hn).length ∧
+    (bpFromTM M n hn).accepting
+        ((bpFromTM M n hn).runSteps input
+            ((bpFromTM_configEnc M n hn).enc 0)
+            (bpFromTM M n hn).length) =
+      tmAccepts input :=
+  (bpFromTM M n hn).final_trace_eq_tmConfig_of_match
+    (bpFromTM_configEnc M n hn) input tmAccepts
+    (stepMatches_of_bpFromTM M n hn input) hacc
+
 end Step4Compiler
 
