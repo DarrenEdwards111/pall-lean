@@ -456,4 +456,49 @@ theorem piPhi_cookLevinPMnApprox (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2
     exact ⟨α, hα, Finsupp.mem_support_iff.mpr hαi⟩
   exact hki (cookLevinPMnApprox_vars_in_u M n hn htb hns i hi_vars)
 
+/-! ## Section 10: Task (C) — Q^×_Φ coupled sheet
+
+Paper's Q^×_Φ(u) = ∏_{C ∈ Φ} (1 - z_C · V_C(x)²) where:
+- x_i are the formula variables (part of u)
+- z_C are per-clause selectors (part of u)
+- V_C(x) is the clause verifier polynomial
+
+Since z_C and x_i both live in u, Q^×_Φ is a polynomial in u-variables only.
+
+We provide a generic/abstract definition that works for any list of
+"clause gadgets" over the u-variable space. The concrete instantiation
+uses the existing `clauseGadget` from `TseitinDefs.lean`. -/
+
+/-- **Abstract coupled sheet**: for a list of pairs (selector index,
+clause gadget polynomial), define `Q^×_Φ := ∏ (1 - X(sel) · gadget)`. -/
+noncomputable def coupledSheetFromList (σ : UVSplit)
+    (clauses : List (Fin σ.numU × MvPolynomial (Fin σ.numU) ℚ)) :
+    CoupledSheetPoly σ :=
+  (clauses.map (fun ⟨sel, gadget⟩ =>
+    1 - MvPolynomial.X sel * gadget)).prod
+
+/-- `coupledSheetFromList` for the empty list is `1`. -/
+theorem coupledSheetFromList_nil (σ : UVSplit) :
+    coupledSheetFromList σ [] = 1 := by
+  unfold coupledSheetFromList
+  simp
+
+/-- `coupledSheetFromList` for `(sel, gadget) :: rest` unfolds to
+`(1 - X sel · gadget) · coupledSheetFromList rest`. -/
+theorem coupledSheetFromList_cons (σ : UVSplit)
+    (sel : Fin σ.numU) (gadget : MvPolynomial (Fin σ.numU) ℚ)
+    (rest : List (Fin σ.numU × MvPolynomial (Fin σ.numU) ℚ)) :
+    coupledSheetFromList σ ((sel, gadget) :: rest) =
+      (1 - MvPolynomial.X sel * gadget) * coupledSheetFromList σ rest := by
+  unfold coupledSheetFromList
+  simp [List.prod_cons]
+
+/-- **piPhi fixes the embedded coupled sheet** (since it lives entirely
+in u). This is the concrete instance of `piPhi_embed_eq` for Q^×_Φ. -/
+theorem piPhi_embed_coupledSheet (σ : UVSplit)
+    (clauses : List (Fin σ.numU × MvPolynomial (Fin σ.numU) ℚ)) :
+    piPhi σ (CoupledSheetPoly.embed σ (coupledSheetFromList σ clauses)) =
+      CoupledSheetPoly.embed σ (coupledSheetFromList σ clauses) :=
+  piPhi_embed_eq σ (coupledSheetFromList σ clauses)
+
 end PaperFaithfulCompilation
