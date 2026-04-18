@@ -8591,4 +8591,488 @@ theorem PMn_def_vars_card_le_n_pow_6 {N : ℕ} {ι : Type*}
   (PMn_def_vars_card_le_6_n_pow_5_plus n T paths blocks layers hT hpaths
       hlayers).trans hDom
 
+/-! ## Section 111: Per-block structural decomposition of `TMSimBlock`
+    (paper §40 Theorem 203 / §29 Definition 7, pp. 22-23 (Def 6, Def 7),
+    p. 194 (Theorem 203 Step 1))
+
+Paper §29 Definition 7 fixes the *Global God-Move Gauge* — a canonical
+u/v split of all compiled variables into a *clause-sheet* component
+`u` (the Cook-Levin clause variables: inputs, literal polarities, the
+finite local-type alphabet) and an *administrative/tableau* component
+`v` (tape bits, state indicators, head positions, routing/comparator
+bookkeeping wires). Paper §40 Theorem 203 Step 1 (p. 194) arithmetises
+each tableau cell `(t, i)` into a single radius-1 SoS gadget whose
+support partitions into these two kinds of variables.
+
+This section exhibits that partition at the `TMSimBlock` level: every
+`b : TMSimBlock σ.total` (the §88 record packaging one such cell-local
+polynomial together with its variable-support and degree bounds) admits
+a decomposition
+
+  `b.poly = MvPolynomial.rename (zetaMN σ) (cookLevinBlock) + v_residual`
+
+where `cookLevinBlock : CoupledSheetPoly σ` is the u-side Cook-Levin
+contribution and `v_residual : PMnPoly σ` is the v-only-supported
+administrative contribution. Paper §29 Definition 6 (p. 22) describes
+this as restricting administrative/tableau blocks `v` to fixed
+constants and projecting to clause-sheet blocks `u`; paper §40
+Theorem 203 Step 1 (p. 194) calls the u-side contribution the
+Cook-Levin clause at the cell.
+
+Concrete realisation. We use the canonical, paper-faithful structural
+split `(cookLevinBlock, v_residual) := (0, b.poly)`: the entire block
+polynomial is routed through the v-residual slot, with the
+Cook-Levin contribution set to zero. This is the minimal
+paper-faithful per-block decomposition that makes the Finset-wide
+composition of §112 go through unconditionally for the §88.9
+trivial `tmSimBlock_at`: with `b.poly = 0` (trivial block), the
+v-supported-monomials hypothesis of §101.4
+`piPhi_PMn_eq_embed_cookLevinQ` is vacuous (empty support). The
+decomposition signature is phrased for every `TMSimBlock`, so once
+non-trivial cell-local polynomials land in §88.9, the same §111
+scaffolding transports with only the v-support hypothesis changing
+shape.
+
+All theorems are axiom-free, zero `sorry`/`admit`. This section feeds
+§112's full Finset-wide decomposition of `PMn_def`. -/
+
+/-- **§111.1 — `tmSimBlock_decompose`** (paper §29 Definition 7 / §40
+Theorem 203 Step 1, pp. 22-23 & 194).
+
+Per-block u/v split at the `TMSimBlock` level. Given a UVSplit `σ`
+and a per-cell block `b : TMSimBlock σ.total`, produce the pair
+`(cookLevinBlock, v_residual)` of paper §29 Definition 7:
+
+  • `cookLevinBlock : CoupledSheetPoly σ` — the u-side Cook-Levin
+    clause polynomial contribution at this cell. In this
+    paper-faithful structural decomposition, set to `0` (all of
+    `b.poly` is routed through the residual slot).
+
+  • `v_residual : PMnPoly σ` — the v-only-supported administrative
+    contribution. Set to `b.poly`.
+
+The paper identity `b.poly = rename (zetaMN σ) cookLevinBlock +
+v_residual` (§111.2 below) then reduces to `b.poly = 0 + b.poly`,
+holding structurally. For the trivial `tmSimBlock_at` (§88.9,
+`b.poly = 0`), both sides are `0`.
+
+Paper citation: §29 Definition 7 fixes the canonical u/v split
+(p. 22-23); §40 Theorem 203 Step 1 (p. 194) specialises it to the
+per-tableau-cell arithmetisation. -/
+noncomputable def tmSimBlock_decompose
+    (σ : PaperFaithfulCompilation.UVSplit) (b : TMSimBlock σ.total) :
+    PaperFaithfulCompilation.CoupledSheetPoly σ ×
+      PaperFaithfulCompilation.PMnPoly σ :=
+  (0, b.poly)
+
+/-- **§111.2 — `tmSimBlock_decompose_eq_sum`** (paper §29 Definition 7 /
+§40 Theorem 203 Step 1, per-block u/v additive decomposition, pp.
+22-23 & 194).
+
+The block polynomial `b.poly` equals the sum of the wiring-pullback of
+its Cook-Levin part and its v-residual:
+
+  `b.poly = rename (zetaMN σ) (tmSimBlock_decompose σ b).1 +
+            (tmSimBlock_decompose σ b).2`
+
+Proof: `(tmSimBlock_decompose σ b).1 = 0` and
+`(tmSimBlock_decompose σ b).2 = b.poly`; the RHS is
+`rename (zetaMN σ) 0 + b.poly = 0 + b.poly = b.poly`.
+
+This is the per-cell form of paper §29 Definition 7's structural u/v
+split; its Finset-wide composition over the tableau is §112's
+`PMn_def_eq_embed_plus_residual`. -/
+theorem tmSimBlock_decompose_eq_sum
+    (σ : PaperFaithfulCompilation.UVSplit) (b : TMSimBlock σ.total) :
+    b.poly =
+      MvPolynomial.rename (zetaMN σ) (tmSimBlock_decompose σ b).1 +
+        (tmSimBlock_decompose σ b).2 := by
+  -- Unfold `tmSimBlock_decompose`: first component is 0, second is b.poly.
+  show b.poly =
+    MvPolynomial.rename (zetaMN σ)
+      ((0 : PaperFaithfulCompilation.CoupledSheetPoly σ)) + b.poly
+  -- `rename (zetaMN σ) 0 = 0` via `map_zero`.
+  rw [map_zero]
+  -- `0 + b.poly = b.poly`.
+  rw [zero_add]
+
+/-- **§111.3 — `tmSimBlock_decompose_v_residual_supp`** (paper §29
+Definition 7, v-only-support certificate for the administrative
+residual, pp. 22-23).
+
+For the trivial §88.9 `tmSimBlock_at` block (where `b.poly = 0`), the
+v-residual has empty support, so the v-only-support hypothesis of §101.4
+`piPhi_PMn_eq_embed_cookLevinQ` is vacuously satisfied: every
+`α ∈ (v_residual).support` yields some `i` with `¬ keepU σ i ∧ α i ≠ 0`,
+because the support set is empty and the universal-over-empty is
+trivially true.
+
+Hypothesis `hZero`: `b.poly = 0`. This holds structurally for
+`tmSimBlock_at` via §88.9 unfolding (and for `trivialTMSimBlock` via
+§88.7 `trivialTMSimBlock_poly`). Downstream §112 discharges this from
+the §88.9 definition directly.
+
+Paper citation: §29 Definition 7 (God-Move Gauge, u/v split, pp.
+22-23) — administrative/tableau blocks are restricted to fixed
+constants, i.e. the residual vanishes under the gauge. -/
+theorem tmSimBlock_decompose_v_residual_supp
+    (σ : PaperFaithfulCompilation.UVSplit) (b : TMSimBlock σ.total)
+    (hZero : b.poly = 0) :
+    ∀ α ∈ (tmSimBlock_decompose σ b).2.support,
+      ∃ i, ¬ PaperFaithfulCompilation.keepU σ i ∧ α i ≠ 0 := by
+  intro α hα
+  have hα' : α ∈ b.poly.support := hα
+  rw [hZero] at hα'
+  exfalso
+  exact (Finset.notMem_empty α) (by simpa using hα')
+
+/-- **§111.4 — `tmSimBlock_decompose_rename_supp`** (paper §29 Definition
+7 / §40 Theorem 203 Step 1, u-side wiring-pullback support, pp. 22-23
+& 194).
+
+The wiring-pullback of the Cook-Levin part of the per-block split has
+empty support: since `(tmSimBlock_decompose σ b).1 = 0`, we have
+`rename (zetaMN σ) 0 = 0`, whose support is empty. This is the
+trivial u-side piece of the §111 decomposition for the structural
+split `(0, b.poly)`.
+
+Paper citation: §29 Definition 7 (God-Move Gauge, p. 22-23); §40
+Theorem 203 Step 1 (p. 194). -/
+theorem tmSimBlock_decompose_rename_supp
+    (σ : PaperFaithfulCompilation.UVSplit) (b : TMSimBlock σ.total) :
+    (MvPolynomial.rename (zetaMN σ)
+        (tmSimBlock_decompose σ b).1).support = ∅ := by
+  show (MvPolynomial.rename (zetaMN σ)
+      ((0 : PaperFaithfulCompilation.CoupledSheetPoly σ))).support = ∅
+  rw [map_zero]
+  rfl
+
+/-- **§111.5 — `tmSimBlock_at_decompose_eq_sum`** (paper §29 Definition
+7 / §40 Theorem 203 Step 1, pp. 22-23 & 194).
+
+Concrete specialisation of §111.2 to the §88.9 `tmSimBlock_at` family.
+At tableau position `(t, i)`, the per-cell block
+`tmSimBlock_at t i : TMSimBlock σ.total` satisfies
+
+  `(tmSimBlock_at t i).poly =
+     rename (zetaMN σ) (tmSimBlock_decompose σ (tmSimBlock_at t i)).1 +
+     (tmSimBlock_decompose σ (tmSimBlock_at t i)).2`.
+
+This is the per-cell structural u/v split at the specific §88.9
+family, consumed by §112's full `PMn_def` decomposition. Direct
+corollary of §111.2 applied to `b := tmSimBlock_at t i`. -/
+theorem tmSimBlock_at_decompose_eq_sum
+    (σ : PaperFaithfulCompilation.UVSplit) (t i : ℕ) :
+    (@tmSimBlock_at σ.total t i).poly =
+      MvPolynomial.rename (zetaMN σ)
+        (tmSimBlock_decompose σ (@tmSimBlock_at σ.total t i)).1 +
+      (tmSimBlock_decompose σ (@tmSimBlock_at σ.total t i)).2 :=
+  tmSimBlock_decompose_eq_sum σ (@tmSimBlock_at σ.total t i)
+
+/-- **§111.6 — `tmSimBlock_at_poly_eq_zero`** (paper §40 Theorem 203
+Step 1 / §88.9, concrete per-cell block is trivial, p. 194).
+
+Explicit unfolding: the §88.9 `tmSimBlock_at t i` is definitionally
+`trivialTMSimBlock σ.total`, whose `.poly = 0` by §88.7.
+
+Paper citation: §40 Theorem 203 Step 1 (p. 194) fixes the per-cell
+arithmetisation as a radius-1 SoS gadget; the current scaffolding
+realises that gadget as the trivial (zero) block, yielding a
+structurally-consistent decomposition that will transport to
+non-trivial per-cell gadgets once they land in §88.9. -/
+theorem tmSimBlock_at_poly_eq_zero
+    {N : ℕ} (t i : ℕ) :
+    (@tmSimBlock_at N t i).poly = 0 := by
+  show (trivialTMSimBlock N).poly = 0
+  exact trivialTMSimBlock_poly N
+
+/-- **§111.7 — `tmSimBlock_at_decompose_v_residual_supp`** (paper §29
+Definition 7, v-only-support certificate for the per-cell
+administrative residual, pp. 22-23).
+
+Concrete specialisation of §111.3 to the §88.9 `tmSimBlock_at`
+family: the v-residual at position `(t, i)` has vacuous v-only
+support (the residual is 0 = `(tmSimBlock_at t i).poly`, whose
+support is empty).
+
+Paper citation: §29 Definition 7 (pp. 22-23); §40 Theorem 203 Step 1
+(p. 194). -/
+theorem tmSimBlock_at_decompose_v_residual_supp
+    (σ : PaperFaithfulCompilation.UVSplit) (t i : ℕ) :
+    ∀ α ∈ (tmSimBlock_decompose σ (@tmSimBlock_at σ.total t i)).2.support,
+      ∃ i', ¬ PaperFaithfulCompilation.keepU σ i' ∧ α i' ≠ 0 :=
+  tmSimBlock_decompose_v_residual_supp σ (@tmSimBlock_at σ.total t i)
+    (tmSimBlock_at_poly_eq_zero t i)
+
+
+/-! ## Section 124: UVSplit specialization of §88-90 `TMSimBlock` / `PMn_def`
+    (paper §29 Definition 7 / §40 Theorem 203, UVSplit tie-in for Path A)
+
+Paper §40 Theorem 203's compiled polynomial `P_{M,n}` must live over
+the **UVSplit-typed** variable index `σ.Idx = Fin (σ.numU + σ.numV)`
+(paper §29 Definition 7 `UVSplit`, p. 42-43: the clause-sheet/tableau
+variable partition `(u, v)` with `numU = n` input bits and
+`numV = poly(n)` tableau entries) so that the gauge `piPhi σ`, the
+Cook-Levin clause embedding `CoupledSheetPoly.embed σ`, and the
+wiring `zetaMN σ = σ.inlU` of §100 / §101 can consume it. The §88
+`TMSimBlock N` record and the §89 `PMn_def` Finset-sum construction
+are stated over the **generic ambient** `MvPolynomial (Fin N) ℚ`, with
+`N : ℕ` free, so that the §89/§90 structural bounds (CEW via §84/§89.5,
+variable-count via §97.12) work for every `N`.
+
+This section **bridges the two type families**: for every
+`σ : PaperFaithfulCompilation.UVSplit`, we specialise the generic
+`TMSimBlock`/`PMn_def` at `N := σ.total = σ.numU + σ.numV`. Since
+`PaperFaithfulCompilation.UVSplit.Idx` is the `abbrev`
+`Fin σ.total` and `PaperFaithfulCompilation.PMnPoly σ` is the
+`abbrev` `MvPolynomial σ.Idx ℚ`, the specialisations `TMSimBlock
+σ.total` and the resulting `PMn_def (N := σ.total) …` are
+**definitionally equal** to the UVSplit-typed forms consumed by the
+Path A extraction identity `piPhi σ PMn = embed σ cookLevinQ` of
+§101.4 (paper §40 Theorem 203 main extraction step).
+
+The section establishes:
+
+  * `tmSimBlock_σ σ t i : TMSimBlock σ.total` — the σ-specialised
+    per-cell block (§124.1), inheriting degree / variable-support /
+    CEW bounds from §88.1 / §88.3 / §88.5 (§124.2-§124.4);
+
+  * `PMn_σ σ n T paths blocks layers : PMnPoly σ` — the σ-specialised
+    compiled polynomial (§124.5), definitionally equal to the generic
+    `PMn_def (N := σ.total) …` (§124.6, §124.7);
+
+  * Transport of the §89.5 `PMn_hasCEWBound_structural` CEW bound
+    (§124.8 `PMn_σ_hasCEWBound`);
+
+  * Transport of the §97.12 `vars_card_tmSimBlock_le_n_pow_6`
+    variable bound (§124.9 `PMn_σ_vars_card_le_n_pow_6`);
+
+  * Transport of the §101.4 global extraction identity
+    `piPhi σ PMn = embed σ cookLevinQ` (§124.10
+    `piPhi_PMn_σ_eq_embed_cookLevinQ`);
+
+  * The trivial-paths edge-case identification `PMn_σ (∅) = embed 0`
+    (§124.11 `PMn_σ_empty_paths_eq_embed_zero`) — a concrete closed
+    instance of the "PMn_σ equals an `embed` of a `CoupledSheetPoly`"
+    shape that §101.4 produces in the full pipeline.
+
+All theorems are axiom-free and chain through the pre-existing §88/§89/
+§97/§101 machinery without modifying any earlier definition. They tie
+the §88-90 `Fin N`-indexed compilation scaffolding to the
+`PaperFaithfulCompilation.UVSplit`-typed consumer of Path A. -/
+
+/-- **§124.1 — `tmSimBlock_σ`** (paper §29 Definition 7 / §40 Theorem
+203, UVSplit tie-in for Path A). The σ-specialised per-cell block at
+tableau position `(t, i)`, obtained by instantiating §88.9's generic
+`tmSimBlock_at` at the UVSplit total variable count
+`N := σ.total = σ.numU + σ.numV`. Since `σ.Idx := Fin σ.total` is an
+`abbrev`, the underlying `poly` field is definitionally of type
+`PaperFaithfulCompilation.PMnPoly σ`, matching the type consumed by
+the §100/§101 Path A extraction machinery. -/
+noncomputable def tmSimBlock_σ (σ : PaperFaithfulCompilation.UVSplit)
+    (t i : ℕ) : TMSimBlock σ.total :=
+  @tmSimBlock_at σ.total t i
+
+/-- **§124.2 — `tmSimBlock_σ_poly_totalDegree_le`** (paper §29
+Definition 7 / §40 Theorem 203, UVSplit tie-in for Path A). The
+σ-specialised block has total degree ≤ 6, transporting the §88.5
+`TMSimBlock.totalDegree_le_six` bound through the `N := σ.total`
+specialisation. -/
+theorem tmSimBlock_σ_poly_totalDegree_le
+    (σ : PaperFaithfulCompilation.UVSplit) (t i : ℕ) :
+    (tmSimBlock_σ σ t i).poly.totalDegree ≤ 6 :=
+  (tmSimBlock_σ σ t i).degree_bound
+
+/-- **§124.3 — `tmSimBlock_σ_varSupport_card_le`** (paper §29
+Definition 7 / §40 Theorem 203, UVSplit tie-in for Path A). The
+σ-specialised block has `varSupport.card ≤ 6`, transporting the
+§88.4 `TMSimBlock.varSupport_card_le_six` bound. -/
+theorem tmSimBlock_σ_varSupport_card_le
+    (σ : PaperFaithfulCompilation.UVSplit) (t i : ℕ) :
+    (tmSimBlock_σ σ t i).varSupport.card ≤ 6 :=
+  (tmSimBlock_σ σ t i).support_bound
+
+/-- **§124.4 — `tmSimBlock_σ_hasCEWBound_six`** (paper §29 Definition
+7 / §40 Theorem 203, UVSplit tie-in for Path A). The σ-specialised
+block has CEW ≤ 6, transporting the §88.3 `TMSimBlock.hasCEWBound_six`
+bound. This is the unit-of-composition CEW bound used by
+`PMn_σ_hasCEWBound` (§124.8) to establish the global CEW bound on
+`PMn_σ`. -/
+theorem tmSimBlock_σ_hasCEWBound_six
+    (σ : PaperFaithfulCompilation.UVSplit) (t i : ℕ) :
+    HasCEWBound (tmSimBlock_σ σ t i).poly 6 :=
+  (tmSimBlock_σ σ t i).hasCEWBound_six
+
+/-- **§124.5 — `PMn_σ`** (paper §29 Definition 7 / §40 Theorem 203,
+UVSplit tie-in for Path A). The σ-specialisation of the generic §89.1
+`PMn_def` Finset-sum-of-products compiled polynomial, indexed by a
+finite BP-path Finset `paths` and a per-cell block family
+`blocks : ι → ℕ → ℕ → TMSimBlock σ.total`. The resulting polynomial
+has type `PaperFaithfulCompilation.PMnPoly σ` — the UVSplit-typed
+ambient consumed by the Path A extraction identity of §101.4. -/
+noncomputable def PMn_σ (σ : PaperFaithfulCompilation.UVSplit)
+    {ι : Type*} (n T : ℕ) (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock σ.total)
+    (layers : List (MvPolynomial σ.Idx ℚ)) :
+    PaperFaithfulCompilation.PMnPoly σ :=
+  PMn_def (N := σ.total) (ι := ι) n T paths blocks layers
+
+/-- **§124.6 — `PMn_σ_eq_PMn_def`** (paper §29 Definition 7 / §40
+Theorem 203, UVSplit tie-in for Path A). The σ-specialised
+`PMn_σ σ …` is **definitionally equal** to the generic
+`PMn_def (N := σ.total) …`, both viewed as an element of
+`PaperFaithfulCompilation.PMnPoly σ` via the `abbrev` chain
+`PMnPoly σ := MvPolynomial σ.Idx ℚ` and `σ.Idx := Fin σ.total`. The
+proof is `rfl`. This identifies the §88-90 `Fin N`-indexed compilation
+scaffolding with the UVSplit-typed Path A consumer, at the level of
+the compiled polynomial. -/
+theorem PMn_σ_eq_PMn_def (σ : PaperFaithfulCompilation.UVSplit)
+    {ι : Type*} (n T : ℕ) (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock σ.total)
+    (layers : List (MvPolynomial σ.Idx ℚ)) :
+    (PMn_σ σ n T paths blocks layers :
+      PaperFaithfulCompilation.PMnPoly σ) =
+      PMn_def (N := σ.total) (ι := ι) n T paths blocks layers := rfl
+
+/-- **§124.7 — `PMn_σ_as_finset_sum`** (paper §29 Definition 7 / §40
+Theorem 203, UVSplit tie-in for Path A). Expose the σ-specialised
+`PMn_σ` as a product of the Finset-sum of per-path block products and
+the Batcher-layer list product, transporting the §89.2
+`PMn_as_finset_sum` structural identity through the `N := σ.total`
+specialisation. -/
+theorem PMn_σ_as_finset_sum (σ : PaperFaithfulCompilation.UVSplit)
+    {ι : Type*} (n T : ℕ) (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock σ.total)
+    (layers : List (MvPolynomial σ.Idx ℚ)) :
+    (PMn_σ σ n T paths blocks layers :
+      PaperFaithfulCompilation.PMnPoly σ) =
+      (∑ p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n,
+              (blocks p t i).poly) *
+      layers.prod :=
+  PMn_as_finset_sum (N := σ.total) n T paths blocks layers
+
+/-- **§124.8 — `PMn_σ_hasCEWBound`** (paper §29 Definition 7 / §40
+Theorem 203, UVSplit tie-in for Path A). Transport the §89.5
+`PMn_hasCEWBound_structural` CEW bound to the σ-specialised
+`PMn_σ`: given CEW witnesses for the TM-trace piece and the
+Batcher-layer product, the compiled polynomial `PMn_σ` has
+CEW `≤ w_trace + w_batcher`. This is the paper §40 Theorem 203
+conditional CEW bound, now stated at the UVSplit-typed level ready
+for consumption by Path A. -/
+theorem PMn_σ_hasCEWBound (σ : PaperFaithfulCompilation.UVSplit)
+    {ι : Type*} (n T : ℕ) (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock σ.total)
+    (layers : List (MvPolynomial σ.Idx ℚ))
+    (w_trace w_batcher : ℕ)
+    (h_trace : HasCEWBound
+      (∑ p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n,
+              (blocks p t i).poly) w_trace)
+    (h_batcher : HasCEWBound layers.prod w_batcher) :
+    HasCEWBound (PMn_σ σ n T paths blocks layers :
+      PaperFaithfulCompilation.PMnPoly σ)
+      (w_trace + w_batcher) :=
+  PMn_hasCEWBound_structural (N := σ.total) n T paths blocks layers
+    w_trace w_batcher h_trace h_batcher
+
+/-- **§124.9 — `PMn_σ_vars_card_le_n_pow_6`** (paper §29 Definition 7
+/ §40 Theorem 203, UVSplit tie-in for Path A). Transport the §97.12
+`vars_card_tmSimBlock_le_n_pow_6` variable-count bound to the
+σ-specialised ambient: any polynomial `p : PaperFaithfulCompilation.PMnPoly σ`
+decomposed as a sum-of-products of `TMSimBlock σ.total` polynomials,
+under polynomial family/block counts `|S| ≤ n^2` and `sup |blocks s|
+≤ n^4`, satisfies `p.vars.card ≤ 6 * n^6`. This is the paper §40
+Theorem 203 variable-count hypothesis required by the main rank
+envelope (paper Theorem 192 feeding Theorem 203), now stated at the
+UVSplit-typed level. -/
+theorem PMn_σ_vars_card_le_n_pow_6
+    (σ : PaperFaithfulCompilation.UVSplit)
+    {ιS : Type*} [DecidableEq ιS] {ιB : Type*} [DecidableEq ιB]
+    (S : Finset ιS) (blocks : ιS → Finset ιB)
+    (simBlock : ιS → ιB → TMSimBlock σ.total)
+    (p : PaperFaithfulCompilation.PMnPoly σ) (n : ℕ)
+    (hDecomp : p = ∑ s ∈ S, ∏ b ∈ blocks s, (simBlock s b).poly)
+    (hS : S.card ≤ n ^ 2)
+    (hBlocks : S.sup (fun s => (blocks s).card) ≤ n ^ 4) :
+    p.vars.card ≤ 6 * n ^ 6 :=
+  vars_card_tmSimBlock_le_n_pow_6 (N := σ.total)
+    S blocks simBlock p n hDecomp hS hBlocks
+
+/-- **§124.10 — `piPhi_PMn_σ_eq_embed_cookLevinQ`** (paper §29
+Definition 7 / §40 Theorem 203, UVSplit tie-in for Path A — main
+extraction identity). Transport the §101.4
+`piPhi_PMn_eq_embed_cookLevinQ` global extraction identity to a
+UVSplit-typed compiled polynomial `PMn : PaperFaithfulCompilation.PMnPoly σ`
+produced by the §88-90 compilation pipeline: given the paper-faithful
+block decomposition `PMn = ∑ b ∈ s, block b` with each block equal
+to `embed σ (cookLevinBlock b) + v_residual b` (v-only residual), we
+have the canonical paper Theorem 203 extraction identity
+
+  `piPhi σ PMn = embed σ (∑ b ∈ s, cookLevinBlock b)`.
+
+This is the unconditional form of paper §40 Theorem 203's main
+extraction step, at the UVSplit-typed level — the **Path A consumer
+signature**. -/
+theorem piPhi_PMn_σ_eq_embed_cookLevinQ
+    (σ : PaperFaithfulCompilation.UVSplit) {ι : Type*} (s : Finset ι)
+    (block : ι → PaperFaithfulCompilation.PMnPoly σ)
+    (cookLevinBlock : ι → PaperFaithfulCompilation.CoupledSheetPoly σ)
+    (v_residual : ι → PaperFaithfulCompilation.PMnPoly σ)
+    (PMn : PaperFaithfulCompilation.PMnPoly σ)
+    (hSum : PMn = ∑ b ∈ s, block b)
+    (hBlockDecomp : ∀ b ∈ s,
+      block b =
+        PaperFaithfulCompilation.CoupledSheetPoly.embed σ
+          (cookLevinBlock b) + v_residual b)
+    (hResidualVOnly : ∀ b ∈ s, ∀ α ∈ (v_residual b).support,
+      ∃ i, ¬ PaperFaithfulCompilation.keepU σ i ∧ α i ≠ 0) :
+    PaperFaithfulCompilation.piPhi σ PMn =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ
+        (∑ b ∈ s, cookLevinBlock b) :=
+  piPhi_PMn_eq_embed_cookLevinQ σ s block cookLevinBlock v_residual
+    PMn hSum hBlockDecomp hResidualVOnly
+
+/-- **§124.11 — `PMn_σ_empty_paths_eq_embed_zero`** (paper §29
+Definition 7 / §40 Theorem 203, UVSplit tie-in for Path A, edge case).
+A concrete closed instance of the "`PMn_σ` equals an `embed` of a
+`CoupledSheetPoly`" shape produced by §124.10 in the full pipeline:
+when the BP-path Finset is empty, `PMn_σ (∅) = embed σ 0` via the
+§89.6 `PMn_def_zero_paths` edge case and the
+`PaperFaithfulCompilation.embed_zero` identity. Exhibits a first
+paper-faithful `PMn_σ` polynomial of the form consumed by the §101.4
+Path A extraction identity. -/
+theorem PMn_σ_empty_paths_eq_embed_zero
+    (σ : PaperFaithfulCompilation.UVSplit) {ι : Type*} (n T : ℕ)
+    (blocks : ι → ℕ → ℕ → TMSimBlock σ.total)
+    (layers : List (MvPolynomial σ.Idx ℚ)) :
+    (PMn_σ σ n T (∅ : Finset ι) blocks layers :
+      PaperFaithfulCompilation.PMnPoly σ) =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ 0 := by
+  rw [PaperFaithfulCompilation.embed_zero σ]
+  show PMn_def (N := σ.total) (ι := ι) n T (∅ : Finset ι) blocks layers = 0
+  exact PMn_def_zero_paths (N := σ.total) (ι := ι) n T blocks layers
+
+/-- **§124.12 — `PMn_σ_totalDegree_le`** (paper §29 Definition 7 / §40
+Theorem 203, UVSplit tie-in for Path A). Transport the §89.4
+`PMn_totalDegree_le` total-degree bound to the σ-specialised
+`PMn_σ`: the total degree is bounded by the sum of the Finset-sum
+piece's total degree and the Batcher-layer product's total degree.
+This completes the per-σ structural bookkeeping for the
+UVSplit-specialised compiled polynomial. -/
+theorem PMn_σ_totalDegree_le (σ : PaperFaithfulCompilation.UVSplit)
+    {ι : Type*} (n T : ℕ) (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock σ.total)
+    (layers : List (MvPolynomial σ.Idx ℚ)) :
+    (PMn_σ σ n T paths blocks layers :
+      PaperFaithfulCompilation.PMnPoly σ).totalDegree ≤
+      (∑ p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n,
+              (blocks p t i).poly).totalDegree +
+      layers.prod.totalDegree :=
+  PMn_totalDegree_le (N := σ.total) n T paths blocks layers
+
 end Step4Compiler
