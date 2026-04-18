@@ -1341,14 +1341,45 @@ This is exactly Step 2 of Path A — provided we can match up:
 The matching is a matter of variable-counting and partition choice.
 We provide the bridge statement below as the Step 2 interface. -/
 
-/-- **Step 2 bridge (statement form)**: given a Tseitin formula Φ with
-a disjoint packing of size ≥ C(n/3, log n) · κ-choices, the
-`coupledVerifier F Φ` achieves the required rank bound. This matches
-the `hQRank` hypothesis of `pathA_two_hypothesis_separation` when the
-UVSplit and block partition are chosen appropriately.
+/-- **Step 2 interface theorem**: given any polynomial `p` with an
+`mlBlockedSpdpRank` lower bound at some partition `B'`, this transports
+to `embed(p)` under the piPhi framework.
 
-Concrete bridging (matching partition/rank functions) is future plug-in
-work; the theorem below states the compatibility goal cleanly. -/
-theorem step2_interface_comment : True := trivial
+Concrete application: set `p := coupledVerifier F Φ` for a Tseitin
+formula Φ, `B' := tseitinPartition Φ`; then one has a rank lower bound
+via Tseitin machinery (requires `blockedSpdpRank` → `mlBlockedSpdpRank`
+lift, which holds because the identity-minor τ monomials are multilinear
+— the Kronecker coefficients survive mlProj). -/
+theorem step2_embed_rank_ge_of_source
+    (σ : UVSplit) (B : SPDP.BlockPartition σ.total) (κ ℓ : ℕ)
+    (Q : CoupledSheetPoly σ) (lowerBound : ℕ)
+    (hSourceBound : lowerBound ≤ MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B σ.inlU) κ ℓ Q) :
+    lowerBound ≤ MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+      (CoupledSheetPoly.embed σ Q) :=
+  le_trans hSourceBound (embed_rank_preservation σ B κ ℓ Q)
+
+/-- **Full Path A separation from source-rank bound**: the final
+assembly. Given:
+- A PMn-side bound `rank(templatePMn σ Q) ≤ n^200` (Task D)
+- A Q-side bound `rank(Q, pullback) ≥ C(n/3, log n)` (Task E/Step 2)
+we derive False at n ≥ 2^804.
+
+The Q-side bound itself is the content of Theorem 128 (identity minor
+on Q^×_Φ via disjoint packing); its Lean port uses
+`Tseitin.identity_minor_lower_bound` + multilinear-τ preservation of
+LI through mlProj. -/
+theorem pathA_final_separation
+    (n : ℕ) (hn : n ≥ 2 ^ 804)
+    {σ : UVSplit} (hV : 0 < σ.numV)
+    (B : SPDP.BlockPartition σ.total)
+    (Q : CoupledSheetPoly σ) (κ ℓ : ℕ)
+    (hQSource : Nat.choose (n / 3) (Nat.log 2 n) ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition B σ.inlU) κ ℓ Q)
+    (hPMnRank : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+      (templatePMn σ Q) ≤ n ^ 200) :
+    False :=
+  pathA_two_hypothesis_separation n hn hV B Q κ ℓ hQSource hPMnRank
 
 end PaperFaithfulCompilation
