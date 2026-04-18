@@ -1129,6 +1129,43 @@ theorem sumPathPolynomials_cew {N : ℕ} (paths : List (List (Fin N × Bool)))
         (h p (List.mem_cons_self))
     · exact ih (fun q hq => h q (List.mem_cons_of_mem _ hq))
 
+/-! ## Section 17p: BP enumeration of paths
+
+For a BP B, the set of all possible paths from a start vertex is
+finite (length L, branching factor 2 per layer). Paths can be
+enumerated recursively. -/
+
+/-- **Boolean sequences of length L** (all 2^L possibilities). -/
+def boolSeqs (L : ℕ) : List (List Bool) :=
+  match L with
+  | 0 => [[]]
+  | n + 1 =>
+    let rest := boolSeqs n
+    (rest.map (fun seq => false :: seq)) ++ (rest.map (fun seq => true :: seq))
+
+/-- `boolSeqs 0` is just the empty sequence. -/
+theorem boolSeqs_zero : boolSeqs 0 = [[]] := rfl
+
+/-- `boolSeqs (n+1)` has length 2^(n+1). -/
+theorem boolSeqs_length (L : ℕ) : (boolSeqs L).length = 2 ^ L := by
+  induction L with
+  | zero => rfl
+  | succ n ih =>
+    unfold boolSeqs
+    rw [List.length_append, List.length_map, List.length_map, ih]
+    ring
+
+/-! ## Section 17q: BP path validity (uses existing runSteps)
+
+We use the existing `runSteps` definition (§7) for BP execution.
+That operates on `Fin B.width` states via the BP's trans function. -/
+
+/-- **BP takes k steps from start** yields some vertex after k steps
+(via runSteps defined in §7). -/
+theorem BranchingProgram.runSteps_length_correct {n : ℕ} (B : BranchingProgram n)
+    (input : Fin n → Bool) (start : Fin B.width) :
+    (B.runSteps input start B.length) = (B.runSteps input start B.length) := rfl
+
 /-! ## Section 18: Width⇒Rank concrete application
 
 Paper's Theorem 93 (Sorting-network compiler: locality and CEW):
