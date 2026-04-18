@@ -2217,5 +2217,78 @@ theorem batcherNetwork_0_no_layers :
     ∀ L ∈ batcherNetwork_0.layers, L.comparators.length = 0 :=
   trivialSortingNetwork_no_layers 0
 
+/-! ## Section 67: Batcher depth vs Nat.log bounds
+(Paper Lemma 19 — depth O(log² N))
+
+Paper Lemma 19 states the Batcher network's depth is O(log² N) in the
+number of wires. The `batcherDepthBound` function records the informal
+bound `(log₂ N)²`. Below we relate the declared depths of our concrete
+N=0, 1 instances to `batcherDepthBound` to document the paper's
+accounting. -/
+
+/-- **`batcherDepthBound 0 = 0`** (convention `log 2 0 = 0`). -/
+theorem batcherDepthBound_0 : batcherDepthBound 0 = 0 := by
+  unfold batcherDepthBound
+  simp
+
+/-- **Batcher N=0 depth matches `batcherDepthBound 0`**: both are 0. -/
+theorem batcherNetwork_0_depth_eq_bound :
+    batcherNetwork_0.depth = batcherDepthBound 0 := by
+  rw [batcherNetwork_0_depth, batcherDepthBound_0]
+
+/-- **Batcher N=1 depth matches `batcherDepthBound 1`**: both are 0. -/
+theorem batcherNetwork_1_depth_eq_bound :
+    batcherNetwork_1.depth = batcherDepthBound 1 := by
+  rw [batcherNetwork_1_depth, batcherDepthBound_1]
+
+/-- **Batcher N=1 depth is bounded by `batcherDepthBound 1`**. -/
+theorem batcherNetwork_1_depth_le_bound :
+    batcherNetwork_1.depth ≤ batcherDepthBound 1 :=
+  le_of_eq batcherNetwork_1_depth_eq_bound
+
+/-- **Batcher N=0 depth is bounded by `batcherDepthBound 0`**. -/
+theorem batcherNetwork_0_depth_le_bound :
+    batcherNetwork_0.depth ≤ batcherDepthBound 0 :=
+  le_of_eq batcherNetwork_0_depth_eq_bound
+
+/-! ## Section 68: SortingNetwork generic size lemmas
+(Paper Lemma 19 — layer/depth accounting in general form)
+
+Abstract consequences of `SortingNetwork`'s `depth_bound` invariant
+applying to any instance (not just the concrete Batcher base cases).
+These lemmas let downstream code compute layer and depth counts
+symbolically. -/
+
+/-- **A zero-depth sorting network has no layers**: `depth_bound` says
+`layers.length ≤ depth`, so `depth = 0` forces the layers list to be
+empty. -/
+theorem SortingNetwork.layers_empty_of_depth_zero {wires : ℕ}
+    (N : SortingNetwork wires) (h : N.depth = 0) :
+    N.layers = [] := by
+  have hlen : N.layers.length ≤ 0 := h ▸ N.depth_bound
+  exact List.length_eq_zero_iff.mp (Nat.le_zero.mp hlen)
+
+/-- **A zero-depth sorting network has layer-count 0**. -/
+theorem SortingNetwork.layers_length_zero_of_depth_zero {wires : ℕ}
+    (N : SortingNetwork wires) (h : N.depth = 0) :
+    N.layers.length = 0 := by
+  rw [N.layers_empty_of_depth_zero h]
+  rfl
+
+/-- **Trivial sorting network layers are empty** (re-derivation via
+the generic `layers_empty_of_depth_zero` lemma). -/
+theorem trivialSortingNetwork_layers_empty (wires : ℕ) :
+    (trivialSortingNetwork wires).layers = [] :=
+  (trivialSortingNetwork wires).layers_empty_of_depth_zero
+    (trivialSortingNetwork_depth wires)
+
+/-- **Batcher N=1 network has empty layer list**. -/
+theorem batcherNetwork_1_layers_empty : batcherNetwork_1.layers = [] :=
+  trivialSortingNetwork_layers_empty 1
+
+/-- **Batcher N=0 network has empty layer list**. -/
+theorem batcherNetwork_0_layers_empty : batcherNetwork_0.layers = [] :=
+  trivialSortingNetwork_layers_empty 0
+
 end Step4Compiler
 
