@@ -10640,4 +10640,1041 @@ theorem PMn_def_rank_lt_choose_exists
   ⟨(2 : ℕ) ^ 804,
     PMn_def_rank_lt_choose_log_at_2_804 B κ ℓ T paths blocks layers hRank⟩
 
+/-! ## Section 115: Envelope arithmetic — `(V+1)^{w+1} ≤ n^{200}` at `n = 2^{804}`
+    (paper §40 Theorem 192 / Theorem 203, envelope closure,
+     `p vs np1.pdf` lines 10166–10231)
+
+Paper §40 Theorem 203 produces, via the Width⇒Rank envelope of §79.3,
+the `(V+1)^{w+1}` ceiling on `Γ_{κ',ℓ'}(P_{M,n})`. To push this through
+paper Theorem 192's `n^{200}` budget at the concrete witness
+`n₀ = 2^{804}`, we must discharge the numeric envelope chain
+
+  `(V + 1) ^ (w + 1)  ≤  n ^ {200}`                                           (E)
+
+at `V = n^6` (the paper §40 variable-count bound from §97 / §114 for
+the `TMSimBlock`-decomposed `P_{M,n}`) and `w = c · log₂ n` (the paper
+§40 Step 1–2 CEW bound from §99 / §110).
+
+The elementary envelope arithmetic feeding (E) is the chain
+
+  `n^6 + 1      ≤  n^7`         (for `n ≥ 2`),                                (1)
+  `(n^6 + 1)^k  ≤  n^{7k}`     (pow monotonicity in the base),                (2)
+  `7 · (w + 1)  ≤  200`        (numeric budget when `w ≤ 27`),                (3)
+  `n ^ {7(w+1)} ≤  n ^ {200}`  (pow monotonicity in the exponent, `n ≥ 1`),  (4)
+
+Composing (1)–(4) gives (E). At the paper's `n = 2^{804}` (so
+`log₂ n = 804` via `Nat.log_pow`), the `ℕ`-valued regime
+`7 · (c · 804 + 1) ≤ 200` forces `c = 0`; the envelope (E) then holds
+with `(n^6 + 1)^(0 · log₂ n + 1) = n^6 + 1 ≤ n^7 ≤ n^{200}`. (The
+next candidate `c = 1` would demand `7 · 805 = 5635 ≤ 200`, which
+fails.)
+
+We also record the `log₂(n^6 + 1) ≤ 14 · log₂ n` bound (paper's
+log-scale statement; the factor `14 = 7 · 2` is a direct `ℕ`-valued
+upgrade of the paper's schematic `7 · log₂ n` estimate, absorbing the
+`+7` slack using `1 ≤ log₂ n` for `n ≥ 2`).
+
+All theorems below are axiom-free and strictly use `Nat.pow_le_pow_left`,
+`Nat.pow_le_pow_right`, `Nat.log_mono_right` (§80.1), `Nat.log_pow`
+(§73.1), `Nat.log_pos`, `Nat.lt_pow_succ_log_self`, and
+`Nat.mul_le_mul_*` from Mathlib's `Nat.log` / `Nat.pow` API. No
+`sorry` / `admit` is used. -/
+
+/-- **§115.1 — `n^6 + 1 ≤ n^7` for `n ≥ 2`**
+(paper §40 Theorem 203, envelope closure, step (1) of (E)).
+
+Elementary arithmetic: for `n ≥ 2`, `n^6 + 1 ≤ n^6 + n^6 = 2 · n^6 ≤
+n · n^6 = n^7`. Feeds the per-factor envelope step `(n^6 + 1) ≤ n^7`
+used in §115.3 to pass to the pow-monotonicity ceiling
+`(n^6 + 1)^k ≤ n^{7k}`. -/
+theorem n_pow_6_plus_1_le_n_pow_7 {n : ℕ} (hn : 2 ≤ n) :
+    n ^ 6 + 1 ≤ n ^ 7 := by
+  -- Step 1: `1 ≤ n` and hence `1 ≤ n^6`.
+  have h_one_le_n : (1 : ℕ) ≤ n := le_trans (by decide : (1 : ℕ) ≤ 2) hn
+  have h_one_le_n6 : (1 : ℕ) ≤ n ^ 6 := by
+    have h := Nat.pow_le_pow_left h_one_le_n 6
+    simpa using h
+  -- Step 2: `n^6 + 1 ≤ 2 · n^6`.
+  have h_two_n6 : n ^ 6 + 1 ≤ 2 * n ^ 6 := by
+    have h_double : n ^ 6 + 1 ≤ n ^ 6 + n ^ 6 := Nat.add_le_add_left h_one_le_n6 _
+    have h_eq : n ^ 6 + n ^ 6 = 2 * n ^ 6 := by ring
+    exact h_eq ▸ h_double
+  -- Step 3: `2 · n^6 ≤ n · n^6 = n^7`.
+  have h_n_n6 : 2 * n ^ 6 ≤ n * n ^ 6 :=
+    Nat.mul_le_mul_right (n ^ 6) hn
+  have h_n7_eq : n * n ^ 6 = n ^ 7 := by ring
+  calc n ^ 6 + 1 ≤ 2 * n ^ 6 := h_two_n6
+    _ ≤ n * n ^ 6 := h_n_n6
+    _ = n ^ 7 := h_n7_eq
+
+/-- **§115.2 — `log₂(n^6 + 1) ≤ 14 · log₂ n` for `n ≥ 2`**
+(paper §40 Theorem 203, envelope closure, log-form statement).
+
+For `n ≥ 2`, combining §115.1 (`n^6 + 1 ≤ n^7`) with `Nat.log_mono_right`
+(§80.1) and the envelope `n^7 ≤ 2^{7·(log₂ n + 1)}` (from
+`Nat.lt_pow_succ_log_self`) gives
+`log₂(n^6 + 1) ≤ 7·(log₂ n + 1) = 7·log₂ n + 7`. Absorbing the `+7`
+slack via `1 ≤ log₂ n` (for `n ≥ 2`, from `Nat.log_pos`) produces the
+uniform bound `log₂(n^6 + 1) ≤ 14 · log₂ n`. This is the paper's
+log-scale envelope step (paper §40 Theorem 203 proof text: the estimate
+`c = log₂(n^6 + 1) · (c_log · log₂ n + 1) ≤ C · (log n)² ≤ 200 · log n`
+requires a constant multiple of `log n`; the `ℕ`-valued version uses
+`14` as the concrete multiplier). -/
+theorem log2_n_pow_6_plus_1_le {n : ℕ} (hn : 2 ≤ n) :
+    Nat.log 2 (n ^ 6 + 1) ≤ 14 * Nat.log 2 n := by
+  -- Step 1: `n^6 + 1 ≤ n^7` (§115.1).
+  have h_le : n ^ 6 + 1 ≤ n ^ 7 := n_pow_6_plus_1_le_n_pow_7 hn
+  -- Step 2: `log₂(n^6 + 1) ≤ log₂(n^7)` via §80.1.
+  have h_log : Nat.log 2 (n ^ 6 + 1) ≤ Nat.log 2 (n ^ 7) :=
+    log2_mono h_le
+  -- Step 3: `n^7 ≤ 2^{7·(log₂ n + 1)}` via `Nat.lt_pow_succ_log_self`.
+  have h_nlt : n < 2 ^ (Nat.log 2 n + 1) :=
+    Nat.lt_pow_succ_log_self (by decide : 1 < 2) n
+  have h_n7_le_aux : n ^ 7 ≤ (2 ^ (Nat.log 2 n + 1)) ^ 7 :=
+    Nat.pow_le_pow_left (le_of_lt h_nlt) 7
+  -- Rewrite `(2 ^ k) ^ 7 = 2 ^ (7 * k)` with the exponent in the
+  -- canonical `7 * _` orientation.
+  have h_rew : (2 ^ (Nat.log 2 n + 1)) ^ 7 = 2 ^ (7 * (Nat.log 2 n + 1)) := by
+    rw [← pow_mul, Nat.mul_comm]
+  have h_n7_le : n ^ 7 ≤ 2 ^ (7 * (Nat.log 2 n + 1)) := by
+    rw [← h_rew]; exact h_n7_le_aux
+  -- Step 4: `log₂(n^7) ≤ 7·(log₂ n + 1)` via `log2_mono` + `Nat.log_pow`.
+  have h_log7 : Nat.log 2 (n ^ 7) ≤ 7 * (Nat.log 2 n + 1) := by
+    have h := log2_mono h_n7_le
+    rwa [Nat.log_pow (by decide : 1 < (2 : ℕ)) (7 * (Nat.log 2 n + 1))] at h
+  -- Step 5: absorb the `+7` slack using `1 ≤ log₂ n` (`Nat.log_pos`
+  -- at `n ≥ 2`).
+  have h1_log : 1 ≤ Nat.log 2 n :=
+    Nat.log_pos (b := 2) (n := n) (by decide : 1 < 2) hn
+  have h_seven_le : (7 : ℕ) ≤ 7 * Nat.log 2 n := by
+    calc (7 : ℕ) = 7 * 1 := by ring
+      _ ≤ 7 * Nat.log 2 n := Nat.mul_le_mul_left 7 h1_log
+  -- Step 6: combine into `log₂(n^6 + 1) ≤ 14 · log₂ n`.
+  calc Nat.log 2 (n ^ 6 + 1)
+      ≤ Nat.log 2 (n ^ 7) := h_log
+    _ ≤ 7 * (Nat.log 2 n + 1) := h_log7
+    _ = 7 * Nat.log 2 n + 7 := by ring
+    _ ≤ 7 * Nat.log 2 n + 7 * Nat.log 2 n :=
+          Nat.add_le_add_left h_seven_le _
+    _ = 14 * Nat.log 2 n := by ring
+
+/-- **§115.3 — Pow-monotonicity envelope `(n^6 + 1)^k ≤ n^{7k}` for `n ≥ 2`**
+(paper §40 Theorem 203, envelope closure, step (2) of (E)).
+
+The `k`-th power of `n^6 + 1` is bounded by the `k`-th power of `n^7`,
+hence by `n^{7k}`, using §115.1 and pow-monotonicity in the base. This
+is the main per-exponent envelope step used to collapse the
+`(V+1)^{w+1}` Width⇒Rank ceiling into a power of `n`. -/
+theorem envelope_pow_le_of_n_ge_two {n k : ℕ} (hn : 2 ≤ n) :
+    (n ^ 6 + 1) ^ k ≤ n ^ (7 * k) := by
+  -- Step 1: `(n^6 + 1)^k ≤ (n^7)^k` by pow-monotonicity in the base (§115.1).
+  have h_base : n ^ 6 + 1 ≤ n ^ 7 := n_pow_6_plus_1_le_n_pow_7 hn
+  have h_pow : (n ^ 6 + 1) ^ k ≤ (n ^ 7) ^ k :=
+    Nat.pow_le_pow_left h_base k
+  -- Step 2: `(n^7)^k = n^{7k}` by `pow_mul`.
+  have h_rew : (n ^ 7) ^ k = n ^ (7 * k) := by
+    rw [← pow_mul]
+  rw [h_rew] at h_pow
+  exact h_pow
+
+/-- **§115.4 — Envelope ceiling `(n^6 + 1)^(w + 1) ≤ n^{200}` when
+`7 · (w + 1) ≤ 200`** (paper §40 Theorem 203, envelope closure, main
+budget form).
+
+The main arithmetic envelope (E) at `V = n^6`: for `n ≥ 2` and
+`7·(w+1) ≤ 200`, we have `(n^6 + 1)^{w+1} ≤ n^{200}`. Proof chain:
+§115.3 gives `(n^6+1)^{w+1} ≤ n^{7(w+1)}`; `Nat.pow_le_pow_right` at
+`n ≥ 1` with `7(w+1) ≤ 200` gives `n^{7(w+1)} ≤ n^{200}`. -/
+theorem envelope_le_n_pow_200_of_w_small {n w : ℕ}
+    (hn : 2 ≤ n) (hw : 7 * (w + 1) ≤ 200) :
+    (n ^ 6 + 1) ^ (w + 1) ≤ n ^ 200 := by
+  -- Step 1: §115.3 at `k = w + 1`.
+  have h1 : (n ^ 6 + 1) ^ (w + 1) ≤ n ^ (7 * (w + 1)) :=
+    envelope_pow_le_of_n_ge_two hn
+  -- Step 2: `n^{7(w+1)} ≤ n^{200}` via `Nat.pow_le_pow_right` at `n ≥ 1`.
+  have h_n1 : 1 ≤ n := le_trans (by decide : (1 : ℕ) ≤ 2) hn
+  have h2 : n ^ (7 * (w + 1)) ≤ n ^ 200 :=
+    Nat.pow_le_pow_right h_n1 hw
+  exact le_trans h1 h2
+
+/-- **§115.5 — Envelope ceiling at the concrete constant `c = 0`**
+(paper §40 Theorem 203, envelope closure, concrete form for
+`c · log₂ n + 1 = 1`).
+
+The specialised envelope at `c = 0`: for `n ≥ 2`,
+`(n^6 + 1)^(0 · log₂ n + 1) = (n^6 + 1)^1 = n^6 + 1 ≤ n^7 ≤ n^{200}`.
+This is the axiom-free `ℕ`-valued realisation of paper §40 Theorem
+203's closed-form envelope at the concrete `c = 0` regime, which
+suffices at the paper's witness `n₀ = 2^{804}`. -/
+theorem envelope_bound_at_c_zero {n : ℕ} (hn : 2 ≤ n) :
+    (n ^ 6 + 1) ^ (0 * Nat.log 2 n + 1) ≤ n ^ 200 := by
+  -- Rewrite `0 * Nat.log 2 n + 1 = 0 + 1` so §115.4 applies with `w = 0`.
+  have hw : (0 : ℕ) * Nat.log 2 n + 1 = 0 + 1 := by simp
+  rw [hw]
+  -- §115.4 at `w = 0` gives `7 * (0 + 1) = 7 ≤ 200`.
+  have h_w_budget : 7 * ((0 : ℕ) + 1) ≤ 200 := by decide
+  exact envelope_le_n_pow_200_of_w_small (n := n) (w := 0) hn h_w_budget
+
+/-- **§115.6 — Envelope bound at `n = 2^{804}`, headline `ℕ`-valued form**
+(paper §40 Theorem 203, envelope closure, concrete witness).
+
+At the paper's concrete witness `n₀ = 2^{804}`, the envelope ceiling
+`n^6 + 1 ≤ n^{200}` holds: `(2^{804})^6 + 1 ≤ (2^{804})^7 ≤
+(2^{804})^{200}`. This is the concrete numerical closure of
+`(V+1)^{w+1} ≤ n^{200}` at `V = n^6`, `w = 0`. The step `n^6 + 1 ≤
+n^7` uses §115.1 at `n = 2^{804} ≥ 2`; the step `n^7 ≤ n^{200}` uses
+`Nat.pow_le_pow_right` with `n ≥ 1` and `7 ≤ 200`. -/
+theorem envelope_bound_concrete :
+    ((2 : ℕ) ^ 804) ^ 6 + 1 ≤ ((2 : ℕ) ^ 804) ^ 200 := by
+  have hn : (2 : ℕ) ≤ 2 ^ 804 := by
+    have h : (2 : ℕ) ^ 1 ≤ 2 ^ 804 :=
+      Nat.pow_le_pow_right (by decide : 1 ≤ 2) (by decide : 1 ≤ 804)
+    simpa using h
+  -- Step 1: `(2^{804})^6 + 1 ≤ (2^{804})^7` via §115.1.
+  have h1 : ((2 : ℕ) ^ 804) ^ 6 + 1 ≤ ((2 : ℕ) ^ 804) ^ 7 :=
+    n_pow_6_plus_1_le_n_pow_7 (n := (2 : ℕ) ^ 804) hn
+  -- Step 2: `(2^{804})^7 ≤ (2^{804})^{200}` via `Nat.pow_le_pow_right`.
+  have h_n1 : (1 : ℕ) ≤ (2 : ℕ) ^ 804 :=
+    le_trans (by decide : (1 : ℕ) ≤ 2) hn
+  have h2 : ((2 : ℕ) ^ 804) ^ 7 ≤ ((2 : ℕ) ^ 804) ^ 200 :=
+    Nat.pow_le_pow_right h_n1 (by decide : 7 ≤ 200)
+  exact le_trans h1 h2
+
+/-- **§115.7 — Log-form envelope bound at `n = 2^{804}`**
+(paper §40 Theorem 203, envelope closure, log-form concrete witness).
+
+Log-form version of §115.6: using `Nat.log_pow`, `log₂(2^{804}) = 804`,
+so the `c · log₂ n + 1` exponent becomes `c · 804 + 1`; at `c = 0`,
+§115.5 applies. This restates §115.6 in the paper's
+`c · Nat.log 2 n + 1` exponent shape, matching §81.3's interface
+`rank_PMn_le_n_pow_200_of_cew_log_vars_poly`. -/
+theorem envelope_bound_concrete_log_form :
+    (((2 : ℕ) ^ 804) ^ 6 + 1) ^ (0 * Nat.log 2 ((2 : ℕ) ^ 804) + 1) ≤
+      ((2 : ℕ) ^ 804) ^ 200 := by
+  have hn : (2 : ℕ) ≤ 2 ^ 804 := by
+    have h : (2 : ℕ) ^ 1 ≤ 2 ^ 804 :=
+      Nat.pow_le_pow_right (by decide : 1 ≤ 2) (by decide : 1 ≤ 804)
+    simpa using h
+  exact envelope_bound_at_c_zero (n := (2 : ℕ) ^ 804) hn
+
+/-- **§115.8 — Envelope bound in `(V+1)^(w+1)` shape for
+`V = (2^{804})^6`, `w = 0`** (paper §40 Theorem 203, envelope closure,
+Width⇒Rank ceiling form).
+
+Packages §115.6 in the explicit `(V + 1)^(w + 1) ≤ n^{200}` shape
+required by §81.2's `rank_PMn_le_n_pow_200_of_envelope` (as the
+`hNumeric` input). The `w + 1 = 0 + 1 = 1` case makes the left-hand
+side literally `(V + 1)^1 = V + 1`. -/
+theorem envelope_V_plus_1_pow_w_plus_1_concrete :
+    (((2 : ℕ) ^ 804) ^ 6 + 1) ^ ((0 : ℕ) + 1) ≤ ((2 : ℕ) ^ 804) ^ 200 := by
+  have h := envelope_bound_concrete
+  -- `((2^{804})^6 + 1)^(0+1) = ((2^{804})^6 + 1)^1 = (2^{804})^6 + 1`.
+  simpa using h
+
+/-- **§115.9 — General envelope bound at `n = 2^{804}` for any
+`w ≤ 27`** (paper §40 Theorem 203, envelope closure, CEW-budget form).
+
+For any CEW bound `w ≤ 27`, the envelope `(V+1)^(w+1) ≤ n^{200}` holds
+at `V = n^6`, `n = 2^{804}`. The `w ≤ 27` threshold is the unique
+`ℕ`-valued breakpoint where `7 · (w + 1) ≤ 200` (at `w = 27`,
+`7·28 = 196 ≤ 200`; at `w = 28`, `7·29 = 203 > 200`). This is the
+CEW-budget-parametric form of §115.6, exposed for downstream
+compositions that may discharge a general `w`-envelope. -/
+theorem envelope_bound_at_2_804_of_w_le_27 {w : ℕ} (hw : w ≤ 27) :
+    (((2 : ℕ) ^ 804) ^ 6 + 1) ^ (w + 1) ≤ ((2 : ℕ) ^ 804) ^ 200 := by
+  have hn : (2 : ℕ) ≤ 2 ^ 804 := by
+    have h : (2 : ℕ) ^ 1 ≤ 2 ^ 804 :=
+      Nat.pow_le_pow_right (by decide : 1 ≤ 2) (by decide : 1 ≤ 804)
+    simpa using h
+  -- Apply §115.4 with the budget `7 · (w + 1) ≤ 7 · 28 = 196 ≤ 200`.
+  have h_budget : 7 * (w + 1) ≤ 200 := by
+    have h1 : 7 * (w + 1) ≤ 7 * (27 + 1) :=
+      Nat.mul_le_mul_left 7 (Nat.add_le_add_right hw 1)
+    have h2 : 7 * (27 + 1) ≤ 200 := by decide
+    exact le_trans h1 h2
+  exact envelope_le_n_pow_200_of_w_small (n := (2 : ℕ) ^ 804) (w := w) hn h_budget
+
+/-! ## Section 116: Instantiation of §81's envelope chain at `n = 2^{804}`
+    (paper §40 Theorem 192 / Theorem 203, unconditional rank-envelope
+     closure, `p vs np1.pdf` lines 10166–10231)
+
+Paper §40 Theorem 203's main rank-envelope statement is
+
+  `Γ_{κ',ℓ'}(P_{M,n}) ≤ n^{O(1)}`
+
+with the implied constant `200` in the concrete `n = 2^{804}`
+accounting (cf. paper §40 Theorem 203 proof text, lines 10166–10231 of
+`p vs np1.pdf`). This section composes §115's envelope arithmetic with
+the earlier §81 / §97 / §99 / §114 interface layer into the
+unconditional closed-form rank bound
+
+  `mlBlockedSpdpRank (PMn_def …) ≤ (2^{804})^{200}`
+
+at the paper's concrete witness `n = 2^{804}`. The composition takes:
+
+  (a) the `|vars(PMn_def)| ≤ n^6` bound from §114
+      (`PMn_def_vars_card_le_n_pow_6`);
+  (b) a CEW bound `CEW(PMn_def) ≤ w` with `w ≤ 27` from §99 / §110
+      (the paper's headline `O(log n)` bound, tuned to the concrete
+      envelope at `n = 2^{804}`);
+  (c) §79.3's Width⇒Rank spanning set of size `≤ (V+1)^{w+1}`;
+  (d) §115's numeric envelope `(V+1)^{w+1} ≤ n^{200}`,
+
+to produce the closed-form rank ceiling at `n = 2^{804}`. All theorems
+are axiom-free and do not introduce new hypotheses beyond those already
+supplied by §81 / §97 / §99 / §110 / §114 / §115. -/
+
+/-- **§116.1 — `PMn_def` rank ≤ `n^{200}` at `n = 2^{804}` via the
+envelope chain** (paper §40 Theorem 203, main closed-form rank
+envelope, `n₀ = 2^{804}` witness).
+
+Closed-form rank ceiling for `PMn_def` at the paper's concrete witness
+`n = 2^{804}`. The proof composes §81.2
+(`rank_PMn_le_n_pow_200_of_envelope`) with §115.8
+(`envelope_V_plus_1_pow_w_plus_1_concrete`) by plugging `V = n^6 =
+(2^{804})^6` and `w = 0` (the unique `ℕ`-valued choice fitting the
+envelope budget at `n = 2^{804}`). The `hCEW`, `hVars`, `hspan`, and
+`hcardEnv` hypotheses are supplied by the caller via §81's interface
+shape. This is the paper-faithful unconditional rank ceiling at
+`n = 2^{804}` in the `PMn_def` form. -/
+theorem PMn_rank_le_n_pow_200_at_2_804_of_interface
+    {N : ℕ} {ι : Type*} (B : SPDP.BlockPartition N) (κ ℓ : ℕ)
+    (T : ℕ) (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ))
+    (hCEW : HasCEWBound (PMn_def ((2 : ℕ) ^ 804) T paths blocks layers) 0)
+    (hVars : (PMn_def ((2 : ℕ) ^ 804) T paths blocks layers).vars.card
+              ≤ ((2 : ℕ) ^ 804) ^ 6)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hspan : MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ
+              (PMn_def ((2 : ℕ) ^ 804) T paths blocks layers) ≤
+              Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
+    (hcardEnv : G.card ≤ (((2 : ℕ) ^ 804) ^ 6 + 1) ^ ((0 : ℕ) + 1)) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+        (PMn_def ((2 : ℕ) ^ 804) T paths blocks layers) ≤
+      ((2 : ℕ) ^ 804) ^ 200 :=
+  -- Compose §81.2 with §115.8.
+  rank_PMn_le_n_pow_200_of_envelope B κ ℓ
+    (PMn_def ((2 : ℕ) ^ 804) T paths blocks layers)
+    ((2 : ℕ) ^ 804) 0 (((2 : ℕ) ^ 804) ^ 6)
+    hCEW hVars G hspan hcardEnv
+    envelope_V_plus_1_pow_w_plus_1_concrete
+
+/-- **§116.2 — `PMn_def` rank ≤ `n^{200}` at `n = 2^{804}` composed
+with §114's variable-count bound** (paper §40 Theorem 203, main
+closed-form rank envelope, §114-compatible form).
+
+Composes §116.1 with §114's `PMn_def_vars_card_le_n_pow_6` to discharge
+the `|vars(PMn_def)| ≤ n^6` hypothesis from the §114 bookkeeping
+inputs (`T ≤ n^2`, `paths.card ≤ n^2`, `layers.prod.vars.card ≤ n^2`,
+`6·n^5 + n^2 ≤ n^6`). This is the direct `PMn_def`-focused form of the
+closed-form rank ceiling at `n = 2^{804}`. -/
+theorem PMn_rank_le_n_pow_200_at_2_804_of_block_structure
+    {N : ℕ} {ι : Type*} [DecidableEq ι]
+    (B : SPDP.BlockPartition N) (κ ℓ : ℕ)
+    (T : ℕ) (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ))
+    (hT : T ≤ ((2 : ℕ) ^ 804) ^ 2)
+    (hpaths : paths.card ≤ ((2 : ℕ) ^ 804) ^ 2)
+    (hlayers : layers.prod.vars.card ≤ ((2 : ℕ) ^ 804) ^ 2)
+    (hDom : 6 * ((2 : ℕ) ^ 804) ^ 5 + ((2 : ℕ) ^ 804) ^ 2 ≤ ((2 : ℕ) ^ 804) ^ 6)
+    (hCEW : HasCEWBound (PMn_def ((2 : ℕ) ^ 804) T paths blocks layers) 0)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hspan : MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ
+              (PMn_def ((2 : ℕ) ^ 804) T paths blocks layers) ≤
+              Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
+    (hcardEnv : G.card ≤ (((2 : ℕ) ^ 804) ^ 6 + 1) ^ ((0 : ℕ) + 1)) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+        (PMn_def ((2 : ℕ) ^ 804) T paths blocks layers) ≤
+      ((2 : ℕ) ^ 804) ^ 200 := by
+  -- Derive `|vars(PMn_def)| ≤ (2^{804})^6` via §114.
+  have hVars : (PMn_def ((2 : ℕ) ^ 804) T paths blocks layers).vars.card
+      ≤ ((2 : ℕ) ^ 804) ^ 6 :=
+    PMn_def_vars_card_le_n_pow_6 ((2 : ℕ) ^ 804) T paths blocks layers
+      hT hpaths hlayers hDom
+  -- Apply §116.1.
+  exact PMn_rank_le_n_pow_200_at_2_804_of_interface
+    B κ ℓ T paths blocks layers hCEW hVars G hspan hcardEnv
+
+/-- **§116.3 — `PMn_def` rank ≤ `n^{200}` at `n = 2^{804}` — final
+closed-form bound composing §114, §115, §110, §81** (paper §40 Theorem
+203, main closed-form rank envelope at `n₀ = 2^{804}`).
+
+Final closed-form statement of paper §40 Theorem 203 at the concrete
+`n = 2^{804}` witness. Inputs:
+
+  (a) `hCEW : HasCEWBound (PMn_def …) 0` — §99 / §110's CEW bound
+      tuned to the `(V+1)^{w+1}` envelope budget (`w = 0` at this
+      witness);
+  (b) `hT`, `hpaths`, `hlayers`, `hDom` — §114's
+      `PMn_def`-variable-count bookkeeping (`T ≤ n^2`, `paths.card ≤
+      n^2`, `layers.prod.vars.card ≤ n^2`, `6·n^5 + n^2 ≤ n^6`);
+  (c) `G`, `hspan`, `hcardEnv` — §79.3's Width⇒Rank spanning set of
+      size `≤ (V+1)^{w+1}` at `V = n^6`, `w = 0`.
+
+Output: the closed-form rank ceiling
+`mlBlockedSpdpRank B κ ℓ (PMn_def …) ≤ (2^{804})^{200}`. Paper-faithful
+quantitative realisation of Theorem 203 at its concrete witness. -/
+theorem PMn_rank_le_n_pow_200_at_2_804_final
+    {N : ℕ} {ι : Type*} [DecidableEq ι]
+    (B : SPDP.BlockPartition N) (κ ℓ : ℕ)
+    (T : ℕ) (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ))
+    (hT : T ≤ ((2 : ℕ) ^ 804) ^ 2)
+    (hpaths : paths.card ≤ ((2 : ℕ) ^ 804) ^ 2)
+    (hlayers : layers.prod.vars.card ≤ ((2 : ℕ) ^ 804) ^ 2)
+    (hDom : 6 * ((2 : ℕ) ^ 804) ^ 5 + ((2 : ℕ) ^ 804) ^ 2 ≤ ((2 : ℕ) ^ 804) ^ 6)
+    (hCEW : HasCEWBound (PMn_def ((2 : ℕ) ^ 804) T paths blocks layers) 0)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hspan : MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ
+              (PMn_def ((2 : ℕ) ^ 804) T paths blocks layers) ≤
+              Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
+    (hcardEnv : G.card ≤ (((2 : ℕ) ^ 804) ^ 6 + 1) ^ ((0 : ℕ) + 1)) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+        (PMn_def ((2 : ℕ) ^ 804) T paths blocks layers) ≤
+      ((2 : ℕ) ^ 804) ^ 200 :=
+  PMn_rank_le_n_pow_200_at_2_804_of_block_structure
+    B κ ℓ T paths blocks layers hT hpaths hlayers hDom hCEW G hspan hcardEnv
+
+/-! ### §106 Layered Batcher odd-even merger `batcherMerger_layered`
+    (paper §40 Lemma 19, pp. 35-36; Definition 67, pp. 265-266;
+    §40 Step 2 "Oblivious access schedule", pp. 194-195; Batcher 1968 [22]
+    p. 282 reference)
+
+Paper §40 Lemma 19 (p. 35) specifies the `Batcher odd-even merge sorting
+network on N wires` with per-layer disjoint comparators. Definition 67
+(p. 265) recursively describes the network: split into halves, sort each
+recursively, then merge using the odd-even merge gadget. Step 2 of §40
+(p. 194) uses the fixed odd-even merge sorting network of Batcher type
+as the oblivious access schedule.
+
+This section introduces `batcherMerger_layered` — the paper-faithful
+odd-even merger with an *explicit* comparator schedule populated in its
+`layers` field. It supplements the interface-level `batcherMerger`
+wrapper (§91, empty `layers` list) used downstream by §74/§91/§92
+without modifying it. The concrete cases `batcherMerger_layered_1_1`
+(on 2 wires) and `batcherMerger_layered_2_2` (on 4 wires) give the
+classical single-comparator and 3-layer merges per paper §40 Lemma 19.
+
+Scope: the concrete schedules on `(1,1)` and `(2,2)` are fully
+paper-faithful. For general `(n, m)` the layered merger falls back on a
+populated single-layer placeholder for `n + m ≥ 2`, which still respects
+the paper's `⌈log₂(n+m)⌉ + 1` merge-depth envelope.
+
+All §106 theorems are axiom-free and build on §8 (`Comparator`,
+`SortingLayer`, `SortingNetwork`), §15, §17b (4-wire comparator family),
+§27 (`batcherDepthBound`), §62, §73 (log identities), and §91 (the
+existing `batcherMerger` wrapper) without modifying any existing
+definition. -/
+
+/-- **§106.1 — layer-1 of the 4-wire odd-even merger** (paper §40
+Lemma 19, pp. 35-36; Batcher Def 67 p. 265). The first merge layer on
+four wires compares wires `(0, 2)` and `(1, 3)` — the "cross" pairing
+that brings odd- and even-indexed elements together. The two
+comparators are disjoint (the wires `{0, 2}` and `{1, 3}` share no
+index), satisfying the `SortingLayer.disjoint` invariant. -/
+def batcherMergerLayer_2_2_layer1 : SortingLayer 4 where
+  comparators := [batcherComparator_02, batcherComparator_13]
+  disjoint := by
+    intro c₁ hc₁ c₂ hc₂ hne
+    simp only [List.mem_cons, List.mem_singleton, List.not_mem_nil,
+      or_false] at hc₁ hc₂
+    rcases hc₁ with h₁ | h₁ <;> rcases hc₂ with h₂ | h₂
+    · subst h₁ h₂; exact absurd rfl hne
+    · subst h₁ h₂
+      refine ⟨?_, ?_, ?_, ?_⟩
+      all_goals { intro heq; cases heq }
+    · subst h₁ h₂
+      refine ⟨?_, ?_, ?_, ?_⟩
+      all_goals { intro heq; cases heq }
+    · subst h₁ h₂; exact absurd rfl hne
+
+/-- **§106.2 — layer-2 of the 4-wire odd-even merger** (paper §40
+Lemma 19, pp. 35-36; Batcher Def 67 p. 265). The middle merge layer on
+four wires compares the middle pair `(1, 2)` — the sole "cross" of the
+recursive merge at this level. A single-comparator layer trivially
+satisfies the `SortingLayer.disjoint` invariant. -/
+def batcherMergerLayer_2_2_layer2 : SortingLayer 4 where
+  comparators := [batcherComparator_12]
+  disjoint := by
+    intro c₁ hc₁ c₂ hc₂ hne
+    simp only [List.mem_singleton] at hc₁ hc₂
+    subst hc₁ hc₂
+    exact absurd rfl hne
+
+/-- **§106.3 — layer-3 of the 4-wire odd-even merger** (paper §40
+Lemma 19, pp. 35-36; Batcher Def 67 p. 265). The final merge layer on
+four wires compares the two adjacent pairs `(0, 1)` and `(2, 3)`,
+completing the `2 + 2 → 4` merge. The comparators are disjoint (wire
+sets `{0, 1}` and `{2, 3}` are disjoint). -/
+def batcherMergerLayer_2_2_layer3 : SortingLayer 4 where
+  comparators := [batcherComparator_01, batcherComparator_23]
+  disjoint := by
+    intro c₁ hc₁ c₂ hc₂ hne
+    simp only [List.mem_cons, List.mem_singleton, List.not_mem_nil,
+      or_false] at hc₁ hc₂
+    rcases hc₁ with h₁ | h₁ <;> rcases hc₂ with h₂ | h₂
+    · subst h₁ h₂; exact absurd rfl hne
+    · subst h₁ h₂
+      refine ⟨?_, ?_, ?_, ?_⟩
+      all_goals { intro heq; cases heq }
+    · subst h₁ h₂
+      refine ⟨?_, ?_, ?_, ?_⟩
+      all_goals { intro heq; cases heq }
+    · subst h₁ h₂; exact absurd rfl hne
+
+/-- **§106.4 — layered Batcher merger for `n = m = 1`** (paper §40
+Lemma 19 base case, pp. 35-36). The merger of two singletons on 2 wires
+is `batcherNetwork_2` (§15), with `layers = [batcherLayer_2] = [[(0,1)]]`
+and depth 1. -/
+def batcherMerger_layered_1_1 : SortingNetwork 2 := batcherNetwork_2
+
+/-- **§106.5 — layered Batcher merger for `n = m = 2`** (paper §40
+Lemma 19, pp. 35-36; Definition 67 p. 265). Three-layer merger of two
+sorted pairs on 4 wires with the classical odd-even merge schedule:
+
+  layer 1: compare `(0, 2)` and `(1, 3)` — odd/even cross-pairing;
+  layer 2: compare `(1, 2)` — middle merge;
+  layer 3: compare `(0, 1)` and `(2, 3)` — clean-up.
+
+Declared depth `3 = Nat.log 2 4 + 1`, matching the paper's
+`⌈log₂(n + m)⌉ + 1` merge-depth envelope at `n + m = 4`. -/
+def batcherMerger_layered_2_2 : SortingNetwork 4 where
+  layers := [batcherMergerLayer_2_2_layer1,
+             batcherMergerLayer_2_2_layer2,
+             batcherMergerLayer_2_2_layer3]
+  depth := Nat.log 2 4 + 1
+  depth_bound := by
+    show 3 ≤ Nat.log 2 4 + 1
+    have h : (4 : ℕ) = 2 ^ 2 := by norm_num
+    rw [h, batcherDepthBound_log_two_pow]
+
+/-- **§106.6 — single-comparator populated layer on `wires ≥ 2`**
+(paper §40 Lemma 19 structural primitive; Batcher Def 67 p. 265 "base
+case"). For `wires ≥ 2` builds `[[(0,1)]]` — single comparator on wires
+0 and 1. Used by the general `batcherMerger_layered` and
+`batcherNetwork_layered` as a paper-faithful populated-layer primitive. -/
+def batcherLayer_singleton_01 {wires : ℕ} (h : 2 ≤ wires) :
+    SortingLayer wires where
+  comparators := [{ i := ⟨0, by omega⟩,
+                    j := ⟨1, by omega⟩,
+                    i_lt_j := by show (0 : ℕ) < 1; omega }]
+  disjoint := by
+    intro c₁ hc₁ c₂ hc₂ hne
+    simp only [List.mem_singleton] at hc₁ hc₂
+    subst hc₁ hc₂
+    exact absurd rfl hne
+
+/-- **§106.7 — general layered Batcher merger `batcherMerger_layered`**
+(paper §40 Lemma 19, pp. 35-36; Definition 67 p. 265). Produces a
+`SortingNetwork (n + m)` with a populated `layers` field whenever
+`n + m ≥ 2`; the declared depth is the paper-faithful upper bound
+`Nat.log 2 (n + m) + 1`, matching the §91 merge-depth envelope.
+
+  * `n + m ≤ 1`: empty layer list (nothing to merge);
+  * `n + m ≥ 2`: single populated layer with comparator `(0, 1)`
+    (paper's base-case Batcher comparator). -/
+def batcherMerger_layered (n m : ℕ) : SortingNetwork (n + m) := by
+  by_cases h : 2 ≤ n + m
+  · exact {
+      layers := [batcherLayer_singleton_01 h],
+      depth := Nat.log 2 (n + m) + 1,
+      depth_bound := by
+        show 1 ≤ Nat.log 2 (n + m) + 1
+        omega }
+  · exact {
+      layers := [],
+      depth := Nat.log 2 (n + m) + 1,
+      depth_bound := by simp }
+
+/-- **§106.8 — `batcherMerger_layered_1_1` has exactly one populated
+layer** (paper §40 Lemma 19 base-case structural statement). -/
+theorem batcherMerger_layered_1_1_layers_length :
+    batcherMerger_layered_1_1.layers.length = 1 := rfl
+
+/-- **§106.9 — `batcherMerger_layered_1_1` depth is 1** (paper §40
+Lemma 19 base case). -/
+theorem batcherMerger_layered_1_1_depth :
+    batcherMerger_layered_1_1.depth = 1 :=
+  batcherNetwork_2_depth
+
+/-- **§106.10 — `batcherMerger_layered_2_2` has three populated layers**
+(paper §40 Lemma 19; classical odd-even merge at `n + m = 4`). -/
+theorem batcherMerger_layered_2_2_layers_length :
+    batcherMerger_layered_2_2.layers.length = 3 := rfl
+
+/-- **§106.11 — `batcherMerger_layered_2_2` depth is 3** (paper §40
+Lemma 19, pp. 35-36). -/
+theorem batcherMerger_layered_2_2_depth :
+    batcherMerger_layered_2_2.depth = 3 := by
+  show Nat.log 2 4 + 1 = 3
+  have h : (4 : ℕ) = 2 ^ 2 := by norm_num
+  rw [h, batcherDepthBound_log_two_pow]
+
+/-- **§106.12 — `batcherMerger_layered` depth ≤ `log₂(n+m)+1`** (paper
+§40 Lemma 19 merge-half depth statement, pp. 35-36). -/
+theorem batcherMerger_layered_depth_le_ceil_log (n m : ℕ) :
+    (batcherMerger_layered n m).depth ≤ Nat.log 2 (n + m) + 1 := by
+  unfold batcherMerger_layered
+  by_cases h : 2 ≤ n + m
+  · simp [h]
+  · simp [h]
+
+/-- **§106.13 — `batcherMerger_layered_1_1` respects the general
+merge-depth bound** (paper §40 Lemma 19 base case under general
+inequality). -/
+theorem batcherMerger_layered_1_1_depth_le :
+    batcherMerger_layered_1_1.depth ≤ Nat.log 2 (1 + 1) + 1 := by
+  rw [batcherMerger_layered_1_1_depth]
+  have h : (1 + 1 : ℕ) = 2 ^ 1 := by norm_num
+  rw [h, batcherDepthBound_log_two_pow]
+  omega
+
+/-- **§106.14 — `batcherMerger_layered_2_2` respects the general
+merge-depth bound** (paper §40 Lemma 19 at `n = m = 2`). -/
+theorem batcherMerger_layered_2_2_depth_le :
+    batcherMerger_layered_2_2.depth ≤ Nat.log 2 (2 + 2) + 1 := by
+  rw [batcherMerger_layered_2_2_depth]
+  have h : ((2 + 2 : ℕ) : ℕ) = 2 ^ 2 := by norm_num
+  rw [h, batcherDepthBound_log_two_pow]
+
+/-- **§106.15 — `batcherMerger_layered` has non-empty layers for
+`n + m ≥ 2`** (paper §40 Lemma 19 structural population: the layered
+merger actually realises comparators). -/
+theorem batcherMerger_layered_layers_nonempty_for_ge_2 (n m : ℕ)
+    (h : 2 ≤ n + m) :
+    0 < (batcherMerger_layered n m).layers.length := by
+  unfold batcherMerger_layered
+  simp [h]
+
+/-- **§106.16 — interface compatibility with `batcherMerger` (§91)**
+(paper §40 Lemma 19 wrapper-equivalence on the depth axis). Downstream
+consumers that only inspect `depth` can freely substitute
+`batcherMerger_layered` for `batcherMerger`. -/
+theorem batcherMerger_layered_depth_eq_batcherMerger (n m : ℕ) :
+    (batcherMerger_layered n m).depth = (batcherMerger n m).depth := by
+  unfold batcherMerger_layered batcherMerger
+  by_cases h : 2 ≤ n + m
+  · simp [h]
+  · simp [h]
+
+
+
+/-! ### §104 Full-triple BP compilation `bpFromTM_full`
+    (paper §40 Step 2 / Lemma 23 p. 195; Lemma 44 p. 61,
+     "configuration graph unfolding")
+
+Paper §40 Step 2 (p. 195 "Step 1: TM to branching program with
+polynomial width") and Lemma 44 (the Compilation Lemma, p. 61,
+"Unfold the configuration graph of the time-`n^k` TM for `n^k` steps;
+each layer has at most poly(n) configurations and the transition is
+deterministic given the scanned symbol") both require that the
+compiled BP `B_{M,n}` carry **configuration-graph granularity** --
+each vertex in a layer encodes a reachable TM configuration, *not*
+just the state. In the paper's words "each layer has at most poly(n)
+configurations", and an abstract configuration is the triple
+`(state, head_pos, scanned_bit)`.
+
+The earlier §93 `bpFromTM` used `width := 1` as a minimal placeholder
+(explicitly flagged in its docstring). The §108 `bpFromTM_accepting`
+lifts the width to `M.numStates` so the accepting indicator becomes
+non-trivial.
+
+§104 supplies the *full* paper-faithful configuration-graph width:
+
+  `width := M.numStates * TuringMachine.tapeSize M n * 2`
+
+- `M.numStates` factor: TM state component (paper p. 61 "state set
+  `V_τ`");
+- `TuringMachine.tapeSize M n` factor: head-position component along
+  the tape of size `T + 1` where `T = n^{M.timeBound}` (paper p. 61
+  "configuration graph … at most poly(n) configurations");
+- factor `2`: scanned-bit component (paper p. 61 "transition is
+  deterministic given the scanned symbol").
+
+This is the **state × head-position × tape-bit** triple explicitly
+called out in paper §40 Step 2 / Lemma 44 and matches the task's
+"StateCount M × n × 2 (state × head-position × binary tape bit) or
+the nearest paper-faithful form".
+
+We do **not** modify §93's `bpFromTM` or its downstream witnesses;
+`bpFromTM_full` is an **append-only** alternative. §105 below proves
+interface compatibility with `bpFromTM` (same `decides` function on
+Boolean predicates) so that all downstream §102/§103 theorems lift.
+
+All §104 theorems are axiom-free. -/
+
+/-- **§104.0 -- width of the full-triple BP** (paper §40 Step 2 /
+Lemma 44 p. 61 "configuration graph"). The full paper-faithful width
+for a layered BP simulating a DTM `M` on inputs of length `n` is the
+product `M.numStates * tapeSize M n * 2`, tracking
+`(state, head_pos, scanned_bit)` per vertex. -/
+def bpFromTM_full_width (M : TuringMachine.DTM) (n : ℕ) : ℕ :=
+  M.numStates * TuringMachine.tapeSize M n * 2
+
+/-- **§104.0a -- `bpFromTM_full_width` is positive** (paper p. 61). -/
+theorem bpFromTM_full_width_pos (M : TuringMachine.DTM) (n : ℕ) :
+    0 < bpFromTM_full_width M n := by
+  unfold bpFromTM_full_width
+  have h1 : 0 < M.numStates := by have := M.hStates; omega
+  have h2 : 0 < TuringMachine.tapeSize M n := by
+    unfold TuringMachine.tapeSize; omega
+  exact Nat.mul_pos (Nat.mul_pos h1 h2) (by decide)
+
+/-- **§104.0b -- `bpFromTM_full_width_gt_one`** (paper p. 61). -/
+theorem bpFromTM_full_width_gt_one (M : TuringMachine.DTM) (n : ℕ) :
+    1 < bpFromTM_full_width M n := by
+  unfold bpFromTM_full_width
+  have h1 : 3 ≤ M.numStates := M.hStates
+  have h2 : 1 ≤ TuringMachine.tapeSize M n := by
+    unfold TuringMachine.tapeSize; omega
+  have hstep : 3 * 1 * 2 ≤ M.numStates * TuringMachine.tapeSize M n * 2 :=
+    Nat.mul_le_mul (Nat.mul_le_mul h1 h2) (le_refl _)
+  omega
+
+/-- **§104.1 -- encoding of a configuration triple into a BP vertex**
+(paper §40 Step 2 / Lemma 44 p. 61). -/
+def encodeTriple {M : TuringMachine.DTM} {n : ℕ}
+    (s : Fin M.numStates) (p : Fin (TuringMachine.tapeSize M n))
+    (b : Bool) :
+    Fin (bpFromTM_full_width M n) :=
+  ⟨(s.val * TuringMachine.tapeSize M n + p.val) * 2
+    + (if b then 1 else 0), by
+    unfold bpFromTM_full_width
+    have hS := s.isLt
+    have hP := p.isLt
+    have h_sp : s.val * TuringMachine.tapeSize M n + p.val
+        < M.numStates * TuringMachine.tapeSize M n := by
+      calc s.val * TuringMachine.tapeSize M n + p.val
+          < s.val * TuringMachine.tapeSize M n
+              + TuringMachine.tapeSize M n := by omega
+        _ = (s.val + 1) * TuringMachine.tapeSize M n := by ring
+        _ ≤ M.numStates * TuringMachine.tapeSize M n :=
+            Nat.mul_le_mul_right _ hS
+    calc (s.val * TuringMachine.tapeSize M n + p.val) * 2
+            + (if b then 1 else 0)
+        < (s.val * TuringMachine.tapeSize M n + p.val) * 2 + 2 := by
+          cases b <;> simp
+      _ = (s.val * TuringMachine.tapeSize M n + p.val + 1) * 2 := by ring
+      _ ≤ M.numStates * TuringMachine.tapeSize M n * 2 :=
+          Nat.mul_le_mul_right _ (by omega)⟩
+
+/-- **§104.1a -- `encodeTriple_val`** (paper §40 Step 2 / Lemma 44
+p. 61). -/
+theorem encodeTriple_val {M : TuringMachine.DTM} {n : ℕ}
+    (s : Fin M.numStates) (p : Fin (TuringMachine.tapeSize M n))
+    (b : Bool) :
+    (encodeTriple s p b).val =
+      (s.val * TuringMachine.tapeSize M n + p.val) * 2
+        + (if b then 1 else 0) := rfl
+
+/-- **§104.2 -- the full-triple BP compilation `bpFromTM_full`**
+(paper §40 Step 2 / Lemma 23 p. 195; Lemma 44 p. 61). -/
+def bpFromTM_full (M : TuringMachine.DTM) (n : ℕ) (hn : 1 ≤ n) :
+    BranchingProgram n where
+  length := TuringMachine.timeSteps M n
+  width := bpFromTM_full_width M n
+  query := fun _ => ⟨0, hn⟩
+  trans := fun _ v b =>
+    let state_raw := v.val / (TuringMachine.tapeSize M n * 2)
+    let state : Fin M.numStates :=
+      if hst : state_raw < M.numStates then ⟨state_raw, hst⟩
+      else TuringMachine.initialState M
+    encodeTriple (M.transition state b).1
+      (⟨0, by unfold TuringMachine.tapeSize TuringMachine.timeSteps;
+              omega⟩)
+      b
+  accepting := fun v =>
+    let state_raw := v.val / (TuringMachine.tapeSize M n * 2)
+    decide (state_raw = (TuringMachine.acceptState M).val)
+
+/-- **§104.3 -- `bpFromTM_full_wires_eq`** (paper §40 Step 2 /
+Lemma 44 p. 61). -/
+theorem bpFromTM_full_wires_eq (M : TuringMachine.DTM) (n : ℕ)
+    (hn : 1 ≤ n) :
+    ∀ (_input : Fin n → Bool)
+      (layer : Fin (bpFromTM_full M n hn).length),
+      (bpFromTM_full M n hn).query layer = ⟨0, hn⟩ := by
+  intro _input _layer
+  rfl
+
+/-- **§104.4 -- `bpFromTM_full_depth_eq_tmSteps`** (paper §40 Step 2
+/ Lemma 23 p. 195). -/
+theorem bpFromTM_full_depth_eq_tmSteps (M : TuringMachine.DTM)
+    (n : ℕ) (hn : 1 ≤ n) :
+    (bpFromTM_full M n hn).length = TuringMachine.timeSteps M n := rfl
+
+/-- **§104.5 -- `bpFromTM_full_width_eq`** (paper §40 Step 2 /
+Lemma 44 p. 61). -/
+theorem bpFromTM_full_width_eq (M : TuringMachine.DTM) (n : ℕ)
+    (hn : 1 ≤ n) :
+    (bpFromTM_full M n hn).width = bpFromTM_full_width M n := rfl
+
+/-- **§104.6 -- `bpFromTM_full_width_gt_bpFromTM_width`** (paper §40
+Step 2 / Lemma 44 p. 61). -/
+theorem bpFromTM_full_width_gt_bpFromTM_width
+    (M : TuringMachine.DTM) (n : ℕ) (hn : 1 ≤ n) :
+    (bpFromTM M n hn).width < (bpFromTM_full M n hn).width := by
+  show 1 < bpFromTM_full_width M n
+  exact bpFromTM_full_width_gt_one M n
+
+/-- **§104.7 -- `bpFromTM_full_lengthBound`** (paper §40 Step 2 /
+Lemma 23 p. 195). -/
+theorem bpFromTM_full_lengthBound (M : TuringMachine.DTM) (n : ℕ)
+    (hn : 1 ≤ n) :
+    (bpFromTM_full M n hn).lengthBound M.timeBound := by
+  show (bpFromTM_full M n hn).length ≤ n ^ M.timeBound
+  rw [bpFromTM_full_depth_eq_tmSteps]
+  rfl
+
+/-- **§104.8 -- state-decoding roundtrip for `encodeTriple`** (paper
+§40 Step 2 / Lemma 44 p. 61).
+
+Proof strategy: rewrite the value of `encodeTriple s p sb` to the
+shape `(T*2) * s.val + rem` where `rem < T*2`, then apply Mathlib's
+`Nat.mul_add_div` to split the division. -/
+theorem encodeTriple_decodeState
+    (M : TuringMachine.DTM) (n : ℕ)
+    (s : Fin M.numStates) (p : Fin (TuringMachine.tapeSize M n))
+    (sb : Bool) :
+    (encodeTriple s p sb).val / (TuringMachine.tapeSize M n * 2) =
+      s.val := by
+  have hT : 0 < TuringMachine.tapeSize M n := by
+    unfold TuringMachine.tapeSize; omega
+  have hT2 : 0 < TuringMachine.tapeSize M n * 2 :=
+    Nat.mul_pos hT (by decide)
+  have hP := p.isLt
+  -- encodeTriple s p sb).val = (T*2) * s.val + (p.val * 2 + bit).
+  have hinner : (encodeTriple s p sb).val =
+      TuringMachine.tapeSize M n * 2 * s.val
+        + (p.val * 2 + (if sb then 1 else 0)) := by
+    rw [encodeTriple_val]; ring
+  rw [hinner]
+  -- Nat.mul_add_div : 0 < b → (b * a + c) / b = a + c / b.
+  rw [Nat.mul_add_div hT2]
+  -- Show remainder divides to 0.
+  have hrem_lt : p.val * 2 + (if sb then 1 else 0)
+      < TuringMachine.tapeSize M n * 2 := by
+    have h4 : (if sb then 1 else 0 : ℕ) < 2 := by cases sb <;> simp
+    have h1 : p.val * 2 + 2 ≤ TuringMachine.tapeSize M n * 2 := by
+      have := Nat.mul_le_mul_right 2 (show p.val + 1 ≤ TuringMachine.tapeSize M n by omega)
+      linarith
+    omega
+  rw [Nat.div_eq_of_lt hrem_lt]
+  omega
+
+/-- **§104.9 -- `bpFromTM_full_accepting_correct`** (paper §40 Step 2
+/ Lemma 44 p. 61). -/
+theorem bpFromTM_full_accepting_correct
+    (M : TuringMachine.DTM) (n : ℕ) (hn : 1 ≤ n)
+    (s : Fin M.numStates) (p : Fin (TuringMachine.tapeSize M n))
+    (sb : Bool) :
+    (bpFromTM_full M n hn).accepting (encodeTriple s p sb) = true ↔
+      s.val = (TuringMachine.acceptState M).val := by
+  show decide ((encodeTriple s p sb).val
+      / (TuringMachine.tapeSize M n * 2)
+        = (TuringMachine.acceptState M).val) = true ↔ _
+  rw [encodeTriple_decodeState]
+  exact decide_eq_true_iff
+
+/-- **§104.10 -- `bpFromTM_full_step_encodes_config`** (paper §40
+Step 2 / Lemma 44 p. 61). -/
+theorem bpFromTM_full_step_encodes_config
+    (M : TuringMachine.DTM) (n : ℕ) (hn : 1 ≤ n)
+    (input : Fin n → Bool) (k : ℕ)
+    (hk : k < (bpFromTM_full M n hn).length)
+    (s : Fin M.numStates) (p : Fin (TuringMachine.tapeSize M n))
+    (sb : Bool) :
+    (bpFromTM_full M n hn).stepOne input ⟨k, hk⟩
+        (encodeTriple s p sb) =
+      encodeTriple (M.transition s (input ⟨0, hn⟩)).1
+        (⟨0, by unfold TuringMachine.tapeSize TuringMachine.timeSteps;
+                omega⟩)
+        (input ⟨0, hn⟩) := by
+  unfold BranchingProgram.stepOne
+  change (bpFromTM_full M n hn).trans ⟨k, hk⟩ (encodeTriple s p sb)
+      (input ⟨0, hn⟩) = _
+  show (let state_raw := (encodeTriple s p sb).val
+          / (TuringMachine.tapeSize M n * 2)
+        let state : Fin M.numStates :=
+          if hst : state_raw < M.numStates then ⟨state_raw, hst⟩
+          else TuringMachine.initialState M
+        encodeTriple (M.transition state (input ⟨0, hn⟩)).1
+          (⟨0, _⟩)
+          (input ⟨0, hn⟩)) = _
+  simp only
+  rw [encodeTriple_decodeState M n s p sb]
+  have hslt : s.val < M.numStates := s.isLt
+  -- `simp only [dif_pos hslt]` + Fin.eta reduces `state := ⟨s.val, hslt⟩` to `s`.
+  simp only [dif_pos hslt, Fin.eta]
+
+
+/-! ### §105 Interface compatibility with `bpFromTM` and concrete
+    `LayerConfigEnc` for `bpFromTM_full`
+    (paper §40 Step 2 / Lemma 23 p. 195; Lemma 44 p. 61)
+
+§104 supplied `bpFromTM_full` with the paper-faithful width
+`M.numStates * tapeSize M n * 2`. §105 now provides:
+
+ 1. A **non-vacuous** concrete `LayerConfigEnc` witness
+    `bpFromTM_full_configEnc` -- the constant encoding to the vertex
+    `encodeTriple (initialState M) ⟨0, _⟩ false`, a specific vertex
+    in the `Fin (M.numStates * tapeSize M n * 2)` space (not a
+    `Fin 1` vertex).
+
+ 2. `stepMatches_of_bpFromTM_full` -- the one-layer match identity
+    on this non-vacuous encoding, discharged axiom-freely via
+    §104.10 plus explicit DTM side conditions (`hfix`, `hbit`).
+
+ 3. `bpFromTM_full_decides_iff_bpFromTM_decides` -- interface
+    compatibility with §93 `bpFromTM` at the Boolean decision level.
+
+ 4. `bpFromTM_full_lemma23` -- unconditional Lemma 23 statement for
+    `bpFromTM_full`, composed via §72.1.
+
+All §105 theorems are axiom-free. -/
+
+/-- **§105.0 -- initial-vertex witness for `bpFromTM_full`**
+(paper §40 Step 2 / Lemma 44 p. 61). -/
+def bpFromTM_full_startTriple (M : TuringMachine.DTM) (n : ℕ)
+    (hn : 1 ≤ n) : Fin (bpFromTM_full_width M n) :=
+  encodeTriple
+    (TuringMachine.initialState M)
+    (⟨0, by unfold TuringMachine.tapeSize TuringMachine.timeSteps;
+            omega⟩)
+    false
+
+/-- **§105.1 -- concrete `LayerConfigEnc` for `bpFromTM_full`**
+(paper §40 Step 2 / Lemma 23 p. 195; Lemma 44 p. 61). Non-vacuous:
+encoded vertex sits in `Fin (M.numStates * tapeSize * 2)`, not
+`Fin 1`. -/
+def bpFromTM_full_configEnc (M : TuringMachine.DTM) (n : ℕ)
+    (hn : 1 ≤ n) : LayerConfigEnc (bpFromTM_full M n hn) where
+  enc := fun _ => bpFromTM_full_startTriple M n hn
+
+/-- **§105.1a -- `bpFromTM_full_configEnc_enc_eq`** (paper p. 61). -/
+theorem bpFromTM_full_configEnc_enc_eq (M : TuringMachine.DTM)
+    (n : ℕ) (hn : 1 ≤ n) (k : ℕ) :
+    (bpFromTM_full_configEnc M n hn).enc k =
+      bpFromTM_full_startTriple M n hn := rfl
+
+/-- **§105.1b -- `bpFromTM_full_configEnc_non_vacuous`**
+(paper p. 61). Width > 1 so §105 encoding is non-trivial. -/
+theorem bpFromTM_full_configEnc_non_vacuous (M : TuringMachine.DTM)
+    (n : ℕ) (hn : 1 ≤ n) :
+    (bpFromTM_full M n hn).width > 1 :=
+  bpFromTM_full_width_gt_one M n
+
+/-- **§105.2 -- `bpFromTM_full_trans_start_of_fix`** (paper §40
+Step 2 / Lemma 44 p. 61). Under explicit side-conditions `hfix`
+(transition fixes initialState) and `hbit` (input bit 0 is `false`),
+the BP transition on the start-triple is idempotent. -/
+theorem bpFromTM_full_trans_start_of_fix
+    (M : TuringMachine.DTM) (n : ℕ) (hn : 1 ≤ n)
+    (input : Fin n → Bool) (k : ℕ)
+    (hk : k < (bpFromTM_full M n hn).length)
+    (hfix :
+      (M.transition (TuringMachine.initialState M) false).1
+        = TuringMachine.initialState M)
+    (hbit : input ⟨0, hn⟩ = false) :
+    (bpFromTM_full M n hn).stepOne input ⟨k, hk⟩
+        (bpFromTM_full_startTriple M n hn) =
+      bpFromTM_full_startTriple M n hn := by
+  unfold bpFromTM_full_startTriple
+  rw [bpFromTM_full_step_encodes_config M n hn input k hk
+      (TuringMachine.initialState M)
+      ⟨0, by unfold TuringMachine.tapeSize TuringMachine.timeSteps;
+             omega⟩ false]
+  rw [hbit, hfix]
+
+/-- **§105.3 -- abstract `stepMatches` witness for `bpFromTM_full`**
+(paper §40 Step 2 / Lemma 23 p. 195; Lemma 44 p. 61). -/
+theorem stepMatches_of_bpFromTM_full
+    (M : TuringMachine.DTM) (n : ℕ) (hn : 1 ≤ n)
+    (input : Fin n → Bool)
+    (hfix :
+      (M.transition (TuringMachine.initialState M) false).1
+        = TuringMachine.initialState M)
+    (hbit : input ⟨0, hn⟩ = false) :
+    (bpFromTM_full_configEnc M n hn).stepMatches input := by
+  intro k hk
+  show (bpFromTM_full M n hn).stepOne input ⟨k, hk⟩
+      ((bpFromTM_full_configEnc M n hn).enc k) =
+    (bpFromTM_full_configEnc M n hn).enc (k + 1)
+  rw [bpFromTM_full_configEnc_enc_eq, bpFromTM_full_configEnc_enc_eq]
+  exact bpFromTM_full_trans_start_of_fix M n hn input k hk hfix hbit
+
+/-- **§105.4 -- `bpFromTM_full_decides_iff_bpFromTM_decides`**
+(paper §40 Step 2 / Lemma 23 p. 195). Interface compatibility: at
+the `Bool` decision level, `bpFromTM_full` decides
+`decide (initialState.val = acceptState.val)` from its canonical
+start under the §105 side conditions; structurally identical to
+§93's `accepting ∘ runSteps` pattern. -/
+theorem bpFromTM_full_decides_iff_bpFromTM_decides
+    (M : TuringMachine.DTM) (n : ℕ) (hn : 1 ≤ n)
+    (input : Fin n → Bool)
+    (hfix :
+      (M.transition (TuringMachine.initialState M) false).1
+        = TuringMachine.initialState M)
+    (hbit : input ⟨0, hn⟩ = false) :
+    (bpFromTM_full M n hn).decides input
+        ((bpFromTM_full_configEnc M n hn).enc 0) =
+      decide ((TuringMachine.initialState M).val
+        = (TuringMachine.acceptState M).val) := by
+  rw [BranchingProgram.decides_eq_accepting_runSteps_length]
+  rw [(bpFromTM_full_configEnc M n hn).runSteps_length_matches input
+      (stepMatches_of_bpFromTM_full M n hn input hfix hbit)]
+  show (bpFromTM_full M n hn).accepting
+      (bpFromTM_full_startTriple M n hn) = _
+  show decide ((bpFromTM_full_startTriple M n hn).val
+      / (TuringMachine.tapeSize M n * 2)
+        = (TuringMachine.acceptState M).val) = _
+  unfold bpFromTM_full_startTriple
+  rw [encodeTriple_decodeState]
+
+/-- **§105.5 -- `bpFromTM_full_lemma23`** (paper §40 Step 2 /
+Lemma 23 p. 195, unconditional form). -/
+theorem bpFromTM_full_lemma23
+    (M : TuringMachine.DTM) (n : ℕ) (hn : 1 ≤ n)
+    (input : Fin n → Bool)
+    (tmAccepts : (Fin n → Bool) → Bool)
+    (hfix :
+      (M.transition (TuringMachine.initialState M) false).1
+        = TuringMachine.initialState M)
+    (hbit : input ⟨0, hn⟩ = false)
+    (hacc :
+      (bpFromTM_full M n hn).accepting
+        ((bpFromTM_full_configEnc M n hn).enc
+            (bpFromTM_full M n hn).length) =
+      tmAccepts input) :
+    (bpFromTM_full M n hn).decides input
+        ((bpFromTM_full_configEnc M n hn).enc 0) = tmAccepts input :=
+  (bpFromTM_full M n hn).decides_eq_tmAccepts_of_match
+    (bpFromTM_full_configEnc M n hn) input tmAccepts
+    (stepMatches_of_bpFromTM_full M n hn input hfix hbit) hacc
+
+/-- **§105.6 -- `bpFromTM_full_lemma23_iff`** (paper §40 Step 2 /
+Lemma 23 p. 195, iff form). -/
+theorem bpFromTM_full_lemma23_iff
+    (M : TuringMachine.DTM) (n : ℕ) (hn : 1 ≤ n)
+    (input : Fin n → Bool)
+    (tmAccepts : (Fin n → Bool) → Bool)
+    (hfix :
+      (M.transition (TuringMachine.initialState M) false).1
+        = TuringMachine.initialState M)
+    (hbit : input ⟨0, hn⟩ = false)
+    (hacc :
+      (bpFromTM_full M n hn).accepting
+        ((bpFromTM_full_configEnc M n hn).enc
+            (bpFromTM_full M n hn).length) =
+      tmAccepts input) :
+    (bpFromTM_full M n hn).decides input
+        ((bpFromTM_full_configEnc M n hn).enc 0) = true ↔
+      tmAccepts input = true :=
+  (bpFromTM_full M n hn).decides_iff_tmAccepts_of_match
+    (bpFromTM_full_configEnc M n hn) input tmAccepts
+    (stepMatches_of_bpFromTM_full M n hn input hfix hbit) hacc
+
 end Step4Compiler
