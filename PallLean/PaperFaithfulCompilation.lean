@@ -935,4 +935,59 @@ theorem piPhi_uBoolProduct (σ : UVSplit) :
   show (PiStarConcrete.substAlgHom (keepU σ) 0).toLinearMap (uBoolConstraint σ i) = uBoolConstraint σ i
   exact hpp
 
+/-! ## Section 19: Multiplicative u-factor extraction
+
+If a PMn polynomial factors as `P = U · R` where `U` is a u-only
+polynomial (fixed by piPhi), then `piPhi(P) = U · piPhi(R)` — the
+u-factor passes through. This is the algebraic trick used repeatedly
+in paper Theorem 207's extraction. -/
+
+/-- **Multiplicative u-factor extraction** (ring-hom form via substAlgHom): -/
+theorem piPhi_u_factor_mul
+    (σ : UVSplit) (U : PMnPoly σ) (R : PMnPoly σ)
+    (hU : piPhi σ U = U) :
+    piPhi σ (U * R) = U * piPhi σ R := by
+  show (PiStarConcrete.substAlgHom (keepU σ) 0).toLinearMap (U * R) = _
+  rw [AlgHom.toLinearMap_apply, map_mul]
+  -- piPhi(U) = U by hypothesis; piPhi(R) goes through.
+  have hU' : (PiStarConcrete.substAlgHom (keepU σ) 0) U = U := by
+    show (PiStarConcrete.substAlgHom (keepU σ) 0).toLinearMap U = U
+    exact hU
+  rw [hU']
+  rfl
+
+/-- **piPhi of uBoolProduct times any R**: u-factor passes through. -/
+theorem piPhi_uBoolProduct_mul (σ : UVSplit) (R : PMnPoly σ) :
+    piPhi σ (uBoolProduct σ * R) = uBoolProduct σ * piPhi σ R :=
+  piPhi_u_factor_mul σ (uBoolProduct σ) R (piPhi_uBoolProduct σ)
+
+/-- **piPhi of embed(Q) times R**: u-factor passes through. -/
+theorem piPhi_embed_mul (σ : UVSplit) (Q : CoupledSheetPoly σ) (R : PMnPoly σ) :
+    piPhi σ (CoupledSheetPoly.embed σ Q * R) =
+      CoupledSheetPoly.embed σ Q * piPhi σ R :=
+  piPhi_u_factor_mul σ (CoupledSheetPoly.embed σ Q) R (piPhi_embed_eq σ Q)
+
+/-- **Extraction with tableau-vanishing tail**:
+`piPhi(embed(Q) · (1 + tableauBool)) = embed(Q)` when numV ≥ 1.
+
+This is a concrete template showing how a PMn of the form
+`embed(Q) · (1 + tableauBool)` collapses under piPhi to embed(Q).
+Rank(PMn) may be larger than rank(embed Q), but piPhi extracts
+the clean u-part. -/
+theorem piPhi_embed_mul_one_plus_tableauBool (σ : UVSplit)
+    (Q : CoupledSheetPoly σ) (hV : 0 < σ.numV) :
+    piPhi σ (CoupledSheetPoly.embed σ Q * (1 + tableauBoolProduct σ)) =
+      CoupledSheetPoly.embed σ Q := by
+  rw [piPhi_embed_mul]
+  -- piPhi(1 + tableauBool) = 1 + 0 = 1
+  have h1 : piPhi σ (1 + tableauBoolProduct σ) = 1 := by
+    show (PiStarConcrete.substAlgHom (keepU σ) 0).toLinearMap
+          (1 + tableauBoolProduct σ) = 1
+    rw [AlgHom.toLinearMap_apply, map_add, map_one]
+    have hkill : (PiStarConcrete.substAlgHom (keepU σ) 0) (tableauBoolProduct σ) = 0 := by
+      show (PiStarConcrete.substAlgHom (keepU σ) 0).toLinearMap (tableauBoolProduct σ) = 0
+      exact piPhi_tableauBoolProduct_pos σ hV
+    rw [hkill, add_zero]
+  rw [h1, mul_one]
+
 end PaperFaithfulCompilation
