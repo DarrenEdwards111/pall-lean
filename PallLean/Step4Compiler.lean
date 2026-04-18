@@ -1829,5 +1829,120 @@ theorem SoSGadget.vars_card_le {N : ℕ} (g : SoSGadget N) :
     g.poly.vars.card ≤ 6 :=
   le_trans (Finset.card_le_card g.vars_contained) g.support_bound
 
+/-! ## Section 50: Additional CEW algebra consequences (paper Lemma 19)
+
+Paper Lemma 19 (CEW bounds, §40) establishes that the contextual
+entanglement width is closed under the standard polynomial ring
+operations with additive (in `target`) bookkeeping. The existing
+algebra (`HasCEWBound_{add, mul, C, X, zero, mono, finset_sum, npow,
+sub, one_any, one_sub_X}`) covers the core operations used by the
+paper-faithful compiler. This section adds a handful of further
+axiom-free consequences needed by downstream Step 4 callers:
+
+* negation (degree-preserving);
+* symmetric additive monotonicity (bumping each summand's target);
+* a direct `HasCEWBound_pow` alias for the n-fold product bound,
+  unfolding the `∀ k` quantifier of `HasCEWBound_npow` for point-free
+  use at a specific exponent;
+* CEW of `X i ^ k`, `C c * X i`, `C c * p`, and affine combinations,
+  which are the atomic building blocks of the paper's §40 layer and
+  path polynomials.
+
+All theorems below are axiom-free (only `MvPolynomial.totalDegree_*`
+lemmas from Mathlib are used) and are paper-faithful restatements of
+Lemma 19's closure properties. -/
+
+/-- **CEW bound for negation** (paper Lemma 19, §40): negation does
+not change the total degree of a polynomial, so any CEW bound for `p`
+is also a CEW bound for `-p`. Proof: `MvPolynomial.totalDegree_neg`. -/
+theorem HasCEWBound_neg {N : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {target : ℕ} (hp : HasCEWBound p target) :
+    HasCEWBound (-p) target := by
+  unfold HasCEWBound at *
+  rw [MvPolynomial.totalDegree_neg]
+  exact hp
+
+/-- **CEW bound for addition with monotone targets** (paper Lemma 19,
+§40): if `p` has CEW ≤ t₁ and `q` has CEW ≤ t₂, then `p + q` has
+CEW ≤ `max t₁ t₂`. This is the "asymmetric" additive bound, stronger
+than `HasCEWBound_add` since the targets need not match. -/
+theorem HasCEWBound_add_mono {N : ℕ} {p q : MvPolynomial (Fin N) ℚ}
+    {t₁ t₂ : ℕ} (hp : HasCEWBound p t₁) (hq : HasCEWBound q t₂) :
+    HasCEWBound (p + q) (max t₁ t₂) := by
+  apply HasCEWBound_add
+  · exact HasCEWBound_mono hp (le_max_left _ _)
+  · exact HasCEWBound_mono hq (le_max_right _ _)
+
+/-- **CEW bound for subtraction with monotone targets** (paper
+Lemma 19, §40): dual of `HasCEWBound_add_mono` for subtraction. -/
+theorem HasCEWBound_sub_mono {N : ℕ} {p q : MvPolynomial (Fin N) ℚ}
+    {t₁ t₂ : ℕ} (hp : HasCEWBound p t₁) (hq : HasCEWBound q t₂) :
+    HasCEWBound (p - q) (max t₁ t₂) := by
+  apply HasCEWBound_sub
+  · exact HasCEWBound_mono hp (le_max_left _ _)
+  · exact HasCEWBound_mono hq (le_max_right _ _)
+
+/-- **CEW bound for a specific power** (paper Lemma 19, §40): point-free
+specialization of `HasCEWBound_npow` — `p^k` has CEW ≤ `k * t`
+whenever `p` has CEW ≤ `t`. This is Lemma 19's product closure applied
+to `k` copies of the same polynomial. -/
+theorem HasCEWBound_pow {N : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {t : ℕ} (hp : HasCEWBound p t) (k : ℕ) :
+    HasCEWBound (p ^ k) (k * t) :=
+  HasCEWBound_npow p t hp k
+
+/-- **CEW of `X i ^ k`** (paper Lemma 19, §40, atomic monomial case):
+a pure monomial in a single variable has CEW ≤ k. -/
+theorem HasCEWBound_X_pow {N : ℕ} (i : Fin N) (k : ℕ) :
+    HasCEWBound ((MvPolynomial.X i : MvPolynomial (Fin N) ℚ) ^ k) k := by
+  have h : HasCEWBound ((MvPolynomial.X i : MvPolynomial (Fin N) ℚ) ^ k) (k * 1) :=
+    HasCEWBound_pow (HasCEWBound_X i) k
+  exact HasCEWBound_mono h (by omega)
+
+/-- **CEW of a scalar multiple of a polynomial** (paper Lemma 19, §40):
+`C c * p` has the same CEW bound as `p`, since multiplication by a
+constant does not raise the total degree. -/
+theorem HasCEWBound_C_mul {N : ℕ} (c : ℚ) {p : MvPolynomial (Fin N) ℚ}
+    {target : ℕ} (hp : HasCEWBound p target) :
+    HasCEWBound (MvPolynomial.C c * p) target := by
+  have h : HasCEWBound (MvPolynomial.C c * p) (0 + target) :=
+    HasCEWBound_mul (HasCEWBound_C c) hp
+  simpa using h
+
+/-- **CEW of `C c * X i`** (paper Lemma 19, §40, atomic linear case):
+a scaled variable has CEW ≤ 1. -/
+theorem HasCEWBound_C_mul_X {N : ℕ} (c : ℚ) (i : Fin N) :
+    HasCEWBound (MvPolynomial.C c * (MvPolynomial.X i : MvPolynomial (Fin N) ℚ)) 1 :=
+  HasCEWBound_C_mul c (HasCEWBound_X i)
+
+/-- **CEW of an affine combination** `C a + C b * X i` (paper Lemma 19,
+§40): a degree-≤1 affine form in one variable has CEW ≤ 1. This is the
+atomic building block for the paper's §40 `layerPolynomial`. -/
+theorem HasCEWBound_affine_X {N : ℕ} (a b : ℚ) (i : Fin N) :
+    HasCEWBound
+      ((MvPolynomial.C a : MvPolynomial (Fin N) ℚ)
+        + MvPolynomial.C b * MvPolynomial.X i) 1 := by
+  apply HasCEWBound_add
+  · exact HasCEWBound_mono (HasCEWBound_C a) (Nat.zero_le _)
+  · exact HasCEWBound_C_mul_X b i
+
+/-- **CEW of `1 + p`** (paper Lemma 19, §40): adding a constant never
+raises the CEW bound as long as the target is ≥ 0 (trivially true). -/
+theorem HasCEWBound_one_add {N : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {target : ℕ} (hp : HasCEWBound p target) :
+    HasCEWBound (1 + p) target := by
+  apply HasCEWBound_add
+  · exact HasCEWBound_one_any target
+  · exact hp
+
+/-- **CEW of `p + 1`** (paper Lemma 19, §40): symmetric variant of
+`HasCEWBound_one_add`. -/
+theorem HasCEWBound_add_one {N : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {target : ℕ} (hp : HasCEWBound p target) :
+    HasCEWBound (p + 1) target := by
+  apply HasCEWBound_add
+  · exact hp
+  · exact HasCEWBound_one_any target
+
 end Step4Compiler
 
