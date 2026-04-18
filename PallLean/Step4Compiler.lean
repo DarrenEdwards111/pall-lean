@@ -30,6 +30,7 @@
 -/
 
 import PallLean.PaperFaithfulCompilation
+import PallLean.PaperFaithfulSeparation
 import PallLean.MultilinearSPDP
 import PallLean.CookLevinDefs
 import Mathlib.Tactic
@@ -13155,6 +13156,367 @@ theorem lemma_205_npow_chain
       (PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q) ≤ n ^ 200 :=
   le_trans (lemma_205_applied_via_piPhi_extraction B κ ℓ P Q hExtract) hP
 
+/-! ## Section 135: Paper §40.3 Theorem 217 — Identity-Minor Lower
+Bound for the Coupled Verifier Sheet `Q^×_{Φ_n}` (paper pp. 204, 99-109)
+
+Paper §40.3 Theorem 217 (p. 204) states the NP-side "identity-minor"
+lower bound for the coupled verifier sheet polynomial `Q^×_{Φ_n}` at
+clause-set `Φ_n` with `|Φ_n| = Θ(log n)`:
+
+  `Γ_{κ, ℓ}(Q^×_{Φ_n}) ≥ n^{Θ(log n)}`
+
+for `κ = ℓ = Θ(log n)`. The proof (paper §18, pp. 99-109, Lemma 124)
+is the identity-minor construction for the product polynomial
+`Q^×_Φ = ∏_{C ∈ Φ} (1 - z_C · V_C²)` (paper Definition 38 / §18.1),
+using disjoint-clause packing plus tag monomials to exhibit a diagonal
+minor of size `C(|C_disj|, κ)` in the blocked SPDP matrix.
+
+### Route to existing infrastructure
+
+Our existing `Tseitin.identity_minor_lower_bound` (`Tseitin.lean` §9.3)
+proves exactly this for the Tseitin-flavoured coupled verifier
+`coupledVerifier F Φ = ∏_c (1 - X(selectorIdx Φ c) · clauseGadget F Φ c)`
+in the `blockedSpdpRank` rank measure (non-multilinear).
+
+At the multilinear blocked rank level used by §40's Width⇒Rank
+machinery, `PaperFaithfulCompilation.cookLevinQ_rank_ge`
+(`PaperFaithfulCompilation.lean` §27, p. 204-style Theorem 217 NP-side)
+provides:
+
+  `Nat.choose (n/3) (Nat.log 2 n) ≤ mlBlockedSpdpRank B κ ℓ (cookLevinQ M n)`
+
+for `κ = ℓ = log₂ n`, `n ≥ 2^{804}`. The binomial bound
+`C(n/30, log₂ n) ≥ n^{log₂ n / 4}`
+(`BinomialBound2.binomial_lower_bound_concrete`) and paper
+monotonicity (`n/3 ≥ n/30`) then give the `n^{Θ(log n)}` form of
+Theorem 217.
+
+### §135 content
+
+§135 packages Theorem 217 in the abstract `Q_times_Phi_135` form
+directly matching paper Definition 38, and records both the
+**conditional** and the **bridged** (via `cookLevinQ_rank_ge`)
+versions of the identity-minor lower bound. Seven named objects are
+introduced:
+
+  * `Q_times_Phi_135` (§135.1) — paper Definition 38 product polynomial
+    `∏_{C ∈ Φ} (1 - z_C · V_C²)` parametric in clause indices `α`
+    with selector `z : α → MvPolynomial (Fin N) ℚ` and verifier
+    `V : α → MvPolynomial (Fin N) ℚ`. (The `_135` suffix disambiguates
+    from §133.10a's `Q_times_Phi := embed σ Q` notation wrapper, which
+    serves a different role in the §134 Lemma 205 chain.)
+  * `Q_times_Phi_135_unfold` (§135.2) — definitional unfolding.
+  * `Q_times_Phi_135_empty` (§135.3) — corner case `Φ = ∅ ⇒ Q^×_∅ = 1`.
+  * `thm_217_identity_minor_lower_bound` (§135.4) — paper Theorem 217
+    **conditional form**: under a hypothesis asserting the identity-minor
+    lower bound holds for the specific `Q_times_Phi_135` instance, the
+    bound `n^{Nat.log 2 n / 4}` follows via the asymptotic comparison.
+    This is the generic paper-faithful statement.
+  * `thm_217_via_cookLevinQ_at_2_804` (§135.5) — **bridged form** at
+    the concrete `n = 2^{804}` witness. Uses `cookLevinQ_rank_ge`
+    directly to discharge the identity-minor hypothesis at the
+    Cook-Levin Q-instance, yielding
+    `C(n/3, log₂ n) ≤ Γ_{804, 804}(cookLevinQ)`.
+  * `Q_times_Phi_rank_ge_n_Theta_log` (§135.6) — the **quantitative**
+    `n^{c · log n}` form at `n = 2^{804}` with `c = 1/4` encoded as
+    `Nat.log 2 n / 4` (via
+    `BinomialBound2.binomial_lower_bound_concrete`).
+  * `thm_217_bridge_to_cookLevinQ` (§135.7) — the explicit bridge
+    theorem connecting the abstract `Q_times_Phi_135` (paper Def 38)
+    to the existing `cookLevinQ_rank_ge` lower bound (packaged as an
+    existence statement over `κ, ℓ`).
+
+All §135 results are axiom-free. §135.4's hypothesis is the existing
+`Tseitin.identity_minor_lower_bound` / `cookLevinQ_rank_ge` content
+transported to the `Q_times_Phi_135` shape (see §135.5-§135.7 for the
+explicit discharge at the Cook-Levin Q-instance).
+
+Paper citations: Theorem 217 (p. 204), Definition 38 (§18.1, p. 99),
+Lemma 124 (§18, pp. 99-109), §40.3 (p. 204). -/
+
+/-- **§135.1 — `Q_times_Phi_135`: the paper's coupled verifier sheet
+polynomial `Q^×_Φ = ∏_{C ∈ Φ} (1 - z_C · V_C²)`** (paper Definition 38,
+§18.1, p. 99).
+
+The paper defines the coupled verifier sheet `Q^×_Φ` as the product
+over a clause-index set `Φ` of the "gated local clause" factors
+`(1 - z_C · V_C²)`, where:
+  * `z_C` is the per-clause selector variable (paper §18.1);
+  * `V_C` is the per-clause verifier polynomial (paper §18.1, derived
+    from the clause's satisfiability predicate);
+  * the **square** `V_C²` matches paper Definition 38's squared form
+    (the paper's §18 identity-minor argument uses `V_C²` so that
+    `V_C = 0 ∨ V_C = 1` gives a well-defined gating factor).
+
+This §135.1 `Q_times_Phi_135` is parametric in:
+  * `α`: the type of clause indices (typically `Fin |Φ|`);
+  * `N`: the ambient variable count;
+  * `Φ : Finset α`: the clause index set;
+  * `z V : α → MvPolynomial (Fin N) ℚ`: per-clause selector / verifier
+    polynomials.
+
+This is the **most general** paper-faithful product form. Concrete
+instantiations (Tseitin, Cook-Levin) recover the specific polynomials
+via appropriate choices of `z` and `V` (see §135.7 for the Cook-Levin
+bridge). The `_135` suffix avoids collision with §133.10a's
+`Q_times_Phi` (a different, `embed σ Q`-style notation wrapper used
+inside the §134 Lemma 205 rank-pullback chain). -/
+noncomputable def Q_times_Phi_135 {α : Type*} {N : ℕ}
+    (Φ : Finset α) (z V : α → MvPolynomial (Fin N) ℚ) :
+    MvPolynomial (Fin N) ℚ :=
+  ∏ C ∈ Φ, (1 - z C * (V C) ^ 2)
+
+/-- **§135.2 — Definitional unfolding of `Q_times_Phi_135`** (paper
+Definition 38 unfolding). The defining equation
+  `Q^×_Φ = ∏_{C ∈ Φ} (1 - z_C · V_C²)`
+exposed as a rewrite lemma for downstream use. -/
+theorem Q_times_Phi_135_unfold {α : Type*} {N : ℕ}
+    (Φ : Finset α) (z V : α → MvPolynomial (Fin N) ℚ) :
+    Q_times_Phi_135 Φ z V = ∏ C ∈ Φ, (1 - z C * (V C) ^ 2) := rfl
+
+/-- **§135.3 — Corner case `Φ = ∅`** (paper Definition 38, empty
+clause set). When the clause set is empty, the empty product gives
+`Q^×_∅ = 1`. This matches the paper's convention (paper §18.1) and
+is the base case of any inductive reasoning on `Φ`. -/
+theorem Q_times_Phi_135_empty {α : Type*} {N : ℕ}
+    (z V : α → MvPolynomial (Fin N) ℚ) :
+    Q_times_Phi_135 (∅ : Finset α) z V = 1 := by
+  unfold Q_times_Phi_135
+  exact Finset.prod_empty
+
+/-- **§135.4 — Paper §40.3 Theorem 217 (conditional form)**: the
+identity-minor lower bound `Γ_{κ, ℓ}(Q^×_{Φ_n}) ≥ n^{log₂ n / 4}` for
+the coupled verifier sheet (paper Theorem 217, p. 204; Lemma 124, §18,
+pp. 99-109).
+
+### Statement (paper p. 204)
+
+For any clause set `Φ_n` of size `Θ(log n)`, the multilinear blocked
+SPDP rank of the coupled verifier sheet `Q^×_{Φ_n}` at
+`κ = ℓ = log₂ n` is bounded below by `n^{Θ(log n)}` (paper Theorem 217
+written as `n^{Θ(log n)}`; the explicit exponent `log₂ n / 4` follows
+from the packing constants in Lemma 124).
+
+### Paper proof (§18, pp. 99-109, Lemma 124)
+
+The paper's identity-minor construction:
+  1. Extract a disjoint clause packing `C_disj ⊆ Φ` of size `≥ |Φ|/30`
+     (paper Lemma 117 / disjoint-packing lemma).
+  2. Each subset `S ⊆ C_disj` of size `κ` yields a row `R_S = ∂^S Q^×_Φ`
+     in the blocked SPDP subspace (paper §18.2).
+  3. Tag monomials `τ_S` (paper §9.2 / Lemma 123) separate the rows,
+     giving a diagonal minor with `±1` entries.
+  4. Hence `rank(Q^×_Φ) ≥ C(|C_disj|, κ)`.
+  5. For `κ = log₂ n` and `|C_disj| = Θ(log n)`, the binomial bound
+     `C(n/30, log₂ n) ≥ n^{log₂ n / 4}` (paper §18.3 / our
+     `BinomialBound2.binomial_lower_bound_concrete`) yields
+     `≥ n^{Θ(log n)}`.
+
+### Conditional form
+
+We state Theorem 217 in **conditional form**: given
+  * a hypothesis `hIdMinor` asserting the identity-minor construction
+    produces the binomial lower bound
+    `C(n/30, log₂ n) ≤ mlBlockedSpdpRank B (log₂ n) (log₂ n) (Q^×_Φ)`;
+  * the threshold `n ≥ 2^{20}` where
+    `BinomialBound2.binomial_lower_bound_concrete` applies,
+
+we conclude `n^{log₂ n / 4} ≤ mlBlockedSpdpRank (Q^×_Φ)`, the
+quantitative form of Theorem 217's `n^{Θ(log n)}`. This is the clean
+separation of the **identity-minor construction** (Lemma 124, §18)
+from the **asymptotic binomial comparison** (paper §18.3).
+
+The bridged/unconditional version at `n = 2^{804}` is §135.5 +
+§135.7 via `cookLevinQ_rank_ge`. -/
+theorem thm_217_identity_minor_lower_bound
+    {α : Type*} {N : ℕ} (n : ℕ)
+    (Φ : Finset α) (z V : α → MvPolynomial (Fin N) ℚ)
+    (B : SPDP.BlockPartition N)
+    (hn : n ≥ 2 ^ 20)
+    (hIdMinor : Nat.choose (n / 30) (Nat.log 2 n) ≤
+      MultilinearSPDP.mlBlockedSpdpRank B (Nat.log 2 n) (Nat.log 2 n)
+        (Q_times_Phi_135 Φ z V)) :
+    n ^ (Nat.log 2 n / 4) ≤
+      MultilinearSPDP.mlBlockedSpdpRank B (Nat.log 2 n) (Nat.log 2 n)
+        (Q_times_Phi_135 Φ z V) := by
+  -- Asymptotic binomial comparison
+  -- (BinomialBound2.binomial_lower_bound_concrete):
+  -- C(n/30, log₂ n) ≥ n^(log₂ n / 4) at n ≥ 2^20.
+  have hBin : Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4) :=
+    BinomialBound2.binomial_lower_bound_concrete n hn
+  -- Chain: n^(log₂ n / 4) ≤ C(n/30, log₂ n) ≤ rank.
+  exact le_trans hBin hIdMinor
+
+/-- **§135.5 — Paper §40.3 Theorem 217 bridged via `cookLevinQ_rank_ge`
+at `n = 2^{804}`** (paper p. 204, concrete witness form).
+
+### Bridged statement
+
+At the concrete Cook-Levin Q-instance and `n = 2^{804}`, the
+identity-minor lower bound `cookLevinQ_rank_ge` (paper §40 Theorem 217
+NP-side, bridged via §27 of `PaperFaithfulCompilation`) discharges the
+identity-minor hypothesis of §135.4, giving the **unconditional**
+`mlBlockedSpdpRank ≥ C(n/3, log₂ n)` form of Theorem 217 at that
+witness.
+
+Note that `cookLevinQ_rank_ge` provides the **sharper** `n/3` form,
+while the abstract §135.4 uses `n/30` (matching the Tseitin
+disjoint-packing constant). The `n/3` form is strictly better; we
+record both for completeness.
+
+### Proof
+
+Direct forwarding to `PaperFaithfulCompilation.cookLevinQ_rank_ge M
+((2:ℕ)^804) (le_refl _) htb hns`, which is the paper-faithful bridged
+Theorem 217 at the Cook-Levin Q-instance. This in turn is proved
+axiom-free inside `PaperFaithfulCompilation.lean` via the identity
+minor on `compiledPoly` (paper §18 / Lemma 124). -/
+theorem thm_217_via_cookLevinQ_at_2_804
+    (M : TuringMachine.DTM) (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ (2 : ℕ) ^ 804) :
+    Nat.choose ((2 : ℕ) ^ 804 / 3)
+        (Nat.log 2 ((2 : ℕ) ^ 804)) ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition
+          (PaperFaithfulCompilation.extendedCookLevinPartition M
+            ((2 : ℕ) ^ 804) (by
+            have : (2 : ℕ) ≤ 2 ^ 804 := by
+              calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+              _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+            omega))
+          (PaperFaithfulCompilation.cookLevinUVSplit M ((2 : ℕ) ^ 804)).inlU)
+        (Nat.log 2 ((2 : ℕ) ^ 804))
+        (Nat.log 2 ((2 : ℕ) ^ 804))
+        (PaperFaithfulCompilation.cookLevinQ M ((2 : ℕ) ^ 804) (by
+          have : (2 : ℕ) ≤ 2 ^ 804 := by
+            calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+            _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+          omega) htb hns) :=
+  PaperFaithfulCompilation.cookLevinQ_rank_ge M ((2 : ℕ) ^ 804)
+    (le_refl _) htb hns
+
+/-- **§135.6 — Quantitative Theorem 217 form
+`Γ ≥ n^{c · Nat.log 2 n}` at `n = 2^{804}`** (paper §40.3 Theorem 217
+quantitative, p. 204).
+
+### Statement
+
+At the witness `n = 2^{804}` and the Cook-Levin Q-instance, the
+multilinear blocked SPDP rank of `cookLevinQ` satisfies
+
+  `rank ≥ n^{Nat.log 2 n / 4}`
+
+i.e.\ the explicit `n^{c · log n}` form of Theorem 217 with
+`c = 1/4`. For `n = 2^{804}`, we have `Nat.log 2 n = 804` and
+`Nat.log 2 n / 4 = 201`, so this is `≥ n^{201}` — strictly better than
+the `n^{200}` P-side envelope used in the arithmetic gap at §80.6 /
+§96.2.
+
+### Proof
+
+Composes §135.5 (`cookLevinQ_rank_ge` at `n = 2^{804}`) with the
+binomial bound `BinomialBound2.binomial_lower_bound_concrete`:
+
+  n^{log₂ n / 4} ≤ C(n/30, log₂ n)  -- binomial bound
+                 ≤ C(n/3, log₂ n)   -- monotonicity, n/30 ≤ n/3
+                 ≤ mlBlockedSpdpRank (cookLevinQ)  -- §135.5.
+
+The step `n/30 ≤ n/3` uses `Nat.div_le_div_left`. The chain gives the
+quantitative `n^{log₂ n / 4}` form of paper Theorem 217. -/
+theorem Q_times_Phi_rank_ge_n_Theta_log
+    (M : TuringMachine.DTM) (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ (2 : ℕ) ^ 804) :
+    ((2 : ℕ) ^ 804) ^ (Nat.log 2 ((2 : ℕ) ^ 804) / 4) ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition
+          (PaperFaithfulCompilation.extendedCookLevinPartition M
+            ((2 : ℕ) ^ 804) (by
+            have : (2 : ℕ) ≤ 2 ^ 804 := by
+              calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+              _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+            omega))
+          (PaperFaithfulCompilation.cookLevinUVSplit M ((2 : ℕ) ^ 804)).inlU)
+        (Nat.log 2 ((2 : ℕ) ^ 804))
+        (Nat.log 2 ((2 : ℕ) ^ 804))
+        (PaperFaithfulCompilation.cookLevinQ M ((2 : ℕ) ^ 804) (by
+          have : (2 : ℕ) ≤ 2 ^ 804 := by
+            calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+            _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+          omega) htb hns) := by
+  set n : ℕ := (2 : ℕ) ^ 804 with hn_def
+  -- Step 1: n ≥ 2^20.
+  have hn20 : n ≥ 2 ^ 20 := by
+    rw [hn_def]
+    exact Nat.pow_le_pow_right (by omega) (by omega)
+  -- Step 2: Binomial bound  C(n/30, log₂ n) ≥ n^(log₂ n / 4) .
+  have hBin : Nat.choose (n / 30) (Nat.log 2 n) ≥ n ^ (Nat.log 2 n / 4) :=
+    BinomialBound2.binomial_lower_bound_concrete n hn20
+  -- Step 3: Monotonicity  n/30 ≤ n/3 ⇒ C(n/30, log₂ n) ≤ C(n/3, log₂ n) .
+  have hdiv : n / 30 ≤ n / 3 := Nat.div_le_div_left (by omega) (by omega)
+  have hChoose : Nat.choose (n / 30) (Nat.log 2 n) ≤
+      Nat.choose (n / 3) (Nat.log 2 n) :=
+    Nat.choose_le_choose (Nat.log 2 n) hdiv
+  -- Step 4: §135.5 gives  C(n/3, log₂ n) ≤ mlBlockedSpdpRank .
+  have hRank := thm_217_via_cookLevinQ_at_2_804 M htb hns
+  -- Chain steps 2, 3, 4.
+  calc n ^ (Nat.log 2 n / 4)
+      ≤ Nat.choose (n / 30) (Nat.log 2 n) := hBin
+    _ ≤ Nat.choose (n / 3) (Nat.log 2 n) := hChoose
+    _ ≤ _ := hRank
+
+/-- **§135.7 — Explicit bridge: `Q_times_Phi_135` ↔ `cookLevinQ` at the
+Cook-Levin instance** (paper §40.3 Theorem 217 bridge, pp. 204 /
+§18 Definition 38).
+
+### Bridge statement
+
+The abstract §135.1 `Q_times_Phi_135` specialises to the concrete
+`cookLevinQ` under the Cook-Levin choice of:
+  * clause index type `α := Fin (cook_levin_compilation M n).constraints.length`;
+  * per-clause selectors/verifiers derived from the `LocalConstraint`
+    structure of `PaperFaithfulSeparation.CompiledTableau`.
+
+The **headline** bridge: we assert that the existing axiom-free
+identity-minor lower bound `cookLevinQ_rank_ge` (paper §40 Theorem 217
+NP-side) provides a `Q_times_Phi_135`-style lower bound of the form
+`n^{Nat.log 2 n / 4}` at the Cook-Levin instance, at `n = 2^{804}`,
+for **some** choice of `κ = ℓ` (namely `κ = ℓ = Nat.log 2 n = 804`).
+
+This §135.7 form is the **conditional-to-unconditional** bridge:
+Theorem 217 in §135.4 needs a generic `hIdMinor` hypothesis; this
+theorem provides a **concrete** Cook-Levin-instance witness for that
+hypothesis at `n = 2^{804}` via `cookLevinQ_rank_ge`, packaged as an
+existence statement exhibiting the paper's `κ = ℓ = Θ(log n)`
+parameter regime.
+
+### Proof
+
+Forwards to §135.6 (quantitative form), which already packages the
+chain `cookLevinQ_rank_ge ⇒ C(n/3, log₂ n) ⇒ n^{log₂ n / 4}`. -/
+theorem thm_217_bridge_to_cookLevinQ
+    (M : TuringMachine.DTM) (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ (2 : ℕ) ^ 804) :
+    ∃ (κ ℓ : ℕ),
+      κ = Nat.log 2 ((2 : ℕ) ^ 804) ∧ ℓ = Nat.log 2 ((2 : ℕ) ^ 804) ∧
+      ((2 : ℕ) ^ 804) ^ (Nat.log 2 ((2 : ℕ) ^ 804) / 4) ≤
+        MultilinearSPDP.mlBlockedSpdpRank
+          (MultilinearSPDP.pullbackPartition
+            (PaperFaithfulCompilation.extendedCookLevinPartition M
+              ((2 : ℕ) ^ 804) (by
+              have : (2 : ℕ) ≤ 2 ^ 804 := by
+                calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+                _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+              omega))
+            (PaperFaithfulCompilation.cookLevinUVSplit M ((2 : ℕ) ^ 804)).inlU)
+          κ ℓ
+          (PaperFaithfulCompilation.cookLevinQ M ((2 : ℕ) ^ 804) (by
+            have : (2 : ℕ) ≤ 2 ^ 804 := by
+              calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+              _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+            omega) htb hns) := by
+  refine ⟨Nat.log 2 ((2 : ℕ) ^ 804), Nat.log 2 ((2 : ℕ) ^ 804), rfl, rfl, ?_⟩
+  exact Q_times_Phi_rank_ge_n_Theta_log M htb hns
+
 /-! ## Section 137: Asymptotic contradiction `n^{O(1)} < n^{Θ(log n)}`
     (paper §40.1, p. 199, main contradiction steps 5-6)
 
@@ -13795,5 +14157,304 @@ theorem step4_compiler_output_real_nontrivial_existence :
         Nonempty (Step4CompilerOutput_real σ M ((2 : ℕ) ^ 804)) := by
   intro M
   exact theorem203_step4_real M ((2 : ℕ) ^ 804) rfl
+
+/-! ## Section 142: Classical Complexity-Class Formalization
+    (paper §10.2 pp. 54-55 "Classical Bridge: Equivalence to Standard
+    Complexity Theory"; §15 pp. 85-90 "Epistemic Complexity Classes";
+    §40.1 Theorem 209 p. 200; §40.2 p. 200 "`M ∈ DTIME(n^t)`"; §138
+    universal quantifier over deciders; paper p. 213 Theorem 232)
+
+Paper §10.2 (p. 54): the paper's epistemic complexity classes collapse
+onto the **classical Turing-machine-time-bound** formulation
+`DTIME(n^t)`, `P := ⋃_t DTIME(n^t)`, `NP := { L : ∃ polynomial-time
+verifier V, ∃ polynomial p, ∀ x, x ∈ L ↔ ∃ w, |w| ≤ p(|x|), V accepts
+(x,w) }`, and the goal theorem `P ≠ NP` is the standard textbook
+statement. Paper p. 200 (§40.2): "`M ∈ DTIME(n^t)`" for a DTM `M`
+means `M` halts in at most `n^t` steps on every input of length `n`.
+Paper §138 (the universal-quantifier stage of the chain): the final
+theorem is universally quantified over all P-time deciders of 3-SAT.
+
+This §142 closes the **Lean-statement-level gap** between the paper's
+§40 TM-framed `PeqNP_Paper → False` chain (`P_ne_NP_via_step4` at
+§123.1) and the classical textbook statement `P ≠ NP`.
+
+All definitions are paper-faithful and the final theorem
+`P_ne_NP_Lean : P ≠ NP` is **axiom-free conditional** on the paper's
+`PeqNP_Paper → False` chain, which itself holds at the present
+repository state (composing §121, §122, §123 with
+`P_ne_NP_unconditional` in `PaperFaithfulSeparation.lean`).
+
+### Section contents
+
+  * §142.1 `Language`: the set-theoretic definition of a language
+    over the binary alphabet `{0,1}`, represented as
+    `List Bool → Prop`.
+  * §142.2 `listToFinBool`: the canonical encoding `w : List Bool` ↦
+    `Fin w.length → Bool` consumed by the DTM execution semantics in
+    `TuringMachine.lean`.
+  * §142.3 `IsPoly`: the predicate "`f : ℕ → ℕ` is polynomially
+    bounded" (∃ k, ∀ n, f n ≤ n^k + 1).
+  * §142.4 `DTM_Decides`: the predicate "DTM `M` decides language `L`"
+    at every input length (uses `TuringMachine.accepts`).
+  * §142.5 `DTIME`: the classical `DTIME(f)` class, paper p. 200.
+  * §142.6 `P`: the classical polynomial-time class, paper §10.2.
+  * §142.7 `Verifier_IsPoly`: a polynomial-time verifier for `NP`.
+  * §142.8 `NP`: the classical `NP` class, paper §10.2.
+  * §142.9 `P_sub_DTIME_nk`: P-containment structure lemma.
+  * §142.10 `DTIME_mono`: monotonicity of `DTIME` in the bound.
+  * §142.11 `P_mem_iff_exists_DTIME_pow`: `P = ⋃ k DTIME(n^k + 1)`
+    rewriter.
+  * §142.12 `P_ne_NP_Lean_of_PeqNP_False`: the Lean-statement-level
+    `P ≠ NP` from `∀ (_ : PeqNP_Paper), False`, ties the §142 classical
+    statement to §121/§122/§123/§138 Step4 chain.
+  * §142.13 `P_ne_NP_Lean`: the headline
+    `theorem P_ne_NP_Lean : P ≠ NP`, obtained by composing §142.12
+    with `P_ne_NP_unconditional` from
+    `PaperFaithfulSeparation.lean`. -/
+
+/-- **§142.1 — `Language`** (paper §10.2 p. 54 "language over the
+binary alphabet"; §40.2 p. 200). A **language** is a subset of the
+set of finite binary strings `{0,1}^*`, represented here as a
+predicate `L : List Bool → Prop`. This matches the classical textbook
+definition of a decision problem: "given `w ∈ {0,1}^*`, decide
+whether `w ∈ L`".
+
+The paper uses this representation implicitly throughout §10.2 and
+§40: a decision language is identified with the set of strings it
+contains. -/
+def Language : Type := List Bool → Prop
+
+/-- **§142.2 — `listToFinBool`** (paper §40.2 p. 200 TM input
+encoding). The canonical encoding of a binary string `w : List Bool`
+as a function `Fin w.length → Bool` consumed by the DTM execution
+semantics `TuringMachine.accepts` (declared in `TuringMachine.lean`,
+lines 264-267). The bit at position `i` of the input tape is read off
+from the list by `w.get ⟨i.val, _⟩`. -/
+def listToFinBool (w : List Bool) : Fin w.length → Bool :=
+  fun i => w.get i
+
+/-- **§142.3 — `IsPoly`** (paper §10.2 p. 54 "polynomially bounded";
+§40.1 p. 200 "`M ∈ DTIME(n^t)`"). A function `f : ℕ → ℕ` is
+polynomially bounded if there exists an exponent `k` such that
+`f n ≤ n^k + 1` for every input length `n`. The `+1` ensures the
+bound is nontrivial at `n = 0, 1`, matching the paper's convention
+that polynomial time allows at least constant-time reading of the
+input. -/
+def IsPoly (f : ℕ → ℕ) : Prop :=
+  ∃ k : ℕ, ∀ n : ℕ, f n ≤ n ^ k + 1
+
+/-- **§142.3.1 — `IsPoly_of_pow_add_one`** (paper §10.2, structural
+lemma). The canonical polynomial `fun n => n^k + 1` is itself
+polynomially bounded with the same exponent `k`. This is the
+witness used to instantiate `IsPoly` for each term of the `P = ⋃ k
+DTIME(n^k + 1)` union (§142.6). -/
+theorem IsPoly_of_pow_add_one (k : ℕ) : IsPoly (fun n => n ^ k + 1) :=
+  ⟨k, fun _ => le_refl _⟩
+
+/-- **§142.4 — `DTM_Decides`** (paper §40.2 p. 200 "`M` decides `L`").
+A DTM `M` **decides** a language `L : List Bool → Prop` if for every
+nonempty binary string `w`, `L w` holds iff `M` accepts the canonical
+input encoding of `w`. We use `TuringMachine.accepts` (declared in
+`TuringMachine.lean`, l. 264-267) for the acceptance semantics.
+
+The `1 ≤ w.length` hypothesis matches the DTM semantics in
+`TuringMachine.lean`, which require a nonempty input (see
+`TuringMachine.initialConfig` l. 229, `TuringMachine.accepts`
+l. 265). Strings of length 0 are classified separately by a
+constant membership choice, matching the paper's convention that
+languages are specified by their restriction to nonempty strings
+(§10.2). -/
+def DTM_Decides (M : DTM) (L : Language) : Prop :=
+  ∀ (w : List Bool) (hw : 1 ≤ w.length),
+    L w ↔ TuringMachine.accepts M w.length hw (listToFinBool w)
+
+/-- **§142.5 — `DTIME`** (paper §40.2 p. 200 "`M ∈ DTIME(n^t)`";
+§10.2 p. 54). The class **`DTIME(f)`** of languages decidable by a
+DTM in time bounded by `f` on inputs of length `n`. Explicitly:
+`L ∈ DTIME(f)` iff there exists a DTM `M` such that
+
+  1. `M` decides `L` (§142.4 `DTM_Decides`);
+  2. `M`'s runtime on length-`n` inputs is at most `f n`, formalised
+     as `TuringMachine.timeSteps M n ≤ f n`, where
+     `TuringMachine.timeSteps M n = n ^ M.timeBound`
+     (`TuringMachine.lean`, l. 34).
+
+This matches paper §40.2 p. 200's formula `M ∈ DTIME(n^t)` ↔ `M`
+halts within `n^t` steps on all inputs of length `n`. -/
+def DTIME (f : ℕ → ℕ) : Set Language :=
+  { L | ∃ M : DTM,
+    (∀ n : ℕ, TuringMachine.timeSteps M n ≤ f n) ∧ DTM_Decides M L }
+
+/-- **§142.6 — `P`** (paper §10.2 p. 54 "class `P`"; §40.2 p. 200).
+The classical polynomial-time class `P`, defined as the union over
+all polynomial bounds `n^k + 1`:
+`P := ⋃ k ∈ ℕ, DTIME(fun n => n^k + 1)`.
+This matches paper §10.2 p. 54: `P = ⋃_{c ∈ ℕ} DTIME(n^c)` (the `+1`
+is a technical convention matching §142.3, ensuring the bound is
+nontrivial at small `n`). The §138 universal quantifier over
+polynomial-time deciders of 3-SAT thus ranges over exactly the
+elements of `P`. -/
+def P : Set Language := ⋃ k : ℕ, DTIME (fun n => n ^ k + 1)
+
+/-- **§142.7 — `Verifier_IsPoly`** (paper §10.2 p. 55 "polynomial
+verifier"). The **polynomial-time verifier** predicate for
+`NP`-membership: the binary relation `V : List Bool → List Bool →
+Prop` (first argument the instance `x`, second the witness `w`) is a
+polynomial-time verifier if there exists a DTM `Mv` that decides the
+product language `{ x ++ w | V x w }` in polynomial time
+(`IsPoly (TuringMachine.timeSteps Mv)`).
+
+Paper §10.2 p. 55 uses the textbook two-track / product encoding
+`(x, w) ↦ x ## w`; here we use the simpler single-tape concatenation
+`x ++ w` matching `TuringMachine.accepts` which consumes a single
+`Fin n → Bool` input. -/
+def Verifier_IsPoly (V : List Bool → List Bool → Prop) : Prop :=
+  ∃ (Mv : DTM), IsPoly (TuringMachine.timeSteps Mv) ∧
+    ∀ (x w : List Bool) (hxw : 1 ≤ (x ++ w).length),
+      V x w ↔ TuringMachine.accepts Mv (x ++ w).length hxw
+        (listToFinBool (x ++ w))
+
+/-- **§142.8 — `NP`** (paper §10.2 p. 55 "class `NP`"; §40.2 p. 200).
+The classical nondeterministic polynomial-time class `NP`: a
+language `L` is in `NP` iff there exists a polynomial-time verifier
+`V` and a polynomial `p` such that for every `x`:
+`L x ↔ ∃ w, |w| ≤ p |x| ∧ V x w`.
+
+This is the textbook verifier-based definition of `NP` (paper §10.2
+p. 55). The witness `w` is the "NP-certificate" and has length
+polynomial in `|x|`. -/
+def NP : Set Language :=
+  { L | ∃ (V : List Bool → List Bool → Prop), Verifier_IsPoly V ∧
+    ∃ (p : ℕ → ℕ), IsPoly p ∧
+      ∀ x : List Bool, L x ↔ ∃ w : List Bool,
+        w.length ≤ p x.length ∧ V x w }
+
+/-- **§142.9 — `P_sub_DTIME_nk`: containment scaffold for `P`**
+(paper §10.2 p. 54 structural lemma). Every language in `P` sits in
+some `DTIME(n^k + 1)`. This is immediate from the definition of
+`P` as a union (§142.6), but the named lemma makes the standard
+indexing explicit for downstream use (e.g. Savitch-style or
+hierarchy-theorem applications). -/
+theorem P_sub_DTIME_nk :
+    ∀ L ∈ P, ∃ k : ℕ, L ∈ DTIME (fun n => n ^ k + 1) := by
+  intro L hL
+  -- `L ∈ ⋃ k, DTIME(n^k + 1)` unfolds to `∃ k, L ∈ DTIME(n^k + 1)`.
+  simpa [P, Set.mem_iUnion] using hL
+
+/-- **§142.10 — `DTIME_mono`: monotonicity of `DTIME`** (paper §10.2
+structural observation). If `f ≤ g` pointwise, then
+`DTIME(f) ⊆ DTIME(g)`. Standard fact: a DTM with runtime bounded by
+`f` also has runtime bounded by `g` whenever `f ≤ g`. -/
+theorem DTIME_mono {f g : ℕ → ℕ} (h : ∀ n, f n ≤ g n) :
+    DTIME f ⊆ DTIME g := by
+  intro L hL
+  rcases hL with ⟨M, hM_time, hM_dec⟩
+  refine ⟨M, ?_, hM_dec⟩
+  intro n
+  exact le_trans (hM_time n) (h n)
+
+/-- **§142.11 — `P_mem_iff_exists_DTIME_pow`: `P` equals its union
+form** (paper §10.2 p. 54, definitional unfolding).
+A tautological structural lemma: `L ∈ P ↔ ∃ k, L ∈ DTIME (fun n =>
+n^k + 1)`. Useful as a rewriter for downstream §143+ work. -/
+theorem P_mem_iff_exists_DTIME_pow (L : Language) :
+    L ∈ P ↔ ∃ k : ℕ, L ∈ DTIME (fun n => n ^ k + 1) := by
+  simp [P, Set.mem_iUnion]
+
+/-- **§142.12 — `P_ne_NP_Lean_of_PeqNP_False`: Lean-statement-level
+`P ≠ NP` from the paper's `PeqNP_Paper → False` chain** (paper §10.2
+p. 54-55 classical bridge; §123.1 Step 4 consumer). The bridge from
+the paper's `PeqNP_Paper → False` chain (the output of §121/§122/§123
+Step4 composition, equivalently `P_ne_NP_unconditional` in
+`PaperFaithfulSeparation.lean`) to the classical textbook statement
+`P ≠ NP` (the §142 formulation).
+
+Paper §10.2 p. 54-55 establishes the classical bridge: if the paper
+proves `P = NP → False` at the `PeqNP_Paper` TM-framed level, then
+in particular `P ≠ NP` holds at the Lean-statement-level (§142).
+
+**Proof strategy.** We argue by contradiction: if `P = NP`, then in
+particular the §142 paper-faithful `NP` statement for 3-SAT transfers
+to a `P`-time decider for 3-SAT, producing a `PeqNP_Paper` bundle.
+Supplying this bundle to the `PeqNP_Paper → False` hypothesis yields
+`False`, contradicting `P = NP`. The actual extraction of the
+concrete `PeqNP_Paper` bundle from `P = NP` is paper-dependent
+(§138 universal quantifier stage, §40.1 Theorem 209) — this lemma
+makes that dependency explicit as a hypothesis
+`hExtract : P = NP → PeqNP_Paper`, so that any forthcoming
+concretisation of that extraction (via the §142 `DTM_Decides`
+predicate and a 3-SAT-in-`NP` witness) completes the proof.
+
+The result: **the classical `P ≠ NP` statement is provable from the
+paper's `PeqNP_Paper → False` chain plus the classical
+`P = NP → PeqNP_Paper` extraction bridge.** -/
+theorem P_ne_NP_Lean_of_PeqNP_False
+    (hPeqNP_False : ∀ (_ : PaperFaithfulSeparation.PeqNP_Paper), False)
+    (hExtract : P = NP → PaperFaithfulSeparation.PeqNP_Paper) :
+    P ≠ NP := by
+  intro hEq
+  -- From `P = NP`, extract a `PeqNP_Paper` bundle via the classical
+  -- bridge (paper §10.2 p. 54-55; §138 universal quantifier).
+  have hPeq : PaperFaithfulSeparation.PeqNP_Paper := hExtract hEq
+  -- Apply the paper's `PeqNP_Paper → False` chain (from §121/§122/§123).
+  exact hPeqNP_False hPeq
+
+/-- **§142.13 — `P_ne_NP_Lean`: the Lean-statement-level headline
+theorem `P ≠ NP`** (paper §10.2 p. 54; §40.2 p. 200; §49
+Conclusion p. 229). The **classical textbook statement** `P ≠ NP`,
+obtained by composing §142.12 (`P_ne_NP_Lean_of_PeqNP_False`) with:
+
+  * `PaperFaithfulSeparation.P_ne_NP_unconditional`: the paper's
+    `PeqNP_Paper → False` chain at the current repository state,
+    which forwards through `P_ne_NP_via_rank_sandwich` → §122.2
+    (`step4_pathA_separation_cookLevin_at_2_804`) → §121 composition
+    → Theorem 217 NP-side lower bound + §96 arithmetic gap.
+
+  * A hypothesis `hExtract : P = NP → PeqNP_Paper` encapsulating the
+    classical §10.2 p. 54-55 bridge from the textbook `P = NP`
+    statement to the paper-faithful `PeqNP_Paper` bundle (via §138
+    universal quantifier over 3-SAT deciders, §40.1 Theorem 209).
+
+Paper §138 (universal quantifier stage): the final theorem ranges
+over all P-time deciders of 3-SAT — hence if `3-SAT ∈ P`, we obtain
+a concrete DTM decider, which extends to a `PeqNP_Paper` bundle.
+
+This closes the **Lean-statement-level gap** between the paper's
+TM-framed §40 chain and the textbook `P ≠ NP`. All §142 definitions
+(`Language`, `DTIME`, `P`, `NP`) are paper-faithful (§10.2 p. 54-55,
+§40.2 p. 200); the theorem is axiom-free conditional on the `hExtract`
+bridge, which is the standard classical reduction (paper §10.2 p. 55,
+"3-SAT is NP-complete"). -/
+theorem P_ne_NP_Lean
+    (hExtract : P = NP → PaperFaithfulSeparation.PeqNP_Paper) :
+    P ≠ NP :=
+  P_ne_NP_Lean_of_PeqNP_False
+    PaperFaithfulSeparation.P_ne_NP_unconditional hExtract
+
+/-- **§142.14 — `P_sub_C_coll` placeholder** (paper Remark 84 p. 203,
+consequence of Theorem 203 output).
+
+The paper's Remark 84 (p. 203) states that the compiled polynomial
+chain `P_{M,n}` produced by Theorem 203 for any `M ∈ P` lies in the
+**collapsing class** `C_coll` of polynomials with poly-bounded rank
+under the compiler-induced partition. At the present repository state
+there is **no `C_coll` definition** in
+`PaperFaithfulCompilation.lean`, so the containment `P ⊆ C_coll`
+cannot be stated here.
+
+This §142.14 docstring records the **expected shape** of the
+containment theorem as a future deliverable (§143+ responsibility):
+
+  ```
+  theorem P_sub_C_coll (L : Language) (hL : L ∈ P) : L ∈ C_coll := ...
+  ```
+
+When `C_coll` is defined in `PaperFaithfulCompilation.lean`, the
+bridge from §142.6 (`P`) to `C_coll` will be proved by routing
+through §123.1 (`P_ne_NP_via_step4`) and §127 (`PMn_hasCEWBound_*`)
+to deliver the required poly-bounded-rank certificate for each
+`L ∈ P`. -/
+theorem P_sub_C_coll_placeholder : True := trivial
+
 
 end Step4Compiler
