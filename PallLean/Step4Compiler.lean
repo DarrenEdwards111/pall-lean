@@ -710,6 +710,124 @@ theorem rank_zero_of_cew_zero_example {N : ℕ} (B : SPDP.BlockPartition N)
     MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (0 : MvPolynomial (Fin N) ℚ) ≤ 0 :=
   (mlBlockedSpdpRank_zero B κ ℓ).le
 
+/-! ## Section 17e: BP composition + path polynomial
+
+Paper's key idea: each TM step becomes a BP layer, and the compiled
+polynomial counts "accepting paths" via monomial products. Here we
+provide basic BP combinators. -/
+
+/-- **BP with one extra layer**: append a fresh transition layer
+at the beginning (increasing length by 1).
+
+For constructing BPs by induction on TM computation length. -/
+def BranchingProgram.prependLayer {n : ℕ} (B : BranchingProgram n)
+    (newQuery : Fin n)
+    (newTrans : Fin B.width → Bool → Fin B.width) :
+    BranchingProgram n where
+  length := B.length + 1
+  width := B.width
+  query := fun i =>
+    if h : i.val = 0 then newQuery
+    else B.query ⟨i.val - 1, by
+      have : i.val < B.length + 1 := i.isLt
+      omega⟩
+  trans := fun i v b =>
+    if h : i.val = 0 then newTrans v b
+    else B.trans ⟨i.val - 1, by
+      have : i.val < B.length + 1 := i.isLt
+      omega⟩ v b
+  accepting := B.accepting
+
+/-- **prependLayer preserves width**. -/
+theorem BranchingProgram.prependLayer_width {n : ℕ} (B : BranchingProgram n)
+    (q : Fin n) (t : Fin B.width → Bool → Fin B.width) :
+    (B.prependLayer q t).width = B.width := rfl
+
+/-- **prependLayer adds 1 to length**. -/
+theorem BranchingProgram.prependLayer_length {n : ℕ} (B : BranchingProgram n)
+    (q : Fin n) (t : Fin B.width → Bool → Fin B.width) :
+    (B.prependLayer q t).length = B.length + 1 := rfl
+
+/-! ## Section 17f: BP size bounds composition
+
+When BPs are composed, length and width bounds should compose. -/
+
+/-- **prependLayer preserves polynomial-size width**. -/
+theorem prependLayer_widthBound {n : ℕ} (B : BranchingProgram n)
+    (q : Fin n) (t : Fin B.width → Bool → Fin B.width) (bound : ℕ)
+    (hwidth : B.widthBound bound) :
+    (B.prependLayer q t).widthBound bound := by
+  unfold BranchingProgram.widthBound at *
+  rw [BranchingProgram.prependLayer_width]
+  exact hwidth
+
+/-- **prependLayer increments length bound by 1 (slack)**. -/
+theorem prependLayer_length_bounded {n : ℕ} (B : BranchingProgram n)
+    (q : Fin n) (t : Fin B.width → Bool → Fin B.width)
+    (L : ℕ) (hlen : B.length ≤ L) :
+    (B.prependLayer q t).length ≤ L + 1 := by
+  rw [BranchingProgram.prependLayer_length]
+  omega
+
+/-! ## Section 17g: Polynomial associated with a BP layer
+
+For a single BP layer with query `q` and transitions, the polynomial
+encoding the input-dependent transition decision is:
+  trans(q, x) = X_q · (branch_1) + (1 - X_q) · (branch_0)
+This is linear in X_q, degree 1. -/
+
+/-- **Layer polynomial**: encodes the transition at a single BP layer.
+Given current vertex `v` and transitions for `x_q = 0` and `x_q = 1`,
+return the polynomial `X_q · coeff_1 + (1 - X_q) · coeff_0` where
+coeff_b is an encoding of the target vertex if bit is b. -/
+noncomputable def layerPolynomial {N : ℕ}
+    (q : Fin N) (coeff_0 coeff_1 : ℚ) :
+    MvPolynomial (Fin N) ℚ :=
+  MvPolynomial.X q * MvPolynomial.C coeff_1 +
+  (1 - MvPolynomial.X q) * MvPolynomial.C coeff_0
+
+/-- `layerPolynomial` is built from X, 1-X, and constants, each CEW ≤ 1. -/
+theorem layerPolynomial_degree {N : ℕ} (q : Fin N) (c₀ c₁ : ℚ) :
+    (layerPolynomial q c₀ c₁).totalDegree ≤ 1 := by
+  unfold layerPolynomial
+  -- Structure: X_q · C(c₁) + (1 - X_q) · C(c₀)
+  -- totalDegree of each mul: at most 1 (X has degree 1, C has degree 0)
+  -- totalDegree of add: ≤ max, still ≤ 1
+  have h1 : (MvPolynomial.X q * MvPolynomial.C c₁ :
+      MvPolynomial (Fin N) ℚ).totalDegree ≤ 1 := by
+    calc _ ≤ (MvPolynomial.X q : MvPolynomial (Fin N) ℚ).totalDegree +
+            (MvPolynomial.C c₁ : MvPolynomial (Fin N) ℚ).totalDegree :=
+            MvPolynomial.totalDegree_mul _ _
+      _ ≤ 1 + 0 := Nat.add_le_add
+          (by rw [MvPolynomial.totalDegree_X])
+          (by rw [MvPolynomial.totalDegree_C])
+      _ = 1 := by omega
+  have h2 : ((1 - MvPolynomial.X q) * MvPolynomial.C c₀ :
+      MvPolynomial (Fin N) ℚ).totalDegree ≤ 1 := by
+    calc _ ≤ (1 - MvPolynomial.X q :
+              MvPolynomial (Fin N) ℚ).totalDegree +
+            (MvPolynomial.C c₀ : MvPolynomial (Fin N) ℚ).totalDegree :=
+            MvPolynomial.totalDegree_mul _ _
+      _ ≤ 1 + 0 := by
+          apply Nat.add_le_add
+          · calc (1 - MvPolynomial.X q :
+                    MvPolynomial (Fin N) ℚ).totalDegree
+                ≤ max (1 : MvPolynomial (Fin N) ℚ).totalDegree
+                    (MvPolynomial.X q).totalDegree :=
+                  MvPolynomial.totalDegree_sub _ _
+              _ ≤ 1 := by
+                rw [MvPolynomial.totalDegree_one, MvPolynomial.totalDegree_X]
+                omega
+          · rw [MvPolynomial.totalDegree_C]
+      _ = 1 := by omega
+  calc _ ≤ max _ _ := MvPolynomial.totalDegree_add _ _
+    _ ≤ 1 := max_le h1 h2
+
+/-- `layerPolynomial` has CEW ≤ 1. -/
+theorem layerPolynomial_cew {N : ℕ} (q : Fin N) (c₀ c₁ : ℚ) :
+    HasCEWBound (layerPolynomial q c₀ c₁) 1 :=
+  layerPolynomial_degree q c₀ c₁
+
 /-! ## Section 18: Width⇒Rank concrete application
 
 Paper's Theorem 93 (Sorting-network compiler: locality and CEW):
