@@ -855,4 +855,39 @@ theorem pathA_separation_contradiction
     (n ^ 200) (Nat.choose (n / 3) (Nat.log 2 n))
     hPside hNPside (arithmetic_gap_2pow804 n hn)
 
+/-! ## Section 17: Bridge to main theorem
+
+The final piece connecting Path A to the main separation `P ≠ NP`.
+
+Given a polynomial `P` satisfying the two rank bounds at n ≥ 2^804
+under the hypothesis `DecidesSAT M`, we get a contradiction. This
+reduces the main axiom `exists_amplituhedron_gauge_for_sat_decider`
+to exhibiting such a P — i.e., Tasks (B.2), (D), (E) completing a
+concrete construction.
+
+The key structure: the path is hPside ∧ hNPside ⇒ False under
+DecidesSAT ⇒ ¬DecidesSAT at n ≥ 2^804 ⇒ P ≠ NP (in restricted form). -/
+
+/-- **Main Path A bridge theorem**: given PathA rank bounds on a
+concrete PMn polynomial at n ≥ 2^804, any additional hypothesis `H`
+(e.g., `DecidesSAT M`) that implies both bounds yields `¬ H`.
+
+This is the Path A conclusion template: plug `H := DecidesSAT M` and
+prove the bounds conditional on `H` to get `¬ DecidesSAT M`, which
+combined with universal quantification over large n yields `P ≠ NP`.
+
+Stated in terms of an abstract hypothesis `H` to avoid heavy imports. -/
+theorem pathA_hypothesis_contradiction
+    (n : ℕ) (hn : n ≥ 2 ^ 804)
+    {σ : UVSplit} (B : SPDP.BlockPartition σ.total)
+    (P : PMnPoly σ) (κ ℓ : ℕ)
+    {H : Prop}
+    (hPside : H → MultilinearSPDP.mlBlockedSpdpRank B κ ℓ P ≤ n ^ 200)
+    (hNPside : H →
+      Nat.choose (n / 3) (Nat.log 2 n) ≤
+        MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (piPhi σ P)) :
+    ¬ H := by
+  intro h
+  exact pathA_separation_contradiction n hn B P κ ℓ (hPside h) (hNPside h)
+
 end PaperFaithfulCompilation
