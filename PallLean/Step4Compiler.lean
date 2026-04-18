@@ -5099,5 +5099,136 @@ theorem bpFromTM_final_trace_eq_tmConfig
     (bpFromTM_configEnc M n hn) input tmAccepts
     (stepMatches_of_bpFromTM M n hn input) hacc
 
+/-! ## Section 88: `TMSimBlock` — arithmetized TM tableau cell
+    (paper §40 Theorem 203, Step 1 / §2.1)
+
+Paper §40 Step 1 compiles each TM tableau cell `(t, i)` (time step `t`,
+tape position `i`) into a single radius-1 SoS gadget that checks the
+local consistency of that cell (transition rule, tape-cell identity,
+head position). `TMSimBlock` is the record bundling the per-cell
+arithmetization: a polynomial over at most 6 variables (the radius-1
+SoS envelope), a variable-support certificate, a total-degree ≤ 6
+certificate, and a derived `SoSGadget` instance.
+
+The `tmSimBlock_at (t i : ℕ)` function produces a concrete block for
+position `(t, i)` in the tableau. In the current scaffolding phase we
+use the trivial block as the base; the concrete TM-specific block
+will plug into the same record once the Step 1 compilation is fully
+wired (all §88 theorems transport unchanged). Every `tmSimBlock_at`
+instance is axiom-free and carries a CEW bound ≤ 6 (inherited from
+the SoSGadget envelope).
+
+These per-cell blocks are the building pieces of the compiled
+polynomial `PMn` constructed in §89. -/
+
+/-- **§88.1 — `TMSimBlock` structure** (paper §40 Theorem 203, Step 1 /
+§2.1). A single TM tableau cell's arithmetization: a polynomial over
+≤ 6 variables, with varSupport certificate and total degree ≤ 6. The
+fields mirror `SoSGadget N` so every `TMSimBlock` naturally yields an
+`SoSGadget`. Used as the building block for paper §40's `PMn`
+construction in §89. -/
+structure TMSimBlock (N : ℕ) where
+  /-- The per-cell arithmetization polynomial. -/
+  poly : MvPolynomial (Fin N) ℚ
+  /-- Variable support: at most 6 variables (radius-1 SoS envelope). -/
+  varSupport : Finset (Fin N)
+  /-- Support cardinality ≤ 6 (paper §40 Step 3 / §2.1 radius-1 SoS). -/
+  support_bound : varSupport.card ≤ 6
+  /-- All variables of `poly` lie in `varSupport`. -/
+  vars_contained : poly.vars ⊆ varSupport
+  /-- Total degree ≤ 6 (paper §40 Step 3 / §2.1 radius-1 SoS). -/
+  degree_bound : poly.totalDegree ≤ 6
+
+/-- **§88.2 — `TMSimBlock.toSoSGadget`** (paper §40 Theorem 203, Step 1 /
+§2.1). Every `TMSimBlock` is an `SoSGadget` with the same polynomial,
+variable support, and degree bound. Used to transport `TMSimBlock`s
+through the full §40 Step 1-2-3 pipeline. -/
+noncomputable def TMSimBlock.toSoSGadget {N : ℕ} (b : TMSimBlock N) :
+    SoSGadget N where
+  poly := b.poly
+  varSupport := b.varSupport
+  support_bound := b.support_bound
+  vars_contained := b.vars_contained
+  degree_bound := b.degree_bound
+
+/-- **§88.3 — `TMSimBlock.hasCEWBound_six`** (paper §40 Theorem 203,
+Step 1 / §2.1). Every `TMSimBlock` has CEW ≤ 6, matching the radius-1
+SoS envelope. Direct consequence of `degree_bound` via the simplified
+`HasCEWBound = totalDegree ≤ target` identification. -/
+theorem TMSimBlock.hasCEWBound_six {N : ℕ} (b : TMSimBlock N) :
+    HasCEWBound b.poly 6 :=
+  b.degree_bound
+
+/-- **§88.4 — `TMSimBlock.varSupport_card_le_six`** (paper §40 Theorem
+203, Step 1 / §2.1). Explicit wrapper for the `support_bound` field.
+Used by §90's `PMn_vars_card_le_poly` to aggregate per-block variable
+supports into a polynomial bound on `PMn.vars.card`. -/
+theorem TMSimBlock.varSupport_card_le_six {N : ℕ} (b : TMSimBlock N) :
+    b.varSupport.card ≤ 6 :=
+  b.support_bound
+
+/-- **§88.5 — `TMSimBlock.totalDegree_le_six`** (paper §40 Theorem 203,
+Step 1 / §2.1). Explicit wrapper for the `degree_bound` field. -/
+theorem TMSimBlock.totalDegree_le_six {N : ℕ} (b : TMSimBlock N) :
+    b.poly.totalDegree ≤ 6 :=
+  b.degree_bound
+
+/-- **§88.6 — `trivialTMSimBlock`** (paper §40 Theorem 203, Step 1 /
+§2.1). The zero-polynomial `TMSimBlock`: used as the base-case block
+when concrete TM-specific blocks are unavailable. All structural
+theorems (§89, §90) are phrased so they work uniformly for every
+`TMSimBlock` instance, including the trivial one. -/
+noncomputable def trivialTMSimBlock (N : ℕ) : TMSimBlock N where
+  poly := 0
+  varSupport := ∅
+  support_bound := by simp
+  vars_contained := by simp
+  degree_bound := by simp
+
+/-- **§88.7 — `trivialTMSimBlock_poly`** (paper §40 Theorem 203, Step
+1 / §2.1). The trivial block's polynomial is zero. -/
+theorem trivialTMSimBlock_poly (N : ℕ) :
+    (trivialTMSimBlock N).poly = 0 := rfl
+
+/-- **§88.8 — `trivialTMSimBlock_varSupport`** (paper §40 Theorem 203,
+Step 1 / §2.1). The trivial block's variable support is empty. -/
+theorem trivialTMSimBlock_varSupport (N : ℕ) :
+    (trivialTMSimBlock N).varSupport = ∅ := rfl
+
+/-- **§88.9 — `tmSimBlock_at`** (paper §40 Theorem 203, Step 1 / §2.1).
+The per-cell TM-simulation block at tableau position `(t, i)`. In the
+current scaffolding phase we instantiate this with the trivial block;
+the concrete TM-specific arithmetization plugs into the same slot
+once the Step 1 wiring is complete. All §89/§90 structural theorems
+are parameterised over the `tmSimBlock_at` function signature, so
+swapping in a non-trivial block leaves the downstream bookkeeping
+unchanged. -/
+noncomputable def tmSimBlock_at {N : ℕ} (_t _i : ℕ) : TMSimBlock N :=
+  trivialTMSimBlock N
+
+/-- **§88.10 — `tmSimBlock_at_poly_totalDegree_le`** (paper §40 Theorem
+203, Step 1 / §2.1). The per-cell block at position `(t, i)` has
+total degree ≤ 6. Follows from the universal `TMSimBlock.degree_bound`
+field, specialised to `tmSimBlock_at`. -/
+theorem tmSimBlock_at_poly_totalDegree_le {N : ℕ} (t i : ℕ) :
+    (@tmSimBlock_at N t i).poly.totalDegree ≤ 6 :=
+  (tmSimBlock_at (N := N) t i).degree_bound
+
+/-- **§88.11 — `tmSimBlock_at_varSupport_card_le`** (paper §40 Theorem
+203, Step 1 / §2.1). The per-cell block at position `(t, i)` has
+varSupport.card ≤ 6. Paper §40 Step 3's radius-1 SoS envelope applied
+to the tableau-cell arithmetization. -/
+theorem tmSimBlock_at_varSupport_card_le {N : ℕ} (t i : ℕ) :
+    (@tmSimBlock_at N t i).varSupport.card ≤ 6 :=
+  (tmSimBlock_at (N := N) t i).support_bound
+
+/-- **§88.12 — `tmSimBlock_at_hasCEWBound_six`** (paper §40 Theorem
+203, Step 1 / §2.1). Every per-cell block has CEW ≤ 6. This is the
+unit-of-composition CEW bound used by §89's `PMn_hasCEWBound_*`
+iterated-product lemmas. -/
+theorem tmSimBlock_at_hasCEWBound_six {N : ℕ} (t i : ℕ) :
+    HasCEWBound (@tmSimBlock_at N t i).poly 6 :=
+  (tmSimBlock_at (N := N) t i).hasCEWBound_six
+
 end Step4Compiler
 
