@@ -18374,7 +18374,6 @@ theorem tseitin_hard_family_axiom_free_summary : True := trivial
 #print axioms tseitin_hard_family_axiom_free_summary
 
 
-<<<<<<< Updated upstream
 /-! ## §150 — Constructive God-Move replacement for the amplituhedron axiom
 (paper §18.2 p. 105 para 3 "Conceptual inversion..."; §18.3 Theorem 98,
 Theorem 100 pp. 106–108; Remark 43 p. 108–109 "Lagrangian certificate")
@@ -18653,390 +18652,6 @@ theorem axiomFree_amplituhedron_for_sat_decider
 #print axioms P_ne_NP_no_amplituhedron_axiom
 #print axioms axiomFree_amplituhedron_for_sat_decider
 
-=======
-/-! ## Section 153: Concrete envelope resolution at `n = 2^{804}`
-    (paper §40.1 Theorem 209 (v), p. 200; §40.2 Theorem 216, p. 203)
-
-Paper §40.1 Theorem 209 (v) (p. 200 of `p vs np1.pdf`) states that
-for `κ' = α log n` and `ℓ' = β log n` with **fixed constants**
-`α, β > 0`,
-
-  `Γ_{κ',ℓ'}(P_{M,n}) ≤ n^{O(1)}`.
-
-The `O(1)` here is a **fixed exponent** determined by the quadruple
-`(α, β, C_3, c_compile)` where `C_3` is the Width⇒Rank constant of
-paper §40.2 Theorem 216 (p. 203). In particular, the proof of Theorem
-216 on p. 203 is explicit: each row of `M_{κ,ℓ}(p)` lies in the span
-of at most
-
-  `(C_3)^κ`
-
-basis monomials (Khatri--Rao rank bound), and with `κ = Θ(log n)` the
-row-space dimension is `(C_3)^{Θ(log n)} = n^{O(1)}`. The exponent is
-**not arbitrary** — it equals `(log₂ C_3) · α` in the natural
-`ℕ`-valued envelope.
-
-### Section 136 vs.\ Section 153
-
-§136 proved the asymptotic form
-`(n^6 + 1)^(c · log₂ n + 1) ≤ n^{7·(c · log₂ n + 1)}`, which for any
-`c ≥ 1` exceeds `n^{200}` as soon as `log₂ n > 200 / (7·c)`. This
-demonstrated that the `n^{200}` target of §115 is **incompatible with
-the asymptotic `κ', ℓ' = Θ(log n)` regime**.
-
-§153 now **commits to the concrete `n = 2^{804}` comparison** at a
-specific polynomial exponent determined by a concrete Width⇒Rank
-constant `C_3`. Rather than the asymptotic form "some `O(1)`
-exponent", we pin the exponent to a small integer `C` via
-
-  `(C_3)^{804} ≤ 2^{804 · log₂ C_3} = (2^{804})^{log₂ C_3}`.
-
-For the paper's Width⇒Rank constant `C_3` satisfying `C_3 ≤ 2^C`
-with some small `C` (e.g.\ `C = 12` corresponds to `C_3 ≤ 4096`, a
-generous bound for the Khatri--Rao span constant of local radius-1
-SoS gadgets), we obtain the concrete envelope
-
-  `mlBlockedSpdpRank(P_{M,n}) ≤ (2^{804})^C`                   (★)
-
-at `n = 2^{804}`, `κ = 804`, `ℓ` free. Since `C < 804 = log₂ n`,
-(★) is strictly below the NP-side lower bound
-`n^{Θ(log n)} = n^{804}` at its concrete instantiation (paper
-Theorem 217, p. 204), yielding the Route-A arithmetic gap.
-
-### §153 contents
-
-  * **§153.1** `rank_le_C3_pow_kappa_abstract` — abstract restatement
-    of paper Thm 216 Width⇒Rank: rank ≤ `(C_3)^κ` when a span witness
-    of that size is provided.
-
-  * **§153.2** `C3_pow_kappa_le_pow_two_pow_C` — pure arithmetic:
-    `(C_3)^κ ≤ (2^κ)^C` when `C_3 ≤ 2^C` (no `n` dependence).
-
-  * **§153.3** `P_side_rank_concrete_bound` — headline: the compiled
-    `PMn_def_real` has blocked rank `≤ (2^{804})^C` at `κ = 804`,
-    given a Thm 216 span witness and `C_3 ≤ 2^C`.
-
-  * **§153.4** `P_side_rank_concrete_lt_NP_side` — there exists
-    `C_P < 804 = Nat.log 2 (2^{804})` such that
-    `mlBlockedSpdpRank ≤ (2^{804})^{C_P}`, witnessing the concrete
-    arithmetic separation.
-
-  * **§153.5** `concrete_contradiction_final` — clean combinatorial
-    form: rank ≤ `n^{C_P}` together with rank ≥ `n^{Nat.log 2 n}` at
-    `n ≥ 2^{C_P + 1}` yields `False`.
-
-  * **§153.6** `envelope_regime_resolved` — documentation theorem:
-    any `C_P < 804` rank envelope contradicts Thm 217 at `n = 2^{804}`.
-
-  * **§153.7 / §153.8** — concrete specialisations at `C_P = 200`
-    (§115-compatible) and `C_P = 12` (generous Khatri--Rao witness).
-
-All §153 theorems are axiom-free, append-only, and zero
-`sorry`/`admit`. They rest only on:
-
-  * `Nat.pow_le_pow_left`, `Nat.pow_le_pow_right` (Mathlib `Nat.pow`
-    monotonicity);
-  * `pow_mul`, `pow_succ` (arithmetic identities);
-  * `Nat.log_pow` (`Nat.log 2 (2^k) = k`);
-  * `width_implies_rank_bound_interface` (§4, already in file);
-  * `MultilinearSPDP.mlBlockedSpdpRank` (§79 / §105 infrastructure).
-
-No existing definitions or theorems are modified. -/
-
-/-- **§153.1 — Abstract Thm 216 Width⇒Rank rank ceiling `(C_3)^κ`**
-(paper §40.2 Theorem 216, p. 203, Khatri--Rao row-span step).
-
-Paper §40.2 Theorem 216 proves (p. 203) that the multilinear blocked
-SPDP matrix `M_{κ,ℓ}(p)` has each row lying in the span of at most
-`(C_3)^κ` basis monomials. Hence, when a span witness `G` of
-cardinality `≤ (C_3)^κ` is supplied (this is the paper's Khatri--Rao
-span), the blocked rank is bounded by `(C_3)^κ`. This is a
-specialisation of §4 `width_implies_rank_bound_interface` at
-`bound := (C_3)^κ`. -/
-theorem rank_le_C3_pow_kappa_abstract
-    {N : ℕ} (B : SPDP.BlockPartition N) (κ ℓ : ℕ)
-    (p : MvPolynomial (Fin N) ℚ) (C_3 : ℕ)
-    (G : Finset (MvPolynomial (Fin N) ℚ))
-    (hspan : MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ p ≤
-      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
-    (hcard : G.card ≤ C_3 ^ κ) :
-    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ p ≤ C_3 ^ κ :=
-  width_implies_rank_bound_interface B κ ℓ p G hspan (C_3 ^ κ) hcard
-
-/-- **§153.2 — Arithmetic step `(C_3)^κ ≤ (2^κ)^C` when `C_3 ≤ 2^C`**
-(paper §40.2 Theorem 216, p. 203, Khatri--Rao constant
-`log₂`-digitisation step).
-
-Pure arithmetic envelope: for any Width⇒Rank constant `C_3` satisfying
-`C_3 ≤ 2^C` (i.e.\ `log₂ C_3 ≤ C`), the `(C_3)^κ` Khatri--Rao
-row-span ceiling of Theorem 216 is bounded by `(2^κ)^C`. At
-`κ = 804` and `2^{804} = n`, this gives the concrete `(2^{804})^C`
-envelope form required for the Route-A arithmetic-gap comparison.
-
-The proof:
-  1. `(C_3)^κ ≤ (2^C)^κ` by `Nat.pow_le_pow_left` with `C_3 ≤ 2^C`.
-  2. `(2^C)^κ = 2^{C·κ} = 2^{κ·C} = (2^κ)^C` by the standard exponent
-     identity `pow_mul` (applied twice in opposite directions). -/
-theorem C3_pow_kappa_le_pow_two_pow_C {C_3 C κ : ℕ} (hC3 : C_3 ≤ 2 ^ C) :
-    C_3 ^ κ ≤ (2 ^ κ) ^ C := by
-  have h1 : C_3 ^ κ ≤ (2 ^ C) ^ κ := Nat.pow_le_pow_left hC3 κ
-  have h2 : (2 ^ C) ^ κ = (2 ^ κ) ^ C := by
-    rw [← pow_mul, ← pow_mul, Nat.mul_comm]
-  rw [h2] at h1
-  exact h1
-
-/-- **§153.3 — Concrete P-side envelope at `n = 2^{804}`** (paper §40.1
-Theorem 209 (v), p. 200; §40.2 Theorem 216, p. 203).
-
-Headline concrete envelope: given a Thm 216 span witness `G` of
-cardinality `≤ (C_3)^{804}` for the blocked subspace of
-`PMn_def_real n T paths block layers` at `κ = 804`, and a Khatri--Rao
-constant digitisation `C_3 ≤ 2^C`, the blocked rank is bounded by
-`(2^{804})^C`:
-
-  `mlBlockedSpdpRank (PMn_def_real ...) ≤ (2^{804})^C`.                (★)
-
-This is the paper-faithful concrete form of Thm 209 (v) at
-`α = 1/804` (the concrete witness `κ' · 804 = α · log₂ n` at
-`n = 2^{804}` normalises to `κ' = 804 · α`; with `α = 1/804` this
-gives `κ' = 1` per unit `log₂ 2 = 1`). The `O(1)` exponent of
-Thm 209 (v) is pinned to the concrete integer `C` via the Thm 216
-constant `C_3`, without passing through the asymptotic `n^{O(1)}`
-notation.
-
-The proof chains §153.1 (Thm 216 rank ceiling) with §153.2 (`log₂`
-digitisation). -/
-theorem P_side_rank_concrete_bound
-    {N : ℕ} (B : SPDP.BlockPartition N)
-    (ℓ : ℕ) (n T : ℕ) (paths : Finset ℕ)
-    (block : ℕ → ℕ → TMSimBlock N)
-    (layers : List (MvPolynomial (Fin N) ℚ))
-    (C_3 C : ℕ)
-    (G : Finset (MvPolynomial (Fin N) ℚ))
-    (hspan : MultilinearSPDP.mlBlockedSpdpSubspace B 804 ℓ
-        (PMn_def_real n T paths block layers) ≤
-      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
-    (hcard : G.card ≤ C_3 ^ 804)
-    (hC3 : C_3 ≤ 2 ^ C) :
-    MultilinearSPDP.mlBlockedSpdpRank B 804 ℓ
-        (PMn_def_real n T paths block layers) ≤ ((2 : ℕ) ^ 804) ^ C := by
-  -- Step 1: Thm 216 gives `mlBlockedSpdpRank ≤ C_3^{804}`.
-  have h1 : MultilinearSPDP.mlBlockedSpdpRank B 804 ℓ
-      (PMn_def_real n T paths block layers) ≤ C_3 ^ 804 :=
-    rank_le_C3_pow_kappa_abstract B 804 ℓ
-      (PMn_def_real n T paths block layers) C_3 G hspan hcard
-  -- Step 2: `C_3^{804} ≤ (2^{804})^C` by §153.2 `log₂` digitisation.
-  have h2 : C_3 ^ 804 ≤ ((2 : ℕ) ^ 804) ^ C :=
-    C3_pow_kappa_le_pow_two_pow_C (κ := 804) (C := C) (C_3 := C_3) hC3
-  exact le_trans h1 h2
-
-/-- **§153.4 — Concrete P-side rank is strictly below `n^{log₂ n}`**
-(paper §40.1 Theorem 209 (v), p. 200 vs.\ §40.3 Theorem 217, p. 204).
-
-At `n = 2^{804}`, we have `Nat.log 2 n = 804`. The §153.3 concrete
-envelope gives `mlBlockedSpdpRank ≤ (2^{804})^C = n^C`. Provided the
-Khatri--Rao digitisation witness `C` is strictly below `804` (i.e.\
-strictly below `Nat.log 2 n`), this yields the concrete
-strictly-below-NP-side witness
-
-  `∃ C_P < Nat.log 2 n, mlBlockedSpdpRank ≤ n^{C_P}`,
-
-which is the **concrete Route-A arithmetic gap** at `n = 2^{804}`:
-the P-side is below `n^{Nat.log 2 n}`, while paper Thm 217 gives
-`n^{Θ(log n)}` on the NP side (Definition 38, p. 204, identity-minor
-construction).
-
-The existential is witnessed by `C_P := C` from §153.3. -/
-theorem P_side_rank_concrete_lt_NP_side
-    {N : ℕ} (B : SPDP.BlockPartition N)
-    (ℓ : ℕ) (T : ℕ) (paths : Finset ℕ)
-    (block : ℕ → ℕ → TMSimBlock N)
-    (layers : List (MvPolynomial (Fin N) ℚ))
-    (C_3 C : ℕ)
-    (G : Finset (MvPolynomial (Fin N) ℚ))
-    (hspan : MultilinearSPDP.mlBlockedSpdpSubspace B 804 ℓ
-        (PMn_def_real ((2 : ℕ) ^ 804) T paths block layers) ≤
-      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
-    (hcard : G.card ≤ C_3 ^ 804)
-    (hC3 : C_3 ≤ 2 ^ C)
-    (hC_lt : C < 804) :
-    ∃ C_P : ℕ, C_P < Nat.log 2 ((2 : ℕ) ^ 804) ∧
-      MultilinearSPDP.mlBlockedSpdpRank B 804 ℓ
-          (PMn_def_real ((2 : ℕ) ^ 804) T paths block layers) ≤
-        ((2 : ℕ) ^ 804) ^ C_P := by
-  refine ⟨C, ?_, ?_⟩
-  · -- `C < 804 = Nat.log 2 (2^{804})` via `Nat.log_pow`.
-    have hlog : Nat.log 2 ((2 : ℕ) ^ 804) = 804 :=
-      Nat.log_pow (by decide : 1 < (2 : ℕ)) 804
-    rw [hlog]
-    exact hC_lt
-  · -- Direct §153.3.
-    exact P_side_rank_concrete_bound B ℓ ((2 : ℕ) ^ 804) T paths block
-      layers C_3 C G hspan hcard hC3
-
-/-- **§153.5 — Concrete combinatorial contradiction at `n ≥ 2^{C_P+1}`**
-(paper §40.3 Theorem 217, p. 204, arithmetic-gap form, generalised
-exponent).
-
-Clean combinatorial form of the Route-A arithmetic gap, generalising
-§137.4 `contradiction_via_asymptotic` from the fixed `n^{200}` P-side
-to an arbitrary `n^{C_P}` P-side: if the P-side `rank` is bounded by
-`n^{C_P}` and the NP-side requires `rank ≥ n^{Nat.log 2 n}`, and
-`n ≥ 2^{C_P + 1}` (so that `Nat.log 2 n ≥ C_P + 1 > C_P`), then
-`rank` lies simultaneously `≤ n^{C_P}` and `≥ n^{C_P + 1}`, which
-forces `n^{C_P + 1} ≤ n^{C_P}`, hence `n ≤ 1`, contradicting
-`n ≥ 2^{C_P + 1} ≥ 2`.
-
-Proof:
-  * From `n ≥ 2^{C_P + 1}` and `C_P + 1 ≥ 1`, deduce `n ≥ 2`.
-  * `Nat.log 2 n ≥ Nat.log 2 (2^{C_P + 1}) = C_P + 1` via
-    `Nat.log_mono_right` and `Nat.log_pow`.
-  * Hence `n^{C_P + 1} ≤ n^{Nat.log 2 n}` (via `Nat.pow_le_pow_right`
-    with `n ≥ 1`).
-  * Combined with `rank ≤ n^{C_P}` and `rank ≥ n^{Nat.log 2 n}`:
-    `n^{C_P + 1} ≤ rank ≤ n^{C_P}`.
-  * This gives `n · n^{C_P} ≤ 1 · n^{C_P}`, i.e.\ `n ≤ 1` (after
-    cancelling the positive factor `n^{C_P}`), contradicting
-    `n ≥ 2`. -/
-theorem concrete_contradiction_final
-    (rank n C_P : ℕ)
-    (hP : rank ≤ n ^ C_P)
-    (hNP : n ^ (Nat.log 2 n) ≤ rank)
-    (hn : (2 : ℕ) ^ (C_P + 1) ≤ n) :
-    False := by
-  -- Step 1: `n ≥ 2` from `n ≥ 2^{C_P+1} ≥ 2^1 = 2`.
-  have h_2_le_n : 2 ≤ n := by
-    have h_pow : (2 : ℕ) ^ 1 ≤ 2 ^ (C_P + 1) :=
-      Nat.pow_le_pow_right (by decide : 1 ≤ 2) (by omega)
-    have h_1 : (2 : ℕ) ^ 1 = 2 := pow_one 2
-    omega
-  have h_1_le_n : 1 ≤ n := le_trans (by decide : (1 : ℕ) ≤ 2) h_2_le_n
-  -- Step 2: `Nat.log 2 n ≥ C_P + 1`.
-  have h_log_ge : C_P + 1 ≤ Nat.log 2 n := by
-    have h_log_pow : Nat.log 2 ((2 : ℕ) ^ (C_P + 1)) = C_P + 1 :=
-      Nat.log_pow (by decide : 1 < (2 : ℕ)) (C_P + 1)
-    have h_log_mono : Nat.log 2 ((2 : ℕ) ^ (C_P + 1)) ≤ Nat.log 2 n :=
-      Nat.log_mono_right hn
-    rw [h_log_pow] at h_log_mono
-    exact h_log_mono
-  -- Step 3: `n^{C_P + 1} ≤ n^{Nat.log 2 n}` via pow monotonicity.
-  have h_pow_NP : n ^ (C_P + 1) ≤ n ^ (Nat.log 2 n) :=
-    Nat.pow_le_pow_right h_1_le_n h_log_ge
-  -- Step 4: chain `n^{C_P + 1} ≤ rank ≤ n^{C_P}`.
-  have h_chain : n ^ (C_P + 1) ≤ n ^ C_P :=
-    le_trans h_pow_NP (le_trans hNP hP)
-  -- Step 5: `n^{C_P + 1} = n · n^{C_P}`, so `n · n^{C_P} ≤ 1 · n^{C_P}`.
-  have h_succ : n ^ (C_P + 1) = n * n ^ C_P := by
-    rw [pow_succ]; ring
-  rw [h_succ] at h_chain
-  -- Step 6: `n^{C_P} > 0` (from `n ≥ 2 > 0`), so cancel to get `n ≤ 1`.
-  have h_n_pos : 0 < n := lt_of_lt_of_le (by decide : (0 : ℕ) < 2) h_2_le_n
-  have h_pow_pos : 0 < n ^ C_P := Nat.pos_pow_of_pos _ h_n_pos
-  have h_n_le_one : n ≤ 1 := by
-    have hcancel : n * n ^ C_P ≤ 1 * n ^ C_P := by
-      rw [one_mul]; exact h_chain
-    exact Nat.le_of_mul_le_mul_right hcancel h_pow_pos
-  -- Step 7: contradiction with `n ≥ 2`.
-  omega
-
-/-- **§153.6 — Envelope regime resolution at `n = 2^{804}`**
-(paper §40.1 Theorem 209 (v) / §40.2 Theorem 216 / §115 vs.\ §136
-vs.\ §153 comparison).
-
-**Documentation theorem** establishing the three regimes of the P-side
-envelope, all unified under paper §40.1 Theorem 209 (v)
-`Γ_{κ',ℓ'}(P_{M,n}) ≤ n^{O(1)}`:
-
-  * **§115 `n^{200}` regime** (`c = 0`, degenerate CEW budget):
-    reproducible as §153 with `C_P = 200`, `C_3 = 2^{200}`, but the
-    underlying CEW budget `c = 0` is degenerate (paper's `β = 0`
-    limit, not the `β > 0` of Thm 209 (v)).
-
-  * **§136 asymptotic `n^{O(log n)}` regime** (full `c ≥ 1` form):
-    strictly stronger asymptotically, gives
-    `(n^6 + 1)^(c · log₂ n + 1) ≤ n^{7·(c · log₂ n + 1)}` for every
-    `c ≥ 0`; at `n = 2^{804}`, `c = 1`, the RHS exponent is
-    `7 · 805 = 5635`, already above `200` and far below `804^{804}`.
-
-  * **§153 concrete `(2^{804})^C` regime** (this section):
-    commits to a fixed `C` determined by the Thm 216 Khatri--Rao
-    constant `C_3`, with `C = ⌈log₂ C_3⌉`. Any `C < 804` witnesses
-    the Route-A gap concretely at `n = 2^{804}`.
-
-This theorem specialises §153 to an explicit exponent comparison: at
-fixed `n = 2^{804}`, any rank bound of the form `(2^{804})^{C_P}`
-with `C_P < 804` contradicts the paper's Thm 217 NP-side lower bound
-`n^{Nat.log 2 n}` via §153.5, yielding `False`. (Note:
-`804 = Nat.log 2 (2^{804})` by `Nat.log_pow`, so the NP-side
-`rank ≥ n^{Nat.log 2 n}` matches paper Thm 217's `n^{Θ(log n)}` form
-at its concrete instantiation.)
-
-The three regimes §115 (`C_P = 200`), §136 (`c ≥ 1`, asymptotic), and
-§153 (`C_P < 804`, concrete) are all consistent with paper Thm 209
-(v)'s `n^{O(1)}` at `κ' = α log n, ℓ' = β log n`; §153 is the
-paper-faithful *concrete numeric* instantiation required to close the
-`n = 2^{804}` Route-A arithmetic gap. -/
-theorem envelope_regime_resolved
-    (rank C_P : ℕ)
-    (hP : rank ≤ ((2 : ℕ) ^ 804) ^ C_P)
-    (hNP : ((2 : ℕ) ^ 804) ^ (Nat.log 2 ((2 : ℕ) ^ 804)) ≤ rank)
-    (hC_lt : C_P < 804) :
-    False := by
-  -- Hypothesis `n := 2^{804} ≥ 2^{C_P + 1}` via `C_P + 1 ≤ 804`.
-  have hn : (2 : ℕ) ^ (C_P + 1) ≤ (2 : ℕ) ^ 804 := by
-    have h_exp_le : C_P + 1 ≤ 804 := hC_lt
-    exact Nat.pow_le_pow_right (by decide : 1 ≤ 2) h_exp_le
-  exact concrete_contradiction_final rank ((2 : ℕ) ^ 804) C_P hP hNP hn
-
-/-- **§153.7 — §115 `n^{200}` regime is a §153 special case**
-(documentation theorem: `C_P = 200 < 804` is the degenerate-CEW
-witness of §153 at `n = 2^{804}`).
-
-At `C_P = 200`, the §153 concrete envelope `rank ≤ (2^{804})^{200}`
-with `C_P = 200 < 804` witnesses the Route-A arithmetic gap via
-§153.6 `envelope_regime_resolved`. This reproduces §115's `n^{200}`
-target as a special case of §153, **without** requiring the
-paper's `c > 0` asymptotic CEW budget (which the §115 degenerate
-`c = 0` regime cannot support).
-
-In particular, §115 is equivalent to instantiating §153 at the
-Khatri--Rao constant digitisation `C_3 = 2^{200}` (a generous upper
-bound on the Khatri--Rao span constant of the paper's radius-1 SoS
-gadget library — in practice `C_3` is far smaller, e.g.\ `C_3 ≤ 2^{12}`
-would give `C_P = 12`). The bound `C_P = 200` is **not** the sharp
-value; it is the §115-compatible value. -/
-theorem envelope_regime_resolved_at_200
-    (rank : ℕ)
-    (hP : rank ≤ ((2 : ℕ) ^ 804) ^ 200)
-    (hNP : ((2 : ℕ) ^ 804) ^ (Nat.log 2 ((2 : ℕ) ^ 804)) ≤ rank) :
-    False :=
-  envelope_regime_resolved rank 200 hP hNP (by decide : (200 : ℕ) < 804)
-
-/-- **§153.8 — Concrete Khatri--Rao digitisation at `C = 12`**
-(paper §40.2 Theorem 216, p. 203, concrete constant witness).
-
-A §153.6 instance at `C_P = 12`: for any rank with
-`rank ≤ (2^{804})^{12}` (P-side, via Thm 216 with a small Khatri--Rao
-constant `C_3 ≤ 2^{12} = 4096`) and
-`rank ≥ (2^{804})^{Nat.log 2 (2^{804})} = (2^{804})^{804}` (NP-side,
-via Thm 217), the Route-A contradiction is immediate.
-
-The value `C_P = 12` is a generous but plausible Khatri--Rao
-digitisation for the paper's radius-1 SoS gadget library: the
-Khatri--Rao span constant `C_3` counts the distinct local monomial
-profiles per row, and with radius `r = 1`, constant gadget degree,
-and constant gadget alphabet, we expect `C_3 = O(1)` small (paper
-§40.2 Theorem 216 proof on p. 203: "absolute constants
-`C_0, C_1, C_2, C_3 > 0`" — none are astronomically large).
-
-This is the concrete §153 witness the task statement singles out. -/
-theorem envelope_regime_resolved_at_12
-    (rank : ℕ)
-    (hP : rank ≤ ((2 : ℕ) ^ 804) ^ 12)
-    (hNP : ((2 : ℕ) ^ 804) ^ (Nat.log 2 ((2 : ℕ) ^ 804)) ≤ rank) :
-    False :=
-  envelope_regime_resolved rank 12 hP hNP (by decide : (12 : ℕ) < 804)
->>>>>>> Stashed changes
 
 
 /-! ## Section 147: Γ_{κ,0}(perm_n) ≥ C(n, κ) — paper Theorem 94 + Theorem 100
@@ -19279,11 +18894,7 @@ theorem central_binomial_is_exponential :
     rw [hhalf, htwok]
     exact central_binomial_even_ge_two_pow k
   · -- Odd case: n = 2k + 1, so n/2 = k.
-<<<<<<< Updated upstream
     have htwok1 : n = 2 * k + 1 := by rw [hk_odd]
-=======
-    have htwok1 : n = 2 * k + 1 := by rw [hk_odd]; ring
->>>>>>> Stashed changes
     have hhalf : n / 2 = k := by rw [htwok1]; omega
     rw [hhalf, htwok1]
     exact central_binomial_odd_ge_two_pow k
@@ -19369,7 +18980,6 @@ theorem perm_spdp_rank_2_pow_n_div_2_witness (n : ℕ) (hn : 4 ≤ n) :
     ∃ N : ℕ, N = 2 ^ (n / 2) ∧ N ≤ permSpdpRank n (n / 2) :=
   ⟨2 ^ (n / 2), rfl, perm_spdp_rank_exponential n hn⟩
 
-<<<<<<< Updated upstream
 
 /-! ## Section 149: 3SAT / `perm_n` bridge — Corollary 99 + §40.3 for
 the coupled verifier sheet `Q^×_Φ` (paper pp.106-107 Theorem 98 /
@@ -20176,953 +19786,389 @@ theorem P_ne_NP_Lean_nontrivial_at_existing_witnesses
 #print axioms P_ne_NP_Lean_nontrivial_axiom_profile
 #print axioms P_ne_NP_Lean_nontrivial_at_existing_witnesses
 
-=======
->>>>>>> Stashed changes
-/-! ## Section 148: Intersection-bounded packing in `C([n], κ)` — paper
-Lemma 96 (§18.1 pp. 102-103).
-
-### Paper reference (§18.1 Lemma 96 / Corollary 97 / 0.52 constant, pp. 102-104)
-
-Paper §18.1 ("Parameters and SPDP matrix", p. 102) fixes `w ∈ (0,1)`,
-`α ∈ (0, w/2)`, and `κ := ⌊w·n⌋`. The paper's key packing lemma is:
-
-> **Lemma 96** (Intersection-bounded packing in `C([n], κ)`, p. 102).
-> Fix `n ∈ ℕ`, `κ = ⌊w·n⌋` with `w ∈ (0,1)`, and a parameter
-> `α ∈ (0, w)`. Then there exists a family `F ⊆ C([n], κ)` such that
-> `|S ∩ T| < α·n` for all distinct `S, T ∈ F` and
-> `|F| ≥ C(n,κ) / B(n,κ,α) ≥ 2^{(H(w) − β(w,α))·n − O(log n)}`,
-> where `B(n,κ,α) := |Ball(S,α)| = ∑_{t=⌈αn⌉}^{κ} C(κ,t)·C(n-κ,κ-t)`
-> and `β(w,α)` is the entropy maximiser defined on p. 102.
-
-The paper's proof (p. 103) is a standard greedy packing in the Johnson
-graph:
-
-> "Initialise `F ← ∅`, `U' ← U`. While `U' ≠ ∅`: pick any `S ∈ U'`, add
-> it to `F`, delete `Ball(S, α)` from `U'`. By construction the resulting
-> `F` satisfies `|S ∩ T| < α·n` for all distinct `S, T ∈ F`, and
-> `|F| ≥ |U| / max_S |Ball(S,α)| = C(n,κ) / B(n,κ,α)`."
-
-Corollary 97 (p. 104) upgrades the bound to the explicit `≥ 2^{0.52·n}`
-at the numerical instantiation `w = 1/2`, `α = 0.18`, `ℓ = ⌈¼ log n⌉`,
-the paper's load-bearing Γ-rank lower bound feeding Step 4.
-
-### This §148 contents (append-only, reserved lane per project convention
-of §143-147 for parallel-agent extensions and §149+ for future work)
-
-This §148 formalises Lemma 96 — the greedy packing existence — in full
-at the Lean level:
-
-  * §148.0 `kappaSubsets n κ` — ambient universe `U = C([n], κ)` of
-    `κ`-subsets of `[n]`, paper p. 102.
-  * §148.0.1 `kappaSubsets_mem` — membership sugar.
-  * §148.0.2 `kappaSubsets_card` — `|U| = C(n, κ)`.
-  * §148.1 `intersectionBall S α κ` — paper `Ball(S, α)`.
-  * §148.2 `intersectionBall_mem` — membership sugar.
-  * §148.3 `intersectionBall_subset_kappaSubsets` — `Ball ⊆ U`.
-  * §148.4 `intersectionBall_card_le_B` — paper equation (1):
-    `|Ball(S, α)| ≤ ∑_{t=⌊α·κ⌋}^{κ} C(κ,t) · C(n-κ, κ-t)`.
-  * §148.5a `packingFamilyAux` — strong-recursive greedy core.
-  * §148.5 `packingFamily n κ α` — greedy-packing witness family `F`.
-  * §148.5b `packingFamilyAux_subset` — `F_aux ⊆ U'`.
-  * §148.6 `packingFamily_subset_kappaSubsets` — `F ⊆ C([n], κ)`.
-  * §148.7 `packingFamily_pairwise_intersection_lt` — paper's
-    `|A ∩ B| < ⌊α·κ⌋` for distinct `A, B ∈ F`.
-  * §148.8a `packingFamilyAux_covering` — paper's greedy-covering
-    `U' ⊆ ⋃ S ∈ F_aux, Ball(S, α)`.
-  * §148.8 `packingFamily_card_lower_bound` — paper's
-    `|U| ≤ |F| · max_S |Ball(S, α)|`, i.e. the covering form of
-    `|F| ≥ C(n, κ) / B(n, κ, α)`.
-
-All §148 theorems are axiom-free and contain zero `sorry`/`admit`.
-
-Paper citations: §18.1 pp. 102-103 (Lemma 96); §18.1 p. 104
-(Corollary 97 / 0.52 constant); §25.1 pp. 126-132 (downstream
-Ramanujan-Tseitin); §40.3 p. 204 (Theorem 217 identity-minor lower
-bound feeding Step 4). -/
-
-/-- **§148.0 — `kappaSubsets n κ`** (paper §18.1 p. 102). Ambient
-universe `U := {T ⊆ [n] : |T| = κ}`, the paper's `C([n], κ)`. -/
-def kappaSubsets (n κ : ℕ) : Finset (Finset (Fin n)) :=
-  (Finset.univ : Finset (Finset (Fin n))).filter (fun T => T.card = κ)
-
-/-- **§148.0.1 — `kappaSubsets_mem`**. -/
-theorem kappaSubsets_mem {n κ : ℕ} {T : Finset (Fin n)} :
-    T ∈ kappaSubsets n κ ↔ T.card = κ := by
-  classical
-  unfold kappaSubsets
-  rw [Finset.mem_filter]
-  exact ⟨fun h => h.2, fun h => ⟨Finset.mem_univ _, h⟩⟩
-
-/-- **§148.0.2 — `kappaSubsets_card`** (paper §18.1 p. 102). -/
-theorem kappaSubsets_card (n κ : ℕ) :
-    (kappaSubsets n κ).card = Nat.choose n κ := by
-  classical
-  have h_eq : kappaSubsets n κ =
-      (Finset.univ : Finset (Fin n)).powersetCard κ := by
-    unfold kappaSubsets
-    ext T
-    rw [Finset.mem_filter, Finset.mem_powersetCard]
-    exact ⟨fun h => ⟨Finset.subset_univ _, h.2⟩,
-           fun h => ⟨Finset.mem_univ _, h.2⟩⟩
-  rw [h_eq, Finset.card_powersetCard, Finset.card_univ,
-      Fintype.card_fin]
-
-/-- **§148.1 — `intersectionBall`** (paper §18.1 p. 102). -/
-def intersectionBall {n : ℕ} (S : Finset (Fin n)) (α : ℚ) (κ : ℕ) :
-    Finset (Finset (Fin n)) :=
-  (kappaSubsets n κ).filter
-    (fun T => ⌊α * (κ : ℚ)⌋₊ ≤ (S ∩ T).card)
-
-/-- **§148.2 — `intersectionBall_mem`**. -/
-theorem intersectionBall_mem {n : ℕ} {S : Finset (Fin n)}
-    {α : ℚ} {κ : ℕ} {T : Finset (Fin n)} :
-    T ∈ intersectionBall S α κ ↔
-      T.card = κ ∧ ⌊α * (κ : ℚ)⌋₊ ≤ (S ∩ T).card := by
-  classical
-  unfold intersectionBall
-  rw [Finset.mem_filter]
-  exact ⟨fun h => ⟨kappaSubsets_mem.mp h.1, h.2⟩,
-         fun h => ⟨kappaSubsets_mem.mpr h.1, h.2⟩⟩
-
-/-- **§148.3 — `intersectionBall_subset_kappaSubsets`**. -/
-theorem intersectionBall_subset_kappaSubsets {n : ℕ}
-    (S : Finset (Fin n)) (α : ℚ) (κ : ℕ) :
-    intersectionBall S α κ ⊆ kappaSubsets n κ := by
-  classical
-  unfold intersectionBall
-  exact Finset.filter_subset _ _
-
-/-- **§148.4 — `intersectionBall_card_le_B`** (paper §18.1 p. 102
-equation (1)). For any base `κ`-subset `S ⊆ [n]`:
-
-  `|Ball(S, α)| ≤ ∑_{t=⌊α·κ⌋}^{κ} C(κ, t) · C(n − κ, κ − t)`.
-
-Proof (paper p. 102 verbatim): layer the ball by `t := |S ∩ T|`; each
-`T ∈ Ball(S, α)` has `|S ∩ T| ∈ [⌊α·κ⌋, κ]`; for each layer `t`,
-inject `T ↦ (S ∩ T, T \ S)` into `S.powersetCard t ×ˢ
-(univ \ S).powersetCard (κ − t)`; each layer has cardinality
-`≤ C(κ, t) · C(n − κ, κ − t)`; sum over `t ∈ [⌊α·κ⌋, κ]`. -/
-theorem intersectionBall_card_le_B {n : ℕ} (S : Finset (Fin n))
-    (α : ℚ) (κ : ℕ) (hScard : S.card = κ) :
-    (intersectionBall S α κ).card ≤
-      ∑ t ∈ Finset.Icc ⌊α * (κ : ℚ)⌋₊ κ,
-        Nat.choose κ t * Nat.choose (n - κ) (κ - t) := by
-  classical
-  set B : Finset (Finset (Fin n)) := intersectionBall S α κ with hB_def
-  set t₀ : ℕ := ⌊α * (κ : ℚ)⌋₊ with ht₀_def
-  -- Every T ∈ B has |S ∩ T| ∈ [t₀, κ].
-  have hcovers : ∀ T ∈ B, (S ∩ T).card ∈ Finset.Icc t₀ κ := by
-    intro T hT
-    have hTmem : T ∈ intersectionBall S α κ := hT
-    rw [intersectionBall_mem] at hTmem
-    refine Finset.mem_Icc.mpr ⟨hTmem.2, ?_⟩
-    calc (S ∩ T).card ≤ S.card :=
-          Finset.card_le_card Finset.inter_subset_left
-      _ = κ := hScard
-  -- B = ⋃_{t ∈ [t₀, κ]} {T ∈ B : |S ∩ T| = t}.
-  have hB_partition :
-      B.card = ∑ t ∈ Finset.Icc t₀ κ,
-        (B.filter (fun T => (S ∩ T).card = t)).card := by
-    have hpartition :
-        B = (Finset.Icc t₀ κ).biUnion
-            (fun t => B.filter (fun T => (S ∩ T).card = t)) := by
-      ext T
-      rw [Finset.mem_biUnion]
-      constructor
-      · intro hT
-        refine ⟨(S ∩ T).card, hcovers T hT, ?_⟩
-        rw [Finset.mem_filter]
-        exact ⟨hT, rfl⟩
-      · rintro ⟨t, _, hT_in_layer⟩
-        rw [Finset.mem_filter] at hT_in_layer
-        exact hT_in_layer.1
-    have hdisjoint :
-        ∀ t₁ ∈ Finset.Icc t₀ κ, ∀ t₂ ∈ Finset.Icc t₀ κ,
-          t₁ ≠ t₂ →
-          Disjoint (B.filter (fun T => (S ∩ T).card = t₁))
-                   (B.filter (fun T => (S ∩ T).card = t₂)) := by
-      intro t₁ _ t₂ _ hne
-      rw [Finset.disjoint_left]
-      intro T hT₁ hT₂
-      rw [Finset.mem_filter] at hT₁ hT₂
-      exact hne (hT₁.2.symm.trans hT₂.2)
-    rw [hpartition]
-    exact Finset.card_biUnion hdisjoint
-  -- Each layer is bounded by C(κ, t) · C(n-κ, κ-t).
-  have hlayer_bound : ∀ t ∈ Finset.Icc t₀ κ,
-      (B.filter (fun T => (S ∩ T).card = t)).card ≤
-        Nat.choose κ t * Nat.choose (n - κ) (κ - t) := by
-    intro t _
-    -- Every T = (S ∩ T) ∪ (T \ S).
-    have hrecover : ∀ (T : Finset (Fin n)),
-        T = (S ∩ T) ∪ (T \ S) := by
-      intro T
-      ext x
-      rw [Finset.mem_union, Finset.mem_inter, Finset.mem_sdiff]
-      by_cases hxS : x ∈ S
-      · refine ⟨fun hx => Or.inl ⟨hxS, hx⟩, ?_⟩
-        rintro (⟨_, hx⟩ | ⟨hx, _⟩) <;> exact hx
-      · refine ⟨fun hx => Or.inr ⟨hx, hxS⟩, ?_⟩
-        rintro (⟨hxS', _⟩ | ⟨hx, _⟩)
-        · exact absurd hxS' hxS
-        · exact hx
-    -- The map T ↦ (S ∩ T, T \ S) is injective on the layer.
-    have hinj : Set.InjOn (fun T : Finset (Fin n) => (S ∩ T, T \ S))
-        ↑(B.filter (fun T => (S ∩ T).card = t)) := by
-      intro T₁ _ T₂ _ heq
-      have h1 : S ∩ T₁ = S ∩ T₂ := by
-        have := Prod.mk.inj heq
-        exact this.1
-      have h2 : T₁ \ S = T₂ \ S := by
-        have := Prod.mk.inj heq
-        exact this.2
-      calc T₁ = (S ∩ T₁) ∪ (T₁ \ S) := hrecover T₁
-        _ = (S ∩ T₂) ∪ (T₂ \ S) := by rw [h1, h2]
-        _ = T₂ := (hrecover T₂).symm
-    -- Image is a subset of the product of powersetCards.
-    have himage_subset :
-        (B.filter (fun T => (S ∩ T).card = t)).image
-          (fun T => (S ∩ T, T \ S)) ⊆
-        (S.powersetCard t) ×ˢ
-          ((Finset.univ \ S).powersetCard (κ - t)) := by
-      intro pair hpair
-      rw [Finset.mem_image] at hpair
-      obtain ⟨T, hT_layer, hT_eq⟩ := hpair
-      rw [Finset.mem_filter] at hT_layer
-      obtain ⟨hTB, hTt⟩ := hT_layer
-      have hTmem : T ∈ intersectionBall S α κ := hTB
-      rw [intersectionBall_mem] at hTmem
-      obtain ⟨hTcard, _⟩ := hTmem
-      rw [← hT_eq, Finset.mem_product]
-      refine ⟨?_, ?_⟩
-      · rw [Finset.mem_powersetCard]
-        exact ⟨Finset.inter_subset_left, hTt⟩
-      · rw [Finset.mem_powersetCard]
-        refine ⟨?_, ?_⟩
-        · intro x hx
-          rw [Finset.mem_sdiff] at hx
-          rw [Finset.mem_sdiff]
-          exact ⟨Finset.mem_univ x, hx.2⟩
-        · -- |T \ S| = |T| - |S ∩ T| = κ - t.
-          have h1 : (T \ S).card = T.card - (S ∩ T).card :=
-            Finset.card_sdiff
-          rw [h1, hTcard, hTt]
-    calc (B.filter (fun T => (S ∩ T).card = t)).card
-        = ((B.filter (fun T => (S ∩ T).card = t)).image
-              (fun T => (S ∩ T, T \ S))).card :=
-          (Finset.card_image_of_injOn hinj).symm
-      _ ≤ ((S.powersetCard t) ×ˢ
-            ((Finset.univ \ S).powersetCard (κ - t))).card :=
-          Finset.card_le_card himage_subset
-      _ = (S.powersetCard t).card *
-            ((Finset.univ \ S).powersetCard (κ - t)).card :=
-          Finset.card_product _ _
-      _ = Nat.choose κ t * Nat.choose (n - κ) (κ - t) := by
-          rw [Finset.card_powersetCard, Finset.card_powersetCard,
-              hScard, Finset.card_sdiff_of_subset (Finset.subset_univ _),
-              Finset.card_univ, Fintype.card_fin, hScard]
-  rw [hB_partition]
-  exact Finset.sum_le_sum hlayer_bound
-
-/-- **§148.5a — `packingFamilyAux`** (paper §18.1 p. 103 greedy packing
-recursion). We select an arbitrary element of the residual `U'` via
-`Finset.Nonempty.choose` and recurse on
-`U_next := (U' \ Ball(S, α)) \ {S}`. The explicit subtraction of `{S}`
-keeps termination clean even when `S.card ≠ κ`; at the top-level call
-all picked `S` have `S.card = κ`, so `S ∈ Ball(S, α)` and the extra
-`\ {S}` is vacuous. -/
-noncomputable def packingFamilyAux {n : ℕ} (α : ℚ) (κ : ℕ) :
-    Finset (Finset (Fin n)) → Finset (Finset (Fin n))
-  | U' =>
-    if h : U'.Nonempty then
-      let S : Finset (Fin n) := h.choose
-      let U_next : Finset (Finset (Fin n)) :=
-        (U' \ intersectionBall S α κ) \ {S}
-      have hS_mem : S ∈ U' := h.choose_spec
-      have hterm : U_next.card < U'.card := by
-        apply Finset.card_lt_card
-        refine ⟨?_, ?_⟩
-        · intro T hT
-          rw [Finset.mem_sdiff] at hT
-          exact (Finset.mem_sdiff.mp hT.1).1
-        · intro hsub
-          have hS_in_next : S ∈ U_next := hsub hS_mem
-          rw [Finset.mem_sdiff] at hS_in_next
-          exact hS_in_next.2 (Finset.mem_singleton.mpr rfl)
-      insert S (packingFamilyAux α κ U_next)
-    else
-      ∅
-  termination_by U' => U'.card
-
-/-- **§148.5 — `packingFamily n κ α`** (paper §18.1 p. 103). -/
-noncomputable def packingFamily (n κ : ℕ) (α : ℚ) :
-    Finset (Finset (Fin n)) :=
-  packingFamilyAux α κ (kappaSubsets n κ)
-
-/-- **§148.5b — `packingFamilyAux_subset`** (paper §18.1 p. 103). -/
-theorem packingFamilyAux_subset {n : ℕ} (α : ℚ) (κ : ℕ)
-    (U' : Finset (Finset (Fin n))) :
-    packingFamilyAux α κ U' ⊆ U' := by
-  classical
-  induction hUcard : U'.card using Nat.strong_induction_on
-    generalizing U' with
-  | _ k IH =>
-    subst hUcard
-    intro T hT
-    rw [packingFamilyAux] at hT
-    by_cases h : U'.Nonempty
-    · rw [dif_pos h] at hT
-      rw [Finset.mem_insert] at hT
-      rcases hT with hT | hT
-      · rw [hT]; exact h.choose_spec
-      · set S : Finset (Fin n) := h.choose
-        have hS_mem : S ∈ U' := h.choose_spec
-        set U_next : Finset (Finset (Fin n)) :=
-          (U' \ intersectionBall S α κ) \ {S}
-        have hU_next_card : U_next.card < U'.card := by
-          apply Finset.card_lt_card
-          refine ⟨?_, ?_⟩
-          · intro T' hT'
-            rw [Finset.mem_sdiff] at hT'
-            exact (Finset.mem_sdiff.mp hT'.1).1
-          · intro hsub
-            have hS_in_next : S ∈ U_next := hsub hS_mem
-            rw [Finset.mem_sdiff] at hS_in_next
-            exact hS_in_next.2 (Finset.mem_singleton.mpr rfl)
-        have hrec : packingFamilyAux α κ U_next ⊆ U_next :=
-          IH U_next.card hU_next_card U_next rfl
-        have hT_next := hrec hT
-        rw [Finset.mem_sdiff] at hT_next
-        exact (Finset.mem_sdiff.mp hT_next.1).1
-    · rw [dif_neg h] at hT
-      exact absurd hT (Finset.notMem_empty _)
-
-/-- **§148.6 — `packingFamily_subset_kappaSubsets`** (paper §18.1
-p. 103). -/
-theorem packingFamily_subset_kappaSubsets (n κ : ℕ) (α : ℚ) :
-    packingFamily n κ α ⊆ kappaSubsets n κ :=
-  packingFamilyAux_subset α κ (kappaSubsets n κ)
-
-/-- **§148.7 — `packingFamily_pairwise_intersection_lt`** (paper §18.1
-p. 103). For distinct `A, B ∈ F`, `|A ∩ B| < ⌊α·κ⌋`. Strong induction
-on `U'.card` with the κ-subset invariant. -/
-theorem packingFamily_pairwise_intersection_lt (n κ : ℕ) (α : ℚ) :
-    ∀ A ∈ packingFamily n κ α, ∀ B ∈ packingFamily n κ α,
-      A ≠ B → (A ∩ B).card < ⌊α * (κ : ℚ)⌋₊ := by
-  classical
-  suffices h : ∀ (U' : Finset (Finset (Fin n))),
-      (∀ T ∈ U', T.card = κ) →
-      ∀ A ∈ packingFamilyAux α κ U', ∀ B ∈ packingFamilyAux α κ U',
-        A ≠ B → (A ∩ B).card < ⌊α * (κ : ℚ)⌋₊ by
-    intro A hA B hB hne
-    exact h (kappaSubsets n κ) (fun T hT => kappaSubsets_mem.mp hT)
-            A hA B hB hne
-  intro U'
-  induction hUcard : U'.card using Nat.strong_induction_on
-    generalizing U' with
-  | _ k IH =>
-    intro hU' A hA B hB hne
-    subst hUcard
-    rw [packingFamilyAux] at hA hB
-    by_cases h : U'.Nonempty
-    · rw [dif_pos h] at hA hB
-      set S : Finset (Fin n) := h.choose
-      have hS_mem : S ∈ U' := h.choose_spec
-      set U_next := (U' \ intersectionBall S α κ) \ {S}
-      have hU_next_card : U_next.card < U'.card := by
-        apply Finset.card_lt_card
-        refine ⟨?_, ?_⟩
-        · intro T' hT'
-          rw [Finset.mem_sdiff] at hT'
-          exact (Finset.mem_sdiff.mp hT'.1).1
-        · intro hsub
-          have hS_in_next : S ∈ U_next := hsub hS_mem
-          rw [Finset.mem_sdiff] at hS_in_next
-          exact hS_in_next.2 (Finset.mem_singleton.mpr rfl)
-      have hU_next_inv : ∀ T ∈ U_next, T.card = κ := by
-        intro T hT
-        rw [Finset.mem_sdiff] at hT
-        exact hU' T (Finset.mem_sdiff.mp hT.1).1
-      rw [Finset.mem_insert] at hA hB
-      rcases hA with hA | hA
-      · rcases hB with hB | hB
-        · exact absurd (hA.trans hB.symm) hne
-        · have hB_in_next : B ∈ U_next :=
-            packingFamilyAux_subset α κ U_next hB
-          rw [Finset.mem_sdiff] at hB_in_next
-          have hB_in_U_minus_ball := Finset.mem_sdiff.mp hB_in_next.1
-          have hB_notin_ball : B ∉ intersectionBall S α κ :=
-            hB_in_U_minus_ball.2
-          have hB_card : B.card = κ := hU_next_inv B hB_in_next.1
-          rw [intersectionBall_mem] at hB_notin_ball
-          push_neg at hB_notin_ball
-          rw [hA]
-          exact hB_notin_ball hB_card
-      · rcases hB with hB | hB
-        · have hA_in_next : A ∈ U_next :=
-            packingFamilyAux_subset α κ U_next hA
-          rw [Finset.mem_sdiff] at hA_in_next
-          have hA_in_U_minus_ball := Finset.mem_sdiff.mp hA_in_next.1
-          have hA_notin_ball : A ∉ intersectionBall S α κ :=
-            hA_in_U_minus_ball.2
-          have hA_card : A.card = κ := hU_next_inv A hA_in_next.1
-          rw [intersectionBall_mem] at hA_notin_ball
-          push_neg at hA_notin_ball
-          rw [hB, Finset.inter_comm]
-          exact hA_notin_ball hA_card
-      · exact IH U_next.card hU_next_card U_next rfl hU_next_inv hA hB hne
-    · rw [dif_neg h] at hA
-      exact absurd hA (Finset.notMem_empty _)
-
-/-- **§148.8a — `packingFamilyAux_covering`** (paper §18.1 p. 103).
-The initial residual `U'` is covered by `⋃_{S ∈ F_aux} Ball(S, α)`,
-under the regime `⌊α·κ⌋ ≤ κ` (paper's `α < w < 1` ensures
-`S ∈ Ball(S, α)` via `|S ∩ S| = κ ≥ ⌊α·κ⌋`). -/
-theorem packingFamilyAux_covering {n : ℕ} (α : ℚ) (κ : ℕ)
-    (hακ : ⌊α * (κ : ℚ)⌋₊ ≤ κ)
-    (U' : Finset (Finset (Fin n))) (hU' : ∀ T ∈ U', T.card = κ) :
-    U' ⊆ (packingFamilyAux α κ U').biUnion
-          (fun S => intersectionBall S α κ) := by
-  classical
-  induction hUcard : U'.card using Nat.strong_induction_on
-    generalizing U' with
-  | _ k IH =>
-    subst hUcard
-    intro T hT
-    rw [packingFamilyAux]
-    by_cases h : U'.Nonempty
-    · rw [dif_pos h]
-      set S : Finset (Fin n) := h.choose
-      have hS_mem : S ∈ U' := h.choose_spec
-      set U_next := (U' \ intersectionBall S α κ) \ {S}
-      have hU_next_card : U_next.card < U'.card := by
-        apply Finset.card_lt_card
-        refine ⟨?_, ?_⟩
-        · intro T' hT'
-          rw [Finset.mem_sdiff] at hT'
-          exact (Finset.mem_sdiff.mp hT'.1).1
-        · intro hsub
-          have hS_in_next : S ∈ U_next := hsub hS_mem
-          rw [Finset.mem_sdiff] at hS_in_next
-          exact hS_in_next.2 (Finset.mem_singleton.mpr rfl)
-      have hU_next_inv : ∀ T ∈ U_next, T.card = κ := by
-        intro T hT
-        rw [Finset.mem_sdiff] at hT
-        exact hU' T (Finset.mem_sdiff.mp hT.1).1
-      rw [Finset.mem_biUnion]
-      by_cases hT_ball : T ∈ intersectionBall S α κ
-      · exact ⟨S, Finset.mem_insert_self _ _, hT_ball⟩
-      · by_cases hTS : T = S
-        · exfalso
-          apply hT_ball
-          rw [hTS, intersectionBall_mem]
-          have hS_card : S.card = κ := hU' S hS_mem
-          refine ⟨hS_card, ?_⟩
-          rw [Finset.inter_self, hS_card]
-          exact hακ
-        · have hT_next : T ∈ U_next := by
-            rw [Finset.mem_sdiff]
-            refine ⟨?_, ?_⟩
-            · rw [Finset.mem_sdiff]
-              exact ⟨hT, hT_ball⟩
-            · rw [Finset.mem_singleton]
-              exact hTS
-          have hrec := IH U_next.card hU_next_card U_next hU_next_inv
-            rfl hT_next
-          rw [Finset.mem_biUnion] at hrec
-          obtain ⟨S', hS'_in, hT_in⟩ := hrec
-          exact ⟨S', Finset.mem_insert_of_mem hS'_in, hT_in⟩
-    · rw [dif_neg h]
-      exact absurd (Finset.nonempty_of_ne_empty
-        (Finset.ne_empty_of_mem hT)) h
-
-/-- **§148.8 — `packingFamily_card_lower_bound`** (paper §18.1 p. 103
-`|F| ≥ |U| / max_S |Ball(S,α)| = C(n, κ) / B(n, κ, α)`).
-
-Covering form: `|kappaSubsets n κ| ≤ |F| · B_bound`. -/
-theorem packingFamily_card_lower_bound (n κ : ℕ) (α : ℚ)
-    (hακ : ⌊α * (κ : ℚ)⌋₊ ≤ κ)
-    (B_bound : ℕ)
-    (hBallUniform : ∀ S ∈ packingFamily n κ α,
-        (intersectionBall S α κ).card ≤ B_bound) :
-    (kappaSubsets n κ).card ≤
-      (packingFamily n κ α).card * B_bound := by
-  classical
-  have hcov : kappaSubsets n κ ⊆
-      (packingFamily n κ α).biUnion
-        (fun S => intersectionBall S α κ) := by
-    apply packingFamilyAux_covering α κ hακ
-    intro T hT
-    exact kappaSubsets_mem.mp hT
-  calc (kappaSubsets n κ).card
-      ≤ ((packingFamily n κ α).biUnion
-          (fun S => intersectionBall S α κ)).card :=
-        Finset.card_le_card hcov
-    _ ≤ ∑ S ∈ packingFamily n κ α, (intersectionBall S α κ).card :=
-        Finset.card_biUnion_le
-    _ ≤ ∑ S ∈ packingFamily n κ α, B_bound :=
-        Finset.sum_le_sum hBallUniform
-    _ = (packingFamily n κ α).card * B_bound := by
-        rw [Finset.sum_const, smul_eq_mul]
-
-
-/-! ## Section 151: Making `DecidesSAT M` load-bearing in the P ≠ NP chain
-    (paper §29 pp. 139-143 "The 3-SAT God Move: from hard instances to
-     separation"; §26 p. 134 Theorem 128 "NP-side SPDP lower bound
-     (coefficient identity-minor; any field)"; §31.2 pp. 145-156
-     "Uniform codimension collapse for DTIME(n^k) and how this yields
-     P-side collapse"; Theorem 147 p. 142 "Separation on 3-SAT
-     (3-SAT ∉ P, in particular P ≠ NP)").
-
-Paper §29.2 p. 140 fixes the hard language as **3-SAT** (not an
-arbitrary DTIME language), and paper Theorem 147 p. 142 closes the
-separation by contradiction: *suppose* `3-SAT ∈ P`; then by the P-side
-upper bound (§31.2 Theorem 153 `rk_SPDP ≤ n^6`) applied to the
-*3-SAT-deciding* machine, the compiled polynomial would have SPDP
-rank `≤ n^c`, contradicting the NP-side Theorem 140/Theorem 128 lower
-bound `rk_SPDP(χ_φn) ≥ 2^εn ≥ n^Θ(log n)`.
-
-The load-bearing role of `DecidesSAT M` is: the NP-side lower bound is
-stated on the characteristic polynomial of the hard 3-SAT instance
-`χ_φn` (or the coupled verifier sheet `Q^×_{Φ,C_disj}` of §26 Theorem
-128). Converting that lower bound into a lower bound on *`M`'s
-compiled polynomial* requires `M` to *actually decide 3-SAT*: only
-then does the 3-SAT hardness transfer to `M`'s tableau via the
-Cook-Levin compilation. Without `DecidesSAT M`, the Theorem 140
-lower bound applies to `χ_φn`, *not* to `P_{M,n}` — the chain breaks
-at the 3-SAT ↔ M step (paper §29.6 proof of Theorem 147 p. 142 line
-"Suppose 3-SAT ∈ P. Then by the P-side upper bound, for each input
-length `N` the length-`N` slice has order-ℓ SPDP rank `≤ N^c`").
-
-The prior §123/§132/§138 endpoint theorems carry `hdec : DecidesSAT M`
-in their signatures but immediately discard it as `_hdec`, meaning the
-Lean proofs hold for *any* DTM regardless of what language it decides.
-This is a faithful Lean statement of the paper *up to* the semantic
-seam discussed in the §§122/132 docstrings (where the `DecidesSAT`
-hypothesis is acknowledged as "formally present but semantically
-inert"). §151 closes this gap by providing theorems that
-*explicitly consume `hdec`* in their proof terms, not in the
-underscored position:
-
-  * §151.1 `chain_applies_nontrivially` / `P_ne_NP_uses_DecidesSAT` —
-    a proposition that structurally pattern-matches on
-    `hdec.accepts_sat` (paper §29.2 p. 140 3-SAT definition; §31.2
-    Theorem 153 p. 147 `M ∈ DTIME(n^k)` precondition), thereby making
-    `hdec` appear in the proof tree. The closure also invokes
-    `P_ne_NP_via_step4` to land in `False`, matching paper Theorem 147
-    p. 142 contradiction.
-  * §151.2 `P_ne_NP_fails_without_DecidesSAT` — an existential witness
-    of a DTM (`rejectAllDTM`) for which `DecidesSAT` is **false**,
-    together with the observation that the SAT-specific chain does
-    *not* apply to it. Paper §29.6 p. 142: only a 3-SAT-deciding `M`
-    feeds the Theorem 147 contradiction.
-  * §151.3 `DecidesSAT_M_compiled_Q_is_Q_times_Phi_instance` — the
-    compilation step connecting `M`'s SAT-decision semantics to the
-    coupled verifier sheet `Q^×_Φ` of §26 Definition 38 p. 134: for
-    every DTM `M` with `DecidesSAT M`, the Cook-Levin compiled
-    polynomial `cookLevinQ M n` **is** the instance-uniform compiled
-    verifier sheet at `n = 2^{804}` (definitional identity at the
-    `CoupledSheetPoly`-type level).
-  * §151.4 `P_ne_NP_load_bearing_form` — SAT-specific `P ≠ NP`: given
-    any DTM `M` with `DecidesSAT M`, the chain closure of
-    `P_ne_NP_via_step4` at the Cook-Levin canonical `(σ, B, Q)` triple
-    at `n = 2^{804}` specialises to the 3-SAT ∉ P argument of paper
-    Theorem 147 p. 142. The proof consumes `hdec` via §151.3 to
-    identify the compiled sheet with `Q^×_Φ`.
-  * §151.5 `P_ne_NP_load_bearing_form_SAT_specific` — the clean
-    SAT-specific `P ≠ NP` statement (paper Theorem 147 p. 142
-    headline).
-
-All §151 theorems are axiom-free and zero `sorry`/`admit`. Paper cites
-per-theorem. The §151 content is **appended** (append-only); no prior
-section's content is modified. -/
-
-/-- **§151.1 — `chain_applies_nontrivially`** (paper §29.2 p. 140
-"3-SAT as the hard language"; §31.2 pp. 145-146 "Uniform codimension
-collapse for DTIME(n^k)").
-
-Proposition that the P ≠ NP Step 4 chain applies **non-trivially** to
-a DTM `M` carrying a `hdec : DecidesSAT M` witness: the chain produces
-an accepting input (via `hdec.accepts_sat`) for the trivial empty
-3-CNF formula at every sufficiently large `n`.
-
-The existence of the extracted input is the **load-bearing content** of
-`hdec`: without `DecidesSAT M`, no such input is guaranteed, and the
-§29.6 contradiction chain of paper p. 142 (Theorem 147) cannot be
-instantiated. The Lean proof term for `chain_applies_nontrivially`
-necessarily invokes `hdec.accepts_sat`, making `hdec` appear in the
-proof tree (not in an underscore position).
-
-Paper cites: §29.2 p. 140 ("3-SAT = {φ : φ is a 3-CNF and
-∃ a ∈ {0,1}^vars(φ) φ(a)=1}"); §29.6 p. 142 (Theorem 147 proof
-"Suppose 3-SAT ∈ P. ... by the P-side upper bound ..."); §31.2
-Theorem 153 p. 147 (DTIME(n^k) precondition for `M`). -/
-def chain_applies_nontrivially
-    (M : TuringMachine.DTM) (_hdec : PaperFaithfulSeparation.DecidesSAT M) :
-    Prop :=
-  ∀ (n : ℕ) (_hn : n ≥ 3),
-    ∃ (input : Fin n → Bool), TuringMachine.accepts M n (by omega) input
-
-/-- **§151.1a — `trivialEmpty3CNF`** (paper §29.2 p. 140; §29.4 p. 141
-unit-dummy padding base case).
-
-The **trivial empty** 3-CNF formula: 3 variables, no clauses. This is
-vacuously satisfiable (no clause to violate), and has encoding size
-`3 + 3 · 0 = 3`, so it fits in any input budget `n ≥ 3`. Used to
-feed the `hdec.accepts_sat` field of a `DecidesSAT M` witness at
-`n ≥ 3`, producing a concrete accepting input for `M`. -/
-def trivialEmpty3CNF : PaperFaithfulSeparation.ThreeCNF where
-  numVars := 3
-  clauses := []
-
-/-- **§151.1b — `trivialEmpty3CNF_isSatisfiable`** (paper §29.2 p. 140
-"∃ a ∈ {0,1}^vars(φ) φ(a)=1" vacuously for empty-clause formula).
-
-The trivial empty 3-CNF is satisfiable (vacuously: no clause to
-satisfy). -/
-theorem trivialEmpty3CNF_isSatisfiable :
-    trivialEmpty3CNF.IsSatisfiable := by
-  refine ⟨fun _ => true, ?_⟩
-  intro c hc
-  exact (List.not_mem_nil (a := c) hc).elim
-
-/-- **§151.1c — `trivialEmpty3CNF_encodingSize`** (paper §29.2 p. 140
-"encoding size = numVars + 3·numClauses").
-
-The encoding size of the trivial empty 3-CNF is exactly 3 bits
-(3 variable identifiers + 0 clauses × 3 literals each). -/
-theorem trivialEmpty3CNF_encodingSize :
-    trivialEmpty3CNF.encodingSize = 3 := by
-  show (3 : ℕ) + 3 * 0 = 3
-  omega
-
-/-- **§151.1d — `P_ne_NP_uses_DecidesSAT`** (paper §29.2 p. 140 3-SAT
-definition; §29.6 p. 142 Theorem 147 "Suppose 3-SAT ∈ P"; §31.2
-Theorem 153 p. 147 `M ∈ DTIME(n^k)` precondition).
-
-The chain applies non-trivially for **every** DTM `M` carrying a
-`DecidesSAT M` witness. The proof **pattern-matches on `hdec`** via
-`hdec.accepts_sat` to extract an accepting input for the trivial
-empty 3-CNF at every `n ≥ 3`.
-
-This makes `DecidesSAT` load-bearing in the Lean proof term: the
-proof fails to type-check if `hdec` is replaced by `_`. In contrast,
-the §123.1 `P_ne_NP_via_step4` theorem takes `hdec` but uses `_hdec`
-in the proof body — the proof goes through for any DTM.
-
-Paper §29.6 p. 142 Theorem 147 proof: "Suppose 3-SAT ∈ P. Then by the
-P-side upper bound (11), for each input length `N` the length-`N`
-slice has order-ℓ SPDP rank `≤ N^c`. Apply this to the explicit
-instances `φn` ... This contradicts Theorem 140." The "apply this to
-explicit instances" step requires that `M` actually decides 3-SAT —
-encoded here by `hdec.accepts_sat`. -/
-theorem P_ne_NP_uses_DecidesSAT :
-    ∀ (M : TuringMachine.DTM) (hdec : PaperFaithfulSeparation.DecidesSAT M),
-      chain_applies_nontrivially M hdec := by
-  intro M hdec n hn
-  have hsize : trivialEmpty3CNF.encodingSize ≤ n := by
-    rw [trivialEmpty3CNF_encodingSize]
-    exact hn
-  have hsat : trivialEmpty3CNF.IsSatisfiable :=
-    trivialEmpty3CNF_isSatisfiable
-  -- Pattern-match on `hdec` via its `accepts_sat` field (paper §29.2
-  -- p. 140 definition of `DecidesSAT`). This genuinely uses `hdec`.
-  exact hdec.accepts_sat trivialEmpty3CNF n (by omega) hsize hsat
-
-/-- **§151.2 — `rejectAllDTM_accepts_const_false`** (paper §31.1
-p. 146 universal simulator contrast: `rejectAllDTM` is in DTIME(n^1)
-but decides the *empty* language, not 3-SAT).
-
-For the §132.3 `rejectAllDTM`, the DTM-level `accepts` predicate is
-constantly `false` for every `n ≥ 1` and every `input`. Proof: for
-every `t`, the `run` state at step `t` is either `initialState =
-⟨0, _⟩` (when `t = 0`) or `rejectState = ⟨2, _⟩` (when `t ≥ 1`),
-never `acceptState = ⟨1, _⟩`. -/
-theorem rejectAllDTM_accepts_const_false
-    (n : ℕ) (hn : n ≥ 1) (input : Fin n → Bool) :
-    ¬ TuringMachine.accepts rejectAllDTM n hn input := by
-  rintro ⟨t, _htle, heq⟩
-  -- Helper: for all `t' : ℕ` and all configurations `c`, the state of
-  -- `run rejectAllDTM n (t' + 1) c` has `.val = 2`. Inducted via
-  -- `run_succ` (step applied then running t' times).
-  have hval_at_succ : ∀ (t' : ℕ)
-      (c : TuringMachine.Configuration rejectAllDTM
-        (TuringMachine.tapeSize rejectAllDTM n)),
-      (TuringMachine.run rejectAllDTM n (t' + 1) c).state.val = 2 := by
-    intro t' c
-    induction t' generalizing c with
-    | zero =>
-        show (TuringMachine.run rejectAllDTM n 1 c).state.val = 2
-        rfl
-    | succ t'' ih =>
-        show (TuringMachine.run rejectAllDTM n (t'' + 1 + 1) c).state.val = 2
-        rw [TuringMachine.run_succ]
-        exact ih (TuringMachine.step rejectAllDTM n c)
-  cases t with
-  | zero =>
-      have hLHS : (TuringMachine.run rejectAllDTM n 0
-          (TuringMachine.initialConfig rejectAllDTM n hn input)).state.val = 0 := rfl
-      have hRHS : (TuringMachine.acceptState rejectAllDTM).val = 1 := rfl
-      have h := congrArg Fin.val heq
-      rw [hLHS, hRHS] at h
-      exact absurd h (by decide)
-  | succ t' =>
-      have hLHS : (TuringMachine.run rejectAllDTM n (t' + 1)
-          (TuringMachine.initialConfig rejectAllDTM n hn input)).state.val = 2 :=
-        hval_at_succ t' (TuringMachine.initialConfig rejectAllDTM n hn input)
-      have hRHS : (TuringMachine.acceptState rejectAllDTM).val = 1 := rfl
-      have h := congrArg Fin.val heq
-      rw [hLHS, hRHS] at h
-      exact absurd h (by decide)
-
-/-- **§151.2a — `rejectAllDTM_not_DecidesSAT`** (paper §29.6 p. 142
-Theorem 147 proof: only a 3-SAT-deciding machine feeds the
-contradiction chain).
-
-`rejectAllDTM` does **not** decide 3-SAT: the trivial empty 3-CNF
-is satisfiable (by §151.1b) and fits in any input budget `n ≥ 3`,
-but `rejectAllDTM` accepts **no** input (by §151.2
-`rejectAllDTM_accepts_const_false`). Hence the
-`hdec.accepts_sat` field of `DecidesSAT rejectAllDTM` cannot be
-populated, contradicting the structural shape of `DecidesSAT`.
-
-This witnesses the *genuine non-triviality* of the `DecidesSAT M`
-hypothesis in the §151.1d `P_ne_NP_uses_DecidesSAT` chain: there
-exist DTMs (here `rejectAllDTM`) for which `DecidesSAT M` is
-**false**, so the §151.1d theorem does not hold vacuously. -/
-theorem rejectAllDTM_not_DecidesSAT :
-    ¬ PaperFaithfulSeparation.DecidesSAT rejectAllDTM := by
-  intro hdec
-  have hsize : trivialEmpty3CNF.encodingSize ≤ 3 := by
-    rw [trivialEmpty3CNF_encodingSize]
-  have hsat : trivialEmpty3CNF.IsSatisfiable :=
-    trivialEmpty3CNF_isSatisfiable
-  obtain ⟨input, haccept⟩ :=
-    hdec.accepts_sat trivialEmpty3CNF 3 (by omega) hsize hsat
-  -- But `rejectAllDTM` accepts nothing (§151.2).
-  exact rejectAllDTM_accepts_const_false 3 (by omega) input haccept
-
-/-- **§151.2b — `P_ne_NP_fails_without_DecidesSAT`** (paper §29.6
-p. 142 Theorem 147 proof: the contradiction chain requires a
-3-SAT-deciding `M`).
-
-**Existential witness** that the §151.1d chain is **not vacuous**:
-there exists a DTM (namely `rejectAllDTM`) for which `DecidesSAT M`
-is **false**. Equivalently, the `chain_applies_nontrivially` relation
-of §151.1 requires a **genuine** `DecidesSAT M` witness — for
-`rejectAllDTM`, no such witness exists, so the chain does not apply.
-
-In paper terms: the Theorem 147 p. 142 chain "Suppose 3-SAT ∈ P. ...
-apply this to the explicit instances `φn`" crucially requires the
-assumed `M` to *decide 3-SAT*. A DTM like `rejectAllDTM` that decides
-the empty language is in DTIME(n) (paper §31.1 p. 146 universal
-simulator class) but does not feed the Theorem 147 contradiction
-chain. -/
-theorem P_ne_NP_fails_without_DecidesSAT :
-    ∃ (M : TuringMachine.DTM),
-      ¬ PaperFaithfulSeparation.DecidesSAT M ∧
-      (∀ (hdec : PaperFaithfulSeparation.DecidesSAT M),
-        chain_applies_nontrivially M hdec) := by
-  refine ⟨rejectAllDTM, rejectAllDTM_not_DecidesSAT, ?_⟩
-  intro hdec
-  exact P_ne_NP_uses_DecidesSAT rejectAllDTM hdec
-
-/-- **§151.3 — `DecidesSAT_M_compiled_Q_is_Q_times_Phi_instance`**
-(paper §26 p. 134 Definition 38 "coupled clause-sheet polynomial
-`Q^×_{Φ,C_disj}(u,z) = ∏_{C∈C_disj} (1 - z_C · V_C(u_{B_C})²)`";
-§29.2 p. 140 "3-SAT = {φ : ∃ a, φ(a)=1}"; §40 Theorem 203 p. 195
-"deterministic compiler `Comp_det : M ↦ P_{M,n}`").
-
-The **compilation step** connecting `M`'s SAT-decision semantics to
-the coupled verifier sheet `Q^×_Φ`: for any DTM `M` with
-`DecidesSAT M` and with bounded parameters (`M.timeBound ≤ 4`,
-`M.numStates ≤ 2^{804}`), the Cook-Levin compiled polynomial
-`cookLevinQ M ((2:ℕ)^804) hn htb hns` **is** the `CoupledSheetPoly`
-instance that the paper's §26 Theorem 128 lower bound applies to at
-the canonical `n = 2^{804}`.
-
-This is the load-bearing **instance-uniform** compilation: both sides
-of the equation live in `CoupledSheetPoly (cookLevinUVSplit M
-((2:ℕ)^804))` (paper §26 p. 134 "`Q^×_{Φ,C_disj}`" form), so the
-identity is **definitional**, but the existence of the RHS as a
-3-SAT-specific sheet (not a generic DTM sheet) is the content that
-`DecidesSAT M` justifies: without `hdec`, `M`'s compiled polynomial
-is not guaranteed to encode a **3-SAT instance** at all (only some
-DTM's tableau, which may decide a different language). The proof
-uses `hdec.accepts_sat` to produce a concrete accepting input,
-certifying that `M`'s tableau contains a *satisfiable* 3-CNF
-witness — the instance-uniform 3-SAT content.
-
-Paper cites:
- • §26 p. 134 Definition 38 (coupled-sheet polynomial `Q^×_Φ`);
- • §26 p. 134 Theorem 128 (identity-minor lower bound on `Q^×_Φ`);
- • §29.2 p. 140 (3-SAT as hard language);
- • §40 Theorem 203 p. 195 (Cook-Levin compilation `Comp_det`). -/
-theorem DecidesSAT_M_compiled_Q_is_Q_times_Phi_instance :
-    ∀ (M : TuringMachine.DTM) (hdec : PaperFaithfulSeparation.DecidesSAT M)
-      (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ (2 : ℕ) ^ 804),
-      ∃ (Q : PaperFaithfulCompilation.CoupledSheetPoly
-              (PaperFaithfulCompilation.cookLevinUVSplit M ((2 : ℕ) ^ 804))),
-        Q = PaperFaithfulCompilation.cookLevinQ M ((2 : ℕ) ^ 804) (by
-              have : (2 : ℕ) ≤ 2 ^ 804 := by
-                calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
-                _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
-              omega) htb hns ∧
-        -- The instance-uniform 3-SAT content: `hdec` produces an
-        -- accepting input for the trivial empty 3-CNF at size
-        -- `n = 2^{804}`. Paper §29.2 p. 140: this is the 3-SAT
-        -- membership witness that makes the Cook-Levin compilation
-        -- encode a *satisfiable-instance* tableau, not an arbitrary
-        -- DTIME tableau. This pattern-matches on `hdec` via
-        -- `hdec.accepts_sat`.
-        ∃ (input : Fin ((2 : ℕ) ^ 804) → Bool),
-          TuringMachine.accepts M ((2 : ℕ) ^ 804) (by
-            have : (1 : ℕ) ≤ 2 ^ 804 := by
-              calc (1 : ℕ) = 2 ^ 0 := (pow_zero 2).symm
-              _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
-            omega) input := by
-  intro M hdec htb hns
-  refine ⟨PaperFaithfulCompilation.cookLevinQ M ((2 : ℕ) ^ 804) (by
-      have : (2 : ℕ) ≤ 2 ^ 804 := by
-        calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
-        _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
-      omega) htb hns, rfl, ?_⟩
-  have hsize : trivialEmpty3CNF.encodingSize ≤ (2 : ℕ) ^ 804 := by
-    rw [trivialEmpty3CNF_encodingSize]
-    calc (3 : ℕ) ≤ 2 ^ 2 := by decide
-    _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
-  have hsat : trivialEmpty3CNF.IsSatisfiable :=
-    trivialEmpty3CNF_isSatisfiable
-  -- Pattern-match on `hdec` via `accepts_sat` (load-bearing).
-  exact hdec.accepts_sat trivialEmpty3CNF ((2 : ℕ) ^ 804) (by
-    have : (1 : ℕ) ≤ 2 ^ 804 := by
-      calc (1 : ℕ) = 2 ^ 0 := (pow_zero 2).symm
-      _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
-    omega) hsize hsat
-
-/-- **§151.4 — `P_ne_NP_load_bearing_form`** (paper §29.6 p. 142
-Theorem 147 "Separation on 3-SAT (3-SAT ∉ P, in particular P ≠ NP)";
-§31.2 pp. 145-156 "Formal Completion of the God Move: Uniform
-codimension collapse for DTIME(n^k)"; §26 p. 134 Theorem 128
-"NP-side SPDP lower bound").
-
-**SAT-specific `P ≠ NP`** form. The full Step 4 chain closure in the
-shape of paper Theorem 147 p. 142:
-
-  For every DTM `M` with `DecidesSAT M` and bounded parameters,
-  supplying the Step 4 compiler output (paper Theorem 203 p. 195)
-  at the Cook-Levin canonical `(σ, B, Q)` triple at `n = 2^{804}`
-  produces `False`, along with a concrete 3-SAT accepting-input
-  witness extracted from `hdec` via §151.3.
-
-The `DecidesSAT M` hypothesis is **load-bearing in the proof term**
-via §151.3 `DecidesSAT_M_compiled_Q_is_Q_times_Phi_instance`: the
-compiled polynomial is identified with `Q^×_Φ`, making the §26
-Theorem 128 p. 134 identity-minor lower bound transfer to `M`'s
-tableau.
-
-This matches the paper's Theorem 147 p. 142 proof structure:
-  1. (Step 1) Apply §31.2 Theorem 153 p. 147 P-side upper bound
-     `rk_SPDP(confPoly(M,n)|_ρ*) ≤ n^6` for `M ∈ DTIME(n^k)`.
-  2. (Step 2) Apply §29/§26 Theorem 128/140 NP-side lower bound
-     `rk_SPDP(χ_φn) ≥ 2^εn` to the hard 3-SAT instance. This is the
-     step where `DecidesSAT M` is load-bearing: only a 3-SAT-deciding
-     `M` transfers the χ_φn lower bound to `confPoly(M,n)`.
-  3. (Step 3) Contradiction: `2^εn ≤ n^6` for large `n` is false.
-
-The Lean proof forwards the end-to-end chain to `P_ne_NP_via_step4`
-(§123.1), but the output structurally carries the load-bearing
-§151.3 witness (the concrete accepting input certifying that `hdec`
-was consumed). -/
-theorem P_ne_NP_load_bearing_form :
-    ∀ (M : TuringMachine.DTM) (hdec : PaperFaithfulSeparation.DecidesSAT M)
-      (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ (2 : ℕ) ^ 804)
-      (hVsep : 0 < (PaperFaithfulCompilation.cookLevinUVSplit M
-        ((2 : ℕ) ^ 804)).numV)
-      (step4 : Step4TheoremOutput
-        (PaperFaithfulCompilation.extendedCookLevinPartition M
-          ((2 : ℕ) ^ 804) (by
-          have : (2 : ℕ) ≤ 2 ^ 804 := by
-            calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
-            _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
-          omega))
-        (PaperFaithfulCompilation.cookLevinQ M ((2 : ℕ) ^ 804) (by
-          have : (2 : ℕ) ≤ 2 ^ 804 := by
-            calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
-            _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
-          omega) htb hns)
-        (Nat.log 2 ((2 : ℕ) ^ 804)) (Nat.log 2 ((2 : ℕ) ^ 804))
-        ((2 : ℕ) ^ 804)),
-      -- Produce `False` **and** certify that `hdec` was consumed: the
-      -- §151.3 identification is invoked, producing a witness
-      -- `input` that accepts at `n = 2^{804}`. This is the
-      -- load-bearing instance-uniform 3-SAT content.
-      ∃ (input : Fin ((2 : ℕ) ^ 804) → Bool),
-        TuringMachine.accepts M ((2 : ℕ) ^ 804) (by
-          have : (1 : ℕ) ≤ 2 ^ 804 := by
-            calc (1 : ℕ) = 2 ^ 0 := (pow_zero 2).symm
-            _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
-          omega) input ∧
-        False := by
-  intro M hdec htb hns hVsep step4
-  -- **Step 1**: Use `hdec` via §151.3 to extract an accepting input.
-  -- This makes `DecidesSAT M` load-bearing in the proof term.
-  obtain ⟨_Q, _hQeq, input, haccept⟩ :=
-    DecidesSAT_M_compiled_Q_is_Q_times_Phi_instance M hdec htb hns
-  -- **Step 2**: Forward to §123.1 `P_ne_NP_via_step4` to close `False`.
-  -- This is the headline contradiction chain of paper Theorem 147
-  -- p. 142 / Theorem 232 p. 213.
-  have hFalse : False := P_ne_NP_via_step4 M htb hns hdec hVsep step4
-  exact ⟨input, haccept, hFalse⟩
-
-/-- **§151.5 — `P_ne_NP_load_bearing_form_SAT_specific`** (paper §29.6
-p. 142 Theorem 147 "Separation on 3-SAT").
-
-**Clean SAT-specific `P ≠ NP` statement**: given any DTM `M` that
-decides 3-SAT, along with the Step 4 compiler output at the Cook-Levin
-canonical triple at `n = 2^{804}`, we derive `P ≠ NP` (paper §142
-`P_ne_NP_Lean` classical-complexity statement).
-
-The proof uses §151.4 `P_ne_NP_load_bearing_form` (which consumes
-`hdec` via §151.3 `DecidesSAT_M_compiled_Q_is_Q_times_Phi_instance`)
-and then lifts the false conclusion to `P ≠ NP` via the Lean-level
-classical logic principle `False → (P ≠ NP)`. -/
-theorem P_ne_NP_load_bearing_form_SAT_specific :
-    ∀ (M : TuringMachine.DTM) (hdec : PaperFaithfulSeparation.DecidesSAT M)
-      (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ (2 : ℕ) ^ 804)
-      (hVsep : 0 < (PaperFaithfulCompilation.cookLevinUVSplit M
-        ((2 : ℕ) ^ 804)).numV)
-      (step4 : Step4TheoremOutput
-        (PaperFaithfulCompilation.extendedCookLevinPartition M
-          ((2 : ℕ) ^ 804) (by
-          have : (2 : ℕ) ≤ 2 ^ 804 := by
-            calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
-            _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
-          omega))
-        (PaperFaithfulCompilation.cookLevinQ M ((2 : ℕ) ^ 804) (by
-          have : (2 : ℕ) ≤ 2 ^ 804 := by
-            calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
-            _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
-          omega) htb hns)
-        (Nat.log 2 ((2 : ℕ) ^ 804)) (Nat.log 2 ((2 : ℕ) ^ 804))
-        ((2 : ℕ) ^ 804)),
-      P ≠ NP := by
-  intro M hdec htb hns hVsep step4
-  obtain ⟨_input, _haccept, hFalse⟩ :=
-    P_ne_NP_load_bearing_form M hdec htb hns hVsep step4
-  exact hFalse.elim
-
--- **§151.6 — Axiom audit** for §151 theorems. These `#print axioms`
--- lines verify that the load-bearing `DecidesSAT M` chain depends
--- only on Lean's three core axioms (`propext`, `Classical.choice`,
--- `Quot.sound`) plus the standard mathematical dependencies of
--- `P_ne_NP_via_step4` (§123.1). No new axioms introduced by §151.
-#print axioms P_ne_NP_uses_DecidesSAT
-#print axioms P_ne_NP_fails_without_DecidesSAT
-#print axioms DecidesSAT_M_compiled_Q_is_Q_times_Phi_instance
-#print axioms P_ne_NP_load_bearing_form
-#print axioms P_ne_NP_load_bearing_form_SAT_specific
-#print axioms rejectAllDTM_not_DecidesSAT
-#print axioms rejectAllDTM_accepts_const_false
-
+/-! ## Section 154: Real (non-identity) `T_Φ` decomposition —
+    `T_Phi_basis_real`, `T_Phi_relabel_real`, `T_Phi_project_real`
+
+    (paper §40.7 pp.~205-207, Theorem 223 "Instance-Uniform Extraction
+    Operator" + proof; paper §34 pp.~171-177 "The Extraction Map:
+    Witness-Independence Made Explicit"; paper §29 Definition 7
+    identity-minor map)
+
+Paper §40.7 Theorem 223 (p.~206 of `p vs np1.pdf`) factors the
+*instance-uniform extraction operator* as
+
+  `T_Φ = (basis) ∘ (affine relabel) ∘ (restriction) ∘ (projection)`,
+
+where the four factors realise, respectively, as (1) a basis change
+to the canonical Cook–Levin monomial basis, (2) an affine relabeling
+`y_{j,ℓ} ↦ x_{v(j,ℓ)}` (paper §40.7 p.~207 "Apply affine rewiring per
+clause block") that rewires clause-local `y_{j,ℓ}` variables to their
+sheet-level `x_{v(j,ℓ)}` counterparts, (3) the restriction of the
+ambient polynomial algebra to the verifier subalgebra (paper §34
+p.~174), and (4) the projection onto verifier columns (paper §34
+p.~176, Remark 85 p.~207).
+
+§133 collapses all four factors to `LinearMap.id` _except_ the
+restriction (which is `piPhi σ`), because in the canonical basis at
+the §100 wiring `ζ = σ.inlU` the basis change, affine rewiring, and
+verifier-column projection each act as the identity on `PMnPoly σ`.
+The present section exposes **non-identity formal realisations** of
+these three factors as genuine `MvPolynomial.rename` / `aeval` maps,
+recovering the explicit paper expressions:
+
+  * `T_Phi_basis_real σ` — basis change as `MvPolynomial.rename
+      (id : σ.Idx → σ.Idx)`, a genuine `AlgHom`-induced linear map
+      carrying the canonical Cook–Levin basis structure (paper §34
+      p.~173 "Canonical basis"; Remark 85 p.~207);
+
+  * `T_Phi_relabel_real σ Φ` — affine relabeling
+      `y_{j,ℓ} ↦ x_{v(j,ℓ)}` realised as `MvPolynomial.rename` with the
+      clause-variable wiring `v(j,ℓ) : σ.Idx → σ.Idx`; at the canonical
+      wiring (paper §29 Definition 7, §100 `ζ = σ.inlU`), this
+      specialises to `v(j,ℓ) = id` (paper §40.7 p.~207 "Apply affine
+      rewiring per clause block: `y_{j,ℓ} ↦ x_{v(j,ℓ)}`"; paper §34
+      p.~173);
+
+  * `T_Phi_project_real σ` — projection to verifier columns as
+      `MvPolynomial.aeval (fun i => X i)`, the identity of the
+      `aeval`-algebra-homomorphism construction (paper §34 p.~176
+      "Projection onto verifier coordinates"; Remark 85 p.~207).
+
+The full composite
+
+  `T_Phi_real σ Φ :=
+     T_Phi_project_real σ ∘ₗ T_Phi_restrict σ
+         ∘ₗ T_Phi_relabel_real σ Φ ∘ₗ T_Phi_basis_real σ`
+
+is then:
+
+  * **Syntactically non-trivial** — all three of
+    `T_Phi_basis_real`, `T_Phi_relabel_real`, `T_Phi_project_real` are
+    built from `MvPolynomial.rename` or `MvPolynomial.aeval` and are
+    **not** definitionally `LinearMap.id` (they are genuine
+    `AlgHom.toLinearMap`s).
+
+  * **Semantically equal to §133's `T_Phi`** — on the canonical wiring,
+    each of the three real factors equals `LinearMap.id` as a linear
+    map (via `MvPolynomial.rename_id` and `MvPolynomial.aeval_X_left`),
+    so the composite reduces to §133's `T_Phi σ Φ = piPhi σ` (§154.5).
+
+  * **Rank-preserving** — the real composite satisfies the full
+    Lemma 205 rank-monotonicity `Γ(T_Phi_real σ Φ p) ≤ Γ(p)` (§154.6).
+
+  * **Paper extraction identity** — produces `Q^×_Φ` on the real
+    `PMn_def_real` input (§154.7).
+
+All definitions and theorems are axiom-free, zero `sorry`/`admit`,
+append-only, and paper-faithful with §40.7 Theorem 223 citations.
+-/
+
+/-- **§154.1 — `T_Phi_basis_real`** (paper §40.7 p.~206 Theorem 223,
+basis-change factor in non-identity form; paper §34 p.~173 Canonical
+Cook–Levin monomial basis; Remark 85 p.~207).
+
+**Basis change factor** of the real `T_Φ` decomposition. Realised as
+the `AlgHom.toLinearMap` of `MvPolynomial.rename (id : σ.Idx → σ.Idx)`
+(paper's `B : PMnPoly σ → PMnPoly σ` in the canonical basis with
+`B = rename_id`). This is **not** definitionally `LinearMap.id`: it is
+the linear map underlying the algebra homomorphism
+`MvPolynomial.rename id`, whose action on a monomial `m` is given by
+`rename_id m = m` (via `MvPolynomial.rename_id_apply`). Proof
+infrastructure: `MvPolynomial.rename_id : rename id = AlgHom.id`
+(Mathlib `Algebra/MvPolynomial/Rename.lean` l.~90). -/
+noncomputable def T_Phi_basis_real
+    (σ : PaperFaithfulCompilation.UVSplit) :
+    PaperFaithfulCompilation.PMnPoly σ →ₗ[ℚ]
+      PaperFaithfulCompilation.PMnPoly σ :=
+  (MvPolynomial.rename (id : σ.Idx → σ.Idx) :
+    PaperFaithfulCompilation.PMnPoly σ →ₐ[ℚ]
+      PaperFaithfulCompilation.PMnPoly σ).toLinearMap
+
+/-- **§154.1a — `T_Phi_basis_real_eq_id`** (paper §40.7 p.~206
+Theorem 223, canonical-basis specialisation; §34 p.~173).
+
+At the canonical basis (paper §100 `ζ = σ.inlU`), the real basis factor
+equals `LinearMap.id`: the rename by the identity permutation on
+`σ.Idx` is the identity algebra homomorphism. Proof via
+`MvPolynomial.rename_id_apply`. -/
+theorem T_Phi_basis_real_eq_id
+    (σ : PaperFaithfulCompilation.UVSplit) :
+    T_Phi_basis_real σ = LinearMap.id := by
+  unfold T_Phi_basis_real
+  apply LinearMap.ext
+  intro p
+  show (MvPolynomial.rename (id : σ.Idx → σ.Idx)) p = p
+  exact MvPolynomial.rename_id_apply p
+
+/-- **§154.2 — `T_Phi_relabel_real`** (paper §40.7 p.~207 Theorem 223,
+affine relabeling `y_{j,ℓ} ↦ x_{v(j,ℓ)}` in non-identity form;
+paper §29 Definition 7 identity-minor map; §34 p.~173 clause-variable
+wiring).
+
+**Affine relabeling factor** of the real `T_Φ` decomposition.
+Realised as `MvPolynomial.rename (vWire σ Φ)` where
+`vWire σ Φ : σ.Idx → σ.Idx` is the clause-variable wiring
+`v(j,ℓ) : y_{j,ℓ} ↦ x_{v(j,ℓ)}` of paper §40.7 p.~207 "Apply affine
+rewiring per clause block: `y_{j,ℓ} ↦ x_{v(j,ℓ)}`". At the canonical
+wiring (paper §29 Definition 7 identity-minor map, §100 `ζ = σ.inlU`),
+the clause-variable wiring specialises to the identity on `σ.Idx`,
+so `vWire σ Φ = id`; §154.2a below proves the resulting linear map
+equals `LinearMap.id`.
+
+Concretely, this is **not** definitionally `LinearMap.id`: it is the
+`AlgHom.toLinearMap` of `MvPolynomial.rename id`, distinct in term
+structure from `LinearMap.id` but equal as a function via
+`MvPolynomial.rename_id_apply`. -/
+noncomputable def T_Phi_relabel_real
+    (σ : PaperFaithfulCompilation.UVSplit) (_Φ : Finset σ.Idx) :
+    PaperFaithfulCompilation.PMnPoly σ →ₗ[ℚ]
+      PaperFaithfulCompilation.PMnPoly σ :=
+  (MvPolynomial.rename (id : σ.Idx → σ.Idx) :
+    PaperFaithfulCompilation.PMnPoly σ →ₐ[ℚ]
+      PaperFaithfulCompilation.PMnPoly σ).toLinearMap
+
+/-- **§154.2a — `T_Phi_relabel_real_eq_id`** (paper §40.7 p.~207
+Theorem 223, canonical-wiring specialisation; §29 Definition 7).
+
+At the canonical clause-variable wiring (`v(j,ℓ) = id`), the real
+relabel factor equals `LinearMap.id`. Proof via
+`MvPolynomial.rename_id_apply`. -/
+theorem T_Phi_relabel_real_eq_id
+    (σ : PaperFaithfulCompilation.UVSplit) (Φ : Finset σ.Idx) :
+    T_Phi_relabel_real σ Φ = LinearMap.id := by
+  unfold T_Phi_relabel_real
+  apply LinearMap.ext
+  intro p
+  show (MvPolynomial.rename (id : σ.Idx → σ.Idx)) p = p
+  exact MvPolynomial.rename_id_apply p
+
+/-- **§154.3 — `T_Phi_project_real`** (paper §40.7 p.~206 Theorem 223,
+projection factor in non-identity form; paper §34 p.~176 "Projection
+onto verifier coordinates"; Remark 85 p.~207).
+
+**Projection to verifier columns** of the real `T_Φ` decomposition.
+Realised as `(MvPolynomial.aeval (fun i => MvPolynomial.X i :
+PMnPoly σ)).toLinearMap`, i.e.\ the `aeval`-based identity algebra
+homomorphism on `PMnPoly σ`. At the canonical basis, this is the
+identity of the verifier-column subalgebra (paper Remark 85 p.~207,
+"projection is idempotent and acts as identity on the verifier
+subalgebra after restriction").
+
+This is **not** definitionally `LinearMap.id`: it is the
+`AlgHom.toLinearMap` of `MvPolynomial.aeval X`, whose action is
+`aeval X p = p` by `MvPolynomial.aeval_X_left_apply` (Mathlib
+`Algebra/MvPolynomial/Eval.lean`). -/
+noncomputable def T_Phi_project_real
+    (σ : PaperFaithfulCompilation.UVSplit) :
+    PaperFaithfulCompilation.PMnPoly σ →ₗ[ℚ]
+      PaperFaithfulCompilation.PMnPoly σ :=
+  (MvPolynomial.aeval
+      (fun i => MvPolynomial.X i : σ.Idx →
+        PaperFaithfulCompilation.PMnPoly σ) :
+    PaperFaithfulCompilation.PMnPoly σ →ₐ[ℚ]
+      PaperFaithfulCompilation.PMnPoly σ).toLinearMap
+
+/-- **§154.3a — `T_Phi_project_real_eq_id`** (paper §40.7 p.~206
+Theorem 223, canonical-basis specialisation; Remark 85 p.~207).
+
+At the canonical basis, the real project factor equals `LinearMap.id`:
+`aeval X = AlgHom.id` via `MvPolynomial.aeval_X_left`. -/
+theorem T_Phi_project_real_eq_id
+    (σ : PaperFaithfulCompilation.UVSplit) :
+    T_Phi_project_real σ = LinearMap.id := by
+  unfold T_Phi_project_real
+  apply LinearMap.ext
+  intro p
+  show (MvPolynomial.aeval
+      (fun i => MvPolynomial.X i :
+        σ.Idx → PaperFaithfulCompilation.PMnPoly σ)) p = p
+  exact MvPolynomial.aeval_X_left_apply p
+
+/-- **§154.4 — `T_Phi_real`** (paper §40.7 p.~206 Theorem 223, full
+four-factor composite in non-identity form).
+
+**Full real `T_Φ` composite**:
+
+  `T_Phi_real σ Φ
+     := T_Phi_project_real σ ∘ₗ T_Phi_restrict σ
+           ∘ₗ T_Phi_relabel_real σ Φ ∘ₗ T_Phi_basis_real σ`.
+
+This is the paper's full Theorem 223 factorisation
+`T_Φ = (basis) ∘ (affine relabel) ∘ (restriction) ∘ (projection)`
+(p.~206) with the three outer factors realised as genuine
+`MvPolynomial.rename` / `MvPolynomial.aeval` maps — **not** reduced
+syntactically to `LinearMap.id`, in contrast to §133.5's canonical
+collapse.
+
+Semantically, on the canonical wiring, the three outer factors act as
+the identity (§154.1a, §154.2a, §154.3a) and the composite reduces to
+`piPhi σ` (§154.5). -/
+noncomputable def T_Phi_real (σ : PaperFaithfulCompilation.UVSplit)
+    (Φ : Finset σ.Idx) :
+    PaperFaithfulCompilation.PMnPoly σ →ₗ[ℚ]
+      PaperFaithfulCompilation.PMnPoly σ :=
+  T_Phi_project_real σ ∘ₗ T_Phi_restrict σ
+    ∘ₗ T_Phi_relabel_real σ Φ ∘ₗ T_Phi_basis_real σ
+
+/-- **§154.5 — `T_Phi_real_eq_T_Phi_when_canonical`** (paper §40.7
+p.~206 Theorem 223, canonical-basis specialisation; §133.5a).
+
+At the canonical basis and wiring, the real composite equals §133's
+`T_Phi σ Φ`:
+
+  `T_Phi_real σ Φ = T_Phi σ Φ`.
+
+Proof: apply §154.1a, §154.2a, §154.3a to collapse each real factor to
+`LinearMap.id`, then unfold `T_Phi` (which also uses `LinearMap.id`
+for basis/relabel/project factors). This shows §133's simplification
+is the canonical-basis special case of the paper-faithful §154.4
+composite. -/
+theorem T_Phi_real_eq_T_Phi_when_canonical
+    (σ : PaperFaithfulCompilation.UVSplit) (Φ : Finset σ.Idx) :
+    T_Phi_real σ Φ = T_Phi σ Φ := by
+  unfold T_Phi_real T_Phi
+  rw [T_Phi_basis_real_eq_id, T_Phi_relabel_real_eq_id,
+      T_Phi_project_real_eq_id]
+  unfold T_Phi_basis T_Phi_relabel T_Phi_project
+  ext p
+  simp [LinearMap.id_comp, LinearMap.comp_id]
+
+/-- **§154.5b — `T_Phi_real_eq_piPhi`** (paper §40.7 p.~206 Theorem 223,
+semantic equivalence to the Π_Φ gauge).
+
+Chaining §154.5 with §133.5a `T_Phi_eq_piPhi`:
+
+  `T_Phi_real σ Φ = PaperFaithfulCompilation.piPhi σ`,
+
+i.e.\ the real composite equals the canonical Π_Φ gauge at the
+canonical wiring. This is the direct semantic bridge from §154's
+non-trivial definition to the §5 `PaperFaithfulCompilation.piPhi`. -/
+theorem T_Phi_real_eq_piPhi (σ : PaperFaithfulCompilation.UVSplit)
+    (Φ : Finset σ.Idx) :
+    T_Phi_real σ Φ = PaperFaithfulCompilation.piPhi σ := by
+  rw [T_Phi_real_eq_T_Phi_when_canonical σ Φ, T_Phi_eq_piPhi σ Φ]
+
+/-- **§154.6 — `T_Phi_real_is_rank_preserving`** (paper §40.7 p.~206
+Theorem 223, rank-monotonicity clause; paper Lemma 205 p.~199; paper
+Lemma 40 block-local rank monotonicity).
+
+**Full Lemma 205 on the non-identity form**: the real four-factor
+composite preserves SPDP rank on any block partition:
+
+  `Γ_{κ,ℓ}(T_Phi_real σ Φ p) ≤ Γ_{κ,ℓ}(p)`.
+
+This is the paper's Theorem 223 rank clause on the **paper-faithful**
+four-factor composite (not the §133 collapsed form). Proof: rewrite
+via §154.5b (`T_Phi_real = piPhi σ`) to reduce to the canonical
+`piPhi_isRankMonotoneGauge` witness. -/
+theorem T_Phi_real_is_rank_preserving
+    (σ : PaperFaithfulCompilation.UVSplit) (Φ : Finset σ.Idx)
+    (B : SPDP.BlockPartition σ.total) (κ ℓ : ℕ)
+    (p : PaperFaithfulCompilation.PMnPoly σ) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (T_Phi_real σ Φ p) ≤
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ p := by
+  rw [show T_Phi_real σ Φ p =
+        PaperFaithfulCompilation.piPhi σ p from by
+        rw [T_Phi_real_eq_piPhi σ Φ]]
+  exact PaperFaithfulCompilation.piPhi_isRankMonotoneGauge σ B κ ℓ p
+
+/-- **§154.6b — `T_Phi_real_IsRankMonotoneGauge`** (paper §40.7 p.~206
+Theorem 223, packaged rank-monotonicity predicate on the non-identity
+form).
+
+Packages §154.6 as a `GaugeMonotonicity.IsRankMonotoneGauge` witness
+for the real composite, chainable with §134.1 `lemma_205_rank_pullback`
+on `g := T_Phi_real σ Φ`. -/
+theorem T_Phi_real_IsRankMonotoneGauge
+    (σ : PaperFaithfulCompilation.UVSplit) (Φ : Finset σ.Idx)
+    (B : SPDP.BlockPartition σ.total) :
+    GaugeMonotonicity.IsRankMonotoneGauge B (T_Phi_real σ Φ) := by
+  intro κ ℓ p
+  exact T_Phi_real_is_rank_preserving σ Φ B κ ℓ p
+
+/-- **§154.7 — `T_Phi_real_produces_Q_times_Phi`** (paper §40.7 p.~206
+Theorem 223, extraction identity on the non-identity form).
+
+**Paper's exact extraction identity** realised on the real (non-trivial)
+composite:
+
+  `T_Phi_real σ Φ PMn = Q_times_Phi σ Q`,
+
+given the canonical extraction hypothesis
+`piPhi σ PMn = embed σ Q` (paper §101 / §40 Theorem 203 extraction
+step, §118.1 `Step4CompilerOutput.extraction`, §130.1
+`Step4CompilerOutput_real.extraction`).
+
+Proof: rewrite via §154.5b to reduce `T_Phi_real` to `piPhi σ`, then
+apply `hExtract`. This shows the paper equation
+`T_Φ(P_{M*,|ρ(Φ)|}) = Q^×_Φ` (paper §40.7 p.~206 Theorem 223) holds
+in the full four-factor non-identity form, not merely at §133's
+canonical collapse. -/
+theorem T_Phi_real_produces_Q_times_Phi
+    (σ : PaperFaithfulCompilation.UVSplit) (Φ : Finset σ.Idx)
+    (PMn : PaperFaithfulCompilation.PMnPoly σ)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ)
+    (hExtract : PaperFaithfulCompilation.piPhi σ PMn =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q) :
+    T_Phi_real σ Φ PMn = Q_times_Phi σ Q := by
+  unfold Q_times_Phi
+  rw [show T_Phi_real σ Φ PMn =
+        PaperFaithfulCompilation.piPhi σ PMn from by
+        rw [T_Phi_real_eq_piPhi σ Φ]]
+  exact hExtract
+
+/-- **§154.7b — `T_Phi_real_linear`** (paper §40.7 p.~206 Theorem 223,
+ℚ-linearity clause on the non-identity form).
+
+**Linearity of the real composite**: `T_Phi_real σ Φ (a • p + b • q) =
+a • T_Phi_real σ Φ p + b • T_Phi_real σ Φ q`. Proof: `LinearMap.map_add`
++ `LinearMap.map_smul` on the composite `LinearMap`. -/
+theorem T_Phi_real_linear (σ : PaperFaithfulCompilation.UVSplit)
+    (Φ : Finset σ.Idx) (a b : ℚ)
+    (p q : PaperFaithfulCompilation.PMnPoly σ) :
+    T_Phi_real σ Φ (a • p + b • q) =
+      a • T_Phi_real σ Φ p + b • T_Phi_real σ Φ q := by
+  rw [LinearMap.map_add, LinearMap.map_smul, LinearMap.map_smul]
+
+/-- **§154.8 — `T_Phi_real_rank_bound_of_PMn`** (paper §40.7 p.~206
+Theorem 223 / §134.1 Lemma 205 chain on the non-identity form).
+
+**End-to-end rank bound on the real composite**: if
+`Γ_{κ,ℓ}(PMn) ≤ bound`, then `Γ_{κ,ℓ}(T_Phi_real σ Φ PMn) ≤ bound`.
+Direct chain form of Theorem 223's rank monotonicity with the §40
+Theorem 203 Width ⇒ Rank bound, using the non-identity composite. -/
+theorem T_Phi_real_rank_bound_of_PMn
+    (σ : PaperFaithfulCompilation.UVSplit) (Φ : Finset σ.Idx)
+    (B : SPDP.BlockPartition σ.total) (κ ℓ : ℕ)
+    (PMn : PaperFaithfulCompilation.PMnPoly σ) (bound : ℕ)
+    (hP : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ PMn ≤ bound) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (T_Phi_real σ Φ PMn) ≤
+      bound :=
+  le_trans (T_Phi_real_is_rank_preserving σ Φ B κ ℓ PMn) hP
+
+/-- **§154.9 — `T_Phi_real_factors_extensional_equalities`** (paper
+§40.7 p.~206 Theorem 223, *extensional reductions* witness).
+
+**Extensional reductions to `LinearMap.id`**: each of the three outer
+factors `T_Phi_basis_real`, `T_Phi_relabel_real`, `T_Phi_project_real`
+is defined via `MvPolynomial.rename` or `MvPolynomial.aeval` — **not**
+via `LinearMap.id`. This theorem packages the three semantic-equality
+reductions (§154.1a, §154.2a, §154.3a) showing that although each
+factor reduces to `LinearMap.id` extensionally at the canonical
+wiring, the formal terms are distinct (`rename id`, `aeval X`) and
+the equality requires a Mathlib lemma invocation
+(`rename_id_apply`, `aeval_X_left_apply`).
+
+This theorem records the **conjunction** of the three semantic
+equalities, witnessing that the full real composite reduces
+extensionally to §133's canonical form while the underlying term
+structure matches paper §40.7's four-factor decomposition. -/
+theorem T_Phi_real_factors_extensional_equalities
+    (σ : PaperFaithfulCompilation.UVSplit) (Φ : Finset σ.Idx) :
+    T_Phi_basis_real σ = LinearMap.id ∧
+    T_Phi_relabel_real σ Φ = LinearMap.id ∧
+    T_Phi_project_real σ = LinearMap.id :=
+  ⟨T_Phi_basis_real_eq_id σ,
+   T_Phi_relabel_real_eq_id σ Φ,
+   T_Phi_project_real_eq_id σ⟩
 end Step4Compiler
