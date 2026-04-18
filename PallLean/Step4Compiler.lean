@@ -912,6 +912,101 @@ noncomputable def posLiteralSoSGadget {N : ℕ} (i : Fin N) : SoSGadget N where
 theorem posLiteralSoSGadget_poly {N : ℕ} (i : Fin N) :
     (posLiteralSoSGadget i).poly = MvPolynomial.X i := rfl
 
+/-! ## Section 17k: Path polynomials for BPs
+
+Paper's BP semantics: "exactly one outgoing edge is taken at each
+visited node, yielding a unique layer-by-layer path. The length is L."
+
+We formalize the path polynomial: product of literal labels along an
+input-determined path. This is the key compilation from BP to polynomial. -/
+
+/-- **Path polynomial factor**: for a layer with query variable `q`
+and the branch taken being bit `b`, the literal is either X_q (b=true)
+or 1-X_q (b=false). -/
+noncomputable def pathLiteral {N : ℕ} (q : Fin N) (b : Bool) :
+    MvPolynomial (Fin N) ℚ :=
+  if b then literalPoly_pos q else literalPoly_neg q
+
+/-- `pathLiteral` CEW is ≤ 1. -/
+theorem pathLiteral_cew {N : ℕ} (q : Fin N) (b : Bool) :
+    HasCEWBound (pathLiteral q b) 1 := by
+  unfold pathLiteral
+  split_ifs
+  · exact literalPoly_pos_cew q
+  · exact literalPoly_neg_cew q
+
+/-- **Path polynomial for a list of (query, branch) steps**: product. -/
+noncomputable def pathPolynomial {N : ℕ}
+    (steps : List (Fin N × Bool)) : MvPolynomial (Fin N) ℚ :=
+  (steps.map (fun ⟨q, b⟩ => pathLiteral q b)).prod
+
+/-- Empty path polynomial is 1. -/
+theorem pathPolynomial_nil {N : ℕ} :
+    pathPolynomial ([] : List (Fin N × Bool)) = 1 := by
+  unfold pathPolynomial
+  simp
+
+/-- Cons path polynomial is literal · rest. -/
+theorem pathPolynomial_cons {N : ℕ} (q : Fin N) (b : Bool)
+    (rest : List (Fin N × Bool)) :
+    pathPolynomial ((q, b) :: rest) = pathLiteral q b * pathPolynomial rest := by
+  unfold pathPolynomial
+  simp [List.prod_cons]
+
+/-- **Path polynomial CEW bound**: length L path has CEW ≤ L (since each
+literal contributes ≤ 1). -/
+theorem pathPolynomial_cew {N : ℕ} (steps : List (Fin N × Bool)) :
+    HasCEWBound (pathPolynomial steps) steps.length := by
+  induction steps with
+  | nil =>
+    rw [pathPolynomial_nil]
+    simp [HasCEWBound]
+  | cons head tail ih =>
+    obtain ⟨q, b⟩ := head
+    rw [pathPolynomial_cons]
+    show (pathLiteral q b * pathPolynomial tail).totalDegree ≤ _
+    calc (pathLiteral q b * pathPolynomial tail).totalDegree
+        ≤ (pathLiteral q b).totalDegree +
+          (pathPolynomial tail).totalDegree :=
+          MvPolynomial.totalDegree_mul _ _
+      _ ≤ 1 + tail.length := Nat.add_le_add (pathLiteral_cew q b) ih
+      _ = ((q, b) :: tail).length := by simp [List.length_cons]; omega
+
+/-! ## Section 17l: Monomial indexing lemmas for BP compilation
+
+The path polynomial's multilinear expansion counts paths by their
+accepting/rejecting result. -/
+
+/-- **Path polynomial at Boolean input**: evaluates to 1 or 0
+depending on whether the path is actually taken. -/
+theorem pathPolynomial_eval_bool {N : ℕ} (steps : List (Fin N × Bool))
+    (input : Fin N → ℚ)
+    (h : ∀ qb ∈ steps, qb.2 = true → input qb.1 = 1)
+    (h' : ∀ qb ∈ steps, qb.2 = false → input qb.1 = 0) :
+    MvPolynomial.eval input (pathPolynomial steps) = 1 := by
+  induction steps with
+  | nil => rw [pathPolynomial_nil]; simp
+  | cons head tail ih =>
+    obtain ⟨q, b⟩ := head
+    rw [pathPolynomial_cons]
+    rw [map_mul]
+    have h_head_pos : b = true → input q = 1 :=
+      fun hb => h (q, b) (List.mem_cons_self) hb
+    have h_head_neg : b = false → input q = 0 :=
+      fun hb => h' (q, b) (List.mem_cons_self) hb
+    unfold pathLiteral
+    split_ifs with hb
+    · -- b = true: pathLiteral = X q, eval = input q = 1
+      rw [literalPoly_pos_eval, h_head_pos hb]
+      rw [ih (fun qb hqb hpos => h qb (List.mem_cons_of_mem _ hqb) hpos)
+         (fun qb hqb hneg => h' qb (List.mem_cons_of_mem _ hqb) hneg)]
+      ring
+    · -- b = false: pathLiteral = 1 - X q, eval = 1 - input q = 1 - 0 = 1
+      rw [literalPoly_neg_eval, h_head_neg (by rcases b with _|_ <;> simp_all)]
+      rw [ih (fun qb hqb hpos => h qb (List.mem_cons_of_mem _ hqb) hpos)
+         (fun qb hqb hneg => h' qb (List.mem_cons_of_mem _ hqb) hneg)]
+      ring
+
 /-! ## Section 18: Width⇒Rank concrete application
 
 Paper's Theorem 93 (Sorting-network compiler: locality and CEW):
