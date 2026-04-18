@@ -251,4 +251,40 @@ theorem piPhi_X_v (σ : UVSplit) (j : Fin σ.numV) :
   rw [PiStarConcrete.piZero_X]
   rw [if_neg (not_keepU_inlV σ j)]
 
+/-! ## Section 6: piPhi fixes embedded coupled-sheet polynomials
+
+The core property linking `piPhi` to `CoupledSheetPoly.embed`: any
+polynomial `q : CoupledSheetPoly σ` (i.e., using only u-variables)
+embeds into `PMnPoly σ` as a polynomial supported on u, and piPhi
+fixes it. This is the "piPhi is identity on the u-only subalgebra"
+property — one half of Lemma 205's rank monotonicity mechanism. -/
+
+/-- `embed q` has all variables in `inlU` range, hence all `keepU`-satisfying. -/
+theorem embed_vars_kept (σ : UVSplit) (q : CoupledSheetPoly σ) :
+    ∀ k ∈ (CoupledSheetPoly.embed σ q).vars, keepU σ k := by
+  intro k hk
+  have hk' : k ∈ (MvPolynomial.rename σ.inlU q).vars := by
+    unfold CoupledSheetPoly.embed at hk; exact hk
+  -- Via mem_vars_rename: k = inlU j for some j ∈ q.vars.
+  obtain ⟨j, _hj, hjk⟩ := MvPolynomial.mem_vars_rename σ.inlU q hk'
+  rw [← hjk]
+  exact keepU_inlU σ j
+
+/-- **piPhi fixes embedded coupled-sheet polynomials**:
+`piPhi σ (embed σ q) = embed σ q`. -/
+theorem piPhi_embed_eq (σ : UVSplit) (q : CoupledSheetPoly σ) :
+    piPhi σ (CoupledSheetPoly.embed σ q) = CoupledSheetPoly.embed σ q := by
+  unfold piPhi
+  apply PiStarConcrete.piZero_eq_self_of_support_kept
+  intro α hα i hki
+  -- If i ∉ kept, then α i = 0 (since support is kept).
+  -- For the embedded polynomial, supports consist of monomials whose
+  -- variables are all in range(inlU). Hence only u-indices can have
+  -- positive exponent; non-kept (v) indices have α i = 0.
+  by_contra hαi
+  have hi_vars : i ∈ (CoupledSheetPoly.embed σ q).vars := by
+    rw [MvPolynomial.mem_vars]
+    exact ⟨α, hα, Finsupp.mem_support_iff.mpr hαi⟩
+  exact hki (embed_vars_kept σ q i hi_vars)
+
 end PaperFaithfulCompilation
