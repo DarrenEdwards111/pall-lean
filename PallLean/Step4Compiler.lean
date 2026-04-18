@@ -491,7 +491,135 @@ theorem alwaysRejectBP_computedFunction (n : ℕ) :
   funext input
   exact alwaysRejectBP_decides n input
 
-/-! ## Section 15: Summary of Step 4 progress
+/-! ## Section 15: Batcher sorting network — concrete instances
+
+Paper's Batcher odd-even merge network has depth O(log² N) and size
+O(N log² N). For small N we build concrete instances. -/
+
+/-- **Trivial comparator** on wires 0 and 1 (2-wire case). -/
+def batcherComparator_2 : Comparator 2 where
+  i := ⟨0, by omega⟩
+  j := ⟨1, by omega⟩
+  i_lt_j := by show (0 : ℕ) < 1; omega
+
+/-- **Single-layer Batcher for N=2**: one comparator on the only wire pair. -/
+def batcherLayer_2 : SortingLayer 2 where
+  comparators := [batcherComparator_2]
+  disjoint := by
+    intro c₁ hc₁ c₂ hc₂ hne
+    -- Only one element in the list, so c₁ = c₂, contradicting hne.
+    simp only [List.mem_singleton] at hc₁ hc₂
+    subst hc₁ hc₂
+    exact absurd rfl hne
+
+/-- **Batcher network for N=2**: one layer, depth 1. -/
+def batcherNetwork_2 : SortingNetwork 2 where
+  layers := [batcherLayer_2]
+  depth := 1
+  depth_bound := by simp
+
+/-- `batcherNetwork_2` has depth 1 ≤ log² 2 + 1 (trivially). -/
+theorem batcherNetwork_2_depth : batcherNetwork_2.depth = 1 := rfl
+
+/-! ## Section 16: SoS gadget combinators
+
+Functional combinators for building SoS gadgets. The paper uses these
+implicitly when composing transition constraints. -/
+
+/-- **Negate a gadget**: the polynomial `-g.poly` with same varSupport. -/
+noncomputable def SoSGadget.neg {N : ℕ} (g : SoSGadget N) : SoSGadget N where
+  poly := -g.poly
+  varSupport := g.varSupport
+  support_bound := g.support_bound
+  vars_contained := by
+    intro k hk
+    apply g.vars_contained
+    have : k ∈ (-g.poly).vars := hk
+    rwa [MvPolynomial.vars_neg] at this
+  degree_bound := by
+    rw [MvPolynomial.totalDegree_neg]
+    exact g.degree_bound
+
+/-- **Gadget with increased vars support** — add extra indices. -/
+noncomputable def SoSGadget.expandSupport {N : ℕ} (g : SoSGadget N)
+    (extra : Finset (Fin N)) (h_new : (g.varSupport ∪ extra).card ≤ 6) :
+    SoSGadget N where
+  poly := g.poly
+  varSupport := g.varSupport ∪ extra
+  support_bound := h_new
+  vars_contained := by
+    intro k hk
+    exact Finset.mem_union_left _ (g.vars_contained hk)
+  degree_bound := g.degree_bound
+
+/-! ## Section 17: CEW bounds via additivity
+
+For products of polynomials with bounded degrees, the total degree
+bounds sum. CEW bounds compose accordingly. -/
+
+/-- **CEW bound for sum**: degree of sum is max of summand degrees. -/
+theorem HasCEWBound_add {N : ℕ} {p q : MvPolynomial (Fin N) ℚ}
+    {target : ℕ}
+    (hp : HasCEWBound p target) (hq : HasCEWBound q target) :
+    HasCEWBound (p + q) target := by
+  unfold HasCEWBound at *
+  calc (p + q).totalDegree
+      ≤ max p.totalDegree q.totalDegree :=
+        MvPolynomial.totalDegree_add p q
+    _ ≤ target := max_le hp hq
+
+/-- **CEW bound for product**: degree of product ≤ sum of degrees. -/
+theorem HasCEWBound_mul {N : ℕ} {p q : MvPolynomial (Fin N) ℚ}
+    {tp tq : ℕ}
+    (hp : HasCEWBound p tp) (hq : HasCEWBound q tq) :
+    HasCEWBound (p * q) (tp + tq) := by
+  unfold HasCEWBound at *
+  calc (p * q).totalDegree
+      ≤ p.totalDegree + q.totalDegree :=
+        MvPolynomial.totalDegree_mul p q
+    _ ≤ tp + tq := Nat.add_le_add hp hq
+
+/-- **CEW of a constant polynomial** is 0. -/
+theorem HasCEWBound_C {N : ℕ} (c : ℚ) :
+    HasCEWBound (MvPolynomial.C c : MvPolynomial (Fin N) ℚ) 0 := by
+  unfold HasCEWBound
+  exact MvPolynomial.totalDegree_C c |>.le
+
+/-- **CEW of X_i** is ≤ 1. -/
+theorem HasCEWBound_X {N : ℕ} (i : Fin N) :
+    HasCEWBound (MvPolynomial.X i : MvPolynomial (Fin N) ℚ) 1 := by
+  unfold HasCEWBound
+  rw [MvPolynomial.totalDegree_X]
+
+/-- **CEW of 0** is 0. -/
+theorem HasCEWBound_zero {N : ℕ} :
+    HasCEWBound (0 : MvPolynomial (Fin N) ℚ) 0 := by
+  unfold HasCEWBound
+  simp
+
+/-- **CEW bound monotonicity**: larger target always works. -/
+theorem HasCEWBound_mono {N : ℕ} {p : MvPolynomial (Fin N) ℚ}
+    {t₁ t₂ : ℕ} (h₁ : HasCEWBound p t₁) (h : t₁ ≤ t₂) :
+    HasCEWBound p t₂ :=
+  le_trans h₁ h
+
+/-- **CEW of Finset sum**: ≤ max of summand CEWs. -/
+theorem HasCEWBound_finset_sum {N : ℕ} {ι : Type*}
+    (s : Finset ι) (f : ι → MvPolynomial (Fin N) ℚ) (target : ℕ)
+    (h : ∀ i ∈ s, HasCEWBound (f i) target) :
+    HasCEWBound (s.sum f) target := by
+  classical
+  induction s using Finset.induction_on with
+  | empty =>
+    rw [Finset.sum_empty]
+    exact HasCEWBound_mono HasCEWBound_zero (Nat.zero_le _)
+  | @insert a s' hi ih =>
+    rw [Finset.sum_insert hi]
+    apply HasCEWBound_add
+    · exact h a (Finset.mem_insert_self _ _)
+    · exact ih (fun j hj => h j (Finset.mem_insert_of_mem hj))
+
+/-! ## Section 18: Summary of Step 4 progress
 
 Axiom-free contributions:
 - All interfaces (§1-11)
