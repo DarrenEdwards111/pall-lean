@@ -990,4 +990,48 @@ theorem piPhi_embed_mul_one_plus_tableauBool (σ : UVSplit)
     rw [hkill, add_zero]
   rw [h1, mul_one]
 
+/-! ## Section 20: Capstone — Path A template PMn
+
+A **template construction** for PMn that:
+- Uses both u and v variables (via `embed Q · (1 + tableauBool)`)
+- Reduces to `embed Q` under piPhi (via §19 extraction)
+
+This is a CONCRETE Path A PMn shape. Discharging the axiom reduces to:
+- Choose Q such that `rank(embed Q) ≥ C(n/3, log n)` (NP-side via Q = Q^×_Φ, identity minor)
+- Choose template such that `rank(template P) ≤ n^200` (P-side via Width⇒Rank on P)
+
+The template below is illustrative; paper-faithful PMn uses specific
+transition-encoded v-constraints. -/
+
+/-- **Template PMn**: from a coupled sheet Q, build
+`templatePMn σ Q := embed(Q) · (1 + tableauBool)` — uses v-variables
+but extracts to embed(Q) under piPhi. -/
+noncomputable def templatePMn (σ : UVSplit) (Q : CoupledSheetPoly σ) :
+    PMnPoly σ :=
+  CoupledSheetPoly.embed σ Q * (1 + tableauBoolProduct σ)
+
+/-- **Key property**: piPhi(templatePMn) = embed(Q). -/
+theorem piPhi_templatePMn (σ : UVSplit) (Q : CoupledSheetPoly σ) (hV : 0 < σ.numV) :
+    piPhi σ (templatePMn σ Q) = CoupledSheetPoly.embed σ Q := by
+  unfold templatePMn
+  exact piPhi_embed_mul_one_plus_tableauBool σ Q hV
+
+/-- **Template-based Path A separation**: given a coupled sheet `Q` whose
+embedded SPDP rank is ≥ C(n/3, log n), and whose template PMn has rank
+≤ n^200, we get False under any hypothesis implying both bounds.
+
+This is the concrete instantiation-ready form of Path A. -/
+theorem templatePMn_separation
+    (n : ℕ) (hn : n ≥ 2 ^ 804)
+    {σ : UVSplit} (hV : 0 < σ.numV)
+    (B : SPDP.BlockPartition σ.total)
+    (Q : CoupledSheetPoly σ) (κ ℓ : ℕ)
+    (hPside : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (templatePMn σ Q) ≤ n ^ 200)
+    (hNPside : Nat.choose (n / 3) (Nat.log 2 n) ≤
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (CoupledSheetPoly.embed σ Q)) :
+    False := by
+  apply pathA_separation_contradiction n hn B (templatePMn σ Q) κ ℓ hPside
+  rw [piPhi_templatePMn σ Q hV]
+  exact hNPside
+
 end PaperFaithfulCompilation
