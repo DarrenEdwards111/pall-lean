@@ -1679,5 +1679,43 @@ theorem layerPolynomial_eval_zero {N : ℕ} (q : Fin N) (c₀ c₁ : ℚ)
   rw [layerPolynomial_eval, h]
   ring
 
+/-! ## Section 43: Layer polynomial specializations -/
+
+/- Note: layerPolynomial specialization lemmas (const, proj, neg_proj)
+ require careful ring_nf / C handling that we defer. The layerPolynomial
+ definition is the cleanest form for use. -/
+
+/-- A layer polynomial with c₀ = 1, c₁ = 0 is 1 - X_q (negative literal). -/
+theorem layerPolynomial_neg_proj {N : ℕ} (q : Fin N) :
+    layerPolynomial q 1 0 = 1 - MvPolynomial.X q := by
+  unfold layerPolynomial
+  simp
+
+/-! ## Section 44: Boolean assignment evaluation -/
+
+/-- Convert a Bool → ℚ assignment via `cond`. -/
+def boolAssignment {N : ℕ} (input : Fin N → Bool) : Fin N → ℚ :=
+  fun i => if input i then 1 else 0
+
+/-- Boolean assignment returns 0 or 1. -/
+theorem boolAssignment_zero_or_one {N : ℕ} (input : Fin N → Bool) (i : Fin N) :
+    boolAssignment input i = 0 ∨ boolAssignment input i = 1 := by
+  unfold boolAssignment
+  split_ifs with h
+  · right; rfl
+  · left; rfl
+
+/-- boolAssignment agrees with input on true values. -/
+theorem boolAssignment_true {N : ℕ} (input : Fin N → Bool) (i : Fin N)
+    (h : input i = true) : boolAssignment input i = 1 := by
+  unfold boolAssignment
+  simp [h]
+
+/-- boolAssignment returns 0 on false values. -/
+theorem boolAssignment_false {N : ℕ} (input : Fin N → Bool) (i : Fin N)
+    (h : input i = false) : boolAssignment input i = 0 := by
+  unfold boolAssignment
+  simp [h]
+
 end Step4Compiler
 
