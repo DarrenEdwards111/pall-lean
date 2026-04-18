@@ -3399,5 +3399,196 @@ theorem rank_le_trans_of_bounds
     MultilinearSPDP.mlBlockedSpdpRank B κ ℓ p ≤ bound₂ :=
   le_trans hrank hmono
 
+/-! ## Section 82: CEW of iterated sums / products (paper §40 Step 1-2, Lemma 19)
+
+Paper §40 Step 1-2 builds the compiled polynomial `P_{M,n}` as a
+combination of iterated sums and products of atomic gadgets. Paper
+Lemma 19 provides the algebraic closure properties (the "CEW algebra")
+used to bound the CEW of such combinations.
+
+The key observation for the **O(log n)** CEW bound is the distinction
+between:
+
+* **iterated sums** — sums do not increase total degree, so the CEW of
+  a sum of gadgets is bounded by the max of their CEWs. In particular,
+  a balanced binary adder tree of depth `d` containing `2^d` summands
+  each with CEW `≤ w` produces a polynomial with CEW `≤ w`
+  *regardless of `d`*;
+
+* **iterated products** — products add total degrees, so the CEW of a
+  product of `k` polynomials each with CEW `≤ w` is at most `k · w`.
+  Hence for the compiler we must keep the *product arity* at most
+  `O(log n)` to obtain CEW `= O(log n)`, while the *sum arity* is
+  unconstrained.
+
+The theorems below formalise these Lemma 19 consequences in the
+polynomial ring `MvPolynomial (Fin N) ℚ`, building on the existing
+`HasCEWBound_{add, mul, finset_sum, list_prod_ones, npow,…}` algebra
+from §16, §21, §29, §31, §50. All results are axiom-free; the proofs
+rely only on Mathlib's `MvPolynomial.totalDegree_*` lemmas and on the
+polynomial ring structure. They are the paper-faithful building blocks
+of the §84 global CEW bound for the compiled polynomial. -/
+
+/-- **§82.1 — CEW of a product of two polynomials with the same bound**
+(paper Lemma 19, §40 Step 1-2). If `p` and `q` both have CEW bound `w`,
+then `p * q` has CEW bound `2 * w`. Point-free specialisation of
+`HasCEWBound_mul` at `tp = tq = w`. -/
+theorem HasCEWBound_mul_same {N : ℕ} {p q : MvPolynomial (Fin N) ℚ}
+    {w : ℕ} (hp : HasCEWBound p w) (hq : HasCEWBound q w) :
+    HasCEWBound (p * q) (2 * w) := by
+  have h : HasCEWBound (p * q) (w + w) := HasCEWBound_mul hp hq
+  have heq : w + w = 2 * w := by ring
+  exact heq ▸ h
+
+/-- **§82.2 — CEW of list-product with uniform bound**
+(paper Lemma 19, §40 Step 1-2). If every factor in a list has CEW bound
+`w`, then the product has CEW bound `list.length * w`. Generalises
+`HasCEWBound_list_prod_ones` (§21) from `w = 1` to arbitrary `w`. This
+is the "product arity controls CEW" principle referenced in the
+introduction to §82. -/
+theorem HasCEWBound_list_prod_same {N : ℕ} (w : ℕ)
+    (polys : List (MvPolynomial (Fin N) ℚ))
+    (h : ∀ p ∈ polys, HasCEWBound p w) :
+    HasCEWBound polys.prod (polys.length * w) := by
+  induction polys with
+  | nil =>
+    show HasCEWBound (1 : MvPolynomial (Fin N) ℚ) (0 * w)
+    unfold HasCEWBound
+    rw [MvPolynomial.totalDegree_one, Nat.zero_mul]
+  | cons p rest ih =>
+    rw [List.prod_cons, List.length_cons]
+    show HasCEWBound (p * rest.prod) ((rest.length + 1) * w)
+    have hp : HasCEWBound p w := h p List.mem_cons_self
+    have hrest : HasCEWBound rest.prod (rest.length * w) :=
+      ih (fun q hq => h q (List.mem_cons_of_mem _ hq))
+    calc (p * rest.prod).totalDegree
+        ≤ p.totalDegree + rest.prod.totalDegree :=
+          MvPolynomial.totalDegree_mul _ _
+      _ ≤ w + rest.length * w := Nat.add_le_add hp hrest
+      _ = (rest.length + 1) * w := by ring
+
+/-- **§82.3 — CEW of a Finset product with uniform bound**
+(paper Lemma 19, §40 Step 1-2). Generalises
+`HasCEWBound_finset_prod_ones` (§31) from `w = 1` to arbitrary `w`:
+a Finset product of polynomials each with CEW `≤ w` has CEW
+`≤ s.card * w`. This is the Finset form of `HasCEWBound_list_prod_same`
+used for symbolic product arities indexed by an arbitrary finite index
+set. -/
+theorem HasCEWBound_finset_prod_same {N : ℕ} {ι : Type*}
+    (w : ℕ) (s : Finset ι) (f : ι → MvPolynomial (Fin N) ℚ)
+    (h : ∀ i ∈ s, HasCEWBound (f i) w) :
+    HasCEWBound (s.prod f) (s.card * w) := by
+  classical
+  induction s using Finset.induction_on with
+  | empty =>
+    rw [Finset.prod_empty, Finset.card_empty]
+    unfold HasCEWBound
+    rw [MvPolynomial.totalDegree_one, Nat.zero_mul]
+  | @insert a s' hi ih =>
+    rw [Finset.prod_insert hi, Finset.card_insert_of_notMem hi]
+    have ha : HasCEWBound (f a) w := h a (Finset.mem_insert_self _ _)
+    have hrest : HasCEWBound (s'.prod f) (s'.card * w) :=
+      ih (fun j hj => h j (Finset.mem_insert_of_mem hj))
+    calc (f a * s'.prod f).totalDegree
+        ≤ (f a).totalDegree + (s'.prod f).totalDegree :=
+          MvPolynomial.totalDegree_mul _ _
+      _ ≤ w + s'.card * w := Nat.add_le_add ha hrest
+      _ = (s'.card + 1) * w := by ring
+
+/-- **§82.4 — CEW of list-sum with uniform bound**
+(paper Lemma 19, §40 Step 1-2). A sum of polynomials each with CEW
+`≤ w` has CEW `≤ w` (sums do *not* amplify the CEW bound). This is
+the key building block for the log-depth balanced adder tree: the
+depth of the adder tree does not appear in the resulting CEW. Proof
+by induction on the list, using `HasCEWBound_add` at each step. -/
+theorem HasCEWBound_list_sum_same {N : ℕ} (w : ℕ)
+    (polys : List (MvPolynomial (Fin N) ℚ))
+    (h : ∀ p ∈ polys, HasCEWBound p w) :
+    HasCEWBound polys.sum w := by
+  induction polys with
+  | nil =>
+    show HasCEWBound (0 : MvPolynomial (Fin N) ℚ) w
+    exact HasCEWBound_zero_any w
+  | cons p rest ih =>
+    rw [List.sum_cons]
+    apply HasCEWBound_add
+    · exact h p List.mem_cons_self
+    · exact ih (fun q hq => h q (List.mem_cons_of_mem _ hq))
+
+/-- **§82.5 — Balanced binary adder tree has the same CEW bound as its
+summands** (paper Lemma 19 + §40 Step 1-2 "sum depth is free"). A
+balanced binary adder tree of depth `d` containing `N ≤ 2^d` summands
+each with CEW `≤ w` produces a polynomial with CEW `≤ w`, *regardless
+of the depth `d`*. This is the "log-depth structure of addition is
+CEW-transparent" principle: `Nat.log 2 N` does *not* enter the CEW
+bound when only sums are used.
+
+Here the adder tree is modelled as the flat `List.sum` of the
+summands (Lean's `List.sum` is itself a right-fold `+`, which has
+balanced-tree structure up to associativity; CEW is invariant under
+associativity since `HasCEWBound_add` is symmetric). -/
+theorem HasCEWBound_iterated_add {N : ℕ} (w d : ℕ)
+    (summands : List (MvPolynomial (Fin N) ℚ))
+    (hlen : summands.length ≤ 2 ^ d)
+    (h : ∀ p ∈ summands, HasCEWBound p w) :
+    HasCEWBound summands.sum w := by
+  -- The depth bound `hlen : summands.length ≤ 2^d` is *not* used in
+  -- the proof; it is retained as part of the theorem statement because
+  -- the paper's §40 Step 1-2 explicitly sums over `2^d`-sized buckets.
+  -- The CEW bound is independent of this sizing, by §82.4.
+  let _ := hlen  -- record availability without using
+  exact HasCEWBound_list_sum_same w summands h
+
+/-- **§82.6 — Iterated product CEW with depth-`d` factorisation**
+(paper Lemma 19 + §40 Step 1-2 "product arity controls CEW"). A
+balanced binary product tree of depth `d` containing at most `2^d`
+factors each with CEW `≤ w` produces a polynomial with CEW
+`≤ 2^d · w`. This is the dual of §82.5: for products the depth *does*
+enter the CEW bound (multiplicatively in the factor count). Proof by
+reduction to `HasCEWBound_list_prod_same` via the length bound. -/
+theorem HasCEWBound_iterated_prod {N : ℕ} (w d : ℕ)
+    (factors : List (MvPolynomial (Fin N) ℚ))
+    (hlen : factors.length ≤ 2 ^ d)
+    (h : ∀ p ∈ factors, HasCEWBound p w) :
+    HasCEWBound factors.prod (2 ^ d * w) := by
+  have h1 : HasCEWBound factors.prod (factors.length * w) :=
+    HasCEWBound_list_prod_same w factors h
+  have hmono : factors.length * w ≤ 2 ^ d * w :=
+    Nat.mul_le_mul_right w hlen
+  exact HasCEWBound_mono h1 hmono
+
+/-- **§82.7 — Product arity vs `Nat.log`**: if the number of factors is
+`≤ n` and each factor has CEW `≤ 1`, then the product has CEW `≤ n`.
+This is the "product arity = n, so CEW = n" instantiation used by the
+paper's §40 Step 1-2 when encoding a single TM-trace of length `n`.
+Follows from `HasCEWBound_list_prod_ones`. -/
+theorem HasCEWBound_list_prod_at_ones_arity {N : ℕ}
+    (polys : List (MvPolynomial (Fin N) ℚ)) (n : ℕ)
+    (hlen : polys.length ≤ n)
+    (h : ∀ p ∈ polys, HasCEWBound p 1) :
+    HasCEWBound polys.prod n :=
+  HasCEWBound_mono (HasCEWBound_list_prod_ones polys h) hlen
+
+/-- **§82.8 — Iterated add/mul combined: sum-of-products CEW bound**
+(paper §40 Step 1-2 path-polynomial decomposition, Lemma 19). Given a
+list-of-lists of polynomials, with each inner list having length `≤ m`
+and each inner element having CEW `≤ w`, the sum of the inner products
+has CEW `≤ m * w`. This captures the paper's "sum over paths of
+products of layer literals" structure, where the outer sum is CEW-free
+and only the inner product arity contributes to the CEW. -/
+theorem HasCEWBound_sum_of_products {N : ℕ} (m w : ℕ)
+    (blocks : List (List (MvPolynomial (Fin N) ℚ)))
+    (hlen : ∀ L ∈ blocks, L.length ≤ m)
+    (hbnd : ∀ L ∈ blocks, ∀ p ∈ L, HasCEWBound p w) :
+    HasCEWBound (blocks.map List.prod).sum (m * w) := by
+  apply HasCEWBound_list_sum_same
+  intro P hP
+  rw [List.mem_map] at hP
+  obtain ⟨L, hLmem, hLeq⟩ := hP
+  subst hLeq
+  have h1 : HasCEWBound L.prod (L.length * w) :=
+    HasCEWBound_list_prod_same w L (hbnd L hLmem)
+  exact HasCEWBound_mono h1 (Nat.mul_le_mul_right w (hlen L hLmem))
+
 end Step4Compiler
 
