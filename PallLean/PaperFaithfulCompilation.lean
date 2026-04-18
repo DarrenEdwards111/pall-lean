@@ -1079,4 +1079,61 @@ theorem embed_rank_ge_of_preservation
       (CoupledSheetPoly.embed σ Q) :=
   le_trans hQ hPreserve
 
+/-! ## Section 22: Final capstone — Path A one-shot theorem
+
+Assembles all the pieces into a single user-facing theorem: given
+- A coupled sheet `Q` with rank bound at pullback partition ≥ C
+- Rank preservation under embed
+- Rank bound on `templatePMn σ Q` ≤ n^200
+
+derive False at n ≥ 2^804.
+
+This is the paper-faithful Path A mechanism in its cleanest form. -/
+
+/-- **Path A one-shot capstone**: combines Task (D), Task (E) hypotheses
+and the separation mechanism into a single theorem. -/
+theorem pathA_oneshot_separation
+    (n : ℕ) (hn : n ≥ 2 ^ 804)
+    {σ : UVSplit} (hV : 0 < σ.numV)
+    (B : SPDP.BlockPartition σ.total)
+    (Q : CoupledSheetPoly σ) (κ ℓ : ℕ)
+    -- Task (E): rank bound on Q
+    (hQRank : Nat.choose (n / 3) (Nat.log 2 n) ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition B σ.inlU) κ ℓ Q)
+    -- Task (E) helper: rank preservation under embed
+    (hEmbedPres :
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition B σ.inlU) κ ℓ Q ≤
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (CoupledSheetPoly.embed σ Q))
+    -- Task (D): rank bound on templatePMn
+    (hPMnRank : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+      (templatePMn σ Q) ≤ n ^ 200) :
+    False := by
+  apply templatePMn_separation n hn hV B Q κ ℓ hPMnRank
+  exact embed_rank_ge_of_preservation σ B κ ℓ Q
+    (Nat.choose (n / 3) (Nat.log 2 n)) hQRank hEmbedPres
+
+/-- **Path A one-shot bridge to main theorem**: `¬ H` follows from
+conditional rank bounds. Set `H := DecidesSAT M` at a specific n to
+derive the separation. -/
+theorem pathA_oneshot_no_hypothesis
+    (n : ℕ) (hn : n ≥ 2 ^ 804)
+    {σ : UVSplit} (hV : 0 < σ.numV)
+    (B : SPDP.BlockPartition σ.total)
+    (Q : CoupledSheetPoly σ) (κ ℓ : ℕ)
+    {H : Prop}
+    (hQRank : H → Nat.choose (n / 3) (Nat.log 2 n) ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition B σ.inlU) κ ℓ Q)
+    (hEmbedPres : H →
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition B σ.inlU) κ ℓ Q ≤
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (CoupledSheetPoly.embed σ Q))
+    (hPMnRank : H → MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+      (templatePMn σ Q) ≤ n ^ 200) :
+    ¬ H :=
+  fun h => pathA_oneshot_separation n hn hV B Q κ ℓ
+    (hQRank h) (hEmbedPres h) (hPMnRank h)
+
 end PaperFaithfulCompilation
