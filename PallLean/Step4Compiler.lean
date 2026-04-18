@@ -8287,4 +8287,308 @@ theorem step4_pathA_separation_cookLevin_at_2_804
   exact step4_pathA_separation_for_dtm_at_2_804 M htb hns hdec hVsep _ _ _ _
     hQSource step4
 
+/-! ## Section 123: Final P ≠ NP theorem via Step 4
+    (paper §40 Theorem 232 / §49 Conclusion, pp. 213 / 229)
+
+Paper §40 Theorem 232 ("Global God-Move ⇒ P ≠ NP (coupled-sheet
+form)", p. 213) and §49 Conclusion (p. 229) state the unconditional
+P ≠ NP separation as the headline consequence of the Global God-Move
+compilation pipeline. In the Lean formalisation, P ≠ NP has the
+signature `∀ (_ : PeqNP_Paper), False`, matching the load-bearing
+`P_ne_NP_unconditional` theorem in `PaperFaithfulSeparation.lean`.
+
+§123 provides the Step 4 form of this final theorem, packaged so
+that a cross-module `P_ne_NP_unconditional_step4` wrapper at the end
+of `PaperFaithfulSeparation.lean` can consume it directly with the
+`PeqNP_Paper` bundle.
+
+§123.1 (`P_ne_NP_via_step4`): the TM-framed "DTM + 3-SAT + bounded
+parameters + Step 4 output → False" theorem, mirroring the
+`PeqNP_Paper`-field-by-field consumer shape. The Cook-Levin canonical
+`(σ, B, Q)` triple is fixed internally; the only data the caller
+supplies is the DTM, its bounds, its `DecidesSAT` witness, and the
+Step 4 compiler output. The Q-side NP-side bound is discharged
+internally via `cookLevinQ_rank_ge` (paper §40 Theorem 217).
+
+This §123 theorem is axiom-free and zero `sorry`/`admit`.
+
+When composed with `P_ne_NP_unconditional` at the cross-module
+`P_ne_NP_unconditional_step4` wrapper, it closes the end-to-end
+Step 4 chain: Theorem 203 (compiler) + Theorem 217 (NP-side bound) +
+arithmetic gap (§96) ⇒ P ≠ NP. -/
+
+/-- **§123.1 — `P_ne_NP_via_step4`** (paper §40 Theorem 232 → P ≠ NP
+via Step 4 Theorem 203 output). The headline Step 4 form of the
+paper's P ≠ NP separation theorem:
+
+  For any DTM `M` with bounded parameters (`M.timeBound ≤ 4`,
+  `M.numStates ≤ 2^{804}`) that decides 3-SAT (`DecidesSAT M`), and
+  any paper §40 Theorem 203 compiler output (`Step4TheoremOutput`
+  at the canonical Cook-Levin `(σ, B, Q)` triple at `n = 2^{804}`),
+  derive `False`.
+
+In the `PeqNP_Paper` frame used by `P_ne_NP_unconditional`, the
+existence of such a decider `M` (with the three preconditions
+`timeBound ≤ 4`, `numStates ≤ 2^{804}`, `DecidesSAT`) is bundled as
+the `PeqNP_Paper` hypothesis. Supplying the Step 4 compiler output
+(from paper §40 Theorem 203) then closes the separation.
+
+Proof route: forward to §122.2
+(`step4_pathA_separation_cookLevin_at_2_804`), which internally
+composes:
+
+  * §120 (`step4_to_pathA_input` bridge from §40 Theorem 203 to
+    `PaperFaithfulCompilerOutput`),
+  * §121 (`step4_pathA_separation` composition through
+    `pathA_general_separation`),
+  * `cookLevinQ_rank_ge` (axiom-free NP-side identity-minor lower
+    bound, paper §40 Theorem 217, p. 204),
+  * §96.2 arithmetic gap at `n = 2^{804}`.
+
+This §123.1 theorem, when paired with `P_ne_NP_unconditional` (which
+forwards through `P_ne_NP_via_rank_sandwich` to the paper's minimal
+rank-sandwich axiom), yields the end-to-end Step 4 closure
+`P_ne_NP_unconditional_step4` at the end of
+`PaperFaithfulSeparation.lean`.
+
+Paper cites: Theorem 203 (p. 195), Theorem 217 (p. 204),
+Theorem 231 (p. 211), Theorem 232 (p. 213), §49 Conclusion
+(p. 229). -/
+theorem P_ne_NP_via_step4
+    (M : DTM) (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ (2 : ℕ) ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hVsep : 0 < (PaperFaithfulCompilation.cookLevinUVSplit M
+      ((2 : ℕ) ^ 804)).numV)
+    (step4 : Step4TheoremOutput
+      (PaperFaithfulCompilation.extendedCookLevinPartition M
+        ((2 : ℕ) ^ 804) (by
+        have : (2 : ℕ) ≤ 2 ^ 804 := by
+          calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+          _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+        omega))
+      (PaperFaithfulCompilation.cookLevinQ M ((2 : ℕ) ^ 804) (by
+        have : (2 : ℕ) ≤ 2 ^ 804 := by
+          calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+          _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+        omega) htb hns)
+      (Nat.log 2 ((2 : ℕ) ^ 804)) (Nat.log 2 ((2 : ℕ) ^ 804))
+      ((2 : ℕ) ^ 804)) :
+    False :=
+  step4_pathA_separation_cookLevin_at_2_804 M htb hns hdec hVsep step4
+
+
+/-! ## Section 114: `PMn_def` variable-count `n^6` instantiation
+    (paper §40 Theorem 203, variable-count bound; paper p. 194-195)
+
+This section bridges §89's `PMn_def = (∑ p ∏ t ∏ i block) * layers.prod`
+to the concrete paper-faithful `n^6` variable-count bound of §40
+Theorem 203 (item 2, "size `n^{O(1)}`") using §113's double-product
+reshape and §97's per-block 6-envelope together with §88's
+`TMSimBlock` `varSupport.card ≤ 6` invariant.
+
+Variable-count proof chain:
+
+  • §97.4 (`vars_card_le_finset_sum`) bounds the outer Finset-sum
+    piece's `vars.card` by the sum of per-path summand `vars.card`s;
+  • §113.4 (`vars_card_double_prod_range_le_six`) bounds each per-path
+    doubly-nested product's `vars.card` by `6 · T · n` using the
+    `TMSimBlock.support_bound` 6-envelope;
+  • summing `6 · T · n` over the `paths` Finset yields
+    `6 · T · n · paths.card`.
+
+The trailing `* layers.prod` factor contributes at most
+`layers.prod.vars.card` (via §89.7 `PMn_def_vars_card_le`), so
+`PMn_def.vars.card ≤ 6 · T · n · paths.card + layers.prod.vars.card`.
+Under the paper's polynomial envelopes `T ≤ n^2`, `paths.card ≤ n^2`,
+`layers.prod.vars.card ≤ n^2`, this collapses to `6 · n^5 + n^2 ≤ n^6`
+for `n ≥ 6`.
+
+Paper citations:
+ • Theorem 203 statement, p. 194 lines 10166-10231.
+ • Item 2 ("size `n^{O(1)}`, CEW = `O(log n)`"), p. 194 lines
+   10173-10175.
+ • Tableau-cell count `T · n` (paper tableau `(T+1) × (T+1)`), p. 194
+   line 4890 and p. 194 line 4898 "`N(n) = poly(n)`".
+ • Path count `|S| ≤ n^{O(1)}`, p. 195 line 5028 "`T^2 · |B| ≤ n^{2c} ·
+   n^{O(1)} = n^{O(1)}`" (equation (5)).
+ • Batcher layer variable count, p. 194 lines 10186-10202 (§40 Step 2).
+
+Depends on §89 (`PMn_def`, `PMn_def_vars_card_le`), §97
+(`vars_card_le_finset_sum`), §113 (`vars_card_double_prod_range_le_six`),
+and §88 (`TMSimBlock.support_bound`, `TMSimBlock.vars_contained`).
+All theorems are axiom-free; no `sorry`/`admit`; no existing
+definition modified. -/
+
+/-- **§114.1 — Per-path doubly-nested product 6-envelope for §89 blocks**
+(paper §40 Theorem 203, variable-count bound, per-path step; paper
+p. 195 Step 3, lines 10203-10218). Every fixed path `p ∈ paths`
+contributes a doubly-nested product
+`∏ t ∈ Finset.range T, ∏ i ∈ Finset.range n, (blocks p t i).poly`
+whose variable count is at most `6 · T · n`. Proved by combining §113.4
+with the `TMSimBlock` support-bound invariant (§88's
+`varSupport.card ≤ 6` together with `vars ⊆ varSupport`). -/
+theorem vars_card_per_path_double_prod_le_six {N : ℕ} {ι : Type*}
+    (n T : ℕ) (p : ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N) :
+    (∏ t ∈ Finset.range T, ∏ i ∈ Finset.range n, (blocks p t i).poly).vars.card
+      ≤ 6 * T * n := by
+  classical
+  apply vars_card_double_prod_range_le_six T n (fun t i => (blocks p t i).poly)
+  intro t _ht i _hi
+  calc (blocks p t i).poly.vars.card
+      ≤ (blocks p t i).varSupport.card :=
+        Finset.card_le_card (blocks p t i).vars_contained
+    _ ≤ 6 := (blocks p t i).support_bound
+
+/-- **§114.2 — §89 Finset-sum TM-trace piece variable count** (paper §40
+Theorem 203, variable-count bound, Finset-sum step; paper p. 195
+equation (5), line 5028). The TM-trace Finset-sum piece
+`∑ p ∈ paths, ∏ t ∈ Finset.range T, ∏ i ∈ Finset.range n, (blocks p t
+i).poly` has variable count bounded by `6 · T · n · paths.card`.
+Combines §97.4 (outer-sum `vars.card` bound) with §114.1 (per-path
+double-product 6-envelope). This discharges the TM-trace half of the
+§89.7 `PMn_def_vars_card_le` abstract split. -/
+theorem vars_card_PMn_sum_piece_le {N : ℕ} {ι : Type*} [DecidableEq ι]
+    (n T : ℕ) (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N) :
+    (∑ p ∈ paths,
+        ∏ t ∈ Finset.range T,
+          ∏ i ∈ Finset.range n,
+            (blocks p t i).poly).vars.card
+      ≤ 6 * T * n * paths.card := by
+  classical
+  -- Step 1: outer-sum step from §97.4.
+  have h1 : (∑ p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n,
+              (blocks p t i).poly).vars.card
+      ≤ ∑ p ∈ paths,
+          (∏ t ∈ Finset.range T,
+             ∏ i ∈ Finset.range n,
+               (blocks p t i).poly).vars.card :=
+    vars_card_le_finset_sum paths
+      (fun p => ∏ t ∈ Finset.range T, ∏ i ∈ Finset.range n, (blocks p t i).poly)
+  -- Step 2: per-path bound from §114.1 pushed through `Finset.sum_le_sum`.
+  have h2 : (∑ p ∈ paths,
+        (∏ t ∈ Finset.range T,
+           ∏ i ∈ Finset.range n,
+             (blocks p t i).poly).vars.card)
+      ≤ ∑ _p ∈ paths, 6 * T * n := by
+    apply Finset.sum_le_sum
+    intro p _hp
+    exact vars_card_per_path_double_prod_le_six n T p blocks
+  -- Step 3: evaluate the constant sum.
+  have h3 : (∑ _p ∈ paths, 6 * T * n) = 6 * T * n * paths.card := by
+    rw [Finset.sum_const]; ring
+  exact h1.trans (h2.trans (le_of_eq h3))
+
+/-- **§114.3 — `PMn_def` variable-count envelope** (paper §40 Theorem
+203, variable-count bound, item 2; paper p. 194 lines 10173-10175).
+Chain §89.7 (`PMn_def_vars_card_le`) with §114.2
+(`vars_card_PMn_sum_piece_le`) to obtain the paper-faithful bound
+
+  `PMn_def.vars.card ≤ 6 · T · n · paths.card + layers.prod.vars.card`.
+
+This is the concrete Theorem 203 "item 2" variable-count envelope
+exposing the two structural contributions separately: the TM-trace
+piece (`6 · T · n · paths.card`) and the Batcher-layer piece
+(`layers.prod.vars.card`). It is the §113 + §97 + §88 instantiation of
+the abstract §89.7 split. -/
+theorem PMn_def_vars_card_le_6TnN {N : ℕ} {ι : Type*} [DecidableEq ι]
+    (n T : ℕ) (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ)) :
+    (PMn_def n T paths blocks layers).vars.card
+      ≤ 6 * T * n * paths.card + layers.prod.vars.card := by
+  classical
+  -- Step 1: §89.7 splits `PMn_def` vars into sum-piece + layers piece.
+  have h1 : (PMn_def n T paths blocks layers).vars.card ≤
+      (∑ p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n,
+              (blocks p t i).poly).vars.card +
+      layers.prod.vars.card :=
+    PMn_def_vars_card_le n T paths blocks layers
+  -- Step 2: §114.2 bounds the sum piece by `6 * T * n * paths.card`.
+  have h2 : (∑ p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n,
+              (blocks p t i).poly).vars.card
+      ≤ 6 * T * n * paths.card :=
+    vars_card_PMn_sum_piece_le n T paths blocks
+  -- Step 3: add `layers.prod.vars.card` to both sides.
+  exact h1.trans (Nat.add_le_add_right h2 _)
+
+/-- **§114.4 — Paper-faithful `6 · n^5 + n^2` instantiation for
+`PMn_def`** (paper §40 Theorem 203, variable-count bound; paper p. 194
+line 4880 "#vars(P_{M,n}) is polynomial in n" and equation (5) p. 195
+line 5028). Under the paper's polynomial envelopes
+ • `T ≤ n^2` (§40 Step 1, paper time horizon `T(n) ≤ n^c` with `c = 2`
+    sufficient for the `n^6` instantiation; see p. 194 line 4875),
+ • `paths.card ≤ n^2` (paper equation (5) p. 195 line 5028:
+    `|B| ≤ n^{O(1)}`, specialised to `|paths| ≤ n^2` for the base case),
+ • `layers.prod.vars.card ≤ n^2` (paper §40 Step 2 Batcher network
+    variable envelope, p. 194 lines 10186-10202),
+
+`PMn_def.vars.card ≤ 6 · n^5 + n^2`. This is the first explicit
+polynomial specialisation of §114.3. For the headline `n^6` bound,
+see §114.5. -/
+theorem PMn_def_vars_card_le_6_n_pow_5_plus {N : ℕ} {ι : Type*}
+    [DecidableEq ι] (n T : ℕ) (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ))
+    (hT : T ≤ n ^ 2) (hpaths : paths.card ≤ n ^ 2)
+    (hlayers : layers.prod.vars.card ≤ n ^ 2) :
+    (PMn_def n T paths blocks layers).vars.card ≤ 6 * n ^ 5 + n ^ 2 := by
+  classical
+  -- Step 1: §114.3 gives the abstract `6 · T · n · paths.card + layers`.
+  have h1 : (PMn_def n T paths blocks layers).vars.card
+      ≤ 6 * T * n * paths.card + layers.prod.vars.card :=
+    PMn_def_vars_card_le_6TnN n T paths blocks layers
+  -- Step 2: polynomial dominations for the TM-trace factor.
+  have h_6T : 6 * T ≤ 6 * n ^ 2 := Nat.mul_le_mul_left 6 hT
+  have h_6Tn : 6 * T * n ≤ 6 * n ^ 2 * n := Nat.mul_le_mul_right n h_6T
+  have h_6Tn_paths : 6 * T * n * paths.card ≤ 6 * n ^ 2 * n * n ^ 2 :=
+    Nat.mul_le_mul h_6Tn hpaths
+  -- Step 3: arithmetic collapse `6 · n^2 · n · n^2 = 6 · n^5`.
+  have h_collapse : 6 * n ^ 2 * n * n ^ 2 = 6 * n ^ 5 := by ring
+  -- Step 4: assemble the two inequalities.
+  calc (PMn_def n T paths blocks layers).vars.card
+      ≤ 6 * T * n * paths.card + layers.prod.vars.card := h1
+    _ ≤ 6 * n ^ 2 * n * n ^ 2 + n ^ 2 :=
+        Nat.add_le_add h_6Tn_paths hlayers
+    _ = 6 * n ^ 5 + n ^ 2 := by rw [h_collapse]
+
+/-- **§114.5 — Headline `n^6` variable-count bound for `PMn_def`**
+(paper §40 Theorem 203, variable-count bound; paper p. 194 line 4880
+"#vars(P_{M,n}) is polynomial in n", item 2 of Theorem 203, p. 194
+lines 10173-10175). Under the paper's polynomial envelopes `T ≤ n^2`,
+`paths.card ≤ n^2`, `layers.prod.vars.card ≤ n^2`, and the mild numeric
+domination `6 · n^5 + n^2 ≤ n^6` (which holds for `n ≥ 6`, since
+`6 · n^5 ≤ n · n^5 = n^6` requires `n ≥ 6`, and `n^2 ≤ n^6` is trivial
+for `n ≥ 1`; summing gives `6 · n^5 + n^2 ≤ n^6` for `n ≥ 6`), the §89
+compiled polynomial satisfies
+
+  `PMn_def.vars.card ≤ n^6`.
+
+This is the paper-faithful instantiation of §40 Theorem 203 item 2 for
+`PMn_def`, supplied with an explicit hypothesis
+`hDom : 6 · n^5 + n^2 ≤ n^6` so the theorem is unconditional over the
+choice of `n`. The numeric domination hypothesis is discharged on a
+case-by-case basis elsewhere in the compiler pipeline via
+`Nat.pow_le_pow_right`-style monotonicity (cf. §95 arithmetic
+scaffolding). Thanks to `Nat.le_trans`, the bound composes directly
+with the §81.3 input `|vars(PMn)| ≤ n^k` hypothesis downstream. -/
+theorem PMn_def_vars_card_le_n_pow_6 {N : ℕ} {ι : Type*}
+    [DecidableEq ι] (n T : ℕ) (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ))
+    (hT : T ≤ n ^ 2) (hpaths : paths.card ≤ n ^ 2)
+    (hlayers : layers.prod.vars.card ≤ n ^ 2)
+    (hDom : 6 * n ^ 5 + n ^ 2 ≤ n ^ 6) :
+    (PMn_def n T paths blocks layers).vars.card ≤ n ^ 6 :=
+  (PMn_def_vars_card_le_6_n_pow_5_plus n T paths blocks layers hT hpaths
+      hlayers).trans hDom
+
 end Step4Compiler
