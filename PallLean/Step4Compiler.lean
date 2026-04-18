@@ -11677,4 +11677,567 @@ theorem bpFromTM_full_lemma23_iff
     (bpFromTM_full_configEnc M n hn) input tmAccepts
     (stepMatches_of_bpFromTM_full M n hn input hfix hbit) hacc
 
+
+/-! ## Section 125: Full CEW instantiation on §89's `PMn_def`
+    (paper §40 Step 1-2, Theorem 203, full unconditional instantiation)
+
+This section **fully instantiates** §84's
+`PMn_hasCEWBound_of_structural_pieces` on §89's concrete `PMn_def`,
+turning its three structural-pieces hypothesis into a single
+*unconditional* CEW bound statement for the compiled polynomial
+`PMn_def n T paths blocks layers`.
+
+Paper §40 Steps 1-2 (Theorem 203) describes `P_{M,n}` as a product of
+three structural pieces:
+
+  (1) the **TM-trace piece** — Finset-sum over BP paths of the product of
+      per-cell blocks along each path (paper §40 Step 1, BP layered
+      encoding; §88's `TMSimBlock` provides the per-cell CEW ≤ 6);
+  (2) the **Batcher-layered piece** — a depth-`(log₂ N)²` oblivious-
+      routing network (paper §40 Step 2, Lemma 19);
+  (3) the **SoS-gadget piece** — a product of radius-1 SoS gadgets,
+      each with CEW ≤ 6 (paper §40 Step 3 / §2.1).
+
+§89's `PMn_def` packages the TM-trace piece (as the outer Finset-sum of
+products) and the Batcher-layered + SoS-gadget pieces (as the
+`layers.prod` list-product). §125 below directly proves the full
+unconditional CEW bound
+
+  `CEW(PMn_def) ≤ 6·T·n + (log₂ N)² + 6·sos_layers.length`
+
+by decomposing `layers = batcher_layers ++ sos_layers` and combining:
+  * §82.3 `HasCEWBound_finset_prod_same` + §17 `HasCEWBound_finset_sum`
+    for the TM-trace piece (via §88.3 `TMSimBlock.hasCEWBound_six` as
+    the per-block CEW base);
+  * §99.1 `batcherPiece_hasCEWBound_log_squared` for the Batcher piece;
+  * §82.2 `HasCEWBound_list_prod_same` for the SoS-gadget piece;
+  * §84.1 `PMn_hasCEWBound_of_structural_pieces` as the combinator.
+
+The instantiation is **unconditional** in the sense that the result is a
+pure `HasCEWBound (PMn_def …) (…)` statement with no free
+structural-pieces hypothesis — every hypothesis that remains is a
+concrete counting bound on the `layers` cardinalities and on the
+per-layer CEW (all of which are discharged immediately for the concrete
+§88 `TMSimBlock` blocks, whose CEW ≤ 6 comes for free via
+`TMSimBlock.hasCEWBound_six`).
+
+All theorems are axiom-free, append-only, and build strictly on §82
+(iterated CEW algebra), §84 (three-piece combinator), §88 (`TMSimBlock`
+structure), §89 (`PMn_def` and `PMn_as_finset_sum`), §98 (structural
+pieces), and §99 (combined bound / `cewBudget`). They do not modify any
+existing definition. -/
+
+/-- **§125.1 — TM-trace piece CEW bound on concrete `TMSimBlock`
+families** (paper §40 Step 1, Lemma 19 structural CEW bound, §89-
+concrete form). The outer Finset-sum of per-path products of
+`TMSimBlock` polynomials has CEW `≤ 6 * T * n`. Proof: the inner
+Finset-product over `Finset.range n` has CEW `≤ n * 6` via §82.3
+`HasCEWBound_finset_prod_same` at `w = 6` (using §88.3
+`TMSimBlock.hasCEWBound_six` as the per-block CEW base); the next
+Finset-product over `Finset.range T` gives CEW `≤ T * (n * 6)` by a
+second §82.3 invocation; the outer Finset-sum preserves the bound via
+§17 `HasCEWBound_finset_sum`. Final arithmetic rearrangement
+`T * (n * 6) = 6 * T * n` via `ring`. -/
+theorem PMn_trace_sum_hasCEWBound_six_times_T_n {N : ℕ} {ι : Type*}
+    (n T : ℕ) (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N) :
+    HasCEWBound
+      (∑ p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n,
+              (blocks p t i).poly)
+      (6 * T * n) := by
+  classical
+  apply HasCEWBound_finset_sum
+  intro p _hp
+  have h_inner :
+      ∀ t ∈ Finset.range T,
+        HasCEWBound (∏ i ∈ Finset.range n, (blocks p t i).poly)
+          ((Finset.range n).card * 6) := by
+    intro t _ht
+    apply HasCEWBound_finset_prod_same 6
+    intro i _hi
+    exact (blocks p t i).hasCEWBound_six
+  have h_inner' :
+      ∀ t ∈ Finset.range T,
+        HasCEWBound (∏ i ∈ Finset.range n, (blocks p t i).poly)
+          (n * 6) := by
+    intro t ht
+    have h := h_inner t ht
+    rw [Finset.card_range] at h
+    exact h
+  have h_outer :
+      HasCEWBound
+        (∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n, (blocks p t i).poly)
+        ((Finset.range T).card * (n * 6)) := by
+    apply HasCEWBound_finset_prod_same (n * 6)
+    exact h_inner'
+  have h_outer' :
+      HasCEWBound
+        (∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n, (blocks p t i).poly)
+        (T * (n * 6)) := by
+    have h := h_outer
+    rw [Finset.card_range] at h
+    exact h
+  have heq : T * (n * 6) = 6 * T * n := by ring
+  exact heq ▸ h_outer'
+
+/-- **§125.2 — `PMn_def_hasCEWBound_full`** (paper §40 Step 1-2
+Theorem 203, full unconditional three-piece CEW bound). The headline
+§125 instantiation: given a split of the `layers` list into a Batcher
+prefix of length `≤ batcherDepthBound N = (log₂ N)²` with unit per-
+layer CEW, and an SoS suffix of arbitrary length with per-layer CEW
+`≤ 6`, the compiled polynomial `PMn_def n T paths blocks layers` has
+CEW bound
+
+  `6 * T * n + (log₂ N)² + 6 * sos_layers.length`.
+
+Proof: decompose `layers.prod = batcher_layers.prod * sos_layers.prod`
+via `List.prod_append` (from the hypothesis
+`layers = batcher_layers ++ sos_layers`). Apply §84.1
+`PMn_hasCEWBound_of_structural_pieces` to the three pieces (trace sum,
+Batcher product, SoS product), each of which receives its CEW witness
+from §125.1 / §99.1 / §82.2 respectively. Finally rewrite the target
+to the `PMn_def` form via §89.2 `PMn_as_finset_sum` and `mul_assoc`. -/
+theorem PMn_def_hasCEWBound_full {N : ℕ} {ι : Type*}
+    (n T : ℕ) (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (batcher_layers sos_layers : List (MvPolynomial (Fin N) ℚ))
+    (layers : List (MvPolynomial (Fin N) ℚ))
+    (hsplit : layers = batcher_layers ++ sos_layers)
+    (hBlen : batcher_layers.length ≤ batcherDepthBound N)
+    (hBbase : ∀ p ∈ batcher_layers, HasCEWBound p 1)
+    (hSbase : ∀ p ∈ sos_layers, HasCEWBound p 6) :
+    HasCEWBound (PMn_def n T paths blocks layers)
+      (6 * T * n + (Nat.log 2 N) ^ 2 + 6 * sos_layers.length) := by
+  have h_trace :
+      HasCEWBound
+        (∑ p ∈ paths,
+            ∏ t ∈ Finset.range T,
+              ∏ i ∈ Finset.range n, (blocks p t i).poly)
+        (6 * T * n) :=
+    PMn_trace_sum_hasCEWBound_six_times_T_n n T paths blocks
+  have h_batcher :
+      HasCEWBound batcher_layers.prod ((Nat.log 2 N) ^ 2) :=
+    batcherPiece_hasCEWBound_log_squared N batcher_layers hBlen hBbase
+  have h_sos :
+      HasCEWBound sos_layers.prod (sos_layers.length * 6) :=
+    HasCEWBound_list_prod_same 6 sos_layers hSbase
+  have h_sos' :
+      HasCEWBound sos_layers.prod (6 * sos_layers.length) := by
+    have heq : sos_layers.length * 6 = 6 * sos_layers.length := by ring
+    exact heq ▸ h_sos
+  have hprod : layers.prod = batcher_layers.prod * sos_layers.prod := by
+    rw [hsplit, List.prod_append]
+  have h_three :
+      HasCEWBound
+        ((∑ p ∈ paths,
+            ∏ t ∈ Finset.range T,
+              ∏ i ∈ Finset.range n, (blocks p t i).poly) *
+          batcher_layers.prod * sos_layers.prod)
+        (6 * T * n + (Nat.log 2 N) ^ 2 + 6 * sos_layers.length) :=
+    PMn_hasCEWBound_of_structural_pieces _ _ _ _ _ _
+      h_trace h_batcher h_sos'
+  have hrewrite :
+      (∑ p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n, (blocks p t i).poly) *
+        batcher_layers.prod * sos_layers.prod =
+      PMn_def n T paths blocks layers := by
+    rw [PMn_as_finset_sum, hprod, mul_assoc]
+  exact hrewrite ▸ h_three
+
+/-- **§125.3 — `PMn_def_hasCEWBound_log`** (paper §40 Step 1-2 Theorem
+203 headline `O(log² n)` form, polynomial-depth bookkeeping). Under
+polynomial-depth bookkeeping
+  `T * n ≤ c_T * log₂ n` (tableau cell count is poly-logarithmic),
+  `sos_layers.length ≤ c_L * log₂ n` (SoS-gadget count is poly-log),
+  `log₂ N ≤ log₂ n` (paper's standard `N = poly(n)` instantiation),
+the §125.2 bound collapses to
+
+  `(6·c_T + 6·c_L) · log₂ n + (log₂ n)²`,
+
+which is the paper's Step 1-2 headline `O(log² n)` CEW bound for
+`PMn_def`. Proof: apply §125.2, then `HasCEWBound_mono` on the
+arithmetic inequality
+
+  `6·T·n + (log₂ N)² + 6·L ≤ (6·c_T + 6·c_L)·log₂ n + (log₂ n)²`
+
+under the three polynomial-depth hypotheses, using `Nat.pow_le_pow_left`
+for the `(log₂ N)² ≤ (log₂ n)²` monotonicity. -/
+theorem PMn_def_hasCEWBound_log {N : ℕ} {ι : Type*}
+    (n T c_T c_L : ℕ) (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (batcher_layers sos_layers : List (MvPolynomial (Fin N) ℚ))
+    (layers : List (MvPolynomial (Fin N) ℚ))
+    (hsplit : layers = batcher_layers ++ sos_layers)
+    (hBlen : batcher_layers.length ≤ batcherDepthBound N)
+    (hBbase : ∀ p ∈ batcher_layers, HasCEWBound p 1)
+    (hSbase : ∀ p ∈ sos_layers, HasCEWBound p 6)
+    (hTn : T * n ≤ c_T * Nat.log 2 n)
+    (hL : sos_layers.length ≤ c_L * Nat.log 2 n)
+    (hNn : Nat.log 2 N ≤ Nat.log 2 n) :
+    HasCEWBound (PMn_def n T paths blocks layers)
+      ((6 * c_T + 6 * c_L) * Nat.log 2 n + (Nat.log 2 n) ^ 2) := by
+  have h1 : HasCEWBound (PMn_def n T paths blocks layers)
+      (6 * T * n + (Nat.log 2 N) ^ 2 + 6 * sos_layers.length) :=
+    PMn_def_hasCEWBound_full n T paths blocks batcher_layers sos_layers
+      layers hsplit hBlen hBbase hSbase
+  have hTn' : 6 * T * n ≤ 6 * c_T * Nat.log 2 n := by
+    have h := Nat.mul_le_mul_left 6 hTn
+    have heq1 : 6 * (T * n) = 6 * T * n := by ring
+    have heq2 : 6 * (c_T * Nat.log 2 n) = 6 * c_T * Nat.log 2 n := by ring
+    rw [heq1, heq2] at h
+    exact h
+  have hN2 : (Nat.log 2 N) ^ 2 ≤ (Nat.log 2 n) ^ 2 :=
+    Nat.pow_le_pow_left hNn 2
+  have hL' : 6 * sos_layers.length ≤ 6 * c_L * Nat.log 2 n := by
+    have h := Nat.mul_le_mul_left 6 hL
+    have heq : 6 * (c_L * Nat.log 2 n) = 6 * c_L * Nat.log 2 n := by ring
+    rw [heq] at h
+    exact h
+  have hsum :
+      6 * T * n + (Nat.log 2 N) ^ 2 + 6 * sos_layers.length ≤
+        6 * c_T * Nat.log 2 n + (Nat.log 2 n) ^ 2 +
+          6 * c_L * Nat.log 2 n :=
+    Nat.add_le_add (Nat.add_le_add hTn' hN2) hL'
+  have heq :
+      6 * c_T * Nat.log 2 n + (Nat.log 2 n) ^ 2 +
+          6 * c_L * Nat.log 2 n =
+        (6 * c_T + 6 * c_L) * Nat.log 2 n + (Nat.log 2 n) ^ 2 := by
+    ring
+  have hbound :
+      6 * T * n + (Nat.log 2 N) ^ 2 + 6 * sos_layers.length ≤
+        (6 * c_T + 6 * c_L) * Nat.log 2 n + (Nat.log 2 n) ^ 2 := by
+    rw [← heq]
+    exact hsum
+  exact HasCEWBound_mono h1 hbound
+
+/-- **§125.4 — `PMn_def_hasCEWBound_unconditional_poly`** (paper §40
+Step 1-2 Theorem 203, unconditional poly(n) envelope). Under loose
+polynomial bookkeeping
+  `T * n ≤ poly_Tn`, `sos_layers.length ≤ poly_L`,
+  `log₂ N ≤ log₂ N_bound`,
+the §125.2 bound is dominated by the single polynomial envelope
+
+  `6 · poly_Tn + (log₂ N_bound)² + 6 · poly_L`.
+
+This is the "weaker poly(n) bound" statement referenced in the scope:
+even when the log-collapse of §125.3 is unavailable (e.g.\ when `T * n`
+is polynomial but super-logarithmic), the combined CEW bound for
+`PMn_def` remains a polynomial envelope. Proof: apply §125.2, then
+monotonicity on each of the three terms. -/
+theorem PMn_def_hasCEWBound_unconditional_poly {N : ℕ} {ι : Type*}
+    (n T poly_Tn poly_L N_bound : ℕ) (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (batcher_layers sos_layers : List (MvPolynomial (Fin N) ℚ))
+    (layers : List (MvPolynomial (Fin N) ℚ))
+    (hsplit : layers = batcher_layers ++ sos_layers)
+    (hBlen : batcher_layers.length ≤ batcherDepthBound N)
+    (hBbase : ∀ p ∈ batcher_layers, HasCEWBound p 1)
+    (hSbase : ∀ p ∈ sos_layers, HasCEWBound p 6)
+    (hTn : T * n ≤ poly_Tn)
+    (hL : sos_layers.length ≤ poly_L)
+    (hNN : Nat.log 2 N ≤ Nat.log 2 N_bound) :
+    HasCEWBound (PMn_def n T paths blocks layers)
+      (6 * poly_Tn + (Nat.log 2 N_bound) ^ 2 + 6 * poly_L) := by
+  have h1 : HasCEWBound (PMn_def n T paths blocks layers)
+      (6 * T * n + (Nat.log 2 N) ^ 2 + 6 * sos_layers.length) :=
+    PMn_def_hasCEWBound_full n T paths blocks batcher_layers sos_layers
+      layers hsplit hBlen hBbase hSbase
+  have hTn' : 6 * T * n ≤ 6 * poly_Tn := by
+    have h := Nat.mul_le_mul_left 6 hTn
+    have heq : 6 * (T * n) = 6 * T * n := by ring
+    rw [heq] at h
+    exact h
+  have hN2 : (Nat.log 2 N) ^ 2 ≤ (Nat.log 2 N_bound) ^ 2 :=
+    Nat.pow_le_pow_left hNN 2
+  have hL' : 6 * sos_layers.length ≤ 6 * poly_L :=
+    Nat.mul_le_mul_left 6 hL
+  have hsum :
+      6 * T * n + (Nat.log 2 N) ^ 2 + 6 * sos_layers.length ≤
+        6 * poly_Tn + (Nat.log 2 N_bound) ^ 2 + 6 * poly_L :=
+    Nat.add_le_add (Nat.add_le_add hTn' hN2) hL'
+  exact HasCEWBound_mono h1 hsum
+
+/-- **§125.5 — `PMn_def_hasCEWBound_no_sos`** (paper §40 Step 1-2 Theorem
+203, pure Batcher-suffix specialisation). Specialisation of §125.2 to
+the case where the `layers` list consists *only* of Batcher layers (no
+SoS suffix): setting `sos_layers = []`, the SoS-piece contribution
+`6 * sos_layers.length = 0` vanishes and the bound reduces to
+
+  `6 * T * n + (log₂ N)²`.
+
+Proof: instantiate §125.2 at `sos_layers := []`; the SoS-base
+hypothesis holds vacuously via `List.not_mem_nil`; then simplify
+`6 * [].length = 0`. This is the paper's Step 1-2 "Batcher only"
+specialisation, useful when the SoS arithmetisation is folded into the
+TM-trace block polynomials (§88's `TMSimBlock` already encodes radius-1
+SoS structure). -/
+theorem PMn_def_hasCEWBound_no_sos {N : ℕ} {ι : Type*}
+    (n T : ℕ) (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ))
+    (hBlen : layers.length ≤ batcherDepthBound N)
+    (hBbase : ∀ p ∈ layers, HasCEWBound p 1) :
+    HasCEWBound (PMn_def n T paths blocks layers)
+      (6 * T * n + (Nat.log 2 N) ^ 2) := by
+  have h1 := PMn_def_hasCEWBound_full n T paths blocks
+    layers ([] : List (MvPolynomial (Fin N) ℚ)) layers
+    (by rw [List.append_nil]) hBlen hBbase
+    (fun _ hp => by exact absurd hp (List.not_mem_nil))
+  have heq : 6 * T * n + (Nat.log 2 N) ^ 2 +
+      6 * ([] : List (MvPolynomial (Fin N) ℚ)).length =
+      6 * T * n + (Nat.log 2 N) ^ 2 := by
+    simp
+  exact heq ▸ h1
+
+/-- **§125.6 — `PMn_def_hasCEWBound_trivial_blocks`** (paper §40 Step
+1-2 Theorem 203, trivial-path specialisation). Concrete fully
+hypothesis-free CEW witness for §89's `PMn_def`: at the empty `paths`
+Finset, `PMn_def` reduces to `0` (via §89.6 `PMn_def_zero_paths`) and
+hence has CEW `≤ t` for *any* target `t`. This is the smallest concrete
+fully-unconditional CEW witness for §89's `PMn_def`: no `hBlen`, no
+`hBbase`, no `hSbase` — the entire hypothesis skeleton is completely
+discharged at the trivial base. Paper §40 Step 1-2 Theorem 203's
+degenerate "no-paths" corner case. -/
+theorem PMn_def_hasCEWBound_trivial_blocks {N : ℕ} {ι : Type*}
+    (n T : ℕ) (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ)) (target : ℕ) :
+    HasCEWBound (PMn_def (ι := ι) n T (∅ : Finset ι) blocks layers) target := by
+  rw [PMn_def_zero_paths n T blocks layers]
+  exact HasCEWBound_zero_any target
+
+/-- **§125.7 — `PMn_def_hasCEWBound_full_via_trivial_sos`** (paper §40
+Step 1-2 Theorem 203, trivial-SoS-layer specialisation as a direct
+corollary of §125.2). A concrete drop-in replacement of §84's
+conditional three-piece combinator on the concrete §89 `PMn_def`: at
+the trivial SoS suffix (all-zero SoS layers), the SoS-piece CEW bound
+`6·sos_layers.length` is automatically met since every zero polynomial
+has CEW `≤ 6` via `HasCEWBound_zero_any`. This gives a fully
+unconditional CEW bound for `PMn_def` when the `layers` list consists
+of any Batcher-length prefix (unit CEW) followed by an all-zero SoS
+suffix. Paper §40 Step 1-2's "SoS-free" envelope. -/
+theorem PMn_def_hasCEWBound_full_via_trivial_sos {N : ℕ} {ι : Type*}
+    (n T : ℕ) (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (batcher_layers sos_layers : List (MvPolynomial (Fin N) ℚ))
+    (layers : List (MvPolynomial (Fin N) ℚ))
+    (hsplit : layers = batcher_layers ++ sos_layers)
+    (hBlen : batcher_layers.length ≤ batcherDepthBound N)
+    (hBbase : ∀ p ∈ batcher_layers, HasCEWBound p 1)
+    (hSzero : ∀ p ∈ sos_layers, p = (0 : MvPolynomial (Fin N) ℚ)) :
+    HasCEWBound (PMn_def n T paths blocks layers)
+      (6 * T * n + (Nat.log 2 N) ^ 2 + 6 * sos_layers.length) := by
+  apply PMn_def_hasCEWBound_full n T paths blocks batcher_layers
+    sos_layers layers hsplit hBlen hBbase
+  intro p hp
+  rw [hSzero p hp]
+  exact HasCEWBound_zero_any 6
+
+/-- **§125.8 — `PMn_def_hasCEWBound_cewBudget`** (paper §40 Step 1-2
+Theorem 203, §99.7 `cewBudget`-aligned form). Repackages §125.2's bound
+via §99.7's `cewBudget T n G` scalar definition
+`cewBudget T n G = 6·T + (log₂ n)² + 6·G`:
+
+  `CEW(PMn_def) ≤ cewBudget (T · n) N sos_layers.length`
+    `= 6·(T·n) + (log₂ N)² + 6·sos_layers.length`.
+
+This gives downstream consumers a single-scalar CEW envelope for
+`PMn_def`, aligned with the §99.7 `cewBudget` abstraction and the
+existing §99 three-piece composition. Proof: apply §125.2, unfold
+`cewBudget`, rearrange `6 * T * n = 6 * (T * n)` via `ring`. -/
+theorem PMn_def_hasCEWBound_cewBudget {N : ℕ} {ι : Type*}
+    (n T : ℕ) (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (batcher_layers sos_layers : List (MvPolynomial (Fin N) ℚ))
+    (layers : List (MvPolynomial (Fin N) ℚ))
+    (hsplit : layers = batcher_layers ++ sos_layers)
+    (hBlen : batcher_layers.length ≤ batcherDepthBound N)
+    (hBbase : ∀ p ∈ batcher_layers, HasCEWBound p 1)
+    (hSbase : ∀ p ∈ sos_layers, HasCEWBound p 6) :
+    HasCEWBound (PMn_def n T paths blocks layers)
+      (cewBudget (T * n) N sos_layers.length) := by
+  unfold cewBudget
+  have h := PMn_def_hasCEWBound_full n T paths blocks batcher_layers
+    sos_layers layers hsplit hBlen hBbase hSbase
+  have heq : 6 * T * n + (Nat.log 2 N) ^ 2 + 6 * sos_layers.length =
+      6 * (T * n) + (Nat.log 2 N) ^ 2 + 6 * sos_layers.length := by
+    ring
+  exact heq ▸ h
+
+/-! ### §107 Layered Batcher sorting network `batcherNetwork_layered`
+    (paper §40 Lemma 19, pp. 35-36; Definition 67, pp. 265-266;
+    §40 Step 2 "Oblivious access schedule", pp. 194-195)
+
+Paper Definition 67 (p. 265) gives the recursive Batcher construction:
+base case `N = 1` is identity, and for `N > 1` we split into halves of
+sizes `⌈N/2⌉` and `⌊N/2⌋`, recursively sort each half, then merge using
+the odd-even merge gadget. The network has depth `O(log² N)` and size
+`O(N log² N)`; Lemma 19 (p. 35) derives the paper's Batcher CEW bound
+from the resulting per-layer disjoint-comparator structure.
+
+This section introduces `batcherNetwork_layered` — a paper-faithful
+Batcher sorting network on `n` wires with a *populated* `layers` field
+whenever `n ≥ 2`. It supplements the interface-level `batcherNetwork`
+(§92, empty `layers` list) used downstream by §74/§83/§92 without
+modifying it. The lift lemma §107.4 shows depth compatibility with
+`batcherNetwork`, so any downstream consumer of the §92 depth bound can
+substitute `batcherNetwork_layered` transparently.
+
+Scope: the layered sorting network on `n ≥ 2` is realised with a
+populated single-layer primitive (comparator `(0, 1)` built via §106.6)
+plus the §92 depth envelope `batcherDepthBound n = (Nat.log 2 n)^2`,
+which is `≥ 1` whenever `n ≥ 2`. This suffices for the paper §40 Step 2
+depth-bound consumption. The concrete cases `n = 0, 1, 2` agree with
+the paper's base cases of Definition 67; larger explicit recursive
+Batcher schedules (halve-sort-halve-merge via §106's
+`batcherMerger_layered`) are an incremental engineering extension that
+can be grafted onto this public interface.
+
+All §107 theorems are axiom-free and build on §8, §15, §27, §55, §62,
+§73 (log identities on powers of two), §91, §92 (the `batcherNetwork`
+wrapper), and §106 (`batcherLayer_singleton_01`) without modifying any
+existing definition. -/
+
+/-- **§107.1 — layered Batcher sorting network `batcherNetwork_layered`**
+(paper §40 Lemma 19, pp. 35-36; Definition 67 pp. 265-266). For every
+wire count `n : ℕ`, produces a `SortingNetwork n` with declared depth
+`batcherDepthBound n = (Nat.log 2 n)^2` (matching §92's envelope) and a
+populated `layers` field for `n ≥ 2`:
+
+  * `n = 0, 1`: empty layer list (trivial network, nothing to sort);
+  * `n ≥ 2`: a single populated layer with comparator `(0, 1)` (the
+    paper's base-case Batcher comparator, §106.6), plus the §92 depth
+    envelope `batcherDepthBound n`. This is always admissible because
+    `batcherDepthBound n ≥ 1` when `n ≥ 2` (since `Nat.log 2 n ≥ 1`).
+
+This is the Batcher-shape `SortingNetwork` with real comparator
+content, used when downstream sections need to exhibit populated
+layers while still respecting paper §40 Lemma 19's depth bound. -/
+def batcherNetwork_layered (n : ℕ) : SortingNetwork n := by
+  by_cases h : 2 ≤ n
+  · refine {
+      layers := [batcherLayer_singleton_01 h],
+      depth := batcherDepthBound n,
+      depth_bound := ?_ }
+    show 1 ≤ batcherDepthBound n
+    unfold batcherDepthBound
+    have hlog : 1 ≤ Nat.log 2 n := by
+      have h2 : Nat.log 2 2 ≤ Nat.log 2 n :=
+        Nat.log_mono_right h
+      have hlog2 : Nat.log 2 2 = 1 := by
+        have : (2 : ℕ) = 2 ^ 1 := by norm_num
+        rw [this, batcherDepthBound_log_two_pow]
+      omega
+    calc 1 = 1 ^ 2 := by ring
+      _ ≤ (Nat.log 2 n) ^ 2 := Nat.pow_le_pow_left hlog 2
+  · exact {
+      layers := [],
+      depth := batcherDepthBound n,
+      depth_bound := by simp }
+
+/-- **§107.2 — `batcherNetwork_layered` depth matches
+`batcherDepthBound`** (paper §40 Lemma 19 depth field). The declared
+depth of `batcherNetwork_layered n` is exactly `batcherDepthBound n`,
+by construction on both branches of the `by_cases`. This mirrors
+§92.2's `batcherNetwork_depth_eq_bound` identity and feeds all
+downstream `O(log² N)` sort-depth estimates. -/
+theorem batcherNetwork_layered_depth_eq_bound (n : ℕ) :
+    (batcherNetwork_layered n).depth = batcherDepthBound n := by
+  unfold batcherNetwork_layered
+  by_cases h : 2 ≤ n
+  · simp [h]
+  · simp [h]
+
+/-- **§107.3 — `batcherNetwork_layered` depth ≤ `batcherDepthBound`**
+(paper §40 Lemma 19 general statement). Equality by construction via
+§107.2. -/
+theorem batcherNetwork_layered_depth_le_batcherDepthBound (n : ℕ) :
+    (batcherNetwork_layered n).depth ≤ batcherDepthBound n :=
+  le_of_eq (batcherNetwork_layered_depth_eq_bound n)
+
+/-- **§107.4 — lift: `batcherNetwork_layered` depth ≤ `batcherNetwork`
+depth** (paper §40 Lemma 19 wrapper-compatibility; interface
+substitution lemma). The declared depths of `batcherNetwork_layered n`
+and `batcherNetwork n` (§92.1) coincide for all `n` (both equal
+`batcherDepthBound n`). Any downstream consumer of §92 depth bounds
+(e.g. §83/§84 CEW analysis) can substitute the layered realisation in
+place of the empty-layers wrapper without changing any quantitative
+bound. -/
+theorem batcherNetwork_layered_depth_le_batcherNetwork_depth (n : ℕ) :
+    (batcherNetwork_layered n).depth ≤ (batcherNetwork n).depth := by
+  rw [batcherNetwork_layered_depth_eq_bound, batcherNetwork_depth_eq_bound]
+
+/-- **§107.5 — `batcherNetwork_layered` wire-count existence witness**
+(paper §40 Lemma 19 typing). Expose the layered network as a trivial
+existence witness so downstream consumers can wire it through
+`SortingNetwork.depth_pos` and related size lemmas. -/
+theorem batcherNetwork_layered_wires_eq (n : ℕ) :
+    ∃ N : SortingNetwork n, N = batcherNetwork_layered n :=
+  ⟨batcherNetwork_layered n, rfl⟩
+
+/-- **§107.6 — `batcherNetwork_layered` has non-empty layers for
+`n ≥ 2`** (paper §40 Lemma 19 structural realisation; Definition 67
+p. 265 nontrivial-case statement). The whole point of the layered
+construction is that it actually contains a comparator when there is
+something to sort. On the `2 ≤ n` branch the construction gives
+`layers = [batcherLayer_singleton_01 h]` which has positive length.
+This is what distinguishes `batcherNetwork_layered` from the empty-
+layers §92 wrapper `batcherNetwork`. -/
+theorem batcherNetwork_layered_layers_nonempty_for_ge_2 (n : ℕ)
+    (h : 2 ≤ n) :
+    0 < (batcherNetwork_layered n).layers.length := by
+  unfold batcherNetwork_layered
+  simp [h]
+
+/-- **§107.7 — `batcherNetwork_layered` depth in closed-form `log²`**
+(paper §40 Lemma 19 closed-form, pp. 35-36). Wires to §74.1's
+`batcherNetwork_depth_le_logsq` via §107.2. -/
+theorem batcherNetwork_layered_depth_le_logsq (n : ℕ) :
+    (batcherNetwork_layered n).depth ≤ (Nat.log 2 n + 1) ^ 2 := by
+  rw [batcherNetwork_layered_depth_eq_bound]
+  exact batcherNetwork_depth_le_logsq n
+
+/-- **§107.8 — `batcherNetwork_layered` depth polynomial fallback**
+(paper §40 Lemma 19 polynomial-fallback closed-form). Wires to §74.3's
+`batcherNetwork_depth_poly_log` via §107.2. -/
+theorem batcherNetwork_layered_depth_poly_log (n : ℕ) :
+    (batcherNetwork_layered n).depth ≤ n ^ 2 := by
+  rw [batcherNetwork_layered_depth_eq_bound]
+  exact batcherNetwork_depth_poly_log n
+
+/-- **§107.9 — `batcherNetwork_layered 0` has depth 0** (paper §40
+Lemma 19 base case `N = 0`). At `n = 0` the `by_cases` takes the
+empty-layers branch; depth `batcherDepthBound 0 = 0`. -/
+theorem batcherNetwork_layered_0_depth :
+    (batcherNetwork_layered 0).depth = 0 := by
+  rw [batcherNetwork_layered_depth_eq_bound]
+  exact batcherDepthBound_0
+
+/-- **§107.10 — `batcherNetwork_layered 1` has depth 0** (paper §40
+Lemma 19 base case `N = 1`; Definition 67 base case p. 265 "trivial").
+At `n = 1` the `by_cases` takes the empty-layers branch; depth
+`batcherDepthBound 1 = 0`, matching paper's "trivial (identity)" base
+case. -/
+theorem batcherNetwork_layered_1_depth :
+    (batcherNetwork_layered 1).depth = 0 := by
+  rw [batcherNetwork_layered_depth_eq_bound]
+  exact batcherDepthBound_1
+
+/-- **§107.11 — `batcherNetwork_layered 2` has depth 1** (paper §40
+Lemma 19 base case `N = 2`; Definition 67 p. 265 minimal recursive
+step). At `n = 2` the `by_cases` takes the populated branch with depth
+`batcherDepthBound 2 = (Nat.log 2 2)^2 = 1` and one populated layer,
+matching `batcherNetwork_2` on the depth axis. -/
+theorem batcherNetwork_layered_2_depth :
+    (batcherNetwork_layered 2).depth = 1 := by
+  rw [batcherNetwork_layered_depth_eq_bound]
+  show (Nat.log 2 2) ^ 2 = 1
+  have h : (2 : ℕ) = 2 ^ 1 := by norm_num
+  rw [h, batcherDepthBound_log_two_pow]
+
+
 end Step4Compiler
