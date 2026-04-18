@@ -1382,4 +1382,49 @@ theorem pathA_final_separation
     False :=
   pathA_two_hypothesis_separation n hn hV B Q κ ℓ hQSource hPMnRank
 
+/-! ## Section 26: Concrete partition match for Cook-Levin (Step 2 plug-in)
+
+To use `compiled_np_lower_bound_any_dtm` as our Step 2 bound, we need a
+concrete partition `B : BlockPartition (cookLevinUVSplit M n).total`
+such that `pullbackPartition B inlU` matches `cook_levin_compilation.partition`.
+
+We construct such a `B` by extending the Cook-Levin partition to v-range. -/
+
+/-- **Extended Cook-Levin partition**: extends the locality block
+partition over `Fin n` to all `(cookLevinUVSplit M n).total` indices,
+putting all v-indices into a single additional block (or existing block).
+
+For our purposes, any extension works — the pullback via inlU only uses
+the u-part. -/
+def extendedCookLevinPartition (M : TuringMachine.DTM) (n : ℕ) :
+    SPDP.BlockPartition (cookLevinUVSplit M n).total where
+  numBlocks := max ((n + 2) / 3) 1  -- same as cook-levin locality
+  assign := fun k =>
+    if h : k.val < n then
+      ⟨k.val / 3, by
+        have h1 : k.val / 3 < (n + 2) / 3 := by omega
+        have h2 : (n + 2) / 3 ≤ max ((n + 2) / 3) 1 := le_max_left _ _
+        omega⟩
+    else
+      ⟨0, by
+        have : 0 < max ((n + 2) / 3) 1 := by positivity
+        exact this⟩
+
+/-- The extended partition, pulled back via `inlU`, agrees with the
+Cook-Levin partition (on assign; blocks match via max ≥ lhs). -/
+theorem pullback_extended_cookLevin_assign
+    (M : TuringMachine.DTM) (n : ℕ) (i : Fin n) :
+    ((MultilinearSPDP.pullbackPartition
+        (extendedCookLevinPartition M n) (cookLevinUVSplit M n).inlU).assign i).val =
+      i.val / 3 := by
+  show ((extendedCookLevinPartition M n).assign ((cookLevinUVSplit M n).inlU i)).val =
+        i.val / 3
+  show ((extendedCookLevinPartition M n).assign ⟨i.val, _⟩).val = i.val / 3
+  unfold extendedCookLevinPartition
+  simp only
+  split_ifs with h
+  · rfl
+  · exfalso
+    exact h i.isLt
+
 end PaperFaithfulCompilation
