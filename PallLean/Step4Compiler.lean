@@ -1639,5 +1639,45 @@ theorem HasCEWBound_one_sub_X {N : ℕ} (i : Fin N) :
     HasCEWBound (1 - MvPolynomial.X i : MvPolynomial (Fin N) ℚ) 1 :=
   HasCEWBound_sub (HasCEWBound_one_any 1) (HasCEWBound_X i)
 
+/-! ## Section 41: More path literal properties -/
+
+/-- Path literal degree bound. -/
+theorem pathLiteral_degree {N : ℕ} (q : Fin N) (b : Bool) :
+    (pathLiteral q b).totalDegree ≤ 1 := by
+  have := pathLiteral_cew q b
+  exact this
+
+/-- **Product of path literals** has CEW ≤ length (via pathPolynomial_cew). -/
+theorem pathLiterals_list_prod_cew {N : ℕ} (steps : List (Fin N × Bool)) :
+    HasCEWBound ((steps.map (fun ⟨q, b⟩ => pathLiteral q b)).prod)
+      steps.length := by
+  -- steps.map ... .prod = pathPolynomial steps (by definition)
+  show HasCEWBound (pathPolynomial steps) steps.length
+  exact pathPolynomial_cew steps
+
+/-! ## Section 42: Layer polynomial evaluation -/
+
+/-- `layerPolynomial q c₀ c₁` at assignment x → x q · c₁ + (1 - x q) · c₀. -/
+theorem layerPolynomial_eval {N : ℕ} (q : Fin N) (c₀ c₁ : ℚ)
+    (assignment : Fin N → ℚ) :
+    MvPolynomial.eval assignment (layerPolynomial q c₀ c₁) =
+      assignment q * c₁ + (1 - assignment q) * c₀ := by
+  unfold layerPolynomial
+  simp
+
+/-- At boolean input (q → 1), layer evaluates to c₁. -/
+theorem layerPolynomial_eval_one {N : ℕ} (q : Fin N) (c₀ c₁ : ℚ)
+    (assignment : Fin N → ℚ) (h : assignment q = 1) :
+    MvPolynomial.eval assignment (layerPolynomial q c₀ c₁) = c₁ := by
+  rw [layerPolynomial_eval, h]
+  ring
+
+/-- At boolean input (q → 0), layer evaluates to c₀. -/
+theorem layerPolynomial_eval_zero {N : ℕ} (q : Fin N) (c₀ c₁ : ℚ)
+    (assignment : Fin N → ℚ) (h : assignment q = 0) :
+    MvPolynomial.eval assignment (layerPolynomial q c₀ c₁) = c₀ := by
+  rw [layerPolynomial_eval, h]
+  ring
+
 end Step4Compiler
 
