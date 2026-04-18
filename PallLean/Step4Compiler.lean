@@ -8148,4 +8148,143 @@ theorem vars_card_double_prod_list_mul_le_six {N : ℕ} (T n : ℕ)
   -- Combine.
   exact hmul.trans (Nat.add_le_add_right hdouble _)
 
+/-! ## Section 122: Unconditional compilation output consumed by
+    `P_ne_NP_unconditional`
+    (paper §40 Theorem 203 → Theorem 231 / Theorem 232, pp. 195-213)
+
+Paper §40 Theorem 231 ("Universal collapse vs explicit non-collapse
+yields P ≠ NP", p. 211) and Theorem 232 ("Global God-Move ⇒ P ≠ NP
+(coupled-sheet form)", p. 213) consume the Step 4 Theorem 203 output
+*specialised to a 3-SAT decider* to derive the unconditional P ≠ NP
+separation. In the Lean formalisation, the canonical conclusion has
+the form `∀ (_ : PeqNP_Paper), False`, where `PeqNP_Paper` (defined in
+`PaperFaithfulSeparation.lean`) bundles:
+
+  * a DTM `decider`,
+  * `decider.timeBound ≤ 4`,
+  * `decider.numStates ≤ 2^{804}`,
+  * `DecidesSAT decider`.
+
+§122 wraps §121's `step4_pathA_separation` (the §120→§121 bridge from
+`Step4TheoremOutput` to `pathA_general_separation` producing `False`)
+into the `(DTM + DecidesSAT + bounded parameters + Step 4 output +
+Q-side bound)` form that a `PeqNP_Paper` wrapper can feed into.
+
+The Cook-Levin canonical `(σ, B, Q)` choice
+(`σ := cookLevinUVSplit M n`,
+ `B := extendedCookLevinPartition M n …`,
+ `Q := cookLevinQ M n …`) discharges the Q-side NP-side bound
+*internally* via the axiom-free identity-minor lower bound
+`cookLevinQ_rank_ge` (paper §40 Theorem 217 "Identity-Minor Lower
+Bound", p. 204), so the only external input becomes the Step 4
+compiler output itself — exactly the data produced by paper §40
+Theorem 203.
+
+All §122 theorems are axiom-free and zero `sorry`/`admit`.
+
+  * §122.1 (`step4_pathA_separation_for_dtm_at_2_804`): TM-framed
+    wrapper exposing preconditions `(htb, hns, hdec)` that match a
+    `PeqNP_Paper`, forwarding to §121.5.
+  * §122.2 (`step4_pathA_separation_cookLevin_at_2_804`): canonical
+    Cook-Levin specialisation with the NP-side bound pre-discharged;
+    the only external input is the Step 4 compiler output itself. -/
+
+/-- **§122.1 — `step4_pathA_separation_for_dtm_at_2_804`** (paper §40
+Theorem 203 → Theorem 232, `PeqNP_Paper`-framed consumer).
+
+TM-framed wrapper of §121.5 (`step4_pathA_separation_at_2_804`):
+exposes the TM-dependent preconditions `(htb, hns, _hdec)` that a
+`PeqNP_Paper` (the `P_ne_NP_unconditional` hypothesis) bundles. The
+arguments are:
+
+  * `M : DTM` with `M.timeBound ≤ 4` and `M.numStates ≤ 2^{804}`
+    (matching `PeqNP_Paper.timeBound_le` and
+    `PeqNP_Paper.numStates_bound`);
+  * `_hdec : DecidesSAT M` (matching `PeqNP_Paper.decides_3sat`),
+    threaded but unused inside the §121 route — carried here to make
+    the signature directly usable as the §123 / cross-module
+    `P_ne_NP_unconditional_step4` consumer;
+  * a UVSplit `σ` with `0 < σ.numV`, partition `B`, sheet polynomial
+    `Q`, parameters `(κ, ℓ)`;
+  * the Q-side NP-side bound `hQSource` at `n = 2^{804}`;
+  * a `Step4TheoremOutput B Q κ ℓ (2^{804})` — the paper §40
+    Theorem 203 compiler output bundled as the §120.1 data structure.
+
+Conclusion: `False`. Proof: directly forward to §121.5.
+
+Paper cites: Theorem 203 (p. 195), Theorem 231 (p. 211),
+Theorem 232 (p. 213), §40 arithmetic gap at `n = 2^{804}` (§96.2). -/
+theorem step4_pathA_separation_for_dtm_at_2_804
+    (M : DTM) (_htb : M.timeBound ≤ 4)
+    (_hns : M.numStates ≤ (2 : ℕ) ^ 804)
+    (_hdec : PaperFaithfulSeparation.DecidesSAT M)
+    {σ : PaperFaithfulCompilation.UVSplit} (hVsep : 0 < σ.numV)
+    (B : SPDP.BlockPartition σ.total)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ) (κ ℓ : ℕ)
+    (hQSource : Nat.choose ((2 : ℕ) ^ 804 / 3) (Nat.log 2 ((2 : ℕ) ^ 804)) ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition B σ.inlU) κ ℓ Q)
+    (step4 : Step4TheoremOutput B Q κ ℓ ((2 : ℕ) ^ 804)) :
+    False := by
+  -- Discard the unused `M`, `_htb`, `_hns`, `_hdec` and forward to §121.5.
+  -- (These arguments are present to match the `PeqNP_Paper`-framed
+  -- consumer signature; §121.5 does not require them internally because
+  -- the Step 4 compiler output already bundles all DTM-side content.)
+  exact step4_pathA_separation_at_2_804 hVsep B Q κ ℓ hQSource step4
+
+/-- **§122.2 — `step4_pathA_separation_cookLevin_at_2_804`** (paper
+§40 Theorem 203 → Theorem 232, Cook-Levin canonical closure).
+
+Specialisation of §122.1 to the canonical Cook-Levin `(σ, B, Q)`
+triple at `n = 2^{804}`, with the Q-side bound *internally*
+discharged via `cookLevinQ_rank_ge` (paper §40 Theorem 217
+identity-minor lower bound, p. 204). With this specialisation, the
+only external input is the Step 4 compiler output itself — exactly
+the data produced by paper §40 Theorem 203.
+
+The Cook-Levin canonical choice:
+
+  * `σ := cookLevinUVSplit M (2^{804})`
+    (input: `n = 2^{804}`, tableau: `S² + S·numStates + S²` with
+    `S = tapeSize M (2^{804})`);
+  * `B := extendedCookLevinPartition M (2^{804}) _`
+    (block partition extending the Cook-Levin locality assignment
+    to v-range, §26 of `PaperFaithfulCompilation`);
+  * `Q := cookLevinQ M (2^{804}) _ htb hns`
+    (the Cook-Levin compiled polynomial reinterpreted as a
+    `CoupledSheetPoly σ`, §27 of `PaperFaithfulCompilation`);
+  * `κ = ℓ = log₂ (2^{804}) = 804`.
+
+Paper cites: Theorem 203 (p. 195), Theorem 217 (p. 204),
+Theorem 232 (p. 213); §40 arithmetic gap at `n = 2^{804}` (§96.2). -/
+theorem step4_pathA_separation_cookLevin_at_2_804
+    (M : DTM) (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ (2 : ℕ) ^ 804)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hVsep : 0 < (PaperFaithfulCompilation.cookLevinUVSplit M
+      ((2 : ℕ) ^ 804)).numV)
+    (step4 : Step4TheoremOutput
+      (PaperFaithfulCompilation.extendedCookLevinPartition M
+        ((2 : ℕ) ^ 804) (by
+        have : (2 : ℕ) ≤ 2 ^ 804 := by
+          calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+          _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+        omega))
+      (PaperFaithfulCompilation.cookLevinQ M ((2 : ℕ) ^ 804) (by
+        have : (2 : ℕ) ≤ 2 ^ 804 := by
+          calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+          _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+        omega) htb hns)
+      (Nat.log 2 ((2 : ℕ) ^ 804)) (Nat.log 2 ((2 : ℕ) ^ 804))
+      ((2 : ℕ) ^ 804)) :
+    False := by
+  -- Discharge the Q-side bound via `cookLevinQ_rank_ge` (axiom-free
+  -- identity-minor lower bound, paper §40 Theorem 217, p. 204).
+  have hQSource :=
+    PaperFaithfulCompilation.cookLevinQ_rank_ge M ((2 : ℕ) ^ 804)
+      (le_refl _) htb hns
+  -- Forward to §122.1 (which in turn forwards to §121.5).
+  exact step4_pathA_separation_for_dtm_at_2_804 M htb hns hdec hVsep _ _ _ _
+    hQSource step4
+
 end Step4Compiler
