@@ -360,4 +360,63 @@ theorem mlBlockedSpdpSubspace_piSubst_allKept
     rw [hq]
     exact Submodule.zero_mem _
 
+/-- **Refined form using the commutation theorem**: since
+`iterDerivList S (piSubst p) = piSubst (iterDerivList S p)` for all-kept
+S, the SPDP subspace of `piSubst p` is spanned by generators of the form
+`mlProj(m * piSubst (iterDerivList S p))` with all-kept S. -/
+theorem mlBlockedSpdpSubspace_piSubst_factored
+    (keep : Fin N → Prop) [DecidablePred keep] (val : Fin N → ℚ)
+    (B : SPDP.BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
+    MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ (piSubst keep val p) ≤
+      Submodule.span ℚ
+        { q : MvPolynomial (Fin N) ℚ |
+          ∃ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
+            S.length = κ ∧ m.totalDegree ≤ ℓ ∧
+            m.vars ⊆ S.toFinset ∧
+            SPDP.isBlockAdmissible B S ∧
+            (∀ i ∈ S, keep i) ∧
+            q = MultilinearSPDP.mlProj
+                  (m * piSubst keep val (SPDP.iterDerivList S p)) } := by
+  -- Compose the two results: Section 5's all-kept restriction + §4.5 commutation.
+  intro q hq
+  have h1 := mlBlockedSpdpSubspace_piSubst_allKept keep val B κ ℓ p hq
+  -- Rewrite each allKept generator using iterDerivList_piSubst_allKept.
+  refine Submodule.span_le.mpr ?_ h1
+  rintro r ⟨S, m, hSlen, hmdeg, hmvar, hadm, hallkept, hr⟩
+  rw [iterDerivList_piSubst_allKept keep val S hallkept p] at hr
+  exact Submodule.subset_span ⟨S, m, hSlen, hmdeg, hmvar, hadm, hallkept, hr⟩
+
+/-! ## Section 6: Summary — the API for rank reduction
+
+Putting it all together: the piSubst gauge's SPDP subspace is spanned
+by generators of the form `mlProj(m · piSubst(∂^S p))` for **all-kept**
+derivation lists S only. This is significantly smaller than the full
+SPDP subspace when `keep` excludes many variables — which is the
+essence of Π⋆'s rank-reducing mechanism per paper Definition 6(i). -/
+
+/-- **Key reduction** for property (2) (P-side rank bound): if the
+all-kept-restricted generators of p's SPDP subspace (with substitution
+applied) are covered by ≤ `bound` spanning elements, then
+`rank(piSubst p) ≤ bound`. -/
+theorem mlBlockedSpdpRank_piSubst_le_of_cover
+    (keep : Fin N → Prop) [DecidablePred keep] (val : Fin N → ℚ)
+    (B : SPDP.BlockPartition N) (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hCover : ∀ (S : List (Fin N)) (m : MvPolynomial (Fin N) ℚ),
+      S.length = κ → m.totalDegree ≤ ℓ → m.vars ⊆ S.toFinset →
+      SPDP.isBlockAdmissible B S → (∀ i ∈ S, keep i) →
+      MultilinearSPDP.mlProj (m * piSubst keep val (SPDP.iterDerivList S p))
+        ∈ Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
+    (bound : ℕ) (hCard : G.card ≤ bound) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (piSubst keep val p) ≤ bound := by
+  apply GaugeMonotonicity.rank_le_of_spans_gauge B (piSubst keep val) κ ℓ p G
+    _ bound hCard
+  -- Show mlBlockedSpdpSubspace B κ ℓ (piSubst p) ≤ span G.
+  intro q hq
+  have h := mlBlockedSpdpSubspace_piSubst_factored keep val B κ ℓ p hq
+  refine Submodule.span_le.mpr ?_ h
+  rintro r ⟨S, m, hSlen, hmdeg, hmvar, hadm, hallkept, hr⟩
+  rw [hr]
+  exact hCover S m hSlen hmdeg hmvar hadm hallkept
+
 end PiStarConcrete
