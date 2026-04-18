@@ -7276,4 +7276,92 @@ theorem vars_card_tmSimBlock_le_n_pow_6 {N : ℕ}
         Finset.card_le_card (simBlock s b).vars_contained
     _ ≤ 6 := (simBlock s b).support_bound
 
+/-! ### §96 Main unconditional arithmetic gap at n = 2^804
+    (paper §40 Theorem 192 / Theorem 203, arithmetic gap at n = 2^804)
+
+Paper §40 Theorem 203 requires the strict gap
+`n^{200} < Nat.choose (n/3) (Nat.log 2 n)` at `n = 2^{804}`. §80
+stated this as a conditional (`arith_gap_at`); §95 supplied the
+underlying binomial lower bound and the numeric exponent comparisons
+`804! · (2^{804})^{200} ≤ 2^{168840}`,
+`2^{168840} < 2^{644004}`, and
+`2^{644004} ≤ 804! · choose(2^{804}/3, 804)`. This section composes
+these into the unconditional gap
+
+  `(2^{804})^{200} < Nat.choose ((2^{804}) / 3) 804`
+
+and rewraps it via `Nat.log_pow` in the paper's original
+`Nat.log 2 n` form. Paper §40 Theorem 192 / Theorem 203, arithmetic
+gap at n = 2^{804}. -/
+
+/-- **§96.1 — Main unconditional arithmetic gap at `n = 2^{804}`**
+(paper §40 Theorem 192 / Theorem 203, arithmetic gap at n = 2^{804}).
+Unconditional form of the paper's arithmetic gap for the concrete
+witness `n = 2^{804}`, `k = 804`:
+
+    `(2^{804})^{200} < Nat.choose ((2^{804}) / 3) 804`.
+
+Proof chain (all steps from §95, all in `ℕ`):
+
+  `804! · (2^{804})^{200} ≤ 2^{8040} · 2^{160800} = 2^{168840}`  (§95.14)
+  `2^{168840} < 2^{644004}`                                      (§95.15)
+  `2^{644004} ≤ (2^{801})^{804} ≤ 804! · choose(2^{804}/3, 804)` (§95.10)
+
+Combining the three yields
+`804! · (2^{804})^{200} < 804! · choose(2^{804}/3, 804)`; cancelling
+the (positive) factor `804!` via `Nat.lt_of_mul_lt_mul_left` gives
+the claim. This discharges the §80 hypothesis
+`arith_gap_at n₀=2^{804}` unconditionally. -/
+theorem arith_gap_804 :
+    ((2 : ℕ) ^ 804) ^ 200 < Nat.choose ((2 : ℕ) ^ 804 / 3) 804 := by
+  have hUpper :
+      Nat.factorial 804 * ((2 : ℕ) ^ 804) ^ 200 ≤ (2 : ℕ) ^ 168840 :=
+    factorial_804_mul_pow_200_upper
+  have hStrict :
+      (2 : ℕ) ^ 168840 < (2 : ℕ) ^ 644004 :=
+    two_pow_168840_lt_two_pow_644004
+  have hLower :
+      (2 : ℕ) ^ 644004 ≤
+        Nat.factorial 804 * Nat.choose ((2 : ℕ) ^ 804 / 3) 804 :=
+    two_pow_644004_le_choose_804
+  have hChain :
+      Nat.factorial 804 * ((2 : ℕ) ^ 804) ^ 200 <
+        Nat.factorial 804 * Nat.choose ((2 : ℕ) ^ 804 / 3) 804 :=
+    lt_of_le_of_lt hUpper (lt_of_lt_of_le hStrict hLower)
+  exact Nat.lt_of_mul_lt_mul_left hChain
+
+/-- **§96.2 — `arith_gap_at_2_804` (paper §80 interface form)**
+(paper §40 Theorem 192 / Theorem 203, arithmetic gap at n = 2^{804}).
+Wraps §96.1 in the paper's original `Nat.log 2 n` formulation: for
+any `n : ℕ` with `n = 2^{804}`, we have
+`n^{200} < Nat.choose (n/3) (Nat.log 2 n)`. This matches the shape of
+§80.6's conditional `arith_gap_at` and discharges its hypothesis at
+the concrete witness `n₀ = 2^{804}` without any additional
+assumption.
+
+Proof: substitute `n = 2^{804}` throughout, use `Nat.log_pow`
+(`Nat.log 2 (2^{804}) = 804`) to rewrite the exponent on the
+right-hand side, then apply §96.1. -/
+theorem arith_gap_at_2_804 {n : ℕ} (hn : n = 2 ^ 804) :
+    n ^ 200 < Nat.choose (n / 3) (Nat.log 2 n) := by
+  have hlog : Nat.log 2 ((2 : ℕ) ^ 804) = 804 :=
+    Nat.log_pow (by decide : 1 < (2 : ℕ)) 804
+  have hgoal : ((2 : ℕ) ^ 804) ^ 200 <
+      Nat.choose ((2 : ℕ) ^ 804 / 3)
+        (Nat.log 2 ((2 : ℕ) ^ 804)) := by
+    rw [hlog]
+    exact arith_gap_804
+  rw [hn]
+  exact hgoal
+
+/-- **§96.3 — `arith_gap_exists` witness discharge** (paper §40 Theorem
+192 / Theorem 203, arithmetic gap at n = 2^{804}). Combines §96.2
+with `arith_gap_exists` from §80: the existence form
+`∃ n, n^{200} < choose(n/3, log₂ n)` of the arithmetic gap is now
+unconditional, with `n = 2^{804}` as the concrete witness. This
+eliminates the residual hypothesis in §80.7. -/
+theorem arith_gap_exists_unconditional :
+    ∃ n : ℕ, n ^ 200 < Nat.choose (n / 3) (Nat.log 2 n) :=
+  ⟨(2 : ℕ) ^ 804, arith_gap_at_2_804 rfl⟩
+
 end Step4Compiler
