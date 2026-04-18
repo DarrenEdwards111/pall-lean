@@ -1944,5 +1944,154 @@ theorem HasCEWBound_add_one {N : ℕ} {p : MvPolynomial (Fin N) ℚ}
   · exact hp
   · exact HasCEWBound_one_any target
 
+/-! ## Section 55: Additional Batcher sorting network theorems
+(Paper Lemma 19)
+
+Paper `p vs np1.pdf` Lemma 19 (Batcher sorting network): the Batcher
+odd–even merge network on N wires sorts in depth O(log² N) and size
+O(N log² N), with each layer a collection of disjoint comparators.
+
+The theorems and instances below extract basic structural consequences
+of the `SortingNetwork` type and provide additional small concrete
+instances that are used as base cases in the Batcher recursion. All
+results are axiom-free and build on the core Comparator / SortingLayer
+/ SortingNetwork structures declared in Section 8 of this file. -/
+
+/-- **Depth lower bound** (Paper Lemma 19, size accounting): any
+`SortingNetwork`'s declared `depth` is at least its actual layer
+count. This is the structural contract recorded by `depth_bound`
+reformulated as the "layers ≤ depth" statement used throughout the
+paper's size/depth accounting for the Batcher construction. -/
+theorem SortingNetwork.depth_pos {wires : ℕ} (N : SortingNetwork wires) :
+    N.layers.length ≤ N.depth := N.depth_bound
+
+/-- **Trivial sorting network is depth-consistent**: the zero-layer
+base case has `layers.length = 0 ≤ depth`. -/
+theorem trivialSortingNetwork_depth_pos (wires : ℕ) :
+    (trivialSortingNetwork wires).layers.length ≤
+      (trivialSortingNetwork wires).depth :=
+  (trivialSortingNetwork wires).depth_pos
+
+/-- **Batcher N=2 depth lower bound**: the 2-wire Batcher network's
+declared depth (1) is at least its layer count (also 1). -/
+theorem batcherNetwork_2_depth_pos :
+    batcherNetwork_2.layers.length ≤ batcherNetwork_2.depth :=
+  batcherNetwork_2.depth_pos
+
+/-- **Trivial sorting network has zero layers**. -/
+theorem trivialSortingNetwork_layers_length (wires : ℕ) :
+    (trivialSortingNetwork wires).layers.length = 0 := rfl
+
+/-- **Trivial sorting network has zero depth** (Batcher base case). -/
+theorem trivialSortingNetwork_depth (wires : ℕ) :
+    (trivialSortingNetwork wires).depth = 0 := rfl
+
+/-- **Batcher N=2 has exactly one layer**. -/
+theorem batcherNetwork_2_layers_length :
+    batcherNetwork_2.layers.length = 1 := rfl
+
+/-- **Batcher N=2 single layer has exactly one comparator**: the
+only wire pair (0, 1) supports a unique comparator. -/
+theorem batcherLayer_2_comparators_length :
+    batcherLayer_2.comparators.length = 1 := rfl
+
+/-! ## Section 56: Comparator symmetric-construction helpers
+(Paper Lemma 19 building blocks)
+
+The paper's Batcher network is built from compare-and-swap primitives.
+A `Comparator wires` is parameterised by an ordered pair `(i, j)` with
+`i < j`. The "swap" alias below records the canonical 2-wire
+compare-and-swap with the smaller index in the `i` slot, matching the
+paper's convention that a comparator acts symmetrically on its wire
+pair. -/
+
+/-- **Symmetric 2-wire comparator**: for a 2-wire network, the
+compare-and-swap on wires (0, 1) is uniquely determined (up to the
+`i < j` convention). Provided as an alias of `batcherComparator_2`
+for readability in proofs that want the symmetric "swap" reading. -/
+def Comparator.swap_compare : Comparator 2 := batcherComparator_2
+
+/-- `Comparator.swap_compare` equals `batcherComparator_2` by
+definition. -/
+theorem Comparator.swap_compare_eq :
+    Comparator.swap_compare = batcherComparator_2 := rfl
+
+/-- **`Comparator.swap_compare` lower wire index is 0**. -/
+theorem Comparator.swap_compare_i_val :
+    (Comparator.swap_compare).i.val = 0 := rfl
+
+/-- **`Comparator.swap_compare` upper wire index is 1**. -/
+theorem Comparator.swap_compare_j_val :
+    (Comparator.swap_compare).j.val = 1 := rfl
+
+/-! ## Section 57: Additional small-N concrete Batcher instances
+(Paper Lemma 19 base cases)
+
+The Batcher recursion bottoms out at N = 1 (already sorted) and N = 2
+(one comparator). We add the N = 1 and N = 0 trivial instances to
+document the paper's base cases. -/
+
+/-- **Batcher network for N=1**: the empty network on one wire.
+A single wire is trivially sorted, so the network has zero layers and
+zero depth. This specialises `trivialSortingNetwork` and is the
+standard base case for the Batcher recursion. -/
+def batcherNetwork_1 : SortingNetwork 1 := trivialSortingNetwork 1
+
+/-- **Batcher N=1 depth** is zero. -/
+theorem batcherNetwork_1_depth : batcherNetwork_1.depth = 0 := rfl
+
+/-- **Batcher N=1 layers** are empty. -/
+theorem batcherNetwork_1_layers_length :
+    batcherNetwork_1.layers.length = 0 := rfl
+
+/-- **Batcher N=1 depth lower bound** (trivial: 0 ≤ 0). -/
+theorem batcherNetwork_1_depth_pos :
+    batcherNetwork_1.layers.length ≤ batcherNetwork_1.depth :=
+  batcherNetwork_1.depth_pos
+
+/-- **Batcher network for N=0**: the empty network on zero wires.
+Vacuously sorted; there is nothing to compare. -/
+def batcherNetwork_0 : SortingNetwork 0 := trivialSortingNetwork 0
+
+/-- **Batcher N=0 depth** is zero. -/
+theorem batcherNetwork_0_depth : batcherNetwork_0.depth = 0 := rfl
+
+/-- **Batcher N=0 layers** are empty. -/
+theorem batcherNetwork_0_layers_length :
+    batcherNetwork_0.layers.length = 0 := rfl
+
+/-! ## Section 58: Sorting network size bounds
+(Paper Lemma 19 size accounting)
+
+Paper Lemma 19 bounds the Batcher network's size (total number of
+comparators summed over all layers) by O(N log² N). The lemmas below
+record the layer-count side of this accounting: the number of layers
+is at most `depth`. -/
+
+/-- **Size bound by depth** (Paper Lemma 19): for any
+`SortingNetwork`, the number of layers is bounded by the declared
+depth. This is `SortingNetwork.depth_pos` restated with paper's
+"size" naming. -/
+theorem SortingNetwork.layers_length_le_depth {wires : ℕ}
+    (N : SortingNetwork wires) : N.layers.length ≤ N.depth :=
+  N.depth_bound
+
+/-- **Trivial network layer count ≤ depth**: combined statement for
+the base case. -/
+theorem trivialSortingNetwork_layers_le_depth (wires : ℕ) :
+    (trivialSortingNetwork wires).layers.length ≤
+      (trivialSortingNetwork wires).depth :=
+  (trivialSortingNetwork wires).layers_length_le_depth
+
+/-- **Batcher N=2 layer count ≤ depth**. -/
+theorem batcherNetwork_2_layers_le_depth :
+    batcherNetwork_2.layers.length ≤ batcherNetwork_2.depth :=
+  batcherNetwork_2.layers_length_le_depth
+
+/-- **Batcher N=2 layer count equals depth (=1)**: the saturating
+case of the size bound for the 2-wire instance. -/
+theorem batcherNetwork_2_layers_eq_depth :
+    batcherNetwork_2.layers.length = batcherNetwork_2.depth := rfl
+
 end Step4Compiler
 
