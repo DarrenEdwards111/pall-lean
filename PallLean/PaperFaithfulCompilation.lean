@@ -277,14 +277,53 @@ theorem piPhi_embed_eq (σ : UVSplit) (q : CoupledSheetPoly σ) :
   unfold piPhi
   apply PiStarConcrete.piZero_eq_self_of_support_kept
   intro α hα i hki
-  -- If i ∉ kept, then α i = 0 (since support is kept).
-  -- For the embedded polynomial, supports consist of monomials whose
-  -- variables are all in range(inlU). Hence only u-indices can have
-  -- positive exponent; non-kept (v) indices have α i = 0.
   by_contra hαi
   have hi_vars : i ∈ (CoupledSheetPoly.embed σ q).vars := by
     rw [MvPolynomial.mem_vars]
     exact ⟨α, hα, Finsupp.mem_support_iff.mpr hαi⟩
   exact hki (embed_vars_kept σ q i hi_vars)
+
+/-! ## Section 7: Capstone — Path A gauge properties
+
+Summary of the paper-faithful Π_Φ construction in the UVSplit framework:
+- `piPhi σ` is a ℚ-linear projection on PMnPoly σ
+- Property (1): rank-monotone for ANY block partition (piPhi_isRankMonotoneGauge)
+- Property (on embed): fixes coupled-sheet image exactly (piPhi_embed_eq)
+
+The remaining content to discharge `exists_amplituhedron_gauge_for_sat_decider`
+in this refactored setting:
+- Define P_{M,n}(u,v) for a concrete TM M with u/v split (the paper's compiler)
+- Define Q^×_Φ(u) = ∏ (1 - z_C · V_C²) as a CoupledSheetPoly
+- Show piPhi(P_{M,n}) = embed(Q^×_Φ) up to boundary wiring ζ
+- P-side bound: rank(P_{M,n}) ≤ n^O(1) via Theorem 203's Width⇒Rank
+- NP-side bound: rank(embed(Q^×_Φ)) ≥ C(n/3, log n) via §18 identity minor
+
+The rank bounds now apply to DIFFERENT polynomial objects (P_{M,n} and
+embed Q^×_Φ), resolving the architectural conflict of the flat-n model. -/
+
+/-- **Path A gauge witness** (capstone): `piPhi σ` is a concrete ℚ-linear
+projection realizing paper-faithful Π_Φ for any UVSplit σ. It is
+rank-monotone over any block partition and fixes the coupled-sheet
+image exactly. -/
+structure PathAGaugeWitness (σ : UVSplit) (B : SPDP.BlockPartition σ.total) where
+  /-- The gauge map. -/
+  gauge : PMnPoly σ →ₗ[ℚ] PMnPoly σ
+  /-- The gauge is a projection (idempotent). -/
+  isProjection : GaugeMonotonicity.IsProjectionGauge gauge
+  /-- The gauge is rank-monotone (property 1 of IsAmplituhedronGauge). -/
+  isRankMonotone : GaugeMonotonicity.IsRankMonotoneGauge B gauge
+  /-- The gauge fixes coupled-sheet embeddings. -/
+  fixesEmbed : ∀ q : CoupledSheetPoly σ,
+    gauge (CoupledSheetPoly.embed σ q) = CoupledSheetPoly.embed σ q
+
+/-- **The canonical Path A gauge witness**: `piPhi σ` with all
+structural properties. Axiom-free construction. -/
+noncomputable def canonicalPathAWitness (σ : UVSplit)
+    (B : SPDP.BlockPartition σ.total) :
+    PathAGaugeWitness σ B where
+  gauge := piPhi σ
+  isProjection := piPhi_isProjectionGauge σ
+  isRankMonotone := piPhi_isRankMonotoneGauge σ B
+  fixesEmbed := piPhi_embed_eq σ
 
 end PaperFaithfulCompilation
