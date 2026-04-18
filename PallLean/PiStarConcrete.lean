@@ -580,4 +580,104 @@ theorem keepByBlock_union_iff {numBlocks : ℕ}
   unfold keepByBlock
   simp [Finset.mem_union]
 
+/-! ## Section 10: piZero on monomials — explicit formula
+
+The building block for the Finsupp commutation `mlProj ∘ piZero = piZero ∘ mlProj`:
+compute piZero acting on a single monomial explicitly. -/
+
+/-- `piZero` on a monomial: keeps it if kept-supported, else zero.
+
+Specifically, `substFn keep 0 i = X i` for kept `i` and `0` for non-kept.
+Thus `aeval (substFn keep 0) (monomial α c) = c · ∏_i (f i)^{α i}`,
+which evaluates to `c · monomial α 1` when α is kept-supported (non-kept
+exponents are all 0), and `0` otherwise (any non-kept variable with
+positive exponent gives `0^{α i} = 0`). -/
+theorem piZero_monomial (keep : Fin N → Prop) [DecidablePred keep]
+    (α : Fin N →₀ ℕ) (c : ℚ) :
+    piZero keep (MvPolynomial.monomial α c) =
+      if ∀ i, ¬ keep i → α i = 0 then MvPolynomial.monomial α c else 0 := by
+  unfold piZero piSubst substAlgHom
+  rw [AlgHom.toLinearMap_apply]
+  rw [MvPolynomial.aeval_monomial]
+  -- Goal: (algebraMap ℚ _ c) * α.prod (fun i k => substFn keep 0 i ^ k) = if ... then monomial α c else 0
+  rw [show (algebraMap ℚ (MvPolynomial (Fin N) ℚ) c) = C c from rfl]
+  split_ifs with hkept
+  · -- α is kept-supported: each non-kept i has α i = 0.
+    -- So ∏ i ∈ α.support, (substFn keep 0 i)^{α i} = ∏ over kept i in support, X_i^{α i} = monomial α 1.
+    rw [show (MvPolynomial.monomial α c : MvPolynomial (Fin N) ℚ) =
+          C c * MvPolynomial.monomial α 1 from by
+        rw [MvPolynomial.C_mul_monomial]; ring_nf]
+    congr 1
+    -- Goal: α.prod (fun i k => substFn keep 0 i ^ k) = monomial α 1
+    rw [show (MvPolynomial.monomial α (1 : ℚ) : MvPolynomial (Fin N) ℚ) =
+          α.prod (fun i k => (MvPolynomial.X i : MvPolynomial (Fin N) ℚ) ^ k) from by
+        rw [MvPolynomial.monomial_eq]; simp]
+    apply Finsupp.prod_congr
+    intro i hi
+    -- i ∈ α.support means α i ≠ 0, so α i ≥ 1.
+    -- Need substFn keep 0 i ^ (α i) = X i ^ (α i)
+    -- Since α i ≥ 1 and α is kept-supported, we have keep i.
+    have hαi : α i ≠ 0 := Finsupp.mem_support_iff.mp hi
+    have hki : keep i := by
+      by_contra hk
+      exact hαi (hkept i hk)
+    simp [substFn, hki]
+  · -- α is not kept-supported: ∃ i with ¬keep i and α i ≠ 0.
+    push_neg at hkept
+    obtain ⟨i, hki, hαi⟩ := hkept
+    -- The product has factor (substFn keep 0 i)^{α i} = 0^{α i} = 0 since α i ≥ 1.
+    have hki_support : i ∈ α.support := Finsupp.mem_support_iff.mpr hαi
+    have : α.prod (fun i k => (substFn keep (0 : Fin N → ℚ) i : MvPolynomial (Fin N) ℚ) ^ k) = 0 := by
+      rw [Finsupp.prod_eq_zero_iff]
+      refine ⟨i, hki_support, ?_⟩
+      simp [substFn, hki, Pi.zero_apply]
+      exact hαi
+    rw [this, mul_zero]
+
+/-! ## Section 11: Commutation `mlProj ∘ piZero = piZero ∘ mlProj`
+
+Both `mlProj` and `piZero` filter monomials on disjoint criteria:
+- `mlProj` keeps monomials with `Finsupp.IsMultilinear α` (each α i ≤ 1)
+- `piZero keep` keeps monomials with `∀ i, ¬keep i → α i = 0`
+
+On a single monomial, either both predicates hold (keep the monomial)
+or at least one fails (result is zero). The commutation follows by
+inspection. -/
+
+/-- **Commutation on a monomial**: `mlProj(piZero(monomial α c)) =
+piZero(mlProj(monomial α c))`. -/
+theorem mlProj_piZero_comm_monomial
+    (keep : Fin N → Prop) [DecidablePred keep]
+    (α : Fin N →₀ ℕ) (c : ℚ) :
+    MultilinearSPDP.mlProj (piZero keep (MvPolynomial.monomial α c)) =
+      piZero keep (MultilinearSPDP.mlProj (MvPolynomial.monomial α c)) := by
+  rw [piZero_monomial, MultilinearSPDP.mlProj_monomial]
+  split_ifs with hkept hml hml' hkept'
+  · -- α kept-supported AND multilinear
+    rw [MultilinearSPDP.mlProj_monomial, piZero_monomial]
+    simp [hml]
+    intros x hk hαx
+    exact absurd (hkept x hk) hαx
+  · -- α kept-supported but NOT multilinear
+    rw [MultilinearSPDP.mlProj_monomial, map_zero]
+    simp [hml]
+  · -- α NOT kept-supported but multilinear
+    rw [MultilinearSPDP.mlProj_zero, piZero_monomial]
+    simp [hkept]
+  · -- Neither kept-supported NOR multilinear
+    rw [MultilinearSPDP.mlProj_zero, map_zero]
+
+/-- **Commutation** of `mlProj` and `piZero` on all polynomials. -/
+theorem mlProj_piZero_comm (keep : Fin N → Prop) [DecidablePred keep]
+    (p : MvPolynomial (Fin N) ℚ) :
+    MultilinearSPDP.mlProj (piZero keep p) =
+      piZero keep (MultilinearSPDP.mlProj p) := by
+  -- Both mlProj and piZero are additive. Use polynomial additive induction.
+  induction p using MvPolynomial.induction_on' with
+  | monomial α c =>
+    exact mlProj_piZero_comm_monomial keep α c
+  | add p q hp hq =>
+    rw [map_add (piZero keep), MultilinearSPDP.mlProj_add,
+        MultilinearSPDP.mlProj_add, map_add (piZero keep), hp, hq]
+
 end PiStarConcrete
