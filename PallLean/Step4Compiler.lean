@@ -6061,4 +6061,161 @@ theorem PMn_hasCEWBound_cewBudget {N : ℕ}
   PMn_hasCEWBound_combined_poly_bound T n G
     trace_layers batcher_layers gs hT hTbnd hBlen hBbase hGlen
 
+
+/-! ### §103 Unconditional Lemma 23 for `bpFromTM`
+    (paper §40 Step 2, Lemma 23 (unconditional form))
+
+§72 proved Lemma 23 "BP decides iff TM accepts" parametrically,
+conditional on (i) a `LayerConfigEnc` satisfying the `stepMatches`
+predicate and (ii) a final-layer accepting-indicator equality. §93
+built the concrete `bpFromTM`; §94 supplied the concrete encoding
+`bpFromTM_configEnc` and discharged `stepMatches` via
+`stepMatches_of_bpFromTM`; §102 packaged the trace-level
+match-predicate helpers (`match_of_bpFromTM_step`, `match_at_layer_zero`,
+`match_preserved_through_runSteps`, `match_at_final_layer`). Together
+these eliminate the `stepMatches` obligation from §72.
+
+Here we compose these pieces into the fully unconditional Lemma 23
+statement for `bpFromTM`:
+
+  • `bpFromTM_lemma23` — Boolean-equation form: for any TM-predicate
+    `tmAccepts` and any final-layer indicator equality,
+    `(bpFromTM M n hn).decides input ((bpFromTM_configEnc M n hn).enc 0)
+       = tmAccepts input`.
+    No `stepMatches` obligation, because it is discharged internally by
+    `stepMatches_of_bpFromTM`.
+  • `bpFromTM_lemma23_iff` — iff form (Boolean `true` version).
+  • `bpFromTM_lemma23_set` — set-theoretic `acceptedSet` form.
+  • `bpFromTM_lemma23_true` — the concrete closed-form corollary for
+    the always-accepting TM predicate `fun _ => true`: since `bpFromTM`
+    itself has `accepting := fun _ => true` (§93), the final-layer
+    acceptance equality is definitional and the corollary is therefore
+    *completely* unconditional (neither `stepMatches` nor `hacc`
+    hypotheses). This is the smallest concrete witness that "there
+    exists a TM predicate for which the compiled BP decides exactly
+    the TM's accepted language", i.e.\ the paper §40 Step 2 / Lemma 23
+    existential discharge at the trivial base.
+
+The headline theorem is `bpFromTM_lemma23`; it requires only the
+final-layer accepting-indicator equality as a hypothesis (not
+`stepMatches`, which §94 supplies unconditionally). For the concrete
+TM predicate `fun _ => true`, `bpFromTM_lemma23_true` gives the
+completely hypothesis-free form. All proofs are axiom-free. -/
+
+/-- **§103.1 — unconditional Lemma 23 (Boolean-equation form)**
+(paper §40 Step 2, Lemma 23 (unconditional form)). The
+`stepMatches`-free composition: given the final-layer accepting
+hypothesis `hacc`, the compiled BP `bpFromTM M n hn` decides exactly
+the TM predicate `tmAccepts` from the encoded initial vertex.
+Internally, this composes §72.1's `decides_eq_tmAccepts_of_match`
+with §94.1's `stepMatches_of_bpFromTM` to eliminate the `stepMatches`
+obligation. This is the paper §40 Step 2 Lemma 23 statement in its
+unconditional form — the `stepMatches` side is fully discharged by the
+concrete §93/§94 construction. -/
+theorem bpFromTM_lemma23 (M : TuringMachine.DTM) (n : ℕ) (hn : 1 ≤ n)
+    (tmAccepts : (Fin n → Bool) → Bool)
+    (hacc : ∀ input : Fin n → Bool,
+      (bpFromTM M n hn).accepting
+          ((bpFromTM_configEnc M n hn).enc (bpFromTM M n hn).length) =
+        tmAccepts input) :
+    ∀ input : Fin n → Bool,
+      (bpFromTM M n hn).decides input
+          ((bpFromTM_configEnc M n hn).enc 0) =
+        tmAccepts input := by
+  intro input
+  -- Compose §94 / §72.1: discharge stepMatches via §94.1.
+  exact (bpFromTM M n hn).decides_eq_tmAccepts_of_match
+    (bpFromTM_configEnc M n hn) input tmAccepts
+    (stepMatches_of_bpFromTM M n hn input) (hacc input)
+
+/-- **§103.2 — unconditional Lemma 23 (iff form)** (paper §40 Step 2,
+Lemma 23 (unconditional form)). The Boolean-`true` iff form of §103.1:
+`(bpFromTM M n hn).decides input ((bpFromTM_configEnc M n hn).enc 0)
+   = true ↔ tmAccepts input = true`.
+Obtained by composing §72.2's `decides_iff_tmAccepts_of_match` with
+§94.1's `stepMatches_of_bpFromTM` — the iff counterpart of §103.1.
+Useful for downstream reductions needing the logical `↔` formulation
+(e.g.\ the paper's TM ⇒ BP ⇒ SoS ⇒ PMn chain in §40 Steps 2/3). -/
+theorem bpFromTM_lemma23_iff (M : TuringMachine.DTM) (n : ℕ) (hn : 1 ≤ n)
+    (tmAccepts : (Fin n → Bool) → Bool)
+    (hacc : ∀ input : Fin n → Bool,
+      (bpFromTM M n hn).accepting
+          ((bpFromTM_configEnc M n hn).enc (bpFromTM M n hn).length) =
+        tmAccepts input) :
+    ∀ input : Fin n → Bool,
+      ((bpFromTM M n hn).decides input
+          ((bpFromTM_configEnc M n hn).enc 0) = true ↔
+        tmAccepts input = true) := by
+  intro input
+  exact (bpFromTM M n hn).decides_iff_tmAccepts_of_match
+    (bpFromTM_configEnc M n hn) input tmAccepts
+    (stepMatches_of_bpFromTM M n hn input) (hacc input)
+
+/-- **§103.3 — unconditional Lemma 23 (accepted-set form)** (paper §40
+Step 2, Lemma 23 (unconditional form)). The set-theoretic form of
+§103.1: the BP's `acceptedSet` from the encoded initial vertex equals
+the set of inputs on which the TM-predicate holds. Obtained by
+composing §72.4's `acceptedSet_eq_tmAccepted_of_match` with §94.1's
+`stepMatches_of_bpFromTM`. This is the form used when composing with
+Step 3 (SoS arithmetisation) in paper §40. -/
+theorem bpFromTM_lemma23_set (M : TuringMachine.DTM) (n : ℕ) (hn : 1 ≤ n)
+    (tmAccepts : (Fin n → Bool) → Bool)
+    (hacc_all : ∀ input : Fin n → Bool,
+      (bpFromTM M n hn).accepting
+          ((bpFromTM_configEnc M n hn).enc (bpFromTM M n hn).length) =
+        tmAccepts input) :
+    (bpFromTM M n hn).acceptedSet ((bpFromTM_configEnc M n hn).enc 0) =
+      {input : Fin n → Bool | tmAccepts input = true} :=
+  (bpFromTM M n hn).acceptedSet_eq_tmAccepted_of_match
+    (bpFromTM_configEnc M n hn) tmAccepts
+    (fun input => stepMatches_of_bpFromTM M n hn input) hacc_all
+
+/-- **§103.4 — completely unconditional Lemma 23 for the always-true
+predicate** (paper §40 Step 2, Lemma 23 (unconditional form), concrete
+closed-form witness). Since the §93 `bpFromTM` has
+`accepting := fun _ => true`, the final-layer indicator equality
+`hacc` is *definitional* for `tmAccepts := fun _ => true`. Combined
+with §94's `stepMatches_of_bpFromTM`, this eliminates *both*
+hypotheses of §72, giving a fully hypothesis-free Lemma 23 statement
+at this trivial TM predicate. This is the smallest concrete witness
+that "there exists a TM predicate for which the compiled BP decides
+exactly the TM's language": Lemma 23's paper §40 Step 2 existential
+discharge at the concrete base. -/
+theorem bpFromTM_lemma23_true (M : TuringMachine.DTM) (n : ℕ) (hn : 1 ≤ n) :
+    ∀ input : Fin n → Bool,
+      (bpFromTM M n hn).decides input
+          ((bpFromTM_configEnc M n hn).enc 0) = true := by
+  intro input
+  -- Apply §103.1 with tmAccepts := fun _ => true and hacc := rfl.
+  have h := bpFromTM_lemma23 M n hn (fun _ => true)
+    (fun _ => rfl) input
+  exact h
+
+/-- **§103.5 — completely unconditional Lemma 23 (iff form) for the
+always-true predicate** (paper §40 Step 2, Lemma 23 (unconditional
+form), iff-side closed-form witness). The iff-side counterpart of
+§103.4: since `bpFromTM`'s `accepting` is the constant `true`, the
+iff-form of Lemma 23 at the `fun _ => true` predicate is definitional
+on the right-hand side and reduces to §103.4. -/
+theorem bpFromTM_lemma23_true_iff (M : TuringMachine.DTM) (n : ℕ)
+    (hn : 1 ≤ n) :
+    ∀ input : Fin n → Bool,
+      ((bpFromTM M n hn).decides input
+          ((bpFromTM_configEnc M n hn).enc 0) = true ↔
+        (fun _ : Fin n → Bool => true) input = true) := by
+  intro input
+  exact bpFromTM_lemma23_iff M n hn (fun _ => true) (fun _ => rfl) input
+
+/-- **§103.6 — completely unconditional Lemma 23 (accepted-set form)
+for the always-true predicate** (paper §40 Step 2, Lemma 23
+(unconditional form), set-side closed-form witness). The set-side
+counterpart of §103.4: since `bpFromTM` always accepts, its
+`acceptedSet` from the encoded initial vertex matches the set of
+inputs on which the always-true predicate holds. -/
+theorem bpFromTM_lemma23_true_set (M : TuringMachine.DTM) (n : ℕ)
+    (hn : 1 ≤ n) :
+    (bpFromTM M n hn).acceptedSet ((bpFromTM_configEnc M n hn).enc 0) =
+      {input : Fin n → Bool | (fun _ : Fin n → Bool => true) input = true} :=
+  bpFromTM_lemma23_set M n hn (fun _ => true) (fun _ => rfl)
+
 end Step4Compiler
