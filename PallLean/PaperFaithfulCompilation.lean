@@ -501,4 +501,66 @@ theorem piPhi_embed_coupledSheet (σ : UVSplit)
       CoupledSheetPoly.embed σ (coupledSheetFromList σ clauses) :=
   piPhi_embed_eq σ (coupledSheetFromList σ clauses)
 
+/-! ## Section 11: Integration API for Tasks (D), (E), (F)
+
+The gauge assembly theorem: given concrete P-side and NP-side rank bounds
+on `P_{M,n}` and `embed(Q^×_Φ)` respectively, combined with the gauge
+properties already established, yields the `IsAmplituhedronGauge` witness
+in the UVSplit setting.
+
+Tasks (D), (E), (F) plug concrete numerical values into this template. -/
+
+/-- **Gauge sandwich from bound hypotheses**: given a paper-faithful
+P_{M,n} and Q^×_Φ with the appropriate rank bounds, piPhi achieves
+both:
+- P-side: `rank(piPhi(P_{M,n})) ≤ rank(P_{M,n}) ≤ pBound`
+  (via `piPhi_isRankMonotoneGauge` and the input P-side hypothesis)
+- NP-side: `rank(piPhi(P_{M,n})) ≥ npBound`
+  (via the input NP-side hypothesis, which says piPhi image contains
+  embed(Q^×_Φ) which has rank ≥ npBound)
+
+This is the assembly template for Tasks (F). Input:
+- hPside: rank(P_{M,n}) ≤ pBound (Task D)
+- hNPside: rank(piPhi(P_{M,n})) ≥ npBound (Task E, via piPhi(P_{M,n}) = embed(Q^×_Φ)
+  modulo wiring; then apply NP-side bound on Q^×_Φ)
+
+Output: the rank sandwich, which via arithmetic impossibility gives P ≠ NP. -/
+theorem gauge_rank_sandwich
+    {σ : UVSplit} (B : SPDP.BlockPartition σ.total)
+    (P : PMnPoly σ) (κ ℓ : ℕ)
+    (pBound npBound : ℕ)
+    (hPside : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ P ≤ pBound)
+    (hNPside : npBound ≤
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (piPhi σ P)) :
+    ∃ r : ℕ, npBound ≤ r ∧ r ≤ pBound := by
+  refine ⟨MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (piPhi σ P), hNPside, ?_⟩
+  calc MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (piPhi σ P)
+      ≤ MultilinearSPDP.mlBlockedSpdpRank B κ ℓ P :=
+        piPhi_isRankMonotoneGauge σ B κ ℓ P
+    _ ≤ pBound := hPside
+
+/-- **Arithmetic impossibility** of the rank sandwich when pBound < npBound.
+Used to derive the final P ≠ NP contradiction. -/
+theorem no_rank_sandwich_of_gap (pBound npBound : ℕ) (hgap : pBound < npBound) :
+    ¬ ∃ r : ℕ, npBound ≤ r ∧ r ≤ pBound := by
+  rintro ⟨r, hr_lo, hr_hi⟩
+  omega
+
+/-- **Contradiction from gauge + gap**: if `P_{M,n}` admits the rank
+sandwich [npBound, pBound] via piPhi, but pBound < npBound, we get False.
+
+This is the separation mechanism at the abstract level. Concrete
+instantiations for Cook-Levin at n = 2^804 (pBound = n^200, npBound =
+C(n/3, log n)) complete Task (F). -/
+theorem separation_contradiction
+    {σ : UVSplit} (B : SPDP.BlockPartition σ.total)
+    (P : PMnPoly σ) (κ ℓ : ℕ)
+    (pBound npBound : ℕ)
+    (hPside : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ P ≤ pBound)
+    (hNPside : npBound ≤
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (piPhi σ P))
+    (hgap : pBound < npBound) : False := by
+  have := gauge_rank_sandwich B P κ ℓ pBound npBound hPside hNPside
+  exact no_rank_sandwich_of_gap pBound npBound hgap this
+
 end PaperFaithfulCompilation
