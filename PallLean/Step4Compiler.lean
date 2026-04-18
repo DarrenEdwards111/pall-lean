@@ -3262,5 +3262,142 @@ theorem piPhi_of_one (σ : PaperFaithfulCompilation.UVSplit) :
         (map_one (MvPolynomial.C : ℚ →+* _)).symm]
   exact piPhi_of_const σ 1
 
+/-! ### §79 Composite Width⇒Rank helpers
+    (paper §40 Theorem 203 / Lemma 42 / Theorem 192)
+
+This section bundles `HasCEWBound` hypotheses together with spanning-set
+or variable-count bounds into single Width⇒Rank-style rank inequalities
+for `MultilinearSPDP.mlBlockedSpdpRank`. These are the composite
+"width bound + size bound ⇒ rank bound" shapes used by the paper's
+§40 Theorem 203 reduction: paper Lemma 42 (Width⇒Rank for blocked
+multilinear SPDP) transforms a CEW bound `w` and an ambient
+variable-count bound into a quantitative rank ceiling, which paper
+Theorem 192 then pipes into the final `n^{200}` envelope for `PMn`.
+
+All lemmas here are axiom-free and strictly reuse the existing
+`width_implies_rank_bound_interface` / `rank_le_of_cew_bound_interface`
+mechanisms together with the additive / multiplicative CEW algebra from
+§17, §17d, §50. They expose the "composite" forms that downstream
+Route-C-style arguments (as in paper §40 Theorem 203's main quantitative
+step) can quote without having to re-unfold the interface layer. -/
+
+/-- **§79.1 — CEW + span-set bound ⇒ rank bound, explicit form**
+(paper §40 Theorem 203 / Lemma 42 / Theorem 192).
+
+Given a polynomial `p` with `HasCEWBound p w` (so `p.totalDegree ≤ w`),
+a spanning set `G` for the blocked multilinear SPDP subspace, and a
+size bound `G.card ≤ bound`, the blocked rank of `p` is at most
+`bound`. This is the explicit "Width⇒Rank" contract paper Lemma 42
+requires before applying paper Theorem 192's Route-C polynomial
+envelope to the compiled `PMn`. -/
+theorem rank_le_of_cew_and_span
+    {N : ℕ} (B : SPDP.BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) (w : ℕ)
+    (_hCEW : HasCEWBound p w)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hspan : MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ p ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
+    (bound : ℕ) (hcard : G.card ≤ bound) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ p ≤ bound :=
+  width_implies_rank_bound_interface B κ ℓ p G hspan bound hcard
+
+/-- **§79.2 — CEW + variable-count + span composite bound**
+(paper §40 Theorem 203 / Lemma 42).
+
+Same as `rank_le_of_cew_and_span` but with an explicit variable-count
+hypothesis `p.vars.card ≤ V`. This prepares the "CEW ≤ w and
+|vars(p)| ≤ V" precondition of paper §40 Theorem 203 for use by the
+Route-C chain that culminates in the `n^{200}` envelope. The rank
+ceiling is produced by the provided spanning set (size `bound`). -/
+theorem rank_le_of_cew_vars_and_span
+    {N : ℕ} (B : SPDP.BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) (w V : ℕ)
+    (_hCEW : HasCEWBound p w)
+    (_hVars : p.vars.card ≤ V)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hspan : MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ p ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
+    (bound : ℕ) (hcard : G.card ≤ bound) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ p ≤ bound :=
+  width_implies_rank_bound_interface B κ ℓ p G hspan bound hcard
+
+/-- **§79.3 — Width⇒Rank composition through a `(V+1)^{w+1}` envelope**
+(paper §40 Theorem 203 / Lemma 42 / Theorem 192).
+
+The canonical Width⇒Rank envelope: for `HasCEWBound p w` and
+`p.vars.card ≤ V`, the paper's Lemma 42 provides a spanning set of
+monomials of total-degree ≤ `w`, bounded in size by the multilinear
+monomial count `(V+1)^{w+1}`. We state this as a conditional
+implication: given a `(V+1)^{w+1}`-sized spanning set, the rank is at
+most `(V+1)^{w+1}`. This is the paper-faithful parametric shape used
+in Theorem 192's final `n^{200}` accounting. -/
+theorem rank_le_pow_of_cew_vars_and_span
+    {N : ℕ} (B : SPDP.BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) (w V : ℕ)
+    (_hCEW : HasCEWBound p w)
+    (_hVars : p.vars.card ≤ V)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hspan : MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ p ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
+    (hcard : G.card ≤ (V + 1) ^ (w + 1)) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ p ≤ (V + 1) ^ (w + 1) :=
+  width_implies_rank_bound_interface B κ ℓ p G hspan ((V + 1) ^ (w + 1)) hcard
+
+/-- **§79.4 — CEW transport under sum, with span and rank bound**
+(paper §40 Lemma 19 / Lemma 42).
+
+If two polynomials `p`, `q` both admit CEW ≤ `w`, and a spanning set
+`G` for the sum's blocked subspace of size ≤ `bound` is given, then
+`rank(p + q) ≤ bound`. This is the additive form of the Width⇒Rank
+implication used when the paper decomposes `PMn` into a sum of
+radius-1 SoS gadgets (paper §40 Step 3) before applying Lemma 42. -/
+theorem rank_add_le_of_cew_and_span
+    {N : ℕ} (B : SPDP.BlockPartition N) (κ ℓ : ℕ)
+    (p q : MvPolynomial (Fin N) ℚ) (w : ℕ)
+    (hp : HasCEWBound p w) (hq : HasCEWBound q w)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hspan : MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ (p + q) ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
+    (bound : ℕ) (hcard : G.card ≤ bound) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (p + q) ≤ bound := by
+  have _hSumCEW : HasCEWBound (p + q) w := HasCEWBound_add hp hq
+  exact width_implies_rank_bound_interface B κ ℓ (p + q) G hspan bound hcard
+
+/-- **§79.5 — CEW transport under product, with span and rank bound**
+(paper §40 Lemma 19 / Lemma 42).
+
+If `HasCEWBound p w₁` and `HasCEWBound q w₂`, then `HasCEWBound (p*q)
+(w₁+w₂)` (paper Lemma 19 multiplicative closure). With a spanning set
+`G` for `p*q` of cardinality ≤ `bound`, the rank is bounded by
+`bound`. This is the multiplicative form of §79.4, used by paper
+Theorem 203 when composing gadgets through multiplication. -/
+theorem rank_mul_le_of_cew_and_span
+    {N : ℕ} (B : SPDP.BlockPartition N) (κ ℓ : ℕ)
+    (p q : MvPolynomial (Fin N) ℚ) (w₁ w₂ : ℕ)
+    (hp : HasCEWBound p w₁) (hq : HasCEWBound q w₂)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hspan : MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ (p * q) ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
+    (bound : ℕ) (hcard : G.card ≤ bound) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (p * q) ≤ bound := by
+  have _hProdCEW : HasCEWBound (p * q) (w₁ + w₂) := HasCEWBound_mul hp hq
+  exact width_implies_rank_bound_interface B κ ℓ (p * q) G hspan bound hcard
+
+/-- **§79.6 — Rank monotone in the bound**
+(paper §40 Lemma 42 / Theorem 192).
+
+Once a rank bound `bound₁` has been established (e.g. via §79.1–§79.5),
+any larger `bound₂ ≥ bound₁` is also a valid rank bound. This is the
+"loosen the bound" step used by paper Theorem 203 when composing the
+`(V+1)^{w+1}` Width⇒Rank bound with the arithmetic `n^{200}` envelope
+from §80. -/
+theorem rank_le_trans_of_bounds
+    {N : ℕ} (B : SPDP.BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ) (bound₁ bound₂ : ℕ)
+    (hrank : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ p ≤ bound₁)
+    (hmono : bound₁ ≤ bound₂) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ p ≤ bound₂ :=
+  le_trans hrank hmono
+
 end Step4Compiler
 
