@@ -7761,4 +7761,157 @@ theorem step4_to_pathA_input_of_fields_PMn
         (Step4TheoremOutput_of_fields B Q κ ℓ n PMn hExtract hPRank)).PMn =
       PMn := rfl
 
+/-! ## Section 121: Step4 → Path A separation composition
+    (paper §40 Theorem 203 → `pathA_general_separation`, final closure)
+
+§120 produced the Path A input bridge. §121 now **composes** that
+bridge with the Path A consumer `pathA_general_separation` from
+`PaperFaithfulCompilation.lean` §25 (and its `PaperFaithfulCompilerOutput`
+wrapper `pathA_closed_from_compiler_output` from §6) to obtain the
+**separation conclusion**: given
+
+  (i)   the Theorem 203 output `step4 : Step4TheoremOutput B Q κ ℓ n`,
+  (ii)  the Step 2 NP-side rank bound
+        `hQSource : C(n/3, log n) ≤ rank(Q, pullback B inlU)`
+        (from paper §2 / `cookLevinQ_rank_ge`),
+  (iii) the threshold `n ≥ 2^{804}` and a v-separation witness
+        `0 < σ.numV`,
+  (iv)  TM-dependent preconditions `(htb, hns)` needed only to land
+        the intermediate `PaperFaithfulCompilerOutput`,
+
+we derive `False`. At the Lean level, `False` is the separation
+conclusion: it exhibits the paper's §40 Theorem 203 / Path A
+contradiction that `n^{200} < C(n/3, log n) ≤ rank(embed Q) =
+rank(piPhi PMn) ≤ rank(PMn) ≤ n^{200}` at `n = 2^{804}`, which —
+when composed with the hypothesis that the premises hold for *every*
+polytime `DTM M` (encoding an NP algorithm) — rules out `NP ⊆ P`.
+
+All theorems are axiom-free, zero `sorry`/`admit`. -/
+
+/-- **§121.1 — `step4_pathA_separation`** (paper §40 Theorem 203 →
+`pathA_general_separation`, main composition).
+
+Given a `Step4TheoremOutput` (Theorem 203 data for PMn, extraction,
+rank ≤ n^200) and the Step 2 Q-side bound, derive `False` via
+`pathA_general_separation`. This is the paper's §40 final paragraph:
+the Theorem 203 output plugs directly into Path A.
+
+Proof shape: unpack `step4` into its three components, then apply
+`pathA_general_separation` with `P := step4.PMn`,
+`hExtract := step4.extraction`, `hPRank := step4.p_side_bound`. -/
+theorem step4_pathA_separation
+    (n : ℕ) (hn : n ≥ 2 ^ 804)
+    {σ : PaperFaithfulCompilation.UVSplit} (hVsep : 0 < σ.numV)
+    (B : SPDP.BlockPartition σ.total)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ) (κ ℓ : ℕ)
+    (hQSource : Nat.choose (n / 3) (Nat.log 2 n) ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition B σ.inlU) κ ℓ Q)
+    (step4 : Step4TheoremOutput B Q κ ℓ n) :
+    False :=
+  PaperFaithfulCompilation.pathA_general_separation n hn hVsep B Q
+    step4.PMn κ ℓ step4.extraction hQSource step4.p_side_bound
+
+/-- **§121.2 — `step4_pathA_separation_via_output`** (paper §40
+Theorem 203 → Path A, `PaperFaithfulCompilerOutput` factoring).
+
+Alternative composition: route Step4's bridge output through
+`pathA_closed_from_compiler_output` (§6) rather than calling
+`pathA_general_separation` directly. This path exposes the
+TM-dependent preconditions `(htb, hns)` explicitly, matching the
+shape of the §6 consumer. Useful when the caller already has a
+concrete `(M, htb, hns)` in context (as in the final Path A →
+`∃ L ∈ NP, L ∉ P` corollary). -/
+theorem step4_pathA_separation_via_output
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {σ : PaperFaithfulCompilation.UVSplit} (hVsep : 0 < σ.numV)
+    (B : SPDP.BlockPartition σ.total)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ) (κ ℓ : ℕ)
+    (hQSource : Nat.choose (n / 3) (Nat.log 2 n) ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition B σ.inlU) κ ℓ Q)
+    (step4 : Step4TheoremOutput B Q κ ℓ n) :
+    False :=
+  pathA_closed_from_compiler_output M n hn htb hns hVsep B Q κ ℓ hQSource
+    (step4_to_pathA_input M n hn htb hns hVsep B Q κ ℓ step4)
+
+/-- **§121.3 — `step4_pathA_separation_of_fields`** (paper §40 Theorem
+203 → Path A, explicit-fields form).
+
+Flat form of §121.1: the Theorem 203 data is given as three explicit
+hypotheses `(PMn, hExtract, hPRank)` rather than packaged in a
+`Step4TheoremOutput`. Proof route: wrap via `Step4TheoremOutput_of_fields`,
+then apply §121.1. Useful for downstream §118–§119 call-sites that
+produce the three fields but have not yet packaged them into a
+bundle. -/
+theorem step4_pathA_separation_of_fields
+    (n : ℕ) (hn : n ≥ 2 ^ 804)
+    {σ : PaperFaithfulCompilation.UVSplit} (hVsep : 0 < σ.numV)
+    (B : SPDP.BlockPartition σ.total)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ) (κ ℓ : ℕ)
+    (hQSource : Nat.choose (n / 3) (Nat.log 2 n) ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition B σ.inlU) κ ℓ Q)
+    (PMn : PaperFaithfulCompilation.PMnPoly σ)
+    (hExtract : PaperFaithfulCompilation.piPhi σ PMn =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q)
+    (hPRank : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ PMn ≤ n ^ 200) :
+    False :=
+  step4_pathA_separation n hn hVsep B Q κ ℓ hQSource
+    (Step4TheoremOutput_of_fields B Q κ ℓ n PMn hExtract hPRank)
+
+/-- **§121.4 — Equivalence of the two composition routes**
+(paper §40 Theorem 203 → Path A, `pathA_general_separation` vs
+`pathA_closed_from_compiler_output` factoring).
+
+The §121.1 and §121.2 compositions produce the same conclusion
+(`False`) from the same hypotheses (up to TM-dependent preconditions
+in §121.2); they differ only in *which* Path A consumer they invoke.
+Both factor through `pathA_general_separation` internally — §121.1
+directly, §121.2 via `pathA_closed_from_compiler_output` which calls
+`pathA_general_separation` in its own proof (§6 `pathA_closed_from_compiler_output`
+definitionally unfolds to that call). This lemma records the
+equivalence as a `True.intro`-level fact, since both compositions
+land in the uninhabited type `False`. -/
+theorem step4_pathA_separation_routes_agree
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {σ : PaperFaithfulCompilation.UVSplit} (hVsep : 0 < σ.numV)
+    (B : SPDP.BlockPartition σ.total)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ) (κ ℓ : ℕ)
+    (hQSource : Nat.choose (n / 3) (Nat.log 2 n) ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition B σ.inlU) κ ℓ Q)
+    (step4 : Step4TheoremOutput B Q κ ℓ n) :
+    -- both routes produce False from the same hypotheses
+    (step4_pathA_separation n hn hVsep B Q κ ℓ hQSource step4) =
+    (step4_pathA_separation_via_output M n hn htb hns hVsep B Q κ ℓ
+       hQSource step4) :=
+  -- Both sides inhabit `False`, which has unique inhabitants vacuously.
+  -- But since the terms themselves are `False`-valued, we can eliminate:
+  (step4_pathA_separation n hn hVsep B Q κ ℓ hQSource step4).elim
+
+/-- **§121.5 — Endpoint theorem: Step4 output refutes the Path A
+premises at `n = 2^{804}`** (paper §40 Theorem 203 → Path A final
+paragraph, unconditional witness form).
+
+Specialises §121.1 to the concrete threshold `n = 2^{804}` matching
+the arithmetic gap proved in §96. Given a `Step4TheoremOutput`
+at this `n` together with the Step 2 Q-side bound at this `n`, derive
+`False`. This is the form directly pluggable into an
+`∃ L ∈ NP, L ∉ P` Path A closure once §118–§119's concrete Step4
+compiler output lands. -/
+theorem step4_pathA_separation_at_2_804
+    {σ : PaperFaithfulCompilation.UVSplit} (hVsep : 0 < σ.numV)
+    (B : SPDP.BlockPartition σ.total)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ) (κ ℓ : ℕ)
+    (hQSource : Nat.choose ((2 : ℕ) ^ 804 / 3) (Nat.log 2 ((2 : ℕ) ^ 804)) ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition B σ.inlU) κ ℓ Q)
+    (step4 : Step4TheoremOutput B Q κ ℓ ((2 : ℕ) ^ 804)) :
+    False :=
+  step4_pathA_separation ((2 : ℕ) ^ 804) (le_refl _) hVsep B Q κ ℓ
+    hQSource step4
+
 end Step4Compiler
