@@ -21567,4 +21567,405 @@ theorem lemma_95_full_linearly_independent {n : ℕ} :
 
 end Lemma95
 
+
+/-! ## §144 — The permanent polynomial `perm_n` and witness monomials `m_S`
+
+This section formalises the paper's **hard family** `perm_n` from
+§18 (pp. 99-108), together with the **witness monomials** `m_S` and
+the **row-family index set** `R_κ` appearing in the proof of
+Theorem 94 (pp. 99-100) and Theorem 100 (pp. 107-108).
+
+Paper references (specific page/line):
+
+* **Theorem 94 (p. 99)** defines
+  `perm_n(X) = ∑_{σ ∈ S_n} ∏_{i=1}^n x_{i, σ(i)}` for an
+  `n × n` matrix of indeterminates `X = (x_{i,j})_{1 ≤ i,j ≤ n}`.
+
+* **Step 1 of the proof of Theorem 94 (p. 100, "SPDP setup")**
+  introduces the row family
+  `R_κ := {∂_S perm_n | S ⊆ [n], |S| = κ, ∂_S := ∏_{i∈S} ∂/∂x_{i,i}}`,
+  i.e. subsets of `[n]` of cardinality `κ`.
+
+* **Step 2 of the same proof (p. 100, "Closed form for each row")**
+  identifies the identity-permutation contribution as the
+  **witness monomial** `m_S := ∏_{i ∈ [n]∖S} x_{i,i}`, with
+  coefficient 1 in `∂_S perm_n`.
+
+* **Theorem 100 (p. 107, "Global projection (God Move) for perm_n")**
+  restates the witness family `m_S := ∏_{i ∈ [n]∖S} x_{i,i}` for
+  `S ⊆ [n]` with `|S| = κ` and defines `C_n := {m_S : |S| = κ}`.
+
+The paper writes `[n] ∖ S` explicitly (p. 100 line "Equivalently,
+writing `T := [n] ∖ S`", and p. 107 "`m_S := ∏_{i ∈ [n]∖S} x_{i,i}`").
+At the `κ = 0` / `S = ∅` case, `m_∅ = ∏_{i=1}^n x_{i,i}` is exactly
+the identity permutation's monomial contribution to `perm_n` (p. 100:
+"the identity permutation on T contributes the witness monomial").
+
+This §144 provides axiom-free Lean definitions of `permPoly`,
+`diagMonomial` (the `m_S`), and `witnessRowSet` (the `R_κ` index
+set), together with the basic structural theorems: the identity-term
+coefficient, total-degree bounds, non-vanishing for `|S| < n` and for
+`n > 0`, and cardinality of `R_κ`.  These objects are the starting
+data for the NP-side SPDP rank lower bound
+`Γ_{κ,0}(perm_n) ≥ (n choose κ)` (p. 99 Theorem 94).
+
+The §144 chain is intentionally independent of §146 (which works
+with the alternative Archive `PermanentGodMove.permPoly` using the
+indexing `X (σ i, i)`): §144 uses the paper's primary indexing
+`X (i, σ i)` as written in Theorem 94 p. 99, and provides a
+separate, paper-faithful object for the `P ≠ NP` pipeline. -/
+
+/-- **§144.1 — `permPoly n`** (paper §18 Theorem 94 p. 99, formula
+
+  `perm_n(X) = ∑_{σ ∈ S_n} ∏_{i=1}^n x_{i, σ(i)}`).
+
+The permanent polynomial of the `n × n` symbolic matrix
+`X = (x_{i,j})`, realised as an element of
+`MvPolynomial (Fin n × Fin n) ℚ`.  Variable `(i, j)` plays the role
+of `x_{i,j}`.  The sum is over `Equiv.Perm (Fin n) = S_n` and each
+term is the product `∏_i x_{i, σ(i)}` exactly as in Theorem 94. -/
+noncomputable def permPoly (n : ℕ) : MvPolynomial (Fin n × Fin n) ℚ :=
+  ∑ σ : Equiv.Perm (Fin n),
+    ∏ i : Fin n, (MvPolynomial.X (i, σ i) : MvPolynomial (Fin n × Fin n) ℚ)
+
+/-- **§144.2 — `diagMonomial S`** (paper §18 Theorem 94 Step 2 p. 100
+"In particular, the identity permutation on `T` contributes the
+witness monomial `m_S := ∏_{i ∉ S} x_{i,i}`"; Theorem 100 p. 107
+"Define the `(n choose κ)` witness monomials
+`m_S := ∏_{i ∈ [n]∖S} x_{i,i}`").
+
+The witness monomial attached to a subset `S ⊆ [n]`: the product of
+the diagonal variables `x_{i,i}` over `i ∉ S`.  In the paper's
+notation `T := [n] ∖ S`, so `m_S = ∏_{i ∈ T} x_{i,i}`. -/
+noncomputable def diagMonomial {n : ℕ} (S : Finset (Fin n)) :
+    MvPolynomial (Fin n × Fin n) ℚ :=
+  ∏ i ∈ Sᶜ, (MvPolynomial.X (i, i) : MvPolynomial (Fin n × Fin n) ℚ)
+
+/-- **§144.3 — `witnessRowSet n κ`** (paper §18 Theorem 94 Step 1
+p. 100 "Thus our row set is simply
+`R_κ := {∂_S perm_n | S ⊆ [n], |S| = κ, ∂_S := ∏_{i∈S} ∂/∂x_{i,i}}`";
+Theorem 100 p. 107 "`C_n := {m_S : |S| = κ}`").
+
+The set of subsets `S ⊆ [n]` of cardinality exactly `κ`; this
+indexes the paper's row family `R_κ` (via `∂_S perm_n`) and,
+equivalently, the column family `C_n` (via `m_S`). -/
+def witnessRowSet (n κ : ℕ) : Finset (Finset (Fin n)) :=
+  (Finset.univ : Finset (Fin n)).powersetCard κ
+
+/-- **§144.4 — `permPoly_eq_sum_prod`**: unfolding lemma exposing
+`permPoly n` as the paper's formal sum (paper §18 Theorem 94 p. 99:
+`perm_n(X) = ∑_σ ∏_i x_{i, σ(i)}`). -/
+theorem permPoly_eq_sum_prod (n : ℕ) :
+    permPoly n =
+      ∑ σ : Equiv.Perm (Fin n),
+        ∏ i : Fin n,
+          (MvPolynomial.X (i, σ i) : MvPolynomial (Fin n × Fin n) ℚ) := rfl
+
+/-- **§144.5 — `diagMonomial_empty`** (paper §18 Theorem 94 p. 100
+"the identity permutation on `T = [n]` contributes the witness
+monomial `m_∅ = ∏_i x_{i,i}`"; Theorem 100 p. 107 base case).
+
+At `S = ∅`, the witness monomial is exactly the full diagonal
+product `∏_i x_{i,i}`. -/
+theorem diagMonomial_empty (n : ℕ) :
+    diagMonomial (∅ : Finset (Fin n)) =
+      ∏ i : Fin n,
+        (MvPolynomial.X (i, i) : MvPolynomial (Fin n × Fin n) ℚ) := by
+  unfold diagMonomial
+  simp
+
+/-- **§144.6 — `diagMonomial_univ`** (paper §18 Theorem 94 p. 100
+"differentiating w.r.t. every diagonal variable leaves the empty
+product"; Theorem 100 p. 107 degenerate case `|S| = n`).
+
+At `S = Finset.univ` (i.e. `κ = n`), `m_S = 1` because the index
+set `[n] ∖ S = ∅`. -/
+theorem diagMonomial_univ (n : ℕ) :
+    diagMonomial (Finset.univ : Finset (Fin n)) = 1 := by
+  unfold diagMonomial
+  simp
+
+/-- **§144.7 — `permPoly_identity_term_eq_diagMonomial_empty`** (paper
+§18 Theorem 94 Step 2 p. 100 "the identity permutation on
+`T = [n]` contributes the witness monomial `m_∅ = ∏_i x_{i,i}`";
+Theorem 100 p. 107 Proof Step 1).
+
+The identity permutation's contribution to `permPoly n` is exactly
+the witness monomial `m_∅`.  In the paper's language this is the
+`S = ∅` base case of the identity-minor coefficient claim. -/
+theorem permPoly_identity_term_eq_diagMonomial_empty (n : ℕ) :
+    (∏ i : Fin n,
+        (MvPolynomial.X (i, (1 : Equiv.Perm (Fin n)) i) :
+          MvPolynomial (Fin n × Fin n) ℚ)) =
+      diagMonomial (∅ : Finset (Fin n)) := by
+  rw [diagMonomial_empty]
+  apply Finset.prod_congr rfl
+  intro i _
+  simp [Equiv.Perm.one_apply]
+
+/-- **§144.8 — `diagMonomial_ne_zero`** (paper §18 Theorem 94 Step 2
+p. 100 "`m_S` has coefficient 1 in `∂_S perm_n`", hence `m_S ≠ 0`;
+Theorem 100 p. 107 "witness monomials `m_S`").
+
+For every `S ⊆ [n]`, the witness monomial `diagMonomial S` is
+non-zero as an element of `MvPolynomial (Fin n × Fin n) ℚ`: it is
+a finite product of non-zero indeterminates over a commutative
+domain, hence non-zero. -/
+theorem diagMonomial_ne_zero {n : ℕ} (S : Finset (Fin n)) :
+    diagMonomial S ≠ (0 : MvPolynomial (Fin n × Fin n) ℚ) := by
+  unfold diagMonomial
+  refine Finset.prod_ne_zero_iff.mpr ?_
+  intro i _
+  exact MvPolynomial.X_ne_zero _
+
+/-- **§144.9 — `diagMonomial_ne_zero_of_card_lt`** (paper §18
+Theorem 94 Step 2 p. 100; Theorem 100 p. 107).
+
+Strengthened non-vanishing: when `|S| < n`, the witness monomial
+`m_S` is in particular non-zero.  This matches the paper's use of
+`m_S` as a non-trivial witness in the identity-minor argument
+(p. 100: "each row `∂_S perm_n` has a private 1 in the column
+`m_S`"). -/
+theorem diagMonomial_ne_zero_of_card_lt {n : ℕ}
+    (S : Finset (Fin n)) (_hS : S.card < n) :
+    diagMonomial S ≠ (0 : MvPolynomial (Fin n × Fin n) ℚ) :=
+  diagMonomial_ne_zero S
+
+/-- **§144.10 — `diagMonomial_totalDegree_le`** (paper §18 Theorem 94
+Step 2 p. 100 "`m_S = ∏_{i ∉ S} x_{i,i}` has degree `n − κ`";
+Theorem 100 p. 107).
+
+Upper bound on the total degree of `m_S`: at most `n − |S|`, since
+`m_S` is a product of `|Sᶜ| = n − |S|` indeterminates, each of
+total degree 1. -/
+theorem diagMonomial_totalDegree_le {n : ℕ} (S : Finset (Fin n)) :
+    (diagMonomial S).totalDegree ≤ n - S.card := by
+  unfold diagMonomial
+  refine (MvPolynomial.totalDegree_finset_prod (Sᶜ : Finset (Fin n))
+    (fun i => (MvPolynomial.X (i, i) :
+      MvPolynomial (Fin n × Fin n) ℚ))).trans ?_
+  have hbound : ∀ i ∈ (Sᶜ : Finset (Fin n)),
+      (MvPolynomial.X (i, i) :
+        MvPolynomial (Fin n × Fin n) ℚ).totalDegree ≤ 1 := by
+    intro i _
+    exact (MvPolynomial.totalDegree_X (i, i)).le
+  refine (Finset.sum_le_sum hbound).trans ?_
+  rw [Finset.sum_const, smul_eq_mul, mul_one]
+  have hcompl :
+      (Sᶜ : Finset (Fin n)).card = Fintype.card (Fin n) - S.card :=
+    Finset.card_compl S
+  rw [hcompl, Fintype.card_fin]
+
+/-- **§144.11 — `permTerm_totalDegree_le`** (paper §18 Theorem 94
+p. 99 "each term `∏_{i=1}^n x_{i, σ(i)}` has degree `n`").
+
+Upper bound on the total degree of each permutation's contribution
+to `permPoly n`: at most `n`, since each term is a product of `n`
+indeterminates of total degree 1. -/
+theorem permTerm_totalDegree_le {n : ℕ} (σ : Equiv.Perm (Fin n)) :
+    (∏ i : Fin n,
+        (MvPolynomial.X (i, σ i) :
+          MvPolynomial (Fin n × Fin n) ℚ)).totalDegree ≤ n := by
+  refine (MvPolynomial.totalDegree_finset_prod
+    (Finset.univ : Finset (Fin n))
+    (fun i => (MvPolynomial.X (i, σ i) :
+      MvPolynomial (Fin n × Fin n) ℚ))).trans ?_
+  have hbound : ∀ i ∈ (Finset.univ : Finset (Fin n)),
+      (MvPolynomial.X (i, σ i) :
+        MvPolynomial (Fin n × Fin n) ℚ).totalDegree ≤ 1 := by
+    intro i _
+    exact (MvPolynomial.totalDegree_X (i, σ i)).le
+  refine (Finset.sum_le_sum hbound).trans ?_
+  rw [Finset.sum_const, smul_eq_mul, mul_one]
+  simp [Fintype.card_fin]
+
+/-- **§144.12 — `permPoly_totalDegree_le`** (paper §18 Theorem 94
+p. 99 "`perm_n` is a polynomial of degree `n` in the `n²` entries
+of `X`").
+
+Upper bound: the total degree of `permPoly n` is at most `n`,
+because every permutation term has total degree at most `n` and
+`totalDegree` of a sum is the supremum of term degrees. -/
+theorem permPoly_totalDegree_le (n : ℕ) : (permPoly n).totalDegree ≤ n := by
+  unfold permPoly
+  refine MvPolynomial.totalDegree_finsetSum_le ?_
+  intro σ _
+  exact permTerm_totalDegree_le σ
+
+/-- **§144.13 — `permPoly_ne_zero_of_pos`** (paper §18 Theorem 94
+p. 99 "`perm_n` is `#P`-complete" — in particular non-zero as a
+formal polynomial for `n ≥ 1`).
+
+For `n > 0`, `permPoly n` is not the zero polynomial.  The identity
+permutation contributes the monomial `∏_i x_{i,i}`, whose
+coefficient at its exponent-finsupp `μ_id := ∑_i single (i,i) 1`
+is `1` — this uses that every other permutation `σ ≠ 1` contributes
+a monomial whose support differs from `μ_id` (some index `i₀` has
+`σ i₀ ≠ i₀`, so `(i₀, σ i₀) ≠ (i₀, i₀)`, and the finsupps agree
+nowhere off the diagonal).  Hence `coeff μ_id (permPoly n) = 1`,
+which forces `permPoly n ≠ 0`. -/
+theorem permPoly_ne_zero_of_pos {n : ℕ} (_hn : 0 < n) :
+    permPoly n ≠ (0 : MvPolynomial (Fin n × Fin n) ℚ) := by
+  classical
+  intro hzero
+  -- Exponent-finsupp of the identity term: μ_id (i, j) = 1 iff j = i.
+  set μ_id : (Fin n × Fin n) →₀ ℕ :=
+    ∑ i : Fin n, Finsupp.single (i, i) 1 with hμ_id_def
+  -- Coefficient of μ_id in permPoly n is 1.
+  have hcoeff : (permPoly n).coeff μ_id = 1 := by
+    unfold permPoly
+    rw [MvPolynomial.coeff_sum]
+    rw [Finset.sum_eq_single (1 : Equiv.Perm (Fin n))]
+    · -- Identity term: product of X (i, i) = monomial μ_id 1.
+      have hprod :
+          (∏ i : Fin n,
+              (MvPolynomial.X (i, (1 : Equiv.Perm (Fin n)) i) :
+                MvPolynomial (Fin n × Fin n) ℚ)) =
+          MvPolynomial.monomial μ_id (1 : ℚ) := by
+        -- Each X (i, 1·i) = X (i, i) = monomial (single (i,i) 1) 1.
+        have h1 :
+            ∀ i : Fin n,
+              (MvPolynomial.X (i, (1 : Equiv.Perm (Fin n)) i) :
+                MvPolynomial (Fin n × Fin n) ℚ) =
+              MvPolynomial.monomial
+                (Finsupp.single ((i, i) : Fin n × Fin n) 1) 1 := by
+          intro i
+          simp [MvPolynomial.X, Equiv.Perm.one_apply]
+        simp_rw [h1]
+        rw [hμ_id_def, ← MvPolynomial.monomial_sum_one
+          (s := (Finset.univ : Finset (Fin n)))
+          (f := fun i => Finsupp.single ((i, i) : Fin n × Fin n) 1)]
+      rw [hprod, MvPolynomial.coeff_monomial]
+      simp
+    · -- σ ≠ 1: coefficient is 0 because monomial support differs.
+      intro σ _ hσne
+      have hprod :
+          (∏ i : Fin n,
+              (MvPolynomial.X (i, σ i) :
+                MvPolynomial (Fin n × Fin n) ℚ)) =
+          MvPolynomial.monomial
+            (∑ i : Fin n,
+              Finsupp.single ((i, σ i) : Fin n × Fin n) 1) 1 := by
+        have h1 :
+            ∀ i : Fin n,
+              (MvPolynomial.X (i, σ i) :
+                MvPolynomial (Fin n × Fin n) ℚ) =
+              MvPolynomial.monomial
+                (Finsupp.single ((i, σ i) : Fin n × Fin n) 1) 1 := by
+          intro i
+          simp [MvPolynomial.X]
+        simp_rw [h1]
+        rw [← MvPolynomial.monomial_sum_one
+          (s := (Finset.univ : Finset (Fin n)))
+          (f := fun i => Finsupp.single ((i, σ i) : Fin n × Fin n) 1)]
+      rw [hprod, MvPolynomial.coeff_monomial]
+      obtain ⟨i₀, hi₀⟩ : ∃ i : Fin n, σ i ≠ i := by
+        by_contra hall
+        push_neg at hall
+        apply hσne
+        exact Equiv.ext (fun i => by simpa using hall i)
+      -- We show that the two finsupps differ at (i₀, σ i₀).
+      have hne :
+          (∑ i : Fin n,
+            Finsupp.single ((i, σ i) : Fin n × Fin n) 1) ≠ μ_id := by
+        intro hEq
+        -- Evaluate both at (i₀, σ i₀).
+        have hval_lhs :
+            (∑ i : Fin n,
+              Finsupp.single ((i, σ i) : Fin n × Fin n) 1)
+                (i₀, σ i₀) ≥ 1 := by
+          rw [Finset.sum_apply']
+          have hi₀_mem :
+              (i₀ : Fin n) ∈ (Finset.univ : Finset (Fin n)) :=
+            Finset.mem_univ _
+          have hsingle :
+              (Finsupp.single ((i₀, σ i₀) : Fin n × Fin n) 1)
+                (i₀, σ i₀) = 1 := by
+            simp [Finsupp.single_apply]
+          calc (1 : ℕ)
+              = (Finsupp.single ((i₀, σ i₀) : Fin n × Fin n) 1)
+                  (i₀, σ i₀) := hsingle.symm
+            _ ≤ ∑ i : Fin n,
+                  (Finsupp.single ((i, σ i) : Fin n × Fin n) 1)
+                    (i₀, σ i₀) := by
+                exact Finset.single_le_sum
+                  (f := fun i =>
+                    (Finsupp.single ((i, σ i) : Fin n × Fin n) 1)
+                      (i₀, σ i₀))
+                  (s := (Finset.univ : Finset (Fin n)))
+                  (by intro i _; exact Nat.zero_le _) hi₀_mem
+        have hval_rhs : μ_id (i₀, σ i₀) = 0 := by
+          rw [hμ_id_def, Finset.sum_apply']
+          apply Finset.sum_eq_zero
+          intro j _
+          -- j ≠ i₀ ∨ σ i₀ ≠ j  ⇒  (j, j) ≠ (i₀, σ i₀).
+          have hne_pair : ((j, j) : Fin n × Fin n) ≠ (i₀, σ i₀) := by
+            intro hpj
+            have hj₁ : j = i₀ := (Prod.mk.inj hpj).1
+            have hj₂ : j = σ i₀ := (Prod.mk.inj hpj).2
+            apply hi₀
+            rw [← hj₂, hj₁]
+          simp [Finsupp.single_apply, hne_pair]
+        rw [hEq] at hval_lhs
+        rw [hval_rhs] at hval_lhs
+        exact absurd hval_lhs (by decide)
+      simp [hne]
+    · intro h
+      exact absurd (Finset.mem_univ _) h
+  -- Final contradiction.
+  rw [hzero, MvPolynomial.coeff_zero] at hcoeff
+  exact absurd hcoeff (by norm_num)
+
+/-- **§144.14 — `permPoly_ne_zero`** (paper §18 Theorem 94 p. 99):
+alias stating that `permPoly n` is non-zero as soon as `n > 0`,
+the paper's regime. -/
+theorem permPoly_ne_zero {n : ℕ} (hn : 0 < n) :
+    permPoly n ≠ (0 : MvPolynomial (Fin n × Fin n) ℚ) :=
+  permPoly_ne_zero_of_pos hn
+
+/-- **§144.15 — `witnessRowSet_card`** (paper §18 Theorem 94 Step 1
+p. 100 "there are `(n choose κ)` subsets `S ⊆ [n]` of size `κ`";
+Theorem 100 p. 107 "the `(n choose κ)` witness monomials").
+
+Cardinality of the row-family index set: `|R_κ| = (n choose κ)`. -/
+theorem witnessRowSet_card (n κ : ℕ) :
+    (witnessRowSet n κ).card = Nat.choose n κ := by
+  unfold witnessRowSet
+  rw [Finset.card_powersetCard]
+  simp
+
+/-- **§144.16 — `mem_witnessRowSet_iff`** (paper §18 Theorem 94
+Step 1 p. 100 "`R_κ := {∂_S perm_n | S ⊆ [n], |S| = κ}`").
+
+Membership characterisation for `R_κ`: the subsets in the row
+family are exactly the cardinality-`κ` subsets of `[n]`. -/
+theorem mem_witnessRowSet_iff {n κ : ℕ} (S : Finset (Fin n)) :
+    S ∈ witnessRowSet n κ ↔ S.card = κ := by
+  unfold witnessRowSet
+  rw [Finset.mem_powersetCard]
+  constructor
+  · intro ⟨_, h⟩; exact h
+  · intro h; exact ⟨Finset.subset_univ _, h⟩
+
+-- **Axiom audit** for §144 (paper §18 Theorem 94 / Theorem 100,
+-- pp. 99-108): the permanent-polynomial / witness-monomial /
+-- row-family interface is axiom-free (depends only on Lean core:
+-- `propext`, `Classical.choice`, `Quot.sound`).
+#print axioms permPoly
+#print axioms diagMonomial
+#print axioms witnessRowSet
+#print axioms permPoly_eq_sum_prod
+#print axioms diagMonomial_empty
+#print axioms diagMonomial_univ
+#print axioms permPoly_identity_term_eq_diagMonomial_empty
+#print axioms diagMonomial_ne_zero
+#print axioms diagMonomial_ne_zero_of_card_lt
+#print axioms diagMonomial_totalDegree_le
+#print axioms permTerm_totalDegree_le
+#print axioms permPoly_totalDegree_le
+#print axioms permPoly_ne_zero_of_pos
+#print axioms permPoly_ne_zero
+#print axioms witnessRowSet_card
+#print axioms mem_witnessRowSet_iff
+
 end Step4Compiler
