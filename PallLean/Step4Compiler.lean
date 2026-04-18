@@ -4329,5 +4329,210 @@ theorem batcherLayered_output_cew_mono_depth {N : ℕ}
     HasCEWBound p (d₂ * base_cew) :=
   HasCEWBound_mono h (Nat.mul_le_mul_right base_cew hmono)
 
+
+/-! ## Section 78: Finset-iterated SoSGadget combinators and
+    clause-init gadget (paper §40 Step 3 / §2.1)
+
+Paper §2.1 (radius-1 SoS construction) requires iterated combinator
+lemmas — sums over Finsets of gadgets, products over lists of gadgets —
+to aggregate per-layer transition checks into a global constraint
+polynomial while keeping the CEW and degree bookkeeping polynomial.
+
+Concretely, §78 provides:
+  * `finsetSum_SoSGadget_hasCEWBound`: if every gadget in a Finset-
+    indexed family has CEW ≤ `target`, so does their pointwise sum;
+  * `list_mul_SoSGadget_totalDegree_le`: the totalDegree of a list
+    product of gadget polynomials is bounded by the sum of their
+    individual totalDegrees (and hence `≤ 6 · list.length` using the
+    universal per-gadget bound);
+  * `clauseInitSoSGadget`: a canonical 2-wire cell-init gadget
+    `(1 − X_i)(1 − X_j)`, enforcing "both wires `i` and `j` are bit 0",
+    as used in paper §2.1's initial-tableau clause checks.
+
+Together these lemmas complete the Finset/List-level plumbing needed
+by the §40 Step 3 Lemma 19 compilation. -/
+
+/-- **§78.1 — Finset-sum CEW bound for SoSGadget families** (paper §40
+Step 3 / Lemma 19). For a Finset-indexed family `g : ι → SoSGadget N`
+whose polynomials each have CEW ≤ `target`, the pointwise sum
+`∑ i ∈ s, (g i).poly` has CEW ≤ `target`. This is the gadget-level
+form of `HasCEWBound_finset_sum` (§17) used when aggregating per-layer
+transition checks along the BP path. -/
+theorem finsetSum_SoSGadget_hasCEWBound {N : ℕ} {ι : Type*}
+    (s : Finset ι) (g : ι → SoSGadget N) (target : ℕ)
+    (h : ∀ i ∈ s, HasCEWBound (g i).poly target) :
+    HasCEWBound (s.sum (fun i => (g i).poly)) target :=
+  HasCEWBound_finset_sum s (fun i => (g i).poly) target h
+
+/-- **§78.2 — list-product totalDegree bound for SoSGadget families**
+(paper §40 Step 3 / Lemma 19). For a list `gs : List (SoSGadget N)`,
+the totalDegree of the polynomial-product
+`(gs.map SoSGadget.poly).prod` is bounded by the sum of the
+totalDegrees of the component gadgets. Proved by induction on the list
+using `MvPolynomial.totalDegree_mul`. -/
+theorem list_mul_SoSGadget_totalDegree_le {N : ℕ}
+    (gs : List (SoSGadget N)) :
+    ((gs.map SoSGadget.poly).prod).totalDegree ≤
+      (gs.map (fun g => g.poly.totalDegree)).sum := by
+  induction gs with
+  | nil =>
+    -- Empty list: product = 1, sum = 0. `(1).totalDegree = 0 ≤ 0`.
+    simp
+  | cons g rest ih =>
+    -- Cons: map_cons + prod_cons yields g.poly * rest_product.
+    -- Apply `totalDegree_mul`, then the inductive hypothesis.
+    simp only [List.map_cons, List.prod_cons, List.sum_cons]
+    calc (g.poly * (rest.map SoSGadget.poly).prod).totalDegree
+        ≤ g.poly.totalDegree + ((rest.map SoSGadget.poly).prod).totalDegree :=
+          MvPolynomial.totalDegree_mul _ _
+      _ ≤ g.poly.totalDegree + (rest.map (fun g => g.poly.totalDegree)).sum :=
+          Nat.add_le_add_left ih _
+
+/-- **§78.3a — sum of per-gadget totalDegrees is bounded by `6 · length`**
+(paper §40 Step 3 / Lemma 19). Helper lemma for `list_mul_…_le_six`:
+since every gadget has `totalDegree ≤ 6`, the sum of their totalDegrees
+over a list of length `n` is bounded by `6 · n`. Proved by induction
+on the list. -/
+theorem list_map_totalDegree_sum_le_six {N : ℕ}
+    (gs : List (SoSGadget N)) :
+    (gs.map (fun g => g.poly.totalDegree)).sum ≤ 6 * gs.length := by
+  induction gs with
+  | nil => simp
+  | cons g rest ih =>
+    simp only [List.map_cons, List.sum_cons, List.length_cons]
+    have hg : g.poly.totalDegree ≤ 6 := g.degree_bound
+    calc g.poly.totalDegree +
+          (rest.map (fun g => g.poly.totalDegree)).sum
+        ≤ 6 + 6 * rest.length := Nat.add_le_add hg ih
+      _ = 6 * (rest.length + 1) := by ring
+
+/-- **§78.3 — list-product totalDegree via universal ≤ 6 bound**
+(paper §40 Step 3 / Lemma 19: every SoSGadget has `totalDegree ≤ 6`).
+Combining `list_mul_SoSGadget_totalDegree_le` with the universal
+per-gadget bound `SoSGadget.totalDegree_le`, the list-product
+totalDegree is bounded by `6 * gs.length`. -/
+theorem list_mul_SoSGadget_totalDegree_le_six {N : ℕ}
+    (gs : List (SoSGadget N)) :
+    ((gs.map SoSGadget.poly).prod).totalDegree ≤ 6 * gs.length := by
+  have h1 : ((gs.map SoSGadget.poly).prod).totalDegree ≤
+      (gs.map (fun g => g.poly.totalDegree)).sum :=
+    list_mul_SoSGadget_totalDegree_le gs
+  have h2 : (gs.map (fun g => g.poly.totalDegree)).sum ≤ 6 * gs.length :=
+    list_map_totalDegree_sum_le_six gs
+  exact le_trans h1 h2
+
+/-- **Clause-init gadget** (paper §40 Step 3 / §2.1): the 2-wire SoS
+gadget `(1 − X_i)(1 − X_j)` enforcing "both bits are 0" (the standard
+tableau cell-init check in paper §2.1). Packaged with varSupport
+`{i, j}` and totalDegree ≤ 2 (hence ≤ 6). -/
+noncomputable def clauseInitSoSGadget {N : ℕ} (i j : Fin N) :
+    SoSGadget N where
+  poly := (1 - MvPolynomial.X i) * (1 - MvPolynomial.X j)
+  varSupport := {i, j}
+  support_bound := by
+    have h₁ : ({i, j} : Finset (Fin N)).card ≤ 2 := by
+      classical
+      by_cases hij : i = j
+      · rw [hij]; simp
+      · rw [Finset.card_insert_of_notMem (by simpa using hij)]
+        simp
+    omega
+  vars_contained := by
+    intro k hk
+    -- vars ⊆ (1 - X_i).vars ∪ (1 - X_j).vars ⊆ ({i}) ∪ ({j}) ⊆ {i, j}.
+    have hmul :
+        ((1 - MvPolynomial.X i) * (1 - MvPolynomial.X j) :
+            MvPolynomial (Fin N) ℚ).vars ⊆
+          (1 - MvPolynomial.X i : MvPolynomial (Fin N) ℚ).vars ∪
+            (1 - MvPolynomial.X j : MvPolynomial (Fin N) ℚ).vars :=
+      MvPolynomial.vars_mul _ _
+    have hU := hmul hk
+    rcases Finset.mem_union.mp hU with hi | hj
+    · -- hi : k ∈ (1 - X_i).vars. Use vars_sub_subset + vars_one + vars_X.
+      have hsub :
+          (1 - MvPolynomial.X i : MvPolynomial (Fin N) ℚ).vars ⊆
+            (1 : MvPolynomial (Fin N) ℚ).vars ∪
+              (MvPolynomial.X i : MvPolynomial (Fin N) ℚ).vars :=
+        MvPolynomial.vars_sub_subset (1 : MvPolynomial (Fin N) ℚ)
+      have hU' := hsub hi
+      rcases Finset.mem_union.mp hU' with h1 | hXi
+      · rw [MvPolynomial.vars_one] at h1
+        exact absurd h1 (Finset.notMem_empty k)
+      · rw [MvPolynomial.vars_X] at hXi
+        rw [Finset.mem_singleton] at hXi
+        subst hXi
+        exact Finset.mem_insert_self _ _
+    · -- hj : k ∈ (1 - X_j).vars. Symmetric.
+      have hsub :
+          (1 - MvPolynomial.X j : MvPolynomial (Fin N) ℚ).vars ⊆
+            (1 : MvPolynomial (Fin N) ℚ).vars ∪
+              (MvPolynomial.X j : MvPolynomial (Fin N) ℚ).vars :=
+        MvPolynomial.vars_sub_subset (1 : MvPolynomial (Fin N) ℚ)
+      have hU' := hsub hj
+      rcases Finset.mem_union.mp hU' with h1 | hXj
+      · rw [MvPolynomial.vars_one] at h1
+        exact absurd h1 (Finset.notMem_empty k)
+      · rw [MvPolynomial.vars_X] at hXj
+        rw [Finset.mem_singleton] at hXj
+        subst hXj
+        exact Finset.mem_insert_of_mem (Finset.mem_singleton_self _)
+  degree_bound := by
+    -- `(1 - X_i).totalDegree ≤ 1`, `(1 - X_j).totalDegree ≤ 1`, product ≤ 2.
+    have h_i : (1 - MvPolynomial.X i : MvPolynomial (Fin N) ℚ).totalDegree
+        ≤ 1 := HasCEWBound_one_sub_X i
+    have h_j : (1 - MvPolynomial.X j : MvPolynomial (Fin N) ℚ).totalDegree
+        ≤ 1 := HasCEWBound_one_sub_X j
+    have hmul :
+        ((1 - MvPolynomial.X i) * (1 - MvPolynomial.X j) :
+            MvPolynomial (Fin N) ℚ).totalDegree ≤
+          (1 - MvPolynomial.X i : MvPolynomial (Fin N) ℚ).totalDegree +
+            (1 - MvPolynomial.X j : MvPolynomial (Fin N) ℚ).totalDegree :=
+      MvPolynomial.totalDegree_mul _ _
+    have h_sum : (1 - MvPolynomial.X i :
+          MvPolynomial (Fin N) ℚ).totalDegree +
+        (1 - MvPolynomial.X j : MvPolynomial (Fin N) ℚ).totalDegree ≤ 2 :=
+      Nat.add_le_add h_i h_j
+    exact le_trans (le_trans hmul h_sum) (by omega)
+
+/-- **§78.4 — `clauseInitSoSGadget`'s polynomial is
+`(1 − X_i)(1 − X_j)`** (paper §40 Step 3 / §2.1: the canonical cell-init
+check). -/
+theorem clauseInitSoSGadget_poly {N : ℕ} (i j : Fin N) :
+    (clauseInitSoSGadget i j).poly =
+      (1 - MvPolynomial.X i) * (1 - MvPolynomial.X j) := rfl
+
+/-- **§78.5 — `clauseInitSoSGadget` has varSupport `{i, j}`** (paper §40
+Step 3 / §2.1: the clause-init gadget touches exactly the two wires
+whose joint zero-init it checks). -/
+theorem clauseInitSoSGadget_varSupport {N : ℕ} (i j : Fin N) :
+    (clauseInitSoSGadget i j).varSupport = {i, j} := rfl
+
+/-- **§78.6 — `clauseInitSoSGadget` has varSupport.card ≤ 2** (paper §40
+Step 3 / §2.1: a two-variable gadget, well within the radius-1 bound). -/
+theorem clauseInitSoSGadget_varSupport_card_le {N : ℕ} (i j : Fin N) :
+    (clauseInitSoSGadget i j).varSupport.card ≤ 2 := by
+  rw [clauseInitSoSGadget_varSupport]
+  classical
+  by_cases hij : i = j
+  · rw [hij]; simp
+  · rw [Finset.card_insert_of_notMem (by simpa using hij)]
+    simp
+
+/-- **§78.7 — CEW bound for `clauseInitSoSGadget`** (paper §40 Step 3 /
+§2.1: the product of two negative literals has CEW ≤ 2). Proved from
+`HasCEWBound_mul` applied to the two atomic
+`HasCEWBound_one_sub_X` certificates. -/
+theorem clauseInitSoSGadget_hasCEWBound_two {N : ℕ} (i j : Fin N) :
+    HasCEWBound (clauseInitSoSGadget i j).poly 2 := by
+  rw [clauseInitSoSGadget_poly]
+  have h_i : HasCEWBound
+      (1 - MvPolynomial.X i : MvPolynomial (Fin N) ℚ) 1 :=
+    HasCEWBound_one_sub_X i
+  have h_j : HasCEWBound
+      (1 - MvPolynomial.X j : MvPolynomial (Fin N) ℚ) 1 :=
+    HasCEWBound_one_sub_X j
+  exact HasCEWBound_mul h_i h_j
+
+
 end Step4Compiler
 
