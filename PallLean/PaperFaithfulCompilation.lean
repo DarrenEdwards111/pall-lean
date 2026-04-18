@@ -1483,6 +1483,71 @@ theorem pullback_eq_cook_levin_partition
   · rfl
   · exact absurd i.isLt h
 
+/-- **General Path A separation**: given ANY polynomial `P` such that
+`piPhi σ P = embed σ Q` (the extraction property), Q-side bound, and
+P-side bound, derive False at n ≥ 2^804.
+
+This generalizes `pathA_final_separation` which is the special case
+`P = templatePMn σ Q`. With this general form, Step 4 can be proved
+for paper's Theorem 203 `P_{M,n}(u, v)` (which has a different shape
+from templatePMn but satisfies the extraction property via the paper's
+wiring ζ). -/
+theorem pathA_general_separation
+    (n : ℕ) (hn : n ≥ 2 ^ 804)
+    {σ : UVSplit} (_hV : 0 < σ.numV)
+    (B : SPDP.BlockPartition σ.total)
+    (Q : CoupledSheetPoly σ) (P : PMnPoly σ) (κ ℓ : ℕ)
+    (hExtract : piPhi σ P = CoupledSheetPoly.embed σ Q)
+    (hQSource : Nat.choose (n / 3) (Nat.log 2 n) ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition B σ.inlU) κ ℓ Q)
+    (hPRank : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ P ≤ n ^ 200) :
+    False := by
+  -- Step 1: rank(embed Q) ≥ rank(Q, pullback) ≥ C(n/3, log n)
+  have h_embed_ge : Nat.choose (n / 3) (Nat.log 2 n) ≤
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (CoupledSheetPoly.embed σ Q) :=
+    le_trans hQSource (embed_rank_preservation σ B κ ℓ Q)
+  -- Step 2: piPhi is rank-monotone, so rank(piPhi P) ≤ rank(P)
+  have h_pi_le : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (piPhi σ P) ≤
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ P :=
+    piPhi_isRankMonotoneGauge σ B κ ℓ P
+  -- Step 3: substitute hExtract
+  rw [hExtract] at h_pi_le
+  -- Now: rank(embed Q) ≤ rank(P) ≤ n^200
+  have h_embed_le : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+      (CoupledSheetPoly.embed σ Q) ≤ n ^ 200 :=
+    le_trans h_pi_le hPRank
+  -- But h_embed_ge says ≥ C(n/3, log n), and arithmetic_gap says C > n^200:
+  have hgap := arithmetic_gap_2pow804 n hn
+  omega
+
+/-! ## Section 28 (alt): Universal Q^×_Φ construction — for the Step 4
+paper-faithful plug-in
+
+The user of `pathA_general_separation` needs:
+- A concrete Q : CoupledSheetPoly σ with rank ≥ C (Step 2)
+- A concrete P : PMnPoly σ with rank ≤ n^200 (Step 4: paper §40)
+- An extraction identity piPhi σ P = embed σ Q (paper Lemma 205)
+
+Our `cookLevinQ` satisfies Step 2 via `cookLevinQ_rank_ge`. Step 4
+remains: construct P_{M,n} via paper's BP→SoS→Width⇒Rank pipeline with
+explicit tableau variables, and prove the extraction identity.
+
+The extraction identity is automatic for PMn = embed(Q) · (v-factor
+vanishing under piPhi) — captured by our `templatePMn` construction.
+The challenge: this specific shape may not match paper's Width⇒Rank
+structure.
+
+The paper's approach: P_{M,n}(u, v) built from local SoS gadgets has
+CEW = O(log n) → rank ≤ n^O(1). Π_Φ restricts v to specific constants
+(via wiring ζ) yielding Q^×_Φ(u). These are distinct polynomials with
+independent rank profiles.
+
+For full Lean-level discharge: the user must construct the concrete
+paper-faithful P_{M,n} and prove both rank bounds conditional on
+DecidesSAT M. All infrastructure to CONSUME such a construction is
+already axiom-free (this file). -/
+
 /-- **NP-side rank bound for `cookLevinQ` at pulled-back partition**.
 
 With `pullback_eq_cook_levin_partition` establishing partition equality,
