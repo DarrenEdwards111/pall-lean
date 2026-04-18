@@ -4186,6 +4186,148 @@ theorem copySoSGadget_hasCEWBound_two {N : ℕ} (i j : Fin N) :
     HasCEWBound (copySoSGadget i j).poly 2 :=
   copySoSGadget_totalDegree_le i j
 
+/-! ## Section 83: CEW of Batcher-layered outputs (paper §40 Step 2 / Lemma 19)
+
+Paper §40 Step 2 uses the Batcher odd-even merge sorting network for
+oblivious routing. The compiled polynomial produced at the output of a
+Batcher network of depth `d` is obtained by composing `d` layers, each
+of which is a radius-1 SoS transformation of the current layer state
+(paper Lemma 19's layer-composition view).
+
+The CEW bookkeeping for this compositional structure is a direct
+consequence of §82's iterated-product CEW bound specialised to the
+Batcher geometry. Concretely, if each individual layer contributes at
+most `base_cew` to the CEW (via a radius-1 SoS multiplication) and the
+Batcher network has depth `d ≤ batcherDepthBound N = (Nat.log 2 N)²`,
+then the final layered output polynomial has CEW `≤ d · base_cew`
+which in the log-squared regime is `≤ (log₂ N)² · base_cew`.
+
+Since this file does not fix a concrete compiler-output function for
+Batcher-layered polynomials (that wiring is part of the full Step 4
+implementation), the theorems below are stated in **conditional /
+compositional** form: they assume a compositional CEW witness
+(an `HasCEWBound` of the depth-indexed output) and transport it
+monotonically through the `batcherDepthBound` envelope. This lets
+downstream callers quote the O(log² N) bound without committing to a
+specific representation of "the layered output polynomial". All
+theorems are axiom-free and strictly reuse §82's algebra and §73/§74's
+depth lemmas. -/
+
+/-- **§83.1 — CEW of a depth-`d` Batcher-layered output, compositional
+form** (paper §40 Step 2 / Lemma 19). If a polynomial `p` arises as the
+flat list-product of `d` layer polynomials (each of which has CEW
+`≤ base_cew`), then `p` has CEW `≤ d * base_cew`. This is the product
+form of `HasCEWBound_list_prod_same` (§82.2) specialised to the
+"depth-indexed layer list" representation used by Batcher's
+odd-even-merge construction. -/
+theorem batcherLayered_output_cew_compositional {N : ℕ}
+    (layers : List (MvPolynomial (Fin N) ℚ)) (d base_cew : ℕ)
+    (hlen : layers.length = d)
+    (hbase : ∀ p ∈ layers, HasCEWBound p base_cew) :
+    HasCEWBound layers.prod (d * base_cew) := by
+  have h1 : HasCEWBound layers.prod (layers.length * base_cew) :=
+    HasCEWBound_list_prod_same base_cew layers hbase
+  rw [hlen] at h1
+  exact h1
+
+/-- **§83.2 — CEW of a Batcher-layered output with depth bounded by
+`batcherDepthBound N`** (paper §40 Step 2 / Lemma 19, `O(log² N)`
+form). Combines §83.1 with the `(Nat.log 2 N)²` depth envelope from
+§73/§74. If the layer count is `≤ batcherDepthBound N` and each layer
+has CEW `≤ base_cew`, then the product has CEW `≤
+batcherDepthBound N * base_cew = (Nat.log 2 N)² * base_cew`. -/
+theorem batcherLayered_output_cew_log_squared {N : ℕ}
+    (n : ℕ) (layers : List (MvPolynomial (Fin N) ℚ)) (base_cew : ℕ)
+    (hlen : layers.length ≤ batcherDepthBound n)
+    (hbase : ∀ p ∈ layers, HasCEWBound p base_cew) :
+    HasCEWBound layers.prod (batcherDepthBound n * base_cew) := by
+  have h1 : HasCEWBound layers.prod (layers.length * base_cew) :=
+    HasCEWBound_list_prod_same base_cew layers hbase
+  have hmono : layers.length * base_cew ≤ batcherDepthBound n * base_cew :=
+    Nat.mul_le_mul_right base_cew hlen
+  exact HasCEWBound_mono h1 hmono
+
+/-- **§83.3 — CEW of a Batcher-layered output, concrete `(log₂ n)²`
+form** (paper §40 Step 2 / Lemma 19). Unfolds `batcherDepthBound n =
+(Nat.log 2 n)^2` in §83.2 to produce the direct paper-faithful
+`(log₂ n)² · base_cew` upper bound on the CEW of the Batcher-layered
+output. This is the "big picture" quantitative statement referenced by
+paper Lemma 19's `O(log² N) · base_cew` CEW budget. -/
+theorem batcherLayered_output_cew_log_squared_unfolded {N : ℕ}
+    (n : ℕ) (layers : List (MvPolynomial (Fin N) ℚ)) (base_cew : ℕ)
+    (hlen : layers.length ≤ (Nat.log 2 n) ^ 2)
+    (hbase : ∀ p ∈ layers, HasCEWBound p base_cew) :
+    HasCEWBound layers.prod ((Nat.log 2 n) ^ 2 * base_cew) := by
+  have hlen' : layers.length ≤ batcherDepthBound n := by
+    unfold batcherDepthBound
+    exact hlen
+  have h1 : HasCEWBound layers.prod (batcherDepthBound n * base_cew) :=
+    batcherLayered_output_cew_log_squared n layers base_cew hlen' hbase
+  have heq : batcherDepthBound n = (Nat.log 2 n) ^ 2 := rfl
+  rw [heq] at h1
+  exact h1
+
+/-- **§83.4 — CEW of a Batcher-layered output with unit-CEW layers**
+(paper §40 Step 2 / Lemma 19, `base_cew = 1` specialisation). If every
+layer of a depth-`d` Batcher-layered output has CEW `≤ 1` (the paper's
+"atomic literal layer" case), then the product has CEW `≤ d`.
+Specialisation of §83.1 at `base_cew = 1`; reduces directly to the
+existing `HasCEWBound_list_prod_ones` wrapper from §21. -/
+theorem batcherLayered_output_cew_unit {N : ℕ}
+    (layers : List (MvPolynomial (Fin N) ℚ)) (d : ℕ)
+    (hlen : layers.length = d)
+    (hbase : ∀ p ∈ layers, HasCEWBound p 1) :
+    HasCEWBound layers.prod d := by
+  have h1 : HasCEWBound layers.prod layers.length :=
+    HasCEWBound_list_prod_ones layers hbase
+  rw [hlen] at h1
+  exact h1
+
+/-- **§83.5 — CEW of a Batcher-layered output with `batcherDepthBound`
+depth and unit-CEW layers** (paper §40 Step 2 / Lemma 19 headline case).
+A Batcher network of depth `≤ batcherDepthBound n` with unit-CEW layers
+produces an output polynomial with CEW `≤ (Nat.log 2 n)²`. This is the
+direct paper `O(log² N)` CEW budget; combines §83.2 and §83.4 via
+`batcherDepthBound` unfolding. -/
+theorem batcherLayered_output_cew_unit_log_squared {N : ℕ}
+    (n : ℕ) (layers : List (MvPolynomial (Fin N) ℚ))
+    (hlen : layers.length ≤ batcherDepthBound n)
+    (hbase : ∀ p ∈ layers, HasCEWBound p 1) :
+    HasCEWBound layers.prod ((Nat.log 2 n) ^ 2) := by
+  have h1 : HasCEWBound layers.prod (batcherDepthBound n * 1) :=
+    batcherLayered_output_cew_log_squared n layers 1 hlen hbase
+  have heq : batcherDepthBound n * 1 = (Nat.log 2 n) ^ 2 := by
+    unfold batcherDepthBound
+    ring
+  rw [heq] at h1
+  exact h1
+
+/-- **§83.6 — Batcher-layered output CEW envelope depends monotonically
+on `base_cew`** (paper §40 Step 2 / Lemma 19 monotonicity). If we loosen
+the per-layer CEW bound from `base_cew₁` to `base_cew₂ ≥ base_cew₁`,
+the final-output CEW envelope grows monotonically (from
+`d · base_cew₁` to `d · base_cew₂`). Used when composing the Batcher
+CEW bound with downstream CEW-consuming structures that may enlarge
+the effective per-layer budget. -/
+theorem batcherLayered_output_cew_mono_base {N : ℕ}
+    (p : MvPolynomial (Fin N) ℚ) (d base_cew₁ base_cew₂ : ℕ)
+    (h : HasCEWBound p (d * base_cew₁))
+    (hmono : base_cew₁ ≤ base_cew₂) :
+    HasCEWBound p (d * base_cew₂) :=
+  HasCEWBound_mono h (Nat.mul_le_mul_left d hmono)
+
+/-- **§83.7 — Batcher-layered output CEW envelope depends monotonically
+on the depth `d`** (paper §40 Step 2 / Lemma 19 monotonicity). Dual of
+§83.6: if we allow more layers `d₁ ≤ d₂` with the same per-layer CEW
+budget `base_cew`, the final-output CEW envelope grows monotonically
+(from `d₁ · base_cew` to `d₂ · base_cew`). Used when lifting a concrete
+Batcher network's depth into a larger `O(log² N)` envelope. -/
+theorem batcherLayered_output_cew_mono_depth {N : ℕ}
+    (p : MvPolynomial (Fin N) ℚ) (d₁ d₂ base_cew : ℕ)
+    (h : HasCEWBound p (d₁ * base_cew))
+    (hmono : d₁ ≤ d₂) :
+    HasCEWBound p (d₂ * base_cew) :=
+  HasCEWBound_mono h (Nat.mul_le_mul_right base_cew hmono)
 
 end Step4Compiler
 
