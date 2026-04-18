@@ -3122,5 +3122,145 @@ theorem negLiteralSoSGadget_eval {N : ℕ} (i : Fin N)
   rw [negLiteralSoSGadget_poly]
   simp
 
+/-! ## Section 85: Gauge-compatibility helper lemmas for `piPhi`
+    (paper §40 Theorem 203 / §18 / §29 Definition 7)
+
+These lemmas capture the basic algebraic behaviour of the Π_Φ gauge
+`piPhi σ = piZero (keepU σ)` on the ambient `PMnPoly σ`. The gauge is
+a ℚ-linear projection (inherited via `piPhi_isProjectionGauge`) whose
+underlying map is the restriction of the substitution algebra
+homomorphism `substAlgHom (keepU σ) 0` — therefore it is not merely
+additive but in fact **multiplicative** (it is the linear map of an
+algebra hom). These helpers record the consequences at the level of
+the basic polynomial operations used throughout paper §40 Theorem 203
+(main extraction step) and paper §18 / §29 Definition 7 (identity minor
+map): addition, multiplication, constants, and the behaviour on a
+single variable split between the `keepU` (u-side) and `¬keepU`
+(v-side, tableau) components.
+
+Each statement is a direct consequence of the linear/algebraic
+structure already exposed by `PiStarConcrete.piZero_X`,
+`PiStarConcrete.piZero_C`, and the fact that `piPhi σ` is obtained by
+`substAlgHom.toLinearMap`. We state them explicitly so that downstream
+extraction-identity proofs can reduce `piPhi σ` symbolically without
+unfolding the substitution-algebra details. -/
+
+/-- **§85.1 — `piPhi` preserves addition** (paper §40 Theorem 203 main
+extraction step). For any two compiled polynomials `p q : PMnPoly σ`,
+the gauge Π_Φ is additive: `piPhi σ (p + q) = piPhi σ p + piPhi σ q`.
+This is the ℚ-linearity of `piPhi σ` (a `LinearMap`) applied at the
+level of addition, and is the per-summand combinator the paper's §40
+extraction identity uses to reduce `piPhi` over a decomposition of
+`P_{M,n}` into TM-simulation blocks. Proved via `map_add`. -/
+theorem piPhi_respects_add (σ : PaperFaithfulCompilation.UVSplit)
+    (p q : PaperFaithfulCompilation.PMnPoly σ) :
+    PaperFaithfulCompilation.piPhi σ (p + q) =
+      PaperFaithfulCompilation.piPhi σ p +
+        PaperFaithfulCompilation.piPhi σ q := by
+  exact map_add _ p q
+
+/-- **§85.2 — `piPhi` preserves multiplication** (paper §40 Theorem 203
+main extraction step). For any two compiled polynomials
+`p q : PMnPoly σ`, the gauge Π_Φ is multiplicative:
+`piPhi σ (p * q) = piPhi σ p * piPhi σ q`. This goes beyond pure
+ℚ-linearity: `piPhi σ` is the linearisation of the substitution algebra
+homomorphism `substAlgHom (keepU σ) 0`, hence a ring morphism on the
+polynomial algebra. This is the per-factor combinator the paper's §40
+extraction identity uses to reduce `piPhi` over a product decomposition
+of `P_{M,n}` (e.g., per clause / per time-step). Proved by unfolding
+`piPhi` to the underlying `substAlgHom`'s linear map and invoking
+`map_mul` at the algebra-hom level. -/
+theorem piPhi_respects_mul (σ : PaperFaithfulCompilation.UVSplit)
+    (p q : PaperFaithfulCompilation.PMnPoly σ) :
+    PaperFaithfulCompilation.piPhi σ (p * q) =
+      PaperFaithfulCompilation.piPhi σ p *
+        PaperFaithfulCompilation.piPhi σ q := by
+  -- Unfold piPhi and piZero to the underlying substAlgHom.toLinearMap.
+  show (PiStarConcrete.piSubst (PaperFaithfulCompilation.keepU σ) 0) (p * q) =
+       (PiStarConcrete.piSubst (PaperFaithfulCompilation.keepU σ) 0) p *
+       (PiStarConcrete.piSubst (PaperFaithfulCompilation.keepU σ) 0) q
+  show (PiStarConcrete.substAlgHom
+          (PaperFaithfulCompilation.keepU σ) 0).toLinearMap (p * q) =
+       (PiStarConcrete.substAlgHom
+          (PaperFaithfulCompilation.keepU σ) 0).toLinearMap p *
+       (PiStarConcrete.substAlgHom
+          (PaperFaithfulCompilation.keepU σ) 0).toLinearMap q
+  -- Convert to algebra-hom applications and use map_mul.
+  rw [AlgHom.toLinearMap_apply, AlgHom.toLinearMap_apply,
+      AlgHom.toLinearMap_apply, map_mul]
+
+/-- **§85.3 — `piPhi` fixes constants** (paper §29 Definition 7
+identity-minor map). For any rational constant `c : ℚ`, the gauge Π_Φ
+sends the constant polynomial `C c` to itself: `piPhi σ (C c) = C c`.
+Constants have no variable content, so the substitution (which only
+acts on variables) is the identity on them. This is the per-constant
+combinator the paper's §29 Definition 7 identity minor uses when
+reducing a polynomial modulo `piPhi`. Proved via
+`PiStarConcrete.piZero_C`. -/
+theorem piPhi_of_const (σ : PaperFaithfulCompilation.UVSplit) (c : ℚ) :
+    PaperFaithfulCompilation.piPhi σ (MvPolynomial.C c) =
+      (MvPolynomial.C c : PaperFaithfulCompilation.PMnPoly σ) := by
+  unfold PaperFaithfulCompilation.piPhi
+  exact PiStarConcrete.piZero_C (PaperFaithfulCompilation.keepU σ) c
+
+/-- **§85.4 — `piPhi` fixes u-side variables** (paper §18 identity
+minor map; §40 Theorem 203 main extraction step). For any u-side index
+`i : Fin σ.numU`, the gauge Π_Φ fixes the variable `X (inlU i)`:
+`piPhi σ (X (inlU i)) = X (inlU i)`. This is because `keepU σ` is
+`isU`, and `(inlU i).val < σ.numU`. This is the per-variable combinator
+used on the clause-sheet side of the extraction identity: u-variables
+of `P_{M,n}` survive into `embed(cookLevinQ)` unchanged. Proved via
+`piPhi_X_u` (the defining gauge action on kept variables). -/
+theorem piPhi_of_X_keepU (σ : PaperFaithfulCompilation.UVSplit)
+    (i : Fin σ.numU) :
+    PaperFaithfulCompilation.piPhi σ
+        (MvPolynomial.X (σ.inlU i) :
+          PaperFaithfulCompilation.PMnPoly σ) =
+      MvPolynomial.X (σ.inlU i) :=
+  PaperFaithfulCompilation.piPhi_X_u σ i
+
+/-- **§85.5 — `piPhi` drops v-side (tableau) variables** (paper §18
+identity minor map; §40 Theorem 203 main extraction step). For any
+v-side (tableau) index `j : Fin σ.numV`, the gauge Π_Φ sends the
+variable `X (inlV j)` to zero: `piPhi σ (X (inlV j)) = 0`. Since
+`(inlV j).val = σ.numU + j.val ≥ σ.numU`, the index fails `keepU σ`,
+and `piZero` substitutes 0 for such indices. This is the tableau
+projection at the heart of Π_Φ: it kills all tape / state / head /
+time-step variables of the compiled polynomial, leaving only the
+u-side (clause-sheet) polynomial structure. Proved via `piPhi_X_v`. -/
+theorem piPhi_of_X_drop_v (σ : PaperFaithfulCompilation.UVSplit)
+    (j : Fin σ.numV) :
+    PaperFaithfulCompilation.piPhi σ
+        (MvPolynomial.X (σ.inlV j) :
+          PaperFaithfulCompilation.PMnPoly σ) = 0 :=
+  PaperFaithfulCompilation.piPhi_X_v σ j
+
+/-- **§85.6 — `piPhi` preserves scalar multiplication** (paper §40
+Theorem 203 main extraction step, linearity supplement). For any
+rational `c : ℚ` and compiled polynomial `p : PMnPoly σ`, the gauge
+Π_Φ is ℚ-linear: `piPhi σ (c • p) = c • piPhi σ p`. This follows from
+the `LinearMap` structure of `piPhi σ` via `LinearMap.map_smul`, and
+is used in conjunction with `piPhi_respects_add` to reduce `piPhi`
+over ℚ-linear combinations of TM-simulation blocks. -/
+theorem piPhi_respects_smul (σ : PaperFaithfulCompilation.UVSplit)
+    (c : ℚ) (p : PaperFaithfulCompilation.PMnPoly σ) :
+    PaperFaithfulCompilation.piPhi σ (c • p) =
+      c • PaperFaithfulCompilation.piPhi σ p := by
+  exact LinearMap.map_smul _ c p
+
+/-- **§85.7 — `piPhi` fixes the polynomial `1`** (paper §29 Definition
+7 identity-minor map base case). The gauge Π_Φ fixes the multiplicative
+identity of the polynomial algebra: `piPhi σ 1 = 1`. This is the
+`c = 1` case of `piPhi_of_const`, combined with the identification
+`(1 : PMnPoly σ) = C 1`, and provides the base case for
+`piPhi_respects_mul` when reducing `piPhi` over a product of factors
+(the empty product evaluates to 1, and `piPhi` fixes it). -/
+theorem piPhi_of_one (σ : PaperFaithfulCompilation.UVSplit) :
+    PaperFaithfulCompilation.piPhi σ
+        (1 : PaperFaithfulCompilation.PMnPoly σ) = 1 := by
+  rw [show (1 : PaperFaithfulCompilation.PMnPoly σ) = MvPolynomial.C 1 from
+        (map_one (MvPolynomial.C : ℚ →+* _)).symm]
+  exact piPhi_of_const σ 1
+
 end Step4Compiler
 
