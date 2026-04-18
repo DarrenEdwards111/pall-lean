@@ -680,4 +680,86 @@ theorem mlProj_piZero_comm (keep : Fin N → Prop) [DecidablePred keep]
     rw [map_add (piZero keep), MultilinearSPDP.mlProj_add,
         MultilinearSPDP.mlProj_add, map_add (piZero keep), hp, hq]
 
+/-- **piZero fixes kept-supported polynomials**: if every monomial's
+support in `m` is kept-supported, then `piZero keep m = m`.
+
+Stated at the support level to avoid vars/add interactions. -/
+theorem piZero_eq_self_of_support_kept
+    (keep : Fin N → Prop) [DecidablePred keep]
+    {m : MvPolynomial (Fin N) ℚ}
+    (hm : ∀ α ∈ m.support, ∀ i, ¬ keep i → α i = 0) :
+    piZero keep m = m := by
+  -- Expand m = ∑_α coeff α m · monomial α 1 and apply piZero_monomial.
+  conv_lhs => rw [← MvPolynomial.support_sum_monomial_coeff m]
+  rw [map_sum (piZero keep)]
+  conv_rhs => rw [← MvPolynomial.support_sum_monomial_coeff m]
+  apply Finset.sum_congr rfl
+  intro α hα
+  rw [piZero_monomial]
+  split_ifs with h
+  · rfl
+  · push_neg at h
+    obtain ⟨i, hki, hαi⟩ := h
+    exact absurd (hm α hα i hki) hαi
+
+/-- **piZero is multiplicative on products where one factor is kept-supported**:
+if every monomial in m's support is kept-supported, then
+`piZero(m · q) = m · piZero(q)`. -/
+theorem piZero_mul_eq_of_support_kept
+    (keep : Fin N → Prop) [DecidablePred keep]
+    {m : MvPolynomial (Fin N) ℚ}
+    (hm : ∀ α ∈ m.support, ∀ i, ¬ keep i → α i = 0)
+    (q : MvPolynomial (Fin N) ℚ) :
+    piZero keep (m * q) = m * piZero keep q := by
+  show (substAlgHom keep 0).toLinearMap (m * q) = m * (substAlgHom keep 0).toLinearMap q
+  rw [AlgHom.toLinearMap_apply, map_mul, AlgHom.toLinearMap_apply]
+  have hm_fixed : substAlgHom keep 0 m = m := by
+    have hfixed := piZero_eq_self_of_support_kept keep hm
+    unfold piZero piSubst at hfixed
+    rwa [AlgHom.toLinearMap_apply] at hfixed
+  rw [hm_fixed]
+
+/-- **Extended commutation**: if m's support is kept-supported,
+`mlProj(m · piZero(q)) = piZero(mlProj(m · q))`. -/
+theorem mlProj_mul_piZero_comm
+    (keep : Fin N → Prop) [DecidablePred keep]
+    {m : MvPolynomial (Fin N) ℚ}
+    (hm : ∀ α ∈ m.support, ∀ i, ¬ keep i → α i = 0)
+    (q : MvPolynomial (Fin N) ℚ) :
+    MultilinearSPDP.mlProj (m * piZero keep q) =
+      piZero keep (MultilinearSPDP.mlProj (m * q)) := by
+  rw [← piZero_mul_eq_of_support_kept keep hm q]
+  exact mlProj_piZero_comm keep (m * q)
+
+/-- Support → vars implication: if `m.vars ⊆ kept`, then every monomial
+in `m.support` has only kept variables in its positive-exponent part. -/
+theorem support_kept_of_vars_kept
+    (keep : Fin N → Prop)
+    {m : MvPolynomial (Fin N) ℚ} (hm : ∀ i ∈ m.vars, keep i) :
+    ∀ α ∈ m.support, ∀ i, ¬ keep i → α i = 0 := by
+  intro α hα i hki
+  by_contra hαi
+  have hi_vars : i ∈ m.vars := by
+    rw [MvPolynomial.mem_vars]
+    exact ⟨α, hα, Finsupp.mem_support_iff.mpr hαi⟩
+  exact hki (hm i hi_vars)
+
+/-- **Unconditional rank monotonicity for `piZero`** (item 1 DONE):
+`mlBlockedSpdpRank B κ ℓ (piZero keep p) ≤ mlBlockedSpdpRank B κ ℓ p`. -/
+theorem piZero_isRankMonotoneGauge
+    (keep : Fin N → Prop) [DecidablePred keep]
+    (B : SPDP.BlockPartition N) :
+    GaugeMonotonicity.IsRankMonotoneGauge B (piZero keep) := by
+  intro κ ℓ p
+  apply piZero_rankMonotone_of_mlProj_commute keep B κ ℓ p
+  intro S m hSlen hmdeg hmvar hadm hallkept
+  -- Hypothesis m.vars ⊆ S.toFinset (since S is all-kept) gives m.vars ⊆ kept.
+  have hm_kept : ∀ i ∈ m.vars, keep i := fun i hi => by
+    have : i ∈ S.toFinset := hmvar hi
+    have : i ∈ S := List.mem_toFinset.mp this
+    exact hallkept i this
+  exact mlProj_mul_piZero_comm keep
+    (support_kept_of_vars_kept keep hm_kept)
+    (SPDP.iterDerivList S p)
+
 end PiStarConcrete
