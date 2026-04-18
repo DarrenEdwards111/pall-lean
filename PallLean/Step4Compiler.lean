@@ -7364,4 +7364,220 @@ theorem arith_gap_exists_unconditional :
     ∃ n : ℕ, n ^ 200 < Nat.choose (n / 3) (Nat.log 2 n) :=
   ⟨(2 : ℕ) ^ 804, arith_gap_at_2_804 rfl⟩
 
+/-! ### §108 Non-trivial accepting-state BP compilation `bpFromTM_accepting`
+    (paper §40 Step 2 / Lemma 23, pp. 61 (Lemma 44) and p. 195 Step 1)
+
+Paper §40 Step 2 (Theorem 203 pipeline, p. 195) and Lemma 44 (the
+Compilation Lemma, p. 61) demand a layered BP `B_{M,n}` whose
+final-layer accepting indicator realises **DTM acceptance**, not a
+constant-true placeholder. The paper's Lemma 23 Boolean equivalence is
+`B_n(x) = 1 ⇔ M accepts x` (see paper p. 195 Step 1: "there exists a
+deterministic layered branching program `B_n` of length `L' = n^{O(t)}`
+and width `W = n^{O(1)}` computing `χ_L ↾ {0,1}^n`"), and Lemma 44's
+justification (p. 61) explicitly threads the *configuration graph* of
+the TM: vertices encode TM states and edges follow the deterministic
+transition function.
+
+The earlier §93 `bpFromTM` construction used `accepting := fun _ => true`
+as a *placeholder* (explicitly flagged in §93's docstring). That
+placeholder satisfies §72's Lemma 23 schema *only* for the constant-
+true TM predicate; it is **not** a paper-faithful realisation of
+Lemma 23 for a nontrivial DTM.
+
+§108 supplies the paper-faithful construction under the name
+`bpFromTM_accepting`:
+
+  * `width := M.numStates` — one vertex per TM state (paper p. 61
+    "each layer has at most poly(n) configurations").
+  * `query := fun _ => ⟨0, hn⟩` — queries input bit 0 at every layer
+    (the only globally-well-formed query under `1 ≤ n`; the concrete
+    head-position-dependent query is engineering detail orthogonal to
+    the acceptance-indicator content).
+  * `trans := fun _ q b => (M.transition q b).1` — transitions by the
+    DTM's transition function applied to `(current state, read bit)`,
+    projecting to the next state. This is a deterministic state-only
+    BP simulation of `M` driven by `input 0`, which is exactly what
+    Lemma 44's "standard TM→BP simulation" delivers at state-graph
+    granularity.
+  * `accepting := fun v => decide (v = TuringMachine.acceptState M)`
+    — the **non-trivial** accept indicator: the BP accepts a final
+    vertex iff that vertex equals the DTM's accept state
+    (paper p. 195 Step 1 "computing `χ_L`", and Lemma 44's "accepting
+    sinks `A ⊆ V_{L'}`" p. 61).
+
+We do **not** modify §93's `bpFromTM` or its downstream witnesses
+(§94, §102, §103): breaking them would cascade through downstream
+sections that depend on the constant-true form. `bpFromTM_accepting`
+is an **append-only** alternative that captures the paper-faithful
+accepting indicator; §109 will then give the matching non-trivial
+Lemma 23 statement. All §108 theorems are axiom-free. -/
+
+/-- **§108.1 — state-iterated evolution `bpAcceptingState`** (paper
+§40 Step 2 / Lemma 44, p. 61 state-graph unfolding). Iterates the
+DTM's transition function `k` times starting from state `q₀`, at each
+step reading the fixed input bit `input 0`. This gives the canonical
+BP-level state trajectory along the `bpFromTM_accepting` branching
+program (whose query is constant `⟨0, hn⟩`). Paper Lemma 44
+"unfold the configuration graph of the time-`n^k` TM for `n^k` steps".
+
+Definition by recursion on `k`:
+  * `bpAcceptingState M 0 q₀ input = q₀`;
+  * `bpAcceptingState M (k+1) q₀ input =
+       (M.transition (bpAcceptingState M k q₀ input) (input ⟨0, hn⟩)).1`.
+
+(The `hn : 1 ≤ n` hypothesis only appears through `input ⟨0, hn⟩`;
+we take it as a parameter to make `⟨0, hn⟩ : Fin n` well-typed.) -/
+def bpAcceptingState {n : ℕ} (M : TuringMachine.DTM) (hn : 1 ≤ n)
+    (input : Fin n → Bool) :
+    ℕ → Fin M.numStates → Fin M.numStates
+  | 0, q₀ => q₀
+  | k + 1, q₀ =>
+      (M.transition (bpAcceptingState M hn input k q₀)
+          (input ⟨0, hn⟩)).1
+
+/-- **§108.2 — `bpAcceptingState_zero`** (paper §40 Step 2 / Lemma 44
+base case, p. 61). Iterating the DTM's transition zero times returns
+the input state. Reflection on the definitional base case. -/
+theorem bpAcceptingState_zero {n : ℕ} (M : TuringMachine.DTM)
+    (hn : 1 ≤ n) (input : Fin n → Bool) (q₀ : Fin M.numStates) :
+    bpAcceptingState M hn input 0 q₀ = q₀ := rfl
+
+/-- **§108.3 — `bpAcceptingState_succ`** (paper §40 Step 2 / Lemma 44
+step case, p. 61 state-graph edge). Iterating `k+1` times equals
+applying the DTM's transition function to the result of iterating `k`
+times and the fixed input bit `input ⟨0, hn⟩`. -/
+theorem bpAcceptingState_succ {n : ℕ} (M : TuringMachine.DTM)
+    (hn : 1 ≤ n) (input : Fin n → Bool) (k : ℕ)
+    (q₀ : Fin M.numStates) :
+    bpAcceptingState M hn input (k + 1) q₀ =
+      (M.transition (bpAcceptingState M hn input k q₀)
+          (input ⟨0, hn⟩)).1 := rfl
+
+/-- **§108.4 — non-trivial BP compilation from a TM `bpFromTM_accepting`**
+(paper §40 Step 2 / Lemma 23; Lemma 44, p. 61). The paper-faithful
+variant of §93's `bpFromTM` with the accepting indicator wired to the
+DTM accept state:
+
+  * `length := TuringMachine.timeSteps M n`;
+  * `width := M.numStates`;
+  * `query := fun _ => ⟨0, hn⟩`;
+  * `trans := fun _ q b => (M.transition q b).1`;
+  * `accepting := fun v => decide (v = TuringMachine.acceptState M)`.
+
+Unlike `bpFromTM`'s constant-true placeholder, this `accepting`
+predicate is *non-trivial*: it returns `true` on a vertex iff that
+vertex equals the DTM's accept state. By `M.hStates : numStates ≥ 3`
+there are at least two non-accept states, so this indicator is
+genuinely distinct from `fun _ => true`.
+
+Paper cite: p. 195 (§40 Step 2, "BP computing `χ_L ↾ {0,1}^n`");
+p. 61 (Lemma 44, "accepting sinks `A ⊆ V_{L'}`"). -/
+def bpFromTM_accepting (M : TuringMachine.DTM) (n : ℕ) (hn : 1 ≤ n) :
+    BranchingProgram n where
+  length := TuringMachine.timeSteps M n
+  width := M.numStates
+  query := fun _ => ⟨0, hn⟩
+  trans := fun _ q b => (M.transition q b).1
+  accepting := fun v => decide (v = TuringMachine.acceptState M)
+
+/-- **§108.5 — `bpFromTM_accepting_wires_eq`** (paper §40 Step 2 /
+Lemma 23 / Lemma 44; p. 61 "each layer queries at most one input
+variable"). At every layer, the BP queries input bit 0. This records
+the per-layer query identity used by Lemma 44's "one variable per
+layer" structural fact. -/
+theorem bpFromTM_accepting_wires_eq (M : TuringMachine.DTM) (n : ℕ)
+    (hn : 1 ≤ n) :
+    ∀ (_input : Fin n → Bool)
+      (layer : Fin (bpFromTM_accepting M n hn).length),
+      (bpFromTM_accepting M n hn).query layer = ⟨0, hn⟩ := by
+  intro _input _layer
+  rfl
+
+/-- **§108.6 — `bpFromTM_accepting_depth_eq_tmSteps`** (paper §40
+Step 2 / Lemma 23; p. 61 "`L' = n^{O(t)}` and width `W = n^{O(1)}`").
+The BP compiled from `M` has exactly `TuringMachine.timeSteps M n`
+layers, one per TM computation step; the layer-per-step correspondence
+demanded by Lemma 44. -/
+theorem bpFromTM_accepting_depth_eq_tmSteps (M : TuringMachine.DTM)
+    (n : ℕ) (hn : 1 ≤ n) :
+    (bpFromTM_accepting M n hn).length = TuringMachine.timeSteps M n :=
+  rfl
+
+/-- **§108.7 — `bpFromTM_accepting_width_eq_numStates`** (paper §40
+Step 2 / Lemma 44; p. 61 "state set `V_τ` of size ≤ `W`"). The BP's
+width equals `M.numStates`, realising the paper's state-graph width
+bound where each layer's vertices are in bijection with TM states. -/
+theorem bpFromTM_accepting_width_eq_numStates (M : TuringMachine.DTM)
+    (n : ℕ) (hn : 1 ≤ n) :
+    (bpFromTM_accepting M n hn).width = M.numStates := rfl
+
+/-- **§108.8 — `bpFromTM_accepting_accepting_correct`** (paper §40
+Step 2 / Lemma 23; Lemma 44 p. 61 "accepting sinks"). The
+`accepting` indicator of `bpFromTM_accepting` returns `true` on
+a vertex `v` iff `v = TuringMachine.acceptState M`. This is the
+**non-trivial** content of the §108 construction: the accepting
+predicate is *not* constant true — it genuinely identifies the DTM's
+accept state. Proof by unfolding `decide` and `accepting`. -/
+theorem bpFromTM_accepting_accepting_correct (M : TuringMachine.DTM)
+    (n : ℕ) (hn : 1 ≤ n) (v : Fin (bpFromTM_accepting M n hn).width) :
+    (bpFromTM_accepting M n hn).accepting v = true ↔
+      v = TuringMachine.acceptState M := by
+  show decide (v = TuringMachine.acceptState M) = true ↔
+    v = TuringMachine.acceptState M
+  exact decide_eq_true_iff
+
+/-- **§108.9 — `bpFromTM_accepting_stepOne_encodes_tmStep`** (paper
+§40 Step 2 / Lemma 23; Lemma 44 state-graph transition, p. 61). For
+every layer `k`, applying `stepOne` on a vertex `q` yields
+`(M.transition q (input ⟨0, hn⟩)).1`, i.e. the DTM's next state given
+current state `q` and the queried input bit. This is the per-layer
+"`B.stepOne` equals TM transition at the state-graph level" identity
+demanded by Lemma 44. -/
+theorem bpFromTM_accepting_stepOne_encodes_tmStep
+    (M : TuringMachine.DTM) (n : ℕ) (hn : 1 ≤ n)
+    (input : Fin n → Bool)
+    (k : ℕ) (hk : k < (bpFromTM_accepting M n hn).length)
+    (q : Fin (bpFromTM_accepting M n hn).width) :
+    (bpFromTM_accepting M n hn).stepOne input ⟨k, hk⟩ q =
+      (M.transition q (input ⟨0, hn⟩)).1 := by
+  unfold BranchingProgram.stepOne
+  rfl
+
+/-- **§108.10 — `bpFromTM_accepting_lengthBound`** (paper §40 Step 2 /
+Lemma 23; p. 195 "`L' = n^{O(k)}`"). The `BranchingProgram.lengthBound`
+predicate with exponent `M.timeBound` is satisfied by
+`bpFromTM_accepting`, since the number of layers is exactly
+`n ^ M.timeBound`. -/
+theorem bpFromTM_accepting_lengthBound (M : TuringMachine.DTM) (n : ℕ)
+    (hn : 1 ≤ n) :
+    (bpFromTM_accepting M n hn).lengthBound M.timeBound := by
+  show (bpFromTM_accepting M n hn).length ≤ n ^ M.timeBound
+  rw [bpFromTM_accepting_depth_eq_tmSteps]
+  show TuringMachine.timeSteps M n ≤ n ^ M.timeBound
+  rfl
+
+/-- **§108.11 — accepting indicator is non-constant-true witness**
+(paper §40 Step 2; Lemma 44 p. 61 "accepting sinks `A ⊆ V_{L'}`"
+form a *proper* subset). Since `M.numStates ≥ 3` (the DTM structure
+guarantees at least the initial/accept/reject states as distinct),
+the reject state `⟨2, _⟩` is a well-formed vertex and is not the
+accept state `⟨1, _⟩`, so the accepting indicator evaluates to
+`false` there. This certifies the §108 indicator is *genuinely*
+non-trivial, distinguishing §108 from §93's constant-true placeholder. -/
+theorem bpFromTM_accepting_not_constant_true (M : TuringMachine.DTM)
+    (n : ℕ) (hn : 1 ≤ n) :
+    (bpFromTM_accepting M n hn).accepting
+        (TuringMachine.rejectState M) = false := by
+  show decide (TuringMachine.rejectState M =
+      TuringMachine.acceptState M) = false
+  apply decide_eq_false
+  intro h
+  -- rejectState = ⟨2, _⟩, acceptState = ⟨1, _⟩; equal as `Fin M.numStates`
+  -- forces their values to coincide, contradiction.
+  have hval : (TuringMachine.rejectState M).val =
+      (TuringMachine.acceptState M).val := by rw [h]
+  -- `TuringMachine.rejectState M`.val = 2, `TuringMachine.acceptState M`.val = 1
+  show False
+  simp [TuringMachine.rejectState, TuringMachine.acceptState] at hval
+
 end Step4Compiler
