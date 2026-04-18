@@ -1717,5 +1717,57 @@ theorem boolAssignment_false {N : ℕ} (input : Fin N → Bool) (i : Fin N)
   unfold boolAssignment
   simp [h]
 
+/-! ## Section 45: Path polynomial at boolean assignment -/
+
+/-- At a boolean assignment, pathLiteral (q, true) = input q. -/
+theorem pathLiteral_eval_boolAssignment_true {N : ℕ} (q : Fin N)
+    (input : Fin N → Bool) :
+    MvPolynomial.eval (boolAssignment input) (pathLiteral q true) =
+      boolAssignment input q := by
+  rw [pathLiteral_eval_true]
+
+/-- At a boolean assignment, pathLiteral (q, false) = 1 - input q. -/
+theorem pathLiteral_eval_boolAssignment_false {N : ℕ} (q : Fin N)
+    (input : Fin N → Bool) :
+    MvPolynomial.eval (boolAssignment input) (pathLiteral q false) =
+      1 - boolAssignment input q := by
+  rw [pathLiteral_eval_false]
+
+/-! ## Section 46: Evaluation at constant inputs -/
+
+/-- Path polynomial at all-zero input: each false-literal contributes
+(1-0)=1, each true-literal contributes 0. So product is 0 iff
+any step has b=true; else 1. -/
+theorem pathPolynomial_eval_allzero {N : ℕ} (steps : List (Fin N × Bool))
+    (h : ∀ qb ∈ steps, qb.2 = false) :
+    MvPolynomial.eval (fun _ : Fin N => (0 : ℚ)) (pathPolynomial steps) = 1 := by
+  induction steps with
+  | nil => rw [pathPolynomial_nil]; simp
+  | cons qb rest ih =>
+    obtain ⟨q, b⟩ := qb
+    rw [pathPolynomial_cons, map_mul]
+    have hb : b = false := h (q, b) List.mem_cons_self
+    subst hb
+    rw [pathLiteral_eval_false]
+    rw [ih (fun qb' hqb' => h qb' (List.mem_cons_of_mem _ hqb'))]
+    ring
+
+/-- Path polynomial at all-one input: each true-literal contributes
+input q = 1, each false-literal contributes 1-1=0. So product is 0
+unless all steps are b=true; then 1. -/
+theorem pathPolynomial_eval_allone {N : ℕ} (steps : List (Fin N × Bool))
+    (h : ∀ qb ∈ steps, qb.2 = true) :
+    MvPolynomial.eval (fun _ : Fin N => (1 : ℚ)) (pathPolynomial steps) = 1 := by
+  induction steps with
+  | nil => rw [pathPolynomial_nil]; simp
+  | cons qb rest ih =>
+    obtain ⟨q, b⟩ := qb
+    rw [pathPolynomial_cons, map_mul]
+    have hb : b = true := h (q, b) List.mem_cons_self
+    subst hb
+    rw [pathLiteral_eval_true]
+    rw [ih (fun qb' hqb' => h qb' (List.mem_cons_of_mem _ hqb'))]
+    ring
+
 end Step4Compiler
 
