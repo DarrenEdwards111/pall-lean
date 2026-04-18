@@ -2938,5 +2938,98 @@ theorem batcherComparator_2_direction :
     batcherComparator_2.i.val < batcherComparator_2.j.val := by
   exact batcherComparator_2.i_lt_j
 
+/-! ### §72 Full simulation lemma for the compiled BP
+    (paper §40 Step 2 / Lemma 23)
+
+We now combine the §70 run-trace lemmas and the §71 step-correspondence
+scaffolding to state and prove the full Lemma 23 simulation theorem at
+the level of Boolean predicates:
+
+  "For every input of length `n`, the compiled BP `B_{M,n}` accepts iff
+   the underlying DTM `M` accepts that input."
+
+The proof is parametrised by the abstract Boolean predicate
+`tmAccepts : (Fin n → Bool) → Bool` representing the TM's input/output
+behaviour. The hypotheses are exactly what paper Lemma 44 produces:
+
+* `enc` : `LayerConfigEnc B` — the encoding of TM configurations as BP
+  vertices along the trajectory for the current input;
+* `hmatch` : `enc.stepMatches input` — each BP layer realises one TM
+  transition step (paper §40 Step 2);
+* `hacc` : `B.accepting (enc.enc B.length) = tmAccepts input` — the BP's
+  accepting indicator at the final-layer encoded config equals the TM's
+  Boolean verdict on `input`.
+
+These are the obligations the Lemma 44 compiler discharges; the results
+below chain them through §70 and §71 to obtain the Lemma 23 statement.
+All proofs are axiom-free. -/
+
+/-- **§72.1 — compiled BP agrees with the TM Boolean predicate**
+(paper §40 Step 2 / Lemma 23). Under the paper-faithful Lemma 44
+hypotheses — a `LayerConfigEnc` that step-matches on `input` and an
+accepting-vertex equality at the final layer — the BP's `decides`
+starting from the encoded initial config coincides with the TM's
+Boolean output on that input. This is exactly the Lemma 23 statement in
+its predicate form. -/
+theorem BranchingProgram.decides_eq_tmAccepts_of_match {n : ℕ}
+    (B : BranchingProgram n) (enc : LayerConfigEnc B)
+    (input : Fin n → Bool) (tmAccepts : (Fin n → Bool) → Bool)
+    (hmatch : enc.stepMatches input)
+    (hacc : B.accepting (enc.enc B.length) = tmAccepts input) :
+    B.decides input (enc.enc 0) = tmAccepts input := by
+  -- Unfold `decides`, rewrite `runSteps` via §71.3, then use `hacc`.
+  rw [BranchingProgram.decides_eq_accepting_runSteps_length]
+  rw [enc.runSteps_length_matches input hmatch]
+  exact hacc
+
+/-- **§72.2 — BP acceptance iff TM acceptance (Boolean iff form)**
+(paper §40 Step 2 / Lemma 23). The Boolean-level iff form of §72.1:
+`B.decides input (enc.enc 0) = true ↔ tmAccepts input = true`. This
+is the formulation most useful for downstream reductions — including
+the paper's chain `TM ⇒ BP ⇒ SoS ⇒ PMn` in §40 Steps 2/3. -/
+theorem BranchingProgram.decides_iff_tmAccepts_of_match {n : ℕ}
+    (B : BranchingProgram n) (enc : LayerConfigEnc B)
+    (input : Fin n → Bool) (tmAccepts : (Fin n → Bool) → Bool)
+    (hmatch : enc.stepMatches input)
+    (hacc : B.accepting (enc.enc B.length) = tmAccepts input) :
+    B.decides input (enc.enc 0) = true ↔ tmAccepts input = true := by
+  rw [B.decides_eq_tmAccepts_of_match enc input tmAccepts hmatch hacc]
+
+/-- **§72.3 — supporting lemma: accepting-config coincidence**
+(paper §40 Step 2 / Lemma 23 auxiliary). Under the same hypotheses as
+§72.1, the BP's final-layer trace state is the encoded accepting-time
+TM configuration, and the BP's `accepting` indicator on that vertex
+equals the TM's `tmAccepts` verdict. This packages both directions of
+Lemma 44's final-layer correspondence into a single statement. -/
+theorem BranchingProgram.final_trace_eq_tmConfig_of_match {n : ℕ}
+    (B : BranchingProgram n) (enc : LayerConfigEnc B)
+    (input : Fin n → Bool) (tmAccepts : (Fin n → Bool) → Bool)
+    (hmatch : enc.stepMatches input)
+    (hacc : B.accepting (enc.enc B.length) = tmAccepts input) :
+    B.runSteps input (enc.enc 0) B.length = enc.enc B.length ∧
+    B.accepting (B.runSteps input (enc.enc 0) B.length) =
+      tmAccepts input := by
+  refine ⟨enc.runSteps_length_matches input hmatch, ?_⟩
+  rw [enc.runSteps_length_matches input hmatch]
+  exact hacc
+
+/-- **§72.4 — accepted-set characterisation for the compiled BP**
+(paper §40 Step 2 / Lemma 23). The BP's `acceptedSet` from the encoded
+initial config equals the set of inputs on which the TM-predicate holds.
+This is the set-theoretic form of Lemma 23, used when composing with
+Step 3 (SoS arithmetisation) in paper §40. -/
+theorem BranchingProgram.acceptedSet_eq_tmAccepted_of_match {n : ℕ}
+    (B : BranchingProgram n) (enc : LayerConfigEnc B)
+    (tmAccepts : (Fin n → Bool) → Bool)
+    (hmatch_all : ∀ input : Fin n → Bool, enc.stepMatches input)
+    (hacc_all : ∀ input : Fin n → Bool,
+      B.accepting (enc.enc B.length) = tmAccepts input) :
+    B.acceptedSet (enc.enc 0) =
+      {input : Fin n → Bool | tmAccepts input = true} := by
+  ext input
+  simp only [BranchingProgram.acceptedSet, Set.mem_setOf_eq]
+  exact B.decides_iff_tmAccepts_of_match enc input tmAccepts
+    (hmatch_all input) (hacc_all input)
+
 end Step4Compiler
 
