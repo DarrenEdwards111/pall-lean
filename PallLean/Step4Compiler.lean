@@ -5826,4 +5826,239 @@ theorem tmTracePiece_finset_prod_hasCEWBound {N : ℕ} {ι : Type*}
   have heq : s.card * 6 = 6 * s.card := by ring
   exact heq ▸ h1
 
+/-! ## Section 99: Batcher-layered CEW bound and three-piece composition
+    (paper §40 Step 1-2, Lemma 19, combined structural CEW bound)
+
+Paper §40 Step 1-2 states the headline CEW bound for the compiled
+polynomial `P_{M,n}` as `O(log n)` (or, under a polynomial-depth Batcher
+envelope, `O(log² n)`). This section combines the three structural
+CEW pieces:
+
+  (1) TM-trace CEW bound from §98 (`tmTracePiece_hasCEWBound_*`);
+  (2) Batcher-layered CEW bound from §83
+      (`batcherLayered_output_cew_log_squared`);
+  (3) SoS-gadget CEW bound from §98 (`sosPiece_hasCEWBound_*`),
+
+into a single `HasCEWBound` certificate for the product
+`p_trace * p_batcher * p_sos` (the paper's conjunctive form of
+`P_{M,n}`). The resulting bound is
+
+  CEW ≤ 6·T(n) + (log₂ N)² · base + 6·gadget_count,
+
+which, specialising `T(n) = poly(n)`, `N ≤ poly(n)`, `gadget_count ≤
+poly(n)`, becomes a polynomial-in-`n` bound. The further specialisation
+to a headline `c · log₂ n` bound is the paper's Step 1-2 headline
+complexity; when the TM-trace and SoS-gadget counts are themselves
+poly-logarithmic, the overall CEW is `O(log n)` (or `O(log² n)`
+accounting for the Batcher depth), consistent with paper §40 Step 1-2
+Lemma 19.
+
+All theorems in this section are axiom-free and strictly reuse §82's
+iterated CEW algebra, §83's Batcher depth envelope, §84's three-piece
+combinator (`PMn_hasCEWBound_of_structural_pieces`), and §98's
+structural CEW bounds. They do not modify any existing definition. -/
+
+/-- **§99.1 — Batcher-piece CEW bound (unit-CEW layer form)**
+(paper §40 Step 2 / Lemma 19 structural CEW bound for the
+Batcher-layered piece). Specialisation of §83's
+`batcherLayered_output_cew_unit_log_squared` to the standard
+paper-faithful shape: if every Batcher layer has CEW ≤ 1 (atomic
+comparator literal) and the Batcher depth is bounded by
+`batcherDepthBound n = (log₂ n)²`, then the Batcher-layered output has
+CEW ≤ `(log₂ n)²`. This is the "Batcher piece CEW ≤ (log₂ N)² · base
+with `base = 1`" paper-headline form. -/
+theorem batcherPiece_hasCEWBound_log_squared {N : ℕ}
+    (n : ℕ) (layers : List (MvPolynomial (Fin N) ℚ))
+    (hlen : layers.length ≤ batcherDepthBound n)
+    (hbase : ∀ p ∈ layers, HasCEWBound p 1) :
+    HasCEWBound layers.prod ((Nat.log 2 n) ^ 2) :=
+  batcherLayered_output_cew_unit_log_squared n layers hlen hbase
+
+/-- **§99.2 — Batcher-piece CEW bound (general per-layer base form)**
+(paper §40 Step 2 / Lemma 19 structural CEW bound for the
+Batcher-layered piece, parameterised form). The general Batcher-piece
+CEW bound, reusing §83's `batcherLayered_output_cew_log_squared`
+directly as a paper-§40-Step-2 structural CEW witness: if the Batcher
+depth is bounded by `batcherDepthBound n` and each layer has CEW
+`≤ base`, the Batcher output has CEW `≤ batcherDepthBound n * base`.
+This is the Batcher-piece witness at arbitrary `base_cew`, suitable for
+composition with non-unit per-layer CEW bounds. -/
+theorem batcherPiece_hasCEWBound_log_squared_base {N : ℕ}
+    (n base : ℕ) (layers : List (MvPolynomial (Fin N) ℚ))
+    (hlen : layers.length ≤ batcherDepthBound n)
+    (hbase : ∀ p ∈ layers, HasCEWBound p base) :
+    HasCEWBound layers.prod (batcherDepthBound n * base) :=
+  batcherLayered_output_cew_log_squared n layers base hlen hbase
+
+/-- **§99.3 — Three-piece combined CEW bound for `PMn`**
+(paper §40 Step 1-2 Theorem 203, headline combined bound). Combines
+the three structural CEW pieces via §84's
+`PMn_hasCEWBound_of_structural_pieces`:
+
+  * TM-trace piece (from §98.7) with CEW ≤ `6 * T`;
+  * Batcher-layered piece (from §99.2 / §83.2) with CEW
+    ≤ `batcherDepthBound n * base`;
+  * SoS-gadget piece (from §98.3) with CEW ≤ `6 * gadget_count`.
+
+The resulting product `p_trace * p_batcher * p_sos` has CEW
+`≤ 6·T + batcherDepthBound n * base + 6·gadget_count`. This is the
+paper's Step 1-2 combined CEW bound for the compiled polynomial,
+expressed as a sum over the three structural pieces. -/
+theorem PMn_hasCEWBound_combined {N : ℕ}
+    (T n base gadget_count : ℕ)
+    (trace_layers : List (MvPolynomial (Fin N) ℚ))
+    (batcher_layers : List (MvPolynomial (Fin N) ℚ))
+    (gs : List (SoSGadget N))
+    (hT : trace_layers.length ≤ T)
+    (hTbnd : ∀ L ∈ trace_layers, L.totalDegree ≤ 6)
+    (hBlen : batcher_layers.length ≤ batcherDepthBound n)
+    (hBbase : ∀ p ∈ batcher_layers, HasCEWBound p base)
+    (hGlen : gs.length ≤ gadget_count) :
+    HasCEWBound
+      (trace_layers.prod * batcher_layers.prod *
+        (gs.map SoSGadget.poly).prod)
+      (6 * T + batcherDepthBound n * base + 6 * gadget_count) := by
+  -- Assemble the three per-piece CEW witnesses.
+  have h_trace : HasCEWBound trace_layers.prod (6 * T) :=
+    tmTracePiece_hasCEWBound_six_times_time trace_layers T hT hTbnd
+  have h_batcher : HasCEWBound batcher_layers.prod
+      (batcherDepthBound n * base) :=
+    batcherPiece_hasCEWBound_log_squared_base n base batcher_layers
+      hBlen hBbase
+  have h_sos : HasCEWBound (gs.map SoSGadget.poly).prod
+      (6 * gadget_count) :=
+    sosPiece_hasCEWBound_six_times_budget gs gadget_count hGlen
+  -- Combine via §84.1.
+  exact PMn_hasCEWBound_of_structural_pieces
+    trace_layers.prod batcher_layers.prod (gs.map SoSGadget.poly).prod
+    (6 * T) (batcherDepthBound n * base) (6 * gadget_count)
+    h_trace h_batcher h_sos
+
+/-- **§99.4 — Three-piece combined CEW bound with unit Batcher base**
+(paper §40 Step 1-2 Theorem 203, unit-Batcher-base specialisation). The
+standard paper-faithful shape where the Batcher layers carry CEW ≤ 1
+(atomic comparator literals), yielding the "TM-trace O(T) + Batcher
+O((log n)²) + SoS-gadget O(gadget_count)" decomposition. Specialises
+§99.3 at `base = 1` and unfolds `batcherDepthBound n = (log₂ n)²`. -/
+theorem PMn_hasCEWBound_combined_unit_batcher {N : ℕ}
+    (T n gadget_count : ℕ)
+    (trace_layers : List (MvPolynomial (Fin N) ℚ))
+    (batcher_layers : List (MvPolynomial (Fin N) ℚ))
+    (gs : List (SoSGadget N))
+    (hT : trace_layers.length ≤ T)
+    (hTbnd : ∀ L ∈ trace_layers, L.totalDegree ≤ 6)
+    (hBlen : batcher_layers.length ≤ batcherDepthBound n)
+    (hBbase : ∀ p ∈ batcher_layers, HasCEWBound p 1)
+    (hGlen : gs.length ≤ gadget_count) :
+    HasCEWBound
+      (trace_layers.prod * batcher_layers.prod *
+        (gs.map SoSGadget.poly).prod)
+      (6 * T + (Nat.log 2 n) ^ 2 + 6 * gadget_count) := by
+  have h1 := PMn_hasCEWBound_combined T n 1 gadget_count
+    trace_layers batcher_layers gs hT hTbnd hBlen hBbase hGlen
+  -- Simplify `batcherDepthBound n * 1 = (log₂ n)^2`.
+  have heq : batcherDepthBound n * 1 = (Nat.log 2 n) ^ 2 := by
+    unfold batcherDepthBound
+    ring
+  -- Rewrite the CEW target from the §99.3 shape to the (log₂ n)^2 shape.
+  have heq_target :
+      6 * T + batcherDepthBound n * 1 + 6 * gadget_count =
+        6 * T + (Nat.log 2 n) ^ 2 + 6 * gadget_count := by
+    rw [heq]
+  exact heq_target ▸ h1
+
+/-- **§99.5 — Combined log bound for `PMn` under polynomial bookkeeping**
+(paper §40 Step 1-2 Theorem 203 headline bound, polynomial-bookkeeping
+log-simplified form). Under polynomial-in-`n` bookkeeping
+  (`T ≤ c_T · log₂ n`, `gadget_count ≤ c_g · log₂ n`),
+the §99.4 bound collapses to
+  `(6 c_T + c_g · 6) · log₂ n + (log₂ n)²`.
+
+We state this as a separate specialised theorem using §99.4 and
+arithmetic monotonicity; the Nat arithmetic is handled by
+`HasCEWBound_mono` on the RHS. This is the paper's headline
+`O(log² n)` envelope for the combined `PMn` (since the `(log₂ n)²`
+Batcher term dominates when `T`, `gadget_count` are `O(log n)`). -/
+theorem PMn_hasCEWBound_combined_log_bound {N : ℕ}
+    (c_T c_g n : ℕ)
+    (trace_layers : List (MvPolynomial (Fin N) ℚ))
+    (batcher_layers : List (MvPolynomial (Fin N) ℚ))
+    (gs : List (SoSGadget N))
+    (hT : trace_layers.length ≤ c_T * Nat.log 2 n)
+    (hTbnd : ∀ L ∈ trace_layers, L.totalDegree ≤ 6)
+    (hBlen : batcher_layers.length ≤ batcherDepthBound n)
+    (hBbase : ∀ p ∈ batcher_layers, HasCEWBound p 1)
+    (hGlen : gs.length ≤ c_g * Nat.log 2 n) :
+    HasCEWBound
+      (trace_layers.prod * batcher_layers.prod *
+        (gs.map SoSGadget.poly).prod)
+      ((6 * c_T + 6 * c_g) * Nat.log 2 n + (Nat.log 2 n) ^ 2) := by
+  have h1 := PMn_hasCEWBound_combined_unit_batcher
+    (c_T * Nat.log 2 n) n (c_g * Nat.log 2 n)
+    trace_layers batcher_layers gs hT hTbnd hBlen hBbase hGlen
+  -- Rearrange: `6 * (c_T * log n) + (log n)^2 + 6 * (c_g * log n) =
+  -- (6 c_T + 6 c_g) * log n + (log n)^2`.
+  have heq :
+      6 * (c_T * Nat.log 2 n) + (Nat.log 2 n) ^ 2 +
+          6 * (c_g * Nat.log 2 n) =
+        (6 * c_T + 6 * c_g) * Nat.log 2 n + (Nat.log 2 n) ^ 2 := by
+    ring
+  exact heq ▸ h1
+
+/-- **§99.6 — Polynomial-envelope combined CEW bound for `PMn`**
+(paper §40 Step 1-2 Theorem 203 headline bound, poly(n) envelope).
+Under loose polynomial bookkeeping
+  (`T ≤ T_bound`, `gadget_count ≤ G_bound`, arbitrary Batcher depth
+   `≤ batcherDepthBound n`, unit per-layer Batcher CEW),
+the combined CEW bound for `PMn` is
+  `6 * T_bound + (log₂ n)² + 6 * G_bound`.
+
+This is the "weaker poly(n) bound" alternative stated in the scope:
+the log-simplification may not collapse to a headline `c log n`
+bound if `T_bound`, `G_bound` are polynomial but super-logarithmic; the
+bound above still holds, and is the paper-faithful poly(n) statement
+of §40 Step 1-2. -/
+theorem PMn_hasCEWBound_combined_poly_bound {N : ℕ}
+    (T_bound n G_bound : ℕ)
+    (trace_layers : List (MvPolynomial (Fin N) ℚ))
+    (batcher_layers : List (MvPolynomial (Fin N) ℚ))
+    (gs : List (SoSGadget N))
+    (hT : trace_layers.length ≤ T_bound)
+    (hTbnd : ∀ L ∈ trace_layers, L.totalDegree ≤ 6)
+    (hBlen : batcher_layers.length ≤ batcherDepthBound n)
+    (hBbase : ∀ p ∈ batcher_layers, HasCEWBound p 1)
+    (hGlen : gs.length ≤ G_bound) :
+    HasCEWBound
+      (trace_layers.prod * batcher_layers.prod *
+        (gs.map SoSGadget.poly).prod)
+      (6 * T_bound + (Nat.log 2 n) ^ 2 + 6 * G_bound) :=
+  PMn_hasCEWBound_combined_unit_batcher T_bound n G_bound
+    trace_layers batcher_layers gs hT hTbnd hBlen hBbase hGlen
+
+/-- **§99.7 — Total CEW combined bound as a single scalar**
+(paper §40 Step 1-2 Theorem 203 headline bound, scalar form). Packages
+§99.6's bound by defining a named "combined CEW budget"
+  `cewBudget T n G = 6 * T + (log₂ n)² + 6 * G`
+so downstream callers can refer to the combined bound via a single
+scalar. Useful when chaining into the §84.4 list-product form or
+into `width_implies_rank_bound_interface`. -/
+def cewBudget (T n G : ℕ) : ℕ := 6 * T + (Nat.log 2 n) ^ 2 + 6 * G
+
+theorem PMn_hasCEWBound_cewBudget {N : ℕ}
+    (T n G : ℕ)
+    (trace_layers : List (MvPolynomial (Fin N) ℚ))
+    (batcher_layers : List (MvPolynomial (Fin N) ℚ))
+    (gs : List (SoSGadget N))
+    (hT : trace_layers.length ≤ T)
+    (hTbnd : ∀ L ∈ trace_layers, L.totalDegree ≤ 6)
+    (hBlen : batcher_layers.length ≤ batcherDepthBound n)
+    (hBbase : ∀ p ∈ batcher_layers, HasCEWBound p 1)
+    (hGlen : gs.length ≤ G) :
+    HasCEWBound
+      (trace_layers.prod * batcher_layers.prod *
+        (gs.map SoSGadget.poly).prod)
+      (cewBudget T n G) :=
+  PMn_hasCEWBound_combined_poly_bound T n G
+    trace_layers batcher_layers gs hT hTbnd hBlen hBbase hGlen
+
 end Step4Compiler
