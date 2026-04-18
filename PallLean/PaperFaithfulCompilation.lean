@@ -1286,4 +1286,41 @@ theorem embed_rank_preservation
   unfold CoupledSheetPoly.embed
   exact mlBlockedSpdpRank_rename_ge σ.inlU (inlU_injective σ) B κ ℓ Q
 
+/-! ## Section 24: Updated one-shot with Step 3 discharged
+
+With `embed_rank_preservation` proved unconditionally, the `hEmbedPres`
+hypothesis of `pathA_oneshot_no_hypothesis` is no longer needed. The
+updated one-shot takes only two concrete hypotheses: Task 2 and Task 4. -/
+
+/-- **Path A two-hypothesis separation**: with Step 3 discharged, only
+hQRank (Task 2) and hPMnRank (Task 4) remain as input. -/
+theorem pathA_two_hypothesis_separation
+    (n : ℕ) (hn : n ≥ 2 ^ 804)
+    {σ : UVSplit} (hV : 0 < σ.numV)
+    (B : SPDP.BlockPartition σ.total)
+    (Q : CoupledSheetPoly σ) (κ ℓ : ℕ)
+    (hQRank : Nat.choose (n / 3) (Nat.log 2 n) ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition B σ.inlU) κ ℓ Q)
+    (hPMnRank : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+      (templatePMn σ Q) ≤ n ^ 200) :
+    False :=
+  pathA_oneshot_separation n hn hV B Q κ ℓ hQRank
+    (embed_rank_preservation σ B κ ℓ Q) hPMnRank
+
+/-- **Path A two-hypothesis bridge**: conditional form for ¬ H. -/
+theorem pathA_two_hypothesis_no_hypothesis
+    (n : ℕ) (hn : n ≥ 2 ^ 804)
+    {σ : UVSplit} (hV : 0 < σ.numV)
+    (B : SPDP.BlockPartition σ.total)
+    (Q : CoupledSheetPoly σ) (κ ℓ : ℕ)
+    {H : Prop}
+    (hQRank : H → Nat.choose (n / 3) (Nat.log 2 n) ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition B σ.inlU) κ ℓ Q)
+    (hPMnRank : H → MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+      (templatePMn σ Q) ≤ n ^ 200) :
+    ¬ H :=
+  fun h => pathA_two_hypothesis_separation n hn hV B Q κ ℓ (hQRank h) (hPMnRank h)
+
 end PaperFaithfulCompilation
