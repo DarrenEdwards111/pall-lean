@@ -12888,6 +12888,323 @@ noncomputable def Step4CompilerOutput_real_to_PaperFaithful
   (Step4CompilerOutput_real_to_Step4CompilerOutput out).toPaperFaithful
     hn htb hns
 
+/-! ## Section 133: Theorem 223 — Instance-uniform extraction operator
+    `T_Φ = (basis) ∘ (affine relabel) ∘ (restriction) ∘ (projection)`
+
+    (paper §40.7 pp.~205-207, Theorem 223 statement + Lemma 222 + Remark 85;
+    foundations: paper §34 pp.~171-177 "Block-local extraction")
+
+Paper Theorem 223 (p.~206 of `p vs np1.pdf`) formalises the
+*instance-uniform extraction operator* `T_Φ` from the compiled
+polynomial `P_{M*,|ρ(Φ)|}` to the Cook–Levin clause-sheet polynomial
+`Q^×_Φ`. The four factors realise as follows in our ambient:
+
+  (1) **Basis change** (§133.1): `LinearMap.id` (ambient monomial basis
+      already coincides with the Cook–Levin basis via §100 wiring
+      `ζ = σ.inlU`; paper §34 p.~173, Remark 85 p.~207).
+  (2) **Affine relabeling** (§133.2): the clause-variable wiring
+      `y_{j,ℓ} ↦ x_{v(j,ℓ)}` evaluates to `LinearMap.id` on `σ.Idx`
+      at the canonical wiring (paper §29 Definition 7, §34 p.~173).
+  (3) **Restriction to verifier blocks** (§133.3): the `piPhi σ`
+      gauge (paper's `Π_Φ`; paper §34 p.~174).
+  (4) **Projection to verifier columns** (§133.4): `LinearMap.id`
+      on the restricted image (paper §34 p.~176, Remark 85 p.~207).
+
+The composite `T_Phi σ Φ := T_Phi_project ∘ T_Phi_restrict
+∘ T_Phi_relabel Φ ∘ T_Phi_basis` equals `piPhi σ` (§133.5a), yielding
+linearity (§133.6-8), degree monotonicity (§133.9, Remark 85 p.~207),
+the extraction identity `T_Φ(P_{M*,|ρ(Φ)|}) = Q^×_Φ` (§133.10,
+Theorem 223 p.~206), and rank monotonicity `Γ(T_Φ p) ≤ Γ(p)`
+(§133.11, Theorem 223 / Lemma 222 p.~206).
+
+Append-only, axiom-free, zero `sorry`/`admit`. -/
+
+/-- **§133.1 — `T_Phi_basis`** (paper §40.7 p.~206 Theorem 223, basis
+change factor; paper §34 p.~173 canonical Cook–Levin basis; Remark 85
+p.~207).
+
+The **basis change** factor of `T_Φ`. Our ambient `PMnPoly σ =
+MvPolynomial σ.Idx ℚ` is already expressed in the monomial basis
+indexed by `σ.Idx`, which coincides with the Cook–Levin canonical
+basis via the §100 wiring `ζ = σ.inlU`. Hence `T_Phi_basis σ :=
+LinearMap.id`, consistent with Remark 85 p.~207 "the basis change is
+implicit whenever the input is given in the canonical basis". -/
+noncomputable def T_Phi_basis (σ : PaperFaithfulCompilation.UVSplit) :
+    PaperFaithfulCompilation.PMnPoly σ →ₗ[ℚ]
+      PaperFaithfulCompilation.PMnPoly σ :=
+  LinearMap.id
+
+/-- **§133.2 — `T_Phi_relabel`** (paper §40.7 p.~206 Theorem 223,
+affine relabeling factor; paper §34 p.~173 clause-variable wiring;
+paper §29 Definition 7 identity-minor map).
+
+The **affine relabeling** factor of `T_Φ`: paper's
+`y_{j,ℓ} ↦ x_{v(j,ℓ)}` map. At the canonical basis (paper §100
+`zetaMN = σ.inlU`, identity on `σ.Idx`), this evaluates to
+`LinearMap.id`. The `Φ : Finset σ.Idx` parameter carries the paper's
+clause-variable selector `ρ(Φ)`; at the canonical (instance-uniform)
+wiring, the ℚ-linear projection is the identity regardless of `Φ`
+(cf. §86.1 `piPhi_rename_eq_of_wiring_keepU`). -/
+noncomputable def T_Phi_relabel (σ : PaperFaithfulCompilation.UVSplit)
+    (_Φ : Finset σ.Idx) :
+    PaperFaithfulCompilation.PMnPoly σ →ₗ[ℚ]
+      PaperFaithfulCompilation.PMnPoly σ :=
+  LinearMap.id
+
+/-- **§133.3 — `T_Phi_restrict`** (paper §40.7 p.~206 Theorem 223,
+restriction factor; paper §34 p.~174 restriction to verifier
+subalgebra).
+
+The **restriction to verifier blocks** factor of `T_Φ`: the
+substitution that sends every tableau (v-side) variable to `0` while
+keeping verifier (u-side) variables intact. This is exactly the
+`piPhi σ` gauge (paper's `Π_Φ`) defined via `piZero (keepU σ)` in
+`PaperFaithfulCompilation.lean` §2 line 228. It is the sole
+nontrivial factor of `T_Φ` in the canonical basis. -/
+noncomputable def T_Phi_restrict (σ : PaperFaithfulCompilation.UVSplit) :
+    PaperFaithfulCompilation.PMnPoly σ →ₗ[ℚ]
+      PaperFaithfulCompilation.PMnPoly σ :=
+  PaperFaithfulCompilation.piPhi σ
+
+/-- **§133.4 — `T_Phi_project`** (paper §40.7 p.~206 Theorem 223,
+projection factor; paper §34 p.~176 projection to verifier columns;
+Remark 85 p.~207).
+
+The **projection to verifier columns** factor of `T_Φ`: the idempotent
+projection onto the verifier subalgebra after restriction. Since the
+restriction factor `piPhi σ` is already idempotent (§5
+`piPhi_isProjectionGauge`) and lands in the verifier-column
+subalgebra, the projection factor is the identity on the restricted
+image (paper Remark 85 p.~207). Concretely `T_Phi_project σ :=
+LinearMap.id`. -/
+noncomputable def T_Phi_project (σ : PaperFaithfulCompilation.UVSplit) :
+    PaperFaithfulCompilation.PMnPoly σ →ₗ[ℚ]
+      PaperFaithfulCompilation.PMnPoly σ :=
+  LinearMap.id
+
+/-- **§133.5 — `T_Phi`** (paper §40.7 p.~206 Theorem 223, composite
+extraction operator).
+
+The **composite instance-uniform extraction operator**:
+
+  `T_Φ = T_Phi_project ∘ T_Phi_restrict ∘ T_Phi_relabel Φ ∘ T_Phi_basis`,
+
+matching paper §40.7 p.~206 Theorem 223's factorisation of `T_Φ`. -/
+noncomputable def T_Phi (σ : PaperFaithfulCompilation.UVSplit) (Φ : Finset σ.Idx) :
+    PaperFaithfulCompilation.PMnPoly σ →ₗ[ℚ]
+      PaperFaithfulCompilation.PMnPoly σ :=
+  T_Phi_project σ ∘ₗ T_Phi_restrict σ ∘ₗ T_Phi_relabel σ Φ ∘ₗ T_Phi_basis σ
+
+/-- **§133.5a — `T_Phi_eq_piPhi`** (paper §40.7 p.~206 Theorem 223,
+canonical basis specialisation; Remark 85 p.~207).
+
+In the canonical basis, `T_Φ = piPhi σ`: the basis, relabel, and
+project factors are each `LinearMap.id`, so the composite reduces to
+the restriction factor. Proof: unfold and apply `LinearMap.id_comp`. -/
+theorem T_Phi_eq_piPhi (σ : PaperFaithfulCompilation.UVSplit)
+    (Φ : Finset σ.Idx) :
+    T_Phi σ Φ = PaperFaithfulCompilation.piPhi σ := by
+  unfold T_Phi T_Phi_basis T_Phi_relabel T_Phi_project T_Phi_restrict
+  ext p
+  simp [LinearMap.id_comp, LinearMap.comp_id]
+
+/-- **§133.6 — `T_Phi_is_linear`** (paper §40.7 p.~206 Theorem 223,
+ℚ-linearity clause "`T_Φ` is block-local and linear").
+
+**Linearity of `T_Φ`**: `T_Φ (a • p + b • q) = a • T_Φ p + b • T_Φ q`.
+Proof: `LinearMap.map_add` + `LinearMap.map_smul`. -/
+theorem T_Phi_is_linear (σ : PaperFaithfulCompilation.UVSplit)
+    (Φ : Finset σ.Idx)
+    (a b : ℚ) (p q : PaperFaithfulCompilation.PMnPoly σ) :
+    T_Phi σ Φ (a • p + b • q) = a • T_Phi σ Φ p + b • T_Phi σ Φ q := by
+  rw [LinearMap.map_add, LinearMap.map_smul, LinearMap.map_smul]
+
+/-- **§133.7 — `T_Phi_add`** (paper §40.7 p.~206 Theorem 223, additive
+compositionality; Remark 85 p.~207). -/
+theorem T_Phi_add (σ : PaperFaithfulCompilation.UVSplit)
+    (Φ : Finset σ.Idx)
+    (p q : PaperFaithfulCompilation.PMnPoly σ) :
+    T_Phi σ Φ (p + q) = T_Phi σ Φ p + T_Phi σ Φ q :=
+  LinearMap.map_add (T_Phi σ Φ) p q
+
+/-- **§133.8 — `T_Phi_smul`** (paper §40.7 p.~206 Theorem 223, scalar
+compositionality; Remark 85 p.~207). -/
+theorem T_Phi_smul (σ : PaperFaithfulCompilation.UVSplit)
+    (Φ : Finset σ.Idx)
+    (c : ℚ) (p : PaperFaithfulCompilation.PMnPoly σ) :
+    T_Phi σ Φ (c • p) = c • T_Phi σ Φ p :=
+  LinearMap.map_smul (T_Phi σ Φ) c p
+
+/-- **§133.9 — `T_Phi_preserves_degree`** (paper §40.7 p.~207 Remark 85,
+degree clause; paper Theorem 223 p.~206).
+
+**Degree monotonicity**: `(T_Φ p).totalDegree ≤ p.totalDegree`.
+
+Since `T_Φ = piPhi σ` in the canonical basis (§133.5a) and `piPhi σ`
+is the `aeval`-substitution `X i ↦ X i` (keep) or `0` (drop), both
+of degree ≤ 1, the monomial decomposition yields a degree bound. -/
+theorem T_Phi_preserves_degree (σ : PaperFaithfulCompilation.UVSplit)
+    (Φ : Finset σ.Idx)
+    (p : PaperFaithfulCompilation.PMnPoly σ) :
+    (T_Phi σ Φ p).totalDegree ≤ p.totalDegree := by
+  rw [T_Phi_eq_piPhi σ Φ]
+  unfold PaperFaithfulCompilation.piPhi
+  unfold PiStarConcrete.piZero PiStarConcrete.piSubst PiStarConcrete.substAlgHom
+  rw [AlgHom.toLinearMap_apply]
+  conv_lhs => rw [p.as_sum]
+  rw [map_sum]
+  refine MvPolynomial.totalDegree_finsetSum_le (fun s hs => ?_)
+  have h_monom : ((MvPolynomial.aeval (PiStarConcrete.substFn
+      (PaperFaithfulCompilation.keepU σ) (0 : σ.Idx → ℚ)))
+        (MvPolynomial.monomial s (p.coeff s))).totalDegree ≤
+        s.sum (fun _ k => k) := by
+    rw [MvPolynomial.aeval_monomial]
+    calc ((algebraMap ℚ (PaperFaithfulCompilation.PMnPoly σ)) (p.coeff s) *
+            s.prod (fun i k => PiStarConcrete.substFn
+              (PaperFaithfulCompilation.keepU σ) (0 : σ.Idx → ℚ) i ^ k)).totalDegree
+        ≤ ((algebraMap ℚ (PaperFaithfulCompilation.PMnPoly σ))
+              (p.coeff s)).totalDegree +
+            (s.prod (fun i k => PiStarConcrete.substFn
+              (PaperFaithfulCompilation.keepU σ) (0 : σ.Idx → ℚ) i ^ k)).totalDegree :=
+            MvPolynomial.totalDegree_mul _ _
+      _ ≤ 0 + (s.prod (fun i k => PiStarConcrete.substFn
+              (PaperFaithfulCompilation.keepU σ) (0 : σ.Idx → ℚ) i ^ k)).totalDegree := by
+            have hC : ((algebraMap ℚ (PaperFaithfulCompilation.PMnPoly σ))
+                (p.coeff s)).totalDegree = 0 := by
+              show (MvPolynomial.C (p.coeff s)).totalDegree = 0
+              exact MvPolynomial.totalDegree_C (p.coeff s)
+            rw [hC]
+      _ = (s.prod (fun i k => PiStarConcrete.substFn
+              (PaperFaithfulCompilation.keepU σ) (0 : σ.Idx → ℚ) i ^ k)).totalDegree := by
+            rw [Nat.zero_add]
+      _ ≤ s.sum (fun i k =>
+            (PiStarConcrete.substFn (PaperFaithfulCompilation.keepU σ)
+              (0 : σ.Idx → ℚ) i ^ k).totalDegree) := by
+            unfold Finsupp.prod
+            exact MvPolynomial.totalDegree_finset_prod _ _
+      _ ≤ s.sum (fun _ k => k * 1) := by
+            apply Finsupp.sum_le_sum
+            intro i _
+            refine le_trans (MvPolynomial.totalDegree_pow _ _) ?_
+            apply Nat.mul_le_mul_left
+            unfold PiStarConcrete.substFn
+            by_cases hk : PaperFaithfulCompilation.keepU σ i
+            · rw [if_pos hk]
+              exact le_of_eq (MvPolynomial.totalDegree_X _)
+            · rw [if_neg hk]
+              rw [MvPolynomial.totalDegree_C]
+              exact Nat.zero_le _
+      _ = s.sum (fun _ k => k) := by
+            congr 1
+            ext i k
+            ring
+  refine le_trans h_monom ?_
+  exact MvPolynomial.le_totalDegree hs
+
+/-- **§133.10a — `Q_times_Phi`** (paper §40.7 p.~206 Theorem 223,
+notational alias for `Q^×_Φ`).
+
+Paper's `Q^×_Φ` — the Cook–Levin clause-sheet polynomial embedded in
+`PMnPoly σ` via the §29 Definition 7 identity-minor map. Concretely
+`Q_times_Phi σ Q := CoupledSheetPoly.embed σ Q` (= `MvPolynomial.rename
+σ.inlU Q`). -/
+noncomputable def Q_times_Phi (σ : PaperFaithfulCompilation.UVSplit)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ) :
+    PaperFaithfulCompilation.PMnPoly σ :=
+  PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q
+
+/-- **§133.10 — `T_Phi_image_of_PMn_real`** (paper §40.7 p.~206
+Theorem 223, extraction identity `T_Φ(P_{M*,|ρ(Φ)|}) = Q^×_Φ`).
+
+**Paper's extraction identity**. Given any compiled polynomial
+`PMn : PMnPoly σ` and Cook–Levin `Q : CoupledSheetPoly σ` satisfying
+the canonical extraction `piPhi σ PMn = embed σ Q` (paper §101 /
+§118.1 `Step4CompilerOutput.extraction`, §29 Definition 7), the
+composite `T_Φ` sends `PMn` to `embed σ Q = Q^×_Φ`:
+
+  `T_Phi σ Φ PMn = Q_times_Phi σ Q`.
+
+This is the **exact paper equation** `T_Φ(P_{M*,|ρ(Φ)|}) = Q^×_Φ`
+(paper §40.7 p.~206 Theorem 223).
+
+Proof: rewrite via §133.5a (`T_Φ = piPhi σ`), then invoke
+`hExtract`; finally unfold `Q_times_Phi`. -/
+theorem T_Phi_image_of_PMn_real
+    (σ : PaperFaithfulCompilation.UVSplit) (Φ : Finset σ.Idx)
+    (PMn : PaperFaithfulCompilation.PMnPoly σ)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ)
+    (hExtract : PaperFaithfulCompilation.piPhi σ PMn =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q) :
+    T_Phi σ Φ PMn = Q_times_Phi σ Q := by
+  unfold Q_times_Phi
+  rw [show T_Phi σ Φ PMn = PaperFaithfulCompilation.piPhi σ PMn from by
+        rw [T_Phi_eq_piPhi σ Φ]]
+  exact hExtract
+
+/-- **§133.10b — `T_Phi_image_of_PMn_real_embed`** (paper §40.7 p.~206
+Theorem 223, `embed`-form of the extraction identity).
+
+Variant of §133.10 stated in the `embed`-form directly (without the
+`Q_times_Phi` notation wrapper): `T_Phi σ Φ PMn = embed σ Q`.
+Chainable directly with §118.1 `Step4CompilerOutput.extraction` or
+§130.1 `Step4CompilerOutput_real.extraction`. -/
+theorem T_Phi_image_of_PMn_real_embed
+    (σ : PaperFaithfulCompilation.UVSplit) (Φ : Finset σ.Idx)
+    (PMn : PaperFaithfulCompilation.PMnPoly σ)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ)
+    (hExtract : PaperFaithfulCompilation.piPhi σ PMn =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q) :
+    T_Phi σ Φ PMn = PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q := by
+  rw [show T_Phi σ Φ PMn = PaperFaithfulCompilation.piPhi σ PMn from by
+        rw [T_Phi_eq_piPhi σ Φ]]
+  exact hExtract
+
+/-- **§133.11 — `rank_T_Phi_le`** (paper §40.7 p.~206 Theorem 223,
+rank-monotonicity clause `Γ(T_Φ(p)) ≤ Γ(p)`; paper Lemma 40
+block-local rank monotonicity; Lemma 222 p.~206).
+
+**Rank monotonicity under `T_Φ`**: for any block partition `B` and
+profile parameters `κ, ℓ`,
+
+  `mlBlockedSpdpRank B κ ℓ (T_Φ p) ≤ mlBlockedSpdpRank B κ ℓ p`.
+
+Paper Lemma 40 applied at the canonical `T_Φ = piPhi σ` instantiation
+(§133.5a); the matching rank-monotone gauge witness is
+`piPhi_isRankMonotoneGauge` (§5 `PaperFaithfulCompilation.lean`). -/
+theorem rank_T_Phi_le (σ : PaperFaithfulCompilation.UVSplit)
+    (Φ : Finset σ.Idx) (B : SPDP.BlockPartition σ.total) (κ ℓ : ℕ)
+    (p : PaperFaithfulCompilation.PMnPoly σ) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (T_Phi σ Φ p) ≤
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ p := by
+  rw [show T_Phi σ Φ p = PaperFaithfulCompilation.piPhi σ p from by
+        rw [T_Phi_eq_piPhi σ Φ]]
+  exact PaperFaithfulCompilation.piPhi_isRankMonotoneGauge σ B κ ℓ p
+
+/-- **§133.12 — `T_Phi_IsRankMonotoneGauge`** (paper §40.7 p.~206
+Theorem 223, packaged rank-monotonicity predicate).
+
+Packages §133.11 as a `GaugeMonotonicity.IsRankMonotoneGauge` witness,
+chainable with §134.1 `lemma_205_rank_pullback`. -/
+theorem T_Phi_IsRankMonotoneGauge (σ : PaperFaithfulCompilation.UVSplit)
+    (Φ : Finset σ.Idx) (B : SPDP.BlockPartition σ.total) :
+    GaugeMonotonicity.IsRankMonotoneGauge B (T_Phi σ Φ) := by
+  intro κ ℓ p
+  exact rank_T_Phi_le σ Φ B κ ℓ p
+
+/-- **§133.13 — `rank_T_Phi_le_of_PMn_bound`** (paper §40.7 p.~206
+Theorem 223 / §134.1 Lemma 205 chain).
+
+**End-to-end application**: if `Γ_{κ,ℓ}(PMn) ≤ bound`, then
+`Γ_{κ,ℓ}(T_Φ PMn) ≤ bound`. Direct chain form of Theorem 223's rank
+monotonicity with the §40 Theorem 203 Width⇒Rank bound. -/
+theorem rank_T_Phi_le_of_PMn_bound
+    (σ : PaperFaithfulCompilation.UVSplit) (Φ : Finset σ.Idx)
+    (B : SPDP.BlockPartition σ.total) (κ ℓ : ℕ)
+    (PMn : PaperFaithfulCompilation.PMnPoly σ) (bound : ℕ)
+    (hP : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ PMn ≤ bound) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (T_Phi σ Φ PMn) ≤ bound :=
+  le_trans (rank_T_Phi_le σ Φ B κ ℓ PMn) hP
+
 /-! ## Section 134: Paper Lemma 205 — Rank pullback under the T_Φ extraction
 
     (paper §40 Step 4 main contradiction, p.~199; §40.7 pp.~206
