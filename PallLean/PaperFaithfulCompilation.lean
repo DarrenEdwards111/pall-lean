@@ -1390,36 +1390,30 @@ such that `pullbackPartition B inlU` matches `cook_levin_compilation.partition`.
 
 We construct such a `B` by extending the Cook-Levin partition to v-range. -/
 
-/-- **Extended Cook-Levin partition**: extends the locality block
-partition over `Fin n` to all `(cookLevinUVSplit M n).total` indices,
-putting all v-indices into a single additional block (or existing block).
+/-- **Extended Cook-Levin partition** (for n ≥ 2): extends the locality
+block partition over `Fin n` to all `(cookLevinUVSplit M n).total`
+indices, putting all v-indices into block 0.
 
-For our purposes, any extension works — the pullback via inlU only uses
-the u-part. -/
-def extendedCookLevinPartition (M : TuringMachine.DTM) (n : ℕ) :
+Requires `n ≥ 2` so that numBlocks = (n+2)/3 ≥ 1 (needed for ⟨0, _⟩). -/
+def extendedCookLevinPartition (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2) :
     SPDP.BlockPartition (cookLevinUVSplit M n).total where
-  numBlocks := max ((n + 2) / 3) 1  -- same as cook-levin locality
+  numBlocks := (n + 2) / 3
   assign := fun k =>
     if h : k.val < n then
-      ⟨k.val / 3, by
-        have h1 : k.val / 3 < (n + 2) / 3 := by omega
-        have h2 : (n + 2) / 3 ≤ max ((n + 2) / 3) 1 := le_max_left _ _
-        omega⟩
+      ⟨k.val / 3, by omega⟩
     else
-      ⟨0, by
-        have : 0 < max ((n + 2) / 3) 1 := by positivity
-        exact this⟩
+      ⟨0, by omega⟩
 
 /-- The extended partition, pulled back via `inlU`, agrees with the
-Cook-Levin partition (on assign; blocks match via max ≥ lhs). -/
+Cook-Levin partition (on assign). -/
 theorem pullback_extended_cookLevin_assign
-    (M : TuringMachine.DTM) (n : ℕ) (i : Fin n) :
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2) (i : Fin n) :
     ((MultilinearSPDP.pullbackPartition
-        (extendedCookLevinPartition M n) (cookLevinUVSplit M n).inlU).assign i).val =
+        (extendedCookLevinPartition M n hn) (cookLevinUVSplit M n).inlU).assign i).val =
       i.val / 3 := by
-  show ((extendedCookLevinPartition M n).assign ((cookLevinUVSplit M n).inlU i)).val =
+  show ((extendedCookLevinPartition M n hn).assign ((cookLevinUVSplit M n).inlU i)).val =
         i.val / 3
-  show ((extendedCookLevinPartition M n).assign ⟨i.val, _⟩).val = i.val / 3
+  show ((extendedCookLevinPartition M n hn).assign ⟨i.val, _⟩).val = i.val / 3
   unfold extendedCookLevinPartition
   simp only
   split_ifs with h
@@ -1442,26 +1436,25 @@ noncomputable def cookLevinQ (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
   (heq ▸ h ▸ (PaperFaithfulSeparation.compiledPoly
     (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns)))
 
-/-- Helper: for n ≥ 2, max ((n+2)/3) 1 = (n+2)/3. -/
-theorem extended_numBlocks_eq (n : ℕ) (hn : n ≥ 2) :
-    max ((n + 2) / 3) 1 = (n + 2) / 3 := by
-  have h1 : 1 ≤ (n + 2) / 3 := by omega
-  exact max_eq_left h1
-
 /-- **Partition equality**: for n ≥ 2, `pullbackPartition (extendedCookLevinPartition) inlU`
 equals `cook_levin_compilation.partition` as BlockPartitions on `Fin n`.
 
 Both have `numBlocks = (n+2)/3` and `assign i = ⟨i.val/3, _⟩`. -/
-theorem pullback_eq_cook_levin_partition
+theorem pullback_eq_cook_levin_partition_numBlocks
     (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
-    ∀ i : Fin n,
-      ((MultilinearSPDP.pullbackPartition
-          (extendedCookLevinPartition M n) (cookLevinUVSplit M n).inlU).assign i).val =
-      ((PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition.assign i).val := by
-  intro i
+    (MultilinearSPDP.pullbackPartition
+        (extendedCookLevinPartition M n hn) (cookLevinUVSplit M n).inlU).numBlocks =
+    (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition.numBlocks := by
+  rfl
+
+theorem pullback_eq_cook_levin_partition_assign
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (i : Fin n) :
+    ((MultilinearSPDP.pullbackPartition
+        (extendedCookLevinPartition M n hn) (cookLevinUVSplit M n).inlU).assign i).val =
+    ((PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition.assign i).val := by
   rw [pullback_extended_cookLevin_assign]
-  -- RHS: cook_levin_partition.assign = localityAssign n i = ⟨i.val/3, _⟩
   rfl
 
 /- **Note**: the full partition equality as BlockPartition values requires
