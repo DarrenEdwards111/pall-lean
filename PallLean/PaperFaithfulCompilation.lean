@@ -621,4 +621,57 @@ theorem piPhi_tableauBoolProduct_pos (σ : UVSplit) (hV : 0 < σ.numV) :
   show (PiStarConcrete.substAlgHom (keepU σ) 0).toLinearMap (vBoolConstraint σ j₀) = 0
   exact hpp
 
+/-! ## Section 13: Extraction theorem — piPhi(u-part + v-part) = u-part
+
+The central extraction behavior for paper's Π_Φ: a polynomial that
+decomposes as `embed(Q) + R` where `R` vanishes under piPhi yields
+`piPhi(embed(Q) + R) = embed(Q)`.
+
+Concretely, if `R` is a sum/product where piPhi acts as 0 (e.g., R
+contains a v-boolean factor), then piPhi extracts the u-only part. -/
+
+/-- **Linear extraction**: if `R = piPhi(R)` — i.e., piPhi fixes R — and
+we're asking about piPhi(embed(Q) + R), the result is embed(Q) + R.
+(Trivial consequence of linearity.) Then if additionally `piPhi(R) = 0`,
+the result collapses to embed(Q). -/
+theorem piPhi_embed_add_kill
+    (σ : UVSplit) (Q : CoupledSheetPoly σ) (R : PMnPoly σ)
+    (hR : piPhi σ R = 0) :
+    piPhi σ (CoupledSheetPoly.embed σ Q + R) =
+      CoupledSheetPoly.embed σ Q := by
+  rw [map_add, hR, add_zero]
+  exact piPhi_embed_eq σ Q
+
+/-- **Multiplicative extraction**: piPhi(embed(Q) · tableauBool) = 0
+when numV ≥ 1 (since tableauBool vanishes under piPhi). This models the
+paper's Π_Φ extraction when the v-dependence is encoded multiplicatively. -/
+theorem piPhi_embed_mul_tableauBool (σ : UVSplit)
+    (Q : CoupledSheetPoly σ) (hV : 0 < σ.numV) :
+    piPhi σ (CoupledSheetPoly.embed σ Q * tableauBoolProduct σ) = 0 := by
+  -- piPhi is a ring hom, piPhi(tableauBoolProduct) = 0.
+  show (PiStarConcrete.substAlgHom (keepU σ) 0).toLinearMap
+      (CoupledSheetPoly.embed σ Q * tableauBoolProduct σ) = 0
+  rw [AlgHom.toLinearMap_apply, map_mul]
+  have h : (PiStarConcrete.substAlgHom (keepU σ) 0).toLinearMap
+            (tableauBoolProduct σ) = 0 := piPhi_tableauBoolProduct_pos σ hV
+  -- Rewrite to convert AlgHom applications to LinearMap form
+  show (PiStarConcrete.substAlgHom (keepU σ) 0) (CoupledSheetPoly.embed σ Q) *
+       (PiStarConcrete.substAlgHom (keepU σ) 0) (tableauBoolProduct σ) = 0
+  have h2 : (PiStarConcrete.substAlgHom (keepU σ) 0) (tableauBoolProduct σ) = 0 := by
+    rw [← AlgHom.toLinearMap_apply]
+    exact h
+  rw [h2, mul_zero]
+
+/-- **Capstone extraction**: if a PMn polynomial decomposes as
+`embed(Q) + embed(Q) · tableauBool`, then piPhi extracts embed(Q).
+This is a concrete template: R = embed(Q) · tableauBool is v-dependent
+but vanishes under piPhi. -/
+theorem piPhi_extract_via_tableauBool
+    (σ : UVSplit) (Q : CoupledSheetPoly σ) (hV : 0 < σ.numV) :
+    piPhi σ (CoupledSheetPoly.embed σ Q +
+              CoupledSheetPoly.embed σ Q * tableauBoolProduct σ) =
+      CoupledSheetPoly.embed σ Q :=
+  piPhi_embed_add_kill σ Q (CoupledSheetPoly.embed σ Q * tableauBoolProduct σ)
+    (piPhi_embed_mul_tableauBool σ Q hV)
+
 end PaperFaithfulCompilation
