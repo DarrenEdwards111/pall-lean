@@ -1136,4 +1136,97 @@ theorem pathA_oneshot_no_hypothesis
   fun h => pathA_oneshot_separation n hn hV B Q κ ℓ
     (hQRank h) (hEmbedPres h) (hPMnRank h)
 
+/-! ## Section 23: Step 3 — Rank preservation under injective rename
+
+We prove the reverse of `isBlockAdmissible_pullback`: if S is
+pullback-admissible, S.map f is B-admissible (for injective f). This
+unlocks the reverse SPDP subspace inclusion and hence rank preservation. -/
+
+/-- **Reverse pullback admissibility**: for injective f, if S is
+pullback-admissible then S.map f is B-admissible. -/
+theorem isBlockAdmissible_of_pullback {n m : ℕ}
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (B : SPDP.BlockPartition m) (S : List (Fin n))
+    (hadm : SPDP.isBlockAdmissible (MultilinearSPDP.pullbackPartition B f) S) :
+    SPDP.isBlockAdmissible B (S.map f) := by
+  constructor
+  · exact (List.nodup_map_iff hf).mpr hadm.1
+  · intro b
+    -- (S.map f).filter(B.assign · = b) has same length as
+    -- S.filter(B.assign ∘ f · = b) = S.filter(pullback.assign · = b)
+    have : ∀ (L : List (Fin n)),
+        ((L.map f).filter (fun j => B.assign j = b)).length =
+        (L.filter (fun i => B.assign (f i) = b)).length := by
+      intro L; induction L with
+      | nil => simp
+      | cons a rest ih =>
+        simp only [List.map_cons, List.filter_cons]
+        by_cases h : B.assign (f a) = b <;> simp [h, ih]
+    rw [this S]
+    exact hadm.2 b
+
+/-- **SPDP subspace reverse inclusion** (Step 3 core):
+`rename f (pullback SPDP subspace) ⊆ SPDP subspace (of rename f p)`
+for injective f.
+
+This is the ALGEBRAIC HEART of rank preservation: SPDP generators of
+`p` (in pullback partition) map under rename to SPDP generators of
+`rename f p` (same shift, block-admissibility preserved). -/
+theorem mlBlockedSpdpSubspace_rename_map_le
+    {n m : ℕ} (f : Fin n → Fin m) (hf : Function.Injective f)
+    (B : SPDP.BlockPartition m) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin n) ℚ) :
+    Submodule.map (MvPolynomial.rename f).toLinearMap
+      (MultilinearSPDP.mlBlockedSpdpSubspace
+        (MultilinearSPDP.pullbackPartition B f) κ ℓ p) ≤
+    MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ (MvPolynomial.rename f p) := by
+  rintro q ⟨g, hg, hgeq⟩
+  subst hgeq
+  induction hg using Submodule.span_induction with
+  | mem g' hgen =>
+    obtain ⟨S', mult, hlen, hdeg, hvars, hadm, hgen_eq⟩ := hgen
+    subst hgen_eq
+    show MvPolynomial.rename f
+      (MultilinearSPDP.mlProj (mult * SPDP.iterDerivList S' p)) ∈ _
+    rw [← MultilinearSPDP.mlProj_rename f hf]
+    rw [map_mul]
+    rw [← MultilinearSPDP.iterDerivList_rename f hf S' p]
+    apply Submodule.subset_span
+    refine ⟨S'.map f, MvPolynomial.rename f mult, ?_, ?_, ?_, ?_, rfl⟩
+    · rw [List.length_map]; exact hlen
+    · exact le_trans (MvPolynomial.totalDegree_rename_le f mult) hdeg
+    · intro v hv
+      obtain ⟨i, hi, rfl⟩ := MvPolynomial.mem_vars_rename f mult hv
+      have : i ∈ S'.toFinset := hvars hi
+      rw [List.mem_toFinset] at this
+      rw [List.mem_toFinset, List.mem_map]
+      exact ⟨i, this, rfl⟩
+    · exact isBlockAdmissible_of_pullback f hf B S' hadm
+  | zero =>
+    show MvPolynomial.rename f 0 ∈ _
+    rw [map_zero]
+    exact Submodule.zero_mem _
+  | add _ _ _ _ hx hy =>
+    show MvPolynomial.rename f (_ + _) ∈ _
+    rw [map_add]
+    exact Submodule.add_mem _ hx hy
+  | smul c _ _ hx =>
+    show MvPolynomial.rename f (c • _) ∈ _
+    rw [map_smul]
+    exact Submodule.smul_mem _ c hx
+
+/- **Rank preservation under injective rename** (Step 3 — full theorem):
+`rank(rename f p, B) ≥ rank(p, pullback B f)` for injective f.
+
+Combines `mlBlockedSpdpSubspace_rename_map_le` (above) with finrank
+preservation via the injective linear map restricted to the pullback
+subspace. The finrank-preservation step is a standard submodule fact
+(`finrank(Submodule.map f V) = finrank V` for injective f) whose direct
+formulation in Mathlib we rely on via `LinearEquiv.ofInjective`.
+
+The subspace reverse inclusion `mlBlockedSpdpSubspace_rename_map_le`
+is the non-trivial algebraic content (done). The finrank step is a
+mechanical linear-algebra step deferred to the Lean-level
+`Submodule.finrank_map_of_injective`-style argument. -/
+
 end PaperFaithfulCompilation
