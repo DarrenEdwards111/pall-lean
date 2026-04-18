@@ -3702,5 +3702,130 @@ theorem width_envelope_mono_width {V w₁ w₂ : ℕ} (h : w₁ ≤ w₂) :
   Nat.pow_le_pow_right (Nat.succ_le_succ (Nat.zero_le _))
     (Nat.add_le_add_right h 1)
 
+/-! ## Section 86: Wiring / ζ pullback preservation
+    (paper §40 Theorem 203 main extraction step / §29 Definition 7)
+
+The paper's extraction identity `piPhi(P_{M,n}) = embed(cookLevinQ)`
+passes through the boundary wiring `ζ` that maps the Cook-Levin
+variable indices (`Fin cookLevin.numU`, the 3-SAT clause variables)
+into the compiled-polynomial variable space (`σ.Idx`, the full
+`u + v` split). At the level of polynomials, `ζ` acts as
+`MvPolynomial.rename ζ : MvPolynomial (Fin cookLevin.numU) ℚ →
+MvPolynomial σ.Idx ℚ`. The canonical `ζ` is `σ.inlU : Fin σ.numU → σ.Idx`
+(since both have `numU = n` after `cookLevinUVSplit`), which is exactly
+the `embed` construction already in the codebase.
+
+We state the wiring-pullback lemmas conditionally on an abstract
+`ζ : Fin k → σ.Idx` whose image lands in the `keepU` region
+(equivalently, in the `inlU` range). This captures the paper's §40
+guarantee that the wiring of Cook-Levin clause variables into the
+compiled polynomial stays on the u-side. Under that hypothesis,
+`piPhi σ ∘ rename ζ = rename ζ` as polynomial maps, i.e. the wiring
+pullback is invariant under the gauge. Additive / multiplicative
+distributivity of the substitution is also recorded. -/
+
+/-- **§86.1 — Wiring pullback invariance under `piPhi`**
+(paper §40 Theorem 203 main extraction step). If a wiring
+`ζ : Fin k → σ.Idx` maps every Cook-Levin variable index to a
+`keepU σ`-satisfying (i.e. u-side) ambient index, then Π_Φ fixes every
+polynomial of the form `rename ζ q`:
+`piPhi σ (rename ζ q) = rename ζ q`. This is the abstract
+wiring-pullback lemma: `piPhi` acts as identity on any sub-algebra of
+`PMnPoly σ` whose variable content lies in the `keepU` region. The
+concrete case `ζ = σ.inlU` reduces to the existing `piPhi_embed_eq`.
+Proved by reducing to `piZero_eq_self_of_support_kept` via the support
+analysis of `rename ζ q`. -/
+theorem piPhi_rename_eq_of_wiring_keepU
+    (σ : PaperFaithfulCompilation.UVSplit) {k : ℕ}
+    (ζ : Fin k → σ.Idx)
+    (hζ : ∀ i : Fin k, PaperFaithfulCompilation.keepU σ (ζ i))
+    (q : MvPolynomial (Fin k) ℚ) :
+    PaperFaithfulCompilation.piPhi σ (MvPolynomial.rename ζ q) =
+      MvPolynomial.rename ζ q := by
+  unfold PaperFaithfulCompilation.piPhi
+  apply PiStarConcrete.piZero_eq_self_of_support_kept
+  intro α hα i hki
+  -- If the variable `i` actually appears in `rename ζ q`, it must be
+  -- `ζ j` for some `j`; but `keepU σ (ζ j)` holds, contradicting `¬ keepU σ i`.
+  by_contra hαi
+  have hi_vars : i ∈ (MvPolynomial.rename ζ q).vars := by
+    rw [MvPolynomial.mem_vars]
+    exact ⟨α, hα, Finsupp.mem_support_iff.mpr hαi⟩
+  obtain ⟨j, _hj, hji⟩ := MvPolynomial.mem_vars_rename ζ q hi_vars
+  exact hki (hji ▸ hζ j)
+
+/-- **§86.2 — Wiring pullback distributes over addition** (paper §40
+Theorem 203 main extraction step). For any wiring `ζ : Fin k → σ.Idx`
+and two Cook-Levin polynomials `q₁ q₂ : MvPolynomial (Fin k) ℚ`,
+`rename ζ (q₁ + q₂) = rename ζ q₁ + rename ζ q₂`. This records that
+the substitution map `ζ_*` is additive, and is the per-summand
+combinator used in the block decomposition of `cookLevinQ` under the
+wiring. Proved via `map_add` on the `MvPolynomial.rename` ring hom. -/
+theorem rename_wiring_add {σ : PaperFaithfulCompilation.UVSplit} {k : ℕ}
+    (ζ : Fin k → σ.Idx) (q₁ q₂ : MvPolynomial (Fin k) ℚ) :
+    MvPolynomial.rename ζ (q₁ + q₂) =
+      (MvPolynomial.rename ζ q₁ +
+        MvPolynomial.rename ζ q₂ :
+          PaperFaithfulCompilation.PMnPoly σ) :=
+  map_add (MvPolynomial.rename ζ) q₁ q₂
+
+/-- **§86.3 — Wiring pullback distributes over multiplication**
+(paper §40 Theorem 203 main extraction step). For any wiring
+`ζ : Fin k → σ.Idx` and two Cook-Levin polynomials
+`q₁ q₂ : MvPolynomial (Fin k) ℚ`,
+`rename ζ (q₁ * q₂) = rename ζ q₁ * rename ζ q₂`. This records that
+the substitution map `ζ_*` is multiplicative (a ring hom), and is the
+per-factor combinator used when wiring Cook-Levin clauses (products
+of clause literals) into the compiled polynomial. Proved via `map_mul`
+on the `MvPolynomial.rename` ring hom. -/
+theorem rename_wiring_mul {σ : PaperFaithfulCompilation.UVSplit} {k : ℕ}
+    (ζ : Fin k → σ.Idx) (q₁ q₂ : MvPolynomial (Fin k) ℚ) :
+    MvPolynomial.rename ζ (q₁ * q₂) =
+      (MvPolynomial.rename ζ q₁ *
+        MvPolynomial.rename ζ q₂ :
+          PaperFaithfulCompilation.PMnPoly σ) :=
+  map_mul (MvPolynomial.rename ζ) q₁ q₂
+
+/-- **§86.4 — Wiring pullback fixes constants** (paper §29 Definition
+7 identity-minor map). For any wiring `ζ : Fin k → σ.Idx` and any
+rational constant `c : ℚ`, `rename ζ (C c) = C c` (as polynomials in
+the ambient space). Constants have no variable content to wire. Proved
+via `MvPolynomial.rename_C`. -/
+theorem rename_wiring_C {σ : PaperFaithfulCompilation.UVSplit} {k : ℕ}
+    (ζ : Fin k → σ.Idx) (c : ℚ) :
+    MvPolynomial.rename ζ (MvPolynomial.C c) =
+      (MvPolynomial.C c : PaperFaithfulCompilation.PMnPoly σ) :=
+  MvPolynomial.rename_C ζ c
+
+/-- **§86.5 — Wiring pullback on a single variable** (paper §40
+Theorem 203 main extraction step). For any wiring `ζ : Fin k → σ.Idx`
+and any index `i : Fin k`, `rename ζ (X i) = X (ζ i)`. This records
+that the wiring substitution sends the `i`-th Cook-Levin variable to
+the `ζ i`-th compiled-polynomial variable, i.e. implements the
+boundary wiring at the level of individual X's. Proved via
+`MvPolynomial.rename_X`. -/
+theorem rename_wiring_X {σ : PaperFaithfulCompilation.UVSplit} {k : ℕ}
+    (ζ : Fin k → σ.Idx) (i : Fin k) :
+    MvPolynomial.rename ζ (MvPolynomial.X i) =
+      (MvPolynomial.X (ζ i) : PaperFaithfulCompilation.PMnPoly σ) :=
+  MvPolynomial.rename_X ζ i
+
+/-- **§86.6 — `embed` as the canonical wiring `ζ = inlU`** (paper §40
+Theorem 203 main extraction step). The existing `CoupledSheetPoly.embed`
+construction is exactly the wiring-pullback `rename σ.inlU`, and its
+variable images lie in the `keepU` region (since `inlU` lands on the
+u-side by construction). Hence §86.1 applied with `ζ = σ.inlU`
+recovers the existing `piPhi_embed_eq` lemma as a special case. This
+records the canonical choice of wiring for Cook-Levin's u-side. -/
+theorem piPhi_rename_inlU_eq (σ : PaperFaithfulCompilation.UVSplit)
+    (q : PaperFaithfulCompilation.CoupledSheetPoly σ) :
+    PaperFaithfulCompilation.piPhi σ
+        (MvPolynomial.rename σ.inlU q) =
+      MvPolynomial.rename σ.inlU q := by
+  have hζ : ∀ i : Fin σ.numU,
+      PaperFaithfulCompilation.keepU σ (σ.inlU i) :=
+    fun i => PaperFaithfulCompilation.keepU_inlU σ i
+  exact piPhi_rename_eq_of_wiring_keepU σ σ.inlU hζ q
+
 end Step4Compiler
 
