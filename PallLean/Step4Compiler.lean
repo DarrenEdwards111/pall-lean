@@ -1449,4 +1449,69 @@ theorem batcherDepthBound_1 : batcherDepthBound 1 = 0 := by
  and its CEW bound are available in §17h; full SoSGadget packaging
  left for future work. -/
 
+/-! ## Section 29: CEW bound for n-fold products -/
+
+/-- Product of n copies of the same polynomial has CEW ≤ n · CEW(p). -/
+theorem HasCEWBound_npow {N : ℕ} (p : MvPolynomial (Fin N) ℚ)
+    (c : ℕ) (hp : HasCEWBound p c) :
+    ∀ (k : ℕ), HasCEWBound (p ^ k) (k * c) := by
+  intro k
+  induction k with
+  | zero =>
+    -- p^0 = 1, CEW 0, 0 * c = 0
+    show (p ^ 0 : MvPolynomial (Fin N) ℚ).totalDegree ≤ 0 * c
+    rw [pow_zero, Nat.zero_mul]
+    unfold HasCEWBound at *
+    rw [MvPolynomial.totalDegree_one]
+  | succ n ih =>
+    -- p^(n+1) = p * p^n, CEW ≤ c + n * c = (n+1) * c
+    show (p ^ (n + 1) : MvPolynomial (Fin N) ℚ).totalDegree ≤ (n + 1) * c
+    rw [pow_succ]
+    calc (p ^ n * p).totalDegree
+        ≤ (p ^ n).totalDegree + p.totalDegree :=
+          MvPolynomial.totalDegree_mul _ _
+      _ ≤ n * c + c := Nat.add_le_add ih hp
+      _ = (n + 1) * c := by ring
+
+/-! ## Section 30: BP length bounds -/
+
+/-- **BP length bound composition**: if B has length ≤ L, then
+prependLayer yields length ≤ L+1. -/
+theorem BranchingProgram.prependLayer_lengthBound {n : ℕ}
+    (B : BranchingProgram n) (q : Fin n)
+    (t : Fin B.width → Bool → Fin B.width) (L : ℕ) (hL : B.length ≤ L) :
+    (B.prependLayer q t).length ≤ L + 1 := by
+  rw [BranchingProgram.prependLayer_length]
+  omega
+
+/-- **Sequential BP length**: gluing BPs adds lengths. -/
+theorem BP_length_le_sum_prep {n : ℕ} (B : BranchingProgram n)
+    (q : Fin n) (t : Fin B.width → Bool → Fin B.width) :
+    (B.prependLayer q t).length = B.length + 1 := rfl
+
+/-! ## Section 31: CEW of sums and products via Finset.prod -/
+
+/-- Product over a Finset with each factor having CEW ≤ 1 has CEW ≤ |s|. -/
+theorem HasCEWBound_finset_prod_ones {N : ℕ} {ι : Type*}
+    (s : Finset ι) (f : ι → MvPolynomial (Fin N) ℚ)
+    (h : ∀ i ∈ s, HasCEWBound (f i) 1) :
+    HasCEWBound (s.prod f) s.card := by
+  classical
+  induction s using Finset.induction_on with
+  | empty =>
+    rw [Finset.prod_empty, Finset.card_empty]
+    unfold HasCEWBound
+    rw [MvPolynomial.totalDegree_one]
+  | @insert a s' hi ih =>
+    rw [Finset.prod_insert hi, Finset.card_insert_of_notMem hi]
+    have ha : HasCEWBound (f a) 1 := h a (Finset.mem_insert_self _ _)
+    have hrest : HasCEWBound (s'.prod f) s'.card :=
+      ih (fun j hj => h j (Finset.mem_insert_of_mem hj))
+    calc (f a * s'.prod f).totalDegree
+        ≤ (f a).totalDegree + (s'.prod f).totalDegree :=
+          MvPolynomial.totalDegree_mul _ _
+      _ ≤ 1 + s'.card := Nat.add_le_add ha hrest
+      _ = s'.card + 1 := by ring
+
 end Step4Compiler
+
