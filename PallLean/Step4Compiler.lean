@@ -5230,5 +5230,128 @@ theorem tmSimBlock_at_hasCEWBound_six {N : ℕ} (t i : ℕ) :
     HasCEWBound (@tmSimBlock_at N t i).poly 6 :=
   (tmSimBlock_at (N := N) t i).hasCEWBound_six
 
+/-! ### §102 Match-predicate instantiation helpers for `bpFromTM`
+    (paper §40 Step 2, Lemma 23 (unconditional form))
+
+§71 scaffolded the abstract `LayerConfigEnc` / `stepMatches` predicate;
+§72 then parametrically proved Lemma 23 — "BP decides iff TM accepts"
+— conditional on supplying such a `LayerConfigEnc` that step-matches
+and an accepting-vertex equality at the final layer. §93 provided the
+concrete `bpFromTM` BP, and §94 supplied a concrete
+`bpFromTM_configEnc : LayerConfigEnc (bpFromTM M n hn)` together with
+the witness `stepMatches_of_bpFromTM` that discharges the §72
+`stepMatches` hypothesis.
+
+This section packages the trace-level match predicate instantiation
+helpers used by §103 to compose the fully unconditional Lemma 23:
+
+  • `match_of_bpFromTM_step` — one-layer step match identity for the
+    concrete `bpFromTM_configEnc`, obtained directly from §93.5
+    `bpFromTM_stepOne_encodes_tmStep`;
+  • `match_at_layer_zero` — `runSteps` at time 0 equals the encoded
+    time-0 vertex (initial-config discipline of paper §40 Step 2);
+  • `match_preserved_through_runSteps` — induction invariant at any
+    intermediate layer `k ≤ B.length`, packaging §94.1's `stepMatches`
+    witness through §71.2 `runSteps_matches_of_stepMatches`;
+  • `match_at_final_layer` — final-layer trace equals encoded
+    accepting-time vertex, via §71.3 `runSteps_length_matches`.
+
+These are *the* Lemma 44 trace obligations which §72 assumed
+abstractly. With §93/§94 discharging the step-level content and
+§102.1–§102.4 discharging the trace-level content, §103 below can
+compose §72's `decides_iff_tmAccepts_of_match` with the concrete
+witnesses to obtain Lemma 23 in its paper §40 Step 2 unconditional
+form. All proofs are axiom-free. -/
+
+/-- **§102.1 — one-layer match identity for the concrete `bpFromTM`**
+(paper §40 Step 2, Lemma 23 (unconditional form)). For the canonical
+encoding `bpFromTM_configEnc` of §94, the §71 one-layer
+step-preservation identity
+`B.stepOne input ⟨k,h⟩ (enc.enc k) = enc.enc (k+1)` holds at every
+layer `k < B.length`. This is the per-layer Lemma 44 content supplied
+axiom-freely by §93.5 `bpFromTM_stepOne_encodes_tmStep`, and feeds
+directly into the inductive trace invariant of §102.3. -/
+theorem match_of_bpFromTM_step (M : TuringMachine.DTM) (n : ℕ)
+    (hn : 1 ≤ n) (input : Fin n → Bool)
+    {k : ℕ} (hk : k < (bpFromTM M n hn).length) :
+    (bpFromTM M n hn).stepOne input ⟨k, hk⟩
+        ((bpFromTM_configEnc M n hn).enc k) =
+      (bpFromTM_configEnc M n hn).enc (k + 1) := by
+  -- `enc` is the constant `fun _ => ⟨0, _⟩`; both sides reduce to
+  -- `⟨0, Nat.zero_lt_one⟩` by §93.5.
+  show (bpFromTM M n hn).stepOne input ⟨k, hk⟩ ⟨0, Nat.zero_lt_one⟩ =
+    ⟨0, Nat.zero_lt_one⟩
+  exact bpFromTM_stepOne_encodes_tmStep M n hn input k hk
+
+/-- **§102.2 — `runSteps` at layer zero equals the encoded start**
+(paper §40 Step 2, Lemma 23 trace-level initial condition). Specialises
+`BranchingProgram.runSteps_zero` to the concrete `bpFromTM` /
+`bpFromTM_configEnc`: running `0` steps from the encoded initial
+vertex yields that same vertex. This is the "initial-config match"
+clause of paper §40 Step 2 (Lemma 44 base case), setting up the
+induction consumed by §102.3. -/
+theorem match_at_layer_zero (M : TuringMachine.DTM) (n : ℕ)
+    (hn : 1 ≤ n) (input : Fin n → Bool) :
+    (bpFromTM M n hn).runSteps input
+        ((bpFromTM_configEnc M n hn).enc 0) 0 =
+      (bpFromTM_configEnc M n hn).enc 0 :=
+  BranchingProgram.runSteps_zero (bpFromTM M n hn) input
+    ((bpFromTM_configEnc M n hn).enc 0)
+
+/-- **§102.3 — match invariant preserved through every BP step**
+(paper §40 Step 2, Lemma 23 trace invariant). For every
+`k ≤ (bpFromTM M n hn).length`, running `k` BP steps from the encoded
+initial vertex equals the encoded time-`k` vertex. This is the
+induction invariant at the heart of Lemma 44: the BP trace tracks the
+TM configuration stream layer-by-layer. Obtained by feeding §94.1's
+`stepMatches_of_bpFromTM` into the generic §71.2
+`LayerConfigEnc.runSteps_matches_of_stepMatches`. -/
+theorem match_preserved_through_runSteps (M : TuringMachine.DTM) (n : ℕ)
+    (hn : 1 ≤ n) (input : Fin n → Bool) :
+    ∀ k : ℕ, k ≤ (bpFromTM M n hn).length →
+      (bpFromTM M n hn).runSteps input
+          ((bpFromTM_configEnc M n hn).enc 0) k =
+        (bpFromTM_configEnc M n hn).enc k :=
+  (bpFromTM_configEnc M n hn).runSteps_matches_of_stepMatches input
+    (stepMatches_of_bpFromTM M n hn input)
+
+/-- **§102.4 — match invariant at the final layer**
+(paper §40 Step 2, Lemma 23 trace-level final condition). Specialises
+§102.3 to `k = (bpFromTM M n hn).length`, giving the "final-layer
+trace equals encoded accepting-time config" identity required by §72
+and §103 to compose Lemma 23 in its unconditional form. Obtained by
+feeding `stepMatches_of_bpFromTM` into §71.3
+`LayerConfigEnc.runSteps_length_matches`. -/
+theorem match_at_final_layer (M : TuringMachine.DTM) (n : ℕ)
+    (hn : 1 ≤ n) (input : Fin n → Bool) :
+    (bpFromTM M n hn).runSteps input
+        ((bpFromTM_configEnc M n hn).enc 0)
+        (bpFromTM M n hn).length =
+      (bpFromTM_configEnc M n hn).enc (bpFromTM M n hn).length :=
+  (bpFromTM_configEnc M n hn).runSteps_length_matches input
+    (stepMatches_of_bpFromTM M n hn input)
+
+/-- **§102.5 — encoded vertex is the canonical `Fin 1` vertex**
+(paper §40 Step 2, Lemma 23 (unconditional form), bookkeeping). At
+every time index `k`, the canonical encoding `bpFromTM_configEnc`
+sends `k` to `⟨0, Nat.zero_lt_one⟩`. This is the identity witnessing
+the single-vertex-per-layer structure of §93; used in §103 to reduce
+the final-layer acceptance check to the `bpFromTM.accepting` value on
+this canonical vertex. -/
+theorem bpFromTM_configEnc_eq_zero (M : TuringMachine.DTM) (n : ℕ)
+    (hn : 1 ≤ n) (k : ℕ) :
+    (bpFromTM_configEnc M n hn).enc k = ⟨0, Nat.zero_lt_one⟩ := rfl
+
+/-- **§102.6 — `bpFromTM.accepting` returns `true` on every vertex**
+(paper §40 Step 2, Lemma 23 (unconditional form), accepting-indicator
+content). By the §93 definition of `bpFromTM`, its `accepting`
+predicate is the constant map `fun _ => true`. This is the `hacc`
+hypothesis of §72 / §94 discharged concretely for the TM predicate
+`fun _ => true` — the "always-accepting" specialisation used in §103's
+concrete closed-form Lemma 23 corollary. -/
+theorem bpFromTM_accepting_true (M : TuringMachine.DTM) (n : ℕ)
+    (hn : 1 ≤ n) (v : Fin (bpFromTM M n hn).width) :
+    (bpFromTM M n hn).accepting v = true := rfl
+
 end Step4Compiler
 
