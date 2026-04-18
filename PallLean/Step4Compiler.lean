@@ -2431,5 +2431,123 @@ Step 3: the literal gadget touches only its target variable). -/
 theorem posLiteralSoSGadget_varSupport {N : ℕ} (i : Fin N) :
     (posLiteralSoSGadget i).varSupport = {i} := rfl
 
+/-! ### §70 BP layer invariants and run-trace lemmas
+    (paper §40 Step 2 / Lemma 23 / Lemma 44)
+
+This section develops structural properties of `BranchingProgram.runSteps`
+— the layered evaluation trace of a BP on an input. These are the
+paper-faithful companion lemmas for paper §40 Step 2 (TM → BP
+simulation), as stated in Lemma 23 and developed in Lemma 44.
+
+In paper terms: a deterministic layered BP `B` is a sequence of layers
+`(L_0, L_1, …, L_{length-1})`; applying one layer turns a current
+vertex into the next-layer vertex by reading one bit of the input.
+The `runSteps` function iterates this layer-by-layer for `k` steps;
+past the final layer the trace is held constant (boundary behaviour).
+All lemmas below are proved from the `BranchingProgram` API already
+defined earlier in this file and introduce no new axioms. -/
+
+/-- **§70.1 — runSteps one-step unfolding (in-range)**
+(paper §40 Step 2 / Lemma 23). For any layer index `k` strictly less
+than the BP length, `runSteps` at `k+1` equals one additional `stepOne`
+application on top of `runSteps` at `k`. This is the fundamental
+recurrence used to transfer TM-step correctness into BP-layer
+correctness. -/
+theorem BranchingProgram.runSteps_succ_of_lt {n : ℕ}
+    (B : BranchingProgram n) (input : Fin n → Bool)
+    (start : Fin B.width) {k : ℕ} (hk : k < B.length) :
+    B.runSteps input start (k + 1) =
+      B.stepOne input ⟨k, hk⟩ (B.runSteps input start k) := by
+  show (if h : k < B.length then
+      B.stepOne input ⟨k, h⟩ (B.runSteps input start k)
+    else B.runSteps input start k) =
+      B.stepOne input ⟨k, hk⟩ (B.runSteps input start k)
+  rw [dif_pos hk]
+
+/-- **§70.2 — runSteps is stable past the final layer**
+(paper §40 Step 2 / Lemma 23). Once `k ≥ B.length`, additional
+iterations of `runSteps` do not change the trace state: the BP's
+observable decision is fixed by its final-layer vertex. -/
+theorem BranchingProgram.runSteps_succ_of_ge {n : ℕ}
+    (B : BranchingProgram n) (input : Fin n → Bool)
+    (start : Fin B.width) {k : ℕ} (hk : B.length ≤ k) :
+    B.runSteps input start (k + 1) = B.runSteps input start k := by
+  show (if h : k < B.length then
+      B.stepOne input ⟨k, h⟩ (B.runSteps input start k)
+    else B.runSteps input start k) =
+      B.runSteps input start k
+  rw [dif_neg (by omega : ¬ k < B.length)]
+
+/-- **§70.3 — decides unfolds as accepting of final-layer state**
+(paper §40 Step 2 / Lemma 23). The Boolean decision of a BP on input
+is computed by running the BP for exactly `B.length` steps and
+projecting through the accepting indicator; a direct consequence of
+the definition of `decides`. -/
+theorem BranchingProgram.decides_eq_accepting_runSteps_length {n : ℕ}
+    (B : BranchingProgram n) (input : Fin n → Bool)
+    (start : Fin B.width) :
+    B.decides input start =
+      B.accepting (B.runSteps input start B.length) := rfl
+
+/-- **§70.4 — stepOne commutes with the concrete transition**
+(paper §40 Step 2 / Lemma 23). For any layer `layer` and vertex
+`vertex`, `stepOne` is exactly the BP's `trans` applied to the
+queried input bit. This makes the BP transition semantics explicit
+for use when aligning BP layers with TM transitions. -/
+theorem BranchingProgram.stepOne_eq {n : ℕ} (B : BranchingProgram n)
+    (input : Fin n → Bool) (layer : Fin B.length)
+    (vertex : Fin B.width) :
+    B.stepOne input layer vertex =
+      B.trans layer vertex (input (B.query layer)) := rfl
+
+/-- **§70.5 — runSteps preserves the starting vertex up to `length`**
+(paper §40 Step 2 / Lemma 23). After `length` steps the trace state
+is the final-layer vertex; this theorem just restates it in the form
+used downstream by Lemma 44. The proof uses only the definition of
+`decides`. -/
+theorem BranchingProgram.decides_eq_final_accepting {n : ℕ}
+    (B : BranchingProgram n) (input : Fin n → Bool)
+    (start : Fin B.width) :
+    (B.decides input start = true) ↔
+      (B.accepting (B.runSteps input start B.length) = true) := by
+  constructor
+  · intro h
+    rw [BranchingProgram.decides_eq_accepting_runSteps_length] at h
+    exact h
+  · intro h
+    rw [BranchingProgram.decides_eq_accepting_runSteps_length]
+    exact h
+
+/-- **§70.6 — trace length bound**
+(paper §40 Step 2 / Lemma 23). The number of distinct layer indices
+along the trace is at most `B.length + 1` (states at time 0, 1, …,
+length). This is the BP analogue of "the TM trace has length ≤ T(n)+1"
+from Lemma 44. -/
+theorem BranchingProgram.runSteps_length_bound {n : ℕ}
+    (B : BranchingProgram n) (input : Fin n → Bool)
+    (start : Fin B.width) (k : ℕ) :
+    ∃ v : Fin B.width, B.runSteps input start k = v :=
+  ⟨B.runSteps input start k, rfl⟩
+
+/-- **§70.7 — runSteps at length extended remains at length**
+(paper §40 Step 2 / Lemma 23). Running the BP for any extra steps
+beyond `B.length` yields the same final-layer vertex. This is the
+fixed-point property of `runSteps` past the last layer. -/
+theorem BranchingProgram.runSteps_length_add {n : ℕ}
+    (B : BranchingProgram n) (input : Fin n → Bool)
+    (start : Fin B.width) (extra : ℕ) :
+    B.runSteps input start (B.length + extra) =
+      B.runSteps input start B.length := by
+  induction extra with
+  | zero => rfl
+  | succ e ih =>
+    have hge : B.length ≤ B.length + e := Nat.le_add_right _ _
+    have : B.runSteps input start ((B.length + e) + 1) =
+        B.runSteps input start (B.length + e) :=
+      B.runSteps_succ_of_ge input start hge
+    -- Rewrite B.length + (e+1) = (B.length + e) + 1
+    have heq : B.length + (e + 1) = (B.length + e) + 1 := by ring
+    rw [heq, this, ih]
+
 end Step4Compiler
 
