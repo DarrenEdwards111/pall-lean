@@ -3031,5 +3031,96 @@ theorem BranchingProgram.acceptedSet_eq_tmAccepted_of_match {n : ℕ}
   exact B.decides_iff_tmAccepts_of_match enc input tmAccepts
     (hmatch_all input) (hacc_all input)
 
+/-! ## Section 76: Negative literal SoS gadget (paper §40 Step 3 / §2.1)
+
+The negative literal gadget realises the polynomial `1 − X_i` as a
+radius-1 SoS gadget. Paper §2.1 uses negative literals together with
+positive literals to encode TM transition constraints of the form
+"variable `i` holds bit `b`": the positive literal `X_i` fires on
+bit `1` and the negative literal `1 − X_i` fires on bit `0`. Both
+are needed to arithmetize TM transition rules along a BP path.
+
+The negative literal polynomial is constructed from the atomic
+`literalPoly_neg` polynomial already studied in §17h; here we package
+it as a full `SoSGadget` with the mandatory side conditions
+(`varSupport.card ≤ 6`, `totalDegree ≤ 6`). Because the polynomial
+touches only one variable `i`, these bounds are immediate. -/
+
+/-- **Negative literal gadget** (paper §40 Step 3 / §2.1): the gadget
+for the polynomial `1 − X_i`. Packaged so that the `varSupport` is
+`{i}` and the total degree is at most `1 ≤ 6`. -/
+noncomputable def negLiteralSoSGadget {N : ℕ} (i : Fin N) : SoSGadget N where
+  poly := 1 - MvPolynomial.X i
+  varSupport := {i}
+  support_bound := by
+    rw [Finset.card_singleton]
+    omega
+  vars_contained := by
+    intro k hk
+    have hk' : k ∈ (1 - MvPolynomial.X i : MvPolynomial (Fin N) ℚ).vars := hk
+    have hsub :
+        (1 - MvPolynomial.X i : MvPolynomial (Fin N) ℚ).vars ⊆
+          (1 : MvPolynomial (Fin N) ℚ).vars ∪
+            (MvPolynomial.X i : MvPolynomial (Fin N) ℚ).vars :=
+      MvPolynomial.vars_sub_subset (1 : MvPolynomial (Fin N) ℚ)
+    have hkU := hsub hk'
+    rcases Finset.mem_union.mp hkU with h1 | hX
+    · -- k ∈ (1).vars — impossible, so vacuous.
+      rw [MvPolynomial.vars_one] at h1
+      exact absurd h1 (Finset.notMem_empty k)
+    · -- k ∈ (X i).vars ⇒ k = i ⇒ k ∈ {i}.
+      rw [MvPolynomial.vars_X] at hX
+      exact hX
+  degree_bound := by
+    have htd :
+        (1 - MvPolynomial.X i : MvPolynomial (Fin N) ℚ).totalDegree ≤ 1 :=
+      HasCEWBound_one_sub_X i
+    exact le_trans htd (by omega)
+
+/-- **§76.1 — `negLiteralSoSGadget`'s polynomial is `1 − X i`** (paper
+§40 Step 3 / §2.1: the negative literal evaluates to `1` on bit-0
+inputs and to `0` on bit-1 inputs). This is the canonical polynomial
+identity for the negative-literal gadget. -/
+theorem negLiteralSoSGadget_poly {N : ℕ} (i : Fin N) :
+    (negLiteralSoSGadget i).poly = 1 - MvPolynomial.X i := rfl
+
+/-- **§76.2 — `negLiteralSoSGadget` has varSupport `{i}`** (paper §40
+Step 3: a negative literal touches only its own target variable). -/
+theorem negLiteralSoSGadget_varSupport {N : ℕ} (i : Fin N) :
+    (negLiteralSoSGadget i).varSupport = {i} := rfl
+
+/-- **§76.3 — `negLiteralSoSGadget`'s varSupport has cardinality 1**
+(paper §40 Step 3: one-variable gadget, trivially within the ≤ 6
+radius-1 bound of the paper). -/
+theorem negLiteralSoSGadget_varSupport_card {N : ℕ} (i : Fin N) :
+    (negLiteralSoSGadget i).varSupport.card = 1 := by
+  rw [negLiteralSoSGadget_varSupport, Finset.card_singleton]
+
+/-- **§76.4 — `negLiteralSoSGadget` has total degree ≤ 1** (paper §40
+Step 3: the negative literal `1 − X_i` is affine in its one variable
+and hence trivially degree-bounded by 1). -/
+theorem negLiteralSoSGadget_totalDegree_le {N : ℕ} (i : Fin N) :
+    (negLiteralSoSGadget i).poly.totalDegree ≤ 1 := by
+  rw [negLiteralSoSGadget_poly]
+  exact HasCEWBound_one_sub_X i
+
+/-- **§76.5 — CEW bound for `negLiteralSoSGadget`** (paper §40 Step 3 /
+§2.1: the negative literal is a radius-1 gadget with CEW ≤ 1, matching
+the paper's atomic-gadget CEW budget). -/
+theorem negLiteralSoSGadget_hasCEWBound_one {N : ℕ} (i : Fin N) :
+    HasCEWBound (negLiteralSoSGadget i).poly 1 := by
+  rw [negLiteralSoSGadget_poly]
+  exact HasCEWBound_one_sub_X i
+
+/-- **§76.6 — evaluation of `negLiteralSoSGadget`** at a ℚ-assignment
+yields `1 − assignment i` (paper §40 Step 3: the negative literal
+evaluates to the bit-0 indicator when the assignment is Boolean). -/
+theorem negLiteralSoSGadget_eval {N : ℕ} (i : Fin N)
+    (assignment : Fin N → ℚ) :
+    MvPolynomial.eval assignment (negLiteralSoSGadget i).poly
+      = 1 - assignment i := by
+  rw [negLiteralSoSGadget_poly]
+  simp
+
 end Step4Compiler
 
