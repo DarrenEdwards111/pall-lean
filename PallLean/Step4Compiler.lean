@@ -5469,5 +5469,170 @@ in §92. -/
 theorem batcherMerger_layers_empty (n m : ℕ) :
     (batcherMerger n m).layers = [] := rfl
 
+/-! ## Section 89: `PMn` definition as a Finset-sum of products
+    (paper §40 Theorem 203, Steps 1-2)
+
+Paper §40 Theorem 203 builds the compiled polynomial `PMn` as the
+sum, over BP-paths through the tableau, of the product of per-cell
+blocks along that path, further multiplied by the Batcher sorting
+layer products (paper Lemma 19 / §40 Step 2's oblivious routing).
+
+Concretely, for input length `n` and time horizon `T(n) = n^c` for
+some fixed constant `c` (paper §40's `T(n) = n^O(1)` choice), the
+tableau has `n * T(n)` cells; the compiled polynomial is the sum,
+over a Finset of BP-path selectors, of `∏_{(t,i)} (blocks p t i).poly`,
+multiplied by `layers.prod`. We capture this structure in `PMn_def`
+with `T` the paper-supplied polynomial time horizon and
+`layers : List (MvPolynomial (Fin N) ℚ)` the Batcher-layer polynomial
+list (currently fed from `batcherNetwork_2` at the concrete base;
+kept parametric so larger N versions plug into the `layers` slot
+later).
+
+All §89 theorems are stated purely in terms of the abstract tableau
+product/sum shape and the `TMSimBlock` field bounds; they do not
+depend on a particular concrete realisation of the blocks. -/
+
+/-- **§89.1 — `PMn_def`** (paper §40 Theorem 203, Steps 1-2). The
+compiled polynomial `PMn` at input length `n` and time horizon `T`,
+indexed by a finite BP-path Finset `paths`:
+
+  `PMn_def n T paths blocks layers`
+    `= (∑_{p ∈ paths} ∏_{(t, i)} (blocks p t i).poly) * layers.prod`
+
+where `blocks p t i : TMSimBlock N` is the per-cell block for path
+`p` at tableau position `(t, i)`, and `layers` is the list of Batcher
+layer polynomials. -/
+noncomputable def PMn_def {N : ℕ} {ι : Type*} (n T : ℕ)
+    (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ)) :
+    MvPolynomial (Fin N) ℚ :=
+  (∑ p ∈ paths,
+      ∏ t ∈ Finset.range T,
+        ∏ i ∈ Finset.range n,
+          (blocks p t i).poly) *
+    layers.prod
+
+/-- **§89.2 — `PMn_as_finset_sum`** (paper §40 Theorem 203, Steps 1-2
+structural identity). Expose `PMn_def` as a product of the Finset-sum
+of per-path block products and the Batcher-layer list product. Used
+by §90 to connect the `PMn` construction to the §84 structural-pieces
+CEW decomposition. -/
+theorem PMn_as_finset_sum {N : ℕ} {ι : Type*} (n T : ℕ)
+    (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ)) :
+    PMn_def n T paths blocks layers =
+      (∑ p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n,
+              (blocks p t i).poly) *
+      layers.prod := rfl
+
+/-- **§89.3 — `PMn_vars_subset_block_vars_union`** (paper §40 Theorem
+203, Steps 1-2 variable bookkeeping). The variable support of `PMn`
+is contained in the union of the Finset-sum's variable support and
+the Batcher-layer product's variable support. Proved by a single
+application of `MvPolynomial.vars_mul` after unfolding `PMn_def`. -/
+theorem PMn_vars_subset_block_vars_union {N : ℕ} {ι : Type*} (n T : ℕ)
+    (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ)) :
+    (PMn_def n T paths blocks layers).vars ⊆
+      (∑ p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n,
+              (blocks p t i).poly).vars ∪
+      layers.prod.vars := by
+  rw [PMn_as_finset_sum]
+  exact MvPolynomial.vars_mul _ _
+
+/-- **§89.4 — `PMn_totalDegree_le`** (paper §40 Theorem 203, Steps 1-2
+total degree bookkeeping). The total degree of `PMn` is at most the
+sum of the Finset-sum's total degree and the Batcher-layer product's
+total degree. Direct application of `MvPolynomial.totalDegree_mul`. -/
+theorem PMn_totalDegree_le {N : ℕ} {ι : Type*} (n T : ℕ)
+    (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ)) :
+    (PMn_def n T paths blocks layers).totalDegree ≤
+      (∑ p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n,
+              (blocks p t i).poly).totalDegree +
+      layers.prod.totalDegree := by
+  rw [PMn_as_finset_sum]
+  exact MvPolynomial.totalDegree_mul _ _
+
+/-- **§89.5 — `PMn_hasCEWBound_structural`** (paper §40 Theorem 203,
+Steps 1-2 / §84 structural bound). If the TM-trace piece
+`(∑_p ∏_{(t,i)} (blocks p t i).poly)` has CEW ≤ `w_trace` and the
+Batcher-layer product has CEW ≤ `w_batcher`, then `PMn` has CEW
+`w_trace + w_batcher`. Direct application of `HasCEWBound_mul`. -/
+theorem PMn_hasCEWBound_structural {N : ℕ} {ι : Type*} (n T : ℕ)
+    (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ))
+    (w_trace w_batcher : ℕ)
+    (h_trace : HasCEWBound
+      (∑ p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n,
+              (blocks p t i).poly) w_trace)
+    (h_batcher : HasCEWBound layers.prod w_batcher) :
+    HasCEWBound (PMn_def n T paths blocks layers)
+      (w_trace + w_batcher) := by
+  rw [PMn_as_finset_sum]
+  exact HasCEWBound_mul h_trace h_batcher
+
+/-- **§89.6 — `PMn_def_zero_paths`** (paper §40 Theorem 203, Steps 1-2
+edge case). If the path-Finset is empty, `PMn_def` reduces to
+`0 * layers.prod = 0`. The trivial edge case ensures the `PMn_def`
+construction is well-defined even in degenerate regimes. -/
+theorem PMn_def_zero_paths {N : ℕ} {ι : Type*} (n T : ℕ)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ)) :
+    PMn_def (ι := ι) n T (∅ : Finset ι) blocks layers = 0 := by
+  rw [PMn_as_finset_sum]
+  rw [Finset.sum_empty]
+  rw [zero_mul]
+
+/-- **§89.7 — `PMn_def_vars_card_le`** (paper §40 Theorem 203, Steps
+1-2 polynomial variable-count bound). The variable count of `PMn` is
+bounded by the sum of the variable counts of the Finset-sum piece and
+the Batcher-layer product. Used by §90 to assemble the
+`|vars(PMn)| ≤ n^k` envelope required by paper Theorem 203. Proved by
+chaining `PMn_vars_subset_block_vars_union` with
+`Finset.card_union_le`. -/
+theorem PMn_def_vars_card_le {N : ℕ} {ι : Type*} (n T : ℕ)
+    (paths : Finset ι)
+    (blocks : ι → ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ)) :
+    (PMn_def n T paths blocks layers).vars.card ≤
+      (∑ p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n,
+              (blocks p t i).poly).vars.card +
+      layers.prod.vars.card := by
+  classical
+  have hsub : (PMn_def n T paths blocks layers).vars ⊆
+      (∑ p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n,
+              (blocks p t i).poly).vars ∪
+      layers.prod.vars :=
+    PMn_vars_subset_block_vars_union n T paths blocks layers
+  calc (PMn_def n T paths blocks layers).vars.card
+      ≤ ((∑ p ∈ paths,
+            ∏ t ∈ Finset.range T,
+              ∏ i ∈ Finset.range n,
+                (blocks p t i).poly).vars ∪
+         layers.prod.vars).card := Finset.card_le_card hsub
+    _ ≤ (∑ p ∈ paths,
+            ∏ t ∈ Finset.range T,
+              ∏ i ∈ Finset.range n,
+                (blocks p t i).poly).vars.card +
+        layers.prod.vars.card := Finset.card_union_le _ _
+
 end Step4Compiler
 
