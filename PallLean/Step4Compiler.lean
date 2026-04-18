@@ -12124,14 +12124,14 @@ def batcherNetwork_layered (n : ℕ) : SortingNetwork n := by
       depth := batcherDepthBound n,
       depth_bound := ?_ }
     show 1 ≤ batcherDepthBound n
-    unfold batcherDepthBound
+    have hlog2 : Nat.log 2 2 = 1 := by
+      have := batcherDepthBound_log_two_pow 1
+      simpa using this
     have hlog : 1 ≤ Nat.log 2 n := by
       have h2 : Nat.log 2 2 ≤ Nat.log 2 n :=
         Nat.log_mono_right h
-      have hlog2 : Nat.log 2 2 = 1 := by
-        have : (2 : ℕ) = 2 ^ 1 := by norm_num
-        rw [this, batcherDepthBound_log_two_pow]
       omega
+    unfold batcherDepthBound
     calc 1 = 1 ^ 2 := by ring
       _ ≤ (Nat.log 2 n) ^ 2 := Nat.pow_le_pow_left hlog 2
   · exact {
@@ -12235,9 +12235,12 @@ matching `batcherNetwork_2` on the depth axis. -/
 theorem batcherNetwork_layered_2_depth :
     (batcherNetwork_layered 2).depth = 1 := by
   rw [batcherNetwork_layered_depth_eq_bound]
-  show (Nat.log 2 2) ^ 2 = 1
-  have h : (2 : ℕ) = 2 ^ 1 := by norm_num
-  rw [h, batcherDepthBound_log_two_pow]
+  unfold batcherDepthBound
+  have hlog2 : Nat.log 2 2 = 1 := by
+    have h21 : (2 : ℕ) = 2 ^ 1 := by norm_num
+    rw [h21]
+    exact Nat.log_pow (by decide : 1 < 2) 1
+  rw [hlog2]; rfl
 
 
 end Step4Compiler
