@@ -1296,4 +1296,62 @@ theorem layerPolynomial_mul_cew {N : ℕ}
   HasCEWBound_mul (layerPolynomial_cew q₁ c₀ c₁)
                   (layerPolynomial_cew q₂ d₀ d₁)
 
+/-! ## Section 21: Product of many polynomials (for BP compilation)
+
+For L layer polynomials, their product has CEW ≤ L. This is the
+compositionality proved by induction on L. -/
+
+/-- **CEW bound for list product**: product of polys with individual
+CEW ≤ 1 has total CEW ≤ list length. -/
+theorem HasCEWBound_list_prod_ones {N : ℕ}
+    (polys : List (MvPolynomial (Fin N) ℚ))
+    (h : ∀ p ∈ polys, HasCEWBound p 1) :
+    HasCEWBound polys.prod polys.length := by
+  induction polys with
+  | nil =>
+    -- List.prod [] = 1, has totalDegree 0, CEW 0 ≤ 0
+    show HasCEWBound (1 : MvPolynomial (Fin N) ℚ) 0
+    unfold HasCEWBound
+    rw [MvPolynomial.totalDegree_one]
+  | cons p rest ih =>
+    rw [List.prod_cons]
+    show HasCEWBound (p * rest.prod) _
+    have hp : HasCEWBound p 1 := h p List.mem_cons_self
+    have hrest : HasCEWBound rest.prod rest.length :=
+      ih (fun q hq => h q (List.mem_cons_of_mem _ hq))
+    calc (p * rest.prod).totalDegree
+        ≤ p.totalDegree + rest.prod.totalDegree :=
+          MvPolynomial.totalDegree_mul _ _
+      _ ≤ 1 + rest.length := Nat.add_le_add hp hrest
+      _ = (p :: rest).length := by rw [List.length_cons]; omega
+
+/-- **Path polynomial CEW** for a list of steps of length L is ≤ L. -/
+theorem pathPolynomial_cew_of_length {N : ℕ}
+    (steps : List (Fin N × Bool)) :
+    HasCEWBound (pathPolynomial steps) steps.length := by
+  exact pathPolynomial_cew steps
+
+/-! ## Section 22: CEW → n^O(1) rank bound
+
+When CEW(p) ≤ C log n, the rank should be ≤ n^O(1). We state the
+interface — actual proof goes through locality_implies_poly_rank. -/
+
+/-- **Interface: CEW ≤ C log n implies rank ≤ polynomial**. This is
+Paper's Theorem 93 at the interface level. Concrete proof requires
+exhibiting a spanning set of multilinear monomials of degree ≤ C log n,
+which has at most n^(C log n) = (n^C)^(log n) = (if C fixed) n^O(log n)
+elements — for log-scale CEW, this becomes n^O(log n), NOT n^O(1).
+
+More precisely, Paper's CEW 93 gives rank ≤ (n log n)^c for the sorting
+network, via careful Batcher structure analysis. -/
+theorem cew_log_implies_polylog_rank_interface
+    {N : ℕ} (B : SPDP.BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ)
+    (G : Finset (MvPolynomial (Fin N) ℚ))
+    (hspan : MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ p ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin N) ℚ)))
+    (bound : ℕ) (hcard : G.card ≤ bound) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ p ≤ bound :=
+  width_implies_rank_bound_interface B κ ℓ p G hspan bound hcard
+
 end Step4Compiler
