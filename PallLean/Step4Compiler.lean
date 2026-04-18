@@ -2549,5 +2549,95 @@ theorem BranchingProgram.runSteps_length_add {n : ℕ}
     have heq : B.length + (e + 1) = (B.length + e) + 1 := by ring
     rw [heq, this, ih]
 
+/-! ## Section 73: Recursive Batcher depth-bound helper lemmas
+    (paper §40 Step 1 / Lemma 19)
+
+Paper §40 Lemma 19 states that a Batcher odd-even merge sorting network
+on `N` wires has depth `D(N) ≤ (⌈log₂ N⌉)(⌈log₂ N⌉ + 1) / 2 = O(log² N)`.
+The recursive construction splits `N = 2^(k+1)` wires into two halves,
+recursively sorts each, then merges via a depth-`(k+1)` odd-even merge;
+this yields the recurrence `D(2^(k+1)) ≤ D(2^k) + (k+1)`, whose closed
+form under the simplified `log² N` tracking is `D(2^k) ≤ k²`.
+
+This section provides the paper-faithful scaffolding: (1) a succession
+lemma on `batcherDepthBound 2^(k+1)` matching the closed-form growth
+rate, and (2) specific small-case evaluations at `N = 4, 8, 16` that
+exercise the `Nat.log 2 (2^k) = k` identity. All lemmas are axiom-free
+and build directly on `batcherDepthBound` (§27) and Mathlib's
+`Nat.log_pow` / `Nat.log`-API. They serve as the inductive-step data
+for the general `O(log² N)` theorem proved in §74. -/
+
+/-- **§73.1 — `Nat.log 2 (2^k) = k`** (paper §40 Lemma 19 setup).
+The base-2 logarithm of `2^k` is exactly `k`. This is the central
+identity used to evaluate `batcherDepthBound` on powers of two;
+proved via Mathlib's `Nat.log_pow` lemma for base `2 > 1`. Used
+pervasively in the recursive Batcher depth analysis. -/
+theorem batcherDepthBound_log_two_pow (k : ℕ) :
+    Nat.log 2 (2 ^ k) = k := by
+  exact Nat.log_pow (by norm_num : 1 < 2) k
+
+/-- **§73.2 — `batcherDepthBound` on powers of two**
+(paper §40 Lemma 19). For `N = 2^k`, the recorded depth bound
+`batcherDepthBound N = (Nat.log 2 N)^2` simplifies to `k^2`, matching
+the paper's closed-form `O(log² N)` depth estimate on power-of-two
+wire counts. Proved by unfolding `batcherDepthBound` and applying
+`batcherDepthBound_log_two_pow`. -/
+theorem batcherDepthBound_pow_two (k : ℕ) :
+    batcherDepthBound (2 ^ k) = k ^ 2 := by
+  unfold batcherDepthBound
+  rw [batcherDepthBound_log_two_pow]
+
+/-- **§73.3 — recursive succession identity for `batcherDepthBound`**
+(paper §40 Lemma 19 inductive step). Passing from `N = 2^k` to
+`N = 2^(k+1)` increases the depth bound by exactly `2k + 1`, i.e.\
+`batcherDepthBound 2^(k+1) = batcherDepthBound 2^k + (2k + 1)`. This
+mirrors the paper's recursive `D(2N) = D(N) + (log₂ N + 1)` recurrence
+(the merge phase adds `log₂(2N) = k+1` layers; the simplified squared
+tracking gives the arithmetic identity `(k+1)² = k² + 2k + 1`). -/
+theorem batcherDepthBound_succ (k : ℕ) :
+    batcherDepthBound (2 ^ (k + 1)) =
+      batcherDepthBound (2 ^ k) + (2 * k + 1) := by
+  rw [batcherDepthBound_pow_two, batcherDepthBound_pow_two]
+  ring
+
+/-- **§73.4 — small-case evaluation: `batcherDepthBound 4 = 4`**
+(paper §40 Lemma 19, `N = 4 = 2^2`). The Batcher odd-even merge on
+4 wires has depth-bound `(log₂ 4)² = 2² = 4`, in agreement with the
+paper's 3-layer explicit construction `(depth 3 ≤ 4)`. Used as a
+concrete base-step check for the recursive depth analysis. -/
+theorem batcherDepthBound_4 : batcherDepthBound 4 = 4 := by
+  have h : (4 : ℕ) = 2 ^ 2 := by norm_num
+  rw [h, batcherDepthBound_pow_two]
+
+/-- **§73.5 — small-case evaluation: `batcherDepthBound 8 = 9`**
+(paper §40 Lemma 19, `N = 8 = 2^3`). The Batcher odd-even merge on
+8 wires has depth-bound `(log₂ 8)² = 3² = 9`, matching the paper's
+explicit 6-layer construction under the `log²` upper estimate. -/
+theorem batcherDepthBound_8 : batcherDepthBound 8 = 9 := by
+  have h : (8 : ℕ) = 2 ^ 3 := by norm_num
+  rw [h, batcherDepthBound_pow_two]
+  norm_num
+
+/-- **§73.6 — small-case evaluation: `batcherDepthBound 16 = 16`**
+(paper §40 Lemma 19, `N = 16 = 2^4`). The Batcher odd-even merge on
+16 wires has depth-bound `(log₂ 16)² = 4² = 16`, matching the paper's
+closed-form upper estimate on power-of-two wire counts. -/
+theorem batcherDepthBound_16 : batcherDepthBound 16 = 16 := by
+  have h : (16 : ℕ) = 2 ^ 4 := by norm_num
+  rw [h, batcherDepthBound_pow_two]
+  norm_num
+
+/-- **§73.7 — Batcher N=2 matches `batcherDepthBound 2`** (paper §40
+Lemma 19 base case: the concrete `batcherNetwork_2` has depth exactly
+1 = `(log₂ 2)² = 1² = 1`). Combines `batcherNetwork_2_depth` with
+`batcherDepthBound_pow_two` at `k = 1` to close the tautological base
+case of the Batcher-depth recursion. -/
+theorem batcherNetwork_2_depth_eq_bound :
+    batcherNetwork_2.depth = batcherDepthBound 2 := by
+  rw [batcherNetwork_2_depth]
+  have h : (2 : ℕ) = 2 ^ 1 := by norm_num
+  rw [h, batcherDepthBound_pow_two]
+  norm_num
+
 end Step4Compiler
 
