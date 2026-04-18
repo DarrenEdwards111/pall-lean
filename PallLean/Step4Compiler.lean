@@ -1414,4 +1414,39 @@ theorem alwaysRejectBP_acceptedSet (n : ℕ) :
   ext input
   simp [BranchingProgram.acceptedSet, alwaysRejectBP_decides]
 
+/-! ## Section 26: More BP structural theorems -/
+
+/-- **BP length zero → decides = accepting of start**. -/
+theorem BranchingProgram.decides_zero_length {n : ℕ} (B : BranchingProgram n)
+    (h0 : B.length = 0) (input : Fin n → Bool) (start : Fin B.width) :
+    B.decides input start = B.accepting start := by
+  unfold BranchingProgram.decides
+  rw [h0]
+  rfl
+
+/-- **BP runSteps 0 is start**. -/
+theorem BranchingProgram.runSteps_zero {n : ℕ} (B : BranchingProgram n)
+    (input : Fin n → Bool) (start : Fin B.width) :
+    B.runSteps input start 0 = start := rfl
+
+/-! ## Section 27: Specific Batcher network statistics
+
+Paper's Batcher odd-even merge on N wires has:
+- Depth D = O(log² N)
+- Size O(N log² N)
+- Each layer: disjoint comparators -/
+
+/-- **Batcher depth for N = 2^k**: conjectured/stated bound log²N. -/
+def batcherDepthBound (N : ℕ) : ℕ := (Nat.log 2 N) ^ 2
+
+/-- `batcherDepthBound 1 = 0` (log 2 1 = 0). -/
+theorem batcherDepthBound_1 : batcherDepthBound 1 = 0 := by
+  unfold batcherDepthBound
+  simp
+
+/- Note: Constructing SoSGadget for (1 - X_i) requires careful Finset
+ manipulation for vars containment. The literal polynomial literalPoly_neg
+ and its CEW bound are available in §17h; full SoSGadget packaging
+ left for future work. -/
+
 end Step4Compiler
