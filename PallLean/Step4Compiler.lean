@@ -7914,4 +7914,238 @@ theorem step4_pathA_separation_at_2_804
   step4_pathA_separation ((2 : ℕ) ^ 804) (le_refl _) hVsep B Q κ ℓ
     hQSource step4
 
+/-! ## Section 113: Double-product reshape for variable-count bookkeeping
+    (paper §40 Theorem 203, variable-count bound; paper p. 194-195)
+
+Paper §40 Theorem 203 (lines 10166-10231 of the paper text), Step 3
+("Local SoS arithmetisation and degree bound", p. 195) expresses the
+compiled polynomial `P_{M,n}` as a sum, over BP-path selectors, of a
+doubly-nested product of per-cell radius-1 SoS gadgets indexed by the
+tableau cell `(t,i)` with `t ∈ [0, T)` and `i ∈ [0, n)`:
+
+  `P_{M,n} = (∑_p ∏_{t=0}^{T-1} ∏_{i=0}^{n-1} block(p, t, i)) · layers.prod`
+
+The variable-count bound of §40 Theorem 203 (paper requirement
+"`#vars(P_{M,n})` is polynomial in `n`"; paper p. 194 line 4880;
+see also `#vars(P_{M,n}) ≤ n^{O(1)}` at p. 194 line 5041 / Theorem 92
+item 3) is obtained by combining the per-cell 6-variable envelope with
+the `T · n` cell count from the tableau structure.
+
+§97 already provides the **single-product** structural bound
+`(∏ b ∈ s, f b).vars.card ≤ 6 * s.card` under a per-factor 6-variable
+hypothesis (`vars_card_prod_le_six_mul`). §113 extends this to the
+**doubly-nested** product shape
+`∏ t ∈ Finset.range T, ∏ i ∈ Finset.range n, f t i`
+that appears inside §89's `PMn_def`, preparing the §114 instantiation
+of the `n^6` headline bound for `PMn_def` itself.
+
+All theorems are axiom-free and chain directly on §97 and on Mathlib's
+`MvPolynomial.vars_prod`, `MvPolynomial.vars_mul`, and
+`Finset.card_biUnion_le` lemmas. No existing definition is modified.
+
+Paper citations:
+ • Theorem 203 statement, p. 194 lines 10166-10231.
+ • Variable-count hypothesis `#vars(P_{M,n}) ≤ n^{O(1)}`,
+   p. 194 line 4880 and Theorem 92 item 3 (p. 194 line 5041).
+ • Per-cell radius-1 SoS envelope (6-variable per cell),
+   §40 Step 3 and Lemma 19, p. 195 lines 10203-10218. -/
+
+/-- **§113.1 — `vars` of a doubly-nested `Finset.prod` is contained in
+the doubly-nested `biUnion` of per-factor variable sets** (paper §40
+Theorem 203, variable-count bound, doubly-nested product step; paper
+p. 195 Step 3). The variable set of a doubly-nested product
+`∏ t ∈ R_T, ∏ i ∈ R_n, f t i` is contained in the doubly-nested
+`biUnion` `R_T.biUnion (fun t => R_n.biUnion (fun i => (f t i).vars))`.
+Proved by two applications of `MvPolynomial.vars_prod`: first bound
+the outer product, then bound each inner product. -/
+theorem vars_double_prod_subset {N : ℕ}
+    (R_T R_n : Finset ℕ)
+    (f : ℕ → ℕ → MvPolynomial (Fin N) ℚ) :
+    (∏ t ∈ R_T, ∏ i ∈ R_n, f t i).vars ⊆
+      R_T.biUnion (fun t => R_n.biUnion (fun i => (f t i).vars)) := by
+  classical
+  -- Outer `vars_prod` bounds the outer product's variable set by the
+  -- `biUnion` of per-outer-index inner-product variable sets.
+  have hOuter : (∏ t ∈ R_T, ∏ i ∈ R_n, f t i).vars ⊆
+      R_T.biUnion (fun t => (∏ i ∈ R_n, f t i).vars) :=
+    MvPolynomial.vars_prod (fun t => ∏ i ∈ R_n, f t i)
+  -- Inner `vars_prod` bounds each inner product's variable set by the
+  -- `biUnion` of per-inner-index block variable sets.
+  have hInner : ∀ t ∈ R_T,
+      (∏ i ∈ R_n, f t i).vars ⊆ R_n.biUnion (fun i => (f t i).vars) := by
+    intro t _ht
+    exact MvPolynomial.vars_prod (fun i => f t i)
+  -- Lift each inner containment through the outer `biUnion`.
+  have hBiU : R_T.biUnion (fun t => (∏ i ∈ R_n, f t i).vars) ⊆
+      R_T.biUnion (fun t => R_n.biUnion (fun i => (f t i).vars)) := by
+    intro v hv
+    rcases Finset.mem_biUnion.mp hv with ⟨t, htR, hvInner⟩
+    exact Finset.mem_biUnion.mpr ⟨t, htR, hInner t htR hvInner⟩
+  exact hOuter.trans hBiU
+
+/-- **§113.2 — Cardinality bound on `vars` of a doubly-nested
+`Finset.prod`** (paper §40 Theorem 203, variable-count bound,
+doubly-nested product cardinality; paper p. 195 Step 3). The number of
+variables appearing in a doubly-nested product `∏ t ∈ R_T, ∏ i ∈ R_n,
+f t i` is at most the double sum
+`∑ t ∈ R_T, ∑ i ∈ R_n, (f t i).vars.card`.
+Proved by chaining `vars_double_prod_subset` with two applications of
+`Finset.card_biUnion_le`, once on each level of the nested `biUnion`. -/
+theorem vars_card_double_prod_le {N : ℕ}
+    (R_T R_n : Finset ℕ)
+    (f : ℕ → ℕ → MvPolynomial (Fin N) ℚ) :
+    (∏ t ∈ R_T, ∏ i ∈ R_n, f t i).vars.card ≤
+      ∑ t ∈ R_T, ∑ i ∈ R_n, (f t i).vars.card := by
+  classical
+  -- Step 1: cardinality of outer-nested `vars` bounded via subset →
+  -- cardinality of the doubly-nested `biUnion`.
+  have h1 : (∏ t ∈ R_T, ∏ i ∈ R_n, f t i).vars.card ≤
+      (R_T.biUnion (fun t => R_n.biUnion (fun i => (f t i).vars))).card :=
+    Finset.card_le_card (vars_double_prod_subset R_T R_n f)
+  -- Step 2: outer `card_biUnion_le` peels off the outer `R_T` biUnion.
+  have h2 : (R_T.biUnion (fun t => R_n.biUnion (fun i => (f t i).vars))).card
+      ≤ ∑ t ∈ R_T, (R_n.biUnion (fun i => (f t i).vars)).card :=
+    Finset.card_biUnion_le
+  -- Step 3: for each outer index `t`, the inner `card_biUnion_le`
+  -- gives `(R_n.biUnion …).card ≤ ∑ i ∈ R_n, (f t i).vars.card`.
+  have h3 : ∀ t ∈ R_T, (R_n.biUnion (fun i => (f t i).vars)).card
+      ≤ ∑ i ∈ R_n, (f t i).vars.card := by
+    intro t _ht
+    exact Finset.card_biUnion_le
+  -- Sum the per-`t` inequalities.
+  have h4 : (∑ t ∈ R_T, (R_n.biUnion (fun i => (f t i).vars)).card)
+      ≤ ∑ t ∈ R_T, ∑ i ∈ R_n, (f t i).vars.card :=
+    Finset.sum_le_sum h3
+  exact h1.trans (h2.trans h4)
+
+/-- **§113.3 — `6 · T · n` envelope for a doubly-nested `Finset.prod`**
+(paper §40 Theorem 203, variable-count bound, doubly-nested
+product-with-block-envelope step; paper p. 195 Step 3). If every block
+in a doubly-nested product `∏ t ∈ R_T, ∏ i ∈ R_n, f t i` has
+`vars.card ≤ 6` (paper's radius-1 SoS 6-variable envelope, Theorem 203
+Step 3, p. 195 lines 10203-10218), then the product's variable count is
+bounded by `6 * R_T.card * R_n.card`. The `T · n` factor is the paper's
+tableau cell count (p. 194 line 4890). -/
+theorem vars_card_double_prod_le_six {N : ℕ}
+    (R_T R_n : Finset ℕ)
+    (f : ℕ → ℕ → MvPolynomial (Fin N) ℚ)
+    (hf : ∀ t ∈ R_T, ∀ i ∈ R_n, (f t i).vars.card ≤ 6) :
+    (∏ t ∈ R_T, ∏ i ∈ R_n, f t i).vars.card ≤ 6 * R_T.card * R_n.card := by
+  classical
+  -- Chain the card bound of §113.2 with per-block 6-envelope.
+  have h1 : (∏ t ∈ R_T, ∏ i ∈ R_n, f t i).vars.card ≤
+      ∑ t ∈ R_T, ∑ i ∈ R_n, (f t i).vars.card :=
+    vars_card_double_prod_le R_T R_n f
+  -- Bound each inner sum `∑ i ∈ R_n, (f t i).vars.card ≤ ∑ i ∈ R_n, 6
+  --                                                     = 6 * R_n.card`.
+  have hInner_le : ∀ t ∈ R_T,
+      (∑ i ∈ R_n, (f t i).vars.card) ≤ 6 * R_n.card := by
+    intro t ht
+    have hsum_le : (∑ i ∈ R_n, (f t i).vars.card) ≤ ∑ _i ∈ R_n, 6 := by
+      apply Finset.sum_le_sum
+      intro i hi
+      exact hf t ht i hi
+    have hconst : (∑ _i ∈ R_n, (6 : ℕ)) = 6 * R_n.card := by
+      rw [Finset.sum_const]; ring
+    exact hsum_le.trans (le_of_eq hconst)
+  -- Now sum the per-`t` bounds over `R_T`.
+  have hOuter_le : (∑ t ∈ R_T, ∑ i ∈ R_n, (f t i).vars.card) ≤
+      ∑ _t ∈ R_T, 6 * R_n.card := Finset.sum_le_sum hInner_le
+  have hconst_outer : (∑ _t ∈ R_T, 6 * R_n.card) = 6 * R_n.card * R_T.card := by
+    rw [Finset.sum_const]; ring
+  -- Rearrange `6 * R_n.card * R_T.card = 6 * R_T.card * R_n.card`.
+  have heq : 6 * R_n.card * R_T.card = 6 * R_T.card * R_n.card := by ring
+  calc (∏ t ∈ R_T, ∏ i ∈ R_n, f t i).vars.card
+      ≤ ∑ t ∈ R_T, ∑ i ∈ R_n, (f t i).vars.card := h1
+    _ ≤ ∑ _t ∈ R_T, 6 * R_n.card := hOuter_le
+    _ = 6 * R_n.card * R_T.card := hconst_outer
+    _ = 6 * R_T.card * R_n.card := heq
+
+/-- **§113.4 — `Finset.range` specialisation of the doubly-nested
+product 6-envelope** (paper §40 Theorem 203, variable-count bound,
+paper-faithful `T · n` tableau shape; paper p. 194 line 4890). Specialise
+§113.3 to the paper's tableau-index shape
+`R_T = Finset.range T`, `R_n = Finset.range n` (the `(T+1) × (T+1)` /
+`T × n` tableau of p. 194 line 4890 "Consider a `(T+1) × (T+1)` tableau
+(time × tape-index)"). This is the concrete shape used by §89 inside
+`PMn_def`. -/
+theorem vars_card_double_prod_range_le_six {N : ℕ} (T n : ℕ)
+    (f : ℕ → ℕ → MvPolynomial (Fin N) ℚ)
+    (hf : ∀ t ∈ Finset.range T, ∀ i ∈ Finset.range n,
+      (f t i).vars.card ≤ 6) :
+    (∏ t ∈ Finset.range T, ∏ i ∈ Finset.range n, f t i).vars.card
+      ≤ 6 * T * n := by
+  classical
+  have h := vars_card_double_prod_le_six (Finset.range T) (Finset.range n) f hf
+  -- Rewrite `(Finset.range T).card = T` and same for `n`.
+  rw [Finset.card_range, Finset.card_range] at h
+  exact h
+
+/-- **§113.5 — Variable containment for `(double product) * layers.prod`**
+(paper §40 Theorem 203, variable-count bound, trailing Batcher-layer
+product; paper p. 195 Step 2, lines 10186-10202). Lift the doubly-nested
+product variable containment through the trailing multiplication by a
+`layers.prod` list. The variable set of `(∏ t, ∏ i, f t i) * layers.prod`
+is contained in the union of the doubly-nested `biUnion` and
+`layers.prod.vars`. Proved by combining `MvPolynomial.vars_mul` with
+§113.1. -/
+theorem vars_double_prod_list_mul_subset {N : ℕ}
+    (R_T R_n : Finset ℕ)
+    (f : ℕ → ℕ → MvPolynomial (Fin N) ℚ)
+    (layers : List (MvPolynomial (Fin N) ℚ)) :
+    ((∏ t ∈ R_T, ∏ i ∈ R_n, f t i) * layers.prod).vars ⊆
+      R_T.biUnion (fun t => R_n.biUnion (fun i => (f t i).vars)) ∪
+      layers.prod.vars := by
+  classical
+  -- Step 1: apply `vars_mul` to split the `* layers.prod`.
+  have hmul : ((∏ t ∈ R_T, ∏ i ∈ R_n, f t i) * layers.prod).vars ⊆
+      (∏ t ∈ R_T, ∏ i ∈ R_n, f t i).vars ∪ layers.prod.vars :=
+    MvPolynomial.vars_mul _ _
+  -- Step 2: absorb the double-product `vars` into the nested `biUnion`.
+  have hdouble : (∏ t ∈ R_T, ∏ i ∈ R_n, f t i).vars ⊆
+      R_T.biUnion (fun t => R_n.biUnion (fun i => (f t i).vars)) :=
+    vars_double_prod_subset R_T R_n f
+  -- Compose the two containments.
+  intro v hv
+  rcases Finset.mem_union.mp (hmul hv) with h | h
+  · exact Finset.mem_union.mpr (Or.inl (hdouble h))
+  · exact Finset.mem_union.mpr (Or.inr h)
+
+/-- **§113.6 — Cardinality bound for `(double product) * layers.prod`**
+(paper §40 Theorem 203, variable-count bound, Batcher-layer product
+bookkeeping; paper p. 195 Step 2, Theorem 93 / Lemma 93). Under the
+per-block 6-envelope, the variable count of `(∏ t, ∏ i, f t i) *
+layers.prod` is bounded by `6 * T * n + layers.prod.vars.card`, for
+`R_T = Finset.range T`, `R_n = Finset.range n`. This is the paper-
+faithful `TM-trace piece + Batcher-layer piece` variable-count split of
+Theorem 203. -/
+theorem vars_card_double_prod_list_mul_le_six {N : ℕ} (T n : ℕ)
+    (f : ℕ → ℕ → MvPolynomial (Fin N) ℚ)
+    (layers : List (MvPolynomial (Fin N) ℚ))
+    (hf : ∀ t ∈ Finset.range T, ∀ i ∈ Finset.range n,
+      (f t i).vars.card ≤ 6) :
+    ((∏ t ∈ Finset.range T, ∏ i ∈ Finset.range n, f t i)
+        * layers.prod).vars.card
+      ≤ 6 * T * n + layers.prod.vars.card := by
+  classical
+  -- Step 1: apply `vars_mul` as a card bound via `Finset.card_union_le`.
+  have hmul : ((∏ t ∈ Finset.range T, ∏ i ∈ Finset.range n, f t i)
+        * layers.prod).vars.card
+      ≤ (∏ t ∈ Finset.range T, ∏ i ∈ Finset.range n, f t i).vars.card
+        + layers.prod.vars.card := by
+    have hsub := MvPolynomial.vars_mul
+      (∏ t ∈ Finset.range T, ∏ i ∈ Finset.range n, f t i) layers.prod
+    calc ((∏ t ∈ Finset.range T, ∏ i ∈ Finset.range n, f t i)
+            * layers.prod).vars.card
+        ≤ ((∏ t ∈ Finset.range T, ∏ i ∈ Finset.range n, f t i).vars
+            ∪ layers.prod.vars).card := Finset.card_le_card hsub
+      _ ≤ (∏ t ∈ Finset.range T, ∏ i ∈ Finset.range n, f t i).vars.card
+          + layers.prod.vars.card := Finset.card_union_le _ _
+  -- Step 2: use §113.4 to bound the double-product's `vars.card`.
+  have hdouble : (∏ t ∈ Finset.range T, ∏ i ∈ Finset.range n, f t i).vars.card
+      ≤ 6 * T * n :=
+    vars_card_double_prod_range_le_six T n f hf
+  -- Combine.
+  exact hmul.trans (Nat.add_le_add_right hdouble _)
+
 end Step4Compiler
