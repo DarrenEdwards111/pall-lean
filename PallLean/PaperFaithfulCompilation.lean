@@ -157,4 +157,51 @@ theorem inlU_inlV_disjoint (σ : UVSplit) (i : Fin σ.numU) (j : Fin σ.numV) :
   have hilt : i.val < σ.numU := i.isLt
   omega
 
+/-! ## Section 4: Polynomial objects over the split
+
+Two key polynomial types:
+- `PMnPoly`: the compiled polynomial `P_{M,n}(u, v)` over all total variables
+- `CoupledSheetPoly`: the coupled sheet `Q^×_Φ(u)` over u-variables only -/
+
+/-- **Compiled polynomial over UVSplit**. Ambient type for `P_{M,n}(u, v)`. -/
+abbrev PMnPoly (σ : UVSplit) : Type := MvPolynomial σ.Idx ℚ
+
+/-- **Coupled sheet polynomial** over u-variables only. Type for `Q^×_Φ(u)`. -/
+abbrev CoupledSheetPoly (σ : UVSplit) : Type := MvPolynomial (Fin σ.numU) ℚ
+
+/-- **Embed a coupled-sheet polynomial into the ambient PMn space** via
+the u-injection `inlU`. This realizes `Q^×_Φ(u)` as a special `P_{M,n}(u, v)`
+that happens to not depend on v. -/
+noncomputable def CoupledSheetPoly.embed (σ : UVSplit) (q : CoupledSheetPoly σ) :
+    PMnPoly σ :=
+  MvPolynomial.rename σ.inlU q
+
+/-- `embed` is a ℚ-linear map. -/
+theorem embed_linear (σ : UVSplit) :
+    ∃ φ : CoupledSheetPoly σ →ₗ[ℚ] PMnPoly σ,
+      ∀ q, φ q = CoupledSheetPoly.embed σ q :=
+  ⟨(MvPolynomial.rename σ.inlU).toLinearMap, fun q => by
+    show (MvPolynomial.rename σ.inlU).toLinearMap q = MvPolynomial.rename σ.inlU q
+    rfl⟩
+
+/-- `embed 0 = 0`. -/
+theorem embed_zero (σ : UVSplit) :
+    CoupledSheetPoly.embed σ 0 = 0 := by
+  unfold CoupledSheetPoly.embed
+  exact map_zero _
+
+/-- `embed` preserves addition. -/
+theorem embed_add (σ : UVSplit) (q r : CoupledSheetPoly σ) :
+    CoupledSheetPoly.embed σ (q + r) =
+      CoupledSheetPoly.embed σ q + CoupledSheetPoly.embed σ r := by
+  unfold CoupledSheetPoly.embed
+  exact map_add _ q r
+
+/-- `embed` preserves multiplication (it's a ring hom). -/
+theorem embed_mul (σ : UVSplit) (q r : CoupledSheetPoly σ) :
+    CoupledSheetPoly.embed σ (q * r) =
+      CoupledSheetPoly.embed σ q * CoupledSheetPoly.embed σ r := by
+  unfold CoupledSheetPoly.embed
+  exact map_mul _ q r
+
 end PaperFaithfulCompilation
