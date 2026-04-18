@@ -1354,4 +1354,64 @@ theorem cew_log_implies_polylog_rank_interface
     MultilinearSPDP.mlBlockedSpdpRank B κ ℓ p ≤ bound :=
   width_implies_rank_bound_interface B κ ℓ p G hspan bound hcard
 
+/-! ## Section 23: More concrete Batcher comparators
+
+Additional comparator definitions for Batcher networks at larger N. -/
+
+/-- Comparator (0, k) for any N ≥ k+1 and any k ≥ 1. -/
+def batcherComparator_general {N : ℕ} (k : ℕ) (hk : 1 ≤ k) (h : k < N) :
+    Comparator N where
+  i := ⟨0, lt_of_lt_of_le hk h.le⟩
+  j := ⟨k, h⟩
+  i_lt_j := hk
+
+/-- The comparator constructed is well-typed. -/
+theorem batcherComparator_general_i_val {N k : ℕ} (hk : 1 ≤ k) (h : k < N) :
+    (batcherComparator_general k hk h).i.val = 0 := rfl
+
+theorem batcherComparator_general_j_val {N k : ℕ} (hk : 1 ≤ k) (h : k < N) :
+    (batcherComparator_general k hk h).j.val = k := rfl
+
+/-! ## Section 24: Additional SoSGadget instances
+
+Extending the gadget library with more useful constructions. -/
+
+/-- **Product of two SoS gadgets** (if vars union ≤ 6 and degree ≤ 6). -/
+noncomputable def SoSGadget.mul {N : ℕ} (g₁ g₂ : SoSGadget N)
+    (hvars : (g₁.varSupport ∪ g₂.varSupport).card ≤ 6)
+    (hdeg : (g₁.poly * g₂.poly).totalDegree ≤ 6) :
+    SoSGadget N where
+  poly := g₁.poly * g₂.poly
+  varSupport := g₁.varSupport ∪ g₂.varSupport
+  support_bound := hvars
+  vars_contained := by
+    intro k hk
+    have hmul : k ∈ (g₁.poly * g₂.poly).vars := hk
+    rcases Finset.mem_union.mp (MvPolynomial.vars_mul _ _ hmul) with h | h
+    · exact Finset.mem_union_left _ (g₁.vars_contained h)
+    · exact Finset.mem_union_right _ (g₂.vars_contained h)
+  degree_bound := hdeg
+
+/-! ## Section 25: BP acceptance function specification
+
+For a BP B with start vertex `start`, the accepted set is
+`{input : decides input start = true}`. -/
+
+/-- **Accepted input set** of a BP. -/
+def BranchingProgram.acceptedSet {n : ℕ} (B : BranchingProgram n)
+    (start : Fin B.width) : Set (Fin n → Bool) :=
+  {input | B.decides input start = true}
+
+/-- `alwaysAcceptBP`'s accepted set is universal. -/
+theorem alwaysAcceptBP_acceptedSet (n : ℕ) :
+    (alwaysAcceptBP n).acceptedSet (alwaysAcceptBP_start n) = Set.univ := by
+  ext input
+  simp [BranchingProgram.acceptedSet, alwaysAcceptBP_decides]
+
+/-- `alwaysRejectBP`'s accepted set is empty. -/
+theorem alwaysRejectBP_acceptedSet (n : ℕ) :
+    (alwaysRejectBP n).acceptedSet (alwaysRejectBP_start n) = ∅ := by
+  ext input
+  simp [BranchingProgram.acceptedSet, alwaysRejectBP_decides]
+
 end Step4Compiler
