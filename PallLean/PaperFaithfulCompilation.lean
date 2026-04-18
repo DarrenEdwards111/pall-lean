@@ -326,4 +326,75 @@ noncomputable def canonicalPathAWitness (σ : UVSplit)
   isRankMonotone := piPhi_isRankMonotoneGauge σ B
   fixesEmbed := piPhi_embed_eq σ
 
+/-! ## Section 8: Cook-Levin UVSplit (Task A)
+
+Paper's Cook-Levin compilation uses:
+- `numU = n` input/formula variables (x_1, ..., x_n for 3-SAT)
+- `numV = poly(n)` tableau variables: tape bits, state indicators,
+  head positions over time × position grid
+
+For the TM model in `TuringMachine.lean`, the tableau has:
+- `tapeSize^2` tape bits (time × position) — `b_{t,i}`
+- `tapeSize * numStates` state indicators (time × state) — `s_{t,q}`
+- `tapeSize^2` head positions (time × position) — `h_{t,i}`
+
+where `tapeSize M n = n^M.timeBound + 1`. For bounded-parameter
+(`M.timeBound ≤ 4`, `M.numStates ≤ n`) this is polynomial in n. -/
+
+/-- **Cook-Levin UVSplit**: `numU = n` (input), `numV = tableau`.
+
+Tableau layout matches `TuringMachine.numVars` minus the n input:
+  v-variables = tape (S²) ⊕ state (S · numStates) ⊕ head (S²)
+where `S = tapeSize M n`. -/
+def cookLevinUVSplit (M : TuringMachine.DTM) (n : ℕ) : UVSplit where
+  numU := n
+  numV :=
+    let S := TuringMachine.tapeSize M n
+    S * S + S * M.numStates + S * S
+
+/-- `cookLevinUVSplit` has `numU = n`. -/
+theorem cookLevinUVSplit_numU (M : TuringMachine.DTM) (n : ℕ) :
+    (cookLevinUVSplit M n).numU = n := rfl
+
+/-- `cookLevinUVSplit.total` matches `TuringMachine.numVars M n 0` (no padding). -/
+theorem cookLevinUVSplit_total (M : TuringMachine.DTM) (n : ℕ) :
+    (cookLevinUVSplit M n).total = TuringMachine.numVars M n 0 := by
+  unfold cookLevinUVSplit UVSplit.total TuringMachine.numVars
+  ring
+
+/-- For bounded-parameter TMs (timeBound ≤ 4, numStates ≤ n), the v-count
+is polynomial in n — specifically, `numV ≤ 3 · (n^4 + 1)^2`. -/
+theorem cookLevinUVSplit_numV_poly (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 1)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (cookLevinUVSplit M n).numV ≤ 3 * (n ^ 4 + 1) ^ 2 := by
+  show TuringMachine.tapeSize M n * TuringMachine.tapeSize M n +
+        TuringMachine.tapeSize M n * M.numStates +
+        TuringMachine.tapeSize M n * TuringMachine.tapeSize M n ≤
+      3 * (n ^ 4 + 1) ^ 2
+  have hS_bound : TuringMachine.tapeSize M n ≤ n ^ 4 + 1 := by
+    show TuringMachine.timeSteps M n + 1 ≤ n ^ 4 + 1
+    show n ^ M.timeBound + 1 ≤ n ^ 4 + 1
+    have : n ^ M.timeBound ≤ n ^ 4 :=
+      Nat.pow_le_pow_right hn htb
+    omega
+  have h1 : TuringMachine.tapeSize M n * TuringMachine.tapeSize M n ≤
+      (n ^ 4 + 1) ^ 2 := by
+    rw [sq]; exact Nat.mul_le_mul hS_bound hS_bound
+  have h2 : TuringMachine.tapeSize M n * M.numStates ≤
+      (n ^ 4 + 1) ^ 2 := by
+    rw [sq]
+    have hns_bound : M.numStates ≤ n ^ 4 + 1 := by
+      have hnle : n ≤ n ^ 4 + 1 := by
+        have : n ≤ n ^ 4 := Nat.le_self_pow (by omega) n
+        omega
+      omega
+    exact Nat.mul_le_mul hS_bound hns_bound
+  -- 3 * X = X + X + X
+  calc TuringMachine.tapeSize M n * TuringMachine.tapeSize M n +
+        TuringMachine.tapeSize M n * M.numStates +
+        TuringMachine.tapeSize M n * TuringMachine.tapeSize M n
+      ≤ (n ^ 4 + 1) ^ 2 + (n ^ 4 + 1) ^ 2 + (n ^ 4 + 1) ^ 2 := by
+        exact Nat.add_le_add (Nat.add_le_add h1 h2) h1
+    _ = 3 * (n ^ 4 + 1) ^ 2 := by ring
+
 end PaperFaithfulCompilation
