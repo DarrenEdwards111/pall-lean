@@ -1798,5 +1798,36 @@ theorem alwaysRejectBP_correspondence (n : ℕ) (input : Fin n → Bool) :
   · exact alwaysRejectBP_decides n input
   · exact alwaysRejectBP_compiledPoly_eval n _
 
+/-! ## Section 49: SoS gadget wrapper theorems (paper §2.1, §40 Step 3)
+
+Generic properties of the `SoSGadget` structure. These are simple
+projections of the structure fields that make SoSGadget-typed terms
+easier to manipulate in downstream proofs. Paper §40 Step 3 requires
+a radius-1 SoS arithmetization of the branching-program transition
+relation; every such gadget is automatically bounded in degree and in
+variable count by the structure invariants (totalDegree ≤ 6 and
+varSupport.card ≤ 6). -/
+
+/-- **Every SoSGadget has total degree ≤ 6** (paper §40 Step 3: radius-1
+SoS gadgets are constant-degree). This is just a re-export of the
+`degree_bound` field as a theorem so it can be used by `exact`/`apply`
+without unfolding the structure. -/
+theorem SoSGadget.totalDegree_le {N : ℕ} (g : SoSGadget N) :
+    g.poly.totalDegree ≤ 6 := g.degree_bound
+
+/-- **Every SoSGadget has varSupport of cardinality ≤ 6** (paper §40
+Step 3: radius-1 neighborhood has ≤ 6 relevant variables — current
+vertex bits, next vertex bits, queried input bit). -/
+theorem SoSGadget.varSupport_card_le {N : ℕ} (g : SoSGadget N) :
+    g.varSupport.card ≤ 6 := g.support_bound
+
+/-- **Every SoSGadget has `poly.vars.card ≤ 6`** (paper §40 Step 3:
+since `vars ⊆ varSupport` and `varSupport.card ≤ 6`, the polynomial's
+actual variable set is also bounded). This is the combined "radius-1"
+statement. -/
+theorem SoSGadget.vars_card_le {N : ℕ} (g : SoSGadget N) :
+    g.poly.vars.card ≤ 6 :=
+  le_trans (Finset.card_le_card g.vars_contained) g.support_bound
+
 end Step4Compiler
 
