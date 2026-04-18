@@ -17141,4 +17141,386 @@ theorem P_ne_NP_via_step4_real_not_vacuous :
   rw [hFalse] at hTrue
   exact Bool.false_ne_true hTrue
 
+
+/-! ## Section 129: Non-trivial `PMn_def_real` from a real
+    (non-zero) `TMSimBlock` family
+    (paper §40.1 Theorem 209 Steps 3-5, pp. 199-207; §40.4 Theorem
+    218, pp. 206-207)
+
+Paper §40.1 Theorem 209 Steps 3-5 (pp. 199-202 of `p vs np1.pdf`) and
+the closely-related §40.4 Theorem 218 (pp. 206-207) carry the Step-1
+arithmetization from "structural shape" (the zero-polynomial
+placeholder used by §88.9 `tmSimBlock_at`) to a *real, non-trivial*
+per-cell polynomial family for the Turing-machine simulation
+tableau. Concretely, Step 3 (p. 200) fixes the per-cell SoS gadget
+encoding the local Cook-Levin clause; Step 4 (pp. 200-201) arrays
+these gadgets over the `(n · T)` tableau; and Step 5 (pp. 201-202)
+closes Theorem 209 with the resulting polynomial being **not
+identically zero**, which is the crucial structural precondition for
+Theorem 218's width⇒rank lower bound (p. 207) and for §121-§122's
+arithmetic-gap contradiction at `n = 2^{804}`.
+
+Section 88-89 of this file builds the *scaffolding* form of `P_{M,n}`:
+the definition `PMn_def` is parametric over a generic `TMSimBlock`
+family, and the concrete §88.9 `tmSimBlock_at` uses the
+§88.6 trivial (zero-polynomial) block. This leaves the scaffolding
+`PMn_def n T paths tmSimBlock_at layers = 0` when instantiated at the
+trivial family — structurally correct but arithmetically vacuous.
+
+**This section (§129) lifts that vacuous instantiation to a
+non-trivial form**, in direct paper-faithful correspondence with
+Theorem 209 Steps 3-5:
+
+  * `PMn_def_real` (§129.1) is a parallel definition mirroring
+    §89.1's `PMn_def`, but taking a `block : ℕ → ℕ → TMSimBlock N`
+    family whose per-cell polynomials depend on `(t, i)` but **not**
+    on the path index `p`. This matches the paper's Step 3-5 setup:
+    every BP-path through the tableau sees the *same* per-cell
+    arithmetization; summing over paths aggregates `paths.card` copies
+    of the common product (Theorem 209 Step 4, p. 201).
+
+  * `PMn_def_real_ne_zero` (§129.4) is the headline Theorem 209
+    **non-triviality** theorem (paper p. 202, Step 5). Under the
+    paper-Theorem-209-hypothesis "each per-cell polynomial is
+    non-zero" (i.e.\ `∀ t < T, ∀ i < n, (block t i).poly ≠ 0`), the
+    compiled polynomial `PMn_def_real n T paths block []` is non-zero
+    whenever the path-Finset is non-empty.
+
+  * `PMn_as_finset_sum_real`, `PMn_vars_subset_block_vars_union_real`,
+    `PMn_totalDegree_le_real` (§129.2, §129.5, §129.6) transport §89.2,
+    §89.3, §89.4 respectively to the new `PMn_def_real` form.
+
+  * `PMn_def_real_hasCEWBound_full` (§129.8) transports §125.2's full
+    three-piece CEW bound to `PMn_def_real`.
+
+**Paper §128 bridge**. §128 (this file) supplies a concrete
+`tmSimBlock_at_real : ∀ {N hN} (t i) (M : DTM), TMSimBlock N` whose
+polynomial at every `(t, i)` is non-zero by §128.11
+`tmSimBlock_at_real_poly_ne_zero` (paper Theorem 209 Step 3, p. 200's
+radius-1 SoS arithmetization of the local Cook-Levin clause). §129.4
+below is stated parametrically over any `block` family satisfying the
+Theorem 209 non-vanishing condition; §128's concrete witness plugs in
+directly via `tmSimBlock_at_real_poly_ne_zero` when the caller wants a
+concrete `PMn_def_real ≠ 0` instance.
+
+All §129 theorems are axiom-free, append-only, and use only §88
+(`TMSimBlock` structure), §89 (`PMn_def` shape), §125 (three-piece
+CEW), and standard Mathlib lemmas (`Finset.sum_const`,
+`Finset.prod_ne_zero_iff`, `nsmul_eq_mul`, `MvPolynomial.C_ne_zero`,
+`Nat.cast_ne_zero`). They do not modify any existing definition and
+explicitly **do not touch §89's `PMn_def`** (paper-faithfulness:
+Theorem 209 Step 5's non-triviality is a *parallel* statement to
+Theorem 203 Steps 1-2's structural envelope, not a replacement). -/
+
+/-- **§129.1 — `PMn_def_real`** (paper §40.1 Theorem 209 Steps 3-4,
+pp. 200-201).
+
+The compiled polynomial `P_{M,n}` at input length `n` and time horizon
+`T`, built from a real (path-independent) per-cell `TMSimBlock` family
+`block : ℕ → ℕ → TMSimBlock N`:
+
+  `PMn_def_real n T paths block layers`
+    `= (∑_{p ∈ paths} ∏_{(t, i)} (block t i).poly) * layers.prod`.
+
+Paper Theorem 209 Step 3 (p. 200) fixes the per-cell radius-1 SoS
+arithmetization `block t i` of the local Cook-Levin clause; Step 4
+(pp. 200-201) assembles these per-cell gadgets over the `(n · T)`
+tableau and sums over the BP-path Finset. The inner product
+`∏_{(t,i)} (block t i).poly` does *not* depend on the path index `p`
+(each path sees the same tableau), so the outer sum is simply
+`paths.card` copies of the common product — this is the structural
+specialisation that §129.3 exposes and that §129.4 exploits for the
+non-triviality proof. -/
+noncomputable def PMn_def_real {N : ℕ} (n T : ℕ)
+    (paths : Finset ℕ)
+    (block : ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ)) :
+    MvPolynomial (Fin N) ℚ :=
+  (∑ _p ∈ paths,
+      ∏ t ∈ Finset.range T,
+        ∏ i ∈ Finset.range n,
+          (block t i).poly) *
+    layers.prod
+
+/-- **§129.2 — `PMn_as_finset_sum_real`** (paper §40.1 Theorem 209
+Step 4 structural identity, p. 201). Parallel of §89.2
+`PMn_as_finset_sum` for the real block family: exposes
+`PMn_def_real` as a product of the path-independent Finset-sum and
+the Batcher-layer list product. Used below by §129.5 (variable
+support), §129.6 (total degree) and §129.8 (CEW bound). -/
+theorem PMn_as_finset_sum_real {N : ℕ} (n T : ℕ)
+    (paths : Finset ℕ)
+    (block : ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ)) :
+    PMn_def_real n T paths block layers =
+      (∑ _p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n,
+              (block t i).poly) *
+      layers.prod := rfl
+
+/-- **§129.3 — `PMn_def_real_sum_eq_nsmul`** (paper §40.1 Theorem 209
+Step 4 path-independent sum identity, p. 201).
+
+Since the inner product `∏_{(t,i)} (block t i).poly` does not depend
+on the path index `p`, the outer sum over `paths` reduces to
+`paths.card • (common product)`. This is the structural observation
+that underlies Theorem 209 Step 5's non-vanishing argument: in a
+characteristic-zero coefficient ring (here `ℚ`), `paths.card • X ≠ 0`
+whenever `paths` is non-empty and `X ≠ 0`, which is exactly the
+combination of §129.4's two hypotheses.
+
+Proof: direct application of `Finset.sum_const`. -/
+theorem PMn_def_real_sum_eq_nsmul {N : ℕ} (n T : ℕ)
+    (paths : Finset ℕ)
+    (block : ℕ → ℕ → TMSimBlock N) :
+    (∑ _p ∈ paths,
+        ∏ t ∈ Finset.range T,
+          ∏ i ∈ Finset.range n,
+            (block t i).poly) =
+      paths.card •
+        (∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n,
+              (block t i).poly) := by
+  classical
+  exact Finset.sum_const _
+
+/-- **§129.4 — `PMn_def_real_ne_zero` (headline Theorem 209 Step 5
+non-triviality)** (paper §40.1 Theorem 209 Step 5, p. 202; §40.4
+Theorem 218 precondition, p. 207).
+
+**The key theorem of §129.** Under the paper-Theorem-209 non-vanishing
+hypothesis `∀ t < T, ∀ i < n, (block t i).poly ≠ 0`, the compiled
+polynomial `PMn_def_real n T paths block []` is non-zero whenever
+`paths.card ≥ 1`. This directly witnesses paper Theorem 209 Step 5's
+conclusion that "the compiled polynomial `P_{M,n}` is not identically
+zero" (p. 202), which is the critical precondition for §40.4 Theorem
+218's width⇒rank lower bound (p. 207) and for §121-§122's arithmetic-
+gap contradiction at `n = 2^{804}`.
+
+Proof strategy:
+  * `layers = []` ⇒ `layers.prod = 1`, so `PMn_def_real … = sum * 1 =
+     sum` (`mul_one`).
+  * By `Finset.sum_const`, `sum = paths.card • inner_prod`.
+  * The inner product is over `Finset.range T × Finset.range n`; every
+    factor `(block t i).poly` is non-zero by hypothesis, so the whole
+    product is non-zero by `Finset.prod_ne_zero_iff` (available
+    because `MvPolynomial (Fin N) ℚ` is a `NoZeroDivisors` ring — see
+    `MvPolynomial` instance for `NoZeroDivisors`).
+  * `paths.card • X = ((paths.card : MvPolynomial _ ℚ)) * X` by
+    `nsmul_eq_mul`.
+  * `(paths.card : MvPolynomial _ ℚ) = MvPolynomial.C (paths.card : ℚ)`
+    via `map_natCast (MvPolynomial.C)`; hence non-zero iff
+    `(paths.card : ℚ) ≠ 0` (via `MvPolynomial.C_ne_zero`), which
+    follows from `paths.card ≠ 0` via `Nat.cast_ne_zero` (`ℚ` has
+    `CharZero`).
+  * `mul_ne_zero` assembles the final `nsmul_eq_mul`-rewritten product
+    as non-zero.
+
+The `_hn` and `_hT` hypotheses track the paper's Theorem 209 Step 5
+input regime `n ≥ 1, T ≥ 1`; in the proof they are implicit (the
+non-vanishing of the `Finset.range T × Finset.range n` product is
+witnessed by the `hblock` quantifier, which is vacuously true at
+`T = 0` or `n = 0` and gives the empty product `1 ≠ 0` in those edge
+cases). They are retained in the signature for paper-faithfulness,
+tracking paper Theorem 209's positive-length-and-width input regime.
+
+Paper citations: §40.1 Theorem 209 Step 5 (p. 202); §40.4 Theorem 218
+precondition (p. 207). -/
+theorem PMn_def_real_ne_zero {N : ℕ} (n T : ℕ)
+    (paths : Finset ℕ)
+    (block : ℕ → ℕ → TMSimBlock N)
+    (_hn : 1 ≤ n) (_hT : 1 ≤ T)
+    (hpaths : 1 ≤ paths.card)
+    (hblock : ∀ t ∈ Finset.range T, ∀ i ∈ Finset.range n,
+        (block t i).poly ≠ 0) :
+    PMn_def_real n T paths block [] ≠ 0 := by
+  classical
+  -- Step 0: unfold `PMn_def_real` and simplify `[].prod = 1`.
+  unfold PMn_def_real
+  rw [List.prod_nil, mul_one]
+  -- Step 1: rewrite the outer sum (constant summand) as `paths.card •
+  -- inner_prod`.
+  rw [Finset.sum_const]
+  -- Step 2: rewrite `nsmul` as multiplication by the Nat.cast scalar.
+  rw [nsmul_eq_mul]
+  -- Goal: `(paths.card : MvPolynomial (Fin N) ℚ) * inner_prod ≠ 0`.
+  -- Apply `mul_ne_zero`.
+  apply mul_ne_zero
+  · -- `(paths.card : MvPolynomial (Fin N) ℚ) ≠ 0`. Factor through `C`
+    -- via `map_natCast` on the ring hom `MvPolynomial.C : ℚ →+* MvP`.
+    have hcard : paths.card ≠ 0 := Nat.one_le_iff_ne_zero.mp hpaths
+    have hcast_ℚ : (paths.card : ℚ) ≠ 0 := Nat.cast_ne_zero.mpr hcard
+    -- `(paths.card : MvPolynomial _ ℚ) = C (paths.card : ℚ)` via
+    -- `map_natCast` on the ring hom `C`.
+    have hCnatCast :
+        ((paths.card : ℕ) : MvPolynomial (Fin N) ℚ) =
+          MvPolynomial.C ((paths.card : ℕ) : ℚ) :=
+      (map_natCast (MvPolynomial.C (σ := Fin N) (R := ℚ))
+          paths.card).symm
+    rw [hCnatCast]
+    exact (MvPolynomial.C_ne_zero).mpr hcast_ℚ
+  · -- Inner double product is non-zero by
+    -- `Finset.prod_ne_zero_iff` twice, using `hblock`.
+    rw [Finset.prod_ne_zero_iff]
+    intro t ht
+    rw [Finset.prod_ne_zero_iff]
+    intro i hi
+    exact hblock t ht i hi
+
+/-- **§129.5 — `PMn_vars_subset_block_vars_union_real`** (paper
+§40.1 Theorem 209 Step 4 variable bookkeeping, p. 201; parallel of
+§89.3 `PMn_vars_subset_block_vars_union`).
+
+Transport of §89.3 to the real block family: the variable support of
+`PMn_def_real` is contained in the union of the Finset-sum's variable
+support and the Batcher-layer product's variable support. Proof:
+direct application of `MvPolynomial.vars_mul` after
+`PMn_as_finset_sum_real`. -/
+theorem PMn_vars_subset_block_vars_union_real {N : ℕ} (n T : ℕ)
+    (paths : Finset ℕ)
+    (block : ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ)) :
+    (PMn_def_real n T paths block layers).vars ⊆
+      (∑ _p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n,
+              (block t i).poly).vars ∪
+      layers.prod.vars := by
+  rw [PMn_as_finset_sum_real]
+  exact MvPolynomial.vars_mul _ _
+
+/-- **§129.6 — `PMn_totalDegree_le_real`** (paper §40.1 Theorem 209
+Step 4 total degree bookkeeping, p. 201; parallel of §89.4
+`PMn_totalDegree_le`).
+
+Transport of §89.4 to the real block family: the total degree of
+`PMn_def_real` is at most the sum of the Finset-sum's total degree
+and the Batcher-layer product's total degree. Proof: direct
+application of `MvPolynomial.totalDegree_mul` after
+`PMn_as_finset_sum_real`. -/
+theorem PMn_totalDegree_le_real {N : ℕ} (n T : ℕ)
+    (paths : Finset ℕ)
+    (block : ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ)) :
+    (PMn_def_real n T paths block layers).totalDegree ≤
+      (∑ _p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n,
+              (block t i).poly).totalDegree +
+      layers.prod.totalDegree := by
+  rw [PMn_as_finset_sum_real]
+  exact MvPolynomial.totalDegree_mul _ _
+
+/-- **§129.7 — `PMn_def_real_vars_card_le`** (paper §40.1 Theorem 209
+Step 4 variable-count bound, p. 201; parallel of §89.7
+`PMn_def_vars_card_le`).
+
+Transport of §89.7 to the real block family: the variable count of
+`PMn_def_real` is bounded by the sum of the variable counts of the
+Finset-sum piece and the Batcher-layer product. Chains §129.5
+`PMn_vars_subset_block_vars_union_real` with `Finset.card_union_le`.
+Used by paper Theorem 209 Step 4 / §40.4 Theorem 218's variable-count
+polynomial envelope (p. 201 / p. 207). -/
+theorem PMn_def_real_vars_card_le {N : ℕ} (n T : ℕ)
+    (paths : Finset ℕ)
+    (block : ℕ → ℕ → TMSimBlock N)
+    (layers : List (MvPolynomial (Fin N) ℚ)) :
+    (PMn_def_real n T paths block layers).vars.card ≤
+      (∑ _p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n,
+              (block t i).poly).vars.card +
+      layers.prod.vars.card := by
+  classical
+  have hsub : (PMn_def_real n T paths block layers).vars ⊆
+      (∑ _p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n,
+              (block t i).poly).vars ∪
+      layers.prod.vars :=
+    PMn_vars_subset_block_vars_union_real n T paths block layers
+  calc (PMn_def_real n T paths block layers).vars.card
+      ≤ ((∑ _p ∈ paths,
+            ∏ t ∈ Finset.range T,
+              ∏ i ∈ Finset.range n,
+                (block t i).poly).vars ∪
+         layers.prod.vars).card := Finset.card_le_card hsub
+    _ ≤ (∑ _p ∈ paths,
+            ∏ t ∈ Finset.range T,
+              ∏ i ∈ Finset.range n,
+                (block t i).poly).vars.card +
+        layers.prod.vars.card := Finset.card_union_le _ _
+
+/-- **§129.8 — `PMn_def_real_hasCEWBound_full`** (paper §40.1
+Theorem 209 Step 4 / Theorem 218 full unconditional three-piece CEW
+bound, pp. 201 & 207; transport of §125.2
+`PMn_def_hasCEWBound_full`).
+
+Full three-piece CEW bound on the non-trivial `PMn_def_real`,
+mirroring §125.2 exactly: given a split of the `layers` list into a
+Batcher prefix of length `≤ batcherDepthBound N = (log₂ N)²` with
+unit per-layer CEW, and an SoS suffix with per-layer CEW `≤ 6`, the
+compiled polynomial `PMn_def_real n T paths block layers` has CEW
+bound
+
+  `6 · T · n + (log₂ N)² + 6 · sos_layers.length`.
+
+Proof: decompose the sum via §125.1's trace-sum CEW bound
+(`PMn_trace_sum_hasCEWBound_six_times_T_n`, path-index-agnostic and
+hence applicable after re-indexing the sum through `fun _ => block`),
+combined with §99.1 (Batcher), §82.2 (SoS), and §84.1 (three-piece
+combinator), followed by the §129.2 identity
+`PMn_as_finset_sum_real` to rewrite the final target. -/
+theorem PMn_def_real_hasCEWBound_full {N : ℕ}
+    (n T : ℕ) (paths : Finset ℕ)
+    (block : ℕ → ℕ → TMSimBlock N)
+    (batcher_layers sos_layers : List (MvPolynomial (Fin N) ℚ))
+    (layers : List (MvPolynomial (Fin N) ℚ))
+    (hsplit : layers = batcher_layers ++ sos_layers)
+    (hBlen : batcher_layers.length ≤ batcherDepthBound N)
+    (hBbase : ∀ p ∈ batcher_layers, HasCEWBound p 1)
+    (hSbase : ∀ p ∈ sos_layers, HasCEWBound p 6) :
+    HasCEWBound (PMn_def_real n T paths block layers)
+      (6 * T * n + (Nat.log 2 N) ^ 2 + 6 * sos_layers.length) := by
+  -- Re-index the path-independent block family as a path-parametric
+  -- family (ignoring the path argument). This lets us reuse §125.1's
+  -- trace-sum CEW bound verbatim.
+  have h_trace :
+      HasCEWBound
+        (∑ _p ∈ paths,
+            ∏ t ∈ Finset.range T,
+              ∏ i ∈ Finset.range n, (block t i).poly)
+        (6 * T * n) :=
+    PMn_trace_sum_hasCEWBound_six_times_T_n
+      (ι := ℕ) n T paths (fun _ t i => block t i)
+  have h_batcher :
+      HasCEWBound batcher_layers.prod ((Nat.log 2 N) ^ 2) :=
+    batcherPiece_hasCEWBound_log_squared N batcher_layers hBlen hBbase
+  have h_sos :
+      HasCEWBound sos_layers.prod (sos_layers.length * 6) :=
+    HasCEWBound_list_prod_same 6 sos_layers hSbase
+  have h_sos' :
+      HasCEWBound sos_layers.prod (6 * sos_layers.length) := by
+    have heq : sos_layers.length * 6 = 6 * sos_layers.length := by ring
+    exact heq ▸ h_sos
+  have hprod : layers.prod = batcher_layers.prod * sos_layers.prod := by
+    rw [hsplit, List.prod_append]
+  have h_three :
+      HasCEWBound
+        ((∑ _p ∈ paths,
+            ∏ t ∈ Finset.range T,
+              ∏ i ∈ Finset.range n, (block t i).poly) *
+          batcher_layers.prod * sos_layers.prod)
+        (6 * T * n + (Nat.log 2 N) ^ 2 + 6 * sos_layers.length) :=
+    PMn_hasCEWBound_of_structural_pieces _ _ _ _ _ _
+      h_trace h_batcher h_sos'
+  have hrewrite :
+      (∑ _p ∈ paths,
+          ∏ t ∈ Finset.range T,
+            ∏ i ∈ Finset.range n, (block t i).poly) *
+        batcher_layers.prod * sos_layers.prod =
+      PMn_def_real n T paths block layers := by
+    rw [PMn_as_finset_sum_real, hprod, mul_assoc]
+  exact hrewrite ▸ h_three
 end Step4Compiler
