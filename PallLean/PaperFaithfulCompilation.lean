@@ -1427,7 +1427,37 @@ theorem pullback_extended_cookLevin_assign
   · exfalso
     exact h i.isLt
 
-/-! ## Section 27: Summary — Path A status
+/-! ## Section 27: Cook-Levin Q as CoupledSheetPoly (Step 2 plug-in)
+
+Define Q := (compiledPoly M n) viewed as a CoupledSheetPoly via the
+type equality `(cook_levin_compilation ...).numVars = n = σ.numU`. -/
+
+/-- **Q := compiledPoly as a CoupledSheetPoly** for the Cook-Levin UVSplit. -/
+noncomputable def cookLevinQ (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    CoupledSheetPoly (cookLevinUVSplit M n) :=
+  have h : (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).numVars = n :=
+    PaperFaithfulSeparation.cook_levin_numVars M n hn htb hns
+  have heq : (cookLevinUVSplit M n).numU = n := cookLevinUVSplit_numU M n
+  (heq ▸ h ▸ (PaperFaithfulSeparation.compiledPoly
+    (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns)))
+
+/- **Note**: the concrete Step 2 plug-in — relating
+`compiled_np_lower_bound_any_dtm`'s rank bound on `compiledPoly` to a
+bound on `cookLevinQ` at `pullbackPartition (extendedCookLevinPartition) inlU` —
+requires two matching lemmas:
+(a) type-cast rank invariance (rank preserved under h ▸ type cast)
+(b) partition agreement (`pullbackPartition (extendedCookLevinPartition) inlU`
+    equals `cook_levin_compilation.partition` up to numBlocks coercion).
+
+Both are mechanical Lean steps. The mathematical content (identity
+minor on compiledPoly at the Cook-Levin partition) is already axiom-free
+in `compiled_np_lower_bound_any_dtm`.
+
+This section commits the type-level definition; the bridge proof is
+the remaining concrete plug-in. -/
+
+/-! ## Section 28: Summary — Path A status
 
 Path A architectural infrastructure is COMPLETE axiom-free. The two
 remaining tasks are concrete rank bounds:
