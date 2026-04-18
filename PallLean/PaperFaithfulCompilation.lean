@@ -39,6 +39,8 @@
 import PallLean.SPDPDefs
 import PallLean.MultilinearSPDP
 import PallLean.TuringMachine
+import PallLean.PiStarConcrete
+import PallLean.GaugeMonotonicity
 import Mathlib.Algebra.MvPolynomial.Basic
 import Mathlib.Tactic
 
@@ -203,5 +205,50 @@ theorem embed_mul (σ : UVSplit) (q r : CoupledSheetPoly σ) :
       CoupledSheetPoly.embed σ q * CoupledSheetPoly.embed σ r := by
   unfold CoupledSheetPoly.embed
   exact map_mul _ q r
+
+/-! ## Section 5: The Π_Φ gauge over a UVSplit
+
+Paper Lemma 205: `Π_Φ = (basis) ∘ (affine relabel) ∘ (restriction) ∘ (projection)`.
+
+We realize Π_Φ in the paper-faithful split setting as `piZero (keepU σ)`:
+the "restriction" substitutes v-variables to 0, and the "projection"
+keeps u-variables.
+
+`(basis)` and `(affine relabel)` are (trivially) identity in our abstract
+setup; a fully paper-faithful treatment would add a change-of-basis layer
+(not essential for rank properties). -/
+
+/-- **Π_Φ gauge** for a UVSplit: piZero with `keepU` predicate.
+Paper's Lemma 205 gauge realized at the "restriction + projection" level. -/
+noncomputable def piPhi (σ : UVSplit) :
+    PMnPoly σ →ₗ[ℚ] PMnPoly σ :=
+  PiStarConcrete.piZero (keepU σ)
+
+/-- `piPhi` is a projection gauge (inherits from piZero). -/
+theorem piPhi_isProjectionGauge (σ : UVSplit) :
+    GaugeMonotonicity.IsProjectionGauge (piPhi σ) :=
+  PiStarConcrete.piZero_isProjectionGauge (keepU σ)
+
+/-- `piPhi` is rank-monotone over any block partition: this is the
+paper-faithful rank monotonicity of Π_Φ (Lemma 205 output), at the
+abstract SPDP level. -/
+theorem piPhi_isRankMonotoneGauge (σ : UVSplit)
+    (B : SPDP.BlockPartition σ.total) :
+    GaugeMonotonicity.IsRankMonotoneGauge B (piPhi σ) :=
+  PiStarConcrete.piZero_isRankMonotoneGauge (keepU σ) B
+
+/-- `piPhi` evaluated on `X (inlU i)` returns `X (inlU i)` (u is kept). -/
+theorem piPhi_X_u (σ : UVSplit) (i : Fin σ.numU) :
+    piPhi σ (MvPolynomial.X (σ.inlU i)) = MvPolynomial.X (σ.inlU i) := by
+  unfold piPhi
+  rw [PiStarConcrete.piZero_X]
+  rw [if_pos (keepU_inlU σ i)]
+
+/-- `piPhi` evaluated on `X (inlV j)` returns `0` (v is substituted). -/
+theorem piPhi_X_v (σ : UVSplit) (j : Fin σ.numV) :
+    piPhi σ (MvPolynomial.X (σ.inlV j)) = 0 := by
+  unfold piPhi
+  rw [PiStarConcrete.piZero_X]
+  rw [if_neg (not_keepU_inlV σ j)]
 
 end PaperFaithfulCompilation
