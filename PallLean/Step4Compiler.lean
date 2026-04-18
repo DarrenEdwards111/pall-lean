@@ -17979,7 +17979,7 @@ Paper §25.1 pp. 126-132 proceeds in three steps:
        labelling `χ : V → {0,1}`, form the Tseitin CNF contradiction
        `Tse(G,χ)` whose clauses encode parity at each vertex; its
        arithmetic polynomial is the product of per-vertex gadgets.
-  (iii) **Identity minor (pp. 130-132).** The girth-/expansion
+  (iii) **Identity minor (pp. 130-132).** The girth and expansion
         condition provides a *disjoint packing* of edge-variable sets
         across the clauses: `log n` clauses can be selected whose
         variable supports are pairwise disjoint, producing a
