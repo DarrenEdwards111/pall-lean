@@ -7580,4 +7580,185 @@ theorem bpFromTM_accepting_not_constant_true (M : TuringMachine.DTM)
   show False
   simp [TuringMachine.rejectState, TuringMachine.acceptState] at hval
 
+/-! ## Section 120: Step4 → Path A input bridge
+    (paper §40 Theorem 203 → Path A consumer, paper §40 final paragraph)
+
+Paper §40 Theorem 203 produces a *self-contained deterministic compiler*
+`Comp_det : M ↦ P_{M,n}` satisfying three guarantees: locality, size,
+and rank ≤ n^O(1). The **final paragraph** of §40 states that this
+output is precisely the input expected by Path A, i.e. by the
+`pathA_general_separation` consumer in `PaperFaithfulCompilation.lean`.
+
+This section provides the **bridge**: given the Theorem 203 guarantees
+bundled in a `Step4TheoremOutput` data container (a TM-decoupled form
+of `PaperFaithfulCompilerOutput`), produce the Path A input. §120
+targets the *input side* of `pathA_general_separation`; §121 then
+composes the two to derive the separation conclusion directly.
+
+Since §118–§119 (which will define a richer `Step4CompilerOutput`
+bundle, e.g. with extra locality / size data) have not yet landed
+on-chain, we parameterise §120 over the abstract Theorem 203 data so
+the bridge theorems stand independently of the concrete §118–§119
+bundle. Once §118–§119 land, a trivial adapter projecting the richer
+bundle onto `Step4TheoremOutput` connects them (see §120.5).
+
+All theorems are axiom-free, zero `sorry`/`admit`. -/
+
+/-- **§120.1 — `Step4TheoremOutput`** (paper §40 Theorem 203 output
+bundle, TM-decoupled form).
+
+Paper §40 Theorem 203 produces a compiled polynomial `P_{M,n}(u, v)`
+together with two quantitative guarantees:
+
+  (1) the *extraction identity* `Π_Φ(P_{M,n}) = embed(Q^×_Φ)` (paper
+      Lemma 205, the piPhi gauge fixes the clause-sheet data);
+  (2) the *P-side rank bound* `Γ_{κ,ℓ}(P_{M,n}) ≤ n^{200}` (paper §40
+      main quantitative step at `n = 2^{804}`).
+
+Paper §40 Theorem 203 states these as the compiler's output contract.
+Our `PaperFaithfulCompilerOutput` in §5 packages the same data with
+TM-dependent preconditions `(hn, htb, hns, hVsep)`. This bundle is
+the *TM-decoupled* form: the preconditions are absorbed into the
+abstract data container, matching what §118–§119 will expose. -/
+structure Step4TheoremOutput
+    {σ : PaperFaithfulCompilation.UVSplit}
+    (B : SPDP.BlockPartition σ.total)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ) (κ ℓ n : ℕ) where
+  /-- The compiled polynomial `P_{M,n}(u, v)` from paper §40 Theorem 203. -/
+  PMn : PaperFaithfulCompilation.PMnPoly σ
+  /-- Paper Lemma 205 extraction identity:
+      `Π_Φ(P_{M,n}) = embed(Q^×_Φ)`. -/
+  extraction : PaperFaithfulCompilation.piPhi σ PMn =
+    PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q
+  /-- Paper §40 Theorem 203 P-side rank bound:
+      `Γ_{κ,ℓ}(P_{M,n}) ≤ n^{200}`. -/
+  p_side_bound :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ PMn ≤ n ^ 200
+
+/-- **§120.2 — Bridge def: `step4_to_pathA_input`** (paper §40 Theorem
+203 final paragraph, Path A consumer wiring).
+
+Given a `Step4TheoremOutput`, produce the corresponding
+`PaperFaithfulCompilerOutput` required by `pathA_general_separation`
+and `pathA_closed_from_compiler_output` (§5–§6). This is the
+*Theorem 203 → Path A input* translation.
+
+The translation is definitional at the three data fields:
+`PaperFaithfulCompilerOutput` has the same three fields as
+`Step4TheoremOutput`, plus TM-dependent preconditions which are
+carried through as hypotheses in the binder. -/
+noncomputable def step4_to_pathA_input
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {σ : PaperFaithfulCompilation.UVSplit} (hVsep : 0 < σ.numV)
+    (B : SPDP.BlockPartition σ.total)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ) (κ ℓ : ℕ)
+    (step4 : Step4TheoremOutput B Q κ ℓ n) :
+    PaperFaithfulCompilerOutput M n hn htb hns σ hVsep B Q κ ℓ where
+  PMn := step4.PMn
+  extraction := step4.extraction
+  p_side_bound := step4.p_side_bound
+
+/-- **§120.3 — `Step4_provides_pathA_input`** (paper §40 Theorem 203 →
+Path A input conditions).
+
+Theorem form of the bridge: given the three Theorem 203 data (PMn,
+extraction identity, P-side rank bound), the two Path A *hypotheses on
+P* (extraction and rank bound) hold for some concrete `P`. This is
+stated in existential form, matching the conclusion shape expected by
+`pathA_general_separation` hypotheses `hExtract` and `hPRank`. The
+Q-side Step 2 bound remains external (it comes from paper §2 /
+`cookLevinQ_rank_ge`, not from §40). -/
+theorem Step4_provides_pathA_input
+    {σ : PaperFaithfulCompilation.UVSplit}
+    (B : SPDP.BlockPartition σ.total)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ) (κ ℓ n : ℕ)
+    (step4 : Step4TheoremOutput B Q κ ℓ n) :
+    ∃ P : PaperFaithfulCompilation.PMnPoly σ,
+      PaperFaithfulCompilation.piPhi σ P =
+        PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q ∧
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ P ≤ n ^ 200 :=
+  ⟨step4.PMn, step4.extraction, step4.p_side_bound⟩
+
+/-- **§120.4 — `Step4_provides_pathA_input_curried`** (paper §40
+Theorem 203 → Path A input conditions, curried variant).
+
+The curried form of §120.3, exposing each of the two Theorem 203
+guarantees on `step4.PMn` as its own conclusion. Useful for
+call-sites that want to pattern-match the extraction identity and
+the P-side rank bound separately (e.g. when combining with an
+externally supplied Q-side bound). -/
+theorem Step4_provides_pathA_input_curried
+    {σ : PaperFaithfulCompilation.UVSplit}
+    (B : SPDP.BlockPartition σ.total)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ) (κ ℓ n : ℕ)
+    (step4 : Step4TheoremOutput B Q κ ℓ n) :
+    (PaperFaithfulCompilation.piPhi σ step4.PMn =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q) ∧
+    (MultilinearSPDP.mlBlockedSpdpRank B κ ℓ step4.PMn ≤ n ^ 200) :=
+  ⟨step4.extraction, step4.p_side_bound⟩
+
+/-- **§120.5 — `Step4TheoremOutput_of_fields`** (paper §40 Theorem 203
+output construction, §118–§119 adapter).
+
+Inverse direction of §120.2 at the data level: from the three
+Theorem 203 fields, build a `Step4TheoremOutput` bundle. This is the
+interface that §118–§119's concrete `Step4CompilerOutput` will fill
+in when it lands: any richer bundle that exposes `(PMn, extraction,
+p_side_bound)` projects to a `Step4TheoremOutput` via this
+constructor. -/
+def Step4TheoremOutput_of_fields
+    {σ : PaperFaithfulCompilation.UVSplit}
+    (B : SPDP.BlockPartition σ.total)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ) (κ ℓ n : ℕ)
+    (PMn : PaperFaithfulCompilation.PMnPoly σ)
+    (hExtract : PaperFaithfulCompilation.piPhi σ PMn =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q)
+    (hPRank : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ PMn ≤ n ^ 200) :
+    Step4TheoremOutput B Q κ ℓ n where
+  PMn := PMn
+  extraction := hExtract
+  p_side_bound := hPRank
+
+/-- **§120.6 — Bridge data-preservation: `step4_to_pathA_input_PMn`**
+(paper §40 Theorem 203 → Path A input, sanity check).
+
+The `step4_to_pathA_input` bridge is a *data-preserving* translation:
+the `PMn` field of the translated `PaperFaithfulCompilerOutput` is
+definitionally equal to the `PMn` field of the source
+`Step4TheoremOutput`. This is a `rfl`-level fact, recorded explicitly
+for downstream callers that need to substitute between the two
+representations. -/
+theorem step4_to_pathA_input_PMn
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {σ : PaperFaithfulCompilation.UVSplit} (hVsep : 0 < σ.numV)
+    (B : SPDP.BlockPartition σ.total)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ) (κ ℓ : ℕ)
+    (step4 : Step4TheoremOutput B Q κ ℓ n) :
+    (step4_to_pathA_input M n hn htb hns hVsep B Q κ ℓ step4).PMn =
+      step4.PMn := rfl
+
+/-- **§120.7 — Bridge round-trip via `Step4TheoremOutput_of_fields`**
+(paper §40 Theorem 203 → Path A input, adapter round-trip).
+
+Composing `Step4TheoremOutput_of_fields` with `step4_to_pathA_input`
+recovers a `PaperFaithfulCompilerOutput` whose `PMn` field equals the
+originally-supplied polynomial. This records that the §118–§119
+adapter path (explicit fields → bundle → Path A input) is
+data-preserving. -/
+theorem step4_to_pathA_input_of_fields_PMn
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {σ : PaperFaithfulCompilation.UVSplit} (hVsep : 0 < σ.numV)
+    (B : SPDP.BlockPartition σ.total)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ) (κ ℓ : ℕ)
+    (PMn : PaperFaithfulCompilation.PMnPoly σ)
+    (hExtract : PaperFaithfulCompilation.piPhi σ PMn =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q)
+    (hPRank : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ PMn ≤ n ^ 200) :
+    (step4_to_pathA_input M n hn htb hns hVsep B Q κ ℓ
+        (Step4TheoremOutput_of_fields B Q κ ℓ n PMn hExtract hPRank)).PMn =
+      PMn := rfl
+
 end Step4Compiler
