@@ -890,4 +890,49 @@ theorem pathA_hypothesis_contradiction
   intro h
   exact pathA_separation_contradiction n hn B P κ ℓ (hPside h) (hNPside h)
 
+/-! ## Section 18: U-variable boolean constraints (symmetric to §12)
+
+Parallel to `vBoolConstraint` for v-variables, we define `uBoolConstraint`
+for u-variables. These are "kept" by piPhi (since u is kept), unlike
+vBoolConstraint which is killed. -/
+
+/-- **Booleanity constraint for a u-variable**: `u_i · (1 - u_i)`. -/
+noncomputable def uBoolConstraint (σ : UVSplit) (i : Fin σ.numU) :
+    PMnPoly σ :=
+  MvPolynomial.X (σ.inlU i) * (1 - MvPolynomial.X (σ.inlU i))
+
+/-- `piPhi` fixes `uBoolConstraint` (since u is kept). -/
+theorem piPhi_uBoolConstraint (σ : UVSplit) (i : Fin σ.numU) :
+    piPhi σ (uBoolConstraint σ i) = uBoolConstraint σ i := by
+  unfold uBoolConstraint piPhi
+  show (PiStarConcrete.substAlgHom (keepU σ) 0).toLinearMap _ = _
+  rw [AlgHom.toLinearMap_apply, map_mul]
+  -- piPhi(X(inlU i)) = X(inlU i) since inlU i is kept.
+  have hX : (PiStarConcrete.substAlgHom (keepU σ) 0) (MvPolynomial.X (σ.inlU i))
+      = MvPolynomial.X (σ.inlU i) := by
+    unfold PiStarConcrete.substAlgHom
+    rw [MvPolynomial.aeval_X]
+    show PiStarConcrete.substFn (keepU σ) (0 : σ.Idx → ℚ) (σ.inlU i) = MvPolynomial.X (σ.inlU i)
+    unfold PiStarConcrete.substFn
+    rw [if_pos (keepU_inlU σ i)]
+  rw [map_sub, map_one, hX]
+
+/-- **U-boolean product**: product of all u-boolean constraints. -/
+noncomputable def uBoolProduct (σ : UVSplit) : PMnPoly σ :=
+  (Finset.univ : Finset (Fin σ.numU)).prod (uBoolConstraint σ)
+
+/-- `piPhi` fixes `uBoolProduct` (product of fixed factors). -/
+theorem piPhi_uBoolProduct (σ : UVSplit) :
+    piPhi σ (uBoolProduct σ) = uBoolProduct σ := by
+  unfold uBoolProduct
+  show (PiStarConcrete.substAlgHom (keepU σ) 0).toLinearMap
+      ((Finset.univ : Finset (Fin σ.numU)).prod (uBoolConstraint σ)) = _
+  rw [AlgHom.toLinearMap_apply, map_prod]
+  apply Finset.prod_congr rfl
+  intros i _
+  have hpp := piPhi_uBoolConstraint σ i
+  show (PiStarConcrete.substAlgHom (keepU σ) 0) (uBoolConstraint σ i) = uBoolConstraint σ i
+  show (PiStarConcrete.substAlgHom (keepU σ) 0).toLinearMap (uBoolConstraint σ i) = uBoolConstraint σ i
+  exact hpp
+
 end PaperFaithfulCompilation
