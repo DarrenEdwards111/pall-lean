@@ -12887,4 +12887,272 @@ noncomputable def Step4CompilerOutput_real_to_PaperFaithful
   (Step4CompilerOutput_real_to_Step4CompilerOutput out).toPaperFaithful
     hn htb hns
 
+/-! ## Section 134: Paper Lemma 205 — Rank pullback under the T_Φ extraction
+
+    (paper §40 Step 4 main contradiction, p.~199; §40.7 pp.~206
+    "Rank monotonicity: T_Φ is block-local and linear. By Lemma 40,
+    SPDP rank is monotone under T_Φ: Γ(T_Φ(p)) ≤ Γ(p)")
+
+Paper Lemma 205 (as cited on p.~199 of `p vs np1.pdf` in the main
+contradiction assembly, and expanded in §40.7 p.~206) states:
+
+  > Given `Γ_{κ,ℓ}(P_{M',n}) ≤ n^O(1)` and the extraction operator
+  > `T_Φ` (block-local, linear), one concludes
+  > `Γ_{κ,ℓ}(Q^×_Φ) ≤ n^O(1)`.
+
+The proof in the paper cites Lemma 40: the SPDP rank is monotone under
+any block-local linear map `T_Φ`. In our Lean formalisation:
+
+* The paper's `T_Φ` corresponds to a rank-monotone ℚ-linear gauge on
+  the ambient polynomial ring over the block partition `B`. This is
+  exactly `GaugeMonotonicity.IsRankMonotoneGauge B g`, and the
+  canonical instance `piPhi σ` (paper's `Π_Φ`) is such a gauge via
+  `PaperFaithfulCompilation.piPhi_isRankMonotoneGauge` (§5-§7 of
+  `PaperFaithfulCompilation.lean`).
+
+* The extraction identity `T_Φ(P_{M,n}) = embed(Q^×_Φ)` corresponds to
+  the `Step4TheoremOutput.extraction` field: `piPhi σ PMn = embed σ Q`
+  (§120.1 above / `PaperFaithfulCompilerOutput.extraction` in
+  `PaperFaithfulCompilation.lean` §5).
+
+Since §133's concrete `T_Phi` and `Q_times_Phi` definitions have not
+yet landed on-chain, §134 states Lemma 205 *abstractly* over any
+block-local rank-monotone linear gauge `g` satisfying the extraction
+identity `g P = embed Q` together with the P-side rank bound
+`Γ_{κ,ℓ}(P) ≤ n^O(1)`. The concrete §133 instantiation follows by
+specialising `g := piPhi σ` and invoking `piPhi_isRankMonotoneGauge`.
+
+All theorems are axiom-free, zero `sorry`/`admit`, and paper-faithful.
+-/
+
+/-- **§134.1 — `lemma_205_rank_pullback`** (paper Lemma 205, abstract
+block-local linear form; paper §40.7 p.~206 "Rank monotonicity:
+T_Φ is block-local and linear. By Lemma 40, SPDP rank is monotone
+under T_Φ: Γ(T_Φ(p)) ≤ Γ(p)").
+
+Abstract Lemma 205 statement: given any ℚ-linear rank-monotone gauge
+`g` on a block partition `B`, and any polynomial `p` with SPDP rank
+`Γ_{κ,ℓ}(p) ≤ bound`, the pullback `g p` inherits the same rank bound
+`Γ_{κ,ℓ}(g p) ≤ bound`.
+
+This is the paper's Lemma 205 in its purest form: rank does not
+increase under a block-local linear map. The concrete P_{M,n} → Q^×_Φ
+extraction is obtained by specialising `g := piPhi σ` and
+`p := PMn` (see §134.2, §134.3 below).
+
+Proof: direct application of `IsRankMonotoneGauge` (unfolding
+`g p`'s rank bound through `hGauge κ ℓ p`) followed by transitivity
+with `hP`. -/
+theorem lemma_205_rank_pullback {N : ℕ} (B : SPDP.BlockPartition N)
+    (κ ℓ : ℕ)
+    (g : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ)
+    (hGauge : GaugeMonotonicity.IsRankMonotoneGauge B g)
+    (p : MvPolynomial (Fin N) ℚ) (bound : ℕ)
+    (hP : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ p ≤ bound) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (g p) ≤ bound :=
+  le_trans (hGauge κ ℓ p) hP
+
+/-- **§134.2 — `lemma_205_rank_pullback_piPhi`** (paper Lemma 205,
+canonical `Π_Φ` specialisation; paper §40.7 p.~206).
+
+Specialisation of §134.1 to the canonical extraction gauge
+`g := piPhi σ` from `PaperFaithfulCompilation.lean`. Given
+`Γ_{κ,ℓ}(P_{M,n}) ≤ bound`, conclude `Γ_{κ,ℓ}(Π_Φ(P_{M,n})) ≤ bound`.
+
+Proof: apply §134.1 with the concrete rank-monotone gauge
+`piPhi_isRankMonotoneGauge σ B`. -/
+theorem lemma_205_rank_pullback_piPhi
+    {σ : PaperFaithfulCompilation.UVSplit}
+    (B : SPDP.BlockPartition σ.total) (κ ℓ : ℕ)
+    (PMn : PaperFaithfulCompilation.PMnPoly σ) (bound : ℕ)
+    (hP : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ PMn ≤ bound) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+      (PaperFaithfulCompilation.piPhi σ PMn) ≤ bound :=
+  lemma_205_rank_pullback B κ ℓ
+    (PaperFaithfulCompilation.piPhi σ)
+    (PaperFaithfulCompilation.piPhi_isRankMonotoneGauge σ B)
+    PMn bound hP
+
+/-- **§134.3 — `lemma_205_applied_to_PMn_real`** (paper Lemma 205, as
+applied at p.~199 Step 4 of the main contradiction).
+
+Paper's Step 4 Lemma 205 application: given
+
+  (i)  the P-side rank bound `Γ_{κ,ℓ}(P_{M,n}) ≤ bound` (from
+       paper §40 Theorem 203 / Width⇒Rank), and
+  (ii) the extraction identity `Π_Φ(P_{M,n}) = embed(Q^×_Φ)` (paper
+       Lemma 205, the `Step4TheoremOutput.extraction` field),
+
+conclude the Q-side upper bound `Γ_{κ,ℓ}(embed(Q^×_Φ)) ≤ bound`. This
+is precisely the Lemma 205 step invoked at p.~199 of the paper's main
+contradiction: the rank of the extracted coupled-sheet polynomial
+`Q^×_Φ` (as embedded in `PMnPoly σ`) is bounded by the rank of the
+compiled polynomial `P_{M,n}`.
+
+Naming note: the suffix `_real` emphasises that this is the
+instantiation at the *real* (non-placeholder) `P_{M,n}` produced by
+§130's `Step4CompilerOutput_real` pipeline; it composes transparently
+with both §120.1's `Step4TheoremOutput` bundle and §130.1's richer
+real bundle via `Step4CompilerOutput_real_to_Step4CompilerOutput`.
+
+Proof: combine §134.2 (rank-pullback under `piPhi σ`) with the
+extraction identity `hExtract`, which rewrites the pullback's rank as
+the rank of `embed σ Q`. -/
+theorem lemma_205_applied_to_PMn_real
+    {σ : PaperFaithfulCompilation.UVSplit}
+    (B : SPDP.BlockPartition σ.total) (κ ℓ : ℕ)
+    (PMn : PaperFaithfulCompilation.PMnPoly σ)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ) (bound : ℕ)
+    (hExtract : PaperFaithfulCompilation.piPhi σ PMn =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q)
+    (hP : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ PMn ≤ bound) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+      (PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q) ≤ bound := by
+  -- §134.2 gives: Γ(piPhi σ PMn) ≤ bound.
+  have h_pi : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+      (PaperFaithfulCompilation.piPhi σ PMn) ≤ bound :=
+    lemma_205_rank_pullback_piPhi B κ ℓ PMn bound hP
+  -- Rewrite piPhi σ PMn = embed σ Q via the extraction identity.
+  rw [hExtract] at h_pi
+  exact h_pi
+
+/-- **§134.4 — `Q_times_Phi_rank_upper_bound_via_Step4`** (paper §40
+Step 4, main contradiction applied at `n = 2^{804}`; §40.7 p.~206).
+
+Packaged form of §134.3 consumed directly from a `Step4TheoremOutput`
+bundle (§120.1 above): given the Theorem 203 output `step4`, the
+extracted `Q^×_Φ` inherits the P-side `n^{200}` bound via the Lemma
+205 extraction identity.
+
+This is the paper's Step 4 p.~199 assembly at its headline form:
+`Γ_{κ,ℓ}(embed Q^×_Φ) ≤ n^{200}`, ready to be combined with the
+Step 2 lower bound `Γ_{κ,ℓ}(embed Q^×_Φ) ≥ C(n/3, log n)` from
+`cookLevinQ_rank_ge` (paper §2 / §40 Theorem 217) to derive the
+arithmetic gap contradiction (see §121.1 above).
+
+Since §133's concrete `T_Phi` and `Q_times_Phi` have not landed,
+this §134 version is the paper-faithful instantiation of the headline
+`Γ_{κ,ℓ}(Q^×_Φ) ≤ n^{200}` via the canonical `Π_Φ` gauge and the
+`embed`-based coupled-sheet representation of `Q^×_Φ` (§120.1 /
+§5 `PaperFaithfulCompilation.lean`).
+
+Proof: apply §134.3 with `hExtract := step4.extraction` and
+`hP := step4.p_side_bound`. -/
+theorem Q_times_Phi_rank_upper_bound_via_Step4
+    {σ : PaperFaithfulCompilation.UVSplit}
+    (B : SPDP.BlockPartition σ.total)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ) (κ ℓ n : ℕ)
+    (step4 : Step4TheoremOutput B Q κ ℓ n) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+      (PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q) ≤ n ^ 200 :=
+  lemma_205_applied_to_PMn_real B κ ℓ step4.PMn Q (n ^ 200)
+    step4.extraction step4.p_side_bound
+
+/-- **§134.5 — `lemma_205_conditional`** (paper Lemma 205, general
+conditional form; paper §40.7 p.~206).
+
+General conditional Lemma 205 statement: for any block-local linear
+map `g` satisfying the rank-monotonicity predicate
+`IsRankMonotoneGauge B g` (paper's "T_Φ is block-local and linear"
+hypothesis, combined with Lemma 40), the SPDP rank is monotone
+under `g`:
+
+  `Γ_{κ,ℓ}(g(p)) ≤ Γ_{κ,ℓ}(p)`  for all `p`.
+
+This captures the paper's §40.7 p.~206 statement in its most faithful
+form. Observe that this is a *quantitative* monotonicity (pointwise ≤
+on natural numbers), not merely a qualitative preservation — matching
+the paper's literal wording "Γ(T_Φ(p)) ≤ Γ(p)".
+
+Proof: this is exactly the `IsRankMonotoneGauge` predicate applied to
+`(κ, ℓ, p)`. -/
+theorem lemma_205_conditional {N : ℕ} (B : SPDP.BlockPartition N)
+    (g : MvPolynomial (Fin N) ℚ →ₗ[ℚ] MvPolynomial (Fin N) ℚ)
+    (hGauge : GaugeMonotonicity.IsRankMonotoneGauge B g)
+    (κ ℓ : ℕ) (p : MvPolynomial (Fin N) ℚ) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ (g p) ≤
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ p :=
+  hGauge κ ℓ p
+
+/-- **§134.6 — `lemma_205_conditional_piPhi`** (paper Lemma 205,
+conditional form at the canonical extraction `Π_Φ`; paper §40.7
+p.~206).
+
+Specialisation of §134.5 to the canonical extraction gauge
+`g := piPhi σ` (paper's `Π_Φ`): for any `P : PMnPoly σ`,
+
+  `Γ_{κ,ℓ}(Π_Φ(P)) ≤ Γ_{κ,ℓ}(P)`.
+
+This is the paper's §40.7 p.~206 literal statement for the canonical
+extraction: rank is monotone under `Π_Φ`. It specialises further: if
+`Π_Φ(P) = embed(Q)` via the Lemma 205 extraction identity, then
+`Γ_{κ,ℓ}(embed Q) ≤ Γ_{κ,ℓ}(P)` (see §134.3 above).
+
+Proof: §134.5 at `g := piPhi σ` and `hGauge :=
+piPhi_isRankMonotoneGauge σ B`. -/
+theorem lemma_205_conditional_piPhi
+    {σ : PaperFaithfulCompilation.UVSplit}
+    (B : SPDP.BlockPartition σ.total) (κ ℓ : ℕ)
+    (P : PaperFaithfulCompilation.PMnPoly σ) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+      (PaperFaithfulCompilation.piPhi σ P) ≤
+        MultilinearSPDP.mlBlockedSpdpRank B κ ℓ P :=
+  lemma_205_conditional B (PaperFaithfulCompilation.piPhi σ)
+    (PaperFaithfulCompilation.piPhi_isRankMonotoneGauge σ B)
+    κ ℓ P
+
+/-- **§134.7 — `lemma_205_applied_via_piPhi_extraction`** (paper Lemma
+205, extraction-identity form; paper §40 Step 4 p.~199).
+
+Combines §134.6 (rank monotonicity under `Π_Φ`) with the extraction
+identity `Π_Φ(P) = embed(Q)` to yield the direct rank comparison
+
+  `Γ_{κ,ℓ}(embed Q) ≤ Γ_{κ,ℓ}(P)`.
+
+This is the paper's Lemma 205 "extraction pullback" inequality, which
+Step 4 then chains with the Width⇒Rank bound
+`Γ_{κ,ℓ}(P) ≤ n^{O(1)}` to conclude `Γ_{κ,ℓ}(embed Q) ≤ n^{O(1)}`
+(the §134.3 form above).
+
+Proof: rewrite via `hExtract` inside §134.6. -/
+theorem lemma_205_applied_via_piPhi_extraction
+    {σ : PaperFaithfulCompilation.UVSplit}
+    (B : SPDP.BlockPartition σ.total) (κ ℓ : ℕ)
+    (P : PaperFaithfulCompilation.PMnPoly σ)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ)
+    (hExtract : PaperFaithfulCompilation.piPhi σ P =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+      (PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q) ≤
+        MultilinearSPDP.mlBlockedSpdpRank B κ ℓ P := by
+  have h := lemma_205_conditional_piPhi B κ ℓ P
+  rw [hExtract] at h
+  exact h
+
+/-- **§134.8 — `lemma_205_npow_chain`** (paper Lemma 205 chained with
+the Theorem 203 `n^{200}` P-side envelope).
+
+Direct chain-form of Lemma 205 at the paper's headline `n^{200}`
+budget: given the Theorem 203 Width⇒Rank bound
+`Γ_{κ,ℓ}(P) ≤ n^{200}` and the Lemma 205 extraction identity
+`Π_Φ(P) = embed(Q)`, the extracted side satisfies
+`Γ_{κ,ℓ}(embed Q) ≤ n^{200}`.
+
+This is the main Step-4 consumer form, packaged with the explicit
+`n^{200}` constant for direct use by the arithmetic-gap contradiction
+at `n = 2^{804}` (§121.1 above).
+
+Proof: compose §134.7 with the `n^{200}` P-side bound. -/
+theorem lemma_205_npow_chain
+    {σ : PaperFaithfulCompilation.UVSplit}
+    (B : SPDP.BlockPartition σ.total) (κ ℓ n : ℕ)
+    (P : PaperFaithfulCompilation.PMnPoly σ)
+    (Q : PaperFaithfulCompilation.CoupledSheetPoly σ)
+    (hExtract : PaperFaithfulCompilation.piPhi σ P =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q)
+    (hP : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ P ≤ n ^ 200) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+      (PaperFaithfulCompilation.CoupledSheetPoly.embed σ Q) ≤ n ^ 200 :=
+  le_trans (lemma_205_applied_via_piPhi_extraction B κ ℓ P Q hExtract) hP
+
 end Step4Compiler
