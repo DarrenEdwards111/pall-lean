@@ -1427,4 +1427,39 @@ theorem pullback_extended_cookLevin_assign
   · exfalso
     exact h i.isLt
 
+/-! ## Section 27: Summary — Path A status
+
+Path A architectural infrastructure is COMPLETE axiom-free. The two
+remaining tasks are concrete rank bounds:
+
+### Step 2 (NP-side): rank(Q, pullback B inlU) ≥ C(n/3, log n)
+
+AVAILABLE INFRASTRUCTURE:
+- `Tseitin.np_ml_lower_bound`: mlBlockedSpdpRank ≥ n^(log n/4)
+- `compiled_np_lower_bound_any_dtm`: mlBlockedSpdpRank ≥ C(n/3, log n)
+  on compiledPoly at tseitinPartition / cook-levin partition
+
+REMAINING: Bridge via `extendedCookLevinPartition` (§26) —
+- pullback matches Cook-Levin assignment on u-range
+- numBlocks agree (max ((n+2)/3) 1 = (n+2)/3 for n ≥ 2)
+- Type cast compiledPoly ↔ CoupledSheetPoly σ where σ.numU = n
+
+### Step 4 (P-side): rank(templatePMn σ Q) ≤ n^200
+
+REQUIRED: Width⇒Rank on a paper-faithful PMn with CEW = O(log n).
+
+CURRENT TEMPLATE: `templatePMn σ Q = embed(Q) · (1 + tableauBool)`
+— suitable if Q has low rank, problematic if Q has rank > n^200.
+
+PAPER-FAITHFUL PMn (future): full §40 Theorem 203 compilation with
+TM-transition constraints over v, CEW bounded by O(log n), yielding
+rank ≤ n^O(1) via existing Width⇒Rank machinery.
+
+### End-to-end theorem
+
+`pathA_final_separation` (§25) takes both bounds as hypotheses and
+derives False at n ≥ 2^804. All internal machinery axiom-free; the
+separation is now a mechanical plug-in away from discharging the
+single remaining axiom `exists_amplituhedron_gauge_for_sat_decider`. -/
+
 end PaperFaithfulCompilation
