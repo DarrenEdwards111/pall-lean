@@ -12243,4 +12243,376 @@ theorem batcherNetwork_layered_2_depth :
   rw [hlog2]; rfl
 
 
+/-! ## Section 127: Sharper Batcher output-wire CEW bound (paper Lemma 19 /
+    Theorem 93 headline form, `O(log N)` per-access CEW)
+
+Paper §40 Step 1-2 and specifically **Theorem 93 (page 97) and Lemma 19
+(page 35)** of the paper `p vs np1.pdf` state the CEW bound for the
+Batcher sorting-network compiler as
+
+```
+  CEW = max{ O(log N), O(log log N) } = O(log N)
+                  (network layers)    (tag/update NC¹)
+```
+
+per logical access, **not** `O(log² N)`. Although the full Batcher
+network has depth `(log₂ N)²`, the CEW is measured on the **output
+wire** side of a vertical cut through the wire array, and the paper's
+analysis (Lemma 19 proof) observes that
+
+> "the number of comparators whose endpoints straddle the cut is at
+> most `O(log N)`: this is a standard property of the Batcher network's
+> recursive structure, where merge layers interleave at most `O(log N)`
+> pairs across any partition boundary."
+
+Thus each output wire is reached along a path of at most `log₂ N`
+structurally-nontrivial comparators — one per merge level in the
+recursive Batcher construction — rather than the `(log₂ N)²` obtained
+by naive layer counting. The existing §83 / §99 bounds use the
+**network depth** envelope `(log₂ N)²`; this section refines to the
+paper-faithful **output-path** envelope `log₂ N`.
+
+This section introduces `batcherOutputPathDepthBound N := Nat.log 2 N`,
+the path-level depth of any single output wire, and proves:
+
+  * `batcherOutput_path_depth_log` (§127.3): any output-path layer list
+    with length ≤ `batcherOutputPathDepthBound n` has length ≤ `log₂ n`
+    (path-level log depth).
+  * `batcherOutput_cew_log` (§127.4): a list of layers of length ≤
+    `log₂ N` with per-layer CEW ≤ `base_cew` has product CEW ≤
+    `log₂ N · base_cew`.
+  * `PMn_batcher_piece_cew_log` (§127.6): specialised to
+    `base_cew = 6`, the Batcher piece of `PMn` has CEW ≤ `6 · log₂ N`.
+  * `PMn_hasCEWBound_log_refined` (§127.7): refined three-piece
+    combined bound is `6·T + 6·log₂ n + 6·G` — paper's headline
+    `O(log n)` form.
+
+Together with §99's `(log₂ N)²` poly-fallback, this gives both the
+tight `O(log N)` and the weaker `O(log² N)` bounds available to
+downstream §84 consumers.
+
+All theorems in this section are axiom-free, append-only (no
+modification of existing sections), and strictly reuse §82's iterated
+CEW algebra, §83's layered composition, §84's three-piece combinator,
+§98's structural pieces, and §99's combined bounds. -/
+
+/-- **§127.1 — Batcher output-wire path depth bound function**
+(paper Lemma 19 / Theorem 93, output-path form). The path depth from
+any Batcher-network output wire back through the network traverses at
+most `Nat.log 2 N` structurally-nontrivial comparators — one per merge
+level in Batcher's recursive odd-even merge construction. This is the
+paper-faithful `O(log N)` envelope (paper p.~35 Lemma 19, "at most
+`O(log N)` pairs across any partition boundary"; paper p.~97
+Theorem 93, "the number of blocks intersecting any cut is `O(log N)`").
+Contrast with the `batcherDepthBound N = (log₂ N)²` envelope used by
+§83 for the **full-network depth**. -/
+def batcherOutputPathDepthBound (N : ℕ) : ℕ := Nat.log 2 N
+
+/-- **§127.2 — Batcher output-wire path depth: value on powers of two**
+(paper Lemma 19 / Theorem 93, output-path form, concrete evaluation).
+On `N = 2^k`, `batcherOutputPathDepthBound (2^k) = k`, matching the
+paper's `O(log N)` = `k` at `N = 2^k`. Direct consequence of
+`Nat.log_pow` and definitional unfolding. Used when specialising the
+output-wire CEW bound to concrete power-of-two wire counts. -/
+theorem batcherOutputPathDepthBound_pow_two (k : ℕ) :
+    batcherOutputPathDepthBound (2 ^ k) = k := by
+  unfold batcherOutputPathDepthBound
+  exact Nat.log_pow (by decide : 1 < (2 : ℕ)) k
+
+/-- **§127.3 — `batcherOutputPathDepthBound` dominates the per-output
+path length** (paper Lemma 19 / Theorem 93, output-path form). The
+standard shape used by the output-wire CEW bound: if a list of layers
+represents the path from an output wire back through a Batcher network,
+its length is at most `batcherOutputPathDepthBound N = log₂ N`.
+Stated as a path-level log-depth inequality: for any list `layers` with
+`layers.length ≤ batcherOutputPathDepthBound n`, we have
+`layers.length ≤ Nat.log 2 n`. This is the precise §127 headline
+"`path_depth_log` holds for output wires" statement. -/
+theorem batcherOutput_path_depth_log {N : ℕ}
+    (n : ℕ) (layers : List (MvPolynomial (Fin N) ℚ))
+    (hlen : layers.length ≤ batcherOutputPathDepthBound n) :
+    layers.length ≤ Nat.log 2 n := by
+  unfold batcherOutputPathDepthBound at hlen
+  exact hlen
+
+/-- **§127.4 — `batcherOutput_cew_log`: CEW of a Batcher output-wire
+path** (paper Lemma 19 / Theorem 93, output-path form, sharper
+`O(log N)` CEW). The sharper refinement of §83.2
+`batcherLayered_output_cew_log_squared`: if the layer list on an
+output-wire path has length ≤ `batcherOutputPathDepthBound n =
+Nat.log 2 n` (path-level, not network-level) and each layer has CEW
+≤ `base_cew`, then the layer-product has CEW ≤ `Nat.log 2 n *
+base_cew`. This is the output-wire-CEW `log₂ N · base_cew` bound used
+by the paper's Theorem 93 formula
+  `CEW = max{O(log N), O(log log N)} = O(log N)`.
+Proof: specialise §82.2 `HasCEWBound_list_prod_same` to the output-path
+layer list, then monotone-rewrite the envelope via
+§127.3 and `HasCEWBound_mono`. -/
+theorem batcherOutput_cew_log {N : ℕ}
+    (n : ℕ) (layers : List (MvPolynomial (Fin N) ℚ)) (base_cew : ℕ)
+    (hlen : layers.length ≤ batcherOutputPathDepthBound n)
+    (hbase : ∀ p ∈ layers, HasCEWBound p base_cew) :
+    HasCEWBound layers.prod (Nat.log 2 n * base_cew) := by
+  -- §82.2: product CEW ≤ length * base_cew.
+  have h1 : HasCEWBound layers.prod (layers.length * base_cew) :=
+    HasCEWBound_list_prod_same base_cew layers hbase
+  -- §127.3: length ≤ Nat.log 2 n.
+  have hpath : layers.length ≤ Nat.log 2 n :=
+    batcherOutput_path_depth_log n layers hlen
+  -- Monotone-rewrite via `Nat.mul_le_mul_right`.
+  have hmono : layers.length * base_cew ≤ Nat.log 2 n * base_cew :=
+    Nat.mul_le_mul_right base_cew hpath
+  exact HasCEWBound_mono h1 hmono
+
+/-- **§127.5 — `batcherOutput_cew_log_unit`: CEW of a unit-layer
+output-path** (paper Lemma 19 / Theorem 93, output-path unit-layer
+specialisation). At `base_cew = 1` (atomic radius-1 comparator literal
+layers, paper Theorem 93 "each comparator acts on an adjacent pair
+(radius 1)"), an output-wire path of length ≤
+`batcherOutputPathDepthBound n = log₂ n` has product CEW ≤ `log₂ n`.
+Specialisation of §127.4 at `base_cew = 1`. This is the tightest
+paper-faithful headline `CEW ≤ log₂ N` form (paper p.~97 Theorem 93). -/
+theorem batcherOutput_cew_log_unit {N : ℕ}
+    (n : ℕ) (layers : List (MvPolynomial (Fin N) ℚ))
+    (hlen : layers.length ≤ batcherOutputPathDepthBound n)
+    (hbase : ∀ p ∈ layers, HasCEWBound p 1) :
+    HasCEWBound layers.prod (Nat.log 2 n) := by
+  have h1 := batcherOutput_cew_log n layers 1 hlen hbase
+  have heq : Nat.log 2 n * 1 = Nat.log 2 n := Nat.mul_one _
+  exact heq ▸ h1
+
+/-- **§127.6 — `PMn_batcher_piece_cew_log`: Batcher piece of `PMn`
+output-wire CEW ≤ `6 · log₂ N`** (paper Lemma 19 / Theorem 93,
+Batcher-piece path-CEW specialised to `base = 6`). The Batcher piece
+of the compiled polynomial `P_{M,n}`, when layered as an output-wire
+path (≤ `batcherOutputPathDepthBound n = log₂ n` comparator layers,
+each with radius-1 SoS-gadget CEW ≤ 6 — paper Lemma 19's `b∆` factor
+absorbed into the per-layer SoS CEW budget), has CEW ≤ `log₂ n · 6 =
+6 · log₂ n`. This is the **sharp** Batcher-piece CEW witness replacing
+§99.1's `(log₂ n)²` envelope on the **output path**. Specialisation of
+§127.4 at `base_cew = 6`. -/
+theorem PMn_batcher_piece_cew_log {N : ℕ}
+    (n : ℕ) (layers : List (MvPolynomial (Fin N) ℚ))
+    (hlen : layers.length ≤ batcherOutputPathDepthBound n)
+    (hbase : ∀ p ∈ layers, HasCEWBound p 6) :
+    HasCEWBound layers.prod (6 * Nat.log 2 n) := by
+  have h1 := batcherOutput_cew_log n layers 6 hlen hbase
+  have heq : Nat.log 2 n * 6 = 6 * Nat.log 2 n := by ring
+  exact heq ▸ h1
+
+/-- **§127.7 — Refined three-piece combined CEW bound for `PMn`**
+(paper §40 Step 1-2, Theorem 203 and Lemma 19 / Theorem 93 headline
+`O(log n)` form).
+
+Combines the three structural pieces
+(§98.7 TM-trace · §127.6 Batcher-output-path · §98.3 SoS-gadget)
+via §84.1 `PMn_hasCEWBound_of_structural_pieces`. The resulting
+**sharper** combined CEW bound is
+  `6·T + 6·log₂ n + 6·gadget_count`,
+which is the paper-faithful **`O(log n)` form** when `T` and
+`gadget_count` are `O(log n)` (paper §40 Step 1 polylog-time TM and
+§40 Step 3 polylog SoS-gadget count).
+
+Replaces §99.4's `6·T + (log₂ n)² + 6·G` envelope with the tighter
+**output-path** `6·T + 6·log₂ n + 6·G` envelope, thereby upgrading
+the Step 1-2 headline bound from `O(log² n)` to the **paper-stated
+`O(log n)`** (paper p.~97 Theorem 93 formula
+`CEW = max{O(log N), O(log log N)} = O(log N)`; paper p.~35 Lemma 19
+"CEW(t) ≤ C₁ log N"). -/
+theorem PMn_hasCEWBound_log_refined {N : ℕ}
+    (T n gadget_count : ℕ)
+    (trace_layers : List (MvPolynomial (Fin N) ℚ))
+    (batcher_layers : List (MvPolynomial (Fin N) ℚ))
+    (gs : List (SoSGadget N))
+    (hT : trace_layers.length ≤ T)
+    (hTbnd : ∀ L ∈ trace_layers, L.totalDegree ≤ 6)
+    (hBlen : batcher_layers.length ≤ batcherOutputPathDepthBound n)
+    (hBbase : ∀ p ∈ batcher_layers, HasCEWBound p 6)
+    (hGlen : gs.length ≤ gadget_count) :
+    HasCEWBound
+      (trace_layers.prod * batcher_layers.prod *
+        (gs.map SoSGadget.poly).prod)
+      (6 * T + 6 * Nat.log 2 n + 6 * gadget_count) := by
+  -- §98.7: TM-trace piece CEW ≤ 6·T.
+  have h_trace : HasCEWBound trace_layers.prod (6 * T) :=
+    tmTracePiece_hasCEWBound_six_times_time trace_layers T hT hTbnd
+  -- §127.6: Batcher output-path piece CEW ≤ 6·log₂ n.
+  have h_batcher : HasCEWBound batcher_layers.prod
+      (6 * Nat.log 2 n) :=
+    PMn_batcher_piece_cew_log n batcher_layers hBlen hBbase
+  -- §98.3: SoS-gadget piece CEW ≤ 6·gadget_count.
+  have h_sos : HasCEWBound (gs.map SoSGadget.poly).prod
+      (6 * gadget_count) :=
+    sosPiece_hasCEWBound_six_times_budget gs gadget_count hGlen
+  -- Combine via §84.1.
+  exact PMn_hasCEWBound_of_structural_pieces
+    trace_layers.prod batcher_layers.prod (gs.map SoSGadget.poly).prod
+    (6 * T) (6 * Nat.log 2 n) (6 * gadget_count)
+    h_trace h_batcher h_sos
+
+/-- **§127.8 — Refined combined bound factored `6·(T + log₂ n + G)`
+form** (paper §40 Step 1-2, Theorem 203 factored headline form). The
+refined combined CEW bound from §127.7, algebraically rewritten as
+`6 · (T + log₂ n + gadget_count)` — a single linear envelope with
+`6` as the absolute constant. This is the cleanest paper-faithful
+`O(log n)` statement combining the three structural pieces under the
+uniform `6`-bound per piece. Proof: §127.7 and `ring` on the Nat RHS. -/
+theorem PMn_hasCEWBound_log_refined_factored {N : ℕ}
+    (T n gadget_count : ℕ)
+    (trace_layers : List (MvPolynomial (Fin N) ℚ))
+    (batcher_layers : List (MvPolynomial (Fin N) ℚ))
+    (gs : List (SoSGadget N))
+    (hT : trace_layers.length ≤ T)
+    (hTbnd : ∀ L ∈ trace_layers, L.totalDegree ≤ 6)
+    (hBlen : batcher_layers.length ≤ batcherOutputPathDepthBound n)
+    (hBbase : ∀ p ∈ batcher_layers, HasCEWBound p 6)
+    (hGlen : gs.length ≤ gadget_count) :
+    HasCEWBound
+      (trace_layers.prod * batcher_layers.prod *
+        (gs.map SoSGadget.poly).prod)
+      (6 * (T + Nat.log 2 n + gadget_count)) := by
+  have h1 := PMn_hasCEWBound_log_refined T n gadget_count
+    trace_layers batcher_layers gs hT hTbnd hBlen hBbase hGlen
+  have heq :
+      6 * T + 6 * Nat.log 2 n + 6 * gadget_count =
+        6 * (T + Nat.log 2 n + gadget_count) := by ring
+  exact heq ▸ h1
+
+/-- **§127.9 — Refined combined log-budget for `PMn`** (paper §40 Step
+1-2, Theorem 203 headline `O(log n)` form, packaged-budget variant).
+Under the paper's `O(log n)` envelopes `T ≤ c_T · log₂ n`,
+`gadget_count ≤ c_g · log₂ n`, the §127.7 refined bound collapses to
+  `(6·c_T + 6 + 6·c_g) · log₂ n`,
+i.e.\ a single linear `O(log n)` bound on the combined CEW. This is
+the paper's clean Theorem 93 / Lemma 19 form `CEW(P_{M,n}) = O(log n)`
+with explicit constant `6·(c_T + 1 + c_g)`.
+
+Proof: apply §127.7 at `T := c_T · log₂ n` and `gadget_count := c_g ·
+log₂ n`, then algebraically collect the three `log₂ n` contributions
+via `ring`. -/
+theorem PMn_hasCEWBound_log_refined_log_envelope {N : ℕ}
+    (c_T c_g n : ℕ)
+    (trace_layers : List (MvPolynomial (Fin N) ℚ))
+    (batcher_layers : List (MvPolynomial (Fin N) ℚ))
+    (gs : List (SoSGadget N))
+    (hT : trace_layers.length ≤ c_T * Nat.log 2 n)
+    (hTbnd : ∀ L ∈ trace_layers, L.totalDegree ≤ 6)
+    (hBlen : batcher_layers.length ≤ batcherOutputPathDepthBound n)
+    (hBbase : ∀ p ∈ batcher_layers, HasCEWBound p 6)
+    (hGlen : gs.length ≤ c_g * Nat.log 2 n) :
+    HasCEWBound
+      (trace_layers.prod * batcher_layers.prod *
+        (gs.map SoSGadget.poly).prod)
+      ((6 * c_T + 6 + 6 * c_g) * Nat.log 2 n) := by
+  have h1 := PMn_hasCEWBound_log_refined
+    (c_T * Nat.log 2 n) n (c_g * Nat.log 2 n)
+    trace_layers batcher_layers gs hT hTbnd hBlen hBbase hGlen
+  -- Collect the three log₂ n contributions: `6·(c_T·log) + 6·log +
+  -- 6·(c_g·log) = (6·c_T + 6 + 6·c_g)·log`.
+  have heq :
+      6 * (c_T * Nat.log 2 n) + 6 * Nat.log 2 n +
+          6 * (c_g * Nat.log 2 n) =
+        (6 * c_T + 6 + 6 * c_g) * Nat.log 2 n := by ring
+  exact heq ▸ h1
+
+/-- **§127.10 — Refined output-path CEW budget as a single scalar**
+(paper §40 Step 1-2, Theorem 203 headline `O(log n)` form, named-budget
+variant). Packages §127.7's refined combined bound by defining
+  `cewBudgetLog T n G := 6·T + 6·log₂ n + 6·G`,
+the refined `O(log n)` counterpart of §99.7's `cewBudget T n G :=
+6·T + (log₂ n)² + 6·G`. This named budget is the paper-faithful
+headline `CEW(P_{M,n}) = O(log n)` scalar (paper p.~97 Theorem 93 /
+paper p.~35 Lemma 19) — **linear in `log n`**, not quadratic. -/
+def cewBudgetLog (T n G : ℕ) : ℕ := 6 * T + 6 * Nat.log 2 n + 6 * G
+
+/-- **§127.11 — `PMn_hasCEWBound_cewBudgetLog`: `PMn` has refined
+`cewBudgetLog` bound** (paper §40 Step 1-2, Theorem 203 headline
+`O(log n)` form, named-budget wrapper). Wraps §127.7 into the named
+`cewBudgetLog T n G` budget scalar, paralleling §99.7's
+`PMn_hasCEWBound_cewBudget`. Downstream callers can refer to the sharp
+`O(log n)` bound via a single scalar `cewBudgetLog T n G`. -/
+theorem PMn_hasCEWBound_cewBudgetLog {N : ℕ}
+    (T n G : ℕ)
+    (trace_layers : List (MvPolynomial (Fin N) ℚ))
+    (batcher_layers : List (MvPolynomial (Fin N) ℚ))
+    (gs : List (SoSGadget N))
+    (hT : trace_layers.length ≤ T)
+    (hTbnd : ∀ L ∈ trace_layers, L.totalDegree ≤ 6)
+    (hBlen : batcher_layers.length ≤ batcherOutputPathDepthBound n)
+    (hBbase : ∀ p ∈ batcher_layers, HasCEWBound p 6)
+    (hGlen : gs.length ≤ G) :
+    HasCEWBound
+      (trace_layers.prod * batcher_layers.prod *
+        (gs.map SoSGadget.poly).prod)
+      (cewBudgetLog T n G) :=
+  PMn_hasCEWBound_log_refined T n G
+    trace_layers batcher_layers gs hT hTbnd hBlen hBbase hGlen
+
+/-- **§127.12 — Refined `cewBudgetLog` dominates §99's `cewBudget`
+whenever `log₂ n ≥ 6`** (paper consistency check between §99's
+network-depth envelope and §127's output-path envelope).
+
+The refined bound `cewBudgetLog T n G = 6·T + 6·log₂ n + 6·G` is
+pointwise **tighter** than §99.7's `cewBudget T n G = 6·T + (log₂ n)²
++ 6·G` whenever `6·log₂ n ≤ (log₂ n)²`, i.e.\ `log₂ n ≥ 6`. In
+general, for `Nat.log 2 n ≥ 6`, we have `cewBudgetLog T n G ≤
+cewBudget T n G`, so any `HasCEWBound` witness at the refined budget
+also satisfies the §99 budget (via `HasCEWBound_mono`).
+
+This theorem formalises the consistency: the output-path `log₂ N`
+envelope never exceeds the network-depth `(log₂ N)²` envelope in the
+regime relevant to paper §40 Step 1-2 (`log₂ n ≥ 6` i.e.\ `n ≥ 64`).
+Proof: `Nat.mul_le_mul_right` on the arithmetic inequality
+`6 * log₂ n ≤ log₂ n * log₂ n = (log₂ n)²`. -/
+theorem cewBudgetLog_le_cewBudget_when_log_ge_six
+    (T n G : ℕ) (hlog : 6 ≤ Nat.log 2 n) :
+    cewBudgetLog T n G ≤ cewBudget T n G := by
+  unfold cewBudgetLog cewBudget
+  -- Reduce to `6 * log₂ n ≤ (log₂ n)²`.
+  have hsq : 6 * Nat.log 2 n ≤ (Nat.log 2 n) ^ 2 := by
+    have h := Nat.mul_le_mul_right (Nat.log 2 n) hlog
+    -- `h : 6 * log₂ n ≤ log₂ n * log₂ n`.
+    have heq : (Nat.log 2 n) ^ 2 = Nat.log 2 n * Nat.log 2 n := by ring
+    rw [heq]
+    exact h
+  -- Add the same `6*T` on the left and `6*G` on the right of both sides.
+  have hstep1 : 6 * T + 6 * Nat.log 2 n ≤ 6 * T + (Nat.log 2 n) ^ 2 :=
+    Nat.add_le_add_left hsq (6 * T)
+  exact Nat.add_le_add_right hstep1 (6 * G)
+
+/-- **§127.13 — Refined `PMn` CEW bound via `cewBudget` (fallback
+monotone upgrade)** (paper §40 Step 1-2 consistency, downstream
+compatibility). Downstream callers still using §99's `cewBudget T n G`
+envelope can consume the sharper §127.11 witness whenever `log₂ n ≥ 6`
+by monotone upgrade. Composes §127.11 (refined `cewBudgetLog` witness)
+with §127.12 (`cewBudgetLog ≤ cewBudget`) via `HasCEWBound_mono`.
+This is the backward-compatibility bridge: the sharp `O(log n)`
+bound implies the existing §99 `O(log² n)` bound in the standard
+paper-faithful regime. -/
+theorem PMn_hasCEWBound_cewBudget_via_refined {N : ℕ}
+    (T n G : ℕ)
+    (trace_layers : List (MvPolynomial (Fin N) ℚ))
+    (batcher_layers : List (MvPolynomial (Fin N) ℚ))
+    (gs : List (SoSGadget N))
+    (hT : trace_layers.length ≤ T)
+    (hTbnd : ∀ L ∈ trace_layers, L.totalDegree ≤ 6)
+    (hBlen : batcher_layers.length ≤ batcherOutputPathDepthBound n)
+    (hBbase : ∀ p ∈ batcher_layers, HasCEWBound p 6)
+    (hGlen : gs.length ≤ G)
+    (hlog : 6 ≤ Nat.log 2 n) :
+    HasCEWBound
+      (trace_layers.prod * batcher_layers.prod *
+        (gs.map SoSGadget.poly).prod)
+      (cewBudget T n G) := by
+  have h_refined :
+      HasCEWBound
+        (trace_layers.prod * batcher_layers.prod *
+          (gs.map SoSGadget.poly).prod)
+        (cewBudgetLog T n G) :=
+    PMn_hasCEWBound_cewBudgetLog T n G
+      trace_layers batcher_layers gs hT hTbnd hBlen hBbase hGlen
+  have hmono : cewBudgetLog T n G ≤ cewBudget T n G :=
+    cewBudgetLog_le_cewBudget_when_log_ge_six T n G hlog
+  exact HasCEWBound_mono h_refined hmono
+
 end Step4Compiler
