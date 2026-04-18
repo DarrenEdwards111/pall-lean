@@ -4002,7 +4002,8 @@ noncomputable def equalitySoSGadget {N : ℕ} (i j : Fin N) : SoSGadget N where
     omega
   vars_contained := by
     intro k hk
-    have h_pow : k ∈ (MvPolynomial.X i - MvPolynomial.X j).vars :=
+    have h_pow : k ∈ (MvPolynomial.X i - MvPolynomial.X j :
+        MvPolynomial (Fin N) ℚ).vars :=
       MvPolynomial.vars_pow _ 2 hk
     have h_sub :
         (MvPolynomial.X i - MvPolynomial.X j : MvPolynomial (Fin N) ℚ).vars
@@ -4029,12 +4030,14 @@ noncomputable def equalitySoSGadget {N : ℕ} (i j : Fin N) : SoSGadget N where
             MvPolynomial.totalDegree_sub _ _
         _ ≤ 1 := by
             rw [MvPolynomial.totalDegree_X, MvPolynomial.totalDegree_X]
+            omega
     have hpow :
         ((MvPolynomial.X i - MvPolynomial.X j) ^ 2 :
             MvPolynomial (Fin N) ℚ).totalDegree ≤ 2 * 1 := by
       calc ((MvPolynomial.X i - MvPolynomial.X j) ^ 2 :
               MvPolynomial (Fin N) ℚ).totalDegree
-          ≤ 2 * (MvPolynomial.X i - MvPolynomial.X j).totalDegree :=
+          ≤ 2 * (MvPolynomial.X i - MvPolynomial.X j :
+              MvPolynomial (Fin N) ℚ).totalDegree :=
             MvPolynomial.totalDegree_pow _ 2
         _ ≤ 2 * 1 := Nat.mul_le_mul_left 2 hsub
     exact le_trans hpow (by omega)
@@ -4079,11 +4082,17 @@ theorem equalitySoSGadget_totalDegree_le {N : ℕ} (i j : Fin N) :
           MvPolynomial.totalDegree_sub _ _
       _ ≤ 1 := by
           rw [MvPolynomial.totalDegree_X, MvPolynomial.totalDegree_X]
-  calc ((MvPolynomial.X i - MvPolynomial.X j) ^ 2 :
-          MvPolynomial (Fin N) ℚ).totalDegree
-      ≤ 2 * (MvPolynomial.X i - MvPolynomial.X j).totalDegree :=
-        MvPolynomial.totalDegree_pow _ 2
-    _ ≤ 2 * 1 := Nat.mul_le_mul_left 2 hsub
+          omega
+  have hpow :
+      ((MvPolynomial.X i - MvPolynomial.X j) ^ 2 :
+          MvPolynomial (Fin N) ℚ).totalDegree ≤ 2 * 1 := by
+    calc ((MvPolynomial.X i - MvPolynomial.X j) ^ 2 :
+            MvPolynomial (Fin N) ℚ).totalDegree
+        ≤ 2 * (MvPolynomial.X i - MvPolynomial.X j :
+            MvPolynomial (Fin N) ℚ).totalDegree :=
+          MvPolynomial.totalDegree_pow _ 2
+      _ ≤ 2 * 1 := Nat.mul_le_mul_left 2 hsub
+  exact le_trans hpow (by omega)
 
 /-- **§77.5 — CEW bound for `equalitySoSGadget`** (paper §40 Step 3 /
 §2.1: the equality gadget has CEW ≤ 2, matching its total degree). -/
