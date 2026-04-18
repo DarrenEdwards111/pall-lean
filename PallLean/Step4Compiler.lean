@@ -2290,5 +2290,93 @@ theorem batcherNetwork_1_layers_empty : batcherNetwork_1.layers = [] :=
 theorem batcherNetwork_0_layers_empty : batcherNetwork_0.layers = [] :=
   trivialSortingNetwork_layers_empty 0
 
+/-! ## Section 67: SoSGadget combinator preservation theorems (paper §40)
+
+The SoSGadget combinators `neg`, `expandSupport`, `add`, `mul` defined
+in §16a, §20, and §24 preserve the core structural invariants
+(polynomial identity, CEW bounds). The theorems below expose those
+preservation facts as standalone lemmas so downstream compiler proofs
+can quote them directly without unfolding the combinator definitions.
+
+Paper §40 Step 3 composes radius-1 transition gadgets via the sum,
+product, negation, and support-expansion operators; these lemmas
+verify that the compositions remain compatible with the CEW
+bookkeeping of Lemma 19. -/
+
+/-- **`SoSGadget.neg` preserves the polynomial up to sign** (paper §40
+Step 3: the negation combinator flips the polynomial exactly). -/
+theorem SoSGadget.neg_poly {N : ℕ} (g : SoSGadget N) :
+    g.neg.poly = -g.poly := rfl
+
+/-- **`SoSGadget.neg` preserves the varSupport** (paper §40 Step 3:
+negation does not touch the variable support set). -/
+theorem SoSGadget.neg_varSupport {N : ℕ} (g : SoSGadget N) :
+    g.neg.varSupport = g.varSupport := rfl
+
+/-- **CEW bound preservation under negation** (paper §40 Step 3 +
+Lemma 19): the negated gadget inherits any CEW bound on the original
+since negation is totalDegree-preserving. -/
+theorem SoSGadget.neg_hasCEWBound {N : ℕ} (g : SoSGadget N) {target : ℕ}
+    (hg : HasCEWBound g.poly target) :
+    HasCEWBound g.neg.poly target := by
+  rw [SoSGadget.neg_poly]
+  exact HasCEWBound_neg hg
+
+/-- **`SoSGadget.expandSupport` preserves the polynomial** (paper §40
+Step 3: enlarging the declared support is a structural no-op on the
+polynomial content). -/
+theorem SoSGadget.expandSupport_poly {N : ℕ} (g : SoSGadget N)
+    (extra : Finset (Fin N)) (h_new : (g.varSupport ∪ extra).card ≤ 6) :
+    (g.expandSupport extra h_new).poly = g.poly := rfl
+
+/-- **CEW bound preservation under `expandSupport`** (paper §40 Step 3
++ Lemma 19): since the polynomial is literally unchanged, so is its
+CEW bound. -/
+theorem SoSGadget.expandSupport_hasCEWBound {N : ℕ} (g : SoSGadget N)
+    (extra : Finset (Fin N)) (h_new : (g.varSupport ∪ extra).card ≤ 6)
+    {target : ℕ} (hg : HasCEWBound g.poly target) :
+    HasCEWBound (g.expandSupport extra h_new).poly target := by
+  rw [SoSGadget.expandSupport_poly]
+  exact hg
+
+/-- **`SoSGadget.add` poly identity** (paper §40 Step 3): the sum
+gadget's polynomial is literally the sum of the component
+polynomials. -/
+theorem SoSGadget.add_poly {N : ℕ} (g₁ g₂ : SoSGadget N)
+    (hvars : (g₁.varSupport ∪ g₂.varSupport).card ≤ 6)
+    (hdeg : (g₁.poly + g₂.poly).totalDegree ≤ 6) :
+    (SoSGadget.add g₁ g₂ hvars hdeg).poly = g₁.poly + g₂.poly := rfl
+
+/-- **`SoSGadget.mul` poly identity** (paper §40 Step 3): the product
+gadget's polynomial is literally the product of the component
+polynomials. -/
+theorem SoSGadget.mul_poly {N : ℕ} (g₁ g₂ : SoSGadget N)
+    (hvars : (g₁.varSupport ∪ g₂.varSupport).card ≤ 6)
+    (hdeg : (g₁.poly * g₂.poly).totalDegree ≤ 6) :
+    (SoSGadget.mul g₁ g₂ hvars hdeg).poly = g₁.poly * g₂.poly := rfl
+
+/-- **CEW bound for `SoSGadget.add`** (paper §40 Step 3 + Lemma 19):
+the sum gadget inherits a shared CEW bound from its components. -/
+theorem SoSGadget.add_hasCEWBound {N : ℕ} (g₁ g₂ : SoSGadget N)
+    (hvars : (g₁.varSupport ∪ g₂.varSupport).card ≤ 6)
+    (hdeg : (g₁.poly + g₂.poly).totalDegree ≤ 6)
+    {target : ℕ} (h1 : HasCEWBound g₁.poly target)
+    (h2 : HasCEWBound g₂.poly target) :
+    HasCEWBound (SoSGadget.add g₁ g₂ hvars hdeg).poly target := by
+  rw [SoSGadget.add_poly]
+  exact HasCEWBound_add h1 h2
+
+/-- **CEW bound for `SoSGadget.mul`** (paper §40 Step 3 + Lemma 19):
+the product gadget's polynomial has CEW bound equal to the sum of
+the component CEW bounds (multiplicative closure of Lemma 19). -/
+theorem SoSGadget.mul_hasCEWBound {N : ℕ} (g₁ g₂ : SoSGadget N)
+    (hvars : (g₁.varSupport ∪ g₂.varSupport).card ≤ 6)
+    (hdeg : (g₁.poly * g₂.poly).totalDegree ≤ 6)
+    {t₁ t₂ : ℕ} (h1 : HasCEWBound g₁.poly t₁)
+    (h2 : HasCEWBound g₂.poly t₂) :
+    HasCEWBound (SoSGadget.mul g₁ g₂ hvars hdeg).poly (t₁ + t₂) := by
+  rw [SoSGadget.mul_poly]
+  exact HasCEWBound_mul h1 h2
+
 end Step4Compiler
 
