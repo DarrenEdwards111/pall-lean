@@ -1232,4 +1232,68 @@ All axiom-free ingredients of Path A:
 **Axiom surface:** `exists_amplituhedron_gauge_for_sat_decider` remains
 the single custom axiom. Closing Step 4 would discharge it fully. -/
 
+/-! ## Section 20: Additional path polynomial + SoSGadget theorems -/
+
+/-- **Path polynomial for singleton step**. -/
+theorem pathPolynomial_single {N : ℕ} (q : Fin N) (b : Bool) :
+    pathPolynomial [(q, b)] = pathLiteral q b := by
+  rw [pathPolynomial_cons, pathPolynomial_nil, mul_one]
+
+/-- **Concatenation** of path polynomials = product. -/
+theorem pathPolynomial_append {N : ℕ}
+    (steps₁ steps₂ : List (Fin N × Bool)) :
+    pathPolynomial (steps₁ ++ steps₂) =
+      pathPolynomial steps₁ * pathPolynomial steps₂ := by
+  induction steps₁ with
+  | nil => simp [pathPolynomial_nil]
+  | cons p rest ih =>
+    obtain ⟨q, b⟩ := p
+    simp only [List.cons_append]
+    rw [pathPolynomial_cons, pathPolynomial_cons, ih]
+    ring
+
+/-- Empty step list → polynomial 1. -/
+theorem pathPolynomial_eq_one_of_nil {N : ℕ}
+    {steps : List (Fin N × Bool)} (h : steps = []) :
+    pathPolynomial steps = 1 := by
+  rw [h, pathPolynomial_nil]
+
+/-- **Sum of two SoSGadgets**. -/
+noncomputable def SoSGadget.add {N : ℕ} (g₁ g₂ : SoSGadget N)
+    (hvars : (g₁.varSupport ∪ g₂.varSupport).card ≤ 6)
+    (hdeg : (g₁.poly + g₂.poly).totalDegree ≤ 6) :
+    SoSGadget N where
+  poly := g₁.poly + g₂.poly
+  varSupport := g₁.varSupport ∪ g₂.varSupport
+  support_bound := hvars
+  vars_contained := by
+    intro k hk
+    have hadd : k ∈ (g₁.poly + g₂.poly).vars := hk
+    rcases Finset.mem_union.mp (MvPolynomial.vars_add_subset _ _ hadd) with h | h
+    · exact Finset.mem_union_left _ (g₁.vars_contained h)
+    · exact Finset.mem_union_right _ (g₂.vars_contained h)
+  degree_bound := hdeg
+
+/-- Two layer polynomials sum has CEW ≤ 1. -/
+theorem layerPolynomial_sum_cew {N : ℕ}
+    (q₁ q₂ : Fin N) (c₀ c₁ d₀ d₁ : ℚ) :
+    HasCEWBound
+      (layerPolynomial q₁ c₀ c₁ + layerPolynomial q₂ d₀ d₁) 1 :=
+  HasCEWBound_add (layerPolynomial_cew q₁ c₀ c₁)
+                  (layerPolynomial_cew q₂ d₀ d₁)
+
+/-- Finite sum of layer polynomials has CEW ≤ 1. -/
+theorem layerPolynomial_finset_sum_cew {N : ℕ} {ι : Type*}
+    (s : Finset ι) (qs : ι → Fin N) (c0s c1s : ι → ℚ) :
+    HasCEWBound (s.sum (fun i => layerPolynomial (qs i) (c0s i) (c1s i))) 1 :=
+  HasCEWBound_finset_sum s _ 1 (fun i _ => layerPolynomial_cew _ _ _)
+
+/-- **Two-layer polynomial product** has CEW ≤ 2. -/
+theorem layerPolynomial_mul_cew {N : ℕ}
+    (q₁ q₂ : Fin N) (c₀ c₁ d₀ d₁ : ℚ) :
+    HasCEWBound
+      (layerPolynomial q₁ c₀ c₁ * layerPolynomial q₂ d₀ d₁) 2 :=
+  HasCEWBound_mul (layerPolynomial_cew q₁ c₀ c₁)
+                  (layerPolynomial_cew q₂ d₀ d₁)
+
 end Step4Compiler
