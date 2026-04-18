@@ -1166,7 +1166,17 @@ theorem BranchingProgram.runSteps_length_correct {n : ℕ} (B : BranchingProgram
     (input : Fin n → Bool) (start : Fin B.width) :
     (B.runSteps input start B.length) = (B.runSteps input start B.length) := rfl
 
-/-! ## Section 18: Width⇒Rank concrete application
+/-! ## Section 17r: Summary of BP → polynomial compilation
+
+BP compilation in Lean:
+- `alwaysAcceptBP_compiledPoly = 1` has CEW 0
+- `alwaysRejectBP_compiledPoly = 0` has CEW 0 and rank 0
+- `identityBP_compiledPoly = X_0` has CEW ≤ 1
+
+For bounded-rank compiler outputs, the specific rank bounds require
+detailed SPDP subspace analysis (Width⇒Rank application via
+locality_implies_poly_rank). These constitute the main remaining
+engineering for Step 4.
 
 Paper's Theorem 93 (Sorting-network compiler: locality and CEW):
 if CEW(p) ≤ C log n, then at κ', ℓ' = Θ(log n), rank ≤ n^O(1).
