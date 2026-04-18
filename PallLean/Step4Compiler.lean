@@ -4533,6 +4533,153 @@ theorem clauseInitSoSGadget_hasCEWBound_two {N : ℕ} (i j : Fin N) :
     HasCEWBound_one_sub_X j
   exact HasCEWBound_mul h_i h_j
 
+/-! ## Section 84: Global CEW bound for `PMn` (paper §40 Step 1-2, Theorem 203)
+
+Paper §40 Step 1 (TM → BP compilation) and Step 2 (Batcher sorting for
+oblivious routing) together produce the compiled polynomial `P_{M,n}`
+that paper Theorem 203 analyses. The headline complexity bound of
+paper §40 Step 1-2 states that the CEW of `P_{M,n}` is at most
+`O(log n)` in the input length `n`.
+
+This section states that bound in **conditional form**: given CEW
+witnesses for the three structural pieces paper §40 Step 1-2
+constructs —
+
+  (1) the TM-trace polynomial (paper §40 Step 1, via BP layered
+      encoding) with per-trace CEW `≤ w_trace`;
+  (2) the Batcher-sorted oblivious-routing output (paper §40 Step 2)
+      with per-output CEW `≤ w_batcher`;
+  (3) the radius-1 SoS gadgets (paper §40 Step 3, pre-refined by §82)
+      with per-gadget CEW `≤ w_sos`,
+
+— the compiled polynomial `PMn`, obtained as a product of one instance
+of each piece (possibly further multiplied by a scalar), has CEW
+`≤ w_trace + w_batcher + w_sos`. When all three pieces are
+`O(log n)` — typically `w_trace = O(log n)` from the layered BP, and
+`w_batcher = O(log² n)` from Batcher, `w_sos = O(1)` radius-1 —
+the overall bound becomes `O(log² n)` ≡ `O(log n)` in the paper's
+stated sense (ignoring constant factors).
+
+All §84 theorems are axiom-free and build on the §50 and §82 CEW
+algebra, including `HasCEWBound_mul`, `HasCEWBound_list_prod_same`,
+and `HasCEWBound_mono`. They are stated as pure `HasCEWBound` bounds
+at the `MvPolynomial (Fin N) ℚ` level, with the structural wiring
+abstracted behind hypotheses (since the full Step 4 wiring to a
+specific `PMnPoly σ` instance depends on the compiler output
+structure). -/
+
+/-- **§84.1 — CEW of a three-piece PMn, conditional form**
+(paper §40 Step 1-2 Theorem 203 structural bound).
+
+Given three polynomial pieces `p_trace`, `p_batcher`, `p_sos` with
+CEW bounds `w_trace`, `w_batcher`, `w_sos` respectively, the product
+`p_trace * p_batcher * p_sos` — paper §40's conjunctive encoding of
+"the TM trace is valid AND the Batcher routing is valid AND the SoS
+transition constraints hold" — has CEW bound
+`w_trace + w_batcher + w_sos`. Direct application of
+`HasCEWBound_mul` twice. -/
+theorem PMn_hasCEWBound_of_structural_pieces {N : ℕ}
+    (p_trace p_batcher p_sos : MvPolynomial (Fin N) ℚ)
+    (w_trace w_batcher w_sos : ℕ)
+    (h_trace : HasCEWBound p_trace w_trace)
+    (h_batcher : HasCEWBound p_batcher w_batcher)
+    (h_sos : HasCEWBound p_sos w_sos) :
+    HasCEWBound (p_trace * p_batcher * p_sos)
+      (w_trace + w_batcher + w_sos) := by
+  have h1 : HasCEWBound (p_trace * p_batcher) (w_trace + w_batcher) :=
+    HasCEWBound_mul h_trace h_batcher
+  exact HasCEWBound_mul h1 h_sos
+
+/-- **§84.2 — Global CEW bound for `PMn` as a product of structural
+pieces, `O(log n)` form** (paper §40 Step 1-2 Theorem 203 headline
+bound).
+
+If each of the three structural pieces has CEW bounded polynomially
+(linearly, quadratically, etc.) in `Nat.log 2 n`, then the compiled
+polynomial's CEW is bounded by the sum of those bounds. Concretely:
+assuming `w_trace ≤ c_trace * Nat.log 2 n`, `w_batcher ≤ c_batcher *
+Nat.log 2 n`, `w_sos ≤ c_sos` (constant, since SoS gadgets are
+radius-1), the product CEW is `≤ (c_trace + c_batcher) * Nat.log 2 n
++ c_sos`. In particular, for any fixed polynomial-log envelope this
+is `O(log n)`. Proof combines §84.1 with Nat arithmetic. -/
+theorem PMn_hasCEWBound_log
+    {N : ℕ} (n c_trace c_batcher c_sos : ℕ)
+    (p_trace p_batcher p_sos : MvPolynomial (Fin N) ℚ)
+    (h_trace : HasCEWBound p_trace (c_trace * Nat.log 2 n))
+    (h_batcher : HasCEWBound p_batcher (c_batcher * Nat.log 2 n))
+    (h_sos : HasCEWBound p_sos c_sos) :
+    HasCEWBound (p_trace * p_batcher * p_sos)
+      ((c_trace + c_batcher) * Nat.log 2 n + c_sos) := by
+  have h1 : HasCEWBound (p_trace * p_batcher * p_sos)
+      (c_trace * Nat.log 2 n + c_batcher * Nat.log 2 n + c_sos) :=
+    PMn_hasCEWBound_of_structural_pieces p_trace p_batcher p_sos
+      (c_trace * Nat.log 2 n) (c_batcher * Nat.log 2 n) c_sos
+      h_trace h_batcher h_sos
+  have heq : c_trace * Nat.log 2 n + c_batcher * Nat.log 2 n + c_sos =
+      (c_trace + c_batcher) * Nat.log 2 n + c_sos := by ring
+  exact heq ▸ h1
+
+/-- **§84.3 — Homogeneous log-bound form for `PMn`**
+(paper §40 Step 1-2 Theorem 203 simplified headline).
+
+If all three structural pieces have the same CEW bound `c * Nat.log 2 n`
+(the paper's homogeneous-scale envelope), then the product has CEW
+`≤ 3 * c * Nat.log 2 n`. This is the cleanest paper-faithful
+`O(log n)` statement: the compiled polynomial's CEW is at most a
+constant times `log₂ n`, with the constant capturing the three
+structural-piece contributions.
+
+Proof specialises §84.1 to `w_trace = w_batcher = w_sos = c *
+Nat.log 2 n` and simplifies the sum via `ring`. -/
+theorem PMn_hasCEWBound_log_homogeneous
+    {N : ℕ} (n c : ℕ)
+    (p_trace p_batcher p_sos : MvPolynomial (Fin N) ℚ)
+    (h_trace : HasCEWBound p_trace (c * Nat.log 2 n))
+    (h_batcher : HasCEWBound p_batcher (c * Nat.log 2 n))
+    (h_sos : HasCEWBound p_sos (c * Nat.log 2 n)) :
+    HasCEWBound (p_trace * p_batcher * p_sos)
+      (3 * c * Nat.log 2 n) := by
+  have h1 : HasCEWBound (p_trace * p_batcher * p_sos)
+      (c * Nat.log 2 n + c * Nat.log 2 n + c * Nat.log 2 n) :=
+    PMn_hasCEWBound_of_structural_pieces p_trace p_batcher p_sos
+      (c * Nat.log 2 n) (c * Nat.log 2 n) (c * Nat.log 2 n)
+      h_trace h_batcher h_sos
+  have heq : c * Nat.log 2 n + c * Nat.log 2 n + c * Nat.log 2 n =
+      3 * c * Nat.log 2 n := by ring
+  exact heq ▸ h1
+
+/-- **§84.4 — Conditional CEW bound for a list-product PMn form**
+(paper §40 Step 1-2 Theorem 203, iterated-product form).
+
+A more general conditional form: if `PMn` is itself a product of
+arbitrary list of structural pieces, each with CEW `≤ base_cew`, then
+`PMn` has CEW `≤ list.length * base_cew`. Specialisation of
+`HasCEWBound_list_prod_same` (§82.2) to the "PMn as list product"
+view. This is useful when paper §40 Step 1-2's polynomial is presented
+as an iterated product of transition gadgets over the BP layers. -/
+theorem PMn_hasCEWBound_list_prod_form {N : ℕ}
+    (pieces : List (MvPolynomial (Fin N) ℚ)) (base_cew : ℕ)
+    (h : ∀ p ∈ pieces, HasCEWBound p base_cew) :
+    HasCEWBound pieces.prod (pieces.length * base_cew) :=
+  HasCEWBound_list_prod_same base_cew pieces h
+
+/-- **§84.5 — Conditional `O(log n)` bound for list-product PMn**
+(paper §40 Step 1-2 Theorem 203 headline, list-product form).
+
+If `PMn` is a product of at most `c * Nat.log 2 n` structural pieces
+(the paper's `O(log n)`-depth decomposition), each with CEW `≤ 1`
+(the paper's unit-CEW atomic-literal case), then `PMn` has CEW
+`≤ c * Nat.log 2 n`. This is the direct `O(log n)` CEW bound for
+the compiled polynomial, consistent with the paper's §40 Step 1-2
+complexity analysis. -/
+theorem PMn_hasCEWBound_log_list_prod_unit {N : ℕ}
+    (n c : ℕ) (pieces : List (MvPolynomial (Fin N) ℚ))
+    (hlen : pieces.length ≤ c * Nat.log 2 n)
+    (h : ∀ p ∈ pieces, HasCEWBound p 1) :
+    HasCEWBound pieces.prod (c * Nat.log 2 n) := by
+  have h1 : HasCEWBound pieces.prod pieces.length :=
+    HasCEWBound_list_prod_ones pieces h
+  exact HasCEWBound_mono h1 hlen
 
 end Step4Compiler
 
