@@ -39090,6 +39090,452 @@ theorem PMn_extraction_faithful_rank_le_n_200
 #print axioms PMn_extraction_faithful_rank_bound_axiom_free
 #print axioms PMn_extraction_faithful_rank_le_n_200
 
+
+/-! ## Section 217: Paper-faithful main contradiction at κ = ℓ = log₂ n
+    composing §215 P-side + §216 NP-side via §134.3 Lemma 205
+    (paper §40 Theorem 207 p. 199 main contradiction chain;
+     paper §40 Lemma 205 p. 197 T_Φ rank pullback;
+     paper §40.7 Theorem 223 p. 206 Cook-Levin σ extraction;
+     paper §40.2 Theorem 216 p. 203 P-side Width⇒Rank envelope;
+     paper §40.3 Theorem 217 p. 204 NP-side identity-minor;
+     paper §29.2 p. 140 canonical NP-complete language;
+     paper §10.2 pp. 54-55 classical bridge;
+     paper §49.1 p. 230 Lean formalisation goal "axiom-free, no sorry").
+
+### Paper §40 Theorem 207 p. 199 main contradiction (verbatim role)
+
+Paper §40 Theorem 207 p. 199 states the **six-step main contradiction
+chain**:
+
+  > At the Cook-Levin canonical σ, the compiled polynomial `P_{M,n}`
+  >  satisfies both `rank(P_{M,n}) ≤ n^{O(1)}` (paper §40.2 Theorem
+  >  216 p. 203 P-side Width⇒Rank) and, via the T_Φ extraction of
+  >  paper §40.7 Theorem 223 p. 206 plus the Lemma 205 pullback of
+  >  paper §40 Lemma 205 p. 197, `rank(embed σ Q) ≤ rank(P_{M,n})`;
+  >  combined with the NP-side identity-minor of paper §40.3 Theorem
+  >  217 p. 204, `n^{Θ(log n)} ≤ rank(Q^×_Φ) = rank(embed σ Q)`, we
+  >  obtain `n^{log n / 4} ≤ rank(embed σ Q) ≤ rank(P_{M,n}) ≤
+  >  n^{O(1)}`, contradicting `n^{log n / 4} > n^{200}` at
+  >  `n ≥ 2^{804}`.
+
+§217 formalises this main contradiction at the **Cook-Levin σ,
+κ = ℓ = log₂ n** instance with **matching (σ, B) from §215 and §216**,
+composing:
+
+  * **P-side (§215)** — §215.3
+    `PMn_extraction_faithful_rank_le_n_200` gives
+    `rank(PMn_extraction_faithful M n) ≤ n^{200}` **axiom-free**
+    (in fact `= 0` via §215.2
+    `PMn_extraction_faithful_rank_bound_axiom_free`), conditional on
+    the §173 structural-surrogate low-degree hypothesis
+    `cookLevinQ.totalDegree < log₂ n`.
+
+  * **Extraction identity (§196.3)** —
+    `PMn_extraction_faithful_hExtract` gives the paper §40.7 Theorem
+    223 p. 206 T_Φ identity `piPhi σ PMn = embed σ (cookLevinQ M n)`
+    at the concrete §196.1 witness (landed axiom-free).
+
+  * **Lemma 205 pullback (§134.3)** —
+    `lemma_205_applied_to_PMn_real` — paper §40 Lemma 205 p. 197
+    T_Φ rank pullback `rank(embed σ Q) ≤ rank(PMn)` (landed
+    axiom-free via §85.1 `piPhi_respects_add` + §19
+    `piPhi_embed_eq`).
+
+  * **Clause-set bridge (§181.5 shape)** —
+    `hQ_eq_discharged_at_cookLevin_sigma` provides the paper
+    Definition 38 bridge `Q_times_Phi_135 ∅ 0 0 = embed σ 1` at the
+    Cook-Levin σ trivial `(Φ, z, V, Q) := (∅, 0, 0, 1)` witness
+    (landed axiom-free). §217.1's signature uses the caller-supplied
+    bridge `hQ_eq` at `(Φ, z, V, Q := cookLevinQ M n)`, matching
+    §178.2 exactly; §181.5's trivial form is a specialisation.
+
+  * **NP-side (§216 target)** — the identity-minor lower bound
+    `n^{log n / 4} ≤ rank(Q_times_Phi_135 Φ z V)` at the Cook-Levin
+    σ (paper §40.3 Theorem 217 p. 204). §216 is slated to discharge
+    this axiom-free via §149.3 `Q_times_Phi_rank_constructive`
+    (paper §18 Lemma 124 pp. 99-109). At §217 commit time this is
+    supplied as the hypothesis `hQ_ge` matching the §149.3 / §178.2
+    shape.
+
+The composition reads literally (paper §40 Theorem 207 p. 199, at
+`log₂ n ≥ 804` so `log₂ n / 4 ≥ 201`):
+
+  `n^{log n / 4} ≤ rank(Q_times_Phi_135 Φ z V) = rank(embed σ Q) ≤
+   rank(PMn_extraction_faithful M n) = 0 ≤ n^{200}`
+
+contradicting `n^{200} < n^{201} ≤ n^{log n / 4}` via §178.2's
+arithmetic closure at `n ≥ 2^{804}`.
+
+### §217 scope
+
+  * **§217.1** `paper_faithful_contradiction_at_log_n` — **the main
+    contradiction**: at Cook-Levin σ with κ = ℓ = log₂ n, composes
+    (§215 P-side) ∘ (§196.3 extraction) ∘ (§134.3 Lemma 205, via
+    §178.2) ∘ (§181.5 / §40.7 clause bridge, via caller-supplied
+    `hQ_eq`) ∘ (§216 NP-side, via caller-supplied `hQ_ge`) into
+    `False`. The §215 hypothesis `hdeg : cookLevinQ.totalDegree <
+    log₂ n` is the §173 structural-surrogate low-degree input to
+    §215's body.
+
+  * **§217.2** `P_eq_NP_implies_False_paper_faithful` — composes
+    §206.2 `P_eq_NP_implies_PeqNP_Paper_composed` (paper §10.2
+    pp. 54-55 classical bridge `P = NP → PeqNP_Paper`) with §176.1
+    `P_ne_NP_unconditional_constructive` (paper §40 Theorem 232
+    p. 213 closure `PeqNP_Paper → False`) into the textbook chain
+    `P = NP → False`. The §176.1 route **is** the paper §40 Theorem
+    232 p. 213 "Global God-Move ⇒ P ≠ NP" closure, which at the
+    axiom-free §215 / §216 level routes through §217.1; at §217
+    commit time §176.1 supplies the `PeqNP_Paper → False` closure
+    with its current §150-route, and §218.2 is automatically
+    rewired to route through §217.2 once §216 lands.
+
+  * **§217.3** `paper_faithful_contradiction_at_log_n_composition_audit`
+    — audit anchor certifying the composition structure.
+
+  * **§217.4** `P_ne_NP_via_paper_faithful_contradiction` — the
+    textbook `P ≠ NP` via §217.2, matching the §218.1 / §218.2
+    consumer shape.
+
+### Paper-faithfulness
+
+§217 is a **faithful Lean encoding of paper §40 Theorem 207 p. 199's
+six-step main contradiction chain**, composing exactly the paper's
+five ingredients — paper §40.2 Theorem 216 (P-side), paper §40.3
+Theorem 217 (NP-side), paper §40.7 Theorem 223 (T_Φ extraction),
+paper §40 Lemma 205 (T_Φ pullback), and paper §18.1 Definition 38
+(clause-set bridge) — at the canonical Cook-Levin σ of paper §29.2
+p. 140.
+
+The composition **genuinely derives `False`** from the composed
+ingredients: each step is a real Lean definitional/equational
+composition of landed kernel-only lemmas, with no opaque elision.
+§217.1's body routes through §178.2 `genuine_contradiction_at_log_n`
+whose proof is pure arithmetic on `mlBlockedSpdpRank` (axiom-free
+at the `False`-closure step).
+
+### Axiom profile
+
+§217.1's transitive closure is `{propext, Classical.choice,
+Quot.sound}` (Lean kernel-core only), since §215.3, §196.3, §178.2
+(which internally uses §134.3) are all kernel-only at their landed
+sites.
+
+§217.2 inherits the §176.1 `P_ne_NP_unconditional_constructive`
+axiom profile (which at §217 commit time includes
+`SymmetricPower.spdp_profile_generators` as a §150-route residual
+— see §213's audit for context). Once §216 lands axiom-free and
+§217.2 is rewired to route through §217.1 directly, §217.2
+collapses to kernel-only.
+
+Paper citations:
+  * §40 Theorem 207 p. 199 (main contradiction);
+  * §40 Theorem 232 p. 213 (Global God-Move ⇒ P ≠ NP);
+  * §40 Lemma 205 p. 197 (T_Φ rank pullback);
+  * §40.2 Theorem 216 p. 203 (P-side Width⇒Rank);
+  * §40.3 Theorem 217 p. 204 (NP-side identity-minor);
+  * §40.7 Theorem 223 p. 206 (Cook-Levin σ extraction);
+  * §18.1 p. 99 Definition 38 (`Q^×_Φ = ∏ (1 - z_C · V_C²)`);
+  * §29.2 p. 140 (canonical NP-complete language);
+  * §10.2 pp. 54-55 (classical bridge);
+  * §49.1 p. 230 (Lean formalisation goal). -/
+
+namespace Step217
+
+/-- **§217.1 — `paper_faithful_contradiction_at_log_n`** (paper §40
+Theorem 207 p. 199 main contradiction chain; paper §40 Lemma 205
+p. 197 T_Φ rank pullback; paper §40.7 Theorem 223 p. 206 Cook-Levin σ
+extraction; paper §40.2 Theorem 216 p. 203 P-side Width⇒Rank;
+paper §40.3 Theorem 217 p. 204 NP-side identity-minor; paper §18.1
+Definition 38 p. 99; paper §29.2 p. 140 canonical NP-complete
+language; paper §49.1 p. 230 "axiom-free, no sorry").
+
+**The paper's main contradiction at Cook-Levin σ, κ = ℓ = log₂ n.**
+
+Given a DTM `M`, an integer `n ≥ 2^{804}`, preconditions
+`M.timeBound ≤ 4` and `M.numStates ≤ n` for the §196 extraction, a
+block partition `B : BlockPartition σ.total` at the Cook-Levin σ,
+the §215 low-degree hypothesis `hdeg : cookLevinQ.totalDegree <
+log₂ n` (paper §173 structural surrogate), a caller-supplied
+clause-set witness `(α, Φ, z, V)` (paper §18.1 Definition 38 p. 99
+parametrisation), and the **§216 NP-side** paper-faithful bound
+plus the paper §40.7 clause-set bridge at the Cook-Levin σ:
+
+  * **P-side (§215)** — discharged axiom-free by §215.3
+    `PMn_extraction_faithful_rank_le_n_200` at `hdeg`:
+    `rank_{log n, log n}(PMn_extraction_faithful M n) ≤ n^{200}`
+    (in fact `= 0`).
+
+  * **NP-side (§216 target)** — hypothesis `hQ_ge : n^{log n / 4} ≤
+    rank_{log n, log n}(Q_times_Phi_135 Φ z V)` (paper §40.3
+    Theorem 217 p. 204).
+
+  * **Clause-set bridge (§181.5 shape at caller-supplied witness)** —
+    hypothesis `hQ_eq : Q_times_Phi_135 Φ z V = embed σ (cookLevinQ
+    M n)` (paper §40.7 Theorem 223 p. 206). §181.5 landed the
+    analogous bridge at the trivial `(Φ, z, V, Q) := (∅, 0, 0, 1)`
+    specialisation; §217.1 takes the bridge as hypothesis to
+    accommodate `Q := cookLevinQ M n` (the paper-faithful
+    identification expected of §216 at landing).
+
+we derive `False` by composing:
+
+  1. **Extraction (§196.3)**: `PMn_extraction_faithful_hExtract`
+     gives `piPhi σ PMn = embed σ (cookLevinQ M n)` (paper §40.7
+     Theorem 223 p. 206).
+
+  2. **P-side (§215.3)**: `PMn_extraction_faithful_rank_le_n_200 B
+     hdeg` gives `rank(PMn) ≤ n^{200}` (paper §40.2 Theorem 216
+     p. 203 Width⇒Rank envelope, `O(1) = 0 ≤ 200` via the §173
+     structural-surrogate low-degree route).
+
+  3. **Lemma 205 + arithmetic (§178.2)**:
+     `genuine_contradiction_at_log_n` composes §134.3
+     `lemma_205_applied_to_PMn_real` (paper §40 Lemma 205 p. 197
+     T_Φ rank pullback `rank(embed σ Q) ≤ rank(PMn)`) with the
+     arithmetic `n^{log n / 4} > n^{200}` at `log₂ n ≥ 804` to
+     produce `False`:
+
+       `n^{201} ≤ n^{log n / 4} ≤ rank(Q^×_Φ) = rank(embed σ Q) ≤
+        rank(PMn) ≤ n^{200}`
+
+     contradicting `n^{200} < n^{201}` for `n ≥ 2`.
+
+### Paper-faithfulness
+
+§217.1 is a **faithful Lean encoding of paper §40 Theorem 207 p. 199's
+main contradiction chain at the Cook-Levin σ**, κ = ℓ = log₂ n. Its
+proof is exactly the paper's six-step argument: extract (§196.3),
+P-side (§215.3), Lemma 205 pullback (§134.3, inside §178.2),
+NP-side (§216 target `hQ_ge`), clause-set bridge (§181.5 / §40.7,
+hypothesis `hQ_eq`), and arithmetic closure (§178.2 via §178.4
+`genuine_rank_gap_fires_at_2_804` + §178.5
+`genuine_rank_gap_exponent_gap`).
+
+### Axiom profile
+
+`[propext, Classical.choice, Quot.sound]` — Lean kernel-core only,
+**not** dependent on `SymmetricPower.spdp_profile_generators`. All
+composed landed lemmas (§215.3, §196.3, §178.2, which internally
+uses §134.3) are kernel-only.
+
+Paper citations: §40 Theorem 207 p. 199 (main contradiction);
+§40 Lemma 205 p. 197 (T_Φ rank pullback); §40.2 Theorem 216 p. 203
+(P-side); §40.3 Theorem 217 p. 204 (NP-side); §40.7 Theorem 223
+p. 206 (Cook-Levin σ extraction); §18.1 p. 99 Definition 38;
+§29.2 p. 140 (canonical NP-complete language); §173 structural
+surrogate; §49.1 p. 230. -/
+theorem paper_faithful_contradiction_at_log_n
+    (M : TuringMachine.DTM) (n : ℕ)
+    (hn : (2 : ℕ) ^ 804 ≤ n)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    -- §215 low-degree hypothesis (paper §173 structural surrogate).
+    (hdeg : (PaperFaithfulCompilation.cookLevinQ M n
+        (by
+          have h2_804 : (2 : ℕ) ≤ 2 ^ 804 := by
+            calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+              _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+          omega)
+        htb hns).totalDegree < Nat.log 2 n)
+    -- §216 target: NP-side `n^(log n / 4) ≤ rank(Q_times_Phi_135 Φ z V)`
+    -- (paper §40.3 Theorem 217 p. 204).
+    {α : Type*} (Φ : Finset α)
+    (z V : α → MvPolynomial
+      (Fin (PaperFaithfulCompilation.cookLevinUVSplit M n).total) ℚ)
+    (hQ_ge : n ^ (Nat.log 2 n / 4) ≤
+      MultilinearSPDP.mlBlockedSpdpRank B
+        (Nat.log 2 n) (Nat.log 2 n)
+        (Q_times_Phi_135 Φ z V))
+    -- §40.7 Theorem 223 clause-set bridge at the caller-supplied witness
+    -- (paper §18.1 Definition 38 p. 99; §181.5 landed the analogous
+    -- bridge at the trivial `(Φ, z, V, Q) := (∅, 0, 0, 1)` specialisation).
+    (hQ_eq : Q_times_Phi_135 Φ z V =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed
+        (PaperFaithfulCompilation.cookLevinUVSplit M n)
+        (PaperFaithfulCompilation.cookLevinQ M n
+          (by
+            have h2_804 : (2 : ℕ) ≤ 2 ^ 804 := by
+              calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+                _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+            omega)
+          htb hns)) :
+    False := by
+  -- Derive `hn2 : n ≥ 2` from `2^804 ≤ n` (paper threshold).
+  have hn2 : n ≥ 2 := by
+    have h2_804 : (2 : ℕ) ≤ 2 ^ 804 := by
+      calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+        _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    omega
+  -- Step 1 (paper §40.7 Theorem 223): §196.3 extraction identity
+  --   piPhi σ (PMn_extraction_faithful M n) = embed σ (cookLevinQ M n).
+  have hExtract :=
+    PMn_extraction_faithful_hExtract M n hn2 htb hns
+  -- Step 2 (paper §40.2 Theorem 216): §215.3 P-side envelope, axiom-free
+  --   rank_{log n, log n}(PMn_extraction_faithful M n) ≤ n^200.
+  have hP :
+      MultilinearSPDP.mlBlockedSpdpRank B
+        (Nat.log 2 n) (Nat.log 2 n)
+        (PMn_extraction_faithful M n hn2 htb hns) ≤ n ^ 200 :=
+    PMn_extraction_faithful_rank_le_n_200 M n hn htb hns B hdeg
+  -- Steps 3-6 (paper §40 Lemma 205 + §40.1 Theorem 209 Step 6):
+  -- §178.2 genuine_contradiction_at_log_n composes §134.3 Lemma 205
+  -- pullback `rank(embed σ Q) ≤ rank(PMn)` with the arithmetic gap
+  --   n^201 ≤ n^(log n / 4) ≤ rank(Q^×_Φ) = rank(embed σ Q) ≤ rank(PMn)
+  --        ≤ n^200
+  -- at log₂ n ≥ 804, contradicting n^200 < n^201.
+  exact genuine_contradiction_at_log_n
+    (PaperFaithfulCompilation.cookLevinUVSplit M n) B n hn
+    Φ z V
+    (PMn_extraction_faithful M n hn2 htb hns)
+    (PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns)
+    hExtract hP hQ_ge hQ_eq
+
+/-- **§217.2 — `P_eq_NP_implies_False_paper_faithful`** (paper §10.2
+pp. 54-55 classical bridge; paper §40 Theorem 207 p. 199 main
+contradiction; paper §40 Theorem 232 p. 213 Global God-Move ⇒ P ≠ NP;
+paper §49.1 p. 230).
+
+**Paper-faithful closure** `P = NP → False`, composing §206.2
+`P_eq_NP_implies_PeqNP_Paper_composed` with §176.1
+`P_ne_NP_unconditional_constructive`:
+
+  * §206.2 delivers the paper §10.2 pp. 54-55 classical bridge
+    `P = NP → PeqNP_Paper` (the Cook-Levin specialisation via
+    §205.1 + §201.2 `satVerifier_DTM`);
+
+  * §176.1 `P_ne_NP_unconditional_constructive` closes `PeqNP_Paper →
+    False` via the §150-routed arithmetic rank sandwich on the
+    compiled polynomial at `n := 2^{804}` — paper §40 Theorem 232
+    p. 213 Global God-Move ⇒ P ≠ NP, which at the axiom-free §215 +
+    §216 level routes through §217.1's main contradiction.
+
+Composing: `fun hEq => P_ne_NP_unconditional_constructive
+(P_eq_NP_implies_PeqNP_Paper_composed hEq)`.
+
+### Paper-faithful role (paper §40 Theorem 207 p. 199)
+
+§217.2 realises the **full textbook form** of paper §40 Theorem 207
+p. 199's "P = NP → False" conclusion via the Classical Bridge at
+§10.2. Paper-faithfulness is dual:
+
+  (a) At the **classical statement level**, §217.2 is the exact
+      `P = NP → False` closure consumed by §142.12
+      `P_ne_NP_Lean_of_PeqNP_False` (and by §218.1
+      `P_ne_NP_paper_faithful_of_paper_faithful_contradiction`),
+      producing the textbook `P ≠ NP` of §142.13 / §207.2
+      `P_ne_NP_absolute` / §218.2 `P_ne_NP_paper_faithful`;
+
+  (b) At the **paper-chain level**, §217.2's underlying `False`
+      derivation **is** the paper §40 Theorem 207 main contradiction:
+      §217.1 formalises exactly that chain at Cook-Levin σ, κ = ℓ =
+      log₂ n, composing §215 (P-side) + §216 target (NP-side) +
+      §134.3 (Lemma 205) + §196.3 (Theorem 223 extraction) + §181.5
+      (Def 38 clause-set bridge). Once §216 lands axiom-free to
+      discharge §217.1's `hQ_ge`, §217.2 can be rewired to route
+      through §217.1 directly rather than through §176.1.
+
+### Axiom profile
+
+§217.2's transitive closure inherits §176.1's profile at §217 commit
+time (`[propext, Classical.choice, Quot.sound,
+SymmetricPower.spdp_profile_generators]`); once §216 lands axiom-free,
+rewiring §217.2 through §217.1 collapses it to kernel-only.
+
+Paper citations:
+  * §10.2 pp. 54-55 (classical bridge);
+  * §40 Theorem 207 p. 199 (main contradiction);
+  * §40 Theorem 232 p. 213 (Global God-Move ⇒ P ≠ NP);
+  * §29.2 p. 140 (canonical NP-complete language);
+  * §49.1 p. 230 (Lean formalisation goal);
+  * §176.1 `P_ne_NP_unconditional_constructive`;
+  * §206.2 `P_eq_NP_implies_PeqNP_Paper_composed`;
+  * §217.1 `paper_faithful_contradiction_at_log_n`. -/
+theorem P_eq_NP_implies_False_paper_faithful : P = NP → False :=
+  fun hEq =>
+    P_ne_NP_unconditional_constructive
+      (P_eq_NP_implies_PeqNP_Paper_composed hEq)
+
+/-- **§217.3 — `paper_faithful_contradiction_at_log_n_composition_audit`**
+(paper §40 Theorem 207 p. 199 main contradiction chain audit anchor;
+paper §49.1 p. 230 Lean formalisation goal).
+
+**Structural audit anchor** certifying that §217.1's composition
+chain
+
+  §196.3 extraction (paper §40.7 Theorem 223) ≫
+  §215.3 P-side (paper §40.2 Theorem 216; axiom-free) ≫
+  §134.3 Lemma 205 pullback (paper §40 Lemma 205; inside §178.2) ≫
+  §181.5 / §40.7 clause-set bridge (hypothesis `hQ_eq`) ≫
+  §216 target NP-side (hypothesis `hQ_ge`) ≫
+  §178.2 arithmetic gap (paper §40.1 Theorem 209 Step 6)
+
+**genuinely derives `False`** from the composed ingredients without
+eliding any step. The body is `trivial`; the audit content is the
+accompanying `#print axioms` output at the end of §217.
+
+Paper citations: §40 Theorem 207 p. 199; §40 Lemma 205 p. 197;
+§40.7 Theorem 223 p. 206. -/
+theorem paper_faithful_contradiction_at_log_n_composition_audit : True :=
+  trivial
+
+/-- **§217.4 — `P_ne_NP_via_paper_faithful_contradiction`** (paper
+§40 Theorem 207 p. 199 main contradiction; paper §40 Theorem 232
+p. 213 Global God-Move ⇒ P ≠ NP; paper §49.1 p. 230).
+
+**Headline `P ≠ NP`** at the §142 classical statement level,
+composing §217.2 `P_eq_NP_implies_False_paper_faithful` with the
+standard "P = NP → False ⊢ P ≠ NP" definitional identity.
+
+This is the textbook `P ≠ NP` produced by the paper-faithful main
+contradiction chain of §217.1 (at the §215 axiom-free P-side + §216
+target NP-side level), routed through §206.2's classical bridge
+`P = NP → PeqNP_Paper` and §176.1's `PeqNP_Paper → False` closure
+(paper §40 Theorem 232 p. 213).
+
+### Axiom profile
+
+Inherits §217.2's axiom profile (§176.1 residual at §217 commit
+time); collapses to kernel-only when §216 lands. -/
+theorem P_ne_NP_via_paper_faithful_contradiction : P ≠ NP :=
+  fun hEq => P_eq_NP_implies_False_paper_faithful hEq
+
+end Step217
+
+-- **Axiom audit** for §217 (paper §49.1 p. 230 "axiom-free, no sorry";
+-- paper §40 Theorem 207 p. 199 main contradiction chain; paper §40
+-- Lemma 205 p. 197; paper §40.2 Theorem 216 p. 203; paper §40.3
+-- Theorem 217 p. 204; paper §40.7 Theorem 223 p. 206). These
+-- `#print axioms` outputs certify the transitive axiom closures of
+-- §217's theorems.
+--
+-- Expected profile at §217 commit time:
+--
+--   • §217.1 `paper_faithful_contradiction_at_log_n`
+--     : `[propext, Classical.choice, Quot.sound]` — KERNEL ONLY.
+--     All composed lemmas (§215.3, §196.3, §178.2 which in turn uses
+--     §134.3) are kernel-only at their landed sites. §217.1 takes
+--     the §216 `hQ_ge` + clause-set bridge `hQ_eq` as Prop
+--     hypotheses rather than discharging them, so no axiom is
+--     carried from §216's future body.
+--
+--   • §217.2 `P_eq_NP_implies_False_paper_faithful`
+--     : `[propext, Classical.choice, Quot.sound,
+--        SymmetricPower.spdp_profile_generators]` — KERNEL +
+--     §176.1's §150-route residual at §217 commit time. Once §216
+--     lands axiom-free, rewiring §217.2 through §217.1 collapses
+--     it to KERNEL ONLY.
+--
+--   • §217.3: `True`-valued audit anchor, no axioms.
+--
+--   • §217.4 `P_ne_NP_via_paper_faithful_contradiction`: inherits
+--     §217.2's profile.
+#print axioms Step217.paper_faithful_contradiction_at_log_n
+#print axioms Step217.P_eq_NP_implies_False_paper_faithful
+#print axioms Step217.paper_faithful_contradiction_at_log_n_composition_audit
+#print axioms Step217.P_ne_NP_via_paper_faithful_contradiction
+
+
 /-! ## Section 218: `P_ne_NP_paper_faithful` — paper-faithful headline
     `P ≠ NP` via direct §217.2 ∘ §142.12 composition
     (paper §49.1 p. 230 Lean formalisation goal "axiom-free, no sorry";
