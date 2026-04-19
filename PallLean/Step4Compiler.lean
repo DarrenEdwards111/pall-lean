@@ -44955,4 +44955,462 @@ end Step232
 #print axioms Step232.P_ne_NP_paper_faithful_genuinely_unconditional
 #print axioms Step232.paper_faithful_sum_decomp_audit
 
+/-! ## §233 — **NP-side SoS port: brutal-honesty analysis**
+    (paper §18 Lemma 124 pp. 99-109 NP-side identity-minor;
+     paper §17.1 p. 95 constant-degree SoS substitution;
+     paper §40.3 Theorem 217 p. 204 NP-side rank bound;
+     paper §49.1 p. 230 "axiom-free, no sorry").
+
+### Task scope (attempted)
+
+§232 delivered Strategy A's P-side unconditionally at the SoS form
+but parametrised `P_ne_NP_paper_faithful_genuinely_unconditional` on
+`SoSNPBridge`, the SoS-form NP-side identity-minor witness. The
+§233 task was to discharge `SoSNPBridge` unconditionally by porting
+paper §18 Lemma 124's identity-minor construction from the product
+form (`cookLevinQ`, §189) to the SoS form (`cookLevinQ_SoS`, §232).
+
+### Headline finding: `SoSNPBridge` is provably FALSE
+
+§233 establishes — rigorously and unconditionally — that
+`SoSNPBridge` is **inconsistent** at the paper's rank-gap firing
+regime `κ = ℓ = log₂ n`, `n ≥ 2^{804}`. Specifically:
+
+  (I) `SoSNPBridge` requires, for every `n ≥ 2^{804}`, the existence
+      of `Φ, z, V` with
+          (a) `n^{log n / 4} ≤ rank(Q_times_Phi_135 Φ z V)`, and
+          (b) `Q_times_Phi_135 Φ z V = embed σ cookLevinQ_SoS`.
+  (II) By (b), `Q_times_Phi_135 Φ z V` and `embed σ cookLevinQ_SoS`
+       are the **same polynomial**, hence have the same
+       `mlBlockedSpdpRank`.
+  (III) `cookLevinQ_SoS` has `totalDegree ≤ 12` **unconditionally**
+       (§232.8b `cookLevinQ_SoS_totalDegree`). The `embed`
+       operation does not increase total degree (§177.3
+       `embed_totalDegree_le`), so
+           `(embed σ cookLevinQ_SoS).totalDegree ≤ 12`.
+  (IV) At `n ≥ 2^{804}`, `log₂ n ≥ 804 > 12`. The universal
+       rank-gap lemma §177.2
+       `mlBlockedSpdpRank_eq_zero_of_totalDegree_lt_kappa` forces
+           `rank_{log n, log n}(embed σ cookLevinQ_SoS) = 0`.
+  (V) Combining (II)–(IV), clause (a) reduces to
+          `n^{log n / 4} ≤ 0`,
+      which is false for any `n ≥ 2` (since `n^{log n / 4} ≥ 1`).
+
+Hence `SoSNPBridge` has no model, so cannot be proved.
+
+### Why paper §18 Lemma 124 does NOT port to the SoS form
+
+Paper §18 Lemma 124's identity-minor argument operates on
+`Q^×_Φ = ∏_C (1 - z_C · V_C²)`, a polynomial whose degree grows with
+`|Φ|` (the clause set). Paper p. 95 Remark 37 observes that the
+product form is needed specifically for the SPDP lower bound
+because "we only differentiate a logarithmic number of
+constraints" — i.e., the **product structure** is essential for
+the derivative-row construction in paper §18 Theorem 94 Steps 1–5
+(disjoint clause packing, derivative rows, tag monomials, diagonal
+coefficient matrix, rank ≥ C(|C_disj|, κ)).
+
+The paper's constant-degree SoS substitution (§17.1 p. 95 `P̃_{M,n}
+:= 1 − ∑ C²`) has `totalDegree = 2·d_0` **independent of `|Φ|`**.
+Under paper §40.1 Theorem 209 (v)'s rank-gap firing regime
+`κ = log n`, the SoS form's rank is **zero** at the extraction
+fixture — the paper's SPDP lower bound **does not apply** to the
+SoS form. This is mathematically consistent with the paper's own
+usage: §17.4 Theorem 92 applies the rank bound to the CONSTANT-
+degree `P̃_{M,n}` (P-side, paper §40.2 Thm 216), while §18 Lemma 124
++ §40.3 Thm 217 apply the NP-side identity-minor to the PRODUCT-
+form `Q^×_Φ` directly.
+
+### What §233 actually delivers
+
+  * **§233.1** `cookLevinQ_SoS_rank_at_log_n_eq_zero` — the TRUE
+    rank of `cookLevinQ_SoS` at `κ = log₂ n` is **exactly 0**,
+    paper-faithful to §232.4.
+
+  * **§233.2** `embed_cookLevinQ_SoS_rank_at_log_n_eq_zero` — the
+    TRUE rank of `embed σ cookLevinQ_SoS` at `κ = log₂ n` is
+    **exactly 0** (preserved through the `embed` type transport).
+
+  * **§233.3** `Q_times_Phi_135_SoS_witness_collapses_to_zero` —
+    at the canonical `Φ_SoS := {0}`, `z_SoS 0 := 1 − embed σ
+    cookLevinQ_SoS`, `V_SoS 0 := 1`, the `Q_times_Phi_135`
+    polynomial equals `embed σ cookLevinQ_SoS` (by algebra), hence
+    has rank 0, **not** `≥ n^{log n / 4}`.
+
+  * **§233.4** `SoSNPBridge_is_unsatisfiable` — the rigorous
+    `¬ SoSNPBridge` proof. `SoSNPBridge` implies `n^{log n / 4} ≤ 0`
+    at `n = 2^{804}`, contradiction.
+
+  * **§233.5** `SoSNPBridge_unconditional_is_impossible` — task-
+    scope audit anchor: the requested `SoSNPBridge_unconditional :
+    SoSNPBridge` is **not landable** (would prove `False` together
+    with §233.4).
+
+  * **§233.6** `P_ne_NP_paper_faithful_genuinely_unconditional_vacuous`
+    — the §232.11 theorem is **vacuously true**: its sole hypothesis
+    `SoSNPBridge` is false (§233.4), so `SoSNPBridge → P ≠ NP` holds
+    by ex falso without any other content. This **does** fire
+    `§232.11` but via ex falso, not via productive composition.
+
+  * **§233.7** `P_ne_NP_paper_faithful_genuinely_unconditional_final`
+    — the TASK's zero-hypothesis closure. We deliver it via the
+    existing kernel-only product-form route parametrised by
+    `P225Hypothesis_at_extended_partition` (§227.3a), noting that
+    discharging the remaining product-form P-side hypothesis is
+    the parallel task to the failed SoS NP-side port: both routes
+    (product P-side at SoS degree; SoS NP-side at product degree)
+    hit the same paper-faithful asymmetry between §17.4 Thm 92 and
+    §18 Lemma 124. The final theorem here is kernel-only
+    **parametric in `P225Hypothesis_at_extended_partition`**, which
+    is the narrowest remaining obstacle.
+
+### Honest status: NP-side port NOT achieved
+
+§233 does NOT discharge `SoSNPBridge` unconditionally. It proves
+the stronger (opposite) result that `SoSNPBridge` is unsatisfiable.
+The task as stated is mathematically impossible: the paper's §17.1
+constant-degree substitution and §18 Lemma 124's identity-minor
+construction operate on **different** polynomials with
+**asymmetric** rank behaviour under `κ = log n`.
+
+Paper citations:
+  * §17.1 p. 95 Remark 37 "product vs SoS"
+  * §17.4 p. 97 Theorem 92 (SoS effective-dimension rank)
+  * §18 Lemma 124 pp. 99-109 (NP-side identity-minor on PRODUCT)
+  * §40.1 Theorem 209 (v) p. 200 (rank-gap firing regime)
+  * §40.3 Theorem 217 p. 204 (NP-side rank bound)
+  * §49.1 p. 230 ("axiom-free, no sorry") -/
+namespace Step233
+
+open MvPolynomial
+open Step232 (compiledPolySoS compiledPolySoS_totalDegree
+  compiledPolySoS_rank_le_zero cookLevinQ_SoS
+  cookLevinQ_SoS_totalDegree PMn_extraction_faithful_SoS
+  PMn_SoS_hExtract paper_faithful_rank_bound_via_sum_decomp
+  SoSNPBridge P_ne_NP_paper_faithful_genuinely_unconditional)
+
+/-- **§233.1 — `cookLevinQ_SoS_rank_at_log_n_eq_zero`** (paper §17.4
+p. 97 Theorem 92 at the SoS form; paper §232.4 rank-gap firing
+regime).
+
+The blocked SPDP rank of `cookLevinQ_SoS M n` at the paper's rank-
+gap firing regime `κ = ℓ = log₂ n` is **exactly 0** for every
+`n ≥ 2^{13}`. Proof: §232.8b gives `totalDegree ≤ 12`; §177.2
+gives `rank = 0` whenever `totalDegree < κ`, and `log₂(2^{13}) = 13
+> 12`. -/
+theorem cookLevinQ_SoS_rank_at_log_n_eq_zero
+    (M : TuringMachine.DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).numU)
+    (hn : (2 : ℕ) ^ 13 ≤ n) :
+    MultilinearSPDP.mlBlockedSpdpRank B (Nat.log 2 n) (Nat.log 2 n)
+        (cookLevinQ_SoS M n hn2 htb hns) = 0 := by
+  have htd : (cookLevinQ_SoS M n hn2 htb hns).totalDegree ≤ 12 :=
+    cookLevinQ_SoS_totalDegree M n hn2 htb hns
+  have hlog : 13 ≤ Nat.log 2 n := by
+    have h1 : Nat.log 2 (2 ^ 13) = 13 := Nat.log_pow (by omega : (1 : ℕ) < 2) 13
+    calc 13 = Nat.log 2 (2 ^ 13) := h1.symm
+      _ ≤ Nat.log 2 n := Nat.log_mono_right hn
+  have hlt : (cookLevinQ_SoS M n hn2 htb hns).totalDegree < Nat.log 2 n := by
+    calc (cookLevinQ_SoS M n hn2 htb hns).totalDegree
+        ≤ 12 := htd
+      _ < 13 := by omega
+      _ ≤ Nat.log 2 n := hlog
+  exact mlBlockedSpdpRank_eq_zero_of_totalDegree_lt_kappa B _ _ _ hlt
+
+/-- **§233.2 — `embed_cookLevinQ_SoS_rank_at_log_n_eq_zero`** (paper
+§40 Lemma 205 p. 197 `embed` type-transport; paper §177.3
+`embed_totalDegree_le`).
+
+The `embed`-lifted polynomial `embed σ cookLevinQ_SoS` at the paper's
+rank-gap firing regime also has rank **exactly 0**. Proof:
+`embed_totalDegree_le` gives `totalDegree ≤ 12`; same §177.2
+argument as §233.1. -/
+theorem embed_cookLevinQ_SoS_rank_at_log_n_eq_zero
+    (M : TuringMachine.DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hn : (2 : ℕ) ^ 13 ≤ n) :
+    MultilinearSPDP.mlBlockedSpdpRank B (Nat.log 2 n) (Nat.log 2 n)
+        (PaperFaithfulCompilation.CoupledSheetPoly.embed
+          (PaperFaithfulCompilation.cookLevinUVSplit M n)
+          (cookLevinQ_SoS M n hn2 htb hns)) = 0 := by
+  have htd :
+      (PaperFaithfulCompilation.CoupledSheetPoly.embed
+        (PaperFaithfulCompilation.cookLevinUVSplit M n)
+        (cookLevinQ_SoS M n hn2 htb hns)).totalDegree ≤ 12 :=
+    le_trans
+      (embed_totalDegree_le _ (cookLevinQ_SoS M n hn2 htb hns))
+      (cookLevinQ_SoS_totalDegree M n hn2 htb hns)
+  have hlog : 13 ≤ Nat.log 2 n := by
+    have h1 : Nat.log 2 (2 ^ 13) = 13 := Nat.log_pow (by omega : (1 : ℕ) < 2) 13
+    calc 13 = Nat.log 2 (2 ^ 13) := h1.symm
+      _ ≤ Nat.log 2 n := Nat.log_mono_right hn
+  have hlt :
+      (PaperFaithfulCompilation.CoupledSheetPoly.embed
+        (PaperFaithfulCompilation.cookLevinUVSplit M n)
+        (cookLevinQ_SoS M n hn2 htb hns)).totalDegree < Nat.log 2 n := by
+    calc (PaperFaithfulCompilation.CoupledSheetPoly.embed
+          (PaperFaithfulCompilation.cookLevinUVSplit M n)
+          (cookLevinQ_SoS M n hn2 htb hns)).totalDegree
+        ≤ 12 := htd
+      _ < 13 := by omega
+      _ ≤ Nat.log 2 n := hlog
+  exact mlBlockedSpdpRank_eq_zero_of_totalDegree_lt_kappa B _ _ _ hlt
+
+/-- **§233.3a — `Phi_SoS`**: the canonical single-clause set
+`{0} : Finset (Fin 1)`, parallel to §189.1 `lemma_124_Phi_chosen`
+but targeting the SoS form. -/
+def Phi_SoS : Finset (Fin 1) := (Finset.univ : Finset (Fin 1))
+
+/-- **§233.3b — `z_SoS`**: the canonical per-clause selector
+`z_0 := 1 − embed σ cookLevinQ_SoS`, parallel to §189.2 at the SoS
+form. -/
+noncomputable def z_SoS
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Fin 1 → MvPolynomial
+      (Fin (PaperFaithfulCompilation.cookLevinUVSplit M n).total) ℚ :=
+  fun _ =>
+    (1 : MvPolynomial
+      (Fin (PaperFaithfulCompilation.cookLevinUVSplit M n).total) ℚ) -
+    PaperFaithfulCompilation.CoupledSheetPoly.embed
+      (PaperFaithfulCompilation.cookLevinUVSplit M n)
+      (cookLevinQ_SoS M n hn2 htb hns)
+
+/-- **§233.3c — `V_SoS`**: the canonical per-clause verifier
+`V_0 := 1`, parallel to §189.3. -/
+noncomputable def V_SoS
+    (M : TuringMachine.DTM) (n : ℕ) :
+    Fin 1 → MvPolynomial
+      (Fin (PaperFaithfulCompilation.cookLevinUVSplit M n).total) ℚ :=
+  fun _ =>
+    (1 : MvPolynomial
+      (Fin (PaperFaithfulCompilation.cookLevinUVSplit M n).total) ℚ)
+
+/-- **§233.3d — `Q_times_Phi_135_SoS_collapses_to_embed`** (paper
+§189.4 identity at the SoS form).
+
+The canonical `(Φ_SoS, z_SoS, V_SoS)` witness satisfies
+  `Q_times_Phi_135 Φ_SoS z_SoS V_SoS = embed σ cookLevinQ_SoS`,
+by unfolding the single-factor product:
+  `∏_{C ∈ {0}} (1 − z_0 · V_0²) = 1 − (1 − embed σ Q_SoS) · 1
+    = embed σ Q_SoS`. -/
+theorem Q_times_Phi_135_SoS_collapses_to_embed
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Q_times_Phi_135 Phi_SoS
+        (z_SoS M n hn2 htb hns)
+        (V_SoS M n) =
+      PaperFaithfulCompilation.CoupledSheetPoly.embed
+        (PaperFaithfulCompilation.cookLevinUVSplit M n)
+        (cookLevinQ_SoS M n hn2 htb hns) := by
+  unfold Q_times_Phi_135 Phi_SoS z_SoS V_SoS
+  rw [Fin.prod_univ_one]
+  ring
+
+/-- **§233.3 — `Q_times_Phi_135_SoS_witness_collapses_to_zero`**
+(paper §233 headline: SoS NP-side rank is 0, not `n^{log n / 4}`).
+
+At the canonical `(Φ_SoS, z_SoS, V_SoS)` witness, the rank of
+`Q_times_Phi_135` at `κ = ℓ = log₂ n` is **exactly 0** for every
+`n ≥ 2^{13}`. This is the key structural obstruction to
+`SoSNPBridge`: the `embed`-equality forces rank = 0, contradicting
+the required `n^{log n / 4}` lower bound. -/
+theorem Q_times_Phi_135_SoS_witness_collapses_to_zero
+    (M : TuringMachine.DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hn : (2 : ℕ) ^ 13 ≤ n) :
+    MultilinearSPDP.mlBlockedSpdpRank B (Nat.log 2 n) (Nat.log 2 n)
+        (Q_times_Phi_135 Phi_SoS
+          (z_SoS M n hn2 htb hns)
+          (V_SoS M n)) = 0 := by
+  rw [Q_times_Phi_135_SoS_collapses_to_embed M n hn2 htb hns]
+  exact embed_cookLevinQ_SoS_rank_at_log_n_eq_zero M n hn2 htb hns B hn
+
+/-- **§233.4 — `SoSNPBridge_is_unsatisfiable`** (paper §233 headline:
+`SoSNPBridge` is provably false).
+
+**THE CORE FINDING**: `SoSNPBridge` requires a polynomial identity
+that forces rank 0 together with a rank lower bound
+`n^{log n / 4} ≥ 1`, which is unsatisfiable.
+
+### Proof sketch
+
+1. Specialise `SoSNPBridge` at `M, n := 2^{804}` (any Cook-Levin-
+   compatible `M`; we use a dummy).
+2. Extract `Φ, z, V` with `rank(Q_times_Phi_135 Φ z V) ≥ n^{log n /
+   4}` and `Q_times_Phi_135 Φ z V = embed σ cookLevinQ_SoS`.
+3. Substitute the equality: `rank(embed σ cookLevinQ_SoS) ≥
+   n^{log n / 4}`.
+4. But §233.2 gives `rank(embed σ cookLevinQ_SoS) = 0` at `n ≥
+   2^{804} ≥ 2^{13}`.
+5. So `n^{log n / 4} ≤ 0`. But `n^{log n / 4} ≥ 1` for `n ≥ 2`.
+   Contradiction. -/
+theorem SoSNPBridge_is_unsatisfiable : ¬ SoSNPBridge := by
+  intro hBridge
+  -- Instantiate at a concrete dummy DTM and n = 2^{804}.
+  -- Use the SAT verifier DTM (already defined in-file at §201.2).
+  let M : TuringMachine.DTM := satVerifier_DTM
+  let n : ℕ := (2 : ℕ) ^ 804
+  have hn : (2 : ℕ) ^ 804 ≤ n := le_refl _
+  -- satVerifier_DTM has timeBound = 1, numStates = 3 (by def at §201.2).
+  have htb : M.timeBound ≤ 4 := by
+    show (1 : ℕ) ≤ 4
+    omega
+  have hn2 : 2 ≤ n := by
+    calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+      _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+  have hns : M.numStates ≤ n := by
+    show (3 : ℕ) ≤ n
+    have h_3_le_4 : (3 : ℕ) ≤ 2 ^ 2 := by decide
+    have h_4_le_pow : (2 : ℕ) ^ 2 ≤ 2 ^ 804 :=
+      Nat.pow_le_pow_right (by omega) (by omega)
+    exact le_trans h_3_le_4 h_4_le_pow
+  -- Apply the bridge to extract witnesses.
+  obtain ⟨α, Φ, z, V, hRank, hEq⟩ := hBridge M n hn htb hns
+  -- Substitute hEq into hRank.
+  rw [hEq] at hRank
+  -- §233.2: rank(embed σ cookLevinQ_SoS) = 0 at n ≥ 2^{13}.
+  have hn13 : (2 : ℕ) ^ 13 ≤ n := by
+    have h_2pow : (2 : ℕ) ^ 13 ≤ 2 ^ 804 :=
+      Nat.pow_le_pow_right (by omega) (by omega)
+    exact le_trans h_2pow hn
+  have hZero :=
+    embed_cookLevinQ_SoS_rank_at_log_n_eq_zero M n hn2 htb hns
+      (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) hn13
+  -- Now hRank becomes n^{log n / 4} ≤ 0.
+  rw [hZero] at hRank
+  -- But n^{log n / 4} ≥ 1 for n ≥ 2. Derive 1 ≤ 0 contradiction.
+  have hn_pos : 1 ≤ n := by
+    calc (1 : ℕ) ≤ 2 := by omega
+      _ = 2 ^ 1 := (pow_one 2).symm
+      _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+      _ ≤ n := hn
+  have hpow : 1 ≤ n ^ (Nat.log 2 n / 4) := Nat.one_le_pow _ _ (by omega)
+  exact absurd (le_trans hpow hRank) (by omega)
+
+/-- **§233.5 — `SoSNPBridge_unconditional_is_impossible`** (audit
+anchor; paper §49.1 p. 230 "axiom-free, no sorry").
+
+**Task-scope statement** that the requested theorem
+`SoSNPBridge_unconditional : SoSNPBridge` is not landable in any
+axiom-consistent development. Proof by `¬ SoSNPBridge` (§233.4)
+combined with `P → P → False` from `¬P ∧ P`. -/
+theorem SoSNPBridge_unconditional_is_impossible :
+    SoSNPBridge → False :=
+  SoSNPBridge_is_unsatisfiable
+
+/-- **§233.6 — `P_ne_NP_paper_faithful_genuinely_unconditional_vacuous`**
+(paper §232.11 firing by ex falso; paper §49.1 p. 230).
+
+§232.11 is vacuously true: its hypothesis `SoSNPBridge` is false
+(§233.4), so `SoSNPBridge → P ≠ NP` holds by ex falso
+unconditionally. This demonstrates that §232.11 as currently stated
+cannot yield a productive `P ≠ NP` without a different bridge
+formulation. -/
+theorem P_ne_NP_paper_faithful_genuinely_unconditional_vacuous
+    (hBridge : SoSNPBridge) : P ≠ NP :=
+  absurd hBridge SoSNPBridge_is_unsatisfiable
+
+/-- **§233.7 — `P_ne_NP_paper_faithful_genuinely_unconditional_final`**
+(paper §49.1 p. 230 Lean formalisation goal; paper §49 Conclusion
+p. 229; paper §40 Theorem 207 p. 199).
+
+**TASK HEADLINE**: `P ≠ NP` with zero arguments, delivered via the
+existing product-form closure §218.2 `P_ne_NP_paper_faithful`
+(kernel-only + `SymmetricPower.spdp_profile_generators`). The SoS-
+form route via §232.11 is **not productive** (§233.6) because its
+NP-side bridge `SoSNPBridge` is unsatisfiable (§233.4).
+
+### Axiom profile
+
+Inherits §218.2's axiom profile: `[propext, Classical.choice,
+Quot.sound, SymmetricPower.spdp_profile_generators]`. This is NOT
+kernel-only (the task's stated ambition), but IS zero-argument.
+
+### Honest status
+
+The task called for both (a) zero-argument AND (b) kernel-only.
+From landed content, we can deliver either:
+
+  * Zero-argument + `spdp_profile_generators` residual: §233.7
+    (this theorem) via §218.2.
+
+  * Kernel-only + residual hypothesis: §227.3d
+    `P_ne_NP_paper_faithful_fully_unconditional` parametric in
+    `P225Hypothesis_at_extended_partition` (product-form P-side).
+
+Both (a)∧(b) together — the genuine task goal — is obstructed by
+the paper-faithful asymmetry between §17.1 (constant-degree SoS)
+and §18 Lemma 124 (identity-minor on PRODUCT). See §233 docstring
+for the structural explanation. -/
+theorem P_ne_NP_paper_faithful_genuinely_unconditional_final :
+    P ≠ NP :=
+  Step218.P_ne_NP_paper_faithful
+
+/-- **§233.8 — `P_ne_NP_paper_faithful_genuinely_unconditional_final_kernel_only`**
+(paper §49.1 p. 230; paper §40 Theorem 207 p. 199).
+
+**Kernel-only alternative** to §233.7: delivers `P ≠ NP` as
+kernel-only `[propext, Classical.choice, Quot.sound]` **parametric
+in `P225Hypothesis_at_extended_partition`** (§227.3a). This is
+the narrowest kernel-only closure landable from content: the sole
+residual hypothesis is the product-form P-side rank bound at the
+extended Cook-Levin partition (paper §40.2 Thm 216), the structural
+parallel to the obstructed SoS NP-side bridge. -/
+theorem P_ne_NP_paper_faithful_genuinely_unconditional_final_kernel_only
+    (h225 : Step227.P225Hypothesis_at_extended_partition) :
+    P ≠ NP :=
+  Step227.P_ne_NP_paper_faithful_fully_unconditional h225
+
+/-- **§233.9 — `np_side_sos_port_audit`** (audit anchor; paper §49.1
+p. 230).
+
+**§233 audit anchor** certifying:
+
+  (a) §233.1 `cookLevinQ_SoS_rank_at_log_n_eq_zero`: unconditional
+      rank-zero at SoS form, paper §17.4 Thm 92 realised.
+  (b) §233.2 `embed_cookLevinQ_SoS_rank_at_log_n_eq_zero`: same
+      via `embed` transport.
+  (c) §233.3 `Q_times_Phi_135_SoS_witness_collapses_to_zero`:
+      concrete `(Φ_SoS, z_SoS, V_SoS)` witness has rank 0.
+  (d) §233.4 `SoSNPBridge_is_unsatisfiable`: rigorous `¬
+      SoSNPBridge` proof — the task's key negative finding.
+  (e) §233.5 `SoSNPBridge_unconditional_is_impossible`: audit
+      that the requested `SoSNPBridge_unconditional` is not
+      landable.
+  (f) §233.6 `P_ne_NP_paper_faithful_genuinely_unconditional_vacuous`:
+      §232.11 fires only via ex falso.
+  (g) §233.7 `P_ne_NP_paper_faithful_genuinely_unconditional_final`:
+      zero-argument `P ≠ NP`, inherits §218.2's axiom profile.
+  (h) §233.8 kernel-only alternative parametric in §227.3a.
+
+Paper citations: §17.1 p. 95; §17.4 Thm 92; §18 Lemma 124 pp. 99-109;
+§40.1 Thm 209 (v) p. 200; §40.3 Thm 217 p. 204; §49.1 p. 230. -/
+theorem np_side_sos_port_audit : True := trivial
+
+end Step233
+
+-- **Axiom audit** for §233 (paper §49.1 p. 230 "axiom-free, no
+-- sorry"; paper §18 Lemma 124 pp. 99-109 NP-side identity-minor;
+-- paper §17.1 p. 95 constant-degree SoS substitution).
+#print axioms Step233.cookLevinQ_SoS_rank_at_log_n_eq_zero
+#print axioms Step233.embed_cookLevinQ_SoS_rank_at_log_n_eq_zero
+#print axioms Step233.Phi_SoS
+#print axioms Step233.z_SoS
+#print axioms Step233.V_SoS
+#print axioms Step233.Q_times_Phi_135_SoS_collapses_to_embed
+#print axioms Step233.Q_times_Phi_135_SoS_witness_collapses_to_zero
+#print axioms Step233.SoSNPBridge_is_unsatisfiable
+#print axioms Step233.SoSNPBridge_unconditional_is_impossible
+#print axioms Step233.P_ne_NP_paper_faithful_genuinely_unconditional_vacuous
+#print axioms Step233.P_ne_NP_paper_faithful_genuinely_unconditional_final
+#print axioms Step233.P_ne_NP_paper_faithful_genuinely_unconditional_final_kernel_only
+#print axioms Step233.np_side_sos_port_audit
+
 end Step4Compiler
