@@ -43397,10 +43397,10 @@ exact remaining P-side theorem needed by §227.3c / §227.3d.
 
 Unlike §227.3a `P225Hypothesis`, this is weakened to the single block
 partition actually consumed by the contradiction route,
-`extendedCookLevinPartition M n hn2`. This is the honest theorem seam
-from §225 / §227 to a zero-hypothesis final theorem. If this one
-statement lands axiom-free, then §227.3c and §227.3d become direct,
-zero-hypothesis kernel-only closures. -/
+`extendedCookLevinPartition M n hn2`. At the current repo state this
+remains an explicit hypothesis, but it is now intentionally the
+*narrowest* one: a single Width⇒Rank statement at the real final
+fixture, rather than an all-partitions or surrogate statement. -/
 def P225Hypothesis_at_extended_partition : Prop :=
   ∀ (M : TuringMachine.DTM) (n : ℕ) (hn : (2 : ℕ) ^ 804 ≤ n)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
@@ -43414,6 +43414,10 @@ def P225Hypothesis_at_extended_partition : Prop :=
         (Nat.log 2 n) (Nat.log 2 n)
         (PMn_extraction_faithful M n hn2 htb hns) ≤ n ^ 200
 
+/-- `P225Hypothesis` trivially specialises to the single final partition
+used by §227's contradiction route. This does **not** close the real
+remaining gap, but it isolates it exactly at the extended Cook-Levin
+partition. -/
 theorem P225Hypothesis.implies_at_extended_partition
     (h225 : P225Hypothesis) :
     P225Hypothesis_at_extended_partition := by
@@ -43426,7 +43430,6 @@ theorem P225Hypothesis.implies_at_extended_partition
           calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
             _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
         omega))
-
 /-- **§227.3b — `paper_faithful_contradiction_via_rank_bound`**
 (paper §40 Theorem 207 p. 199 main contradiction chain at Cook-Levin
 σ, κ = ℓ = log₂ n; paper §40.2 Theorem 216 p. 203 P-side Width⇒Rank;
