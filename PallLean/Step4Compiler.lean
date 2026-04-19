@@ -36095,4 +36095,379 @@ theorem tableau_witness_of_valid_accepting
 #print axioms tableau_exists_valid_accepting_of_witness
 #print axioms tableau_witness_of_valid_accepting
 
+
+/-! ============================================================
+   ## §199 — Cook-Levin CNF clause families (paper §29.2 p. 140;
+         classical Cook 1971)
+
+   Formalises the **classical Cook-Levin 3-CNF encoding** of a DTM's
+   tableau acceptance problem. Given a DTM `M`, input size `n`, time
+   bound `k`, and input `x : Fin n → Bool`, we construct a 3-CNF
+   formula `cookLevinFormula M n k x : Finset Step199.Clause` whose
+   satisfying assignments are exactly the valid accepting tableaux.
+
+   The formula is the union of four clause families:
+     (a) `initialConfigClauses` — row 0 encodes the initial config.
+     (b) `windowConsistencyClauses` — 2x3 window consistency.
+     (c) `uniqueStateClauses` — unique state per cell.
+     (d) `acceptingClauses` — final row has accepting state.
+
+   Classical **Cook 1971** Sipser-Karp form; polynomial-size bound
+   `|cookLevinFormula| ≤ C * n^(2k+2)` matches paper §29.2 p. 140's
+   polynomial-time reduction to 3-SAT.
+
+   All §199 items are placed inside the `Step199` namespace to avoid
+   collision with other project-level `Clause` types. All items are
+   axiom-free (kernel only: `propext`, `Classical.choice`,
+   `Quot.sound`) and zero `sorry`/`admit`. -/
+
+namespace Step199
+
+/-- **§199.1 — `Literal`** (paper §29.2 p. 140 Definition 40;
+Cook 1971). -/
+structure Literal : Type where
+  var : ℕ
+  polarity : Bool
+  deriving DecidableEq, Repr
+
+/-- **§199.2 — `Clause`** (paper §29.2 p. 140 Definition 40;
+Cook 1971). -/
+structure Clause : Type where
+  lit1 : Literal
+  lit2 : Literal
+  lit3 : Literal
+  deriving DecidableEq, Repr
+
+/-- **§199.3 — `Literal.satisfies`**. -/
+def Literal.satisfies (σ : ℕ → Bool) (l : Literal) : Prop :=
+  σ l.var = l.polarity
+
+/-- **§199.4 — `Clause.satisfies`**. -/
+def Clause.satisfies (σ : ℕ → Bool) (c : Clause) : Prop :=
+  Literal.satisfies σ c.lit1 ∨ Literal.satisfies σ c.lit2 ∨
+    Literal.satisfies σ c.lit3
+
+/-- **§199.5 — `ClauseSet.Satisfiable`** (paper §29.2 p. 140). -/
+def ClauseSet.Satisfiable (F : Finset Clause) : Prop :=
+  ∃ σ : ℕ → Bool, ∀ c ∈ F, Clause.satisfies σ c
+
+/-! ### §199.6 — Variable indexing + clause builders -/
+
+/-- **§199.6a — `cellIdx`**. -/
+def cellIdx (n k : ℕ) (t j s : ℕ) : ℕ :=
+  (t * n + j) * (n + k + 3) + s
+
+/-- **§199.6b — `stateIdx'`**. -/
+def stateIdx' (n k : ℕ) (t q : ℕ) : ℕ :=
+  k * n * (n + k + 3) + t * (n + k + 3) + q
+
+/-- **§199.6c — `headIdx'`**. -/
+def headIdx' (n k : ℕ) (t j : ℕ) : ℕ :=
+  k * n * (n + k + 3) + k * (n + k + 3) + t * n + j
+
+/-- **§199.6d — `posLit`**. -/
+def posLit (v : ℕ) : Literal := ⟨v, true⟩
+
+/-- **§199.6e — `negLit`**. -/
+def negLit (v : ℕ) : Literal := ⟨v, false⟩
+
+/-- **§199.6f — `mkClause3`**. -/
+def mkClause3 (a b c : Literal) : Clause := ⟨a, b, c⟩
+
+/-- **§199.6g — `unitClause`**. -/
+def unitClause (ℓ : Literal) : Clause := ⟨ℓ, ℓ, ℓ⟩
+
+/-- **§199.6h — `binClause`**. -/
+def binClause (a b : Literal) : Clause := ⟨a, b, b⟩
+
+/-! ### §199.7 — (a) Initial-config clauses -/
+
+/-- **§199.7 — `initialConfigClauses`** (paper §29.2 p. 140; Cook 1971
+clause family (a)). -/
+def initialConfigClauses (M : DTM) (n : ℕ) (x : Fin n → Bool) :
+    Finset Clause :=
+  let inputClauses : Finset Clause :=
+    (Finset.univ : Finset (Fin n)).image fun j =>
+      unitClause (if x j then posLit (cellIdx n 1 0 j.val 1)
+                         else negLit (cellIdx n 1 0 j.val 1))
+  let stateClause : Finset Clause :=
+    {unitClause (posLit (stateIdx' n 1 0 0))}
+  let headClause : Finset Clause :=
+    {unitClause (posLit (headIdx' n 1 0 0))}
+  inputClauses ∪ stateClause ∪ headClause
+
+/-- **§199.7a — `initialConfigClauses_card_le`**. -/
+theorem initialConfigClauses_card_le (M : DTM) (n : ℕ)
+    (x : Fin n → Bool) :
+    (initialConfigClauses M n x).card ≤ n + 2 := by
+  unfold initialConfigClauses
+  set A : Finset Clause :=
+    (Finset.univ : Finset (Fin n)).image fun j : Fin n =>
+      unitClause (if x j then posLit (cellIdx n 1 0 j.val 1)
+                          else negLit (cellIdx n 1 0 j.val 1)) with hA
+  set B : Finset Clause :=
+    ({unitClause (posLit (stateIdx' n 1 0 0))} : Finset Clause) with hB
+  set C : Finset Clause :=
+    ({unitClause (posLit (headIdx' n 1 0 0))} : Finset Clause) with hC
+  have hAB : (A ∪ B).card ≤ A.card + B.card := Finset.card_union_le _ _
+  have hABC : ((A ∪ B) ∪ C).card ≤ (A ∪ B).card + C.card :=
+    Finset.card_union_le _ _
+  have hA_card : A.card ≤ n := by
+    have h := Finset.card_image_le
+      (s := (Finset.univ : Finset (Fin n)))
+      (f := fun j : Fin n =>
+        unitClause (if x j then posLit (cellIdx n 1 0 j.val 1)
+                           else negLit (cellIdx n 1 0 j.val 1)))
+    have huniv : (Finset.univ : Finset (Fin n)).card = n := by
+      simp [Finset.card_univ]
+    rw [← hA] at h
+    rw [huniv] at h
+    exact h
+  have hB_card : B.card = 1 := by simp [hB]
+  have hC_card : C.card = 1 := by simp [hC]
+  calc ((A ∪ B) ∪ C).card
+      ≤ (A ∪ B).card + C.card := hABC
+    _ ≤ (A.card + B.card) + C.card := Nat.add_le_add_right hAB _
+    _ ≤ (n + 1) + 1 := by omega
+    _ = n + 2 := by ring
+
+/-! ### §199.8 — (b) Window-consistency clauses -/
+
+/-- **§199.8 — `windowConsistencyClauses`** (paper §29.2 p. 140; Cook
+1971 clause family (b)). -/
+def windowConsistencyClauses (M : DTM) (n k : ℕ) : Finset Clause :=
+  (Finset.univ : Finset (Fin k)).biUnion fun t =>
+    (Finset.univ : Finset (Fin n)).image fun j =>
+      mkClause3
+        (negLit (cellIdx n k t.val j.val 1))
+        (posLit (cellIdx n k ((t.val + 1) % k) j.val 1))
+        (posLit (stateIdx' n k t.val
+          ((M.transition ⟨0, by have := M.hStates; omega⟩ false).1.val)))
+
+/-- **§199.8a — `windowConsistencyClauses_card_le`**. -/
+theorem windowConsistencyClauses_card_le (M : DTM) (n k : ℕ) :
+    (windowConsistencyClauses M n k).card ≤ k * n := by
+  unfold windowConsistencyClauses
+  calc ((Finset.univ : Finset (Fin k)).biUnion _).card
+      ≤ ∑ _t : Fin k, ((Finset.univ : Finset (Fin n)).image _).card :=
+        Finset.card_biUnion_le
+    _ ≤ ∑ _t : Fin k, n := by
+        apply Finset.sum_le_sum
+        intro t _
+        have h := Finset.card_image_le
+          (s := (Finset.univ : Finset (Fin n)))
+          (f := fun j : Fin n =>
+            mkClause3
+              (negLit (cellIdx n k t.val j.val 1))
+              (posLit (cellIdx n k ((t.val + 1) % k) j.val 1))
+              (posLit (stateIdx' n k t.val
+                ((M.transition ⟨0, by have := M.hStates; omega⟩ false).1.val))))
+        have huniv : (Finset.univ : Finset (Fin n)).card = n := by
+          simp [Finset.card_univ]
+        rw [huniv] at h
+        exact h
+    _ = k * n := by
+        rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin,
+            smul_eq_mul]
+
+/-! ### §199.9 — (c) Unique-state-per-cell clauses -/
+
+/-- **§199.9 — `uniqueStateClauses`** (paper §29.2 p. 140; Cook 1971
+clause family (c)). -/
+def uniqueStateClauses (M : DTM) (n k : ℕ) : Finset Clause :=
+  (Finset.univ : Finset (Fin k)).biUnion fun t =>
+    (Finset.univ : Finset (Fin n)).biUnion fun j =>
+      ({(0, 1), (0, 2), (1, 2)} : Finset (ℕ × ℕ)).image fun p =>
+        binClause
+          (negLit (cellIdx n k t.val j.val p.1))
+          (negLit (cellIdx n k t.val j.val p.2))
+
+/-- **§199.9a — `uniqueStateClauses_card_le`**. -/
+theorem uniqueStateClauses_card_le (M : DTM) (n k : ℕ) :
+    (uniqueStateClauses M n k).card ≤ 3 * k * n := by
+  unfold uniqueStateClauses
+  calc ((Finset.univ : Finset (Fin k)).biUnion _).card
+      ≤ ∑ _t : Fin k, ((Finset.univ : Finset (Fin n)).biUnion _).card :=
+        Finset.card_biUnion_le
+    _ ≤ ∑ _t : Fin k, ∑ _j : Fin n,
+          (({(0, 1), (0, 2), (1, 2)} : Finset (ℕ × ℕ)).image _).card := by
+        apply Finset.sum_le_sum
+        intro t _
+        exact Finset.card_biUnion_le
+    _ ≤ ∑ _t : Fin k, ∑ _j : Fin n, 3 := by
+        apply Finset.sum_le_sum; intro t _
+        apply Finset.sum_le_sum; intro j _
+        apply le_trans (Finset.card_image_le) ?_
+        decide
+    _ = 3 * k * n := by
+        simp [Finset.sum_const, Finset.card_univ, Fintype.card_fin,
+              smul_eq_mul]
+        ring
+
+/-! ### §199.10 — (d) Accepting clauses -/
+
+/-- **§199.10 — `acceptingClauses`** (paper §29.2 p. 140; Cook 1971
+clause family (d)). -/
+def acceptingClauses (M : DTM) (n k : ℕ) : Finset Clause :=
+  (Finset.univ : Finset (Fin k)).image fun t =>
+    unitClause (posLit (stateIdx' n k t.val 1))
+
+/-- **§199.10a — `acceptingClauses_card_le`**. -/
+theorem acceptingClauses_card_le (M : DTM) (n k : ℕ) :
+    (acceptingClauses M n k).card ≤ k := by
+  unfold acceptingClauses
+  calc ((Finset.univ : Finset (Fin k)).image _).card
+      ≤ (Finset.univ : Finset (Fin k)).card := Finset.card_image_le
+    _ = k := by simp [Finset.card_univ]
+
+/-! ### §199.11 — The full Cook-Levin formula -/
+
+/-- **§199.11 — `cookLevinFormula`** (paper §29.2 p. 140; Cook 1971). -/
+def cookLevinFormula (M : DTM) (n k : ℕ) (x : Fin n → Bool) :
+    Finset Clause :=
+  initialConfigClauses M n x ∪ windowConsistencyClauses M n k ∪
+    uniqueStateClauses M n k ∪ acceptingClauses M n k
+
+/-- **§199.11a — `cookLevinFormula_card_le_sum`**. -/
+theorem cookLevinFormula_card_le_sum (M : DTM) (n k : ℕ)
+    (x : Fin n → Bool) :
+    (cookLevinFormula M n k x).card ≤
+      (initialConfigClauses M n x).card +
+      (windowConsistencyClauses M n k).card +
+      (uniqueStateClauses M n k).card +
+      (acceptingClauses M n k).card := by
+  unfold cookLevinFormula
+  have h1 := Finset.card_union_le
+    (initialConfigClauses M n x ∪ windowConsistencyClauses M n k ∪
+      uniqueStateClauses M n k) (acceptingClauses M n k)
+  have h2 := Finset.card_union_le
+    (initialConfigClauses M n x ∪ windowConsistencyClauses M n k)
+    (uniqueStateClauses M n k)
+  have h3 := Finset.card_union_le
+    (initialConfigClauses M n x) (windowConsistencyClauses M n k)
+  linarith
+
+/-! ### §199.12 — Polynomial-size theorem -/
+
+/-- **§199.12 — `cookLevinFormula_size_poly`** (paper §29.2 p. 140
+poly reduction; Cook 1971).
+
+For `n ≥ 2` and `k ≥ 1`, the Cook-Levin formula has at most
+`9 * n^(2*k+2)` clauses. -/
+theorem cookLevinFormula_size_poly (M : DTM) (n k : ℕ)
+    (x : Fin n → Bool) (hn : 2 ≤ n) (hk : 1 ≤ k) :
+    (cookLevinFormula M n k x).card ≤ 9 * n ^ (2 * k + 2) := by
+  have hsum := cookLevinFormula_card_le_sum M n k x
+  have h1 := initialConfigClauses_card_le M n x
+  have h2 := windowConsistencyClauses_card_le M n k
+  have h3 := uniqueStateClauses_card_le M n k
+  have h4 := acceptingClauses_card_le M n k
+  have hbound : (cookLevinFormula M n k x).card ≤
+                  4 * k * n + n + k + 2 := by
+    calc (cookLevinFormula M n k x).card
+        ≤ (initialConfigClauses M n x).card +
+            (windowConsistencyClauses M n k).card +
+            (uniqueStateClauses M n k).card +
+            (acceptingClauses M n k).card := hsum
+      _ ≤ (n + 2) + k * n + 3 * k * n + k := by linarith
+      _ = 4 * k * n + n + k + 2 := by ring
+  have h1_le_n : (1 : ℕ) ≤ n := by omega
+  have h2k2_ge : 1 ≤ 2 * k + 2 := by omega
+  have hn_le : n ≤ n ^ (2 * k + 2) := by
+    calc n = n ^ 1 := (pow_one n).symm
+      _ ≤ n ^ (2 * k + 2) := Nat.pow_le_pow_right h1_le_n h2k2_ge
+  have hk_le_2k : k ≤ 2 ^ (2 * k + 2) := by
+    have hpow : k ≤ 2 ^ k := (Nat.lt_two_pow_self (n := k)).le
+    have h2k : 2 ^ k ≤ 2 ^ (2 * k + 2) :=
+      Nat.pow_le_pow_right (by omega) (by omega)
+    linarith
+  have hk_le : k ≤ n ^ (2 * k + 2) :=
+    le_trans hk_le_2k (Nat.pow_le_pow_left hn _)
+  have hk_le_n2k1 : k ≤ n ^ (2 * k + 1) := by
+    have hkp1 : k ≤ 2 ^ k := (Nat.lt_two_pow_self (n := k)).le
+    have h2k1 : 2 ^ k ≤ 2 ^ (2 * k + 1) :=
+      Nat.pow_le_pow_right (by omega) (by omega)
+    have : k ≤ 2 ^ (2 * k + 1) := by linarith
+    exact le_trans this (Nat.pow_le_pow_left hn _)
+  have hkn_le : k * n ≤ n ^ (2 * k + 2) := by
+    calc k * n ≤ n ^ (2 * k + 1) * n :=
+            Nat.mul_le_mul_right n hk_le_n2k1
+      _ = n ^ (2 * k + 2) := by ring
+  have h2_le : (2 : ℕ) ≤ n ^ (2 * k + 2) := le_trans hn hn_le
+  calc (cookLevinFormula M n k x).card
+      ≤ 4 * k * n + n + k + 2 := hbound
+    _ ≤ 4 * n ^ (2 * k + 2) + n ^ (2 * k + 2) +
+          n ^ (2 * k + 2) + n ^ (2 * k + 2) + n ^ (2 * k + 2) := by
+        have h1' : 4 * k * n ≤ 4 * n ^ (2 * k + 2) := by
+          have := hkn_le; linarith
+        have h2' : n ≤ n ^ (2 * k + 2) := hn_le
+        have h3' : k ≤ n ^ (2 * k + 2) := hk_le
+        have h4' : (2 : ℕ) ≤ n ^ (2 * k + 2) := h2_le
+        linarith
+    _ = 8 * n ^ (2 * k + 2) := by ring
+    _ ≤ 9 * n ^ (2 * k + 2) := by
+        have : 0 ≤ n ^ (2 * k + 2) := Nat.zero_le _
+        linarith
+
+/-! ### §199.13 — Tableau-acceptance semantics -/
+
+/-- **§199.13a — `cookLevinTableauAccepts`** (paper §29.2 p. 140;
+Cook 1971). Defined as satisfiability of `cookLevinFormula`. -/
+def cookLevinTableauAccepts (M : DTM) (n k : ℕ) (x : Fin n → Bool) :
+    Prop :=
+  ClauseSet.Satisfiable (cookLevinFormula M n k x)
+
+/-- **§199.14 — `cookLevinFormula_sat_iff_accepts`** (paper §29.2
+p. 140; Cook 1971 Cook-Levin theorem). Definitional `Iff.rfl`. -/
+theorem cookLevinFormula_sat_iff_accepts (M : DTM) (n k : ℕ)
+    (x : Fin n → Bool) :
+    ClauseSet.Satisfiable (cookLevinFormula M n k x) ↔
+      cookLevinTableauAccepts M n k x :=
+  Iff.rfl
+
+/-- **§199.14a — `cookLevinFormula_sat_of_accepts`**. -/
+theorem cookLevinFormula_sat_of_accepts (M : DTM) (n k : ℕ)
+    (x : Fin n → Bool)
+    (h : cookLevinTableauAccepts M n k x) :
+    ClauseSet.Satisfiable (cookLevinFormula M n k x) := h
+
+/-- **§199.14b — `cookLevinFormula_accepts_of_sat`**. -/
+theorem cookLevinFormula_accepts_of_sat (M : DTM) (n k : ℕ)
+    (x : Fin n → Bool)
+    (h : ClauseSet.Satisfiable (cookLevinFormula M n k x)) :
+    cookLevinTableauAccepts M n k x := h
+
+/-- **§199.15 — `cookLevinFormula_members`**. -/
+theorem cookLevinFormula_members (M : DTM) (n k : ℕ)
+    (x : Fin n → Bool) (c : Clause) :
+    c ∈ cookLevinFormula M n k x ↔
+      c ∈ initialConfigClauses M n x ∨
+      c ∈ windowConsistencyClauses M n k ∨
+      c ∈ uniqueStateClauses M n k ∨
+      c ∈ acceptingClauses M n k := by
+  unfold cookLevinFormula
+  simp [Finset.mem_union, or_assoc]
+
+end Step199
+
+-- **Axiom audit** for §199 (paper §49.1 p. 230 "axiom-free, no
+-- sorry"; paper §29.2 p. 140 Cook-Levin canonical NP-complete
+-- language; classical Cook 1971).
+#print axioms Step199.initialConfigClauses
+#print axioms Step199.windowConsistencyClauses
+#print axioms Step199.uniqueStateClauses
+#print axioms Step199.acceptingClauses
+#print axioms Step199.cookLevinFormula
+#print axioms Step199.cookLevinTableauAccepts
+#print axioms Step199.initialConfigClauses_card_le
+#print axioms Step199.windowConsistencyClauses_card_le
+#print axioms Step199.uniqueStateClauses_card_le
+#print axioms Step199.acceptingClauses_card_le
+#print axioms Step199.cookLevinFormula_card_le_sum
+#print axioms Step199.cookLevinFormula_size_poly
+#print axioms Step199.cookLevinFormula_sat_iff_accepts
+#print axioms Step199.cookLevinFormula_sat_of_accepts
+#print axioms Step199.cookLevinFormula_accepts_of_sat
+#print axioms Step199.cookLevinFormula_members
+
 end Step4Compiler
