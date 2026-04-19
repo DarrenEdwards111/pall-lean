@@ -42946,6 +42946,44 @@ theorem compiledPoly_has_cew_bound_of_structural_batcher_realization
     T cT cG trace_layers batcher_layers sos_layers
     hpoly hTraceLen hTraceDeg hBatcherLen hBatcherCew hSosLen
 
+/-- **§225.3b — `cookLevinQ_has_cew_bound_of_structural_batcher_realization`**
+(paper §40 Step 2 p. 195 / §40.4 Theorem 218 p. 205 at the real
+Cook-Levin fixture).
+
+Specialises §225.3a to the actual polynomial consumed downstream,
+`PaperFaithfulCompilation.cookLevinQ M n`, i.e. the real
+`compiledPoly (cook_levin_compilation M n ...)` viewed in the
+Cook-Levin `UVSplit`. This pins the remaining seam exactly where
+§227.3a / `P225Hypothesis` eventually needs it: the real fixture,
+not an abstract tableau. -/
+theorem cookLevinQ_has_cew_bound_of_structural_batcher_realization
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (cT cG : ℕ)
+    (trace_layers batcher_layers : List
+      (MvPolynomial
+        (Fin (PaperFaithfulSeparation.cook_levin_compilation
+          M n hn2 htb hns).numVars) ℚ))
+    (sos_layers : List
+      (SoSGadget
+        (PaperFaithfulSeparation.cook_levin_compilation
+          M n hn2 htb hns).numVars))
+    (hpoly : PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns =
+      trace_layers.prod * batcher_layers.prod *
+        (sos_layers.map SoSGadget.poly).prod)
+    (hTraceLen : trace_layers.length ≤ cT * Nat.log 2 n)
+    (hTraceDeg : ∀ L ∈ trace_layers, L.totalDegree ≤ 6)
+    (hBatcherLen : batcher_layers.length ≤ batcherOutputPathDepthBound n)
+    (hBatcherCew : ∀ p ∈ batcher_layers, HasCEWBound p 6)
+    (hSosLen : sos_layers.length ≤ cG * Nat.log 2 n) :
+    ∃ C, HasCEWBound (PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns)
+      (C * Nat.log 2 n) := by
+  simpa [PaperFaithfulCompilation.cookLevinQ] using
+    compiledPoly_has_cew_bound_of_structural_batcher_realization
+      (T := PaperFaithfulSeparation.cook_levin_compilation M n hn2 htb hns)
+      cT cG trace_layers batcher_layers sos_layers
+      hpoly hTraceLen hTraceDeg hBatcherLen hBatcherCew hSosLen
+
 /-- **§225.5 — `compiledPoly_totalDegree_bound`** (paper §40.4
 Theorem 218 p. 205 Locality layer 2 "iterated-product degree
 addition"; paper §17.1 p. 101 product-form compiled polynomial;
@@ -43159,6 +43197,7 @@ end Step225
 #print axioms Step225.compiledPoly_gadget_cew_bounded
 #print axioms Step225.compiledPoly_has_cew_bound
 #print axioms Step225.compiledPoly_has_cew_bound_of_structural_batcher_realization
+#print axioms Step225.cookLevinQ_has_cew_bound_of_structural_batcher_realization
 #print axioms Step225.compiledPoly_totalDegree_bound
 #print axioms Step225.compiledPoly_totalDegree_le_poly_n
 #print axioms Step225.compiledPoly_rank_le_n_O_1_unconditional
