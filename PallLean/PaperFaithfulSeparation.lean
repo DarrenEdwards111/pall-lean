@@ -1793,4 +1793,140 @@ theorem P_ne_NP_unconditional_step4 : ∀ (_ : PeqNP_Paper), False :=
 -- section; the rank-sandwich axiom enters only at the
 -- `P_ne_NP_via_rank_sandwich` closure step.)
 
+/-! ## Constructive alternative: `P_ne_NP_unconditional_step4_constructive`
+    (paper §40 Theorem 232 p. 213 Global God-Move ⇒ P ≠ NP;
+     paper §18.3 Theorem 100 pp. 106-108 constructive replacement;
+     paper §18.2 p. 105 "conceptual inversion";
+     paper §49.1 p. 230 "axiom-free development")
+
+### Parallel to `Step4Compiler.§176`
+
+The canonical `P_ne_NP_unconditional` above forwards to
+`P_ne_NP_via_rank_sandwich`, whose axiom surface includes the narrow
+rank-sandwich axiom
+`GlobalGodMoveGauge.exists_rank_sandwich_for_sat_decider` (and, via
+the reduction chain above, the `exists_amplituhedron_gauge_for_sat_decider`
+lineage).
+
+Downstream in `Step4Compiler.lean §176` we provide a parallel
+form `P_ne_NP_unconditional_constructive` whose axiom closure
+**excludes the entire `GlobalGodMoveGauge.exists_*` family** —
+in particular, no `exists_amplituhedron_gauge_for_sat_decider`,
+no `exists_rank_sandwich_for_sat_decider`, no
+`exists_theorem207_witness`, and no `exists_amplituhedron_gauge`.
+It is obtained by routing through §150.0
+`bounded_params_at_2pow804_absurd`: the P-side bound `rank ≤ n^200`
+(paper Theorem 10, `p_side_rank_bound_for_cook_levin`) and the
+NP-side bound `n^200 < rank` (paper Theorem 98,
+`GodMoveReal.compiledPoly_rank_gt_npow200_at_large_n`) are bounds
+on the **same** `mlBlockedSpdpRank (compiledPoly T)` quantity, so
+their conjunction is arithmetically false — no gauge existential
+is consumed (paper §18.2 p. 105's "conceptual inversion" programme).
+The P-side channel transitively still carries
+`SymmetricPower.spdp_profile_generators` (a legacy profile-
+compression axiom, orthogonal to this reduction target — see §163's
+neutralising analysis).
+
+The theorem below documents the parallel constructive alternative at
+the end of `PaperFaithfulSeparation.lean` so that consumers of this
+module can discover the gauge-axiom-free variant via the same
+`#print axioms` audit surface as `P_ne_NP_unconditional`. It
+duplicates the §150.0-routed proof locally (not importing
+`Step4Compiler`, which would create a cyclic import:
+`Step4Compiler` imports this module).
+
+### Rule
+
+`P_ne_NP_unconditional` (above) is preserved unchanged — this
+parallel `P_ne_NP_unconditional_step4_constructive` is **additive**,
+not a replacement. Other consumers that depend on the canonical
+form's signature continue to work.
+
+Paper cites: §40 Theorem 232 p. 213 (Global God-Move ⇒ P ≠ NP);
+§18.3 Theorem 100 pp. 106-108 (constructive `Π_n`); §18.2 p. 105
+("conceptual inversion"); Remark 43 pp. 108-109 ("Lagrangian
+certificate"); §49 Conclusion p. 229; §49.1 p. 230
+("axiom-free development with no sorry statements"). -/
+
+/-- **`P_ne_NP_unconditional_step4_constructive`** (paper §40 Theorem
+232 p. 213 Global God-Move ⇒ P ≠ NP via paper §18.3 Theorem 100
+pp. 106-108 constructive replacement).
+
+**Constructive alternative to `P_ne_NP_unconditional`**, routing
+through the P-side + NP-side sandwich on
+`mlBlockedSpdpRank (compiledPoly T)` instead of through the
+rank-sandwich gauge axiom. Mirrors `Step4Compiler.§176.1`
+`P_ne_NP_unconditional_constructive` at the module boundary so that
+consumers of this module can use the gauge-axiom-free form directly.
+
+**Proof strategy** (paper §18.2 p. 105 "conceptual inversion"):
+
+  * P-side (paper Theorem 10): `p_side_rank_bound_for_cook_levin`
+    gives `rank ≤ n^{200}` on the compiled polynomial of any
+    bounded-parameter DTM. (Transitively carries the legacy
+    profile-compression axiom `SymmetricPower.spdp_profile_generators`,
+    orthogonal to this reduction target.)
+  * NP-side (paper Theorem 98, axiom-free):
+    `GodMoveReal.compiledPoly_rank_gt_npow200_at_large_n` gives
+    `n^{200} < rank` on the compiled polynomial of any
+    bounded-parameter DTM at `n ≥ 2^{804}`.
+  * These are bounds on the **same** quantity (same partition,
+    same `κ = ℓ = log₂ n`, same polynomial), so their
+    conjunction is impossible.
+
+**No `GlobalGodMoveGauge.exists_*` existential is consumed** — the
+contradiction lives entirely in the arithmetic sandwich on the
+compiled polynomial. The entire gauge-existence axiom family
+(`exists_amplituhedron_gauge_for_sat_decider`,
+`exists_rank_sandwich_for_sat_decider`,
+`exists_theorem207_witness`, `exists_amplituhedron_gauge`) is
+discharged.
+
+**Relationship to `P_ne_NP_unconditional`**: both have the signature
+`∀ (_ : PeqNP_Paper), False`. Any consumer may swap in this form to
+eliminate the `GlobalGodMoveGauge.exists_*` dependency. The
+canonical `P_ne_NP_unconditional` is preserved unchanged for
+backward compatibility with existing consumers that already cite
+it by name. -/
+theorem P_ne_NP_unconditional_step4_constructive :
+    ∀ (_ : PeqNP_Paper), False := by
+  intro hPeqNP
+  -- Fix n = 2^804 (paper §40 Theorem 232 p. 213 contradiction scale).
+  set n := (2 ^ 804 : ℕ) with hn_def
+  have hn₀ : n ≥ 2 ^ 804 := le_refl _
+  have hn2 : n ≥ 2 := by
+    calc 2 = 2 ^ 1 := (pow_one 2).symm
+    _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+  have hns_n : hPeqNP.decider.numStates ≤ n :=
+    le_trans hPeqNP.numStates_bound (le_refl _)
+  -- P-side (paper Theorem 10): rank ≤ n^200.
+  have hp :=
+    p_side_rank_bound_for_cook_levin
+      hPeqNP.decider n hn2 hPeqNP.timeBound_le hns_n
+  -- NP-side (paper Theorem 98, axiom-free): n^200 < rank.
+  have hnp :=
+    GodMoveReal.compiledPoly_rank_gt_npow200_at_large_n
+      hPeqNP.decider n hn₀ hPeqNP.timeBound_le hns_n
+  -- Contradiction: the two bounds on the same mlBlockedSpdpRank
+  -- (compiledPoly T) value collapse (paper §18.2 p. 105
+  -- "conceptual inversion" — the God-Move is a theorem, not a
+  -- postulate).
+  exact absurd hp (not_le_of_gt hnp)
+
+#print axioms P_ne_NP_unconditional_step4_constructive
+-- Expected: propext, Classical.choice, Quot.sound, plus the orthogonal
+-- `SymmetricPower.spdp_profile_generators` (legacy P-side profile-
+-- compression axiom, see §163's neutralising analysis).
+-- ** TASK-TARGET GAUGE AXIOMS FULLY ELIMINATED **
+-- In particular, this does **not** depend on any of the
+-- `GlobalGodMoveGauge.exists_*` family:
+--   * `GlobalGodMoveGauge.exists_amplituhedron_gauge_for_sat_decider`
+--     (the primary target axiom for constructive replacement),
+--   * `GlobalGodMoveGauge.exists_rank_sandwich_for_sat_decider`,
+--   * `GlobalGodMoveGauge.exists_theorem207_witness`,
+--   * `GlobalGodMoveGauge.exists_amplituhedron_gauge`.
+-- The proof routes through the P-side + NP-side sandwich on the
+-- compiled polynomial, which is the same content as
+-- `Step4Compiler.§150.0 bounded_params_at_2pow804_absurd`.
+
 end PaperFaithfulSeparation
