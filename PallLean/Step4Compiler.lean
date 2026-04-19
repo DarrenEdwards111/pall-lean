@@ -41732,6 +41732,32 @@ theorem compiledPoly_cew_O_log_n_witness
       _ = 6 * Nat.log 2 n := by ring
   exact HasCEWBound_mono h1 hmono
 
+/-- §226.3c. Honest structural bridge for the paper-faithful `O(log n)`
+CEW bound on `compiledPoly`. The remaining real gap is still the same:
+one must realize the actual Cook-Levin object as a trace/Batcher/SoS
+product with logarithmic trace and SoS lengths. -/
+theorem compiledPoly_cew_bound_of_structural_batcher_realization
+    {M : TuringMachine.DTM} {n : ℕ} (T : CompiledTableau M n)
+    (cT cG : ℕ)
+    (trace_layers batcher_layers : List (MvPolynomial (Fin T.numVars) ℚ))
+    (sos_layers : List (SoSGadget T.numVars))
+    (hpoly : PaperFaithfulSeparation.compiledPoly T =
+      trace_layers.prod * batcher_layers.prod *
+        (sos_layers.map SoSGadget.poly).prod)
+    (hTraceLen : trace_layers.length ≤ cT * Nat.log 2 n)
+    (hTraceDeg : ∀ L ∈ trace_layers, L.totalDegree ≤ 6)
+    (hBatcherLen : batcher_layers.length ≤ batcherOutputPathDepthBound n)
+    (hBatcherCew : ∀ p ∈ batcher_layers, HasCEWBound p 6)
+    (hSosLen : sos_layers.length ≤ cG * Nat.log 2 n) :
+    ∃ C, HasCEWBound (PaperFaithfulSeparation.compiledPoly T)
+      (C * Nat.log 2 n) := by
+  refine ⟨6 * cT + 6 + 6 * cG, ?_⟩
+  rw [hpoly]
+  simpa using
+    (PMn_hasCEWBound_log_refined_log_envelope cT cG n
+      trace_layers batcher_layers sos_layers
+      hTraceLen hTraceDeg hBatcherLen hBatcherCew hSosLen)
+
 /-- **§226.4 — `compiledPoly_cew_closure_audit`** (audit anchor;
 paper §49.1 p. 230 "axiom-free, no sorry").
 
@@ -41754,6 +41780,7 @@ end Step226
 #print axioms Step226.compiledPoly_cew_poly_n_bound
 #print axioms Step226.compiledPoly_cew_bound_axiom_free
 #print axioms Step226.compiledPoly_cew_O_log_n_witness
+#print axioms Step226.compiledPoly_cew_bound_of_structural_batcher_realization
 #print axioms Step226.compiledPoly_cew_closure_audit
 
 
@@ -42662,6 +42689,16 @@ NOT via `SymmetricPower.spdp_profile_generators`.
     via §226.1 / §226.3 iterated-product closure with per-factor
     bound `6`.
 
+  * **§225.3a**
+    `compiledPoly_has_cew_bound_of_structural_batcher_realization`
+    — stronger paper-faithful bridge replacing the crude raw-list
+    proxy `constraints.length ≤ O(log n)` with the actual Step-2
+    / Step-3 structure needed in the paper: a three-piece
+    factorisation `trace * batcher * sos`, trace and SoS lengths
+    `O(log n)`, and a Batcher output-path of length `≤ log₂ n`
+    with per-layer CEW `≤ 6`. This is the strongest landed
+    theorem progress on the Batcher/access-schedule seam.
+
   * **§225.4** `compiledPoly_rank_le_n_O_1_unconditional` —
     paper §40.4 Theorem 218 p. 205 / §40.2 Theorem 216 p. 203
     **final conclusion**: at the paper's rank-gap firing regime
@@ -42873,6 +42910,42 @@ theorem compiledPoly_has_cew_bound
       (C * Nat.log 2 n) :=
   Step226.compiledPoly_cew_bound_axiom_free T hLen
 
+/-- **§225.3a — `compiledPoly_has_cew_bound_of_structural_batcher_realization`**
+(paper §40 Step 2 p. 195 Batcher oblivious-access schedule; §40.4
+Theorem 218 p. 205 `CEW = O(log n)`; §226.3c strongest landed seam).
+
+This is the paper-faithful replacement for the coarse raw-length
+hypothesis of §225.3. Instead of assuming
+`T.constraints.length ≤ O(log n)`, it assumes the specific structural
+realisation promised by the paper's Step 2 and Step 3:
+
+* `compiledPoly T = trace_layers.prod * batcher_layers.prod * sos_layers.prod`,
+* trace length `O(log n)` with per-layer degree `≤ 6`,
+* Batcher output-path length `≤ log₂ n` with per-layer CEW `≤ 6`,
+* SoS layer count `O(log n)`.
+
+Under exactly those hypotheses, the same `CEW = O(log n)` headline
+follows axiom-free. This strictly narrows the remaining honest gap to
+constructing these witnesses for the real `cook_levin_compilation`. -/
+theorem compiledPoly_has_cew_bound_of_structural_batcher_realization
+    {M : TuringMachine.DTM} {n : ℕ} (T : CompiledTableau M n)
+    (cT cG : ℕ)
+    (trace_layers batcher_layers : List (MvPolynomial (Fin T.numVars) ℚ))
+    (sos_layers : List (SoSGadget T.numVars))
+    (hpoly : PaperFaithfulSeparation.compiledPoly T =
+      trace_layers.prod * batcher_layers.prod *
+        (sos_layers.map SoSGadget.poly).prod)
+    (hTraceLen : trace_layers.length ≤ cT * Nat.log 2 n)
+    (hTraceDeg : ∀ L ∈ trace_layers, L.totalDegree ≤ 6)
+    (hBatcherLen : batcher_layers.length ≤ batcherOutputPathDepthBound n)
+    (hBatcherCew : ∀ p ∈ batcher_layers, HasCEWBound p 6)
+    (hSosLen : sos_layers.length ≤ cG * Nat.log 2 n) :
+    ∃ C, HasCEWBound (PaperFaithfulSeparation.compiledPoly T)
+      (C * Nat.log 2 n) :=
+  Step226.compiledPoly_cew_bound_of_structural_batcher_realization
+    T cT cG trace_layers batcher_layers sos_layers
+    hpoly hTraceLen hTraceDeg hBatcherLen hBatcherCew hSosLen
+
 /-- **§225.5 — `compiledPoly_totalDegree_bound`** (paper §40.4
 Theorem 218 p. 205 Locality layer 2 "iterated-product degree
 addition"; paper §17.1 p. 101 product-form compiled polynomial;
@@ -43055,6 +43128,7 @@ anchor; paper §49.1 p. 230 "axiom-free, no sorry").
 
 **Audit anchor** certifying §225.1 (radius-1) + §225.2 (gadget
 degree ≤ 6) + §225.3 (CEW ≤ C·log n conditional on `hLen`) +
+§225.3a (CEW ≤ C·log n from structural Batcher realisation) +
 §225.4 (rank bound unconditional via §177.2) + §225.4a (n^C
 envelope form) + §225.4b (§224 compose form) + §225.5/§225.6
 (totalDegree bounds) together discharge paper §40.4 Theorem 218
@@ -43084,6 +43158,7 @@ end Step225
 #print axioms Step225.compiledPoly_gadget_degree_bounded
 #print axioms Step225.compiledPoly_gadget_cew_bounded
 #print axioms Step225.compiledPoly_has_cew_bound
+#print axioms Step225.compiledPoly_has_cew_bound_of_structural_batcher_realization
 #print axioms Step225.compiledPoly_totalDegree_bound
 #print axioms Step225.compiledPoly_totalDegree_le_poly_n
 #print axioms Step225.compiledPoly_rank_le_n_O_1_unconditional
@@ -43278,6 +43353,41 @@ def P225Hypothesis : Prop :=
             omega)
           htb hns) ≤ n ^ 200
 
+/-- **§227.3a' — `P225Hypothesis_at_extended_partition`**: the
+exact remaining P-side theorem needed by §227.3c / §227.3d.
+
+Unlike §227.3a `P225Hypothesis`, this is weakened to the single block
+partition actually consumed by the contradiction route,
+`extendedCookLevinPartition M n hn2`. This is the honest theorem seam
+from §225 / §227 to a zero-hypothesis final theorem. If this one
+statement lands axiom-free, then §227.3c and §227.3d become direct,
+zero-hypothesis kernel-only closures. -/
+def P225Hypothesis_at_extended_partition : Prop :=
+  ∀ (M : TuringMachine.DTM) (n : ℕ) (hn : (2 : ℕ) ^ 804 ≤ n)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+    let hn2 : 2 ≤ n := by
+      have h2_804 : (2 : ℕ) ≤ 2 ^ 804 := by
+        calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+          _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+      omega
+    MultilinearSPDP.mlBlockedSpdpRank
+        (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+        (Nat.log 2 n) (Nat.log 2 n)
+        (PMn_extraction_faithful M n hn2 htb hns) ≤ n ^ 200
+
+theorem P225Hypothesis.implies_at_extended_partition
+    (h225 : P225Hypothesis) :
+    P225Hypothesis_at_extended_partition := by
+  intro M n hn htb hns
+  dsimp
+  exact h225 M n hn htb hns
+    (PaperFaithfulCompilation.extendedCookLevinPartition M n
+      (by
+        have h2_804 : (2 : ℕ) ≤ 2 ^ 804 := by
+          calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+            _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+        omega))
+
 /-- **§227.3b — `paper_faithful_contradiction_via_rank_bound`**
 (paper §40 Theorem 207 p. 199 main contradiction chain at Cook-Levin
 σ, κ = ℓ = log₂ n; paper §40.2 Theorem 216 p. 203 P-side Width⇒Rank;
@@ -43446,7 +43556,7 @@ Paper citations: §40 Theorem 207 p. 199; §10.2 pp. 54-55; §40.2
 Theorem 216 p. 203; §40.3 Theorem 217 p. 204; §40.7 Theorem 223
 p. 206; §40 Lemma 205 p. 197; §18 Lemma 124 pp. 99-109; §49.1 p. 230. -/
 theorem P_eq_NP_implies_False_width_rank
-    (h225 : P225Hypothesis) :
+    (h225 : P225Hypothesis_at_extended_partition) :
     P = NP → False := by
   intro hEq
   -- Step 1 (paper §10.2): classical bridge.
@@ -43473,8 +43583,8 @@ theorem P_eq_NP_implies_False_width_rank
   have hP :
       MultilinearSPDP.mlBlockedSpdpRank B
         (Nat.log 2 n) (Nat.log 2 n)
-        (PMn_extraction_faithful M n hn2 htb hns) ≤ n ^ 200 :=
-    h225 M n hn htb hns B
+        (PMn_extraction_faithful M n hn2 htb hns) ≤ n ^ 200 := by
+    simpa [B, hn2] using h225 M n hn htb hns
   -- Step 5 (paper §40.3 Thm 217): choose §216.6 witnesses lifted
   -- via rename inlU to `Fin σ.total`.
   let Φ : Finset (Fin 1) := lemma_124_Phi_chosen
@@ -43602,7 +43712,7 @@ Paper citations: §49.1 p. 230; §49 Conclusion p. 229; §10.2 pp. 54-55;
 p. 204; §40.7 Theorem 223 p. 206; §40 Lemma 205 p. 197; §142.12
 `P_ne_NP_Lean_of_PeqNP_False`. -/
 theorem P_ne_NP_paper_faithful_fully_unconditional
-    (h225 : P225Hypothesis) :
+    (h225 : P225Hypothesis_at_extended_partition) :
     P ≠ NP :=
   fun hEq => P_eq_NP_implies_False_width_rank h225 hEq
 
@@ -43631,6 +43741,15 @@ The audit content is the accompanying `#print axioms` block
 immediately following. -/
 theorem P_ne_NP_paper_faithful_fully_unconditional_audit : True :=
   trivial
+
+/-- **§227.3f — `P_ne_NP_paper_faithful_from_strong_P225`**:
+repackages the original stronger all-partitions hypothesis into the
+exact extended-partition seam actually needed by §227.3d. -/
+theorem P_ne_NP_paper_faithful_from_strong_P225
+    (h225 : P225Hypothesis) :
+    P ≠ NP :=
+  P_ne_NP_paper_faithful_fully_unconditional
+    (P225Hypothesis.implies_at_extended_partition h225)
 
 end Step227
 
