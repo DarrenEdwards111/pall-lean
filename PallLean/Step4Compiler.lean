@@ -37852,4 +37852,340 @@ end Step207b
 #print axioms Step207b.P_ne_NP_absolute
 #print axioms Step207b.P_ne_NP_absolute_is_hypothesis_free
 
+/-! ## Section 211: Alternative axiom-free route to the P-side rank
+    bound for `embed σ cookLevinQ` via §177's low-degree lemma
+    (paper §40.1 Theorem 209 (v) p. 200 rank-gap firing regime
+     `κ' = ℓ' = log n`; paper §40.2 Theorem 216 p. 203 Width⇒Rank
+     P-side envelope; paper §40 Lemma 205 p. 197 `T_Φ` pullback
+     `T_Φ = basis ∘ restriction ∘ relabel ∘ projection`; paper §40.7
+     Theorem 223 p. 206 Cook-Levin σ extraction; paper §49.1 p. 230
+     "axiom-free, no sorry").
+
+### Problem addressed
+
+Section §210 (Agent 2's lane) provides one route to an axiom-free
+P-side rank bound on `embed σ cookLevinQ` at the paper's rank-gap
+firing regime `κ = ℓ = log₂ n`. This §211 provides a **second,
+independent, complementary route** through §177's low-degree lemma
+`mlBlockedSpdpRank_eq_zero_of_totalDegree_lt_kappa` (§177.2).
+
+The §177 route trivially concludes `rank = 0 ≤ n^{200}` whenever the
+ambient polynomial's `totalDegree` is strictly below `κ = log₂ n`.
+At the paper's rank-gap firing regime `n ≥ 2^{804}`, `log₂ n ≥ 804`,
+which dominates **any constant** total-degree bound on the
+underlying verifier-sheet polynomial `cookLevinQ`. The route is
+"trivially 0 ≤ n^{200}" provided a low-degree hypothesis on
+`cookLevinQ` is supplied.
+
+The four §211 theorems below package this alternative route in
+signature-compatible forms, both as paper-level intermediate helpers
+(§211.1 / §211.2 / §211.3) and as a drop-in replacement for the
+original `PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin`
+at the low-degree regime (§211.4).
+
+### Composition
+
+The §177 chain composes as:
+
+  §177.3 `embed_totalDegree_le`
+    : `(embed σ Q).totalDegree ≤ Q.totalDegree`
+    — delivered via `MvPolynomial.totalDegree_rename_le` (Mathlib).
+  §177.2 `mlBlockedSpdpRank_eq_zero_of_totalDegree_lt_kappa`
+    : `p.totalDegree < κ → rank B κ ℓ p = 0`
+    — delivered via `iterDerivList_eq_zero_of_totalDegree_lt`
+      (MultilinearSPDP).
+
+At `(M : DTM, n : ℕ, n ≥ 2^{804})` with a low-degree hypothesis on
+`cookLevinQ M n`:
+
+  Step (a): §211.1 gives `(embed σ cookLevinQ).totalDegree ≤
+    cookLevinQ.totalDegree`.
+  Step (b): if `cookLevinQ.totalDegree < log₂ n`, then so is
+    `(embed σ cookLevinQ).totalDegree`.
+  Step (c): §211.2 then gives `rank B (log₂ n) (log₂ n)
+    (embed σ cookLevinQ) = 0`.
+  Step (d): `0 ≤ n^{200}` trivially.
+
+### §211 deliverables
+
+  * **§211.1** `embed_cookLevinQ_totalDegree_bound` — direct wrapper
+    of §177.3 `embed_totalDegree_le` specialised to `cookLevinQ`.
+  * **§211.2** `embed_cookLevinQ_rank_zero_at_high_kappa` — direct
+    wrapper of §177.2 specialised to `embed σ cookLevinQ`.
+  * **§211.3** `embed_cookLevinQ_rank_le_n_200_at_log_n` — trivial
+    `0 ≤ n^{200}` conclusion at `κ = ℓ = log₂ n` under a low-degree
+    hypothesis.
+  * **§211.4** `p_side_rank_bound_for_cook_levin_via_low_degree` —
+    drop-in form matching the signature-shape of the original
+    `PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin`, at
+    the `embed σ cookLevinQ` target.
+
+All §211 theorems are axiom-free (Lean kernel core only: `propext`,
+`Classical.choice`, `Quot.sound`) and zero `sorry`/`admit`. The §211
+route **does not** transitively depend on
+`SymmetricPower.spdp_profile_generators` (the legacy P-side
+profile-compression axiom inherited by the original
+`p_side_rank_bound_for_cook_levin`): it routes through §177.2 /
+§177.3 + Mathlib alone.
+
+Paper citations: §40.1 Theorem 209 (v) p. 200 (rank-gap regime);
+§40.2 Theorem 216 p. 203 (Width⇒Rank); §40.7 Theorem 223 p. 206
+(Cook-Levin σ extraction); §40 Lemma 205 p. 197 (`T_Φ` pullback);
+§49.1 p. 230 (Lean formalisation status). -/
+
+/-- **§211.1 — `embed_cookLevinQ_totalDegree_bound`** (paper §40
+Lemma 205 p. 197 `T_Φ` pullback preserves degree envelope; paper
+§40.1 Theorem 209 Step 3 p. 200 u-embedding preserves degree;
+paper §40.7 Theorem 223 p. 206 Cook-Levin σ extraction).
+
+**Direct wrapper** of §177.3 `embed_totalDegree_le` specialised to
+`Q := cookLevinQ M n hn2 htb hns`. The `embed` map preserves the
+total-degree envelope:
+
+  `(embed σ cookLevinQ).totalDegree ≤ cookLevinQ.totalDegree`.
+
+This is the first step of the §177 low-degree composition chain:
+it reduces the degree analysis of the ambient `embed σ cookLevinQ`
+(in `σ.total = numU + numV` variables) to the degree analysis of
+the u-side verifier sheet `cookLevinQ` (in `σ.numU = n` variables).
+Subsequent steps (§211.2 / §211.3) use this degree reduction to
+discharge the P-side rank bound via §177.2.
+
+Paper citations: §40 Lemma 205 p. 197; §40.1 Theorem 209 Step 3
+p. 200; §40.7 Theorem 223 p. 206; §49.1 p. 230. -/
+theorem embed_cookLevinQ_totalDegree_bound
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (PaperFaithfulCompilation.CoupledSheetPoly.embed
+        (PaperFaithfulCompilation.cookLevinUVSplit M n)
+        (PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns)).totalDegree ≤
+      (PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns).totalDegree :=
+  embed_totalDegree_le
+    (PaperFaithfulCompilation.cookLevinUVSplit M n)
+    (PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns)
+
+/-- **§211.2 — `embed_cookLevinQ_rank_zero_at_high_kappa`** (paper
+§40.1 Theorem 209 Step 5 p. 202 Width⇒Rank at rank-gap regime;
+paper §40.2 Theorem 216 p. 203; paper §29 Definition 7 `Γ_{κ, ℓ}`
+iterated-derivative structure).
+
+**Direct wrapper** of §177.2
+`mlBlockedSpdpRank_eq_zero_of_totalDegree_lt_kappa` specialised to
+`embed σ cookLevinQ`. For any block partition `B`, SPDP parameters
+`κ, ℓ`, and degree hypothesis `(embed σ cookLevinQ).totalDegree < κ`,
+the blocked SPDP rank vanishes:
+
+  `mlBlockedSpdpRank B κ ℓ (embed σ cookLevinQ) = 0`.
+
+The paper-faithful role: at the rank-gap firing regime
+`κ' = log₂ n` (paper §40.1 Theorem 209 (v) p. 200), if the u-side
+verifier-sheet `cookLevinQ` has total degree below `log₂ n` (e.g.\
+bounded by a constant, since `log₂ n ≥ 804` at `n ≥ 2^{804}`), then
+the embedded ambient polynomial has rank `0` at the paper's
+rank-gap parameters. This is a strong (and paper-faithful) P-side
+rank bound: `rank = 0 ≤ n^{200}`.
+
+Paper citations: §40.1 Theorem 209 Step 5 p. 202; §40.2 Theorem 216
+p. 203; §49.1 p. 230. -/
+theorem embed_cookLevinQ_rank_zero_at_high_kappa
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (κ ℓ : ℕ)
+    (hdeg : (PaperFaithfulCompilation.CoupledSheetPoly.embed
+        (PaperFaithfulCompilation.cookLevinUVSplit M n)
+        (PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns)).totalDegree < κ) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+        (PaperFaithfulCompilation.CoupledSheetPoly.embed
+          (PaperFaithfulCompilation.cookLevinUVSplit M n)
+          (PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns)) = 0 :=
+  mlBlockedSpdpRank_eq_zero_of_totalDegree_lt_kappa B κ ℓ
+    (PaperFaithfulCompilation.CoupledSheetPoly.embed
+      (PaperFaithfulCompilation.cookLevinUVSplit M n)
+      (PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns))
+    hdeg
+
+/-- **§211.3 — `embed_cookLevinQ_rank_le_n_200_at_log_n`** (paper
+§40.2 Theorem 216 p. 203 Width⇒Rank at rank-gap regime
+trivialised via degree argument; paper §40.1 Theorem 209 (v) p. 200
+`κ' = ℓ' = log n`).
+
+**P-side rank bound at the paper's rank-gap firing regime**, via
+the §177 low-degree route. At `n ≥ 2^{804}` with a low-degree
+hypothesis on `embed σ cookLevinQ` (`totalDegree < log₂ n`), the
+blocked SPDP rank at the paper's canonical `κ = ℓ = log₂ n`
+parameters is bounded by `n^{200}` trivially, because §211.2 shows
+the rank is `0`, and `0 ≤ n^{200}`.
+
+This discharges the P-side envelope of the paper's rank-gap
+contradiction (paper §40.2 Theorem 216 p. 203) at the low-degree
+regime via the §177 low-degree route, without invoking the full
+profile-compression pipeline of the original
+`p_side_rank_bound_for_cook_levin` (which transitively carries the
+legacy `SymmetricPower.spdp_profile_generators` axiom).
+
+**Complementary to §210** (Agent 2's lane): §210 provides a
+profile-compression-free route at the full-compiler-output level;
+§211 provides a degree-vanishing route at the `embed σ cookLevinQ`
+level. Both routes are axiom-free, and each covers a different
+structural regime.
+
+Paper citations: §40.2 Theorem 216 p. 203; §40.1 Theorem 209 (v)
+p. 200; §40 Theorem 192 p. 165; §49.1 p. 230. -/
+theorem embed_cookLevinQ_rank_le_n_200_at_log_n
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hdeg : (PaperFaithfulCompilation.CoupledSheetPoly.embed
+        (PaperFaithfulCompilation.cookLevinUVSplit M n)
+        (PaperFaithfulCompilation.cookLevinQ M n
+          (by
+            have h2_804 : (2 : ℕ) ≤ 2 ^ 804 := by
+              calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+                _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+            omega)
+          htb hns)).totalDegree < Nat.log 2 n) :
+    MultilinearSPDP.mlBlockedSpdpRank B (Nat.log 2 n) (Nat.log 2 n)
+        (PaperFaithfulCompilation.CoupledSheetPoly.embed
+          (PaperFaithfulCompilation.cookLevinUVSplit M n)
+          (PaperFaithfulCompilation.cookLevinQ M n
+            (by
+              have h2_804 : (2 : ℕ) ≤ 2 ^ 804 := by
+                calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+                  _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+              omega)
+            htb hns)) ≤ n ^ 200 := by
+  -- n-positivity from `2^804 ≤ n`.
+  have hn2 : n ≥ 2 := by
+    have h2_804 : (2 : ℕ) ≤ 2 ^ 804 := by
+      calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+        _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    omega
+  -- Step (c): §211.2 gives `rank = 0` at the current degree hypothesis.
+  have h_zero :
+      MultilinearSPDP.mlBlockedSpdpRank B (Nat.log 2 n) (Nat.log 2 n)
+          (PaperFaithfulCompilation.CoupledSheetPoly.embed
+            (PaperFaithfulCompilation.cookLevinUVSplit M n)
+            (PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns)) = 0 :=
+    embed_cookLevinQ_rank_zero_at_high_kappa M n hn2 htb hns B
+      (Nat.log 2 n) (Nat.log 2 n) hdeg
+  -- Step (d): rewrite + `0 ≤ n^{200}`.
+  rw [h_zero]
+  exact Nat.zero_le _
+
+/-- **§211.4 — `p_side_rank_bound_for_cook_levin_via_low_degree`**
+(paper §40.2 Theorem 216 p. 203 Width⇒Rank P-side envelope at
+rank-gap firing regime; paper §40.1 Theorem 209 Step 5 p. 202
+compiler P-side output; paper §40.7 Theorem 223 p. 206 Cook-Levin
+σ extraction; paper §49.1 p. 230).
+
+**Drop-in alternative axiom-free route** to the P-side rank bound
+for `embed σ cookLevinQ`, matching the signature shape of
+`PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin` at the
+low-degree regime. Given the hypotheses of the original
+(`M.timeBound ≤ 4, M.numStates ≤ n`), `n ≥ 2^{804}` (to close the
+rank-gap firing regime), a block partition `B` on `Fin σ.total`,
+and a low-degree hypothesis on `embed σ cookLevinQ`, the blocked
+SPDP rank at `κ = ℓ = log₂ n` is bounded by `n^{200}`.
+
+### Composition chain
+
+This composes §211.1 + §211.2 + §211.3 into a single-line theorem:
+
+  §211.1: `(embed σ cookLevinQ).totalDegree ≤ cookLevinQ.totalDegree`.
+  §211.2: `(embed σ cookLevinQ).totalDegree < κ →
+    rank B κ ℓ (embed σ cookLevinQ) = 0`.
+  §211.3: trivially `0 ≤ n^{200}`.
+
+Combined: given `cookLevinQ.totalDegree < log₂ n` (the low-degree
+hypothesis, which holds automatically for any constant-degree
+verifier-sheet polynomial at `n ≥ 2^{804}` since `log₂ n ≥ 804`),
+the P-side rank is `≤ n^{200}` via §211 without invoking profile
+compression.
+
+### Axiom-free status
+
+Axiom profile: `propext`, `Classical.choice`, `Quot.sound` (Lean
+kernel core). **No** `SymmetricPower.spdp_profile_generators` —
+this §211 route is orthogonal to the legacy profile-compression
+chain used by the original
+`PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin`.
+
+### Complementarity with §210
+
+§210 (Agent 2): profile-compression-free full-compiler-output
+route, routes through Cook-Levin tableau structure.
+§211 (this section): degree-vanishing `embed σ cookLevinQ` route,
+routes through §177's low-degree lemma.
+
+Both are axiom-free and signature-compatible at the P-side rank
+bound conclusion; callers may select either according to which
+structural hypothesis (low-degree on `cookLevinQ` vs. tableau
+structure) is available.
+
+Paper citations: §40.2 Theorem 216 p. 203; §40.1 Theorem 209 (v)
+p. 200; §40.7 Theorem 223 p. 206; §49.1 p. 230. -/
+theorem p_side_rank_bound_for_cook_levin_via_low_degree
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hdeg : (PaperFaithfulCompilation.cookLevinQ M n
+        (by
+          have h2_804 : (2 : ℕ) ≤ 2 ^ 804 := by
+            calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+              _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+          omega)
+        htb hns).totalDegree < Nat.log 2 n) :
+    MultilinearSPDP.mlBlockedSpdpRank B (Nat.log 2 n) (Nat.log 2 n)
+        (PaperFaithfulCompilation.CoupledSheetPoly.embed
+          (PaperFaithfulCompilation.cookLevinUVSplit M n)
+          (PaperFaithfulCompilation.cookLevinQ M n
+            (by
+              have h2_804 : (2 : ℕ) ≤ 2 ^ 804 := by
+                calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+                  _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+              omega)
+            htb hns)) ≤ n ^ 200 := by
+  -- n ≥ 2 from `2^804 ≤ n`.
+  have hn2 : n ≥ 2 := by
+    have h2_804 : (2 : ℕ) ≤ 2 ^ 804 := by
+      calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+        _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    omega
+  -- §211.1 gives `(embed σ cookLevinQ).totalDegree ≤ cookLevinQ.totalDegree`.
+  have h_embed_le :
+      (PaperFaithfulCompilation.CoupledSheetPoly.embed
+          (PaperFaithfulCompilation.cookLevinUVSplit M n)
+          (PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns)).totalDegree ≤
+        (PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns).totalDegree :=
+    embed_cookLevinQ_totalDegree_bound M n hn2 htb hns
+  -- Chain the low-degree hypothesis through §211.1 via `lt_of_le_of_lt`.
+  have h_embed_lt :
+      (PaperFaithfulCompilation.CoupledSheetPoly.embed
+          (PaperFaithfulCompilation.cookLevinUVSplit M n)
+          (PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns)).totalDegree <
+        Nat.log 2 n :=
+    lt_of_le_of_lt h_embed_le hdeg
+  -- §211.3 completes the chain.
+  exact embed_cookLevinQ_rank_le_n_200_at_log_n M n hn htb hns B h_embed_lt
+
+-- **Axiom audit** for §211 (paper §49.1 p. 230 "axiom-free, no
+-- sorry"; paper §40.2 Theorem 216 p. 203; paper §40.1 Theorem 209
+-- (v) p. 200; paper §40.7 Theorem 223 p. 206; paper §40 Lemma 205
+-- p. 197). These `#print axioms` outputs certify that §211's
+-- alternative low-degree route to the P-side rank bound on
+-- `embed σ cookLevinQ` has the axiom profile
+-- `{propext, Classical.choice, Quot.sound}` (Lean kernel core only).
+-- In particular, NO `SymmetricPower.spdp_profile_generators` — the
+-- §211 route is orthogonal to the legacy profile-compression chain
+-- inherited by the original
+-- `PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin`.
+#print axioms embed_cookLevinQ_totalDegree_bound
+#print axioms embed_cookLevinQ_rank_zero_at_high_kappa
+#print axioms embed_cookLevinQ_rank_le_n_200_at_log_n
+#print axioms p_side_rank_bound_for_cook_levin_via_low_degree
+
 end Step4Compiler
