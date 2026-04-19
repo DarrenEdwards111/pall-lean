@@ -35041,4 +35041,141 @@ theorem P_ne_NP_zero_hypothesis_via_193
 #print axioms P_ne_NP_zero_hypothesis_axiom_profile
 #print axioms P_ne_NP_zero_hypothesis_via_193
 
+/-! ## Section 204: Classical `P ⊆ NP` inclusion (paper §10.2 pp. 54-55)
+
+This section records the standard classical fact that every
+polynomial-time decidable language is also polynomial-time verifiable:
+the verifier simply runs the `P`-time decider on the instance and
+ignores the proposed witness.
+
+Concretely, for any `L ∈ P` with decider DTM `M` (from §142.6 `P`),
+we construct an NP-witness by taking:
+
+  1. **Witness predicate** `V x w := L (x ++ w)`.  The verifier is
+     defined directly on the concatenation `x ++ w` that the DTM
+     consumes, so the `Verifier_IsPoly V` contract (§142.7) is
+     discharged by reusing the original decider `M` on input
+     `x ++ w`.
+  2. **Witness-length bound** `p n := 0`: the witness must be empty
+     (`w.length ≤ 0 ↔ w = []`), so `x ++ w = x` and
+     `V x [] = L x`.
+  3. **Polynomial bound** `IsPoly p` with exponent `0`
+     (`0 ≤ n^0 + 1 = 2`).
+
+The resulting NP-witness recovers `L x ↔ ∃ w, w.length ≤ 0 ∧ V x w`
+tautologically via `x ++ [] = x`.
+
+This closes the classical inclusion `P ⊆ NP` (paper §10.2 p. 55
+"every `P`-decidable language is trivially `NP`-verifiable") and
+yields the standard collapse criterion `P = NP ↔ NP ⊆ P` (combining
+the inclusion with antisymmetry of `⊆`).
+
+All §204 theorems are axiom-free (kernel only: `propext`,
+`Classical.choice`, `Quot.sound`) and zero `sorry`/`admit`. -/
+
+/-- **§204.1 — `P_subset_NP`** (paper §10.2 pp. 54-55 classical
+inclusion `P ⊆ NP`).
+
+Every polynomial-time decidable language is polynomial-time
+verifiable: for `L ∈ P`, we exhibit an NP-witness whose verifier
+ignores the proposed certificate.
+
+### Construction
+
+Given `L ∈ P`, §142.11 (`P_mem_iff_exists_DTIME_pow`) yields an
+exponent `k : ℕ` and a DTM `M` with:
+
+  * `∀ n, TuringMachine.timeSteps M n ≤ n^k + 1` (polynomial runtime),
+  * `DTM_Decides M L` (correctness on nonempty strings).
+
+We build the NP-certificate data:
+
+  * **Verifier predicate** `V x w := L (x ++ w)`.
+  * **Witness DTM** `Mv := M` — the very same decider.
+  * **Witness-length bound** `p n := 0` — witness must be empty.
+
+The three NP obligations discharge as follows:
+
+  1. `Verifier_IsPoly V`: reuse `M`; the bound
+     `n^M.timeBound ≤ n^k + 1` applies uniformly to all input
+     lengths including `|x ++ w|`, and `DTM_Decides M L` on
+     nonempty inputs `x ++ w` gives
+     `V x w ↔ M accepts (x ++ w)`.
+  2. `IsPoly p`: witness exponent `k := 0` with `0 ≤ n^0 + 1 = 2`.
+  3. `L x ↔ ∃ w, w.length ≤ p |x| ∧ V x w`:
+     `w.length ≤ 0 → w = []`, so the existential collapses to
+     `V x [] = L (x ++ []) = L x`.
+
+### Paper-faithfulness (paper §10.2 pp. 54-55)
+
+Paper §10.2 p. 55 explicitly names the classical inclusion: "every
+`P`-decidable language is `NP`-verifiable by the trivial verifier
+that ignores the witness." §204.1 is the Lean-level formalisation
+of this inclusion at the §142 paper-faithful `P` / `NP`
+definitions. -/
+theorem P_subset_NP : P ⊆ NP := by
+  intro L hL
+  -- Unpack `L ∈ P` to get the decider DTM and its polynomial bound.
+  rcases (P_mem_iff_exists_DTIME_pow L).mp hL with ⟨k, M, hM_time, hM_dec⟩
+  -- Build the NP-certificate: verifier ignores witness (uses concatenation).
+  refine ⟨fun x w => L (x ++ w), ?_, fun _ => 0, ?_, ?_⟩
+  · -- `Verifier_IsPoly` discharged by reusing the decider DTM.
+    refine ⟨M, ⟨k, ?_⟩, ?_⟩
+    · intro n; exact hM_time n
+    · intro x w hxw
+      -- `V x w := L (x ++ w)` ↔ `M` accepts `x ++ w` (nonempty input).
+      exact hM_dec (x ++ w) hxw
+  · -- `IsPoly (fun _ => 0)`: take exponent 0; `0 ≤ n^0 + 1 = 2`.
+    exact ⟨0, fun n => by simp⟩
+  · -- NP iff: witness forced empty, so `x ++ w = x`.
+    intro x
+    constructor
+    · intro hLx
+      refine ⟨[], ?_, ?_⟩
+      · -- `[].length ≤ 0`.
+        simp
+      · -- `V x [] = L (x ++ []) = L x`.
+        simpa using hLx
+    · rintro ⟨w, hwlen, hVxw⟩
+      -- `w.length ≤ 0` forces `w = []`.
+      have hw_nil : w = [] :=
+        List.length_eq_zero_iff.mp (Nat.le_zero.mp hwlen)
+      subst hw_nil
+      -- `V x [] = L (x ++ []) = L x`.
+      simpa using hVxw
+
+/-- **§204.2 — `P_eq_NP_iff_NP_subset_P`** (paper §10.2 pp. 54-55
+classical equivalence; collapse criterion).
+
+`P = NP` holds if and only if the reverse inclusion `NP ⊆ P` holds.
+This combines:
+
+  * §204.1 (`P_subset_NP`): the always-true forward inclusion
+    `P ⊆ NP`;
+  * `Set.Subset.antisymm`: set equality is equivalent to mutual
+    containment.
+
+Thus the question `P = NP?` reduces classically to deciding whether
+every `NP`-language is `P`-decidable. This is the textbook collapse
+statement underlying the paper's §40 contradiction chain: it
+suffices to exhibit a single `NP` language not in `P` (e.g.
+Cook-Levin 3-SAT) to refute `NP ⊆ P` and hence `P = NP`. -/
+theorem P_eq_NP_iff_NP_subset_P : P = NP ↔ NP ⊆ P := by
+  constructor
+  · intro hEq L hL
+    -- `P = NP → NP ⊆ P` by substitution.
+    rw [hEq]; exact hL
+  · intro hNP_sub_P
+    -- Antisymmetry: `P ⊆ NP` (§204.1) and `NP ⊆ P` (hypothesis) ⇒ `P = NP`.
+    exact Set.Subset.antisymm P_subset_NP hNP_sub_P
+
+-- **Axiom audit** for §204 (paper §49.1 p. 230 "axiom-free, no
+-- sorry"; paper §10.2 pp. 54-55 classical bridge). These
+-- `#print axioms` outputs certify that every §204 theorem depends
+-- only on Lean's three kernel axioms (`propext`, `Classical.choice`,
+-- `Quot.sound`) and no project axioms.
+#print axioms P_subset_NP
+#print axioms P_eq_NP_iff_NP_subset_P
+
+
 end Step4Compiler
