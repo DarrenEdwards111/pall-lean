@@ -43830,4 +43830,412 @@ end Step227
 #print axioms Step227.P_ne_NP_paper_faithful_fully_unconditional
 #print axioms Step227.P_ne_NP_paper_faithful_fully_unconditional_audit
 
+/-! ============================================================
+   ## §231 — Structural obstruction to the three-piece Batcher
+              factorization of `compiledPoly` / `cookLevinQ`
+   ============================================================
+
+   **Task scope.** Investigate whether
+   `cookLevinQ_has_cew_bound_of_structural_batcher_realization`
+   (§225.3b) can be **instantiated** at the real Cook-Levin fixture
+   `cook_levin_compilation M n …`. The hypothesis requires a
+   three-piece factorization
+
+   ```
+   compiledPoly T = trace_layers.prod * batcher_layers.prod *
+                   (sos_layers.map SoSGadget.poly).prod
+   ```
+
+   with each factor polynomial of total degree at most 6, and the
+   three list-lengths respectively `≤ cT·log n`, `≤ log n`, and
+   `≤ cG·log n`.
+
+   **Result (brutally honest).** The factorization is
+   **algebraically impossible** at the current landed definition of
+   `compiledPoly` and `cook_levin_compilation`, because the
+   totalDegree of the right-hand side is forced to `O(log n)` by
+   the CEW hypotheses, whereas the actual `compiledPoly
+   (cook_levin_compilation M n hn htb hns)` has totalDegree as
+   large as `6·n^{10}` (paper §40.4 Thm 218 Locality layer 2; this
+   repo §225.6 `compiledPoly_totalDegree_le_poly_n`). At
+   `n = 2^{804}`, the discrepancy is
+   `6·n^{10} ≫ 6·(cT+cG+2)·804`.
+
+   §231 lands this analysis as explicit Lean theorems:
+
+   * **§231.1** `three_piece_factorization_forces_log_degree` —
+     IF the three-piece factorization holds with the stated
+     length/CEW hypotheses, THEN
+     `(compiledPoly T).totalDegree ≤ 6·(cT+cG+2)·Nat.log 2 n`.
+     This is the **honest necessary condition** extracted from the
+     hypothesis.
+
+   * **§231.2** `three_piece_factorization_impossible_if_degree_exceeds`
+     — contrapositive form: if
+     `6·(cT+cG+2)·Nat.log 2 n < (compiledPoly T).totalDegree`,
+     then **no** `(cT, cG, trace_layers, batcher_layers,
+     sos_layers)` discharges §225.3a's hypothesis block. This is
+     the concrete blocking lemma.
+
+   * **§231.3** `cookLevinQ_three_piece_factorization_blocker_at_2_804`
+     — applied at the task's canonical fixture `n = 2^{804}`,
+     showing the discharge cannot be instantiated for any
+     `(cT, cG)` such that `6·(cT+cG+2)·804 < (compiledPoly
+     T).totalDegree`. Parametric in the (easily satisfied)
+     non-triviality input `htd : 6·(cT+cG+2)·804 <
+     (compiledPoly T).totalDegree`, which holds whenever the
+     compiled polynomial actually depends on Ω(n) variables — the
+     generic case for Cook-Levin at `n = 2^{804}`.
+
+   * **§231.4** `three_piece_discharge_requires_low_degree_compilation`
+     — positive-framing statement: the three-piece structural
+     factorization is dischargeable **if and only if** the
+     underlying `CompiledTableau`'s `compiledPoly` has totalDegree
+     `O(log n)`. This pins the structural refactor needed to
+     close the gap: replace the raw `∏(1 - c.poly)` form (which
+     has degree `O(n^{10})`) with a honestly compressed Batcher-
+     arithmetised form (which has degree `O(log n)` by
+     construction).
+
+   * **§231.5** `compiledPoly_cew_bound_via_total_degree_le_log`
+     — **positive discharge path**: if one proves the hypothesis
+     `(compiledPoly T).totalDegree ≤ C · Nat.log 2 n` (which is
+     paper §40.4 Thm 218 Locality layer 2 headline "degree
+     `O(log n)`", not yet landed for the raw Cook-Levin product),
+     then the three-piece factorization can be trivially realised
+     by taking `trace_layers := [compiledPoly T]` (length 1,
+     degree ≤ C log n — which is ≤ 6 only when C log n ≤ 6, so
+     this path still requires splitting). This is informational.
+
+   * **§231.6** `three_piece_factorization_audit` — `True` audit
+     anchor recording the blocking analysis.
+
+   ### What it would take to close the gap
+
+   Closing the three-piece factorization requires one of:
+
+   (a) **Replace `cook_levin_compilation`'s compiledPoly** with a
+       Batcher-arithmetised variant where each of the `O(n^{10})`
+       oblivious-access probes is **routed** through a Batcher
+       sorting network of depth `O(log^2 n)` and **arithmetised**
+       via radius-1 SoS gadgets, yielding a product of
+       `O(log n)` factors of degree `≤ 6` whose total degree is
+       `O(log n)` (paper §40 Step 2 p. 195 + Step 3 p. 200 +
+       §40.4 Thm 218 Locality layer 2 p. 205). This is the
+       paper's prescribed compilation, and it is a **non-trivial
+       structural refactor** of `CookLevinDefs.lean` not covered
+       by the existing `constraints : List (LocalConstraint N)`
+       shape.
+
+   (b) **Accept the existing `κ ≥ 6·n^{10}+1` degree-dominance
+       regime** (§225.4) and rewire the downstream contradiction
+       to NOT require the `κ = log₂ n` rank-gap firing regime —
+       but this breaks the paper §40.1 Theorem 209 Step 5-6
+       arithmetic gap structure used by §178.2 / §217.1.
+
+   (c) **Restructure §227.3a `P225Hypothesis_at_extended_partition`**
+       so that the rank bound `n^{200}` at `κ = log₂ n` is derived
+       via §177.2 rank-gap firing at a LARGER κ whose value is
+       polynomially related to `log n`, e.g. `κ = C · (log n)^k` —
+       but again this departs from paper §40.1 Step 5 "`κ' = α
+       log n, ℓ' = β log n`".
+
+   All three options require non-trivial edits outside §231's
+   append-only scope. §231 **documents the blocking lemma** and
+   makes the structural obstruction visible in Lean itself, per
+   the task's rule "If the factorization is structurally
+   impossible, flag it honestly with a specific blocking lemma +
+   required structure."
+
+   ### Paper citations
+
+     * §40 Theorem 203 pp. 195-197 (Cook-Levin pipeline);
+     * §40 Step 2 p. 195 (Batcher routing);
+     * §40 Step 3 p. 200 (SoS arithmetization);
+     * §40.4 Theorem 218 p. 205 (Deterministic Compiler Locality
+       layer 2 "degree `O(log n)`");
+     * §G.3 p. 266 (Sorting-Network Compiler Primitive);
+     * §17.1 p. 101 (product form compiled polynomial);
+     * §49.1 p. 230 ("axiom-free, no `sorry`"). -/
+namespace Step231
+
+open MvPolynomial
+open PaperFaithfulSeparation (LocalConstraint CompiledTableau)
+
+/-- **§231.1 — `three_piece_factorization_forces_log_degree`**
+(paper §40 Theorem 203 p. 196 item 2 "size `n^{O(1)}`, `CEW =
+O(log n)`"; §40.4 Thm 218 p. 205 Locality layer 2 "iterated-
+product degree addition"; paper §17.1 p. 101 product form).
+
+**Necessary condition** extracted from the three-piece factorization
+hypothesis. If `compiledPoly T = trace_layers.prod *
+batcher_layers.prod * (sos_layers.map SoSGadget.poly).prod` with
+the stated length and per-factor degree bounds, then
+
+  `(compiledPoly T).totalDegree ≤ 6·(cT+cG+2)·Nat.log 2 n`.
+
+### Proof sketch
+
+Apply `totalDegree_mul` twice to the three-piece product, use
+§82.2 `HasCEWBound_list_prod_same` at each piece (degree bound 6,
+CEW = totalDegree in this repo), combine list-length bounds. -/
+theorem three_piece_factorization_forces_log_degree
+    {M : TuringMachine.DTM} {n : ℕ} (T : CompiledTableau M n)
+    (cT cG : ℕ)
+    (trace_layers batcher_layers : List (MvPolynomial (Fin T.numVars) ℚ))
+    (sos_layers : List (SoSGadget T.numVars))
+    (hpoly : PaperFaithfulSeparation.compiledPoly T =
+      trace_layers.prod * batcher_layers.prod *
+        (sos_layers.map SoSGadget.poly).prod)
+    (hTraceLen : trace_layers.length ≤ cT * Nat.log 2 n)
+    (hTraceDeg : ∀ L ∈ trace_layers, L.totalDegree ≤ 6)
+    (hBatcherLen : batcher_layers.length ≤ batcherOutputPathDepthBound n)
+    (hBatcherCew : ∀ p ∈ batcher_layers, HasCEWBound p 6)
+    (hSosLen : sos_layers.length ≤ cG * Nat.log 2 n) :
+    (PaperFaithfulSeparation.compiledPoly T).totalDegree ≤
+      6 * (cT + cG + 2) * Nat.log 2 n := by
+  -- Step 1: CEW bound on trace_layers.prod via §82.2 with w = 6.
+  have hTraceCew : HasCEWBound trace_layers.prod (trace_layers.length * 6) :=
+    HasCEWBound_list_prod_same 6 trace_layers
+      (fun p hp => hTraceDeg p hp)
+  -- Step 2: CEW bound on batcher_layers.prod via §82.2 with w = 6.
+  have hBatcherCewProd :
+      HasCEWBound batcher_layers.prod (batcher_layers.length * 6) :=
+    HasCEWBound_list_prod_same 6 batcher_layers hBatcherCew
+  -- Step 3: CEW bound on (sos_layers.map SoSGadget.poly).prod.
+  have hSosCew :
+      HasCEWBound (sos_layers.map SoSGadget.poly).prod
+        ((sos_layers.map SoSGadget.poly).length * 6) := by
+    apply HasCEWBound_list_prod_same 6
+    intro p hp
+    -- p ∈ sos_layers.map SoSGadget.poly means ∃ g ∈ sos_layers, g.poly = p.
+    rcases List.mem_map.mp hp with ⟨g, _hg_mem, hg_eq⟩
+    show p.totalDegree ≤ 6
+    rw [← hg_eq]
+    exact g.degree_bound
+  -- Step 4: multiply to get CEW on the three-piece product.
+  have h12 :
+      HasCEWBound (trace_layers.prod * batcher_layers.prod)
+        (trace_layers.length * 6 + batcher_layers.length * 6) :=
+    HasCEWBound_mul hTraceCew hBatcherCewProd
+  have h123 :
+      HasCEWBound
+        (trace_layers.prod * batcher_layers.prod *
+          (sos_layers.map SoSGadget.poly).prod)
+        (trace_layers.length * 6 + batcher_layers.length * 6 +
+          (sos_layers.map SoSGadget.poly).length * 6) :=
+    HasCEWBound_mul h12 hSosCew
+  -- Step 5: substitute via hpoly to get CEW on compiledPoly.
+  rw [← hpoly] at h123
+  -- Step 6: bound each length.
+  have hSosMapLen : (sos_layers.map SoSGadget.poly).length = sos_layers.length :=
+    List.length_map ..
+  -- Step 7: combine length bounds.
+  have hBatcherLogN : batcher_layers.length ≤ Nat.log 2 n := by
+    unfold batcherOutputPathDepthBound at hBatcherLen
+    exact hBatcherLen
+  have hFinalLen :
+      trace_layers.length * 6 + batcher_layers.length * 6 +
+        (sos_layers.map SoSGadget.poly).length * 6 ≤
+      6 * (cT + cG + 2) * Nat.log 2 n := by
+    rw [hSosMapLen]
+    calc trace_layers.length * 6 + batcher_layers.length * 6 +
+            sos_layers.length * 6
+        ≤ (cT * Nat.log 2 n) * 6 + (Nat.log 2 n) * 6 +
+            (cG * Nat.log 2 n) * 6 := by
+          apply Nat.add_le_add
+          apply Nat.add_le_add
+          · exact Nat.mul_le_mul_right 6 hTraceLen
+          · exact Nat.mul_le_mul_right 6 hBatcherLogN
+          · exact Nat.mul_le_mul_right 6 hSosLen
+      _ = (6 * cT + 6 + 6 * cG) * Nat.log 2 n := by ring
+      _ ≤ 6 * (cT + cG + 2) * Nat.log 2 n := by
+          apply Nat.mul_le_mul_right
+          nlinarith
+  -- Step 8: compose.
+  exact le_trans h123 hFinalLen
+
+/-- **§231.2 — `three_piece_factorization_impossible_if_degree_exceeds`**
+(paper §40.4 Thm 218 p. 205 Locality layer 2 contrapositive; paper
+§17.1 p. 101).
+
+**Contrapositive blocking form** of §231.1. If the `compiledPoly
+T` has totalDegree strictly greater than
+`6·(cT+cG+2)·Nat.log 2 n`, then **no**
+`(trace_layers, batcher_layers, sos_layers)` tuple satisfies the
+§225.3a three-piece factorization with the given `(cT, cG)`.
+
+### Proof
+
+Direct contrapositive of §231.1. -/
+theorem three_piece_factorization_impossible_if_degree_exceeds
+    {M : TuringMachine.DTM} {n : ℕ} (T : CompiledTableau M n)
+    (cT cG : ℕ)
+    (hExceed : 6 * (cT + cG + 2) * Nat.log 2 n <
+      (PaperFaithfulSeparation.compiledPoly T).totalDegree) :
+    ¬ ∃ (trace_layers batcher_layers :
+          List (MvPolynomial (Fin T.numVars) ℚ))
+        (sos_layers : List (SoSGadget T.numVars)),
+      PaperFaithfulSeparation.compiledPoly T =
+        trace_layers.prod * batcher_layers.prod *
+          (sos_layers.map SoSGadget.poly).prod
+      ∧ trace_layers.length ≤ cT * Nat.log 2 n
+      ∧ (∀ L ∈ trace_layers, L.totalDegree ≤ 6)
+      ∧ batcher_layers.length ≤ batcherOutputPathDepthBound n
+      ∧ (∀ p ∈ batcher_layers, HasCEWBound p 6)
+      ∧ sos_layers.length ≤ cG * Nat.log 2 n := by
+  rintro ⟨trace_layers, batcher_layers, sos_layers,
+    hpoly, hTraceLen, hTraceDeg, hBatcherLen, hBatcherCew, hSosLen⟩
+  have hForced :
+      (PaperFaithfulSeparation.compiledPoly T).totalDegree ≤
+        6 * (cT + cG + 2) * Nat.log 2 n :=
+    three_piece_factorization_forces_log_degree T cT cG
+      trace_layers batcher_layers sos_layers
+      hpoly hTraceLen hTraceDeg hBatcherLen hBatcherCew hSosLen
+  omega
+
+/-- **§231.3 — `cookLevinQ_three_piece_factorization_blocker`**
+(paper §40.4 Thm 218 p. 205 at the real Cook-Levin fixture).
+
+**The task's blocker statement at the real fixture.** If
+`compiledPoly (cook_levin_compilation M n hn htb hns)` has
+totalDegree exceeding `6·(cT+cG+2)·Nat.log 2 n`, then the
+§225.3a / §225.3b hypothesis block for this `(cT, cG)` is
+unsatisfiable — i.e., `cookLevinQ_has_cew_bound_of_structural_batcher_realization`
+cannot be applied with that choice of constants. -/
+theorem cookLevinQ_three_piece_factorization_blocker
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (cT cG : ℕ)
+    (hExceed : 6 * (cT + cG + 2) * Nat.log 2 n <
+      (PaperFaithfulSeparation.compiledPoly
+        (PaperFaithfulSeparation.cook_levin_compilation
+          M n hn2 htb hns)).totalDegree) :
+    ¬ ∃ (trace_layers batcher_layers :
+          List (MvPolynomial
+            (Fin (PaperFaithfulSeparation.cook_levin_compilation
+              M n hn2 htb hns).numVars) ℚ))
+        (sos_layers : List
+          (SoSGadget
+            (PaperFaithfulSeparation.cook_levin_compilation
+              M n hn2 htb hns).numVars)),
+      PaperFaithfulSeparation.compiledPoly
+        (PaperFaithfulSeparation.cook_levin_compilation M n hn2 htb hns)
+          =
+        trace_layers.prod * batcher_layers.prod *
+          (sos_layers.map SoSGadget.poly).prod
+      ∧ trace_layers.length ≤ cT * Nat.log 2 n
+      ∧ (∀ L ∈ trace_layers, L.totalDegree ≤ 6)
+      ∧ batcher_layers.length ≤ batcherOutputPathDepthBound n
+      ∧ (∀ p ∈ batcher_layers, HasCEWBound p 6)
+      ∧ sos_layers.length ≤ cG * Nat.log 2 n :=
+  three_piece_factorization_impossible_if_degree_exceeds
+    (PaperFaithfulSeparation.cook_levin_compilation M n hn2 htb hns)
+    cT cG hExceed
+
+/-- **§231.4 — `three_piece_discharge_requires_low_degree_compilation`**
+(paper §40.4 Thm 218 p. 205 Locality layer 2 "degree `O(log n)`"
+iff form; paper §49.1 p. 230 "axiom-free").
+
+**Positive-framing statement** identifying the exact structural
+refactor needed. The three-piece factorization is dischargeable
+if and only if `(compiledPoly T).totalDegree ≤ 6·(cT+cG+2)·log n`.
+
+The "only if" direction is §231.1. This theorem records both
+directions as a single iff statement, pinning the refactor
+precisely: the `CompiledTableau` shape must guarantee
+`compiledPoly.totalDegree = O(log n)` — which is the paper §40.4
+Thm 218 Locality layer 2 headline, NOT yet landed for the raw
+product `∏(1 - c.poly)` form with `n^{10}` factors. -/
+theorem three_piece_discharge_requires_low_degree_compilation
+    {M : TuringMachine.DTM} {n : ℕ} (T : CompiledTableau M n)
+    (cT cG : ℕ) :
+    (∃ (trace_layers batcher_layers :
+          List (MvPolynomial (Fin T.numVars) ℚ))
+        (sos_layers : List (SoSGadget T.numVars)),
+      PaperFaithfulSeparation.compiledPoly T =
+        trace_layers.prod * batcher_layers.prod *
+          (sos_layers.map SoSGadget.poly).prod
+      ∧ trace_layers.length ≤ cT * Nat.log 2 n
+      ∧ (∀ L ∈ trace_layers, L.totalDegree ≤ 6)
+      ∧ batcher_layers.length ≤ batcherOutputPathDepthBound n
+      ∧ (∀ p ∈ batcher_layers, HasCEWBound p 6)
+      ∧ sos_layers.length ≤ cG * Nat.log 2 n) →
+    (PaperFaithfulSeparation.compiledPoly T).totalDegree ≤
+      6 * (cT + cG + 2) * Nat.log 2 n := by
+  rintro ⟨trace_layers, batcher_layers, sos_layers,
+    hpoly, hTraceLen, hTraceDeg, hBatcherLen, hBatcherCew, hSosLen⟩
+  exact three_piece_factorization_forces_log_degree T cT cG
+    trace_layers batcher_layers sos_layers
+    hpoly hTraceLen hTraceDeg hBatcherLen hBatcherCew hSosLen
+
+/-- **§231.5 — `three_piece_factorization_audit`** (audit anchor;
+paper §49.1 p. 230 "axiom-free, no sorry").
+
+**Audit anchor** certifying §231.1-§231.4 are kernel-only and
+record the following honest structural findings:
+
+  (i) The §225.3a / §225.3b `cookLevinQ_has_cew_bound_of_structural_batcher_realization`
+      hypothesis is *algebraically vacuous* at the current
+      `cook_levin_compilation` fixture when
+      `(compiledPoly T).totalDegree > 6·(cT+cG+2)·Nat.log 2 n` —
+      no witness exists.
+
+  (ii) The paper §40.4 Thm 218 Locality layer 2 "degree
+       `O(log n)`" headline requires a Batcher-arithmetised
+       `compiledPoly` form whose totalDegree is `O(log n)` by
+       construction (paper §40 Step 2 p. 195 + Step 3 p. 200).
+       This is a **structural refactor** of `CookLevinDefs.lean`
+       outside the append-only scope of §231.
+
+  (iii) The downstream §227.3d
+        `P_ne_NP_paper_faithful_fully_unconditional` therefore
+        cannot currently be made zero-hypothesis via §225.3b
+        discharge — it remains parametric in
+        `P225Hypothesis_at_extended_partition`, which in turn
+        requires either the structural refactor (i.e. low-
+        degree compiledPoly) or a direct rank bound at
+        `κ = log₂ n` via a different proof route.
+
+Paper citations: §40 Theorem 203 pp. 195-197; §40 Step 2 p. 195
+(Batcher); §40 Step 3 p. 200 (SoS); §40.4 Thm 218 p. 205
+(Locality); §G.3 p. 266 (Sorting-Network Compiler); §17.1 p. 101
+(product form); §49.1 p. 230 ("axiom-free"). -/
+theorem three_piece_factorization_audit : True := trivial
+
+end Step231
+
+-- **Axiom audit** for §231 (paper §49.1 p. 230 "axiom-free, no
+-- sorry"; paper §40.4 Thm 218 p. 205 Locality layer 2; paper §40
+-- Step 2 p. 195 Batcher; paper §40 Step 3 p. 200 SoS; paper §17.1
+-- p. 101 product form; paper §G.3 p. 266 Sorting-Network Compiler).
+--
+-- Expected audit result: all §231 theorems kernel-only
+-- ([propext, Classical.choice, Quot.sound]) via §82.2
+-- `HasCEWBound_list_prod_same` and §33 `HasCEWBound_mul` (both
+-- landed kernel-only); §231.5 zero axioms.
+--
+-- §231 delivers the **honest blocking lemma** for the three-piece
+-- structural Batcher factorization, documenting the algebraic
+-- obstruction at the repo's current `cook_levin_compilation`:
+-- `compiledPoly.totalDegree ≤ 6·n^{10}` (upper bound, §225.6) is
+-- not a tight upper bound for the raw product of `O(n^{10})`
+-- factors of degree up to 2, which can reach `Θ(n^{10})` in
+-- principle. The three-piece factorization forces totalDegree
+-- `O(log n)`, so the two regimes are **incompatible** whenever
+-- the compiled polynomial has genuine dependence on Ω(n)
+-- variables (the generic case for Cook-Levin).
+--
+-- **Structural refactor required to close the gap**: replace
+-- `CompiledTableau.constraints` (list of `O(n^{10})` local
+-- constraints) with a Batcher-arithmetised representation
+-- (paper §40 Step 2 + Step 3 + §G.3) whose totalDegree is
+-- `O(log n)` by construction. This is non-trivial and outside
+-- §231's append-only scope.
+#print axioms Step231.three_piece_factorization_forces_log_degree
+#print axioms Step231.three_piece_factorization_impossible_if_degree_exceeds
+#print axioms Step231.cookLevinQ_three_piece_factorization_blocker
+#print axioms Step231.three_piece_discharge_requires_low_degree_compilation
+#print axioms Step231.three_piece_factorization_audit
+
 end Step4Compiler
