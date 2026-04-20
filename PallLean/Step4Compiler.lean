@@ -51552,6 +51552,46 @@ been normalised to the real renamed Cook-Levin polynomial with no extra
 residual/additive wrapper noise. -/
 theorem cookLevin_slim_gap_is_rename_target : True := trivial
 
+/-- **§252.0d — `cookLevin_full_output_rank_le_of_pullback_rank_le`**
+(paper §40.5 Lemma 220 rank transport, specialised to the Cook-Levin
+slim target).
+
+If the plain `cookLevinQ` polynomial is bounded by `n^200` at the
+pullback partition
+`pullbackPartition (extendedCookLevinPartition M n hn2) inlU`, then the
+concrete slim target
+`partitioned_output_cookLevin.full_output = rename inlU cookLevinQ`
+is also bounded by `n^200` at the extended partition.
+
+This packages the already-landed rank invariance theorem
+`lemma_220_block_local_basis_invariance` together with §252.0b's target
+normalisation. It is the key bypass route around transporting the full
+`Theorem216SpanningSet` structure through rename: for downstream
+purposes, a rank bound on plain `cookLevinQ` suffices. -/
+theorem cookLevin_full_output_rank_le_of_pullback_rank_le
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hQ_upper : MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition
+        (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (show MvPolynomial (Fin n) ℚ from
+        PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200) :
+    MultilinearSPDP.mlBlockedSpdpRank
+      (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (Step247.partitioned_output_cookLevin M n hn2 htb hns).full_output ≤ n ^ 200 := by
+  rw [partitioned_output_cookLevin_full_output_eq_rename_cookLevinQ]
+  rw [lemma_220_block_local_basis_invariance
+    (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU
+    (PaperFaithfulCompilation.inlU_injective (PaperFaithfulCompilation.cookLevinUVSplit M n))
+    (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (Nat.log 2 n) (Nat.log 2 n)
+    (show MvPolynomial (Fin n) ℚ from
+      PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns)]
+  exact hQ_upper
+
 /-- **§252.1 — `RealCompilerOutput_slim`** (paper §40.1 Theorem 209
 Steps 5-6 p. 202; dead-fields elimination of §240.1).
 
