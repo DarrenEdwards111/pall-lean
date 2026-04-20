@@ -52034,7 +52034,62 @@ theorem P_ne_NP_from_cookLevin_direct_rank_hypothesis
   exact DirectRankPackage_cookLevin M n hn htb hns hn2
     (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) rfl hQ_upper
 
-/-- **§252.13c — `cookLevinQ_hasFiniteProfileCover_from_withinProfileFrontier`**
+/-- **§252.13c — `cookLevinQ_rank_bound_from_honest_fixed_profile_factorization`**
+(honest fixed-profile-cover bridge onto the final Cook-Levin object).
+
+This is the strongest existing paper-side hypothesis surface that already has a
+named theorem in the repo. The legacy theorem
+`SymmetricPowerBound.rank_bound_from_honest_fixed_profile_factorization`
+works on the compiled Cook-Levin polynomial at the Cook-Levin partition,
+assuming an honest `HasFixedProfileCoverFamily` witness. This theorem
+transports that statement directly onto the final object used by the direct
+route: plain `cookLevinQ` at the pullback partition.
+
+So the live P-side content can now be stated on the final object not only as a
+rank bound or `HasFiniteProfileCover`, but even at the stronger fixed-profile
+cover-family layer. -/
+theorem cookLevinQ_rank_bound_from_honest_fixed_profile_factorization
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hfam : SymmetricPowerBound.HasFixedProfileCoverFamily
+      (PaperFaithfulSeparation.cook_levin_compilation M n (by
+        have : (2 : ℕ) ≤ 2 ^ 804 := by
+          calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+          _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+        omega) htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (PaperFaithfulSeparation.compiledPoly
+        (PaperFaithfulSeparation.cook_levin_compilation M n (by
+          have : (2 : ℕ) ≤ 2 ^ 804 := by
+            calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+            _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+          omega) htb hns))) :
+    MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition
+        (PaperFaithfulCompilation.extendedCookLevinPartition M n (by
+          have : (2 : ℕ) ≤ 2 ^ 804 := by
+            calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+            _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+          omega))
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (PaperFaithfulCompilation.cookLevinQ M n (by
+        have : (2 : ℕ) ≤ 2 ^ 804 := by
+          calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+          _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+        omega) htb hns)
+      ≤ SymmetricPowerBound.combinedProfileBound (Nat.log 2 n) := by
+  set hn2 : n ≥ 2 := by
+    have : (2 : ℕ) ≤ 2 ^ 804 := by
+      calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+      _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    omega
+  have hpart := PaperFaithfulCompilation.pullback_eq_cook_levin_partition M n hn2 htb hns
+  rw [hpart]
+  have hlegacy := SymmetricPowerBound.rank_bound_from_honest_fixed_profile_factorization M n hn2 htb hns hfam
+  convert hlegacy using 2
+
+/-- **§252.13d — `cookLevinQ_hasFiniteProfileCover_from_withinProfileFrontier`**
 (frontier-level bridge onto the final Cook-Levin object).
 
 This is a cleaner paper-faithful bridge than a bare endpoint rank rewrite.
