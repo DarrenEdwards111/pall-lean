@@ -48,9 +48,38 @@
   holographic projection realizing rank minimization under the positive-
   geometry interpretation) but does NOT directly discharge the axiom.
 
+  ## N-Frame as conceptual glue
+
+  This supplementary layer is still useful as a **unifying geometry** for
+  the paper's recurring two-view pattern. One can read the current Lean
+  obstruction as follows:
+
+  - the **fine-grained / microscopic** view resolves multiplicative
+    interaction structure, so identity minors survive and the NP-side
+    product-form rank lower bound is visible;
+  - the **coarse-grained / effective** view resolves only bounded-locality
+    structure, so SoS/locality collapse and low effective rank become
+    visible on the P-side;
+  - the missing bridge in the current formalization is not a new global
+    philosophy, but a concrete compiler/extraction theorem showing how
+    these two views arise from one compiled object in the exact algebraic
+    form required by the proof.
+
+  In that sense, §28.3 is best treated as a conceptual scaffold for the
+  slogan:
+
+    "same object, different effective geometry."
+
+  This helps explain why product-form NP rigidity, P-side locality
+  collapse, and observer/coarse-graining arguments keep reappearing across
+  different routes, even though the actual load-bearing closure still has
+  to be supplied by explicit §40 compiler/extraction theorems.
+
   Items in this directory are preserved as paper-faithful explanatory
   infrastructure: they make the §28.3 variational picture precise,
-  aligning Lean's formal development with the paper's geometric story.
+  align Lean's formal development with the paper's geometric story, and
+  provide a natural home for future notes/theorem schemas expressing the
+  "same object, different geometry" interpretation.
 -/
 
 import PallLean.Supplementary.AmplituhedronPSD

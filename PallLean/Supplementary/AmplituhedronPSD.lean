@@ -100,6 +100,31 @@
   geometry reformulation faithfully, but the paper's own Remark 60 marks
   §28.3 as explanatory. The critical path to P ≠ NP uses the §14 and §40
   pipeline, tracked separately in the on-chain modules.
+
+  ## Interpretive theorem schema (supplementary, not load-bearing)
+
+  A useful way to read the current formal development is that one compiled
+  object may admit more than one effective geometric presentation.
+
+  - In a **fine-grained** presentation, multiplicative interaction structure
+    remains visible. This is the regime where product-form couplings and
+    identity-minor witnesses survive, yielding NP-side rank rigidity.
+  - In a **coarse-grained** presentation, only bounded-locality / averaged
+    structure remains visible. This is the regime where locality collapse,
+    profile compression, and low effective rank become visible on the P-side.
+
+  The N-Frame / amplituhedron language is a natural place to record this as
+  an observer-class picture:
+
+    same compiled object -> different effective geometry -> different rank laws
+
+  What this viewpoint contributes is explanatory unification. It suggests the
+  missing load-bearing theorem should identify a compiler/extraction map that
+  presents the same compiled object in both ways, rather than treating the
+  SoS/locality object and the product-form identity-minor object as unrelated.
+
+  This schema is intentionally conceptual. It does not by itself prove the
+  missing cross-form algebraic theorem in the §40 chain.
 -/
 
 import Mathlib.Analysis.Matrix.PosDef
