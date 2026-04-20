@@ -50193,4 +50193,309 @@ end Step246
 #print axioms Step246.hP_upper_at_trivialPhi
 #print axioms Step246.GConstructionPackage_gap_location_at_trivialPhi
 
+/-! ## §247 — **NP-lower transfer via `embed_rank_preservation`** (paper
+§40.3 Theorem 217 p. 204 NP-side identity-minor bound at the
+`embed σ Q` shape consumed by `PartitionedCompilerOutput.hNP_lower`;
+paper §40.5 p. 205 Lemma 220 Block-Local Basis Invariance; paper §40
+Lemma 205 p. 197 `embed = rename inlU` identity; paper §49.1 p. 230).
+
+### §247 role
+
+§247 discharges the `hNP_lower` field of
+`PartitionedCompilerOutput_with_thresholds` (§241.8) at the Cook–Levin
+UV-split `σ = cookLevinUVSplit M n` with the §189 concrete NP-side
+witness `(Φ, z, V) = (lemma_124_Phi_chosen, lemma_124_z_chosen,
+lemma_124_V_chosen)`.
+
+The critical observation: the `hNP_lower` field requires
+`n^(log n/4) ≤ rank B κ ℓ W.embedded_Q`, where `W.embedded_Q =
+CoupledSheetPoly.embed σ W.Q_verifier = MvPolynomial.rename σ.inlU
+(Q_times_Phi_135 W.Φ W.z W.V)`. This is **exactly** the shape delivered
+by §216.6 `Q_times_Phi_135_rank_ge_at_sigma_total` at the canonical
+`B_total = extendedCookLevinPartition M n hn2`.
+
+§247 therefore closes the paper §246.11-labelled remaining gap (b)
+"rank-transfer lemma `rank B κ ℓ (embed σ q) ≥ rank B' κ ℓ q`" at the
+paper-faithful Cook–Levin instance by plumbing §216.6 into the
+`PartitionedCompilerOutput` shape.
+
+### §247 deliverables
+
+  * **§247.1** `hNP_lower_from_embed_rank_preservation` — abstract
+    transfer: given a rank lower bound at the pullback partition on a
+    `CoupledSheetPoly`, `embed_rank_preservation` lifts it to the
+    embedded form on the ambient `PMnPoly`.
+
+  * **§247.2** `partitioned_output_cookLevin` — concrete
+    `PartitionedCompilerOutput` at the Cook–Levin σ with the §189
+    NP-side witness as `(Φ, z, V)` and `R_compute = 0`.
+
+  * **§247.3** `partitioned_output_cookLevin_Q_verifier_eq` — field
+    unfolding: `W.Q_verifier = Q_times_Phi_135 Φ_chosen z_chosen
+    V_chosen`.
+
+  * **§247.4** `partitioned_output_cookLevin_embedded_Q_eq` — field
+    unfolding: `W.embedded_Q = rename σ.inlU (Q_times_Phi_135 ...)`.
+
+  * **§247.5** `hNP_lower_at_cookLevin_via_216_6` — discharge of the
+    `hNP_lower` field at §247.2's concrete bundle using §216.6.
+
+  * **§247.6** audit anchors.
+
+### Honest scope
+
+§247 closes the §246.11-labelled gap (b) (rank-transfer) and gap (a)
+(Cook–Levin-shaped `PartitionedCompilerOutput`) at the structural
+level: a concrete `W : PartitionedCompilerOutput` with the §189
+witness is landed, and `hNP_lower` is discharged against `W.embedded_Q`
+via §216.6.
+
+The remaining structural gap to zero-hypothesis `P ≠ NP` is the
+`hQ_cew`, `hR_cew`, and `hP_upper` fields of
+`PartitionedCompilerOutput_with_thresholds`: per-sheet CEW bounds at
+`C * log n` and the full output's rank at `n^{200}`. These remain as
+explicit hypotheses, matching the paper §40.4 Theorem 218 (CEW
+composition) and §40.2 Theorem 216 (Width⇒Rank) that §245/§246 flag.
+
+All §247 theorems kernel-only ([propext, Classical.choice, Quot.sound]).
+
+Paper citations: §40.3 Theorem 217 p. 204 (NP-side identity-minor);
+§40 Lemma 205 p. 197 (embed = rename inlU); §40.5 p. 205 Lemma 220
+(Block-Local Basis Invariance); §40.7 Theorem 223 p. 206 (Cook–Levin
+σ fixture); §18 Lemma 124 pp. 99-109 (identity-minor construction);
+§18.1 p. 99 Definition 38 (Q_times_Phi_135); §49.1 p. 230. -/
+
+namespace Step247
+
+open MvPolynomial
+open Step241 (PartitionedCompilerOutput)
+
+/-- **§247.1 — `hNP_lower_from_embed_rank_preservation`** (paper §40.5
+p. 205 Lemma 220 + paper §40 Lemma 205 p. 197 embed identity).
+
+**Abstract transfer**: given a lower bound on
+`mlBlockedSpdpRank (pullbackPartition B σ.inlU) κ ℓ Q` on the
+coupled-sheet polynomial `Q : CoupledSheetPoly σ`, transport it via
+`PaperFaithfulCompilation.embed_rank_preservation` to a lower bound on
+`mlBlockedSpdpRank B κ ℓ (CoupledSheetPoly.embed σ Q)` on the ambient
+`PMnPoly σ`.
+
+This is the paper §246.11-labelled "rank-transfer lemma (b)" at the
+abstract level. Used by §247.5 at the Cook–Levin instance with
+§189's concrete pullback-bound supplied by §216.6. -/
+theorem hNP_lower_from_embed_rank_preservation
+    (σ : UVSplit) (B : SPDP.BlockPartition σ.total) (κ ℓ : ℕ)
+    (Q : CoupledSheetPoly σ) (bound : ℕ)
+    (hPull : bound ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition B σ.inlU) κ ℓ Q) :
+    bound ≤ MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+      (CoupledSheetPoly.embed σ Q) :=
+  le_trans hPull
+    (PaperFaithfulCompilation.embed_rank_preservation σ B κ ℓ Q)
+
+/-- **§247.2 — `partitioned_output_cookLevin`** (paper §40.7 Theorem
+223 p. 206 Cook–Levin σ fixture; paper §40.8 Lemma 224 p. 207
+additive shape with `R_compute = 0`; paper §18.1 Definition 38 p. 99
+`Q_times_Phi_135` witness).
+
+**Concrete `PartitionedCompilerOutput` at the Cook–Levin instance.**
+Fields:
+
+  * `σ := cookLevinUVSplit M n` — paper §40.7 Theorem 223 p. 206
+    Cook–Levin UV-split with `numU = n`.
+  * `α := Fin 1`, `Φ := lemma_124_Phi_chosen` — paper §18.1 p. 99
+    singleton clause-index set.
+  * `z := lemma_124_z_chosen M n hn2 htb hns` — paper §18.1 p. 99
+    Definition 38 selector.
+  * `V := lemma_124_V_chosen n` — paper §18.1 p. 99 Definition 38
+    verifier polynomial (identically 1).
+  * `R_compute := 0` — degenerate residual (paper §40.8 Lemma 224 p.
+    207 with no v-side content); `residual_v_only` holds vacuously
+    since `(0).support = ∅`.
+
+This is a **genuine Cook–Levin-shape witness**, distinct from §241.6's
+`partitioned_output_trivialPhi` (which uses `σ = ⟨1,1⟩` and empty `Φ`):
+§247.2 has `σ.numU = n` (non-trivial u-side) and `Φ = {0}`
+(non-empty clause-index set) with the paper-faithful §189 witness as
+`(z, V)`. -/
+noncomputable def partitioned_output_cookLevin
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    PartitionedCompilerOutput where
+  σ := PaperFaithfulCompilation.cookLevinUVSplit M n
+  α := Fin 1
+  Φ := lemma_124_Phi_chosen
+  z := lemma_124_z_chosen M n hn2 htb hns
+  V := lemma_124_V_chosen n
+  R_compute := 0
+  residual_v_only := by
+    intro β hβ
+    simp [MvPolynomial.support_zero] at hβ
+
+/-- **§247.3 — `partitioned_output_cookLevin_Q_verifier_eq`**: field
+unfolding of `Q_verifier` at §247.2 — equal to `Q_times_Phi_135
+Φ_chosen z_chosen V_chosen`. By definitional unfolding. -/
+theorem partitioned_output_cookLevin_Q_verifier_eq
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (partitioned_output_cookLevin M n hn2 htb hns).Q_verifier =
+      Q_times_Phi_135 lemma_124_Phi_chosen
+        (lemma_124_z_chosen M n hn2 htb hns)
+        (lemma_124_V_chosen n) := rfl
+
+/-- **§247.4 — `partitioned_output_cookLevin_embedded_Q_eq`**: field
+unfolding of `embedded_Q` at §247.2 — equal to `rename σ.inlU
+(Q_times_Phi_135 Φ_chosen z_chosen V_chosen)`. By definitional
+unfolding: `embed σ q := rename σ.inlU q`. -/
+theorem partitioned_output_cookLevin_embedded_Q_eq
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (partitioned_output_cookLevin M n hn2 htb hns).embedded_Q =
+      MvPolynomial.rename
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU
+        (Q_times_Phi_135 lemma_124_Phi_chosen
+          (lemma_124_z_chosen M n hn2 htb hns)
+          (lemma_124_V_chosen n)) := rfl
+
+/-- **§247.5 — `hNP_lower_at_cookLevin_via_216_6`** (paper §40.3
+Theorem 217 p. 204 NP-side identity-minor at the σ.total level; paper
+§40.5 p. 205 Lemma 220 Block-Local Basis Invariance; §216.6).
+
+**Discharge of `hNP_lower` at §247.2's concrete bundle using §216.6.**
+
+Given:
+  * `n ≥ 2^{804}`, `M.timeBound ≤ 4`, `M.numStates ≤ n` (paper §40.7
+    Cook–Levin-compatibility);
+  * `B_total : SPDP.BlockPartition σ.total` with
+    `B_total = extendedCookLevinPartition M n hn2` (the canonical
+    σ.total partition used by §215.3 / §216.6).
+
+Deliver:
+  `n^(Nat.log 2 n / 4) ≤
+     mlBlockedSpdpRank B_total (log₂ n) (log₂ n)
+       (partitioned_output_cookLevin M n hn2 htb hns).embedded_Q`.
+
+Proof: §247.4 identifies `embedded_Q` with `rename σ.inlU
+(Q_times_Phi_135 Φ_chosen z_chosen V_chosen)`. §216.6 delivers the
+required bound on exactly this polynomial. Combine.
+
+This is the `hNP_lower`-shaped conclusion expected by the
+`PartitionedCompilerOutput_with_thresholds` structure (§241.8). -/
+theorem hNP_lower_at_cookLevin_via_216_6
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) :
+    n ^ (Nat.log 2 n / 4) ≤
+      MultilinearSPDP.mlBlockedSpdpRank B_total
+        (Nat.log 2 n) (Nat.log 2 n)
+        (partitioned_output_cookLevin M n hn2 htb hns).embedded_Q := by
+  -- §247.4: `embedded_Q = rename σ.inlU (Q_times_Phi_135 ...)`.
+  rw [partitioned_output_cookLevin_embedded_Q_eq]
+  -- Strategy (paper §40.5 Lemma 220 / §191.3): the §189.8 rank bound at
+  -- the pullback partition on `Fin n` transports via `rank_bound_B_pullback`
+  -- (§191.3) to the σ.total-level bound on `rename σ.inlU (Q_times_Phi_135)`.
+  -- This is the same proof-shape as §216.6, re-used at the concrete
+  -- `B_total = extendedCookLevinPartition` via `hB_total`.
+  -- Subst B_total to its canonical form.
+  subst hB_total
+  -- §189.8 at the pullback partition.
+  have hPull :
+      n ^ (Nat.log 2 n / 4) ≤
+        MultilinearSPDP.mlBlockedSpdpRank
+          (MultilinearSPDP.pullbackPartition
+            (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+            (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+          (Nat.log 2 n) (Nat.log 2 n)
+          (Q_times_Phi_135 lemma_124_Phi_chosen
+            (lemma_124_z_chosen M n hn2 htb hns)
+            (lemma_124_V_chosen n)) := by
+    show n ^ (Nat.log 2 n / 4) ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (lemma_124_B_chosen M n hn2)
+        (Nat.log 2 n) (Nat.log 2 n)
+        (Q_times_Phi_135 lemma_124_Phi_chosen
+          (lemma_124_z_chosen M n hn2 htb hns)
+          (lemma_124_V_chosen n))
+    exact lemma_124_rank_ge_n_pow_log_over_4 M n hn htb hns
+  -- §191.3 transports via §40.5 Lemma 220.
+  exact rank_bound_B_pullback
+    (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU
+    (PaperFaithfulCompilation.inlU_injective
+      (PaperFaithfulCompilation.cookLevinUVSplit M n))
+    (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    lemma_124_Phi_chosen
+    (lemma_124_z_chosen M n hn2 htb hns)
+    (lemma_124_V_chosen n) n hPull
+
+/-- **§247.6 — `Step247_scope_audit`** (paper §49.1 p. 230 honest
+scope anchor).
+
+**Audit anchor** documenting the precise content §247 lands:
+
+### §247 closes
+
+  * **Rank-transfer at abstract level (§246.11 gap (b))**: §247.1
+    `hNP_lower_from_embed_rank_preservation` plumbs
+    `PaperFaithfulCompilation.embed_rank_preservation` into the
+    `bound ≤ rank (embed σ Q)` shape directly.
+
+  * **Cook–Levin-shaped `PartitionedCompilerOutput` (§246.11 gap
+    (a))**: §247.2 `partitioned_output_cookLevin` instantiates the
+    §241.1 structure with `σ.numU = n`, `Φ = {0}`, and the §189
+    witness `(z_chosen, V_chosen)`. This is a **non-trivial**
+    concrete bundle (distinct from §241.6's trivial-Φ witness).
+
+  * **`hNP_lower` discharge at Cook–Levin (§246.11 gap (b) applied)**:
+    §247.5 `hNP_lower_at_cookLevin_via_216_6` delivers the
+    `n^(log n/4)`-shaped rank lower bound on the concrete
+    `embedded_Q` of §247.2, via §216.6 (which itself composes §189.8
+    + §191.3 / paper §40.5 Lemma 220).
+
+### §247 does NOT close
+
+The `hQ_cew`, `hR_cew`, and `hP_upper` fields of
+`PartitionedCompilerOutput_with_thresholds` at §247.2's bundle remain
+**undischarged**:
+
+  * `hQ_cew`: `HasCEWBound Q_verifier (log₂ n)` — the Cook–Levin
+    verifier sheet `Q_times_Phi_135 Φ_chosen z_chosen V_chosen`
+    reduces to `cookLevinQ M n` (by §189.4), whose `totalDegree` is
+    bounded by the compiler's total-degree analysis (not log₂ n in
+    general for the surrogate `HasCEWBound := totalDegree ≤ _`).
+
+  * `hP_upper`: `rank B κ ℓ (full_output) ≤ n^{200}` — requires a
+    `Theorem216SpanningSet` on `full_output = embed σ Q_times_Phi_135
+    + 0 = embed σ Q_times_Phi_135`, which for the Cook–Levin shape is
+    the paper §40.2 Theorem 216 full content.
+
+These are exactly the paper §40.4 Theorem 218 + §40.2 Theorem 216
+structural content §245/§246 flag; §247 does not close them but
+positions the bundle correctly for the moment they are landed.
+
+Paper citations: §40.3 Theorem 217 p. 204 (NP-side); §40 Lemma 205
+p. 197 (embed identity); §40.5 p. 205 Lemma 220; §246.11 (gap
+location); §49.1 p. 230. -/
+theorem Step247_scope_audit : True := trivial
+
+end Step247
+
+-- **Axiom audit** for §247 (paper §49.1 p. 230 "axiom-free, no
+-- sorry"; paper §40.3 Theorem 217 NP-side `embed σ Q` transfer;
+-- paper §246.11 gap (a) + (b) closure at the Cook–Levin instance).
+--
+-- Expected audit result: every §247 theorem kernel-only
+-- ([propext, Classical.choice, Quot.sound]), inheriting from §189,
+-- §191.3 / §183.2, §216.6, and `PaperFaithfulCompilation.embed_rank_preservation`.
+#print axioms Step247.hNP_lower_from_embed_rank_preservation
+#print axioms Step247.partitioned_output_cookLevin
+#print axioms Step247.partitioned_output_cookLevin_Q_verifier_eq
+#print axioms Step247.partitioned_output_cookLevin_embedded_Q_eq
+#print axioms Step247.hNP_lower_at_cookLevin_via_216_6
+#print axioms Step247.Step247_scope_audit
+
 end Step4Compiler
