@@ -52034,6 +52034,45 @@ theorem P_ne_NP_from_cookLevin_direct_rank_hypothesis
   exact DirectRankPackage_cookLevin M n hn htb hns hn2
     (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) rfl hQ_upper
 
+/-- **§252.13b₁ — `cookLevin_rawTouchedPostSpan_finrank_of_factorizationAtProfile`**
+(weakened but usable consequence of the touched-factorization frontier).
+
+The archived obstruction in `WithinProfileBound` only blocks promotion of the
+factorization target to a single common ambient subspace `W`: factorization gives
+`rawTouchedPostSpan ≤ map (mulRight c) W`, not literally `≤ W`.
+
+But for finrank control, that weaker conclusion is already enough. This theorem
+packages the direct consequence: if the concrete Cook-Levin family satisfies the
+profile-touched factorization target at profile `h`, then every compatible raw
+`touched` post-span has finrank bounded by `profileTemplateBound h`.
+
+So the untouched-factor obstruction blocks a stronger template-family theorem,
+but it does NOT block the per-instance finrank bound actually consumed by the
+profile-counting route. -/
+theorem cookLevin_rawTouchedPostSpan_finrank_of_factorizationAtProfile
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (h : SymmetricPowerBound.ProfileHistogram)
+    (hfact : WithinProfileBound.CookLevinProfileTouchedFactorizationAtProfile M n hn htb hns h)
+    (S : List (Fin n)) (hS : S.length ≤ Nat.log 2 n)
+    (shift : MvPolynomial (Fin n) ℚ) (hshift : shift.vars ⊆ S.toFinset)
+    (touched : Finset (Fin (WithinProfileBound.cookLevinFactorList M n hn htb hns).length))
+    (hcompat : WithinProfileBound.RawTouchedCompatibleWithDerivProfile
+      (n := n) (WithinProfileBound.cookLevinConstraintType M n hn htb hns) h touched) :
+    Module.finrank ℚ ↥(SymmetricPowerBound.rawTouchedPostSpan
+      (fun i => (WithinProfileBound.cookLevinFactorList M n hn htb hns).get i)
+      S shift touched)
+      ≤ WithinProfileBound.profileTemplateBound h := by
+  rcases hfact with ⟨W, hfinW, hdimW, hW⟩
+  rcases hW S hS shift hshift touched hcompat with ⟨c, hle⟩
+  exact le_trans
+    (WithinProfileBound.finrank_le_of_generators_factor
+      (SymmetricPowerBound.rawTouchedPostSpan
+        (fun i => (WithinProfileBound.cookLevinFactorList M n hn htb hns).get i)
+        S shift touched)
+      W c hfinW hle)
+    hdimW
+
 /-- **§252.13c — `cookLevinQ_rank_bound_from_honest_fixed_profile_factorization`**
 (honest fixed-profile-cover bridge onto the final Cook-Levin object).
 
