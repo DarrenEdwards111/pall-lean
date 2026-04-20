@@ -51142,4 +51142,295 @@ end Step250
 #print axioms Step250.HasRealCEWBound.mono
 #print axioms Step250.Step250_scope_audit
 
+/-! ## §251 — **Path X investigation: CEW is schedule-dependent, not
+a property of the final polynomial** (paper §8.2 Definitions 9–11
+p. 31; paper §40.4 Theorem 218 p. 205).
+
+### §251 role
+
+§250 introduced `HasRadius1Locality` / `HasRealCEWBound` as a
+paper-faithful alternative to the totalDegree-based surrogate
+`HasCEWBound`. §251 now documents, with concrete structural lemmas,
+**why neither `HasCEWBound` nor `HasRadius1Locality` — in their
+current forms — can discharge the `hQ_cew` hypothesis of
+`GConstructionPackage_cookLevin_with_digitisation` at the bound
+`Nat.log 2 n`.**
+
+### Path X findings (paper §8.2 Definitions 9–11, p. 31)
+
+Paper Definition 9 (Structural CEW): "CEW(p) is the maximum, over all
+time steps t, of the number of block interfaces simultaneously
+touched by primitive operations at time t, **under the fixed,
+input-independent access schedule produced by the compiler**."
+
+Paper Definition 11 (CEW for straight-line programs): "CEWw(P) is
+the maximum support size of any **intermediate** of formal degree
+≤ r(n) encountered in window w."
+
+**Key structural fact:** paper CEW is a property of a **(program,
+schedule)** pair or a **straight-line computation**, not a property
+of the final `MvPolynomial`. It depends on intermediate values
+produced during compilation, not on the fully-expanded polynomial's
+monomial support alone.
+
+### Why `HasCEWBound Q_verifier (Nat.log 2 n)` cannot be proved
+
+`Q_verifier` at §247.2 equals `cookLevinQ` (via §189.4:
+`Q_times_Phi_135 Φ z V = cookLevinQ` at `Φ = {0}`, `V_C = 1`,
+`z_0 = 1 - cookLevinQ`, by `Fin.prod_univ_one` + ring).
+
+`cookLevinQ` is `compiledPoly (cook_levin_compilation M n ...)`
+(via `PaperFaithfulCompilation.cookLevinQ`) which equals
+
+  `∏ᵢ (1 - (Cᵢ.poly))`
+
+over `≤ n^10` constraints, each with `totalDegree (Cᵢ.poly) ≤ 6`.
+The **product** has `totalDegree ≤ 6 * n^10`, which is vastly
+larger than `Nat.log 2 n` for any `n ≥ 2`. Since
+`HasCEWBound p target := p.totalDegree ≤ target` (Section 3), the
+hypothesis `HasCEWBound Q_verifier (Nat.log 2 n)` is **structurally
+false at the current `HasCEWBound` definition**.
+
+### Why `HasRealCEWBound Q_verifier B (Nat.log 2 n)` also cannot be
+proved
+
+Even at the paper-faithful `HasRadius1Locality` / `HasRealCEWBound`
+predicate (§250), `cookLevinQ`'s monomial support spans many blocks
+simultaneously. When the product `∏ᵢ (1 - Cᵢ.poly)` is expanded, a
+generic monomial is a product of one term per factor; with `n^10`
+factors, each factor contributing either `1` or a `Cᵢ`-term (which
+touches ≤ 10 variables), the resulting monomials can touch any
+subset of up to `n^10` variables — far more than `Nat.log 2 n`
+blocks.
+
+Concrete counterexample: take `n = 8`, `M` the trivial always-accept
+DTM. The booleanity factor `(1 - X_0 (1 - X_0)) · (1 - X_1 (1 - X_1))
+... (1 - X_7 (1 - X_7))` expanded yields monomials including
+`X_0 X_1 X_2 ... X_7` (touching all 8 variables, hence all `⌈(8+2)/3⌉
+= 4` blocks under the locality partition). The radius of this
+monomial is `4`, whereas `Nat.log 2 8 = 3`. So
+`HasRadius1Locality cookLevinQ B 3` is **false**, hence
+`HasRealCEWBound cookLevinQ B (Nat.log 2 n)` is also false at
+small `n`.
+
+### The correct paper-faithful formulation
+
+Paper §40.4 Theorem 218 says: "The compiler expands each Turing
+layer into disjoint radius-1 tiles (time×tape and layered-wires).
+Each **tile** depends only on adjacent symbols and bounded-depth
+control. The sorting-network access schedule has depth O(log²n),
+but the maximum cut interface count (CEW) **at any time step** is
+O(log n): each **simultaneous access** touches at most O(log n)
+blocks across the schedule."
+
+The CEW bound is about:
+  (i) the **individual tiles** (radius-1 per tile);
+  (ii) the **schedule's cut interface at a single time step** (log n);
+  (iii) **NOT** about the fully-expanded polynomial's support.
+
+### The structural mismatch and its fix
+
+**The `GConstructionPackage_cookLevin*` bundle demands a property
+(`HasCEWBound Q_verifier ≤ log₂ n`) that `Q_verifier = cookLevinQ`
+does not have.** The bundle's `hQ_cew` hypothesis therefore cannot
+be discharged honestly for the current `cookLevinQ` definition.
+
+To fix the structural mismatch, future rounds must either:
+
+  * **(Fix A)** Replace `cookLevinQ` with a **schedule-aware
+    polynomial** `cookLevinQ_scheduled : (MvPolynomial · ℚ) ×
+    Schedule`, where `Schedule` is a new type encoding the
+    compiler's straight-line program. Define `CEW (p, σ)` on such
+    pairs as the paper's Definition 11 intermediate-support maximum.
+    Re-prove the NP-side lower bound for this new object.
+
+  * **(Fix B)** Keep `cookLevinQ` but weaken `hQ_cew` to a
+    **per-factor radius-1 locality** condition: each factor
+    `(1 - Cᵢ.poly)` has `HasRadius1Locality B 1` (since each
+    `Cᵢ` touches ≤ 10 variables ≤ 1 block-neighborhood). Then reshape
+    the spanning-set argument to exploit **factor locality** rather
+    than product locality. This requires re-proving Theorem 216's
+    Khatri–Rao step at the factored-product level.
+
+  * **(Fix C)** Replace `HasCEWBound` in the bundle with a predicate
+    designed for **products of locally-supported factors**, e.g.
+    `IsBoundedProductOfLocalFactors`, giving a honest structural
+    property that `cookLevinQ` DOES satisfy.
+
+§251 below provides a **true** lemma in the spirit of Fix B,
+documenting the per-factor locality that `cookLevinQ` genuinely
+has.
+
+### §251 deliverables
+
+  * **§251.1** `boolPoly_vars_card_le` — booleanity factor `X_v (1 -
+    X_v)` has `vars.card ≤ 1`.
+  * **§251.2** `cookLevinQ_has_trivial_locality` — trivial radius
+    bound: `HasRadius1Locality cookLevinQ B numBlocks` (vacuously
+    true, as any polynomial's radius is at most `numBlocks`). This
+    documents the GAP between the trivial bound and the paper's
+    `log n` target.
+  * **§251.3** `Step251_path_X_gap` — audit anchor.
+
+All §251 theorems kernel-only.
+
+Paper citations: §8.2 Definitions 9-11 p. 31 (CEW structural vs
+algebraic); §40.4 Theorem 218 p. 205 (tile-level radius-1 + schedule
+CEW); §49.1 p. 230. -/
+
+namespace Step251
+
+open MvPolynomial
+open Step250 (HasRadius1Locality HasRealCEWBound)
+
+/-- **§251.1 — `boolPoly_vars_card_le`**: booleanity polynomial
+`X_v (1 - X_v)` has at most 1 variable in its `vars` set.
+
+This documents that **individual factors** of `cookLevinQ` are
+genuinely radius-1: each booleanity factor touches a single variable,
+hence a single block under any partition. The same holds for
+adjacency and transition-skeleton factors (≤ 2 vars, hence ≤ 2
+blocks).
+
+The paper's Theorem 218 proof is about **this per-factor radius-1
+locality plus a schedule** — NOT about the final polynomial.
+
+### Proof
+
+`boolPoly' N v = X v * (1 - X v)`. By `boolPoly'_vars`, its `vars`
+is a subset of `{v}`, hence has card ≤ 1. -/
+theorem boolPoly_vars_card_le (N : ℕ) (v : Fin N) :
+    (PaperFaithfulSeparation.boolPoly' N v).vars.card ≤ 1 := by
+  -- Use the `vars_contained` field of `PaperFaithfulSeparation.boolLC`,
+  -- which packages the same fact (boolPoly'_vars is private).
+  have hsub : (PaperFaithfulSeparation.boolPoly' N v).vars ⊆
+      ({v} : Finset (Fin N)) := by
+    have := (PaperFaithfulSeparation.boolLC N v).vars_contained
+    -- `(boolLC N v).poly = boolPoly' N v` and `.support = {v}`
+    -- by definition, so the field gives us `vars ⊆ {v}`.
+    simpa [PaperFaithfulSeparation.boolLC] using this
+  have hcard := Finset.card_le_card hsub
+  simp at hcard
+  exact hcard
+
+/-- **§251.2 — `HasRadius1Locality_trivial_bound_numBlocks`**
+(trivial locality bound at `r := numBlocks`).
+
+Any polynomial `p : MvPolynomial (Fin N) ℚ` has
+`HasRadius1Locality p B B.numBlocks`, because every monomial's
+variable support maps (via `B.assign`) into the codomain `Fin
+B.numBlocks`, which has at most `B.numBlocks` elements.
+
+This documents the **trivial upper bound** on radius (a polynomial's
+radius is always at most the number of blocks), contrasting with
+the paper's TARGET bound of `O(log n)` under the radius-1 compiler.
+
+At `B = extendedCookLevinPartition M n hn2` with `numBlocks = (n+2)/3
+≈ n/3`, this gives `HasRadius1Locality cookLevinQ B (n/3)` — much
+larger than `Nat.log 2 n`. -/
+theorem HasRadius1Locality_trivial_bound_numBlocks {N : ℕ}
+    (p : MvPolynomial (Fin N) ℚ) (B : SPDP.BlockPartition N) :
+    HasRadius1Locality p B B.numBlocks := by
+  intro m _hm
+  -- `(m.support.image B.assign).card ≤ (Finset.univ : Finset (Fin B.numBlocks)).card`
+  -- since the image is a subset of `Finset.univ` (the full codomain).
+  have hsubset : m.support.image B.assign ⊆
+      (Finset.univ : Finset (Fin B.numBlocks)) :=
+    Finset.subset_univ _
+  have hle : (m.support.image B.assign).card ≤
+      (Finset.univ : Finset (Fin B.numBlocks)).card :=
+    Finset.card_le_card hsubset
+  simp [Finset.card_univ, Fintype.card_fin] at hle
+  exact hle
+
+/-- **§251.3 — `HasRealCEWBound_trivial_bound_numBlocks`**
+(packaged trivial locality bound).
+
+Every polynomial satisfies `HasRealCEWBound p B B.numBlocks`, via
+§251.2. This is the **partition-respecting trivial bound**, which is
+honest but structurally distant from the paper's `O(log n)` CEW
+target.
+
+In particular, for `cookLevinQ` at the Cook–Levin partition
+(numBlocks ≈ n/3), the trivial bound gives `HasRealCEWBound
+cookLevinQ B (n/3)` — **true**, but at `(n/3)` rather than `log₂ n`.
+
+This lemma discharges a **relaxed** form of `hQ_cew` that targets
+`numBlocks` instead of `log n`. To meet the paper's `log n` target,
+a structural strengthening (§251 preamble Fix A/B/C) is needed. -/
+theorem HasRealCEWBound_trivial_bound_numBlocks {N : ℕ}
+    (p : MvPolynomial (Fin N) ℚ) (B : SPDP.BlockPartition N) :
+    HasRealCEWBound p B B.numBlocks :=
+  ⟨B.numBlocks, HasRadius1Locality_trivial_bound_numBlocks p B,
+    le_refl _⟩
+
+/-- **§251.4 — `Step251_path_X_gap`** (paper §49.1 p. 230 honest
+scope anchor; paper §8.2 Definitions 9-11 p. 31).
+
+**Audit anchor** documenting the Path X investigation:
+
+### §251 closes
+
+  * **§251.1** `boolPoly_vars_card_le` — per-factor radius-1
+    confirmation (booleanity factor). This is the kind of property
+    `cookLevinQ`'s **factors** genuinely have.
+  * **§251.2** `HasRadius1Locality_trivial_bound_numBlocks` — trivial
+    radius bound at `r := numBlocks`. Vacuously provable; documents
+    the gap.
+  * **§251.3** `HasRealCEWBound_trivial_bound_numBlocks` — packaged
+    form.
+
+### §251 documents (does NOT close)
+
+  * **Structural mismatch**: `HasCEWBound Q_verifier (Nat.log 2 n)`
+    is **false** for `cookLevinQ` (which has
+    `totalDegree ≥ 6 * (number of constraints)`).
+  * **`HasRadius1Locality cookLevinQ B (Nat.log 2 n)`** is also
+    **false** (the expanded product touches many blocks per monomial).
+  * **The fix requires**: either a schedule-aware polynomial
+    (Fix A), a per-factor-locality-based bundle (Fix B), or a new
+    product-of-locally-supported-factors predicate (Fix C).
+
+### Bundle-level impact
+
+The `GConstructionPackage_cookLevin_with_digitisation` bundle
+(§249.2) currently has **2 remaining hypotheses** that cannot both
+be discharged at the current definitions:
+
+  (i) `hQ_cew : HasCEWBound Q_verifier (Nat.log 2 n)` — STRUCTURALLY
+      FALSE at the current `HasCEWBound` definition. Must be
+      replaced by a predicate that `cookLevinQ` actually satisfies.
+  (ii) `S : Theorem216SpanningSet B κ ℓ (embed σ cookLevinQ)` +
+       `S.C_3 ≤ 2^{199}` — requires the Khatri–Rao
+       spanning-set construction, which is exactly paper §40.2
+       Theorem 216's substantive content (not yet formalised at the
+       concrete product-of-factors level).
+
+### Honest assessment
+
+Zero-hypothesis closure of the bundle at the current
+`GConstructionPackage_cookLevin_with_digitisation` signature is
+**NOT reachable** without addressing the structural gap documented
+above. The paper-faithful formulation requires either (Fix A) a new
+schedule type + redefined `cookLevinQ_scheduled`, or (Fix B)
+reformulating the bundle around factor-level locality. Either is
+substantial work (~100s-1000s of lines of Lean).
+
+Paper citations: §8.2 Definitions 9-11 p. 31 (CEW structural vs
+algebraic); §40.4 Theorem 218 p. 205 (radius-1 tile + schedule); §49.1
+p. 230. -/
+theorem Step251_path_X_gap : True := trivial
+
+end Step251
+
+-- **Axiom audit** for §251 (paper §49.1 p. 230 "axiom-free, no sorry";
+-- paper §8.2 Definitions 9-11 p. 31; paper §40.4 Theorem 218 p. 205).
+--
+-- Expected audit result: every §251 theorem kernel-only
+-- ([propext, Classical.choice, Quot.sound]).
+#print axioms Step251.boolPoly_vars_card_le
+#print axioms Step251.HasRadius1Locality_trivial_bound_numBlocks
+#print axioms Step251.HasRealCEWBound_trivial_bound_numBlocks
+#print axioms Step251.Step251_path_X_gap
+
 end Step4Compiler
