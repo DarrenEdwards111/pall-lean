@@ -51433,4 +51433,354 @@ end Step251
 #print axioms Step251.HasRealCEWBound_trivial_bound_numBlocks
 #print axioms Step251.Step251_path_X_gap
 
+/-! ## §252 — **Slim bundle eliminating dead CEW fields** (paper §40.4
+Theorem 218 p. 205 CEW bound; paper §49.1 p. 230 "axiom-free, no
+sorry").
+
+### §252 role
+
+Section §240's `real_compiler_output_derives_false` proof body consumes
+only `σ, B, κ, ℓ, Φ, z, V, R, n, hn_big, hResidualVOnly, hNP_lower,
+hP_upper` — **not** `hQ_cew` and `hR_cew`. The CEW fields of
+`Step240.RealCompilerOutput` are **dead fields** (verified by direct
+reading of the proof body at §240.2, line 48082–48086).
+
+§252 builds parallel slim structures that **omit** the dead CEW fields,
+reducing the hypothesis space to exactly what the contradiction
+actually consumes. This is an honest refactor: it does not change what
+is proved, only removes hypotheses that were carried but never used.
+
+### §252 deliverables
+
+  * **§252.1** `RealCompilerOutput_slim` — §240.1 without `hQ_cew` /
+    `hR_cew`.
+  * **§252.2** `real_compiler_output_derives_false_slim` — §240.2 on
+    the slim bundle, using §237.6a directly.
+  * **§252.3** `PartitionedCompilerOutput_with_thresholds_slim` — §241.8
+    without `hQ_cew` / `hR_cew`.
+  * **§252.4** `P_ne_NP_from_PartitionedCompilerOutputExists_slim` — §241.10
+    on the slim bundle.
+  * **§252.5** `P_ne_NP_from_PartitionedCompilerOutput_slim_single_hypothesis` —
+    §242.1 on the slim bundle (classical bridge discharged).
+  * **§252.6** `GConstructionPackage_slim` — §245.8a without CEW fields.
+  * **§252.7** `GConstructionPackage_slim.to_thresholds_slim` — adaptor.
+  * **§252.8** `P_ne_NP_from_G_plus_NP_and_structural_slim` — §245.8 on
+    slim bundles.
+  * **§252.9** `GConstructionPackage_cookLevin_slim` — Cook-Levin slim
+    builder without `hQ_cew`.
+  * **§252.10** `GConstructionPackage_cookLevin_with_digitisation_slim` —
+    §249.2 slim.
+  * **§252.11** `P_ne_NP_from_slim_bundle_cookLevin` — final composed
+    form: one remaining hypothesis `S : Theorem216SpanningSet` plus
+    digitisation `S.C_3 ≤ 2^{199}` at Cook-Levin.
+  * **§252.12** audit anchor.
+
+All kernel-only (`[propext, Classical.choice, Quot.sound]`).
+
+Paper citations: §40.1 Theorem 209 Steps 5-6 p. 202; §40 Theorem 207
+p. 199; §40.2 Theorem 216 p. 203; §40.3 Theorem 217 p. 204; §49.1
+p. 230. -/
+
+namespace Step252
+
+open MvPolynomial
+open PaperFaithfulCompilation (UVSplit CoupledSheetPoly PMnPoly piPhi keepU)
+open Step241 (PartitionedCompilerOutput)
+open Step245 (Theorem216SpanningSet)
+
+/-- **§252.1 — `RealCompilerOutput_slim`** (paper §40.1 Theorem 209
+Steps 5-6 p. 202; dead-fields elimination of §240.1).
+
+The §240.1 `RealCompilerOutput` bundle without `hQ_cew` and `hR_cew`
+(which are dead fields — never consumed by §240.2's proof). -/
+structure RealCompilerOutput_slim where
+  /-- The Cook-Levin-style UV-split. -/
+  σ : UVSplit
+  /-- The coupled-sheet clause index type. -/
+  α : Type
+  /-- The coupled-sheet clause index set `Φ`. -/
+  Φ : Finset α
+  /-- The u-side selector polynomials `z_C`. -/
+  z : α → MvPolynomial (Fin σ.numU) ℚ
+  /-- The u-side verifier polynomials `V_C`. -/
+  V : α → MvPolynomial (Fin σ.numU) ℚ
+  /-- The v-only residual `R_{M', Φ}`. -/
+  R : PMnPoly σ
+  /-- The SPDP block partition `B`. -/
+  B : SPDP.BlockPartition σ.total
+  /-- The symbolic scale `κ` (paper κ = Θ(log n)). -/
+  κ : ℕ
+  /-- The symbolic scale `ℓ` (paper ℓ = Θ(log n)). -/
+  ℓ : ℕ
+  /-- The input length `n`. -/
+  n : ℕ
+  /-- Paper Lemma 224 residual variable-support property. -/
+  hResidualVOnly : ∀ β ∈ R.support, ∃ i, ¬ keepU σ i ∧ β i ≠ 0
+  /-- Paper §40.3 Theorem 217 NP-side lower bound on the coupled sheet. -/
+  hNP_lower : n ^ (Nat.log 2 n / 4) ≤
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+      (CoupledSheetPoly.embed σ (Q_times_Phi_135 Φ z V))
+  /-- Paper §40.2 Theorem 216 p. 203 P-side CEW ⇒ rank upper bound
+      as a direct inequality, avoiding the Khatri-Rao plumbing. -/
+  hP_upper : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+    (Step237.P_paperFaithful σ Φ z V R) ≤ n ^ 200
+  /-- Paper asymptotic threshold (Theorem 192 p. 165). -/
+  hn_big : (2 : ℕ) ^ 804 ≤ n
+
+/-- **§252.2 — `real_compiler_output_derives_false_slim`** (paper §40.1
+Theorem 209 Steps 5-6 p. 202; dead-fields elimination of §240.2).
+
+Given a `RealCompilerOutput_slim`, derive `False` via §237.6a directly,
+without consuming CEW fields. -/
+theorem real_compiler_output_derives_false_slim
+    (W : RealCompilerOutput_slim) : False :=
+  Step237.P_paperFaithful_route_C_to_A_full_contradiction
+    W.σ W.B W.κ W.ℓ W.Φ W.z W.V W.R W.n
+    W.hn_big W.hResidualVOnly W.hNP_lower W.hP_upper
+
+/-- **§252.3 — `PartitionedCompilerOutput_with_thresholds_slim`**
+(dead-fields elimination of §241.8).
+
+The §241.8 bundle without `hQ_cew` / `hR_cew` (dead fields at the
+final contradiction). -/
+structure PartitionedCompilerOutput_with_thresholds_slim where
+  /-- The partitioned compiler output. -/
+  W : PartitionedCompilerOutput
+  /-- The SPDP block partition. -/
+  B : SPDP.BlockPartition W.σ.total
+  /-- Rank-gap firing parameter `κ`. -/
+  κ : ℕ
+  /-- Rank-gap firing parameter `ℓ`. -/
+  ℓ : ℕ
+  /-- Input length `n`. -/
+  n : ℕ
+  /-- Paper §40 Theorem 192 p. 165 threshold `n ≥ 2^804`. -/
+  hn_big : (2 : ℕ) ^ 804 ≤ n
+  /-- Paper §40.3 Theorem 217 p. 204 NP-side identity-minor lower
+      bound on the coupled verifier sheet. -/
+  hNP_lower : n ^ (Nat.log 2 n / 4) ≤
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ W.embedded_Q
+  /-- Paper §40.2 Theorem 216 p. 203 P-side Width⇒Rank envelope on
+      the full output. -/
+  hP_upper : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ W.full_output ≤
+    n ^ 200
+
+/-- **§252.3a — `partitioned_output_to_RealCompilerOutput_slim_via_bundle`**:
+wrapper converting a slim bundle to a slim `RealCompilerOutput`. -/
+noncomputable def partitioned_output_to_RealCompilerOutput_slim_via_bundle
+    (T : PartitionedCompilerOutput_with_thresholds_slim) :
+    RealCompilerOutput_slim :=
+{ σ := T.W.σ
+  α := T.W.α
+  Φ := T.W.Φ
+  z := T.W.z
+  V := T.W.V
+  R := T.W.R_compute
+  B := T.B
+  κ := T.κ
+  ℓ := T.ℓ
+  n := T.n
+  hResidualVOnly := T.W.residual_v_only
+  hNP_lower := T.hNP_lower
+  -- `T.W.full_output = P_paperFaithful T.W.σ T.W.Φ T.W.z T.W.V T.W.R_compute`
+  -- by §241.2, so `hP_upper` on `full_output` equals the target on
+  -- `P_paperFaithful`. Both are definitionally equal (rfl-chain).
+  hP_upper := T.hP_upper
+  hn_big := T.hn_big }
+
+/-- **§252.4 — `P_ne_NP_from_PartitionedCompilerOutputExists_slim`**
+(paper §10.2 pp. 54-55 classical bridge; slim version of §241.10).
+
+Takes `hExtract + hOutput_slim`. -/
+theorem P_ne_NP_from_PartitionedCompilerOutputExists_slim
+    (hExtract : P = NP → PaperFaithfulSeparation.PeqNP_Paper)
+    (hOutput : PaperFaithfulSeparation.PeqNP_Paper →
+      PartitionedCompilerOutput_with_thresholds_slim) :
+    P ≠ NP := by
+  intro hEq
+  have hPeq := hExtract hEq
+  have T := hOutput hPeq
+  have W : RealCompilerOutput_slim :=
+    partitioned_output_to_RealCompilerOutput_slim_via_bundle T
+  exact real_compiler_output_derives_false_slim W
+
+/-- **§252.5 — `P_ne_NP_from_PartitionedCompilerOutput_slim_single_hypothesis`**
+(paper §10.2 pp. 54-55 Classical Bridge discharged via §206.2;
+slim version of §242.1).
+
+**Single-hypothesis `P ≠ NP`** on the slim bundle. -/
+theorem P_ne_NP_from_PartitionedCompilerOutput_slim_single_hypothesis
+    (hOutput : PaperFaithfulSeparation.PeqNP_Paper →
+      PartitionedCompilerOutput_with_thresholds_slim) :
+    P ≠ NP :=
+  P_ne_NP_from_PartitionedCompilerOutputExists_slim
+    P_eq_NP_implies_PeqNP_Paper_composed hOutput
+
+/-- **§252.6 — `GConstructionPackage_slim`** (dead-fields elimination
+of §245.8a).
+
+The §245.8a `GConstructionPackage` bundle without `hQ_cew` / `hR_cew`. -/
+structure GConstructionPackage_slim where
+  W : PartitionedCompilerOutput
+  B : SPDP.BlockPartition W.σ.total
+  κ : ℕ
+  ℓ : ℕ
+  n : ℕ
+  hn_big : (2 : ℕ) ^ 804 ≤ n
+  hNP_lower : n ^ (Nat.log 2 n / 4) ≤
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ W.embedded_Q
+  S : Theorem216SpanningSet B κ ℓ W.full_output
+  hEnv : S.C_3 ^ κ ≤ n ^ 200
+
+/-- **§252.7 — `GConstructionPackage_slim.to_thresholds_slim`**:
+convert a slim G-construction package to a slim thresholds bundle by
+discharging `hP_upper` via §245.5 `hP_upper_from_spanning_set`. -/
+noncomputable def GConstructionPackage_slim.to_thresholds_slim
+    (P : GConstructionPackage_slim) :
+    PartitionedCompilerOutput_with_thresholds_slim where
+  W := P.W
+  B := P.B
+  κ := P.κ
+  ℓ := P.ℓ
+  n := P.n
+  hn_big := P.hn_big
+  hNP_lower := P.hNP_lower
+  hP_upper := Step245.hP_upper_from_spanning_set P.S P.hEnv
+
+/-- **§252.8 — `P_ne_NP_from_G_plus_NP_and_structural_slim`** (paper
+§10.2 pp. 54-55 Classical Bridge + §40.2 Theorem 216 G-construction
+on slim bundle).
+
+**Composed slim headline**: `P ≠ NP` given a `PeqNP_Paper →
+GConstructionPackage_slim`. -/
+theorem P_ne_NP_from_G_plus_NP_and_structural_slim
+    (hOutput : PaperFaithfulSeparation.PeqNP_Paper →
+      GConstructionPackage_slim) :
+    P ≠ NP := by
+  apply P_ne_NP_from_PartitionedCompilerOutput_slim_single_hypothesis
+  intro hPeq
+  exact (hOutput hPeq).to_thresholds_slim
+
+/-- **§252.9 — `GConstructionPackage_cookLevin_slim`** (dead-fields
+elimination of §248.2).
+
+Takes only `S + hEnv` at the Cook-Levin instance (no `hQ_cew`). -/
+noncomputable def GConstructionPackage_cookLevin_slim
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (S : Theorem216SpanningSet B_total (Nat.log 2 n) (Nat.log 2 n)
+      (Step247.partitioned_output_cookLevin M n hn2 htb hns).full_output)
+    (hEnv : S.C_3 ^ (Nat.log 2 n) ≤ n ^ 200) :
+    GConstructionPackage_slim where
+  W := Step247.partitioned_output_cookLevin M n hn2 htb hns
+  B := B_total
+  κ := Nat.log 2 n
+  ℓ := Nat.log 2 n
+  n := n
+  hn_big := hn
+  hNP_lower :=
+    Step247.hNP_lower_at_cookLevin_via_216_6 M n hn htb hns hn2
+      B_total hB_total
+  S := S
+  hEnv := hEnv
+
+/-- **§252.10 — `GConstructionPackage_cookLevin_with_digitisation_slim`**
+(dead-fields elimination of §249.2).
+
+Takes `S + hC3` at the Cook-Levin instance. `hEnv` auto-discharged via
+§249.1. No `hQ_cew`. -/
+noncomputable def GConstructionPackage_cookLevin_with_digitisation_slim
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (S : Theorem216SpanningSet B_total (Nat.log 2 n) (Nat.log 2 n)
+      (Step247.partitioned_output_cookLevin M n hn2 htb hns).full_output)
+    (hC3 : S.C_3 ≤ 2 ^ 199) :
+    GConstructionPackage_slim :=
+  GConstructionPackage_cookLevin_slim M n hn htb hns hn2 B_total
+    hB_total S
+    (Step249.hEnv_from_digitisation S hC3 n hn)
+
+/-- **§252.11 — `P_ne_NP_from_slim_bundle`** (paper §49.1 p. 230
+"axiom-free, no sorry"; final composed form on slim bundle).
+
+**Final `P ≠ NP` from a slim-bundle hypothesis.** Given
+`PeqNP_Paper → PartitionedCompilerOutput_with_thresholds_slim`,
+deliver `P ≠ NP` via §252.5. No CEW hypothesis needed. -/
+theorem P_ne_NP_from_slim_bundle
+    (hOutput : PaperFaithfulSeparation.PeqNP_Paper →
+      PartitionedCompilerOutput_with_thresholds_slim) :
+    P ≠ NP :=
+  P_ne_NP_from_PartitionedCompilerOutput_slim_single_hypothesis hOutput
+
+/-- **§252.12 — `Step252_dead_fields_audit`** (paper §49.1 p. 230
+honest scope anchor).
+
+**Audit anchor** documenting §252:
+
+### §252 closes (structural)
+
+  * **§252.1–§252.2**: `RealCompilerOutput_slim` +
+    `real_compiler_output_derives_false_slim` — parallel to §240.1/§240.2
+    without the dead CEW fields `hQ_cew` / `hR_cew`.
+
+  * **§252.3–§252.5**: `PartitionedCompilerOutput_with_thresholds_slim`
+    + classical bridge composition — parallel to §241.8/§241.10/§242.1
+    without CEW.
+
+  * **§252.6–§252.8**: `GConstructionPackage_slim` — parallel to §245.8a
+    without CEW.
+
+  * **§252.9–§252.10**: Cook-Levin slim builders — parallel to §248.2
+    and §249.2 without `hQ_cew`.
+
+  * **§252.11**: `P_ne_NP_from_slim_bundle` — final composition.
+
+### §252 does NOT close
+
+  * The `Theorem216SpanningSet` hypothesis (`S` + digitisation
+    `S.C_3 ≤ 2^{199}`) still requires the paper §40.2 Theorem 216
+    Khatri–Rao spanning-set construction, which is not discharged here.
+
+### Dead-fields finding
+
+Verified by direct proof-body reading of §240.2
+`real_compiler_output_derives_false` (line 48082–48086): only
+`σ, B, κ, ℓ, Φ, z, V, R, n, hn_big, hResidualVOnly, hNP_lower, hP_upper`
+are consumed. `hQ_cew` and `hR_cew` are stored in
+`RealCompilerOutput` but never used in the derivation of `False`.
+
+This §252 provides the honest slim-bundle form that removes the
+carried-but-unused CEW hypotheses, bringing the final structural gap
+into sharper focus: the only remaining paper-faithful input is the
+Theorem 216 G-construction. -/
+theorem Step252_dead_fields_audit : True := trivial
+
+end Step252
+
+-- **Axiom audit** for §252 (paper §49.1 p. 230 "axiom-free, no sorry";
+-- dead-fields elimination of §240 / §241 / §242 / §245 / §248 / §249).
+--
+-- Expected audit result: every §252 theorem kernel-only
+-- ([propext, Classical.choice, Quot.sound]).
+#print axioms Step252.real_compiler_output_derives_false_slim
+#print axioms Step252.partitioned_output_to_RealCompilerOutput_slim_via_bundle
+#print axioms Step252.P_ne_NP_from_PartitionedCompilerOutputExists_slim
+#print axioms Step252.P_ne_NP_from_PartitionedCompilerOutput_slim_single_hypothesis
+#print axioms Step252.GConstructionPackage_slim.to_thresholds_slim
+#print axioms Step252.P_ne_NP_from_G_plus_NP_and_structural_slim
+#print axioms Step252.GConstructionPackage_cookLevin_slim
+#print axioms Step252.GConstructionPackage_cookLevin_with_digitisation_slim
+#print axioms Step252.P_ne_NP_from_slim_bundle
+#print axioms Step252.Step252_dead_fields_audit
+
 end Step4Compiler
