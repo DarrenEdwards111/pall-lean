@@ -51736,6 +51736,26 @@ structure GConstructionPackage_slim where
   S : Theorem216SpanningSet B κ ℓ W.full_output
   hEnv : S.C_3 ^ κ ≤ n ^ 200
 
+/-- **§252.6a — `DirectRankPackage_slim`** (honest further slimming).
+
+A parallel package that stores exactly what the final contradiction
+consumes on the P-side: the direct rank upper bound `hP_upper` on the
+full output, rather than the stronger `Theorem216SpanningSet` witness.
+
+This matches the actual consumer surface of §240.2 / §252.2 more
+closely than `GConstructionPackage_slim`: once `hP_upper` is available,
+no downstream theorem needs the explicit `G`, `hspan`, `hcard` data. -/
+structure DirectRankPackage_slim where
+  W : PartitionedCompilerOutput
+  B : SPDP.BlockPartition W.σ.total
+  κ : ℕ
+  ℓ : ℕ
+  n : ℕ
+  hn_big : (2 : ℕ) ^ 804 ≤ n
+  hNP_lower : n ^ (Nat.log 2 n / 4) ≤
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ W.embedded_Q
+  hP_upper : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ W.full_output ≤ n ^ 200
+
 /-- **§252.7 — `GConstructionPackage_slim.to_thresholds_slim`**:
 convert a slim G-construction package to a slim thresholds bundle by
 discharging `hP_upper` via §245.5 `hP_upper_from_spanning_set`. -/
@@ -51751,6 +51771,23 @@ noncomputable def GConstructionPackage_slim.to_thresholds_slim
   hNP_lower := P.hNP_lower
   hP_upper := Step245.hP_upper_from_spanning_set P.S P.hEnv
 
+/-- **§252.7a — `DirectRankPackage_slim.to_thresholds_slim`**:
+convert the direct-rank package to the slim thresholds bundle.
+
+Unlike §252.7, no G-construction unpacking is needed here: `hP_upper`
+is already stored in the exact form consumed downstream. -/
+noncomputable def DirectRankPackage_slim.to_thresholds_slim
+    (P : DirectRankPackage_slim) :
+    PartitionedCompilerOutput_with_thresholds_slim where
+  W := P.W
+  B := P.B
+  κ := P.κ
+  ℓ := P.ℓ
+  n := P.n
+  hn_big := P.hn_big
+  hNP_lower := P.hNP_lower
+  hP_upper := P.hP_upper
+
 /-- **§252.8 — `P_ne_NP_from_G_plus_NP_and_structural_slim`** (paper
 §10.2 pp. 54-55 Classical Bridge + §40.2 Theorem 216 G-construction
 on slim bundle).
@@ -51760,6 +51797,21 @@ GConstructionPackage_slim`. -/
 theorem P_ne_NP_from_G_plus_NP_and_structural_slim
     (hOutput : PaperFaithfulSeparation.PeqNP_Paper →
       GConstructionPackage_slim) :
+    P ≠ NP := by
+  apply P_ne_NP_from_PartitionedCompilerOutput_slim_single_hypothesis
+  intro hPeq
+  exact (hOutput hPeq).to_thresholds_slim
+
+/-- **§252.8a — `P_ne_NP_from_direct_rank_package_slim`** (honest
+parallel route).
+
+A further-slimmed composed headline: if one can provide the NP-side
+lower bound and the direct P-side rank upper bound on the relevant full
+output, then `P ≠ NP` follows without carrying the full
+`Theorem216SpanningSet` witness through the final bundle. -/
+theorem P_ne_NP_from_direct_rank_package_slim
+    (hOutput : PaperFaithfulSeparation.PeqNP_Paper →
+      DirectRankPackage_slim) :
     P ≠ NP := by
   apply P_ne_NP_from_PartitionedCompilerOutput_slim_single_hypothesis
   intro hPeq
@@ -51844,6 +51896,10 @@ honest scope anchor).
   * **§252.6–§252.8**: `GConstructionPackage_slim` — parallel to §245.8a
     without CEW.
 
+  * **§252.6a–§252.8a**: `DirectRankPackage_slim` — an even closer match
+    to the actual consumer surface, storing direct `hP_upper` instead of
+    the stronger `Theorem216SpanningSet` witness.
+
   * **§252.9–§252.10**: Cook-Levin slim builders — parallel to §248.2
     and §249.2 without `hQ_cew`.
 
@@ -51851,9 +51907,13 @@ honest scope anchor).
 
 ### §252 does NOT close
 
-  * The `Theorem216SpanningSet` hypothesis (`S` + digitisation
-    `S.C_3 ≤ 2^{199}`) still requires the paper §40.2 Theorem 216
-    Khatri–Rao spanning-set construction, which is not discharged here.
+  * The original G-construction route still leaves the
+    `Theorem216SpanningSet` hypothesis (`S` + digitisation
+    `S.C_3 ≤ 2^{199}`) as genuine paper §40.2 Theorem 216 content.
+
+  * Even with `DirectRankPackage_slim`, the substantive remaining work is
+    still the same mathematics, just phrased more directly: produce the
+    direct P-side rank upper bound `hP_upper` on the Cook-Levin target.
 
 ### Dead-fields finding
 
