@@ -51765,6 +51765,39 @@ into sharper focus: the only remaining paper-faithful input is the
 Theorem 216 G-construction. -/
 theorem Step252_dead_fields_audit : True := trivial
 
+/-- **§252.13 — `P_ne_NP_from_cookLevin_slim_G_hypothesis`** (paper
+§49.1 p. 230 final honest statement).
+
+**Final form at the Cook-Levin instance with slim bundle**:
+`P ≠ NP` from a single hypothesis of paper §40.2 Theorem 216 content.
+
+Given: a provider that, from `PeqNP_Paper` and `M + n ≥ 2^{804}`
+data, produces a `Theorem216SpanningSet` witness on
+`partitioned_output_cookLevin.full_output` at the Cook-Levin
+`extendedCookLevinPartition` with digitisation `S.C_3 ≤ 2^{199}`.
+
+Delivers `P ≠ NP` kernel-only. No CEW hypothesis required. The only
+remaining paper-faithful input is the Khatri-Rao G-construction
+(paper §40.2 Theorem 216 p. 203 substantive content). -/
+theorem P_ne_NP_from_cookLevin_slim_G_hypothesis
+    (hG : PaperFaithfulSeparation.PeqNP_Paper →
+      Σ' (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (hn2 : n ≥ 2),
+        Σ' (S : Theorem216SpanningSet
+            (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+            (Nat.log 2 n) (Nat.log 2 n)
+            (Step247.partitioned_output_cookLevin M n hn2 htb hns).full_output),
+          S.C_3 ≤ 2 ^ 199) :
+    P ≠ NP := by
+  apply P_ne_NP_from_G_plus_NP_and_structural_slim
+  intro hPeq
+  obtain ⟨M, n, hn, htb, hns, hn2, S, hC3⟩ := hG hPeq
+  exact GConstructionPackage_cookLevin_with_digitisation_slim
+    M n hn htb hns hn2
+    (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    rfl S hC3
+
 end Step252
 
 -- **Axiom audit** for §252 (paper §49.1 p. 230 "axiom-free, no sorry";
@@ -51782,5 +51815,6 @@ end Step252
 #print axioms Step252.GConstructionPackage_cookLevin_with_digitisation_slim
 #print axioms Step252.P_ne_NP_from_slim_bundle
 #print axioms Step252.Step252_dead_fields_audit
+#print axioms Step252.P_ne_NP_from_cookLevin_slim_G_hypothesis
 
 end Step4Compiler
