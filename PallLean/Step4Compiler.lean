@@ -51488,6 +51488,70 @@ open PaperFaithfulCompilation (UVSplit CoupledSheetPoly PMnPoly piPhi keepU)
 open Step241 (PartitionedCompilerOutput)
 open Step245 (Theorem216SpanningSet)
 
+/-- **§252.0a — `partitioned_output_cookLevin_full_output_eq_embedded_Q`**
+(paper §40.8 Lemma 224 additive form, specialised to the Cook-Levin
+instance with zero residual).
+
+At the concrete Cook-Levin bundle of §247.2, `R_compute = 0`, so the
+full output equals the embedded verifier sheet. This isolates the exact
+remaining mathematical task for the slim route: constructing
+`Theorem216SpanningSet` for `embedded_Q = rename σ.inlU cookLevinQ` is
+equivalent to constructing it for `full_output`.
+
+This is not the final Khatri-Rao construction, but it removes the last
+purely additive wrapper from the target object. -/
+theorem partitioned_output_cookLevin_full_output_eq_embedded_Q
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (Step247.partitioned_output_cookLevin M n hn2 htb hns).full_output =
+      (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q := by
+  rw [Step241.PartitionedCompilerOutput.additive_structure]
+  simp [Step247.partitioned_output_cookLevin]
+
+/-- **§252.0b — `partitioned_output_cookLevin_full_output_eq_rename_cookLevinQ`**
+(paper §40 Theorem 203 compilation identity + §40.8 Lemma 224,
+specialised).
+
+Concrete target normal form for the remaining Theorem 216 gap:
+`full_output = rename σ.inlU cookLevinQ` at the §247.2 Cook-Levin
+bundle. This theorem packages together:
+
+  * zero residual (`R_compute = 0`),
+  * field unfolding of `embedded_Q`, and
+  * the §189.4 identity `Q_times_Phi_135 = cookLevinQ`.
+
+So the live `Theorem216SpanningSet` frontier can be read literally as
+the need to construct a Khatri-Rao spanning set for `rename σ.inlU
+(cookLevinQ M n ...)` at the extended Cook-Levin partition. -/
+theorem partitioned_output_cookLevin_full_output_eq_rename_cookLevinQ
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (Step247.partitioned_output_cookLevin M n hn2 htb hns).full_output =
+      MvPolynomial.rename
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU
+        (show MvPolynomial (Fin n) ℚ from
+          PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) := by
+  rw [partitioned_output_cookLevin_full_output_eq_embedded_Q]
+  rw [Step247.partitioned_output_cookLevin_embedded_Q_eq]
+  rw [lemma_124_Q_times_Phi_eq_cookLevinQ M n hn2 htb hns]
+
+/-- **§252.0c — `cookLevin_slim_gap_is_rename_target`** (honest scope
+anchor).
+
+Records the sharpened target after §252: the remaining live paper §40.2
+Theorem 216 input for the slim route is precisely a
+`Theorem216SpanningSet` at
+
+`rename (cookLevinUVSplit M n).inlU (cookLevinQ M n ...)`
+
+under `extendedCookLevinPartition M n hn2` with `κ = ℓ = log₂ n`.
+
+This theorem is intentionally trivial as a durable audit marker: the
+mathematical content is still missing, but the target object has now
+been normalised to the real renamed Cook-Levin polynomial with no extra
+residual/additive wrapper noise. -/
+theorem cookLevin_slim_gap_is_rename_target : True := trivial
+
 /-- **§252.1 — `RealCompilerOutput_slim`** (paper §40.1 Theorem 209
 Steps 5-6 p. 202; dead-fields elimination of §240.1).
 
