@@ -51962,6 +51962,78 @@ theorem P_ne_NP_from_cookLevin_slim_G_hypothesis
     (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
     rfl S hC3
 
+/-- **§252.13a — `DirectRankPackage_cookLevin`** (honest direct-rank
+Cook-Levin builder).
+
+Cook-Levin-specific builder for the direct-rank slim route. It takes a
+P-side rank upper bound on plain `cookLevinQ` at the pullback partition
+and transports it to the concrete `partitioned_output_cookLevin`
+`full_output` via §252.0d, while discharging the NP-side lower bound by
+§247.5.
+
+This packages the remaining P-side frontier in the most direct form now
+available: a pullback-partition rank bound on `cookLevinQ`, rather than
+an explicit transported `Theorem216SpanningSet` witness on the renamed
+full output. -/
+noncomputable def DirectRankPackage_cookLevin
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hQ_upper : MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B_total
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (show MvPolynomial (Fin n) ℚ from
+        PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200) :
+    DirectRankPackage_slim where
+  W := Step247.partitioned_output_cookLevin M n hn2 htb hns
+  B := B_total
+  κ := Nat.log 2 n
+  ℓ := Nat.log 2 n
+  n := n
+  hn_big := hn
+  hNP_lower :=
+    Step247.hNP_lower_at_cookLevin_via_216_6 M n hn htb hns hn2
+      B_total hB_total
+  hP_upper := by
+    subst hB_total
+    exact cookLevin_full_output_rank_le_of_pullback_rank_le M n hn2 htb hns hQ_upper
+
+/-- **§252.13b — `P_ne_NP_from_cookLevin_direct_rank_hypothesis`**
+(honest direct-rank final form).
+
+A tighter Cook-Levin-specific headline than §252.13: `P ≠ NP` follows
+from a provider which, given `PeqNP_Paper`, returns only the concrete
+Cook-Levin instance data together with the direct P-side rank upper
+bound on plain `cookLevinQ` at the pullback partition.
+
+This removes the explicit `Theorem216SpanningSet` witness from the final
+hypothesis surface, aligning the statement with what the contradiction
+chain actually consumes after §252's slimming and §252.0d's rank
+transport. -/
+theorem P_ne_NP_from_cookLevin_direct_rank_hypothesis
+    (hOutput : PaperFaithfulSeparation.PeqNP_Paper →
+      Σ' (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (hn2 : n ≥ 2),
+        MultilinearSPDP.mlBlockedSpdpRank
+          (MultilinearSPDP.pullbackPartition
+            (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+            (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+          (Nat.log 2 n) (Nat.log 2 n)
+          (show MvPolynomial (Fin n) ℚ from
+            PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200) :
+    P ≠ NP := by
+  apply P_ne_NP_from_direct_rank_package_slim
+  intro hPeq
+  obtain ⟨M, n, hn, htb, hns, hn2, hQ_upper⟩ := hOutput hPeq
+  exact DirectRankPackage_cookLevin M n hn htb hns hn2
+    (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) rfl hQ_upper
+
 end Step252
 
 -- **Axiom audit** for §252 (paper §49.1 p. 230 "axiom-free, no sorry";
