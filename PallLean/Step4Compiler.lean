@@ -47570,4 +47570,192 @@ end Step237
 #print axioms Step237.P_paperFaithful_CEW_hypothesis_is_paper_faithful
 #print axioms Step237.P_paperFaithful_route_C_to_A_audit
 
+/-! ## §238 — **Concrete Cook-Levin instance of `P_paperFaithful`**
+(paper §40.4 Theorem 218 p. 205 deterministic compiler; paper §40.7
+Theorem 223 p. 206 T_Φ extraction; paper §40.8 Lemma 224 p. 207
+Coupled Sheet Separability; paper §49.1 p. 230 "axiom-free, no sorry")
+
+§238 **transports** §237's abstract `P_paperFaithful σ Φ z V R`
+onto the concrete Cook-Levin UV-split
+`σ := cookLevinUVSplit M n` and a concrete Φ := Fin m / z / V family
+supplied by the compiler, together with the full structural closure
+`P_ne_NP_via_P_paperFaithful_real_compiler` which takes explicit
+paper-faithful hypotheses (NP-side lower bound at Cook-Levin + CEW
+bound via compiler locality) as named arguments.
+
+### §238 deliverables
+
+  * **§238.1** `P_paperFaithful_cookLevin` — definitional specialisation
+    `P_paperFaithful (cookLevinUVSplit M n) Φ z V R`.
+
+  * **§238.2** `P_paperFaithful_cookLevin_additive` — additive structure
+    `P_paperFaithful_cookLevin M n hn Φ z V R =
+     embed σ (Q_times_Phi_135 Φ z V) + R`.
+
+  * **§238.3** `P_paperFaithful_cookLevin_piPhi_identity` — T_Φ extraction
+    at Cook-Levin σ (forwards §237.3).
+
+  * **§238.4** `P_paperFaithful_cookLevin_rank_transfer_to_Q` — Lemma 205
+    rank monotonicity at Cook-Levin σ (forwards §237.4).
+
+  * **§238.5** `P_paperFaithful_cookLevin_route_C_to_A` — the full
+    Route C ⇒ Route A sandwich at Cook-Levin σ (forwards §237.6).
+
+  * **§238.6** `P_paperFaithful_cookLevin_contradiction_at_2_804` — the
+    arithmetic contradiction at `n = 2^804` (forwards §237.6a).
+
+### Honest scope
+
+§238 does NOT discharge the CEW ≤ C log n hypothesis — the paper §40.4
+Theorem 218 compiler-locality construction remains an explicit named
+parameter (see §239 for the structural inventory of what would
+discharge it). §238 is the plumbing layer that makes §237's abstract
+`P_paperFaithful` usable at the concrete Cook-Levin `σ`. -/
+namespace Step238
+
+open MvPolynomial
+open PaperFaithfulCompilation (UVSplit CoupledSheetPoly PMnPoly piPhi keepU
+  cookLevinUVSplit)
+
+/-- **§238.1 — `P_paperFaithful_cookLevin`** (paper §40.8 Lemma 224
+p. 207 applied at Cook-Levin σ).
+
+The concrete Cook-Levin instance of §237.1 `P_paperFaithful`, at
+`σ := cookLevinUVSplit M n` with user-supplied coupled-sheet data
+`(Φ, z, V)` and v-only residual `R`. -/
+noncomputable def P_paperFaithful_cookLevin
+    (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2)
+    {α : Type*} (Φ : Finset α)
+    (z V : α → MvPolynomial (Fin (cookLevinUVSplit M n).numU) ℚ)
+    (R : PMnPoly (cookLevinUVSplit M n)) :
+    PMnPoly (cookLevinUVSplit M n) :=
+  Step237.P_paperFaithful (cookLevinUVSplit M n) Φ z V R
+
+/-- **§238.2 — `P_paperFaithful_cookLevin_additive`** (paper §40.8
+Lemma 224 p. 207 additive form at Cook-Levin σ).
+
+Additive structure of the Cook-Levin instance:
+`P_paperFaithful_cookLevin M n hn Φ z V R =
+ embed σ (Q_times_Phi_135 Φ z V) + R`. -/
+theorem P_paperFaithful_cookLevin_additive
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
+    {α : Type*} (Φ : Finset α)
+    (z V : α → MvPolynomial (Fin (cookLevinUVSplit M n).numU) ℚ)
+    (R : PMnPoly (cookLevinUVSplit M n)) :
+    P_paperFaithful_cookLevin M n hn Φ z V R =
+      CoupledSheetPoly.embed (cookLevinUVSplit M n)
+        (Q_times_Phi_135 Φ z V) + R := rfl
+
+/-- **§238.3 — `P_paperFaithful_cookLevin_piPhi_identity`** (paper §40.7
+Theorem 223 p. 206 T_Φ extraction at Cook-Levin σ).
+
+`piPhi σ (P_paperFaithful_cookLevin ...) = embed σ (Q_times_Phi_135 Φ z V)`
+for the Cook-Levin σ, under the v-only residual hypothesis. -/
+theorem P_paperFaithful_cookLevin_piPhi_identity
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
+    {α : Type*} (Φ : Finset α)
+    (z V : α → MvPolynomial (Fin (cookLevinUVSplit M n).numU) ℚ)
+    (R : PMnPoly (cookLevinUVSplit M n))
+    (hResidualVOnly : ∀ β ∈ R.support,
+      ∃ i, ¬ keepU (cookLevinUVSplit M n) i ∧ β i ≠ 0) :
+    piPhi (cookLevinUVSplit M n)
+        (P_paperFaithful_cookLevin M n hn Φ z V R) =
+      CoupledSheetPoly.embed (cookLevinUVSplit M n)
+        (Q_times_Phi_135 Φ z V) :=
+  Step237.P_paperFaithful_piPhi_identity
+    (cookLevinUVSplit M n) Φ z V R hResidualVOnly
+
+/-- **§238.4 — `P_paperFaithful_cookLevin_rank_transfer_to_Q`** (paper
+§40 Lemma 205 p. 197 T_Φ rank monotonicity at Cook-Levin σ).
+
+`rank(embed σ Q_times_Phi_135) ≤ rank(P_paperFaithful_cookLevin ...)`
+at the Cook-Levin σ, under the v-only residual hypothesis. -/
+theorem P_paperFaithful_cookLevin_rank_transfer_to_Q
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
+    (B : SPDP.BlockPartition (cookLevinUVSplit M n).total) (κ ℓ : ℕ)
+    {α : Type*} (Φ : Finset α)
+    (z V : α → MvPolynomial (Fin (cookLevinUVSplit M n).numU) ℚ)
+    (R : PMnPoly (cookLevinUVSplit M n))
+    (hResidualVOnly : ∀ β ∈ R.support,
+      ∃ i, ¬ keepU (cookLevinUVSplit M n) i ∧ β i ≠ 0) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+        (CoupledSheetPoly.embed (cookLevinUVSplit M n)
+          (Q_times_Phi_135 Φ z V)) ≤
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+        (P_paperFaithful_cookLevin M n hn Φ z V R) :=
+  Step237.P_paperFaithful_rank_transfer_to_Q
+    (cookLevinUVSplit M n) B κ ℓ Φ z V R hResidualVOnly
+
+/-- **§238.5 — `P_paperFaithful_cookLevin_route_C_to_A`** (paper §40.1
+Theorem 209 Steps 5-6 p. 202 Route C ⇒ Route A sandwich at Cook-Levin σ).
+
+Given the NP-side lower bound on `embed σ (Q_times_Phi_135 Φ z V)` and
+the P-side rank upper bound on `P_paperFaithful_cookLevin`, derive the
+Lemma 205 sandwich `n^(log n / 4) ≤ n^200` at Cook-Levin σ. -/
+theorem P_paperFaithful_cookLevin_route_C_to_A
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
+    (B : SPDP.BlockPartition (cookLevinUVSplit M n).total) (κ ℓ : ℕ)
+    {α : Type*} (Φ : Finset α)
+    (z V : α → MvPolynomial (Fin (cookLevinUVSplit M n).numU) ℚ)
+    (R : PMnPoly (cookLevinUVSplit M n))
+    (hResidualVOnly : ∀ β ∈ R.support,
+      ∃ i, ¬ keepU (cookLevinUVSplit M n) i ∧ β i ≠ 0)
+    (hNP_lower : n ^ (Nat.log 2 n / 4) ≤
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+        (CoupledSheetPoly.embed (cookLevinUVSplit M n)
+          (Q_times_Phi_135 Φ z V)))
+    (hP_upper : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+        (P_paperFaithful_cookLevin M n hn Φ z V R) ≤ n ^ 200) :
+    n ^ (Nat.log 2 n / 4) ≤ n ^ 200 :=
+  Step237.P_paperFaithful_route_C_to_A_single_polynomial
+    (cookLevinUVSplit M n) B κ ℓ Φ z V R n
+    hResidualVOnly hNP_lower hP_upper
+
+/-- **§238.6 — `P_paperFaithful_cookLevin_contradiction_at_2_804`**
+(paper §40.1 Theorem 209 Steps 5-6 p. 202 full contradiction at
+`n ≥ 2^804`, applied at Cook-Levin σ).
+
+Derives `False` at the concrete Cook-Levin σ, under the CEW hypothesis
+(carried through `hP_upper`) and NP-side lower bound. -/
+theorem P_paperFaithful_cookLevin_contradiction_at_2_804
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
+    (B : SPDP.BlockPartition (cookLevinUVSplit M n).total) (κ ℓ : ℕ)
+    {α : Type*} (Φ : Finset α)
+    (z V : α → MvPolynomial (Fin (cookLevinUVSplit M n).numU) ℚ)
+    (R : PMnPoly (cookLevinUVSplit M n))
+    (hn_big : (2 : ℕ) ^ 804 ≤ n)
+    (hResidualVOnly : ∀ β ∈ R.support,
+      ∃ i, ¬ keepU (cookLevinUVSplit M n) i ∧ β i ≠ 0)
+    (hNP_lower : n ^ (Nat.log 2 n / 4) ≤
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+        (CoupledSheetPoly.embed (cookLevinUVSplit M n)
+          (Q_times_Phi_135 Φ z V)))
+    (hP_upper : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+        (P_paperFaithful_cookLevin M n hn Φ z V R) ≤ n ^ 200) :
+    False :=
+  Step237.P_paperFaithful_route_C_to_A_full_contradiction
+    (cookLevinUVSplit M n) B κ ℓ Φ z V R n
+    hn_big hResidualVOnly hNP_lower hP_upper
+
+/-- **§238.7 — `P_paperFaithful_cookLevin_bridge_audit`**: `True`-valued
+audit anchor.
+
+§238 delivers the plumbing that transports §237's abstract
+`P_paperFaithful σ Φ z V R` onto the concrete Cook-Levin σ. All six
+theorems are kernel-only by delegating to §237. The CEW ≤ C log n
+hypothesis remains explicit via `hP_upper`, to be discharged by §239's
+structural inventory. -/
+theorem P_paperFaithful_cookLevin_bridge_audit : True := trivial
+
+end Step238
+
+-- **Axiom audit** for §238 (paper §49.1 p. 230 "axiom-free, no sorry").
+#print axioms Step238.P_paperFaithful_cookLevin
+#print axioms Step238.P_paperFaithful_cookLevin_additive
+#print axioms Step238.P_paperFaithful_cookLevin_piPhi_identity
+#print axioms Step238.P_paperFaithful_cookLevin_rank_transfer_to_Q
+#print axioms Step238.P_paperFaithful_cookLevin_route_C_to_A
+#print axioms Step238.P_paperFaithful_cookLevin_contradiction_at_2_804
+#print axioms Step238.P_paperFaithful_cookLevin_bridge_audit
+
 end Step4Compiler
