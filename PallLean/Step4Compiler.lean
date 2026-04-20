@@ -52034,7 +52034,53 @@ theorem P_ne_NP_from_cookLevin_direct_rank_hypothesis
   exact DirectRankPackage_cookLevin M n hn htb hns hn2
     (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) rfl hQ_upper
 
-/-- **§252.13c — `cookLevinQ_rank_le_from_p_side`** (bridge from the
+/-- **§252.13c — `cookLevinQ_hasFiniteProfileCover_from_withinProfileFrontier`**
+(frontier-level bridge onto the final Cook-Levin object).
+
+This is a cleaner paper-faithful bridge than a bare endpoint rank rewrite.
+Starting from the existing specialized within-profile frontier for the actual
+Cook-Levin compiled family, it transports the resulting finite-profile cover
+all the way onto the final object used by the direct-rank route: plain
+`cookLevinQ` at the pullback partition.
+
+So the remaining P-side content can now be phrased directly on the final
+Cook-Levin object not only as a rank inequality, but already at the level of
+`HasFiniteProfileCover`, i.e. one step closer to the real profile-compression
+frontier rather than only its endpoint. -/
+theorem cookLevinQ_hasFiniteProfileCover_from_withinProfileFrontier
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hfrontier : WithinProfileBound.CookLevinWithinProfileFinrankFrontier M n (by
+      have : (2 : ℕ) ≤ 2 ^ 804 := by
+        calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+        _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+      omega) htb hns) :
+    SymmetricPowerBound.HasFiniteProfileCover
+      (MultilinearSPDP.pullbackPartition
+        (PaperFaithfulCompilation.extendedCookLevinPartition M n (by
+          have : (2 : ℕ) ≤ 2 ^ 804 := by
+            calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+            _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+          omega))
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (PaperFaithfulCompilation.cookLevinQ M n (by
+        have : (2 : ℕ) ≤ 2 ^ 804 := by
+          calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+          _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+        omega) htb hns) := by
+  set hn2 : n ≥ 2 := by
+    have : (2 : ℕ) ≤ 2 ^ 804 := by
+      calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+      _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    omega
+  have hcover := WithinProfileBound.cookLevin_hasFiniteProfileCover_of_withinProfileFrontier
+    M n hn2 htb hns hfrontier
+  have hpart := PaperFaithfulCompilation.pullback_eq_cook_levin_partition M n hn2 htb hns
+  rw [hpart]
+  convert hcover using 2
+
+/-- **§252.13d — `cookLevinQ_rank_le_from_p_side`** (bridge from the
 existing P-side theorem to the final direct-rank target).
 
 The existing theorem
@@ -52082,7 +52128,6 @@ theorem cookLevinQ_rank_le_from_p_side
   rw [hpart]
   have hp := PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin M n hn2 htb hns
   convert hp using 2
-
 
 end Step252
 
