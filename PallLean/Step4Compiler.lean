@@ -50850,4 +50850,296 @@ end Step249
 #print axioms Step249.GConstructionPackage_cookLevin_with_digitisation
 #print axioms Step249.Step249_scope_audit
 
+/-! ## §250 — **Radius-1 locality as the paper-faithful CEW predicate**
+(paper §40.4 Theorem 218 p. 205 CEW bound; paper §40.3–§40.4
+block-local basis invariance).
+
+### §250 role
+
+The existing §Section 3 `HasCEWBound p target := p.totalDegree ≤ target`
+is a **bad surrogate** for paper §40.4 Theorem 218's CEW notion: CEW is
+a structural locality property of the polynomial's monomial support,
+*not* a total-degree bound. The two are orthogonal — a polynomial can
+have large `totalDegree` but radius-1 locality if every monomial is
+confined to the variables of one block, and conversely.
+
+§250 defines the **paper-faithful radius-1 locality predicate** as a
+new, parallel alternative to `HasCEWBound`:
+
+  `HasRadius1Locality p B r := ∀ m ∈ p.support, |B.assign '' m.support| ≤ r`
+
+i.e.\ every monomial `m` in `p`'s support has variable support (the
+indices where `m i > 0`) spread over at most `r` distinct blocks of
+the partition `B`.
+
+This captures paper §40.4 Theorem 218's content directly: radius-1
+locality with `r := O(1)` is the paper's "block-local" polynomial
+condition, from which Theorem 218 derives the CEW ≤ `O(log n)` bound
+via combinatorial counting (paper §40.4 p. 205 Batcher-schedule
+analysis).
+
+### §250 does NOT close
+
+§250 does not prove that `cookLevinQ` has radius-1 locality with
+small `r` — that is paper §40.4 Theorem 218's substantive combinatorial
+content, which requires the Batcher schedule / Tseitin compilation
+structure. §250 only provides the correct predicate and a structural
+API (zero, one, constant, smul, add-case under block compatibility).
+
+### §250 relationship to §Section 3 `HasCEWBound`
+
+`HasRadius1Locality` and `HasCEWBound` are **orthogonal**: neither
+implies the other. A polynomial can have:
+  * large totalDegree but small radius (monomial confined to one
+    block): e.g.\ `X₀ ^ 1000` on the block partition where all of
+    `X₀` lives in one block — `totalDegree = 1000`, radius = 1.
+  * small totalDegree but large radius (many vars across many blocks):
+    e.g.\ `X₀ + X₁ + X₂ + …` on a partition where each variable is
+    its own block — `totalDegree = 1`, radius = N.
+
+Hence §250 stands as a **separate, paper-faithful** predicate. Routes
+depending on `HasCEWBound` remain functional, but §250's predicate is
+the correct target for paper §40.4 Theorem 218.
+
+### §250 deliverables
+
+  * **§250.1** `HasRadius1Locality` — the paper-faithful predicate.
+  * **§250.2** `HasRadius1Locality.zero` — radius 0 trivially.
+  * **§250.3** `HasRadius1Locality.const` — constants have radius 0.
+  * **§250.4** `HasRadius1Locality.mono` — monotone in `r`.
+  * **§250.5** `HasRadius1Locality.smul` — scalar multiples preserve.
+  * **§250.6** `HasRealCEWBound` — packaged predicate with a radius
+    witness.
+  * **§250.7** `HasRealCEWBound.zero` — the zero polynomial satisfies
+    it at every bound.
+  * **§250.8** audit anchor.
+
+All §250 theorems kernel-only.
+
+Paper citations: §40.4 Theorem 218 p. 205 (CEW = radius-1 locality
+bound); §40.3 Theorem 217 p. 204 (block-local structural regime);
+§49.1 p. 230. -/
+
+namespace Step250
+
+open MvPolynomial
+
+/-- **§250.1 — `HasRadius1Locality`** (paper §40.4 Theorem 218 p. 205
+radius-1 locality predicate).
+
+**Radius-1 locality** of a polynomial `p : MvPolynomial (Fin N) ℚ`
+with respect to a block partition `B : BlockPartition N`: every
+monomial `m` in `p`'s support has its variable support (the finite set
+of indices `i` where `m i > 0`) covered by at most `r` distinct
+blocks under the block assignment `B.assign`.
+
+Equivalently, writing `blocks(m) := (m.support).image B.assign` for
+the finset of distinct blocks touched by `m`,
+
+  `HasRadius1Locality p B r ↔ ∀ m ∈ p.support, (blocks m).card ≤ r`.
+
+At `r = 1`, this is the paper's "single-block monomial" condition;
+at `r = O(1)`, it is paper §40.4 Theorem 218's "radius-1 neighborhood"
+condition.
+
+### Paper correspondence
+
+Paper §40.4 Theorem 218 p. 205 uses radius-1 locality as the
+hypothesis for the CEW ≤ `O(log n)` bound. The paper's argument:
+
+  (a) `HasRadius1Locality p B r` with `r = O(1)`;
+  (b) the Batcher-schedule / Tseitin compilation keeps each monomial
+      confined to a constant-radius neighborhood;
+  (c) the per-block combinatorial counting gives CEW ≤ `O(log n)`.
+
+This predicate formalises item (a). -/
+def HasRadius1Locality {N : ℕ} (p : MvPolynomial (Fin N) ℚ)
+    (B : SPDP.BlockPartition N) (r : ℕ) : Prop :=
+  ∀ m ∈ p.support, (m.support.image B.assign).card ≤ r
+
+/-- **§250.2 — `HasRadius1Locality.zero`** (radius-0 trivially).
+
+The zero polynomial vacuously satisfies `HasRadius1Locality` at every
+radius `r`, since its support is empty. -/
+theorem HasRadius1Locality.zero {N : ℕ} (B : SPDP.BlockPartition N)
+    (r : ℕ) :
+    HasRadius1Locality (0 : MvPolynomial (Fin N) ℚ) B r := by
+  intro m hm
+  simp [MvPolynomial.support_zero] at hm
+
+/-- **§250.3 — `HasRadius1Locality.const`** (constants are radius 0).
+
+Constant polynomials `C c` (for `c : ℚ`) have `HasRadius1Locality` at
+radius `0` (their only possible monomial is the empty one, with empty
+variable support, which touches `0` blocks).
+
+We state this for `c = 0` (trivially) and for `c ≠ 0` (where the
+support is `{0}` with `(0).support = ∅`, so the image is `∅` with
+card 0). -/
+theorem HasRadius1Locality.const {N : ℕ} (B : SPDP.BlockPartition N)
+    (c : ℚ) :
+    HasRadius1Locality (MvPolynomial.C c : MvPolynomial (Fin N) ℚ)
+      B 0 := by
+  intro m hm
+  -- `m ∈ (C c).support` implies `m = 0` (the zero monomial).
+  have hm_zero : m = 0 := by
+    classical
+    -- `MvPolynomial.support_C` gives `(C c).support = if c = 0 then ∅ else {0}`.
+    rw [MvPolynomial.support_C] at hm
+    rcases eq_or_ne c 0 with hc0 | hc_ne
+    · rw [if_pos hc0] at hm
+      exact absurd hm (Finset.notMem_empty _)
+    · rw [if_neg hc_ne, Finset.mem_singleton] at hm
+      exact hm
+  subst hm_zero
+  -- `(0 : Fin N →₀ ℕ).support = ∅`, image is ∅, card 0.
+  simp [Finsupp.support_zero]
+
+/-- **§250.4 — `HasRadius1Locality.mono`** (monotone in radius).
+
+If `HasRadius1Locality p B r` and `r ≤ r'`, then
+`HasRadius1Locality p B r'`. -/
+theorem HasRadius1Locality.mono {N : ℕ} {B : SPDP.BlockPartition N}
+    {p : MvPolynomial (Fin N) ℚ} {r r' : ℕ}
+    (h : HasRadius1Locality p B r) (hle : r ≤ r') :
+    HasRadius1Locality p B r' := by
+  intro m hm
+  exact le_trans (h m hm) hle
+
+/-- **§250.5 — `HasRadius1Locality.smul`** (closed under scalar
+multiplication).
+
+For `c : ℚ`, `HasRadius1Locality (c • p) B r` follows from
+`HasRadius1Locality p B r`. Since `(c • p).support ⊆ p.support`,
+every monomial in the new support already satisfies the bound.
+
+(Equivalently, `C c * p` has support contained in `p.support` for any
+`c : ℚ`.) -/
+theorem HasRadius1Locality.smul {N : ℕ} {B : SPDP.BlockPartition N}
+    {p : MvPolynomial (Fin N) ℚ} {r : ℕ} (c : ℚ)
+    (h : HasRadius1Locality p B r) :
+    HasRadius1Locality (c • p) B r := by
+  intro m hm
+  -- `(c • p).support ⊆ p.support` via `Finsupp.support_smul`
+  -- (MvPolynomial is definitionally `(Fin N →₀ ℕ) →₀ ℚ`).
+  have hsupp_sub : (c • p).support ⊆ p.support := Finsupp.support_smul
+  exact h m (hsupp_sub hm)
+
+/-- **§250.6 — `HasRadius1Locality.neg`** (closed under negation).
+
+`HasRadius1Locality (-p) B r` follows from `HasRadius1Locality p B r`,
+since `(-p).support = p.support`. -/
+theorem HasRadius1Locality.neg {N : ℕ} {B : SPDP.BlockPartition N}
+    {p : MvPolynomial (Fin N) ℚ} {r : ℕ}
+    (h : HasRadius1Locality p B r) :
+    HasRadius1Locality (-p) B r := by
+  intro m hm
+  apply h m
+  rwa [MvPolynomial.support_neg] at hm
+
+/-- **§250.7 — `HasRealCEWBound`** (paper §40.4 Theorem 218 p. 205
+packaged predicate).
+
+**Packaged form of paper §40.4 Theorem 218's radius-1 locality
+hypothesis**: there exists a radius `r ≤ bound` such that
+`HasRadius1Locality p B r`.
+
+This is the §250-analogue of `HasCEWBound` from §Section 3: both
+predicates take a target `bound` on a complexity measure of `p`.
+Whereas `HasCEWBound p bound := p.totalDegree ≤ bound`,
+`HasRealCEWBound p B bound := ∃ r ≤ bound, HasRadius1Locality p B r`.
+
+### Wrapping convention
+
+`HasRealCEWBound` depends on the block partition `B` (unlike
+`HasCEWBound` which is partition-free), reflecting the fact that
+radius-1 locality is **partition-sensitive**: a polynomial can be
+radius-1 for one partition but not another.
+
+Paper §40.4 Theorem 218's statement and proof are partition-aware
+(the paper uses the extended Cook–Levin partition explicitly). -/
+def HasRealCEWBound {N : ℕ} (p : MvPolynomial (Fin N) ℚ)
+    (B : SPDP.BlockPartition N) (bound : ℕ) : Prop :=
+  ∃ r, HasRadius1Locality p B r ∧ r ≤ bound
+
+/-- **§250.8 — `HasRealCEWBound.zero`** (zero polynomial at every
+bound).
+
+The zero polynomial satisfies `HasRealCEWBound` at every block
+partition `B` and every bound `bound`, witnessed by `r := 0`. -/
+theorem HasRealCEWBound.zero {N : ℕ} (B : SPDP.BlockPartition N)
+    (bound : ℕ) :
+    HasRealCEWBound (0 : MvPolynomial (Fin N) ℚ) B bound := by
+  refine ⟨0, HasRadius1Locality.zero B 0, Nat.zero_le _⟩
+
+/-- **§250.9 — `HasRealCEWBound.const`** (constants at every bound).
+
+Constants `C c` (for `c : ℚ`) satisfy `HasRealCEWBound` at every block
+partition and every bound, witnessed by `r := 0`. -/
+theorem HasRealCEWBound.const {N : ℕ} (B : SPDP.BlockPartition N)
+    (c : ℚ) (bound : ℕ) :
+    HasRealCEWBound (MvPolynomial.C c : MvPolynomial (Fin N) ℚ)
+      B bound := by
+  refine ⟨0, HasRadius1Locality.const B c, Nat.zero_le _⟩
+
+/-- **§250.10 — `HasRealCEWBound.mono`** (monotone in bound).
+
+If `HasRealCEWBound p B bound` and `bound ≤ bound'`, then
+`HasRealCEWBound p B bound'`. -/
+theorem HasRealCEWBound.mono {N : ℕ} {B : SPDP.BlockPartition N}
+    {p : MvPolynomial (Fin N) ℚ} {bound bound' : ℕ}
+    (h : HasRealCEWBound p B bound) (hle : bound ≤ bound') :
+    HasRealCEWBound p B bound' := by
+  obtain ⟨r, hloc, hr⟩ := h
+  exact ⟨r, hloc, le_trans hr hle⟩
+
+/-- **§250.11 — `Step250_scope_audit`** (paper §49.1 p. 230 honest
+scope anchor).
+
+**Audit anchor** documenting §250:
+
+### §250 defines
+
+  * **§250.1** `HasRadius1Locality p B r` — the paper-faithful
+    radius-1 locality predicate (every monomial touches ≤ r blocks).
+  * **§250.6** `HasRealCEWBound p B bound` — packaged existential
+    form: `∃ r ≤ bound, HasRadius1Locality p B r`.
+
+### §250 closes
+
+  * **§250.2–§250.5** structural API: zero, constant, mono, smul, neg.
+  * **§250.7–§250.10** packaged API: zero, const, mono.
+
+### §250 does NOT close
+
+  * **Paper §40.4 Theorem 218 p. 205**: deriving `HasRealCEWBound` for
+    `cookLevinQ` (or any concrete Cook–Levin polynomial) at a small
+    bound requires the Batcher-schedule / Tseitin compilation
+    combinatorial analysis, which is paper §40.4's substantive
+    content. §250 only provides the structurally-correct predicate.
+  * **Connection to `HasCEWBound`**: the two predicates are
+    orthogonal (neither implies the other in general, as documented
+    in the §250 preamble).
+
+Paper citations: §40.4 Theorem 218 p. 205; §40.3 Theorem 217 p. 204;
+§49.1 p. 230. -/
+theorem Step250_scope_audit : True := trivial
+
+end Step250
+
+-- **Axiom audit** for §250 (paper §49.1 p. 230 "axiom-free, no sorry";
+-- paper §40.4 Theorem 218 p. 205 radius-1 locality).
+--
+-- Expected audit result: every §250 theorem kernel-only
+-- ([propext, Classical.choice, Quot.sound]).
+#print axioms Step250.HasRadius1Locality.zero
+#print axioms Step250.HasRadius1Locality.const
+#print axioms Step250.HasRadius1Locality.mono
+#print axioms Step250.HasRadius1Locality.smul
+#print axioms Step250.HasRadius1Locality.neg
+#print axioms Step250.HasRealCEWBound.zero
+#print axioms Step250.HasRealCEWBound.const
+#print axioms Step250.HasRealCEWBound.mono
+#print axioms Step250.Step250_scope_audit
+
 end Step4Compiler
