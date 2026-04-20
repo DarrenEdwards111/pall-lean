@@ -50498,4 +50498,170 @@ end Step247
 #print axioms Step247.hNP_lower_at_cookLevin_via_216_6
 #print axioms Step247.Step247_scope_audit
 
+/-! ## §248 — **`GConstructionPackage` at the Cook–Levin instance**
+(paper §40 Theorem 207 p. 199 main contradiction chain at the
+structural-package level; paper §40.4 Theorem 218 p. 205 CEW bound;
+paper §40.2 Theorem 216 p. 203 Width⇒Rank; paper §49.1 p. 230).
+
+### §248 role
+
+§248 takes the §247.2 Cook–Levin-shaped `PartitionedCompilerOutput`
+and the `hNP_lower` discharge from §247.5, then combines them with the
+**remaining un-discharged hypotheses** (`hQ_cew`, `hR_cew`, the
+`Theorem216SpanningSet` + envelope for `hP_upper`) to produce a
+`Step245.GConstructionPackage`.
+
+This is the precise structural bundle consumed by §245.8
+`P_ne_NP_from_G_plus_NP_and_structural`: given a `PeqNP_Paper →
+GConstructionPackage` hypothesis, §245.8 delivers `P ≠ NP`.
+
+### What §248 lands
+
+§248 demonstrates that **the only un-dischargeable hypotheses** at the
+paper-faithful Cook–Levin instance are:
+
+  (i) `hQ_cew : HasCEWBound Q_verifier (log₂ n)` — paper §40.4 Theorem
+      218 layer 1 verifier-sheet CEW (Batcher-schedule analysis);
+  (ii) `hR_cew : HasCEWBound R_compute (log₂ n)` — trivial since
+      `R_compute = 0` (via §241.6d-style argument); `totalDegree 0 = 0
+      ≤ log₂ n` for all `n ≥ 1`;
+  (iii) `S : Theorem216SpanningSet B κ ℓ full_output` — paper §40.2
+       Theorem 216 Khatri–Rao spanning set;
+  (iv) `hEnv : S.C_3 ^ κ ≤ n ^ 200` — arithmetic envelope.
+
+Items (i), (iii), (iv) are the paper §40.4 Theorem 218 + §40.2 Theorem
+216 structural content. Item (ii) is discharged explicitly here since
+`R_compute = 0`.
+
+### §248 deliverables
+
+  * **§248.1** `partitioned_output_cookLevin_R_cew_zero` — discharge
+    of `hR_cew` at §247.2 (since `R_compute = 0`).
+  * **§248.2** `GConstructionPackage_cookLevin` — the structural
+    package builder at §247.2 with hypothesis inputs for (i), (iii),
+    (iv) only.
+  * **§248.3** audit anchor.
+
+All §248 theorems kernel-only.
+
+Paper citations: §40 Theorem 207 p. 199; §40.4 Theorem 218 p. 205;
+§40.2 Theorem 216 p. 203; §247 (Cook–Levin bundle); §49.1 p. 230. -/
+
+namespace Step248
+
+open MvPolynomial
+open Step241 (PartitionedCompilerOutput)
+open Step245 (Theorem216SpanningSet GConstructionPackage)
+
+/-- **§248.1 — `partitioned_output_cookLevin_R_cew_zero`**: discharge
+of `hR_cew` at §247.2 (since `R_compute = 0`).
+
+The `R_compute` field of §247.2 `partitioned_output_cookLevin` is
+`0`, so `HasCEWBound R_compute (Nat.log 2 n)` holds for all `n`
+(since `totalDegree 0 = 0 ≤ anything`). -/
+theorem partitioned_output_cookLevin_R_cew_zero
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    HasCEWBound (Step247.partitioned_output_cookLevin M n hn2 htb hns).R_compute
+      (Nat.log 2 n) := by
+  -- `R_compute = 0` definitionally at §247.2.
+  show HasCEWBound (0 : MvPolynomial (Fin (PaperFaithfulCompilation.cookLevinUVSplit M n).total) ℚ)
+    (Nat.log 2 n)
+  unfold HasCEWBound
+  rw [MvPolynomial.totalDegree_zero]
+  exact Nat.zero_le _
+
+/-- **§248.2 — `GConstructionPackage_cookLevin`** (paper §40 Theorem
+207 p. 199 Cook–Levin structural package at `κ = ℓ = log₂ n`).
+
+**Structural package at the Cook–Levin instance, specialised to the
+paper §40 Theorem 209 (v) rank-gap firing regime `κ = ℓ = log₂ n`.**
+Takes the three un-dischargeable hypotheses (`hQ_cew`, spanning-set
+`S`, envelope `hEnv`) as explicit inputs, and assembles a
+`Step245.GConstructionPackage`.
+
+The `hR_cew` field is auto-discharged via §248.1 (since `R_compute = 0`).
+The `hNP_lower` field is auto-discharged via §247.5
+`hNP_lower_at_cookLevin_via_216_6` (valid at `κ = ℓ = log₂ n` exactly).
+
+### Regime
+
+The paper §40 Theorem 209 (v) p. 200 "rank-gap firing regime" at
+`κ' = α log n, ℓ' = β log n` (with α = β = 1) is exactly the shape
+§247.5 discharges. §248.2 produces the `GConstructionPackage` at this
+regime.
+
+### Consumer
+
+This package feeds §245.8 `P_ne_NP_from_G_plus_NP_and_structural` via
+the `PeqNP_Paper → GConstructionPackage` hypothesis shape. -/
+noncomputable def GConstructionPackage_cookLevin
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hQ_cew : HasCEWBound
+      (Step247.partitioned_output_cookLevin M n hn2 htb hns).Q_verifier
+      (Nat.log 2 n))
+    (S : Theorem216SpanningSet B_total (Nat.log 2 n) (Nat.log 2 n)
+      (Step247.partitioned_output_cookLevin M n hn2 htb hns).full_output)
+    (hEnv : S.C_3 ^ (Nat.log 2 n) ≤ n ^ 200) :
+    GConstructionPackage where
+  W := Step247.partitioned_output_cookLevin M n hn2 htb hns
+  B := B_total
+  κ := Nat.log 2 n
+  ℓ := Nat.log 2 n
+  n := n
+  hn_big := hn
+  hQ_cew := hQ_cew
+  hR_cew := partitioned_output_cookLevin_R_cew_zero M n hn2 htb hns
+  hNP_lower :=
+    Step247.hNP_lower_at_cookLevin_via_216_6 M n hn htb hns hn2
+      B_total hB_total
+  S := S
+  hEnv := hEnv
+
+/-- **§248.3 — `Step248_scope_audit`** (paper §49.1 p. 230 honest
+scope anchor).
+
+**Audit anchor** documenting §248:
+
+### §248 closes
+
+  * **§248.1**: `hR_cew` discharged at §247.2 (since `R_compute = 0`).
+  * **§248.2**: `GConstructionPackage` builder at the Cook–Levin σ,
+    reducing the un-dischargeable inputs from **six** (§241.8's full
+    `PartitionedCompilerOutput_with_thresholds`) to **three** at the
+    paper §40 Theorem 209 (v) rank-gap firing regime `κ = ℓ = log₂ n`:
+
+      (i) `hQ_cew` (paper §40.4 Theorem 218 layer 1 verifier-sheet CEW);
+      (ii) `S : Theorem216SpanningSet` (paper §40.2 Theorem 216 KR span);
+      (iii) `hEnv : S.C_3^κ ≤ n^{200}` (arithmetic envelope).
+
+### §248 does NOT close
+
+Items (i), (ii), (iii) remain explicit hypotheses. Closing them is the
+paper §40.4 Theorem 218 + §40.2 Theorem 216 structural content.
+
+Paper citations: §40 Theorem 207 p. 199; §40.4 Theorem 218 p. 205;
+§40.2 Theorem 216 p. 203; §40 Theorem 209 (v) p. 200 (rank-gap regime);
+§247; §49.1 p. 230. -/
+theorem Step248_scope_audit : True := trivial
+
+end Step248
+
+-- **Axiom audit** for §248 (paper §49.1 p. 230 "axiom-free, no
+-- sorry"; paper §40 Theorem 207 p. 199 Cook–Levin structural
+-- package).
+--
+-- Expected audit result: every §248 theorem kernel-only
+-- ([propext, Classical.choice, Quot.sound]), inheriting from §247,
+-- §241, §245.
+#print axioms Step248.partitioned_output_cookLevin_R_cew_zero
+#print axioms Step248.GConstructionPackage_cookLevin
+#print axioms Step248.Step248_scope_audit
+
 end Step4Compiler
