@@ -47758,4 +47758,243 @@ end Step238
 #print axioms Step238.P_paperFaithful_cookLevin_contradiction_at_2_804
 #print axioms Step238.P_paperFaithful_cookLevin_bridge_audit
 
+/-! ## §239 — **Structural CEW inventory for `P_paperFaithful`**
+(paper §40.4 Theorem 218 p. 205 Deterministic Compiler Locality;
+paper §49.1 p. 230 "axiom-free, no sorry")
+
+§239 provides the explicit structural inventory that would discharge
+§237.5's `hCEW : HasCEWBound (P_paperFaithful σ Φ z V R) (C * log n)`
+hypothesis from paper-faithful compiler-output invariants.
+
+### Key observation
+
+Because `P_paperFaithful σ Φ z V R = embed σ (Q_times_Phi_135 Φ z V) + R`
+is **additive** and `HasCEWBound = totalDegree ≤ _`, the CEW of the
+additive form is `max(CEW(embed σ Q), CEW(R))`. Therefore:
+
+  CEW(P_paperFaithful) ≤ max(totalDegree(Q_times_Phi_135),
+                             totalDegree(R))
+
+(using §177.3 `embed_totalDegree_le` to bound CEW(embed σ Q) by
+CEW(Q)).
+
+Combined with per-sheet hypotheses
+  * `hQ_deg : (Q_times_Phi_135 Φ z V).totalDegree ≤ C_Q * log n`
+    (paper §40.4 layer 1 "verifier-sheet tiles have CEW ≤ C log n"),
+  * `hR_deg : R.totalDegree ≤ C_R * log n`
+    (paper §40.4 layer 2 "computation-template tiles have CEW ≤ C log n"),
+
+this immediately gives the `CEW(P_paperFaithful) ≤ max(C_Q, C_R) * log n`
+headline that §237.5 needs.
+
+### Honest scope
+
+§239 does NOT close `hQ_deg` or `hR_deg` — these remain hypotheses on
+the user-supplied `(Φ, z, V, R)`. The paper §40.4 Theorem 218 proof
+establishes them structurally: verifier tiles have radius 1 (so
+CEW(z_C · V_C²) = O(1)), the product is over `|Φ| = n^O(1)` clauses
+but the simultaneous-access schedule bounds **cut interface count** at
+each time step to O(log n). This Batcher-access refinement IS the real
+content of §40.4 and is NOT derivable from our current product-form
+structure.
+
+§239 documents the hypothesis-inventory structure and provides the
+`HasCEWBound_add_mono`-based composition that fires once both
+per-sheet bounds are supplied. -/
+namespace Step239
+
+open MvPolynomial
+open PaperFaithfulCompilation (UVSplit CoupledSheetPoly PMnPoly)
+
+/-- **§239.1 — `cew_of_embed_Q_le_cew_Q`** (paper §177.3 applied to CEW;
+auxiliary structural bound).
+
+`HasCEWBound (embed σ Q) w ← HasCEWBound Q w`: the embed map preserves
+CEW bounds (because it preserves totalDegree, §177.3). -/
+theorem cew_of_embed_Q_le_cew_Q
+    (σ : UVSplit) (Q : CoupledSheetPoly σ) {w : ℕ}
+    (hQ : HasCEWBound Q w) :
+    HasCEWBound (CoupledSheetPoly.embed σ Q) w := by
+  unfold HasCEWBound at *
+  exact le_trans (embed_totalDegree_le σ Q) hQ
+
+/-- **§239.2 — `cew_of_P_paperFaithful_additive`** (paper §40.4
+Theorem 218 p. 205 layers 1+2 composed).
+
+For the additive form `P_paperFaithful σ Φ z V R`, CEW composes via
+`HasCEWBound_add_mono`:
+
+  `CEW(P_paperFaithful σ Φ z V R) ≤ max(w_Q, w_R)`
+
+given `HasCEWBound (Q_times_Phi_135 Φ z V) w_Q` (paper §40.4 layer 1,
+verifier-sheet CEW bound) and `HasCEWBound R w_R` (paper §40.4 layer 2,
+computation-template CEW bound). -/
+theorem cew_of_P_paperFaithful_additive
+    (σ : UVSplit) {α : Type*} (Φ : Finset α)
+    (z V : α → MvPolynomial (Fin σ.numU) ℚ)
+    (R : PMnPoly σ) {w_Q w_R : ℕ}
+    (hQ : HasCEWBound (Q_times_Phi_135 Φ z V) w_Q)
+    (hR : HasCEWBound R w_R) :
+    HasCEWBound (Step237.P_paperFaithful σ Φ z V R) (max w_Q w_R) := by
+  rw [Step237.P_paperFaithful_additive_structure]
+  exact HasCEWBound_add_mono
+    (cew_of_embed_Q_le_cew_Q σ (Q_times_Phi_135 Φ z V) hQ) hR
+
+/-- **§239.3 — `cew_of_P_paperFaithful_log_n`** (paper §40.4 Theorem 218
+p. 205 **headline** `CEW(P_{M',|x|}) ≤ C * log n`).
+
+Specialisation of §239.2 to the paper's `C_Q * log n` / `C_R * log n`
+per-sheet bounds: if both verifier-sheet CEW and computation-template
+CEW are bounded by `C * log n`, then
+`HasCEWBound (P_paperFaithful σ Φ z V R) (C * log n)`. This is the
+**direct discharge** of §237.5's `hCEW` hypothesis from the paper's
+paired per-sheet inputs. -/
+theorem cew_of_P_paperFaithful_log_n
+    (σ : UVSplit) {α : Type*} (Φ : Finset α)
+    (z V : α → MvPolynomial (Fin σ.numU) ℚ)
+    (R : PMnPoly σ) (C n : ℕ)
+    (hQ : HasCEWBound (Q_times_Phi_135 Φ z V) (C * Nat.log 2 n))
+    (hR : HasCEWBound R (C * Nat.log 2 n)) :
+    HasCEWBound (Step237.P_paperFaithful σ Φ z V R) (C * Nat.log 2 n) := by
+  have h := cew_of_P_paperFaithful_additive σ Φ z V R hQ hR
+  -- max (C * log n) (C * log n) = C * log n.
+  simpa using h
+
+/-- **§239.4 — `cew_of_P_paperFaithful_log_n_asymmetric`** (paper §40.4
+Theorem 218 p. 205 **asymmetric per-sheet form**).
+
+If verifier-sheet CEW ≤ `C_Q * log n` and computation-template CEW
+≤ `C_R * log n`, then `P_paperFaithful` has
+CEW ≤ `max(C_Q, C_R) * log n`, supplying §237.5's `hCEW` with
+`C := max(C_Q, C_R)`. -/
+theorem cew_of_P_paperFaithful_log_n_asymmetric
+    (σ : UVSplit) {α : Type*} (Φ : Finset α)
+    (z V : α → MvPolynomial (Fin σ.numU) ℚ)
+    (R : PMnPoly σ) (C_Q C_R n : ℕ)
+    (hQ : HasCEWBound (Q_times_Phi_135 Φ z V) (C_Q * Nat.log 2 n))
+    (hR : HasCEWBound R (C_R * Nat.log 2 n)) :
+    HasCEWBound (Step237.P_paperFaithful σ Φ z V R)
+      (max C_Q C_R * Nat.log 2 n) := by
+  have h := cew_of_P_paperFaithful_additive σ Φ z V R hQ hR
+  -- max (C_Q * log n) (C_R * log n) = (max C_Q C_R) * log n.
+  unfold HasCEWBound at h ⊢
+  have hmax : max (C_Q * Nat.log 2 n) (C_R * Nat.log 2 n) =
+      (max C_Q C_R) * Nat.log 2 n := by
+    by_cases hle : C_Q ≤ C_R
+    · have h1 : C_Q * Nat.log 2 n ≤ C_R * Nat.log 2 n :=
+        Nat.mul_le_mul_right _ hle
+      rw [max_eq_right h1, max_eq_right hle]
+    · have hle' : C_R ≤ C_Q := Nat.le_of_lt (Nat.lt_of_not_le hle)
+      have h1 : C_R * Nat.log 2 n ≤ C_Q * Nat.log 2 n :=
+        Nat.mul_le_mul_right _ hle'
+      rw [max_eq_left h1, max_eq_left hle']
+  rwa [hmax] at h
+
+/-- **§239.5 — `P_paperFaithful_CEW_rank_upper_bound_via_per_sheet`**
+(paper §40.2 Theorem 216 p. 203 **composed with** §40.4 Theorem 218
+p. 205 per-sheet CEW bounds).
+
+**The §237.5 upper bound with the CEW hypothesis discharged from the
+per-sheet inputs.** Given:
+
+  * `hQ_deg : CEW(Q_times_Phi_135 Φ z V) ≤ C * log n` — paper §40.4 layer
+    1 verifier-sheet CEW (per-compiler-tile locality + Batcher schedule
+    bound on simultaneous access),
+  * `hR_deg : CEW(R) ≤ C * log n` — paper §40.4 layer 2 computation-
+    template CEW,
+  * `hLoc_vars`, `G`, `hKR_span`, `hKR_card`, `hEnv` — §237.5's Khatri-
+    Rao / arithmetic envelope hypotheses,
+
+deliver the P-side Width⇒Rank envelope
+`Γ_{κ,ℓ}(P_paperFaithful σ Φ z V R) ≤ n^200`. -/
+theorem P_paperFaithful_CEW_rank_upper_bound_via_per_sheet
+    (σ : UVSplit) (B : SPDP.BlockPartition σ.total) (κ ℓ : ℕ)
+    {α : Type*} (Φ : Finset α)
+    (z V : α → MvPolynomial (Fin σ.numU) ℚ)
+    (R : PMnPoly σ) (n C k : ℕ)
+    (hQ_deg : HasCEWBound (Q_times_Phi_135 Φ z V) (C * Nat.log 2 n))
+    (hR_deg : HasCEWBound R (C * Nat.log 2 n))
+    (hLoc_vars : (Step237.P_paperFaithful σ Φ z V R).vars.card ≤ n ^ k)
+    (G : Finset (MvPolynomial (Fin σ.total) ℚ))
+    (hKR_span : MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ
+        (Step237.P_paperFaithful σ Φ z V R) ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin σ.total) ℚ)))
+    (hKR_card : G.card ≤ (n ^ k + 1) ^ (C * Nat.log 2 n + 1))
+    (hEnv : (n ^ k + 1) ^ (C * Nat.log 2 n + 1) ≤ n ^ 200) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+        (Step237.P_paperFaithful σ Φ z V R) ≤ n ^ 200 :=
+  Step237.P_paperFaithful_CEW_rank_upper_bound_poly σ B κ ℓ Φ z V R n C k
+    (cew_of_P_paperFaithful_log_n σ Φ z V R C n hQ_deg hR_deg)
+    hLoc_vars G hKR_span hKR_card hEnv
+
+/-- **§239.6 — `cew_of_Q_times_Phi_135_from_per_clause`** (paper §40.4
+Theorem 218 p. 205 layer 1 "verifier-sheet CEW from radius-1 tiles").
+
+Auxiliary structural bound for `CEW(Q_times_Phi_135 Φ z V)`. Because
+`Q_times_Phi_135 = ∏_{C ∈ Φ} (1 - z_C · V_C²)`, CEW composes via
+iterated product:
+
+  `CEW(Q_times_Phi_135) ≤ Φ.card * max_C (CEW(1 - z_C · V_C²))`
+
+If per-clause CEW is bounded by some `w` (paper §40.4 layer 1 per-tile
+locality `deg(z_C), deg(V_C) = O(1)`, so CEW of each tile is O(1)),
+and `Φ.card ≤ C_Φ * log n` (the paper §40.4 Batcher/schedule
+compression bound: at each simultaneous-access time step only O(log n)
+clauses touch), we get `CEW(Q_times_Phi_135) ≤ C_Φ * w * log n`.
+
+**Structural note.** This theorem takes the per-clause CEW bound and
+the `|Φ|` bound as explicit hypotheses — the paper's proof of
+`|Φ| ≤ C * log n` is the Batcher-schedule refinement and is NOT
+currently in-file. -/
+theorem cew_of_Q_times_Phi_135_from_per_clause
+    {α : Type*} {N : ℕ} (Φ : Finset α)
+    (z V : α → MvPolynomial (Fin N) ℚ) (w : ℕ)
+    (hPer : ∀ C ∈ Φ,
+      HasCEWBound (1 - z C * (V C) ^ 2 :
+        MvPolynomial (Fin N) ℚ) w) :
+    HasCEWBound (Q_times_Phi_135 Φ z V) (Φ.card * w) := by
+  -- Q_times_Phi_135 Φ z V = ∏ C ∈ Φ, (1 - z C · V C²).
+  -- Use HasCEWBound_prod_same (finset product, all bounded by w).
+  rw [Q_times_Phi_135_unfold]
+  exact HasCEWBound_finset_prod_same w Φ
+    (fun C => (1 : MvPolynomial (Fin N) ℚ) - z C * (V C) ^ 2) hPer
+
+/-- **§239.7 — `P_paperFaithful_CEW_discharge_audit`** (paper §40.4
+Theorem 218 p. 205 structural inventory audit; paper §49.1 p. 230).
+
+**Audit anchor** documenting that §239 provides the **paired per-sheet
+discharge** for §237.5's CEW hypothesis:
+
+  * §239.1 bridges CEW through `embed σ` (structurally free, from §177.3);
+  * §239.2 composes additive CEW via `HasCEWBound_add_mono`;
+  * §239.3 specialises to the paper's `C * log n` headline;
+  * §239.4 handles the asymmetric per-sheet form `(C_Q, C_R)`;
+  * §239.5 applies the discharged CEW to §237.5's rank upper bound;
+  * §239.6 decomposes `CEW(Q_times_Phi_135)` over the clause-product,
+    exposing `|Φ| * w` as the per-clause-wise structural bound.
+
+**What remains an explicit hypothesis.** Discharging §239.3's
+`hQ : CEW(Q_times_Phi_135) ≤ C * log n` still requires
+`Φ.card ≤ C * log n / w` (via §239.6), i.e. the paper's Batcher
+**simultaneous-access** refinement that at each time step only O(log n)
+clauses touch the schedule (paper §40.4 proof, "each simultaneous
+access touches at most O(log n) blocks"). This is NOT derivable from
+the `T.constraints.length ≤ n^10` current compiler bound — it requires
+the Batcher-network + SoS-gadget arithmetisation in-file. §239 makes
+this gap **explicit and named**, so it is clear what remaining
+structural content discharges the unconditional closure. -/
+theorem P_paperFaithful_CEW_discharge_audit : True := trivial
+
+end Step239
+
+-- **Axiom audit** for §239 (paper §49.1 p. 230 "axiom-free, no sorry";
+-- paper §40.4 Theorem 218 p. 205 Deterministic Compiler Locality).
+#print axioms Step239.cew_of_embed_Q_le_cew_Q
+#print axioms Step239.cew_of_P_paperFaithful_additive
+#print axioms Step239.cew_of_P_paperFaithful_log_n
+#print axioms Step239.cew_of_P_paperFaithful_log_n_asymmetric
+#print axioms Step239.P_paperFaithful_CEW_rank_upper_bound_via_per_sheet
+#print axioms Step239.cew_of_Q_times_Phi_135_from_per_clause
+#print axioms Step239.P_paperFaithful_CEW_discharge_audit
+
 end Step4Compiler
