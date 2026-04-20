@@ -52034,6 +52034,56 @@ theorem P_ne_NP_from_cookLevin_direct_rank_hypothesis
   exact DirectRankPackage_cookLevin M n hn htb hns hn2
     (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) rfl hQ_upper
 
+/-- **§252.13c — `cookLevinQ_rank_le_from_p_side`** (bridge from the
+existing P-side theorem to the final direct-rank target).
+
+The existing theorem
+`PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin` already
+proves the `≤ n^200` P-side bound for the compiled polynomial
+`compiledPoly (cook_levin_compilation M n ...)` at the Cook-Levin
+partition. This theorem transports that result to the exact final
+hypothesis surface isolated in §252.13b: the direct pullback-partition
+rank bound on `cookLevinQ`.
+
+The proof mirrors `PaperFaithfulCompilation.cookLevinQ_rank_ge` on the
+NP side:
+
+  1. instantiate `hn2 : n ≥ 2` from `n ≥ 2^804`,
+  2. rewrite the pullback partition to the Cook-Levin partition via
+     `pullback_eq_cook_levin_partition`,
+  3. convert the polynomial target from `compiledPoly` to `cookLevinQ`
+     (which is definitionally the same object up to the UV-split cast).
+
+So this theorem collapses the final direct-rank hypothesis to an
+already-landed P-side theorem. -/
+theorem cookLevinQ_rank_le_from_p_side
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition
+        (PaperFaithfulCompilation.extendedCookLevinPartition M n (by
+          have : (2 : ℕ) ≤ 2 ^ 804 := by
+            calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+            _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+          omega))
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (PaperFaithfulCompilation.cookLevinQ M n (by
+        have : (2 : ℕ) ≤ 2 ^ 804 := by
+          calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+          _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+        omega) htb hns) ≤ n ^ 200 := by
+  set hn2 : n ≥ 2 := by
+    have : (2 : ℕ) ≤ 2 ^ 804 := by
+      calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+      _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    omega
+  have hpart := PaperFaithfulCompilation.pullback_eq_cook_levin_partition M n hn2 htb hns
+  rw [hpart]
+  have hp := PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin M n hn2 htb hns
+  convert hp using 2
+
+
 end Step252
 
 -- **Axiom audit** for §252 (paper §49.1 p. 230 "axiom-free, no sorry";
