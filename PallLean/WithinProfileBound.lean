@@ -5139,6 +5139,57 @@ theorem cookLevinProfileTemplateCollapseLemma_of_admissibleOnly
       exact bot_le
     · simp
 
+/-! ## Part 28: Bounded-profile reduction of the admissible-only lemma
+
+The admissible-only template collapse is still indexed by the (in principle
+infinite) type `ProfileHistogram = ConstraintType → ℕ`. Since admissibility
+bounds each component by `κ = Nat.log 2 n`, it factors through the FINITE
+type `BoundedProfile κ`. This section packages the corresponding reduction:
+providing a template family for every `BoundedProfile κ` produces the
+admissible-only template collapse, and hence the full all-profile collapse. -/
+
+/-- Bounded-profile restriction of the template-collapse lemma. Provides a
+template family for each `BoundedProfile κ` (each component ≤ `Nat.log 2 n`).
+Because `BoundedProfile κ` is finite (card ≤ `(κ+1)^4`), this is a finite-case
+obligation. -/
+def CookLevinProfileTemplateCollapseLemmaBoundedProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ bp : BoundedProfile (Nat.log 2 n),
+    CookLevinProfileTemplateCollapseAtProfile M n hn htb hns bp.toHistogram
+
+/-- **§Part 28 — bounded-profile template-collapse reduction**.
+
+The bounded-profile template-collapse obligation directly gives the
+admissible-only template-collapse lemma, because every admissible profile is
+a bounded profile. -/
+theorem cookLevinProfileTemplateCollapseLemmaAdmissibleOnly_of_boundedProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hbp :
+      CookLevinProfileTemplateCollapseLemmaBoundedProfile M n hn htb hns) :
+    CookLevinProfileTemplateCollapseLemmaAdmissibleOnly M n hn htb hns := by
+  intro h hadm
+  -- Every admissible profile is a bounded profile.
+  have hbd : ∀ τ, h τ ≤ Nat.log 2 n := admissible_implies_bounded hadm
+  let bp : BoundedProfile (Nat.log 2 n) := ⟨h, hbd⟩
+  have hbp_hist : bp.toHistogram = h := rfl
+  have := hbp bp
+  rw [hbp_hist] at this
+  exact this
+
+/-- Composed reduction: the bounded-profile template-collapse obligation gives
+the full all-profile template-collapse lemma, with no additional axioms. -/
+theorem cookLevinProfileTemplateCollapseLemma_of_boundedProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hbp :
+      CookLevinProfileTemplateCollapseLemmaBoundedProfile M n hn htb hns) :
+    CookLevinProfileTemplateCollapseLemma M n hn htb hns :=
+  cookLevinProfileTemplateCollapseLemma_of_admissibleOnly M n hn htb hns
+    (cookLevinProfileTemplateCollapseLemmaAdmissibleOnly_of_boundedProfile
+      M n hn htb hns hbp)
+
 end WithinProfileBound
 
 /-! # WithinProfileBound — Archived WIP below

@@ -52334,6 +52334,33 @@ theorem P_ne_NP_from_cookLevin_templateCollapse_admissibleOnly_hypothesis
   exact WithinProfileBound.cookLevinProfileTemplateCollapseLemma_of_admissibleOnly
     M n hn2 htb hns hadm
 
+/-- **§252.13h — `P_ne_NP_from_cookLevin_templateCollapse_boundedProfile_hypothesis`**
+(bounded-profile template-collapse final form).
+
+Even stricter variant of §252.13g: the input hypothesis provides a template
+family only for **bounded profiles** (`BoundedProfile (Nat.log 2 n)`). Since
+`BoundedProfile κ` is a finite type (card ≤ `(κ+1)^4`), this reduces the
+per-`PeqNP_Paper` obligation to a honest **finite-case enumeration** over a
+polynomially bounded index set — aligning closely with paper §9 Lemma 31's
+stars-and-bars counting for the symmetric tensor power dimension.
+
+This is the smallest paper-faithful hypothesis presently bridged to `P ≠ NP`
+by the kernel-only chain. -/
+theorem P_ne_NP_from_cookLevin_templateCollapse_boundedProfile_hypothesis
+    (hOutput : PaperFaithfulSeparation.PeqNP_Paper →
+      Σ' (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (hn2 : n ≥ 2),
+        WithinProfileBound.CookLevinProfileTemplateCollapseLemmaBoundedProfile
+          M n hn2 htb hns) :
+    P ≠ NP := by
+  apply P_ne_NP_from_cookLevin_templateCollapse_hypothesis
+  intro hPeq
+  obtain ⟨M, n, hn, htb, hns, hn2, hbp⟩ := hOutput hPeq
+  refine ⟨M, n, hn, htb, hns, hn2, ?_⟩
+  exact WithinProfileBound.cookLevinProfileTemplateCollapseLemma_of_boundedProfile
+    M n hn2 htb hns hbp
+
 end Step252
 
 -- **Axiom audit** for §252 (paper §49.1 p. 230 "axiom-free, no sorry";
@@ -52355,5 +52382,6 @@ end Step252
 #print axioms Step252.cookLevinQ_rank_le_from_templateCollapse
 #print axioms Step252.P_ne_NP_from_cookLevin_templateCollapse_hypothesis
 #print axioms Step252.P_ne_NP_from_cookLevin_templateCollapse_admissibleOnly_hypothesis
+#print axioms Step252.P_ne_NP_from_cookLevin_templateCollapse_boundedProfile_hypothesis
 
 end Step4Compiler
