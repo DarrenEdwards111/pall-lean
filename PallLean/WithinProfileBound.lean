@@ -5083,6 +5083,62 @@ theorem withinProfileFinrankBound_of_templateCollapse {n L : ℕ}
       exfalso; rw [hempty S hS] at hg; exact hg
     rw [hbot]; simp [withinProfileBound]
 
+/-! ## Part 27: Admissible-only reduction of the template-collapse lemma
+
+The `CookLevinProfileTemplateCollapseLemma` quantifies over ALL profiles.
+The non-admissible case is already trivially provable because
+`allBoundedProfilePostSpan` is `⊥` there (no bounded distribution has mass
+exceeding `κ`). This section isolates the honest remaining algebraic content:
+the admissible case.
+
+The admissible-only reduction takes a hypothesis quantifying only over
+admissible profiles (those with `profileMass h ≤ Nat.log 2 n`) and produces
+the full all-profile template collapse. Because there are at most
+`(Nat.log 2 n + 1)^4` admissible profiles, this reduction turns the
+`ProfileHistogram → ...` obligation into a finite-case obligation. -/
+
+/-- Admissible-only restriction of the template-collapse lemma. Instead of
+requiring a finite generating family for every profile, this asks only for the
+admissible profiles (those with `profileMass h ≤ Nat.log 2 n`). The
+non-admissible case is filled in automatically below via
+`allBoundedProfilePostSpan_zero_of_not_admissible`. -/
+def CookLevinProfileTemplateCollapseLemmaAdmissibleOnly
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ h : ProfileHistogram, ProfileAdmissible (Nat.log 2 n) h →
+    CookLevinProfileTemplateCollapseAtProfile M n hn htb hns h
+
+/-- **§Part 27 — admissible-only template-collapse reduction**.
+
+The admissible-only template-collapse statement immediately gives the full
+all-profile template-collapse lemma, with no additional axioms: on
+non-admissible profiles the `allBoundedProfilePostSpan` is `⊥`, so the empty
+finite family (of cardinality `0 ≤ profileTemplateBound h`) witnesses the
+collapse vacuously.
+
+This reduces the infinite-profile obligation to the finitely many admissible
+profiles (at most `(Nat.log 2 n + 1)^4` of them). -/
+theorem cookLevinProfileTemplateCollapseLemma_of_admissibleOnly
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hadm :
+      CookLevinProfileTemplateCollapseLemmaAdmissibleOnly M n hn htb hns) :
+    CookLevinProfileTemplateCollapseLemma M n hn htb hns := by
+  intro h
+  by_cases hok : ProfileAdmissible (Nat.log 2 n) h
+  · exact hadm h hok
+  · -- Non-admissible: the all-bounded-profile span is `⊥`, so the empty
+    -- finite family works.
+    refine ⟨∅, ?_, ?_⟩
+    · rw [allBoundedProfilePostSpan_zero_of_not_admissible
+        (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+        (cookLevinConstraintType M n hn htb hns)
+        h hok]
+      exact bot_le
+    · simp
+
 end WithinProfileBound
 
 /-! # WithinProfileBound — Archived WIP below

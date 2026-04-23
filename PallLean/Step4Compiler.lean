@@ -52302,6 +52302,38 @@ theorem P_ne_NP_from_cookLevin_templateCollapse_hypothesis
   refine ⟨M, n, hn, htb, hns, hn2, ?_⟩
   exact cookLevinQ_rank_le_from_templateCollapse M n hn htb hns hcollapse
 
+/-- **§252.13g — `P_ne_NP_from_cookLevin_templateCollapse_admissibleOnly_hypothesis`**
+(admissible-only template-collapse final form).
+
+Stricter variant of §252.13f: the input hypothesis provides a template family
+only for **admissible** profiles (those with `profileMass h ≤ Nat.log 2 n`).
+The non-admissible case is then discharged by
+`cookLevinProfileTemplateCollapseLemma_of_admissibleOnly` (where
+`allBoundedProfilePostSpan` is provably `⊥`).
+
+Interpretation: this reduces the per-`PeqNP_Paper` obligation from an
+all-profile (infinite `ProfileHistogram`) hypothesis to the finite set of
+admissible profiles — at most `(Nat.log 2 n + 1)^4` of them. The resulting
+obligation is a finite-case check per `(M, n)`, matching paper §9 Lemma 31's
+content which is formulated only for interface-anonymous (admissible) profiles.
+
+This is a genuine narrowing of the paper-faithful hypothesis, preserving the
+kernel-only status. -/
+theorem P_ne_NP_from_cookLevin_templateCollapse_admissibleOnly_hypothesis
+    (hOutput : PaperFaithfulSeparation.PeqNP_Paper →
+      Σ' (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (hn2 : n ≥ 2),
+        WithinProfileBound.CookLevinProfileTemplateCollapseLemmaAdmissibleOnly
+          M n hn2 htb hns) :
+    P ≠ NP := by
+  apply P_ne_NP_from_cookLevin_templateCollapse_hypothesis
+  intro hPeq
+  obtain ⟨M, n, hn, htb, hns, hn2, hadm⟩ := hOutput hPeq
+  refine ⟨M, n, hn, htb, hns, hn2, ?_⟩
+  exact WithinProfileBound.cookLevinProfileTemplateCollapseLemma_of_admissibleOnly
+    M n hn2 htb hns hadm
+
 end Step252
 
 -- **Axiom audit** for §252 (paper §49.1 p. 230 "axiom-free, no sorry";
@@ -52322,5 +52354,6 @@ end Step252
 #print axioms Step252.P_ne_NP_from_cookLevin_slim_G_hypothesis
 #print axioms Step252.cookLevinQ_rank_le_from_templateCollapse
 #print axioms Step252.P_ne_NP_from_cookLevin_templateCollapse_hypothesis
+#print axioms Step252.P_ne_NP_from_cookLevin_templateCollapse_admissibleOnly_hypothesis
 
 end Step4Compiler
