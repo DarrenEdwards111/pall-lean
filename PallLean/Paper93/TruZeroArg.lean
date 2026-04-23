@@ -3,58 +3,56 @@
 
   Agent K2 of 2 (parallel) — Compose Agent H8's `F5_universal` (zero-arg
   kernel-only, commit `c0c13d0`) with the discharge of Agent K1's
-  `AgentG4_Spanning_concrete` (specialised to Agent J1's `concreteW`) to
-  produce a truly zero-argument `P_ne_NP_truly_zero : P ≠ NP` at the
+  `AgentG4_Spanning_concrete` (specialised to Agent J1's `concreteW`,
+  commit `6699f3f`) to produce `P_ne_NP_truly_zero : P ≠ NP` at the
   kernel-only axiom profile `[propext, Classical.choice, Quot.sound]`.
 
   ## Scope
 
-  Agent K1 (parallel) is building `AgentG4_Spanning_concrete` and the
-  matching composition lemma `P_ne_NP_absolute_zero_args_v2` in
-  `PallLean/Paper93/FinalCompositionV2.lean`. At the present repository
-  state (branch `godmove-paper-faithful`, commit head `eec2f11`) K1 has
-  **not** yet landed in-repo. Per the task prompt's explicit fallback
-  instruction — "Take K1 as hypothesis if not landed; use `variable`
-  for `AgentG4_Spanning_concrete`." — this file:
+  Agent K1 (parallel) landed `AgentG4_Spanning_concrete` and
+  `P_ne_NP_absolute_zero_args_v2` in
+  `PallLean/Paper93/FinalCompositionV2.lean` (commit `6699f3f`).
+  K1's specialised G4 Prop has signature
 
-    * declares K1's `AgentG4_Spanning_concrete` and
-      `P_ne_NP_absolute_zero_args_v2` as `variable`-introduced
-      Prop-level hypotheses;
+    ∀ M n (_hn : n ≥ 2^804) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+      (hn2 : n ≥ 2) (hn4 : n ≥ 4) (bp : BoundedProfile (Nat.log 2 n)),
+    ∃ σ : Fin 4 ↪ Fin n,
+      cookLevinPostSpanAt M n hn2 htb hns bp.toHistogram
+        ≤ cookLevinProfileSubspace bp (fun τ => concreteW n hn4 σ τ)
 
-    * produces `AgentG4_Spanning_concrete_discharged :
-      AgentG4_Spanning_concrete` via a direct term-mode composition
-      that consumes Agent H3's universal factor-membership package,
-      Agent H4's universal derivative-closure package, and Agent I5's
-      universal shift/mlProj-closure package specialised to Agent J1's
-      `concreteW` family (i.e. Agent H2's `ambientPerTypeSpace`
-      specialised to Agent H1's `perTypeInterfaceSpace`), plus a
-      K1-side "concrete discharge" hypothesis that extracts
-      `AgentG4_Spanning_concrete` from those three universal
-      packages. The K1-side extractor is exactly the residual
-      ingredient K1 is building; we take it as a variable hypothesis
-      awaiting K1's landing.
+  and K1's final theorem has signature
 
-    * composes `F5_universal` with the `AgentG4_Spanning_concrete`
-      discharge through K1's `P_ne_NP_absolute_zero_args_v2` to
-      produce `P_ne_NP_truly_zero : P ≠ NP`.
+    `P_ne_NP_absolute_zero_args_v2 : AgentF5_AmbientFinrankLeThree →
+       AgentG4_Spanning_concrete → P ≠ NP`.
 
-  When Agent K1 lands its `AgentG4_Spanning_concrete` /
-  `P_ne_NP_absolute_zero_args_v2` definitions in
-  `Paper93/FinalCompositionV2.lean`, substituting those definitions at
-  the `variable` sites below collapses the signature of
-  `P_ne_NP_truly_zero` to the intended genuinely zero-argument
-  `P ≠ NP` by composition of the H3 / H4 / I5 universal packages
-  (already landed and consumed here) with F5_universal and K1's
-  concrete bridge.
+  This file discharges `AgentG4_Spanning_concrete` by specialising the
+  universal per-type spanning bundle
+  `CookLevinPerTypeSpanning_universal` (Agent I6 / J2 deliverable) at
+  Agent J1's concrete `concreteW n hn4 (Fin.castLEEmb hn4)` family,
+  pointwise in each `(M, n, htb, hns, bp)` tuple. The σ witness is the
+  canonical `Fin.castLEEmb hn4` (matching Agent H8's `F5_universal`),
+  and the post-span containment follows from
+  `cookLevinProfileSubspace_contains_postSpan_at_bp` applied to the
+  universal-over-W per-type spanning.
 
-  The H3 / H4 / I5 universal packages are themselves hypothesis-taking
-  on the zero-argument landings of the three discharged per-(n, W)
-  closures. At the repo head those three discharged forms exist as
-  per-(n, W) theorems (commits `34e3af5`, `8fba527`, `e7a5472`) but
-  have not been packaged as universal-over-W inhabitants of the three
-  `_universal` Props. Once those universal inhabitants land, all
-  residual hypotheses below collapse and the signature reduces to
-  `P ≠ NP` with zero arguments.
+  The final composition feeds Agent H8's zero-argument
+  `F5_universal` and the discharged
+  `AgentG4_Spanning_concrete` through
+  `P_ne_NP_absolute_zero_args_v2` to produce `P ≠ NP`. The only
+  residual hypothesis is Agent I6's
+  `CookLevinPerTypeSpanning_universal`, which at the present repo
+  state is the exact hypothesis that Agent J3's `FinalZeroArg` also
+  carries (`Paper93/Wiring/FinalZeroArg.lean`) pending Agent J2's
+  three universal-closure packages landing as zero-argument
+  inhabitants.
+
+  When a zero-argument inhabitant of
+  `CookLevinPerTypeSpanning_universal` lands in-repo (e.g. via a
+  future Agent that packages Agents I1 / I2 / I3's per-(n, W)
+  closures into universal-over-W inhabitants of the three
+  `_universal` Props), substituting it at the call site collapses
+  this file's `P_ne_NP_truly_zero` to a genuinely zero-argument
+  `P ≠ NP`.
 
   ## Kernel-only
 
@@ -62,29 +60,23 @@
     * No bespoke axioms.
     * Verified by `lake build`.
 
-  Expected `#print axioms` for `P_ne_NP_truly_zero`:
+  Expected `#print axioms P_ne_NP_truly_zero`:
       `[propext, Classical.choice, Quot.sound]`.
 -/
 
 import PallLean.Paper93.FinalDischarge
+import PallLean.Paper93.FinalCompositionV2
 import PallLean.Paper93.Alignment.F5Universal
 import PallLean.Paper93.Wiring.ConcreteW
-import PallLean.Paper93.Wiring.DischargeChain
-import PallLean.Paper93.Closure.UnconditionalSpanning
-import PallLean.Paper93.Closure.PerTypeClosure
+import PallLean.Paper93.Spanning.Composition
 import PallLean.Paper93.Spanning.PerDerivativeSpanning
-import PallLean.Paper93.Bridge.AmbientPerType
-import PallLean.Paper93.Bridge.PerTypeInterfaceSpace
 import Mathlib.Data.Fin.Embedding
-
-set_option linter.unusedSectionVars false
 
 namespace PallLean
 namespace Paper93
 
 open PallLean.Paper93
 open PallLean.Paper93.Spanning
-open PallLean.Paper93.Closure
 open PallLean.Paper93.Bridge
 open PallLean.Paper93.Wiring
 open PallLean.Paper93.Alignment
@@ -92,151 +84,108 @@ open Step4Compiler
 open SymmetricPowerBound TuringMachine MvPolynomial
 open WithinProfileBound
 
-/-! ## K1 `variable` block
+/-! ## Discharge of K1's `AgentG4_Spanning_concrete`
 
-The two K1 deliverables — `AgentG4_Spanning_concrete` (a Prop) and
-`P_ne_NP_absolute_zero_args_v2`
-(`AgentF5_AmbientFinrankLeThree → AgentG4_Spanning_concrete → P ≠ NP`) —
-are taken as explicit `variable`-introduced Prop-level hypotheses
-pending K1's landing in `Paper93/FinalCompositionV2.lean`.
+`AgentG4_Spanning_concrete` asks, for every `(M, n, _hn : n ≥ 2^804,
+htb, hns, hn2, hn4, bp)`, for an `σ : Fin 4 ↪ Fin n` such that the
+Cook-Levin post-span at `bp.toHistogram` is contained in
+`cookLevinProfileSubspace bp (fun τ => concreteW n hn4 σ τ)`.
 
-We also take the three universal closure packages (H3_univ, H4_univ,
-I5_univ) and a K1-side "concrete bridge" hypothesis
-(`AgentG4_Spanning_concrete_of_universals`) that assembles those three
-universal packages into `AgentG4_Spanning_concrete`. The bridge is the
-residual content K1 is packaging; exposing it here as a `variable`
-mirrors K1's wiring shape so that substitution at the use site
-collapses the signature cleanly. -/
+We witness `σ := Fin.castLEEmb hn4` (the canonical coordinate
+embedding, matching Agent H8's `F5_universal`). With that choice, we
+need to show
 
-section K1Variables
+  `cookLevinPostSpanAt M n hn2 htb hns bp.toHistogram
+      ≤ cookLevinProfileSubspace bp (fun τ => concreteW n hn4
+                                       (Fin.castLEEmb hn4) τ)`.
 
--- K1's concrete spanning Prop (placeholder taken as `variable`).
-variable (AgentG4_Spanning_concrete : Prop)
+This is precisely the conclusion of
+`cookLevinProfileSubspace_contains_postSpan_at_bp` (Agent G4 /
+Composition.lean) applied to the per-type spanning bundle
+`CookLevinPerTypeSpanning M n hn2 htb hns (fun τ => concreteW n hn4
+(Fin.castLEEmb hn4) τ)`, which follows from
+`CookLevinPerTypeSpanning_universal` specialised at `W := fun τ =>
+concreteW n hn4 (Fin.castLEEmb hn4) τ`. -/
 
--- K1's zero-argument composition lemma
---   `AgentF5_AmbientFinrankLeThree → AgentG4_Spanning_concrete → P ≠ NP`
--- (placeholder taken as `variable`).
-variable (P_ne_NP_absolute_zero_args_v2 :
-  AgentF5_AmbientFinrankLeThree → AgentG4_Spanning_concrete → P ≠ NP)
+/-- **Agent K2: discharge of K1's `AgentG4_Spanning_concrete`
+    (modulo `CookLevinPerTypeSpanning_universal`).**
 
--- K1's concrete bridge: assemble H3/H4/I5 universal packages at the
--- J1 `concreteW` family into `AgentG4_Spanning_concrete`.
---
--- This is exactly the residual content K1 is packaging in
--- `Paper93/FinalCompositionV2.lean`. We expose it here as a `variable`
--- awaiting K1's landing; substituting K1's bridge term at the use site
--- discharges this hypothesis unconditionally.
-variable (AgentG4_Spanning_concrete_of_universals :
-    CookLevinFactorMemPerType_universal →
-    DerivClosurePerType_universal →
-    PerTypeShiftMlprojClosure_universal →
-    AgentG4_Spanning_concrete)
+Given Agent I6 / J2's universal per-type spanning bundle
+`CookLevinPerTypeSpanning_universal`, produce K1's specialised G4
+Prop `AgentG4_Spanning_concrete` by:
 
--- Force-include the K1 `variable`s above into every theorem in this
--- section, since their types do not syntactically mention the later
--- `variable`s but the bodies do. (Lean 4's auto-include is
--- signature-driven; `include` is the idiomatic escape hatch for
--- body-only references.)
-include P_ne_NP_absolute_zero_args_v2 AgentG4_Spanning_concrete_of_universals
+  * picking `σ := Fin.castLEEmb hn4` (the canonical coordinate
+    embedding);
 
-/-! ## Discharge of `AgentG4_Spanning_concrete` via H3/H4/I5 universal
-    packages specialised to `concreteW`
+  * applying the universal spanning bundle at `W := fun τ => concreteW
+    n hn4 (Fin.castLEEmb hn4) τ`;
 
-The three universal closure packages from Agents H3 / H4 / I5 are
-themselves Props. In the present repo state they are landed as
-per-(n, W) discharges and are consumed universally-over-W by Agent
-J2's `cookLevinPerTypeSpanning_universal_wired_unconditional` (commit
-`eec2f11`). We take them here as explicit universal hypotheses and
-feed them through K1's bridge to produce `AgentG4_Spanning_concrete`. -/
+  * invoking `cookLevinProfileSubspace_contains_postSpan_at_bp` to
+    promote the per-type spanning into the required post-span
+    containment at `bp`.
 
-/-- **Agent K2: concrete spanning discharge via H3 + H4 + I5 universals.**
-
-Given:
-
-  * Agent H3's universal factor-membership package
-    (`CookLevinFactorMemPerType_universal`);
-  * Agent H4's universal derivative-closure package
-    (`DerivClosurePerType_universal`);
-  * Agent I5's universal shift/mlProj-closure package
-    (`PerTypeShiftMlprojClosure_universal`);
-  * Agent K1's concrete bridge
-    (`AgentG4_Spanning_concrete_of_universals`);
-
-produce a direct proof of `AgentG4_Spanning_concrete` by term-mode
-composition.
-
-The intent is that the three universal packages are discharged at
-Agent J1's `concreteW n hn4 σ τ = ambientPerTypeSpace
-perTypeInterfaceSpace n hn4 σ τ` family (via `σ := Fin.castLEEmb hn4`
-as in H8's `F5_universal`), which Agent K1's
-`AgentG4_Spanning_concrete` Prop is set up to consume. At the use
-site, K1's bridge absorbs the three universals at `concreteW`, and
-this theorem produces the matching `AgentG4_Spanning_concrete`
-inhabitant.
-
-No per-(n, W) content is added here; this file performs a wiring
-composition only, matching the shape of Agent J2's
-`cookLevinPerTypeSpanning_universal_wired_unconditional`. -/
+No new analytic content is introduced; this is a direct term-mode
+specialisation and application of the universal spanning bundle at
+Agent J1's concrete W family. -/
 theorem AgentG4_Spanning_concrete_discharged
-    (hFactor_univ : CookLevinFactorMemPerType_universal)
-    (hClosure_univ : DerivClosurePerType_universal)
-    (hShiftMlproj_univ : PerTypeShiftMlprojClosure_universal) :
-    AgentG4_Spanning_concrete :=
-  AgentG4_Spanning_concrete_of_universals
-    hFactor_univ hClosure_univ hShiftMlproj_univ
+    (hSpan_univ : CookLevinPerTypeSpanning_universal) :
+    AgentG4_Spanning_concrete := by
+  intro M n _hn htb hns hn2 hn4 bp
+  -- Canonical coordinate embedding σ := Fin.castLEEmb hn4
+  refine ⟨Fin.castLEEmb hn4, ?_⟩
+  -- Specialise the universal per-type spanning bundle at
+  -- W := fun τ => concreteW n hn4 (Fin.castLEEmb hn4) τ.
+  have hSpan :
+      CookLevinPerTypeSpanning M n hn2 htb hns
+        (fun τ => concreteW n hn4 (Fin.castLEEmb hn4) τ) :=
+    hSpan_univ M n hn2 htb hns
+      (fun τ => concreteW n hn4 (Fin.castLEEmb hn4) τ)
+  -- Apply the G4 post-span containment lemma at `bp`.
+  exact cookLevinProfileSubspace_contains_postSpan_at_bp
+    M n hn2 htb hns
+    (fun τ => concreteW n hn4 (Fin.castLEEmb hn4) τ) hSpan bp
 
-/-! ## Final composition: H8 `F5_universal` + K1 `AgentG4_Spanning_concrete`
-    + K1 `P_ne_NP_absolute_zero_args_v2` ⇒ `P ≠ NP`
+/-! ## Final composition: H8 `F5_universal` + K2 discharge + K1 v2 ⇒ `P ≠ NP`
 
-With Agent H8's zero-argument `F5_universal` (commit `c0c13d0`,
-`PallLean/Paper93/Alignment/F5Universal.lean`) supplying the first
-argument of `P_ne_NP_absolute_zero_args_v2`, and the
-`AgentG4_Spanning_concrete_discharged` composition above supplying the
-second argument through K1's concrete bridge, the final composition
-produces `P ≠ NP`.
+Composes:
 
-At the present repository state K1's
-`AgentG4_Spanning_concrete_of_universals` bridge is taken as a
-`variable` hypothesis (pending K1 landing `FinalCompositionV2.lean`),
-and the three universal closure packages H3_univ / H4_univ / I5_univ
-are taken as explicit hypotheses (pending their universal-over-W
-packagings landing in-repo). When all four ingredients land, the
-theorem below collapses to a genuinely zero-argument
-`P ≠ NP`. -/
+  * Agent H8 `F5_universal`
+    (`PallLean/Paper93/Alignment/F5Universal.lean`, commit `c0c13d0`)
+    — zero-argument inhabitant of `AgentF5_AmbientFinrankLeThree`;
 
-/-- **Truly zero-argument kernel-only `P ≠ NP`** (modulo K1's
-    `AgentG4_Spanning_concrete` / `P_ne_NP_absolute_zero_args_v2`
-    placeholders and the three universal closure packages).
+  * K2 `AgentG4_Spanning_concrete_discharged` (this file) — produces
+    K1's `AgentG4_Spanning_concrete` from
+    `CookLevinPerTypeSpanning_universal`;
+
+  * Agent K1 `P_ne_NP_absolute_zero_args_v2`
+    (`Paper93/FinalCompositionV2.lean`, commit `6699f3f`) — the
+    concrete-W specialised composition
+    `AgentF5_AmbientFinrankLeThree → AgentG4_Spanning_concrete → P ≠ NP`.
+
+The only residual hypothesis is
+`CookLevinPerTypeSpanning_universal`, matching Agent J3's
+`FinalZeroArg` fallback. When a zero-argument inhabitant of that Prop
+lands in-repo, substituting it at the call site collapses the
+signature below to zero arguments. -/
+
+/-- **`P ≠ NP` — zero-argument modulo `CookLevinPerTypeSpanning_universal`.**
 
 Composition of:
 
-  * Agent H8 `F5_universal` (zero-argument, kernel-only Prop-form of
-    `AgentF5_AmbientFinrankLeThree`; commit `c0c13d0`, file
-    `PallLean/Paper93/Alignment/F5Universal.lean`);
+  * Agent H8 `F5_universal` (zero-argument, kernel-only);
+  * Agent K2 `AgentG4_Spanning_concrete_discharged` (this file);
+  * Agent K1 `P_ne_NP_absolute_zero_args_v2` (commit `6699f3f`);
 
-  * Agent K2 `AgentG4_Spanning_concrete_discharged` (this file) —
-    discharges K1's `AgentG4_Spanning_concrete` via the H3 / H4 / I5
-    universal closure packages and K1's concrete bridge;
+with residual hypothesis Agent I6 / J2's
+`CookLevinPerTypeSpanning_universal`.
 
-  * Agent K1 `P_ne_NP_absolute_zero_args_v2`
-    (`PallLean/Paper93/FinalCompositionV2.lean`, pending landing) —
-    the two-hypothesis composition
-    `AgentF5_AmbientFinrankLeThree → AgentG4_Spanning_concrete → P ≠ NP`
-    specialised to K1's concrete spanning Prop.
-
-Axiom profile: kernel-only `[propext, Classical.choice, Quot.sound]`
-(matching F5_universal and K1's composition). -/
+Axiom profile: kernel-only `[propext, Classical.choice, Quot.sound]`. -/
 theorem P_ne_NP_truly_zero
-    (hFactor_univ : CookLevinFactorMemPerType_universal)
-    (hClosure_univ : DerivClosurePerType_universal)
-    (hShiftMlproj_univ : PerTypeShiftMlprojClosure_universal) :
-    P ≠ NP := by
-  refine P_ne_NP_absolute_zero_args_v2
-    PallLean.Paper93.Alignment.F5_universal ?_
-  exact AgentG4_Spanning_concrete_of_universals
-    hFactor_univ hClosure_univ hShiftMlproj_univ
-
-end K1Variables
+    (hSpan_univ : CookLevinPerTypeSpanning_universal) :
+    P ≠ NP :=
+  P_ne_NP_absolute_zero_args_v2
+    PallLean.Paper93.Alignment.F5_universal
+    (AgentG4_Spanning_concrete_discharged hSpan_univ)
 
 -- **Axiom audit** — expected: kernel-only
 -- `[propext, Classical.choice, Quot.sound]`.
