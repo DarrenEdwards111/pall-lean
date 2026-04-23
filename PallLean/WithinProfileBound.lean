@@ -943,6 +943,16 @@ def RawTouchedCompatibleWithDerivProfile {n L : ℕ}
   ∃ d : Fin L → List (Fin n),
     derivCountProfile constraintType d = h ∧ rawTouchedFactorSet d = touched
 
+/-- The untouched factor: ∏_{i ∉ touched} mlProj(f_i).
+
+Forward-declared here so that `untouchedMultiplierSpaceOfProfile` can refer
+to it before Part 24's local re-declaration. -/
+noncomputable def untouchedFactor {n : ℕ} {ι : Type*} [DecidableEq ι]
+    (s : Finset ι) (f : ι → MvPolynomial (Fin n) ℚ)
+    (touched : Finset ι) :
+    MvPolynomial (Fin n) ℚ :=
+  (s.filter (· ∉ touched)).prod (fun i => mlProj (f i))
+
 /-- Finite enumeration of raw touched supports compatible with a fixed
  derivative-count profile. -/
 noncomputable def rawTouchedCompatibleSupportsOfProfile {n L : ℕ}
@@ -994,9 +1004,23 @@ instance untouchedMultiplierSpaceOfProfile_finite {n L : ℕ}
     Module.Finite ℚ ↥(untouchedMultiplierSpaceOfProfile factors constraintType h) := by
   unfold untouchedMultiplierSpaceOfProfile
   apply Module.Finite.span_of_finite
-  refine (rawTouchedCompatibleSupportsOfProfile (n := n) constraintType h).finite_toSet.image ?_
-  intro touched _
-  exact untouchedFactor Finset.univ factors touched
+  -- The generating set is the image of the finite enumeration of compatible touched
+  -- supports under the map `touched ↦ untouchedFactor Finset.univ factors touched`.
+  have himg :
+      {p | ∃ touched ∈ rawTouchedCompatibleSupportsOfProfile (n := n) constraintType h,
+          p = untouchedFactor Finset.univ factors touched} =
+        (fun touched => untouchedFactor Finset.univ factors touched) ''
+          (↑(rawTouchedCompatibleSupportsOfProfile (n := n) constraintType h) :
+            Set (Finset (Fin L))) := by
+    ext p
+    constructor
+    · rintro ⟨touched, htouched, rfl⟩
+      exact ⟨touched, htouched, rfl⟩
+    · rintro ⟨touched, htouched, rfl⟩
+      exact ⟨touched, htouched, rfl⟩
+  rw [himg]
+  exact (rawTouchedCompatibleSupportsOfProfile
+    (n := n) constraintType h).finite_toSet.image _
 
 /-- Direct raw-touched collapse theorem that feeds the exact bounded
 derivative-count profile route: for each derivative-count profile `h`, one
@@ -2178,34 +2202,51 @@ theorem cookLevinProfileTouchedSpanDescentAtProfile_of_factorization_stable
 /-- A profile-only touched-part subspace of bounded finrank immediately yields
 one finite template family of the same profile-bounded size. This is the clean
 non-circular final step from touched-span descent to the raw-touched template
-family `G_h`. -/
+family `G_h`.
+
+Here we require the descent's multiplier space `U` to literally be the
+profile-fixed `untouchedMultiplierSpaceOfProfile`, so that the stability
+hypothesis can be applied to the concrete `c` produced by the descent. -/
 theorem cookLevinRawTouchedDerivTemplateSpanAtProfile_of_profileTouchedSpanDescentAtProfile
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (h : ProfileHistogram)
-    (hdesc : CookLevinProfileTouchedSpanDescentAtProfile M n hn htb hns h)
+    (hdesc :
+      ∃ W : Submodule ℚ (MvPolynomial (Fin n) ℚ),
+        Module.Finite ℚ ↥W ∧
+        Module.finrank ℚ ↥W ≤ profileTemplateBound h ∧
+        ∀ (S : List (Fin n)) (_ : S.length ≤ Nat.log 2 n)
+          (shift : MvPolynomial (Fin n) ℚ) (_ : shift.vars ⊆ S.toFinset)
+          (touched : Finset (Fin (cookLevinFactorList M n hn htb hns).length)),
+            RawTouchedCompatibleWithDerivProfile
+                (n := n)
+                (cookLevinConstraintType M n hn htb hns) h touched →
+              ∃ c : MvPolynomial (Fin n) ℚ,
+                c ∈ untouchedMultiplierSpaceOfProfile
+                  (fun i => (cookLevinFactorList M n hn htb hns).get i)
+                  (cookLevinConstraintType M n hn htb hns) h ∧
+                rawTouchedPostSpan
+                  (fun i => (cookLevinFactorList M n hn htb hns).get i)
+                  S shift touched ≤
+                Submodule.map (LinearMap.mulRight ℚ c) W)
     (hstable :
       ∀ {W : Submodule ℚ (MvPolynomial (Fin n) ℚ)}
         (hfinW : Module.Finite ℚ ↥W),
         W = W →
         ∀ c : MvPolynomial (Fin n) ℚ,
-          c ∈ untouchedMultiplierSpace
+          c ∈ untouchedMultiplierSpaceOfProfile
             (fun i => (cookLevinFactorList M n hn htb hns).get i)
             (cookLevinConstraintType M n hn htb hns) h →
           Submodule.map (LinearMap.mulRight ℚ c) W ≤ W) :
     CookLevinRawTouchedDerivTemplateSpanAtProfile M n hn htb hns h := by
-  rcases hdesc with ⟨W, U, hfinW, hdimW, _hfinU, hW⟩
+  rcases hdesc with ⟨W, hfinW, hdimW, hW⟩
   letI : Module.Finite ℚ ↥W := hfinW
   rcases finite_submodule_le_span_finset_card_le_finrank W with ⟨G, hW_span, hG_card⟩
   refine ⟨G, le_trans hG_card hdimW, ?_⟩
   intro S hS shift hshift touched hcompat
   rcases hW S hS shift hshift touched hcompat with ⟨c, hcU, hle⟩
-  have hmap : Submodule.map (LinearMap.mulRight ℚ c) W ≤ W := by
-    have hcMul : c ∈ untouchedMultiplierSpace
-        (fun i => (cookLevinFactorList M n hn htb hns).get i)
-        (cookLevinConstraintType M n hn htb hns) h := by
-      exact hcU
-    exact hstable hfinW rfl c hcMul
+  have hmap : Submodule.map (LinearMap.mulRight ℚ c) W ≤ W :=
+    hstable hfinW rfl c hcU
   exact le_trans hle (le_trans hmap hW_span)
 
 /-- Stable fixed-profile factorization directly yields the finite template family
@@ -2231,13 +2272,19 @@ theorem cookLevinRawTouchedDerivTemplateSpanAtProfile_of_factorization_stable
                 rawTouchedPostSpan
                   (fun i => (cookLevinFactorList M n hn htb hns).get i)
                   S shift touched ≤
-                Submodule.map (LinearMap.mulRight ℚ c) W) :
-    CookLevinRawTouchedDerivTemplateSpanAtProfile M n hn htb hns h := by
-  exact
-    cookLevinRawTouchedDerivTemplateSpanAtProfile_of_profileTouchedSpanDescentAtProfile
-      M n hn htb hns h
-      (cookLevinProfileTouchedSpanDescentAtProfile_of_factorization_stable
-        M n hn htb hns h hfact)
+                Submodule.map (LinearMap.mulRight ℚ c) W)
+    (hstable :
+      ∀ {W : Submodule ℚ (MvPolynomial (Fin n) ℚ)}
+        (hfinW : Module.Finite ℚ ↥W),
+        W = W →
+        ∀ c : MvPolynomial (Fin n) ℚ,
+          c ∈ untouchedMultiplierSpaceOfProfile
+            (fun i => (cookLevinFactorList M n hn htb hns).get i)
+            (cookLevinConstraintType M n hn htb hns) h →
+          Submodule.map (LinearMap.mulRight ℚ c) W ≤ W) :
+    CookLevinRawTouchedDerivTemplateSpanAtProfile M n hn htb hns h :=
+  cookLevinRawTouchedDerivTemplateSpanAtProfile_of_profileTouchedSpanDescentAtProfile
+    M n hn htb hns h hfact hstable
 
 /-- All-profile version of the raw-touched template-span frontier. -/
 def CookLevinRawTouchedDerivTemplateSpanLemma
@@ -2634,26 +2681,53 @@ theorem cookLevinBoundedProfileCommonSpanAtProfile_of_templateCollapseAtProfile
       (cookLevinAllBoundedProfileCommonSpanAtProfile_of_templateCollapseAtProfile
         M n hn htb hns h hcollapse)
 
-/-- Direct fixed-profile bridge from profile touched-span descent to the active
-per-`S`/shift common-span target at the actual Cook-Levin family.
+/-- Direct fixed-profile bridge from profile touched-span descent (in the
+explicit profile-fixed-multiplier form) plus a multiplier-stability hypothesis
+to the active per-`S`/shift common-span target at the actual Cook-Levin family.
 
 This packages the paper-faithful route
-`profile touched-span descent → raw-touched template span → template collapse
-→ all-span common span → bounded-profile common span` into one theorem whose
-conclusion already matches the retained fixed-profile blocker. -/
+`profile touched-span descent (explicit) → raw-touched template span →
+template collapse → all-span common span → bounded-profile common span` into
+one theorem whose conclusion already matches the retained fixed-profile
+blocker. -/
 theorem cookLevinBoundedProfileCommonSpanAtProfile_of_profileTouchedSpanDescentAtProfile
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (h : ProfileHistogram)
-    (hdesc : CookLevinProfileTouchedSpanDescentAtProfile M n hn htb hns h) :
-    CookLevinBoundedProfileCommonSpanAtProfile M n hn htb hns h := by
-  exact
-    cookLevinBoundedProfileCommonSpanAtProfile_of_templateCollapseAtProfile
+    (hdesc :
+      ∃ W : Submodule ℚ (MvPolynomial (Fin n) ℚ),
+        Module.Finite ℚ ↥W ∧
+        Module.finrank ℚ ↥W ≤ profileTemplateBound h ∧
+        ∀ (S : List (Fin n)) (_ : S.length ≤ Nat.log 2 n)
+          (shift : MvPolynomial (Fin n) ℚ) (_ : shift.vars ⊆ S.toFinset)
+          (touched : Finset (Fin (cookLevinFactorList M n hn htb hns).length)),
+            RawTouchedCompatibleWithDerivProfile
+                (n := n)
+                (cookLevinConstraintType M n hn htb hns) h touched →
+              ∃ c : MvPolynomial (Fin n) ℚ,
+                c ∈ untouchedMultiplierSpaceOfProfile
+                  (fun i => (cookLevinFactorList M n hn htb hns).get i)
+                  (cookLevinConstraintType M n hn htb hns) h ∧
+                rawTouchedPostSpan
+                  (fun i => (cookLevinFactorList M n hn htb hns).get i)
+                  S shift touched ≤
+                Submodule.map (LinearMap.mulRight ℚ c) W)
+    (hstable :
+      ∀ {W : Submodule ℚ (MvPolynomial (Fin n) ℚ)}
+        (hfinW : Module.Finite ℚ ↥W),
+        W = W →
+        ∀ c : MvPolynomial (Fin n) ℚ,
+          c ∈ untouchedMultiplierSpaceOfProfile
+            (fun i => (cookLevinFactorList M n hn htb hns).get i)
+            (cookLevinConstraintType M n hn htb hns) h →
+          Submodule.map (LinearMap.mulRight ℚ c) W ≤ W) :
+    CookLevinBoundedProfileCommonSpanAtProfile M n hn htb hns h :=
+  cookLevinBoundedProfileCommonSpanAtProfile_of_templateCollapseAtProfile
+    M n hn htb hns h
+    (cookLevinProfileTemplateCollapseAtProfile_of_rawTouchedDerivTemplateSpanAtProfile
       M n hn htb hns h
-      (cookLevinProfileTemplateCollapseAtProfile_of_rawTouchedDerivTemplateSpanAtProfile
-        M n hn htb hns h
-        (cookLevinRawTouchedDerivTemplateSpanAtProfile_of_profileTouchedSpanDescentAtProfile
-          M n hn htb hns h hdesc))
+      (cookLevinRawTouchedDerivTemplateSpanAtProfile_of_profileTouchedSpanDescentAtProfile
+        M n hn htb hns h hdesc hstable))
 
 /-- Short fixed-profile bridge from stable touched-factorization all the way to
  the retained bounded-profile common-span target. -/
@@ -2678,13 +2752,19 @@ theorem cookLevinBoundedProfileCommonSpanAtProfile_of_factorization_stable
                 rawTouchedPostSpan
                   (fun i => (cookLevinFactorList M n hn htb hns).get i)
                   S shift touched ≤
-                Submodule.map (LinearMap.mulRight ℚ c) W) :
-    CookLevinBoundedProfileCommonSpanAtProfile M n hn htb hns h := by
-  exact
-    cookLevinBoundedProfileCommonSpanAtProfile_of_profileTouchedSpanDescentAtProfile
-      M n hn htb hns h
-      (cookLevinProfileTouchedSpanDescentAtProfile_of_factorization_stable
-        M n hn htb hns h hfact)
+                Submodule.map (LinearMap.mulRight ℚ c) W)
+    (hstable :
+      ∀ {W : Submodule ℚ (MvPolynomial (Fin n) ℚ)}
+        (hfinW : Module.Finite ℚ ↥W),
+        W = W →
+        ∀ c : MvPolynomial (Fin n) ℚ,
+          c ∈ untouchedMultiplierSpaceOfProfile
+            (fun i => (cookLevinFactorList M n hn htb hns).get i)
+            (cookLevinConstraintType M n hn htb hns) h →
+          Submodule.map (LinearMap.mulRight ℚ c) W ≤ W) :
+    CookLevinBoundedProfileCommonSpanAtProfile M n hn htb hns h :=
+  cookLevinBoundedProfileCommonSpanAtProfile_of_profileTouchedSpanDescentAtProfile
+    M n hn htb hns h hfact hstable
 
 /-- The all-profile template-collapse theorem gives the fixed-profile retained
 all-span frontier by selecting the requested histogram. -/
@@ -4802,12 +4882,7 @@ theorem mlProj_shift_mul_prod_factored {n : ℕ} {ι : Type*} [DecidableEq ι]
       MvPolynomial.vars_prod _ hy
     exact Finset.disjoint_iff_ne.mp h_touch_untouch_disj x hx_touched x hy_untouched rfl
 
-/-- The untouched factor: ∏_{i ∉ touched} mlProj(f_i). -/
-noncomputable def untouchedFactor {n : ℕ} {ι : Type*} [DecidableEq ι]
-    (s : Finset ι) (f : ι → MvPolynomial (Fin n) ℚ)
-    (touched : Finset ι) :
-    MvPolynomial (Fin n) ℚ :=
-  (s.filter (· ∉ touched)).prod (fun i => mlProj (f i))
+-- `untouchedFactor` was forward-declared earlier; reuse that definition here.
 
 /-! ## Part 25: Dimension bound from factorization (restored from WIP) -/
 
