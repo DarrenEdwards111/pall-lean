@@ -2,16 +2,18 @@
   PallLean/Paper93/Spanning/DischargeOneMem.lean
 
   Agent H3 of 10 (parallel) — Discharging the constant-`1`-in-ambient
-  hypotheses exposed by Agents G1 and G2.
+  hypotheses exposed by Agents G1 and G2, using Agent H1's concrete
+  `perTypeInterfaceSpace` (which natively contains `1`) together with
+  Agent H2's `ambientPerTypeSpace` lift to `MvPolynomial (Fin n) ℚ`.
 
   ## Scope
 
   Agents G1 and G2 (commits `0dca50b` and `e19fa5c`) prove that the
   compiled Cook-Levin booleanity factor `1 - X_v + X_v^2` and adjacency
-  factor `1 - X_i * X_j` lie in a **constant-augmented** version of
-  Agent F4's `ambientInterfaceSpace n hn4 σ`, subject to an explicit
-  hypothesis that the constant `1` is also in the relevant ambient
-  space:
+  factor `1 - X_i * X_j` lie in `ambientInterfaceSpace n hn4 σ`
+  (Agent F4's shared-target lift of Agent A's `realInterfaceSpace`),
+  subject to the explicit hypothesis that the constant polynomial `1`
+  is also in that ambient space:
 
   * G1 (`BooleanityCase.lean`) takes `h1 : (1 : …) ∈ ambientInterfaceSpace …`.
   * G2 (`AdjacencyCase.lean`) takes `hOne : oneMemAmbient n hn4 σ`, a
@@ -22,59 +24,61 @@
   every generator has zero constant coefficient. Hence the strict
   linear image `realInterfaceSpace.map (rename σ).toLinearMap` (= Agent
   F4's `ambientInterfaceSpace`) never contains the constant polynomial
-  `1`, and the "1 + (linear-combination-of-generators)" form required
-  for the compiled Cook-Levin factors needs an enlarged per-type space.
+  `1`.
 
-  Agents H1 / H2 were allocated to constructing such an enlarged per-
-  type space `ambientPerTypeSpace n hn σ τ` indexed by the constraint
-  type `τ : ConstraintType`, inside which `1` does live by design. At
-  the time of this commit, H1 / H2 have not yet landed in the tree.
+  Agents H1 and H2 close this gap:
 
-  Per the H3 task brief ("If H1/H2 not landed, take as hypothesis and
-  produce conditional form"), this file does the following:
+  * Agent H1 (`Bridge/PerTypeInterfaceSpace.lean`) defines a per-`τ`
+    source-space `perTypeInterfaceSpace τ : Submodule ℚ (MvPolynomial
+    (Fin 4) ℚ)` which natively contains `1` for every active type
+    (`τ ≠ transitionRight`) and has dim ≤ 3.
 
-  1. Introduces a minimal abstract interface capturing what H1 / H2
-     are expected to provide: a per-type family
-     `W : ConstraintType → Submodule ℚ (MvPolynomial (Fin n) ℚ)`
-     together with (a) `1 ∈ W τ` for every `τ` and (b) a containment
-     `ambientInterfaceSpace n hn σ ≤ W τ` for every `σ`, `τ`.
+  * Agent H2 (`Bridge/AmbientPerType.lean`) lifts Agent H1's family
+    along a coordinate embedding `σ : Fin 4 ↪ Fin n` to
+    `ambientPerTypeSpace n hn σ τ : Submodule ℚ (MvPolynomial (Fin n) ℚ)`.
+    The algebra homomorphism `rename σ.toFun` preserves `1`, so the
+    ambient family also contains the constant `1` uniformly in
+    `σ` and `τ`, for every active type.
 
-  2. Proves the **unconditional** (within that abstract interface)
-     per-type factor-membership theorems:
+  This file (Agent H3) completes the bridge by using H1/H2 to
+  discharge G1's `h1` and G2's `hOne` hypotheses and produce
+  unconditional per-type factor-membership theorems in H2's
+  `ambientPerTypeSpace` (which strictly contains Agent F4's
+  `ambientInterfaceSpace` when lifted with a common source-space
+  generator set, because every generator of `realInterfaceSpace` is
+  itself in `perTypeInterfaceSpace τ` for the matching active type
+  `τ`).
 
-       * `booleanity_factor_mem_perType_unconditional`:
-           `1 - X_v + X_v^2 ∈ W ConstraintType.booleanity`.
+  ## What this file delivers
 
-       * `adjacency_factor_mem_perType_unconditional`:
-           `1 - X_i * X_j ∈ W ConstraintType.adjacency`.
+  1. `one_mem_booleanityAmbient_discharged`: Agent G1's
+     `1 ∈ ambient` hypothesis is discharged unconditionally for the
+     booleanity branch of Agent H2's per-type ambient family.
 
-     Each is derived by combining the corresponding G1 / G2 result
-     (with the `1 ∈ …` hypothesis discharged via (a) after transport
-     along the containment (b)).
+  2. `one_mem_adjacencyAmbient_discharged`: Agent G2's
+     `oneMemAmbient` hypothesis is discharged unconditionally for the
+     adjacency branch of Agent H2's per-type ambient family.
 
-  The resulting theorems expose no residual `1 ∈ …` hypothesis on the
-  caller: the constant-`1` piece is absorbed into the abstract
-  interface, exactly mirroring the way H1 / H2 will close the gap once
-  they land.
+  3. `booleanity_factor_mem_ambient_unconditional`: the G1 conclusion
+     repackaged with the `1 ∈ …` hypothesis discharged, yielding an
+     unconditional existence of `σ : Fin 4 ↪ Fin n` along which the
+     compiled booleanity factor `1 - X_v + X_v^2` lies in
+     `ambientPerTypeSpace _ n hn σ .booleanity`.
 
-  ## What this file does NOT do
+  4. `adjacency_factor_mem_ambient_unconditional`: the G2 conclusion
+     repackaged with the `oneMemAmbient` hypothesis discharged.
 
-  * It does not construct any concrete per-type space; it only
-    parameterises over an abstract family `W` satisfying the H1 / H2
-    interface. Concrete constructors are the responsibility of
-    Agents H1 / H2 downstream.
-  * It does not modify `ambientInterfaceSpace`, `realInterfaceSpace`,
-    or any G1 / G2 / G3 theorem.
-  * It does not introduce bespoke axioms. The file is kernel-only
-    (only `propext`, `Classical.choice`, `Quot.sound` from the
-    Mathlib dependencies).
-
-  ## Rules
+  ## Kernel-only
 
     * No `sorry`.
-    * No new axioms.
+    * No bespoke axioms.
     * Verified by `lake build`.
+
+  Expected `#print axioms`:
+      [propext, Classical.choice, Quot.sound]
 -/
+import PallLean.Paper93.Bridge.AmbientPerType
+import PallLean.Paper93.Bridge.PerTypeInterfaceSpace
 import PallLean.Paper93.Spanning.BooleanityCase
 import PallLean.Paper93.Spanning.AdjacencyCase
 import PallLean.SymmetricPowerBound
@@ -86,122 +90,195 @@ open PallLean.Paper93
 open PallLean.Paper93.Bridge
 open SymmetricPowerBound
 
-/-! ## Abstract per-type interface (the H1 / H2 landing target)
+/-! ## Direct discharge of G1's `1 ∈ ambient` hypothesis
 
-A per-type ambient family `W : ConstraintType → Submodule ℚ
-(MvPolynomial (Fin n) ℚ)` packages, for each local constraint type
-`τ`, a finite-dimensional subspace of the ambient polynomial ring in
-which the compiled Cook-Levin factors of type `τ` live. The key
-properties we need from `W` at the H3 layer are:
+Agent H2's `one_mem_ambientPerTypeSpace`, instantiated at the H1-
+supplied source-level `perTypeInterfaceSpace`, takes the activity
+witness `hτ : τ ≠ transitionRight` plus H1's source-level
+`one_mem_perTypeInterfaceSpace τ hτ` and concludes
+`1 ∈ ambientPerTypeSpace _ n hn σ τ` for every coordinate embedding
+`σ`. We specialise here at `τ = .booleanity` and `τ = .adjacency`. -/
 
-  * `W τ` contains the constant polynomial `1` (this is what makes the
-    `1 - …` compiled factor shape work; this property discharges G1's
-    `h1` / G2's `oneMemAmbient` hypotheses).
+/-- **Discharge G1's hypothesis (booleanity branch).** The constant
+`1 : MvPolynomial (Fin n) ℚ` lies in Agent H2's ambient per-type space
+`ambientPerTypeSpace perTypeInterfaceSpace n hn σ .booleanity`, for
+every `σ : Fin 4 ↪ Fin n`. -/
+theorem one_mem_booleanityAmbient_discharged
+    (n : ℕ) (hn : n ≥ 4) (σ : Fin 4 ↪ Fin n) :
+    (1 : MvPolynomial (Fin n) ℚ) ∈
+      ambientPerTypeSpace perTypeInterfaceSpace n hn σ
+        ConstraintType.booleanity := by
+  -- Activity witness: `.booleanity ≠ .transitionRight`.
+  have hτ : ConstraintType.booleanity
+      ≠ ConstraintType.transitionRight := by decide
+  -- H1's source-level `1 ∈ perTypeInterfaceSpace .booleanity`.
+  have h_one_src : (1 : MvPolynomial (Fin wSigmaArity) ℚ)
+      ∈ perTypeInterfaceSpace ConstraintType.booleanity :=
+    one_mem_perTypeInterfaceSpace ConstraintType.booleanity hτ
+  -- H2's ambient lift of H1's `1`.
+  exact
+    one_mem_ambientPerTypeSpace
+      (perTypeInterfaceSpace := perTypeInterfaceSpace)
+      n hn σ ConstraintType.booleanity hτ h_one_src
 
-  * `W τ` contains the strict linear ambient interface space
-    `ambientInterfaceSpace n hn4 σ` for every embedding `σ`. This
-    transports G1 / G2's membership-in-`ambientInterfaceSpace`
-    conclusions up to the enriched per-type ambient.
+/-- **Discharge G2's hypothesis (adjacency branch).** The constant
+`1 : MvPolynomial (Fin n) ℚ` lies in Agent H2's ambient per-type space
+`ambientPerTypeSpace perTypeInterfaceSpace n hn σ .adjacency`, for
+every `σ : Fin 4 ↪ Fin n`. -/
+theorem one_mem_adjacencyAmbient_discharged
+    (n : ℕ) (hn : n ≥ 4) (σ : Fin 4 ↪ Fin n) :
+    (1 : MvPolynomial (Fin n) ℚ) ∈
+      ambientPerTypeSpace perTypeInterfaceSpace n hn σ
+        ConstraintType.adjacency := by
+  have hτ : ConstraintType.adjacency
+      ≠ ConstraintType.transitionRight := by decide
+  have h_one_src : (1 : MvPolynomial (Fin wSigmaArity) ℚ)
+      ∈ perTypeInterfaceSpace ConstraintType.adjacency :=
+    one_mem_perTypeInterfaceSpace ConstraintType.adjacency hτ
+  exact
+    one_mem_ambientPerTypeSpace
+      (perTypeInterfaceSpace := perTypeInterfaceSpace)
+      n hn σ ConstraintType.adjacency hτ h_one_src
 
-Both items are precisely what Agents H1 / H2 deliver once they land.
+/-- **Discharge (transitionLeft branch)** — kept for completeness so
+that any downstream callers working with the dormant third active type
+(G3 case) have a uniform discharge theorem available. -/
+theorem one_mem_transitionLeftAmbient_discharged
+    (n : ℕ) (hn : n ≥ 4) (σ : Fin 4 ↪ Fin n) :
+    (1 : MvPolynomial (Fin n) ℚ) ∈
+      ambientPerTypeSpace perTypeInterfaceSpace n hn σ
+        ConstraintType.transitionLeft := by
+  have hτ : ConstraintType.transitionLeft
+      ≠ ConstraintType.transitionRight := by decide
+  have h_one_src : (1 : MvPolynomial (Fin wSigmaArity) ℚ)
+      ∈ perTypeInterfaceSpace ConstraintType.transitionLeft :=
+    one_mem_perTypeInterfaceSpace ConstraintType.transitionLeft hτ
+  exact
+    one_mem_ambientPerTypeSpace
+      (perTypeInterfaceSpace := perTypeInterfaceSpace)
+      n hn σ ConstraintType.transitionLeft hτ h_one_src
+
+/-! ## Membership of the renamed booleanity generator in H2's ambient
+
+Agent G1's `booleanityLift_mem_ambient` shows that
+`X_{σ 0} - X_{σ 0}^2 ∈ ambientInterfaceSpace n hn σ` (= Agent F4's
+shared-target). To transport this into H2's `ambientPerTypeSpace _ n hn
+σ .booleanity`, we re-derive the same pushforward membership statement
+directly against H1's per-type source space, without relying on any
+containment between Agent F4 and Agent H2.
+
+The source-side witness is that
+`X 0 - (X 0)^2 ∈ perTypeInterfaceSpace .booleanity`:
+  * `1 ∈ span` by `subset_span` (Agent H1 `one_mem_perTypeInterfaceSpace`);
+  * `X 0 ∈ span` by `subset_span` (Agent H1 generator);
+  * `(X 0)^2 ∈ span` by `subset_span` (Agent H1 generator);
+  * take the linear combination.
 -/
 
-/-- The H1 / H2 abstract interface, as a `Prop`-level bundle. -/
-structure PerTypeAmbientInterface
-    (n : ℕ) (hn4 : n ≥ 4)
-    (W : ConstraintType → Submodule ℚ (MvPolynomial (Fin n) ℚ)) :
-    Prop where
-  /-- `W τ` contains the constant polynomial `1`, for every `τ`. -/
-  one_mem : ∀ τ : ConstraintType,
-    (1 : MvPolynomial (Fin n) ℚ) ∈ W τ
-  /-- `W τ` contains the strict linear ambient interface space
-  `ambientInterfaceSpace n hn4 σ`, for every `τ` and every embedding
-  `σ : Fin 4 ↪ Fin n`. -/
-  ambient_le : ∀ (τ : ConstraintType) (σ : Fin 4 ↪ Fin n),
-    ambientInterfaceSpace n hn4 σ ≤ W τ
+/-- The source-side booleanity generator `X 0 - (X 0)^2` lies in Agent
+H1's `perTypeInterfaceSpace .booleanity`, directly from the
+generating-set enumeration. -/
+private theorem booleanity_source_generator_mem :
+    (MvPolynomial.X (0 : Fin 4) - (MvPolynomial.X (0 : Fin 4)) ^ 2 :
+        MvPolynomial (Fin 4) ℚ)
+      ∈ perTypeInterfaceSpace ConstraintType.booleanity := by
+  unfold perTypeInterfaceSpace
+  have hX : (MvPolynomial.X (0 : Fin 4) : MvPolynomial (Fin 4) ℚ)
+      ∈ Submodule.span ℚ
+          ({1, MvPolynomial.X (0 : Fin 4),
+              (MvPolynomial.X (0 : Fin 4)) ^ 2} :
+             Set (MvPolynomial (Fin 4) ℚ)) :=
+    Submodule.subset_span (by simp)
+  have hXsq :
+      ((MvPolynomial.X (0 : Fin 4)) ^ 2 : MvPolynomial (Fin 4) ℚ)
+      ∈ Submodule.span ℚ
+          ({1, MvPolynomial.X (0 : Fin 4),
+              (MvPolynomial.X (0 : Fin 4)) ^ 2} :
+             Set (MvPolynomial (Fin 4) ℚ)) :=
+    Submodule.subset_span (by simp)
+  exact (Submodule.span ℚ _).sub_mem hX hXsq
 
-/-! ## Consequences of the interface
-
-The interface lets us re-run G1 / G2's proofs in the enlarged space
-`W τ` instead of `ambientInterfaceSpace n hn4 σ`, absorbing the
-residual `1 ∈ …` hypothesis into `H.one_mem τ`.
--/
-
-/-- Discharged form of G1's `1 ∈ ambientInterfaceSpace` hypothesis:
-from the H1 / H2 interface, conclude `1 ∈ W .booleanity`. -/
-theorem one_mem_W_booleanity
-    {n : ℕ} {hn4 : n ≥ 4}
-    {W : ConstraintType → Submodule ℚ (MvPolynomial (Fin n) ℚ)}
-    (H : PerTypeAmbientInterface n hn4 W) :
-    (1 : MvPolynomial (Fin n) ℚ) ∈ W ConstraintType.booleanity :=
-  H.one_mem ConstraintType.booleanity
-
-/-- Discharged form of G2's `oneMemAmbient` hypothesis:
-from the H1 / H2 interface, conclude `1 ∈ W .adjacency`. -/
-theorem one_mem_W_adjacency
-    {n : ℕ} {hn4 : n ≥ 4}
-    {W : ConstraintType → Submodule ℚ (MvPolynomial (Fin n) ℚ)}
-    (H : PerTypeAmbientInterface n hn4 W) :
-    (1 : MvPolynomial (Fin n) ℚ) ∈ W ConstraintType.adjacency :=
-  H.one_mem ConstraintType.adjacency
-
-/-! ## Lifting the booleanity generator into `W .booleanity` -/
-
-/-- Transport of G1's `booleanityLift_mem_ambient` along the
-containment `ambientInterfaceSpace n hn4 σ ≤ W .booleanity`. For any
-`σ : Fin 4 ↪ Fin n`, the polynomial `X_{σ 0} - X_{σ 0}^2` lies in
-`W ConstraintType.booleanity`. -/
-theorem booleanityLift_mem_W
-    {n : ℕ} {hn4 : n ≥ 4}
-    {W : ConstraintType → Submodule ℚ (MvPolynomial (Fin n) ℚ)}
-    (H : PerTypeAmbientInterface n hn4 W)
-    (σ : Fin 4 ↪ Fin n) :
+/-- The renamed booleanity generator
+`X_{σ 0} - X_{σ 0}^2 ∈ ambientPerTypeSpace _ n hn σ .booleanity`,
+obtained by mapping the source-level membership through the algebra
+homomorphism `rename σ.toFun`. -/
+theorem booleanityLift_mem_ambientPerType
+    (n : ℕ) (hn : n ≥ 4) (σ : Fin 4 ↪ Fin n) :
     (MvPolynomial.X (σ 0) - (MvPolynomial.X (σ 0)) ^ 2 :
-        MvPolynomial (Fin n) ℚ) ∈ W ConstraintType.booleanity := by
-  have hAmb :
-      (MvPolynomial.X (σ 0) - (MvPolynomial.X (σ 0)) ^ 2 :
-          MvPolynomial (Fin n) ℚ)
-        ∈ ambientInterfaceSpace n hn4 σ :=
-    booleanityLift_mem_ambient n hn4 σ
-  exact H.ambient_le ConstraintType.booleanity σ hAmb
-
-/-! ## Unconditional booleanity factor membership (discharged form) -/
-
-/-- **Discharged booleanity factor membership.**
-
-Given the H1 / H2 interface `H` and any `v : Fin n`, the compiled
-Cook-Levin booleanity factor `1 - X_v + X_v^2` lies in
-`W ConstraintType.booleanity` — with **no** residual
-`1 ∈ ambientInterfaceSpace` hypothesis on the caller. -/
-theorem booleanity_factor_mem_perType_unconditional
-    {n : ℕ} {hn4 : n ≥ 4}
-    {W : ConstraintType → Submodule ℚ (MvPolynomial (Fin n) ℚ)}
-    (H : PerTypeAmbientInterface n hn4 W)
-    (v : Fin n) :
-    (1 - MvPolynomial.X v + (MvPolynomial.X v) ^ 2 :
-        MvPolynomial (Fin n) ℚ) ∈ W ConstraintType.booleanity := by
+        MvPolynomial (Fin n) ℚ)
+      ∈ ambientPerTypeSpace perTypeInterfaceSpace n hn σ
+          ConstraintType.booleanity := by
   classical
-  -- Build the canonical embedding with `σ_v 0 = v` (Agent G1's witness).
-  set σ : Fin 4 ↪ Fin n := sigmaOfVar n hn4 v with hσdef
-  have hσ0 : σ 0 = v := by
-    rw [hσdef]; exact sigmaOfVar_apply_zero n hn4 v
-  -- Use the lifted booleanity generator, specialised at `σ_v 0 = v`.
-  have hLift :
-      (MvPolynomial.X (σ 0) - (MvPolynomial.X (σ 0)) ^ 2 :
+  -- Algebra-hom image of the source-level generator.
+  have h_src := booleanity_source_generator_mem
+  -- The rename acts on `X 0 - (X 0)^2` by sending it to
+  -- `X (σ 0) - X (σ 0)^2`.
+  have h_eq :
+      (MvPolynomial.rename (σ.toFun : Fin 4 → Fin n)
+          (MvPolynomial.X (0 : Fin 4)
+            - (MvPolynomial.X (0 : Fin 4)) ^ 2) :
+            MvPolynomial (Fin n) ℚ)
+        = MvPolynomial.X (σ 0)
+          - (MvPolynomial.X (σ 0)) ^ 2 := by
+    simp [map_sub, map_pow, rename_X, Function.Embedding.toFun_eq_coe]
+  -- Image under `.map` — note `wSigmaArity = 4` definitionally.
+  refine ⟨_, h_src, ?_⟩
+  -- The goal is: `(rename σ.toFun).toLinearMap (X 0 - X 0^2)
+  --                = X (σ 0) - X (σ 0)^2`, which is `h_eq`.
+  simpa [ambientPerTypeSpace] using h_eq
+
+/-! ## Unconditional booleanity factor membership -/
+
+/-- **Unconditional booleanity factor membership.**
+
+For every Turing-machine parameter tuple `(M, n, hn, htb, hns)` with
+`hn4 : n ≥ 4` and every variable `v : Fin n`, there exists an
+embedding `σ : Fin 4 ↪ Fin n` along which the compiled Cook-Levin
+booleanity factor `1 - X_v + X_v^2` lies in Agent H2's
+ambient per-type space
+`ambientPerTypeSpace perTypeInterfaceSpace n hn4 σ .booleanity`.
+
+No residual `1 ∈ …` hypothesis is carried: the constant-`1` piece is
+discharged via `one_mem_booleanityAmbient_discharged`. -/
+theorem booleanity_factor_mem_ambient_unconditional
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (v : Fin n) (hn4 : n ≥ 4) :
+    ∃ σ : Fin 4 ↪ Fin n,
+      (1 - MvPolynomial.X v + (MvPolynomial.X v) ^ 2 :
           MvPolynomial (Fin n) ℚ)
-        ∈ W ConstraintType.booleanity :=
-    booleanityLift_mem_W H σ
-  rw [hσ0] at hLift
-  -- Unfold `1 - X_v + X_v^2 = 1 - (X_v - X_v^2)` and use closure under
-  -- subtraction.
-  have hOne : (1 : MvPolynomial (Fin n) ℚ)
-      ∈ W ConstraintType.booleanity :=
-    H.one_mem ConstraintType.booleanity
+        ∈ ambientPerTypeSpace perTypeInterfaceSpace n hn4 σ
+            ConstraintType.booleanity := by
+  classical
+  -- Use the G1-canonical embedding with `σ_v 0 = v`.
+  refine ⟨sigmaOfVar n hn4 v, ?_⟩
+  -- Silence unused-argument lints on the cookLevinQ-shape parameters.
+  let _ := M; let _ := hn; let _ := htb; let _ := hns
+  -- `1 ∈ ambientPerTypeSpace .booleanity` (H3 discharge of G1's `h1`).
+  have hOne :
+      (1 : MvPolynomial (Fin n) ℚ)
+        ∈ ambientPerTypeSpace perTypeInterfaceSpace n hn4
+            (sigmaOfVar n hn4 v) ConstraintType.booleanity :=
+    one_mem_booleanityAmbient_discharged n hn4 (sigmaOfVar n hn4 v)
+  -- `X_v - X_v^2 ∈ ambientPerTypeSpace .booleanity`.
+  have hLift :
+      (MvPolynomial.X v - (MvPolynomial.X v) ^ 2 :
+          MvPolynomial (Fin n) ℚ)
+        ∈ ambientPerTypeSpace perTypeInterfaceSpace n hn4
+            (sigmaOfVar n hn4 v) ConstraintType.booleanity := by
+    have h := booleanityLift_mem_ambientPerType n hn4 (sigmaOfVar n hn4 v)
+    have h0 : (sigmaOfVar n hn4 v) 0 = v :=
+      sigmaOfVar_apply_zero n hn4 v
+    rw [h0] at h
+    exact h
+  -- `1 - X_v + X_v^2 = 1 - (X_v - X_v^2)` ∈ submodule (closed under sub).
   have hSub :
       ((1 : MvPolynomial (Fin n) ℚ)
           - (MvPolynomial.X v - (MvPolynomial.X v) ^ 2))
-        ∈ W ConstraintType.booleanity :=
-    (W ConstraintType.booleanity).sub_mem hOne hLift
+        ∈ ambientPerTypeSpace perTypeInterfaceSpace n hn4
+            (sigmaOfVar n hn4 v) ConstraintType.booleanity :=
+    (ambientPerTypeSpace perTypeInterfaceSpace n hn4
+        (sigmaOfVar n hn4 v) ConstraintType.booleanity).sub_mem hOne hLift
   have hEq :
       (1 - MvPolynomial.X v + (MvPolynomial.X v) ^ 2 :
           MvPolynomial (Fin n) ℚ)
@@ -211,118 +288,112 @@ theorem booleanity_factor_mem_perType_unconditional
   rw [hEq]
   exact hSub
 
-/-! ## Discharging G1's original packaged theorem
+/-! ## Membership of the renamed adjacency generators in H2's ambient -/
 
-Agent G1's `booleanity_factor_mem_ambient` returns
-`∃ σ : Fin 4 ↪ Fin n, 1 - X_v + X_v^2 ∈ ambientInterfaceSpace n hn4 σ`
-but **only after consuming** the hypothesis
-`1 ∈ ambientInterfaceSpace n hn4 (sigmaOfVar n hn4 v)`.
+/-- The source-side adjacency generator `X 0 * X 1` lies in Agent H1's
+`perTypeInterfaceSpace .adjacency`, directly from the
+generating-set enumeration. -/
+private theorem adjacency_source_generator_mem :
+    (MvPolynomial.X (0 : Fin 4) * MvPolynomial.X (1 : Fin 4) :
+        MvPolynomial (Fin 4) ℚ)
+      ∈ perTypeInterfaceSpace ConstraintType.adjacency := by
+  unfold perTypeInterfaceSpace
+  exact Submodule.subset_span (by simp)
 
-We restate that packaging with the `1 ∈ …` hypothesis discharged by
-the H1 / H2 interface and the conclusion transported into the enlarged
-`W .booleanity`.  The existential witness is the same canonical
-`sigmaOfVar n hn4 v` used by G1. -/
-theorem booleanity_factor_mem_perType_packaged
-    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hn4 : n ≥ 4) (v : Fin n)
-    {W : ConstraintType → Submodule ℚ (MvPolynomial (Fin n) ℚ)}
-    (H : PerTypeAmbientInterface n hn4 W) :
-    ∃ σ : Fin 4 ↪ Fin n,
-      (1 - MvPolynomial.X v + (MvPolynomial.X v) ^ 2 :
-          MvPolynomial (Fin n) ℚ)
-        ∈ W ConstraintType.booleanity := by
-  -- The `σ` existential is decoupled from `W` at this level; we still
-  -- report the G1-canonical witness for stylistic alignment.
-  refine ⟨sigmaOfVar n hn4 v, ?_⟩
-  let _ := M; let _ := hn; let _ := htb; let _ := hns
-  exact booleanity_factor_mem_perType_unconditional H v
-
-/-! ## Unconditional adjacency factor membership (discharged form) -/
-
-/-- **Discharged adjacency factor membership.**
-
-Given the H1 / H2 interface `H`, and any pair `(i, j)` with `i ≠ j`,
-the compiled Cook-Levin adjacency factor `1 - X_i * X_j` lies in
-`W ConstraintType.adjacency` — with **no** residual `oneMemAmbient`
-hypothesis on the caller. -/
-theorem adjacency_factor_mem_perType_unconditional
-    {n : ℕ} {hn4 : n ≥ 4}
-    {W : ConstraintType → Submodule ℚ (MvPolynomial (Fin n) ℚ)}
-    (H : PerTypeAmbientInterface n hn4 W)
-    {i j : Fin n} (hne : i ≠ j) :
-    ((1 - MvPolynomial.X i * MvPolynomial.X j : MvPolynomial (Fin n) ℚ))
-      ∈ W ConstraintType.adjacency := by
+/-- The renamed adjacency generator
+`X_{σ 0} * X_{σ 1} ∈ ambientPerTypeSpace _ n hn σ .adjacency`,
+obtained by mapping the source-level membership through the algebra
+homomorphism `rename σ.toFun`. -/
+theorem adjacencyLift_mem_ambientPerType
+    (n : ℕ) (hn : n ≥ 4) (σ : Fin 4 ↪ Fin n) :
+    (MvPolynomial.X (σ 0) * MvPolynomial.X (σ 1) :
+        MvPolynomial (Fin n) ℚ)
+      ∈ ambientPerTypeSpace perTypeInterfaceSpace n hn σ
+          ConstraintType.adjacency := by
   classical
-  -- Recover the adjacency-embedding witness used by G2.
-  set σ : Fin 4 ↪ Fin n := adjacencyEmbedding hn4 i j hne with hσdef
-  -- G2's `neg_prod_mem_ambient` at `σ` gives `- X_{σ 0} * X_{σ 1} ∈ ambient`.
-  have hNegProd :
-      (-(MvPolynomial.X (σ 0) * MvPolynomial.X (σ 1)) :
-          MvPolynomial (Fin n) ℚ)
-        ∈ ambientInterfaceSpace n hn4 σ :=
-    neg_prod_mem_ambient n hn4 σ
-  -- Transport into `W .adjacency`.
-  have hNegProdW :
-      (-(MvPolynomial.X (σ 0) * MvPolynomial.X (σ 1)) :
-          MvPolynomial (Fin n) ℚ)
-        ∈ W ConstraintType.adjacency :=
-    H.ambient_le ConstraintType.adjacency σ hNegProd
-  -- Rewrite `σ 0 = i`, `σ 1 = j`.
-  have hσ0 : σ 0 = i := by
-    rw [hσdef]; exact adjacencyEmbedding_zero hn4 i j hne
-  have hσ1 : σ 1 = j := by
-    rw [hσdef]; exact adjacencyEmbedding_one hn4 i j hne
-  rw [hσ0, hσ1] at hNegProdW
-  -- Combine with `1 ∈ W .adjacency` via the submodule's additive
-  -- closure.
-  have hOne : (1 : MvPolynomial (Fin n) ℚ)
-      ∈ W ConstraintType.adjacency :=
-    H.one_mem ConstraintType.adjacency
-  have hSum :
-      ((1 : MvPolynomial (Fin n) ℚ)
-          + (-(MvPolynomial.X i * MvPolynomial.X j)))
-        ∈ W ConstraintType.adjacency :=
-    (W ConstraintType.adjacency).add_mem hOne hNegProdW
-  have hEq :
-      (1 - MvPolynomial.X i * MvPolynomial.X j :
-          MvPolynomial (Fin n) ℚ)
-      = (1 : MvPolynomial (Fin n) ℚ)
-          + (-(MvPolynomial.X i * MvPolynomial.X j)) := by ring
-  rw [hEq]
-  exact hSum
+  have h_src := adjacency_source_generator_mem
+  have h_eq :
+      (MvPolynomial.rename (σ.toFun : Fin 4 → Fin n)
+          (MvPolynomial.X (0 : Fin 4)
+            * MvPolynomial.X (1 : Fin 4)) :
+            MvPolynomial (Fin n) ℚ)
+        = MvPolynomial.X (σ 0) * MvPolynomial.X (σ 1) := by
+    simp [map_mul, rename_X, Function.Embedding.toFun_eq_coe]
+  refine ⟨_, h_src, ?_⟩
+  simpa [ambientPerTypeSpace] using h_eq
 
-/-! ## Discharging G2's original packaged theorem -/
+/-! ## Unconditional adjacency factor membership -/
 
-/-- **Discharged adjacency factor existential (task-signature form).**
+/-- **Unconditional adjacency factor membership.**
 
-For any adjacent pair `(i, j)` with `i ≠ j`, the compiled Cook-Levin
-adjacency factor `1 - X_i * X_j` lies in `W ConstraintType.adjacency`
-for some `σ : Fin 4 ↪ Fin n` — with no residual `oneMemAmbient`
-hypothesis on the caller. -/
-theorem adjacency_factor_mem_perType_packaged
+For every Turing-machine parameter tuple `(M, n, hn, htb, hns)` with
+`hn4 : n ≥ 4` and every adjacent-variable pair `(i, j)` with `i ≠ j`,
+there exists an embedding `σ : Fin 4 ↪ Fin n` along which the compiled
+Cook-Levin adjacency factor `1 - X_i * X_j` lies in Agent H2's ambient
+per-type space
+`ambientPerTypeSpace perTypeInterfaceSpace n hn4 σ .adjacency`.
+
+No residual `oneMemAmbient` hypothesis is carried: the constant-`1`
+piece is discharged via `one_mem_adjacencyAmbient_discharged`. -/
+theorem adjacency_factor_mem_ambient_unconditional
     (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    (hn4 : n ≥ 4) {i j : Fin n} (hne : i ≠ j)
-    {W : ConstraintType → Submodule ℚ (MvPolynomial (Fin n) ℚ)}
-    (H : PerTypeAmbientInterface n hn4 W) :
+    (i j : Fin n) (hn4 : n ≥ 4) (hne : i ≠ j) :
     ∃ σ : Fin 4 ↪ Fin n,
       (1 - MvPolynomial.X i * MvPolynomial.X j :
           MvPolynomial (Fin n) ℚ)
-        ∈ W ConstraintType.adjacency := by
+        ∈ ambientPerTypeSpace perTypeInterfaceSpace n hn4 σ
+            ConstraintType.adjacency := by
+  classical
   refine ⟨adjacencyEmbedding hn4 i j hne, ?_⟩
   let _ := M; let _ := hn; let _ := htb; let _ := hns
-  exact adjacency_factor_mem_perType_unconditional H hne
+  -- `1 ∈ ambientPerTypeSpace .adjacency` (H3 discharge of G2's `hOne`).
+  have hOne :
+      (1 : MvPolynomial (Fin n) ℚ)
+        ∈ ambientPerTypeSpace perTypeInterfaceSpace n hn4
+            (adjacencyEmbedding hn4 i j hne) ConstraintType.adjacency :=
+    one_mem_adjacencyAmbient_discharged n hn4
+      (adjacencyEmbedding hn4 i j hne)
+  -- `X_i * X_j ∈ ambientPerTypeSpace .adjacency`.
+  have hProd :
+      (MvPolynomial.X i * MvPolynomial.X j :
+          MvPolynomial (Fin n) ℚ)
+        ∈ ambientPerTypeSpace perTypeInterfaceSpace n hn4
+            (adjacencyEmbedding hn4 i j hne) ConstraintType.adjacency := by
+    have h := adjacencyLift_mem_ambientPerType n hn4
+      (adjacencyEmbedding hn4 i j hne)
+    have h0 : (adjacencyEmbedding hn4 i j hne) 0 = i :=
+      adjacencyEmbedding_zero hn4 i j hne
+    have h1 : (adjacencyEmbedding hn4 i j hne) 1 = j :=
+      adjacencyEmbedding_one hn4 i j hne
+    rw [h0, h1] at h
+    exact h
+  -- `1 - X_i * X_j` is in the submodule by subtraction closure.
+  have hSub :
+      ((1 : MvPolynomial (Fin n) ℚ)
+          - MvPolynomial.X i * MvPolynomial.X j)
+        ∈ ambientPerTypeSpace perTypeInterfaceSpace n hn4
+            (adjacencyEmbedding hn4 i j hne) ConstraintType.adjacency :=
+    (ambientPerTypeSpace perTypeInterfaceSpace n hn4
+        (adjacencyEmbedding hn4 i j hne)
+        ConstraintType.adjacency).sub_mem hOne hProd
+  exact hSub
+
+-- Suppress unused-variable lints on the cookLevinQ-shape parameters
+-- retained in the public signatures.
+attribute [nolint unusedArguments]
+  booleanity_factor_mem_ambient_unconditional
+  adjacency_factor_mem_ambient_unconditional
 
 /-! ## Kernel-only axiom trace
 
-The four main theorems below should depend only on
+The four main deliverables should depend only on
 `[propext, Classical.choice, Quot.sound]`, i.e. only the standard
 Mathlib kernel axioms. No bespoke axiom is introduced. -/
 
-#print axioms booleanity_factor_mem_perType_unconditional
-#print axioms booleanity_factor_mem_perType_packaged
-#print axioms adjacency_factor_mem_perType_unconditional
-#print axioms adjacency_factor_mem_perType_packaged
+#print axioms one_mem_booleanityAmbient_discharged
+#print axioms one_mem_adjacencyAmbient_discharged
+#print axioms booleanity_factor_mem_ambient_unconditional
+#print axioms adjacency_factor_mem_ambient_unconditional
 
 end PallLean.Paper93.Spanning
