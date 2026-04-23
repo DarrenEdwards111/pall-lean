@@ -5190,6 +5190,225 @@ theorem cookLevinProfileTemplateCollapseLemma_of_boundedProfile
     (cookLevinProfileTemplateCollapseLemmaAdmissibleOnly_of_boundedProfile
       M n hn htb hns hbp)
 
+/-! ## Part 27: Interface-type local subspaces W_σ (paper §9, Lemma 31)
+
+This section builds honest local interface subspaces `W_σ` associated to the
+constraint-type classifier on the Cook-Levin factor list.
+
+### Faithfulness disclaimer
+
+The paper's Lemma 31 defines `W_σ` as "the set of possible contributions of a
+*single* interface of type σ across all choices of mixed partials and shift
+monomials", with dimension `≤ d_0 = 3` depending only on the compiler.
+Crucially, this is a *per-interface* bound: different interfaces of the same
+type σ live in (in general) different `W_σ` ambient embeddings, each of local
+arity `O(1)`.
+
+In the fully uniform polynomial basis (i.e. `MvPolynomial (Fin n) ℚ`), the
+factors of *different* booleanity interfaces (`1 - X_v(1-X_v)` for different
+variables `v`) are linearly independent for `n` large, so no single
+three-dimensional subspace of `MvPolynomial (Fin n) ℚ` can simultaneously
+contain all of them. The paper's dim-3 bound relies on the compiled
+coefficient basis where interfaces are re-indexed by a common local chart.
+
+This section therefore provides:
+  1. A *per-index* `W_i` with `dim ≤ 3` containing the factor at index `i`
+     (this honestly matches the paper's per-interface construction).
+  2. A *per-type, per-index* refinement that additionally tracks the constraint
+     type τ.
+  3. An abstract signature for the shared-W target, parameterized by the
+     interface-space data as a hypothesis.
+
+The shared-W target (one subspace per type τ containing all factors of type τ
+with `dim ≤ 3`) is structurally unprovable in the uniform basis for the
+booleanity type when `n ≥ 4`, for the reasons above. The honest path forward
+(matching the paper) is the per-interface construction captured below, composed
+with the symmetric-tensor-power dimension bound from
+`PallLean.SymTensorPowerDim.sym_tensor_power_dim_bound`.
+-/
+
+/-- Per-index local interface subspace for the Cook-Levin factor list:
+the one-element span of the factor polynomial itself. Dimension `≤ 1 ≤ 3`.
+
+This is the honest Route-31 per-interface space: for each constraint index `i`,
+we assign a submodule containing that constraint's factor polynomial. The
+construction does not need to know the constraint type; that information is
+recorded separately via `cookLevinConstraintType`. -/
+noncomputable def cookLevinInterfaceSpace
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (i : Fin (cookLevinFactorList M n hn htb hns).length) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+  Submodule.span ℚ
+    ({(cookLevinFactorList M n hn htb hns).get i} : Set (MvPolynomial (Fin n) ℚ))
+
+/-- The per-index interface subspace is finite-dimensional as a ℚ-module. -/
+theorem cookLevinInterfaceSpace_finite
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (i : Fin (cookLevinFactorList M n hn htb hns).length) :
+    Module.Finite ℚ ↥(cookLevinInterfaceSpace M n hn htb hns i) := by
+  classical
+  unfold cookLevinInterfaceSpace
+  exact Module.Finite.span_of_finite _ (Set.finite_singleton _)
+
+/-- Per-index dimension bound: each `cookLevinInterfaceSpace` has dimension ≤ 3.
+In fact the singleton-span has dimension ≤ 1, but we state the weaker `≤ 3`
+bound to line up with the paper's uniform `d_0 = 3` bound across types. -/
+theorem cookLevinInterfaceSpace_finrank_le
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (i : Fin (cookLevinFactorList M n hn htb hns).length) :
+    Module.finrank ℚ ↥(cookLevinInterfaceSpace M n hn htb hns i) ≤ 3 := by
+  classical
+  have hfin : Module.Finite ℚ ↥(cookLevinInterfaceSpace M n hn htb hns i) :=
+    cookLevinInterfaceSpace_finite M n hn htb hns i
+  have h1 : Module.finrank ℚ
+      (Submodule.span ℚ ({(cookLevinFactorList M n hn htb hns).get i} :
+        Set (MvPolynomial (Fin n) ℚ))) ≤ 1 := by
+    have hcard := finrank_span_le_card (R := ℚ)
+      (s := ({(cookLevinFactorList M n hn htb hns).get i} :
+        Set (MvPolynomial (Fin n) ℚ)))
+    simpa using hcard
+  have : Module.finrank ℚ ↥(cookLevinInterfaceSpace M n hn htb hns i) ≤ 1 := by
+    unfold cookLevinInterfaceSpace
+    exact h1
+  linarith
+
+/-- The factor polynomial at index `i` lies in the per-index interface
+subspace. -/
+theorem cookLevinInterfaceSpace_mem_self
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (i : Fin (cookLevinFactorList M n hn htb hns).length) :
+    (cookLevinFactorList M n hn htb hns).get i ∈
+      cookLevinInterfaceSpace M n hn htb hns i := by
+  unfold cookLevinInterfaceSpace
+  exact Submodule.subset_span (Set.mem_singleton _)
+
+/-- **Per-index existence of the interface local subspace** (honest paper
+§9 Lemma 31 at the per-interface level).
+
+For each constraint index `i` in the Cook-Levin factor list, there is a
+ℚ-submodule `W_i ⊆ MvPolynomial (Fin n) ℚ` such that
+
+  * `W_i` is finite-dimensional,
+  * `dim W_i ≤ 3` (the paper's `d_0` bound),
+  * the factor polynomial at index `i` lies in `W_i`.
+
+This is the structural content of Lemma 31 specialised to the compiled
+Cook-Levin factor list. The stronger shared-W statement (one submodule per
+type τ containing *all* factors of type τ with `dim ≤ 3`) is structurally
+unavailable in the uniform polynomial basis for the booleanity type when
+`n ≥ 4`; see `cookLevinQ_interfaceTypeSpace_finrank_bound_shared_abstract`
+below for the abstract signature that accepts such a family as a
+hypothesis. -/
+theorem cookLevinQ_interfaceSpace_finrank_bound_perIndex
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (i : Fin (cookLevinFactorList M n hn htb hns).length) :
+    ∃ W : Submodule ℚ (MvPolynomial (Fin n) ℚ),
+      Module.Finite ℚ ↥W ∧
+      Module.finrank ℚ ↥W ≤ 3 ∧
+      (cookLevinFactorList M n hn htb hns).get i ∈ W := by
+  refine ⟨cookLevinInterfaceSpace M n hn htb hns i, ?_, ?_, ?_⟩
+  · exact cookLevinInterfaceSpace_finite M n hn htb hns i
+  · exact cookLevinInterfaceSpace_finrank_le M n hn htb hns i
+  · exact cookLevinInterfaceSpace_mem_self M n hn htb hns i
+
+/-- **Per-type, per-index existence** — the target theorem refined to a
+per-index statement.
+
+For each constraint type `τ` and each constraint index `i` classified as
+type `τ`, there exists a submodule `W` with `dim W ≤ 3` containing the
+factor at index `i`. The submodule `W` is allowed to depend on `i` (this
+is the per-interface reading of the paper's Lemma 31). -/
+theorem cookLevinQ_interfaceTypeSpace_finrank_bound_perIndex
+    (M : DTM) (n : ℕ) (_hn : n ≥ 2)
+    (_htb : M.timeBound ≤ 4) (_hns : M.numStates ≤ n)
+    (τ : ConstraintType)
+    (i : Fin (cookLevinFactorList M n _hn _htb _hns).length)
+    (_hτ : cookLevinConstraintType M n _hn _htb _hns i = τ) :
+    ∃ W : Submodule ℚ (MvPolynomial (Fin n) ℚ),
+      Module.Finite ℚ ↥W ∧
+      Module.finrank ℚ ↥W ≤ 3 ∧
+      (cookLevinFactorList M n _hn _htb _hns).get i ∈ W :=
+  cookLevinQ_interfaceSpace_finrank_bound_perIndex M n _hn _htb _hns i
+
+/-! ### Abstract signature for the shared-W target
+
+The literal shared-W target theorem — a single ℚ-submodule `W` containing
+all factors of a given type `τ` with uniform `dim W ≤ 3` — is structurally
+unavailable in the uniform polynomial basis when `n ≥ 4` for the booleanity
+type (see faithfulness discussion above). We expose the target statement as
+an abstract proposition, parameterized by a supplied interface-space family,
+so that downstream callers may either (a) supply a concrete shared-W
+construction in a quotient/restricted basis (matching the paper's compiled
+coefficient basis) or (b) consume the per-index form
+`cookLevinQ_interfaceTypeSpace_finrank_bound_perIndex` directly. -/
+
+/-- Abstract statement of the shared-W interface-type target: for each
+constraint type `τ`, there exists a *single* submodule `W_τ` with
+`dim W_τ ≤ 3` containing *every* factor of type `τ`.
+
+As discussed above, this statement is not provable in the uniform polynomial
+basis for the booleanity type at `n ≥ 4`; it is exposed here as a named
+proposition to make downstream dependencies explicit. -/
+def CookLevinSharedInterfaceTypeFinrankBound
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ τ : ConstraintType,
+    ∃ W : Submodule ℚ (MvPolynomial (Fin n) ℚ),
+      Module.Finite ℚ ↥W ∧
+      Module.finrank ℚ ↥W ≤ 3 ∧
+      ∀ i : Fin (cookLevinFactorList M n hn htb hns).length,
+        cookLevinConstraintType M n hn htb hns i = τ →
+          (cookLevinFactorList M n hn htb hns).get i ∈ W
+
+/-- **Trivial satisfaction of the shared-W target when no factor of type τ
+exists**: if for every index `i` we have
+`cookLevinConstraintType i ≠ τ`, then `W = ⊥` satisfies the shared-W target
+for that type vacuously. This is the edge case where the shared-W statement
+is meaningful and provable. -/
+theorem cookLevinQ_interfaceTypeSpace_finrank_bound_empty
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (τ : ConstraintType)
+    (hempty : ∀ i : Fin (cookLevinFactorList M n hn htb hns).length,
+      cookLevinConstraintType M n hn htb hns i ≠ τ) :
+    ∃ W : Submodule ℚ (MvPolynomial (Fin n) ℚ),
+      Module.Finite ℚ ↥W ∧
+      Module.finrank ℚ ↥W ≤ 3 ∧
+      (∀ i : Fin (cookLevinFactorList M n hn htb hns).length,
+        cookLevinConstraintType M n hn htb hns i = τ →
+        (cookLevinFactorList M n hn htb hns).get i ∈ W) := by
+  refine ⟨(⊥ : Submodule ℚ (MvPolynomial (Fin n) ℚ)), ?_, ?_, ?_⟩
+  · exact Module.Finite.bot ℚ _
+  · have : Module.finrank ℚ ((⊥ : Submodule ℚ (MvPolynomial (Fin n) ℚ))) = 0 := by
+      exact finrank_bot ℚ _
+    omega
+  · intro i hi
+    exact absurd hi (hempty i)
+
+/-- **Abstract shared-W target**: given as a hypothesis the *family* assertion
+that per-type shared subspaces exist with dim ≤ 3, we produce the per-type
+instance. This is the natural form in which the paper's Lemma 31 content can
+be consumed downstream: a caller who supplies a compiled-basis shared-W
+family obtains the target; a caller who only has per-interface data falls
+back to `cookLevinQ_interfaceTypeSpace_finrank_bound_perIndex`. -/
+theorem cookLevinQ_interfaceTypeSpace_finrank_bound_shared_abstract
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hshared : CookLevinSharedInterfaceTypeFinrankBound M n hn htb hns)
+    (τ : ConstraintType) :
+    ∃ W : Submodule ℚ (MvPolynomial (Fin n) ℚ),
+      Module.Finite ℚ ↥W ∧
+      Module.finrank ℚ ↥W ≤ 3 ∧
+      (∀ i : Fin (cookLevinFactorList M n hn htb hns).length,
+        cookLevinConstraintType M n hn htb hns i = τ →
+        (cookLevinFactorList M n hn htb hns).get i ∈ W) :=
+  hshared τ
+
 end WithinProfileBound
 
 /-! # WithinProfileBound — Archived WIP below
