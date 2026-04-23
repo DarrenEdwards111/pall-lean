@@ -88,8 +88,16 @@ directly by `Submodule.span` on the image set, which avoids needing
 to elaborate the explicit linear-map structure here. -/
 
 /-- The submodule of `MvPolynomial (Fin n) ℚ` spanned by the iterated
-partial derivatives of elements of `W` along the index list `S`. -/
-noncomputable def iterDerivSubmodule
+partial derivatives of elements of `W` along the index list `S`.
+
+Note: renamed from `iterDerivSubmodule` to `iterDerivSubmodule_forH5` to
+avoid a global name collision with the `(W, S)`-argument-order variant
+defined in `Paper93/Spanning/DerivativeClosure.lean` (both live in the
+`PallLean.Paper93.Spanning` namespace). The two definitions are
+semantically equivalent on the `ℚ`-linear image of `W`; see
+`Paper93/Unified/IterDerivSubmoduleUnified.lean` for the reconciliation
+bridge. -/
+noncomputable def iterDerivSubmodule_forH5
     {n : ℕ} (S : List (Fin n))
     (W : Submodule ℚ (MvPolynomial (Fin n) ℚ)) :
     Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
@@ -97,12 +105,16 @@ noncomputable def iterDerivSubmodule
     { q : MvPolynomial (Fin n) ℚ |
       ∃ p : MvPolynomial (Fin n) ℚ, p ∈ W ∧ q = iterDerivList S p }
 
-/-- If `p ∈ W` then `iterDerivList S p ∈ iterDerivSubmodule S W`. -/
-theorem iterDerivList_mem_iterDerivSubmodule
+/-- If `p ∈ W` then `iterDerivList S p ∈ iterDerivSubmodule_forH5 S W`.
+
+Renamed from `iterDerivList_mem_iterDerivSubmodule` (which in the
+`DerivativeClosure.lean` variant has a different signature) to
+`iterDerivList_mem_iterDerivSubmodule_forH5` for disambiguation. -/
+theorem iterDerivList_mem_iterDerivSubmodule_forH5
     {n : ℕ} (S : List (Fin n))
     (W : Submodule ℚ (MvPolynomial (Fin n) ℚ))
     (p : MvPolynomial (Fin n) ℚ) (hp : p ∈ W) :
-    iterDerivList S p ∈ iterDerivSubmodule S W := by
+    iterDerivList S p ∈ iterDerivSubmodule_forH5 S W := by
   refine Submodule.subset_span ?_
   exact ⟨p, hp, rfl⟩
 
@@ -121,7 +133,7 @@ def DerivClosurePerType {n : ℕ}
     (W : ConstraintType → Submodule ℚ (MvPolynomial (Fin n) ℚ)) : Prop :=
   ∀ (τ : ConstraintType) (S : List (Fin n)),
     S.length ≤ Nat.log 2 n →
-    iterDerivSubmodule S (W τ) ≤ W τ
+    iterDerivSubmodule_forH5 S (W τ) ≤ W τ
 
 /-! ## 3. H3: unconditional per-factor membership hypothesis
 
@@ -176,15 +188,15 @@ theorem iterDerivList_factor_mem_derivAmbient
     (hi : cookLevinConstraintType M n hn htb hns i = τ)
     (S : List (Fin n)) (_hS : S.length ≤ Nat.log 2 n) :
     iterDerivList S ((cookLevinFactorList M n hn htb hns).get i) ∈
-      iterDerivSubmodule S (W τ) := by
+      iterDerivSubmodule_forH5 S (W τ) := by
   classical
   -- H3 gives: factor ∈ W (cookLevinConstraintType ... i). Rewrite via `hi`.
   have hMem : (cookLevinFactorList M n hn htb hns).get i
       ∈ W (cookLevinConstraintType M n hn htb hns i) :=
     hFactor i
   rw [hi] at hMem
-  -- Apply the generator lemma for `iterDerivSubmodule`.
-  exact iterDerivList_mem_iterDerivSubmodule S (W τ)
+  -- Apply the generator lemma for `iterDerivSubmodule_forH5`.
+  exact iterDerivList_mem_iterDerivSubmodule_forH5 S (W τ)
     ((cookLevinFactorList M n hn htb hns).get i) hMem
 
 /-- **H5.A (W τ form, via H4).**
@@ -204,7 +216,7 @@ theorem iterDerivList_factor_mem_W
     iterDerivList S ((cookLevinFactorList M n hn htb hns).get i) ∈ W τ := by
   have hInDeriv :
       iterDerivList S ((cookLevinFactorList M n hn htb hns).get i) ∈
-        iterDerivSubmodule S (W τ) :=
+        iterDerivSubmodule_forH5 S (W τ) :=
     iterDerivList_factor_mem_derivAmbient M n hn htb hns W hFactor i τ hi S hS
   exact hClosure τ S hS hInDeriv
 
@@ -376,7 +388,7 @@ theorem cookLevinProfileTemplateCollapseLemmaBoundedProfile_from_H3_H4
     (cookLevinPerTypeSpanning_discharged
       M n hn htb hns W hFactor hClosure hShiftMlproj)
 
-#print axioms iterDerivList_mem_iterDerivSubmodule
+#print axioms iterDerivList_mem_iterDerivSubmodule_forH5
 #print axioms iterDerivList_factor_mem_derivAmbient
 #print axioms iterDerivList_factor_mem_W
 #print axioms cookLevinPerTypeSpanning_discharged
