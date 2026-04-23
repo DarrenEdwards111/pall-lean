@@ -943,6 +943,61 @@ def RawTouchedCompatibleWithDerivProfile {n L : ℕ}
   ∃ d : Fin L → List (Fin n),
     derivCountProfile constraintType d = h ∧ rawTouchedFactorSet d = touched
 
+/-- Finite enumeration of raw touched supports compatible with a fixed
+ derivative-count profile. -/
+noncomputable def rawTouchedCompatibleSupportsOfProfile {n L : ℕ}
+    (constraintType : Fin L → ConstraintType)
+    (h : ProfileHistogram) : Finset (Finset (Fin L)) :=
+  Finset.univ.powerset.filter fun touched =>
+    RawTouchedCompatibleWithDerivProfile (n := n) constraintType h touched
+
+/-- Any compatible raw touched support appears in the explicit enumeration. -/
+theorem mem_rawTouchedCompatibleSupportsOfProfile_of_compat {n L : ℕ}
+    (constraintType : Fin L → ConstraintType)
+    (h : ProfileHistogram)
+    (touched : Finset (Fin L))
+    (hcompat : RawTouchedCompatibleWithDerivProfile (n := n) constraintType h touched) :
+    touched ∈ rawTouchedCompatibleSupportsOfProfile (n := n) constraintType h := by
+  simp [rawTouchedCompatibleSupportsOfProfile, hcompat]
+
+/-- The finite-dimensional space spanned by untouched multipliers attached to
+ all raw touched supports compatible with one derivative-count profile. -/
+noncomputable def untouchedMultiplierSpaceOfProfile {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (h : ProfileHistogram) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+  Submodule.span ℚ
+    ({p | ∃ touched ∈ rawTouchedCompatibleSupportsOfProfile (n := n) constraintType h,
+        p = untouchedFactor Finset.univ factors touched})
+
+/-- Compatible touched supports contribute their untouched factor to the
+ corresponding profile-fixed untouched multiplier space. -/
+theorem untouchedFactor_mem_untouchedMultiplierSpaceOfProfile_of_compat {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (h : ProfileHistogram)
+    (touched : Finset (Fin L))
+    (hcompat : RawTouchedCompatibleWithDerivProfile (n := n) constraintType h touched) :
+    untouchedFactor Finset.univ factors touched ∈
+      untouchedMultiplierSpaceOfProfile factors constraintType h := by
+  apply Submodule.subset_span
+  exact ⟨touched,
+    mem_rawTouchedCompatibleSupportsOfProfile_of_compat constraintType h touched hcompat,
+    rfl⟩
+
+/-- The profile-fixed untouched multiplier space is finite-dimensional. -/
+instance untouchedMultiplierSpaceOfProfile_finite {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (constraintType : Fin L → ConstraintType)
+    (h : ProfileHistogram) :
+    Module.Finite ℚ ↥(untouchedMultiplierSpaceOfProfile factors constraintType h) := by
+  unfold untouchedMultiplierSpaceOfProfile
+  apply Module.Finite.span_of_finite
+  refine (rawTouchedCompatibleSupportsOfProfile (n := n) constraintType h).finite_toSet.image ?_
+  intro touched _
+  exact untouchedFactor Finset.univ factors touched
+
 /-- Direct raw-touched collapse theorem that feeds the exact bounded
 derivative-count profile route: for each derivative-count profile `h`, one
 common `U_h` contains every raw touched-support span whose touched support can
@@ -1851,6 +1906,57 @@ def CookLevinProfileSymmetricPowerDescentLemma
     h ConstraintType.transitionRight = 0 →
     CookLevinProfileSymmetricPowerDescentAtProfile M n hn htb hns h
 
+/-- Any fixed-profile symmetric-power descent certificate for the actual
+Cook-Levin family forces the dormant `transitionRight` coordinate to vanish. -/
+theorem cookLevinProfileSymmetricPowerDescentAtProfile_transitionRight_eq_zero
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {h : ProfileHistogram}
+    (hdesc : CookLevinProfileSymmetricPowerDescentAtProfile M n hn htb hns h) :
+    h ConstraintType.transitionRight = 0 := by
+  rcases hdesc with ⟨_, _, hz⟩
+  exact hz
+
+/-- Therefore the unrestricted ambient all-profile target is refutable on any
+profile with nonzero dormant `transitionRight` mass. -/
+theorem not_cookLevinProfileSymmetricPowerDescentAtProfile_of_transitionRight_ne_zero
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {h : ProfileHistogram}
+    (hz : h ConstraintType.transitionRight ≠ 0) :
+    ¬ CookLevinProfileSymmetricPowerDescentAtProfile M n hn htb hns h := by
+  intro hdesc
+  exact hz
+    (cookLevinProfileSymmetricPowerDescentAtProfile_transitionRight_eq_zero
+      M n hn htb hns hdesc)
+
+/-- Concrete witness showing why `∀ h, CookLevinProfileSymmetricPowerDescentAtProfile ... h`
+is false for the ambient four-coordinate profile space: put one unit of mass on
+the dormant `transitionRight` coordinate and zero elsewhere. -/
+def cookLevinDormantTransitionRightProfile : ProfileHistogram :=
+  fun τ => if τ = ConstraintType.transitionRight then 1 else 0
+
+@[simp] theorem cookLevinDormantTransitionRightProfile_transitionRight :
+    cookLevinDormantTransitionRightProfile ConstraintType.transitionRight = 1 := by
+  simp [cookLevinDormantTransitionRightProfile]
+
+/-- Safe anti-theorem: the naive unrestricted all-profile symmetric-power
+statement is false for the actual Cook-Levin object because the ambient profile
+universe still allows dormant `transitionRight` mass. -/
+theorem not_forall_cookLevinProfileSymmetricPowerDescentAtProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    ¬ ∀ h : ProfileHistogram,
+        CookLevinProfileSymmetricPowerDescentAtProfile M n hn htb hns h := by
+  intro hall
+  have hdesc := hall cookLevinDormantTransitionRightProfile
+  have hz :
+      cookLevinDormantTransitionRightProfile ConstraintType.transitionRight ≠ 0 := by
+    simp [cookLevinDormantTransitionRightProfile]
+  exact hz
+    (cookLevinProfileSymmetricPowerDescentAtProfile_transitionRight_eq_zero
+      M n hn htb hns hdesc)
+
 /-- `mlProj` preserves the boolean local interface span. -/
 private theorem mlProj_mem_boolInterfaceSpan_of_mem {n : ℕ} (v : Fin n)
     {p : MvPolynomial (Fin n) ℚ}
@@ -1961,26 +2067,35 @@ theorem cookLevin_booleanity_local_interface_step
                 have hlen : 3 ≤ (bv :: bv :: z :: zs).length := by simp
                 omega
 
-/-- Honest next bridge target after local typewise containment: once every factor
-admits a placed local interface of the canonical type, the remaining work is to
-show that same-profile touched products descend to one profile-only touched-part
-subspace. This packages the non-circular gap exposed by the current development. -/
+/-- Honest fixed-profile product/quotient seam after the local interface step:
+for one derivative-count profile `h`, every compatible raw touched-support
+post-span factors through a common touched-part space `W`, with the untocuhed
+multiplier living in one finite-dimensional multiplier space `U`.
+
+This is the paper-faithful shape of the remaining gap. It preserves the actual
+Cook-Levin object while avoiding the probably-too-strong claim that all same-
+profile touched products already lie in one common subspace before quotienting by
+untouched factors. -/
 def CookLevinProfileTouchedSpanDescentAtProfile
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (h : ProfileHistogram) : Prop :=
-  ∃ W : Submodule ℚ (MvPolynomial (Fin n) ℚ),
+  ∃ W U : Submodule ℚ (MvPolynomial (Fin n) ℚ),
     Module.Finite ℚ ↥W ∧
     Module.finrank ℚ ↥W ≤ profileTemplateBound h ∧
+    Module.Finite ℚ ↥U ∧
     ∀ (S : List (Fin n)) (_ : S.length ≤ Nat.log 2 n)
       (shift : MvPolynomial (Fin n) ℚ) (_ : shift.vars ⊆ S.toFinset)
       (touched : Finset (Fin (cookLevinFactorList M n hn htb hns).length)),
         RawTouchedCompatibleWithDerivProfile
             (n := n)
             (cookLevinConstraintType M n hn htb hns) h touched →
-          rawTouchedPostSpan
-            (fun i => (cookLevinFactorList M n hn htb hns).get i)
-            S shift touched ≤ W
+          ∃ c : MvPolynomial (Fin n) ℚ,
+            c ∈ U ∧
+            rawTouchedPostSpan
+              (fun i => (cookLevinFactorList M n hn htb hns).get i)
+              S shift touched ≤
+            Submodule.map (LinearMap.mulRight ℚ c) W
 
 /-- Honest factorization target beneath profile touched-span descent.
 For a fixed derivative-count profile `h`, every same-profile raw touched-support
@@ -2007,10 +2122,57 @@ def CookLevinProfileTouchedFactorizationAtProfile
               S shift touched ≤
             Submodule.map (LinearMap.mulRight ℚ c) W
 
+/-- A stronger stable factorization immediately yields the paper-faithful
+product/quotient seam, by taking the multiplier space to be the whole ambient
+polynomial space. -/
+theorem cookLevinProfileTouchedSpanDescentAtProfile_of_factorization_stable
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (h : ProfileHistogram)
+    (hfact :
+      ∃ W : Submodule ℚ (MvPolynomial (Fin n) ℚ),
+        Module.Finite ℚ ↥W ∧
+        Module.finrank ℚ ↥W ≤ profileTemplateBound h ∧
+        ∀ (S : List (Fin n)) (_ : S.length ≤ Nat.log 2 n)
+          (shift : MvPolynomial (Fin n) ℚ) (_ : shift.vars ⊆ S.toFinset)
+          (touched : Finset (Fin (cookLevinFactorList M n hn htb hns).length)),
+            RawTouchedCompatibleWithDerivProfile
+                (n := n)
+                (cookLevinConstraintType M n hn htb hns) h touched →
+              ∃ c : MvPolynomial (Fin n) ℚ,
+                c ∈ untouchedMultiplierSpaceOfProfile
+                  (fun i => (cookLevinFactorList M n hn htb hns).get i)
+                  (cookLevinConstraintType M n hn htb hns) h ∧
+                rawTouchedPostSpan
+                  (fun i => (cookLevinFactorList M n hn htb hns).get i)
+                  S shift touched ≤
+                Submodule.map (LinearMap.mulRight ℚ c) W) :
+    CookLevinProfileTouchedSpanDescentAtProfile M n hn htb hns h := by
+  rcases hfact with ⟨W, hfinW, hdimW, hW⟩
+  refine ⟨W,
+    untouchedMultiplierSpaceOfProfile
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      (cookLevinConstraintType M n hn htb hns) h,
+    hfinW, hdimW,
+    untouchedMultiplierSpaceOfProfile_finite
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      (cookLevinConstraintType M n hn htb hns) h,
+    ?_⟩
+  intro S hS shift hshift touched hcompat
+  rcases hW S hS shift hshift touched hcompat with ⟨c, hc, hle⟩
+  exact ⟨c, hc, hle⟩
+
 -- ARCHIVED: cookLevinProfileTouchedSpanDescentAtProfile_of_factorization
 -- This theorem was on a dead chain (never called). It had a sorry because
 -- the factorization gives ≤ map(mulRight c)(W) but the descent target needs ≤ W.
--- The main chain goes through AbstractProfileTemplateCollapseAtProfile instead.
+-- The active chain does NOT prove this step by a different local argument:
+-- it simply takes the abstract endpoint `AbstractProfileTemplateCollapseAtProfile`
+-- as the remaining hypothesis/interface above this seam.
+-- Paper-faithful status: after factoring out the transition-left placement
+-- bookkeeping, the smallest concrete missing theorem remains the upgrade from
+-- `CookLevinProfileTouchedFactorizationAtProfile` to
+-- `CookLevinProfileTouchedSpanDescentAtProfile`, equivalently a direct proof of
+-- the finite-family profile collapse at the actual Cook-Levin object.
 -- Moved to archive to eliminate the sorry from active code.
 
 /-- A profile-only touched-part subspace of bounded finrank immediately yields
@@ -2021,14 +2183,61 @@ theorem cookLevinRawTouchedDerivTemplateSpanAtProfile_of_profileTouchedSpanDesce
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (h : ProfileHistogram)
-    (hdesc : CookLevinProfileTouchedSpanDescentAtProfile M n hn htb hns h) :
+    (hdesc : CookLevinProfileTouchedSpanDescentAtProfile M n hn htb hns h)
+    (hstable :
+      ∀ {W : Submodule ℚ (MvPolynomial (Fin n) ℚ)}
+        (hfinW : Module.Finite ℚ ↥W),
+        W = W →
+        ∀ c : MvPolynomial (Fin n) ℚ,
+          c ∈ untouchedMultiplierSpace
+            (fun i => (cookLevinFactorList M n hn htb hns).get i)
+            (cookLevinConstraintType M n hn htb hns) h →
+          Submodule.map (LinearMap.mulRight ℚ c) W ≤ W) :
     CookLevinRawTouchedDerivTemplateSpanAtProfile M n hn htb hns h := by
-  rcases hdesc with ⟨W, hfinW, hdimW, hW⟩
+  rcases hdesc with ⟨W, U, hfinW, hdimW, _hfinU, hW⟩
   letI : Module.Finite ℚ ↥W := hfinW
   rcases finite_submodule_le_span_finset_card_le_finrank W with ⟨G, hW_span, hG_card⟩
   refine ⟨G, le_trans hG_card hdimW, ?_⟩
   intro S hS shift hshift touched hcompat
-  exact le_trans (hW S hS shift hshift touched hcompat) hW_span
+  rcases hW S hS shift hshift touched hcompat with ⟨c, hcU, hle⟩
+  have hmap : Submodule.map (LinearMap.mulRight ℚ c) W ≤ W := by
+    have hcMul : c ∈ untouchedMultiplierSpace
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+        (cookLevinConstraintType M n hn htb hns) h := by
+      exact hcU
+    exact hstable hfinW rfl c hcMul
+  exact le_trans hle (le_trans hmap hW_span)
+
+/-- Stable fixed-profile factorization directly yields the finite template family
+for that profile, by first collapsing to the common touched-part subspace. -/
+theorem cookLevinRawTouchedDerivTemplateSpanAtProfile_of_factorization_stable
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (h : ProfileHistogram)
+    (hfact :
+      ∃ W : Submodule ℚ (MvPolynomial (Fin n) ℚ),
+        Module.Finite ℚ ↥W ∧
+        Module.finrank ℚ ↥W ≤ profileTemplateBound h ∧
+        ∀ (S : List (Fin n)) (_ : S.length ≤ Nat.log 2 n)
+          (shift : MvPolynomial (Fin n) ℚ) (_ : shift.vars ⊆ S.toFinset)
+          (touched : Finset (Fin (cookLevinFactorList M n hn htb hns).length)),
+            RawTouchedCompatibleWithDerivProfile
+                (n := n)
+                (cookLevinConstraintType M n hn htb hns) h touched →
+              ∃ c : MvPolynomial (Fin n) ℚ,
+                c ∈ untouchedMultiplierSpaceOfProfile
+                  (fun i => (cookLevinFactorList M n hn htb hns).get i)
+                  (cookLevinConstraintType M n hn htb hns) h ∧
+                rawTouchedPostSpan
+                  (fun i => (cookLevinFactorList M n hn htb hns).get i)
+                  S shift touched ≤
+                Submodule.map (LinearMap.mulRight ℚ c) W) :
+    CookLevinRawTouchedDerivTemplateSpanAtProfile M n hn htb hns h := by
+  exact
+    cookLevinRawTouchedDerivTemplateSpanAtProfile_of_profileTouchedSpanDescentAtProfile
+      M n hn htb hns h
+      (cookLevinProfileTouchedSpanDescentAtProfile_of_factorization_stable
+        M n hn htb hns h hfact)
 
 /-- All-profile version of the raw-touched template-span frontier. -/
 def CookLevinRawTouchedDerivTemplateSpanLemma
@@ -2069,6 +2278,7 @@ theorem cookLevinProfileTemplateCollapse_of_rawTouchedDerivTemplateSpan
   intro h
   exact cookLevinProfileTemplateCollapseAtProfile_of_rawTouchedDerivTemplateSpanAtProfile
     M n hn htb hns h (hraw h)
+
 
 /-- The all-profile raw-touched common-span lemma is exactly the universal
 closure of the fixed-profile raw-touched common-span unit. -/
@@ -2121,6 +2331,24 @@ theorem cookLevinBoundedProfileCommonSpanAtProfile_of_allBoundedProfileCommonSpa
       (cookLevinConstraintType M n hn htb hns)
       h S hS shift hshift)
     hG_span
+
+/-- Direct fixed-profile bridge from the raw-touched compatible common-span
+frontier to the active per-`S`/shift bounded-profile common-span target.
+
+This packages the exact `RawTouchedCompatibleWithDerivProfile`-layer theorem
+needed for the real Cook-Levin route, without first quantifying over all
+profiles. -/
+theorem cookLevinBoundedProfileCommonSpanAtProfile_of_rawTouchedDerivCommonSpanAtProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (h : ProfileHistogram)
+    (hraw : CookLevinRawTouchedDerivCommonSpanAtProfile M n hn htb hns h) :
+    CookLevinBoundedProfileCommonSpanAtProfile M n hn htb hns h := by
+  exact
+    cookLevinBoundedProfileCommonSpanAtProfile_of_allBoundedProfileCommonSpanAtProfile
+      M n hn htb hns h
+      (cookLevinAllBoundedProfileCommonSpanAtProfile_of_rawTouchedDerivCommonSpanAtProfile
+        M n hn htb hns h hraw)
 
 /-- The per-`S`/shift fixed-profile common-span statement spans the full
 all-`S`/shift fixed-profile subspace. -/
@@ -2392,6 +2620,72 @@ theorem cookLevinAllBoundedProfileCommonSpanAtProfile_of_templateCollapseAtProfi
       h hadm]
     exact bot_le
 
+/-- The fixed-profile template-collapse theorem also closes the active
+per-`S`/shift common-span target, by passing through the all-span form. -/
+theorem cookLevinBoundedProfileCommonSpanAtProfile_of_templateCollapseAtProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (h : ProfileHistogram)
+    (hcollapse : CookLevinProfileTemplateCollapseAtProfile M n hn htb hns h) :
+    CookLevinBoundedProfileCommonSpanAtProfile M n hn htb hns h := by
+  exact
+    cookLevinBoundedProfileCommonSpanAtProfile_of_allBoundedProfileCommonSpanAtProfile
+      M n hn htb hns h
+      (cookLevinAllBoundedProfileCommonSpanAtProfile_of_templateCollapseAtProfile
+        M n hn htb hns h hcollapse)
+
+/-- Direct fixed-profile bridge from profile touched-span descent to the active
+per-`S`/shift common-span target at the actual Cook-Levin family.
+
+This packages the paper-faithful route
+`profile touched-span descent → raw-touched template span → template collapse
+→ all-span common span → bounded-profile common span` into one theorem whose
+conclusion already matches the retained fixed-profile blocker. -/
+theorem cookLevinBoundedProfileCommonSpanAtProfile_of_profileTouchedSpanDescentAtProfile
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (h : ProfileHistogram)
+    (hdesc : CookLevinProfileTouchedSpanDescentAtProfile M n hn htb hns h) :
+    CookLevinBoundedProfileCommonSpanAtProfile M n hn htb hns h := by
+  exact
+    cookLevinBoundedProfileCommonSpanAtProfile_of_templateCollapseAtProfile
+      M n hn htb hns h
+      (cookLevinProfileTemplateCollapseAtProfile_of_rawTouchedDerivTemplateSpanAtProfile
+        M n hn htb hns h
+        (cookLevinRawTouchedDerivTemplateSpanAtProfile_of_profileTouchedSpanDescentAtProfile
+          M n hn htb hns h hdesc))
+
+/-- Short fixed-profile bridge from stable touched-factorization all the way to
+ the retained bounded-profile common-span target. -/
+theorem cookLevinBoundedProfileCommonSpanAtProfile_of_factorization_stable
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (h : ProfileHistogram)
+    (hfact :
+      ∃ W : Submodule ℚ (MvPolynomial (Fin n) ℚ),
+        Module.Finite ℚ ↥W ∧
+        Module.finrank ℚ ↥W ≤ profileTemplateBound h ∧
+        ∀ (S : List (Fin n)) (_ : S.length ≤ Nat.log 2 n)
+          (shift : MvPolynomial (Fin n) ℚ) (_ : shift.vars ⊆ S.toFinset)
+          (touched : Finset (Fin (cookLevinFactorList M n hn htb hns).length)),
+            RawTouchedCompatibleWithDerivProfile
+                (n := n)
+                (cookLevinConstraintType M n hn htb hns) h touched →
+              ∃ c : MvPolynomial (Fin n) ℚ,
+                c ∈ untouchedMultiplierSpaceOfProfile
+                  (fun i => (cookLevinFactorList M n hn htb hns).get i)
+                  (cookLevinConstraintType M n hn htb hns) h ∧
+                rawTouchedPostSpan
+                  (fun i => (cookLevinFactorList M n hn htb hns).get i)
+                  S shift touched ≤
+                Submodule.map (LinearMap.mulRight ℚ c) W) :
+    CookLevinBoundedProfileCommonSpanAtProfile M n hn htb hns h := by
+  exact
+    cookLevinBoundedProfileCommonSpanAtProfile_of_profileTouchedSpanDescentAtProfile
+      M n hn htb hns h
+      (cookLevinProfileTouchedSpanDescentAtProfile_of_factorization_stable
+        M n hn htb hns h hfact)
+
 /-- The all-profile template-collapse theorem gives the fixed-profile retained
 all-span frontier by selecting the requested histogram. -/
 theorem cookLevinAllBoundedProfileCommonSpanAtProfile_of_templateCollapse
@@ -2402,6 +2696,18 @@ theorem cookLevinAllBoundedProfileCommonSpanAtProfile_of_templateCollapse
     CookLevinAllBoundedProfileCommonSpanAtProfile M n hn htb hns h :=
   cookLevinAllBoundedProfileCommonSpanAtProfile_of_templateCollapseAtProfile
     M n hn htb hns h (hcollapse h)
+
+/-- The all-profile template-collapse theorem also closes the active
+fixed-profile per-`S`/shift common-span target. -/
+theorem cookLevinBoundedProfileCommonSpanAtProfile_of_templateCollapse
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcollapse : CookLevinProfileTemplateCollapseLemma M n hn htb hns)
+    (h : ProfileHistogram) :
+    CookLevinBoundedProfileCommonSpanAtProfile M n hn htb hns h := by
+  exact
+    cookLevinBoundedProfileCommonSpanAtProfile_of_templateCollapseAtProfile
+      M n hn htb hns h (hcollapse h)
 
 /-- Direct finite-basis construction of one common spanning family `G_h` for
 each derivative-count profile, extracted from the exact all-profile finrank
@@ -3499,17 +3805,17 @@ theorem cookLevin_transSkel_local_interface_step
               simp at hle
               omega
 
-/-- Exact stronger transition-left theorem still needed at the factor-list
+/-- Exact transition-left placement interface statement at the factor-list
 frontier.
 
 The theorem above proves the polynomial-local part for any
 `lc ∈ transSkelConstraintList M n`: after one or two hits, the factor lands in
-the endpoint span `span {1, X_i, X_{i+1}}`.  To plug this into
-`CookLevinProfileSymmetricPowerDescentAtProfile`, one still needs the list
-indexing/placement bridge below: every final `transitionLeft` slot of
-`cookLevinFactorList` must be identified with such an `lc`, and its endpoint
-span must be instantiated as the placed canonical local-coordinate template
-for `ConstraintType.transitionLeft`. -/
+the endpoint span `span {1, X_i, X_{i+1}}`.  The definition below isolates the
+remaining bookkeeping statement on the actual `cookLevinFactorList`, and the
+following theorem `cookLevin_transitionLeftPlacedInterfaceObligation` discharges
+it by identifying every final `transitionLeft` slot with a transition-skeleton
+constraint and transporting the endpoint span to the placed canonical local
+interface for `ConstraintType.transitionLeft`. -/
 def CookLevinTransitionLeftPlacedInterfaceObligation
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
@@ -3522,6 +3828,72 @@ def CookLevinTransitionLeftPlacedInterfaceObligation
           iterDerivList d ((cookLevinFactorList M n hn htb hns).get i) ∈
             placedCookLevinInterfaceSpan place
               (cookLevinCanonicalInterfaceFamily ConstraintType.transitionLeft)
+
+/-- The transition-left placement bookkeeping can be discharged on the actual
+Cook-Levin factor list.
+
+Every final-segment factor of `cookLevinFactorList` comes from
+`transSkelConstraintList M n`, so the polynomial-local theorem
+`cookLevin_transSkel_local_interface_step` transports directly to the placed
+canonical transition-left interface family. What remains after this theorem is
+not list indexing but the genuinely harder profile-only symmetric-power descent
+from local placed interfaces to a single profile-bounded touched-part span. -/
+theorem cookLevin_transitionLeftPlacedInterfaceObligation
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    CookLevinTransitionLeftPlacedInterfaceObligation M n hn htb hns := by
+  intro i hi
+  let j : Fin (transSkelConstraintList M n).length :=
+    ⟨i.1 - n - (PaperFaithfulSeparation.adjConstraintList n).length, by
+      have hi' :
+          i.1 < n + (PaperFaithfulSeparation.adjConstraintList n).length +
+            (transSkelConstraintList M n).length := by
+        simpa [cookLevinFactorList, cook_levin_compilation, boolConstraintList_length n,
+          List.length_map, List.length_append, Nat.add_assoc, Nat.add_left_comm,
+          Nat.add_comm] using i.2
+      omega⟩
+  have hidx_map :
+      i.1 - n - (PaperFaithfulSeparation.adjConstraintList n).length <
+        (List.map (fun c => (1 : MvPolynomial (Fin n) ℚ) - c.poly)
+          (transSkelConstraintList M n)).length := by
+    simpa [List.length_map, j] using j.2
+  have hfactor :
+      (cookLevinFactorList M n hn htb hns).get i =
+        (1 : MvPolynomial (Fin n) ℚ) - ((transSkelConstraintList M n).get j).poly := by
+    rw [List.get_eq_getElem]
+    have hget :
+        (cookLevinFactorList M n hn htb hns)[i.1] =
+          (List.map (fun c => (1 : MvPolynomial (Fin n) ℚ) - c.poly)
+            (transSkelConstraintList M n))[i.1 - n -
+              (PaperFaithfulSeparation.adjConstraintList n).length]'hidx_map := by
+      simp [cookLevinFactorList, cook_levin_compilation, List.getElem_append,
+        boolConstraintList_length n, List.getElem_map]
+      split
+      · omega
+      · split
+        · omega
+        · rfl
+    simpa [j] using hget
+  have hj_mem : (transSkelConstraintList M n).get j ∈ transSkelConstraintList M n :=
+    List.get_mem _ _
+  rcases cookLevin_transSkel_local_interface_step M n ((transSkelConstraintList M n).get j) hj_mem with
+    ⟨v, hv, hloc⟩
+  let v' : Fin n := ⟨v.1 + 1, hv⟩
+  let place : Fin maxConstraintArity → Fin n :=
+    fun k => if k = cookLevinLocalCoord0 then v else v'
+  refine ⟨place, ?_⟩
+  intro d hpos hlen
+  have hmem :
+      iterDerivList d ((1 : MvPolynomial (Fin n) ℚ) - ((transSkelConstraintList M n).get j).poly) ∈
+        SymmetricPower.adjInterfaceSpan n v v' := by
+    simpa [v'] using hloc d hpos hlen
+  rw [hfactor]
+  unfold SymmetricPower.adjInterfaceSpan at hmem
+  unfold placedCookLevinInterfaceSpan
+  exact Submodule.span_mono (by
+    intro x hx
+    simp [placedCookLevinInterface, cookLevinCanonicalInterfaceFamily, place] at hx ⊢
+    exact hx) hmem
 
 /-- Honest combined local-interface frontier for the concrete Cook-Levin factor list.
 This packages exactly the local data currently available without touching the
