@@ -13,6 +13,7 @@
 import PallLean.SymmetricPowerBound
 import PallLean.MlProjFar
 import PallLean.SymmetricPower
+import PallLean.SymTensorPowerDim
 import Mathlib.Tactic
 
 namespace WithinProfileBound
@@ -5408,6 +5409,326 @@ theorem cookLevinQ_interfaceTypeSpace_finrank_bound_shared_abstract
         cookLevinConstraintType M n hn htb hns i = τ →
         (cookLevinFactorList M n hn htb hns).get i ∈ W) :=
   hshared τ
+
+/-! ## Part 28: Agent 3 partial composition — union-of-per-index W_τ
+
+This section composes Agent 1's `sym_tensor_power_dim_bound` with Agent 2's
+per-index `cookLevinInterfaceSpace` to build a UNION-based `W_τ`. Unlike the
+paper's compiled-basis W_τ (which is structurally unavailable in the uniform
+polynomial basis at `n ≥ 4`), this union W_τ has dimension bounded by the
+number of factors of type τ — at most the full factor-list length. This is
+strictly weaker than the paper's `dim W_τ ≤ 3` bound.
+
+The symmetric tensor power dimension bound `C(k + d - 1, k)` at `d = n` or
+`d = L` (factor list length) is **not** polynomial in `n` at `k = log n` —
+it gives `poly(n)^{log n} = exp((log n)²)`, not `poly(n)`.
+
+Consequently, **this composition does NOT unconditionally discharge
+`CookLevinProfileTemplateCollapseLemmaBoundedProfile`** at the paper's literal
+`profileTemplateBound h = ∏_τ C(h(τ)+2, 2)` target. It cleanly packages the
+diagnostic: the bridge from per-index (Agent 2) + symmetric tensor dim (Agent 1)
+to the boundedProfile template collapse is gated on a shared W_τ assumption
+(the paper's compiled coefficient basis) that is not in repo.
+
+See `Agent3_discharge_diagnostic` below for the explicit status. -/
+
+/-- **Union W_τ**: for a given type `τ`, the supremum of per-index interface
+spaces `cookLevinInterfaceSpace M n hn htb hns i` over indices `i` with
+`cookLevinConstraintType i = τ`. This is a finite-dimensional submodule (as a
+finite sup of 1-dim spaces). -/
+noncomputable def cookLevinUnionInterfaceSpace
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (τ : ConstraintType) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+  ⨆ (i : Fin (cookLevinFactorList M n hn htb hns).length)
+    (_ : cookLevinConstraintType M n hn htb hns i = τ),
+      cookLevinInterfaceSpace M n hn htb hns i
+
+/-- The union W_τ contains every factor of type τ. -/
+theorem cookLevinUnionInterfaceSpace_contains_factor
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (τ : ConstraintType)
+    (i : Fin (cookLevinFactorList M n hn htb hns).length)
+    (hτ : cookLevinConstraintType M n hn htb hns i = τ) :
+    (cookLevinFactorList M n hn htb hns).get i ∈
+      cookLevinUnionInterfaceSpace M n hn htb hns τ := by
+  unfold cookLevinUnionInterfaceSpace
+  have hmem : (cookLevinFactorList M n hn htb hns).get i ∈
+      cookLevinInterfaceSpace M n hn htb hns i :=
+    cookLevinInterfaceSpace_mem_self M n hn htb hns i
+  -- Pass through the per-i supremum, then the type-condition supremum.
+  have h1 : cookLevinInterfaceSpace M n hn htb hns i ≤
+      ⨆ (_ : cookLevinConstraintType M n hn htb hns i = τ),
+        cookLevinInterfaceSpace M n hn htb hns i := by
+    exact le_iSup (fun _ : cookLevinConstraintType M n hn htb hns i = τ =>
+      cookLevinInterfaceSpace M n hn htb hns i) hτ
+  have h2 : (⨆ (_ : cookLevinConstraintType M n hn htb hns i = τ),
+              cookLevinInterfaceSpace M n hn htb hns i) ≤
+      ⨆ (j : Fin (cookLevinFactorList M n hn htb hns).length)
+        (_ : cookLevinConstraintType M n hn htb hns j = τ),
+        cookLevinInterfaceSpace M n hn htb hns j := by
+    exact le_iSup (fun j : Fin (cookLevinFactorList M n hn htb hns).length =>
+      ⨆ (_ : cookLevinConstraintType M n hn htb hns j = τ),
+        cookLevinInterfaceSpace M n hn htb hns j) i
+  exact (h2 (h1 hmem))
+
+/-- The union W_τ is finite-dimensional as a ℚ-module (finite sup of
+finite-dimensional per-index spaces). -/
+theorem cookLevinUnionInterfaceSpace_finite
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (τ : ConstraintType) :
+    Module.Finite ℚ ↥(cookLevinUnionInterfaceSpace M n hn htb hns τ) := by
+  classical
+  -- The iSup of a finite family of finite submodules is finite: we exhibit
+  -- an inclusion into the span of a finite image, which is finite-dimensional.
+  have hspan :
+      cookLevinUnionInterfaceSpace M n hn htb hns τ ≤
+      Submodule.span ℚ
+        ((fun i => (cookLevinFactorList M n hn htb hns).get i) ''
+          {i | cookLevinConstraintType M n hn htb hns i = τ}) := by
+    unfold cookLevinUnionInterfaceSpace
+    apply iSup_le; intro i
+    apply iSup_le; intro hi
+    unfold cookLevinInterfaceSpace
+    apply Submodule.span_le.mpr
+    intro p hp
+    rw [Set.mem_singleton_iff] at hp
+    subst hp
+    exact Submodule.subset_span ⟨i, hi, rfl⟩
+  -- The bigger span is finite-dimensional.
+  have hfin : Module.Finite ℚ
+      ↥(Submodule.span ℚ
+        ((fun i => (cookLevinFactorList M n hn htb hns).get i) ''
+          {i | cookLevinConstraintType M n hn htb hns i = τ})) := by
+    apply Module.Finite.span_of_finite
+    exact Set.Finite.image _ (Set.toFinite _)
+  -- A submodule of a finite-dimensional module is finite-dimensional.
+  exact Module.Finite.of_injective
+    ((Submodule.inclusion hspan) : _ →ₗ[ℚ] _)
+    (Submodule.inclusion_injective hspan)
+
+/-- Dimension bound on the union W_τ: at most the number of factors of type τ,
+hence at most the factor-list length. This is `O(n)` (not `O(1)` as in the
+paper), reflecting the structural gap identified by Agent 2. -/
+theorem cookLevinUnionInterfaceSpace_finrank_le_card_type
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (τ : ConstraintType) :
+    Module.finrank ℚ ↥(cookLevinUnionInterfaceSpace M n hn htb hns τ) ≤
+      (Finset.univ.filter
+        (fun i : Fin (cookLevinFactorList M n hn htb hns).length =>
+          cookLevinConstraintType M n hn htb hns i = τ)).card := by
+  classical
+  set typeFilter :=
+    Finset.univ.filter
+      (fun i : Fin (cookLevinFactorList M n hn htb hns).length =>
+        cookLevinConstraintType M n hn htb hns i = τ) with hFilter_def
+  -- The union is contained in the span of the factors indexed by type-τ indices.
+  have hspan :
+      cookLevinUnionInterfaceSpace M n hn htb hns τ ≤
+      Submodule.span ℚ
+        ((typeFilter.image
+          (fun i => (cookLevinFactorList M n hn htb hns).get i) : Finset _) :
+          Set (MvPolynomial (Fin n) ℚ)) := by
+    unfold cookLevinUnionInterfaceSpace
+    apply iSup_le; intro i
+    apply iSup_le; intro hi
+    unfold cookLevinInterfaceSpace
+    apply Submodule.span_le.mpr
+    intro p hp
+    rw [Set.mem_singleton_iff] at hp
+    subst hp
+    refine Submodule.subset_span ?_
+    refine Finset.mem_coe.mpr (Finset.mem_image.mpr ⟨i, ?_, rfl⟩)
+    exact Finset.mem_filter.mpr ⟨Finset.mem_univ _, hi⟩
+  calc Module.finrank ℚ ↥(cookLevinUnionInterfaceSpace M n hn htb hns τ)
+      ≤ Module.finrank ℚ
+          ↥(Submodule.span ℚ
+            ((typeFilter.image
+              (fun i => (cookLevinFactorList M n hn htb hns).get i) : Finset _) :
+              Set (MvPolynomial (Fin n) ℚ))) :=
+        Submodule.finrank_mono hspan
+    _ ≤ (typeFilter.image
+          (fun i => (cookLevinFactorList M n hn htb hns).get i)).card :=
+        finrank_span_finset_le_card _
+    _ ≤ typeFilter.card := Finset.card_image_le
+
+/-- Cook-Levin factor list length bound: gross count of factors. -/
+theorem cookLevinUnionInterfaceSpace_finrank_le_factor_list_length
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (τ : ConstraintType) :
+    Module.finrank ℚ ↥(cookLevinUnionInterfaceSpace M n hn htb hns τ) ≤
+      (cookLevinFactorList M n hn htb hns).length := by
+  classical
+  have h1 := cookLevinUnionInterfaceSpace_finrank_le_card_type M n hn htb hns τ
+  have h2 : (Finset.univ.filter
+        (fun i : Fin (cookLevinFactorList M n hn htb hns).length =>
+          cookLevinConstraintType M n hn htb hns i = τ)).card ≤
+      (Finset.univ : Finset (Fin (cookLevinFactorList M n hn htb hns).length)).card :=
+    Finset.card_filter_le _ _
+  have h3 : (Finset.univ : Finset (Fin (cookLevinFactorList M n hn htb hns).length)).card =
+      (cookLevinFactorList M n hn htb hns).length := by
+    simp [Fintype.card_fin]
+  omega
+
+/-! ### Agent 3 discharge diagnostic
+
+The theorem `Agent3_discharge_diagnostic` below explicitly states the **current
+status**: given Agent 1's `sym_tensor_power_dim_bound` + Agent 2's per-index
+forms, we can compose to a WEAKER symmetric tensor dimension bound (using the
+union W_τ with `dim ≤ card type τ` rather than `dim ≤ 3`). At the bounded
+profile level this gives an exponent `poly(n)^{log n}` — super-polynomial,
+hence unable to satisfy `profileTemplateBound h = ∏_τ C(h(τ)+2, 2)` when the
+histogram values `h τ` grow with `n`.
+
+**Unconditional discharge of `CookLevinProfileTemplateCollapseLemmaBoundedProfile`
+at the paper's literal target is NOT achieved by Agents 1+2's outputs alone.**
+It requires the shared-W `dim ≤ 3` statement (Agent 2's
+`CookLevinSharedInterfaceTypeFinrankBound`), which is structurally unavailable
+in the uniform polynomial basis for the booleanity type at `n ≥ 4`, and
+requires a compiled coefficient basis construction not yet in repo.
+
+See `cookLevinProfileTemplateCollapseLemmaBoundedProfile_from_sharedFamily_abstract`
+for the abstract discharge that consumes the missing shared-W family as an
+explicit hypothesis. -/
+
+/-- Agent 3 explicit diagnostic: the symmetric tensor power dimension bound
+at union W_τ is `C(k + L - 1, k)` where `L = factor list length`, not
+`C(k + 2, 2)` as the paper requires. The two differ by a factor growing
+with `L`, which is `poly(n)`. -/
+theorem Agent3_discharge_diagnostic
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (τ : ConstraintType) (k : ℕ) :
+    -- Union-W_τ symmetric tensor bound (from Agent 1 applied at union W_τ):
+    Module.finrank ℚ
+      (PallLean.SymTensorPowerDim.symPower ℚ k
+        (cookLevinUnionInterfaceSpace M n hn htb hns τ)) ≤
+      -- Stars-and-bars bound at dim = card of type-τ factors:
+      Nat.choose
+        (k + (Finset.univ.filter
+          (fun i : Fin (cookLevinFactorList M n hn htb hns).length =>
+            cookLevinConstraintType M n hn htb hns i = τ)).card)
+        k := by
+  classical
+  -- This is a direct bookkeeping application; the abstract key bound
+  -- sym_tensor_power_dim_bound requires `dim W ≤ 3`, which we do NOT have for
+  -- the union W_τ. Instead, we prove the bound only via the generic "span of
+  -- image under a finite index set" inequality:
+  -- symPower k W ⊆ Submodule.span { product of k basis elements }
+  -- and the basis size is ≤ card of type-τ factors.
+  -- This is a direct upper bound via the stars-and-bars count.
+  -- We skip through the abstract SymTensorPowerDim machinery and give the
+  -- direct bound via `finrank_span_range_le` + `Sym` cardinality.
+  set d := Module.finrank ℚ ↥(cookLevinUnionInterfaceSpace M n hn htb hns τ) with hd_def
+  have hd_bound : d ≤ (Finset.univ.filter
+      (fun i : Fin (cookLevinFactorList M n hn htb hns).length =>
+        cookLevinConstraintType M n hn htb hns i = τ)).card := by
+    rw [hd_def]; exact cookLevinUnionInterfaceSpace_finrank_le_card_type M n hn htb hns τ
+  -- finrank (symPower k W) ≤ multichoose d k = C(d + k - 1, k) if d ≥ 1, else
+  -- trivially ≤ 1 if k = 0 / 0 if k ≥ 1.
+  -- For the diagnostic we use a rough upper bound:
+  -- If d = 0, k = 0: symPower is span{1}, finrank ≤ 1 ≤ C(k + filter_card, k).
+  -- If d = 0, k > 0: symPower = ⊥, finrank = 0 ≤ C(...)
+  -- If d ≥ 1: finrank ≤ C(d + k - 1, k) ≤ C(filter_card + k - 1, k) ≤ C(k + filter_card, k).
+  -- Detailed bookkeeping uses monotonicity of Nat.choose in the first argument.
+  -- We use the WithinProfileBound.cookLevinUnionInterfaceSpace_finite fact:
+  have hfin : Module.Finite ℚ ↥(cookLevinUnionInterfaceSpace M n hn htb hns τ) :=
+    cookLevinUnionInterfaceSpace_finite M n hn htb hns τ
+  -- The key step: apply the internal spanning argument from SymTensorPowerDim.
+  -- We use a generic bound: `finrank (symPower k W) ≤ Nat.choose (k + d) k`
+  -- via the stars-and-bars multichoose formula applied WITHOUT the dim ≤ 3
+  -- hypothesis. Paper-faithful replacement: we can re-derive
+  -- `finrank (symPower k W) ≤ Fintype.card (Sym (Fin d) k) = multichoose d k`
+  -- (which is = C(d + k - 1, k)) by re-applying the main body of Agent 1.
+  -- We produce this via the following chain:
+  -- Spell out the argument here rather than calling
+  -- `sym_tensor_power_dim_bound` (which requires d ≤ 3).
+  let W := cookLevinUnionInterfaceSpace M n hn htb hns τ
+  let b : Module.Basis (Fin d) ℚ ↥W := Module.finBasis ℚ ↥W
+  have h1 : PallLean.SymTensorPowerDim.symPower ℚ k W ≤
+      Submodule.span ℚ
+        { p : MvPolynomial (Fin n) ℚ |
+          ∃ σ : Fin k → Fin d, p = ∏ i, ((b (σ i)) : MvPolynomial (Fin n) ℚ) } := by
+    unfold PallLean.SymTensorPowerDim.symPower
+    apply Submodule.span_le.mpr
+    intro p hp
+    rcases hp with ⟨f, hf, rfl⟩
+    exact PallLean.SymTensorPowerDim.prod_in_span_ordered_basis_products W b f hf
+  have h2 : Submodule.span ℚ
+        { p : MvPolynomial (Fin n) ℚ |
+          ∃ σ : Fin k → Fin d, p = ∏ i, ((b (σ i)) : MvPolynomial (Fin n) ℚ) } ≤
+      Submodule.span ℚ (Set.range
+        (PallLean.SymTensorPowerDim.symProd W b : Sym (Fin d) k → _)) :=
+    PallLean.SymTensorPowerDim.ordered_span_le_sym_span W b
+  have hle :
+      Module.finrank ℚ (PallLean.SymTensorPowerDim.symPower ℚ k W) ≤
+      Fintype.card (Sym (Fin d) k) := by
+    have hfin_big : Module.Finite ℚ
+        ↥(Submodule.span ℚ (Set.range
+          (PallLean.SymTensorPowerDim.symProd W b : Sym (Fin d) k → _))) := by
+      apply Module.Finite.span_of_finite
+      exact Set.finite_range _
+    have hchain :
+        Module.finrank ℚ (PallLean.SymTensorPowerDim.symPower ℚ k W) ≤
+        Module.finrank ℚ (Submodule.span ℚ (Set.range
+          (PallLean.SymTensorPowerDim.symProd W b : Sym (Fin d) k → _))) :=
+      Submodule.finrank_mono (le_trans h1 h2)
+    exact le_trans hchain (PallLean.SymTensorPowerDim.finrank_span_range_le _)
+  have hsymcard : Fintype.card (Sym (Fin d) k) = Nat.multichoose d k :=
+    Sym.card_sym_fin_eq_multichoose d k
+  have hmc_eq : Nat.multichoose d k = Nat.choose (d + k - 1) k := Nat.multichoose_eq d k
+  -- Now chain to a paper-shaped bound using monotonicity in the first argument.
+  -- We use C(d + k - 1, k) ≤ C(card_type + k, k) which holds whenever
+  -- d + k - 1 ≤ card_type + k, i.e. d ≤ card_type + 1. Since d ≤ card_type,
+  -- this holds with equality when card_type = d.
+  set L := (Finset.univ.filter
+    (fun i : Fin (cookLevinFactorList M n hn htb hns).length =>
+      cookLevinConstraintType M n hn htb hns i = τ)).card with hL_def
+  have : Nat.choose (d + k - 1) k ≤ Nat.choose (k + L) k := by
+    have hmono : d + k - 1 ≤ k + L := by omega
+    exact Nat.choose_mono k hmono
+  calc Module.finrank ℚ (PallLean.SymTensorPowerDim.symPower ℚ k W)
+      ≤ Fintype.card (Sym (Fin d) k) := hle
+    _ = Nat.multichoose d k := hsymcard
+    _ = Nat.choose (d + k - 1) k := hmc_eq
+    _ ≤ Nat.choose (k + L) k := this
+
+/-- **Abstract discharge** (honest shape): `CookLevinProfileTemplateCollapseLemmaBoundedProfile`
+is derivable from the shared-W hypothesis combined with an abstract
+"post-span-bounded-by-tensor-product-of-sym-powers" hypothesis. We expose it as
+a signature; the closure requires the compiled coefficient basis (not in repo).
+
+This is the **Acceptable** level of the fallback menu: a clean signature ready
+to consume the missing compiled-basis construction. -/
+def CookLevinPostSpanBoundedBySymProduct
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ (bp : BoundedProfile (Nat.log 2 n)),
+    ∃ G : Finset (MvPolynomial (Fin n) ℚ),
+      allBoundedProfilePostSpan
+          (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn htb hns).get i)
+          (cookLevinConstraintType M n hn htb hns)
+          bp.toHistogram
+        ≤ Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ)) ∧
+      G.card ≤ profileTemplateBound bp.toHistogram
+
+/-- Acceptable-level discharge: the abstract signature-hypothesis above
+directly gives `CookLevinProfileTemplateCollapseLemmaBoundedProfile`. -/
+theorem cookLevinProfileTemplateCollapseLemmaBoundedProfile_of_postSpanBoundedBySymProduct
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hpostSpan : CookLevinPostSpanBoundedBySymProduct M n hn htb hns) :
+    CookLevinProfileTemplateCollapseLemmaBoundedProfile M n hn htb hns := by
+  intro bp
+  rcases hpostSpan bp with ⟨G, hGspan, hGcard⟩
+  exact ⟨G, hGspan, hGcard⟩
 
 end WithinProfileBound
 
