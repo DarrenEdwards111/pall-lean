@@ -52223,6 +52223,85 @@ theorem cookLevinQ_rank_le_from_p_side
   have hp := PaperFaithfulSeparation.p_side_rank_bound_for_cook_levin M n hn2 htb hns
   convert hp using 2
 
+/-- **§252.13e — `cookLevinQ_rank_le_from_templateCollapse`** (honest
+template-collapse transport onto the direct-rank surface).
+
+Bridges the existing paper-faithful Cook-Levin rank theorem
+`ProfileCompression.p_side_rank_bound_for_cook_levin_of_templateCollapse`
+— which gives `mlBlockedSpdpRank ... compiledPoly ≤ n^200` assuming the
+template-collapse hypothesis — to the exact final surface consumed by
+§252.13b: the pullback-partition rank bound on plain `cookLevinQ`.
+
+This route is kernel-only (no false `spdp_profile_generators`); the
+remaining obligation is a single concrete paper-faithful hypothesis
+`CookLevinProfileTemplateCollapseLemma`. -/
+theorem cookLevinQ_rank_le_from_templateCollapse
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcollapse : WithinProfileBound.CookLevinProfileTemplateCollapseLemma
+      M n (by
+        have : (2 : ℕ) ≤ 2 ^ 804 := by
+          calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+          _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+        omega) htb hns) :
+    MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition
+        (PaperFaithfulCompilation.extendedCookLevinPartition M n (by
+          have : (2 : ℕ) ≤ 2 ^ 804 := by
+            calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+            _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+          omega))
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (PaperFaithfulCompilation.cookLevinQ M n (by
+        have : (2 : ℕ) ≤ 2 ^ 804 := by
+          calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+          _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+        omega) htb hns) ≤ n ^ 200 := by
+  set hn2 : n ≥ 2 := by
+    have : (2 : ℕ) ≤ 2 ^ 804 := by
+      calc (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+      _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega) (by omega)
+    omega
+  have hpart := PaperFaithfulCompilation.pullback_eq_cook_levin_partition M n hn2 htb hns
+  rw [hpart]
+  have hp := ProfileCompression.p_side_rank_bound_for_cook_levin_of_templateCollapse
+    M n hn2 htb hns hcollapse
+  convert hp using 2
+
+/-- **§252.13f — `P_ne_NP_from_cookLevin_templateCollapse_hypothesis`**
+(honest template-collapse final form).
+
+Final Cook-Levin `P ≠ NP` theorem whose single remaining hypothesis is the
+paper-faithful template-collapse statement
+`WithinProfileBound.CookLevinProfileTemplateCollapseLemma`, rather than
+the direct rank bound on the pullback object. The chain is:
+
+  template collapse (per profile)
+    → per-profile finrank ≤ profileTemplateBound
+    → within-profile finrank bound
+    → `(log n + 1)^12` on compiled polynomial
+    → `n^200` on compiled polynomial
+    → `n^200` on `cookLevinQ` at pullback partition
+    → §252.13b direct-rank route
+    → `P ≠ NP`.
+
+This route avoids the false axiom `spdp_profile_generators` entirely,
+replacing it with the honest paper-faithful `CookLevinProfileTemplateCollapseLemma`
+hypothesis on the concrete compiled family. -/
+theorem P_ne_NP_from_cookLevin_templateCollapse_hypothesis
+    (hOutput : PaperFaithfulSeparation.PeqNP_Paper →
+      Σ' (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+        (hn2 : n ≥ 2),
+        WithinProfileBound.CookLevinProfileTemplateCollapseLemma M n hn2 htb hns) :
+    P ≠ NP := by
+  apply P_ne_NP_from_cookLevin_direct_rank_hypothesis
+  intro hPeq
+  obtain ⟨M, n, hn, htb, hns, hn2, hcollapse⟩ := hOutput hPeq
+  refine ⟨M, n, hn, htb, hns, hn2, ?_⟩
+  exact cookLevinQ_rank_le_from_templateCollapse M n hn htb hns hcollapse
+
 end Step252
 
 -- **Axiom audit** for §252 (paper §49.1 p. 230 "axiom-free, no sorry";
@@ -52241,5 +52320,7 @@ end Step252
 #print axioms Step252.P_ne_NP_from_slim_bundle
 #print axioms Step252.Step252_dead_fields_audit
 #print axioms Step252.P_ne_NP_from_cookLevin_slim_G_hypothesis
+#print axioms Step252.cookLevinQ_rank_le_from_templateCollapse
+#print axioms Step252.P_ne_NP_from_cookLevin_templateCollapse_hypothesis
 
 end Step4Compiler
