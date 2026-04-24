@@ -126,13 +126,17 @@
         Audited theorem:
           * `chain_status`
 
-    * Z14 — composed audit support
-        Z14 is the composition of Z1–Z13 witnesses exposed at the
-        audit level: the `round24_audit` / `round24_summary`
-        anchor theorems below record the fact that all imported
-        Z-round modules load into a single environment and that
-        their axiom profiles are printed via the `#print axioms`
-        roll-call above, kernel-only.
+    * Z14 — `PallLean.Paper93.Paper283.ZeroArgP_ne_NP`
+        Paper §28.3 complete-chain composition headline at the
+        canonical `n = 2 ^ 804` scale (paper §40 Theorem 209
+        Step 6 p. 199), routed through the Step252 bounded-profile
+        bridge
+        `Step4Compiler.Step252.P_ne_NP_from_cookLevin_templateCollapse_boundedProfile_hypothesis`,
+        with the bounded-profile template-collapse obligation
+        threaded as an explicit `Prop`-level hypothesis per the
+        task's "hypothesis-taking form if necessary" directive.
+        Audited theorem:
+          * `P_ne_NP_via_SNF_chain`
 
   ## Kernel-only
 
@@ -167,6 +171,7 @@ import PallLean.Paper93.Paper283.EigenvalueOnAStar
 import PallLean.Paper93.Paper283.PiStarSpectral
 import PallLean.Paper93.Paper283.PiStarIdentityMinor
 import PallLean.Paper93.Paper283.FullChain283
+import PallLean.Paper93.Paper283.ZeroArgP_ne_NP
 
 namespace PallLean.Paper93.Paper283
 
@@ -217,6 +222,9 @@ namespace PallLean.Paper93.Paper283
 
 -- Z13 — FullChain283 (honest status anchor)
 #print axioms PallLean.Paper93.Paper283.chain_status
+
+-- Z14 — ZeroArgP_ne_NP (§28.3 complete-chain composition headline)
+#print axioms PallLean.Paper93.Paper283.P_ne_NP_via_SNF_chain
 
 /-! ## Audit anchors -/
 
@@ -283,10 +291,13 @@ this audit:
     `S_NF_to_P_ne_NP_chain`.
   * Z13 (`FullChain283`, status)     — honest compositional
     status anchor.  Theorem `chain_status`.
-  * Z14 (this file)                  — Z-round audit roll-call and
-    `round24_audit` / `round24_summary` anchors, confirming that
-    all imported Z-round modules load into a single Lean
-    environment with kernel-only axiom profiles.
+  * Z14 (`ZeroArgP_ne_NP`)           — Paper §28.3 complete-chain
+    composition headline at the canonical `n = 2 ^ 804` scale,
+    routed through the Step252 bounded-profile bridge
+    `P_ne_NP_from_cookLevin_templateCollapse_boundedProfile_hypothesis`
+    with the bounded-profile template-collapse obligation
+    threaded as an explicit `Prop`-level hypothesis.
+    Theorem `P_ne_NP_via_SNF_chain`.
 
 Honest status (Z-round):
 
@@ -315,6 +326,12 @@ Honest status (Z-round):
     `True`-level statements: the concrete derivation of each link
     lives in the sibling Paper283 modules but is not composed
     unconditionally here.
+  * The Z14 `P_ne_NP_via_SNF_chain` theorem is the paper §28.3
+    complete-chain composition headline at the canonical
+    `n = 2 ^ 804` scale, routed through the Step252
+    bounded-profile bridge; the bounded-profile
+    template-collapse obligation is threaded as an explicit
+    `Prop`-level hypothesis, not discharged here.
   * The Z-round therefore extends the Paper §28.3 scaffolding
     with the compiler-side δ_A RHS, Bridge A/B rank composition,
     and Π⋆-from-spectrum interface — completing ~24 rounds of
