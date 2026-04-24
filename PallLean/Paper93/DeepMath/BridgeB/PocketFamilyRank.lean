@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.BridgeB.PocketFamily
+import PallLean.Paper93.DeepMath.BridgeB.RankBlockDiagonal
 import Mathlib.LinearAlgebra.Matrix.Rank
 import Mathlib.LinearAlgebra.Dimension.Constructions
 
