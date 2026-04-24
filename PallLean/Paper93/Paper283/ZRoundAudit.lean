@@ -101,10 +101,20 @@
         Audited theorem:
           * `piStarFromMatrix_identity`
 
-    * Z11 — `PallLean.Paper93.Paper283.PiStarIdentityMinor`
+    * Z11 — `PallLean.Paper93.Paper283.PiStarSpectralRank`
+        Paper §28.3 p. 137–138 — rank-monotonicity (column-span
+        containment) of the linear map `piStarFromMatrix P`
+        and full-rank specialisation at `P = 1`.
+        Audited theorems:
+          * `piStarFromMatrix_range_le`
+          * `piStarFromMatrix_identity_range_top`
+
+    * Additional — `PallLean.Paper93.Paper283.PiStarIdentityMinor`
         Paper §28.3 — Π⋆ preserves the identity principal minor
         when the projection is full-rank (`P = 1`), and the
-        corresponding minor determinant equals `1`.
+        corresponding minor determinant equals `1`. (Landed
+        alongside Z8/Z12/Z13 in the same commit, imported for
+        completeness of the Z-round Π⋆ interface.)
         Audited theorems:
           * `piStarFromMatrix_preserves_identity_minor`
           * `piStarFromMatrix_identity_minor_det`
@@ -169,6 +179,7 @@ import PallLean.Paper93.Paper283.BridgeAQuadForm
 import PallLean.Paper93.Paper283.BridgeATotalRank
 import PallLean.Paper93.Paper283.EigenvalueOnAStar
 import PallLean.Paper93.Paper283.PiStarSpectral
+import PallLean.Paper93.Paper283.PiStarSpectralRank
 import PallLean.Paper93.Paper283.PiStarIdentityMinor
 import PallLean.Paper93.Paper283.FullChain283
 import PallLean.Paper93.Paper283.ZeroArgP_ne_NP
@@ -213,7 +224,11 @@ namespace PallLean.Paper93.Paper283
 -- Z10 — PiStarSpectral
 #print axioms PallLean.Paper93.Paper283.piStarFromMatrix_identity
 
--- Z11 — PiStarIdentityMinor
+-- Z11 — PiStarSpectralRank
+#print axioms PallLean.Paper93.Paper283.piStarFromMatrix_range_le
+#print axioms PallLean.Paper93.Paper283.piStarFromMatrix_identity_range_top
+
+-- Additional (PiStarIdentityMinor, supporting Π⋆ interface)
 #print axioms PallLean.Paper93.Paper283.piStarFromMatrix_preserves_identity_minor
 #print axioms PallLean.Paper93.Paper283.piStarFromMatrix_identity_minor_det
 
@@ -282,10 +297,16 @@ this audit:
   * Z10 (`PiStarSpectral`)           — Π⋆ as a linear map from a
     spectral projection matrix.  Theorem
     `piStarFromMatrix_identity`.
-  * Z11 (`PiStarIdentityMinor`)      — Π⋆ preserves the identity
-    principal minor when `P = 1`; determinant is `1`.  Theorems
-    `piStarFromMatrix_preserves_identity_minor`,
-    `piStarFromMatrix_identity_minor_det`.
+  * Z11 (`PiStarSpectralRank`)       — rank-monotonicity
+    (column-span containment) of `piStarFromMatrix P` and
+    full-rank specialisation at `P = 1`.  Theorems
+    `piStarFromMatrix_range_le`,
+    `piStarFromMatrix_identity_range_top`.
+  * Additional (`PiStarIdentityMinor`) — Π⋆ preserves the
+    identity principal minor when `P = 1`; determinant is `1`.
+    Theorems `piStarFromMatrix_preserves_identity_minor`,
+    `piStarFromMatrix_identity_minor_det` (supporting Π⋆
+    interface, landed alongside Z8/Z12/Z13).
   * Z12 (`FullChain283`, chain)      — Paper §28.3 full chain
     composition entry point as a single Prop.  Theorem
     `S_NF_to_P_ne_NP_chain`.
