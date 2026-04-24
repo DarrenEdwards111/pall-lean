@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.LPS.KnLaplacianSumZeroQuad
 import PallLean.Paper93.DeepMath.GadgetRank.IdentityQuad
+import PallLean.Paper93.DeepMath.NFrame.SNF
 
 /-!
 # Non-negativity of the α-term of `S_NF` on `K_n` with sum-zero `Φ`
@@ -24,21 +25,8 @@ open PallLean.Paper93.DeepMath.LPS
 open PallLean.Paper93.DeepMath.GraphSpectral
 open Matrix
 
-/-- α-term of the N-Frame action `S_NF`:
-
-  `S_NF_alpha α A Φ := α · Φᵀ (laplacian A) Φ = α · ∑ i, Φ i * (L Φ) i`,
-
-where `L = laplacian A`. This is the edge-energy / Dirichlet component,
-corresponding to the summand `α · ∑_{{u,v} ∈ E} (Φ_u − Φ_v)²` via the
-standard Laplacian quadratic-form identity.
-
-Defined locally here (since the sibling `SNF.lean` is absent); the
-definition is a plain real scalar. -/
-def S_NF_alpha {n : ℕ} (α : ℝ) (A : Matrix (Fin n) (Fin n) ℝ)
-    (phi : Fin n → ℝ) : ℝ :=
-  α * ∑ i, phi i * ((laplacian A).mulVec phi i)
-
-/-- For `K_n` and a sum-zero `Φ`, the α-term of `S_NF` equals `α · n · ‖Φ‖²`. -/
+/-- For `K_n` and a sum-zero `Φ`, the α-term of `S_NF` equals `α · n · ‖Φ‖²`.
+    `S_NF_alpha` is defined in `SNF.lean` and imported here. -/
 theorem S_NF_alpha_Kn_sumZero (α : ℝ) (n : ℕ) (phi : Fin n → ℝ)
     (hphi : ∑ i, phi i = 0) :
     S_NF_alpha α (completeAdj n) phi = α * (n : ℝ) * ∑ i, phi i * phi i := by
