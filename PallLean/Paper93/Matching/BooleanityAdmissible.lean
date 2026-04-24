@@ -11,10 +11,16 @@
   commit `0283d4f`) to the *matching bounded profile* produced by a
   row-profile match. Concretely, we expose:
 
-    * `ProfileMatches` — the matching predicate at the singleton
-      booleanity bounded profile: `bp.toHistogram` agrees with the
-      singleton derivative-count histogram produced by placing all
-      `S.length` derivatives on a single booleanity factor.
+    * `ProfileMatchesBooleanity` — the matching predicate at the
+      singleton booleanity bounded profile: `bp.toHistogram` agrees
+      with the singleton derivative-count histogram produced by
+      placing all `S.length` derivatives on a single booleanity
+      factor, together with the length bound `S.length ≤ Nat.log 2 n`
+      and the shift-variable inclusion `shift.vars ⊆ S.toFinset`.
+      This is a booleanity-specific strengthening of N1's canonical
+      `PallLean.Paper93.Matching.ProfileMatches` (which is a bare
+      histogram equality); the two predicates co-exist in the same
+      namespace without collision.
 
     * `booleanity_matching_embed` — the M5 embedding read off at a
       matching `bp`: given a booleanity factor index `i`, a bounded
@@ -69,19 +75,25 @@ open PallLean.Paper93.Wiring
 
 /-! ## The matching predicate
 
-`ProfileMatches` captures the "matching bp" condition used by the
-Route C ⇒ Route A translation at the truncated level: the bounded
-profile `bp` has the singleton booleanity histogram at the derivative
-list `S`, and the shift polynomial `shift` has its variables in
-`S.toFinset`. This is exactly the data packaged by the booleanity
-row-profile match in the paper's §9 Lemma 31 setup. -/
+`ProfileMatchesBooleanity` captures the "matching bp" condition used
+by the Route C ⇒ Route A translation at the truncated level: the
+bounded profile `bp` has the singleton booleanity histogram at the
+derivative list `S`, and the shift polynomial `shift` has its
+variables in `S.toFinset`. This is exactly the data packaged by the
+booleanity row-profile match in the paper's §9 Lemma 31 setup.
+
+Note: this predicate is a booleanity-specific strengthening of N1's
+canonical `PallLean.Paper93.Matching.ProfileMatches` (which is a bare
+histogram equality `bp.toHistogram = rowProfile ... i`). The two live
+in the same namespace `PallLean.Paper93.Matching` under distinct
+names, so downstream files may co-import N1 and N5 without clashes. -/
 
 /-- **Matching predicate for the singleton booleanity bounded profile.**
 
 For a cookLevinQ parameter tuple `(M, n, hn, htb, hns)`, a bounded
 derivative list `S`, a shift polynomial `shift`, a factor index `i`,
-and a bounded profile `bp`, the predicate `ProfileMatches M n hn htb
-hns S shift i bp` asserts that:
+and a bounded profile `bp`, the predicate `ProfileMatchesBooleanity
+M n hn htb hns S shift i bp` asserts that:
 
 * `S.length ≤ Nat.log 2 n` (the derivative list is short enough to fit
   inside the bounded profile's per-coordinate budget);
@@ -93,8 +105,13 @@ hns S shift i bp` asserts that:
   row profile of a single booleanity factor).
 
 The factor index `i` is recorded to keep the predicate indexed by the
-booleanity row whose profile `bp` matches. -/
-def ProfileMatches (M : DTM) (n : ℕ) (hn : n ≥ 2)
+booleanity row whose profile `bp` matches.
+
+This is a strengthening of N1's canonical `ProfileMatches` specialised
+to the booleanity constraint type; it carries the extra length and
+shift-variable admissibility data needed by Agent M5's booleanity
+row→V_h embedding at the singleton booleanity histogram. -/
+def ProfileMatchesBooleanity (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (S : List (Fin n))
     (shift : MvPolynomial (Fin n) ℚ)
@@ -104,45 +121,45 @@ def ProfileMatches (M : DTM) (n : ℕ) (hn : n ≥ 2)
     shift.vars ⊆ S.toFinset ∧
       bp.toHistogram = singletonBooleanityProfile S
 
-/-- Length-bound projection from `ProfileMatches`. -/
-theorem ProfileMatches.length_le {M : DTM} {n : ℕ} {hn : n ≥ 2}
+/-- Length-bound projection from `ProfileMatchesBooleanity`. -/
+theorem ProfileMatchesBooleanity.length_le {M : DTM} {n : ℕ} {hn : n ≥ 2}
     {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {S : List (Fin n)}
     {shift : MvPolynomial (Fin n) ℚ}
     {i : Fin (cookLevinFactorList M n hn htb hns).length}
     {bp : BoundedProfile (Nat.log 2 n)}
-    (h : ProfileMatches M n hn htb hns S shift i bp) :
+    (h : ProfileMatchesBooleanity M n hn htb hns S shift i bp) :
     S.length ≤ Nat.log 2 n :=
   h.1
 
-/-- Shift-variable projection from `ProfileMatches`. -/
-theorem ProfileMatches.shift_vars_subset {M : DTM} {n : ℕ} {hn : n ≥ 2}
+/-- Shift-variable projection from `ProfileMatchesBooleanity`. -/
+theorem ProfileMatchesBooleanity.shift_vars_subset {M : DTM} {n : ℕ} {hn : n ≥ 2}
     {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {S : List (Fin n)}
     {shift : MvPolynomial (Fin n) ℚ}
     {i : Fin (cookLevinFactorList M n hn htb hns).length}
     {bp : BoundedProfile (Nat.log 2 n)}
-    (h : ProfileMatches M n hn htb hns S shift i bp) :
+    (h : ProfileMatchesBooleanity M n hn htb hns S shift i bp) :
     shift.vars ⊆ S.toFinset :=
   h.2.1
 
-/-- Histogram-shape projection from `ProfileMatches`. -/
-theorem ProfileMatches.toHistogram_eq {M : DTM} {n : ℕ} {hn : n ≥ 2}
+/-- Histogram-shape projection from `ProfileMatchesBooleanity`. -/
+theorem ProfileMatchesBooleanity.toHistogram_eq {M : DTM} {n : ℕ} {hn : n ≥ 2}
     {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {S : List (Fin n)}
     {shift : MvPolynomial (Fin n) ℚ}
     {i : Fin (cookLevinFactorList M n hn htb hns).length}
     {bp : BoundedProfile (Nat.log 2 n)}
-    (h : ProfileMatches M n hn htb hns S shift i bp) :
+    (h : ProfileMatchesBooleanity M n hn htb hns S shift i bp) :
     bp.toHistogram = singletonBooleanityProfile S :=
   h.2.2
 
 /-! ## The matching-bp embedding theorem
 
 At a matching `bp`, the M5 embedding closes without any additional
-shape hypothesis: the `ProfileMatches` data is exactly the `hbp_shape`
-argument of `booleanity_row_mem_profileSubspace`, and the `S`-length
-and `shift`-variable hypotheses are projected out. -/
+shape hypothesis: the `ProfileMatchesBooleanity` data is exactly the
+`hbp_shape` argument of `booleanity_row_mem_profileSubspace`, and the
+`S`-length and `shift`-variable hypotheses are projected out. -/
 
 /-- **Booleanity-row admissibility and embedding at matching bp.**
 
@@ -158,9 +175,9 @@ profile, and every choice of the M5 hypotheses
 
 The proof is a direct application of
 `booleanity_row_mem_profileSubspace`: the shape hypothesis is supplied
-by `ProfileMatches.toHistogram_eq`, the length hypothesis by
-`ProfileMatches.length_le`, and the shift-variable hypothesis by
-`ProfileMatches.shift_vars_subset`. -/
+by `ProfileMatchesBooleanity.toHistogram_eq`, the length hypothesis by
+`ProfileMatchesBooleanity.length_le`, and the shift-variable hypothesis
+by `ProfileMatchesBooleanity.shift_vars_subset`. -/
 theorem booleanity_matching_embed
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (hn4 : n ≥ 4)
@@ -176,7 +193,7 @@ theorem booleanity_matching_embed
     (S : List (Fin n))
     (shift : MvPolynomial (Fin n) ℚ)
     (bp : BoundedProfile (Nat.log 2 n))
-    (hmatch : ProfileMatches M n hn htb hns S shift i bp) :
+    (hmatch : ProfileMatchesBooleanity M n hn htb hns S shift i bp) :
     MultilinearSPDP.mlProj
         (shift * SPDP.iterDerivList S
           ((cookLevinFactorList M n hn htb hns).get i))
