@@ -12,6 +12,7 @@
 import Mathlib.Data.Real.Sign
 import Mathlib.Topology.Instances.Real.Lemmas
 import Mathlib.Topology.Order.Basic
+import Mathlib.Analysis.Calculus.Deriv.Basic
 
 namespace PallLean.Paper93.DeepMath.NFrame
 
@@ -28,5 +29,14 @@ theorem sign_locally_eq_neg_one (x : ℝ) (hx : x < 0) :
     ∀ᶠ y in 𝓝 x, Real.sign y = -1 := by
   filter_upwards [eventually_lt_nhds hx] with y hy
   exact Real.sign_of_neg hy
+
+/-- `Real.sign` has derivative `0` at any `x ≠ 0`, since it is locally constant there. -/
+theorem sign_hasDerivAt_of_ne_zero (x : ℝ) (h : x ≠ 0) :
+    HasDerivAt Real.sign 0 x := by
+  rcases lt_or_gt_of_ne h with hneg | hpos
+  · apply (hasDerivAt_const x (-1 : ℝ)).congr_of_eventuallyEq
+    exact sign_locally_eq_neg_one x hneg
+  · apply (hasDerivAt_const x (1 : ℝ)).congr_of_eventuallyEq
+    exact sign_locally_eq_one x hpos
 
 end PallLean.Paper93.DeepMath.NFrame
