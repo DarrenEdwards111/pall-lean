@@ -19,7 +19,7 @@
       `shift : MvPolynomial (Fin n) ℚ` with `shift.vars ⊆ S.toFinset`,
     * a bounded profile `bp : BoundedProfile (Nat.log 2 n)` whose
       histogram **matches** the single transitionLeft row
-      `(S, shift, i)` (see `ProfileMatches` below for the precise
+      `(S, shift, i)` (see `ProfileMatchesTransitionLeft` below for the precise
       conditions), and
     * the two M15 bridge hypotheses (post-span containment at `bp`
       and row-level membership in the post-span at `bp.toHistogram`),
@@ -32,7 +32,7 @@
   lies in `cookLevinProfileSubspace bp W`, the paper's §9 Lemma 31
   target.
 
-  ## Definition of `ProfileMatches`
+  ## Definition of `ProfileMatchesTransitionLeft`
 
   We say that the bounded profile `bp` **matches** the transitionLeft
   row `(S, shift, i)` when:
@@ -72,7 +72,7 @@
   (commit `92ed55a`) establishes, under the two bridge hypotheses
   `hPostSpan` and `hRowInPostSpan`, that every `transitionLeft` row
   generator lies in `cookLevinProfileSubspace bp W`.  The present
-  file unpacks these hypotheses from the `ProfileMatches` bundle and
+  file unpacks these hypotheses from the `ProfileMatchesTransitionLeft` bundle and
   dispatches the task statement at a single row.
 
   ## Kernel-only
@@ -86,6 +86,7 @@
 -/
 import PallLean.Paper93.CookLevinProfileSubspace
 import PallLean.Paper93.Direct.TransitionLeftFull
+import PallLean.Paper93.Matching.ProfileMatches
 import PallLean.WithinProfileBound
 import PallLean.MultilinearSPDP
 import PallLean.SPDPDefs
@@ -101,7 +102,7 @@ open WithinProfileBound
 
 /-! ## Singleton-profile matching predicate
 
-The `ProfileMatches` predicate bundles the four conditions described
+The `ProfileMatchesTransitionLeft` predicate bundles the four conditions described
 in the file header:
 
   1. Row classification at `transitionLeft`.
@@ -113,7 +114,21 @@ in the file header:
 
 The predicate is parameterised by both the concrete data
 `(M, n, hn, htb, hns, S, shift, i, bp)` and by the abstract per-type
-family `W` over which M15's post-span containment is stated. -/
+family `W` over which M15's post-span containment is stated.
+
+**Naming note.**  This per-agent predicate originally shadowed the
+canonical `ProfileMatches` from `Paper93/Matching/ProfileMatches.lean`
+(Agent N1) inside the shared `PallLean.Paper93.Matching` namespace,
+preventing the two files from co-elaborating.  Under Agent P2
+(branch `godmove-paper-faithful`), the per-agent definition is
+renamed to `ProfileMatchesTransitionLeft` so that N1's canonical
+`ProfileMatches` and this transitionLeft-specific bundle can
+co-import cleanly.  The two predicates are **semantically distinct**:
+N1's canonical `ProfileMatches` is the paper §9 Lemma 31 part (1)
+histogram-matching statement, while this one packages the two M15
+bridge hypotheses together with the transitionLeft-singleton
+histogram concentration — it therefore carries the extra `W` family
+parameter. -/
 
 /-- **Singleton bounded-profile matching at a `transitionLeft` row.**
 
@@ -128,7 +143,7 @@ histogram `bp.toHistogram` vanishes off `transitionLeft` and equals
 `S.length` on `transitionLeft`.  The two bridge hypotheses (4) match
 the shape consumed by M15's
 `transitionLeft_row_mem_profileSubspace`. -/
-def ProfileMatches
+def ProfileMatchesTransitionLeft
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (S : List (Fin n))
@@ -163,11 +178,11 @@ def ProfileMatches
             ((cookLevinFactorList M n hn htb hns).get i'))
         ∈ cookLevinPostSpanAt M n hn htb hns bp.toHistogram)
 
-/-! ## Accessors for the `ProfileMatches` bundle
+/-! ## Accessors for the `ProfileMatchesTransitionLeft` bundle
 
 Simple projections, used in the main theorem proof. -/
 
-namespace ProfileMatches
+namespace ProfileMatchesTransitionLeft
 
 variable
     {M : DTM} {n : ℕ} {hn : n ≥ 2}
@@ -179,32 +194,32 @@ variable
 
 /-- The transitionLeft row classification hypothesis. -/
 theorem type_eq
-    (h : ProfileMatches M n hn htb hns S shift i bp W) :
+    (h : ProfileMatchesTransitionLeft M n hn htb hns S shift i bp W) :
     cookLevinConstraintType M n hn htb hns i = ConstraintType.transitionLeft :=
   h.1
 
 /-- Shift admissibility on `S`. -/
 theorem shift_vars
-    (h : ProfileMatches M n hn htb hns S shift i bp W) :
+    (h : ProfileMatchesTransitionLeft M n hn htb hns S shift i bp W) :
     shift.vars ⊆ S.toFinset :=
   h.2.1
 
 /-- Derivative-list length admissibility. -/
 theorem length_le
-    (h : ProfileMatches M n hn htb hns S shift i bp W) :
+    (h : ProfileMatchesTransitionLeft M n hn htb hns S shift i bp W) :
     S.length ≤ Nat.log 2 n :=
   h.2.2.1
 
 /-- The post-span containment hypothesis at `bp`. -/
 theorem postSpan_le
-    (h : ProfileMatches M n hn htb hns S shift i bp W) :
+    (h : ProfileMatchesTransitionLeft M n hn htb hns S shift i bp W) :
     cookLevinPostSpanAt M n hn htb hns bp.toHistogram
       ≤ cookLevinProfileSubspace bp W :=
   h.2.2.2.2.2.2.2.1
 
 /-- The row-level membership hypothesis at `bp`. -/
 theorem row_in_postSpan
-    (h : ProfileMatches M n hn htb hns S shift i bp W) :
+    (h : ProfileMatchesTransitionLeft M n hn htb hns S shift i bp W) :
     ∀ (i' : Fin (cookLevinFactorList M n hn htb hns).length),
       cookLevinConstraintType M n hn htb hns i'
           = ConstraintType.transitionLeft →
@@ -216,7 +231,7 @@ theorem row_in_postSpan
           ∈ cookLevinPostSpanAt M n hn htb hns bp.toHistogram :=
   h.2.2.2.2.2.2.2.2
 
-end ProfileMatches
+end ProfileMatchesTransitionLeft
 
 /-! ## Main theorem: singleton-profile transitionLeft row embedding
 
@@ -224,7 +239,7 @@ The theorem statement matches the task signature exactly: for a
 fixed Turing-machine parameter tuple `(M, n, hn, htb, hns, hn4)`,
 fixed admissible `(S, hS, shift, hshift)`, a fixed factor index `i`
 of type `transitionLeft` (via `hi`), a fixed bounded profile `bp`,
-and a matching hypothesis `hmatch : ProfileMatches ...`, the SPDP
+and a matching hypothesis `hmatch : ProfileMatchesTransitionLeft ...`, the SPDP
 row generator lies in `cookLevinProfileSubspace bp W`. -/
 
 /-- **Agent N7 main theorem — singleton-profile `transitionLeft`
@@ -243,7 +258,7 @@ Given:
   * a per-type interface family
     `W : ConstraintType → Submodule ℚ (MvPolynomial (Fin n) ℚ)`;
   * a matching hypothesis
-    `hmatch : ProfileMatches M n hn htb hns S shift i bp W`,
+    `hmatch : ProfileMatchesTransitionLeft M n hn htb hns S shift i bp W`,
 
 the SPDP row generator
 
@@ -269,7 +284,7 @@ theorem transitionLeft_matching_embed
             = ConstraintType.transitionLeft)
     (bp : BoundedProfile (Nat.log 2 n))
     (W : ConstraintType → Submodule ℚ (MvPolynomial (Fin n) ℚ))
-    (hmatch : ProfileMatches M n hn htb hns S shift i bp W) :
+    (hmatch : ProfileMatchesTransitionLeft M n hn htb hns S shift i bp W) :
     MultilinearSPDP.mlProj
         (shift * SPDP.iterDerivList S
           ((cookLevinFactorList M n hn htb hns).get i))
@@ -309,7 +324,7 @@ The deliverable should depend only on
 `[propext, Classical.choice, Quot.sound]`, i.e. only the standard
 Mathlib kernel axioms.  No bespoke axiom is introduced; all content
 routes through M15's `transitionLeft_row_mem_profileSubspace` via
-the two bridge hypotheses bundled in `ProfileMatches`. -/
+the two bridge hypotheses bundled in `ProfileMatchesTransitionLeft`. -/
 
 #print axioms transitionLeft_matching_embed
 
