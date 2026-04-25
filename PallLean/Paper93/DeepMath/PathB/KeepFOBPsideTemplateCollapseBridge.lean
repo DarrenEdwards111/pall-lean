@@ -1,6 +1,9 @@
 import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingBridge
+import PallLean.Paper93.DeepMath.PathB.ConcreteWFactorMembership
+import PallLean.Paper93.DeepMath.PathB.ConcreteWShiftMlprojClosure
 import PallLean.Paper93.DeepMath.PathB.KeepFOBTemplateCollapseAssembly
 import PallLean.Paper93.DeepMath.PathB.PerTypeSpanningTemplateCollapseBridge
+import PallLean.Paper93.DeepMath.PathB.ZeroProfileSupportBasisCardinality
 import PallLean.Paper93.DeepMath.PathB.ZeroProfileTemplateCollapseReduction
 
 set_option exponentiation.threshold 1000
@@ -19,8 +22,8 @@ frontiers currently isolated in PathB:
 
 * concreteW row embeddings;
 * the concreteW H3/H4/I5 closure package;
-* active admissible profile cases plus the zero-profile support-basis
-  cardinality obligation.
+* active admissible profile cases plus the zero-profile scalar
+  singleton-template obligation.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
@@ -130,6 +133,74 @@ theorem cookLevinRichProjectionTarget_of_keepFOB_concreteW_H3_H4_I5
   cookLevinRichProjectionTarget_of_keepFOB_concreteW_closureFrontier
     M n hn hn2 htb hns ⟨hFactor, hDeriv, hShiftMlproj⟩
 
+/-- Direct branch-shape witnesses, canonical-row transport, H4, and concrete
+I1/I2/I3 closure components are enough to complete the per-instance
+`keepFOB` rich-projection target.  This is the current most explicit
+factor/closure formulation of the P-side bridge. -/
+theorem cookLevinRichProjectionTarget_of_keepFOB_directShapes_transport_H4_I123
+    (M : DTM) (n : Nat) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hShape :
+      CookLevinDirectBranchShapeWitnesses
+        M n hn2 htb hns (ge_four_of_ge_two_pow_804 hn))
+    (hTransport :
+      CookLevinConcreteWCanonicalRowTransport
+        M n hn2 htb hns (ge_four_of_ge_two_pow_804 hn))
+    (hDeriv :
+      DerivClosurePerType (n := n)
+        (fun tau =>
+          concreteW n (ge_four_of_ge_two_pow_804 hn)
+            (Fin.castLEEmb (ge_four_of_ge_two_pow_804 hn)) tau))
+    (hI1 :
+      ConcreteWProductGrouping n (ge_four_of_ge_two_pow_804 hn))
+    (hI2 :
+      ConcreteWShiftClosure n (ge_four_of_ge_two_pow_804 hn))
+    (hI3 :
+      ConcreteWMlprojClosure n (ge_four_of_ge_two_pow_804 hn)) :
+    CookLevinRichProjectionTarget M n hn hn2 htb hns := by
+  refine cookLevinRichProjectionTarget_of_keepFOB_concreteW_closureFrontier
+    M n hn hn2 htb hns ?_
+  exact concreteW_closureFrontier_of_H3_H4_components
+    M n hn2 htb hns (ge_four_of_ge_two_pow_804 hn)
+    (CookLevinFactorMemPerType_concreteW_of_directBranchShapes_transport
+      M n hn2 htb hns (ge_four_of_ge_two_pow_804 hn) hShape hTransport)
+    hDeriv hI1 hI2 hI3
+
+/-- Uniform direct-shape, canonical-row transport, H4, and I1/I2/I3 closure
+components discharge the `keepFOB` rich-projection surface. -/
+theorem cookLevinRichProjectionDischarge_of_keepFOB_directShapes_transport_H4_I123
+    (hShape :
+      ∀ (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+        (hn4 : n ≥ 4) (htb : M.timeBound ≤ 4)
+        (hns : M.numStates ≤ n),
+        CookLevinDirectBranchShapeWitnesses M n hn2 htb hns hn4)
+    (hTransport :
+      ∀ (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+        (hn4 : n ≥ 4) (htb : M.timeBound ≤ 4)
+        (hns : M.numStates ≤ n),
+        CookLevinConcreteWCanonicalRowTransport M n hn2 htb hns hn4)
+    (hDeriv :
+      ∀ (n : Nat) (hn4 : n ≥ 4),
+        DerivClosurePerType (n := n)
+          (fun tau => concreteW n hn4 (Fin.castLEEmb hn4) tau))
+    (hI1 :
+      ∀ (n : Nat) (hn4 : n ≥ 4), ConcreteWProductGrouping n hn4)
+    (hI2 :
+      ∀ (n : Nat) (hn4 : n ≥ 4), ConcreteWShiftClosure n hn4)
+    (hI3 :
+      ∀ (n : Nat) (hn4 : n ≥ 4), ConcreteWMlprojClosure n hn4) :
+    CookLevinRichProjectionDischarge := by
+  intro M n hn hn2 htb hns _hdec
+  exact
+    cookLevinRichProjectionTarget_of_keepFOB_directShapes_transport_H4_I123
+      M n hn hn2 htb hns
+      (hShape M n hn2 (ge_four_of_ge_two_pow_804 hn) htb hns)
+      (hTransport M n hn2 (ge_four_of_ge_two_pow_804 hn) htb hns)
+      (hDeriv n (ge_four_of_ge_two_pow_804 hn))
+      (hI1 n (ge_four_of_ge_two_pow_804 hn))
+      (hI2 n (ge_four_of_ge_two_pow_804 hn))
+      (hI3 n (ge_four_of_ge_two_pow_804 hn))
+
 /-- Uniform concreteW closure discharges the whole `keepFOB` rich-projection
 surface.  This is the current sharp H3/H4/I5 formulation of the P-side
 template-collapse blocker. -/
@@ -184,6 +255,48 @@ theorem cookLevinRichProjectionDischarge_of_keepFOB_activeCases_zeroSupport
       (hzero M n hn2 htb hns)
       (hcases M n hn2 htb hns)
 
+/-- Scalar zero-profile singleton collapse is the honest replacement for the
+false explicit support-basis-cardinality route.  Together with active
+admissible profile cases it completes the per-instance concrete `keepFOB`
+target. -/
+theorem cookLevinRichProjectionTarget_of_keepFOB_activeCases_zeroScalar
+    (M : DTM) (n : Nat) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hzero :
+      CookLevinZeroProfileTemplateScalarObligation M n hn2 htb hns)
+    (hcases :
+      CookLevinProfileTemplateCollapseActiveAdmissibleProfileCases
+        M n hn2 htb hns) :
+    CookLevinRichProjectionTarget M n hn hn2 htb hns :=
+  cookLevinRichProjectionTarget_of_keepFOB_boundedProfileTemplateCollapse
+    M n hn hn2 htb hns
+    (cookLevinProfileTemplateCollapseLemmaBoundedProfile_of_activeAdmissibleProfileCases
+      M n hn2 htb hns (ge_four_of_ge_two_pow_804 hn)
+      (cookLevinZeroHistogramTemplateShiftCollapse_of_scalar
+        M n hn2 htb hns hzero)
+      hcases)
+
+/-- Uniform active-profile cases plus the scalar zero-profile singleton
+obligation discharge the `keepFOB` rich-projection surface. -/
+theorem cookLevinRichProjectionDischarge_of_keepFOB_activeCases_zeroScalar
+    (hzero :
+      ∀ (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinZeroProfileTemplateScalarObligation
+          M n hn2 htb hns)
+    (hcases :
+      ∀ (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinProfileTemplateCollapseActiveAdmissibleProfileCases
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge := by
+  intro M n hn hn2 htb hns _hdec
+  exact
+    cookLevinRichProjectionTarget_of_keepFOB_activeCases_zeroScalar
+      M n hn hn2 htb hns
+      (hzero M n hn2 htb hns)
+      (hcases M n hn2 htb hns)
+
 /-! ## Axiom audit anchors -/
 
 #print axioms cookLevinProfileTemplateCollapseLemmaBoundedProfile_of_concreteW_closureFrontier
@@ -191,8 +304,12 @@ theorem cookLevinRichProjectionDischarge_of_keepFOB_activeCases_zeroSupport
 #print axioms cookLevinRichProjectionTarget_of_keepFOB_concreteW_rowEmbeddings
 #print axioms cookLevinRichProjectionTarget_of_keepFOB_concreteW_closureFrontier
 #print axioms cookLevinRichProjectionTarget_of_keepFOB_concreteW_H3_H4_I5
+#print axioms cookLevinRichProjectionTarget_of_keepFOB_directShapes_transport_H4_I123
+#print axioms cookLevinRichProjectionDischarge_of_keepFOB_directShapes_transport_H4_I123
 #print axioms cookLevinRichProjectionDischarge_of_keepFOB_concreteW_closureFrontier
 #print axioms cookLevinRichProjectionTarget_of_keepFOB_activeCases_zeroSupport
 #print axioms cookLevinRichProjectionDischarge_of_keepFOB_activeCases_zeroSupport
+#print axioms cookLevinRichProjectionTarget_of_keepFOB_activeCases_zeroScalar
+#print axioms cookLevinRichProjectionDischarge_of_keepFOB_activeCases_zeroScalar
 
 end PallLean.Paper93.DeepMath.PathB
