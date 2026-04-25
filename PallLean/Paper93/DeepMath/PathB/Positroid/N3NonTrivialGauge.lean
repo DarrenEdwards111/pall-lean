@@ -1,3 +1,4 @@
+import PallLean.Paper93.DeepMath.PathB.Positroid.N3IVTExistence
 import PallLean.Paper93.DeepMath.PathB.CompiledGadget3x3Det
 import PallLean.Paper93.DeepMath.PathB.CompiledGadgetPosDef
 import PallLean.Paper93.DeepMath.PathB.Positroid.CompiledGadgetNonIdentityAny
@@ -5,8 +6,6 @@ import PallLean.Paper93.DeepMath.PathB.SatFamilyDefinition
 import PallLean.Paper93.DeepMath.PathB.GaugePropertyDef
 import PallLean.Paper93.DeepMath.PathB.PrincipalMinorAtUniv
 import PallLean.Paper93.DeepMath.PathB.CompiledGadgetMinorEmpty
-import Mathlib.Topology.Order.IntermediateValue
-import Mathlib.Topology.Algebra.Polynomial
 
 /-!
 # Non-trivial gauge witness for `satFamily 3` at `n = 3`
@@ -22,11 +21,11 @@ whose closed-form determinant is
 ```
 
 To certify `det = 1` we must exhibit a positive real root of the cubic
-`α (α + 3)^2 = 1`. We supply such a root via the **intermediate value
-theorem** (inline, so we do not depend on a separate
-`N3IVTExistence.lean`): the polynomial `f(α) = α (α + 3)^2` is continuous
-on `[0, 1]`, satisfies `f(0) = 0 < 1 < 16 = f(1)`, hence attains the
-value `1` at some `α ∈ (0, 1)`.
+`α (α + 3)^2 = 1`. Such a root is supplied by `exists_alpha_n3_det_one`
+(see `N3IVTExistence.lean`), which uses the **intermediate value
+theorem**: the polynomial `f(α) = α (α + 3)^2` is continuous on `[0, 1]`,
+satisfies `f(0) = 0 < 1 < 16 = f(1)`, hence attains the value `1` at
+some `α ∈ (0, 1)`.
 
 For that `α`:
 * `compiledGadget α 3` is `PosDef` (by `compiledGadget_posDef`, since
@@ -46,54 +45,16 @@ namespace PallLean.Paper93.DeepMath.PathB.Positroid
 
 open PallLean.Paper93.DeepMath.PathB
 open PallLean.Paper93.DeepMath.GadgetRank
-open Set
-
-/-- **Inline IVT existence: positive root of `α (α + 3)^2 = 1` in `(0, 1)`.**
-
-The polynomial `f(α) = α * (α + 3)^2` is continuous on `ℝ`, satisfies
-`f(0) = 0` and `f(1) = 1 * 16 = 16 > 1`, hence by the intermediate
-value theorem on `Icc 0 1` it attains the value `1` at some
-`α ∈ Ioo 0 1`. -/
-private theorem exists_alpha_n3_det_one_local :
-    ∃ α : ℝ, 0 < α ∧ α < 1 ∧ α * (α + 3)^2 = 1 := by
-  -- Define the cubic in question.
-  let f : ℝ → ℝ := fun x => x * (x + 3)^2
-  -- Continuity of `f` on `Icc (0:ℝ) 1`.
-  have hf_cont : ContinuousOn f (Icc (0:ℝ) 1) := by
-    have hcont : Continuous f :=
-      (continuous_id).mul ((continuous_id.add continuous_const).pow 2)
-    exact hcont.continuousOn
-  -- Endpoint values.
-  have hf0 : f 0 = 0 := by
-    show (0 : ℝ) * (0 + 3)^2 = 0
-    ring
-  have hf1 : f 1 = 16 := by
-    show (1 : ℝ) * (1 + 3)^2 = 16
-    ring
-  -- We have `1 ∈ Ioo (f 0) (f 1) = Ioo 0 16`.
-  have h1_in : (1 : ℝ) ∈ Ioo (f 0) (f 1) := by
-    rw [hf0, hf1]
-    refine ⟨?_, ?_⟩
-    · norm_num
-    · norm_num
-  -- IVT on `Ioo`: `Ioo (f 0) (f 1) ⊆ f '' Ioo 0 1`.
-  have hIVT : Ioo (f 0) (f 1) ⊆ f '' Ioo (0:ℝ) 1 :=
-    intermediate_value_Ioo (by norm_num : (0:ℝ) ≤ 1) hf_cont
-  -- Extract a witness.
-  obtain ⟨α, hα_mem, hα_eq⟩ := hIVT h1_in
-  refine ⟨α, hα_mem.1, hα_mem.2, ?_⟩
-  -- `hα_eq : f α = 1`, which unfolds to `α * (α + 3)^2 = 1`.
-  show α * (α + 3)^2 = 1
-  exact hα_eq
 
 /-- For `n = 3` there exists `α > 0` with `(compiledGadget α 3).det = 1`.
 
-By the inline IVT existence lemma `exists_alpha_n3_det_one_local`, there
-is some `α ∈ (0, 1)` with `α (α + 3)^2 = 1`. The closed-form
-`compiledGadget_3x3_det` then gives `(compiledGadget α 3).det = 1`. -/
+By `exists_alpha_n3_det_one` (proved separately in `N3IVTExistence.lean`
+via the intermediate value theorem), there is some `α ∈ (0, 1)` with
+`α (α + 3)^2 = 1`. The closed-form `compiledGadget_3x3_det` then gives
+`(compiledGadget α 3).det = 1`. -/
 theorem exists_alpha_compiledGadget_3x3_det_one :
     ∃ α : ℝ, 0 < α ∧ (compiledGadget α 3).det = 1 := by
-  obtain ⟨α, hα_pos, _, hα_eq⟩ := exists_alpha_n3_det_one_local
+  obtain ⟨α, hα_pos, _, hα_eq⟩ := exists_alpha_n3_det_one
   refine ⟨α, hα_pos, ?_⟩
   rw [compiledGadget_3x3_det]
   exact hα_eq
