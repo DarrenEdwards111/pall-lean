@@ -32,6 +32,7 @@ import PallLean.Archive.PaddingRobustness
 import PallLean.Archive.PaperSpdpMatrix
 import PallLean.Archive.PermanentGodMove
 import PallLean.Archive.ProfileSpaceBound
+import PallLean.Archive.ProjectedIdentityMinorFrontier
 import PallLean.Archive.RamanujanTseitin
 import PallLean.Archive.RestrictionMono
 import PallLean.Archive.SelConClosedCoeffDecomp
