@@ -3,15 +3,15 @@ import PallLean.Paper93.DeepMath.PathB.CompiledGadget3x3Det
 import PallLean.Paper93.DeepMath.PathB.Positroid.CompiledGadget4x4DetExplicit
 import PallLean.Paper93.DeepMath.PathB.Positroid.CompiledGadget5x5Det
 import PallLean.Paper93.DeepMath.PathB.Positroid.CompiledGadget6x6DetConcrete
+import PallLean.Paper93.DeepMath.PathB.Positroid.R70DetGeneral
 import PallLean.Paper93.DeepMath.GadgetRank.CompiledGadgetDef
 
 /-!
-# Bundled closed-form determinants of `compiledGadget` for `n = 2, …, 6`
+# Bundled closed-form determinants of `compiledGadget`
 
-This file packages, in a single conjunction, the closed-form
-determinant identities for the Cook–Levin compiled gadget
-`compiledGadget α n = α • I + L_{K_n}` at the small dimensions
-`n ∈ {2, 3, 4, 5, 6}`. The general pattern, visible at every level, is
+This file packages the closed-form determinant identities for the
+Cook-Levin compiled gadget `compiledGadget α n = α • I + L_{K_n}`.
+The general theorem is
 
   `det(compiledGadget α n) = α · (α + n)^{n - 1}`,
 
@@ -32,6 +32,8 @@ The five component identities are imported as
   `PallLean.Paper93.DeepMath.PathB.Positroid.CompiledGadget5x5Det`,
 * `compiledGadget_6x6_det` from
   `PallLean.Paper93.DeepMath.PathB.Positroid.CompiledGadget6x6DetConcrete`.
+* `compiledGadget_det_general` from
+  `PallLean.Paper93.DeepMath.PathB.Positroid.R70DetGeneral`.
 
 Each component is itself proved by a direct cofactor expansion plus
 `ring` and uses only the kernel axioms `propext`, `Classical.choice`,
@@ -85,5 +87,17 @@ theorem compiledGadget_closed_form_det_2_to_6 :
   refine ⟨compiledGadget_2x2_det α, compiledGadget_3x3_det α,
     compiledGadget_4x4_det α, compiledGadget_5x5_det α,
     compiledGadget_6x6_det α⟩
+
+/-- **General closed-form determinant of `compiledGadget`.**
+
+For every nonempty dimension `n`, the determinant of the compiled gadget is
+`α * (α + n)^(n - 1)`.
+
+This is the canonical all-`n` theorem; the small-dimensional conjunction above
+is retained for compatibility with older round summaries. -/
+theorem compiledGadget_closed_form_det_general :
+    ∀ (α : ℝ) (n : ℕ), 1 ≤ n →
+      (compiledGadget α n).det = α * (α + (n : ℝ)) ^ (n - 1) :=
+  compiledGadget_det_general
 
 end PallLean.Paper93.DeepMath.PathB.Positroid

@@ -2,6 +2,8 @@ import PallLean.Paper93.DeepMath.PathB.PathBSummary
 import PallLean.Paper93.DeepMath.PathB.SATDeciderRankStatement
 import PallLean.Paper93.DeepMath.PathB.SATBridgeN2Strengthened
 import PallLean.Paper93.DeepMath.PathB.Positroid.PathBR70MasterSummary
+import PallLean.Paper93.DeepMath.PathB.Positroid.R70DetGeneral
+import PallLean.Paper93.DeepMath.PathB.Positroid.NonIdentityGaugeAllN
 import PallLean.Paper93.DeepMath.CookLevin.Final_P_ne_NP_Wrapper
 import PallLean.GlobalGodMoveGauge
 import PallLean.BinomialBound2
@@ -37,9 +39,9 @@ open TuringMachine
 /-- The kernel-only Path B structural facts exposed by this final wrapper.
 
 This is deliberately structural: it includes the `n = 2` N-frame minimizer
-surface, the Cook-Levin rank lower-bound surface, the universal identity-gauge
-surface, the non-trivial `n = 2` compiled-gadget SAT-family gauge, and the R70
-determinant identities at `n = 5` and `n = 6`.
+  surface, the Cook-Levin rank lower-bound surface, the universal identity-gauge
+  surface, the non-trivial `n = 2` compiled-gadget SAT-family gauge, and the
+  general closed-form determinant identity for every nonempty dimension.
 -/
 def PathBKernelOnlyStructuralSurface : Prop :=
   (∃ (n : Nat), 0 < n ∧
@@ -53,6 +55,12 @@ def PathBKernelOnlyStructuralSurface : Prop :=
     IsAmplituhedronGauge (compiledGadget α 2) (satFamily 2) ∧
     compiledGadget α 2 ≠ (1 : Matrix (Fin 2) (Fin 2) Real) ∧
     α = Real.sqrt 2 - 1) ∧
+  (∀ n : Nat, 2 ≤ n →
+    ∃ A : Matrix (Fin n) (Fin n) Real,
+      IsAmplituhedronGauge A (satFamily n) ∧
+        A ≠ (1 : Matrix (Fin n) (Fin n) Real)) ∧
+  (∀ (α : Real) (n : Nat), 1 ≤ n →
+    (compiledGadget α n).det = α * (α + (n : Real)) ^ (n - 1)) ∧
   (∀ α : Real, (compiledGadget α 5).det = α * (α + 5)^4) ∧
   (∀ α : Real, (compiledGadget α 6).det = α * (α + 6)^5)
 
@@ -63,10 +71,12 @@ Axiom expectation: Lean kernel axioms only (`propext`, `Classical.choice`,
 -/
 theorem pathB_kernel_only_structural_surface :
     PathBKernelOnlyStructuralSurface := by
-  refine ⟨path_B_summary, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨path_B_summary, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · exact fun α κ n hα hn => rank_for_SAT_decider_compilation α κ n hα hn
   · exact fun n 𝒥 => identity_isAmplituhedronGauge_any 𝒥
   · exact sat_bridge_n2_strengthened
+  · exact fun n hn => Positroid.nonIdentity_gauge_all_n n hn
+  · exact fun α n hn => Positroid.compiledGadget_det_general α n hn
   · exact fun α => Positroid.compiledGadget_5x5_det α
   · exact fun α => Positroid.compiledGadget_6x6_det α
 
