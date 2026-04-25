@@ -3,6 +3,7 @@ import PallLean.Paper93.DeepMath.PathB.CompiledGadgetPosDef
 import PallLean.Paper93.DeepMath.PathB.Positroid.CompiledGadgetNonIdentityAny
 import PallLean.Paper93.DeepMath.PathB.Positroid.IsAmplituhedronGaugeReducer
 import PallLean.Paper93.DeepMath.PathB.Positroid.IVTGeneralN
+import PallLean.Paper93.DeepMath.PathB.Positroid.R70DetGeneral
 import Mathlib.Tactic
 
 /-!
@@ -119,5 +120,43 @@ theorem exists_compiledGadget_satFamily_gauge_all_n_of_ivt_det_formula
       1 1 (by norm_num)
       (compiledGadget_posDef 1 1 (by norm_num) (by norm_num))
       compiledGadget_1x1_det_one_at_alpha_one
+
+/-- **Unconditional R70 all-`n` SAT-family gauge theorem.**
+
+Round 70's general determinant theorem discharges the determinant-formula
+hypothesis in
+`exists_compiledGadget_satFamily_gauge_all_n_of_ivt_det_formula`. Hence every
+nonempty dimension admits a determinant-one positive-definite compiled-gadget
+gauge for the simplified `satFamily n`. For `n ≥ 2`, the witness can be chosen
+non-identity by the companion theorem below.
+-/
+theorem exists_compiledGadget_satFamily_gauge_all_n
+    (n : ℕ) (hn : 1 ≤ n) :
+    ∃ α : ℝ,
+      0 < α ∧
+      α ≤ 1 ∧
+      IsAmplituhedronGauge (compiledGadget α n) (satFamily n) ∧
+      (compiledGadget α n).det = 1 := by
+  exact exists_compiledGadget_satFamily_gauge_all_n_of_ivt_det_formula
+    n hn (fun _hn2 α => compiledGadget_det_general α n (by omega))
+
+/-- **Unconditional R70 non-identity SAT-family gauge theorem for all `n ≥ 2`.**
+
+This is the clean all-dimensional version of the earlier finite-dimensional
+non-identity witnesses: IVT supplies `α ∈ (0,1]`, the general determinant formula
+turns the IVT equation into determinant one, and the compiled-gadget reducer
+turns positive-definiteness plus determinant one into an amplituhedron gauge for
+`satFamily n`.
+-/
+theorem exists_nonidentity_compiledGadget_satFamily_gauge_all_n
+    (n : ℕ) (hn : 2 ≤ n) :
+    ∃ α : ℝ,
+      0 < α ∧
+      α ≤ 1 ∧
+      IsAmplituhedronGauge (compiledGadget α n) (satFamily n) ∧
+      compiledGadget α n ≠ (1 : Matrix (Fin n) (Fin n) ℝ) ∧
+      (compiledGadget α n).det = 1 := by
+  exact exists_nonidentity_compiledGadget_satFamily_gauge_of_ivt_det_formula
+    n hn (fun α => compiledGadget_det_general α n (by omega))
 
 end PallLean.Paper93.DeepMath.PathB.Positroid
