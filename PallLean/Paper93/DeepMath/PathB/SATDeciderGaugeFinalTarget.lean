@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.R72AmplituhedronFrontier
 import PallLean.Paper93.DeepMath.PathB.ProjectedIdentityMinorConcrete
 import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeTemplateCollapse
+import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeIdentityObstructions
 
 /-!
 # Final SAT-decider gauge target
@@ -90,6 +91,26 @@ theorem cookLevinRichProjectionTarget_of_templateCollapse_of_npPreservation
       M n hn hn2 htb hns gauge hrank hcollapse,
     hnp⟩
 
+/-- Any final rich-projection target witness at paper scale is necessarily
+non-flat: it is neither the identity gauge nor the already-landed flat
+`piPhi` map. -/
+theorem cookLevinRichProjectionTarget_forces_nonflat_witness
+    (M : DTM) (n : Nat) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (h : CookLevinRichProjectionTarget M n hn hn2 htb hns) :
+    ∃ (gauge : SATDeciderGaugeMap M n hn2 htb hns),
+      SATDeciderGaugeSubgoals M n hn2 htb hns gauge ∧
+        gauge ≠ identitySATDeciderGauge M n hn2 htb hns ∧
+          gauge ≠ satDeciderGaugeMapPiPhi M n hn2 htb hns := by
+  obtain ⟨gauge, hrank, hP, hNP⟩ := h
+  have hsubgoals : SATDeciderGaugeSubgoals M n hn2 htb hns gauge :=
+    ⟨hrank, hP, hNP⟩
+  exact ⟨gauge, hsubgoals,
+    satDeciderGaugeSubgoals_forces_ne_identitySATDeciderGauge_at_large_n
+      M n hn hn2 htb hns gauge hsubgoals,
+    satDeciderGaugeSubgoals_forces_ne_satDeciderGaugeMapPiPhi_at_large_n
+      M n hn hn2 htb hns gauge hsubgoals⟩
+
 /-- A uniform projected P-side bound on the concrete Step247 Cook-Levin output
 already rules out bounded SAT deciders at the paper scale.  This is the honest
 logical bridge: it does not construct a final gauge; it consumes the concrete
@@ -171,6 +192,7 @@ theorem cookLevinRichProjectionDischarge_of_uniformBoundedProfileTemplateCollaps
 #print axioms cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider
 #print axioms satDeciderGaugePSideBound_of_rankMonotone_of_templateCollapse
 #print axioms cookLevinRichProjectionTarget_of_templateCollapse_of_npPreservation
+#print axioms cookLevinRichProjectionTarget_forces_nonflat_witness
 #print axioms noBoundedSATDeciderAtPaperScale_of_cookLevinProjectedPSideBound
 #print axioms cookLevinRichProjectionDischarge_of_uniformProjectedPSideBound
 #print axioms noBoundedSATDeciderAtPaperScale_of_cookLevinTemplateCollapse
