@@ -1,0 +1,76 @@
+import PallLean.Paper93.DeepMath.PathB.Positroid.CompiledGadgetNonIdentityAny
+import PallLean.Paper93.DeepMath.PathB.CompiledGadgetPosDef
+import PallLean.Paper93.DeepMath.GadgetRank.CompiledGadgetDef
+
+/-!
+# Non-identity `PosDef` witness from the compiled gadget at `n = 4`
+
+This kernel-only file constructs a *non-identity* positive-definite
+witness from the Path B compiled gadget `compiledGadget α 4 = α • I + L_{K_4}`
+at `n = 4`.
+
+Unlike the `n = 3` analogue (`N3NonTrivialGauge.lean`), we do **not**
+claim `det = 1` here. The closed-form determinant
+`(compiledGadget α 4).det = α (α + 4)^3` is not yet proved kernel-only,
+so we cannot package an IVT-witnessed root into a `det = 1`
+certification at this level. Instead, we record the two structural
+facts that are available:
+
+* For `α > 0` and `n = 4`, `compiledGadget α 4` is `PosDef` (by
+  `compiledGadget_posDef`, since `α > 0` and `1 ≤ 4`).
+* For any `α : ℝ` and `n = 4`, `compiledGadget α 4 ≠ I` (by
+  `compiledGadget_ne_identity`, since `2 ≤ 4`; the off-diagonal
+  `(0, 1)` entry is `-1`, not `0`).
+
+In particular, for `α = 1` we obtain a concrete non-identity `PosDef`
+matrix on `Fin 4`, witnessing the existence of a non-trivial gauge
+(prior to the determinant constraint) at the truncated `n = 4` level.
+
+Namespace: `PallLean.Paper93.DeepMath.PathB.Positroid`.
+-/
+
+namespace PallLean.Paper93.DeepMath.PathB.Positroid
+
+open PallLean.Paper93.DeepMath.PathB
+open PallLean.Paper93.DeepMath.GadgetRank
+
+/-- For `n = 4` and `α = 1`, the compiled gadget `compiledGadget 1 4` is
+positive definite and is not the identity matrix.
+
+* PosDef: by `compiledGadget_posDef` with `0 < 1` and `1 ≤ 4`.
+* Non-identity: by `compiledGadget_ne_identity` with `2 ≤ 4`. -/
+theorem compiledGadget_4x4_alpha_one_posDef_nonidentity :
+    (compiledGadget 1 4).PosDef ∧
+    compiledGadget 1 4 ≠ (1 : Matrix (Fin 4) (Fin 4) ℝ) := by
+  refine ⟨?_, ?_⟩
+  · exact compiledGadget_posDef 1 4 one_pos (by norm_num : 1 ≤ 4)
+  · exact compiledGadget_ne_identity 1 4 (by norm_num : 2 ≤ 4)
+
+/-- For any `α > 0` at `n = 4`, the compiled gadget `compiledGadget α 4` is
+positive definite and is not the identity matrix.
+
+* PosDef: by `compiledGadget_posDef` with `hα` and `1 ≤ 4`.
+* Non-identity: by `compiledGadget_ne_identity` with `2 ≤ 4`. -/
+theorem compiledGadget_4x4_posDef_nonidentity (α : ℝ) (hα : 0 < α) :
+    (compiledGadget α 4).PosDef ∧
+    compiledGadget α 4 ≠ (1 : Matrix (Fin 4) (Fin 4) ℝ) := by
+  refine ⟨?_, ?_⟩
+  · exact compiledGadget_posDef α 4 hα (by norm_num : 1 ≤ 4)
+  · exact compiledGadget_ne_identity α 4 (by norm_num : 2 ≤ 4)
+
+/-- **Existence of a non-identity `PosDef` 4×4 matrix from the §28.3
+construction.**
+
+Specialising the previous theorem to `α = 1`, the matrix
+`compiledGadget 1 4` is `PosDef` and is not the identity. This
+witnesses the existence of a non-trivial (off-identity) positive
+definite matrix on `Fin 4` arising from the Path B compiled-gadget
+construction at the truncated `n = 4` level. -/
+theorem exists_nonidentity_posDef_n4_compiledGadget :
+    ∃ A : Matrix (Fin 4) (Fin 4) ℝ,
+      A.PosDef ∧ A ≠ (1 : Matrix (Fin 4) (Fin 4) ℝ) := by
+  refine ⟨compiledGadget 1 4, ?_, ?_⟩
+  · exact compiledGadget_posDef 1 4 one_pos (by norm_num : 1 ≤ 4)
+  · exact compiledGadget_ne_identity 1 4 (by norm_num : 2 ≤ 4)
+
+end PallLean.Paper93.DeepMath.PathB.Positroid
