@@ -138,6 +138,32 @@ theorem cookLevinRichProjectionDischarge_of_uniformTemplateCollapse
   cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
     (noBoundedSATDeciderAtPaperScale_of_cookLevinTemplateCollapse hcollapse)
 
+/-- A uniform bounded-profile template-collapse theorem is already enough to
+rule out bounded SAT deciders at the paper scale.  This is the smallest
+currently named P-side frontier consumed by the final target. -/
+theorem noBoundedSATDeciderAtPaperScale_of_cookLevinBoundedProfileTemplateCollapse
+    (hcollapse : ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+      (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+      WithinProfileBound.CookLevinProfileTemplateCollapseLemmaBoundedProfile
+        M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale := by
+  apply noBoundedSATDeciderAtPaperScale_of_cookLevinTemplateCollapse
+  intro M n hn hn2 htb hns
+  exact WithinProfileBound.cookLevinProfileTemplateCollapseLemma_of_boundedProfile
+    M n hn2 htb hns (hcollapse M n hn hn2 htb hns)
+
+/-- A uniform bounded-profile template-collapse theorem discharges the
+integrated Π⋆ frontier through the no-decider equivalence. -/
+theorem cookLevinRichProjectionDischarge_of_uniformBoundedProfileTemplateCollapse
+    (hcollapse : ∀ (M : DTM) (n : Nat) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+      (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+      WithinProfileBound.CookLevinProfileTemplateCollapseLemmaBoundedProfile
+        M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_cookLevinBoundedProfileTemplateCollapse
+      hcollapse)
+
 /-! ## Axiom audit anchors -/
 
 #print axioms cookLevinRichProjectionTarget_iff_subgoals
@@ -149,5 +175,7 @@ theorem cookLevinRichProjectionDischarge_of_uniformTemplateCollapse
 #print axioms cookLevinRichProjectionDischarge_of_uniformProjectedPSideBound
 #print axioms noBoundedSATDeciderAtPaperScale_of_cookLevinTemplateCollapse
 #print axioms cookLevinRichProjectionDischarge_of_uniformTemplateCollapse
+#print axioms noBoundedSATDeciderAtPaperScale_of_cookLevinBoundedProfileTemplateCollapse
+#print axioms cookLevinRichProjectionDischarge_of_uniformBoundedProfileTemplateCollapse
 
 end PallLean.Paper93.DeepMath.PathB
