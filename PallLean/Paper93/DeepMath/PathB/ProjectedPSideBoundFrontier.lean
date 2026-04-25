@@ -53,6 +53,21 @@ theorem step247SATDeciderProjectedPSideTheorem_of_uniform
   intro M n hn hn2 htb hns _hdec
   exact hP M n hn hn2 htb hns
 
+/-- The bounded-profile template-collapse frontier gives the exact concrete
+Step247 projected P-side field. -/
+theorem cookLevinProjectedPSideBound_of_boundedProfileTemplateCollapse
+    (M : DTM) (n : Nat) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcollapse :
+      WithinProfileBound.CookLevinProfileTemplateCollapseLemmaBoundedProfile
+        M n hn2 htb hns) :
+    ProjectedIdentityMinorConcrete.CookLevinProjectedPSideBound
+      M n hn2 htb hns :=
+  ProjectedIdentityMinorConcrete.cookLevinProjectedPSideBound_of_templateCollapse
+    M n hn htb hns hn2
+    (WithinProfileBound.cookLevinProfileTemplateCollapseLemma_of_boundedProfile
+      M n hn2 htb hns hcollapse)
+
 /-- On the SAT-decider branch, the Step247 projected P-side theorem is exactly
 the already named no-bounded-SAT-decider frontier.  The forward direction uses
 the concrete projected contradiction package; the reverse direction is
@@ -98,6 +113,7 @@ theorem cookLevinRichProjectionDischarge_of_step247UniformProjectedPSideTheorem
 
 #print axioms step247UniformProjectedPSideTheorem_iff_uniformCookLevinProjectedPSideBound
 #print axioms step247SATDeciderProjectedPSideTheorem_of_uniform
+#print axioms cookLevinProjectedPSideBound_of_boundedProfileTemplateCollapse
 #print axioms step247SATDeciderProjectedPSideTheorem_iff_noBoundedSATDeciderAtPaperScale
 #print axioms step247SATDeciderProjectedPSideTheorem_iff_cookLevinRichProjectionDischarge
 #print axioms noBoundedSATDeciderAtPaperScale_of_step247UniformProjectedPSideTheorem
