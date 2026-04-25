@@ -1,0 +1,41 @@
+import PallLean.Paper93.DeepMath.PathB.Positroid.TNNMatrixDef
+import PallLean.Paper93.DeepMath.PathB.IdentityIsGaugeAnyFamily
+import PallLean.Paper93.DeepMath.PathB.CompiledGadgetN2SatGauge
+import PallLean.Paper93.DeepMath.PathB.CompiledGadget2x2NotIdentity
+import PallLean.Paper93.DeepMath.PathB.Sqrt2MinusOnePos
+import PallLean.Paper93.DeepMath.PathB.SatFamilyDefinition
+import PallLean.Paper93.DeepMath.PathB.Positroid.CompiledGadgetNonIdentityAny
+import PallLean.Paper93.DeepMath.PathB.CompiledGadgetPosDef
+import PallLean.Paper93.DeepMath.PathB.CompiledGadget2x2Det
+import PallLean.Paper93.DeepMath.PathB.CompiledGadget3x3Det
+import PallLean.Paper93.DeepMath.PathB.Positroid.CompiledGadget4x4DetExplicit
+import PallLean.Paper93.DeepMath.GadgetRank.CompiledGadgetDef
+
+namespace PallLean.Paper93.DeepMath.PathB.Positroid
+open PallLean.Paper93.DeepMath.PathB
+open PallLean.Paper93.DeepMath.GadgetRank
+
+/-- Round-63 deep progress: extends earlier rounds with closed-form det at n=4. -/
+theorem round_63_deep_progress :
+    (∀ n : ℕ, IsPrincipalTNN (1 : Matrix (Fin n) (Fin n) ℝ)) ∧
+    (∀ (n : ℕ) (𝒥 : Finset (Finset (Fin n))),
+       IsAmplituhedronGauge (1 : Matrix (Fin n) (Fin n) ℝ) 𝒥) ∧
+    (∀ (α : ℝ) (n : ℕ), 2 ≤ n → compiledGadget α n ≠ (1 : Matrix (Fin n) (Fin n) ℝ)) ∧
+    (∀ (α : ℝ) (n : ℕ), 0 < α → 1 ≤ n → (compiledGadget α n).PosDef) ∧
+    (IsAmplituhedronGauge (compiledGadget (Real.sqrt 2 - 1) 2) (satFamily 2) ∧
+     compiledGadget (Real.sqrt 2 - 1) 2 ≠ (1 : Matrix (Fin 2) (Fin 2) ℝ)) ∧
+    -- New in R63: closed-form det at n=2,3,4
+    (∀ α : ℝ, (compiledGadget α 2).det = α * (α + 2)) ∧
+    (∀ α : ℝ, (compiledGadget α 3).det = α * (α + 3)^2) ∧
+    (∀ α : ℝ, (compiledGadget α 4).det = α * (α + 4)^3) := by
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · exact identity_isPrincipalTNN
+  · exact fun n 𝒥 => identity_isAmplituhedronGauge_any 𝒥
+  · intros α n hn; exact compiledGadget_ne_identity α n hn
+  · exact compiledGadget_posDef
+  · exact ⟨compiledGadget_n2_isGauge_satFamily, compiledGadget_2x2_ne_identity (Real.sqrt 2 - 1)⟩
+  · exact compiledGadget_2x2_det
+  · exact compiledGadget_3x3_det
+  · exact compiledGadget_4x4_det
+
+end PallLean.Paper93.DeepMath.PathB.Positroid
