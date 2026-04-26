@@ -156,6 +156,29 @@ def RouteBRicherSPDPStableCandidateLogWindowHeadMlCovering
       finiteRowsSubmodule
         (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail)
 
+/-- Subspace-level finite/profile support target for the concrete NP head row:
+for every blocked-SPDP profile inside the canonical log window, the compiled
+head's blocked subspace is already contained in the selected finite row span.
+
+This is the natural consumer for a finite profile-window tail: once an
+existing finite support/profile lemma proves this submodule containment, the
+row-level head coverage theorem below follows without re-opening the concrete
+generator syntax. -/
+def RouteBRicherSPDPStableCandidateLogWindowHeadSPDPSubspaceCovered
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) : Prop :=
+  forall (spdpKappa ell : Nat),
+    spdpKappa <= Nat.log 2 n ->
+    ell <= Nat.log 2 n ->
+    mlBlockedSpdpSubspace
+        (cook_levin_compilation M n hn2 htb hns).partition
+        spdpKappa ell
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns)) <=
+      finiteRowsSubmodule
+        (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail)
+
 /-- Tail-row log-window stability: every selected tail row is closed under the
 same log-window generator operators.  This is the remaining finite/profile
 stability obligation after head coverage is separated out. -/
@@ -407,6 +430,43 @@ theorem routeBRicherSPDPStableCandidate_logWindowTailRowStable_of_logWindowOrbit
   exact
     (hcov spdpKappa ell S shift
       hSlen hshiftDegree hSlog hshiftLog hshiftVars hadm).2 i
+
+/-- A finite/profile subspace cover for the concrete NP head row gives the
+row-level log-window head coverage obligation.  The proof queries the
+subspace cover at the actual shift degree, so it does not require the ambient
+`ell` parameter itself to be bounded by the log window. -/
+theorem routeBRicherSPDPStableCandidate_logWindowHeadMlCovering_of_headSPDPSubspaceCovered
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hcover :
+      RouteBRicherSPDPStableCandidateLogWindowHeadSPDPSubspaceCovered
+        M n hn2 htb hns tail) :
+    RouteBRicherSPDPStableCandidateLogWindowHeadMlCovering
+      M n hn2 htb hns tail := by
+  intro spdpKappa ell S shift
+    hSlen hshiftDegree hSlog hshiftLog hshiftVars hadm
+  have hKappaLog : spdpKappa <= Nat.log 2 n := by
+    simpa [hSlen] using hSlog
+  have hrowRaw :
+      mlProj
+          (shift * SPDP.iterDerivList S
+            (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
+        ∈
+        mlBlockedSpdpSubspace
+          (cook_levin_compilation M n hn2 htb hns).partition
+          spdpKappa shift.totalDegree
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)) := by
+    exact
+      Submodule.subset_span
+        ⟨S, shift, hSlen, le_rfl, hshiftVars, hadm, rfl⟩
+  exact
+    (hcover spdpKappa shift.totalDegree hKappaLog hshiftLog)
+      (by
+        simpa [routeBSPDPGeneratorRow,
+          routeBRicherConcreteNPWitnessRows_zero_eq_compiledPoly] using
+          hrowRaw)
 
 /-- Head coverage plus tail-row stability gives the concrete prepended-row
 log-window package consumed by the finite-row SPDP frontier. -/
@@ -1049,6 +1109,7 @@ set.
 #print axioms RouteBRicherSPDPStableCandidateAdmissibleOrbitMlCovering
 #print axioms RouteBRicherSPDPStableCandidateLogWindowOrbitMlCovering
 #print axioms RouteBRicherSPDPStableCandidateLogWindowHeadMlCovering
+#print axioms RouteBRicherSPDPStableCandidateLogWindowHeadSPDPSubspaceCovered
 #print axioms RouteBRicherSPDPStableCandidateLogWindowTailRowStable
 #print axioms RouteBRicherSPDPStableCandidateAdmissibleQueriesLogWindowed
 #print axioms RouteBRicherSPDPStableCandidateLogWindowChosenComplementInvariant
@@ -1060,6 +1121,7 @@ set.
 #print axioms routeBRicherSPDPStableCandidate_logWindowOrbitMlCovering_of_head_tailStable
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadMlCovering_of_logWindowOrbitMlCovering
 #print axioms routeBRicherSPDPStableCandidate_logWindowTailRowStable_of_logWindowOrbitMlCovering
+#print axioms routeBRicherSPDPStableCandidate_logWindowHeadMlCovering_of_headSPDPSubspaceCovered
 #print axioms routeBRicherSPDPStableCandidate_spdpLogWindowRowClosurePackage_of_head_tailStable
 #print axioms routeBRicherSPDPStableCandidate_spdpLogWindowRowClosurePackage_of_logWindowOrbitMlCovering
 #print axioms routeBRicherSPDPStableCandidate_logWindowOrbitMlCovering_of_spdpLogWindowRowClosurePackage
