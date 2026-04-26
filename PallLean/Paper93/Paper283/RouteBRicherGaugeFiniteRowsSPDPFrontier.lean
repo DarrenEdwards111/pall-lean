@@ -114,6 +114,45 @@ structure RouteBRicherGaugeFiniteRowsSPDPUnprojectedPreimage
           (cook_levin_compilation M n hn2 htb hns).partition
           spdpKappa ell p
 
+/-- Weaker and more natural image-preimage side of the Route B finite-row SPDP
+check.
+
+For image containment, the projected generator does not need to be an element
+of the original unprojected SPDP subspace itself.  It is enough to exhibit an
+unprojected SPDP row whose image under the selected projection is the projected
+generator.  This is the direct witness demanded by `Submodule.map`. -/
+structure RouteBRicherGaugeFiniteRowsSPDPMapPreimage
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    Prop where
+  map_preimage :
+    forall (spdpKappa ell : Nat)
+      (p : SATDeciderGaugeSpace M n hn2 htb hns)
+      (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+      (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+      S.length = spdpKappa ->
+      shift.totalDegree <= ell ->
+      shift.vars <= S.toFinset ->
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition S ->
+      ∃ raw :
+          SATDeciderGaugeSpace M n hn2 htb hns,
+        raw ∈
+          mlBlockedSpdpSubspace
+            (cook_levin_compilation M n hn2 htb hns).partition
+            spdpKappa ell p
+        ∧
+        (routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+          (routeBRicherFiniteRowsCandidateGauge
+            M n hn2 htb hns rows)) raw =
+          routeBSPDPGeneratorRow M n hn2 htb hns
+            ((routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+              (routeBRicherFiniteRowsCandidateGauge
+                M n hn2 htb hns rows)) p)
+            S shift
+
 /-- Combined finite-row SPDP frontier for the corrected Route B containment
 route.  The fields intentionally keep row-span closure and unprojected
 preimage data independent. -/
@@ -127,6 +166,40 @@ structure RouteBRicherGaugeFiniteRowsSPDPFrontier
     RouteBRicherGaugeFiniteRowsSPDPClosure M n hn2 htb hns rows
   preimage :
     RouteBRicherGaugeFiniteRowsSPDPUnprojectedPreimage M n hn2 htb hns rows
+
+/-- A direct unprojected-preimage membership proof gives the map-preimage
+formulation by taking the projected generator itself as its own preimage. -/
+theorem routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_unprojectedPreimage
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (closure :
+      RouteBRicherGaugeFiniteRowsSPDPClosure M n hn2 htb hns rows)
+    (preimage :
+      RouteBRicherGaugeFiniteRowsSPDPUnprojectedPreimage
+        M n hn2 htb hns rows) :
+    RouteBRicherGaugeFiniteRowsSPDPMapPreimage M n hn2 htb hns rows := by
+  constructor
+  intro spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm
+  let row :=
+    routeBSPDPGeneratorRow M n hn2 htb hns
+      ((routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+        (routeBRicherFiniteRowsCandidateGauge
+          M n hn2 htb hns rows)) p)
+      S shift
+  have hmemSpan : row ∈ finiteRowsSubmodule rows := by
+    rcases closure.finite_row_closure
+        spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm with
+      ⟨coeff, hcoeff⟩
+    exact mem_finiteRowsSubmodule_of_linearCombination rows coeff hcoeff
+  refine ⟨row, ?_, ?_⟩
+  · exact
+      preimage.unprojected_preimage
+        spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm
+  · exact
+      routeBRicherFiniteRowsCandidateGauge_fixed_of_mem
+        M n hn2 htb hns rows hmemSpan
 
 /-- Finite-row row-closure gives the coefficient-level closure package used by
 the corrected Route B SPDP frontier. -/
@@ -239,6 +312,28 @@ theorem routeBRicherFiniteRowsCandidateGauge_spdpSubspaceContainment_of_spdpFron
       (routeBRicherGaugeFiniteRowsSPDPFrontier_hgen
         M n hn2 htb hns rows frontier)
 
+/-- The map-preimage formulation is enough for Route B SPDP subspace
+containment.  This is weaker than asking each projected generator to already
+belong to the unprojected subspace: it supplies exactly the preimage required
+by `Submodule.map`. -/
+theorem routeBRicherFiniteRowsCandidateGauge_spdpSubspaceContainment_of_mapPreimage
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (preimage :
+      RouteBRicherGaugeFiniteRowsSPDPMapPreimage M n hn2 htb hns rows) :
+    RouteBRicherGaugeSPDPSubspaceContainment M n hn2 htb hns
+      (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows) := by
+  intro spdpKappa ell p
+  apply Submodule.span_le.mpr
+  rintro q ⟨S, shift, hSlen, hshiftDegree, hshiftVars, hadm, hq⟩
+  rw [hq]
+  rcases preimage.map_preimage
+      spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm with
+    ⟨raw, hraw, hmap⟩
+  exact Submodule.mem_map.mpr ⟨raw, hraw, hmap⟩
+
 /-- Concrete finite-row Route B assembly from the named SPDP frontier.
 
 All scalar, spectral, row-count, P-window, and NP fixed-row assumptions are
@@ -288,6 +383,57 @@ theorem routeBPerInstanceCertificate_of_finiteRowsSPDPFrontier_deltaEqRateKappa
       rows hN hrowCount heta htheta halpha halpha0 hkappa hgadgetN
       (routeBRicherGaugeFiniteRowsSPDPFrontier_hgen
         M n hn2 htb hns rows frontier)
+      cover Q i hrow hextract hsource
+
+/-- Concrete finite-row Route B assembly from the map-preimage SPDP field.
+
+This is the preferred SPDP surface for a nontrivial projection: the projected
+rows only have to be images of unprojected rows, not members of the
+unprojected subspace themselves. -/
+theorem routeBPerInstanceCertificate_of_finiteRowsSPDPMapPreimage_deltaEqRateKappa
+    {N d : Nat}
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (alpha beta alpha0 : Real) (kappa gadgetN : Nat)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {eta theta : Real}
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hN : 1 <= N) (hrowCount : m <= N)
+    (heta : 0 < eta) (htheta : 0 < theta)
+    (halpha : 0 < alpha) (halpha0 : 0 < alpha0)
+    (hkappa : 0 < kappa) (hgadgetN : 2 <= gadgetN)
+    (preimage :
+      RouteBRicherGaugeFiniteRowsSPDPMapPreimage M n hn2 htb hns rows)
+    (cover :
+      RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns)
+    (Q : CoupledSheetPoly (flatCookLevinUVSplit M n hn2 htb hns))
+    (i : Fin m)
+    (hrow :
+      rows i =
+        CoupledSheetPoly.embed (flatCookLevinUVSplit M n hn2 htb hns) Q)
+    (hextract :
+      routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+          (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)) =
+        routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+          (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)
+          (CoupledSheetPoly.embed
+            (flatCookLevinUVSplit M n hn2 htb hns) Q))
+    (hsource :
+      SourceIdentityMinorLowerBound n
+        (flatCookLevinUVSplit M n hn2 htb hns)
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n) Q) :
+    RouteBPerInstanceCertificate M n hn2 htb hns := by
+  exact
+    routeBPerInstanceCertificate_of_finiteRowsCompiledGadget_deltaEqRateKappa
+      (N := N) (d := d)
+      M n hn2 htb hns alpha beta alpha0 kappa gadgetN G chi Phi
+      rows hN hrowCount heta htheta halpha halpha0 hkappa hgadgetN
+      (routeBRicherFiniteRowsCandidateGauge_spdpSubspaceContainment_of_mapPreimage
+        M n hn2 htb hns rows preimage)
       cover Q i hrow hextract hsource
 
 /-- Concrete finite-row Route B assembly with the SPDP side reduced to
@@ -346,12 +492,16 @@ theorem routeBPerInstanceCertificate_of_finiteRowsSPDPRowClosure_deltaEqRateKapp
 #print axioms RouteBRicherGaugeFiniteRowsSPDPClosure
 #print axioms RouteBRicherGaugeFiniteRowsSPDPRowClosure
 #print axioms RouteBRicherGaugeFiniteRowsSPDPUnprojectedPreimage
+#print axioms RouteBRicherGaugeFiniteRowsSPDPMapPreimage
 #print axioms RouteBRicherGaugeFiniteRowsSPDPFrontier
+#print axioms routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_unprojectedPreimage
 #print axioms routeBRicherGaugeFiniteRowsSPDPClosure_of_rowClosure
 #print axioms routeBRicherGaugeFiniteRowsSPDPFrontier_of_rowClosure_preimage
 #print axioms routeBRicherGaugeFiniteRowsSPDPFrontier_hgen
 #print axioms routeBRicherFiniteRowsCandidateGauge_spdpSubspaceContainment_of_spdpFrontier
+#print axioms routeBRicherFiniteRowsCandidateGauge_spdpSubspaceContainment_of_mapPreimage
 #print axioms routeBPerInstanceCertificate_of_finiteRowsSPDPFrontier_deltaEqRateKappa
+#print axioms routeBPerInstanceCertificate_of_finiteRowsSPDPMapPreimage_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_finiteRowsSPDPRowClosure_deltaEqRateKappa
 
 end PallLean.Paper93.Paper283
