@@ -31,6 +31,22 @@ namespace BridgeAGeneralizedNonzeroWitness
 
 attribute [local instance] Classical.dec
 
+/-- A discrete partition: each local variable is its own block. -/
+noncomputable def discretePartition (n : Nat) : BlockPartition n where
+  numBlocks := n
+  assign := fun i => i
+
+/-- In the discrete partition, every nodup list is block-admissible. -/
+theorem discretePartition_admissible_of_nodup {n : Nat}
+    {S : List (Fin n)} (hS : S.Nodup) :
+    isBlockAdmissible (discretePartition n) S := by
+  constructor
+  · exact hS
+  · intro b
+    change (List.filter (fun i => decide (i = b)) S).length ≤ 1
+    simpa [List.count, List.countP_eq_length_filter] using
+      (List.nodup_iff_count_le_one.mp hS b)
+
 /-- Number of target rows in the normalized Bridge A local rank target. -/
 def rowCount (kappa gadgetN : Nat) : Nat :=
   kappa * gadgetN
@@ -68,6 +84,230 @@ noncomputable def squareHelperQ (kappa gadgetN : Nat) :
     MvPolynomial (Fin (squareHelperVarCount kappa gadgetN)) Rat :=
   ∑ r : Fin (rowCount kappa gadgetN), squareHelperRowTerm kappa gadgetN r
 
+/-! ## Square-helper derivative rows -/
+
+/-- The `kappa` squared-helper variables belonging to one square-helper row. -/
+noncomputable def squareRowHelperSet (kappa gadgetN : Nat)
+    (r : Fin (rowCount kappa gadgetN)) :
+    Finset (Fin (squareHelperVarCount kappa gadgetN)) :=
+  (Finset.univ : Finset (Fin kappa)).image
+    (fun j => squareHelperIndex kappa gadgetN r j)
+
+/-- The multilinear row monomial expected after differentiating a square row
+once in every helper variable. -/
+noncomputable def squareRowLinearMonomial (kappa gadgetN : Nat)
+    (r : Fin (rowCount kappa gadgetN)) :
+    MvPolynomial (Fin (squareHelperVarCount kappa gadgetN)) Rat :=
+  X (squarePayloadIndex kappa gadgetN r) *
+    ∏ j : Fin kappa, X (squareHelperIndex kappa gadgetN r j)
+
+/-- Exponent vector for the expected multilinear row monomial. -/
+noncomputable def squareRowLinearExponent (kappa gadgetN : Nat)
+    (r : Fin (rowCount kappa gadgetN)) :
+    Fin (squareHelperVarCount kappa gadgetN) →₀ Nat :=
+  Finsupp.single (squarePayloadIndex kappa gadgetN r) 1 +
+    (Finset.univ : Finset (Fin kappa)).sum
+      (fun j => Finsupp.single (squareHelperIndex kappa gadgetN r j) 1)
+
+/-- The square-helper row space predicted by the exact arbitrary-`kappa`
+candidate. -/
+noncomputable def squareHelperRowSpace (kappa gadgetN : Nat) :
+    Submodule Rat (MvPolynomial (Fin (squareHelperVarCount kappa gadgetN)) Rat) :=
+  Submodule.span Rat
+    (Set.range (squareRowLinearMonomial kappa gadgetN))
+
+/-- The exact upper-containment still needed for the arbitrary-`kappa`
+equality: every blocked multilinear SPDP generator of `squareHelperQ` lies in
+the predicted row space. -/
+def squareHelperExactUpperContainment (kappa gadgetN : Nat) : Prop :=
+  mlBlockedSpdpSubspace
+      (discretePartition (squareHelperVarCount kappa gadgetN))
+      kappa kappa (squareHelperQ kappa gadgetN) ≤
+    squareHelperRowSpace kappa gadgetN
+
+/-- The exact normalized rank target for the intended square-helper
+polynomial candidate. -/
+def squareHelperExactRankTarget (kappa gadgetN : Nat) : Prop :=
+  mlBlockedSpdpRank (discretePartition (squareHelperVarCount kappa gadgetN))
+      kappa kappa (squareHelperQ kappa gadgetN) =
+    kappa * gadgetN
+
+/-- The concrete lower-bound Kronecker obligation for `squareHelperQ`.
+Differentiating row `t` in all its squared helpers should have coefficient
+`2^kappa` on row monomial `t` and zero on every other row monomial. -/
+def squareHelperDerivativeRowKronecker (kappa gadgetN : Nat) : Prop :=
+  ∀ s t : Fin (rowCount kappa gadgetN),
+    coeff (squareRowLinearExponent kappa gadgetN s)
+      (mlProj (iterDerivList (squareRowHelperSet kappa gadgetN t).toList
+        (squareHelperQ kappa gadgetN))) =
+      if s = t then (2 : Rat) ^ kappa else 0
+
+/-- For a fixed row, square-helper indices are injective in the helper slot. -/
+theorem squareHelperIndex_injective_right {kappa gadgetN : Nat}
+    (r : Fin (rowCount kappa gadgetN)) :
+    Function.Injective (squareHelperIndex kappa gadgetN r) := by
+  intro a b h
+  apply Fin.ext
+  exact Nat.succ.inj
+    (congrArg Fin.val (congrArg Prod.snd (finProdFinEquiv.injective h)))
+
+/-- Each square row-helper set has exactly `kappa` variables. -/
+theorem squareRowHelperSet_card (kappa gadgetN : Nat)
+    (r : Fin (rowCount kappa gadgetN)) :
+    (squareRowHelperSet kappa gadgetN r).card = kappa := by
+  unfold squareRowHelperSet
+  rw [Finset.card_image_iff.mpr]
+  · simp
+  · intro a _ b _ h
+    exact squareHelperIndex_injective_right (kappa := kappa)
+      (gadgetN := gadgetN) r h
+
+/-- Square row-helper derivative lists are admissible for the discrete
+partition. -/
+theorem squareRowHelperSet_toList_admissible (kappa gadgetN : Nat)
+    (r : Fin (rowCount kappa gadgetN)) :
+    isBlockAdmissible
+      (discretePartition (squareHelperVarCount kappa gadgetN))
+      (squareRowHelperSet kappa gadgetN r).toList :=
+  discretePartition_admissible_of_nodup
+    (squareRowHelperSet kappa gadgetN r).nodup_toList
+
+/-- The square-helper derivative rows are linearly independent as soon as the
+Kronecker coefficient obligation is discharged. -/
+theorem linearIndependent_squareHelper_derivativeRows_of_kronecker
+    {kappa gadgetN : Nat}
+    (hgap : squareHelperDerivativeRowKronecker kappa gadgetN) :
+    LinearIndependent Rat
+      (fun r : Fin (rowCount kappa gadgetN) =>
+        mlProj (iterDerivList (squareRowHelperSet kappa gadgetN r).toList
+          (squareHelperQ kappa gadgetN))) := by
+  classical
+  rw [linearIndependent_iff']
+  intro s w hw i hi
+  have hcoeff_zero :
+      coeff (squareRowLinearExponent kappa gadgetN i)
+        (∑ j ∈ s, w j •
+          mlProj (iterDerivList
+            (squareRowHelperSet kappa gadgetN j).toList
+            (squareHelperQ kappa gadgetN))) = 0 := by
+    rw [hw]
+    simp
+  simp only [coeff_sum, coeff_smul, smul_eq_mul] at hcoeff_zero
+  have hsum :
+      (∑ j ∈ s,
+        w j *
+          coeff (squareRowLinearExponent kappa gadgetN i)
+            (mlProj (iterDerivList
+              (squareRowHelperSet kappa gadgetN j).toList
+              (squareHelperQ kappa gadgetN)))) =
+        w i * (2 : Rat) ^ kappa := by
+    rw [Finset.sum_eq_single i]
+    · rw [hgap i i, if_pos rfl]
+    · intro j hj hji
+      rw [hgap i j, if_neg (fun hij => hji hij.symm), mul_zero]
+    · intro hnot
+      exact (hnot hi).elim
+  have hpow_ne : (2 : Rat) ^ kappa ≠ 0 := pow_ne_zero _ (by norm_num)
+  exact (mul_eq_zero.mp (hsum ▸ hcoeff_zero)).resolve_right hpow_ne
+
+/-- Conditional checked lower bound for the intended square-helper candidate:
+the only remaining lower-bound obligation is the explicit row-Kronecker
+coefficient statement above. -/
+theorem squareHelper_rank_lower_of_derivativeRowKronecker
+    {kappa gadgetN : Nat}
+    (hgap : squareHelperDerivativeRowKronecker kappa gadgetN) :
+    kappa * gadgetN ≤
+      mlBlockedSpdpRank
+        (discretePartition (squareHelperVarCount kappa gadgetN))
+        kappa kappa (squareHelperQ kappa gadgetN) := by
+  classical
+  have hli :=
+    linearIndependent_squareHelper_derivativeRows_of_kronecker
+      (kappa := kappa) (gadgetN := gadgetN) hgap
+  have hmem : ∀ r : Fin (rowCount kappa gadgetN),
+      mlProj (iterDerivList (squareRowHelperSet kappa gadgetN r).toList
+        (squareHelperQ kappa gadgetN)) ∈
+        mlBlockedSpdpSubspace
+          (discretePartition (squareHelperVarCount kappa gadgetN))
+          kappa kappa (squareHelperQ kappa gadgetN) := by
+    intro r
+    refine Submodule.subset_span ?_
+    refine ⟨(squareRowHelperSet kappa gadgetN r).toList,
+      (1 : MvPolynomial (Fin (squareHelperVarCount kappa gadgetN)) Rat),
+      ?_, ?_, ?_, ?_, ?_⟩
+    · rw [Finset.length_toList]
+      exact squareRowHelperSet_card kappa gadgetN r
+    · simp
+    · simp
+    · exact squareRowHelperSet_toList_admissible kappa gadgetN r
+    · simp
+  unfold mlBlockedSpdpRank
+  set row :
+      Fin (rowCount kappa gadgetN) →
+        mlBlockedSpdpSubspace
+          (discretePartition (squareHelperVarCount kappa gadgetN))
+          kappa kappa (squareHelperQ kappa gadgetN) :=
+    fun r => ⟨mlProj (iterDerivList
+        (squareRowHelperSet kappa gadgetN r).toList
+        (squareHelperQ kappa gadgetN)), hmem r⟩ with hrow
+  have hli_sub : LinearIndependent Rat row := by
+    rw [linearIndependent_iff'] at hli ⊢
+    intro s w hw i hi
+    apply hli s w ?_ i hi
+    have hval : (∑ j ∈ s, w j • row j).val =
+        (0 :
+          mlBlockedSpdpSubspace
+            (discretePartition (squareHelperVarCount kappa gadgetN))
+            kappa kappa (squareHelperQ kappa gadgetN)).val :=
+      congrArg Subtype.val hw
+    simpa [hrow] using hval
+  simpa [rowCount] using hli_sub.fintype_card_le_finrank
+
+/-- The isolated exact upper-containment would give the matching
+`kappa * gadgetN` upper bound. -/
+theorem squareHelper_rank_upper_of_exactUpperContainment
+    {kappa gadgetN : Nat}
+    (hupper : squareHelperExactUpperContainment kappa gadgetN) :
+    mlBlockedSpdpRank
+        (discretePartition (squareHelperVarCount kappa gadgetN))
+        kappa kappa (squareHelperQ kappa gadgetN) ≤
+      kappa * gadgetN := by
+  classical
+  haveI : Module.Finite Rat (squareHelperRowSpace kappa gadgetN) := by
+    unfold squareHelperRowSpace
+    exact Module.Finite.span_of_finite Rat (Set.finite_range _)
+  unfold mlBlockedSpdpRank
+  calc
+    Module.finrank Rat
+        (mlBlockedSpdpSubspace
+          (discretePartition (squareHelperVarCount kappa gadgetN))
+          kappa kappa (squareHelperQ kappa gadgetN))
+        ≤ Module.finrank Rat (squareHelperRowSpace kappa gadgetN) :=
+          Submodule.finrank_mono hupper
+    _ ≤ (Set.range (squareRowLinearMonomial kappa gadgetN)).toFinset.card := by
+          unfold squareHelperRowSpace
+          exact finrank_span_le_card _
+    _ ≤ Fintype.card (Fin (rowCount kappa gadgetN)) := by
+          rw [Set.toFinset_range]
+          exact Finset.card_image_le
+    _ = kappa * gadgetN := by
+          simp [rowCount]
+
+/-- Exact arbitrary-`kappa` equality follows from the concrete square-row
+Kronecker lower calculation and the exact upper-containment into the predicted
+row space. -/
+theorem squareHelperExactRankTarget_of_derivativeRowKronecker_and_exactUpperContainment
+    {kappa gadgetN : Nat}
+    (hgap : squareHelperDerivativeRowKronecker kappa gadgetN)
+    (hupper : squareHelperExactUpperContainment kappa gadgetN) :
+    squareHelperExactRankTarget kappa gadgetN := by
+  unfold squareHelperExactRankTarget
+  exact le_antisymm
+    (squareHelper_rank_upper_of_exactUpperContainment
+      (kappa := kappa) (gadgetN := gadgetN) hupper)
+    (squareHelper_rank_lower_of_derivativeRowKronecker
+      (kappa := kappa) (gadgetN := gadgetN) hgap)
+
 /-! ## Checked helper-row lower-bound model -/
 
 /-- Helper-only variable count for the checked lower-bound model. -/
@@ -92,22 +332,6 @@ noncomputable def rowHelperFamily (kappa gadgetN : Nat) :
     Finset (Finset (Fin (helperVarCount kappa gadgetN))) :=
   (Finset.univ : Finset (Fin (rowCount kappa gadgetN))).image
     (rowHelperSet kappa gadgetN)
-
-/-- A discrete partition: each local variable is its own block. -/
-noncomputable def discretePartition (n : Nat) : BlockPartition n where
-  numBlocks := n
-  assign := fun i => i
-
-/-- In the discrete partition, every nodup list is block-admissible. -/
-theorem discretePartition_admissible_of_nodup {n : Nat}
-    {S : List (Fin n)} (hS : S.Nodup) :
-    isBlockAdmissible (discretePartition n) S := by
-  constructor
-  · exact hS
-  · intro b
-    change (List.filter (fun i => decide (i = b)) S).length ≤ 1
-    simpa [List.count, List.countP_eq_length_filter] using
-      (List.nodup_iff_count_le_one.mp hS b)
 
 /-- Each row-helper set has exactly `kappa` variables. -/
 theorem rowHelperSet_card (kappa gadgetN : Nat)
@@ -162,13 +386,6 @@ mixed admissible helper sets may contribute extra rows. -/
 def helperBoolProductExactRankTarget (kappa gadgetN : Nat) : Prop :=
   mlBlockedSpdpRank (discretePartition (helperVarCount kappa gadgetN))
       kappa kappa (helperBoolProductQ kappa gadgetN) =
-    kappa * gadgetN
-
-/-- The exact normalized rank target for the intended square-helper
-polynomial candidate. -/
-def squareHelperExactRankTarget (kappa gadgetN : Nat) : Prop :=
-  mlBlockedSpdpRank (discretePartition (squareHelperVarCount kappa gadgetN))
-      kappa kappa (squareHelperQ kappa gadgetN) =
     kappa * gadgetN
 
 /-- Checked progress: the strict-`kappa` row-helper derivatives force at least
@@ -292,6 +509,9 @@ theorem squareHelper_rank_upper (kappa gadgetN : Nat) :
 #print axioms rowHelperFamily_card
 #print axioms helperBoolProduct_rank_lower
 #print axioms helperBoolProduct_energy_trigger_spdpRank_lower
+#print axioms squareHelper_rank_lower_of_derivativeRowKronecker
+#print axioms squareHelper_rank_upper_of_exactUpperContainment
+#print axioms squareHelperExactRankTarget_of_derivativeRowKronecker_and_exactUpperContainment
 #print axioms mlBlockedSpdpRank_le_allVarsPow
 #print axioms squareHelper_rank_upper
 
