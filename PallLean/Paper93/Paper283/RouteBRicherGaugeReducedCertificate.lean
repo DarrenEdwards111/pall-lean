@@ -197,6 +197,70 @@ theorem routeBReducedCertificate_of_richerFiniteRows_eigenvalueFloor
       routeBRicherFiniteRowsCandidateGauge_transportCertificate
         M n hn2 htb hns rows hcontain cover Q i hrow hextract hsource
 
+/-- End-to-end Route B per-instance certificate constructor for the same
+finite-row/eigenvalue-floor surface.  This is just the reduced certificate
+above promoted through `routeBPerInstanceCertificate_of_reducedCertificate`,
+so downstream work can stay on the many-row/windowed finite-span interface
+without re-entering the one-local-block Bridge A adapter. -/
+theorem routeBPerInstanceCertificate_of_richerFiniteRows_eigenvalueFloor
+    {N d : Nat}
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (alpha beta alpha0 : Real) (kappa gadgetN : Nat)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {theta delta rankLogRate lambdaFloor : Real}
+    (A : Matrix (Fin N) (Fin N) Real) (hA : A.PosSemidef)
+    (S : Finset (Fin N))
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (htheta : 0 < theta)
+    (halpha : 0 < alpha) (halpha0 : 0 < alpha0)
+    (hgadgetN : 2 <= gadgetN)
+    (hrate_nonneg : 0 <= rankLogRate)
+    (hdelta_rate : delta <= rankLogRate * (kappa : Real))
+    (hlambdaFloor_nonneg : 0 <= lambdaFloor)
+    (hfloor : forall i, i ∈ S -> lambdaFloor <= hA.1.eigenvalues i)
+    (hbudget :
+      rankLogRate *
+          ((∑ v ∈ activeSet (N := N) (d := d) alpha beta alpha0 G chi Phi,
+            (cookLevinPocketLocalGadgetFamily N alpha kappa gadgetN v).rank) :
+            Real) <=
+        (S.card : Real) * Real.log (1 + theta * lambdaFloor))
+    (hrank :
+      (Module.finrank Rat (finiteRowsSubmodule rows) : Real) <=
+        (A.rank : Real))
+    (hcontain :
+      RouteBRicherGaugeSPDPSubspaceContainment M n hn2 htb hns
+        (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows))
+    (cover :
+      RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns)
+    (Q : CoupledSheetPoly (flatCookLevinUVSplit M n hn2 htb hns))
+    (i : Fin m)
+    (hrow :
+      rows i =
+        CoupledSheetPoly.embed (flatCookLevinUVSplit M n hn2 htb hns) Q)
+    (hextract :
+      routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+          (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)) =
+        routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+          (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)
+          (CoupledSheetPoly.embed
+            (flatCookLevinUVSplit M n hn2 htb hns) Q))
+    (hsource :
+      SourceIdentityMinorLowerBound n
+        (flatCookLevinUVSplit M n hn2 htb hns)
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n) Q) :
+    RouteBPerInstanceCertificate M n hn2 htb hns :=
+  routeBPerInstanceCertificate_of_reducedCertificate
+    (routeBReducedCertificate_of_richerFiniteRows_eigenvalueFloor
+      M n hn2 htb hns alpha beta alpha0 kappa gadgetN G chi Phi
+      A hA S rows htheta halpha halpha0 hgadgetN hrate_nonneg
+      hdelta_rate hlambdaFloor_nonneg hfloor hbudget hrank hcontain cover
+      Q i hrow hextract hsource)
+
 /-! ## Axiom audit anchors -/
 
 #print axioms routeBRicherFiniteRowsCandidateGauge_admissible
@@ -204,5 +268,6 @@ theorem routeBReducedCertificate_of_richerFiniteRows_eigenvalueFloor
 #print axioms routeBRicherFiniteRowsCandidateGauge_rankCompatible_of_spanFinrank_le
 #print axioms routeBRicherFiniteRowsCandidateGauge_transportCertificate
 #print axioms routeBReducedCertificate_of_richerFiniteRows_eigenvalueFloor
+#print axioms routeBPerInstanceCertificate_of_richerFiniteRows_eigenvalueFloor
 
 end PallLean.Paper93.Paper283
