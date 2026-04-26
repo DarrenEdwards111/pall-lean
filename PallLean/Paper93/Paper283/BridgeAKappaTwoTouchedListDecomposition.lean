@@ -116,7 +116,7 @@ theorem cookLevinConstraintTouchesBlock_singleton_iff
       v.val / 3 = b.val := by
   unfold cookLevinConstraintTouchesBlock
   rw [hsupp]
-  simp [Finset.mem_singleton]
+  simp only [Finset.mem_singleton]
   constructor
   · rintro ⟨_, rfl, hassign⟩
     have := congrArg Fin.val hassign
