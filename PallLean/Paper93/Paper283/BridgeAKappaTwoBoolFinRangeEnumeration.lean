@@ -27,6 +27,8 @@ No new axioms.  No `sorry`.
 
 namespace PallLean.Paper93.Paper283
 
+open PaperFaithfulSeparation
+
 attribute [local instance] Classical.dec
 
 /-! ## Section A: division and range arithmetic helpers -/
@@ -90,9 +92,9 @@ private theorem range_filter_div3_eq_at_base (k : ℕ) :
   have hp2 : decide ((3 * k + 2 : ℕ) / 3 = k) = true := decide_eq_true_iff.mpr hd2
   show ((3 * k) :: (3 * k + 1) :: (3 * k + 2) :: ([] : List ℕ)).filter
         (fun i => decide (i / 3 = k)) = _
-  rw [List.filter_cons_of_pos hp0]
-  rw [List.filter_cons_of_pos hp1]
-  rw [List.filter_cons_of_pos hp2]
+  rw [List.filter_cons_of_pos (p := fun i => decide (i / 3 = k)) hp0]
+  rw [List.filter_cons_of_pos (p := fun i => decide (i / 3 = k)) hp1]
+  rw [List.filter_cons_of_pos (p := fun i => decide (i / 3 = k)) hp2]
   rw [List.filter_nil]
 
 /-! ## Section C: range-side step from `3*k+3` upward -/
