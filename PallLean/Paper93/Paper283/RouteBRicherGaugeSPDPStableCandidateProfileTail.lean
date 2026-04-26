@@ -174,6 +174,36 @@ def RouteBRicherSPDPStableCandidateLogWindowChosenComplementInvariant
       routeBRicherSPDPStableCandidateProjectionComplement
         M n hn2 htb hns tail
 
+/-- Route B's current formal interface for the paper's Section 39
+"holographic invariance" principle.
+
+This is intentionally a thin naming layer over the stable-tail work.  In the
+Route B finite-row setting, the holographic-invariance content is:
+
+* log-window/profile orbit coverage: every log-sized admissible generator row
+  seen from the concrete NP head and selected tail rows remains on the finite
+  boundary span;
+* log-window complement invariance: the chosen projection complement is
+  invisible to the same generator operators.
+
+This is not, by itself, a completed full Section 39 theorem for the current
+unbounded SPDP row-closure API.  Promotion to
+`RouteBRicherSPDPStableCandidateObligations` below still requires the explicit
+window side condition `RouteBRicherSPDPStableCandidateAdmissibleQueriesLogWindowed`
+or a replacement windowed consumer API. -/
+structure RouteBRicherSPDPStableCandidateHolographicInvariance
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    Prop where
+  log_window_orbit_coverage :
+    RouteBRicherSPDPStableCandidateLogWindowOrbitMlCovering
+      M n hn2 htb hns tail
+  log_window_complement_invariant :
+    RouteBRicherSPDPStableCandidateLogWindowChosenComplementInvariant
+      M n hn2 htb hns tail
+
 /-- A long admissible query refutes the global claim that all admissible SPDP
 queries are log-windowed. -/
 theorem routeBRicherSPDPStableCandidate_not_admissibleQueriesLogWindowed_of_long_admissible
@@ -522,6 +552,48 @@ theorem routeBRicherSPDPStableCandidate_obligations_of_logWindowOrbitMlCovering_
     (routeBRicherSPDPStableCandidate_chosenComplementInvariant_of_logWindowChosenComplementInvariant
       M n hn2 htb hns tail hinvariant hwindow)
 
+/-- The holographic-invariance interface exposes the complement half as the
+same `KernelGeneratorInvisible` obstruction used by the stable-candidate core,
+provided the current unbounded SPDP API is restricted to log-window queries. -/
+theorem routeBRicherSPDPStableCandidate_kernelGeneratorInvisible_of_holographicInvariance
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (holo :
+      RouteBRicherSPDPStableCandidateHolographicInvariance
+        M n hn2 htb hns tail)
+    (hwindow :
+      RouteBRicherSPDPStableCandidateAdmissibleQueriesLogWindowed
+        M n hn2 htb hns) :
+    RouteBRicherSPDPStableCandidateKernelGeneratorInvisible
+      M n hn2 htb hns tail :=
+  (routeBRicherSPDPStableCandidate_kernelGeneratorInvisible_iff_chosenComplementInvariant
+    M n hn2 htb hns tail).mpr
+    (routeBRicherSPDPStableCandidate_chosenComplementInvariant_of_logWindowChosenComplementInvariant
+      M n hn2 htb hns tail holo.log_window_complement_invariant hwindow)
+
+/-- Thin Section 39-facing wrapper: once the missing log-window consumer bridge
+is supplied, holographic invariance discharges the stable-tail/complement
+obligations. -/
+theorem routeBRicherSPDPStableCandidate_obligations_of_holographicInvariance
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (holo :
+      RouteBRicherSPDPStableCandidateHolographicInvariance
+        M n hn2 htb hns tail)
+    (hwindow :
+      RouteBRicherSPDPStableCandidateAdmissibleQueriesLogWindowed
+        M n hn2 htb hns) :
+    RouteBRicherSPDPStableCandidateObligations
+      M n hn2 htb hns tail :=
+  routeBRicherSPDPStableCandidate_obligations_of_logWindowOrbitMlCovering_logWindowChosenComplementInvariant
+    M n hn2 htb hns tail
+    holo.log_window_orbit_coverage hwindow
+    holo.log_window_complement_invariant
+
 /-- `MlCovering` discharges `SelectedRowClosure` via `OrbitMlCovering`. -/
 theorem routeBRicherSPDPStableCandidate_selectedRowClosure_of_mlCovering
     (M : DTM) (n : Nat) (hn2 : n >= 2)
@@ -694,6 +766,7 @@ set.
 #print axioms RouteBRicherSPDPStableCandidateLogWindowOrbitMlCovering
 #print axioms RouteBRicherSPDPStableCandidateAdmissibleQueriesLogWindowed
 #print axioms RouteBRicherSPDPStableCandidateLogWindowChosenComplementInvariant
+#print axioms RouteBRicherSPDPStableCandidateHolographicInvariance
 #print axioms RouteBRicherSPDPStableCandidateResidualGeneratorZero
 #print axioms routeBRicherSPDPStableCandidate_not_admissibleQueriesLogWindowed_of_long_admissible
 #print axioms routeBRicherSPDPStableCandidate_not_admissibleQueriesLogWindowed_of_highDegree_admissible
@@ -713,6 +786,8 @@ set.
 #print axioms routeBRicherSPDPStableCandidate_obligations_of_admissibleOrbitMlCovering_kernelGeneratorZero
 #print axioms routeBRicherSPDPStableCandidate_obligations_of_admissibleOrbitMlCovering_chosenComplementInvariant
 #print axioms routeBRicherSPDPStableCandidate_obligations_of_logWindowOrbitMlCovering_logWindowChosenComplementInvariant
+#print axioms routeBRicherSPDPStableCandidate_kernelGeneratorInvisible_of_holographicInvariance
+#print axioms routeBRicherSPDPStableCandidate_obligations_of_holographicInvariance
 #print axioms routeBRicherSPDPStableCandidate_mlCovering_for_multilinearTail
 #print axioms routeBRicherSPDPStableCandidate_logWindowOrbitMlCovering_for_multilinearTail
 #print axioms routeBRicherSPDPStableCandidate_residualInvisible_iff_residualGeneratorZero_of_mlCovering
