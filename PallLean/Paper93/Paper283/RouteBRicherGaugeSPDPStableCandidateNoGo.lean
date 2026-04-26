@@ -1,0 +1,176 @@
+import PallLean.Paper93.Paper283.RouteBRicherGaugeSPDPStableCandidate
+import PallLean.Paper93.Paper283.BridgeAMlProjLinear
+import PallLean.IterDerivHelpers
+
+/-!
+# Kernel-form characterization and no-go criteria for the smaller
+  SPDP-stable candidate
+
+This file ports the existence-of-witness no-go criteria from
+`RouteBRicherGaugeConcreteMultilinearResidual` to the smaller concrete-NP
+prepended SPDP-stable candidate (`RouteBRicherGaugeSPDPStableCandidate`).
+The kernel-form predicate and equivalence live in
+`RouteBRicherGaugeSPDPStableCandidate`.
+
+Unlike the broad multilinear-tail case, the smaller candidate's residual
+obligation is `ResidualInvisible`: only the *projection* of the residual
+generator must vanish, not the generator itself.  Consequently the
+refutation criteria here are weaker — strictly more candidate tails survive
+them — and a concrete refutation requires a kernel vector whose generator's
+projection (not the generator) is nonzero.
+
+The companion file `RouteBRicherGaugeSPDPStableCandidateProfileTail` records
+the structural narrowing complementary to these no-gos: any tail that
+covers every `mlProj` output already inherits the strict broad-tail no-go
+(see
+`routeBRicherSPDPStableCandidate_residualInvisible_iff_residualGeneratorZero_of_mlCovering`).
+-/
+
+namespace PallLean.Paper93.Paper283
+
+open scoped BigOperators
+open MultilinearSPDP
+open PaperFaithfulCompilation
+open PaperFaithfulSeparation
+open TuringMachine
+open PallLean.Paper93.DeepMath.PathB
+
+attribute [local instance] Classical.dec
+
+/-- Idempotency of the smaller-candidate projection.  Lifts the
+`is_idempotent` field on `CandidateGauge` through `routeBNFrameCandidateAsSATGauge`,
+exactly mirroring the manipulation used in `Residual.lean`. -/
+theorem routeBRicherSPDPStableCandidate_projection_idempotent
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns) :
+    routeBRicherSPDPStableCandidateProjection M n hn2 htb hns tail
+        (routeBRicherSPDPStableCandidateProjection
+          M n hn2 htb hns tail p) =
+      routeBRicherSPDPStableCandidateProjection M n hn2 htb hns tail p := by
+  have hidem :=
+    (routeBRicherSPDPStableCandidateGauge M n hn2 htb hns tail).is_idempotent
+  have happ := congrArg (fun L => L p) hidem
+  simpa [routeBRicherSPDPStableCandidateProjection,
+    routeBRicherSPDPStableCandidateGauge,
+    LinearMap.comp_apply] using happ
+
+/-- No-go criterion (general): existence of an admissible `(p, S, shift)`
+with `Π p = 0` but `Π(gen(p, S, shift)) ≠ 0` refutes
+`ResidualInvisible`. -/
+theorem routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_kernelGenerator_ne_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hbad :
+      exists (spdpKappa ell : Nat)
+        (p : SATDeciderGaugeSpace M n hn2 htb hns)
+        (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+        (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+        S.length = spdpKappa ∧
+        shift.totalDegree <= ell ∧
+        shift.vars <= S.toFinset ∧
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition S ∧
+        routeBRicherSPDPStableCandidateProjection
+          M n hn2 htb hns tail p = 0 ∧
+        routeBRicherSPDPStableCandidateProjection
+          M n hn2 htb hns tail
+          (routeBSPDPGeneratorRow M n hn2 htb hns p S shift) ≠ 0) :
+    ¬ RouteBRicherSPDPStableCandidateResidualInvisible
+        M n hn2 htb hns tail := by
+  intro hinv
+  obtain ⟨spdpKappa, ell, p, S, shift,
+    hSlen, hshiftDegree, hshiftVars, hadm, hker, hne⟩ := hbad
+  have hkernel :=
+    (routeBRicherSPDPStableCandidate_residualInvisible_iff_kernelGeneratorInvisible
+      M n hn2 htb hns tail).mp hinv
+  exact hne
+    (hkernel spdpKappa ell p S shift
+      hSlen hshiftDegree hshiftVars hadm hker)
+
+/-- No-go criterion (specialization to empty derivative list and constant
+shift `1`): existence of `p` with `Π p = 0` but `Π(mlProj p) ≠ 0` refutes
+`ResidualInvisible`.  This is the smaller-candidate analog of the
+multilinear-tail diagonal no-go, weakened to the projection of the
+multilinear part. -/
+theorem routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_kernel_mlProj_projection_ne_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hbad :
+      exists p : SATDeciderGaugeSpace M n hn2 htb hns,
+        routeBRicherSPDPStableCandidateProjection
+          M n hn2 htb hns tail p = 0 ∧
+        routeBRicherSPDPStableCandidateProjection
+          M n hn2 htb hns tail (mlProj p) ≠ 0) :
+    ¬ RouteBRicherSPDPStableCandidateResidualInvisible
+        M n hn2 htb hns tail := by
+  rcases hbad with ⟨p, hker, hne⟩
+  apply
+    routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_kernelGenerator_ne_zero
+      M n hn2 htb hns tail
+  refine ⟨0, 0, p,
+    ([] : List (Fin (RouteBCookLevinDim M n hn2 htb hns))),
+    (1 : SATDeciderGaugeSpace M n hn2 htb hns),
+    by simp, by simp [MvPolynomial.totalDegree_one],
+    by simp [MvPolynomial.vars_one],
+    ?_,
+    hker, ?_⟩
+  · -- admissibility for the empty derivative list
+    constructor
+    · simp
+    · intro b; simp
+  · -- gen p [] 1 = mlProj (1 * iterDerivList [] p) = mlProj p
+    simpa [routeBSPDPGeneratorRow, SPDP.iterDerivList, mlProj_one] using hne
+
+/-- Consequence: residual invisibility forces `mlProj p` into `Π`'s kernel
+whenever `p` itself is in `Π`'s kernel.  This is the smaller-candidate
+analog of `routeBRicherConcreteNPPrependedMultilinear_residualGenerator_zero_implies_kernel_mlProj_zero`,
+weakened from `mlProj p = 0` to `Π(mlProj p) = 0`. -/
+theorem routeBRicherSPDPStableCandidate_residualInvisible_implies_kernel_mlProj_projection_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hinv :
+      RouteBRicherSPDPStableCandidateResidualInvisible
+        M n hn2 htb hns tail)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns)
+    (hker :
+      routeBRicherSPDPStableCandidateProjection
+        M n hn2 htb hns tail p = 0) :
+    routeBRicherSPDPStableCandidateProjection
+        M n hn2 htb hns tail (mlProj p) = 0 := by
+  have hker' :=
+    (routeBRicherSPDPStableCandidate_residualInvisible_iff_kernelGeneratorInvisible
+      M n hn2 htb hns tail).mp hinv
+  have hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        ([] : List (Fin (RouteBCookLevinDim M n hn2 htb hns))) := by
+    constructor
+    · simp
+    · intro b; simp
+  have h :=
+    hker' 0 0 p
+      ([] : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+      (1 : SATDeciderGaugeSpace M n hn2 htb hns)
+      (by simp) (by simp [MvPolynomial.totalDegree_one])
+      (by simp [MvPolynomial.vars_one]) hadm hker
+  simpa [routeBSPDPGeneratorRow, SPDP.iterDerivList, mlProj_one] using h
+
+/-! ## Axiom audit anchors -/
+
+#print axioms RouteBRicherSPDPStableCandidateKernelGeneratorInvisible
+#print axioms routeBRicherSPDPStableCandidate_projection_idempotent
+#print axioms routeBRicherSPDPStableCandidate_residualInvisible_iff_kernelGeneratorInvisible
+#print axioms routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_kernelGenerator_ne_zero
+#print axioms routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_kernel_mlProj_projection_ne_zero
+#print axioms routeBRicherSPDPStableCandidate_residualInvisible_implies_kernel_mlProj_projection_zero
+
+end PallLean.Paper93.Paper283
