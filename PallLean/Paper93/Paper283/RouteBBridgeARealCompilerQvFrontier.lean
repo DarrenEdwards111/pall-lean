@@ -148,11 +148,57 @@ theorem cookLevinCompilerVertexQv_rank_zero_zero_le_one
   compilerVertexQv_rank_zero_zero_le_one
     (cook_levin_compilation M n hn htb hns) v
 
+/-! ## Nondegenerate lower-bound obstruction -/
+
+/-- If the requested strict derivative order is larger than the ambient
+variable count, the blocked multilinear SPDP subspace is zero: every generator
+would require a nodup derivative list of length `kappa` in `Fin N`. -/
+theorem mlBlockedSpdpSubspace_eq_bot_of_numVars_lt_kappa {N : Nat}
+    (B : BlockPartition N) (kappa ell : Nat)
+    (p : MvPolynomial (Fin N) Rat) (hN : N < kappa) :
+    mlBlockedSpdpSubspace B kappa ell p = ⊥ := by
+  apply le_antisymm
+  · apply Submodule.span_le.mpr
+    rintro q ⟨S, _m, hlen, _hdeg, _hvars, hadm, _hq⟩
+    have hcard : S.toFinset.card = S.length :=
+      List.toFinset_card_of_nodup hadm.1
+    have hle : S.length ≤ N := by
+      rw [← hcard]
+      simpa using Finset.card_le_univ (S.toFinset : Finset (Fin N))
+    omega
+  · exact bot_le
+
+/-- Consequently the strict blocked multilinear SPDP rank is zero above the
+ambient variable count. -/
+theorem mlBlockedSpdpRank_eq_zero_of_numVars_lt_kappa {N : Nat}
+    (B : BlockPartition N) (kappa ell : Nat)
+    (p : MvPolynomial (Fin N) Rat) (hN : N < kappa) :
+    mlBlockedSpdpRank B kappa ell p = 0 := by
+  unfold mlBlockedSpdpRank
+  rw [mlBlockedSpdpSubspace_eq_bot_of_numVars_lt_kappa B kappa ell p hN]
+  simp
+
 /-- The exact nondegenerate theorem still needed for paper-faithful Bridge A
 with this candidate.  This is intentionally a `Prop`, not an axiom. -/
 def CompilerVertexQvBridgeARankTarget {M : TuringMachine.DTM} {n : Nat}
     (T : CompiledTableau M n) (v : Fin T.numVars) (kappa : Nat) : Prop :=
   kappa ≤ mlBlockedSpdpRank T.partition kappa kappa (compilerVertexQv T v)
+
+/-- The raw nondegenerate target is not a theorem for arbitrary `kappa`: once
+`kappa` exceeds the compiler ambient variable count, the right-hand side is
+zero.  Any paper-faithful Bridge A instance must therefore supply a scale
+condition tying the requested local rank threshold to the actual local variable
+space, not just an energy hypothesis. -/
+theorem not_CompilerVertexQvBridgeARankTarget_of_numVars_lt_kappa
+    {M : TuringMachine.DTM} {n : Nat}
+    (T : CompiledTableau M n) (v : Fin T.numVars) (kappa : Nat)
+    (hN : T.numVars < kappa) :
+    ¬ CompilerVertexQvBridgeARankTarget T v kappa := by
+  intro htarget
+  unfold CompilerVertexQvBridgeARankTarget at htarget
+  rw [mlBlockedSpdpRank_eq_zero_of_numVars_lt_kappa
+    T.partition kappa kappa (compilerVertexQv T v) hN] at htarget
+  omega
 
 /-- Normalized exact-rank variant sometimes needed by downstream Route B
 interfaces.  The current compiler does not prove this for the filtered
@@ -168,5 +214,7 @@ def CompilerVertexQvExactRankTarget {M : TuringMachine.DTM} {n : Nat}
 #print axioms mlBlockedSpdpRank_zero_zero_le_one
 #print axioms compilerVertexQv_rank_zero_zero_le_one
 #print axioms cookLevinCompilerVertexQv_rank_zero_zero_le_one
+#print axioms mlBlockedSpdpRank_eq_zero_of_numVars_lt_kappa
+#print axioms not_CompilerVertexQvBridgeARankTarget_of_numVars_lt_kappa
 
 end PallLean.Paper93.Paper283
