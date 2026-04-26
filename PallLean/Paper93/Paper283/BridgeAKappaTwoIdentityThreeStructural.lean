@@ -330,3 +330,248 @@ theorem boolFactors_mapped_form
 end BridgeAKappaTwoIdentityThreeStructural
 
 end PallLean.Paper93.Paper283
+
+namespace PallLean.Paper93.Paper283
+
+namespace BridgeAKappaTwoIdentityThreeStructural
+
+open MvPolynomial
+open MultilinearSPDP
+open PaperFaithfulSeparation
+open SPDP
+open BridgeABlockProductRule
+open BridgeAKappaTwoTwoFoldLeibnizExpansion
+open BridgeAKappaTwoFactorPairLemmas
+open BridgeAKappaTwoIdentityOne
+open BridgeAKappaTwoIdentityFour
+open BridgeAKappaTwoIdentityThreeAux
+open BridgeAKappaTwoListInductionHelpers
+
+attribute [local instance] Classical.dec
+
+/-! ## Section D: bool-prefix peel-off
+
+The first two bool factors (`bool@3k`, `bool@3k+1`) are fully inert at
+`(u, v) = (uIdx, vIdx)` (Section A).  By
+`pderivListProdSumTwice_cons_inert` (from `IdentityTwoAux`), each can
+be peeled off as a multiplicative prefix.
+-/
+
+/-- Pull `bool@3k` through the two-fold Leibniz sum. -/
+theorem pull_bool_at_3k_through_pderivListProdSumTwice
+    (n k : Nat) (hk2 : 3 * k + 3 < n)
+    (rest : List (MvPolynomial (Fin n) ℚ)) :
+    pderivListProdSumTwice (uIdx n k hk2) (vIdx n k hk2)
+        (boolFactorPoly n ⟨3 * k, by omega⟩ :: rest) =
+      boolFactorPoly n ⟨3 * k, by omega⟩ *
+        pderivListProdSumTwice (uIdx n k hk2) (vIdx n k hk2) rest := by
+  obtain ⟨hu, hv⟩ := bool_at_3k_inert n k hk2
+  exact BridgeAKappaTwoIdentityTwoAux.pderivListProdSumTwice_cons_inert
+    (uIdx n k hk2) (vIdx n k hk2)
+    (boolFactorPoly n ⟨3 * k, by omega⟩) rest hu hv
+
+/-- Pull `bool@3k+1` through the two-fold Leibniz sum. -/
+theorem pull_bool_at_3k_plus_1_through_pderivListProdSumTwice
+    (n k : Nat) (hk2 : 3 * k + 3 < n)
+    (rest : List (MvPolynomial (Fin n) ℚ)) :
+    pderivListProdSumTwice (uIdx n k hk2) (vIdx n k hk2)
+        (boolFactorPoly n ⟨3 * k + 1, by omega⟩ :: rest) =
+      boolFactorPoly n ⟨3 * k + 1, by omega⟩ *
+        pderivListProdSumTwice (uIdx n k hk2) (vIdx n k hk2) rest := by
+  obtain ⟨hu, hv⟩ := bool_at_3k_plus_1_inert n k hk2
+  exact BridgeAKappaTwoIdentityTwoAux.pderivListProdSumTwice_cons_inert
+    (uIdx n k hk2) (vIdx n k hk2)
+    (boolFactorPoly n ⟨3 * k + 1, by omega⟩) rest hu hv
+
+/-- Pull `cadj@(3k-1, 3k)` (with any coefficient `c`) through the
+two-fold Leibniz sum. -/
+theorem pull_cadj_at_3k_minus_1_through_pderivListProdSumTwice
+    (n k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n) (c : ℚ)
+    (rest : List (MvPolynomial (Fin n) ℚ)) :
+    pderivListProdSumTwice (uIdx n k hk2) (vIdx n k hk2)
+        (cadjFactorPoly c
+          (⟨3 * k - 1, by omega⟩ : Fin n)
+          (⟨3 * k - 1 + 1, by omega⟩ : Fin n) :: rest) =
+      cadjFactorPoly c
+        (⟨3 * k - 1, by omega⟩ : Fin n)
+        (⟨3 * k - 1 + 1, by omega⟩ : Fin n) *
+        pderivListProdSumTwice (uIdx n k hk2) (vIdx n k hk2) rest := by
+  obtain ⟨hu, hv⟩ := cadj_at_3k_minus_1_inert n k hk1 hk2 c
+  exact BridgeAKappaTwoIdentityTwoAux.pderivListProdSumTwice_cons_inert
+    (uIdx n k hk2) (vIdx n k hk2) _ rest hu hv
+
+/-- Pull `cadj@(3k, 3k+1)` (with any coefficient `c`) through the
+two-fold Leibniz sum. -/
+theorem pull_cadj_at_3k_through_pderivListProdSumTwice
+    (n k : Nat) (hk2 : 3 * k + 3 < n) (c : ℚ)
+    (rest : List (MvPolynomial (Fin n) ℚ)) :
+    pderivListProdSumTwice (uIdx n k hk2) (vIdx n k hk2)
+        (cadjFactorPoly c
+          (⟨3 * k, by omega⟩ : Fin n)
+          (⟨3 * k + 1, by omega⟩ : Fin n) :: rest) =
+      cadjFactorPoly c
+        (⟨3 * k, by omega⟩ : Fin n)
+        (⟨3 * k + 1, by omega⟩ : Fin n) *
+        pderivListProdSumTwice (uIdx n k hk2) (vIdx n k hk2) rest := by
+  obtain ⟨hu, hv⟩ := cadj_at_3k_inert n k hk2 c
+  exact BridgeAKappaTwoIdentityTwoAux.pderivListProdSumTwice_cons_inert
+    (uIdx n k hk2) (vIdx n k hk2) _ rest hu hv
+
+/-! ## Section E: residual list after inert peel-off
+
+After peeling all the inert factors at the front of the touched-list
+(but before the active factors begin), what remains is a list of
+"interspersed" factors where some are active and some are inert.
+
+The cleanest encoding here is to apply `pderivListProdSumTwice_append`
+on the touched-list re-grouping
+`(allInertFactors) ++ (allActiveFactors)`, but this requires a list
+permutation (which doesn't change `prod` but does change the recursive
+structure of `pderivListProdSumTwice`).
+
+We **avoid** the permutation by using `pderiv_pderiv_list_prod` to
+re-ground both sides as `pderiv v (pderiv u (list.prod))`, which is
+permutation-invariant (since `prod` is commutative).
+-/
+
+/-- The two-fold Leibniz sum is invariant under list permutations
+(both sides equal `pderiv w (pderiv v (list.prod))`, and `prod` is
+permutation-invariant in a commutative ring). -/
+theorem pderivListProdSumTwice_perm
+    {σ : Type*} [DecidableEq σ] {R : Type*} [CommRing R]
+    (v w : σ) (l₁ l₂ : List (MvPolynomial σ R))
+    (hperm : l₁.Perm l₂) :
+    pderivListProdSumTwice v w l₁ = pderivListProdSumTwice v w l₂ := by
+  have h1 := pderiv_pderiv_list_prod (R := R) v w l₁
+  have h2 := pderiv_pderiv_list_prod (R := R) v w l₂
+  rw [← h1, ← h2]
+  rw [List.Perm.prod_eq hperm]
+
+/-! ## Axiom audit anchors -/
+
+#print axioms pull_bool_at_3k_through_pderivListProdSumTwice
+#print axioms pull_bool_at_3k_plus_1_through_pderivListProdSumTwice
+#print axioms pull_cadj_at_3k_minus_1_through_pderivListProdSumTwice
+#print axioms pull_cadj_at_3k_through_pderivListProdSumTwice
+#print axioms pderivListProdSumTwice_perm
+
+end BridgeAKappaTwoIdentityThreeStructural
+
+end PallLean.Paper93.Paper283
+
+namespace PallLean.Paper93.Paper283
+
+namespace BridgeAKappaTwoIdentityThreeStructural
+
+open MvPolynomial
+open MultilinearSPDP
+open PaperFaithfulSeparation
+open SPDP
+open BridgeABlockProductRule
+open BridgeAKappaTwoTwoFoldLeibnizExpansion
+open BridgeAKappaTwoFactorPairLemmas
+open BridgeAKappaTwoIdentityOne
+open BridgeAKappaTwoIdentityFour
+open BridgeAKappaTwoIdentityThreeAux
+open BridgeAKappaTwoListInductionHelpers
+
+attribute [local instance] Classical.dec
+
+/-! ## Section F: factor partition for identity (3)
+
+We construct two sub-lists of the literal touched-list (mapped through
+`(1 - c.poly)`):
+
+* `inertFactorsList` — collects all factors fully inert at
+  `(u, v) = (uIdx, vIdx)`: `bool@3k`, `bool@3k+1`,
+  `adj@3k-1`, `adj@3k`, and for each `q : Fin numStates`,
+  `trans@3k-1_q`, `trans@3k_q`.
+* `activeFactorsList` — the remaining factors:
+  `bool@3k+2`, `adj@3k+1`, `adj@3k+2`, and for each `q`,
+  `trans@3k+1_q`, `trans@3k+2_q`.
+
+Both are subsets of the touched-list with the same `prod` (modulo
+permutation). -/
+
+/-- The "inert factors" list: all factors of the touched-list (mapped
+through `1 - c.poly`) which are fully inert at `(uIdx, vIdx)`. -/
+noncomputable def inertFactorsList
+    (M : TuringMachine.DTM) (n : Nat)
+    (k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n) :
+    List (MvPolynomial (Fin n) ℚ) :=
+  [boolFactorPoly n ⟨3 * k, by omega⟩,
+   boolFactorPoly n ⟨3 * k + 1, by omega⟩,
+   cadjFactorPoly 1 (⟨3 * k - 1, by omega⟩ : Fin n)
+     (⟨3 * k - 1 + 1, by omega⟩ : Fin n),
+   cadjFactorPoly 1 (⟨3 * k, by omega⟩ : Fin n)
+     (⟨3 * k + 1, by omega⟩ : Fin n)] ++
+  (List.finRange M.numStates).flatMap (fun q =>
+    [cadjFactorPoly (transCoeff M q)
+       (⟨3 * k - 1, by omega⟩ : Fin n)
+       (⟨3 * k - 1 + 1, by omega⟩ : Fin n),
+     cadjFactorPoly (transCoeff M q)
+       (⟨3 * k, by omega⟩ : Fin n)
+       (⟨3 * k + 1, by omega⟩ : Fin n)])
+
+/-- The "active factors" list: complement of the inert list. -/
+noncomputable def activeFactorsList
+    (M : TuringMachine.DTM) (n : Nat)
+    (k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n) :
+    List (MvPolynomial (Fin n) ℚ) :=
+  [boolFactorPoly n ⟨3 * k + 2, by omega⟩,
+   cadjFactorPoly 1 (⟨3 * k + 1, by omega⟩ : Fin n)
+     (⟨3 * k + 2, by omega⟩ : Fin n),
+   cadjFactorPoly 1 (⟨3 * k + 2, by omega⟩ : Fin n)
+     (⟨3 * k + 3, hk2⟩ : Fin n)] ++
+  (List.finRange M.numStates).flatMap (fun q =>
+    [cadjFactorPoly (transCoeff M q)
+       (⟨3 * k + 1, by omega⟩ : Fin n)
+       (⟨3 * k + 2, by omega⟩ : Fin n),
+     cadjFactorPoly (transCoeff M q)
+       (⟨3 * k + 2, by omega⟩ : Fin n)
+       (⟨3 * k + 3, hk2⟩ : Fin n)])
+
+/-- Every factor in `inertFactorsList` is inert under `pderiv (uIdx)`. -/
+theorem inertFactorsList_inert_at_u
+    (M : TuringMachine.DTM) (n : Nat)
+    (k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n)
+    (f : MvPolynomial (Fin n) ℚ)
+    (hf : f ∈ inertFactorsList M n k hk1 hk2) :
+    MvPolynomial.pderiv (uIdx n k hk2) f = 0 := by
+  unfold inertFactorsList at hf
+  simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false,
+    List.mem_flatMap, List.mem_finRange] at hf
+  rcases hf with ((rfl | rfl | rfl | rfl) | ⟨q, _hq, rfl | rfl⟩)
+  · exact (bool_at_3k_inert n k hk2).1
+  · exact (bool_at_3k_plus_1_inert n k hk2).1
+  · exact (cadj_at_3k_minus_1_inert n k hk1 hk2 1).1
+  · exact (cadj_at_3k_inert n k hk2 1).1
+  · exact (cadj_at_3k_minus_1_inert n k hk1 hk2 (transCoeff M q)).1
+  · exact (cadj_at_3k_inert n k hk2 (transCoeff M q)).1
+
+/-- Every factor in `inertFactorsList` is inert under `pderiv (vIdx)`. -/
+theorem inertFactorsList_inert_at_v
+    (M : TuringMachine.DTM) (n : Nat)
+    (k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n)
+    (f : MvPolynomial (Fin n) ℚ)
+    (hf : f ∈ inertFactorsList M n k hk1 hk2) :
+    MvPolynomial.pderiv (vIdx n k hk2) f = 0 := by
+  unfold inertFactorsList at hf
+  simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false,
+    List.mem_flatMap, List.mem_finRange] at hf
+  rcases hf with ((rfl | rfl | rfl | rfl) | ⟨q, _hq, rfl | rfl⟩)
+  · exact (bool_at_3k_inert n k hk2).2
+  · exact (bool_at_3k_plus_1_inert n k hk2).2
+  · exact (cadj_at_3k_minus_1_inert n k hk1 hk2 1).2
+  · exact (cadj_at_3k_inert n k hk2 1).2
+  · exact (cadj_at_3k_minus_1_inert n k hk1 hk2 (transCoeff M q)).2
+  · exact (cadj_at_3k_inert n k hk2 (transCoeff M q)).2
+
+/-! ## Axiom audit anchors -/
+
+#print axioms inertFactorsList_inert_at_u
+#print axioms inertFactorsList_inert_at_v
+
+end BridgeAKappaTwoIdentityThreeStructural
+
+end PallLean.Paper93.Paper283
