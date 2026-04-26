@@ -184,6 +184,85 @@ def CompilerVertexQvBridgeARankTarget {M : TuringMachine.DTM} {n : Nat}
     (T : CompiledTableau M n) (v : Fin T.numVars) (kappa : Nat) : Prop :=
   kappa ≤ mlBlockedSpdpRank T.partition kappa kappa (compilerVertexQv T v)
 
+/-- Any singleton derivative list is block-admissible. -/
+theorem isBlockAdmissible_singleton {N : Nat}
+    (B : BlockPartition N) (i : Fin N) :
+    isBlockAdmissible B [i] := by
+  constructor
+  · simp
+  · intro b
+    by_cases h : B.assign i = b
+    · simp [h]
+    · simp [h]
+
+/-- A nonzero first-order multilinear SPDP row gives first-order rank at
+least one.  This is the smallest scale-restricted nondegenerate Bridge A
+wrapper: all compiler-specific work is now the row nonvanishing proof. -/
+theorem mlBlockedSpdpRank_one_le_of_nonzero_derivative {N : Nat}
+    (B : BlockPartition N) (p : MvPolynomial (Fin N) Rat) (i : Fin N)
+    (hrow : mlProj (iterDerivList [i] p) ≠ 0) :
+    1 ≤ mlBlockedSpdpRank B 1 1 p := by
+  classical
+  let row : MvPolynomial (Fin N) Rat := mlProj (1 * iterDerivList [i] p)
+  have hmem : row ∈ mlBlockedSpdpSubspace B 1 1 p := by
+    dsimp [row]
+    exact mlProj_deriv_mem B 1 1 p [i] (by simp)
+      (isBlockAdmissible_singleton B i)
+  have hrow' : row ≠ 0 := by
+    dsimp [row]
+    simpa using hrow
+  have hsub_ne : mlBlockedSpdpSubspace B 1 1 p ≠ ⊥ := by
+    intro hbot
+    have hrow_zero : row = 0 := by
+      have : row ∈ (⊥ : Submodule Rat (MvPolynomial (Fin N) Rat)) := by
+        simpa [hbot] using hmem
+      simpa using this
+    exact hrow' hrow_zero
+  unfold mlBlockedSpdpRank
+  exact (Submodule.one_le_finrank_iff).mpr hsub_ne
+
+/-- At the first nondegenerate scale, the Bridge A target for the actual
+filtered compiler product is exactly nonvanishing of the first-order blocked
+multilinear SPDP rank. -/
+theorem CompilerVertexQvBridgeARankTarget_one_iff_rank_ne_zero
+    {M : TuringMachine.DTM} {n : Nat}
+    (T : CompiledTableau M n) (v : Fin T.numVars) :
+    CompilerVertexQvBridgeARankTarget T v 1 ↔
+      mlBlockedSpdpRank T.partition 1 1 (compilerVertexQv T v) ≠ 0 := by
+  unfold CompilerVertexQvBridgeARankTarget
+  omega
+
+/-- Equivalently, at scale `kappa = 1`, the only obstruction to the Bridge A
+target for the real filtered compiler product is zero first-order blocked
+multilinear SPDP rank. -/
+theorem not_CompilerVertexQvBridgeARankTarget_one_iff_rank_eq_zero
+    {M : TuringMachine.DTM} {n : Nat}
+    (T : CompiledTableau M n) (v : Fin T.numVars) :
+    ¬ CompilerVertexQvBridgeARankTarget T v 1 ↔
+      mlBlockedSpdpRank T.partition 1 1 (compilerVertexQv T v) = 0 := by
+  rw [CompilerVertexQvBridgeARankTarget_one_iff_rank_ne_zero]
+  omega
+
+/-- First-order Bridge A for the real filtered compiler product follows from
+one surviving first derivative of that same product. -/
+theorem CompilerVertexQvBridgeARankTarget_one_of_nonzero_derivative
+    {M : TuringMachine.DTM} {n : Nat}
+    (T : CompiledTableau M n) (v i : Fin T.numVars)
+    (hrow : mlProj (iterDerivList [i] (compilerVertexQv T v)) ≠ 0) :
+    CompilerVertexQvBridgeARankTarget T v 1 := by
+  unfold CompilerVertexQvBridgeARankTarget
+  exact mlBlockedSpdpRank_one_le_of_nonzero_derivative
+    T.partition (compilerVertexQv T v) i hrow
+
+/-- Vertex-local version: differentiating the candidate by the vertex variable
+itself is enough to close the `kappa = 1` Bridge A target. -/
+theorem CompilerVertexQvBridgeARankTarget_one_of_nonzero_vertex_derivative
+    {M : TuringMachine.DTM} {n : Nat}
+    (T : CompiledTableau M n) (v : Fin T.numVars)
+    (hrow : mlProj (iterDerivList [v] (compilerVertexQv T v)) ≠ 0) :
+    CompilerVertexQvBridgeARankTarget T v 1 :=
+  CompilerVertexQvBridgeARankTarget_one_of_nonzero_derivative T v v hrow
+
 /-- The raw nondegenerate target is not a theorem for arbitrary `kappa`: once
 `kappa` exceeds the compiler ambient variable count, the right-hand side is
 zero.  Any paper-faithful Bridge A instance must therefore supply a scale
@@ -215,6 +294,12 @@ def CompilerVertexQvExactRankTarget {M : TuringMachine.DTM} {n : Nat}
 #print axioms compilerVertexQv_rank_zero_zero_le_one
 #print axioms cookLevinCompilerVertexQv_rank_zero_zero_le_one
 #print axioms mlBlockedSpdpRank_eq_zero_of_numVars_lt_kappa
+#print axioms isBlockAdmissible_singleton
+#print axioms mlBlockedSpdpRank_one_le_of_nonzero_derivative
+#print axioms CompilerVertexQvBridgeARankTarget_one_iff_rank_ne_zero
+#print axioms not_CompilerVertexQvBridgeARankTarget_one_iff_rank_eq_zero
+#print axioms CompilerVertexQvBridgeARankTarget_one_of_nonzero_derivative
+#print axioms CompilerVertexQvBridgeARankTarget_one_of_nonzero_vertex_derivative
 #print axioms not_CompilerVertexQvBridgeARankTarget_of_numVars_lt_kappa
 
 end PallLean.Paper93.Paper283
