@@ -63,6 +63,19 @@ noncomputable abbrev routeBRicherSPDPStableCandidateProjection
   routeBNFrameCandidateAsSATGauge M n hn2 htb hns
     (routeBRicherSPDPStableCandidateGauge M n hn2 htb hns tail)
 
+/-- The arbitrary complement selected by the finite-row projection for the
+smaller SPDP-stable candidate.  The current residual obstruction is exactly
+invariance of this complement under all admissible SPDP generator maps. -/
+noncomputable abbrev routeBRicherSPDPStableCandidateProjectionComplement
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns) :=
+  finiteSubmoduleProjectionComplement
+    (finiteRowsSubmodule
+      (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail))
+
 /-- Exact selected-row closure obligation for the smaller candidate.
 
 This says precisely that SPDP generator rows of the concrete head row and of
@@ -141,6 +154,31 @@ def RouteBRicherSPDPStableCandidateKernelGeneratorZero
       (cook_levin_compilation M n hn2 htb hns).partition S ->
     routeBRicherSPDPStableCandidateProjection M n hn2 htb hns tail p = 0 ->
     routeBSPDPGeneratorRow M n hn2 htb hns p S shift = 0
+
+/-- Complement-invariance form of kernel invisibility.
+
+The finite-row projection chooses an arbitrary complement to the selected row
+span.  This predicate asks that the chosen complement itself be invariant under
+each admissible Route B SPDP generator operator. -/
+def RouteBRicherSPDPStableCandidateChosenComplementInvariant
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) : Prop :=
+  forall (spdpKappa ell : Nat)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns)
+    (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+    (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+    S.length = spdpKappa ->
+    shift.totalDegree <= ell ->
+    shift.vars <= S.toFinset ->
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S ->
+    p ∈ routeBRicherSPDPStableCandidateProjectionComplement
+      M n hn2 htb hns tail ->
+    routeBSPDPGeneratorRow M n hn2 htb hns p S shift ∈
+      routeBRicherSPDPStableCandidateProjectionComplement
+        M n hn2 htb hns tail
 
 /-- Combined SPDP-stability obligations for the smaller concrete-NP prepended
 candidate. -/
@@ -298,6 +336,63 @@ theorem routeBRicherSPDPStableCandidate_residualInvisible_of_kernelGeneratorZero
     M n hn2 htb hns tail).mpr
     (routeBRicherSPDPStableCandidate_kernelGeneratorInvisible_of_kernelGeneratorZero
       M n hn2 htb hns tail hzero)
+
+/-- Invariance of the finite projection's chosen complement implies projected
+kernel-generator invisibility. -/
+theorem routeBRicherSPDPStableCandidate_kernelGeneratorInvisible_of_chosenComplementInvariant
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hinvariant :
+      RouteBRicherSPDPStableCandidateChosenComplementInvariant
+        M n hn2 htb hns tail) :
+    RouteBRicherSPDPStableCandidateKernelGeneratorInvisible
+      M n hn2 htb hns tail := by
+  intro spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm hker
+  let rows := routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail
+  have hpComplement :
+      p ∈ finiteSubmoduleProjectionComplement (finiteRowsSubmodule rows) := by
+    have hkerRows :
+        (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows).projection p = 0 := by
+      simpa [routeBRicherSPDPStableCandidateProjection,
+        routeBRicherSPDPStableCandidateGauge, rows]
+        using hker
+    exact
+      (routeBRicherFiniteRowsCandidateGauge_projection_apply_eq_zero_iff
+        M n hn2 htb hns rows p).mp hkerRows
+  have hrowComplement :
+      routeBSPDPGeneratorRow M n hn2 htb hns p S shift ∈
+        finiteSubmoduleProjectionComplement (finiteRowsSubmodule rows) := by
+    simpa [routeBRicherSPDPStableCandidateProjectionComplement, rows] using
+      hinvariant spdpKappa ell p S shift
+        hSlen hshiftDegree hshiftVars hadm hpComplement
+  have hrowZero :
+      (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows).projection
+          (routeBSPDPGeneratorRow M n hn2 htb hns p S shift) = 0 :=
+    (routeBRicherFiniteRowsCandidateGauge_projection_apply_eq_zero_iff
+      M n hn2 htb hns rows
+      (routeBSPDPGeneratorRow M n hn2 htb hns p S shift)).mpr hrowComplement
+  simpa [routeBRicherSPDPStableCandidateProjection,
+    routeBRicherSPDPStableCandidateGauge, rows]
+    using hrowZero
+
+/-- Invariance of the chosen complement is sufficient for residual
+invisibility. -/
+theorem routeBRicherSPDPStableCandidate_residualInvisible_of_chosenComplementInvariant
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hinvariant :
+      RouteBRicherSPDPStableCandidateChosenComplementInvariant
+        M n hn2 htb hns tail) :
+    RouteBRicherSPDPStableCandidateResidualInvisible
+      M n hn2 htb hns tail :=
+  (routeBRicherSPDPStableCandidate_residualInvisible_iff_kernelGeneratorInvisible
+    M n hn2 htb hns tail).mpr
+    (routeBRicherSPDPStableCandidate_kernelGeneratorInvisible_of_chosenComplementInvariant
+      M n hn2 htb hns tail hinvariant)
 
 /-- No-go criterion: a single projection-kernel vector whose SPDP generator
 row remains visible after the selected-row projection refutes residual
@@ -505,7 +600,9 @@ theorem routeBPerInstanceCertificate_of_spdpStableCandidate_rowEmbeddings_deltaE
 #print axioms RouteBRicherSPDPStableCandidateResidualInvisible
 #print axioms RouteBRicherSPDPStableCandidateKernelGeneratorInvisible
 #print axioms RouteBRicherSPDPStableCandidateKernelGeneratorZero
+#print axioms RouteBRicherSPDPStableCandidateChosenComplementInvariant
 #print axioms RouteBRicherSPDPStableCandidateObligations
+#print axioms routeBRicherSPDPStableCandidateProjectionComplement
 #print axioms routeBRicherSPDPStableCandidateRows_zero_eq_embed
 #print axioms routeBRicherSPDPStableCandidateGauge_fixes_concreteNPRow
 #print axioms routeBRicherSPDPStableCandidate_extracts_compiled
@@ -514,6 +611,8 @@ theorem routeBPerInstanceCertificate_of_spdpStableCandidate_rowEmbeddings_deltaE
 #print axioms routeBRicherSPDPStableCandidate_residualInvisible_iff_kernelGeneratorInvisible
 #print axioms routeBRicherSPDPStableCandidate_kernelGeneratorInvisible_of_kernelGeneratorZero
 #print axioms routeBRicherSPDPStableCandidate_residualInvisible_of_kernelGeneratorZero
+#print axioms routeBRicherSPDPStableCandidate_kernelGeneratorInvisible_of_chosenComplementInvariant
+#print axioms routeBRicherSPDPStableCandidate_residualInvisible_of_chosenComplementInvariant
 #print axioms routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_kernelGeneratorVisible
 #print axioms routeBRicherSPDPStableCandidate_kernelCompatibility_of_residualInvisible
 #print axioms routeBRicherSPDPStableCandidate_residualInvisible_of_kernelCompatibility

@@ -92,6 +92,110 @@ theorem routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_kernelGenerato
     (hkernel spdpKappa ell p S shift
       hSlen hshiftDegree hshiftVars hadm hker)
 
+/-- No-go criterion in the exposed-complement form: if an admissible generator
+map sends some vector from the finite projection's chosen complement out of
+that complement, then residual invisibility fails. -/
+theorem routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_chosenComplementGenerator_escape
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hbad :
+      exists (spdpKappa ell : Nat)
+        (p : SATDeciderGaugeSpace M n hn2 htb hns)
+        (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+        (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+        S.length = spdpKappa ∧
+        shift.totalDegree <= ell ∧
+        shift.vars <= S.toFinset ∧
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition S ∧
+        p ∈ routeBRicherSPDPStableCandidateProjectionComplement
+          M n hn2 htb hns tail ∧
+        routeBSPDPGeneratorRow M n hn2 htb hns p S shift ∉
+          routeBRicherSPDPStableCandidateProjectionComplement
+            M n hn2 htb hns tail) :
+    ¬ RouteBRicherSPDPStableCandidateResidualInvisible
+        M n hn2 htb hns tail := by
+  apply
+    routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_kernelGenerator_ne_zero
+      M n hn2 htb hns tail
+  obtain ⟨spdpKappa, ell, p, S, shift,
+    hSlen, hshiftDegree, hshiftVars, hadm, hpComplement,
+    hrowNotComplement⟩ := hbad
+  let rows := routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail
+  have hpRows :
+      p ∈ finiteSubmoduleProjectionComplement (finiteRowsSubmodule rows) := by
+    simpa [routeBRicherSPDPStableCandidateProjectionComplement, rows] using
+      hpComplement
+  have hkerRows :
+      (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows).projection p =
+        0 :=
+    (routeBRicherFiniteRowsCandidateGauge_projection_apply_eq_zero_iff
+      M n hn2 htb hns rows p).mpr hpRows
+  have hker :
+      routeBRicherSPDPStableCandidateProjection M n hn2 htb hns tail p = 0 := by
+    simpa [routeBRicherSPDPStableCandidateProjection,
+      routeBRicherSPDPStableCandidateGauge, rows]
+      using hkerRows
+  have hne :
+      routeBRicherSPDPStableCandidateProjection M n hn2 htb hns tail
+          (routeBSPDPGeneratorRow M n hn2 htb hns p S shift) ≠ 0 := by
+    intro hzero
+    have hrowRowsZero :
+        (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows).projection
+            (routeBSPDPGeneratorRow M n hn2 htb hns p S shift) = 0 := by
+      simpa [routeBRicherSPDPStableCandidateProjection,
+        routeBRicherSPDPStableCandidateGauge, rows]
+        using hzero
+    have hrowRowsComplement :
+        routeBSPDPGeneratorRow M n hn2 htb hns p S shift ∈
+          finiteSubmoduleProjectionComplement (finiteRowsSubmodule rows) :=
+      (routeBRicherFiniteRowsCandidateGauge_projection_apply_eq_zero_iff
+        M n hn2 htb hns rows
+        (routeBSPDPGeneratorRow M n hn2 htb hns p S shift)).mp hrowRowsZero
+    exact hrowNotComplement
+      (by
+        simpa [routeBRicherSPDPStableCandidateProjectionComplement, rows] using
+          hrowRowsComplement)
+  exact
+    ⟨spdpKappa, ell, p, S, shift,
+      hSlen, hshiftDegree, hshiftVars, hadm, hker, hne⟩
+
+/-- Empty-generator specialization of complement escape: if `mlProj` sends a
+chosen-complement vector out of the chosen complement, residual invisibility
+fails. -/
+theorem routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_chosenComplement_mlProj_escape
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hbad :
+      exists p : SATDeciderGaugeSpace M n hn2 htb hns,
+        p ∈ routeBRicherSPDPStableCandidateProjectionComplement
+          M n hn2 htb hns tail ∧
+        mlProj p ∉ routeBRicherSPDPStableCandidateProjectionComplement
+          M n hn2 htb hns tail) :
+    ¬ RouteBRicherSPDPStableCandidateResidualInvisible
+        M n hn2 htb hns tail := by
+  apply
+    routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_chosenComplementGenerator_escape
+      M n hn2 htb hns tail
+  obtain ⟨p, hpComplement, hmlNotComplement⟩ := hbad
+  refine ⟨0, 0, p,
+    ([] : List (Fin (RouteBCookLevinDim M n hn2 htb hns))),
+    (1 : SATDeciderGaugeSpace M n hn2 htb hns),
+    by simp, by simp [MvPolynomial.totalDegree_one],
+    by simp [MvPolynomial.vars_one], ?_, hpComplement, ?_⟩
+  · constructor
+    · simp
+    · intro b; simp
+  · intro hrowComplement
+    exact hmlNotComplement
+      (by
+        simpa [routeBSPDPGeneratorRow, SPDP.iterDerivList, mlProj_one] using
+          hrowComplement)
+
 /-- No-go criterion (specialization to empty derivative list and constant
 shift `1`): existence of `p` with `Π p = 0` but `Π(mlProj p) ≠ 0` refutes
 `ResidualInvisible`.  This is the smaller-candidate analog of the
@@ -170,6 +274,8 @@ theorem routeBRicherSPDPStableCandidate_residualInvisible_implies_kernel_mlProj_
 #print axioms routeBRicherSPDPStableCandidate_projection_idempotent
 #print axioms routeBRicherSPDPStableCandidate_residualInvisible_iff_kernelGeneratorInvisible
 #print axioms routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_kernelGenerator_ne_zero
+#print axioms routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_chosenComplementGenerator_escape
+#print axioms routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_chosenComplement_mlProj_escape
 #print axioms routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_kernel_mlProj_projection_ne_zero
 #print axioms routeBRicherSPDPStableCandidate_residualInvisible_implies_kernel_mlProj_projection_zero
 

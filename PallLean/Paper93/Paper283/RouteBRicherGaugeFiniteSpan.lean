@@ -46,6 +46,22 @@ noncomputable def finiteSubmoduleProjection {N : Nat}
   let hq : IsCompl S q := Classical.choose_spec S.exists_isCompl
   Submodule.IsCompl.projection hq
 
+/-- The arbitrary complement selected by `finiteSubmoduleProjection`.  Exposing
+this submodule makes the residual/kernal obstruction concrete: kernel
+compatibility is invariance of this chosen complement under the relevant
+generator maps. -/
+noncomputable def finiteSubmoduleProjectionComplement {N : Nat}
+    (S : Submodule ℚ (Ambient N)) :
+    Submodule ℚ (Ambient N) :=
+  Classical.choose S.exists_isCompl
+
+/-- The selected complement is complementary to `S`. -/
+theorem finiteSubmoduleProjection_isCompl {N : Nat}
+    (S : Submodule ℚ (Ambient N)) :
+    IsCompl S (finiteSubmoduleProjectionComplement S) := by
+  unfold finiteSubmoduleProjectionComplement
+  exact Classical.choose_spec S.exists_isCompl
+
 /-- The projection onto `S` has exactly range `S`. -/
 theorem finiteSubmoduleProjection_range {N : Nat}
     (S : Submodule ℚ (Ambient N)) :
@@ -78,6 +94,24 @@ theorem finiteSubmoduleProjection_idempotent {N : Nat}
   exact Submodule.IsCompl.projection_apply_left hq
     ⟨Submodule.IsCompl.projection hq p,
       Submodule.IsCompl.projection_apply_mem hq p⟩
+
+/-- The kernel of `finiteSubmoduleProjection S` is exactly the selected
+arbitrary complement. -/
+theorem finiteSubmoduleProjection_ker {N : Nat}
+    (S : Submodule ℚ (Ambient N)) :
+    LinearMap.ker (finiteSubmoduleProjection S) =
+      finiteSubmoduleProjectionComplement S := by
+  unfold finiteSubmoduleProjection finiteSubmoduleProjectionComplement
+  exact Submodule.IsCompl.projection_ker
+    (Classical.choose_spec S.exists_isCompl)
+
+/-- Pointwise zero criterion for the finite-submodule projection. -/
+theorem finiteSubmoduleProjection_apply_eq_zero_iff {N : Nat}
+    (S : Submodule ℚ (Ambient N)) (p : Ambient N) :
+    finiteSubmoduleProjection S p = 0 ↔
+      p ∈ finiteSubmoduleProjectionComplement S := by
+  rw [← finiteSubmoduleProjection_ker S]
+  rfl
 
 /-- Any finite-dimensional submodule gives a finite-rank `CandidateGauge` whose
 range is that submodule. -/
@@ -149,6 +183,19 @@ theorem finiteRowsCandidateGauge_fixes_row {N m : Nat}
     (finiteRowsSubmodule rows)
     (Submodule.subset_span ⟨i, rfl⟩)
 
+/-- The kernel of a finite-rows candidate projection is the arbitrary complement
+selected for its finite row span. -/
+theorem finiteRowsCandidateGauge_projection_apply_eq_zero_iff {N m : Nat}
+    (rows : Fin m → Ambient N) (p : Ambient N) :
+    (finiteRowsCandidateGauge rows).projection p = 0 ↔
+      p ∈ finiteSubmoduleProjectionComplement (finiteRowsSubmodule rows) := by
+  haveI : Module.Finite ℚ (finiteRowsSubmodule rows) :=
+    finiteRowsSubmodule_finite rows
+  unfold finiteRowsCandidateGauge
+  simpa [candidateGaugeOfFiniteSubmodule] using
+    finiteSubmoduleProjection_apply_eq_zero_iff
+      (finiteRowsSubmodule rows) p
+
 /-- Route B finite-span candidate gauge for specified Cook-Levin witness rows. -/
 noncomputable def routeBRicherFiniteRowsCandidateGauge
     (M : DTM) (n : Nat) (hn2 : n ≥ 2)
@@ -192,6 +239,17 @@ theorem routeBRicherFiniteRowsCandidateGauge_fixes_row
       rows i := by
   unfold routeBRicherFiniteRowsCandidateGauge
   exact finiteRowsCandidateGauge_fixes_row rows i
+
+/-- Pointwise zero criterion for the Route B finite-row projection. -/
+theorem routeBRicherFiniteRowsCandidateGauge_projection_apply_eq_zero_iff
+    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {m : Nat} (rows : Fin m → RouteBCLSpace M n hn2 htb hns)
+    (p : RouteBCLSpace M n hn2 htb hns) :
+    (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows).projection p = 0 ↔
+      p ∈ finiteSubmoduleProjectionComplement (finiteRowsSubmodule rows) := by
+  unfold routeBRicherFiniteRowsCandidateGauge
+  exact finiteRowsCandidateGauge_projection_apply_eq_zero_iff rows p
 
 /-- A finite-span candidate fixing an embedded source obstruction yields the
 Route B fixed-embed NP certificate once extraction and the source lower bound
@@ -271,9 +329,15 @@ theorem routeBRicherFiniteRowsCandidateGauge_ne_constantsCandidateGauge_of_row
 #print axioms finiteSubmoduleProjection_range
 #print axioms finiteSubmoduleProjection_fixed_of_mem
 #print axioms finiteSubmoduleProjection_idempotent
+#print axioms finiteSubmoduleProjectionComplement
+#print axioms finiteSubmoduleProjection_isCompl
+#print axioms finiteSubmoduleProjection_ker
+#print axioms finiteSubmoduleProjection_apply_eq_zero_iff
 #print axioms candidateGaugeOfFiniteSubmodule
 #print axioms finiteRowsCandidateGauge_fixes_row
+#print axioms finiteRowsCandidateGauge_projection_apply_eq_zero_iff
 #print axioms routeBRicherFiniteRowsCandidateGauge_fixes_row
+#print axioms routeBRicherFiniteRowsCandidateGauge_projection_apply_eq_zero_iff
 #print axioms routeBRicherFiniteRowsCandidateGauge_npIdentityMinorFixedEmbedCertificate
 #print axioms routeBRicherFiniteRowsCandidateGauge_ne_keepFOB
 #print axioms routeBRicherFiniteRowsCandidateGauge_ne_constantsCandidateGauge_of_row
