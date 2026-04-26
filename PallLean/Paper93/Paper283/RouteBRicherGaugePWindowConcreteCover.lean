@@ -55,6 +55,26 @@ noncomputable def routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_bounded
       intro h
       exact hat h)
 
+/-- Live-profile common-span cases plus the non-scalar zero-profile
+common-span package give the richer-gauge unprojected P-window finite-span
+cover.
+
+This is the useful non-template route: it deliberately avoids the false
+zero-profile singleton/template-collapse target. -/
+noncomputable def routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (hzero : CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hlive :
+      CookLevinAllBoundedProfileCommonSpanLiveProfileCases
+        M n hn2 htb hns) :
+    RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns :=
+  routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_allBoundedProfileCommonSpan
+    M n hn2 htb hns
+    (cookLevinAllBoundedProfileCommonSpanLemma_of_liveProfileCases
+      M n hn2 htb hns hn4 hzero hlive)
+
 /-- Pointwise template-collapse certificates imply the all-span common-span
 family and hence the richer-gauge unprojected P-window finite-span cover. -/
 noncomputable def routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_templateCollapseAtProfiles
@@ -130,6 +150,7 @@ noncomputable def routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concret
 
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_allBoundedProfileCommonSpanAtProfiles
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_boundedProfileCommonSpanAtProfiles
+#print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_templateCollapseAtProfiles
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_templateCollapse
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_boundedProfileTemplateCollapse
