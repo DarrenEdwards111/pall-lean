@@ -334,6 +334,61 @@ theorem routeBRicherFiniteRowsCandidateGauge_spdpSubspaceContainment_of_mapPreim
     ⟨raw, hraw, hmap⟩
   exact Submodule.mem_map.mpr ⟨raw, hraw, hmap⟩
 
+/-- Conversely, the finite-row SPDP subspace-containment field gives exactly
+the map-preimage witnesses demanded by `Submodule.map`.
+
+This identifies the corrected finite-row map-preimage target with the existing
+Route B SPDP image-containment statement.  It does not use the stronger
+unprojected-preimage formulation. -/
+theorem routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_spdpSubspaceContainment
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (contain :
+      RouteBRicherGaugeSPDPSubspaceContainment M n hn2 htb hns
+        (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)) :
+    RouteBRicherGaugeFiniteRowsSPDPMapPreimage M n hn2 htb hns rows := by
+  constructor
+  intro spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm
+  let Pi :=
+    routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+      (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)
+  have hrow_mem :
+      routeBSPDPGeneratorRow M n hn2 htb hns (Pi p) S shift ∈
+        mlBlockedSpdpSubspace
+          (cook_levin_compilation M n hn2 htb hns).partition
+          spdpKappa ell (Pi p) :=
+    Submodule.subset_span
+      ⟨S, shift, hSlen, hshiftDegree, hshiftVars, hadm, rfl⟩
+  have hmap_mem :
+      routeBSPDPGeneratorRow M n hn2 htb hns (Pi p) S shift ∈
+        Submodule.map Pi
+          (mlBlockedSpdpSubspace
+            (cook_levin_compilation M n hn2 htb hns).partition
+            spdpKappa ell p) :=
+    contain spdpKappa ell p hrow_mem
+  rcases Submodule.mem_map.mp hmap_mem with ⟨raw, hraw, hraw_map⟩
+  exact ⟨raw, hraw, hraw_map⟩
+
+/-- For finite-row gauges, the map-preimage field is exactly the Route B SPDP
+subspace-containment field. -/
+theorem routeBRicherGaugeFiniteRowsSPDPMapPreimage_iff_spdpSubspaceContainment
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    RouteBRicherGaugeFiniteRowsSPDPMapPreimage M n hn2 htb hns rows ↔
+      RouteBRicherGaugeSPDPSubspaceContainment M n hn2 htb hns
+        (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows) := by
+  constructor
+  · exact
+      routeBRicherFiniteRowsCandidateGauge_spdpSubspaceContainment_of_mapPreimage
+        M n hn2 htb hns rows
+  · exact
+      routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_spdpSubspaceContainment
+        M n hn2 htb hns rows
+
 /-- Concrete finite-row Route B assembly from the named SPDP frontier.
 
 All scalar, spectral, row-count, P-window, and NP fixed-row assumptions are
@@ -500,6 +555,8 @@ theorem routeBPerInstanceCertificate_of_finiteRowsSPDPRowClosure_deltaEqRateKapp
 #print axioms routeBRicherGaugeFiniteRowsSPDPFrontier_hgen
 #print axioms routeBRicherFiniteRowsCandidateGauge_spdpSubspaceContainment_of_spdpFrontier
 #print axioms routeBRicherFiniteRowsCandidateGauge_spdpSubspaceContainment_of_mapPreimage
+#print axioms routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_spdpSubspaceContainment
+#print axioms routeBRicherGaugeFiniteRowsSPDPMapPreimage_iff_spdpSubspaceContainment
 #print axioms routeBPerInstanceCertificate_of_finiteRowsSPDPFrontier_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_finiteRowsSPDPMapPreimage_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_finiteRowsSPDPRowClosure_deltaEqRateKappa
