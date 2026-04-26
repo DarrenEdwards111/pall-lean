@@ -1,5 +1,6 @@
 import PallLean.Paper93.Paper283.RouteBReducedCertificate
 import PallLean.Paper93.Paper283.RouteBGaugeCandidate
+import PallLean.Paper93.Paper283.RouteBConstantsGaugeRankCompatible
 
 /-!
 # Route B certificate specialised to the concrete constants gauge
@@ -12,7 +13,7 @@ the raw `AdmissibleGauge` field with the candidate theorem.
 This is not a claim that the constants projection is the final paper `Π⋆`.
 It is the strongest full finite-range N-frame candidate currently present in
 the repository, and it exposes the exact remaining obligations for that
-candidate: rank compatibility and primitive SAT-side transport.
+candidate: positive matrix-side rank and primitive SAT-side transport.
 -/
 
 namespace PallLean.Paper93.Paper283
@@ -59,8 +60,7 @@ def RouteBConstantsGaugeReducedCertificate
         rankLogRate
         (Real.log (((1 : Matrix (Fin N) (Fin N) Real) + theta • A).det))
         delta ∧
-      RouteBProjectionRankCompatible M n hn2 htb hns A.rank
-        (routeBConstantsGauge M n hn2 htb hns) ∧
+      0 < A.rank ∧
       RouteBFunctorialTransportCertificate M n hn2 htb hns
         (routeBConstantsGauge M n hn2 htb hns)
 
@@ -76,7 +76,12 @@ theorem routeBReducedCertificate_of_constantsGauge
     ⟨N, d, alpha, beta, alpha0, kappa, gadgetN, G, chi, Phi,
       theta, delta, rankLogRate, A, hA,
       htheta, halpha, halpha0, hgadgetN,
-      hlower, hcompat, htransport⟩
+      hlower, hA_rank, htransport⟩
+  have hcompat :
+      RouteBProjectionRankCompatible M n hn2 htb hns A.rank
+        (routeBConstantsGauge M n hn2 htb hns) :=
+    routeBConstantsCandidateGauge_rankCompatible_of_rank_pos
+      M n hn2 htb hns A.rank hA_rank
   exact
     ⟨N, d, alpha, beta, alpha0, kappa, gadgetN, G, chi, Phi,
       theta, delta, rankLogRate, A, hA,
