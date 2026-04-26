@@ -171,6 +171,131 @@ theorem zeroProfileShiftSupportSetCount_le_pow
     _ = 2 ^ n := by
           simp
 
+/-- If `κ ≥ 1`, every singleton ambient variable support is one of the
+admissible zero-profile shift supports. -/
+theorem zeroProfileShiftSupportSetCount_ge_ambient_of_one_le
+    (n κ : ℕ) (hκ : 1 ≤ κ) :
+    n ≤ zeroProfileShiftSupportSetCount n κ := by
+  classical
+  let singletons : Finset (Finset (Fin n)) :=
+    (Finset.univ : Finset (Fin n)).image
+      (fun i => ({i} : Finset (Fin n)))
+  have hsingle_card : singletons.card = n := by
+    calc
+      singletons.card = (Finset.univ : Finset (Fin n)).card := by
+        unfold singletons
+        apply Finset.card_image_of_injective
+        intro a b h
+        have ha : a ∈ ((fun i => ({i} : Finset (Fin n))) a) := by simp
+        rw [h] at ha
+        simpa using ha
+      _ = n := by simp
+  have hsub : singletons ⊆ zeroProfileShiftSupportSetFamily n κ := by
+    intro T hT
+    simp only [singletons, Finset.mem_image, Finset.mem_univ, true_and] at hT
+    rcases hT with ⟨i, rfl⟩
+    unfold zeroProfileShiftSupportSetFamily
+    simp [hκ]
+  calc
+    n = singletons.card := hsingle_card.symm
+    _ ≤ (zeroProfileShiftSupportSetFamily n κ).card := Finset.card_le_card hsub
+    _ = zeroProfileShiftSupportSetCount n κ := rfl
+
+/-- The exact support-cardinality finite sum is at least the number of
+admissible shift supports: every summand is a positive power of `2`. -/
+theorem zeroProfileShiftSupportSetCount_le_supportCardSumBound {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    zeroProfileShiftSupportSetCount n κ ≤
+      zeroProfileSupportCardSumBound κ factors := by
+  unfold zeroProfileShiftSupportSetCount zeroProfileSupportCardSumBound
+  rw [Finset.card_eq_sum_ones]
+  apply Finset.sum_le_sum
+  intro T _hT
+  exact Nat.one_le_pow _ _ (by norm_num : 0 < 2)
+
+/-- Consequently, for `κ ≥ 1`, the exact finite-sum side condition already
+has ambient-size cost: it is at least `n`, before any Cook-Levin base-product
+variables are counted. -/
+theorem zeroProfileSupportCardSumBound_ge_ambient_of_one_le {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hκ : 1 ≤ κ) :
+    n ≤ zeroProfileSupportCardSumBound κ factors :=
+  (zeroProfileShiftSupportSetCount_ge_ambient_of_one_le n κ hκ).trans
+    (zeroProfileShiftSupportSetCount_le_supportCardSumBound κ factors)
+
+/-- The external-base-cardinality finite sum has the same ambient-size lower
+bound: singleton shift supports alone already contribute at least `n`. -/
+theorem zeroProfileSupportCardSumBoundOfBaseCard_ge_ambient_of_one_le
+    (n κ b : ℕ) (hκ : 1 ≤ κ) :
+    n ≤ zeroProfileSupportCardSumBoundOfBaseCard n κ b := by
+  unfold zeroProfileSupportCardSumBoundOfBaseCard
+  calc
+    n ≤ zeroProfileShiftSupportSetCount n κ :=
+      zeroProfileShiftSupportSetCount_ge_ambient_of_one_le n κ hκ
+    _ ≤ (zeroProfileShiftSupportSetFamily n κ).sum
+        (fun T : Finset (Fin n) => 2 ^ (T.card + b)) := by
+          unfold zeroProfileShiftSupportSetCount
+          rw [Finset.card_eq_sum_ones]
+          apply Finset.sum_le_sum
+          intro T _hT
+          exact Nat.one_le_pow _ _ (by norm_num : 0 < 2)
+
+/-- The exact finite-sum side condition implies the ambient-size inequality
+`n ≤ withinProfileBound κ`.  This is the key diagnostic obstruction: the
+finite-sum support route is already too large when the ambient variable count
+exceeds the within-profile polynomial budget. -/
+theorem ambient_le_withinProfileBound_of_zeroProfileSupportCardSumSideCondition
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hκ : 1 ≤ κ)
+    (hside : ZeroProfileSupportCardSumSideCondition κ factors) :
+    n ≤ withinProfileBound κ :=
+  (zeroProfileSupportCardSumBound_ge_ambient_of_one_le κ factors hκ).trans
+    hside
+
+/-- If the ambient dimension already exceeds the within-profile budget, the
+exact finite-sum support-cardinality side condition is impossible. -/
+theorem not_zeroProfileSupportCardSumSideCondition_of_withinProfileBound_lt_ambient
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hκ : 1 ≤ κ)
+    (hlt : withinProfileBound κ < n) :
+    ¬ ZeroProfileSupportCardSumSideCondition κ factors := by
+  intro hside
+  exact (not_le_of_gt hlt)
+    (ambient_le_withinProfileBound_of_zeroProfileSupportCardSumSideCondition
+      κ factors hκ hside)
+
+/-- External-base-cardinality side conditions have the same ambient-size
+obstruction. -/
+theorem ambient_le_withinProfileBound_of_zeroProfileSupportBaseCardSideCondition
+    {n L : ℕ}
+    (κ b : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hκ : 1 ≤ κ)
+    (hside : ZeroProfileSupportBaseCardSideCondition κ b factors) :
+    n ≤ withinProfileBound κ :=
+  (zeroProfileSupportCardSumBoundOfBaseCard_ge_ambient_of_one_le n κ b hκ).trans
+    hside.2
+
+/-- If the ambient dimension already exceeds the within-profile budget, the
+external-base-cardinality support side condition is impossible as well. -/
+theorem not_zeroProfileSupportBaseCardSideCondition_of_withinProfileBound_lt_ambient
+    {n L : ℕ}
+    (κ b : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hκ : 1 ≤ κ)
+    (hlt : withinProfileBound κ < n) :
+    ¬ ZeroProfileSupportBaseCardSideCondition κ b factors := by
+  intro hside
+  exact (not_le_of_gt hlt)
+    (ambient_le_withinProfileBound_of_zeroProfileSupportBaseCardSideCondition
+      κ b factors hκ hside)
+
 /-- Coarser closed-form version of the external-base-cardinality finite-sum
 estimate. -/
 theorem zeroProfileSupportCardSumBoundOfBaseCard_le_univ_pow_mul
@@ -300,6 +425,64 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_supportBaseCardSideCondition
     (cookLevin_zeroProfileShiftSupportBasisCardBound_le_withinProfileBound_of_baseCardSideCondition
       M n hn htb hns b hside)
 
+/-- Cook-Levin instance of the ambient-size obstruction for the exact
+zero-profile support-card finite-sum side condition. -/
+theorem ambient_le_withinProfileBound_of_CookLevinZeroProfileSupportCardSumSideCondition
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hside :
+      CookLevinZeroProfileSupportCardSumSideCondition M n hn htb hns) :
+    n ≤ withinProfileBound (Nat.log 2 n) := by
+  have hlog_pos : 0 < Nat.log 2 n := Nat.log_pos (by omega) hn
+  exact
+    ambient_le_withinProfileBound_of_zeroProfileSupportCardSumSideCondition
+      (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      (Nat.succ_le_of_lt hlog_pos)
+      hside
+
+/-- If the Cook-Levin ambient variable count exceeds the within-profile budget,
+the exact finite-sum support-cardinality side condition cannot hold. -/
+theorem not_CookLevinZeroProfileSupportCardSumSideCondition_of_withinProfileBound_lt_ambient
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hlt : withinProfileBound (Nat.log 2 n) < n) :
+    ¬ CookLevinZeroProfileSupportCardSumSideCondition M n hn htb hns := by
+  intro hside
+  exact (not_le_of_gt hlt)
+    (ambient_le_withinProfileBound_of_CookLevinZeroProfileSupportCardSumSideCondition
+      M n hn htb hns hside)
+
+/-- Cook-Levin instance of the same obstruction for the external-base-card
+variant. -/
+theorem ambient_le_withinProfileBound_of_CookLevinZeroProfileSupportBaseCardSideCondition
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (b : ℕ)
+    (hside :
+      CookLevinZeroProfileSupportBaseCardSideCondition M n hn htb hns b) :
+    n ≤ withinProfileBound (Nat.log 2 n) := by
+  have hlog_pos : 0 < Nat.log 2 n := Nat.log_pos (by omega) hn
+  exact
+    ambient_le_withinProfileBound_of_zeroProfileSupportBaseCardSideCondition
+      (Nat.log 2 n) b
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      (Nat.succ_le_of_lt hlog_pos)
+      hside
+
+/-- Cook-Levin external-base-card side conditions are also impossible when the
+ambient variable count exceeds the within-profile budget. -/
+theorem not_CookLevinZeroProfileSupportBaseCardSideCondition_of_withinProfileBound_lt_ambient
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (b : ℕ)
+    (hlt : withinProfileBound (Nat.log 2 n) < n) :
+    ¬ CookLevinZeroProfileSupportBaseCardSideCondition M n hn htb hns b := by
+  intro hside
+  exact (not_le_of_gt hlt)
+    (ambient_le_withinProfileBound_of_CookLevinZeroProfileSupportBaseCardSideCondition
+      M n hn htb hns b hside)
+
 /-! ## Axiom audit anchors -/
 
 #print axioms zeroProfileBaseProductVars_card_le_univ
@@ -307,6 +490,12 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_supportBaseCardSideCondition
 #print axioms zeroProfileSupportCardSumBound_le_of_base_card_le
 #print axioms zeroProfileSupportCardSumBoundOfBaseCard_le_count_mul_pow
 #print axioms zeroProfileShiftSupportSetCount_le_pow
+#print axioms zeroProfileShiftSupportSetCount_ge_ambient_of_one_le
+#print axioms zeroProfileSupportCardSumBound_ge_ambient_of_one_le
+#print axioms ambient_le_withinProfileBound_of_zeroProfileSupportCardSumSideCondition
+#print axioms not_zeroProfileSupportCardSumSideCondition_of_withinProfileBound_lt_ambient
+#print axioms ambient_le_withinProfileBound_of_CookLevinZeroProfileSupportCardSumSideCondition
+#print axioms not_CookLevinZeroProfileSupportCardSumSideCondition_of_withinProfileBound_lt_ambient
 #print axioms zeroProfileShiftSupportBasisCardBound_le_univ_pow_mul_of_base_card_le
 #print axioms zeroProfileShiftSupportBasisCardBound_le_withinProfileBound_of_sumSideCondition
 #print axioms zeroProfileShiftSupportBasisCardBound_le_withinProfileBound_of_baseCardSideCondition

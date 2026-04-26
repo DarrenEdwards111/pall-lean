@@ -1,4 +1,5 @@
 import PallLean.Paper93.Paper283.RouteBRicherGaugePrependedCorrectedMapPreimage
+import PallLean.Paper93.Paper283.RouteBRicherGaugeConcreteWImport
 
 /-!
 # Concrete multilinear tail rows for the Route B richer gauge
@@ -97,6 +98,16 @@ noncomputable abbrev routeBRicherConcreteNPPrependedMultilinearGauge
       (RouteBCookLevinDim M n hn2 htb hns) :=
   routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns
     (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns)
+
+/-- The SAT-side projection map associated to the concrete NP row plus the
+multilinear monomial tail. -/
+noncomputable abbrev routeBRicherConcreteNPPrependedMultilinearProjection
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    SATDeciderGaugeSpace M n hn2 htb hns →ₗ[ℚ]
+      SATDeciderGaugeSpace M n hn2 htb hns :=
+  routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+    (routeBRicherConcreteNPPrependedMultilinearGauge M n hn2 htb hns)
 
 /-- Every tail-basis row is in the finite span of the enumerated tail rows. -/
 theorem routeBRicherMultilinearTailRows_mem_span_of_mem_basis
@@ -198,6 +209,137 @@ theorem routeBRicherConcreteNPPrependedMultilinearRows_spdpClosure
     (routeBRicherMultilinearTailRows M n hn2 htb hns)
     (routeBRicherConcreteNPPrependedMultilinearRows_spdpRowClosurePackage
       M n hn2 htb hns)
+
+/-- For the concrete multilinear-tail gauge, kernel/complement compatibility
+is equivalent to saying that every SPDP generator row of the projection
+residual vanishes.
+
+This is the sharp obstruction exposed by using the full multilinear tail:
+every SPDP generator row is an `mlProj` output, hence lies in the selected
+finite row span and is fixed by the finite-row projection.  Therefore the
+generic "projection kills the residual generator" condition can only hold if
+the residual generator is already zero. -/
+theorem routeBRicherConcreteNPPrependedMultilinearRows_kernelCompatibility_iff_residualGenerator_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherGaugeFiniteRowsSPDPKernelCompatibility M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns) ↔
+      forall (spdpKappa ell : Nat)
+        (p : SATDeciderGaugeSpace M n hn2 htb hns)
+        (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+        (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+        S.length = spdpKappa ->
+        shift.totalDegree <= ell ->
+        shift.vars <= S.toFinset ->
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition S ->
+        routeBSPDPGeneratorRow M n hn2 htb hns
+          (p -
+            routeBRicherConcreteNPPrependedMultilinearProjection
+              M n hn2 htb hns p)
+          S shift = 0 := by
+  constructor
+  · intro hker spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm
+    let rows :=
+      routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns
+    let Pi :=
+      routeBRicherConcreteNPPrependedMultilinearProjection M n hn2 htb hns
+    let residualRow :=
+      routeBSPDPGeneratorRow M n hn2 htb hns (p - Pi p) S shift
+    have hmem : residualRow ∈ finiteRowsSubmodule rows := by
+      dsimp [residualRow]
+      exact
+        routeBRicherConcreteNPPrependedMultilinearRows_mlProj_mem
+          M n hn2 htb hns
+          (shift * SPDP.iterDerivList S (p - Pi p))
+    have hfixed : Pi residualRow = residualRow := by
+      simpa [Pi, rows,
+        routeBRicherConcreteNPPrependedMultilinearProjection,
+        routeBRicherConcreteNPPrependedMultilinearGauge] using
+        routeBRicherFiniteRowsCandidateGauge_fixed_of_mem
+          M n hn2 htb hns rows hmem
+    have hzero : Pi residualRow = 0 := by
+      simpa [Pi, rows, residualRow,
+        routeBRicherConcreteNPPrependedMultilinearProjection,
+        routeBRicherConcreteNPPrependedMultilinearGauge] using
+        hker spdpKappa ell p S shift
+          hSlen hshiftDegree hshiftVars hadm
+    rwa [hfixed] at hzero
+  · intro hzero spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm
+    have hrowzero :
+        routeBSPDPGeneratorRow M n hn2 htb hns
+          (p -
+            routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+              (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns
+                (routeBRicherConcreteNPPrependedMultilinearRows
+                  M n hn2 htb hns)) p)
+          S shift = 0 := by
+      simpa [routeBRicherConcreteNPPrependedMultilinearProjection,
+        routeBRicherConcreteNPPrependedMultilinearGauge] using
+        hzero spdpKappa ell p S shift
+          hSlen hshiftDegree hshiftVars hadm
+    rw [hrowzero]
+    simp
+
+/-- The concrete multilinear-tail map-preimage target follows from the sharp
+residual-annihilation condition above. -/
+theorem routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_of_residualGenerator_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hzero :
+      forall (spdpKappa ell : Nat)
+        (p : SATDeciderGaugeSpace M n hn2 htb hns)
+        (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+        (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+        S.length = spdpKappa ->
+        shift.totalDegree <= ell ->
+        shift.vars <= S.toFinset ->
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition S ->
+        routeBSPDPGeneratorRow M n hn2 htb hns
+          (p -
+            routeBRicherConcreteNPPrependedMultilinearProjection
+              M n hn2 htb hns p)
+          S shift = 0) :
+    RouteBRicherGaugeFiniteRowsSPDPMapPreimage M n hn2 htb hns
+      (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns) :=
+  routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_spdpClosure_kernelCompatibility
+    M n hn2 htb hns
+    (routeBRicherMultilinearTailRows M n hn2 htb hns)
+    (routeBRicherConcreteNPPrependedMultilinearRows_spdpClosure
+      M n hn2 htb hns)
+    ((routeBRicherConcreteNPPrependedMultilinearRows_kernelCompatibility_iff_residualGenerator_zero
+      M n hn2 htb hns).mpr hzero)
+
+/-- Equivalently, the concrete multilinear-tail SPDP image-containment field
+follows from residual SPDP-generator annihilation. -/
+theorem routeBRicherConcreteNPPrependedMultilinearGauge_spdpSubspaceContainment_of_residualGenerator_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hzero :
+      forall (spdpKappa ell : Nat)
+        (p : SATDeciderGaugeSpace M n hn2 htb hns)
+        (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+        (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+        S.length = spdpKappa ->
+        shift.totalDegree <= ell ->
+        shift.vars <= S.toFinset ->
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition S ->
+        routeBSPDPGeneratorRow M n hn2 htb hns
+          (p -
+            routeBRicherConcreteNPPrependedMultilinearProjection
+              M n hn2 htb hns p)
+          S shift = 0) :
+    RouteBRicherGaugeSPDPSubspaceContainment M n hn2 htb hns
+      (routeBRicherConcreteNPPrependedMultilinearGauge M n hn2 htb hns) :=
+  by
+    simpa [routeBRicherConcreteNPPrependedMultilinearGauge] using
+      routeBRicherFiniteRowsCandidateGauge_spdpSubspaceContainment_of_mapPreimage
+        M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns)
+        (routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_of_residualGenerator_zero
+          M n hn2 htb hns hzero)
 
 /-- With the separate unprojected-preimage side supplied, the concrete NP row
 plus multilinear monomial tail gives the finite-row map-preimage surface. -/
@@ -310,6 +452,51 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_mapP
     hN hrowCount heta htheta halpha halpha0 hkappa hgadgetN
     W hW_fin hW_dim hSpan hzero preimage
 
+/-- Concrete-tail Route B certificate from the map-preimage SPDP side, with
+the P-window inputs reduced to per-type spanning plus the literal non-scalar
+zero-profile cardinal bound.
+
+This avoids the broader finite-sum side condition
+`CookLevinZeroProfileSupportCardSumSideCondition`; callers may provide the
+smaller budget statement actually consumed by the corrected P-window cover. -/
+theorem routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_mapPreimage_perTypeSpanning_zeroNonScalarCardBound_deltaEqRateKappa
+    {N d : Nat}
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (alpha beta alpha0 : Real) (kappa gadgetN : Nat)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {eta theta : Real}
+    (hN : 1 <= N)
+    (hrowCount :
+      routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1 <= N)
+    (heta : 0 < eta) (htheta : 0 < theta)
+    (halpha : 0 < alpha) (halpha0 : 0 < alpha0)
+    (hkappa : 0 < kappa) (hgadgetN : 2 <= gadgetN)
+    (W : ConstraintType -> Submodule Rat (MvPolynomial (Fin n) Rat))
+    (hW_fin : forall tau, Module.Finite Rat (W tau))
+    (hW_dim : forall tau, Module.finrank Rat (W tau) <= 3)
+    (hSpan :
+      PallLean.Paper93.Spanning.CookLevinPerTypeSpanning
+        M n hn2 htb hns W)
+    (hzeroBound :
+      cookLevinZeroProfileNonScalarCardBound M n hn2 htb hns <=
+        withinProfileBound (Nat.log 2 n))
+    (preimage :
+      RouteBRicherGaugeFiniteRowsSPDPMapPreimage M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns)) :
+    RouteBPerInstanceCertificate M n hn2 htb hns :=
+  routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_mapPreimage_activeBlockersZeroNonScalarCover_deltaEqRateKappa
+    (N := N) (d := d)
+    M n hn hn2 htb hns hn4
+    alpha beta alpha0 kappa gadgetN G chi Phi
+    hN hrowCount heta htheta halpha halpha0 hkappa hgadgetN
+    hzeroBound
+    (cookLevinActiveProfileTypeCaseBlockers_of_perTypeSpanning
+      M n hn2 htb hns W hW_fin hW_dim hSpan)
+    preimage
+
 /-- Concrete-tail Route B certificate with the SPDP side stated directly as
 Route B image containment and the P-side reduced to the primitive per-type
 spanning plus zero-profile support-card inputs. -/
@@ -348,6 +535,134 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_spdp
     W hW_fin hW_dim hSpan hzero
     ((routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_iff_spdpSubspaceContainment
       M n hn2 htb hns).mpr contain)
+
+/-- Direct-containment sibling of
+`routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_mapPreimage_perTypeSpanning_zeroNonScalarCardBound_deltaEqRateKappa`.
+
+This is the reduced P-side surface for the concrete multilinear-tail gauge:
+SPDP containment remains the projection/gauge obligation, while the
+zero-profile side is the literal non-scalar cardinal bound rather than the
+too-large support-card finite sum. -/
+theorem routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_spdpContainment_perTypeSpanning_zeroNonScalarCardBound_deltaEqRateKappa
+    {N d : Nat}
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (alpha beta alpha0 : Real) (kappa gadgetN : Nat)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {eta theta : Real}
+    (hN : 1 <= N)
+    (hrowCount :
+      routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1 <= N)
+    (heta : 0 < eta) (htheta : 0 < theta)
+    (halpha : 0 < alpha) (halpha0 : 0 < alpha0)
+    (hkappa : 0 < kappa) (hgadgetN : 2 <= gadgetN)
+    (W : ConstraintType -> Submodule Rat (MvPolynomial (Fin n) Rat))
+    (hW_fin : forall tau, Module.Finite Rat (W tau))
+    (hW_dim : forall tau, Module.finrank Rat (W tau) <= 3)
+    (hSpan :
+      PallLean.Paper93.Spanning.CookLevinPerTypeSpanning
+        M n hn2 htb hns W)
+    (hzeroBound :
+      cookLevinZeroProfileNonScalarCardBound M n hn2 htb hns <=
+        withinProfileBound (Nat.log 2 n))
+    (contain :
+      RouteBRicherGaugeSPDPSubspaceContainment M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearGauge M n hn2 htb hns)) :
+    RouteBPerInstanceCertificate M n hn2 htb hns :=
+  routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_mapPreimage_perTypeSpanning_zeroNonScalarCardBound_deltaEqRateKappa
+    (N := N) (d := d)
+    M n hn hn2 htb hns hn4
+    alpha beta alpha0 kappa gadgetN G chi Phi
+    hN hrowCount heta htheta halpha halpha0 hkappa hgadgetN
+    W hW_fin hW_dim hSpan hzeroBound
+    ((routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_iff_spdpSubspaceContainment
+      M n hn2 htb hns).mpr contain)
+
+/-- Concrete-tail Route B certificate with the SPDP side stated directly as
+Route B image containment and the P-side supplied by the concreteW row
+embedding package.
+
+This is the strongest current P-window shortcut for the multilinear-tail
+surface: it avoids exposing the separate zero-profile support-card arithmetic
+when a full concreteW row-embedding package is already available. -/
+theorem routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_spdpContainment_rowEmbeddings_deltaEqRateKappa
+    {N d : Nat}
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (alpha beta alpha0 : Real) (kappa gadgetN : Nat)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {eta theta : Real}
+    (hN : 1 <= N)
+    (hrowCount :
+      routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1 <= N)
+    (heta : 0 < eta) (htheta : 0 < theta)
+    (halpha : 0 < alpha) (halpha0 : 0 < alpha0)
+    (hkappa : 0 < kappa) (hgadgetN : 2 <= gadgetN)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns hn4)
+    (contain :
+      RouteBRicherGaugeSPDPSubspaceContainment M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearGauge M n hn2 htb hns)) :
+    RouteBPerInstanceCertificate M n hn2 htb hns :=
+  routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsSPDPMapPreimage_rowEmbeddings_deltaEqRateKappa
+    (N := N) (d := d)
+    M n hn hn2 htb hns hn4
+    alpha beta alpha0 kappa gadgetN G chi Phi
+    (routeBRicherMultilinearTailRows M n hn2 htb hns)
+    hN hrowCount heta htheta halpha halpha0 hkappa hgadgetN
+    ((routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_iff_spdpSubspaceContainment
+      M n hn2 htb hns).mpr contain)
+    hRowEmbeddings
+
+/-- Concrete-tail Route B certificate with the P-window side reduced all the
+way to the strongest imported direct concreteW branch assumptions:
+branch-shape witnesses, canonical-row transport, H4 derivative closure, and
+the I1/I2/I3 concreteW component interfaces.
+
+The only remaining non-P-side input is the SPDP image-containment statement
+for the selected multilinear finite-row gauge. -/
+theorem routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_spdpContainment_importedConcreteW_deltaEqRateKappa
+    {N d : Nat}
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (alpha beta alpha0 : Real) (kappa gadgetN : Nat)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {eta theta : Real}
+    (hN : 1 <= N)
+    (hrowCount :
+      routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1 <= N)
+    (heta : 0 < eta) (htheta : 0 < theta)
+    (halpha : 0 < alpha) (halpha0 : 0 < alpha0)
+    (hkappa : 0 < kappa) (hgadgetN : 2 <= gadgetN)
+    (hShape : CookLevinDirectBranchShapeWitnesses M n hn2 htb hns hn4)
+    (hTransport : CookLevinConcreteWCanonicalRowTransport M n hn2 htb hns hn4)
+    (hDeriv :
+      PallLean.Paper93.Spanning.DerivClosurePerType (n := n)
+        (fun tau =>
+          PallLean.Paper93.Wiring.concreteW n hn4 (Fin.castLEEmb hn4) tau))
+    (hI1 : ConcreteWProductGrouping n hn4)
+    (hI2 : ConcreteWShiftClosure n hn4)
+    (hI3 : ConcreteWMlprojClosure n hn4)
+    (contain :
+      RouteBRicherGaugeSPDPSubspaceContainment M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearGauge M n hn2 htb hns)) :
+    RouteBPerInstanceCertificate M n hn2 htb hns :=
+  routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsSPDPMapPreimage_importedConcreteW_deltaEqRateKappa
+    (N := N) (d := d)
+    M n hn hn2 htb hns hn4
+    alpha beta alpha0 kappa gadgetN G chi Phi
+    (routeBRicherMultilinearTailRows M n hn2 htb hns)
+    hN hrowCount heta htheta halpha halpha0 hkappa hgadgetN
+    ((routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_iff_spdpSubspaceContainment
+      M n hn2 htb hns).mpr contain)
+    hShape hTransport hDeriv hI1 hI2 hI3
 
 /-- Concrete-tail Route B certificate from the unprojected-preimage side and
 an endpoint/charged P-window bridge. -/
@@ -430,11 +745,18 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_unpr
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_mlProj_mem
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_spdpRowClosurePackage
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_spdpClosure
+#print axioms routeBRicherConcreteNPPrependedMultilinearRows_kernelCompatibility_iff_residualGenerator_zero
+#print axioms routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_of_residualGenerator_zero
+#print axioms routeBRicherConcreteNPPrependedMultilinearGauge_spdpSubspaceContainment_of_residualGenerator_zero
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_of_unprojectedPreimage
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_iff_spdpSubspaceContainment
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_mapPreimage_activeBlockersZeroNonScalarCover_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_mapPreimage_perTypeSpanning_zeroSupportCardSum_deltaEqRateKappa
+#print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_mapPreimage_perTypeSpanning_zeroNonScalarCardBound_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_spdpContainment_perTypeSpanning_zeroSupportCardSum_deltaEqRateKappa
+#print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_spdpContainment_perTypeSpanning_zeroNonScalarCardBound_deltaEqRateKappa
+#print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_spdpContainment_rowEmbeddings_deltaEqRateKappa
+#print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_spdpContainment_importedConcreteW_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_unprojectedPreimage_endpointChargedBridge_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_unprojectedPreimage_activeBlockersZeroNonScalarCover_deltaEqRateKappa
 
