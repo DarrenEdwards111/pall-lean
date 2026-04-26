@@ -154,12 +154,12 @@ theorem boolConstraintList_length (N : ℕ) :
   simp [boolConstraintList]
 
 /-- Adjacency polynomial X_i * X_{i+1} for consecutive variables. -/
-private noncomputable def adjPoly (N : ℕ) (i : Fin N) (hi : i.val + 1 < N) :
+noncomputable def adjPoly (N : ℕ) (i : Fin N) (hi : i.val + 1 < N) :
     MvPolynomial (Fin N) ℚ :=
   MvPolynomial.X i * MvPolynomial.X ⟨i.val + 1, hi⟩
 
 /-- adjPoly variables are contained in {i, i+1}. -/
-private theorem adjPoly_vars (N : ℕ) (i : Fin N) (hi : i.val + 1 < N) :
+theorem adjPoly_vars (N : ℕ) (i : Fin N) (hi : i.val + 1 < N) :
     (adjPoly N i hi).vars ⊆ ({i, ⟨i.val + 1, hi⟩} : Finset (Fin N)) := by
   unfold adjPoly
   intro w hw
@@ -172,7 +172,7 @@ private theorem adjPoly_vars (N : ℕ) (i : Fin N) (hi : i.val + 1 < N) :
   exact hw2
 
 /-- adjPoly has degree <= 2. -/
-private theorem adjPoly_degree (N : ℕ) (i : Fin N) (hi : i.val + 1 < N) :
+theorem adjPoly_degree (N : ℕ) (i : Fin N) (hi : i.val + 1 < N) :
     (adjPoly N i hi).totalDegree ≤ 2 := by
   unfold adjPoly
   have h := MvPolynomial.totalDegree_mul
@@ -182,7 +182,7 @@ private theorem adjPoly_degree (N : ℕ) (i : Fin N) (hi : i.val + 1 < N) :
   linarith
 
 /-- Build a LocalConstraint from an adjacency polynomial. -/
-private noncomputable def adjLC (N : ℕ) (i : Fin N) (hi : i.val + 1 < N) :
+noncomputable def adjLC (N : ℕ) (i : Fin N) (hi : i.val + 1 < N) :
     LocalConstraint N where
   poly := adjPoly N i hi
   support := {i, ⟨i.val + 1, hi⟩}
@@ -197,7 +197,7 @@ noncomputable def adjConstraintList (N : ℕ) : List (LocalConstraint N) :=
   (List.finRange N).filterMap (fun i =>
     if h : i.val + 1 < N then some (adjLC N i h) else none)
 
-private theorem adjConstraintList_length (N : ℕ) (hN : N ≥ 1) :
+theorem adjConstraintList_length (N : ℕ) (hN : N ≥ 1) :
     (adjConstraintList N).length ≤ N := by
   unfold adjConstraintList
   trans (List.finRange N).length
@@ -215,12 +215,12 @@ has different structure from the polynomial of an arbitrary DTM. -/
 
 /-- Transition coefficient: extract a rational number from M's transition at state q.
     Uses the new-state index from M.transition q false as the coefficient. -/
-private noncomputable def transCoeff (M : DTM) (q : Fin M.numStates) : ℚ :=
+noncomputable def transCoeff (M : DTM) (q : Fin M.numStates) : ℚ :=
   ((M.transition q false).1.val + 1 : ℚ)
 
 /-- Transition skeleton polynomial: c_q * X_i * X_{i+1} where c_q depends on
     M.transition at state q. -/
-private noncomputable def transSkelPoly (M : DTM) (N : ℕ) (q : Fin M.numStates)
+noncomputable def transSkelPoly (M : DTM) (N : ℕ) (q : Fin M.numStates)
     (i : Fin N) (hi : i.val + 1 < N) : MvPolynomial (Fin N) ℚ :=
   MvPolynomial.C (transCoeff M q) * (MvPolynomial.X i * MvPolynomial.X ⟨i.val + 1, hi⟩)
 
@@ -228,7 +228,7 @@ private noncomputable def transSkelPoly (M : DTM) (N : ℕ) (q : Fin M.numStates
 
     The proof follows the same pattern as adjPoly_vars: vars of C(c) * (X_i * X_j)
     are contained in vars(X_i * X_j) ⊆ {i, j}. -/
-private theorem transSkelPoly_vars (M : DTM) (N : ℕ) (q : Fin M.numStates)
+theorem transSkelPoly_vars (M : DTM) (N : ℕ) (q : Fin M.numStates)
     (i : Fin N) (hi : i.val + 1 < N) :
     (transSkelPoly M N q i hi).vars ⊆ ({i, ⟨i.val + 1, hi⟩} : Finset (Fin N)) := by
   unfold transSkelPoly
@@ -253,7 +253,7 @@ private theorem transSkelPoly_vars (M : DTM) (N : ℕ) (q : Fin M.numStates)
   exact hw2
 
 /-- transSkelPoly has degree <= 2. -/
-private theorem transSkelPoly_degree (M : DTM) (N : ℕ) (q : Fin M.numStates)
+theorem transSkelPoly_degree (M : DTM) (N : ℕ) (q : Fin M.numStates)
     (i : Fin N) (hi : i.val + 1 < N) :
     (transSkelPoly M N q i hi).totalDegree ≤ 2 := by
   unfold transSkelPoly
@@ -267,7 +267,7 @@ private theorem transSkelPoly_degree (M : DTM) (N : ℕ) (q : Fin M.numStates)
   linarith
 
 /-- Build a LocalConstraint from a transition skeleton polynomial. -/
-private noncomputable def transSkelLC (M : DTM) (N : ℕ) (q : Fin M.numStates)
+noncomputable def transSkelLC (M : DTM) (N : ℕ) (q : Fin M.numStates)
     (i : Fin N) (hi : i.val + 1 < N) : LocalConstraint N where
   poly := transSkelPoly M N q i hi
   support := {i, ⟨i.val + 1, hi⟩}
@@ -278,12 +278,12 @@ private noncomputable def transSkelLC (M : DTM) (N : ℕ) (q : Fin M.numStates)
   degree_bound := le_trans (transSkelPoly_degree M N q i hi) (by omega)
 
 /-- Helper: constraint list for a single state q. -/
-private noncomputable def transSkelForState (M : DTM) (N : ℕ) (q : Fin M.numStates) :
+noncomputable def transSkelForState (M : DTM) (N : ℕ) (q : Fin M.numStates) :
     List (LocalConstraint N) :=
   (List.finRange N).filterMap (fun i =>
     if h : i.val + 1 < N then some (transSkelLC M N q i h) else none)
 
-private theorem transSkelForState_length (M : DTM) (N : ℕ) (q : Fin M.numStates) :
+theorem transSkelForState_length (M : DTM) (N : ℕ) (q : Fin M.numStates) :
     (transSkelForState M N q).length ≤ N := by
   unfold transSkelForState
   trans (List.finRange N).length
@@ -295,7 +295,7 @@ private theorem transSkelForState_length (M : DTM) (N : ℕ) (q : Fin M.numState
 noncomputable def transSkelConstraintList (M : DTM) (N : ℕ) : List (LocalConstraint N) :=
   (List.finRange M.numStates).flatMap (fun q => transSkelForState M N q)
 
-private theorem flatMap_length_le {α β : Type*} (f : α → List β)
+theorem flatMap_length_le {α β : Type*} (f : α → List β)
     (l : List α) (bound : ℕ) (hf : ∀ a, (f a).length ≤ bound) :
     (l.flatMap f).length ≤ l.length * bound := by
   induction l with
@@ -305,7 +305,7 @@ private theorem flatMap_length_le {α β : Type*} (f : α → List β)
     have ha := hf a
     nlinarith
 
-private theorem transSkelConstraintList_length (M : DTM) (N : ℕ) :
+theorem transSkelConstraintList_length (M : DTM) (N : ℕ) :
     (transSkelConstraintList M N).length ≤ M.numStates * N := by
   unfold transSkelConstraintList
   have h := flatMap_length_le (fun q => transSkelForState M N q) (List.finRange M.numStates) N
@@ -314,7 +314,7 @@ private theorem transSkelConstraintList_length (M : DTM) (N : ℕ) :
 
 /-- For any state and any nonterminal consecutive pair, the corresponding
 transition-skeleton constraint actually appears in the compiled constraint list. -/
-private theorem transSkelLC_mem_transSkelConstraintList
+theorem transSkelLC_mem_transSkelConstraintList
     (M : DTM) (N : ℕ) (q : Fin M.numStates) (i : Fin N) (hi : i.val + 1 < N) :
     transSkelLC M N q i hi ∈ transSkelConstraintList M N := by
   unfold transSkelConstraintList
@@ -469,7 +469,7 @@ noncomputable def restFactorProd' (M : DTM) (n : ℕ) :
     (fun c => (1 : MvPolynomial (Fin n) ℚ) - c.poly)).prod
 
 /-- The constant term of each rest constraint's polynomial is 0. -/
-private theorem rest_constraint_coeff_zero (M : DTM) (n : ℕ) (lc : LocalConstraint n)
+theorem rest_constraint_coeff_zero (M : DTM) (n : ℕ) (lc : LocalConstraint n)
     (hlc : lc ∈ adjConstraintList n ++ transSkelConstraintList M n) :
     MvPolynomial.coeff 0 lc.poly = 0 := by
   rw [List.mem_append] at hlc
