@@ -93,6 +93,18 @@ theorem cookLevinAllBoundedProfileCommonSpanLiveProfileCases_of_activeTypeCaseBl
     cookLevinAllBoundedProfileCommonSpanLiveProfileCase_of_activeTypeCaseBlockers
       M n hn htb hns h hblock
 
+/-- The stronger live-profile package supplies the three active type-case
+blockers consumed by the corrected P-window route. -/
+theorem cookLevinActiveProfileTypeCaseBlockers_of_liveProfileCases
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hlive :
+      CookLevinAllBoundedProfileCommonSpanLiveProfileCases M n hn htb hns) :
+    CookLevinActiveProfileTypeCaseBlockers M n hn htb hns := by
+  refine ⟨?_, ?_, ?_⟩ <;>
+    intro h hadm htr hne _hpos <;>
+      exact hlive h hadm htr hne
+
 /-- A per-type row-span package with finite `W_τ` of dimension at most three
 closes any fixed live profile. -/
 theorem cookLevinAllBoundedProfileCommonSpanLiveProfileCase_of_perTypeSpanning
@@ -227,6 +239,7 @@ theorem cookLevinActiveProfileTypeCaseBlockers_of_concreteW_rowEmbeddings
 #print axioms activeProfile_positive_type_of_transitionRight_zero
 #print axioms cookLevinAllBoundedProfileCommonSpanLiveProfileCase_of_activeTypeCaseBlockers
 #print axioms cookLevinAllBoundedProfileCommonSpanLiveProfileCases_of_activeTypeCaseBlockers
+#print axioms cookLevinActiveProfileTypeCaseBlockers_of_liveProfileCases
 #print axioms cookLevinAllBoundedProfileCommonSpanLiveProfileCase_of_perTypeSpanning
 #print axioms cookLevinAllBoundedProfileCommonSpanLiveProfileCases_of_perTypeSpanning
 #print axioms cookLevinActiveProfileTypeCaseBlockers_of_perTypeSpanning

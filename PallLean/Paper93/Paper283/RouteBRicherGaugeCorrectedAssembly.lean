@@ -201,6 +201,52 @@ theorem routeBPerInstanceCertificate_of_finiteRowsGeneralCommutation_activeBlock
       M n hn2 htb hns hn4 hbound hactive)
     Q i hrow hextract hsource
 
+/-- Stronger live-profile common-span cases close the active-blocker input,
+while the exact finite-sum support side condition closes the literal
+non-scalar zero-profile cardinality input.
+
+This is a corrected non-template P-window input reduction.  The remaining
+primitive assumptions are the live-profile common-span package and the
+zero-profile support-card finite-sum side condition; no canonical H4 input is
+used. -/
+theorem routeB_activeBlockersZeroNonScalarInputs_of_liveProfiles_zeroSupportCardSum
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hlive :
+      CookLevinAllBoundedProfileCommonSpanLiveProfileCases M n hn2 htb hns)
+    (hzero :
+      CookLevinZeroProfileSupportCardSumSideCondition M n hn2 htb hns) :
+    CookLevinActiveProfileTypeCaseBlockers M n hn2 htb hns ∧
+      cookLevinZeroProfileNonScalarCardBound M n hn2 htb hns <=
+        withinProfileBound (Nat.log 2 n) := by
+  exact ⟨
+    cookLevinActiveProfileTypeCaseBlockers_of_liveProfileCases
+      M n hn2 htb hns hlive,
+    cookLevinZeroProfileNonScalarCardBound_le_withinProfileBound_of_supportCardSumSideCondition
+      M n hn2 htb hns hzero⟩
+
+/-- External-base-cardinality version of
+`routeB_activeBlockersZeroNonScalarInputs_of_liveProfiles_zeroSupportCardSum`.
+
+The remaining primitive assumptions are the live-profile common-span package
+and `CookLevinZeroProfileSupportBaseCardSideCondition`. -/
+theorem routeB_activeBlockersZeroNonScalarInputs_of_liveProfiles_zeroSupportBaseCard
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (b : Nat)
+    (hlive :
+      CookLevinAllBoundedProfileCommonSpanLiveProfileCases M n hn2 htb hns)
+    (hzero :
+      CookLevinZeroProfileSupportBaseCardSideCondition M n hn2 htb hns b) :
+    CookLevinActiveProfileTypeCaseBlockers M n hn2 htb hns ∧
+      cookLevinZeroProfileNonScalarCardBound M n hn2 htb hns <=
+        withinProfileBound (Nat.log 2 n) := by
+  exact ⟨
+    cookLevinActiveProfileTypeCaseBlockers_of_liveProfileCases
+      M n hn2 htb hns hlive,
+    cookLevinZeroProfileNonScalarCardBound_le_withinProfileBound_of_supportBaseCardSideCondition
+      M n hn2 htb hns b hzero⟩
+
 /-- ConcreteW row embeddings close the active-blocker input of the corrected
 Route B P-window bridge, while the finite support-card side condition closes
 the literal non-scalar zero-profile cardinality input.
@@ -219,13 +265,12 @@ theorem routeB_activeBlockersZeroNonScalarInputs_of_concreteW_zeroSupportCardSum
     CookLevinActiveProfileTypeCaseBlockers M n hn2 htb hns ∧
       cookLevinZeroProfileNonScalarCardBound M n hn2 htb hns <=
         withinProfileBound (Nat.log 2 n) := by
-  refine ⟨?_, ?_⟩
-  · exact
-      cookLevinActiveProfileTypeCaseBlockers_closed_by_concreteW
-        M n hn2 htb hns hn4 hRowEmbeddings
-  · simpa [cookLevinZeroProfileNonScalarCardBound] using
-      cookLevin_zeroProfileShiftSupportBasisCardBound_le_withinProfileBound_of_sumSideCondition
-        M n hn2 htb hns hzero
+  exact
+    routeB_activeBlockersZeroNonScalarInputs_of_liveProfiles_zeroSupportCardSum
+      M n hn2 htb hns
+      (cookLevinAllBoundedProfileCommonSpanLiveProfileCases_closed_by_concreteW
+        M n hn2 htb hns hn4 hRowEmbeddings)
+      hzero
 
 /-- External-base-cardinality version of
 `routeB_activeBlockersZeroNonScalarInputs_of_concreteW_zeroSupportCardSum`.
@@ -245,13 +290,12 @@ theorem routeB_activeBlockersZeroNonScalarInputs_of_concreteW_zeroSupportBaseCar
     CookLevinActiveProfileTypeCaseBlockers M n hn2 htb hns ∧
       cookLevinZeroProfileNonScalarCardBound M n hn2 htb hns <=
         withinProfileBound (Nat.log 2 n) := by
-  refine ⟨?_, ?_⟩
-  · exact
-      cookLevinActiveProfileTypeCaseBlockers_closed_by_concreteW
-        M n hn2 htb hns hn4 hRowEmbeddings
-  · simpa [cookLevinZeroProfileNonScalarCardBound] using
-      cookLevin_zeroProfileShiftSupportBasisCardBound_le_withinProfileBound_of_baseCardSideCondition
-        M n hn2 htb hns b hzero
+  exact
+    routeB_activeBlockersZeroNonScalarInputs_of_liveProfiles_zeroSupportBaseCard
+      M n hn2 htb hns b
+      (cookLevinAllBoundedProfileCommonSpanLiveProfileCases_closed_by_concreteW
+        M n hn2 htb hns hn4 hRowEmbeddings)
+      hzero
 
 /-- Row embeddings close the active live-profile blockers, and the exact
 zero-profile support-card side condition closes the non-scalar cardinality
@@ -371,6 +415,8 @@ theorem routeBPerInstanceCertificate_of_finiteRowsSPDPMapPreimage_rowEmbeddings_
 #print axioms routeBPerInstanceCertificate_of_finiteRowsGeneralCommutation_endpointChargedBridge_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_finiteRowsGeneralCommutation_activeBlockersZeroNonScalar_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_finiteRowsGeneralCommutation_activeBlockersZeroNonScalarCover_deltaEqRateKappa
+#print axioms routeB_activeBlockersZeroNonScalarInputs_of_liveProfiles_zeroSupportCardSum
+#print axioms routeB_activeBlockersZeroNonScalarInputs_of_liveProfiles_zeroSupportBaseCard
 #print axioms routeB_activeBlockersZeroNonScalarInputs_of_concreteW_zeroSupportCardSum
 #print axioms routeB_activeBlockersZeroNonScalarInputs_of_concreteW_zeroSupportBaseCard
 #print axioms routeBPerInstanceCertificate_of_finiteRowsGeneralCommutation_rowEmbeddingsZeroSupport_deltaEqRateKappa

@@ -1,4 +1,5 @@
 import PallLean.Paper93.Paper283.RouteBRicherGaugeCorrectedConcreteNPAssembly
+import PallLean.Paper93.Paper283.RouteBRicherGaugeSPDPConcreteScalarClosure
 
 /-!
 # Concrete prepended-row SPDP map-preimage reductions
@@ -83,6 +84,47 @@ theorem routeBRicherConcreteNPPrependedRows_spdpRowClosure_of_package
     simpa [routeBRicherConcreteNPPrependedRows] using
       pkg.tail_row_closure
         spdpKappa ell S shift hSlen hshiftDegree hshiftVars hadm j
+
+/-- The standard finite-row row-closure obligation for the concrete prepended
+rows splits back into the concrete head-row and tail-row package. -/
+theorem routeBRicherConcreteNPPrependedRows_package_of_spdpRowClosure
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (rowClosure :
+      RouteBRicherGaugeFiniteRowsSPDPRowClosure M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail)) :
+    RouteBRicherConcreteNPPrependedRowsSPDPRowClosurePackage
+      M n hn2 htb hns tail := by
+  constructor
+  · intro spdpKappa ell S shift hSlen hshiftDegree hshiftVars hadm
+    simpa [routeBRicherConcreteNPPrependedRows] using
+      rowClosure.row_closure
+        spdpKappa ell S shift hSlen hshiftDegree hshiftVars hadm
+        (0 : Fin (m + 1))
+  · intro spdpKappa ell S shift hSlen hshiftDegree hshiftVars hadm i
+    simpa [routeBRicherConcreteNPPrependedRows] using
+      rowClosure.row_closure
+        spdpKappa ell S shift hSlen hshiftDegree hshiftVars hadm
+        (Fin.succ i)
+
+/-- For the concrete prepended rows, the package formulation is equivalent to
+the ordinary finite-row row-closure formulation. -/
+theorem routeBRicherConcreteNPPrependedRows_spdpRowClosure_iff_package
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    RouteBRicherGaugeFiniteRowsSPDPRowClosure M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail) ↔
+      RouteBRicherConcreteNPPrependedRowsSPDPRowClosurePackage
+        M n hn2 htb hns tail := by
+  constructor
+  · exact routeBRicherConcreteNPPrependedRows_package_of_spdpRowClosure
+      M n hn2 htb hns tail
+  · exact routeBRicherConcreteNPPrependedRows_spdpRowClosure_of_package
+      M n hn2 htb hns tail
 
 /-- Row-level closure package for the concrete prepended rows gives the
 coefficient-level finite-row SPDP closure package. -/
@@ -200,15 +242,141 @@ theorem routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_spdpClosure_kerne
       (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail)
       closure hker)
 
+/-! ## Empty-tail reductions and obstruction -/
+
+/-- With an empty tail, the concrete prepended row family is definitionally the
+one-row concrete NP witness family. -/
+theorem routeBRicherConcreteNPPrependedRows_empty_eq_witnessRows
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (tail : Fin 0 -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail =
+      routeBRicherConcreteNPWitnessRows M n hn2 htb hns := by
+  funext i
+  fin_cases i
+  rfl
+
+/-- Empty-tail prepended unprojected-preimage is exactly the older one-row
+concrete NP unprojected-preimage closure. -/
+theorem routeBRicherConcreteNPPrependedRows_empty_unprojectedPreimage_iff_concreteNP
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (tail : Fin 0 -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    RouteBRicherGaugeFiniteRowsSPDPUnprojectedPreimage M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail) ↔
+      RouteBRicherConcreteNPUnprojectedSPDPPreimageClosure
+        M n hn2 htb hns := by
+  constructor
+  · intro preimage kappa ell p S shift hSlen hshiftDegree hshiftVars hadm
+    have hrows :=
+      routeBRicherConcreteNPPrependedRows_empty_eq_witnessRows
+        M n hn2 htb hns tail
+    simpa [hrows] using
+      preimage.unprojected_preimage
+        kappa ell p S shift hSlen hshiftDegree hshiftVars hadm
+  · intro hpre
+    constructor
+    intro kappa ell p S shift hSlen hshiftDegree hshiftVars hadm
+    have hrows :=
+      routeBRicherConcreteNPPrependedRows_empty_eq_witnessRows
+        M n hn2 htb hns tail
+    simpa [hrows] using
+      hpre kappa ell p S shift hSlen hshiftDegree hshiftVars hadm
+
+/-- An empty-tail prepended row-closure package would imply the false
+one-row scalar closure for the concrete Cook-Levin witness. -/
+theorem routeBRicherConcreteNPWitnessScalarRowClosure_of_emptyPrependedRowsPackage
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (tail : Fin 0 -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (pkg :
+      RouteBRicherConcreteNPPrependedRowsSPDPRowClosurePackage
+        M n hn2 htb hns tail) :
+    RouteBRicherConcreteNPWitnessScalarRowClosure M n hn2 htb hns := by
+  intro kappa ell S shift hSlen hshiftDegree hshiftVars hadm
+  have hrows :=
+    routeBRicherConcreteNPPrependedRows_empty_eq_witnessRows
+      M n hn2 htb hns tail
+  have hmem :
+      routeBSPDPGeneratorRow M n hn2 htb hns
+          (routeBRicherConcreteNPWitnessRows M n hn2 htb hns 0) S shift
+        ∈ finiteRowsSubmodule
+            (routeBRicherConcreteNPWitnessRows M n hn2 htb hns) := by
+    simpa [hrows] using
+      pkg.concrete_row_closure
+        kappa ell S shift hSlen hshiftDegree hshiftVars hadm
+  exact
+    (mem_finiteRowsSubmodule_one_iff_exists_scalar
+      (routeBRicherConcreteNPWitnessRows M n hn2 htb hns)
+      (routeBSPDPGeneratorRow M n hn2 htb hns
+        (routeBRicherConcreteNPWitnessRows M n hn2 htb hns 0) S shift)).mp
+      hmem
+
+/-- Empty-tail prepended row-closure package would imply the refuted
+`compiledPoly` scalar-row closure. -/
+theorem routeBRicherConcreteNPCompiledPolyScalarRowClosure_of_emptyPrependedRowsPackage
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (tail : Fin 0 -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (pkg :
+      RouteBRicherConcreteNPPrependedRowsSPDPRowClosurePackage
+        M n hn2 htb hns tail) :
+    RouteBRicherConcreteNPCompiledPolyScalarRowClosure M n hn2 htb hns :=
+  (routeBRicherConcreteNPWitnessScalarRowClosure_iff_compiledPoly
+    M n hn2 htb hns).mp
+    (routeBRicherConcreteNPWitnessScalarRowClosure_of_emptyPrependedRowsPackage
+      M n hn2 htb hns tail pkg)
+
+/-- The empty-tail concrete prepended rows cannot satisfy the row-closure
+package: that would be the impossible scalar closure of the single concrete
+Cook-Levin witness row. -/
+theorem not_routeBRicherConcreteNPPrependedRows_empty_spdpRowClosurePackage
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (tail : Fin 0 -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    ¬ RouteBRicherConcreteNPPrependedRowsSPDPRowClosurePackage
+        M n hn2 htb hns tail := by
+  intro pkg
+  exact
+    not_routeBRicherConcreteNPCompiledPolyScalarRowClosure M n hn2 htb hns
+      (routeBRicherConcreteNPCompiledPolyScalarRowClosure_of_emptyPrependedRowsPackage
+        M n hn2 htb hns tail pkg)
+
+/-- Consequently, any genuine concrete prepended-row closure package needs at
+least one tail row beyond the concrete NP head. -/
+theorem routeBRicherConcreteNPPrependedRows_tail_nonempty_of_spdpRowClosurePackage
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (pkg :
+      RouteBRicherConcreteNPPrependedRowsSPDPRowClosurePackage
+        M n hn2 htb hns tail) :
+    0 < m := by
+  by_contra hnot
+  have hm : m = 0 := Nat.eq_zero_of_not_pos hnot
+  subst m
+  exact
+    not_routeBRicherConcreteNPPrependedRows_empty_spdpRowClosurePackage
+      M n hn2 htb hns tail pkg
+
 /-! ## Axiom audit anchors -/
 
 #print axioms RouteBRicherConcreteNPPrependedRowsSPDPRowClosurePackage
 #print axioms routeBRicherConcreteNPPrependedRows_spdpRowClosure_of_package
+#print axioms routeBRicherConcreteNPPrependedRows_package_of_spdpRowClosure
+#print axioms routeBRicherConcreteNPPrependedRows_spdpRowClosure_iff_package
 #print axioms routeBRicherConcreteNPPrependedRows_spdpClosure_of_rowClosurePackage
 #print axioms routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_closure_unprojectedPreimage
 #print axioms routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_rowClosurePackage_unprojectedPreimage
 #print axioms routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_generatorRowCommutation
 #print axioms routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_generatorCommutation
 #print axioms routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_spdpClosure_kernelCompatibility
+#print axioms routeBRicherConcreteNPPrependedRows_empty_eq_witnessRows
+#print axioms routeBRicherConcreteNPPrependedRows_empty_unprojectedPreimage_iff_concreteNP
+#print axioms routeBRicherConcreteNPWitnessScalarRowClosure_of_emptyPrependedRowsPackage
+#print axioms routeBRicherConcreteNPCompiledPolyScalarRowClosure_of_emptyPrependedRowsPackage
+#print axioms not_routeBRicherConcreteNPPrependedRows_empty_spdpRowClosurePackage
+#print axioms routeBRicherConcreteNPPrependedRows_tail_nonempty_of_spdpRowClosurePackage
 
 end PallLean.Paper93.Paper283

@@ -130,6 +130,33 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_nonScalarCardBound_le
     (cookLevinZeroProfileNonScalarClosureWithCardBound M n hn htb hns)
     hbound
 
+/-- Exact finite-sum side condition closes the literal non-scalar
+zero-profile cardinality target consumed by the corrected P-window route. -/
+theorem cookLevinZeroProfileNonScalarCardBound_le_withinProfileBound_of_supportCardSumSideCondition
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hside :
+      CookLevinZeroProfileSupportCardSumSideCondition M n hn htb hns) :
+    cookLevinZeroProfileNonScalarCardBound M n hn htb hns ≤
+      withinProfileBound (Nat.log 2 n) := by
+  simpa [cookLevinZeroProfileNonScalarCardBound] using
+    cookLevin_zeroProfileShiftSupportBasisCardBound_le_withinProfileBound_of_sumSideCondition
+      M n hn htb hns hside
+
+/-- External-base-cardinality side condition closes the literal non-scalar
+zero-profile cardinality target consumed by the corrected P-window route. -/
+theorem cookLevinZeroProfileNonScalarCardBound_le_withinProfileBound_of_supportBaseCardSideCondition
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (b : ℕ)
+    (hside :
+      CookLevinZeroProfileSupportBaseCardSideCondition M n hn htb hns b) :
+    cookLevinZeroProfileNonScalarCardBound M n hn htb hns ≤
+      withinProfileBound (Nat.log 2 n) := by
+  simpa [cookLevinZeroProfileNonScalarCardBound] using
+    cookLevin_zeroProfileShiftSupportBasisCardBound_le_withinProfileBound_of_baseCardSideCondition
+      M n hn htb hns b hside
+
 /-- Exact finite-sum side condition version of the non-scalar common-span
 closure. -/
 theorem cookLevinZeroHistogramShiftCommonSpan_of_nonScalarSupportCardSumSideCondition
@@ -231,6 +258,8 @@ zero-profile budget, for example the common-span budget
 #print axioms cookLevinZeroProfileNonScalarBasis_card_le_cardBound
 #print axioms cookLevinZeroProfileNonScalarClosureWithCardBound
 #print axioms cookLevinZeroHistogramShiftCommonSpan_of_nonScalarCardBound_le
+#print axioms cookLevinZeroProfileNonScalarCardBound_le_withinProfileBound_of_supportCardSumSideCondition
+#print axioms cookLevinZeroProfileNonScalarCardBound_le_withinProfileBound_of_supportBaseCardSideCondition
 #print axioms cookLevinZeroHistogramShiftCommonSpan_of_nonScalarSupportCardSumSideCondition
 #print axioms cookLevinZeroHistogramShiftCommonSpan_of_nonScalarSupportBaseCardSideCondition
 #print axioms cookLevinZeroProfileNonScalarBasis_not_template_sized
