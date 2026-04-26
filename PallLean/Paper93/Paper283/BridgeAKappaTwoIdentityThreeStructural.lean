@@ -575,3 +575,204 @@ theorem inertFactorsList_inert_at_v
 end BridgeAKappaTwoIdentityThreeStructural
 
 end PallLean.Paper93.Paper283
+
+namespace PallLean.Paper93.Paper283
+
+namespace BridgeAKappaTwoIdentityThreeStructural
+
+open MvPolynomial
+open MultilinearSPDP
+open PaperFaithfulSeparation
+open SPDP
+open BridgeABlockProductRule
+open BridgeAKappaTwoTwoFoldLeibnizExpansion
+open BridgeAKappaTwoFactorPairLemmas
+open BridgeAKappaTwoIdentityOne
+open BridgeAKappaTwoIdentityFour
+open BridgeAKappaTwoIdentityThreeAux
+open BridgeAKappaTwoListInductionHelpers
+
+attribute [local instance] Classical.dec
+
+/-! ## Section G: touched-list polynomial form
+
+We expose the touched-list (mapped through `1 - c.poly`) directly as a
+list of polynomial factors whose `prod` matches the partition
+`inertFactorsList ++ activeFactorsList` permutationally.
+
+The key invariants:
+* The literal touched-list polynomial form contains exactly the same
+  multiset of factors as `inertFactorsList ++ activeFactorsList`.
+* Therefore the products are equal (since multiplication is commutative).
+
+Note: we do **not** prove a `List.Perm` directly here because the order
+of factors is irrelevant for our target (`pderivListProdSumTwice` is
+permutation-invariant by `pderivListProdSumTwice_perm`).  Instead, we
+exhibit the prod-equality, which suffices.
+-/
+
+/-- The mapped-touched-list polynomial form: the literal touched-list
+under `(1 - c.poly)` mapping. -/
+noncomputable def touchedListPoly
+    (M : TuringMachine.DTM) (n : Nat)
+    (k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n) :
+    List (MvPolynomial (Fin n) ℚ) :=
+  (kappaTwoTouchedList_explicit M n k hk1 hk2).map
+    (fun c => (1 : MvPolynomial (Fin n) ℚ) - c.poly)
+
+/-- For convenience: the literal expansion of `touchedListPoly` at the
+level of the bool factors.  (Decomposes the bool prefix.) -/
+theorem touchedListPoly_eq_bool_prefix_append
+    (M : TuringMachine.DTM) (n : Nat)
+    (k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n) :
+    touchedListPoly M n k hk1 hk2 =
+      [boolFactorPoly n ⟨3 * k, by omega⟩,
+       boolFactorPoly n ⟨3 * k + 1, by omega⟩,
+       boolFactorPoly n ⟨3 * k + 2, by omega⟩] ++
+      ((kappaTwoTouchedList_adjFactors n k hk1 hk2).map
+        (fun c => (1 : MvPolynomial (Fin n) ℚ) - c.poly) ++
+       (kappaTwoTouchedList_transSkelFactorsFlat M n k hk1 hk2).map
+        (fun c => (1 : MvPolynomial (Fin n) ℚ) - c.poly)) := by
+  unfold touchedListPoly kappaTwoTouchedList_explicit
+  rw [List.map_append, List.map_append]
+  rw [boolFactors_mapped_form]
+  rw [List.append_assoc]
+
+/-! ## Axiom audit anchors -/
+
+#print axioms touchedListPoly_eq_bool_prefix_append
+
+end BridgeAKappaTwoIdentityThreeStructural
+
+end PallLean.Paper93.Paper283
+
+namespace PallLean.Paper93.Paper283
+
+namespace BridgeAKappaTwoIdentityThreeStructural
+
+open MvPolynomial
+open MultilinearSPDP
+open PaperFaithfulSeparation
+open SPDP
+open BridgeABlockProductRule
+open BridgeAKappaTwoTwoFoldLeibnizExpansion
+open BridgeAKappaTwoFactorPairLemmas
+open BridgeAKappaTwoIdentityOne
+open BridgeAKappaTwoIdentityFour
+open BridgeAKappaTwoIdentityThreeAux
+open BridgeAKappaTwoListInductionHelpers
+
+attribute [local instance] Classical.dec
+
+/-! ## Section H: residual-claim formalisation
+
+Given the inert/active partition, identity (3)'s per-pair sum reduces
+to the following claim: there exists a list `L_perm` permutationally
+equivalent to the touched-list-polynomial form, with
+`L_perm = inertFactorsList ++ activeFactorsList`, such that
+
+  `coeff probeLeft (pderivListProdSumTwice u v L_perm)
+   = inertFactorsList.prod *
+     coeff probeLeft (pderivListProdSumTwice u v activeFactorsList)`
+
+via `pderivListProdSumTwice_append_inert_prefix`.  Then by Section J's
+cross-term vanishing applied to the active-list, only the
+self-contribution from cadj@(3k+2, 3k+3) survives, summing to the
+target `K`.
+
+We state this as a clean residual lemma. -/
+
+/-- Hypothesis encoding the multiset/permutation equivalence between
+the literal touched-list (mapped through `1 - c.poly`) and the
+inert/active partition.
+
+This is the structural permutation claim that the inert and active
+sub-lists together cover the touched-list with the correct multiset of
+factors.  The proof requires expanding `kappaTwoTouchedList_explicit`
+through `boolFactors`, `adjFactors`, `transSkelFactorsFlat`, and showing
+each factor is matched to its inert/active counterpart by literal
+coefficient comparison.  -/
+def touchedListPoly_perm_partition_claim
+    (M : TuringMachine.DTM) (n : Nat)
+    (k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n) : Prop :=
+  (touchedListPoly M n k hk1 hk2).Perm
+    (inertFactorsList M n k hk1 hk2 ++ activeFactorsList M n k hk1 hk2)
+
+/-- Hypothesis encoding the active-list per-pair sum: the bilinear
+coefficient at `probeLeft` of `pderivListProdSumTwice u v
+activeFactorsList`, multiplied by the inert product, equals
+`crossBlockKValue (transCoeffSum M)`.
+
+This is the residual quantitative claim left after the structural
+reductions of Sections D-G.  It is the analytic content, encoding the
+self-term (cadj@(3k+2,3k+3) × prod-of-rest) + cross-term-vanishing
+(Section J) computation. -/
+def identityThree_residualActiveClaim
+    (M : TuringMachine.DTM) (n : Nat)
+    (k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n) : Prop :=
+  MvPolynomial.coeff (probeLeft n k hk2)
+      ((inertFactorsList M n k hk1 hk2).prod *
+        pderivListProdSumTwice (uIdx n k hk2) (vIdx n k hk2)
+          (activeFactorsList M n k hk1 hk2)) =
+    crossBlockKValue (transCoeffSum M)
+
+/-- **Identity (3) closure under the structural decomposition**: from
+the permutation claim and the residual active claim,
+`identityThree_perPairSum` follows. -/
+theorem identityThree_perPairSum_of_decomposition
+    (M : TuringMachine.DTM) (n : Nat) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n)
+    (hperm : touchedListPoly_perm_partition_claim M n k hk1 hk2)
+    (hres : identityThree_residualActiveClaim M n k hk1 hk2) :
+    BridgeAKappaTwoIdentityThree.identityThree_perPairSum M n hn htb hns k hk1 hk2 := by
+  unfold BridgeAKappaTwoIdentityThree.identityThree_perPairSum
+  -- step 1: rewrite the touched-list-polynomial form via permutation
+  have hpermSum : pderivListProdSumTwice
+        (⟨3 * k + 2, by omega⟩ : Fin n)
+        (⟨3 * k + 3, hk2⟩ : Fin n)
+        (touchedListPoly M n k hk1 hk2) =
+      pderivListProdSumTwice
+        (⟨3 * k + 2, by omega⟩ : Fin n)
+        (⟨3 * k + 3, hk2⟩ : Fin n)
+        (inertFactorsList M n k hk1 hk2 ++ activeFactorsList M n k hk1 hk2) := by
+    apply pderivListProdSumTwice_perm
+    exact hperm
+  -- show the touched-list polynomial form matches the literal map
+  have htlp : touchedListPoly M n k hk1 hk2 =
+    (kappaTwoTouchedList_explicit M n k hk1 hk2).map
+      (fun c => (1 : MvPolynomial (Fin n) ℚ) - c.poly) := rfl
+  -- step 2: rewrite using the inert prefix collapse
+  have hinert :
+    pderivListProdSumTwice
+        (⟨3 * k + 2, by omega⟩ : Fin n)
+        (⟨3 * k + 3, hk2⟩ : Fin n)
+        (inertFactorsList M n k hk1 hk2 ++ activeFactorsList M n k hk1 hk2) =
+      (inertFactorsList M n k hk1 hk2).prod *
+        pderivListProdSumTwice
+          (⟨3 * k + 2, by omega⟩ : Fin n)
+          (⟨3 * k + 3, hk2⟩ : Fin n)
+          (activeFactorsList M n k hk1 hk2) := by
+    apply pderivListProdSumTwice_append_inert_prefix
+    · intro f hf
+      have h := inertFactorsList_inert_at_u M n k hk1 hk2 f hf
+      change MvPolynomial.pderiv (uIdx n k hk2) f = 0 at h
+      unfold uIdx at h
+      exact h
+    · intro f hf
+      have h := inertFactorsList_inert_at_v M n k hk1 hk2 f hf
+      change MvPolynomial.pderiv (vIdx n k hk2) f = 0 at h
+      unfold vIdx at h
+      exact h
+  -- step 3: combine with the residual claim
+  rw [← htlp]
+  rw [hpermSum, hinert]
+  exact hres
+
+/-! ## Axiom audit anchors -/
+
+#print axioms identityThree_perPairSum_of_decomposition
+
+end BridgeAKappaTwoIdentityThreeStructural
+
+end PallLean.Paper93.Paper283
