@@ -144,6 +144,86 @@ theorem routeBPerInstanceCertificate_of_namedRicherGaugeFrontier_liveProfiles_de
       (routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases
         M n hn2 htb hns hn4 hzero hlive)
 
+/-- Named final frontier through the non-template P-side route with the
+zero-profile common-span input reduced to the explicit finite support-card
+side condition. -/
+theorem routeBPerInstanceCertificate_of_namedRicherGaugeFrontier_liveProfiles_zeroSupportCardSum_deltaEqRateKappa
+    {N d : Nat}
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (alpha beta alpha0 : Real) (kappa gadgetN : Nat)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {eta theta : Real}
+    (hN : 1 <= N)
+    (heta : 0 < eta) (htheta : 0 < theta)
+    (halpha : 0 < alpha) (halpha0 : 0 < alpha0)
+    (hkappa : 0 < kappa) (hgadgetN : 2 <= gadgetN)
+    (hscalar :
+      RouteBRicherConcreteNPCompiledPolyScalarRowClosure
+        M n hn2 htb hns)
+    (hunprojected :
+      RouteBRicherConcreteNPUnprojectedSPDPPreimageClosure
+        M n hn2 htb hns)
+    (hzero :
+      CookLevinZeroProfileSupportCardSumSideCondition M n hn2 htb hns)
+    (hlive :
+      CookLevinAllBoundedProfileCommonSpanLiveProfileCases
+        M n hn2 htb hns) :
+    RouteBPerInstanceCertificate M n hn2 htb hns := by
+  exact
+    routeBPerInstanceCertificate_of_richerGaugeConcreteAssembly_deltaEqRateKappa
+      (N := N) (d := d)
+      M n hn hn2 htb hns
+      alpha beta alpha0 kappa gadgetN G chi Phi
+      (eta := eta) (theta := theta)
+      hN heta htheta halpha halpha0 hkappa hgadgetN
+      (routeBRicherConcreteNPWitnessRows_spdpSubspaceContainment_of_compiledPolyScalarRowClosure
+        M n hn2 htb hns hscalar hunprojected)
+      (routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases_zeroSupportCardSum
+        M n hn2 htb hns hn4 hzero hlive)
+
+/-- Named final frontier through concreteW live-profile closure plus the
+non-scalar zero-profile support-cardinality side condition.  This is the
+strongest current non-template P-side route exposed to Route B. -/
+theorem routeBPerInstanceCertificate_of_namedRicherGaugeFrontier_concreteW_zeroSupportCardSum_deltaEqRateKappa
+    {N d : Nat}
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (alpha beta alpha0 : Real) (kappa gadgetN : Nat)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {eta theta : Real}
+    (hN : 1 <= N)
+    (heta : 0 < eta) (htheta : 0 < theta)
+    (halpha : 0 < alpha) (halpha0 : 0 < alpha0)
+    (hkappa : 0 < kappa) (hgadgetN : 2 <= gadgetN)
+    (hscalar :
+      RouteBRicherConcreteNPCompiledPolyScalarRowClosure
+        M n hn2 htb hns)
+    (hunprojected :
+      RouteBRicherConcreteNPUnprojectedSPDPPreimageClosure
+        M n hn2 htb hns)
+    (hzero :
+      CookLevinZeroProfileSupportCardSumSideCondition M n hn2 htb hns)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns hn4) :
+    RouteBPerInstanceCertificate M n hn2 htb hns := by
+  exact
+    routeBPerInstanceCertificate_of_richerGaugeConcreteAssembly_deltaEqRateKappa
+      (N := N) (d := d)
+      M n hn hn2 htb hns
+      alpha beta alpha0 kappa gadgetN G chi Phi
+      (eta := eta) (theta := theta)
+      hN heta htheta halpha halpha0 hkappa hgadgetN
+      (routeBRicherConcreteNPWitnessRows_spdpSubspaceContainment_of_compiledPolyScalarRowClosure
+        M n hn2 htb hns hscalar hunprojected)
+      (routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroSupportCardSum
+        M n hn2 htb hns hn4 hzero hRowEmbeddings)
+
 /-- ConcreteW row-embedding closure is the current strongest exposed route
 into the P-window cover.  This wrapper records the exact final surface when
 that direct profile-span package is supplied. -/
@@ -187,6 +267,8 @@ theorem routeBPerInstanceCertificate_of_namedRicherGaugeFrontier_concreteW_delta
 #print axioms routeBPerInstanceCertificate_of_namedRicherGaugeFrontier_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_namedRicherGaugeFrontier_templateCollapse_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_namedRicherGaugeFrontier_liveProfiles_deltaEqRateKappa
+#print axioms routeBPerInstanceCertificate_of_namedRicherGaugeFrontier_liveProfiles_zeroSupportCardSum_deltaEqRateKappa
+#print axioms routeBPerInstanceCertificate_of_namedRicherGaugeFrontier_concreteW_zeroSupportCardSum_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_namedRicherGaugeFrontier_concreteW_deltaEqRateKappa
 
 end PallLean.Paper93.Paper283
