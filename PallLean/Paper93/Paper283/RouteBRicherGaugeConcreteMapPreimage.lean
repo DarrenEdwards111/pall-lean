@@ -126,6 +126,211 @@ theorem routeBRicherConcreteNPPrependedRows_spdpRowClosure_iff_package
   · exact routeBRicherConcreteNPPrependedRows_spdpRowClosure_of_package
       M n hn2 htb hns tail
 
+/-! ## Log-window concrete prepended-row consumers -/
+
+/-- Log-window row-level SPDP closure package for the concrete prepended row
+family.
+
+This is the concrete head/tail version of
+`RouteBRicherGaugeFiniteRowsSPDPLogWindowRowClosure`: it only consumes
+admissible queries carrying explicit `Nat.log 2 n` bounds. -/
+structure RouteBRicherConcreteNPPrependedRowsSPDPLogWindowRowClosurePackage
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    Prop where
+  concrete_row_closure :
+    forall (spdpKappa ell : Nat)
+      (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+      (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+      S.length = spdpKappa ->
+      shift.totalDegree <= ell ->
+      spdpKappa <= Nat.log 2 n ->
+      ell <= Nat.log 2 n ->
+      shift.vars <= S.toFinset ->
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition S ->
+      routeBSPDPGeneratorRow M n hn2 htb hns
+          (routeBRicherConcreteNPWitnessRows M n hn2 htb hns 0) S shift
+        ∈ finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail)
+  tail_row_closure :
+    forall (spdpKappa ell : Nat)
+      (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+      (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+      S.length = spdpKappa ->
+      shift.totalDegree <= ell ->
+      spdpKappa <= Nat.log 2 n ->
+      ell <= Nat.log 2 n ->
+      shift.vars <= S.toFinset ->
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition S ->
+      forall i,
+        routeBSPDPGeneratorRow M n hn2 htb hns (tail i) S shift
+          ∈ finiteRowsSubmodule
+            (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail)
+
+/-- The concrete log-window head/tail row package is exactly the standard
+finite-row log-window row-closure obligation for the prepended row family. -/
+theorem routeBRicherConcreteNPPrependedRows_spdpLogWindowRowClosure_of_package
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (pkg :
+      RouteBRicherConcreteNPPrependedRowsSPDPLogWindowRowClosurePackage
+        M n hn2 htb hns tail) :
+    RouteBRicherGaugeFiniteRowsSPDPLogWindowRowClosure M n hn2 htb hns
+      (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail) := by
+  constructor
+  intro spdpKappa ell S shift
+    hSlen hshiftDegree hSlog hellLog hshiftVars hadm i
+  refine Fin.cases ?zero ?succ i
+  · simpa [routeBRicherConcreteNPPrependedRows] using
+      pkg.concrete_row_closure
+        spdpKappa ell S shift
+        hSlen hshiftDegree hSlog hellLog hshiftVars hadm
+  · intro j
+    simpa [routeBRicherConcreteNPPrependedRows] using
+      pkg.tail_row_closure
+        spdpKappa ell S shift
+        hSlen hshiftDegree hSlog hellLog hshiftVars hadm j
+
+/-- The standard finite-row log-window row-closure obligation for the concrete
+prepended rows splits into the concrete head-row and tail-row package. -/
+theorem routeBRicherConcreteNPPrependedRows_package_of_spdpLogWindowRowClosure
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (rowClosure :
+      RouteBRicherGaugeFiniteRowsSPDPLogWindowRowClosure M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail)) :
+    RouteBRicherConcreteNPPrependedRowsSPDPLogWindowRowClosurePackage
+      M n hn2 htb hns tail := by
+  constructor
+  · intro spdpKappa ell S shift
+      hSlen hshiftDegree hSlog hellLog hshiftVars hadm
+    simpa [routeBRicherConcreteNPPrependedRows] using
+      rowClosure.row_closure
+        spdpKappa ell S shift
+        hSlen hshiftDegree hSlog hellLog hshiftVars hadm
+        (0 : Fin (m + 1))
+  · intro spdpKappa ell S shift
+      hSlen hshiftDegree hSlog hellLog hshiftVars hadm i
+    simpa [routeBRicherConcreteNPPrependedRows] using
+      rowClosure.row_closure
+        spdpKappa ell S shift
+        hSlen hshiftDegree hSlog hellLog hshiftVars hadm
+        (Fin.succ i)
+
+/-- For concrete prepended rows, the log-window package formulation is
+equivalent to the ordinary finite-row log-window row-closure formulation. -/
+theorem routeBRicherConcreteNPPrependedRows_spdpLogWindowRowClosure_iff_package
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    RouteBRicherGaugeFiniteRowsSPDPLogWindowRowClosure M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail) ↔
+      RouteBRicherConcreteNPPrependedRowsSPDPLogWindowRowClosurePackage
+        M n hn2 htb hns tail := by
+  constructor
+  · exact routeBRicherConcreteNPPrependedRows_package_of_spdpLogWindowRowClosure
+      M n hn2 htb hns tail
+  · exact routeBRicherConcreteNPPrependedRows_spdpLogWindowRowClosure_of_package
+      M n hn2 htb hns tail
+
+/-- Log-window row-level closure package for the concrete prepended rows gives
+the coefficient-level finite-row log-window SPDP closure package. -/
+theorem routeBRicherConcreteNPPrependedRows_spdpLogWindowClosure_of_rowClosurePackage
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (pkg :
+      RouteBRicherConcreteNPPrependedRowsSPDPLogWindowRowClosurePackage
+        M n hn2 htb hns tail) :
+    RouteBRicherGaugeFiniteRowsSPDPLogWindowClosure M n hn2 htb hns
+      (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail) :=
+  routeBRicherGaugeFiniteRowsSPDPLogWindowClosure_of_rowClosure
+    M n hn2 htb hns
+    (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail)
+    (routeBRicherConcreteNPPrependedRows_spdpLogWindowRowClosure_of_package
+      M n hn2 htb hns tail pkg)
+
+/-- Concrete prepended-row log-window map-preimage from the head/tail
+row-closure package and the log-window unprojected-preimage side. -/
+theorem routeBRicherConcreteNPPrependedRows_spdpLogWindowMapPreimage_of_rowClosurePackage_unprojectedPreimage
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (pkg :
+      RouteBRicherConcreteNPPrependedRowsSPDPLogWindowRowClosurePackage
+        M n hn2 htb hns tail)
+    (preimage :
+      RouteBRicherGaugeFiniteRowsSPDPLogWindowUnprojectedPreimage
+        M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail)) :
+    RouteBRicherGaugeFiniteRowsSPDPLogWindowMapPreimage M n hn2 htb hns
+      (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail) :=
+  routeBRicherGaugeFiniteRowsSPDPLogWindowMapPreimage_of_rowClosure_unprojectedPreimage
+    M n hn2 htb hns
+    (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail)
+    (routeBRicherConcreteNPPrependedRows_spdpLogWindowRowClosure_of_package
+      M n hn2 htb hns tail pkg)
+    preimage
+
+/-- Concrete prepended-row projected P-side bound from the log-window
+map-preimage surface and an unprojected P-window cover. -/
+theorem routeBRicherConcreteNPPrependedRows_projectedPSideBound_of_spdpLogWindowMapPreimage_finiteSpanCover
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (preimage :
+      RouteBRicherGaugeFiniteRowsSPDPLogWindowMapPreimage M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail))
+    (cover :
+      RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+        (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns
+          (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail))) :=
+  routeBRicherFiniteRowsCandidateGauge_projectedPSideBound_of_logWindowMapPreimage_finiteSpanCover
+    M n hn2 htb hns
+    (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail)
+    preimage cover
+
+/-- Concrete prepended-row projected P-side bound from the log-window
+head/tail row-closure package, log-window unprojected preimage, and an
+unprojected P-window cover. -/
+theorem routeBRicherConcreteNPPrependedRows_projectedPSideBound_of_logWindowRowClosurePackage_unprojectedPreimage_finiteSpanCover
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (pkg :
+      RouteBRicherConcreteNPPrependedRowsSPDPLogWindowRowClosurePackage
+        M n hn2 htb hns tail)
+    (preimage :
+      RouteBRicherGaugeFiniteRowsSPDPLogWindowUnprojectedPreimage
+        M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail))
+    (cover :
+      RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+        (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns
+          (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail))) :=
+  routeBRicherConcreteNPPrependedRows_projectedPSideBound_of_spdpLogWindowMapPreimage_finiteSpanCover
+    M n hn2 htb hns tail
+    (routeBRicherConcreteNPPrependedRows_spdpLogWindowMapPreimage_of_rowClosurePackage_unprojectedPreimage
+      M n hn2 htb hns tail pkg preimage)
+    cover
+
 /-- Row-level closure package for the concrete prepended rows gives the
 coefficient-level finite-row SPDP closure package. -/
 theorem routeBRicherConcreteNPPrependedRows_spdpClosure_of_rowClosurePackage
@@ -366,6 +571,14 @@ theorem routeBRicherConcreteNPPrependedRows_tail_nonempty_of_spdpRowClosurePacka
 #print axioms routeBRicherConcreteNPPrependedRows_spdpRowClosure_of_package
 #print axioms routeBRicherConcreteNPPrependedRows_package_of_spdpRowClosure
 #print axioms routeBRicherConcreteNPPrependedRows_spdpRowClosure_iff_package
+#print axioms RouteBRicherConcreteNPPrependedRowsSPDPLogWindowRowClosurePackage
+#print axioms routeBRicherConcreteNPPrependedRows_spdpLogWindowRowClosure_of_package
+#print axioms routeBRicherConcreteNPPrependedRows_package_of_spdpLogWindowRowClosure
+#print axioms routeBRicherConcreteNPPrependedRows_spdpLogWindowRowClosure_iff_package
+#print axioms routeBRicherConcreteNPPrependedRows_spdpLogWindowClosure_of_rowClosurePackage
+#print axioms routeBRicherConcreteNPPrependedRows_spdpLogWindowMapPreimage_of_rowClosurePackage_unprojectedPreimage
+#print axioms routeBRicherConcreteNPPrependedRows_projectedPSideBound_of_spdpLogWindowMapPreimage_finiteSpanCover
+#print axioms routeBRicherConcreteNPPrependedRows_projectedPSideBound_of_logWindowRowClosurePackage_unprojectedPreimage_finiteSpanCover
 #print axioms routeBRicherConcreteNPPrependedRows_spdpClosure_of_rowClosurePackage
 #print axioms routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_closure_unprojectedPreimage
 #print axioms routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_rowClosurePackage_unprojectedPreimage

@@ -153,6 +153,396 @@ structure RouteBRicherGaugeFiniteRowsSPDPMapPreimage
                 M n hn2 htb hns rows)) p)
             S shift
 
+/-! ## Log-window-only finite-row SPDP consumers -/
+
+/-- Log-window row-closure formulation for the finite-row SPDP span check.
+
+Unlike `RouteBRicherGaugeFiniteRowsSPDPRowClosure`, this only speaks about
+queries whose derivative list and shift degree are explicitly inside the
+canonical `Nat.log 2 n` window.  It is not a claim that every admissible query
+is log-windowed. -/
+structure RouteBRicherGaugeFiniteRowsSPDPLogWindowRowClosure
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    Prop where
+  row_closure :
+    forall (spdpKappa ell : Nat)
+      (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+      (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+      S.length = spdpKappa ->
+      shift.totalDegree <= ell ->
+      spdpKappa <= Nat.log 2 n ->
+      ell <= Nat.log 2 n ->
+      shift.vars <= S.toFinset ->
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition S ->
+      forall i,
+        routeBSPDPGeneratorRow M n hn2 htb hns (rows i) S shift
+          ∈ finiteRowsSubmodule rows
+
+/-- Log-window coefficient-level finite-row closure for projected Route B
+SPDP generator rows. -/
+structure RouteBRicherGaugeFiniteRowsSPDPLogWindowClosure
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    Prop where
+  finite_row_closure :
+    forall (spdpKappa ell : Nat)
+      (p : SATDeciderGaugeSpace M n hn2 htb hns)
+      (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+      (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+      S.length = spdpKappa ->
+      shift.totalDegree <= ell ->
+      spdpKappa <= Nat.log 2 n ->
+      ell <= Nat.log 2 n ->
+      shift.vars <= S.toFinset ->
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition S ->
+      ∃ coeff : Fin m -> Rat,
+        routeBSPDPGeneratorRow M n hn2 htb hns
+            ((routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+              (routeBRicherFiniteRowsCandidateGauge
+                M n hn2 htb hns rows)) p)
+            S shift =
+          Finset.univ.sum (fun j => coeff j • rows j)
+
+/-- Log-window unprojected-preimage side of the finite-row SPDP check. -/
+structure RouteBRicherGaugeFiniteRowsSPDPLogWindowUnprojectedPreimage
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    Prop where
+  unprojected_preimage :
+    forall (spdpKappa ell : Nat)
+      (p : SATDeciderGaugeSpace M n hn2 htb hns)
+      (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+      (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+      S.length = spdpKappa ->
+      shift.totalDegree <= ell ->
+      spdpKappa <= Nat.log 2 n ->
+      ell <= Nat.log 2 n ->
+      shift.vars <= S.toFinset ->
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition S ->
+      routeBSPDPGeneratorRow M n hn2 htb hns
+          ((routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+            (routeBRicherFiniteRowsCandidateGauge
+              M n hn2 htb hns rows)) p)
+          S shift
+        ∈
+        mlBlockedSpdpSubspace
+          (cook_levin_compilation M n hn2 htb hns).partition
+          spdpKappa ell p
+
+/-- Log-window image-preimage side of the finite-row SPDP check. -/
+structure RouteBRicherGaugeFiniteRowsSPDPLogWindowMapPreimage
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    Prop where
+  map_preimage :
+    forall (spdpKappa ell : Nat)
+      (p : SATDeciderGaugeSpace M n hn2 htb hns)
+      (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+      (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+      S.length = spdpKappa ->
+      shift.totalDegree <= ell ->
+      spdpKappa <= Nat.log 2 n ->
+      ell <= Nat.log 2 n ->
+      shift.vars <= S.toFinset ->
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition S ->
+      ∃ raw :
+          SATDeciderGaugeSpace M n hn2 htb hns,
+        raw ∈
+          mlBlockedSpdpSubspace
+            (cook_levin_compilation M n hn2 htb hns).partition
+            spdpKappa ell p
+        ∧
+        (routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+          (routeBRicherFiniteRowsCandidateGauge
+            M n hn2 htb hns rows)) raw =
+          routeBSPDPGeneratorRow M n hn2 htb hns
+            ((routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+              (routeBRicherFiniteRowsCandidateGauge
+                M n hn2 htb hns rows)) p)
+            S shift
+
+/-- Combined log-window finite-row SPDP frontier. -/
+structure RouteBRicherGaugeFiniteRowsSPDPLogWindowFrontier
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    Prop where
+  closure :
+    RouteBRicherGaugeFiniteRowsSPDPLogWindowClosure M n hn2 htb hns rows
+  preimage :
+    RouteBRicherGaugeFiniteRowsSPDPLogWindowUnprojectedPreimage
+      M n hn2 htb hns rows
+
+/-- Log-window row-closure gives log-window coefficient-level closure. -/
+theorem routeBRicherGaugeFiniteRowsSPDPLogWindowClosure_of_rowClosure
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (rowClosure :
+      RouteBRicherGaugeFiniteRowsSPDPLogWindowRowClosure
+        M n hn2 htb hns rows) :
+    RouteBRicherGaugeFiniteRowsSPDPLogWindowClosure
+      M n hn2 htb hns rows := by
+  constructor
+  intro spdpKappa ell p S shift
+    hSlen hshiftDegree hSlog hellLog hshiftVars hadm
+  have hmem :
+      routeBSPDPGeneratorRow M n hn2 htb hns
+          ((routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+            (routeBRicherFiniteRowsCandidateGauge
+              M n hn2 htb hns rows)) p)
+          S shift
+        ∈ finiteRowsSubmodule rows :=
+    routeBSPDPGeneratorRow_projected_mem_finiteRowsSubmodule_of_rowClosure
+      M n hn2 htb hns rows p S shift
+      (rowClosure.row_closure
+        spdpKappa ell S shift
+        hSlen hshiftDegree hSlog hellLog hshiftVars hadm)
+  exact
+    (mem_finiteRowsSubmodule_iff_exists_linearCombination rows
+      (routeBSPDPGeneratorRow M n hn2 htb hns
+          ((routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+            (routeBRicherFiniteRowsCandidateGauge
+              M n hn2 htb hns rows)) p)
+          S shift)).mp hmem
+
+/-- Log-window row-closure plus log-window unprojected preimage gives the
+log-window map-preimage formulation. -/
+theorem routeBRicherGaugeFiniteRowsSPDPLogWindowMapPreimage_of_rowClosure_unprojectedPreimage
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (rowClosure :
+      RouteBRicherGaugeFiniteRowsSPDPLogWindowRowClosure
+        M n hn2 htb hns rows)
+    (preimage :
+      RouteBRicherGaugeFiniteRowsSPDPLogWindowUnprojectedPreimage
+        M n hn2 htb hns rows) :
+    RouteBRicherGaugeFiniteRowsSPDPLogWindowMapPreimage
+      M n hn2 htb hns rows := by
+  constructor
+  intro spdpKappa ell p S shift
+    hSlen hshiftDegree hSlog hellLog hshiftVars hadm
+  let row :=
+    routeBSPDPGeneratorRow M n hn2 htb hns
+      ((routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+        (routeBRicherFiniteRowsCandidateGauge
+          M n hn2 htb hns rows)) p)
+      S shift
+  have hmemSpan : row ∈ finiteRowsSubmodule rows :=
+    routeBSPDPGeneratorRow_projected_mem_finiteRowsSubmodule_of_rowClosure
+      M n hn2 htb hns rows p S shift
+      (rowClosure.row_closure
+        spdpKappa ell S shift
+        hSlen hshiftDegree hSlog hellLog hshiftVars hadm)
+  refine ⟨row, ?_, ?_⟩
+  · exact
+      preimage.unprojected_preimage
+        spdpKappa ell p S shift
+        hSlen hshiftDegree hSlog hellLog hshiftVars hadm
+  · exact
+      routeBRicherFiniteRowsCandidateGauge_fixed_of_mem
+        M n hn2 htb hns rows hmemSpan
+
+/-- Row-closure plus unprojected preimage is exactly the log-window finite-row
+SPDP frontier. -/
+theorem routeBRicherGaugeFiniteRowsSPDPLogWindowFrontier_of_rowClosure_preimage
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (rowClosure :
+      RouteBRicherGaugeFiniteRowsSPDPLogWindowRowClosure
+        M n hn2 htb hns rows)
+    (preimage :
+      RouteBRicherGaugeFiniteRowsSPDPLogWindowUnprojectedPreimage
+        M n hn2 htb hns rows) :
+    RouteBRicherGaugeFiniteRowsSPDPLogWindowFrontier
+      M n hn2 htb hns rows where
+  closure :=
+    routeBRicherGaugeFiniteRowsSPDPLogWindowClosure_of_rowClosure
+      M n hn2 htb hns rows rowClosure
+  preimage := preimage
+
+/-- The log-window frontier reconstructs the checked generator obligation, but
+only for explicitly log-windowed SPDP queries. -/
+theorem routeBRicherGaugeFiniteRowsSPDPLogWindowFrontier_hgen
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (frontier :
+      RouteBRicherGaugeFiniteRowsSPDPLogWindowFrontier
+        M n hn2 htb hns rows) :
+    forall (spdpKappa ell : Nat)
+      (p : SATDeciderGaugeSpace M n hn2 htb hns)
+      (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+      (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+      S.length = spdpKappa ->
+      shift.totalDegree <= ell ->
+      spdpKappa <= Nat.log 2 n ->
+      ell <= Nat.log 2 n ->
+      shift.vars <= S.toFinset ->
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition S ->
+      ∃ coeff : Fin m -> Rat,
+        routeBSPDPGeneratorRow M n hn2 htb hns
+            ((routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+              (routeBRicherFiniteRowsCandidateGauge
+                M n hn2 htb hns rows)) p)
+            S shift =
+          Finset.univ.sum (fun j => coeff j • rows j)
+        ∧
+        routeBSPDPGeneratorRow M n hn2 htb hns
+            ((routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+              (routeBRicherFiniteRowsCandidateGauge
+                M n hn2 htb hns rows)) p)
+            S shift
+          ∈
+          mlBlockedSpdpSubspace
+            (cook_levin_compilation M n hn2 htb hns).partition
+            spdpKappa ell p := by
+  intro spdpKappa ell p S shift
+    hSlen hshiftDegree hSlog hellLog hshiftVars hadm
+  rcases frontier.closure.finite_row_closure
+      spdpKappa ell p S shift
+      hSlen hshiftDegree hSlog hellLog hshiftVars hadm with
+    ⟨coeff, hlinear⟩
+  exact
+    ⟨coeff, hlinear,
+      frontier.preimage.unprojected_preimage
+        spdpKappa ell p S shift
+        hSlen hshiftDegree hSlog hellLog hshiftVars hadm⟩
+
+/-- Log-window SPDP subspace containment for a richer candidate.
+
+This is the true P-window consumer: it only asks for containment at the
+canonical profile `(Nat.log 2 n, Nat.log 2 n)`. -/
+def RouteBRicherGaugeSPDPLogWindowSubspaceContainment
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (Pi : PallLean.Paper93.NFrame.CandidateGauge
+      (RouteBCookLevinDim M n hn2 htb hns)) : Prop :=
+  forall (p : MvPolynomial (Fin (RouteBCookLevinDim M n hn2 htb hns)) Rat),
+    mlBlockedSpdpSubspace
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        ((routeBNFrameCandidateAsSATGauge M n hn2 htb hns Pi) p) <=
+      Submodule.map
+        (routeBNFrameCandidateAsSATGauge M n hn2 htb hns Pi)
+        (mlBlockedSpdpSubspace
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n) p)
+
+/-- Log-window map-preimage gives log-window subspace containment for a
+finite-row candidate. -/
+theorem routeBRicherFiniteRowsCandidateGauge_spdpLogWindowSubspaceContainment_of_logWindowMapPreimage
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (preimage :
+      RouteBRicherGaugeFiniteRowsSPDPLogWindowMapPreimage
+        M n hn2 htb hns rows) :
+    RouteBRicherGaugeSPDPLogWindowSubspaceContainment M n hn2 htb hns
+      (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows) := by
+  intro p
+  apply Submodule.span_le.mpr
+  rintro q ⟨S, shift, hSlen, hshiftDegree, hshiftVars, hadm, hq⟩
+  rw [hq]
+  rcases preimage.map_preimage
+      (Nat.log 2 n) (Nat.log 2 n) p S shift
+      hSlen hshiftDegree le_rfl le_rfl hshiftVars hadm with
+    ⟨raw, hraw, hmap⟩
+  exact Submodule.mem_map.mpr ⟨raw, hraw, hmap⟩
+
+/-- Log-window subspace containment and an unprojected P-window finite-span
+cover prove the projected P-side field, without any all-profile SPDP
+containment claim. -/
+theorem routeBRicherGauge_projectedPSideBound_of_logWindowSubspaceContainment_finiteSpanCover
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (Pi : PallLean.Paper93.NFrame.CandidateGauge
+      (RouteBCookLevinDim M n hn2 htb hns))
+    (hcontain :
+      RouteBRicherGaugeSPDPLogWindowSubspaceContainment
+        M n hn2 htb hns Pi)
+    (cover :
+      RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover
+        M n hn2 htb hns) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBNFrameCandidateAsSATGauge M n hn2 htb hns Pi) := by
+  unfold SATDeciderGaugePSideBound mlBlockedSpdpRank
+  let PiMap := routeBNFrameCandidateAsSATGauge M n hn2 htb hns Pi
+  let U := routeBRicherGaugeUnprojectedPWindowSubspace M n hn2 htb hns
+  letI := cover.finite
+  letI : Module.Finite Rat (Submodule.map PiMap cover.span) :=
+    Module.Finite.map cover.span PiMap
+  have htarget :
+      mlBlockedSpdpSubspace
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (PiMap (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
+        ≤ Submodule.map PiMap cover.span := by
+    exact le_trans
+      (hcontain (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+        : mlBlockedSpdpSubspace
+            (cook_levin_compilation M n hn2 htb hns).partition
+            (Nat.log 2 n) (Nat.log 2 n)
+            (PiMap (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
+          ≤ Submodule.map PiMap U)
+      (Submodule.map_mono cover.contains)
+  calc
+    Module.finrank Rat
+        (mlBlockedSpdpSubspace
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (PiMap (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+        ≤ Module.finrank Rat (Submodule.map PiMap cover.span) :=
+          Submodule.finrank_mono htarget
+    _ ≤ Module.finrank Rat cover.span :=
+          Submodule.finrank_map_le _ _
+    _ ≤ n ^ 200 := cover.rank_bound
+
+/-- Finite-row log-window map-preimage and an unprojected P-window cover prove
+the projected P-side field for the finite-row candidate. -/
+theorem routeBRicherFiniteRowsCandidateGauge_projectedPSideBound_of_logWindowMapPreimage_finiteSpanCover
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (preimage :
+      RouteBRicherGaugeFiniteRowsSPDPLogWindowMapPreimage
+        M n hn2 htb hns rows)
+    (cover :
+      RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover
+        M n hn2 htb hns) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+        (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)) :=
+  routeBRicherGauge_projectedPSideBound_of_logWindowSubspaceContainment_finiteSpanCover
+    M n hn2 htb hns
+    (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)
+    (routeBRicherFiniteRowsCandidateGauge_spdpLogWindowSubspaceContainment_of_logWindowMapPreimage
+      M n hn2 htb hns rows preimage)
+    cover
+
 /-- Combined finite-row SPDP frontier for the corrected Route B containment
 route.  The fields intentionally keep row-span closure and unprojected
 preimage data independent. -/
@@ -548,6 +938,19 @@ theorem routeBPerInstanceCertificate_of_finiteRowsSPDPRowClosure_deltaEqRateKapp
 #print axioms RouteBRicherGaugeFiniteRowsSPDPRowClosure
 #print axioms RouteBRicherGaugeFiniteRowsSPDPUnprojectedPreimage
 #print axioms RouteBRicherGaugeFiniteRowsSPDPMapPreimage
+#print axioms RouteBRicherGaugeFiniteRowsSPDPLogWindowRowClosure
+#print axioms RouteBRicherGaugeFiniteRowsSPDPLogWindowClosure
+#print axioms RouteBRicherGaugeFiniteRowsSPDPLogWindowUnprojectedPreimage
+#print axioms RouteBRicherGaugeFiniteRowsSPDPLogWindowMapPreimage
+#print axioms RouteBRicherGaugeFiniteRowsSPDPLogWindowFrontier
+#print axioms routeBRicherGaugeFiniteRowsSPDPLogWindowClosure_of_rowClosure
+#print axioms routeBRicherGaugeFiniteRowsSPDPLogWindowMapPreimage_of_rowClosure_unprojectedPreimage
+#print axioms routeBRicherGaugeFiniteRowsSPDPLogWindowFrontier_of_rowClosure_preimage
+#print axioms routeBRicherGaugeFiniteRowsSPDPLogWindowFrontier_hgen
+#print axioms RouteBRicherGaugeSPDPLogWindowSubspaceContainment
+#print axioms routeBRicherFiniteRowsCandidateGauge_spdpLogWindowSubspaceContainment_of_logWindowMapPreimage
+#print axioms routeBRicherGauge_projectedPSideBound_of_logWindowSubspaceContainment_finiteSpanCover
+#print axioms routeBRicherFiniteRowsCandidateGauge_projectedPSideBound_of_logWindowMapPreimage_finiteSpanCover
 #print axioms RouteBRicherGaugeFiniteRowsSPDPFrontier
 #print axioms routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_unprojectedPreimage
 #print axioms routeBRicherGaugeFiniteRowsSPDPClosure_of_rowClosure
