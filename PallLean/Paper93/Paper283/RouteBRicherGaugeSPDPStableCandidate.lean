@@ -351,6 +351,43 @@ theorem routeBRicherSPDPStableCandidate_kernelCompatibility_of_residualInvisible
     hinvisible spdpKappa ell p S shift
       hSlen hshiftDegree hshiftVars hadm
 
+/-- The finite-row kernel/complement compatibility bridge is also sufficient
+for the smaller-candidate residual-invisibility obligation. -/
+theorem routeBRicherSPDPStableCandidate_residualInvisible_of_kernelCompatibility
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hker :
+      RouteBRicherGaugeFiniteRowsSPDPKernelCompatibility M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail)) :
+    RouteBRicherSPDPStableCandidateResidualInvisible
+      M n hn2 htb hns tail := by
+  intro spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm
+  exact
+    hker spdpKappa ell p S shift
+      hSlen hshiftDegree hshiftVars hadm
+
+/-- Exact bridge form of the residual obstruction: the smaller candidate's
+residual-invisibility obligation is precisely finite-row SPDP kernel
+compatibility for its prepended head/tail rows. -/
+theorem routeBRicherSPDPStableCandidate_residualInvisible_iff_kernelCompatibility
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    RouteBRicherSPDPStableCandidateResidualInvisible
+        M n hn2 htb hns tail ↔
+      RouteBRicherGaugeFiniteRowsSPDPKernelCompatibility M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail) := by
+  constructor
+  · exact
+      routeBRicherSPDPStableCandidate_kernelCompatibility_of_residualInvisible
+        M n hn2 htb hns tail
+  · exact
+      routeBRicherSPDPStableCandidate_residualInvisible_of_kernelCompatibility
+        M n hn2 htb hns tail
+
 /-- The two named obligations prove generator commutation for the smaller
 finite-row candidate. -/
 theorem routeBRicherSPDPStableCandidate_generatorCommutation
@@ -479,6 +516,8 @@ theorem routeBPerInstanceCertificate_of_spdpStableCandidate_rowEmbeddings_deltaE
 #print axioms routeBRicherSPDPStableCandidate_residualInvisible_of_kernelGeneratorZero
 #print axioms routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_kernelGeneratorVisible
 #print axioms routeBRicherSPDPStableCandidate_kernelCompatibility_of_residualInvisible
+#print axioms routeBRicherSPDPStableCandidate_residualInvisible_of_kernelCompatibility
+#print axioms routeBRicherSPDPStableCandidate_residualInvisible_iff_kernelCompatibility
 #print axioms routeBRicherSPDPStableCandidate_generatorCommutation
 #print axioms routeBRicherSPDPStableCandidate_spdpMapPreimage
 #print axioms routeBRicherSPDPStableCandidate_spdpSubspaceContainment

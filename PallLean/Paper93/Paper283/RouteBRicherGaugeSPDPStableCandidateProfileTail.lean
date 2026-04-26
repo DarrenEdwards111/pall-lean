@@ -6,7 +6,7 @@ import PallLean.Paper93.Paper283.RouteBRicherGaugeSPDPStableCandidateNoGo
 # Multilinear-coverage abstraction for the smaller SPDP-stable candidate
 
 This file factors the broad multilinear-tail proof of `SelectedRowClosure`
-through an abstract sufficient condition.  Two predicates are introduced:
+through abstract sufficient conditions.  Three predicates are introduced:
 
 * `RouteBRicherSPDPStableCandidateMlCovering tail` — every `mlProj` output
   already lies in the prepended row span.  This is what the broad
@@ -14,9 +14,12 @@ through an abstract sufficient condition.  Two predicates are introduced:
 
 * `RouteBRicherSPDPStableCandidateOrbitMlCovering tail` — only the `mlProj`
   outputs that arise as Route B SPDP generator rows of the head row or of
-  some `tail i` need be in the prepended row span.  This is the **precise
-  minimal sufficient condition** for the row-closure package, weaker than
-  `MlCovering`.
+  some `tail i` need be in the prepended row span, weaker than `MlCovering`.
+
+* `RouteBRicherSPDPStableCandidateAdmissibleOrbitMlCovering tail` — the same
+  coverage restricted to the admissible `(S, shift)` side conditions that the
+  SPDP row-closure package actually consumes.  This is the sharp finite-tail
+  target for a concrete profile-window construction.
 
 The key narrowing observation
 (`routeBRicherSPDPStableCandidate_residualInvisible_iff_residualGeneratorZero_of_mlCovering`)
@@ -76,6 +79,47 @@ def RouteBRicherSPDPStableCandidateOrbitMlCovering
         finiteRowsSubmodule
           (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail)
 
+/-- Admissible orbit-restricted multilinear coverage: the same head/tail
+orbit coverage as `RouteBRicherSPDPStableCandidateOrbitMlCovering`, but only
+for the admissible shifts that the concrete prepended row-closure package
+actually asks for.  This is the sharp target for a concrete profile-window
+tail. -/
+def RouteBRicherSPDPStableCandidateAdmissibleOrbitMlCovering
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) : Prop :=
+  forall (spdpKappa ell : Nat)
+    (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+    (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+    S.length = spdpKappa ->
+    shift.totalDegree <= ell ->
+    shift.vars <= S.toFinset ->
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S ->
+    routeBSPDPGeneratorRow M n hn2 htb hns
+        (routeBRicherConcreteNPWitnessRows M n hn2 htb hns 0) S shift ∈
+        finiteRowsSubmodule
+          (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail) ∧
+    forall i : Fin m,
+      routeBSPDPGeneratorRow M n hn2 htb hns (tail i) S shift ∈
+        finiteRowsSubmodule
+          (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail)
+
+/-- Unrestricted orbit coverage implies the sharp admissible-orbit version. -/
+theorem routeBRicherSPDPStableCandidate_admissibleOrbitMlCovering_of_orbitMlCovering
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hcov :
+      RouteBRicherSPDPStableCandidateOrbitMlCovering
+        M n hn2 htb hns tail) :
+    RouteBRicherSPDPStableCandidateAdmissibleOrbitMlCovering
+      M n hn2 htb hns tail := by
+  intro _spdpKappa _ell S shift _hSlen _hshiftDegree _hshiftVars hadm
+  exact hcov S shift hadm
+
 /-- `MlCovering` is strictly stronger than `OrbitMlCovering`: any
 multilinear-covering tail orbit-covers via the trivial expansion. -/
 theorem routeBRicherSPDPStableCandidate_orbitMlCovering_of_mlCovering
@@ -95,6 +139,45 @@ theorem routeBRicherSPDPStableCandidate_orbitMlCovering_of_mlCovering
   · intro i
     simpa [routeBSPDPGeneratorRow] using hcov _
 
+/-- `MlCovering` also gives the sharp admissible-orbit coverage target. -/
+theorem routeBRicherSPDPStableCandidate_admissibleOrbitMlCovering_of_mlCovering
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hcov :
+      RouteBRicherSPDPStableCandidateMlCovering
+        M n hn2 htb hns tail) :
+    RouteBRicherSPDPStableCandidateAdmissibleOrbitMlCovering
+      M n hn2 htb hns tail :=
+  routeBRicherSPDPStableCandidate_admissibleOrbitMlCovering_of_orbitMlCovering
+    M n hn2 htb hns tail
+    (routeBRicherSPDPStableCandidate_orbitMlCovering_of_mlCovering
+      M n hn2 htb hns tail hcov)
+
+/-- Sharp admissible-orbit coverage discharges the explicit head/tail SPDP
+row-closure package. -/
+theorem routeBRicherSPDPStableCandidate_spdpRowClosurePackage_of_admissibleOrbitMlCovering
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hcov :
+      RouteBRicherSPDPStableCandidateAdmissibleOrbitMlCovering
+        M n hn2 htb hns tail) :
+    RouteBRicherConcreteNPPrependedRowsSPDPRowClosurePackage
+      M n hn2 htb hns tail where
+  concrete_row_closure := by
+    intro spdpKappa ell S shift hSlen hshiftDegree hshiftVars hadm
+    exact
+      (hcov spdpKappa ell S shift
+        hSlen hshiftDegree hshiftVars hadm).1
+  tail_row_closure := by
+    intro spdpKappa ell S shift hSlen hshiftDegree hshiftVars hadm i
+    exact
+      (hcov spdpKappa ell S shift
+        hSlen hshiftDegree hshiftVars hadm).2 i
+
 /-- `OrbitMlCovering` discharges the explicit head/tail SPDP row-closure
 package.  This is the abstract analog of the broad multilinear-tail proof
 in `routeBRicherConcreteNPPrependedMultilinearRows_spdpRowClosurePackage`. -/
@@ -107,13 +190,26 @@ theorem routeBRicherSPDPStableCandidate_spdpRowClosurePackage_of_orbitMlCovering
       RouteBRicherSPDPStableCandidateOrbitMlCovering
         M n hn2 htb hns tail) :
     RouteBRicherConcreteNPPrependedRowsSPDPRowClosurePackage
-      M n hn2 htb hns tail where
-  concrete_row_closure := by
-    intro _spdpKappa _ell S shift _hSlen _hshiftDegree _hshiftVars hadm
-    exact (hcov S shift hadm).1
-  tail_row_closure := by
-    intro _spdpKappa _ell S shift _hSlen _hshiftDegree _hshiftVars hadm i
-    exact (hcov S shift hadm).2 i
+      M n hn2 htb hns tail :=
+  routeBRicherSPDPStableCandidate_spdpRowClosurePackage_of_admissibleOrbitMlCovering
+    M n hn2 htb hns tail
+    (routeBRicherSPDPStableCandidate_admissibleOrbitMlCovering_of_orbitMlCovering
+      M n hn2 htb hns tail hcov)
+
+/-- Sharp admissible-orbit coverage discharges the smaller-candidate
+`SelectedRowClosure` obligation directly. -/
+theorem routeBRicherSPDPStableCandidate_selectedRowClosure_of_admissibleOrbitMlCovering
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hcov :
+      RouteBRicherSPDPStableCandidateAdmissibleOrbitMlCovering
+        M n hn2 htb hns tail) :
+    RouteBRicherSPDPStableCandidateSelectedRowClosure
+      M n hn2 htb hns tail :=
+  routeBRicherSPDPStableCandidate_spdpRowClosurePackage_of_admissibleOrbitMlCovering
+    M n hn2 htb hns tail hcov
 
 /-- `OrbitMlCovering` discharges the smaller-candidate `SelectedRowClosure`
 obligation directly. -/
@@ -129,6 +225,69 @@ theorem routeBRicherSPDPStableCandidate_selectedRowClosure_of_orbitMlCovering
       M n hn2 htb hns tail :=
   routeBRicherSPDPStableCandidate_spdpRowClosurePackage_of_orbitMlCovering
     M n hn2 htb hns tail hcov
+
+/-- The two concrete proof obligations needed for the SPDP-stable candidate:
+sharp admissible-orbit coverage for selected-row closure, plus residual
+invisibility for the projection kernel. -/
+theorem routeBRicherSPDPStableCandidate_obligations_of_admissibleOrbitMlCovering_residualInvisible
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hcov :
+      RouteBRicherSPDPStableCandidateAdmissibleOrbitMlCovering
+        M n hn2 htb hns tail)
+    (hinvisible :
+      RouteBRicherSPDPStableCandidateResidualInvisible
+        M n hn2 htb hns tail) :
+    RouteBRicherSPDPStableCandidateObligations
+      M n hn2 htb hns tail where
+  selected_row_closure :=
+    routeBRicherSPDPStableCandidate_selectedRowClosure_of_admissibleOrbitMlCovering
+      M n hn2 htb hns tail hcov
+  residual_invisible := hinvisible
+
+/-- Kernel-generator invisibility is the sharper form of residual
+invisibility, so admissible orbit coverage plus the kernel form gives the
+full smaller-candidate obligation package. -/
+theorem routeBRicherSPDPStableCandidate_obligations_of_admissibleOrbitMlCovering_kernelGeneratorInvisible
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hcov :
+      RouteBRicherSPDPStableCandidateAdmissibleOrbitMlCovering
+        M n hn2 htb hns tail)
+    (hkernel :
+      RouteBRicherSPDPStableCandidateKernelGeneratorInvisible
+        M n hn2 htb hns tail) :
+    RouteBRicherSPDPStableCandidateObligations
+      M n hn2 htb hns tail :=
+  routeBRicherSPDPStableCandidate_obligations_of_admissibleOrbitMlCovering_residualInvisible
+    M n hn2 htb hns tail hcov
+    ((routeBRicherSPDPStableCandidate_residualInvisible_iff_kernelGeneratorInvisible
+      M n hn2 htb hns tail).mpr hkernel)
+
+/-- A zero-before-projection kernel proof is stronger than needed, but it also
+packages with admissible orbit coverage into the full smaller-candidate
+obligations. -/
+theorem routeBRicherSPDPStableCandidate_obligations_of_admissibleOrbitMlCovering_kernelGeneratorZero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hcov :
+      RouteBRicherSPDPStableCandidateAdmissibleOrbitMlCovering
+        M n hn2 htb hns tail)
+    (hzero :
+      RouteBRicherSPDPStableCandidateKernelGeneratorZero
+        M n hn2 htb hns tail) :
+    RouteBRicherSPDPStableCandidateObligations
+      M n hn2 htb hns tail :=
+  routeBRicherSPDPStableCandidate_obligations_of_admissibleOrbitMlCovering_residualInvisible
+    M n hn2 htb hns tail hcov
+    (routeBRicherSPDPStableCandidate_residualInvisible_of_kernelGeneratorZero
+      M n hn2 htb hns tail hzero)
 
 /-- `MlCovering` discharges `SelectedRowClosure` via `OrbitMlCovering`. -/
 theorem routeBRicherSPDPStableCandidate_selectedRowClosure_of_mlCovering
@@ -267,13 +426,14 @@ cannot meet.**  Combined with the no-go criteria in
 * If a candidate tail satisfies `MlCovering`, it inherits the broad-case
   refutation criteria — any `p` with `Π p = 0 ∧ Π(mlProj p) ≠ 0` rules it
   out.
-* The live search is for tails satisfying `OrbitMlCovering` but **not**
-  `MlCovering`.  These close `SelectedRowClosure` by construction
-  (via `routeBRicherSPDPStableCandidate_selectedRowClosure_of_orbitMlCovering`)
+* The live search is for tails satisfying the sharp
+  `AdmissibleOrbitMlCovering` target but **not** `MlCovering`.  These close
+  `SelectedRowClosure` by construction (via
+  `routeBRicherSPDPStableCandidate_selectedRowClosure_of_admissibleOrbitMlCovering`)
   while leaving `ResidualInvisible` non-trivially satisfiable.
 
-A natural source of `OrbitMlCovering ∧ ¬MlCovering` candidates is the
-canonical-window profile alphabet at `R = Θ(log n)`: `nO(1)` distinct
+A natural source of `AdmissibleOrbitMlCovering ∧ ¬MlCovering` candidates is
+the canonical-window profile alphabet at `R = Θ(log n)`: `nO(1)` distinct
 profiles suffice to cover generator rows from the head/tail orbit but do
 not span every multilinear monomial in the ambient Cook-Levin variable
 set.
@@ -283,11 +443,19 @@ set.
 
 #print axioms RouteBRicherSPDPStableCandidateMlCovering
 #print axioms RouteBRicherSPDPStableCandidateOrbitMlCovering
+#print axioms RouteBRicherSPDPStableCandidateAdmissibleOrbitMlCovering
 #print axioms RouteBRicherSPDPStableCandidateResidualGeneratorZero
+#print axioms routeBRicherSPDPStableCandidate_admissibleOrbitMlCovering_of_orbitMlCovering
 #print axioms routeBRicherSPDPStableCandidate_orbitMlCovering_of_mlCovering
+#print axioms routeBRicherSPDPStableCandidate_admissibleOrbitMlCovering_of_mlCovering
+#print axioms routeBRicherSPDPStableCandidate_spdpRowClosurePackage_of_admissibleOrbitMlCovering
 #print axioms routeBRicherSPDPStableCandidate_spdpRowClosurePackage_of_orbitMlCovering
+#print axioms routeBRicherSPDPStableCandidate_selectedRowClosure_of_admissibleOrbitMlCovering
 #print axioms routeBRicherSPDPStableCandidate_selectedRowClosure_of_orbitMlCovering
 #print axioms routeBRicherSPDPStableCandidate_selectedRowClosure_of_mlCovering
+#print axioms routeBRicherSPDPStableCandidate_obligations_of_admissibleOrbitMlCovering_residualInvisible
+#print axioms routeBRicherSPDPStableCandidate_obligations_of_admissibleOrbitMlCovering_kernelGeneratorInvisible
+#print axioms routeBRicherSPDPStableCandidate_obligations_of_admissibleOrbitMlCovering_kernelGeneratorZero
 #print axioms routeBRicherSPDPStableCandidate_mlCovering_for_multilinearTail
 #print axioms routeBRicherSPDPStableCandidate_residualInvisible_iff_residualGeneratorZero_of_mlCovering
 #print axioms routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_mlCovering_residualGenerator_ne_zero
