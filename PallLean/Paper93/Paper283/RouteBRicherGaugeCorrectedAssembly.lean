@@ -1,5 +1,6 @@
 import PallLean.Paper93.Paper283.RouteBRicherGaugeFiniteRowsSPDPCommutationBridge
 import PallLean.Paper93.Paper283.RouteBRicherGaugeConcreteWChargedClosure
+import PallLean.Paper93.Paper283.RouteBRicherGaugePWindowConcreteCover
 import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingsClosure
 
 /-!
@@ -309,6 +310,62 @@ theorem routeBPerInstanceCertificate_of_finiteRowsGeneralCommutation_rowEmbeddin
         rows hN hrowCount heta htheta halpha halpha0 hkappa hgadgetN
         hbound hactive hcomm Q i hrow hextract hsource
 
+/-- Corrected finite-row Route B assembly with the SPDP side stated directly
+in the map-preimage form and the P-window side closed from concreteW row
+embeddings.
+
+This is weaker than asking for generator commutation for the arbitrary
+complement chosen by `finiteRowsCandidateGauge`, and it does not require the
+separate zero-profile support-card arithmetic side condition. The remaining
+P-side input is the concreteW row-embedding package itself. -/
+theorem routeBPerInstanceCertificate_of_finiteRowsSPDPMapPreimage_rowEmbeddings_deltaEqRateKappa
+    {N d : Nat}
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (alpha beta alpha0 : Real) (kappa gadgetN : Nat)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {eta theta : Real}
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hN : 1 <= N) (hrowCount : m <= N)
+    (heta : 0 < eta) (htheta : 0 < theta)
+    (halpha : 0 < alpha) (halpha0 : 0 < alpha0)
+    (hkappa : 0 < kappa) (hgadgetN : 2 <= gadgetN)
+    (preimage :
+      RouteBRicherGaugeFiniteRowsSPDPMapPreimage M n hn2 htb hns rows)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns hn4)
+    (Q : CoupledSheetPoly (flatCookLevinUVSplit M n hn2 htb hns))
+    (i : Fin m)
+    (hrow :
+      rows i =
+        CoupledSheetPoly.embed (flatCookLevinUVSplit M n hn2 htb hns) Q)
+    (hextract :
+      routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+          (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)) =
+        routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+          (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)
+          (CoupledSheetPoly.embed
+            (flatCookLevinUVSplit M n hn2 htb hns) Q))
+    (hsource :
+      SourceIdentityMinorLowerBound n
+        (flatCookLevinUVSplit M n hn2 htb hns)
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n) Q) :
+    RouteBPerInstanceCertificate M n hn2 htb hns :=
+  routeBPerInstanceCertificate_of_finiteRowsSPDPMapPreimage_deltaEqRateKappa
+    (N := N) (d := d)
+    M n hn2 htb hns alpha beta alpha0 kappa gadgetN G chi Phi
+    rows hN hrowCount heta htheta halpha halpha0 hkappa hgadgetN
+    preimage
+    (routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_rowEmbeddings
+      M n hn2 htb hns hn4 hRowEmbeddings)
+    Q i hrow hextract hsource
+
 /-! ## Axiom audit anchors -/
 
 #print axioms routeBPerInstanceCertificate_of_finiteRowsGeneralCommutation_endpointChargedBridge_deltaEqRateKappa
@@ -317,5 +374,6 @@ theorem routeBPerInstanceCertificate_of_finiteRowsGeneralCommutation_rowEmbeddin
 #print axioms routeB_activeBlockersZeroNonScalarInputs_of_concreteW_zeroSupportCardSum
 #print axioms routeB_activeBlockersZeroNonScalarInputs_of_concreteW_zeroSupportBaseCard
 #print axioms routeBPerInstanceCertificate_of_finiteRowsGeneralCommutation_rowEmbeddingsZeroSupport_deltaEqRateKappa
+#print axioms routeBPerInstanceCertificate_of_finiteRowsSPDPMapPreimage_rowEmbeddings_deltaEqRateKappa
 
 end PallLean.Paper93.Paper283

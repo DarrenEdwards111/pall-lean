@@ -192,6 +192,53 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCom
     (routeBRicherConcreteNPWitnessQ_sourceIdentityMinorLowerBound
       M n hn hn2 htb hns)
 
+/-- Concrete NP-row corrected Route B assembly with the SPDP side reduced to
+map-preimage and the P-window side closed from concreteW row embeddings.
+
+This is the tightest concrete finite-row surface in this file: the concrete
+Cook-Levin identity-minor row supplies the NP data, `preimage` supplies exactly
+the SPDP image-containment witness, and concreteW row embeddings supply the
+P-window cover without the separate zero-profile support-card side
+condition. -/
+theorem routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsSPDPMapPreimage_rowEmbeddings_deltaEqRateKappa
+    {N d : Nat}
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (alpha beta alpha0 : Real) (kappa gadgetN : Nat)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {eta theta : Real}
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hN : 1 <= N) (hrowCount : m + 1 <= N)
+    (heta : 0 < eta) (htheta : 0 < theta)
+    (halpha : 0 < alpha) (halpha0 : 0 < alpha0)
+    (hkappa : 0 < kappa) (hgadgetN : 2 <= gadgetN)
+    (preimage :
+      RouteBRicherGaugeFiniteRowsSPDPMapPreimage M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail))
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns hn4) :
+    RouteBPerInstanceCertificate M n hn2 htb hns :=
+  routeBPerInstanceCertificate_of_finiteRowsSPDPMapPreimage_rowEmbeddings_deltaEqRateKappa
+    (N := N) (d := d)
+    M n hn2 htb hns hn4
+    alpha beta alpha0 kappa gadgetN G chi Phi
+    (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail)
+    hN hrowCount heta htheta halpha halpha0 hkappa hgadgetN
+    preimage hRowEmbeddings
+    (routeBRicherConcreteNPWitnessQ M n hn2 htb hns)
+    0
+    (routeBRicherConcreteNPPrependedRows_zero_eq_embed
+      M n hn2 htb hns tail)
+    (routeBRicherConcreteNP_extracts_compiled_for_rows
+      M n hn2 htb hns
+      (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail))
+    (routeBRicherConcreteNPWitnessQ_sourceIdentityMinorLowerBound
+      M n hn hn2 htb hns)
+
 /-! ## Axiom audit anchors -/
 
 #print axioms routeBRicherConcreteNPPrependedRows_zero_eq_embed
@@ -199,5 +246,6 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCom
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_endpointChargedBridge_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_activeBlockersZeroNonScalar_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_rowEmbeddingsZeroSupport_deltaEqRateKappa
+#print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsSPDPMapPreimage_rowEmbeddings_deltaEqRateKappa
 
 end PallLean.Paper93.Paper283
