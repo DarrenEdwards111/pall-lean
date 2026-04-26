@@ -101,6 +101,47 @@ def RouteBRicherSPDPStableCandidateResidualInvisible
           M n hn2 htb hns tail p)
         S shift) = 0
 
+/-- Kernel form of residual invisibility.
+
+Every vector killed by the selected finite-row projection must have all of
+its SPDP generator rows killed after applying that same projection. -/
+def RouteBRicherSPDPStableCandidateKernelGeneratorInvisible
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) : Prop :=
+  forall (spdpKappa ell : Nat)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns)
+    (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+    (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+    S.length = spdpKappa ->
+    shift.totalDegree <= ell ->
+    shift.vars <= S.toFinset ->
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S ->
+    routeBRicherSPDPStableCandidateProjection M n hn2 htb hns tail p = 0 ->
+    routeBRicherSPDPStableCandidateProjection M n hn2 htb hns tail
+      (routeBSPDPGeneratorRow M n hn2 htb hns p S shift) = 0
+
+/-- Stronger kernel form: every vector killed by the selected finite-row
+projection has all SPDP generator rows equal to zero before projection. -/
+def RouteBRicherSPDPStableCandidateKernelGeneratorZero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) : Prop :=
+  forall (spdpKappa ell : Nat)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns)
+    (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+    (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+    S.length = spdpKappa ->
+    shift.totalDegree <= ell ->
+    shift.vars <= S.toFinset ->
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S ->
+    routeBRicherSPDPStableCandidateProjection M n hn2 htb hns tail p = 0 ->
+    routeBSPDPGeneratorRow M n hn2 htb hns p S shift = 0
+
 /-- Combined SPDP-stability obligations for the smaller concrete-NP prepended
 candidate. -/
 structure RouteBRicherSPDPStableCandidateObligations
@@ -186,6 +227,112 @@ theorem routeBRicherSPDPStableCandidate_spdpClosure
       (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail) :=
   routeBRicherConcreteNPPrependedRows_spdpClosure_of_rowClosurePackage
     M n hn2 htb hns tail hclosure
+
+/-- Residual invisibility is equivalent to its projection-kernel form.
+
+This restates the remaining SPDP containment obstruction without mentioning
+the residual decomposition: it is enough, and necessary, to prove projected
+SPDP-generator invisibility on the kernel of the selected-row projection. -/
+theorem routeBRicherSPDPStableCandidate_residualInvisible_iff_kernelGeneratorInvisible
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    RouteBRicherSPDPStableCandidateResidualInvisible
+        M n hn2 htb hns tail ↔
+      RouteBRicherSPDPStableCandidateKernelGeneratorInvisible
+        M n hn2 htb hns tail := by
+  constructor
+  · intro hinvisible spdpKappa ell p S shift hSlen hshiftDegree hshiftVars
+      hadm hker
+    have hrow :=
+      hinvisible spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm
+    simpa [hker] using hrow
+  · intro hkernel spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm
+    let Pi :=
+      routeBRicherSPDPStableCandidateProjection M n hn2 htb hns tail
+    have hPiPi : Pi (Pi p) = Pi p := by
+      have hidem :=
+        (routeBRicherSPDPStableCandidateGauge
+          M n hn2 htb hns tail).is_idempotent
+      have happ := congrArg (fun L => L p) hidem
+      simpa [Pi, routeBRicherSPDPStableCandidateProjection,
+        LinearMap.comp_apply] using happ
+    have hresKer : Pi (p - Pi p) = 0 := by
+      simp [Pi, map_sub, hPiPi]
+    exact
+      hkernel spdpKappa ell (p - Pi p) S shift
+        hSlen hshiftDegree hshiftVars hadm hresKer
+
+/-- The stronger zero-before-projection kernel condition is sufficient for
+the projected kernel-invisibility condition. -/
+theorem routeBRicherSPDPStableCandidate_kernelGeneratorInvisible_of_kernelGeneratorZero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hzero :
+      RouteBRicherSPDPStableCandidateKernelGeneratorZero
+        M n hn2 htb hns tail) :
+    RouteBRicherSPDPStableCandidateKernelGeneratorInvisible
+      M n hn2 htb hns tail := by
+  intro spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm hker
+  have hrow :=
+    hzero spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm hker
+  rw [hrow]
+  simp
+
+/-- The stronger zero-before-projection kernel condition is sufficient for
+residual invisibility. -/
+theorem routeBRicherSPDPStableCandidate_residualInvisible_of_kernelGeneratorZero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hzero :
+      RouteBRicherSPDPStableCandidateKernelGeneratorZero
+        M n hn2 htb hns tail) :
+    RouteBRicherSPDPStableCandidateResidualInvisible
+      M n hn2 htb hns tail :=
+  (routeBRicherSPDPStableCandidate_residualInvisible_iff_kernelGeneratorInvisible
+    M n hn2 htb hns tail).mpr
+    (routeBRicherSPDPStableCandidate_kernelGeneratorInvisible_of_kernelGeneratorZero
+      M n hn2 htb hns tail hzero)
+
+/-- No-go criterion: a single projection-kernel vector whose SPDP generator
+row remains visible after the selected-row projection refutes residual
+invisibility. -/
+theorem routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_kernelGeneratorVisible
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hbad :
+      exists (spdpKappa ell : Nat)
+        (p : SATDeciderGaugeSpace M n hn2 htb hns)
+        (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+        (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+        S.length = spdpKappa ∧
+          shift.totalDegree <= ell ∧
+          shift.vars <= S.toFinset ∧
+          SPDP.isBlockAdmissible
+            (cook_levin_compilation M n hn2 htb hns).partition S ∧
+          routeBRicherSPDPStableCandidateProjection
+            M n hn2 htb hns tail p = 0 ∧
+          routeBRicherSPDPStableCandidateProjection M n hn2 htb hns tail
+            (routeBSPDPGeneratorRow M n hn2 htb hns p S shift) ≠ 0) :
+    ¬ RouteBRicherSPDPStableCandidateResidualInvisible
+        M n hn2 htb hns tail := by
+  rintro hinvisible
+  rcases hbad with
+    ⟨spdpKappa, ell, p, S, shift, hSlen, hshiftDegree, hshiftVars,
+      hadm, hker, hvisible⟩
+  have hkernel :=
+    (routeBRicherSPDPStableCandidate_residualInvisible_iff_kernelGeneratorInvisible
+      M n hn2 htb hns tail).mp hinvisible
+  exact hvisible
+    (hkernel spdpKappa ell p S shift
+      hSlen hshiftDegree hshiftVars hadm hker)
 
 /-- Residual invisibility is exactly the kernel/complement compatibility
 expected by the existing finite-row commutation bridge. -/
@@ -319,12 +466,18 @@ theorem routeBPerInstanceCertificate_of_spdpStableCandidate_rowEmbeddings_deltaE
 /-! ## Axiom audit anchors -/
 
 #print axioms RouteBRicherSPDPStableCandidateResidualInvisible
+#print axioms RouteBRicherSPDPStableCandidateKernelGeneratorInvisible
+#print axioms RouteBRicherSPDPStableCandidateKernelGeneratorZero
 #print axioms RouteBRicherSPDPStableCandidateObligations
 #print axioms routeBRicherSPDPStableCandidateRows_zero_eq_embed
 #print axioms routeBRicherSPDPStableCandidateGauge_fixes_concreteNPRow
 #print axioms routeBRicherSPDPStableCandidate_extracts_compiled
 #print axioms routeBRicherSPDPStableCandidate_rowClosure
 #print axioms routeBRicherSPDPStableCandidate_spdpClosure
+#print axioms routeBRicherSPDPStableCandidate_residualInvisible_iff_kernelGeneratorInvisible
+#print axioms routeBRicherSPDPStableCandidate_kernelGeneratorInvisible_of_kernelGeneratorZero
+#print axioms routeBRicherSPDPStableCandidate_residualInvisible_of_kernelGeneratorZero
+#print axioms routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_kernelGeneratorVisible
 #print axioms routeBRicherSPDPStableCandidate_kernelCompatibility_of_residualInvisible
 #print axioms routeBRicherSPDPStableCandidate_generatorCommutation
 #print axioms routeBRicherSPDPStableCandidate_spdpMapPreimage
