@@ -149,6 +149,83 @@ def RouteBRicherSPDPStableCandidateAdmissibleQueriesLogWindowed
       (cook_levin_compilation M n hn2 htb hns).partition S ->
     S.length <= Nat.log 2 n ∧ shift.totalDegree <= Nat.log 2 n
 
+/-- Log-window complement invariance: the profile-window version of the
+projection-kernel obstruction only asks for invariance on admissible generator
+queries inside the canonical `Nat.log 2 n` window. -/
+def RouteBRicherSPDPStableCandidateLogWindowChosenComplementInvariant
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) : Prop :=
+  forall (spdpKappa ell : Nat)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns)
+    (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+    (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+    S.length = spdpKappa ->
+    shift.totalDegree <= ell ->
+    S.length <= Nat.log 2 n ->
+    shift.totalDegree <= Nat.log 2 n ->
+    shift.vars <= S.toFinset ->
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S ->
+    p ∈ routeBRicherSPDPStableCandidateProjectionComplement
+      M n hn2 htb hns tail ->
+    routeBSPDPGeneratorRow M n hn2 htb hns p S shift ∈
+      routeBRicherSPDPStableCandidateProjectionComplement
+        M n hn2 htb hns tail
+
+/-- A long admissible query refutes the global claim that all admissible SPDP
+queries are log-windowed. -/
+theorem routeBRicherSPDPStableCandidate_not_admissibleQueriesLogWindowed_of_long_admissible
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hbad :
+      exists (spdpKappa ell : Nat)
+        (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+        (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+        S.length = spdpKappa ∧
+        shift.totalDegree <= ell ∧
+        shift.vars <= S.toFinset ∧
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition S ∧
+        Nat.log 2 n < S.length) :
+    ¬ RouteBRicherSPDPStableCandidateAdmissibleQueriesLogWindowed
+        M n hn2 htb hns := by
+  intro hwindow
+  obtain ⟨spdpKappa, ell, S, shift,
+    hSlen, hshiftDegree, hshiftVars, hadm, hlong⟩ := hbad
+  have hSlog :
+      S.length <= Nat.log 2 n :=
+    (hwindow spdpKappa ell S shift
+      hSlen hshiftDegree hshiftVars hadm).1
+  exact (Nat.not_lt.mpr hSlog) hlong
+
+/-- A high-degree admissible shift refutes the global claim that all
+admissible SPDP queries are log-windowed. -/
+theorem routeBRicherSPDPStableCandidate_not_admissibleQueriesLogWindowed_of_highDegree_admissible
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hbad :
+      exists (spdpKappa ell : Nat)
+        (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+        (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+        S.length = spdpKappa ∧
+        shift.totalDegree <= ell ∧
+        shift.vars <= S.toFinset ∧
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition S ∧
+        Nat.log 2 n < shift.totalDegree) :
+    ¬ RouteBRicherSPDPStableCandidateAdmissibleQueriesLogWindowed
+        M n hn2 htb hns := by
+  intro hwindow
+  obtain ⟨spdpKappa, ell, S, shift,
+    hSlen, hshiftDegree, hshiftVars, hadm, hhigh⟩ := hbad
+  have hshiftLog :
+      shift.totalDegree <= Nat.log 2 n :=
+    (hwindow spdpKappa ell S shift
+      hSlen hshiftDegree hshiftVars hadm).2
+  exact (Nat.not_lt.mpr hshiftLog) hhigh
+
 /-- Unrestricted orbit coverage implies the sharp admissible-orbit version. -/
 theorem routeBRicherSPDPStableCandidate_admissibleOrbitMlCovering_of_orbitMlCovering
     (M : DTM) (n : Nat) (hn2 : n >= 2)
@@ -186,6 +263,30 @@ theorem routeBRicherSPDPStableCandidate_admissibleOrbitMlCovering_of_logWindowOr
     hcov spdpKappa ell S shift
       hSlen hshiftDegree hSlog hshiftLog hshiftVars hadm
 
+/-- A log-window complement-invariance proof gives the full chosen-complement
+invariance target exactly when the admissible SPDP API itself is known to be
+log-windowed. -/
+theorem routeBRicherSPDPStableCandidate_chosenComplementInvariant_of_logWindowChosenComplementInvariant
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hinvariant :
+      RouteBRicherSPDPStableCandidateLogWindowChosenComplementInvariant
+        M n hn2 htb hns tail)
+    (hwindow :
+      RouteBRicherSPDPStableCandidateAdmissibleQueriesLogWindowed
+        M n hn2 htb hns) :
+    RouteBRicherSPDPStableCandidateChosenComplementInvariant
+      M n hn2 htb hns tail := by
+  intro spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm hpComplement
+  obtain ⟨hSlog, hshiftLog⟩ :=
+    hwindow spdpKappa ell S shift
+      hSlen hshiftDegree hshiftVars hadm
+  exact
+    hinvariant spdpKappa ell p S shift
+      hSlen hshiftDegree hSlog hshiftLog hshiftVars hadm hpComplement
+
 /-- `MlCovering` is strictly stronger than `OrbitMlCovering`: any
 multilinear-covering tail orbit-covers via the trivial expansion. -/
 theorem routeBRicherSPDPStableCandidate_orbitMlCovering_of_mlCovering
@@ -220,6 +321,25 @@ theorem routeBRicherSPDPStableCandidate_admissibleOrbitMlCovering_of_mlCovering
     M n hn2 htb hns tail
     (routeBRicherSPDPStableCandidate_orbitMlCovering_of_mlCovering
       M n hn2 htb hns tail hcov)
+
+/-- Full multilinear coverage also gives the log-window coverage target.  This
+is useful as a sanity bridge, but it is the broad route already known to be too
+large for the final finite-profile construction. -/
+theorem routeBRicherSPDPStableCandidate_logWindowOrbitMlCovering_of_mlCovering
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hcov :
+      RouteBRicherSPDPStableCandidateMlCovering
+        M n hn2 htb hns tail) :
+    RouteBRicherSPDPStableCandidateLogWindowOrbitMlCovering
+      M n hn2 htb hns tail := by
+  intro spdpKappa ell S shift
+    hSlen hshiftDegree _hSlog _hshiftLog _hshiftVars hadm
+  exact
+    routeBRicherSPDPStableCandidate_orbitMlCovering_of_mlCovering
+      M n hn2 htb hns tail hcov S shift hadm
 
 /-- Sharp admissible-orbit coverage discharges the explicit head/tail SPDP
 row-closure package. -/
@@ -376,6 +496,32 @@ theorem routeBRicherSPDPStableCandidate_obligations_of_admissibleOrbitMlCovering
     (routeBRicherSPDPStableCandidate_residualInvisible_of_chosenComplementInvariant
       M n hn2 htb hns tail hinvariant)
 
+/-- Fully packaged log-window route.  It exposes the exact additional global
+side condition needed to promote genuinely windowed profile proofs to the
+current unbounded SPDP-stable candidate API. -/
+theorem routeBRicherSPDPStableCandidate_obligations_of_logWindowOrbitMlCovering_logWindowChosenComplementInvariant
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hcov :
+      RouteBRicherSPDPStableCandidateLogWindowOrbitMlCovering
+        M n hn2 htb hns tail)
+    (hwindow :
+      RouteBRicherSPDPStableCandidateAdmissibleQueriesLogWindowed
+        M n hn2 htb hns)
+    (hinvariant :
+      RouteBRicherSPDPStableCandidateLogWindowChosenComplementInvariant
+        M n hn2 htb hns tail) :
+    RouteBRicherSPDPStableCandidateObligations
+      M n hn2 htb hns tail :=
+  routeBRicherSPDPStableCandidate_obligations_of_admissibleOrbitMlCovering_chosenComplementInvariant
+    M n hn2 htb hns tail
+    (routeBRicherSPDPStableCandidate_admissibleOrbitMlCovering_of_logWindowOrbitMlCovering
+      M n hn2 htb hns tail hcov hwindow)
+    (routeBRicherSPDPStableCandidate_chosenComplementInvariant_of_logWindowChosenComplementInvariant
+      M n hn2 htb hns tail hinvariant hwindow)
+
 /-- `MlCovering` discharges `SelectedRowClosure` via `OrbitMlCovering`. -/
 theorem routeBRicherSPDPStableCandidate_selectedRowClosure_of_mlCovering
     (M : DTM) (n : Nat) (hn2 : n >= 2)
@@ -406,6 +552,20 @@ theorem routeBRicherSPDPStableCandidate_mlCovering_for_multilinearTail
   exact
     routeBRicherConcreteNPPrependedMultilinearRows_mlProj_mem
       M n hn2 htb hns q
+
+/-- The broad multilinear tail also satisfies the log-window orbit target,
+again through the over-large `MlCovering` route. -/
+theorem routeBRicherSPDPStableCandidate_logWindowOrbitMlCovering_for_multilinearTail
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherSPDPStableCandidateLogWindowOrbitMlCovering
+      M n hn2 htb hns
+      (routeBRicherMultilinearTailRows M n hn2 htb hns) :=
+  routeBRicherSPDPStableCandidate_logWindowOrbitMlCovering_of_mlCovering
+    M n hn2 htb hns
+    (routeBRicherMultilinearTailRows M n hn2 htb hns)
+    (routeBRicherSPDPStableCandidate_mlCovering_for_multilinearTail
+      M n hn2 htb hns)
 
 /-- Strict-form residual condition for the smaller candidate: every Route B
 SPDP generator row of the projection residual vanishes (not merely its
@@ -533,11 +693,16 @@ set.
 #print axioms RouteBRicherSPDPStableCandidateAdmissibleOrbitMlCovering
 #print axioms RouteBRicherSPDPStableCandidateLogWindowOrbitMlCovering
 #print axioms RouteBRicherSPDPStableCandidateAdmissibleQueriesLogWindowed
+#print axioms RouteBRicherSPDPStableCandidateLogWindowChosenComplementInvariant
 #print axioms RouteBRicherSPDPStableCandidateResidualGeneratorZero
+#print axioms routeBRicherSPDPStableCandidate_not_admissibleQueriesLogWindowed_of_long_admissible
+#print axioms routeBRicherSPDPStableCandidate_not_admissibleQueriesLogWindowed_of_highDegree_admissible
 #print axioms routeBRicherSPDPStableCandidate_admissibleOrbitMlCovering_of_orbitMlCovering
 #print axioms routeBRicherSPDPStableCandidate_admissibleOrbitMlCovering_of_logWindowOrbitMlCovering
+#print axioms routeBRicherSPDPStableCandidate_chosenComplementInvariant_of_logWindowChosenComplementInvariant
 #print axioms routeBRicherSPDPStableCandidate_orbitMlCovering_of_mlCovering
 #print axioms routeBRicherSPDPStableCandidate_admissibleOrbitMlCovering_of_mlCovering
+#print axioms routeBRicherSPDPStableCandidate_logWindowOrbitMlCovering_of_mlCovering
 #print axioms routeBRicherSPDPStableCandidate_spdpRowClosurePackage_of_admissibleOrbitMlCovering
 #print axioms routeBRicherSPDPStableCandidate_spdpRowClosurePackage_of_orbitMlCovering
 #print axioms routeBRicherSPDPStableCandidate_selectedRowClosure_of_admissibleOrbitMlCovering
@@ -547,7 +712,9 @@ set.
 #print axioms routeBRicherSPDPStableCandidate_obligations_of_admissibleOrbitMlCovering_kernelGeneratorInvisible
 #print axioms routeBRicherSPDPStableCandidate_obligations_of_admissibleOrbitMlCovering_kernelGeneratorZero
 #print axioms routeBRicherSPDPStableCandidate_obligations_of_admissibleOrbitMlCovering_chosenComplementInvariant
+#print axioms routeBRicherSPDPStableCandidate_obligations_of_logWindowOrbitMlCovering_logWindowChosenComplementInvariant
 #print axioms routeBRicherSPDPStableCandidate_mlCovering_for_multilinearTail
+#print axioms routeBRicherSPDPStableCandidate_logWindowOrbitMlCovering_for_multilinearTail
 #print axioms routeBRicherSPDPStableCandidate_residualInvisible_iff_residualGeneratorZero_of_mlCovering
 #print axioms routeBRicherSPDPStableCandidate_residualInvisible_noGo_of_mlCovering_residualGenerator_ne_zero
 
