@@ -616,6 +616,229 @@ noncomputable def routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDa
         routeBRicherMultilinearTailRows_coeff_tailCoeffAlpha
           M n hn2 htb hns i j)
 
+/-! ## Designed coefficient-dual complement criterion -/
+
+/-- If the displayed pure-square head coefficient and every displayed
+multilinear-tail coefficient vanish on `p`, then `p` lies in the kernel
+complement of the designed coefficient-dual projection. -/
+theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjection_mem_complement_of_coeff_vanish
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns)
+    (hhead :
+      MvPolynomial.coeff
+          (Finsupp.single (satDeciderGaugeSecondVar M n hn2 htb hns) 2)
+          p = 0)
+    (htail :
+      forall i : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns),
+        MvPolynomial.coeff
+          (routeBRicherMultilinearTailCoeffAlpha M n hn2 htb hns i)
+          p = 0) :
+    p ∈
+      (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+        M n hn2 htb hns).complement := by
+  classical
+  let tail := routeBRicherMultilinearTailRows M n hn2 htb hns
+  let rows := routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail
+  let headAlpha :
+      Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat :=
+    Finsupp.single (satDeciderGaugeSecondVar M n hn2 htb hns) 2
+  let tailAlpha :
+      Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns) ->
+        Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat :=
+    routeBRicherMultilinearTailCoeffAlpha M n hn2 htb hns
+  let coord :=
+    routeBRicherSPDPStableCandidateCoefficientDualCoordinates
+      M n hn2 htb hns tail headAlpha tailAlpha
+  let D :=
+    routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+      M n hn2 htb hns
+  have hcoord_zero :
+      forall i : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1),
+        coord i p = 0 := by
+    intro i
+    refine Fin.cases ?head ?tailCase i
+    · have hhead_row :
+          MvPolynomial.coeff headAlpha (rows 0) = (1 : Rat) := by
+        simpa [headAlpha, rows, tail, routeBRicherSPDPStableCandidateRows,
+          routeBRicherConcreteNPPrependedRows] using
+          routeBRicherConcreteNPWitnessRows_zero_coeff_secondVar_square
+            M n hn2 htb hns
+      simp [coord, routeBRicherSPDPStableCandidateCoefficientDualCoordinates,
+        headAlpha, rows, hhead_row, hhead]
+    · intro i
+      have hhead_row :
+          MvPolynomial.coeff headAlpha (rows 0) = (1 : Rat) := by
+        simpa [headAlpha, rows, tail, routeBRicherSPDPStableCandidateRows,
+          routeBRicherConcreteNPPrependedRows] using
+          routeBRicherConcreteNPWitnessRows_zero_coeff_secondVar_square
+            M n hn2 htb hns
+      simp [coord, routeBRicherSPDPStableCandidateCoefficientDualCoordinates,
+        headAlpha, tailAlpha, rows, hhead_row, hhead, htail i]
+  have hproj_zero : D.projection p = 0 := by
+    have hsum :
+        routeBRicherSPDPStableCandidateDualCoordinateProjection
+            M n hn2 htb hns tail coord p = 0 := by
+      rw [routeBRicherSPDPStableCandidateDualCoordinateProjection_apply]
+      simp [hcoord_zero]
+    simpa [D, coord, headAlpha, tailAlpha, tail,
+      routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData,
+      routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData_of_coefficientDualCoordinates,
+      routeBRicherSPDPStableCandidateExplicitProjectionData_of_coefficientDualCoordinates,
+      routeBRicherSPDPStableCandidateExplicitProjectionData_of_dualCoordinates,
+      RouteBRicherSPDPStableCandidateExplicitProjectionData.ofProjection,
+      RouteBRicherSPDPStableCandidateExplicitProjectionData.ofProjectionWithKernel] using hsum
+  exact (D.projection_apply_eq_zero_iff p).mp hproj_zero
+
+/-- The displayed complement of the designed coefficient-dual projection is
+exactly the common zero locus of the pure-square head probe and all concrete
+multilinear-tail coefficient probes. -/
+theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjection_mem_complement_iff_coeff_vanish
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns) :
+    p ∈
+        (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+          M n hn2 htb hns).complement ↔
+      MvPolynomial.coeff
+          (Finsupp.single (satDeciderGaugeSecondVar M n hn2 htb hns) 2)
+          p = 0 ∧
+        forall i : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns),
+          MvPolynomial.coeff
+            (routeBRicherMultilinearTailCoeffAlpha M n hn2 htb hns i)
+            p = 0 := by
+  classical
+  constructor
+  · intro hp
+    let tail := routeBRicherMultilinearTailRows M n hn2 htb hns
+    let rows := routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail
+    let headAlpha :
+        Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat :=
+      Finsupp.single (satDeciderGaugeSecondVar M n hn2 htb hns) 2
+    let tailAlpha :
+        Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns) ->
+          Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat :=
+      routeBRicherMultilinearTailCoeffAlpha M n hn2 htb hns
+    let coord :=
+      routeBRicherSPDPStableCandidateCoefficientDualCoordinates
+        M n hn2 htb hns tail headAlpha tailAlpha
+    let D :=
+      routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+        M n hn2 htb hns
+    have hpZero : D.projection p = 0 :=
+      (D.projection_apply_eq_zero_iff p).mpr hp
+    have hhead_row :
+        MvPolynomial.coeff headAlpha (rows 0) = (1 : Rat) := by
+      simpa [headAlpha, rows, tail, routeBRicherSPDPStableCandidateRows,
+        routeBRicherConcreteNPPrependedRows] using
+        routeBRicherConcreteNPWitnessRows_zero_coeff_secondVar_square
+          M n hn2 htb hns
+    have hsumZero :
+        routeBRicherSPDPStableCandidateDualCoordinateProjection
+            M n hn2 htb hns tail coord p = 0 := by
+      simpa [D, coord, headAlpha, tailAlpha, tail,
+        routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData,
+        routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData_of_coefficientDualCoordinates,
+        routeBRicherSPDPStableCandidateExplicitProjectionData_of_coefficientDualCoordinates,
+        routeBRicherSPDPStableCandidateExplicitProjectionData_of_dualCoordinates,
+        RouteBRicherSPDPStableCandidateExplicitProjectionData.ofProjection,
+        RouteBRicherSPDPStableCandidateExplicitProjectionData.ofProjectionWithKernel] using hpZero
+    have hdual :
+        forall i j,
+          coord i (routeBRicherSPDPStableCandidateRows
+            M n hn2 htb hns tail j) =
+            if i = j then 1 else 0 := by
+      exact
+        routeBRicherSPDPStableCandidateCoefficientDualCoordinates_hdual
+          M n hn2 htb hns tail headAlpha tailAlpha
+          (by
+            simpa [headAlpha, tail, routeBRicherSPDPStableCandidateRows,
+              routeBRicherConcreteNPPrependedRows] using
+              routeBRicherConcreteNPWitnessRows_zero_coeff_secondVar_square_ne_zero
+                M n hn2 htb hns)
+          (by
+            intro j
+            simpa [headAlpha, tail, routeBRicherSPDPStableCandidateRows,
+              routeBRicherConcreteNPPrependedRows] using
+              routeBRicherMultilinearTailRows_coeff_secondVar_square
+                M n hn2 htb hns j)
+          (by
+            intro i j
+            simpa [tailAlpha, tail, routeBRicherSPDPStableCandidateRows,
+              routeBRicherConcreteNPPrependedRows] using
+              routeBRicherMultilinearTailRows_coeff_tailCoeffAlpha
+                M n hn2 htb hns i j)
+    have hcoord_zero :
+        forall i : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1),
+          coord i p = 0 :=
+      (routeBRicherSPDPStableCandidateDualCoordinateProjection_apply_eq_zero_iff
+        M n hn2 htb hns tail coord hdual p).mp hsumZero
+    have hhead :
+        MvPolynomial.coeff headAlpha p = 0 := by
+      have h0 := hcoord_zero 0
+      simpa [coord, routeBRicherSPDPStableCandidateCoefficientDualCoordinates,
+        headAlpha, rows, hhead_row] using h0
+    refine ⟨by simpa [headAlpha] using hhead, ?_⟩
+    intro i
+    have hi := hcoord_zero (Fin.succ i)
+    simpa [coord, routeBRicherSPDPStableCandidateCoefficientDualCoordinates,
+      headAlpha, tailAlpha, rows, hhead_row, hhead] using hi
+  · rintro ⟨hhead, htail⟩
+    exact
+      routeBRicherConcreteNPPrependedMultilinearExplicitProjection_mem_complement_of_coeff_vanish
+        M n hn2 htb hns p hhead htail
+
+/-- Coefficient-level generator stability for the designed coefficient-dual
+projection: every admissible generator row of a vector in the displayed
+complement still has zero pure-square head coefficient and zero values at all
+displayed multilinear tail probes. -/
+def RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionGeneratorCoeffVanishes
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) : Prop :=
+  forall (spdpKappa ell : Nat)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns)
+    (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+    (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+    S.length = spdpKappa ->
+    shift.totalDegree <= ell ->
+    shift.vars <= S.toFinset ->
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S ->
+    p ∈
+      (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+        M n hn2 htb hns).complement ->
+    MvPolynomial.coeff
+        (Finsupp.single (satDeciderGaugeSecondVar M n hn2 htb hns) 2)
+        (routeBSPDPGeneratorRow M n hn2 htb hns p S shift) = 0 ∧
+      forall i : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns),
+        MvPolynomial.coeff
+          (routeBRicherMultilinearTailCoeffAlpha M n hn2 htb hns i)
+          (routeBSPDPGeneratorRow M n hn2 htb hns p S shift) = 0
+
+/-- The coefficient-vanishing criterion proves operator-level stability of
+the designed coefficient-dual complement. -/
+theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjectionStableGeneratorMaps_of_generatorCoeffVanishes
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hvanish :
+      RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionGeneratorCoeffVanishes
+        M n hn2 htb hns) :
+    RouteBRicherSPDPStableCandidateExplicitComplementStableGeneratorMaps
+      M n hn2 htb hns
+      (routeBRicherMultilinearTailRows M n hn2 htb hns)
+      (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+        M n hn2 htb hns).complement := by
+  intro spdpKappa ell S shift hSlen hshiftDegree hshiftVars hadm q hq
+  rcases hq with ⟨p, hpComplement, rfl⟩
+  obtain ⟨hhead, htail⟩ :=
+    hvanish spdpKappa ell p S shift
+      hSlen hshiftDegree hshiftVars hadm hpComplement
+  simpa [routeBSPDPGeneratorRowLinearMap_apply] using
+    routeBRicherConcreteNPPrependedMultilinearExplicitProjection_mem_complement_of_coeff_vanish
+      M n hn2 htb hns
+      (routeBSPDPGeneratorRow M n hn2 htb hns p S shift)
+      hhead htail
+
 /-! ## Designed explicit-projection descent surface -/
 
 /-- Descent for the designed coefficient-dual multilinear projection.
@@ -638,6 +861,352 @@ def RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness
     (htb : M.timeBound <= 4) (hns : M.numStates <= n) : Prop :=
   (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
     M n hn2 htb hns).ProjectionEscapeWitness
+
+/-- Coordinate-visible escape for the designed coefficient-dual multilinear
+projection.  This exposes the exact coefficient check needed to instantiate
+`ProjectionEscapeWitness` for the displayed projection data. -/
+def RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionVisibleCoefficientEscapeWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) : Prop :=
+  exists (spdpKappa ell : Nat)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns)
+    (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+    (shift : SATDeciderGaugeSpace M n hn2 htb hns)
+    (μ : Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat),
+    S.length = spdpKappa ∧
+    shift.totalDegree <= ell ∧
+    shift.vars <= S.toFinset ∧
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S ∧
+    (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+      M n hn2 htb hns).projection p = 0 ∧
+    MvPolynomial.coeff μ
+      ((routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+        M n hn2 htb hns).projection
+        (routeBSPDPGeneratorRow M n hn2 htb hns p S shift)) ≠ 0
+
+/-- Constructor from an explicit complement vector and visible projected
+coefficient into the designed coefficient-dual projection escape witness. -/
+theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_of_explicitCoeff
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (spdpKappa ell : Nat)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns)
+    (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+    (shift : SATDeciderGaugeSpace M n hn2 htb hns)
+    (μ : Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat)
+    (hSlen : S.length = spdpKappa)
+    (hshiftDegree : shift.totalDegree <= ell)
+    (hshiftVars : shift.vars <= S.toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition S)
+    (hpZero :
+      (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+        M n hn2 htb hns).projection p = 0)
+    (hcoeff :
+      MvPolynomial.coeff μ
+        ((routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+          M n hn2 htb hns).projection
+          (routeBSPDPGeneratorRow M n hn2 htb hns p S shift)) ≠ 0) :
+    RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness
+      M n hn2 htb hns := by
+  let D :=
+    routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+      M n hn2 htb hns
+  refine ⟨spdpKappa, ell, p, S, shift,
+    hSlen, hshiftDegree, hshiftVars, hadm, ?_, ?_⟩
+  · exact (D.projection_apply_eq_zero_iff p).mp hpZero
+  · intro hrowZero
+    exact hcoeff (by simp [hrowZero])
+
+/-- A visible coefficient witness instantiates the designed projection escape
+branch. -/
+theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_of_visibleCoefficientEscape
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hcoord :
+      RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionVisibleCoefficientEscapeWitness
+        M n hn2 htb hns) :
+    RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness
+      M n hn2 htb hns := by
+  rcases hcoord with ⟨spdpKappa, ell, p, S, shift, μ,
+    hSlen, hshiftDegree, hshiftVars, hadm, hpZero, hcoeff⟩
+  exact
+    routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_of_explicitCoeff
+      M n hn2 htb hns spdpKappa ell p S shift μ
+      hSlen hshiftDegree hshiftVars hadm hpZero hcoeff
+
+/-- The first-square probe for the designed coefficient-dual multilinear
+projection.  It is the smallest non-multilinear monomial avoiding the
+second-variable pure-square head probe. -/
+noncomputable def routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    SATDeciderGaugeSpace M n hn2 htb hns :=
+  MvPolynomial.X (satDeciderGaugeFirstVar M n hn2 htb hns) *
+    MvPolynomial.X (satDeciderGaugeFirstVar M n hn2 htb hns)
+
+/-- The first Cook-Levin coordinate is distinct from the second. -/
+theorem satDeciderGaugeFirstVar_ne_secondVar
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    satDeciderGaugeFirstVar M n hn2 htb hns ≠
+      satDeciderGaugeSecondVar M n hn2 htb hns := by
+  intro h
+  have hval := congrArg Fin.val h
+  norm_num [satDeciderGaugeFirstVar, satDeciderGaugeSecondVar] at hval
+
+/-- The first-square probe is the pure square monomial at the first
+Cook-Levin coordinate. -/
+theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_eq_monomial
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns =
+      MvPolynomial.monomial
+        (Finsupp.single (satDeciderGaugeFirstVar M n hn2 htb hns) 2)
+        (1 : Rat) := by
+  unfold routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+  let first := satDeciderGaugeFirstVar M n hn2 htb hns
+  change
+    MvPolynomial.monomial (Finsupp.single first 1) (1 : Rat) *
+        MvPolynomial.monomial (Finsupp.single first 1) (1 : Rat) =
+      MvPolynomial.monomial (Finsupp.single first 2) (1 : Rat)
+  rw [MvPolynomial.monomial_mul, mul_one]
+  have hsingle :
+      Finsupp.single first 1 + Finsupp.single first 1 =
+        (Finsupp.single first 2 :
+          Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat) := by
+    ext i
+    by_cases hi : i = first
+    · subst i
+      simp
+    · simp [Finsupp.single_eq_of_ne hi]
+  rw [hsingle]
+
+/-- The first-square probe has zero value at the designed pure-square head
+coefficient, which is attached to the second Cook-Levin coordinate. -/
+theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_coeff_secondVar_square
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    MvPolynomial.coeff
+        (Finsupp.single (satDeciderGaugeSecondVar M n hn2 htb hns) 2)
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns) = 0 := by
+  rw [routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_eq_monomial,
+    MvPolynomial.coeff_monomial]
+  rw [if_neg]
+  intro hsq
+  have hne := satDeciderGaugeFirstVar_ne_secondVar M n hn2 htb hns
+  have hcoord := DFunLike.congr_fun hsq
+    (satDeciderGaugeSecondVar M n hn2 htb hns)
+  simp [hne] at hcoord
+
+/-- The first-square probe has zero value at every displayed multilinear tail
+coefficient. -/
+theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_coeff_tailCoeffAlpha
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (i : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns)) :
+    MvPolynomial.coeff
+        (routeBRicherMultilinearTailCoeffAlpha M n hn2 htb hns i)
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns) = 0 := by
+  rw [routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_eq_monomial,
+    MvPolynomial.coeff_monomial]
+  rw [if_neg]
+  intro hsq
+  have hml :
+      Finsupp.IsMultilinear
+        (routeBRicherMultilinearTailCoeffAlpha M n hn2 htb hns i) := by
+    simpa [routeBRicherMultilinearTailCoeffAlpha] using
+      SymmetricPower.tagMonomial_isMultilinear
+        (routeBRicherMultilinearTailSupportSet M n hn2 htb hns i)
+  have hfirst := hml (satDeciderGaugeFirstVar M n hn2 htb hns)
+  rw [← hsq] at hfirst
+  norm_num at hfirst
+
+/-- The first-square probe is in the displayed complement of the designed
+coefficient-dual multilinear projection. -/
+theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_mem_complement
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns ∈
+      (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+        M n hn2 htb hns).complement :=
+  routeBRicherConcreteNPPrependedMultilinearExplicitProjection_mem_complement_of_coeff_vanish
+    M n hn2 htb hns
+    (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+      M n hn2 htb hns)
+    (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_coeff_secondVar_square
+      M n hn2 htb hns)
+    (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_coeff_tailCoeffAlpha
+      M n hn2 htb hns)
+
+/-- Equivalently, the designed projection kills the first-square probe. -/
+theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjection_firstSquareProbe_eq_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+      M n hn2 htb hns).projection
+      (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns) = 0 := by
+  let D :=
+    routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+      M n hn2 htb hns
+  exact
+    (D.projection_apply_eq_zero_iff
+      (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns)).mpr
+      (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_mem_complement
+        M n hn2 htb hns)
+
+/-- The singleton first-coordinate derivative of the first-square probe is the
+visible linear row `2 • X_first` after multilinear projection. -/
+theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_singletonRow_eq
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    routeBSPDPGeneratorRow M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns)
+        [satDeciderGaugeFirstVar M n hn2 htb hns]
+        (1 : SATDeciderGaugeSpace M n hn2 htb hns) =
+      (2 : Rat) •
+        MvPolynomial.X (satDeciderGaugeFirstVar M n hn2 htb hns) := by
+  let first := satDeciderGaugeFirstVar M n hn2 htb hns
+  have hderiv :
+      SPDP.iterDerivList [first]
+          (MvPolynomial.X first * MvPolynomial.X first :
+            SATDeciderGaugeSpace M n hn2 htb hns) =
+        (2 : Rat) • MvPolynomial.X first := by
+    unfold SPDP.iterDerivList
+    change MvPolynomial.pderiv first
+        (MvPolynomial.X first * MvPolynomial.X first :
+          SATDeciderGaugeSpace M n hn2 htb hns) =
+      (2 : Rat) • MvPolynomial.X first
+    rw [MvPolynomial.pderiv_mul, MvPolynomial.pderiv_X_self]
+    simp [two_smul]
+  change
+    mlProj
+        ((1 : SATDeciderGaugeSpace M n hn2 htb hns) *
+          SPDP.iterDerivList [first]
+            (MvPolynomial.X first * MvPolynomial.X first :
+              SATDeciderGaugeSpace M n hn2 htb hns)) =
+      (2 : Rat) • MvPolynomial.X first
+  rw [hderiv, one_mul, MultilinearSPDP.mlProj_smul,
+    SymmetricPower.mlProj_X]
+
+/-- The designed projection sees a nonzero first-linear coefficient on the
+singleton derivative row of the first-square complement probe. -/
+theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjection_firstSquare_singletonCoeff_ne_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    MvPolynomial.coeff
+        (Finsupp.single (satDeciderGaugeFirstVar M n hn2 htb hns) 1)
+        ((routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+          M n hn2 htb hns).projection
+          (routeBSPDPGeneratorRow M n hn2 htb hns
+            (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+              M n hn2 htb hns)
+            [satDeciderGaugeFirstVar M n hn2 htb hns]
+            (1 : SATDeciderGaugeSpace M n hn2 htb hns))) ≠ 0 := by
+  let D :=
+    routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+      M n hn2 htb hns
+  let row :=
+    routeBSPDPGeneratorRow M n hn2 htb hns
+      (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns)
+      [satDeciderGaugeFirstVar M n hn2 htb hns]
+      (1 : SATDeciderGaugeSpace M n hn2 htb hns)
+  have hrowMem :
+      row ∈
+        RouteBRicherSPDPStableCandidateRowSpan
+          M n hn2 htb hns
+          (routeBRicherMultilinearTailRows M n hn2 htb hns) := by
+    change row ∈
+      finiteRowsSubmodule
+        (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns)
+    dsimp [row, routeBSPDPGeneratorRow]
+    exact
+      routeBRicherConcreteNPPrependedMultilinearRows_mlProj_mem
+        M n hn2 htb hns
+        ((1 : SATDeciderGaugeSpace M n hn2 htb hns) *
+          SPDP.iterDerivList
+            [satDeciderGaugeFirstVar M n hn2 htb hns]
+            (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+              M n hn2 htb hns))
+  have hfix : D.projection row = row :=
+    D.projection_fixes_of_mem_rowSpan hrowMem
+  rw [show
+      (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+        M n hn2 htb hns).projection row = row by
+        simpa [D] using hfix]
+  dsimp [row]
+  rw [routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_singletonRow_eq]
+  rw [MvPolynomial.coeff_smul, MvPolynomial.coeff_X']
+  simp
+
+/-- Sharp one-line reduction for the concrete first-square branch.
+
+If the singleton derivative row of the first-square complement probe has a
+visible first-linear coefficient after applying the designed projection, then
+the designed projection escape witness is instantiated with `p = X_first^2`,
+`S = [first]`, and `shift = 1`. -/
+theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_of_firstSquare_singletonCoeff
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hcoeff :
+      MvPolynomial.coeff
+        (Finsupp.single (satDeciderGaugeFirstVar M n hn2 htb hns) 1)
+        ((routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+          M n hn2 htb hns).projection
+          (routeBSPDPGeneratorRow M n hn2 htb hns
+            (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+              M n hn2 htb hns)
+            [satDeciderGaugeFirstVar M n hn2 htb hns]
+            (1 : SATDeciderGaugeSpace M n hn2 htb hns))) ≠ 0) :
+    RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness
+      M n hn2 htb hns := by
+  refine
+    routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_of_explicitCoeff
+      M n hn2 htb hns
+      1 0
+      (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns)
+      [satDeciderGaugeFirstVar M n hn2 htb hns]
+      (1 : SATDeciderGaugeSpace M n hn2 htb hns)
+      (Finsupp.single (satDeciderGaugeFirstVar M n hn2 htb hns) 1)
+      ?_ ?_ ?_ ?_
+      (routeBRicherConcreteNPPrependedMultilinearExplicitProjection_firstSquareProbe_eq_zero
+        M n hn2 htb hns)
+      hcoeff
+  · simp
+  · simp [MvPolynomial.totalDegree_one]
+  · simp [MvPolynomial.vars_one]
+  · constructor
+    · simp
+    · intro b
+      simpa using
+        (List.length_filter_le
+          (fun i =>
+            (cook_levin_compilation M n hn2 htb hns).partition.assign i = b)
+          [satDeciderGaugeFirstVar M n hn2 htb hns])
+
+/-- Concrete escape witness for the designed coefficient-dual multilinear
+projection, using the first-square complement probe and singleton derivative
+row. -/
+theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_firstSquare_singleton
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness
+      M n hn2 htb hns :=
+  routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_of_firstSquare_singletonCoeff
+    M n hn2 htb hns
+    (routeBRicherConcreteNPPrependedMultilinearExplicitProjection_firstSquare_singletonCoeff_ne_zero
+      M n hn2 htb hns)
 
 /-- Descent for the designed projection is exactly invariance of its displayed
 coefficient-dual complement. -/
@@ -678,6 +1247,21 @@ theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent_of_s
           M n hn2 htb hns).complement
         hstable)
 
+/-- The coefficient-vanishing criterion closes descent for the designed
+coefficient-dual multilinear projection. -/
+theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent_of_generatorCoeffVanishes
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hvanish :
+      RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionGeneratorCoeffVanishes
+        M n hn2 htb hns) :
+    RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent
+      M n hn2 htb hns :=
+  routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent_of_stableGeneratorMaps
+    M n hn2 htb hns
+    (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionStableGeneratorMaps_of_generatorCoeffVanishes
+      M n hn2 htb hns hvanish)
+
 /-- Designed projection escape is exactly failure of designed projection
 descent. -/
 theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_iff_not_projectionDescent
@@ -692,6 +1276,49 @@ theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitnes
     RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent] using
     (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
       M n hn2 htb hns).projectionEscapeWitness_iff_not_projectionDescent
+
+/-- The first-square singleton escape refutes descent for the designed
+coefficient-dual projection. -/
+theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjection_not_descent
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    ¬ RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent
+        M n hn2 htb hns :=
+  (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_iff_not_projectionDescent
+    M n hn2 htb hns).mp
+    (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_firstSquare_singleton
+      M n hn2 htb hns)
+
+/-- Therefore the actual stable-generator-map condition is false for the
+designed coefficient-dual complement. -/
+theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjection_not_stableGeneratorMaps
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    ¬ RouteBRicherSPDPStableCandidateExplicitComplementStableGeneratorMaps
+        M n hn2 htb hns
+        (routeBRicherMultilinearTailRows M n hn2 htb hns)
+        (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+          M n hn2 htb hns).complement := by
+  intro hstable
+  exact
+    routeBRicherConcreteNPPrependedMultilinearExplicitProjection_not_descent
+      M n hn2 htb hns
+      (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent_of_stableGeneratorMaps
+        M n hn2 htb hns hstable)
+
+/-- The coefficient-vanishing stability criterion cannot hold for this
+designed complement, because it would imply the refuted descent theorem. -/
+theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjection_not_generatorCoeffVanishes
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    ¬ RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionGeneratorCoeffVanishes
+        M n hn2 htb hns := by
+  intro hvanish
+  exact
+    routeBRicherConcreteNPPrependedMultilinearExplicitProjection_not_descent
+      M n hn2 htb hns
+      (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent_of_generatorCoeffVanishes
+        M n hn2 htb hns hvanish)
 
 /-- The designed coefficient-dual projection has the honest Route B fork:
 either it descends through all admissible generator rows, or Lean exposes a
@@ -1485,11 +2112,27 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_unpr
 #print axioms routeBRicherConcreteNPWitnessRows_zero_coeff_secondVar_square_ne_zero
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_linearIndependent
 #print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+#print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjection_mem_complement_of_coeff_vanish
+#print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjection_mem_complement_iff_coeff_vanish
+#print axioms RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionGeneratorCoeffVanishes
+#print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjectionStableGeneratorMaps_of_generatorCoeffVanishes
 #print axioms RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent
 #print axioms RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness
+#print axioms RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionVisibleCoefficientEscapeWitness
+#print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_of_explicitCoeff
+#print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_of_visibleCoefficientEscape
+#print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+#print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_singletonRow_eq
+#print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjection_firstSquare_singletonCoeff_ne_zero
+#print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_of_firstSquare_singletonCoeff
+#print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_firstSquare_singleton
 #print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent_iff_explicitComplementInvariant
 #print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent_of_stableGeneratorMaps
+#print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent_of_generatorCoeffVanishes
 #print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_iff_not_projectionDescent
+#print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjection_not_descent
+#print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjection_not_stableGeneratorMaps
+#print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjection_not_generatorCoeffVanishes
 #print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent_or_escapeWitness
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_spdpRowClosurePackage
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_spdpClosure

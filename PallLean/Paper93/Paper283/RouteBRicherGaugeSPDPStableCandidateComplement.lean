@@ -386,6 +386,39 @@ theorem finiteDualFamilyProjection_apply
       ∑ i, coord i v • rows i := by
   simp [finiteDualFamilyProjection, LinearMap.toSpanSingleton_apply]
 
+/-- Applying a displayed dual coordinate after the finite dual-family
+projection recovers that coordinate. -/
+theorem finiteDualFamilyProjection_coord_apply
+    {V : Type*} [AddCommGroup V] [Module Rat V]
+    {r : Nat}
+    (rows : Fin r -> V) (coord : Fin r -> V →ₗ[Rat] Rat)
+    (hdual : forall i j, coord i (rows j) = if i = j then 1 else 0)
+    (i : Fin r) (v : V) :
+    coord i (finiteDualFamilyProjection rows coord v) = coord i v := by
+  classical
+  rw [finiteDualFamilyProjection_apply]
+  simp [map_sum, hdual]
+
+/-- The kernel of a finite dual-family projection is exactly the common zero
+locus of the displayed dual coordinates. -/
+theorem finiteDualFamilyProjection_apply_eq_zero_iff
+    {V : Type*} [AddCommGroup V] [Module Rat V]
+    {r : Nat}
+    (rows : Fin r -> V) (coord : Fin r -> V →ₗ[Rat] Rat)
+    (hdual : forall i j, coord i (rows j) = if i = j then 1 else 0)
+    (v : V) :
+    finiteDualFamilyProjection rows coord v = 0 ↔
+      forall i, coord i v = 0 := by
+  constructor
+  · intro hzero i
+    have hcoord :=
+      finiteDualFamilyProjection_coord_apply rows coord hdual i v
+    rw [hzero, map_zero] at hcoord
+    exact hcoord.symm
+  · intro hcoord
+    rw [finiteDualFamilyProjection_apply]
+    simp [hcoord]
+
 /-- A finite linearly independent family in a vector space admits ambient
 coordinate functionals dual to the family.  The construction first takes the
 canonical coordinates on the span given by `LinearIndependent.repr`, then
@@ -1483,6 +1516,28 @@ theorem routeBRicherSPDPStableCandidateDualCoordinateProjection_apply
   exact finiteDualFamilyProjection_apply
     (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail) coord p
 
+/-- The kernel of the full-row-family coordinate projection is the common
+zero locus of its displayed dual coordinates. -/
+theorem routeBRicherSPDPStableCandidateDualCoordinateProjection_apply_eq_zero_iff
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (coord :
+      Fin (m + 1) ->
+        SATDeciderGaugeSpace M n hn2 htb hns →ₗ[Rat] Rat)
+    (hdual : forall i j,
+      coord i (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail j) =
+        if i = j then 1 else 0)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns) :
+    routeBRicherSPDPStableCandidateDualCoordinateProjection
+        M n hn2 htb hns tail coord p = 0 ↔
+      forall i, coord i p = 0 := by
+  simpa [routeBRicherSPDPStableCandidateDualCoordinateProjection] using
+    finiteDualFamilyProjection_apply_eq_zero_iff
+      (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail)
+      coord hdual p
+
 /-- Coordinate-dual functionals make the full-row-family projection idempotent
 and give it range exactly the prepended candidate row span. -/
 noncomputable def routeBRicherSPDPStableCandidateExplicitProjectionData_of_dualCoordinates
@@ -1513,6 +1568,32 @@ noncomputable def routeBRicherSPDPStableCandidateExplicitProjectionData_of_dualC
         finiteDualFamilyProjection_range
           (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail)
           coord hdual)
+
+/-- Membership in the complement produced by explicit dual coordinates is
+exactly vanishing of all those displayed coordinates. -/
+theorem routeBRicherSPDPStableCandidateExplicitProjectionData_of_dualCoordinates_mem_complement_iff
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (coord :
+      Fin (m + 1) ->
+        SATDeciderGaugeSpace M n hn2 htb hns →ₗ[Rat] Rat)
+    (hdual : forall i j,
+      coord i (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail j) =
+        if i = j then 1 else 0)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns) :
+    p ∈
+        (routeBRicherSPDPStableCandidateExplicitProjectionData_of_dualCoordinates
+          M n hn2 htb hns tail coord hdual).complement ↔
+      forall i, coord i p = 0 := by
+  let D :=
+    routeBRicherSPDPStableCandidateExplicitProjectionData_of_dualCoordinates
+      M n hn2 htb hns tail coord hdual
+  rw [← (D.projection_apply_eq_zero_iff p)]
+  simpa [D, routeBRicherSPDPStableCandidateExplicitProjectionData_of_dualCoordinates] using
+    routeBRicherSPDPStableCandidateDualCoordinateProjection_apply_eq_zero_iff
+      M n hn2 htb hns tail coord hdual p
 
 /-- Chosen dual coordinate maps for the full SPDP-stable prepended row family,
 once that family is linearly independent. -/
@@ -1714,6 +1795,48 @@ noncomputable def routeBRicherSPDPStableCandidateExplicitProjectionData_of_coeff
     (routeBRicherSPDPStableCandidateCoefficientDualCoordinates_hdual
       M n hn2 htb hns tail headAlpha tailAlpha
       hhead hhead_tail htail_tail)
+
+/-- Membership in the complement produced by coefficient-dual coordinates is
+exactly vanishing of the displayed coefficient-dual coordinate maps. -/
+theorem routeBRicherSPDPStableCandidateExplicitProjectionData_of_coefficientDualCoordinates_mem_complement_iff
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (headAlpha :
+      Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat)
+    (tailAlpha :
+      Fin m -> Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat)
+    (hhead :
+      MvPolynomial.coeff headAlpha
+        (routeBRicherSPDPStableCandidateRows
+          M n hn2 htb hns tail 0) ≠ 0)
+    (hhead_tail : forall j : Fin m,
+      MvPolynomial.coeff headAlpha
+        (routeBRicherSPDPStableCandidateRows
+          M n hn2 htb hns tail (Fin.succ j)) = 0)
+    (htail_tail : forall i j : Fin m,
+      MvPolynomial.coeff (tailAlpha i)
+        (routeBRicherSPDPStableCandidateRows
+          M n hn2 htb hns tail (Fin.succ j)) =
+        if i = j then 1 else 0)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns) :
+    p ∈
+        (routeBRicherSPDPStableCandidateExplicitProjectionData_of_coefficientDualCoordinates
+          M n hn2 htb hns tail headAlpha tailAlpha
+          hhead hhead_tail htail_tail).complement ↔
+      forall i,
+        routeBRicherSPDPStableCandidateCoefficientDualCoordinates
+          M n hn2 htb hns tail headAlpha tailAlpha i p = 0 := by
+  simpa [routeBRicherSPDPStableCandidateExplicitProjectionData_of_coefficientDualCoordinates] using
+    routeBRicherSPDPStableCandidateExplicitProjectionData_of_dualCoordinates_mem_complement_iff
+      M n hn2 htb hns tail
+      (routeBRicherSPDPStableCandidateCoefficientDualCoordinates
+        M n hn2 htb hns tail headAlpha tailAlpha)
+      (routeBRicherSPDPStableCandidateCoefficientDualCoordinates_hdual
+        M n hn2 htb hns tail headAlpha tailAlpha
+        hhead hhead_tail htail_tail)
+      p
 
 /-- If the caller has proved that the prepended rows already span the whole
 ambient SAT gauge space, the inspectable complement is `⊥`. -/
@@ -2009,6 +2132,8 @@ noncomputable def routeBRicherSPDPStableCandidateChosenExplicitProjectionData
 #print axioms rankOneCoefficientProjection_range
 #print axioms finiteDualFamilyProjection
 #print axioms finiteDualFamilyProjection_apply
+#print axioms finiteDualFamilyProjection_coord_apply
+#print axioms finiteDualFamilyProjection_apply_eq_zero_iff
 #print axioms exists_finite_dualCoordinates_of_linearIndependent
 #print axioms finiteDualCoordinatesOfLinearIndependent
 #print axioms finiteDualCoordinatesOfLinearIndependent_apply_row
@@ -2035,13 +2160,16 @@ noncomputable def routeBRicherSPDPStableCandidateChosenExplicitProjectionData
 #print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData.toComplementInterface_projectionEscapeWitness_of_projectionEscapeWitness
 #print axioms routeBRicherSPDPStableCandidateDualCoordinateProjection
 #print axioms routeBRicherSPDPStableCandidateDualCoordinateProjection_apply
+#print axioms routeBRicherSPDPStableCandidateDualCoordinateProjection_apply_eq_zero_iff
 #print axioms routeBRicherSPDPStableCandidateExplicitProjectionData_of_dualCoordinates
+#print axioms routeBRicherSPDPStableCandidateExplicitProjectionData_of_dualCoordinates_mem_complement_iff
 #print axioms routeBRicherSPDPStableCandidateDualCoordinatesOfLinearIndependentRows
 #print axioms routeBRicherSPDPStableCandidateDualCoordinatesOfLinearIndependentRows_apply_row
 #print axioms routeBRicherSPDPStableCandidateExplicitProjectionData_of_linearIndependentRows
 #print axioms routeBRicherSPDPStableCandidateCoefficientDualCoordinates
 #print axioms routeBRicherSPDPStableCandidateCoefficientDualCoordinates_hdual
 #print axioms routeBRicherSPDPStableCandidateExplicitProjectionData_of_coefficientDualCoordinates
+#print axioms routeBRicherSPDPStableCandidateExplicitProjectionData_of_coefficientDualCoordinates_mem_complement_iff
 #print axioms routeBRicherSPDPStableCandidateBottomProjectionComplementInterface_of_rows_top
 #print axioms routeBRicherSPDPStableCandidateBottomExplicitProjectionData_of_rows_top
 #print axioms routeBRicherSPDPStableCandidateZeroProjectionComplementInterface_of_rows_bot
