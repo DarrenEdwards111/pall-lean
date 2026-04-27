@@ -3,6 +3,7 @@ import PallLean.Paper93.Paper283.BridgeAKappaGeneralRouteBFinal
 import PallLean.Paper93.Paper283.BridgeBShiftedEigenvalueCFC
 import PallLean.Paper93.Paper283.RouteBFunctorialTransportCertificate
 import PallLean.Paper93.Paper283.RouteBRicherGaugeConcreteMultilinearTail
+import PallLean.Paper93.Paper283.RouteBRicherGaugeConcreteMultilinearResidual
 import PallLean.Paper93.Paper283.RouteBRicherGaugeRankBudget
 
 set_option exponentiation.threshold 1000
@@ -595,6 +596,43 @@ theorem kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_noProjecti
       M n hn2 htb hns hnoEscape)
     cover
 
+/-- Residual-generator annihilation is the kernel-side form of the concrete
+multilinear-tail projection-descent input.  This constructor packages that
+equivalence for the κ = 2 real-local certificate route. -/
+theorem kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_residualGeneratorZero
+    {M : TuringMachine.DTM} {n : Nat} {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {N d : Nat}
+    (alpha beta alpha0 : Real)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    (halpha0 : 0 < alpha0)
+    {theta normBound logDet delta rankLogRate : Real} {rankA : Nat}
+    {eigenvalues : Fin N -> Real}
+    (htheta : 0 < theta) (hnorm : 0 < normBound)
+    (hspec :
+      BridgeBSpectralHypotheses theta normBound logDet rankA eigenvalues)
+    (hlower :
+      BridgeARankLogDetLowerHypotheses
+        alpha beta alpha0 2 G chi Phi
+        (cookLevinLocalBlockQ_routeBLocalGadgetFamily_two_defaultInteriorBlock
+          M n hn hn2 htb hns alpha beta alpha0 G chi Phi)
+        rankLogRate logDet delta)
+    (hrowRank :
+      routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1 <= rankA)
+    (hzero :
+      RouteBRicherConcreteNPPrependedMultilinearResidualGeneratorZero
+        M n hn2 htb hns)
+    (cover :
+      RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns) :
+    KappaTwoRealLocalRouteBPerInstanceCertificate M n hn hn2 htb hns :=
+  kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_projectionDescent
+    (M := M) (n := n) (hn := hn) (hn2 := hn2) (htb := htb) (hns := hns)
+    alpha beta alpha0 G chi Phi halpha0 htheta hnorm hspec hlower hrowRank
+    (routeBRicherConcreteNPPrependedMultilinearProjectionDescent_of_residualGenerator_zero
+      M n hn2 htb hns hzero)
+    cover
+
 /-- PSD/eigenvalue-floor constructor for the concrete multilinear-tail κ = 2
 real-local certificate.  Bridge B spectral hypotheses and Bridge A log-det
 lower hypotheses are both filled by existing real-local-compatible lemmas.
@@ -786,6 +824,43 @@ theorem cookLevinRichProjectionTarget_of_kappaTwoRealLocal_concreteMultilinearTa
       alpha beta alpha0 G chi Phi halpha0 htheta hnorm hspec hlower
       hrowRank hnoEscape cover)
 
+/-- Final Route B target diagnostic with the projection side stated directly
+as residual-generator annihilation.  The residual equivalence supplies the
+existing projection-descent/no-escape/certificate route. -/
+theorem cookLevinRichProjectionTarget_of_kappaTwoRealLocal_concreteMultilinearTail_residualGeneratorZero_rankLogDet_cover
+    {M : TuringMachine.DTM} {n : Nat} {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {N d : Nat}
+    (alpha beta alpha0 : Real)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    (halpha0 : 0 < alpha0)
+    {theta normBound logDet delta rankLogRate : Real} {rankA : Nat}
+    {eigenvalues : Fin N -> Real}
+    (htheta : 0 < theta) (hnorm : 0 < normBound)
+    (hspec :
+      BridgeBSpectralHypotheses theta normBound logDet rankA eigenvalues)
+    (hlower :
+      BridgeARankLogDetLowerHypotheses
+        alpha beta alpha0 2 G chi Phi
+        (cookLevinLocalBlockQ_routeBLocalGadgetFamily_two_defaultInteriorBlock
+          M n hn hn2 htb hns alpha beta alpha0 G chi Phi)
+        rankLogRate logDet delta)
+    (hrowRank :
+      routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1 <= rankA)
+    (hzero :
+      RouteBRicherConcreteNPPrependedMultilinearResidualGeneratorZero
+        M n hn2 htb hns)
+    (cover :
+      RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns) :
+    CookLevinRichProjectionTarget M n hn hn2 htb hns :=
+  cookLevinRichProjectionTarget_of_kappaTwoRealLocalRouteBCertificate
+    (M := M) (n := n) (hn := hn) (hn2 := hn2) (htb := htb) (hns := hns)
+    (kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_residualGeneratorZero
+      (M := M) (n := n) (hn := hn) (hn2 := hn2) (htb := htb) (hns := hns)
+      alpha beta alpha0 G chi Phi halpha0 htheta hnorm hspec hlower
+      hrowRank hzero cover)
+
 /-- Final designed-projection diagnostic theorem.  The visible assumptions are
 the designed complement invariance, the explicit-to-finite-row descent
 adapter, the real-local κ = 2 rank/logdet packages, the row-rank budget, and
@@ -873,6 +948,47 @@ theorem cookLevinRichProjectionTarget_of_kappaTwoRealLocal_concreteMultilinearTa
       alpha beta alpha0 G chi Phi A hA S htheta halpha0 hrate_nonneg
       hdelta_rate hlambdaFloor_nonneg hfloor hbudget hrowRank hdesc cover)
 
+/-- Eigenvalue-floor final diagnostic with the SAT-side projection condition
+stated directly as residual-generator annihilation. -/
+theorem cookLevinRichProjectionTarget_of_kappaTwoRealLocal_concreteMultilinearTail_eigenvalueFloor_residualGeneratorZero
+    {M : TuringMachine.DTM} {n : Nat} {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {N d : Nat}
+    (alpha beta alpha0 : Real)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {theta delta rankLogRate lambdaFloor : Real}
+    (A : Matrix (Fin N) (Fin N) Real) (hA : A.PosSemidef)
+    (S : Finset (Fin N))
+    (htheta : 0 < theta)
+    (halpha0 : 0 < alpha0)
+    (hrate_nonneg : 0 <= rankLogRate)
+    (hdelta_rate : delta <= rankLogRate * (2 : Real))
+    (hlambdaFloor_nonneg : 0 <= lambdaFloor)
+    (hfloor : ∀ i ∈ S, lambdaFloor <= hA.1.eigenvalues i)
+    (hbudget :
+      rankLogRate *
+          ((∑ v ∈ activeSet (N := N) (d := d) alpha beta alpha0 G chi Phi,
+            (cookLevinLocalBlockQ_routeBLocalGadgetFamily_two_defaultInteriorBlock
+              M n hn hn2 htb hns alpha beta alpha0 G chi Phi v).rank) :
+            Real) <=
+        (S.card : Real) * Real.log (1 + theta * lambdaFloor))
+    (hrowRank :
+      routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1 <= A.rank)
+    (hzero :
+      RouteBRicherConcreteNPPrependedMultilinearResidualGeneratorZero
+        M n hn2 htb hns)
+    (cover :
+      RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns) :
+    CookLevinRichProjectionTarget M n hn hn2 htb hns :=
+  cookLevinRichProjectionTarget_of_kappaTwoRealLocal_concreteMultilinearTail_eigenvalueFloor_projectionDescent
+    (M := M) (n := n) (hn := hn) (hn2 := hn2) (htb := htb) (hns := hns)
+    alpha beta alpha0 G chi Phi A hA S htheta halpha0 hrate_nonneg
+    hdelta_rate hlambdaFloor_nonneg hfloor hbudget hrowRank
+    (routeBRicherConcreteNPPrependedMultilinearProjectionDescent_of_residualGenerator_zero
+      M n hn2 htb hns hzero)
+    cover
+
 /-! ## Axiom audit anchors -/
 
 #print axioms kappaTwoInteriorBlockOfVertex
@@ -896,12 +1012,15 @@ theorem cookLevinRichProjectionTarget_of_kappaTwoRealLocal_concreteMultilinearTa
 #print axioms kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_containment
 #print axioms kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_projectionDescent
 #print axioms kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_noProjectionEscape
+#print axioms kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_residualGeneratorZero
 #print axioms kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_eigenvalueFloor_projectionDescent
 #print axioms RouteBRicherConcreteNPPrependedMultilinearDesignedProjectionDescentAdapter
 #print axioms kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_designedComplementInvariant
 #print axioms cookLevinRichProjectionTarget_of_kappaTwoRealLocal_concreteMultilinearTail_projectionDescent_rankLogDet_cover
 #print axioms cookLevinRichProjectionTarget_of_kappaTwoRealLocal_concreteMultilinearTail_noProjectionEscape_rankLogDet_cover
+#print axioms cookLevinRichProjectionTarget_of_kappaTwoRealLocal_concreteMultilinearTail_residualGeneratorZero_rankLogDet_cover
 #print axioms cookLevinRichProjectionTarget_of_kappaTwoRealLocal_designedComplementInvariant_rankLogDet_cover
 #print axioms cookLevinRichProjectionTarget_of_kappaTwoRealLocal_concreteMultilinearTail_eigenvalueFloor_projectionDescent
+#print axioms cookLevinRichProjectionTarget_of_kappaTwoRealLocal_concreteMultilinearTail_eigenvalueFloor_residualGeneratorZero
 
 end PallLean.Paper93.Paper283
