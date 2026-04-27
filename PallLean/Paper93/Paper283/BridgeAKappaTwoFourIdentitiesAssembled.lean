@@ -119,6 +119,15 @@ noncomputable def kappaTwoFourIdentitiesPackage_from_perPairSums
         (BridgeAKappaTwoIdentityFourResidualActive.identityFour_perPairSum
           M n hn htb hns k hk1 hk2))
 
+/- Compatibility alias with the final closed-package name. -/
+noncomputable def kappaTwoFourIdentitiesPackage
+    (M : TuringMachine.DTM) (n : Nat) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n) :
+    CookLevinLocalBlockQFourIdentitiesPackage M n hn htb hns k hk1 hk2 :=
+  kappaTwoFourIdentitiesPackage_from_perPairSums
+    M n hn htb hns k hk1 hk2
+
 /-! ## Section C: end-to-end rank lower bound from the closed per-pair sums -/
 
 /-- The κ = 2 cross-block rank lower bound on the real Cook-Levin
@@ -138,6 +147,20 @@ theorem cookLevinLocalBlockQ_rank_two_le_real_from_perPairSums
     (kappaTwoFourIdentitiesPackage_from_perPairSums
       M n hn htb hns k hk1 hk2)
 
+/- Final closed theorem name for downstream Route B use. -/
+theorem cookLevinLocalBlockQ_rank_two_le_real_kappaTwo
+    (M : TuringMachine.DTM) (n : Nat) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n) :
+    (2 : Nat) ≤
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n hn htb hns).partition
+        2 2
+        (cookLevinLocalBlockQ M n hn htb hns
+          ⟨k, by rw [cook_levin_numBlocks]; omega⟩) :=
+  cookLevinLocalBlockQ_rank_two_le_real_from_perPairSums
+    M n hn htb hns k hk1 hk2
+
 /-! ## Section D: status report
 
 What this file delivers (kernel-only, no `sorry`, no new axioms):
@@ -147,13 +170,21 @@ What this file delivers (kernel-only, no `sorry`, no new axioms):
   identity (1), (2), (3), and (4) theorems and the closed `K > 0`
   theorem.
 
+* `kappaTwoFourIdentitiesPackage`: compatibility alias with the final
+  closed-package name.
+
 * `cookLevinLocalBlockQ_rank_two_le_real_from_perPairSums`: the κ = 2
-  rank lower bound from the closed κ = 2 package. -/
+  rank lower bound from the closed κ = 2 package.
+
+* `cookLevinLocalBlockQ_rank_two_le_real_kappaTwo`: final theorem name
+  for downstream Route B use. -/
 
 /-! ## Axiom audit anchors -/
 
 #print axioms kappaTwoProbePair
 #print axioms kappaTwoFourIdentitiesPackage_from_perPairSums
+#print axioms kappaTwoFourIdentitiesPackage
 #print axioms cookLevinLocalBlockQ_rank_two_le_real_from_perPairSums
+#print axioms cookLevinLocalBlockQ_rank_two_le_real_kappaTwo
 
 end PallLean.Paper93.Paper283

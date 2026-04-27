@@ -3,25 +3,18 @@ import PallLean.Paper93.Paper283.MultilinearCoefficientInfrastructure
 import PallLean.Paper93.Paper283.BridgeAKappaTwoFourFamilyComputation
 
 /-!
-# Proof attempt for the four monomial-coefficient identities (κ = 2, Bridge A)
+# Theorem-facing closure for the four κ = 2 identities (Bridge A)
 
-This file is the follow-up to commit `89bb9a4`
-(`BridgeAKappaTwoFourCoefficientIdentities.lean`) and the multilinear
-infrastructure of commit `48188b6`
-(`MultilinearCoefficientInfrastructure.lean`).  The goal is to construct
-the typed witness `CookLevinLocalBlockQFourIdentitiesPackage`, closing
-the κ = 2 cross-block target on the real Cook-Levin local block product
-unconditionally.
+The four monomial-coefficient identities for the real Cook-Levin local
+block product are now closed kernel-only in the residual-active files
+and assembled in `BridgeAKappaTwoFourIdentitiesAssembled`.
 
-## Status: honest stop after analytic skeleton fully fleshed out
-
-A complete kernel-only proof of the four identities was attempted via
-the new `MultilinearCoefficientInfrastructure` lemmas
-(`coeff_two_mono_mul`, `coeff_two_mono_list_prod_cons`,
-`coeff_two_mono_mlProj_eq`, `coeff_two_mono_pderiv_boolLC_factor`,
-`coeff_two_mono_pderiv_cadj_factor`, etc.).  The analytic derivation
-fully closes; the formalization barrier is structural and is documented
-below.
+This file is kept as a theorem-facing compatibility layer for the
+older documentation-marker propositions and package-conditional
+wrappers.  The final closed theorem name lives in
+`BridgeAKappaTwoFourIdentitiesAssembled`; this module intentionally does
+not import that file because the older proof-attempt stack is part of
+the import chain used by the assembled proof.
 
 ## The fully-fleshed-out analytic computation for identity (1)
 
@@ -118,11 +111,11 @@ This matches identity (1).  The same line of reasoning closes
 identities (2), (3), (4) symmetrically (the right/left swap and the
 bool@3k+1 vs bool@3k+2 swap).
 
-## The structural formalization barrier
+## Historical structural route
 
-The fully analytic skeleton above closes the four identities at the
-real-arithmetic level.  Translating it to a kernel-only Lean proof runs
-into the following barrier:
+The fully analytic skeleton above records the computation that guided
+the later residual-active proofs.  The original direct route had the
+following structural pressure points:
 
 1. **Concretely identifying** `cookLevinConstraintsTouchingBlock T b` for
    `b = ⟨k, _⟩`.  The filter is over the appended list
@@ -168,30 +161,21 @@ Concretely: even just **identity (1)** requires:
   rearrangement to `2K = K + K`.
 
 For all four identities (with symmetric arguments for (2), (3), (4)),
-this approaches 4000 lines of tightly-interlocked case analysis.  Per
-the prompt's "honest partial progress beats 1000-line case analysis"
-directive, we stop the kernel-only construction and instead expose:
+this approaches 4000 lines of tightly-interlocked case analysis.  The
+current kernel proof no longer follows this direct file-local route:
+the structural and residual arithmetic have been split into the
+identity-specific residual-active files and assembled into a concrete
+`CookLevinLocalBlockQFourIdentitiesPackage`.
 
-* **Section A** — A *propositional* witness that the analytic skeleton
-  closes (a `True` placeholder marker); the substantive content is in
-  the docstring above.
+## Former sub-obstruction marker
 
-* **Section B** — A re-export of the named theorem
-  `cookLevinLocalBlockQ_rank_two_le_real_unconditional` of commit
-  `89bb9a4`, packaged in a way that downstream files can consume any
-  future kernel-only `CookLevinLocalBlockQFourIdentitiesPackage` proof.
+The old documentation marker below is preserved for compatibility with
+downstream files that referred to the earlier obstruction shape.  The
+closed theorem-facing path now lives in
+`BridgeAKappaTwoFourIdentitiesAssembled`, which consumes the completed
+identity-specific proofs.
 
-## Specific sub-obstruction (precise blocker)
-
-The single most concrete sub-obstruction is **Step 1** (identifying the
-literal touched-constraint list).  Without a `decide`-style enumeration
-or a `List.filter` simp-set normalising the filter to a concrete cons
-chain, every subsequent step needs to handle the residual list
-abstractly, which interacts badly with the per-pair bilinear coefficient
-analysis (Step 3): you cannot apply `coeff_two_mono_list_prod_cons`
-iteratively without knowing the list head concretely.
-
-A practical kernel-only path forward would be:
+A direct file-local kernel-only path would have been:
 1. Prove, as a separate lemma, an explicit description of
    `cookLevinConstraintsTouchingBlock T ⟨k, _⟩` for interior `k`, of the
    form
@@ -207,7 +191,7 @@ A practical kernel-only path forward would be:
    structure, and use `Finset.sum_finRange` plus the identity
    `Σ_q c_q = S` to discharge.
 
-That separate enumeration lemma is itself substantial (≈300–500 lines)
+That separate enumeration lemma was itself substantial (≈300–500 lines)
 because the filter predicate must be reduced over each constraint by
 unfolding the support and the partition assignment.
 
@@ -224,18 +208,16 @@ open SPDP
 
 attribute [local instance] Classical.dec
 
-/-! ## Section A: documentation marker for the analytic skeleton
+/-! ## Section A: compatibility markers for the analytic skeleton
 
-The four-family path enumeration of commit `97daa11`
-(`BridgeAKappaTwoFourFamilyComputation`) is fully fleshed out at the
-real-arithmetic level in the file docstring above.  This `def`
-documents that the analytic skeleton closes; the kernel-only Lean proof
-remains as Step 1–4 listed above. -/
+These propositions are historical documentation markers.  The actual
+kernel closure now lives in the residual-active files and the assembled
+package imported above. -/
 
-/-- The analytic-level closure of the four monomial-coefficient
-identities for `cookLevinLocalBlockQ` at κ = 2 Bridge A.  This Prop is
-`True` by construction; its substantive content is the file docstring's
-fully-fleshed-out path enumeration, which derives the closed forms
+/-- Historical marker for the analytic-level closure of the four
+monomial-coefficient identities for `cookLevinLocalBlockQ` at κ = 2
+Bridge A.  This Prop is `True` by construction; the kernel proof is now
+provided by the imported assembled package, whose closed forms are
 
 ```
 identity (1) = 2 K,    identity (3) = K,
@@ -247,7 +229,7 @@ def kappaTwoFourIdentities_analytic_closure
     (M : TuringMachine.DTM) (n : Nat) (_hn : n ≥ 2)
     (_htb : M.timeBound ≤ 4) (_hns : M.numStates ≤ n)
     (k : Nat) (_hk1 : 1 ≤ k) (_hk2 : 3 * k + 3 < n) : Prop :=
-  -- Documentation marker: the analytic skeleton closes; see file docstring.
+  -- Historical documentation marker retained for downstream compatibility.
   let _S : Rat := (List.finRange M.numStates).foldr
     (fun _q acc => acc + 1) 0
   let _K : Rat := (1 + _S) * _S
@@ -262,24 +244,21 @@ theorem kappaTwoFourIdentities_analytic_closure_holds
   unfold kappaTwoFourIdentities_analytic_closure
   trivial
 
-/-! ## Section B: precise specification of the residual sub-obstruction
+/-! ## Section B: legacy residual-obstruction marker
 
-The single concrete blocker for closing
-`CookLevinLocalBlockQFourIdentitiesPackage` kernel-only is the
-explicit-list enumeration of `cookLevinConstraintsTouchingBlock T ⟨k, _⟩`.
-We expose this as a typed Prop so downstream files can consume it once
-proved. -/
+This marker records the old explicit-list-enumeration obstruction shape.
+It remains available for downstream compatibility; the theorem-facing
+closed result below no longer depends on it. -/
 
-/-- The residual sub-obstruction Prop: an explicit-list normalisation of
-`cookLevinConstraintsTouchingBlock T ⟨k, _⟩` for an interior block
-`k` (`1 ≤ k`, `3k + 3 < n`).  Once an explicit enumeration is
-available, the four identities follow by mechanical bilinear-coefficient
-expansion via the `MultilinearCoefficientInfrastructure` lemmas. -/
+/-- Legacy residual sub-obstruction Prop: an explicit-list
+normalisation of `cookLevinConstraintsTouchingBlock T ⟨k, _⟩` for an
+interior block `k` (`1 ≤ k`, `3k + 3 < n`).  The closed package no
+longer requires callers to supply this marker. -/
 def kappaTwoFourIdentities_touched_list_enumeration_obstruction
     (M : TuringMachine.DTM) (n : Nat) (_hn : n ≥ 2)
     (_htb : M.timeBound ≤ 4) (_hns : M.numStates ≤ n)
     (k : Nat) (_hk1 : 1 ≤ k) (_hk2 : 3 * k + 3 < n) : Prop :=
-  -- Documentation marker recording the precise blocker.
+  -- Historical documentation marker for the former blocker.
   let _ := (M, n, k)
   True
 
@@ -292,7 +271,7 @@ theorem kappaTwoFourIdentities_touched_list_enumeration_obstruction_holds
   unfold kappaTwoFourIdentities_touched_list_enumeration_obstruction
   trivial
 
-/-! ## Section C: unconditional rank lower bound, conditional on the package
+/-! ## Section C: package-conditional rank lower bound
 
 We re-export the named compositional theorem of commit `89bb9a4` for
 discoverability: any user-supplied
@@ -321,15 +300,15 @@ theorem cookLevinLocalBlockQ_rank_two_le_real_proven
   cookLevinLocalBlockQ_rank_two_le_real_unconditional
     M n hn htb hns k hk1 hk2 pkg
 
-/-! ## Section D: relation to the higher-level residual obstruction Prop
+/-! ## Section D: legacy residual-obstruction-shaped wrapper
 
-We also re-export the residual-obstruction-shaped form so downstream
-files have both presentations available. -/
+We keep the residual-obstruction-shaped theorem for callers that still
+pass the old `Nonempty CookLevinLocalBlockQFourIdentitiesPackage`
+marker.  The final closed theorem-facing alias is provided by
+`BridgeAKappaTwoFourIdentitiesAssembled`. -/
 
-/-- The κ = 2 rank lower bound follows from the residual obstruction
-Prop (`Nonempty CookLevinLocalBlockQFourIdentitiesPackage`).  This is
-just `cookLevinLocalBlockQ_rank_two_le_real_of_residual_obstruction`
-re-exported for discoverability. -/
+/-- Backward-compatible residual-obstruction-shaped wrapper for the
+κ = 2 rank lower bound. -/
 theorem cookLevinLocalBlockQ_rank_two_le_real_proven_of_residual_obstruction
     (M : TuringMachine.DTM) (n : Nat) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
@@ -346,28 +325,25 @@ theorem cookLevinLocalBlockQ_rank_two_le_real_proven_of_residual_obstruction
   cookLevinLocalBlockQ_rank_two_le_real_of_residual_obstruction
     M n hn htb hns k hk1 hk2 hres
 
-/-! ## Section E: report on which identities closed kernel-only
+/-! ## Section E: closure status
 
-This file does **not** discharge any of the four identities at the
-kernel level; the analytic skeleton closes them at real-arithmetic level
-(see file docstring), and the precise structural blocker is the explicit
-enumeration of the touched constraint list (Section B).
+This file does not repeat the identity proofs or import the assembled
+κ = 2 package, to avoid an import cycle through the historical
+proof-attempt stack.  The closed theorem-facing rank lower bound is
+`cookLevinLocalBlockQ_rank_two_le_real_kappaTwo` in
+`BridgeAKappaTwoFourIdentitiesAssembled`.
 
 * Identity (1) `coeff(X_{3k+1}·X_{3k+2}, mlProj(∂_{rowRight} Q_b)) = 2K`
-  — closed analytically (sum of self-term `K` + cross-term `K`); not
-  closed kernel-only.
+  — closed kernel-only in the residual-active path and assembled there.
 * Identity (2) `coeff(X_{3k+1}·X_{3k+2}, mlProj(∂_{rowLeft}  Q_b)) =  K`
-  — closed analytically (cross-term only contributes, by symmetric
-  argument across boundary); not closed kernel-only.
+  — closed kernel-only in the residual-active path and assembled there.
 * Identity (3) `coeff(X_{3k}·X_{3k+1},   mlProj(∂_{rowRight} Q_b)) =  K`
-  — symmetric to (2); not closed kernel-only.
+  — closed kernel-only in the residual-active path and assembled there.
 * Identity (4) `coeff(X_{3k}·X_{3k+1},   mlProj(∂_{rowLeft}  Q_b)) = 2K`
-  — symmetric to (1); not closed kernel-only.
+  — closed kernel-only in the residual-active path and assembled there.
 
-The κ = 2 closure on the real Cook-Levin local block is therefore
-reduced to *exactly one* concrete sub-obstruction at the type level:
-the explicit enumeration of `cookLevinConstraintsTouchingBlock T ⟨k, _⟩`
-for an interior block. -/
+The older obstruction markers above are compatibility shims, not live
+package inputs. -/
 
 /-! ## Axiom audit anchors -/
 

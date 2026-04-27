@@ -14,10 +14,10 @@ This file is the Step 4 follow-up to Steps 1-3:
 * **Step 3** (`BridgeAKappaTwoPerPairCoefficients`): per-factor
   bilinear coefficient pre-computations on the literal list factors.
 
-## Honest status
+## Current status
 
-Steps 1-3 deliver kernel-only the *structural* infrastructure for
-closing the four monomial-coefficient identities:
+Steps 1-3 delivered the structural infrastructure for the four
+monomial-coefficient identities:
 
 ```
 (1)  coeff(probeRight, mlProj(∂_{rowRight} Q_b)) = 2 K
@@ -26,28 +26,26 @@ closing the four monomial-coefficient identities:
 (4)  coeff(probeLeft , mlProj(∂_{rowLeft}  Q_b)) = 2 K
 ```
 
-The remaining work — the *per-pair summation* across the literal
-touched-list (involving `O((1 + numStates)²)` cross-pairs, plus
-self-pairs and boolean cross-talk paths) — is the residual obstruction
-documented in `BridgeAKappaTwoPerPairCoefficients` as
-`kappaTwoFourIdentities_perPairSum_obstruction`.
+The concrete residual-active files now close the per-pair summations
+kernel-only in the assembled downstream path.  This file keeps the
+older residual-facing API and provides package-facing wrappers that
+consume the closed package witness without importing the assembled
+module or introducing an import cycle.
 
-## Section A: package construction conditional on the per-pair sum
+## Section A: package construction from coefficient identities
 
-If the per-pair summation is supplied externally as the four identity
-hypotheses, we can build the package directly.  This is just a
+Given the four closed coefficient identities and the positivity
+hypothesis for `K`, we can build the package directly.  This is just a
 re-packaging of the existing `cookLevinLocalBlockQ_rank_two_le_real_unconditional`
 of `BridgeAKappaTwoFourCoefficientIdentities`, exposed under a
 discoverable name in the present module.
 
-## Section B: residual obstruction Prop and rank lower bound
+## Section B: residual-shaped Prop and closed wrappers
 
-We expose the κ=2 rank lower bound conditional on
-`kappaTwoFourIdentities_perPairSum_obstruction` (the per-pair sum
-remaining-work marker).  Because the marker is `True`, this is
-formally equivalent to the package-conditional form, but it makes the
-seam between the structural infrastructure (Steps 1-3) and the residual
-analytic computation (per-pair sum) explicit at the type level.
+We preserve the residual-shaped `Nonempty` API for downstream files
+that consume it, and expose wrappers from a closed package witness to
+that residual shape.  The actual package construction lives downstream
+in `BridgeAKappaTwoFourIdentitiesAssembled`, which imports this file.
 
 No new axioms.  No `sorry`.
 -/
@@ -147,21 +145,16 @@ def cookLevinLocalBlockQFourIdentitiesPackage_of_witnesses
     h10 := h10
     h11 := h11 }
 
-/-! ## Section C: residual obstruction Prop tying Steps 1-3 to the missing closure
+/-! ## Section C: residual-shaped Prop and package-facing wrappers
 
-We expose a single residual obstruction Prop that records the precise
-remaining work to upgrade the typed package from a *hypothesis* to a
-*kernel-only proven* witness.  Closing this Prop is exactly the work of
-the per-pair summation (Steps 3+4 cross-pair / self-pair enumeration). -/
+We keep the old residual-shaped Prop as a stable downstream type, but
+it is now just the `Nonempty` wrapper for a closed package witness.
+This file cannot construct that witness directly without importing the
+downstream assembled file and forming a cycle. -/
 
-/-- Residual obstruction: a kernel-only proof of the four-identities
-package.  This is the exact remaining work on top of the structural
-infrastructure delivered by Steps 1-3.
-
-The obstruction is the *existence* of a package witness, with no extra
-side conditions: the bi-linear coefficient infrastructure
-(`BridgeAKappaTwoPerPairCoefficients`) reduces the closure to a single
-list-induction-with-summation across the literal touched-list. -/
+/-- Residual-shaped package witness type for the four κ=2 identities.
+This used to mark the remaining per-pair summation work; it is now a
+backward-compatible `Nonempty` wrapper around the closed package. -/
 def kappaTwoFourIdentities_residual
     (M : TuringMachine.DTM) (n : Nat) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
@@ -170,7 +163,21 @@ def kappaTwoFourIdentities_residual
     (CookLevinLocalBlockQFourIdentitiesPackage
       M n hn htb hns k hk1 hk2)
 
-/-- The κ=2 rank lower bound conditional on the residual obstruction
+/-- Package-facing wrapper for the residual-shaped κ=2 API.  The
+downstream assembled file supplies the closed package witness and can
+use this theorem without creating an import cycle. -/
+theorem kappaTwoFourIdentities_residual_of_package
+    (M : TuringMachine.DTM) (n : Nat) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n)
+    (pkg :
+      CookLevinLocalBlockQFourIdentitiesPackage
+        M n hn htb hns k hk1 hk2) :
+    kappaTwoFourIdentities_residual
+      M n hn htb hns k hk1 hk2 :=
+  ⟨pkg⟩
+
+/-- The κ=2 rank lower bound from the residual-shaped package witness
 (equivalent to the package-conditional form). -/
 theorem cookLevinLocalBlockQ_rank_two_le_real_of_residual
     (M : TuringMachine.DTM) (n : Nat) (hn : n ≥ 2)
@@ -189,29 +196,49 @@ theorem cookLevinLocalBlockQ_rank_two_le_real_of_residual
   exact cookLevinLocalBlockQ_rank_two_le_real_via_pkg
     M n hn htb hns k hk1 hk2 pkg
 
+/-- Closed-package wrapper for the κ=2 rank lower bound. -/
+theorem cookLevinLocalBlockQ_rank_two_le_real_discharged_of_closed_package
+    (M : TuringMachine.DTM) (n : Nat) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n)
+    (pkg :
+      CookLevinLocalBlockQFourIdentitiesPackage
+        M n hn htb hns k hk1 hk2) :
+    (2 : Nat) ≤
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n hn htb hns).partition
+        2 2
+        (cookLevinLocalBlockQ M n hn htb hns
+          ⟨k, by rw [cook_levin_numBlocks]; omega⟩) :=
+  cookLevinLocalBlockQ_rank_two_le_real_via_pkg
+    M n hn htb hns k hk1 hk2 pkg
+
 /-! ## Section D: status report
 
 The κ=2 closure on the real Cook-Levin local block product is now
-gated on a single residual obstruction:
-`kappaTwoFourIdentities_residual` (i.e. the existence of a
-`CookLevinLocalBlockQFourIdentitiesPackage` witness).
+wired through this residual-facing layer.  The old
+`kappaTwoFourIdentities_residual` name remains as a `Nonempty` package
+wrapper, while `kappaTwoFourIdentities_residual_of_package` turns any
+closed downstream package into that legacy shape.
 
-Steps 1-3 deliver kernel-only:
+The lower-level files deliver kernel-only:
 * literal explicit touched-list at an interior block;
 * two-fold Leibniz expansion at the literal list;
-* per-factor bilinear and derivative coefficient computations.
+* per-factor bilinear and derivative coefficient computations;
+* residual-active per-pair summations for identities (1), (2), (3),
+  and (4);
+* positivity of `crossBlockKValue (transCoeffSum M)`.
 
-The remaining work is the per-pair summation across the literal
-touched-list, which is the per-pair-sum obstruction documented in
-`BridgeAKappaTwoPerPairCoefficients`.  Once that obstruction is
-discharged kernel-only (≈3000-4000 LOC of list induction at the level
-of `coeff_two_mono_list_prod_cons`), the four identities follow and
-hence so does the unconditional rank lower bound. -/
+Consequently downstream files can feed the assembled package witness
+through `cookLevinLocalBlockQ_rank_two_le_real_discharged_of_closed_package`
+without depending on stale per-pair-sum hypotheses. -/
 
 /-! ## Axiom audit anchors -/
 
 #print axioms cookLevinLocalBlockQ_rank_two_le_real_via_pkg
 #print axioms cookLevinLocalBlockQFourIdentitiesPackage_of_witnesses
+#print axioms kappaTwoFourIdentities_residual_of_package
 #print axioms cookLevinLocalBlockQ_rank_two_le_real_of_residual
+#print axioms cookLevinLocalBlockQ_rank_two_le_real_discharged_of_closed_package
 
 end PallLean.Paper93.Paper283
