@@ -52792,6 +52792,485 @@ theorem cookLevinStrictFOB_exact_projection_rank_mono
   rw [cookLevinStrictFOB_restrict_embedded_Q_eq_restrict_compiledPoly
     M n hn2 htb hns]
 
+private theorem strictFOB_mapDomain_support_subset_range {n m : ℕ}
+    (f : Fin n → Fin m) (d : Fin n →₀ ℕ) :
+    ∀ j ∈ (Finsupp.mapDomain f d).support, j ∈ Set.range f := by
+  intro j hj
+  rw [Finsupp.mem_support_iff] at hj
+  by_contra hnot
+  have hzero : (Finsupp.mapDomain f d) j = 0 := by
+    rw [Finsupp.mapDomain_notin_range]
+    exact hnot
+  exact hj hzero
+
+private theorem strictFOB_mapDomain_pullback_eq {n m : ℕ}
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (s : Fin m →₀ ℕ)
+    (hs_range : ∀ j ∈ s.support, j ∈ Set.range f) :
+    Finsupp.mapDomain f (Finsupp.equivFunOnFinite.symm (fun i => s (f i))) = s := by
+  ext j
+  by_cases hj : ∃ i : Fin n, f i = j
+  · rcases hj with ⟨i, rfl⟩
+    rw [Finsupp.mapDomain_apply hf]
+    simp
+  · have hleft :
+        (Finsupp.mapDomain f (Finsupp.equivFunOnFinite.symm (fun i => s (f i)))) j = 0 := by
+      rw [Finsupp.mapDomain_notin_range]
+      simpa [Set.mem_range] using hj
+    have hright : s j = 0 := by
+      by_contra hsj
+      have hmem : j ∈ s.support := by
+        simpa [Finsupp.mem_support_iff] using hsj
+      exact hj (hs_range j hmem)
+    rw [hleft, hright]
+
+private theorem strictFOB_coeff_restrictPoly_monomial_eq_coeff_mapDomain {n m : ℕ}
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (d : Fin n →₀ ℕ) (s : Fin m →₀ ℕ) (a : ℚ) :
+    MvPolynomial.coeff d (MultilinearSPDP.restrictPoly ℚ f hf (MvPolynomial.monomial s a)) =
+      MvPolynomial.coeff (Finsupp.mapDomain f d) (MvPolynomial.monomial s a) := by
+  classical
+  by_cases hs_range : ∀ j ∈ s.support, j ∈ Set.range f
+  · let t : Fin n →₀ ℕ := Finsupp.equivFunOnFinite.symm (fun i => s (f i))
+    have hmap : Finsupp.mapDomain f t = s :=
+      strictFOB_mapDomain_pullback_eq f hf s hs_range
+    have hmono : MvPolynomial.monomial s a =
+        MvPolynomial.rename f (MvPolynomial.monomial t a) := by
+      rw [MvPolynomial.rename_monomial]
+      simp [hmap]
+    calc
+      MvPolynomial.coeff d (MultilinearSPDP.restrictPoly ℚ f hf (MvPolynomial.monomial s a))
+          = MvPolynomial.coeff d (MvPolynomial.monomial t a) := by
+              rw [hmono, MultilinearSPDP.restrictPoly_rename ℚ f hf]
+      _ = MvPolynomial.coeff (Finsupp.mapDomain f d) (MvPolynomial.monomial s a) := by
+          rw [MvPolynomial.coeff_monomial, MvPolynomial.coeff_monomial]
+          by_cases hd : d = t
+          · subst d
+            simp [hmap]
+          · have htd : t ≠ d := fun h => hd h.symm
+            have hneq : s ≠ Finsupp.mapDomain f d := by
+              intro hEq
+              apply hd
+              apply Finsupp.mapDomain_injective hf
+              rw [← hEq, hmap]
+            simp [htd, hneq]
+  · have hzero : MultilinearSPDP.restrictPoly ℚ f hf (MvPolynomial.monomial s a) = 0 := by
+      rcases MultilinearSPDP.restrictPoly_monomial_form ℚ f hf s a with hz | hmono
+      · exact hz
+      · rcases hmono with ⟨_t, _ht, _ht_apply, ht_range⟩
+        exact (hs_range ht_range).elim
+    rw [hzero, MvPolynomial.coeff_zero]
+    have hneq : s ≠ Finsupp.mapDomain f d := by
+      intro hEq
+      apply hs_range
+      intro j hj
+      rw [hEq] at hj
+      exact strictFOB_mapDomain_support_subset_range f d j hj
+    rw [MvPolynomial.coeff_monomial, if_neg hneq]
+
+private theorem strictFOB_coeff_restrictPoly_eq_coeff_mapDomain {n m : ℕ}
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (d : Fin n →₀ ℕ) (p : MvPolynomial (Fin m) ℚ) :
+    MvPolynomial.coeff d (MultilinearSPDP.restrictPoly ℚ f hf p) =
+      MvPolynomial.coeff (Finsupp.mapDomain f d) p := by
+  classical
+  conv_lhs => rw [MvPolynomial.as_sum p]
+  conv_rhs => rw [MvPolynomial.as_sum p]
+  rw [map_sum (MultilinearSPDP.restrictPoly ℚ f hf)]
+  rw [MvPolynomial.coeff_sum, MvPolynomial.coeff_sum]
+  apply Finset.sum_congr rfl
+  intro s _hs
+  exact strictFOB_coeff_restrictPoly_monomial_eq_coeff_mapDomain
+    f hf d s (MvPolynomial.coeff s p)
+
+private theorem strictFOB_mapDomain_tagMonomial {n m : ℕ}
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (S : Finset (Fin n)) :
+    Finsupp.mapDomain f (SymmetricPower.tagMonomial S) =
+      SymmetricPower.tagMonomial (S.map ⟨f, hf⟩) := by
+  ext j
+  by_cases hj : ∃ i : Fin n, f i = j
+  · rcases hj with ⟨i, rfl⟩
+    rw [Finsupp.mapDomain_apply hf]
+    rw [SymmetricPower.tagMonomial_apply, SymmetricPower.tagMonomial_apply]
+    simp
+  · have hleft : (Finsupp.mapDomain f (SymmetricPower.tagMonomial S)) j = 0 := by
+      rw [Finsupp.mapDomain_notin_range]
+      simpa [Set.mem_range] using hj
+    rw [hleft, SymmetricPower.tagMonomial_apply]
+    have hnot : j ∉ S.map ⟨f, hf⟩ := by
+      intro hmem
+      rw [Finset.mem_map] at hmem
+      rcases hmem with ⟨i, _hi, hfi⟩
+      exact hj ⟨i, hfi⟩
+    simp [hnot]
+
+private theorem strictFOB_toList_map_perm {α β : Type} [DecidableEq α] [DecidableEq β]
+    (e : α ↪ β) (S : Finset α) :
+    (S.toList.map e).Perm ((S.map e).toList) := by
+  apply List.perm_of_nodup_nodup_toFinset_eq
+  · exact S.nodup_toList.map e.injective
+  · exact (S.map e).nodup_toList
+  · ext b
+    simp [List.mem_map, Finset.mem_map]
+
+private theorem strictFOB_card_map_inter {α β : Type} [DecidableEq α] [DecidableEq β]
+    (e : α ↪ β) (S T : Finset α) :
+    ((S.map e) ∩ (T.map e)).card = (S ∩ T).card := by
+  rw [← Finset.map_inter, Finset.card_map]
+
+private theorem cookLevinStrictFOBFlatMap_image_fob (n : ℕ)
+    (S : Finset (Fin (n / 3))) :
+    ∀ v ∈ S.map ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩,
+      3 ∣ v.val := by
+  intro v hv
+  rw [Finset.mem_map] at hv
+  rcases hv with ⟨i, _hi, rfl⟩
+  exact dvd_mul_right 3 i.val
+
+/-- Route B strict first-of-block restricted coefficient matrix.
+
+After restricting the real Cook-Levin `compiledPoly` along
+`cookLevinStrictFOBFlatMap`, the standard first-of-block Gram coefficients
+descend to the floor-sized coordinate domain. -/
+theorem coeff_mlProj_strictFOB_restrict_compiled_samesize
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S T : Finset (Fin (n / 3)))
+    (hcardST : S.card = T.card) :
+    MvPolynomial.coeff (SymmetricPower.tagMonomial S)
+      (MultilinearSPDP.mlProj (SPDP.iterDerivList T.toList
+        (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n)
+          (PaperFaithfulSeparation.compiledPoly
+            (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns))))) =
+      (2 : ℚ) ^ (S ∩ T).card := by
+  classical
+  let f := cookLevinStrictFOBFlatMap n
+  let hf := cookLevinStrictFOBFlatMap_injective n
+  let e : Fin (n / 3) ↪ Fin n := ⟨f, hf⟩
+  rw [MultilinearSPDP.iterDerivList_restrictPoly ℚ f hf]
+  rw [MultilinearSPDP.coeff_mlProj_of_isMultilinear_mono _ _
+    (SymmetricPower.tagMonomial_isMultilinear S)]
+  rw [strictFOB_coeff_restrictPoly_eq_coeff_mapDomain f hf]
+  rw [strictFOB_mapDomain_tagMonomial f hf S]
+  rw [← MultilinearSPDP.coeff_mlProj_of_isMultilinear_mono _ _
+    (SymmetricPower.tagMonomial_isMultilinear (S.map e))]
+  have hperm : (T.toList.map f).Perm ((T.map e).toList) := by
+    simp only [e, f, hf]
+    exact strictFOB_toList_map_perm ⟨cookLevinStrictFOBFlatMap n,
+      cookLevinStrictFOBFlatMap_injective n⟩ T
+  rw [IterDerivHelpers.iterDerivList_perm hperm]
+  rw [CrossTermVanishing.coeff_mlProj_compiled_samesize M n hn htb hns
+    (S.map e) (T.map e)
+    (by simpa [Finset.card_map, hcardST])
+    (cookLevinStrictFOBFlatMap_image_fob n S)
+    (cookLevinStrictFOBFlatMap_image_fob n T)]
+  rw [strictFOB_card_map_inter e S T]
+
+private theorem strictFOB_linearIndependent_of_tag_coeff_gram {N κ : ℕ} (_hκ : κ ≥ 1)
+    {F : Finset (Finset (Fin N))}
+    (hcard : ∀ S ∈ F, S.card = κ)
+    (v : Finset (Fin N) → MvPolynomial (Fin N) ℚ)
+    (hcoeff : ∀ T ∈ F, ∀ S ∈ F,
+      MvPolynomial.coeff (SymmetricPower.tagMonomial T) (v S) =
+        (2 : ℚ) ^ (T ∩ S).card) :
+    LinearIndependent ℚ (fun S : F => v (S : Finset (Fin N))) := by
+  rw [linearIndependent_iff']
+  intro s w hw i hi
+  set c : Finset (Fin N) → ℚ := fun S =>
+    if h : S ∈ F then
+      if ⟨S, h⟩ ∈ s then w ⟨S, h⟩ else 0
+    else 0 with hc_def
+  have hzero_F : ∑ S ∈ F, c S • v S = 0 := by
+    have : ∑ S ∈ F, c S • v S =
+        ∑ S ∈ s, w S • v (S : Finset (Fin N)) := by
+      conv_lhs => rw [← Finset.sum_attach F (fun S => c S • v S)]
+      rw [← Finset.sum_filter_add_sum_filter_not F.attach (fun S => S ∈ s)]
+      have hzero_part :
+          ∑ S ∈ F.attach.filter (fun S => S ∉ s),
+            c (S : Finset (Fin N)) • v (S : Finset (Fin N)) = 0 := by
+        apply Finset.sum_eq_zero
+        intro ⟨S, hSF⟩ hmem
+        simp only [Finset.mem_filter, Finset.mem_attach, true_and] at hmem
+        rw [show c S = 0 from by simp [hc_def, dif_pos hSF, if_neg hmem], zero_smul]
+      rw [hzero_part, add_zero]
+      apply Finset.sum_nbij (fun S => S)
+      · intro ⟨S, _hSF⟩ hmem
+        simp only [Finset.mem_filter, Finset.mem_attach, true_and] at hmem
+        exact hmem
+      · intro ⟨_S₁, _⟩ _ ⟨_S₂, _⟩ _ heq
+        exact heq
+      · intro ⟨S, hSF⟩ hmem
+        exact ⟨⟨S, hSF⟩, by simp [hmem], rfl⟩
+      · intro ⟨S, hSF⟩ hmem
+        simp only [Finset.mem_filter, Finset.mem_attach, true_and] at hmem
+        simp only [hc_def, dif_pos hSF, if_pos hmem]
+    rw [this, hw]
+  have hextract : ∀ T ∈ F, ∑ S ∈ F, c S * (2 : ℚ) ^ (T ∩ S).card = 0 := by
+    intro T hTF
+    have hcoeff_T : MvPolynomial.coeff (SymmetricPower.tagMonomial T) (∑ S ∈ F, c S • v S) = 0 := by
+      rw [hzero_F]
+      simp [MvPolynomial.coeff_zero]
+    simp only [MvPolynomial.coeff_sum, MvPolynomial.coeff_smul, smul_eq_mul] at hcoeff_T
+    convert hcoeff_T using 1
+    apply Finset.sum_congr rfl
+    intro S hS
+    rw [hcoeff T hTF S hS]
+  set g : Finset (Fin N) → ℚ :=
+    fun U => ∑ S ∈ F, c S * BlockedBoolRank.zetaIndicator S U with hg_def
+  set allSubsets := (Finset.univ : Finset (Fin N)).powerset with hall_def
+  have hg_sq_eq : ∑ U ∈ allSubsets, g U ^ 2 =
+      ∑ T ∈ F, ∑ S ∈ F, c T * c S * (2 : ℚ) ^ (T ∩ S).card := by
+    simp only [hg_def, sq, Finset.sum_mul_sum]
+    rw [Finset.sum_comm (s := allSubsets) (t := F)]
+    congr 1
+    funext T
+    rw [Finset.sum_comm (s := allSubsets) (t := F)]
+    congr 1
+    funext S
+    rw [show ∑ U ∈ allSubsets,
+        (c T * BlockedBoolRank.zetaIndicator T U) *
+          (c S * BlockedBoolRank.zetaIndicator S U) =
+        c T * c S * ∑ U ∈ allSubsets,
+          BlockedBoolRank.zetaIndicator T U * BlockedBoolRank.zetaIndicator S U from by
+      rw [Finset.mul_sum]
+      congr 1
+      funext U
+      ring]
+    rw [BlockedBoolRank.zetaIndicator_inner_product]
+  have hquad_zero :
+      ∑ T ∈ F, ∑ S ∈ F, c T * c S * (2 : ℚ) ^ (T ∩ S).card = 0 := by
+    apply Finset.sum_eq_zero
+    intro T hT
+    rw [show ∑ S ∈ F, c T * c S * (2 : ℚ) ^ (T ∩ S).card =
+        c T * ∑ S ∈ F, c S * (2 : ℚ) ^ (T ∩ S).card from by
+      rw [Finset.mul_sum]
+      congr 1
+      ext S
+      ring]
+    rw [hextract T hT, mul_zero]
+  have hg_sq_zero : ∑ U ∈ allSubsets, g U ^ 2 = 0 := by
+    rw [hg_sq_eq, hquad_zero]
+  have hg_zero : ∀ U ∈ allSubsets, g U = 0 :=
+    BlockedBoolRank.sum_sq_eq_zero_imp hg_sq_zero
+  have hg_eval : ∀ T ∈ F, g T = c T := by
+    intro T hTF
+    show ∑ S ∈ F, c S * BlockedBoolRank.zetaIndicator S T = c T
+    rw [show ∑ S ∈ F, c S * BlockedBoolRank.zetaIndicator S T =
+        c T * BlockedBoolRank.zetaIndicator T T +
+          ∑ S ∈ F.erase T, c S * BlockedBoolRank.zetaIndicator S T from by
+      rw [← Finset.add_sum_erase F _ hTF]]
+    rw [show BlockedBoolRank.zetaIndicator T T = 1 from by
+      simp [BlockedBoolRank.zetaIndicator], mul_one]
+    suffices h : ∑ S ∈ F.erase T, c S * BlockedBoolRank.zetaIndicator S T = 0 by
+      linarith
+    apply Finset.sum_eq_zero
+    intro S hS
+    have hSF := Finset.mem_of_mem_erase hS
+    have hne := Finset.ne_of_mem_erase hS
+    rw [show BlockedBoolRank.zetaIndicator S T = 0 from by
+      simp only [BlockedBoolRank.zetaIndicator]
+      rw [if_neg]
+      intro hsub
+      exact hne
+        (BlockedBoolRank.Finset.eq_of_subset_of_card_eq hsub
+          (by rw [hcard T hTF, hcard S hSF])).symm]
+    exact mul_zero _
+  have hci : c (i : Finset (Fin N)) = 0 := by
+    have hT_mem : (i : Finset (Fin N)) ∈ allSubsets := by
+      simp [hall_def]
+    rw [← hg_eval _ i.2]
+    exact hg_zero _ hT_mem
+  simp only [hc_def, dif_pos i.2, if_pos hi] at hci
+  exact hci
+
+/-- Linear independence of the strict floor-sized first-of-block restricted
+Cook-Levin derivative rows. -/
+theorem linearIndependent_mlProj_strictFOB_restrict_compiled
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (κ : ℕ) (hκ : κ ≥ 1)
+    {F : Finset (Finset (Fin (n / 3)))}
+    (hcard : ∀ S ∈ F, S.card = κ) :
+    LinearIndependent ℚ (fun S : F =>
+      MultilinearSPDP.mlProj (SPDP.iterDerivList (S : Finset (Fin (n / 3))).toList
+        (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n)
+          (PaperFaithfulSeparation.compiledPoly
+            (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns))))) := by
+  refine strictFOB_linearIndependent_of_tag_coeff_gram hκ hcard
+    (fun S => MultilinearSPDP.mlProj (SPDP.iterDerivList S.toList
+      (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n)
+        (PaperFaithfulSeparation.compiledPoly
+          (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns))))) ?_
+  intro T hT S hS
+  exact coeff_mlProj_strictFOB_restrict_compiled_samesize
+    M n hn htb hns T S
+    (by rw [hcard T hT, hcard S hS])
+
+private theorem strictFOB_isBlockAdmissible_of_perm {n : ℕ} {B : SPDP.BlockPartition n}
+    {S T : List (Fin n)} (hperm : S.Perm T)
+    (hadm : SPDP.isBlockAdmissible B T) :
+    SPDP.isBlockAdmissible B S := by
+  constructor
+  · exact (hperm.nodup_iff).mpr hadm.1
+  · intro b
+    have hp := hperm.filter (fun i => B.assign i = b)
+    rw [hp.length_eq]
+    exact hadm.2 b
+
+private theorem strictFOB_isBlockAdmissible_pullback_of_map {n m : ℕ}
+    (f : Fin n → Fin m) (hf : Function.Injective f)
+    (B : SPDP.BlockPartition m) (S : List (Fin n))
+    (hadm : SPDP.isBlockAdmissible B (S.map f)) :
+    SPDP.isBlockAdmissible (MultilinearSPDP.pullbackPartition B f) S := by
+  constructor
+  · exact ((List.nodup_map_iff hf).mp hadm.1)
+  · intro b
+    have hfm : (S.filter (fun i => (MultilinearSPDP.pullbackPartition B f).assign i = b)) =
+      (S.filter (fun i => B.assign (f i) = b)) := by rfl
+    rw [hfm]
+    have hlen : ∀ (L : List (Fin n)), ((L.map f).filter (fun j => B.assign j = b)).length =
+        (L.filter (fun i => B.assign (f i) = b)).length := by
+      intro L
+      induction L with
+      | nil => simp
+      | cons a rest ih =>
+        simp only [List.map_cons, List.filter_cons]
+        by_cases h : B.assign (f a) = b <;> simp [h, ih]
+    rw [← hlen]
+    exact hadm.2 b
+
+private theorem cookLevinStrictFOBFlatMap_image_eq_firstOfBlockSubset
+    (n : ℕ) (S : Finset (Fin (n / 3))) :
+    S.map ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩ =
+      GodMoveReal.firstOfBlockSubset n S := by
+  ext v
+  simp [cookLevinStrictFOBFlatMap, GodMoveReal.firstOfBlockSubset]
+
+private theorem strictFOB_mlBlockedSpdpRank_lower_bound_from_derivative_independence
+    {N : ℕ} (B : SPDP.BlockPartition N) (κ ℓ : ℕ)
+    (p : MvPolynomial (Fin N) ℚ)
+    (F : Finset (Finset (Fin N)))
+    (hcard : ∀ S, S ∈ F → S.card = κ)
+    (hadm : ∀ S, S ∈ F → SPDP.isBlockAdmissible B S.toList)
+    (hli : LinearIndependent ℚ (fun S : F =>
+      MultilinearSPDP.mlProj (SPDP.iterDerivList (S : Finset (Fin N)).toList p))) :
+    F.card ≤ MultilinearSPDP.mlBlockedSpdpRank B κ ℓ p := by
+  have hmem : ∀ (S : F),
+      MultilinearSPDP.mlProj (SPDP.iterDerivList (S : Finset (Fin N)).toList p) ∈
+        MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ p := by
+    intro S
+    rcases S with ⟨S, hS⟩
+    refine Submodule.subset_span ?_
+    refine ⟨S.toList, (1 : MvPolynomial (Fin N) ℚ), ?_, ?_, ?_, ?_, ?_⟩
+    · simp [hcard S hS]
+    · simp
+    · simp
+    · exact hadm S hS
+    · simp
+  set f : F → MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ p :=
+    fun S => ⟨MultilinearSPDP.mlProj (SPDP.iterDerivList (S : Finset (Fin N)).toList p), hmem S⟩
+    with hf_def
+  have hli_sub : LinearIndependent ℚ f := by
+    rw [linearIndependent_iff'] at hli ⊢
+    intro s w hw i hi
+    apply hli s w ?_ i hi
+    have hval :
+        (∑ j ∈ s, w j • f j).val =
+          (0 : MultilinearSPDP.mlBlockedSpdpSubspace B κ ℓ p).val :=
+      congrArg Subtype.val hw
+    simpa only [hf_def, Submodule.coe_sum, Submodule.coe_smul, Submodule.coe_mk,
+      Submodule.coe_zero, ZeroMemClass.coe_zero] using hval
+  unfold MultilinearSPDP.mlBlockedSpdpRank
+  rw [show F.card = Fintype.card F from (Fintype.card_coe F).symm]
+  exact hli_sub.fintype_card_le_finrank
+
+/-- Route B strict first-of-block lower bound on the flat real restriction. -/
+theorem cookLevinStrictFOB_restrict_compiled_lower_bound
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition
+          (PaperFaithfulSeparation.cook_levin_compilation
+            M n hn2 htb hns).partition
+          (cookLevinStrictFOBFlatMap n))
+        (Nat.log 2 n) (Nat.log 2 n)
+        (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n)
+          (PaperFaithfulSeparation.compiledPoly
+            (PaperFaithfulSeparation.cook_levin_compilation
+              M n hn2 htb hns))) := by
+  classical
+  let κ := Nat.log 2 n
+  let F : Finset (Finset (Fin (n / 3))) :=
+    (Finset.univ : Finset (Fin (n / 3))).powersetCard κ
+  have hκ1 : κ ≥ 1 := by
+    have hmono : Nat.log 2 (2 ^ 804) ≤ Nat.log 2 n :=
+      Nat.log_mono_right hn
+    set_option exponentiation.threshold 1000 in
+    have hlog804 : Nat.log 2 (2 ^ 804) = 804 :=
+      Nat.log_pow (by norm_num : 1 < 2) 804
+    omega
+  have hFcard : F.card = Nat.choose (n / 3) κ := by
+    simp [F, Finset.card_powersetCard]
+  have hcard : ∀ S ∈ F, S.card = κ := by
+    intro S hS
+    exact (Finset.mem_powersetCard.mp hS).2
+  have hadm : ∀ S ∈ F,
+      SPDP.isBlockAdmissible
+        (MultilinearSPDP.pullbackPartition
+          (PaperFaithfulSeparation.cook_levin_compilation M n hn2 htb hns).partition
+          (cookLevinStrictFOBFlatMap n))
+        S.toList := by
+    intro S _hS
+    let f := cookLevinStrictFOBFlatMap n
+    let hf := cookLevinStrictFOBFlatMap_injective n
+    let e : Fin (n / 3) ↪ Fin n := ⟨f, hf⟩
+    have hperm : (S.toList.map f).Perm ((S.map e).toList) := by
+      simp only [e, f, hf]
+      exact strictFOB_toList_map_perm ⟨cookLevinStrictFOBFlatMap n,
+        cookLevinStrictFOBFlatMap_injective n⟩ S
+    have hadmImage :
+        SPDP.isBlockAdmissible
+          (PaperFaithfulSeparation.cook_levin_compilation M n hn2 htb hns).partition
+          ((S.map e).toList) := by
+      have himage :
+          S.map e = GodMoveReal.firstOfBlockSubset n S := by
+        simpa [e, f, hf] using cookLevinStrictFOBFlatMap_image_eq_firstOfBlockSubset n S
+      rw [himage]
+      exact GodMoveReal.firstOfBlockSubset_blockAdmissible n hn2 M htb hns S
+    have hadmMap :
+        SPDP.isBlockAdmissible
+          (PaperFaithfulSeparation.cook_levin_compilation M n hn2 htb hns).partition
+          (S.toList.map f) :=
+      strictFOB_isBlockAdmissible_of_perm hperm hadmImage
+    exact strictFOB_isBlockAdmissible_pullback_of_map f hf
+      (PaperFaithfulSeparation.cook_levin_compilation M n hn2 htb hns).partition
+      S.toList hadmMap
+  have hli : LinearIndependent ℚ (fun S : F =>
+      MultilinearSPDP.mlProj (SPDP.iterDerivList (S : Finset (Fin (n / 3))).toList
+        (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n)
+          (PaperFaithfulSeparation.compiledPoly
+            (PaperFaithfulSeparation.cook_levin_compilation M n hn2 htb hns))))) := by
+    exact linearIndependent_mlProj_strictFOB_restrict_compiled
+      M n hn2 htb hns κ hκ1 hcard
+  rw [← hFcard]
+  exact strictFOB_mlBlockedSpdpRank_lower_bound_from_derivative_independence
+    (MultilinearSPDP.pullbackPartition
+      (PaperFaithfulSeparation.cook_levin_compilation M n hn2 htb hns).partition
+      (cookLevinStrictFOBFlatMap n))
+    κ κ
+    (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+      (cookLevinStrictFOBFlatMap_injective n)
+      (PaperFaithfulSeparation.compiledPoly
+        (PaperFaithfulSeparation.cook_levin_compilation M n hn2 htb hns)))
+    F hcard hadm hli
+
 /-- The strict first-of-block target has fewer variables than the flat
 Cook-Levin compilation target required by `GodMoveExtractionTarget`. -/
 theorem cookLevinStrictFOB_coupledVars_lt
@@ -52819,6 +53298,44 @@ noncomputable def cookLevinStrictFOBTarget
     MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
       (cookLevinStrictFOBMap_injective M n)
       (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q
+
+/-- Route B strict first-of-block same-target identity-minor lower bound.
+
+The proof is floor-sized throughout: the lower bound is first proved on
+`Fin (n / 3)` for the flat real restriction, then transported to the ambient
+strict `embedded_Q` target by the Route B output and partition descent lemmas. -/
+theorem cookLevinStrictFOBTarget_same_target_lower
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) :
+    PaperFaithfulSeparation.GodMoveSameTargetStrongNPLower
+      (cookLevinStrictFOBTarget M n hn2 htb hns B_total) := by
+  have hflat :=
+    cookLevinStrictFOB_restrict_compiled_lower_bound
+      M n hn hn2 htb hns
+  simpa [PaperFaithfulSeparation.GodMoveSameTargetStrongNPLower,
+    cookLevinStrictFOBTarget,
+    cookLevinStrictFOB_pullbackPartition_eq_flat M n hn2 htb hns B_total hB_total,
+    cookLevinStrictFOB_restrict_embedded_Q_eq_restrict_compiledPoly M n hn2 htb hns]
+    using hflat
+
+/-- Route B identity-minor data for the strict floor-sized first-of-block
+target. -/
+def cookLevinStrictFOBTarget_identity_minor_data
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) :
+    PaperFaithfulSeparation.RouteBIdentityMinorSameTargetData
+      (cookLevinStrictFOBTarget M n hn2 htb hns B_total) :=
+  PaperFaithfulSeparation.routeBIdentityMinorSameTargetData_of_rank_lower
+    (cookLevinStrictFOBTarget_same_target_lower
+      M n hn hn2 htb hns B_total hB_total)
 
 /-- A lower bound for the ambient re-expanded strict first-of-block
 restriction gives the same-target NP lower bound for the strict target.
