@@ -89,6 +89,23 @@ theorem routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableG
         hshiftLog hshiftVars hadm hp
     simpa [Pi, L, tail, routeBSPDPGeneratorRowLinearMap_apply] using hzero
 
+/-- For the canonical head-span tail, stability of the selected projection
+kernel is the same condition as stability of the selected complement under the
+log-window generator maps. -/
+theorem routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_iff_chosenComplementStableGeneratorMaps
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherSPDPStableCandidateLogWindowHeadTailProjectionKernelStableGeneratorMaps
+        M n hn2 htb hns ↔
+      RouteBRicherSPDPStableCandidateLogWindowChosenComplementStableGeneratorMaps
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail M n hn2 htb hns) := by
+  rw [routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_iff_kernelCriterion]
+  rw [← routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionDescent_iff_kernelCriterion]
+  exact
+    routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionDescent_iff_stableGeneratorMaps
+      M n hn2 htb hns
+
 /-- Kernel-submodule stability gives chosen-projection descent. -/
 theorem routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionDescent_of_projectionKernelStableGeneratorMaps
     (M : DTM) (n : Nat) (hn2 : n >= 2)
@@ -185,6 +202,46 @@ theorem routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_i
         hshiftLog hshiftVars hadm
         (by simpa [Pi, tail] using hresZero)
 
+/-- If every log-window generator annihilates vectors in the selected
+head-span-tail complement, then the residual of the selected projection has
+strict zero generator rows. -/
+theorem routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_of_chosenComplement_generator_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hann :
+      forall (spdpKappa ell : Nat)
+        (p : SATDeciderGaugeSpace M n hn2 htb hns)
+        (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+        (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+        S.length = spdpKappa ->
+        shift.totalDegree <= ell ->
+        S.length <= Nat.log 2 n ->
+        shift.totalDegree <= Nat.log 2 n ->
+        shift.vars <= S.toFinset ->
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition S ->
+        p ∈ routeBRicherSPDPStableCandidateLogWindowHeadTailChosenComplement
+          M n hn2 htb hns ->
+        routeBSPDPGeneratorRow M n hn2 htb hns p S shift = 0) :
+    RouteBRicherSPDPStableCandidateLogWindowHeadTailResidualGeneratorZero
+      M n hn2 htb hns := by
+  refine
+    (routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_iff_kernelGeneratorAnnihilates
+      M n hn2 htb hns).mpr ?_
+  intro spdpKappa ell p S shift hSlen hshiftDegree hSlog hshiftLog
+    hshiftVars hadm hp
+  let tail := routeBRicherSPDPStableCandidateLogWindowHeadTail M n hn2 htb hns
+  have hpComplement :
+      p ∈ routeBRicherSPDPStableCandidateLogWindowHeadTailChosenComplement
+        M n hn2 htb hns := by
+    simpa [routeBRicherSPDPStableCandidateLogWindowHeadTailChosenComplement,
+      tail] using
+      (routeBRicherSPDPStableCandidateProjection_apply_eq_zero_iff_projectionComplement
+        M n hn2 htb hns tail p).mp hp
+  exact
+    hann spdpKappa ell p S shift hSlen hshiftDegree hSlog
+      hshiftLog hshiftVars hadm hpComplement
+
 /-- Strict kernel-generator annihilation proves the exact chosen-projection
 kernel criterion. -/
 theorem routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionKernelCriterion_of_kernelGeneratorAnnihilates
@@ -276,10 +333,12 @@ theorem routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZe
 
 #print axioms RouteBRicherSPDPStableCandidateLogWindowHeadTailProjectionKernelStableGeneratorMaps
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_iff_kernelCriterion
+#print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_iff_chosenComplementStableGeneratorMaps
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionDescent_of_projectionKernelStableGeneratorMaps
 #print axioms RouteBRicherSPDPStableCandidateLogWindowHeadTailResidualGeneratorZero
 #print axioms RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorAnnihilates
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_iff_kernelGeneratorAnnihilates
+#print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_of_chosenComplement_generator_zero
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionKernelCriterion_of_residualGeneratorZero
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionDescent_of_residualGeneratorZero
 #print axioms routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_of_kernelObstruction

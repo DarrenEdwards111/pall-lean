@@ -71,6 +71,40 @@ def RouteBRicherSPDPStableCandidateHeadSpanTailVisibleCoefficientEscapeObstructi
         (routeBRicherSPDPStableCandidateLogWindowHeadTail M n hn2 htb hns)
         (routeBSPDPGeneratorRow M n hn2 htb hns p S shift)) ≠ 0
 
+/-- Constructor form for the general visible coefficient obstruction.  This is
+the exact named interface for turning an explicit kernel vector, admissible
+generator row, and nonzero projected monomial coefficient into the Route B
+escape branch. -/
+theorem routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_of_explicitCoeff
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (spdpKappa ell : Nat)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns)
+    (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+    (shift : SATDeciderGaugeSpace M n hn2 htb hns)
+    (μ : Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat)
+    (hSlen : S.length = spdpKappa)
+    (hshiftDegree : shift.totalDegree <= ell)
+    (hSlog : S.length <= Nat.log 2 n)
+    (hshiftLog : shift.totalDegree <= Nat.log 2 n)
+    (hshiftVars : shift.vars <= S.toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition S)
+    (hpZero :
+      routeBRicherSPDPStableCandidateProjection M n hn2 htb hns
+          (routeBRicherSPDPStableCandidateLogWindowHeadTail M n hn2 htb hns)
+          p = 0)
+    (hcoeff :
+      MvPolynomial.coeff μ
+        (routeBRicherSPDPStableCandidateProjection M n hn2 htb hns
+          (routeBRicherSPDPStableCandidateLogWindowHeadTail M n hn2 htb hns)
+          (routeBSPDPGeneratorRow M n hn2 htb hns p S shift)) ≠ 0) :
+    RouteBRicherSPDPStableCandidateHeadSpanTailVisibleCoefficientEscapeObstruction
+      M n hn2 htb hns :=
+  ⟨spdpKappa, ell, p, S, shift, μ, hSlen, hshiftDegree, hSlog,
+    hshiftLog, hshiftVars, hadm, hpZero, hcoeff⟩
+
 /-- A visible monomial coefficient gives the existing kernel obstruction. -/
 theorem routeBRicherSPDPStableCandidate_headSpanTailKernelObstruction_of_visibleCoefficientEscapeObstruction
     (M : DTM) (n : Nat) (hn2 : n >= 2)
@@ -186,9 +220,41 @@ def RouteBRicherSPDPStableCandidateHeadSpanTailMlProjVisibleCoefficientEscapeWit
         (routeBRicherSPDPStableCandidateLogWindowHeadTail M n hn2 htb hns)
         (routeBRicherSPDPStableCandidateHeadSpanTailProjectionComplement
           M n hn2 htb hns)
+      (routeBRicherSPDPStableCandidateHeadSpanTailProjectionComplement_isCompl
+        M n hn2 htb hns)
+      (mlProj p)) ≠ 0
+
+/-- Constructor form for the empty-generator coordinate obstruction.  This is
+the exact place where an explicit kernel vector and monomial coefficient would
+instantiate the `mlProj` escape branch for the chosen head-span-tail
+projection. -/
+theorem routeBRicherSPDPStableCandidate_headSpanTailMlProjVisibleCoefficientEscapeWitness_of_explicitCoeff
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns)
+    (μ : Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat)
+    (hpZero :
+      routeBRicherSPDPStableCandidateProjectionWithComplement
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail M n hn2 htb hns)
+        (routeBRicherSPDPStableCandidateHeadSpanTailProjectionComplement
+          M n hn2 htb hns)
         (routeBRicherSPDPStableCandidateHeadSpanTailProjectionComplement_isCompl
           M n hn2 htb hns)
-        (mlProj p)) ≠ 0
+        p = 0)
+    (hcoeff :
+      MvPolynomial.coeff μ
+        (routeBRicherSPDPStableCandidateProjectionWithComplement
+          M n hn2 htb hns
+          (routeBRicherSPDPStableCandidateLogWindowHeadTail M n hn2 htb hns)
+          (routeBRicherSPDPStableCandidateHeadSpanTailProjectionComplement
+            M n hn2 htb hns)
+          (routeBRicherSPDPStableCandidateHeadSpanTailProjectionComplement_isCompl
+            M n hn2 htb hns)
+          (mlProj p)) ≠ 0) :
+    RouteBRicherSPDPStableCandidateHeadSpanTailMlProjVisibleCoefficientEscapeWitness
+      M n hn2 htb hns :=
+  ⟨p, μ, hpZero, hcoeff⟩
 
 /-- A visible `mlProj` coefficient is the existing kernel-form empty-generator
 escape. -/
@@ -259,8 +325,10 @@ theorem routeBRicherSPDPStableCandidate_headSpanTailLogWindowProjectionEscapeWit
 
 #print axioms mvPolynomial_ne_zero_iff_exists_coeff_ne_zero
 #print axioms RouteBRicherSPDPStableCandidateHeadSpanTailVisibleCoefficientEscapeObstruction
+#print axioms routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_of_explicitCoeff
 #print axioms routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_iff_logWindowProjectionEscapeWitness
 #print axioms RouteBRicherSPDPStableCandidateHeadSpanTailMlProjVisibleCoefficientEscapeWitness
+#print axioms routeBRicherSPDPStableCandidate_headSpanTailMlProjVisibleCoefficientEscapeWitness_of_explicitCoeff
 #print axioms routeBRicherSPDPStableCandidate_mlProjVisibleCoefficientEscape_iff_kernelMlProjProjectionEscape
 #print axioms routeBRicherSPDPStableCandidate_headSpanTailLogWindowProjectionEscapeWitness_of_mlProjVisibleCoefficientEscape
 

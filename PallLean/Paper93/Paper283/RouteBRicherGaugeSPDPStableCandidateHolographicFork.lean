@@ -118,6 +118,73 @@ theorem routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_o
   change routeBSPDPGeneratorRow M n hn2 htb hns (p - Pi p) S shift = 0
   rw [hpSub, routeBSPDPGeneratorRow_zero]
 
+/-! ## Head-span escape closure -/
+
+/-- If the finite head-span generator second-pass closure fails, the failure is
+already a concrete log-window generator-map escape from the canonical head
+span. -/
+theorem routeBRicherSPDPStableCandidate_headSpanGeneratorMapEscape_of_not_generatorSecondPassClosure
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hnot :
+      ¬ RouteBRicherSPDPStableCandidateLogWindowHeadSpanGeneratorSecondPassClosure
+        M n hn2 htb hns) :
+    RouteBRicherSPDPStableCandidateLogWindowHeadSpanGeneratorMapEscapeWitness
+      M n hn2 htb hns := by
+  classical
+  by_contra hnoEscape
+  apply hnot
+  intro headKappa headEll spdpKappa ell T headShift S shift
+    hTlen hheadShiftDegree hheadShiftVars hTadm hheadKappaLog
+    hheadEllLog hSlen hshiftDegree hSlog hshiftLog hshiftVars hadm
+  let p :=
+    mlProj
+      (headShift *
+        SPDP.iterDerivList T
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
+  have hpGen :
+      p ∈
+        mlBlockedSpdpSubspace
+          (cook_levin_compilation M n hn2 htb hns).partition
+          headKappa headEll
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)) := by
+    unfold mlBlockedSpdpSubspace
+    exact Submodule.subset_span
+      ⟨T, headShift, hTlen, hheadShiftDegree, hheadShiftVars,
+        hTadm, by simp [p]⟩
+  have hpHead :
+      p ∈ routeBRicherSPDPStableCandidateLogWindowHeadSpan
+        M n hn2 htb hns :=
+    (routeBRicherSPDPStableCandidateLogWindowHeadSpan_contains
+      M n hn2 htb hns headKappa headEll hheadKappaLog hheadEllLog) hpGen
+  by_contra hrowNotHead
+  exact hnoEscape
+    ⟨spdpKappa, ell, p, S, shift, hpHead, hSlen, hshiftDegree,
+      hSlog, hshiftLog, hshiftVars, hadm,
+      by simpa [p] using hrowNotHead⟩
+
+/-- Finite head-span generator second-pass closure is exactly absence of a
+concrete log-window generator-map escape from the canonical head span. -/
+theorem routeBRicherSPDPStableCandidate_generatorSecondPassClosure_iff_no_headSpanGeneratorMapEscape
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherSPDPStableCandidateLogWindowHeadSpanGeneratorSecondPassClosure
+        M n hn2 htb hns ↔
+      ¬ RouteBRicherSPDPStableCandidateLogWindowHeadSpanGeneratorMapEscapeWitness
+        M n hn2 htb hns := by
+  constructor
+  · intro hhead
+    exact
+      routeBRicherSPDPStableCandidate_no_headSpanGeneratorMapEscape_of_stableGeneratorMaps
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidate_logWindowHeadSpanStableGeneratorMaps_of_generatorSecondPassClosure
+          M n hn2 htb hns hhead)
+  · intro hnoEscape
+    by_contra hnot
+    exact hnoEscape
+      (routeBRicherSPDPStableCandidate_headSpanGeneratorMapEscape_of_not_generatorSecondPassClosure
+        M n hn2 htb hns hnot)
+
 /-- Positive Route B head-tail fork package using the newest proof-facing
 interfaces: finite head-span second-pass closure plus chosen-projection kernel
 stability, together with the two existing P-side consumer fields. -/
@@ -325,11 +392,41 @@ theorem routeBRicherSPDPStableCandidate_holographicInvariance_iff_no_visibleCoef
     | inl hinv => exact hinv
     | inr hcoord => exact False.elim (hno hcoord)
 
+/-- Fully exposed Route B fork after the head-span reduction: either the
+finite head span already has a concrete log-window generator-map escape, or
+the Section 39 holographic interface holds for the canonical head-span tail,
+or the chosen projection has a visible monomial-coefficient escape. -/
+theorem routeBRicherSPDPStableCandidate_headSpanEscape_or_holographicInvariance_or_visibleCoefficientEscape
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherSPDPStableCandidateLogWindowHeadSpanGeneratorMapEscapeWitness
+        M n hn2 htb hns ∨
+      RouteBRicherSPDPStableCandidateHolographicInvariance
+          M n hn2 htb hns
+          (routeBRicherSPDPStableCandidateLogWindowHeadTail
+            M n hn2 htb hns) ∨
+        RouteBRicherSPDPStableCandidateHeadSpanTailVisibleCoefficientEscapeObstruction
+          M n hn2 htb hns := by
+  classical
+  by_cases hhead :
+      RouteBRicherSPDPStableCandidateLogWindowHeadSpanGeneratorSecondPassClosure
+        M n hn2 htb hns
+  · right
+    exact
+      routeBRicherSPDPStableCandidate_holographicInvariance_or_visibleCoefficientEscape_of_secondPassClosure
+        M n hn2 htb hns hhead
+  · left
+    exact
+      routeBRicherSPDPStableCandidate_headSpanGeneratorMapEscape_of_not_generatorSecondPassClosure
+        M n hn2 htb hns hhead
+
 /-! ## Axiom audit anchors -/
 
 #print axioms mlProj_idempotent
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadSpanGeneratorSecondPassClosure_nil_one
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_of_projection_eq_id
+#print axioms routeBRicherSPDPStableCandidate_headSpanGeneratorMapEscape_of_not_generatorSecondPassClosure
+#print axioms routeBRicherSPDPStableCandidate_generatorSecondPassClosure_iff_no_headSpanGeneratorMapEscape
 #print axioms RouteBRicherSPDPStableCandidateHeadTailSecondPassKernelFrontier
 #print axioms routeBRicherSPDPStableCandidate_headTailRowClosureDescentFrontier_of_secondPass_kernelStable
 #print axioms routeBRicherSPDPStableCandidate_holographicInvariance_of_secondPass_kernelStable
@@ -339,5 +436,6 @@ theorem routeBRicherSPDPStableCandidate_holographicInvariance_iff_no_visibleCoef
 #print axioms routeBRicherSPDPStableCandidate_not_holographicInvariance_of_mlProjVisibleCoefficientEscape
 #print axioms routeBRicherSPDPStableCandidate_holographicInvariance_or_visibleCoefficientEscape_of_secondPassClosure
 #print axioms routeBRicherSPDPStableCandidate_holographicInvariance_iff_no_visibleCoefficientEscape_of_secondPassClosure
+#print axioms routeBRicherSPDPStableCandidate_headSpanEscape_or_holographicInvariance_or_visibleCoefficientEscape
 
 end PallLean.Paper93.Paper283
