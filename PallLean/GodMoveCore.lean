@@ -1063,6 +1063,65 @@ theorem routeB_strong_np_from_same_target_identity_minor
     GodMoveSameTargetStrongNPLower target :=
   d.target_choose_le_minorSize.trans d.identity_minor_rank_lower
 
+/-- If the selected semantic target is the zero polynomial, same-target
+identity-minor data collapses the Route B binomial lower bound to zero. -/
+theorem routeBIdentityMinorSameTargetData_choose_le_zero_of_coupledPoly_eq_zero
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {target : GodMoveExtractionTarget M n hn2 htb hns}
+    (hzero : target.coupledPoly = 0)
+    (d : RouteBIdentityMinorSameTargetData target) :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤ 0 := by
+  have hrank_zero :
+      mlBlockedSpdpRank target.coupledPartition
+        (Nat.log 2 n) (Nat.log 2 n) target.coupledPoly = 0 := by
+    simpa [hzero] using
+      (mlBlockedSpdpRank_zero target.coupledPartition
+        (Nat.log 2 n) (Nat.log 2 n) :
+        mlBlockedSpdpRank target.coupledPartition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (0 : MvPolynomial (Fin target.coupledVars) ℚ) = 0)
+  exact d.target_choose_le_minorSize.trans
+    (d.identity_minor_rank_lower.trans_eq hrank_zero)
+
+/-- A zero-polynomial semantic target cannot carry same-target identity-minor
+data once the Route B binomial lower bound is positive. -/
+theorem not_routeBIdentityMinorSameTargetData_of_coupledPoly_eq_zero_of_choose_pos
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {target : GodMoveExtractionTarget M n hn2 htb hns}
+    (hbinom_pos : 0 < Nat.choose (n / 3) (Nat.log 2 n))
+    (hzero : target.coupledPoly = 0) :
+    ¬ Nonempty (RouteBIdentityMinorSameTargetData target) := by
+  rintro ⟨d⟩
+  exact (not_lt_of_ge
+    (routeBIdentityMinorSameTargetData_choose_le_zero_of_coupledPoly_eq_zero
+      hzero d)) hbinom_pos
+
+/-- At the paper scale, a zero-polynomial semantic target cannot inhabit the
+same-target identity-minor interface. -/
+theorem not_routeBIdentityMinorSameTargetData_of_coupledPoly_eq_zero_at_large_n
+    {M : DTM} {n : ℕ} (hn804 : n ≥ 2 ^ 804) {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {target : GodMoveExtractionTarget M n hn2 htb hns}
+    (hzero : target.coupledPoly = 0) :
+    ¬ Nonempty (RouteBIdentityMinorSameTargetData target) := by
+  have hn20 : n ≥ 2 ^ 20 :=
+    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn804
+  have hbin :
+      n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
+    BinomialBound.binomial_lower_bound_concrete n hn20
+  have hmono :
+      Nat.choose (n / 30) (Nat.log 2 n) ≤
+        Nat.choose (n / 3) (Nat.log 2 n) :=
+    Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
+  have hn_pos : 0 < n := by
+    have htwo_pos : 0 < (2 : ℕ) ^ 804 := pow_pos (by norm_num) _
+    omega
+  have hbinom_pos : 0 < Nat.choose (n / 3) (Nat.log 2 n) :=
+    lt_of_lt_of_le (Nat.pow_pos hn_pos) (hbin.trans hmono)
+  exact
+    not_routeBIdentityMinorSameTargetData_of_coupledPoly_eq_zero_of_choose_pos
+      hbinom_pos hzero
+
 /-- Constructor for the narrow Theorem-207 semantic-target/identity-minor
 existential from already chosen exact target data.
 

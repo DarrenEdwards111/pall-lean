@@ -51890,6 +51890,45 @@ theorem DirectRankPackage_slim.semanticTargetIdentifiedWithEmbeddedQ_of_restrict
   P.semanticTargetIdentifiedWithEmbeddedQ_of_restrict_embedded_Q
     M hn2 htb hns _ f hf rfl rfl
 
+/-- Stage data for a strict coordinate restriction of `embedded_Q` gives the
+core semantic extraction theorem for that exact target.
+
+The rank-level `embedded_Q` lemmas do not create semantic extraction data by
+themselves. This constructor records the honest remaining semantic input: a
+restriction stage, a projection stage, and the output equality identifying that
+projection with the chosen restricted `embedded_Q` polynomial. -/
+theorem DirectRankPackage_slim.restrict_embedded_Q_target_semantics_of_stages
+    (P : DirectRankPackage_slim)
+    (M : TuringMachine.DTM) (hn2 : P.n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ P.n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (coupledVars : ℕ)
+    (hvars :
+      coupledVars < (PaperFaithfulSeparation.cook_levin_compilation
+        M P.n hn2 htb hns).numVars)
+    (f : Fin coupledVars → Fin P.W.σ.total)
+    (hf : Function.Injective f)
+    (restriction :
+      PaperFaithfulSeparation.ExtractionRestrictionStage
+        M P.n hn2 htb hns hdec)
+    (projection :
+      PaperFaithfulSeparation.ExtractionProjectionStage
+        restriction.restrictedVars coupledVars)
+    (hinput : projection.inputPoly = restriction.restrictedPoly)
+    (hout :
+      projection.projectedPoly =
+        MultilinearSPDP.restrictPoly ℚ f hf P.W.embedded_Q) :
+    PaperFaithfulSeparation.GodMoveExtractionTargetTheorem
+      M P.n hn2 htb hns hdec
+      { coupledVars := coupledVars
+        coupledVars_lt := hvars
+        coupledPartition := MultilinearSPDP.pullbackPartition P.B f
+        coupledPoly := MultilinearSPDP.restrictPoly ℚ f hf P.W.embedded_Q } :=
+  ⟨{ restriction := restriction
+     projection := projection
+     projection_input_matches := hinput
+     output_identification := hout }⟩
+
 /-- The `embedded_Q` identification turns §241.3a into the target-to-source
 rank bridge needed by the global Theorem-207 source-transport seam. -/
 theorem DirectRankPackage_slim.target_rank_le_full_output_of_embedded_Q_identification
@@ -52091,6 +52130,140 @@ theorem DirectRankPackage_slim.exists_theorem207_semantic_identity_minor_gap_sou
       M hn2 htb hns hdec hκ hℓ targetData hsem minor
       (P.semanticTargetIdentifiedWithEmbeddedQ_of_restrict_embedded_Q_target
         M hn2 htb hns coupledVars hvars f hf)
+
+/-- Same as
+`exists_theorem207_semantic_identity_minor_gap_source_transport_data_of_target_data_restrict_embedded_Q`,
+but with the load-bearing NP-side input stated directly as the same-target
+rank lower bound.
+
+This is the exact mathematical frontier for a chosen strict coordinate
+restriction of `embedded_Q`: once the target's own SPDP rank has the strong
+Route B lower bound, the identity-minor data package is filled canonically by
+`routeBIdentityMinorSameTargetData_of_rank_lower`. -/
+theorem DirectRankPackage_slim.exists_theorem207_semantic_source_transport_of_target_data_restrict_embedded_Q_rank_lower
+    (P : DirectRankPackage_slim)
+    (M : TuringMachine.DTM) (hn2 : P.n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ P.n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hκ : P.κ = Nat.log 2 P.n) (hℓ : P.ℓ = Nat.log 2 P.n)
+    (targetData : PaperFaithfulSeparation.GodMoveExtractionTargetData
+      M P.n hn2 htb hns hdec)
+    (hsem : PaperFaithfulSeparation.GodMoveExtractionTargetTheorem
+      M P.n hn2 htb hns hdec targetData.extractionTarget)
+    (hNP : PaperFaithfulSeparation.GodMoveSameTargetStrongNPLower
+      targetData.extractionTarget)
+    (f : Fin targetData.extractionTarget.coupledVars → Fin P.W.σ.total)
+    (hf : Function.Injective f)
+    (hB : targetData.extractionTarget.coupledPartition =
+      MultilinearSPDP.pullbackPartition P.B f)
+    (hpoly : targetData.extractionTarget.coupledPoly =
+      MultilinearSPDP.restrictPoly ℚ f hf P.W.embedded_Q) :
+    ∃ G : PaperFaithfulSeparation.GodMoveSemanticIdentityMinorGap
+        M P.n hn2 htb hns hdec,
+      ∃ source : GlobalGodMoveGauge.Theorem207PaperSource
+          M P.n P.hn_big hn2 htb hns,
+        GlobalGodMoveGauge.Theorem207PaperSourcePSideUpperBound
+          M P.n P.hn_big hn2 htb hns source ∧
+        GlobalGodMoveGauge.Theorem207PaperSourceToTargetRankBridge
+          M P.n P.hn_big hn2 htb hns source G.gap.extractionTarget :=
+  P.exists_theorem207_semantic_identity_minor_gap_source_transport_data_of_target_data_restrict_embedded_Q
+    M hn2 htb hns hdec hκ hℓ targetData hsem
+    (PaperFaithfulSeparation.routeBIdentityMinorSameTargetData_of_rank_lower hNP)
+    f hf hB hpoly
+
+/-- Hard-instance version of
+`exists_theorem207_semantic_source_transport_of_target_data_restrict_embedded_Q_rank_lower`.
+
+The remaining inputs are precisely the real target choices:
+the strict coordinate map into `embedded_Q`, the staged extraction theorem for
+that target, and the same-target strong lower bound on the restricted target. -/
+theorem DirectRankPackage_slim.exists_theorem207_semantic_source_transport_of_hard_data_restrict_embedded_Q_target_rank_lower
+    (P : DirectRankPackage_slim)
+    (M : TuringMachine.DTM) (hn2 : P.n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ P.n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hκ : P.κ = Nat.log 2 P.n) (hℓ : P.ℓ = Nat.log 2 P.n)
+    (hard : PaperFaithfulSeparation.GodMoveHardInstanceData
+      M P.n hn2 htb hns hdec)
+    (coupledVars : ℕ)
+    (hvars :
+      coupledVars < (PaperFaithfulSeparation.cook_levin_compilation
+        M P.n hn2 htb hns).numVars)
+    (f : Fin coupledVars → Fin P.W.σ.total)
+    (hf : Function.Injective f)
+    (hsem : PaperFaithfulSeparation.GodMoveExtractionTargetTheorem
+      M P.n hn2 htb hns hdec
+        { coupledVars := coupledVars
+          coupledVars_lt := hvars
+          coupledPartition := MultilinearSPDP.pullbackPartition P.B f
+          coupledPoly := MultilinearSPDP.restrictPoly ℚ f hf P.W.embedded_Q })
+    (hNP : PaperFaithfulSeparation.GodMoveSameTargetStrongNPLower
+        { coupledVars := coupledVars
+          coupledVars_lt := hvars
+          coupledPartition := MultilinearSPDP.pullbackPartition P.B f
+          coupledPoly := MultilinearSPDP.restrictPoly ℚ f hf P.W.embedded_Q }) :
+    ∃ G : PaperFaithfulSeparation.GodMoveSemanticIdentityMinorGap
+        M P.n hn2 htb hns hdec,
+      ∃ source : GlobalGodMoveGauge.Theorem207PaperSource
+          M P.n P.hn_big hn2 htb hns,
+        GlobalGodMoveGauge.Theorem207PaperSourcePSideUpperBound
+          M P.n P.hn_big hn2 htb hns source ∧
+        GlobalGodMoveGauge.Theorem207PaperSourceToTargetRankBridge
+          M P.n P.hn_big hn2 htb hns source G.gap.extractionTarget :=
+  P.exists_theorem207_semantic_identity_minor_gap_source_transport_data_of_hard_data_restrict_embedded_Q_target
+    M hn2 htb hns hdec hκ hℓ hard coupledVars hvars f hf hsem
+    (PaperFaithfulSeparation.routeBIdentityMinorSameTargetData_of_rank_lower hNP)
+
+/-- Fully staged strict-`embedded_Q` constructor for the semantic source
+transport seam.
+
+This is the current paper-faithful target surface with all packaging removed:
+callers supply the actual strict coordinate restriction, the concrete
+restriction/projection stages proving extraction semantics for that target, and
+the same-target lower bound on the restricted target. -/
+theorem DirectRankPackage_slim.exists_theorem207_semantic_source_transport_of_hard_data_restrict_embedded_Q_stages_rank_lower
+    (P : DirectRankPackage_slim)
+    (M : TuringMachine.DTM) (hn2 : P.n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ P.n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hκ : P.κ = Nat.log 2 P.n) (hℓ : P.ℓ = Nat.log 2 P.n)
+    (hard : PaperFaithfulSeparation.GodMoveHardInstanceData
+      M P.n hn2 htb hns hdec)
+    (coupledVars : ℕ)
+    (hvars :
+      coupledVars < (PaperFaithfulSeparation.cook_levin_compilation
+        M P.n hn2 htb hns).numVars)
+    (f : Fin coupledVars → Fin P.W.σ.total)
+    (hf : Function.Injective f)
+    (restriction :
+      PaperFaithfulSeparation.ExtractionRestrictionStage
+        M P.n hn2 htb hns hdec)
+    (projection :
+      PaperFaithfulSeparation.ExtractionProjectionStage
+        restriction.restrictedVars coupledVars)
+    (hinput : projection.inputPoly = restriction.restrictedPoly)
+    (hout :
+      projection.projectedPoly =
+        MultilinearSPDP.restrictPoly ℚ f hf P.W.embedded_Q)
+    (hNP : PaperFaithfulSeparation.GodMoveSameTargetStrongNPLower
+        { coupledVars := coupledVars
+          coupledVars_lt := hvars
+          coupledPartition := MultilinearSPDP.pullbackPartition P.B f
+          coupledPoly := MultilinearSPDP.restrictPoly ℚ f hf P.W.embedded_Q }) :
+    ∃ G : PaperFaithfulSeparation.GodMoveSemanticIdentityMinorGap
+        M P.n hn2 htb hns hdec,
+      ∃ source : GlobalGodMoveGauge.Theorem207PaperSource
+          M P.n P.hn_big hn2 htb hns,
+        GlobalGodMoveGauge.Theorem207PaperSourcePSideUpperBound
+          M P.n P.hn_big hn2 htb hns source ∧
+        GlobalGodMoveGauge.Theorem207PaperSourceToTargetRankBridge
+          M P.n P.hn_big hn2 htb hns source G.gap.extractionTarget :=
+  P.exists_theorem207_semantic_source_transport_of_hard_data_restrict_embedded_Q_target_rank_lower
+    M hn2 htb hns hdec hκ hℓ hard coupledVars hvars f hf
+    (P.restrict_embedded_Q_target_semantics_of_stages
+      M hn2 htb hns hdec coupledVars hvars f hf
+      restriction projection hinput hout)
+    hNP
 
 /-- **§252.7 — `GConstructionPackage_slim.to_thresholds_slim`**:
 convert a slim G-construction package to a slim thresholds bundle by
