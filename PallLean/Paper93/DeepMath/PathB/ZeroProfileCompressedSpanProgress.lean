@@ -760,6 +760,188 @@ theorem zeroProfileCompressedSpanCommonSpanWithBudget_iff_finrankCondition
     intro p hp
     exact hU_span (Submodule.subset_span hp)
 
+/-! ## Local normal-form type compression -/
+
+/-- A paper-faithful zero-profile local type alphabet.
+
+The type labels are interface-anonymous: Lean only uses their finite cardinality
+and the fact that each type has a bounded local spanning family.  A concrete
+Cook-Levin proof must still supply the generator-to-type map below. -/
+structure ZeroProfileLocalTypeAlphabet (n κ : ℕ) where
+  type : Type
+  [typeFintype : Fintype type]
+  localDim : ℕ
+  localBasis : type → Finset (MvPolynomial (Fin n) ℚ)
+  localBasis_card_le : ∀ τ, (localBasis τ).card ≤ localDim
+  profileSymmetricPowerBudget_le :
+    Fintype.card type * localDim ≤ withinProfileBound κ
+
+/-- The ambient subspace represented by one local zero-profile type. -/
+noncomputable def zeroProfileLocalTypeSpace {n κ : ℕ}
+    (A : ZeroProfileLocalTypeAlphabet n κ)
+    (τ : A.type) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+  Submodule.span ℚ (↑(A.localBasis τ) :
+    Set (MvPolynomial (Fin n) ℚ))
+
+/-- Each local type space has dimension bounded by the alphabet's uniform
+local dimension. -/
+theorem zeroProfileLocalTypeSpace_finrank_le {n κ : ℕ}
+    (A : ZeroProfileLocalTypeAlphabet n κ)
+    (τ : A.type) :
+    Module.finrank ℚ ↥(zeroProfileLocalTypeSpace A τ) ≤ A.localDim := by
+  classical
+  unfold zeroProfileLocalTypeSpace
+  exact (finrank_span_finset_le_card (A.localBasis τ)).trans
+    (A.localBasis_card_le τ)
+
+/-- The global normal-form basis obtained by unioning the per-type local
+spanning families. -/
+noncomputable def zeroProfileLocalTypeGlobalBasis {n κ : ℕ}
+    (A : ZeroProfileLocalTypeAlphabet n κ) :
+    Finset (MvPolynomial (Fin n) ℚ) := by
+  classical
+  letI : Fintype A.type := A.typeFintype
+  exact Finset.univ.biUnion A.localBasis
+
+/-- The union of all local type bases fits inside the within-profile budget. -/
+theorem zeroProfileLocalTypeGlobalBasis_card_le_withinProfileBound
+    {n κ : ℕ}
+    (A : ZeroProfileLocalTypeAlphabet n κ) :
+    (zeroProfileLocalTypeGlobalBasis A).card ≤ withinProfileBound κ := by
+  classical
+  letI : Fintype A.type := A.typeFintype
+  have hcard :
+      (Finset.univ.biUnion A.localBasis).card ≤
+        (Finset.univ : Finset A.type).card * A.localDim :=
+    Finset.card_biUnion_le_card_mul
+      (Finset.univ : Finset A.type) A.localBasis A.localDim
+      (by
+        intro τ _hτ
+        exact A.localBasis_card_le τ)
+  have htype_card :
+      (Finset.univ : Finset A.type).card = Fintype.card A.type :=
+    Finset.card_univ
+  simpa [zeroProfileLocalTypeGlobalBasis, htype_card] using
+    hcard.trans A.profileSymmetricPowerBudget_le
+
+/-- The compressed profile span supplied by the local type alphabet. -/
+noncomputable def zeroProfileLocalTypeCompressedProfileSpan {n κ : ℕ}
+    (A : ZeroProfileLocalTypeAlphabet n κ) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+  Submodule.span ℚ
+    (↑(zeroProfileLocalTypeGlobalBasis A) :
+      Set (MvPolynomial (Fin n) ℚ))
+
+/-- One local type space is contained in the span of the global normal-form
+basis. -/
+theorem zeroProfileLocalTypeSpace_le_globalBasis_span {n κ : ℕ}
+    (A : ZeroProfileLocalTypeAlphabet n κ)
+    (τ : A.type) :
+    zeroProfileLocalTypeSpace A τ ≤
+      Submodule.span ℚ
+        (↑(zeroProfileLocalTypeGlobalBasis A) :
+          Set (MvPolynomial (Fin n) ℚ)) := by
+  classical
+  letI : Fintype A.type := A.typeFintype
+  unfold zeroProfileLocalTypeSpace
+  apply Submodule.span_mono
+  intro q hq
+  change q ∈ zeroProfileLocalTypeGlobalBasis A
+  unfold zeroProfileLocalTypeGlobalBasis
+  exact Finset.mem_biUnion.mpr ⟨τ, Finset.mem_univ τ, hq⟩
+
+/-- One local type space is contained in the compressed profile span. -/
+theorem zeroProfileLocalTypeSpace_le_compressedProfileSpan {n κ : ℕ}
+    (A : ZeroProfileLocalTypeAlphabet n κ)
+    (τ : A.type) :
+    zeroProfileLocalTypeSpace A τ ≤
+      zeroProfileLocalTypeCompressedProfileSpan A := by
+  simpa [zeroProfileLocalTypeCompressedProfileSpan] using
+    zeroProfileLocalTypeSpace_le_globalBasis_span A τ
+
+/-- Generator-to-type normal-form row map.  The field `rowType` is the missing
+concrete local normal form: it assigns every zero-profile shifted generator row
+to an interface-anonymous local type, and `row_mem_typeSpace` proves the row
+lies in that type's constant-dimensional space. -/
+structure ZeroProfileGeneratorTypeMap {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (A : ZeroProfileLocalTypeAlphabet n κ) where
+  rowType :
+    ∀ (S : List (Fin n)), S.length ≤ κ →
+      ∀ shift : MvPolynomial (Fin n) ℚ, shift.vars ⊆ S.toFinset →
+        A.type
+  row_mem_typeSpace :
+    ∀ (S : List (Fin n)) (hS : S.length ≤ κ)
+      (shift : MvPolynomial (Fin n) ℚ) (hshift : shift.vars ⊆ S.toFinset),
+        mlProj (shift * Finset.univ.prod factors) ∈
+          zeroProfileLocalTypeSpace A (rowType S hS shift hshift)
+
+/-- Rows classified by a generator type map land in the compressed profile
+span supplied by the local type alphabet. -/
+theorem zeroProfileGeneratorTypeMap_row_mem_compressedProfileSpan
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (A : ZeroProfileLocalTypeAlphabet n κ)
+    (hmap : ZeroProfileGeneratorTypeMap κ factors A)
+    (S : List (Fin n)) (hS : S.length ≤ κ)
+    (shift : MvPolynomial (Fin n) ℚ) (hshift : shift.vars ⊆ S.toFinset) :
+    mlProj (shift * Finset.univ.prod factors) ∈
+      zeroProfileLocalTypeCompressedProfileSpan A :=
+  (zeroProfileLocalTypeSpace_le_compressedProfileSpan A
+    (hmap.rowType S hS shift hshift))
+    (hmap.row_mem_typeSpace S hS shift hshift)
+
+/-- Set-level row factorization through the compressed profile span. -/
+theorem zeroProfileShiftImageSet_subset_localTypeCompressedProfileSpan
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (A : ZeroProfileLocalTypeAlphabet n κ)
+    (hmap : ZeroProfileGeneratorTypeMap κ factors A) :
+    zeroProfileShiftImageSet κ factors ⊆
+      zeroProfileLocalTypeCompressedProfileSpan A := by
+  intro q hq
+  simp only [zeroProfileShiftImageSet, Set.mem_iUnion,
+    Set.mem_singleton_iff] at hq
+  rcases hq with ⟨S, hS, shift, hshift, hq_eq⟩
+  rw [hq_eq]
+  exact zeroProfileGeneratorTypeMap_row_mem_compressedProfileSpan
+    κ factors A hmap S hS shift hshift
+
+/-- A local normal-form type map gives a budgeted common span for the exact
+zero-profile shifted-image family. -/
+theorem zeroProfileCompressedSpanCommonSpanWithBudget_of_localTypeMap
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (A : ZeroProfileLocalTypeAlphabet n κ)
+    (hmap : ZeroProfileGeneratorTypeMap κ factors A) :
+    ZeroProfileCompressedSpanCommonSpanWithBudget κ factors
+      (withinProfileBound κ) := by
+  classical
+  refine ⟨zeroProfileLocalTypeGlobalBasis A,
+    zeroProfileLocalTypeGlobalBasis_card_le_withinProfileBound A, ?_⟩
+  simpa [zeroProfileLocalTypeCompressedProfileSpan] using
+    zeroProfileShiftImageSet_subset_localTypeCompressedProfileSpan
+      κ factors A hmap
+
+/-- Finrank form of the local normal-form type-compression criterion. -/
+theorem zeroProfileCompressedSpanFinrankCondition_of_localTypeMap
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (A : ZeroProfileLocalTypeAlphabet n κ)
+    (hmap : ZeroProfileGeneratorTypeMap κ factors A) :
+    ZeroProfileCompressedSpanFinrankCondition κ factors
+      (withinProfileBound κ) :=
+  (zeroProfileCompressedSpanCommonSpanWithBudget_iff_finrankCondition
+    κ factors (withinProfileBound κ)).mp
+    (zeroProfileCompressedSpanCommonSpanWithBudget_of_localTypeMap
+      κ factors A hmap)
+
 /-- Cook-Levin instance of the exact compressed-span finrank condition. -/
 def CookLevinZeroProfileCompressedSpanFinrankCondition
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
@@ -767,6 +949,47 @@ def CookLevinZeroProfileCompressedSpanFinrankCondition
   ZeroProfileCompressedSpanFinrankCondition (Nat.log 2 n)
     (fun i => (cookLevinFactorList M n hn htb hns).get i)
     (withinProfileBound (Nat.log 2 n))
+
+/-- Cook-Levin normal-form type-space obligation for the zero-profile shifted
+rows.  This is the paper-faithful replacement frontier: provide a finite local
+type alphabet and prove every shifted generator row factors through one of its
+constant-dimensional type spaces. -/
+def CookLevinZeroProfileLocalTypeNormalFormObligation
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∃ A : ZeroProfileLocalTypeAlphabet n (Nat.log 2 n),
+    Nonempty (ZeroProfileGeneratorTypeMap (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i) A)
+
+/-- A Cook-Levin local normal-form type map closes the existing zero-profile
+common-span target. -/
+theorem cookLevinZeroHistogramShiftCommonSpan_of_localTypeNormalFormObligation
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hlocal :
+      CookLevinZeroProfileLocalTypeNormalFormObligation M n hn htb hns) :
+    CookLevinZeroHistogramShiftCommonSpan M n hn htb hns := by
+  rcases hlocal with ⟨A, ⟨hmap⟩⟩
+  simpa [CookLevinZeroHistogramShiftCommonSpan,
+    ZeroProfileCompressedSpanCommonSpanWithBudget] using
+    (zeroProfileCompressedSpanCommonSpanWithBudget_of_localTypeMap
+      (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      A hmap)
+
+/-- Finrank version of the Cook-Levin local normal-form criterion. -/
+theorem cookLevinZeroProfileCompressedSpanFinrankCondition_of_localTypeNormalFormObligation
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hlocal :
+      CookLevinZeroProfileLocalTypeNormalFormObligation M n hn htb hns) :
+    CookLevinZeroProfileCompressedSpanFinrankCondition M n hn htb hns := by
+  rcases hlocal with ⟨A, ⟨hmap⟩⟩
+  simpa [CookLevinZeroProfileCompressedSpanFinrankCondition] using
+    (zeroProfileCompressedSpanFinrankCondition_of_localTypeMap
+      (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      A hmap)
 
 /-- The actual Cook-Levin zero-profile compressed span is finite-dimensional;
 only its sharp dimension bound remains open. -/
@@ -1153,6 +1376,39 @@ theorem not_cookLevinZeroProfileCompressedSpanFinrankCondition_two_pow_804
     M ((2 : ℕ) ^ 804) hn htb hns
     withinProfileBound_log_two_pow_804_lt_ambient
 
+/-- Consequently, any full unquotiented local type normal form whose total
+type-space budget is `withinProfileBound (Nat.log 2 n)` is impossible in the
+same ambient regimes.  The obstruction is not the local-type scaffold itself:
+it is the current generator set, which still contains the independent singleton
+shift rows. -/
+theorem not_CookLevinZeroProfileLocalTypeNormalFormObligation_of_withinProfileBound_lt_ambient
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hlt : withinProfileBound (Nat.log 2 n) < n) :
+    ¬ CookLevinZeroProfileLocalTypeNormalFormObligation M n hn htb hns := by
+  intro hlocal
+  exact
+    not_cookLevinZeroProfileCompressedSpanFinrankCondition_of_withinProfileBound_lt_ambient
+      M n hn htb hns hlt
+      (cookLevinZeroProfileCompressedSpanFinrankCondition_of_localTypeNormalFormObligation
+        M n hn htb hns hlocal)
+
+/-- Paper-scale no-go for the full unquotiented local type normal-form
+obligation at `n = 2^804`.  A viable paper-faithful type-compression route must
+therefore first quotient or separately pay for the scalar/singleton-shift
+subspace, rather than treating all shifted rows inside the same
+`withinProfileBound` budget. -/
+theorem not_CookLevinZeroProfileLocalTypeNormalFormObligation_two_pow_804
+    (M : DTM)
+    (hn : (2 : ℕ) ^ 804 ≥ 2)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ (2 : ℕ) ^ 804) :
+    ¬ CookLevinZeroProfileLocalTypeNormalFormObligation M
+      ((2 : ℕ) ^ 804) hn htb hns :=
+  not_CookLevinZeroProfileLocalTypeNormalFormObligation_of_withinProfileBound_lt_ambient
+    M ((2 : ℕ) ^ 804) hn htb hns
+    withinProfileBound_log_two_pow_804_lt_ambient
+
 /-- Generic scalar version of a one-dimensional zero-profile compressed span:
 all shifted base-product rows are scalar multiples of one ambient anchor. -/
 def ZeroProfileCompressedSpanScalarClosure {n L : ℕ}
@@ -1339,6 +1595,16 @@ theorem cookLevinZeroProfileCompressedShiftSpan_two_le_finrank
 #print axioms zeroProfileCompressedSpanKernelDisjointCompressionObligation_iff_finrankCondition
 #print axioms zeroProfileCompressedSpanIntrinsicCompressionObligation_iff_finrankCondition
 #print axioms zeroProfileCompressedSpanCommonSpanWithBudget_iff_finrankCondition
+#print axioms zeroProfileLocalTypeSpace_finrank_le
+#print axioms zeroProfileLocalTypeGlobalBasis_card_le_withinProfileBound
+#print axioms zeroProfileLocalTypeSpace_le_globalBasis_span
+#print axioms zeroProfileLocalTypeSpace_le_compressedProfileSpan
+#print axioms zeroProfileGeneratorTypeMap_row_mem_compressedProfileSpan
+#print axioms zeroProfileShiftImageSet_subset_localTypeCompressedProfileSpan
+#print axioms zeroProfileCompressedSpanCommonSpanWithBudget_of_localTypeMap
+#print axioms zeroProfileCompressedSpanFinrankCondition_of_localTypeMap
+#print axioms cookLevinZeroHistogramShiftCommonSpan_of_localTypeNormalFormObligation
+#print axioms cookLevinZeroProfileCompressedSpanFinrankCondition_of_localTypeNormalFormObligation
 #print axioms cookLevinZeroProfileCompressedShiftSpan_finrank_le_shiftSupportSetCount
 #print axioms ambient_le_withinProfileBound_of_CookLevinZeroProfileShiftSupportCountSideCondition
 #print axioms not_CookLevinZeroProfileShiftSupportCountSideCondition_of_withinProfileBound_lt_ambient
@@ -1360,6 +1626,8 @@ theorem cookLevinZeroProfileCompressedShiftSpan_two_le_finrank
 #print axioms not_zeroProfileCompressedSpanFinrankCondition_withinProfileBound_of_constCoeff_ne_zero
 #print axioms not_cookLevinZeroProfileCompressedSpanFinrankCondition_of_withinProfileBound_lt_ambient
 #print axioms not_cookLevinZeroProfileCompressedSpanFinrankCondition_two_pow_804
+#print axioms not_CookLevinZeroProfileLocalTypeNormalFormObligation_of_withinProfileBound_lt_ambient
+#print axioms not_CookLevinZeroProfileLocalTypeNormalFormObligation_two_pow_804
 #print axioms zeroProfileCompressedSpanScalarClosure_of_commonSpanWithBudget_one
 #print axioms zeroProfileCompressedSpanScalarClosure_of_finrankCondition_budget_one
 #print axioms not_zeroProfileCompressedSpanFinrankCondition_budget_one_of_constCoeff_ne_zero

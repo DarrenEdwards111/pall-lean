@@ -1,5 +1,6 @@
 import PallLean.Paper93.Paper283.RouteBRicherGaugeCorrectedAssembly
 import PallLean.Paper93.Paper283.RouteBRicherGaugeConcreteNP
+import PallLean.Paper93.Paper283.RouteBChargedShiftClosureProgress
 
 /-!
 # Corrected Route B assembly with concrete NP finite-row data
@@ -146,6 +147,50 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCom
     (routeBRicherGauge_endpointChargedPWindowBridge_of_activeTypeCaseBlockers_zeroNonScalarCardBound
       M n hn2 htb hns hn4 charge hI1 hI2c hI3 hbound hactive)
 
+/-- Concrete one-step endpoint-span charge variant of the active-blocker /
+non-scalar corrected finite-row Route B assembly.
+
+This specializes the endpoint charged-shift input to
+`concreteWEndpointSpanOneStepCharge`; no equivalence with any other charged
+relation is claimed. -/
+theorem routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_activeBlockersZeroNonScalar_concreteWEndpointSpanOneStepCharge_deltaEqRateKappa
+    {N d : Nat}
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (alpha beta alpha0 : Real) (kappa gadgetN : Nat)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {eta theta : Real}
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hN : 1 <= N) (hrowCount : m + 1 <= N)
+    (heta : 0 < eta) (htheta : 0 < theta)
+    (halpha : 0 < alpha) (halpha0 : 0 < alpha0)
+    (hkappa : 0 < kappa) (hgadgetN : 2 <= gadgetN)
+    (hI1 :
+      PerTypeProductGrouping (n := n) (endpointAugmentedConcreteW n hn4))
+    (hI3 :
+      PerTypeMlprojClosure (n := n) (endpointAugmentedConcreteW n hn4))
+    (hbound :
+      cookLevinZeroProfileNonScalarCardBound M n hn2 htb hns <=
+        withinProfileBound (Nat.log 2 n))
+    (hactive :
+      CookLevinActiveProfileTypeCaseBlockers M n hn2 htb hns)
+    (hcomm :
+      RouteBRicherGaugeGeneratorCommutation M n hn2 htb hns
+        (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns
+          (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail))) :
+    RouteBPerInstanceCertificate M n hn2 htb hns :=
+  routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_endpointChargedBridge_deltaEqRateKappa
+    (N := N) (d := d)
+    M n hn hn2 htb hns hn4 (concreteWEndpointSpanOneStepCharge n hn4)
+    alpha beta alpha0 kappa gadgetN G chi Phi
+    tail hN hrowCount heta htheta halpha halpha0 hkappa hgadgetN
+    hcomm
+    (routeBRicherGauge_endpointChargedPWindowBridge_of_activeTypeCaseBlockers_zeroNonScalarCardBound_concreteWEndpointSpanOneStepCharge
+      M n hn2 htb hns hn4 hI1 hI3 hbound hactive)
+
 /-- Stronger corrected reduction with concrete NP data: concreteW row
 embeddings close the active live-profile blockers, the zero-profile support
 side condition closes the non-scalar cardinality bound, and the prepended row
@@ -286,6 +331,7 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCom
 #print axioms routeBRicherConcreteNP_extracts_compiled_for_rows
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_endpointChargedBridge_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_activeBlockersZeroNonScalar_deltaEqRateKappa
+#print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_activeBlockersZeroNonScalar_concreteWEndpointSpanOneStepCharge_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_rowEmbeddingsZeroSupport_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsSPDPMapPreimage_rowEmbeddings_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_rowEmbeddings_deltaEqRateKappa

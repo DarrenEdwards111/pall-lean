@@ -18,6 +18,8 @@ namespace PallLean.Paper93.Paper283
 
 open MvPolynomial
 open PallLean.Paper93
+open TuringMachine
+open PallLean.Paper93.Closure
 open PallLean.Paper93.DeepMath.PathB
 open PallLean.SymTensorPowerDim (symPower)
 open SymmetricPowerBound
@@ -669,6 +671,146 @@ theorem endpointAugmentedConcreteW_chargedShiftClosure_concreteWEndpointSpanOneS
     n hn4 (concreteWEndpointSpanOneStepCharge n hn4)
     (concreteWEndpointSpanOneStepCharge_compatible n hn4)
 
+/-! ## Downstream concrete-charge wrappers -/
+
+/-- Corrected endpoint charged I5 for the concrete one-step endpoint-span
+charge relation. -/
+theorem endpointAugmentedConcreteW_shiftMlprojClosure_charged_concreteWEndpointSpanOneStepCharge_of_components
+    (n : ℕ) (hn4 : n ≥ 4)
+    (hI1 :
+      PerTypeProductGrouping (n := n) (endpointAugmentedConcreteW n hn4))
+    (hI3 :
+      PerTypeMlprojClosure (n := n) (endpointAugmentedConcreteW n hn4)) :
+    EndpointAugmentedConcreteWShiftMlprojClosureCharged n hn4
+      (concreteWEndpointSpanOneStepCharge n hn4) :=
+  endpointAugmentedConcreteW_shiftMlprojClosure_charged_of_components
+    n hn4 (concreteWEndpointSpanOneStepCharge n hn4)
+    hI1
+    (endpointAugmentedConcreteW_chargedShiftClosure_concreteWEndpointSpanOneStepCharge
+      n hn4)
+    hI3
+
+/-- Corrected endpoint local closure for the concrete one-step endpoint-span
+charge relation. -/
+theorem endpointAugmentedConcreteW_correctedLocalClosure_concreteWEndpointSpanOneStepCharge_of_components
+    (n : ℕ) (hn4 : n ≥ 4)
+    (hI1 :
+      PerTypeProductGrouping (n := n) (endpointAugmentedConcreteW n hn4))
+    (hI3 :
+      PerTypeMlprojClosure (n := n) (endpointAugmentedConcreteW n hn4)) :
+    EndpointAugmentedConcreteWCorrectedLocalClosure n hn4
+      (concreteWEndpointSpanOneStepCharge n hn4) :=
+  endpointAugmentedConcreteW_correctedLocalClosure_of_charged_components
+    n hn4 (concreteWEndpointSpanOneStepCharge n hn4)
+    hI1
+    (endpointAugmentedConcreteW_chargedShiftClosure_concreteWEndpointSpanOneStepCharge
+      n hn4)
+    hI3
+
+/-- Universal I1/I3 version of the corrected endpoint local closure for the
+concrete one-step endpoint-span charge relation. -/
+theorem endpointAugmentedConcreteW_correctedLocalClosure_concreteWEndpointSpanOneStepCharge_of_universal_I1_I3
+    (n : ℕ) (hn4 : n ≥ 4)
+    (hI1_univ : PallLean.Paper93.Wiring.PerTypeProductGrouping_universal)
+    (hI3_univ : PallLean.Paper93.Wiring.PerTypeMlprojClosure_universal) :
+    EndpointAugmentedConcreteWCorrectedLocalClosure n hn4
+      (concreteWEndpointSpanOneStepCharge n hn4) :=
+  endpointAugmentedConcreteW_correctedLocalClosure_of_universal_I1_I3_chargedShift
+    n hn4 (concreteWEndpointSpanOneStepCharge n hn4)
+    hI1_univ
+    (endpointAugmentedConcreteW_chargedShiftClosure_concreteWEndpointSpanOneStepCharge
+      n hn4)
+    hI3_univ
+
+/-- Endpoint/charged P-window bridge with the concrete one-step endpoint-span
+charge and a direct zero-profile common-span witness. -/
+noncomputable def routeBRicherGauge_endpointChargedPWindowBridge_of_activeTypeCaseBlockers_zeroProfileCommonSpan_concreteWEndpointSpanOneStepCharge
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (hI1 :
+      PerTypeProductGrouping (n := n) (endpointAugmentedConcreteW n hn4))
+    (hI3 :
+      PerTypeMlprojClosure (n := n) (endpointAugmentedConcreteW n hn4))
+    (hzero : CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hactive :
+      CookLevinActiveProfileTypeCaseBlockers M n hn2 htb hns) :
+    RouteBRicherGaugeEndpointChargedPWindowBridge
+      M n hn2 htb hns hn4 (concreteWEndpointSpanOneStepCharge n hn4) :=
+  routeBRicherGauge_endpointChargedPWindowBridge_of_activeTypeCaseBlockers_zeroProfileCommonSpan
+    M n hn2 htb hns hn4 (concreteWEndpointSpanOneStepCharge n hn4)
+    hI1
+    (endpointAugmentedConcreteW_chargedShiftClosure_concreteWEndpointSpanOneStepCharge
+      n hn4)
+    hI3 hzero hactive
+
+/-- Universal I1/I3 version of the concrete-charge endpoint/charged bridge
+with a direct zero-profile common-span witness. -/
+noncomputable def routeBRicherGauge_endpointChargedPWindowBridge_of_universal_I1_I3_activeTypeCaseBlockers_zeroProfileCommonSpan_concreteWEndpointSpanOneStepCharge
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (hI1_univ : PallLean.Paper93.Wiring.PerTypeProductGrouping_universal)
+    (hI3_univ : PallLean.Paper93.Wiring.PerTypeMlprojClosure_universal)
+    (hzero : CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hactive :
+      CookLevinActiveProfileTypeCaseBlockers M n hn2 htb hns) :
+    RouteBRicherGaugeEndpointChargedPWindowBridge
+      M n hn2 htb hns hn4 (concreteWEndpointSpanOneStepCharge n hn4) :=
+  routeBRicherGauge_endpointChargedPWindowBridge_of_activeTypeCaseBlockers_zeroProfileCommonSpan_concreteWEndpointSpanOneStepCharge
+    M n hn2 htb hns hn4
+    (hI1_univ n (endpointAugmentedConcreteW n hn4))
+    (hI3_univ n (endpointAugmentedConcreteW n hn4))
+    hzero hactive
+
+/-- Endpoint/charged P-window bridge with the concrete one-step endpoint-span
+charge and a budgeted non-scalar zero-profile closure witness. -/
+noncomputable def routeBRicherGauge_endpointChargedPWindowBridge_of_activeTypeCaseBlockers_zeroNonScalarClosure_concreteWEndpointSpanOneStepCharge
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (hI1 :
+      PerTypeProductGrouping (n := n) (endpointAugmentedConcreteW n hn4))
+    (hI3 :
+      PerTypeMlprojClosure (n := n) (endpointAugmentedConcreteW n hn4))
+    {budget : Nat}
+    (hzero :
+      CookLevinZeroProfileNonScalarClosureWithBudget
+        M n hn2 htb hns budget)
+    (hbudget : budget <= withinProfileBound (Nat.log 2 n))
+    (hactive :
+      CookLevinActiveProfileTypeCaseBlockers M n hn2 htb hns) :
+    RouteBRicherGaugeEndpointChargedPWindowBridge
+      M n hn2 htb hns hn4 (concreteWEndpointSpanOneStepCharge n hn4) :=
+  routeBRicherGauge_endpointChargedPWindowBridge_of_activeTypeCaseBlockers_zeroNonScalarClosure
+    M n hn2 htb hns hn4 (concreteWEndpointSpanOneStepCharge n hn4)
+    hI1
+    (endpointAugmentedConcreteW_chargedShiftClosure_concreteWEndpointSpanOneStepCharge
+      n hn4)
+    hI3 hzero hbudget hactive
+
+/-- Cardinality-bound variant of the concrete-charge endpoint/charged
+P-window bridge. -/
+noncomputable def routeBRicherGauge_endpointChargedPWindowBridge_of_activeTypeCaseBlockers_zeroNonScalarCardBound_concreteWEndpointSpanOneStepCharge
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (hI1 :
+      PerTypeProductGrouping (n := n) (endpointAugmentedConcreteW n hn4))
+    (hI3 :
+      PerTypeMlprojClosure (n := n) (endpointAugmentedConcreteW n hn4))
+    (hbound :
+      cookLevinZeroProfileNonScalarCardBound M n hn2 htb hns <=
+        withinProfileBound (Nat.log 2 n))
+    (hactive :
+      CookLevinActiveProfileTypeCaseBlockers M n hn2 htb hns) :
+    RouteBRicherGaugeEndpointChargedPWindowBridge
+      M n hn2 htb hns hn4 (concreteWEndpointSpanOneStepCharge n hn4) :=
+  routeBRicherGauge_endpointChargedPWindowBridge_of_activeTypeCaseBlockers_zeroNonScalarClosure_concreteWEndpointSpanOneStepCharge
+    M n hn2 htb hns hn4 hI1 hI3
+    (cookLevinZeroProfileNonScalarClosureWithCardBound M n hn2 htb hns)
+    hbound hactive
+
 /-- Direct endpoint-front wrapper for a future concrete charge constructor.
 
 The hypotheses are the same four constructor-level fields used by
@@ -817,6 +959,13 @@ theorem endpointAugmentedConcreteW_chargedShiftClosure_of_canonical_endpointSpan
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_of_generatorClosure
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_of_oneStepChargeCompatible
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_concreteWEndpointSpanOneStepCharge
+#print axioms endpointAugmentedConcreteW_shiftMlprojClosure_charged_concreteWEndpointSpanOneStepCharge_of_components
+#print axioms endpointAugmentedConcreteW_correctedLocalClosure_concreteWEndpointSpanOneStepCharge_of_components
+#print axioms endpointAugmentedConcreteW_correctedLocalClosure_concreteWEndpointSpanOneStepCharge_of_universal_I1_I3
+#print axioms routeBRicherGauge_endpointChargedPWindowBridge_of_activeTypeCaseBlockers_zeroProfileCommonSpan_concreteWEndpointSpanOneStepCharge
+#print axioms routeBRicherGauge_endpointChargedPWindowBridge_of_universal_I1_I3_activeTypeCaseBlockers_zeroProfileCommonSpan_concreteWEndpointSpanOneStepCharge
+#print axioms routeBRicherGauge_endpointChargedPWindowBridge_of_activeTypeCaseBlockers_zeroNonScalarClosure_concreteWEndpointSpanOneStepCharge
+#print axioms routeBRicherGauge_endpointChargedPWindowBridge_of_activeTypeCaseBlockers_zeroNonScalarCardBound_concreteWEndpointSpanOneStepCharge
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_of_endpointSpanChargeFields
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_on_canonical_endpointSpan_split_source
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_of_canonical_endpointSpanProfile_and_split

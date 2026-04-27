@@ -709,6 +709,143 @@ theorem routeBRicherConcreteNPPrependedMultilinear_exists_rowSpanComplement_not_
     (routeBRicherConcreteNPPrependedMultilinear_rowSpan_exists_ne_zero
       M n hn2 htb hns)
 
+/-- The concrete multilinear-tail finite-row projection built from an
+explicit complement policy rather than the arbitrary `Classical.choose`
+complement. -/
+noncomputable def routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+    (hC :
+      IsCompl
+        (finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedMultilinearRows
+            M n hn2 htb hns))
+        C) :
+    SATDeciderGaugeSpace M n hn2 htb hns →ₗ[Rat]
+      SATDeciderGaugeSpace M n hn2 htb hns :=
+  routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+    (routeBRicherFiniteRowsCandidateGaugeWithComplement
+      M n hn2 htb hns
+      (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns)
+      C hC)
+
+/-- Paper-faithful descent stated for an explicit-complement projection
+policy.  This is the same commutation condition as the selected finite-row
+descent surface, but with the supplied complement deciding the projection. -/
+def RouteBRicherConcreteNPPrependedMultilinearProjectionDescentWithComplement
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+    (hC :
+      IsCompl
+        (finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedMultilinearRows
+            M n hn2 htb hns))
+        C) : Prop :=
+  forall (spdpKappa ell : Nat)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns)
+    (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+    (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+    S.length = spdpKappa ->
+    shift.totalDegree <= ell ->
+    shift.vars <= S.toFinset ->
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S ->
+    routeBSPDPGeneratorRow M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement
+          M n hn2 htb hns C hC p)
+        S shift =
+      routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement
+        M n hn2 htb hns C hC
+        (routeBSPDPGeneratorRow M n hn2 htb hns p S shift)
+
+/-- The explicit complement realizes the currently selected finite-row policy
+only if its projection map is equal to the selected projection map.  This is
+the checked replacement criterion; it is intentionally not asserted for an
+arbitrary complement. -/
+def RouteBRicherConcreteNPPrependedMultilinearComplementRealizesSelectedProjection
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+    (hC :
+      IsCompl
+        (finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedMultilinearRows
+            M n hn2 htb hns))
+        C) : Prop :=
+  routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement
+      M n hn2 htb hns C hC =
+    routeBRicherConcreteNPPrependedMultilinearProjection M n hn2 htb hns
+
+/-- Pointwise zero criterion for the concrete explicit-complement projection
+policy. -/
+theorem routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement_apply_eq_zero_iff
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+    (hC :
+      IsCompl
+        (finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedMultilinearRows
+            M n hn2 htb hns))
+        C)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns) :
+    routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement
+        M n hn2 htb hns C hC p = 0 ↔
+      p ∈ C := by
+  simpa [routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement] using
+    routeBRicherFiniteRowsCandidateGaugeWithComplement_projection_apply_eq_zero_iff
+      M n hn2 htb hns
+      (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns)
+      C hC p
+
+/-- For an explicit complement policy, first-square nonvanishing is exactly
+avoidance of that complement. -/
+theorem routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement_firstSquareProbe_ne_zero_iff_not_mem
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+    (hC :
+      IsCompl
+        (finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedMultilinearRows
+            M n hn2 htb hns))
+        C) :
+    routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement
+        M n hn2 htb hns C hC
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns) ≠ 0 ↔
+      routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns ∉ C :=
+  not_congr
+    (routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement_apply_eq_zero_iff
+      M n hn2 htb hns C hC
+      (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns))
+
+/-- Any explicit complement policy that avoids the first-square probe has a
+nonzero concrete explicit-complement projection value on that probe. -/
+theorem routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement_firstSquareProbe_ne_zero_of_not_mem
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+    (hC :
+      IsCompl
+        (finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedMultilinearRows
+            M n hn2 htb hns))
+        C)
+    (hprobe :
+      routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns ∉ C) :
+    routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement
+        M n hn2 htb hns C hC
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns) ≠ 0 :=
+  (routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement_firstSquareProbe_ne_zero_iff_not_mem
+    M n hn2 htb hns C hC).mpr hprobe
+
 /-- Any explicit complement policy that avoids the first-square probe has a
 nonzero `finiteSubmoduleProjectionWithComplement` value on that probe. -/
 theorem routeBRicherConcreteNPPrependedMultilinear_projectionWithComplement_firstSquareProbe_ne_zero_of_not_mem
@@ -770,6 +907,31 @@ theorem routeBRicherConcreteNPPrependedMultilinear_exists_complementPolicy_proje
   exact
     ⟨C, hC,
       routeBRicherConcreteNPPrependedMultilinear_projectionWithComplement_firstSquareProbe_ne_zero_of_not_mem
+        M n hn2 htb hns C hC hprobe⟩
+
+/-- There is an explicit-complement concrete projection policy for the row
+span that is nonzero on the first-square probe. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_exists_complementPolicy_projectionWithComplement_ne_zero_firstSquareProbe
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    ∃ (C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+      (hC :
+        IsCompl
+          (finiteRowsSubmodule
+            (routeBRicherConcreteNPPrependedMultilinearRows
+              M n hn2 htb hns))
+          C),
+      routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement
+          M n hn2 htb hns C hC
+          (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+            M n hn2 htb hns) ≠ 0 := by
+  rcases
+    routeBRicherConcreteNPPrependedMultilinear_exists_rowSpanComplement_not_mem_firstSquareProbe
+      M n hn2 htb hns with
+    ⟨C, hC, hprobe⟩
+  exact
+    ⟨C, hC,
+      routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement_firstSquareProbe_ne_zero_of_not_mem
         M n hn2 htb hns C hC hprobe⟩
 
 /-! ## Selected-projection behavior on the first-square probe -/
@@ -929,6 +1091,190 @@ theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne
   not_congr
     (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_eq_zero_iff_mem_selectedComplement
       M n hn2 htb hns)
+
+/-! ## Explicit-policy replacement criteria -/
+
+/-- Under the checked policy-realization equality, explicit-complement
+descent is exactly descent for the selected finite-row projection. -/
+theorem routeBRicherConcreteNPPrependedMultilinearProjectionDescentWithComplement_iff_selectedProjectionDescent_of_realizesSelectedProjection
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+    (hC :
+      IsCompl
+        (finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedMultilinearRows
+            M n hn2 htb hns))
+        C)
+    (hpolicy :
+      RouteBRicherConcreteNPPrependedMultilinearComplementRealizesSelectedProjection
+        M n hn2 htb hns C hC) :
+    RouteBRicherConcreteNPPrependedMultilinearProjectionDescentWithComplement
+        M n hn2 htb hns C hC ↔
+      RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns := by
+  dsimp [RouteBRicherConcreteNPPrependedMultilinearComplementRealizesSelectedProjection] at hpolicy
+  constructor
+  · intro hdesc spdpKappa ell p S shift
+      hSlen hshiftDegree hshiftVars hadm
+    change routeBSPDPGeneratorRow M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearProjection
+          M n hn2 htb hns p)
+        S shift =
+      routeBRicherConcreteNPPrependedMultilinearProjection M n hn2 htb hns
+        (routeBSPDPGeneratorRow M n hn2 htb hns p S shift)
+    rw [← hpolicy]
+    exact hdesc spdpKappa ell p S shift
+      hSlen hshiftDegree hshiftVars hadm
+  · intro hdesc spdpKappa ell p S shift
+      hSlen hshiftDegree hshiftVars hadm
+    rw [hpolicy]
+    exact hdesc spdpKappa ell p S shift
+      hSlen hshiftDegree hshiftVars hadm
+
+/-- Explicit-complement descent transfers to the selected projection only
+after the explicit projection has been checked to realize the selected
+policy. -/
+theorem routeBRicherConcreteNPPrependedMultilinearProjectionDescent_of_projectionWithComplementDescent_of_realizesSelectedProjection
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+    (hC :
+      IsCompl
+        (finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedMultilinearRows
+            M n hn2 htb hns))
+        C)
+    (hpolicy :
+      RouteBRicherConcreteNPPrependedMultilinearComplementRealizesSelectedProjection
+        M n hn2 htb hns C hC)
+    (hdesc :
+      RouteBRicherConcreteNPPrependedMultilinearProjectionDescentWithComplement
+        M n hn2 htb hns C hC) :
+    RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns :=
+  (routeBRicherConcreteNPPrependedMultilinearProjectionDescentWithComplement_iff_selectedProjectionDescent_of_realizesSelectedProjection
+    M n hn2 htb hns C hC hpolicy).mp hdesc
+
+/-- Conversely, selected-projection descent can be restated for an explicit
+policy once that policy has been checked to realize the selected projection. -/
+theorem routeBRicherConcreteNPPrependedMultilinearProjectionWithComplementDescent_of_projectionDescent_of_realizesSelectedProjection
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+    (hC :
+      IsCompl
+        (finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedMultilinearRows
+            M n hn2 htb hns))
+        C)
+    (hpolicy :
+      RouteBRicherConcreteNPPrependedMultilinearComplementRealizesSelectedProjection
+        M n hn2 htb hns C hC)
+    (hdesc :
+      RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns) :
+    RouteBRicherConcreteNPPrependedMultilinearProjectionDescentWithComplement
+        M n hn2 htb hns C hC :=
+  (routeBRicherConcreteNPPrependedMultilinearProjectionDescentWithComplement_iff_selectedProjectionDescent_of_realizesSelectedProjection
+    M n hn2 htb hns C hC hpolicy).mpr hdesc
+
+/-- If an explicit first-square-avoiding complement is checked to be the
+selected projection policy, then the selected projection is nonzero on the
+first-square probe. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_selectedProjection_firstSquareProbe_ne_zero_of_realizesSelectedProjection
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+    (hC :
+      IsCompl
+        (finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedMultilinearRows
+            M n hn2 htb hns))
+        C)
+    (hpolicy :
+      RouteBRicherConcreteNPPrependedMultilinearComplementRealizesSelectedProjection
+        M n hn2 htb hns C hC)
+    (hprobe :
+      routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns ∉ C) :
+    routeBRicherConcreteNPPrependedMultilinearProjection
+        M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns) ≠ 0 := by
+  dsimp [RouteBRicherConcreteNPPrependedMultilinearComplementRealizesSelectedProjection] at hpolicy
+  rw [← hpolicy]
+  exact
+    routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement_firstSquareProbe_ne_zero_of_not_mem
+      M n hn2 htb hns C hC hprobe
+
+/-- The same checked replacement criterion gives first-square avoidance for
+the selected complement. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_selectedComplement_firstSquareProbe_not_mem_of_realizesSelectedProjection
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+    (hC :
+      IsCompl
+        (finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedMultilinearRows
+            M n hn2 htb hns))
+        C)
+    (hpolicy :
+      RouteBRicherConcreteNPPrependedMultilinearComplementRealizesSelectedProjection
+        M n hn2 htb hns C hC)
+    (hprobe :
+      routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns ∉ C) :
+    routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns ∉
+      finiteSubmoduleProjectionComplement
+        (finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedMultilinearRows
+            M n hn2 htb hns)) :=
+  (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_zero_iff_not_mem_selectedComplement
+    M n hn2 htb hns).mp
+    (routeBRicherConcreteNPPrependedMultilinear_selectedProjection_firstSquareProbe_ne_zero_of_realizesSelectedProjection
+      M n hn2 htb hns C hC hpolicy hprobe)
+
+/-- There is an explicit first-square-avoiding complement policy; to replace
+the arbitrary selected projection by that policy, one must additionally prove
+that the explicit projection realizes the selected projection map. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_exists_firstSquareAvoidingComplementPolicy_with_selectedReplacementCriterion
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    ∃ (C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+      (hC :
+        IsCompl
+          (finiteRowsSubmodule
+            (routeBRicherConcreteNPPrependedMultilinearRows
+              M n hn2 htb hns))
+          C),
+      routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns ∉ C ∧
+        (RouteBRicherConcreteNPPrependedMultilinearComplementRealizesSelectedProjection
+            M n hn2 htb hns C hC ->
+          routeBRicherConcreteNPPrependedMultilinearProjection
+              M n hn2 htb hns
+              (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+                M n hn2 htb hns) ≠ 0 ∧
+            routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+                M n hn2 htb hns ∉
+              finiteSubmoduleProjectionComplement
+                (finiteRowsSubmodule
+                  (routeBRicherConcreteNPPrependedMultilinearRows
+                    M n hn2 htb hns))) := by
+  rcases
+    routeBRicherConcreteNPPrependedMultilinear_exists_rowSpanComplement_not_mem_firstSquareProbe
+      M n hn2 htb hns with
+    ⟨C, hC, hprobe⟩
+  refine ⟨C, hC, hprobe, ?_⟩
+  intro hpolicy
+  exact
+    ⟨routeBRicherConcreteNPPrependedMultilinear_selectedProjection_firstSquareProbe_ne_zero_of_realizesSelectedProjection
+        M n hn2 htb hns C hC hpolicy hprobe,
+      routeBRicherConcreteNPPrependedMultilinear_selectedComplement_firstSquareProbe_not_mem_of_realizesSelectedProjection
+        M n hn2 htb hns C hC hpolicy hprobe⟩
 
 /-- The selected projection decomposes the first-square probe into a row-span
 component and a selected-kernel residual. -/
@@ -1330,8 +1676,15 @@ theorem routeBRicherConcreteNPPrependedMultilinear_not_explicitComplement_le_pro
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_zero_coeff_firstVar_square
 #print axioms routeBRicherConcreteNPPrependedMultilinear_rowSpan_exists_ne_zero
 #print axioms routeBRicherConcreteNPPrependedMultilinear_exists_rowSpanComplement_not_mem_firstSquareProbe
+#print axioms routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement
+#print axioms RouteBRicherConcreteNPPrependedMultilinearProjectionDescentWithComplement
+#print axioms RouteBRicherConcreteNPPrependedMultilinearComplementRealizesSelectedProjection
+#print axioms routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement_apply_eq_zero_iff
+#print axioms routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement_firstSquareProbe_ne_zero_iff_not_mem
+#print axioms routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement_firstSquareProbe_ne_zero_of_not_mem
 #print axioms routeBRicherConcreteNPPrependedMultilinear_projectionWithComplement_firstSquareProbe_ne_zero_of_not_mem
 #print axioms routeBRicherConcreteNPPrependedMultilinear_exists_complementPolicy_projection_ne_zero_firstSquareProbe
+#print axioms routeBRicherConcreteNPPrependedMultilinear_exists_complementPolicy_projectionWithComplement_ne_zero_firstSquareProbe
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_mem_rowSpan
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_mem_rowSpan_iff_projection_eq_self
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_self
@@ -1339,6 +1692,12 @@ theorem routeBRicherConcreteNPPrependedMultilinear_not_explicitComplement_le_pro
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_zero_of_mem_rowSpan
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_eq_zero_iff_mem_selectedComplement
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_zero_iff_not_mem_selectedComplement
+#print axioms routeBRicherConcreteNPPrependedMultilinearProjectionDescentWithComplement_iff_selectedProjectionDescent_of_realizesSelectedProjection
+#print axioms routeBRicherConcreteNPPrependedMultilinearProjectionDescent_of_projectionWithComplementDescent_of_realizesSelectedProjection
+#print axioms routeBRicherConcreteNPPrependedMultilinearProjectionWithComplementDescent_of_projectionDescent_of_realizesSelectedProjection
+#print axioms routeBRicherConcreteNPPrependedMultilinear_selectedProjection_firstSquareProbe_ne_zero_of_realizesSelectedProjection
+#print axioms routeBRicherConcreteNPPrependedMultilinear_selectedComplement_firstSquareProbe_not_mem_of_realizesSelectedProjection
+#print axioms routeBRicherConcreteNPPrependedMultilinear_exists_firstSquareAvoidingComplementPolicy_with_selectedReplacementCriterion
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_residual_mem_selectedComplement
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_residual_ne_zero
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_not_mem_rowSpan_and_selectedComplement
