@@ -71,6 +71,7 @@
 import PallLean.MultilinearSPDP
 import PallLean.CookLevinDefs
 import PallLean.GodMoveCore
+import PallLean.GodMoveReal
 import Mathlib.Tactic
 
 namespace GlobalGodMoveGauge
@@ -794,6 +795,60 @@ restriction, projection, output identification, and a rank bridge proving the
 steps are rank-monotone. This avoids treating an arbitrary polynomial
 `LinearMap` as a valid God-Move projection. -/
 
+/-- **Raw/source P-side upper-bound interface for the semantic Theorem 207 route.**
+
+The direct semantic contradiction in `GodMoveCore.separation_from_semantic_target`
+uses the rank of the source Cook-Levin polynomial itself, because the staged
+`PiPhi` extraction bridge proves
+`rank(coupled sheet) ≤ rank(compiledPoly)`. This seam is therefore deliberately
+not the projected `piStar_p_side_bound`: replacing it by a bound on
+`piStar (compiledPoly)` would not match the paper-faithful source/target chain
+unless an additional theorem related that projected quantity back to the raw
+source rank used by the extraction bridge. -/
+structure Theorem207RawSourcePSideUpperBound
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop where
+  /-- Theorem 10 / Theorem 32 as needed by the semantic target route:
+  the unprojected source polynomial has polynomial SPDP rank. -/
+  raw_source_p_side_bound :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn2 htb hns)) ≤ n ^ 200
+
+/-- Package the raw/source P-side inequality into its named Theorem 207 seam. -/
+def theorem207RawSourcePSideUpperBound_of_bound
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hP :
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns)) ≤ n ^ 200) :
+    Theorem207RawSourcePSideUpperBound M n hn hn2 htb hns where
+  raw_source_p_side_bound := hP
+
+/-- The local product-form `compiledPoly` cannot satisfy the raw/source
+P-side seam at the Route B scale.
+
+`GodMoveReal.compiledPoly_rank_gt_npow200_at_large_n` proves, axiom-free, that
+this unprojected product polynomial already has rank strictly larger than
+`n^200`. Therefore a paper-faithful semantic witness cannot close by proving a
+raw bound on this local `compiledPoly`; it needs the paper's instrumented or
+gauge/collapse source object instead. -/
+theorem theorem207RawSourcePSideUpperBound_not_for_local_compiledPoly
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    ¬ Theorem207RawSourcePSideUpperBound M n hn hn2 htb hns := by
+  intro hP
+  have hgt : n ^ 200 <
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns)) := by
+    simpa using GodMoveReal.compiledPoly_rank_gt_npow200_at_large_n M n hn htb hns
+  exact (not_le_of_gt hgt) hP.raw_source_p_side_bound
+
 /-- **Paper-faithful Theorem 207 semantic witness.**
 
 This is the Route B chain in the shape used by `GodMoveCore`:
@@ -808,7 +863,7 @@ This is the Route B chain in the shape used by `GodMoveCore`:
 Unlike the legacy gauge shells above, this type contains no arbitrary
 polynomial projection field. -/
 structure Theorem207SemanticWitness
-    (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M) : Type where
   /-- The coupled verifier sheet `Qx_Phi,S` extracted by the paper's
@@ -823,18 +878,34 @@ structure Theorem207SemanticWitness
   rank_bridge :
     ∀ sem : ExtractionMapSemantics M n hn2 htb hns hdec target,
       ExtractionMapRankBridge sem
-  /-- P-side upper bound after the PiStar gauge/coordinate choice. -/
-  compiled_p_side_bound :
-    mlBlockedSpdpRank
-      (cook_levin_compilation M n hn2 htb hns).partition
-      (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPoly (cook_levin_compilation M n hn2 htb hns)) ≤ n ^ 200
+  /-- Raw/source P-side upper bound used by the semantic extraction bridge. -/
+  raw_source_p_side_upper_bound :
+    Theorem207RawSourcePSideUpperBound M n hn hn2 htb hns
   /-- NP-side Ramanujan-Tseitin identity-minor lower bound on the same
   coupled sheet. -/
   sheet_np_side_lower_bound :
     Nat.choose (n / 3) (Nat.log 2 n) ≤
       mlBlockedSpdpRank target.coupledPartition
         (Nat.log 2 n) (Nat.log 2 n) target.coupledPoly
+
+/-- The named raw/source P-side seam carried by a semantic witness gives the
+inequality expected by `separation_from_semantic_target`. -/
+theorem theorem207SemanticWitness_raw_source_p_side_bound
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M)
+    (W : Theorem207SemanticWitness M n hn hn2 htb hns hdec) :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn2 htb hns)) ≤ n ^ 200 :=
+  have hP : Theorem207RawSourcePSideUpperBound M n hn hn2 htb hns :=
+    Theorem207SemanticWitness.raw_source_p_side_upper_bound
+      (M := M) (n := n) (hn := hn) (hn2 := hn2)
+      (htb := htb) (hns := hns) (hdec := hdec) W
+  Theorem207RawSourcePSideUpperBound.raw_source_p_side_bound
+    (M := M) (n := n) (hn := hn) (hn2 := hn2)
+    (htb := htb) (hns := hns) hP
 
 /-- Build the paper-faithful Theorem 207 semantic witness from the exact
 `GodMoveCore` target package.
@@ -850,10 +921,7 @@ def theorem207SemanticWitness_of_target_data
     (targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec)
     (hsem :
       GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData.extractionTarget)
-    (hP : mlBlockedSpdpRank
-      (cook_levin_compilation M n hn2 htb hns).partition
-      (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPoly (cook_levin_compilation M n hn2 htb hns)) ≤ n ^ 200)
+    (hP : Theorem207RawSourcePSideUpperBound M n hn hn2 htb hns)
     (hNP : Nat.choose (n / 3) (Nat.log 2 n) ≤
       mlBlockedSpdpRank targetData.extractionTarget.coupledPartition
         (Nat.log 2 n) (Nat.log 2 n) targetData.extractionTarget.coupledPoly) :
@@ -861,7 +929,7 @@ def theorem207SemanticWitness_of_target_data
   target := targetData.extractionTarget
   extraction_semantics := hsem
   rank_bridge := fun sem => ExtractionMapRankBridge.ofSemantics sem
-  compiled_p_side_bound := hP
+  raw_source_p_side_upper_bound := hP
   sheet_np_side_lower_bound := hNP
 
 /-- Build the paper-faithful Theorem 207 semantic witness directly from the
@@ -875,10 +943,7 @@ def theorem207SemanticWitness_of_semantic_gap
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M)
     (gap : GodMoveSemanticGap M n hn2 htb hns hdec)
-    (hP : mlBlockedSpdpRank
-      (cook_levin_compilation M n hn2 htb hns).partition
-      (Nat.log 2 n) (Nat.log 2 n)
-      (compiledPoly (cook_levin_compilation M n hn2 htb hns)) ≤ n ^ 200)
+    (hP : Theorem207RawSourcePSideUpperBound M n hn hn2 htb hns)
     (hNP : Nat.choose (n / 3) (Nat.log 2 n) ≤
       mlBlockedSpdpRank gap.extractionTarget.coupledPartition
         (Nat.log 2 n) (Nat.log 2 n) gap.extractionTarget.coupledPoly) :
@@ -886,8 +951,71 @@ def theorem207SemanticWitness_of_semantic_gap
   target := gap.extractionTarget
   extraction_semantics := gap.extractionSemantics
   rank_bridge := fun sem => ExtractionMapRankBridge.ofSemantics sem
-  compiled_p_side_bound := hP
+  raw_source_p_side_upper_bound := hP
   sheet_np_side_lower_bound := hNP
+
+/-- Build the paper-faithful semantic witness from same-target identity-minor
+data, rather than from a detached rank inequality. -/
+def theorem207SemanticWitness_of_target_data_same_target_identity_minor
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M)
+    (targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec)
+    (hsem :
+      GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData.extractionTarget)
+    (hP : Theorem207RawSourcePSideUpperBound M n hn hn2 htb hns)
+    (minor : RouteBIdentityMinorSameTargetData targetData.extractionTarget) :
+    Theorem207SemanticWitness M n hn hn2 htb hns hdec :=
+  theorem207SemanticWitness_of_target_data M n hn hn2 htb hns hdec
+    targetData hsem hP
+    (routeB_strong_np_from_same_target_identity_minor minor)
+
+/-- Build the paper-faithful semantic witness from a semantic gap plus
+same-target identity-minor data. -/
+def theorem207SemanticWitness_of_semantic_gap_same_target_identity_minor
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M)
+    (gap : GodMoveSemanticGap M n hn2 htb hns hdec)
+    (hP : Theorem207RawSourcePSideUpperBound M n hn hn2 htb hns)
+    (minor : RouteBIdentityMinorSameTargetData gap.extractionTarget) :
+    Theorem207SemanticWitness M n hn hn2 htb hns hdec :=
+  theorem207SemanticWitness_of_semantic_gap M n hn hn2 htb hns hdec
+    gap hP (routeB_strong_np_from_same_target_identity_minor minor)
+
+/-- Narrow semantic-target/NP-side theorem seam for Theorem 207.
+
+This deliberately does **not** assert the P-side source bound. It only chooses
+the exact semantic extraction target and supplies identity-minor evidence on
+that same target. The raw/source P-side question remains the separate
+`Theorem207RawSourcePSideUpperBound` seam above. -/
+axiom exists_theorem207_semantic_target_identity_minor_data
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) :
+    ∃ targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec,
+      GodMoveExtractionTargetTheorem
+        M n hn2 htb hns hdec targetData.extractionTarget ∧
+      Nonempty (RouteBIdentityMinorSameTargetData targetData.extractionTarget)
+
+/-- Assemble the semantic witness from the narrow semantic-target/identity-minor
+axiom plus a separate P-side source-bound seam. -/
+noncomputable def theorem207SemanticWitness_from_target_identity_minor_data
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M)
+    (hP : Theorem207RawSourcePSideUpperBound M n hn hn2 htb hns) :
+    Theorem207SemanticWitness M n hn hn2 htb hns hdec :=
+  let targetData :=
+    Classical.choose
+      (exists_theorem207_semantic_target_identity_minor_data
+        M n hn hn2 htb hns hdec)
+  let htarget :=
+    Classical.choose_spec
+      (exists_theorem207_semantic_target_identity_minor_data
+        M n hn hn2 htb hns hdec)
+  theorem207SemanticWitness_of_target_data_same_target_identity_minor
+    M n hn hn2 htb hns hdec targetData htarget.1 hP (Classical.choice htarget.2)
 
 /-- The Theorem 207 identity-minor lower bound implies the weakened NP lower
 bound expected by `separation_from_semantic_target`. -/
@@ -918,7 +1046,8 @@ theorem theorem207SemanticWitness_false
   separation_from_semantic_target M n hn2 htb hns hdec hn
     W.target W.extraction_semantics
     (theorem207SemanticWitness_weakened_np_lower M n hn hn2 htb hns hdec W)
-    W.rank_bridge W.compiled_p_side_bound
+    W.rank_bridge
+    (theorem207SemanticWitness_raw_source_p_side_bound M n hn hn2 htb hns hdec W)
 
 /-! ### Partial axiom-free discharge of Theorem207Witness
 
@@ -1189,6 +1318,13 @@ depends on. Expected outcomes:
   `theorem207SemanticWitness_of_semantic_gap` —
   no custom axioms; these only package exact `GodMoveCore` semantic data and
   the two same-target rank bounds into the paper-faithful witness.
+* `theorem207RawSourcePSideUpperBound_not_for_local_compiledPoly` —
+  no custom axioms; it records that the local product-form `compiledPoly`
+  cannot be the raw/source P-side object for this semantic shell.
+* `theorem207SemanticWitness_from_target_identity_minor_data` —
+  only `exists_theorem207_semantic_target_identity_minor_data`; this is the
+  narrow semantic-target plus same-target identity-minor seam, deliberately
+  leaving the raw/source P-side bound as a separate input.
 * `theorem207SemanticWitness_weakened_np_lower` / `theorem207SemanticWitness_false` —
   no new custom axioms; these expose the paper-faithful `GodMoveCore`
   semantic extraction route and reuse the existing arithmetic/binomial and
@@ -1217,10 +1353,25 @@ depends on. Expected outcomes:
 #print axioms exists_theorem207_component_interfaces_from_witness_axiom
 -- Expected: propext, Classical.choice, Quot.sound,
 --   GlobalGodMoveGauge.exists_theorem207_witness.
+#print axioms theorem207RawSourcePSideUpperBound_of_bound
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms theorem207RawSourcePSideUpperBound_not_for_local_compiledPoly
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+-- Axiom-free obstruction to using the local product-form compiledPoly as the
+-- raw/source P-side object.
+#print axioms theorem207SemanticWitness_raw_source_p_side_bound
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms theorem207SemanticWitness_of_target_data
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms theorem207SemanticWitness_of_semantic_gap
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms theorem207SemanticWitness_of_target_data_same_target_identity_minor
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms theorem207SemanticWitness_of_semantic_gap_same_target_identity_minor
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms theorem207SemanticWitness_from_target_identity_minor_data
+-- Expected: propext, Classical.choice, Quot.sound,
+--   GlobalGodMoveGauge.exists_theorem207_semantic_target_identity_minor_data.
 #print axioms theorem207SemanticWitness_weakened_np_lower
 -- Expected: propext, Classical.choice, Quot.sound
 -- (Axiom-free arithmetic weakening from C(n/3, log n) to n^(log n / 4).)
