@@ -832,6 +832,183 @@ theorem routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorProjecti
       hshiftLog hshiftVars hadm hpZero,
     hrowNe⟩
 
+/-- A strict nonzero kernel-generator witness splits exactly into either the
+projection-invisible residual gap or the visible chosen-kernel obstruction. -/
+theorem routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorNonzeroWitness_iff_projectionInvisibleNonzeroWitness_or_kernelObstruction
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorNonzeroWitness
+        M n hn2 htb hns ↔
+      RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorProjectionInvisibleNonzeroWitness
+          M n hn2 htb hns ∨
+        RouteBRicherSPDPStableCandidateLogWindowHeadTailChosenProjectionKernelObstruction
+          M n hn2 htb hns := by
+  constructor
+  · intro hbad
+    rcases hbad with ⟨spdpKappa, ell, p, S, shift,
+      hSlen, hshiftDegree, hSlog, hshiftLog, hshiftVars, hadm,
+      hpZero, hrowNe⟩
+    by_cases hprojZero :
+        routeBRicherSPDPStableCandidateProjection M n hn2 htb hns
+          (routeBRicherSPDPStableCandidateLogWindowHeadTail M n hn2 htb hns)
+          (routeBSPDPGeneratorRow M n hn2 htb hns p S shift) = 0
+    · exact Or.inl
+        ⟨spdpKappa, ell, p, S, shift,
+          hSlen, hshiftDegree, hSlog, hshiftLog, hshiftVars, hadm,
+          hpZero, hprojZero, hrowNe⟩
+    · exact Or.inr
+        ⟨spdpKappa, ell, p, S, shift,
+          hSlen, hshiftDegree, hSlog, hshiftLog, hshiftVars, hadm,
+          hpZero, hprojZero⟩
+  · intro hsplit
+    rcases hsplit with hbad | hbad
+    · exact
+        routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorNonzeroWitness_of_projectionInvisibleNonzeroWitness
+          M n hn2 htb hns hbad
+    · exact
+        routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorNonzeroWitness_of_kernelObstruction
+          M n hn2 htb hns hbad
+
+/-- Failure of strict residual-row annihilation is exactly the disjunction
+between a projection-invisible residual gap and a visible chosen-kernel
+obstruction. -/
+theorem routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_iff_projectionInvisibleNonzeroWitness_or_kernelObstruction
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    (¬ RouteBRicherSPDPStableCandidateLogWindowHeadTailResidualGeneratorZero
+        M n hn2 htb hns) ↔
+      RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorProjectionInvisibleNonzeroWitness
+          M n hn2 htb hns ∨
+        RouteBRicherSPDPStableCandidateLogWindowHeadTailChosenProjectionKernelObstruction
+          M n hn2 htb hns := by
+  constructor
+  · intro hnot
+    exact
+      (routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorNonzeroWitness_iff_projectionInvisibleNonzeroWitness_or_kernelObstruction
+        M n hn2 htb hns).mp
+        (routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorNonzeroWitness_of_not_residualGeneratorZero
+          M n hn2 htb hns hnot)
+  · intro hsplit hzero
+    rcases hsplit with hbad | hbad
+    · exact
+        (routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_of_projectionInvisibleNonzeroWitness
+          M n hn2 htb hns hbad) hzero
+    · exact
+        (routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_of_kernelGeneratorNonzeroWitness
+          M n hn2 htb hns
+          (routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorNonzeroWitness_of_kernelObstruction
+            M n hn2 htb hns hbad)) hzero
+
+/-- Projection-escape version of the strict residual-failure split: a failed
+strict residual proof is either projection-invisible, or it is exactly the
+existing visible log-window projection escape. -/
+theorem routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_iff_projectionInvisibleNonzeroWitness_or_logWindowProjectionEscapeWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    (¬ RouteBRicherSPDPStableCandidateLogWindowHeadTailResidualGeneratorZero
+        M n hn2 htb hns) ↔
+      RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorProjectionInvisibleNonzeroWitness
+          M n hn2 htb hns ∨
+        RouteBRicherSPDPStableCandidateHeadSpanTailLogWindowProjectionEscapeWitness
+          M n hn2 htb hns := by
+  constructor
+  · intro hnot
+    rcases
+      (routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_iff_projectionInvisibleNonzeroWitness_or_kernelObstruction
+        M n hn2 htb hns).mp hnot with hbad | hbad
+    · exact Or.inl hbad
+    · exact Or.inr
+        (routeBRicherSPDPStableCandidate_headSpanTailLogWindowProjectionEscapeWitness_of_kernelObstruction
+          M n hn2 htb hns hbad)
+  · intro hsplit hzero
+    rcases hsplit with hbad | hbad
+    · exact
+        (routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_of_projectionInvisibleNonzeroWitness
+          M n hn2 htb hns hbad) hzero
+    · exact
+        (routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_of_kernelGeneratorNonzeroWitness
+          M n hn2 htb hns
+          (routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorNonzeroWitness_of_kernelObstruction
+            M n hn2 htb hns
+            (routeBRicherSPDPStableCandidate_headSpanTailKernelObstruction_of_logWindowProjectionEscapeWitness
+              M n hn2 htb hns hbad))) hzero
+
+/-- Under the chosen-projection kernel criterion, failure of strict
+residual-row zero instantiates the projection-invisible nonzero witness. -/
+theorem routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorProjectionInvisibleNonzeroWitness_of_kernelCriterion_of_not_residualGeneratorZero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hkernel :
+      RouteBRicherSPDPStableCandidateLogWindowHeadTailChosenProjectionKernelCriterion
+        M n hn2 htb hns)
+    (hnot :
+      ¬ RouteBRicherSPDPStableCandidateLogWindowHeadTailResidualGeneratorZero
+        M n hn2 htb hns) :
+    RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorProjectionInvisibleNonzeroWitness
+      M n hn2 htb hns :=
+  routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorProjectionInvisibleNonzeroWitness_of_kernelCriterion_of_nonzeroWitness
+    M n hn2 htb hns hkernel
+    (routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorNonzeroWitness_of_not_residualGeneratorZero
+      M n hn2 htb hns hnot)
+
+/-- Criterion-relative exact alternative: once the chosen-projection kernel
+criterion holds, the projection-invisible nonzero witness is equivalent to
+failure of strict residual-row zero. -/
+theorem routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorProjectionInvisibleNonzeroWitness_iff_not_residualGeneratorZero_of_kernelCriterion
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hkernel :
+      RouteBRicherSPDPStableCandidateLogWindowHeadTailChosenProjectionKernelCriterion
+        M n hn2 htb hns) :
+    RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorProjectionInvisibleNonzeroWitness
+        M n hn2 htb hns ↔
+      ¬ RouteBRicherSPDPStableCandidateLogWindowHeadTailResidualGeneratorZero
+        M n hn2 htb hns :=
+  ⟨routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_of_projectionInvisibleNonzeroWitness
+      M n hn2 htb hns,
+    routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorProjectionInvisibleNonzeroWitness_of_kernelCriterion_of_not_residualGeneratorZero
+      M n hn2 htb hns hkernel⟩
+
+/-- Stable-generator-map form of the criterion-relative exact alternative. -/
+theorem routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorProjectionInvisibleNonzeroWitness_iff_not_residualGeneratorZero_of_projectionKernelStableGeneratorMaps
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hstable :
+      RouteBRicherSPDPStableCandidateLogWindowHeadTailProjectionKernelStableGeneratorMaps
+        M n hn2 htb hns) :
+    RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorProjectionInvisibleNonzeroWitness
+        M n hn2 htb hns ↔
+      ¬ RouteBRicherSPDPStableCandidateLogWindowHeadTailResidualGeneratorZero
+        M n hn2 htb hns :=
+  routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorProjectionInvisibleNonzeroWitness_iff_not_residualGeneratorZero_of_kernelCriterion
+    M n hn2 htb hns
+    ((routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_iff_kernelCriterion
+      M n hn2 htb hns).mp hstable)
+
+/-- Exact conjunction surface: the projection-invisible residual gap carries
+the same information as strict residual failure once the kernel criterion is
+kept explicit. -/
+theorem routeBRicherSPDPStableCandidate_logWindowHeadTailKernelCriterion_and_projectionInvisibleNonzeroWitness_iff_kernelCriterion_and_not_residualGeneratorZero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    (RouteBRicherSPDPStableCandidateLogWindowHeadTailChosenProjectionKernelCriterion
+        M n hn2 htb hns ∧
+      RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorProjectionInvisibleNonzeroWitness
+        M n hn2 htb hns) ↔
+      RouteBRicherSPDPStableCandidateLogWindowHeadTailChosenProjectionKernelCriterion
+          M n hn2 htb hns ∧
+        ¬ RouteBRicherSPDPStableCandidateLogWindowHeadTailResidualGeneratorZero
+          M n hn2 htb hns := by
+  constructor
+  · rintro ⟨hkernel, hbad⟩
+    exact ⟨hkernel,
+      routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_of_projectionInvisibleNonzeroWitness
+        M n hn2 htb hns hbad⟩
+  · rintro ⟨hkernel, hnot⟩
+    exact ⟨hkernel,
+      routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorProjectionInvisibleNonzeroWitness_of_kernelCriterion_of_not_residualGeneratorZero
+        M n hn2 htb hns hkernel hnot⟩
+
 /-- Exact strict-residual interface: once the chosen-projection kernel
 criterion is available, the only extra obstruction to strict residual-row zero
 is a projection-invisible nonzero generator row on a chosen-kernel vector. -/
@@ -1005,6 +1182,13 @@ theorem routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZe
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorNonzeroWitness_of_projectionInvisibleNonzeroWitness
 #print axioms routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_of_projectionInvisibleNonzeroWitness
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorProjectionInvisibleNonzeroWitness_of_kernelCriterion_of_nonzeroWitness
+#print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorNonzeroWitness_iff_projectionInvisibleNonzeroWitness_or_kernelObstruction
+#print axioms routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_iff_projectionInvisibleNonzeroWitness_or_kernelObstruction
+#print axioms routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_iff_projectionInvisibleNonzeroWitness_or_logWindowProjectionEscapeWitness
+#print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorProjectionInvisibleNonzeroWitness_of_kernelCriterion_of_not_residualGeneratorZero
+#print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorProjectionInvisibleNonzeroWitness_iff_not_residualGeneratorZero_of_kernelCriterion
+#print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorProjectionInvisibleNonzeroWitness_iff_not_residualGeneratorZero_of_projectionKernelStableGeneratorMaps
+#print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailKernelCriterion_and_projectionInvisibleNonzeroWitness_iff_kernelCriterion_and_not_residualGeneratorZero
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_iff_kernelCriterion_and_no_projectionInvisibleNonzeroWitness
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_iff_projectionKernelStableGeneratorMaps_and_no_projectionInvisibleNonzeroWitness
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_of_kernelCriterion_no_projectionInvisibleNonzeroWitness

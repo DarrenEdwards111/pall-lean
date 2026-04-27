@@ -851,6 +851,92 @@ theorem projection_fixes_row
   D.projection_fixes_of_mem_rowSpan
     (Submodule.subset_span ⟨i, rfl⟩)
 
+/-- Constructor from a caller-supplied projection map `Pi` and a displayed
+complement `T`.  The range and kernel fields are explicit obligations: `Pi`
+must project onto the candidate row span, and its kernel must be the supplied
+inspectable complement. -/
+def ofProjectionWithKernel
+    {M : DTM} {n : Nat} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {m : Nat} {tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns}
+    (T : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+    (Pi :
+      SATDeciderGaugeSpace M n hn2 htb hns →ₗ[Rat]
+        SATDeciderGaugeSpace M n hn2 htb hns)
+    (hidem : Pi.comp Pi = Pi)
+    (hrange :
+      LinearMap.range Pi =
+        RouteBRicherSPDPStableCandidateRowSpan
+          M n hn2 htb hns tail)
+    (hker : LinearMap.ker Pi = T) :
+    RouteBRicherSPDPStableCandidateExplicitProjectionData
+      M n hn2 htb hns tail where
+  complement := T
+  projection := Pi
+  projection_idempotent := hidem
+  projection_range := hrange
+  projection_ker := hker
+
+/-- Constructor from a caller-supplied projection map alone.  The inspectable
+complement is taken to be exactly `ker Pi`, so the only data to check are
+idempotency and the range equality with the candidate row span. -/
+def ofProjection
+    {M : DTM} {n : Nat} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {m : Nat} {tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns}
+    (Pi :
+      SATDeciderGaugeSpace M n hn2 htb hns →ₗ[Rat]
+        SATDeciderGaugeSpace M n hn2 htb hns)
+    (hidem : Pi.comp Pi = Pi)
+    (hrange :
+      LinearMap.range Pi =
+        RouteBRicherSPDPStableCandidateRowSpan
+          M n hn2 htb hns tail) :
+    RouteBRicherSPDPStableCandidateExplicitProjectionData
+      M n hn2 htb hns tail :=
+  ofProjectionWithKernel
+    (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+    (tail := tail)
+    (LinearMap.ker Pi) Pi hidem hrange rfl
+
+/-- For fully explicit projection data, the displayed complement is exactly
+the kernel of the supplied projection. -/
+theorem complement_eq_projection_ker
+    {M : DTM} {n : Nat} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {m : Nat} {tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns}
+    (D :
+      RouteBRicherSPDPStableCandidateExplicitProjectionData
+        M n hn2 htb hns tail) :
+    D.complement = LinearMap.ker D.projection :=
+  D.projection_ker.symm
+
+/-- Existence of fully explicit projection data is equivalent to existence of
+an idempotent projection map whose range is the candidate row span.  The
+complement carries no hidden extra choice in this direction: it is `ker Pi`. -/
+theorem nonempty_iff_exists_idempotent_projection_with_rowSpan_range
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    Nonempty
+      (RouteBRicherSPDPStableCandidateExplicitProjectionData
+        M n hn2 htb hns tail) ↔
+      exists Pi :
+        SATDeciderGaugeSpace M n hn2 htb hns →ₗ[Rat]
+          SATDeciderGaugeSpace M n hn2 htb hns,
+        Pi.comp Pi = Pi ∧
+        LinearMap.range Pi =
+          RouteBRicherSPDPStableCandidateRowSpan
+            M n hn2 htb hns tail := by
+  constructor
+  · rintro ⟨D⟩
+    exact ⟨D.projection, D.projection_idempotent, D.projection_range⟩
+  · rintro ⟨Pi, hidem, hrange⟩
+    exact ⟨ofProjection
+      (M := M) (n := n) (hn2 := hn2) (htb := htb) (hns := hns)
+      (tail := tail) Pi hidem hrange⟩
+
 /-- Repackage an existing complement interface as explicit projection data by
 using its attached projection map. -/
 noncomputable def ofComplementInterface
@@ -1131,6 +1217,46 @@ def routeBRicherSPDPStableCandidateBottomExplicitProjectionData_of_rows_top
     simp [hrowsTop]
   projection_ker := by simp
 
+/-- If the prepended rows span only `⊥`, the inspectable complement is the
+whole ambient SAT gauge space and the explicit projection is the zero map. -/
+def routeBRicherSPDPStableCandidateZeroProjectionComplementInterface_of_rows_bot
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hrowsBot :
+      RouteBRicherSPDPStableCandidateRowSpan
+        M n hn2 htb hns tail = ⊥) :
+    RouteBRicherSPDPStableCandidateProjectionComplementInterface
+      M n hn2 htb hns tail where
+  complement := ⊤
+  isCompl := by
+    simpa [RouteBRicherSPDPStableCandidateRowSpan, hrowsBot] using
+      (isCompl_bot_top :
+        IsCompl
+          (⊥ : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+          (⊤ : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns)))
+
+/-- If the prepended rows span only `⊥`, the fully inspectable projection data
+is the zero projection with complement `⊤`. -/
+noncomputable def routeBRicherSPDPStableCandidateZeroExplicitProjectionData_of_rows_bot
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hrowsBot :
+      RouteBRicherSPDPStableCandidateRowSpan
+        M n hn2 htb hns tail = ⊥) :
+    RouteBRicherSPDPStableCandidateExplicitProjectionData
+      M n hn2 htb hns tail where
+  complement := ⊤
+  projection := 0
+  projection_idempotent := by simp
+  projection_range := by
+    simp [hrowsBot]
+  projection_ker := by
+    simp
+
 /-- The legacy chosen complement, repackaged as an explicit-complement
 interface.  This keeps old projection statements compatible while allowing new
 proofs to abstract over a caller-supplied complement. -/
@@ -1189,6 +1315,10 @@ noncomputable def routeBRicherSPDPStableCandidateChosenExplicitProjectionData
 #print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData.toComplementInterface
 #print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData.projection_apply_eq_zero_iff
 #print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData.projection_fixes_row
+#print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData.ofProjectionWithKernel
+#print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData.ofProjection
+#print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData.complement_eq_projection_ker
+#print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData.nonempty_iff_exists_idempotent_projection_with_rowSpan_range
 #print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData.ofComplementInterface
 #print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData.ProjectionDescent
 #print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData.ProjectionEscapeWitness
@@ -1198,6 +1328,8 @@ noncomputable def routeBRicherSPDPStableCandidateChosenExplicitProjectionData
 #print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData.toComplementInterface_projectionEscapeWitness_of_projectionEscapeWitness
 #print axioms routeBRicherSPDPStableCandidateBottomProjectionComplementInterface_of_rows_top
 #print axioms routeBRicherSPDPStableCandidateBottomExplicitProjectionData_of_rows_top
+#print axioms routeBRicherSPDPStableCandidateZeroProjectionComplementInterface_of_rows_bot
+#print axioms routeBRicherSPDPStableCandidateZeroExplicitProjectionData_of_rows_bot
 #print axioms routeBRicherSPDPStableCandidateChosenProjectionComplementInterface
 #print axioms routeBRicherSPDPStableCandidateChosenExplicitProjectionData
 #print axioms RouteBRicherSPDPStableCandidateExplicitComplementStableGeneratorMaps
