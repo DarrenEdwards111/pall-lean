@@ -27,6 +27,7 @@ open SPDP MultilinearSPDP
 open TuringMachine (DTM)
 open WithinProfileBound
 open PallLean.Paper93
+open PallLean.Paper93.Bridge
 open PallLean.Paper93.Closure
 open PallLean.Paper93.Spanning
 open PallLean.Paper93.Wiring (concreteW)
@@ -201,6 +202,7 @@ def EndpointAugmentedActiveProfileSubspaceBudget
     (n : ℕ) (hn4 : n ≥ 4) : Prop :=
   ∀ (h : ProfileHistogram)
     (hadm : ProfileAdmissible (Nat.log 2 n) h),
+    h ConstraintType.transitionRight = 0 →
     ActiveProfileSupport h →
       Module.Finite ℚ
           ↥(cookLevinProfileSubspace
@@ -223,7 +225,7 @@ theorem endpointAugmentedActiveProfileSubspaceBudget_of_dim_le_three
     (hW_dim :
       ∀ τ, Module.finrank ℚ ↥(endpointAugmentedConcreteW n hn4 τ) ≤ 3) :
     EndpointAugmentedActiveProfileSubspaceBudget n hn4 := by
-  intro h hadm _hactive
+  intro h hadm _htr _hactive
   constructor
   · exact cookLevinProfileSubspace_finite
       (admissibleToBounded hadm)
@@ -305,6 +307,597 @@ theorem compiledBasis_transitionLeft_basicRow_mem
       interfaceSpace_compiledBasis B κ ℓ ConstraintType.transitionLeft :=
   canonicalLocalX_mem_interfaceSpace_compiledBasis_transitionLeft B κ ℓ
 
+/-! ## Endpoint active-profile budget -/
+
+/-- Variable-dimension version of the generic profile-subspace finrank bound.
+
+The existing `profileSubspace_finrank_bound` specializes this to the paper
+`≤ 3` case.  The endpoint-augmented live slice has type dimensions
+`4, 4, 3` instead, so we keep the exact multichoose product and discharge the
+active arithmetic separately. -/
+theorem profileSubspace_finrank_bound_by_finrank
+    {N : ℕ} {Iface : Type*} [Fintype Iface] [DecidableEq Iface]
+    (h : Iface → ℕ)
+    (W : Iface → Submodule ℚ (MvPolynomial (Fin N) ℚ))
+    (hW_fin : ∀ σ, Module.Finite ℚ ↥(W σ)) :
+    Module.finrank ℚ (profileSubspace h W) ≤
+      ∏ σ : Iface, Nat.multichoose
+        (Module.finrank ℚ ↥(W σ)) (h σ) := by
+  classical
+  set d : Iface → ℕ := fun σ => Module.finrank ℚ ↥(W σ) with hd_def
+  let b : ∀ σ, Module.Basis (Fin (d σ)) ℚ ↥(W σ) :=
+    fun σ => Module.finBasis ℚ ↥(W σ)
+  have hsub :
+      profileSubspace h W ≤
+        Submodule.span ℚ
+          (Set.range (profileSymProd W b : ProfileIndex h d → _)) :=
+    profileSubspace_le_profileSymProd_span W b
+  haveI hfin_big : Module.Finite ℚ
+      ↥(Submodule.span ℚ
+        (Set.range (profileSymProd W b : ProfileIndex h d → _))) := by
+    apply Module.Finite.span_of_finite
+    exact Set.finite_range _
+  have hmono :
+      Module.finrank ℚ (profileSubspace h W) ≤
+        Module.finrank ℚ
+          (Submodule.span ℚ
+            (Set.range (profileSymProd W b : ProfileIndex h d → _))) :=
+    Submodule.finrank_mono hsub
+  have hcard :
+      Module.finrank ℚ
+          (Submodule.span ℚ
+            (Set.range (profileSymProd W b : ProfileIndex h d → _))) ≤
+        Fintype.card (ProfileIndex h d) :=
+    by
+      let G : Finset (MvPolynomial (Fin N) ℚ) :=
+        (Finset.univ : Finset (ProfileIndex h d)).image
+          (profileSymProd W b)
+      have hrange :
+          Set.range (profileSymProd W b : ProfileIndex h d →
+              MvPolynomial (Fin N) ℚ) =
+            (↑G : Set (MvPolynomial (Fin N) ℚ)) := by
+        ext q
+        constructor
+        · intro hq
+          rcases hq with ⟨idx, rfl⟩
+          exact Finset.mem_image.mpr ⟨idx, Finset.mem_univ idx, rfl⟩
+        · intro hq
+          rcases Finset.mem_image.mp hq with ⟨idx, _hidx, hqeq⟩
+          exact ⟨idx, hqeq⟩
+      have hspan :
+          Module.finrank ℚ
+              ↥(Submodule.span ℚ
+                (Set.range (profileSymProd W b : ProfileIndex h d →
+                  MvPolynomial (Fin N) ℚ))) ≤ G.card := by
+        rw [hrange]
+        exact finrank_span_finset_le_card G
+      have hGcard : G.card ≤ Fintype.card (ProfileIndex h d) := by
+        calc
+          G.card
+              ≤ (Finset.univ : Finset (ProfileIndex h d)).card := by
+                exact Finset.card_image_le
+          _ = Fintype.card (ProfileIndex h d) := Finset.card_univ
+      exact hspan.trans hGcard
+  have hcard_eq :
+      Fintype.card (ProfileIndex h d) =
+        ∏ σ : Iface, Nat.multichoose (d σ) (h σ) :=
+    profileIndex_card h d
+  calc
+    Module.finrank ℚ (profileSubspace h W)
+        ≤ Module.finrank ℚ
+            (Submodule.span ℚ
+              (Set.range (profileSymProd W b : ProfileIndex h d → _))) := hmono
+    _ ≤ Fintype.card (ProfileIndex h d) := hcard
+    _ = ∏ σ : Iface, Nat.multichoose (d σ) (h σ) := hcard_eq
+    _ = ∏ σ : Iface,
+          Nat.multichoose (Module.finrank ℚ ↥(W σ)) (h σ) := by
+            simp [d]
+
+theorem cookLevinProfileSubspace_finrank_le_by_finrank
+    {n : ℕ}
+    (bp : BoundedProfile (Nat.log 2 n))
+    (W : ConstraintType → Submodule ℚ (MvPolynomial (Fin n) ℚ))
+    (hW_fin : ∀ τ, Module.Finite ℚ ↥(W τ)) :
+    Module.finrank ℚ (cookLevinProfileSubspace bp W) ≤
+      ∏ τ : ConstraintType, Nat.multichoose
+        (Module.finrank ℚ ↥(W τ)) (bp.toHistogram τ) := by
+  unfold cookLevinProfileSubspace
+  exact profileSubspace_finrank_bound_by_finrank
+    bp.toHistogram W hW_fin
+
+private theorem finrank_span_singleton_le_one
+    {n : ℕ} (p : MvPolynomial (Fin n) ℚ) :
+    Module.finrank ℚ
+      ↥(Submodule.span ℚ ({p} : Set (MvPolynomial (Fin n) ℚ))) ≤ 1 := by
+  calc
+    Module.finrank ℚ
+        ↥(Submodule.span ℚ ({p} : Set (MvPolynomial (Fin n) ℚ)))
+        ≤ ({p} : Finset (MvPolynomial (Fin n) ℚ)).card := by
+          simpa using
+            finrank_span_le_card (R := ℚ)
+              (s := ({p} : Set (MvPolynomial (Fin n) ℚ)))
+    _ = 1 := by simp
+
+private theorem finrank_sup_le_add
+    {V : Type*} [AddCommGroup V] [Module ℚ V]
+    (U W : Submodule ℚ V)
+    [Module.Finite ℚ ↥U] [Module.Finite ℚ ↥W] :
+    Module.finrank ℚ ↥(U ⊔ W) ≤
+      Module.finrank ℚ ↥U + Module.finrank ℚ ↥W := by
+  have h := Submodule.finrank_sup_add_finrank_inf_eq U W
+  omega
+
+private theorem concreteWCanonical_booleanity_le_endpoint_sqSpan
+    (n : ℕ) (hn4 : n ≥ 4) :
+    concreteWCanonical n hn4 ConstraintType.booleanity ≤
+      concreteWEndpointSpan n hn4 ⊔
+        Submodule.span ℚ
+          ({(MvPolynomial.X (concreteWEndpoint0 n hn4) :
+              MvPolynomial (Fin n) ℚ) ^ 2} :
+            Set (MvPolynomial (Fin n) ℚ)) := by
+  classical
+  intro p hp
+  unfold concreteWCanonical concreteW at hp
+  unfold ambientPerTypeSpace at hp
+  rw [Submodule.mem_map] at hp
+  obtain ⟨q, hq, rfl⟩ := hp
+  unfold perTypeInterfaceSpace at hq
+  refine Submodule.span_induction
+    (p := fun q _ =>
+      MvPolynomial.rename
+          ((Fin.castLEEmb hn4 : Fin 4 ↪ Fin n).toFun) q ∈
+        concreteWEndpointSpan n hn4 ⊔
+          Submodule.span ℚ
+            ({(MvPolynomial.X (concreteWEndpoint0 n hn4) :
+                MvPolynomial (Fin n) ℚ) ^ 2} :
+              Set (MvPolynomial (Fin n) ℚ)))
+    ?_ ?_ ?_ ?_ hq
+  · intro q hq
+    simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hq
+    rcases hq with rfl | rfl | rfl
+    · have hone :
+          (1 : MvPolynomial (Fin n) ℚ) ∈
+            concreteWEndpointSpan n hn4 := by
+          unfold concreteWEndpointSpan
+          exact Submodule.subset_span (by simp)
+      simpa using Submodule.mem_sup_left hone
+    · have hx :
+          (MvPolynomial.X (concreteWEndpoint0 n hn4) :
+            MvPolynomial (Fin n) ℚ) ∈
+            concreteWEndpointSpan n hn4 := by
+          unfold concreteWEndpointSpan
+          exact Submodule.subset_span (by simp [concreteWEndpoint0])
+      simpa [concreteWEndpoint0] using Submodule.mem_sup_left hx
+    · have hx2 :
+          ((MvPolynomial.X (concreteWEndpoint0 n hn4) :
+            MvPolynomial (Fin n) ℚ) ^ 2) ∈
+            Submodule.span ℚ
+              ({(MvPolynomial.X (concreteWEndpoint0 n hn4) :
+                  MvPolynomial (Fin n) ℚ) ^ 2} :
+                Set (MvPolynomial (Fin n) ℚ)) := by
+          exact Submodule.subset_span (by simp)
+      simpa [concreteWEndpoint0] using Submodule.mem_sup_right hx2
+  · simp
+  · intro p q _ _ hp hq
+    simpa [map_add] using Submodule.add_mem _ hp hq
+  · intro a p _ hp
+    simpa using Submodule.smul_mem _ a hp
+
+private theorem concreteWCanonical_adjacency_le_endpoint_prodSpan
+    (n : ℕ) (hn4 : n ≥ 4) :
+    concreteWCanonical n hn4 ConstraintType.adjacency ≤
+      concreteWEndpointSpan n hn4 ⊔
+        Submodule.span ℚ
+          ({(MvPolynomial.X (concreteWEndpoint0 n hn4) *
+              MvPolynomial.X (concreteWEndpoint1 n hn4) :
+              MvPolynomial (Fin n) ℚ)} :
+            Set (MvPolynomial (Fin n) ℚ)) := by
+  classical
+  intro p hp
+  unfold concreteWCanonical concreteW at hp
+  unfold ambientPerTypeSpace at hp
+  rw [Submodule.mem_map] at hp
+  obtain ⟨q, hq, rfl⟩ := hp
+  unfold perTypeInterfaceSpace at hq
+  refine Submodule.span_induction
+    (p := fun q _ =>
+      MvPolynomial.rename
+          ((Fin.castLEEmb hn4 : Fin 4 ↪ Fin n).toFun) q ∈
+        concreteWEndpointSpan n hn4 ⊔
+          Submodule.span ℚ
+            ({(MvPolynomial.X (concreteWEndpoint0 n hn4) *
+                MvPolynomial.X (concreteWEndpoint1 n hn4) :
+                MvPolynomial (Fin n) ℚ)} :
+              Set (MvPolynomial (Fin n) ℚ)))
+    ?_ ?_ ?_ ?_ hq
+  · intro q hq
+    simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hq
+    rcases hq with rfl | rfl
+    · have hone :
+          (1 : MvPolynomial (Fin n) ℚ) ∈
+            concreteWEndpointSpan n hn4 := by
+          unfold concreteWEndpointSpan
+          exact Submodule.subset_span (by simp)
+      simpa using Submodule.mem_sup_left hone
+    · have hprod :
+          (MvPolynomial.X (concreteWEndpoint0 n hn4) *
+            MvPolynomial.X (concreteWEndpoint1 n hn4) :
+              MvPolynomial (Fin n) ℚ) ∈
+            Submodule.span ℚ
+              ({(MvPolynomial.X (concreteWEndpoint0 n hn4) *
+                  MvPolynomial.X (concreteWEndpoint1 n hn4) :
+                  MvPolynomial (Fin n) ℚ)} :
+                Set (MvPolynomial (Fin n) ℚ)) := by
+          exact Submodule.subset_span (by simp)
+      simpa [concreteWEndpoint0, concreteWEndpoint1] using
+        Submodule.mem_sup_right hprod
+  · simp
+  · intro p q _ _ hp hq
+    simpa [map_add] using Submodule.add_mem _ hp hq
+  · intro a p _ hp
+    simpa using Submodule.smul_mem _ a hp
+
+private theorem concreteWCanonical_transitionLeft_le_endpointSpan
+    (n : ℕ) (hn4 : n ≥ 4) :
+    concreteWCanonical n hn4 ConstraintType.transitionLeft ≤
+      concreteWEndpointSpan n hn4 := by
+  classical
+  intro p hp
+  unfold concreteWCanonical concreteW at hp
+  unfold ambientPerTypeSpace at hp
+  rw [Submodule.mem_map] at hp
+  obtain ⟨q, hq, rfl⟩ := hp
+  unfold perTypeInterfaceSpace at hq
+  refine Submodule.span_induction
+    (p := fun q _ =>
+      MvPolynomial.rename
+          ((Fin.castLEEmb hn4 : Fin 4 ↪ Fin n).toFun) q ∈
+        concreteWEndpointSpan n hn4)
+    ?_ ?_ ?_ ?_ hq
+  · intro q hq
+    simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hq
+    rcases hq with rfl | rfl
+    · unfold concreteWEndpointSpan
+      exact Submodule.subset_span (by simp)
+    · have hx :
+          (MvPolynomial.X (concreteWEndpoint0 n hn4) :
+            MvPolynomial (Fin n) ℚ) ∈
+            concreteWEndpointSpan n hn4 := by
+          unfold concreteWEndpointSpan
+          exact Submodule.subset_span (by simp [concreteWEndpoint0])
+      simpa [concreteWEndpoint0] using hx
+  · simp
+  · intro p q _ _ hp hq
+    simpa [map_add] using Submodule.add_mem _ hp hq
+  · intro a p _ hp
+    simpa using Submodule.smul_mem _ a hp
+
+private theorem concreteWCanonical_transitionRight_le_endpointSpan
+    (n : ℕ) (hn4 : n ≥ 4) :
+    concreteWCanonical n hn4 ConstraintType.transitionRight ≤
+      concreteWEndpointSpan n hn4 := by
+  intro p hp
+  have hpbot :
+      p ∈ (⊥ : Submodule ℚ (MvPolynomial (Fin n) ℚ)) := by
+    simpa [concreteWCanonical, concreteW, ambientPerTypeSpace,
+      perTypeInterfaceSpace] using hp
+  have hpzero : p = 0 := by simpa using hpbot
+  rw [hpzero]
+  exact Submodule.zero_mem _
+
+/-- Effective endpoint dimensions on the active/profile slice.  The dormant
+right coordinate still has an endpoint span, but live profiles have right
+mass zero, so it contributes a symmetric power of degree zero. -/
+def endpointAugmentedActiveProfileDim : ConstraintType → ℕ
+  | .booleanity => 4
+  | .adjacency => 4
+  | .transitionLeft => 3
+  | .transitionRight => 3
+
+theorem endpointAugmentedConcreteW_finrank_le_activeProfileDim
+    (n : ℕ) (hn4 : n ≥ 4) (τ : ConstraintType) :
+    Module.finrank ℚ ↥(endpointAugmentedConcreteW n hn4 τ) ≤
+      endpointAugmentedActiveProfileDim τ := by
+  classical
+  cases τ with
+  | booleanity =>
+      let sqSpan : Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+        Submodule.span ℚ
+          ({(MvPolynomial.X (concreteWEndpoint0 n hn4) :
+              MvPolynomial (Fin n) ℚ) ^ 2} :
+            Set (MvPolynomial (Fin n) ℚ))
+      haveI hEndpointFinite :
+          Module.Finite ℚ ↥(concreteWEndpointSpan n hn4) :=
+        concreteWEndpointSpan_finite n hn4
+      haveI hSqFinite : Module.Finite ℚ ↥sqSpan := by
+        unfold sqSpan
+        exact Module.Finite.span_of_finite ℚ (Set.finite_singleton _)
+      haveI hTargetFinite :
+          Module.Finite ℚ ↥(concreteWEndpointSpan n hn4 ⊔ sqSpan) :=
+        Submodule.finite_sup _ _
+      have hle :
+          endpointAugmentedConcreteW n hn4 ConstraintType.booleanity ≤
+            concreteWEndpointSpan n hn4 ⊔ sqSpan := by
+        intro p hp
+        rw [endpointAugmentedConcreteW, Submodule.mem_sup] at hp
+        obtain ⟨pc, hpc, pe, hpe, hp_eq⟩ := hp
+        rw [← hp_eq]
+        exact Submodule.add_mem _
+          (by
+            simpa [sqSpan] using
+              concreteWCanonical_booleanity_le_endpoint_sqSpan n hn4 hpc)
+          (Submodule.mem_sup_left hpe)
+      have htarget :
+          Module.finrank ℚ ↥(concreteWEndpointSpan n hn4 ⊔ sqSpan) ≤ 4 := by
+        have hend := concreteWEndpointSpan_finrank_le_three n hn4
+        have hsq :
+            Module.finrank ℚ ↥sqSpan ≤ 1 := by
+          unfold sqSpan
+          exact finrank_span_singleton_le_one _
+        have hsup := finrank_sup_le_add (concreteWEndpointSpan n hn4) sqSpan
+        omega
+      exact le_trans (Submodule.finrank_mono hle)
+        (by simpa [endpointAugmentedActiveProfileDim] using htarget)
+  | adjacency =>
+      let prodSpan : Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+        Submodule.span ℚ
+          ({(MvPolynomial.X (concreteWEndpoint0 n hn4) *
+              MvPolynomial.X (concreteWEndpoint1 n hn4) :
+              MvPolynomial (Fin n) ℚ)} :
+            Set (MvPolynomial (Fin n) ℚ))
+      haveI hEndpointFinite :
+          Module.Finite ℚ ↥(concreteWEndpointSpan n hn4) :=
+        concreteWEndpointSpan_finite n hn4
+      haveI hProdFinite : Module.Finite ℚ ↥prodSpan := by
+        unfold prodSpan
+        exact Module.Finite.span_of_finite ℚ (Set.finite_singleton _)
+      haveI hTargetFinite :
+          Module.Finite ℚ ↥(concreteWEndpointSpan n hn4 ⊔ prodSpan) :=
+        Submodule.finite_sup _ _
+      have hle :
+          endpointAugmentedConcreteW n hn4 ConstraintType.adjacency ≤
+            concreteWEndpointSpan n hn4 ⊔ prodSpan := by
+        intro p hp
+        rw [endpointAugmentedConcreteW, Submodule.mem_sup] at hp
+        obtain ⟨pc, hpc, pe, hpe, hp_eq⟩ := hp
+        rw [← hp_eq]
+        exact Submodule.add_mem _
+          (by
+            simpa [prodSpan] using
+              concreteWCanonical_adjacency_le_endpoint_prodSpan n hn4 hpc)
+          (Submodule.mem_sup_left hpe)
+      have htarget :
+          Module.finrank ℚ ↥(concreteWEndpointSpan n hn4 ⊔ prodSpan) ≤ 4 := by
+        have hend := concreteWEndpointSpan_finrank_le_three n hn4
+        have hprod :
+            Module.finrank ℚ ↥prodSpan ≤ 1 := by
+          unfold prodSpan
+          exact finrank_span_singleton_le_one _
+        have hsup := finrank_sup_le_add (concreteWEndpointSpan n hn4) prodSpan
+        omega
+      exact le_trans (Submodule.finrank_mono hle)
+        (by simpa [endpointAugmentedActiveProfileDim] using htarget)
+  | transitionLeft =>
+      haveI hEndpointFinite :
+          Module.Finite ℚ ↥(concreteWEndpointSpan n hn4) :=
+        concreteWEndpointSpan_finite n hn4
+      have hle :
+          endpointAugmentedConcreteW n hn4 ConstraintType.transitionLeft ≤
+            concreteWEndpointSpan n hn4 := by
+        intro p hp
+        rw [endpointAugmentedConcreteW, Submodule.mem_sup] at hp
+        obtain ⟨pc, hpc, pe, hpe, hp_eq⟩ := hp
+        rw [← hp_eq]
+        exact Submodule.add_mem _
+          (concreteWCanonical_transitionLeft_le_endpointSpan n hn4 hpc)
+          hpe
+      exact le_trans (Submodule.finrank_mono hle)
+        (by
+          simpa [endpointAugmentedActiveProfileDim] using
+            concreteWEndpointSpan_finrank_le_three n hn4)
+  | transitionRight =>
+      haveI hEndpointFinite :
+          Module.Finite ℚ ↥(concreteWEndpointSpan n hn4) :=
+        concreteWEndpointSpan_finite n hn4
+      have hle :
+          endpointAugmentedConcreteW n hn4 ConstraintType.transitionRight ≤
+            concreteWEndpointSpan n hn4 := by
+        intro p hp
+        rw [endpointAugmentedConcreteW, Submodule.mem_sup] at hp
+        obtain ⟨pc, hpc, pe, hpe, hp_eq⟩ := hp
+        rw [← hp_eq]
+        exact Submodule.add_mem _
+          (concreteWCanonical_transitionRight_le_endpointSpan n hn4 hpc)
+          hpe
+      exact le_trans (Submodule.finrank_mono hle)
+        (by
+          simpa [endpointAugmentedActiveProfileDim] using
+            concreteWEndpointSpan_finrank_le_three n hn4)
+
+private theorem multichoose_mono_left (a b k : ℕ) (hab : a ≤ b) :
+    Nat.multichoose a k ≤ Nat.multichoose b k := by
+  by_cases hk : k = 0
+  · subst k
+    simp [Nat.multichoose_zero_right]
+  · rw [Nat.multichoose_eq a k, Nat.multichoose_eq b k]
+    exact Nat.choose_le_choose k (by omega)
+
+private theorem multichoose_four_le_pow_three (k : ℕ) :
+    Nat.multichoose 4 k ≤ (k + 1) ^ 3 := by
+  calc
+    Nat.multichoose 4 k = Nat.choose (4 + k - 1) k :=
+      Nat.multichoose_eq 4 k
+    _ = Nat.choose (k + 3) 3 := by
+      have hsum : 4 + k - 1 = k + 3 := by omega
+      rw [hsum]
+      rw [← Nat.choose_symm (by omega : k ≤ k + 3)]
+      congr 1
+      omega
+    _ ≤ (k + 1) ^ 3 := dim_sym_le k 3
+
+private theorem multichoose_three_le_pow_two (k : ℕ) :
+    Nat.multichoose 3 k ≤ (k + 1) ^ 2 := by
+  calc
+    Nat.multichoose 3 k = Nat.choose (3 + k - 1) k :=
+      Nat.multichoose_eq 3 k
+    _ = Nat.choose (k + 2) 2 := by
+      have hsum : 3 + k - 1 = k + 2 := by omega
+      rw [hsum]
+      rw [← Nat.choose_symm (by omega : k ≤ k + 2)]
+      congr 1
+      omega
+    _ ≤ (k + 1) ^ 2 := dim_sym_le k 2
+
+private theorem endpointAugmentedActiveProfile_multichoose_le_withinProfileBound
+    (κ : ℕ) (h : ProfileHistogram)
+    (hadm : ProfileAdmissible κ h)
+    (htr : h ConstraintType.transitionRight = 0) :
+    (∏ τ : ConstraintType,
+        Nat.multichoose (endpointAugmentedActiveProfileDim τ) (h τ))
+      ≤ withinProfileBound κ := by
+  classical
+  have hfac : ∀ τ : ConstraintType,
+      Nat.multichoose (endpointAugmentedActiveProfileDim τ) (h τ) ≤
+        match τ with
+        | ConstraintType.booleanity => (h ConstraintType.booleanity + 1) ^ 3
+        | ConstraintType.adjacency => (h ConstraintType.adjacency + 1) ^ 3
+        | ConstraintType.transitionLeft => (h ConstraintType.transitionLeft + 1) ^ 2
+        | ConstraintType.transitionRight => 1 := by
+    intro τ
+    cases τ with
+    | booleanity =>
+        simpa [endpointAugmentedActiveProfileDim] using
+          multichoose_four_le_pow_three (h ConstraintType.booleanity)
+    | adjacency =>
+        simpa [endpointAugmentedActiveProfileDim] using
+          multichoose_four_le_pow_three (h ConstraintType.adjacency)
+    | transitionLeft =>
+        simpa [endpointAugmentedActiveProfileDim] using
+          multichoose_three_le_pow_two (h ConstraintType.transitionLeft)
+    | transitionRight =>
+        simp [endpointAugmentedActiveProfileDim, htr, Nat.multichoose_zero_right]
+  have hprod_le :
+      (∏ τ : ConstraintType,
+          Nat.multichoose (endpointAugmentedActiveProfileDim τ) (h τ))
+        ≤
+      ∏ τ : ConstraintType,
+        match τ with
+        | ConstraintType.booleanity => (h ConstraintType.booleanity + 1) ^ 3
+        | ConstraintType.adjacency => (h ConstraintType.adjacency + 1) ^ 3
+        | ConstraintType.transitionLeft => (h ConstraintType.transitionLeft + 1) ^ 2
+        | ConstraintType.transitionRight => 1 :=
+    Finset.prod_le_prod (fun _ _ => Nat.zero_le _) (fun τ _ => hfac τ)
+  have huniv :
+      (Finset.univ : Finset ConstraintType) =
+        {ConstraintType.booleanity, ConstraintType.adjacency,
+          ConstraintType.transitionLeft, ConstraintType.transitionRight} := by
+    ext τ
+    fin_cases τ <;> simp
+  have hprod_eval :
+      (∏ τ : ConstraintType,
+        match τ with
+        | ConstraintType.booleanity => (h ConstraintType.booleanity + 1) ^ 3
+        | ConstraintType.adjacency => (h ConstraintType.adjacency + 1) ^ 3
+        | ConstraintType.transitionLeft => (h ConstraintType.transitionLeft + 1) ^ 2
+        | ConstraintType.transitionRight => 1) =
+        (h ConstraintType.booleanity + 1) ^ 3 *
+          (h ConstraintType.adjacency + 1) ^ 3 *
+          (h ConstraintType.transitionLeft + 1) ^ 2 := by
+    rw [huniv]
+    simp
+    ring
+  have hb :
+      h ConstraintType.booleanity ≤ κ :=
+    admissibleProfile_component_le hadm ConstraintType.booleanity
+  have ha :
+      h ConstraintType.adjacency ≤ κ :=
+    admissibleProfile_component_le hadm ConstraintType.adjacency
+  have hl :
+      h ConstraintType.transitionLeft ≤ κ :=
+    admissibleProfile_component_le hadm ConstraintType.transitionLeft
+  have hpow_b :
+      (h ConstraintType.booleanity + 1) ^ 3 ≤ (κ + 1) ^ 3 :=
+    Nat.pow_le_pow_left (by omega) 3
+  have hpow_a :
+      (h ConstraintType.adjacency + 1) ^ 3 ≤ (κ + 1) ^ 3 :=
+    Nat.pow_le_pow_left (by omega) 3
+  have hpow_l :
+      (h ConstraintType.transitionLeft + 1) ^ 2 ≤ (κ + 1) ^ 2 :=
+    Nat.pow_le_pow_left (by omega) 2
+  have hprod_pow :
+      (h ConstraintType.booleanity + 1) ^ 3 *
+          (h ConstraintType.adjacency + 1) ^ 3 *
+          (h ConstraintType.transitionLeft + 1) ^ 2
+        ≤ (κ + 1) ^ 8 := by
+    calc
+      (h ConstraintType.booleanity + 1) ^ 3 *
+          (h ConstraintType.adjacency + 1) ^ 3 *
+          (h ConstraintType.transitionLeft + 1) ^ 2
+          ≤ (κ + 1) ^ 3 * (κ + 1) ^ 3 * (κ + 1) ^ 2 := by
+            exact Nat.mul_le_mul
+              (Nat.mul_le_mul hpow_b hpow_a) hpow_l
+      _ = (κ + 1) ^ 8 := by ring
+  calc
+    (∏ τ : ConstraintType,
+        Nat.multichoose (endpointAugmentedActiveProfileDim τ) (h τ))
+        ≤ ∏ τ : ConstraintType,
+          match τ with
+          | ConstraintType.booleanity => (h ConstraintType.booleanity + 1) ^ 3
+          | ConstraintType.adjacency => (h ConstraintType.adjacency + 1) ^ 3
+          | ConstraintType.transitionLeft => (h ConstraintType.transitionLeft + 1) ^ 2
+          | ConstraintType.transitionRight => 1 := hprod_le
+    _ = (h ConstraintType.booleanity + 1) ^ 3 *
+          (h ConstraintType.adjacency + 1) ^ 3 *
+          (h ConstraintType.transitionLeft + 1) ^ 2 := hprod_eval
+    _ ≤ (κ + 1) ^ 8 := hprod_pow
+    _ = withinProfileBound κ := by rfl
+
+/-- The endpoint-augmented concrete family satisfies the live active-profile
+budget directly.  The key point is that the sharpened endpoint dimensions are
+`4,4,3` on the three active coordinates, while the dormant right coordinate
+has zero mass in this slice. -/
+theorem endpointAugmentedActiveProfileSubspaceBudget
+    (n : ℕ) (hn4 : n ≥ 4) :
+    EndpointAugmentedActiveProfileSubspaceBudget n hn4 := by
+  intro h hadm htr _hactive
+  constructor
+  · exact cookLevinProfileSubspace_finite
+      (admissibleToBounded hadm)
+      (endpointAugmentedConcreteW n hn4)
+      (endpointAugmentedConcreteW_finite n hn4)
+  · have hprofile :
+        Module.finrank ℚ
+            ↥(cookLevinProfileSubspace
+              (admissibleToBounded hadm)
+              (endpointAugmentedConcreteW n hn4))
+          ≤
+        ∏ τ : ConstraintType, Nat.multichoose
+          (Module.finrank ℚ ↥(endpointAugmentedConcreteW n hn4 τ))
+          (h τ) := by
+      simpa using
+        cookLevinProfileSubspace_finrank_le_by_finrank
+          (admissibleToBounded hadm)
+          (endpointAugmentedConcreteW n hn4)
+          (endpointAugmentedConcreteW_finite n hn4)
+    have hdim_le : ∀ τ : ConstraintType,
+        Module.finrank ℚ ↥(endpointAugmentedConcreteW n hn4 τ) ≤
+          endpointAugmentedActiveProfileDim τ :=
+      endpointAugmentedConcreteW_finrank_le_activeProfileDim n hn4
+    have hmulti_mono :
+        (∏ τ : ConstraintType, Nat.multichoose
+          (Module.finrank ℚ ↥(endpointAugmentedConcreteW n hn4 τ))
+          (h τ))
+          ≤
+        ∏ τ : ConstraintType,
+          Nat.multichoose (endpointAugmentedActiveProfileDim τ) (h τ) := by
+      refine Finset.prod_le_prod (fun _ _ => Nat.zero_le _) ?_
+      intro τ _
+      exact multichoose_mono_left _ _ _ (hdim_le τ)
+    exact le_trans hprofile
+      (le_trans hmulti_mono
+        (endpointAugmentedActiveProfile_multichoose_le_withinProfileBound
+          (Nat.log 2 n) h hadm htr))
+
 /-- A profile-local endpoint-augmented row embedding plus the explicit
 active-profile budget closes the fixed common-span target. -/
 theorem cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_spanningAtProfile
@@ -313,6 +906,7 @@ theorem cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_spann
     (hn4 : n ≥ 4)
     (h : ProfileHistogram)
     (hadm : ProfileAdmissible (Nat.log 2 n) h)
+    (htr : h ConstraintType.transitionRight = 0)
     (hactive : ActiveProfileSupport h)
     (hBudget : EndpointAugmentedActiveProfileSubspaceBudget n hn4)
     (hSpanAt :
@@ -321,7 +915,7 @@ theorem cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_spann
         (admissibleToBounded hadm)) :
     CookLevinAllBoundedProfileCommonSpanAtProfile M n hn htb hns h := by
   classical
-  rcases hBudget h hadm hactive with ⟨hProfileFinite, hProfileBound⟩
+  rcases hBudget h hadm htr hactive with ⟨hProfileFinite, hProfileBound⟩
   let bp : BoundedProfile (Nat.log 2 n) := admissibleToBounded hadm
   have hPost :
       cookLevinPostSpanAt M n hn htb hns bp.toHistogram
@@ -476,21 +1070,21 @@ theorem cookLevinActiveProfileTypeCaseBlockers_of_endpointAugmentedActiveProfile
   · intro h hadm htr hne hpos
     exact
       cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_spanningAtProfile
-        M n hn htb hns hn4 h hadm (Or.inl hpos) hBudget
+        M n hn htb hns hn4 h hadm htr (Or.inl hpos) hBudget
         (cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_closureAtProfile
           M n hn htb hns hn4 (admissibleToBounded hadm)
           (hProfile h hadm htr hne (Or.inl hpos)))
   · intro h hadm htr hne hpos
     exact
       cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_spanningAtProfile
-        M n hn htb hns hn4 h hadm (Or.inr (Or.inl hpos)) hBudget
+        M n hn htb hns hn4 h hadm htr (Or.inr (Or.inl hpos)) hBudget
         (cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_closureAtProfile
           M n hn htb hns hn4 (admissibleToBounded hadm)
           (hProfile h hadm htr hne (Or.inr (Or.inl hpos))))
   · intro h hadm htr hne hpos
     exact
       cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_spanningAtProfile
-        M n hn htb hns hn4 h hadm (Or.inr (Or.inr hpos)) hBudget
+        M n hn htb hns hn4 h hadm htr (Or.inr (Or.inr hpos)) hBudget
         (cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_closureAtProfile
           M n hn htb hns hn4 (admissibleToBounded hadm)
           (hProfile h hadm htr hne (Or.inr (Or.inr hpos))))
@@ -511,21 +1105,21 @@ theorem cookLevinActiveProfileTypeCaseBlockers_of_endpointAugmentedActiveProfile
   · intro h hadm htr hne hpos
     exact
       cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_spanningAtProfile
-        M n hn htb hns hn4 h hadm (Or.inl hpos) hBudget
+        M n hn htb hns hn4 h hadm htr (Or.inl hpos) hBudget
         (cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_chargedClosureAtProfile
           M n hn htb hns charge hn4 (admissibleToBounded hadm)
           (hProfile h hadm htr hne (Or.inl hpos)))
   · intro h hadm htr hne hpos
     exact
       cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_spanningAtProfile
-        M n hn htb hns hn4 h hadm (Or.inr (Or.inl hpos)) hBudget
+        M n hn htb hns hn4 h hadm htr (Or.inr (Or.inl hpos)) hBudget
         (cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_chargedClosureAtProfile
           M n hn htb hns charge hn4 (admissibleToBounded hadm)
           (hProfile h hadm htr hne (Or.inr (Or.inl hpos))))
   · intro h hadm htr hne hpos
     exact
       cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_spanningAtProfile
-        M n hn htb hns hn4 h hadm (Or.inr (Or.inr hpos)) hBudget
+        M n hn htb hns hn4 h hadm htr (Or.inr (Or.inr hpos)) hBudget
         (cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_chargedClosureAtProfile
           M n hn htb hns charge hn4 (admissibleToBounded hadm)
           (hProfile h hadm htr hne (Or.inr (Or.inr hpos))))

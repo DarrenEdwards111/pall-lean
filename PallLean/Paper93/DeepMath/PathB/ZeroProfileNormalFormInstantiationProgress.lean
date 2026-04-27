@@ -802,6 +802,159 @@ theorem zeroProfileSingletonShiftRow_mem_shiftImageSet
   · intro v hv
     simpa using hv
 
+/-! ## Boolean normal-form budget lower bound -/
+
+/-- Any Boolean-normalized projected normal-form row map must pay for the
+ambient singleton-shift directions.  The proof uses the row map itself: the
+singleton rows are zero-profile shifted rows, Boolean normalization fixes them,
+and their Kronecker coefficient matrix is linearly independent when the base
+product has nonzero constant coefficient. -/
+theorem zeroProfileBooleanNormalFormRowMap_typeBudget_ge_ambient_of_constCoeff_ne_zero
+    {n L κ typeBudget : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (F : ZeroProfileProjectedNormalFormFamily n κ typeBudget)
+    (hmap :
+      ZeroProfileProjectedNormalFormRowMap factors
+        (zeroProfileBooleanNormalizeLinearMap (n := n)) F)
+    (hκ : 1 ≤ κ)
+    (hp0 :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (Finset.univ.prod factors) ≠ 0) :
+    n ≤ typeBudget := by
+  classical
+  let G : Finset (MvPolynomial (Fin n) ℚ) :=
+    zeroProfileProjectedNormalFormGlobalBasis F
+  let U : Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+    Submodule.span ℚ
+      (↑G : Set (MvPolynomial (Fin n) ℚ))
+  haveI hU_finite : Module.Finite ℚ ↥U :=
+    Module.Finite.span_of_finite ℚ (Finset.finite_toSet G)
+  have hrow_mem : ∀ i : Fin n,
+      zeroProfileSingletonShiftRow (Finset.univ.prod factors) i ∈ U := by
+    intro i
+    have hshift :
+        zeroProfileSingletonShiftRow (Finset.univ.prod factors) i ∈
+          zeroProfileShiftImageSet κ factors :=
+      zeroProfileSingletonShiftRow_mem_shiftImageSet factors i hκ
+    have hprojected :
+        zeroProfileBooleanNormalizeLinearMap
+            (zeroProfileSingletonShiftRow (Finset.univ.prod factors) i) ∈
+          zeroProfileProjectedNormalFormCompressedSpan F := by
+      exact
+        zeroProfileProjectedShiftImageSet_subset_normalFormCompressedSpan
+          factors (zeroProfileBooleanNormalizeLinearMap (n := n)) F hmap
+          ⟨zeroProfileSingletonShiftRow (Finset.univ.prod factors) i,
+            hshift, rfl⟩
+    have hfixed :
+        zeroProfileBooleanNormalizeLinearMap
+            (zeroProfileSingletonShiftRow (Finset.univ.prod factors) i) =
+          zeroProfileSingletonShiftRow (Finset.univ.prod factors) i :=
+      zeroProfileBooleanNormalizeLinearMap_singletonShiftRow
+        (Finset.univ.prod factors) i
+    simpa [U, G, zeroProfileProjectedNormalFormCompressedSpan, hfixed] using
+      hprojected
+  let rowsInU : Fin n → U :=
+    fun i => ⟨zeroProfileSingletonShiftRow
+      (Finset.univ.prod factors) i, hrow_mem i⟩
+  have hli :
+      LinearIndependent ℚ
+        (fun i : Fin n =>
+          zeroProfileSingletonShiftRow (Finset.univ.prod factors) i) :=
+    zeroProfileSingletonShiftRows_linearIndependent_of_constCoeff_ne_zero
+      (Finset.univ.prod factors) hp0
+  have hli_U : LinearIndependent ℚ rowsInU := by
+    rw [linearIndependent_iff'] at hli ⊢
+    intro s w hw i hi
+    apply hli s w ?_ i hi
+    have hval := congrArg
+      (fun q : U => (q : MvPolynomial (Fin n) ℚ)) hw
+    simpa [rowsInU] using hval
+  have hcard_le_finrank :
+      n ≤ Module.finrank ℚ ↥U := by
+    simpa [Fintype.card_fin] using hli_U.fintype_card_le_finrank
+  have hfinrank_le_card : Module.finrank ℚ ↥U ≤ G.card := by
+    simpa [U] using
+      (finrank_span_finset_le_card G :
+        Module.finrank ℚ
+          ↥(Submodule.span ℚ
+            (↑G : Set (MvPolynomial (Fin n) ℚ))) ≤ G.card)
+  exact hcard_le_finrank.trans
+    (hfinrank_le_card.trans
+      (zeroProfileProjectedNormalFormGlobalBasis_card_le_typeBudget F))
+
+/-- Cook-Levin specialization: every Boolean-normalized zero-profile
+normal-form classifier for the actual factor list has type budget at least the
+ambient variable count. -/
+theorem cookLevinZeroProfileBooleanNormalFormObligation_typeBudget_ge_ambient
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget : ℕ}
+    (hbool :
+      CookLevinZeroProfileBooleanNormalFormObligation
+        M n hn htb hns typeBudget) :
+    n ≤ typeBudget := by
+  rcases hbool with ⟨F, ⟨hmap⟩⟩
+  have hlog_pos : 0 < Nat.log 2 n := Nat.log_pos (by omega) hn
+  exact
+    zeroProfileBooleanNormalFormRowMap_typeBudget_ge_ambient_of_constCoeff_ne_zero
+      (κ := Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      F hmap
+      (Nat.succ_le_of_lt hlog_pos)
+      (by
+        simpa [cookLevinZeroProfileBaseProduct] using
+          (show
+            MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+              (cookLevinZeroProfileBaseProduct M n hn htb hns) ≠ 0
+            from by
+              rw [cookLevinZeroProfileBaseProduct_coeff_zero
+                M n hn htb hns]
+              norm_num))
+
+/-- A Boolean-normalized zero-profile classifier with a paper-side budget
+forces the ambient variable count to fit inside that paper-side budget. -/
+theorem ambient_le_withinProfileBound_of_cookLevinZeroProfileBooleanNormalFormObligation
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget : ℕ}
+    (hbool :
+      CookLevinZeroProfileBooleanNormalFormObligation
+        M n hn htb hns typeBudget)
+    (hbudget : typeBudget ≤ withinProfileBound (Nat.log 2 n)) :
+    n ≤ withinProfileBound (Nat.log 2 n) :=
+  (cookLevinZeroProfileBooleanNormalFormObligation_typeBudget_ge_ambient
+    M n hn htb hns hbool).trans hbudget
+
+/-- Therefore no Boolean-normalized zero-profile classifier can have budget
+strictly below the ambient singleton-row dimension. -/
+theorem not_cookLevinZeroProfileBooleanNormalFormObligation_of_typeBudget_lt_ambient
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget : ℕ}
+    (hlt : typeBudget < n) :
+    ¬ CookLevinZeroProfileBooleanNormalFormObligation
+        M n hn htb hns typeBudget := by
+  intro hbool
+  exact (not_le_of_gt hlt)
+    (cookLevinZeroProfileBooleanNormalFormObligation_typeBudget_ge_ambient
+      M n hn htb hns hbool)
+
+/-- Paper-budget form of the obstruction: if the ambient variable count already
+exceeds the within-profile budget, the Boolean-normalized row-map target cannot
+be inhabited at any budget bounded by `withinProfileBound`. -/
+theorem not_cookLevinZeroProfileBooleanNormalFormObligation_of_withinProfileBound_lt_ambient
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget : ℕ}
+    (hbudget : typeBudget ≤ withinProfileBound (Nat.log 2 n))
+    (hlt : withinProfileBound (Nat.log 2 n) < n) :
+    ¬ CookLevinZeroProfileBooleanNormalFormObligation
+        M n hn htb hns typeBudget := by
+  intro hbool
+  exact (not_le_of_gt hlt)
+    (ambient_le_withinProfileBound_of_cookLevinZeroProfileBooleanNormalFormObligation
+      M n hn htb hns hbool hbudget)
+
 /-- A quotient projection that kills singleton shifts cannot also fix every
 zero-profile shifted row when the base product has nonzero constant
 coefficient. -/
@@ -1082,6 +1235,11 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_projectedNormalFormCertificate_
 #print axioms zeroProfileBooleanNormalize_singletonShiftRow
 #print axioms zeroProfileSingletonShiftRow_coeff_single
 #print axioms zeroProfileSingletonShiftRows_linearIndependent_of_constCoeff_ne_zero
+#print axioms zeroProfileBooleanNormalFormRowMap_typeBudget_ge_ambient_of_constCoeff_ne_zero
+#print axioms cookLevinZeroProfileBooleanNormalFormObligation_typeBudget_ge_ambient
+#print axioms ambient_le_withinProfileBound_of_cookLevinZeroProfileBooleanNormalFormObligation
+#print axioms not_cookLevinZeroProfileBooleanNormalFormObligation_of_typeBudget_lt_ambient
+#print axioms not_cookLevinZeroProfileBooleanNormalFormObligation_of_withinProfileBound_lt_ambient
 #print axioms not_zeroProfileProjectionFixesShiftRows_of_killsSingleton_constCoeff_ne_zero
 #print axioms zeroProfileProjectionResidualClosureWithBudget_residualBudget_ge_ambient_of_killsSingleton_constCoeff_ne_zero
 #print axioms not_CookLevinZeroProfileProjectionFixesShiftRows_of_killsSingleton_actual

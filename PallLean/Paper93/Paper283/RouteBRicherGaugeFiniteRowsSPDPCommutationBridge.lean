@@ -72,6 +72,110 @@ def RouteBRicherGaugeFiniteRowsSPDPKernelCompatibility
             (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)) p)
         S shift) = 0
 
+/-- Strong kernel-generator zero discharges finite-row kernel compatibility.
+
+This is the direct finite-row form of the residual-generator-zero route: if
+every vector in the selected projection kernel has zero SPDP generator row
+before projection, then the weaker compatibility predicate follows. -/
+theorem routeBRicherGaugeFiniteRowsSPDPKernelCompatibility_of_kernelGeneratorZero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hzero :
+      forall (spdpKappa ell : Nat)
+        (p : SATDeciderGaugeSpace M n hn2 htb hns)
+        (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+        (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+        S.length = spdpKappa ->
+        shift.totalDegree <= ell ->
+        shift.vars <= S.toFinset ->
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition S ->
+        (routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+          (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)) p = 0 ->
+        routeBSPDPGeneratorRow M n hn2 htb hns p S shift = 0) :
+    RouteBRicherGaugeFiniteRowsSPDPKernelCompatibility
+      M n hn2 htb hns rows := by
+  intro spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm
+  let Pi :=
+    routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+      (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)
+  have hPiPi : Pi (Pi p) = Pi p := by
+    have hidem :=
+      (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows).is_idempotent
+    have happ := congrArg (fun L => L p) hidem
+    simpa [Pi, LinearMap.comp_apply] using happ
+  have hresKer : Pi (p - Pi p) = 0 := by
+    simp [Pi, map_sub, hPiPi]
+  have hrowZero :
+      routeBSPDPGeneratorRow M n hn2 htb hns (p - Pi p) S shift = 0 :=
+    hzero spdpKappa ell (p - Pi p) S shift
+      hSlen hshiftDegree hshiftVars hadm hresKer
+  simp [Pi, hrowZero]
+
+/-- Finite-row kernel compatibility is exactly descent of every admissible
+SPDP generator map through the selected finite-row projection.
+
+This is the kernel/descent form used by the paper-faithful Route B branch:
+`Π (L p) = Π (L (Π p))` for every generator map `L`. -/
+theorem routeBRicherGaugeFiniteRowsSPDPKernelCompatibility_iff_projectionDescent
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    RouteBRicherGaugeFiniteRowsSPDPKernelCompatibility
+        M n hn2 htb hns rows ↔
+      forall (spdpKappa ell : Nat)
+        (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+        (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+        S.length = spdpKappa ->
+        shift.totalDegree <= ell ->
+        shift.vars <= S.toFinset ->
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition S ->
+        let Pi :=
+          routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+            (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)
+        let L := routeBSPDPGeneratorRowLinearMap M n hn2 htb hns S shift
+        Pi.comp L = (Pi.comp L).comp Pi := by
+  constructor
+  · intro hker spdpKappa ell S shift hSlen hshiftDegree hshiftVars hadm
+    let Pi :=
+      routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+        (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)
+    let L := routeBSPDPGeneratorRowLinearMap M n hn2 htb hns S shift
+    apply LinearMap.ext
+    intro p
+    have hresZero : Pi (L (p - Pi p)) = 0 := by
+      simpa [Pi, L, routeBSPDPGeneratorRowLinearMap_apply] using
+        hker spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm
+    have hsubZero : Pi (L p) - Pi (L (Pi p)) = 0 := by
+      simpa [map_sub] using hresZero
+    have hpoint : Pi (L p) = Pi (L (Pi p)) := sub_eq_zero.mp hsubZero
+    simpa [LinearMap.comp_apply] using hpoint
+  · intro hdesc spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm
+    let Pi :=
+      routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+        (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)
+    let L := routeBSPDPGeneratorRowLinearMap M n hn2 htb hns S shift
+    have hPiPi : Pi (Pi p) = Pi p := by
+      have hidem :=
+        (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows).is_idempotent
+      have happ := congrArg (fun L => L p) hidem
+      simpa [Pi, LinearMap.comp_apply] using happ
+    have hresKer : Pi (p - Pi p) = 0 := by
+      simp [Pi, map_sub, hPiPi]
+    have hdescent : Pi.comp L = (Pi.comp L).comp Pi := by
+      simpa [Pi, L] using
+        hdesc spdpKappa ell S shift
+          hSlen hshiftDegree hshiftVars hadm
+    have happ := congrArg (fun F : _ => F (p - Pi p)) hdescent
+    have hleft : (Pi.comp L) (p - Pi p) = 0 := by
+      simpa [LinearMap.comp_apply, hresKer] using happ
+    simpa [Pi, L, routeBSPDPGeneratorRowLinearMap_apply,
+      LinearMap.comp_apply] using hleft
+
 /-- The general richer-gauge generator commutation criterion specializes to
 the finite-row concrete generator-row commutation condition. -/
 theorem routeBRicherGaugeFiniteRowsSPDPGeneratorCommutation_of_generatorCommutation
@@ -221,6 +325,68 @@ theorem routeBRicherGaugeGeneratorCommutation_of_spdpClosure_kernelCompatibility
         S shift)).2
       ⟨coeff, hcoeff⟩
 
+/-- With projected generator rows known to land in the selected finite span,
+finite-row generator commutation and kernel compatibility are equivalent.
+
+This is the exact compatibility check for a row-closed finite-row candidate:
+once the projected part is fixed by the finite-row projection, the only
+remaining question is whether each generator descends through the projection. -/
+theorem routeBRicherGaugeFiniteRowsSPDPGeneratorCommutation_iff_kernelCompatibility_of_projectedGeneratorMem
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (rows : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hmem :
+      forall (spdpKappa ell : Nat)
+        (p : SATDeciderGaugeSpace M n hn2 htb hns)
+        (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+        (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+        S.length = spdpKappa ->
+        shift.totalDegree <= ell ->
+        shift.vars <= S.toFinset ->
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition S ->
+        routeBSPDPGeneratorRow M n hn2 htb hns
+            ((routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+              (routeBRicherFiniteRowsCandidateGauge
+                M n hn2 htb hns rows)) p)
+            S shift ∈ finiteRowsSubmodule rows) :
+    RouteBRicherGaugeFiniteRowsSPDPGeneratorCommutation
+        M n hn2 htb hns rows ↔
+      RouteBRicherGaugeFiniteRowsSPDPKernelCompatibility
+        M n hn2 htb hns rows := by
+  constructor
+  · intro hcomm
+    refine
+      (routeBRicherGaugeFiniteRowsSPDPKernelCompatibility_iff_projectionDescent
+        M n hn2 htb hns rows).mpr ?_
+    intro spdpKappa ell S shift hSlen hshiftDegree hshiftVars hadm
+    let Pi :=
+      routeBNFrameCandidateAsSATGauge M n hn2 htb hns
+        (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)
+    let L := routeBSPDPGeneratorRowLinearMap M n hn2 htb hns S shift
+    apply LinearMap.ext
+    intro p
+    have hfixed : Pi (L (Pi p)) = L (Pi p) := by
+      simpa [Pi, L, routeBSPDPGeneratorRowLinearMap_apply] using
+        routeBRicherFiniteRowsCandidateGauge_fixed_of_mem
+          M n hn2 htb hns rows
+          (hmem spdpKappa ell p S shift
+            hSlen hshiftDegree hshiftVars hadm)
+    have hcommPoint : L (Pi p) = Pi (L p) := by
+      simpa [Pi, L, routeBSPDPGeneratorRowLinearMap_apply] using
+        hcomm spdpKappa ell p S shift
+          hSlen hshiftDegree hshiftVars hadm
+    have hpoint : Pi (L p) = Pi (L (Pi p)) := by
+      calc
+        Pi (L p) = L (Pi p) := hcommPoint.symm
+        _ = Pi (L (Pi p)) := hfixed.symm
+    simpa [LinearMap.comp_apply] using hpoint
+  · intro hker
+    exact
+      routeBRicherGaugeFiniteRowsSPDPGeneratorCommutation_of_projectedGeneratorMem_kernelCompatibility
+        M n hn2 htb hns rows hmem hker
+
 /-- Finite-row generator commutation supplies the map-preimage witness needed
 for SPDP image containment. -/
 theorem routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_generatorRowCommutation
@@ -358,10 +524,13 @@ theorem routeBPerInstanceCertificate_of_finiteRowsSPDPGeneralCommutation_deltaEq
 
 #print axioms RouteBRicherGaugeFiniteRowsSPDPGeneratorCommutation
 #print axioms RouteBRicherGaugeFiniteRowsSPDPKernelCompatibility
+#print axioms routeBRicherGaugeFiniteRowsSPDPKernelCompatibility_of_kernelGeneratorZero
+#print axioms routeBRicherGaugeFiniteRowsSPDPKernelCompatibility_iff_projectionDescent
 #print axioms routeBRicherGaugeFiniteRowsSPDPGeneratorCommutation_of_generatorCommutation
 #print axioms routeBRicherGaugeFiniteRowsSPDPGeneratorCommutation_of_projectedGeneratorMem_kernelCompatibility
 #print axioms routeBRicherGaugeGeneratorCommutation_of_projectedGeneratorMem_kernelCompatibility
 #print axioms routeBRicherGaugeGeneratorCommutation_of_spdpClosure_kernelCompatibility
+#print axioms routeBRicherGaugeFiniteRowsSPDPGeneratorCommutation_iff_kernelCompatibility_of_projectedGeneratorMem
 #print axioms routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_generatorRowCommutation
 #print axioms routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_generatorCommutation
 #print axioms routeBPerInstanceCertificate_of_finiteRowsSPDPGeneratorCommutation_deltaEqRateKappa
