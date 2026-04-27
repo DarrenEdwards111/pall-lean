@@ -10,10 +10,10 @@
   ## Scope
 
   This file performs the Z-round `#print axioms` roll-call across the
-  collection of Z-tagged deliverables (Z1–Z14) that have landed into
-  the `godmove-paper-faithful` branch under
-  `PallLean/Paper93/Paper283/` for Paper §28.3.  It is a pure audit
-  file:
+  collection of Z-tagged deliverables (Z1–Z14), plus the closed
+  κ = 2 real-local Route B exposure, that have landed into the
+  `godmove-paper-faithful` branch under `PallLean/Paper93/Paper283/`
+  for Paper §28.3.  It is a pure audit file:
 
     * It imports the landed Z-round modules so that their olean
       artefacts are loaded into the environment.
@@ -148,6 +148,14 @@
         Audited theorem:
           * `P_ne_NP_via_SNF_chain`
 
+    * Additional — `PallLean.Paper93.Paper283.BridgeAKappaTwoRouteBIntegration`
+        Closed κ = 2 real-local Bridge A data routed into the Route B
+        projection target through the actual Cook-Levin local-block
+        gadget family.  This bypasses, rather than assumes, the legacy
+        pocket-family rank-realization equality.
+        Audited theorem:
+          * `routeB_kappaTwo_realLocal_cookLevinRichProjectionTarget`
+
   ## Kernel-only
 
     * No `sorry`.
@@ -182,6 +190,7 @@ import PallLean.Paper93.Paper283.PiStarSpectral
 import PallLean.Paper93.Paper283.PiStarSpectralRank
 import PallLean.Paper93.Paper283.PiStarIdentityMinor
 import PallLean.Paper93.Paper283.FullChain283
+import PallLean.Paper93.Paper283.BridgeAKappaTwoRouteBIntegration
 import PallLean.Paper93.Paper283.ZeroArgP_ne_NP
 
 namespace PallLean.Paper93.Paper283
@@ -240,6 +249,56 @@ namespace PallLean.Paper93.Paper283
 
 -- Z14 — ZeroArgP_ne_NP (§28.3 complete-chain composition headline)
 #print axioms PallLean.Paper93.Paper283.P_ne_NP_via_SNF_chain
+
+/-! ## κ = 2 real-local Bridge A / Route B exposure -/
+
+/-- Top-level Z-round alias for the closed κ = 2 real-local Bridge A route
+into the generic Route B projection target.
+
+This is only an exposure wrapper around
+`cookLevinRichProjectionTarget_of_kappaTwoInteriorBlocks_realLocal_rankLogDet_transport`.
+It stays on the real local-block `gadgetFamily` interface and does not use the
+legacy `hrealizesPocket` pocket-family equality. -/
+theorem routeB_kappaTwo_realLocal_cookLevinRichProjectionTarget
+    {M : TuringMachine.DTM} {n : Nat} {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {N d : Nat}
+    (alpha beta alpha0 : Real)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    (blockIndex : Fin N -> Nat)
+    (hk1 : forall v : Fin N, 1 <= blockIndex v)
+    (hk2 : forall v : Fin N, 3 * blockIndex v + 3 < n)
+    (halpha0 : 0 < alpha0)
+    {theta normBound logDet delta rankLogRate : Real} {rankA : Nat}
+    {eigenvalues : Fin N -> Real}
+    (htheta : 0 < theta) (hnorm : 0 < normBound)
+    (hspec :
+      BridgeBSpectralHypotheses theta normBound logDet rankA eigenvalues)
+    (hlower :
+      BridgeARankLogDetLowerHypotheses
+        alpha beta alpha0 2 G chi Phi
+        (cookLevinLocalBlockQ_routeBLocalGadgetFamily_two_of_interiorBlockIndices
+          M n hn2 htb hns alpha beta alpha0 G chi Phi blockIndex hk1 hk2)
+        rankLogRate logDet delta)
+    (Pi : PallLean.Paper93.NFrame.CandidateGauge
+      (RouteBCookLevinDim M n hn2 htb hns))
+    (hcompat :
+      RouteBProjectionRankCompatible M n hn2 htb hns rankA Pi)
+    (hfun :
+      RouteBMatrixToSATGaugeFunctoriality
+        M n hn2 htb hns alpha beta alpha0 2 G chi Phi
+        (cookLevinLocalBlockQ_routeBLocalGadgetFamily_two_of_interiorBlockIndices
+          M n hn2 htb hns alpha beta alpha0 G chi Phi blockIndex hk1 hk2)
+        (bridgeBLogCapacity theta normBound) delta rankA Pi) :
+    PallLean.Paper93.DeepMath.PathB.CookLevinRichProjectionTarget
+      M n hn hn2 htb hns :=
+  cookLevinRichProjectionTarget_of_kappaTwoInteriorBlocks_realLocal_rankLogDet_transport
+    (M := M) (n := n) (hn := hn) (hn2 := hn2) (htb := htb) (hns := hns)
+    alpha beta alpha0 G chi Phi blockIndex hk1 hk2
+    halpha0 htheta hnorm hspec hlower Pi hcompat hfun
+
+#print axioms PallLean.Paper93.Paper283.routeB_kappaTwo_realLocal_cookLevinRichProjectionTarget
 
 /-! ## Audit anchors -/
 
@@ -319,6 +378,10 @@ this audit:
     with the bounded-profile template-collapse obligation
     threaded as an explicit `Prop`-level hypothesis.
     Theorem `P_ne_NP_via_SNF_chain`.
+  * Additional (`BridgeAKappaTwoRouteBIntegration`) — closed
+    κ = 2 real-local Bridge A data exposed through the Route B
+    projection target.  Theorem
+    `routeB_kappaTwo_realLocal_cookLevinRichProjectionTarget`.
 
 Honest status (Z-round):
 
@@ -353,6 +416,10 @@ Honest status (Z-round):
     bounded-profile bridge; the bounded-profile
     template-collapse obligation is threaded as an explicit
     `Prop`-level hypothesis, not discharged here.
+  * The κ = 2 real-local Route B theorem is imported into this
+    top-level audit rollup and exposed under the alias
+    `routeB_kappaTwo_realLocal_cookLevinRichProjectionTarget`.
+    It deliberately bypasses the older pocket-family adapter.
   * The Z-round therefore extends the Paper §28.3 scaffolding
     with the compiler-side δ_A RHS, Bridge A/B rank composition,
     and Π⋆-from-spectrum interface — completing ~24 rounds of
