@@ -307,6 +307,97 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_rowClosurePackage_un
     bridge
 
 /-- Concrete-NP prepended finite-row Route B certificate from the explicit
+head/tail row-closure package, kernel/complement compatibility, and an
+endpoint/charged P-window bridge.
+
+This is the commutation-side sibling of the unprojected-preimage wrapper above:
+finite-row closure plus kernel compatibility gives the map-preimage SPDP
+surface, while the P-window side remains on the corrected charged endpoint
+route. -/
+theorem routeBPerInstanceCertificate_of_prependedConcreteNP_rowClosurePackage_kernelCompatibility_endpointChargedBridge_deltaEqRateKappa
+    {N d : Nat}
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4) (charge : ProfileCharge n)
+    (alpha beta alpha0 : Real) (kappa gadgetN : Nat)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {eta theta : Real}
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hN : 1 <= N) (hrowCount : m + 1 <= N)
+    (heta : 0 < eta) (htheta : 0 < theta)
+    (halpha : 0 < alpha) (halpha0 : 0 < alpha0)
+    (hkappa : 0 < kappa) (hgadgetN : 2 <= gadgetN)
+    (pkg :
+      RouteBRicherConcreteNPPrependedRowsSPDPRowClosurePackage
+        M n hn2 htb hns tail)
+    (hker :
+      RouteBRicherGaugeFiniteRowsSPDPKernelCompatibility M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail))
+    (bridge :
+      RouteBRicherGaugeEndpointChargedPWindowBridge
+        M n hn2 htb hns hn4 charge) :
+    RouteBPerInstanceCertificate M n hn2 htb hns :=
+  routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsSPDPMapPreimage_endpointChargedBridge_deltaEqRateKappa
+    (N := N) (d := d)
+    M n hn hn2 htb hns hn4 charge
+    alpha beta alpha0 kappa gadgetN G chi Phi
+    tail hN hrowCount heta htheta halpha halpha0 hkappa hgadgetN
+    (routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_rowClosurePackage_kernelCompatibility
+      M n hn2 htb hns tail pkg hker)
+    bridge
+
+/-- Concrete-NP prepended finite-row Route B certificate from the explicit
+head/tail row-closure package, kernel/complement compatibility, and the
+corrected active-blocker/non-scalar P-window route.
+
+The exposed assumptions are the corrected closure obligations: endpoint
+charged local closure, non-scalar zero-profile budget, active live-profile
+blockers, and finite-row closure/kernel compatibility. -/
+theorem routeBPerInstanceCertificate_of_prependedConcreteNP_rowClosurePackage_kernelCompatibility_activeBlockersZeroNonScalar_deltaEqRateKappa
+    {N d : Nat}
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4) (charge : ProfileCharge n)
+    (alpha beta alpha0 : Real) (kappa gadgetN : Nat)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {eta theta : Real}
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hN : 1 <= N) (hrowCount : m + 1 <= N)
+    (heta : 0 < eta) (htheta : 0 < theta)
+    (halpha : 0 < alpha) (halpha0 : 0 < alpha0)
+    (hkappa : 0 < kappa) (hgadgetN : 2 <= gadgetN)
+    (hI1 :
+      PerTypeProductGrouping (n := n) (endpointAugmentedConcreteW n hn4))
+    (hI2c :
+      EndpointAugmentedConcreteWChargedShiftClosure n hn4 charge)
+    (hI3 :
+      PerTypeMlprojClosure (n := n) (endpointAugmentedConcreteW n hn4))
+    (hbound :
+      cookLevinZeroProfileNonScalarCardBound M n hn2 htb hns <=
+        withinProfileBound (Nat.log 2 n))
+    (hactive :
+      CookLevinActiveProfileTypeCaseBlockers M n hn2 htb hns)
+    (pkg :
+      RouteBRicherConcreteNPPrependedRowsSPDPRowClosurePackage
+        M n hn2 htb hns tail)
+    (hker :
+      RouteBRicherGaugeFiniteRowsSPDPKernelCompatibility M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail)) :
+    RouteBPerInstanceCertificate M n hn2 htb hns :=
+  routeBPerInstanceCertificate_of_prependedConcreteNP_rowClosurePackage_kernelCompatibility_endpointChargedBridge_deltaEqRateKappa
+    (N := N) (d := d)
+    M n hn hn2 htb hns hn4 charge
+    alpha beta alpha0 kappa gadgetN G chi Phi
+    tail hN hrowCount heta htheta halpha halpha0 hkappa hgadgetN
+    pkg hker
+    (routeBRicherGauge_endpointChargedPWindowBridge_of_activeTypeCaseBlockers_zeroNonScalarCardBound
+      M n hn2 htb hns hn4 charge hI1 hI2c hI3 hbound hactive)
+
+/-- Concrete-NP prepended finite-row Route B certificate from the explicit
 head/tail row-closure package, unprojected preimage, and corrected
 active-blocker/non-scalar P-window cover. -/
 theorem routeBPerInstanceCertificate_of_prependedConcreteNP_rowClosurePackage_unprojectedPreimage_activeBlockersZeroNonScalarCover_deltaEqRateKappa
@@ -410,6 +501,8 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_rowClosurePackage_un
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsSPDPMapPreimage_activeBlockersZeroNonScalarCover_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsSPDPMapPreimage_perTypeSpanning_zeroSupportCardSum_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_rowClosurePackage_unprojectedPreimage_endpointChargedBridge_deltaEqRateKappa
+#print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_rowClosurePackage_kernelCompatibility_endpointChargedBridge_deltaEqRateKappa
+#print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_rowClosurePackage_kernelCompatibility_activeBlockersZeroNonScalar_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_rowClosurePackage_unprojectedPreimage_activeBlockersZeroNonScalarCover_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_rowClosurePackage_unprojectedPreimage_perTypeSpanning_zeroSupportCardSum_deltaEqRateKappa
 

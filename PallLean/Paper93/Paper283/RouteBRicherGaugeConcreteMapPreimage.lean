@@ -448,6 +448,28 @@ theorem routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_spdpClosure_kerne
       (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail)
       closure hker)
 
+/-- Concrete prepended-row map-preimage from the head/tail row-closure package
+plus the kernel/complement compatibility that upgrades closure to
+commutation. -/
+theorem routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_rowClosurePackage_kernelCompatibility
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (pkg :
+      RouteBRicherConcreteNPPrependedRowsSPDPRowClosurePackage
+        M n hn2 htb hns tail)
+    (hker :
+      RouteBRicherGaugeFiniteRowsSPDPKernelCompatibility M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail)) :
+    RouteBRicherGaugeFiniteRowsSPDPMapPreimage M n hn2 htb hns
+      (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail) :=
+  routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_spdpClosure_kernelCompatibility
+    M n hn2 htb hns tail
+    (routeBRicherConcreteNPPrependedRows_spdpClosure_of_rowClosurePackage
+      M n hn2 htb hns tail pkg)
+    hker
+
 /-! ## Empty-tail reductions and obstruction -/
 
 /-- With an empty tail, the concrete prepended row family is definitionally the
@@ -586,6 +608,7 @@ theorem routeBRicherConcreteNPPrependedRows_tail_nonempty_of_spdpRowClosurePacka
 #print axioms routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_generatorRowCommutation
 #print axioms routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_generatorCommutation
 #print axioms routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_spdpClosure_kernelCompatibility
+#print axioms routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_rowClosurePackage_kernelCompatibility
 #print axioms routeBRicherConcreteNPPrependedRows_empty_eq_witnessRows
 #print axioms routeBRicherConcreteNPPrependedRows_empty_unprojectedPreimage_iff_concreteNP
 #print axioms routeBRicherConcreteNPWitnessScalarRowClosure_of_emptyPrependedRowsPackage
