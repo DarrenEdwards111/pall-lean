@@ -1320,6 +1320,61 @@ theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjection_not_generat
       (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent_of_generatorCoeffVanishes
         M n hn2 htb hns hvanish)
 
+/-- Paper-admissibility package for the designed coefficient-dual projection.
+
+This deliberately bundles the three Route B sides that the projection would
+have to satisfy in order to be usable as a paper-faithful admissible
+projection: rank-monotonicity, stability of the displayed complement under all
+admissible SPDP generator maps, and the corresponding projection-descent
+equation. -/
+structure RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionPaperAdmissible
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) : Prop where
+  rank_monotone :
+    GaugeMonotonicity.IsRankMonotoneGauge
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+        M n hn2 htb hns).projection
+  stable_generator_maps :
+    RouteBRicherSPDPStableCandidateExplicitComplementStableGeneratorMaps
+      M n hn2 htb hns
+      (routeBRicherMultilinearTailRows M n hn2 htb hns)
+      (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+        M n hn2 htb hns).complement
+  descent :
+    RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent
+      M n hn2 htb hns
+
+/-- Any escape witness excludes paper-admissibility for the designed
+coefficient-dual projection: the rank-monotone and stability fields cannot
+rescue a projection whose required descent equation already fails. -/
+theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjection_not_paperAdmissible_of_escapeWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hescape :
+      RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness
+        M n hn2 htb hns) :
+    ¬ RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionPaperAdmissible
+        M n hn2 htb hns := by
+  intro hadm
+  exact
+    ((routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_iff_not_projectionDescent
+      M n hn2 htb hns).mp hescape) hadm.descent
+
+/-- The first-square singleton escape proves that the designed coefficient-dual
+projection is not a paper-admissible Route B projection.  In particular it
+cannot simultaneously satisfy the rank-monotone, stable-generator-map, and
+descent obligations needed by the paper-faithful Route B side. -/
+theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjection_not_paperAdmissible
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    ¬ RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionPaperAdmissible
+        M n hn2 htb hns :=
+  routeBRicherConcreteNPPrependedMultilinearExplicitProjection_not_paperAdmissible_of_escapeWitness
+    M n hn2 htb hns
+    (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_firstSquare_singleton
+      M n hn2 htb hns)
+
 /-- The designed coefficient-dual projection has the honest Route B fork:
 either it descends through all admissible generator rows, or Lean exposes a
 projection-escape witness in the displayed complement. -/
@@ -2133,6 +2188,9 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_unpr
 #print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjection_not_descent
 #print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjection_not_stableGeneratorMaps
 #print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjection_not_generatorCoeffVanishes
+#print axioms RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionPaperAdmissible
+#print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjection_not_paperAdmissible_of_escapeWitness
+#print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjection_not_paperAdmissible
 #print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent_or_escapeWitness
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_spdpRowClosurePackage
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_spdpClosure

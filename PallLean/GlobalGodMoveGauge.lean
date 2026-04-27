@@ -585,6 +585,137 @@ structure Theorem207Witness
         (cook_levin_compilation M n hn2 htb hns).partition
         (Nat.log 2 n) (Nat.log 2 n) sheet
 
+/-! ### Machine-checkable Route B component interfaces
+
+Route B separates the *coordinate gauge* from the actual collapse:
+
+* `PiStar` is the paper's gauge / coordinate choice. In this file it is
+  represented by the selected block partition and SPDP rank coordinates, not by
+  an arbitrary projection that can be applied to erase any hard polynomial.
+* `PiPhi` / `T_Phi` is the coupled-sheet extraction. This is the collapse step:
+  it extracts the sheet `Qx_Phi,S` from the paper-compiled polynomial. The
+  interface below records only the paper-legitimate collapse and the four rank
+  facts needed for Theorem 207; it does not expose an unconstrained
+  `LinearMap` projection field.
+
+The existing `Theorem207Witness` remains the compatibility bundle. The
+component structures below make the four paper claims individually
+machine-checkable, and `theorem207Witness_of_components` assembles them back
+into the old witness shape. -/
+
+/-- **Route B extraction interface (Theorem 181 / Lemma 204 / Lemma 205 data).**
+
+This carries the paper-compiled polynomial and the coupled sheet extracted from
+it by `PiPhi` / `T_Phi`. It intentionally contains no arbitrary `LinearMap`:
+the collapse is represented by the existence of the coupled sheet itself, with
+rank behavior supplied by `Theorem207ExtractionRankMonotone`. -/
+structure Theorem207Extraction
+    (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Type where
+  /-- The paper's instrumented `P_{M',n}`, in PiStar gauge coordinates. -/
+  paperCompiledPoly :
+    MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ
+  /-- The coupled sheet `Qx_Phi,S` extracted by PiPhi / `T_Phi`. -/
+  coupledSheet :
+    MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ
+
+/-- **Route B extraction rank monotonicity interface (Lemma 205).**
+
+The PiPhi / coupled-sheet extraction is rank non-increasing. This is the
+machine statement of the collapse step; PiStar only fixes the coordinates in
+which this rank is measured. -/
+structure Theorem207ExtractionRankMonotone
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (E : Theorem207Extraction M n hn hn2 htb hns) : Prop where
+  extraction_rank_monotone :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n) E.coupledSheet ≤
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n) E.paperCompiledPoly
+
+/-- **Route B P-side upper-bound interface (Theorem 10 / Theorem 32).**
+
+Under the PiStar gauge / coordinate system, the paper-compiled polynomial has
+polynomial SPDP rank. -/
+structure Theorem207PSideUpperBound
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (E : Theorem207Extraction M n hn hn2 htb hns) : Prop where
+  compiled_p_side_bound :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n) E.paperCompiledPoly ≤ n ^ 200
+
+/-- **Route B NP-side lower-bound interface (Theorem 98).**
+
+The same coupled sheet extracted by PiPhi carries the Ramanujan-Tseitin
+identity minor lower bound. -/
+structure Theorem207NPSideLowerBound
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (E : Theorem207Extraction M n hn hn2 htb hns) : Prop where
+  sheet_np_side_lower_bound :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n) E.coupledSheet
+
+/-- Assemble the four Route B component interfaces back into the existing
+`Theorem207Witness` compatibility bundle. -/
+noncomputable def theorem207Witness_of_components
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (E : Theorem207Extraction M n hn hn2 htb hns)
+    (hExtractRank : Theorem207ExtractionRankMonotone M n hn hn2 htb hns E)
+    (hP : Theorem207PSideUpperBound M n hn hn2 htb hns E)
+    (hNP : Theorem207NPSideLowerBound M n hn hn2 htb hns E) :
+    Theorem207Witness M n hn hn2 htb hns where
+  paperCompiledPoly := E.paperCompiledPoly
+  sheet := E.coupledSheet
+  extraction_rank_monotone := hExtractRank.extraction_rank_monotone
+  compiled_p_side_bound := hP.compiled_p_side_bound
+  sheet_np_side_lower_bound := hNP.sheet_np_side_lower_bound
+
+/-- Extract the Route B polynomial/sheet data from an existing
+`Theorem207Witness`. -/
+noncomputable def theorem207Extraction_of_witness
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (W : Theorem207Witness M n hn hn2 htb hns) :
+    Theorem207Extraction M n hn hn2 htb hns where
+  paperCompiledPoly := W.paperCompiledPoly
+  coupledSheet := W.sheet
+
+/-- Existing witnesses supply the Route B extraction-rank component. -/
+theorem theorem207ExtractionRankMonotone_of_witness
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (W : Theorem207Witness M n hn hn2 htb hns) :
+    Theorem207ExtractionRankMonotone M n hn hn2 htb hns
+      (theorem207Extraction_of_witness M n hn hn2 htb hns W) where
+  extraction_rank_monotone := W.extraction_rank_monotone
+
+/-- Existing witnesses supply the Route B P-side upper-bound component. -/
+theorem theorem207PSideUpperBound_of_witness
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (W : Theorem207Witness M n hn hn2 htb hns) :
+    Theorem207PSideUpperBound M n hn hn2 htb hns
+      (theorem207Extraction_of_witness M n hn hn2 htb hns W) where
+  compiled_p_side_bound := W.compiled_p_side_bound
+
+/-- Existing witnesses supply the Route B NP-side lower-bound component. -/
+theorem theorem207NPSideLowerBound_of_witness
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (W : Theorem207Witness M n hn hn2 htb hns) :
+    Theorem207NPSideLowerBound M n hn hn2 htb hns
+      (theorem207Extraction_of_witness M n hn hn2 htb hns W) where
+  sheet_np_side_lower_bound := W.sheet_np_side_lower_bound
+
 /-- **Theorem 207 axiom (paper-faithful, two-stage).** For every
 bounded-parameter SAT-decider at `n ≥ 2^804`, the paper's instrumented
 compiler (Theorem 181 / Lemma 204) + God-Move extraction T_Φ (Lemma 205) +
@@ -616,6 +747,125 @@ axiom exists_theorem207_witness
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M) :
     Theorem207Witness M n hn hn2 htb hns
+
+/-- The existing Theorem 207 witness axiom yields the split Route B component
+interfaces. This is the backward-compatible projection direction. -/
+noncomputable def exists_theorem207_component_interfaces_from_witness_axiom
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) :
+    ∃ (E : Theorem207Extraction M n hn hn2 htb hns),
+      Theorem207ExtractionRankMonotone M n hn hn2 htb hns E ∧
+      Theorem207PSideUpperBound M n hn hn2 htb hns E ∧
+      Theorem207NPSideLowerBound M n hn hn2 htb hns E :=
+  let W := exists_theorem207_witness M n hn hn2 htb hns hdec
+  let E := theorem207Extraction_of_witness M n hn hn2 htb hns W
+  ⟨E,
+   theorem207ExtractionRankMonotone_of_witness M n hn hn2 htb hns W,
+   theorem207PSideUpperBound_of_witness M n hn hn2 htb hns W,
+   theorem207NPSideLowerBound_of_witness M n hn hn2 htb hns W⟩
+
+/-- A split Route B component package assembles into the existing
+`Theorem207Witness` type. This is the forward migration direction for replacing
+the monolithic witness axiom with separately proved component claims. -/
+noncomputable def theorem207Witness_from_component_interfaces
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hComponents :
+      ∃ (E : Theorem207Extraction M n hn hn2 htb hns),
+        Theorem207ExtractionRankMonotone M n hn hn2 htb hns E ∧
+        Theorem207PSideUpperBound M n hn hn2 htb hns E ∧
+        Theorem207NPSideLowerBound M n hn hn2 htb hns E) :
+    Theorem207Witness M n hn hn2 htb hns :=
+  let E := Classical.choose hComponents
+  let hE := Classical.choose_spec hComponents
+  theorem207Witness_of_components M n hn hn2 htb hns E hE.1 hE.2.1 hE.2.2
+
+/-! ### Paper-faithful semantic Theorem 207 target
+
+The component interfaces above are a compatibility layer around the older
+`Theorem207Witness` bundle. The paper-faithful Route B object is stricter:
+it is a coupled-sheet extraction target equipped with the staged semantic
+pipeline from `GodMoveCore`.
+
+In this surface, `PiStar` is still only the SPDP coordinate/gauge choice. The
+actual codimension collapse is the semantic `PiPhi` extraction pipeline:
+restriction, projection, output identification, and a rank bridge proving the
+steps are rank-monotone. This avoids treating an arbitrary polynomial
+`LinearMap` as a valid God-Move projection. -/
+
+/-- **Paper-faithful Theorem 207 semantic witness.**
+
+This is the Route B chain in the shape used by `GodMoveCore`:
+
+* a concrete coupled-sheet target `Qx_Phi,S`,
+* staged extraction semantics for the map from the Cook-Levin polynomial to
+  that target,
+* a rank bridge for the restriction/projection pipeline,
+* the P-side upper bound on the source polynomial, and
+* the NP-side identity-minor lower bound on the same extracted sheet.
+
+Unlike the legacy gauge shells above, this type contains no arbitrary
+polynomial projection field. -/
+structure Theorem207SemanticWitness
+    (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) : Type where
+  /-- The coupled verifier sheet `Qx_Phi,S` extracted by the paper's
+  `PiPhi` pipeline. -/
+  target : GodMoveExtractionTarget M n hn2 htb hns
+  /-- The semantic extraction data: restriction, projection, and output
+  identification for the chosen coupled sheet. -/
+  extraction_semantics :
+    GodMoveExtractionSemanticObligation M n hn2 htb hns hdec target
+  /-- Rank-monotone bridge for every semantic realization of the extraction
+  map on this target. -/
+  rank_bridge :
+    ∀ sem : ExtractionMapSemantics M n hn2 htb hns hdec target,
+      ExtractionMapRankBridge sem
+  /-- P-side upper bound after the PiStar gauge/coordinate choice. -/
+  compiled_p_side_bound :
+    mlBlockedSpdpRank
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn2 htb hns)) ≤ n ^ 200
+  /-- NP-side Ramanujan-Tseitin identity-minor lower bound on the same
+  coupled sheet. -/
+  sheet_np_side_lower_bound :
+    Nat.choose (n / 3) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank target.coupledPartition
+        (Nat.log 2 n) (Nat.log 2 n) target.coupledPoly
+
+/-- The Theorem 207 identity-minor lower bound implies the weakened NP lower
+bound expected by `separation_from_semantic_target`. -/
+theorem theorem207SemanticWitness_weakened_np_lower
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M)
+    (W : Theorem207SemanticWitness M n hn hn2 htb hns hdec) :
+    n ^ (Nat.log 2 n / 4) ≤
+      mlBlockedSpdpRank W.target.coupledPartition
+        (Nat.log 2 n) (Nat.log 2 n) W.target.coupledPoly := by
+  have hn20 : n ≥ 2 ^ 20 :=
+    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn
+  have hbin : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
+    BinomialBound.binomial_lower_bound_concrete n hn20
+  have hmono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose (n / 3) (Nat.log 2 n) :=
+    Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
+  exact le_trans (le_trans hbin hmono) W.sheet_np_side_lower_bound
+
+/-- A paper-faithful semantic Theorem 207 witness is enough for the Route B
+contradiction shell already proved in `GodMoveCore`. -/
+theorem theorem207SemanticWitness_false
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M)
+    (W : Theorem207SemanticWitness M n hn hn2 htb hns hdec) :
+    False :=
+  separation_from_semantic_target M n hn2 htb hns hdec hn
+    W.target W.extraction_semantics
+    (theorem207SemanticWitness_weakened_np_lower M n hn hn2 htb hns hdec W)
+    W.rank_bridge W.compiled_p_side_bound
 
 /-! ### Partial axiom-free discharge of Theorem207Witness
 
@@ -876,7 +1126,16 @@ depends on. Expected outcomes:
   **no custom axioms** (axiom-free discharge of field #3 via le_refl).
 * `exists_theorem207_witness_from_bounds_axiom` —
   only `exists_theorem207_bounds_on_some_poly`
-  (strictly narrower than the 5-field `exists_theorem207_witness`). -/
+  (strictly narrower than the 5-field `exists_theorem207_witness`).
+* `theorem207Witness_of_components` / `theorem207Witness_from_component_interfaces` —
+  no custom axioms; these are interface assembly helpers.
+* `exists_theorem207_component_interfaces_from_witness_axiom` —
+  only `exists_theorem207_witness`, documenting the compatibility projection
+  from the old monolithic witness axiom into the split Route B interfaces.
+* `theorem207SemanticWitness_weakened_np_lower` / `theorem207SemanticWitness_false` —
+  no new custom axioms; these expose the paper-faithful `GodMoveCore`
+  semantic extraction route and reuse the existing arithmetic/binomial and
+  semantic separation infrastructure. -/
 #print axioms zeroGauge_isAmplituhedronGauge_of_not_decidesSAT
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
 #print axioms exists_amplituhedron_gauge_of_not_decidesSAT
@@ -894,5 +1153,18 @@ depends on. Expected outcomes:
 --   GlobalGodMoveGauge.exists_theorem207_bounds_on_some_poly.
 -- (Strictly narrower axiom than exists_theorem207_witness:
 --  only 2 rank bounds on a single polynomial vs 5-field witness.)
+#print axioms theorem207Witness_of_components
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms theorem207Witness_from_component_interfaces
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms exists_theorem207_component_interfaces_from_witness_axiom
+-- Expected: propext, Classical.choice, Quot.sound,
+--   GlobalGodMoveGauge.exists_theorem207_witness.
+#print axioms theorem207SemanticWitness_weakened_np_lower
+-- Expected: propext, Classical.choice, Quot.sound
+-- (Axiom-free arithmetic weakening from C(n/3, log n) to n^(log n / 4).)
+#print axioms theorem207SemanticWitness_false
+-- Expected: propext, Classical.choice, Quot.sound
+-- (No new custom axioms beyond the existing semantic Route B shell.)
 
 end GlobalGodMoveGauge
