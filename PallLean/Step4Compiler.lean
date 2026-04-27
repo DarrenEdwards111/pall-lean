@@ -48386,6 +48386,26 @@ theorem partitioned_output_piPhi_extracts
   exact Step237.P_paperFaithful_piPhi_identity
     W.σ W.Φ W.z W.V W.R_compute W.residual_v_only
 
+/-- **§241.3a — `partitioned_output_embedded_Q_rank_le_full_output`**
+(paper §40 Lemma 205 rank-monotone T_Φ transport).
+
+The embedded coupled verifier sheet extracted by `piPhi` has SPDP rank bounded
+by the paper-faithful full output. This is the concrete source-to-target rank
+bridge for the case where the semantic target is identified with
+`W.embedded_Q` in the same UV-split coordinate system. -/
+theorem partitioned_output_embedded_Q_rank_le_full_output
+    (W : PartitionedCompilerOutput)
+    (B : SPDP.BlockPartition W.σ.total) (κ ℓ : ℕ) :
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ W.embedded_Q ≤
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ W.full_output := by
+  change
+    MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+        (CoupledSheetPoly.embed W.σ (Q_times_Phi_135 W.Φ W.z W.V)) ≤
+      MultilinearSPDP.mlBlockedSpdpRank B κ ℓ
+        (Step237.P_paperFaithful W.σ W.Φ W.z W.V W.R_compute)
+  exact Step237.P_paperFaithful_rank_transfer_to_Q
+    W.σ B κ ℓ W.Φ W.z W.V W.R_compute W.residual_v_only
+
 /-- **§241.4 — `partitioned_output_additive_cew_bound`** (paper §40.4
 Theorem 218 p. 205 layers 1+2 composed; §239.2
 `cew_of_P_paperFaithful_additive`).
@@ -48730,6 +48750,7 @@ end Step241
 #print axioms Step241.PartitionedCompilerOutput.full_output_eq
 #print axioms Step241.partitioned_output_is_P_paperFaithful
 #print axioms Step241.partitioned_output_piPhi_extracts
+#print axioms Step241.partitioned_output_embedded_Q_rank_le_full_output
 #print axioms Step241.partitioned_output_additive_cew_bound
 #print axioms Step241.Theorem218_cew_bound_real_partitioned_output
 #print axioms Step241.Theorem218_cew_bound_symmetric

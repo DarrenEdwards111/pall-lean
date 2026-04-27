@@ -983,18 +983,70 @@ theorem theorem207SemanticTransportWitness_false
     W.source_to_target_rank_bridge
     (routeB_strong_np_from_same_target_identity_minor W.same_target_identity_minor)
 
-/-- Narrow source-transport theorem seam for paper-faithful Theorem 207.
+/-- Explicit nonzero semantic-target plus source-transport theorem seam for
+paper-faithful Theorem 207.
 
-It asserts the three remaining paper claims together:
+This is the real remaining Route B theorem shape. It asserts:
 
-1. the chosen semantic extraction target/theorem,
-2. an identity-minor lower bound on that same target,
-3. an instrumented/gauged P-side source with polynomial rank and a
-   rank-monotone transport into the target.
+1. a chosen semantic extraction target that already carries same-target
+   identity-minor evidence, and
+2. an instrumented/gauged P-side source with polynomial rank and a
+   rank-monotone transport into that target.
 
-This replaces the impossible demand for a polynomial rank bound on the local
-product-form `compiledPoly`. -/
-axiom exists_theorem207_semantic_source_transport_data
+The existing zero strict-shrink semantic target cannot inhabit
+`GodMoveSemanticIdentityMinorGap`; this seam therefore forces the nonzero
+coupled-sheet target to be supplied explicitly. The source side is likewise the
+paper-faithful `Theorem207PaperSource`, not the refuted local product-form
+`compiledPoly`. -/
+axiom exists_theorem207_semantic_identity_minor_gap_source_transport_data
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) :
+    ∃ G : GodMoveSemanticIdentityMinorGap M n hn2 htb hns hdec,
+      ∃ source : Theorem207PaperSource M n hn hn2 htb hns,
+        Theorem207PaperSourcePSideUpperBound M n hn hn2 htb hns source ∧
+        Theorem207PaperSourceToTargetRankBridge
+          M n hn hn2 htb hns source G.gap.extractionTarget
+
+/-- Package explicit semantic identity-minor and paper-source transport data
+into the existing source-transport existential seam.
+
+This constructor is axiom-free: it does not choose target/source data, but
+only repackages an already chosen `GodMoveSemanticIdentityMinorGap`, paper
+source, source P-side bound, and rank bridge into the existential shape used by
+the legacy theorem-207 source-transport seam. -/
+theorem exists_theorem207_semantic_source_transport_data_of_identity_minor_gap
+    {M : DTM} {n : ℕ} (hn : n ≥ 2 ^ 804) {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (G : GodMoveSemanticIdentityMinorGap M n hn2 htb hns hdec)
+    (source : Theorem207PaperSource M n hn hn2 htb hns)
+    (hP : Theorem207PaperSourcePSideUpperBound M n hn hn2 htb hns source)
+    (bridge :
+      Theorem207PaperSourceToTargetRankBridge
+        M n hn hn2 htb hns source G.gap.extractionTarget) :
+    ∃ targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec,
+      GodMoveExtractionTargetTheorem
+        M n hn2 htb hns hdec targetData.extractionTarget ∧
+      Nonempty (RouteBIdentityMinorSameTargetData targetData.extractionTarget) ∧
+      ∃ source : Theorem207PaperSource M n hn hn2 htb hns,
+        Theorem207PaperSourcePSideUpperBound M n hn hn2 htb hns source ∧
+        Theorem207PaperSourceToTargetRankBridge
+          M n hn hn2 htb hns source targetData.extractionTarget := by
+  refine ⟨G.gap.toTargetData, ?_, ?_, source, hP, ?_⟩
+  · exact G.gap.targetTheorem
+  · exact ⟨by simpa [GodMoveSemanticGap.toTargetData] using
+      G.same_target_identity_minor⟩
+  · simpa [GodMoveSemanticGap.toTargetData] using bridge
+
+/-- Compatibility projection from the explicit semantic identity-minor/source
+transport seam to the older source-transport existential shape.
+
+This theorem is the place where the broad existential is instantiated. Its
+only custom dependency is the explicit
+`exists_theorem207_semantic_identity_minor_gap_source_transport_data` seam
+above. -/
+theorem exists_theorem207_semantic_source_transport_data
     (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hdec : DecidesSAT M) :
@@ -1005,7 +1057,12 @@ axiom exists_theorem207_semantic_source_transport_data
       ∃ source : Theorem207PaperSource M n hn hn2 htb hns,
         Theorem207PaperSourcePSideUpperBound M n hn hn2 htb hns source ∧
         Theorem207PaperSourceToTargetRankBridge
-          M n hn hn2 htb hns source targetData.extractionTarget
+          M n hn hn2 htb hns source targetData.extractionTarget := by
+  obtain ⟨G, source, hP, bridge⟩ :=
+    exists_theorem207_semantic_identity_minor_gap_source_transport_data
+      M n hn hn2 htb hns hdec
+  exact exists_theorem207_semantic_source_transport_data_of_identity_minor_gap
+    hn G source hP bridge
 
 /-- Assemble the source-transport semantic witness from the narrow theorem
 seam above. -/
@@ -1509,14 +1566,26 @@ depends on. Expected outcomes:
   paper-faithful source object, source-to-target rank bridge, and same-target
   identity-minor lower bound.
 * `exists_theorem207_semantic_target_identity_minor_data` —
-  now a theorem derived from the stronger paper-source transport seam
-  `exists_theorem207_semantic_source_transport_data`.
+  now a theorem derived from the explicit semantic identity-minor/source
+  transport seam
+  `exists_theorem207_semantic_identity_minor_gap_source_transport_data`.
+* `exists_theorem207_semantic_source_transport_data_of_identity_minor_gap` —
+  no custom axioms; this is pure packaging from an explicit nonzero semantic
+  identity-minor gap, paper source, P-side bound, and source-to-target bridge.
+* `exists_theorem207_semantic_source_transport_data` —
+  now a theorem projected from
+  `exists_theorem207_semantic_identity_minor_gap_source_transport_data`,
+  forcing the remaining target to be supplied as a
+  `GodMoveSemanticIdentityMinorGap`.
 * `theorem207SemanticWitness_from_target_identity_minor_data` —
-  now depends on `exists_theorem207_semantic_source_transport_data`, because
-  the target/identity-minor existential is projected from that stronger seam.
+  now depends on
+  `exists_theorem207_semantic_identity_minor_gap_source_transport_data`,
+  because the target/identity-minor existential is projected from that
+  stronger seam.
 * `theorem207SemanticTransportWitness_from_source_transport_data` —
-  only `exists_theorem207_semantic_source_transport_data`; this is the
-  paper-faithful source/target transport seam.
+  only `exists_theorem207_semantic_identity_minor_gap_source_transport_data`;
+  this is the paper-faithful source/target transport seam with the nonzero
+  identity-minor target made explicit.
 * `theorem207SemanticWitness_weakened_np_lower` / `theorem207SemanticWitness_false` —
   no new custom axioms; these expose the paper-faithful `GodMoveCore`
   semantic extraction route and reuse the existing arithmetic/binomial and
@@ -1558,14 +1627,20 @@ depends on. Expected outcomes:
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms theorem207SemanticTransportWitness_false
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms exists_theorem207_semantic_source_transport_data_of_identity_minor_gap
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+-- Pure packaging from explicit semantic identity-minor/source transport data.
+#print axioms exists_theorem207_semantic_source_transport_data
+-- Expected: propext, Classical.choice, Quot.sound,
+--   GlobalGodMoveGauge.exists_theorem207_semantic_identity_minor_gap_source_transport_data.
 #print axioms theorem207SemanticTransportWitness_from_source_transport_data
 -- Expected: propext, Classical.choice, Quot.sound,
---   GlobalGodMoveGauge.exists_theorem207_semantic_source_transport_data.
+--   GlobalGodMoveGauge.exists_theorem207_semantic_identity_minor_gap_source_transport_data.
 #print axioms exists_theorem207_semantic_target_identity_minor_data
 -- Expected: propext, Classical.choice, Quot.sound,
---   GlobalGodMoveGauge.exists_theorem207_semantic_source_transport_data.
--- Target/identity-minor data is now projected out of the stronger
--- source-transport seam, not asserted as its own axiom.
+--   GlobalGodMoveGauge.exists_theorem207_semantic_identity_minor_gap_source_transport_data.
+-- Target/identity-minor data is now projected out of the explicit semantic
+-- identity-minor/source transport seam, not asserted as its own axiom.
 #print axioms theorem207SemanticWitness_raw_source_p_side_bound
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms theorem207SemanticWitness_of_target_data
@@ -1578,7 +1653,7 @@ depends on. Expected outcomes:
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms theorem207SemanticWitness_from_target_identity_minor_data
 -- Expected: propext, Classical.choice, Quot.sound,
---   GlobalGodMoveGauge.exists_theorem207_semantic_source_transport_data.
+--   GlobalGodMoveGauge.exists_theorem207_semantic_identity_minor_gap_source_transport_data.
 #print axioms theorem207SemanticWitness_weakened_np_lower
 -- Expected: propext, Classical.choice, Quot.sound
 -- (Axiom-free arithmetic weakening from C(n/3, log n) to n^(log n / 4).)
