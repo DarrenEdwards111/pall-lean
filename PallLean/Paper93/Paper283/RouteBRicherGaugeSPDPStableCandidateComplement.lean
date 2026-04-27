@@ -255,6 +255,116 @@ theorem routeBRicherSPDPStableCandidate_kernelGeneratorInvisibleWithComplement_n
       (routeBRicherSPDPStableCandidate_generator_escape_of_projectionWithComplement_escape
         M n hn2 htb hns tail T hT hbad)
 
+/-! ## Rank-one coefficient projection -/
+
+/-- Coefficient-normalized rank-one projection onto the span of `row`.
+
+If `MvPolynomial.coeff alpha row` is nonzero, this map extracts the `alpha`
+coefficient of `q`, normalizes by the corresponding coefficient of `row`, and
+returns the matching scalar multiple of `row`. -/
+noncomputable def rankOneCoefficientProjection
+    {N : Nat}
+    (row : MvPolynomial (Fin N) Rat) (alpha : Fin N →₀ Nat) :
+    MvPolynomial (Fin N) Rat →ₗ[Rat] MvPolynomial (Fin N) Rat :=
+  (LinearMap.toSpanSingleton Rat (MvPolynomial (Fin N) Rat) row).comp
+    (((MvPolynomial.coeff alpha row)⁻¹ : Rat) •
+      MvPolynomial.lcoeff Rat alpha)
+
+/-- Pointwise form of the coefficient-normalized rank-one projection. -/
+theorem rankOneCoefficientProjection_apply
+    {N : Nat}
+    (row q : MvPolynomial (Fin N) Rat) (alpha : Fin N →₀ Nat) :
+    rankOneCoefficientProjection row alpha q =
+      ((MvPolynomial.coeff alpha row)⁻¹ * MvPolynomial.coeff alpha q) •
+        row := by
+  simp [rankOneCoefficientProjection, LinearMap.toSpanSingleton_apply,
+    MvPolynomial.lcoeff_apply, smul_eq_mul]
+
+/-- The rank-one projection preserves the normalizing coefficient. -/
+theorem coeff_rankOneCoefficientProjection
+    {N : Nat}
+    (row q : MvPolynomial (Fin N) Rat) (alpha : Fin N →₀ Nat)
+    (hcoeff : MvPolynomial.coeff alpha row ≠ 0) :
+    MvPolynomial.coeff alpha (rankOneCoefficientProjection row alpha q) =
+      MvPolynomial.coeff alpha q := by
+  let c := MvPolynomial.coeff alpha row
+  rw [rankOneCoefficientProjection_apply, MvPolynomial.coeff_smul, smul_eq_mul]
+  change (c⁻¹ * MvPolynomial.coeff alpha q) * c =
+    MvPolynomial.coeff alpha q
+  calc
+    (c⁻¹ * MvPolynomial.coeff alpha q) * c =
+        (c⁻¹ * c) * MvPolynomial.coeff alpha q := by ring
+    _ = 1 * MvPolynomial.coeff alpha q := by rw [inv_mul_cancel₀ hcoeff]
+    _ = MvPolynomial.coeff alpha q := by rw [one_mul]
+
+/-- Zero criterion for the rank-one projection: its kernel is the kernel of
+the normalizing coefficient functional. -/
+theorem rankOneCoefficientProjection_apply_eq_zero_iff
+    {N : Nat}
+    (row q : MvPolynomial (Fin N) Rat) (alpha : Fin N →₀ Nat)
+    (hcoeff : MvPolynomial.coeff alpha row ≠ 0) :
+    rankOneCoefficientProjection row alpha q = 0 ↔
+      MvPolynomial.coeff alpha q = 0 := by
+  constructor
+  · intro hzero
+    have hcoeffZero :=
+      coeff_rankOneCoefficientProjection row q alpha hcoeff
+    rw [hzero] at hcoeffZero
+    exact hcoeffZero.symm
+  · intro hq
+    rw [rankOneCoefficientProjection_apply, hq, mul_zero, zero_smul]
+
+/-- The kernel of the rank-one projection is exactly the kernel of the chosen
+coefficient functional. -/
+theorem rankOneCoefficientProjection_ker
+    {N : Nat}
+    (row : MvPolynomial (Fin N) Rat) (alpha : Fin N →₀ Nat)
+    (hcoeff : MvPolynomial.coeff alpha row ≠ 0) :
+    LinearMap.ker (rankOneCoefficientProjection row alpha) =
+      LinearMap.ker (MvPolynomial.lcoeff Rat alpha) := by
+  ext q
+  change rankOneCoefficientProjection row alpha q = 0 ↔
+    MvPolynomial.lcoeff Rat alpha q = 0
+  rw [rankOneCoefficientProjection_apply_eq_zero_iff row q alpha hcoeff]
+  simp [MvPolynomial.lcoeff_apply]
+
+/-- The coefficient-normalized rank-one projection is idempotent. -/
+theorem rankOneCoefficientProjection_idempotent
+    {N : Nat}
+    (row : MvPolynomial (Fin N) Rat) (alpha : Fin N →₀ Nat)
+    (hcoeff : MvPolynomial.coeff alpha row ≠ 0) :
+    (rankOneCoefficientProjection row alpha).comp
+        (rankOneCoefficientProjection row alpha) =
+      rankOneCoefficientProjection row alpha := by
+  apply LinearMap.ext
+  intro q
+  rw [LinearMap.comp_apply]
+  rw [rankOneCoefficientProjection_apply row
+    (rankOneCoefficientProjection row alpha q) alpha]
+  rw [coeff_rankOneCoefficientProjection row q alpha hcoeff]
+  rw [← rankOneCoefficientProjection_apply row q alpha]
+
+/-- The range of the coefficient-normalized rank-one projection is exactly
+the span of `row`. -/
+theorem rankOneCoefficientProjection_range
+    {N : Nat}
+    (row : MvPolynomial (Fin N) Rat) (alpha : Fin N →₀ Nat)
+    (hcoeff : MvPolynomial.coeff alpha row ≠ 0) :
+    LinearMap.range (rankOneCoefficientProjection row alpha) =
+      Submodule.span Rat ({row} : Set (MvPolynomial (Fin N) Rat)) := by
+  apply le_antisymm
+  · rintro q ⟨p, rfl⟩
+    rw [rankOneCoefficientProjection_apply]
+    exact Submodule.smul_mem _ _
+      (Submodule.subset_span (Set.mem_singleton row))
+  · refine Submodule.span_le.mpr ?_
+    intro q hq
+    rw [Set.mem_singleton_iff] at hq
+    rw [hq]
+    refine ⟨row, ?_⟩
+    rw [rankOneCoefficientProjection_apply, inv_mul_cancel₀ hcoeff,
+      one_smul]
+
 /-! ## Bundled explicit-complement interface -/
 
 /-- The finite row span for the smaller SPDP-stable candidate.  Naming this
@@ -1257,6 +1367,71 @@ noncomputable def routeBRicherSPDPStableCandidateZeroExplicitProjectionData_of_r
   projection_ker := by
     simp
 
+/-- The concrete NP head row of the smaller SPDP-stable candidate. -/
+noncomputable abbrev routeBRicherSPDPStableCandidateHeadRow
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    SATDeciderGaugeSpace M n hn2 htb hns :=
+  CoupledSheetPoly.embed (flatCookLevinUVSplit M n hn2 htb hns)
+    (routeBRicherConcreteNPWitnessQ M n hn2 htb hns)
+
+/-- With an empty tail, the candidate row span is exactly the span of the
+concrete NP head row. -/
+theorem routeBRicherSPDPStableCandidateRowSpan_eq_span_head_of_tail_empty
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (tail : Fin 0 -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    RouteBRicherSPDPStableCandidateRowSpan M n hn2 htb hns tail =
+      Submodule.span Rat
+        ({routeBRicherSPDPStableCandidateHeadRow M n hn2 htb hns} :
+          Set (SATDeciderGaugeSpace M n hn2 htb hns)) := by
+  change Submodule.span Rat
+      (Set.range
+        (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail)) =
+    Submodule.span Rat
+      ({routeBRicherSPDPStableCandidateHeadRow M n hn2 htb hns} :
+        Set (SATDeciderGaugeSpace M n hn2 htb hns))
+  apply congrArg (Submodule.span Rat)
+  ext p
+  constructor
+  · rintro ⟨i, rfl⟩
+    fin_cases i
+    simp [routeBRicherSPDPStableCandidateHeadRow,
+      routeBRicherSPDPStableCandidateRows_zero_eq_embed]
+  · intro hp
+    rw [Set.mem_singleton_iff] at hp
+    refine ⟨0, ?_⟩
+    rw [hp, routeBRicherSPDPStableCandidateHeadRow,
+      routeBRicherSPDPStableCandidateRows_zero_eq_embed]
+
+/-- Head-only explicit projection data for the empty-tail candidate.
+
+The projection is the concrete coefficient-normalized rank-one map
+`q ↦ ((coeff alpha head)⁻¹ * coeff alpha q) • head`.  Its complement is
+definitionally the kernel of that explicit map via `ofProjection`; by
+`rankOneCoefficientProjection_ker`, this is also the kernel of the selected
+coefficient functional. -/
+noncomputable def routeBRicherSPDPStableCandidateHeadOnlyExplicitProjectionData
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (tail : Fin 0 -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (alpha : Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat)
+    (hcoeff :
+      MvPolynomial.coeff alpha
+          (routeBRicherSPDPStableCandidateHeadRow M n hn2 htb hns) ≠ 0) :
+    RouteBRicherSPDPStableCandidateExplicitProjectionData
+      M n hn2 htb hns tail :=
+  RouteBRicherSPDPStableCandidateExplicitProjectionData.ofProjection
+    (tail := tail)
+    (rankOneCoefficientProjection
+      (routeBRicherSPDPStableCandidateHeadRow M n hn2 htb hns) alpha)
+    (rankOneCoefficientProjection_idempotent
+      (routeBRicherSPDPStableCandidateHeadRow M n hn2 htb hns) alpha hcoeff)
+    (by
+      rw [rankOneCoefficientProjection_range
+        (routeBRicherSPDPStableCandidateHeadRow M n hn2 htb hns) alpha hcoeff]
+      rw [routeBRicherSPDPStableCandidateRowSpan_eq_span_head_of_tail_empty])
+
 /-- The legacy chosen complement, repackaged as an explicit-complement
 interface.  This keeps old projection statements compatible while allowing new
 proofs to abstract over a caller-supplied complement. -/
@@ -1310,6 +1485,13 @@ noncomputable def routeBRicherSPDPStableCandidateChosenExplicitProjectionData
 #print axioms RouteBRicherSPDPStableCandidateProjectionComplementInterface.projectionDescent_iff_projectionIntertwines
 #print axioms RouteBRicherSPDPStableCandidateProjectionComplementInterface.projectionDescent_iff_explicitComplementInvariant
 #print axioms RouteBRicherSPDPStableCandidateProjectionComplementInterface.projectionEscapeWitness_iff_not_projectionDescent
+#print axioms rankOneCoefficientProjection
+#print axioms rankOneCoefficientProjection_apply
+#print axioms coeff_rankOneCoefficientProjection
+#print axioms rankOneCoefficientProjection_apply_eq_zero_iff
+#print axioms rankOneCoefficientProjection_ker
+#print axioms rankOneCoefficientProjection_idempotent
+#print axioms rankOneCoefficientProjection_range
 #print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData
 #print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData.isCompl
 #print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData.toComplementInterface
@@ -1330,6 +1512,9 @@ noncomputable def routeBRicherSPDPStableCandidateChosenExplicitProjectionData
 #print axioms routeBRicherSPDPStableCandidateBottomExplicitProjectionData_of_rows_top
 #print axioms routeBRicherSPDPStableCandidateZeroProjectionComplementInterface_of_rows_bot
 #print axioms routeBRicherSPDPStableCandidateZeroExplicitProjectionData_of_rows_bot
+#print axioms routeBRicherSPDPStableCandidateHeadRow
+#print axioms routeBRicherSPDPStableCandidateRowSpan_eq_span_head_of_tail_empty
+#print axioms routeBRicherSPDPStableCandidateHeadOnlyExplicitProjectionData
 #print axioms routeBRicherSPDPStableCandidateChosenProjectionComplementInterface
 #print axioms routeBRicherSPDPStableCandidateChosenExplicitProjectionData
 #print axioms RouteBRicherSPDPStableCandidateExplicitComplementStableGeneratorMaps
