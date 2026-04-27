@@ -95,6 +95,100 @@ theorem routeBRicherConcreteNPPrependedMultilinear_residualGenerator_zero_iff_ke
       hker spdpKappa ell (p - Pi p) S shift
         hSlen hshiftDegree hshiftVars hadm hresKer
 
+/-- For the concrete multilinear-tail projection, the paper-faithful descent
+condition is exactly residual-generator annihilation.
+
+The broad multilinear tail fixes every `mlProj` generator row after
+projection, so descent holds precisely when the generator row of
+`p - Π p` vanishes before projection. -/
+theorem routeBRicherConcreteNPPrependedMultilinearProjectionDescent_iff_residualGenerator_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns ↔
+      RouteBRicherConcreteNPPrependedMultilinearResidualGeneratorZero
+        M n hn2 htb hns := by
+  constructor
+  · intro hdesc spdpKappa ell p S shift
+      hSlen hshiftDegree hshiftVars hadm
+    let rows :=
+      routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns
+    let Pi :=
+      routeBRicherConcreteNPPrependedMultilinearProjection M n hn2 htb hns
+    let residualInput := p - Pi p
+    let residualRow :=
+      routeBSPDPGeneratorRow M n hn2 htb hns residualInput S shift
+    have hPiPi : Pi (Pi p) = Pi p := by
+      have hidem :=
+        (routeBRicherConcreteNPPrependedMultilinearGauge
+          M n hn2 htb hns).is_idempotent
+      have happ := congrArg (fun L => L p) hidem
+      simpa [Pi, routeBRicherConcreteNPPrependedMultilinearProjection,
+        LinearMap.comp_apply] using happ
+    have hresKer : Pi residualInput = 0 := by
+      simp [Pi, residualInput, map_sub, hPiPi]
+    have hdescResidual :=
+      hdesc spdpKappa ell residualInput S shift
+        hSlen hshiftDegree hshiftVars hadm
+    have hprojZero : Pi residualRow = 0 := by
+      have hleft :
+          routeBSPDPGeneratorRow M n hn2 htb hns
+              (Pi residualInput) S shift = 0 := by
+        rw [hresKer]
+        exact routeBSPDPGeneratorRow_zero M n hn2 htb hns S shift
+      rw [hleft] at hdescResidual
+      exact hdescResidual.symm
+    have hmem : residualRow ∈ finiteRowsSubmodule rows := by
+      dsimp [residualRow, residualInput]
+      exact
+        routeBRicherConcreteNPPrependedMultilinearRows_mlProj_mem
+          M n hn2 htb hns
+          (shift * SPDP.iterDerivList S (p - Pi p))
+    have hfixed : Pi residualRow = residualRow := by
+      simpa [Pi, rows,
+        routeBRicherConcreteNPPrependedMultilinearProjection,
+        routeBRicherConcreteNPPrependedMultilinearGauge] using
+        routeBRicherFiniteRowsCandidateGauge_fixed_of_mem
+          M n hn2 htb hns rows hmem
+    rwa [hfixed] at hprojZero
+  · intro hzero
+    refine
+      routeBRicherGaugeFiniteRowsSPDPGeneratorCommutation_of_projectedGeneratorMem_kernelCompatibility
+        M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns)
+        ?_ ?_
+    · intro spdpKappa ell p S shift
+        hSlen hshiftDegree hshiftVars hadm
+      exact
+        routeBRicherConcreteNPPrependedMultilinearRows_mlProj_mem
+          M n hn2 htb hns
+          (shift *
+            SPDP.iterDerivList S
+              (routeBRicherConcreteNPPrependedMultilinearProjection
+                M n hn2 htb hns p))
+    · exact
+        (routeBRicherConcreteNPPrependedMultilinearRows_kernelCompatibility_iff_residualGenerator_zero
+          M n hn2 htb hns).mpr
+          (by
+            intro spdpKappa ell p S shift
+              hSlen hshiftDegree hshiftVars hadm
+            exact
+              hzero spdpKappa ell p S shift
+                hSlen hshiftDegree hshiftVars hadm)
+
+/-- Residual-generator annihilation closes the paper-faithful descent branch
+for the concrete multilinear-tail projection. -/
+theorem routeBRicherConcreteNPPrependedMultilinearProjectionDescent_of_residualGenerator_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hzero :
+      RouteBRicherConcreteNPPrependedMultilinearResidualGeneratorZero
+        M n hn2 htb hns) :
+    RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+      M n hn2 htb hns :=
+  (routeBRicherConcreteNPPrependedMultilinearProjectionDescent_iff_residualGenerator_zero
+    M n hn2 htb hns).mpr hzero
+
 /-- Residual annihilation forces the selected projection to preserve the
 canonical multilinear part of every polynomial. -/
 theorem routeBRicherConcreteNPPrependedMultilinear_residualGenerator_zero_implies_mlProj_projection_eq
@@ -191,6 +285,8 @@ theorem routeBRicherConcreteNPPrependedMultilinear_residualGenerator_zero_noGo_o
 #print axioms RouteBRicherConcreteNPPrependedMultilinearResidualGeneratorZero
 #print axioms RouteBRicherConcreteNPPrependedMultilinearKernelGeneratorZero
 #print axioms routeBRicherConcreteNPPrependedMultilinear_residualGenerator_zero_iff_kernelGenerator_zero
+#print axioms routeBRicherConcreteNPPrependedMultilinearProjectionDescent_iff_residualGenerator_zero
+#print axioms routeBRicherConcreteNPPrependedMultilinearProjectionDescent_of_residualGenerator_zero
 #print axioms routeBRicherConcreteNPPrependedMultilinear_residualGenerator_zero_implies_mlProj_projection_eq
 #print axioms routeBRicherConcreteNPPrependedMultilinear_residualGenerator_zero_implies_kernel_mlProj_zero
 #print axioms routeBRicherConcreteNPPrependedMultilinear_residualGenerator_zero_noGo_of_kernel_mlProj_ne_zero

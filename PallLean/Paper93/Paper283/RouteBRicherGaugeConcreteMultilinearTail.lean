@@ -746,6 +746,71 @@ theorem routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_of_not
   (routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_iff_not_projectionDescent
     M n hn2 htb hns).mpr hnot
 
+/-- Excluding concrete projection escape is exactly the paper-faithful descent
+condition for the multilinear-tail projection. -/
+theorem routeBRicherConcreteNPPrependedMultilinearProjectionDescent_iff_no_projectionEscapeWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns ↔
+      ¬ RouteBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness
+        M n hn2 htb hns := by
+  constructor
+  · intro hdesc hbad
+    exact
+      ((routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_iff_not_projectionDescent
+        M n hn2 htb hns).mp hbad) hdesc
+  · intro hno
+    by_contra hnot
+    exact hno
+      (routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_of_not_projectionDescent
+        M n hn2 htb hns hnot)
+
+/-- No concrete projection escape closes the paper-faithful descent branch. -/
+theorem routeBRicherConcreteNPPrependedMultilinearProjectionDescent_of_no_projectionEscapeWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hno :
+      ¬ RouteBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness
+        M n hn2 htb hns) :
+    RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+      M n hn2 htb hns :=
+  (routeBRicherConcreteNPPrependedMultilinearProjectionDescent_iff_no_projectionEscapeWitness
+    M n hn2 htb hns).mpr hno
+
+/-- The concrete multilinear-tail fork is complete at the logical level: either
+the selected projection descends through all admissible SPDP generators, or
+Lean exposes a concrete projection-escape witness. -/
+theorem routeBRicherConcreteNPPrependedMultilinearProjectionDescent_or_projectionEscapeWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns ∨
+      RouteBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness
+        M n hn2 htb hns := by
+  by_cases hdesc :
+      RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns
+  · exact Or.inl hdesc
+  · exact Or.inr
+      (routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_of_not_projectionDescent
+        M n hn2 htb hns hdesc)
+
+/-- No concrete projection escape gives the SPDP containment theorem through the
+paper-faithful descent route. -/
+theorem routeBRicherConcreteNPPrependedMultilinearGauge_spdpSubspaceContainment_of_no_projectionEscapeWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hno :
+      ¬ RouteBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness
+        M n hn2 htb hns) :
+    RouteBRicherGaugeSPDPSubspaceContainment M n hn2 htb hns
+      (routeBRicherConcreteNPPrependedMultilinearGauge M n hn2 htb hns) :=
+  routeBRicherConcreteNPPrependedMultilinearGauge_spdpSubspaceContainment_of_projectionDescent
+    M n hn2 htb hns
+    (routeBRicherConcreteNPPrependedMultilinearProjectionDescent_of_no_projectionEscapeWitness
+      M n hn2 htb hns hno)
+
 /-- A concrete projection escape witness refutes the paper-faithful descent
 condition for the selected multilinear finite-row projection. -/
 theorem routeBRicherConcreteNPPrependedMultilinear_not_projectionDescent_of_projectionEscapeWitness
@@ -1187,6 +1252,10 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_unpr
 #print axioms routeBRicherConcreteNPPrependedMultilinearGauge_spdpSubspaceContainment_of_projectionDescent
 #print axioms routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_iff_not_projectionDescent
 #print axioms routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_of_not_projectionDescent
+#print axioms routeBRicherConcreteNPPrependedMultilinearProjectionDescent_iff_no_projectionEscapeWitness
+#print axioms routeBRicherConcreteNPPrependedMultilinearProjectionDescent_of_no_projectionEscapeWitness
+#print axioms routeBRicherConcreteNPPrependedMultilinearProjectionDescent_or_projectionEscapeWitness
+#print axioms routeBRicherConcreteNPPrependedMultilinearGauge_spdpSubspaceContainment_of_no_projectionEscapeWitness
 #print axioms routeBRicherConcreteNPPrependedMultilinear_not_projectionDescent_of_projectionEscapeWitness
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_of_unprojectedPreimage
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_iff_spdpSubspaceContainment
