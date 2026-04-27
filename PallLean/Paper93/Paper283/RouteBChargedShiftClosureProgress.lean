@@ -1,4 +1,5 @@
 import PallLean.Paper93.Paper283.RouteBRicherGaugeConcreteWChargedClosure
+import PallLean.Paper93.DeepMath.PathB.ActiveProfileEndpointAugmentedProgress
 
 /-!
 # Route B charged endpoint shift-closure progress
@@ -394,6 +395,43 @@ theorem concreteWEndpointSpanOneStepCharge_compatible
       n hn4 (concreteWEndpointSpanOneStepCharge n hn4) := by
   intro bpSrc bpTgt S _hSlen shift _hshift hcharge
   exact hcharge
+
+/-- The concrete one-step endpoint charge cannot self-target any profile: by
+definition it must bump one histogram coordinate.  This is the concrete
+obstruction to feeding the same-profile active bridge through
+`ProfileChargeSelfAtBoundedProfile`. -/
+theorem not_ProfileChargeSelfAtBoundedProfile_concreteWEndpointSpanOneStepCharge
+    (n : ℕ) (hn4 : n ≥ 4)
+    (bp : BoundedProfile (Nat.log 2 n)) :
+    ¬ ProfileChargeSelfAtBoundedProfile
+        (concreteWEndpointSpanOneStepCharge n hn4) bp := by
+  intro hSelf
+  have hSlen : ([] : List (Fin n)).length ≤ Nat.log 2 n := by
+    simp
+  have hshift :
+      (0 : MvPolynomial (Fin n) ℚ).vars ⊆
+        ([] : List (Fin n)).toFinset := by
+    simp
+  obtain ⟨τ0, _hshiftEndpoint, hbump, _hsame⟩ :=
+    hSelf [] hSlen 0 hshift
+  omega
+
+/-- Consequently, the charged active/profile closure package in
+`ActiveProfileEndpointAugmentedProgress` is false for the concrete one-step
+endpoint charge.  The concrete charge closes the charged target profile, not
+the same source profile required by that active bridge. -/
+theorem not_EndpointAugmentedActiveProfileChargedClosureAtProfile_concreteWEndpointSpanOneStepCharge
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : n ≥ 4) (bp : BoundedProfile (Nat.log 2 n)) :
+    ¬ EndpointAugmentedActiveProfileChargedClosureAtProfile
+        M n hn htb hns (concreteWEndpointSpanOneStepCharge n hn4)
+        hn4 bp := by
+  intro hFrontier
+  rcases hFrontier with ⟨_hFactor, _hI1, _hI2c, _hI3, hSelf⟩
+  exact
+    not_ProfileChargeSelfAtBoundedProfile_concreteWEndpointSpanOneStepCharge
+      n hn4 bp hSelf
 
 /-- Constructor-level fields sufficient for the endpoint one-step compatibility.
 
@@ -952,6 +990,8 @@ theorem endpointAugmentedConcreteW_chargedShiftClosure_of_canonical_endpointSpan
 #print axioms concreteWEndpointSpan_le_endpointAugmentedConcreteW
 #print axioms not_endpointAugmentedConcreteW_endpointSpanOneStepChargeCompatible_sameProfileCharge
 #print axioms concreteWEndpointSpanOneStepCharge_compatible
+#print axioms not_ProfileChargeSelfAtBoundedProfile_concreteWEndpointSpanOneStepCharge
+#print axioms not_EndpointAugmentedActiveProfileChargedClosureAtProfile_concreteWEndpointSpanOneStepCharge
 #print axioms endpointAugmentedConcreteW_endpointSpanOneStepChargeCompatible_of_chargeFields
 #print axioms endpointAugmentedConcreteW_endpointSpanGeneratorChargedShiftClosure_of_oneStepChargeCompatible
 #print axioms endpointAugmentedConcreteW_endpointSpanProfileChargedShiftClosure_of_generatorClosure

@@ -219,6 +219,68 @@ theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareResidualWithComplem
     (routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement_apply_eq_zero_iff
       M n hn2 htb hns C hC (probe - Pi probe)).mp hzero
 
+private theorem routeBExplicitComplementKernel_coeff_single_pderiv_eq_two_mul_coeff_square
+    {N : Nat} (v : Fin N) (p : MvPolynomial (Fin N) Rat) :
+    MvPolynomial.coeff (Finsupp.single v 1) (MvPolynomial.pderiv v p) =
+      (2 : Rat) * MvPolynomial.coeff (Finsupp.single v 2) p := by
+  classical
+  conv_lhs => rw [p.as_sum, map_sum, MvPolynomial.coeff_sum]
+  conv_rhs => rw [p.as_sum, MvPolynomial.coeff_sum]
+  rw [Finset.mul_sum]
+  refine Finset.sum_congr rfl ?_
+  intro α hα
+  simp only [MvPolynomial.pderiv_monomial, MvPolynomial.coeff_monomial]
+  by_cases hαsquare : α = Finsupp.single v 2
+  · subst α
+    have hsub :
+        (Finsupp.single v 2 - Finsupp.single v 1 : Fin N →₀ Nat) =
+          Finsupp.single v 1 := by
+      ext i
+      by_cases hi : i = v
+      · subst i
+        simp
+      · simp [Finsupp.single_eq_of_ne hi]
+    simp [hsub, mul_comm]
+  · by_cases hsub : α - Finsupp.single v 1 = Finsupp.single v 1
+    · have hα_eq : α = Finsupp.single v 2 := by
+        ext i
+        by_cases hi : i = v
+        · subst i
+          have hcoord := congrArg (fun β : Fin N →₀ Nat => β v) hsub
+          have hcoord' : α v - 1 = 1 := by
+            simpa [Finsupp.single_eq_same] using hcoord
+          have hv : α v = 2 := by omega
+          simpa [Finsupp.single_eq_same] using hv
+        · have hcoord := congrArg (fun β : Fin N →₀ Nat => β i) hsub
+          simpa [Finsupp.single_eq_of_ne hi] using hcoord
+      exact False.elim (hαsquare hα_eq)
+    · simp [hαsquare, hsub]
+
+private theorem routeBExplicitComplementKernel_coeff_singletonRow_eq_two_mul_squareCoeff
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (v : Fin (RouteBCookLevinDim M n hn2 htb hns))
+    (p : SATDeciderGaugeSpace M n hn2 htb hns) :
+    MvPolynomial.coeff (Finsupp.single v 1)
+        (routeBSPDPGeneratorRow M n hn2 htb hns p [v]
+          (1 : SATDeciderGaugeSpace M n hn2 htb hns)) =
+      (2 : Rat) * MvPolynomial.coeff (Finsupp.single v 2) p := by
+  change
+    MvPolynomial.coeff (Finsupp.single v 1)
+        (mlProj
+          ((1 : SATDeciderGaugeSpace M n hn2 htb hns) *
+            SPDP.iterDerivList [v] p)) =
+      (2 : Rat) * MvPolynomial.coeff (Finsupp.single v 2) p
+  rw [one_mul]
+  rw [MultilinearSPDP.coeff_mlProj_of_isMultilinear_mono]
+  · unfold SPDP.iterDerivList
+    exact routeBExplicitComplementKernel_coeff_single_pderiv_eq_two_mul_coeff_square v p
+  · intro i
+    by_cases hi : i = v
+    · subst i
+      simp
+    · simp [Finsupp.single_eq_of_ne hi]
+
 /-- Generator-zero forces the first-square residual's singleton generator row
 to vanish.  This is the actual residual condition left after choosing a
 first-square-avoiding complement. -/
@@ -259,6 +321,198 @@ theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareResidualWithComplem
             [satDeciderGaugeFirstVar M n hn2 htb hns]))
     (routeBRicherConcreteNPPrependedMultilinearFirstSquareResidualWithComplement_mem
       M n hn2 htb hns C hC)
+
+/-- Any explicit-complement generator-zero proof is blocked by the
+first/second pure-square residual.
+
+The argument uses the common-kernel condition, not just first-square
+avoidance.  The residual of the first-square probe lies in the supplied
+complement.  Generator-zero would force both its first and second singleton
+derivative rows to vanish.  The first singleton row then forces the projected
+row-span component to have first-square coefficient `1`; the concrete row-span
+coefficient equality forces its second-square coefficient to be `1` as well;
+but the original probe has second-square coefficient `0`, so the second
+singleton row is visibly nonzero. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_not_kernelGeneratorZeroWithComplement
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+    (hC :
+      IsCompl
+        (finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedMultilinearRows
+            M n hn2 htb hns))
+        C) :
+    ¬ RouteBRicherConcreteNPPrependedMultilinearKernelGeneratorZeroWithComplement
+        M n hn2 htb hns C hC := by
+  intro hzero
+  let rows := routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns
+  let Pi :=
+    routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement
+      M n hn2 htb hns C hC
+  let probe :=
+    routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+      M n hn2 htb hns
+  let residual :=
+    routeBRicherConcreteNPPrependedMultilinearFirstSquareResidualWithComplement
+      M n hn2 htb hns C hC
+  let first := satDeciderGaugeFirstVar M n hn2 htb hns
+  let second := satDeciderGaugeSecondVar M n hn2 htb hns
+  have hresC : residual ∈ C := by
+    simpa [residual] using
+      routeBRicherConcreteNPPrependedMultilinearFirstSquareResidualWithComplement_mem
+        M n hn2 htb hns C hC
+  have hPiMem :
+      Pi probe ∈ finiteRowsSubmodule rows := by
+    have hrange :=
+      routeBRicherFiniteRowsCandidateGaugeWithComplement_range
+        M n hn2 htb hns rows C hC
+    have hmemRange :
+        Pi probe ∈
+          LinearMap.range
+            (routeBRicherFiniteRowsCandidateGaugeWithComplement
+              M n hn2 htb hns rows C hC).projection := by
+      exact ⟨probe, rfl⟩
+    simpa [Pi, rows, routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement,
+      routeBRicherConcreteNPPrependedMultilinearGaugeWithComplement] using
+      (by simpa [hrange] using hmemRange)
+  have hrowCoeffEq :=
+    routeBRicherConcreteNPPrependedMultilinear_rowSpan_coeff_firstVar_square_eq_secondVar_square
+      M n hn2 htb hns hPiMem
+  have hfirstRowZero :
+      routeBSPDPGeneratorRow M n hn2 htb hns residual [first]
+          (1 : SATDeciderGaugeSpace M n hn2 htb hns) = 0 := by
+    exact
+      hzero 1 0 residual [first]
+        (1 : SATDeciderGaugeSpace M n hn2 htb hns)
+        (by simp [first])
+        (by simp [MvPolynomial.totalDegree_one])
+        (by simp [MvPolynomial.vars_one])
+        (by
+          constructor
+          · simp [first]
+          · intro b
+            simpa [first] using
+              (List.length_filter_le
+                (fun i =>
+                  (cook_levin_compilation M n hn2 htb hns).partition.assign i = b)
+                [satDeciderGaugeFirstVar M n hn2 htb hns]))
+        hresC
+  have hfirstSquareResidual_zero :
+      MvPolynomial.coeff (Finsupp.single first 2) residual = 0 := by
+    have hcoeffZero :
+        MvPolynomial.coeff (Finsupp.single first 1)
+            (routeBSPDPGeneratorRow M n hn2 htb hns residual [first]
+              (1 : SATDeciderGaugeSpace M n hn2 htb hns)) = 0 := by
+      rw [hfirstRowZero]
+      simp
+    rw [routeBExplicitComplementKernel_coeff_singletonRow_eq_two_mul_squareCoeff
+      M n hn2 htb hns first residual] at hcoeffZero
+    nlinarith
+  have hPiFirst :
+      MvPolynomial.coeff (Finsupp.single first 2) (Pi probe) = 1 := by
+    have hfirstProbe :=
+      routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_coeff_firstVar_square
+        M n hn2 htb hns
+    have hres :
+        MvPolynomial.coeff (Finsupp.single first 2) (probe - Pi probe) = 0 := by
+      simpa [residual,
+        routeBRicherConcreteNPPrependedMultilinearFirstSquareResidualWithComplement,
+        Pi, probe, first] using hfirstSquareResidual_zero
+    rw [MvPolynomial.coeff_sub] at hres
+    have hprobeFirst :
+        MvPolynomial.coeff (Finsupp.single first 2) probe = 1 := by
+      simpa [probe, first] using hfirstProbe
+    nlinarith
+  have hPiSecond :
+      MvPolynomial.coeff (Finsupp.single second 2) (Pi probe) = 1 := by
+    simpa [first, second] using hrowCoeffEq.symm.trans hPiFirst
+  have hsecondSquareResidual :
+      MvPolynomial.coeff (Finsupp.single second 2) residual = -1 := by
+    have hsecondProbe :=
+      routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_coeff_secondVar_square
+        M n hn2 htb hns
+    have hres :
+        MvPolynomial.coeff (Finsupp.single second 2) residual =
+          MvPolynomial.coeff (Finsupp.single second 2) probe -
+            MvPolynomial.coeff (Finsupp.single second 2) (Pi probe) := by
+      simp [residual,
+        routeBRicherConcreteNPPrependedMultilinearFirstSquareResidualWithComplement,
+        Pi, probe, second, MvPolynomial.coeff_sub]
+    rw [hres]
+    have hprobeSecond :
+        MvPolynomial.coeff (Finsupp.single second 2) probe = 0 := by
+      simpa [probe, second] using hsecondProbe
+    nlinarith
+  have hsecondRowZero :
+      routeBSPDPGeneratorRow M n hn2 htb hns residual [second]
+          (1 : SATDeciderGaugeSpace M n hn2 htb hns) = 0 := by
+    exact
+      hzero 1 0 residual [second]
+        (1 : SATDeciderGaugeSpace M n hn2 htb hns)
+        (by simp [second])
+        (by simp [MvPolynomial.totalDegree_one])
+        (by simp [MvPolynomial.vars_one])
+        (by
+          constructor
+          · simp [second]
+          · intro b
+            simpa [second] using
+              (List.length_filter_le
+                (fun i =>
+                  (cook_levin_compilation M n hn2 htb hns).partition.assign i = b)
+                [satDeciderGaugeSecondVar M n hn2 htb hns]))
+        hresC
+  have hsecondCoeffZero :
+      MvPolynomial.coeff (Finsupp.single second 1)
+          (routeBSPDPGeneratorRow M n hn2 htb hns residual [second]
+            (1 : SATDeciderGaugeSpace M n hn2 htb hns)) = 0 := by
+    rw [hsecondRowZero]
+    simp
+  rw [routeBExplicitComplementKernel_coeff_singletonRow_eq_two_mul_squareCoeff
+    M n hn2 htb hns second residual] at hsecondCoeffZero
+  rw [hsecondSquareResidual] at hsecondCoeffZero
+  norm_num at hsecondCoeffZero
+
+/-- Consequently, no explicit-complement projection can satisfy the concrete
+multilinear-tail descent condition. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_not_projectionDescentWithComplement
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+    (hC :
+      IsCompl
+        (finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedMultilinearRows
+            M n hn2 htb hns))
+        C) :
+    ¬ RouteBRicherConcreteNPPrependedMultilinearProjectionDescentWithComplement
+        M n hn2 htb hns C hC := by
+  intro hdesc
+  exact
+    (routeBRicherConcreteNPPrependedMultilinear_not_kernelGeneratorZeroWithComplement
+      M n hn2 htb hns C hC)
+      ((routeBRicherConcreteNPPrependedMultilinearProjectionDescentWithComplement_iff_kernelGenerator_zeroWithComplement
+        M n hn2 htb hns C hC).mp hdesc)
+
+/-- There is no complement to the concrete prepended multilinear row span that
+lies in the common kernel of all Route B SPDP generator maps. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_no_rowSpanComplement_kernelGeneratorZeroWithComplement
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    ¬ ∃ (C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+        (hC :
+          IsCompl
+            (finiteRowsSubmodule
+              (routeBRicherConcreteNPPrependedMultilinearRows
+                M n hn2 htb hns))
+            C),
+        RouteBRicherConcreteNPPrependedMultilinearKernelGeneratorZeroWithComplement
+          M n hn2 htb hns C hC := by
+  rintro ⟨C, hC, hzero⟩
+  exact
+    (routeBRicherConcreteNPPrependedMultilinear_not_kernelGeneratorZeroWithComplement
+      M n hn2 htb hns C hC) hzero
 
 /-- Kernel-generator-zero gives the direct explicit-complement map-preimage
 surface, without identifying the explicit projection with the selected
@@ -332,6 +586,9 @@ theorem routeBRicherConcreteNPPrependedMultilinear_exists_firstSquareAvoidingCom
 #print axioms routeBRicherConcreteNPPrependedMultilinearProjectionDescentWithComplement_implies_complement_mlProj_zero
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareResidualWithComplement_mem
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareResidualWithComplement_singletonGenerator_zero_of_kernelGeneratorZeroWithComplement
+#print axioms routeBRicherConcreteNPPrependedMultilinear_not_kernelGeneratorZeroWithComplement
+#print axioms routeBRicherConcreteNPPrependedMultilinear_not_projectionDescentWithComplement
+#print axioms routeBRicherConcreteNPPrependedMultilinear_no_rowSpanComplement_kernelGeneratorZeroWithComplement
 #print axioms routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement_spdpMapPreimage_of_kernelGenerator_zeroWithComplement
 #print axioms routeBRicherConcreteNPPrependedMultilinear_exists_firstSquareAvoidingComplementPolicy_with_kernelNecessaryConditions_and_directSPDP
 

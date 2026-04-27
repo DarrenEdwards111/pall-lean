@@ -40,6 +40,23 @@ def ActiveProfileSupport (h : ProfileHistogram) : Prop :=
     0 < h ConstraintType.adjacency ∨
       0 < h ConstraintType.transitionLeft
 
+/-- Canonical-row H3 embeds into the endpoint-augmented H3 target.  This is
+the exact positive membership result available for the fixed
+`endpointAugmentedConcreteW` family: arbitrary direct branch rows still need
+alignment with the fixed canonical row, as witnessed by
+`booleanity_directBranchFactor_not_mem_endpointAugmentedConcreteW_of_ne_endpoints`. -/
+theorem CookLevinFactorMemPerType_endpointAugmentedConcreteW_of_concreteWCanonical
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (hn4 : n ≥ 4)
+    (hFactor :
+      CookLevinFactorMemPerType M n hn htb hns
+        (concreteWCanonical n hn4)) :
+    CookLevinFactorMemPerType M n hn htb hns
+      (endpointAugmentedConcreteW n hn4) := by
+  intro i
+  unfold endpointAugmentedConcreteW
+  exact Submodule.mem_sup_left (hFactor i)
+
 /-- One bounded-profile slice of the per-type row-embedding bundle.
 
 This is the active-profile replacement for demanding a full global
@@ -473,6 +490,7 @@ theorem cookLevinAllBoundedProfileCommonSpanLiveProfileCases_of_endpointAugmente
 
 /-! ## Axiom audit anchors -/
 
+#print axioms CookLevinFactorMemPerType_endpointAugmentedConcreteW_of_concreteWCanonical
 #print axioms cookLevinPerTypeSpanningAtBoundedProfile_of_perTypeSpanning
 #print axioms cookLevinProfileSubspace_contains_postSpan_at_bp_of_perTypeSpanningAtBoundedProfile
 #print axioms perTypeShiftMlprojClosureAtBoundedProfile_of_global
