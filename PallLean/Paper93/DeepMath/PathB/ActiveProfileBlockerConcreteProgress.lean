@@ -1,5 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingBridge
 import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingsClosure
+import PallLean.Paper93.DeepMath.PathB.ConcreteWFactorMembership
+import PallLean.Paper93.DeepMath.PathB.CanonicalConcreteWH4Obstruction
 
 /-!
 # Active-profile blocker progress from concreteW frontiers
@@ -11,8 +13,10 @@ This module records the current checked active/profile route:
 * equivalently, a universal per-type spanning package also supplies the
   active blockers after specializing to concreteW.
 
-No theorem below proves the concreteW H3/H4/I5 frontier.  The purpose is to
-make the remaining active/profile obligation explicit and reusable.
+The canonical concreteW H3/H4/I5 frontier itself is now known to be blocked by
+the H4 endpoint-derivative obstruction.  The purpose of this file is therefore
+twofold: keep the old implication reusable when a row-embedding package is
+available, and expose the sharper concrete instantiation frontier beneath it.
 -/
 
 namespace PallLean.Paper93.DeepMath.PathB
@@ -125,6 +129,156 @@ theorem cookLevinAllBoundedProfileCommonSpanLiveProfileCases_of_concreteW_H3_H4_
   cookLevinAllBoundedProfileCommonSpanLiveProfileCases_of_concreteWClosureFrontier
     M n hn htb hns hn4 ⟨hFactor, hDeriv, hShiftMlproj⟩
 
+/-! ## Instantiated concreteW component frontier -/
+
+/-- Concrete component frontier below the abstract H3/H4/I5 active-profile
+obligation.
+
+This is the strongest canonical-concrete decomposition currently available:
+direct branch-shape witnesses give existential row membership; canonical-row
+transport turns those witnesses into the fixed `Fin.castLEEmb` row; H4 remains
+as the canonical derivative-closure component; and I5 is composed from the
+concrete I1/I2/I3 interfaces.
+
+The H4 component is intentionally explicit: `CanonicalConcreteWH4Obstruction`
+proves that it cannot be supplied for the unaugmented canonical `concreteW`
+family. -/
+def CookLevinActiveProfileConcreteWInstantiationFrontier
+    (M : DTM) (n : Nat) (hn : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) (hn4 : n >= 4) :
+    Prop :=
+  CookLevinDirectBranchShapeWitnesses M n hn htb hns hn4 ∧
+    CookLevinConcreteWCanonicalRowTransport M n hn htb hns hn4 ∧
+    DerivClosurePerType (n := n)
+      (fun tau => concreteW n hn4 (Fin.castLEEmb hn4) tau) ∧
+    ConcreteWProductGrouping n hn4 ∧
+    ConcreteWShiftClosure n hn4 ∧
+    ConcreteWMlprojClosure n hn4
+
+/-- The instantiated branch-shape/transport/H4/I1/I2/I3 frontier implies the
+older active-profile concreteW obligation. -/
+theorem cookLevinActiveProfileConcreteWObligation_of_instantiationFrontier
+    (M : DTM) (n : Nat) (hn : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) (hn4 : n >= 4)
+    (hFrontier :
+      CookLevinActiveProfileConcreteWInstantiationFrontier
+        M n hn htb hns hn4) :
+    CookLevinActiveProfileConcreteWObligation M n hn htb hns hn4 := by
+  rcases hFrontier with
+    ⟨hShape, hTransport, hDeriv, hI1, hI2, hI3⟩
+  exact
+    concreteW_closureFrontier_of_H3_H4_components
+      M n hn htb hns hn4
+      (CookLevinFactorMemPerType_concreteW_of_directBranchShapes_transport
+        M n hn htb hns hn4 hShape hTransport)
+      hDeriv hI1 hI2 hI3
+
+/-- Concrete H3 and H4 plus I1/I2/I3, with I5 composed internally, produce
+the active type-case blockers. -/
+theorem cookLevinActiveProfileTypeCaseBlockers_of_concreteW_H3_H4_I123
+    (M : DTM) (n : Nat) (hn : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) (hn4 : n >= 4)
+    (hFactor :
+      CookLevinFactorMemPerType M n hn htb hns
+        (fun tau => concreteW n hn4 (Fin.castLEEmb hn4) tau))
+    (hDeriv :
+      DerivClosurePerType (n := n)
+        (fun tau => concreteW n hn4 (Fin.castLEEmb hn4) tau))
+    (hI1 : ConcreteWProductGrouping n hn4)
+    (hI2 : ConcreteWShiftClosure n hn4)
+    (hI3 : ConcreteWMlprojClosure n hn4) :
+    CookLevinActiveProfileTypeCaseBlockers M n hn htb hns :=
+  cookLevinActiveProfileTypeCaseBlockers_of_concreteWClosureFrontier
+    M n hn htb hns hn4
+    (concreteW_closureFrontier_of_H3_H4_components
+      M n hn htb hns hn4 hFactor hDeriv hI1 hI2 hI3)
+
+/-- Direct branch shapes plus canonical-row transport close H3; together with
+canonical H4 and concrete I1/I2/I3 they produce active type-case blockers. -/
+theorem cookLevinActiveProfileTypeCaseBlockers_of_directBranchShapes_transport_H4_I123
+    (M : DTM) (n : Nat) (hn : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) (hn4 : n >= 4)
+    (hShape : CookLevinDirectBranchShapeWitnesses M n hn htb hns hn4)
+    (hTransport :
+      CookLevinConcreteWCanonicalRowTransport M n hn htb hns hn4)
+    (hDeriv :
+      DerivClosurePerType (n := n)
+        (fun tau => concreteW n hn4 (Fin.castLEEmb hn4) tau))
+    (hI1 : ConcreteWProductGrouping n hn4)
+    (hI2 : ConcreteWShiftClosure n hn4)
+    (hI3 : ConcreteWMlprojClosure n hn4) :
+    CookLevinActiveProfileTypeCaseBlockers M n hn htb hns :=
+  cookLevinActiveProfileTypeCaseBlockers_of_concreteW_H3_H4_I123
+    M n hn htb hns hn4
+    (CookLevinFactorMemPerType_concreteW_of_directBranchShapes_transport
+      M n hn htb hns hn4 hShape hTransport)
+    hDeriv hI1 hI2 hI3
+
+/-- The same instantiated component frontier closes the active type-case
+blockers. -/
+theorem cookLevinActiveProfileTypeCaseBlockers_of_instantiationFrontier
+    (M : DTM) (n : Nat) (hn : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) (hn4 : n >= 4)
+    (hFrontier :
+      CookLevinActiveProfileConcreteWInstantiationFrontier
+        M n hn htb hns hn4) :
+    CookLevinActiveProfileTypeCaseBlockers M n hn htb hns :=
+  cookLevinActiveProfileTypeCaseBlockers_of_activeConcreteWObligation
+    M n hn htb hns hn4
+    (cookLevinActiveProfileConcreteWObligation_of_instantiationFrontier
+      M n hn htb hns hn4 hFrontier)
+
+/-- The instantiated component frontier also closes all named live-profile
+cases. -/
+theorem cookLevinAllBoundedProfileCommonSpanLiveProfileCases_of_instantiationFrontier
+    (M : DTM) (n : Nat) (hn : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) (hn4 : n >= 4)
+    (hFrontier :
+      CookLevinActiveProfileConcreteWInstantiationFrontier
+        M n hn htb hns hn4) :
+    CookLevinAllBoundedProfileCommonSpanLiveProfileCases M n hn htb hns :=
+  cookLevinAllBoundedProfileCommonSpanLiveProfileCases_of_activeTypeCaseBlockers
+    M n hn htb hns
+    (cookLevinActiveProfileTypeCaseBlockers_of_instantiationFrontier
+      M n hn htb hns hn4 hFrontier)
+
+/-! ## Canonical-concrete no-go diagnostics -/
+
+/-- The active-profile name for the canonical concreteW H3/H4/I5 obligation
+inherits the canonical H4 obstruction. -/
+theorem not_CookLevinActiveProfileConcreteWObligation
+    (M : DTM) (n : Nat) (hn : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) (hn4 : n >= 4) :
+    ¬ CookLevinActiveProfileConcreteWObligation M n hn htb hns hn4 := by
+  intro hFrontier
+  exact not_canonicalConcreteW_derivClosurePerType n hn4 hFrontier.2.1
+
+/-- Consequently, the fully instantiated canonical concreteW component
+frontier cannot be discharged either: it still contains canonical H4. -/
+theorem not_CookLevinActiveProfileConcreteWInstantiationFrontier
+    (M : DTM) (n : Nat) (hn : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) (hn4 : n >= 4) :
+    ¬ CookLevinActiveProfileConcreteWInstantiationFrontier
+        M n hn htb hns hn4 := by
+  intro hFrontier
+  rcases hFrontier with
+    ⟨_hShape, _hTransport, hDeriv, _hI1, _hI2, _hI3⟩
+  exact not_canonicalConcreteW_derivClosurePerType n hn4 hDeriv
+
+/-- Compact active/profile diagnostic: the canonical concreteW active
+frontier is blocked, while the endpoint-augmented H4 replacement is available.
+
+This is the paper-faithful split for this side of Route B: active blockers may
+still be consumed from a concreteW row-embedding package, but the old route for
+proving that package through unaugmented canonical H4 is closed off. -/
+theorem activeProfileConcreteW_no_go_and_endpointH4
+    (M : DTM) (n : Nat) (hn : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) (hn4 : n >= 4) :
+    (¬ CookLevinActiveProfileConcreteWObligation M n hn htb hns hn4) ∧
+      DerivClosurePerType (n := n) (endpointAugmentedConcreteW n hn4) :=
+  ⟨not_CookLevinActiveProfileConcreteWObligation M n hn htb hns hn4,
+    corrected_endpointAugmentedConcreteW_derivClosurePerType n hn4⟩
+
 /-- A universal concreteW row-embedding package supplies active type-case
 blockers for every Cook-Levin instance satisfying the side conditions. -/
 theorem cookLevinActiveProfileTypeCaseBlockers_of_concreteWRowEmbeddings_universal
@@ -180,6 +334,14 @@ theorem cookLevinActiveProfileTypeCaseBlockers_of_concreteWClosureFrontier_unive
 #print axioms cookLevinAllBoundedProfileCommonSpanLiveProfileCases_of_concreteWClosureFrontier
 #print axioms cookLevinActiveProfileTypeCaseBlockers_of_concreteW_H3_H4_I5
 #print axioms cookLevinAllBoundedProfileCommonSpanLiveProfileCases_of_concreteW_H3_H4_I5
+#print axioms cookLevinActiveProfileConcreteWObligation_of_instantiationFrontier
+#print axioms cookLevinActiveProfileTypeCaseBlockers_of_concreteW_H3_H4_I123
+#print axioms cookLevinActiveProfileTypeCaseBlockers_of_directBranchShapes_transport_H4_I123
+#print axioms cookLevinActiveProfileTypeCaseBlockers_of_instantiationFrontier
+#print axioms cookLevinAllBoundedProfileCommonSpanLiveProfileCases_of_instantiationFrontier
+#print axioms not_CookLevinActiveProfileConcreteWObligation
+#print axioms not_CookLevinActiveProfileConcreteWInstantiationFrontier
+#print axioms activeProfileConcreteW_no_go_and_endpointH4
 #print axioms cookLevinActiveProfileTypeCaseBlockers_of_concreteWRowEmbeddings_universal
 #print axioms cookLevinActiveProfileTypeCaseBlockers_of_perTypeSpanning_universal
 #print axioms cookLevinActiveProfileTypeCaseBlockers_of_concreteWClosureFrontier_universal
