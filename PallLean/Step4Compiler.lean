@@ -52722,6 +52722,76 @@ theorem cookLevinStrictFOB_restrict_embedded_Q_eq_restrict_compiledPoly
         (PaperFaithfulSeparation.cook_levin_compilation
           M n hn2 htb hns))
 
+/-- Route B strict first-of-block partition descent.
+
+For the canonical Cook-Levin ambient partition, pulling back along the strict
+ambient first-of-block map is exactly the same as first pulling back the
+ambient partition along `inlU` to the flat Cook-Levin partition and then
+pulling back along the flat first-of-block map. -/
+theorem cookLevinStrictFOB_pullbackPartition_eq_flat
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) :
+    MultilinearSPDP.pullbackPartition B_total (cookLevinStrictFOBMap M n) =
+      MultilinearSPDP.pullbackPartition
+        (PaperFaithfulSeparation.cook_levin_compilation
+          M n hn2 htb hns).partition
+        (cookLevinStrictFOBFlatMap n) := by
+  subst B_total
+  change
+    MultilinearSPDP.pullbackPartition
+        (MultilinearSPDP.pullbackPartition
+          (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+          (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+        (cookLevinStrictFOBFlatMap n) =
+      MultilinearSPDP.pullbackPartition
+        (PaperFaithfulSeparation.cook_levin_compilation
+          M n hn2 htb hns).partition
+        (cookLevinStrictFOBFlatMap n)
+  rw [PaperFaithfulCompilation.pullback_eq_cook_levin_partition
+    M n hn2 htb hns]
+
+/-- Route B exact projection/relabel rank monotonicity at the canonical
+strict first-of-block partitions.
+
+The broad `ExtractionProjectionStage` field still asks for arbitrary
+partitions. The paper-faithful fact actually used by the strict Cook-Levin
+target is this exact statement: at the canonical target partition and the real
+flat restriction partition, the projected polynomial and partition are both
+identified by the two descent lemmas above, so the rank comparison is
+reflexive. -/
+theorem cookLevinStrictFOB_exact_projection_rank_mono
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (κ ℓ : ℕ) :
+    MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition B_total
+          (cookLevinStrictFOBMap M n)) κ ℓ
+        (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+          (cookLevinStrictFOBMap_injective M n)
+          (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q) ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition
+          (PaperFaithfulSeparation.cook_levin_compilation
+            M n hn2 htb hns).partition
+          (cookLevinStrictFOBFlatMap n)) κ ℓ
+        (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n)
+          (PaperFaithfulSeparation.compiledPoly
+            (PaperFaithfulSeparation.cook_levin_compilation
+              M n hn2 htb hns))) := by
+  rw [cookLevinStrictFOB_pullbackPartition_eq_flat M n hn2 htb hns
+    B_total hB_total]
+  rw [cookLevinStrictFOB_restrict_embedded_Q_eq_restrict_compiledPoly
+    M n hn2 htb hns]
+
 /-- The strict first-of-block target has fewer variables than the flat
 Cook-Levin compilation target required by `GodMoveExtractionTarget`. -/
 theorem cookLevinStrictFOB_coupledVars_lt
@@ -52780,6 +52850,45 @@ theorem cookLevinStrictFOBTarget_same_target_lower_of_renamed_lower
         (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
           (cookLevinStrictFOBMap_injective M n)
           (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q)))
+
+/-- Route B strict first-of-block source-to-target rank bridge.
+
+This is the paper-faithful rank bridge for the strict target itself, avoiding
+the over-broad arbitrary-partition projection-stage field. The proof uses the
+strict target as an exact coordinate restriction of the ambient `embedded_Q`
+sheet, then chains through §241's `embedded_Q ≤ full_output` bridge. -/
+theorem DirectRankPackage_cookLevin_strictFOB_source_to_target_rank_bridge
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hQ_upper : MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B_total
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (show MvPolynomial (Fin n) ℚ from
+        PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200) :
+    GlobalGodMoveGauge.Theorem207PaperSourceToTargetRankBridge
+      M n hn hn2 htb hns
+      ((DirectRankPackage_cookLevin M n hn htb hns hn2
+        B_total hB_total hQ_upper).toTheorem207PaperSource M hn2 htb hns)
+      (cookLevinStrictFOBTarget M n hn2 htb hns B_total) := by
+  let P := DirectRankPackage_cookLevin M n hn htb hns hn2
+    B_total hB_total hQ_upper
+  exact
+    P.toTheorem207PaperSource_target_bridge_of_embedded_Q_identification
+      M hn2 htb hns
+      (cookLevinStrictFOBTarget M n hn2 htb hns B_total)
+      (by
+        simpa [P, cookLevinStrictFOBTarget] using
+          (P.semanticTargetIdentifiedWithEmbeddedQ_of_restrict_embedded_Q_target
+            M hn2 htb hns (n / 3)
+            (cookLevinStrictFOB_coupledVars_lt M n hn2 htb hns)
+            (cookLevinStrictFOBMap M n)
+            (cookLevinStrictFOBMap_injective M n)))
 
 /-- Restriction stage whose output is definitionally the strict first-of-block
 restriction of the ambient `embedded_Q` sheet.
