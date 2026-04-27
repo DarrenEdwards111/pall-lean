@@ -1,4 +1,5 @@
 import PallLean.Paper93.Paper283.RouteBRicherGaugePrependedCorrectedMapPreimage
+import PallLean.Paper93.Paper283.RouteBRicherGaugeSPDPStableCandidateComplement
 import PallLean.Paper93.Paper283.RouteBRicherGaugeConcreteWImport
 
 /-!
@@ -109,6 +110,60 @@ noncomputable abbrev routeBRicherConcreteNPPrependedMultilinearProjection
   routeBNFrameCandidateAsSATGauge M n hn2 htb hns
     (routeBRicherConcreteNPPrependedMultilinearGauge M n hn2 htb hns)
 
+/-- Actual dual coordinate maps for the concrete NP head row plus the
+multilinear monomial tail, once the full prepended row family has been proved
+linearly independent. -/
+noncomputable def routeBRicherConcreteNPPrependedMultilinearDualCoordinates
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hli :
+      LinearIndependent Rat
+        (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns)) :
+    Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1) ->
+      SATDeciderGaugeSpace M n hn2 htb hns →ₗ[Rat] Rat :=
+  finiteDualCoordinatesOfLinearIndependent
+    (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns) hli
+
+/-- The concrete multilinear-tail dual coordinates have the exact
+Kronecker-duality matrix against the concrete prepended rows. -/
+theorem routeBRicherConcreteNPPrependedMultilinearDualCoordinates_apply_row
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hli :
+      LinearIndependent Rat
+        (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns))
+    (i j : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1)) :
+    routeBRicherConcreteNPPrependedMultilinearDualCoordinates
+        M n hn2 htb hns hli i
+        (routeBRicherConcreteNPPrependedMultilinearRows
+          M n hn2 htb hns j) =
+      if i = j then 1 else 0 :=
+  finiteDualCoordinatesOfLinearIndependent_apply_row
+    (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns) hli i j
+
+/-- The concrete multilinear tail gets explicit projection data from the
+actual dual coordinate maps once row independence is supplied. -/
+noncomputable def routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData_of_linearIndependentRows
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hli :
+      LinearIndependent Rat
+        (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns)) :
+    RouteBRicherSPDPStableCandidateExplicitProjectionData
+      M n hn2 htb hns
+      (routeBRicherMultilinearTailRows M n hn2 htb hns) :=
+  routeBRicherSPDPStableCandidateExplicitProjectionData_of_dualCoordinates
+    M n hn2 htb hns
+    (routeBRicherMultilinearTailRows M n hn2 htb hns)
+    (routeBRicherConcreteNPPrependedMultilinearDualCoordinates
+      M n hn2 htb hns hli)
+    (by
+      intro i j
+      simpa [routeBRicherConcreteNPPrependedMultilinearRows,
+        routeBRicherSPDPStableCandidateRows] using
+        routeBRicherConcreteNPPrependedMultilinearDualCoordinates_apply_row
+          M n hn2 htb hns hli i j)
+
 /-- Every tail-basis row is in the finite span of the enumerated tail rows. -/
 theorem routeBRicherMultilinearTailRows_mem_span_of_mem_basis
     (M : DTM) (n : Nat) (hn2 : n >= 2)
@@ -171,6 +226,55 @@ theorem routeBRicherConcreteNPPrependedMultilinearRows_mlProj_mem
       M n hn2 htb hns
       (routeBRicherMultilinearTailRows M n hn2 htb hns)
       (routeBRicherMultilinearTailRows_mlProj_mem M n hn2 htb hns p)
+
+/-! ## Coefficient collision for the concrete NP head monomial -/
+
+/-- The multilinear tail contains the linear monomial at the second
+Cook-Levin variable, i.e. the same monomial currently exposed as a nonzero
+coefficient of the concrete NP head row. -/
+theorem routeBRicherMultilinearTailBasis_mem_X_secondVar
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    (MvPolynomial.X (satDeciderGaugeSecondVar M n hn2 htb hns) :
+      SATDeciderGaugeSpace M n hn2 htb hns) ∈
+      routeBRicherMultilinearTailBasis M n hn2 htb hns := by
+  simp [routeBRicherMultilinearTailBasis, MlProjFar.mlMonomialBasis]
+  exact ⟨{satDeciderGaugeSecondVar M n hn2 htb hns}, by simp⟩
+
+/-- The tail-row index of the second-variable linear monomial. -/
+noncomputable def routeBRicherMultilinearTailHeadCoeffIndex
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns) :=
+  Finset.equivFin
+    (routeBRicherMultilinearTailBasis M n hn2 htb hns)
+    ⟨MvPolynomial.X (satDeciderGaugeSecondVar M n hn2 htb hns),
+      routeBRicherMultilinearTailBasis_mem_X_secondVar M n hn2 htb hns⟩
+
+/-- At that explicit index, the multilinear tail row is exactly the
+second-variable linear monomial. -/
+theorem routeBRicherMultilinearTailRows_headCoeffIndex_eq_X_secondVar
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    routeBRicherMultilinearTailRows M n hn2 htb hns
+        (routeBRicherMultilinearTailHeadCoeffIndex M n hn2 htb hns) =
+      MvPolynomial.X (satDeciderGaugeSecondVar M n hn2 htb hns) := by
+  simp [routeBRicherMultilinearTailRows,
+    routeBRicherMultilinearTailHeadCoeffIndex]
+
+/-- Therefore the known head-normalizing coefficient does not separate the
+concrete NP head from the multilinear tail: one tail row has coefficient `1`
+at the same monomial. -/
+theorem routeBRicherMultilinearTailRows_headCoeffIndex_coeff_secondVar
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    MvPolynomial.coeff
+        (Finsupp.single (satDeciderGaugeSecondVar M n hn2 htb hns) 1)
+        (routeBRicherMultilinearTailRows M n hn2 htb hns
+          (routeBRicherMultilinearTailHeadCoeffIndex M n hn2 htb hns)) =
+      (1 : Rat) := by
+  rw [routeBRicherMultilinearTailRows_headCoeffIndex_eq_X_secondVar]
+  simp [MvPolynomial.X]
 
 /-- The concrete NP row plus multilinear monomial tail satisfies the explicit
 head/tail SPDP row-closure package. -/
@@ -740,9 +844,16 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_unpr
 #print axioms routeBRicherMultilinearTailRows_mem_span_of_mem_basis
 #print axioms routeBRicherMultilinearTailRowCount_le_two_pow_dim
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_rowCount_le_of_two_pow_dim
+#print axioms routeBRicherConcreteNPPrependedMultilinearDualCoordinates
+#print axioms routeBRicherConcreteNPPrependedMultilinearDualCoordinates_apply_row
+#print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData_of_linearIndependentRows
 #print axioms routeBRicherMultilinearTailRows_mlProj_mem
 #print axioms finiteRowsSubmodule_le_concreteNPPrependedRows_tail
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_mlProj_mem
+#print axioms routeBRicherMultilinearTailBasis_mem_X_secondVar
+#print axioms routeBRicherMultilinearTailHeadCoeffIndex
+#print axioms routeBRicherMultilinearTailRows_headCoeffIndex_eq_X_secondVar
+#print axioms routeBRicherMultilinearTailRows_headCoeffIndex_coeff_secondVar
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_spdpRowClosurePackage
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_spdpClosure
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_kernelCompatibility_iff_residualGenerator_zero

@@ -386,6 +386,65 @@ theorem finiteDualFamilyProjection_apply
       ∑ i, coord i v • rows i := by
   simp [finiteDualFamilyProjection, LinearMap.toSpanSingleton_apply]
 
+/-- A finite linearly independent family in a vector space admits ambient
+coordinate functionals dual to the family.  The construction first takes the
+canonical coordinates on the span given by `LinearIndependent.repr`, then
+extends each coordinate functional from that span to the ambient vector space. -/
+theorem exists_finite_dualCoordinates_of_linearIndependent
+    {K : Type*} [DivisionRing K]
+    {V : Type*} [AddCommGroup V] [Module K V]
+    {r : Nat}
+    (rows : Fin r -> V) (hli : LinearIndependent K rows) :
+    ∃ coord : Fin r -> V →ₗ[K] K,
+      forall i j, coord i (rows j) = if i = j then 1 else 0 := by
+  classical
+  let W : Submodule K V := Submodule.span K (Set.range rows)
+  have hmem : forall j : Fin r, rows j ∈ W := fun j =>
+    Submodule.subset_span ⟨j, rfl⟩
+  let spanCoord : Fin r -> W →ₗ[K] K := fun i =>
+    (Finsupp.lapply i).comp hli.repr
+  choose coord hcoord using fun i => LinearMap.exists_extend (spanCoord i)
+  refine ⟨coord, ?_⟩
+  intro i j
+  have hext := LinearMap.congr_fun (hcoord i) ⟨rows j, hmem j⟩
+  have hrepr :
+      hli.repr ⟨rows j, hmem j⟩ = Finsupp.single j (1 : K) :=
+    hli.repr_eq_single j ⟨rows j, hmem j⟩ rfl
+  calc
+    coord i (rows j) = spanCoord i ⟨rows j, hmem j⟩ := by
+      simpa [LinearMap.comp_apply] using hext
+    _ = (if i = j then 1 else 0) := by
+      have hspan :
+          spanCoord i ⟨rows j, hmem j⟩ =
+            hli.repr ⟨rows j, hmem j⟩ i := rfl
+      rw [hspan, hrepr]
+      simp [Finsupp.single_apply, eq_comm]
+
+/-- Chosen ambient coordinate functionals dual to a finite linearly
+independent row family.  This packages the extension supplied by
+`exists_finite_dualCoordinates_of_linearIndependent` as actual maps, so later
+Route B constructors can refer to a concrete coordinate family. -/
+noncomputable def finiteDualCoordinatesOfLinearIndependent
+    {K : Type*} [DivisionRing K]
+    {V : Type*} [AddCommGroup V] [Module K V]
+    {r : Nat}
+    (rows : Fin r -> V) (hli : LinearIndependent K rows) :
+    Fin r -> V →ₗ[K] K :=
+  Classical.choose (exists_finite_dualCoordinates_of_linearIndependent rows hli)
+
+/-- The chosen finite dual coordinates have the expected Kronecker-duality
+matrix on the row family. -/
+theorem finiteDualCoordinatesOfLinearIndependent_apply_row
+    {K : Type*} [DivisionRing K]
+    {V : Type*} [AddCommGroup V] [Module K V]
+    {r : Nat}
+    (rows : Fin r -> V) (hli : LinearIndependent K rows)
+    (i j : Fin r) :
+    finiteDualCoordinatesOfLinearIndependent rows hli i (rows j) =
+      if i = j then 1 else 0 :=
+  (Classical.choose_spec
+    (exists_finite_dualCoordinates_of_linearIndependent rows hli)) i j
+
 /-- Explicit dual coordinate functionals make the finite-family projection fix
 each row. -/
 theorem finiteDualFamilyProjection_apply_row
@@ -1455,6 +1514,207 @@ noncomputable def routeBRicherSPDPStableCandidateExplicitProjectionData_of_dualC
           (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail)
           coord hdual)
 
+/-- Chosen dual coordinate maps for the full SPDP-stable prepended row family,
+once that family is linearly independent. -/
+noncomputable def routeBRicherSPDPStableCandidateDualCoordinatesOfLinearIndependentRows
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hli :
+      LinearIndependent Rat
+        (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail)) :
+    Fin (m + 1) ->
+      SATDeciderGaugeSpace M n hn2 htb hns →ₗ[Rat] Rat :=
+  finiteDualCoordinatesOfLinearIndependent
+    (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail) hli
+
+/-- The linearly-independent-row dual coordinates have the full
+Kronecker-duality matrix on the prepended head/tail rows. -/
+theorem routeBRicherSPDPStableCandidateDualCoordinatesOfLinearIndependentRows_apply_row
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hli :
+      LinearIndependent Rat
+        (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail))
+    (i j : Fin (m + 1)) :
+    routeBRicherSPDPStableCandidateDualCoordinatesOfLinearIndependentRows
+        M n hn2 htb hns tail hli i
+        (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail j) =
+      if i = j then 1 else 0 :=
+  finiteDualCoordinatesOfLinearIndependent_apply_row
+    (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail) hli i j
+
+/-- Linearly independent prepended candidate rows admit noncomputable ambient
+dual coordinates, hence the full explicit projection data.  This is the
+non-empty-tail Route B entry point: after row independence, no manual dual-map
+matrix remains. -/
+noncomputable def routeBRicherSPDPStableCandidateExplicitProjectionData_of_linearIndependentRows
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hli :
+      LinearIndependent Rat
+        (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail)) :
+    RouteBRicherSPDPStableCandidateExplicitProjectionData
+      M n hn2 htb hns tail :=
+  routeBRicherSPDPStableCandidateExplicitProjectionData_of_dualCoordinates
+    M n hn2 htb hns tail
+    (routeBRicherSPDPStableCandidateDualCoordinatesOfLinearIndependentRows
+      M n hn2 htb hns tail hli)
+    (by
+      intro i j
+      exact
+        routeBRicherSPDPStableCandidateDualCoordinatesOfLinearIndependentRows_apply_row
+          M n hn2 htb hns tail hli i j)
+
+/-! ## Coefficient-probe dual coordinates -/
+
+/-- Concrete coefficient-probe coordinates for a prepended head row and a
+finite tail.
+
+The head coordinate is the normalized `headAlpha` coefficient.  The tail
+coordinate for `i` is the raw `tailAlpha i` coefficient, corrected by
+subtracting its value on the head row times the head coordinate.  Thus, once
+`headAlpha` vanishes on every tail row and the `tailAlpha` coefficients
+diagonalize the tail rows, these maps are dual to the full prepended row
+family. -/
+noncomputable def routeBRicherSPDPStableCandidateCoefficientDualCoordinates
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (headAlpha :
+      Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat)
+    (tailAlpha :
+      Fin m -> Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat) :
+    Fin (m + 1) ->
+      SATDeciderGaugeSpace M n hn2 htb hns →ₗ[Rat] Rat :=
+  let rows := routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail
+  let headCoord :
+      SATDeciderGaugeSpace M n hn2 htb hns →ₗ[Rat] Rat :=
+    ((MvPolynomial.coeff headAlpha (rows 0))⁻¹ : Rat) •
+      MvPolynomial.lcoeff Rat headAlpha
+  Fin.cases headCoord
+    (fun i =>
+      MvPolynomial.lcoeff Rat (tailAlpha i) -
+        (MvPolynomial.coeff (tailAlpha i) (rows 0)) • headCoord)
+
+/-- Coefficient-probe coordinates are dual to the prepended rows whenever the
+chosen probes separate the head from the tail and diagonalize the tail rows. -/
+theorem routeBRicherSPDPStableCandidateCoefficientDualCoordinates_hdual
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (headAlpha :
+      Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat)
+    (tailAlpha :
+      Fin m -> Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat)
+    (hhead :
+      MvPolynomial.coeff headAlpha
+        (routeBRicherSPDPStableCandidateRows
+          M n hn2 htb hns tail 0) ≠ 0)
+    (hhead_tail : forall j : Fin m,
+      MvPolynomial.coeff headAlpha
+        (routeBRicherSPDPStableCandidateRows
+          M n hn2 htb hns tail (Fin.succ j)) = 0)
+    (htail_tail : forall i j : Fin m,
+      MvPolynomial.coeff (tailAlpha i)
+        (routeBRicherSPDPStableCandidateRows
+          M n hn2 htb hns tail (Fin.succ j)) =
+        if i = j then 1 else 0) :
+    forall i j,
+      routeBRicherSPDPStableCandidateCoefficientDualCoordinates
+          M n hn2 htb hns tail headAlpha tailAlpha i
+          (routeBRicherSPDPStableCandidateRows
+            M n hn2 htb hns tail j) =
+        if i = j then 1 else 0 := by
+  intro i j
+  let rows := routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail
+  let headCoord :
+      SATDeciderGaugeSpace M n hn2 htb hns →ₗ[Rat] Rat :=
+    ((MvPolynomial.coeff headAlpha (rows 0))⁻¹ : Rat) •
+      MvPolynomial.lcoeff Rat headAlpha
+  have hhead_rows : MvPolynomial.coeff headAlpha (rows 0) ≠ 0 := by
+    simpa [rows] using hhead
+  have hhead_tail_rows (j : Fin m) :
+      MvPolynomial.coeff headAlpha (rows (Fin.succ j)) = 0 := by
+    simpa [rows] using hhead_tail j
+  have hheadCoord_zero : headCoord (rows 0) = 1 := by
+    change (MvPolynomial.coeff headAlpha (rows 0))⁻¹ *
+        MvPolynomial.coeff headAlpha (rows 0) = 1
+    exact inv_mul_cancel₀ hhead_rows
+  have hheadCoord_tail (j : Fin m) : headCoord (rows (Fin.succ j)) = 0 := by
+    change (MvPolynomial.coeff headAlpha (rows 0))⁻¹ *
+        MvPolynomial.coeff headAlpha (rows (Fin.succ j)) = 0
+    rw [hhead_tail_rows j, mul_zero]
+  refine Fin.cases (motive := fun i =>
+      routeBRicherSPDPStableCandidateCoefficientDualCoordinates
+          M n hn2 htb hns tail headAlpha tailAlpha i (rows j) =
+        if i = j then 1 else 0) ?_ (fun i => ?_) i
+  · refine Fin.cases (motive := fun j =>
+        routeBRicherSPDPStableCandidateCoefficientDualCoordinates
+            M n hn2 htb hns tail headAlpha tailAlpha 0 (rows j) =
+          if (0 : Fin (m + 1)) = j then 1 else 0) ?_ (fun j => ?_) j
+    · simpa [routeBRicherSPDPStableCandidateCoefficientDualCoordinates,
+        rows, headCoord] using hheadCoord_zero
+    · change
+        routeBRicherSPDPStableCandidateCoefficientDualCoordinates
+            M n hn2 htb hns tail headAlpha tailAlpha 0 (rows (Fin.succ j)) =
+          if (0 : Fin (m + 1)) = Fin.succ j then 1 else 0
+      have hzero_succ : ¬ (0 : Fin (m + 1)) = Fin.succ j := by
+        exact Ne.symm (Fin.succ_ne_zero j)
+      rw [if_neg hzero_succ]
+      simpa [routeBRicherSPDPStableCandidateCoefficientDualCoordinates,
+        rows, headCoord] using hheadCoord_tail j
+  · refine Fin.cases (motive := fun j =>
+        routeBRicherSPDPStableCandidateCoefficientDualCoordinates
+            M n hn2 htb hns tail headAlpha tailAlpha (Fin.succ i) (rows j) =
+          if (Fin.succ i : Fin (m + 1)) = j then 1 else 0) ?_ (fun j => ?_) j
+    · simp [routeBRicherSPDPStableCandidateCoefficientDualCoordinates,
+        rows, headCoord, hheadCoord_zero]
+    · simp [routeBRicherSPDPStableCandidateCoefficientDualCoordinates,
+        rows, headCoord, hheadCoord_tail j, htail_tail i j]
+
+/-- Coefficient-probe dual coordinates give fully inspectable projection data
+for a non-empty or empty finite tail, provided the displayed monomial
+coefficient probes satisfy the Kronecker conditions. -/
+noncomputable def routeBRicherSPDPStableCandidateExplicitProjectionData_of_coefficientDualCoordinates
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (headAlpha :
+      Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat)
+    (tailAlpha :
+      Fin m -> Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat)
+    (hhead :
+      MvPolynomial.coeff headAlpha
+        (routeBRicherSPDPStableCandidateRows
+          M n hn2 htb hns tail 0) ≠ 0)
+    (hhead_tail : forall j : Fin m,
+      MvPolynomial.coeff headAlpha
+        (routeBRicherSPDPStableCandidateRows
+          M n hn2 htb hns tail (Fin.succ j)) = 0)
+    (htail_tail : forall i j : Fin m,
+      MvPolynomial.coeff (tailAlpha i)
+        (routeBRicherSPDPStableCandidateRows
+          M n hn2 htb hns tail (Fin.succ j)) =
+        if i = j then 1 else 0) :
+    RouteBRicherSPDPStableCandidateExplicitProjectionData
+      M n hn2 htb hns tail :=
+  routeBRicherSPDPStableCandidateExplicitProjectionData_of_dualCoordinates
+    M n hn2 htb hns tail
+    (routeBRicherSPDPStableCandidateCoefficientDualCoordinates
+      M n hn2 htb hns tail headAlpha tailAlpha)
+    (routeBRicherSPDPStableCandidateCoefficientDualCoordinates_hdual
+      M n hn2 htb hns tail headAlpha tailAlpha
+      hhead hhead_tail htail_tail)
+
 /-- If the caller has proved that the prepended rows already span the whole
 ambient SAT gauge space, the inspectable complement is `⊥`. -/
 def routeBRicherSPDPStableCandidateBottomProjectionComplementInterface_of_rows_top
@@ -1717,6 +1977,9 @@ noncomputable def routeBRicherSPDPStableCandidateChosenExplicitProjectionData
 #print axioms rankOneCoefficientProjection_range
 #print axioms finiteDualFamilyProjection
 #print axioms finiteDualFamilyProjection_apply
+#print axioms exists_finite_dualCoordinates_of_linearIndependent
+#print axioms finiteDualCoordinatesOfLinearIndependent
+#print axioms finiteDualCoordinatesOfLinearIndependent_apply_row
 #print axioms finiteDualFamilyProjection_apply_row
 #print axioms finiteDualFamilyProjection_range_le_span
 #print axioms finiteDualFamilyProjection_range
@@ -1741,6 +2004,12 @@ noncomputable def routeBRicherSPDPStableCandidateChosenExplicitProjectionData
 #print axioms routeBRicherSPDPStableCandidateDualCoordinateProjection
 #print axioms routeBRicherSPDPStableCandidateDualCoordinateProjection_apply
 #print axioms routeBRicherSPDPStableCandidateExplicitProjectionData_of_dualCoordinates
+#print axioms routeBRicherSPDPStableCandidateDualCoordinatesOfLinearIndependentRows
+#print axioms routeBRicherSPDPStableCandidateDualCoordinatesOfLinearIndependentRows_apply_row
+#print axioms routeBRicherSPDPStableCandidateExplicitProjectionData_of_linearIndependentRows
+#print axioms routeBRicherSPDPStableCandidateCoefficientDualCoordinates
+#print axioms routeBRicherSPDPStableCandidateCoefficientDualCoordinates_hdual
+#print axioms routeBRicherSPDPStableCandidateExplicitProjectionData_of_coefficientDualCoordinates
 #print axioms routeBRicherSPDPStableCandidateBottomProjectionComplementInterface_of_rows_top
 #print axioms routeBRicherSPDPStableCandidateBottomExplicitProjectionData_of_rows_top
 #print axioms routeBRicherSPDPStableCandidateZeroProjectionComplementInterface_of_rows_bot
