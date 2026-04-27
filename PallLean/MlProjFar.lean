@@ -1,4 +1,5 @@
 import PallLean.MultilinearSPDP
+import PallLean.SymmetricPower
 import Mathlib.Tactic
 
 /-!
@@ -29,6 +30,84 @@ theorem mlMonomialBasis_card {n : ℕ} (V : Finset (Fin n)) :
   calc (mlMonomialBasis V).card
       ≤ V.powerset.card := Finset.card_image_le
     _ = 2 ^ V.card := by rw [Finset.card_powerset]
+
+/-- The product of coordinate variables over a finite set is the standard
+monomial whose exponent vector is the `0/1` tag of that set. -/
+theorem prod_X_eq_monomial_tag {n : ℕ} (T : Finset (Fin n)) :
+    T.prod (fun i => (MvPolynomial.X i : MvPolynomial (Fin n) ℚ)) =
+      MvPolynomial.monomial (SymmetricPower.tagMonomial T) (1 : ℚ) := by
+  rw [SymmetricPower.tagMonomial, MvPolynomial.monomial_sum_one]
+  simp [MvPolynomial.X]
+
+/-- The multilinear monomial basis, indexed by its finset enumeration, is
+linearly independent.  This is just `MvPolynomial.basisMonomials` restricted
+to the `0/1` exponent vectors coming from subsets of `V`. -/
+theorem mlMonomialBasis_linearIndependent {n : ℕ} (V : Finset (Fin n)) :
+    LinearIndependent ℚ
+      (fun p : (mlMonomialBasis V) =>
+        (p : MvPolynomial (Fin n) ℚ)) := by
+  classical
+  let preimage : (mlMonomialBasis V) → Finset (Fin n) := fun p =>
+    Classical.choose (by
+      have hp :
+          (p : MvPolynomial (Fin n) ℚ) ∈
+            V.powerset.image
+              (fun T => T.prod (fun i => MvPolynomial.X i)) := p.property
+      exact Finset.mem_image.mp hp)
+  have hpreimage_spec :
+      ∀ p : (mlMonomialBasis V),
+        preimage p ∈ V.powerset ∧
+          (preimage p).prod
+              (fun i => (MvPolynomial.X i : MvPolynomial (Fin n) ℚ)) =
+            (p : MvPolynomial (Fin n) ℚ) := by
+    intro p
+    exact Classical.choose_spec (by
+      have hp :
+          (p : MvPolynomial (Fin n) ℚ) ∈
+            V.powerset.image
+              (fun T => T.prod (fun i => MvPolynomial.X i)) := p.property
+      exact Finset.mem_image.mp hp)
+  have hpreimage_inj : Function.Injective preimage := by
+    intro p q hpq
+    apply Subtype.ext
+    calc
+      (p : MvPolynomial (Fin n) ℚ)
+          = (preimage p).prod
+              (fun i => (MvPolynomial.X i : MvPolynomial (Fin n) ℚ)) :=
+            (hpreimage_spec p).2.symm
+      _ = (preimage q).prod
+              (fun i => (MvPolynomial.X i : MvPolynomial (Fin n) ℚ)) := by
+            rw [hpq]
+      _ = (q : MvPolynomial (Fin n) ℚ) := (hpreimage_spec q).2
+  have hli_monomial :
+      LinearIndependent ℚ
+        (fun T : Finset (Fin n) =>
+          MvPolynomial.monomial (SymmetricPower.tagMonomial T) (1 : ℚ)) :=
+    (MvPolynomial.basisMonomials (Fin n) ℚ).linearIndependent.comp
+      (fun T : Finset (Fin n) => SymmetricPower.tagMonomial T)
+      SymmetricPower.tagMonomial_injective
+  have hli_prod :
+      LinearIndependent ℚ
+        (fun T : Finset (Fin n) =>
+          T.prod (fun i => (MvPolynomial.X i : MvPolynomial (Fin n) ℚ))) := by
+    have hfun :
+        (fun T : Finset (Fin n) =>
+          T.prod (fun i => (MvPolynomial.X i : MvPolynomial (Fin n) ℚ))) =
+        (fun T : Finset (Fin n) =>
+          MvPolynomial.monomial (SymmetricPower.tagMonomial T) (1 : ℚ)) := by
+      funext T
+      exact prod_X_eq_monomial_tag T
+    simpa [hfun] using hli_monomial
+  have hli_preimage := hli_prod.comp preimage hpreimage_inj
+  have hfun :
+      (fun p : (mlMonomialBasis V) =>
+        (p : MvPolynomial (Fin n) ℚ)) =
+      (fun p : (mlMonomialBasis V) =>
+        (preimage p).prod
+          (fun i => (MvPolynomial.X i : MvPolynomial (Fin n) ℚ))) := by
+    funext p
+    exact (hpreimage_spec p).2.symm
+  simpa [hfun, Function.comp_def] using hli_preimage
 
 /-- Any multilinear polynomial whose vars ⊆ V lies in span(mlMonomialBasis V).
 

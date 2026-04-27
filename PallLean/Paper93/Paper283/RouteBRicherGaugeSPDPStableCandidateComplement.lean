@@ -1810,6 +1810,13 @@ noncomputable abbrev routeBRicherSPDPStableCandidateHeadCoeffAlpha
     Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat :=
   Finsupp.single (satDeciderGaugeSecondVar M n hn2 htb hns) 1
 
+/-- The non-multilinear square monomial at the second Cook-Levin variable. -/
+noncomputable abbrev routeBRicherSPDPStableCandidateHeadSquareCoeffAlpha
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat :=
+  Finsupp.single (satDeciderGaugeSecondVar M n hn2 htb hns) 2
+
 /-- The selected concrete head-row coefficient is exactly `-1`. -/
 theorem routeBRicherSPDPStableCandidateHeadRow_coeff_headCoeffAlpha
     (M : DTM) (n : Nat) (hn2 : n >= 2)
@@ -1831,6 +1838,31 @@ theorem routeBRicherSPDPStableCandidateHeadRow_coeff_headCoeffAlpha_ne_zero
         (routeBRicherSPDPStableCandidateHeadCoeffAlpha M n hn2 htb hns)
         (routeBRicherSPDPStableCandidateHeadRow M n hn2 htb hns) ≠ 0 := by
   rw [routeBRicherSPDPStableCandidateHeadRow_coeff_headCoeffAlpha]
+  norm_num
+
+/-- The concrete NP head row has pure-square coefficient `1` at the second
+Cook-Levin variable. -/
+theorem routeBRicherSPDPStableCandidateHeadRow_coeff_headSquareCoeffAlpha
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    MvPolynomial.coeff
+        (routeBRicherSPDPStableCandidateHeadSquareCoeffAlpha M n hn2 htb hns)
+        (routeBRicherSPDPStableCandidateHeadRow M n hn2 htb hns) =
+      (1 : Rat) := by
+  dsimp [routeBRicherSPDPStableCandidateHeadSquareCoeffAlpha,
+    routeBRicherSPDPStableCandidateHeadRow]
+  rw [routeBRicherConcreteNPWitnessQ_embed_eq_compiledPoly]
+  exact compiledPoly_coeff_secondVar_square M n hn2 htb hns
+
+/-- The concrete NP head row exposes a nonzero pure-square coefficient at the
+second Cook-Levin variable. -/
+theorem routeBRicherSPDPStableCandidateHeadRow_coeff_headSquareCoeffAlpha_ne_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    MvPolynomial.coeff
+        (routeBRicherSPDPStableCandidateHeadSquareCoeffAlpha M n hn2 htb hns)
+        (routeBRicherSPDPStableCandidateHeadRow M n hn2 htb hns) ≠ 0 := by
+  rw [routeBRicherSPDPStableCandidateHeadRow_coeff_headSquareCoeffAlpha]
   norm_num
 
 /-- Existential coefficient form of the concrete NP head-row nonzero witness. -/
