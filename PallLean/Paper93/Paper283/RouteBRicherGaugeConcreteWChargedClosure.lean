@@ -3,6 +3,7 @@ import PallLean.Paper93.DeepMath.PathB.AugmentedConcreteWH4
 import PallLean.Paper93.DeepMath.PathB.AugmentedConcreteWI5
 import PallLean.Paper93.DeepMath.PathB.ZeroProfileNonScalarClosure
 import PallLean.Paper93.Paper283.RouteBRicherGaugePWindowCover
+import PallLean.Paper93.Wiring.DischargeChain
 
 /-!
 # ConcreteW charged shift/mlProj closure route
@@ -119,6 +120,21 @@ theorem endpointAugmentedConcreteW_correctedLocalClosure_of_charged_components
     endpointAugmentedConcreteW_shiftMlprojClosure_charged_of_components
       n hn4 charge hI1 hI2c hI3⟩
 
+/-- Universal I1/I3 packages reduce the corrected endpoint local closure to
+the single charged-shift obligation for the chosen charge relation. -/
+theorem endpointAugmentedConcreteW_correctedLocalClosure_of_universal_I1_I3_chargedShift
+    (n : ℕ) (hn4 : n ≥ 4) (charge : ProfileCharge n)
+    (hI1_univ : PallLean.Paper93.Wiring.PerTypeProductGrouping_universal)
+    (hI2c :
+      EndpointAugmentedConcreteWChargedShiftClosure n hn4 charge)
+    (hI3_univ : PallLean.Paper93.Wiring.PerTypeMlprojClosure_universal) :
+    EndpointAugmentedConcreteWCorrectedLocalClosure n hn4 charge :=
+  endpointAugmentedConcreteW_correctedLocalClosure_of_charged_components
+    n hn4 charge
+    (hI1_univ n (endpointAugmentedConcreteW n hn4))
+    hI2c
+    (hI3_univ n (endpointAugmentedConcreteW n hn4))
+
 /-! ## Zero-profile check: charged target, not same-profile target -/
 
 /-- The corrected charged I5 statement sends the one-variable zero-profile
@@ -171,6 +187,7 @@ theorem concreteW_chargedShiftMlprojClosure_zeroProfile_X_mem_at_chargedTarget
 #print axioms concreteW_perTypeShiftMlprojClosure_charged_of_components
 #print axioms endpointAugmentedConcreteW_shiftMlprojClosure_charged_of_components
 #print axioms endpointAugmentedConcreteW_correctedLocalClosure_of_charged_components
+#print axioms endpointAugmentedConcreteW_correctedLocalClosure_of_universal_I1_I3_chargedShift
 #print axioms concreteW_chargedShiftMlprojClosure_zeroProfile_X_mem_at_chargedTarget
 
 end PallLean.Paper93.DeepMath.PathB

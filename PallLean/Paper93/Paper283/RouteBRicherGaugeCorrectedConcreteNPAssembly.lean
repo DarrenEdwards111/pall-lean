@@ -239,6 +239,47 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsSPDPMapPre
     (routeBRicherConcreteNPWitnessQ_sourceIdentityMinorLowerBound
       M n hn hn2 htb hns)
 
+/-- Concrete NP-row corrected Route B assembly with finite-row commutation
+converted through the weaker map-preimage SPDP surface.
+
+This is the shortest corrected path from a finite-row generator commutation
+proof to the concrete NP Route B certificate: commutation is used only to
+produce `RouteBRicherGaugeFiniteRowsSPDPMapPreimage`, and the P-window side
+is supplied by the existing concreteW row-embedding cover. -/
+theorem routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_rowEmbeddings_deltaEqRateKappa
+    {N d : Nat}
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (alpha beta alpha0 : Real) (kappa gadgetN : Nat)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {eta theta : Real}
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hN : 1 <= N) (hrowCount : m + 1 <= N)
+    (heta : 0 < eta) (htheta : 0 < theta)
+    (halpha : 0 < alpha) (halpha0 : 0 < alpha0)
+    (hkappa : 0 < kappa) (hgadgetN : 2 <= gadgetN)
+    (hcomm :
+      RouteBRicherGaugeGeneratorCommutation M n hn2 htb hns
+        (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns
+          (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail)))
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns hn4) :
+    RouteBPerInstanceCertificate M n hn2 htb hns :=
+  routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsSPDPMapPreimage_rowEmbeddings_deltaEqRateKappa
+    (N := N) (d := d)
+    M n hn hn2 htb hns hn4
+    alpha beta alpha0 kappa gadgetN G chi Phi
+    tail hN hrowCount heta htheta halpha halpha0 hkappa hgadgetN
+    (routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_generatorCommutation
+      M n hn2 htb hns
+      (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail)
+      hcomm)
+    hRowEmbeddings
+
 /-! ## Axiom audit anchors -/
 
 #print axioms routeBRicherConcreteNPPrependedRows_zero_eq_embed
@@ -247,5 +288,6 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsSPDPMapPre
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_activeBlockersZeroNonScalar_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_rowEmbeddingsZeroSupport_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsSPDPMapPreimage_rowEmbeddings_deltaEqRateKappa
+#print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_finiteRowsGeneralCommutation_rowEmbeddings_deltaEqRateKappa
 
 end PallLean.Paper93.Paper283

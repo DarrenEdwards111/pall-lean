@@ -116,6 +116,28 @@ noncomputable def routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_livePro
       M n hn2 htb hns hzero hbudget)
     hlive
 
+/-- Direct cardinality-budget variant of the live-profile/non-scalar
+zero-profile P-window route.
+
+This exposes the corrected zero-profile input directly as
+`cookLevinZeroProfileNonScalarCardBound <= withinProfileBound ...`, rather
+than routing through the stronger support-card side conditions. -/
+noncomputable def routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases_zeroNonScalarCardBound
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (hbound :
+      cookLevinZeroProfileNonScalarCardBound M n hn2 htb hns <=
+        withinProfileBound (Nat.log 2 n))
+    (hlive :
+      CookLevinAllBoundedProfileCommonSpanLiveProfileCases
+        M n hn2 htb hns) :
+    RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns :=
+  routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases_zeroNonScalarClosure
+    M n hn2 htb hns hn4
+    (cookLevinZeroProfileNonScalarClosureWithCardBound M n hn2 htb hns)
+    hbound hlive
+
 /-- External-base-cardinality support arithmetic for the non-scalar
 zero-profile package, together with live-profile common-span cases, gives the
 richer-gauge P-window finite-span cover. -/
@@ -212,6 +234,24 @@ noncomputable def routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concret
       M n hn2 htb hns hzero hbudget)
     hRowEmbeddings
 
+/-- Direct cardinality-budget variant of the concreteW/non-template
+P-window route. -/
+noncomputable def routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroNonScalarCardBound
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (hbound :
+      cookLevinZeroProfileNonScalarCardBound M n hn2 htb hns <=
+        withinProfileBound (Nat.log 2 n))
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns hn4) :
+    RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns :=
+  routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroNonScalarClosure
+    M n hn2 htb hns hn4
+    (cookLevinZeroProfileNonScalarClosureWithCardBound M n hn2 htb hns)
+    hbound hRowEmbeddings
+
 /-- Pointwise template-collapse certificates imply the all-span common-span
 family and hence the richer-gauge unprojected P-window finite-span cover. -/
 noncomputable def routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_templateCollapseAtProfiles
@@ -290,11 +330,13 @@ noncomputable def routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concret
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases_zeroSupportCardSum
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases_zeroNonScalarClosure
+#print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases_zeroNonScalarCardBound
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_liveProfileCases_zeroSupportBaseCard
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroProfileCommonSpan
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroSupportCardSum
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroSupportBaseCard
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroNonScalarClosure
+#print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_concreteW_zeroNonScalarCardBound
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_templateCollapseAtProfiles
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_templateCollapse
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_boundedProfileTemplateCollapse
