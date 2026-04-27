@@ -1,6 +1,9 @@
 import PallLean.Paper93.Paper283.BridgeAKappaTwoFourIdentitiesAssembled
 import PallLean.Paper93.Paper283.BridgeAKappaGeneralRouteBFinal
+import PallLean.Paper93.Paper283.BridgeBShiftedEigenvalueCFC
 import PallLean.Paper93.Paper283.RouteBFunctorialTransportCertificate
+import PallLean.Paper93.Paper283.RouteBRicherGaugeConcreteMultilinearTail
+import PallLean.Paper93.Paper283.RouteBRicherGaugeRankBudget
 
 set_option exponentiation.threshold 1000
 
@@ -413,6 +416,240 @@ theorem cookLevinRichProjectionTarget_of_kappaTwoRealLocalRouteBCertificate
       alpha beta alpha0 G chi Phi halpha0 htheta hnorm hspec hlower
       Pi hcompat htransport
 
+/-! ## Section E: concrete multilinear-tail certificate constructors -/
+
+/-- Direct component packer for the default κ = 2 real-local Route B
+certificate.  This keeps the certificate surface explicit while avoiding any
+legacy pocket-family rank realization assumption. -/
+theorem kappaTwoRealLocalRouteBCertificate_of_components
+    {M : TuringMachine.DTM} {n : Nat} {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {N d : Nat}
+    (alpha beta alpha0 : Real)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    (halpha0 : 0 < alpha0)
+    {theta normBound logDet delta rankLogRate : Real} {rankA : Nat}
+    {eigenvalues : Fin N -> Real}
+    (htheta : 0 < theta) (hnorm : 0 < normBound)
+    (hspec :
+      BridgeBSpectralHypotheses theta normBound logDet rankA eigenvalues)
+    (hlower :
+      BridgeARankLogDetLowerHypotheses
+        alpha beta alpha0 2 G chi Phi
+        (cookLevinLocalBlockQ_routeBLocalGadgetFamily_two_defaultInteriorBlock
+          M n hn hn2 htb hns alpha beta alpha0 G chi Phi)
+        rankLogRate logDet delta)
+    (Pi : PallLean.Paper93.NFrame.CandidateGauge
+      (RouteBCookLevinDim M n hn2 htb hns))
+    (hcompat :
+      RouteBProjectionRankCompatible M n hn2 htb hns rankA Pi)
+    (htransport :
+      RouteBFunctorialTransportCertificate M n hn2 htb hns Pi) :
+    KappaTwoRealLocalRouteBPerInstanceCertificate M n hn hn2 htb hns :=
+  ⟨N, d, alpha, beta, alpha0, G, chi, Phi,
+    theta, normBound, logDet, delta, rankLogRate, rankA, eigenvalues, Pi,
+    halpha0, htheta, hnorm, hspec, hlower, hcompat, htransport⟩
+
+/-- Concrete multilinear-tail gauge constructor for the default κ = 2
+real-local certificate, conditional on the exact SPDP containment/P-window
+inputs for that selected projection.
+
+The projection rank field is discharged from the finite row-count budget; the
+NP identity-minor field is discharged by the concrete prepended Cook-Levin
+witness row. -/
+theorem kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_containment
+    {M : TuringMachine.DTM} {n : Nat} {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {N d : Nat}
+    (alpha beta alpha0 : Real)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    (halpha0 : 0 < alpha0)
+    {theta normBound logDet delta rankLogRate : Real} {rankA : Nat}
+    {eigenvalues : Fin N -> Real}
+    (htheta : 0 < theta) (hnorm : 0 < normBound)
+    (hspec :
+      BridgeBSpectralHypotheses theta normBound logDet rankA eigenvalues)
+    (hlower :
+      BridgeARankLogDetLowerHypotheses
+        alpha beta alpha0 2 G chi Phi
+        (cookLevinLocalBlockQ_routeBLocalGadgetFamily_two_defaultInteriorBlock
+          M n hn hn2 htb hns alpha beta alpha0 G chi Phi)
+        rankLogRate logDet delta)
+    (hrowRank :
+      routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1 <= rankA)
+    (hcontain :
+      RouteBRicherGaugeSPDPSubspaceContainment M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearGauge M n hn2 htb hns))
+    (cover :
+      RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns) :
+    KappaTwoRealLocalRouteBPerInstanceCertificate M n hn hn2 htb hns := by
+  let Pi := routeBRicherConcreteNPPrependedMultilinearGauge M n hn2 htb hns
+  have hcompat :
+      RouteBProjectionRankCompatible M n hn2 htb hns rankA Pi := by
+    simpa [Pi, routeBRicherConcreteNPPrependedMultilinearGauge] using
+      routeBRicherFiniteRowsCandidateGauge_rankCompatible_of_rowCount_le
+        M n hn2 htb hns rankA
+        (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns)
+        hrowRank
+  have htransport :
+      RouteBFunctorialTransportCertificate M n hn2 htb hns Pi := by
+    simpa [Pi, routeBRicherConcreteNPPrependedMultilinearGauge] using
+      routeBRicherFiniteRowsCandidateGauge_transportCertificate
+        M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns)
+        (by
+          simpa [Pi, routeBRicherConcreteNPPrependedMultilinearGauge]
+            using hcontain)
+        cover
+        (routeBRicherConcreteNPWitnessQ M n hn2 htb hns)
+        0
+        (by
+          simpa [routeBRicherConcreteNPPrependedMultilinearRows] using
+            routeBRicherConcreteNPPrependedRows_zero_eq_embed
+              M n hn2 htb hns
+              (routeBRicherMultilinearTailRows M n hn2 htb hns))
+        (routeBRicherConcreteNP_extracts_compiled_for_rows
+          M n hn2 htb hns
+          (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns))
+        (routeBRicherConcreteNPWitnessQ_sourceIdentityMinorLowerBound
+          M n hn hn2 htb hns)
+  exact
+    kappaTwoRealLocalRouteBCertificate_of_components
+      (M := M) (n := n) (hn := hn) (hn2 := hn2) (htb := htb) (hns := hns)
+      alpha beta alpha0 G chi Phi halpha0 htheta hnorm hspec hlower
+      Pi hcompat htransport
+
+/-- Projection-descent version of the concrete multilinear-tail κ = 2
+real-local certificate.  The only projection-specific missing theorem here is
+`RouteBRicherConcreteNPPrependedMultilinearProjectionDescent`; everything else
+is wired through checked finite-row transport. -/
+theorem kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_projectionDescent
+    {M : TuringMachine.DTM} {n : Nat} {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {N d : Nat}
+    (alpha beta alpha0 : Real)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    (halpha0 : 0 < alpha0)
+    {theta normBound logDet delta rankLogRate : Real} {rankA : Nat}
+    {eigenvalues : Fin N -> Real}
+    (htheta : 0 < theta) (hnorm : 0 < normBound)
+    (hspec :
+      BridgeBSpectralHypotheses theta normBound logDet rankA eigenvalues)
+    (hlower :
+      BridgeARankLogDetLowerHypotheses
+        alpha beta alpha0 2 G chi Phi
+        (cookLevinLocalBlockQ_routeBLocalGadgetFamily_two_defaultInteriorBlock
+          M n hn hn2 htb hns alpha beta alpha0 G chi Phi)
+        rankLogRate logDet delta)
+    (hrowRank :
+      routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1 <= rankA)
+    (hdesc :
+      RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns)
+    (cover :
+      RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns) :
+    KappaTwoRealLocalRouteBPerInstanceCertificate M n hn hn2 htb hns :=
+  kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_containment
+    (M := M) (n := n) (hn := hn) (hn2 := hn2) (htb := htb) (hns := hns)
+    alpha beta alpha0 G chi Phi halpha0 htheta hnorm hspec hlower hrowRank
+    (routeBRicherConcreteNPPrependedMultilinearGauge_spdpSubspaceContainment_of_projectionDescent
+      M n hn2 htb hns hdesc)
+    cover
+
+/-- No concrete projection escape is the equivalent missing condition for the
+projection-descent branch. -/
+theorem kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_noProjectionEscape
+    {M : TuringMachine.DTM} {n : Nat} {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {N d : Nat}
+    (alpha beta alpha0 : Real)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    (halpha0 : 0 < alpha0)
+    {theta normBound logDet delta rankLogRate : Real} {rankA : Nat}
+    {eigenvalues : Fin N -> Real}
+    (htheta : 0 < theta) (hnorm : 0 < normBound)
+    (hspec :
+      BridgeBSpectralHypotheses theta normBound logDet rankA eigenvalues)
+    (hlower :
+      BridgeARankLogDetLowerHypotheses
+        alpha beta alpha0 2 G chi Phi
+        (cookLevinLocalBlockQ_routeBLocalGadgetFamily_two_defaultInteriorBlock
+          M n hn hn2 htb hns alpha beta alpha0 G chi Phi)
+        rankLogRate logDet delta)
+    (hrowRank :
+      routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1 <= rankA)
+    (hnoEscape :
+      ¬ RouteBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness
+        M n hn2 htb hns)
+    (cover :
+      RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns) :
+    KappaTwoRealLocalRouteBPerInstanceCertificate M n hn hn2 htb hns :=
+  kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_projectionDescent
+    (M := M) (n := n) (hn := hn) (hn2 := hn2) (htb := htb) (hns := hns)
+    alpha beta alpha0 G chi Phi halpha0 htheta hnorm hspec hlower hrowRank
+    (routeBRicherConcreteNPPrependedMultilinearProjectionDescent_of_no_projectionEscapeWitness
+      M n hn2 htb hns hnoEscape)
+    cover
+
+/-- PSD/eigenvalue-floor constructor for the concrete multilinear-tail κ = 2
+real-local certificate.  Bridge B spectral hypotheses and Bridge A log-det
+lower hypotheses are both filled by existing real-local-compatible lemmas.
+
+The remaining non-analytic inputs are explicit and minimal: row-count rank
+budget, projection descent, and an unprojected P-window finite-span cover. -/
+theorem kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_eigenvalueFloor_projectionDescent
+    {M : TuringMachine.DTM} {n : Nat} {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {N d : Nat}
+    (alpha beta alpha0 : Real)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {theta delta rankLogRate lambdaFloor : Real}
+    (A : Matrix (Fin N) (Fin N) Real) (hA : A.PosSemidef)
+    (S : Finset (Fin N))
+    (htheta : 0 < theta)
+    (halpha0 : 0 < alpha0)
+    (hrate_nonneg : 0 <= rankLogRate)
+    (hdelta_rate : delta <= rankLogRate * (2 : Real))
+    (hlambdaFloor_nonneg : 0 <= lambdaFloor)
+    (hfloor : ∀ i ∈ S, lambdaFloor <= hA.1.eigenvalues i)
+    (hbudget :
+      rankLogRate *
+          ((∑ v ∈ activeSet (N := N) (d := d) alpha beta alpha0 G chi Phi,
+            (cookLevinLocalBlockQ_routeBLocalGadgetFamily_two_defaultInteriorBlock
+              M n hn hn2 htb hns alpha beta alpha0 G chi Phi v).rank) :
+            Real) <=
+        (S.card : Real) * Real.log (1 + theta * lambdaFloor))
+    (hrowRank :
+      routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1 <= A.rank)
+    (hdesc :
+      RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns)
+    (cover :
+      RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns) :
+    KappaTwoRealLocalRouteBPerInstanceCertificate M n hn hn2 htb hns :=
+  kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_projectionDescent
+    (M := M) (n := n) (hn := hn) (hn2 := hn2) (htb := htb) (hns := hns)
+    (theta := theta)
+    (normBound := routeBEigenvalueSumNormBound A hA)
+    (logDet := Real.log (((1 : Matrix (Fin N) (Fin N) Real) + theta • A).det))
+    (delta := delta) (rankLogRate := rankLogRate)
+    (rankA := A.rank) (eigenvalues := hA.1.eigenvalues)
+    alpha beta alpha0 G chi Phi halpha0 htheta
+    (routeBEigenvalueSumNormBound_pos A hA)
+    (bridgeB_spectral_hypotheses_of_posSemidef_autoNorm A hA htheta)
+    (bridgeA_rankLogDetLowerHypotheses_of_shifted_logdet_eigenvalue_floor_on_finset
+      alpha beta alpha0 2 G chi Phi
+      (cookLevinLocalBlockQ_routeBLocalGadgetFamily_two_defaultInteriorBlock
+        M n hn hn2 htb hns alpha beta alpha0 G chi Phi)
+      A hA S htheta hrate_nonneg hdelta_rate
+      hlambdaFloor_nonneg hfloor hbudget)
+    hrowRank hdesc cover
+
 /-! ## Axiom audit anchors -/
 
 #print axioms kappaTwoInteriorBlockOfVertex
@@ -432,5 +669,10 @@ theorem cookLevinRichProjectionTarget_of_kappaTwoRealLocalRouteBCertificate
 #print axioms cookLevinRichProjectionTarget_of_kappaTwoDefaultInteriorBlock_realLocal_transportCertificate
 #print axioms KappaTwoRealLocalRouteBPerInstanceCertificate
 #print axioms cookLevinRichProjectionTarget_of_kappaTwoRealLocalRouteBCertificate
+#print axioms kappaTwoRealLocalRouteBCertificate_of_components
+#print axioms kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_containment
+#print axioms kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_projectionDescent
+#print axioms kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_noProjectionEscape
+#print axioms kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_eigenvalueFloor_projectionDescent
 
 end PallLean.Paper93.Paper283
