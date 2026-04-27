@@ -280,6 +280,57 @@ theorem routeBRicherSPDPStableCandidate_secondPassClosure_of_secondPassCollapse
   rw [hcollapse]
   exact hhead
 
+/-- Row-level collapse of the contained-support second pass.
+
+This isolates the algebraic obstruction into two smaller obligations:
+
+* `hcomm`: the requested second derivatives commute through the first
+  multilinear projection for the specific head row;
+* `hSHeadShift`: the second derivatives do not hit the first-pass shift.
+
+Under those two facts, the second-pass row is a strict original-generator row
+with derivative list `T ++ S` and combined shift `shift * headShift`. -/
+theorem routeBSPDPGeneratorRow_secondPassCollapse_of_mlProjCommutes_headShift_const
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {P : SATDeciderGaugeSpace M n hn2 htb hns}
+    {T S : List (Fin (RouteBCookLevinDim M n hn2 htb hns))}
+    {headShift shift : SATDeciderGaugeSpace M n hn2 htb hns}
+    (hcomm :
+      SPDP.iterDerivList S (mlProj (headShift * SPDP.iterDerivList T P)) =
+        SPDP.iterDerivList S (headShift * SPDP.iterDerivList T P))
+    (hSHeadShift : ∀ i ∈ S, i ∉ headShift.vars) :
+    routeBSPDPGeneratorRow M n hn2 htb hns
+        (mlProj (headShift * SPDP.iterDerivList T P)) S shift =
+      mlProj ((shift * headShift) * SPDP.iterDerivList (T ++ S) P) := by
+  unfold routeBSPDPGeneratorRow
+  rw [hcomm]
+  rw [IterDerivHelpers.iterDerivList_mul_left_const]
+  · rw [IterDerivHelpers.iterDerivList_append T S P, mul_assoc]
+  · intro i hi
+    exact MvPolynomial.pderiv_eq_zero_of_notMem_vars (hSHeadShift i hi)
+
+/-- Multilinear-head-row specialization of
+`routeBSPDPGeneratorRow_secondPassCollapse_of_mlProjCommutes_headShift_const`.
+
+If the unprojected first-pass row is already multilinear, then `mlProj` fixes
+it, so the derivative-through-`mlProj` obligation is automatic. -/
+theorem routeBSPDPGeneratorRow_secondPassCollapse_of_headRowMultilinear_headShift_const
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {P : SATDeciderGaugeSpace M n hn2 htb hns}
+    {T S : List (Fin (RouteBCookLevinDim M n hn2 htb hns))}
+    {headShift shift : SATDeciderGaugeSpace M n hn2 htb hns}
+    (hheadRowML : IsMultilinear (headShift * SPDP.iterDerivList T P))
+    (hSHeadShift : ∀ i ∈ S, i ∉ headShift.vars) :
+    routeBSPDPGeneratorRow M n hn2 htb hns
+        (mlProj (headShift * SPDP.iterDerivList T P)) S shift =
+      mlProj ((shift * headShift) * SPDP.iterDerivList (T ++ S) P) := by
+  refine
+    routeBSPDPGeneratorRow_secondPassCollapse_of_mlProjCommutes_headShift_const
+      M n hn2 htb hns ?_ hSHeadShift
+  rw [mlProj_of_isMultilinear _ hheadRowML]
+
 /-- Contained-support version of the collapse criterion.
 
 This is the currently hard second-pass branch:
@@ -326,6 +377,103 @@ theorem routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportSubset
     routeBRicherSPDPStableCandidate_secondPassClosure_of_secondPassCollapse
       M n hn2 htb hns hheadShiftVars hshiftVars hcombinedDegreeLog
       hcombinedLengthLog hcombinedAdm hcollapse
+
+/-- Contained-support closure after reducing `hcollapse` to the concrete
+`mlProj`-commutation and shift-disjointness obligations.
+
+Compared with
+`routeBRicherSPDPStableCandidate_secondSupportSubset_of_secondPassCollapse`,
+this theorem proves the single-generator collapse internally.  The remaining
+nontrivial obstruction is exactly `hcomm`: differentiating the first-pass
+multilinear projection must agree with differentiating the unprojected
+head-shifted row for this `S`. -/
+theorem routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportSubset_of_mlProjCommutes_headShift_const
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {T S : List (Fin (RouteBCookLevinDim M n hn2 htb hns))}
+    {headShift shift : SATDeciderGaugeSpace M n hn2 htb hns}
+    (_hsub :
+      S.toFinset ⊆
+        (mlProj
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))).vars)
+    (hcomm :
+      SPDP.iterDerivList S
+          (mlProj
+            (headShift *
+              SPDP.iterDerivList T
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) =
+        SPDP.iterDerivList S
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+    (hSHeadShift : ∀ i ∈ S, i ∉ headShift.vars)
+    (hheadShiftVars : headShift.vars <= T.toFinset)
+    (hshiftVars : shift.vars <= S.toFinset)
+    (hcombinedDegreeLog : (shift * headShift).totalDegree <= Nat.log 2 n)
+    (hcombinedLengthLog : (T ++ S).length <= Nat.log 2 n)
+    (hcombinedAdm : SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition (T ++ S)) :
+    routeBSPDPGeneratorRow M n hn2 htb hns
+        (mlProj
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+        S shift ∈
+      routeBRicherSPDPStableCandidateLogWindowHeadSpan M n hn2 htb hns := by
+  refine
+    routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportSubset_of_secondPassCollapse
+      M n hn2 htb hns _hsub hheadShiftVars hshiftVars hcombinedDegreeLog
+      hcombinedLengthLog hcombinedAdm ?_
+  exact
+    routeBSPDPGeneratorRow_secondPassCollapse_of_mlProjCommutes_headShift_const
+      M n hn2 htb hns hcomm hSHeadShift
+
+/-- Contained-support closure when the unprojected head row is already
+multilinear and the second derivative list avoids the first-pass shift.
+
+This discharges the `mlProj`-commutation side of the contained-support
+collapse by `mlProj_of_isMultilinear`; what remains is the concrete
+multilinearity of `headShift * iterDerivList T P` and the support-disjointness
+condition preventing derivatives in `S` from hitting `headShift`. -/
+theorem routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportSubset_of_headRowMultilinear_headShift_const
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {T S : List (Fin (RouteBCookLevinDim M n hn2 htb hns))}
+    {headShift shift : SATDeciderGaugeSpace M n hn2 htb hns}
+    (_hsub :
+      S.toFinset ⊆
+        (mlProj
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))).vars)
+    (hheadRowML :
+      IsMultilinear
+        (headShift *
+          SPDP.iterDerivList T
+            (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+    (hSHeadShift : ∀ i ∈ S, i ∉ headShift.vars)
+    (hheadShiftVars : headShift.vars <= T.toFinset)
+    (hshiftVars : shift.vars <= S.toFinset)
+    (hcombinedDegreeLog : (shift * headShift).totalDegree <= Nat.log 2 n)
+    (hcombinedLengthLog : (T ++ S).length <= Nat.log 2 n)
+    (hcombinedAdm : SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition (T ++ S)) :
+    routeBSPDPGeneratorRow M n hn2 htb hns
+        (mlProj
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+        S shift ∈
+      routeBRicherSPDPStableCandidateLogWindowHeadSpan M n hn2 htb hns := by
+  refine
+    routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportSubset_of_secondPassCollapse
+      M n hn2 htb hns _hsub hheadShiftVars hshiftVars hcombinedDegreeLog
+      hcombinedLengthLog hcombinedAdm ?_
+  exact
+    routeBSPDPGeneratorRow_secondPassCollapse_of_headRowMultilinear_headShift_const
+      M n hn2 htb hns hheadRowML hSHeadShift
 
 /-- Boundary case for finite head-span second-pass closure: if the second
 derivative list is longer than the variable support of the already-projected
@@ -755,7 +903,11 @@ theorem routeBRicherSPDPStableCandidate_headSpanEscape_or_holographicInvariance_
 #print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondPassMemHeadSubspace
 #print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportSubset_of_secondPassMemHeadSubspace
 #print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondPassCollapse
+#print axioms routeBSPDPGeneratorRow_secondPassCollapse_of_mlProjCommutes_headShift_const
+#print axioms routeBSPDPGeneratorRow_secondPassCollapse_of_headRowMultilinear_headShift_const
 #print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportSubset_of_secondPassCollapse
+#print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportSubset_of_mlProjCommutes_headShift_const
+#print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportSubset_of_headRowMultilinear_headShift_const
 #print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportTooSmall
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_of_projection_eq_id
 #print axioms routeBRicherSPDPStableCandidate_headSpanGeneratorMapEscape_of_not_generatorSecondPassClosure

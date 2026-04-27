@@ -317,6 +317,20 @@ theorem projection_apply_eq_zero_iff
     routeBRicherSPDPStableCandidateProjectionWithComplement_apply_eq_zero_iff
       M n hn2 htb hns tail I.complement I.isCompl p
 
+/-- Idempotency of the projection attached to a bundled explicit complement. -/
+theorem projection_idempotent
+    {M : DTM} {n : Nat} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {m : Nat} {tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns}
+    (I :
+      RouteBRicherSPDPStableCandidateProjectionComplementInterface
+        M n hn2 htb hns tail)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns) :
+    I.projection (I.projection p) = I.projection p := by
+  have hidem := I.gauge.is_idempotent
+  have happ := congrArg (fun L => L p) hidem
+  simpa [projection, gauge, LinearMap.comp_apply] using happ
+
 /-- Kernel invisibility for the bundled projection is exactly invariance of
 the bundled complement under admissible generator rows. -/
 theorem kernelGeneratorInvisible_iff_explicitComplementInvariant
@@ -369,6 +383,26 @@ theorem explicitComplementInvariant_of_projectionIntertwines
 
 end RouteBRicherSPDPStableCandidateProjectionComplementInterface
 
+/-- If the caller has proved that the prepended rows already span the whole
+ambient SAT gauge space, the inspectable complement is `⊥`. -/
+def routeBRicherSPDPStableCandidateBottomProjectionComplementInterface_of_rows_top
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hrowsTop :
+      finiteRowsSubmodule
+        (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail) = ⊤) :
+    RouteBRicherSPDPStableCandidateProjectionComplementInterface
+      M n hn2 htb hns tail where
+  complement := ⊥
+  isCompl := by
+    simpa [hrowsTop] using
+      (isCompl_top_bot :
+        IsCompl
+          (⊤ : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+          (⊥ : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns)))
+
 /-- The legacy chosen complement, repackaged as an explicit-complement
 interface.  This keeps old projection statements compatible while allowing new
 proofs to abstract over a caller-supplied complement. -/
@@ -394,9 +428,11 @@ noncomputable def routeBRicherSPDPStableCandidateChosenProjectionComplementInter
 #print axioms RouteBRicherSPDPStableCandidateProjectionComplementInterface.gauge
 #print axioms RouteBRicherSPDPStableCandidateProjectionComplementInterface.projection
 #print axioms RouteBRicherSPDPStableCandidateProjectionComplementInterface.projection_apply_eq_zero_iff
+#print axioms RouteBRicherSPDPStableCandidateProjectionComplementInterface.projection_idempotent
 #print axioms RouteBRicherSPDPStableCandidateProjectionComplementInterface.kernelGeneratorInvisible_iff_explicitComplementInvariant
 #print axioms RouteBRicherSPDPStableCandidateProjectionComplementInterface.explicitComplementInvariant_of_stableGeneratorMaps
 #print axioms RouteBRicherSPDPStableCandidateProjectionComplementInterface.explicitComplementInvariant_of_projectionIntertwines
+#print axioms routeBRicherSPDPStableCandidateBottomProjectionComplementInterface_of_rows_top
 #print axioms routeBRicherSPDPStableCandidateChosenProjectionComplementInterface
 #print axioms RouteBRicherSPDPStableCandidateExplicitComplementStableGeneratorMaps
 #print axioms routeBRicherSPDPStableCandidate_explicitComplementInvariant_of_generatorRowLinearMap_maps_complement
