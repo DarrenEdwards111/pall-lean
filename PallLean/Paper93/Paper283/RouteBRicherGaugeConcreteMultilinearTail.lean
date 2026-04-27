@@ -103,6 +103,130 @@ theorem routeBRicherMultilinearTailRows_linearIndependent
       (Finset.equivFin
         (routeBRicherMultilinearTailBasis M n hn2 htb hns)).symm.injective
 
+/-- Each enumerated multilinear tail row comes from an actual support set of
+Cook-Levin variables. -/
+theorem routeBRicherMultilinearTailRows_exists_supportSet
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (i : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns)) :
+    ∃ T : Finset (Fin (RouteBCookLevinDim M n hn2 htb hns)),
+      T ∈ (Finset.univ :
+        Finset (Fin (RouteBCookLevinDim M n hn2 htb hns))).powerset ∧
+      T.prod (fun k =>
+          (MvPolynomial.X k : SATDeciderGaugeSpace M n hn2 htb hns)) =
+        routeBRicherMultilinearTailRows M n hn2 htb hns i := by
+  classical
+  let basis := routeBRicherMultilinearTailBasis M n hn2 htb hns
+  let rowSub := (Finset.equivFin basis).symm i
+  have hrow_mem : (rowSub : SATDeciderGaugeSpace M n hn2 htb hns) ∈
+      MlProjFar.mlMonomialBasis
+        (Finset.univ : Finset (Fin (RouteBCookLevinDim M n hn2 htb hns))) := by
+    have := rowSub.property
+    simp [basis, routeBRicherMultilinearTailBasis] at this ⊢
+  rw [MlProjFar.mlMonomialBasis] at hrow_mem
+  obtain ⟨T, hT, hrow⟩ := Finset.mem_image.mp hrow_mem
+  refine ⟨T, hT, ?_⟩
+  simpa [routeBRicherMultilinearTailRows, basis, rowSub] using hrow
+
+/-- The support set chosen for an enumerated multilinear tail row. -/
+noncomputable def routeBRicherMultilinearTailSupportSet
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (i : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns)) :
+    Finset (Fin (RouteBCookLevinDim M n hn2 htb hns)) :=
+  Classical.choose
+    (routeBRicherMultilinearTailRows_exists_supportSet M n hn2 htb hns i)
+
+/-- The chosen support set really reconstructs the enumerated tail row. -/
+theorem routeBRicherMultilinearTailRows_eq_prod_supportSet
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (i : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns)) :
+    (routeBRicherMultilinearTailSupportSet M n hn2 htb hns i).prod
+        (fun k =>
+          (MvPolynomial.X k : SATDeciderGaugeSpace M n hn2 htb hns)) =
+      routeBRicherMultilinearTailRows M n hn2 htb hns i :=
+  (Classical.choose_spec
+    (routeBRicherMultilinearTailRows_exists_supportSet
+      M n hn2 htb hns i)).2
+
+/-- The visible coefficient coordinate associated to a multilinear tail row. -/
+noncomputable def routeBRicherMultilinearTailCoeffAlpha
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (i : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns)) :
+    Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat :=
+  SymmetricPower.tagMonomial
+    (routeBRicherMultilinearTailSupportSet M n hn2 htb hns i)
+
+/-- Every enumerated tail row is the monomial at its visible coefficient
+coordinate. -/
+theorem routeBRicherMultilinearTailRows_eq_monomial_tailCoeffAlpha
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (i : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns)) :
+    routeBRicherMultilinearTailRows M n hn2 htb hns i =
+      MvPolynomial.monomial
+        (routeBRicherMultilinearTailCoeffAlpha M n hn2 htb hns i)
+        (1 : Rat) := by
+  rw [← routeBRicherMultilinearTailRows_eq_prod_supportSet]
+  rw [routeBRicherMultilinearTailCoeffAlpha, MlProjFar.prod_X_eq_monomial_tag]
+
+/-- The row enumeration is injective because it is the inverse of
+`Finset.equivFin` on the concrete basis. -/
+theorem routeBRicherMultilinearTailRows_injective
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    Function.Injective
+      (routeBRicherMultilinearTailRows M n hn2 htb hns) := by
+  classical
+  intro i j hrow
+  let basis := routeBRicherMultilinearTailBasis M n hn2 htb hns
+  have hsub :
+      (Finset.equivFin basis).symm i =
+        (Finset.equivFin basis).symm j := by
+    apply Subtype.ext
+    simpa [routeBRicherMultilinearTailRows, basis] using hrow
+  exact (Finset.equivFin basis).symm.injective hsub
+
+/-- The visible coefficient coordinates are injective on the enumerated tail
+rows. -/
+theorem routeBRicherMultilinearTailCoeffAlpha_injective
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    Function.Injective
+      (routeBRicherMultilinearTailCoeffAlpha M n hn2 htb hns) := by
+  classical
+  intro i j halpha
+  apply routeBRicherMultilinearTailRows_injective M n hn2 htb hns
+  rw [routeBRicherMultilinearTailRows_eq_monomial_tailCoeffAlpha,
+    routeBRicherMultilinearTailRows_eq_monomial_tailCoeffAlpha, halpha]
+
+/-- The visible tail coefficient probes diagonalize the broad multilinear
+tail rows. -/
+theorem routeBRicherMultilinearTailRows_coeff_tailCoeffAlpha
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (i j : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns)) :
+    MvPolynomial.coeff
+        (routeBRicherMultilinearTailCoeffAlpha M n hn2 htb hns i)
+        (routeBRicherMultilinearTailRows M n hn2 htb hns j) =
+      if i = j then 1 else 0 := by
+  classical
+  rw [routeBRicherMultilinearTailRows_eq_monomial_tailCoeffAlpha,
+    MvPolynomial.coeff_monomial]
+  by_cases hij : i = j
+  · subst j
+    simp
+  · have hne :
+        ¬ routeBRicherMultilinearTailCoeffAlpha M n hn2 htb hns j =
+          routeBRicherMultilinearTailCoeffAlpha M n hn2 htb hns i := by
+      intro hji
+      exact hij
+        ((routeBRicherMultilinearTailCoeffAlpha_injective
+          M n hn2 htb hns hji).symm)
+    rw [if_neg hne, if_neg hij]
+
 /-- The concrete prepended row family: the Cook-Levin NP witness followed by
 the multilinear monomial tail. -/
 noncomputable abbrev routeBRicherConcreteNPPrependedMultilinearRows
@@ -411,7 +535,7 @@ theorem routeBRicherMultilinearTailRows_coeff_secondVar_square
       MlProjFar.mlMonomialBasis
         (Finset.univ : Finset (Fin (RouteBCookLevinDim M n hn2 htb hns))) := by
     have := rowSub.property
-    simpa [basis, routeBRicherMultilinearTailBasis] using this
+    simp [basis, routeBRicherMultilinearTailBasis] at this ⊢
   rw [MlProjFar.mlMonomialBasis] at hrow_mem
   obtain ⟨T, _hT, hrow⟩ := Finset.mem_image.mp hrow_mem
   rw [← hrow, MlProjFar.prod_X_eq_monomial_tag, MvPolynomial.coeff_monomial]
@@ -470,10 +594,122 @@ noncomputable def routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDa
     RouteBRicherSPDPStableCandidateExplicitProjectionData
       M n hn2 htb hns
       (routeBRicherMultilinearTailRows M n hn2 htb hns) :=
-  routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData_of_linearIndependentRows
+  routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData_of_coefficientDualCoordinates
     M n hn2 htb hns
-    (routeBRicherConcreteNPPrependedMultilinearRows_linearIndependent
-      M n hn2 htb hns)
+    (Finsupp.single (satDeciderGaugeSecondVar M n hn2 htb hns) 2)
+    (routeBRicherMultilinearTailCoeffAlpha M n hn2 htb hns)
+    (by
+      simpa [routeBRicherConcreteNPPrependedMultilinearRows,
+        routeBRicherConcreteNPPrependedRows] using
+        routeBRicherConcreteNPWitnessRows_zero_coeff_secondVar_square_ne_zero
+          M n hn2 htb hns)
+    (by
+      intro j
+      simpa [routeBRicherConcreteNPPrependedMultilinearRows,
+        routeBRicherConcreteNPPrependedRows] using
+        routeBRicherMultilinearTailRows_coeff_secondVar_square
+          M n hn2 htb hns j)
+    (by
+      intro i j
+      simpa [routeBRicherConcreteNPPrependedMultilinearRows,
+        routeBRicherConcreteNPPrependedRows] using
+        routeBRicherMultilinearTailRows_coeff_tailCoeffAlpha
+          M n hn2 htb hns i j)
+
+/-! ## Designed explicit-projection descent surface -/
+
+/-- Descent for the designed coefficient-dual multilinear projection.
+
+Unlike the ambient finite-row projection interface below, this is stated
+against the concrete projection data whose coordinates are displayed
+coefficient probes: the pure-square head probe and the multilinear monomial
+tail probes. -/
+def RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) : Prop :=
+  (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+    M n hn2 htb hns).ProjectionDescent
+
+/-- Escape witness for the designed coefficient-dual multilinear projection:
+a vector in the displayed complement whose admissible generator row becomes
+visible after applying the designed projection. -/
+def RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) : Prop :=
+  (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+    M n hn2 htb hns).ProjectionEscapeWitness
+
+/-- Descent for the designed projection is exactly invariance of its displayed
+coefficient-dual complement. -/
+theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent_iff_explicitComplementInvariant
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent
+        M n hn2 htb hns ↔
+      RouteBRicherSPDPStableCandidateExplicitComplementInvariant
+        M n hn2 htb hns
+        (routeBRicherMultilinearTailRows M n hn2 htb hns)
+        (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+          M n hn2 htb hns).complement := by
+  simpa [RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent] using
+    (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+      M n hn2 htb hns).projectionDescent_iff_explicitComplementInvariant
+
+/-- Operator-level stability of the designed complement proves the
+paper-faithful projection-descent condition. -/
+theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent_of_stableGeneratorMaps
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hstable :
+      RouteBRicherSPDPStableCandidateExplicitComplementStableGeneratorMaps
+        M n hn2 htb hns
+        (routeBRicherMultilinearTailRows M n hn2 htb hns)
+        (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+          M n hn2 htb hns).complement) :
+    RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent
+      M n hn2 htb hns := by
+  exact
+    (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent_iff_explicitComplementInvariant
+      M n hn2 htb hns).mpr
+      (routeBRicherSPDPStableCandidate_explicitComplementInvariant_of_generatorRowLinearMap_maps_complement
+        M n hn2 htb hns
+        (routeBRicherMultilinearTailRows M n hn2 htb hns)
+        (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+          M n hn2 htb hns).complement
+        hstable)
+
+/-- Designed projection escape is exactly failure of designed projection
+descent. -/
+theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_iff_not_projectionDescent
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness
+        M n hn2 htb hns ↔
+      ¬ RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent
+        M n hn2 htb hns := by
+  simpa [
+    RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness,
+    RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent] using
+    (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+      M n hn2 htb hns).projectionEscapeWitness_iff_not_projectionDescent
+
+/-- The designed coefficient-dual projection has the honest Route B fork:
+either it descends through all admissible generator rows, or Lean exposes a
+projection-escape witness in the displayed complement. -/
+theorem routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent_or_escapeWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent
+        M n hn2 htb hns ∨
+      RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness
+        M n hn2 htb hns := by
+  by_cases hdesc :
+      RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent
+        M n hn2 htb hns
+  · exact Or.inl hdesc
+  · exact Or.inr
+      ((routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_iff_not_projectionDescent
+        M n hn2 htb hns).mpr hdesc)
 
 /-- The concrete NP row plus multilinear monomial tail satisfies the explicit
 head/tail SPDP row-closure package. -/
@@ -1224,6 +1460,14 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_unpr
 #print axioms routeBRicherMultilinearTailRowCount_le_two_pow_dim
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_rowCount_le_of_two_pow_dim
 #print axioms routeBRicherMultilinearTailRows_linearIndependent
+#print axioms routeBRicherMultilinearTailRows_exists_supportSet
+#print axioms routeBRicherMultilinearTailSupportSet
+#print axioms routeBRicherMultilinearTailRows_eq_prod_supportSet
+#print axioms routeBRicherMultilinearTailCoeffAlpha
+#print axioms routeBRicherMultilinearTailRows_eq_monomial_tailCoeffAlpha
+#print axioms routeBRicherMultilinearTailRows_injective
+#print axioms routeBRicherMultilinearTailCoeffAlpha_injective
+#print axioms routeBRicherMultilinearTailRows_coeff_tailCoeffAlpha
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_linearIndependent_of_headCoeff_vanishesOnTail
 #print axioms routeBRicherConcreteNPPrependedMultilinearDualCoordinates
 #print axioms routeBRicherConcreteNPPrependedMultilinearDualCoordinates_apply_row
@@ -1241,6 +1485,12 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_unpr
 #print axioms routeBRicherConcreteNPWitnessRows_zero_coeff_secondVar_square_ne_zero
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_linearIndependent
 #print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+#print axioms RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent
+#print axioms RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness
+#print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent_iff_explicitComplementInvariant
+#print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent_of_stableGeneratorMaps
+#print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjectionEscapeWitness_iff_not_projectionDescent
+#print axioms routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent_or_escapeWitness
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_spdpRowClosurePackage
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_spdpClosure
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_kernelCompatibility_iff_residualGenerator_zero
