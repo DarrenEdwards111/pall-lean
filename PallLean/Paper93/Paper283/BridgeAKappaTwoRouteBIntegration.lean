@@ -650,6 +650,229 @@ theorem kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_eigenvalue
       hlambdaFloor_nonneg hfloor hbudget)
     hrowRank hdesc cover
 
+/-! ## Section F: final concrete-tail Route B diagnostics -/
+
+/-- Diagnostic name for the one bridge needed to use the designed
+coefficient-dual projection data as the finite-row `CandidateGauge` descent
+input consumed by the κ = 2 real-local certificate.
+
+This is deliberately an input, not an asserted equality between projection
+surfaces.  The designed explicit projection has its own complement and
+descent predicate; the certificate constructor below still consumes the
+finite-row candidate-gauge descent predicate. -/
+def RouteBRicherConcreteNPPrependedMultilinearDesignedProjectionDescentAdapter
+    (M : TuringMachine.DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) : Prop :=
+  RouteBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent
+      M n hn2 htb hns ->
+    RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+      M n hn2 htb hns
+
+/-- Designed-projection diagnostic constructor.  Once the displayed
+coefficient-dual complement is invariant and the explicit-to-finite-row
+descent adapter is supplied, the existing concrete multilinear-tail κ = 2
+certificate constructor applies unchanged. -/
+theorem kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_designedComplementInvariant
+    {M : TuringMachine.DTM} {n : Nat} {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {N d : Nat}
+    (alpha beta alpha0 : Real)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    (halpha0 : 0 < alpha0)
+    {theta normBound logDet delta rankLogRate : Real} {rankA : Nat}
+    {eigenvalues : Fin N -> Real}
+    (htheta : 0 < theta) (hnorm : 0 < normBound)
+    (hspec :
+      BridgeBSpectralHypotheses theta normBound logDet rankA eigenvalues)
+    (hlower :
+      BridgeARankLogDetLowerHypotheses
+        alpha beta alpha0 2 G chi Phi
+        (cookLevinLocalBlockQ_routeBLocalGadgetFamily_two_defaultInteriorBlock
+          M n hn hn2 htb hns alpha beta alpha0 G chi Phi)
+        rankLogRate logDet delta)
+    (hrowRank :
+      routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1 <= rankA)
+    (hadapter :
+      RouteBRicherConcreteNPPrependedMultilinearDesignedProjectionDescentAdapter
+        M n hn2 htb hns)
+    (hinvariant :
+      RouteBRicherSPDPStableCandidateExplicitComplementInvariant
+        M n hn2 htb hns
+        (routeBRicherMultilinearTailRows M n hn2 htb hns)
+        (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+          M n hn2 htb hns).complement)
+    (cover :
+      RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns) :
+    KappaTwoRealLocalRouteBPerInstanceCertificate M n hn hn2 htb hns :=
+  kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_projectionDescent
+    (M := M) (n := n) (hn := hn) (hn2 := hn2) (htb := htb) (hns := hns)
+    alpha beta alpha0 G chi Phi halpha0 htheta hnorm hspec hlower hrowRank
+    (hadapter
+      ((routeBRicherConcreteNPPrependedMultilinearExplicitProjectionDescent_iff_explicitComplementInvariant
+        M n hn2 htb hns).mpr hinvariant))
+    cover
+
+/-- Final Route B target diagnostic for the concrete multilinear-tail
+certificate, stated with the real-local κ = 2 rank/logdet packages and the
+paper-faithful finite-row projection-descent input. -/
+theorem cookLevinRichProjectionTarget_of_kappaTwoRealLocal_concreteMultilinearTail_projectionDescent_rankLogDet_cover
+    {M : TuringMachine.DTM} {n : Nat} {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {N d : Nat}
+    (alpha beta alpha0 : Real)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    (halpha0 : 0 < alpha0)
+    {theta normBound logDet delta rankLogRate : Real} {rankA : Nat}
+    {eigenvalues : Fin N -> Real}
+    (htheta : 0 < theta) (hnorm : 0 < normBound)
+    (hspec :
+      BridgeBSpectralHypotheses theta normBound logDet rankA eigenvalues)
+    (hlower :
+      BridgeARankLogDetLowerHypotheses
+        alpha beta alpha0 2 G chi Phi
+        (cookLevinLocalBlockQ_routeBLocalGadgetFamily_two_defaultInteriorBlock
+          M n hn hn2 htb hns alpha beta alpha0 G chi Phi)
+        rankLogRate logDet delta)
+    (hrowRank :
+      routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1 <= rankA)
+    (hdesc :
+      RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns)
+    (cover :
+      RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns) :
+    CookLevinRichProjectionTarget M n hn hn2 htb hns :=
+  cookLevinRichProjectionTarget_of_kappaTwoRealLocalRouteBCertificate
+    (M := M) (n := n) (hn := hn) (hn2 := hn2) (htb := htb) (hns := hns)
+    (kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_projectionDescent
+      (M := M) (n := n) (hn := hn) (hn2 := hn2) (htb := htb) (hns := hns)
+      alpha beta alpha0 G chi Phi halpha0 htheta hnorm hspec hlower
+      hrowRank hdesc cover)
+
+/-- Same final diagnostic, with the projection side stated as no concrete
+projection-escape witness. -/
+theorem cookLevinRichProjectionTarget_of_kappaTwoRealLocal_concreteMultilinearTail_noProjectionEscape_rankLogDet_cover
+    {M : TuringMachine.DTM} {n : Nat} {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {N d : Nat}
+    (alpha beta alpha0 : Real)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    (halpha0 : 0 < alpha0)
+    {theta normBound logDet delta rankLogRate : Real} {rankA : Nat}
+    {eigenvalues : Fin N -> Real}
+    (htheta : 0 < theta) (hnorm : 0 < normBound)
+    (hspec :
+      BridgeBSpectralHypotheses theta normBound logDet rankA eigenvalues)
+    (hlower :
+      BridgeARankLogDetLowerHypotheses
+        alpha beta alpha0 2 G chi Phi
+        (cookLevinLocalBlockQ_routeBLocalGadgetFamily_two_defaultInteriorBlock
+          M n hn hn2 htb hns alpha beta alpha0 G chi Phi)
+        rankLogRate logDet delta)
+    (hrowRank :
+      routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1 <= rankA)
+    (hnoEscape :
+      ¬ RouteBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness
+        M n hn2 htb hns)
+    (cover :
+      RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns) :
+    CookLevinRichProjectionTarget M n hn hn2 htb hns :=
+  cookLevinRichProjectionTarget_of_kappaTwoRealLocalRouteBCertificate
+    (M := M) (n := n) (hn := hn) (hn2 := hn2) (htb := htb) (hns := hns)
+    (kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_noProjectionEscape
+      (M := M) (n := n) (hn := hn) (hn2 := hn2) (htb := htb) (hns := hns)
+      alpha beta alpha0 G chi Phi halpha0 htheta hnorm hspec hlower
+      hrowRank hnoEscape cover)
+
+/-- Final designed-projection diagnostic theorem.  The visible assumptions are
+the designed complement invariance, the explicit-to-finite-row descent
+adapter, the real-local κ = 2 rank/logdet packages, the row-rank budget, and
+the unprojected P-window cover. -/
+theorem cookLevinRichProjectionTarget_of_kappaTwoRealLocal_designedComplementInvariant_rankLogDet_cover
+    {M : TuringMachine.DTM} {n : Nat} {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {N d : Nat}
+    (alpha beta alpha0 : Real)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    (halpha0 : 0 < alpha0)
+    {theta normBound logDet delta rankLogRate : Real} {rankA : Nat}
+    {eigenvalues : Fin N -> Real}
+    (htheta : 0 < theta) (hnorm : 0 < normBound)
+    (hspec :
+      BridgeBSpectralHypotheses theta normBound logDet rankA eigenvalues)
+    (hlower :
+      BridgeARankLogDetLowerHypotheses
+        alpha beta alpha0 2 G chi Phi
+        (cookLevinLocalBlockQ_routeBLocalGadgetFamily_two_defaultInteriorBlock
+          M n hn hn2 htb hns alpha beta alpha0 G chi Phi)
+        rankLogRate logDet delta)
+    (hrowRank :
+      routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1 <= rankA)
+    (hadapter :
+      RouteBRicherConcreteNPPrependedMultilinearDesignedProjectionDescentAdapter
+        M n hn2 htb hns)
+    (hinvariant :
+      RouteBRicherSPDPStableCandidateExplicitComplementInvariant
+        M n hn2 htb hns
+        (routeBRicherMultilinearTailRows M n hn2 htb hns)
+        (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+          M n hn2 htb hns).complement)
+    (cover :
+      RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns) :
+    CookLevinRichProjectionTarget M n hn hn2 htb hns :=
+  cookLevinRichProjectionTarget_of_kappaTwoRealLocalRouteBCertificate
+    (M := M) (n := n) (hn := hn) (hn2 := hn2) (htb := htb) (hns := hns)
+    (kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_designedComplementInvariant
+      (M := M) (n := n) (hn := hn) (hn2 := hn2) (htb := htb) (hns := hns)
+      alpha beta alpha0 G chi Phi halpha0 htheta hnorm hspec hlower
+      hrowRank hadapter hinvariant cover)
+
+/-- Eigenvalue-floor final diagnostic theorem.  This is the most concrete
+assembled Route B surface in this file: Bridge B spectral hypotheses and the
+Bridge A rank/logdet lower package are filled from the PSD matrix/eigenvalue
+floor data, leaving exactly the row-rank budget, projection descent, and
+P-window cover on the SAT side. -/
+theorem cookLevinRichProjectionTarget_of_kappaTwoRealLocal_concreteMultilinearTail_eigenvalueFloor_projectionDescent
+    {M : TuringMachine.DTM} {n : Nat} {hn : n >= 2 ^ 804} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {N d : Nat}
+    (alpha beta alpha0 : Real)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {theta delta rankLogRate lambdaFloor : Real}
+    (A : Matrix (Fin N) (Fin N) Real) (hA : A.PosSemidef)
+    (S : Finset (Fin N))
+    (htheta : 0 < theta)
+    (halpha0 : 0 < alpha0)
+    (hrate_nonneg : 0 <= rankLogRate)
+    (hdelta_rate : delta <= rankLogRate * (2 : Real))
+    (hlambdaFloor_nonneg : 0 <= lambdaFloor)
+    (hfloor : ∀ i ∈ S, lambdaFloor <= hA.1.eigenvalues i)
+    (hbudget :
+      rankLogRate *
+          ((∑ v ∈ activeSet (N := N) (d := d) alpha beta alpha0 G chi Phi,
+            (cookLevinLocalBlockQ_routeBLocalGadgetFamily_two_defaultInteriorBlock
+              M n hn hn2 htb hns alpha beta alpha0 G chi Phi v).rank) :
+            Real) <=
+        (S.card : Real) * Real.log (1 + theta * lambdaFloor))
+    (hrowRank :
+      routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1 <= A.rank)
+    (hdesc :
+      RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns)
+    (cover :
+      RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns) :
+    CookLevinRichProjectionTarget M n hn hn2 htb hns :=
+  cookLevinRichProjectionTarget_of_kappaTwoRealLocalRouteBCertificate
+    (M := M) (n := n) (hn := hn) (hn2 := hn2) (htb := htb) (hns := hns)
+    (kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_eigenvalueFloor_projectionDescent
+      (M := M) (n := n) (hn := hn) (hn2 := hn2) (htb := htb) (hns := hns)
+      alpha beta alpha0 G chi Phi A hA S htheta halpha0 hrate_nonneg
+      hdelta_rate hlambdaFloor_nonneg hfloor hbudget hrowRank hdesc cover)
+
 /-! ## Axiom audit anchors -/
 
 #print axioms kappaTwoInteriorBlockOfVertex
@@ -674,5 +897,11 @@ theorem kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_eigenvalue
 #print axioms kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_projectionDescent
 #print axioms kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_noProjectionEscape
 #print axioms kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_eigenvalueFloor_projectionDescent
+#print axioms RouteBRicherConcreteNPPrependedMultilinearDesignedProjectionDescentAdapter
+#print axioms kappaTwoRealLocalRouteBCertificate_of_concreteMultilinearTail_designedComplementInvariant
+#print axioms cookLevinRichProjectionTarget_of_kappaTwoRealLocal_concreteMultilinearTail_projectionDescent_rankLogDet_cover
+#print axioms cookLevinRichProjectionTarget_of_kappaTwoRealLocal_concreteMultilinearTail_noProjectionEscape_rankLogDet_cover
+#print axioms cookLevinRichProjectionTarget_of_kappaTwoRealLocal_designedComplementInvariant_rankLogDet_cover
+#print axioms cookLevinRichProjectionTarget_of_kappaTwoRealLocal_concreteMultilinearTail_eigenvalueFloor_projectionDescent
 
 end PallLean.Paper93.Paper283
