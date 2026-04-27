@@ -1047,6 +1047,75 @@ theorem routeB_strong_np_from_same_target_identity_minor
     GodMoveSameTargetStrongNPLower target :=
   d.target_choose_le_minorSize.trans d.identity_minor_rank_lower
 
+/-- Constructor for the narrow Theorem-207 semantic-target/identity-minor
+existential from already chosen exact target data.
+
+This is intentionally only packaging: the staged semantic theorem and the
+same-target identity-minor evidence remain explicit inputs. -/
+theorem exists_theorem207_semantic_target_identity_minor_data_of_target_data
+    {M : DTM} {n : ℕ} (_hn : n ≥ 2 ^ 804) {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec)
+    (hsem :
+      GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData.extractionTarget)
+    (minor : RouteBIdentityMinorSameTargetData targetData.extractionTarget) :
+    ∃ targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec,
+      GodMoveExtractionTargetTheorem
+        M n hn2 htb hns hdec targetData.extractionTarget ∧
+      Nonempty (RouteBIdentityMinorSameTargetData targetData.extractionTarget) :=
+  ⟨targetData, hsem, ⟨minor⟩⟩
+
+/-- Constructor for the narrow Theorem-207 semantic-target/identity-minor
+existential from the semantic-gap convenience bundle plus explicit
+same-target identity-minor data.
+
+Downstream theorem seams with the shape of
+`exists_theorem207_semantic_target_identity_minor_data` can use this helper
+instead of asserting a broad existential axiom, provided they supply the
+semantic gap and minor evidence on that exact target. -/
+theorem exists_theorem207_semantic_target_identity_minor_data_of_semantic_gap
+    {M : DTM} {n : ℕ} (hn : n ≥ 2 ^ 804) {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (gap : GodMoveSemanticGap M n hn2 htb hns hdec)
+    (minor : RouteBIdentityMinorSameTargetData gap.extractionTarget) :
+    ∃ targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec,
+      GodMoveExtractionTargetTheorem
+        M n hn2 htb hns hdec targetData.extractionTarget ∧
+      Nonempty (RouteBIdentityMinorSameTargetData targetData.extractionTarget) :=
+  exists_theorem207_semantic_target_identity_minor_data_of_target_data hn
+    gap.toTargetData gap.targetTheorem (by
+      simpa [GodMoveSemanticGap.toTargetData] using minor)
+
+/-- Semantic gap whose extracted target is already equipped with the
+same-target identity-minor evidence.
+
+This is the narrow nonzero-target theorem shape still needed for the
+Theorem-207 semantic branch. The existing zero/strict-shrink semantic target
+does not inhabit this structure, because it has no identity-minor lower bound. -/
+structure GodMoveSemanticIdentityMinorGap
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) : Type where
+  gap : GodMoveSemanticGap M n hn2 htb hns hdec
+  same_target_identity_minor :
+    RouteBIdentityMinorSameTargetData gap.extractionTarget
+
+/-- A semantic identity-minor gap proves the exact existential shape consumed by
+Theorem 207's target/NP-side seam. -/
+theorem exists_theorem207_semantic_target_identity_minor_data_of_identity_minor_gap
+    {M : DTM} {n : ℕ} (hn : n ≥ 2 ^ 804) {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (G : GodMoveSemanticIdentityMinorGap M n hn2 htb hns hdec) :
+    ∃ targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec,
+      GodMoveExtractionTargetTheorem
+        M n hn2 htb hns hdec targetData.extractionTarget ∧
+      Nonempty (RouteBIdentityMinorSameTargetData targetData.extractionTarget) :=
+  exists_theorem207_semantic_target_identity_minor_data_of_semantic_gap
+    hn G.gap G.same_target_identity_minor
+
 namespace GodMoveExtractionTargetData
 
 /-- Package Route B obligations from exact target data plus same-target
@@ -1499,6 +1568,18 @@ theorem separation_from_semantic_extraction_theorem
 #print axioms routeB_strong_np_from_same_target_identity_minor
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
 -- Pure transitivity from exact-target identity-minor data.
+
+#print axioms exists_theorem207_semantic_target_identity_minor_data_of_target_data
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+-- Pure packaging from explicit target data, staged theorem, and same-target minor.
+
+#print axioms exists_theorem207_semantic_target_identity_minor_data_of_semantic_gap
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+-- Pure packaging from a semantic gap plus same-target minor evidence.
+
+#print axioms exists_theorem207_semantic_target_identity_minor_data_of_identity_minor_gap
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+-- Pure packaging from the nonzero semantic identity-minor gap shape.
 
 #print axioms routeB_weakened_np_from_same_target_pdMatrix
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)

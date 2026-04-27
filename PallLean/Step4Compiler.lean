@@ -51756,6 +51756,57 @@ structure DirectRankPackage_slim where
     MultilinearSPDP.mlBlockedSpdpRank B κ ℓ W.embedded_Q
   hP_upper : MultilinearSPDP.mlBlockedSpdpRank B κ ℓ W.full_output ≤ n ^ 200
 
+/-- Convert the concrete UV-split paper output `full_output` into the global
+Theorem-207 paper-source object.
+
+This is the paper-faithful source identified by §237/§241:
+`PartitionedCompilerOutput.full_output`, equivalently
+`P_paperFaithful = embed(Q^×_Φ) + R_v`. It is intentionally not the flat local
+product-form `compiledPoly`. -/
+noncomputable def DirectRankPackage_slim.toTheorem207PaperSource
+    (P : DirectRankPackage_slim)
+    (M : TuringMachine.DTM) (hn2 : P.n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ P.n) :
+    GlobalGodMoveGauge.Theorem207PaperSource M P.n P.hn_big hn2 htb hns where
+  sourceVars := P.W.σ.total
+  sourcePartition := P.B
+  sourcePoly := P.W.full_output
+
+/-- The direct P-side rank field of `DirectRankPackage_slim` discharges the
+global Theorem-207 paper-source P-side bound at the log-window
+`κ = ℓ = log₂ n`. -/
+theorem DirectRankPackage_slim.toTheorem207PaperSource_p_side
+    (P : DirectRankPackage_slim)
+    (M : TuringMachine.DTM) (hn2 : P.n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ P.n)
+    (hκ : P.κ = Nat.log 2 P.n) (hℓ : P.ℓ = Nat.log 2 P.n) :
+    GlobalGodMoveGauge.Theorem207PaperSourcePSideUpperBound
+      M P.n P.hn_big hn2 htb hns
+      (P.toTheorem207PaperSource M hn2 htb hns) := by
+  constructor
+  simpa [DirectRankPackage_slim.toTheorem207PaperSource,
+    GlobalGodMoveGauge.Theorem207PaperSource.spdpRank, hκ, hℓ] using P.hP_upper
+
+/-- A concrete `DirectRankPackage_slim` source feeds the global source-to-target
+bridge whenever the chosen semantic target is shown rank-below the UV-split
+`full_output` source in the log window. -/
+theorem DirectRankPackage_slim.toTheorem207PaperSource_target_bridge_of_bound
+    (P : DirectRankPackage_slim)
+    (M : TuringMachine.DTM) (hn2 : P.n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ P.n)
+    (target : PaperFaithfulSeparation.GodMoveExtractionTarget M P.n hn2 htb hns)
+    (hbridge :
+      MultilinearSPDP.mlBlockedSpdpRank target.coupledPartition
+        (Nat.log 2 P.n) (Nat.log 2 P.n) target.coupledPoly ≤
+      MultilinearSPDP.mlBlockedSpdpRank P.B
+        (Nat.log 2 P.n) (Nat.log 2 P.n) P.W.full_output) :
+    GlobalGodMoveGauge.Theorem207PaperSourceToTargetRankBridge
+      M P.n P.hn_big hn2 htb hns
+      (P.toTheorem207PaperSource M hn2 htb hns) target := by
+  constructor
+  simpa [DirectRankPackage_slim.toTheorem207PaperSource,
+    GlobalGodMoveGauge.Theorem207PaperSource.spdpRank] using hbridge
+
 /-- **§252.7 — `GConstructionPackage_slim.to_thresholds_slim`**:
 convert a slim G-construction package to a slim thresholds bundle by
 discharging `hP_upper` via §245.5 `hP_upper_from_spanning_set`. -/
