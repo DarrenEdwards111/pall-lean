@@ -1,6 +1,7 @@
 import PallLean.Paper93.Paper283.RouteBRicherGaugeSPDPStableCandidateHeadSpanStableMapsProof
 import PallLean.Paper93.Paper283.RouteBRicherGaugeSPDPStableCandidateHeadTailKernelCriterionProof
 import PallLean.Paper93.Paper283.RouteBRicherGaugeSPDPStableCandidateHeadTailConcreteEscapeWitness
+import PallLean.PACLeibniz
 
 /-!
 # Route B head-tail holographic fork
@@ -475,6 +476,218 @@ theorem routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportSubset
     routeBSPDPGeneratorRow_secondPassCollapse_of_headRowMultilinear_headShift_const
       M n hn2 htb hns hheadRowML hSHeadShift
 
+/-- Product-rule closure for the contained-support branch after the
+`mlProj`-commutation step has been isolated.
+
+This removes the earlier `hSHeadShift` restriction: derivatives in the second
+pass may hit `headShift`.  The price is the exact Leibniz-term obligation
+`hleibnizTerms`: every product-rule term, after the final `shift` and
+`mlProj`, already lies in the log-window head span. -/
+theorem routeBRicherSPDPStableCandidate_secondPassClosure_of_mlProjCommutes_leibnizTerms
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {T S : List (Fin (RouteBCookLevinDim M n hn2 htb hns))}
+    {headShift shift : SATDeciderGaugeSpace M n hn2 htb hns}
+    (hcomm :
+      SPDP.iterDerivList S
+          (mlProj
+            (headShift *
+              SPDP.iterDerivList T
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) =
+        SPDP.iterDerivList S
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+    (hleibnizTerms :
+      ∀ A B : List (Fin (RouteBCookLevinDim M n hn2 htb hns)),
+        A.length + B.length = S.length ->
+        mlProj
+          (shift *
+            (SPDP.iterDerivList A headShift *
+              SPDP.iterDerivList B
+                (SPDP.iterDerivList T
+                  (compiledPoly (cook_levin_compilation M n hn2 htb hns))))) ∈
+          routeBRicherSPDPStableCandidateLogWindowHeadSpan M n hn2 htb hns) :
+    routeBSPDPGeneratorRow M n hn2 htb hns
+        (mlProj
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+        S shift ∈
+      routeBRicherSPDPStableCandidateLogWindowHeadSpan M n hn2 htb hns := by
+  let P := compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  let U := routeBRicherSPDPStableCandidateLogWindowHeadSpan M n hn2 htb hns
+  let L : SATDeciderGaugeSpace M n hn2 htb hns →ₗ[Rat]
+      SATDeciderGaugeSpace M n hn2 htb hns :=
+    (mlProjLinearMap (Fin (RouteBCookLevinDim M n hn2 htb hns)) Rat).comp
+      (LinearMap.mulLeft Rat shift)
+  have hleibniz :
+      SPDP.iterDerivList S
+          (headShift * SPDP.iterDerivList T P) ∈
+        Submodule.span Rat
+          (PACLeibniz.leibnizGenSetBounded S.length headShift
+            (SPDP.iterDerivList T P)) :=
+    PACLeibniz.iterDerivList_mul_mem_leibniz_span_bounded
+      S headShift (SPDP.iterDerivList T P)
+  change mlProj
+      (shift *
+        SPDP.iterDerivList S
+          (mlProj (headShift * SPDP.iterDerivList T P))) ∈ U
+  rw [hcomm]
+  change L (SPDP.iterDerivList S (headShift * SPDP.iterDerivList T P)) ∈ U
+  refine Submodule.span_induction
+    (p := fun q (_hq : q ∈ Submodule.span Rat
+        (PACLeibniz.leibnizGenSetBounded S.length headShift
+          (SPDP.iterDerivList T P))) =>
+      L q ∈ U)
+    ?gen ?zero ?add ?smul hleibniz
+  · rintro q ⟨A, B, hlen, rfl⟩
+    change mlProj
+        (shift *
+          (SPDP.iterDerivList A headShift *
+            SPDP.iterDerivList B (SPDP.iterDerivList T P))) ∈ U
+    exact hleibnizTerms A B hlen
+  · change L 0 ∈ U
+    rw [map_zero]
+    exact Submodule.zero_mem U
+  · intro q r _hq _hr hq hr
+    change L (q + r) ∈ U
+    rw [map_add]
+    exact Submodule.add_mem U hq hr
+  · intro c q _hq hq
+    change L (c • q) ∈ U
+    rw [map_smul]
+    exact Submodule.smul_mem U c hq
+
+/-- Concrete strict-head-generator form of the product-rule closure.
+
+Each Leibniz term is certified directly as a strict blocked-SPDP generator of
+the original compiled polynomial with derivative list `T ++ B` and shift
+`shift * iterDerivList A headShift`.  This is the product-rule branch where
+some derivatives may land on `headShift`; such hits are absorbed into the new
+multiplier rather than forcing `headShift` to be derivative-constant. -/
+theorem routeBRicherSPDPStableCandidate_secondPassClosure_of_mlProjCommutes_leibnizHeadGenerators
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {T S : List (Fin (RouteBCookLevinDim M n hn2 htb hns))}
+    {headShift shift : SATDeciderGaugeSpace M n hn2 htb hns}
+    (hcomm :
+      SPDP.iterDerivList S
+          (mlProj
+            (headShift *
+              SPDP.iterDerivList T
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) =
+        SPDP.iterDerivList S
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+    (htermDegreeLog :
+      ∀ A B : List (Fin (RouteBCookLevinDim M n hn2 htb hns)),
+        A.length + B.length = S.length ->
+        (shift * SPDP.iterDerivList A headShift).totalDegree <= Nat.log 2 n)
+    (htermLengthLog :
+      ∀ A B : List (Fin (RouteBCookLevinDim M n hn2 htb hns)),
+        A.length + B.length = S.length ->
+        (T ++ B).length <= Nat.log 2 n)
+    (htermVars :
+      ∀ A B : List (Fin (RouteBCookLevinDim M n hn2 htb hns)),
+        A.length + B.length = S.length ->
+        (shift * SPDP.iterDerivList A headShift).vars <= (T ++ B).toFinset)
+    (htermAdm :
+      ∀ A B : List (Fin (RouteBCookLevinDim M n hn2 htb hns)),
+        A.length + B.length = S.length ->
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition (T ++ B)) :
+    routeBSPDPGeneratorRow M n hn2 htb hns
+        (mlProj
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+        S shift ∈
+      routeBRicherSPDPStableCandidateLogWindowHeadSpan M n hn2 htb hns := by
+  refine
+    routeBRicherSPDPStableCandidate_secondPassClosure_of_mlProjCommutes_leibnizTerms
+      M n hn2 htb hns hcomm ?_
+  intro A B hlen
+  let P := compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  have hgen :
+      mlProj
+          ((shift * SPDP.iterDerivList A headShift) *
+            SPDP.iterDerivList (T ++ B) P) ∈
+        mlBlockedSpdpSubspace
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (T ++ B).length (Nat.log 2 n) P := by
+    unfold mlBlockedSpdpSubspace
+    exact Submodule.subset_span
+      ⟨T ++ B, shift * SPDP.iterDerivList A headShift, rfl,
+        htermDegreeLog A B hlen, htermVars A B hlen, htermAdm A B hlen, rfl⟩
+  have hhead :
+      mlProj
+          ((shift * SPDP.iterDerivList A headShift) *
+            SPDP.iterDerivList (T ++ B) P) ∈
+        routeBRicherSPDPStableCandidateLogWindowHeadSpan M n hn2 htb hns :=
+    (routeBRicherSPDPStableCandidateLogWindowHeadSpan_contains
+      M n hn2 htb hns (T ++ B).length (Nat.log 2 n)
+      (htermLengthLog A B hlen) (le_rfl)) hgen
+  have happend :
+      SPDP.iterDerivList B (SPDP.iterDerivList T P) =
+        SPDP.iterDerivList (T ++ B) P := by
+    rw [IterDerivHelpers.iterDerivList_append T B P]
+  simpa [P, happend, mul_assoc] using hhead
+
+/-- Contained-support wrapper for the product-rule head-generator criterion.
+
+The contained-support hypothesis records that the missing-variable zero branch
+does not apply.  The actual work is delegated to the Leibniz split obligations,
+which allow second-pass derivatives to hit `headShift`. -/
+theorem routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportSubset_of_mlProjCommutes_leibnizHeadGenerators
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {T S : List (Fin (RouteBCookLevinDim M n hn2 htb hns))}
+    {headShift shift : SATDeciderGaugeSpace M n hn2 htb hns}
+    (_hsub :
+      S.toFinset ⊆
+        (mlProj
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))).vars)
+    (hcomm :
+      SPDP.iterDerivList S
+          (mlProj
+            (headShift *
+              SPDP.iterDerivList T
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) =
+        SPDP.iterDerivList S
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+    (htermDegreeLog :
+      ∀ A B : List (Fin (RouteBCookLevinDim M n hn2 htb hns)),
+        A.length + B.length = S.length ->
+        (shift * SPDP.iterDerivList A headShift).totalDegree <= Nat.log 2 n)
+    (htermLengthLog :
+      ∀ A B : List (Fin (RouteBCookLevinDim M n hn2 htb hns)),
+        A.length + B.length = S.length ->
+        (T ++ B).length <= Nat.log 2 n)
+    (htermVars :
+      ∀ A B : List (Fin (RouteBCookLevinDim M n hn2 htb hns)),
+        A.length + B.length = S.length ->
+        (shift * SPDP.iterDerivList A headShift).vars <= (T ++ B).toFinset)
+    (htermAdm :
+      ∀ A B : List (Fin (RouteBCookLevinDim M n hn2 htb hns)),
+        A.length + B.length = S.length ->
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition (T ++ B)) :
+    routeBSPDPGeneratorRow M n hn2 htb hns
+        (mlProj
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+        S shift ∈
+      routeBRicherSPDPStableCandidateLogWindowHeadSpan M n hn2 htb hns :=
+  routeBRicherSPDPStableCandidate_secondPassClosure_of_mlProjCommutes_leibnizHeadGenerators
+    M n hn2 htb hns hcomm htermDegreeLog htermLengthLog htermVars htermAdm
+
 /-- Boundary case for finite head-span second-pass closure: if the second
 derivative list is longer than the variable support of the already-projected
 head generator, admissibility forces some second-pass variable to be absent
@@ -908,6 +1121,9 @@ theorem routeBRicherSPDPStableCandidate_headSpanEscape_or_holographicInvariance_
 #print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportSubset_of_secondPassCollapse
 #print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportSubset_of_mlProjCommutes_headShift_const
 #print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportSubset_of_headRowMultilinear_headShift_const
+#print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_mlProjCommutes_leibnizTerms
+#print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_mlProjCommutes_leibnizHeadGenerators
+#print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportSubset_of_mlProjCommutes_leibnizHeadGenerators
 #print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportTooSmall
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_of_projection_eq_id
 #print axioms routeBRicherSPDPStableCandidate_headSpanGeneratorMapEscape_of_not_generatorSecondPassClosure
