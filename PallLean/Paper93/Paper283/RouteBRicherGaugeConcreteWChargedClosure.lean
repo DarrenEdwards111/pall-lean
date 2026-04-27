@@ -214,6 +214,32 @@ structure RouteBRicherGaugeEndpointChargedPWindowBridge
   localClosure : EndpointAugmentedConcreteWCorrectedLocalClosure n hn4 charge
   cover : RouteBRicherGaugeUnprojectedPWindowFiniteSpanCover M n hn2 htb hns
 
+/-- Focused bridge using the actual zero-profile common-span witness.
+
+This is the compressed-span version of the endpoint/charged P-window route:
+the endpoint local closure remains charged, active profiles are supplied by
+`hactive`, and the all-zero profile is supplied directly by
+`CookLevinZeroHistogramShiftCommonSpan` rather than by a support-cardinality
+side condition. -/
+noncomputable def routeBRicherGauge_endpointChargedPWindowBridge_of_activeTypeCaseBlockers_zeroProfileCommonSpan
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4) (charge : ProfileCharge n)
+    (hI1 :
+      PerTypeProductGrouping (n := n) (endpointAugmentedConcreteW n hn4))
+    (hI2c :
+      EndpointAugmentedConcreteWChargedShiftClosure n hn4 charge)
+    (hI3 :
+      PerTypeMlprojClosure (n := n) (endpointAugmentedConcreteW n hn4))
+    (hzero : CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hactive :
+      CookLevinActiveProfileTypeCaseBlockers M n hn2 htb hns) :
+    RouteBRicherGaugeEndpointChargedPWindowBridge M n hn2 htb hns hn4 charge :=
+  ⟨endpointAugmentedConcreteW_correctedLocalClosure_of_charged_components
+      n hn4 charge hI1 hI2c hI3,
+    routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_activeTypeCaseBlockers_and_zeroProfileCommonSpan
+      M n hn2 htb hns hn4 hzero hactive⟩
+
 /-- Active live-profile blockers plus a budgeted non-scalar zero-profile
 closure feed the richer-gauge unprojected P-window finite-span cover.
 
@@ -311,6 +337,7 @@ noncomputable def routeBRicherGauge_endpointChargedPWindowBridge_of_activeTypeCa
 
 /-! ## Axiom audit anchors -/
 
+#print axioms routeBRicherGauge_endpointChargedPWindowBridge_of_activeTypeCaseBlockers_zeroProfileCommonSpan
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_activeTypeCaseBlockers_zeroNonScalarClosure
 #print axioms routeBRicherGauge_unprojectedPWindowFiniteSpanCover_of_activeTypeCaseBlockers_zeroNonScalarCardBound
 #print axioms routeBRicherGauge_endpointChargedPWindowBridge_of_activeTypeCaseBlockers_zeroNonScalarClosure
