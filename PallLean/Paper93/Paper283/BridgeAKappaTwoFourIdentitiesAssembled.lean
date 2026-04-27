@@ -1,22 +1,23 @@
 import PallLean.Paper93.Paper283.BridgeAKappaTwoIdentityOne
 import PallLean.Paper93.Paper283.BridgeAKappaTwoIdentityTwo
 import PallLean.Paper93.Paper283.BridgeAKappaTwoIdentityThree
+import PallLean.Paper93.Paper283.BridgeAKappaTwoIdentityThreeResidualActive
 import PallLean.Paper93.Paper283.BridgeAKappaTwoIdentityFour
 import PallLean.Paper93.Paper283.BridgeAKappaTwoFourIdentitiesDischarged
 
 /-!
-# Assembly of the κ=2 four-identity package from the four per-pair sums
+# Assembly of the κ=2 four-identity package from the remaining per-pair sums
 
-This is the final assembly file: given the four per-pair-sum
-hypotheses (one per identity), we build a concrete
-`CookLevinLocalBlockQFourIdentitiesPackage` and feed it into
-`cookLevinLocalBlockQ_rank_two_le_real_via_pkg` to obtain the
-unconditional `κ = 2` rank lower bound.
+This is the final assembly file: given the remaining per-pair-sum
+hypotheses for identities (1), (2), and (4), and the closed identity
+(3) theorem from `BridgeAKappaTwoIdentityThreeResidualActive`, we build
+a concrete `CookLevinLocalBlockQFourIdentitiesPackage` and feed it into
+`cookLevinLocalBlockQ_rank_two_le_real_via_pkg`.
 
-The four per-pair-sum hypotheses are:
+The per-pair-sum inputs/status are:
 * `identityOne_perPairSum`     →  identity (1) with value `2 K`,
 * `identityTwo_perPairSum`     →  identity (2) with value `K`,
-* `identityThree_perPairSum`   →  identity (3) with value `K`,
+* `identityThree_perPairSum`   →  identity (3), closed downstream,
 * `identityFour_perPairSum`    →  identity (4) with value `2 K`,
 
 with `K = crossBlockKValue (transCoeffSum M) = (1 + S) · S`,
@@ -61,9 +62,9 @@ noncomputable def kappaTwoProbePair (n : Nat) (k : Nat) (hk2 : 3 * k + 3 < n) :
 @[simp] theorem kappaTwoProbePair_one (n k : Nat) (hk2 : 3 * k + 3 < n) :
     kappaTwoProbePair n k hk2 1 = probeLeft n k hk2 := rfl
 
-/-! ## Section B: package builder from the four per-pair-sum hypotheses -/
+/-! ## Section B: package builder from the remaining per-pair-sum hypotheses -/
 
-/-- Given the four per-pair-sum hypotheses and positivity of
+/-- Given the remaining per-pair-sum hypotheses and positivity of
 `K = crossBlockKValue (transCoeffSum M)`, build a concrete
 `CookLevinLocalBlockQFourIdentitiesPackage`. -/
 noncomputable def kappaTwoFourIdentitiesPackage_from_perPairSums
@@ -73,7 +74,6 @@ noncomputable def kappaTwoFourIdentitiesPackage_from_perPairSums
     (hKpos : 0 < crossBlockKValue (transCoeffSum M))
     (hpps1 : identityOne_perPairSum M n hn htb hns k hk1 hk2)
     (hpps2 : identityTwo_perPairSum M n hn htb hns k hk1 hk2)
-    (hpps3 : identityThree_perPairSum M n hn htb hns k hk1 hk2)
     (hpps4 : identityFour_perPairSum M n hn htb hns k hk1 hk2) :
     CookLevinLocalBlockQFourIdentitiesPackage M n hn htb hns k hk1 hk2 :=
   cookLevinLocalBlockQFourIdentitiesPackage_of_witnesses
@@ -105,18 +105,20 @@ noncomputable def kappaTwoFourIdentitiesPackage_from_perPairSums
       exact heq)
     (by
       simp only [kappaTwoProbePair_one]
-      exact kappaTwoIdentityThree_in_package_form
-        M n hn htb hns k hk1 hk2 hpps3)
+      exact BridgeAKappaTwoIdentityThree.kappaTwoIdentityThree_in_package_form
+        M n hn htb hns k hk1 hk2
+        (BridgeAKappaTwoIdentityThreeResidualActive.identityThree_perPairSum
+          M n hn htb hns k hk1 hk2))
     (by
       simp only [kappaTwoProbePair_one]
       exact kappaTwoIdentityFour_in_package_form
         M n hn htb hns k hk1 hk2 hpps4)
 
-/-! ## Section C: end-to-end rank lower bound from the four per-pair-sums -/
+/-! ## Section C: end-to-end rank lower bound from the remaining per-pair sums -/
 
 /-- The κ = 2 cross-block rank lower bound on the real Cook-Levin
-local block product, conditional on the four per-pair-sum hypotheses
-and positivity of `K`. -/
+local block product, conditional on the remaining per-pair-sum
+hypotheses and positivity of `K`. -/
 theorem cookLevinLocalBlockQ_rank_two_le_real_from_perPairSums
     (M : TuringMachine.DTM) (n : Nat) (hn : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
@@ -124,7 +126,6 @@ theorem cookLevinLocalBlockQ_rank_two_le_real_from_perPairSums
     (hKpos : 0 < crossBlockKValue (transCoeffSum M))
     (hpps1 : identityOne_perPairSum M n hn htb hns k hk1 hk2)
     (hpps2 : identityTwo_perPairSum M n hn htb hns k hk1 hk2)
-    (hpps3 : identityThree_perPairSum M n hn htb hns k hk1 hk2)
     (hpps4 : identityFour_perPairSum M n hn htb hns k hk1 hk2) :
     (2 : Nat) ≤
       mlBlockedSpdpRank
@@ -136,28 +137,28 @@ theorem cookLevinLocalBlockQ_rank_two_le_real_from_perPairSums
     M n hn htb hns k hk1 hk2
     (kappaTwoFourIdentitiesPackage_from_perPairSums
       M n hn htb hns k hk1 hk2
-      hKpos hpps1 hpps2 hpps3 hpps4)
+      hKpos hpps1 hpps2 hpps4)
 
 /-! ## Section D: status report
 
 What this file delivers (kernel-only, no `sorry`, no new axioms):
 
 * `kappaTwoFourIdentitiesPackage_from_perPairSums`: a concrete
-  `CookLevinLocalBlockQFourIdentitiesPackage` value from the four
-  per-pair-sum hypotheses and `K > 0`.
+  `CookLevinLocalBlockQFourIdentitiesPackage` value from the remaining
+  per-pair-sum hypotheses, the closed identity (3) theorem, and `K > 0`.
 
 * `cookLevinLocalBlockQ_rank_two_le_real_from_perPairSums`: the κ = 2
   rank lower bound conditional on those same hypotheses.
 
 What remains (residual sub-obstruction):
 
-* The four per-pair-sum hypotheses
-  (`identityOne/Two/Three/Four_perPairSum`).  Each is the closed-form
+* The remaining per-pair-sum hypotheses
+  (`identityOne/Two/Four_perPairSum`).  Each is the closed-form
   value of the coefficient at one of the two probes of
   `pderivListProdSumTwice` over the literal touched-list, against one
   of the two cross-block rows.  By the analytic computation
-  (file docstring of `BridgeAKappaTwoFourIdentitiesProven`), the four
-  values are `2K, K, K, 2K` respectively, with `K = (1+S)·S`.
+  (file docstring of `BridgeAKappaTwoFourIdentitiesProven`), the
+  values are `2K, K, 2K` respectively, with `K = (1+S)·S`.
 
 * Positivity of `K = crossBlockKValue (transCoeffSum M)`.  This
   follows from `transCoeffSum M > 0`, which in turn follows from
