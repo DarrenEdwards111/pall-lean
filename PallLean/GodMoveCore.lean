@@ -1038,6 +1038,22 @@ structure RouteBIdentityMinorSameTargetData
       mlBlockedSpdpRank target.coupledPartition
         (Nat.log 2 n) (Nat.log 2 n) target.coupledPoly
 
+/-- Build same-target identity-minor data from the exact lower bound it is
+meant to certify.
+
+This is intentionally only a constructor: it does not manufacture an identity
+minor. It records that once the target's own SPDP rank has the Route B strong
+lower bound, the `RouteBIdentityMinorSameTargetData` interface can be
+inhabited with the canonical minor size. -/
+def routeBIdentityMinorSameTargetData_of_rank_lower
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {target : GodMoveExtractionTarget M n hn2 htb hns}
+    (h : GodMoveSameTargetStrongNPLower target) :
+    RouteBIdentityMinorSameTargetData target where
+  minorSize := Nat.choose (n / 3) (Nat.log 2 n)
+  target_choose_le_minorSize := le_rfl
+  identity_minor_rank_lower := h
+
 /-- Identity-minor evidence on the exact target proves the strong NP lower
 bound needed by Route B. -/
 theorem routeB_strong_np_from_same_target_identity_minor

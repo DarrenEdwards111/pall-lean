@@ -51870,6 +51870,26 @@ theorem DirectRankPackage_slim.semanticTargetIdentifiedWithEmbeddedQ_of_restrict
     (MultilinearSPDP.restriction_rank_monotone ℚ f hf P.B
       (Nat.log 2 P.n) (Nat.log 2 P.n) P.W.embedded_Q)
 
+/-- A target built exactly as a coordinate restriction of the ambient
+`embedded_Q` sheet satisfies the semantic target identification. -/
+theorem DirectRankPackage_slim.semanticTargetIdentifiedWithEmbeddedQ_of_restrict_embedded_Q_target
+    (P : DirectRankPackage_slim)
+    (M : TuringMachine.DTM) (hn2 : P.n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ P.n)
+    (coupledVars : ℕ)
+    (hvars :
+      coupledVars < (PaperFaithfulSeparation.cook_levin_compilation
+        M P.n hn2 htb hns).numVars)
+    (f : Fin coupledVars → Fin P.W.σ.total)
+    (hf : Function.Injective f) :
+    P.SemanticTargetIdentifiedWithEmbeddedQ hn2 htb hns
+      { coupledVars := coupledVars
+        coupledVars_lt := hvars
+        coupledPartition := MultilinearSPDP.pullbackPartition P.B f
+        coupledPoly := MultilinearSPDP.restrictPoly ℚ f hf P.W.embedded_Q } :=
+  P.semanticTargetIdentifiedWithEmbeddedQ_of_restrict_embedded_Q
+    M hn2 htb hns _ f hf rfl rfl
+
 /-- The `embedded_Q` identification turns §241.3a into the target-to-source
 rank bridge needed by the global Theorem-207 source-transport seam. -/
 theorem DirectRankPackage_slim.target_rank_le_full_output_of_embedded_Q_identification
@@ -51976,6 +51996,101 @@ by
   · exact P.toTheorem207PaperSource_p_side M hn2 htb hns hκ hℓ
   · exact P.toTheorem207PaperSource_target_bridge_of_embedded_Q_identification
       M hn2 htb hns targetData.extractionTarget hid
+
+/-- Concrete Step252 constructor from exact semantic target data whose target
+is explicitly realised as a coordinate restriction of the ambient
+`embedded_Q`.
+
+This is the paper-faithful projection/descent surface: instead of asking for a
+prebuilt rank bridge into `embedded_Q`, callers supply the actual coordinate
+map `f` and the definitional identifications of the target partition and
+polynomial with the pullback/restriction of the ambient verifier sheet. -/
+theorem DirectRankPackage_slim.exists_theorem207_semantic_identity_minor_gap_source_transport_data_of_target_data_restrict_embedded_Q
+    (P : DirectRankPackage_slim)
+    (M : TuringMachine.DTM) (hn2 : P.n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ P.n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hκ : P.κ = Nat.log 2 P.n) (hℓ : P.ℓ = Nat.log 2 P.n)
+    (targetData : PaperFaithfulSeparation.GodMoveExtractionTargetData
+      M P.n hn2 htb hns hdec)
+    (hsem : PaperFaithfulSeparation.GodMoveExtractionTargetTheorem
+      M P.n hn2 htb hns hdec targetData.extractionTarget)
+    (minor : PaperFaithfulSeparation.RouteBIdentityMinorSameTargetData
+      targetData.extractionTarget)
+    (f : Fin targetData.extractionTarget.coupledVars → Fin P.W.σ.total)
+    (hf : Function.Injective f)
+    (hB : targetData.extractionTarget.coupledPartition =
+      MultilinearSPDP.pullbackPartition P.B f)
+    (hpoly : targetData.extractionTarget.coupledPoly =
+      MultilinearSPDP.restrictPoly ℚ f hf P.W.embedded_Q) :
+    ∃ G : PaperFaithfulSeparation.GodMoveSemanticIdentityMinorGap
+        M P.n hn2 htb hns hdec,
+      ∃ source : GlobalGodMoveGauge.Theorem207PaperSource
+          M P.n P.hn_big hn2 htb hns,
+        GlobalGodMoveGauge.Theorem207PaperSourcePSideUpperBound
+          M P.n P.hn_big hn2 htb hns source ∧
+        GlobalGodMoveGauge.Theorem207PaperSourceToTargetRankBridge
+          M P.n P.hn_big hn2 htb hns source G.gap.extractionTarget :=
+  P.exists_theorem207_semantic_identity_minor_gap_source_transport_data_of_target_data_embedded_Q
+    M hn2 htb hns hdec hκ hℓ targetData hsem minor
+    (P.semanticTargetIdentifiedWithEmbeddedQ_of_restrict_embedded_Q
+      M hn2 htb hns targetData.extractionTarget f hf hB hpoly)
+
+/-- Concrete Step252 constructor from hard-instance data and a semantic target
+built definitionally as a coordinate restriction of the ambient `embedded_Q`.
+
+This packages the `GodMoveExtractionTargetData` layer itself. The remaining
+load-bearing obligations are exactly the semantic extraction theorem and the
+same-target identity minor for this constructed strict target. -/
+theorem DirectRankPackage_slim.exists_theorem207_semantic_identity_minor_gap_source_transport_data_of_hard_data_restrict_embedded_Q_target
+    (P : DirectRankPackage_slim)
+    (M : TuringMachine.DTM) (hn2 : P.n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ P.n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hκ : P.κ = Nat.log 2 P.n) (hℓ : P.ℓ = Nat.log 2 P.n)
+    (hard : PaperFaithfulSeparation.GodMoveHardInstanceData
+      M P.n hn2 htb hns hdec)
+    (coupledVars : ℕ)
+    (hvars :
+      coupledVars < (PaperFaithfulSeparation.cook_levin_compilation
+        M P.n hn2 htb hns).numVars)
+    (f : Fin coupledVars → Fin P.W.σ.total)
+    (hf : Function.Injective f)
+    (hsem : PaperFaithfulSeparation.GodMoveExtractionTargetTheorem
+      M P.n hn2 htb hns hdec
+        { coupledVars := coupledVars
+          coupledVars_lt := hvars
+          coupledPartition := MultilinearSPDP.pullbackPartition P.B f
+          coupledPoly := MultilinearSPDP.restrictPoly ℚ f hf P.W.embedded_Q })
+    (minor : PaperFaithfulSeparation.RouteBIdentityMinorSameTargetData
+        { coupledVars := coupledVars
+          coupledVars_lt := hvars
+          coupledPartition := MultilinearSPDP.pullbackPartition P.B f
+          coupledPoly := MultilinearSPDP.restrictPoly ℚ f hf P.W.embedded_Q }) :
+    ∃ G : PaperFaithfulSeparation.GodMoveSemanticIdentityMinorGap
+        M P.n hn2 htb hns hdec,
+      ∃ source : GlobalGodMoveGauge.Theorem207PaperSource
+          M P.n P.hn_big hn2 htb hns,
+        GlobalGodMoveGauge.Theorem207PaperSourcePSideUpperBound
+          M P.n P.hn_big hn2 htb hns source ∧
+        GlobalGodMoveGauge.Theorem207PaperSourceToTargetRankBridge
+          M P.n P.hn_big hn2 htb hns source G.gap.extractionTarget := by
+  let target : PaperFaithfulSeparation.GodMoveExtractionTarget
+      M P.n hn2 htb hns :=
+    { coupledVars := coupledVars
+      coupledVars_lt := hvars
+      coupledPartition := MultilinearSPDP.pullbackPartition P.B f
+      coupledPoly := MultilinearSPDP.restrictPoly ℚ f hf P.W.embedded_Q }
+  let targetData :
+      PaperFaithfulSeparation.GodMoveExtractionTargetData
+        M P.n hn2 htb hns hdec :=
+    PaperFaithfulSeparation.GodMoveExtractionTargetData.ofHardInstanceData
+      hard target
+  exact
+    P.exists_theorem207_semantic_identity_minor_gap_source_transport_data_of_target_data_embedded_Q
+      M hn2 htb hns hdec hκ hℓ targetData hsem minor
+      (P.semanticTargetIdentifiedWithEmbeddedQ_of_restrict_embedded_Q_target
+        M hn2 htb hns coupledVars hvars f hf)
 
 /-- **§252.7 — `GConstructionPackage_slim.to_thresholds_slim`**:
 convert a slim G-construction package to a slim thresholds bundle by
