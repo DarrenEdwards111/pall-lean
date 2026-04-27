@@ -53549,6 +53549,89 @@ theorem cookLevinStrictFOB_routeB_extraction_transfer_of_canonical_projection_st
               (PaperFaithfulSeparation.cook_levin_compilation
                 M n hn2 htb hns)))
 
+/-- Route B strict FOB extraction transfer with the canonical projection stage
+supplied automatically. -/
+theorem cookLevinStrictFOB_routeB_extraction_transfer
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) :
+    PaperFaithfulSeparation.GodMoveRouteB_ExtractionObligation
+      M n hn2 htb hns hdec
+      (cookLevinStrictFOBTarget M n hn2 htb hns B_total) :=
+  cookLevinStrictFOB_routeB_extraction_transfer_of_canonical_projection_stage
+    M n hn2 htb hns hdec B_total hB_total
+    (cookLevinStrictFOBCanonicalProjectionStage
+      M n hn2 htb hns B_total hB_total)
+
+/-- Route B strict FOB source-transport contradiction from an explicit
+extraction-transfer proof.
+
+The extraction proof is a visible input here; the arithmetic contradiction
+still closes through the paper's source-transport interface, with the same
+strict target and same-target identity-minor lower bound. -/
+theorem DirectRankPackage_cookLevin_strictFOB_source_transport_false_of_extraction
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hQ_upper : MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B_total
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (show MvPolynomial (Fin n) ℚ from
+        PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hExtraction :
+      PaperFaithfulSeparation.GodMoveRouteB_ExtractionObligation
+        M n hn2 htb hns hdec
+        (cookLevinStrictFOBTarget M n hn2 htb hns B_total)) :
+    False := by
+  let P := DirectRankPackage_cookLevin M n hn htb hns hn2
+    B_total hB_total hQ_upper
+  have _hExtraction := hExtraction
+  exact
+    GlobalGodMoveGauge.theorem207PaperSource_transport_false
+      M n hn hn2 htb hns
+      (cookLevinStrictFOBTarget M n hn2 htb hns B_total)
+      (P.toTheorem207PaperSource M hn2 htb hns)
+      (P.toTheorem207PaperSource_p_side M hn2 htb hns rfl rfl)
+      (DirectRankPackage_cookLevin_strictFOB_source_to_target_rank_bridge
+        M n hn htb hns hn2 B_total hB_total hQ_upper)
+      (by
+        simpa [PaperFaithfulSeparation.GodMoveSameTargetStrongNPLower] using
+          (cookLevinStrictFOBTarget_same_target_lower
+            M n hn hn2 htb hns B_total hB_total))
+
+/-- Route B strict FOB source-transport contradiction with the canonical
+projection stage supplied automatically. -/
+theorem DirectRankPackage_cookLevin_strictFOB_source_transport_false
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hQ_upper : MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B_total
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (show MvPolynomial (Fin n) ℚ from
+        PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M) :
+    False :=
+  DirectRankPackage_cookLevin_strictFOB_source_transport_false_of_extraction
+    M n hn htb hns hn2 B_total hB_total hQ_upper hdec
+    (cookLevinStrictFOB_routeB_extraction_transfer
+      M n hn2 htb hns hdec B_total hB_total)
+
 /-- Route B strict FOB source transport contradiction using the canonical
 projection-stage package.
 
@@ -54396,6 +54479,88 @@ theorem cookLevinQ_rank_le_from_templateCollapse
   have hp := ProfileCompression.p_side_rank_bound_for_cook_levin_of_templateCollapse
     M n hn2 htb hns hcollapse
   convert hp using 2
+
+/-- The legacy landed P-side theorem discharges the exact `hQ_upper` surface
+for the chosen extended Cook-Levin partition. -/
+theorem cookLevinQ_rank_le_from_p_side_at_B_total
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) :
+    MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B_total
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (show MvPolynomial (Fin n) ℚ from
+        PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200 := by
+  subst B_total
+  simpa using cookLevinQ_rank_le_from_p_side M n hn htb hns
+
+/-- Template collapse discharges the exact `hQ_upper` surface for the chosen
+extended Cook-Levin partition.
+
+This is the paper-faithful P-side frontier: the remaining mathematical input is
+the concrete `CookLevinProfileTemplateCollapseLemma`, and the conclusion is the
+plain `cookLevinQ` rank bound consumed by the Route B strict FOB endpoint. -/
+theorem cookLevinQ_rank_le_from_templateCollapse_at_B_total
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hcollapse : WithinProfileBound.CookLevinProfileTemplateCollapseLemma
+      M n hn2 htb hns) :
+    MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B_total
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (show MvPolynomial (Fin n) ℚ from
+        PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200 := by
+  subst B_total
+  simpa using cookLevinQ_rank_le_from_templateCollapse M n hn htb hns hcollapse
+
+/-- Route B strict FOB contradiction with the canonical extraction stage and
+the landed P-side theorem supplying `hQ_upper`. -/
+theorem DirectRankPackage_cookLevin_strictFOB_source_transport_false_from_p_side
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M) :
+    False :=
+  DirectRankPackage_cookLevin_strictFOB_source_transport_false
+    M n hn htb hns hn2 B_total hB_total
+    (cookLevinQ_rank_le_from_p_side_at_B_total
+      M n hn htb hns hn2 B_total hB_total)
+    hdec
+
+/-- Route B strict FOB contradiction from the paper-faithful template-collapse
+P-side frontier. -/
+theorem DirectRankPackage_cookLevin_strictFOB_source_transport_false_from_templateCollapse
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hcollapse : WithinProfileBound.CookLevinProfileTemplateCollapseLemma
+      M n hn2 htb hns) :
+    False :=
+  DirectRankPackage_cookLevin_strictFOB_source_transport_false
+    M n hn htb hns hn2 B_total hB_total
+    (cookLevinQ_rank_le_from_templateCollapse_at_B_total
+      M n hn htb hns hn2 B_total hB_total hcollapse)
+    hdec
 
 /-- **§252.13f — `P_ne_NP_from_cookLevin_templateCollapse_hypothesis`**
 (honest template-collapse final form).
