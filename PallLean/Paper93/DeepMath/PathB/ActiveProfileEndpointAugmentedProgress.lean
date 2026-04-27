@@ -268,32 +268,42 @@ theorem compiledCoefficientBasis_activeProfileSubspaceBudget
       (profileTemplateBound_le_withinProfileBound
         (Nat.log 2 n) h hadm)
 
-/-- The current compiled-basis implementation has only the zero generator.
-This is a precise obstruction to using it as the finished active row
-classifier: the dimension theorem above is available, but the concrete local
-row generators still have to be supplied. -/
-theorem interfaceSpace_compiledBasis_current_eq_bot
-    {n : ℕ} (B : BlockPartition n) (κ ℓ : ℕ) (τ : ConstraintType) :
-    interfaceSpace_compiledBasis B κ ℓ τ = ⊥ := by
-  classical
-  unfold interfaceSpace_compiledBasis canonicalInterfaceGenerators
-    canonicalInterfacePolynomial
-  apply le_antisymm
-  · refine Submodule.span_le.mpr ?_
-    intro p hp
-    simp at hp
-    rw [← hp.2]
-    simp
-  · exact bot_le
+/-- Positive active-type membership after replacing the zero compiled-basis
+placeholder: every non-dormant local type contains the constant normal form. -/
+theorem one_mem_interfaceSpace_compiledBasis_activeType
+    {n : ℕ} (B : BlockPartition n) (κ ℓ : ℕ) (τ : ConstraintType)
+    (hτ : τ ≠ ConstraintType.transitionRight) :
+    (1 : MvPolynomial (Fin n) ℚ) ∈ interfaceSpace_compiledBasis B κ ℓ τ :=
+  one_mem_interfaceSpace_compiledBasis_of_not_transitionRight B κ ℓ τ hτ
 
-/-- In particular, the present compiled-basis space cannot contain even the
-constant local row.  Any positive active/profile factor-through proof must
-replace the zero placeholder generators in `CompiledCoefficientBasis`. -/
-theorem one_not_mem_interfaceSpace_compiledBasis_current
-    {n : ℕ} (B : BlockPartition n) (κ ℓ : ℕ) (τ : ConstraintType) :
-    (1 : MvPolynomial (Fin n) ℚ) ∉ interfaceSpace_compiledBasis B κ ℓ τ := by
-  rw [interfaceSpace_compiledBasis_current_eq_bot B κ ℓ τ]
-  simp
+/-- The booleanity compiled chart contains the basic singleton row and the
+canonical Cook-Levin booleanity factor. -/
+theorem compiledBasis_booleanity_basicRows_mem
+    {n : ℕ} (B : BlockPartition n) (κ ℓ : ℕ) :
+    canonicalLocalX ∈
+        interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity ∧
+      canonicalLocalBoolFactor ∈
+        interfaceSpace_compiledBasis B κ ℓ ConstraintType.booleanity :=
+  ⟨canonicalLocalX_mem_interfaceSpace_compiledBasis_booleanity B κ ℓ,
+    canonicalLocalBoolFactor_mem_interfaceSpace_compiledBasis_booleanity B κ ℓ⟩
+
+/-- The adjacency compiled chart contains the two canonical endpoint singleton
+rows used by the interface-anonymous normal form. -/
+theorem compiledBasis_adjacency_basicRows_mem
+    {n : ℕ} (B : BlockPartition n) (κ ℓ : ℕ) :
+    canonicalLocalX ∈
+        interfaceSpace_compiledBasis B κ ℓ ConstraintType.adjacency ∧
+      canonicalLocalX1 ∈
+        interfaceSpace_compiledBasis B κ ℓ ConstraintType.adjacency :=
+  ⟨canonicalLocalX_mem_interfaceSpace_compiledBasis_adjacency B κ ℓ,
+    canonicalLocalX1_mem_interfaceSpace_compiledBasis_adjacency B κ ℓ⟩
+
+/-- The transition-left compiled chart contains its canonical singleton row. -/
+theorem compiledBasis_transitionLeft_basicRow_mem
+    {n : ℕ} (B : BlockPartition n) (κ ℓ : ℕ) :
+    canonicalLocalX ∈
+      interfaceSpace_compiledBasis B κ ℓ ConstraintType.transitionLeft :=
+  canonicalLocalX_mem_interfaceSpace_compiledBasis_transitionLeft B κ ℓ
 
 /-- A profile-local endpoint-augmented row embedding plus the explicit
 active-profile budget closes the fixed common-span target. -/
@@ -559,8 +569,10 @@ theorem cookLevinAllBoundedProfileCommonSpanLiveProfileCases_of_endpointAugmente
 #print axioms cookLevinPerTypeSpanningAtBoundedProfile_discharged
 #print axioms endpointAugmentedActiveProfileSubspaceBudget_of_dim_le_three
 #print axioms compiledCoefficientBasis_activeProfileSubspaceBudget
-#print axioms interfaceSpace_compiledBasis_current_eq_bot
-#print axioms one_not_mem_interfaceSpace_compiledBasis_current
+#print axioms one_mem_interfaceSpace_compiledBasis_activeType
+#print axioms compiledBasis_booleanity_basicRows_mem
+#print axioms compiledBasis_adjacency_basicRows_mem
+#print axioms compiledBasis_transitionLeft_basicRow_mem
 #print axioms cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_spanningAtProfile
 #print axioms cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_closureAtProfile
 #print axioms cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_chargedClosureAtProfile

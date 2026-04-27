@@ -79,6 +79,57 @@ noncomputable def zeroProfileBooleanNormalize {n : ℕ}
     zeroProfileBooleanExponent (0 : Fin n →₀ ℕ) = 0 := by
   simp [zeroProfileBooleanExponent]
 
+@[simp] theorem zeroProfileBooleanExponent_apply {n : ℕ}
+    (α : Fin n →₀ ℕ) (i : Fin n) :
+    zeroProfileBooleanExponent α i = if i ∈ α.support then 1 else 0 := by
+  classical
+  rw [zeroProfileBooleanExponent]
+  rw [Finset.sum_apply']
+  by_cases hi : i ∈ α.support
+  · rw [Finset.sum_eq_single i]
+    · simp [hi]
+    · intro j _hj hji
+      have hij : i ≠ j := fun h => hji h.symm
+      simp [Finsupp.single_eq_of_ne hij]
+    · intro hnot
+      exact False.elim (hnot hi)
+  · rw [Finset.sum_eq_zero]
+    · simp [hi]
+    · intro j _hj
+      have hij : i ≠ j := by
+        intro h
+        exact hi (h ▸ _hj)
+      simp [Finsupp.single_eq_of_ne hij]
+
+theorem zeroProfileBooleanExponent_isMultilinear {n : ℕ}
+    (α : Fin n →₀ ℕ) :
+    Finsupp.IsMultilinear (zeroProfileBooleanExponent α) := by
+  intro i
+  by_cases hi : i ∈ α.support <;>
+    simp [zeroProfileBooleanExponent_apply, hi]
+
+theorem zeroProfileBooleanExponent_of_isMultilinear {n : ℕ}
+    {α : Fin n →₀ ℕ} (hα : Finsupp.IsMultilinear α) :
+    zeroProfileBooleanExponent α = α := by
+  classical
+  ext i
+  by_cases hi : i ∈ α.support
+  · have hne : α i ≠ 0 := Finsupp.mem_support_iff.mp hi
+    have hle := hα i
+    have hi_eq : α i = 1 := by omega
+    simp [zeroProfileBooleanExponent_apply, hi, hi_eq]
+  · have hi_zero : α i = 0 := by
+      by_contra hne
+      exact hi (Finsupp.mem_support_iff.mpr hne)
+    simp [zeroProfileBooleanExponent_apply, hi, hi_zero]
+
+theorem zeroProfileBooleanExponent_idempotent {n : ℕ}
+    (α : Fin n →₀ ℕ) :
+    zeroProfileBooleanExponent (zeroProfileBooleanExponent α) =
+      zeroProfileBooleanExponent α :=
+  zeroProfileBooleanExponent_of_isMultilinear
+    (zeroProfileBooleanExponent_isMultilinear α)
+
 @[simp] theorem zeroProfileBooleanExponent_single_pos {n : ℕ}
     (i : Fin n) {k : ℕ} (hk : k ≠ 0) :
     zeroProfileBooleanExponent (Finsupp.single i k) =
@@ -100,6 +151,49 @@ support-indicator exponent. -/
   rw [Finsupp.lmapDomain_apply, AddMonoidAlgebra.lsingle_apply,
     Finsupp.mapDomain_single]
   simp [AddMonoidAlgebra.lsingle_apply]
+
+theorem zeroProfileBooleanNormalize_monomial_of_isMultilinear {n : ℕ}
+    (α : Fin n →₀ ℕ) (c : ℚ) (hα : Finsupp.IsMultilinear α) :
+    zeroProfileBooleanNormalize (MvPolynomial.monomial α c) =
+      MvPolynomial.monomial α c := by
+  rw [zeroProfileBooleanNormalize_monomial,
+    zeroProfileBooleanExponent_of_isMultilinear hα]
+
+theorem zeroProfileBooleanNormalize_of_support_isMultilinear {n : ℕ}
+    (p : MvPolynomial (Fin n) ℚ)
+    (hp : ∀ α ∈ p.support, Finsupp.IsMultilinear α) :
+    zeroProfileBooleanNormalize p = p := by
+  classical
+  change
+    (Finsupp.lmapDomain ℚ ℚ (zeroProfileBooleanExponent (n := n))) p = p
+  rw [Finsupp.lmapDomain_apply]
+  calc
+    Finsupp.mapDomain (zeroProfileBooleanExponent (n := n)) p =
+        Finsupp.mapDomain id p := by
+      apply Finsupp.mapDomain_congr
+      intro α hα
+      exact zeroProfileBooleanExponent_of_isMultilinear (hp α hα)
+    _ = p := Finsupp.mapDomain_id
+
+theorem zeroProfileBooleanNormalize_mlProj {n : ℕ}
+    (p : MvPolynomial (Fin n) ℚ) :
+    zeroProfileBooleanNormalize (mlProj p) = mlProj p :=
+  zeroProfileBooleanNormalize_of_support_isMultilinear
+    (mlProj p)
+    (fun α hα => isMultilinear_of_mem_mlProj_support p α hα)
+
+theorem zeroProfileBooleanNormalizeLinearMap_idempotent {n : ℕ} :
+    (zeroProfileBooleanNormalizeLinearMap (n := n)).comp
+        zeroProfileBooleanNormalizeLinearMap =
+      zeroProfileBooleanNormalizeLinearMap := by
+  have hfun :
+      (zeroProfileBooleanExponent (n := n)) ∘
+          (zeroProfileBooleanExponent (n := n)) =
+        zeroProfileBooleanExponent := by
+    funext α
+    exact zeroProfileBooleanExponent_idempotent α
+  unfold zeroProfileBooleanNormalizeLinearMap
+  rw [← Finsupp.lmapDomain_comp, hfun]
 
 theorem zeroProfileBooleanNormalize_add {n : ℕ}
     (p q : MvPolynomial (Fin n) ℚ) :
@@ -431,6 +525,87 @@ theorem cookLevinZeroProfileProjectedCommonSpanObligation_of_projectedNormalForm
         (fun i => (cookLevinFactorList M n hn htb hns).get i)
         cert⟩
 
+/-! ## Boolean-normalized zero-profile route
+
+The Boolean quotient normalizer is not a singleton-killing projection:
+`X_i` remains `X_i`, while square residuals are normalized away.  The
+paper-faithful bridge below therefore avoids the older
+`ZeroProfileProjectionKillsSingletonShifts` field and instead converts a
+Boolean-normalized normal-form row map plus an explicit residual payment into
+the existing unprojected zero-histogram common-span target.
+-/
+
+/-- Cook-Levin Boolean-normalized zero-profile normal-form obligation.
+
+This is the quotient-normalized replacement for the singleton-killing
+projected certificate: rows are classified after the Boolean normalizer
+`x_i^k ↦ x_i`, and any difference between an unnormalized row and its Boolean
+representative is paid by a residual span. -/
+def CookLevinZeroProfileBooleanNormalFormObligation
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (typeBudget : ℕ) : Prop :=
+  ∃ F : ZeroProfileProjectedNormalFormFamily n (Nat.log 2 n) typeBudget,
+    Nonempty
+      (ZeroProfileProjectedNormalFormRowMap
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+        (zeroProfileBooleanNormalizeLinearMap (n := n)) F)
+
+/-- A Boolean-normalized normal-form row map supplies the projected
+zero-profile common span for the Boolean quotient representatives. -/
+theorem cookLevinZeroProfileProjectedCommonSpanWithBudget_of_booleanNormalFormObligation
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget : ℕ}
+    (hbool :
+      CookLevinZeroProfileBooleanNormalFormObligation
+        M n hn htb hns typeBudget) :
+    ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      (zeroProfileBooleanNormalizeLinearMap (n := n)) typeBudget := by
+  rcases hbool with ⟨F, ⟨hmap⟩⟩
+  exact
+    zeroProfileProjectedCommonSpanWithBudget_of_normalFormRowMap
+      (κ := Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      (zeroProfileBooleanNormalizeLinearMap (n := n))
+      F hmap
+
+/-- Boolean-normalized zero-profile normal forms, together with a paid
+residual span for `row - booleanNormalize row`, close the existing
+zero-histogram common-span bridge. -/
+theorem cookLevinZeroHistogramShiftCommonSpan_of_booleanNormalFormObligation_residualClosure
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget residualBudget : ℕ}
+    (hbool :
+      CookLevinZeroProfileBooleanNormalFormObligation
+        M n hn htb hns typeBudget)
+    (hresidual :
+      CookLevinZeroProfileProjectionResidualClosureWithBudget
+        M n hn htb hns
+        (zeroProfileBooleanNormalizeLinearMap (n := n)) residualBudget)
+    (hbudget :
+      typeBudget + residualBudget ≤ withinProfileBound (Nat.log 2 n)) :
+    CookLevinZeroHistogramShiftCommonSpan M n hn htb hns := by
+  have hcommon :
+      ZeroProfileCompressedSpanCommonSpanWithBudget
+        (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+        (withinProfileBound (Nat.log 2 n)) :=
+    zeroProfileCompressedSpanCommonSpanWithBudget_of_projectedCommonSpan_residualClosure
+      (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      (zeroProfileBooleanNormalizeLinearMap (n := n))
+      (cookLevinZeroProfileProjectedCommonSpanWithBudget_of_booleanNormalFormObligation
+        M n hn htb hns hbool)
+      (by
+        simpa [CookLevinZeroProfileProjectionResidualClosureWithBudget] using
+          hresidual)
+      hbudget
+  simpa [CookLevinZeroHistogramShiftCommonSpan,
+    ZeroProfileCompressedSpanCommonSpanWithBudget] using hcommon
+
 /-- Residual-free version: if the chosen projection fixes every zero-profile
 row, the residual budget is zero.  This names the alternative to separately
 paying residual singleton/linear rows. -/
@@ -460,6 +635,57 @@ theorem zeroProfileProjectionResidualClosureWithBudget_zero_of_fixesShiftRows
   rw [hzero]
   exact Submodule.zero_mem _
 
+theorem zeroProfileBooleanProjectionFixesShiftRows
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    ZeroProfileProjectionFixesShiftRows κ factors
+      (zeroProfileBooleanNormalizeLinearMap (n := n)) := by
+  intro q hq
+  simp only [zeroProfileShiftImageSet, Set.mem_iUnion,
+    Set.mem_singleton_iff] at hq
+  rcases hq with ⟨S, _hS, shift, _hshift, hq⟩
+  rw [hq]
+  simpa [zeroProfileBooleanNormalize] using
+    zeroProfileBooleanNormalize_mlProj
+      (shift * Finset.univ.prod factors)
+
+theorem zeroProfileBooleanProjectionResidualClosureWithBudget_zero
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    ZeroProfileProjectionResidualClosureWithBudget κ factors
+      (zeroProfileBooleanNormalizeLinearMap (n := n)) 0 :=
+  zeroProfileProjectionResidualClosureWithBudget_zero_of_fixesShiftRows
+    κ factors (zeroProfileBooleanNormalizeLinearMap (n := n))
+    (zeroProfileBooleanProjectionFixesShiftRows κ factors)
+
+theorem cookLevinZeroProfileBooleanProjectionResidualClosureWithBudget_zero
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    CookLevinZeroProfileProjectionResidualClosureWithBudget
+      M n hn htb hns
+      (zeroProfileBooleanNormalizeLinearMap (n := n)) 0 := by
+  simpa [CookLevinZeroProfileProjectionResidualClosureWithBudget] using
+    zeroProfileBooleanProjectionResidualClosureWithBudget_zero
+      (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+
+theorem cookLevinZeroHistogramShiftCommonSpan_of_booleanNormalFormObligation
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget : ℕ}
+    (hbool :
+      CookLevinZeroProfileBooleanNormalFormObligation
+        M n hn htb hns typeBudget)
+    (hbudget : typeBudget ≤ withinProfileBound (Nat.log 2 n)) :
+    CookLevinZeroHistogramShiftCommonSpan M n hn htb hns :=
+  cookLevinZeroHistogramShiftCommonSpan_of_booleanNormalFormObligation_residualClosure
+    M n hn htb hns hbool
+    (cookLevinZeroProfileBooleanProjectionResidualClosureWithBudget_zero
+      M n hn htb hns)
+    (by simpa using hbudget)
+
 /-! ## Singleton-shift obstruction to residual-free quotienting -/
 
 /-- The singleton-shift zero-profile row attached to a base product. -/
@@ -467,6 +693,22 @@ noncomputable def zeroProfileSingletonShiftRow {n : ℕ}
     (p : MvPolynomial (Fin n) ℚ) (i : Fin n) :
     MvPolynomial (Fin n) ℚ :=
   mlProj (MvPolynomial.X i * p)
+
+theorem zeroProfileBooleanNormalize_singletonShiftRow {n : ℕ}
+    (p : MvPolynomial (Fin n) ℚ) (i : Fin n) :
+    zeroProfileBooleanNormalize (zeroProfileSingletonShiftRow p i) =
+      zeroProfileSingletonShiftRow p i := by
+  simpa [zeroProfileSingletonShiftRow] using
+    zeroProfileBooleanNormalize_mlProj
+      (MvPolynomial.X i * p)
+
+theorem zeroProfileBooleanNormalizeLinearMap_singletonShiftRow {n : ℕ}
+    (p : MvPolynomial (Fin n) ℚ) (i : Fin n) :
+    zeroProfileBooleanNormalizeLinearMap
+        (zeroProfileSingletonShiftRow p i) =
+      zeroProfileSingletonShiftRow p i := by
+  simpa [zeroProfileBooleanNormalize] using
+    zeroProfileBooleanNormalize_singletonShiftRow p i
 
 /-- Singleton-shift rows have a Kronecker coefficient matrix at the degree-one
 monomials, with diagonal entry the base product's constant coefficient. -/
@@ -818,6 +1060,8 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_projectedNormalFormCertificate_
 /-! ## Axiom audit anchors -/
 
 #print axioms zeroProfileSymmetricProfileDim_le_withinProfileBound
+#print axioms zeroProfileBooleanNormalize_mlProj
+#print axioms zeroProfileBooleanNormalizeLinearMap_idempotent
 #print axioms zeroProfileBooleanNormalize_X_mul_X
 #print axioms zeroProfileBooleanNormalize_square_residual
 #print axioms zeroProfileBooleanNormalize_boolFactor
@@ -828,7 +1072,14 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_projectedNormalFormCertificate_
 #print axioms zeroProfileProjectedCommonSpanWithBudget_of_normalFormRowMap
 #print axioms zeroProfileProjectedCommonSpanWithBudget_of_normalFormCertificate
 #print axioms cookLevinZeroProfileProjectedCommonSpanObligation_of_projectedNormalFormObligation
+#print axioms cookLevinZeroProfileProjectedCommonSpanWithBudget_of_booleanNormalFormObligation
+#print axioms cookLevinZeroHistogramShiftCommonSpan_of_booleanNormalFormObligation_residualClosure
 #print axioms zeroProfileProjectionResidualClosureWithBudget_zero_of_fixesShiftRows
+#print axioms zeroProfileBooleanProjectionFixesShiftRows
+#print axioms zeroProfileBooleanProjectionResidualClosureWithBudget_zero
+#print axioms cookLevinZeroProfileBooleanProjectionResidualClosureWithBudget_zero
+#print axioms cookLevinZeroHistogramShiftCommonSpan_of_booleanNormalFormObligation
+#print axioms zeroProfileBooleanNormalize_singletonShiftRow
 #print axioms zeroProfileSingletonShiftRow_coeff_single
 #print axioms zeroProfileSingletonShiftRows_linearIndependent_of_constCoeff_ne_zero
 #print axioms not_zeroProfileProjectionFixesShiftRows_of_killsSingleton_constCoeff_ne_zero
