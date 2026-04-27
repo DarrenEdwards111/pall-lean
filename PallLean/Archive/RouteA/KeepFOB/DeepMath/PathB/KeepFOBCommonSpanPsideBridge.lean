@@ -1,5 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ActiveProfileTemplateCollapseAssembly
-import PallLean.Paper93.DeepMath.PathB.KeepFOBTemplateCollapseAssembly
+import PallLean.Archive.RouteA.KeepFOB.DeepMath.PathB.KeepFOBTemplateCollapseAssembly
 import PallLean.Paper93.DeepMath.PathB.ZeroProfileNonScalarClosure
 import PallLean.Paper93.DeepMath.PathB.ZeroProfileSupportCardBound
 import PallLean.ProfileCompression

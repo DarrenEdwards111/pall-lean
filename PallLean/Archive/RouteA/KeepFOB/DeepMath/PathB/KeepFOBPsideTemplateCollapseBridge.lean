@@ -1,7 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingBridge
 import PallLean.Paper93.DeepMath.PathB.ConcreteWFactorMembership
 import PallLean.Paper93.DeepMath.PathB.ConcreteWShiftMlprojClosure
-import PallLean.Paper93.DeepMath.PathB.KeepFOBTemplateCollapseAssembly
+import PallLean.Archive.RouteA.KeepFOB.DeepMath.PathB.KeepFOBTemplateCollapseAssembly
 import PallLean.Paper93.DeepMath.PathB.PerTypeSpanningTemplateCollapseBridge
 import PallLean.Paper93.DeepMath.PathB.ZeroProfileSupportBasisCardinality
 import PallLean.Paper93.DeepMath.PathB.ZeroProfileTemplateCollapseReduction

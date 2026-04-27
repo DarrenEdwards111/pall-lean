@@ -1,5 +1,5 @@
-import PallLean.Paper93.DeepMath.PathB.KeepFOBProjectedLowerBound
-import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeKeepFOBAssembly
+import PallLean.Archive.RouteA.KeepFOB.DeepMath.PathB.KeepFOBProjectedLowerBound
+import PallLean.Archive.RouteA.KeepFOB.DeepMath.PathB.SATDeciderGaugeKeepFOBAssembly
 
 /-!
 # keepFOB assembly with template collapse

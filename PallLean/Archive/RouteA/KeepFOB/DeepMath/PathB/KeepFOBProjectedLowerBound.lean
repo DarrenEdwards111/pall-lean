@@ -1,6 +1,6 @@
 import PallLean.GodMoveReal
-import PallLean.Paper93.DeepMath.PathB.KeepFOBProjectedLinearIndependence
-import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeKeepFOBNP
+import PallLean.Archive.RouteA.KeepFOB.DeepMath.PathB.KeepFOBProjectedLinearIndependence
+import PallLean.Archive.RouteA.KeepFOB.DeepMath.PathB.SATDeciderGaugeKeepFOBNP
 
 /-!
 # Projected keepFOB lower bound

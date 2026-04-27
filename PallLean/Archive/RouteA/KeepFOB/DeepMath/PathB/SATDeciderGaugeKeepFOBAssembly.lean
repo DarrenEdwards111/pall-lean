@@ -1,5 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeContainmentAssembly
-import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeKeepFOB
+import PallLean.Archive.RouteA.KeepFOB.DeepMath.PathB.SATDeciderGaugeKeepFOB
 
 /-!
 # Assembly for the `keepFOB` SAT-decider gauge candidate

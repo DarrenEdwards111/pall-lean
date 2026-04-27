@@ -1,4 +1,4 @@
-import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeKeepFOB
+import PallLean.Archive.RouteA.KeepFOB.DeepMath.PathB.SATDeciderGaugeKeepFOB
 
 /-!
 # Truncated Route B candidate gauge surface

@@ -1,5 +1,4 @@
 import PallLean.Paper93.Paper283.RouteBTransportNPIdentityMinor
-import PallLean.Paper93.Paper283.RouteBKeepFOBFiniteRankNoGo
 import PallLean.Paper93.Paper283.RouteBGaugeCandidate
 import PallLean.Paper93.NFrame.UnitPreservingAdmissible
 import Mathlib.LinearAlgebra.Basis.VectorSpace
@@ -11,9 +10,9 @@ import Mathlib.LinearAlgebra.FiniteDimensional.Defs
 
 This file constructs finite-rank NFrame `CandidateGauge`s whose range is a
 chosen finite span of Route B/Cook-Levin rows.  It is deliberately not the
-constants projection and not the full `keepFOB` map: the constructed projection
-has finite-dimensional range by construction, and the fixed-row theorem below
-is the exact finite-span projection lemma needed by the fixed-embed NP
+constants projection: the constructed projection has finite-dimensional range
+by construction, and the fixed-row theorem below is the exact finite-span
+projection lemma needed by the fixed-embed NP
 identity-minor transport surface.
 -/
 
@@ -494,19 +493,6 @@ noncomputable def routeBRicherFiniteRowsCandidateGauge_npIdentityMinorFixedEmbed
   extracts_compiled := hextract
   source_lower_bound := hsource
 
-/-- Any Route B finite-span candidate is not the full `keepFOB` projection as a
-SAT-side map.  This follows from the general finite-rank no-go theorem. -/
-theorem routeBRicherFiniteRowsCandidateGauge_ne_keepFOB
-    (M : DTM) (n : Nat) (hn2 : n ≥ 2)
-    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
-    {m : Nat} (rows : Fin m → RouteBCLSpace M n hn2 htb hns) :
-    routeBNFrameCandidateAsSATGauge M n hn2 htb hns
-        (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows) ≠
-      satDeciderGaugeKeepFOBProjection M n hn2 htb hns :=
-  candidate_projection_ne_satDeciderGaugeKeepFOBProjection
-    M n hn2 htb hns
-    (routeBRicherFiniteRowsCandidateGauge M n hn2 htb hns rows)
-
 /-- Criterion showing a finite-span candidate is genuinely not the constants
 candidate: it suffices that it fixes one row not fixed by the constants
 projection. -/
@@ -554,7 +540,6 @@ theorem routeBRicherFiniteRowsCandidateGauge_ne_constantsCandidateGauge_of_row
 #print axioms routeBRicherFiniteRowsCandidateGauge_projection_apply_eq_zero_iff
 #print axioms routeBRicherFiniteRowsCandidateGaugeWithComplement_projection_apply_eq_zero_iff
 #print axioms routeBRicherFiniteRowsCandidateGauge_npIdentityMinorFixedEmbedCertificate
-#print axioms routeBRicherFiniteRowsCandidateGauge_ne_keepFOB
 #print axioms routeBRicherFiniteRowsCandidateGauge_ne_constantsCandidateGauge_of_row
 
 end PallLean.Paper93.Paper283

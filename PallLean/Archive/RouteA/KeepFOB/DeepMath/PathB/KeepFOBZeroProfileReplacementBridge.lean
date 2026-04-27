@@ -1,4 +1,4 @@
-import PallLean.Paper93.DeepMath.PathB.KeepFOBPsideTemplateCollapseBridge
+import PallLean.Archive.RouteA.KeepFOB.DeepMath.PathB.KeepFOBPsideTemplateCollapseBridge
 import PallLean.Paper93.DeepMath.PathB.ZeroProfileScalarClosure
 
 set_option exponentiation.threshold 1000

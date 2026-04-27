@@ -1,7 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ConcreteWFactorMembership
 
 /-!
-# Augmented concrete `W` family for the keepFOB P-side bridge
+# Augmented concrete `W` family for the corrected Route B P-side bridge
 
 The existing `Wiring.concreteW n hn4 sigma .adjacency` is the rename of the
 local span `{1, X0 * X1}`.  That contains the adjacency factor itself, but it
@@ -38,7 +38,7 @@ def augmentedTransitionLeftGenerators (n : ℕ) : Set (AugmentedPoly n) :=
   {p | p = 1 ∨
       (∃ v : Fin n, p = MvPolynomial.X v)}
 
-/-- A conservative corrected concrete interface family for the keepFOB P-side.
+/-- A conservative corrected concrete interface family for the Route B P-side.
 
 The adjacency case deliberately includes endpoint variables in addition to
 pair products, so differentiating `X a * X b` can remain inside the same type
