@@ -479,14 +479,23 @@ structure ExtractionMapRankBridge
 
 namespace ExtractionMapRankBridge
 
+/-- Any staged semantic witness already carries the rank wrappers for its two
+stages, so the separate bridge can be rebuilt without extra assumptions. -/
+def ofSemantics
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M} {target : GodMoveExtractionTarget M n hn2 htb hns}
+    (sem : ExtractionMapSemantics M n hn2 htb hns hdec target) :
+    ExtractionMapRankBridge sem :=
+  { restriction_rank_mono := sem.restriction.restriction_rank_mono
+    projection_rank_mono := sem.projection.projection_rank_mono }
+
 /-- A full decomposition automatically yields the separate rank wrapper. -/
 def ofDecomposition
     {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
     {hdec : DecidesSAT M} {target : GodMoveExtractionTarget M n hn2 htb hns}
     (decomp : ExtractionMapDecomposition M n hn2 htb hns hdec target) :
     ExtractionMapRankBridge decomp.toSemantics :=
-  { restriction_rank_mono := decomp.restriction.restriction_rank_mono
-    projection_rank_mono := decomp.projection.projection_rank_mono }
+  ofSemantics decomp.toSemantics
 
 end ExtractionMapRankBridge
 
@@ -521,6 +530,24 @@ theorem extraction_from_semantics
           (Nat.log 2 n) (Nat.log 2 n)
           (compiledPoly (cook_levin_compilation M n hn2 htb hns)) :=
         bridge.restriction_rank_mono (Nat.log 2 n) (Nat.log 2 n)
+
+/-- A staged semantic obligation plus rank wrappers yields the target-level
+extraction transfer.
+
+This is the reusable constructor shape needed by downstream semantic
+Theorem-207 witnesses: they carry `GodMoveExtractionSemanticObligation` and a
+rank bridge, while the rank-transfer inequality is derived generically here. -/
+theorem extraction_from_semantic_obligation
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    {target : GodMoveExtractionTarget M n hn2 htb hns}
+    (hsem : GodMoveExtractionSemanticObligation M n hn2 htb hns hdec target)
+    (bridge :
+      ∀ sem : ExtractionMapSemantics M n hn2 htb hns hdec target,
+        ExtractionMapRankBridge sem) :
+    GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec target := by
+  rcases hsem with ⟨sem⟩
+  exact extraction_from_semantics sem (bridge sem)
 
 /-- The extraction map decomposition implies the extraction obligation.
 
@@ -1179,6 +1206,24 @@ theorem routeB_weakened_np_from_pdMatrix
       mlBlockedSpdpRank d.blockPart (Nat.log 2 n) (Nat.log 2 n) d.poly :=
   le_trans d.pd_lower d.pd_to_blocked_transfer
 
+/-- The strong Theorem-207 identity-minor lower bound implies the weakened
+NP-side lower bound used by the direct Route B contradiction shell. -/
+theorem strong_np_lower_to_weakened_np_lower
+    {n numVars : ℕ} {B : BlockPartition numVars}
+    {poly : MvPolynomial (Fin numVars) ℚ}
+    (hn804 : n ≥ 2 ^ 804)
+    (hstrong : Nat.choose (n / 3) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank B (Nat.log 2 n) (Nat.log 2 n) poly) :
+    n ^ (Nat.log 2 n / 4) ≤
+      mlBlockedSpdpRank B (Nat.log 2 n) (Nat.log 2 n) poly := by
+  have hn20 : n ≥ 2 ^ 20 :=
+    le_trans (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804)) hn804
+  have hbin : n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
+    BinomialBound.binomial_lower_bound_concrete n hn20
+  have hmono : Nat.choose (n / 30) (Nat.log 2 n) ≤ Nat.choose (n / 3) (Nat.log 2 n) :=
+    Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
+  exact le_trans (le_trans hbin hmono) hstrong
+
 /-- The weakened Route B contradiction can be stated directly on a chosen exact
 extraction target.
 
@@ -1204,8 +1249,7 @@ theorem separation_from_semantic_target
     False := by
   have extraction :
       GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec target := by
-    rcases hsem with ⟨sem⟩
-    exact extraction_from_semantics sem (bridge sem)
+    exact extraction_from_semantic_obligation hsem bridge
   have hchain : n ^ (Nat.log 2 n / 4) ≤ n ^ 200 :=
     le_trans np_lower (le_trans extraction hP)
   have hlog : 804 ≤ Nat.log 2 n :=
@@ -1215,6 +1259,30 @@ theorem separation_from_semantic_target
     le_trans (Nat.pow_le_pow_right (by omega : 1 ≤ n) hdiv) hchain
   exact absurd hcontra
     (not_le_of_gt (Nat.pow_lt_pow_right (by omega : 1 < n) (by omega : 200 < 201)))
+
+/-- Strong-NP-bound variant of `separation_from_semantic_target`.
+
+This matches the field shape of downstream Theorem-207 semantic witnesses:
+semantic extraction data, a rank bridge, a P-side upper bound, and the strong
+Ramanujan-Tseitin identity-minor lower bound on the same coupled sheet. -/
+theorem separation_from_semantic_target_strong_np
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) (hn804 : n ≥ 2 ^ 804)
+    (target : GodMoveExtractionTarget M n hn2 htb hns)
+    (hsem : GodMoveExtractionSemanticObligation M n hn2 htb hns hdec target)
+    (np_lower : Nat.choose (n / 3) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank target.coupledPartition
+        (Nat.log 2 n) (Nat.log 2 n) target.coupledPoly)
+    (bridge :
+      ∀ sem : ExtractionMapSemantics M n hn2 htb hns hdec target,
+        ExtractionMapRankBridge sem)
+    (hP : mlBlockedSpdpRank
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn2 htb hns)) ≤ n ^ 200) :
+    False :=
+  separation_from_semantic_target M n hn2 htb hns hdec hn804 target hsem
+    (strong_np_lower_to_weakened_np_lower hn804 np_lower) bridge hP
 
 /-- The semantic gap convenience bundle feeds the same direct weakened
 contradiction shell once the separate NP-side lower bound is supplied on its
@@ -1287,6 +1355,14 @@ theorem separation_from_semantic_extraction_theorem
 
 /-! ## Axiom audits for Route B theorems -/
 
+#print axioms ExtractionMapRankBridge.ofSemantics
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+-- The staged semantic record already carries both rank-monotonicity fields.
+
+#print axioms extraction_from_semantic_obligation
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+-- Unpacks the semantic obligation and applies the rank bridge.
+
 #print axioms extraction_from_decomposition
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
 -- The extraction follows from the decomposition data, no external axioms.
@@ -1299,9 +1375,17 @@ theorem separation_from_semantic_extraction_theorem
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
 -- Pure arithmetic chain from RouteBNPFromPdMatrix data.
 
+#print axioms strong_np_lower_to_weakened_np_lower
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+-- Pure binomial/arithmetic weakening from the strong identity-minor bound.
+
 #print axioms separation_from_semantic_target
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
 -- Direct exact-target contradiction shell above the semantic witness.
+
+#print axioms separation_from_semantic_target_strong_np
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)
+-- Same exact-target shell, using the strong Theorem-207 NP lower bound.
 
 #print axioms separation_from_semantic_extraction_theorem
 -- Expected: propext, Classical.choice, Quot.sound (NO custom axioms)

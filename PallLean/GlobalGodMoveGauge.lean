@@ -836,6 +836,59 @@ structure Theorem207SemanticWitness
       mlBlockedSpdpRank target.coupledPartition
         (Nat.log 2 n) (Nat.log 2 n) target.coupledPoly
 
+/-- Build the paper-faithful Theorem 207 semantic witness from the exact
+`GodMoveCore` target package.
+
+This is only packaging: the missing mathematical content remains precisely the
+staged semantic theorem on the chosen extraction target and the two Theorem
+207 rank bounds on that same target/source pair. The rank bridge is rebuilt
+axiom-free from the staged semantic record. -/
+def theorem207SemanticWitness_of_target_data
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M)
+    (targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec)
+    (hsem :
+      GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData.extractionTarget)
+    (hP : mlBlockedSpdpRank
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn2 htb hns)) ≤ n ^ 200)
+    (hNP : Nat.choose (n / 3) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank targetData.extractionTarget.coupledPartition
+        (Nat.log 2 n) (Nat.log 2 n) targetData.extractionTarget.coupledPoly) :
+    Theorem207SemanticWitness M n hn hn2 htb hns hdec where
+  target := targetData.extractionTarget
+  extraction_semantics := hsem
+  rank_bridge := fun sem => ExtractionMapRankBridge.ofSemantics sem
+  compiled_p_side_bound := hP
+  sheet_np_side_lower_bound := hNP
+
+/-- Build the paper-faithful Theorem 207 semantic witness directly from the
+`GodMoveSemanticGap` convenience bundle.
+
+The gap supplies the chosen extraction target and staged semantic witness. The
+rank bridge follows from the staged semantic record, so only the P-side source
+bound and same-target NP-side lower bound stay explicit. -/
+def theorem207SemanticWitness_of_semantic_gap
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M)
+    (gap : GodMoveSemanticGap M n hn2 htb hns hdec)
+    (hP : mlBlockedSpdpRank
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (compiledPoly (cook_levin_compilation M n hn2 htb hns)) ≤ n ^ 200)
+    (hNP : Nat.choose (n / 3) (Nat.log 2 n) ≤
+      mlBlockedSpdpRank gap.extractionTarget.coupledPartition
+        (Nat.log 2 n) (Nat.log 2 n) gap.extractionTarget.coupledPoly) :
+    Theorem207SemanticWitness M n hn hn2 htb hns hdec where
+  target := gap.extractionTarget
+  extraction_semantics := gap.extractionSemantics
+  rank_bridge := fun sem => ExtractionMapRankBridge.ofSemantics sem
+  compiled_p_side_bound := hP
+  sheet_np_side_lower_bound := hNP
+
 /-- The Theorem 207 identity-minor lower bound implies the weakened NP lower
 bound expected by `separation_from_semantic_target`. -/
 theorem theorem207SemanticWitness_weakened_np_lower
@@ -1132,6 +1185,10 @@ depends on. Expected outcomes:
 * `exists_theorem207_component_interfaces_from_witness_axiom` —
   only `exists_theorem207_witness`, documenting the compatibility projection
   from the old monolithic witness axiom into the split Route B interfaces.
+* `theorem207SemanticWitness_of_target_data` /
+  `theorem207SemanticWitness_of_semantic_gap` —
+  no custom axioms; these only package exact `GodMoveCore` semantic data and
+  the two same-target rank bounds into the paper-faithful witness.
 * `theorem207SemanticWitness_weakened_np_lower` / `theorem207SemanticWitness_false` —
   no new custom axioms; these expose the paper-faithful `GodMoveCore`
   semantic extraction route and reuse the existing arithmetic/binomial and
@@ -1160,6 +1217,10 @@ depends on. Expected outcomes:
 #print axioms exists_theorem207_component_interfaces_from_witness_axiom
 -- Expected: propext, Classical.choice, Quot.sound,
 --   GlobalGodMoveGauge.exists_theorem207_witness.
+#print axioms theorem207SemanticWitness_of_target_data
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
+#print axioms theorem207SemanticWitness_of_semantic_gap
+-- Expected: propext, Classical.choice, Quot.sound (NO custom axioms).
 #print axioms theorem207SemanticWitness_weakened_np_lower
 -- Expected: propext, Classical.choice, Quot.sound
 -- (Axiom-free arithmetic weakening from C(n/3, log n) to n^(log n / 4).)
