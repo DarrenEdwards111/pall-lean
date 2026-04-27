@@ -109,6 +109,192 @@ theorem zeroProfileCompressedShiftSpan_finrank_le_supportBasis_card {n L : ℕ}
     _ ≤ (zeroProfileShiftSupportBasis κ factors).card :=
           finrank_span_finset_le_card (zeroProfileShiftSupportBasis κ factors)
 
+/-! ## Compression certificates -/
+
+/-- A concrete ambient compression separates the zero-profile compressed span
+when its kernel has zero intersection with that span.  This is the
+paper-faithful linear-algebra target: exhibit a small family of linear
+observables that is injective on the actual compressed shifted-image span. -/
+def ZeroProfileCompressedSpanKernelSeparated {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    {ι : Type}
+    (compress :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] (ι → ℚ)) : Prop :=
+  ∀ x : ↥(zeroProfileCompressedShiftSpan κ factors), compress x = 0 → x = 0
+
+/-- Kernel-separation is exactly disjointness of the compressed span from the
+ambient compression kernel. -/
+theorem zeroProfileCompressedSpanKernelSeparated_iff_disjoint_ker {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    {ι : Type}
+    (compress :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] (ι → ℚ)) :
+    ZeroProfileCompressedSpanKernelSeparated κ factors compress ↔
+      Disjoint (zeroProfileCompressedShiftSpan κ factors)
+        (LinearMap.ker compress) := by
+  classical
+  constructor
+  · intro hsep
+    rw [disjoint_iff, Submodule.eq_bot_iff]
+    intro p hp
+    have hp_zero :
+        (⟨p, hp.1⟩ :
+          ↥(zeroProfileCompressedShiftSpan κ factors)) = 0 :=
+      hsep ⟨p, hp.1⟩ (by
+        simpa [LinearMap.mem_ker] using hp.2)
+    exact congrArg
+      (fun x : ↥(zeroProfileCompressedShiftSpan κ factors) =>
+        (x : MvPolynomial (Fin n) ℚ)) hp_zero
+  · intro hdisj x hx
+    apply Subtype.ext
+    have hbot :
+        zeroProfileCompressedShiftSpan κ factors ⊓ LinearMap.ker compress =
+          ⊥ := disjoint_iff.mp hdisj
+    have hxinf :
+        (x : MvPolynomial (Fin n) ℚ) ∈
+          zeroProfileCompressedShiftSpan κ factors ⊓ LinearMap.ker compress := by
+      exact ⟨x.property, by simpa [LinearMap.mem_ker] using hx⟩
+    exact (Submodule.eq_bot_iff _).mp hbot (x : MvPolynomial (Fin n) ℚ) hxinf
+
+/-- If a compression with at most `budget` coordinates separates the exact
+compressed span, then the sharp compressed-span finrank condition follows.
+This avoids using the cardinality of the explicit support enumeration as the
+target. -/
+theorem zeroProfileCompressedSpanFinrankCondition_of_kernelSeparated
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (budget : ℕ)
+    {ι : Type} [Fintype ι]
+    (compress :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] (ι → ℚ))
+    (hcard : Fintype.card ι ≤ budget)
+    (hsep : ZeroProfileCompressedSpanKernelSeparated κ factors compress) :
+    ZeroProfileCompressedSpanFinrankCondition κ factors budget := by
+  classical
+  let U : Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+    zeroProfileCompressedShiftSpan κ factors
+  have hfinite : Module.Finite ℚ ↥U :=
+    zeroProfileCompressedShiftSpan_finite κ factors
+  letI : Module.Finite ℚ ↥U := hfinite
+  have hinj : Function.Injective (compress.domRestrict U) := by
+    intro x y hxy
+    apply sub_eq_zero.mp
+    apply hsep
+    have hzero : (compress.domRestrict U) (x - y) = 0 := by
+      rw [map_sub, hxy, sub_self]
+    simpa [LinearMap.domRestrict_apply] using hzero
+  refine ⟨hfinite, ?_⟩
+  calc
+    Module.finrank ℚ ↥(zeroProfileCompressedShiftSpan κ factors)
+        = Module.finrank ℚ ↥U := rfl
+    _ ≤ Module.finrank ℚ (ι → ℚ) :=
+          LinearMap.finrank_le_finrank_of_injective
+            (f := compress.domRestrict U) hinj
+    _ = Fintype.card ι := Module.finrank_fintype_fun_eq_card ℚ
+    _ ≤ budget := hcard
+
+/-- Disjoint-kernel form of the compression certificate. -/
+theorem zeroProfileCompressedSpanFinrankCondition_of_disjoint_ker
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (budget : ℕ)
+    {ι : Type} [Fintype ι]
+    (compress :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] (ι → ℚ))
+    (hcard : Fintype.card ι ≤ budget)
+    (hdisj :
+      Disjoint (zeroProfileCompressedShiftSpan κ factors)
+        (LinearMap.ker compress)) :
+    ZeroProfileCompressedSpanFinrankCondition κ factors budget :=
+  zeroProfileCompressedSpanFinrankCondition_of_kernelSeparated
+    κ factors budget compress hcard
+    ((zeroProfileCompressedSpanKernelSeparated_iff_disjoint_ker
+      κ factors compress).mpr hdisj)
+
+/-- The remaining compressed-span obligation as a small ambient linear
+compression: find at most `budget` linear coordinates whose common kernel is
+disjoint from the exact compressed shifted-image span. -/
+def ZeroProfileCompressedSpanKernelDisjointCompressionObligation {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (budget : ℕ) : Prop :=
+  ∃ ι : Type, ∃ _ : Fintype ι,
+    Fintype.card ι ≤ budget ∧
+      ∃ compress : MvPolynomial (Fin n) ℚ →ₗ[ℚ] (ι → ℚ),
+        Disjoint (zeroProfileCompressedShiftSpan κ factors)
+          (LinearMap.ker compress)
+
+/-- The small ambient compression obligation is sufficient for the exact
+compressed-span finrank condition. -/
+theorem zeroProfileCompressedSpanFinrankCondition_of_kernelDisjointCompressionObligation
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (budget : ℕ)
+    (hcompress :
+      ZeroProfileCompressedSpanKernelDisjointCompressionObligation
+        κ factors budget) :
+    ZeroProfileCompressedSpanFinrankCondition κ factors budget := by
+  rcases hcompress with ⟨ι, hι, hcard, compress, hdisj⟩
+  letI : Fintype ι := hι
+  exact zeroProfileCompressedSpanFinrankCondition_of_disjoint_ker
+    κ factors budget compress hcard hdisj
+
+/-- Intrinsic coordinate-compression version of the exact finrank condition.
+This removes the ambient-extension issue and records the pure linear-algebra
+equivalence: the compressed span has finrank at most `budget` iff it injects
+into a coordinate space with at most `budget` coordinates. -/
+def ZeroProfileCompressedSpanIntrinsicCompressionObligation {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (budget : ℕ) : Prop :=
+  ∃ ι : Type, ∃ _ : Fintype ι,
+    Fintype.card ι ≤ budget ∧
+      ∃ compress :
+        ↥(zeroProfileCompressedShiftSpan κ factors) →ₗ[ℚ] (ι → ℚ),
+        Function.Injective compress
+
+/-- Exact intrinsic compression equivalence for the zero-profile compressed
+span. -/
+theorem zeroProfileCompressedSpanIntrinsicCompressionObligation_iff_finrankCondition
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (budget : ℕ) :
+    ZeroProfileCompressedSpanIntrinsicCompressionObligation κ factors budget ↔
+      ZeroProfileCompressedSpanFinrankCondition κ factors budget := by
+  classical
+  constructor
+  · rintro ⟨ι, hι, hcard, compress, hinj⟩
+    letI : Fintype ι := hι
+    have hfinite :
+        Module.Finite ℚ ↥(zeroProfileCompressedShiftSpan κ factors) :=
+      zeroProfileCompressedShiftSpan_finite κ factors
+    letI :
+        Module.Finite ℚ ↥(zeroProfileCompressedShiftSpan κ factors) :=
+      hfinite
+    refine ⟨hfinite, ?_⟩
+    calc
+      Module.finrank ℚ ↥(zeroProfileCompressedShiftSpan κ factors)
+          ≤ Module.finrank ℚ (ι → ℚ) :=
+            LinearMap.finrank_le_finrank_of_injective
+              (f := compress) hinj
+      _ = Fintype.card ι := Module.finrank_fintype_fun_eq_card ℚ
+      _ ≤ budget := hcard
+  · rintro ⟨hfinite, hfinrank⟩
+    let U : Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+      zeroProfileCompressedShiftSpan κ factors
+    letI : Module.Finite ℚ ↥U := hfinite
+    refine ⟨Fin (Module.finrank ℚ ↥U), inferInstance, ?_, ?_⟩
+    · simpa using hfinrank
+    · let b : Module.Basis (Fin (Module.finrank ℚ ↥U)) ℚ ↥U :=
+        Module.finBasis ℚ ↥U
+      exact ⟨b.equivFun.toLinearMap, b.equivFun.injective⟩
+
 /-- Generic exact equivalence: a finite common-span witness of size `budget`
 exists if and only if the compressed shifted-image span is finite-dimensional
 with finrank at most `budget`. -/
@@ -215,14 +401,87 @@ theorem cookLevinZeroProfileCompressedSpanFinrankCondition_of_supportCardSumSide
     (cookLevinZeroHistogramShiftCommonSpan_of_supportCardSumSideCondition
       M n hn htb hns hside)
 
+/-- Cook-Levin version of the small ambient compression obligation for the
+actual zero-profile compressed shifted-image span. -/
+def CookLevinZeroProfileCompressedSpanKernelDisjointCompressionObligation
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ZeroProfileCompressedSpanKernelDisjointCompressionObligation (Nat.log 2 n)
+    (fun i => (cookLevinFactorList M n hn htb hns).get i)
+    (withinProfileBound (Nat.log 2 n))
+
+/-- A small kernel-disjoint ambient compression proves the Cook-Levin
+zero-profile compressed-span finrank condition. -/
+theorem cookLevinZeroProfileCompressedSpanFinrankCondition_of_kernelDisjointCompressionObligation
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcompress :
+      CookLevinZeroProfileCompressedSpanKernelDisjointCompressionObligation
+        M n hn htb hns) :
+    CookLevinZeroProfileCompressedSpanFinrankCondition M n hn htb hns :=
+  zeroProfileCompressedSpanFinrankCondition_of_kernelDisjointCompressionObligation
+    (Nat.log 2 n)
+    (fun i => (cookLevinFactorList M n hn htb hns).get i)
+    (withinProfileBound (Nat.log 2 n))
+    hcompress
+
+/-- The actual Cook-Levin zero-profile compressed span cannot satisfy a
+one-dimensional compressed-span bound.  This is a checked lower-bound/no-go:
+the sharp compressed-span target is not the old singleton template target. -/
+theorem not_cookLevinZeroProfileCompressedSpanFinrankCondition_budget_one
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    ¬ ZeroProfileCompressedSpanFinrankCondition (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn htb hns).get i) 1 := by
+  intro hfinrank
+  have hcommon :
+      ZeroProfileCompressedSpanCommonSpanWithBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn htb hns).get i) 1 :=
+    (zeroProfileCompressedSpanCommonSpanWithBudget_iff_finrankCondition
+      (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      1).mpr hfinrank
+  apply not_cookLevinZeroHistogramTemplateShiftCollapse_actual
+    M n hn htb hns
+  rcases hcommon with ⟨G, hG_card, hG_span⟩
+  refine ⟨G, ?_, hG_span⟩
+  simpa [profileTemplateBound_zeroProfileHistogram] using hG_card
+
+/-- Equivalent lower-bound form: the actual Cook-Levin zero-profile compressed
+span has finrank at least two. -/
+theorem cookLevinZeroProfileCompressedShiftSpan_two_le_finrank
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    2 ≤ Module.finrank ℚ
+      ↥(zeroProfileCompressedShiftSpan (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)) := by
+  by_contra hnot
+  have hle_one :
+      Module.finrank ℚ
+        ↥(zeroProfileCompressedShiftSpan (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn htb hns).get i)) ≤ 1 := by
+    omega
+  exact not_cookLevinZeroProfileCompressedSpanFinrankCondition_budget_one
+    M n hn htb hns
+    ⟨cookLevinZeroProfileCompressedShiftSpan_finite M n hn htb hns,
+      hle_one⟩
+
 /-! ## Axiom audit anchors -/
 
 #print axioms zeroProfileCompressedShiftSpan_finite
 #print axioms zeroProfileCompressedShiftSpan_finrank_le_supportBasis_card
+#print axioms zeroProfileCompressedSpanKernelSeparated_iff_disjoint_ker
+#print axioms zeroProfileCompressedSpanFinrankCondition_of_kernelSeparated
+#print axioms zeroProfileCompressedSpanFinrankCondition_of_disjoint_ker
+#print axioms zeroProfileCompressedSpanFinrankCondition_of_kernelDisjointCompressionObligation
+#print axioms zeroProfileCompressedSpanIntrinsicCompressionObligation_iff_finrankCondition
 #print axioms zeroProfileCompressedSpanCommonSpanWithBudget_iff_finrankCondition
 #print axioms cookLevinZeroHistogramShiftCommonSpan_iff_compressedSpanFinrankCondition
 #print axioms cookLevinZeroHistogramShiftCommonSpan_of_compressedSpanFinrankCondition
 #print axioms cookLevinZeroProfileCompressedSpanFinrankCondition_of_supportCardSumSideCondition
+#print axioms cookLevinZeroProfileCompressedSpanFinrankCondition_of_kernelDisjointCompressionObligation
+#print axioms not_cookLevinZeroProfileCompressedSpanFinrankCondition_budget_one
+#print axioms cookLevinZeroProfileCompressedShiftSpan_two_le_finrank
 
 end PathB
 end DeepMath

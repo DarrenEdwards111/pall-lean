@@ -128,6 +128,64 @@ def EndpointAugmentedConcreteWChargedShiftResidualClosure
           shift * pr ∈
             cookLevinProfileSubspace bpTgt (endpointAugmentedConcreteW n hn4)
 
+/-- Quotient form of the endpoint-extra residual obligation.
+
+The source polynomial may be changed by a canonical-profile element before the
+charged shift is tested.  This is the same content as the existential
+`pc + pr` residual split, but it exposes the exact quotient-by-canonical
+shape of the remaining endpoint-extra work. -/
+def EndpointAugmentedConcreteWChargedShiftQuotientResidualClosure
+    (n : ℕ) (hn4 : n ≥ 4) (charge : ProfileCharge n) : Prop :=
+  ∀ (bpSrc bpTgt : BoundedProfile (Nat.log 2 n))
+    (S : List (Fin n)) (_hSlen : S.length ≤ Nat.log 2 n)
+    (shift : MvPolynomial (Fin n) ℚ) (_hshift : shift.vars ⊆ S.toFinset)
+    (p : MvPolynomial (Fin n) ℚ),
+    charge bpSrc S shift bpTgt →
+      p ∈ cookLevinProfileSubspace bpSrc (endpointAugmentedConcreteW n hn4) →
+        ∃ pc : MvPolynomial (Fin n) ℚ,
+          pc ∈ cookLevinProfileSubspace bpSrc (concreteWCanonical n hn4) ∧
+          shift * (p - pc) ∈
+            cookLevinProfileSubspace bpTgt (endpointAugmentedConcreteW n hn4)
+
+/-- The canonical-source slice of the residual split is already closed:
+choose the whole source as the canonical component and zero residual. -/
+theorem endpointAugmentedConcreteW_chargedShiftResidual_witness_of_concreteProfile
+    (n : ℕ) (hn4 : n ≥ 4) (charge : ProfileCharge n)
+    (bpSrc bpTgt : BoundedProfile (Nat.log 2 n))
+    (S : List (Fin n)) (_hSlen : S.length ≤ Nat.log 2 n)
+    (shift : MvPolynomial (Fin n) ℚ) (_hshift : shift.vars ⊆ S.toFinset)
+    (p : MvPolynomial (Fin n) ℚ)
+    (_hcharge : charge bpSrc S shift bpTgt)
+    (hp : p ∈ cookLevinProfileSubspace bpSrc (concreteWCanonical n hn4)) :
+    ∃ pc pr : MvPolynomial (Fin n) ℚ,
+      pc ∈ cookLevinProfileSubspace bpSrc (concreteWCanonical n hn4) ∧
+      p = pc + pr ∧
+      shift * pr ∈
+        cookLevinProfileSubspace bpTgt (endpointAugmentedConcreteW n hn4) := by
+  refine ⟨p, 0, hp, by simp, ?_⟩
+  simp
+
+/-- The split residual and quotient residual formulations are equivalent. -/
+theorem endpointAugmentedConcreteW_chargedShiftResidualClosure_iff_quotientResidualClosure
+    (n : ℕ) (hn4 : n ≥ 4) (charge : ProfileCharge n) :
+    EndpointAugmentedConcreteWChargedShiftResidualClosure n hn4 charge ↔
+      EndpointAugmentedConcreteWChargedShiftQuotientResidualClosure
+        n hn4 charge := by
+  constructor
+  · intro hResidual bpSrc bpTgt S hSlen shift hshift p hcharge hp
+    obtain ⟨pc, pr, hpc, hp_eq, hpr⟩ :=
+      hResidual bpSrc bpTgt S hSlen shift hshift p hcharge hp
+    refine ⟨pc, hpc, ?_⟩
+    have hp_sub : p - pc = pr := by
+      rw [hp_eq]
+      simp [sub_eq_add_neg, add_assoc]
+    simpa [hp_sub] using hpr
+  · intro hQuot bpSrc bpTgt S hSlen shift hshift p hcharge hp
+    obtain ⟨pc, hpc, hpr⟩ :=
+      hQuot bpSrc bpTgt S hSlen shift hshift p hcharge hp
+    refine ⟨pc, p - pc, hpc, ?_, hpr⟩
+    simp [sub_eq_add_neg, add_left_comm]
+
 /-- The endpoint charged shift closure follows from canonical charged closure
 plus the residual endpoint-extra split above.
 
@@ -153,6 +211,51 @@ theorem endpointAugmentedConcreteW_chargedShiftClosure_of_canonical_and_residual
     (cookLevinProfileSubspace bpTgt (endpointAugmentedConcreteW n hn4))
     hpc_shift hpr
 
+/-- The actual endpoint charged closure implies the residual split, by taking
+zero canonical component.  Consequently the residual split above is not, by
+itself, a weaker target. -/
+theorem endpointAugmentedConcreteW_chargedShiftResidualClosure_of_chargedShiftClosure
+    (n : ℕ) (hn4 : n ≥ 4) (charge : ProfileCharge n)
+    (hEndpoint :
+      EndpointAugmentedConcreteWChargedShiftClosure n hn4 charge) :
+    EndpointAugmentedConcreteWChargedShiftResidualClosure n hn4 charge := by
+  intro bpSrc bpTgt S hSlen shift hshift p hcharge hp
+  refine ⟨0, p, Submodule.zero_mem _, by simp, ?_⟩
+  exact hEndpoint bpSrc bpTgt S hSlen shift hshift p hcharge hp
+
+/-- Exact no-go/equivalence for the current residual obligation: once the
+canonical charged closure is available, proving the residual split is
+equivalent to proving the full endpoint-augmented charged closure. -/
+theorem endpointAugmentedConcreteW_chargedShiftClosure_iff_residualClosure_of_canonical
+    (n : ℕ) (hn4 : n ≥ 4) (charge : ProfileCharge n)
+    (hCanon : ConcreteWChargedShiftClosure n hn4 charge) :
+    EndpointAugmentedConcreteWChargedShiftClosure n hn4 charge ↔
+      EndpointAugmentedConcreteWChargedShiftResidualClosure n hn4 charge := by
+  constructor
+  · exact
+      endpointAugmentedConcreteW_chargedShiftResidualClosure_of_chargedShiftClosure
+        n hn4 charge
+  · intro hResidual
+    exact
+      endpointAugmentedConcreteW_chargedShiftClosure_of_canonical_and_residual
+        n hn4 charge hCanon hResidual
+
+/-- Same equivalence in quotient-residual form.  This is the sharper residual
+frontier: endpoint closure is exactly the statement that every endpoint source
+class modulo the canonical profile has a charged-shift representative landing
+in the endpoint target profile. -/
+theorem endpointAugmentedConcreteW_chargedShiftClosure_iff_quotientResidualClosure_of_canonical
+    (n : ℕ) (hn4 : n ≥ 4) (charge : ProfileCharge n)
+    (hCanon : ConcreteWChargedShiftClosure n hn4 charge) :
+    EndpointAugmentedConcreteWChargedShiftClosure n hn4 charge ↔
+      EndpointAugmentedConcreteWChargedShiftQuotientResidualClosure
+        n hn4 charge := by
+  exact
+    (endpointAugmentedConcreteW_chargedShiftClosure_iff_residualClosure_of_canonical
+      n hn4 charge hCanon).trans
+      (endpointAugmentedConcreteW_chargedShiftResidualClosure_iff_quotientResidualClosure
+        n hn4 charge)
+
 /-! ## Axiom audit anchors -/
 
 #print axioms symPower_mono_of_le
@@ -161,6 +264,11 @@ theorem endpointAugmentedConcreteW_chargedShiftClosure_of_canonical_and_residual
 #print axioms concreteWCanonical_le_endpointAugmentedConcreteW
 #print axioms cookLevinProfileSubspace_concreteWCanonical_le_endpointAugmentedConcreteW
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_on_concreteProfile
+#print axioms endpointAugmentedConcreteW_chargedShiftResidual_witness_of_concreteProfile
+#print axioms endpointAugmentedConcreteW_chargedShiftResidualClosure_iff_quotientResidualClosure
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_of_canonical_and_residual
+#print axioms endpointAugmentedConcreteW_chargedShiftResidualClosure_of_chargedShiftClosure
+#print axioms endpointAugmentedConcreteW_chargedShiftClosure_iff_residualClosure_of_canonical
+#print axioms endpointAugmentedConcreteW_chargedShiftClosure_iff_quotientResidualClosure_of_canonical
 
 end PallLean.Paper93.Paper283

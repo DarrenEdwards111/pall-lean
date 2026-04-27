@@ -205,6 +205,216 @@ theorem routeBRicherConcreteNPPrependedMultilinear_kernel_mlProj_zero_of_no_proj
       M n hn2 htb hns).mp hno)
     p hker
 
+/-! ## First-square transfer obstruction -/
+
+/-- The singleton first-coordinate SPDP generator row of the first-square
+probe has visible coefficient `2` at the first linear monomial.  This is the
+raw nonzero row behind the designed coefficient-dual escape witness, stated
+without using the designed projection. -/
+theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_singletonRow_coeff_firstVar
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    MvPolynomial.coeff
+        (Finsupp.single (satDeciderGaugeFirstVar M n hn2 htb hns) 1)
+        (routeBSPDPGeneratorRow M n hn2 htb hns
+          (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+            M n hn2 htb hns)
+          [satDeciderGaugeFirstVar M n hn2 htb hns]
+          (1 : SATDeciderGaugeSpace M n hn2 htb hns)) =
+      (2 : Rat) := by
+  rw [routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_singletonRow_eq]
+  rw [MvPolynomial.coeff_smul, MvPolynomial.coeff_X']
+  simp
+
+/-- The singleton first-coordinate SPDP generator row of the first-square
+probe is nonzero. -/
+theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_singletonRow_ne_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    routeBSPDPGeneratorRow M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns)
+        [satDeciderGaugeFirstVar M n hn2 htb hns]
+        (1 : SATDeciderGaugeSpace M n hn2 htb hns) ≠ 0 := by
+  intro hzero
+  have hcoeffZero :
+      MvPolynomial.coeff
+          (Finsupp.single (satDeciderGaugeFirstVar M n hn2 htb hns) 1)
+          (routeBSPDPGeneratorRow M n hn2 htb hns
+            (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+              M n hn2 htb hns)
+            [satDeciderGaugeFirstVar M n hn2 htb hns]
+            (1 : SATDeciderGaugeSpace M n hn2 htb hns)) = 0 := by
+    rw [hzero]
+    simp
+  have hcoeffTwo :=
+    routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_singletonRow_coeff_firstVar
+      M n hn2 htb hns
+  norm_num [hcoeffZero] at hcoeffTwo
+
+/-- Transfer obstruction from the designed coefficient-dual projection to the
+arbitrary finite-row projection: if the selected arbitrary projection also
+kills the first-square probe, then kernel-generator-zero is false. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_not_kernelGenerator_zero_of_firstSquareProbe_kernel
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hker :
+      routeBRicherConcreteNPPrependedMultilinearProjection
+        M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns) = 0) :
+    ¬ RouteBRicherConcreteNPPrependedMultilinearKernelGeneratorZero
+        M n hn2 htb hns := by
+  intro hzero
+  have hrowZero :=
+    hzero 1 0
+      (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns)
+      [satDeciderGaugeFirstVar M n hn2 htb hns]
+      (1 : SATDeciderGaugeSpace M n hn2 htb hns)
+      (by simp)
+      (by simp [MvPolynomial.totalDegree_one])
+      (by simp [MvPolynomial.vars_one])
+      (by
+        constructor
+        · simp
+        · intro b
+          simpa using
+            (List.length_filter_le
+              (fun i =>
+                (cook_levin_compilation M n hn2 htb hns).partition.assign i = b)
+              [satDeciderGaugeFirstVar M n hn2 htb hns]))
+      hker
+  exact
+    (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_singletonRow_ne_zero
+      M n hn2 htb hns) hrowZero
+
+/-- If the arbitrary finite-row projection kills the first-square probe, then
+the concrete multilinear-tail projection has an escape witness. -/
+theorem routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_of_firstSquareProbe_kernel
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hker :
+      routeBRicherConcreteNPPrependedMultilinearProjection
+        M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns) = 0) :
+    RouteBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness
+      M n hn2 htb hns :=
+  (routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_iff_not_kernelGenerator_zero
+    M n hn2 htb hns).mpr
+    (routeBRicherConcreteNPPrependedMultilinear_not_kernelGenerator_zero_of_firstSquareProbe_kernel
+      M n hn2 htb hns hker)
+
+/-- Equivalently, killing the first-square probe refutes projection descent
+for the selected arbitrary finite-row projection. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_not_projectionDescent_of_firstSquareProbe_kernel
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hker :
+      routeBRicherConcreteNPPrependedMultilinearProjection
+        M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns) = 0) :
+    ¬ RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns :=
+  (routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_iff_not_projectionDescent
+    M n hn2 htb hns).mp
+    (routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_of_firstSquareProbe_kernel
+      M n hn2 htb hns hker)
+
+/-- Any successful projection-descent proof for the selected arbitrary
+finite-row projection must therefore keep the first-square probe out of the
+projection kernel. -/
+theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_zero_of_projectionDescent
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hdesc :
+      RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns) :
+    routeBRicherConcreteNPPrependedMultilinearProjection
+        M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns) ≠ 0 := by
+  intro hker
+  exact
+    (routeBRicherConcreteNPPrependedMultilinear_not_projectionDescent_of_firstSquareProbe_kernel
+      M n hn2 htb hns hker) hdesc
+
+/-- Under projection descent, the selected arbitrary finite-row projection
+cannot equal the displayed coefficient-dual projection: the latter kills the
+first-square probe, while descent forces the former not to. -/
+theorem routeBRicherConcreteNPPrependedMultilinearProjection_ne_explicitProjection_of_projectionDescent
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hdesc :
+      RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns) :
+    routeBRicherConcreteNPPrependedMultilinearProjection M n hn2 htb hns ≠
+      (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+        M n hn2 htb hns).projection := by
+  intro hEq
+  have hker :
+      routeBRicherConcreteNPPrependedMultilinearProjection
+        M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns) = 0 := by
+    rw [hEq]
+    exact
+      routeBRicherConcreteNPPrependedMultilinearExplicitProjection_firstSquareProbe_eq_zero
+        M n hn2 htb hns
+  exact
+    (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_zero_of_projectionDescent
+      M n hn2 htb hns hdesc) hker
+
+/-- Direct complement-transfer obstruction: if the arbitrary finite-row
+projection's kernel contains the displayed coefficient-dual complement, then
+kernel-generator-zero is false. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_not_kernelGenerator_zero_of_explicitComplement_le_projectionKernel
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (htransfer :
+      forall p : SATDeciderGaugeSpace M n hn2 htb hns,
+        p ∈
+          (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+            M n hn2 htb hns).complement ->
+        routeBRicherConcreteNPPrependedMultilinearProjection
+          M n hn2 htb hns p = 0) :
+    ¬ RouteBRicherConcreteNPPrependedMultilinearKernelGeneratorZero
+        M n hn2 htb hns :=
+  routeBRicherConcreteNPPrependedMultilinear_not_kernelGenerator_zero_of_firstSquareProbe_kernel
+    M n hn2 htb hns
+    (htransfer
+      (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns)
+      (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_mem_complement
+        M n hn2 htb hns))
+
+/-- A stronger complement-transfer obstruction: under projection descent, the
+kernel of the selected arbitrary finite-row projection cannot contain the
+whole displayed complement of the coefficient-dual projection. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_not_explicitComplement_le_projectionKernel_of_projectionDescent
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hdesc :
+      RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns) :
+    ¬ (forall p : SATDeciderGaugeSpace M n hn2 htb hns,
+      p ∈
+        (routeBRicherConcreteNPPrependedMultilinearExplicitProjectionData
+          M n hn2 htb hns).complement ->
+      routeBRicherConcreteNPPrependedMultilinearProjection
+        M n hn2 htb hns p = 0) := by
+  intro htransfer
+  exact
+    (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_zero_of_projectionDescent
+      M n hn2 htb hns hdesc)
+      (htransfer
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns)
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_mem_complement
+          M n hn2 htb hns))
+
 /-! ## Axiom audit anchors -/
 
 #print axioms routeBRicherConcreteNPPrependedMultilinearProjectionDescent_iff_kernelGenerator_zero
@@ -216,5 +426,14 @@ theorem routeBRicherConcreteNPPrependedMultilinear_kernel_mlProj_zero_of_no_proj
 #print axioms routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_of_mlProj_projection_ne
 #print axioms routeBRicherConcreteNPPrependedMultilinear_mlProj_projection_eq_of_no_projectionEscapeWitness
 #print axioms routeBRicherConcreteNPPrependedMultilinear_kernel_mlProj_zero_of_no_projectionEscapeWitness
+#print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_singletonRow_coeff_firstVar
+#print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_singletonRow_ne_zero
+#print axioms routeBRicherConcreteNPPrependedMultilinear_not_kernelGenerator_zero_of_firstSquareProbe_kernel
+#print axioms routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_of_firstSquareProbe_kernel
+#print axioms routeBRicherConcreteNPPrependedMultilinear_not_projectionDescent_of_firstSquareProbe_kernel
+#print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_zero_of_projectionDescent
+#print axioms routeBRicherConcreteNPPrependedMultilinearProjection_ne_explicitProjection_of_projectionDescent
+#print axioms routeBRicherConcreteNPPrependedMultilinear_not_kernelGenerator_zero_of_explicitComplement_le_projectionKernel
+#print axioms routeBRicherConcreteNPPrependedMultilinear_not_explicitComplement_le_projectionKernel_of_projectionDescent
 
 end PallLean.Paper93.Paper283
