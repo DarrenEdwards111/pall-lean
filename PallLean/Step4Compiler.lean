@@ -52265,6 +52265,91 @@ theorem DirectRankPackage_slim.exists_theorem207_semantic_source_transport_of_ha
       restriction projection hinput hout)
     hNP
 
+/-- A lower bound on the re-expanded strict coordinate restriction descends to
+the same-target lower bound on the strict target itself.
+
+This is the rank bridge needed to reuse ambient projected lower-bound proofs
+such as the keep-FOB projected identity-minor theorem: once the ambient
+polynomial is identified as `rename f (restrictPoly f embedded_Q)`,
+`mlBlockedSpdpRank_rename_le` pushes the lower bound through the coordinate
+restriction. -/
+theorem DirectRankPackage_slim.restrict_embedded_Q_same_target_lower_of_rename_lower
+    (P : DirectRankPackage_slim)
+    (M : TuringMachine.DTM) (hn2 : P.n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ P.n)
+    (coupledVars : ℕ)
+    (hvars :
+      coupledVars < (PaperFaithfulSeparation.cook_levin_compilation
+        M P.n hn2 htb hns).numVars)
+    (f : Fin coupledVars → Fin P.W.σ.total)
+    (hf : Function.Injective f)
+    (hrenamedLower :
+      Nat.choose (P.n / 3) (Nat.log 2 P.n) ≤
+        MultilinearSPDP.mlBlockedSpdpRank P.B
+          (Nat.log 2 P.n) (Nat.log 2 P.n)
+          (MvPolynomial.rename f
+            (MultilinearSPDP.restrictPoly ℚ f hf P.W.embedded_Q))) :
+    PaperFaithfulSeparation.GodMoveSameTargetStrongNPLower
+        { coupledVars := coupledVars
+          coupledVars_lt := hvars
+          coupledPartition := MultilinearSPDP.pullbackPartition P.B f
+          coupledPoly := MultilinearSPDP.restrictPoly ℚ f hf P.W.embedded_Q } := by
+  exact le_trans hrenamedLower
+    (MultilinearSPDP.mlBlockedSpdpRank_rename_le f hf P.B
+      (Nat.log 2 P.n) (Nat.log 2 P.n)
+      (MultilinearSPDP.restrictPoly ℚ f hf P.W.embedded_Q))
+
+/-- Fully staged strict-`embedded_Q` constructor using an ambient lower bound
+on the re-expanded strict restriction.
+
+This removes the last rank-packaging layer from the semantic source-transport
+surface: after choosing the strict coordinate map and proving the staged
+extraction semantics, it is enough to prove the ambient projected lower bound
+for `rename f (restrictPoly f embedded_Q)`. -/
+theorem DirectRankPackage_slim.exists_theorem207_semantic_source_transport_of_hard_data_restrict_embedded_Q_stages_rename_lower
+    (P : DirectRankPackage_slim)
+    (M : TuringMachine.DTM) (hn2 : P.n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ P.n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hκ : P.κ = Nat.log 2 P.n) (hℓ : P.ℓ = Nat.log 2 P.n)
+    (hard : PaperFaithfulSeparation.GodMoveHardInstanceData
+      M P.n hn2 htb hns hdec)
+    (coupledVars : ℕ)
+    (hvars :
+      coupledVars < (PaperFaithfulSeparation.cook_levin_compilation
+        M P.n hn2 htb hns).numVars)
+    (f : Fin coupledVars → Fin P.W.σ.total)
+    (hf : Function.Injective f)
+    (restriction :
+      PaperFaithfulSeparation.ExtractionRestrictionStage
+        M P.n hn2 htb hns hdec)
+    (projection :
+      PaperFaithfulSeparation.ExtractionProjectionStage
+        restriction.restrictedVars coupledVars)
+    (hinput : projection.inputPoly = restriction.restrictedPoly)
+    (hout :
+      projection.projectedPoly =
+        MultilinearSPDP.restrictPoly ℚ f hf P.W.embedded_Q)
+    (hrenamedLower :
+      Nat.choose (P.n / 3) (Nat.log 2 P.n) ≤
+        MultilinearSPDP.mlBlockedSpdpRank P.B
+          (Nat.log 2 P.n) (Nat.log 2 P.n)
+          (MvPolynomial.rename f
+            (MultilinearSPDP.restrictPoly ℚ f hf P.W.embedded_Q))) :
+    ∃ G : PaperFaithfulSeparation.GodMoveSemanticIdentityMinorGap
+        M P.n hn2 htb hns hdec,
+      ∃ source : GlobalGodMoveGauge.Theorem207PaperSource
+          M P.n P.hn_big hn2 htb hns,
+        GlobalGodMoveGauge.Theorem207PaperSourcePSideUpperBound
+          M P.n P.hn_big hn2 htb hns source ∧
+        GlobalGodMoveGauge.Theorem207PaperSourceToTargetRankBridge
+          M P.n P.hn_big hn2 htb hns source G.gap.extractionTarget :=
+  P.exists_theorem207_semantic_source_transport_of_hard_data_restrict_embedded_Q_stages_rank_lower
+    M hn2 htb hns hdec hκ hℓ hard coupledVars hvars f hf
+    restriction projection hinput hout
+    (P.restrict_embedded_Q_same_target_lower_of_rename_lower
+      M hn2 htb hns coupledVars hvars f hf hrenamedLower)
+
 /-- **§252.7 — `GConstructionPackage_slim.to_thresholds_slim`**:
 convert a slim G-construction package to a slim thresholds bundle by
 discharging `hP_upper` via §245.5 `hP_upper_from_spanning_set`. -/
