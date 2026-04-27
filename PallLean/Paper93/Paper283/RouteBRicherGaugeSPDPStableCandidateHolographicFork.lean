@@ -89,6 +89,53 @@ theorem routeBRicherSPDPStableCandidate_logWindowHeadSpanGeneratorSecondPassClos
   simpa [routeBSPDPGeneratorRow, SPDP.iterDerivList, mlProj_idempotent]
     using hhead
 
+/-- Direct finite head-span second-pass closure criterion: if the second
+derivative list asks for a variable outside the already-projected head
+generator support, the row is zero and therefore belongs to the head span.
+
+This is the actual closure mechanism behind the cardinality/admissibility
+boundary case below; the support-too-small hypothesis is only one way to
+produce this non-containment. -/
+theorem routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportNotSubset
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {T S : List (Fin (RouteBCookLevinDim M n hn2 htb hns))}
+    {headShift shift : SATDeciderGaugeSpace M n hn2 htb hns}
+    (hnotSub :
+      ¬ S.toFinset ⊆
+        (mlProj
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))).vars) :
+    routeBSPDPGeneratorRow M n hn2 htb hns
+        (mlProj
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+        S shift ∈
+      routeBRicherSPDPStableCandidateLogWindowHeadSpan M n hn2 htb hns := by
+  let q : SATDeciderGaugeSpace M n hn2 htb hns :=
+    mlProj
+      (headShift *
+        SPDP.iterDerivList T
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
+  have hnotSubq : ¬ S.toFinset ⊆ q.vars := by
+    simpa [q] using hnotSub
+  have hex : ∃ v, v ∈ S.toFinset ∧ v ∉ q.vars := by
+    by_contra h
+    apply hnotSubq
+    intro v hvS
+    by_contra hvq
+    exact h ⟨v, hvS, hvq⟩
+  rcases hex with ⟨v, hvS, hvq⟩
+  have hzero : SPDP.iterDerivList S q = 0 :=
+    IterDerivHelpers.iterDerivList_eq_zero_of_mem_notMem_vars
+      S v q (by simpa using hvS) hvq
+  change mlProj (shift * SPDP.iterDerivList S q) ∈
+    routeBRicherSPDPStableCandidateLogWindowHeadSpan M n hn2 htb hns
+  rw [hzero, mul_zero, mlProj_zero]
+  exact Submodule.zero_mem _
+
 /-- Boundary case for finite head-span second-pass closure: if the second
 derivative list is longer than the variable support of the already-projected
 head generator, admissibility forces some second-pass variable to be absent
@@ -130,20 +177,9 @@ theorem routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportTooSma
     have hlt : q.vars.card < S.toFinset.card := by
       simpa [hcardS] using hsmallq
     exact (Nat.not_lt_of_ge hle) hlt
-  have hex : ∃ v, v ∈ S.toFinset ∧ v ∉ q.vars := by
-    by_contra h
-    apply hnotSub
-    intro v hvS
-    by_contra hvq
-    exact h ⟨v, hvS, hvq⟩
-  rcases hex with ⟨v, hvS, hvq⟩
-  have hzero : SPDP.iterDerivList S q = 0 :=
-    IterDerivHelpers.iterDerivList_eq_zero_of_mem_notMem_vars
-      S v q (by simpa using hvS) hvq
-  change mlProj (shift * SPDP.iterDerivList S q) ∈
-    routeBRicherSPDPStableCandidateLogWindowHeadSpan M n hn2 htb hns
-  rw [hzero, mul_zero, mlProj_zero]
-  exact Submodule.zero_mem _
+  exact
+    routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportNotSubset
+      M n hn2 htb hns (by simpa [q] using hnotSub)
 
 /-- Boundary case for the chosen-projection branch: if the selected projection
 is the identity map, then the residual `p - Π p` is zero, so strict residual
@@ -374,6 +410,75 @@ theorem routeBRicherSPDPStableCandidate_not_holographicInvariance_of_mlProjVisib
     (routeBRicherSPDPStableCandidate_headSpanTailLogWindowProjectionEscapeWitness_of_mlProjVisibleCoefficientEscape
       M n hn2 htb hns hcoord)
 
+/-- The chosen-projection kernel-stability branch is exactly absence of the
+visible monomial-coordinate escape branch for the same head-span-tail
+projection. -/
+theorem routeBRicherSPDPStableCandidate_projectionKernelStableGeneratorMaps_iff_no_visibleCoefficientEscape
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherSPDPStableCandidateLogWindowHeadTailProjectionKernelStableGeneratorMaps
+        M n hn2 htb hns ↔
+      ¬ RouteBRicherSPDPStableCandidateHeadSpanTailVisibleCoefficientEscapeObstruction
+        M n hn2 htb hns := by
+  constructor
+  · intro hstable hcoord
+    have hcriterion :
+        RouteBRicherSPDPStableCandidateLogWindowHeadTailChosenProjectionKernelCriterion
+          M n hn2 htb hns :=
+      (routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_iff_kernelCriterion
+        M n hn2 htb hns).mp hstable
+    have hnoEscape :
+        ¬ RouteBRicherSPDPStableCandidateHeadSpanTailLogWindowProjectionEscapeWitness
+          M n hn2 htb hns :=
+      (routeBRicherSPDPStableCandidate_headSpanTailKernelCriterion_iff_no_logWindowProjectionEscapeWitness
+        M n hn2 htb hns).mp hcriterion
+    exact hnoEscape
+      ((routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_iff_logWindowProjectionEscapeWitness
+        M n hn2 htb hns).mp hcoord)
+  · intro hnoCoeff
+    refine
+      (routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_iff_kernelCriterion
+        M n hn2 htb hns).mpr ?_
+    refine
+      (routeBRicherSPDPStableCandidate_headSpanTailKernelCriterion_iff_no_logWindowProjectionEscapeWitness
+        M n hn2 htb hns).mpr ?_
+    intro hbad
+    exact hnoCoeff
+      ((routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_iff_logWindowProjectionEscapeWitness
+        M n hn2 htb hns).mpr hbad)
+
+/-- Once the finite head span is stable under the log-window generator maps,
+the remaining chosen-projection branch is exactly a dichotomy: either Section
+39 holographic invariance holds for the canonical head-span tail, or the
+chosen projection has a visible monomial-coefficient escape. -/
+theorem routeBRicherSPDPStableCandidate_holographicInvariance_or_visibleCoefficientEscape_of_headSpanStableGeneratorMaps
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hhead :
+      RouteBRicherSPDPStableCandidateLogWindowHeadSpanStableGeneratorMaps
+        M n hn2 htb hns) :
+    RouteBRicherSPDPStableCandidateHolographicInvariance
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail
+          M n hn2 htb hns) ∨
+      RouteBRicherSPDPStableCandidateHeadSpanTailVisibleCoefficientEscapeObstruction
+        M n hn2 htb hns := by
+  classical
+  by_cases hstable :
+      RouteBRicherSPDPStableCandidateLogWindowHeadTailProjectionKernelStableGeneratorMaps
+        M n hn2 htb hns
+  · left
+    exact
+      routeBRicherSPDPStableCandidate_holographicInvariance_for_headSpanTail_of_headSpanStableGeneratorMaps_descent
+        M n hn2 htb hns hhead
+        (routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionDescent_of_projectionKernelStableGeneratorMaps
+          M n hn2 htb hns hstable)
+  · right
+    by_contra hnoCoeff
+    exact hstable
+      ((routeBRicherSPDPStableCandidate_projectionKernelStableGeneratorMaps_iff_no_visibleCoefficientEscape
+        M n hn2 htb hns).mpr hnoCoeff)
+
 /-- Once the finite head-span second-pass closure is supplied, the remaining
 chosen-projection branch is exactly a dichotomy: either Section 39
 holographic invariance holds for the canonical head-span tail, or there is a
@@ -390,36 +495,11 @@ theorem routeBRicherSPDPStableCandidate_holographicInvariance_or_visibleCoeffici
           M n hn2 htb hns) ∨
       RouteBRicherSPDPStableCandidateHeadSpanTailVisibleCoefficientEscapeObstruction
         M n hn2 htb hns := by
-  classical
-  by_cases hstable :
-      RouteBRicherSPDPStableCandidateLogWindowHeadTailProjectionKernelStableGeneratorMaps
-        M n hn2 htb hns
-  · left
-    exact
-      routeBRicherSPDPStableCandidate_holographicInvariance_for_headSpanTail_of_headSpanStableGeneratorMaps_descent
-        M n hn2 htb hns
-        (routeBRicherSPDPStableCandidate_logWindowHeadSpanStableGeneratorMaps_of_generatorSecondPassClosure
-          M n hn2 htb hns hhead)
-        (routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionDescent_of_projectionKernelStableGeneratorMaps
-          M n hn2 htb hns hstable)
-  · right
-    have hnotCriterion :
-        ¬ RouteBRicherSPDPStableCandidateLogWindowHeadTailChosenProjectionKernelCriterion
-            M n hn2 htb hns := by
-      intro hcriterion
-      exact hstable
-        ((routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_iff_kernelCriterion
-          M n hn2 htb hns).mpr hcriterion)
-    have hescape :
-        RouteBRicherSPDPStableCandidateHeadSpanTailLogWindowProjectionEscapeWitness
-          M n hn2 htb hns := by
-      by_contra hnoEscape
-      exact hnotCriterion
-        ((routeBRicherSPDPStableCandidate_headSpanTailKernelCriterion_iff_no_logWindowProjectionEscapeWitness
-          M n hn2 htb hns).mpr hnoEscape)
-    exact
-      routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_of_headSpanTailLogWindowProjectionEscapeWitness
-        M n hn2 htb hns hescape
+  exact
+    routeBRicherSPDPStableCandidate_holographicInvariance_or_visibleCoefficientEscape_of_headSpanStableGeneratorMaps
+      M n hn2 htb hns
+      (routeBRicherSPDPStableCandidate_logWindowHeadSpanStableGeneratorMaps_of_generatorSecondPassClosure
+        M n hn2 htb hns hhead)
 
 /-- With finite head-span second-pass closure in hand, holographic invariance
 is equivalent to the absence of a visible coefficient escape for the chosen
@@ -480,6 +560,7 @@ theorem routeBRicherSPDPStableCandidate_headSpanEscape_or_holographicInvariance_
 
 #print axioms mlProj_idempotent
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadSpanGeneratorSecondPassClosure_nil_one
+#print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportNotSubset
 #print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportTooSmall
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_of_projection_eq_id
 #print axioms routeBRicherSPDPStableCandidate_headSpanGeneratorMapEscape_of_not_generatorSecondPassClosure
@@ -491,6 +572,8 @@ theorem routeBRicherSPDPStableCandidate_headSpanEscape_or_holographicInvariance_
 #print axioms routeBRicherSPDPStableCandidate_holographicInvariance_of_secondPass_residualGeneratorZero
 #print axioms routeBRicherSPDPStableCandidate_not_holographicInvariance_of_visibleCoefficientEscape
 #print axioms routeBRicherSPDPStableCandidate_not_holographicInvariance_of_mlProjVisibleCoefficientEscape
+#print axioms routeBRicherSPDPStableCandidate_projectionKernelStableGeneratorMaps_iff_no_visibleCoefficientEscape
+#print axioms routeBRicherSPDPStableCandidate_holographicInvariance_or_visibleCoefficientEscape_of_headSpanStableGeneratorMaps
 #print axioms routeBRicherSPDPStableCandidate_holographicInvariance_or_visibleCoefficientEscape_of_secondPassClosure
 #print axioms routeBRicherSPDPStableCandidate_holographicInvariance_iff_no_visibleCoefficientEscape_of_secondPassClosure
 #print axioms routeBRicherSPDPStableCandidate_headSpanEscape_or_holographicInvariance_or_visibleCoefficientEscape

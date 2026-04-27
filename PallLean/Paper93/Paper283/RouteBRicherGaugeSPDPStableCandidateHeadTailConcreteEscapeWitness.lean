@@ -199,6 +199,66 @@ theorem routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_iff_
     routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_of_headSpanTailLogWindowProjectionEscapeWitness
       M n hn2 htb hns⟩
 
+/-- Failure of the chosen-projection descent equation already contains a
+visible monomial coefficient of the escaped projected generator row. -/
+theorem routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_of_not_chosenProjectionDescent
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hnot :
+      ¬ RouteBRicherSPDPStableCandidateLogWindowHeadTailChosenProjectionDescent
+          M n hn2 htb hns) :
+    RouteBRicherSPDPStableCandidateHeadSpanTailVisibleCoefficientEscapeObstruction
+      M n hn2 htb hns :=
+  routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_of_headSpanTailLogWindowProjectionEscapeWitness
+    M n hn2 htb hns
+    (routeBRicherSPDPStableCandidate_headSpanTailLogWindowProjectionEscapeWitness_of_not_chosenProjectionDescent
+      M n hn2 htb hns hnot)
+
+/-- The coefficient escape branch is exactly failure of chosen-projection
+descent for the canonical head-span tail. -/
+theorem routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_iff_not_chosenProjectionDescent
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherSPDPStableCandidateHeadSpanTailVisibleCoefficientEscapeObstruction
+        M n hn2 htb hns ↔
+      ¬ RouteBRicherSPDPStableCandidateLogWindowHeadTailChosenProjectionDescent
+          M n hn2 htb hns := by
+  rw [
+    routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_iff_logWindowProjectionEscapeWitness,
+    routeBRicherSPDPStableCandidate_headSpanTailLogWindowProjectionEscapeWitness_iff_not_chosenProjectionDescent]
+
+/-- Failure of the chosen log-window complement invariant contains a visible
+monomial coefficient of the escaped projected generator row. -/
+theorem routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_of_not_logWindowChosenComplementInvariant
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hnot :
+      ¬ RouteBRicherSPDPStableCandidateLogWindowChosenComplementInvariant
+          M n hn2 htb hns
+          (routeBRicherSPDPStableCandidateLogWindowHeadTail
+            M n hn2 htb hns)) :
+    RouteBRicherSPDPStableCandidateHeadSpanTailVisibleCoefficientEscapeObstruction
+      M n hn2 htb hns :=
+  routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_of_headSpanTailLogWindowProjectionEscapeWitness
+    M n hn2 htb hns
+    ((routeBRicherSPDPStableCandidate_headSpanTailLogWindowProjectionEscapeWitness_iff_not_logWindowChosenComplementInvariant
+      M n hn2 htb hns).mpr hnot)
+
+/-- The coefficient escape branch is exactly failure of the chosen log-window
+complement invariant for the canonical head-span tail. -/
+theorem routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_iff_not_logWindowChosenComplementInvariant
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherSPDPStableCandidateHeadSpanTailVisibleCoefficientEscapeObstruction
+        M n hn2 htb hns ↔
+      ¬ RouteBRicherSPDPStableCandidateLogWindowChosenComplementInvariant
+          M n hn2 htb hns
+          (routeBRicherSPDPStableCandidateLogWindowHeadTail
+            M n hn2 htb hns) := by
+  rw [
+    routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_iff_logWindowProjectionEscapeWitness,
+    routeBRicherSPDPStableCandidate_headSpanTailLogWindowProjectionEscapeWitness_iff_not_logWindowChosenComplementInvariant]
+
 /-- Empty-generator coordinate form: a vector in the chosen projection kernel
 whose `mlProj` has a visible projected monomial coefficient. -/
 def RouteBRicherSPDPStableCandidateHeadSpanTailMlProjVisibleCoefficientEscapeWitness
@@ -306,6 +366,34 @@ theorem routeBRicherSPDPStableCandidate_mlProjVisibleCoefficientEscape_iff_kerne
     routeBRicherSPDPStableCandidate_mlProjVisibleCoefficientEscape_of_headSpanTailKernelMlProjProjectionEscape
       M n hn2 htb hns⟩
 
+/-- Failure of empty-generator `mlProj` kernel closure already contains a
+visible monomial coefficient after the selected projection. -/
+theorem routeBRicherSPDPStableCandidate_mlProjVisibleCoefficientEscape_of_not_mlProjKernelClosed
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hnot :
+      ¬ RouteBRicherSPDPStableCandidateHeadSpanTailMlProjKernelClosed
+          M n hn2 htb hns) :
+    RouteBRicherSPDPStableCandidateHeadSpanTailMlProjVisibleCoefficientEscapeWitness
+      M n hn2 htb hns :=
+  routeBRicherSPDPStableCandidate_mlProjVisibleCoefficientEscape_of_headSpanTailKernelMlProjProjectionEscape
+    M n hn2 htb hns
+    ((routeBRicherSPDPStableCandidate_headSpanTailKernelMlProjProjectionEscapeWitness_iff_not_mlProjKernelClosed
+      M n hn2 htb hns).mpr hnot)
+
+/-- The empty-generator coefficient escape is exactly failure of kernel closure
+under `mlProj` for the chosen head-span-tail projection. -/
+theorem routeBRicherSPDPStableCandidate_mlProjVisibleCoefficientEscape_iff_not_mlProjKernelClosed
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherSPDPStableCandidateHeadSpanTailMlProjVisibleCoefficientEscapeWitness
+        M n hn2 htb hns ↔
+      ¬ RouteBRicherSPDPStableCandidateHeadSpanTailMlProjKernelClosed
+          M n hn2 htb hns := by
+  rw [
+    routeBRicherSPDPStableCandidate_mlProjVisibleCoefficientEscape_iff_kernelMlProjProjectionEscape,
+    routeBRicherSPDPStableCandidate_headSpanTailKernelMlProjProjectionEscapeWitness_iff_not_mlProjKernelClosed]
+
 /-- A visible `mlProj` coordinate instantiates the requested log-window
 projection-escape witness. -/
 theorem routeBRicherSPDPStableCandidate_headSpanTailLogWindowProjectionEscapeWitness_of_mlProjVisibleCoefficientEscape
@@ -327,9 +415,12 @@ theorem routeBRicherSPDPStableCandidate_headSpanTailLogWindowProjectionEscapeWit
 #print axioms RouteBRicherSPDPStableCandidateHeadSpanTailVisibleCoefficientEscapeObstruction
 #print axioms routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_of_explicitCoeff
 #print axioms routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_iff_logWindowProjectionEscapeWitness
+#print axioms routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_iff_not_chosenProjectionDescent
+#print axioms routeBRicherSPDPStableCandidate_visibleCoefficientEscapeObstruction_iff_not_logWindowChosenComplementInvariant
 #print axioms RouteBRicherSPDPStableCandidateHeadSpanTailMlProjVisibleCoefficientEscapeWitness
 #print axioms routeBRicherSPDPStableCandidate_headSpanTailMlProjVisibleCoefficientEscapeWitness_of_explicitCoeff
 #print axioms routeBRicherSPDPStableCandidate_mlProjVisibleCoefficientEscape_iff_kernelMlProjProjectionEscape
+#print axioms routeBRicherSPDPStableCandidate_mlProjVisibleCoefficientEscape_iff_not_mlProjKernelClosed
 #print axioms routeBRicherSPDPStableCandidate_headSpanTailLogWindowProjectionEscapeWitness_of_mlProjVisibleCoefficientEscape
 
 end PallLean.Paper93.Paper283

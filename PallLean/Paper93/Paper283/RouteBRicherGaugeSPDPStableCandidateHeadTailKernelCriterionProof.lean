@@ -106,6 +106,83 @@ theorem routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableG
     routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionDescent_iff_stableGeneratorMaps
       M n hn2 htb hns
 
+/-- Log-window chosen-complement invariance is exactly the stable-generator-map
+criterion for the selected head-tail projection kernel. -/
+theorem routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_iff_logWindowChosenComplementInvariant
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherSPDPStableCandidateLogWindowHeadTailProjectionKernelStableGeneratorMaps
+        M n hn2 htb hns ↔
+      RouteBRicherSPDPStableCandidateLogWindowChosenComplementInvariant
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail
+          M n hn2 htb hns) := by
+  rw [routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_iff_chosenComplementStableGeneratorMaps]
+  exact
+    (routeBRicherSPDPStableCandidate_logWindowChosenComplementInvariant_iff_stableGeneratorMaps
+      M n hn2 htb hns
+      (routeBRicherSPDPStableCandidateLogWindowHeadTail
+        M n hn2 htb hns)).symm
+
+/-- The all-admissible kernel-invisibility obligation for the head-tail
+candidate is stronger than the log-window stable-generator-map criterion. -/
+theorem routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_of_kernelGeneratorInvisible
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hkernel :
+      RouteBRicherSPDPStableCandidateKernelGeneratorInvisible
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail
+          M n hn2 htb hns)) :
+    RouteBRicherSPDPStableCandidateLogWindowHeadTailProjectionKernelStableGeneratorMaps
+      M n hn2 htb hns := by
+  refine
+    (routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_iff_kernelCriterion
+      M n hn2 htb hns).mpr ?_
+  intro spdpKappa ell p S shift hSlen hshiftDegree _hSlog
+    _hshiftLog hshiftVars hadm hp
+  exact
+    hkernel spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm hp
+
+/-- Residual invisibility for the head-tail candidate, with no log-window
+restriction, implies the log-window stable-generator-map criterion. -/
+theorem routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_of_residualInvisible
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hinvisible :
+      RouteBRicherSPDPStableCandidateResidualInvisible
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail
+          M n hn2 htb hns)) :
+    RouteBRicherSPDPStableCandidateLogWindowHeadTailProjectionKernelStableGeneratorMaps
+      M n hn2 htb hns :=
+  routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_of_kernelGeneratorInvisible
+    M n hn2 htb hns
+    ((routeBRicherSPDPStableCandidate_residualInvisible_iff_kernelGeneratorInvisible
+      M n hn2 htb hns
+      (routeBRicherSPDPStableCandidateLogWindowHeadTail
+        M n hn2 htb hns)).mp hinvisible)
+
+/-- The all-admissible chosen-complement invariance obligation for the
+head-tail candidate implies the log-window stable-generator-map criterion. -/
+theorem routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_of_chosenComplementInvariant
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hinvariant :
+      RouteBRicherSPDPStableCandidateChosenComplementInvariant
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail
+          M n hn2 htb hns)) :
+    RouteBRicherSPDPStableCandidateLogWindowHeadTailProjectionKernelStableGeneratorMaps
+      M n hn2 htb hns :=
+  routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_of_kernelGeneratorInvisible
+    M n hn2 htb hns
+    (routeBRicherSPDPStableCandidate_kernelGeneratorInvisible_of_chosenComplementInvariant
+      M n hn2 htb hns
+      (routeBRicherSPDPStableCandidateLogWindowHeadTail
+        M n hn2 htb hns)
+      hinvariant)
+
 /-- Kernel-submodule stability gives chosen-projection descent. -/
 theorem routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionDescent_of_projectionKernelStableGeneratorMaps
     (M : DTM) (n : Nat) (hn2 : n >= 2)
@@ -242,6 +319,27 @@ theorem routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_o
     hann spdpKappa ell p S shift hSlen hshiftDegree hSlog
       hshiftLog hshiftVars hadm hpComplement
 
+/-- The all-admissible zero-before-projection kernel obligation for the
+head-tail candidate is stronger than strict log-window residual-generator
+zero. -/
+theorem routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_of_kernelGeneratorZero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hzero :
+      RouteBRicherSPDPStableCandidateKernelGeneratorZero
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail
+          M n hn2 htb hns)) :
+    RouteBRicherSPDPStableCandidateLogWindowHeadTailResidualGeneratorZero
+      M n hn2 htb hns := by
+  refine
+    (routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_iff_kernelGeneratorAnnihilates
+      M n hn2 htb hns).mpr ?_
+  intro spdpKappa ell p S shift hSlen hshiftDegree _hSlog
+    _hshiftLog hshiftVars hadm hp
+  exact
+    hzero spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm hp
+
 /-- Strict kernel-generator annihilation proves the exact chosen-projection
 kernel criterion. -/
 theorem routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionKernelCriterion_of_kernelGeneratorAnnihilates
@@ -334,11 +432,16 @@ theorem routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZe
 #print axioms RouteBRicherSPDPStableCandidateLogWindowHeadTailProjectionKernelStableGeneratorMaps
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_iff_kernelCriterion
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_iff_chosenComplementStableGeneratorMaps
+#print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_iff_logWindowChosenComplementInvariant
+#print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_of_kernelGeneratorInvisible
+#print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_of_residualInvisible
+#print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailProjectionKernelStableGeneratorMaps_of_chosenComplementInvariant
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionDescent_of_projectionKernelStableGeneratorMaps
 #print axioms RouteBRicherSPDPStableCandidateLogWindowHeadTailResidualGeneratorZero
 #print axioms RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorAnnihilates
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_iff_kernelGeneratorAnnihilates
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_of_chosenComplement_generator_zero
+#print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_of_kernelGeneratorZero
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionKernelCriterion_of_residualGeneratorZero
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionDescent_of_residualGeneratorZero
 #print axioms routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_of_kernelObstruction
