@@ -323,6 +323,206 @@ theorem zeroProfileProjectionResidualClosureWithBudget_zero_of_fixesShiftRows
   rw [hzero]
   exact Submodule.zero_mem _
 
+/-! ## Singleton-shift obstruction to residual-free quotienting -/
+
+/-- The singleton-shift zero-profile row attached to a base product. -/
+noncomputable def zeroProfileSingletonShiftRow {n : ℕ}
+    (p : MvPolynomial (Fin n) ℚ) (i : Fin n) :
+    MvPolynomial (Fin n) ℚ :=
+  mlProj (MvPolynomial.X i * p)
+
+/-- Singleton-shift rows have a Kronecker coefficient matrix at the degree-one
+monomials, with diagonal entry the base product's constant coefficient. -/
+theorem zeroProfileSingletonShiftRow_coeff_single
+    {n : ℕ} (p : MvPolynomial (Fin n) ℚ) (i j : Fin n) :
+    MvPolynomial.coeff (Finsupp.single i 1)
+        (zeroProfileSingletonShiftRow p j) =
+      if i = j then
+        MvPolynomial.coeff (0 : Fin n →₀ ℕ) p
+      else 0 := by
+  classical
+  unfold zeroProfileSingletonShiftRow
+  rw [coeff_mlProj_of_isMultilinear_mono]
+  · rw [MvPolynomial.coeff_X_mul']
+    by_cases hij : i = j
+    · subst j
+      have hmem :
+          i ∈ (Finsupp.single i 1 : Fin n →₀ ℕ).support := by
+        simp
+      rw [if_pos hmem, if_pos rfl]
+      simp
+    · have hnot :
+          j ∉ (Finsupp.single i 1 : Fin n →₀ ℕ).support := by
+        rw [Finsupp.mem_support_iff]
+        simp [hij]
+      rw [if_neg hnot, if_neg hij]
+  · intro k
+    simp [Finsupp.single_apply]
+    split_ifs <;> omega
+
+/-- If the base product has nonzero constant coefficient, the singleton-shift
+rows are linearly independent.  This is the concrete obstruction that raw
+singleton residuals create for any quotient projection that kills them. -/
+theorem zeroProfileSingletonShiftRows_linearIndependent_of_constCoeff_ne_zero
+    {n : ℕ} (p : MvPolynomial (Fin n) ℚ)
+    (hp0 : MvPolynomial.coeff (0 : Fin n →₀ ℕ) p ≠ 0) :
+    LinearIndependent ℚ (fun i : Fin n =>
+      zeroProfileSingletonShiftRow p i) := by
+  classical
+  rw [linearIndependent_iff']
+  intro s w hw i hi
+  have hcoeff := congrArg
+    (fun q => MvPolynomial.coeff (Finsupp.single (i : Fin n) 1) q) hw
+  simp only [MvPolynomial.coeff_sum, MvPolynomial.coeff_smul,
+    smul_eq_mul, MvPolynomial.coeff_zero] at hcoeff
+  have hsum :
+      (∑ j ∈ s,
+          w j *
+            MvPolynomial.coeff (Finsupp.single (i : Fin n) 1)
+              (zeroProfileSingletonShiftRow p j)) =
+        w i * MvPolynomial.coeff (0 : Fin n →₀ ℕ) p := by
+    calc
+      (∑ j ∈ s,
+          w j *
+            MvPolynomial.coeff (Finsupp.single (i : Fin n) 1)
+              (zeroProfileSingletonShiftRow p j))
+          = ∑ j ∈ s,
+              w j *
+                (if i = j then
+                  MvPolynomial.coeff (0 : Fin n →₀ ℕ) p
+                else 0) := by
+            refine Finset.sum_congr rfl ?_
+            intro j _hj
+            rw [zeroProfileSingletonShiftRow_coeff_single]
+      _ = w i * MvPolynomial.coeff (0 : Fin n →₀ ℕ) p := by
+            rw [Finset.sum_eq_single i]
+            · simp
+            · intro j hj hji
+              have hij : i ≠ j := by
+                intro heq
+                exact hji heq.symm
+              simp [hij]
+            · intro hnot
+              exact False.elim (hnot hi)
+  rw [hsum] at hcoeff
+  exact (mul_eq_zero.mp hcoeff).resolve_right hp0
+
+/-- A singleton-shift row is one of the zero-profile shifted rows whenever
+the window budget permits one touched variable. -/
+theorem zeroProfileSingletonShiftRow_mem_shiftImageSet
+    {n L κ : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (i : Fin n) (hκ : 1 ≤ κ) :
+    zeroProfileSingletonShiftRow (Finset.univ.prod factors) i ∈
+      zeroProfileShiftImageSet κ factors := by
+  classical
+  simp only [zeroProfileShiftImageSet, Set.mem_iUnion,
+    Set.mem_singleton_iff]
+  refine ⟨[i], ?_, MvPolynomial.X i, ?_, rfl⟩
+  · simpa using hκ
+  · intro v hv
+    simpa using hv
+
+/-- A quotient projection that kills singleton shifts cannot also fix every
+zero-profile shifted row when the base product has nonzero constant
+coefficient. -/
+theorem not_zeroProfileProjectionFixesShiftRows_of_killsSingleton_constCoeff_ne_zero
+    {n L κ : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    (i : Fin n) (hκ : 1 ≤ κ)
+    (hp0 :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (Finset.univ.prod factors) ≠ 0)
+    (hkills : ZeroProfileProjectionKillsSingletonShifts factors project) :
+    ¬ ZeroProfileProjectionFixesShiftRows κ factors project := by
+  intro hfix
+  let q := zeroProfileSingletonShiftRow (Finset.univ.prod factors) i
+  have hqmem : q ∈ zeroProfileShiftImageSet κ factors :=
+    zeroProfileSingletonShiftRow_mem_shiftImageSet factors i hκ
+  have hfixed : project q = q := hfix q hqmem
+  have hkill : project q = 0 := hkills i
+  have hqzero : q = 0 := by
+    rw [← hfixed, hkill]
+  have hcoeff_zero :
+      MvPolynomial.coeff (Finsupp.single i 1) q = 0 := by
+    rw [hqzero, MvPolynomial.coeff_zero]
+  have hcoeff_one :
+      MvPolynomial.coeff (Finsupp.single i 1) q =
+        MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+          (Finset.univ.prod factors) := by
+    simp [q, zeroProfileSingletonShiftRow_coeff_single]
+  exact hp0 (hcoeff_one ▸ hcoeff_zero)
+
+/-- Any residual span for a projection that kills the singleton-shift rows must
+pay at least the ambient variable count.  This is a lower bound, not another
+frontier assumption: it follows from the Kronecker coefficient matrix above. -/
+theorem zeroProfileProjectionResidualClosureWithBudget_residualBudget_ge_ambient_of_killsSingleton_constCoeff_ne_zero
+    {n L κ residualBudget : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    (hκ : 1 ≤ κ)
+    (hp0 :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (Finset.univ.prod factors) ≠ 0)
+    (hkills : ZeroProfileProjectionKillsSingletonShifts factors project)
+    (hresidual :
+      ZeroProfileProjectionResidualClosureWithBudget
+        κ factors project residualBudget) :
+    n ≤ residualBudget := by
+  classical
+  rcases hresidual with ⟨R, hR_card, hR_span⟩
+  let U : Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+    Submodule.span ℚ (↑R : Set (MvPolynomial (Fin n) ℚ))
+  haveI hU_finite : Module.Finite ℚ ↥U :=
+    Module.Finite.span_of_finite ℚ (Finset.finite_toSet R)
+  have hrow_mem : ∀ i : Fin n,
+      zeroProfileSingletonShiftRow (Finset.univ.prod factors) i ∈ U := by
+    intro i
+    have hshift :
+        zeroProfileSingletonShiftRow (Finset.univ.prod factors) i ∈
+          zeroProfileShiftImageSet κ factors :=
+      zeroProfileSingletonShiftRow_mem_shiftImageSet factors i hκ
+    have hres :
+        zeroProfileSingletonShiftRow (Finset.univ.prod factors) i -
+            project (zeroProfileSingletonShiftRow
+              (Finset.univ.prod factors) i) ∈ U :=
+      hR_span _ hshift
+    have hkill :
+        project (zeroProfileSingletonShiftRow
+          (Finset.univ.prod factors) i) = 0 :=
+      hkills i
+    simpa [U, hkill] using hres
+  let rowsInU : Fin n → U :=
+    fun i => ⟨zeroProfileSingletonShiftRow
+      (Finset.univ.prod factors) i, hrow_mem i⟩
+  have hli :
+      LinearIndependent ℚ
+        (fun i : Fin n =>
+          zeroProfileSingletonShiftRow (Finset.univ.prod factors) i) :=
+    zeroProfileSingletonShiftRows_linearIndependent_of_constCoeff_ne_zero
+      (Finset.univ.prod factors) hp0
+  have hli_U : LinearIndependent ℚ rowsInU := by
+    rw [linearIndependent_iff'] at hli ⊢
+    intro s w hw i hi
+    apply hli s w ?_ i hi
+    have hval := congrArg
+      (fun q : U => (q : MvPolynomial (Fin n) ℚ)) hw
+    simpa [rowsInU] using hval
+  have hcard_le_finrank :
+      n ≤ Module.finrank ℚ ↥U := by
+    simpa [Fintype.card_fin] using hli_U.fintype_card_le_finrank
+  have hfinrank_le_card :
+      Module.finrank ℚ ↥U ≤ R.card := by
+    simpa [U] using
+      (finrank_span_finset_le_card R :
+        Module.finrank ℚ
+          ↥(Submodule.span ℚ
+            (↑R : Set (MvPolynomial (Fin n) ℚ))) ≤ R.card)
+  exact hcard_le_finrank.trans (hfinrank_le_card.trans hR_card)
+
 /-- Cook-Levin version of projection-fixes-shift-rows. -/
 def CookLevinZeroProfileProjectionFixesShiftRows
     (M : DTM) (n : ℕ) (hn : n ≥ 2)
@@ -332,6 +532,72 @@ def CookLevinZeroProfileProjectionFixesShiftRows
   ZeroProfileProjectionFixesShiftRows (Nat.log 2 n)
     (fun i => (cookLevinFactorList M n hn htb hns).get i)
     project
+
+/-- The actual Cook-Levin base product has nonzero constant coefficient, so any
+singleton-killing quotient projection cannot be residual-free. -/
+theorem not_CookLevinZeroProfileProjectionFixesShiftRows_of_killsSingleton_actual
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    (hkills :
+      ZeroProfileProjectionKillsSingletonShifts
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+        project) :
+    ¬ CookLevinZeroProfileProjectionFixesShiftRows
+        M n hn htb hns project := by
+  have hlog_pos : 0 < Nat.log 2 n := Nat.log_pos (by omega) hn
+  exact
+    not_zeroProfileProjectionFixesShiftRows_of_killsSingleton_constCoeff_ne_zero
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      project
+      ⟨0, by omega⟩
+      (Nat.succ_le_of_lt hlog_pos)
+      (by
+        simpa [cookLevinZeroProfileBaseProduct] using
+          (show
+            MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+              (cookLevinZeroProfileBaseProduct M n hn htb hns) ≠ 0
+            from by
+              rw [cookLevinZeroProfileBaseProduct_coeff_zero
+                M n hn htb hns]
+              norm_num))
+      hkills
+
+/-- For the actual Cook-Levin base product, any residual closure for a
+singleton-killing quotient projection must pay at least `n` rows.  Thus a
+paper-scale zero-profile close cannot use a free/fixed projection residual. -/
+theorem cookLevinZeroProfileProjectionResidualClosureWithBudget_residualBudget_ge_ambient_of_killsSingleton_actual
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {residualBudget : ℕ}
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    (hkills :
+      ZeroProfileProjectionKillsSingletonShifts
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+        project)
+    (hresidual :
+      CookLevinZeroProfileProjectionResidualClosureWithBudget
+        M n hn htb hns project residualBudget) :
+    n ≤ residualBudget := by
+  have hlog_pos : 0 < Nat.log 2 n := Nat.log_pos (by omega) hn
+  exact
+    zeroProfileProjectionResidualClosureWithBudget_residualBudget_ge_ambient_of_killsSingleton_constCoeff_ne_zero
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      project
+      (Nat.succ_le_of_lt hlog_pos)
+      (by
+        simpa [cookLevinZeroProfileBaseProduct] using
+          (show
+            MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+              (cookLevinZeroProfileBaseProduct M n hn htb hns) ≠ 0
+            from by
+              rw [cookLevinZeroProfileBaseProduct_coeff_zero
+                M n hn htb hns]
+              norm_num))
+      hkills
+      hresidual
 
 /-- A projected normal-form certificate plus a paid residual closes the
 unprojected non-scalar zero-profile budget. -/
@@ -423,6 +689,12 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_projectedNormalFormCertificate_
 #print axioms zeroProfileProjectedCommonSpanWithBudget_of_normalFormCertificate
 #print axioms cookLevinZeroProfileProjectedCommonSpanObligation_of_projectedNormalFormObligation
 #print axioms zeroProfileProjectionResidualClosureWithBudget_zero_of_fixesShiftRows
+#print axioms zeroProfileSingletonShiftRow_coeff_single
+#print axioms zeroProfileSingletonShiftRows_linearIndependent_of_constCoeff_ne_zero
+#print axioms not_zeroProfileProjectionFixesShiftRows_of_killsSingleton_constCoeff_ne_zero
+#print axioms zeroProfileProjectionResidualClosureWithBudget_residualBudget_ge_ambient_of_killsSingleton_constCoeff_ne_zero
+#print axioms not_CookLevinZeroProfileProjectionFixesShiftRows_of_killsSingleton_actual
+#print axioms cookLevinZeroProfileProjectionResidualClosureWithBudget_residualBudget_ge_ambient_of_killsSingleton_actual
 #print axioms cookLevinZeroProfileNonScalarClosureWithBudget_of_projectedNormalFormCertificate_residualClosure
 #print axioms cookLevinZeroHistogramShiftCommonSpan_of_projectedNormalFormCertificate_residualClosure
 #print axioms cookLevinZeroHistogramShiftCommonSpan_of_projectedNormalFormCertificate_fixesShiftRows
