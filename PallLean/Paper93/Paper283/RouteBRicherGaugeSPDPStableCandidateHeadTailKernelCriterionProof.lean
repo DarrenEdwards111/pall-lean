@@ -243,6 +243,39 @@ def RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorAnnihilates
         p = 0 ->
     routeBSPDPGeneratorRow M n hn2 htb hns p S shift = 0
 
+/-- Explicit obstruction to strict residual-row annihilation: a log-window
+admissible generator row is nonzero on a vector in the chosen projection
+kernel. -/
+def RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorNonzeroWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) : Prop :=
+  exists (spdpKappa ell : Nat)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns)
+    (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+    (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+    S.length = spdpKappa ∧
+    shift.totalDegree <= ell ∧
+    S.length <= Nat.log 2 n ∧
+    shift.totalDegree <= Nat.log 2 n ∧
+    shift.vars <= S.toFinset ∧
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S ∧
+    routeBRicherSPDPStableCandidateProjection M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail M n hn2 htb hns)
+        p = 0 ∧
+    routeBSPDPGeneratorRow M n hn2 htb hns p S shift ≠ 0
+
+/-- Empty-generator obstruction to strict residual-row annihilation: the
+chosen projection kernel contains a vector with nonzero multilinear part. -/
+def RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelMlProjNonzeroWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) : Prop :=
+  exists p : SATDeciderGaugeSpace M n hn2 htb hns,
+    routeBRicherSPDPStableCandidateProjection M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail M n hn2 htb hns)
+        p = 0 ∧
+    mlProj p ≠ 0
+
 /-- Residual-row annihilation and kernel-vector annihilation are the same
 strict condition, rewritten across `p - Π p`. -/
 theorem routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_iff_kernelGeneratorAnnihilates
@@ -278,6 +311,114 @@ theorem routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_i
       hann spdpKappa ell (p - Pi p) S shift hSlen hshiftDegree hSlog
         hshiftLog hshiftVars hadm
         (by simpa [Pi, tail] using hresZero)
+
+/-- A strict kernel-generator nonzero witness is exactly the obstruction to
+strict residual-row annihilation. -/
+theorem routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_iff_no_kernelGeneratorNonzeroWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherSPDPStableCandidateLogWindowHeadTailResidualGeneratorZero
+        M n hn2 htb hns ↔
+      ¬ RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorNonzeroWitness
+        M n hn2 htb hns := by
+  constructor
+  · intro hzero hbad
+    obtain ⟨spdpKappa, ell, p, S, shift,
+      hSlen, hshiftDegree, hSlog, hshiftLog, hshiftVars, hadm,
+      hpZero, hrowNe⟩ := hbad
+    have hann :
+        RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorAnnihilates
+          M n hn2 htb hns :=
+      (routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_iff_kernelGeneratorAnnihilates
+        M n hn2 htb hns).mp hzero
+    exact hrowNe
+      (hann spdpKappa ell p S shift hSlen hshiftDegree hSlog hshiftLog
+        hshiftVars hadm hpZero)
+  · intro hno
+    refine
+      (routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_iff_kernelGeneratorAnnihilates
+        M n hn2 htb hns).mpr ?_
+    intro spdpKappa ell p S shift hSlen hshiftDegree hSlog hshiftLog
+      hshiftVars hadm hpZero
+    by_contra hrowNe
+    exact hno
+      ⟨spdpKappa, ell, p, S, shift,
+        hSlen, hshiftDegree, hSlog, hshiftLog, hshiftVars, hadm,
+        hpZero, hrowNe⟩
+
+/-- Failure of strict residual-row annihilation produces a concrete nonzero
+kernel-generator witness. -/
+theorem routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorNonzeroWitness_of_not_residualGeneratorZero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hnot :
+      ¬ RouteBRicherSPDPStableCandidateLogWindowHeadTailResidualGeneratorZero
+        M n hn2 htb hns) :
+    RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorNonzeroWitness
+      M n hn2 htb hns := by
+  by_contra hnoWitness
+  exact hnot
+    ((routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_iff_no_kernelGeneratorNonzeroWitness
+      M n hn2 htb hns).mpr hnoWitness)
+
+/-- Any concrete nonzero kernel-generator witness refutes strict
+residual-row annihilation. -/
+theorem routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_of_kernelGeneratorNonzeroWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hbad :
+      RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorNonzeroWitness
+        M n hn2 htb hns) :
+    ¬ RouteBRicherSPDPStableCandidateLogWindowHeadTailResidualGeneratorZero
+        M n hn2 htb hns := by
+  intro hzero
+  exact
+    ((routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_iff_no_kernelGeneratorNonzeroWitness
+      M n hn2 htb hns).mp hzero) hbad
+
+/-- A nonzero `mlProj` vector in the chosen projection kernel is the smallest
+log-window kernel-generator nonzero witness: take the empty derivative list
+and constant shift `1`. -/
+theorem routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorNonzeroWitness_of_kernelMlProjNonzeroWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hbad :
+      RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelMlProjNonzeroWitness
+        M n hn2 htb hns) :
+    RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorNonzeroWitness
+      M n hn2 htb hns := by
+  obtain ⟨p, hpZero, hmlNe⟩ := hbad
+  refine ⟨0, 0, p,
+    ([] : List (Fin (RouteBCookLevinDim M n hn2 htb hns))),
+    (1 : SATDeciderGaugeSpace M n hn2 htb hns),
+    by simp,
+    by simp [MvPolynomial.totalDegree_one],
+    by simp,
+    by simp [MvPolynomial.totalDegree_one],
+    by simp [MvPolynomial.vars_one],
+    ?_,
+    hpZero,
+    ?_⟩
+  · constructor
+    · simp
+    · intro b
+      simp
+  · simpa [routeBSPDPGeneratorRow, SPDP.iterDerivList, mlProj_one] using hmlNe
+
+/-- The empty-generator `mlProj` obstruction refutes strict residual-row
+annihilation. -/
+theorem routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_of_kernelMlProjNonzeroWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hbad :
+      RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelMlProjNonzeroWitness
+        M n hn2 htb hns) :
+    ¬ RouteBRicherSPDPStableCandidateLogWindowHeadTailResidualGeneratorZero
+        M n hn2 htb hns :=
+  routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_of_kernelGeneratorNonzeroWitness
+    M n hn2 htb hns
+    (routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorNonzeroWitness_of_kernelMlProjNonzeroWitness
+      M n hn2 htb hns hbad)
 
 /-- If every log-window generator annihilates vectors in the selected
 head-span-tail complement, then the residual of the selected projection has
@@ -339,6 +480,43 @@ theorem routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_o
     _hshiftLog hshiftVars hadm hp
   exact
     hzero spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm hp
+
+/-- A log-window nonzero kernel-generator witness also refutes the stronger
+all-admissible zero-before-projection kernel obligation for the head-tail
+candidate. -/
+theorem routeBRicherSPDPStableCandidate_not_kernelGeneratorZero_of_logWindowHeadTailKernelGeneratorNonzeroWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hbad :
+      RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorNonzeroWitness
+        M n hn2 htb hns) :
+    ¬ RouteBRicherSPDPStableCandidateKernelGeneratorZero
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail
+          M n hn2 htb hns) := by
+  intro hzero
+  obtain ⟨spdpKappa, ell, p, S, shift,
+    hSlen, hshiftDegree, _hSlog, _hshiftLog, hshiftVars, hadm,
+    hpZero, hrowNe⟩ := hbad
+  exact hrowNe
+    (hzero spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm hpZero)
+
+/-- The stronger all-admissible kernel-generator-zero obligation excludes
+the explicit strict log-window obstruction. -/
+theorem routeBRicherSPDPStableCandidate_no_logWindowHeadTailKernelGeneratorNonzeroWitness_of_kernelGeneratorZero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hzero :
+      RouteBRicherSPDPStableCandidateKernelGeneratorZero
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail
+          M n hn2 htb hns)) :
+    ¬ RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorNonzeroWitness
+        M n hn2 htb hns := by
+  intro hbad
+  exact
+    (routeBRicherSPDPStableCandidate_not_kernelGeneratorZero_of_logWindowHeadTailKernelGeneratorNonzeroWitness
+      M n hn2 htb hns hbad) hzero
 
 /-- Strict kernel-generator annihilation proves the exact chosen-projection
 kernel criterion. -/
@@ -439,9 +617,18 @@ theorem routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZe
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionDescent_of_projectionKernelStableGeneratorMaps
 #print axioms RouteBRicherSPDPStableCandidateLogWindowHeadTailResidualGeneratorZero
 #print axioms RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorAnnihilates
+#print axioms RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelGeneratorNonzeroWitness
+#print axioms RouteBRicherSPDPStableCandidateLogWindowHeadTailKernelMlProjNonzeroWitness
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_iff_kernelGeneratorAnnihilates
+#print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_iff_no_kernelGeneratorNonzeroWitness
+#print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorNonzeroWitness_of_not_residualGeneratorZero
+#print axioms routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_of_kernelGeneratorNonzeroWitness
+#print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailKernelGeneratorNonzeroWitness_of_kernelMlProjNonzeroWitness
+#print axioms routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_of_kernelMlProjNonzeroWitness
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_of_chosenComplement_generator_zero
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_of_kernelGeneratorZero
+#print axioms routeBRicherSPDPStableCandidate_not_kernelGeneratorZero_of_logWindowHeadTailKernelGeneratorNonzeroWitness
+#print axioms routeBRicherSPDPStableCandidate_no_logWindowHeadTailKernelGeneratorNonzeroWitness_of_kernelGeneratorZero
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionKernelCriterion_of_residualGeneratorZero
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionDescent_of_residualGeneratorZero
 #print axioms routeBRicherSPDPStableCandidate_not_logWindowHeadTailResidualGeneratorZero_of_kernelObstruction

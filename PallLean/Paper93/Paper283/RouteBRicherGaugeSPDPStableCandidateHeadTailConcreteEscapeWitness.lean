@@ -409,6 +409,225 @@ theorem routeBRicherSPDPStableCandidate_headSpanTailLogWindowProjectionEscapeWit
     ((routeBRicherSPDPStableCandidate_mlProjVisibleCoefficientEscape_iff_kernelMlProjProjectionEscape
       M n hn2 htb hns).mp hcoord)
 
+/-! ## Caller-supplied complement coefficient witnesses -/
+
+/-- Coordinate escape witness for the canonical head-span tail, but with a
+caller-supplied projection complement rather than the legacy chosen complement.
+
+The witness is deliberately stated against the bundled explicit-complement
+interface: an inspectable complement `I.complement`, a kernel vector `p`, an
+admissible generator row, and a visible monomial coefficient after `I.projection`.
+-/
+def RouteBRicherSPDPStableCandidateHeadSpanTailExplicitComplementVisibleCoefficientEscapeWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (I :
+      RouteBRicherSPDPStableCandidateProjectionComplementInterface
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail
+          M n hn2 htb hns)) : Prop :=
+  exists (spdpKappa ell : Nat)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns)
+    (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+    (shift : SATDeciderGaugeSpace M n hn2 htb hns)
+    (μ : Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat),
+    S.length = spdpKappa ∧
+    shift.totalDegree <= ell ∧
+    S.length <= Nat.log 2 n ∧
+    shift.totalDegree <= Nat.log 2 n ∧
+    shift.vars <= S.toFinset ∧
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S ∧
+    I.projection p = 0 ∧
+    MvPolynomial.coeff μ
+      (I.projection
+        (routeBSPDPGeneratorRow M n hn2 htb hns p S shift)) ≠ 0
+
+/-- Constructor for the caller-supplied-complement coordinate escape surface. -/
+theorem routeBRicherSPDPStableCandidate_headSpanTailExplicitComplementVisibleCoefficientEscapeWitness_of_explicitCoeff
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (I :
+      RouteBRicherSPDPStableCandidateProjectionComplementInterface
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail
+          M n hn2 htb hns))
+    (spdpKappa ell : Nat)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns)
+    (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+    (shift : SATDeciderGaugeSpace M n hn2 htb hns)
+    (μ : Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat)
+    (hSlen : S.length = spdpKappa)
+    (hshiftDegree : shift.totalDegree <= ell)
+    (hSlog : S.length <= Nat.log 2 n)
+    (hshiftLog : shift.totalDegree <= Nat.log 2 n)
+    (hshiftVars : shift.vars <= S.toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition S)
+    (hpZero : I.projection p = 0)
+    (hcoeff :
+      MvPolynomial.coeff μ
+        (I.projection
+          (routeBSPDPGeneratorRow M n hn2 htb hns p S shift)) ≠ 0) :
+    RouteBRicherSPDPStableCandidateHeadSpanTailExplicitComplementVisibleCoefficientEscapeWitness
+      M n hn2 htb hns I :=
+  ⟨spdpKappa, ell, p, S, shift, μ, hSlen, hshiftDegree, hSlog,
+    hshiftLog, hshiftVars, hadm, hpZero, hcoeff⟩
+
+/-- A visible coefficient for a caller-supplied complement gives the existing
+projection-with-complement escape shape, with log-window bounds forgotten. -/
+theorem routeBRicherSPDPStableCandidate_projectionWithComplement_escape_of_headSpanTailExplicitComplementVisibleCoefficientEscape
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (I :
+      RouteBRicherSPDPStableCandidateProjectionComplementInterface
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail
+          M n hn2 htb hns))
+    (hcoord :
+      RouteBRicherSPDPStableCandidateHeadSpanTailExplicitComplementVisibleCoefficientEscapeWitness
+        M n hn2 htb hns I) :
+    exists (spdpKappa ell : Nat)
+      (p : SATDeciderGaugeSpace M n hn2 htb hns)
+      (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+      (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+      S.length = spdpKappa ∧
+      shift.totalDegree <= ell ∧
+      shift.vars <= S.toFinset ∧
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition S ∧
+      p ∈ I.complement ∧
+      routeBRicherSPDPStableCandidateProjectionWithComplement
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail M n hn2 htb hns)
+        I.complement I.isCompl
+        (routeBSPDPGeneratorRow M n hn2 htb hns p S shift) ≠ 0 := by
+  rcases hcoord with ⟨spdpKappa, ell, p, S, shift, μ,
+    hSlen, hshiftDegree, _hSlog, _hshiftLog, hshiftVars, hadm,
+    hpZero, hcoeff⟩
+  refine ⟨spdpKappa, ell, p, S, shift,
+    hSlen, hshiftDegree, hshiftVars, hadm, ?_, ?_⟩
+  · exact (I.projection_apply_eq_zero_iff p).mp hpZero
+  · intro hprojZero
+    exact hcoeff (by simp [RouteBRicherSPDPStableCandidateProjectionComplementInterface.projection,
+      hprojZero])
+
+/-- A caller-supplied-complement visible coefficient refutes invariance of that
+same inspectable complement. -/
+theorem routeBRicherSPDPStableCandidate_headSpanTailExplicitComplementInvariant_noGo_of_visibleCoefficientEscape
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (I :
+      RouteBRicherSPDPStableCandidateProjectionComplementInterface
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail
+          M n hn2 htb hns))
+    (hcoord :
+      RouteBRicherSPDPStableCandidateHeadSpanTailExplicitComplementVisibleCoefficientEscapeWitness
+        M n hn2 htb hns I) :
+    ¬ RouteBRicherSPDPStableCandidateExplicitComplementInvariant
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail
+          M n hn2 htb hns)
+        I.complement :=
+  routeBRicherSPDPStableCandidate_explicitComplementInvariant_noGo_of_projectionWithComplement_escape
+    M n hn2 htb hns
+    (routeBRicherSPDPStableCandidateLogWindowHeadTail
+      M n hn2 htb hns)
+    I.complement I.isCompl
+    (routeBRicherSPDPStableCandidate_projectionWithComplement_escape_of_headSpanTailExplicitComplementVisibleCoefficientEscape
+      M n hn2 htb hns I hcoord)
+
+/-- Empty-generator `mlProj` coefficient witness for a caller-supplied
+head-span-tail complement. -/
+def RouteBRicherSPDPStableCandidateHeadSpanTailExplicitComplementMlProjVisibleCoefficientEscapeWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (I :
+      RouteBRicherSPDPStableCandidateProjectionComplementInterface
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail
+          M n hn2 htb hns)) : Prop :=
+  exists (p : SATDeciderGaugeSpace M n hn2 htb hns)
+    (μ : Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat),
+    I.projection p = 0 ∧
+    MvPolynomial.coeff μ (I.projection (mlProj p)) ≠ 0
+
+/-- Constructor for the empty-generator caller-supplied-complement coefficient
+witness. -/
+theorem routeBRicherSPDPStableCandidate_headSpanTailExplicitComplementMlProjVisibleCoefficientEscapeWitness_of_explicitCoeff
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (I :
+      RouteBRicherSPDPStableCandidateProjectionComplementInterface
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail
+          M n hn2 htb hns))
+    (p : SATDeciderGaugeSpace M n hn2 htb hns)
+    (μ : Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat)
+    (hpZero : I.projection p = 0)
+    (hcoeff : MvPolynomial.coeff μ (I.projection (mlProj p)) ≠ 0) :
+    RouteBRicherSPDPStableCandidateHeadSpanTailExplicitComplementMlProjVisibleCoefficientEscapeWitness
+      M n hn2 htb hns I :=
+  ⟨p, μ, hpZero, hcoeff⟩
+
+/-- The empty-generator caller-supplied coefficient witness instantiates the
+general caller-supplied coefficient witness. -/
+theorem routeBRicherSPDPStableCandidate_headSpanTailExplicitComplementVisibleCoefficientEscape_of_mlProjVisibleCoefficientEscape
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (I :
+      RouteBRicherSPDPStableCandidateProjectionComplementInterface
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail
+          M n hn2 htb hns))
+    (hcoord :
+      RouteBRicherSPDPStableCandidateHeadSpanTailExplicitComplementMlProjVisibleCoefficientEscapeWitness
+        M n hn2 htb hns I) :
+    RouteBRicherSPDPStableCandidateHeadSpanTailExplicitComplementVisibleCoefficientEscapeWitness
+      M n hn2 htb hns I := by
+  rcases hcoord with ⟨p, μ, hpZero, hcoeff⟩
+  refine ⟨0, 0, p,
+    ([] : List (Fin (RouteBCookLevinDim M n hn2 htb hns))),
+    (1 : SATDeciderGaugeSpace M n hn2 htb hns), μ,
+    by simp,
+    by simp [MvPolynomial.totalDegree_one],
+    by simp,
+    by simp [MvPolynomial.totalDegree_one],
+    by simp [MvPolynomial.vars_one],
+    ?_,
+    hpZero,
+    ?_⟩
+  · constructor
+    · simp
+    · intro b
+      simp
+  · simpa [routeBSPDPGeneratorRow, SPDP.iterDerivList, mlProj_one] using hcoeff
+
+/-- Empty-generator caller-supplied coefficient escape refutes invariance of
+the same inspectable complement. -/
+theorem routeBRicherSPDPStableCandidate_headSpanTailExplicitComplementInvariant_noGo_of_mlProjVisibleCoefficientEscape
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (I :
+      RouteBRicherSPDPStableCandidateProjectionComplementInterface
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail
+          M n hn2 htb hns))
+    (hcoord :
+      RouteBRicherSPDPStableCandidateHeadSpanTailExplicitComplementMlProjVisibleCoefficientEscapeWitness
+        M n hn2 htb hns I) :
+    ¬ RouteBRicherSPDPStableCandidateExplicitComplementInvariant
+        M n hn2 htb hns
+        (routeBRicherSPDPStableCandidateLogWindowHeadTail
+          M n hn2 htb hns)
+        I.complement :=
+  routeBRicherSPDPStableCandidate_headSpanTailExplicitComplementInvariant_noGo_of_visibleCoefficientEscape
+    M n hn2 htb hns I
+    (routeBRicherSPDPStableCandidate_headSpanTailExplicitComplementVisibleCoefficientEscape_of_mlProjVisibleCoefficientEscape
+      M n hn2 htb hns I hcoord)
+
 /-! ## Axiom audit anchors -/
 
 #print axioms mvPolynomial_ne_zero_iff_exists_coeff_ne_zero
@@ -422,5 +641,13 @@ theorem routeBRicherSPDPStableCandidate_headSpanTailLogWindowProjectionEscapeWit
 #print axioms routeBRicherSPDPStableCandidate_mlProjVisibleCoefficientEscape_iff_kernelMlProjProjectionEscape
 #print axioms routeBRicherSPDPStableCandidate_mlProjVisibleCoefficientEscape_iff_not_mlProjKernelClosed
 #print axioms routeBRicherSPDPStableCandidate_headSpanTailLogWindowProjectionEscapeWitness_of_mlProjVisibleCoefficientEscape
+#print axioms RouteBRicherSPDPStableCandidateHeadSpanTailExplicitComplementVisibleCoefficientEscapeWitness
+#print axioms routeBRicherSPDPStableCandidate_headSpanTailExplicitComplementVisibleCoefficientEscapeWitness_of_explicitCoeff
+#print axioms routeBRicherSPDPStableCandidate_projectionWithComplement_escape_of_headSpanTailExplicitComplementVisibleCoefficientEscape
+#print axioms routeBRicherSPDPStableCandidate_headSpanTailExplicitComplementInvariant_noGo_of_visibleCoefficientEscape
+#print axioms RouteBRicherSPDPStableCandidateHeadSpanTailExplicitComplementMlProjVisibleCoefficientEscapeWitness
+#print axioms routeBRicherSPDPStableCandidate_headSpanTailExplicitComplementMlProjVisibleCoefficientEscapeWitness_of_explicitCoeff
+#print axioms routeBRicherSPDPStableCandidate_headSpanTailExplicitComplementVisibleCoefficientEscape_of_mlProjVisibleCoefficientEscape
+#print axioms routeBRicherSPDPStableCandidate_headSpanTailExplicitComplementInvariant_noGo_of_mlProjVisibleCoefficientEscape
 
 end PallLean.Paper93.Paper283

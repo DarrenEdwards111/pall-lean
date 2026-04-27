@@ -136,6 +136,197 @@ theorem routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportNotSub
   rw [hzero, mul_zero, mlProj_zero]
   exact Submodule.zero_mem _
 
+/-- Membership criterion for the remaining contained-support branch.
+
+If the second-pass row of a projected head generator has already been proved
+to lie in any strict head SPDP subspace whose profile is inside the log window,
+then it lies in the finite log-window head span.  This is the exact consumer
+shape needed after a future product-rule/`mlProj` expansion of the contained
+branch. -/
+theorem routeBRicherSPDPStableCandidate_secondPassClosure_of_secondPassMemHeadSubspace
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {T S : List (Fin (RouteBCookLevinDim M n hn2 htb hns))}
+    {headShift shift : SATDeciderGaugeSpace M n hn2 htb hns}
+    {combinedKappa combinedEll : Nat}
+    (hcombinedKappaLog : combinedKappa <= Nat.log 2 n)
+    (hcombinedEllLog : combinedEll <= Nat.log 2 n)
+    (hmem :
+      routeBSPDPGeneratorRow M n hn2 htb hns
+          (mlProj
+            (headShift *
+              SPDP.iterDerivList T
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+          S shift ∈
+        mlBlockedSpdpSubspace
+          (cook_levin_compilation M n hn2 htb hns).partition
+          combinedKappa combinedEll
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns))) :
+    routeBSPDPGeneratorRow M n hn2 htb hns
+        (mlProj
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+        S shift ∈
+      routeBRicherSPDPStableCandidateLogWindowHeadSpan M n hn2 htb hns :=
+  (routeBRicherSPDPStableCandidateLogWindowHeadSpan_contains
+    M n hn2 htb hns combinedKappa combinedEll hcombinedKappaLog
+    hcombinedEllLog) hmem
+
+/-- Contained-support wrapper for the head-subspace membership criterion.
+
+The contained-support hypothesis records that the zero-by-missing-variable
+argument is unavailable; the mathematical work is exactly the supplied
+`hmem`, a strict head-subspace membership proof for the second-pass row. -/
+theorem routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportSubset_of_secondPassMemHeadSubspace
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {T S : List (Fin (RouteBCookLevinDim M n hn2 htb hns))}
+    {headShift shift : SATDeciderGaugeSpace M n hn2 htb hns}
+    {combinedKappa combinedEll : Nat}
+    (_hsub :
+      S.toFinset ⊆
+        (mlProj
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))).vars)
+    (hcombinedKappaLog : combinedKappa <= Nat.log 2 n)
+    (hcombinedEllLog : combinedEll <= Nat.log 2 n)
+    (hmem :
+      routeBSPDPGeneratorRow M n hn2 htb hns
+          (mlProj
+            (headShift *
+              SPDP.iterDerivList T
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+          S shift ∈
+        mlBlockedSpdpSubspace
+          (cook_levin_compilation M n hn2 htb hns).partition
+          combinedKappa combinedEll
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns))) :
+    routeBSPDPGeneratorRow M n hn2 htb hns
+        (mlProj
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+        S shift ∈
+      routeBRicherSPDPStableCandidateLogWindowHeadSpan M n hn2 htb hns :=
+  routeBRicherSPDPStableCandidate_secondPassClosure_of_secondPassMemHeadSubspace
+    M n hn2 htb hns hcombinedKappaLog hcombinedEllLog hmem
+
+/-- Single-generator collapse criterion for the contained-support branch.
+
+If the second pass through a projected head generator can be rewritten as one
+ordinary strict SPDP generator of the original compiled polynomial, with
+combined derivative list `T ++ S` and combined shift `shift * headShift`, then
+the result lies in the log-window head span.  The proof is just the existing
+head-span inclusion for strict blocked-SPDP generators; the nontrivial
+algebraic content is isolated in `hcollapse`. -/
+theorem routeBRicherSPDPStableCandidate_secondPassClosure_of_secondPassCollapse
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {T S : List (Fin (RouteBCookLevinDim M n hn2 htb hns))}
+    {headShift shift : SATDeciderGaugeSpace M n hn2 htb hns}
+    (hheadShiftVars : headShift.vars <= T.toFinset)
+    (hshiftVars : shift.vars <= S.toFinset)
+    (hcombinedDegreeLog : (shift * headShift).totalDegree <= Nat.log 2 n)
+    (hcombinedLengthLog : (T ++ S).length <= Nat.log 2 n)
+    (hcombinedAdm : SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition (T ++ S))
+    (hcollapse :
+      routeBSPDPGeneratorRow M n hn2 htb hns
+          (mlProj
+            (headShift *
+              SPDP.iterDerivList T
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+          S shift =
+        mlProj
+          ((shift * headShift) *
+            SPDP.iterDerivList (T ++ S)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) :
+    routeBSPDPGeneratorRow M n hn2 htb hns
+        (mlProj
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+        S shift ∈
+      routeBRicherSPDPStableCandidateLogWindowHeadSpan M n hn2 htb hns := by
+  let P := compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  have hcombinedVars : (shift * headShift).vars <= (T ++ S).toFinset := by
+    intro v hv
+    have hv_or := MvPolynomial.vars_mul shift headShift hv
+    rw [List.mem_toFinset, List.mem_append]
+    rcases Finset.mem_union.mp hv_or with hvShift | hvHead
+    · exact Or.inr (List.mem_toFinset.mp (hshiftVars hvShift))
+    · exact Or.inl (List.mem_toFinset.mp (hheadShiftVars hvHead))
+  have hgen :
+      mlProj
+          ((shift * headShift) *
+            SPDP.iterDerivList (T ++ S) P) ∈
+        mlBlockedSpdpSubspace
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (T ++ S).length (Nat.log 2 n) P := by
+    unfold mlBlockedSpdpSubspace
+    exact Submodule.subset_span
+      ⟨T ++ S, shift * headShift, rfl, hcombinedDegreeLog,
+        hcombinedVars, hcombinedAdm, rfl⟩
+  have hhead :
+      mlProj
+          ((shift * headShift) *
+            SPDP.iterDerivList (T ++ S) P) ∈
+        routeBRicherSPDPStableCandidateLogWindowHeadSpan M n hn2 htb hns :=
+    (routeBRicherSPDPStableCandidateLogWindowHeadSpan_contains
+      M n hn2 htb hns (T ++ S).length (Nat.log 2 n)
+      hcombinedLengthLog (le_rfl)) hgen
+  rw [hcollapse]
+  exact hhead
+
+/-- Contained-support version of the collapse criterion.
+
+This is the currently hard second-pass branch:
+`S.toFinset` is contained in the projected head-generator support, so the
+already-proved missing-support zero argument cannot fire.  Under the explicit
+single-generator collapse identity, the branch closes by
+`routeBRicherSPDPStableCandidate_secondPassClosure_of_secondPassCollapse`. -/
+theorem routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportSubset_of_secondPassCollapse
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {T S : List (Fin (RouteBCookLevinDim M n hn2 htb hns))}
+    {headShift shift : SATDeciderGaugeSpace M n hn2 htb hns}
+    (_hsub :
+      S.toFinset ⊆
+        (mlProj
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))).vars)
+    (hheadShiftVars : headShift.vars <= T.toFinset)
+    (hshiftVars : shift.vars <= S.toFinset)
+    (hcombinedDegreeLog : (shift * headShift).totalDegree <= Nat.log 2 n)
+    (hcombinedLengthLog : (T ++ S).length <= Nat.log 2 n)
+    (hcombinedAdm : SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition (T ++ S))
+    (hcollapse :
+      routeBSPDPGeneratorRow M n hn2 htb hns
+          (mlProj
+            (headShift *
+              SPDP.iterDerivList T
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+          S shift =
+        mlProj
+          ((shift * headShift) *
+            SPDP.iterDerivList (T ++ S)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) :
+    routeBSPDPGeneratorRow M n hn2 htb hns
+        (mlProj
+          (headShift *
+            SPDP.iterDerivList T
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+        S shift ∈
+      routeBRicherSPDPStableCandidateLogWindowHeadSpan M n hn2 htb hns := by
+  exact
+    routeBRicherSPDPStableCandidate_secondPassClosure_of_secondPassCollapse
+      M n hn2 htb hns hheadShiftVars hshiftVars hcombinedDegreeLog
+      hcombinedLengthLog hcombinedAdm hcollapse
+
 /-- Boundary case for finite head-span second-pass closure: if the second
 derivative list is longer than the variable support of the already-projected
 head generator, admissibility forces some second-pass variable to be absent
@@ -561,6 +752,10 @@ theorem routeBRicherSPDPStableCandidate_headSpanEscape_or_holographicInvariance_
 #print axioms mlProj_idempotent
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadSpanGeneratorSecondPassClosure_nil_one
 #print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportNotSubset
+#print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondPassMemHeadSubspace
+#print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportSubset_of_secondPassMemHeadSubspace
+#print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondPassCollapse
+#print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportSubset_of_secondPassCollapse
 #print axioms routeBRicherSPDPStableCandidate_secondPassClosure_of_secondSupportTooSmall
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailResidualGeneratorZero_of_projection_eq_id
 #print axioms routeBRicherSPDPStableCandidate_headSpanGeneratorMapEscape_of_not_generatorSecondPassClosure
