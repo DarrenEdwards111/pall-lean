@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ProjectedIdentityMinorPaperFaithful
+import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingsClosure
 
 /-!
 # Concrete projected identity-minor instance
@@ -129,6 +130,21 @@ theorem cookLevinProjectedPSideBound_of_templateCollapse
     (Step4Compiler.Step252.cookLevinQ_rank_le_from_templateCollapse
       M n hn htb hns hcollapse)
 
+/-- ConcreteW row embeddings supply the template-collapse hypothesis needed
+for the concrete projected Cook-Levin P-side bound. -/
+theorem cookLevinProjectedPSideBound_of_concreteW_rowEmbeddings
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns hn4) :
+    CookLevinProjectedPSideBound M n hn2 htb hns :=
+  cookLevinProjectedPSideBound_of_templateCollapse
+    M n hn htb hns hn2
+    (cookLevinProfileTemplateCollapseLemma_of_concreteW_rowEmbeddings
+      M n hn2 htb hns hn4 hRowEmbeddings)
+
 /-- The concrete Step247 Cook-Levin output satisfies the projected
 contradiction package under the honest template-collapse hypothesis. -/
 theorem paperFaithfulProjectedContradictionPackage_cookLevin_of_templateCollapse
@@ -161,6 +177,22 @@ theorem false_of_cookLevin_templateCollapse_projected
     (cookLevinProjectedPSideBound_of_templateCollapse
       M n hn htb hns hn2 hcollapse)
 
+/-- Fully instantiated projected Cook-Levin contradiction from the concreteW
+row-embedding package.  This keeps the Route B endpoint on the staged
+projection/extraction path and exposes the remaining algebra as the concreteW
+row-embedding closure package. -/
+theorem false_of_cookLevin_concreteW_rowEmbeddings_projected
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns hn4) :
+    False :=
+  false_of_cookLevinProjectedPSideBound M n hn htb hns hn2
+    (cookLevinProjectedPSideBound_of_concreteW_rowEmbeddings
+      M n hn htb hns hn2 hn4 hRowEmbeddings)
+
 /-! ## Axiom audit anchors -/
 
 #print axioms sourceIdentityMinorLowerBound_cookLevin_partitionedOutput
@@ -169,8 +201,10 @@ theorem false_of_cookLevin_templateCollapse_projected
 #print axioms paperFaithfulProjectedContradictionPackage_cookLevin_of_pSide
 #print axioms false_of_cookLevinProjectedPSideBound
 #print axioms cookLevinProjectedPSideBound_of_templateCollapse
+#print axioms cookLevinProjectedPSideBound_of_concreteW_rowEmbeddings
 #print axioms paperFaithfulProjectedContradictionPackage_cookLevin_of_templateCollapse
 #print axioms false_of_cookLevin_templateCollapse_projected
+#print axioms false_of_cookLevin_concreteW_rowEmbeddings_projected
 
 end ProjectedIdentityMinorConcrete
 

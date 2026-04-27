@@ -5191,6 +5191,52 @@ theorem cookLevinProfileTemplateCollapseLemma_of_boundedProfile
     (cookLevinProfileTemplateCollapseLemmaAdmissibleOnly_of_boundedProfile
       M n hn htb hns hbp)
 
+/-- Bounded-profile stable factorization closes the bounded-profile
+template-collapse obligation.  The remaining mathematical content is exactly
+the stability clause `map (mulRight c) W ≤ W` for the chosen profile-local
+template space. -/
+theorem cookLevinProfileTemplateCollapseLemmaBoundedProfile_of_factorization_stable
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hfact :
+      ∀ bp : BoundedProfile (Nat.log 2 n),
+        ∃ W : Submodule ℚ (MvPolynomial (Fin n) ℚ),
+          Module.Finite ℚ ↥W ∧
+          Module.finrank ℚ ↥W ≤ profileTemplateBound bp.toHistogram ∧
+          ∀ (S : List (Fin n)) (_ : S.length ≤ Nat.log 2 n)
+            (shift : MvPolynomial (Fin n) ℚ) (_ : shift.vars ⊆ S.toFinset)
+            (touched : Finset
+                (Fin (cookLevinFactorList M n hn htb hns).length)),
+              RawTouchedCompatibleWithDerivProfile
+                  (n := n)
+                  (cookLevinConstraintType M n hn htb hns)
+                  bp.toHistogram touched →
+                ∃ c : MvPolynomial (Fin n) ℚ,
+                  c ∈ untouchedMultiplierSpaceOfProfile
+                    (fun i => (cookLevinFactorList M n hn htb hns).get i)
+                    (cookLevinConstraintType M n hn htb hns)
+                    bp.toHistogram ∧
+                  rawTouchedPostSpan
+                    (fun i => (cookLevinFactorList M n hn htb hns).get i)
+                    S shift touched ≤
+                    Submodule.map (LinearMap.mulRight ℚ c) W)
+    (hstable :
+      ∀ bp : BoundedProfile (Nat.log 2 n),
+        ∀ {W : Submodule ℚ (MvPolynomial (Fin n) ℚ)}
+          (hfinW : Module.Finite ℚ ↥W),
+          W = W →
+          ∀ c : MvPolynomial (Fin n) ℚ,
+            c ∈ untouchedMultiplierSpaceOfProfile
+              (fun i => (cookLevinFactorList M n hn htb hns).get i)
+              (cookLevinConstraintType M n hn htb hns) bp.toHistogram →
+            Submodule.map (LinearMap.mulRight ℚ c) W ≤ W) :
+    CookLevinProfileTemplateCollapseLemmaBoundedProfile M n hn htb hns := by
+  intro bp
+  exact cookLevinProfileTemplateCollapseAtProfile_of_rawTouchedDerivTemplateSpanAtProfile
+    M n hn htb hns bp.toHistogram
+    (cookLevinRawTouchedDerivTemplateSpanAtProfile_of_factorization_stable
+      M n hn htb hns bp.toHistogram (hfact bp) (hstable bp))
+
 /-! ## Part 27: Interface-type local subspaces W_σ (paper §9, Lemma 31)
 
 This section builds honest local interface subspaces `W_σ` associated to the
@@ -5729,6 +5775,17 @@ theorem cookLevinProfileTemplateCollapseLemmaBoundedProfile_of_postSpanBoundedBy
   intro bp
   rcases hpostSpan bp with ⟨G, hGspan, hGcard⟩
   exact ⟨G, hGspan, hGcard⟩
+
+/-- The post-span/symmetric-product bridge closes the full all-profile
+template-collapse lemma after the standard bounded-profile reduction. -/
+theorem cookLevinProfileTemplateCollapseLemma_of_postSpanBoundedBySymProduct
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hpostSpan : CookLevinPostSpanBoundedBySymProduct M n hn htb hns) :
+    CookLevinProfileTemplateCollapseLemma M n hn htb hns :=
+  cookLevinProfileTemplateCollapseLemma_of_boundedProfile M n hn htb hns
+    (cookLevinProfileTemplateCollapseLemmaBoundedProfile_of_postSpanBoundedBySymProduct
+      M n hn htb hns hpostSpan)
 
 end WithinProfileBound
 
