@@ -101,10 +101,16 @@ theorem cookLevinLocalBlockQ_routeB_activeSet_rank_budget_of_data
       (cookLevinLocalBlockQ_routeB_hGadgetRank_of_data
         M n hn htb hns alpha beta alpha0 kappa G chi Phi data)
 
-/-- Adapter from real local-block Bridge A data to the final Route B
-`RouteBCompilerLocalBridgeA` surface.  The remaining explicit input is the
-rank-realization equality between the real local-block gadget and the pocket
-family used by the current analytic/log-det package. -/
+/-- Legacy adapter from real local-block Bridge A data to the pocket-family
+`RouteBCompilerLocalBridgeA` surface.
+
+The remaining explicit input is the rank-realization equality between the
+real local-block gadget and the matrix pocket family used by the original
+analytic/log-det package.  The closed real local-block theorem supplies a
+lower bound for the real polynomial SPDP rank; it does not by itself prove
+this equality.  New integrations should prefer the real-local `gadgetFamily`
+route in `BridgeAKappaGeneralRouteBFinal` unless such a pocket realization
+has been proved separately. -/
 theorem routeBCompilerLocalBridgeA_of_cookLevinLocalBlockQBridgeAData
     {N d : Nat}
     (M : TuringMachine.DTM) (n : Nat) (hn : n >= 2)
