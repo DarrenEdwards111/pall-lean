@@ -42,6 +42,62 @@ noncomputable def zeroProfileSingletonShiftSubspace {n L : ℕ}
       (fun i : Fin n =>
         mlProj (MvPolynomial.X i * Finset.univ.prod factors)))
 
+/-- The finite singleton-shift basis used to pay the quotient residual. -/
+noncomputable def zeroProfileSingletonShiftBasis {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    Finset (MvPolynomial (Fin n) ℚ) :=
+  Finset.univ.image
+    (fun i : Fin n =>
+      mlProj (MvPolynomial.X i * Finset.univ.prod factors))
+
+/-- The finite singleton-shift basis spans the singleton-shift subspace. -/
+theorem zeroProfileSingletonShiftSubspace_eq_span_singletonShiftBasis
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    zeroProfileSingletonShiftSubspace factors =
+      Submodule.span ℚ
+        (↑(zeroProfileSingletonShiftBasis factors) :
+          Set (MvPolynomial (Fin n) ℚ)) := by
+  classical
+  have hset :
+      Set.range
+          (fun i : Fin n =>
+            mlProj (MvPolynomial.X i * Finset.univ.prod factors)) =
+        (↑(zeroProfileSingletonShiftBasis factors) :
+          Set (MvPolynomial (Fin n) ℚ)) := by
+    ext q
+    constructor
+    · rintro ⟨i, rfl⟩
+      change
+        mlProj (MvPolynomial.X i * Finset.univ.prod factors) ∈
+          Finset.univ.image
+            (fun i : Fin n =>
+              mlProj (MvPolynomial.X i * Finset.univ.prod factors))
+      exact Finset.mem_image.mpr ⟨i, Finset.mem_univ i, rfl⟩
+    · intro hq
+      change q ∈
+        Finset.univ.image
+          (fun i : Fin n =>
+            mlProj (MvPolynomial.X i * Finset.univ.prod factors)) at hq
+      rcases Finset.mem_image.mp hq with ⟨i, _hi, rfl⟩
+      exact ⟨i, rfl⟩
+  unfold zeroProfileSingletonShiftSubspace
+  rw [hset]
+
+/-- Paying all singleton-shift residual rows costs at most the ambient
+variable count. -/
+theorem zeroProfileSingletonShiftBasis_card_le_ambient
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    (zeroProfileSingletonShiftBasis factors).card ≤ n := by
+  classical
+  calc
+    (zeroProfileSingletonShiftBasis factors).card
+        ≤ (Finset.univ : Finset (Fin n)).card := by
+          unfold zeroProfileSingletonShiftBasis
+          exact Finset.card_image_le
+    _ = n := Fintype.card_fin n
+
 /-- A projection/quotient map kills the singleton-shift obstruction. -/
 def ZeroProfileProjectionKillsSingletonShifts {n L : ℕ}
     (factors : Fin L → MvPolynomial (Fin n) ℚ)
@@ -68,6 +124,91 @@ theorem zeroProfileProjectionKillsSingletonShifts_iff_singletonShiftSubspace_le_
   · intro hker i
     exact LinearMap.mem_ker.mp
       (hker (Submodule.subset_span (Set.mem_range_self i)))
+
+/-! ## Canonical quotient by singleton-shift directions -/
+
+/-- A chosen complement to the singleton-shift subspace.  The corresponding
+projection below is the quotient representative that removes singleton
+directions and leaves the complement. -/
+noncomputable def zeroProfileSingletonShiftComplement {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+  Classical.choose (zeroProfileSingletonShiftSubspace factors).exists_isCompl
+
+/-- The chosen singleton-shift complement is complementary to the singleton
+subspace. -/
+theorem zeroProfileSingletonShiftSubspace_isCompl_complement
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    IsCompl (zeroProfileSingletonShiftSubspace factors)
+      (zeroProfileSingletonShiftComplement factors) :=
+  Classical.choose_spec (zeroProfileSingletonShiftSubspace factors).exists_isCompl
+
+/-- Projection to the chosen complement along the singleton-shift subspace. -/
+noncomputable def zeroProfileQuotientBySingletonShiftProjection {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ :=
+  Submodule.IsCompl.projection
+    (zeroProfileSingletonShiftSubspace_isCompl_complement factors).symm
+
+/-- The chosen singleton quotient projection is idempotent. -/
+theorem zeroProfileQuotientBySingletonShiftProjection_idempotent
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    (zeroProfileQuotientBySingletonShiftProjection factors).comp
+        (zeroProfileQuotientBySingletonShiftProjection factors) =
+      zeroProfileQuotientBySingletonShiftProjection factors := by
+  simpa [zeroProfileQuotientBySingletonShiftProjection,
+    IsIdempotentElem] using
+    (Submodule.IsCompl.projection_isIdempotentElem
+      (zeroProfileSingletonShiftSubspace_isCompl_complement factors).symm)
+
+/-- The chosen singleton quotient projection kills the singleton-shift
+subspace. -/
+theorem zeroProfileQuotientBySingletonShiftProjection_singletonShiftSubspace_le_ker
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    zeroProfileSingletonShiftSubspace factors ≤
+      LinearMap.ker (zeroProfileQuotientBySingletonShiftProjection factors) := by
+  intro q hq
+  exact LinearMap.mem_ker.mpr (by
+    simpa [zeroProfileQuotientBySingletonShiftProjection] using
+      ((Submodule.IsCompl.projection_apply_eq_zero_iff
+        (zeroProfileSingletonShiftSubspace_isCompl_complement
+          factors).symm).mpr hq))
+
+/-- The chosen singleton quotient projection kills every singleton-shift row. -/
+theorem zeroProfileQuotientBySingletonShiftProjection_killsSingletonShifts
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    ZeroProfileProjectionKillsSingletonShifts factors
+      (zeroProfileQuotientBySingletonShiftProjection factors) := by
+  exact
+    (zeroProfileProjectionKillsSingletonShifts_iff_singletonShiftSubspace_le_ker
+      factors (zeroProfileQuotientBySingletonShiftProjection factors)).mpr
+      (zeroProfileQuotientBySingletonShiftProjection_singletonShiftSubspace_le_ker
+        factors)
+
+/-- The residual of the chosen singleton quotient projection always lies in
+the singleton-shift subspace. -/
+theorem zeroProfileQuotientBySingletonShiftProjection_residual_mem_singletonShiftSubspace
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (q : MvPolynomial (Fin n) ℚ) :
+    q - zeroProfileQuotientBySingletonShiftProjection factors q ∈
+      zeroProfileSingletonShiftSubspace factors := by
+  classical
+  let h :
+      IsCompl (zeroProfileSingletonShiftSubspace factors)
+        (zeroProfileSingletonShiftComplement factors) :=
+    zeroProfileSingletonShiftSubspace_isCompl_complement factors
+  have hres :
+      Submodule.IsCompl.projection h q =
+        q - zeroProfileQuotientBySingletonShiftProjection factors q := by
+    simpa [h, zeroProfileQuotientBySingletonShiftProjection] using
+      (Submodule.IsCompl.projection_eq_self_sub_projection h.symm q)
+  rw [← hres]
+  exact Submodule.IsCompl.projection_apply_mem h q
 
 /-! ## Projected type alphabets -/
 
@@ -312,6 +453,41 @@ def ZeroProfileProjectionResidualClosureWithBudget {n L : ℕ}
       q - project q ∈
         Submodule.span ℚ (↑R : Set (MvPolynomial (Fin n) ℚ))
 
+/-- If every projection residual lands in the singleton-shift subspace, then
+the residual is paid by the finite singleton-shift basis with ambient budget
+`n`. -/
+theorem zeroProfileProjectionResidualClosureWithBudget_ambient_of_residual_mem_singletonShiftSubspace
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    (hresidual :
+      ∀ q ∈ zeroProfileShiftImageSet κ factors,
+        q - project q ∈ zeroProfileSingletonShiftSubspace factors) :
+    ZeroProfileProjectionResidualClosureWithBudget
+      κ factors project n := by
+  classical
+  refine ⟨zeroProfileSingletonShiftBasis factors,
+    zeroProfileSingletonShiftBasis_card_le_ambient factors, ?_⟩
+  intro q hq
+  simpa [zeroProfileSingletonShiftSubspace_eq_span_singletonShiftBasis] using
+    hresidual q hq
+
+/-- The chosen quotient by singleton shifts has residual closure with ambient
+budget `n`: every removed component lies in the singleton-shift subspace. -/
+theorem zeroProfileQuotientBySingletonShiftProjection_residualClosureWithBudget_ambient
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    ZeroProfileProjectionResidualClosureWithBudget κ factors
+      (zeroProfileQuotientBySingletonShiftProjection factors) n :=
+  zeroProfileProjectionResidualClosureWithBudget_ambient_of_residual_mem_singletonShiftSubspace
+    κ factors (zeroProfileQuotientBySingletonShiftProjection factors)
+    (fun q _hq =>
+      zeroProfileQuotientBySingletonShiftProjection_residual_mem_singletonShiftSubspace
+        factors q)
+
 /-- Projected common span plus a paid residual span gives an unprojected
 common span with the summed budget. -/
 theorem zeroProfileCompressedSpanCommonSpanWithBudget_of_projectedCommonSpan_residualClosure
@@ -396,6 +572,48 @@ theorem zeroProfileCompressedSpanCommonSpanWithBudget_of_quotientTypeSpaceCertif
       κ factors cert)
     hresidual hbudget
 
+/-- Projected common span for the chosen singleton quotient closes the
+unprojected common-span target after paying exactly the ambient singleton
+residual budget. -/
+theorem zeroProfileCompressedSpanCommonSpanWithBudget_of_projectedCommonSpan_singletonQuotient
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    {projectedBudget budget : ℕ}
+    (hprojected :
+      ZeroProfileProjectedCommonSpanWithBudget κ factors
+        (zeroProfileQuotientBySingletonShiftProjection factors)
+        projectedBudget)
+    (hbudget : projectedBudget + n ≤ budget) :
+    ZeroProfileCompressedSpanCommonSpanWithBudget κ factors budget :=
+  zeroProfileCompressedSpanCommonSpanWithBudget_of_projectedCommonSpan_residualClosure
+    κ factors (zeroProfileQuotientBySingletonShiftProjection factors)
+    hprojected
+    (zeroProfileQuotientBySingletonShiftProjection_residualClosureWithBudget_ambient
+      κ factors)
+    hbudget
+
+/-- A projected quotient type map for the chosen singleton quotient closes the
+unprojected common-span target after adding the ambient singleton residual
+budget.  This is the positive classifier gate left by the singleton
+obstruction: classify only modulo singleton shifts, then pay those shifts
+separately. -/
+theorem zeroProfileCompressedSpanCommonSpanWithBudget_of_singletonQuotientTypeMap
+    {n L κ typeBudget budget : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (A : ZeroProfileQuotientTypeAlphabet n typeBudget)
+    (hmap :
+      ZeroProfileProjectedGeneratorTypeMap κ factors A
+        (zeroProfileQuotientBySingletonShiftProjection factors))
+    (hbudget : typeBudget + n ≤ budget) :
+    ZeroProfileCompressedSpanCommonSpanWithBudget κ factors budget :=
+  zeroProfileCompressedSpanCommonSpanWithBudget_of_projectedCommonSpan_singletonQuotient
+    κ factors
+    (zeroProfileProjectedCommonSpanWithBudget_of_projectedTypeMap
+      κ factors A (zeroProfileQuotientBySingletonShiftProjection factors)
+      hmap)
+    hbudget
+
 /-! ## Cook-Levin wrappers -/
 
 /-- Cook-Levin quotient/projected zero-profile type-space obligation with an
@@ -436,6 +654,21 @@ def CookLevinZeroProfileProjectionResidualClosureWithBudget
   ZeroProfileProjectionResidualClosureWithBudget (Nat.log 2 n)
     (fun i => (cookLevinFactorList M n hn htb hns).get i)
     project residualBudget
+
+/-- Cook-Levin residual closure for the chosen singleton quotient projection:
+the removed singleton component is paid with ambient budget `n`. -/
+theorem cookLevinZeroProfileSingletonQuotientResidualClosureWithBudget_ambient
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    CookLevinZeroProfileProjectionResidualClosureWithBudget
+      M n hn htb hns
+      (zeroProfileQuotientBySingletonShiftProjection
+        (fun i => (cookLevinFactorList M n hn htb hns).get i))
+      n := by
+  simpa [CookLevinZeroProfileProjectionResidualClosureWithBudget] using
+    zeroProfileQuotientBySingletonShiftProjection_residualClosureWithBudget_ambient
+      (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
 
 /-- A Cook-Levin quotient type certificate closes the projected zero-profile
 common-span obligation. -/
@@ -521,8 +754,42 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_quotientTypeCertificate_residua
       cert hresidual le_rfl)
     hbudget
 
+/-- Cook-Levin classifier-facing singleton quotient gate: a quotient type map
+for the chosen singleton projection closes zero-profile once the projected
+budget plus the ambient singleton residual budget fits in `withinProfileBound`.
+-/
+theorem cookLevinZeroHistogramShiftCommonSpan_of_singletonQuotientTypeMap
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget : ℕ}
+    (A : ZeroProfileQuotientTypeAlphabet n typeBudget)
+    (hmap :
+      ZeroProfileProjectedGeneratorTypeMap (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn htb hns).get i) A
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn htb hns).get i)))
+    (hbudget :
+      typeBudget + n ≤ withinProfileBound (Nat.log 2 n)) :
+    CookLevinZeroHistogramShiftCommonSpan M n hn htb hns := by
+  have hcommon :
+      ZeroProfileCompressedSpanCommonSpanWithBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+        (withinProfileBound (Nat.log 2 n)) :=
+    zeroProfileCompressedSpanCommonSpanWithBudget_of_singletonQuotientTypeMap
+      (κ := Nat.log 2 n)
+      (factors := fun i => (cookLevinFactorList M n hn htb hns).get i)
+      A hmap hbudget
+  simpa [CookLevinZeroHistogramShiftCommonSpan,
+    ZeroProfileCompressedSpanCommonSpanWithBudget] using hcommon
+
 /-! ## Axiom audit anchors -/
 
+#print axioms zeroProfileSingletonShiftSubspace_eq_span_singletonShiftBasis
+#print axioms zeroProfileSingletonShiftBasis_card_le_ambient
+#print axioms zeroProfileQuotientBySingletonShiftProjection_idempotent
+#print axioms zeroProfileQuotientBySingletonShiftProjection_singletonShiftSubspace_le_ker
+#print axioms zeroProfileQuotientBySingletonShiftProjection_killsSingletonShifts
+#print axioms zeroProfileQuotientBySingletonShiftProjection_residual_mem_singletonShiftSubspace
 #print axioms zeroProfileProjectionKillsSingletonShifts_iff_singletonShiftSubspace_le_ker
 #print axioms zeroProfileQuotientTypeSpace_finrank_le
 #print axioms zeroProfileQuotientTypeGlobalBasis_card_le_typeBudget
@@ -531,12 +798,18 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_quotientTypeCertificate_residua
 #print axioms zeroProfileProjectedCommonSpanWithBudget_of_projectedTypeMap
 #print axioms zeroProfileQuotientTypeSpaceCertificate_singletonShiftSubspace_le_ker
 #print axioms zeroProfileProjectedCommonSpanWithBudget_of_quotientTypeSpaceCertificate
+#print axioms zeroProfileProjectionResidualClosureWithBudget_ambient_of_residual_mem_singletonShiftSubspace
+#print axioms zeroProfileQuotientBySingletonShiftProjection_residualClosureWithBudget_ambient
 #print axioms zeroProfileCompressedSpanCommonSpanWithBudget_of_projectedCommonSpan_residualClosure
 #print axioms zeroProfileCompressedSpanCommonSpanWithBudget_of_quotientTypeSpaceCertificate_residualClosure
+#print axioms zeroProfileCompressedSpanCommonSpanWithBudget_of_projectedCommonSpan_singletonQuotient
+#print axioms zeroProfileCompressedSpanCommonSpanWithBudget_of_singletonQuotientTypeMap
+#print axioms cookLevinZeroProfileSingletonQuotientResidualClosureWithBudget_ambient
 #print axioms cookLevinZeroProfileProjectedCommonSpanWithBudget_of_quotientTypeCertificate
 #print axioms cookLevinZeroProfileProjectedCommonSpanObligation_of_quotientTypeNormalFormObligation
 #print axioms cookLevinZeroProfileNonScalarClosureWithBudget_of_quotientTypeCertificate_residualClosure
 #print axioms cookLevinZeroHistogramShiftCommonSpan_of_quotientTypeCertificate_residualClosure
+#print axioms cookLevinZeroHistogramShiftCommonSpan_of_singletonQuotientTypeMap
 
 end PathB
 end DeepMath

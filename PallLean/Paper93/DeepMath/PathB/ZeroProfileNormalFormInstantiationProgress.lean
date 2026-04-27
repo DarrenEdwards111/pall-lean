@@ -469,6 +469,25 @@ theorem zeroProfileProjectedCommonSpanWithBudget_of_normalFormRowMap
     zeroProfileProjectedShiftImageSet_subset_normalFormCompressedSpan
       factors project F hmap
 
+/-- A normal-form row map for the chosen singleton quotient closes the
+unprojected common-span target after adding the ambient singleton residual
+budget. -/
+theorem zeroProfileCompressedSpanCommonSpanWithBudget_of_singletonQuotientNormalFormRowMap
+    {n L κ typeBudget budget : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (F : ZeroProfileProjectedNormalFormFamily n κ typeBudget)
+    (hmap :
+      ZeroProfileProjectedNormalFormRowMap factors
+        (zeroProfileQuotientBySingletonShiftProjection factors) F)
+    (hbudget : typeBudget + n ≤ budget) :
+    ZeroProfileCompressedSpanCommonSpanWithBudget κ factors budget :=
+  zeroProfileCompressedSpanCommonSpanWithBudget_of_projectedCommonSpan_singletonQuotient
+    κ factors
+    (zeroProfileProjectedCommonSpanWithBudget_of_normalFormRowMap
+      factors (zeroProfileQuotientBySingletonShiftProjection factors)
+      F hmap)
+    hbudget
+
 /-! ## Certificates and Cook-Levin wrappers -/
 
 /-- Projected normal-form certificate with the quotient projection data kept
@@ -1131,6 +1150,46 @@ theorem cookLevinZeroProfileProjectionResidualClosureWithBudget_residualBudget_g
       hkills
       hresidual
 
+/-- Any projected normal-form certificate whose projection kills singleton
+shifts must still pay at least the ambient singleton-row dimension once it is
+turned back into an unprojected zero-profile span by a residual closure. -/
+theorem cookLevinZeroProfileProjectedNormalFormCertificate_totalBudget_ge_ambient
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget residualBudget : ℕ}
+    (cert :
+      ZeroProfileProjectedNormalFormCertificate (κ := Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+        typeBudget)
+    (hresidual :
+      CookLevinZeroProfileProjectionResidualClosureWithBudget
+        M n hn htb hns cert.project residualBudget) :
+    n ≤ typeBudget + residualBudget := by
+  exact le_trans
+    (cookLevinZeroProfileProjectionResidualClosureWithBudget_residualBudget_ge_ambient_of_killsSingleton_actual
+      M n hn htb hns cert.project cert.killsSingleton hresidual)
+    (Nat.le_add_left residualBudget typeBudget)
+
+/-- Therefore the present projected normal-form-plus-residual route cannot fit
+inside any total zero-profile budget strictly below the ambient singleton-row
+dimension.  A positive paper-scale close must avoid this exact
+singleton-killing residual payment pattern. -/
+theorem not_cookLevinZeroProfileProjectedNormalFormCertificate_residualClosure_of_totalBudget_lt_ambient
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget residualBudget : ℕ}
+    (hlt : typeBudget + residualBudget < n) :
+    ¬ ∃ cert :
+        ZeroProfileProjectedNormalFormCertificate (κ := Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn htb hns).get i)
+          typeBudget,
+        CookLevinZeroProfileProjectionResidualClosureWithBudget
+          M n hn htb hns cert.project residualBudget := by
+  rintro ⟨cert, hresidual⟩
+  exact (not_lt_of_ge
+    (cookLevinZeroProfileProjectedNormalFormCertificate_totalBudget_ge_ambient
+      M n hn htb hns cert hresidual)) hlt
+
 /-- A projected normal-form certificate plus a paid residual closes the
 unprojected non-scalar zero-profile budget. -/
 theorem cookLevinZeroProfileNonScalarClosureWithBudget_of_projectedNormalFormCertificate_residualClosure
@@ -1210,6 +1269,34 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_projectedNormalFormCertificate_
         cert.project hfix
   · simpa using hbudget
 
+/-- Cook-Levin normal-form classifier gate for the chosen singleton quotient:
+classify rows after quotienting singleton shifts, then pay the ambient
+singleton residual budget `n`. -/
+theorem cookLevinZeroHistogramShiftCommonSpan_of_singletonQuotientNormalFormRowMap
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget : ℕ}
+    (F : ZeroProfileProjectedNormalFormFamily n (Nat.log 2 n) typeBudget)
+    (hmap :
+      ZeroProfileProjectedNormalFormRowMap
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn htb hns).get i))
+        F)
+    (hbudget :
+      typeBudget + n ≤ withinProfileBound (Nat.log 2 n)) :
+    CookLevinZeroHistogramShiftCommonSpan M n hn htb hns := by
+  have hcommon :
+      ZeroProfileCompressedSpanCommonSpanWithBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+        (withinProfileBound (Nat.log 2 n)) :=
+    zeroProfileCompressedSpanCommonSpanWithBudget_of_singletonQuotientNormalFormRowMap
+      (κ := Nat.log 2 n)
+      (factors := fun i => (cookLevinFactorList M n hn htb hns).get i)
+      F hmap hbudget
+  simpa [CookLevinZeroHistogramShiftCommonSpan,
+    ZeroProfileCompressedSpanCommonSpanWithBudget] using hcommon
+
 /-! ## Axiom audit anchors -/
 
 #print axioms zeroProfileSymmetricProfileDim_le_withinProfileBound
@@ -1223,6 +1310,7 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_projectedNormalFormCertificate_
 #print axioms zeroProfileProjectedNormalFormSpace_le_compressedSpan
 #print axioms zeroProfileProjectedShiftImageSet_subset_normalFormCompressedSpan
 #print axioms zeroProfileProjectedCommonSpanWithBudget_of_normalFormRowMap
+#print axioms zeroProfileCompressedSpanCommonSpanWithBudget_of_singletonQuotientNormalFormRowMap
 #print axioms zeroProfileProjectedCommonSpanWithBudget_of_normalFormCertificate
 #print axioms cookLevinZeroProfileProjectedCommonSpanObligation_of_projectedNormalFormObligation
 #print axioms cookLevinZeroProfileProjectedCommonSpanWithBudget_of_booleanNormalFormObligation
@@ -1247,6 +1335,7 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_projectedNormalFormCertificate_
 #print axioms cookLevinZeroProfileNonScalarClosureWithBudget_of_projectedNormalFormCertificate_residualClosure
 #print axioms cookLevinZeroHistogramShiftCommonSpan_of_projectedNormalFormCertificate_residualClosure
 #print axioms cookLevinZeroHistogramShiftCommonSpan_of_projectedNormalFormCertificate_fixesShiftRows
+#print axioms cookLevinZeroHistogramShiftCommonSpan_of_singletonQuotientNormalFormRowMap
 
 end PathB
 end DeepMath

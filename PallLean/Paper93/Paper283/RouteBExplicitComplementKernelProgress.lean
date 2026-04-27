@@ -514,6 +514,99 @@ theorem routeBRicherConcreteNPPrependedMultilinear_no_rowSpanComplement_kernelGe
     (routeBRicherConcreteNPPrependedMultilinear_not_kernelGeneratorZeroWithComplement
       M n hn2 htb hns C hC) hzero
 
+/-- The arbitrary complement selected by `finiteSubmoduleProjectionComplement`
+realizes the selected finite-row projection policy. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_selectedComplement_realizesSelectedProjection
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherConcreteNPPrependedMultilinearComplementRealizesSelectedProjection
+      M n hn2 htb hns
+      (finiteSubmoduleProjectionComplement
+        (finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedMultilinearRows
+            M n hn2 htb hns)))
+      (finiteSubmoduleProjection_isCompl
+        (finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedMultilinearRows
+            M n hn2 htb hns))) := by
+  rfl
+
+/-- The selected finite-row complement for the broad multilinear tail cannot
+lie in the common kernel of all Route B SPDP generator maps. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_not_kernelGenerator_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    ¬ RouteBRicherConcreteNPPrependedMultilinearKernelGeneratorZero
+        M n hn2 htb hns := by
+  intro hzero
+  let rows := routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns
+  let C :=
+    finiteSubmoduleProjectionComplement
+      (finiteRowsSubmodule rows)
+  let hC : IsCompl (finiteRowsSubmodule rows) C :=
+    finiteSubmoduleProjection_isCompl (finiteRowsSubmodule rows)
+  have hzeroC :
+      RouteBRicherConcreteNPPrependedMultilinearKernelGeneratorZeroWithComplement
+        M n hn2 htb hns C hC := by
+    intro spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm hpC
+    have hproj :
+        routeBRicherConcreteNPPrependedMultilinearProjection
+          M n hn2 htb hns p = 0 := by
+      simpa [rows, C, hC, routeBRicherConcreteNPPrependedMultilinearProjection,
+        routeBRicherConcreteNPPrependedMultilinearGauge] using
+        (routeBRicherFiniteRowsCandidateGauge_projection_apply_eq_zero_iff
+          M n hn2 htb hns rows p).mpr hpC
+    exact hzero spdpKappa ell p S shift
+      hSlen hshiftDegree hshiftVars hadm hproj
+  exact
+    (routeBRicherConcreteNPPrependedMultilinear_not_kernelGeneratorZeroWithComplement
+      M n hn2 htb hns C hC) hzeroC
+
+/-- The selected finite-row kernel compatibility condition is false for the
+current broad multilinear-tail row target. -/
+theorem routeBRicherConcreteNPPrependedMultilinearRows_not_kernelCompatibility
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    ¬ RouteBRicherGaugeFiniteRowsSPDPKernelCompatibility M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns) := by
+  intro hker
+  have hres :
+      RouteBRicherConcreteNPPrependedMultilinearResidualGeneratorZero
+        M n hn2 htb hns :=
+    (routeBRicherConcreteNPPrependedMultilinearRows_kernelCompatibility_iff_residualGenerator_zero
+      M n hn2 htb hns).mp hker
+  exact
+    (routeBRicherConcreteNPPrependedMultilinear_not_kernelGenerator_zero
+      M n hn2 htb hns)
+      ((routeBRicherConcreteNPPrependedMultilinear_residualGenerator_zero_iff_kernelGenerator_zero
+        M n hn2 htb hns).mp hres)
+
+/-- Therefore the current selected finite-row projection for the broad
+multilinear tail cannot satisfy projection descent/kernel compatibility. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_not_projectionDescent
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    ¬ RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns := by
+  intro hdesc
+  exact
+    (routeBRicherConcreteNPPrependedMultilinear_not_kernelGenerator_zero
+      M n hn2 htb hns)
+      ((routeBRicherConcreteNPPrependedMultilinearProjectionDescent_iff_kernelGenerator_zero
+        M n hn2 htb hns).mp hdesc)
+
+/-- The selected broad multilinear-tail projection has a concrete admissible
+generator row witnessing projection escape. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_projectionEscapeWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness
+        M n hn2 htb hns :=
+  (routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_iff_not_projectionDescent
+    M n hn2 htb hns).mpr
+    (routeBRicherConcreteNPPrependedMultilinear_not_projectionDescent
+      M n hn2 htb hns)
+
 /-- Kernel-generator-zero gives the direct explicit-complement map-preimage
 surface, without identifying the explicit projection with the selected
 projection. -/
@@ -589,6 +682,11 @@ theorem routeBRicherConcreteNPPrependedMultilinear_exists_firstSquareAvoidingCom
 #print axioms routeBRicherConcreteNPPrependedMultilinear_not_kernelGeneratorZeroWithComplement
 #print axioms routeBRicherConcreteNPPrependedMultilinear_not_projectionDescentWithComplement
 #print axioms routeBRicherConcreteNPPrependedMultilinear_no_rowSpanComplement_kernelGeneratorZeroWithComplement
+#print axioms routeBRicherConcreteNPPrependedMultilinear_selectedComplement_realizesSelectedProjection
+#print axioms routeBRicherConcreteNPPrependedMultilinear_not_kernelGenerator_zero
+#print axioms routeBRicherConcreteNPPrependedMultilinearRows_not_kernelCompatibility
+#print axioms routeBRicherConcreteNPPrependedMultilinear_not_projectionDescent
+#print axioms routeBRicherConcreteNPPrependedMultilinear_projectionEscapeWitness
 #print axioms routeBRicherConcreteNPPrependedMultilinearProjectionWithComplement_spdpMapPreimage_of_kernelGenerator_zeroWithComplement
 #print axioms routeBRicherConcreteNPPrependedMultilinear_exists_firstSquareAvoidingComplementPolicy_with_kernelNecessaryConditions_and_directSPDP
 

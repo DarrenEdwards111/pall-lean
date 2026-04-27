@@ -1,6 +1,7 @@
 import PallLean.Paper93.DeepMath.PathB.ActiveProfileBlockerConcreteProgress
 import PallLean.Paper93.DeepMath.PathB.AugmentedConcreteWI5
 import PallLean.Paper93.CompiledCoefficientBasis
+import PallLean.Paper93.Canonical.ProfileSubspaceStructure
 
 /-!
 # Active-profile endpoint-augmented retargeting
@@ -58,6 +59,48 @@ theorem CookLevinFactorMemPerType_endpointAugmentedConcreteW_of_concreteWCanonic
   intro i
   unfold endpointAugmentedConcreteW
   exact Submodule.mem_sup_left (hFactor i)
+
+/-- H3 for the fixed canonical concreteW row embeds into the endpoint-augmented
+H3 target. -/
+theorem CookLevinFactorMemPerType_endpointAugmentedConcreteW_of_concreteW
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (hn4 : n ≥ 4)
+    (hFactor :
+      CookLevinFactorMemPerType M n hn htb hns
+        (fun τ => concreteW n hn4 (Fin.castLEEmb hn4) τ)) :
+    CookLevinFactorMemPerType M n hn htb hns
+      (endpointAugmentedConcreteW n hn4) :=
+  CookLevinFactorMemPerType_endpointAugmentedConcreteW_of_concreteWCanonical
+    M n hn htb hns hn4
+    (by simpa [concreteWCanonical] using hFactor)
+
+/-- Canonical fixed-row factor shapes discharge endpoint-augmented H3. -/
+theorem CookLevinFactorMemPerType_endpointAugmentedConcreteW_of_canonicalShapeWitnesses
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (hn4 : n ≥ 4)
+    (hShape :
+      CookLevinCanonicalConcreteWShapeWitnesses M n hn htb hns hn4) :
+    CookLevinFactorMemPerType M n hn htb hns
+      (endpointAugmentedConcreteW n hn4) :=
+  CookLevinFactorMemPerType_endpointAugmentedConcreteW_of_concreteW
+    M n hn htb hns hn4
+    (CookLevinFactorMemPerType_concreteW_of_canonicalShapeWitnesses
+      M n hn htb hns hn4 hShape)
+
+/-- Direct branch shapes discharge endpoint-augmented H3 once the exact
+canonical-row transport has been supplied. -/
+theorem CookLevinFactorMemPerType_endpointAugmentedConcreteW_of_directBranchShapes_transport
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (hn4 : n ≥ 4)
+    (hShape : CookLevinDirectBranchShapeWitnesses M n hn htb hns hn4)
+    (hTransport :
+      CookLevinConcreteWCanonicalRowTransport M n hn htb hns hn4) :
+    CookLevinFactorMemPerType M n hn htb hns
+      (endpointAugmentedConcreteW n hn4) :=
+  CookLevinFactorMemPerType_endpointAugmentedConcreteW_of_concreteW
+    M n hn htb hns hn4
+    (CookLevinFactorMemPerType_concreteW_of_directBranchShapes_transport
+      M n hn htb hns hn4 hShape hTransport)
 
 /-- One bounded-profile slice of the per-type row-embedding bundle.
 
@@ -981,6 +1024,278 @@ theorem cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_closureAtP
       (endpointAugmentedConcreteW_derivClosurePerType n hn4)
       hFrontier.2
 
+private theorem zero_ne_single_add_single_one
+    {α : Type*} [DecidableEq α] (v w : α) :
+    (0 : α →₀ ℕ) ≠ Finsupp.single v 1 + Finsupp.single w 1 := by
+  intro h
+  have hv := DFunLike.congr_fun h v
+  rw [Finsupp.coe_zero, Pi.zero_apply, Finsupp.add_apply,
+    Finsupp.single_apply, if_pos rfl] at hv
+  by_cases hwv : w = v
+  · rw [Finsupp.single_apply, if_pos hwv] at hv
+    omega
+  · rw [Finsupp.single_apply, if_neg hwv] at hv
+    omega
+
+private theorem single_one_ne_single_add_single_one
+    {α : Type*} [DecidableEq α] (a v w : α) :
+    Finsupp.single a 1 ≠ Finsupp.single v 1 + Finsupp.single w 1 := by
+  intro h
+  have hsum :
+      (Finsupp.single a 1 : α →₀ ℕ).sum (fun _ m => m) =
+        (Finsupp.single v 1 + Finsupp.single w 1 : α →₀ ℕ).sum
+          (fun _ m => m) := by
+    rw [h]
+  rw [Finsupp.sum_add_index (by simp) (by intros; ring),
+    Finsupp.sum_single_index (by rfl),
+    Finsupp.sum_single_index (by rfl),
+    Finsupp.sum_single_index (by rfl)] at hsum
+  omega
+
+private theorem single_two_ne_single_add_single_one_of_ne
+    {α : Type*} [DecidableEq α] {a v : α} (hva : v ≠ a) :
+    Finsupp.single a 2 ≠ Finsupp.single v 1 + Finsupp.single a 1 := by
+  intro h
+  have hv := DFunLike.congr_fun h v
+  simp [Finsupp.add_apply, hva] at hv
+
+private theorem isMultilinear_single_add_single_one
+    {α : Type*} [DecidableEq α] {v w : α} (hvw : v ≠ w) :
+    Finsupp.IsMultilinear
+      (Finsupp.single v 1 + Finsupp.single w 1 : α →₀ ℕ) := by
+  intro i
+  by_cases hiv : i = v
+  · subst i
+    simp [Finsupp.add_apply, hvw.symm]
+  · by_cases hiw : i = w
+    · subst i
+      simp [Finsupp.add_apply, hiv]
+    · simp [Finsupp.add_apply, hiv, hiw]
+
+private theorem concreteWEndpointSpan_coeff_endpoint0_cross_eq_zero_of_ne
+    {n : ℕ} {hn4 : n ≥ 4} {v : Fin n}
+    {p : MvPolynomial (Fin n) ℚ}
+    (hp : p ∈ concreteWEndpointSpan n hn4) :
+    MvPolynomial.coeff
+        (Finsupp.single v 1 +
+          Finsupp.single (concreteWEndpoint0 n hn4) 1) p = 0 := by
+  unfold concreteWEndpointSpan at hp
+  refine Submodule.span_induction
+    (p := fun q _ =>
+      MvPolynomial.coeff
+        (Finsupp.single v 1 +
+          Finsupp.single (concreteWEndpoint0 n hn4) 1) q = 0)
+    ?_ ?_ ?_ ?_ hp
+  · intro q hq
+    simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hq
+    rcases hq with rfl | rfl | rfl
+    · simp [MvPolynomial.coeff_one, zero_ne_single_add_single_one]
+    · simp [MvPolynomial.coeff_X']
+    · simp [MvPolynomial.coeff_X',
+        single_one_ne_single_add_single_one]
+  · simp
+  · intro p q _ _ hp hq
+    simp [hp, hq]
+  · intro a p _ hp
+    simp [hp]
+
+private theorem concreteWCanonical_booleanity_coeff_endpoint0_cross_eq_zero_of_ne
+    {n : ℕ} {hn4 : n ≥ 4} {v : Fin n}
+    (hv0 : v ≠ concreteWEndpoint0 n hn4)
+    {p : MvPolynomial (Fin n) ℚ}
+    (hp : p ∈ concreteWCanonical n hn4 ConstraintType.booleanity) :
+    MvPolynomial.coeff
+        (Finsupp.single v 1 +
+          Finsupp.single (concreteWEndpoint0 n hn4) 1) p = 0 := by
+  unfold concreteWCanonical concreteW at hp
+  unfold ambientPerTypeSpace at hp
+  rw [Submodule.mem_map] at hp
+  obtain ⟨q, hq, rfl⟩ := hp
+  unfold perTypeInterfaceSpace at hq
+  refine Submodule.span_induction
+    (p := fun q _ =>
+      MvPolynomial.coeff
+        (Finsupp.single v 1 +
+          Finsupp.single (concreteWEndpoint0 n hn4) 1)
+        (MvPolynomial.rename
+          (Fin.castLE hn4) q) = 0)
+    ?_ ?_ ?_ ?_ hq
+  · intro q hq
+    simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hq
+    rcases hq with rfl | rfl | rfl
+    · simp [MvPolynomial.coeff_one, zero_ne_single_add_single_one]
+    · have hrename :
+          MvPolynomial.rename (Fin.castLE hn4)
+              (MvPolynomial.X (0 : Fin 4)) =
+            (MvPolynomial.X (Fin.castLE hn4 (0 : Fin 4)) :
+              MvPolynomial (Fin n) ℚ) := by
+        simp
+      rw [hrename]
+      simp [concreteWEndpoint0, MvPolynomial.coeff_X']
+    · have hrename :
+          MvPolynomial.rename (Fin.castLE hn4)
+              ((MvPolynomial.X (0 : Fin 4)) ^ 2) =
+            ((MvPolynomial.X (Fin.castLE hn4 (0 : Fin 4)) :
+              MvPolynomial (Fin n) ℚ) ^ 2) := by
+        simp
+      rw [hrename]
+      have hv0' : v ≠ Fin.castLE hn4 (0 : Fin 4) := by
+        simpa [concreteWEndpoint0] using hv0
+      simp [concreteWEndpoint0, MvPolynomial.X_pow_eq_monomial,
+        single_two_ne_single_add_single_one_of_ne hv0']
+  · simp
+  · intro p q _ _ hp hq
+    simpa [map_add, Fin.castLEEmb, hp, hq]
+  · intro a p _ hp
+    simpa [map_smul, Fin.castLEEmb, hp]
+
+/-- Endpoint-augmented booleanity rows have no cross term between the fixed
+boolean endpoint and any different variable. -/
+theorem endpointAugmentedConcreteW_booleanity_coeff_endpoint0_cross_eq_zero_of_ne
+    {n : ℕ} {hn4 : n ≥ 4} {v : Fin n}
+    (hv0 : v ≠ concreteWEndpoint0 n hn4)
+    {p : MvPolynomial (Fin n) ℚ}
+    (hp : p ∈ endpointAugmentedConcreteW n hn4 ConstraintType.booleanity) :
+    MvPolynomial.coeff
+        (Finsupp.single v 1 +
+          Finsupp.single (concreteWEndpoint0 n hn4) 1) p = 0 := by
+  rw [endpointAugmentedConcreteW, Submodule.mem_sup] at hp
+  obtain ⟨pc, hpc, pe, hpe, hp_eq⟩ := hp
+  rw [← hp_eq]
+  simp
+    [concreteWCanonical_booleanity_coeff_endpoint0_cross_eq_zero_of_ne
+     hv0 hpc,
+     concreteWEndpointSpan_coeff_endpoint0_cross_eq_zero_of_ne hpe]
+
+/-- The endpoint-augmented active same-profile closure is already false at the
+mass-one booleanity profile.  A two-variable shift `X₂ * X₀` applied to the
+unit derivative witness would have to remain in the one-booleanity profile
+space, which collapses to the booleanity row; the cross coefficient separates
+it from that row. -/
+theorem not_endpointAugmentedConcreteW_shiftMlprojClosureAt_booleanity_mass_one
+    (n : ℕ) (hn4 : n ≥ 4)
+    (bp : BoundedProfile (Nat.log 2 n))
+    (hbool : bp.toHistogram ConstraintType.booleanity = 1)
+    (hother :
+      ∀ τ : ConstraintType, τ ≠ ConstraintType.booleanity →
+        bp.toHistogram τ = 0) :
+    ¬ PerTypeShiftMlprojClosureAtBoundedProfile
+        (endpointAugmentedConcreteW n hn4) bp := by
+  classical
+  intro hClosure
+  let e0 : Fin n := concreteWEndpoint0 n hn4
+  let e2 : Fin n := (Fin.castLEEmb hn4) (2 : Fin 4)
+  have he20 : e2 ≠ e0 := by
+    simp [e2, e0, concreteWEndpoint0]
+  have hSlen : ([e2, e0] : List (Fin n)).length ≤ Nat.log 2 n := by
+    have hlog : 2 ≤ Nat.log 2 n :=
+      Nat.le_log_of_pow_le (by norm_num : 1 < 2) (by simpa using hn4)
+    simpa using hlog
+  have hshift :
+      (MvPolynomial.X e2 * MvPolynomial.X e0 :
+          MvPolynomial (Fin n) ℚ).vars ⊆
+        ([e2, e0] : List (Fin n)).toFinset := by
+    intro x hx
+    have hx_or :=
+      MvPolynomial.vars_mul (MvPolynomial.X e2)
+        (MvPolynomial.X e0 : MvPolynomial (Fin n) ℚ) hx
+    simpa [MvPolynomial.vars_X] using hx_or
+  have honeW :
+      (1 : MvPolynomial (Fin n) ℚ) ∈
+        endpointAugmentedConcreteW n hn4 ConstraintType.booleanity := by
+    unfold endpointAugmentedConcreteW
+    refine Submodule.mem_sup_right ?_
+    unfold concreteWEndpointSpan
+    exact Submodule.subset_span (by simp)
+  have hg_prod :
+      ∃ (L : ℕ) (factors : Fin L → MvPolynomial (Fin n) ℚ)
+        (constraintType : Fin L → ConstraintType)
+        (d : Fin L → List (Fin n)),
+        (∀ i, ∀ v ∈ d i, v ∈ ([e2, e0] : List (Fin n))) ∧
+        (∀ i, iterDerivList (d i) (factors i) ∈
+          endpointAugmentedConcreteW n hn4 (constraintType i)) ∧
+        (1 : MvPolynomial (Fin n) ℚ) =
+          Finset.univ.prod (fun i => iterDerivList (d i) (factors i)) ∧
+        derivCountProfile constraintType d = bp.toHistogram ∧
+        ∑ i : Fin L, (d i).length ≤ ([e2, e0] : List (Fin n)).length := by
+    refine
+      ⟨1, (fun _ => (MvPolynomial.X e0 : MvPolynomial (Fin n) ℚ)),
+        (fun _ => ConstraintType.booleanity), (fun _ => [e0]),
+        ?_, ?_, ?_, ?_, ?_⟩
+    · intro i v hv
+      simp at hv ⊢
+      exact Or.inr hv
+    · intro i
+      simpa [SPDP.iterDerivList] using honeW
+    · simp [SPDP.iterDerivList]
+    · funext τ
+      cases τ with
+      | booleanity =>
+          simpa [derivCountProfile, hbool]
+      | adjacency =>
+          simpa [derivCountProfile,
+            hother ConstraintType.adjacency (by decide)]
+      | transitionLeft =>
+          simpa [derivCountProfile,
+            hother ConstraintType.transitionLeft (by decide)]
+      | transitionRight =>
+          simpa [derivCountProfile,
+            hother ConstraintType.transitionRight (by decide)]
+    · simp
+  have hmemProfile :
+      mlProj ((MvPolynomial.X e2 * MvPolynomial.X e0 :
+          MvPolynomial (Fin n) ℚ) * 1) ∈
+        cookLevinProfileSubspace bp (endpointAugmentedConcreteW n hn4) :=
+    hClosure [e2, e0] hSlen
+      (MvPolynomial.X e2 * MvPolynomial.X e0) hshift
+      (1 : MvPolynomial (Fin n) ℚ) hg_prod
+  have hprofile_eq :
+      cookLevinProfileSubspace bp (endpointAugmentedConcreteW n hn4) =
+        endpointAugmentedConcreteW n hn4 ConstraintType.booleanity := by
+    unfold cookLevinProfileSubspace
+    exact
+      PallLean.Paper93.Canonical.profileSubspace_of_mass_one_eq
+        bp.toHistogram (endpointAugmentedConcreteW n hn4)
+        ConstraintType.booleanity hbool hother
+  have hmemW :
+      mlProj ((MvPolynomial.X e2 * MvPolynomial.X e0 :
+          MvPolynomial (Fin n) ℚ) * 1) ∈
+        endpointAugmentedConcreteW n hn4 ConstraintType.booleanity := by
+    simpa [hprofile_eq] using hmemProfile
+  let α : Fin n →₀ ℕ := Finsupp.single e2 1 + Finsupp.single e0 1
+  have hzero :
+      MvPolynomial.coeff α
+          (mlProj ((MvPolynomial.X e2 * MvPolynomial.X e0 :
+            MvPolynomial (Fin n) ℚ) * 1)) = 0 := by
+    simpa [α, e0] using
+      endpointAugmentedConcreteW_booleanity_coeff_endpoint0_cross_eq_zero_of_ne
+        (n := n) (hn4 := hn4) (v := e2) he20 hmemW
+  have hα : Finsupp.IsMultilinear α := by
+    simpa [α] using isMultilinear_single_add_single_one he20
+  have hmono :
+      (MvPolynomial.X e2 * MvPolynomial.X e0 :
+          MvPolynomial (Fin n) ℚ) =
+        MvPolynomial.monomial α (1 : ℚ) := by
+    dsimp [α]
+    show
+      (MvPolynomial.monomial (Finsupp.single e2 1) (1 : ℚ) *
+          MvPolynomial.monomial (Finsupp.single e0 1) (1 : ℚ) :
+          MvPolynomial (Fin n) ℚ) =
+        MvPolynomial.monomial
+          (Finsupp.single e2 1 + Finsupp.single e0 1) (1 : ℚ)
+    rw [MvPolynomial.monomial_mul, mul_one]
+  have hone :
+      MvPolynomial.coeff α
+          (mlProj ((MvPolynomial.X e2 * MvPolynomial.X e0 :
+            MvPolynomial (Fin n) ℚ) * 1)) = 1 := by
+    rw [coeff_mlProj_of_isMultilinear_mono
+      (((MvPolynomial.X e2 * MvPolynomial.X e0 :
+        MvPolynomial (Fin n) ℚ) * 1)) α hα]
+    rw [mul_one, hmono, MvPolynomial.coeff_monomial]
+    simp
+  rw [hone] at hzero
+  norm_num at hzero
+
 /-- Charged endpoint-augmented closure frontier at one active profile.
 
 The `ProfileChargeSelfAtBoundedProfile` field is deliberately explicit:
@@ -1040,6 +1355,81 @@ def EndpointAugmentedActiveProfileFrontier
           ActiveProfileSupport h →
             EndpointAugmentedActiveProfileClosureAtProfile
               M n hn htb hns hn4 (admissibleToBounded hadm)
+
+/-- Any endpoint-augmented active frontier forces the fixed endpoint-augmented
+H3 membership package.  Thus one actual compiled factor outside the fixed
+endpoint target refutes this precise frontier; a row-insensitive or transported
+active target is then required. -/
+theorem not_EndpointAugmentedActiveProfileFrontier_of_factor_not_mem
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : n ≥ 4)
+    (h : ProfileHistogram)
+    (hadm : ProfileAdmissible (Nat.log 2 n) h)
+    (htr : h ConstraintType.transitionRight = 0)
+    (hne : h ≠ zeroProfileHistogram)
+    (hactive : ActiveProfileSupport h)
+    (i : Fin (cookLevinFactorList M n hn htb hns).length)
+    (hnot :
+      (cookLevinFactorList M n hn htb hns).get i ∉
+        endpointAugmentedConcreteW n hn4
+          (cookLevinConstraintType M n hn htb hns i)) :
+    ¬ EndpointAugmentedActiveProfileFrontier M n hn htb hns hn4 := by
+  intro hFrontier
+  rcases hFrontier with ⟨_hBudget, hProfile⟩
+  exact hnot ((hProfile h hadm htr hne hactive).1 i)
+
+/-- The uncharged endpoint-augmented active frontier cannot be proved as
+stated: its same-profile shift/mlProj field is false at the active
+booleanity-mass-one profile. -/
+theorem not_EndpointAugmentedActiveProfileFrontier
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : n ≥ 4) :
+    ¬ EndpointAugmentedActiveProfileFrontier M n hn htb hns hn4 := by
+  intro hFrontier
+  rcases hFrontier with ⟨_hBudget, hProfile⟩
+  let h : ProfileHistogram :=
+    fun τ =>
+      match τ with
+      | ConstraintType.booleanity => 1
+      | ConstraintType.adjacency => 0
+      | ConstraintType.transitionLeft => 0
+      | ConstraintType.transitionRight => 0
+  have hlog : 1 ≤ Nat.log 2 n := by
+    simpa using
+      singleton_length_le_log_two_of_ge_four n hn4
+        (concreteWEndpoint0 n hn4)
+  have hadm : ProfileAdmissible (Nat.log 2 n) h := by
+    simpa [ProfileAdmissible, profileMass, h] using hlog
+  have htr : h ConstraintType.transitionRight = 0 := by
+    simp [h]
+  have hne : h ≠ zeroProfileHistogram := by
+    intro hz
+    have hb := congrFun hz ConstraintType.booleanity
+    simp [h, zeroProfileHistogram] at hb
+  have hactive : ActiveProfileSupport h := by
+    simp [ActiveProfileSupport, h]
+  have hClosure :
+      EndpointAugmentedActiveProfileClosureAtProfile
+        M n hn htb hns hn4 (admissibleToBounded hadm) :=
+    hProfile h hadm htr hne hactive
+  have hbool :
+      (admissibleToBounded hadm).toHistogram
+          ConstraintType.booleanity = 1 := by
+    simp [h]
+  have hother :
+      ∀ τ : ConstraintType, τ ≠ ConstraintType.booleanity →
+        (admissibleToBounded hadm).toHistogram τ = 0 := by
+    intro τ hτ
+    cases τ with
+    | booleanity => exact False.elim (hτ rfl)
+    | adjacency => simp [h]
+    | transitionLeft => simp [h]
+    | transitionRight => simp [h]
+  exact
+    not_endpointAugmentedConcreteW_shiftMlprojClosureAt_booleanity_mass_one
+      n hn4 (admissibleToBounded hadm) hbool hother hClosure.2
 
 /-- Charged variant of the endpoint-augmented active frontier. -/
 def EndpointAugmentedActiveProfileChargedFrontier
@@ -1156,6 +1546,9 @@ theorem cookLevinAllBoundedProfileCommonSpanLiveProfileCases_of_endpointAugmente
 /-! ## Axiom audit anchors -/
 
 #print axioms CookLevinFactorMemPerType_endpointAugmentedConcreteW_of_concreteWCanonical
+#print axioms CookLevinFactorMemPerType_endpointAugmentedConcreteW_of_concreteW
+#print axioms CookLevinFactorMemPerType_endpointAugmentedConcreteW_of_canonicalShapeWitnesses
+#print axioms CookLevinFactorMemPerType_endpointAugmentedConcreteW_of_directBranchShapes_transport
 #print axioms cookLevinPerTypeSpanningAtBoundedProfile_of_perTypeSpanning
 #print axioms cookLevinProfileSubspace_contains_postSpan_at_bp_of_perTypeSpanningAtBoundedProfile
 #print axioms perTypeShiftMlprojClosureAtBoundedProfile_of_global
@@ -1169,6 +1562,10 @@ theorem cookLevinAllBoundedProfileCommonSpanLiveProfileCases_of_endpointAugmente
 #print axioms compiledBasis_transitionLeft_basicRow_mem
 #print axioms cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_spanningAtProfile
 #print axioms cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_closureAtProfile
+#print axioms endpointAugmentedConcreteW_booleanity_coeff_endpoint0_cross_eq_zero_of_ne
+#print axioms not_endpointAugmentedConcreteW_shiftMlprojClosureAt_booleanity_mass_one
+#print axioms not_EndpointAugmentedActiveProfileFrontier_of_factor_not_mem
+#print axioms not_EndpointAugmentedActiveProfileFrontier
 #print axioms cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_chargedClosureAtProfile
 #print axioms cookLevinActiveProfileTypeCaseBlockers_of_endpointAugmentedActiveProfileFrontier
 #print axioms cookLevinActiveProfileTypeCaseBlockers_of_endpointAugmentedActiveProfileChargedFrontier
