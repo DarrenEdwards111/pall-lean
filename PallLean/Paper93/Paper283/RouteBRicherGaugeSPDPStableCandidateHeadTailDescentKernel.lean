@@ -143,6 +143,67 @@ theorem finiteSubmoduleProjection_not_descent_iff_kernel_obstruction
     (finiteSubmoduleProjection S) L
     (finiteSubmoduleProjection_idempotent S)
 
+/-- Explicit-complement finite-submodule specialization: descent through the
+projection built from a caller-supplied complement is exactly the pointwise
+kernel-zero condition. -/
+theorem finiteSubmoduleProjectionWithComplement_descent_iff_kernel_zero
+    {N : Nat}
+    (S C : Submodule Rat (MvPolynomial (Fin N) Rat)) (hC : IsCompl S C)
+    (L : MvPolynomial (Fin N) Rat →ₗ[Rat] MvPolynomial (Fin N) Rat) :
+    (finiteSubmoduleProjectionWithComplement S C hC).comp L =
+        ((finiteSubmoduleProjectionWithComplement S C hC).comp L).comp
+          (finiteSubmoduleProjectionWithComplement S C hC) ↔
+      ∀ p, finiteSubmoduleProjectionWithComplement S C hC p = 0 →
+        finiteSubmoduleProjectionWithComplement S C hC (L p) = 0 :=
+  linearMap_projection_descent_iff_kernel_invisible
+    (finiteSubmoduleProjectionWithComplement S C hC) L
+    (finiteSubmoduleProjectionWithComplement_idempotent S C hC)
+
+/-- Explicit-complement finite-submodule criterion, rewritten through the
+caller-supplied complement rather than the projection kernel. -/
+theorem finiteSubmoduleProjectionWithComplement_descent_iff_complement_invariant
+    {N : Nat}
+    (S C : Submodule Rat (MvPolynomial (Fin N) Rat)) (hC : IsCompl S C)
+    (L : MvPolynomial (Fin N) Rat →ₗ[Rat] MvPolynomial (Fin N) Rat) :
+    (finiteSubmoduleProjectionWithComplement S C hC).comp L =
+        ((finiteSubmoduleProjectionWithComplement S C hC).comp L).comp
+          (finiteSubmoduleProjectionWithComplement S C hC) ↔
+      Submodule.map L C <= C := by
+  rw [finiteSubmoduleProjectionWithComplement_descent_iff_kernel_zero S C hC L]
+  constructor
+  · intro hkernel q hq
+    rcases hq with ⟨p, hp, rfl⟩
+    exact
+      (finiteSubmoduleProjectionWithComplement_apply_eq_zero_iff
+        S C hC (L p)).mp
+        (hkernel p
+          ((finiteSubmoduleProjectionWithComplement_apply_eq_zero_iff
+            S C hC p).mpr hp))
+  · intro hstable p hp
+    have hpComplement : p ∈ C :=
+      (finiteSubmoduleProjectionWithComplement_apply_eq_zero_iff
+        S C hC p).mp hp
+    have hmap : L p ∈ Submodule.map L C := ⟨p, hpComplement, rfl⟩
+    exact
+      (finiteSubmoduleProjectionWithComplement_apply_eq_zero_iff
+        S C hC (L p)).mpr
+        (hstable hmap)
+
+/-- Failure of explicit-complement projection descent is exactly a supplied
+complement vector whose image remains visible after projection. -/
+theorem finiteSubmoduleProjectionWithComplement_not_descent_iff_kernel_obstruction
+    {N : Nat}
+    (S C : Submodule Rat (MvPolynomial (Fin N) Rat)) (hC : IsCompl S C)
+    (L : MvPolynomial (Fin N) Rat →ₗ[Rat] MvPolynomial (Fin N) Rat) :
+    (finiteSubmoduleProjectionWithComplement S C hC).comp L ≠
+        ((finiteSubmoduleProjectionWithComplement S C hC).comp L).comp
+          (finiteSubmoduleProjectionWithComplement S C hC) ↔
+      ∃ p, finiteSubmoduleProjectionWithComplement S C hC p = 0 ∧
+        finiteSubmoduleProjectionWithComplement S C hC (L p) ≠ 0 :=
+  linearMap_not_projection_descent_iff_kernel_obstruction
+    (finiteSubmoduleProjectionWithComplement S C hC) L
+    (finiteSubmoduleProjectionWithComplement_idempotent S C hC)
+
 /-! ## Head-span-tail specialization -/
 
 /-- Checkable kernel criterion for the head-span tail: every log-window
@@ -329,6 +390,9 @@ theorem routeBRicherSPDPStableCandidate_not_logWindowHeadTailChosenProjectionDes
 
 #print axioms linearMap_projection_descent_iff_kernel_invisible
 #print axioms finiteSubmoduleProjection_descent_iff_complement_invariant
+#print axioms finiteSubmoduleProjectionWithComplement_descent_iff_kernel_zero
+#print axioms finiteSubmoduleProjectionWithComplement_descent_iff_complement_invariant
+#print axioms finiteSubmoduleProjectionWithComplement_not_descent_iff_kernel_obstruction
 #print axioms RouteBRicherSPDPStableCandidateLogWindowHeadTailChosenProjectionKernelCriterion
 #print axioms RouteBRicherSPDPStableCandidateLogWindowHeadTailChosenProjectionKernelObstruction
 #print axioms routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionDescent_iff_kernelCriterion

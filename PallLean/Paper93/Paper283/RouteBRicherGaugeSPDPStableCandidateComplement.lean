@@ -255,8 +255,149 @@ theorem routeBRicherSPDPStableCandidate_kernelGeneratorInvisibleWithComplement_n
       (routeBRicherSPDPStableCandidate_generator_escape_of_projectionWithComplement_escape
         M n hn2 htb hns tail T hT hbad)
 
+/-! ## Bundled explicit-complement interface -/
+
+/-- A caller-supplied complement for the smaller SPDP-stable candidate, bundled
+with the proof that it complements the finite span of the prepended candidate
+rows.  This is the inspectable alternative to the legacy
+`Classical.choose` complement. -/
+structure RouteBRicherSPDPStableCandidateProjectionComplementInterface
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    Type where
+  complement : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns)
+  isCompl :
+    IsCompl
+      (finiteRowsSubmodule
+        (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail))
+      complement
+
+namespace RouteBRicherSPDPStableCandidateProjectionComplementInterface
+
+/-- Candidate gauge built from a bundled explicit complement. -/
+noncomputable def gauge
+    {M : DTM} {n : Nat} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {m : Nat} {tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns}
+    (I :
+      RouteBRicherSPDPStableCandidateProjectionComplementInterface
+        M n hn2 htb hns tail) :
+    PallLean.Paper93.NFrame.CandidateGauge
+      (RouteBCookLevinDim M n hn2 htb hns) :=
+  routeBRicherSPDPStableCandidateGaugeWithComplement
+    M n hn2 htb hns tail I.complement I.isCompl
+
+/-- SAT-side projection built from a bundled explicit complement. -/
+noncomputable def projection
+    {M : DTM} {n : Nat} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {m : Nat} {tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns}
+    (I :
+      RouteBRicherSPDPStableCandidateProjectionComplementInterface
+        M n hn2 htb hns tail) :
+    SATDeciderGaugeSpace M n hn2 htb hns →ₗ[Rat]
+      SATDeciderGaugeSpace M n hn2 htb hns :=
+  routeBRicherSPDPStableCandidateProjectionWithComplement
+    M n hn2 htb hns tail I.complement I.isCompl
+
+/-- Zero criterion for the projection attached to a bundled explicit
+complement. -/
+theorem projection_apply_eq_zero_iff
+    {M : DTM} {n : Nat} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {m : Nat} {tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns}
+    (I :
+      RouteBRicherSPDPStableCandidateProjectionComplementInterface
+        M n hn2 htb hns tail)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns) :
+    I.projection p = 0 ↔ p ∈ I.complement := by
+  simpa [projection] using
+    routeBRicherSPDPStableCandidateProjectionWithComplement_apply_eq_zero_iff
+      M n hn2 htb hns tail I.complement I.isCompl p
+
+/-- Kernel invisibility for the bundled projection is exactly invariance of
+the bundled complement under admissible generator rows. -/
+theorem kernelGeneratorInvisible_iff_explicitComplementInvariant
+    {M : DTM} {n : Nat} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {m : Nat} {tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns}
+    (I :
+      RouteBRicherSPDPStableCandidateProjectionComplementInterface
+        M n hn2 htb hns tail) :
+    RouteBRicherSPDPStableCandidateKernelGeneratorInvisibleWithComplement
+        M n hn2 htb hns tail I.complement I.isCompl ↔
+      RouteBRicherSPDPStableCandidateExplicitComplementInvariant
+        M n hn2 htb hns tail I.complement :=
+  routeBRicherSPDPStableCandidate_kernelGeneratorInvisibleWithComplement_iff_explicitComplementInvariant
+    M n hn2 htb hns tail I.complement I.isCompl
+
+/-- Operator stability of the bundled complement proves the pointwise
+explicit-complement invariant. -/
+theorem explicitComplementInvariant_of_stableGeneratorMaps
+    {M : DTM} {n : Nat} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {m : Nat} {tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns}
+    (I :
+      RouteBRicherSPDPStableCandidateProjectionComplementInterface
+        M n hn2 htb hns tail)
+    (hstable :
+      RouteBRicherSPDPStableCandidateExplicitComplementStableGeneratorMaps
+        M n hn2 htb hns tail I.complement) :
+    RouteBRicherSPDPStableCandidateExplicitComplementInvariant
+      M n hn2 htb hns tail I.complement :=
+  routeBRicherSPDPStableCandidate_explicitComplementInvariant_of_generatorRowLinearMap_maps_complement
+    M n hn2 htb hns tail I.complement hstable
+
+/-- Projection intertwining for the bundled explicit projection proves the
+pointwise explicit-complement invariant. -/
+theorem explicitComplementInvariant_of_projectionIntertwines
+    {M : DTM} {n : Nat} {hn2 : n >= 2}
+    {htb : M.timeBound <= 4} {hns : M.numStates <= n}
+    {m : Nat} {tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns}
+    (I :
+      RouteBRicherSPDPStableCandidateProjectionComplementInterface
+        M n hn2 htb hns tail)
+    (hintertwines :
+      RouteBRicherSPDPStableCandidateExplicitComplementProjectionIntertwines
+        M n hn2 htb hns tail I.complement I.isCompl) :
+    RouteBRicherSPDPStableCandidateExplicitComplementInvariant
+      M n hn2 htb hns tail I.complement :=
+  routeBRicherSPDPStableCandidate_explicitComplementInvariant_of_projection_intertwines
+    M n hn2 htb hns tail I.complement I.isCompl hintertwines
+
+end RouteBRicherSPDPStableCandidateProjectionComplementInterface
+
+/-- The legacy chosen complement, repackaged as an explicit-complement
+interface.  This keeps old projection statements compatible while allowing new
+proofs to abstract over a caller-supplied complement. -/
+noncomputable def routeBRicherSPDPStableCandidateChosenProjectionComplementInterface
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    RouteBRicherSPDPStableCandidateProjectionComplementInterface
+      M n hn2 htb hns tail where
+  complement :=
+    routeBRicherSPDPStableCandidateProjectionComplement
+      M n hn2 htb hns tail
+  isCompl := by
+    simpa [routeBRicherSPDPStableCandidateProjectionComplement] using
+      finiteSubmoduleProjection_isCompl
+        (finiteRowsSubmodule
+          (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail))
+
 /-! ## Axiom audit anchors -/
 
+#print axioms RouteBRicherSPDPStableCandidateProjectionComplementInterface
+#print axioms RouteBRicherSPDPStableCandidateProjectionComplementInterface.gauge
+#print axioms RouteBRicherSPDPStableCandidateProjectionComplementInterface.projection
+#print axioms RouteBRicherSPDPStableCandidateProjectionComplementInterface.projection_apply_eq_zero_iff
+#print axioms RouteBRicherSPDPStableCandidateProjectionComplementInterface.kernelGeneratorInvisible_iff_explicitComplementInvariant
+#print axioms RouteBRicherSPDPStableCandidateProjectionComplementInterface.explicitComplementInvariant_of_stableGeneratorMaps
+#print axioms RouteBRicherSPDPStableCandidateProjectionComplementInterface.explicitComplementInvariant_of_projectionIntertwines
+#print axioms routeBRicherSPDPStableCandidateChosenProjectionComplementInterface
 #print axioms RouteBRicherSPDPStableCandidateExplicitComplementStableGeneratorMaps
 #print axioms routeBRicherSPDPStableCandidate_explicitComplementInvariant_of_generatorRowLinearMap_maps_complement
 #print axioms RouteBRicherSPDPStableCandidateExplicitComplementProjectionIntertwines

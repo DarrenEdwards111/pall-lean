@@ -51,6 +51,22 @@ theorem routeBRicherSPDPStableCandidateHeadSpanTailProjectionComplement_isCompl
           (routeBRicherSPDPStableCandidateLogWindowHeadTail
             M n hn2 htb hns))))
 
+/-- The canonical head-span tail's chosen complement, repackaged as the
+generic explicit-complement interface. -/
+noncomputable def routeBRicherSPDPStableCandidateHeadSpanTailProjectionComplementInterface
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherSPDPStableCandidateProjectionComplementInterface
+      M n hn2 htb hns
+      (routeBRicherSPDPStableCandidateLogWindowHeadTail
+        M n hn2 htb hns) where
+  complement :=
+    routeBRicherSPDPStableCandidateHeadSpanTailProjectionComplement
+      M n hn2 htb hns
+  isCompl :=
+    routeBRicherSPDPStableCandidateHeadSpanTailProjectionComplement_isCompl
+      M n hn2 htb hns
+
 /-- Projection-escape witness specialized to the head-span tail and the finite
 projection's chosen complement.  This is the exact remaining exhibit needed by
 the explicit-complement no-go wrappers. -/
@@ -303,6 +319,7 @@ theorem routeBRicherSPDPStableCandidate_headSpanTail_explicitComplementInvariant
 /-! ## Axiom audit anchors -/
 
 #print axioms routeBRicherSPDPStableCandidateHeadSpanTailProjectionComplement_isCompl
+#print axioms routeBRicherSPDPStableCandidateHeadSpanTailProjectionComplementInterface
 #print axioms RouteBRicherSPDPStableCandidateHeadSpanTailProjectionEscapeWitness
 #print axioms RouteBRicherSPDPStableCandidateHeadSpanTailLogWindowProjectionEscapeWitness
 #print axioms routeBRicherSPDPStableCandidate_headSpanTailProjectionEscapeWitness_of_not_chosenComplementInvariant
