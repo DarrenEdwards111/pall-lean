@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ProjectedIdentityMinorPaperFaithful
+import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingBridge
 import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingsClosure
 
 /-!
@@ -145,6 +146,22 @@ theorem cookLevinProjectedPSideBound_of_concreteW_rowEmbeddings
     (cookLevinProfileTemplateCollapseLemma_of_concreteW_rowEmbeddings
       M n hn2 htb hns hn4 hRowEmbeddings)
 
+/-- The concreteW H3/H4/I5 closure-frontier feeds the projected Cook-Levin
+P-side bound through the row-embedding bridge.  The frontier itself remains
+load-bearing: canonical H4 is separately refuted by
+`not_CookLevinConcreteWRowEmbeddingClosureFrontier`. -/
+theorem cookLevinProjectedPSideBound_of_concreteW_closureFrontier
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+    (hFrontier :
+      CookLevinConcreteWRowEmbeddingClosureFrontier M n hn2 htb hns hn4) :
+    CookLevinProjectedPSideBound M n hn2 htb hns :=
+  cookLevinProjectedPSideBound_of_concreteW_rowEmbeddings
+    M n hn htb hns hn2 hn4
+    (CookLevinPerTypeRowEmbeddings_concreteW_of_closureFrontier
+      M n hn2 htb hns hn4 hFrontier)
+
 /-- The concrete Step247 Cook-Levin output satisfies the projected
 contradiction package under the honest template-collapse hypothesis. -/
 theorem paperFaithfulProjectedContradictionPackage_cookLevin_of_templateCollapse
@@ -193,6 +210,21 @@ theorem false_of_cookLevin_concreteW_rowEmbeddings_projected
     (cookLevinProjectedPSideBound_of_concreteW_rowEmbeddings
       M n hn htb hns hn2 hn4 hRowEmbeddings)
 
+/-- Projected Cook-Levin contradiction from the concreteW closure frontier.
+This is intentionally a frontier-consuming theorem, not an unconditional
+claim: the canonical frontier is impossible unless the Route B local interface
+is corrected away from the old H4 field. -/
+theorem false_of_cookLevin_concreteW_closureFrontier_projected
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+    (hFrontier :
+      CookLevinConcreteWRowEmbeddingClosureFrontier M n hn2 htb hns hn4) :
+    False :=
+  false_of_cookLevinProjectedPSideBound M n hn htb hns hn2
+    (cookLevinProjectedPSideBound_of_concreteW_closureFrontier
+      M n hn htb hns hn2 hn4 hFrontier)
+
 /-! ## Axiom audit anchors -/
 
 #print axioms sourceIdentityMinorLowerBound_cookLevin_partitionedOutput
@@ -202,9 +234,11 @@ theorem false_of_cookLevin_concreteW_rowEmbeddings_projected
 #print axioms false_of_cookLevinProjectedPSideBound
 #print axioms cookLevinProjectedPSideBound_of_templateCollapse
 #print axioms cookLevinProjectedPSideBound_of_concreteW_rowEmbeddings
+#print axioms cookLevinProjectedPSideBound_of_concreteW_closureFrontier
 #print axioms paperFaithfulProjectedContradictionPackage_cookLevin_of_templateCollapse
 #print axioms false_of_cookLevin_templateCollapse_projected
 #print axioms false_of_cookLevin_concreteW_rowEmbeddings_projected
+#print axioms false_of_cookLevin_concreteW_closureFrontier_projected
 
 end ProjectedIdentityMinorConcrete
 

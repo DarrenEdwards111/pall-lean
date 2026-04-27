@@ -184,11 +184,35 @@ theorem canonicalConcreteW_H4_no_go_and_corrected_target
   ⟨not_canonicalConcreteW_derivClosurePerType n hn4,
     corrected_endpointAugmentedConcreteW_derivClosurePerType n hn4⟩
 
+/-- Consequently, the old canonical `concreteW` H3/H4/I5 closure-frontier
+route cannot be discharged unconditionally: its H4 component is already
+refuted by the endpoint-variable derivative. -/
+theorem not_CookLevinConcreteWRowEmbeddingClosureFrontier
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (hn4 : n ≥ 4) :
+    ¬ CookLevinConcreteWRowEmbeddingClosureFrontier M n hn htb hns hn4 := by
+  intro hFrontier
+  exact not_canonicalConcreteW_derivClosurePerType n hn4 hFrontier.2.1
+
+/-- Compact Route B diagnostic: canonical closure-frontier is impossible, but
+the endpoint-augmented H4 replacement is available.  The remaining corrected
+Route B work is therefore the charged/profile-aware shift and `mlProj`
+transport around the endpoint-augmented family, not the old canonical H4. -/
+theorem canonicalConcreteW_closureFrontier_no_go_and_endpointH4
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (hn4 : n ≥ 4) :
+    (¬ CookLevinConcreteWRowEmbeddingClosureFrontier M n hn htb hns hn4) ∧
+      DerivClosurePerType (n := n) (endpointAugmentedConcreteW n hn4) :=
+  ⟨not_CookLevinConcreteWRowEmbeddingClosureFrontier M n hn htb hns hn4,
+    corrected_endpointAugmentedConcreteW_derivClosurePerType n hn4⟩
+
 #print axioms canonicalConcreteW_adjacency_product_mem
 #print axioms canonicalConcreteW_adjacency_endpoint0_not_mem
 #print axioms canonicalConcreteW_derivClosure_forces_adjacency_endpoint0_mem
 #print axioms not_canonicalConcreteW_derivClosurePerType
 #print axioms corrected_endpointAugmentedConcreteW_derivClosurePerType
 #print axioms canonicalConcreteW_H4_no_go_and_corrected_target
+#print axioms not_CookLevinConcreteWRowEmbeddingClosureFrontier
+#print axioms canonicalConcreteW_closureFrontier_no_go_and_endpointH4
 
 end PallLean.Paper93.DeepMath.PathB
