@@ -48,6 +48,143 @@ theorem zeroProfileSymmetricProfileDim_le_withinProfileBound
   simpa [zeroProfileSymmetricProfileDim] using
     (profileDimBound_le_withinProfileBound κ h hadm)
 
+/-! ## Boolean quotient normalization
+
+The paper's multilinear Boolean basis is quotient-normalized by `X_i^2 = X_i`.
+The global `mlProj` operation in this repository instead drops non-multilinear
+monomials.  For the zero-profile route we therefore name the quotient
+normalizer explicitly: a monomial exponent is sent to the indicator of its
+support, so every positive power of `X_i` has representative `X_i`.
+-/
+
+/-- Boolean quotient representative of a monomial exponent: every positive
+exponent is collapsed to `1`. -/
+noncomputable def zeroProfileBooleanExponent {n : ℕ}
+    (α : Fin n →₀ ℕ) : Fin n →₀ ℕ :=
+  α.support.sum (fun i => Finsupp.single i 1)
+
+/-- Boolean quotient normalization on the monomial basis.  This is not
+`mlProj`: it implements the quotient relation `X_i^k = X_i` for every
+positive `k`. -/
+noncomputable def zeroProfileBooleanNormalizeLinearMap {n : ℕ} :
+    MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ :=
+  Finsupp.lmapDomain ℚ ℚ (zeroProfileBooleanExponent (n := n))
+
+/-- Boolean quotient normalization as a polynomial operation. -/
+noncomputable def zeroProfileBooleanNormalize {n : ℕ}
+    (p : MvPolynomial (Fin n) ℚ) : MvPolynomial (Fin n) ℚ :=
+  zeroProfileBooleanNormalizeLinearMap p
+
+@[simp] theorem zeroProfileBooleanExponent_zero {n : ℕ} :
+    zeroProfileBooleanExponent (0 : Fin n →₀ ℕ) = 0 := by
+  simp [zeroProfileBooleanExponent]
+
+@[simp] theorem zeroProfileBooleanExponent_single_pos {n : ℕ}
+    (i : Fin n) {k : ℕ} (hk : k ≠ 0) :
+    zeroProfileBooleanExponent (Finsupp.single i k) =
+      Finsupp.single i 1 := by
+  classical
+  rw [zeroProfileBooleanExponent, Finsupp.support_single_ne_zero i hk]
+  simp
+
+/-- Boolean normalization on one monomial collapses its exponent to the
+support-indicator exponent. -/
+@[simp] theorem zeroProfileBooleanNormalize_monomial {n : ℕ}
+    (α : Fin n →₀ ℕ) (c : ℚ) :
+    zeroProfileBooleanNormalize (MvPolynomial.monomial α c) =
+      MvPolynomial.monomial (zeroProfileBooleanExponent α) c := by
+  change
+    (Finsupp.lmapDomain ℚ ℚ (zeroProfileBooleanExponent (n := n)))
+        (AddMonoidAlgebra.lsingle α c) =
+      AddMonoidAlgebra.lsingle (zeroProfileBooleanExponent α) c
+  rw [Finsupp.lmapDomain_apply, AddMonoidAlgebra.lsingle_apply,
+    Finsupp.mapDomain_single]
+  simp [AddMonoidAlgebra.lsingle_apply]
+
+theorem zeroProfileBooleanNormalize_add {n : ℕ}
+    (p q : MvPolynomial (Fin n) ℚ) :
+    zeroProfileBooleanNormalize (p + q) =
+      zeroProfileBooleanNormalize p + zeroProfileBooleanNormalize q := by
+  exact map_add zeroProfileBooleanNormalizeLinearMap p q
+
+theorem zeroProfileBooleanNormalize_neg {n : ℕ}
+    (p : MvPolynomial (Fin n) ℚ) :
+    zeroProfileBooleanNormalize (-p) = -zeroProfileBooleanNormalize p := by
+  exact map_neg zeroProfileBooleanNormalizeLinearMap p
+
+theorem zeroProfileBooleanNormalize_sub {n : ℕ}
+    (p q : MvPolynomial (Fin n) ℚ) :
+    zeroProfileBooleanNormalize (p - q) =
+      zeroProfileBooleanNormalize p - zeroProfileBooleanNormalize q := by
+  exact map_sub zeroProfileBooleanNormalizeLinearMap p q
+
+@[simp] theorem zeroProfileBooleanNormalize_zero {n : ℕ} :
+    zeroProfileBooleanNormalize (0 : MvPolynomial (Fin n) ℚ) = 0 := by
+  exact map_zero zeroProfileBooleanNormalizeLinearMap
+
+@[simp] theorem zeroProfileBooleanNormalize_C {n : ℕ} (c : ℚ) :
+    zeroProfileBooleanNormalize (MvPolynomial.C c : MvPolynomial (Fin n) ℚ) =
+      MvPolynomial.C c := by
+  rw [MvPolynomial.C_apply, zeroProfileBooleanNormalize_monomial,
+    zeroProfileBooleanExponent_zero]
+
+@[simp] theorem zeroProfileBooleanNormalize_one {n : ℕ} :
+    zeroProfileBooleanNormalize (1 : MvPolynomial (Fin n) ℚ) = 1 := by
+  simpa using (zeroProfileBooleanNormalize_C (n := n) 1)
+
+@[simp] theorem zeroProfileBooleanNormalize_X {n : ℕ} (i : Fin n) :
+    zeroProfileBooleanNormalize (MvPolynomial.X i : MvPolynomial (Fin n) ℚ) =
+      MvPolynomial.X i := by
+  rw [MvPolynomial.X]
+  simp
+
+/-- Boolean normalization sends the square monomial to its singleton
+representative.  This is the quotient fact `X_i^2 = X_i`, unlike `mlProj`,
+which drops `X_i^2`. -/
+theorem zeroProfileBooleanNormalize_X_mul_X {n : ℕ} (i : Fin n) :
+    zeroProfileBooleanNormalize
+        (MvPolynomial.X i * MvPolynomial.X i :
+          MvPolynomial (Fin n) ℚ) =
+      MvPolynomial.X i := by
+  rw [MvPolynomial.X, MvPolynomial.monomial_mul]
+  have hpow :
+      (Finsupp.single i 1 + Finsupp.single i 1 : Fin n →₀ ℕ) =
+        Finsupp.single i 2 := by
+    ext j
+    by_cases hji : j = i
+    · subst j
+      simp
+    · simp [Finsupp.single_eq_of_ne hji]
+  rw [hpow]
+  simp
+
+/-- The Boolean square residual is killed by quotient normalization. -/
+theorem zeroProfileBooleanNormalize_square_residual {n : ℕ} (i : Fin n) :
+    zeroProfileBooleanNormalize
+        (MvPolynomial.X i * MvPolynomial.X i - MvPolynomial.X i :
+          MvPolynomial (Fin n) ℚ) = 0 := by
+  rw [zeroProfileBooleanNormalize_sub,
+    zeroProfileBooleanNormalize_X_mul_X, zeroProfileBooleanNormalize_X]
+  simp
+
+/-- Boolean normalization turns the Cook-Levin booleanity factor
+`1 - X_i + X_i^2` into the constant normal form `1`. -/
+theorem zeroProfileBooleanNormalize_boolFactor {n : ℕ} (i : Fin n) :
+    zeroProfileBooleanNormalize
+        (SymmetricPower.boolFactor n i : MvPolynomial (Fin n) ℚ) =
+      1 := by
+  classical
+  unfold SymmetricPower.boolFactor
+  rw [show
+      ((1 : MvPolynomial (Fin n) ℚ) -
+          MvPolynomial.X i * (1 - MvPolynomial.X i)) =
+        1 + (MvPolynomial.X i * MvPolynomial.X i - MvPolynomial.X i) by
+        ring]
+  rw [zeroProfileBooleanNormalize_add,
+    zeroProfileBooleanNormalize_one,
+    zeroProfileBooleanNormalize_square_residual]
+  simp
+
 /-! ## Projected normal-form families -/
 
 /-- A projected normal-form family for zero-profile rows.
@@ -681,6 +818,9 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_projectedNormalFormCertificate_
 /-! ## Axiom audit anchors -/
 
 #print axioms zeroProfileSymmetricProfileDim_le_withinProfileBound
+#print axioms zeroProfileBooleanNormalize_X_mul_X
+#print axioms zeroProfileBooleanNormalize_square_residual
+#print axioms zeroProfileBooleanNormalize_boolFactor
 #print axioms zeroProfileProjectedNormalFormSpace_finrank_le_profileDim
 #print axioms zeroProfileProjectedNormalFormGlobalBasis_card_le_typeBudget
 #print axioms zeroProfileProjectedNormalFormSpace_le_compressedSpan

@@ -68,6 +68,33 @@ theorem partitionedOutput_cookLevin_projectedCompilerIdentityMinorLowerBound
     (sourceIdentityMinorLowerBound_cookLevin_partitionedOutput
       M n hn htb hns hn2)
 
+/-- Concrete Step247 Cook-Levin preservation for the actual `T_Φ` extraction
+pipeline.  The source identity-minor lower bound on the verifier sheet is
+carried by the basis/relabel/restrict/project composite applied to the full
+compiler output. -/
+theorem partitionedOutput_cookLevin_T_Phi_projectedCompilerIdentityMinorLowerBound
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2)
+    (Φ : Finset
+      (Step4Compiler.Step247.partitioned_output_cookLevin
+        M n hn2 htb hns).σ.Idx) :
+    PaperFaithfulProjectedCompilerIdentityMinorLowerBound n
+      (Step4Compiler.Step247.partitioned_output_cookLevin M n hn2 htb hns).σ
+      (extendedCookLevinPartition M n hn2)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (Step4Compiler.Step247.partitioned_output_cookLevin M n hn2 htb hns).Q_verifier
+      (Step4Compiler.Step247.partitioned_output_cookLevin M n hn2 htb hns).full_output
+      (Step4Compiler.T_Phi
+        (Step4Compiler.Step247.partitioned_output_cookLevin M n hn2 htb hns).σ
+        Φ) := by
+  exact PallLean.Paper93.DeepMath.PathB.partitionedOutput_T_Phi_projectedCompilerIdentityMinorLowerBound_of_source
+    n (Step4Compiler.Step247.partitioned_output_cookLevin M n hn2 htb hns)
+    Φ (extendedCookLevinPartition M n hn2)
+    (Nat.log 2 n) (Nat.log 2 n)
+    (sourceIdentityMinorLowerBound_cookLevin_partitionedOutput
+      M n hn htb hns hn2)
+
 /-- Direct P-side bound needed by the concrete projected Cook-Levin package. -/
 def CookLevinProjectedPSideBound
     (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
@@ -230,6 +257,7 @@ theorem false_of_cookLevin_concreteW_closureFrontier_projected
 #print axioms sourceIdentityMinorLowerBound_cookLevin_partitionedOutput
 #print axioms partitionedOutput_cookLevin_projectedIdentityMinorLowerBound
 #print axioms partitionedOutput_cookLevin_projectedCompilerIdentityMinorLowerBound
+#print axioms partitionedOutput_cookLevin_T_Phi_projectedCompilerIdentityMinorLowerBound
 #print axioms paperFaithfulProjectedContradictionPackage_cookLevin_of_pSide
 #print axioms false_of_cookLevinProjectedPSideBound
 #print axioms cookLevinProjectedPSideBound_of_templateCollapse

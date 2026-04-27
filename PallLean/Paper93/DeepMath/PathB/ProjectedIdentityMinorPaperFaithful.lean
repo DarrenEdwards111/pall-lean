@@ -111,6 +111,40 @@ theorem piPhi_projectedCompilerIdentityMinorLowerBound_of_extraction
   projectedCompilerIdentityMinorLowerBound_of_extraction_and_source
     n σ B κ ℓ Q P (piPhi σ) hExtract hsource
 
+/-- The explicit paper extraction operator `T_Φ` preserves the embedded
+identity-minor obstruction when the source coupled sheet has the lower bound.
+
+This uses the actual factorized extraction map from `Step4Compiler`:
+`T_Φ = basis ∘ affine relabel ∘ restriction ∘ projection`, which reduces to
+`piPhi` in the canonical Cook-Levin basis. -/
+theorem T_Phi_projectedIdentityMinorLowerBound_of_source
+    (n : ℕ) (σ : UVSplit) (Φ : Finset σ.Idx)
+    (B : SPDP.BlockPartition σ.total) (κ ℓ : ℕ)
+    (Q : CoupledSheetPoly σ)
+    (hsource : SourceIdentityMinorLowerBound n σ B κ ℓ Q) :
+    PaperFaithfulProjectedIdentityMinorLowerBound
+      n σ B κ ℓ Q (Step4Compiler.T_Phi σ Φ) := by
+  apply projectedIdentityMinorLowerBound_of_source_of_fixed_embed
+  · rw [Step4Compiler.T_Phi_eq_piPhi σ Φ]
+    exact piPhi_embed_eq σ Q
+  · exact hsource
+
+/-- The paper Lemma 205 extraction equation for `T_Φ`, plus the source
+identity-minor lower bound on the coupled sheet, gives the projected compiler
+identity-minor lower bound on the extracted image. -/
+theorem T_Phi_projectedCompilerIdentityMinorLowerBound_of_extraction
+    (n : ℕ) (σ : UVSplit) (Φ : Finset σ.Idx)
+    (B : SPDP.BlockPartition σ.total) (κ ℓ : ℕ)
+    (Q : CoupledSheetPoly σ) (P : PMnPoly σ)
+    (hExtract : piPhi σ P = CoupledSheetPoly.embed σ Q)
+    (hsource : SourceIdentityMinorLowerBound n σ B κ ℓ Q) :
+    PaperFaithfulProjectedCompilerIdentityMinorLowerBound
+      n σ B κ ℓ Q P (Step4Compiler.T_Phi σ Φ) :=
+  projectedCompilerIdentityMinorLowerBound_of_extraction_and_source
+    n σ B κ ℓ Q P (Step4Compiler.T_Phi σ Φ)
+    (Step4Compiler.T_Phi_image_of_PMn_real_embed σ Φ P Q hExtract)
+    hsource
+
 /-- Projected identity-minor lower bound for a paper §40 partitioned output.
 
 This is the direct `Step241.PartitionedCompilerOutput` formulation: once the
@@ -161,6 +195,22 @@ theorem partitionedOutput_projectedCompilerIdentityMinorLowerBound_of_source
       Step4Compiler.Step241.partitioned_output_piPhi_extracts W
   · exact hsource
 
+/-- Partitioned-output form for the actual `T_Φ` extraction pipeline.  The
+same source lower bound survives the basis/relabel/restrict/project composite
+because the full compiler output extracts to the embedded verifier sheet. -/
+theorem partitionedOutput_T_Phi_projectedCompilerIdentityMinorLowerBound_of_source
+    (n : ℕ) (W : Step4Compiler.Step241.PartitionedCompilerOutput)
+    (Φ : Finset W.σ.Idx)
+    (B : SPDP.BlockPartition W.σ.total) (κ ℓ : ℕ)
+    (hsource : SourceIdentityMinorLowerBound n W.σ B κ ℓ W.Q_verifier) :
+    PaperFaithfulProjectedCompilerIdentityMinorLowerBound
+      n W.σ B κ ℓ W.Q_verifier W.full_output
+        (Step4Compiler.T_Phi W.σ Φ) := by
+  apply T_Phi_projectedCompilerIdentityMinorLowerBound_of_extraction
+  · simpa [Step4Compiler.Step241.PartitionedCompilerOutput.embedded_Q] using
+      Step4Compiler.Step241.partitioned_output_piPhi_extracts W
+  · exact hsource
+
 /-- Paper-faithful P-side upper bound: the small-rank statement belongs to
 the compiler polynomial `P`, while the lower bound belongs to its projected
 extracted image. -/
@@ -200,9 +250,12 @@ theorem false_of_paperFaithfulProjectedContradictionPackage
 #print axioms projectedCompilerIdentityMinorLowerBound_of_extraction_and_source
 #print axioms piPhi_projectedIdentityMinorLowerBound_of_source
 #print axioms piPhi_projectedCompilerIdentityMinorLowerBound_of_extraction
+#print axioms T_Phi_projectedIdentityMinorLowerBound_of_source
+#print axioms T_Phi_projectedCompilerIdentityMinorLowerBound_of_extraction
 #print axioms partitionedOutput_projectedIdentityMinorLowerBound_of_embedded
 #print axioms partitionedOutput_projectedIdentityMinorLowerBound_of_source
 #print axioms partitionedOutput_projectedCompilerIdentityMinorLowerBound_of_source
+#print axioms partitionedOutput_T_Phi_projectedCompilerIdentityMinorLowerBound_of_source
 #print axioms false_of_paperFaithfulProjectedContradictionPackage
 
 end PallLean.Paper93.DeepMath.PathB

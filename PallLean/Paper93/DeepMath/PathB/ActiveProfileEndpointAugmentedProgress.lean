@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ActiveProfileBlockerConcreteProgress
 import PallLean.Paper93.DeepMath.PathB.AugmentedConcreteWI5
+import PallLean.Paper93.CompiledCoefficientBasis
 
 /-!
 # Active-profile endpoint-augmented retargeting
@@ -233,6 +234,66 @@ theorem endpointAugmentedActiveProfileSubspaceBudget_of_dim_le_three
         (endpointAugmentedConcreteW n hn4) hW_fin hW_dim)
       (profileTemplateBound_le_withinProfileBound
         (Nat.log 2 n) h hadm)
+
+/-- Existing compiled-coefficient interface spaces satisfy the active-profile
+symmetric-power budget side: once rows factor through these spaces, the
+standard `dim W_τ ≤ 3` estimate gives the paper's per-profile bound. -/
+theorem compiledCoefficientBasis_activeProfileSubspaceBudget
+    {n : ℕ} (B : BlockPartition n) (ℓ : ℕ)
+    (h : ProfileHistogram)
+    (hadm : ProfileAdmissible (Nat.log 2 n) h)
+    (_hactive : ActiveProfileSupport h) :
+    Module.Finite ℚ
+        ↥(cookLevinProfileSubspace
+            (admissibleToBounded hadm)
+            (fun τ => interfaceSpace_compiledBasis B (Nat.log 2 n) ℓ τ)) ∧
+      Module.finrank ℚ
+          ↥(cookLevinProfileSubspace
+              (admissibleToBounded hadm)
+              (fun τ => interfaceSpace_compiledBasis B (Nat.log 2 n) ℓ τ))
+        ≤ withinProfileBound (Nat.log 2 n) := by
+  constructor
+  · exact cookLevinProfileSubspace_finite
+      (admissibleToBounded hadm)
+      (fun τ => interfaceSpace_compiledBasis B (Nat.log 2 n) ℓ τ)
+      (fun τ => interfaceSpace_compiledBasis_finite B (Nat.log 2 n) ℓ τ)
+  · exact le_trans
+      (cookLevinProfileSubspace_finrank_le
+        (admissibleToBounded hadm)
+        (fun τ => interfaceSpace_compiledBasis B (Nat.log 2 n) ℓ τ)
+        (fun τ => interfaceSpace_compiledBasis_finite B (Nat.log 2 n) ℓ τ)
+        (fun τ =>
+          interfaceSpace_compiledBasis_finrank_le_three
+            B (Nat.log 2 n) ℓ τ))
+      (profileTemplateBound_le_withinProfileBound
+        (Nat.log 2 n) h hadm)
+
+/-- The current compiled-basis implementation has only the zero generator.
+This is a precise obstruction to using it as the finished active row
+classifier: the dimension theorem above is available, but the concrete local
+row generators still have to be supplied. -/
+theorem interfaceSpace_compiledBasis_current_eq_bot
+    {n : ℕ} (B : BlockPartition n) (κ ℓ : ℕ) (τ : ConstraintType) :
+    interfaceSpace_compiledBasis B κ ℓ τ = ⊥ := by
+  classical
+  unfold interfaceSpace_compiledBasis canonicalInterfaceGenerators
+    canonicalInterfacePolynomial
+  apply le_antisymm
+  · refine Submodule.span_le.mpr ?_
+    intro p hp
+    simp at hp
+    rw [← hp.2]
+    simp
+  · exact bot_le
+
+/-- In particular, the present compiled-basis space cannot contain even the
+constant local row.  Any positive active/profile factor-through proof must
+replace the zero placeholder generators in `CompiledCoefficientBasis`. -/
+theorem one_not_mem_interfaceSpace_compiledBasis_current
+    {n : ℕ} (B : BlockPartition n) (κ ℓ : ℕ) (τ : ConstraintType) :
+    (1 : MvPolynomial (Fin n) ℚ) ∉ interfaceSpace_compiledBasis B κ ℓ τ := by
+  rw [interfaceSpace_compiledBasis_current_eq_bot B κ ℓ τ]
+  simp
 
 /-- A profile-local endpoint-augmented row embedding plus the explicit
 active-profile budget closes the fixed common-span target. -/
@@ -497,6 +558,9 @@ theorem cookLevinAllBoundedProfileCommonSpanLiveProfileCases_of_endpointAugmente
 #print axioms perTypeShiftMlprojClosureAtBoundedProfile_of_charged_self
 #print axioms cookLevinPerTypeSpanningAtBoundedProfile_discharged
 #print axioms endpointAugmentedActiveProfileSubspaceBudget_of_dim_le_three
+#print axioms compiledCoefficientBasis_activeProfileSubspaceBudget
+#print axioms interfaceSpace_compiledBasis_current_eq_bot
+#print axioms one_not_mem_interfaceSpace_compiledBasis_current
 #print axioms cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_spanningAtProfile
 #print axioms cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_closureAtProfile
 #print axioms cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_chargedClosureAtProfile
