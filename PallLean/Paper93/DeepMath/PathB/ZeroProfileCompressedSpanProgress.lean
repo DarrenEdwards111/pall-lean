@@ -393,6 +393,27 @@ profile budget. -/
 def ZeroProfileShiftSupportCountSideCondition (n κ : ℕ) : Prop :=
   zeroProfileShiftSupportSetCount n κ ≤ withinProfileBound κ
 
+/-- Any shift-support count budget must already pay for the singleton shift
+supports, hence for the ambient variable count. -/
+theorem ambient_le_withinProfileBound_of_zeroProfileShiftSupportCountSideCondition
+    (n κ : ℕ)
+    (hκ : 1 ≤ κ)
+    (hcount : ZeroProfileShiftSupportCountSideCondition n κ) :
+    n ≤ withinProfileBound κ :=
+  (zeroProfileShiftSupportSetCount_ge_ambient_of_one_le n κ hκ).trans hcount
+
+/-- Therefore the shift-support count side condition is impossible whenever the
+within-profile budget is smaller than the ambient variable count. -/
+theorem not_zeroProfileShiftSupportCountSideCondition_of_withinProfileBound_lt_ambient
+    (n κ : ℕ)
+    (hκ : 1 ≤ κ)
+    (hlt : withinProfileBound κ < n) :
+    ¬ ZeroProfileShiftSupportCountSideCondition n κ := by
+  intro hcount
+  exact (not_le_of_gt hlt)
+    (ambient_le_withinProfileBound_of_zeroProfileShiftSupportCountSideCondition
+      n κ hκ hcount)
+
 /-- The shift-support count side condition proves the exact compressed-span
 finrank condition. -/
 theorem zeroProfileCompressedSpanFinrankCondition_of_shiftSupportCountSideCondition
@@ -776,6 +797,61 @@ monomial-shift compression. -/
 def CookLevinZeroProfileShiftSupportCountSideCondition (n : ℕ) : Prop :=
   ZeroProfileShiftSupportCountSideCondition n (Nat.log 2 n)
 
+/-- Cook-Levin specialization of the singleton-support necessary condition for
+the shift-support count route. -/
+theorem ambient_le_withinProfileBound_of_CookLevinZeroProfileShiftSupportCountSideCondition
+    (n : ℕ)
+    (hn : n ≥ 2)
+    (hcount : CookLevinZeroProfileShiftSupportCountSideCondition n) :
+    n ≤ withinProfileBound (Nat.log 2 n) := by
+  have hlog_pos : 0 < Nat.log 2 n := Nat.log_pos (by omega) hn
+  exact
+    ambient_le_withinProfileBound_of_zeroProfileShiftSupportCountSideCondition
+      n (Nat.log 2 n) (Nat.succ_le_of_lt hlog_pos) hcount
+
+/-- The current Cook-Levin shift-support count target cannot hold in ambient
+sizes where `withinProfileBound (Nat.log 2 n) < n`.  This rules out closing the
+zero-profile frontier by the raw shift-support count in those regimes. -/
+theorem not_CookLevinZeroProfileShiftSupportCountSideCondition_of_withinProfileBound_lt_ambient
+    (n : ℕ)
+    (hn : n ≥ 2)
+    (hlt : withinProfileBound (Nat.log 2 n) < n) :
+    ¬ CookLevinZeroProfileShiftSupportCountSideCondition n := by
+  intro hcount
+  exact (not_le_of_gt hlt)
+    (ambient_le_withinProfileBound_of_CookLevinZeroProfileShiftSupportCountSideCondition
+      n hn hcount)
+
+/-- At the paper-scale endpoint, the within-profile budget is already smaller
+than the ambient variable count. -/
+theorem withinProfileBound_log_two_pow_804_lt_ambient :
+    withinProfileBound (Nat.log 2 ((2 : ℕ) ^ 804)) < (2 : ℕ) ^ 804 := by
+  rw [Nat.log_pow (by norm_num : 1 < 2) 804]
+  unfold withinProfileBound
+  set_option exponentiation.threshold 1000 in
+  calc
+    (804 + 1) ^ 8 < ((2 : ℕ) ^ 10) ^ 8 := by
+      exact Nat.pow_lt_pow_left (by norm_num : 804 + 1 < (2 : ℕ) ^ 10)
+        (by norm_num : 8 ≠ 0)
+    _ = (2 : ℕ) ^ (10 * 8) := by
+      rw [Nat.pow_mul]
+    _ ≤ (2 : ℕ) ^ 804 := by
+      exact Nat.pow_le_pow_right (by omega : (1 : ℕ) ≤ 2)
+        (by omega : 10 * 8 ≤ 804)
+
+/-- Concrete no-go: the raw Cook-Levin shift-support count target is false at
+the paper-scale endpoint `n = 2^804`. -/
+theorem not_CookLevinZeroProfileShiftSupportCountSideCondition_two_pow_804 :
+    ¬ CookLevinZeroProfileShiftSupportCountSideCondition ((2 : ℕ) ^ 804) := by
+  apply
+    not_CookLevinZeroProfileShiftSupportCountSideCondition_of_withinProfileBound_lt_ambient
+  · set_option exponentiation.threshold 1000 in
+    calc
+      (2 : ℕ) = 2 ^ 1 := (pow_one 2).symm
+      _ ≤ 2 ^ 804 := Nat.pow_le_pow_right (by omega : (1 : ℕ) ≤ 2)
+        (by omega : 1 ≤ 804)
+  · exact withinProfileBound_log_two_pow_804_lt_ambient
+
 /-- The Cook-Levin shift-support count side condition proves the sharp
 compressed-span finrank condition. -/
 theorem cookLevinZeroProfileCompressedSpanFinrankCondition_of_shiftSupportCountSideCondition
@@ -1070,6 +1146,8 @@ theorem cookLevinZeroProfileCompressedShiftSpan_two_le_finrank
 #print axioms zeroProfileShiftMonomialImageBasis_subset_shiftImageSet
 #print axioms zeroProfileShiftImageSpan_eq_monomialImageBasis_span
 #print axioms zeroProfileCompressedShiftSpan_finrank_le_shiftSupportSetCount
+#print axioms ambient_le_withinProfileBound_of_zeroProfileShiftSupportCountSideCondition
+#print axioms not_zeroProfileShiftSupportCountSideCondition_of_withinProfileBound_lt_ambient
 #print axioms zeroProfileCompressedSpanFinrankCondition_of_shiftSupportCountSideCondition
 #print axioms zeroProfileCompressedSpanKernelSeparated_iff_disjoint_ker
 #print axioms zeroProfileCompressedSpanFinrankCondition_of_kernelSeparated
@@ -1081,6 +1159,10 @@ theorem cookLevinZeroProfileCompressedShiftSpan_two_le_finrank
 #print axioms zeroProfileCompressedSpanIntrinsicCompressionObligation_iff_finrankCondition
 #print axioms zeroProfileCompressedSpanCommonSpanWithBudget_iff_finrankCondition
 #print axioms cookLevinZeroProfileCompressedShiftSpan_finrank_le_shiftSupportSetCount
+#print axioms ambient_le_withinProfileBound_of_CookLevinZeroProfileShiftSupportCountSideCondition
+#print axioms not_CookLevinZeroProfileShiftSupportCountSideCondition_of_withinProfileBound_lt_ambient
+#print axioms withinProfileBound_log_two_pow_804_lt_ambient
+#print axioms not_CookLevinZeroProfileShiftSupportCountSideCondition_two_pow_804
 #print axioms cookLevinZeroProfileCompressedSpanFinrankCondition_of_shiftSupportCountSideCondition
 #print axioms cookLevinZeroHistogramShiftCommonSpan_iff_compressedSpanFinrankCondition
 #print axioms cookLevinZeroHistogramShiftCommonSpan_of_compressedSpanFinrankCondition

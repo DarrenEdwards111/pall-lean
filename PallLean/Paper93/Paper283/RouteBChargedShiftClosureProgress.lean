@@ -346,6 +346,76 @@ def EndpointAugmentedConcreteWEndpointSpanOneStepChargeCompatible
         ∀ τ : ConstraintType, τ ≠ τ0 →
           bpTgt.toHistogram τ = bpSrc.toHistogram τ
 
+/-- The old same-profile comparison charge is not the intended endpoint
+one-step charge: it keeps the target profile equal to the source profile, while
+the endpoint one-step condition must bump one coordinate. -/
+theorem not_endpointAugmentedConcreteW_endpointSpanOneStepChargeCompatible_sameProfileCharge
+    (n : ℕ) (hn4 : n ≥ 4) :
+    ¬ EndpointAugmentedConcreteWEndpointSpanOneStepChargeCompatible
+        n hn4 (sameProfileCharge (n := n)) := by
+  intro hCompat
+  let bp0 : BoundedProfile (Nat.log 2 n) :=
+    zeroBoundedProfile (Nat.log 2 n)
+  have hSlen : ([] : List (Fin n)).length ≤ Nat.log 2 n := by
+    simp
+  have hshift :
+      (0 : MvPolynomial (Fin n) ℚ).vars ⊆
+        ([] : List (Fin n)).toFinset := by
+    simp
+  obtain ⟨τ0, _hshiftEndpoint, hbump, _hsame⟩ :=
+    hCompat bp0 bp0 [] hSlen 0 hshift rfl
+  have hzero : bp0.toHistogram τ0 = 0 := by
+    simp [bp0, zeroBoundedProfile, BoundedProfile.toHistogram]
+  rw [hzero] at hbump
+  omega
+
+/-- Constructor-level fields sufficient for the endpoint one-step compatibility.
+
+This is the local wrapper needed until a concrete endpoint charge constructor
+lands in the repo.  A constructor must expose the charged type, show that every
+charged shift is in the endpoint repair span, show that the charged target
+bumps that type by one, and show that every other type is unchanged. -/
+theorem endpointAugmentedConcreteW_endpointSpanOneStepChargeCompatible_of_chargeFields
+    (n : ℕ) (hn4 : n ≥ 4) (charge : ProfileCharge n)
+    (chargedType :
+      ∀ (bpSrc bpTgt : BoundedProfile (Nat.log 2 n))
+        (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ),
+        charge bpSrc S shift bpTgt → ConstraintType)
+    (hshiftEndpoint :
+      ∀ (bpSrc bpTgt : BoundedProfile (Nat.log 2 n))
+        (S : List (Fin n)) (_hSlen : S.length ≤ Nat.log 2 n)
+        (shift : MvPolynomial (Fin n) ℚ)
+        (_hshift : shift.vars ⊆ S.toFinset)
+        (_hcharge : charge bpSrc S shift bpTgt),
+          shift ∈ concreteWEndpointSpan n hn4)
+    (hbump :
+      ∀ (bpSrc bpTgt : BoundedProfile (Nat.log 2 n))
+        (S : List (Fin n)) (_hSlen : S.length ≤ Nat.log 2 n)
+        (shift : MvPolynomial (Fin n) ℚ)
+        (_hshift : shift.vars ⊆ S.toFinset)
+        (hcharge : charge bpSrc S shift bpTgt),
+          bpTgt.toHistogram
+              (chargedType bpSrc bpTgt S shift hcharge) =
+            bpSrc.toHistogram
+              (chargedType bpSrc bpTgt S shift hcharge) + 1)
+    (hsame :
+      ∀ (bpSrc bpTgt : BoundedProfile (Nat.log 2 n))
+        (S : List (Fin n)) (_hSlen : S.length ≤ Nat.log 2 n)
+        (shift : MvPolynomial (Fin n) ℚ)
+        (_hshift : shift.vars ⊆ S.toFinset)
+        (hcharge : charge bpSrc S shift bpTgt),
+          ∀ τ : ConstraintType,
+            τ ≠ chargedType bpSrc bpTgt S shift hcharge →
+              bpTgt.toHistogram τ = bpSrc.toHistogram τ) :
+    EndpointAugmentedConcreteWEndpointSpanOneStepChargeCompatible
+      n hn4 charge := by
+  intro bpSrc bpTgt S hSlen shift hshift hcharge
+  refine
+    ⟨chargedType bpSrc bpTgt S shift hcharge,
+      hshiftEndpoint bpSrc bpTgt S hSlen shift hshift hcharge,
+      hbump bpSrc bpTgt S hSlen shift hshift hcharge,
+      hsame bpSrc bpTgt S hSlen shift hshift hcharge⟩
+
 /-- A one-step endpoint-compatible charge relation proves the endpoint-span
 generator residual. -/
 theorem endpointAugmentedConcreteW_endpointSpanGeneratorChargedShiftClosure_of_oneStepChargeCompatible
@@ -565,6 +635,49 @@ theorem endpointAugmentedConcreteW_chargedShiftClosure_of_oneStepChargeCompatibl
     (endpointAugmentedConcreteW_generatorChargedShiftClosure_of_oneStepChargeCompatible
       n hn4 charge hCompat)
 
+/-- Direct endpoint-front wrapper for a future concrete charge constructor.
+
+The hypotheses are the same four constructor-level fields used by
+`endpointAugmentedConcreteW_endpointSpanOneStepChargeCompatible_of_chargeFields`;
+the conclusion is the actual endpoint charged shift closure. -/
+theorem endpointAugmentedConcreteW_chargedShiftClosure_of_endpointSpanChargeFields
+    (n : ℕ) (hn4 : n ≥ 4) (charge : ProfileCharge n)
+    (chargedType :
+      ∀ (bpSrc bpTgt : BoundedProfile (Nat.log 2 n))
+        (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ),
+        charge bpSrc S shift bpTgt → ConstraintType)
+    (hshiftEndpoint :
+      ∀ (bpSrc bpTgt : BoundedProfile (Nat.log 2 n))
+        (S : List (Fin n)) (_hSlen : S.length ≤ Nat.log 2 n)
+        (shift : MvPolynomial (Fin n) ℚ)
+        (_hshift : shift.vars ⊆ S.toFinset)
+        (_hcharge : charge bpSrc S shift bpTgt),
+          shift ∈ concreteWEndpointSpan n hn4)
+    (hbump :
+      ∀ (bpSrc bpTgt : BoundedProfile (Nat.log 2 n))
+        (S : List (Fin n)) (_hSlen : S.length ≤ Nat.log 2 n)
+        (shift : MvPolynomial (Fin n) ℚ)
+        (_hshift : shift.vars ⊆ S.toFinset)
+        (hcharge : charge bpSrc S shift bpTgt),
+          bpTgt.toHistogram
+              (chargedType bpSrc bpTgt S shift hcharge) =
+            bpSrc.toHistogram
+              (chargedType bpSrc bpTgt S shift hcharge) + 1)
+    (hsame :
+      ∀ (bpSrc bpTgt : BoundedProfile (Nat.log 2 n))
+        (S : List (Fin n)) (_hSlen : S.length ≤ Nat.log 2 n)
+        (shift : MvPolynomial (Fin n) ℚ)
+        (_hshift : shift.vars ⊆ S.toFinset)
+        (hcharge : charge bpSrc S shift bpTgt),
+          ∀ τ : ConstraintType,
+            τ ≠ chargedType bpSrc bpTgt S shift hcharge →
+              bpTgt.toHistogram τ = bpSrc.toHistogram τ) :
+    EndpointAugmentedConcreteWChargedShiftClosure n hn4 charge :=
+  endpointAugmentedConcreteW_chargedShiftClosure_of_oneStepChargeCompatible
+    n hn4 charge
+    (endpointAugmentedConcreteW_endpointSpanOneStepChargeCompatible_of_chargeFields
+      n hn4 charge chargedType hshiftEndpoint hbump hsame)
+
 /-- A strict structural residual: every endpoint-augmented source profile
 element splits as a canonical-profile part plus an endpoint-span-only profile
 part.
@@ -661,11 +774,14 @@ theorem endpointAugmentedConcreteW_chargedShiftClosure_of_canonical_endpointSpan
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_iff_quotientResidualClosure_of_canonical
 #print axioms symPower_mul_left_mem_succ
 #print axioms concreteWEndpointSpan_le_endpointAugmentedConcreteW
+#print axioms not_endpointAugmentedConcreteW_endpointSpanOneStepChargeCompatible_sameProfileCharge
+#print axioms endpointAugmentedConcreteW_endpointSpanOneStepChargeCompatible_of_chargeFields
 #print axioms endpointAugmentedConcreteW_endpointSpanGeneratorChargedShiftClosure_of_oneStepChargeCompatible
 #print axioms endpointAugmentedConcreteW_endpointSpanProfileChargedShiftClosure_of_generatorClosure
 #print axioms endpointAugmentedConcreteW_generatorChargedShiftClosure_of_oneStepChargeCompatible
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_of_generatorClosure
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_of_oneStepChargeCompatible
+#print axioms endpointAugmentedConcreteW_chargedShiftClosure_of_endpointSpanChargeFields
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_on_canonical_endpointSpan_split_source
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_of_canonical_endpointSpanProfile_and_split
 

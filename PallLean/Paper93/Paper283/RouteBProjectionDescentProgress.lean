@@ -43,6 +43,80 @@ theorem routeBRicherConcreteNPPrependedMultilinearProjectionDescent_iff_kernelGe
     routeBRicherConcreteNPPrependedMultilinearProjectionDescent_iff_residualGenerator_zero,
     routeBRicherConcreteNPPrependedMultilinear_residualGenerator_zero_iff_kernelGenerator_zero]
 
+/-- Kernel-generator-zero is exactly generator annihilation on the arbitrary
+complement selected as the kernel of the finite-row projection. -/
+theorem routeBRicherConcreteNPPrependedMultilinearKernelGeneratorZero_iff_selectedComplement_generator_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherConcreteNPPrependedMultilinearKernelGeneratorZero
+        M n hn2 htb hns ↔
+      forall (spdpKappa ell : Nat)
+        (p : SATDeciderGaugeSpace M n hn2 htb hns)
+        (support : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+        (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+        support.length = spdpKappa ->
+        shift.totalDegree <= ell ->
+        shift.vars <= support.toFinset ->
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition support ->
+        p ∈
+          finiteSubmoduleProjectionComplement
+            (finiteRowsSubmodule
+              (routeBRicherConcreteNPPrependedMultilinearRows
+                M n hn2 htb hns)) ->
+        routeBSPDPGeneratorRow M n hn2 htb hns p support shift = 0 := by
+  let rows := routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns
+  constructor
+  · intro hzero spdpKappa ell p support shift hSlen hshiftDegree hshiftVars hadm hp
+    have hproj :
+        routeBRicherConcreteNPPrependedMultilinearProjection
+          M n hn2 htb hns p = 0 := by
+      simpa [rows, routeBRicherConcreteNPPrependedMultilinearProjection,
+        routeBRicherConcreteNPPrependedMultilinearGauge] using
+        (routeBRicherFiniteRowsCandidateGauge_projection_apply_eq_zero_iff
+          M n hn2 htb hns rows p).mpr hp
+    exact hzero spdpKappa ell p support shift
+      hSlen hshiftDegree hshiftVars hadm hproj
+  · intro hzero spdpKappa ell p support shift hSlen hshiftDegree hshiftVars hadm hproj
+    have hp :
+        p ∈
+          finiteSubmoduleProjectionComplement
+            (finiteRowsSubmodule rows) := by
+      simpa [rows, routeBRicherConcreteNPPrependedMultilinearProjection,
+        routeBRicherConcreteNPPrependedMultilinearGauge] using
+        (routeBRicherFiniteRowsCandidateGauge_projection_apply_eq_zero_iff
+          M n hn2 htb hns rows p).mp hproj
+    exact hzero spdpKappa ell p support shift
+      hSlen hshiftDegree hshiftVars hadm hp
+
+/-- Projection descent is exactly generator annihilation on the arbitrary
+selected complement.  This is the complement-policy form of the descent
+frontier; it does not assert any pointwise avoidance property for the
+`Classical.choose` complement. -/
+theorem routeBRicherConcreteNPPrependedMultilinearProjectionDescent_iff_selectedComplement_generator_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns ↔
+      forall (spdpKappa ell : Nat)
+        (p : SATDeciderGaugeSpace M n hn2 htb hns)
+        (support : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+        (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+        support.length = spdpKappa ->
+        shift.totalDegree <= ell ->
+        shift.vars <= support.toFinset ->
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition support ->
+        p ∈
+          finiteSubmoduleProjectionComplement
+            (finiteRowsSubmodule
+              (routeBRicherConcreteNPPrependedMultilinearRows
+                M n hn2 htb hns)) ->
+        routeBSPDPGeneratorRow M n hn2 htb hns p support shift = 0 := by
+  rw [
+    routeBRicherConcreteNPPrependedMultilinearProjectionDescent_iff_kernelGenerator_zero,
+    routeBRicherConcreteNPPrependedMultilinearKernelGeneratorZero_iff_selectedComplement_generator_zero]
+
 /-- Projection escape for the concrete multilinear-tail projection is exactly
 failure of residual-generator-zero. -/
 theorem routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_iff_not_residualGenerator_zero
@@ -467,6 +541,71 @@ theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_not_mem_rowSp
   rw [hfirst, hsecond] at heq
   norm_num at heq
 
+private theorem routeBProjectionDescentProgress_exists_complement_containing_of_not_mem
+    {K V : Type*} [DivisionRing K] [AddCommGroup V] [Module K V]
+    (S : Submodule K V) {p : V} (hp : p ∉ S) :
+    ∃ C : Submodule K V, IsCompl S C ∧ p ∈ C := by
+  have hdis : Disjoint (K ∙ p) S := by
+    rw [disjoint_comm]
+    exact Submodule.disjoint_span_singleton_of_notMem hp
+  rcases hdis.exists_isCompl with ⟨C, hspan_le_C, hcompl⟩
+  exact ⟨C, hcompl.symm, hspan_le_C (Submodule.mem_span_singleton_self p)⟩
+
+/-- Row-span nonmembership alone cannot enforce first-square avoidance by an
+arbitrary complement: there is a valid complement to the concrete row span
+which contains the first-square probe. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_exists_rowSpanComplement_mem_firstSquareProbe
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    ∃ C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns),
+      IsCompl
+          (finiteRowsSubmodule
+            (routeBRicherConcreteNPPrependedMultilinearRows
+              M n hn2 htb hns))
+          C ∧
+        routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns ∈ C :=
+  routeBProjectionDescentProgress_exists_complement_containing_of_not_mem
+    (finiteRowsSubmodule
+      (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns))
+    (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_not_mem_rowSpan
+      M n hn2 htb hns)
+
+/-- Consequently, some admissible explicit complement policy for the same row
+span kills the first-square probe.  This is not a statement about the selected
+`finiteSubmoduleProjectionComplement`; it records why a complement policy is
+needed before asserting avoidance. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_exists_complementPolicy_kills_firstSquareProbe
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    ∃ (C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+      (hC :
+        IsCompl
+          (finiteRowsSubmodule
+            (routeBRicherConcreteNPPrependedMultilinearRows
+              M n hn2 htb hns))
+          C),
+      finiteSubmoduleProjectionWithComplement
+          (finiteRowsSubmodule
+            (routeBRicherConcreteNPPrependedMultilinearRows
+              M n hn2 htb hns))
+          C hC
+          (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+            M n hn2 htb hns) = 0 := by
+  rcases
+    routeBRicherConcreteNPPrependedMultilinear_exists_rowSpanComplement_mem_firstSquareProbe
+      M n hn2 htb hns with
+    ⟨C, hC, hprobe⟩
+  refine ⟨C, hC, ?_⟩
+  exact
+    (finiteSubmoduleProjectionWithComplement_apply_eq_zero_iff
+      (finiteRowsSubmodule
+        (routeBRicherConcreteNPPrependedMultilinearRows
+          M n hn2 htb hns))
+      C hC
+      (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns)).mpr hprobe
+
 /-! ## Selected-projection behavior on the first-square probe -/
 
 /-- The selected arbitrary finite-row projection sends the first-square probe
@@ -605,6 +744,25 @@ theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_eq
         M n hn2 htb hns)
       (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
         M n hn2 htb hns)
+
+/-- Avoiding the first-square selected-complement obstruction is exactly the
+same as the selected projection being nonzero on the first-square probe. -/
+theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_zero_iff_not_mem_selectedComplement
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    routeBRicherConcreteNPPrependedMultilinearProjection
+        M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns) ≠ 0 ↔
+      routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns ∉
+        finiteSubmoduleProjectionComplement
+          (finiteRowsSubmodule
+            (routeBRicherConcreteNPPrependedMultilinearRows
+              M n hn2 htb hns)) :=
+  not_congr
+    (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_eq_zero_iff_mem_selectedComplement
+      M n hn2 htb hns)
 
 /-- The selected projection decomposes the first-square probe into a row-span
 component and a selected-kernel residual. -/
@@ -875,6 +1033,35 @@ theorem routeBRicherConcreteNPPrependedMultilinear_not_projectionDescent_of_firs
     ((routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_eq_zero_iff_mem_selectedComplement
       M n hn2 htb hns).mpr hkernel)
 
+/-- Descent is equivalent to the kernel-generator criterion together with
+first-square avoidance by the selected complement.  The avoidance conjunct is
+therefore a consequence of descent, not a consequence of row-span
+nonmembership alone. -/
+theorem routeBRicherConcreteNPPrependedMultilinearProjectionDescent_iff_kernelGenerator_zero_and_firstSquareProbe_not_mem_selectedComplement
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns ↔
+      RouteBRicherConcreteNPPrependedMultilinearKernelGeneratorZero
+          M n hn2 htb hns ∧
+        routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns ∉
+          finiteSubmoduleProjectionComplement
+            (finiteRowsSubmodule
+              (routeBRicherConcreteNPPrependedMultilinearRows
+                M n hn2 htb hns)) := by
+  constructor
+  · intro hdesc
+    exact
+      ⟨(routeBRicherConcreteNPPrependedMultilinearProjectionDescent_iff_kernelGenerator_zero
+          M n hn2 htb hns).mp hdesc,
+        routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_not_mem_selectedComplement_of_projectionDescent
+          M n hn2 htb hns hdesc⟩
+  · intro h
+    exact
+      (routeBRicherConcreteNPPrependedMultilinearProjectionDescent_iff_kernelGenerator_zero
+        M n hn2 htb hns).mpr h.1
+
 /-- Under projection descent, the selected arbitrary finite-row projection
 cannot equal the displayed coefficient-dual projection: the latter kills the
 first-square probe, while descent forces the former not to. -/
@@ -952,6 +1139,8 @@ theorem routeBRicherConcreteNPPrependedMultilinear_not_explicitComplement_le_pro
 /-! ## Axiom audit anchors -/
 
 #print axioms routeBRicherConcreteNPPrependedMultilinearProjectionDescent_iff_kernelGenerator_zero
+#print axioms routeBRicherConcreteNPPrependedMultilinearKernelGeneratorZero_iff_selectedComplement_generator_zero
+#print axioms routeBRicherConcreteNPPrependedMultilinearProjectionDescent_iff_selectedComplement_generator_zero
 #print axioms routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_iff_not_residualGenerator_zero
 #print axioms routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_iff_not_kernelGenerator_zero
 #print axioms routeBRicherConcreteNPPrependedMultilinear_no_projectionEscapeWitness_iff_residualGenerator_zero
@@ -970,12 +1159,15 @@ theorem routeBRicherConcreteNPPrependedMultilinear_not_explicitComplement_le_pro
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_coeff_firstVar_square_eq_secondVar_square
 #print axioms routeBRicherConcreteNPPrependedMultilinear_rowSpan_coeff_firstVar_square_eq_secondVar_square
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_not_mem_rowSpan
+#print axioms routeBRicherConcreteNPPrependedMultilinear_exists_rowSpanComplement_mem_firstSquareProbe
+#print axioms routeBRicherConcreteNPPrependedMultilinear_exists_complementPolicy_kills_firstSquareProbe
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_mem_rowSpan
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_mem_rowSpan_iff_projection_eq_self
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_self
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_eq_self_of_mem_rowSpan
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_zero_of_mem_rowSpan
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_eq_zero_iff_mem_selectedComplement
+#print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_zero_iff_not_mem_selectedComplement
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_residual_mem_selectedComplement
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_residual_ne_zero
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_not_mem_rowSpan_and_selectedComplement
@@ -986,6 +1178,7 @@ theorem routeBRicherConcreteNPPrependedMultilinear_not_explicitComplement_le_pro
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_not_mem_selectedComplement_of_projectionDescent
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_nontrivial_split_of_projectionDescent
 #print axioms routeBRicherConcreteNPPrependedMultilinear_not_projectionDescent_of_firstSquareProbe_mem_selectedComplement
+#print axioms routeBRicherConcreteNPPrependedMultilinearProjectionDescent_iff_kernelGenerator_zero_and_firstSquareProbe_not_mem_selectedComplement
 #print axioms routeBRicherConcreteNPPrependedMultilinearProjection_ne_explicitProjection_of_projectionDescent
 #print axioms routeBRicherConcreteNPPrependedMultilinear_not_kernelGenerator_zero_of_explicitComplement_le_projectionKernel
 #print axioms routeBRicherConcreteNPPrependedMultilinear_not_explicitComplement_le_projectionKernel_of_projectionDescent
