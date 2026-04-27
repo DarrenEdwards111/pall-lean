@@ -52597,6 +52597,304 @@ noncomputable def DirectRankPackage_cookLevin
     subst hB_total
     exact cookLevin_full_output_rank_le_of_pullback_rank_le M n hn2 htb hns hQ_upper
 
+/-- **§252.13a₁ — concrete strict first-of-block map.**
+
+This is the strict coordinate map used by the paper-faithful semantic target:
+it selects variable `3*i` on the Cook-Levin `u` side and then embeds that
+`u`-coordinate into the ambient UV split by `inlU`. -/
+noncomputable def cookLevinStrictFOBMap
+    (M : TuringMachine.DTM) (n : ℕ) :
+    Fin (n / 3) → Fin (PaperFaithfulCompilation.cookLevinUVSplit M n).total :=
+  fun i =>
+    (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU
+      ⟨3 * i.val, by
+        rw [PaperFaithfulCompilation.cookLevinUVSplit_numU]
+        omega⟩
+
+/-- The strict first-of-block map is injective. -/
+theorem cookLevinStrictFOBMap_injective
+    (M : TuringMachine.DTM) (n : ℕ) :
+    Function.Injective (cookLevinStrictFOBMap M n) := by
+  intro i j h
+  apply Fin.ext
+  have hval :
+      (cookLevinStrictFOBMap M n i).val =
+        (cookLevinStrictFOBMap M n j).val :=
+    congrArg Fin.val h
+  simp [cookLevinStrictFOBMap, PaperFaithfulCompilation.UVSplit.inlU] at hval
+  omega
+
+/-- The strict first-of-block target has fewer variables than the flat
+Cook-Levin compilation target required by `GodMoveExtractionTarget`. -/
+theorem cookLevinStrictFOB_coupledVars_lt
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    n / 3 <
+      (PaperFaithfulSeparation.cook_levin_compilation
+        M n hn2 htb hns).numVars := by
+  rw [PaperFaithfulSeparation.cook_levin_numVars M n hn2 htb hns]
+  omega
+
+/-- The strict first-of-block extraction target obtained by coordinate
+restricting the ambient `embedded_Q` sheet. -/
+noncomputable def cookLevinStrictFOBTarget
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total) :
+    PaperFaithfulSeparation.GodMoveExtractionTarget M n hn2 htb hns where
+  coupledVars := n / 3
+  coupledVars_lt := cookLevinStrictFOB_coupledVars_lt M n hn2 htb hns
+  coupledPartition :=
+    MultilinearSPDP.pullbackPartition B_total (cookLevinStrictFOBMap M n)
+  coupledPoly :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+      (cookLevinStrictFOBMap_injective M n)
+      (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q
+
+/-- A lower bound for the ambient re-expanded strict first-of-block
+restriction gives the same-target NP lower bound for the strict target.
+
+This is the precise bridge needed by an identification with an already-proved
+projected lower-bound polynomial: once that polynomial is shown equal to
+`rename f (restrictPoly f embedded_Q)`, the strict target inherits the lower
+bound by rank monotonicity of `rename`. -/
+theorem cookLevinStrictFOBTarget_same_target_lower_of_renamed_lower
+    (M : TuringMachine.DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hrenamedLower :
+      Nat.choose (n / 3) (Nat.log 2 n) ≤
+        MultilinearSPDP.mlBlockedSpdpRank B_total
+          (Nat.log 2 n) (Nat.log 2 n)
+          (MvPolynomial.rename (cookLevinStrictFOBMap M n)
+            (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+              (cookLevinStrictFOBMap_injective M n)
+              (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q))) :
+    PaperFaithfulSeparation.GodMoveSameTargetStrongNPLower
+      (cookLevinStrictFOBTarget M n hn2 htb hns B_total) := by
+  simpa [cookLevinStrictFOBTarget] using
+    (le_trans hrenamedLower
+      (MultilinearSPDP.mlBlockedSpdpRank_rename_le
+        (cookLevinStrictFOBMap M n) (cookLevinStrictFOBMap_injective M n)
+        B_total (Nat.log 2 n) (Nat.log 2 n)
+        (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+          (cookLevinStrictFOBMap_injective M n)
+          (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q)))
+
+/-- Restriction stage whose output is definitionally the strict first-of-block
+restriction of the ambient `embedded_Q` sheet.
+
+The polynomial/output equality is closed by construction. The substantive
+restriction monotonicity theorem remains an explicit input. -/
+noncomputable def cookLevinStrictFOBRestrictionStage
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (is_specialization : Prop)
+    (restriction_rank_mono :
+      ∀ (κ ℓ : ℕ),
+        MultilinearSPDP.mlBlockedSpdpRank
+            (MultilinearSPDP.pullbackPartition B_total
+              (cookLevinStrictFOBMap M n)) κ ℓ
+            (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+              (cookLevinStrictFOBMap_injective M n)
+              (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q) ≤
+          MultilinearSPDP.mlBlockedSpdpRank
+            (PaperFaithfulSeparation.cook_levin_compilation
+              M n hn2 htb hns).partition κ ℓ
+            (PaperFaithfulSeparation.compiledPoly
+              (PaperFaithfulSeparation.cook_levin_compilation
+                M n hn2 htb hns))) :
+    PaperFaithfulSeparation.ExtractionRestrictionStage
+      M n hn2 htb hns hdec where
+  restrictedVars := n / 3
+  restrictedVars_lt := cookLevinStrictFOB_coupledVars_lt M n hn2 htb hns
+  restrictedPoly :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+      (cookLevinStrictFOBMap_injective M n)
+      (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q
+  restrictedPartition :=
+    MultilinearSPDP.pullbackPartition B_total (cookLevinStrictFOBMap M n)
+  is_specialization := is_specialization
+  restriction_rank_mono := restriction_rank_mono
+
+/-- Projection stage whose input and output are definitionally the strict
+first-of-block restricted target polynomial.
+
+The stage equalities needed by the semantic target theorem are therefore
+`rfl`; the strong projection-rank-monotonicity field remains explicit. -/
+noncomputable def cookLevinStrictFOBProjectionStage
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (_B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (is_coordinate_selection : Prop)
+    (projection_rank_mono :
+      ∀ (B_restricted : SPDP.BlockPartition (n / 3))
+        (B_coupled : SPDP.BlockPartition (n / 3)) (κ ℓ : ℕ),
+        MultilinearSPDP.mlBlockedSpdpRank B_coupled κ ℓ
+            (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+              (cookLevinStrictFOBMap_injective M n)
+              (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q) ≤
+          MultilinearSPDP.mlBlockedSpdpRank B_restricted κ ℓ
+            (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+              (cookLevinStrictFOBMap_injective M n)
+              (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q)) :
+    PaperFaithfulSeparation.ExtractionProjectionStage (n / 3) (n / 3) where
+  inputPoly :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+      (cookLevinStrictFOBMap_injective M n)
+      (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q
+  projectedPoly :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+      (cookLevinStrictFOBMap_injective M n)
+      (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q
+  is_coordinate_selection := is_coordinate_selection
+  projection_rank_mono := projection_rank_mono
+
+/-- **§252.13a₂ — Cook-Levin strict first-of-block semantic source transport.**
+
+This is the Cook-Levin specialization of the generic strict `embedded_Q`
+source-transport constructor with the map fixed to `cookLevinStrictFOBMap`.
+After this point the remaining load-bearing inputs are exactly the real staged
+extraction data for this restriction/projection and the ambient renamed lower
+bound for the re-expanded strict target. -/
+theorem DirectRankPackage_cookLevin_strictFOB_source_transport_of_stages_rename_lower
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hQ_upper : MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B_total
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (show MvPolynomial (Fin n) ℚ from
+        PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hard : PaperFaithfulSeparation.GodMoveHardInstanceData
+      M n hn2 htb hns hdec)
+    (restriction :
+      PaperFaithfulSeparation.ExtractionRestrictionStage
+        M n hn2 htb hns hdec)
+    (projection :
+      PaperFaithfulSeparation.ExtractionProjectionStage
+        restriction.restrictedVars (n / 3))
+    (hinput : projection.inputPoly = restriction.restrictedPoly)
+    (hout :
+      projection.projectedPoly =
+        MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+          (cookLevinStrictFOBMap_injective M n)
+          (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q)
+    (hrenamedLower :
+      Nat.choose (n / 3) (Nat.log 2 n) ≤
+        MultilinearSPDP.mlBlockedSpdpRank B_total
+          (Nat.log 2 n) (Nat.log 2 n)
+          (MvPolynomial.rename (cookLevinStrictFOBMap M n)
+            (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+              (cookLevinStrictFOBMap_injective M n)
+              (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q))) :
+    ∃ G : PaperFaithfulSeparation.GodMoveSemanticIdentityMinorGap
+        M n hn2 htb hns hdec,
+      ∃ source : GlobalGodMoveGauge.Theorem207PaperSource
+          M n hn hn2 htb hns,
+        GlobalGodMoveGauge.Theorem207PaperSourcePSideUpperBound
+          M n hn hn2 htb hns source ∧
+        GlobalGodMoveGauge.Theorem207PaperSourceToTargetRankBridge
+          M n hn hn2 htb hns source G.gap.extractionTarget := by
+  let P := DirectRankPackage_cookLevin M n hn htb hns hn2
+    B_total hB_total hQ_upper
+  exact
+    P.exists_theorem207_semantic_source_transport_of_hard_data_restrict_embedded_Q_stages_rename_lower
+      M hn2 htb hns hdec rfl rfl hard (n / 3)
+      (cookLevinStrictFOB_coupledVars_lt M n hn2 htb hns)
+      (cookLevinStrictFOBMap M n) (cookLevinStrictFOBMap_injective M n)
+      restriction projection hinput hout hrenamedLower
+
+/-- Cook-Levin strict first-of-block source transport with the staged output
+equalities closed by definitional construction.
+
+Compared with
+`DirectRankPackage_cookLevin_strictFOB_source_transport_of_stages_rename_lower`,
+this theorem no longer asks callers to provide the tautological
+`projection.inputPoly = restriction.restrictedPoly` and output-identification
+equalities. It leaves only the real stage-rank monotonicity data and the
+ambient renamed lower bound. -/
+theorem DirectRankPackage_cookLevin_strictFOB_source_transport_of_stage_rank_mono_rename_lower
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hQ_upper : MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B_total
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (show MvPolynomial (Fin n) ℚ from
+        PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hard : PaperFaithfulSeparation.GodMoveHardInstanceData
+      M n hn2 htb hns hdec)
+    (is_specialization : Prop)
+    (restriction_rank_mono :
+      ∀ (κ ℓ : ℕ),
+        MultilinearSPDP.mlBlockedSpdpRank
+            (MultilinearSPDP.pullbackPartition B_total
+              (cookLevinStrictFOBMap M n)) κ ℓ
+            (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+              (cookLevinStrictFOBMap_injective M n)
+              (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q) ≤
+          MultilinearSPDP.mlBlockedSpdpRank
+            (PaperFaithfulSeparation.cook_levin_compilation
+              M n hn2 htb hns).partition κ ℓ
+            (PaperFaithfulSeparation.compiledPoly
+              (PaperFaithfulSeparation.cook_levin_compilation
+                M n hn2 htb hns)))
+    (is_coordinate_selection : Prop)
+    (projection_rank_mono :
+      ∀ (B_restricted : SPDP.BlockPartition (n / 3))
+        (B_coupled : SPDP.BlockPartition (n / 3)) (κ ℓ : ℕ),
+        MultilinearSPDP.mlBlockedSpdpRank B_coupled κ ℓ
+            (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+              (cookLevinStrictFOBMap_injective M n)
+              (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q) ≤
+          MultilinearSPDP.mlBlockedSpdpRank B_restricted κ ℓ
+            (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+              (cookLevinStrictFOBMap_injective M n)
+              (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q))
+    (hrenamedLower :
+      Nat.choose (n / 3) (Nat.log 2 n) ≤
+        MultilinearSPDP.mlBlockedSpdpRank B_total
+          (Nat.log 2 n) (Nat.log 2 n)
+          (MvPolynomial.rename (cookLevinStrictFOBMap M n)
+            (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+              (cookLevinStrictFOBMap_injective M n)
+              (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q))) :
+    ∃ G : PaperFaithfulSeparation.GodMoveSemanticIdentityMinorGap
+        M n hn2 htb hns hdec,
+      ∃ source : GlobalGodMoveGauge.Theorem207PaperSource
+          M n hn hn2 htb hns,
+        GlobalGodMoveGauge.Theorem207PaperSourcePSideUpperBound
+          M n hn hn2 htb hns source ∧
+        GlobalGodMoveGauge.Theorem207PaperSourceToTargetRankBridge
+          M n hn hn2 htb hns source G.gap.extractionTarget := by
+  exact
+    DirectRankPackage_cookLevin_strictFOB_source_transport_of_stages_rename_lower
+      M n hn htb hns hn2 B_total hB_total hQ_upper hdec hard
+      (cookLevinStrictFOBRestrictionStage M n hn2 htb hns hdec
+        B_total is_specialization restriction_rank_mono)
+      (cookLevinStrictFOBProjectionStage M n hn2 htb hns
+        B_total is_coordinate_selection projection_rank_mono)
+      rfl rfl hrenamedLower
+
 /-- **§252.13b — `P_ne_NP_from_cookLevin_direct_rank_hypothesis`**
 (honest direct-rank final form).
 
