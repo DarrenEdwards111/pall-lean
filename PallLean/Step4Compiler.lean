@@ -51847,6 +51847,29 @@ structure DirectRankPackage_slim.SemanticTargetIdentifiedWithEmbeddedQ
       MultilinearSPDP.mlBlockedSpdpRank P.B
         (Nat.log 2 P.n) (Nat.log 2 P.n) P.W.embedded_Q
 
+/-- Coordinate restrictions of the ambient `embedded_Q` sheet satisfy the
+rank-level semantic target identification automatically.
+
+This is the concrete paper-faithful case for a strict target obtained by
+selecting coordinates from the ambient UV sheet: restriction monotonicity gives
+`rank(target) ≤ rank(embedded_Q)` directly. -/
+theorem DirectRankPackage_slim.semanticTargetIdentifiedWithEmbeddedQ_of_restrict_embedded_Q
+    (P : DirectRankPackage_slim)
+    (M : TuringMachine.DTM) (hn2 : P.n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ P.n)
+    (target : PaperFaithfulSeparation.GodMoveExtractionTarget
+      M P.n hn2 htb hns)
+    (f : Fin target.coupledVars → Fin P.W.σ.total)
+    (hf : Function.Injective f)
+    (hB : target.coupledPartition = MultilinearSPDP.pullbackPartition P.B f)
+    (hpoly : target.coupledPoly =
+      MultilinearSPDP.restrictPoly ℚ f hf P.W.embedded_Q) :
+    P.SemanticTargetIdentifiedWithEmbeddedQ hn2 htb hns target := by
+  constructor
+  simpa [hB, hpoly] using
+    (MultilinearSPDP.restriction_rank_monotone ℚ f hf P.B
+      (Nat.log 2 P.n) (Nat.log 2 P.n) P.W.embedded_Q)
+
 /-- The `embedded_Q` identification turns §241.3a into the target-to-source
 rank bridge needed by the global Theorem-207 source-transport seam. -/
 theorem DirectRankPackage_slim.target_rank_le_full_output_of_embedded_Q_identification
@@ -51909,6 +51932,50 @@ theorem DirectRankPackage_slim.exists_theorem207_semantic_identity_minor_gap_sou
   · exact P.toTheorem207PaperSource_p_side M hn2 htb hns hκ hℓ
   · exact P.toTheorem207PaperSource_target_bridge_of_embedded_Q_identification
       M hn2 htb hns G.gap.extractionTarget hid
+
+/-- Concrete Step252 constructor from exact semantic target data and an
+explicit rank bridge into the ambient `embedded_Q`.
+
+This is the target-data version of
+`exists_theorem207_semantic_identity_minor_gap_source_transport_data_of_embedded_Q_target`:
+it first packages the real `GodMoveSemanticIdentityMinorGap` from the staged
+semantic theorem and same-target identity minor, then uses the
+`target ≤ embedded_Q ≤ full_output` rank bridge supplied by
+`DirectRankPackage_slim`. -/
+theorem DirectRankPackage_slim.exists_theorem207_semantic_identity_minor_gap_source_transport_data_of_target_data_embedded_Q
+    (P : DirectRankPackage_slim)
+    (M : TuringMachine.DTM) (hn2 : P.n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ P.n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hκ : P.κ = Nat.log 2 P.n) (hℓ : P.ℓ = Nat.log 2 P.n)
+    (targetData : PaperFaithfulSeparation.GodMoveExtractionTargetData
+      M P.n hn2 htb hns hdec)
+    (hsem : PaperFaithfulSeparation.GodMoveExtractionTargetTheorem
+      M P.n hn2 htb hns hdec targetData.extractionTarget)
+    (minor : PaperFaithfulSeparation.RouteBIdentityMinorSameTargetData
+      targetData.extractionTarget)
+    (hid : P.SemanticTargetIdentifiedWithEmbeddedQ
+      hn2 htb hns targetData.extractionTarget) :
+    ∃ G : PaperFaithfulSeparation.GodMoveSemanticIdentityMinorGap
+        M P.n hn2 htb hns hdec,
+      ∃ source : GlobalGodMoveGauge.Theorem207PaperSource
+          M P.n P.hn_big hn2 htb hns,
+        GlobalGodMoveGauge.Theorem207PaperSourcePSideUpperBound
+          M P.n P.hn_big hn2 htb hns source ∧
+        GlobalGodMoveGauge.Theorem207PaperSourceToTargetRankBridge
+          M P.n P.hn_big hn2 htb hns source G.gap.extractionTarget :=
+by
+  refine ⟨?G, P.toTheorem207PaperSource M hn2 htb hns, ?_, ?_⟩
+  · exact
+      { gap :=
+          { toHardInstanceData := targetData.toGodMoveHardInstanceData
+            extractionTarget := targetData.extractionTarget
+            extractionSemantics := hsem }
+        same_target_identity_minor := by
+          simpa using minor }
+  · exact P.toTheorem207PaperSource_p_side M hn2 htb hns hκ hℓ
+  · exact P.toTheorem207PaperSource_target_bridge_of_embedded_Q_identification
+      M hn2 htb hns targetData.extractionTarget hid
 
 /-- **§252.7 — `GConstructionPackage_slim.to_thresholds_slim`**:
 convert a slim G-construction package to a slim thresholds bundle by

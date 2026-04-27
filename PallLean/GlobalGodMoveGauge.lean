@@ -983,6 +983,57 @@ theorem theorem207SemanticTransportWitness_false
     W.source_to_target_rank_bridge
     (routeB_strong_np_from_same_target_identity_minor W.same_target_identity_minor)
 
+/-- Package exact semantic target data, staged semantics, and same-target
+identity-minor evidence into the real nonzero Route B semantic-gap object.
+
+This is only a constructor: the semantic target and the identity-minor evidence
+are still supplied explicitly. -/
+def godMoveSemanticIdentityMinorGap_of_target_data_same_target_identity_minor
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec)
+    (hsem :
+      GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData.extractionTarget)
+    (minor : RouteBIdentityMinorSameTargetData targetData.extractionTarget) :
+    GodMoveSemanticIdentityMinorGap M n hn2 htb hns hdec where
+  gap :=
+    { toHardInstanceData := targetData.toGodMoveHardInstanceData
+      extractionTarget := targetData.extractionTarget
+      extractionSemantics := hsem }
+  same_target_identity_minor := by
+    simpa using minor
+
+/-- Constructor for the explicit semantic identity-minor/source-transport seam
+from exact target data rather than a prebuilt
+`GodMoveSemanticIdentityMinorGap`.
+
+The theorem does not prove the semantic target, identity minor, source bound, or
+rank bridge; it only assembles those explicit inputs into the global source
+transport existential. -/
+theorem exists_theorem207_semantic_identity_minor_gap_source_transport_data_of_target_data
+    {M : DTM} {n : ℕ} (hn : n ≥ 2 ^ 804) {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    (targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec)
+    (hsem :
+      GodMoveExtractionTargetTheorem M n hn2 htb hns hdec targetData.extractionTarget)
+    (minor : RouteBIdentityMinorSameTargetData targetData.extractionTarget)
+    (source : Theorem207PaperSource M n hn hn2 htb hns)
+    (hP : Theorem207PaperSourcePSideUpperBound M n hn hn2 htb hns source)
+    (bridge :
+      Theorem207PaperSourceToTargetRankBridge
+        M n hn hn2 htb hns source targetData.extractionTarget) :
+    ∃ G : GodMoveSemanticIdentityMinorGap M n hn2 htb hns hdec,
+      ∃ source : Theorem207PaperSource M n hn hn2 htb hns,
+        Theorem207PaperSourcePSideUpperBound M n hn hn2 htb hns source ∧
+        Theorem207PaperSourceToTargetRankBridge
+          M n hn hn2 htb hns source G.gap.extractionTarget := by
+  refine ⟨godMoveSemanticIdentityMinorGap_of_target_data_same_target_identity_minor
+      targetData hsem minor, source, hP, ?_⟩
+  simpa [godMoveSemanticIdentityMinorGap_of_target_data_same_target_identity_minor]
+    using bridge
+
 /-- Explicit nonzero semantic-target plus source-transport theorem seam for
 paper-faithful Theorem 207.
 
