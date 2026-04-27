@@ -644,6 +644,121 @@ theorem routeBRicherConcreteNPPrependedMultilinearGauge_spdpSubspaceContainment_
         (routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_of_residualGenerator_zero
           M n hn2 htb hns hzero)
 
+/-! ## Paper-faithful projection descent fork -/
+
+/-- Paper-faithful descent for the concrete multilinear-tail projection.
+
+This is the holographic invariance condition for the selected finite-row
+observer: every admissible SPDP generator row descends through the projection.
+It is weaker and more faithful than asking the whole projection residual to be
+annihilated before projection. -/
+def RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) : Prop :=
+  RouteBRicherGaugeFiniteRowsSPDPGeneratorCommutation M n hn2 htb hns
+    (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns)
+
+/-- A concrete projection-escape witness for the multilinear-tail projection:
+one admissible generator row fails to descend through the selected projection. -/
+def RouteBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) : Prop :=
+  exists (spdpKappa ell : Nat)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns)
+    (S : List (Fin (RouteBCookLevinDim M n hn2 htb hns)))
+    (shift : SATDeciderGaugeSpace M n hn2 htb hns),
+    S.length = spdpKappa ∧
+    shift.totalDegree <= ell ∧
+    shift.vars <= S.toFinset ∧
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S ∧
+    routeBSPDPGeneratorRow M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearProjection
+          M n hn2 htb hns p) S shift ≠
+      routeBRicherConcreteNPPrependedMultilinearProjection M n hn2 htb hns
+        (routeBSPDPGeneratorRow M n hn2 htb hns p S shift)
+
+/-- Projection descent gives exactly the finite-row map-preimage statement
+needed by the corrected Route B SPDP image-containment surface. -/
+theorem routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_of_projectionDescent
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hdesc :
+      RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns) :
+    RouteBRicherGaugeFiniteRowsSPDPMapPreimage M n hn2 htb hns
+      (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns) :=
+  routeBRicherGaugeFiniteRowsSPDPMapPreimage_of_generatorRowCommutation
+    M n hn2 htb hns
+    (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns)
+    hdesc
+
+/-- Paper-faithful concrete multilinear-tail SPDP containment from projection
+descent, without the stronger residual-annihilation hypothesis. -/
+theorem routeBRicherConcreteNPPrependedMultilinearGauge_spdpSubspaceContainment_of_projectionDescent
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hdesc :
+      RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns) :
+    RouteBRicherGaugeSPDPSubspaceContainment M n hn2 htb hns
+      (routeBRicherConcreteNPPrependedMultilinearGauge M n hn2 htb hns) :=
+  by
+    simpa [routeBRicherConcreteNPPrependedMultilinearGauge] using
+      routeBRicherFiniteRowsCandidateGauge_spdpSubspaceContainment_of_mapPreimage
+        M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns)
+        (routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_of_projectionDescent
+          M n hn2 htb hns hdesc)
+
+/-- A projection escape witness is exactly a failure of the concrete
+multilinear-tail projection descent condition. -/
+theorem routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_iff_not_projectionDescent
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness
+        M n hn2 htb hns ↔
+      ¬ RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns := by
+  constructor
+  · rintro ⟨spdpKappa, ell, p, S, shift,
+      hSlen, hshiftDegree, hshiftVars, hadm, hne⟩ hdesc
+    exact hne
+      (hdesc spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm)
+  · intro hnot
+    by_contra hno
+    apply hnot
+    intro spdpKappa ell p S shift hSlen hshiftDegree hshiftVars hadm
+    by_contra hne
+    exact hno ⟨spdpKappa, ell, p, S, shift,
+      hSlen, hshiftDegree, hshiftVars, hadm, hne⟩
+
+/-- Failure of projection descent produces the concrete admissible generator
+row where the multilinear-tail projection escapes. -/
+theorem routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_of_not_projectionDescent
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hnot :
+      ¬ RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns) :
+    RouteBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness
+      M n hn2 htb hns :=
+  (routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_iff_not_projectionDescent
+    M n hn2 htb hns).mpr hnot
+
+/-- A concrete projection escape witness refutes the paper-faithful descent
+condition for the selected multilinear finite-row projection. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_not_projectionDescent_of_projectionEscapeWitness
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hbad :
+      RouteBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness
+        M n hn2 htb hns) :
+    ¬ RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+      M n hn2 htb hns :=
+  (routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_iff_not_projectionDescent
+    M n hn2 htb hns).mp hbad
+
 /-- With the separate unprojected-preimage side supplied, the concrete NP row
 plus multilinear monomial tail gives the finite-row map-preimage surface. -/
 theorem routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_of_unprojectedPreimage
@@ -1066,6 +1181,13 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_unpr
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_kernelCompatibility_iff_residualGenerator_zero
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_of_residualGenerator_zero
 #print axioms routeBRicherConcreteNPPrependedMultilinearGauge_spdpSubspaceContainment_of_residualGenerator_zero
+#print axioms RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+#print axioms RouteBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness
+#print axioms routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_of_projectionDescent
+#print axioms routeBRicherConcreteNPPrependedMultilinearGauge_spdpSubspaceContainment_of_projectionDescent
+#print axioms routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_iff_not_projectionDescent
+#print axioms routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_of_not_projectionDescent
+#print axioms routeBRicherConcreteNPPrependedMultilinear_not_projectionDescent_of_projectionEscapeWitness
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_of_unprojectedPreimage
 #print axioms routeBRicherConcreteNPPrependedMultilinearRows_spdpMapPreimage_iff_spdpSubspaceContainment
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_multilinearTail_mapPreimage_activeBlockersZeroNonScalarCover_deltaEqRateKappa
