@@ -1,5 +1,6 @@
 import PallLean.Paper93.Paper283.RouteBRicherGaugeSPDPStableCandidateNoGo
 import PallLean.Paper93.Paper283.RouteBRicherGaugeSPDPConcreteCoefficients
+import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeKeepFirstMoves
 
 /-!
 # Explicit-complement interfaces for the smaller SPDP-stable candidate
@@ -364,6 +365,106 @@ theorem rankOneCoefficientProjection_range
     refine ⟨row, ?_⟩
     rw [rankOneCoefficientProjection_apply, inv_mul_cancel₀ hcoeff,
       one_smul]
+
+/-! ## Finite dual-row projections -/
+
+/-- Projection assembled from a finite row family and explicit dual coordinate
+functionals.  The map sends `v` to `sum_i coord i v • rows i`. -/
+noncomputable def finiteDualFamilyProjection
+    {V : Type*} [AddCommGroup V] [Module Rat V]
+    {r : Nat}
+    (rows : Fin r -> V) (coord : Fin r -> V →ₗ[Rat] Rat) :
+    V →ₗ[Rat] V :=
+  ∑ i, (LinearMap.toSpanSingleton Rat V (rows i)).comp (coord i)
+
+/-- Pointwise form of `finiteDualFamilyProjection`. -/
+theorem finiteDualFamilyProjection_apply
+    {V : Type*} [AddCommGroup V] [Module Rat V]
+    {r : Nat}
+    (rows : Fin r -> V) (coord : Fin r -> V →ₗ[Rat] Rat) (v : V) :
+    finiteDualFamilyProjection rows coord v =
+      ∑ i, coord i v • rows i := by
+  simp [finiteDualFamilyProjection, LinearMap.toSpanSingleton_apply]
+
+/-- Explicit dual coordinate functionals make the finite-family projection fix
+each row. -/
+theorem finiteDualFamilyProjection_apply_row
+    {V : Type*} [AddCommGroup V] [Module Rat V]
+    {r : Nat}
+    (rows : Fin r -> V) (coord : Fin r -> V →ₗ[Rat] Rat)
+    (hdual : forall i j, coord i (rows j) = if i = j then 1 else 0)
+    (j : Fin r) :
+    finiteDualFamilyProjection rows coord (rows j) = rows j := by
+  rw [finiteDualFamilyProjection_apply]
+  calc
+    (∑ i, coord i (rows j) • rows i) =
+        ∑ i, (if i = j then (1 : Rat) else 0) • rows i := by
+          apply Finset.sum_congr rfl
+          intro i _
+          rw [hdual]
+    _ = rows j := by
+      simp
+
+/-- The finite-family projection has range contained in the row span. -/
+theorem finiteDualFamilyProjection_range_le_span
+    {V : Type*} [AddCommGroup V] [Module Rat V]
+    {r : Nat}
+    (rows : Fin r -> V) (coord : Fin r -> V →ₗ[Rat] Rat) :
+    LinearMap.range (finiteDualFamilyProjection rows coord) <=
+      Submodule.span Rat (Set.range rows) := by
+  rintro v ⟨q, rfl⟩
+  rw [finiteDualFamilyProjection_apply]
+  exact Submodule.sum_mem _ fun i _ =>
+    Submodule.smul_mem _ _ (Submodule.subset_span ⟨i, rfl⟩)
+
+/-- Explicit dual coordinate functionals make the finite-family projection have
+range exactly the row span. -/
+theorem finiteDualFamilyProjection_range
+    {V : Type*} [AddCommGroup V] [Module Rat V]
+    {r : Nat}
+    (rows : Fin r -> V) (coord : Fin r -> V →ₗ[Rat] Rat)
+    (hdual : forall i j, coord i (rows j) = if i = j then 1 else 0) :
+    LinearMap.range (finiteDualFamilyProjection rows coord) =
+      Submodule.span Rat (Set.range rows) := by
+  apply le_antisymm
+  · exact finiteDualFamilyProjection_range_le_span rows coord
+  · refine Submodule.span_le.mpr ?_
+    rintro v ⟨j, rfl⟩
+    exact ⟨rows j, finiteDualFamilyProjection_apply_row rows coord hdual j⟩
+
+/-- Explicit dual coordinate functionals make the finite-family projection fix
+every vector in the row span. -/
+theorem finiteDualFamilyProjection_apply_of_mem_span
+    {V : Type*} [AddCommGroup V] [Module Rat V]
+    {r : Nat}
+    (rows : Fin r -> V) (coord : Fin r -> V →ₗ[Rat] Rat)
+    (hdual : forall i j, coord i (rows j) = if i = j then 1 else 0)
+    {v : V}
+    (hv : v ∈ Submodule.span Rat (Set.range rows)) :
+    finiteDualFamilyProjection rows coord v = v := by
+  rcases (Submodule.mem_span_range_iff_exists_fun Rat (v := rows)
+      (x := v)).mp hv with ⟨coeff, hcoeff⟩
+  rw [← hcoeff]
+  rw [map_sum]
+  apply Finset.sum_congr rfl
+  intro i _
+  rw [map_smul, finiteDualFamilyProjection_apply_row rows coord hdual i]
+
+/-- Explicit dual coordinate functionals make the finite-family projection
+idempotent. -/
+theorem finiteDualFamilyProjection_idempotent
+    {V : Type*} [AddCommGroup V] [Module Rat V]
+    {r : Nat}
+    (rows : Fin r -> V) (coord : Fin r -> V →ₗ[Rat] Rat)
+    (hdual : forall i j, coord i (rows j) = if i = j then 1 else 0) :
+    (finiteDualFamilyProjection rows coord).comp
+        (finiteDualFamilyProjection rows coord) =
+      finiteDualFamilyProjection rows coord := by
+  apply LinearMap.ext
+  intro v
+  rw [LinearMap.comp_apply]
+  exact finiteDualFamilyProjection_apply_of_mem_span rows coord hdual
+    (finiteDualFamilyProjection_range_le_span rows coord ⟨v, rfl⟩)
 
 /-! ## Bundled explicit-complement interface -/
 
@@ -1288,6 +1389,72 @@ theorem kernelGeneratorInvisibleWithComplement_noGo_of_projectionEscapeWitness
 
 end RouteBRicherSPDPStableCandidateExplicitProjectionData
 
+/-! ## Candidate row projections from explicit dual coordinates -/
+
+/-- The full-row-family projection assembled from explicit coordinate
+functionals on the prepended candidate rows.  For non-empty tails this is the
+coordinate-dual analogue of the head-only rank-one coefficient projection. -/
+noncomputable def routeBRicherSPDPStableCandidateDualCoordinateProjection
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (coord :
+      Fin (m + 1) ->
+        SATDeciderGaugeSpace M n hn2 htb hns →ₗ[Rat] Rat) :
+    SATDeciderGaugeSpace M n hn2 htb hns →ₗ[Rat]
+      SATDeciderGaugeSpace M n hn2 htb hns :=
+  finiteDualFamilyProjection
+    (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail) coord
+
+/-- Pointwise form of the full-row-family coordinate projection. -/
+theorem routeBRicherSPDPStableCandidateDualCoordinateProjection_apply
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (coord :
+      Fin (m + 1) ->
+        SATDeciderGaugeSpace M n hn2 htb hns →ₗ[Rat] Rat)
+    (p : SATDeciderGaugeSpace M n hn2 htb hns) :
+    routeBRicherSPDPStableCandidateDualCoordinateProjection
+        M n hn2 htb hns tail coord p =
+      ∑ i, coord i p •
+        routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail i := by
+  exact finiteDualFamilyProjection_apply
+    (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail) coord p
+
+/-- Coordinate-dual functionals make the full-row-family projection idempotent
+and give it range exactly the prepended candidate row span. -/
+noncomputable def routeBRicherSPDPStableCandidateExplicitProjectionData_of_dualCoordinates
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (coord :
+      Fin (m + 1) ->
+        SATDeciderGaugeSpace M n hn2 htb hns →ₗ[Rat] Rat)
+    (hdual : forall i j,
+      coord i (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail j) =
+        if i = j then 1 else 0) :
+    RouteBRicherSPDPStableCandidateExplicitProjectionData
+      M n hn2 htb hns tail :=
+  RouteBRicherSPDPStableCandidateExplicitProjectionData.ofProjection
+    (tail := tail)
+    (routeBRicherSPDPStableCandidateDualCoordinateProjection
+      M n hn2 htb hns tail coord)
+    (by
+      simpa [routeBRicherSPDPStableCandidateDualCoordinateProjection] using
+        finiteDualFamilyProjection_idempotent
+          (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail)
+          coord hdual)
+    (by
+      simpa [routeBRicherSPDPStableCandidateDualCoordinateProjection,
+        RouteBRicherSPDPStableCandidateRowSpan, finiteRowsSubmodule] using
+        finiteDualFamilyProjection_range
+          (routeBRicherSPDPStableCandidateRows M n hn2 htb hns tail)
+          coord hdual)
+
 /-- If the caller has proved that the prepended rows already span the whole
 ambient SAT gauge space, the inspectable complement is `⊥`. -/
 def routeBRicherSPDPStableCandidateBottomProjectionComplementInterface_of_rows_top
@@ -1375,6 +1542,48 @@ noncomputable abbrev routeBRicherSPDPStableCandidateHeadRow
   CoupledSheetPoly.embed (flatCookLevinUVSplit M n hn2 htb hns)
     (routeBRicherConcreteNPWitnessQ M n hn2 htb hns)
 
+/-- The explicit monomial used to normalize the concrete NP head row: the
+linear monomial at the second Cook-Levin variable. -/
+noncomputable abbrev routeBRicherSPDPStableCandidateHeadCoeffAlpha
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat :=
+  Finsupp.single (satDeciderGaugeSecondVar M n hn2 htb hns) 1
+
+/-- The selected concrete head-row coefficient is exactly `-1`. -/
+theorem routeBRicherSPDPStableCandidateHeadRow_coeff_headCoeffAlpha
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    MvPolynomial.coeff
+        (routeBRicherSPDPStableCandidateHeadCoeffAlpha M n hn2 htb hns)
+        (routeBRicherSPDPStableCandidateHeadRow M n hn2 htb hns) =
+      (-1 : Rat) := by
+  dsimp [routeBRicherSPDPStableCandidateHeadCoeffAlpha,
+    routeBRicherSPDPStableCandidateHeadRow]
+  rw [routeBRicherConcreteNPWitnessQ_embed_eq_compiledPoly]
+  exact compiledPoly_coeff_secondVar M n hn2 htb hns
+
+/-- The concrete NP head row exposes a nonzero monomial coefficient. -/
+theorem routeBRicherSPDPStableCandidateHeadRow_coeff_headCoeffAlpha_ne_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    MvPolynomial.coeff
+        (routeBRicherSPDPStableCandidateHeadCoeffAlpha M n hn2 htb hns)
+        (routeBRicherSPDPStableCandidateHeadRow M n hn2 htb hns) ≠ 0 := by
+  rw [routeBRicherSPDPStableCandidateHeadRow_coeff_headCoeffAlpha]
+  norm_num
+
+/-- Existential coefficient form of the concrete NP head-row nonzero witness. -/
+theorem routeBRicherSPDPStableCandidateHeadRow_exists_coeff_ne_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    ∃ alpha : Fin (RouteBCookLevinDim M n hn2 htb hns) →₀ Nat,
+      MvPolynomial.coeff alpha
+          (routeBRicherSPDPStableCandidateHeadRow M n hn2 htb hns) ≠ 0 :=
+  ⟨routeBRicherSPDPStableCandidateHeadCoeffAlpha M n hn2 htb hns,
+    routeBRicherSPDPStableCandidateHeadRow_coeff_headCoeffAlpha_ne_zero
+      M n hn2 htb hns⟩
+
 /-- With an empty tail, the candidate row span is exactly the span of the
 concrete NP head row. -/
 theorem routeBRicherSPDPStableCandidateRowSpan_eq_span_head_of_tail_empty
@@ -1431,6 +1640,20 @@ noncomputable def routeBRicherSPDPStableCandidateHeadOnlyExplicitProjectionData
       rw [rankOneCoefficientProjection_range
         (routeBRicherSPDPStableCandidateHeadRow M n hn2 htb hns) alpha hcoeff]
       rw [routeBRicherSPDPStableCandidateRowSpan_eq_span_head_of_tail_empty])
+
+/-- Head-only explicit projection data using the concrete second-variable
+coefficient of the NP head row. -/
+noncomputable def routeBRicherSPDPStableCandidateHeadOnlyConcreteExplicitProjectionData
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (tail : Fin 0 -> SATDeciderGaugeSpace M n hn2 htb hns) :
+    RouteBRicherSPDPStableCandidateExplicitProjectionData
+      M n hn2 htb hns tail :=
+  routeBRicherSPDPStableCandidateHeadOnlyExplicitProjectionData
+    M n hn2 htb hns tail
+    (routeBRicherSPDPStableCandidateHeadCoeffAlpha M n hn2 htb hns)
+    (routeBRicherSPDPStableCandidateHeadRow_coeff_headCoeffAlpha_ne_zero
+      M n hn2 htb hns)
 
 /-- The legacy chosen complement, repackaged as an explicit-complement
 interface.  This keeps old projection statements compatible while allowing new
@@ -1492,6 +1715,13 @@ noncomputable def routeBRicherSPDPStableCandidateChosenExplicitProjectionData
 #print axioms rankOneCoefficientProjection_ker
 #print axioms rankOneCoefficientProjection_idempotent
 #print axioms rankOneCoefficientProjection_range
+#print axioms finiteDualFamilyProjection
+#print axioms finiteDualFamilyProjection_apply
+#print axioms finiteDualFamilyProjection_apply_row
+#print axioms finiteDualFamilyProjection_range_le_span
+#print axioms finiteDualFamilyProjection_range
+#print axioms finiteDualFamilyProjection_apply_of_mem_span
+#print axioms finiteDualFamilyProjection_idempotent
 #print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData
 #print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData.isCompl
 #print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData.toComplementInterface
@@ -1508,13 +1738,21 @@ noncomputable def routeBRicherSPDPStableCandidateChosenExplicitProjectionData
 #print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData.projectionEscapeWitness_iff_not_projectionDescent
 #print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData.toComplementInterface_projectionDescent_iff
 #print axioms RouteBRicherSPDPStableCandidateExplicitProjectionData.toComplementInterface_projectionEscapeWitness_of_projectionEscapeWitness
+#print axioms routeBRicherSPDPStableCandidateDualCoordinateProjection
+#print axioms routeBRicherSPDPStableCandidateDualCoordinateProjection_apply
+#print axioms routeBRicherSPDPStableCandidateExplicitProjectionData_of_dualCoordinates
 #print axioms routeBRicherSPDPStableCandidateBottomProjectionComplementInterface_of_rows_top
 #print axioms routeBRicherSPDPStableCandidateBottomExplicitProjectionData_of_rows_top
 #print axioms routeBRicherSPDPStableCandidateZeroProjectionComplementInterface_of_rows_bot
 #print axioms routeBRicherSPDPStableCandidateZeroExplicitProjectionData_of_rows_bot
 #print axioms routeBRicherSPDPStableCandidateHeadRow
+#print axioms routeBRicherSPDPStableCandidateHeadCoeffAlpha
+#print axioms routeBRicherSPDPStableCandidateHeadRow_coeff_headCoeffAlpha
+#print axioms routeBRicherSPDPStableCandidateHeadRow_coeff_headCoeffAlpha_ne_zero
+#print axioms routeBRicherSPDPStableCandidateHeadRow_exists_coeff_ne_zero
 #print axioms routeBRicherSPDPStableCandidateRowSpan_eq_span_head_of_tail_empty
 #print axioms routeBRicherSPDPStableCandidateHeadOnlyExplicitProjectionData
+#print axioms routeBRicherSPDPStableCandidateHeadOnlyConcreteExplicitProjectionData
 #print axioms routeBRicherSPDPStableCandidateChosenProjectionComplementInterface
 #print axioms routeBRicherSPDPStableCandidateChosenExplicitProjectionData
 #print axioms RouteBRicherSPDPStableCandidateExplicitComplementStableGeneratorMaps

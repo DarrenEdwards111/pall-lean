@@ -1,5 +1,6 @@
 import PallLean.Paper93.Paper283.RouteBRicherGaugeReducedCertificate
 import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeNPBridge
+import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeKeepFirstMoves
 
 /-!
 # Concrete Route B finite-row NP witness
@@ -81,6 +82,50 @@ theorem routeBRicherConcreteNPWitnessQ_embed_eq_compiledPoly
   rw [hidx]
   exact MvPolynomial.rename_id_apply
     (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+
+/-- The concrete source witness exposes the same linear coefficient as the
+Cook-Levin compiled polynomial: at the second flat Cook-Levin variable the
+coefficient is `-1`. -/
+theorem routeBRicherConcreteNPWitnessQ_coeff_secondVar
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    MvPolynomial.coeff
+        (Finsupp.single (satDeciderGaugeSecondVar M n hn2 htb hns) 1)
+        (routeBRicherConcreteNPWitnessQ M n hn2 htb hns) = (-1 : Rat) := by
+  unfold routeBRicherConcreteNPWitnessQ
+  exact compiledPoly_coeff_secondVar M n hn2 htb hns
+
+/-- Explicit nonzero monomial coefficient for the concrete source witness. -/
+theorem routeBRicherConcreteNPWitnessQ_coeff_secondVar_ne_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    MvPolynomial.coeff
+        (Finsupp.single (satDeciderGaugeSecondVar M n hn2 htb hns) 1)
+        (routeBRicherConcreteNPWitnessQ M n hn2 htb hns) ≠ 0 := by
+  rw [routeBRicherConcreteNPWitnessQ_coeff_secondVar]
+  norm_num
+
+/-- The concrete head row has the exposed coefficient `-1` at the second flat
+Cook-Levin variable. -/
+theorem routeBRicherConcreteNPWitnessRows_zero_coeff_secondVar
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    MvPolynomial.coeff
+        (Finsupp.single (satDeciderGaugeSecondVar M n hn2 htb hns) 1)
+        (routeBRicherConcreteNPWitnessRows M n hn2 htb hns 0) = (-1 : Rat) := by
+  rw [routeBRicherConcreteNPWitnessRows_eq_embed,
+    routeBRicherConcreteNPWitnessQ_embed_eq_compiledPoly]
+  exact compiledPoly_coeff_secondVar M n hn2 htb hns
+
+/-- Explicit nonzero monomial coefficient for the concrete head row. -/
+theorem routeBRicherConcreteNPWitnessRows_zero_coeff_secondVar_ne_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    MvPolynomial.coeff
+        (Finsupp.single (satDeciderGaugeSecondVar M n hn2 htb hns) 1)
+        (routeBRicherConcreteNPWitnessRows M n hn2 htb hns 0) ≠ 0 := by
+  rw [routeBRicherConcreteNPWitnessRows_zero_coeff_secondVar]
+  norm_num
 
 /-- Concrete source identity-minor lower bound for the Route B flat
 coupled-sheet witness, obtained from the existing Lemma 124 Cook-Levin lower
@@ -187,6 +232,10 @@ theorem routeBRicherConcreteNP_transportCertificate
 
 #print axioms flatCookLevinUVSplit_pullbackPartition_eq
 #print axioms routeBRicherConcreteNPWitnessQ_embed_eq_compiledPoly
+#print axioms routeBRicherConcreteNPWitnessQ_coeff_secondVar
+#print axioms routeBRicherConcreteNPWitnessQ_coeff_secondVar_ne_zero
+#print axioms routeBRicherConcreteNPWitnessRows_zero_coeff_secondVar
+#print axioms routeBRicherConcreteNPWitnessRows_zero_coeff_secondVar_ne_zero
 #print axioms routeBRicherConcreteNPWitnessQ_sourceIdentityMinorLowerBound
 #print axioms routeBRicherConcreteNPWitnessRows_extracts_compiled
 #print axioms routeBRicherConcreteNPFixedFiniteRowSpanCertificate
