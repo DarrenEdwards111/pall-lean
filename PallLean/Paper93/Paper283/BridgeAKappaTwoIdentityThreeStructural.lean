@@ -776,3 +776,483 @@ theorem identityThree_perPairSum_of_decomposition
 end BridgeAKappaTwoIdentityThreeStructural
 
 end PallLean.Paper93.Paper283
+
+namespace PallLean.Paper93.Paper283
+
+namespace BridgeAKappaTwoIdentityThreeStructural
+
+open MvPolynomial
+open MultilinearSPDP
+open PaperFaithfulSeparation
+open SPDP
+open BridgeABlockProductRule
+open BridgeAKappaTwoTwoFoldLeibnizExpansion
+open BridgeAKappaTwoFactorPairLemmas
+open BridgeAKappaTwoIdentityOne
+open BridgeAKappaTwoIdentityFour
+open BridgeAKappaTwoIdentityThreeAux
+open BridgeAKappaTwoListInductionHelpers
+
+attribute [local instance] Classical.dec
+
+/-! ## Section I: poly-form normalisation lemmas
+
+The literal touched-list `kappaTwoTouchedList_explicit` is built from
+`boolLC`, `adjLC`, and `transSkelLC` constraints; after the
+`(fun c => 1 - c.poly)` mapping, each constraint factor becomes the
+corresponding `boolFactorPoly` / `cadjFactorPoly` term used in
+`inertFactorsList` / `activeFactorsList`.  These three small lemmas
+make that conversion explicit. -/
+
+/-- `1 - (boolLC n a).poly` syntactically reduces to `boolFactorPoly n a`. -/
+theorem one_sub_boolLC_poly_eq_boolFactorPoly
+    (n : ℕ) (a : Fin n) :
+    (1 : MvPolynomial (Fin n) ℚ) - (boolLC n a).poly = boolFactorPoly n a := rfl
+
+/-- `1 - (adjLC n i hi).poly = cadjFactorPoly 1 i ⟨i.val + 1, hi⟩`. -/
+theorem one_sub_adjLC_poly_eq_cadjFactorPoly
+    {n : ℕ} (i : Fin n) (hi : i.val + 1 < n) :
+    (1 : MvPolynomial (Fin n) ℚ) - (adjLC n i hi).poly =
+      cadjFactorPoly 1 i ⟨i.val + 1, hi⟩ := by
+  unfold cadjFactorPoly
+  rw [MvPolynomial.C_1, one_mul]
+  rfl
+
+/-- `1 - (transSkelLC M n q i hi).poly = cadjFactorPoly (transCoeff M q) i ⟨i.val + 1, hi⟩`. -/
+theorem one_sub_transSkelLC_poly_eq_cadjFactorPoly
+    (M : TuringMachine.DTM) {n : ℕ} (q : Fin M.numStates)
+    (i : Fin n) (hi : i.val + 1 < n) :
+    (1 : MvPolynomial (Fin n) ℚ) - (transSkelLC M n q i hi).poly =
+      cadjFactorPoly (transCoeff M q) i ⟨i.val + 1, hi⟩ := rfl
+
+/-! ## Section J: explicit literal forms after `(fun c => 1 - c.poly)` mapping
+
+We expand the `adjFactors` and `transSkelFactorsForState` sub-lists
+under the polynomial mapping, mirroring the existing
+`boolFactors_mapped_form` (Section C). -/
+
+/-- The mapped adjacency factor list is exactly the literal length-4 list
+of `cadjFactorPoly 1` factors. -/
+theorem adjFactors_mapped_form
+    (n k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n) :
+    (kappaTwoTouchedList_adjFactors n k hk1 hk2).map
+      (fun c => (1 : MvPolynomial (Fin n) ℚ) - c.poly) =
+      [cadjFactorPoly 1 (⟨3 * k - 1, by omega⟩ : Fin n)
+          (⟨3 * k - 1 + 1, by omega⟩ : Fin n),
+       cadjFactorPoly 1 (⟨3 * k, by omega⟩ : Fin n)
+          (⟨3 * k + 1, by omega⟩ : Fin n),
+       cadjFactorPoly 1 (⟨3 * k + 1, by omega⟩ : Fin n)
+          (⟨3 * k + 2, by omega⟩ : Fin n),
+       cadjFactorPoly 1 (⟨3 * k + 2, by omega⟩ : Fin n)
+          (⟨3 * k + 3, hk2⟩ : Fin n)] := by
+  unfold kappaTwoTouchedList_adjFactors
+  simp only [List.map_cons, List.map_nil,
+    one_sub_adjLC_poly_eq_cadjFactorPoly]
+
+/-- The mapped per-state transition-skeleton list is exactly the literal
+length-4 list of `cadjFactorPoly (transCoeff M q)` factors. -/
+theorem transSkelFactorsForState_mapped_form
+    (M : TuringMachine.DTM) (n : Nat) (q : Fin M.numStates)
+    (k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n) :
+    (kappaTwoTouchedList_transSkelFactorsForState M n q k hk1 hk2).map
+      (fun c => (1 : MvPolynomial (Fin n) ℚ) - c.poly) =
+      [cadjFactorPoly (transCoeff M q)
+         (⟨3 * k - 1, by omega⟩ : Fin n)
+         (⟨3 * k - 1 + 1, by omega⟩ : Fin n),
+       cadjFactorPoly (transCoeff M q)
+         (⟨3 * k, by omega⟩ : Fin n)
+         (⟨3 * k + 1, by omega⟩ : Fin n),
+       cadjFactorPoly (transCoeff M q)
+         (⟨3 * k + 1, by omega⟩ : Fin n)
+         (⟨3 * k + 2, by omega⟩ : Fin n),
+       cadjFactorPoly (transCoeff M q)
+         (⟨3 * k + 2, by omega⟩ : Fin n)
+         (⟨3 * k + 3, hk2⟩ : Fin n)] := by
+  unfold kappaTwoTouchedList_transSkelFactorsForState
+  simp only [List.map_cons, List.map_nil,
+    one_sub_transSkelLC_poly_eq_cadjFactorPoly]
+
+end BridgeAKappaTwoIdentityThreeStructural
+
+end PallLean.Paper93.Paper283
+
+namespace PallLean.Paper93.Paper283
+
+namespace BridgeAKappaTwoIdentityThreeStructural
+
+open MvPolynomial
+open MultilinearSPDP
+open PaperFaithfulSeparation
+open SPDP
+open BridgeABlockProductRule
+open BridgeAKappaTwoTwoFoldLeibnizExpansion
+open BridgeAKappaTwoFactorPairLemmas
+open BridgeAKappaTwoIdentityOne
+open BridgeAKappaTwoIdentityFour
+open BridgeAKappaTwoIdentityThreeAux
+open BridgeAKappaTwoListInductionHelpers
+
+attribute [local instance] Classical.dec
+
+/-! ## Section K: canonical "explicit" form of `touchedListPoly`
+
+Combining the three `_mapped_form` lemmas, `touchedListPoly` equals
+the canonical concatenation
+`bool ++ adj ++ flatMap_q transSkelForState_q`, where every constraint
+has been replaced by its `boolFactorPoly` / `cadjFactorPoly` equivalent.
+-/
+
+/-- The mapped flattened transition-skeleton list as a single `flatMap`
+over the per-state literal cadj lists. -/
+theorem transSkelFactorsFlat_mapped_form
+    (M : TuringMachine.DTM) (n : Nat)
+    (k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n) :
+    (kappaTwoTouchedList_transSkelFactorsFlat M n k hk1 hk2).map
+      (fun c => (1 : MvPolynomial (Fin n) ℚ) - c.poly) =
+      (List.finRange M.numStates).flatMap (fun q =>
+        [cadjFactorPoly (transCoeff M q)
+           (⟨3 * k - 1, by omega⟩ : Fin n)
+           (⟨3 * k - 1 + 1, by omega⟩ : Fin n),
+         cadjFactorPoly (transCoeff M q)
+           (⟨3 * k, by omega⟩ : Fin n)
+           (⟨3 * k + 1, by omega⟩ : Fin n),
+         cadjFactorPoly (transCoeff M q)
+           (⟨3 * k + 1, by omega⟩ : Fin n)
+           (⟨3 * k + 2, by omega⟩ : Fin n),
+         cadjFactorPoly (transCoeff M q)
+           (⟨3 * k + 2, by omega⟩ : Fin n)
+           (⟨3 * k + 3, hk2⟩ : Fin n)]) := by
+  unfold kappaTwoTouchedList_transSkelFactorsFlat
+  rw [List.map_flatMap]
+  apply List.flatMap_congr
+  intro q _hq
+  exact transSkelFactorsForState_mapped_form M n q k hk1 hk2
+
+/-- The canonical "explicit" form of `touchedListPoly`: an explicit
+length-7 head followed by a `flatMap` of length-4 per-state cadj lists. -/
+theorem touchedListPoly_explicit_form
+    (M : TuringMachine.DTM) (n : Nat)
+    (k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n) :
+    touchedListPoly M n k hk1 hk2 =
+      ([boolFactorPoly n ⟨3 * k, by omega⟩,
+        boolFactorPoly n ⟨3 * k + 1, by omega⟩,
+        boolFactorPoly n ⟨3 * k + 2, by omega⟩] ++
+       [cadjFactorPoly 1 (⟨3 * k - 1, by omega⟩ : Fin n)
+           (⟨3 * k - 1 + 1, by omega⟩ : Fin n),
+        cadjFactorPoly 1 (⟨3 * k, by omega⟩ : Fin n)
+           (⟨3 * k + 1, by omega⟩ : Fin n),
+        cadjFactorPoly 1 (⟨3 * k + 1, by omega⟩ : Fin n)
+           (⟨3 * k + 2, by omega⟩ : Fin n),
+        cadjFactorPoly 1 (⟨3 * k + 2, by omega⟩ : Fin n)
+           (⟨3 * k + 3, hk2⟩ : Fin n)]) ++
+      (List.finRange M.numStates).flatMap (fun q =>
+        [cadjFactorPoly (transCoeff M q)
+           (⟨3 * k - 1, by omega⟩ : Fin n)
+           (⟨3 * k - 1 + 1, by omega⟩ : Fin n),
+         cadjFactorPoly (transCoeff M q)
+           (⟨3 * k, by omega⟩ : Fin n)
+           (⟨3 * k + 1, by omega⟩ : Fin n),
+         cadjFactorPoly (transCoeff M q)
+           (⟨3 * k + 1, by omega⟩ : Fin n)
+           (⟨3 * k + 2, by omega⟩ : Fin n),
+         cadjFactorPoly (transCoeff M q)
+           (⟨3 * k + 2, by omega⟩ : Fin n)
+           (⟨3 * k + 3, hk2⟩ : Fin n)]) := by
+  unfold touchedListPoly kappaTwoTouchedList_explicit
+  rw [List.map_append, List.map_append]
+  rw [boolFactors_mapped_form, adjFactors_mapped_form,
+      transSkelFactorsFlat_mapped_form]
+
+end BridgeAKappaTwoIdentityThreeStructural
+
+end PallLean.Paper93.Paper283
+
+namespace PallLean.Paper93.Paper283
+
+namespace BridgeAKappaTwoIdentityThreeStructural
+
+open MvPolynomial
+open MultilinearSPDP
+open PaperFaithfulSeparation
+open SPDP
+open BridgeABlockProductRule
+open BridgeAKappaTwoTwoFoldLeibnizExpansion
+open BridgeAKappaTwoFactorPairLemmas
+open BridgeAKappaTwoIdentityOne
+open BridgeAKappaTwoIdentityFour
+open BridgeAKappaTwoIdentityThreeAux
+open BridgeAKappaTwoListInductionHelpers
+
+attribute [local instance] Classical.dec
+
+/-! ## Section L: canonical "explicit" form of `inertFactorsList ++ activeFactorsList`
+
+We expand the inert/active partition into a parallel canonical
+length-4 + length-3 + per-state cadj structure, ready for direct
+permutation comparison with `touchedListPoly_explicit_form`. -/
+
+/-- The inert + active partition expressed as a parallel concatenation
+form: `(inert_bool ++ inert_adj ++ flatMap_q inert_trans_q) ++
+(active_bool ++ active_adj ++ flatMap_q active_trans_q)`. -/
+theorem inert_active_explicit_form
+    (M : TuringMachine.DTM) (n : Nat)
+    (k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n) :
+    inertFactorsList M n k hk1 hk2 ++ activeFactorsList M n k hk1 hk2 =
+      ([boolFactorPoly n ⟨3 * k, by omega⟩,
+        boolFactorPoly n ⟨3 * k + 1, by omega⟩,
+        cadjFactorPoly 1 (⟨3 * k - 1, by omega⟩ : Fin n)
+           (⟨3 * k - 1 + 1, by omega⟩ : Fin n),
+        cadjFactorPoly 1 (⟨3 * k, by omega⟩ : Fin n)
+           (⟨3 * k + 1, by omega⟩ : Fin n)] ++
+       (List.finRange M.numStates).flatMap (fun q =>
+         [cadjFactorPoly (transCoeff M q)
+            (⟨3 * k - 1, by omega⟩ : Fin n)
+            (⟨3 * k - 1 + 1, by omega⟩ : Fin n),
+          cadjFactorPoly (transCoeff M q)
+            (⟨3 * k, by omega⟩ : Fin n)
+            (⟨3 * k + 1, by omega⟩ : Fin n)])) ++
+      ([boolFactorPoly n ⟨3 * k + 2, by omega⟩,
+        cadjFactorPoly 1 (⟨3 * k + 1, by omega⟩ : Fin n)
+           (⟨3 * k + 2, by omega⟩ : Fin n),
+        cadjFactorPoly 1 (⟨3 * k + 2, by omega⟩ : Fin n)
+           (⟨3 * k + 3, hk2⟩ : Fin n)] ++
+       (List.finRange M.numStates).flatMap (fun q =>
+         [cadjFactorPoly (transCoeff M q)
+            (⟨3 * k + 1, by omega⟩ : Fin n)
+            (⟨3 * k + 2, by omega⟩ : Fin n),
+          cadjFactorPoly (transCoeff M q)
+            (⟨3 * k + 2, by omega⟩ : Fin n)
+            (⟨3 * k + 3, hk2⟩ : Fin n)])) := by
+  unfold inertFactorsList activeFactorsList
+  rfl
+
+end BridgeAKappaTwoIdentityThreeStructural
+
+end PallLean.Paper93.Paper283
+
+namespace PallLean.Paper93.Paper283
+
+namespace BridgeAKappaTwoIdentityThreeStructural
+
+open MvPolynomial
+open MultilinearSPDP
+open PaperFaithfulSeparation
+open SPDP
+open BridgeABlockProductRule
+open BridgeAKappaTwoTwoFoldLeibnizExpansion
+open BridgeAKappaTwoFactorPairLemmas
+open BridgeAKappaTwoIdentityOne
+open BridgeAKappaTwoIdentityFour
+open BridgeAKappaTwoIdentityThreeAux
+open BridgeAKappaTwoListInductionHelpers
+
+attribute [local instance] Classical.dec
+
+/-! ## Section M: `touchedListPoly_perm_partition_claim` — the principal
+permutation theorem
+
+Given the canonical forms exposed in Sections K and L, the permutation
+between `touchedListPoly` and `inertFactorsList ++ activeFactorsList`
+reduces to a finite shuffling of the bool prefix, the cadj `1` block,
+and the per-state `flatMap` (split into two halves via `flatMap_append_perm`).
+-/
+
+/-- Splitting the per-state cadj `flatMap` of length-4 lists into two
+parallel length-2 `flatMap`s (inert + active), as a permutation. -/
+private theorem transSkel_flatMap_perm_split
+    (M : TuringMachine.DTM) (n : Nat)
+    (k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n) :
+    ((List.finRange M.numStates).flatMap (fun q =>
+        [cadjFactorPoly (transCoeff M q)
+           (⟨3 * k - 1, by omega⟩ : Fin n)
+           (⟨3 * k - 1 + 1, by omega⟩ : Fin n),
+         cadjFactorPoly (transCoeff M q)
+           (⟨3 * k, by omega⟩ : Fin n)
+           (⟨3 * k + 1, by omega⟩ : Fin n),
+         cadjFactorPoly (transCoeff M q)
+           (⟨3 * k + 1, by omega⟩ : Fin n)
+           (⟨3 * k + 2, by omega⟩ : Fin n),
+         cadjFactorPoly (transCoeff M q)
+           (⟨3 * k + 2, by omega⟩ : Fin n)
+           (⟨3 * k + 3, hk2⟩ : Fin n)])).Perm
+      ((List.finRange M.numStates).flatMap (fun q =>
+          [cadjFactorPoly (transCoeff M q)
+             (⟨3 * k - 1, by omega⟩ : Fin n)
+             (⟨3 * k - 1 + 1, by omega⟩ : Fin n),
+           cadjFactorPoly (transCoeff M q)
+             (⟨3 * k, by omega⟩ : Fin n)
+             (⟨3 * k + 1, by omega⟩ : Fin n)]) ++
+       (List.finRange M.numStates).flatMap (fun q =>
+          [cadjFactorPoly (transCoeff M q)
+             (⟨3 * k + 1, by omega⟩ : Fin n)
+             (⟨3 * k + 2, by omega⟩ : Fin n),
+           cadjFactorPoly (transCoeff M q)
+             (⟨3 * k + 2, by omega⟩ : Fin n)
+             (⟨3 * k + 3, hk2⟩ : Fin n)])) := by
+  -- Each per-state list `[a, b, c, d]` is `[a, b] ++ [c, d]`; mathlib's
+  -- `List.flatMap_append_perm` packages exactly the splitting fact.
+  exact (List.flatMap_append_perm (List.finRange M.numStates)
+    (fun q : Fin M.numStates =>
+      [cadjFactorPoly (transCoeff M q)
+         (⟨3 * k - 1, by omega⟩ : Fin n)
+         (⟨3 * k - 1 + 1, by omega⟩ : Fin n),
+       cadjFactorPoly (transCoeff M q)
+         (⟨3 * k, by omega⟩ : Fin n)
+         (⟨3 * k + 1, by omega⟩ : Fin n)])
+    (fun q : Fin M.numStates =>
+      [cadjFactorPoly (transCoeff M q)
+         (⟨3 * k + 1, by omega⟩ : Fin n)
+         (⟨3 * k + 2, by omega⟩ : Fin n),
+       cadjFactorPoly (transCoeff M q)
+         (⟨3 * k + 2, by omega⟩ : Fin n)
+         (⟨3 * k + 3, hk2⟩ : Fin n)])).symm
+
+/-- The principal structural permutation: the literal touched-list
+polynomial form is permutation-equivalent to the inert/active
+partition. -/
+theorem touchedListPoly_perm_partition
+    (M : TuringMachine.DTM) (n : Nat)
+    (k : Nat) (hk1 : 1 ≤ k) (hk2 : 3 * k + 3 < n) :
+    touchedListPoly_perm_partition_claim M n k hk1 hk2 := by
+  unfold touchedListPoly_perm_partition_claim
+  -- Step 1: rewrite both sides into their canonical "explicit" forms.
+  rw [touchedListPoly_explicit_form, inert_active_explicit_form]
+  -- Notation: name the fixed sub-lists for readability.
+  set B0 : MvPolynomial (Fin n) ℚ := boolFactorPoly n ⟨3 * k, by omega⟩
+  set B1 : MvPolynomial (Fin n) ℚ := boolFactorPoly n ⟨3 * k + 1, by omega⟩
+  set B2 : MvPolynomial (Fin n) ℚ := boolFactorPoly n ⟨3 * k + 2, by omega⟩
+  set A0 : MvPolynomial (Fin n) ℚ :=
+    cadjFactorPoly 1 (⟨3 * k - 1, by omega⟩ : Fin n)
+      (⟨3 * k - 1 + 1, by omega⟩ : Fin n)
+  set A1 : MvPolynomial (Fin n) ℚ :=
+    cadjFactorPoly 1 (⟨3 * k, by omega⟩ : Fin n)
+      (⟨3 * k + 1, by omega⟩ : Fin n)
+  set A2 : MvPolynomial (Fin n) ℚ :=
+    cadjFactorPoly 1 (⟨3 * k + 1, by omega⟩ : Fin n)
+      (⟨3 * k + 2, by omega⟩ : Fin n)
+  set A3 : MvPolynomial (Fin n) ℚ :=
+    cadjFactorPoly 1 (⟨3 * k + 2, by omega⟩ : Fin n)
+      (⟨3 * k + 3, hk2⟩ : Fin n)
+  set Finert : List (MvPolynomial (Fin n) ℚ) :=
+    (List.finRange M.numStates).flatMap (fun q =>
+      [cadjFactorPoly (transCoeff M q)
+         (⟨3 * k - 1, by omega⟩ : Fin n)
+         (⟨3 * k - 1 + 1, by omega⟩ : Fin n),
+       cadjFactorPoly (transCoeff M q)
+         (⟨3 * k, by omega⟩ : Fin n)
+         (⟨3 * k + 1, by omega⟩ : Fin n)])
+  set Factive : List (MvPolynomial (Fin n) ℚ) :=
+    (List.finRange M.numStates).flatMap (fun q =>
+      [cadjFactorPoly (transCoeff M q)
+         (⟨3 * k + 1, by omega⟩ : Fin n)
+         (⟨3 * k + 2, by omega⟩ : Fin n),
+       cadjFactorPoly (transCoeff M q)
+         (⟨3 * k + 2, by omega⟩ : Fin n)
+         (⟨3 * k + 3, hk2⟩ : Fin n)])
+  -- LHS canonical form (after rewrites):
+  --   ([B0, B1, B2] ++ [A0, A1, A2, A3]) ++ flatMap_full
+  -- RHS canonical form:
+  --   ([B0, B1, A0, A1] ++ Finert) ++ ([B2, A2, A3] ++ Factive)
+  -- Step 2: split the LHS flatMap_full into Finert ++ Factive (perm).
+  have hflat : ((List.finRange M.numStates).flatMap (fun q =>
+      [cadjFactorPoly (transCoeff M q)
+         (⟨3 * k - 1, by omega⟩ : Fin n)
+         (⟨3 * k - 1 + 1, by omega⟩ : Fin n),
+       cadjFactorPoly (transCoeff M q)
+         (⟨3 * k, by omega⟩ : Fin n)
+         (⟨3 * k + 1, by omega⟩ : Fin n),
+       cadjFactorPoly (transCoeff M q)
+         (⟨3 * k + 1, by omega⟩ : Fin n)
+         (⟨3 * k + 2, by omega⟩ : Fin n),
+       cadjFactorPoly (transCoeff M q)
+         (⟨3 * k + 2, by omega⟩ : Fin n)
+         (⟨3 * k + 3, hk2⟩ : Fin n)])).Perm (Finert ++ Factive) :=
+    transSkel_flatMap_perm_split M n k hk1 hk2
+  -- Step 3: assemble the perm chain.
+  -- LHS = [B0,B1,B2] ++ [A0,A1,A2,A3] ++ flatMap_full
+  --     ~ [B0,B1,B2] ++ [A0,A1,A2,A3] ++ (Finert ++ Factive)
+  --     = [B0,B1,B2,A0,A1,A2,A3] ++ (Finert ++ Factive)
+  --     ~ [B0,B1,A0,A1] ++ Finert ++ ([B2,A2,A3] ++ Factive)         (RHS)
+  refine (List.Perm.append_left _ hflat).trans ?_
+  -- Now: ([B0,B1,B2] ++ [A0,A1,A2,A3]) ++ (Finert ++ Factive)
+  --       .Perm
+  --      ([B0,B1,A0,A1] ++ Finert) ++ ([B2,A2,A3] ++ Factive)
+  -- Both have the same multiset of head elements; reduce to the
+  -- combinatorial perm of the head.
+  -- Strategy: reassociate everything into right-associated form, then
+  -- swap [B2] with [A0, A1] and shift Finert through [B2, A2, A3].
+  -- Concretely:
+  --   [B0,B1,B2] ++ [A0,A1,A2,A3] ++ (Finert ++ Factive)
+  --   = [B0,B1] ++ ([B2] ++ [A0,A1] ++ [A2,A3] ++ (Finert ++ Factive))
+  --   ~ [B0,B1] ++ ([A0,A1] ++ [B2] ++ [A2,A3] ++ (Finert ++ Factive))   -- swap [B2] and [A0,A1]
+  --   = [B0,B1] ++ [A0,A1] ++ ([B2] ++ [A2,A3] ++ (Finert ++ Factive))
+  --   ~ [B0,B1] ++ [A0,A1] ++ (Finert ++ [B2] ++ [A2,A3] ++ Factive)     -- swap ([B2] ++ [A2,A3]) and Finert
+  --   = [B0,B1,A0,A1] ++ Finert ++ ([B2,A2,A3] ++ Factive)
+  -- Convert each step into a Perm.
+  -- We expose every concatenation as right-associated explicitly via
+  -- `List.append_assoc`-style rewrites.
+  have step1 :
+      (([B0, B1, B2] ++ [A0, A1, A2, A3]) ++ (Finert ++ Factive)).Perm
+      ([B0, B1] ++ [A0, A1] ++ [B2] ++ [A2, A3] ++ (Finert ++ Factive)) := by
+    apply List.Perm.append_right
+    -- ([B0,B1,B2] ++ [A0,A1,A2,A3]).Perm ([B0,B1] ++ [A0,A1] ++ [B2] ++ [A2,A3])
+    -- LHS = [B0, B1, B2, A0, A1, A2, A3]
+    -- RHS = [B0, B1, A0, A1, B2, A2, A3]
+    -- Differ by swap of B2 with A0, A1 (move B2 two positions right).
+    show ([B0, B1, B2, A0, A1, A2, A3] : List _).Perm
+         [B0, B1, A0, A1, B2, A2, A3]
+    -- Expand head: B0 :: B1 :: rest
+    apply List.Perm.cons
+    apply List.Perm.cons
+    -- Goal: [B2, A0, A1, A2, A3].Perm [A0, A1, B2, A2, A3]
+    -- = (B2 :: [A0, A1] ++ [A2, A3]).Perm ([A0, A1] ++ B2 :: [A2, A3])
+    -- which is List.perm_middle reversed.
+    have hmid : (B2 :: ([A0, A1] ++ [A2, A3])).Perm
+                ([A0, A1] ++ B2 :: [A2, A3]) := List.perm_middle.symm
+    simpa using hmid
+  -- step2: shift Finert through ([B2, A2, A3])
+  have step2 :
+      (([B0, B1] ++ [A0, A1] ++ [B2] ++ [A2, A3]) ++ (Finert ++ Factive)).Perm
+      (([B0, B1] ++ [A0, A1] ++ Finert) ++ ([B2] ++ [A2, A3] ++ Factive)) := by
+    -- Both sides have [B0,B1,A0,A1,B2,A2,A3] ++ Finert ++ Factive elements.
+    -- We need to move Finert from after [...,A2,A3] to after [B0,B1,A0,A1].
+    -- Reassociate first.
+    -- LHS reassoc: [B0,B1] ++ [A0,A1] ++ [B2] ++ [A2,A3] ++ Finert ++ Factive
+    -- RHS reassoc: [B0,B1] ++ [A0,A1] ++ Finert ++ [B2] ++ [A2,A3] ++ Factive
+    -- The difference: ([B2] ++ [A2,A3]) ++ Finert ~ Finert ++ ([B2] ++ [A2,A3]).
+    -- This is a 2-block swap = perm_append_comm.
+    -- Use `simp only [List.append_assoc]` to right-associate, then apply
+    -- `Perm.append_left` repeatedly to peel off [B0,B1] and [A0,A1],
+    -- then swap.
+    have : (([B2] ++ [A2, A3]) ++ Finert).Perm
+           (Finert ++ ([B2] ++ [A2, A3])) := List.perm_append_comm
+    -- Lift through prepend [B0,B1] ++ [A0,A1] and append Factive.
+    have hprep : (([B0, B1] ++ [A0, A1] ++ (([B2] ++ [A2, A3]) ++ Finert)) ++
+                  Factive).Perm
+                 (([B0, B1] ++ [A0, A1] ++ (Finert ++ ([B2] ++ [A2, A3]))) ++
+                  Factive) :=
+      (List.Perm.append_left ([B0, B1] ++ [A0, A1]) this).append_right _
+    -- Massage with associativity to match the goal.
+    simpa [List.append_assoc] using hprep
+  -- Combine step1, step2 and finish.
+  refine step1.trans (step2.trans ?_)
+  -- Final: (([B0,B1] ++ [A0,A1] ++ Finert) ++ ([B2] ++ [A2,A3] ++ Factive))
+  --        = ([B0,B1,A0,A1] ++ Finert) ++ ([B2,A2,A3] ++ Factive)
+  -- This is `rfl` modulo right-associativity of ++.
+  rfl
+
+/-! ## Axiom audit anchors -/
+
+#print axioms one_sub_boolLC_poly_eq_boolFactorPoly
+#print axioms one_sub_adjLC_poly_eq_cadjFactorPoly
+#print axioms one_sub_transSkelLC_poly_eq_cadjFactorPoly
+#print axioms adjFactors_mapped_form
+#print axioms transSkelFactorsForState_mapped_form
+#print axioms transSkelFactorsFlat_mapped_form
+#print axioms touchedListPoly_explicit_form
+#print axioms inert_active_explicit_form
+#print axioms touchedListPoly_perm_partition
+
+end BridgeAKappaTwoIdentityThreeStructural
+
+end PallLean.Paper93.Paper283
