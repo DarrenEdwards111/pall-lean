@@ -52757,9 +52757,8 @@ theorem cookLevinStrictFOB_pullbackPartition_eq_flat
 /-- Route B exact projection/relabel rank monotonicity at the canonical
 strict first-of-block partitions.
 
-The broad `ExtractionProjectionStage` field still asks for arbitrary
-partitions. The paper-faithful fact actually used by the strict Cook-Levin
-target is this exact statement: at the canonical target partition and the real
+The paper-faithful fact used by the strict Cook-Levin target is this exact
+statement: at the canonical target partition and the real
 flat restriction partition, the projected polynomial and partition are both
 identified by the two descent lemmas above, so the rank comparison is
 reflexive. -/
@@ -52798,9 +52797,8 @@ first-of-block projection stage.
 This is the paper-faithful specialization of the projection-rank obligation:
 the flat first-of-block restriction and the strict ambient `embedded_Q`
 restriction have the same polynomial and canonical pulled-back partition by
-the descent lemmas above. The broader `ExtractionProjectionStage` field still
-quantifies over arbitrary partitions, so this theorem records the exact
-canonical fact actually used by the strict Route B target. -/
+the descent lemmas above. This theorem records the exact canonical fact
+consumed by the strict Route B projection stage. -/
 theorem cookLevinStrictFOBRealProjectionStage_canonical_projection_rank_mono
     (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
@@ -52827,6 +52825,53 @@ theorem cookLevinStrictFOBRealProjectionStage_canonical_projection_rank_mono
               M n hn2 htb hns))) :=
   cookLevinStrictFOB_exact_projection_rank_mono
     M n hn2 htb hns B_total hB_total κ ℓ
+
+/-- Narrow Route B projection-stage interface for the real strict
+first-of-block extraction.
+
+Unlike `ExtractionProjectionStage.projection_rank_mono`, this records only the
+paper's canonical transported partitions: the flat first-of-block restriction
+of `compiledPoly` maps rank-monotonically onto the strict ambient
+`embedded_Q` target. -/
+structure CookLevinStrictFOBCanonicalProjectionStage
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) : Prop where
+  projection_rank_mono : ∀ (κ ℓ : ℕ),
+    MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition B_total
+          (cookLevinStrictFOBMap M n)) κ ℓ
+        (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+          (cookLevinStrictFOBMap_injective M n)
+          (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q) ≤
+      MultilinearSPDP.mlBlockedSpdpRank
+        (MultilinearSPDP.pullbackPartition
+          (PaperFaithfulSeparation.cook_levin_compilation
+            M n hn2 htb hns).partition
+          (cookLevinStrictFOBFlatMap n)) κ ℓ
+        (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n)
+          (PaperFaithfulSeparation.compiledPoly
+            (PaperFaithfulSeparation.cook_levin_compilation
+              M n hn2 htb hns)))
+
+/-- The canonical strict FOB projection stage is discharged by the exact
+projection/relabel theorem. -/
+theorem cookLevinStrictFOBCanonicalProjectionStage
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) :
+    CookLevinStrictFOBCanonicalProjectionStage
+      M n hn2 htb hns B_total hB_total where
+  projection_rank_mono :=
+    cookLevinStrictFOBRealProjectionStage_canonical_projection_rank_mono
+      M n hn2 htb hns B_total hB_total
 
 private theorem strictFOB_mapDomain_support_subset_range {n m : ℕ}
     (f : Fin n → Fin m) (d : Fin n →₀ ℕ) :
@@ -53406,10 +53451,10 @@ theorem cookLevinStrictFOBTarget_same_target_lower_of_renamed_lower
 
 /-- Route B strict first-of-block source-to-target rank bridge.
 
-This is the paper-faithful rank bridge for the strict target itself, avoiding
-the over-broad arbitrary-partition projection-stage field. The proof uses the
-strict target as an exact coordinate restriction of the ambient `embedded_Q`
-sheet, then chains through §241's `embedded_Q ≤ full_output` bridge. -/
+This is the paper-faithful rank bridge for the strict target itself. The proof
+uses the strict target as an exact coordinate restriction of the ambient
+`embedded_Q` sheet, then chains through §241's `embedded_Q ≤ full_output`
+bridge. -/
 theorem DirectRankPackage_cookLevin_strictFOB_source_to_target_rank_bridge
     (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
@@ -53442,6 +53487,112 @@ theorem DirectRankPackage_cookLevin_strictFOB_source_to_target_rank_bridge
             (cookLevinStrictFOB_coupledVars_lt M n hn2 htb hns)
             (cookLevinStrictFOBMap M n)
             (cookLevinStrictFOBMap_injective M n)))
+
+/-- The canonical strict FOB projection stage gives the Route B extraction
+transfer on the strict same-target sheet.
+
+This is the local paper-faithful replacement for trying to instantiate the
+global arbitrary-partition projection field: the proof uses the canonical
+projection/relabel stage, then the flat coordinate-restriction monotonicity
+from the Cook-Levin compiled polynomial. -/
+theorem cookLevinStrictFOB_routeB_extraction_transfer_of_canonical_projection_stage
+    (M : TuringMachine.DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (stage : CookLevinStrictFOBCanonicalProjectionStage
+      M n hn2 htb hns B_total hB_total) :
+    PaperFaithfulSeparation.GodMoveRouteB_ExtractionObligation
+      M n hn2 htb hns hdec
+      (cookLevinStrictFOBTarget M n hn2 htb hns B_total) := by
+  simpa [PaperFaithfulSeparation.GodMoveRouteB_ExtractionObligation,
+    PaperFaithfulSeparation.GodMoveRouteB_ExtractionTransfer,
+    cookLevinStrictFOBTarget] using
+    (calc
+      MultilinearSPDP.mlBlockedSpdpRank
+          (MultilinearSPDP.pullbackPartition B_total
+            (cookLevinStrictFOBMap M n))
+          (Nat.log 2 n) (Nat.log 2 n)
+          (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+            (cookLevinStrictFOBMap_injective M n)
+            (Step247.partitioned_output_cookLevin M n hn2 htb hns).embedded_Q) ≤
+        MultilinearSPDP.mlBlockedSpdpRank
+          (MultilinearSPDP.pullbackPartition
+            (PaperFaithfulSeparation.cook_levin_compilation
+              M n hn2 htb hns).partition
+            (cookLevinStrictFOBFlatMap n))
+          (Nat.log 2 n) (Nat.log 2 n)
+          (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+            (cookLevinStrictFOBFlatMap_injective n)
+            (PaperFaithfulSeparation.compiledPoly
+              (PaperFaithfulSeparation.cook_levin_compilation
+                M n hn2 htb hns))) :=
+          stage.projection_rank_mono (Nat.log 2 n) (Nat.log 2 n)
+      _ ≤
+        MultilinearSPDP.mlBlockedSpdpRank
+          (PaperFaithfulSeparation.cook_levin_compilation
+            M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (PaperFaithfulSeparation.compiledPoly
+            (PaperFaithfulSeparation.cook_levin_compilation
+              M n hn2 htb hns)) :=
+          MultilinearSPDP.restriction_rank_monotone ℚ
+            (cookLevinStrictFOBFlatMap n)
+            (cookLevinStrictFOBFlatMap_injective n)
+            (PaperFaithfulSeparation.cook_levin_compilation
+              M n hn2 htb hns).partition
+            (Nat.log 2 n) (Nat.log 2 n)
+            (PaperFaithfulSeparation.compiledPoly
+              (PaperFaithfulSeparation.cook_levin_compilation
+                M n hn2 htb hns)))
+
+/-- Route B strict FOB source transport contradiction using the canonical
+projection-stage package.
+
+This keeps the staged extraction visible through
+`CookLevinStrictFOBCanonicalProjectionStage`, while the final contradiction is
+closed through the paper's same-target source transport interface. -/
+theorem DirectRankPackage_cookLevin_strictFOB_source_transport_false_of_canonical_projection_stage
+    (M : TuringMachine.DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn2 : n ≥ 2)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hQ_upper : MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B_total
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (show MvPolynomial (Fin n) ℚ from
+        PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (stage : CookLevinStrictFOBCanonicalProjectionStage
+      M n hn2 htb hns B_total hB_total) :
+    False := by
+  let P := DirectRankPackage_cookLevin M n hn htb hns hn2
+    B_total hB_total hQ_upper
+  have _hExtraction :
+      PaperFaithfulSeparation.GodMoveRouteB_ExtractionObligation
+        M n hn2 htb hns hdec
+        (cookLevinStrictFOBTarget M n hn2 htb hns B_total) :=
+    cookLevinStrictFOB_routeB_extraction_transfer_of_canonical_projection_stage
+      M n hn2 htb hns hdec B_total hB_total stage
+  exact
+    GlobalGodMoveGauge.theorem207PaperSource_transport_false
+      M n hn hn2 htb hns
+      (cookLevinStrictFOBTarget M n hn2 htb hns B_total)
+      (P.toTheorem207PaperSource M hn2 htb hns)
+      (P.toTheorem207PaperSource_p_side M hn2 htb hns rfl rfl)
+      (DirectRankPackage_cookLevin_strictFOB_source_to_target_rank_bridge
+        M n hn htb hns hn2 B_total hB_total hQ_upper)
+      (by
+        simpa [PaperFaithfulSeparation.GodMoveSameTargetStrongNPLower] using
+          (cookLevinStrictFOBTarget_same_target_lower
+            M n hn hn2 htb hns B_total hB_total))
 
 /-- Restriction stage whose output is definitionally the strict first-of-block
 restriction of the ambient `embedded_Q` sheet.
