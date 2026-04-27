@@ -285,6 +285,188 @@ theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_ne_zero
       M n hn2 htb hns
   norm_num [hcoeffZero] at hcoeffOne
 
+private theorem routeBProjectionDescentProgress_coeff_single_two_mul {N : Nat}
+    (v : Fin N) (p q : MvPolynomial (Fin N) Rat) :
+    MvPolynomial.coeff (Finsupp.single v 2) (p * q) =
+      MvPolynomial.coeff (Finsupp.single v 1) p *
+          MvPolynomial.coeff (Finsupp.single v 1) q +
+        (MvPolynomial.coeff (Finsupp.single v 2) q * MvPolynomial.coeff 0 p +
+          MvPolynomial.coeff (Finsupp.single v 2) p * MvPolynomial.coeff 0 q) := by
+  rw [MvPolynomial.coeff_mul, Finsupp.antidiagonal_single]
+  have hanti :
+      Finset.antidiagonal 2 =
+        ({(0, 2), (1, 1), (2, 0)} : Finset (Nat × Nat)) := by
+    decide
+  rw [hanti]
+  simp only [Finset.map_insert, Finset.map_singleton]
+  rw [Finset.sum_insert]
+  · rw [Finset.sum_insert]
+    · rw [Finset.sum_singleton]
+      simp [Function.Embedding.prodMap]
+      ring
+    · intro hmem
+      unfold Function.Embedding.prodMap at hmem
+      simp only [Function.Embedding.coeFn_mk, Prod.map_apply] at hmem
+      simp at hmem
+  · intro hmem
+    unfold Function.Embedding.prodMap at hmem
+    simp only [Function.Embedding.coeFn_mk, Prod.map_apply] at hmem
+    simp at hmem
+    rcases hmem with ⟨hzero, _⟩
+    have hval := congrArg (fun a : Fin N →₀ Nat => a v) hzero
+    simp at hval
+
+/-- The concrete NP head row has pure-square coefficient `1` at the first
+Cook-Levin coordinate as well. -/
+theorem routeBRicherConcreteNPWitnessRows_zero_coeff_firstVar_square
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    MvPolynomial.coeff
+        (Finsupp.single (satDeciderGaugeFirstVar M n hn2 htb hns) 2)
+        (routeBRicherConcreteNPWitnessRows M n hn2 htb hns 0) = (1 : Rat) := by
+  rw [routeBRicherConcreteNPWitnessRows_eq_embed,
+    routeBRicherConcreteNPWitnessQ_embed_eq_compiledPoly]
+  rw [CompiledBoolFactorBridge.compiledPoly_eq_boolFactorFullProd_mul_rest
+    M n hn2 htb hns]
+  rw [routeBProjectionDescentProgress_coeff_single_two_mul]
+  have hbool2 := boolFactorFullProd_coeff_single_two n
+    (satDeciderGaugeFirstVar M n hn2 htb hns)
+  have hbool1 := boolFactorFullProd_coeff_single n
+    (satDeciderGaugeFirstVar M n hn2 htb hns)
+  have hrest0 := restFactorProd'_const_one M n
+  have hrest1 := restFactorProd_coeff_single_eq_zero M n
+    (satDeciderGaugeFirstVar M n hn2 htb hns)
+  have hrest2 := restFactorProd_coeff_single_two_eq_zero M n
+    (satDeciderGaugeFirstVar M n hn2 htb hns)
+  rw [hbool2, hbool1, hrest0, hrest1, hrest2]
+  ring
+
+/-- Every broad multilinear tail row has zero pure-square coefficient at any
+Cook-Levin coordinate. -/
+theorem routeBRicherMultilinearTailRows_coeff_var_square
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (v : Fin (RouteBCookLevinDim M n hn2 htb hns))
+    (j : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns)) :
+    MvPolynomial.coeff
+        (Finsupp.single v 2)
+        (routeBRicherMultilinearTailRows M n hn2 htb hns j) = 0 := by
+  rw [routeBRicherMultilinearTailRows_eq_monomial_tailCoeffAlpha,
+    MvPolynomial.coeff_monomial]
+  rw [if_neg]
+  intro hsq
+  have hml :
+      Finsupp.IsMultilinear
+        (routeBRicherMultilinearTailCoeffAlpha M n hn2 htb hns j) := by
+    simpa [routeBRicherMultilinearTailCoeffAlpha] using
+      SymmetricPower.tagMonomial_isMultilinear
+        (routeBRicherMultilinearTailSupportSet M n hn2 htb hns j)
+  have hv := hml v
+  rw [hsq] at hv
+  norm_num at hv
+
+/-- Every broad multilinear tail row has zero pure-square coefficient at the
+first Cook-Levin coordinate. -/
+theorem routeBRicherMultilinearTailRows_coeff_firstVar_square
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (j : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns)) :
+    MvPolynomial.coeff
+        (Finsupp.single (satDeciderGaugeFirstVar M n hn2 htb hns) 2)
+        (routeBRicherMultilinearTailRows M n hn2 htb hns j) = 0 :=
+  routeBRicherMultilinearTailRows_coeff_var_square
+    M n hn2 htb hns
+    (satDeciderGaugeFirstVar M n hn2 htb hns) j
+
+/-- Each concrete prepended multilinear row has matching first-square and
+second-square coefficients.  The head row has both coefficients equal to `1`;
+the multilinear tail rows have both equal to `0`. -/
+theorem routeBRicherConcreteNPPrependedMultilinearRows_coeff_firstVar_square_eq_secondVar_square
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (i : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1)) :
+    MvPolynomial.coeff
+        (Finsupp.single (satDeciderGaugeFirstVar M n hn2 htb hns) 2)
+        (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns i) =
+      MvPolynomial.coeff
+        (Finsupp.single (satDeciderGaugeSecondVar M n hn2 htb hns) 2)
+        (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns i) := by
+  refine Fin.cases ?head ?tail i
+  · simp [routeBRicherConcreteNPPrependedMultilinearRows,
+      routeBRicherConcreteNPPrependedRows,
+      routeBRicherConcreteNPWitnessRows_zero_coeff_firstVar_square,
+      routeBRicherConcreteNPWitnessRows_zero_coeff_secondVar_square]
+  · intro j
+    simp [routeBRicherConcreteNPPrependedMultilinearRows,
+      routeBRicherConcreteNPPrependedRows,
+      routeBRicherMultilinearTailRows_coeff_firstVar_square,
+      routeBRicherMultilinearTailRows_coeff_secondVar_square]
+
+/-- Every vector in the concrete prepended multilinear row span has matching
+first-square and second-square coefficients. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_rowSpan_coeff_firstVar_square_eq_secondVar_square
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {p : SATDeciderGaugeSpace M n hn2 htb hns}
+    (hp :
+      p ∈ finiteRowsSubmodule
+        (routeBRicherConcreteNPPrependedMultilinearRows
+          M n hn2 htb hns)) :
+    MvPolynomial.coeff
+        (Finsupp.single (satDeciderGaugeFirstVar M n hn2 htb hns) 2) p =
+      MvPolynomial.coeff
+        (Finsupp.single (satDeciderGaugeSecondVar M n hn2 htb hns) 2) p := by
+  let rows := routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns
+  let firstAlpha :=
+    Finsupp.single (satDeciderGaugeFirstVar M n hn2 htb hns) 2
+  let secondAlpha :=
+    Finsupp.single (satDeciderGaugeSecondVar M n hn2 htb hns) 2
+  have hp' : p ∈ Submodule.span Rat (Set.range rows) := by
+    simpa [finiteRowsSubmodule, rows] using hp
+  change MvPolynomial.coeff firstAlpha p = MvPolynomial.coeff secondAlpha p
+  exact
+    Submodule.span_induction
+      (s := Set.range rows)
+      (p := fun q _ =>
+        MvPolynomial.coeff firstAlpha q = MvPolynomial.coeff secondAlpha q)
+      (by
+        rintro q ⟨i, rfl⟩
+        simpa [firstAlpha, secondAlpha, rows] using
+          routeBRicherConcreteNPPrependedMultilinearRows_coeff_firstVar_square_eq_secondVar_square
+            M n hn2 htb hns i)
+      (by simp)
+      (by
+        intro x y _ _ hx hy
+        simp [MvPolynomial.coeff_add, hx, hy])
+      (by
+        intro a x _ hx
+        simp [MvPolynomial.coeff_smul, hx])
+      hp'
+
+/-- The first-square probe is not in the concrete prepended multilinear row
+span.  Its first-square coefficient is `1`, while its second-square coefficient
+is `0`, contradicting the row-span coefficient equality above. -/
+theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_not_mem_rowSpan
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns ∉
+      finiteRowsSubmodule
+        (routeBRicherConcreteNPPrependedMultilinearRows
+          M n hn2 htb hns) := by
+  intro hrow
+  have heq :=
+    routeBRicherConcreteNPPrependedMultilinear_rowSpan_coeff_firstVar_square_eq_secondVar_square
+      M n hn2 htb hns hrow
+  have hfirst :=
+    routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_coeff_firstVar_square
+      M n hn2 htb hns
+  have hsecond :=
+    routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_coeff_secondVar_square
+      M n hn2 htb hns
+  rw [hfirst, hsecond] at heq
+  norm_num at heq
+
 /-! ## Selected-projection behavior on the first-square probe -/
 
 /-- The selected arbitrary finite-row projection sends the first-square probe
@@ -338,6 +520,24 @@ theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_mem_rowSpan_i
     exact
       routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_mem_rowSpan
         M n hn2 htb hns
+
+/-- Since the first-square probe is not in the concrete row span, the selected
+finite-row projection cannot fix it. -/
+theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_self
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    routeBRicherConcreteNPPrependedMultilinearProjection
+        M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns) ≠
+      routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns := by
+  intro hfix
+  exact
+    (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_not_mem_rowSpan
+      M n hn2 htb hns)
+      ((routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_mem_rowSpan_iff_projection_eq_self
+        M n hn2 htb hns).mpr hfix)
 
 /-- If the first-square probe is already in the concrete row span, the
 selected projection fixes it. -/
@@ -442,6 +642,30 @@ theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_residual_mem_
       (routeBRicherConcreteNPPrependedMultilinearRows
         M n hn2 htb hns)
       (probe - Pi probe)).mp hzero
+
+/-- The selected-kernel residual of the first-square probe is nonzero: the
+selected projection cannot fix a probe that is not in the row span. -/
+theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_residual_ne_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns -
+      routeBRicherConcreteNPPrependedMultilinearProjection
+        M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns) ≠ 0 := by
+  intro hzero
+  have hfix :
+      routeBRicherConcreteNPPrependedMultilinearProjection
+          M n hn2 htb hns
+          (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+            M n hn2 htb hns) =
+        routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns := by
+    exact (sub_eq_zero.mp hzero).symm
+  exact
+    (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_self
+      M n hn2 htb hns) hfix
 
 /-- The first-square probe cannot be simultaneously in the concrete row span
 and in the selected projection kernel. -/
@@ -577,6 +801,61 @@ theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_not_mem_selec
       ((routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_eq_zero_iff_mem_selectedComplement
         M n hn2 htb hns).mpr hkernel)
 
+/-- Under projection descent, the first-square probe must split nontrivially:
+the selected row-span component is nonzero but not the whole probe, while the
+selected complement contains exactly the nonzero residual rather than the
+probe itself. -/
+theorem routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_nontrivial_split_of_projectionDescent
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hdesc :
+      RouteBRicherConcreteNPPrependedMultilinearProjectionDescent
+        M n hn2 htb hns) :
+    routeBRicherConcreteNPPrependedMultilinearProjection
+        M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns) ∈
+        finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedMultilinearRows
+            M n hn2 htb hns) ∧
+      routeBRicherConcreteNPPrependedMultilinearProjection
+        M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns) ≠ 0 ∧
+      routeBRicherConcreteNPPrependedMultilinearProjection
+        M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns) ≠
+        routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns ∧
+      routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns -
+        routeBRicherConcreteNPPrependedMultilinearProjection
+          M n hn2 htb hns
+          (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+            M n hn2 htb hns) ∈
+          finiteSubmoduleProjectionComplement
+            (finiteRowsSubmodule
+              (routeBRicherConcreteNPPrependedMultilinearRows
+                M n hn2 htb hns)) ∧
+      routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns ∉
+        finiteSubmoduleProjectionComplement
+          (finiteRowsSubmodule
+            (routeBRicherConcreteNPPrependedMultilinearRows
+              M n hn2 htb hns)) := by
+  exact
+    ⟨routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_mem_rowSpan
+        M n hn2 htb hns,
+      routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_zero_of_projectionDescent
+        M n hn2 htb hns hdesc,
+      routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_self
+        M n hn2 htb hns,
+      routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_residual_mem_selectedComplement
+        M n hn2 htb hns,
+      routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_not_mem_selectedComplement_of_projectionDescent
+        M n hn2 htb hns hdesc⟩
+
 /-- Conversely, if the selected arbitrary complement/kernel contains the
 first-square probe, the selected projection cannot satisfy descent. -/
 theorem routeBRicherConcreteNPPrependedMultilinear_not_projectionDescent_of_firstSquareProbe_mem_selectedComplement
@@ -685,18 +964,27 @@ theorem routeBRicherConcreteNPPrependedMultilinear_not_explicitComplement_le_pro
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_singletonRow_ne_zero
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_coeff_firstVar_square
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_ne_zero
+#print axioms routeBRicherConcreteNPWitnessRows_zero_coeff_firstVar_square
+#print axioms routeBRicherMultilinearTailRows_coeff_var_square
+#print axioms routeBRicherMultilinearTailRows_coeff_firstVar_square
+#print axioms routeBRicherConcreteNPPrependedMultilinearRows_coeff_firstVar_square_eq_secondVar_square
+#print axioms routeBRicherConcreteNPPrependedMultilinear_rowSpan_coeff_firstVar_square_eq_secondVar_square
+#print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_not_mem_rowSpan
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_mem_rowSpan
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_mem_rowSpan_iff_projection_eq_self
+#print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_self
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_eq_self_of_mem_rowSpan
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_zero_of_mem_rowSpan
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_eq_zero_iff_mem_selectedComplement
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_residual_mem_selectedComplement
+#print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_residual_ne_zero
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_not_mem_rowSpan_and_selectedComplement
 #print axioms routeBRicherConcreteNPPrependedMultilinear_not_kernelGenerator_zero_of_firstSquareProbe_kernel
 #print axioms routeBRicherConcreteNPPrependedMultilinearProjectionEscapeWitness_of_firstSquareProbe_kernel
 #print axioms routeBRicherConcreteNPPrependedMultilinear_not_projectionDescent_of_firstSquareProbe_kernel
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_zero_of_projectionDescent
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_not_mem_selectedComplement_of_projectionDescent
+#print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_nontrivial_split_of_projectionDescent
 #print axioms routeBRicherConcreteNPPrependedMultilinear_not_projectionDescent_of_firstSquareProbe_mem_selectedComplement
 #print axioms routeBRicherConcreteNPPrependedMultilinearProjection_ne_explicitProjection_of_projectionDescent
 #print axioms routeBRicherConcreteNPPrependedMultilinear_not_kernelGenerator_zero_of_explicitComplement_le_projectionKernel

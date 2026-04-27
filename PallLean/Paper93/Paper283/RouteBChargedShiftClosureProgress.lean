@@ -446,6 +446,125 @@ theorem endpointAugmentedConcreteW_endpointSpanProfileChargedShiftClosure_of_gen
     simpa [smul_eq_C_mul, mul_assoc, mul_left_comm, mul_comm] using
       Submodule.smul_mem Vt a hq
 
+/-! ## One-step endpoint compatibility for mixed generators -/
+
+/-- Generator-level charged closure for the full endpoint-augmented source
+profile.
+
+Unlike `EndpointAugmentedConcreteWEndpointSpanGeneratorChargedShiftClosure`, the
+source factors may already be arbitrary endpoint-augmented symmetric-power
+factors.  Thus this predicate includes canonical-only, endpoint-only, and mixed
+canonical/endpoint generators. -/
+def EndpointAugmentedConcreteWGeneratorChargedShiftClosure
+    (n : ℕ) (hn4 : n ≥ 4) (charge : ProfileCharge n) : Prop :=
+  ∀ (bpSrc bpTgt : BoundedProfile (Nat.log 2 n))
+    (S : List (Fin n)) (_hSlen : S.length ≤ Nat.log 2 n)
+    (shift : MvPolynomial (Fin n) ℚ) (_hshift : shift.vars ⊆ S.toFinset)
+    (f : ConstraintType → MvPolynomial (Fin n) ℚ),
+    charge bpSrc S shift bpTgt →
+      (∀ τ : ConstraintType,
+        f τ ∈
+          symPower ℚ (bpSrc.toHistogram τ)
+            (endpointAugmentedConcreteW n hn4 τ)) →
+        shift * (∏ τ : ConstraintType, f τ) ∈
+          cookLevinProfileSubspace bpTgt
+            (endpointAugmentedConcreteW n hn4)
+
+/-- A one-step endpoint-compatible charge relation closes every
+endpoint-augmented generator.
+
+The proof uses the endpoint-span membership of `shift` only for the single
+bumped type.  All pre-existing source factors are left in the full
+endpoint-augmented family, so mixed canonical/endpoint generators require no
+separate residual split at generator level. -/
+theorem endpointAugmentedConcreteW_generatorChargedShiftClosure_of_oneStepChargeCompatible
+    (n : ℕ) (hn4 : n ≥ 4) (charge : ProfileCharge n)
+    (hCompat :
+      EndpointAugmentedConcreteWEndpointSpanOneStepChargeCompatible
+        n hn4 charge) :
+    EndpointAugmentedConcreteWGeneratorChargedShiftClosure n hn4 charge := by
+  intro bpSrc bpTgt S hSlen shift hshift f hcharge hf
+  obtain ⟨τ0, hshiftEndpoint, hbump, hsame⟩ :=
+    hCompat bpSrc bpTgt S hSlen shift hshift hcharge
+  unfold cookLevinProfileSubspace profileSubspace
+  refine Submodule.subset_span ?_
+  let f' : ConstraintType → MvPolynomial (Fin n) ℚ :=
+    Function.update f τ0 (shift * f τ0)
+  refine ⟨f', ?_, ?_⟩
+  · intro τ
+    by_cases hτ : τ = τ0
+    · subst τ
+      have hshiftAug :
+          shift ∈ endpointAugmentedConcreteW n hn4 τ0 :=
+        concreteWEndpointSpan_le_endpointAugmentedConcreteW n hn4 τ0
+          hshiftEndpoint
+      have hmulAug :
+          shift * f τ0 ∈
+            symPower ℚ (bpSrc.toHistogram τ0 + 1)
+              (endpointAugmentedConcreteW n hn4 τ0) :=
+        symPower_mul_left_mem_succ hshiftAug (hf τ0)
+      simpa [f', hbump] using hmulAug
+    · simpa [f', hτ, hsame τ hτ] using hf τ
+  · have hprod :
+        (∏ τ : ConstraintType, f' τ) =
+          shift * (∏ τ : ConstraintType, f τ) := by
+      have hcompl :
+          (∏ x ∈ ({τ0}ᶜ : Finset ConstraintType), f' x) =
+            ∏ x ∈ ({τ0}ᶜ : Finset ConstraintType), f x := by
+        refine Finset.prod_congr rfl ?_
+        intro x hx
+        have hxne : x ≠ τ0 := by
+          simpa using hx
+        simp [f', hxne]
+      rw [Fintype.prod_eq_mul_prod_compl τ0 f',
+        Fintype.prod_eq_mul_prod_compl τ0 f]
+      rw [hcompl]
+      simp [f', mul_assoc]
+    exact hprod.symm
+
+/-- Generator closure for endpoint-augmented sources extends by linearity to
+the full endpoint charged shift closure. -/
+theorem endpointAugmentedConcreteW_chargedShiftClosure_of_generatorClosure
+    (n : ℕ) (hn4 : n ≥ 4) (charge : ProfileCharge n)
+    (hGen :
+      EndpointAugmentedConcreteWGeneratorChargedShiftClosure n hn4 charge) :
+    EndpointAugmentedConcreteWChargedShiftClosure n hn4 charge := by
+  intro bpSrc bpTgt S hSlen shift hshift p hcharge hp
+  let Vt :=
+    cookLevinProfileSubspace bpTgt
+      (endpointAugmentedConcreteW n hn4)
+  change shift * p ∈ Vt
+  unfold cookLevinProfileSubspace profileSubspace at hp
+  refine Submodule.span_induction
+    (p := fun q : MvPolynomial (Fin n) ℚ => fun _ => shift * q ∈ Vt)
+    ?_ ?_ ?_ ?_ hp
+  · rintro q ⟨f, hf, rfl⟩
+    exact hGen bpSrc bpTgt S hSlen shift hshift f hcharge hf
+  · simp [Vt]
+  · intro p q _ _ hp hq
+    rw [mul_add]
+    exact Submodule.add_mem Vt hp hq
+  · intro a q _ hq
+    simpa [smul_eq_C_mul, mul_assoc, mul_left_comm, mul_comm] using
+      Submodule.smul_mem Vt a hq
+
+/-- Concrete endpoint-front progress: the actual endpoint charged closure
+follows from the one-step endpoint-span charge compatibility.
+
+This does not assume a residual endpoint closure.  The remaining mathematical
+work is to prove that the intended charged relation has this one-step
+endpoint-span/histogram-bump compatibility. -/
+theorem endpointAugmentedConcreteW_chargedShiftClosure_of_oneStepChargeCompatible
+    (n : ℕ) (hn4 : n ≥ 4) (charge : ProfileCharge n)
+    (hCompat :
+      EndpointAugmentedConcreteWEndpointSpanOneStepChargeCompatible
+        n hn4 charge) :
+    EndpointAugmentedConcreteWChargedShiftClosure n hn4 charge :=
+  endpointAugmentedConcreteW_chargedShiftClosure_of_generatorClosure n hn4
+    charge
+    (endpointAugmentedConcreteW_generatorChargedShiftClosure_of_oneStepChargeCompatible
+      n hn4 charge hCompat)
+
 /-- A strict structural residual: every endpoint-augmented source profile
 element splits as a canonical-profile part plus an endpoint-span-only profile
 part.
@@ -544,6 +663,9 @@ theorem endpointAugmentedConcreteW_chargedShiftClosure_of_canonical_endpointSpan
 #print axioms concreteWEndpointSpan_le_endpointAugmentedConcreteW
 #print axioms endpointAugmentedConcreteW_endpointSpanGeneratorChargedShiftClosure_of_oneStepChargeCompatible
 #print axioms endpointAugmentedConcreteW_endpointSpanProfileChargedShiftClosure_of_generatorClosure
+#print axioms endpointAugmentedConcreteW_generatorChargedShiftClosure_of_oneStepChargeCompatible
+#print axioms endpointAugmentedConcreteW_chargedShiftClosure_of_generatorClosure
+#print axioms endpointAugmentedConcreteW_chargedShiftClosure_of_oneStepChargeCompatible
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_on_canonical_endpointSpan_split_source
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_of_canonical_endpointSpanProfile_and_split
 
