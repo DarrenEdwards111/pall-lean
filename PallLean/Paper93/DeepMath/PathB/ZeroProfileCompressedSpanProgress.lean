@@ -972,6 +972,187 @@ theorem cookLevinZeroProfileCompressedSpanKernelDisjointCompressionObligation_if
       (fun i => (cookLevinFactorList M n hn htb hns).get i)
       (withinProfileBound (Nat.log 2 n)))
 
+/-! ## Singleton-shift lower bound -/
+
+/-- Coefficient probe for singleton shifted rows: the coefficient of `X j` in
+`mlProj (X i * p)` is diagonal, with diagonal entry the constant coefficient
+of `p`. -/
+theorem coeff_singleton_mlProj_X_mul {n : ℕ}
+    (p : MvPolynomial (Fin n) ℚ)
+    (i j : Fin n) :
+    MvPolynomial.coeff (Finsupp.single j 1)
+        (mlProj (MvPolynomial.X i * p)) =
+      if i = j then
+        MvPolynomial.coeff (0 : Fin n →₀ ℕ) p
+      else 0 := by
+  classical
+  have hmono :
+      Finsupp.IsMultilinear (Finsupp.single j 1 : Fin n →₀ ℕ) := by
+    intro k
+    by_cases hk : k = j
+    · subst k
+      simp
+    · simp [hk]
+  rw [coeff_mlProj_of_isMultilinear_mono _ _ hmono]
+  rw [MvPolynomial.coeff_X_mul']
+  by_cases hij : i = j
+  · subst j
+    simp
+  · have hnot_mem :
+        i ∉ (Finsupp.single j 1 : Fin n →₀ ℕ).support := by
+      simp [Finsupp.mem_support_iff, hij]
+    rw [if_neg hnot_mem]
+    simp [hij]
+
+/-- Singleton shifted rows are linearly independent whenever the base
+polynomial has nonzero constant coefficient. -/
+theorem linearIndependent_singletonShiftRows_of_constCoeff_ne_zero {n : ℕ}
+    (p : MvPolynomial (Fin n) ℚ)
+    (hp0 : MvPolynomial.coeff (0 : Fin n →₀ ℕ) p ≠ 0) :
+    LinearIndependent ℚ
+      (fun i : Fin n => mlProj (MvPolynomial.X i * p)) := by
+  classical
+  rw [linearIndependent_iff']
+  intro s w hw i hi
+  have hcoeff :
+      MvPolynomial.coeff (Finsupp.single i 1)
+          (∑ j ∈ s, w j • mlProj (MvPolynomial.X j * p)) = 0 := by
+    rw [hw]
+    simp
+  simp only [coeff_sum, coeff_smul, smul_eq_mul] at hcoeff
+  have hsum :
+      ∑ j ∈ s,
+          w j *
+            MvPolynomial.coeff (Finsupp.single i 1)
+              (mlProj (MvPolynomial.X j * p)) =
+        w i * MvPolynomial.coeff (0 : Fin n →₀ ℕ) p := by
+    rw [Finset.sum_eq_single i]
+    · rw [coeff_singleton_mlProj_X_mul p i i]
+      simp
+    · intro j _ hj_ne
+      rw [coeff_singleton_mlProj_X_mul p j i]
+      simp [hj_ne]
+    · intro hnot
+      exact False.elim (hnot hi)
+  rw [hsum] at hcoeff
+  rcases mul_eq_zero.mp hcoeff with hwi | hp
+  · exact hwi
+  · exact False.elim (hp0 hp)
+
+/-- The singleton shifted row belongs to the exact zero-profile compressed
+shift span as soon as one shift variable is allowed. -/
+theorem singletonShiftRow_mem_zeroProfileCompressedShiftSpan {n L κ : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (i : Fin n)
+    (hκ : 1 ≤ κ) :
+    mlProj (MvPolynomial.X i * Finset.univ.prod factors) ∈
+      zeroProfileCompressedShiftSpan κ factors := by
+  classical
+  apply Submodule.subset_span
+  simp only [zeroProfileShiftImageSet, Set.mem_iUnion,
+    Set.mem_singleton_iff]
+  exact ⟨[i], by simpa using hκ, MvPolynomial.X i, by simp, rfl⟩
+
+/-- True compressed-span lower bound: nonzero constant coefficient forces the
+`n` singleton-shift rows into the compressed span as a linearly independent
+family. -/
+theorem ambient_le_zeroProfileCompressedShiftSpan_finrank_of_constCoeff_ne_zero
+    {n L κ : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hκ : 1 ≤ κ)
+    (hp0 :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (Finset.univ.prod factors) ≠ 0) :
+    n ≤ Module.finrank ℚ
+      ↥(zeroProfileCompressedShiftSpan κ factors) := by
+  classical
+  let U : Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+    zeroProfileCompressedShiftSpan κ factors
+  have hfinite : Module.Finite ℚ ↥U :=
+    zeroProfileCompressedShiftSpan_finite κ factors
+  letI : Module.Finite ℚ ↥U := hfinite
+  let rows : Fin n → ↥U := fun i =>
+    ⟨mlProj (MvPolynomial.X i * Finset.univ.prod factors),
+      singletonShiftRow_mem_zeroProfileCompressedShiftSpan factors i hκ⟩
+  have hli_rows : LinearIndependent ℚ rows := by
+    apply LinearIndependent.of_comp U.subtype
+    simpa [rows, U, Function.comp_def] using
+      (linearIndependent_singletonShiftRows_of_constCoeff_ne_zero
+        (Finset.univ.prod factors) hp0)
+  simpa [rows, U] using hli_rows.fintype_card_le_finrank
+
+/-- If the proposed budget is smaller than the ambient variable count, the
+exact compressed-span finrank condition is impossible under the same nonzero
+constant-coefficient hypothesis. -/
+theorem not_zeroProfileCompressedSpanFinrankCondition_of_constCoeff_ne_zero_of_budget_lt_ambient
+    {n L κ budget : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hκ : 1 ≤ κ)
+    (hp0 :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (Finset.univ.prod factors) ≠ 0)
+    (hbudget : budget < n) :
+    ¬ ZeroProfileCompressedSpanFinrankCondition κ factors budget := by
+  rintro ⟨_hfinite, hfinrank⟩
+  exact (not_le_of_gt hbudget)
+    ((ambient_le_zeroProfileCompressedShiftSpan_finrank_of_constCoeff_ne_zero
+      factors hκ hp0).trans hfinrank)
+
+/-- Within-profile specialization of the true compressed-span obstruction. -/
+theorem not_zeroProfileCompressedSpanFinrankCondition_withinProfileBound_of_constCoeff_ne_zero
+    {n L κ : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hκ : 1 ≤ κ)
+    (hp0 :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (Finset.univ.prod factors) ≠ 0)
+    (hlt : withinProfileBound κ < n) :
+    ¬ ZeroProfileCompressedSpanFinrankCondition κ factors
+      (withinProfileBound κ) :=
+  not_zeroProfileCompressedSpanFinrankCondition_of_constCoeff_ne_zero_of_budget_lt_ambient
+    factors hκ hp0 hlt
+
+/-- Cook-Levin true compressed-span no-go in every regime where the
+within-profile budget is smaller than the ambient variable count. -/
+theorem not_cookLevinZeroProfileCompressedSpanFinrankCondition_of_withinProfileBound_lt_ambient
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hlt : withinProfileBound (Nat.log 2 n) < n) :
+    ¬ CookLevinZeroProfileCompressedSpanFinrankCondition M n hn htb hns := by
+  have hlog_pos : 0 < Nat.log 2 n := Nat.log_pos (by omega) hn
+  have hlog : 1 ≤ Nat.log 2 n := Nat.succ_le_of_lt hlog_pos
+  have hp0 :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (Finset.univ.prod
+          (fun i => (cookLevinFactorList M n hn htb hns).get i)) ≠
+        0 := by
+    have hcoeff :
+        MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+          (Finset.univ.prod
+            (fun i => (cookLevinFactorList M n hn htb hns).get i)) =
+          (1 : ℚ) := by
+      simpa [cookLevinZeroProfileBaseProduct] using
+        cookLevinZeroProfileBaseProduct_coeff_zero M n hn htb hns
+    rw [hcoeff]
+    norm_num
+  simpa [CookLevinZeroProfileCompressedSpanFinrankCondition] using
+    (not_zeroProfileCompressedSpanFinrankCondition_withinProfileBound_of_constCoeff_ne_zero
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      hlog hp0 hlt)
+
+/-- Paper-scale true no-go: at `n = 2^804`, the actual Cook-Levin compressed
+span already has finrank larger than the within-profile budget. -/
+theorem not_cookLevinZeroProfileCompressedSpanFinrankCondition_two_pow_804
+    (M : DTM)
+    (hn : (2 : ℕ) ^ 804 ≥ 2)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ (2 : ℕ) ^ 804) :
+    ¬ CookLevinZeroProfileCompressedSpanFinrankCondition M
+      ((2 : ℕ) ^ 804) hn htb hns :=
+  not_cookLevinZeroProfileCompressedSpanFinrankCondition_of_withinProfileBound_lt_ambient
+    M ((2 : ℕ) ^ 804) hn htb hns
+    withinProfileBound_log_two_pow_804_lt_ambient
+
 /-- Generic scalar version of a one-dimensional zero-profile compressed span:
 all shifted base-product rows are scalar multiples of one ambient anchor. -/
 def ZeroProfileCompressedSpanScalarClosure {n L : ℕ}
@@ -1171,6 +1352,14 @@ theorem cookLevinZeroProfileCompressedShiftSpan_two_le_finrank
 #print axioms cookLevinZeroProfileCompressedSpanFinrankCondition_of_kernelDisjointCompressionObligation
 #print axioms cookLevinZeroProfileCompressedSpanKernelDisjointCompressionObligation_of_compressedSpanFinrankCondition
 #print axioms cookLevinZeroProfileCompressedSpanKernelDisjointCompressionObligation_iff_compressedSpanFinrankCondition
+#print axioms coeff_singleton_mlProj_X_mul
+#print axioms linearIndependent_singletonShiftRows_of_constCoeff_ne_zero
+#print axioms singletonShiftRow_mem_zeroProfileCompressedShiftSpan
+#print axioms ambient_le_zeroProfileCompressedShiftSpan_finrank_of_constCoeff_ne_zero
+#print axioms not_zeroProfileCompressedSpanFinrankCondition_of_constCoeff_ne_zero_of_budget_lt_ambient
+#print axioms not_zeroProfileCompressedSpanFinrankCondition_withinProfileBound_of_constCoeff_ne_zero
+#print axioms not_cookLevinZeroProfileCompressedSpanFinrankCondition_of_withinProfileBound_lt_ambient
+#print axioms not_cookLevinZeroProfileCompressedSpanFinrankCondition_two_pow_804
 #print axioms zeroProfileCompressedSpanScalarClosure_of_commonSpanWithBudget_one
 #print axioms zeroProfileCompressedSpanScalarClosure_of_finrankCondition_budget_one
 #print axioms not_zeroProfileCompressedSpanFinrankCondition_budget_one_of_constCoeff_ne_zero

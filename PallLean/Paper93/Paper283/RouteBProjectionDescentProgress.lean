@@ -551,6 +551,36 @@ private theorem routeBProjectionDescentProgress_exists_complement_containing_of_
   rcases hdis.exists_isCompl with ⟨C, hspan_le_C, hcompl⟩
   exact ⟨C, hcompl.symm, hspan_le_C (Submodule.mem_span_singleton_self p)⟩
 
+private theorem routeBProjectionDescentProgress_exists_complement_avoiding_of_not_mem_of_exists_ne_zero
+    {K V : Type*} [DivisionRing K] [AddCommGroup V] [Module K V]
+    (S : Submodule K V) {p : V} (hp : p ∉ S)
+    (hne : ∃ s : V, s ∈ S ∧ s ≠ 0) :
+    ∃ C : Submodule K V, IsCompl S C ∧ p ∉ C := by
+  rcases hne with ⟨s, hsS, hs_ne_zero⟩
+  have hps_not_mem : p + s ∉ S := by
+    intro hps
+    have hpS : p ∈ S := by
+      have hsub : p + s - s ∈ S := S.sub_mem hps hsS
+      simpa using hsub
+    exact hp hpS
+  have hdis : Disjoint (K ∙ (p + s)) S := by
+    rw [disjoint_comm]
+    exact Submodule.disjoint_span_singleton_of_notMem hps_not_mem
+  rcases hdis.exists_isCompl with ⟨C, hspan_le_C, hcompl⟩
+  refine ⟨C, hcompl.symm, ?_⟩
+  intro hpC
+  have hpsC : p + s ∈ C :=
+    hspan_le_C (Submodule.mem_span_singleton_self (p + s))
+  have hsC : s ∈ C := by
+    have hsub : p + s - p ∈ C := C.sub_mem hpsC hpC
+    simpa using hsub
+  have hsInf : s ∈ C ⊓ S := ⟨hsC, hsS⟩
+  have hs_zero : s = 0 := by
+    have hsBot : s ∈ (⊥ : Submodule K V) := by
+      simpa [IsCompl.inf_eq_bot hcompl] using hsInf
+    simpa using hsBot
+  exact hs_ne_zero hs_zero
+
 /-- Row-span nonmembership alone cannot enforce first-square avoidance by an
 arbitrary complement: there is a valid complement to the concrete row span
 which contains the first-square probe. -/
@@ -605,6 +635,142 @@ theorem routeBRicherConcreteNPPrependedMultilinear_exists_complementPolicy_kills
       C hC
       (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
         M n hn2 htb hns)).mpr hprobe
+
+/-! ## Explicit first-square-avoiding complement policies -/
+
+/-- The concrete prepended multilinear head row has visible pure-square
+coefficient `1` at the first Cook-Levin coordinate. -/
+theorem routeBRicherConcreteNPPrependedMultilinearRows_zero_coeff_firstVar_square
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    MvPolynomial.coeff
+        (Finsupp.single (satDeciderGaugeFirstVar M n hn2 htb hns) 2)
+        (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns
+          (0 : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1))) =
+      (1 : Rat) := by
+  simp [routeBRicherConcreteNPPrependedMultilinearRows,
+    routeBRicherConcreteNPPrependedRows,
+    routeBRicherConcreteNPWitnessRows_zero_coeff_firstVar_square]
+
+/-- The concrete prepended multilinear row span contains a nonzero vector. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_rowSpan_exists_ne_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    ∃ p : SATDeciderGaugeSpace M n hn2 htb hns,
+      p ∈
+          finiteRowsSubmodule
+            (routeBRicherConcreteNPPrependedMultilinearRows
+              M n hn2 htb hns) ∧
+        p ≠ 0 := by
+  let row :=
+    routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns
+      (0 : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1))
+  refine ⟨row, ?_, ?_⟩
+  · exact Submodule.subset_span
+      ⟨(0 : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1)), rfl⟩
+  · intro hzero
+    have hcoeffZero :
+        MvPolynomial.coeff
+            (Finsupp.single (satDeciderGaugeFirstVar M n hn2 htb hns) 2)
+            row = 0 := by
+      rw [hzero]
+      simp
+    have hcoeffOne :=
+      routeBRicherConcreteNPPrependedMultilinearRows_zero_coeff_firstVar_square
+        M n hn2 htb hns
+    have hcoeffZero' :
+        MvPolynomial.coeff
+            (Finsupp.single (satDeciderGaugeFirstVar M n hn2 htb hns) 2)
+            (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns
+              (0 : Fin (routeBRicherMultilinearTailRowCount M n hn2 htb hns + 1))) = 0 := by
+      simpa [row] using hcoeffZero
+    norm_num [hcoeffZero'] at hcoeffOne
+
+/-- There is a valid complement to the concrete prepended multilinear row span
+that avoids the first-square probe.  The construction uses both facts already
+available in this file: the probe is not in the row span, and the row span has
+a nonzero concrete head row. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_exists_rowSpanComplement_not_mem_firstSquareProbe
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    ∃ C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns),
+      IsCompl
+          (finiteRowsSubmodule
+            (routeBRicherConcreteNPPrependedMultilinearRows
+              M n hn2 htb hns))
+          C ∧
+        routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns ∉ C :=
+  routeBProjectionDescentProgress_exists_complement_avoiding_of_not_mem_of_exists_ne_zero
+    (finiteRowsSubmodule
+      (routeBRicherConcreteNPPrependedMultilinearRows M n hn2 htb hns))
+    (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_not_mem_rowSpan
+      M n hn2 htb hns)
+    (routeBRicherConcreteNPPrependedMultilinear_rowSpan_exists_ne_zero
+      M n hn2 htb hns)
+
+/-- Any explicit complement policy that avoids the first-square probe has a
+nonzero `finiteSubmoduleProjectionWithComplement` value on that probe. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_projectionWithComplement_firstSquareProbe_ne_zero_of_not_mem
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+    (hC :
+      IsCompl
+        (finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedMultilinearRows
+            M n hn2 htb hns))
+        C)
+    (hprobe :
+      routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns ∉ C) :
+    finiteSubmoduleProjectionWithComplement
+        (finiteRowsSubmodule
+          (routeBRicherConcreteNPPrependedMultilinearRows
+            M n hn2 htb hns))
+        C hC
+        (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+          M n hn2 htb hns) ≠ 0 := by
+  intro hzero
+  exact hprobe
+    ((finiteSubmoduleProjectionWithComplement_apply_eq_zero_iff
+      (finiteRowsSubmodule
+        (routeBRicherConcreteNPPrependedMultilinearRows
+          M n hn2 htb hns))
+      C hC
+      (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+        M n hn2 htb hns)).mp hzero)
+
+/-- There is an explicit-complement projection policy for the concrete row
+span that is nonzero on the first-square probe.  This is a policy-existence
+statement for `finiteSubmoduleProjectionWithComplement`, not a statement about
+the arbitrary `Classical.choose` complement selected by
+`finiteSubmoduleProjectionComplement`. -/
+theorem routeBRicherConcreteNPPrependedMultilinear_exists_complementPolicy_projection_ne_zero_firstSquareProbe
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    ∃ (C : Submodule Rat (SATDeciderGaugeSpace M n hn2 htb hns))
+      (hC :
+        IsCompl
+          (finiteRowsSubmodule
+            (routeBRicherConcreteNPPrependedMultilinearRows
+              M n hn2 htb hns))
+          C),
+      finiteSubmoduleProjectionWithComplement
+          (finiteRowsSubmodule
+            (routeBRicherConcreteNPPrependedMultilinearRows
+              M n hn2 htb hns))
+          C hC
+          (routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe
+            M n hn2 htb hns) ≠ 0 := by
+  rcases
+    routeBRicherConcreteNPPrependedMultilinear_exists_rowSpanComplement_not_mem_firstSquareProbe
+      M n hn2 htb hns with
+    ⟨C, hC, hprobe⟩
+  exact
+    ⟨C, hC,
+      routeBRicherConcreteNPPrependedMultilinear_projectionWithComplement_firstSquareProbe_ne_zero_of_not_mem
+        M n hn2 htb hns C hC hprobe⟩
 
 /-! ## Selected-projection behavior on the first-square probe -/
 
@@ -1161,6 +1327,11 @@ theorem routeBRicherConcreteNPPrependedMultilinear_not_explicitComplement_le_pro
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_not_mem_rowSpan
 #print axioms routeBRicherConcreteNPPrependedMultilinear_exists_rowSpanComplement_mem_firstSquareProbe
 #print axioms routeBRicherConcreteNPPrependedMultilinear_exists_complementPolicy_kills_firstSquareProbe
+#print axioms routeBRicherConcreteNPPrependedMultilinearRows_zero_coeff_firstVar_square
+#print axioms routeBRicherConcreteNPPrependedMultilinear_rowSpan_exists_ne_zero
+#print axioms routeBRicherConcreteNPPrependedMultilinear_exists_rowSpanComplement_not_mem_firstSquareProbe
+#print axioms routeBRicherConcreteNPPrependedMultilinear_projectionWithComplement_firstSquareProbe_ne_zero_of_not_mem
+#print axioms routeBRicherConcreteNPPrependedMultilinear_exists_complementPolicy_projection_ne_zero_firstSquareProbe
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_mem_rowSpan
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_mem_rowSpan_iff_projection_eq_self
 #print axioms routeBRicherConcreteNPPrependedMultilinearFirstSquareProbe_projection_ne_self

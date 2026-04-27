@@ -369,6 +369,30 @@ theorem not_endpointAugmentedConcreteW_endpointSpanOneStepChargeCompatible_sameP
   rw [hzero] at hbump
   omega
 
+/-- Concrete one-step endpoint-span charge relation.
+
+The relation records exactly the local endpoint move used by the closure
+constructor: the charged shift lies in the endpoint repair span, and the target
+profile is obtained from the source by adding one endpoint-span factor to one
+constraint type while leaving every other coordinate unchanged. -/
+def concreteWEndpointSpanOneStepCharge
+    (n : ℕ) (hn4 : n ≥ 4) : ProfileCharge n :=
+  fun bpSrc _S shift bpTgt =>
+    ∃ τ0 : ConstraintType,
+      shift ∈ concreteWEndpointSpan n hn4 ∧
+      bpTgt.toHistogram τ0 = bpSrc.toHistogram τ0 + 1 ∧
+      ∀ τ : ConstraintType, τ ≠ τ0 →
+        bpTgt.toHistogram τ = bpSrc.toHistogram τ
+
+/-- The concrete one-step endpoint-span charge satisfies the one-step
+compatibility condition by unfolding its definition. -/
+theorem concreteWEndpointSpanOneStepCharge_compatible
+    (n : ℕ) (hn4 : n ≥ 4) :
+    EndpointAugmentedConcreteWEndpointSpanOneStepChargeCompatible
+      n hn4 (concreteWEndpointSpanOneStepCharge n hn4) := by
+  intro bpSrc bpTgt S _hSlen shift _hshift hcharge
+  exact hcharge
+
 /-- Constructor-level fields sufficient for the endpoint one-step compatibility.
 
 This is the local wrapper needed until a concrete endpoint charge constructor
@@ -635,6 +659,16 @@ theorem endpointAugmentedConcreteW_chargedShiftClosure_of_oneStepChargeCompatibl
     (endpointAugmentedConcreteW_generatorChargedShiftClosure_of_oneStepChargeCompatible
       n hn4 charge hCompat)
 
+/-- Concrete endpoint-front charged closure for the one-step endpoint-span
+charge relation. -/
+theorem endpointAugmentedConcreteW_chargedShiftClosure_concreteWEndpointSpanOneStepCharge
+    (n : ℕ) (hn4 : n ≥ 4) :
+    EndpointAugmentedConcreteWChargedShiftClosure
+      n hn4 (concreteWEndpointSpanOneStepCharge n hn4) :=
+  endpointAugmentedConcreteW_chargedShiftClosure_of_oneStepChargeCompatible
+    n hn4 (concreteWEndpointSpanOneStepCharge n hn4)
+    (concreteWEndpointSpanOneStepCharge_compatible n hn4)
+
 /-- Direct endpoint-front wrapper for a future concrete charge constructor.
 
 The hypotheses are the same four constructor-level fields used by
@@ -775,12 +809,14 @@ theorem endpointAugmentedConcreteW_chargedShiftClosure_of_canonical_endpointSpan
 #print axioms symPower_mul_left_mem_succ
 #print axioms concreteWEndpointSpan_le_endpointAugmentedConcreteW
 #print axioms not_endpointAugmentedConcreteW_endpointSpanOneStepChargeCompatible_sameProfileCharge
+#print axioms concreteWEndpointSpanOneStepCharge_compatible
 #print axioms endpointAugmentedConcreteW_endpointSpanOneStepChargeCompatible_of_chargeFields
 #print axioms endpointAugmentedConcreteW_endpointSpanGeneratorChargedShiftClosure_of_oneStepChargeCompatible
 #print axioms endpointAugmentedConcreteW_endpointSpanProfileChargedShiftClosure_of_generatorClosure
 #print axioms endpointAugmentedConcreteW_generatorChargedShiftClosure_of_oneStepChargeCompatible
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_of_generatorClosure
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_of_oneStepChargeCompatible
+#print axioms endpointAugmentedConcreteW_chargedShiftClosure_concreteWEndpointSpanOneStepCharge
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_of_endpointSpanChargeFields
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_on_canonical_endpointSpan_split_source
 #print axioms endpointAugmentedConcreteW_chargedShiftClosure_of_canonical_endpointSpanProfile_and_split
