@@ -4193,6 +4193,291 @@ theorem routeBPaperFaithfulTPhi_projectedPSideBound_of_zeroProfileProjectedCommo
         (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
         project hspan).trans hbudget)
 
+private theorem routeBPaperFaithfulTPhi_finrank_sup_le_add
+    {V : Type*} [AddCommGroup V] [Module ℚ V]
+    (U W : Submodule ℚ V)
+    [Module.Finite ℚ ↥U] [Module.Finite ℚ ↥W] :
+    Module.finrank ℚ ↥(U ⊔ W) ≤
+      Module.finrank ℚ ↥U + Module.finrank ℚ ↥W := by
+  have h := Submodule.finrank_sup_add_finrank_inf_eq U W
+  omega
+
+private theorem routeBPaperFaithfulTPhi_singletonShiftSubspace_finrank_le_ambient
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    Module.finrank ℚ ↥(zeroProfileSingletonShiftSubspace factors) ≤ n := by
+  classical
+  let B := zeroProfileSingletonShiftBasis factors
+  have hfinite :
+      Module.Finite ℚ
+        ↥(Submodule.span ℚ (↑B : Set (MvPolynomial (Fin n) ℚ))) :=
+    Module.Finite.span_of_finite ℚ (Finset.finite_toSet B)
+  have hle :
+      zeroProfileSingletonShiftSubspace factors ≤
+        Submodule.span ℚ (↑B : Set (MvPolynomial (Fin n) ℚ)) := by
+    rw [zeroProfileSingletonShiftSubspace_eq_span_singletonShiftBasis]
+  calc
+    Module.finrank ℚ ↥(zeroProfileSingletonShiftSubspace factors) ≤
+        Module.finrank ℚ
+          ↥(Submodule.span ℚ (↑B : Set (MvPolynomial (Fin n) ℚ))) :=
+      @Submodule.finrank_mono ℚ (MvPolynomial (Fin n) ℚ)
+        _ _ _ _ (zeroProfileSingletonShiftSubspace factors)
+        (Submodule.span ℚ (↑B : Set (MvPolynomial (Fin n) ℚ)))
+        hfinite hle
+    _ ≤ B.card := finrank_span_finset_le_card B
+    _ ≤ n := zeroProfileSingletonShiftBasis_card_le_ambient factors
+
+private theorem routeBPaperFaithfulTPhi_singletonShiftSubspace_finite
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    Module.Finite ℚ ↥(zeroProfileSingletonShiftSubspace factors) := by
+  classical
+  let B := zeroProfileSingletonShiftBasis factors
+  rw [zeroProfileSingletonShiftSubspace_eq_span_singletonShiftBasis]
+  exact Module.Finite.span_of_finite ℚ (Finset.finite_toSet B)
+
+/-- Normalized strict-`TΦ` row equality is enough to place every strict
+projected P-window generator in the sum of the normalized zero-profile span
+and the finite singleton-shift residual span.  This is the paper-faithful
+replacement for the refuted raw derivative-as-normal-form target. -/
+theorem routeBPaperFaithfulTPhi_projectedPWindowControlledBy_singletonNormalForm_sup_singletonResidual
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hnorm :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalizedRowIdentity
+        M n hn2 htb hns) :
+    mlBlockedSpdpSubspace
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ≤
+      zeroProfileProjectedShiftSpan (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+          (zeroProfileSingletonNormalFormProjection
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) ⊔
+        zeroProfileSingletonShiftSubspace
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i) := by
+  classical
+  let factors :=
+    fun i => (cookLevinFactorList M n hn2 htb hns).get i
+  unfold mlBlockedSpdpSubspace
+  refine Submodule.span_le.mpr ?_
+  intro row hrow
+  rcases hrow with
+    ⟨S, shift, hSlen, hshiftDegree, hshiftVars, hadm, rfl⟩
+  change List (Fin n) at S
+  change MvPolynomial (Fin n) ℚ at shift
+  by_cases hoff :
+      ∃ v ∈ S, v ∉ Set.range (cookLevinStrictFOBFlatMap n)
+  · have hlhs :
+        mlProj
+            (shift * SPDP.iterDerivList S
+              ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+                (compiledPoly
+                  (cook_levin_compilation M n hn2 htb hns)))) = 0 := by
+      rw [routeBPaperFaithfulTPhiAmbientGauge_compiledPoly_eq_reexpandedStrictFOB
+        M n hn2 htb hns]
+      exact
+        routeBPaperFaithfulTPhi_strictFOB_offRangeDerivativeRow_zero
+          n S shift
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)) hoff
+    rw [hlhs]
+    exact Submodule.zero_mem _
+  · have hall :
+        ∀ v ∈ S, v ∈ Set.range (cookLevinStrictFOBFlatMap n) := by
+      intro v hv
+      by_contra hvnot
+      exact hoff ⟨v, hv, hvnot⟩
+    rcases routeBPaperFaithfulTPhi_strictFOB_preimageList n S hall with
+      ⟨S', hS'⟩
+    let shift' :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) shift
+    have hshiftRange :
+        ↑shift.vars ⊆ Set.range (cookLevinStrictFOBFlatMap n) := by
+      intro v hv
+      exact hall v (List.mem_toFinset.mp (hshiftVars hv))
+    have hrename :
+        MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift' = shift := by
+      simpa [shift'] using
+        routeBPaperFaithfulTPhi_rename_restrictStrictFOB_of_vars_range
+          n shift hshiftRange
+    have hSlen' : S'.length = Nat.log 2 n := by
+      have hmapLen :
+          (S'.map (cookLevinStrictFOBFlatMap n)).length =
+            Nat.log 2 n := by
+        rw [hS']
+        exact hSlen
+      simpa [List.length_map] using hmapLen
+    have hshiftDegree' : shift'.totalDegree ≤ Nat.log 2 n :=
+      (MultilinearSPDP.restrictPoly_totalDegree_le ℚ
+        (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) shift).trans hshiftDegree
+    have hshiftVars' :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift').vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset := by
+      rw [hrename, hS']
+      exact hshiftVars
+    have hadm' :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)) := by
+      rw [hS']
+      exact hadm
+    let p : MvPolynomial (Fin n) ℚ :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns)
+    let r : MvPolynomial (Fin (n / 3)) ℚ :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) p
+    let q : MvPolynomial (Fin n) ℚ :=
+      mlProj
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift' *
+          cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+    let d : MvPolynomial (Fin n) ℚ :=
+      MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj (shift' * SPDP.iterDerivList S' r))
+    have hqset :
+        q ∈ zeroProfileShiftImageSet (Nat.log 2 n) factors := by
+      simp only [zeroProfileShiftImageSet, Set.mem_iUnion,
+        Set.mem_singleton_iff]
+      have hmapLen :
+          (S'.map (cookLevinStrictFOBFlatMap n)).length =
+            Nat.log 2 n := by
+        simpa [List.length_map] using hSlen'
+      exact ⟨S'.map (cookLevinStrictFOBFlatMap n), le_of_eq hmapLen,
+        MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift',
+        hshiftVars', rfl⟩
+    have hnf_mem :
+        zeroProfileSingletonNormalFormProjection factors q ∈
+          zeroProfileProjectedShiftSpan (Nat.log 2 n) factors
+            (zeroProfileSingletonNormalFormProjection factors) := by
+      exact Submodule.mem_map_of_mem (Submodule.subset_span hqset)
+    have hres_norm :
+        q -
+          zeroProfileSingletonNormalFormProjection factors q ∈
+            zeroProfileSingletonShiftSubspace factors :=
+      zeroProfileSingletonNormalFormProjection_residual_mem_singletonShiftSubspace
+        factors q
+    have hres_row :
+        q - d ∈ zeroProfileSingletonShiftSubspace factors := by
+      have hresidual :=
+        (routeBPaperFaithfulTPhi_singletonNormalizedRowIdentity_iff_singletonResidual
+          M n hn2 htb hns).mp hnorm
+      simpa [factors, p, r, q, d] using
+        hresidual S' shift' hSlen' hshiftDegree' hshiftVars' hadm'
+    have hd_minus_nf :
+        d - zeroProfileSingletonNormalFormProjection factors q ∈
+          zeroProfileSingletonShiftSubspace factors := by
+      have hsub :
+          (q - zeroProfileSingletonNormalFormProjection factors q) -
+              (q - d) ∈ zeroProfileSingletonShiftSubspace factors :=
+        Submodule.sub_mem _ hres_norm hres_row
+      convert hsub using 1
+      abel
+    have hd_mem :
+        d ∈
+          zeroProfileProjectedShiftSpan (Nat.log 2 n) factors
+              (zeroProfileSingletonNormalFormProjection factors) ⊔
+            zeroProfileSingletonShiftSubspace factors := by
+      have hleft :
+          zeroProfileSingletonNormalFormProjection factors q ∈
+            zeroProfileProjectedShiftSpan (Nat.log 2 n) factors
+                (zeroProfileSingletonNormalFormProjection factors) ⊔
+              zeroProfileSingletonShiftSubspace factors :=
+        Submodule.mem_sup_left hnf_mem
+      have hright :
+          d - zeroProfileSingletonNormalFormProjection factors q ∈
+            zeroProfileProjectedShiftSpan (Nat.log 2 n) factors
+                (zeroProfileSingletonNormalFormProjection factors) ⊔
+              zeroProfileSingletonShiftSubspace factors :=
+        Submodule.mem_sup_right hd_minus_nf
+      have hsum := Submodule.add_mem _ hleft hright
+      convert hsum using 1
+      abel
+    rw [← hrename, ← hS']
+    simpa [p, r, d] using
+      (by
+        rw [routeBPaperFaithfulTPhi_rangePWindowRow_eq_renamedRestrictedRow
+          M n hn2 htb hns S' shift']
+        exact hd_mem)
+
+/-- A budgeted common span for the singleton normalizer image, plus normalized
+strict-`TΦ` row equality, gives the strict projected P-side bound after paying
+the finite singleton residual at ambient cost `n`. -/
+theorem routeBPaperFaithfulTPhi_projectedPSideBound_of_singletonNormalFormCommonSpan_normalizedRows
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {budget : ℕ}
+    (hspan :
+      ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (zeroProfileSingletonNormalFormProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+        budget)
+    (hnorm :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalizedRowIdentity
+        M n hn2 htb hns)
+    (hbudget : budget + n ≤ n ^ 200) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns) := by
+  classical
+  unfold SATDeciderGaugePSideBound mlBlockedSpdpRank
+  let factors :=
+    fun i => (cookLevinFactorList M n hn2 htb hns).get i
+  let T :
+      Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+    zeroProfileProjectedShiftSpan (Nat.log 2 n) factors
+      (zeroProfileSingletonNormalFormProjection factors)
+  let R :
+      Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+    zeroProfileSingletonShiftSubspace factors
+  let S :
+      Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+    mlBlockedSpdpSubspace
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
+  haveI hTfinite : Module.Finite ℚ ↥T := by
+    simpa [T, factors] using
+      zeroProfileProjectedShiftSpan_finite (Nat.log 2 n) factors
+        (zeroProfileSingletonNormalFormProjection factors)
+  haveI hRfinite : Module.Finite ℚ ↥R := by
+    simpa [R, factors] using
+      routeBPaperFaithfulTPhi_singletonShiftSubspace_finite factors
+  have hcontrol : S ≤ T ⊔ R := by
+    simpa [S, T, R, factors] using
+      routeBPaperFaithfulTPhi_projectedPWindowControlledBy_singletonNormalForm_sup_singletonResidual
+        M n hn2 htb hns hnorm
+  have hmono :
+      Module.finrank ℚ
+          ↥(mlBlockedSpdpSubspace
+            (cook_levin_compilation M n hn2 htb hns).partition
+            (Nat.log 2 n) (Nat.log 2 n)
+            ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ≤
+        Module.finrank ℚ ↥(T ⊔ R) := by
+    have hmono' : Module.finrank ℚ ↥S ≤ Module.finrank ℚ ↥(T ⊔ R) :=
+      @Submodule.finrank_mono ℚ (MvPolynomial (Fin n) ℚ)
+        _ _ _ _ S (T ⊔ R) (by infer_instance) hcontrol
+    simpa [S] using hmono'
+  have hTbudget : Module.finrank ℚ ↥T ≤ budget := by
+    simpa [T, factors] using
+      zeroProfileProjectedShiftSpan_finrank_le_of_commonSpanWithBudget
+        (κ := Nat.log 2 n) factors
+        (zeroProfileSingletonNormalFormProjection factors) hspan
+  have hRbudget : Module.finrank ℚ ↥R ≤ n := by
+    simpa [R, factors] using
+      routeBPaperFaithfulTPhi_singletonShiftSubspace_finrank_le_ambient factors
+  have hsup :
+      Module.finrank ℚ ↥(T ⊔ R) ≤ budget + n := by
+    calc
+      Module.finrank ℚ ↥(T ⊔ R) ≤
+          Module.finrank ℚ ↥T + Module.finrank ℚ ↥R :=
+        routeBPaperFaithfulTPhi_finrank_sup_le_add T R
+      _ ≤ budget + n := Nat.add_le_add hTbudget hRbudget
+  exact hmono.trans (hsup.trans hbudget)
+
 /-- A quotiented zero-profile common span is a direct strict-`TΦ` projected
 P-side source, provided it contains the strict projected P-window. -/
 theorem routeBPaperFaithfulTPhi_projectedPSideBound_of_zeroProfileQuotientedShiftCommonSpan
@@ -4363,6 +4648,32 @@ theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_singletonNormalFo
     (routeBPaperFaithfulTPhi_rangePWindowRestrictedZeroProfileRowIdentity_of_singletonNormalFormIdentity
       M n hn2 htb hns hnorm)
     hbudget
+
+/-- Strict-`TΦ` projected/log-window final hook for the semantic singleton
+normalizer route with explicit singleton-residual payment.  This consumes the
+paper-faithful normalized row identity, not the refuted raw derivative
+representative equality: the normalizer-image span is budgeted by `budget`,
+and the discarded singleton directions are paid separately by `n`. -/
+theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_singletonNormalForm_normalizedRows
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    {budget : ℕ}
+    (hspan :
+      ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (zeroProfileSingletonNormalFormProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+        budget)
+    (hnorm :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalizedRowIdentity
+        M n hn2 htb hns)
+    (hbudget : budget + n ≤ n ^ 200) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_projectedLogWindow
+    M n hn hn2 htb hns hdec
+    (routeBPaperFaithfulTPhi_projectedPSideBound_of_singletonNormalFormCommonSpan_normalizedRows
+      M n hn2 htb hns hspan hnorm hbudget)
 
 /-- Strict-`TΦ` projected/log-window final hook from quotiented zero-profile
 data and the corrected range-only restricted row equality. -/
