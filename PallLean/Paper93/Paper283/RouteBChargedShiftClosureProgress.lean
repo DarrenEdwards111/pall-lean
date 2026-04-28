@@ -433,6 +433,46 @@ theorem not_EndpointAugmentedActiveProfileChargedClosureAtProfile_concreteWEndpo
     not_ProfileChargeSelfAtBoundedProfile_concreteWEndpointSpanOneStepCharge
       n hn4 bp hSelf
 
+/-- The concrete endpoint one-step charge closes the shifted endpoint target,
+but it cannot instantiate the active-profile charged frontier as currently
+stated.  That frontier still asks the charge to self-target each active
+profile, while the concrete endpoint charge necessarily increments one
+profile coordinate. -/
+theorem not_EndpointAugmentedActiveProfileChargedFrontier_concreteWEndpointSpanOneStepCharge
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : n ≥ 4) :
+    ¬ EndpointAugmentedActiveProfileChargedFrontier
+        M n hn htb hns (concreteWEndpointSpanOneStepCharge n hn4)
+        hn4 := by
+  intro hFrontier
+  rcases hFrontier with ⟨_hBudget, hProfile⟩
+  let h : ProfileHistogram :=
+    fun τ =>
+      match τ with
+      | ConstraintType.booleanity => 1
+      | ConstraintType.adjacency => 0
+      | ConstraintType.transitionLeft => 0
+      | ConstraintType.transitionRight => 0
+  have hlog : 1 ≤ Nat.log 2 n := by
+    simpa using
+      singleton_length_le_log_two_of_ge_four n hn4
+        (concreteWEndpoint0 n hn4)
+  have hadm : ProfileAdmissible (Nat.log 2 n) h := by
+    simpa [ProfileAdmissible, profileMass, h] using hlog
+  have htr : h ConstraintType.transitionRight = 0 := by
+    simp [h]
+  have hne : h ≠ zeroProfileHistogram := by
+    intro hz
+    have hb := congrFun hz ConstraintType.booleanity
+    simp [h, zeroProfileHistogram] at hb
+  have hactive : ActiveProfileSupport h := by
+    simp [ActiveProfileSupport, h]
+  exact
+    not_EndpointAugmentedActiveProfileChargedClosureAtProfile_concreteWEndpointSpanOneStepCharge
+      M n hn htb hns hn4 (admissibleToBounded hadm)
+      (hProfile h hadm htr hne hactive)
+
 /-- Constructor-level fields sufficient for the endpoint one-step compatibility.
 
 This is the local wrapper needed until a concrete endpoint charge constructor
@@ -992,6 +1032,7 @@ theorem endpointAugmentedConcreteW_chargedShiftClosure_of_canonical_endpointSpan
 #print axioms concreteWEndpointSpanOneStepCharge_compatible
 #print axioms not_ProfileChargeSelfAtBoundedProfile_concreteWEndpointSpanOneStepCharge
 #print axioms not_EndpointAugmentedActiveProfileChargedClosureAtProfile_concreteWEndpointSpanOneStepCharge
+#print axioms not_EndpointAugmentedActiveProfileChargedFrontier_concreteWEndpointSpanOneStepCharge
 #print axioms endpointAugmentedConcreteW_endpointSpanOneStepChargeCompatible_of_chargeFields
 #print axioms endpointAugmentedConcreteW_endpointSpanGeneratorChargedShiftClosure_of_oneStepChargeCompatible
 #print axioms endpointAugmentedConcreteW_endpointSpanProfileChargedShiftClosure_of_generatorClosure
