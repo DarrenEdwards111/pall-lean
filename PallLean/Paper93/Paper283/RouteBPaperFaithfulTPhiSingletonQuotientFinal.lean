@@ -141,6 +141,107 @@ theorem routeBPaperFaithfulTPhi_singletonNormalFormBudget_add_ambient_le_pow_200
     nlinarith [hn2]
   exact hquad.trans (Nat.pow_le_pow_right hnpos (by norm_num : 2 <= 200))
 
+/-- At paper scale, the full within-profile zero-profile budget plus the
+explicit singleton residual budget still fits inside `n^200`. -/
+theorem routeBPaperFaithfulTPhi_withinProfileBound_add_ambient_le_pow_200
+    (n : Nat) (hn2 : n >= 2) :
+    withinProfileBound (Nat.log 2 n) + n <= n ^ 200 := by
+  rw [WithinProfileBound.withinProfileBound_eq_pow8]
+  have hnpos : 0 < n := by omega
+  have hbase : Nat.log 2 n + 1 <= 2 * n := by
+    have hlog : Nat.log 2 n <= n := Nat.log_le_self 2 n
+    omega
+  have hpow8 :
+      (Nat.log 2 n + 1) ^ 8 <= (2 * n) ^ 8 :=
+    Nat.pow_le_pow_left hbase 8
+  have htwo_pow : (2 : Nat) ^ 8 <= n ^ 8 :=
+    Nat.pow_le_pow_left hn2 8
+  have hmul :
+      (2 * n) ^ 8 <= n ^ 16 := by
+    calc
+      (2 * n) ^ 8 = 2 ^ 8 * n ^ 8 := by rw [Nat.mul_pow]
+      _ <= n ^ 8 * n ^ 8 := Nat.mul_le_mul_right (n ^ 8) htwo_pow
+      _ = n ^ 16 := by rw [← Nat.pow_add]
+  have hwithin16 :
+      (Nat.log 2 n + 1) ^ 8 <= n ^ 16 :=
+    hpow8.trans hmul
+  have hn16 : n <= n ^ 16 := by
+    calc
+      n = n ^ 1 := by rw [pow_one]
+      _ <= n ^ 16 := Nat.pow_le_pow_right hnpos (by norm_num : 1 <= 16)
+  have hsum16 :
+      (Nat.log 2 n + 1) ^ 8 + n <= 2 * n ^ 16 := by
+    have hsum :
+        (Nat.log 2 n + 1) ^ 8 + n <= n ^ 16 + n ^ 16 :=
+      Nat.add_le_add hwithin16 hn16
+    simpa [two_mul] using hsum
+  have htwo16_le_17 :
+      2 * n ^ 16 <= n ^ 17 := by
+    have hmul' : 2 * n ^ 16 <= n * n ^ 16 :=
+      Nat.mul_le_mul_right (n ^ 16) hn2
+    simpa [pow_succ, Nat.mul_comm, Nat.mul_left_comm, Nat.mul_assoc] using hmul'
+  have h17_200 :
+      n ^ 17 <= n ^ 200 :=
+    Nat.pow_le_pow_right hnpos (by norm_num : 17 <= 200)
+  exact hsum16.trans (htwo16_le_17.trans h17_200)
+
+/-- The exact zero-histogram shifted common span pushes through the singleton
+normalizer image, with the same `withinProfileBound` budget. -/
+theorem zeroProfileProjectedCommonSpanWithBudget_singletonNormalForm_of_zeroHistogramShiftCommonSpan
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hzero :
+      CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns) :
+    ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+      (zeroProfileSingletonNormalFormProjection
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+      (withinProfileBound (Nat.log 2 n)) := by
+  classical
+  rcases hzero with ⟨G, hG_card, hG_span⟩
+  have hid :
+      ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (LinearMap.id :
+          MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+        (withinProfileBound (Nat.log 2 n)) := by
+    refine ⟨G, hG_card, ?_⟩
+    intro q hq
+    rcases hq with ⟨row, hrow, rfl⟩
+    simpa using hG_span hrow
+  exact
+    zeroProfileProjectedCommonSpanWithBudget_of_id_projectedCommonSpan
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+      (zeroProfileSingletonNormalFormProjection
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+      hid
+
+/-- Strict `TΦ` contradiction from the exact zero-histogram common span and
+the residual-balance row algebra.
+
+This closes the singleton-normalizer common-span gate from the older
+`CookLevinZeroHistogramShiftCommonSpan` package, while keeping the remaining
+row algebra as the corrected residual-balance statement. -/
+theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_zeroHistogramShiftCommonSpan_residualBalance
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804)
+    (hn2 : n >= 2) (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hdec : DecidesSAT M)
+    (hzero :
+      CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hres :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+        M n hn2 htb hns
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i))) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_singletonNormalForm_commonSpan_residualBalance
+    M n hn hn2 htb hns hdec
+    (zeroProfileProjectedCommonSpanWithBudget_singletonNormalForm_of_zeroHistogramShiftCommonSpan
+      M n hn2 htb hns hzero)
+    hres
+    (routeBPaperFaithfulTPhi_withinProfileBound_add_ambient_le_pow_200
+      n hn2)
+
 /-- Concrete `concreteW` row embeddings supply the singleton-normalizer image
 common span.  The proof first obtains the identity-projected zero-profile
 profile/symmetric-power span, then pushes it through the explicit normalizer. -/
@@ -1035,6 +1136,9 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_singletonNormalForm_commonSpan_normalizedRows
 #print axioms false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_singletonNormalForm_commonSpan_residualBalance
 #print axioms routeBPaperFaithfulTPhi_singletonNormalFormBudget_add_ambient_le_pow_200
+#print axioms routeBPaperFaithfulTPhi_withinProfileBound_add_ambient_le_pow_200
+#print axioms zeroProfileProjectedCommonSpanWithBudget_singletonNormalForm_of_zeroHistogramShiftCommonSpan
+#print axioms false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_zeroHistogramShiftCommonSpan_residualBalance
 #print axioms zeroProfileProjectedCommonSpanWithBudget_singletonNormalForm_concreteW_of_rowEmbeddings
 #print axioms false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_singletonNormalForm_concreteW_rowEmbeddings_normalizedRows
 #print axioms false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeff
