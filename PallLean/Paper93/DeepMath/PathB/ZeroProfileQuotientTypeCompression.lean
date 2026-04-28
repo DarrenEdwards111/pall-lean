@@ -308,6 +308,45 @@ noncomputable def zeroProfileProjectedShiftImageSet {n L : ℕ}
     Set (MvPolynomial (Fin n) ℚ) :=
   project '' zeroProfileShiftImageSet κ factors
 
+/-- The exact projected quotient span of the zero-profile shifted rows. -/
+noncomputable def zeroProfileProjectedShiftSpan {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+  (zeroProfileCompressedShiftSpan κ factors).map project
+
+/-- Projecting the exact compressed zero-profile span is the same as spanning
+the projected row image.  This is the factor-through statement used by the
+singleton-quotient classifier below. -/
+theorem zeroProfileProjectedShiftSpan_eq_span_projectedShiftImageSet
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ) :
+    zeroProfileProjectedShiftSpan κ factors project =
+      Submodule.span ℚ
+        (zeroProfileProjectedShiftImageSet κ factors project) := by
+  rw [zeroProfileProjectedShiftSpan, zeroProfileCompressedShiftSpan,
+    zeroProfileProjectedShiftImageSet, Submodule.map_span]
+
+/-- The exact projected shifted span remains finite-dimensional. -/
+theorem zeroProfileProjectedShiftSpan_finite
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ) :
+    Module.Finite ℚ ↥(zeroProfileProjectedShiftSpan κ factors project) := by
+  classical
+  unfold zeroProfileProjectedShiftSpan
+  haveI :
+      Module.Finite ℚ ↥(zeroProfileCompressedShiftSpan κ factors) :=
+    zeroProfileCompressedShiftSpan_finite κ factors
+  infer_instance
+
 /-- Budgeted common-span form for projected zero-profile shifted rows. -/
 def ZeroProfileProjectedCommonSpanWithBudget {n L : ℕ}
     (κ : ℕ)
@@ -397,6 +436,172 @@ theorem zeroProfileProjectedCommonSpanWithBudget_of_projectedTypeMap
     zeroProfileProjectedShiftImageSet_subset_quotientTypeCompressedSpan
       κ factors A project hmap
 
+/-! ## Exact singleton-quotient projected classifier -/
+
+/-- The corrected quotient type budget: the actual finrank of the projected
+zero-profile shifted span after killing singleton shifts. -/
+noncomputable def zeroProfileSingletonQuotientProjectedTypeBudget
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) : ℕ :=
+  Module.finrank ℚ
+    ↥(zeroProfileProjectedShiftSpan κ factors
+      (zeroProfileQuotientBySingletonShiftProjection factors))
+
+/-- A finite spanning basis for the exact projected singleton-quotient span,
+chosen with cardinality bounded by its finrank. -/
+noncomputable def zeroProfileSingletonQuotientProjectedBasis
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    Finset (MvPolynomial (Fin n) ℚ) := by
+  classical
+  let project := zeroProfileQuotientBySingletonShiftProjection factors
+  let U := zeroProfileProjectedShiftSpan κ factors project
+  haveI : Module.Finite ℚ ↥U :=
+    zeroProfileProjectedShiftSpan_finite κ factors project
+  exact Classical.choose
+    (finite_submodule_le_span_finset_card_le_finrank U)
+
+/-- The chosen projected singleton-quotient basis spans the whole projected
+quotient image. -/
+theorem zeroProfileSingletonQuotientProjectedSpan_le_basis_span
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    zeroProfileProjectedShiftSpan κ factors
+        (zeroProfileQuotientBySingletonShiftProjection factors) ≤
+      Submodule.span ℚ
+        (↑(zeroProfileSingletonQuotientProjectedBasis κ factors) :
+          Set (MvPolynomial (Fin n) ℚ)) := by
+  classical
+  let project := zeroProfileQuotientBySingletonShiftProjection factors
+  let U := zeroProfileProjectedShiftSpan κ factors project
+  haveI : Module.Finite ℚ ↥U :=
+    zeroProfileProjectedShiftSpan_finite κ factors project
+  simpa [zeroProfileSingletonQuotientProjectedBasis, U, project] using
+    (Classical.choose_spec
+      (finite_submodule_le_span_finset_card_le_finrank U)).1
+
+/-- The chosen projected singleton-quotient basis has cardinality bounded by
+the exact projected quotient finrank. -/
+theorem zeroProfileSingletonQuotientProjectedBasis_card_le_typeBudget
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    (zeroProfileSingletonQuotientProjectedBasis κ factors).card ≤
+      zeroProfileSingletonQuotientProjectedTypeBudget κ factors := by
+  classical
+  let project := zeroProfileQuotientBySingletonShiftProjection factors
+  let U := zeroProfileProjectedShiftSpan κ factors project
+  haveI : Module.Finite ℚ ↥U :=
+    zeroProfileProjectedShiftSpan_finite κ factors project
+  simpa [zeroProfileSingletonQuotientProjectedBasis,
+    zeroProfileSingletonQuotientProjectedTypeBudget, U, project] using
+    (Classical.choose_spec
+      (finite_submodule_le_span_finset_card_le_finrank U)).2
+
+/-- The one-type quotient alphabet whose local space is the exact projected
+singleton-quotient span. -/
+noncomputable def zeroProfileSingletonQuotientProjectedTypeAlphabet
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    ZeroProfileQuotientTypeAlphabet n
+      (zeroProfileSingletonQuotientProjectedTypeBudget κ factors) where
+  type := PUnit
+  typeFintype := inferInstance
+  localDim := zeroProfileSingletonQuotientProjectedTypeBudget κ factors
+  localBasis := fun _ =>
+    zeroProfileSingletonQuotientProjectedBasis κ factors
+  localBasis_card_le := fun _ =>
+    zeroProfileSingletonQuotientProjectedBasis_card_le_typeBudget κ factors
+  symmetricProfileBudget_le := by
+    simp
+
+/-- Every projected generator row for the singleton quotient factors through
+the exact projected quotient span. -/
+theorem zeroProfileSingletonQuotient_projectedRow_mem_projectedShiftSpan
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (S : List (Fin n)) (hS : S.length ≤ κ)
+    (shift : MvPolynomial (Fin n) ℚ) (hshift : shift.vars ⊆ S.toFinset) :
+    zeroProfileQuotientBySingletonShiftProjection factors
+        (mlProj (shift * Finset.univ.prod factors)) ∈
+      zeroProfileProjectedShiftSpan κ factors
+        (zeroProfileQuotientBySingletonShiftProjection factors) := by
+  classical
+  have hrow :
+      mlProj (shift * Finset.univ.prod factors) ∈
+        zeroProfileShiftImageSet κ factors := by
+    simp only [zeroProfileShiftImageSet, Set.mem_iUnion,
+      Set.mem_singleton_iff]
+    exact ⟨S, hS, shift, hshift, rfl⟩
+  exact Submodule.mem_map_of_mem (Submodule.subset_span hrow)
+
+/-- Actual projected quotient type-map for the chosen singleton quotient.  It
+uses the exact projected quotient span as the local type space, with budget
+equal to that span's finrank. -/
+noncomputable def zeroProfileSingletonQuotientProjectedGeneratorTypeMap
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    ZeroProfileProjectedGeneratorTypeMap κ factors
+      (zeroProfileSingletonQuotientProjectedTypeAlphabet κ factors)
+      (zeroProfileQuotientBySingletonShiftProjection factors) where
+  rowType := fun _ _ _ _ => PUnit.unit
+  projected_row_mem_typeSpace := by
+    intro S hS shift hshift
+    have hrow :=
+      zeroProfileSingletonQuotient_projectedRow_mem_projectedShiftSpan
+        κ factors S hS shift hshift
+    exact
+      zeroProfileSingletonQuotientProjectedSpan_le_basis_span
+        κ factors hrow
+
+/-- The concrete singleton-quotient classifier gives the projected common-span
+budget with no assumed row map. -/
+theorem zeroProfileProjectedCommonSpanWithBudget_singletonQuotient_projectedFinrank
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    ZeroProfileProjectedCommonSpanWithBudget κ factors
+      (zeroProfileQuotientBySingletonShiftProjection factors)
+      (zeroProfileSingletonQuotientProjectedTypeBudget κ factors) :=
+  zeroProfileProjectedCommonSpanWithBudget_of_projectedTypeMap
+    κ factors
+    (zeroProfileSingletonQuotientProjectedTypeAlphabet κ factors)
+    (zeroProfileQuotientBySingletonShiftProjection factors)
+    (zeroProfileSingletonQuotientProjectedGeneratorTypeMap κ factors)
+
+/-- The corrected singleton-quotient budget can only hold if the ambient
+singleton residual itself fits inside the profile bound. -/
+theorem ambient_le_withinProfileBound_of_singletonQuotient_projectedFinrank_budget
+    {n L κ : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hbudget :
+      zeroProfileSingletonQuotientProjectedTypeBudget κ factors + n ≤
+        withinProfileBound κ) :
+    n ≤ withinProfileBound κ :=
+  (Nat.le_add_left n
+    (zeroProfileSingletonQuotientProjectedTypeBudget κ factors)).trans
+    hbudget
+
+/-- No-go form for the corrected singleton-quotient classifier budget: if the
+within-profile budget is below the ambient singleton residual `n`, then the
+projected-finrank classifier plus singleton residual cannot fit. -/
+theorem not_singletonQuotient_projectedFinrank_budget_of_withinProfileBound_lt_ambient
+    {n L κ : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hlt : withinProfileBound κ < n) :
+    ¬ zeroProfileSingletonQuotientProjectedTypeBudget κ factors + n ≤
+        withinProfileBound κ := by
+  intro hbudget
+  exact (not_le_of_gt hlt)
+    (ambient_le_withinProfileBound_of_singletonQuotient_projectedFinrank_budget
+      factors hbudget)
+
 /-- Full projected/quotient zero-profile type-space certificate.  The
 projection is required to be idempotent and to kill singleton shifts; row
 factorization is required only after projection. -/
@@ -435,6 +640,24 @@ theorem zeroProfileProjectedCommonSpanWithBudget_of_quotientTypeSpaceCertificate
       κ factors cert.project typeBudget :=
   zeroProfileProjectedCommonSpanWithBudget_of_projectedTypeMap
     κ factors cert.alphabet cert.project cert.typeMap
+
+/-- Full concrete certificate for the chosen singleton quotient, with the
+projected type budget set to the exact projected quotient finrank. -/
+noncomputable def zeroProfileSingletonQuotientTypeSpaceCertificate_projectedFinrank
+    {n L : ℕ}
+    (κ : ℕ)
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    ZeroProfileQuotientTypeSpaceCertificate κ factors
+      (zeroProfileSingletonQuotientProjectedTypeBudget κ factors) where
+  project := zeroProfileQuotientBySingletonShiftProjection factors
+  project_idempotent :=
+    zeroProfileQuotientBySingletonShiftProjection_idempotent factors
+  killsSingleton :=
+    zeroProfileQuotientBySingletonShiftProjection_killsSingletonShifts factors
+  alphabet :=
+    zeroProfileSingletonQuotientProjectedTypeAlphabet κ factors
+  typeMap :=
+    zeroProfileSingletonQuotientProjectedGeneratorTypeMap κ factors
 
 /-! ## Separately paid projection residual -/
 
@@ -590,6 +813,22 @@ theorem zeroProfileCompressedSpanCommonSpanWithBudget_of_projectedCommonSpan_sin
     κ factors (zeroProfileQuotientBySingletonShiftProjection factors)
     hprojected
     (zeroProfileQuotientBySingletonShiftProjection_residualClosureWithBudget_ambient
+      κ factors)
+    hbudget
+
+/-- The concrete singleton-quotient classifier closes the unprojected
+zero-profile span exactly when the projected finrank plus the unavoidable
+singleton residual budget fits. -/
+theorem zeroProfileCompressedSpanCommonSpanWithBudget_of_singletonQuotient_projectedFinrank
+    {n L κ budget : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hbudget :
+      zeroProfileSingletonQuotientProjectedTypeBudget κ factors + n ≤
+        budget) :
+    ZeroProfileCompressedSpanCommonSpanWithBudget κ factors budget :=
+  zeroProfileCompressedSpanCommonSpanWithBudget_of_projectedCommonSpan_singletonQuotient
+    κ factors
+    (zeroProfileProjectedCommonSpanWithBudget_singletonQuotient_projectedFinrank
       κ factors)
     hbudget
 
@@ -782,6 +1021,55 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_singletonQuotientTypeMap
   simpa [CookLevinZeroHistogramShiftCommonSpan,
     ZeroProfileCompressedSpanCommonSpanWithBudget] using hcommon
 
+/-- The actual singleton-quotient projected-finrank classifier instantiates the
+Cook-Levin quotient/type normal-form obligation. -/
+theorem cookLevinZeroProfileQuotientTypeNormalFormObligation_singletonQuotient_projectedFinrank
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    CookLevinZeroProfileQuotientTypeNormalFormObligation
+      M n hn htb hns
+      (zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)) :=
+  ⟨zeroProfileSingletonQuotientTypeSpaceCertificate_projectedFinrank
+    (Nat.log 2 n)
+    (fun i => (cookLevinFactorList M n hn htb hns).get i)⟩
+
+/-- Cook-Levin zero-profile gate with the corrected singleton quotient
+classifier: the remaining arithmetic is exactly projected quotient finrank
+plus the unavoidable ambient singleton residual budget `n`. -/
+theorem cookLevinZeroHistogramShiftCommonSpan_of_singletonQuotient_projectedFinrankBudget
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hbudget :
+      zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn htb hns).get i) + n ≤
+        withinProfileBound (Nat.log 2 n)) :
+    CookLevinZeroHistogramShiftCommonSpan M n hn htb hns := by
+  have hcommon :
+      ZeroProfileCompressedSpanCommonSpanWithBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+        (withinProfileBound (Nat.log 2 n)) :=
+    zeroProfileCompressedSpanCommonSpanWithBudget_of_singletonQuotient_projectedFinrank
+      (κ := Nat.log 2 n)
+      (factors := fun i => (cookLevinFactorList M n hn htb hns).get i)
+      hbudget
+  simpa [CookLevinZeroHistogramShiftCommonSpan,
+    ZeroProfileCompressedSpanCommonSpanWithBudget] using hcommon
+
+/-- Cook-Levin no-go for the corrected singleton-quotient classifier budget:
+when `withinProfileBound (Nat.log 2 n) < n`, even the exact projected quotient
+finrank budget cannot be added to the mandatory singleton residual `n` and
+fit inside the within-profile bound. -/
+theorem not_cookLevin_singletonQuotient_projectedFinrankBudget_of_withinProfileBound_lt_ambient
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hlt : withinProfileBound (Nat.log 2 n) < n) :
+    ¬ zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn htb hns).get i) + n ≤
+        withinProfileBound (Nat.log 2 n) :=
+  not_singletonQuotient_projectedFinrank_budget_of_withinProfileBound_lt_ambient
+    (fun i => (cookLevinFactorList M n hn htb hns).get i) hlt
+
 /-! ## Axiom audit anchors -/
 
 #print axioms zeroProfileSingletonShiftSubspace_eq_span_singletonShiftBasis
@@ -794,8 +1082,18 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_singletonQuotientTypeMap
 #print axioms zeroProfileQuotientTypeSpace_finrank_le
 #print axioms zeroProfileQuotientTypeGlobalBasis_card_le_typeBudget
 #print axioms zeroProfileQuotientTypeSpace_le_compressedSpan
+#print axioms zeroProfileProjectedShiftSpan_eq_span_projectedShiftImageSet
+#print axioms zeroProfileProjectedShiftSpan_finite
 #print axioms zeroProfileProjectedShiftImageSet_subset_quotientTypeCompressedSpan
 #print axioms zeroProfileProjectedCommonSpanWithBudget_of_projectedTypeMap
+#print axioms zeroProfileSingletonQuotientProjectedSpan_le_basis_span
+#print axioms zeroProfileSingletonQuotientProjectedBasis_card_le_typeBudget
+#print axioms zeroProfileSingletonQuotient_projectedRow_mem_projectedShiftSpan
+#print axioms zeroProfileSingletonQuotientProjectedGeneratorTypeMap
+#print axioms zeroProfileProjectedCommonSpanWithBudget_singletonQuotient_projectedFinrank
+#print axioms ambient_le_withinProfileBound_of_singletonQuotient_projectedFinrank_budget
+#print axioms not_singletonQuotient_projectedFinrank_budget_of_withinProfileBound_lt_ambient
+#print axioms zeroProfileSingletonQuotientTypeSpaceCertificate_projectedFinrank
 #print axioms zeroProfileQuotientTypeSpaceCertificate_singletonShiftSubspace_le_ker
 #print axioms zeroProfileProjectedCommonSpanWithBudget_of_quotientTypeSpaceCertificate
 #print axioms zeroProfileProjectionResidualClosureWithBudget_ambient_of_residual_mem_singletonShiftSubspace
@@ -803,6 +1101,7 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_singletonQuotientTypeMap
 #print axioms zeroProfileCompressedSpanCommonSpanWithBudget_of_projectedCommonSpan_residualClosure
 #print axioms zeroProfileCompressedSpanCommonSpanWithBudget_of_quotientTypeSpaceCertificate_residualClosure
 #print axioms zeroProfileCompressedSpanCommonSpanWithBudget_of_projectedCommonSpan_singletonQuotient
+#print axioms zeroProfileCompressedSpanCommonSpanWithBudget_of_singletonQuotient_projectedFinrank
 #print axioms zeroProfileCompressedSpanCommonSpanWithBudget_of_singletonQuotientTypeMap
 #print axioms cookLevinZeroProfileSingletonQuotientResidualClosureWithBudget_ambient
 #print axioms cookLevinZeroProfileProjectedCommonSpanWithBudget_of_quotientTypeCertificate
@@ -810,6 +1109,9 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_singletonQuotientTypeMap
 #print axioms cookLevinZeroProfileNonScalarClosureWithBudget_of_quotientTypeCertificate_residualClosure
 #print axioms cookLevinZeroHistogramShiftCommonSpan_of_quotientTypeCertificate_residualClosure
 #print axioms cookLevinZeroHistogramShiftCommonSpan_of_singletonQuotientTypeMap
+#print axioms cookLevinZeroProfileQuotientTypeNormalFormObligation_singletonQuotient_projectedFinrank
+#print axioms cookLevinZeroHistogramShiftCommonSpan_of_singletonQuotient_projectedFinrankBudget
+#print axioms not_cookLevin_singletonQuotient_projectedFinrankBudget_of_withinProfileBound_lt_ambient
 
 end PathB
 end DeepMath
