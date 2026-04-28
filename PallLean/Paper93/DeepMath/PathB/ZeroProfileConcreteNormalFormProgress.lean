@@ -656,6 +656,42 @@ theorem cookLevinZeroProfileProjectedNormalFormObligation_of_concreteNormalFormO
 
 /-! ## Singleton-quotient concrete classifier close -/
 
+/-- Paper-faithful zero-profile local normal-form classifier.
+
+This is the Lean home for the manuscript's local finite-monoid/profile
+compression lemma: a finite canonical alphabet, a concrete symmetric-power
+chart for every canonical type, a classifier for each singleton-quotient
+projected zero-profile Cook-Levin row, and the final profile-space budget.
+
+The hard mathematical field is `rowMap`: it must prove that every projected
+row lands in the symmetric-power span attached to its canonical local type. -/
+structure CookLevinZeroProfileLocalNormalFormClassifier
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (typeBudget : ℕ) where
+  data :
+    ZeroProfileConcreteNormalFormData n (Nat.log 2 n) typeBudget
+  rowMap :
+    ZeroProfileConcreteNormalFormRowMap
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      (zeroProfileQuotientBySingletonShiftProjection
+        (fun i => (cookLevinFactorList M n hn htb hns).get i))
+      data
+  budget :
+    typeBudget ≤ withinProfileBound (Nat.log 2 n)
+
+/-- Prop form of the paper's zero-profile local normal-form classifier lemma.
+
+This is the remaining mathematical input, not a raw-support count and not the
+over-broad all-admissible-profile chart family. -/
+def CookLevinZeroProfileLocalNormalFormClassifierObligation
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∃ typeBudget : ℕ,
+    Nonempty
+      (CookLevinZeroProfileLocalNormalFormClassifier
+        M n hn htb hns typeBudget)
+
 /-- Concrete normal-form row typing for the singleton quotient closes the
 quotiented zero-profile target with no `+ n` residual payment. -/
 theorem cookLevinZeroProfileQuotientedShiftCommonSpan_of_concreteSingletonQuotientRowMap
@@ -710,6 +746,67 @@ theorem zeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of
         (fun i => (cookLevinFactorList M n hn htb hns).get i))
       D hmap)
     hbudget
+
+namespace CookLevinZeroProfileLocalNormalFormClassifier
+
+variable {M : DTM} {n typeBudget : ℕ} {hn : n ≥ 2}
+  {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+
+/-- The classifier exposes the concrete normal-form row-map data expected by
+the existing singleton-quotient reducer. -/
+theorem projectedTypeBudget_le
+    (C :
+      CookLevinZeroProfileLocalNormalFormClassifier
+        M n hn htb hns typeBudget) :
+    zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn htb hns).get i) ≤
+      withinProfileBound (Nat.log 2 n) :=
+  zeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_concreteRowMap
+    M n hn htb hns C.data C.rowMap C.budget
+
+/-- The classifier also closes the quotiented zero-profile common-span target
+for the selected singleton quotient. -/
+theorem quotientedShiftCommonSpan
+    (C :
+      CookLevinZeroProfileLocalNormalFormClassifier
+        M n hn htb hns typeBudget) :
+    CookLevinZeroProfileQuotientedShiftCommonSpan
+      M n hn htb hns
+      (zeroProfileQuotientBySingletonShiftProjection
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)) :=
+  cookLevinZeroProfileQuotientedShiftCommonSpan_of_concreteSingletonQuotientRowMap
+    M n hn htb hns C.data C.rowMap C.budget
+
+end CookLevinZeroProfileLocalNormalFormClassifier
+
+/-- The named local normal-form classifier obligation proves the exact
+singleton-quotient projected budget. -/
+theorem zeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_localNormalFormClassifier
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hclassifier :
+      CookLevinZeroProfileLocalNormalFormClassifierObligation
+        M n hn htb hns) :
+    zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn htb hns).get i) ≤
+      withinProfileBound (Nat.log 2 n) := by
+  rcases hclassifier with ⟨typeBudget, ⟨C⟩⟩
+  exact C.projectedTypeBudget_le
+
+/-- The same classifier obligation closes the quotiented zero-profile common
+span consumed by Route B. -/
+theorem cookLevinZeroProfileQuotientedShiftCommonSpan_of_localNormalFormClassifier
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hclassifier :
+      CookLevinZeroProfileLocalNormalFormClassifierObligation
+        M n hn htb hns) :
+    CookLevinZeroProfileQuotientedShiftCommonSpan
+      M n hn htb hns
+      (zeroProfileQuotientBySingletonShiftProjection
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)) := by
+  rcases hclassifier with ⟨typeBudget, ⟨C⟩⟩
+  exact C.quotientedShiftCommonSpan
 
 /-! ## Boolean-normalized concrete classifier obstruction -/
 

@@ -475,6 +475,37 @@ theorem cookLevinZeroProfileQuotientedShiftCommonSpan_singletonQuotient_iff_proj
       cookLevinZeroProfileQuotientedShiftCommonSpan_of_singletonQuotient_projectedTypeBudget
         M n hn2 htb hns
 
+/-- Paper-facing singleton-quotient budget close from the actual local
+normal-form classifier.  This is the intended Route B zero-profile input:
+finite canonical types, row factorization through their symmetric-power
+spaces, and a profile budget fitting inside `withinProfileBound`. -/
+theorem cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_localNormalFormClassifier
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hclassifier :
+      CookLevinZeroProfileLocalNormalFormClassifierObligation
+        M n hn2 htb hns) :
+    zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i) <=
+      withinProfileBound (Nat.log 2 n) :=
+  PallLean.Paper93.DeepMath.PathB.zeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_localNormalFormClassifier
+    M n hn2 htb hns hclassifier
+
+/-- The local normal-form classifier closes the concrete singleton-quotient
+zero-profile target consumed by projected Route B. -/
+theorem cookLevinZeroProfileQuotientedShiftCommonSpan_of_singletonQuotient_localNormalFormClassifier
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hclassifier :
+      CookLevinZeroProfileLocalNormalFormClassifierObligation
+        M n hn2 htb hns) :
+    CookLevinZeroProfileQuotientedShiftCommonSpan
+      M n hn2 htb hns
+      (zeroProfileQuotientBySingletonShiftProjection
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) :=
+  PallLean.Paper93.DeepMath.PathB.cookLevinZeroProfileQuotientedShiftCommonSpan_of_localNormalFormClassifier
+    M n hn2 htb hns hclassifier
+
 /-- P-window assembly specialization using the concrete singleton quotient.
 The only zero-profile hard hypothesis is the projected quotient finrank bound;
 the separate Route B hypothesis remains the projected P-window containment. -/
