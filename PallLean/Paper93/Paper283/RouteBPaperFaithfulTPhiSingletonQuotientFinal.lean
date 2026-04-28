@@ -78,6 +78,40 @@ theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_concreteSingleton
         (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
       herase)
 
+/-- Strict `TΦ` contradiction from a concrete singleton-quotient normal-form
+classifier plus the corrected range-only row identity.
+
+This is the proof-facing quotient/classifier hook: it avoids the refuted raw
+derivative representative target and compares only after the selected
+singleton-quotient projection. -/
+theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_concreteSingletonQuotient_rangeRestrictedRowIdentity
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804)
+    (hn2 : n >= 2) (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hdec : DecidesSAT M)
+    {typeBudget : Nat}
+    (D :
+      ZeroProfileConcreteNormalFormData n (Nat.log 2 n) typeBudget)
+    (hmap :
+      ZeroProfileConcreteNormalFormRowMap
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+        D)
+    (hbudget : typeBudget <= withinProfileBound (Nat.log 2 n))
+    (hrow :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedZeroProfileRowIdentity
+        M n hn2 htb hns
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i))) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_zeroProfileQuotientedShiftCommonSpan_rangeRestrictedRowIdentity
+    M n hn hn2 htb hns hdec
+    (zeroProfileQuotientBySingletonShiftProjection
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+    (cookLevinZeroProfileQuotientedShiftCommonSpan_of_concreteSingletonQuotientRowMap
+      M n hn2 htb hns D hmap hbudget)
+    hrow
+
 /-- Strict `TΦ` singleton-quotient contradiction from concrete `concreteW`
 row embeddings and the corrected range-only residual-balance equality.
 
@@ -258,6 +292,36 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_concreteSingl
     false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_concreteSingletonQuotient_strictFOB
       M n hn hn2 htb hns hdec D hmap hbudget herase
 
+/-- Uniform concrete singleton-quotient classifiers plus the corrected
+range-only row identity rule out bounded SAT deciders through the strict
+`TΦ` quotient route. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_concreteSingletonQuotient_rangeRestrictedRowIdentity
+    (hcert :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists typeBudget : Nat,
+        exists D :
+          ZeroProfileConcreteNormalFormData n (Nat.log 2 n) typeBudget,
+        exists _ :
+          ZeroProfileConcreteNormalFormRowMap
+              (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+              (zeroProfileQuotientBySingletonShiftProjection
+                (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+              D,
+            typeBudget <= withinProfileBound (Nat.log 2 n) ∧
+            RouteBPaperFaithfulTPhiRangePWindowRestrictedZeroProfileRowIdentity
+              M n hn2 htb hns
+              (zeroProfileQuotientBySingletonShiftProjection
+                (fun i => (cookLevinFactorList M n hn2 htb hns).get i))) :
+    NoBoundedSATDeciderAtPaperScale := by
+  intro M n hn hn2 htb hns hdec
+  rcases hcert M n hn hn2 htb hns hdec with
+    ⟨typeBudget, D, hmap, hbudget, hrow⟩
+  exact
+    false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_concreteSingletonQuotient_rangeRestrictedRowIdentity
+      M n hn hn2 htb hns hdec D hmap hbudget hrow
+
 /-- Uniform strict `TΦ` route after the concreteW projected-budget close:
 only the range-only residual-balance equality remains as the strict extraction
 input. -/
@@ -411,6 +475,33 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_concreteSing
     CookLevinRichProjectionDischarge :=
   cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_concreteSingletonQuotient_strictFOB
+      hcert)
+
+/-- Legacy rich-projection discharge from concrete singleton-quotient
+normal-form classifiers and the corrected range-only row identity, mediated
+only by the no-decider equivalence. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_concreteSingletonQuotient_rangeRestrictedRowIdentity
+    (hcert :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists typeBudget : Nat,
+        exists D :
+          ZeroProfileConcreteNormalFormData n (Nat.log 2 n) typeBudget,
+        exists _ :
+          ZeroProfileConcreteNormalFormRowMap
+              (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+              (zeroProfileQuotientBySingletonShiftProjection
+                (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+              D,
+            typeBudget <= withinProfileBound (Nat.log 2 n) ∧
+            RouteBPaperFaithfulTPhiRangePWindowRestrictedZeroProfileRowIdentity
+              M n hn2 htb hns
+              (zeroProfileQuotientBySingletonShiftProjection
+                (fun i => (cookLevinFactorList M n hn2 htb hns).get i))) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_concreteSingletonQuotient_rangeRestrictedRowIdentity
       hcert)
 
 /-- Legacy rich-projection discharge from the corrected range-only strict
