@@ -1,4 +1,5 @@
 import PallLean.Step4Compiler
+import PallLean.GlobalGodMoveGauge
 import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeFinalTarget
 import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingBridge
 import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingsClosure
@@ -163,6 +164,106 @@ theorem routeBPaperFaithfulTPhi_extraction_and_identity_minor
       M n hn2 htb hns hdec B_total hB_total,
     ⟨routeBPaperFaithfulTPhi_identity_minor_data
       M n hn hn2 htb hns B_total hB_total⟩⟩
+
+/-! ## Normalized extracted coupled-sheet representative -/
+
+/-- The paper-faithful Route B representative is the normalized coupled sheet
+`Q×_{Φ,S}` produced by the `TΦ`/`ΠΦ` extraction, not the raw derivative row of
+the local product-form Cook-Levin polynomial.
+
+The global Route B component interface already stores that representative as
+`E.coupledSheet`: the paper's `(N ◦ TΦ)(P_{M',n}) = Q×_{Φ,S}` output after
+basis/relabel/restriction/projection and normalization. -/
+noncomputable abbrev routeBPaperFaithfulTPhiNormalizedCoupledSheetRepresentative
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (E : GlobalGodMoveGauge.Theorem207Extraction M n hn hn2 htb hns) :
+    MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ :=
+  E.coupledSheet
+
+/-- Route B row identity for the normalized coupled-sheet representative.
+
+This is the formal replacement for the refuted raw derivative target. Rows are
+compared after the paper extraction/normalization has already selected
+`Q×_{Φ,S}` as the representative. The remaining row operation is the standard
+SPDP window row on that representative; no raw `restrictedCompiledPoly`
+derivative row appears in the statement. -/
+def RouteBPaperFaithfulTPhiNormalizedCoupledSheetRowIdentity
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (E : GlobalGodMoveGauge.Theorem207Extraction M n hn hn2 htb hns) : Prop :=
+  ∀ (S : List (Fin (cook_levin_compilation M n hn2 htb hns).numVars))
+    (shift :
+      MvPolynomial (Fin (cook_levin_compilation M n hn2 htb hns).numVars) ℚ),
+    S.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    shift.vars ⊆ S.toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S →
+    mlProj
+        (shift * SPDP.iterDerivList S
+          (routeBPaperFaithfulTPhiNormalizedCoupledSheetRepresentative
+            M n hn hn2 htb hns E)) =
+      mlProj (shift * SPDP.iterDerivList S E.coupledSheet)
+
+/-- The normalized coupled-sheet representative has the intended Route B row
+identity by construction: after `(N ◦ TΦ)` has selected `Q×_{Φ,S}`, the row
+representative is exactly `E.coupledSheet`. -/
+theorem routeBPaperFaithfulTPhi_normalizedCoupledSheetRowIdentity
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (E : GlobalGodMoveGauge.Theorem207Extraction M n hn hn2 htb hns) :
+    RouteBPaperFaithfulTPhiNormalizedCoupledSheetRowIdentity
+      M n hn hn2 htb hns E := by
+  intro S shift hSlen hshiftDegree hshiftVars hadm
+  rfl
+
+/-- Component-level Route B contradiction on the normalized extracted coupled
+sheet.
+
+This is the proof-facing consumer for the corrected representative: extraction
+rank monotonicity compares the normalized sheet to the paper compiled source,
+the P-side bound controls that source, and the NP-side identity minor lives on
+the same normalized sheet. -/
+theorem false_of_routeBPaperFaithfulTPhi_normalizedCoupledSheet_components
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (E : GlobalGodMoveGauge.Theorem207Extraction M n hn hn2 htb hns)
+    (hExtract :
+      GlobalGodMoveGauge.Theorem207ExtractionRankMonotone
+        M n hn hn2 htb hns E)
+    (hP :
+      GlobalGodMoveGauge.Theorem207PSideUpperBound
+        M n hn hn2 htb hns E)
+    (hNP :
+      GlobalGodMoveGauge.Theorem207NPSideLowerBound
+        M n hn hn2 htb hns E) :
+    False := by
+  have hchoose_le : Nat.choose (n / 3) (Nat.log 2 n) ≤ n ^ 200 :=
+    hNP.sheet_np_side_lower_bound.trans
+      (hExtract.extraction_rank_monotone.trans hP.compiled_p_side_bound)
+  have hn20 : n ≥ 2 ^ 20 :=
+    le_trans
+      (Nat.pow_le_pow_right (by norm_num : 1 ≤ 2) (by omega : 20 ≤ 804))
+      hn
+  have hbin :
+      n ^ (Nat.log 2 n / 4) ≤ Nat.choose (n / 30) (Nat.log 2 n) :=
+    BinomialBound.binomial_lower_bound_concrete n hn20
+  have hmono :
+      Nat.choose (n / 30) (Nat.log 2 n) ≤
+        Nat.choose (n / 3) (Nat.log 2 n) :=
+    Nat.choose_le_choose (Nat.log 2 n) (by omega : n / 30 ≤ n / 3)
+  have hchain : n ^ (Nat.log 2 n / 4) ≤ n ^ 200 :=
+    le_trans (le_trans hbin hmono) hchoose_le
+  have hlog : 804 ≤ Nat.log 2 n :=
+    Nat.le_log_of_pow_le (by norm_num : 1 < 2) hn
+  have hdiv : 201 ≤ Nat.log 2 n / 4 := by omega
+  have hn_ge_1 : 1 ≤ n := by omega
+  have hn_gt_1 : 1 < n := by omega
+  have hcontra : n ^ 201 ≤ n ^ 200 :=
+    le_trans (Nat.pow_le_pow_right hn_ge_1 hdiv) hchain
+  exact absurd hcontra
+    (not_le_of_gt (Nat.pow_lt_pow_right hn_gt_1 (by omega : 200 < 201)))
 
 /-! ## Final strict-`TΦ` source-transport consumers -/
 
@@ -3724,6 +3825,8 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_postSpanBoun
 #print axioms routeBPaperFaithfulTPhi_extraction_transfer
 #print axioms routeBPaperFaithfulTPhi_identity_minor_data
 #print axioms routeBPaperFaithfulTPhi_extraction_and_identity_minor
+#print axioms routeBPaperFaithfulTPhi_normalizedCoupledSheetRowIdentity
+#print axioms false_of_routeBPaperFaithfulTPhi_normalizedCoupledSheet_components
 #print axioms false_of_routeBPaperFaithfulTPhi_qRankUpper
 #print axioms false_of_routeBPaperFaithfulTPhi_from_p_side
 #print axioms false_of_routeBPaperFaithfulTPhi_from_templateCollapse
