@@ -4,6 +4,7 @@ import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeFinalTarget
 import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeSpanningBridge
 import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingBridge
 import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingsClosure
+import PallLean.Paper93.DeepMath.PathB.PerTypeSpanningTemplateCollapseBridge
 import PallLean.Paper93.Paper283.RouteBZeroProfileProjectedPWindowProgress
 
 /-!
@@ -4378,6 +4379,27 @@ theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_zeroProfileQuotie
     (routeBPaperFaithfulTPhi_projectedPWindowControlledByZeroProfileProjection_of_rangeRestrictedRowIdentity
       M n hn2 htb hns project hrow)
 
+/-- The strict paper-faithful `TΦ` target consumes the concrete per-type
+spanning bundle at the selected `concreteW` local type-space family.
+
+This is the direct profile-spanning Route B surface: unlike
+`CookLevinPerTypeSpanning_universal`, it does not quantify over arbitrary
+submodule families `W`; it uses the paper's chosen local chart/type spaces. -/
+theorem false_of_routeBPaperFaithfulTPhi_canonical_from_concreteW_perTypeSpanning
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hn4 : n ≥ 4)
+    (hSpan :
+      PallLean.Paper93.Spanning.CookLevinPerTypeSpanning M n hn2 htb hns
+        (fun tau =>
+          PallLean.Paper93.Wiring.concreteW n hn4 (Fin.castLEEmb hn4) tau)) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_canonical_from_boundedProfileTemplateCollapse
+    M n hn hn2 htb hns hdec
+    (cookLevinProfileTemplateCollapseLemmaBoundedProfile_from_concreteW_perTypeSpanning
+      M n hn2 htb hns hn4 hSpan)
+
 /-- The strict paper-faithful `TΦ` target consumes the concreteW row-embedding
 package through the checked bounded-profile template-collapse theorem. -/
 theorem false_of_routeBPaperFaithfulTPhi_canonical_from_concreteW_rowEmbeddings
@@ -4428,6 +4450,25 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_concreteW_row
       M n hn hn2 htb hns hdec hn4
       (hRowEmbeddings M n hn2 hn4 htb hns)
 
+/-- A uniform concrete per-type spanning theorem closes the strict `TΦ`
+contradiction-strength consumer.  This is the paper-faithful profile-spanning
+frontier at the selected `concreteW` local type spaces, avoiding the overly
+strong arbitrary-`W` universal target. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_concreteW_perTypeSpanning
+    (hSpan :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        PallLean.Paper93.Spanning.CookLevinPerTypeSpanning M n hn2 htb hns
+          (fun tau =>
+            PallLean.Paper93.Wiring.concreteW n hn4 (Fin.castLEEmb hn4) tau)) :
+    NoBoundedSATDeciderAtPaperScale := by
+  intro M n hn hn2 htb hns hdec
+  have hn4 : n ≥ 4 := routeB_paperScale_ge_four hn
+  exact
+    false_of_routeBPaperFaithfulTPhi_canonical_from_concreteW_perTypeSpanning
+      M n hn hn2 htb hns hdec hn4
+      (hSpan M n hn2 hn4 htb hns)
+
 /-- Legacy rich-projection discharge from the strict `TΦ` concreteW
 row-embedding route, mediated only by the established no-decider equivalence. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_concreteW_rowEmbeddings
@@ -4440,6 +4481,20 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_concreteW_ro
   cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_concreteW_rowEmbeddings
       hRowEmbeddings)
+
+/-- Legacy rich-projection discharge from the strict `TΦ` concrete per-type
+spanning route, mediated only by the established no-decider equivalence. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_concreteW_perTypeSpanning
+    (hSpan :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        PallLean.Paper93.Spanning.CookLevinPerTypeSpanning M n hn2 htb hns
+          (fun tau =>
+            PallLean.Paper93.Wiring.concreteW n hn4 (Fin.castLEEmb hn4) tau)) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_concreteW_perTypeSpanning
+      hSpan)
 
 /-- A uniform concrete H3/H4/I5 local closure theorem closes the strict `TΦ`
 contradiction-strength consumer through the concreteW row-embedding assembly. -/
@@ -4621,6 +4676,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_postSpanBoun
 #print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_templateCollapse
 #print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_boundedProfileTemplateCollapse
 #print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_postSpanBoundedBySymProduct
+#print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_concreteW_perTypeSpanning
 #print axioms routeB_paperScale_ge_four
 #print axioms routeBPaperFaithfulTPhiAmbientGauge_compiledPoly_eq_reexpandedStrictFOB
 #print axioms RouteBPaperFaithfulTPhiProjectedPWindowZeroProfileRowIdentity
@@ -4665,6 +4721,8 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_postSpanBoun
 #print axioms false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_zeroProfileQuotientedShiftCommonSpan_rangeRestrictedRowIdentity
 #print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_concreteW_rowEmbeddings
 #print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_concreteW_closureFrontier
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_concreteW_perTypeSpanning
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_concreteW_perTypeSpanning
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_templateCollapse
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_templateCollapse
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_boundedProfileTemplateCollapse
