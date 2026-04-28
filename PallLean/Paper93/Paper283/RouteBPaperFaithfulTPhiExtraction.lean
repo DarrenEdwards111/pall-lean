@@ -1229,6 +1229,180 @@ theorem routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientRowIdenti
     (zeroProfileQuotientBySingletonShiftProjection
       (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
 
+/-- Concrete decomposition form of the strict range-only singleton-quotient
+residual gate.
+
+For each strict source-coordinate query, the undifferentiated zero-profile row
+`q` must decompose as the displayed differentiated representative `d` plus a
+singleton-shift kernel row.  Because the singleton quotient is implemented as
+projection onto a classically chosen complement, we must also require `d` to
+lie in that chosen complement. -/
+def RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientResidualDecomposition
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ),
+    S'.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+      (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (S'.map (cookLevinStrictFOBFlatMap n)) →
+    let p : MvPolynomial (Fin n) ℚ :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns)
+    let r : MvPolynomial (Fin (n / 3)) ℚ :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) p
+    let q : MvPolynomial (Fin n) ℚ :=
+      mlProj
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+          cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+    let d : MvPolynomial (Fin n) ℚ :=
+      MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj (shift * SPDP.iterDerivList S' r))
+    q - d ∈
+        zeroProfileSingletonShiftSubspace
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i) ∧
+      d ∈
+        zeroProfileSingletonShiftComplement
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+
+private theorem routeBPaperFaithfulTPhi_singletonQuotient_apply_eq_of_decomposition
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    {q d : MvPolynomial (Fin n) ℚ}
+    (hker : q - d ∈ zeroProfileSingletonShiftSubspace factors)
+    (hcomp : d ∈ zeroProfileSingletonShiftComplement factors) :
+    zeroProfileQuotientBySingletonShiftProjection factors q = d := by
+  classical
+  let S := zeroProfileSingletonShiftSubspace factors
+  let C := zeroProfileSingletonShiftComplement factors
+  let project := zeroProfileQuotientBySingletonShiftProjection factors
+  let hSC : IsCompl S C :=
+    zeroProfileSingletonShiftSubspace_isCompl_complement factors
+  have hzero : project (q - d) = 0 := by
+    exact LinearMap.mem_ker.mp
+      (zeroProfileQuotientBySingletonShiftProjection_singletonShiftSubspace_le_ker
+        factors hker)
+  have hfix : project d = d := by
+    simpa [project, zeroProfileQuotientBySingletonShiftProjection, C, hSC] using
+      Submodule.IsCompl.projection_apply_left hSC.symm ⟨d, hcomp⟩
+  have hsplit : q = (q - d) + d := by
+    abel
+  calc
+    project q = project ((q - d) + d) := congrArg project hsplit
+    _ = project (q - d) + project d := by rw [map_add]
+    _ = d := by rw [hzero, hfix, zero_add]
+
+private theorem routeBPaperFaithfulTPhi_singletonQuotient_decomposition_of_apply_eq
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    {q d : MvPolynomial (Fin n) ℚ}
+    (hqd : zeroProfileQuotientBySingletonShiftProjection factors q = d) :
+    q - d ∈ zeroProfileSingletonShiftSubspace factors ∧
+      d ∈ zeroProfileSingletonShiftComplement factors := by
+  classical
+  let project := zeroProfileQuotientBySingletonShiftProjection factors
+  let hSC :=
+    zeroProfileSingletonShiftSubspace_isCompl_complement factors
+  constructor
+  · simpa [project, hqd] using
+      zeroProfileQuotientBySingletonShiftProjection_residual_mem_singletonShiftSubspace
+        factors q
+  · rw [← hqd]
+    simpa [project, zeroProfileQuotientBySingletonShiftProjection,
+      zeroProfileSingletonShiftComplement, hSC] using
+      Submodule.IsCompl.projection_apply_mem hSC.symm q
+
+/-- Exact form of the strict range-only singleton-quotient gate: the residual
+balance is equivalent to the concrete quotient decomposition above. -/
+theorem routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientResidualBalance_iff_decomposition
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+        M n hn2 htb hns
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) ↔
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientResidualDecomposition
+        M n hn2 htb hns := by
+  classical
+  constructor
+  · intro hres S' shift hSlen hshiftDegree hshiftVars hadm
+    have hrow :
+        RouteBPaperFaithfulTPhiRangePWindowRestrictedZeroProfileRowIdentity
+          M n hn2 htb hns
+          (zeroProfileQuotientBySingletonShiftProjection
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) :=
+      (routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientRowIdentity_iff_restrictedResidualBalance
+        M n hn2 htb hns).mpr hres
+    let p : MvPolynomial (Fin n) ℚ :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns)
+    let r : MvPolynomial (Fin (n / 3)) ℚ :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) p
+    let q : MvPolynomial (Fin n) ℚ :=
+      mlProj
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+          cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+    let d : MvPolynomial (Fin n) ℚ :=
+      MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj (shift * SPDP.iterDerivList S' r))
+    have hqd :
+        zeroProfileQuotientBySingletonShiftProjection
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i) q = d := by
+      have hrow' := hrow S' shift hSlen hshiftDegree hshiftVars hadm
+      simpa [p, r, q, d] using hrow'.symm
+    exact
+      routeBPaperFaithfulTPhi_singletonQuotient_decomposition_of_apply_eq
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i) hqd
+  · intro hdecomp
+    have hrow :
+        RouteBPaperFaithfulTPhiRangePWindowRestrictedZeroProfileRowIdentity
+          M n hn2 htb hns
+          (zeroProfileQuotientBySingletonShiftProjection
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) := by
+      intro S' shift hSlen hshiftDegree hshiftVars hadm
+      let p : MvPolynomial (Fin n) ℚ :=
+        compiledPoly (cook_levin_compilation M n hn2 htb hns)
+      let r : MvPolynomial (Fin (n / 3)) ℚ :=
+        MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n) p
+      let q : MvPolynomial (Fin n) ℚ :=
+        mlProj
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+            cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+      let d : MvPolynomial (Fin n) ℚ :=
+        MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+          (mlProj (shift * SPDP.iterDerivList S' r))
+      have hdec := hdecomp S' shift hSlen hshiftDegree hshiftVars hadm
+      dsimp only [p, r, q, d] at hdec
+      have hqd :
+          zeroProfileQuotientBySingletonShiftProjection
+              (fun i => (cookLevinFactorList M n hn2 htb hns).get i) q = d :=
+        routeBPaperFaithfulTPhi_singletonQuotient_apply_eq_of_decomposition
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+          hdec.1 hdec.2
+      simpa [p, r, q, d] using hqd.symm
+    exact
+      (routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientRowIdentity_iff_restrictedResidualBalance
+        M n hn2 htb hns).mp hrow
+
+/-- Forward-use version: proving the concrete singleton quotient decomposition
+closes the requested strict range-only residual-balance gate. -/
+theorem routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientResidualBalance_of_decomposition
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdecomp :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientResidualDecomposition
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+      M n hn2 htb hns
+      (zeroProfileQuotientBySingletonShiftProjection
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) :=
+  (routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientResidualBalance_iff_decomposition
+    M n hn2 htb hns).mpr hdecomp
+
 /-- The source-coordinate restricted equality implies the range-only row
 identity by the all-range strict-FOB row reduction. -/
 theorem routeBPaperFaithfulTPhi_rangePWindowZeroProfileRowIdentity_of_restricted
