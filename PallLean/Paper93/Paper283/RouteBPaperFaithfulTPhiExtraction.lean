@@ -2649,6 +2649,49 @@ theorem routeBPaperFaithfulTPhi_not_singletonNormalFormIdentity_of_derivativeSin
       M n hn2 htb hns hnorm S' shift
       hSlen hshiftDegree hshiftVars hadm i)
 
+/-- Local Boolean-factor obstruction behind the failed raw normal-form row
+identity: the singleton normalizer always erases degree-one coefficients, but
+the actual Boolean Cook-Levin derivative has singleton coefficient `2`.
+
+This is the coefficient-level reason the final row algebra must be a genuine
+quotient/residual statement; it cannot be closed by asserting that the raw
+Boolean derivative row is already the singleton-normal representative. -/
+theorem routeBPaperFaithfulTPhi_boolFactorDerivative_not_singletonNormalForm
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hconst :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (Finset.univ.prod factors) = (1 : ℚ))
+    (v : Fin n) :
+    zeroProfileSingletonNormalFormProjection factors
+        (mlProj (SymmetricPower.boolFactor n v :
+          MvPolynomial (Fin n) ℚ)) ≠
+      MvPolynomial.pderiv v
+        (SymmetricPower.boolFactor n v : MvPolynomial (Fin n) ℚ) := by
+  intro h
+  have hleft :
+      MvPolynomial.coeff (Finsupp.single v 1)
+          (zeroProfileSingletonNormalFormProjection factors
+            (mlProj (SymmetricPower.boolFactor n v :
+              MvPolynomial (Fin n) ℚ))) = 0 :=
+    zeroProfileSingletonNormalFormProjection_coeff_single_eq_zero
+      factors hconst
+      (mlProj (SymmetricPower.boolFactor n v :
+        MvPolynomial (Fin n) ℚ)) v
+  have hright :
+      MvPolynomial.coeff (Finsupp.single v 1)
+        (MvPolynomial.pderiv v
+          (SymmetricPower.boolFactor n v :
+            MvPolynomial (Fin n) ℚ)) = 2 :=
+    SymmetricPower.coeff_single_pderiv_boolFactor v
+  have hcoeff :=
+    congrArg
+      (fun p : MvPolynomial (Fin n) ℚ =>
+        MvPolynomial.coeff (Finsupp.single v 1) p) h
+  have hbad : (0 : ℚ) = 2 := by
+    simpa [hleft, hright] using hcoeff
+  norm_num at hbad
+
 /-- Concrete decomposition form of the strict range-only singleton-quotient
 residual gate.
 
