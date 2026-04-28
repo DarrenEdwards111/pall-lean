@@ -185,6 +185,109 @@ theorem routeBPaperFaithfulTPhi_withinProfileBound_add_ambient_le_pow_200
     Nat.pow_le_pow_right hnpos (by norm_num : 17 <= 200)
   exact hsum16.trans (htwo16_le_17.trans h17_200)
 
+/-- A finite common span for the singleton quotient pushes through the
+explicit singleton normalizer with no budget loss.
+
+This is the direct projected/quotiented normalizer-image bridge: the quotient
+is used only as a classifier, while the resulting basis is normalized by the
+semantic normal-form projection. -/
+theorem zeroProfileProjectedCommonSpanWithBudget_singletonNormalForm_of_singletonQuotient_commonSpan
+    {n L κ budget : Nat}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hconst :
+      MvPolynomial.coeff (0 : Fin n →₀ Nat)
+        (Finset.univ.prod factors) = (1 : ℚ))
+    (hspan :
+      ZeroProfileProjectedCommonSpanWithBudget κ factors
+        (zeroProfileQuotientBySingletonShiftProjection factors)
+        budget) :
+    ZeroProfileProjectedCommonSpanWithBudget κ factors
+      (zeroProfileSingletonNormalFormProjection factors)
+      budget := by
+  classical
+  rcases hspan with ⟨G, hG_card, hG_span⟩
+  let N := zeroProfileSingletonNormalFormProjection factors
+  let Q := zeroProfileQuotientBySingletonShiftProjection factors
+  refine ⟨G.image N, ?_, ?_⟩
+  · exact (Finset.card_image_le).trans hG_card
+  · intro z hz
+    rcases hz with ⟨row, hrow, rfl⟩
+    have hQ_span :
+        Q row ∈ Submodule.span ℚ
+          (↑G : Set (MvPolynomial (Fin n) ℚ)) :=
+      hG_span ⟨row, hrow, rfl⟩
+    have hNQ_mem :
+        N (Q row) ∈ Submodule.map N
+          (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))) :=
+      ⟨Q row, hQ_span, rfl⟩
+    have hNQ_span :
+        N (Q row) ∈ Submodule.span ℚ
+          (↑(G.image N) : Set (MvPolynomial (Fin n) ℚ)) := by
+      rw [Submodule.map_span] at hNQ_mem
+      simpa [N] using hNQ_mem
+    have hN_eq :
+        N row = N (Q row) := by
+      exact
+        zeroProfileSingletonNormalFormProjection_eq_of_sub_mem_singletonShiftSubspace
+          factors hconst
+          (zeroProfileQuotientBySingletonShiftProjection_residual_mem_singletonShiftSubspace
+            factors row)
+    change N row ∈ Submodule.span ℚ
+      (↑(G.image N) : Set (MvPolynomial (Fin n) ℚ))
+    rw [hN_eq]
+    exact hNQ_span
+
+/-- The exact singleton-quotient projected type budget supplies the
+normalizer-image common span directly. -/
+theorem zeroProfileProjectedCommonSpanWithBudget_singletonNormalForm_of_singletonQuotient_projectedTypeBudget
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+      (zeroProfileSingletonNormalFormProjection
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+      (zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) := by
+  classical
+  let factors :=
+    fun i => (cookLevinFactorList M n hn2 htb hns).get i
+  have hconst :
+      MvPolynomial.coeff (0 : Fin n →₀ Nat)
+        (Finset.univ.prod factors) = (1 : ℚ) := by
+    simpa [factors, cookLevinZeroProfileBaseProduct] using
+      cookLevinZeroProfileBaseProduct_coeff_zero M n hn2 htb hns
+  exact
+    zeroProfileProjectedCommonSpanWithBudget_singletonNormalForm_of_singletonQuotient_commonSpan
+      factors hconst
+      (zeroProfileProjectedCommonSpanWithBudget_singletonQuotient_projectedFinrank
+        (Nat.log 2 n) factors)
+
+/-- Strict `TΦ` contradiction from the projected singleton quotient type
+budget and the residual-balance row algebra, routed through the explicit
+normalizer image rather than the impossible unprojected zero-histogram span. -/
+theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_singletonNormalForm_projectedTypeBudget_residualBalance
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804)
+    (hn2 : n >= 2) (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hdec : DecidesSAT M)
+    (hbudget :
+      zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i) <=
+        withinProfileBound (Nat.log 2 n))
+    (hres :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+        M n hn2 htb hns
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i))) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_singletonNormalForm_commonSpan_residualBalance
+    M n hn hn2 htb hns hdec
+    (zeroProfileProjectedCommonSpanWithBudget_singletonNormalForm_of_singletonQuotient_projectedTypeBudget
+      M n hn2 htb hns)
+    hres
+    ((Nat.add_le_add_right hbudget n).trans
+      (routeBPaperFaithfulTPhi_withinProfileBound_add_ambient_le_pow_200
+        n hn2))
+
 /-- The exact zero-histogram shifted common span pushes through the singleton
 normalizer image, with the same `withinProfileBound` budget. -/
 theorem zeroProfileProjectedCommonSpanWithBudget_singletonNormalForm_of_zeroHistogramShiftCommonSpan
@@ -653,6 +756,30 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNorm
     false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_singletonNormalForm_commonSpan_residualBalance
       M n hn hn2 htb hns hdec hspan hres hbudget
 
+/-- Uniform singleton-quotient projected type budget plus residual-balance row
+algebra rule out bounded SAT deciders through the explicit normalizer image.
+This is the direct projected/quotiented zero-profile route; it does not ask
+for the impossible full zero-histogram common span. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_projectedTypeBudget_residualBalance
+    (hcert :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i) <=
+          withinProfileBound (Nat.log 2 n) ∧
+        RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+          M n hn2 htb hns
+          (zeroProfileQuotientBySingletonShiftProjection
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i))) :
+    NoBoundedSATDeciderAtPaperScale := by
+  intro M n hn hn2 htb hns hdec
+  rcases hcert M n hn hn2 htb hns hdec with
+    ⟨hbudget, hres⟩
+  exact
+    false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_singletonNormalForm_projectedTypeBudget_residualBalance
+      M n hn hn2 htb hns hdec hbudget hres
+
 /-- Uniform concrete row embeddings plus normalized singleton-normalizer row
 identity rule out bounded SAT deciders at paper scale.  The normalizer common
 span and `+ n` singleton residual budget are discharged internally. -/
@@ -946,6 +1073,25 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNor
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_commonSpan_residualBalance
       hcert)
 
+/-- Rich-projection discharge from the direct projected/quotiented
+singleton-normalizer zero-profile route and residual-balance row algebra. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_projectedTypeBudget_residualBalance
+    (hcert :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i) <=
+          withinProfileBound (Nat.log 2 n) ∧
+        RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+          M n hn2 htb hns
+          (zeroProfileQuotientBySingletonShiftProjection
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i))) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_projectedTypeBudget_residualBalance
+      hcert)
+
 /-- Legacy rich-projection discharge from concrete row embeddings and
 normalized singleton-normalizer row identity. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedRows
@@ -1137,6 +1283,9 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_singletonNormalForm_commonSpan_residualBalance
 #print axioms routeBPaperFaithfulTPhi_singletonNormalFormBudget_add_ambient_le_pow_200
 #print axioms routeBPaperFaithfulTPhi_withinProfileBound_add_ambient_le_pow_200
+#print axioms zeroProfileProjectedCommonSpanWithBudget_singletonNormalForm_of_singletonQuotient_commonSpan
+#print axioms zeroProfileProjectedCommonSpanWithBudget_singletonNormalForm_of_singletonQuotient_projectedTypeBudget
+#print axioms false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_singletonNormalForm_projectedTypeBudget_residualBalance
 #print axioms zeroProfileProjectedCommonSpanWithBudget_singletonNormalForm_of_zeroHistogramShiftCommonSpan
 #print axioms false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_zeroHistogramShiftCommonSpan_residualBalance
 #print axioms zeroProfileProjectedCommonSpanWithBudget_singletonNormalForm_concreteW_of_rowEmbeddings
@@ -1154,6 +1303,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_commonSpan
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_commonSpan_normalizedRows
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_commonSpan_residualBalance
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_projectedTypeBudget_residualBalance
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedRows
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeff
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_concreteSingletonQuotient_strictFOB
@@ -1166,6 +1316,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_commonSpan
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_commonSpan_normalizedRows
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_commonSpan_residualBalance
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_projectedTypeBudget_residualBalance
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedRows
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_normalizedCoeff
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_concreteSingletonQuotient_strictFOB
