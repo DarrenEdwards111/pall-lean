@@ -120,6 +120,341 @@ theorem routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowZeroProfileRowIdentity_
     rw [herase S shift hSlen hshiftDegree hshiftVars hadm]
     simp [cookLevinZeroProfileBaseProduct]
 
+/-- Projection-commutation half of the compiled derivative-erasure gate.
+
+This is the part controlled by the PiPhi/head-span retarget package: the
+differentiated generator row of the projected Cook-Levin polynomial is the
+PiPhi/head-span projection of the differentiated generator row of the
+unprojected Cook-Levin polynomial. -/
+def RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowCompiledDerivativeProjectionCommutation
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) : Prop :=
+  ∀ (S : List (Fin n)) (shift : MvPolynomial (Fin n) Rat),
+    S.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    shift.vars ⊆ S.toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S →
+    mlProj
+        (shift * SPDP.iterDerivList S
+          ((routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns)
+            (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) =
+      (routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns)
+        (mlProj
+          (shift * SPDP.iterDerivList S
+            (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+
+/-- Exact remaining unprojected derivative-erasure condition after the
+PiPhi/head-span projection has been applied.  Together with the commutation
+half above, this is precisely the compiled derivative-erasure row identity. -/
+def RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowUnprojectedDerivativeErasureAfterProjection
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) : Prop :=
+  ∀ (S : List (Fin n)) (shift : MvPolynomial (Fin n) Rat),
+    S.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    shift.vars ⊆ S.toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S →
+    (routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns)
+        (mlProj
+          (shift * SPDP.iterDerivList S
+            (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) =
+      (routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns)
+        (mlProj
+          (shift * cookLevinZeroProfileBaseProduct M n hn2 htb hns))
+
+/-- The after-projection derivative-erasure gate is exactly the statement that
+the selected PiPhi/head-span projection kills the compiled derivative residual.
+
+This is the smallest algebraic core left after unfolding the zero-profile base
+product: for every log-window generator query, the residual row
+`mlProj (shift * (∂_S compiledPoly - compiledPoly))` must lie in the kernel of
+the chosen PiPhi/head-span projection. -/
+theorem routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowUnprojectedDerivativeErasureAfterProjection_iff_projectedCompiledDerivativeResidual_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowUnprojectedDerivativeErasureAfterProjection
+        M n hn2 htb hns ↔
+      ∀ (S : List (Fin n)) (shift : MvPolynomial (Fin n) Rat),
+        S.length = Nat.log 2 n →
+        shift.totalDegree ≤ Nat.log 2 n →
+        shift.vars ⊆ S.toFinset →
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition S →
+        let p : MvPolynomial (Fin n) Rat :=
+          compiledPoly (cook_levin_compilation M n hn2 htb hns)
+        (routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns)
+          (mlProj (shift * (SPDP.iterDerivList S p - p))) = 0 := by
+  classical
+  constructor
+  · intro herase S shift hSlen hshiftDegree hshiftVars hadm
+    let Pi := routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns
+    let p : MvPolynomial (Fin n) Rat :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns)
+    have hbase : cookLevinZeroProfileBaseProduct M n hn2 htb hns = p := by
+      simpa [p] using cookLevinZeroProfileBaseProduct_eq_compiledPoly M n hn2 htb hns
+    have hrow0 := herase S shift hSlen hshiftDegree hshiftVars hadm
+    change
+      Pi (mlProj (shift * SPDP.iterDerivList S p)) =
+        Pi (mlProj (shift * cookLevinZeroProfileBaseProduct M n hn2 htb hns)) at hrow0
+    rw [hbase] at hrow0
+    have hrow :
+        Pi (mlProj (shift * SPDP.iterDerivList S p)) =
+          Pi (mlProj (shift * p)) :=
+      hrow0
+    have hml :
+        mlProj (shift * (SPDP.iterDerivList S p - p)) =
+          mlProj (shift * SPDP.iterDerivList S p) -
+            mlProj (shift * p) := by
+      rw [mul_sub]
+      change (MultilinearSPDP.mlProjHom Rat)
+          (shift * SPDP.iterDerivList S p - shift * p) =
+        (MultilinearSPDP.mlProjHom Rat)
+            (shift * SPDP.iterDerivList S p) -
+          (MultilinearSPDP.mlProjHom Rat) (shift * p)
+      rw [map_sub]
+    change Pi (mlProj (shift * (SPDP.iterDerivList S p - p))) = 0
+    rw [hml, map_sub, hrow, sub_self]
+  · intro hres S shift hSlen hshiftDegree hshiftVars hadm
+    let Pi := routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns
+    let p : MvPolynomial (Fin n) Rat :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns)
+    have hbase : cookLevinZeroProfileBaseProduct M n hn2 htb hns = p := by
+      simpa [p] using cookLevinZeroProfileBaseProduct_eq_compiledPoly M n hn2 htb hns
+    have hml :
+        mlProj (shift * (SPDP.iterDerivList S p - p)) =
+          mlProj (shift * SPDP.iterDerivList S p) -
+            mlProj (shift * p) := by
+      rw [mul_sub]
+      change (MultilinearSPDP.mlProjHom Rat)
+          (shift * SPDP.iterDerivList S p - shift * p) =
+        (MultilinearSPDP.mlProjHom Rat)
+            (shift * SPDP.iterDerivList S p) -
+          (MultilinearSPDP.mlProjHom Rat) (shift * p)
+      rw [map_sub]
+    have hkernel :
+        Pi (mlProj (shift * (SPDP.iterDerivList S p - p))) = 0 := by
+      simpa [Pi, p, hml] using
+        hres S shift hSlen hshiftDegree hshiftVars hadm
+    rw [hml, map_sub] at hkernel
+    have hrow :
+        Pi (mlProj (shift * SPDP.iterDerivList S p)) -
+          Pi (mlProj (shift * p)) = 0 :=
+      hkernel
+    change
+      Pi (mlProj (shift * SPDP.iterDerivList S p)) =
+        Pi (mlProj (shift * cookLevinZeroProfileBaseProduct M n hn2 htb hns))
+    rw [hbase]
+    exact sub_eq_zero.mp hrow
+
+/-- Forward-use form of the residual reduction: it is enough to prove that the
+PiPhi/head-span projection kills the compiled derivative residual row. -/
+theorem routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowUnprojectedDerivativeErasureAfterProjection_of_projectedCompiledDerivativeResidual_zero
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hres :
+      ∀ (S : List (Fin n)) (shift : MvPolynomial (Fin n) Rat),
+        S.length = Nat.log 2 n →
+        shift.totalDegree ≤ Nat.log 2 n →
+        shift.vars ⊆ S.toFinset →
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition S →
+        let p : MvPolynomial (Fin n) Rat :=
+          compiledPoly (cook_levin_compilation M n hn2 htb hns)
+        (routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns)
+          (mlProj (shift * (SPDP.iterDerivList S p - p))) = 0) :
+    RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowUnprojectedDerivativeErasureAfterProjection
+      M n hn2 htb hns :=
+  (routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowUnprojectedDerivativeErasureAfterProjection_iff_projectedCompiledDerivativeResidual_zero
+    M n hn2 htb hns).mpr hres
+
+/-- Empty-generator descent turns a pre-`mlProj` kernel residual into the
+projected compiled derivative-residual zero row.
+
+This is the narrowest reduction supplied by the existing head-span retarget
+package: `retarget.projection_descent` applied to the empty derivative list and
+unit shift says the PiPhi/head-span kernel is stable under `mlProj`.  Therefore
+the remaining algebra is not another projection-commutation fact; it is exactly
+the pre-`mlProj` kernel membership of
+`shift * (∂_S compiledPoly - compiledPoly)`. -/
+theorem routeBPaperFaithfulPiPhiHeadSpan_projectedCompiledDerivativeResidual_zero_of_retarget_of_unprojectedResidual_kernel
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (retarget :
+      RouteBPaperFaithfulPiPhiHeadSpanProjectionRetarget
+        M n hn2 htb hns)
+    (S : List (Fin n)) (shift : MvPolynomial (Fin n) Rat)
+    (hkernel :
+      let p : MvPolynomial (Fin n) Rat :=
+        compiledPoly (cook_levin_compilation M n hn2 htb hns)
+      shift * (SPDP.iterDerivList S p - p) ∈
+        LinearMap.ker
+          (routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns)) :
+    let p : MvPolynomial (Fin n) Rat :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns)
+    (routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns)
+      (mlProj (shift * (SPDP.iterDerivList S p - p))) = 0 := by
+  classical
+  let Pi := routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns
+  let p : MvPolynomial (Fin n) Rat :=
+    compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  let residual : MvPolynomial (Fin n) Rat :=
+    shift * (SPDP.iterDerivList S p - p)
+  have hkernel' : Pi residual = 0 := by
+    simpa [Pi, p, residual, LinearMap.mem_ker] using hkernel
+  have hadm_empty :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        ([] : List (Fin n)) := by
+    constructor
+    · simp
+    · intro b
+      simp
+  let L :=
+    routeBSPDPGeneratorRowLinearMap M n hn2 htb hns
+      ([] : List (Fin n)) (1 : MvPolynomial (Fin n) Rat)
+  have hdesc : Pi.comp L = (Pi.comp L).comp Pi := by
+    simpa [Pi, L, routeBPaperFaithfulPiPhiHeadSpanProjection,
+      routeBPaperFaithfulPiPhiHeadSpanGauge,
+      routeBPaperFaithfulPiPhiHeadSpanTail] using
+      retarget.projection_descent
+        0 0 ([] : List (Fin n)) (1 : MvPolynomial (Fin n) Rat)
+        (by simp)
+        (by simp [MvPolynomial.totalDegree_one])
+        (by simp)
+        (by simp [MvPolynomial.totalDegree_one])
+        (by simp [MvPolynomial.vars_one])
+        hadm_empty
+  have hpoint := congrArg (fun F : _ →ₗ[Rat] _ => F residual) hdesc
+  have hpoint' : Pi (L residual) = Pi (L (Pi residual)) := by
+    simpa [LinearMap.comp_apply] using hpoint
+  have hL_residual : L residual = mlProj residual := by
+    simp [L, routeBSPDPGeneratorRowLinearMap_apply, routeBSPDPGeneratorRow,
+      SPDP.iterDerivList]
+  change Pi (mlProj residual) = 0
+  calc
+    Pi (mlProj residual) = Pi (L residual) := by rw [hL_residual]
+    _ = Pi (L (Pi residual)) := hpoint'
+    _ = 0 := by simp [hkernel']
+
+/-- The retarget package closes the projection-commutation half of the
+compiled derivative-erasure gate for the intended PiPhi/head-span projection.
+
+Row closure makes the generator row of the projected base fixed by the
+finite-row projection, while projection descent identifies that fixed row with
+the projection of the unprojected differentiated generator row. -/
+theorem routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowCompiledDerivativeProjectionCommutation_of_retarget
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (retarget :
+      RouteBPaperFaithfulPiPhiHeadSpanProjectionRetarget
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowCompiledDerivativeProjectionCommutation
+      M n hn2 htb hns := by
+  classical
+  intro S shift hSlen hshiftDegree hshiftVars hadm
+  let rows := routeBPaperFaithfulPiPhiHeadSpanRows M n hn2 htb hns
+  let Pi := routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns
+  let p := compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  let L := routeBSPDPGeneratorRowLinearMap M n hn2 htb hns S shift
+  have hSlog : S.length ≤ Nat.log 2 n := le_of_eq hSlen
+  have hrowClosure :
+      forall i,
+        routeBSPDPGeneratorRow M n hn2 htb hns (rows i) S shift
+          ∈ finiteRowsSubmodule rows := by
+    intro i
+    exact
+      retarget.row_closure.row_closure
+        (Nat.log 2 n) (Nat.log 2 n) S shift
+        hSlen hshiftDegree le_rfl le_rfl hshiftVars hadm i
+  have hmem :
+      L (Pi p) ∈ finiteRowsSubmodule rows := by
+    simpa [L, Pi, p, rows, routeBSPDPGeneratorRowLinearMap_apply,
+      routeBPaperFaithfulPiPhiHeadSpanProjection,
+      routeBPaperFaithfulPiPhiHeadSpanGauge,
+      routeBPaperFaithfulPiPhiHeadSpanRows,
+      routeBPaperFaithfulPiPhiHeadSpanTail] using
+      routeBSPDPGeneratorRow_projected_mem_finiteRowsSubmodule_of_rowClosure
+        M n hn2 htb hns rows p S shift hrowClosure
+  have hfixed : Pi (L (Pi p)) = L (Pi p) := by
+    simpa [Pi, rows, routeBPaperFaithfulPiPhiHeadSpanProjection,
+      routeBPaperFaithfulPiPhiHeadSpanGauge,
+      routeBPaperFaithfulPiPhiHeadSpanRows,
+      routeBPaperFaithfulPiPhiHeadSpanTail] using
+      routeBRicherFiniteRowsCandidateGauge_fixed_of_mem
+        M n hn2 htb hns rows hmem
+  have hdesc :
+      Pi.comp L = (Pi.comp L).comp Pi := by
+    simpa [Pi, L, routeBPaperFaithfulPiPhiHeadSpanProjection,
+      routeBPaperFaithfulPiPhiHeadSpanGauge,
+      routeBPaperFaithfulPiPhiHeadSpanTail] using
+      retarget.projection_descent
+        (Nat.log 2 n) (Nat.log 2 n) S shift
+        hSlen hshiftDegree hSlog hshiftDegree hshiftVars hadm
+  have hpoint : L (Pi p) = Pi (L p) := by
+    have hdescPoint := congrArg (fun F : _ →ₗ[Rat] _ => F p) hdesc
+    calc
+      L (Pi p) = Pi (L (Pi p)) := hfixed.symm
+      _ = Pi (L p) := by
+        simpa [LinearMap.comp_apply] using hdescPoint.symm
+  simpa [Pi, p, L, routeBSPDPGeneratorRowLinearMap_apply,
+    routeBSPDPGeneratorRow] using hpoint
+
+/-- Retarget commutation plus the exact after-projection unprojected
+derivative-erasure condition proves the compiled derivative-erasure identity
+for the intended PiPhi/head-span projection. -/
+theorem routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowCompiledDerivativeErasure_of_retarget_of_unprojectedDerivativeErasureAfterProjection
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (retarget :
+      RouteBPaperFaithfulPiPhiHeadSpanProjectionRetarget
+        M n hn2 htb hns)
+    (herase :
+      RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowUnprojectedDerivativeErasureAfterProjection
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowCompiledDerivativeErasure
+      M n hn2 htb hns
+      (routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns) := by
+  intro S shift hSlen hshiftDegree hshiftVars hadm
+  calc
+    mlProj
+        (shift * SPDP.iterDerivList S
+          ((routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns)
+            (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) =
+      (routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns)
+        (mlProj
+          (shift * SPDP.iterDerivList S
+            (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) :=
+        routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowCompiledDerivativeProjectionCommutation_of_retarget
+          M n hn2 htb hns retarget S shift hSlen hshiftDegree hshiftVars hadm
+    _ =
+      (routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns)
+        (mlProj
+          (shift * cookLevinZeroProfileBaseProduct M n hn2 htb hns)) :=
+        herase S shift hSlen hshiftDegree hshiftVars hadm
+
+/-- Retarget commutation plus the exact after-projection unprojected
+derivative-erasure condition proves the original zero-profile row identity for
+the intended PiPhi/head-span projection. -/
+theorem routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowZeroProfileRowIdentity_of_retarget_of_unprojectedDerivativeErasureAfterProjection
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (retarget :
+      RouteBPaperFaithfulPiPhiHeadSpanProjectionRetarget
+        M n hn2 htb hns)
+    (herase :
+      RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowUnprojectedDerivativeErasureAfterProjection
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileRowIdentity
+      M n hn2 htb hns
+      (routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns) :=
+  (routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowZeroProfileRowIdentity_iff_compiledDerivativeErasure
+    M n hn2 htb hns
+    (routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns)).mpr
+    (routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowCompiledDerivativeErasure_of_retarget_of_unprojectedDerivativeErasureAfterProjection
+      M n hn2 htb hns retarget herase)
+
 /-- Exact generator-membership reduction for the PiPhi/head-span projected
 P-window containment. -/
 def RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileGeneratorReduction
@@ -254,6 +589,14 @@ theorem routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowControlledByZeroProfile
 #print axioms routeB_cookLevinFactorList_univ_prod_eq_compiledPoly
 #print axioms RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowCompiledDerivativeErasure
 #print axioms routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowZeroProfileRowIdentity_iff_compiledDerivativeErasure
+#print axioms RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowCompiledDerivativeProjectionCommutation
+#print axioms RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowUnprojectedDerivativeErasureAfterProjection
+#print axioms routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowUnprojectedDerivativeErasureAfterProjection_iff_projectedCompiledDerivativeResidual_zero
+#print axioms routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowUnprojectedDerivativeErasureAfterProjection_of_projectedCompiledDerivativeResidual_zero
+#print axioms routeBPaperFaithfulPiPhiHeadSpan_projectedCompiledDerivativeResidual_zero_of_retarget_of_unprojectedResidual_kernel
+#print axioms routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowCompiledDerivativeProjectionCommutation_of_retarget
+#print axioms routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowCompiledDerivativeErasure_of_retarget_of_unprojectedDerivativeErasureAfterProjection
+#print axioms routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowZeroProfileRowIdentity_of_retarget_of_unprojectedDerivativeErasureAfterProjection
 #print axioms RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileGeneratorReduction
 #print axioms routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowGenerator_mem_zeroProfileProjection
 #print axioms routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowControlledByZeroProfileProjection_iff_generatorReduction

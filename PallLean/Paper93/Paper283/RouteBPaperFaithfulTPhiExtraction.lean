@@ -324,6 +324,609 @@ def RouteBPaperFaithfulTPhiProjectedPWindowControlledByZeroProfileProjection
       (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
       project
 
+/-- Applying the strict `TΦ` ambient gauge to the Cook-Levin polynomial is
+definitionally the flat strict first-of-block restriction followed by
+re-expansion along the same coordinate map. -/
+theorem routeBPaperFaithfulTPhiAmbientGauge_compiledPoly_eq_reexpandedStrictFOB
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns)) =
+      MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n)
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns))) := by
+  dsimp [routeBPaperFaithfulTPhiAmbientGauge, SATDeciderGaugeMap,
+    SATDeciderGaugeSpace]
+  change
+    ((MvPolynomial.rename (cookLevinStrictFOBFlatMap n)).toLinearMap)
+        (((MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n)).toLinearMap)
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns))) =
+      MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n)
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
+  rfl
+
+/-- Minimal row identity for the strict `TΦ` projected P-window.
+
+Every strict `TΦ` P-window generator must be the selected quotient projection
+of the matching zero-profile shifted base-product row. -/
+def RouteBPaperFaithfulTPhiProjectedPWindowZeroProfileRowIdentity
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ) : Prop :=
+  ∀ (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ),
+    S.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    shift.vars ⊆ S.toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S →
+    mlProj
+        (shift * SPDP.iterDerivList S
+          ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+            (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) =
+      project
+        (mlProj
+          (shift *
+            Finset.univ.prod
+              (fun i => (cookLevinFactorList M n hn2 htb hns).get i)))
+
+/-- Compiled/re-expanded form of the strict `TΦ` row identity.
+
+This isolates the remaining algebra after the strict first-of-block
+restriction/re-expansion identity and the Cook-Levin factor-list product have
+been unfolded. -/
+def RouteBPaperFaithfulTPhiProjectedPWindowStrictFOBDerivativeErasure
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ) : Prop :=
+  ∀ (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ),
+    S.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    shift.vars ⊆ S.toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S →
+    mlProj
+        (shift * SPDP.iterDerivList S
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+            (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns))))) =
+      project
+        (mlProj
+          (shift * cookLevinZeroProfileBaseProduct M n hn2 htb hns))
+
+/-- If a differentiated row touches a coordinate outside the strict
+first-of-block image, the re-expanded strict-FOB polynomial contributes no
+row. -/
+theorem routeBPaperFaithfulTPhi_strictFOB_offRangeDerivativeRow_zero
+    (n : ℕ)
+    (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ)
+    (p : MvPolynomial (Fin n) ℚ)
+    (hoff :
+      ∃ v ∈ S, v ∉ Set.range (cookLevinStrictFOBFlatMap n)) :
+    mlProj
+        (shift * SPDP.iterDerivList S
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+            (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n) p))) = 0 := by
+  rw [MultilinearSPDP.iterDerivList_rename_zero
+    (cookLevinStrictFOBFlatMap n) (cookLevinStrictFOBFlatMap_injective n)
+    S hoff]
+  simp
+
+/-- Restricting to strict first-of-block coordinates and re-expanding is the
+identity on polynomials whose variables are already in the strict-FOB range. -/
+theorem routeBPaperFaithfulTPhi_rename_restrictStrictFOB_of_vars_range
+    (n : ℕ) (p : MvPolynomial (Fin n) ℚ)
+    (hvars : ↑p.vars ⊆ Set.range (cookLevinStrictFOBFlatMap n)) :
+    MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n) p) = p := by
+  let f := cookLevinStrictFOBFlatMap n
+  let hf := cookLevinStrictFOBFlatMap_injective n
+  have heq :
+      ((MvPolynomial.rename f).comp
+          (MultilinearSPDP.restrictPoly ℚ f hf)) =
+        MvPolynomial.aeval
+          (fun j : Fin n =>
+            if j ∈ Set.range f then
+              MvPolynomial.X j
+            else
+              (0 : MvPolynomial (Fin n) ℚ)) := by
+    ext j
+    simp only [AlgHom.comp_apply, MultilinearSPDP.restrictPoly_X,
+      MvPolynomial.aeval_X]
+    by_cases hj : ∃ i, f i = j
+    · rw [dif_pos hj, MvPolynomial.rename_X,
+        if_pos ⟨hj.choose, hj.choose_spec⟩]
+      simp [hj.choose_spec]
+    · rw [dif_neg hj, map_zero, if_neg]
+      intro h
+      exact hj h
+  rw [show MvPolynomial.rename f
+        (MultilinearSPDP.restrictPoly ℚ f hf p) =
+      ((MvPolynomial.rename f).comp
+        (MultilinearSPDP.restrictPoly ℚ f hf)) p from rfl, heq]
+  exact MvPolynomial.aeval_ite_mem_eq_self p hvars
+
+/-- On rows already written in strict first-of-block coordinates, the
+re-expanded strict-FOB derivative row is just the renamed restricted
+derivative row. -/
+theorem routeBPaperFaithfulTPhi_strictFOB_renamedDerivativeRow
+    (n : ℕ)
+    (S : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (p : MvPolynomial (Fin n) ℚ) :
+    mlProj
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+          SPDP.iterDerivList (S.map (cookLevinStrictFOBFlatMap n))
+            (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+              (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+                (cookLevinStrictFOBFlatMap_injective n) p))) =
+      MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj
+          (shift *
+            MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n)
+              (SPDP.iterDerivList
+                (S.map (cookLevinStrictFOBFlatMap n)) p))) := by
+  rw [MultilinearSPDP.iterDerivList_rename
+    (cookLevinStrictFOBFlatMap n) (cookLevinStrictFOBFlatMap_injective n)]
+  rw [MultilinearSPDP.iterDerivList_restrictPoly
+    ℚ (cookLevinStrictFOBFlatMap n) (cookLevinStrictFOBFlatMap_injective n)]
+  rw [← map_mul (MvPolynomial.rename (cookLevinStrictFOBFlatMap n))]
+  rw [MultilinearSPDP.mlProj_rename
+    (cookLevinStrictFOBFlatMap n) (cookLevinStrictFOBFlatMap_injective n)]
+
+/-- If the derivative list is the strict-FOB image of a source list and the
+ambient shift uses only strict-FOB variables, the strict row reduces to a
+renamed restricted derivative row. -/
+theorem routeBPaperFaithfulTPhi_strictFOB_allRangeDerivativeRow
+    (n : ℕ)
+    (S : List (Fin n)) (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin n) ℚ)
+    (p : MvPolynomial (Fin n) ℚ)
+    (hS : S'.map (cookLevinStrictFOBFlatMap n) = S)
+    (hshiftRange :
+      ↑shift.vars ⊆ Set.range (cookLevinStrictFOBFlatMap n)) :
+    mlProj
+        (shift * SPDP.iterDerivList S
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+            (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n) p))) =
+      MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj
+          (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n) shift *
+            MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n)
+              (SPDP.iterDerivList S p))) := by
+  subst S
+  let shift' :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+      (cookLevinStrictFOBFlatMap_injective n) shift
+  have hshift :
+      MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift' = shift := by
+    simpa [shift'] using
+      routeBPaperFaithfulTPhi_rename_restrictStrictFOB_of_vars_range
+        n shift hshiftRange
+  calc
+    mlProj
+        (shift * SPDP.iterDerivList
+          (S'.map (cookLevinStrictFOBFlatMap n))
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+            (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n) p))) =
+      mlProj
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift' *
+          SPDP.iterDerivList
+            (S'.map (cookLevinStrictFOBFlatMap n))
+            (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+              (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+                (cookLevinStrictFOBFlatMap_injective n) p))) := by
+        rw [hshift]
+    _ =
+      MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+      (mlProj
+        (shift' *
+          MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+            (cookLevinStrictFOBFlatMap_injective n)
+            (SPDP.iterDerivList
+              (S'.map (cookLevinStrictFOBFlatMap n)) p))) :=
+        routeBPaperFaithfulTPhi_strictFOB_renamedDerivativeRow
+          n S' shift' p
+
+/-- Singleton-shift zero-profile rows are exactly the part killed by the
+concrete singleton quotient.  Thus the off-range strict-FOB zero row matches
+the concrete RHS when the shift is the offending singleton variable itself. -/
+theorem routeBPaperFaithfulTPhi_strictFOB_offRangeSingletonShiftRow_singletonQuotient
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin n)) (v : Fin n)
+    (hvS : v ∈ S)
+    (hoffv : v ∉ Set.range (cookLevinStrictFOBFlatMap n)) :
+    mlProj
+        (MvPolynomial.X v * SPDP.iterDerivList S
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+            (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns))))) =
+      zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (mlProj
+          (MvPolynomial.X v * cookLevinZeroProfileBaseProduct M n hn2 htb hns)) := by
+  have hlhs :
+      mlProj
+          (MvPolynomial.X v * SPDP.iterDerivList S
+            (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+              (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+                (cookLevinStrictFOBFlatMap_injective n)
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns))))) =
+        0 := by
+    exact
+      routeBPaperFaithfulTPhi_strictFOB_offRangeDerivativeRow_zero
+        n S (MvPolynomial.X v)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+        ⟨v, hvS, hoffv⟩
+  have hrhs :
+      zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (mlProj
+          (MvPolynomial.X v * cookLevinZeroProfileBaseProduct M n hn2 htb hns)) =
+        0 := by
+    simpa [cookLevinZeroProfileBaseProduct] using
+      zeroProfileQuotientBySingletonShiftProjection_killsSingletonShifts
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i) v
+  rw [hlhs, hrhs]
+
+/-- In the all-range case, strict-FOB derivative erasure for the concrete
+singleton quotient is exactly the projected zero-profile equality displayed
+on the right.  This is the remaining RHS algebra after the strict-FOB reducer
+has rewritten the LHS. -/
+theorem routeBPaperFaithfulTPhi_strictFOB_allRangeDerivativeRow_singletonQuotient_iff_projected
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin n)) (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin n) ℚ)
+    (hS : S'.map (cookLevinStrictFOBFlatMap n) = S)
+    (hshiftRange :
+      ↑shift.vars ⊆ Set.range (cookLevinStrictFOBFlatMap n)) :
+    (mlProj
+        (shift * SPDP.iterDerivList S
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+            (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns))))) =
+      zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (mlProj
+          (shift * cookLevinZeroProfileBaseProduct M n hn2 htb hns))) ↔
+      MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj
+          (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n) shift *
+            MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n)
+              (SPDP.iterDerivList S
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns))))) =
+      zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (mlProj
+          (shift * cookLevinZeroProfileBaseProduct M n hn2 htb hns)) := by
+  rw [routeBPaperFaithfulTPhi_strictFOB_allRangeDerivativeRow
+    n S S' shift
+    (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+    hS hshiftRange]
+
+/-- Elements of the singleton-shift subspace have zero constant coefficient. -/
+theorem routeBPaperFaithfulTPhi_zeroProfileSingletonShiftSubspace_coeff_zero
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    {q : MvPolynomial (Fin n) ℚ}
+    (hq : q ∈ zeroProfileSingletonShiftSubspace factors) :
+    MvPolynomial.coeff (0 : Fin n →₀ ℕ) q = 0 := by
+  classical
+  unfold zeroProfileSingletonShiftSubspace at hq
+  refine Submodule.span_induction
+    (p := fun q : MvPolynomial (Fin n) ℚ => fun _ =>
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ) q = 0) ?_ ?_ ?_ ?_ hq
+  · intro row hrow
+    rcases hrow with ⟨i, rfl⟩
+    rw [MultilinearSPDP.coeff_mlProj_of_isMultilinear_mono _ _
+      (by intro j; simp)]
+    rw [MvPolynomial.coeff_X_mul']
+    simp
+  · simp
+  · intro p q hp hq hp0 hq0
+    rw [MvPolynomial.coeff_add, hp0, hq0]
+    simp
+  · intro a p hp hp0
+    rw [MvPolynomial.coeff_smul, hp0]
+    simp
+
+/-- The concrete singleton quotient projection is zero exactly on the chosen
+singleton-shift subspace. -/
+theorem routeBPaperFaithfulTPhi_zeroProfileQuotientBySingletonShiftProjection_apply_eq_zero_iff
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (q : MvPolynomial (Fin n) ℚ) :
+    zeroProfileQuotientBySingletonShiftProjection factors q = 0 ↔
+      q ∈ zeroProfileSingletonShiftSubspace factors := by
+  rw [zeroProfileQuotientBySingletonShiftProjection]
+  exact
+    Submodule.IsCompl.projection_apply_eq_zero_iff
+      (zeroProfileSingletonShiftSubspace_isCompl_complement factors).symm
+
+/-- The concrete singleton quotient does not kill the zero-profile base row:
+the base row has constant coefficient `1`, while the projection kernel is the
+singleton-shift subspace, whose elements have zero constant coefficient. -/
+theorem routeBPaperFaithfulTPhi_singletonQuotientProjection_baseRow_ne_zero
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    zeroProfileQuotientBySingletonShiftProjection
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+      (mlProj (cookLevinZeroProfileBaseProduct M n hn2 htb hns)) ≠ 0 := by
+  intro hzero
+  have hmem :
+      mlProj (cookLevinZeroProfileBaseProduct M n hn2 htb hns) ∈
+        zeroProfileSingletonShiftSubspace
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i) :=
+    (routeBPaperFaithfulTPhi_zeroProfileQuotientBySingletonShiftProjection_apply_eq_zero_iff
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+      (mlProj (cookLevinZeroProfileBaseProduct M n hn2 htb hns))).mp hzero
+  have hcoeff_zero :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (mlProj (cookLevinZeroProfileBaseProduct M n hn2 htb hns)) = 0 :=
+    routeBPaperFaithfulTPhi_zeroProfileSingletonShiftSubspace_coeff_zero
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i) hmem
+  have hcoeff_one :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (mlProj (cookLevinZeroProfileBaseProduct M n hn2 htb hns)) =
+        (1 : ℚ) := by
+    rw [MultilinearSPDP.coeff_mlProj_of_isMultilinear_mono _ _
+      (by intro j; simp)]
+    exact cookLevinZeroProfileBaseProduct_coeff_zero M n hn2 htb hns
+  norm_num [hcoeff_one] at hcoeff_zero
+
+/-- If strict-FOB derivative erasure held for the concrete singleton quotient,
+then every off-range row would force the projected zero-profile RHS row to be
+zero.  This is the exact extra projection property demanded by the off-range
+split. -/
+theorem routeBPaperFaithfulTPhi_strictFOB_offRangeRow_forces_singletonQuotient_zero
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (herase :
+      RouteBPaperFaithfulTPhiProjectedPWindowStrictFOBDerivativeErasure
+        M n hn2 htb hns
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)))
+    (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ)
+    (hSlen : S.length = Nat.log 2 n)
+    (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+    (hshiftVars : shift.vars ⊆ S.toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition S)
+    (hoff :
+      ∃ v ∈ S, v ∉ Set.range (cookLevinStrictFOBFlatMap n)) :
+    zeroProfileQuotientBySingletonShiftProjection
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+      (mlProj
+        (shift * cookLevinZeroProfileBaseProduct M n hn2 htb hns)) = 0 := by
+  have hrow :=
+    herase S shift hSlen hshiftDegree hshiftVars hadm
+  have hlhs :
+      mlProj
+          (shift * SPDP.iterDerivList S
+            (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+              (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+                (cookLevinStrictFOBFlatMap_injective n)
+                (compiledPoly (cook_levin_compilation M n hn2 htb hns))))) =
+        0 :=
+    routeBPaperFaithfulTPhi_strictFOB_offRangeDerivativeRow_zero
+      n S shift
+      (compiledPoly (cook_levin_compilation M n hn2 htb hns)) hoff
+  rw [hlhs] at hrow
+  exact hrow.symm
+
+/-- Consequently, any off-range admissible derivative list rules out the full
+strict-FOB derivative-erasure statement for the concrete singleton quotient:
+using `shift = 1` would force the concrete quotient to kill the zero-profile
+base row, but the base-row lemma above proves it does not. -/
+theorem routeBPaperFaithfulTPhi_strictFOB_singletonQuotient_offRangeConstantRow_noGo
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : List (Fin n))
+    (hSlen : S.length = Nat.log 2 n)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition S)
+    (hoff :
+      ∃ v ∈ S, v ∉ Set.range (cookLevinStrictFOBFlatMap n)) :
+    ¬ RouteBPaperFaithfulTPhiProjectedPWindowStrictFOBDerivativeErasure
+        M n hn2 htb hns
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) := by
+  intro herase
+  have hzero :
+      zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (mlProj
+          ((1 : MvPolynomial (Fin n) ℚ) *
+            cookLevinZeroProfileBaseProduct M n hn2 htb hns)) = 0 :=
+    routeBPaperFaithfulTPhi_strictFOB_offRangeRow_forces_singletonQuotient_zero
+      M n hn2 htb hns herase S (1 : MvPolynomial (Fin n) ℚ)
+      hSlen (by simp) (by simp) hadm hoff
+  have hbase_zero :
+      zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (mlProj (cookLevinZeroProfileBaseProduct M n hn2 htb hns)) = 0 := by
+    simpa using hzero
+  exact
+    routeBPaperFaithfulTPhi_singletonQuotientProjection_baseRow_ne_zero
+      M n hn2 htb hns hbase_zero
+
+/-- The strict `TΦ` row identity is exactly the re-expanded strict-FOB
+derivative-erasure statement. -/
+theorem routeBPaperFaithfulTPhi_projectedPWindowZeroProfileRowIdentity_iff_strictFOBDerivativeErasure
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ) :
+    RouteBPaperFaithfulTPhiProjectedPWindowZeroProfileRowIdentity
+        M n hn2 htb hns project ↔
+      RouteBPaperFaithfulTPhiProjectedPWindowStrictFOBDerivativeErasure
+        M n hn2 htb hns project := by
+  constructor
+  · intro hrow S shift hSlen hshiftDegree hshiftVars hadm
+    rw [← routeBPaperFaithfulTPhiAmbientGauge_compiledPoly_eq_reexpandedStrictFOB
+      M n hn2 htb hns]
+    rw [hrow S shift hSlen hshiftDegree hshiftVars hadm]
+    simp [cookLevinZeroProfileBaseProduct]
+  · intro herase S shift hSlen hshiftDegree hshiftVars hadm
+    rw [routeBPaperFaithfulTPhiAmbientGauge_compiledPoly_eq_reexpandedStrictFOB
+      M n hn2 htb hns]
+    rw [herase S shift hSlen hshiftDegree hshiftVars hadm]
+    simp [cookLevinZeroProfileBaseProduct]
+
+/-- Exact generator-membership reduction for the strict `TΦ` projected
+P-window containment. -/
+def RouteBPaperFaithfulTPhiProjectedPWindowZeroProfileGeneratorReduction
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ) : Prop :=
+  ∀ (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ),
+    S.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    shift.vars ⊆ S.toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S →
+    mlProj
+        (shift * SPDP.iterDerivList S
+          ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+            (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ∈
+      zeroProfileProjectedShiftSpan (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        project
+
+/-- The strict `TΦ` pointwise row identity gives membership of every
+projected P-window generator in the projected zero-profile shifted span. -/
+theorem routeBPaperFaithfulTPhi_projectedPWindowGenerator_mem_zeroProfileProjection
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    (hrow :
+      RouteBPaperFaithfulTPhiProjectedPWindowZeroProfileRowIdentity
+        M n hn2 htb hns project)
+    (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ)
+    (hSlen : S.length = Nat.log 2 n)
+    (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+    (hshiftVars : shift.vars ⊆ S.toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition S) :
+    mlProj
+        (shift * SPDP.iterDerivList S
+          ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+            (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ∈
+      zeroProfileProjectedShiftSpan (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        project := by
+  classical
+  have hzero :
+      mlProj
+          (shift *
+            Finset.univ.prod
+              (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) ∈
+        zeroProfileShiftImageSet (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i) := by
+    simp only [zeroProfileShiftImageSet, Set.mem_iUnion,
+      Set.mem_singleton_iff]
+    exact ⟨S, le_of_eq hSlen, shift, hshiftVars, rfl⟩
+  have hproject :
+      project
+          (mlProj
+            (shift *
+              Finset.univ.prod
+                (fun i => (cookLevinFactorList M n hn2 htb hns).get i))) ∈
+        zeroProfileProjectedShiftSpan (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+          project := by
+    exact Submodule.mem_map_of_mem (Submodule.subset_span hzero)
+  rw [hrow S shift hSlen hshiftDegree hshiftVars hadm]
+  exact hproject
+
+/-- The strict `TΦ` projected P-window containment is exactly the concrete
+generator-by-generator zero-profile membership check. -/
+theorem routeBPaperFaithfulTPhi_projectedPWindowControlledByZeroProfileProjection_iff_generatorReduction
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ) :
+    RouteBPaperFaithfulTPhiProjectedPWindowControlledByZeroProfileProjection
+        M n hn2 htb hns project ↔
+      RouteBPaperFaithfulTPhiProjectedPWindowZeroProfileGeneratorReduction
+        M n hn2 htb hns project := by
+  classical
+  constructor
+  · intro hcontrol S shift hSlen hshiftDegree hshiftVars hadm
+    apply hcontrol
+    unfold mlBlockedSpdpSubspace
+    exact Submodule.subset_span
+      ⟨S, shift, hSlen, hshiftDegree, hshiftVars, hadm, rfl⟩
+  · intro hgen
+    rw [RouteBPaperFaithfulTPhiProjectedPWindowControlledByZeroProfileProjection]
+    unfold mlBlockedSpdpSubspace
+    refine Submodule.span_le.mpr ?_
+    intro q hq
+    rcases hq with
+      ⟨S, shift, hSlen, hshiftDegree, hshiftVars, hadm, rfl⟩
+    exact hgen S shift hSlen hshiftDegree hshiftVars hadm
+
+/-- The pointwise strict `TΦ` row identity proves the full projected P-window
+containment needed by the projected zero-profile hook. -/
+theorem routeBPaperFaithfulTPhi_projectedPWindowControlledByZeroProfileProjection_of_rowIdentity
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    (hrow :
+      RouteBPaperFaithfulTPhiProjectedPWindowZeroProfileRowIdentity
+        M n hn2 htb hns project) :
+    RouteBPaperFaithfulTPhiProjectedPWindowControlledByZeroProfileProjection
+      M n hn2 htb hns project := by
+  exact
+    (routeBPaperFaithfulTPhi_projectedPWindowControlledByZeroProfileProjection_iff_generatorReduction
+      M n hn2 htb hns project).mpr
+    (fun S shift hSlen hshiftDegree hshiftVars hadm =>
+      routeBPaperFaithfulTPhi_projectedPWindowGenerator_mem_zeroProfileProjection
+        M n hn2 htb hns project hrow S shift
+        hSlen hshiftDegree hshiftVars hadm)
+
+/-- Re-expanded strict-FOB derivative erasure is the exact missing algebra
+which closes the strict `TΦ` projected P-window containment. -/
+theorem routeBPaperFaithfulTPhi_projectedPWindowControlledByZeroProfileProjection_of_strictFOBDerivativeErasure
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    (herase :
+      RouteBPaperFaithfulTPhiProjectedPWindowStrictFOBDerivativeErasure
+        M n hn2 htb hns project) :
+    RouteBPaperFaithfulTPhiProjectedPWindowControlledByZeroProfileProjection
+      M n hn2 htb hns project :=
+  routeBPaperFaithfulTPhi_projectedPWindowControlledByZeroProfileProjection_of_rowIdentity
+    M n hn2 htb hns project
+    ((routeBPaperFaithfulTPhi_projectedPWindowZeroProfileRowIdentity_iff_strictFOBDerivativeErasure
+      M n hn2 htb hns project).mpr herase)
+
 /-- The small arithmetic envelope used by the strict-`TΦ` projected
 zero-profile hook. -/
 theorem routeBPaperFaithfulTPhi_withinProfileBound_log_le_pow_200
@@ -752,6 +1355,26 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_postSpanBoun
 #print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_boundedProfileTemplateCollapse
 #print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_postSpanBoundedBySymProduct
 #print axioms routeB_paperScale_ge_four
+#print axioms routeBPaperFaithfulTPhiAmbientGauge_compiledPoly_eq_reexpandedStrictFOB
+#print axioms RouteBPaperFaithfulTPhiProjectedPWindowZeroProfileRowIdentity
+#print axioms RouteBPaperFaithfulTPhiProjectedPWindowStrictFOBDerivativeErasure
+#print axioms routeBPaperFaithfulTPhi_strictFOB_offRangeDerivativeRow_zero
+#print axioms routeBPaperFaithfulTPhi_rename_restrictStrictFOB_of_vars_range
+#print axioms routeBPaperFaithfulTPhi_strictFOB_renamedDerivativeRow
+#print axioms routeBPaperFaithfulTPhi_strictFOB_allRangeDerivativeRow
+#print axioms routeBPaperFaithfulTPhi_strictFOB_offRangeSingletonShiftRow_singletonQuotient
+#print axioms routeBPaperFaithfulTPhi_strictFOB_allRangeDerivativeRow_singletonQuotient_iff_projected
+#print axioms routeBPaperFaithfulTPhi_zeroProfileSingletonShiftSubspace_coeff_zero
+#print axioms routeBPaperFaithfulTPhi_zeroProfileQuotientBySingletonShiftProjection_apply_eq_zero_iff
+#print axioms routeBPaperFaithfulTPhi_singletonQuotientProjection_baseRow_ne_zero
+#print axioms routeBPaperFaithfulTPhi_strictFOB_offRangeRow_forces_singletonQuotient_zero
+#print axioms routeBPaperFaithfulTPhi_strictFOB_singletonQuotient_offRangeConstantRow_noGo
+#print axioms routeBPaperFaithfulTPhi_projectedPWindowZeroProfileRowIdentity_iff_strictFOBDerivativeErasure
+#print axioms RouteBPaperFaithfulTPhiProjectedPWindowZeroProfileGeneratorReduction
+#print axioms routeBPaperFaithfulTPhi_projectedPWindowGenerator_mem_zeroProfileProjection
+#print axioms routeBPaperFaithfulTPhi_projectedPWindowControlledByZeroProfileProjection_iff_generatorReduction
+#print axioms routeBPaperFaithfulTPhi_projectedPWindowControlledByZeroProfileProjection_of_rowIdentity
+#print axioms routeBPaperFaithfulTPhi_projectedPWindowControlledByZeroProfileProjection_of_strictFOBDerivativeErasure
 #print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_concreteW_rowEmbeddings
 #print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_concreteW_closureFrontier
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_templateCollapse
