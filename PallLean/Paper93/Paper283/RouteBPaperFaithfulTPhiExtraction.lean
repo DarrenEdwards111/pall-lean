@@ -1281,6 +1281,25 @@ theorem zeroProfileSingletonNormalFormProjection_apply {n L : ℕ}
   simp [zeroProfileSingletonNormalFormProjection,
     zeroProfileSingletonCoeffProjector]
 
+/-- Coefficient form of the explicit singleton normalizer.  This is the
+algebraic shape of the remaining strict `TΦ` calculation: for every
+non-singleton monomial, the normalized coefficient is the raw coefficient minus
+the singleton correction contributed by the erased singleton coordinates. -/
+theorem zeroProfileSingletonNormalFormProjection_coeff
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (q : MvPolynomial (Fin n) ℚ) (α : Fin n →₀ ℕ) :
+    MvPolynomial.coeff α (zeroProfileSingletonNormalFormProjection factors q) =
+      MvPolynomial.coeff α q -
+        ∑ i : Fin n,
+          MvPolynomial.coeff (Finsupp.single i 1) q *
+            MvPolynomial.coeff α
+              (mlProj (MvPolynomial.X i * Finset.univ.prod factors)) := by
+  classical
+  rw [zeroProfileSingletonNormalFormProjection_apply]
+  rw [MvPolynomial.coeff_sub, MvPolynomial.coeff_sum]
+  simp [MvPolynomial.coeff_smul]
+
 /-- The explicit normalizer discards only singleton-shift rows. -/
 theorem zeroProfileSingletonNormalFormProjection_residual_mem_singletonShiftSubspace
     {n L : ℕ}
@@ -1725,6 +1744,85 @@ def RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedNonSingletonCoeffIden
         MvPolynomial.coeff α
           (zeroProfileSingletonNormalFormProjection
             (fun i => (cookLevinFactorList M n hn2 htb hns).get i) d)
+
+/-- Expanded coefficient-balance form of the normalized non-singleton target.
+This is the concrete Cook-Levin computation after the singleton normalizer is
+unfolded: the raw non-singleton coefficient mismatch must be exactly balanced
+by the singleton-erasure correction terms. -/
+def RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedCoeffBalance
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ),
+    S'.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+      (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (S'.map (cookLevinStrictFOBFlatMap n)) →
+    ∀ α : Fin n →₀ ℕ,
+      (∀ i : Fin n, α ≠ Finsupp.single i 1) →
+      let factors : Fin (cookLevinFactorList M n hn2 htb hns).length →
+          MvPolynomial (Fin n) ℚ :=
+        fun i => (cookLevinFactorList M n hn2 htb hns).get i
+      let p : MvPolynomial (Fin n) ℚ :=
+        compiledPoly (cook_levin_compilation M n hn2 htb hns)
+      let r : MvPolynomial (Fin (n / 3)) ℚ :=
+        MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n) p
+      let q : MvPolynomial (Fin n) ℚ :=
+        mlProj
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+            cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+      let d : MvPolynomial (Fin n) ℚ :=
+        MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+          (mlProj (shift * SPDP.iterDerivList S' r))
+      MvPolynomial.coeff α q -
+          ∑ i : Fin n,
+            MvPolynomial.coeff (Finsupp.single i 1) q *
+              MvPolynomial.coeff α
+                (mlProj (MvPolynomial.X i * Finset.univ.prod factors)) =
+        MvPolynomial.coeff α d -
+          ∑ i : Fin n,
+            MvPolynomial.coeff (Finsupp.single i 1) d *
+              MvPolynomial.coeff α
+                (mlProj (MvPolynomial.X i * Finset.univ.prod factors))
+
+/-- The expanded corrected coefficient balance is exactly enough to discharge
+the named normalized non-singleton coefficient identity. -/
+theorem routeBPaperFaithfulTPhi_normalizedNonSingletonCoeffIdentity_of_coeffBalance
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hbalance :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedCoeffBalance
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedNonSingletonCoeffIdentity
+        M n hn2 htb hns := by
+  classical
+  intro S' shift hSlen hshiftDegree hshiftVars hadm α hα
+  let p : MvPolynomial (Fin n) ℚ :=
+    compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  let r : MvPolynomial (Fin (n / 3)) ℚ :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+      (cookLevinStrictFOBFlatMap_injective n) p
+  let q : MvPolynomial (Fin n) ℚ :=
+    mlProj
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+        cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+  let d : MvPolynomial (Fin n) ℚ :=
+    MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+      (mlProj (shift * SPDP.iterDerivList S' r))
+  dsimp only
+  have hq :=
+    zeroProfileSingletonNormalFormProjection_coeff
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i) q α
+  have hd :=
+    zeroProfileSingletonNormalFormProjection_coeff
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i) d α
+  rw [hq, hd]
+  simpa [p, r, q, d] using
+    hbalance S' shift hSlen hshiftDegree hshiftVars hadm α hα
 
 /-- Residual-only singleton noise gives equality after the canonical singleton
 quotient projection. -/
