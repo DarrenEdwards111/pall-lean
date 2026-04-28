@@ -130,6 +130,160 @@ theorem routeBPaperFaithfulTPhi_extraction_transfer
     cookLevinStrictFOB_routeB_extraction_transfer
       M n hn2 htb hns hdec B_total hB_total
 
+/-- Canonical projection stage for the strict paper-faithful `TΦ` target.
+
+This is the narrow semantic stage matching the paper: the projection rank
+comparison is only stated for the transported flat first-of-block restriction
+partition and the transported strict coupled-sheet partition. -/
+noncomputable def routeBPaperFaithfulTPhiCanonicalProjectionStage
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) :
+    CanonicalExtractionProjectionStage
+      (target := routeBPaperFaithfulTPhiTarget M n hn2 htb hns B_total)
+      (cookLevinStrictFOBRealRestrictionStage M n hn2 htb hns hdec) where
+  inputPoly :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+      (cookLevinStrictFOBFlatMap_injective n)
+      (PaperFaithfulSeparation.compiledPoly
+        (PaperFaithfulSeparation.cook_levin_compilation
+          M n hn2 htb hns))
+  projectedPoly :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+      (cookLevinStrictFOBMap_injective M n)
+      (Step4Compiler.Step247.partitioned_output_cookLevin
+        M n hn2 htb hns).embedded_Q
+  is_coordinate_selection := True
+  projection_rank_mono := by
+    intro κ ℓ
+    change
+      MultilinearSPDP.mlBlockedSpdpRank
+          (MultilinearSPDP.pullbackPartition B_total
+            (cookLevinStrictFOBMap M n)) κ ℓ
+          (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBMap M n)
+            (cookLevinStrictFOBMap_injective M n)
+            (Step4Compiler.Step247.partitioned_output_cookLevin
+              M n hn2 htb hns).embedded_Q) ≤
+        MultilinearSPDP.mlBlockedSpdpRank
+          (MultilinearSPDP.pullbackPartition
+            (PaperFaithfulSeparation.cook_levin_compilation
+              M n hn2 htb hns).partition
+            (cookLevinStrictFOBFlatMap n)) κ ℓ
+          (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+            (cookLevinStrictFOBFlatMap_injective n)
+            (PaperFaithfulSeparation.compiledPoly
+              (PaperFaithfulSeparation.cook_levin_compilation
+                M n hn2 htb hns)))
+    exact
+      cookLevinStrictFOBRealProjectionStage_canonical_projection_rank_mono
+        M n hn2 htb hns B_total hB_total κ ℓ
+
+/-- Canonical staged semantic witness for the strict paper-faithful `TΦ`
+target. -/
+noncomputable def routeBPaperFaithfulTPhiCanonicalSemantics
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) :
+    CanonicalExtractionMapSemantics M n hn2 htb hns hdec
+      (routeBPaperFaithfulTPhiTarget M n hn2 htb hns B_total) where
+  restriction := cookLevinStrictFOBRealRestrictionStage M n hn2 htb hns hdec
+  projection :=
+    routeBPaperFaithfulTPhiCanonicalProjectionStage
+      M n hn2 htb hns hdec B_total hB_total
+  projection_input_matches := rfl
+  output_identification := rfl
+
+/-- The strict paper-faithful `TΦ` target satisfies the narrow canonical
+semantic obligation. -/
+theorem routeBPaperFaithfulTPhi_canonicalSemanticObligation
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) :
+    GodMoveCanonicalExtractionSemanticObligation M n hn2 htb hns hdec
+      (routeBPaperFaithfulTPhiTarget M n hn2 htb hns B_total) :=
+  ⟨routeBPaperFaithfulTPhiCanonicalSemantics
+    M n hn2 htb hns hdec B_total hB_total⟩
+
+/-- The canonical strict `TΦ` semantic witness gives the extraction transfer
+without the legacy arbitrary-partition projection interface. -/
+theorem routeBPaperFaithfulTPhi_extraction_transfer_from_canonicalSemantics
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) :
+    PaperFaithfulSeparation.GodMoveRouteB_ExtractionObligation
+      M n hn2 htb hns hdec
+      (routeBPaperFaithfulTPhiTarget M n hn2 htb hns B_total) :=
+  extraction_from_canonical_semantics
+    (routeBPaperFaithfulTPhiCanonicalSemantics
+      M n hn2 htb hns hdec B_total hB_total)
+
+/-- The selected total partition for the canonical strict `TΦ` target. -/
+noncomputable abbrev routeBPaperFaithfulTPhiCanonicalTotalPartition
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2) :
+    SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total :=
+  PaperFaithfulCompilation.extendedCookLevinPartition M n hn2
+
+/-- The selected canonical strict `TΦ` target. -/
+noncomputable abbrev routeBPaperFaithfulTPhiCanonicalTarget
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    GodMoveExtractionTarget M n hn2 htb hns :=
+  routeBPaperFaithfulTPhiTarget M n hn2 htb hns
+    (routeBPaperFaithfulTPhiCanonicalTotalPartition M n hn2)
+
+/-- The selected canonical strict `TΦ` target satisfies the narrow canonical
+semantic obligation. -/
+theorem routeBPaperFaithfulTPhi_canonicalTargetSemanticObligation
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M) :
+    GodMoveCanonicalExtractionSemanticObligation M n hn2 htb hns hdec
+      (routeBPaperFaithfulTPhiCanonicalTarget M n hn2 htb hns) :=
+  routeBPaperFaithfulTPhi_canonicalSemanticObligation
+    M n hn2 htb hns hdec
+    (routeBPaperFaithfulTPhiCanonicalTotalPartition M n hn2) rfl
+
+/-- Extraction transfer for the selected canonical strict `TΦ` target through
+the narrow canonical semantic interface. -/
+theorem routeBPaperFaithfulTPhi_canonicalTargetExtractionTransfer
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M) :
+    PaperFaithfulSeparation.GodMoveRouteB_ExtractionObligation
+      M n hn2 htb hns hdec
+      (routeBPaperFaithfulTPhiCanonicalTarget M n hn2 htb hns) :=
+  routeBPaperFaithfulTPhi_extraction_transfer_from_canonicalSemantics
+    M n hn2 htb hns hdec
+    (routeBPaperFaithfulTPhiCanonicalTotalPartition M n hn2) rfl
+
+/-- Same-target identity-minor data for the selected canonical strict `TΦ`
+target. -/
+noncomputable def routeBPaperFaithfulTPhi_canonicalTargetIdentityMinorData
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    PaperFaithfulSeparation.RouteBIdentityMinorSameTargetData
+      (routeBPaperFaithfulTPhiCanonicalTarget M n hn2 htb hns) :=
+  cookLevinStrictFOBTarget_identity_minor_data
+    M n hn hn2 htb hns
+    (routeBPaperFaithfulTPhiCanonicalTotalPartition M n hn2) rfl
+
 /-- The same strict `TΦ` target carries the Route B identity-minor lower-bound
 data. -/
 def routeBPaperFaithfulTPhi_identity_minor_data

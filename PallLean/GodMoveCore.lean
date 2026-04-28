@@ -531,6 +531,102 @@ theorem extraction_from_semantics
           (compiledPoly (cook_levin_compilation M n hn2 htb hns)) :=
         bridge.restriction_rank_mono (Nat.log 2 n) (Nat.log 2 n)
 
+/-! ## Canonical Extraction Semantics
+
+The paper's extraction map compares ranks through the transported partitions
+carried by the concrete restriction/projection/relabel maps.  The legacy
+`ExtractionProjectionStage` above stores a stronger arbitrary-partition
+monotonicity field; the canonical interface below records only the exact
+rank comparison the extraction proof uses. -/
+
+/-- Canonical projection stage for a fixed extraction target.
+
+Unlike `ExtractionProjectionStage`, this does not quantify over arbitrary
+restricted and coupled partitions.  It compares the projection output at the
+target's transported coupled partition with the projection input at the
+restriction stage's transported restricted partition. -/
+structure CanonicalExtractionProjectionStage
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    {target : GodMoveExtractionTarget M n hn2 htb hns}
+    (restriction : ExtractionRestrictionStage M n hn2 htb hns hdec) where
+  /-- The specific restricted polynomial fed into the canonical projection. -/
+  inputPoly : MvPolynomial (Fin restriction.restrictedVars) ℚ
+  /-- The extracted polynomial in the target variable space. -/
+  projectedPoly : MvPolynomial (Fin target.coupledVars) ℚ
+  /-- The projection is a coordinate/basis extraction in the paper sense. -/
+  is_coordinate_selection : Prop
+  /-- Rank monotonicity at the transported partitions used by this target. -/
+  projection_rank_mono : ∀ (κ ℓ : ℕ),
+    mlBlockedSpdpRank target.coupledPartition κ ℓ projectedPoly ≤
+      mlBlockedSpdpRank restriction.restrictedPartition κ ℓ inputPoly
+
+/-- Canonical staged semantic core of the extraction map.
+
+This is the paper-faithful alternative to the legacy broad semantic stage:
+restriction is still a concrete specialization, but projection is checked only
+against the canonical transported partitions of the selected target. -/
+structure CanonicalExtractionMapSemantics (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M)
+    (target : GodMoveExtractionTarget M n hn2 htb hns) where
+  /-- Stage 1: restriction/specialization data. -/
+  restriction : ExtractionRestrictionStage M n hn2 htb hns hdec
+  /-- Stage 2: canonical projection to the selected target. -/
+  projection : CanonicalExtractionProjectionStage (target := target) restriction
+  /-- The projection stage is fed the restricted polynomial from stage 1. -/
+  projection_input_matches : projection.inputPoly = restriction.restrictedPoly
+  /-- The canonical projected output is the target polynomial. -/
+  output_identification : projection.projectedPoly = target.coupledPoly
+
+/-- Canonical semantic obligation on a chosen extraction target. -/
+def GodMoveCanonicalExtractionSemanticObligation (M : DTM) (n : ℕ)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M)
+    (target : GodMoveExtractionTarget M n hn2 htb hns) : Prop :=
+  Nonempty (CanonicalExtractionMapSemantics M n hn2 htb hns hdec target)
+
+/-- A canonical staged semantic witness implies the bare extraction transfer
+inequality. -/
+theorem extraction_from_canonical_semantics
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    {target : GodMoveExtractionTarget M n hn2 htb hns}
+    (sem : CanonicalExtractionMapSemantics M n hn2 htb hns hdec target) :
+    GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec target := by
+  unfold GodMoveRouteB_ExtractionObligation
+  change
+    mlBlockedSpdpRank target.coupledPartition (Nat.log 2 n) (Nat.log 2 n) target.coupledPoly ≤
+      mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
+        (Nat.log 2 n) (Nat.log 2 n)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns))
+  rw [← sem.output_identification]
+  calc
+    mlBlockedSpdpRank target.coupledPartition (Nat.log 2 n) (Nat.log 2 n)
+        sem.projection.projectedPoly
+      ≤ mlBlockedSpdpRank sem.restriction.restrictedPartition
+          (Nat.log 2 n) (Nat.log 2 n) sem.projection.inputPoly :=
+        sem.projection.projection_rank_mono (Nat.log 2 n) (Nat.log 2 n)
+    _ = mlBlockedSpdpRank sem.restriction.restrictedPartition
+          (Nat.log 2 n) (Nat.log 2 n) sem.restriction.restrictedPoly := by
+        rw [sem.projection_input_matches]
+    _ ≤ mlBlockedSpdpRank (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns)) :=
+        sem.restriction.restriction_rank_mono (Nat.log 2 n) (Nat.log 2 n)
+
+/-- A canonical semantic obligation is enough for the extraction transfer. -/
+theorem extraction_from_canonical_semantic_obligation
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2} {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    {hdec : DecidesSAT M}
+    {target : GodMoveExtractionTarget M n hn2 htb hns}
+    (hsem :
+      GodMoveCanonicalExtractionSemanticObligation M n hn2 htb hns hdec target) :
+    GodMoveRouteB_ExtractionObligation M n hn2 htb hns hdec target := by
+  rcases hsem with ⟨sem⟩
+  exact extraction_from_canonical_semantics sem
+
 /-- A staged semantic obligation plus rank wrappers yields the target-level
 extraction transfer.
 
