@@ -969,6 +969,66 @@ def theorem207SemanticTransportWitness_of_target_data
   source_p_side_upper_bound := hP
   source_to_target_rank_bridge := bridge
 
+/-- Paper-faithful semantic transport witness using the canonical transported
+extraction partitions.
+
+This is the Route B variant matching the strict `TΦ` extraction: the semantic
+stage is the narrow canonical obligation, not the legacy arbitrary-partition
+projection interface. -/
+structure Theorem207CanonicalSemanticTransportWitness
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M) : Type where
+  targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec
+  extraction_semantics :
+    GodMoveCanonicalExtractionSemanticObligation
+      M n hn2 htb hns hdec targetData.extractionTarget
+  same_target_identity_minor :
+    RouteBIdentityMinorSameTargetData targetData.extractionTarget
+  paper_source : Theorem207PaperSource M n hn hn2 htb hns
+  source_p_side_upper_bound :
+    Theorem207PaperSourcePSideUpperBound M n hn hn2 htb hns paper_source
+  source_to_target_rank_bridge :
+    Theorem207PaperSourceToTargetRankBridge
+      M n hn hn2 htb hns paper_source targetData.extractionTarget
+
+/-- Constructor for canonical source-transport semantic witnesses. -/
+def theorem207CanonicalSemanticTransportWitness_of_target_data
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M)
+    (targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec)
+    (hsem :
+      GodMoveCanonicalExtractionSemanticObligation
+        M n hn2 htb hns hdec targetData.extractionTarget)
+    (minor : RouteBIdentityMinorSameTargetData targetData.extractionTarget)
+    (source : Theorem207PaperSource M n hn hn2 htb hns)
+    (hP : Theorem207PaperSourcePSideUpperBound M n hn hn2 htb hns source)
+    (bridge :
+      Theorem207PaperSourceToTargetRankBridge
+        M n hn hn2 htb hns source targetData.extractionTarget) :
+    Theorem207CanonicalSemanticTransportWitness M n hn hn2 htb hns hdec where
+  targetData := targetData
+  extraction_semantics := hsem
+  same_target_identity_minor := minor
+  paper_source := source
+  source_p_side_upper_bound := hP
+  source_to_target_rank_bridge := bridge
+
+/-- A canonical source-transport semantic witness closes the same Theorem 207
+contradiction as the legacy semantic witness. -/
+theorem theorem207CanonicalSemanticTransportWitness_false
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : DecidesSAT M)
+    (W : Theorem207CanonicalSemanticTransportWitness
+      M n hn hn2 htb hns hdec) :
+    False :=
+  theorem207PaperSource_transport_false M n hn hn2 htb hns
+    W.targetData.extractionTarget W.paper_source W.source_p_side_upper_bound
+    W.source_to_target_rank_bridge
+    (routeB_strong_np_from_same_target_identity_minor W.same_target_identity_minor)
+
 /-- A source-transport semantic witness closes the paper-faithful Route B
 contradiction without requiring a polynomial rank bound for the local
 product-form `compiledPoly`. -/

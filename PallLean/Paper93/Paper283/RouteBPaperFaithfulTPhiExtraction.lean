@@ -909,6 +909,112 @@ theorem false_of_routeBPaperFaithfulTPhi_semanticTransportWitness_from_templateC
       M n hn htb hns hn2 B_total hB_total hcollapse)
     hsem
 
+/-- Canonical semantic-transport witness for the strict `TΦ` target.
+
+This is the paper-faithful semantic witness: the extraction stage is supplied
+by the transported strict `TΦ` partitions, so callers no longer need the
+legacy arbitrary-partition `GodMoveExtractionTargetTheorem`. -/
+noncomputable def routeBPaperFaithfulTPhi_canonicalSemanticTransportWitness
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hQ_upper : MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B_total
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (show MvPolynomial (Fin n) ℚ from
+        PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200) :
+    GlobalGodMoveGauge.Theorem207CanonicalSemanticTransportWitness
+      M n hn hn2 htb hns hdec :=
+  GlobalGodMoveGauge.theorem207CanonicalSemanticTransportWitness_of_target_data
+    M n hn hn2 htb hns hdec
+    (routeBPaperFaithfulTPhiTargetData
+      M n hn2 htb hns hdec hard B_total)
+    (by
+      simpa [routeBPaperFaithfulTPhiTargetData]
+        using
+          routeBPaperFaithfulTPhi_canonicalSemanticObligation
+            M n hn2 htb hns hdec B_total hB_total)
+    (by
+      simpa [routeBPaperFaithfulTPhiTargetData]
+        using
+          routeBPaperFaithfulTPhi_identity_minor_data
+            M n hn hn2 htb hns B_total hB_total)
+    (routeBPaperFaithfulTPhiPaperSource
+      M n hn hn2 htb hns B_total hB_total hQ_upper)
+    (routeBPaperFaithfulTPhiPaperSource_p_side_upper
+      M n hn hn2 htb hns B_total hB_total hQ_upper)
+    (by
+      simpa [routeBPaperFaithfulTPhiTargetData]
+        using
+          routeBPaperFaithfulTPhi_source_to_target_rank_bridge
+            M n hn hn2 htb hns B_total hB_total hQ_upper)
+
+/-- The canonical strict `TΦ` semantic witness closes `False` once the exact
+P-side input is supplied.  Unlike the legacy semantic-witness theorem, this
+does not assume the broad arbitrary-partition semantic interface. -/
+theorem false_of_routeBPaperFaithfulTPhi_canonicalSemanticTransportWitness
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hQ_upper : MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B_total
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (show MvPolynomial (Fin n) ℚ from
+        PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200) :
+    False :=
+  GlobalGodMoveGauge.theorem207CanonicalSemanticTransportWitness_false
+    M n hn hn2 htb hns hdec
+    (routeBPaperFaithfulTPhi_canonicalSemanticTransportWitness
+      M n hn hn2 htb hns hdec hard B_total hB_total hQ_upper)
+
+/-- Canonical semantic-witness strict `TΦ` contradiction from template
+collapse, using only the transported-partition semantic interface. -/
+theorem false_of_routeBPaperFaithfulTPhi_canonicalSemanticTransportWitness_from_templateCollapse
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hcollapse :
+      WithinProfileBound.CookLevinProfileTemplateCollapseLemma
+        M n hn2 htb hns) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_canonicalSemanticTransportWitness
+    M n hn hn2 htb hns hdec hard B_total hB_total
+    (cookLevinQ_rank_le_from_templateCollapse_at_B_total
+      M n hn htb hns hn2 B_total hB_total hcollapse)
+
+/-- Selected canonical semantic-witness strict `TΦ` contradiction from
+template collapse. -/
+theorem false_of_routeBPaperFaithfulTPhi_canonicalSemanticTransportWitness_canonical_from_templateCollapse
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
+    (hcollapse :
+      WithinProfileBound.CookLevinProfileTemplateCollapseLemma
+        M n hn2 htb hns) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_canonicalSemanticTransportWitness_from_templateCollapse
+    M n hn hn2 htb hns hdec hard
+    (routeBPaperFaithfulTPhiCanonicalTotalPartition M n hn2)
+    rfl hcollapse
+
 /-- The strict paper-faithful `TΦ` target feeds the final source-transport
 contradiction once the selected Cook-Levin P-side upper bound is supplied. -/
 theorem false_of_routeBPaperFaithfulTPhi_qRankUpper
