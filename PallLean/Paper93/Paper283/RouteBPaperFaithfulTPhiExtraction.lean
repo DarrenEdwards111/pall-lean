@@ -1690,6 +1690,42 @@ def RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientDerivativeFixe
     zeroProfileQuotientBySingletonShiftProjection
         (fun i => (cookLevinFactorList M n hn2 htb hns).get i) d = d
 
+/-- The actual normalized coefficient computation left by the paper-faithful
+singleton residual route.  Singleton coefficients are deliberately absent:
+the semantic normalizer kills them on both sides. -/
+def RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedNonSingletonCoeffIdentity
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ),
+    S'.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+      (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (S'.map (cookLevinStrictFOBFlatMap n)) →
+    ∀ α : Fin n →₀ ℕ,
+      (∀ i : Fin n, α ≠ Finsupp.single i 1) →
+      let p : MvPolynomial (Fin n) ℚ :=
+        compiledPoly (cook_levin_compilation M n hn2 htb hns)
+      let r : MvPolynomial (Fin (n / 3)) ℚ :=
+        MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n) p
+      let q : MvPolynomial (Fin n) ℚ :=
+        mlProj
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+            cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+      let d : MvPolynomial (Fin n) ℚ :=
+        MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+          (mlProj (shift * SPDP.iterDerivList S' r))
+      MvPolynomial.coeff α
+          (zeroProfileSingletonNormalFormProjection
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i) q) =
+        MvPolynomial.coeff α
+          (zeroProfileSingletonNormalFormProjection
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i) d)
+
 /-- Residual-only singleton noise gives equality after the canonical singleton
 quotient projection. -/
 theorem routeBPaperFaithfulTPhi_singletonQuotientRowIdentity_of_singletonResidual
@@ -2169,35 +2205,8 @@ theorem routeBPaperFaithfulTPhi_singletonResidual_of_normalized_nonSingleton_coe
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
     (hnonsingle :
-      ∀ (S' : List (Fin (n / 3)))
-        (shift : MvPolynomial (Fin (n / 3)) ℚ),
-        S'.length = Nat.log 2 n →
-        shift.totalDegree ≤ Nat.log 2 n →
-        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
-          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
-        SPDP.isBlockAdmissible
-          (cook_levin_compilation M n hn2 htb hns).partition
-          (S'.map (cookLevinStrictFOBFlatMap n)) →
-        ∀ α : Fin n →₀ ℕ,
-          (∀ i : Fin n, α ≠ Finsupp.single i 1) →
-          let p : MvPolynomial (Fin n) ℚ :=
-            compiledPoly (cook_levin_compilation M n hn2 htb hns)
-          let r : MvPolynomial (Fin (n / 3)) ℚ :=
-            MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
-              (cookLevinStrictFOBFlatMap_injective n) p
-          let q : MvPolynomial (Fin n) ℚ :=
-            mlProj
-              (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
-                cookLevinZeroProfileBaseProduct M n hn2 htb hns)
-          let d : MvPolynomial (Fin n) ℚ :=
-            MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
-              (mlProj (shift * SPDP.iterDerivList S' r))
-          MvPolynomial.coeff α
-              (zeroProfileSingletonNormalFormProjection
-                (fun i => (cookLevinFactorList M n hn2 htb hns).get i) q) =
-            MvPolynomial.coeff α
-              (zeroProfileSingletonNormalFormProjection
-                (fun i => (cookLevinFactorList M n hn2 htb hns).get i) d)) :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedNonSingletonCoeffIdentity
+        M n hn2 htb hns) :
     RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalFormResidual
         M n hn2 htb hns := by
   classical
