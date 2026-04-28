@@ -1,5 +1,6 @@
 import PallLean.Paper93.DeepMath.PathB.ActiveProfileEndpointAugmentedProgress
 import PallLean.Paper93.Closure.PerTypeClosure
+import PallLean.Paper93.Wiring.DischargeChain
 
 /-!
 # Active-profile endpoint-augmented proof progress
@@ -288,6 +289,102 @@ theorem endpointAugmentedActiveProfileChargedFrontier_of_canonicalShape_componen
     M n hn htb hns charge hn4
     (endpointAugmentedActiveProfileSubspaceBudget n hn4)
     hShape hI1 hI2c hI3 hSelf
+
+/-- Direct transported Cook-Levin branch shapes provide the endpoint-augmented
+factor-membership field, while the active-profile budget is the checked
+dimension theorem. -/
+theorem endpointAugmentedActiveProfileChargedFrontier_of_directBranchShapes_transport_components_checkedBudget
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (charge : ProfileCharge n) (hn4 : n ≥ 4)
+    (hShape :
+      CookLevinDirectBranchShapeWitnesses M n hn htb hns hn4)
+    (hTransport :
+      CookLevinConcreteWCanonicalRowTransport M n hn htb hns hn4)
+    (hI1 :
+      PerTypeProductGrouping (endpointAugmentedConcreteW n hn4))
+    (hI2c :
+      PerTypeChargedShiftClosure charge
+        (endpointAugmentedConcreteW n hn4))
+    (hI3 :
+      PerTypeMlprojClosure (endpointAugmentedConcreteW n hn4))
+    (hSelf :
+      ∀ (h : ProfileHistogram)
+        (hadm : ProfileAdmissible (Nat.log 2 n) h),
+          h ConstraintType.transitionRight = 0 →
+            h ≠ zeroProfileHistogram →
+              ActiveProfileSupport h →
+                ProfileChargeSelfAtBoundedProfile charge
+                  (admissibleToBounded hadm)) :
+    EndpointAugmentedActiveProfileChargedFrontier
+      M n hn htb hns charge hn4 :=
+  endpointAugmentedActiveProfileChargedFrontier_of_components_checkedBudget
+    M n hn htb hns charge hn4
+    (CookLevinFactorMemPerType_endpointAugmentedConcreteW_of_directBranchShapes_transport
+      M n hn htb hns hn4 hShape hTransport)
+    hI1 hI2c hI3 hSelf
+
+/-- Universal I1/I3 packages instantiate the endpoint-augmented local
+product-grouping and multilinear-projection fields. -/
+theorem endpointAugmentedActiveProfileChargedFrontier_of_canonicalShape_universal_I1_I3_checkedBudget
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (charge : ProfileCharge n) (hn4 : n ≥ 4)
+    (hShape :
+      CookLevinCanonicalConcreteWShapeWitnesses M n hn htb hns hn4)
+    (hI1_univ : PallLean.Paper93.Wiring.PerTypeProductGrouping_universal)
+    (hI2c :
+      PerTypeChargedShiftClosure charge
+        (endpointAugmentedConcreteW n hn4))
+    (hI3_univ : PallLean.Paper93.Wiring.PerTypeMlprojClosure_universal)
+    (hSelf :
+      ∀ (h : ProfileHistogram)
+        (hadm : ProfileAdmissible (Nat.log 2 n) h),
+          h ConstraintType.transitionRight = 0 →
+            h ≠ zeroProfileHistogram →
+              ActiveProfileSupport h →
+                ProfileChargeSelfAtBoundedProfile charge
+                  (admissibleToBounded hadm)) :
+    EndpointAugmentedActiveProfileChargedFrontier
+      M n hn htb hns charge hn4 :=
+  endpointAugmentedActiveProfileChargedFrontier_of_canonicalShape_components_checkedBudget
+    M n hn htb hns charge hn4 hShape
+    (hI1_univ n (endpointAugmentedConcreteW n hn4))
+    hI2c
+    (hI3_univ n (endpointAugmentedConcreteW n hn4))
+    hSelf
+
+/-- Direct transported branch shapes plus universal I1/I3 leave only the
+charged shift relation and active charge targeting as local inputs. -/
+theorem endpointAugmentedActiveProfileChargedFrontier_of_directBranchShapes_transport_universal_I1_I3_checkedBudget
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (charge : ProfileCharge n) (hn4 : n ≥ 4)
+    (hShape :
+      CookLevinDirectBranchShapeWitnesses M n hn htb hns hn4)
+    (hTransport :
+      CookLevinConcreteWCanonicalRowTransport M n hn htb hns hn4)
+    (hI1_univ : PallLean.Paper93.Wiring.PerTypeProductGrouping_universal)
+    (hI2c :
+      PerTypeChargedShiftClosure charge
+        (endpointAugmentedConcreteW n hn4))
+    (hI3_univ : PallLean.Paper93.Wiring.PerTypeMlprojClosure_universal)
+    (hSelf :
+      ∀ (h : ProfileHistogram)
+        (hadm : ProfileAdmissible (Nat.log 2 n) h),
+          h ConstraintType.transitionRight = 0 →
+            h ≠ zeroProfileHistogram →
+              ActiveProfileSupport h →
+                ProfileChargeSelfAtBoundedProfile charge
+                  (admissibleToBounded hadm)) :
+    EndpointAugmentedActiveProfileChargedFrontier
+      M n hn htb hns charge hn4 :=
+  endpointAugmentedActiveProfileChargedFrontier_of_directBranchShapes_transport_components_checkedBudget
+    M n hn htb hns charge hn4 hShape hTransport
+    (hI1_univ n (endpointAugmentedConcreteW n hn4))
+    hI2c
+    (hI3_univ n (endpointAugmentedConcreteW n hn4))
+    hSelf
 
 /-- ConcreteW row embeddings close the active blockers through the direct
 endpoint-augmented post-span criterion. -/
