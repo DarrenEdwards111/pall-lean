@@ -294,6 +294,65 @@ theorem cookLevinPostSpanAt_le_chargedTarget_of_chargedSpanningAtBoundedProfileT
   exact hSpanAt S hSlen shift hshiftvars g hg
     (hCharge S hSlen shift hshiftvars g hg)
 
+/-- Charged/restricted Cook-Levin post-span from a source bounded profile to a
+target bounded profile.
+
+Unlike `cookLevinPostSpanAt`, this does not range over all shifts.  It keeps
+only the generators whose shift is accepted by the chosen profile charge. -/
+noncomputable def cookLevinChargedPostSpanAtTarget
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (charge : ProfileCharge n)
+    (bpSrc bpTgt : BoundedProfile (Nat.log 2 n)) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+  Submodule.span ℚ
+    { p | ∃ (S : List (Fin n)) (_hSlen : S.length ≤ Nat.log 2 n)
+        (shift : MvPolynomial (Fin n) ℚ)
+        (_hshift : shift.vars ⊆ S.toFinset)
+        (g : MvPolynomial (Fin n) ℚ)
+        (_hg : g ∈ boundedProfileClassifiedSet
+              (fun i => (cookLevinFactorList M n hn htb hns).get i)
+              (cookLevinConstraintType M n hn htb hns)
+              S bpSrc.toHistogram),
+        charge bpSrc S shift bpTgt ∧ p = mlProj (shift * g) }
+
+/-- A target-profile charged spanning slice contains the corresponding
+charged/restricted post-span. -/
+theorem cookLevinChargedPostSpanAtTarget_le_profileSubspace_of_chargedSpanningAtBoundedProfileTarget
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (W : ConstraintType → Submodule ℚ (MvPolynomial (Fin n) ℚ))
+    (charge : ProfileCharge n)
+    (bpSrc bpTgt : BoundedProfile (Nat.log 2 n))
+    (hSpanAt :
+      CookLevinPerTypeChargedSpanningAtBoundedProfileTarget
+        M n hn htb hns W charge bpSrc bpTgt) :
+    cookLevinChargedPostSpanAtTarget M n hn htb hns charge bpSrc bpTgt
+      ≤ cookLevinProfileSubspace bpTgt W := by
+  classical
+  refine Submodule.span_le.mpr ?_
+  intro p hp
+  rcases hp with ⟨S, hSlen, shift, hshiftvars, g, hg, hcharge, rfl⟩
+  exact hSpanAt S hSlen shift hshiftvars g hg hcharge
+
+/-- H3, H4, and charged I5 contain the charged/restricted post-span in the
+target profile subspace. -/
+theorem cookLevinChargedPostSpanAtTarget_le_profileSubspace_discharged
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (W : ConstraintType → Submodule ℚ (MvPolynomial (Fin n) ℚ))
+    (charge : ProfileCharge n)
+    (bpSrc bpTgt : BoundedProfile (Nat.log 2 n))
+    (hFactor : CookLevinFactorMemPerType M n hn htb hns W)
+    (hClosure : DerivClosurePerType (n := n) W)
+    (hCharged : PerTypeShiftMlprojClosureCharged (n := n) charge W) :
+    cookLevinChargedPostSpanAtTarget M n hn htb hns charge bpSrc bpTgt
+      ≤ cookLevinProfileSubspace bpTgt W :=
+  cookLevinChargedPostSpanAtTarget_le_profileSubspace_of_chargedSpanningAtBoundedProfileTarget
+    M n hn htb hns W charge bpSrc bpTgt
+    (cookLevinPerTypeChargedSpanningAtBoundedProfileTarget_discharged
+      M n hn htb hns W charge bpSrc bpTgt hFactor hClosure hCharged)
+
 /-- Discharge a bounded-profile row-embedding slice from H3, endpoint H4, and
 profile-local shift/mlProj closure. -/
 theorem cookLevinPerTypeSpanningAtBoundedProfile_discharged
@@ -1841,6 +1900,8 @@ theorem cookLevinAllBoundedProfileCommonSpanLiveProfileCases_of_endpointAugmente
 #print axioms perTypeShiftMlprojClosureAtBoundedProfile_of_charged_self
 #print axioms cookLevinPerTypeChargedSpanningAtBoundedProfileTarget_discharged
 #print axioms cookLevinPostSpanAt_le_chargedTarget_of_chargedSpanningAtBoundedProfileTarget
+#print axioms cookLevinChargedPostSpanAtTarget_le_profileSubspace_of_chargedSpanningAtBoundedProfileTarget
+#print axioms cookLevinChargedPostSpanAtTarget_le_profileSubspace_discharged
 #print axioms cookLevinPerTypeSpanningAtBoundedProfile_discharged
 #print axioms endpointAugmentedActiveProfileSubspaceBudget_of_dim_le_three
 #print axioms compiledCoefficientBasis_activeProfileSubspaceBudget
