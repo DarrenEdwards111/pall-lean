@@ -4685,6 +4685,24 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugme
       (hzero M n hn2 htb hns)
       (hRowEmbeddings M n hn2 hn4 htb hns)
 
+/-- Compatibility hook: the legacy universal per-type spanning package supplies
+the concrete row embeddings needed by the endpoint-augmented active-profile
+strict `TΦ` route.
+
+The paper-faithful proof target remains the selected canonical/concrete local
+type spaces.  This theorem only records that, if the older arbitrary-`W`
+package is available, it also feeds the corrected endpoint-active consumer. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_perTypeSpanning_universal_activeProfiles
+    (hzero :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hSpan_univ : PallLean.Paper93.Spanning.CookLevinPerTypeSpanning_universal) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_concreteW_rowEmbeddings_activeProfiles
+    hzero
+    (CookLevinPerTypeRowEmbeddings_concreteW_of_universalSpanning hSpan_univ)
+
 /-- Uniform charged endpoint-augmented active-profile frontiers plus the
 zero-profile common-span blocker close the strict paper-faithful `TΦ` route at
 the paper scale. -/
@@ -4796,6 +4814,19 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_endpointAugm
   cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_concreteW_rowEmbeddings_activeProfiles
       hzero hRowEmbeddings)
+
+/-- Legacy rich-projection discharge from the endpoint-augmented active-profile
+route with the compatibility universal per-type spanning input. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_endpointAugmented_perTypeSpanning_universal_activeProfiles
+    (hzero :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hSpan_univ : PallLean.Paper93.Spanning.CookLevinPerTypeSpanning_universal) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_perTypeSpanning_universal_activeProfiles
+      hzero hSpan_univ)
 
 /-- Legacy rich-projection discharge from the charged endpoint-augmented
 strict `TΦ` route, mediated only by the established no-decider equivalence. -/
