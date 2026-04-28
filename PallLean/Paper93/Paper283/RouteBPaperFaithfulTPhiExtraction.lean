@@ -9,6 +9,7 @@ import PallLean.Paper93.DeepMath.PathB.ActiveProfileEndpointAugmentedProgress
 import PallLean.Paper93.DeepMath.PathB.ActiveProfileEndpointAugmentedProofProgress
 import PallLean.Paper93.Paper283.RouteBTransportPSideBound
 import PallLean.Paper93.Paper283.RouteBZeroProfileProjectedPWindowProgress
+import PallLean.Paper93.Paper283.RouteBChargedShiftClosureProgress
 
 /-!
 # Route B paper-faithful `TΦ` extraction
@@ -4872,6 +4873,56 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugme
         hI3_univ
         (hSelf n hn4))
 
+/-- Strict `TΦ` Route B with the concrete one-step endpoint charge.
+
+The charged-shift field is discharged by
+`endpointAugmentedConcreteW_chargedShiftClosure_concreteWEndpointSpanOneStepCharge`.
+The remaining active side condition is still the old self-targeting field,
+which is intentionally explicit because the concrete one-step endpoint charge
+is known not to satisfy it. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_directBranchTransport_universal_I1_I3_concreteEndpointCharge_checkedBudget
+    (hzero :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hShape :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinDirectBranchShapeWitnesses M n hn2 htb hns hn4)
+    (hTransport :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinConcreteWCanonicalRowTransport M n hn2 htb hns hn4)
+    (hI1_univ : PallLean.Paper93.Wiring.PerTypeProductGrouping_universal)
+    (hI3_univ : PallLean.Paper93.Wiring.PerTypeMlprojClosure_universal)
+    (hSelf :
+      ∀ (n : ℕ) (hn4 : n ≥ 4)
+        (h : ProfileHistogram)
+        (hadm : ProfileAdmissible (Nat.log 2 n) h),
+          h ConstraintType.transitionRight = 0 →
+            h ≠ zeroProfileHistogram →
+              ActiveProfileSupport h →
+                ProfileChargeSelfAtBoundedProfile
+                  (concreteWEndpointSpanOneStepCharge n hn4)
+                  (admissibleToBounded hadm)) :
+    NoBoundedSATDeciderAtPaperScale := by
+  intro M n hn hn2 htb hns hdec
+  have hn4 : n ≥ 4 := routeB_paperScale_ge_four hn
+  exact
+    false_of_routeBPaperFaithfulTPhi_canonical_from_endpointAugmented_chargedFrontier
+      M n hn hn2 htb hns hdec
+      (concreteWEndpointSpanOneStepCharge n hn4) hn4
+      (hzero M n hn2 htb hns)
+      (endpointAugmentedActiveProfileChargedFrontier_of_directBranchShapes_transport_universal_I1_I3_checkedBudget
+        M n hn2 htb hns (concreteWEndpointSpanOneStepCharge n hn4) hn4
+        (hShape M n hn2 hn4 htb hns)
+        (hTransport M n hn2 hn4 htb hns)
+        hI1_univ
+        (endpointAugmentedConcreteW_chargedShiftClosure_concreteWEndpointSpanOneStepCharge
+          n hn4)
+        hI3_univ
+        (hSelf n hn4))
+
 /-- Legacy rich-projection discharge from the strict `TΦ` concreteW
 row-embedding route, mediated only by the established no-decider equivalence. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_concreteW_rowEmbeddings
@@ -5107,6 +5158,38 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_endpointAugm
   cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_directBranchTransport_universal_I1_I3_checkedBudget
       charge hzero hShape hTransport hI1_univ hI2c hI3_univ hSelf)
+
+/-- Legacy rich-projection discharge from direct transported Cook-Levin branch
+shapes, universal I1/I3, and the concrete one-step endpoint charge. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_endpointAugmented_directBranchTransport_universal_I1_I3_concreteEndpointCharge_checkedBudget
+    (hzero :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hShape :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinDirectBranchShapeWitnesses M n hn2 htb hns hn4)
+    (hTransport :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinConcreteWCanonicalRowTransport M n hn2 htb hns hn4)
+    (hI1_univ : PallLean.Paper93.Wiring.PerTypeProductGrouping_universal)
+    (hI3_univ : PallLean.Paper93.Wiring.PerTypeMlprojClosure_universal)
+    (hSelf :
+      ∀ (n : ℕ) (hn4 : n ≥ 4)
+        (h : ProfileHistogram)
+        (hadm : ProfileAdmissible (Nat.log 2 n) h),
+          h ConstraintType.transitionRight = 0 →
+            h ≠ zeroProfileHistogram →
+              ActiveProfileSupport h →
+                ProfileChargeSelfAtBoundedProfile
+                  (concreteWEndpointSpanOneStepCharge n hn4)
+                  (admissibleToBounded hadm)) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_directBranchTransport_universal_I1_I3_concreteEndpointCharge_checkedBudget
+      hzero hShape hTransport hI1_univ hI3_univ hSelf)
 
 /-- A uniform concrete H3/H4/I5 local closure theorem closes the strict `TΦ`
 contradiction-strength consumer through the concreteW row-embedding assembly. -/
