@@ -2692,6 +2692,49 @@ theorem routeBPaperFaithfulTPhi_boolFactorDerivative_not_singletonNormalForm
     simpa [hleft, hright] using hcoeff
   norm_num at hbad
 
+/-- The same Boolean-factor calculation rules out treating the raw Boolean
+derivative as merely singleton-shift residual noise away from the
+undifferentiated Boolean row.  The residual has constant coefficient `2`,
+whereas every singleton-shift residual has constant coefficient `0`. -/
+theorem routeBPaperFaithfulTPhi_boolFactorDerivative_not_singletonResidual
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (v : Fin n) :
+    mlProj (SymmetricPower.boolFactor n v : MvPolynomial (Fin n) ℚ) -
+        MvPolynomial.pderiv v
+          (SymmetricPower.boolFactor n v : MvPolynomial (Fin n) ℚ) ∉
+      zeroProfileSingletonShiftSubspace factors := by
+  intro hmem
+  have hzero :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (mlProj (SymmetricPower.boolFactor n v : MvPolynomial (Fin n) ℚ) -
+          MvPolynomial.pderiv v
+            (SymmetricPower.boolFactor n v : MvPolynomial (Fin n) ℚ)) = 0 :=
+    routeBPaperFaithfulTPhi_zeroProfileSingletonShiftSubspace_coeff_zero
+      factors hmem
+  have hleft :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (mlProj (SymmetricPower.boolFactor n v :
+          MvPolynomial (Fin n) ℚ)) = 1 := by
+    rw [MultilinearSPDP.coeff_mlProj_of_isMultilinear_mono _ _
+      (by intro i; simp)]
+    exact SymmetricPower.coeff_zero_boolFactor v
+  have hright :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (MvPolynomial.pderiv v
+          (SymmetricPower.boolFactor n v :
+            MvPolynomial (Fin n) ℚ)) = -1 :=
+    SymmetricPower.coeff_zero_pderiv_boolFactor v
+  have hcoeff :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (mlProj (SymmetricPower.boolFactor n v : MvPolynomial (Fin n) ℚ) -
+          MvPolynomial.pderiv v
+            (SymmetricPower.boolFactor n v : MvPolynomial (Fin n) ℚ)) = 2 := by
+    rw [MvPolynomial.coeff_sub, hleft, hright]
+    norm_num
+  rw [hcoeff] at hzero
+  norm_num at hzero
+
 /-- Concrete decomposition form of the strict range-only singleton-quotient
 residual gate.
 
