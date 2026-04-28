@@ -1229,6 +1229,225 @@ theorem routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientRowIdenti
     (zeroProfileQuotientBySingletonShiftProjection
       (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
 
+/-! ## Explicit singleton normal-form representative -/
+
+/-- The coefficient functional at a monomial, as a linear map. -/
+noncomputable def mvPolynomialCoeffLinear (n : ℕ) (m : Fin n →₀ ℕ) :
+    MvPolynomial (Fin n) ℚ →ₗ[ℚ] ℚ where
+  toFun := fun q => MvPolynomial.coeff m q
+  map_add' := by
+    intro p q
+    rw [MvPolynomial.coeff_add]
+  map_smul' := by
+    intro c q
+    rw [MvPolynomial.coeff_smul]
+    rfl
+
+/-- The rank-one linear map extracting one singleton coefficient and placing it
+on the matching zero-profile singleton-shift row. -/
+noncomputable def zeroProfileSingletonCoeffProjector {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) (i : Fin n) :
+    MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ where
+  toFun := fun q =>
+    MvPolynomial.coeff (Finsupp.single i 1) q •
+      mlProj (MvPolynomial.X i * Finset.univ.prod factors)
+  map_add' := by
+    intro p q
+    simp [MvPolynomial.coeff_add, add_smul]
+  map_smul' := by
+    intro c q
+    simp [MvPolynomial.coeff_smul, mul_smul]
+
+/-- Explicit singleton-shift normal-form projection.
+
+It removes the degree-one singleton coordinates by subtracting the corresponding
+singleton-shift rows.  Unlike `zeroProfileSingletonShiftComplement`, this is a
+semantic representative map, not an arbitrary `Classical.choose` complement. -/
+noncomputable def zeroProfileSingletonNormalFormProjection {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ) :
+    MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ :=
+  LinearMap.id -
+    ∑ i : Fin n, zeroProfileSingletonCoeffProjector factors i
+
+theorem zeroProfileSingletonNormalFormProjection_apply {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (q : MvPolynomial (Fin n) ℚ) :
+    zeroProfileSingletonNormalFormProjection factors q =
+      q -
+        ∑ i : Fin n,
+          MvPolynomial.coeff (Finsupp.single i 1) q •
+            mlProj (MvPolynomial.X i * Finset.univ.prod factors) := by
+  classical
+  simp [zeroProfileSingletonNormalFormProjection,
+    zeroProfileSingletonCoeffProjector]
+
+/-- The explicit normalizer discards only singleton-shift rows. -/
+theorem zeroProfileSingletonNormalFormProjection_residual_mem_singletonShiftSubspace
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (q : MvPolynomial (Fin n) ℚ) :
+    q - zeroProfileSingletonNormalFormProjection factors q ∈
+      zeroProfileSingletonShiftSubspace factors := by
+  classical
+  rw [zeroProfileSingletonNormalFormProjection_apply]
+  have hsum :
+      (∑ i : Fin n,
+          MvPolynomial.coeff (Finsupp.single i 1) q •
+            mlProj (MvPolynomial.X i * Finset.univ.prod factors)) ∈
+        zeroProfileSingletonShiftSubspace factors := by
+    refine Submodule.sum_mem _ ?_
+    intro i _hi
+    exact Submodule.smul_mem _
+      (MvPolynomial.coeff (Finsupp.single i 1) q)
+      (Submodule.subset_span (Set.mem_range_self i))
+  simpa [sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using hsum
+
+/-- With constant coefficient `1`, the singleton normalizer erases every
+degree-one singleton coefficient. -/
+theorem zeroProfileSingletonNormalFormProjection_coeff_single_eq_zero
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hconst :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (Finset.univ.prod factors) = (1 : ℚ))
+    (q : MvPolynomial (Fin n) ℚ) (i : Fin n) :
+    MvPolynomial.coeff (Finsupp.single i 1)
+        (zeroProfileSingletonNormalFormProjection factors q) = 0 := by
+  classical
+  rw [zeroProfileSingletonNormalFormProjection_apply]
+  rw [MvPolynomial.coeff_sub, MvPolynomial.coeff_sum]
+  have hsum :
+      (∑ x : Fin n,
+          MvPolynomial.coeff (Finsupp.single i 1)
+            (MvPolynomial.coeff (Finsupp.single x 1) q •
+              mlProj (MvPolynomial.X x * Finset.univ.prod factors))) =
+        MvPolynomial.coeff (Finsupp.single i 1) q := by
+    calc
+      (∑ x : Fin n,
+          MvPolynomial.coeff (Finsupp.single i 1)
+            (MvPolynomial.coeff (Finsupp.single x 1) q •
+              mlProj (MvPolynomial.X x * Finset.univ.prod factors)))
+          =
+        ∑ x : Fin n,
+          MvPolynomial.coeff (Finsupp.single x 1) q *
+            MvPolynomial.coeff (Finsupp.single i 1)
+              (mlProj (MvPolynomial.X x * Finset.univ.prod factors)) := by
+            refine Finset.sum_congr rfl ?_
+            intro x _hx
+            rw [MvPolynomial.coeff_smul]
+            rfl
+      _ =
+        ∑ x : Fin n,
+          MvPolynomial.coeff (Finsupp.single x 1) q *
+            (if x = i then
+              MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+                (Finset.univ.prod factors)
+            else 0) := by
+            refine Finset.sum_congr rfl ?_
+            intro x _hx
+            rw [coeff_singleton_mlProj_X_mul]
+      _ =
+        ∑ x : Fin n,
+          MvPolynomial.coeff (Finsupp.single x 1) q *
+            (if x = i then (1 : ℚ) else 0) := by
+            simp [hconst]
+      _ = MvPolynomial.coeff (Finsupp.single i 1) q := by
+            rw [Finset.sum_eq_single i]
+            · simp
+            · intro x _hx hxi
+              simp [hxi]
+            · intro hi
+              exact False.elim (hi (Finset.mem_univ i))
+  rw [hsum, sub_self]
+
+/-- A polynomial with no singleton coefficients is fixed by the explicit
+singleton normalizer. -/
+theorem zeroProfileSingletonNormalFormProjection_apply_eq_self_of_coeff_single_zero
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    {q : MvPolynomial (Fin n) ℚ}
+    (hcoeff :
+      ∀ i : Fin n, MvPolynomial.coeff (Finsupp.single i 1) q = 0) :
+    zeroProfileSingletonNormalFormProjection factors q = q := by
+  classical
+  rw [zeroProfileSingletonNormalFormProjection_apply]
+  have hsum :
+      (∑ i : Fin n,
+          MvPolynomial.coeff (Finsupp.single i 1) q •
+            mlProj (MvPolynomial.X i * Finset.univ.prod factors)) = 0 := by
+    refine Finset.sum_eq_zero ?_
+    intro i _hi
+    rw [hcoeff i]
+    simp
+  rw [hsum, sub_zero]
+
+/-- The explicit singleton normalizer is idempotent when the base product has
+constant coefficient `1`. -/
+theorem zeroProfileSingletonNormalFormProjection_idempotent_of_constCoeff_one
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hconst :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (Finset.univ.prod factors) = (1 : ℚ)) :
+    (zeroProfileSingletonNormalFormProjection factors).comp
+        (zeroProfileSingletonNormalFormProjection factors) =
+      zeroProfileSingletonNormalFormProjection factors := by
+  classical
+  apply LinearMap.ext
+  intro q
+  exact
+    zeroProfileSingletonNormalFormProjection_apply_eq_self_of_coeff_single_zero
+      factors
+      (fun i =>
+        zeroProfileSingletonNormalFormProjection_coeff_single_eq_zero
+          factors hconst q i)
+
+/-- Semantic strict-`TΦ` residual target for the explicit singleton normalizer:
+the strict derivative row must be the canonical normal form of the matching
+zero-profile row. -/
+def RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalFormIdentity
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ),
+    S'.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+      (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (S'.map (cookLevinStrictFOBFlatMap n)) →
+    let p : MvPolynomial (Fin n) ℚ :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns)
+    let r : MvPolynomial (Fin (n / 3)) ℚ :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) p
+    let q : MvPolynomial (Fin n) ℚ :=
+      mlProj
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+          cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+    let d : MvPolynomial (Fin n) ℚ :=
+      MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj (shift * SPDP.iterDerivList S' r))
+    zeroProfileSingletonNormalFormProjection
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i) q = d
+
+/-- The semantic normal-form identity gives the range-only row identity for the
+explicit singleton normalizer. -/
+theorem routeBPaperFaithfulTPhi_rangePWindowRestrictedZeroProfileRowIdentity_of_singletonNormalFormIdentity
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hnorm :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalFormIdentity
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiRangePWindowRestrictedZeroProfileRowIdentity
+      M n hn2 htb hns
+      (zeroProfileSingletonNormalFormProjection
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) := by
+  intro S' shift hSlen hshiftDegree hshiftVars hadm
+  have h := hnorm S' shift hSlen hshiftDegree hshiftVars hadm
+  simpa using h.symm
+
 /-- Concrete decomposition form of the strict range-only singleton-quotient
 residual gate.
 
@@ -1952,9 +2171,38 @@ theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_zeroProfileProjec
     (hbudget : budget ≤ n ^ 200) :
     False :=
   false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_zeroProfileProjectedCommonSpanWithBudget
-    M n hn hn2 htb hns hdec project hspan
+    M n hn hn2 htb hns hdec project (budget := budget) hspan
     (routeBPaperFaithfulTPhi_projectedPWindowControlledByZeroProfileProjection_of_rangeRestrictedRowIdentity
       M n hn2 htb hns project hrow)
+    hbudget
+
+/-- Strict-`TΦ` projected/log-window final hook for the explicit singleton
+normal-form representative.  The remaining mathematical inputs are exactly a
+budgeted common span for the normalizer image and the semantic normal-form row
+identity. -/
+theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_singletonNormalForm
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    {budget : ℕ}
+    (hspan :
+      ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (zeroProfileSingletonNormalFormProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+        budget)
+    (hnorm :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalFormIdentity
+        M n hn2 htb hns)
+    (hbudget : budget ≤ n ^ 200) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_zeroProfileProjectedCommonSpanWithBudget_rangeRestrictedRowIdentity
+    M n hn hn2 htb hns hdec
+    (zeroProfileSingletonNormalFormProjection
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+    hspan
+    (routeBPaperFaithfulTPhi_rangePWindowRestrictedZeroProfileRowIdentity_of_singletonNormalFormIdentity
+      M n hn2 htb hns hnorm)
     hbudget
 
 /-- Strict-`TΦ` projected/log-window final hook from quotiented zero-profile
