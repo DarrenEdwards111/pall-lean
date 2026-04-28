@@ -467,6 +467,36 @@ theorem zeroProfileProjectedCommonSpanWithBudget_singletonNormalForm_concreteW_o
     (zeroProfileProjectedCommonSpanWithBudget_id_concreteW_of_rowEmbeddings
       M n hn2 htb hns hn4 hRowEmbeddings)
 
+/-- Semantic replacement for the arbitrary singleton-complement classifier.
+
+The hard-coded quotient
+`zeroProfileQuotientBySingletonShiftProjection` projects to an arbitrary
+`Classical.choose` complement, so it should not be asked to preserve the
+paper's canonical local chart.  The paper-faithful object is the explicit
+singleton normalizer.  Concrete `concreteW` row embeddings give a budgeted
+common span for that normalizer image directly, with the singleton
+zero-profile budget. -/
+theorem cookLevinZeroProfileSingletonNormalizerCommonSpanObligation_of_concreteW_rowEmbeddings
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) (hn4 : n >= 4)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns hn4) :
+    ∃ budget : Nat,
+      ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (zeroProfileSingletonNormalFormProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+        budget ∧
+      budget <= withinProfileBound (Nat.log 2 n) := by
+  refine
+    ⟨zeroProfileSymmetricProfileDim zeroProfileHistogram,
+      zeroProfileProjectedCommonSpanWithBudget_singletonNormalForm_concreteW_of_rowEmbeddings
+        M n hn2 htb hns hn4 hRowEmbeddings,
+      ?_⟩
+  exact zeroProfileSymmetricProfileDim_zeroProfileHistogram_le_withinProfileBound
+    (Nat.log 2 n)
+
 /-- Strict `TΦ` contradiction from concrete zero-profile row embeddings and
 normalized singleton-normalizer row equality.
 
