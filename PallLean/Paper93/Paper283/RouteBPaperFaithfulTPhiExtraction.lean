@@ -265,6 +265,73 @@ theorem false_of_routeBPaperFaithfulTPhi_normalizedCoupledSheet_components
   exact absurd hcontra
     (not_le_of_gt (Nat.pow_lt_pow_right hn_gt_1 (by omega : 200 < 201)))
 
+/-- Source-transport version of the normalized coupled-sheet Route B
+contradiction.
+
+This is the paper-faithful variant when the instrumented source is not forced
+into the local product-form `compiledPoly` variable space. The source is the
+paper's `P_{M',n}` object with its own partition, the target is the normalized
+`Q×_{Φ,S}` semantic extraction target, and the bridge is the rank-monotone
+`TΦ/ΠΦ` transport between them. -/
+theorem false_of_routeBPaperFaithfulTPhi_normalizedCoupledSheet_sourceTransport
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec)
+    (source :
+      GlobalGodMoveGauge.Theorem207PaperSource M n hn hn2 htb hns)
+    (hP :
+      GlobalGodMoveGauge.Theorem207PaperSourcePSideUpperBound
+        M n hn hn2 htb hns source)
+    (bridge :
+      GlobalGodMoveGauge.Theorem207PaperSourceToTargetRankBridge
+        M n hn hn2 htb hns source targetData.extractionTarget)
+    (hNP :
+      Nat.choose (n / 3) (Nat.log 2 n) ≤
+        mlBlockedSpdpRank targetData.extractionTarget.coupledPartition
+          (Nat.log 2 n) (Nat.log 2 n)
+          targetData.extractionTarget.coupledPoly) :
+    False :=
+  GlobalGodMoveGauge.theorem207PaperSource_transport_false
+    M n hn hn2 htb hns targetData.extractionTarget source hP bridge hNP
+
+/-- Same source-transport Route B contradiction, with the NP lower bound
+supplied by same-target identity-minor data on the normalized coupled-sheet
+target. -/
+theorem false_of_routeBPaperFaithfulTPhi_normalizedCoupledSheet_sourceTransport_sameTargetMinor
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (targetData : GodMoveExtractionTargetData M n hn2 htb hns hdec)
+    (source :
+      GlobalGodMoveGauge.Theorem207PaperSource M n hn hn2 htb hns)
+    (hP :
+      GlobalGodMoveGauge.Theorem207PaperSourcePSideUpperBound
+        M n hn hn2 htb hns source)
+    (bridge :
+      GlobalGodMoveGauge.Theorem207PaperSourceToTargetRankBridge
+        M n hn hn2 htb hns source targetData.extractionTarget)
+    (minor : RouteBIdentityMinorSameTargetData targetData.extractionTarget) :
+    False :=
+  GlobalGodMoveGauge.theorem207PaperSource_transport_false
+    M n hn hn2 htb hns targetData.extractionTarget source hP bridge
+    (routeB_strong_np_from_same_target_identity_minor minor)
+
+/-- Existing global source-transport data is enough to close the normalized
+coupled-sheet Route B contradiction. This is the final consumer for the
+corrected representative: prove the explicit semantic target, same-target
+identity minor, paper source P-side bound, and source-to-target rank bridge,
+then this theorem supplies `False`. -/
+theorem false_of_routeBPaperFaithfulTPhi_normalizedCoupledSheet_from_sourceTransportData
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M) :
+    False :=
+  GlobalGodMoveGauge.theorem207SemanticTransportWitness_false
+    M n hn hn2 htb hns hdec
+    (GlobalGodMoveGauge.theorem207SemanticTransportWitness_from_source_transport_data
+      M n hn hn2 htb hns hdec)
+
 /-! ## Final strict-`TΦ` source-transport consumers -/
 
 /-- The strict paper-faithful `TΦ` target feeds the final source-transport
@@ -3827,6 +3894,9 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_postSpanBoun
 #print axioms routeBPaperFaithfulTPhi_extraction_and_identity_minor
 #print axioms routeBPaperFaithfulTPhi_normalizedCoupledSheetRowIdentity
 #print axioms false_of_routeBPaperFaithfulTPhi_normalizedCoupledSheet_components
+#print axioms false_of_routeBPaperFaithfulTPhi_normalizedCoupledSheet_sourceTransport
+#print axioms false_of_routeBPaperFaithfulTPhi_normalizedCoupledSheet_sourceTransport_sameTargetMinor
+#print axioms false_of_routeBPaperFaithfulTPhi_normalizedCoupledSheet_from_sourceTransportData
 #print axioms false_of_routeBPaperFaithfulTPhi_qRankUpper
 #print axioms false_of_routeBPaperFaithfulTPhi_from_p_side
 #print axioms false_of_routeBPaperFaithfulTPhi_from_templateCollapse
