@@ -95,6 +95,97 @@ structure RouteBPaperFaithfulPiPhiHeadSpanProjectionRetarget
     RouteBRicherSPDPStableCandidateAdmissibleQueriesLogWindowed
       M n hn2 htb hns
 
+/-- Head-span orbit coefficient closure closes the row-closure field for the
+retargeted PiPhi/head-span rows. -/
+theorem routeBPaperFaithfulPiPhiHeadSpan_rowClosure_of_headSpanOrbitCoefficientClosure
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hclosure :
+      RouteBRicherSPDPStableCandidateLogWindowHeadSpanOrbitCoefficientClosure
+        M n hn2 htb hns) :
+    RouteBRicherGaugeFiniteRowsSPDPLogWindowRowClosure M n hn2 htb hns
+      (routeBPaperFaithfulPiPhiHeadSpanRows M n hn2 htb hns) := by
+  constructor
+  intro spdpKappa ell S shift
+    hSlen hshiftDegree hKappaLog hEllLog hshiftVars hadm i
+  refine Fin.cases ?zero ?succ i
+  · simpa [routeBPaperFaithfulPiPhiHeadSpanRows,
+      routeBPaperFaithfulPiPhiHeadSpanTail,
+      routeBRicherSPDPStableCandidateRows,
+      routeBRicherConcreteNPPrependedRows] using
+      routeBRicherSPDPStableCandidate_logWindowHeadMlCovering_for_headSpanTail
+        M n hn2 htb hns
+        spdpKappa ell S shift
+        hSlen hshiftDegree
+        (by simpa [hSlen] using hKappaLog)
+        (le_trans hshiftDegree hEllLog)
+        hshiftVars hadm
+  · intro j
+    have hcoeff :=
+      hclosure spdpKappa ell
+        (routeBPaperFaithfulPiPhiHeadSpanTail M n hn2 htb hns j)
+        S shift
+        (by
+          simpa [routeBPaperFaithfulPiPhiHeadSpanTail] using
+            routeBRicherSPDPStableCandidateLogWindowHeadTail_mem_headSpan
+              M n hn2 htb hns j)
+        hSlen hshiftDegree
+        (by simpa [hSlen] using hKappaLog)
+        (le_trans hshiftDegree hEllLog)
+        hshiftVars hadm
+    exact
+      (mem_finiteRowsSubmodule_iff_exists_linearCombination
+        (routeBPaperFaithfulPiPhiHeadSpanRows M n hn2 htb hns)
+        (routeBSPDPGeneratorRow M n hn2 htb hns
+          (routeBPaperFaithfulPiPhiHeadSpanTail M n hn2 htb hns j)
+          S shift)).2 hcoeff
+
+/-- Constructor for the minimal retarget obligation from head-span orbit
+coefficient closure, direct chosen-projection descent, and the explicit
+log-window query bridge. -/
+theorem routeBPaperFaithfulPiPhiHeadSpanProjectionRetarget_of_headSpanOrbitCoefficientClosure_descent
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hclosure :
+      RouteBRicherSPDPStableCandidateLogWindowHeadSpanOrbitCoefficientClosure
+        M n hn2 htb hns)
+    (hdescent :
+      RouteBRicherSPDPStableCandidateLogWindowHeadTailChosenProjectionDescent
+        M n hn2 htb hns)
+    (hwindow :
+      RouteBRicherSPDPStableCandidateAdmissibleQueriesLogWindowed
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulPiPhiHeadSpanProjectionRetarget
+      M n hn2 htb hns where
+  row_closure :=
+    routeBPaperFaithfulPiPhiHeadSpan_rowClosure_of_headSpanOrbitCoefficientClosure
+      M n hn2 htb hns hclosure
+  projection_descent := hdescent
+  admissible_queries_log_windowed := hwindow
+
+/-- Constructor for the minimal retarget obligation using the existing
+projection-intertwining criterion as the descent input. -/
+theorem routeBPaperFaithfulPiPhiHeadSpanProjectionRetarget_of_headSpanOrbitCoefficientClosure_projectionIntertwines
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hclosure :
+      RouteBRicherSPDPStableCandidateLogWindowHeadSpanOrbitCoefficientClosure
+        M n hn2 htb hns)
+    (hintertwines :
+      RouteBRicherSPDPStableCandidateLogWindowHeadTailChosenProjectionIntertwines
+        M n hn2 htb hns)
+    (hwindow :
+      RouteBRicherSPDPStableCandidateAdmissibleQueriesLogWindowed
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulPiPhiHeadSpanProjectionRetarget
+      M n hn2 htb hns :=
+  routeBPaperFaithfulPiPhiHeadSpanProjectionRetarget_of_headSpanOrbitCoefficientClosure_descent
+    M n hn2 htb hns
+    hclosure
+    ((routeBRicherSPDPStableCandidate_logWindowHeadTailChosenProjectionIntertwines_iff_descent
+      M n hn2 htb hns).mp hintertwines)
+    hwindow
+
 /-- The minimal retarget obligation supplies the Section-39-facing
 holographic-invariance interface for the head-span rows. -/
 theorem routeBPaperFaithfulPiPhiHeadSpan_holographicInvariance_of_retarget
@@ -231,6 +322,9 @@ theorem routeBPaperFaithfulPiPhiHeadSpan_projectedNPIdentityMinorLowerBound_of_s
 /-! ## Axiom audit anchors -/
 
 #print axioms RouteBPaperFaithfulPiPhiHeadSpanProjectionRetarget
+#print axioms routeBPaperFaithfulPiPhiHeadSpan_rowClosure_of_headSpanOrbitCoefficientClosure
+#print axioms routeBPaperFaithfulPiPhiHeadSpanProjectionRetarget_of_headSpanOrbitCoefficientClosure_descent
+#print axioms routeBPaperFaithfulPiPhiHeadSpanProjectionRetarget_of_headSpanOrbitCoefficientClosure_projectionIntertwines
 #print axioms routeBPaperFaithfulPiPhiHeadSpan_holographicInvariance_of_retarget
 #print axioms routeBPaperFaithfulPiPhiHeadSpan_obligations_of_retarget
 #print axioms routeBPaperFaithfulPiPhiHeadSpan_kernelCompatibility_of_retarget

@@ -823,6 +823,111 @@ theorem zeroProfileSingletonShiftRow_mem_shiftImageSet
 
 /-! ## Boolean normal-form budget lower bound -/
 
+/-- Any projected normal-form row map whose projection fixes the singleton-shift
+rows must pay for the ambient singleton-shift directions.  This isolates the
+part of the Boolean normalizer obstruction that comes only from fixing the
+degree-one rows. -/
+theorem zeroProfileProjectedNormalFormRowMap_typeBudget_ge_ambient_of_fixesSingletonShiftRows_constCoeff_ne_zero
+    {n L κ typeBudget : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    (F : ZeroProfileProjectedNormalFormFamily n κ typeBudget)
+    (hmap : ZeroProfileProjectedNormalFormRowMap factors project F)
+    (hκ : 1 ≤ κ)
+    (hp0 :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (Finset.univ.prod factors) ≠ 0)
+    (hfixSingleton :
+      ∀ i : Fin n,
+        project (zeroProfileSingletonShiftRow
+          (Finset.univ.prod factors) i) =
+          zeroProfileSingletonShiftRow (Finset.univ.prod factors) i) :
+    n ≤ typeBudget := by
+  classical
+  let G : Finset (MvPolynomial (Fin n) ℚ) :=
+    zeroProfileProjectedNormalFormGlobalBasis F
+  let U : Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+    Submodule.span ℚ
+      (↑G : Set (MvPolynomial (Fin n) ℚ))
+  haveI hU_finite : Module.Finite ℚ ↥U :=
+    Module.Finite.span_of_finite ℚ (Finset.finite_toSet G)
+  have hrow_mem : ∀ i : Fin n,
+      zeroProfileSingletonShiftRow (Finset.univ.prod factors) i ∈ U := by
+    intro i
+    have hshift :
+        zeroProfileSingletonShiftRow (Finset.univ.prod factors) i ∈
+          zeroProfileShiftImageSet κ factors :=
+      zeroProfileSingletonShiftRow_mem_shiftImageSet factors i hκ
+    have hprojected :
+        project
+            (zeroProfileSingletonShiftRow
+              (Finset.univ.prod factors) i) ∈
+          zeroProfileProjectedNormalFormCompressedSpan F := by
+      exact
+        zeroProfileProjectedShiftImageSet_subset_normalFormCompressedSpan
+          factors project F hmap
+          ⟨zeroProfileSingletonShiftRow (Finset.univ.prod factors) i,
+            hshift, rfl⟩
+    have hfixed :
+        project
+            (zeroProfileSingletonShiftRow
+              (Finset.univ.prod factors) i) =
+          zeroProfileSingletonShiftRow (Finset.univ.prod factors) i :=
+      hfixSingleton i
+    simpa [U, G, zeroProfileProjectedNormalFormCompressedSpan, hfixed] using
+      hprojected
+  let rowsInU : Fin n → U :=
+    fun i => ⟨zeroProfileSingletonShiftRow
+      (Finset.univ.prod factors) i, hrow_mem i⟩
+  have hli :
+      LinearIndependent ℚ
+        (fun i : Fin n =>
+          zeroProfileSingletonShiftRow (Finset.univ.prod factors) i) :=
+    zeroProfileSingletonShiftRows_linearIndependent_of_constCoeff_ne_zero
+      (Finset.univ.prod factors) hp0
+  have hli_U : LinearIndependent ℚ rowsInU := by
+    rw [linearIndependent_iff'] at hli ⊢
+    intro s w hw i hi
+    apply hli s w ?_ i hi
+    have hval := congrArg
+      (fun q : U => (q : MvPolynomial (Fin n) ℚ)) hw
+    simpa [rowsInU] using hval
+  have hcard_le_finrank :
+      n ≤ Module.finrank ℚ ↥U := by
+    simpa [Fintype.card_fin] using hli_U.fintype_card_le_finrank
+  have hfinrank_le_card : Module.finrank ℚ ↥U ≤ G.card := by
+    simpa [U] using
+      (finrank_span_finset_le_card G :
+        Module.finrank ℚ
+          ↥(Submodule.span ℚ
+            (↑G : Set (MvPolynomial (Fin n) ℚ))) ≤ G.card)
+  exact hcard_le_finrank.trans
+    (hfinrank_le_card.trans
+      (zeroProfileProjectedNormalFormGlobalBasis_card_le_typeBudget F))
+
+/-- If the projection fixes all zero-profile shifted rows, then in particular
+it fixes the singleton-shift rows, so any projected normal-form row map still
+has ambient-size type budget. -/
+theorem zeroProfileProjectedNormalFormRowMap_typeBudget_ge_ambient_of_fixesShiftRows_constCoeff_ne_zero
+    {n L κ typeBudget : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    (F : ZeroProfileProjectedNormalFormFamily n κ typeBudget)
+    (hmap : ZeroProfileProjectedNormalFormRowMap factors project F)
+    (hκ : 1 ≤ κ)
+    (hp0 :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (Finset.univ.prod factors) ≠ 0)
+    (hfix : ZeroProfileProjectionFixesShiftRows κ factors project) :
+    n ≤ typeBudget :=
+  zeroProfileProjectedNormalFormRowMap_typeBudget_ge_ambient_of_fixesSingletonShiftRows_constCoeff_ne_zero
+    factors project F hmap hκ hp0
+    (fun i =>
+      hfix (zeroProfileSingletonShiftRow (Finset.univ.prod factors) i)
+        (zeroProfileSingletonShiftRow_mem_shiftImageSet factors i hκ))
+
 /-- Any Boolean-normalized projected normal-form row map must pay for the
 ambient singleton-shift directions.  The proof uses the row map itself: the
 singleton rows are zero-profile shifted rows, Boolean normalization fixes them,
@@ -930,6 +1035,50 @@ theorem cookLevinZeroProfileBooleanNormalFormObligation_typeBudget_ge_ambient
                 M n hn htb hns]
               norm_num))
 
+/-- Cook-Levin specialization of the fixes-singleton-row obstruction: any
+projected normal-form row map for the actual factor list whose projection fixes
+the singleton-shift rows has type budget at least the ambient variable count. -/
+theorem cookLevinZeroProfileProjectedNormalFormRowMap_typeBudget_ge_ambient_of_fixesSingletonShiftRows
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget : ℕ}
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    (F : ZeroProfileProjectedNormalFormFamily n (Nat.log 2 n) typeBudget)
+    (hmap :
+      ZeroProfileProjectedNormalFormRowMap
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+        project F)
+    (hfixSingleton :
+      ∀ i : Fin n,
+        project
+            (zeroProfileSingletonShiftRow
+              (Finset.univ.prod
+                (fun i => (cookLevinFactorList M n hn htb hns).get i))
+              i) =
+          zeroProfileSingletonShiftRow
+            (Finset.univ.prod
+              (fun i => (cookLevinFactorList M n hn htb hns).get i))
+            i) :
+    n ≤ typeBudget := by
+  have hlog_pos : 0 < Nat.log 2 n := Nat.log_pos (by omega) hn
+  exact
+    zeroProfileProjectedNormalFormRowMap_typeBudget_ge_ambient_of_fixesSingletonShiftRows_constCoeff_ne_zero
+      (κ := Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      project F hmap
+      (Nat.succ_le_of_lt hlog_pos)
+      (by
+        simpa [cookLevinZeroProfileBaseProduct] using
+          (show
+            MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+              (cookLevinZeroProfileBaseProduct M n hn htb hns) ≠ 0
+            from by
+              rw [cookLevinZeroProfileBaseProduct_coeff_zero
+                M n hn htb hns]
+              norm_num))
+      hfixSingleton
+
 /-- A Boolean-normalized zero-profile classifier with a paper-side budget
 forces the ambient variable count to fit inside that paper-side budget. -/
 theorem ambient_le_withinProfileBound_of_cookLevinZeroProfileBooleanNormalFormObligation
@@ -973,6 +1122,68 @@ theorem not_cookLevinZeroProfileBooleanNormalFormObligation_of_withinProfileBoun
   exact (not_le_of_gt hlt)
     (ambient_le_withinProfileBound_of_cookLevinZeroProfileBooleanNormalFormObligation
       M n hn htb hns hbool hbudget)
+
+/-- Paper-endpoint Boolean-normalizer no-go: at `n = 2^804`, any
+Boolean-normalized normal-form row map bounded by the within-profile budget is
+impossible because fixing singleton rows already forces `typeBudget ≥ n`. -/
+theorem not_cookLevinZeroProfileBooleanNormalFormObligation_two_pow_804
+    (M : DTM)
+    (hn2 : (2 : ℕ) ^ 804 ≥ 2)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ (2 : ℕ) ^ 804)
+    {typeBudget : ℕ}
+    (hbudget :
+      typeBudget ≤
+        withinProfileBound (Nat.log 2 ((2 : ℕ) ^ 804))) :
+    ¬ CookLevinZeroProfileBooleanNormalFormObligation
+        M ((2 : ℕ) ^ 804) hn2 htb hns typeBudget :=
+  not_cookLevinZeroProfileBooleanNormalFormObligation_of_withinProfileBound_lt_ambient
+    M ((2 : ℕ) ^ 804) hn2 htb hns
+    hbudget withinProfileBound_log_two_pow_804_lt_ambient
+
+/-- Paper-endpoint no-go for any projected normal-form row map whose projection
+fixes singleton-shift rows.  This is the projection-agnostic version of the
+Boolean-normalizer obstruction. -/
+theorem not_exists_cookLevinZeroProfileProjectedNormalFormRowMap_fixesSingletonShiftRows_two_pow_804
+    (M : DTM)
+    (hn2 : (2 : ℕ) ^ 804 ≥ 2)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ (2 : ℕ) ^ 804) :
+    ¬ ∃ typeBudget : ℕ,
+      ∃ project :
+        MvPolynomial (Fin ((2 : ℕ) ^ 804)) ℚ →ₗ[ℚ]
+          MvPolynomial (Fin ((2 : ℕ) ^ 804)) ℚ,
+      ∃ F :
+        ZeroProfileProjectedNormalFormFamily ((2 : ℕ) ^ 804)
+          (Nat.log 2 ((2 : ℕ) ^ 804)) typeBudget,
+        Nonempty
+          (ZeroProfileProjectedNormalFormRowMap
+            (fun i =>
+              (cookLevinFactorList M ((2 : ℕ) ^ 804) hn2 htb hns).get i)
+            project F) ∧
+        (∀ i : Fin ((2 : ℕ) ^ 804),
+          project
+              (zeroProfileSingletonShiftRow
+                (Finset.univ.prod
+                  (fun i =>
+                    (cookLevinFactorList M ((2 : ℕ) ^ 804)
+                      hn2 htb hns).get i))
+                i) =
+            zeroProfileSingletonShiftRow
+              (Finset.univ.prod
+                (fun i =>
+                  (cookLevinFactorList M ((2 : ℕ) ^ 804)
+                    hn2 htb hns).get i))
+              i) ∧
+        typeBudget ≤
+          withinProfileBound (Nat.log 2 ((2 : ℕ) ^ 804)) := by
+  rintro ⟨typeBudget, project, F, ⟨hmap⟩, hfixSingleton, hbudget⟩
+  have hambient_le_typeBudget :
+      (2 : ℕ) ^ 804 ≤ typeBudget :=
+    cookLevinZeroProfileProjectedNormalFormRowMap_typeBudget_ge_ambient_of_fixesSingletonShiftRows
+      M ((2 : ℕ) ^ 804) hn2 htb hns project F hmap hfixSingleton
+  exact (not_le_of_gt withinProfileBound_log_two_pow_804_lt_ambient)
+    (hambient_le_typeBudget.trans hbudget)
 
 /-- A quotient projection that kills singleton shifts cannot also fix every
 zero-profile shifted row when the base product has nonzero constant
@@ -1297,6 +1508,107 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_singletonQuotientNormalFormRowM
   simpa [CookLevinZeroHistogramShiftCommonSpan,
     ZeroProfileCompressedSpanCommonSpanWithBudget] using hcommon
 
+/-! ## Quotiented zero-profile target without residual payment -/
+
+/-- Budget monotonicity for projected zero-profile common spans. -/
+theorem zeroProfileProjectedCommonSpanWithBudget_mono
+    {n L κ : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    {budget budget' : ℕ}
+    (hspan :
+      ZeroProfileProjectedCommonSpanWithBudget
+        κ factors project budget)
+    (hbudget : budget ≤ budget') :
+    ZeroProfileProjectedCommonSpanWithBudget
+      κ factors project budget' := by
+  rcases hspan with ⟨G, hG_card, hG_span⟩
+  exact ⟨G, hG_card.trans hbudget, hG_span⟩
+
+/-- Quotiented zero-profile final target: the final span obligation is imposed
+only on projected rows, and the projection is required to remove the
+singleton/linear shift directions rather than paying them as residual rows. -/
+def CookLevinZeroProfileQuotientedShiftCommonSpan
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ) : Prop :=
+  project.comp project = project ∧
+    ZeroProfileProjectionKillsSingletonShifts
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      project ∧
+    ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      project (withinProfileBound (Nat.log 2 n))
+
+/-- A projected normal-form certificate closes the quotiented zero-profile
+target with only the projected type budget bounded by `withinProfileBound`.
+There is no `+ n` residual term because the singleton/linear directions are not
+part of this projected target. -/
+theorem cookLevinZeroProfileQuotientedShiftCommonSpan_of_projectedNormalFormCertificate
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget : ℕ}
+    (cert :
+      ZeroProfileProjectedNormalFormCertificate (κ := Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+        typeBudget)
+    (hbudget : typeBudget ≤ withinProfileBound (Nat.log 2 n)) :
+    CookLevinZeroProfileQuotientedShiftCommonSpan
+      M n hn htb hns cert.project := by
+  refine ⟨cert.project_idempotent, cert.killsSingleton, ?_⟩
+  exact
+    zeroProfileProjectedCommonSpanWithBudget_mono
+      (κ := Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      cert.project
+      (zeroProfileProjectedCommonSpanWithBudget_of_normalFormCertificate
+        (κ := Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+        cert)
+      hbudget
+
+/-- Concrete singleton-quotient normal-form gate for the quotiented target.
+This is the positive retargeted close past the old `+ n` obstruction: classify
+after quotienting singleton/linear directions, and keep those removed
+directions out of the final target. -/
+theorem cookLevinZeroProfileQuotientedShiftCommonSpan_of_singletonQuotientNormalFormRowMap
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget : ℕ}
+    (F : ZeroProfileProjectedNormalFormFamily n (Nat.log 2 n) typeBudget)
+    (hmap :
+      ZeroProfileProjectedNormalFormRowMap
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn htb hns).get i))
+        F)
+    (hbudget : typeBudget ≤ withinProfileBound (Nat.log 2 n)) :
+    CookLevinZeroProfileQuotientedShiftCommonSpan
+      M n hn htb hns
+      (zeroProfileQuotientBySingletonShiftProjection
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)) := by
+  refine
+    ⟨zeroProfileQuotientBySingletonShiftProjection_idempotent
+        (fun i => (cookLevinFactorList M n hn htb hns).get i),
+      zeroProfileQuotientBySingletonShiftProjection_killsSingletonShifts
+        (fun i => (cookLevinFactorList M n hn htb hns).get i),
+      ?_⟩
+  exact
+    zeroProfileProjectedCommonSpanWithBudget_mono
+      (κ := Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      (zeroProfileQuotientBySingletonShiftProjection
+        (fun i => (cookLevinFactorList M n hn htb hns).get i))
+      (zeroProfileProjectedCommonSpanWithBudget_of_normalFormRowMap
+        (κ := Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn htb hns).get i))
+        F hmap)
+      hbudget
+
 /-! ## Axiom audit anchors -/
 
 #print axioms zeroProfileSymmetricProfileDim_le_withinProfileBound
@@ -1323,11 +1635,16 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_singletonQuotientNormalFormRowM
 #print axioms zeroProfileBooleanNormalize_singletonShiftRow
 #print axioms zeroProfileSingletonShiftRow_coeff_single
 #print axioms zeroProfileSingletonShiftRows_linearIndependent_of_constCoeff_ne_zero
+#print axioms zeroProfileProjectedNormalFormRowMap_typeBudget_ge_ambient_of_fixesSingletonShiftRows_constCoeff_ne_zero
+#print axioms zeroProfileProjectedNormalFormRowMap_typeBudget_ge_ambient_of_fixesShiftRows_constCoeff_ne_zero
 #print axioms zeroProfileBooleanNormalFormRowMap_typeBudget_ge_ambient_of_constCoeff_ne_zero
 #print axioms cookLevinZeroProfileBooleanNormalFormObligation_typeBudget_ge_ambient
+#print axioms cookLevinZeroProfileProjectedNormalFormRowMap_typeBudget_ge_ambient_of_fixesSingletonShiftRows
 #print axioms ambient_le_withinProfileBound_of_cookLevinZeroProfileBooleanNormalFormObligation
 #print axioms not_cookLevinZeroProfileBooleanNormalFormObligation_of_typeBudget_lt_ambient
 #print axioms not_cookLevinZeroProfileBooleanNormalFormObligation_of_withinProfileBound_lt_ambient
+#print axioms not_cookLevinZeroProfileBooleanNormalFormObligation_two_pow_804
+#print axioms not_exists_cookLevinZeroProfileProjectedNormalFormRowMap_fixesSingletonShiftRows_two_pow_804
 #print axioms not_zeroProfileProjectionFixesShiftRows_of_killsSingleton_constCoeff_ne_zero
 #print axioms zeroProfileProjectionResidualClosureWithBudget_residualBudget_ge_ambient_of_killsSingleton_constCoeff_ne_zero
 #print axioms not_CookLevinZeroProfileProjectionFixesShiftRows_of_killsSingleton_actual
@@ -1336,6 +1653,9 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_singletonQuotientNormalFormRowM
 #print axioms cookLevinZeroHistogramShiftCommonSpan_of_projectedNormalFormCertificate_residualClosure
 #print axioms cookLevinZeroHistogramShiftCommonSpan_of_projectedNormalFormCertificate_fixesShiftRows
 #print axioms cookLevinZeroHistogramShiftCommonSpan_of_singletonQuotientNormalFormRowMap
+#print axioms zeroProfileProjectedCommonSpanWithBudget_mono
+#print axioms cookLevinZeroProfileQuotientedShiftCommonSpan_of_projectedNormalFormCertificate
+#print axioms cookLevinZeroProfileQuotientedShiftCommonSpan_of_singletonQuotientNormalFormRowMap
 
 end PathB
 end DeepMath

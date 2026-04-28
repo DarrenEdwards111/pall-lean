@@ -402,6 +402,42 @@ theorem cookLevinAllBoundedProfileCommonSpanAtProfile_of_interfaceAnonymousProfi
     cookLevinAllBoundedProfileCommonSpanAtProfile_of_allBoundedProfilePostSpan_finrank
       M n hn htb hns h hdim_all
 
+/-- Direct interface-anonymous active profile span containments are enough for
+the active type-case blockers.  This is the blocker-level retarget that avoids
+the endpoint same-profile closure field entirely: each active case only has to
+place the Cook-Levin post-span inside the compiled-basis profile subspace. -/
+theorem cookLevinActiveProfileTypeCaseBlockers_of_interfaceAnonymous_activeProfileSpan
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B : BlockPartition n) (ℓ : ℕ)
+    (hProfileSpan :
+      ∀ (h : ProfileHistogram)
+        (hadm : ProfileAdmissible (Nat.log 2 n) h),
+          h ConstraintType.transitionRight = 0 →
+            ActiveProfileSupport h →
+              cookLevinPostSpanAt M n hn htb hns h ≤
+                cookLevinProfileSubspace (admissibleToBounded hadm)
+                  (fun τ =>
+                    interfaceSpace_compiledBasis B (Nat.log 2 n) ℓ τ)) :
+    CookLevinActiveProfileTypeCaseBlockers M n hn htb hns := by
+  classical
+  refine ⟨?_, ?_, ?_⟩
+  · intro h hadm htr _hne hpos
+    exact
+      cookLevinAllBoundedProfileCommonSpanAtProfile_of_interfaceAnonymousProfileSpan
+        M n hn htb hns B ℓ h hadm (Or.inl hpos)
+        (hProfileSpan h hadm htr (Or.inl hpos))
+  · intro h hadm htr _hne hpos
+    exact
+      cookLevinAllBoundedProfileCommonSpanAtProfile_of_interfaceAnonymousProfileSpan
+        M n hn htb hns B ℓ h hadm (Or.inr (Or.inl hpos))
+        (hProfileSpan h hadm htr (Or.inr (Or.inl hpos)))
+  · intro h hadm htr _hne hpos
+    exact
+      cookLevinAllBoundedProfileCommonSpanAtProfile_of_interfaceAnonymousProfileSpan
+        M n hn htb hns B ℓ h hadm (Or.inr (Or.inr hpos))
+        (hProfileSpan h hadm htr (Or.inr (Or.inr hpos)))
+
 /-! ## Endpoint active-profile budget -/
 
 /-- Variable-dimension version of the generic profile-subspace finrank bound.
@@ -1093,6 +1129,41 @@ theorem cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_spann
     cookLevinAllBoundedProfileCommonSpanAtProfile_of_allBoundedProfilePostSpan_finrank
       M n hn htb hns h hdim_all
 
+/-- Direct endpoint-augmented active profile span containments are enough for
+the active type-case blockers.  This keeps the endpoint-augmented low-
+dimensional route while bypassing the uncharged same-profile closure field
+that is false at booleanity mass one. -/
+theorem cookLevinActiveProfileTypeCaseBlockers_of_endpointAugmented_activeProfileSpan
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : n ≥ 4)
+    (hProfileSpan :
+      ∀ (h : ProfileHistogram)
+        (hadm : ProfileAdmissible (Nat.log 2 n) h),
+          h ConstraintType.transitionRight = 0 →
+            ActiveProfileSupport h →
+              cookLevinPostSpanAt M n hn htb hns h ≤
+                cookLevinProfileSubspace (admissibleToBounded hadm)
+                  (endpointAugmentedConcreteW n hn4)) :
+    CookLevinActiveProfileTypeCaseBlockers M n hn htb hns := by
+  classical
+  refine ⟨?_, ?_, ?_⟩
+  · intro h hadm htr _hne hpos
+    exact
+      cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_profileSpan
+        M n hn htb hns hn4 h hadm htr (Or.inl hpos)
+        (hProfileSpan h hadm htr (Or.inl hpos))
+  · intro h hadm htr _hne hpos
+    exact
+      cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_profileSpan
+        M n hn htb hns hn4 h hadm htr (Or.inr (Or.inl hpos))
+        (hProfileSpan h hadm htr (Or.inr (Or.inl hpos)))
+  · intro h hadm htr _hne hpos
+    exact
+      cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_profileSpan
+        M n hn htb hns hn4 h hadm htr (Or.inr (Or.inr hpos))
+        (hProfileSpan h hadm htr (Or.inr (Or.inr hpos)))
+
 /-- Endpoint-augmented active-profile closure frontier at one profile.
 
 H4 is not a field: it is supplied by the checked theorem
@@ -1398,6 +1469,25 @@ theorem not_endpointAugmentedConcreteW_shiftMlprojClosureAt_booleanity_mass_one
   rw [hone] at hzero
   norm_num at hzero
 
+/-- The endpoint-augmented one-profile closure frontier itself is false at the
+booleanity-mass-one active profile, because its same-profile shift/mlProj field
+is exactly the obstructed field isolated above. -/
+theorem not_EndpointAugmentedActiveProfileClosureAtProfile_booleanity_mass_one
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : n ≥ 4)
+    (bp : BoundedProfile (Nat.log 2 n))
+    (hbool : bp.toHistogram ConstraintType.booleanity = 1)
+    (hother :
+      ∀ τ : ConstraintType, τ ≠ ConstraintType.booleanity →
+        bp.toHistogram τ = 0) :
+    ¬ EndpointAugmentedActiveProfileClosureAtProfile
+        M n hn htb hns hn4 bp := by
+  intro hClosure
+  exact
+    not_endpointAugmentedConcreteW_shiftMlprojClosureAt_booleanity_mass_one
+      n hn4 bp hbool hother hClosure.2
+
 /-- Charged endpoint-augmented closure frontier at one active profile.
 
 The `ProfileChargeSelfAtBoundedProfile` field is deliberately explicit:
@@ -1663,11 +1753,14 @@ theorem cookLevinAllBoundedProfileCommonSpanLiveProfileCases_of_endpointAugmente
 #print axioms compiledBasis_adjacency_basicRows_mem
 #print axioms compiledBasis_transitionLeft_basicRow_mem
 #print axioms cookLevinAllBoundedProfileCommonSpanAtProfile_of_interfaceAnonymousProfileSpan
+#print axioms cookLevinActiveProfileTypeCaseBlockers_of_interfaceAnonymous_activeProfileSpan
 #print axioms cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_profileSpan
 #print axioms cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_spanningAtProfile
+#print axioms cookLevinActiveProfileTypeCaseBlockers_of_endpointAugmented_activeProfileSpan
 #print axioms cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_closureAtProfile
 #print axioms endpointAugmentedConcreteW_booleanity_coeff_endpoint0_cross_eq_zero_of_ne
 #print axioms not_endpointAugmentedConcreteW_shiftMlprojClosureAt_booleanity_mass_one
+#print axioms not_EndpointAugmentedActiveProfileClosureAtProfile_booleanity_mass_one
 #print axioms not_EndpointAugmentedActiveProfileFrontier_of_factor_not_mem
 #print axioms not_EndpointAugmentedActiveProfileFrontier
 #print axioms cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_chargedClosureAtProfile
