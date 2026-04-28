@@ -483,6 +483,278 @@ theorem false_of_routeBPaperFaithfulTPhi_explicit_source_transport
             routeBPaperFaithfulTPhi_identity_minor_data
               M n hn hn2 htb hns B_total hB_total)
 
+/-- Strict `TΦ` source-transport contradiction from the explicit source and
+target data, without packaging the target through hard-instance data.
+
+This is the leanest source-transport consumer: the arithmetic contradiction
+only needs the concrete paper source, its P-side bound, the strict target
+bridge, and the same-target identity minor. The separate hard-instance
+semantic package is only needed by callers that want the older semantic-gap
+object. -/
+theorem false_of_routeBPaperFaithfulTPhi_explicit_source_transport_target
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hQ_upper : MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B_total
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (show MvPolynomial (Fin n) ℚ from
+        PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200) :
+    False :=
+  GlobalGodMoveGauge.theorem207PaperSource_transport_false
+    M n hn hn2 htb hns
+    (routeBPaperFaithfulTPhiTarget M n hn2 htb hns B_total)
+    (routeBPaperFaithfulTPhiPaperSource
+      M n hn hn2 htb hns B_total hB_total hQ_upper)
+    (routeBPaperFaithfulTPhiPaperSource_p_side_upper
+      M n hn hn2 htb hns B_total hB_total hQ_upper)
+    (routeBPaperFaithfulTPhi_source_to_target_rank_bridge
+      M n hn hn2 htb hns B_total hB_total hQ_upper)
+    (routeB_strong_np_from_same_target_identity_minor
+      (routeBPaperFaithfulTPhi_identity_minor_data
+        M n hn hn2 htb hns B_total hB_total))
+
+/-- Explicit strict-`TΦ` source transport with the landed P-side theorem
+supplying the exact `hQ_upper` input.
+
+This keeps the new no-global-seam source-transport route visible while using
+the existing Cook-Levin P-side rank theorem to construct the direct-rank
+package. -/
+theorem false_of_routeBPaperFaithfulTPhi_explicit_source_transport_from_p_side
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_explicit_source_transport
+    M n hn hn2 htb hns hdec hard B_total hB_total
+    (cookLevinQ_rank_le_from_p_side_at_B_total
+      M n hn htb hns hn2 B_total hB_total)
+
+/-- Hard-instance-free version of
+`false_of_routeBPaperFaithfulTPhi_explicit_source_transport_from_p_side`.
+This is the exact source-transport contradiction closed by the landed P-side
+rank theorem. -/
+theorem false_of_routeBPaperFaithfulTPhi_explicit_target_from_p_side
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_explicit_source_transport_target
+    M n hn hn2 htb hns B_total hB_total
+    (cookLevinQ_rank_le_from_p_side_at_B_total
+      M n hn htb hns hn2 B_total hB_total)
+
+/-- Explicit strict-`TΦ` source transport from the paper-faithful
+template-collapse P-side frontier.
+
+This is the honest reduced mathematical input for the no-global-seam route:
+prove the concrete Cook-Levin profile template collapse, then the strict
+source-transport contradiction follows through the explicit target/source
+data above. -/
+theorem false_of_routeBPaperFaithfulTPhi_explicit_source_transport_from_templateCollapse
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hcollapse :
+      WithinProfileBound.CookLevinProfileTemplateCollapseLemma
+        M n hn2 htb hns) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_explicit_source_transport
+    M n hn hn2 htb hns hdec hard B_total hB_total
+    (cookLevinQ_rank_le_from_templateCollapse_at_B_total
+      M n hn htb hns hn2 B_total hB_total hcollapse)
+
+/-- Hard-instance-free explicit strict-`TΦ` source transport from
+template-collapse. -/
+theorem false_of_routeBPaperFaithfulTPhi_explicit_target_from_templateCollapse
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hcollapse :
+      WithinProfileBound.CookLevinProfileTemplateCollapseLemma
+        M n hn2 htb hns) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_explicit_source_transport_target
+    M n hn hn2 htb hns B_total hB_total
+    (cookLevinQ_rank_le_from_templateCollapse_at_B_total
+      M n hn htb hns hn2 B_total hB_total hcollapse)
+
+/-- Canonical explicit strict-`TΦ` source transport from template collapse,
+with the extended Cook-Levin partition selected definitionally. -/
+theorem false_of_routeBPaperFaithfulTPhi_explicit_canonical_from_templateCollapse
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
+    (hcollapse :
+      WithinProfileBound.CookLevinProfileTemplateCollapseLemma
+        M n hn2 htb hns) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_explicit_source_transport_from_templateCollapse
+    M n hn hn2 htb hns hdec hard
+    (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    rfl hcollapse
+
+/-- Canonical hard-instance-free explicit strict-`TΦ` contradiction from
+template collapse. -/
+theorem false_of_routeBPaperFaithfulTPhi_explicit_target_canonical_from_templateCollapse
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcollapse :
+      WithinProfileBound.CookLevinProfileTemplateCollapseLemma
+        M n hn2 htb hns) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_explicit_target_from_templateCollapse
+    M n hn hn2 htb hns
+    (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    rfl hcollapse
+
+/-- Canonical hard-instance-free explicit strict-`TΦ` contradiction from the
+bounded-profile template-collapse frontier. -/
+theorem false_of_routeBPaperFaithfulTPhi_explicit_target_canonical_from_boundedProfileTemplateCollapse
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcollapse :
+      WithinProfileBound.CookLevinProfileTemplateCollapseLemmaBoundedProfile
+        M n hn2 htb hns) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_explicit_target_canonical_from_templateCollapse
+    M n hn hn2 htb hns
+    (WithinProfileBound.cookLevinProfileTemplateCollapseLemma_of_boundedProfile
+      M n hn2 htb hns hcollapse)
+
+/-- Canonical hard-instance-free explicit strict-`TΦ` contradiction from the
+post-span symmetric-product frontier. -/
+theorem false_of_routeBPaperFaithfulTPhi_explicit_target_canonical_from_postSpanBoundedBySymProduct
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hpostSpan :
+      WithinProfileBound.CookLevinPostSpanBoundedBySymProduct
+        M n hn2 htb hns) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_explicit_target_canonical_from_boundedProfileTemplateCollapse
+    M n hn hn2 htb hns
+    (WithinProfileBound.cookLevinProfileTemplateCollapseLemmaBoundedProfile_of_postSpanBoundedBySymProduct
+      M n hn2 htb hns hpostSpan)
+
+/-- Semantic-transport witness for the strict `TΦ` target from explicit
+source-transport data and the staged semantic extraction theorem.
+
+This is the older semantic-gap interface with the global existence seam
+removed: the target is the strict `TΦ` target, the identity minor is the
+same-target strict minor, and the source/P-side/bridge data are all supplied
+by `DirectRankPackage_cookLevin`. The only semantic input left is the actual
+`GodMoveExtractionTargetTheorem` for this strict target. -/
+noncomputable def routeBPaperFaithfulTPhi_semanticTransportWitness
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hQ_upper : MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B_total
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (show MvPolynomial (Fin n) ℚ from
+        PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200)
+    (hsem :
+      GodMoveExtractionTargetTheorem M n hn2 htb hns hdec
+        (routeBPaperFaithfulTPhiTarget M n hn2 htb hns B_total)) :
+    GlobalGodMoveGauge.Theorem207SemanticTransportWitness
+      M n hn hn2 htb hns hdec :=
+  GlobalGodMoveGauge.theorem207SemanticTransportWitness_of_target_data
+    M n hn hn2 htb hns hdec
+    (routeBPaperFaithfulTPhiTargetData
+      M n hn2 htb hns hdec hard B_total)
+    (by
+      simpa [routeBPaperFaithfulTPhiTargetData] using hsem)
+    (by
+      simpa [routeBPaperFaithfulTPhiTargetData]
+        using
+          routeBPaperFaithfulTPhi_identity_minor_data
+            M n hn hn2 htb hns B_total hB_total)
+    (routeBPaperFaithfulTPhiPaperSource
+      M n hn hn2 htb hns B_total hB_total hQ_upper)
+    (routeBPaperFaithfulTPhiPaperSource_p_side_upper
+      M n hn hn2 htb hns B_total hB_total hQ_upper)
+    (by
+      simpa [routeBPaperFaithfulTPhiTargetData]
+        using
+          routeBPaperFaithfulTPhi_source_to_target_rank_bridge
+            M n hn hn2 htb hns B_total hB_total hQ_upper)
+
+/-- The explicit strict-`TΦ` semantic witness closes `False` once the staged
+semantic extraction theorem and exact P-side input are supplied. -/
+theorem false_of_routeBPaperFaithfulTPhi_semanticTransportWitness
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hQ_upper : MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B_total
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (show MvPolynomial (Fin n) ℚ from
+        PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200)
+    (hsem :
+      GodMoveExtractionTargetTheorem M n hn2 htb hns hdec
+        (routeBPaperFaithfulTPhiTarget M n hn2 htb hns B_total)) :
+    False :=
+  GlobalGodMoveGauge.theorem207SemanticTransportWitness_false
+    M n hn hn2 htb hns hdec
+    (routeBPaperFaithfulTPhi_semanticTransportWitness
+      M n hn hn2 htb hns hdec hard B_total hB_total hQ_upper hsem)
+
+/-- Semantic-witness strict `TΦ` contradiction from template collapse. -/
+theorem false_of_routeBPaperFaithfulTPhi_semanticTransportWitness_from_templateCollapse
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hcollapse :
+      WithinProfileBound.CookLevinProfileTemplateCollapseLemma
+        M n hn2 htb hns)
+    (hsem :
+      GodMoveExtractionTargetTheorem M n hn2 htb hns hdec
+        (routeBPaperFaithfulTPhiTarget M n hn2 htb hns B_total)) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_semanticTransportWitness
+    M n hn hn2 htb hns hdec hard B_total hB_total
+    (cookLevinQ_rank_le_from_templateCollapse_at_B_total
+      M n hn htb hns hn2 B_total hB_total hcollapse)
+    hsem
+
 /-- The strict paper-faithful `TΦ` target feeds the final source-transport
 contradiction once the selected Cook-Levin P-side upper bound is supplied. -/
 theorem false_of_routeBPaperFaithfulTPhi_qRankUpper
