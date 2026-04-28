@@ -3422,6 +3422,37 @@ theorem routeBPaperFaithfulTPhi_singletonResidual_of_normalized_nonSingleton_coe
       hnonsingle S' shift hSlen hshiftDegree hshiftVars hadm α
         (fun i hi => hα ⟨i, hi⟩)
 
+/-- The normalized non-singleton coefficient computation is enough to prove
+the strict singleton-normalizer row identity.  Singleton coordinates need no
+separate proof: the semantic normalizer erases them on both sides. -/
+theorem routeBPaperFaithfulTPhi_singletonNormalizedRowIdentity_of_normalizedNonSingletonCoeff
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcoeff :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedNonSingletonCoeffIdentity
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalizedRowIdentity
+        M n hn2 htb hns :=
+  (routeBPaperFaithfulTPhi_singletonNormalizedRowIdentity_iff_singletonResidual
+    M n hn2 htb hns).mpr
+    (routeBPaperFaithfulTPhi_singletonResidual_of_normalized_nonSingleton_coeff
+      M n hn2 htb hns hcoeff)
+
+/-- Expanded normalized coefficient balance is the exact proof-facing
+coefficient gate for the semantic singleton-normalizer row identity. -/
+theorem routeBPaperFaithfulTPhi_singletonNormalizedRowIdentity_of_coeffBalance
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hbalance :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedCoeffBalance
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalizedRowIdentity
+        M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_singletonNormalizedRowIdentity_of_normalizedNonSingletonCoeff
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_normalizedNonSingletonCoeffIdentity_of_coeffBalance
+      M n hn2 htb hns hbalance)
+
 /-- Any proof of the strict singleton-normal-form identity must prove that the
 renamed restricted derivative row has no degree-one singleton coefficients.
 This is the concrete coefficient test for the semantic normalizer target. -/
