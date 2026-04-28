@@ -1,6 +1,7 @@
 import PallLean.Step4Compiler
 import PallLean.GlobalGodMoveGauge
 import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeFinalTarget
+import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeSpanningBridge
 import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingBridge
 import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingsClosure
 import PallLean.Paper93.Paper283.RouteBZeroProfileProjectedPWindowProgress
@@ -1098,6 +1099,22 @@ theorem false_of_routeBPaperFaithfulTPhi_canonical_from_boundedProfileTemplateCo
     M n hn hn2 htb hns hdec
     (WithinProfileBound.cookLevinProfileTemplateCollapseLemma_of_boundedProfile
       M n hn2 htb hns hcollapse)
+
+/-- Canonical strict-`TΦ` contradiction from the honest per-type spanning
+frontier.  This is the narrow Route B P-side proof input exposed by the
+profile-normal-form route: a universal per-type spanning theorem supplies the
+bounded-profile template collapse, which then feeds the canonical strict
+extraction. -/
+theorem false_of_routeBPaperFaithfulTPhi_canonical_from_perTypeSpanning_universal
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hSpan_univ : PallLean.Paper93.Spanning.CookLevinPerTypeSpanning_universal) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_canonical_from_boundedProfileTemplateCollapse
+    M n hn hn2 htb hns hdec
+    (cookLevinBoundedProfileTemplateCollapse_of_perTypeSpanning_universal
+      hSpan_univ M n hn hn2 htb hns)
 
 /-- Canonical strict-`TΦ` contradiction from the narrow post-span symmetric
 product generator obligation.  This is the proof-facing replacement surface for
@@ -4506,6 +4523,17 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_boundedProfil
       M n hn hn2 htb hns hdec
       (hcollapse M n hn hn2 htb hns)
 
+/-- A universal per-type spanning theorem is enough for the strict paper
+`TΦ` final path.  This is the current narrow P-side Route B frontier after
+retargeting away from the legacy global rank seam. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_perTypeSpanning_universal
+    (hSpan_univ : PallLean.Paper93.Spanning.CookLevinPerTypeSpanning_universal) :
+    PallLean.Paper93.DeepMath.PathB.NoBoundedSATDeciderAtPaperScale := by
+  intro M n hn hn2 htb hns hdec
+  exact
+    false_of_routeBPaperFaithfulTPhi_canonical_from_perTypeSpanning_universal
+      M n hn hn2 htb hns hdec hSpan_univ
+
 /-- A uniform post-span symmetric-product generator theorem is enough for the
 strict paper `TΦ` final path.  This is narrower than the legacy landed P-side
 rank theorem: it asks only for the bounded-profile concrete Cook-Levin
@@ -4550,6 +4578,15 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_boundedProfi
   PallLean.Paper93.DeepMath.PathB.cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_boundedProfileTemplateCollapse
       hcollapse)
+
+/-- Legacy rich-projection discharge from the strict `TΦ` per-type spanning
+route, mediated only by the established no-decider equivalence. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_perTypeSpanning_universal
+    (hSpan_univ : PallLean.Paper93.Spanning.CookLevinPerTypeSpanning_universal) :
+    PallLean.Paper93.DeepMath.PathB.CookLevinRichProjectionDischarge :=
+  PallLean.Paper93.DeepMath.PathB.cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_perTypeSpanning_universal
+      hSpan_univ)
 
 /-- Legacy rich-projection discharge from the strict `TΦ` post-span
 symmetric-product generator route, mediated only by the established no-decider
