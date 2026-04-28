@@ -227,6 +227,68 @@ theorem endpointAugmentedActiveProfileChargedFrontier_of_canonicalShape_componen
       M n hn htb hns hn4 hShape)
     hI1 hI2c hI3 hSelf
 
+/-- Build the charged endpoint-active frontier from local components, using
+the checked endpoint-augmented active-profile budget. -/
+theorem endpointAugmentedActiveProfileChargedFrontier_of_components_checkedBudget
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (charge : ProfileCharge n) (hn4 : n ≥ 4)
+    (hFactor :
+      CookLevinFactorMemPerType M n hn htb hns
+        (endpointAugmentedConcreteW n hn4))
+    (hI1 :
+      PerTypeProductGrouping (endpointAugmentedConcreteW n hn4))
+    (hI2c :
+      PerTypeChargedShiftClosure charge
+        (endpointAugmentedConcreteW n hn4))
+    (hI3 :
+      PerTypeMlprojClosure (endpointAugmentedConcreteW n hn4))
+    (hSelf :
+      ∀ (h : ProfileHistogram)
+        (hadm : ProfileAdmissible (Nat.log 2 n) h),
+          h ConstraintType.transitionRight = 0 →
+            h ≠ zeroProfileHistogram →
+              ActiveProfileSupport h →
+                ProfileChargeSelfAtBoundedProfile charge
+                  (admissibleToBounded hadm)) :
+    EndpointAugmentedActiveProfileChargedFrontier
+      M n hn htb hns charge hn4 :=
+  endpointAugmentedActiveProfileChargedFrontier_of_components
+    M n hn htb hns charge hn4
+    (endpointAugmentedActiveProfileSubspaceBudget n hn4)
+    hFactor hI1 hI2c hI3 hSelf
+
+/-- Canonical concreteW shape witnesses provide the factor-membership field,
+while the endpoint-augmented active-profile budget is supplied by the checked
+dimension theorem. -/
+theorem endpointAugmentedActiveProfileChargedFrontier_of_canonicalShape_components_checkedBudget
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (charge : ProfileCharge n) (hn4 : n ≥ 4)
+    (hShape :
+      CookLevinCanonicalConcreteWShapeWitnesses M n hn htb hns hn4)
+    (hI1 :
+      PerTypeProductGrouping (endpointAugmentedConcreteW n hn4))
+    (hI2c :
+      PerTypeChargedShiftClosure charge
+        (endpointAugmentedConcreteW n hn4))
+    (hI3 :
+      PerTypeMlprojClosure (endpointAugmentedConcreteW n hn4))
+    (hSelf :
+      ∀ (h : ProfileHistogram)
+        (hadm : ProfileAdmissible (Nat.log 2 n) h),
+          h ConstraintType.transitionRight = 0 →
+            h ≠ zeroProfileHistogram →
+              ActiveProfileSupport h →
+                ProfileChargeSelfAtBoundedProfile charge
+                  (admissibleToBounded hadm)) :
+    EndpointAugmentedActiveProfileChargedFrontier
+      M n hn htb hns charge hn4 :=
+  endpointAugmentedActiveProfileChargedFrontier_of_canonicalShape_components
+    M n hn htb hns charge hn4
+    (endpointAugmentedActiveProfileSubspaceBudget n hn4)
+    hShape hI1 hI2c hI3 hSelf
+
 /-- ConcreteW row embeddings close the active blockers through the direct
 endpoint-augmented post-span criterion. -/
 theorem cookLevinActiveProfileTypeCaseBlockers_of_concreteWRowEmbeddings_endpointAugmented
@@ -383,6 +445,8 @@ theorem cookLevinActiveProfileTypeCaseBlockers_of_endpointAugmented_perTypeSpann
 #print axioms cookLevinProfileSubspace_mono_of_le
 #print axioms concreteWCanonical_le_endpointAugmentedConcreteW
 #print axioms cookLevinProfileSubspace_concreteWCanonical_le_endpointAugmentedConcreteW
+#print axioms endpointAugmentedActiveProfileChargedFrontier_of_components_checkedBudget
+#print axioms endpointAugmentedActiveProfileChargedFrontier_of_canonicalShape_components_checkedBudget
 #print axioms cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_concreteW_rowEmbeddings
 #print axioms endpointAugmented_spanningAtActiveProfiles_of_concreteW_rowEmbeddings
 #print axioms cookLevinPostSpanAt_le_endpointAugmentedConcreteW_of_concreteW_rowEmbeddings
