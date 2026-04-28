@@ -42,6 +42,7 @@ open TuringMachine
 open Step4Compiler.Step252
 open SymmetricPowerBound
 open WithinProfileBound
+open PallLean.Paper93.Spanning
 open PallLean.Paper93.DeepMath.PathB
 
 attribute [local instance] Classical.dec
@@ -4573,6 +4574,64 @@ theorem false_of_routeBPaperFaithfulTPhi_canonical_from_endpointAugmented_charge
                         simp [zeroProfileHistogram] at htransition)
               hactive)))
 
+/-- Strict paper-faithful `TΦ` target from a charged target-profile active
+cover.
+
+This is the retargeted active consumer for the concrete endpoint charge: the
+source active post-span need not self-target.  It is enough to cover it by
+charged/restricted rows landing in admissible target profiles, then use the
+endpoint-augmented target-profile budget. -/
+theorem false_of_routeBPaperFaithfulTPhi_canonical_from_endpointAugmented_chargedTargetCover
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (charge : ProfileCharge n)
+    (hn4 : n ≥ 4)
+    (hzero :
+      CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hFactor :
+      CookLevinFactorMemPerType M n hn2 htb hns
+        (endpointAugmentedConcreteW n hn4))
+    (hI1 :
+      PallLean.Paper93.Closure.PerTypeProductGrouping
+        (endpointAugmentedConcreteW n hn4))
+    (hI2c :
+      PerTypeChargedShiftClosure (n := n) charge
+        (endpointAugmentedConcreteW n hn4))
+    (hI3 :
+      PallLean.Paper93.Closure.PerTypeMlprojClosure
+        (endpointAugmentedConcreteW n hn4))
+    (hCover :
+      ∀ (h : ProfileHistogram)
+        (hadm : ProfileAdmissible (Nat.log 2 n) h),
+          h ConstraintType.transitionRight = 0 →
+            h ≠ zeroProfileHistogram →
+              ActiveProfileSupport h →
+                CookLevinEndpointChargedTargetProfileCoverAt
+                  M n hn2 htb hns charge h hadm) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_qRankUpper
+    M n hn hn2 htb hns hdec
+    (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) rfl
+    (by
+      have hCharged :
+          PerTypeShiftMlprojClosureCharged (n := n) charge
+            (endpointAugmentedConcreteW n hn4) :=
+        perTypeShiftMlprojClosure_charged_discharged
+          (n := n) charge (endpointAugmentedConcreteW n hn4)
+          hI1 hI2c hI3
+      have hp : RouteBSATUnprojectedPSideRankBound M n hn2 htb hns :=
+        routeBSATUnprojectedPSideRankBound_of_activeTypeCaseBlockers_and_zeroProfileCommonSpan
+          M n hn2 htb hns hn4 hzero
+          (cookLevinActiveProfileTypeCaseBlockers_of_endpointAugmented_chargedTargetCover
+            M n hn2 htb hns charge hn4 hFactor hCharged
+            (endpointAugmentedActiveProfileSubspaceBudget n hn4) hCover)
+      have hpart :=
+        PaperFaithfulCompilation.pullback_eq_cook_levin_partition
+          M n hn2 htb hns
+      rw [hpart]
+      convert hp using 2)
+
 /-- A uniform concreteW row-embedding theorem closes the strict `TΦ`
 contradiction-strength consumer.  This is the direct final hook for the local
 chart/profile-compression route; it does not pass through the failed broad
@@ -4726,6 +4785,54 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugme
       M n hn hn2 htb hns hdec (charge n) hn4
       (hzero M n hn2 htb hns)
       (hFrontier M n hn2 hn4 htb hns)
+
+/-- Uniform charged target-profile covers plus zero-profile common-span close
+the strict paper-faithful `TΦ` route at the paper scale. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_chargedTargetCover
+    (charge : ∀ n : ℕ, ProfileCharge n)
+    (hzero :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hFactor :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinFactorMemPerType M n hn2 htb hns
+          (endpointAugmentedConcreteW n hn4))
+    (hI1 :
+      ∀ (n : ℕ) (hn4 : n ≥ 4),
+        PallLean.Paper93.Closure.PerTypeProductGrouping
+          (endpointAugmentedConcreteW n hn4))
+    (hI2c :
+      ∀ (n : ℕ) (hn4 : n ≥ 4),
+        PerTypeChargedShiftClosure (charge n)
+          (endpointAugmentedConcreteW n hn4))
+    (hI3 :
+      ∀ (n : ℕ) (hn4 : n ≥ 4),
+        PallLean.Paper93.Closure.PerTypeMlprojClosure
+          (endpointAugmentedConcreteW n hn4))
+    (hCover :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        ∀ (h : ProfileHistogram)
+          (hadm : ProfileAdmissible (Nat.log 2 n) h),
+            h ConstraintType.transitionRight = 0 →
+              h ≠ zeroProfileHistogram →
+                ActiveProfileSupport h →
+                  CookLevinEndpointChargedTargetProfileCoverAt
+                    M n hn2 htb hns (charge n) h hadm) :
+    NoBoundedSATDeciderAtPaperScale := by
+  intro M n hn hn2 htb hns hdec
+  have hn4 : n ≥ 4 := routeB_paperScale_ge_four hn
+  exact
+    false_of_routeBPaperFaithfulTPhi_canonical_from_endpointAugmented_chargedTargetCover
+      M n hn hn2 htb hns hdec (charge n) hn4
+      (hzero M n hn2 htb hns)
+      (hFactor M n hn2 hn4 htb hns)
+      (hI1 n hn4)
+      (hI2c n hn4)
+      (hI3 n hn4)
+      (hCover M n hn2 hn4 htb hns)
 
 /-- Strict `TΦ` Route B from canonical endpoint-augmented active-profile
 components.
@@ -5042,6 +5149,45 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_endpointAugm
   cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_chargedFrontier
       charge hzero hFrontier)
+
+/-- Legacy rich-projection discharge from charged target-profile covers. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_endpointAugmented_chargedTargetCover
+    (charge : ∀ n : ℕ, ProfileCharge n)
+    (hzero :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hFactor :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinFactorMemPerType M n hn2 htb hns
+          (endpointAugmentedConcreteW n hn4))
+    (hI1 :
+      ∀ (n : ℕ) (hn4 : n ≥ 4),
+        PallLean.Paper93.Closure.PerTypeProductGrouping
+          (endpointAugmentedConcreteW n hn4))
+    (hI2c :
+      ∀ (n : ℕ) (hn4 : n ≥ 4),
+        PerTypeChargedShiftClosure (charge n)
+          (endpointAugmentedConcreteW n hn4))
+    (hI3 :
+      ∀ (n : ℕ) (hn4 : n ≥ 4),
+        PallLean.Paper93.Closure.PerTypeMlprojClosure
+          (endpointAugmentedConcreteW n hn4))
+    (hCover :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        ∀ (h : ProfileHistogram)
+          (hadm : ProfileAdmissible (Nat.log 2 n) h),
+            h ConstraintType.transitionRight = 0 →
+              h ≠ zeroProfileHistogram →
+                ActiveProfileSupport h →
+                  CookLevinEndpointChargedTargetProfileCoverAt
+                    M n hn2 htb hns (charge n) h hadm) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_chargedTargetCover
+      charge hzero hFactor hI1 hI2c hI3 hCover)
 
 /-- Legacy rich-projection discharge from canonical endpoint-augmented
 active-profile components. -/

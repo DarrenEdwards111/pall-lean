@@ -353,6 +353,24 @@ theorem cookLevinChargedPostSpanAtTarget_le_profileSubspace_discharged
     (cookLevinPerTypeChargedSpanningAtBoundedProfileTarget_discharged
       M n hn htb hns W charge bpSrc bpTgt hFactor hClosure hCharged)
 
+/-- A source active profile is covered by charged target profiles when its full
+post-span is contained in the charged/restricted span for one admissible target
+profile.  This is the replacement for same-profile self-targeting: the target
+profile may differ from the source profile. -/
+def CookLevinEndpointChargedTargetProfileCoverAt
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (charge : ProfileCharge n)
+    (h : ProfileHistogram)
+    (hadm : ProfileAdmissible (Nat.log 2 n) h) : Prop :=
+  ∃ bpTgt : BoundedProfile (Nat.log 2 n),
+    ProfileAdmissible (Nat.log 2 n) bpTgt.toHistogram ∧
+      bpTgt.toHistogram ConstraintType.transitionRight = 0 ∧
+      ActiveProfileSupport bpTgt.toHistogram ∧
+      cookLevinPostSpanAt M n hn htb hns h ≤
+        cookLevinChargedPostSpanAtTarget M n hn htb hns charge
+          (admissibleToBounded hadm) bpTgt
+
 /-- Discharge a bounded-profile row-embedding slice from H3, endpoint H4, and
 profile-local shift/mlProj closure. -/
 theorem cookLevinPerTypeSpanningAtBoundedProfile_discharged
@@ -1282,6 +1300,79 @@ theorem cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_spann
     cookLevinAllBoundedProfileCommonSpanAtProfile_of_allBoundedProfilePostSpan_finrank
       M n hn htb hns h hdim_all
 
+/-- Charged target-profile cover version of the endpoint-augmented
+active-profile common-span gate.
+
+This avoids the false same-profile/self-targeting condition.  The source
+post-span is first covered by charged/restricted rows into an admissible target
+profile, then the charged closure theorem places that restricted span in the
+target endpoint-augmented profile subspace. -/
+theorem cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_chargedTargetCover
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (charge : ProfileCharge n)
+    (hn4 : n ≥ 4)
+    (h : ProfileHistogram)
+    (hadm : ProfileAdmissible (Nat.log 2 n) h)
+    (hFactor :
+      CookLevinFactorMemPerType M n hn htb hns
+        (endpointAugmentedConcreteW n hn4))
+    (hCharged :
+      PerTypeShiftMlprojClosureCharged (n := n) charge
+        (endpointAugmentedConcreteW n hn4))
+    (hBudget : EndpointAugmentedActiveProfileSubspaceBudget n hn4)
+    (hCover :
+      CookLevinEndpointChargedTargetProfileCoverAt
+        M n hn htb hns charge h hadm) :
+    CookLevinAllBoundedProfileCommonSpanAtProfile M n hn htb hns h := by
+  classical
+  rcases hCover with
+    ⟨bpTgt, hTgtAdm, hTgtTr, hTgtActive, hCoverLe⟩
+  have hChargedLe :
+      cookLevinChargedPostSpanAtTarget M n hn htb hns charge
+          (admissibleToBounded hadm) bpTgt
+        ≤ cookLevinProfileSubspace bpTgt
+            (endpointAugmentedConcreteW n hn4) :=
+    cookLevinChargedPostSpanAtTarget_le_profileSubspace_discharged
+      M n hn htb hns (endpointAugmentedConcreteW n hn4) charge
+      (admissibleToBounded hadm) bpTgt
+      hFactor
+      (endpointAugmentedConcreteW_derivClosurePerType n hn4)
+      hCharged
+  rcases hBudget bpTgt.toHistogram hTgtAdm hTgtTr hTgtActive with
+    ⟨hProfileFinite, hProfileBound⟩
+  letI : Module.Finite ℚ
+      ↥(cookLevinProfileSubspace bpTgt
+        (endpointAugmentedConcreteW n hn4)) :=
+    hProfileFinite
+  have hPostLe :
+      cookLevinPostSpanAt M n hn htb hns h ≤
+        cookLevinProfileSubspace bpTgt
+          (endpointAugmentedConcreteW n hn4) :=
+    le_trans hCoverLe hChargedLe
+  have hmono :
+      Module.finrank ℚ ↥(cookLevinPostSpanAt M n hn htb hns h)
+        ≤ Module.finrank ℚ
+            ↥(cookLevinProfileSubspace bpTgt
+              (endpointAugmentedConcreteW n hn4)) :=
+    Submodule.finrank_mono hPostLe
+  have hdim_all :
+      Module.finrank ℚ
+          ↥(allBoundedProfilePostSpan
+            (PaperFaithfulSeparation.cook_levin_compilation M n hn htb hns).partition
+            (Nat.log 2 n) (Nat.log 2 n)
+            (fun i => (cookLevinFactorList M n hn htb hns).get i)
+            (cookLevinConstraintType M n hn htb hns)
+            h)
+        ≤ withinProfileBound (Nat.log 2 n) := by
+    change
+      Module.finrank ℚ ↥(cookLevinPostSpanAt M n hn htb hns h)
+        ≤ withinProfileBound (Nat.log 2 n)
+    exact le_trans hmono hProfileBound
+  exact
+    cookLevinAllBoundedProfileCommonSpanAtProfile_of_allBoundedProfilePostSpan_finrank
+      M n hn htb hns h hdim_all
+
 /-- Direct endpoint-augmented active profile span containments are enough for
 the active type-case blockers.  This keeps the endpoint-augmented low-
 dimensional route while bypassing the uncharged same-profile closure field
@@ -1316,6 +1407,48 @@ theorem cookLevinActiveProfileTypeCaseBlockers_of_endpointAugmented_activeProfil
       cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_profileSpan
         M n hn htb hns hn4 h hadm htr (Or.inr (Or.inr hpos))
         (hProfileSpan h hadm htr (Or.inr (Or.inr hpos)))
+
+/-- Charged target-profile covers are enough for the active type-case
+blockers.  This is the active bridge shape that avoids the refuted
+self-targeting endpoint charge. -/
+theorem cookLevinActiveProfileTypeCaseBlockers_of_endpointAugmented_chargedTargetCover
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (charge : ProfileCharge n)
+    (hn4 : n ≥ 4)
+    (hFactor :
+      CookLevinFactorMemPerType M n hn htb hns
+        (endpointAugmentedConcreteW n hn4))
+    (hCharged :
+      PerTypeShiftMlprojClosureCharged (n := n) charge
+        (endpointAugmentedConcreteW n hn4))
+    (hBudget : EndpointAugmentedActiveProfileSubspaceBudget n hn4)
+    (hCover :
+      ∀ (h : ProfileHistogram)
+        (hadm : ProfileAdmissible (Nat.log 2 n) h),
+          h ConstraintType.transitionRight = 0 →
+            h ≠ zeroProfileHistogram →
+              ActiveProfileSupport h →
+                CookLevinEndpointChargedTargetProfileCoverAt
+                  M n hn htb hns charge h hadm) :
+    CookLevinActiveProfileTypeCaseBlockers M n hn htb hns := by
+  classical
+  refine ⟨?_, ?_, ?_⟩
+  · intro h hadm htr hne hpos
+    exact
+      cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_chargedTargetCover
+        M n hn htb hns charge hn4 h hadm hFactor hCharged hBudget
+        (hCover h hadm htr hne (Or.inl hpos))
+  · intro h hadm htr hne hpos
+    exact
+      cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_chargedTargetCover
+        M n hn htb hns charge hn4 h hadm hFactor hCharged hBudget
+        (hCover h hadm htr hne (Or.inr (Or.inl hpos)))
+  · intro h hadm htr hne hpos
+    exact
+      cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_chargedTargetCover
+        M n hn htb hns charge hn4 h hadm hFactor hCharged hBudget
+        (hCover h hadm htr hne (Or.inr (Or.inr hpos)))
 
 /-- Endpoint-augmented active-profile closure frontier at one profile.
 
@@ -1902,6 +2035,8 @@ theorem cookLevinAllBoundedProfileCommonSpanLiveProfileCases_of_endpointAugmente
 #print axioms cookLevinPostSpanAt_le_chargedTarget_of_chargedSpanningAtBoundedProfileTarget
 #print axioms cookLevinChargedPostSpanAtTarget_le_profileSubspace_of_chargedSpanningAtBoundedProfileTarget
 #print axioms cookLevinChargedPostSpanAtTarget_le_profileSubspace_discharged
+#print axioms cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_chargedTargetCover
+#print axioms cookLevinActiveProfileTypeCaseBlockers_of_endpointAugmented_chargedTargetCover
 #print axioms cookLevinPerTypeSpanningAtBoundedProfile_discharged
 #print axioms endpointAugmentedActiveProfileSubspaceBudget_of_dim_le_three
 #print axioms compiledCoefficientBasis_activeProfileSubspaceBudget
