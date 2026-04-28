@@ -3781,6 +3781,85 @@ theorem routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientResidualB
   (routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientResidualBalance_iff_decomposition
     M n hn2 htb hns).mpr hdecomp
 
+/-- For the selected singleton quotient projection, the strict residual-balance
+gate is exactly the quotient-normal-form residual statement plus the condition
+that the extracted derivative row is already the chosen quotient
+representative.  This is the semantic form of the remaining strict `TΦ`
+algebra: normalized row equality alone is not enough for this raw quotient
+consumer unless the derivative representative is fixed. -/
+theorem routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientResidualBalance_iff_singletonResidual_and_derivativeFixed
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+        M n hn2 htb hns
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) ↔
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalFormResidual
+          M n hn2 htb hns ∧
+        RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientDerivativeFixed
+          M n hn2 htb hns := by
+  constructor
+  · intro hres
+    exact
+      ⟨routeBPaperFaithfulTPhi_singletonResidual_of_restrictedResidualBalance
+          M n hn2 htb hns hres,
+        routeBPaperFaithfulTPhi_derivativeFixed_of_restrictedResidualBalance
+          M n hn2 htb hns hres⟩
+  · rintro ⟨hresidual, hfix⟩
+    have hquot :
+        RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientRowIdentity
+          M n hn2 htb hns :=
+      routeBPaperFaithfulTPhi_singletonQuotientRowIdentity_of_singletonResidual
+        M n hn2 htb hns hresidual
+    have hrow :
+        RouteBPaperFaithfulTPhiRangePWindowRestrictedZeroProfileRowIdentity
+          M n hn2 htb hns
+          (zeroProfileQuotientBySingletonShiftProjection
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) :=
+      routeBPaperFaithfulTPhi_rangePWindowRestrictedZeroProfileRowIdentity_of_singletonQuotientRowIdentity_fixedDerivative
+        M n hn2 htb hns hquot hfix
+    exact
+      (routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientRowIdentity_iff_restrictedResidualBalance
+        M n hn2 htb hns).mp hrow
+
+/-- Forward-use form of the semantic strict `TΦ` quotient-residual criterion. -/
+theorem routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientResidualBalance_of_singletonResidual_derivativeFixed
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hresidual :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalFormResidual
+        M n hn2 htb hns)
+    (hfix :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientDerivativeFixed
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+      M n hn2 htb hns
+      (zeroProfileQuotientBySingletonShiftProjection
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) :=
+  (routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientResidualBalance_iff_singletonResidual_and_derivativeFixed
+    M n hn2 htb hns).mpr ⟨hresidual, hfix⟩
+
+/-- Normalized row equality is an equivalent way to supply the singleton
+residual half of the strict quotient-residual criterion. -/
+theorem routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientResidualBalance_of_normalizedRows_derivativeFixed
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hnorm :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalizedRowIdentity
+        M n hn2 htb hns)
+    (hfix :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientDerivativeFixed
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+      M n hn2 htb hns
+      (zeroProfileQuotientBySingletonShiftProjection
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) :=
+  routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientResidualBalance_of_singletonResidual_derivativeFixed
+    M n hn2 htb hns
+    ((routeBPaperFaithfulTPhi_singletonNormalizedRowIdentity_iff_singletonResidual
+      M n hn2 htb hns).mp hnorm)
+    hfix
+
 /-- The source-coordinate restricted equality implies the range-only row
 identity by the all-range strict-FOB row reduction. -/
 theorem routeBPaperFaithfulTPhi_rangePWindowZeroProfileRowIdentity_of_restricted
@@ -5944,6 +6023,9 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_postSpanBoun
 #print axioms routeBPaperFaithfulTPhi_rangePWindowRestrictedZeroProfileRowIdentity_of_restrictedResidualBalance
 #print axioms routeBPaperFaithfulTPhi_rangePWindowRestrictedZeroProfileRowIdentity_noGo_of_not_restrictedResidualBalance
 #print axioms routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientRowIdentity_iff_restrictedResidualBalance
+#print axioms routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientResidualBalance_iff_singletonResidual_and_derivativeFixed
+#print axioms routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientResidualBalance_of_singletonResidual_derivativeFixed
+#print axioms routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientResidualBalance_of_normalizedRows_derivativeFixed
 #print axioms routeBPaperFaithfulTPhi_rangePWindowZeroProfileRowIdentity_of_restricted
 #print axioms routeBPaperFaithfulTPhi_projectedPWindowGenerator_mem_zeroProfileProjection_of_rangeRowIdentity
 #print axioms routeBPaperFaithfulTPhi_projectedPWindowControlledByZeroProfileProjection_of_rangeRowIdentity
