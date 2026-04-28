@@ -2160,6 +2160,81 @@ theorem routeBPaperFaithfulTPhi_singletonResidual_of_coeff_split
       (routeBPaperFaithfulTPhi_singletonNormalFormIdentity_of_coeff_split
         M n hn2 htb hns hsingleton hnonsingle))
 
+/-- Normalized coefficient proof rule for the residual-only gate.  Unlike the
+raw normal-form identity, this does not require singleton coefficients of the
+derivative row to vanish: the explicit normalizer kills singleton coordinates
+on both sides.  The real remaining coefficient computation is therefore only
+the non-singleton equality after normalizing both rows. -/
+theorem routeBPaperFaithfulTPhi_singletonResidual_of_normalized_nonSingleton_coeff
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hnonsingle :
+      ∀ (S' : List (Fin (n / 3)))
+        (shift : MvPolynomial (Fin (n / 3)) ℚ),
+        S'.length = Nat.log 2 n →
+        shift.totalDegree ≤ Nat.log 2 n →
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)) →
+        ∀ α : Fin n →₀ ℕ,
+          (∀ i : Fin n, α ≠ Finsupp.single i 1) →
+          let p : MvPolynomial (Fin n) ℚ :=
+            compiledPoly (cook_levin_compilation M n hn2 htb hns)
+          let r : MvPolynomial (Fin (n / 3)) ℚ :=
+            MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n) p
+          let q : MvPolynomial (Fin n) ℚ :=
+            mlProj
+              (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+                cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+          let d : MvPolynomial (Fin n) ℚ :=
+            MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+              (mlProj (shift * SPDP.iterDerivList S' r))
+          MvPolynomial.coeff α
+              (zeroProfileSingletonNormalFormProjection
+                (fun i => (cookLevinFactorList M n hn2 htb hns).get i) q) =
+            MvPolynomial.coeff α
+              (zeroProfileSingletonNormalFormProjection
+                (fun i => (cookLevinFactorList M n hn2 htb hns).get i) d)) :
+    RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalFormResidual
+        M n hn2 htb hns := by
+  classical
+  refine
+    (routeBPaperFaithfulTPhi_singletonNormalizedRowIdentity_iff_singletonResidual
+      M n hn2 htb hns).mp ?_
+  intro S' shift hSlen hshiftDegree hshiftVars hadm
+  let p : MvPolynomial (Fin n) ℚ :=
+    compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  let r : MvPolynomial (Fin (n / 3)) ℚ :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+      (cookLevinStrictFOBFlatMap_injective n) p
+  let q : MvPolynomial (Fin n) ℚ :=
+    mlProj
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+        cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+  let d : MvPolynomial (Fin n) ℚ :=
+    MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+      (mlProj (shift * SPDP.iterDerivList S' r))
+  have hconst :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+          (Finset.univ.prod
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) =
+        (1 : ℚ) := by
+    simpa [cookLevinZeroProfileBaseProduct] using
+      cookLevinZeroProfileBaseProduct_coeff_zero M n hn2 htb hns
+  ext α
+  by_cases hα : ∃ i : Fin n, α = Finsupp.single i 1
+  · rcases hα with ⟨i, rfl⟩
+    rw [zeroProfileSingletonNormalFormProjection_coeff_single_eq_zero
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i) hconst q i]
+    rw [zeroProfileSingletonNormalFormProjection_coeff_single_eq_zero
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i) hconst d i]
+  · exact
+      hnonsingle S' shift hSlen hshiftDegree hshiftVars hadm α
+        (fun i hi => hα ⟨i, hi⟩)
+
 /-- Any proof of the strict singleton-normal-form identity must prove that the
 renamed restricted derivative row has no degree-one singleton coefficients.
 This is the concrete coefficient test for the semantic normalizer target. -/
