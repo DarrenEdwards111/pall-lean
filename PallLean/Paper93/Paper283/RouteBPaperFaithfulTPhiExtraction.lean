@@ -334,6 +334,155 @@ theorem false_of_routeBPaperFaithfulTPhi_normalizedCoupledSheet_from_sourceTrans
 
 /-! ## Final strict-`TΦ` source-transport consumers -/
 
+/-! ### Explicit strict-`TΦ` source-transport data
+
+The following four declarations expose the real source-transport data for the
+strict `TΦ` target directly. They replace the global semantic-transport seam
+above with the concrete Cook-Levin source `P_{M',n} = full_output`, the strict
+coupled-sheet target, the same-target identity minor, and the rank bridge
+`target ≤ embedded_Q ≤ full_output`.
+-/
+
+/-- Exact target-data package for the strict paper-faithful `TΦ` target. -/
+noncomputable def routeBPaperFaithfulTPhiTargetData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total) :
+    GodMoveExtractionTargetData M n hn2 htb hns hdec :=
+  GodMoveExtractionTargetData.ofHardInstanceData hard
+    (routeBPaperFaithfulTPhiTarget M n hn2 htb hns B_total)
+
+/-- The explicit strict-`TΦ` target-data package carries exactly the strict
+coupled-sheet extraction target. -/
+theorem routeBPaperFaithfulTPhiTargetData_extractionTarget
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total) :
+    (routeBPaperFaithfulTPhiTargetData
+      M n hn2 htb hns hdec hard B_total).extractionTarget =
+      routeBPaperFaithfulTPhiTarget M n hn2 htb hns B_total := by
+  rfl
+
+/-- The concrete Cook-Levin paper source used by strict `TΦ` source transport. -/
+noncomputable abbrev routeBPaperFaithfulTPhiPaperSource
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hQ_upper : MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B_total
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (show MvPolynomial (Fin n) ℚ from
+        PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200) :
+    GlobalGodMoveGauge.Theorem207PaperSource M n hn hn2 htb hns :=
+  (DirectRankPackage_cookLevin M n hn htb hns hn2
+    B_total hB_total hQ_upper).toTheorem207PaperSource M hn2 htb hns
+
+/-- The direct Cook-Levin P-side bound supplies the paper-source upper bound
+for the strict `TΦ` source. -/
+theorem routeBPaperFaithfulTPhiPaperSource_p_side_upper
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hQ_upper : MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B_total
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (show MvPolynomial (Fin n) ℚ from
+        PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200) :
+    GlobalGodMoveGauge.Theorem207PaperSourcePSideUpperBound
+      M n hn hn2 htb hns
+      (routeBPaperFaithfulTPhiPaperSource
+        M n hn hn2 htb hns B_total hB_total hQ_upper) := by
+  exact
+    (DirectRankPackage_cookLevin M n hn htb hns hn2
+      B_total hB_total hQ_upper).toTheorem207PaperSource_p_side
+        M hn2 htb hns rfl rfl
+
+/-- The strict `TΦ` target is rank-below the concrete Cook-Levin paper source:
+`target ≤ embedded_Q ≤ full_output`. -/
+theorem routeBPaperFaithfulTPhi_source_to_target_rank_bridge
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hQ_upper : MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B_total
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (show MvPolynomial (Fin n) ℚ from
+        PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200) :
+    GlobalGodMoveGauge.Theorem207PaperSourceToTargetRankBridge
+      M n hn hn2 htb hns
+      (routeBPaperFaithfulTPhiPaperSource
+        M n hn hn2 htb hns B_total hB_total hQ_upper)
+      (routeBPaperFaithfulTPhiTarget M n hn2 htb hns B_total) := by
+  change
+    GlobalGodMoveGauge.Theorem207PaperSourceToTargetRankBridge
+      M n hn hn2 htb hns
+      ((DirectRankPackage_cookLevin M n hn htb hns hn2
+        B_total hB_total hQ_upper).toTheorem207PaperSource M hn2 htb hns)
+      (cookLevinStrictFOBTarget M n hn2 htb hns B_total)
+  exact
+    DirectRankPackage_cookLevin_strictFOB_source_to_target_rank_bridge
+      M n hn htb hns hn2 B_total hB_total hQ_upper
+
+/-- Strict `TΦ` source-transport contradiction from the explicit source,
+target, same-target minor, P-side bound, and rank bridge.
+
+This is the no-global-seam consumer: every source-transport datum is supplied
+by the concrete Cook-Levin direct-rank package and the strict coupled-sheet
+target. -/
+theorem false_of_routeBPaperFaithfulTPhi_explicit_source_transport
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hard : GodMoveHardInstanceData M n hn2 htb hns hdec)
+    (B_total : SPDP.BlockPartition
+      (PaperFaithfulCompilation.cookLevinUVSplit M n).total)
+    (hB_total : B_total =
+      PaperFaithfulCompilation.extendedCookLevinPartition M n hn2)
+    (hQ_upper : MultilinearSPDP.mlBlockedSpdpRank
+      (MultilinearSPDP.pullbackPartition B_total
+        (PaperFaithfulCompilation.cookLevinUVSplit M n).inlU)
+      (Nat.log 2 n) (Nat.log 2 n)
+      (show MvPolynomial (Fin n) ℚ from
+        PaperFaithfulCompilation.cookLevinQ M n hn2 htb hns) ≤ n ^ 200) :
+    False := by
+  exact
+    false_of_routeBPaperFaithfulTPhi_normalizedCoupledSheet_sourceTransport_sameTargetMinor
+      M n hn hn2 htb hns hdec
+      (routeBPaperFaithfulTPhiTargetData
+        M n hn2 htb hns hdec hard B_total)
+      (routeBPaperFaithfulTPhiPaperSource
+        M n hn hn2 htb hns B_total hB_total hQ_upper)
+      (routeBPaperFaithfulTPhiPaperSource_p_side_upper
+        M n hn hn2 htb hns B_total hB_total hQ_upper)
+      (by
+        simpa [routeBPaperFaithfulTPhiTargetData]
+          using
+            routeBPaperFaithfulTPhi_source_to_target_rank_bridge
+              M n hn hn2 htb hns B_total hB_total hQ_upper)
+      (by
+        simpa [routeBPaperFaithfulTPhiTargetData]
+          using
+            routeBPaperFaithfulTPhi_identity_minor_data
+              M n hn hn2 htb hns B_total hB_total)
+
 /-- The strict paper-faithful `TΦ` target feeds the final source-transport
 contradiction once the selected Cook-Levin P-side upper bound is supplied. -/
 theorem false_of_routeBPaperFaithfulTPhi_qRankUpper
