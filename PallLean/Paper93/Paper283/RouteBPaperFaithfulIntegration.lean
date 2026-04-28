@@ -103,6 +103,75 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNP_kernelCompatibility_
       (routeBRicherConcreteNPWitnessQ_sourceIdentityMinorLowerBound
         M n hn hn2 htb hns)
 
+/-- Same paper-faithful Route B integration, but with the active side stated as
+the explicit endpoint-augmented profile-span obligation.
+
+This is the active/profile replacement for the older uncharged
+`EndpointAugmentedActiveProfileFrontier` input, which is known to be false. -/
+theorem routeBPerInstanceCertificate_of_prependedConcreteNP_kernelCompatibility_endpointActiveProfileSpan_booleanZeroNormalForms_deltaEqRateKappa
+    {N d : Nat}
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (alpha beta alpha0 : Real) (kappa gadgetN : Nat)
+    (G : PallLean.Paper93.Concrete.RegularGraphFixed N d)
+    (chi : TseitinCharge N) (Phi : Fin N -> Real)
+    {eta theta : Real}
+    {m : Nat}
+    (tail : Fin m -> SATDeciderGaugeSpace M n hn2 htb hns)
+    (hN : 1 <= N) (hrowCount : m + 1 <= N)
+    (heta : 0 < eta) (htheta : 0 < theta)
+    (halpha : 0 < alpha) (halpha0 : 0 < alpha0)
+    (hkappa : 0 < kappa) (hgadgetN : 2 <= gadgetN)
+    {typeBudget : Nat}
+    (hzeroNormalForms :
+      CookLevinZeroProfileBooleanNormalFormObligation
+        M n hn2 htb hns typeBudget)
+    (hzeroBudget :
+      typeBudget <= withinProfileBound (Nat.log 2 n))
+    (hactiveSpan :
+      ∀ (h : ProfileHistogram)
+        (hadm : ProfileAdmissible (Nat.log 2 n) h),
+          h ConstraintType.transitionRight = 0 ->
+            ActiveProfileSupport h ->
+              cookLevinPostSpanAt M n hn2 htb hns h <=
+                cookLevinProfileSubspace (admissibleToBounded hadm)
+                  (endpointAugmentedConcreteW n hn4))
+    (pkg :
+      RouteBRicherConcreteNPPrependedRowsSPDPRowClosurePackage
+        M n hn2 htb hns tail)
+    (hker :
+      RouteBRicherGaugeFiniteRowsSPDPKernelCompatibility M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail)) :
+    RouteBPerInstanceCertificate M n hn2 htb hns := by
+  have hzero :
+      CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns :=
+    cookLevinZeroHistogramShiftCommonSpan_of_booleanNormalFormObligation
+      M n hn2 htb hns hzeroNormalForms hzeroBudget
+  have hactive :
+      CookLevinActiveProfileTypeCaseBlockers M n hn2 htb hns :=
+    cookLevinActiveProfileTypeCaseBlockers_of_endpointAugmented_activeProfileSpan
+      M n hn2 htb hns hn4 hactiveSpan
+  exact
+    routeBPerInstanceCertificate_of_finiteRowsSPDPMapPreimage_activeBlockersZeroProfileCommonSpan_deltaEqRateKappa
+      (N := N) (d := d)
+      M n hn2 htb hns hn4
+      alpha beta alpha0 kappa gadgetN G chi Phi
+      (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail)
+      hN hrowCount heta htheta halpha halpha0 hkappa hgadgetN
+      hzero hactive
+      (routeBRicherConcreteNPPrependedRows_spdpMapPreimage_of_rowClosurePackage_kernelCompatibility
+        M n hn2 htb hns tail pkg hker)
+      (routeBRicherConcreteNPWitnessQ M n hn2 htb hns)
+      0
+      (routeBRicherConcreteNPPrependedRows_zero_eq_embed
+        M n hn2 htb hns tail)
+      (routeBRicherConcreteNP_extracts_compiled_for_rows
+        M n hn2 htb hns
+        (routeBRicherConcreteNPPrependedRows M n hn2 htb hns tail))
+      (routeBRicherConcreteNPWitnessQ_sourceIdentityMinorLowerBound
+        M n hn hn2 htb hns)
+
 /-- Paper-faithful Route B integration specialized to the concrete
 multilinear finite tail.
 
@@ -215,6 +284,7 @@ theorem routeBPerInstanceCertificate_of_prependedConcreteNPMultilinearTail_proje
 /-! ## Axiom audit anchors -/
 
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_kernelCompatibility_endpointActive_booleanZeroNormalForms_deltaEqRateKappa
+#print axioms routeBPerInstanceCertificate_of_prependedConcreteNP_kernelCompatibility_endpointActiveProfileSpan_booleanZeroNormalForms_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNPMultilinearTail_kernelCompatibility_endpointActive_booleanZeroNormalForms_deltaEqRateKappa
 #print axioms routeBPerInstanceCertificate_of_prependedConcreteNPMultilinearTail_projectionDescent_endpointActive_booleanZeroNormalForms_deltaEqRateKappa
 

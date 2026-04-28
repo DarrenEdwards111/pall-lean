@@ -173,6 +173,48 @@ theorem cookLevinActiveProfileTypeCaseBlockers_of_endpointAugmented_spanningAtAc
       (admissibleToBounded hadm)
       (hSpanAt h hadm htr hactive)
 
+/-- Charged endpoint-augmented local closure gives the exact active-profile
+post-span containment needed by the low-dimensional profile-span route.
+
+This is the smaller active/profile bridge below the full concreteW
+row-embedding bundle: it uses charged endpoint-local closure and the checked
+endpoint-augmented H4, and it does not assert the false uncharged
+same-profile endpoint frontier. -/
+theorem endpointAugmented_activeProfileSpan_of_chargedFrontier
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (charge : ProfileCharge n)
+    (hn4 : n ≥ 4)
+    (hFrontier :
+      EndpointAugmentedActiveProfileChargedFrontier
+        M n hn htb hns charge hn4) :
+    ∀ (h : ProfileHistogram)
+      (hadm : ProfileAdmissible (Nat.log 2 n) h),
+        h ConstraintType.transitionRight = 0 →
+          ActiveProfileSupport h →
+            cookLevinPostSpanAt M n hn htb hns h ≤
+              cookLevinProfileSubspace (admissibleToBounded hadm)
+                (endpointAugmentedConcreteW n hn4) := by
+  intro h hadm htr hactive
+  rcases hFrontier with ⟨_hBudget, hProfile⟩
+  have hne : h ≠ zeroProfileHistogram := by
+    intro hz
+    rcases hactive with hpos | hpos | hpos
+    · simp [hz] at hpos
+    · simp [hz] at hpos
+    · simp [hz] at hpos
+  have hSpanAt :
+      CookLevinPerTypeSpanningAtBoundedProfile M n hn htb hns
+        (endpointAugmentedConcreteW n hn4)
+        (admissibleToBounded hadm) :=
+    cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_chargedClosureAtProfile
+      M n hn htb hns charge hn4 (admissibleToBounded hadm)
+      (hProfile h hadm htr hne hactive)
+  simpa using
+    cookLevinProfileSubspace_contains_postSpan_at_bp_of_perTypeSpanningAtBoundedProfile
+      M n hn htb hns (endpointAugmentedConcreteW n hn4)
+      (admissibleToBounded hadm) hSpanAt
+
 /-- A full interface-anonymous per-type spanning package is a sufficient
 source of the active profile-local compiled-basis span obligation. -/
 theorem cookLevinActiveProfileTypeCaseBlockers_of_interfaceAnonymous_perTypeSpanning
@@ -220,6 +262,7 @@ theorem cookLevinActiveProfileTypeCaseBlockers_of_endpointAugmented_perTypeSpann
 #print axioms cookLevinActiveProfileTypeCaseBlockers_of_concreteWRowEmbeddings_endpointAugmented
 #print axioms cookLevinActiveProfileTypeCaseBlockers_of_interfaceAnonymous_spanningAtActiveProfiles
 #print axioms cookLevinActiveProfileTypeCaseBlockers_of_endpointAugmented_spanningAtActiveProfiles
+#print axioms endpointAugmented_activeProfileSpan_of_chargedFrontier
 #print axioms cookLevinActiveProfileTypeCaseBlockers_of_interfaceAnonymous_perTypeSpanning
 #print axioms cookLevinActiveProfileTypeCaseBlockers_of_endpointAugmented_perTypeSpanning
 

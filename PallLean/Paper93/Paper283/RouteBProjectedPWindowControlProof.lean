@@ -51,6 +51,75 @@ def RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileRowIdentity
             Finset.univ.prod
               (fun i => (cookLevinFactorList M n hn2 htb hns).get i)))
 
+/-- The factor-list product appearing in the zero-profile row identity is
+exactly the local product-form Cook-Levin `compiledPoly`. -/
+theorem routeB_cookLevinFactorList_univ_prod_eq_compiledPoly
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) :
+    Finset.univ.prod
+        (fun i : Fin (cookLevinFactorList M n hn2 htb hns).length =>
+          (cookLevinFactorList M n hn2 htb hns).get i) =
+      compiledPoly (cook_levin_compilation M n hn2 htb hns) := by
+  classical
+  let factors : List (MvPolynomial (Fin n) Rat) :=
+    cookLevinFactorList M n hn2 htb hns
+  have hcompiled :
+      compiledPoly (cook_levin_compilation M n hn2 htb hns) = factors.prod := by
+    simpa [factors, cookLevinFactorList] using
+      compiledPoly_eq_constraints_prod M n hn2 htb hns
+  have hfin :
+      factors.prod =
+        Finset.univ.prod (fun i : Fin factors.length => factors.get i) := by
+    rw [← Fin.prod_univ_getElem]
+    simp [List.get_eq_getElem]
+  simpa [factors] using (hcompiled.trans hfin).symm
+
+/-- Compiled form of the remaining PiPhi/head-span row identity.
+
+After rewriting the zero-profile base product, the gate is not a factor-list
+bookkeeping issue: it asks the selected projected row of the differentiated
+candidate-projected `compiledPoly` to equal the quotient projection of the
+undifferentiated shifted `compiledPoly` row. -/
+def RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowCompiledDerivativeErasure
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (project :
+      MvPolynomial (Fin n) Rat →ₗ[Rat] MvPolynomial (Fin n) Rat) : Prop :=
+  ∀ (S : List (Fin n)) (shift : MvPolynomial (Fin n) Rat),
+    S.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    shift.vars ⊆ S.toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition S →
+    mlProj
+        (shift * SPDP.iterDerivList S
+          ((routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns)
+            (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) =
+      project
+        (mlProj
+          (shift * cookLevinZeroProfileBaseProduct M n hn2 htb hns))
+
+/-- The original row identity is equivalent to the compiled derivative-erasure
+form.  This isolates the exact algebraic content left after unfolding the
+Cook-Levin factor list: the missing step is the derivative-erasure/extraction
+identity, not `compiledPoly` bookkeeping. -/
+theorem routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowZeroProfileRowIdentity_iff_compiledDerivativeErasure
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (project :
+      MvPolynomial (Fin n) Rat →ₗ[Rat] MvPolynomial (Fin n) Rat) :
+    RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileRowIdentity
+        M n hn2 htb hns project ↔
+      RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowCompiledDerivativeErasure
+        M n hn2 htb hns project := by
+  constructor
+  · intro hrow S shift hSlen hshiftDegree hshiftVars hadm
+    rw [hrow S shift hSlen hshiftDegree hshiftVars hadm]
+    simp [cookLevinZeroProfileBaseProduct]
+  · intro herase S shift hSlen hshiftDegree hshiftVars hadm
+    rw [herase S shift hSlen hshiftDegree hshiftVars hadm]
+    simp [cookLevinZeroProfileBaseProduct]
+
 /-- Exact generator-membership reduction for the PiPhi/head-span projected
 P-window containment. -/
 def RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileGeneratorReduction
@@ -182,6 +251,9 @@ theorem routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowControlledByZeroProfile
 /-! ## Axiom audit anchors -/
 
 #print axioms RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileRowIdentity
+#print axioms routeB_cookLevinFactorList_univ_prod_eq_compiledPoly
+#print axioms RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowCompiledDerivativeErasure
+#print axioms routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowZeroProfileRowIdentity_iff_compiledDerivativeErasure
 #print axioms RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileGeneratorReduction
 #print axioms routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowGenerator_mem_zeroProfileProjection
 #print axioms routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowControlledByZeroProfileProjection_iff_generatorReduction

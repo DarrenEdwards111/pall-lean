@@ -2,6 +2,7 @@ import PallLean.Step4Compiler
 import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeFinalTarget
 import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingBridge
 import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingsClosure
+import PallLean.Paper93.Paper283.RouteBZeroProfileProjectedPWindowProgress
 
 /-!
 # Route B paper-faithful `TΦ` extraction
@@ -32,6 +33,8 @@ open PaperFaithfulCompilation
 open PaperFaithfulSeparation
 open TuringMachine
 open Step4Compiler.Step252
+open SymmetricPowerBound
+open WithinProfileBound
 open PallLean.Paper93.DeepMath.PathB
 
 attribute [local instance] Classical.dec
@@ -247,6 +250,24 @@ theorem false_of_routeBPaperFaithfulTPhi_canonical_from_boundedProfileTemplateCo
     (WithinProfileBound.cookLevinProfileTemplateCollapseLemma_of_boundedProfile
       M n hn2 htb hns hcollapse)
 
+/-- Canonical strict-`TΦ` contradiction from the narrow post-span symmetric
+product generator obligation.  This is the proof-facing replacement surface for
+the legacy `spdp_profile_generators` P-side route: for each bounded derivative
+profile, supply one template-bounded finite generating family for the concrete
+Cook-Levin post-span. -/
+theorem false_of_routeBPaperFaithfulTPhi_canonical_from_postSpanBoundedBySymProduct
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hpostSpan :
+      WithinProfileBound.CookLevinPostSpanBoundedBySymProduct
+        M n hn2 htb hns) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_canonical_from_boundedProfileTemplateCollapse
+    M n hn hn2 htb hns hdec
+    (WithinProfileBound.cookLevinProfileTemplateCollapseLemmaBoundedProfile_of_postSpanBoundedBySymProduct
+      M n hn2 htb hns hpostSpan)
+
 /-- At the paper scale, `n ≥ 2^804` supplies the side condition `n ≥ 4`
 needed by the concreteW local chart/row-embedding route. -/
 theorem routeB_paperScale_ge_four
@@ -257,6 +278,260 @@ theorem routeB_paperScale_ge_four
       _ ≤ 2 ^ 804 := by
         exact Nat.pow_le_pow_right (by norm_num) (by norm_num)
   exact le_trans hpow hn
+
+/-! ## Strict-`TΦ` projected/log-window zero-profile hook -/
+
+/-- The strict paper-faithful `TΦ` ambient SAT-gauge map: restrict to the
+strict first-of-block coordinates and re-expand by the same coordinate map.
+
+This is intentionally only a `SATDeciderGaugeMap`, not an `NFrame`
+`CandidateGauge`: the existing projected final certificate requires a
+finite-rank candidate projection, while strict `TΦ` is a coordinate
+restriction/relabel map whose range is not packaged as such a finite-row
+candidate. -/
+noncomputable def routeBPaperFaithfulTPhiAmbientGauge
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    SATDeciderGaugeMap M n hn2 htb hns := by
+  dsimp [SATDeciderGaugeMap, SATDeciderGaugeSpace]
+  rw [PaperFaithfulSeparation.cook_levin_numVars M n hn2 htb hns]
+  exact
+    ((MvPolynomial.rename (cookLevinStrictFOBFlatMap n) :
+        MvPolynomial (Fin (n / 3)) ℚ →ₐ[ℚ]
+          MvPolynomial (Fin n) ℚ).toLinearMap).comp
+      ((MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) :
+          MvPolynomial (Fin n) ℚ →ₐ[ℚ]
+            MvPolynomial (Fin (n / 3)) ℚ).toLinearMap)
+
+/-- Minimal strict-`TΦ` projected P-window containment in a selected
+zero-profile projected span.
+
+This is the replacement proposition for the head-span-specific row identity:
+it speaks directly about the strict `TΦ` ambient gauge map, and does not
+mention the broad head-span complement. -/
+def RouteBPaperFaithfulTPhiProjectedPWindowControlledByZeroProfileProjection
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ) : Prop :=
+  mlBlockedSpdpSubspace
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ≤
+    zeroProfileProjectedShiftSpan (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+      project
+
+/-- The small arithmetic envelope used by the strict-`TΦ` projected
+zero-profile hook. -/
+theorem routeBPaperFaithfulTPhi_withinProfileBound_log_le_pow_200
+    (n : ℕ) (hn2 : n ≥ 2) :
+    withinProfileBound (Nat.log 2 n) ≤ n ^ 200 := by
+  rw [WithinProfileBound.withinProfileBound_eq_pow8]
+  have hbase : Nat.log 2 n + 1 ≤ 2 * n := by
+    have hlog : Nat.log 2 n ≤ n := Nat.log_le_self 2 n
+    omega
+  calc
+    (Nat.log 2 n + 1) ^ 8 ≤ (2 * n) ^ 8 :=
+      Nat.pow_le_pow_left hbase 8
+    _ = 2 ^ 8 * n ^ 8 := by ring
+    _ ≤ n ^ 192 * n ^ 8 := by
+      apply Nat.mul_le_mul_right
+      calc
+        (2 : ℕ) ^ 8 = 256 := by norm_num
+        _ ≤ 2 ^ 192 := by norm_num
+        _ ≤ n ^ 192 := by
+          exact Nat.pow_le_pow_left hn2 192
+    _ = n ^ 200 := by ring
+
+/-- A budgeted projected zero-profile common span gives the strict-`TΦ`
+projected P-side bound once the strict projected P-window is contained in that
+span. -/
+theorem routeBPaperFaithfulTPhi_projectedPSideBound_of_zeroProfileProjectedCommonSpanWithBudget
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    {budget : ℕ}
+    (hspan :
+      ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        project budget)
+    (hcontrol :
+      RouteBPaperFaithfulTPhiProjectedPWindowControlledByZeroProfileProjection
+        M n hn2 htb hns project)
+    (hbudget : budget ≤ n ^ 200) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns) := by
+  unfold SATDeciderGaugePSideBound mlBlockedSpdpRank
+  have htargetFinite :
+      Module.Finite ℚ
+        ↥(zeroProfileProjectedShiftSpan (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+          project) :=
+    zeroProfileProjectedShiftSpan_finite (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+      project
+  let T :
+      Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+    zeroProfileProjectedShiftSpan (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+      project
+  let S :
+      Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+    mlBlockedSpdpSubspace
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
+  have htargetFinite' : Module.Finite ℚ ↥T := by
+    simpa [T] using htargetFinite
+  have hcontrol' : S ≤ T := by
+    simpa [T] using hcontrol
+  have hmono :
+      Module.finrank ℚ
+          ↥(mlBlockedSpdpSubspace
+            (cook_levin_compilation M n hn2 htb hns).partition
+            (Nat.log 2 n) (Nat.log 2 n)
+            ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ≤
+        Module.finrank ℚ
+          ↥(zeroProfileProjectedShiftSpan (Nat.log 2 n)
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+            project) := by
+    have hmono' : Module.finrank ℚ
+          ↥S ≤
+        Module.finrank ℚ ↥T := by
+      exact
+        @Submodule.finrank_mono ℚ (MvPolynomial (Fin n) ℚ)
+          _ _ _ _ S T htargetFinite' hcontrol'
+    simpa [S, T] using hmono'
+  exact
+    hmono.trans
+      ((zeroProfileProjectedShiftSpan_finrank_le_of_commonSpanWithBudget
+        (κ := Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        project hspan).trans hbudget)
+
+/-- A quotiented zero-profile common span is a direct strict-`TΦ` projected
+P-side source, provided it contains the strict projected P-window. -/
+theorem routeBPaperFaithfulTPhi_projectedPSideBound_of_zeroProfileQuotientedShiftCommonSpan
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    (hquot :
+      CookLevinZeroProfileQuotientedShiftCommonSpan
+        M n hn2 htb hns project)
+    (hcontrol :
+      RouteBPaperFaithfulTPhiProjectedPWindowControlledByZeroProfileProjection
+        M n hn2 htb hns project) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns) :=
+  routeBPaperFaithfulTPhi_projectedPSideBound_of_zeroProfileProjectedCommonSpanWithBudget
+    M n hn2 htb hns project hquot.2.2 hcontrol
+    (routeBPaperFaithfulTPhi_withinProfileBound_log_le_pow_200 n hn2)
+
+/-- The strict `TΦ` ambient gauge preserves the projected NP identity-minor
+lower bound.  The proof uses the floor-sized strict FOB lower bound and
+injective-rename rank preservation, not the head-span projection. -/
+theorem routeBPaperFaithfulTPhiAmbientGauge_npPreservation
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    SATDeciderGaugeNPIdentityMinorPreservation M n hn2 htb hns
+      (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns) := by
+  intro _hdec
+  have hrestrict :=
+    cookLevinStrictFOB_restrict_compiled_lower_bound
+      M n hn hn2 htb hns
+  have hrename :
+      mlBlockedSpdpRank
+          (MultilinearSPDP.pullbackPartition
+            (cook_levin_compilation M n hn2 htb hns).partition
+            (cookLevinStrictFOBFlatMap n))
+          (Nat.log 2 n) (Nat.log 2 n)
+          (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+            (cookLevinStrictFOBFlatMap_injective n)
+            (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ≤
+        mlBlockedSpdpRank
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+            (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) :=
+    PaperFaithfulCompilation.mlBlockedSpdpRank_rename_ge
+      (cookLevinStrictFOBFlatMap n) (cookLevinStrictFOBFlatMap_injective n)
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      (MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns)))
+  exact le_trans hrestrict (by
+    simpa [routeBPaperFaithfulTPhiAmbientGauge] using hrename)
+
+/-- A strict-`TΦ` projected P-side bound contradicts bounded SAT deciders via
+the same projected/log-window incompatibility lemma used by the final
+certificate path. -/
+theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hp :
+      SATDeciderGaugePSideBound M n hn2 htb hns
+        (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)) :
+    False :=
+  satDeciderGauge_pSide_and_npIdentityMinor_incompatible_at_large_n
+    M n hn hn2 htb hns
+    (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+    hdec hp
+    (routeBPaperFaithfulTPhiAmbientGauge_npPreservation
+      M n hn hn2 htb hns)
+
+/-- Strict-`TΦ` projected/log-window final hook from a budgeted projected
+zero-profile common span and the strict projected P-window containment. -/
+theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_zeroProfileProjectedCommonSpanWithBudget
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    {budget : ℕ}
+    (hspan :
+      ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        project budget)
+    (hcontrol :
+      RouteBPaperFaithfulTPhiProjectedPWindowControlledByZeroProfileProjection
+        M n hn2 htb hns project)
+    (hbudget : budget ≤ n ^ 200) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_projectedLogWindow
+    M n hn hn2 htb hns hdec
+    (routeBPaperFaithfulTPhi_projectedPSideBound_of_zeroProfileProjectedCommonSpanWithBudget
+      M n hn2 htb hns project hspan hcontrol hbudget)
+
+/-- Strict-`TΦ` projected/log-window final hook from quotiented zero-profile
+data and the strict projected P-window containment. -/
+theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_zeroProfileQuotientedShiftCommonSpan
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    (hquot :
+      CookLevinZeroProfileQuotientedShiftCommonSpan
+        M n hn2 htb hns project)
+    (hcontrol :
+      RouteBPaperFaithfulTPhiProjectedPWindowControlledByZeroProfileProjection
+        M n hn2 htb hns project) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_projectedLogWindow
+    M n hn hn2 htb hns hdec
+    (routeBPaperFaithfulTPhi_projectedPSideBound_of_zeroProfileQuotientedShiftCommonSpan
+      M n hn2 htb hns project hquot hcontrol)
 
 /-- The strict paper-faithful `TΦ` target consumes the concreteW row-embedding
 package through the checked bounded-profile template-collapse theorem. -/
@@ -403,6 +678,23 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_boundedProfil
       M n hn hn2 htb hns hdec
       (hcollapse M n hn hn2 htb hns)
 
+/-- A uniform post-span symmetric-product generator theorem is enough for the
+strict paper `TΦ` final path.  This is narrower than the legacy landed P-side
+rank theorem: it asks only for the bounded-profile concrete Cook-Levin
+post-span finite-generator statement isolated in `WithinProfileBound`. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_postSpanBoundedBySymProduct
+    (hpostSpan :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        WithinProfileBound.CookLevinPostSpanBoundedBySymProduct
+          M n hn2 htb hns) :
+    PallLean.Paper93.DeepMath.PathB.NoBoundedSATDeciderAtPaperScale := by
+  intro M n hn hn2 htb hns hdec
+  exact
+    false_of_routeBPaperFaithfulTPhi_canonical_from_postSpanBoundedBySymProduct
+      M n hn hn2 htb hns hdec
+      (hpostSpan M n hn hn2 htb hns)
+
 /-- The legacy rich-projection discharge follows from the strict-`TΦ`
 template-collapse route only through the established no-decider equivalence.
 This keeps the strict extraction path separate from the failed broad
@@ -431,6 +723,20 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_boundedProfi
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_boundedProfileTemplateCollapse
       hcollapse)
 
+/-- Legacy rich-projection discharge from the strict `TΦ` post-span
+symmetric-product generator route, mediated only by the established no-decider
+equivalence. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_postSpanBoundedBySymProduct
+    (hpostSpan :
+      ∀ (M : DTM) (n : ℕ) (_hn : n ≥ 2 ^ 804) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        WithinProfileBound.CookLevinPostSpanBoundedBySymProduct
+          M n hn2 htb hns) :
+    PallLean.Paper93.DeepMath.PathB.CookLevinRichProjectionDischarge :=
+  PallLean.Paper93.DeepMath.PathB.cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_postSpanBoundedBySymProduct
+      hpostSpan)
+
 /-! ## Axiom audit anchors -/
 
 #print axioms routeBPaperFaithfulTPhiMap_injective
@@ -444,6 +750,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_boundedProfi
 #print axioms false_of_routeBPaperFaithfulTPhi_from_templateCollapse
 #print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_templateCollapse
 #print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_boundedProfileTemplateCollapse
+#print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_postSpanBoundedBySymProduct
 #print axioms routeB_paperScale_ge_four
 #print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_concreteW_rowEmbeddings
 #print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_concreteW_closureFrontier
@@ -451,6 +758,8 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_boundedProfi
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_templateCollapse
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_boundedProfileTemplateCollapse
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_boundedProfileTemplateCollapse
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_postSpanBoundedBySymProduct
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_postSpanBoundedBySymProduct
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_concreteW_rowEmbeddings
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_concreteW_rowEmbeddings
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_concreteW_closureFrontier
