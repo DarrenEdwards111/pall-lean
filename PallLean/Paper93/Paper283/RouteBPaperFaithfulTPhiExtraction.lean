@@ -1448,6 +1448,120 @@ theorem routeBPaperFaithfulTPhi_rangePWindowRestrictedZeroProfileRowIdentity_of_
   have h := hnorm S' shift hSlen hshiftDegree hshiftVars hadm
   simpa using h.symm
 
+/-- Coefficient-extensional proof rule for the explicit singleton normalizer:
+to prove the normal-form row identity it is enough to prove that the target row
+has no singleton coefficients, and that all remaining coefficients match the
+normalizer image. -/
+theorem zeroProfileSingletonNormalFormProjection_eq_of_coeff_split
+    {n L : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hconst :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (Finset.univ.prod factors) = (1 : ℚ))
+    (q d : MvPolynomial (Fin n) ℚ)
+    (hsingleton :
+      ∀ i : Fin n, MvPolynomial.coeff (Finsupp.single i 1) d = 0)
+    (hnonsingle :
+      ∀ α : Fin n →₀ ℕ,
+        (∀ i : Fin n, α ≠ Finsupp.single i 1) →
+          MvPolynomial.coeff α
+              (zeroProfileSingletonNormalFormProjection factors q) =
+            MvPolynomial.coeff α d) :
+    zeroProfileSingletonNormalFormProjection factors q = d := by
+  classical
+  ext α
+  by_cases hα : ∃ i : Fin n, α = Finsupp.single i 1
+  · rcases hα with ⟨i, rfl⟩
+    rw [zeroProfileSingletonNormalFormProjection_coeff_single_eq_zero
+      factors hconst q i, hsingleton i]
+  · exact hnonsingle α (fun i hi => hα ⟨i, hi⟩)
+
+/-- Route-B strict `TΦ` normal-form identity from the two concrete coefficient
+proof gates: singleton derivative coefficients vanish, and every non-singleton
+coefficient agrees with the normalized zero-profile row. -/
+theorem routeBPaperFaithfulTPhi_singletonNormalFormIdentity_of_coeff_split
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hsingleton :
+      ∀ (S' : List (Fin (n / 3)))
+        (shift : MvPolynomial (Fin (n / 3)) ℚ),
+        S'.length = Nat.log 2 n →
+        shift.totalDegree ≤ Nat.log 2 n →
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)) →
+        ∀ i : Fin n,
+          let p : MvPolynomial (Fin n) ℚ :=
+            compiledPoly (cook_levin_compilation M n hn2 htb hns)
+          let r : MvPolynomial (Fin (n / 3)) ℚ :=
+            MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n) p
+          MvPolynomial.coeff (Finsupp.single i 1)
+            (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+              (mlProj (shift * SPDP.iterDerivList S' r))) = 0)
+    (hnonsingle :
+      ∀ (S' : List (Fin (n / 3)))
+        (shift : MvPolynomial (Fin (n / 3)) ℚ),
+        S'.length = Nat.log 2 n →
+        shift.totalDegree ≤ Nat.log 2 n →
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)) →
+        ∀ α : Fin n →₀ ℕ,
+          (∀ i : Fin n, α ≠ Finsupp.single i 1) →
+          let p : MvPolynomial (Fin n) ℚ :=
+            compiledPoly (cook_levin_compilation M n hn2 htb hns)
+          let r : MvPolynomial (Fin (n / 3)) ℚ :=
+            MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n) p
+          let q : MvPolynomial (Fin n) ℚ :=
+            mlProj
+              (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+                cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+          MvPolynomial.coeff α
+              (zeroProfileSingletonNormalFormProjection
+                (fun i => (cookLevinFactorList M n hn2 htb hns).get i) q) =
+            MvPolynomial.coeff α
+              (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+                (mlProj (shift * SPDP.iterDerivList S' r)))) :
+    RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalFormIdentity
+        M n hn2 htb hns := by
+  classical
+  intro S' shift hSlen hshiftDegree hshiftVars hadm
+  let p : MvPolynomial (Fin n) ℚ :=
+    compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  let r : MvPolynomial (Fin (n / 3)) ℚ :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+      (cookLevinStrictFOBFlatMap_injective n) p
+  let q : MvPolynomial (Fin n) ℚ :=
+    mlProj
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+        cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+  let d : MvPolynomial (Fin n) ℚ :=
+    MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+      (mlProj (shift * SPDP.iterDerivList S' r))
+  have hconst :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+          (Finset.univ.prod
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) =
+        (1 : ℚ) := by
+    simpa [cookLevinZeroProfileBaseProduct] using
+      cookLevinZeroProfileBaseProduct_coeff_zero M n hn2 htb hns
+  exact
+    zeroProfileSingletonNormalFormProjection_eq_of_coeff_split
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+      hconst q d
+      (fun i => by
+        simpa [p, r, d] using
+          hsingleton S' shift hSlen hshiftDegree hshiftVars hadm i)
+      (fun α hα => by
+        simpa [p, r, q, d] using
+          hnonsingle S' shift hSlen hshiftDegree hshiftVars hadm α hα)
+
 /-- Any proof of the strict singleton-normal-form identity must prove that the
 renamed restricted derivative row has no degree-one singleton coefficients.
 This is the concrete coefficient test for the semantic normalizer target. -/
