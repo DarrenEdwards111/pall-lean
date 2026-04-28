@@ -1,4 +1,6 @@
-import PallLean.Paper93.Paper283.RouteBProjectedPWindowAssembly
+import PallLean.Paper93.Paper283.RouteBProjectedPWindowControlProof
+import PallLean.Paper93.Paper283.RouteBZeroProfileQuotientedCompressionProof
+import PallLean.Paper93.DeepMath.PathB.ZeroProfileConcreteNormalFormProgress
 
 /-!
 # Route B projected/log-window final certificate
@@ -26,9 +28,22 @@ open MultilinearSPDP
 open PaperFaithfulCompilation
 open PaperFaithfulSeparation
 open TuringMachine
+open SymmetricPowerBound
+open WithinProfileBound
 open PallLean.Paper93.DeepMath.PathB
 
 attribute [local instance] Classical.dec
+
+/-- At the paper scale, `n ≥ 2^804` supplies the side condition `n ≥ 4`
+needed by the concreteW local chart/row-embedding route. -/
+theorem routeBProjectedLogWindow_paperScale_ge_four
+    {n : Nat} (hn : n >= 2 ^ 804) : n >= 4 := by
+  have hpow : (4 : Nat) <= 2 ^ 804 := by
+    calc
+      (4 : Nat) = 2 ^ 2 := by norm_num
+      _ <= 2 ^ 804 := by
+        exact Nat.pow_le_pow_right (by norm_num) (by norm_num)
+  exact le_trans hpow hn
 
 /-- Corrected final Route B certificate for one Cook-Levin instance.
 
@@ -130,6 +145,148 @@ noncomputable def routeBProjectedLogWindowFinalCertificate_of_projectedPWindowCo
     routeBSATProjectedNPIdentityMinorLowerBound_of_fixed_embed_certificate
       M n hn2 htb hns Pi npCert
 
+/-- Concrete singleton-quotient zero-profile normal forms feed the corrected
+projected/log-window final certificate for any selected Route B gauge, once
+the projected P-window is contained in that quotiented zero-profile span and
+the NP fixed-embed certificate is supplied. -/
+noncomputable def routeBProjectedLogWindowFinalCertificate_of_concreteSingletonQuotient
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (Pi : PallLean.Paper93.NFrame.CandidateGauge
+      (RouteBCookLevinDim M n hn2 htb hns))
+    {typeBudget : Nat}
+    (D :
+      ZeroProfileConcreteNormalFormData n (Nat.log 2 n) typeBudget)
+    (hmap :
+      ZeroProfileConcreteNormalFormRowMap
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+        D)
+    (hbudget : typeBudget <= withinProfileBound (Nat.log 2 n))
+    (hcontrol :
+      RouteBProjectedPWindowControlledByZeroProfileProjection
+        M n hn2 htb hns
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+        Pi)
+    (npCert :
+      RouteBNPIdentityMinorFixedEmbedCertificate M n hn2 htb hns Pi) :
+    RouteBProjectedLogWindowFinalCertificate M n hn2 htb hns where
+  Pi := Pi
+  p_side :=
+    routeBRicherGauge_projectedPSideBound_of_zeroProfileQuotientedShiftCommonSpan
+      M n hn2 htb hns
+      (zeroProfileQuotientBySingletonShiftProjection
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+      Pi
+      (cookLevinZeroProfileQuotientedShiftCommonSpan_of_concreteSingletonQuotientRowMap
+        M n hn2 htb hns D hmap hbudget)
+      hcontrol
+      (routeB_withinProfileBound_log_le_pow_200 n hn2)
+  np_lower_bound :=
+    routeBSATProjectedNPIdentityMinorLowerBound_of_fixed_embed_certificate
+      M n hn2 htb hns Pi npCert
+
+/-- Concrete projected zero-profile normal forms feed the corrected
+projected/log-window final certificate for any selected Route B gauge and any
+projection/normalizer.  This is the direct final consumer for the paper's
+Boolean/multilinear quotient route: no singleton-killing kernel or residual
+payment is required by the final projected rank comparison. -/
+noncomputable def routeBProjectedLogWindowFinalCertificate_of_concreteProjectedNormalForms
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (Pi : PallLean.Paper93.NFrame.CandidateGauge
+      (RouteBCookLevinDim M n hn2 htb hns))
+    (project :
+      MvPolynomial (Fin n) Rat →ₗ[Rat] MvPolynomial (Fin n) Rat)
+    {typeBudget : Nat}
+    (D :
+      ZeroProfileConcreteNormalFormData n (Nat.log 2 n) typeBudget)
+    (hmap :
+      ZeroProfileConcreteNormalFormRowMap
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        project D)
+    (hbudget : typeBudget <= withinProfileBound (Nat.log 2 n))
+    (hcontrol :
+      RouteBProjectedPWindowControlledByZeroProfileProjection
+        M n hn2 htb hns project Pi)
+    (npCert :
+      RouteBNPIdentityMinorFixedEmbedCertificate M n hn2 htb hns Pi) :
+    RouteBProjectedLogWindowFinalCertificate M n hn2 htb hns where
+  Pi := Pi
+  p_side :=
+    routeBRicherGauge_projectedPSideBound_of_zeroProfileProjectedCommonSpanWithBudget
+      M n hn2 htb hns project Pi
+      (zeroProfileProjectedCommonSpanWithBudget_of_concreteRowMap
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        project D hmap)
+      hcontrol
+      (hbudget.trans (routeB_withinProfileBound_log_le_pow_200 n hn2))
+  np_lower_bound :=
+    routeBSATProjectedNPIdentityMinorLowerBound_of_fixed_embed_certificate
+      M n hn2 htb hns Pi npCert
+
+/-- Boolean-normalized concrete zero-profile normal forms feed the corrected
+projected/log-window final certificate.  This is the named final hook for the
+paper's `x_i^2 = x_i` multilinear quotient normalizer. -/
+noncomputable def routeBProjectedLogWindowFinalCertificate_of_booleanConcreteNormalForms
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (Pi : PallLean.Paper93.NFrame.CandidateGauge
+      (RouteBCookLevinDim M n hn2 htb hns))
+    {typeBudget : Nat}
+    (D :
+      ZeroProfileConcreteNormalFormData n (Nat.log 2 n) typeBudget)
+    (hmap :
+      ZeroProfileConcreteNormalFormRowMap
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (zeroProfileBooleanNormalizeLinearMap (n := n)) D)
+    (hbudget : typeBudget <= withinProfileBound (Nat.log 2 n))
+    (hcontrol :
+      RouteBProjectedPWindowControlledByZeroProfileProjection
+        M n hn2 htb hns
+        (zeroProfileBooleanNormalizeLinearMap (n := n)) Pi)
+    (npCert :
+      RouteBNPIdentityMinorFixedEmbedCertificate M n hn2 htb hns Pi) :
+    RouteBProjectedLogWindowFinalCertificate M n hn2 htb hns :=
+  routeBProjectedLogWindowFinalCertificate_of_concreteProjectedNormalForms
+    M n hn2 htb hns Pi
+    (zeroProfileBooleanNormalizeLinearMap (n := n))
+    D hmap hbudget hcontrol npCert
+
+/-- Head-span specialization of the Boolean-normalized final hook.  The NP
+side is supplied by the existing coupled-sheet source identity minor, so the
+remaining inputs are exactly the Boolean normal-form row classifier, its
+budget, and projected P-window containment for the selected head-span gauge. -/
+noncomputable def routeBProjectedLogWindowFinalCertificate_of_headSpan_booleanConcreteNormalForms
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {typeBudget : Nat}
+    (D :
+      ZeroProfileConcreteNormalFormData n (Nat.log 2 n) typeBudget)
+    (hmap :
+      ZeroProfileConcreteNormalFormRowMap
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (zeroProfileBooleanNormalizeLinearMap (n := n)) D)
+    (hbudget : typeBudget <= withinProfileBound (Nat.log 2 n))
+    (hcontrol :
+      RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowControlledByZeroProfileProjection
+        M n hn2 htb hns
+        (zeroProfileBooleanNormalizeLinearMap (n := n))) :
+    RouteBProjectedLogWindowFinalCertificate M n hn2 htb hns :=
+  routeBProjectedLogWindowFinalCertificate_of_booleanConcreteNormalForms
+    M n hn2 htb hns
+    (routeBPaperFaithfulPiPhiHeadSpanGauge M n hn2 htb hns)
+    D hmap hbudget
+    (by
+      simpa [RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowControlledByZeroProfileProjection]
+        using hcontrol)
+    (routeBPaperFaithfulPiPhiHeadSpan_identityMinorFixedEmbedCertificate
+      M n hn2 htb hns
+      (routeBRicherConcreteNPWitnessQ_sourceIdentityMinorLowerBound
+        M n hn hn2 htb hns))
+
 /-- Paper-faithful head-span specialization: a quotiented zero-profile
 normal-form span can feed the corrected final certificate once it controls the
 projected P-window for the selected head-span gauge. -/
@@ -155,6 +312,130 @@ noncomputable def routeBProjectedLogWindowFinalCertificate_of_headSpan_zeroProfi
         M n hn2 htb hns
         (routeBRicherConcreteNPWitnessQ_sourceIdentityMinorLowerBound
           M n hn hn2 htb hns)
+
+/-- Pointwise projected P-window row identity is sufficient for the corrected
+head-span final certificate.  This is the narrow proof-facing form of the
+remaining P-window obligation: no global admissible-query promotion is used. -/
+noncomputable def routeBProjectedLogWindowFinalCertificate_of_headSpan_zeroProfileQuotiented_rowIdentity
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (project :
+      MvPolynomial (Fin n) Rat →ₗ[Rat] MvPolynomial (Fin n) Rat)
+    (hquot :
+      CookLevinZeroProfileQuotientedShiftCommonSpan
+        M n hn2 htb hns project)
+    (hrow :
+      RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileRowIdentity
+        M n hn2 htb hns project) :
+    RouteBProjectedLogWindowFinalCertificate M n hn2 htb hns :=
+  routeBProjectedLogWindowFinalCertificate_of_headSpan_zeroProfileQuotiented
+    M n hn hn2 htb hns project hquot
+    (routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowControlledByZeroProfileProjection_of_rowIdentity
+      M n hn2 htb hns project hrow)
+
+/-- Concrete projected normal forms plus the pointwise projected P-window row
+identity feed the corrected head-span final certificate directly. -/
+noncomputable def routeBProjectedLogWindowFinalCertificate_of_headSpan_concreteProjectedNormalForms_rowIdentity
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (project :
+      MvPolynomial (Fin n) Rat →ₗ[Rat] MvPolynomial (Fin n) Rat)
+    {typeBudget : Nat}
+    (D :
+      ZeroProfileConcreteNormalFormData n (Nat.log 2 n) typeBudget)
+    (hmap :
+      ZeroProfileConcreteNormalFormRowMap
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        project D)
+    (hbudget : typeBudget <= withinProfileBound (Nat.log 2 n))
+    (hrow :
+      RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileRowIdentity
+        M n hn2 htb hns project) :
+    RouteBProjectedLogWindowFinalCertificate M n hn2 htb hns :=
+  routeBProjectedLogWindowFinalCertificate_of_concreteProjectedNormalForms
+    M n hn2 htb hns
+    (routeBPaperFaithfulPiPhiHeadSpanGauge M n hn2 htb hns)
+    project D hmap hbudget
+    (routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowControlledByZeroProfileProjection_of_rowIdentity
+      M n hn2 htb hns project hrow)
+    (routeBPaperFaithfulPiPhiHeadSpan_identityMinorFixedEmbedCertificate
+      M n hn2 htb hns
+      (routeBRicherConcreteNPWitnessQ_sourceIdentityMinorLowerBound
+        M n hn hn2 htb hns))
+
+/-- Concrete `concreteW` zero-profile classifier plus pointwise projected row
+identity feeds the corrected head-span final certificate.  The row classifier
+is not an assumption here: it is constructed from the direct `concreteW`
+per-type row-embedding package. -/
+noncomputable def routeBProjectedLogWindowFinalCertificate_of_headSpan_concreteWRowEmbeddings_id_rowIdentity
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns hn4)
+    (hrow :
+      RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileRowIdentity
+        M n hn2 htb hns
+        (LinearMap.id :
+          MvPolynomial (Fin n) Rat →ₗ[Rat] MvPolynomial (Fin n) Rat)) :
+    RouteBProjectedLogWindowFinalCertificate M n hn2 htb hns :=
+  routeBProjectedLogWindowFinalCertificate_of_headSpan_concreteProjectedNormalForms_rowIdentity
+    M n hn hn2 htb hns
+    (LinearMap.id :
+      MvPolynomial (Fin n) Rat →ₗ[Rat] MvPolynomial (Fin n) Rat)
+    (zeroProfileConcreteNormalFormData_singletonZeroProfile_concreteW
+      (κ := Nat.log 2 n) hn4)
+    (zeroProfileConcreteNormalFormRowMap_id_concreteW_of_rowEmbeddings
+      M n hn2 htb hns hn4 hRowEmbeddings)
+    (zeroProfileSymmetricProfileDim_zeroProfileHistogram_le_withinProfileBound
+      (Nat.log 2 n))
+    hrow
+
+/-- Paper-scale convenience form of the concreteW classifier final hook: the
+`n ≥ 4` side condition required by `concreteW` follows from `n ≥ 2^804`. -/
+noncomputable def routeBProjectedLogWindowFinalCertificate_of_headSpan_concreteWRowEmbeddings_id_rowIdentity_paperScale
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns
+          (routeBProjectedLogWindow_paperScale_ge_four hn))
+    (hrow :
+      RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileRowIdentity
+        M n hn2 htb hns
+        (LinearMap.id :
+          MvPolynomial (Fin n) Rat →ₗ[Rat] MvPolynomial (Fin n) Rat)) :
+    RouteBProjectedLogWindowFinalCertificate M n hn2 htb hns :=
+  routeBProjectedLogWindowFinalCertificate_of_headSpan_concreteWRowEmbeddings_id_rowIdentity
+    M n hn hn2 htb hns
+    (routeBProjectedLogWindow_paperScale_ge_four hn)
+    hRowEmbeddings hrow
+
+/-- Exact singleton-quotient projected-finrank budget plus pointwise row
+identity feeds the corrected head-span final certificate.  This is the narrow
+paper-faithful final gate for the quotient route: prove the projected quotient
+budget and prove the selected P-window row identity. -/
+noncomputable def routeBProjectedLogWindowFinalCertificate_of_headSpan_singletonQuotient_projectedTypeBudget_rowIdentity
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hbudget :
+      zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i) <=
+        withinProfileBound (Nat.log 2 n))
+    (hrow :
+      RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileRowIdentity
+        M n hn2 htb hns
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i))) :
+    RouteBProjectedLogWindowFinalCertificate M n hn2 htb hns :=
+  routeBProjectedLogWindowFinalCertificate_of_headSpan_zeroProfileQuotiented_rowIdentity
+    M n hn hn2 htb hns
+    (zeroProfileQuotientBySingletonShiftProjection
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+    (cookLevinZeroProfileQuotientedShiftCommonSpan_of_singletonQuotient_projectedTypeBudget
+      M n hn2 htb hns hbudget)
+    hrow
 
 /-- Uniform head-span quotiented zero-profile certificates rule out bounded
 SAT deciders without passing through the false global log-window query
@@ -198,16 +479,168 @@ theorem cookLevinRichProjectionDischarge_of_headSpan_zeroProfileQuotiented
   cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
     (noBoundedSATDeciderAtPaperScale_of_headSpan_zeroProfileQuotiented hcert)
 
+/-- Uniform concrete `concreteW` zero-profile classifiers plus the selected
+head-span row identity rule out bounded SAT deciders through the corrected
+projected/log-window consumer. -/
+theorem noBoundedSATDeciderAtPaperScale_of_headSpan_concreteWRowEmbeddings_id_rowIdentity
+    (hcert :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists hn4 : n >= 4,
+          PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+            M n hn2 htb hns hn4 ∧
+          RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileRowIdentity
+            M n hn2 htb hns
+            (LinearMap.id :
+              MvPolynomial (Fin n) Rat →ₗ[Rat] MvPolynomial (Fin n) Rat)) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBProjectedLogWindowFinalCertificates
+    (by
+      intro M n hn hn2 htb hns hdec
+      let hx := hcert M n hn hn2 htb hns hdec
+      let hn4 := Classical.choose hx
+      have hspec := Classical.choose_spec hx
+      exact
+        routeBProjectedLogWindowFinalCertificate_of_headSpan_concreteWRowEmbeddings_id_rowIdentity
+          M n hn hn2 htb hns hn4 hspec.1 hspec.2)
+
+/-- Uniform concreteW row embeddings plus the selected head-span row identity
+rule out bounded SAT deciders.  Compared with the existential form above, the
+zero-profile classifier is now fully constructed from the supplied local
+row-embedding theorem at the paper-scale `n ≥ 4` side condition. -/
+theorem noBoundedSATDeciderAtPaperScale_of_headSpan_concreteWRowEmbeddings_id_rowIdentity_universal
+    (hRowEmbeddings :
+      forall (M : DTM) (n : Nat) (hn2 : n >= 2) (hn4 : n >= 4)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n),
+        PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+          M n hn2 htb hns hn4)
+    (hrow :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n),
+        RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileRowIdentity
+          M n hn2 htb hns
+          (LinearMap.id :
+            MvPolynomial (Fin n) Rat →ₗ[Rat] MvPolynomial (Fin n) Rat)) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBProjectedLogWindowFinalCertificates
+    (by
+      intro M n hn hn2 htb hns hdec
+      exact
+        routeBProjectedLogWindowFinalCertificate_of_headSpan_concreteWRowEmbeddings_id_rowIdentity_paperScale
+          M n hn hn2 htb hns
+          (hRowEmbeddings M n hn2
+            (routeBProjectedLogWindow_paperScale_ge_four hn) htb hns)
+          (hrow M n hn hn2 htb hns))
+
+/-- Uniform exact singleton-quotient projected-finrank budget plus row identity
+rule out bounded SAT deciders. -/
+theorem noBoundedSATDeciderAtPaperScale_of_headSpan_singletonQuotient_projectedTypeBudget_rowIdentity
+    (hcert :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i) <=
+          withinProfileBound (Nat.log 2 n) ∧
+        RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileRowIdentity
+          M n hn2 htb hns
+          (zeroProfileQuotientBySingletonShiftProjection
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i))) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBProjectedLogWindowFinalCertificates
+    (by
+      intro M n hn hn2 htb hns hdec
+      exact
+        routeBProjectedLogWindowFinalCertificate_of_headSpan_singletonQuotient_projectedTypeBudget_rowIdentity
+          M n hn hn2 htb hns
+          (hcert M n hn hn2 htb hns hdec).1
+          (hcert M n hn hn2 htb hns hdec).2)
+
+/-- The old rich-projection discharge follows from the concrete `concreteW`
+classifier route only through the no-decider equivalence. -/
+theorem cookLevinRichProjectionDischarge_of_headSpan_concreteWRowEmbeddings_id_rowIdentity
+    (hcert :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        exists hn4 : n >= 4,
+          PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+            M n hn2 htb hns hn4 ∧
+          RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileRowIdentity
+            M n hn2 htb hns
+            (LinearMap.id :
+              MvPolynomial (Fin n) Rat →ₗ[Rat] MvPolynomial (Fin n) Rat)) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_headSpan_concreteWRowEmbeddings_id_rowIdentity
+      hcert)
+
+/-- Legacy rich-projection discharge from the universal concreteW classifier
+and selected row-identity route, mediated only by the no-decider equivalence. -/
+theorem cookLevinRichProjectionDischarge_of_headSpan_concreteWRowEmbeddings_id_rowIdentity_universal
+    (hRowEmbeddings :
+      forall (M : DTM) (n : Nat) (hn2 : n >= 2) (hn4 : n >= 4)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n),
+        PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+          M n hn2 htb hns hn4)
+    (hrow :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n),
+        RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileRowIdentity
+          M n hn2 htb hns
+          (LinearMap.id :
+            MvPolynomial (Fin n) Rat →ₗ[Rat] MvPolynomial (Fin n) Rat)) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_headSpan_concreteWRowEmbeddings_id_rowIdentity_universal
+      hRowEmbeddings hrow)
+
+/-- The old rich-projection discharge follows from the exact singleton-quotient
+projected route only through the no-decider equivalence. -/
+theorem cookLevinRichProjectionDischarge_of_headSpan_singletonQuotient_projectedTypeBudget_rowIdentity
+    (hcert :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+        (_hdec : DecidesSAT M),
+        zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i) <=
+          withinProfileBound (Nat.log 2 n) ∧
+        RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileRowIdentity
+          M n hn2 htb hns
+          (zeroProfileQuotientBySingletonShiftProjection
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i))) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_headSpan_singletonQuotient_projectedTypeBudget_rowIdentity
+      hcert)
+
 /-! ## Axiom audit anchors -/
 
 #print axioms RouteBProjectedLogWindowFinalCertificate
+#print axioms routeBProjectedLogWindow_paperScale_ge_four
 #print axioms routeBProjectedLogWindowFinalCertificate_npPreservation
 #print axioms false_of_routeBProjectedLogWindowFinalCertificate
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBProjectedLogWindowFinalCertificates
 #print axioms cookLevinRichProjectionDischarge_of_routeBProjectedLogWindowFinalCertificates
 #print axioms routeBProjectedLogWindowFinalCertificate_of_projectedPWindowCover_npCertificate
+#print axioms routeBProjectedLogWindowFinalCertificate_of_concreteSingletonQuotient
+#print axioms routeBProjectedLogWindowFinalCertificate_of_concreteProjectedNormalForms
+#print axioms routeBProjectedLogWindowFinalCertificate_of_booleanConcreteNormalForms
+#print axioms routeBProjectedLogWindowFinalCertificate_of_headSpan_booleanConcreteNormalForms
 #print axioms routeBProjectedLogWindowFinalCertificate_of_headSpan_zeroProfileQuotiented
+#print axioms routeBProjectedLogWindowFinalCertificate_of_headSpan_zeroProfileQuotiented_rowIdentity
+#print axioms routeBProjectedLogWindowFinalCertificate_of_headSpan_concreteProjectedNormalForms_rowIdentity
+#print axioms routeBProjectedLogWindowFinalCertificate_of_headSpan_concreteWRowEmbeddings_id_rowIdentity
+#print axioms routeBProjectedLogWindowFinalCertificate_of_headSpan_concreteWRowEmbeddings_id_rowIdentity_paperScale
+#print axioms routeBProjectedLogWindowFinalCertificate_of_headSpan_singletonQuotient_projectedTypeBudget_rowIdentity
 #print axioms noBoundedSATDeciderAtPaperScale_of_headSpan_zeroProfileQuotiented
 #print axioms cookLevinRichProjectionDischarge_of_headSpan_zeroProfileQuotiented
+#print axioms noBoundedSATDeciderAtPaperScale_of_headSpan_concreteWRowEmbeddings_id_rowIdentity
+#print axioms noBoundedSATDeciderAtPaperScale_of_headSpan_concreteWRowEmbeddings_id_rowIdentity_universal
+#print axioms noBoundedSATDeciderAtPaperScale_of_headSpan_singletonQuotient_projectedTypeBudget_rowIdentity
+#print axioms cookLevinRichProjectionDischarge_of_headSpan_concreteWRowEmbeddings_id_rowIdentity
+#print axioms cookLevinRichProjectionDischarge_of_headSpan_concreteWRowEmbeddings_id_rowIdentity_universal
+#print axioms cookLevinRichProjectionDischarge_of_headSpan_singletonQuotient_projectedTypeBudget_rowIdentity
 
 end PallLean.Paper93.Paper283

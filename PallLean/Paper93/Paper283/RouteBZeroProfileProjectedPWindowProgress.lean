@@ -179,6 +179,72 @@ noncomputable def routeBRicherGauge_projectedPWindowFiniteSpanCover_of_zeroProfi
       (cookLevinZeroProfileQuotientedShiftCommonSpan_projectedShiftSpan_finrank_le
         M n hn2 htb hns project hquot).trans hpoly
 
+/-- A budgeted projected zero-profile common span, without any singleton-kernel
+or residual hypothesis, is already enough for the projected P-window rank
+consumer.  This is the paper-faithful shape used by Boolean/multilinear
+normalization: the final projected/log-window path only needs containment in
+the selected projected zero-profile span plus the corresponding budget. -/
+noncomputable def routeBRicherGauge_projectedPWindowFiniteSpanCover_of_zeroProfileProjectedCommonSpanWithBudget
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (project :
+      MvPolynomial (Fin n) Rat →ₗ[Rat] MvPolynomial (Fin n) Rat)
+    (Pi : PallLean.Paper93.NFrame.CandidateGauge
+      (RouteBCookLevinDim M n hn2 htb hns))
+    {budget : Nat}
+    (hspan :
+      ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        project budget)
+    (hcontrol :
+      RouteBProjectedPWindowControlledByZeroProfileProjection
+        M n hn2 htb hns project Pi)
+    (hpoly : budget <= n ^ 200) :
+    RouteBRicherGaugeProjectedPWindowFiniteSpanCover
+      M n hn2 htb hns Pi where
+  span :=
+    zeroProfileProjectedShiftSpan (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+      project
+  finite := by
+    simpa [RouteBCookLevinDim] using
+      (zeroProfileProjectedShiftSpan_finite (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        project)
+  contains := hcontrol
+  rank_bound :=
+    (zeroProfileProjectedShiftSpan_finrank_le_of_commonSpanWithBudget
+      (κ := Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+      project hspan).trans hpoly
+
+/-- Projected rank bridge from a budgeted projected zero-profile common span.
+Unlike the singleton-quotient constructor, this has no kernel/residual fields;
+it is the direct consumer for Boolean-normalized or otherwise projected
+normal-form classifiers. -/
+theorem routeBRicherGauge_projectedPSideBound_of_zeroProfileProjectedCommonSpanWithBudget
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (project :
+      MvPolynomial (Fin n) Rat →ₗ[Rat] MvPolynomial (Fin n) Rat)
+    (Pi : PallLean.Paper93.NFrame.CandidateGauge
+      (RouteBCookLevinDim M n hn2 htb hns))
+    {budget : Nat}
+    (hspan :
+      ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        project budget)
+    (hcontrol :
+      RouteBProjectedPWindowControlledByZeroProfileProjection
+        M n hn2 htb hns project Pi)
+    (hpoly : budget <= n ^ 200) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBNFrameCandidateAsSATGauge M n hn2 htb hns Pi) :=
+  routeBRicherGauge_projectedPSideBound_of_projectedFiniteSpanCover
+    M n hn2 htb hns Pi
+    (routeBRicherGauge_projectedPWindowFiniteSpanCover_of_zeroProfileProjectedCommonSpanWithBudget
+      M n hn2 htb hns project Pi hspan hcontrol hpoly)
+
 /-- Projected rank bridge from a quotiented zero-profile span plus the missing
 projected P-window containment. -/
 theorem routeBRicherGauge_projectedPSideBound_of_zeroProfileQuotientedShiftCommonSpan
@@ -237,6 +303,8 @@ theorem routeBRicherGauge_endpointChargedPWindowBridge_forces_unprojectedPSideRa
 #print axioms cookLevinAllBoundedProfileCommonSpanAtProfile_zero_iff_shiftCommonSpan
 #print axioms RouteBProjectedPWindowControlledByZeroProfileProjection
 #print axioms routeBRicherGauge_projectedPWindowFiniteSpanCover_of_zeroProfileQuotientedShiftCommonSpan
+#print axioms routeBRicherGauge_projectedPWindowFiniteSpanCover_of_zeroProfileProjectedCommonSpanWithBudget
+#print axioms routeBRicherGauge_projectedPSideBound_of_zeroProfileProjectedCommonSpanWithBudget
 #print axioms routeBRicherGauge_projectedPSideBound_of_zeroProfileQuotientedShiftCommonSpan
 #print axioms routeBRicherGauge_endpointChargedPWindowBridge_forces_unprojectedPWindowCover
 #print axioms routeBRicherGauge_endpointChargedPWindowBridge_forces_unprojectedPSideRankBound
