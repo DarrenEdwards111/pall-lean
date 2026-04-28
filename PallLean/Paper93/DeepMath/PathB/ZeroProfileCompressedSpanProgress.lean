@@ -1376,6 +1376,38 @@ theorem not_cookLevinZeroProfileCompressedSpanFinrankCondition_two_pow_804
     M ((2 : ℕ) ^ 804) hn htb hns
     withinProfileBound_log_two_pow_804_lt_ambient
 
+/-- The theorem-level full zero-histogram shifted common-span gate has the
+same ambient singleton obstruction as the equivalent compressed-span finrank
+condition.  This records that the unprojected zero-profile target cannot be
+the final paper-scale Route B obligation in regimes where the within-profile
+budget is smaller than the ambient singleton family. -/
+theorem not_cookLevinZeroHistogramShiftCommonSpan_of_withinProfileBound_lt_ambient
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hlt : withinProfileBound (Nat.log 2 n) < n) :
+    ¬ CookLevinZeroHistogramShiftCommonSpan M n hn htb hns := by
+  intro hzero
+  exact
+    not_cookLevinZeroProfileCompressedSpanFinrankCondition_of_withinProfileBound_lt_ambient
+      M n hn htb hns hlt
+      ((cookLevinZeroHistogramShiftCommonSpan_iff_compressedSpanFinrankCondition
+        M n hn htb hns).mp hzero)
+
+/-- Paper-scale no-go for the full unprojected zero-histogram common-span
+gate.  The remaining viable zero-profile route must therefore be genuinely
+projected/quotiented, rather than an attempt to prove
+`CookLevinZeroHistogramShiftCommonSpan` itself at `2^804`. -/
+theorem not_cookLevinZeroHistogramShiftCommonSpan_two_pow_804
+    (M : DTM)
+    (hn : (2 : ℕ) ^ 804 ≥ 2)
+    (htb : M.timeBound ≤ 4)
+    (hns : M.numStates ≤ (2 : ℕ) ^ 804) :
+    ¬ CookLevinZeroHistogramShiftCommonSpan M
+      ((2 : ℕ) ^ 804) hn htb hns :=
+  not_cookLevinZeroHistogramShiftCommonSpan_of_withinProfileBound_lt_ambient
+    M ((2 : ℕ) ^ 804) hn htb hns
+    withinProfileBound_log_two_pow_804_lt_ambient
+
 /-- Consequently, any full unquotiented local type normal form whose total
 type-space budget is `withinProfileBound (Nat.log 2 n)` is impossible in the
 same ambient regimes.  The obstruction is not the local-type scaffold itself:
@@ -1626,6 +1658,8 @@ theorem cookLevinZeroProfileCompressedShiftSpan_two_le_finrank
 #print axioms not_zeroProfileCompressedSpanFinrankCondition_withinProfileBound_of_constCoeff_ne_zero
 #print axioms not_cookLevinZeroProfileCompressedSpanFinrankCondition_of_withinProfileBound_lt_ambient
 #print axioms not_cookLevinZeroProfileCompressedSpanFinrankCondition_two_pow_804
+#print axioms not_cookLevinZeroHistogramShiftCommonSpan_of_withinProfileBound_lt_ambient
+#print axioms not_cookLevinZeroHistogramShiftCommonSpan_two_pow_804
 #print axioms not_CookLevinZeroProfileLocalTypeNormalFormObligation_of_withinProfileBound_lt_ambient
 #print axioms not_CookLevinZeroProfileLocalTypeNormalFormObligation_two_pow_804
 #print axioms zeroProfileCompressedSpanScalarClosure_of_commonSpanWithBudget_one
