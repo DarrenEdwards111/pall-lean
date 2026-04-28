@@ -239,6 +239,33 @@ theorem cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfil
         hmap)
       hbudget
 
+/-- A projected normal-form row map for the concrete singleton quotient cannot
+hide the exact projected quotient budget: its type budget is already at least
+the projected shifted-span finrank. -/
+theorem cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_of_normalFormRowMap
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {typeBudget : Nat}
+    (F : ZeroProfileProjectedNormalFormFamily n (Nat.log 2 n) typeBudget)
+    (hmap :
+      ZeroProfileProjectedNormalFormRowMap
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+        F) :
+    zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i) <=
+      typeBudget := by
+  exact
+    zeroProfileSingletonQuotientProjectedTypeBudget_le_of_projectedCommonSpan
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+      (zeroProfileProjectedCommonSpanWithBudget_of_normalFormRowMap
+        (κ := Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+        F hmap)
+
 /-- A projected normal-form row map for the concrete singleton quotient
 reduces the exact projected type-budget gate to the profile-compression
 normal-form budget. -/
@@ -258,20 +285,34 @@ theorem cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfil
         (fun i => (cookLevinFactorList M n hn2 htb hns).get i) <=
       withinProfileBound (Nat.log 2 n) := by
   exact
-    cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_projectedCommonSpan
-      M n hn2 htb hns
-      (zeroProfileProjectedCommonSpanWithBudget_of_normalFormRowMap
-        (κ := Nat.log 2 n)
-        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
-        (zeroProfileQuotientBySingletonShiftProjection
-          (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
-        F hmap)
-      hbudget
+    (cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_of_normalFormRowMap
+      M n hn2 htb hns F hmap).trans hbudget
 
 /-- A finite normal-form classifier for the concrete singleton quotient
 instantiates the exact projected type-budget gate.  This is the
 finite-normal-form version of the reducer above, keeping the local normal-form
 source data visible. -/
+theorem cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_of_finiteClassifier
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {typeBudget : Nat}
+    {A : ZeroProfileFiniteNormalFormAlphabet (Nat.log 2 n)}
+    (D : ZeroProfileFiniteNormalFormFamilyData A n typeBudget)
+    (C :
+      ZeroProfileFiniteNormalFormRowClassifier
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+        D) :
+    zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i) <=
+      typeBudget :=
+  cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_of_normalFormRowMap
+    M n hn2 htb hns D.toProjectedFamily C.toRowMap
+
+/-- A finite normal-form classifier for the concrete singleton quotient
+instantiates the exact projected type-budget gate after comparison with the
+within-profile budget. -/
 theorem cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_finiteClassifier
     (M : DTM) (n : Nat) (hn2 : n >= 2)
     (htb : M.timeBound <= 4) (hns : M.numStates <= n)
@@ -288,12 +329,38 @@ theorem cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfil
     zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
         (fun i => (cookLevinFactorList M n hn2 htb hns).get i) <=
       withinProfileBound (Nat.log 2 n) :=
-  PallLean.Paper93.DeepMath.PathB.zeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_finiteNormalFormClassifier
-    M n hn2 htb hns D C hbudget
+  (cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_of_finiteClassifier
+    M n hn2 htb hns D C).trans hbudget
 
 /-- A concrete normal-form row classifier for the concrete singleton quotient
 instantiates the exact projected type-budget gate via the finite-normal-form
 classifier bridge.  No shifted-support enumeration is used. -/
+theorem cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_of_concreteClassifier
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    {typeBudget : Nat}
+    (D : ZeroProfileConcreteNormalFormData n (Nat.log 2 n) typeBudget)
+    (hmap :
+      ZeroProfileConcreteNormalFormRowMap
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+        D) :
+    zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i) <=
+      typeBudget :=
+  cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_of_finiteClassifier
+    M n hn2 htb hns
+    (zeroProfileFiniteNormalFormFamilyData_of_concreteData D)
+    (zeroProfileFiniteNormalFormRowClassifier_of_concreteRowMap
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+      (zeroProfileQuotientBySingletonShiftProjection
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+      D hmap)
+
+/-- A concrete normal-form row classifier for the concrete singleton quotient
+instantiates the exact projected type-budget gate after comparison with the
+within-profile budget.  No shifted-support enumeration is used. -/
 theorem cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_concreteClassifier
     (M : DTM) (n : Nat) (hn2 : n >= 2)
     (htb : M.timeBound <= 4) (hns : M.numStates <= n)
@@ -309,8 +376,8 @@ theorem cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfil
     zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
         (fun i => (cookLevinFactorList M n hn2 htb hns).get i) <=
       withinProfileBound (Nat.log 2 n) :=
-  zeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_concreteRowMap
-    M n hn2 htb hns D hmap hbudget
+  (cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_of_concreteClassifier
+    M n hn2 htb hns D hmap).trans hbudget
 
 /-- Concrete singleton-quotient constructor: the existing exact projected
 quotient type-space certificate proves the quotiented target once the exact
@@ -333,6 +400,38 @@ theorem cookLevinZeroProfileQuotientedShiftCommonSpan_of_singletonQuotient_proje
         (Nat.log 2 n)
         (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
       hbudget
+
+/-- Existing `concreteW` row embeddings prove the exact singleton-quotient
+projected type budget by projecting the identity zero-profile concrete
+normal-form span. -/
+theorem cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_concreteW_rowEmbeddings
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) (hn4 : n >= 4)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns hn4) :
+    zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i) <=
+      withinProfileBound (Nat.log 2 n) :=
+  zeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_concreteW_of_rowEmbeddings
+    M n hn2 htb hns hn4 hRowEmbeddings
+
+/-- Concrete `concreteW` row embeddings close the singleton-quotient
+zero-profile target via the exact projected budget. -/
+theorem cookLevinZeroProfileQuotientedShiftCommonSpan_of_singletonQuotient_concreteW_rowEmbeddings
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) (hn4 : n >= 4)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns hn4) :
+    CookLevinZeroProfileQuotientedShiftCommonSpan
+      M n hn2 htb hns
+      (zeroProfileQuotientBySingletonShiftProjection
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) :=
+  cookLevinZeroProfileQuotientedShiftCommonSpan_of_singletonQuotient_projectedTypeBudget
+    M n hn2 htb hns
+    (cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_concreteW_rowEmbeddings
+      M n hn2 htb hns hn4 hRowEmbeddings)
 
 /-- Necessity of the remaining singleton-quotient arithmetic: any proof of
 the quotiented target for the concrete singleton quotient forces the exact
@@ -401,6 +500,28 @@ theorem routeBPaperFaithfulPiPhiHeadSpan_projectedPSideBound_of_singletonQuotien
       M n hn2 htb hns hbudget)
     hcontrol
 
+/-- P-window assembly specialization using the singleton quotient and the
+existing concrete `concreteW` row-embedding package to discharge the exact
+projected type-budget hypothesis. -/
+theorem routeBPaperFaithfulPiPhiHeadSpan_projectedPSideBound_of_singletonQuotient_concreteW_rowEmbeddings
+    (M : DTM) (n : Nat) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n) (hn4 : n >= 4)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns hn4)
+    (hcontrol :
+      RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowControlledByZeroProfileProjection
+        M n hn2 htb hns
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i))) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns) :=
+  routeBPaperFaithfulPiPhiHeadSpan_projectedPSideBound_of_singletonQuotient_projectedTypeBudget
+    M n hn2 htb hns
+    (cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_concreteW_rowEmbeddings
+      M n hn2 htb hns hn4 hRowEmbeddings)
+    hcontrol
+
 /-! ## Axiom audit anchors -/
 
 #print axioms cookLevinZeroProfileQuotientedShiftCommonSpan_exists_of_projectedNormalFormObligation
@@ -411,12 +532,18 @@ theorem routeBPaperFaithfulPiPhiHeadSpan_projectedPSideBound_of_singletonQuotien
 #print axioms cookLevinZeroProfileProjectedShiftSpan_finrank_le_withinProfileBound_of_projectedCommonSpan
 #print axioms cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_projectedCommonSpan
 #print axioms cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_projectedTypeMap
+#print axioms cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_of_normalFormRowMap
 #print axioms cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_normalFormRowMap
+#print axioms cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_of_finiteClassifier
 #print axioms cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_finiteClassifier
+#print axioms cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_of_concreteClassifier
 #print axioms cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_concreteClassifier
 #print axioms cookLevinZeroProfileQuotientedShiftCommonSpan_of_singletonQuotient_projectedTypeBudget
+#print axioms cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_concreteW_rowEmbeddings
+#print axioms cookLevinZeroProfileQuotientedShiftCommonSpan_of_singletonQuotient_concreteW_rowEmbeddings
 #print axioms zeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_quotientedShiftCommonSpan
 #print axioms cookLevinZeroProfileQuotientedShiftCommonSpan_singletonQuotient_iff_projectedTypeBudget
 #print axioms routeBPaperFaithfulPiPhiHeadSpan_projectedPSideBound_of_singletonQuotient_projectedTypeBudget
+#print axioms routeBPaperFaithfulPiPhiHeadSpan_projectedPSideBound_of_singletonQuotient_concreteW_rowEmbeddings
 
 end PallLean.Paper93.Paper283

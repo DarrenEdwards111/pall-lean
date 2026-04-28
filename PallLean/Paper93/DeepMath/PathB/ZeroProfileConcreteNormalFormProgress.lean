@@ -507,6 +507,26 @@ theorem zeroProfileProjectedCommonSpanWithBudget_id_concreteW_of_rowEmbeddings
     (zeroProfileConcreteNormalFormRowMap_id_concreteW_of_rowEmbeddings
       M n hn htb hns hn4 hRowEmbeddings)
 
+/-- The identity concrete normal-form span from `concreteW` can be pushed
+through the singleton quotient projection with the same one-profile budget. -/
+theorem zeroProfileProjectedCommonSpanWithBudget_singletonQuotient_concreteW_of_rowEmbeddings
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (hn4 : n ≥ 4)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn htb hns hn4) :
+    ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn htb hns).get i)
+      (zeroProfileQuotientBySingletonShiftProjection
+        (fun i => (cookLevinFactorList M n hn htb hns).get i))
+      (zeroProfileSymmetricProfileDim zeroProfileHistogram) :=
+  zeroProfileProjectedCommonSpanWithBudget_of_id_projectedCommonSpan
+    (fun i => (cookLevinFactorList M n hn htb hns).get i)
+    (zeroProfileQuotientBySingletonShiftProjection
+      (fun i => (cookLevinFactorList M n hn htb hns).get i))
+    (zeroProfileProjectedCommonSpanWithBudget_id_concreteW_of_rowEmbeddings
+      M n hn htb hns hn4 hRowEmbeddings)
+
 /-- The direct `concreteW` row-embedding package gives an actual finite
 normal-form classifier for zero-profile rows at the identity projection. -/
 noncomputable def zeroProfileFiniteNormalFormRowClassifier_id_concreteW_of_rowEmbeddings
@@ -556,6 +576,26 @@ theorem zeroProfileProjectedShiftSpan_finrank_le_withinProfileBound_id_concreteW
         M n hn htb hns hn4 hRowEmbeddings)).trans
       (zeroProfileSymmetricProfileDim_zeroProfileHistogram_le_withinProfileBound
         (Nat.log 2 n))
+
+/-- The existing concrete `concreteW` normal-form data proves the exact
+singleton-quotient projected type budget.  This uses projection of the
+identity common span, not shifted-support counting. -/
+theorem zeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_concreteW_of_rowEmbeddings
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (hn4 : n ≥ 4)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn htb hns hn4) :
+    zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn htb hns).get i) ≤
+      withinProfileBound (Nat.log 2 n) :=
+  (zeroProfileSingletonQuotientProjectedTypeBudget_le_of_id_projectedCommonSpan
+    (κ := Nat.log 2 n)
+    (factors := fun i => (cookLevinFactorList M n hn htb hns).get i)
+    (zeroProfileProjectedCommonSpanWithBudget_id_concreteW_of_rowEmbeddings
+      M n hn htb hns hn4 hRowEmbeddings)).trans
+    (zeroProfileSymmetricProfileDim_zeroProfileHistogram_le_withinProfileBound
+      (Nat.log 2 n))
 
 /-- Concrete normal-form certificate: quotient projection, concrete
 symmetric-power normal-form data, and the row typing into that data. -/
@@ -836,8 +876,10 @@ theorem cookLevinZeroHistogramShiftCommonSpan_of_concreteNormalFormFrontier
 #print axioms zeroProfileProjectedCommonSpanWithBudget_of_concreteRowMap
 #print axioms zeroProfileSymmetricProfileDim_zeroProfileHistogram_le_withinProfileBound
 #print axioms zeroProfileProjectedCommonSpanWithBudget_id_concreteW_of_rowEmbeddings
+#print axioms zeroProfileProjectedCommonSpanWithBudget_singletonQuotient_concreteW_of_rowEmbeddings
 #print axioms zeroProfileFiniteNormalFormRowClassifier_id_concreteW_of_rowEmbeddings
 #print axioms zeroProfileProjectedShiftSpan_finrank_le_withinProfileBound_id_concreteW_of_rowEmbeddings
+#print axioms zeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_concreteW_of_rowEmbeddings
 #print axioms zeroProfileProjectedNormalFormCertificate_of_concreteCertificate
 #print axioms cookLevinZeroProfileProjectedNormalFormObligation_of_concreteNormalFormObligation
 #print axioms cookLevinZeroProfileQuotientedShiftCommonSpan_of_concreteSingletonQuotientRowMap

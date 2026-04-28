@@ -437,6 +437,116 @@ noncomputable def routeBProjectedLogWindowFinalCertificate_of_headSpan_singleton
       M n hn2 htb hns hbudget)
     hrow
 
+/-- Concrete `concreteW` row embeddings discharge the exact singleton-quotient
+budget for the corrected head-span final certificate.  The only remaining
+input is the selected singleton-quotient row identity. -/
+noncomputable def routeBProjectedLogWindowFinalCertificate_of_headSpan_singletonQuotient_concreteW_rowEmbeddings_rowIdentity
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns hn4)
+    (hrow :
+      RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileRowIdentity
+        M n hn2 htb hns
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i))) :
+    RouteBProjectedLogWindowFinalCertificate M n hn2 htb hns :=
+  routeBProjectedLogWindowFinalCertificate_of_headSpan_singletonQuotient_projectedTypeBudget_rowIdentity
+    M n hn hn2 htb hns
+    (cookLevinZeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_concreteW_rowEmbeddings
+      M n hn2 htb hns hn4 hRowEmbeddings)
+    hrow
+
+/-- Concrete `concreteW` row embeddings give a budgeted zero-profile span after
+applying the selected head-span projection.  The only remaining input is the
+selected head-span row identity. -/
+noncomputable def routeBProjectedLogWindowFinalCertificate_of_headSpan_headSpanProjection_concreteW_rowEmbeddings_rowIdentity
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns hn4)
+    (hrow :
+      RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowZeroProfileRowIdentity
+        M n hn2 htb hns
+        (routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns)) :
+    RouteBProjectedLogWindowFinalCertificate M n hn2 htb hns where
+  Pi := routeBPaperFaithfulPiPhiHeadSpanGauge M n hn2 htb hns
+  p_side :=
+    routeBRicherGauge_projectedPSideBound_of_zeroProfileProjectedCommonSpanWithBudget
+      M n hn2 htb hns
+      (routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns)
+      (routeBPaperFaithfulPiPhiHeadSpanGauge M n hn2 htb hns)
+      (zeroProfileProjectedCommonSpanWithBudget_of_id_projectedCommonSpan
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns)
+        (zeroProfileProjectedCommonSpanWithBudget_id_concreteW_of_rowEmbeddings
+          M n hn2 htb hns hn4 hRowEmbeddings))
+      (by
+        simpa [RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowControlledByZeroProfileProjection]
+          using
+            routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowControlledByZeroProfileProjection_of_rowIdentity
+              M n hn2 htb hns
+              (routeBPaperFaithfulPiPhiHeadSpanProjection M n hn2 htb hns)
+              hrow)
+      ((zeroProfileSymmetricProfileDim_zeroProfileHistogram_le_withinProfileBound
+        (Nat.log 2 n)).trans
+        (routeB_withinProfileBound_log_le_pow_200 n hn2))
+  np_lower_bound := by
+    simpa [routeBPaperFaithfulPiPhiHeadSpanProjection] using
+      routeBPaperFaithfulPiPhiHeadSpan_projectedNPIdentityMinorLowerBound_of_source
+        M n hn2 htb hns
+        (routeBRicherConcreteNPWitnessQ_sourceIdentityMinorLowerBound
+          M n hn hn2 htb hns)
+
+/-- Retarget plus absence of a visible residual projection escape closes the
+selected head-span row identity; concrete `concreteW` row embeddings provide
+the projected zero-profile span after applying that same projection. -/
+noncomputable def routeBProjectedLogWindowFinalCertificate_of_headSpan_headSpanProjection_concreteW_rowEmbeddings_retarget_noResidualProjectionEscape
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hn4 : n >= 4)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns hn4)
+    (retarget :
+      RouteBPaperFaithfulPiPhiHeadSpanProjectionRetarget
+        M n hn2 htb hns)
+    (hnoEscape :
+      ¬ RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowCompiledDerivativeResidualProjectionEscape
+          M n hn2 htb hns) :
+    RouteBProjectedLogWindowFinalCertificate M n hn2 htb hns :=
+  routeBProjectedLogWindowFinalCertificate_of_headSpan_headSpanProjection_concreteW_rowEmbeddings_rowIdentity
+    M n hn hn2 htb hns hn4 hRowEmbeddings
+    (routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowZeroProfileRowIdentity_of_retarget_of_residual_chosenComplement
+      M n hn2 htb hns retarget
+      ((routeBPaperFaithfulPiPhiHeadSpan_projectedPWindowCompiledDerivativeResidualChosenComplement_iff_no_residualProjectionEscape
+        M n hn2 htb hns).mpr hnoEscape))
+
+/-- Paper-scale convenience form of the corrected selected-projection
+head-span final certificate. -/
+noncomputable def routeBProjectedLogWindowFinalCertificate_of_headSpan_headSpanProjection_concreteW_rowEmbeddings_retarget_noResidualProjectionEscape_paperScale
+    (M : DTM) (n : Nat) (hn : n >= 2 ^ 804) (hn2 : n >= 2)
+    (htb : M.timeBound <= 4) (hns : M.numStates <= n)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns
+          (routeBProjectedLogWindow_paperScale_ge_four hn))
+    (retarget :
+      RouteBPaperFaithfulPiPhiHeadSpanProjectionRetarget
+        M n hn2 htb hns)
+    (hnoEscape :
+      ¬ RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowCompiledDerivativeResidualProjectionEscape
+          M n hn2 htb hns) :
+    RouteBProjectedLogWindowFinalCertificate M n hn2 htb hns :=
+  routeBProjectedLogWindowFinalCertificate_of_headSpan_headSpanProjection_concreteW_rowEmbeddings_retarget_noResidualProjectionEscape
+    M n hn hn2 htb hns
+    (routeBProjectedLogWindow_paperScale_ge_four hn)
+    hRowEmbeddings retarget hnoEscape
+
 /-- Uniform head-span quotiented zero-profile certificates rule out bounded
 SAT deciders without passing through the false global log-window query
 promotion. -/
@@ -557,6 +667,37 @@ theorem noBoundedSATDeciderAtPaperScale_of_headSpan_singletonQuotient_projectedT
           (hcert M n hn hn2 htb hns hdec).1
           (hcert M n hn hn2 htb hns hdec).2)
 
+/-- Uniform corrected head-span certificates from concrete `concreteW`
+row embeddings, projection retarget, and absence of residual projection
+escapes for the selected head-span projection. -/
+theorem noBoundedSATDeciderAtPaperScale_of_headSpan_headSpanProjection_concreteW_rowEmbeddings_retarget_noResidualProjectionEscape
+    (hRowEmbeddings :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n),
+        PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+          M n hn2 htb hns
+            (routeBProjectedLogWindow_paperScale_ge_four _hn))
+    (hretarget :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n),
+        RouteBPaperFaithfulPiPhiHeadSpanProjectionRetarget
+          M n hn2 htb hns)
+    (hnoEscape :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n),
+        ¬ RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowCompiledDerivativeResidualProjectionEscape
+          M n hn2 htb hns) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBProjectedLogWindowFinalCertificates
+    (by
+      intro M n hn hn2 htb hns hdec
+      exact
+        routeBProjectedLogWindowFinalCertificate_of_headSpan_headSpanProjection_concreteW_rowEmbeddings_retarget_noResidualProjectionEscape_paperScale
+          M n hn hn2 htb hns
+          (hRowEmbeddings M n hn hn2 htb hns)
+          (hretarget M n hn hn2 htb hns)
+          (hnoEscape M n hn hn2 htb hns))
+
 /-- The old rich-projection discharge follows from the concrete `concreteW`
 classifier route only through the no-decider equivalence. -/
 theorem cookLevinRichProjectionDischarge_of_headSpan_concreteWRowEmbeddings_id_rowIdentity
@@ -615,6 +756,30 @@ theorem cookLevinRichProjectionDischarge_of_headSpan_singletonQuotient_projected
     (noBoundedSATDeciderAtPaperScale_of_headSpan_singletonQuotient_projectedTypeBudget_rowIdentity
       hcert)
 
+/-- Legacy rich-projection discharge from the corrected selected-projection
+head-span route, mediated only by the no-decider equivalence. -/
+theorem cookLevinRichProjectionDischarge_of_headSpan_headSpanProjection_concreteW_rowEmbeddings_retarget_noResidualProjectionEscape
+    (hRowEmbeddings :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n),
+        PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+          M n hn2 htb hns
+            (routeBProjectedLogWindow_paperScale_ge_four _hn))
+    (hretarget :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n),
+        RouteBPaperFaithfulPiPhiHeadSpanProjectionRetarget
+          M n hn2 htb hns)
+    (hnoEscape :
+      forall (M : DTM) (n : Nat) (_hn : n >= 2 ^ 804) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n),
+        ¬ RouteBPaperFaithfulPiPhiHeadSpanProjectedPWindowCompiledDerivativeResidualProjectionEscape
+          M n hn2 htb hns) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_headSpan_headSpanProjection_concreteW_rowEmbeddings_retarget_noResidualProjectionEscape
+      hRowEmbeddings hretarget hnoEscape)
+
 /-! ## Axiom audit anchors -/
 
 #print axioms RouteBProjectedLogWindowFinalCertificate
@@ -634,13 +799,19 @@ theorem cookLevinRichProjectionDischarge_of_headSpan_singletonQuotient_projected
 #print axioms routeBProjectedLogWindowFinalCertificate_of_headSpan_concreteWRowEmbeddings_id_rowIdentity
 #print axioms routeBProjectedLogWindowFinalCertificate_of_headSpan_concreteWRowEmbeddings_id_rowIdentity_paperScale
 #print axioms routeBProjectedLogWindowFinalCertificate_of_headSpan_singletonQuotient_projectedTypeBudget_rowIdentity
+#print axioms routeBProjectedLogWindowFinalCertificate_of_headSpan_singletonQuotient_concreteW_rowEmbeddings_rowIdentity
+#print axioms routeBProjectedLogWindowFinalCertificate_of_headSpan_headSpanProjection_concreteW_rowEmbeddings_rowIdentity
+#print axioms routeBProjectedLogWindowFinalCertificate_of_headSpan_headSpanProjection_concreteW_rowEmbeddings_retarget_noResidualProjectionEscape
+#print axioms routeBProjectedLogWindowFinalCertificate_of_headSpan_headSpanProjection_concreteW_rowEmbeddings_retarget_noResidualProjectionEscape_paperScale
 #print axioms noBoundedSATDeciderAtPaperScale_of_headSpan_zeroProfileQuotiented
 #print axioms cookLevinRichProjectionDischarge_of_headSpan_zeroProfileQuotiented
 #print axioms noBoundedSATDeciderAtPaperScale_of_headSpan_concreteWRowEmbeddings_id_rowIdentity
 #print axioms noBoundedSATDeciderAtPaperScale_of_headSpan_concreteWRowEmbeddings_id_rowIdentity_universal
 #print axioms noBoundedSATDeciderAtPaperScale_of_headSpan_singletonQuotient_projectedTypeBudget_rowIdentity
+#print axioms noBoundedSATDeciderAtPaperScale_of_headSpan_headSpanProjection_concreteW_rowEmbeddings_retarget_noResidualProjectionEscape
 #print axioms cookLevinRichProjectionDischarge_of_headSpan_concreteWRowEmbeddings_id_rowIdentity
 #print axioms cookLevinRichProjectionDischarge_of_headSpan_concreteWRowEmbeddings_id_rowIdentity_universal
 #print axioms cookLevinRichProjectionDischarge_of_headSpan_singletonQuotient_projectedTypeBudget_rowIdentity
+#print axioms cookLevinRichProjectionDischarge_of_headSpan_headSpanProjection_concreteW_rowEmbeddings_retarget_noResidualProjectionEscape
 
 end PallLean.Paper93.Paper283

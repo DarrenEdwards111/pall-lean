@@ -359,6 +359,52 @@ def ZeroProfileProjectedCommonSpanWithBudget {n L : ℕ}
     zeroProfileProjectedShiftImageSet κ factors project ⊆
       Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))
 
+/-- A common span for the unprojected zero-profile rows remains a common span
+after applying any linear projection, with the same budget. -/
+theorem zeroProfileProjectedCommonSpanWithBudget_of_id_projectedCommonSpan
+    {n L κ budget : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    (hspan :
+      ZeroProfileProjectedCommonSpanWithBudget κ factors
+        (LinearMap.id :
+          MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+        budget) :
+    ZeroProfileProjectedCommonSpanWithBudget κ factors project budget := by
+  classical
+  rcases hspan with ⟨G, hG_card, hG_span⟩
+  refine ⟨G.image project, ?_, ?_⟩
+  · exact (Finset.card_image_le).trans hG_card
+  · intro q hq
+    rcases hq with ⟨row, hrow, rfl⟩
+    have hrow_mem :
+        row ∈
+          Submodule.span ℚ
+            (↑G : Set (MvPolynomial (Fin n) ℚ)) := by
+      simpa using
+        hG_span
+          (show row ∈ zeroProfileProjectedShiftImageSet κ factors
+              (LinearMap.id :
+                MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ) from
+            ⟨row, hrow, by simp⟩)
+    have hmap_mem :
+        project row ∈
+          (Submodule.span ℚ
+            (↑G : Set (MvPolynomial (Fin n) ℚ))).map project :=
+      Submodule.mem_map_of_mem hrow_mem
+    have hmap_le :
+        (Submodule.span ℚ
+            (↑G : Set (MvPolynomial (Fin n) ℚ))).map project ≤
+          Submodule.span ℚ
+            (↑(G.image project) : Set (MvPolynomial (Fin n) ℚ)) := by
+      rw [Submodule.map_span]
+      apply Submodule.span_mono
+      intro x hx
+      rcases hx with ⟨g, hg, rfl⟩
+      exact Finset.mem_image.mpr ⟨g, hg, rfl⟩
+    exact hmap_le hmap_mem
+
 /-- Generator-to-type map after projection. -/
 structure ZeroProfileProjectedGeneratorTypeMap {n L : ℕ}
     (κ : ℕ)
@@ -746,6 +792,23 @@ theorem zeroProfileSingletonQuotientProjectedTypeBudget_le_of_projectedCommonSpa
       (κ := κ) factors
       (zeroProfileQuotientBySingletonShiftProjection factors) hspan
 
+/-- An identity-projected common span bounds the exact singleton-quotient
+projected type budget, since the quotient image of that span has no larger
+cardinality. -/
+theorem zeroProfileSingletonQuotientProjectedTypeBudget_le_of_id_projectedCommonSpan
+    {n L κ budget : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hspan :
+      ZeroProfileProjectedCommonSpanWithBudget κ factors
+        (LinearMap.id :
+          MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+        budget) :
+    zeroProfileSingletonQuotientProjectedTypeBudget κ factors ≤ budget :=
+  zeroProfileSingletonQuotientProjectedTypeBudget_le_of_projectedCommonSpan
+    factors
+    (zeroProfileProjectedCommonSpanWithBudget_of_id_projectedCommonSpan
+      factors (zeroProfileQuotientBySingletonShiftProjection factors) hspan)
+
 /-- For the concrete singleton quotient, a budgeted projected common span is
 equivalent to the exact projected quotient finrank fitting in that budget. -/
 theorem zeroProfileSingletonQuotient_projectedCommonSpanWithBudget_iff_projectedTypeBudget_le
@@ -781,6 +844,22 @@ theorem zeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of
     zeroProfileSingletonQuotientProjectedTypeBudget κ factors ≤
       withinProfileBound κ :=
   (zeroProfileSingletonQuotientProjectedTypeBudget_le_of_projectedCommonSpan
+    factors hspan).trans hbudget
+
+/-- An identity-projected common span whose budget fits `withinProfileBound`
+also discharges the exact singleton-quotient projected type budget. -/
+theorem zeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_id_projectedCommonSpan
+    {n L κ budget : ℕ}
+    (factors : Fin L → MvPolynomial (Fin n) ℚ)
+    (hspan :
+      ZeroProfileProjectedCommonSpanWithBudget κ factors
+        (LinearMap.id :
+          MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+        budget)
+    (hbudget : budget ≤ withinProfileBound κ) :
+    zeroProfileSingletonQuotientProjectedTypeBudget κ factors ≤
+      withinProfileBound κ :=
+  (zeroProfileSingletonQuotientProjectedTypeBudget_le_of_id_projectedCommonSpan
     factors hspan).trans hbudget
 
 /-- A quotient type map for the singleton quotient bounds the exact projected
@@ -1347,6 +1426,7 @@ theorem not_cookLevin_singletonQuotient_projectedFinrankBudget_of_withinProfileB
 #print axioms zeroProfileQuotientTypeSpace_le_compressedSpan
 #print axioms zeroProfileProjectedShiftSpan_eq_span_projectedShiftImageSet
 #print axioms zeroProfileProjectedShiftSpan_finite
+#print axioms zeroProfileProjectedCommonSpanWithBudget_of_id_projectedCommonSpan
 #print axioms zeroProfileProjectedShiftImageSet_subset_quotientTypeCompressedSpan
 #print axioms zeroProfileProjectedCommonSpanWithBudget_of_projectedTypeMap
 #print axioms zeroProfileProjectedShiftSpan_finrank_le_of_commonSpanWithBudget_quotient
@@ -1362,8 +1442,10 @@ theorem not_cookLevin_singletonQuotient_projectedFinrankBudget_of_withinProfileB
 #print axioms zeroProfileSingletonQuotientProjectedTypeAlphabet_of_budget
 #print axioms zeroProfileSingletonQuotientProjectedGeneratorTypeMap_of_budget
 #print axioms zeroProfileSingletonQuotientProjectedTypeBudget_le_of_projectedCommonSpan
+#print axioms zeroProfileSingletonQuotientProjectedTypeBudget_le_of_id_projectedCommonSpan
 #print axioms zeroProfileSingletonQuotient_projectedCommonSpanWithBudget_iff_projectedTypeBudget_le
 #print axioms zeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_projectedCommonSpan
+#print axioms zeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_id_projectedCommonSpan
 #print axioms zeroProfileSingletonQuotientProjectedTypeBudget_le_of_projectedTypeMap
 #print axioms zeroProfileSingletonQuotient_projectedTypeMap_iff_projectedTypeBudget_le
 #print axioms zeroProfileSingletonQuotientProjectedTypeBudget_le_withinProfileBound_of_projectedTypeMap
