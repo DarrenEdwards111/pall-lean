@@ -1448,6 +1448,105 @@ theorem routeBPaperFaithfulTPhi_rangePWindowRestrictedZeroProfileRowIdentity_of_
   have h := hnorm S' shift hSlen hshiftDegree hshiftVars hadm
   simpa using h.symm
 
+/-- Any proof of the strict singleton-normal-form identity must prove that the
+renamed restricted derivative row has no degree-one singleton coefficients.
+This is the concrete coefficient test for the semantic normalizer target. -/
+theorem routeBPaperFaithfulTPhi_singletonNormalFormIdentity_forces_derivativeSingletonCoeff_zero
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hnorm :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalFormIdentity
+        M n hn2 htb hns)
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (hSlen : S'.length = Nat.log 2 n)
+    (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+    (hshiftVars :
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)))
+    (i : Fin n) :
+    let p : MvPolynomial (Fin n) ℚ :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns)
+    let r : MvPolynomial (Fin (n / 3)) ℚ :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) p
+    MvPolynomial.coeff (Finsupp.single i 1)
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj (shift * SPDP.iterDerivList S' r))) = 0 := by
+  classical
+  let p : MvPolynomial (Fin n) ℚ :=
+    compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  let r : MvPolynomial (Fin (n / 3)) ℚ :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+      (cookLevinStrictFOBFlatMap_injective n) p
+  let q : MvPolynomial (Fin n) ℚ :=
+    mlProj
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+        cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+  let d : MvPolynomial (Fin n) ℚ :=
+    MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+      (mlProj (shift * SPDP.iterDerivList S' r))
+  have hconst :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+          (Finset.univ.prod
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) =
+        (1 : ℚ) := by
+    simpa [cookLevinZeroProfileBaseProduct] using
+      cookLevinZeroProfileBaseProduct_coeff_zero M n hn2 htb hns
+  have hrow :
+      zeroProfileSingletonNormalFormProjection
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i) q = d := by
+    simpa [p, r, q, d] using
+      hnorm S' shift hSlen hshiftDegree hshiftVars hadm
+  have hcoeff :
+      MvPolynomial.coeff (Finsupp.single i 1)
+          (zeroProfileSingletonNormalFormProjection
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i) q) = 0 :=
+    zeroProfileSingletonNormalFormProjection_coeff_single_eq_zero
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+      hconst q i
+  rw [hrow] at hcoeff
+  simpa [p, r, d] using hcoeff
+
+/-- Contrapositive obstruction for the explicit singleton-normal-form identity:
+one strict query whose renamed restricted derivative row has a nonzero
+degree-one singleton coefficient rules out the global identity. -/
+theorem routeBPaperFaithfulTPhi_not_singletonNormalFormIdentity_of_derivativeSingletonCoeff_ne_zero
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (hSlen : S'.length = Nat.log 2 n)
+    (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+    (hshiftVars :
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)))
+    (i : Fin n)
+    (hcoeff_ne :
+      let p : MvPolynomial (Fin n) ℚ :=
+        compiledPoly (cook_levin_compilation M n hn2 htb hns)
+      let r : MvPolynomial (Fin (n / 3)) ℚ :=
+        MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n) p
+      MvPolynomial.coeff (Finsupp.single i 1)
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+          (mlProj (shift * SPDP.iterDerivList S' r))) ≠ 0) :
+    ¬ RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalFormIdentity
+        M n hn2 htb hns := by
+  intro hnorm
+  exact hcoeff_ne
+    (routeBPaperFaithfulTPhi_singletonNormalFormIdentity_forces_derivativeSingletonCoeff_zero
+      M n hn2 htb hns hnorm S' shift
+      hSlen hshiftDegree hshiftVars hadm i)
+
 /-- Concrete decomposition form of the strict range-only singleton-quotient
 residual gate.
 
