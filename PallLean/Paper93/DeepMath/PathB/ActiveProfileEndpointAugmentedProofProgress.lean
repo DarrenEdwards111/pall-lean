@@ -102,6 +102,59 @@ theorem cookLevinPostSpanAt_le_endpointAugmentedConcreteW_of_concreteW_rowEmbedd
     (cookLevinProfileSubspace_concreteWCanonical_le_endpointAugmentedConcreteW
       n hn4 bp)
 
+/-- Existing concreteW row embeddings give the actual endpoint-augmented
+per-profile spanning slice.
+
+This is the proof-level active Route B gate: for a fixed bounded profile, the
+per-generator concreteW containment is transported into the endpoint-augmented
+profile space by the pointwise inclusion
+`concreteWCanonical ≤ endpointAugmentedConcreteW`.  No same-profile endpoint
+I5 or self-targeting charge is used. -/
+theorem cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_concreteW_rowEmbeddings
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (hn4 : n ≥ 4)
+    (bp : BoundedProfile (Nat.log 2 n))
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn htb hns hn4) :
+    CookLevinPerTypeSpanningAtBoundedProfile M n hn htb hns
+      (endpointAugmentedConcreteW n hn4) bp := by
+  classical
+  intro S hSlen shift hshift g hg
+  have hConcrete :
+      mlProj (shift * g) ∈
+        cookLevinProfileSubspace bp (concreteWCanonical n hn4) := by
+    have hSpanAt :
+        CookLevinPerTypeSpanningAtBoundedProfile M n hn htb hns
+          (concreteWCanonical n hn4) bp :=
+      cookLevinPerTypeSpanningAtBoundedProfile_of_perTypeSpanning
+        M n hn htb hns (concreteWCanonical n hn4) bp
+        (by simpa [concreteWCanonical] using hRowEmbeddings)
+    exact hSpanAt S hSlen shift hshift g hg
+  exact
+    cookLevinProfileSubspace_concreteWCanonical_le_endpointAugmentedConcreteW
+      n hn4 bp hConcrete
+
+/-- Existing concreteW row embeddings supply every active endpoint-augmented
+per-profile spanning slice. -/
+theorem endpointAugmented_spanningAtActiveProfiles_of_concreteW_rowEmbeddings
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (hn4 : n ≥ 4)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn htb hns hn4) :
+    ∀ (h : ProfileHistogram)
+      (hadm : ProfileAdmissible (Nat.log 2 n) h),
+        h ConstraintType.transitionRight = 0 →
+          ActiveProfileSupport h →
+            CookLevinPerTypeSpanningAtBoundedProfile M n hn htb hns
+              (endpointAugmentedConcreteW n hn4)
+              (admissibleToBounded hadm) := by
+  intro _h hadm _htr _hactive
+  exact
+    cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_concreteW_rowEmbeddings
+      M n hn htb hns hn4 (admissibleToBounded hadm) hRowEmbeddings
+
 /-- ConcreteW row embeddings close the active blockers through the direct
 endpoint-augmented post-span criterion. -/
 theorem cookLevinActiveProfileTypeCaseBlockers_of_concreteWRowEmbeddings_endpointAugmented
@@ -258,6 +311,8 @@ theorem cookLevinActiveProfileTypeCaseBlockers_of_endpointAugmented_perTypeSpann
 #print axioms cookLevinProfileSubspace_mono_of_le
 #print axioms concreteWCanonical_le_endpointAugmentedConcreteW
 #print axioms cookLevinProfileSubspace_concreteWCanonical_le_endpointAugmentedConcreteW
+#print axioms cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_concreteW_rowEmbeddings
+#print axioms endpointAugmented_spanningAtActiveProfiles_of_concreteW_rowEmbeddings
 #print axioms cookLevinPostSpanAt_le_endpointAugmentedConcreteW_of_concreteW_rowEmbeddings
 #print axioms cookLevinActiveProfileTypeCaseBlockers_of_concreteWRowEmbeddings_endpointAugmented
 #print axioms cookLevinActiveProfileTypeCaseBlockers_of_interfaceAnonymous_spanningAtActiveProfiles

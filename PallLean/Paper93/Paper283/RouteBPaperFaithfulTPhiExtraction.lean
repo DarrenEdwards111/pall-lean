@@ -6,6 +6,7 @@ import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingBridge
 import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingsClosure
 import PallLean.Paper93.DeepMath.PathB.PerTypeSpanningTemplateCollapseBridge
 import PallLean.Paper93.DeepMath.PathB.ActiveProfileEndpointAugmentedProgress
+import PallLean.Paper93.DeepMath.PathB.ActiveProfileEndpointAugmentedProofProgress
 import PallLean.Paper93.Paper283.RouteBTransportPSideBound
 import PallLean.Paper93.Paper283.RouteBZeroProfileProjectedPWindowProgress
 
@@ -4504,6 +4505,30 @@ theorem false_of_routeBPaperFaithfulTPhi_canonical_from_endpointAugmented_spanni
           (admissibleToBounded hadm)
           (hSpanAt h hadm htr hactive))
 
+/-- Concrete per-type row embeddings supply the endpoint-augmented
+per-profile active spanning slices consumed by the strict paper-faithful
+`TΦ` route.
+
+The active/profile part is therefore routed through actual profile-local
+spanning and the monotone inclusion into `endpointAugmentedConcreteW`, not
+through the refuted same-profile endpoint closure or self-targeting charged
+frontier. -/
+theorem false_of_routeBPaperFaithfulTPhi_canonical_from_endpointAugmented_concreteW_rowEmbeddings_activeProfiles
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hn4 : n ≥ 4)
+    (hzero :
+      CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn2 htb hns hn4) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_canonical_from_endpointAugmented_spanningAtBoundedProfile
+    M n hn hn2 htb hns hdec hn4 hzero
+    (endpointAugmented_spanningAtActiveProfiles_of_concreteW_rowEmbeddings
+      M n hn2 htb hns hn4 hRowEmbeddings)
+
 /-- Charged endpoint-augmented active-profile frontiers close the strict
 paper-faithful `TΦ` target once the zero-profile common-span blocker is
 supplied.  This is the paper-faithful active route: charged local movement and
@@ -4638,6 +4663,28 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugme
       (hzero M n hn2 htb hns)
       (hSpanAt M n hn2 hn4 htb hns)
 
+/-- Uniform concrete row embeddings close the endpoint-augmented active
+profile-local spanning side of the strict `TΦ` route, once the separate
+zero-profile common-span blocker is supplied. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_concreteW_rowEmbeddings_activeProfiles
+    (hzero :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hRowEmbeddings :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+          M n hn2 htb hns hn4) :
+    NoBoundedSATDeciderAtPaperScale := by
+  intro M n hn hn2 htb hns hdec
+  have hn4 : n ≥ 4 := routeB_paperScale_ge_four hn
+  exact
+    false_of_routeBPaperFaithfulTPhi_canonical_from_endpointAugmented_concreteW_rowEmbeddings_activeProfiles
+      M n hn hn2 htb hns hdec hn4
+      (hzero M n hn2 htb hns)
+      (hRowEmbeddings M n hn2 hn4 htb hns)
+
 /-- Uniform charged endpoint-augmented active-profile frontiers plus the
 zero-profile common-span blocker close the strict paper-faithful `TΦ` route at
 the paper scale. -/
@@ -4731,6 +4778,24 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_endpointAugm
   cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_spanningAtBoundedProfile
       hzero hSpanAt)
+
+/-- Legacy rich-projection discharge from concrete row embeddings feeding
+endpoint-augmented active profile-local spans, mediated only by the
+established no-decider equivalence. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_endpointAugmented_concreteW_rowEmbeddings_activeProfiles
+    (hzero :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hRowEmbeddings :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+          M n hn2 htb hns hn4) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_concreteW_rowEmbeddings_activeProfiles
+      hzero hRowEmbeddings)
 
 /-- Legacy rich-projection discharge from the charged endpoint-augmented
 strict `TΦ` route, mediated only by the established no-decider equivalence. -/
