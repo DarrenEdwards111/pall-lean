@@ -5,6 +5,8 @@ import PallLean.Paper93.DeepMath.PathB.SATDeciderGaugeSpanningBridge
 import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingBridge
 import PallLean.Paper93.DeepMath.PathB.ConcreteWRowEmbeddingsClosure
 import PallLean.Paper93.DeepMath.PathB.PerTypeSpanningTemplateCollapseBridge
+import PallLean.Paper93.DeepMath.PathB.ActiveProfileEndpointAugmentedProgress
+import PallLean.Paper93.Paper283.RouteBTransportPSideBound
 import PallLean.Paper93.Paper283.RouteBZeroProfileProjectedPWindowProgress
 
 /-!
@@ -4432,6 +4434,87 @@ theorem false_of_routeBPaperFaithfulTPhi_canonical_from_concreteW_closureFrontie
     (CookLevinPerTypeRowEmbeddings_concreteW_of_closureFrontier
       M n hn2 htb hns hn4 hFrontier)
 
+/-- The strict paper-faithful `TΦ` target consumes the corrected
+endpoint-augmented active-profile route.
+
+This is the profile-local/charged replacement for the refuted raw
+same-profile `concreteW` frontier: zero-profile rows are supplied separately by
+the common-span blocker, while live active profiles are closed in the
+endpoint-augmented type spaces. -/
+theorem false_of_routeBPaperFaithfulTPhi_canonical_from_endpointAugmented_activeProfileSpan
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hn4 : n ≥ 4)
+    (hzero :
+      CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hactiveSpan :
+      ∀ (h : ProfileHistogram)
+        (hadm : ProfileAdmissible (Nat.log 2 n) h),
+          h ConstraintType.transitionRight = 0 →
+            ActiveProfileSupport h →
+              cookLevinPostSpanAt M n hn2 htb hns h ≤
+                cookLevinProfileSubspace (admissibleToBounded hadm)
+                  (endpointAugmentedConcreteW n hn4)) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_qRankUpper
+    M n hn hn2 htb hns hdec
+    (PaperFaithfulCompilation.extendedCookLevinPartition M n hn2) rfl
+    (by
+      have hp : RouteBSATUnprojectedPSideRankBound M n hn2 htb hns :=
+        routeBSATUnprojectedPSideRankBound_of_activeTypeCaseBlockers_and_zeroProfileCommonSpan
+          M n hn2 htb hns hn4 hzero
+          (cookLevinActiveProfileTypeCaseBlockers_of_endpointAugmented_activeProfileSpan
+            M n hn2 htb hns hn4 hactiveSpan)
+      have hpart :=
+        PaperFaithfulCompilation.pullback_eq_cook_levin_partition
+          M n hn2 htb hns
+      rw [hpart]
+      convert hp using 2)
+
+/-- Charged endpoint-augmented active-profile frontiers close the strict
+paper-faithful `TΦ` target once the zero-profile common-span blocker is
+supplied.  This is the paper-faithful active route: charged local movement and
+endpoint-augmented normal forms, not raw same-profile self-closure. -/
+theorem false_of_routeBPaperFaithfulTPhi_canonical_from_endpointAugmented_chargedFrontier
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (charge : ProfileCharge n)
+    (hn4 : n ≥ 4)
+    (hzero :
+      CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hFrontier :
+      EndpointAugmentedActiveProfileChargedFrontier
+        M n hn2 htb hns charge hn4) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_canonical_from_endpointAugmented_activeProfileSpan
+    M n hn hn2 htb hns hdec hn4 hzero
+    (by
+      intro h hadm htr hactive
+      exact
+        cookLevinProfileSubspace_contains_postSpan_at_bp_of_perTypeSpanningAtBoundedProfile
+          M n hn2 htb hns (endpointAugmentedConcreteW n hn4)
+          (admissibleToBounded hadm)
+          (cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_chargedClosureAtProfile
+            M n hn2 htb hns charge hn4 (admissibleToBounded hadm)
+            (hFrontier.2 h hadm htr
+              (by
+                intro hzeroProfile
+                cases hactive with
+                | inl hbool =>
+                    rw [hzeroProfile] at hbool
+                    simp [zeroProfileHistogram] at hbool
+                | inr hrest =>
+                    cases hrest with
+                    | inl hboundary =>
+                        rw [hzeroProfile] at hboundary
+                        simp [zeroProfileHistogram] at hboundary
+                    | inr htransition =>
+                        rw [hzeroProfile] at htransition
+                        simp [zeroProfileHistogram] at htransition)
+              hactive)))
+
 /-- A uniform concreteW row-embedding theorem closes the strict `TΦ`
 contradiction-strength consumer.  This is the direct final hook for the local
 chart/profile-compression route; it does not pass through the failed broad
@@ -4469,6 +4552,56 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_concreteW_per
       M n hn hn2 htb hns hdec hn4
       (hSpan M n hn2 hn4 htb hns)
 
+/-- Uniform endpoint-augmented active-profile span plus the zero-profile
+common-span blocker closes the strict paper-faithful `TΦ` route at the paper
+scale. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_activeProfileSpan
+    (hzero :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hactiveSpan :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        ∀ (h : ProfileHistogram)
+          (hadm : ProfileAdmissible (Nat.log 2 n) h),
+            h ConstraintType.transitionRight = 0 →
+              ActiveProfileSupport h →
+                cookLevinPostSpanAt M n hn2 htb hns h ≤
+                  cookLevinProfileSubspace (admissibleToBounded hadm)
+                    (endpointAugmentedConcreteW n hn4)) :
+    NoBoundedSATDeciderAtPaperScale := by
+  intro M n hn hn2 htb hns hdec
+  have hn4 : n ≥ 4 := routeB_paperScale_ge_four hn
+  exact
+    false_of_routeBPaperFaithfulTPhi_canonical_from_endpointAugmented_activeProfileSpan
+      M n hn hn2 htb hns hdec hn4
+      (hzero M n hn2 htb hns)
+      (hactiveSpan M n hn2 hn4 htb hns)
+
+/-- Uniform charged endpoint-augmented active-profile frontiers plus the
+zero-profile common-span blocker close the strict paper-faithful `TΦ` route at
+the paper scale. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_chargedFrontier
+    (charge : ∀ n : ℕ, ProfileCharge n)
+    (hzero :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hFrontier :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        EndpointAugmentedActiveProfileChargedFrontier
+          M n hn2 htb hns (charge n) hn4) :
+    NoBoundedSATDeciderAtPaperScale := by
+  intro M n hn hn2 htb hns hdec
+  have hn4 : n ≥ 4 := routeB_paperScale_ge_four hn
+  exact
+    false_of_routeBPaperFaithfulTPhi_canonical_from_endpointAugmented_chargedFrontier
+      M n hn hn2 htb hns hdec (charge n) hn4
+      (hzero M n hn2 htb hns)
+      (hFrontier M n hn2 hn4 htb hns)
+
 /-- Legacy rich-projection discharge from the strict `TΦ` concreteW
 row-embedding route, mediated only by the established no-decider equivalence. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_concreteW_rowEmbeddings
@@ -4495,6 +4628,46 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_concreteW_pe
   cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_concreteW_perTypeSpanning
       hSpan)
+
+/-- Legacy rich-projection discharge from the endpoint-augmented active-span
+strict `TΦ` route, mediated only by the established no-decider equivalence. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_endpointAugmented_activeProfileSpan
+    (hzero :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hactiveSpan :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        ∀ (h : ProfileHistogram)
+          (hadm : ProfileAdmissible (Nat.log 2 n) h),
+            h ConstraintType.transitionRight = 0 →
+              ActiveProfileSupport h →
+                cookLevinPostSpanAt M n hn2 htb hns h ≤
+                  cookLevinProfileSubspace (admissibleToBounded hadm)
+                    (endpointAugmentedConcreteW n hn4)) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_activeProfileSpan
+      hzero hactiveSpan)
+
+/-- Legacy rich-projection discharge from the charged endpoint-augmented
+strict `TΦ` route, mediated only by the established no-decider equivalence. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_endpointAugmented_chargedFrontier
+    (charge : ∀ n : ℕ, ProfileCharge n)
+    (hzero :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hFrontier :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        EndpointAugmentedActiveProfileChargedFrontier
+          M n hn2 htb hns (charge n) hn4) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_chargedFrontier
+      charge hzero hFrontier)
 
 /-- A uniform concrete H3/H4/I5 local closure theorem closes the strict `TΦ`
 contradiction-strength consumer through the concreteW row-embedding assembly. -/
@@ -4677,6 +4850,8 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_postSpanBoun
 #print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_boundedProfileTemplateCollapse
 #print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_postSpanBoundedBySymProduct
 #print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_concreteW_perTypeSpanning
+#print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_endpointAugmented_activeProfileSpan
+#print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_endpointAugmented_chargedFrontier
 #print axioms routeB_paperScale_ge_four
 #print axioms routeBPaperFaithfulTPhiAmbientGauge_compiledPoly_eq_reexpandedStrictFOB
 #print axioms RouteBPaperFaithfulTPhiProjectedPWindowZeroProfileRowIdentity
@@ -4723,6 +4898,10 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_postSpanBoun
 #print axioms false_of_routeBPaperFaithfulTPhi_canonical_from_concreteW_closureFrontier
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_concreteW_perTypeSpanning
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_concreteW_perTypeSpanning
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_activeProfileSpan
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_chargedFrontier
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_endpointAugmented_activeProfileSpan
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_endpointAugmented_chargedFrontier
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_templateCollapse
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_templateCollapse
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_boundedProfileTemplateCollapse
