@@ -4726,6 +4726,59 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugme
       (hzero M n hn2 htb hns)
       (hFrontier M n hn2 hn4 htb hns)
 
+/-- Strict `TΦ` Route B from canonical endpoint-augmented active-profile
+components.
+
+Canonical concreteW shape witnesses supply H3; the remaining inputs are the
+genuine local profile obligations: budget, product grouping, charged shift,
+mlProj closure, and active-profile charge self-targeting. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_canonicalShape_chargedComponents
+    (charge : ∀ n : ℕ, ProfileCharge n)
+    (hzero :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hBudget :
+      ∀ (n : ℕ) (hn4 : n ≥ 4),
+        EndpointAugmentedActiveProfileSubspaceBudget n hn4)
+    (hShape :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinCanonicalConcreteWShapeWitnesses M n hn2 htb hns hn4)
+    (hI1 :
+      ∀ (n : ℕ) (hn4 : n ≥ 4),
+        PallLean.Paper93.Closure.PerTypeProductGrouping
+          (endpointAugmentedConcreteW n hn4))
+    (hI2c :
+      ∀ (n : ℕ) (hn4 : n ≥ 4),
+        PerTypeChargedShiftClosure (charge n)
+          (endpointAugmentedConcreteW n hn4))
+    (hI3 :
+      ∀ (n : ℕ) (hn4 : n ≥ 4),
+        PallLean.Paper93.Closure.PerTypeMlprojClosure
+          (endpointAugmentedConcreteW n hn4))
+    (hSelf :
+      ∀ (n : ℕ) (_hn4 : n ≥ 4)
+        (h : ProfileHistogram)
+        (hadm : ProfileAdmissible (Nat.log 2 n) h),
+          h ConstraintType.transitionRight = 0 →
+            h ≠ zeroProfileHistogram →
+              ActiveProfileSupport h →
+                ProfileChargeSelfAtBoundedProfile (charge n)
+                  (admissibleToBounded hadm)) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_chargedFrontier
+    charge hzero
+    (fun M n hn2 hn4 htb hns =>
+      endpointAugmentedActiveProfileChargedFrontier_of_canonicalShape_components
+        M n hn2 htb hns (charge n) hn4
+        (hBudget n hn4)
+        (hShape M n hn2 hn4 htb hns)
+        (hI1 n hn4)
+        (hI2c n hn4)
+        (hI3 n hn4)
+        (hSelf n hn4))
+
 /-- Legacy rich-projection discharge from the strict `TΦ` concreteW
 row-embedding route, mediated only by the established no-decider equivalence. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_concreteW_rowEmbeddings
@@ -4845,6 +4898,47 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_endpointAugm
   cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_chargedFrontier
       charge hzero hFrontier)
+
+/-- Legacy rich-projection discharge from canonical endpoint-augmented
+active-profile components. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_endpointAugmented_canonicalShape_chargedComponents
+    (charge : ∀ n : ℕ, ProfileCharge n)
+    (hzero :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hBudget :
+      ∀ (n : ℕ) (hn4 : n ≥ 4),
+        EndpointAugmentedActiveProfileSubspaceBudget n hn4)
+    (hShape :
+      ∀ (M : DTM) (n : ℕ) (hn2 : n ≥ 2) (hn4 : n ≥ 4)
+        (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n),
+        CookLevinCanonicalConcreteWShapeWitnesses M n hn2 htb hns hn4)
+    (hI1 :
+      ∀ (n : ℕ) (hn4 : n ≥ 4),
+        PallLean.Paper93.Closure.PerTypeProductGrouping
+          (endpointAugmentedConcreteW n hn4))
+    (hI2c :
+      ∀ (n : ℕ) (hn4 : n ≥ 4),
+        PerTypeChargedShiftClosure (charge n)
+          (endpointAugmentedConcreteW n hn4))
+    (hI3 :
+      ∀ (n : ℕ) (hn4 : n ≥ 4),
+        PallLean.Paper93.Closure.PerTypeMlprojClosure
+          (endpointAugmentedConcreteW n hn4))
+    (hSelf :
+      ∀ (n : ℕ) (_hn4 : n ≥ 4)
+        (h : ProfileHistogram)
+        (hadm : ProfileAdmissible (Nat.log 2 n) h),
+          h ConstraintType.transitionRight = 0 →
+            h ≠ zeroProfileHistogram →
+              ActiveProfileSupport h →
+                ProfileChargeSelfAtBoundedProfile (charge n)
+                  (admissibleToBounded hadm)) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_canonicalShape_chargedComponents
+      charge hzero hBudget hShape hI1 hI2c hI3 hSelf)
 
 /-- A uniform concrete H3/H4/I5 local closure theorem closes the strict `TΦ`
 contradiction-strength consumer through the concreteW row-embedding assembly. -/

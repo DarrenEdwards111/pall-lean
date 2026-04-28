@@ -1,4 +1,5 @@
 import PallLean.Paper93.DeepMath.PathB.ActiveProfileEndpointAugmentedProgress
+import PallLean.Paper93.Closure.PerTypeClosure
 
 /-!
 # Active-profile endpoint-augmented proof progress
@@ -17,6 +18,7 @@ open SPDP MultilinearSPDP
 open TuringMachine (DTM)
 open WithinProfileBound
 open PallLean.Paper93
+open PallLean.Paper93.Closure
 open PallLean.Paper93.Spanning
 open PallLean.SymTensorPowerDim (symPower)
 
@@ -154,6 +156,76 @@ theorem endpointAugmented_spanningAtActiveProfiles_of_concreteW_rowEmbeddings
   exact
     cookLevinPerTypeSpanningAtBoundedProfile_endpointAugmented_of_concreteW_rowEmbeddings
       M n hn htb hns hn4 (admissibleToBounded hadm) hRowEmbeddings
+
+/-! ## Component constructor for the charged endpoint-active frontier -/
+
+/-- Build the charged endpoint-active frontier from the actual local proof
+components.
+
+This is the proof-facing form of the paper route: canonical factor membership
+is separated from product grouping, charged shift closure, multilinear
+projection closure, and the active-profile self-targeting condition.  The
+known false same-profile endpoint closure is not used. -/
+theorem endpointAugmentedActiveProfileChargedFrontier_of_components
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (charge : ProfileCharge n) (hn4 : n ≥ 4)
+    (hBudget : EndpointAugmentedActiveProfileSubspaceBudget n hn4)
+    (hFactor :
+      CookLevinFactorMemPerType M n hn htb hns
+        (endpointAugmentedConcreteW n hn4))
+    (hI1 :
+      PerTypeProductGrouping (endpointAugmentedConcreteW n hn4))
+    (hI2c :
+      PerTypeChargedShiftClosure charge
+        (endpointAugmentedConcreteW n hn4))
+    (hI3 :
+      PerTypeMlprojClosure (endpointAugmentedConcreteW n hn4))
+    (hSelf :
+      ∀ (h : ProfileHistogram)
+        (hadm : ProfileAdmissible (Nat.log 2 n) h),
+          h ConstraintType.transitionRight = 0 →
+            h ≠ zeroProfileHistogram →
+              ActiveProfileSupport h →
+                ProfileChargeSelfAtBoundedProfile charge
+                  (admissibleToBounded hadm)) :
+    EndpointAugmentedActiveProfileChargedFrontier
+      M n hn htb hns charge hn4 := by
+  refine ⟨hBudget, ?_⟩
+  intro h hadm htr hne hactive
+  exact ⟨hFactor, hI1, hI2c, hI3, hSelf h hadm htr hne hactive⟩
+
+/-- Canonical concreteW shape witnesses provide the factor-membership field
+of the charged endpoint-active frontier. -/
+theorem endpointAugmentedActiveProfileChargedFrontier_of_canonicalShape_components
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (charge : ProfileCharge n) (hn4 : n ≥ 4)
+    (hBudget : EndpointAugmentedActiveProfileSubspaceBudget n hn4)
+    (hShape :
+      CookLevinCanonicalConcreteWShapeWitnesses M n hn htb hns hn4)
+    (hI1 :
+      PerTypeProductGrouping (endpointAugmentedConcreteW n hn4))
+    (hI2c :
+      PerTypeChargedShiftClosure charge
+        (endpointAugmentedConcreteW n hn4))
+    (hI3 :
+      PerTypeMlprojClosure (endpointAugmentedConcreteW n hn4))
+    (hSelf :
+      ∀ (h : ProfileHistogram)
+        (hadm : ProfileAdmissible (Nat.log 2 n) h),
+          h ConstraintType.transitionRight = 0 →
+            h ≠ zeroProfileHistogram →
+              ActiveProfileSupport h →
+                ProfileChargeSelfAtBoundedProfile charge
+                  (admissibleToBounded hadm)) :
+    EndpointAugmentedActiveProfileChargedFrontier
+      M n hn htb hns charge hn4 :=
+  endpointAugmentedActiveProfileChargedFrontier_of_components
+    M n hn htb hns charge hn4 hBudget
+    (CookLevinFactorMemPerType_endpointAugmentedConcreteW_of_canonicalShapeWitnesses
+      M n hn htb hns hn4 hShape)
+    hI1 hI2c hI3 hSelf
 
 /-- ConcreteW row embeddings close the active blockers through the direct
 endpoint-augmented post-span criterion. -/
