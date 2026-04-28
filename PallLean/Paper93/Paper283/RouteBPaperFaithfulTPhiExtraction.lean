@@ -1664,6 +1664,32 @@ def RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientRowIdentity
       zeroProfileQuotientBySingletonShiftProjection
         (fun i => (cookLevinFactorList M n hn2 htb hns).get i) d
 
+/-- Fixed-representative condition for the singleton quotient route: every
+strict derivative row is already the quotient representative selected by the
+singleton-shift projection. -/
+def RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientDerivativeFixed
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ),
+    S'.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+      (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (S'.map (cookLevinStrictFOBFlatMap n)) →
+    let p : MvPolynomial (Fin n) ℚ :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns)
+    let r : MvPolynomial (Fin (n / 3)) ℚ :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) p
+    let d : MvPolynomial (Fin n) ℚ :=
+      MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj (shift * SPDP.iterDerivList S' r))
+    zeroProfileQuotientBySingletonShiftProjection
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i) d = d
+
 /-- Residual-only singleton noise gives equality after the canonical singleton
 quotient projection. -/
 theorem routeBPaperFaithfulTPhi_singletonQuotientRowIdentity_of_singletonResidual
@@ -1698,6 +1724,50 @@ theorem routeBPaperFaithfulTPhi_singletonQuotientRowIdentity_of_singletonResidua
     zeroProfileQuotientBySingletonShiftProjection_eq_of_sub_mem_singletonShiftSubspace
       (fun i => (cookLevinFactorList M n hn2 htb hns).get i) hres'
 
+/-- For the canonical singleton quotient, quotient row equality is equivalent
+to saying the raw row difference is singleton-shift residual noise. -/
+theorem routeBPaperFaithfulTPhi_singletonQuotientRowIdentity_iff_singletonResidual
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientRowIdentity
+        M n hn2 htb hns ↔
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalFormResidual
+        M n hn2 htb hns := by
+  classical
+  constructor
+  · intro hquot S' shift hSlen hshiftDegree hshiftVars hadm
+    let p : MvPolynomial (Fin n) ℚ :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns)
+    let r : MvPolynomial (Fin (n / 3)) ℚ :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) p
+    let q : MvPolynomial (Fin n) ℚ :=
+      mlProj
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+          cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+    let d : MvPolynomial (Fin n) ℚ :=
+      MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj (shift * SPDP.iterDerivList S' r))
+    have hquot' :
+        zeroProfileQuotientBySingletonShiftProjection
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i) q =
+          zeroProfileQuotientBySingletonShiftProjection
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i) d := by
+      simpa [p, r, q, d] using
+        hquot S' shift hSlen hshiftDegree hshiftVars hadm
+    have hzero :
+        zeroProfileQuotientBySingletonShiftProjection
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+            (q - d) = 0 := by
+      rw [map_sub, hquot', sub_self]
+    exact
+      (routeBPaperFaithfulTPhi_zeroProfileQuotientBySingletonShiftProjection_apply_eq_zero_iff
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        (q - d)).mp hzero
+  · exact
+      routeBPaperFaithfulTPhi_singletonQuotientRowIdentity_of_singletonResidual
+        M n hn2 htb hns
+
 /-- Quotient row equality recovers the old raw restricted row identity exactly
 when each strict derivative row is already the chosen singleton-quotient
 representative.  This makes the representative condition explicit instead of
@@ -1709,25 +1779,8 @@ theorem routeBPaperFaithfulTPhi_rangePWindowRestrictedZeroProfileRowIdentity_of_
       RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientRowIdentity
         M n hn2 htb hns)
     (hfix :
-      ∀ (S' : List (Fin (n / 3)))
-        (shift : MvPolynomial (Fin (n / 3)) ℚ),
-        S'.length = Nat.log 2 n →
-        shift.totalDegree ≤ Nat.log 2 n →
-        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
-          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
-        SPDP.isBlockAdmissible
-          (cook_levin_compilation M n hn2 htb hns).partition
-          (S'.map (cookLevinStrictFOBFlatMap n)) →
-        let p : MvPolynomial (Fin n) ℚ :=
-          compiledPoly (cook_levin_compilation M n hn2 htb hns)
-        let r : MvPolynomial (Fin (n / 3)) ℚ :=
-          MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
-            (cookLevinStrictFOBFlatMap_injective n) p
-        let d : MvPolynomial (Fin n) ℚ :=
-          MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
-            (mlProj (shift * SPDP.iterDerivList S' r))
-        zeroProfileQuotientBySingletonShiftProjection
-            (fun i => (cookLevinFactorList M n hn2 htb hns).get i) d = d) :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientDerivativeFixed
+        M n hn2 htb hns) :
     RouteBPaperFaithfulTPhiRangePWindowRestrictedZeroProfileRowIdentity
       M n hn2 htb hns
       (zeroProfileQuotientBySingletonShiftProjection
@@ -2045,6 +2098,67 @@ theorem routeBPaperFaithfulTPhi_singletonNormalFormIdentity_of_coeff_split
       (fun α hα => by
         simpa [p, r, q, d] using
           hnonsingle S' shift hSlen hshiftDegree hshiftVars hadm α hα)
+
+/-- The concrete coefficient split closes the residual-only singleton-noise
+gate directly.  This is the proof-facing form of the remaining Cook-Levin
+strict `TΦ` row algebra. -/
+theorem routeBPaperFaithfulTPhi_singletonResidual_of_coeff_split
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hsingleton :
+      ∀ (S' : List (Fin (n / 3)))
+        (shift : MvPolynomial (Fin (n / 3)) ℚ),
+        S'.length = Nat.log 2 n →
+        shift.totalDegree ≤ Nat.log 2 n →
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)) →
+        ∀ i : Fin n,
+          let p : MvPolynomial (Fin n) ℚ :=
+            compiledPoly (cook_levin_compilation M n hn2 htb hns)
+          let r : MvPolynomial (Fin (n / 3)) ℚ :=
+            MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n) p
+          MvPolynomial.coeff (Finsupp.single i 1)
+            (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+              (mlProj (shift * SPDP.iterDerivList S' r))) = 0)
+    (hnonsingle :
+      ∀ (S' : List (Fin (n / 3)))
+        (shift : MvPolynomial (Fin (n / 3)) ℚ),
+        S'.length = Nat.log 2 n →
+        shift.totalDegree ≤ Nat.log 2 n →
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)) →
+        ∀ α : Fin n →₀ ℕ,
+          (∀ i : Fin n, α ≠ Finsupp.single i 1) →
+          let p : MvPolynomial (Fin n) ℚ :=
+            compiledPoly (cook_levin_compilation M n hn2 htb hns)
+          let r : MvPolynomial (Fin (n / 3)) ℚ :=
+            MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+              (cookLevinStrictFOBFlatMap_injective n) p
+          let q : MvPolynomial (Fin n) ℚ :=
+            mlProj
+              (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+                cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+          MvPolynomial.coeff α
+              (zeroProfileSingletonNormalFormProjection
+                (fun i => (cookLevinFactorList M n hn2 htb hns).get i) q) =
+            MvPolynomial.coeff α
+              (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+                (mlProj (shift * SPDP.iterDerivList S' r)))) :
+    RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalFormResidual
+        M n hn2 htb hns :=
+  (routeBPaperFaithfulTPhi_singletonNormalizedRowIdentity_iff_singletonResidual
+    M n hn2 htb hns).mp
+    (routeBPaperFaithfulTPhi_singletonNormalizedRowIdentity_of_singletonNormalFormIdentity
+      M n hn2 htb hns
+      (routeBPaperFaithfulTPhi_singletonNormalFormIdentity_of_coeff_split
+        M n hn2 htb hns hsingleton hnonsingle))
 
 /-- Any proof of the strict singleton-normal-form identity must prove that the
 renamed restricted derivative row has no degree-one singleton coefficients.
