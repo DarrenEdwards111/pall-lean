@@ -692,6 +692,141 @@ def CookLevinZeroProfileLocalNormalFormClassifierObligation
       (CookLevinZeroProfileLocalNormalFormClassifier
         M n hn htb hns typeBudget)
 
+/-! ## Explicit finite local-monoid classifier constructor -/
+
+/-- The one-state finite local monoid used by the singleton quotient
+normal-form route.
+
+This is the constructive local-monoid skeleton for the paper's quotient
+normalizer when the quotient-projected zero-profile rows all land in one
+semantic normal-form chart.  The nontrivial content is not the monoid itself;
+it is the row-membership proof supplied to
+`cookLevinZeroProfileLocalNormalFormClassifierObligation_of_singletonQuotientRowMap`
+below. -/
+def zeroProfileSingletonFiniteLocalMonoid :
+    ZeroProfileFiniteLocalMonoid where
+  localMonoid := PUnit
+  localMonoidMonoid := inferInstance
+  localMonoidFintype := inferInstance
+  localMonoidDecidableEq := inferInstance
+  generators := []
+
+/-- The singleton finite local monoid induces the all-zero profile alphabet. -/
+def zeroProfileSingletonFiniteNormalFormAlphabet (κ : ℕ) :
+    ZeroProfileFiniteNormalFormAlphabet κ :=
+  ZeroProfileFiniteNormalFormAlphabet.ofLocalMonoid
+    κ zeroProfileSingletonFiniteLocalMonoid
+    (fun _ => zeroProfileHistogram)
+    (fun _ => zeroProfileHistogram_admissible κ)
+
+/-- The explicit singleton local-monoid alphabet agrees with the concrete
+singleton zero-profile data.
+
+This theorem is mainly an audit hook: it records that the normal form used by
+the singleton quotient constructor is a finite local monoid normal form, not a
+raw support-counting alphabet. -/
+theorem zeroProfileSingletonFiniteNormalFormAlphabet_profile
+    (κ : ℕ) (ν : (zeroProfileSingletonFiniteNormalFormAlphabet κ).normalForm) :
+    (zeroProfileSingletonFiniteNormalFormAlphabet κ).profile ν =
+      zeroProfileHistogram :=
+  rfl
+
+/-- Build the named Cook-Levin local normal-form classifier from the actual
+singleton-quotient row-membership proof.
+
+This is the direct inhabitant constructor for
+`CookLevinZeroProfileLocalNormalFormClassifierObligation`: once the concrete
+finite local-monoid row classifier proves that every singleton-quotient
+projected zero-profile row lands in its semantic normal-form/profile chart,
+the obligation is inhabited.  No raw shifted-support count is used. -/
+theorem cookLevinZeroProfileLocalNormalFormClassifierObligation_of_singletonQuotientRowMap
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget : ℕ}
+    (D : ZeroProfileConcreteNormalFormData n (Nat.log 2 n) typeBudget)
+    (hmap :
+      ZeroProfileConcreteNormalFormRowMap
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn htb hns).get i))
+        D)
+    (hbudget : typeBudget ≤ withinProfileBound (Nat.log 2 n)) :
+    CookLevinZeroProfileLocalNormalFormClassifierObligation
+      M n hn htb hns := by
+  exact
+    ⟨typeBudget,
+      ⟨{ data := D
+         rowMap := hmap
+         budget := hbudget }⟩⟩
+
+/-- Existing identity-projected concreteW row embeddings inhabit the named
+local-normal-form obligation once the singleton quotient is known to preserve
+the selected singleton zero-profile semantic chart.
+
+This exposes the precise remaining algebraic gap for the current hard-coded
+`zeroProfileQuotientBySingletonShiftProjection`: identity row embeddings alone
+give rows in the zero-profile chart, but the arbitrary quotient projection must
+also be proved to keep those rows inside that chart. -/
+theorem cookLevinZeroProfileLocalNormalFormClassifierObligation_of_concreteW_rowEmbeddings
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) (hn4 : n ≥ 4)
+    (hRowEmbeddings :
+      PallLean.Paper93.Direct.CookLevinPerTypeRowEmbeddings_concreteW
+        M n hn htb hns hn4)
+    (hquotient_preserves :
+      ∀ q,
+        q ∈ profileSubspace zeroProfileHistogram
+            (zeroProfileConcreteLocalChart_concreteW
+              (n := n) hn4 zeroProfileHistogram).W →
+          zeroProfileQuotientBySingletonShiftProjection
+              (fun i => (cookLevinFactorList M n hn htb hns).get i) q ∈
+            profileSubspace zeroProfileHistogram
+              (zeroProfileConcreteLocalChart_concreteW
+                (n := n) hn4 zeroProfileHistogram).W) :
+    CookLevinZeroProfileLocalNormalFormClassifierObligation
+      M n hn htb hns := by
+  let D :=
+    zeroProfileConcreteNormalFormData_singletonZeroProfile_concreteW
+      (κ := Nat.log 2 n) hn4
+  have hid :
+      ZeroProfileConcreteNormalFormRowMap
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+        (LinearMap.id :
+          MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+        D :=
+    zeroProfileConcreteNormalFormRowMap_id_concreteW_of_rowEmbeddings
+      M n hn htb hns hn4 hRowEmbeddings
+  have hquot :
+      ZeroProfileConcreteNormalFormRowMap
+        (fun i => (cookLevinFactorList M n hn htb hns).get i)
+        (zeroProfileQuotientBySingletonShiftProjection
+          (fun i => (cookLevinFactorList M n hn htb hns).get i))
+        D := by
+    refine
+      { rowNormalForm := hid.rowNormalForm
+        projected_row_mem_profileSubspace := ?_ }
+    intro S hS shift hshift
+    have hmem :=
+      hid.projected_row_mem_profileSubspace S hS shift hshift
+    simpa [D, LinearMap.id_apply,
+      zeroProfileConcreteNormalFormData_singletonZeroProfile_concreteW,
+      zeroProfileConcreteNormalFormData_singletonZeroProfile] using
+      hquotient_preserves
+        (mlProj
+          (shift *
+            Finset.univ.prod
+              (fun i =>
+                (cookLevinFactorList M n hn htb hns).get i)))
+        (by
+          simpa [D, LinearMap.id_apply,
+            zeroProfileConcreteNormalFormData_singletonZeroProfile_concreteW,
+            zeroProfileConcreteNormalFormData_singletonZeroProfile] using hmem)
+  exact
+    cookLevinZeroProfileLocalNormalFormClassifierObligation_of_singletonQuotientRowMap
+      M n hn htb hns D hquot
+      (zeroProfileSymmetricProfileDim_zeroProfileHistogram_le_withinProfileBound
+        (Nat.log 2 n))
+
 /-- Concrete normal-form row typing for the singleton quotient closes the
 quotiented zero-profile target with no `+ n` residual payment. -/
 theorem cookLevinZeroProfileQuotientedShiftCommonSpan_of_concreteSingletonQuotientRowMap
