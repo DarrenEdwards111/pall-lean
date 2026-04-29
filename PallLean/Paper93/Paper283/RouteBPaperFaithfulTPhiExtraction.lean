@@ -5038,6 +5038,86 @@ def RouteBPaperFaithfulTPhiStrictAmbientMlRankUpper
     Fintype.card D.profileType * D.localDim
 
 
+
+/-- The finite global basis obtained by assembling all profile-local bases in
+one ambient coefficient space.  This is the matrix-assembly object in the
+paper route: after canonical/profile/orbit normalization, every ambient strict
+`TΦ` row must be shown to land in the span of this finite union. -/
+noncomputable def routeBPaperFaithfulTPhiStrictGlobalProfileBasis
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns) :
+    Finset (MvPolynomial (Fin n) ℚ) :=
+  Finset.univ.biUnion D.localBasis
+
+/-- Cardinality of the assembled profile basis is bounded by
+`#profiles * localDim`. -/
+theorem routeBPaperFaithfulTPhi_strictGlobalProfileBasis_card_le
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns) :
+    (routeBPaperFaithfulTPhiStrictGlobalProfileBasis D).card ≤
+      Fintype.card D.profileType * D.localDim := by
+  classical
+  unfold routeBPaperFaithfulTPhiStrictGlobalProfileBasis
+  calc
+    (Finset.univ.biUnion D.localBasis).card ≤
+        ∑ ρ : D.profileType, (D.localBasis ρ).card :=
+      Finset.card_biUnion_le
+    _ ≤ ∑ _ρ : D.profileType, D.localDim := by
+      exact Finset.sum_le_sum (fun ρ _ => D.localBasis_card_le ρ)
+    _ = Fintype.card D.profileType * D.localDim := by
+      simp [Finset.sum_const, Finset.card_univ, mul_comm]
+
+/-- Exact global matrix-assembly cover for a chosen strict `TΦ` profile/orbit
+package.  This is the concrete remaining row-span statement: the whole ambient
+strict `TΦ` SPDP subspace, not merely the narrowed canonical rows, is contained
+in the span of the finite assembled profile basis. -/
+def RouteBPaperFaithfulTPhiStrictAmbientGlobalProfileSpanCover
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns) : Prop :=
+  MultilinearSPDP.mlBlockedSpdpSubspace
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (Nat.log 2 n) (Nat.log 2 n)
+      ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+        (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ≤
+    Submodule.span ℚ
+      (↑(routeBPaperFaithfulTPhiStrictGlobalProfileBasis D) :
+        Set (MvPolynomial (Fin n) ℚ))
+
+/-- A global assembled-profile span cover proves the exact strict ambient
+`TΦ` rank upper bound.  This is the formal matrix-rank assembly step: once the
+rows are covered by the finite union of profile-local bases, finrank is bounded
+by the size of that union and hence by `#profiles * localDim`. -/
+theorem routeBPaperFaithfulTPhi_strictAmbientMlRankUpper_of_globalProfileSpanCover
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns)
+    (hcover : RouteBPaperFaithfulTPhiStrictAmbientGlobalProfileSpanCover D) :
+    RouteBPaperFaithfulTPhiStrictAmbientMlRankUpper M n hn2 htb hns D := by
+  unfold RouteBPaperFaithfulTPhiStrictAmbientMlRankUpper
+  have hmono :
+      Module.finrank ℚ
+          (MultilinearSPDP.mlBlockedSpdpSubspace
+            (cook_levin_compilation M n hn2 htb hns).partition
+            (Nat.log 2 n) (Nat.log 2 n)
+            ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ≤
+        Module.finrank ℚ
+          (Submodule.span ℚ
+            (↑(routeBPaperFaithfulTPhiStrictGlobalProfileBasis D) :
+              Set (MvPolynomial (Fin n) ℚ))) :=
+    Submodule.finrank_mono hcover
+  exact hmono.trans
+    ((finrank_span_finset_le_card
+        (routeBPaperFaithfulTPhiStrictGlobalProfileBasis D)).trans
+      (routeBPaperFaithfulTPhi_strictGlobalProfileBasis_card_le D))
+
 /-- Paper-faithful global assembly target for strict `TΦ`.
 
 This is the theorem shape matching the paper route: finite interface-anonymous
@@ -5050,6 +5130,19 @@ def RouteBPaperFaithfulTPhiStrictPaperProfileOrbitGlobalAssembly
   ∃ D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
       M n hn2 htb hns,
     RouteBPaperFaithfulTPhiStrictAmbientMlRankUpper M n hn2 htb hns D
+
+/-- Constructor form of the paper-faithful global assembly: provide the finite
+profile/orbit package and the ambient global assembled-basis cover. -/
+theorem routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_globalProfileSpanCover
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns)
+    (hcover : RouteBPaperFaithfulTPhiStrictAmbientGlobalProfileSpanCover D) :
+    RouteBPaperFaithfulTPhiStrictPaperProfileOrbitGlobalAssembly
+      M n hn2 htb hns :=
+  ⟨D, routeBPaperFaithfulTPhi_strictAmbientMlRankUpper_of_globalProfileSpanCover
+    D hcover⟩
 
 /-- Projected zero-profile containment plus a projected common-span budget gives
 exactly the strict ambient `TΦ` SPDP-rank upper bound requested.
