@@ -2189,6 +2189,71 @@ theorem routeBPaperFaithfulTPhi_rangePWindowControlledByZeroProfileProjection_of
         M n hn2 htb hns project hrow S' shift
         hSlen hshiftDegree hshiftVars hadm)
 
+/-- A projected zero-profile common span gives the corrected range-only strict
+`TΦ` bounded common span as soon as the range P-window rows have been shown to
+land in that projected span.
+
+This is the non-pointwise close-out for the strict range surface: the finite
+generators are the projected zero-profile generators, and the only algebraic
+input is the containment of strict `TΦ` rows in that projected zero-profile
+subspace. -/
+theorem routeBPaperFaithfulTPhi_rangePWindowCommonSpanWithBudget_of_zeroProfileProjectedCommonSpan
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    (hspan :
+      ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        project (withinProfileBound (Nat.log 2 n)))
+    (hcontrol :
+      RouteBPaperFaithfulTPhiRangePWindowControlledByZeroProfileProjection
+        M n hn2 htb hns project) :
+    RouteBPaperFaithfulTPhiRangePWindowCommonSpanWithBudget
+      M n hn2 htb hns (withinProfileBound (Nat.log 2 n)) := by
+  classical
+  rcases hspan with ⟨G, hG_card, hG_span⟩
+  refine ⟨G, hG_card, ?_⟩
+  intro q hq
+  have hzero :
+      q ∈ zeroProfileProjectedShiftSpan (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        project :=
+    hcontrol hq
+  have hzero_le :
+      zeroProfileProjectedShiftSpan (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+          project ≤
+        Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ)) := by
+    rw [zeroProfileProjectedShiftSpan_eq_span_projectedShiftImageSet]
+    exact Submodule.span_le.mpr hG_span
+  exact hzero_le hzero
+
+/-- Pointwise strict range-row identity plus a projected zero-profile common
+span closes the corrected range-only bounded common-span target.
+
+The theorem deliberately separates the two ingredients: the finite projected
+profile basis is supplied by `hspan`; the row algebra is exactly the selected
+strict `TΦ` row identity, not a refuted broad coefficient-balance claim. -/
+theorem routeBPaperFaithfulTPhi_rangePWindowCommonSpanWithBudget_of_rowIdentity_projectedCommonSpan
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    (hspan :
+      ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        project (withinProfileBound (Nat.log 2 n)))
+    (hrow :
+      RouteBPaperFaithfulTPhiRangePWindowZeroProfileRowIdentity
+        M n hn2 htb hns project) :
+    RouteBPaperFaithfulTPhiRangePWindowCommonSpanWithBudget
+      M n hn2 htb hns (withinProfileBound (Nat.log 2 n)) :=
+  routeBPaperFaithfulTPhi_rangePWindowCommonSpanWithBudget_of_zeroProfileProjectedCommonSpan
+    M n hn2 htb hns project hspan
+    (routeBPaperFaithfulTPhi_rangePWindowControlledByZeroProfileProjection_of_rowIdentity
+      M n hn2 htb hns project hrow)
+
 /-- Smaller source-coordinate equality left after the all-range strict-FOB
 row reduction.  The derivative list is over `Fin (n / 3)`; no off-range
 ambient derivative rows are queried. -/
@@ -7170,6 +7235,31 @@ theorem routeBPaperFaithfulTPhi_rangePWindowZeroProfileRowIdentity_of_restricted
   rw [routeBPaperFaithfulTPhi_rangePWindowRow_eq_renamedRestrictedRow
     M n hn2 htb hns S' shift]
   exact hrow S' shift hSlen hshiftDegree hshiftVars hadm
+
+/-- Source-coordinate restricted row equality plus a projected zero-profile
+common span closes the corrected range-only bounded common-span target.
+
+This is the strongest currently honest strict-`TΦ` common-span consumer: after
+all-range strict-FOB reduction, it needs exactly the restricted row equality
+and the projected finite profile basis. -/
+theorem routeBPaperFaithfulTPhi_rangePWindowCommonSpanWithBudget_of_restrictedRowIdentity_projectedCommonSpan
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (project :
+      MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)
+    (hspan :
+      ZeroProfileProjectedCommonSpanWithBudget (Nat.log 2 n)
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+        project (withinProfileBound (Nat.log 2 n)))
+    (hrow :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedZeroProfileRowIdentity
+        M n hn2 htb hns project) :
+    RouteBPaperFaithfulTPhiRangePWindowCommonSpanWithBudget
+      M n hn2 htb hns (withinProfileBound (Nat.log 2 n)) :=
+  routeBPaperFaithfulTPhi_rangePWindowCommonSpanWithBudget_of_rowIdentity_projectedCommonSpan
+    M n hn2 htb hns project hspan
+    (routeBPaperFaithfulTPhi_rangePWindowZeroProfileRowIdentity_of_restricted
+      M n hn2 htb hns project hrow)
 
 private theorem routeBPaperFaithfulTPhi_strictFOB_preimageList
     (n : ℕ) (S : List (Fin n))
