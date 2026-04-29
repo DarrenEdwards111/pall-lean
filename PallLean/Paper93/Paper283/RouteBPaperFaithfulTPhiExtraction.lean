@@ -4146,15 +4146,14 @@ theorem routeBPaperFaithfulTPhiStrictUnmarkedCanonicalRowFamily_excludes_two_tag
     (routeBPaperFaithfulTPhiStrictRawWindow_marked_of_twoTag
       T j k hTcard hj hk hjk)
 
-/-- Paper-faithful strict canonical row family after the two discovered
+/-- Paper-faithful strict canonical row family after the discovered
 normal-form gates.
 
-Besides canonicality and the two-tag marker exclusion, this predicate records
-the missing normalization/parity gate for the zero coefficient profile: a
-unit-shift zero-profile row can only be consumed by the pointwise coefficient
-identity when its strict derivative length is even.  Odd rows are handled by
-the obstruction theorem rather than silently included in the positive target.
--/
+This is deliberately narrow.  It keeps only the zero-profile unit-shift rows
+whose strict derivative list is nodup and even-length, in addition to the
+canonical/unmarked strict normal-form gates.  Multi-tag coefficient probes and
+odd unit-shift rows are handled by the obstruction lemmas rather than included
+in this positive pointwise coefficient target. -/
 def routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
@@ -4163,10 +4162,10 @@ def routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
   fun S' shift α =>
     routeBPaperFaithfulTPhiStrictUnmarkedCanonicalRowFamily
         M n hn2 htb hns S' shift α ∧
-      (shift = (1 : MvPolynomial (Fin (n / 3)) ℚ) →
-        α = (0 : Fin n →₀ ℕ) →
-        S'.Nodup →
-        Even S'.length)
+      shift = (1 : MvPolynomial (Fin (n / 3)) ℚ) ∧
+      α = (0 : Fin n →₀ ℕ) ∧
+      S'.Nodup ∧
+      Even S'.length
 
 /-- The replacement strict coefficient target: the normalized coefficient
 identity is only requested on canonical, unmarked rows that also satisfy the
@@ -4185,8 +4184,7 @@ This is the narrowed replacement for the broad diagnostic algebra above.  The
 mathematical coefficient identity is unchanged, but its hypotheses now expose
 all three row gates separately: strict canonical normal form, absence of the
 marked two-tag coefficient profile, and the unit-shift zero-profile
-parity/normalization side condition.  This is the form to attack with the
-lower-level Cook-Levin coefficient/support lemmas. -/
+unit-shift zero-profile side condition. -/
 def RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffAlgebra
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
@@ -4210,10 +4208,10 @@ def RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffAlgebra
             (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)) →
       ¬ routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff
         (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) →
-      (shift = (1 : MvPolynomial (Fin (n / 3)) ℚ) →
-        α = (0 : Fin n →₀ ℕ) →
-        S'.Nodup →
-        Even S'.length) →
+      shift = (1 : MvPolynomial (Fin (n / 3)) ℚ) →
+      α = (0 : Fin n →₀ ℕ) →
+      S'.Nodup →
+      Even S'.length →
       let factors : Fin (cookLevinFactorList M n hn2 htb hns).length →
           MvPolynomial (Fin n) ℚ :=
         fun i => (cookLevinFactorList M n hn2 htb hns).get i
@@ -4250,9 +4248,10 @@ theorem routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffBalance_of_algeb
       M n hn2 htb hns := by
   classical
   intro S' shift hSlen hshiftDegree hshiftVars hadm α hα hrow
+  rcases hrow with ⟨hrowUnmarked, hshiftUnit, hαzero, hSnd, hEven⟩
   exact
     halgebra S' shift hSlen hshiftDegree hshiftVars hadm α hα
-      hrow.1.1 hrow.1.2 hrow.2
+      hrowUnmarked.1 hrowUnmarked.2 hshiftUnit hαzero hSnd hEven
 
 theorem routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffAlgebra_of_balance
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
@@ -4263,10 +4262,11 @@ theorem routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffAlgebra_of_balan
     RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffAlgebra
       M n hn2 htb hns := by
   classical
-  intro S' shift hSlen hshiftDegree hshiftVars hadm α hα hcan hunmarked hparity
+  intro S' shift hSlen hshiftDegree hshiftVars hadm α hα hcan hunmarked
+    hshiftUnit hαzero hSnd hEven
   exact
     hbalance S' shift hSlen hshiftDegree hshiftVars hadm α hα
-      ⟨⟨hcan, hunmarked⟩, hparity⟩
+      ⟨⟨hcan, hunmarked⟩, hshiftUnit, hαzero, hSnd, hEven⟩
 
 theorem routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffBalance_iff_algebra
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
@@ -4333,7 +4333,7 @@ theorem routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily_excludes_od
         (1 : MvPolynomial (Fin (n / 3)) ℚ)
         (0 : Fin n →₀ ℕ) := by
   intro hrow
-  have hEven : Even S'.length := hrow.2 rfl rfl hSnd
+  have hEven : Even S'.length := hrow.2.2.2.2
   rcases hEven with ⟨a, ha⟩
   rcases hOdd with ⟨b, hb⟩
   omega
@@ -6824,6 +6824,86 @@ theorem routeBPaperFaithfulTPhi_unitShift_derivative_constantCoeff
   have hcard : T.card = S'.length := by
     simpa [T] using List.toFinset_card_of_nodup hSnd
   simpa [p, r, hiter, hcard] using hfinset
+
+/-- The narrowed strict paper-faithful coefficient target closes for the
+selected zero-profile unit-shift canonical rows.
+
+All formerly failing probes are outside
+`routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily`: two-tag and
+higher multi-tag probes are not in the zero coefficient profile, and odd
+unit-shift rows are excluded by the even-length field.  The remaining equality
+is the constant-coefficient computation: the zero-profile side is `1`, the
+strict derivative side is `(-1)^|S'| = 1`, and singleton correction sums vanish
+at the constant monomial. -/
+theorem routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffBalance_proved
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffBalance
+      M n hn2 htb hns := by
+  classical
+  intro S' shift hSlen hshiftDegree hshiftVars hadm α _hα hrow
+  rcases hrow with ⟨_hrowUnmarked, hshiftUnit, hαzero, hSnd, hEven⟩
+  subst shift
+  subst α
+  let factors : Fin (cookLevinFactorList M n hn2 htb hns).length →
+      MvPolynomial (Fin n) ℚ :=
+    fun i => (cookLevinFactorList M n hn2 htb hns).get i
+  let p : MvPolynomial (Fin n) ℚ :=
+    compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  let r : MvPolynomial (Fin (n / 3)) ℚ :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+      (cookLevinStrictFOBFlatMap_injective n) p
+  let q : MvPolynomial (Fin n) ℚ :=
+    mlProj
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+          (1 : MvPolynomial (Fin (n / 3)) ℚ) *
+        cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+  let d : MvPolynomial (Fin n) ℚ :=
+    MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+      (mlProj ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+        SPDP.iterDerivList S' r))
+  have hq : MvPolynomial.coeff (0 : Fin n →₀ ℕ) q = (1 : ℚ) := by
+    simpa [q] using
+      routeBPaperFaithfulTPhi_unitShift_zeroProfileRow_constantCoeff
+        M n hn2 htb hns
+  have hdPow : MvPolynomial.coeff (0 : Fin n →₀ ℕ) d =
+      (-1 : ℚ) ^ S'.length := by
+    simpa [p, r, d] using
+      routeBPaperFaithfulTPhi_unitShift_derivative_constantCoeff
+        M n hn2 htb hns S' hSnd
+  have hpow : (-1 : ℚ) ^ S'.length = (1 : ℚ) :=
+    Even.neg_one_pow hEven
+  have hd : MvPolynomial.coeff (0 : Fin n →₀ ℕ) d = (1 : ℚ) := by
+    rw [hdPow, hpow]
+  have hsumq :
+      (∑ i : Fin n,
+          MvPolynomial.coeff (Finsupp.single i 1) q *
+            MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+              (mlProj (MvPolynomial.X i * Finset.univ.prod factors))) = 0 := by
+    refine Finset.sum_eq_zero ?_
+    intro i _hi
+    rw [coeff_zero_mlProj_X_mul, mul_zero]
+  have hsumd :
+      (∑ i : Fin n,
+          MvPolynomial.coeff (Finsupp.single i 1) d *
+            MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+              (mlProj (MvPolynomial.X i * Finset.univ.prod factors))) = 0 := by
+    refine Finset.sum_eq_zero ?_
+    intro i _hi
+    rw [coeff_zero_mlProj_X_mul, mul_zero]
+  dsimp only
+  rw [hq, hd, hsumq, hsumd]
+
+/-- Expanded algebraic form of the proved narrowed coefficient target. -/
+theorem routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffAlgebra_proved
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffAlgebra
+      M n hn2 htb hns :=
+  (routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffBalance_iff_algebra
+    M n hn2 htb hns).mp
+    (routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffBalance_proved
+      M n hn2 htb hns)
 
 /-- Even strict derivative rows pass the unit-shift constant-coefficient test:
 their extracted derivative constant term is `1`. -/
