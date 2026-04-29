@@ -316,6 +316,31 @@ noncomputable def cookLevinChargedPostSpanAtTarget
               S bpSrc.toHistogram),
         charge bpSrc S shift bpTgt ∧ p = mlProj (shift * g) }
 
+/-- Generator-level form of the charged target-profile cover obligation.
+
+It exposes exactly what is needed to upgrade the unrestricted Cook-Levin
+post-span into the charged/restricted target span: every source generator must
+carry the selected charge to one admissible active target profile. -/
+def CookLevinEndpointChargedTargetGeneratorCoverAt
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (charge : ProfileCharge n)
+    (h : ProfileHistogram)
+    (hadm : ProfileAdmissible (Nat.log 2 n) h) : Prop :=
+  ∃ bpTgt : BoundedProfile (Nat.log 2 n),
+    ProfileAdmissible (Nat.log 2 n) bpTgt.toHistogram ∧
+      bpTgt.toHistogram ConstraintType.transitionRight = 0 ∧
+      ActiveProfileSupport bpTgt.toHistogram ∧
+      ∀ (S : List (Fin n)) (_hSlen : S.length ≤ Nat.log 2 n)
+        (shift : MvPolynomial (Fin n) ℚ)
+        (_hshift : shift.vars ⊆ S.toFinset)
+        (g : MvPolynomial (Fin n) ℚ),
+        g ∈ boundedProfileClassifiedSet
+            (fun i => (cookLevinFactorList M n hn htb hns).get i)
+            (cookLevinConstraintType M n hn htb hns)
+            S h →
+          charge (admissibleToBounded hadm) S shift bpTgt
+
 /-- A target-profile charged spanning slice contains the corresponding
 charged/restricted post-span. -/
 theorem cookLevinChargedPostSpanAtTarget_le_profileSubspace_of_chargedSpanningAtBoundedProfileTarget
@@ -370,6 +395,30 @@ def CookLevinEndpointChargedTargetProfileCoverAt
       cookLevinPostSpanAt M n hn htb hns h ≤
         cookLevinChargedPostSpanAtTarget M n hn htb hns charge
           (admissibleToBounded hadm) bpTgt
+
+/-- The generator-level charged target condition implies the profile-level
+charged target cover. -/
+theorem CookLevinEndpointChargedTargetProfileCoverAt_of_generatorCover
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (charge : ProfileCharge n)
+    (h : ProfileHistogram)
+    (hadm : ProfileAdmissible (Nat.log 2 n) h)
+    (hgen :
+      CookLevinEndpointChargedTargetGeneratorCoverAt
+        M n hn htb hns charge h hadm) :
+    CookLevinEndpointChargedTargetProfileCoverAt
+      M n hn htb hns charge h hadm := by
+  classical
+  rcases hgen with ⟨bpTgt, hadmTgt, htrTgt, hactiveTgt, hcharge⟩
+  refine ⟨bpTgt, hadmTgt, htrTgt, hactiveTgt, ?_⟩
+  refine Submodule.span_le.mpr ?_
+  intro p hp
+  simp only [Set.mem_iUnion, Set.mem_image] at hp
+  rcases hp with ⟨S, hSlen, shift, hshiftvars, g, hg, rfl⟩
+  exact Submodule.subset_span
+    ⟨S, hSlen, shift, hshiftvars, g, hg,
+      hcharge S hSlen shift hshiftvars g hg, rfl⟩
 
 /-- Discharge a bounded-profile row-embedding slice from H3, endpoint H4, and
 profile-local shift/mlProj closure. -/
@@ -2035,6 +2084,7 @@ theorem cookLevinAllBoundedProfileCommonSpanLiveProfileCases_of_endpointAugmente
 #print axioms cookLevinPostSpanAt_le_chargedTarget_of_chargedSpanningAtBoundedProfileTarget
 #print axioms cookLevinChargedPostSpanAtTarget_le_profileSubspace_of_chargedSpanningAtBoundedProfileTarget
 #print axioms cookLevinChargedPostSpanAtTarget_le_profileSubspace_discharged
+#print axioms CookLevinEndpointChargedTargetProfileCoverAt_of_generatorCover
 #print axioms cookLevinAllBoundedProfileCommonSpanAtProfile_of_endpointAugmented_chargedTargetCover
 #print axioms cookLevinActiveProfileTypeCaseBlockers_of_endpointAugmented_chargedTargetCover
 #print axioms cookLevinPerTypeSpanningAtBoundedProfile_discharged
