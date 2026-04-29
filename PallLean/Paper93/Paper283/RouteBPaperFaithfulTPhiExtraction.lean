@@ -3592,6 +3592,95 @@ theorem routeBPaperFaithfulTPhi_not_singletonResidual_of_constantCoeff_ne
     (routeBPaperFaithfulTPhi_singletonResidual_forces_constantCoeff_balance
       M n hn2 htb hns hres S' shift hSlen hshiftDegree hshiftVars hadm)
 
+/-- The strict zero-profile row with unit shift has constant coefficient `1`.
+This is the concrete left-hand side of the constant-coefficient residual test. -/
+theorem routeBPaperFaithfulTPhi_unitShift_zeroProfileRow_constantCoeff
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+      (mlProj
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+            (1 : MvPolynomial (Fin (n / 3)) ℚ) *
+          cookLevinZeroProfileBaseProduct M n hn2 htb hns)) = (1 : ℚ) := by
+  rw [map_one, one_mul]
+  rw [MultilinearSPDP.coeff_mlProj_of_isMultilinear_mono _ _
+    (by intro i; simp)]
+  exact cookLevinZeroProfileBaseProduct_coeff_zero M n hn2 htb hns
+
+/-- For unit shift, the singleton-residual gate forces the extracted strict
+derivative row to have constant coefficient `1`.  This is the first concrete
+row-family test before any higher coefficient comparison is attempted. -/
+theorem routeBPaperFaithfulTPhi_singletonResidual_forces_unitShift_derivative_constantCoeff_one
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hres :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalFormResidual
+        M n hn2 htb hns)
+    (S' : List (Fin (n / 3)))
+    (hSlen : S'.length = Nat.log 2 n)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n))) :
+    let p : MvPolynomial (Fin n) ℚ :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns)
+    let r : MvPolynomial (Fin (n / 3)) ℚ :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) p
+    MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj
+          ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+            SPDP.iterDerivList S' r))) = (1 : ℚ) := by
+  classical
+  let shift : MvPolynomial (Fin (n / 3)) ℚ := 1
+  have hvars :
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset := by
+    simp [shift]
+  have hbalance :=
+    routeBPaperFaithfulTPhi_singletonResidual_forces_constantCoeff_balance
+      M n hn2 htb hns hres S' shift hSlen (by simp [shift]) hvars hadm
+  have hleft :
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (mlProj
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+            cookLevinZeroProfileBaseProduct M n hn2 htb hns)) = (1 : ℚ) := by
+    simpa [shift] using
+      routeBPaperFaithfulTPhi_unitShift_zeroProfileRow_constantCoeff
+        M n hn2 htb hns
+  exact hbalance.symm.trans hleft
+
+/-- Unit-shift no-go form: one admissible strict derivative list whose
+extracted derivative row has constant coefficient different from `1` rules out
+the singleton-residual target. -/
+theorem routeBPaperFaithfulTPhi_not_singletonResidual_of_unitShift_derivative_constantCoeff_ne_one
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3)))
+    (hSlen : S'.length = Nat.log 2 n)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)))
+    (hcoeff_ne :
+      let p : MvPolynomial (Fin n) ℚ :=
+        compiledPoly (cook_levin_compilation M n hn2 htb hns)
+      let r : MvPolynomial (Fin (n / 3)) ℚ :=
+        MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n) p
+      MvPolynomial.coeff (0 : Fin n →₀ ℕ)
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+          (mlProj
+            ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+              SPDP.iterDerivList S' r))) ≠ (1 : ℚ)) :
+    ¬ RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalFormResidual
+        M n hn2 htb hns := by
+  intro hres
+  exact hcoeff_ne
+    (routeBPaperFaithfulTPhi_singletonResidual_forces_unitShift_derivative_constantCoeff_one
+      M n hn2 htb hns hres S' hSlen hadm)
+
 /-- Any proof of the strict singleton-normal-form identity must prove that the
 renamed restricted derivative row has no degree-one singleton coefficients.
 This is the concrete coefficient test for the semantic normalizer target. -/
