@@ -4639,6 +4639,251 @@ structure RouteBPaperFaithfulTPhiStrictCanonicalWindowProfileCompressionData
 
 attribute [instance] RouteBPaperFaithfulTPhiStrictCanonicalWindowProfileCompressionData.profileTypeFintype
 
+
+/-! ### Paper-faithful orbit-rank profile target
+
+The paper's Lemma 27 does not assert that all interface-renamings of a profile
+live in one literal ambient common span.  It asserts rank invariance under
+within-block interface permutations: rows of the same interface-anonymous
+profile are compared after invertible row/column reindexings.  The following
+surface records that route directly. -/
+
+/-- One canonical strict `TΦ` derivative row, as a polynomial row vector in the
+ambient coefficient space. -/
+noncomputable def routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ) :
+    MvPolynomial (Fin n) ℚ :=
+  mlProj
+    (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+      SPDP.iterDerivList (S'.map (cookLevinStrictFOBFlatMap n))
+        ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+          (compiledPoly (cook_levin_compilation M n hn2 htb hns))))
+
+/-- Paper-faithful orbit/profile rank data for narrowed strict `TΦ` canonical
+rows.
+
+For a canonical row, `profileOfCanonicalWindow` picks its interface-anonymous
+profile.  The row is not required to lie literally in one global common span.
+Instead, it lies in an invertible image of the bounded local profile space for
+that profile.  This matches paper Lemma 27: within-block interface permutations
+act by invertible reindexings, so they preserve rank contribution without
+forcing a literal ambient-span equality. -/
+structure RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileType : Type
+  [profileTypeFintype : Fintype profileType]
+  localDim : ℕ
+  localBasis : profileType → Finset (MvPolynomial (Fin n) ℚ)
+  localBasis_card_le : ∀ ρ, (localBasis ρ).card ≤ localDim
+  profileBudget_le : Fintype.card profileType * localDim ≤
+    withinProfileBound (Nat.log 2 n)
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      profileType
+  orbitEquiv :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      MvPolynomial (Fin n) ℚ ≃ₗ[ℚ] MvPolynomial (Fin n) ℚ
+  canonicalRow_mem_orbitProfileSpan :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+          M n hn2 htb hns S' shift ∈
+        Submodule.map
+          (orbitEquiv S' shift α hSlen hshiftDegree hshiftVars hadm hrow).toLinearMap
+          (Submodule.span ℚ
+            (↑(localBasis
+              (profileOfCanonicalWindow
+                (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+                hrow.1.1)) : Set (MvPolynomial (Fin n) ℚ)))
+
+attribute [instance] RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData.profileTypeFintype
+
+
+/-- The orbit image of the bounded local profile space selected by a canonical
+strict `TΦ` row. -/
+noncomputable def routeBPaperFaithfulTPhiStrictCanonicalOrbitProfileSubspace
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns)
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (α : Fin n →₀ ℕ)
+    (hSlen : S'.length = Nat.log 2 n)
+    (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+    (hshiftVars :
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)))
+    (hrow :
+      routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
+        M n hn2 htb hns S' shift α) :
+    Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+  Submodule.map
+    (D.orbitEquiv S' shift α hSlen hshiftDegree hshiftVars hadm hrow).toLinearMap
+    (Submodule.span ℚ
+      (↑(D.localBasis
+        (D.profileOfCanonicalWindow
+          (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+          hrow.1.1)) : Set (MvPolynomial (Fin n) ℚ)))
+
+/-- Paper Lemma 27 in the form needed downstream: the invertible orbit/rename
+image of a profile space has the same finite-rank budget as the local profile
+space.  This is where the formal route uses permutation/rename finrank
+preservation rather than a literal common ambient span. -/
+theorem routeBPaperFaithfulTPhi_strictCanonicalOrbitProfileSubspace_finrank_le
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns)
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (α : Fin n →₀ ℕ)
+    (hSlen : S'.length = Nat.log 2 n)
+    (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+    (hshiftVars :
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)))
+    (hrow :
+      routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
+        M n hn2 htb hns S' shift α) :
+    Module.finrank ℚ
+      (routeBPaperFaithfulTPhiStrictCanonicalOrbitProfileSubspace
+        D S' shift α hSlen hshiftDegree hshiftVars hadm hrow) ≤ D.localDim := by
+  let ρ :=
+    D.profileOfCanonicalWindow
+      (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) hrow.1.1
+  let V : Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+    Submodule.span ℚ (↑(D.localBasis ρ) : Set (MvPolynomial (Fin n) ℚ))
+  have hmap :
+      Module.finrank ℚ
+        (Submodule.map
+          (D.orbitEquiv S' shift α hSlen hshiftDegree hshiftVars hadm hrow).toLinearMap V)
+        = Module.finrank ℚ V := by
+    exact
+      ((D.orbitEquiv S' shift α hSlen hshiftDegree hshiftVars hadm hrow).finrank_map_eq V)
+  have hspan : Module.finrank ℚ V ≤ (D.localBasis ρ).card := by
+    simpa [V] using
+      (finrank_span_finset_le_card (D.localBasis ρ) :
+        Module.finrank ℚ
+          (Submodule.span ℚ
+            (↑(D.localBasis ρ) : Set (MvPolynomial (Fin n) ℚ))) ≤
+          (D.localBasis ρ).card)
+  have hcard : (D.localBasis ρ).card ≤ D.localDim := D.localBasis_card_le ρ
+  simpa [routeBPaperFaithfulTPhiStrictCanonicalOrbitProfileSubspace, V, ρ] using
+    (hmap.le.trans (hspan.trans hcard))
+
+/-- Each narrowed canonical row lies in its selected orbit profile subspace. -/
+theorem routeBPaperFaithfulTPhi_strictCanonicalRow_mem_orbitProfileSubspace
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns)
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (α : Fin n →₀ ℕ)
+    (hSlen : S'.length = Nat.log 2 n)
+    (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+    (hshiftVars :
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)))
+    (hrow :
+      routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
+        M n hn2 htb hns S' shift α) :
+    routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+        M n hn2 htb hns S' shift ∈
+      routeBPaperFaithfulTPhiStrictCanonicalOrbitProfileSubspace
+        D S' shift α hSlen hshiftDegree hshiftVars hadm hrow := by
+  simpa [routeBPaperFaithfulTPhiStrictCanonicalOrbitProfileSubspace] using
+    D.canonicalRow_mem_orbitProfileSpan
+      S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+
+/-- The paper-faithful orbit-rank frontier: finite profiles, bounded local
+spaces, and canonical rows landing in invertible orbit images of those spaces. -/
+def RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankFrontier
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  Nonempty
+    (RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns)
+
+/-- Literal profile-compression data is a special case of the paper-faithful
+orbit-rank data, using the identity orbit equivalence. -/
+noncomputable def routeBPaperFaithfulTPhi_strictOrbitRankData_of_literalProfileCompressionData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictCanonicalWindowProfileCompressionData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns where
+  profileType := D.profileType
+  profileTypeFintype := inferInstance
+  localDim := D.localDim
+  localBasis := D.localBasis
+  localBasis_card_le := D.localBasis_card_le
+  profileBudget_le := D.profileBudget_le
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  orbitEquiv := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    exact LinearEquiv.refl ℚ (MvPolynomial (Fin n) ℚ)
+  canonicalRow_mem_orbitProfileSpan := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    simpa [routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow] using
+      D.canonicalRow_mem_profileSpan
+        S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+
 /-- The concrete canonical-window/profile data gives the `ZeroProfileLocalTypeAlphabet`
 needed by the downstream common-span API. -/
 noncomputable def RouteBPaperFaithfulTPhiStrictCanonicalWindowProfileCompressionData.toLocalTypeAlphabet
