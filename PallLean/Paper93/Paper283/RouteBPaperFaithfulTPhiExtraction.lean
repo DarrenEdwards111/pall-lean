@@ -9970,6 +9970,37 @@ theorem routeBPaperFaithfulTPhi_projectedPSideBound_of_zeroProfileProjectedCommo
         (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
         project hspan).trans hbudget)
 
+/-- A quotient/projected Cook-Levin local type normal-form certificate is the
+paper-faithful replacement for the refuted unquotiented local type target.
+Together with strict projected P-window containment, it gives the strict
+`TΦ` P-side bound. -/
+theorem routeBPaperFaithfulTPhi_projectedPSideBound_of_quotientTypeNormalFormObligation
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    {typeBudget : ℕ}
+    (hquot :
+      CookLevinZeroProfileQuotientTypeNormalFormObligation
+        M n hn2 htb hns typeBudget)
+    (hcontrol :
+      ∀ project :
+        MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ,
+        CookLevinZeroProfileProjectedCommonSpanObligation
+            M n hn2 htb hns typeBudget →
+          RouteBPaperFaithfulTPhiProjectedPWindowControlledByZeroProfileProjection
+            M n hn2 htb hns project)
+    (hbudget : typeBudget ≤ n ^ 200) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns) := by
+  rcases
+    cookLevinZeroProfileProjectedCommonSpanObligation_of_quotientTypeNormalFormObligation
+      M n hn2 htb hns hquot with
+    ⟨project, hidem, hkills, hspan⟩
+  exact
+    routeBPaperFaithfulTPhi_projectedPSideBound_of_zeroProfileProjectedCommonSpanWithBudget
+      M n hn2 htb hns project hspan
+      (hcontrol project ⟨project, hidem, hkills, hspan⟩)
+      hbudget
+
 private theorem routeBPaperFaithfulTPhi_finrank_sup_le_add
     {V : Type*} [AddCommGroup V] [Module ℚ V]
     (U W : Submodule ℚ V)
@@ -10434,6 +10465,59 @@ theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_zeroProfileProjec
     M n hn hn2 htb hns hdec
     (routeBPaperFaithfulTPhi_projectedPSideBound_of_zeroProfileProjectedCommonSpanWithBudget
       M n hn2 htb hns project hspan hcontrol hbudget)
+
+/-- Final strict-`TΦ` hook from the quotient/projected local type normal-form
+obligation.  This is the paper-faithful replacement for the refuted
+unquotiented local normal-form route: the quotient certificate supplies the
+projected common span, and the remaining load-bearing input is strict projected
+P-window containment for that quotient projection. -/
+theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_quotientTypeNormalFormObligation
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    {typeBudget : ℕ}
+    (hquot :
+      CookLevinZeroProfileQuotientTypeNormalFormObligation
+        M n hn2 htb hns typeBudget)
+    (hcontrol :
+      ∀ project :
+        MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ,
+        CookLevinZeroProfileProjectedCommonSpanObligation
+            M n hn2 htb hns typeBudget →
+          RouteBPaperFaithfulTPhiProjectedPWindowControlledByZeroProfileProjection
+            M n hn2 htb hns project)
+    (hbudget : typeBudget ≤ n ^ 200) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_projectedLogWindow
+    M n hn hn2 htb hns hdec
+    (routeBPaperFaithfulTPhi_projectedPSideBound_of_quotientTypeNormalFormObligation
+      M n hn2 htb hns hquot hcontrol hbudget)
+
+/-- Source-coordinate restricted row equality is enough to supply the
+projected-containment side of the quotient/type normal-form final hook. -/
+theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_quotientTypeNormalFormObligation_rangeRestrictedRowIdentity
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    {typeBudget : ℕ}
+    (hquot :
+      CookLevinZeroProfileQuotientTypeNormalFormObligation
+        M n hn2 htb hns typeBudget)
+    (hrow :
+      ∀ project :
+        MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ,
+        CookLevinZeroProfileProjectedCommonSpanObligation
+            M n hn2 htb hns typeBudget →
+          RouteBPaperFaithfulTPhiRangePWindowRestrictedZeroProfileRowIdentity
+            M n hn2 htb hns project)
+    (hbudget : typeBudget ≤ n ^ 200) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_quotientTypeNormalFormObligation
+    M n hn hn2 htb hns hdec hquot
+    (fun project hproject =>
+      routeBPaperFaithfulTPhi_projectedPWindowControlledByZeroProfileProjection_of_rangeRestrictedRowIdentity
+        M n hn2 htb hns project (hrow project hproject))
+    hbudget
 
 /-- Strict-`TΦ` projected/log-window final hook from quotiented zero-profile
 data and the strict projected P-window containment. -/
