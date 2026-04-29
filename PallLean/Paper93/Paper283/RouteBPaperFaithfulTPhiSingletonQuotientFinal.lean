@@ -1193,6 +1193,51 @@ theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNorm
             (hI2 n hn4)
             (hI3 n hn4)⟩)
 
+/-- Final strict paper-faithful close-out through the endpoint/profile-aware
+replacement for canonical `concreteW` H4.
+
+This route does not ask for the refuted canonical H4 field.  Direct branch
+shapes plus canonical-row transport supply endpoint-augmented H3, the
+endpoint-augmented H4 proof is internal to the charged target-cover consumer,
+and the concrete endpoint charge discharges charged shift. -/
+theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_endpointAugmented_directBranchTransport_concreteEndpointCharge_chargedTargetCover
+    (hzero :
+      forall (M : DTM) (n : Nat) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n),
+        CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hShape :
+      forall (M : DTM) (n : Nat) (hn2 : n >= 2) (hn4 : n >= 4)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n),
+        CookLevinDirectBranchShapeWitnesses M n hn2 htb hns hn4)
+    (hTransport :
+      forall (M : DTM) (n : Nat) (hn2 : n >= 2) (hn4 : n >= 4)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n),
+        CookLevinConcreteWCanonicalRowTransport M n hn2 htb hns hn4)
+    (hI1_univ : PallLean.Paper93.Wiring.PerTypeProductGrouping_universal)
+    (hI3_univ : PallLean.Paper93.Wiring.PerTypeMlprojClosure_universal)
+    (hCover :
+      forall (M : DTM) (n : Nat) (hn2 : n >= 2) (hn4 : n >= 4)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n),
+        forall (h : ProfileHistogram)
+          (hadm : ProfileAdmissible (Nat.log 2 n) h),
+            h ConstraintType.transitionRight = 0 ->
+              h ≠ zeroProfileHistogram ->
+                ActiveProfileSupport h ->
+                  CookLevinEndpointChargedTargetProfileCoverAt
+                    M n hn2 htb hns
+                    (concreteWEndpointSpanOneStepCharge n hn4) h hadm) :
+    NoBoundedSATDeciderAtPaperScale :=
+  noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_endpointAugmented_concreteEndpointCharge_chargedTargetCover
+    hzero
+    (fun M n hn2 hn4 htb hns =>
+      CookLevinFactorMemPerType_endpointAugmentedConcreteW_of_directBranchShapes_transport
+        M n hn2 htb hns hn4
+        (hShape M n hn2 hn4 htb hns)
+        (hTransport M n hn2 hn4 htb hns))
+    (fun n hn4 => hI1_univ n (endpointAugmentedConcreteW n hn4))
+    (fun n hn4 => hI3_univ n (endpointAugmentedConcreteW n hn4))
+    hCover
+
 /-- Uniform concrete row embeddings plus the range-only residual balance rule
 out bounded SAT deciders through the semantic singleton normalizer. -/
 theorem noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_residualBalance
@@ -1674,6 +1719,39 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNor
     (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_importedConcreteW_strictPaperFaithfulCanonicalProfile
       hShape hTransport hDeriv hI1 hI2 hI3)
 
+/-- Rich-projection discharge through the endpoint/profile-aware replacement
+for canonical `concreteW` H4. -/
+theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_endpointAugmented_directBranchTransport_concreteEndpointCharge_chargedTargetCover
+    (hzero :
+      forall (M : DTM) (n : Nat) (hn2 : n >= 2)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n),
+        CookLevinZeroHistogramShiftCommonSpan M n hn2 htb hns)
+    (hShape :
+      forall (M : DTM) (n : Nat) (hn2 : n >= 2) (hn4 : n >= 4)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n),
+        CookLevinDirectBranchShapeWitnesses M n hn2 htb hns hn4)
+    (hTransport :
+      forall (M : DTM) (n : Nat) (hn2 : n >= 2) (hn4 : n >= 4)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n),
+        CookLevinConcreteWCanonicalRowTransport M n hn2 htb hns hn4)
+    (hI1_univ : PallLean.Paper93.Wiring.PerTypeProductGrouping_universal)
+    (hI3_univ : PallLean.Paper93.Wiring.PerTypeMlprojClosure_universal)
+    (hCover :
+      forall (M : DTM) (n : Nat) (hn2 : n >= 2) (hn4 : n >= 4)
+        (htb : M.timeBound <= 4) (hns : M.numStates <= n),
+        forall (h : ProfileHistogram)
+          (hadm : ProfileAdmissible (Nat.log 2 n) h),
+            h ConstraintType.transitionRight = 0 ->
+              h ≠ zeroProfileHistogram ->
+                ActiveProfileSupport h ->
+                  CookLevinEndpointChargedTargetProfileCoverAt
+                    M n hn2 htb hns
+                    (concreteWEndpointSpanOneStepCharge n hn4) h hadm) :
+    CookLevinRichProjectionDischarge :=
+  cookLevinRichProjectionDischarge_iff_no_bounded_sat_decider.mpr
+    (noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_endpointAugmented_directBranchTransport_concreteEndpointCharge_chargedTargetCover
+      hzero hShape hTransport hI1_univ hI3_univ hCover)
+
 /-- Rich-projection discharge from concrete row embeddings and range-only
 residual balance through the semantic singleton normalizer. -/
 theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_residualBalance
@@ -1886,6 +1964,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_canonicalProfileResidualBalance
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_strictPaperFaithfulCanonicalProfile
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_importedConcreteW_strictPaperFaithfulCanonicalProfile
+#print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_endpointAugmented_directBranchTransport_concreteEndpointCharge_chargedTargetCover
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_residualBalance
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_concreteSingletonQuotient_strictFOB
 #print axioms noBoundedSATDeciderAtPaperScale_of_routeBPaperFaithfulTPhi_singletonQuotient_concreteW_rowEmbeddings_rangeRestrictedResidualBalance
@@ -1908,6 +1987,7 @@ theorem cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuo
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_canonicalProfileResidualBalance
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_strictPaperFaithfulCanonicalProfile
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_importedConcreteW_strictPaperFaithfulCanonicalProfile
+#print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_endpointAugmented_directBranchTransport_concreteEndpointCharge_chargedTargetCover
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonNormalForm_concreteW_rowEmbeddings_residualBalance
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_concreteSingletonQuotient_strictFOB
 #print axioms cookLevinRichProjectionDischarge_of_routeBPaperFaithfulTPhi_singletonQuotient_concreteW_rowEmbeddings_rangeRestrictedResidualBalance
