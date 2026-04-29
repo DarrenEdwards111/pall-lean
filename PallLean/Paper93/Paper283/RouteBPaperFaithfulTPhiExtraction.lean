@@ -4274,6 +4274,299 @@ theorem routeBPaperFaithfulTPhi_unitShift_derivative_correctionSumOnStrictSuppor
     routeBPaperFaithfulTPhi_unitShift_derivative_correctionSummand
       M n hn2 htb hns S T j hj
 
+/-- The singleton derivative coefficient factor has only two cases: the
+shifted coordinate is in the differentiated strict set `T`, or it is not. -/
+theorem routeBPaperFaithfulTPhi_unitShift_derivative_singletonFactor_byMembership
+    {N : ℕ} (T : Finset (Fin N)) (j : Fin N) :
+    (2 : ℚ) ^ (({j} : Finset (Fin N)) ∩ T).card *
+        (-1) ^ (({j} : Finset (Fin N)) \ T).card *
+        (-1) ^ (T \ ({j} : Finset (Fin N))).card =
+      if j ∈ T then
+        (2 : ℚ) * (-1) ^ (T.card - 1)
+      else
+        -((-1 : ℚ) ^ T.card) := by
+  classical
+  by_cases hjT : j ∈ T
+  · have hsdiff : T \ ({j} : Finset (Fin N)) = T.erase j := by
+      ext x
+      by_cases hxj : x = j <;> simp [Finset.mem_sdiff, hxj]
+    have hsingletonDiff : ({j} : Finset (Fin N)) \ T = ∅ := by
+      ext x
+      by_cases hxj : x = j <;> simp [Finset.mem_sdiff, hxj, hjT]
+    simp [hjT, hsdiff, hsingletonDiff, Finset.card_erase_of_mem hjT]
+  · have hsdiff : T \ ({j} : Finset (Fin N)) = T := by
+      ext x
+      by_cases hxj : x = j <;> simp [Finset.mem_sdiff, hxj, hjT]
+    have hsingletonDiff : ({j} : Finset (Fin N)) \ T = {j} := by
+      ext x
+      by_cases hxj : x = j <;> simp [Finset.mem_sdiff, hxj, hjT]
+    simp [hjT, hsdiff, hsingletonDiff]
+
+/-- Collapse the derivative strict-support correction sum to the explicit
+`S ∩ T` / `S \ T` membership cases.  This is the arithmetic form needed by
+the normalized residual balance: the remaining dependence is only whether
+each strict source coordinate was differentiated. -/
+theorem routeBPaperFaithfulTPhi_unitShift_derivative_correctionSumOnStrictSupport_byMembership
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S T : Finset (Fin (n / 3))) :
+    let e : Fin (n / 3) ↪ Fin n :=
+      ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩;
+    let p : MvPolynomial (Fin n) ℚ :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns);
+    let r : MvPolynomial (Fin (n / 3)) ℚ :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) p;
+    let d : MvPolynomial (Fin n) ℚ :=
+      MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+          SPDP.iterDerivList T.toList r));
+    let α : Fin n →₀ ℕ := SymmetricPower.tagMonomial (S.map e);
+    (∑ j ∈ S,
+      MvPolynomial.coeff (Finsupp.single (e j) 1) d *
+        MvPolynomial.coeff α
+          (mlProj
+            (MvPolynomial.X (e j) *
+              cookLevinZeroProfileBaseProduct M n hn2 htb hns))) =
+      ∑ j ∈ S,
+        (if j ∈ T then
+          (2 : ℚ) * (-1) ^ (T.card - 1)
+        else
+          -((-1 : ℚ) ^ T.card)) *
+          ((-1 : ℚ) ^ (S.card - 1)) := by
+  classical
+  let e : Fin (n / 3) ↪ Fin n :=
+    ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩
+  let p : MvPolynomial (Fin n) ℚ :=
+    compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  let r : MvPolynomial (Fin (n / 3)) ℚ :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+      (cookLevinStrictFOBFlatMap_injective n) p
+  let d : MvPolynomial (Fin n) ℚ :=
+    MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+      (mlProj ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+        SPDP.iterDerivList T.toList r))
+  let α : Fin n →₀ ℕ := SymmetricPower.tagMonomial (S.map e)
+  have hsum :=
+    routeBPaperFaithfulTPhi_unitShift_derivative_correctionSumOnStrictSupport
+      M n hn2 htb hns S T
+  have hcase :
+      (∑ j ∈ S,
+        ((2 : ℚ) ^ (({j} : Finset (Fin (n / 3))) ∩ T).card *
+            (-1) ^ (({j} : Finset (Fin (n / 3))) \ T).card *
+            (-1) ^ (T \ ({j} : Finset (Fin (n / 3)))).card) *
+          ((-1 : ℚ) ^ (S.erase j).card)) =
+        ∑ j ∈ S,
+          (if j ∈ T then
+            (2 : ℚ) * (-1) ^ (T.card - 1)
+          else
+            -((-1 : ℚ) ^ T.card)) *
+            ((-1 : ℚ) ^ (S.card - 1)) := by
+    refine Finset.sum_congr rfl ?_
+    intro j hj
+    rw [routeBPaperFaithfulTPhi_unitShift_derivative_singletonFactor_byMembership T j]
+    rw [Finset.card_erase_of_mem hj]
+  calc
+    (∑ j ∈ S,
+      MvPolynomial.coeff (Finsupp.single (e j) 1) d *
+        MvPolynomial.coeff α
+          (mlProj
+            (MvPolynomial.X (e j) *
+              cookLevinZeroProfileBaseProduct M n hn2 htb hns)))
+        = ∑ j ∈ S,
+            ((2 : ℚ) ^ (({j} : Finset (Fin (n / 3))) ∩ T).card *
+                (-1) ^ (({j} : Finset (Fin (n / 3))) \ T).card *
+                (-1) ^ (T \ ({j} : Finset (Fin (n / 3)))).card) *
+              ((-1 : ℚ) ^ (S.erase j).card) := by
+          simpa [e, p, r, d, α] using hsum
+    _ = ∑ j ∈ S,
+          (if j ∈ T then
+            (2 : ℚ) * (-1) ^ (T.card - 1)
+          else
+            -((-1 : ℚ) ^ T.card)) *
+            ((-1 : ℚ) ^ (S.card - 1)) := hcase
+
+/-- Split the derivative correction sum into the two finite regions
+`S ∩ T` and `S \ T`. -/
+theorem routeBPaperFaithfulTPhi_unitShift_derivative_correctionSumOnStrictSupport_inter_sdiff
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S T : Finset (Fin (n / 3))) :
+    let e : Fin (n / 3) ↪ Fin n :=
+      ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩;
+    let p : MvPolynomial (Fin n) ℚ :=
+      compiledPoly (cook_levin_compilation M n hn2 htb hns);
+    let r : MvPolynomial (Fin (n / 3)) ℚ :=
+      MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+        (cookLevinStrictFOBFlatMap_injective n) p;
+    let d : MvPolynomial (Fin n) ℚ :=
+      MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+        (mlProj ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+          SPDP.iterDerivList T.toList r));
+    let α : Fin n →₀ ℕ := SymmetricPower.tagMonomial (S.map e);
+    (∑ j ∈ S,
+      MvPolynomial.coeff (Finsupp.single (e j) 1) d *
+        MvPolynomial.coeff α
+          (mlProj
+            (MvPolynomial.X (e j) *
+              cookLevinZeroProfileBaseProduct M n hn2 htb hns))) =
+      ((S ∩ T).card : ℚ) *
+        (((2 : ℚ) * (-1) ^ (T.card - 1)) *
+          ((-1 : ℚ) ^ (S.card - 1))) +
+      ((S \ T).card : ℚ) *
+        ((-((-1 : ℚ) ^ T.card)) *
+          ((-1 : ℚ) ^ (S.card - 1))) := by
+  classical
+  let e : Fin (n / 3) ↪ Fin n :=
+    ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩
+  let p : MvPolynomial (Fin n) ℚ :=
+    compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  let r : MvPolynomial (Fin (n / 3)) ℚ :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+      (cookLevinStrictFOBFlatMap_injective n) p
+  let d : MvPolynomial (Fin n) ℚ :=
+    MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+      (mlProj ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+        SPDP.iterDerivList T.toList r))
+  let α : Fin n →₀ ℕ := SymmetricPower.tagMonomial (S.map e)
+  have hmem :=
+    routeBPaperFaithfulTPhi_unitShift_derivative_correctionSumOnStrictSupport_byMembership
+      M n hn2 htb hns S T
+  let a : ℚ := (2 : ℚ) * (-1) ^ (T.card - 1)
+  let b : ℚ := -((-1 : ℚ) ^ T.card)
+  let c : ℚ := (-1 : ℚ) ^ (S.card - 1)
+  have hsplit :
+      (∑ j ∈ S, (if j ∈ T then a else b) * c) =
+        (∑ j ∈ S ∩ T, a * c) + ∑ j ∈ S \ T, b * c := by
+    rw [← Finset.sum_filter_add_sum_filter_not S (fun j => j ∈ T)
+      (fun j => (if j ∈ T then a else b) * c)]
+    have hleft :
+        (∑ x ∈ S ∩ T, (if x ∈ T then a else b) * c) =
+          ∑ x ∈ S ∩ T, a * c := by
+      refine Finset.sum_congr rfl ?_
+      intro x hx
+      exact by simp [Finset.mem_inter.mp hx |>.2]
+    have hright :
+        (∑ x ∈ S \ T, (if x ∈ T then a else b) * c) =
+          ∑ x ∈ S \ T, b * c := by
+      refine Finset.sum_congr rfl ?_
+      intro x hx
+      exact by simp [Finset.mem_sdiff.mp hx |>.2]
+    rw [Finset.filter_mem_eq_inter, Finset.filter_notMem_eq_sdiff, hleft, hright]
+  calc
+    (∑ j ∈ S,
+      MvPolynomial.coeff (Finsupp.single (e j) 1) d *
+        MvPolynomial.coeff α
+          (mlProj
+            (MvPolynomial.X (e j) *
+              cookLevinZeroProfileBaseProduct M n hn2 htb hns)))
+        = ∑ j ∈ S,
+            (if j ∈ T then
+              (2 : ℚ) * (-1) ^ (T.card - 1)
+            else
+              -((-1 : ℚ) ^ T.card)) *
+              ((-1 : ℚ) ^ (S.card - 1)) := by
+          simpa [e, p, r, d, α] using hmem
+    _ = (∑ j ∈ S ∩ T,
+          ((2 : ℚ) * (-1) ^ (T.card - 1)) *
+            ((-1 : ℚ) ^ (S.card - 1))) +
+        ∑ j ∈ S \ T,
+          (-((-1 : ℚ) ^ T.card)) *
+            ((-1 : ℚ) ^ (S.card - 1)) := by
+          simpa [a, b, c] using hsplit
+    _ = ((S ∩ T).card : ℚ) *
+          (((2 : ℚ) * (-1) ^ (T.card - 1)) *
+            ((-1 : ℚ) ^ (S.card - 1))) +
+        ((S \ T).card : ℚ) *
+          ((-((-1 : ℚ) ^ T.card)) *
+            ((-1 : ℚ) ^ (S.card - 1))) := by
+          simp [Finset.sum_const]
+
+/-- A singleton-shift row cannot contribute to a strict tag coefficient
+outside that tag's support. -/
+theorem routeBPaperFaithfulTPhi_unitShift_singletonShiftRow_tagCoeff_zero_of_notMem
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : Finset (Fin (n / 3))) (i : Fin n)
+    (hi :
+      i ∉ (SymmetricPower.tagMonomial
+        (S.map ⟨cookLevinStrictFOBFlatMap n,
+          cookLevinStrictFOBFlatMap_injective n⟩)).support) :
+    let e : Fin (n / 3) ↪ Fin n :=
+      ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩;
+    let α : Fin n →₀ ℕ := SymmetricPower.tagMonomial (S.map e);
+    MvPolynomial.coeff α
+      (mlProj
+        (MvPolynomial.X i *
+          cookLevinZeroProfileBaseProduct M n hn2 htb hns)) = 0 := by
+  classical
+  let e : Fin (n / 3) ↪ Fin n :=
+    ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩
+  let α : Fin n →₀ ℕ := SymmetricPower.tagMonomial (S.map e)
+  have hml :
+      Finsupp.IsMultilinear α := by
+    simpa [α] using SymmetricPower.tagMonomial_isMultilinear (S.map e)
+  have hcoeff :=
+    coeff_mlProj_X_mul_of_isMultilinear
+      (cookLevinZeroProfileBaseProduct M n hn2 htb hns) i α hml
+  have hi' : i ∉ α.support := by
+    simpa [e, α] using hi
+  simpa [hi'] using hcoeff
+
+/-- The full ambient singleton-normalizer correction sum restricts to the
+strict tag support.  Off-support singleton-shift rows have zero coefficient at
+the queried strict tag monomial. -/
+theorem routeBPaperFaithfulTPhi_unitShift_correctionSum_restricts_to_strictSupport
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (S : Finset (Fin (n / 3))) (row : MvPolynomial (Fin n) ℚ) :
+    let e : Fin (n / 3) ↪ Fin n :=
+      ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩;
+    let α : Fin n →₀ ℕ := SymmetricPower.tagMonomial (S.map e);
+    (∑ i : Fin n,
+      MvPolynomial.coeff (Finsupp.single i 1) row *
+        MvPolynomial.coeff α
+          (mlProj
+            (MvPolynomial.X i *
+              cookLevinZeroProfileBaseProduct M n hn2 htb hns))) =
+      ∑ j ∈ S,
+        MvPolynomial.coeff (Finsupp.single (e j) 1) row *
+          MvPolynomial.coeff α
+            (mlProj
+              (MvPolynomial.X (e j) *
+                cookLevinZeroProfileBaseProduct M n hn2 htb hns)) := by
+  classical
+  let e : Fin (n / 3) ↪ Fin n :=
+    ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩
+  let α : Fin n →₀ ℕ := SymmetricPower.tagMonomial (S.map e)
+  let f : Fin n → ℚ := fun i =>
+    MvPolynomial.coeff (Finsupp.single i 1) row *
+      MvPolynomial.coeff α
+        (mlProj
+          (MvPolynomial.X i *
+            cookLevinZeroProfileBaseProduct M n hn2 htb hns))
+  have hsupport : α.support = S.map e := by
+    ext i
+    simpa [α] using tagMonomial_mem_support_iff (S.map e) i
+  have hrestrict :
+      (∑ i : Fin n, f i) = ∑ i ∈ α.support, f i := by
+    rw [← Finset.sum_subset (Finset.subset_univ α.support)]
+    intro i _ hi
+    have hzero :
+        MvPolynomial.coeff α
+          (mlProj
+            (MvPolynomial.X i *
+              cookLevinZeroProfileBaseProduct M n hn2 htb hns)) = 0 := by
+      simpa [e, α] using
+        routeBPaperFaithfulTPhi_unitShift_singletonShiftRow_tagCoeff_zero_of_notMem
+          M n hn2 htb hns S i (by simpa [e, α, hsupport] using hi)
+    simp [f, hzero]
+  calc
+    (∑ i : Fin n, f i) = ∑ i ∈ α.support, f i := hrestrict
+    _ = ∑ i ∈ S.map e, f i := by simp [hsupport]
+    _ = ∑ j ∈ S, f (e j) := by
+      simp [Finset.sum_map]
+
 /-- Plugging the explicit strict tag coefficient formulas into the expanded
 normalized coefficient-balance gate leaves exactly the singleton-normalizer
 correction identity.  This is the coefficient audit for the normalized
