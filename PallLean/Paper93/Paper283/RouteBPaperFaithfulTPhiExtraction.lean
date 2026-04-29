@@ -9363,6 +9363,88 @@ theorem routeBPaperFaithfulTPhi_projectedPWindowControlledBy_singletonNormalForm
           M n hn2 htb hns S' shift']
         exact hd_mem)
 
+
+/-- Exact full projected containment follows from the semantic singleton
+normalizer route exactly when the finite singleton residual has also been
+absorbed into the same projected zero-profile span.
+
+The already-proved theorem
+`routeBPaperFaithfulTPhi_projectedPWindowControlledBy_singletonNormalForm_sup_singletonResidual`
+places the full strict ambient `TΦ` SPDP subspace in
+`projectedZeroProfileSpan ⊔ singletonResidual`.  This lemma is the sharp
+remaining condition for the stronger target requested here: if the residual
+subspace is itself contained in the projected span, then the exact projected
+containment follows. -/
+theorem routeBPaperFaithfulTPhi_projectedPWindowControlledByZeroProfileProjection_of_singletonNormalForm_residualAbsorbed
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hnorm :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalizedRowIdentity
+        M n hn2 htb hns)
+    (hresidual :
+      zeroProfileSingletonShiftSubspace
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i) ≤
+        zeroProfileProjectedShiftSpan (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+          (zeroProfileSingletonNormalFormProjection
+            (fun i => (cookLevinFactorList M n hn2 htb hns).get i))) :
+    RouteBPaperFaithfulTPhiProjectedPWindowControlledByZeroProfileProjection
+      M n hn2 htb hns
+      (zeroProfileSingletonNormalFormProjection
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) := by
+  classical
+  let factors :=
+    fun i => (cookLevinFactorList M n hn2 htb hns).get i
+  let A : Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+    zeroProfileProjectedShiftSpan (Nat.log 2 n) factors
+      (zeroProfileSingletonNormalFormProjection factors)
+  let R : Submodule ℚ (MvPolynomial (Fin n) ℚ) :=
+    zeroProfileSingletonShiftSubspace factors
+  have hsup :
+      MultilinearSPDP.mlBlockedSpdpSubspace
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (Nat.log 2 n) (Nat.log 2 n)
+          ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+            (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ≤
+        A ⊔ R := by
+    simpa [A, R, factors] using
+      routeBPaperFaithfulTPhi_projectedPWindowControlledBy_singletonNormalForm_sup_singletonResidual
+        M n hn2 htb hns hnorm
+  have hsup_le : A ⊔ R ≤ A := by
+    exact sup_le le_rfl (by simpa [A, R, factors] using hresidual)
+  exact hsup.trans hsup_le
+
+/-- If the singleton residual is not absorbed by the semantic normalizer's
+projected zero-profile span, the existing normalized-row theorem can only give
+the honest `span ⊔ residual` containment, not the exact projected containment.
+This names the precise obstruction to the stronger target. -/
+def RouteBPaperFaithfulTPhiSingletonResidualAbsorbed
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  zeroProfileSingletonShiftSubspace
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i) ≤
+    zeroProfileProjectedShiftSpan (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+      (zeroProfileSingletonNormalFormProjection
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i))
+
+/-- Named version of the exact containment proof using the semantic singleton
+normalizer, isolated behind the real residual-absorption condition. -/
+theorem routeBPaperFaithfulTPhi_projectedPWindowControlledByZeroProfileProjection_of_singletonNormalForm_residualAbsorbed'
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hnorm :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalizedRowIdentity
+        M n hn2 htb hns)
+    (hresidual :
+      RouteBPaperFaithfulTPhiSingletonResidualAbsorbed M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiProjectedPWindowControlledByZeroProfileProjection
+      M n hn2 htb hns
+      (zeroProfileSingletonNormalFormProjection
+        (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) :=
+  routeBPaperFaithfulTPhi_projectedPWindowControlledByZeroProfileProjection_of_singletonNormalForm_residualAbsorbed
+    M n hn2 htb hns hnorm hresidual
+
 /-- A budgeted common span for the singleton normalizer image, plus normalized
 strict-`TΦ` row equality, gives the strict projected P-side bound after paying
 the finite singleton residual at ambient cost `n`. -/
