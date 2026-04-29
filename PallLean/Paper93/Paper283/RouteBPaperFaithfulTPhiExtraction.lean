@@ -3703,6 +3703,52 @@ theorem routeBPaperFaithfulTPhiStrictRawWindow_zero_unmarked
   rcases h with ⟨i, hi⟩
   simp [routeBPaperFaithfulTPhiStrictRawWindowOf] at hi
 
+theorem routeBPaperFaithfulTPhiStrictCoeffMarker_singleton
+    (n : ℕ) (i : Fin n) :
+    routeBPaperFaithfulTPhiStrictCoeffMarker n
+        (Finsupp.single i 1 : Fin n →₀ ℕ) =
+      false := by
+  classical
+  unfold routeBPaperFaithfulTPhiStrictCoeffMarker
+  rw [decide_eq_false_iff_not]
+  intro h
+  rcases h with ⟨j, k, hjk, hα⟩
+  let e : Fin (n / 3) ↪ Fin n :=
+    ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩
+  by_cases hij : i = e j
+  · have hval :=
+      congrArg (fun β : Fin n →₀ ℕ =>
+        β (cookLevinStrictFOBFlatMap n k)) hα
+    have hik : cookLevinStrictFOBFlatMap n k ≠ i := by
+      intro hik
+      apply hjk
+      exact (cookLevinStrictFOBFlatMap_injective n (hik.trans hij)).symm
+    have hbad : (0 : ℕ) = 1 := by
+      simp [Finsupp.single_eq_of_ne hik,
+        SymmetricPower.tagMonomial_apply] at hval
+    norm_num at hbad
+  · have hval :=
+      congrArg (fun β : Fin n →₀ ℕ =>
+        β (cookLevinStrictFOBFlatMap n j)) hα
+    have hij' : cookLevinStrictFOBFlatMap n j ≠ i := by
+      intro h
+      exact hij h.symm
+    have hbad : (0 : ℕ) = 1 := by
+      simp [Finsupp.single_eq_of_ne hij',
+        SymmetricPower.tagMonomial_apply] at hval
+    norm_num at hbad
+
+theorem routeBPaperFaithfulTPhiStrictRawWindow_singleton_unmarked
+    (n : ℕ) (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ) (i : Fin n) :
+    ¬ routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff
+      (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift
+        (Finsupp.single i 1 : Fin n →₀ ℕ)) := by
+  intro h
+  rcases h with ⟨idx, hidx⟩
+  simp [routeBPaperFaithfulTPhiStrictRawWindowOf,
+    routeBPaperFaithfulTPhiStrictCoeffMarker_singleton] at hidx
+
 theorem routeBPaperFaithfulTPhiStrictDefaultWindow_mem_marked_class
     {n κ : ℕ}
     {w :
@@ -4151,9 +4197,8 @@ normal-form gates.
 
 This is deliberately narrow.  It keeps only the zero-profile unit-shift rows
 whose strict derivative list is nodup and even-length, in addition to the
-canonical/unmarked strict normal-form gates.  Multi-tag coefficient probes and
-odd unit-shift rows are handled by the obstruction lemmas rather than included
-in this positive pointwise coefficient target. -/
+canonical/unmarked strict normal-form gates.  This row family belongs to the
+coefficient-identity diagnostic route, not to the later profile-cover route. -/
 def routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
@@ -4166,6 +4211,19 @@ def routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
       α = (0 : Fin n →₀ ℕ) ∧
       S'.Nodup ∧
       Even S'.length
+
+/-- Profile-cover row family for strict `TΦ` range rows.
+
+Unlike the coefficient-identity row family above, this classifier surface may
+use any unmarked canonical coefficient probe to attach a profile to a strict
+range row.  The derivative row being covered does not depend on that probe. -/
+def routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiCanonicalProfileRowFamily
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhiStrictUnmarkedCanonicalRowFamily
+    M n hn2 htb hns
 
 /-- The replacement strict coefficient target: the normalized coefficient
 identity is only requested on canonical, unmarked rows that also satisfy the
@@ -5358,6 +5416,155 @@ noncomputable def routeBPaperFaithfulTPhi_strictOrbitRankData_of_literalProfileC
     simpa [routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow] using
       D.canonicalRow_mem_profileSpan
         S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+
+/-- Local-monoid/profile row-cover data for strict `TΦ` range rows.
+
+This is the load-bearing profile membership theorem surface for the global
+matrix assembly: each range-source row admits an unmarked canonical coefficient
+probe, and the resulting canonical window selects a bounded local profile basis
+that literally spans the derivative row. -/
+structure RouteBPaperFaithfulTPhiStrictRangeRowProfileCoverData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) where
+  profileType : Type
+  [profileTypeFintype : Fintype profileType]
+  localDim : ℕ
+  localBasis : profileType → Finset (MvPolynomial (Fin n) ℚ)
+  localBasis_card_le : ∀ ρ, (localBasis ρ).card ≤ localDim
+  profileBudget_le : Fintype.card profileType * localDim ≤
+    withinProfileBound (Nat.log 2 n)
+  profileOfCanonicalWindow :
+    ∀ w : PallLean.Paper93.Window
+        (RouteBPaperFaithfulTPhiStrictBlockIdx n)
+        RouteBPaperFaithfulTPhiStrictLocalOp
+        (Nat.log 2 n),
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n)) w) →
+      profileType
+  canonicalRangeRow_mem_profileSpan :
+    ∀ (S' : List (Fin (n / 3)))
+      (shift : MvPolynomial (Fin (n / 3)) ℚ)
+      (α : Fin n →₀ ℕ)
+      (hSlen : S'.length = Nat.log 2 n)
+      (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+      (hshiftVars :
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+          (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+      (hadm :
+        SPDP.isBlockAdmissible
+          (cook_levin_compilation M n hn2 htb hns).partition
+          (S'.map (cookLevinStrictFOBFlatMap n)))
+      (hrow :
+        routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+          M n hn2 htb hns S' shift α),
+      routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+          M n hn2 htb hns S' shift ∈
+        Submodule.span ℚ
+          (↑(localBasis
+            (profileOfCanonicalWindow
+              (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+              hrow.1)) : Set (MvPolynomial (Fin n) ℚ))
+
+attribute [instance] RouteBPaperFaithfulTPhiStrictRangeRowProfileCoverData.profileTypeFintype
+
+/-- Range-row profile-cover data is a special case of the existing orbit-rank
+package, by using the identity orbit equivalence and restricting its membership
+field to the narrower paper-faithful canonical rows. -/
+noncomputable def routeBPaperFaithfulTPhi_strictOrbitRankData_of_rangeRowProfileCoverData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictRangeRowProfileCoverData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns where
+  profileType := D.profileType
+  profileTypeFintype := inferInstance
+  localDim := D.localDim
+  localBasis := D.localBasis
+  localBasis_card_le := D.localBasis_card_le
+  profileBudget_le := D.profileBudget_le
+  profileOfCanonicalWindow := D.profileOfCanonicalWindow
+  orbitEquiv := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    exact LinearEquiv.refl ℚ (MvPolynomial (Fin n) ℚ)
+  canonicalRow_mem_orbitProfileSpan := by
+    intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    simpa [routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow] using
+      D.canonicalRangeRow_mem_profileSpan
+        S' shift α hSlen hshiftDegree hshiftVars hadm hrow.1
+
+/-- The local-monoid/profile row-cover theorem for strict `TΦ` range rows.
+
+The proof picks a singleton coefficient probe for each source-coordinate row.
+Singleton probes are unmarked, hence their strict raw windows are canonical
+under the strict scheme.  The profile-cover membership field gives local span
+membership, and the finite global profile basis is the union of all local bases,
+so the row lies in the assembled global span. -/
+theorem routeBPaperFaithfulTPhi_strictRangeRowsGlobalProfileSpanCover_of_rangeRowProfileCoverData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictRangeRowProfileCoverData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictRangeRowsGlobalProfileSpanCover
+      (routeBPaperFaithfulTPhi_strictOrbitRankData_of_rangeRowProfileCoverData
+        M n hn2 htb hns D) := by
+  classical
+  intro S' shift hSlen hshiftDegree hshiftVars hadm
+  let i0 : Fin n := ⟨0, by omega⟩
+  let α : Fin n →₀ ℕ := Finsupp.single i0 1
+  have hunmarked :
+      ¬ routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff
+        (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) := by
+    simpa [α] using
+      routeBPaperFaithfulTPhiStrictRawWindow_singleton_unmarked
+        n S' shift i0
+  have hcan :
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n))
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)) := by
+    letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+    exact
+      routeBPaperFaithfulTPhiStrictCanWindow_eq_self_of_unmarked
+        (n := n) (κ := Nat.log 2 n) hunmarked
+  have hrow :
+      routeBPaperFaithfulTPhiStrictProfileCoverCanonicalRowFamily
+        M n hn2 htb hns S' shift α := by
+    exact ⟨hcan, hunmarked⟩
+  have hmem :
+      routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+          M n hn2 htb hns S' shift ∈
+        Submodule.span ℚ
+          (↑(D.localBasis
+            (D.profileOfCanonicalWindow
+              (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)
+              hrow.1)) : Set (MvPolynomial (Fin n) ℚ)) :=
+    D.canonicalRangeRow_mem_profileSpan
+      S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+  let D' :=
+    routeBPaperFaithfulTPhi_strictOrbitRankData_of_rangeRowProfileCoverData
+      M n hn2 htb hns D
+  let ρ :=
+    D.profileOfCanonicalWindow
+      (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) hrow.1
+  have hsubset :
+      (↑(D.localBasis ρ) : Set (MvPolynomial (Fin n) ℚ)) ⊆
+        (↑(routeBPaperFaithfulTPhiStrictGlobalProfileBasis D') :
+          Set (MvPolynomial (Fin n) ℚ)) := by
+    intro q hq
+    change q ∈ routeBPaperFaithfulTPhiStrictGlobalProfileBasis D'
+    unfold routeBPaperFaithfulTPhiStrictGlobalProfileBasis
+    exact Finset.mem_biUnion.mpr ⟨ρ, Finset.mem_univ ρ, hq⟩
+  exact (Submodule.span_mono hsubset) hmem
 
 /-- Literal profile-compression data gives an orbit-rank frontier by taking the
 identity orbit equivalence. -/
@@ -9424,6 +9631,22 @@ theorem routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_rangeRo
     D
     ((routeBPaperFaithfulTPhi_strictAmbientGlobalProfileSpanCover_iff_rangeRows D).mpr
       hrange)
+
+/-- Range-row profile-cover data closes the paper-faithful strict global
+profile/orbit assembly. -/
+theorem routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_rangeRowProfileCoverData
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictRangeRowProfileCoverData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictPaperProfileOrbitGlobalAssembly
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_rangeRows
+    (routeBPaperFaithfulTPhi_strictOrbitRankData_of_rangeRowProfileCoverData
+      M n hn2 htb hns D)
+    (routeBPaperFaithfulTPhi_strictRangeRowsGlobalProfileSpanCover_of_rangeRowProfileCoverData
+      M n hn2 htb hns D)
 
 /-- A budgeted projected zero-profile common span gives the strict-`TΦ`
 projected P-side bound once the strict projected P-window is contained in that
