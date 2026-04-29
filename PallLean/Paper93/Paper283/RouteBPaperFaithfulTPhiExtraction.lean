@@ -6150,6 +6150,55 @@ theorem routeBPaperFaithfulTPhi_unitShift_collapsedArithmetic_twoTag_noGo
   simp [hScard, hInter, hSdiff, hpowT, hpowTpred, hpowTdiff] at h'
   norm_num at h'
 
+/-- The same collapsed arithmetic obstruction persists for any three strict
+source tags contained in an even derivative set.  This records the next
+paper-faithful boundary after the two-tag marker: excluding only marked
+coefficient pairs is not enough for a pointwise unit-shift coefficient target
+if unmarked three-tag probes are still admitted. -/
+theorem routeBPaperFaithfulTPhi_unitShift_collapsedArithmetic_threeTagSubset_noGo
+    {N : ℕ} (S T : Finset (Fin N))
+    (hScard : S.card = 3) (hSsubT : S ⊆ T)
+    (hEvenT : Even T.card) :
+    ¬
+      ((-1 : ℚ) ^ S.card -
+          (-((S.card : ℚ) * ((-1 : ℚ) ^ (S.card - 1)))) =
+        (2 : ℚ) ^ (S ∩ T).card * (-1) ^ (S \ T).card *
+            (-1) ^ (T \ S).card -
+          (((S ∩ T).card : ℚ) *
+            (((2 : ℚ) * (-1) ^ (T.card - 1)) *
+              ((-1 : ℚ) ^ (S.card - 1))) +
+          ((S \ T).card : ℚ) *
+            ((-((-1 : ℚ) ^ T.card)) *
+              ((-1 : ℚ) ^ (S.card - 1))))) := by
+  classical
+  intro h
+  have hInter : S ∩ T = S := by
+    exact Finset.inter_eq_left.mpr hSsubT
+  have hSdiff : S \ T = ∅ := by
+    exact Finset.sdiff_eq_empty_iff_subset.mpr hSsubT
+  have hTdiffCard : (T \ S).card = T.card - 3 := by
+    rw [Finset.card_sdiff_of_subset hSsubT, hScard]
+  have hcardTge : 3 ≤ T.card := by
+    have hle := Finset.card_le_card hSsubT
+    simpa [hScard] using hle
+  have hpowT : (-1 : ℚ) ^ T.card = 1 :=
+    Even.neg_one_pow hEvenT
+  have hpowTpred : (-1 : ℚ) ^ (T.card - 1) = -1 := by
+    have hodd : Odd (T.card - 1) := by
+      obtain ⟨m, hm⟩ := hEvenT
+      refine ⟨m - 1, ?_⟩
+      omega
+    exact Odd.neg_one_pow hodd
+  have hOddTdiff : Odd (T.card - 3) := by
+    obtain ⟨m, hm⟩ := hEvenT
+    refine ⟨m - 2, ?_⟩
+    omega
+  have hpowTdiff : (-1 : ℚ) ^ (T \ S).card = -1 := by
+    rw [hTdiffCard]
+    exact Odd.neg_one_pow hOddTdiff
+  simp [hScard, hInter, hSdiff, hpowT, hpowTpred, hpowTdiff] at h
+  norm_num at h
+
 /-- Concrete no-go form for the broad normalized coefficient-balance target:
 if an even derivative set contains two distinct strict source coordinates, the
 collapsed arithmetic test rules out the current broad unit-shift balance. -/
