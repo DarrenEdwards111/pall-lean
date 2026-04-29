@@ -4931,6 +4931,87 @@ def RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankFrontier
     (RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
       M n hn2 htb hns)
 
+/-- Package orbit-rank data as the orbit-rank frontier. -/
+theorem routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitRankFrontier_of_data
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankFrontier
+      M n hn2 htb hns :=
+  ⟨D⟩
+
+/-- An orbit-rank frontier supplies the canonical within-profile budget. -/
+theorem routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitRankBoundWithBudget_of_frontier
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (h :
+      RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankFrontier
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankBoundWithBudget
+      M n hn2 htb hns (withinProfileBound (Nat.log 2 n)) := by
+  rcases h with ⟨D⟩
+  exact routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitRankBoundWithBudget_of_data D
+
+/-- Matrix/global rank frontier for the paper-faithful orbit route.
+
+Per-row orbit images alone do not imply a global span/rank bound, because the
+invertible image may vary with the row.  This is the honest downstream load-
+bearing target: the whole narrowed canonical row subspace must have finite rank
+bounded by the total profile budget after the block-permutation/profile matrix
+assembly of paper Lemma 27. -/
+def RouteBPaperFaithfulTPhiStrictCanonicalWindowMatrixRankFrontier
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∃ D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns,
+    Module.finrank ℚ
+      (routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalPWindowSubspace
+        M n hn2 htb hns) ≤ Fintype.card D.profileType * D.localDim
+
+/-- The matrix/global frontier gives the direct finite-rank budget for the
+narrowed canonical strict `TΦ` row subspace. -/
+theorem routeBPaperFaithfulTPhi_strictCanonicalPWindowSubspace_finrank_le_of_matrixRankFrontier
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (hfrontier :
+      RouteBPaperFaithfulTPhiStrictCanonicalWindowMatrixRankFrontier
+        M n hn2 htb hns) :
+    Module.finrank ℚ
+      (routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalPWindowSubspace
+        M n hn2 htb hns) ≤ withinProfileBound (Nat.log 2 n) := by
+  rcases hfrontier with ⟨D, hrank⟩
+  exact hrank.trans D.profileBudget_le
+
+/-- Literal bounded common-span data is a sufficient, stronger way to obtain
+the matrix/global rank frontier.  This keeps the old common-span route as a
+special case without claiming that arbitrary row-dependent orbit images assemble
+into one common span. -/
+theorem routeBPaperFaithfulTPhi_strictCanonicalWindowMatrixRankFrontier_of_commonSpanWithBudget
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns)
+    (hcommon :
+      RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCommonSpanWithBudget
+        M n hn2 htb hns (Fintype.card D.profileType * D.localDim)) :
+    RouteBPaperFaithfulTPhiStrictCanonicalWindowMatrixRankFrontier
+      M n hn2 htb hns := by
+  rcases hcommon with ⟨G, hGcard, hle⟩
+  refine ⟨D, ?_⟩
+  have hmono :
+      Module.finrank ℚ
+        (routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalPWindowSubspace
+          M n hn2 htb hns) ≤
+        Module.finrank ℚ
+          (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))) :=
+    Submodule.finrank_mono hle
+  have hspan :
+      Module.finrank ℚ
+        (Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))) ≤ G.card :=
+    finrank_span_finset_le_card G
+  exact hmono.trans (hspan.trans hGcard)
+
 /-- Literal profile-compression data is a special case of the paper-faithful
 orbit-rank data, using the identity orbit equivalence. -/
 noncomputable def routeBPaperFaithfulTPhi_strictOrbitRankData_of_literalProfileCompressionData
@@ -4956,6 +5037,33 @@ noncomputable def routeBPaperFaithfulTPhi_strictOrbitRankData_of_literalProfileC
     simpa [routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow] using
       D.canonicalRow_mem_profileSpan
         S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+
+/-- Literal profile-compression data gives an orbit-rank frontier by taking the
+identity orbit equivalence. -/
+theorem routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitRankFrontier_of_literalProfileCompression
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictCanonicalWindowProfileCompressionData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankFrontier
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitRankFrontier_of_data
+    (routeBPaperFaithfulTPhi_strictOrbitRankData_of_literalProfileCompressionData
+      M n hn2 htb hns D)
+
+/-- Literal profile-compression data gives the canonical orbit-rank budget. -/
+theorem routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitRankBoundWithBudget_of_literalProfileCompression
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D :
+      RouteBPaperFaithfulTPhiStrictCanonicalWindowProfileCompressionData
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankBoundWithBudget
+      M n hn2 htb hns (withinProfileBound (Nat.log 2 n)) :=
+  routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitRankBoundWithBudget_of_data
+    (routeBPaperFaithfulTPhi_strictOrbitRankData_of_literalProfileCompressionData
+      M n hn2 htb hns D)
 
 /-- The concrete canonical-window/profile data gives the `ZeroProfileLocalTypeAlphabet`
 needed by the downstream common-span API. -/
