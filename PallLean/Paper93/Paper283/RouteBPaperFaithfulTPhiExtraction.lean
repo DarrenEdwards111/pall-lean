@@ -5037,6 +5037,20 @@ def RouteBPaperFaithfulTPhiStrictAmbientMlRankUpper
       (compiledPoly (cook_levin_compilation M n hn2 htb hns))) ≤
     Fintype.card D.profileType * D.localDim
 
+
+/-- Paper-faithful global assembly target for strict `TΦ`.
+
+This is the theorem shape matching the paper route: finite interface-anonymous
+profiles, bounded local profile spaces, orbit/permutation rank preservation,
+and one global matrix assembly bounding the *ambient* strict `TΦ` SPDP matrix.
+It deliberately does not mention arbitrary projected zero-profile containment. -/
+def RouteBPaperFaithfulTPhiStrictPaperProfileOrbitGlobalAssembly
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∃ D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns,
+    RouteBPaperFaithfulTPhiStrictAmbientMlRankUpper M n hn2 htb hns D
+
 /-- Projected zero-profile containment plus a projected common-span budget gives
 exactly the strict ambient `TΦ` SPDP-rank upper bound requested.
 
@@ -5111,6 +5125,23 @@ theorem routeBPaperFaithfulTPhi_strictCanonicalWindowMatrixRankFrontier_of_mlRan
       (routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalPWindowSubspace_le_mlBlockedSpdpSubspace
         M n hn2 htb hns)
   exact hle.trans hrank
+
+/-- The same global assembly also closes the narrowed canonical matrix-rank
+frontier.  This records the paper's direction of travel: ambient matrix
+assembly is the load-bearing result; the narrowed canonical frontier is a
+consumer, not the source of the full ambient theorem. -/
+theorem routeBPaperFaithfulTPhi_strictCanonicalWindowMatrixRankFrontier_of_strictPaperProfileOrbitGlobalAssembly
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (hassembly :
+      RouteBPaperFaithfulTPhiStrictPaperProfileOrbitGlobalAssembly
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictCanonicalWindowMatrixRankFrontier
+      M n hn2 htb hns := by
+  rcases hassembly with ⟨D, hrank⟩
+  exact
+    routeBPaperFaithfulTPhi_strictCanonicalWindowMatrixRankFrontier_of_mlRankUpper
+      D hrank
 
 /-- Literal bounded common-span data is a sufficient, stronger way to obtain
 the matrix/global rank frontier.  This keeps the old common-span route as a
@@ -9085,6 +9116,39 @@ theorem routeBPaperFaithfulTPhi_withinProfileBound_log_le_pow_200
         _ ≤ n ^ 192 := by
           exact Nat.pow_le_pow_left hn2 192
     _ = n ^ 200 := by ring
+
+/-- The paper-faithful global assembly immediately gives the strict ambient
+`TΦ` P-side rank bound for the actual gauge.  This is the replacement for the
+failed arbitrary-projection row-containment route: once the §9 profile/orbit
+matrix assembly is proved, the SAT-decider P-side bound follows directly by
+`profileBudget_le` and the landed `withinProfileBound ≤ n^200` arithmetic. -/
+theorem routeBPaperFaithfulTPhi_pSideBound_of_strictPaperProfileOrbitGlobalAssembly
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hassembly :
+      RouteBPaperFaithfulTPhiStrictPaperProfileOrbitGlobalAssembly
+        M n hn2 htb hns) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns) := by
+  rcases hassembly with ⟨D, hrank⟩
+  unfold SATDeciderGaugePSideBound
+  exact hrank.trans
+    (D.profileBudget_le.trans
+      (routeBPaperFaithfulTPhi_withinProfileBound_log_le_pow_200 n hn2))
+
+/-- A single chosen orbit package with an ambient matrix-rank upper bound is
+the same paper route in constructor form. -/
+theorem routeBPaperFaithfulTPhi_pSideBound_of_strictAmbientMlRankUpper
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns)
+    (hrank :
+      RouteBPaperFaithfulTPhiStrictAmbientMlRankUpper M n hn2 htb hns D) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns) :=
+  routeBPaperFaithfulTPhi_pSideBound_of_strictPaperProfileOrbitGlobalAssembly
+    M n hn2 htb hns ⟨D, hrank⟩
 
 /-- A budgeted projected zero-profile common span gives the strict-`TΦ`
 projected P-side bound once the strict projected P-window is contained in that
