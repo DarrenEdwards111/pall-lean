@@ -3453,6 +3453,46 @@ theorem routeBPaperFaithfulTPhi_singletonNormalizedRowIdentity_of_coeffBalance
     (routeBPaperFaithfulTPhi_normalizedNonSingletonCoeffIdentity_of_coeffBalance
       M n hn2 htb hns hbalance)
 
+/-- The expanded normalized coefficient balance is equivalent to equality
+after the semantic singleton normalizer.  This packages coefficient
+extensionality and the fact that singleton coordinates are erased on both
+sides. -/
+theorem routeBPaperFaithfulTPhi_normalizedCoeffBalance_iff_singletonNormalizedRowIdentity
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedCoeffBalance
+        M n hn2 htb hns ↔
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalizedRowIdentity
+        M n hn2 htb hns := by
+  constructor
+  · exact
+      routeBPaperFaithfulTPhi_singletonNormalizedRowIdentity_of_coeffBalance
+        M n hn2 htb hns
+  · exact
+      routeBPaperFaithfulTPhi_coeffBalance_of_singletonNormalizedRowIdentity
+        M n hn2 htb hns
+
+/-- Equivalently, the expanded coefficient computation is precisely the
+residual statement that the strict zero-profile row and the extracted
+derivative row differ by singleton-shift noise. -/
+theorem routeBPaperFaithfulTPhi_normalizedCoeffBalance_iff_singletonResidual
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedCoeffBalance
+        M n hn2 htb hns ↔
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalFormResidual
+        M n hn2 htb hns := by
+  constructor
+  · intro hbalance
+    exact
+      (routeBPaperFaithfulTPhi_singletonNormalizedRowIdentity_iff_singletonResidual
+        M n hn2 htb hns).mp
+        (routeBPaperFaithfulTPhi_singletonNormalizedRowIdentity_of_coeffBalance
+          M n hn2 htb hns hbalance)
+  · exact
+      routeBPaperFaithfulTPhi_coeffBalance_of_singletonResidual
+        M n hn2 htb hns
+
 /-- Any proof of the strict singleton-normal-form identity must prove that the
 renamed restricted derivative row has no degree-one singleton coefficients.
 This is the concrete coefficient test for the semantic normalizer target. -/
