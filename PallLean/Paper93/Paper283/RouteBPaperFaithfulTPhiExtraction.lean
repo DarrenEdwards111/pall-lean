@@ -10054,6 +10054,38 @@ theorem routeBPaperFaithfulTPhi_projectedPSideBound_of_quotientTypeNormalFormObl
     routeBPaperFaithfulTPhi_projectedPSideBound_of_quotientTypeCertificate_restrictedResidualBalance
       M n hn2 htb hns cert (hres cert) hbudget
 
+/-- Concrete singleton-quotient close-out for the residual-balance route.
+Normalized strict rows provide the singleton residual, and the fixed-derivative
+condition says the derivative row is already the quotient representative. -/
+theorem routeBPaperFaithfulTPhi_projectedPSideBound_of_singletonQuotientTypeCertificate_normalizedRows_derivativeFixed
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hnorm :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalizedRowIdentity
+        M n hn2 htb hns)
+    (hfix :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientDerivativeFixed
+        M n hn2 htb hns)
+    (hbudget :
+      zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i) ≤
+        n ^ 200) :
+    SATDeciderGaugePSideBound M n hn2 htb hns
+      (routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns) := by
+  let cert :=
+    zeroProfileSingletonQuotientTypeSpaceCertificate_projectedFinrank
+      (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i)
+  have hres :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedResidualBalance
+        M n hn2 htb hns cert.project := by
+    simpa [cert, zeroProfileSingletonQuotientTypeSpaceCertificate_projectedFinrank] using
+      routeBPaperFaithfulTPhi_rangePWindowRestrictedSingletonQuotientResidualBalance_of_normalizedRows_derivativeFixed
+        M n hn2 htb hns hnorm hfix
+  exact
+    routeBPaperFaithfulTPhi_projectedPSideBound_of_quotientTypeCertificate_restrictedResidualBalance
+      M n hn2 htb hns cert hres hbudget
+
 private theorem routeBPaperFaithfulTPhi_finrank_sup_le_add
     {V : Type*} [AddCommGroup V] [Module ℚ V]
     (U W : Submodule ℚ V)
@@ -10617,6 +10649,29 @@ theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_quotientTypeNorma
     M n hn hn2 htb hns hdec
     (routeBPaperFaithfulTPhi_projectedPSideBound_of_quotientTypeNormalFormObligation_restrictedResidualBalance
       M n hn2 htb hns hquot hres hbudget)
+
+/-- Final strict-`TΦ` close-out for the concrete singleton quotient
+certificate, from the normalized row identity and fixed-derivative
+representative condition. -/
+theorem false_of_routeBPaperFaithfulTPhi_projectedLogWindow_of_singletonQuotientTypeCertificate_normalizedRows_derivativeFixed
+    (M : DTM) (n : ℕ) (hn : n ≥ 2 ^ 804)
+    (hn2 : n ≥ 2) (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hdec : PaperFaithfulSeparation.DecidesSAT M)
+    (hnorm :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonNormalizedRowIdentity
+        M n hn2 htb hns)
+    (hfix :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedSingletonQuotientDerivativeFixed
+        M n hn2 htb hns)
+    (hbudget :
+      zeroProfileSingletonQuotientProjectedTypeBudget (Nat.log 2 n)
+          (fun i => (cookLevinFactorList M n hn2 htb hns).get i) ≤
+        n ^ 200) :
+    False :=
+  false_of_routeBPaperFaithfulTPhi_projectedLogWindow
+    M n hn hn2 htb hns hdec
+    (routeBPaperFaithfulTPhi_projectedPSideBound_of_singletonQuotientTypeCertificate_normalizedRows_derivativeFixed
+      M n hn2 htb hns hnorm hfix hbudget)
 
 /-- Strict-`TΦ` projected/log-window final hook from quotiented zero-profile
 data and the strict projected P-window containment. -/
