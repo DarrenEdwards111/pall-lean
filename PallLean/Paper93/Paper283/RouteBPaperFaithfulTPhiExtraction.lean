@@ -4541,6 +4541,46 @@ theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileSubspaceConta
           (C.rowType S' shift α hSlen hshiftDegree hshiftVars hadm hrow))
           (C.row_mem_typeSpace S' shift α hSlen hshiftDegree hshiftVars hadm hrow))
 
+
+/-- A bounded common span for the narrowed row subspace can be repackaged as a
+one-type narrow classifier.  This is the reverse direction for the clean
+frontier: once the narrowed canonical rows are compressed into a bounded span,
+they automatically form a local-profile classifier without mentioning the broad
+residual/row-identity surfaces. -/
+noncomputable def routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileClassifier_of_commonSpanWithBudget
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcommon :
+      RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCommonSpanWithBudget
+        M n hn2 htb hns (withinProfileBound (Nat.log 2 n))) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileClassifier
+      M n hn2 htb hns := by
+  classical
+  let G : Finset (MvPolynomial (Fin n) ℚ) := Classical.choose hcommon
+  have hspec := Classical.choose_spec hcommon
+  let hG_card : G.card ≤ withinProfileBound (Nat.log 2 n) := hspec.1
+  let hG_span :
+      routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalPWindowSubspace
+          M n hn2 htb hns ≤
+        Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ)) := hspec.2
+  refine
+    { alphabet :=
+        { type := PUnit
+          typeFintype := inferInstance
+          localDim := withinProfileBound (Nat.log 2 n)
+          localBasis := fun _ => G
+          localBasis_card_le := fun _ => hG_card
+          profileSymmetricPowerBudget_le := by simp }
+      rowType := ?_
+      row_mem_typeSpace := ?_ }
+  · intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    exact PUnit.unit
+  · intro S' shift α hSlen hshiftDegree hshiftVars hadm hrow
+    apply hG_span
+    unfold routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalPWindowSubspace
+    exact Submodule.subset_span
+      ⟨S', shift, α, hSlen, hshiftDegree, hshiftVars, hadm, hrow, rfl⟩
+
 /-- Classifier-obligation form of the remaining narrowed profile frontier. -/
 def RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileClassifierObligation
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
@@ -4548,6 +4588,19 @@ def RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileClassifierObligati
   Nonempty
     (RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileClassifier
       M n hn2 htb hns)
+
+
+/-- Bounded common-span form gives the narrowed classifier-obligation form. -/
+theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileClassifierObligation_of_commonSpanWithBudget
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcommon :
+      RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCommonSpanWithBudget
+        M n hn2 htb hns (withinProfileBound (Nat.log 2 n))) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileClassifierObligation
+      M n hn2 htb hns :=
+  ⟨routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileClassifier_of_commonSpanWithBudget
+      M n hn2 htb hns hcommon⟩
 
 /-- The remaining classifier obligation closes the narrowed profile/subspace
 frontier and hence the narrowed bounded common-span consumer. -/
@@ -4565,6 +4618,68 @@ theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalCommonSpanWithBudget
   exact
     routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalCommonSpanWithBudget_of_profileSubspace
       M n hn2 htb hns A hA
+
+
+/-- The narrowed classifier obligation is equivalent to the narrowed bounded
+common-span package.  This names the exact remaining finite local-profile
+frontier, avoiding both broad residual balance and broad row identity. -/
+theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileClassifierObligation_iff_commonSpanWithBudget
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileClassifierObligation
+        M n hn2 htb hns ↔
+      RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCommonSpanWithBudget
+        M n hn2 htb hns (withinProfileBound (Nat.log 2 n)) := by
+  constructor
+  · intro hclassifier
+    exact
+      routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalCommonSpanWithBudget_of_classifierObligation
+        M n hn2 htb hns hclassifier
+  · intro hcommon
+    exact
+      routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileClassifierObligation_of_commonSpanWithBudget
+        M n hn2 htb hns hcommon
+
+/-- The old range-wide common-span frontier implies the narrowed one by
+subspace restriction.  This is only a compatibility bridge: it does not revive
+the range-wide residual or row-identity targets. -/
+theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalCommonSpanWithBudget_of_rangeCommonSpanWithBudget
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcommon :
+      RouteBPaperFaithfulTPhiRangePWindowCommonSpanWithBudget
+        M n hn2 htb hns (withinProfileBound (Nat.log 2 n))) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCommonSpanWithBudget
+      M n hn2 htb hns (withinProfileBound (Nat.log 2 n)) := by
+  classical
+  rcases hcommon with ⟨G, hG_card, hG_span⟩
+  refine ⟨G, hG_card, ?_⟩
+  unfold routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalPWindowSubspace
+  refine Submodule.span_le.mpr ?_
+  intro q hq
+  rcases hq with
+    ⟨S', shift, α, hSlen, hshiftDegree, hshiftVars, hadm, _hrow, rfl⟩
+  apply hG_span
+  unfold routeBPaperFaithfulTPhiRangePWindowSubspace
+  exact Submodule.subset_span
+    ⟨S', shift, hSlen, hshiftDegree, hshiftVars, hadm, rfl⟩
+
+/-- The old range-wide classifier obligation also implies the narrowed
+classifier obligation, simply by restricting the row surface. -/
+theorem routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileClassifierObligation_of_rangeClassifierObligation
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hclassifier :
+      RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifierObligation
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalProfileClassifierObligation
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalProfileClassifierObligation_of_commonSpanWithBudget
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictPaperFaithfulCanonicalCommonSpanWithBudget_of_rangeCommonSpanWithBudget
+      M n hn2 htb hns
+      ((routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_iff_commonSpanWithBudget
+        M n hn2 htb hns).mp hclassifier))
 
 def routeBPaperFaithfulTPhi_canonicalProfileResidualBalance_of_strictPaperFaithfulCoeffBalance
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
