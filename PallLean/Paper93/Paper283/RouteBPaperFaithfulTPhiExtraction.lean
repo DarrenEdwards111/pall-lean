@@ -2189,6 +2189,79 @@ theorem routeBPaperFaithfulTPhi_rangePWindowControlledByZeroProfileProjection_of
         M n hn2 htb hns project hrow S' shift
         hSlen hshiftDegree hshiftVars hadm)
 
+/-- A Cook-Levin finite local type normal-form map, together with the strict
+range row identity at the identity projection, constructs the actual strict
+`TΦ` profile-subspace classifier.
+
+This is the row-level local-monoid/profile instantiation: the classifier's type
+for a strict source-coordinate row is the local type assigned by the
+zero-profile generator type map to the corresponding embedded row.  The row
+identity transports the strict derivative row into exactly that selected local
+type space. -/
+noncomputable def routeBPaperFaithfulTPhi_strictProfileSubspaceClassifier_of_localTypeNormalForm_rowIdentity
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hlocal :
+      CookLevinZeroProfileLocalTypeNormalFormObligation M n hn2 htb hns)
+    (hrow :
+      RouteBPaperFaithfulTPhiRangePWindowZeroProfileRowIdentity
+        M n hn2 htb hns
+        (LinearMap.id :
+          MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)) :
+      RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifier
+      M n hn2 htb hns := by
+  classical
+  let A : ZeroProfileLocalTypeAlphabet n (Nat.log 2 n) :=
+    Classical.choose hlocal
+  let hmap : ZeroProfileGeneratorTypeMap (Nat.log 2 n)
+      (fun i => (cookLevinFactorList M n hn2 htb hns).get i) A :=
+    Classical.choice (Classical.choose_spec hlocal)
+  refine
+    { alphabet := A
+      rowType := ?_
+      row_mem_typeSpace := ?_ }
+  · intro S' shift hSlen hshiftDegree hshiftVars hadm
+    exact hmap.rowType
+      (S'.map (cookLevinStrictFOBFlatMap n))
+      (by simpa [List.length_map] using le_of_eq hSlen)
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift)
+      hshiftVars
+  · intro S' shift hSlen hshiftDegree hshiftVars hadm
+    have hbase :
+        mlProj
+            (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+              Finset.univ.prod
+                (fun i => (cookLevinFactorList M n hn2 htb hns).get i)) ∈
+          zeroProfileLocalTypeSpace A
+            (hmap.rowType
+              (S'.map (cookLevinStrictFOBFlatMap n))
+              (by simpa [List.length_map] using le_of_eq hSlen)
+              (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift)
+              hshiftVars) :=
+      hmap.row_mem_typeSpace
+        (S'.map (cookLevinStrictFOBFlatMap n))
+        (by simpa [List.length_map] using le_of_eq hSlen)
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift)
+        hshiftVars
+    rw [hrow S' shift hSlen hshiftDegree hshiftVars hadm]
+    simpa [cookLevinZeroProfileBaseProduct] using hbase
+
+/-- Obligation form of the local-monoid/profile classifier constructor. -/
+theorem routeBPaperFaithfulTPhi_strictProfileSubspaceClassifierObligation_of_localTypeNormalForm_rowIdentity
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hlocal :
+      CookLevinZeroProfileLocalTypeNormalFormObligation M n hn2 htb hns)
+    (hrow :
+      RouteBPaperFaithfulTPhiRangePWindowZeroProfileRowIdentity
+        M n hn2 htb hns
+        (LinearMap.id :
+          MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)) :
+    RouteBPaperFaithfulTPhiStrictProfileSubspaceClassifierObligation
+      M n hn2 htb hns :=
+  ⟨routeBPaperFaithfulTPhi_strictProfileSubspaceClassifier_of_localTypeNormalForm_rowIdentity
+    M n hn2 htb hns hlocal hrow⟩
+
 /-- A projected zero-profile common span gives the corrected range-only strict
 `TΦ` bounded common span as soon as the range P-window rows have been shown to
 land in that projected span.
@@ -9733,6 +9806,25 @@ theorem routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_profile
   exact
     routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_profileSubspaceClassifier
       M n hn2 htb hns C
+
+/-- A Cook-Levin local-monoid normal-form map plus the strict range row
+identity closes the strict paper-faithful profile/orbit global assembly. -/
+theorem routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_localTypeNormalForm_rowIdentity
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hlocal :
+      CookLevinZeroProfileLocalTypeNormalFormObligation M n hn2 htb hns)
+    (hrow :
+      RouteBPaperFaithfulTPhiRangePWindowZeroProfileRowIdentity
+        M n hn2 htb hns
+        (LinearMap.id :
+          MvPolynomial (Fin n) ℚ →ₗ[ℚ] MvPolynomial (Fin n) ℚ)) :
+    RouteBPaperFaithfulTPhiStrictPaperProfileOrbitGlobalAssembly
+      M n hn2 htb hns :=
+  routeBPaperFaithfulTPhi_strictPaperProfileOrbitGlobalAssembly_of_profileSubspaceClassifier
+    M n hn2 htb hns
+    (routeBPaperFaithfulTPhi_strictProfileSubspaceClassifier_of_localTypeNormalForm_rowIdentity
+      M n hn2 htb hns hlocal hrow)
 
 /-- A budgeted projected zero-profile common span gives the strict-`TΦ`
 projected P-side bound once the strict projected P-window is contained in that
