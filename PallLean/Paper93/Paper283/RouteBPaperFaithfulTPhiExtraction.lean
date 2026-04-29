@@ -4684,6 +4684,152 @@ theorem routeBPaperFaithfulTPhi_normalizedCoeffBalance_forces_unitShift_strictTa
   rw [hq, hd] at hbal'
   simpa [factors, p, r, q, d, α] using hbal'
 
+/-- The expanded normalized balance, after the support restriction and
+membership-case sum collapse, is a pure cardinal arithmetic identity.  This is
+the fully exposed unit-shift coefficient test for the strict `TΦ` residual
+gate. -/
+theorem routeBPaperFaithfulTPhi_normalizedCoeffBalance_forces_unitShift_collapsedArithmetic
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hbalance :
+      RouteBPaperFaithfulTPhiRangePWindowRestrictedNormalizedCoeffBalance
+        M n hn2 htb hns)
+    (S T : Finset (Fin (n / 3)))
+    (hTcard : T.card = Nat.log 2 n)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (T.toList.map (cookLevinStrictFOBFlatMap n)))
+    (hα :
+      ∀ i : Fin n,
+        SymmetricPower.tagMonomial
+          (S.map ⟨cookLevinStrictFOBFlatMap n,
+            cookLevinStrictFOBFlatMap_injective n⟩) ≠
+          Finsupp.single i 1) :
+    (-1 : ℚ) ^ S.card -
+        (-((S.card : ℚ) * ((-1 : ℚ) ^ (S.card - 1)))) =
+      (2 : ℚ) ^ (S ∩ T).card * (-1) ^ (S \ T).card *
+          (-1) ^ (T \ S).card -
+        (((S ∩ T).card : ℚ) *
+          (((2 : ℚ) * (-1) ^ (T.card - 1)) *
+            ((-1 : ℚ) ^ (S.card - 1))) +
+        ((S \ T).card : ℚ) *
+          ((-((-1 : ℚ) ^ T.card)) *
+            ((-1 : ℚ) ^ (S.card - 1)))) := by
+  classical
+  let e : Fin (n / 3) ↪ Fin n :=
+    ⟨cookLevinStrictFOBFlatMap n, cookLevinStrictFOBFlatMap_injective n⟩
+  let factors : Fin (cookLevinFactorList M n hn2 htb hns).length →
+      MvPolynomial (Fin n) ℚ :=
+    fun i => (cookLevinFactorList M n hn2 htb hns).get i
+  let α : Fin n →₀ ℕ := SymmetricPower.tagMonomial (S.map e)
+  let p : MvPolynomial (Fin n) ℚ :=
+    compiledPoly (cook_levin_compilation M n hn2 htb hns)
+  let r : MvPolynomial (Fin (n / 3)) ℚ :=
+    MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+      (cookLevinStrictFOBFlatMap_injective n) p
+  let q : MvPolynomial (Fin n) ℚ :=
+    mlProj
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+          (1 : MvPolynomial (Fin (n / 3)) ℚ) *
+        cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+  let d : MvPolynomial (Fin n) ℚ :=
+    MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+      (mlProj ((1 : MvPolynomial (Fin (n / 3)) ℚ) *
+        SPDP.iterDerivList T.toList r))
+  have hforce :=
+    routeBPaperFaithfulTPhi_normalizedCoeffBalance_forces_unitShift_strictTagCorrection
+      M n hn2 htb hns hbalance S T hTcard hadm hα
+  have hforce' :
+      (-1 : ℚ) ^ S.card -
+          ∑ i : Fin n,
+            MvPolynomial.coeff (Finsupp.single i 1) q *
+              MvPolynomial.coeff α
+                (mlProj (MvPolynomial.X i * Finset.univ.prod factors)) =
+        (2 : ℚ) ^ (S ∩ T).card * (-1) ^ (S \ T).card *
+            (-1) ^ (T \ S).card -
+          ∑ i : Fin n,
+            MvPolynomial.coeff (Finsupp.single i 1) d *
+              MvPolynomial.coeff α
+                (mlProj (MvPolynomial.X i * Finset.univ.prod factors)) := by
+    simpa [e, factors, α, p, r, q, d] using hforce
+  have hqRestrict :
+      (∑ i : Fin n,
+          MvPolynomial.coeff (Finsupp.single i 1) q *
+            MvPolynomial.coeff α
+              (mlProj (MvPolynomial.X i * Finset.univ.prod factors))) =
+        ∑ j ∈ S,
+          MvPolynomial.coeff (Finsupp.single (e j) 1) q *
+            MvPolynomial.coeff α
+              (mlProj
+                (MvPolynomial.X (e j) *
+                  cookLevinZeroProfileBaseProduct M n hn2 htb hns)) := by
+    simpa [e, factors, α, q, cookLevinZeroProfileBaseProduct] using
+      routeBPaperFaithfulTPhi_unitShift_correctionSum_restricts_to_strictSupport
+        M n hn2 htb hns S q
+  have hqCard :
+      (∑ j ∈ S,
+          MvPolynomial.coeff (Finsupp.single (e j) 1) q *
+            MvPolynomial.coeff α
+              (mlProj
+                (MvPolynomial.X (e j) *
+                  cookLevinZeroProfileBaseProduct M n hn2 htb hns))) =
+        -((S.card : ℚ) * ((-1 : ℚ) ^ (S.card - 1))) := by
+    simpa [e, q, α] using
+      routeBPaperFaithfulTPhi_unitShift_zeroProfile_correctionSumOnStrictSupport_card
+        M n hn2 htb hns S
+  have hdRestrict :
+      (∑ i : Fin n,
+          MvPolynomial.coeff (Finsupp.single i 1) d *
+            MvPolynomial.coeff α
+              (mlProj (MvPolynomial.X i * Finset.univ.prod factors))) =
+        ∑ j ∈ S,
+          MvPolynomial.coeff (Finsupp.single (e j) 1) d *
+            MvPolynomial.coeff α
+              (mlProj
+                (MvPolynomial.X (e j) *
+                  cookLevinZeroProfileBaseProduct M n hn2 htb hns)) := by
+    simpa [e, factors, α, d, cookLevinZeroProfileBaseProduct] using
+      routeBPaperFaithfulTPhi_unitShift_correctionSum_restricts_to_strictSupport
+        M n hn2 htb hns S d
+  have hdCard :
+      (∑ j ∈ S,
+          MvPolynomial.coeff (Finsupp.single (e j) 1) d *
+            MvPolynomial.coeff α
+              (mlProj
+                (MvPolynomial.X (e j) *
+                  cookLevinZeroProfileBaseProduct M n hn2 htb hns))) =
+        ((S ∩ T).card : ℚ) *
+          (((2 : ℚ) * (-1) ^ (T.card - 1)) *
+            ((-1 : ℚ) ^ (S.card - 1))) +
+        ((S \ T).card : ℚ) *
+          ((-((-1 : ℚ) ^ T.card)) *
+            ((-1 : ℚ) ^ (S.card - 1))) := by
+    simpa [e, p, r, d, α] using
+      routeBPaperFaithfulTPhi_unitShift_derivative_correctionSumOnStrictSupport_inter_sdiff
+        M n hn2 htb hns S T
+  have hqAmbient :
+      (∑ i : Fin n,
+          MvPolynomial.coeff (Finsupp.single i 1) q *
+            MvPolynomial.coeff α
+              (mlProj (MvPolynomial.X i * Finset.univ.prod factors))) =
+        -((S.card : ℚ) * ((-1 : ℚ) ^ (S.card - 1))) :=
+    hqRestrict.trans hqCard
+  have hdAmbient :
+      (∑ i : Fin n,
+          MvPolynomial.coeff (Finsupp.single i 1) d *
+            MvPolynomial.coeff α
+              (mlProj (MvPolynomial.X i * Finset.univ.prod factors))) =
+        ((S ∩ T).card : ℚ) *
+          (((2 : ℚ) * (-1) ^ (T.card - 1)) *
+            ((-1 : ℚ) ^ (S.card - 1))) +
+        ((S \ T).card : ℚ) *
+          ((-((-1 : ℚ) ^ T.card)) *
+            ((-1 : ℚ) ^ (S.card - 1))) :=
+    hdRestrict.trans hdCard
+  rw [hqAmbient, hdAmbient] at hforce'
+  simpa [e, factors, α, p, r, q, d] using hforce'
+
 /-- Actual constant coefficient of the intended strict `TΦ` derivative row,
 for the list-shaped source-row interface.  Repeated derivative coordinates are
 excluded by `hSnd`; the coefficient is the expected Boolean sign
