@@ -3723,6 +3723,107 @@ abbrev RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffBalance
     (routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
       M n hn2 htb hns)
 
+/-- Fully expanded paper-faithful strict coefficient target.
+
+This is the narrowed replacement for the broad diagnostic algebra above.  The
+mathematical coefficient identity is unchanged, but its hypotheses now expose
+all three row gates separately: strict canonical normal form, absence of the
+marked two-tag coefficient profile, and the unit-shift zero-profile
+parity/normalization side condition.  This is the form to attack with the
+lower-level Cook-Levin coefficient/support lemmas. -/
+def RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffAlgebra
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∀ (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ),
+    S'.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+      (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (S'.map (cookLevinStrictFOBFlatMap n)) →
+    ∀ α : Fin n →₀ ℕ,
+      (∀ i : Fin n, α ≠ Finsupp.single i 1) →
+      (by
+        letI := routeBPaperFaithfulTPhiStrictProdLinearOrder n
+        exact
+          PallLean.Paper93.IsCanonical
+            (κ := Nat.log 2 n)
+            (routeBPaperFaithfulTPhiStrictCanonScheme n (Nat.log 2 n))
+            (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α)) →
+      ¬ routeBPaperFaithfulTPhiStrictWindowHasMarkedCoeff
+        (routeBPaperFaithfulTPhiStrictRawWindowOf n S' shift α) →
+      (shift = (1 : MvPolynomial (Fin (n / 3)) ℚ) →
+        α = (0 : Fin n →₀ ℕ) →
+        S'.Nodup →
+        Even S'.length) →
+      let factors : Fin (cookLevinFactorList M n hn2 htb hns).length →
+          MvPolynomial (Fin n) ℚ :=
+        fun i => (cookLevinFactorList M n hn2 htb hns).get i
+      let p : MvPolynomial (Fin n) ℚ :=
+        compiledPoly (cook_levin_compilation M n hn2 htb hns)
+      let r : MvPolynomial (Fin (n / 3)) ℚ :=
+        MultilinearSPDP.restrictPoly ℚ (cookLevinStrictFOBFlatMap n)
+          (cookLevinStrictFOBFlatMap_injective n) p
+      let q : MvPolynomial (Fin n) ℚ :=
+        mlProj
+          (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+            cookLevinZeroProfileBaseProduct M n hn2 htb hns)
+      let d : MvPolynomial (Fin n) ℚ :=
+        MvPolynomial.rename (cookLevinStrictFOBFlatMap n)
+          (mlProj (shift * SPDP.iterDerivList S' r))
+      MvPolynomial.coeff α q -
+          ∑ i : Fin n,
+            MvPolynomial.coeff (Finsupp.single i 1) q *
+              MvPolynomial.coeff α
+                (mlProj (MvPolynomial.X i * Finset.univ.prod factors)) =
+        MvPolynomial.coeff α d -
+          ∑ i : Fin n,
+            MvPolynomial.coeff (Finsupp.single i 1) d *
+              MvPolynomial.coeff α
+                (mlProj (MvPolynomial.X i * Finset.univ.prod factors))
+
+theorem routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffBalance_of_algebra
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (halgebra :
+      RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffAlgebra
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffBalance
+      M n hn2 htb hns := by
+  classical
+  intro S' shift hSlen hshiftDegree hshiftVars hadm α hα hrow
+  exact
+    halgebra S' shift hSlen hshiftDegree hshiftVars hadm α hα
+      hrow.1.1 hrow.1.2 hrow.2
+
+theorem routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffAlgebra_of_balance
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hbalance :
+      RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffBalance
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffAlgebra
+      M n hn2 htb hns := by
+  classical
+  intro S' shift hSlen hshiftDegree hshiftVars hadm α hα hcan hunmarked hparity
+  exact
+    hbalance S' shift hSlen hshiftDegree hshiftVars hadm α hα
+      ⟨⟨hcan, hunmarked⟩, hparity⟩
+
+theorem routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffBalance_iff_algebra
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
+    RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffBalance
+        M n hn2 htb hns ↔
+      RouteBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffAlgebra
+        M n hn2 htb hns :=
+  ⟨routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffAlgebra_of_balance
+      M n hn2 htb hns,
+    routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalCoeffBalance_of_algebra
+      M n hn2 htb hns⟩
+
 theorem routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily_excludes_two_tag
     (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
     (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) :
