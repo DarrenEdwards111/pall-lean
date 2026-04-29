@@ -396,6 +396,75 @@ theorem concreteWEndpointSpanOneStepCharge_compatible
   intro bpSrc bpTgt S _hSlen shift _hshift hcharge
   exact hcharge
 
+/-- A concrete one-step endpoint charge raises the total profile mass by one.
+
+This is the budget obstruction behind the charged-target formulation: if a
+source profile already saturates the admissible mass bound, any genuinely used
+one-step charged target exits the same admissible profile budget. -/
+theorem profileMass_eq_add_one_of_concreteWEndpointSpanOneStepCharge
+    (n : ℕ) (hn4 : n ≥ 4)
+    (bpSrc bpTgt : BoundedProfile (Nat.log 2 n))
+    (S : List (Fin n)) (shift : MvPolynomial (Fin n) ℚ)
+    (hcharge :
+      concreteWEndpointSpanOneStepCharge n hn4 bpSrc S shift bpTgt) :
+    profileMass bpTgt.toHistogram = profileMass bpSrc.toHistogram + 1 := by
+  rcases hcharge with ⟨τ0, _hshiftEndpoint, hbump, hsame⟩
+  unfold profileMass
+  rw [Finset.sum_eq_add_sum_diff_singleton (Finset.mem_univ τ0)]
+  rw [Finset.sum_eq_add_sum_diff_singleton (Finset.mem_univ τ0)]
+  have hsum :
+      (∑ x ∈ Finset.univ \ {τ0}, bpTgt.toHistogram x) =
+        ∑ x ∈ Finset.univ \ {τ0}, bpSrc.toHistogram x := by
+    refine Finset.sum_congr rfl ?_
+    intro x hx
+    have hne : x ≠ τ0 := by
+      simpa using (Finset.mem_sdiff.mp hx).2
+    exact hsame x hne
+  rw [hsum, hbump]
+  omega
+
+/-- If the source profile already saturates the admissible mass budget, a
+non-vacuous generator-level concrete endpoint target cover cannot exist.
+
+The theorem deliberately exposes the non-vacuity hypothesis: without an actual
+source generator, `CookLevinEndpointChargedTargetGeneratorCoverAt` is only a
+vacuous target choice. -/
+theorem not_CookLevinEndpointChargedTargetGeneratorCoverAt_concreteWEndpointSpanOneStepCharge_of_saturated_nonempty
+    (M : DTM) (n : ℕ) (hn : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hn4 : n ≥ 4)
+    (h : ProfileHistogram)
+    (hadm : ProfileAdmissible (Nat.log 2 n) h)
+    (hmass : profileMass h = Nat.log 2 n)
+    (hgenNonempty :
+      ∃ (S : List (Fin n)) (_hSlen : S.length ≤ Nat.log 2 n)
+        (shift : MvPolynomial (Fin n) ℚ)
+        (_hshift : shift.vars ⊆ S.toFinset)
+        (g : MvPolynomial (Fin n) ℚ),
+          g ∈ boundedProfileClassifiedSet
+            (fun i => (cookLevinFactorList M n hn htb hns).get i)
+            (cookLevinConstraintType M n hn htb hns) S h) :
+    ¬ CookLevinEndpointChargedTargetGeneratorCoverAt
+        M n hn htb hns (concreteWEndpointSpanOneStepCharge n hn4) h hadm := by
+  intro hcover
+  rcases hcover with ⟨bpTgt, hadmTgt, _htrTgt, _hactiveTgt, hchargeAll⟩
+  rcases hgenNonempty with ⟨S, hSlen, shift, hshift, g, hg⟩
+  have hcharge :
+      concreteWEndpointSpanOneStepCharge n hn4
+        (admissibleToBounded hadm) S shift bpTgt :=
+    hchargeAll S hSlen shift hshift g hg
+  have hmassTgt :
+      profileMass bpTgt.toHistogram = Nat.log 2 n + 1 := by
+    calc
+      profileMass bpTgt.toHistogram
+          = profileMass (admissibleToBounded hadm).toHistogram + 1 :=
+            profileMass_eq_add_one_of_concreteWEndpointSpanOneStepCharge
+              n hn4 (admissibleToBounded hadm) bpTgt S shift hcharge
+      _ = Nat.log 2 n + 1 := by
+            simpa [hmass]
+  have hle : profileMass bpTgt.toHistogram ≤ Nat.log 2 n := hadmTgt
+  omega
+
 /-- The concrete one-step endpoint charge cannot self-target any profile: by
 definition it must bump one histogram coordinate.  This is the concrete
 obstruction to feeding the same-profile active bridge through
@@ -1030,6 +1099,8 @@ theorem endpointAugmentedConcreteW_chargedShiftClosure_of_canonical_endpointSpan
 #print axioms concreteWEndpointSpan_le_endpointAugmentedConcreteW
 #print axioms not_endpointAugmentedConcreteW_endpointSpanOneStepChargeCompatible_sameProfileCharge
 #print axioms concreteWEndpointSpanOneStepCharge_compatible
+#print axioms profileMass_eq_add_one_of_concreteWEndpointSpanOneStepCharge
+#print axioms not_CookLevinEndpointChargedTargetGeneratorCoverAt_concreteWEndpointSpanOneStepCharge_of_saturated_nonempty
 #print axioms not_ProfileChargeSelfAtBoundedProfile_concreteWEndpointSpanOneStepCharge
 #print axioms not_EndpointAugmentedActiveProfileChargedClosureAtProfile_concreteWEndpointSpanOneStepCharge
 #print axioms not_EndpointAugmentedActiveProfileChargedFrontier_concreteWEndpointSpanOneStepCharge
