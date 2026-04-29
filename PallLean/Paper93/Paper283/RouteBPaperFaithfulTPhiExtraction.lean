@@ -4849,6 +4849,79 @@ theorem routeBPaperFaithfulTPhi_strictCanonicalRow_mem_orbitProfileSubspace
     D.canonicalRow_mem_orbitProfileSpan
       S' shift α hSlen hshiftDegree hshiftVars hadm hrow
 
+
+/-- Downstream rank-budget form of the paper-faithful orbit route.
+
+This is intentionally an orbit/rank statement, not a literal common-span
+statement.  It records exactly the data needed by the paper's Lemma 27 + Lemma
+31 route: finitely many interface-anonymous profiles, a bounded local space for
+each profile, and every canonical row contained in an invertible permutation /
+rename image of the appropriate local space. -/
+def RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankBoundWithBudget
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (budget : ℕ) : Prop :=
+  ∃ D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns,
+    Fintype.card D.profileType * D.localDim ≤ budget
+
+/-- Orbit-rank data immediately supplies the downstream orbit-rank budget.
+This is the bridge that replaces the previous attempt to force all rows into a
+literal global common span. -/
+theorem routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitRankBoundWithBudget_of_data
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+      M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankBoundWithBudget
+      M n hn2 htb hns (withinProfileBound (Nat.log 2 n)) :=
+  ⟨D, D.profileBudget_le⟩
+
+/-- The orbit-rank budget exposes the per-row local-rank bound for every
+narrowed canonical strict row.  The row may live in a row-dependent invertible
+rename/permutation image, but that image has the same finrank as the bounded
+profile space. -/
+theorem routeBPaperFaithfulTPhi_strictCanonicalWindowOrbitRankBound_row_finrank_le
+    {M : DTM} {n : ℕ} {hn2 : n ≥ 2}
+    {htb : M.timeBound ≤ 4} {hns : M.numStates ≤ n}
+    (hbudget :
+      RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankBoundWithBudget
+        M n hn2 htb hns (withinProfileBound (Nat.log 2 n)))
+    (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ)
+    (α : Fin n →₀ ℕ)
+    (hSlen : S'.length = Nat.log 2 n)
+    (hshiftDegree : shift.totalDegree ≤ Nat.log 2 n)
+    (hshiftVars :
+      (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+        (S'.map (cookLevinStrictFOBFlatMap n)).toFinset)
+    (hadm :
+      SPDP.isBlockAdmissible
+        (cook_levin_compilation M n hn2 htb hns).partition
+        (S'.map (cookLevinStrictFOBFlatMap n)))
+    (hrow :
+      routeBPaperFaithfulTPhiStrictPaperFaithfulCanonicalRowFamily
+        M n hn2 htb hns S' shift α) :
+    ∃ D : RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankData
+        M n hn2 htb hns,
+      routeBPaperFaithfulTPhiStrictCanonicalDerivativeRow
+          M n hn2 htb hns S' shift ∈
+        routeBPaperFaithfulTPhiStrictCanonicalOrbitProfileSubspace
+          D S' shift α hSlen hshiftDegree hshiftVars hadm hrow ∧
+      Module.finrank ℚ
+        (routeBPaperFaithfulTPhiStrictCanonicalOrbitProfileSubspace
+          D S' shift α hSlen hshiftDegree hshiftVars hadm hrow) ≤
+        D.localDim ∧
+      Fintype.card D.profileType * D.localDim ≤
+        withinProfileBound (Nat.log 2 n) := by
+  rcases hbudget with ⟨D, hD⟩
+  exact ⟨D,
+    routeBPaperFaithfulTPhi_strictCanonicalRow_mem_orbitProfileSubspace
+      D S' shift α hSlen hshiftDegree hshiftVars hadm hrow,
+    routeBPaperFaithfulTPhi_strictCanonicalOrbitProfileSubspace_finrank_le
+      D S' shift α hSlen hshiftDegree hshiftVars hadm hrow,
+    hD⟩
+
 /-- The paper-faithful orbit-rank frontier: finite profiles, bounded local
 spaces, and canonical rows landing in invertible orbit images of those spaces. -/
 def RouteBPaperFaithfulTPhiStrictCanonicalWindowOrbitRankFrontier
