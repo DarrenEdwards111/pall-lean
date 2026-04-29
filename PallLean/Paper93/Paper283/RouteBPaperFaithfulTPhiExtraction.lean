@@ -1729,6 +1729,131 @@ noncomputable def routeBPaperFaithfulTPhiRangePWindowSubspace
                   (compiledPoly
                     (cook_levin_compilation M n hn2 htb hns)))) }
 
+/-- Budgeted common-span target for the corrected range-only strict `TΦ`
+P-window subspace.
+
+This is the paper-faithful granularity: after canonical/profile compression we
+only need the whole row family to lie in a bounded subspace, not a pointwise
+coefficient identity for every multi-tag probe. -/
+def RouteBPaperFaithfulTPhiRangePWindowCommonSpanWithBudget
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (budget : ℕ) : Prop :=
+  ∃ G : Finset (MvPolynomial (Fin n) ℚ),
+    G.card ≤ budget ∧
+    routeBPaperFaithfulTPhiRangePWindowSubspace M n hn2 htb hns ≤
+      Submodule.span ℚ (↑G : Set (MvPolynomial (Fin n) ℚ))
+
+/-- Profile/local-normal-form containment for the corrected range-only strict
+`TΦ` P-window subspace.
+
+The alphabet `A` is the finite interface/profile normal-form alphabet from the
+paper.  Proving this containment is the replacement for the refuted pointwise
+coefficient-balance route: every canonicalized strict `TΦ` row is classified by
+bounded profile/interface data and lands in the corresponding compressed
+profile span. -/
+def RouteBPaperFaithfulTPhiRangePWindowControlledByProfileSubspace
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (A : ZeroProfileLocalTypeAlphabet n (Nat.log 2 n)) : Prop :=
+  routeBPaperFaithfulTPhiRangePWindowSubspace M n hn2 htb hns ≤
+    zeroProfileLocalTypeCompressedProfileSpan A
+
+/-- Generator-by-generator form of the strict `TΦ` profile-subspace
+containment.  This is the proof shape suggested by the paper: canonicalize the
+window, read off its bounded profile/interface type, and show the resulting
+row lies in the corresponding compressed profile span. -/
+def RouteBPaperFaithfulTPhiRangePWindowProfileGeneratorReduction
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (A : ZeroProfileLocalTypeAlphabet n (Nat.log 2 n)) : Prop :=
+  ∀ (S' : List (Fin (n / 3)))
+    (shift : MvPolynomial (Fin (n / 3)) ℚ),
+    S'.length = Nat.log 2 n →
+    shift.totalDegree ≤ Nat.log 2 n →
+    (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift).vars ⊆
+      (S'.map (cookLevinStrictFOBFlatMap n)).toFinset →
+    SPDP.isBlockAdmissible
+      (cook_levin_compilation M n hn2 htb hns).partition
+      (S'.map (cookLevinStrictFOBFlatMap n)) →
+    mlProj
+        (MvPolynomial.rename (cookLevinStrictFOBFlatMap n) shift *
+          SPDP.iterDerivList (S'.map (cookLevinStrictFOBFlatMap n))
+            ((routeBPaperFaithfulTPhiAmbientGauge M n hn2 htb hns)
+              (compiledPoly (cook_levin_compilation M n hn2 htb hns)))) ∈
+      zeroProfileLocalTypeCompressedProfileSpan A
+
+/-- The profile-subspace containment is exactly its generator-membership form
+for the range-only strict `TΦ` subspace. -/
+theorem routeBPaperFaithfulTPhi_rangePWindowControlledByProfileSubspace_iff_generatorReduction
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (A : ZeroProfileLocalTypeAlphabet n (Nat.log 2 n)) :
+    RouteBPaperFaithfulTPhiRangePWindowControlledByProfileSubspace
+        M n hn2 htb hns A ↔
+      RouteBPaperFaithfulTPhiRangePWindowProfileGeneratorReduction
+        M n hn2 htb hns A := by
+  classical
+  constructor
+  · intro hcontrol S' shift hSlen hshiftDegree hshiftVars hadm
+    apply hcontrol
+    unfold routeBPaperFaithfulTPhiRangePWindowSubspace
+    exact Submodule.subset_span
+      ⟨S', shift, hSlen, hshiftDegree, hshiftVars, hadm, rfl⟩
+  · intro hgen
+    unfold RouteBPaperFaithfulTPhiRangePWindowControlledByProfileSubspace
+    unfold routeBPaperFaithfulTPhiRangePWindowSubspace
+    refine Submodule.span_le.mpr ?_
+    intro q hq
+    rcases hq with
+      ⟨S', shift, hSlen, hshiftDegree, hshiftVars, hadm, rfl⟩
+    exact hgen S' shift hSlen hshiftDegree hshiftVars hadm
+
+/-- A profile-subspace containment immediately gives the paper-scale bounded
+common-span form, using the finite local normal-form basis supplied by the
+alphabet. -/
+theorem routeBPaperFaithfulTPhi_rangePWindowCommonSpanWithBudget_of_profileSubspace
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (A : ZeroProfileLocalTypeAlphabet n (Nat.log 2 n))
+    (hprofile :
+      RouteBPaperFaithfulTPhiRangePWindowControlledByProfileSubspace
+        M n hn2 htb hns A) :
+    RouteBPaperFaithfulTPhiRangePWindowCommonSpanWithBudget
+      M n hn2 htb hns (withinProfileBound (Nat.log 2 n)) := by
+  classical
+  refine ⟨zeroProfileLocalTypeGlobalBasis A,
+    zeroProfileLocalTypeGlobalBasis_card_le_withinProfileBound A, ?_⟩
+  simpa [RouteBPaperFaithfulTPhiRangePWindowControlledByProfileSubspace,
+    zeroProfileLocalTypeCompressedProfileSpan] using hprofile
+
+/-- Paper-faithful strict `TΦ` profile/subspace frontier.
+
+This is the corrected target after the pointwise coefficient-balance no-go
+lemmas: provide a finite local normal-form alphabet and prove the range-only
+strict `TΦ` P-window rows land in its compressed profile subspace. -/
+def RouteBPaperFaithfulTPhiStrictProfileSubspaceContainment
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n) : Prop :=
+  ∃ A : ZeroProfileLocalTypeAlphabet n (Nat.log 2 n),
+    RouteBPaperFaithfulTPhiRangePWindowControlledByProfileSubspace
+      M n hn2 htb hns A
+
+/-- The strict profile/subspace frontier is enough to produce the bounded
+common-span package consumed by the dimension/rank assembly. -/
+theorem routeBPaperFaithfulTPhi_rangePWindowCommonSpanWithBudget_of_strictProfileSubspaceContainment
+    (M : DTM) (n : ℕ) (hn2 : n ≥ 2)
+    (htb : M.timeBound ≤ 4) (hns : M.numStates ≤ n)
+    (hcontain :
+      RouteBPaperFaithfulTPhiStrictProfileSubspaceContainment
+        M n hn2 htb hns) :
+    RouteBPaperFaithfulTPhiRangePWindowCommonSpanWithBudget
+      M n hn2 htb hns (withinProfileBound (Nat.log 2 n)) := by
+  rcases hcontain with ⟨A, hprofile⟩
+  exact
+    routeBPaperFaithfulTPhi_rangePWindowCommonSpanWithBudget_of_profileSubspace
+      M n hn2 htb hns A hprofile
+
 /-- Range-only strict-`TΦ` containment in a selected projected zero-profile
 span. -/
 def RouteBPaperFaithfulTPhiRangePWindowControlledByZeroProfileProjection
